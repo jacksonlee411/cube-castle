@@ -130,6 +130,29 @@ cube-castle/
 
 ## 🛠️ 开发指南
 
+### 脚本开发规范 ⭐ **重要规则**
+
+- **只使用Bash脚本**：项目中的所有脚本都使用Bash编写
+- **不创建PowerShell脚本**：避免编码问题和跨平台兼容性问题
+- **脚本命名**：使用`.sh`后缀，如`test_api.sh`、`start.sh`
+- **编码格式**：使用UTF-8编码，确保在WSL/Linux环境中正常运行
+
+#### 脚本开发原则：
+```bash
+#!/bin/bash
+# 脚本头部必须包含shebang
+set -e  # 遇到错误立即退出
+set -u  # 使用未定义变量时报错
+
+# 使用颜色输出提高可读性
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}✅ 操作成功${NC}"
+echo -e "${RED}❌ 操作失败${NC}"
+```
+
 ### API 开发
 
 1. **定义 API 合约**: 在 `contracts/openapi.yaml` 中定义 API 规范

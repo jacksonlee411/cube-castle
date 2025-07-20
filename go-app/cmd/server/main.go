@@ -20,6 +20,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/generated/openapi"
 	"github.com/gaogu/cube-castle/go-app/internal/common"
 	"github.com/gaogu/cube-castle/go-app/internal/corehr"
+	"github.com/gaogu/cube-castle/go-app/internal/outbox"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -28,6 +29,7 @@ type Server struct {
 	db             *common.Database
 	intelSvcClient pb.IntelligenceServiceClient
 	corehrService  *corehr.Service
+	outboxService  *outbox.Service
 }
 
 
@@ -221,12 +223,21 @@ func main() {
 	
 	router := chi.NewRouter()
 	
+	// 初始化发件箱服务
+	var outboxService *outbox.Service
+	if db != nil && db.PostgreSQL != nil {
+		outboxService = outbox.NewService(db.PostgreSQL)
+		log.Printf("✅ Outbox service initialized")
+	} else {
+		log.Printf("📝 Outbox service not initialized (mock mode)")
+	}
+
 	// 初始化 CoreHR 服务
 	var corehrService *corehr.Service
 	if db != nil && db.PostgreSQL != nil {
 		corehrRepo := corehr.NewRepository(db.PostgreSQL)
-		corehrService = corehr.NewService(corehrRepo)
-		log.Printf("✅ CoreHR service initialized with database")
+		corehrService = corehr.NewService(corehrRepo, outboxService)
+		log.Printf("✅ CoreHR service initialized with database and outbox")
 	} else {
 		// 使用 mock 服务
 		corehrService = corehr.NewMockService()
@@ -237,6 +248,37 @@ func main() {
 		db:             db,
 		intelSvcClient: intelClient,
 		corehrService:  corehrService,
+		outboxService:  outboxService,
+	}
+
+	// 注册事件处理器（如果可用）
+	if outboxService != nil && db != nil && db.PostgreSQL != nil {
+		// 创建适配器
+		corehrRepo := corehr.NewRepository(db.PostgreSQL)
+		outboxAdapter := corehr.NewOutboxAdapter(corehrRepo)
+		
+		// 注册事件处理器
+		outboxService.RegisterHandler(outbox.NewEmployeeEventHandler(outboxAdapter))
+		outboxService.RegisterHandler(outbox.NewEmployeeUpdatedEventHandler(outboxAdapter))
+		outboxService.RegisterHandler(outbox.NewEmployeePhoneUpdatedEventHandler(outboxAdapter))
+		outboxService.RegisterHandler(outbox.NewOrganizationEventHandler(outboxAdapter))
+		outboxService.RegisterHandler(outbox.NewLeaveRequestEventHandler(outboxAdapter))
+		outboxService.RegisterHandler(outbox.NewLeaveRequestApprovedEventHandler(outboxAdapter))
+		outboxService.RegisterHandler(outbox.NewLeaveRequestRejectedEventHandler(outboxAdapter))
+		outboxService.RegisterHandler(outbox.NewNotificationEventHandler())
+		
+		log.Printf("✅ Event handlers registered")
+	}
+
+	// 启动发件箱服务（如果可用）
+	if outboxService != nil {
+		go func() {
+			ctx := context.Background()
+			if err := outboxService.Start(ctx); err != nil {
+				log.Printf("❌ Failed to start outbox service: %v", err)
+			}
+		}()
+		log.Printf("✅ Outbox service started in background")
 	}
 
 	// 添加中间件
@@ -300,7 +342,8 @@ func main() {
 				search = searchStr
 			}
 			
-			response, err := server.corehrService.ListEmployees(r.Context(), page, pageSize, search)
+			tenantID := server.getDefaultTenantID()
+			response, err := server.corehrService.ListEmployees(r.Context(), tenantID, page, pageSize, search)
 			if err != nil {
 				server.handleError(w, err, "Failed to list employees")
 				return
@@ -321,7 +364,8 @@ func main() {
 				return
 			}
 			
-			employee, err := server.corehrService.GetEmployee(r.Context(), employeeID)
+			tenantID := server.getDefaultTenantID()
+			employee, err := server.corehrService.GetEmployee(r.Context(), tenantID, employeeID)
 			if err != nil {
 				server.handleError(w, err, "Failed to get employee")
 				return
@@ -346,7 +390,8 @@ func main() {
 				return
 			}
 			
-			employee, err := server.corehrService.UpdateEmployee(r.Context(), employeeID, &req)
+			tenantID := server.getDefaultTenantID()
+			employee, err := server.corehrService.UpdateEmployee(r.Context(), tenantID, employeeID, &req)
 			if err != nil {
 				server.handleError(w, err, "Failed to update employee")
 				return
@@ -365,7 +410,8 @@ func main() {
 				return
 			}
 			
-			err = server.corehrService.DeleteEmployee(r.Context(), employeeID)
+			tenantID := server.getDefaultTenantID()
+			err = server.corehrService.DeleteEmployee(r.Context(), tenantID, employeeID)
 			if err != nil {
 				server.handleError(w, err, "Failed to delete employee")
 				return
@@ -382,9 +428,23 @@ func main() {
 	router.Get("/test.html", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "../test.html")
 	})
+	
+	router.Get("/verify_1.1.1.html", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./verify_1.1.1.html")
+	})
 
 	// 注册 AI 服务路由
 	router.Post("/api/v1/interpret", server.InterpretQuery)
+	
+	// 注册发件箱管理路由
+	if outboxService != nil {
+		router.Route("/api/v1/outbox", func(r chi.Router) {
+			r.Get("/stats", server.GetOutboxStats)
+			r.Get("/events", server.GetOutboxEvents)
+			r.Post("/replay", server.ReplayEvents)
+			r.Get("/unprocessed", server.GetUnprocessedEvents)
+		})
+	}
 	
 	// 注册其他 API 路由（OpenAPI 生成的路由）
 	// router.Mount("/api/v1/openapi", openapi.Handler(server)) // 暂时注释掉，因为我们使用 Chi 而不是 Echo
@@ -443,6 +503,13 @@ func seedDatabase() {
 
 // CoreHR API 实现
 
+// getDefaultTenantID 获取默认租户ID（临时实现，后续会从JWT或请求头中获取）
+func (s *Server) getDefaultTenantID() uuid.UUID {
+	// 临时使用硬编码的默认租户ID，后续会从JWT或请求头中获取
+	defaultTenantID, _ := uuid.Parse("00000000-0000-0000-0000-000000000000")
+	return defaultTenantID
+}
+
 // ListEmployees - 获取员工列表
 func (s *Server) ListEmployees(w http.ResponseWriter, r *http.Request, params openapi.ListEmployeesParams) {
 	page := 1
@@ -460,7 +527,8 @@ func (s *Server) ListEmployees(w http.ResponseWriter, r *http.Request, params op
 		search = *params.Search
 	}
 	
-	response, err := s.corehrService.ListEmployees(r.Context(), page, pageSize, search)
+	tenantID := s.getDefaultTenantID()
+	response, err := s.corehrService.ListEmployees(r.Context(), tenantID, page, pageSize, search)
 	if err != nil {
 		s.handleError(w, err, "Failed to list employees")
 		return
@@ -479,7 +547,8 @@ func (s *Server) CreateEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	employee, err := s.corehrService.CreateEmployee(r.Context(), &req)
+	tenantID := s.getDefaultTenantID()
+	employee, err := s.corehrService.CreateEmployee(r.Context(), tenantID, &req)
 	if err != nil {
 		s.handleError(w, err, "Failed to create employee")
 		return
@@ -492,7 +561,8 @@ func (s *Server) CreateEmployee(w http.ResponseWriter, r *http.Request) {
 
 // GetEmployee - 获取员工详情
 func (s *Server) GetEmployee(w http.ResponseWriter, r *http.Request, employeeId uuid.UUID) {
-	employee, err := s.corehrService.GetEmployee(r.Context(), employeeId)
+	tenantID := s.getDefaultTenantID()
+	employee, err := s.corehrService.GetEmployee(r.Context(), tenantID, employeeId)
 	if err != nil {
 		s.handleError(w, err, "Failed to get employee")
 		return
@@ -511,7 +581,8 @@ func (s *Server) UpdateEmployee(w http.ResponseWriter, r *http.Request, employee
 		return
 	}
 	
-	employee, err := s.corehrService.UpdateEmployee(r.Context(), employeeId, &req)
+	tenantID := s.getDefaultTenantID()
+	employee, err := s.corehrService.UpdateEmployee(r.Context(), tenantID, employeeId, &req)
 	if err != nil {
 		s.handleError(w, err, "Failed to update employee")
 		return
@@ -524,7 +595,8 @@ func (s *Server) UpdateEmployee(w http.ResponseWriter, r *http.Request, employee
 
 // DeleteEmployee - 删除员工
 func (s *Server) DeleteEmployee(w http.ResponseWriter, r *http.Request, employeeId uuid.UUID) {
-	err := s.corehrService.DeleteEmployee(r.Context(), employeeId)
+	tenantID := s.getDefaultTenantID()
+	err := s.corehrService.DeleteEmployee(r.Context(), tenantID, employeeId)
 	if err != nil {
 		s.handleError(w, err, "Failed to delete employee")
 		return
@@ -535,7 +607,8 @@ func (s *Server) DeleteEmployee(w http.ResponseWriter, r *http.Request, employee
 
 // ListOrganizations - 获取组织列表
 func (s *Server) ListOrganizations(w http.ResponseWriter, r *http.Request) {
-	response, err := s.corehrService.ListOrganizations(r.Context())
+	tenantID := s.getDefaultTenantID()
+	response, err := s.corehrService.ListOrganizations(r.Context(), tenantID)
 	if err != nil {
 		s.handleError(w, err, "Failed to list organizations")
 		return
@@ -548,7 +621,8 @@ func (s *Server) ListOrganizations(w http.ResponseWriter, r *http.Request) {
 
 // GetOrganizationTree - 获取组织树
 func (s *Server) GetOrganizationTree(w http.ResponseWriter, r *http.Request) {
-	response, err := s.corehrService.GetOrganizationTree(r.Context())
+	tenantID := s.getDefaultTenantID()
+	response, err := s.corehrService.GetOrganizationTree(r.Context(), tenantID)
 	if err != nil {
 		s.handleError(w, err, "Failed to get organization tree")
 		return
@@ -559,9 +633,138 @@ func (s *Server) GetOrganizationTree(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetManagerByEmployeeId - a mock implementation to satisfy the interface for Slice 2
+// GetManagerByEmployeeId - 根据员工ID获取经理
 func (s *Server) GetManagerByEmployeeId(w http.ResponseWriter, r *http.Request, employeeId uuid.UUID) {
-	s.sendErrorResponse(w, "GetManagerByEmployeeId not implemented in Slice 2", http.StatusNotImplemented)
+	tenantID := s.getDefaultTenantID()
+	manager, err := s.corehrService.GetManagerByEmployeeId(r.Context(), tenantID, employeeId)
+	if err != nil {
+		s.handleError(w, err, "Failed to get manager")
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(manager)
+}
+
+// 发件箱管理API
+
+// GetOutboxEvents - 获取发件箱事件列表
+func (s *Server) GetOutboxEvents(w http.ResponseWriter, r *http.Request) {
+	if s.outboxService == nil {
+		s.sendErrorResponse(w, "Outbox service not available", http.StatusServiceUnavailable)
+		return
+	}
+	
+	limit := 100
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+	
+	events, err := s.outboxService.GetEvents(r.Context(), limit)
+	if err != nil {
+		s.handleError(w, err, "Failed to get outbox events")
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"events": events,
+		"count":  len(events),
+		"limit":  limit,
+	})
+}
+
+// GetOutboxStats - 获取发件箱统计信息
+func (s *Server) GetOutboxStats(w http.ResponseWriter, r *http.Request) {
+	if s.outboxService == nil {
+		s.sendErrorResponse(w, "Outbox service not available", http.StatusServiceUnavailable)
+		return
+	}
+	
+	stats, err := s.outboxService.GetStats(r.Context())
+	if err != nil {
+		s.handleError(w, err, "Failed to get outbox stats")
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(stats)
+}
+
+// ReplayEvents - 重放事件
+func (s *Server) ReplayEvents(w http.ResponseWriter, r *http.Request) {
+	if s.outboxService == nil {
+		s.sendErrorResponse(w, "Outbox service not available", http.StatusServiceUnavailable)
+		return
+	}
+	
+	// 从请求体中获取aggregate_id
+	var req struct {
+		AggregateID string `json:"aggregate_id"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	if req.AggregateID == "" {
+		s.sendErrorResponse(w, "Missing aggregate_id", http.StatusBadRequest)
+		return
+	}
+	
+	aggregateID, err := uuid.Parse(req.AggregateID)
+	if err != nil {
+		s.sendErrorResponse(w, "Invalid aggregate ID", http.StatusBadRequest)
+		return
+	}
+	
+	err = s.outboxService.ReplayEvents(r.Context(), aggregateID)
+	if err != nil {
+		s.handleError(w, err, "Failed to replay events")
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Events replayed successfully",
+		"aggregate_id": aggregateID.String(),
+	})
+}
+
+// GetUnprocessedEvents - 获取未处理事件
+func (s *Server) GetUnprocessedEvents(w http.ResponseWriter, r *http.Request) {
+	if s.outboxService == nil {
+		s.sendErrorResponse(w, "Outbox service not available", http.StatusServiceUnavailable)
+		return
+	}
+	
+	limit := 100
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+	
+	events, err := s.outboxService.GetUnprocessedEvents(r.Context(), limit)
+	if err != nil {
+		s.handleError(w, err, "Failed to get unprocessed events")
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"events": events,
+		"count":  len(events),
+		"limit":  limit,
+	})
 }
 
 // 错误处理辅助方法

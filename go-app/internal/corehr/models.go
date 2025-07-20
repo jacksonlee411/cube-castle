@@ -10,14 +10,16 @@ import (
 // Employee 员工模型
 type Employee struct {
 	ID             uuid.UUID  `json:"id" db:"id"`
+	TenantID       uuid.UUID  `json:"tenant_id" db:"tenant_id"`
 	EmployeeNumber string     `json:"employee_number" db:"employee_number"`
 	FirstName      string     `json:"first_name" db:"first_name"`
 	LastName       string     `json:"last_name" db:"last_name"`
 	Email          string     `json:"email" db:"email"`
-	PhoneNumber    string     `json:"phone_number,omitempty" db:"phone_number"`
-	HireDate       string     `json:"hire_date" db:"hire_date"`
-	PositionID     *uuid.UUID `json:"position_id,omitempty" db:"position_id"`
-	OrganizationID *uuid.UUID `json:"organization_id,omitempty" db:"organization_id"`
+	PhoneNumber    *string    `json:"phone_number,omitempty" db:"phone_number"`
+	Position       *string    `json:"position,omitempty" db:"position"`
+	Department     *string    `json:"department,omitempty" db:"department"`
+	HireDate       time.Time  `json:"hire_date" db:"hire_date"`
+	ManagerID      *uuid.UUID `json:"manager_id,omitempty" db:"manager_id"`
 	Status         string     `json:"status" db:"status"`
 	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
@@ -85,11 +87,14 @@ type UpdateOrganizationRequest struct {
 
 // Position 职位模型
 type Position struct {
-	common.TenantEntity
+	ID           uuid.UUID  `json:"id" db:"id"`
+	TenantID     uuid.UUID  `json:"tenant_id" db:"tenant_id"`
 	Title        string     `json:"title" db:"title"`
 	Code         string     `json:"code" db:"code"`
 	DepartmentID *uuid.UUID `json:"department_id,omitempty" db:"department_id"`
 	Level        int        `json:"level" db:"level"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // CreatePositionRequest 创建职位请求
