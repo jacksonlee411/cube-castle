@@ -410,3 +410,68 @@ CREATE TABLE corehr.organizations (
 ## 许可证
 
 本项目采用 MIT 许可证。 
+
+## 📦 发件箱与事件溯源 API
+
+### 1. 发件箱事件管理端点
+
+- 获取发件箱事件列表：
+```http
+GET /api/v1/outbox/events?limit=100
+```
+- 获取未处理事件：
+```http
+GET /api/v1/outbox/unprocessed?limit=100
+```
+- 获取发件箱统计信息：
+```http
+GET /api/v1/outbox/stats
+```
+- 重放某个聚合ID的所有事件：
+```http
+POST /api/v1/outbox/replay
+{
+  "aggregate_id": "<uuid>"
+}
+```
+
+### 2. 事件驱动业务流程
+- 所有关键业务写操作（如员工信息变更）会在数据库事务内写入 outbox.events 表，实现“交互即审计事件”。
+- 事件处理器自动消费并处理这些事件，支持重放和补偿。
+
+## 🤖 AI链路端到端交互
+
+- 发送自然语言请求到 AI 服务：
+```http
+POST /api/v1/interpret
+{
+  "query": "我想查询员工张三的信息",
+  "user_id": "00000000-0000-0000-0000-000000000000"
+}
+```
+- 端到端链路：API → Go服务 → gRPC → Python AI → LLM → 结构化意图 → 查询/写入数据库 → 返回结果
+
+## 🧪 端到端测试与验证
+
+- 运行自动化测试脚本：
+```bash
+bash test_all_routes.sh
+bash go-app/test_ai.sh
+```
+- 访问测试页面：
+```
+http://localhost:8080/test.html
+```
+- 通过页面可测试 API、AI 交互、组织与员工管理等功能。
+
+## 🛠️ 常见问题排查
+
+- **发件箱事件未被处理/重放无效**：请检查 outbox 相关服务是否已启动，查看服务日志。
+- **AI链路无响应**：确认 Python AI 服务已启动并监听 50051 端口，Go 服务的 INTELLIGENCE_SERVICE_GRPC_TARGET 配置正确。
+- **数据库相关错误**：确认 Docker 中的 PostgreSQL/Neo4j 已启动，.env 配置无误。
+- **API 401/403 错误**：请检查 JWT 配置和请求头。
+
+## 🔒 安全与环境变量
+
+- 敏感信息（如数据库、AI、JWT密钥）请仅配置在 `.env` 文件中，切勿硬编码或提交到仓库。
+- 详细环境变量说明请参考主项目 `README.md` 和 `env.example`。 

@@ -46,11 +46,48 @@ cd cube-castle
 # 复制环境变量模板
 cp env.example .env
 
-# 编辑环境变量
+# 编辑环境变量（推荐使用 VSCode 或 vim）
 vim .env
 ```
 
-### 3. 启动基础设施
+#### 关键环境变量说明
+- `DATABASE_URL`：PostgreSQL 连接字符串，格式为 `postgresql://user:password@localhost:5432/cubecastle?sslmode=disable`
+- `NEO4J_URI`、`NEO4J_USER`、`NEO4J_PASSWORD`：Neo4j 图数据库连接配置
+- `INTELLIGENCE_SERVICE_GRPC_TARGET`：Python AI 服务 gRPC 地址，默认 `localhost:50051`
+- `OPENAI_API_KEY`、`OPENAI_API_BASE_URL`：如需调用 OpenAI，可在此配置密钥和 API 地址
+- `APP_PORT`：Go 主服务监听端口，默认 8080
+- `JWT_SECRET`：JWT 签名密钥，务必妥善保管
+- 其余变量详见 `env.example`
+
+> **安全建议：** 切勿将 `.env` 文件提交到 Git 仓库，API 密钥和 JWT 密钥请妥善保管。
+
+### 3. 依赖安装与虚拟环境
+
+#### Python 依赖
+
+```bash
+cd python-ai
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### Go 依赖
+
+```bash
+cd go-app
+go mod tidy
+```
+
+### 4. 常见问题排查
+
+- **Python 依赖未安装/找不到 grpc 等模块**：请确保已激活虚拟环境并执行 `pip install -r requirements.txt`
+- **Go 依赖报错/go.mod not found**：请在 go-app 目录下执行 `go mod tidy`
+- **端口占用/服务无法启动**：检查 8080/50051 端口是否被占用，可用 `lsof -i:8080` 查找并 kill 进程
+- **数据库连接失败**：确认 Docker 中的 PostgreSQL/Neo4j 已启动，且 .env 配置正确
+- **WSL/VSCode 环境问题**：推荐使用 WSL2 + VSCode Remote，确保文件权限和路径一致
+
+### 5. 启动基础设施
 
 ```bash
 # 启动数据库服务
@@ -60,7 +97,7 @@ docker-compose up -d postgres neo4j
 docker-compose ps
 ```
 
-### 4. 初始化数据库
+### 6. 初始化数据库
 
 ```bash
 # 进入 Go 应用目录
@@ -70,7 +107,7 @@ cd go-app
 go run cmd/server/main.go init-db
 ```
 
-### 5. 启动服务
+### 7. 启动服务
 
 ```bash
 # 启动 Python AI 服务
@@ -207,12 +244,11 @@ docker-compose logs -f go-app
 docker-compose logs -f python-ai
 ```
 
-## 🔒 安全
+## 🛡️ 安全与最佳实践
 
-- 所有 API 调用都需要通过认证
-- 支持 JWT 令牌认证
-- 实现基于角色的访问控制 (RBAC)
-- 数据按租户隔离
+- 所有敏感信息（API 密钥、JWT 密钥等）请仅配置在 `.env` 文件中，切勿硬编码或提交到仓库
+- 推荐定期更换密钥，生产环境请使用更强的密码策略
+- 数据库、AI 服务等均需配置访问控制，避免外部未授权访问
 
 ## 📈 部署
 

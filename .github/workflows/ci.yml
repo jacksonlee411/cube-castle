@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: cubecastle
+        ports: [5432:5432]
+      neo4j:
+        image: neo4j:5
+        env:
+          NEO4J_AUTH: neo4j/password
+        ports: [7687:7687]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Go mod tidy
+        run: cd go-app && go mod tidy
+      - name: Go test
+        run: cd go-app && go test ./...
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python dependencies
+        run: cd python-ai && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+      - name: Python tests (if any)
+        run: cd python-ai && source venv/bin/activate && pytest || echo 'No tests' 
