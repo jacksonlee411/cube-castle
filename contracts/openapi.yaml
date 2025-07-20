@@ -1,0 +1,481 @@
+openapi: 3.0.3
+info:
+  title: Cube Castle Internal API
+  version: 1.0.0
+  description: "元合约：定义城堡内部模块间的通信规约"
+paths:
+  # 面向用户的外部API保持不变
+  /api/v1/interpret:
+    post:
+      summary: Interpret Natural Language Query
+      operationId: interpretQuery
+      tags:
+        - IntelligenceGateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InterpretRequest'
+      responses:
+        '200':
+          description: Successful interpretation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneralResponse'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+
+  # CoreHR 员工管理 API
+  /api/v1/corehr/employees:
+    get:
+      summary: List employees with pagination
+      operationId: listEmployees
+      tags:
+        - CoreHR
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: search
+          in: query
+          description: Search term for employee name or email
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of employees
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeListResponse'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+    
+    post:
+      summary: Create a new employee
+      operationId: createEmployee
+      tags:
+        - CoreHR
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeRequest'
+      responses:
+        '201':
+          description: Employee created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Bad request
+        '409':
+          description: Employee already exists
+        '500':
+          description: Internal server error
+
+  /api/v1/corehr/employees/{employee_id}:
+    get:
+      summary: Get employee by ID
+      operationId: getEmployee
+      tags:
+        - CoreHR
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Employee details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee not found
+        '500':
+          description: Internal server error
+    
+    put:
+      summary: Update employee
+      operationId: updateEmployee
+      tags:
+        - CoreHR
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmployeeRequest'
+      responses:
+        '200':
+          description: Employee updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Bad request
+        '404':
+          description: Employee not found
+        '500':
+          description: Internal server error
+    
+    delete:
+      summary: Delete employee
+      operationId: deleteEmployee
+      tags:
+        - CoreHR
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Employee deleted successfully
+        '404':
+          description: Employee not found
+        '500':
+          description: Internal server error
+
+  # 组织架构 API
+  /api/v1/corehr/organizations:
+    get:
+      summary: List organizations
+      operationId: listOrganizations
+      tags:
+        - CoreHR
+      responses:
+        '200':
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationListResponse'
+        '500':
+          description: Internal server error
+
+  /api/v1/corehr/organizations/tree:
+    get:
+      summary: Get organization tree
+      operationId: getOrganizationTree
+      tags:
+        - CoreHR
+      responses:
+        '200':
+          description: Organization tree structure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationTreeResponse'
+        '500':
+          description: Internal server error
+
+  # 内部事件 API
+  /api/v1/internal/corehr/employee-events/phone-number-update:
+    post:
+      summary: Create a phone number update event
+      operationId: postPhoneNumberUpdateEvent
+      tags:
+        - CoreHR
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneNumberUpdateEventRequest'
+      responses:
+        '202':
+          description: Event accepted for processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneralResponse'
+
+components:
+  schemas:
+    InterpretRequest:
+      type: object
+      properties:
+        query:
+          type: string
+          example: "update my phone number to 13800138000"
+        user_id:
+          type: string
+          format: uuid
+          example: "a4c2f6d8-2b1a-4c8d-9b7e-0e1f7a2d8c3b"
+
+    # 员工相关模型
+    Employee:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employee_number:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          nullable: true
+        hire_date:
+          type: string
+          format: date
+        position_id:
+          type: string
+          format: uuid
+          nullable: true
+        organization_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive, terminated]
+          default: active
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - employee_number
+        - first_name
+        - last_name
+        - email
+        - hire_date
+
+    CreateEmployeeRequest:
+      type: object
+      properties:
+        employee_number:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          nullable: true
+        hire_date:
+          type: string
+          format: date
+        position_id:
+          type: string
+          format: uuid
+          nullable: true
+        organization_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+        - employee_number
+        - first_name
+        - last_name
+        - email
+        - hire_date
+
+    UpdateEmployeeRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          nullable: true
+        position_id:
+          type: string
+          format: uuid
+          nullable: true
+        organization_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive, terminated]
+
+    EmployeeListResponse:
+      type: object
+      properties:
+        employees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Employee'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+        total_count:
+          type: integer
+
+    # 组织相关模型
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+        level:
+          type: integer
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive]
+          default: active
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - name
+        - code
+        - level
+
+    OrganizationTreeNode:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+        level:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationTreeNode'
+
+    OrganizationListResponse:
+      type: object
+      properties:
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+        total_count:
+          type: integer
+
+    OrganizationTreeResponse:
+      type: object
+      properties:
+        tree:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationTreeNode'
+
+    # 通用模型
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+
+    # 事件相关模型
+    PhoneNumberUpdateEventRequest:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        new_phone_number:
+          type: string
+      required:
+        - employee_id
+        - new_phone_number
+
+    GeneralResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        event_id:
+          type: string
+          format: uuid
+        data:
+          type: object
+
+    # 错误响应模型
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string

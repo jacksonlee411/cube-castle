@@ -1,0 +1,20 @@
+# Environment variables
+.env
+
+# Go build files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Python virtual environment
+python-ai/venv/
+
+# IDE files
+.idea/
+.vscode/
+
+# OS-specific files
+.DS_Store
+Thumbs.db

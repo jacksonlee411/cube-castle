@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoreHR API 测试页面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .result {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏰 CoreHR API 测试页面</h1>
+        
+        <!-- 员工管理 -->
+        <div class="section">
+            <h2>👥 员工管理</h2>
+            
+            <!-- 获取员工列表 -->
+            <div class="form-group">
+                <label>获取员工列表:</label>
+                <button onclick="listEmployees()">获取员工列表</button>
+                <div class="form-group">
+                    <label>页码:</label>
+                    <input type="number" id="page" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>每页数量:</label>
+                    <input type="number" id="pageSize" value="20" min="1" max="100">
+                </div>
+                <div class="form-group">
+                    <label>搜索关键词:</label>
+                    <input type="text" id="search" placeholder="输入姓名、邮箱或员工编号">
+                </div>
+            </div>
+            
+            <!-- 创建员工 -->
+            <div class="form-group">
+                <label>创建员工:</label>
+                <div class="form-group">
+                    <label>员工编号:</label>
+                    <input type="text" id="createEmployeeNumber" placeholder="EMP001">
+                </div>
+                <div class="form-group">
+                    <label>姓名:</label>
+                    <input type="text" id="createFirstName" placeholder="张">
+                </div>
+                <div class="form-group">
+                    <label>姓氏:</label>
+                    <input type="text" id="createLastName" placeholder="三">
+                </div>
+                <div class="form-group">
+                    <label>邮箱:</label>
+                    <input type="email" id="createEmail" placeholder="zhangsan@example.com">
+                </div>
+                <div class="form-group">
+                    <label>入职日期:</label>
+                    <input type="date" id="createHireDate">
+                </div>
+                <div class="form-group">
+                    <label>电话号码:</label>
+                    <input type="tel" id="createPhoneNumber" placeholder="13800138000">
+                </div>
+                <button onclick="createEmployee()">创建员工</button>
+            </div>
+            
+            <!-- 获取员工详情 -->
+            <div class="form-group">
+                <label>获取员工详情:</label>
+                <input type="text" id="getEmployeeId" placeholder="输入员工ID">
+                <button onclick="getEmployee()">获取员工详情</button>
+            </div>
+            
+            <!-- 更新员工 -->
+            <div class="form-group">
+                <label>更新员工:</label>
+                <input type="text" id="updateEmployeeId" placeholder="输入员工ID">
+                <div class="form-group">
+                    <label>姓名:</label>
+                    <input type="text" id="updateFirstName" placeholder="新姓名">
+                </div>
+                <div class="form-group">
+                    <label>姓氏:</label>
+                    <input type="text" id="updateLastName" placeholder="新姓氏">
+                </div>
+                <div class="form-group">
+                    <label>邮箱:</label>
+                    <input type="email" id="updateEmail" placeholder="新邮箱">
+                </div>
+                <div class="form-group">
+                    <label>电话号码:</label>
+                    <input type="tel" id="updatePhoneNumber" placeholder="新电话号码">
+                </div>
+                <button onclick="updateEmployee()">更新员工</button>
+            </div>
+            
+            <!-- 删除员工 -->
+            <div class="form-group">
+                <label>删除员工:</label>
+                <input type="text" id="deleteEmployeeId" placeholder="输入员工ID">
+                <button onclick="deleteEmployee()">删除员工</button>
+            </div>
+        </div>
+        
+        <!-- 组织管理 -->
+        <div class="section">
+            <h2>🏢 组织管理</h2>
+            
+            <button onclick="listOrganizations()">获取组织列表</button>
+            <button onclick="getOrganizationTree()">获取组织树</button>
+        </div>
+        
+        <!-- 结果显示 -->
+        <div class="section">
+            <h2>📋 响应结果</h2>
+            <div id="result" class="result">等待操作...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1/corehr';
+        
+        // 显示结果
+        function showResult(data, isError = false) {
+            const resultDiv = document.getElementById('result');
+            const className = isError ? 'result error' : 'result success';
+            resultDiv.className = className;
+            resultDiv.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+        }
+        
+        // 通用请求函数
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+        
+        // 获取员工列表
+        async function listEmployees() {
+            try {
+                const page = document.getElementById('page').value || 1;
+                const pageSize = document.getElementById('pageSize').value || 20;
+                const search = document.getElementById('search').value || '';
+                
+                const params = new URLSearchParams({
+                    page: page,
+                    page_size: pageSize
+                });
+                
+                if (search) {
+                    params.append('search', search);
+                }
+                
+                const data = await makeRequest(`${API_BASE}/employees?${params}`);
+                showResult(data);
+            } catch (error) {
+                showResult(`获取员工列表失败: ${error.message}`, true);
+            }
+        }
+        
+        // 创建员工
+        async function createEmployee() {
+            try {
+                const employeeData = {
+                    employee_number: document.getElementById('createEmployeeNumber').value,
+                    first_name: document.getElementById('createFirstName').value,
+                    last_name: document.getElementById('createLastName').value,
+                    email: document.getElementById('createEmail').value,
+                    hire_date: document.getElementById('createHireDate').value,
+                    phone_number: document.getElementById('createPhoneNumber').value || null
+                };
+                
+                const data = await makeRequest(`${API_BASE}/employees`, {
+                    method: 'POST',
+                    body: JSON.stringify(employeeData)
+                });
+                
+                showResult(data);
+            } catch (error) {
+                showResult(`创建员工失败: ${error.message}`, true);
+            }
+        }
+        
+        // 获取员工详情
+        async function getEmployee() {
+            try {
+                const employeeId = document.getElementById('getEmployeeId').value;
+                if (!employeeId) {
+                    showResult('请输入员工ID', true);
+                    return;
+                }
+                
+                const data = await makeRequest(`${API_BASE}/employees/${employeeId}`);
+                showResult(data);
+            } catch (error) {
+                showResult(`获取员工详情失败: ${error.message}`, true);
+            }
+        }
+        
+        // 更新员工
+        async function updateEmployee() {
+            try {
+                const employeeId = document.getElementById('updateEmployeeId').value;
+                if (!employeeId) {
+                    showResult('请输入员工ID', true);
+                    return;
+                }
+                
+                const updateData = {};
+                
+                const firstName = document.getElementById('updateFirstName').value;
+                if (firstName) updateData.first_name = firstName;
+                
+                const lastName = document.getElementById('updateLastName').value;
+                if (lastName) updateData.last_name = lastName;
+                
+                const email = document.getElementById('updateEmail').value;
+                if (email) updateData.email = email;
+                
+                const phoneNumber = document.getElementById('updatePhoneNumber').value;
+                if (phoneNumber) updateData.phone_number = phoneNumber;
+                
+                const data = await makeRequest(`${API_BASE}/employees/${employeeId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(updateData)
+                });
+                
+                showResult(data);
+            } catch (error) {
+                showResult(`更新员工失败: ${error.message}`, true);
+            }
+        }
+        
+        // 删除员工
+        async function deleteEmployee() {
+            try {
+                const employeeId = document.getElementById('deleteEmployeeId').value;
+                if (!employeeId) {
+                    showResult('请输入员工ID', true);
+                    return;
+                }
+                
+                await makeRequest(`${API_BASE}/employees/${employeeId}`, {
+                    method: 'DELETE'
+                });
+                
+                showResult('员工删除成功');
+            } catch (error) {
+                showResult(`删除员工失败: ${error.message}`, true);
+            }
+        }
+        
+        // 获取组织列表
+        async function listOrganizations() {
+            try {
+                const data = await makeRequest(`${API_BASE}/organizations`);
+                showResult(data);
+            } catch (error) {
+                showResult(`获取组织列表失败: ${error.message}`, true);
+            }
+        }
+        
+        // 获取组织树
+        async function getOrganizationTree() {
+            try {
+                const data = await makeRequest(`${API_BASE}/organizations/tree`);
+                showResult(data);
+            } catch (error) {
+                showResult(`获取组织树失败: ${error.message}`, true);
+            }
+        }
+        
+        // 页面加载时设置默认日期
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('createHireDate').value = today;
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package intelligence;
+
+// Go的包路径
+option go_package = "github.com/gaogu/cube-castle/go-app/generated/grpc/intelligence";
+// Python的包路径
+option java_package = "com.sydney.cube_castle.intelligence";
+
+
+service IntelligenceService {
+  rpc InterpretText(InterpretRequest) returns (InterpretResponse);
+}
+
+message InterpretRequest {
+  string user_text = 1;
+  string session_id = 2;
+}
+
+message InterpretResponse {
+  string intent = 1;
+  string structured_data_json = 2;
+}
