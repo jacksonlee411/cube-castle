@@ -1,0 +1,246 @@
+2025/07/25 15:05:37 ✅ Connected to databases successfully
+2025/07/25 15:05:37 ✅ Connected to gRPC server at localhost:50051.
+2025/07/25 15:05:37 ✅ Outbox service initialized
+2025/07/25 15:05:37 ✅ CoreHR service initialized with database and outbox
+2025/07/25 15:05:37 ✅ Event handlers registered
+2025/07/25 15:05:37 ✅ Outbox service started in background
+🏰 Go Monolith 'The Keep' is listening on port 8080
+2025/07/25 15:05:37 🚀 Starting Outbox Processor...
+2025/07/25 15:05:37 ✅ Outbox Processor started successfully
+2025/07/25 15:08:13 "GET http://localhost:8080/health HTTP/1.1" from [::1]:44747 - 200 21B in 56.196µs
+2025/07/25 15:08:19 📝 Created event 782fbd66-b119-4816-bb08-be58031d5f3b (employee.created)
+2025/07/25 15:08:19 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:48097 - 201 352B in 26.142605ms
+2025/07/25 15:08:21 📦 Processing 1 events
+2025/07/25 15:08:21 👤 Processing employee created event: 782fbd66-b119-4816-bb08-be58031d5f3b
+2025/07/25 15:08:21 ✅ Employee created event processed: 782fbd66-b119-4816-bb08-be58031d5f3b
+2025/07/25 15:08:21 ✅ Successfully processed event 782fbd66-b119-4816-bb08-be58031d5f3b (employee.created)
+2025/07/25 15:08:33 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46331 - 200 467B in 5.426305ms
+2025/07/25 15:09:26 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46053 - 200 21B in 51.247µs
+2025/07/25 15:09:26 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46063 - 409 108B in 1.367964ms
+2025/07/25 15:09:26 Received request: Query=我要更新员工E2E001的电话号码为13800138000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 15:09:30 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from [::1]:46069 - 500 30B in 3.965878275s
+2025/07/25 15:09:30 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46085 - 200 467B in 2.89459ms
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46101 - 200 21B in 42.497µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46103 - 200 21B in 52.36µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46123 - 200 21B in 43.136µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46145 - 200 21B in 46.486µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46137 - 200 21B in 30.495µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46155 - 200 21B in 18.813µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46165 - 200 21B in 183.51µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46173 - 200 21B in 41.891µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46185 - 200 21B in 37.229µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46181 - 200 21B in 15.187µs
+2025/07/25 15:09:30 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46195 - 200 467B in 2.846082ms
+2025/07/25 15:09:30 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46207 - 400 98B in 112.061µs
+2025/07/25 15:09:30 "HEAD http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46217 - 405 0B in 31.376µs
+2025/07/25 15:09:30 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46225 - 415 0B in 3.825µs
+2025/07/25 15:09:30 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46235 - 200 21B in 40.491µs
+2025/07/25 15:11:32 Received request: Query=更新电话号码, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 15:11:35 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from [::1]:47195 - 200 127B in 3.325969113s
+2025/07/25 15:20:59 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46931 - 200 21B in 63.976µs
+2025/07/25 15:20:59 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46947 - 200 122B in 2.864344ms
+2025/07/25 15:20:59 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from [::1]:46959 - 200 12B in 4.962572ms
+2025/07/25 15:20:59 📝 Created event d223f864-2faf-455f-af19-2fc36f286995 (employee.created)
+2025/07/25 15:20:59 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46965 - 201 351B in 7.178894ms
+2025/07/25 15:20:59 Received request: Query=nil, UserId=nil
+2025/07/25 15:20:59 Missing required fields: Query=<nil>, UserId=<nil>
+2025/07/25 15:20:59 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from [::1]:46969 - 400 31B in 209.321µs
+2025/07/25 15:20:59 "GET http://localhost:8080/health HTTP/1.1" from [::1]:46971 - 200 21B in 39.433µs
+2025/07/25 15:20:59 "GET http://localhost:8080/api/v1/invalid/path HTTP/1.1" from [::1]:46979 - 404 19B in 29.613µs
+2025/07/25 15:20:59 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:46989 - 400 98B in 78.039µs
+2025/07/25 15:20:59 "HEAD http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:47003 - 405 0B in 28.732µs
+2025/07/25 15:20:59 "HEAD http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:47009 - 405 0B in 28.28µs
+2025/07/25 15:20:59 "GET http://localhost:8080/health HTTP/1.1" from [::1]:47025 - 200 21B in 45.406µs
+2025/07/25 15:20:59 "GET http://localhost:8080/health HTTP/1.1" from [::1]:47039 - 200 21B in 25.646µs
+2025/07/25 15:20:59 "GET http://localhost:8080/health HTTP/1.1" from [::1]:47017 - 200 21B in 20.454µs
+2025/07/25 15:20:59 "GET http://localhost:8080/health HTTP/1.1" from [::1]:47063 - 200 21B in 15.837µs
+2025/07/25 15:20:59 "GET http://localhost:8080/health HTTP/1.1" from [::1]:47047 - 200 21B in 15.209µs
+2025/07/25 15:21:02 📦 Processing 1 events
+2025/07/25 15:21:02 👤 Processing employee created event: d223f864-2faf-455f-af19-2fc36f286995
+2025/07/25 15:21:02 ✅ Employee created event processed: d223f864-2faf-455f-af19-2fc36f286995
+2025/07/25 15:21:02 ✅ Successfully processed event d223f864-2faf-455f-af19-2fc36f286995 (employee.created)
+2025/07/25 15:22:08 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48217 - 200 21B in 50.465µs
+2025/07/25 15:22:08 📝 Created event 3224c87f-c8e2-4e2a-83e5-e662242c8fea (employee.created)
+2025/07/25 15:22:08 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:48233 - 201 352B in 8.559048ms
+2025/07/25 15:22:08 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:48235 - 200 812B in 2.415802ms
+2025/07/25 15:22:08 Received request: Query=我要更新员工E2E001的电话号码为13800138000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 15:22:09 📦 Processing 1 events
+2025/07/25 15:22:09 👤 Processing employee created event: 3224c87f-c8e2-4e2a-83e5-e662242c8fea
+2025/07/25 15:22:09 ✅ Employee created event processed: 3224c87f-c8e2-4e2a-83e5-e662242c8fea
+2025/07/25 15:22:09 ✅ Successfully processed event 3224c87f-c8e2-4e2a-83e5-e662242c8fea (employee.created)
+2025/07/25 15:22:11 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from [::1]:48249 - 500 30B in 2.962141688s
+2025/07/25 15:22:11 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:48263 - 200 812B in 2.575308ms
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48275 - 200 21B in 38.662µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48277 - 200 21B in 15.021µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48291 - 200 21B in 20.962µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48305 - 200 21B in 16.773µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48307 - 200 21B in 11.176µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48319 - 200 21B in 11.825µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48333 - 200 21B in 20.014µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48331 - 200 21B in 21.546µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48341 - 200 21B in 15.628µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48353 - 200 21B in 12.73µs
+2025/07/25 15:22:11 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:48367 - 200 812B in 1.87016ms
+2025/07/25 15:22:11 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:48381 - 400 98B in 75.967µs
+2025/07/25 15:22:11 "HEAD http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:48389 - 405 0B in 24.268µs
+2025/07/25 15:22:11 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from [::1]:48391 - 415 0B in 12.001µs
+2025/07/25 15:22:11 "GET http://localhost:8080/health HTTP/1.1" from [::1]:48393 - 200 21B in 41.858µs
+2025/07/25 16:05:25 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46959 - 200 21B in 900.72µs
+2025/07/25 16:05:25 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46965 - 200 812B in 10.016826ms
+2025/07/25 16:05:25 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:46977 - 200 12B in 4.525217ms
+2025/07/25 16:05:25 📝 Created event c73052e5-c42d-41fd-ae7c-0842bc87a2c1 (employee.created)
+2025/07/25 16:05:25 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46985 - 201 366B in 11.599466ms
+2025/07/25 16:05:25 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46997 - 200 1174B in 1.455558ms
+2025/07/25 16:05:28 📦 Processing 1 events
+2025/07/25 16:05:28 👤 Processing employee created event: c73052e5-c42d-41fd-ae7c-0842bc87a2c1
+2025/07/25 16:05:28 ✅ Employee created event processed: c73052e5-c42d-41fd-ae7c-0842bc87a2c1
+2025/07/25 16:05:28 ✅ Successfully processed event c73052e5-c42d-41fd-ae7c-0842bc87a2c1 (employee.created)
+2025/07/25 16:05:30 Received request: Query=我想更新我的电话号码为13900139000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:05:33 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45445 - 200 153B in 2.502888535s
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45461 - 200 21B in 36.336µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45471 - 200 21B in 16.52µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45481 - 200 21B in 16.047µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45491 - 200 21B in 17.028µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45501 - 200 21B in 16.168µs
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:45515 - 200 1174B in 2.463567ms
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:45519 - 200 1174B in 1.460854ms
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:45525 - 200 1174B in 1.453442ms
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:45533 - 200 1174B in 1.344202ms
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:45545 - 200 1174B in 1.287555ms
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:45557 - 200 12B in 962.326µs
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:45559 - 200 12B in 911.431µs
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:45571 - 200 12B in 1.085585ms
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:45575 - 200 12B in 733.532µs
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:45589 - 200 12B in 916.645µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45599 - 200 21B in 23.255µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45613 - 200 21B in 19.959µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45605 - 200 21B in 69.531µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45619 - 200 21B in 16.95µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45623 - 200 21B in 14.757µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45629 - 200 21B in 15.287µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45643 - 200 21B in 17.083µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45649 - 200 21B in 16.41µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45657 - 200 21B in 15.496µs
+2025/07/25 16:05:33 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:45665 - 200 21B in 14.967µs
+2025/07/25 16:05:33 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:45681 - 200 1174B in 1.545731ms
+2025/07/25 16:05:34 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:45687 - 200 1174B in 2.011212ms
+2025/07/25 16:13:27 "GET http://localhost:8080/?id=ce5a4e9f-8544-4dd6-a96d-460eebfff332&vscodeBrowserReqId=1753431206943 HTTP/1.1" from 127.0.0.1:55579 - 404 19B in 127.027µs
+2025/07/25 16:13:28 "GET http://localhost:8080/?id=ce5a4e9f-8544-4dd6-a96d-460eebfff332&vscodeBrowserReqId=1753431207881 HTTP/1.1" from 127.0.0.1:55579 - 404 19B in 12.983µs
+2025/07/25 16:13:28 "GET http://localhost:8080/?id=ce5a4e9f-8544-4dd6-a96d-460eebfff332&vscodeBrowserReqId=1753431208050 HTTP/1.1" from 127.0.0.1:55579 - 404 19B in 14.261µs
+2025/07/25 16:13:28 "GET http://localhost:8080/?id=ce5a4e9f-8544-4dd6-a96d-460eebfff332&vscodeBrowserReqId=1753431208466 HTTP/1.1" from 127.0.0.1:55579 - 404 19B in 15.738µs
+2025/07/25 16:14:52 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:47995 - 200 21B in 52.239µs
+2025/07/25 16:14:52 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:47999 - 200 1174B in 2.873182ms
+2025/07/25 16:14:52 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:48001 - 200 12B in 872.793µs
+2025/07/25 16:14:52 📝 Created event 79f8146e-610d-4897-b237-f5bccd1e0e97 (employee.created)
+2025/07/25 16:14:52 "POST http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:48017 - 201 366B in 8.084491ms
+2025/07/25 16:14:52 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:48023 - 200 1534B in 1.843529ms
+2025/07/25 16:14:55 📦 Processing 1 events
+2025/07/25 16:14:55 👤 Processing employee created event: 79f8146e-610d-4897-b237-f5bccd1e0e97
+2025/07/25 16:14:55 ✅ Employee created event processed: 79f8146e-610d-4897-b237-f5bccd1e0e97
+2025/07/25 16:14:55 ✅ Successfully processed event 79f8146e-610d-4897-b237-f5bccd1e0e97 (employee.created)
+2025/07/25 16:15:02 Received request: Query=我想更新我的电话号码为13900139000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:15:05 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:48691 - 200 153B in 3.438011902s
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46215 - 200 21B in 41.197µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46221 - 200 21B in 40.811µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46231 - 200 21B in 28.478µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46233 - 200 21B in 21.072µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46249 - 200 21B in 29.965µs
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46255 - 200 1534B in 1.488687ms
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46269 - 200 1534B in 1.758326ms
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46281 - 200 1534B in 1.383867ms
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46285 - 200 1534B in 1.579625ms
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46295 - 200 1534B in 1.477263ms
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:46303 - 200 12B in 640.708µs
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:46313 - 200 12B in 598.118µs
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:46319 - 200 12B in 578.325µs
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:46335 - 200 12B in 738.139µs
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/organizations/tree HTTP/1.1" from 127.0.0.1:46337 - 200 12B in 680.455µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46347 - 200 21B in 87.151µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46375 - 200 21B in 24.125µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46363 - 200 21B in 16.531µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46379 - 200 21B in 30.748µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46399 - 200 21B in 17.876µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46411 - 200 21B in 32.589µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46407 - 200 21B in 54.477µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46391 - 200 21B in 41.571µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46419 - 200 21B in 16.455µs
+2025/07/25 16:15:05 "GET http://localhost:8080/health HTTP/1.1" from 127.0.0.1:46435 - 200 21B in 16.322µs
+2025/07/25 16:15:05 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46439 - 200 1534B in 2.542704ms
+2025/07/25 16:15:06 "GET http://localhost:8080/api/v1/corehr/employees HTTP/1.1" from 127.0.0.1:46445 - 200 1534B in 2.439222ms
+2025/07/25 16:23:40 Received request: Query=nil, UserId=nil
+2025/07/25 16:23:40 Missing required fields: Query=<nil>, UserId=<nil>
+2025/07/25 16:23:40 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:47087 - 400 31B in 405.467µs
+2025/07/25 16:23:40 Received request: Query=nil, UserId=nil
+2025/07/25 16:23:40 Missing required fields: Query=<nil>, UserId=<nil>
+2025/07/25 16:23:40 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:47097 - 400 31B in 154.551µs
+2025/07/25 16:23:40 Received request: Query=nil, UserId=nil
+2025/07/25 16:23:40 Missing required fields: Query=<nil>, UserId=<nil>
+2025/07/25 16:23:40 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:47107 - 400 31B in 113.765µs
+2025/07/25 16:23:40 Received request: Query=nil, UserId=nil
+2025/07/25 16:23:40 Missing required fields: Query=<nil>, UserId=<nil>
+2025/07/25 16:23:40 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:47111 - 400 31B in 107.304µs
+2025/07/25 16:23:40 Received request: Query=nil, UserId=nil
+2025/07/25 16:23:40 Missing required fields: Query=<nil>, UserId=<nil>
+2025/07/25 16:23:40 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:47117 - 400 31B in 66.32µs
+2025/07/25 16:23:55 Received request: Query=更新我的电话号码为13800138000, UserId=nil
+2025/07/25 16:23:55 Missing required fields: Query=0xc000396370, UserId=<nil>
+2025/07/25 16:23:55 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:48603 - 400 31B in 216.583µs
+2025/07/25 16:23:55 Received request: Query=谁是我的经理？, UserId=nil
+2025/07/25 16:23:55 Missing required fields: Query=0xc000418310, UserId=<nil>
+2025/07/25 16:23:55 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:48605 - 400 31B in 95.365µs
+2025/07/25 16:23:55 Received request: Query=查看我的个人信息, UserId=nil
+2025/07/25 16:23:55 Missing required fields: Query=0xc0003964f0, UserId=<nil>
+2025/07/25 16:23:55 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:48619 - 400 31B in 112.512µs
+2025/07/25 16:23:55 Received request: Query=帮我申请年假, UserId=nil
+2025/07/25 16:23:55 Missing required fields: Query=0xc0001166e0, UserId=<nil>
+2025/07/25 16:23:55 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:48621 - 400 31B in 96.168µs
+2025/07/25 16:23:55 Received request: Query=查询公司组织架构, UserId=nil
+2025/07/25 16:23:55 Missing required fields: Query=0xc0004184d0, UserId=<nil>
+2025/07/25 16:23:55 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:48629 - 400 31B in 121.032µs
+2025/07/25 16:25:19 "GET http://localhost:8080/?id=ce5a4e9f-8544-4dd6-a96d-460eebfff332&vscodeBrowserReqId=1753431921650 HTTP/1.1" from 127.0.0.1:55879 - 404 19B in 15.077µs
+2025/07/25 16:25:23 Received request: Query=更新我的电话号码为13800138000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:25:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45249 - 500 156B in 1.683697ms
+2025/07/25 16:25:23 Received request: Query=谁是我的经理？, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:25:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45257 - 500 168B in 997.858µs
+2025/07/25 16:25:23 Received request: Query=查看我的个人信息, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:25:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45263 - 500 168B in 278.511µs
+2025/07/25 16:25:23 Received request: Query=帮我申请年假, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:25:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45275 - 500 168B in 180.027µs
+2025/07/25 16:25:23 Received request: Query=查询公司组织架构, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:25:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45287 - 500 168B in 261.522µs
+2025/07/25 16:27:35 Received request: Query=更新我的电话号码为13800138000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:27:36 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:44709 - 200 147B in 3.210974036s
+2025/07/25 16:27:36 Received request: Query=谁是我的经理？, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:27:36 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:44723 - 500 168B in 658.429µs
+2025/07/25 16:27:36 Received request: Query=查看我的个人信息, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:27:36 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:44725 - 500 168B in 109.151µs
+2025/07/25 16:27:36 Received request: Query=帮我申请年假, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:27:36 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:44729 - 500 168B in 179.41µs
+2025/07/25 16:27:36 Received request: Query=查询公司组织架构, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:27:36 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:44745 - 500 168B in 197.324µs
+2025/07/25 16:34:11 Received request: Query=更新我的电话号码为13800138000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:34:15 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45951 - 200 147B in 3.628271237s
+2025/07/25 16:34:15 Received request: Query=谁是我的经理？, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:34:18 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:46983 - 200 130B in 2.728475022s
+2025/07/25 16:34:18 Received request: Query=我想知道我的上级是谁, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:34:22 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:46985 - 200 139B in 3.780605008s
+2025/07/25 16:34:23 Received request: Query=修改手机号为18888888888, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:34:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:46995 - 500 156B in 728.396µs
+2025/07/25 16:34:23 Received request: Query=查看我的经理信息, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:34:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45813 - 500 168B in 1.234688ms
+2025/07/25 16:34:24 Received request: Query=更新电话号码, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:34:24 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45829 - 500 168B in 261.791µs
+2025/07/25 16:34:23 Received request: Query=我的主管是谁？, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:34:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45831 - 500 168B in 288.903µs
+2025/07/25 16:34:23 Received request: Query=换个手机号, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:34:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45835 - 500 168B in 208.163µs
+2025/07/25 16:35:35 Received request: Query=更新我的电话号码为13800138000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:35:39 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:47675 - 200 147B in 4.211021547s
+2025/07/25 16:35:39 Received request: Query=谁是我的经理？, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:35:44 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:47991 - 200 130B in 5.515002873s
+2025/07/25 16:35:44 Received request: Query=我想知道我的上级是谁, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:35:45 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:48005 - 200 139B in 2.953430435s
+2025/07/25 16:39:23 Received request: Query=更新我的电话号码为13800138000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:39:23 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:45665 - 500 168B in 1.292128ms
+2025/07/25 16:43:29 Received request: Query=更新我的电话号码为13800138000, UserId=11111111-1111-1111-1111-111111111111
+2025/07/25 16:43:29 "POST http://localhost:8080/api/v1/intelligence/interpret HTTP/1.1" from 127.0.0.1:46873 - 500 156B in 889.225µs

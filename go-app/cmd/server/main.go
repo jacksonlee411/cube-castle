@@ -43,8 +43,15 @@ func (s *Server) InterpretQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 添加调试信息
-	log.Printf("Received request: Query=%v, UserId=%v", req.Query, req.UserId)
+	// 添加调试信息 - 解引用指针后打印
+	var queryStr, userIdStr string = "nil", "nil"
+	if req.Query != nil {
+		queryStr = *req.Query
+	}
+	if req.UserId != nil {
+		userIdStr = req.UserId.String()
+	}
+	log.Printf("Received request: Query=%s, UserId=%s", queryStr, userIdStr)
 
 	// --- 这里是修改点 ---
 	// 对 UserId 和 Query 两个指针类型进行nil检查
@@ -166,11 +173,15 @@ func (s *Server) processPhoneNumberUpdate(ctx context.Context, employeeId uuid.U
 }
 
 func main() {
-	// 加载环境变量
+	// 加载环境变量 - 首先尝试当前目录，然后尝试上级目录
 	var err error
-	err = godotenv.Load("../.env")
+	err = godotenv.Load(".env")
 	if err != nil {
-		log.Printf("Warning: Error loading .env file: %v", err)
+		// 如果当前目录没有.env文件，尝试上级目录
+		err = godotenv.Load("../.env")
+		if err != nil {
+			log.Printf("Warning: Error loading .env file: %v", err)
+		}
 	}
 
 	// 检查命令行参数
@@ -434,7 +445,9 @@ func main() {
 	})
 
 	// 注册 AI 服务路由
-	router.Post("/api/v1/interpret", server.InterpretQuery)
+	router.Route("/api/v1/intelligence", func(r chi.Router) {
+		r.Post("/interpret", server.InterpretQuery)
+	})
 	
 	// 注册发件箱管理路由
 	if outboxService != nil {
@@ -462,6 +475,7 @@ func main() {
 				"DELETE /api/v1/corehr/employees/{id}",
 				"GET /api/v1/corehr/organizations",
 				"GET /api/v1/corehr/organizations/tree",
+				"POST /api/v1/intelligence/interpret",
 				"GET /test.html",
 				"GET /health",
 				"GET /health/db",

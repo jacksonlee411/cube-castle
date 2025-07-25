@@ -2,6 +2,9 @@ import asyncio
 import logging
 from concurrent import futures
 import os
+import time
+import hashlib
+from typing import Dict, Optional, Tuple
 
 import grpc
 import openai  # 引入openai库
@@ -14,21 +17,126 @@ import intelligence_pb2_grpc
 # --- 从 .env 文件加载环境变量 ---
 load_dotenv()
 
-# --- 这里是唯一的修改点 ---
-# 创建一个OpenAI客户端，并明确告诉它使用我们的代理地址
+# --- OpenAI客户端优化配置 ---
+# 创建一个OpenAI客户端，优化连接池和超时设置
 client = openai.OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_API_BASE_URL"), # 使用我们新配置的代理URL
+    base_url=os.getenv("OPENAI_API_BASE_URL"),
+    max_retries=2,  # 减少重试次数以提高响应速度
+    timeout=15.0,   # 设置较短的超时时间
 )
 # -------------------------
+
+# AI响应缓存类
+class AIResponseCache:
+    def __init__(self, max_size: int = 1000, ttl_seconds: int = 3600):
+        """
+        初始化AI响应缓存
+        :param max_size: 最大缓存条目数
+        :param ttl_seconds: 缓存生存时间（秒）
+        """
+        self.cache: Dict[str, Tuple[intelligence_pb2.InterpretResponse, float]] = {}
+        self.max_size = max_size
+        self.ttl_seconds = ttl_seconds
+    
+    def _generate_cache_key(self, user_text: str) -> str:
+        """生成缓存键"""
+        return hashlib.md5(user_text.encode('utf-8')).hexdigest()
+    
+    def _is_expired(self, timestamp: float) -> bool:
+        """检查缓存是否过期"""
+        return time.time() - timestamp > self.ttl_seconds
+    
+    def _cleanup_expired(self):
+        """清理过期的缓存条目"""
+        current_time = time.time()
+        expired_keys = [
+            key for key, (_, timestamp) in self.cache.items()
+            if current_time - timestamp > self.ttl_seconds
+        ]
+        for key in expired_keys:
+            del self.cache[key]
+    
+    def get(self, user_text: str) -> Optional[intelligence_pb2.InterpretResponse]:
+        """从缓存中获取响应"""
+        cache_key = self._generate_cache_key(user_text)
+        
+        logging.info(f"检查缓存: {user_text[:30]}... (缓存键: {cache_key[:8]}...)")
+        
+        if cache_key in self.cache:
+            response, timestamp = self.cache[cache_key]
+            if not self._is_expired(timestamp):
+                logging.info(f"缓存命中: {user_text[:30]}...")
+                return response
+            else:
+                # 移除过期缓存
+                logging.info(f"缓存过期，移除: {user_text[:30]}...")
+                del self.cache[cache_key]
+        else:
+            logging.info(f"缓存未命中: {user_text[:30]}...")
+        
+        return None
+    
+    def put(self, user_text: str, response: intelligence_pb2.InterpretResponse):
+        """将响应存入缓存"""
+        cache_key = self._generate_cache_key(user_text)
+        
+        logging.info(f"准备存储缓存: {user_text[:30]}... (缓存键: {cache_key[:8]}...)")
+        
+        # 如果缓存已满，先清理过期项
+        if len(self.cache) >= self.max_size:
+            self._cleanup_expired()
+            
+            # 如果清理后仍然满了，移除最旧的条目
+            if len(self.cache) >= self.max_size:
+                oldest_key = min(self.cache.keys(), key=lambda k: self.cache[k][1])
+                del self.cache[oldest_key]
+        
+        # 创建响应的深拷贝以避免引用问题
+        cached_response = intelligence_pb2.InterpretResponse()
+        cached_response.intent = response.intent
+        cached_response.structured_data_json = response.structured_data_json
+        
+        self.cache[cache_key] = (cached_response, time.time())
+        logging.info(f"缓存存储成功: {user_text[:30]}... (缓存大小: {len(self.cache)})")
+
+# 全局缓存实例
+ai_cache = AIResponseCache(max_size=500, ttl_seconds=1800)  # 30分钟TTL
 
 # --- gRPC Service Implementation ---
 # ... main.py 文件前面的部分保持不变 ...
 
 # --- gRPC Service Implementation ---
 class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer):
+    def __init__(self):
+        """初始化服务，设置工作线程池"""
+        self.executor = futures.ThreadPoolExecutor(max_workers=20)  # 增加并发处理能力
+    
     def InterpretText(self, request: intelligence_pb2.InterpretRequest, context):
         logging.info(f"Received text: '{request.user_text}' from session '{request.session_id}'")
+        
+        # 验证输入 - 拒绝空输入
+        if not request.user_text or request.user_text.strip() == "":
+            logging.warning("Empty input rejected")
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("User text cannot be empty")
+            return intelligence_pb2.InterpretResponse()
+        
+        # 验证输入长度 - 拒绝过长输入  
+        if len(request.user_text) > 5000:
+            logging.warning(f"Input too long: {len(request.user_text)} characters")
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("User text is too long (max 5000 characters)")
+            return intelligence_pb2.InterpretResponse()
+
+        # 首先检查缓存
+        logging.info(f"开始检查缓存: {request.user_text[:30]}...")
+        cached_response = ai_cache.get(request.user_text)
+        if cached_response is not None:
+            logging.info(f"返回缓存结果: {request.user_text[:30]}...")
+            return cached_response
+        
+        logging.info(f"缓存未命中，调用AI模型: {request.user_text[:30]}...")
 
         tools = [
             {
@@ -71,16 +179,42 @@ class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer)
         ]
 
         try:
-            # 使用我们新创建的 client 对象来调用API
+            # 优化AI模型调用 - 添加系统prompt提高意图识别准确率
+            system_prompt = """你是一个专业的HR系统智能助手，专门识别用户的HR相关意图。
+
+核心意图类型和对应的函数：
+1. update_phone_number - 更新电话号码 (关键词: 更新、修改、电话、手机、号码)
+2. get_employee_manager - 查看经理信息 (关键词: 经理、上级、主管、领导)
+
+识别规则：
+- 仔细分析用户输入的关键词和上下文
+- 必须从上述2个意图中选择最匹配的一个
+- 如果用户提到更新、修改电话号码，选择update_phone_number
+- 如果用户询问经理、上级信息，选择get_employee_manager
+- 提取相关的结构化数据参数
+
+请根据用户输入识别意图并调用对应函数。"""
+
             response = client.chat.completions.create(
                 model="deepseek-chat",
-                messages=[{"role": "user", "content": request.user_text}],
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": request.user_text}
+                ],
                 tools=tools,
                 tool_choice="auto",
+                temperature=0.1,  # 降低温度以提高响应一致性和速度
+                max_tokens=512,   # 限制输出长度以提高响应速度
+                stream=False,     # 禁用流式输出以简化处理
             )
 
             response_message = response.choices[0].message
             tool_calls = response_message.tool_calls
+            
+            # 添加详细日志来诊断问题
+            logging.info(f"LLM响应详情:")
+            logging.info(f"  - 响应内容: {response_message.content}")
+            logging.info(f"  - 工具调用: {tool_calls}")
 
             if tool_calls:
                 function_name = tool_calls[0].function.name
@@ -88,10 +222,27 @@ class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer)
 
                 logging.info(f"LLM wants to call function: {function_name} with args: {function_args_json}")
 
-                return intelligence_pb2.InterpretResponse(
+                # 创建响应对象
+                result_response = intelligence_pb2.InterpretResponse(
                     intent=function_name,
                     structured_data_json=function_args_json
                 )
+                
+                # 将响应存入缓存
+                ai_cache.put(request.user_text, result_response)
+                
+                return result_response
+            else:
+                # 没有检测到意图的情况
+                result_response = intelligence_pb2.InterpretResponse(
+                    intent="no_intent_detected", 
+                    structured_data_json="{}"
+                )
+                
+                # 将响应存入缓存
+                ai_cache.put(request.user_text, result_response)
+                
+                return result_response
 
         except Exception as e:
             logging.error(f"Error calling OpenAI: {e}")
@@ -99,15 +250,28 @@ class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer)
             context.set_details(f"Error communicating with LLM: {e}")
             return intelligence_pb2.InterpretResponse()
 
-        return intelligence_pb2.InterpretResponse(intent="no_intent_detected", structured_data_json="{}")
-
 # ... 文件后面的 serve() 和 main() 函数保持不变 ...
 async def serve() -> None:
     port = "50051"
-    server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
+    # 增加gRPC服务器的并发处理能力
+    options = [
+        ('grpc.keepalive_time_ms', 30000),
+        ('grpc.keepalive_timeout_ms', 5000),
+        ('grpc.keepalive_permit_without_calls', True),
+        ('grpc.http2.max_pings_without_data', 0),  
+        ('grpc.http2.min_time_between_pings_ms', 10000),
+        ('grpc.http2.min_ping_interval_without_data_ms', 300000),
+        ('grpc.max_connection_idle_ms', 60000),
+    ]
+    
+    server = grpc.aio.server(
+        futures.ThreadPoolExecutor(max_workers=50),
+        options=options
+    )
     intelligence_pb2_grpc.add_IntelligenceServiceServicer_to_server(
         IntelligenceServiceImpl(), server
     )
+    
     server.add_insecure_port(f"[::]:{port}")
     logging.info(f"🧙 Python AI Service 'The Wizard Tower' is listening on gRPC port {port}")
     await server.start()

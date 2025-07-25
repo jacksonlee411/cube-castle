@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端功能单元测试</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .test-pass {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-summary {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🏰 Cube Castle - 前端单元测试</h1>
+        <p>运行前端JavaScript功能的单元测试</p>
+        
+        <button onclick="runAllTests()">运行所有测试</button>
+        
+        <div id="testResults"></div>
+        <div id="testSummary"></div>
+    </div>
+
+    <script>
+        // 测试结果记录
+        let testResults = [];
+        
+        // 测试辅助函数
+        function assert(condition, message) {
+            if (condition) {
+                testResults.push({ pass: true, message: `✅ ${message}` });
+            } else {
+                testResults.push({ pass: false, message: `❌ ${message}` });
+            }
+        }
+        
+        function assertEqual(actual, expected, message) {
+            assert(actual === expected, `${message} - 期望: ${expected}, 实际: ${actual}`);
+        }
+        
+        function assertNotNull(value, message) {
+            assert(value !== null && value !== undefined, `${message} - 值不应为空`);
+        }
+        
+        function assertType(value, expectedType, message) {
+            assert(typeof value === expectedType, `${message} - 期望类型: ${expectedType}, 实际类型: ${typeof value}`);
+        }
+        
+        // 测试1: 测试全局变量和常量
+        function testGlobalVariables() {
+            console.log('开始测试全局变量...');
+            
+            // 测试浏览器环境变量
+            assertNotNull(window, '检查window对象存在');
+            assertNotNull(document, '检查document对象存在');
+            assertNotNull(fetch, '检查fetch API存在');
+            
+            // 测试基本数据类型
+            assertEqual(typeof 'test', 'string', '测试字符串类型');
+            assertEqual(typeof 123, 'number', '测试数字类型');
+            assertEqual(typeof true, 'boolean', '测试布尔类型');
+        }
+        
+        // 测试2: 测试JSON处理功能
+        function testJSONHandling() {
+            console.log('开始测试JSON处理...');
+            
+            const testData = {
+                employee_number: 'EMP12345',
+                first_name: '张三',
+                last_name: '李',
+                email: 'zhangsan@example.com'
+            };
+            
+            // 测试JSON序列化
+            let jsonString;
+            try {
+                jsonString = JSON.stringify(testData);
+                assert(true, 'JSON序列化成功');
+                assertType(jsonString, 'string', 'JSON序列化结果类型');
+            } catch (error) {
+                assert(false, `JSON序列化失败: ${error.message}`);
+            }
+            
+            // 测试JSON反序列化
+            try {
+                const parsed = JSON.parse(jsonString);
+                assert(true, 'JSON反序列化成功');
+                assertEqual(parsed.employee_number, testData.employee_number, 'JSON反序列化数据正确性');
+                assertEqual(parsed.email, testData.email, 'JSON反序列化邮箱字段');
+            } catch (error) {
+                assert(false, `JSON反序列化失败: ${error.message}`);
+            }
+        }
+        
+        // 测试3: 测试DOM操作功能
+        function testDOMOperations() {
+            console.log('开始测试DOM操作...');
+            
+            // 创建测试元素
+            const testDiv = document.createElement('div');
+            testDiv.id = 'testElement';
+            testDiv.innerHTML = '测试内容';
+            document.body.appendChild(testDiv);
+            
+            // 测试元素查找
+            const foundElement = document.getElementById('testElement');
+            assertNotNull(foundElement, '通过ID查找DOM元素');
+            assertEqual(foundElement.innerHTML, '测试内容', 'DOM元素内容正确');
+            
+            // 测试元素修改
+            foundElement.innerHTML = '修改后的内容';
+            assertEqual(foundElement.innerHTML, '修改后的内容', 'DOM元素内容修改');
+            
+            // 测试样式操作
+            foundElement.style.display = 'none';
+            assertEqual(foundElement.style.display, 'none', 'DOM样式修改');
+            
+            // 清理测试元素
+            document.body.removeChild(testDiv);
+            assert(true, '清理测试DOM元素');
+        }
+        
+        // 测试4: 测试表单验证功能
+        function testFormValidation() {
+            console.log('开始测试表单验证...');
+            
+            // 模拟表单验证函数
+            function validateEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+            
+            function validateEmployeeName(name) {
+                return name && name.trim().length > 0;
+            }
+            
+            // 测试邮箱验证
+            assert(validateEmail('test@example.com'), '有效邮箱验证通过');
+            assert(!validateEmail('invalid-email'), '无效邮箱验证失败');
+            assert(!validateEmail(''), '空邮箱验证失败');
+            
+            // 测试姓名验证
+            assert(validateEmployeeName('张三'), '有效姓名验证通过');
+            assert(!validateEmployeeName(''), '空姓名验证失败');
+            assert(!validateEmployeeName('   '), '空白姓名验证失败');
+        }
+        
+        // 测试5: 测试异步操作模拟
+        function testAsyncOperations() {
+            console.log('开始测试异步操作...');
+            
+            return new Promise((resolve) => {
+                // 模拟异步操作
+                setTimeout(() => {
+                    assert(true, '异步操作执行成功');
+                    
+                    // 测试Promise基础功能
+                    Promise.resolve('test').then(value => {
+                        assertEqual(value, 'test', 'Promise resolve测试');
+                        resolve();
+                    });
+                }, 100);
+            });
+        }
+        
+        // 测试6: 测试API请求格式
+        function testAPIRequestFormat() {
+            console.log('开始测试API请求格式...');
+            
+            // 测试请求数据格式
+            const employeeData = {
+                employee_number: 'EMP' + Date.now(),
+                first_name: '测试',
+                last_name: '用户',
+                email: 'test@example.com',
+                hire_date: new Date().toISOString().split('T')[0]
+            };
+            
+            // 验证数据格式
+            assertType(employeeData.employee_number, 'string', '员工编号类型');
+            assertType(employeeData.first_name, 'string', '名字类型');
+            assertType(employeeData.email, 'string', '邮箱类型');
+            assert(employeeData.hire_date.match(/^\d{4}-\d{2}-\d{2}$/), '日期格式正确');
+        }
+        
+        // 运行所有测试
+        async function runAllTests() {
+            testResults = [];
+            console.log('开始运行前端单元测试...');
+            
+            const resultsDiv = document.getElementById('testResults');
+            const summaryDiv = document.getElementById('testSummary');
+            
+            resultsDiv.innerHTML = '<h3>测试结果：</h3>';
+            
+            try {
+                testGlobalVariables();
+                testJSONHandling();
+                testDOMOperations();
+                testFormValidation();
+                await testAsyncOperations();
+                testAPIRequestFormat();
+                
+                // 显示测试结果
+                let passCount = 0;
+                let failCount = 0;
+                
+                testResults.forEach(result => {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = result.pass ? 'test-result test-pass' : 'test-result test-fail';
+                    resultDiv.textContent = result.message;
+                    resultsDiv.appendChild(resultDiv);
+                    
+                    if (result.pass) {
+                        passCount++;
+                    } else {
+                        failCount++;
+                    }
+                });
+                
+                // 显示测试总结
+                const total = passCount + failCount;
+                summaryDiv.innerHTML = `<div class="test-summary">
+                    测试完成！总计: ${total} 项测试<br>
+                    ✅ 通过: ${passCount} 项<br>
+                    ❌ 失败: ${failCount} 项<br>
+                    成功率: ${(passCount / total * 100).toFixed(1)}%
+                </div>`;
+                
+                console.log(`前端单元测试完成: ${passCount}/${total} 通过`);
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="test-result test-fail">测试执行出错: ${error.message}</div>`;
+            }
+        }
+        
+        // 页面加载完成后自动运行测试
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('前端测试页面已加载');
+        });
+    </script>
+</body>
+</html>

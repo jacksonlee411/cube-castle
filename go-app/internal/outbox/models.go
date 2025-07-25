@@ -82,6 +82,9 @@ const (
 	EventTypeLeaveRequestCreated = "leave_request.created"
 	EventTypeLeaveRequestApproved = "leave_request.approved"
 	EventTypeLeaveRequestRejected = "leave_request.rejected"
+	
+	// Notification 事件类型
+	EventTypeNotification = "notification.created"
 )
 
 // AggregateTypes 预定义的聚合类型
@@ -90,4 +93,5 @@ const (
 	AggregateTypeOrganization = "Organization"
 	AggregateTypePosition     = "Position"
 	AggregateTypeLeaveRequest = "LeaveRequest"
+	AggregateTypeNotification = "Notification"
 ) 
