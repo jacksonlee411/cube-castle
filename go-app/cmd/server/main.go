@@ -320,7 +320,59 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 	})
+	
+	// API v1 健康检查端点
+	router.Get("/api/v1/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "healthy", "version": "v1"})
+	})
 
+	// API 文档端点
+	router.Get("/api/docs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"title": "Cube Castle API Documentation",
+			"version": "1.0.0",
+			"description": "CoreHR and Intelligence Gateway API endpoints",
+			"endpoints": map[string]interface{}{
+				"health": map[string]interface{}{
+					"/health": "System health check",
+					"/api/v1/health": "API v1 health check",
+					"/health/db": "Database health check",
+				},
+				"corehr": map[string]interface{}{
+					"GET /api/v1/corehr/employees": "List employees with pagination",
+					"POST /api/v1/corehr/employees": "Create new employee",
+					"GET /api/v1/corehr/employees/{id}": "Get employee details",
+					"PUT /api/v1/corehr/employees/{id}": "Update employee",
+					"DELETE /api/v1/corehr/employees/{id}": "Delete employee",
+					"GET /api/v1/corehr/organizations": "List organizations",
+					"GET /api/v1/corehr/organizations/tree": "Get organization tree",
+				},
+				"intelligence": map[string]interface{}{
+					"POST /api/v1/intelligence/interpret": "Interpret natural language queries",
+				},
+				"outbox": map[string]interface{}{
+					"GET /api/v1/outbox/stats": "Get outbox statistics",
+					"GET /api/v1/outbox/events": "List outbox events",
+					"POST /api/v1/outbox/replay": "Replay events",
+					"GET /api/v1/outbox/unprocessed": "Get unprocessed events",
+				},
+				"debug": map[string]interface{}{
+					"GET /debug/routes": "Show all registered routes",
+				},
+			},
+			"swagger_ui": "Coming soon - OpenAPI 3.0 specification will be available",
+		})
+	})
+	
+	// 根路径重定向到 API 文档
+	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/docs", http.StatusTemporaryRedirect)
+	})
+	
 	router.Get("/health/db", func(w http.ResponseWriter, r *http.Request) {
 		if err := db.HealthCheck(r.Context()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
