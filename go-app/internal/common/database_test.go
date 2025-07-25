@@ -16,22 +16,22 @@ type MockDB struct {
 	mock.Mock
 }
 
-func (m *MockDB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	mockArgs := []interface{}{ctx, query}
+func (m *MockDB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	mockArgs := []any{ctx, query}
 	mockArgs = append(mockArgs, args...)
 	callArgs := m.Called(mockArgs...)
 	return callArgs.Get(0).(*sql.Rows), callArgs.Error(1)
 }
 
-func (m *MockDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	mockArgs := []interface{}{ctx, query}
+func (m *MockDB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	mockArgs := []any{ctx, query}
 	mockArgs = append(mockArgs, args...)
 	callArgs := m.Called(mockArgs...)
 	return callArgs.Get(0).(*sql.Row)
 }
 
-func (m *MockDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	mockArgs := []interface{}{ctx, query}
+func (m *MockDB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	mockArgs := []any{ctx, query}
 	mockArgs = append(mockArgs, args...)
 	callArgs := m.Called(mockArgs...)
 	return callArgs.Get(0).(sql.Result), callArgs.Error(1)

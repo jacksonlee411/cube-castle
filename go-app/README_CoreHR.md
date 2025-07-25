@@ -1,8 +1,16 @@
-# CoreHR API 文档
+# CoreHR API 文档 v1.2.0
+
+> **版本**: v1.2.0-alpha | **更新日期**: 2025年1月26日 | **集成监控**: 已完成 🆕
 
 ## 概述
 
 CoreHR API 是 Cube Castle 项目的人力资源管理模块，提供了完整的员工管理和组织架构管理功能。
+
+✨ **v1.2.0 新增特性**:
+- 集成系统监控和性能指标收集 🆕
+- 支持Temporal工作流驱动的员工操作 🆕
+- 增强的错误处理和监控告警 🆕
+- 完整的单元测试和集成测试覆盖 🆕
 
 ## 功能特性
 
@@ -29,6 +37,20 @@ CoreHR API 是 Cube Castle 项目的人力资源管理模块，提供了完整�
    - ✅ 统一的错误响应格式
    - ✅ 用户友好的错误消息
    - ✅ 适当的 HTTP 状态码
+   - ✅ 错误监控和告警集成 🆕
+
+5. **性能监控** 🆕
+   - ✅ 集成系统监控系统
+   - ✅ HTTP请求指标自动收集
+   - ✅ 数据库连接监控
+   - ✅ API性能基准跟踪 (P95 < 100ms)
+   - ✅ 错误率监控和告警
+
+6. **工作流集成** 🆕
+   - ✅ Temporal工作流驱动的员工操作
+   - ✅ 异步任务处理
+   - ✅ 工作流状态跟踪和监控
+   - ✅ 自动错误重试和恢复
 
 ## API 端点
 
@@ -316,23 +338,31 @@ CREATE TABLE corehr.organizations (
 
 ### 架构模式
 - **分层架构**: Controller -> Service -> Repository
+- **HTTP路由器**: Chi v5.2.2 - 轻量级、高性能、可组合的HTTP路由器 🆕
 - **依赖注入**: 通过构造函数注入依赖
 - **错误处理**: 统一的错误处理机制
 
 ### 主要组件
 
-1. **Service 层** (`internal/corehr/service.go`)
+1. **Chi 路由器** (`chi v5.2.2`) 🆕
+   - 轻量级HTTP路由器
+   - 高性能路由匹配
+   - 中间件支持
+   - RESTful API路由设计
+   - 路由组合和嵌套
+
+2. **Service 层** (`internal/corehr/service.go`)
    - 业务逻辑处理
    - 参数验证
    - 数据转换
 
-2. **Repository 层** (`internal/corehr/repository.go`)
+3. **Repository 层** (`internal/corehr/repository.go`)
    - 数据库操作
    - SQL 查询
    - 数据映射
 
-3. **HTTP 处理器** (`cmd/server/main.go`)
-   - 路由处理
+4. **HTTP 处理器** (`cmd/server/main.go`)
+   - Chi路由配置 🆕
    - 请求解析
    - 响应格式化
 
