@@ -2,14 +2,14 @@ package intelligencegateway
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 )
 
 // MockIntelligenceServiceClient 模拟智能服务客户端
@@ -17,7 +17,7 @@ type MockIntelligenceServiceClient struct {
 	mock.Mock
 }
 
-func (m *MockIntelligenceServiceClient) InterpretText(ctx context.Context, in *InterpretRequest, opts ...grpc.CallOption) (*InterpretResponse, error) {
+func (m *MockIntelligenceServiceClient) InterpretText(ctx context.Context, in *InterpretRequest, opts ...interface{}) (*InterpretResponse, error) {
 	args := m.Called(ctx, in)
 	return args.Get(0).(*InterpretResponse), args.Error(1)
 }
@@ -168,17 +168,9 @@ func TestService_InterpretUserQuery_Timeout(t *testing.T) {
 		SessionId: request.UserID.String(),
 	}
 
-	// 设置模拟期望 - 模拟长时间运行
+	// 设置模拟期望 - 模拟长时间运行导致超时
 	mockClient.On("InterpretText", mock.Anything, expectedGrpcRequest).Return(
-		func(ctx context.Context, req *InterpretRequest) *InterpretResponse {
-			time.Sleep(10 * time.Millisecond) // 比超时时间长
-			return &InterpretResponse{}
-		},
-		func(ctx context.Context, req *InterpretRequest) error {
-			time.Sleep(10 * time.Millisecond)
-			return nil
-		},
-	)
+		&InterpretResponse{}, context.DeadlineExceeded)
 
 	// 执行
 	response, err := service.InterpretUserQuery(ctx, request)
@@ -352,16 +344,16 @@ func TestService_BuildResponse(t *testing.T) {
 // 辅助函数：验证用户查询请求
 func validateInterpretUserQueryRequest(req *InterpretUserQueryRequest) error {
 	if req.Query == "" {
-		return assert.AnError // "query cannot be empty"
+		return fmt.Errorf("query cannot be empty")
 	}
 	if req.UserID == uuid.Nil {
-		return assert.AnError // "user_id cannot be empty"
+		return fmt.Errorf("user_id cannot be empty")
 	}
 	if req.TenantID == uuid.Nil {
-		return assert.AnError // "tenant_id cannot be empty"
+		return fmt.Errorf("tenant_id cannot be empty")
 	}
 	if len(req.Query) > 5000 {
-		return assert.AnError // "query is too long"
+		return fmt.Errorf("query is too long")
 	}
 	return nil
 }

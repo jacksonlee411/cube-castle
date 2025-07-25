@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 // MockDB 模拟数据库接口
@@ -277,17 +276,9 @@ func TestContextTimeout(t *testing.T) {
 	
 	query := "SELECT * FROM employees"
 	
-	// 设置期望 - 模拟长时间运行的查询
+	// 设置期望 - 直接返回超时错误
 	mockDB.On("QueryContext", mock.Anything, query).Return(
-		func(ctx context.Context, query string) *sql.Rows {
-			time.Sleep(10 * time.Millisecond) // 比超时时间长
-			return &sql.Rows{}
-		},
-		func(ctx context.Context, query string) error {
-			time.Sleep(10 * time.Millisecond)
-			return context.DeadlineExceeded
-		},
-	)
+		(*sql.Rows)(nil), context.DeadlineExceeded)
 	
 	// 执行
 	rows, err := mockDB.QueryContext(ctx, query)

@@ -1,0 +1,72 @@
+# github.com/gaogu/cube-castle/go-app/internal/corehr [github.com/gaogu/cube-castle/go-app/internal/corehr.test]
+internal/corehr/service_test.go:69:91: undefined: OrganizationTreeNode
+internal/corehr/service_test.go:71:25: undefined: OrganizationTreeNode
+internal/corehr/service_test.go:99:24: cannot use mockRepo (variable of type *MockRepository) as *Repository value in argument to NewService
+internal/corehr/service_test.go:99:34: cannot use mockOutbox (variable of type *MockOutboxService) as *outbox.Service value in argument to NewService
+internal/corehr/service_test.go:120:9: assignment mismatch: 1 variable but service.CreateEmployee returns 2 values
+internal/corehr/service_test.go:120:37: not enough arguments in call to service.CreateEmployee
+	have (context.Context, *Employee)
+	want (context.Context, uuid.UUID, *openapi.CreateEmployeeRequest)
+internal/corehr/service_test.go:133:24: cannot use mockRepo (variable of type *MockRepository) as *Repository value in argument to NewService
+internal/corehr/service_test.go:133:34: cannot use mockOutbox (variable of type *MockOutboxService) as *outbox.Service value in argument to NewService
+internal/corehr/service_test.go:151:9: assignment mismatch: 1 variable but service.CreateEmployee returns 2 values
+internal/corehr/service_test.go:151:37: not enough arguments in call to service.CreateEmployee
+	have (context.Context, *Employee)
+	want (context.Context, uuid.UUID, *openapi.CreateEmployeeRequest)
+internal/corehr/service_test.go:151:9: too many errors
+# github.com/gaogu/cube-castle/go-app/internal/common [github.com/gaogu/cube-castle/go-app/internal/common.test]
+internal/common/database_test.go:12:2: "github.com/stretchr/testify/require" imported and not used
+# github.com/gaogu/cube-castle/go-app/internal/intelligencegateway [github.com/gaogu/cube-castle/go-app/internal/intelligencegateway.test]
+internal/intelligencegateway/service_test.go:29:13: undefined: NewService
+internal/intelligencegateway/service_test.go:32:14: undefined: InterpretUserQueryRequest
+internal/intelligencegateway/service_test.go:40:3: unknown field SessionId in struct literal of type InterpretRequest, but does have SessionID
+internal/intelligencegateway/service_test.go:45:3: unknown field StructuredDataJson in struct literal of type InterpretResponse
+internal/intelligencegateway/service_test.go:48:23: undefined: InterpretUserQueryResponse
+internal/intelligencegateway/service_test.go:72:13: undefined: NewService
+internal/intelligencegateway/service_test.go:75:14: undefined: InterpretUserQueryRequest
+internal/intelligencegateway/service_test.go:97:13: undefined: NewService
+internal/intelligencegateway/service_test.go:100:14: undefined: InterpretUserQueryRequest
+internal/intelligencegateway/service_test.go:353:45: undefined: InterpretUserQueryRequest
+internal/intelligencegateway/service_test.go:100:14: too many errors
+?   	github.com/gaogu/cube-castle/go-app/cmd/server	[no test files]
+?   	github.com/gaogu/cube-castle/go-app/generated/grpc/github.com/gaogu/cube-castle/go-app/generated/grpc/intelligence	[no test files]
+?   	github.com/gaogu/cube-castle/go-app/generated/grpc/intelligence	[no test files]
+?   	github.com/gaogu/cube-castle/go-app/generated/openapi	[no test files]
+?   	github.com/gaogu/cube-castle/go-app/github.com/gaogu/cube-castle/go-app/generated/grpc/intelligence	[no test files]
+FAIL	github.com/gaogu/cube-castle/go-app/internal/common [build failed]
+FAIL	github.com/gaogu/cube-castle/go-app/internal/corehr [build failed]
+FAIL	github.com/gaogu/cube-castle/go-app/internal/intelligencegateway [build failed]
+=== RUN   TestOutboxService_CreateEvent
+    service_test.go:14: Skipping database tests in unit test mode
+--- SKIP: TestOutboxService_CreateEvent (0.00s)
+=== RUN   TestOutboxService_CreateEmployeeCreatedEvent
+    service_test.go:18: Skipping database dependent test
+--- SKIP: TestOutboxService_CreateEmployeeCreatedEvent (0.00s)
+=== RUN   TestOutboxService_CreateEmployeeUpdatedEvent
+    service_test.go:22: Skipping database dependent test
+--- SKIP: TestOutboxService_CreateEmployeeUpdatedEvent (0.00s)
+=== RUN   TestOutboxService_CreateOrganizationCreatedEvent
+    service_test.go:26: Skipping database dependent test
+--- SKIP: TestOutboxService_CreateOrganizationCreatedEvent (0.00s)
+=== RUN   TestOutboxService_CreateLeaveRequestCreatedEvent
+    service_test.go:30: Skipping database dependent test
+--- SKIP: TestOutboxService_CreateLeaveRequestCreatedEvent (0.00s)
+=== RUN   TestOutboxService_CreateNotificationEvent
+    service_test.go:34: Skipping database dependent test
+--- SKIP: TestOutboxService_CreateNotificationEvent (0.00s)
+=== RUN   TestEventPayloadMarshaling
+--- PASS: TestEventPayloadMarshaling (0.00s)
+=== RUN   TestEventTypes
+--- PASS: TestEventTypes (0.00s)
+=== RUN   TestAggregateTypes
+--- PASS: TestAggregateTypes (0.00s)
+=== RUN   TestCreateEventRequest
+--- PASS: TestCreateEventRequest (0.00s)
+=== RUN   TestEventStructure
+--- PASS: TestEventStructure (0.00s)
+=== RUN   TestOutboxServiceIntegration
+    service_test.go:128: Integration test - requires actual database
+--- SKIP: TestOutboxServiceIntegration (0.00s)
+PASS
+ok  	github.com/gaogu/cube-castle/go-app/internal/outbox	(cached)
+FAIL

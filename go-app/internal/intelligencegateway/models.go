@@ -44,19 +44,34 @@ type CreateMessageRequest struct {
 
 // InterpretRequest 意图识别请求
 type InterpretRequest struct {
-	UserText  string                 `json:"user_text" validate:"required"`
-	SessionID string                 `json:"session_id" validate:"required"`
-	Context   map[string]any         `json:"context,omitempty"`
+	UserText  string         `json:"user_text" validate:"required"`
+	SessionId string         `json:"session_id" validate:"required"`  // 注意：使用SessionId而不是SessionID以匹配gRPC字段
+	Context   map[string]any `json:"context,omitempty"`
 }
 
 // InterpretResponse 意图识别响应
 type InterpretResponse struct {
-	Intent              string                 `json:"intent"`
-	Confidence          float64                `json:"confidence"`
-	Entities            map[string]any         `json:"entities,omitempty"`
-	StructuredData      map[string]any         `json:"structured_data,omitempty"`
-	SuggestedActions    []string               `json:"suggested_actions,omitempty"`
-	ResponseMessage     string                 `json:"response_message,omitempty"`
+	Intent              string         `json:"intent"`
+	Confidence          float64        `json:"confidence"`
+	Entities            map[string]any `json:"entities,omitempty"`
+	StructuredData      map[string]any `json:"structured_data,omitempty"`
+	StructuredDataJson  string         `json:"structured_data_json,omitempty"` // 添加JSON字符串字段
+	SuggestedActions    []string       `json:"suggested_actions,omitempty"`
+	ResponseMessage     string         `json:"response_message,omitempty"`
+}
+
+// InterpretUserQueryRequest 用户查询解释请求
+type InterpretUserQueryRequest struct {
+	Query    string    `json:"query" validate:"required"`
+	UserID   uuid.UUID `json:"user_id" validate:"required"`
+	TenantID uuid.UUID `json:"tenant_id" validate:"required"`
+}
+
+// InterpretUserQueryResponse 用户查询解释响应
+type InterpretUserQueryResponse struct {
+	Intent             string    `json:"intent"`
+	StructuredDataJson string    `json:"structured_data_json,omitempty"`
+	ProcessedAt        time.Time `json:"processed_at"`
 }
 
 // ConversationResponse 对话响应

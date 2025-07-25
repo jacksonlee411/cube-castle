@@ -1,0 +1,163 @@
+test_cache_cleanup_expired (__main__.TestAIResponseCache.test_cache_cleanup_expired)
+测试过期缓存清理 ... ok
+test_cache_expiration (__main__.TestAIResponseCache.test_cache_expiration)
+测试缓存过期 ... ok
+test_cache_initialization (__main__.TestAIResponseCache.test_cache_initialization)
+测试缓存初始化 ... ok
+test_cache_max_size (__main__.TestAIResponseCache.test_cache_max_size)
+测试缓存最大大小限制 ... ok
+test_cache_put_and_get (__main__.TestAIResponseCache.test_cache_put_and_get)
+测试缓存存储和获取 ... ok
+test_generate_cache_key (__main__.TestAIResponseCache.test_generate_cache_key)
+测试缓存键生成 ... ok
+test_cache_and_service_integration (__main__.TestAIServiceIntegration.test_cache_and_service_integration)
+测试缓存与服务的集成 ... ok
+test_cache_hit (__main__.TestIntelligenceServiceImpl.test_cache_hit)
+测试缓存命中 ... FAIL
+test_empty_input_validation (__main__.TestIntelligenceServiceImpl.test_empty_input_validation)
+测试空输入验证 ... ERROR
+test_function_call_detected (__main__.TestIntelligenceServiceImpl.test_function_call_detected)
+测试检测到函数调用的情况 ... ERROR
+test_long_input_validation (__main__.TestIntelligenceServiceImpl.test_long_input_validation)
+测试超长输入验证 ... ERROR
+test_no_intent_detected (__main__.TestIntelligenceServiceImpl.test_no_intent_detected)
+测试未检测到意图的情况 ... ERROR
+test_openai_error_handling (__main__.TestIntelligenceServiceImpl.test_openai_error_handling)
+测试OpenAI API错误处理 ... ERROR
+test_service_initialization (__main__.TestIntelligenceServiceImpl.test_service_initialization)
+测试服务初始化 ... ERROR
+
+======================================================================
+ERROR: test_empty_input_validation (__main__.TestIntelligenceServiceImpl.test_empty_input_validation)
+测试空输入验证
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/shangmeilin/cube-castle/python-ai/test_ai_service_comprehensive.py", line 144, in setUp
+    self.service = IntelligenceServiceImpl()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1195, in _execute_mock_call
+    result = next(effect)
+             ^^^^^^^^^^^^
+StopIteration
+
+======================================================================
+ERROR: test_function_call_detected (__main__.TestIntelligenceServiceImpl.test_function_call_detected)
+测试检测到函数调用的情况
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/shangmeilin/cube-castle/python-ai/test_ai_service_comprehensive.py", line 144, in setUp
+    self.service = IntelligenceServiceImpl()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1195, in _execute_mock_call
+    result = next(effect)
+             ^^^^^^^^^^^^
+StopIteration
+
+======================================================================
+ERROR: test_long_input_validation (__main__.TestIntelligenceServiceImpl.test_long_input_validation)
+测试超长输入验证
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/shangmeilin/cube-castle/python-ai/test_ai_service_comprehensive.py", line 144, in setUp
+    self.service = IntelligenceServiceImpl()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1195, in _execute_mock_call
+    result = next(effect)
+             ^^^^^^^^^^^^
+StopIteration
+
+======================================================================
+ERROR: test_no_intent_detected (__main__.TestIntelligenceServiceImpl.test_no_intent_detected)
+测试未检测到意图的情况
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/shangmeilin/cube-castle/python-ai/test_ai_service_comprehensive.py", line 144, in setUp
+    self.service = IntelligenceServiceImpl()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1195, in _execute_mock_call
+    result = next(effect)
+             ^^^^^^^^^^^^
+StopIteration
+
+======================================================================
+ERROR: test_openai_error_handling (__main__.TestIntelligenceServiceImpl.test_openai_error_handling)
+测试OpenAI API错误处理
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/shangmeilin/cube-castle/python-ai/test_ai_service_comprehensive.py", line 144, in setUp
+    self.service = IntelligenceServiceImpl()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1195, in _execute_mock_call
+    result = next(effect)
+             ^^^^^^^^^^^^
+StopIteration
+
+======================================================================
+ERROR: test_service_initialization (__main__.TestIntelligenceServiceImpl.test_service_initialization)
+测试服务初始化
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/shangmeilin/cube-castle/python-ai/test_ai_service_comprehensive.py", line 144, in setUp
+    self.service = IntelligenceServiceImpl()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1195, in _execute_mock_call
+    result = next(effect)
+             ^^^^^^^^^^^^
+StopIteration
+
+======================================================================
+FAIL: test_cache_hit (__main__.TestIntelligenceServiceImpl.test_cache_hit)
+测试缓存命中
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/unittest/mock.py", line 1390, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/shangmeilin/cube-castle/python-ai/test_ai_service_comprehensive.py", line 186, in test_cache_hit
+    mock_cache.get.assert_called_with("测试文本")
+  File "/usr/lib/python3.12/unittest/mock.py", line 935, in assert_called_with
+    raise AssertionError(error_message)
+AssertionError: expected call not found.
+Expected: get('测试文本')
+  Actual: not called.
+
+----------------------------------------------------------------------
+Ran 14 tests in 2.207s
+
+FAILED (failures=1, errors=6)
