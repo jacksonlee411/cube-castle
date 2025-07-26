@@ -2,370 +2,228 @@ package intelligencegateway
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// MockIntelligenceServiceClient 模拟智能服务客户端
-type MockIntelligenceServiceClient struct {
-	mock.Mock
+func TestNewService(t *testing.T) {
+	service := NewService()
+	
+	if service == nil {
+		t.Fatal("Expected service to be created, got nil")
+	}
+	
+	if service.contextStore == nil {
+		t.Error("Expected contextStore to be initialized")
+	}
+	
+	if len(service.contextStore) != 0 {
+		t.Error("Expected contextStore to be empty initially")
+	}
 }
 
-func (m *MockIntelligenceServiceClient) InterpretText(ctx context.Context, in *InterpretRequest, opts ...interface{}) (*InterpretResponse, error) {
-	args := m.Called(ctx, in)
-	return args.Get(0).(*InterpretResponse), args.Error(1)
-}
-
-// TestService_InterpretUserQuery 测试用户查询解释
 func TestService_InterpretUserQuery(t *testing.T) {
-	// 设置
-	mockClient := new(MockIntelligenceServiceClient)
-	service := NewService(mockClient)
-
+	service := NewService()
 	ctx := context.Background()
-	request := &InterpretUserQueryRequest{
-		Query:   "更新我的电话号码为13800138000",
-		UserID:  uuid.New(),
-		TenantID: uuid.New(),
-	}
-
-	expectedGrpcRequest := &InterpretRequest{
-		UserText:  request.Query,
-		SessionId: request.UserID.String(),
-	}
-
-	expectedGrpcResponse := &InterpretResponse{
-		Intent:            "update_phone_number",
-		StructuredDataJson: `{"employee_id": "123", "new_phone_number": "13800138000"}`,
-	}
-
-	expectedResponse := &InterpretUserQueryResponse{
-		Intent:            "update_phone_number",
-		StructuredDataJson: `{"employee_id": "123", "new_phone_number": "13800138000"}`,
-		ProcessedAt:       time.Now(),
-	}
-
-	// 设置模拟期望
-	mockClient.On("InterpretText", ctx, expectedGrpcRequest).Return(expectedGrpcResponse, nil)
-
-	// 执行
-	response, err := service.InterpretUserQuery(ctx, request)
-
-	// 验证
-	assert.NoError(t, err)
-	assert.Equal(t, expectedResponse.Intent, response.Intent)
-	assert.Equal(t, expectedResponse.StructuredDataJson, response.StructuredDataJson)
-	assert.WithinDuration(t, expectedResponse.ProcessedAt, response.ProcessedAt, time.Second)
-	mockClient.AssertExpectations(t)
-}
-
-// TestService_InterpretUserQuery_EmptyQuery 测试空查询
-func TestService_InterpretUserQuery_EmptyQuery(t *testing.T) {
-	// 设置
-	mockClient := new(MockIntelligenceServiceClient)
-	service := NewService(mockClient)
-
-	ctx := context.Background()
-	request := &InterpretUserQueryRequest{
-		Query:   "",
-		UserID:  uuid.New(),
-		TenantID: uuid.New(),
-	}
-
-	// 执行
-	response, err := service.InterpretUserQuery(ctx, request)
-
-	// 验证
-	assert.Error(t, err)
-	assert.Nil(t, response)
-	assert.Contains(t, err.Error(), "query cannot be empty")
 	
-	// 不应该调用gRPC客户端
-	mockClient.AssertNotCalled(t, "InterpretText")
-}
-
-// TestService_InterpretUserQuery_InvalidUserID 测试无效用户ID
-func TestService_InterpretUserQuery_InvalidUserID(t *testing.T) {
-	// 设置
-	mockClient := new(MockIntelligenceServiceClient)
-	service := NewService(mockClient)
-
-	ctx := context.Background()
-	request := &InterpretUserQueryRequest{
-		Query:   "查询我的信息",
-		UserID:  uuid.Nil,
-		TenantID: uuid.New(),
-	}
-
-	// 执行
-	response, err := service.InterpretUserQuery(ctx, request)
-
-	// 验证
-	assert.Error(t, err)
-	assert.Nil(t, response)
-	assert.Contains(t, err.Error(), "user_id cannot be empty")
+	userID := uuid.New()
+	tenantID := uuid.New()
 	
-	// 不应该调用gRPC客户端
-	mockClient.AssertNotCalled(t, "InterpretText")
+	req := &InterpretUserQueryRequest{
+		Query:    "Test query",
+		UserID:   userID,
+		TenantID: tenantID,
+	}
+	
+	resp, err := service.InterpretUserQuery(ctx, req)
+	
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+	
+	if resp.Intent != "general_query" {
+		t.Errorf("Expected intent 'general_query', got %s", resp.Intent)
+	}
+	
+	if resp.StructuredDataJson == "" {
+		t.Error("Expected structured data json to be populated")
+	}
+	
+	if resp.ProcessedAt.IsZero() {
+		t.Error("Expected ProcessedAt to be set")
+	}
+	
+	// Check that context was created
+	context, err := service.GetConversationContext(ctx, userID, tenantID)
+	if err != nil {
+		t.Errorf("Expected context to be created, got error: %v", err)
+	}
+	
+	if len(context.History) != 2 { // user message + assistant response
+		t.Errorf("Expected 2 messages in history, got %d", len(context.History))
+	}
 }
 
-// TestService_InterpretUserQuery_GrpcError 测试gRPC错误
-func TestService_InterpretUserQuery_GrpcError(t *testing.T) {
-	// 设置
-	mockClient := new(MockIntelligenceServiceClient)
-	service := NewService(mockClient)
-
+func TestService_InterpretUserQuery_Validation(t *testing.T) {
+	service := NewService()
 	ctx := context.Background()
-	request := &InterpretUserQueryRequest{
-		Query:   "查询我的信息",
-		UserID:  uuid.New(),
-		TenantID: uuid.New(),
-	}
-
-	expectedGrpcRequest := &InterpretRequest{
-		UserText:  request.Query,
-		SessionId: request.UserID.String(),
-	}
-
-	// 设置模拟期望 - gRPC返回错误
-	expectedError := assert.AnError
-	mockClient.On("InterpretText", ctx, expectedGrpcRequest).Return((*InterpretResponse)(nil), expectedError)
-
-	// 执行
-	response, err := service.InterpretUserQuery(ctx, request)
-
-	// 验证
-	assert.Error(t, err)
-	assert.Nil(t, response)
-	assert.Equal(t, expectedError, err)
-	mockClient.AssertExpectations(t)
-}
-
-// TestService_InterpretUserQuery_Timeout 测试超时处理
-func TestService_InterpretUserQuery_Timeout(t *testing.T) {
-	// 设置
-	mockClient := new(MockIntelligenceServiceClient)
-	service := NewService(mockClient)
-
-	// 创建会超时的上下文
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
-	defer cancel()
-
-	request := &InterpretUserQueryRequest{
-		Query:   "查询我的信息",
-		UserID:  uuid.New(),
-		TenantID: uuid.New(),
-	}
-
-	expectedGrpcRequest := &InterpretRequest{
-		UserText:  request.Query,
-		SessionId: request.UserID.String(),
-	}
-
-	// 设置模拟期望 - 模拟长时间运行导致超时
-	mockClient.On("InterpretText", mock.Anything, expectedGrpcRequest).Return(
-		&InterpretResponse{}, context.DeadlineExceeded)
-
-	// 执行
-	response, err := service.InterpretUserQuery(ctx, request)
-
-	// 验证
-	assert.Error(t, err)
-	assert.Nil(t, response)
-	assert.Contains(t, err.Error(), "context deadline exceeded")
-}
-
-// TestInterpretUserQueryRequest_Validation 测试请求验证
-func TestInterpretUserQueryRequest_Validation(t *testing.T) {
+	
 	tests := []struct {
 		name    string
-		request *InterpretUserQueryRequest
+		req     *InterpretUserQueryRequest
 		wantErr bool
 		errMsg  string
 	}{
 		{
-			name: "有效请求",
-			request: &InterpretUserQueryRequest{
-				Query:   "查询我的信息",
-				UserID:  uuid.New(),
-				TenantID: uuid.New(),
-			},
-			wantErr: false,
-		},
-		{
-			name: "空查询",
-			request: &InterpretUserQueryRequest{
-				Query:   "",
-				UserID:  uuid.New(),
+			name: "empty query",
+			req: &InterpretUserQueryRequest{
+				Query:    "",
+				UserID:   uuid.New(),
 				TenantID: uuid.New(),
 			},
 			wantErr: true,
 			errMsg:  "query cannot be empty",
 		},
 		{
-			name: "空用户ID",
-			request: &InterpretUserQueryRequest{
-				Query:   "查询我的信息",
-				UserID:  uuid.Nil,
+			name: "nil user ID",
+			req: &InterpretUserQueryRequest{
+				Query:    "test",
+				UserID:   uuid.Nil,
 				TenantID: uuid.New(),
 			},
 			wantErr: true,
 			errMsg:  "user_id cannot be empty",
 		},
 		{
-			name: "空租户ID",
-			request: &InterpretUserQueryRequest{
-				Query:   "查询我的信息",
-				UserID:  uuid.New(),
+			name: "nil tenant ID",
+			req: &InterpretUserQueryRequest{
+				Query:    "test",
+				UserID:   uuid.New(),
 				TenantID: uuid.Nil,
 			},
 			wantErr: true,
 			errMsg:  "tenant_id cannot be empty",
 		},
 		{
-			name: "查询过长",
-			request: &InterpretUserQueryRequest{
-				Query:   string(make([]byte, 5001)), // 超过5000字符
-				UserID:  uuid.New(),
+			name: "query too long",
+			req: &InterpretUserQueryRequest{
+				Query:    string(make([]byte, 5001)), // 5001 characters
+				UserID:   uuid.New(),
 				TenantID: uuid.New(),
 			},
 			wantErr: true,
 			errMsg:  "query is too long",
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateInterpretUserQueryRequest(tt.request)
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-// TestInterpretResponse_Validation 测试响应验证
-func TestInterpretResponse_Validation(t *testing.T) {
-	tests := []struct {
-		name     string
-		response *InterpretResponse
-		wantErr  bool
-	}{
 		{
-			name: "有效响应",
-			response: &InterpretResponse{
-				Intent:            "update_phone_number",
-				StructuredDataJson: `{"employee_id": "123"}`,
+			name: "valid request",
+			req: &InterpretUserQueryRequest{
+				Query:    "valid query",
+				UserID:   uuid.New(),
+				TenantID: uuid.New(),
 			},
 			wantErr: false,
 		},
-		{
-			name: "空意图",
-			response: &InterpretResponse{
-				Intent:            "",
-				StructuredDataJson: `{"employee_id": "123"}`,
-			},
-			wantErr: false, // 空意图是允许的（表示未识别）
-		},
-		{
-			name: "无效JSON",
-			response: &InterpretResponse{
-				Intent:            "update_phone_number",
-				StructuredDataJson: `{"invalid": json}`,
-			},
-			wantErr: true,
-		},
-		{
-			name: "空JSON",
-			response: &InterpretResponse{
-				Intent:            "update_phone_number",
-				StructuredDataJson: "",
-			},
-			wantErr: false, // 空JSON是允许的
-		},
 	}
-
+	
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateInterpretResponse(tt.response)
+			resp, err := service.InterpretUserQuery(ctx, tt.req)
+			
 			if tt.wantErr {
-				assert.Error(t, err)
+				if err == nil {
+					t.Errorf("Expected error, got none")
+				} else if err.Error() != tt.errMsg {
+					t.Errorf("Expected error message '%s', got '%s'", tt.errMsg, err.Error())
+				}
+				if resp != nil {
+					t.Error("Expected no response when error occurs")
+				}
 			} else {
-				assert.NoError(t, err)
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if resp == nil {
+					t.Error("Expected response, got nil")
+				}
 			}
 		})
 	}
 }
 
-// TestService_BuildGrpcRequest 测试构建gRPC请求
-func TestService_BuildGrpcRequest(t *testing.T) {
-	service := NewService(nil)
+func TestService_ProcessBatchRequests(t *testing.T) {
+	service := NewService()
+	ctx := context.Background()
 	
-	userQuery := &InterpretUserQueryRequest{
-		Query:   "查询我的信息",
-		UserID:  uuid.New(),
-		TenantID: uuid.New(),
-	}
-
-	grpcReq := service.buildGrpcRequest(userQuery)
-
-	assert.Equal(t, userQuery.Query, grpcReq.UserText)
-	assert.Equal(t, userQuery.UserID.String(), grpcReq.SessionId)
-}
-
-// TestService_BuildResponse 测试构建响应
-func TestService_BuildResponse(t *testing.T) {
-	service := NewService(nil)
+	userID1 := uuid.New()
+	userID2 := uuid.New()
+	tenantID := uuid.New()
 	
-	grpcResp := &InterpretResponse{
-		Intent:            "update_phone_number",
-		StructuredDataJson: `{"employee_id": "123"}`,
+	batchReq := &BatchRequest{
+		BatchID: "test-batch-123",
+		Requests: []InterpretUserQueryRequest{
+			{
+				Query:    "First query",
+				UserID:   userID1,
+				TenantID: tenantID,
+			},
+			{
+				Query:    "Second query",
+				UserID:   userID2,
+				TenantID: tenantID,
+			},
+		},
 	}
-
-	beforeTime := time.Now()
-	response := service.buildResponse(grpcResp)
-	afterTime := time.Now()
-
-	assert.Equal(t, grpcResp.Intent, response.Intent)
-	assert.Equal(t, grpcResp.StructuredDataJson, response.StructuredDataJson)
-	assert.True(t, response.ProcessedAt.After(beforeTime))
-	assert.True(t, response.ProcessedAt.Before(afterTime))
+	
+	resp, err := service.ProcessBatchRequests(ctx, batchReq)
+	
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+	
+	if resp.BatchID != "test-batch-123" {
+		t.Errorf("Expected BatchID 'test-batch-123', got %s", resp.BatchID)
+	}
+	
+	if resp.Status != "completed" {
+		t.Errorf("Expected status 'completed', got %s", resp.Status)
+	}
+	
+	if len(resp.Responses) != 2 {
+		t.Errorf("Expected 2 responses, got %d", len(resp.Responses))
+	}
 }
 
-// 辅助函数：验证用户查询请求
-func validateInterpretUserQueryRequest(req *InterpretUserQueryRequest) error {
-	if req.Query == "" {
-		return fmt.Errorf("query cannot be empty")
+func TestService_GetContextStats(t *testing.T) {
+	service := NewService()
+	ctx := context.Background()
+	
+	// Initial stats should be empty
+	stats := service.GetContextStats()
+	
+	if stats["total_contexts"] != 0 {
+		t.Errorf("Expected 0 total contexts, got %v", stats["total_contexts"])
 	}
-	if req.UserID == uuid.Nil {
-		return fmt.Errorf("user_id cannot be empty")
+	
+	// Create some contexts
+	userID := uuid.New()
+	tenantID := uuid.New()
+	
+	service.InterpretUserQuery(ctx, &InterpretUserQueryRequest{
+		Query: "Test query", UserID: userID, TenantID: tenantID,
+	})
+	
+	stats = service.GetContextStats()
+	
+	if stats["total_contexts"] != 1 {
+		t.Errorf("Expected 1 total context, got %v", stats["total_contexts"])
 	}
-	if req.TenantID == uuid.Nil {
-		return fmt.Errorf("tenant_id cannot be empty")
-	}
-	if len(req.Query) > 5000 {
-		return fmt.Errorf("query is too long")
-	}
-	return nil
-}
-
-// 辅助函数：验证解释响应
-func validateInterpretResponse(resp *InterpretResponse) error {
-	if resp.StructuredDataJson != "" {
-		// 尝试解析JSON以验证格式
-		var temp interface{}
-		if err := json.Unmarshal([]byte(resp.StructuredDataJson), &temp); err != nil {
-			return err
-		}
-	}
-	return nil
 }

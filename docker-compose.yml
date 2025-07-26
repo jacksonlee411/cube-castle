@@ -37,10 +37,132 @@ services:
       timeout: 5s
       retries: 5
 
+  # 使用现有的Elasticsearch 8.x但优化配置
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    container_name: cube_castle_elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx384m"  # 进一步降低内存使用
+      - bootstrap.memory_lock=true
+      # 添加与Temporal兼容的配置
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - action.auto_create_index=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - castle-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=10s || exit 1"]
+      interval: 15s
+      timeout: 15s
+      retries: 8
+      start_period: 45s
+
+  # 简化的Temporal服务配置
+  temporal-server:
+    image: temporalio/auto-setup:1.24.2
+    container_name: cube_castle_temporal
+    ports:
+      - "7233:7233"
+    environment:
+      - TEMPORAL_ENVIRONMENT=development
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_SEEDS=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-cubecastle}
+      # 暂时禁用Elasticsearch以简化启动
+      - ENABLE_ES=false
+      # 简化配置
+      - TEMPORAL_TLS_REQUIRE_CLIENT_AUTH=false
+      - TEMPORAL_BROADCAST_ADDRESS=0.0.0.0
+      - TEMPORAL_BIND_ON_IP=0.0.0.0
+      # 重要：增大超时时间避免Ringpop问题
+      - TEMPORAL_MEMBERSHIP_MAX_JOIN_DURATION=300s
+      # 单节点服务配置
+      - SERVICES=frontend,matching,history,worker
+      - TEMPORAL_NUM_HISTORY_SHARDS=1
+      # 添加等待命令确保服务完全就绪
+      - TEMPORAL_LOG_LEVEL=debug
+      # 增加初始化超时
+      - TEMPORAL_FRONTEND_CLIENT_TIMEOUT=60s
+    volumes:
+      - temporal_data:/etc/temporal/config/dynamicconfig
+    networks:
+      - castle-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # 使用tctl进行健康检查而不是HTTP
+      test: ["CMD-SHELL", "tctl --address localhost:7233 cluster health || exit 1"]
+      interval: 30s
+      timeout: 15s
+      start_period: 180s  # 增加启动等待期
+      retries: 10
+    restart: unless-stopped
+
+  # 优化的Temporal UI配置
+  temporal-ui:
+    image: temporalio/ui:2.31.1
+    container_name: cube_castle_temporal_ui
+    ports:
+      - "8085:8080"
+    environment:
+      - TEMPORAL_UI_ENABLED=true
+      - TEMPORAL_ADDRESS=temporal-server:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000,http://localhost:8080,http://localhost:8085
+      - TEMPORAL_UI_PORT=8080
+      - TEMPORAL_CLOUD_UI=false
+      # 防御性措施：禁用外部版本检查
+      - TEMPORAL_NOTIFY_ON_NEW_VERSION=false
+    networks:
+      - castle-net
+    depends_on:
+      temporal-server:
+        condition: service_started  # 只等待服务启动，不等待健康
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+    restart: unless-stopped
+
+  # PostgreSQL Web管理界面
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: cube_castle_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@cubecastle.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - castle-net
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     driver: local
   neo4j_data:
+    driver: local
+  temporal_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 networks:
