@@ -1,0 +1,72 @@
+# 最小化Temporal配置 - 快速启动版本
+# 移除非必要依赖，专注于核心功能
+
+services:
+  # 基础数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: cube_castle_postgres_minimal
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_minimal_data:/var/lib/postgresql/data
+    networks:
+      - temporal-minimal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Temporal服务（禁用Elasticsearch以简化启动）
+  temporal-minimal:
+    image: temporalio/auto-setup:1.24.2
+    container_name: cube_castle_temporal_minimal
+    ports:
+      - "7233:7233"
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_SEEDS=postgres
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_DB=temporal
+      # 关键：禁用Elasticsearch以加快启动
+      - ENABLE_ES=false
+      # 简化日志
+      - TEMPORAL_LOG_LEVEL=warn
+    networks:
+      - temporal-minimal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Temporal UI
+  temporal-ui-minimal:
+    image: temporalio/ui:2.31.1
+    container_name: cube_castle_temporal_ui_minimal
+    ports:
+      - "8086:8080"  # 使用不同端口避免冲突
+    environment:
+      - TEMPORAL_UI_ENABLED=true
+      - TEMPORAL_ADDRESS=temporal-minimal:7233
+      - TEMPORAL_UI_PORT=8080
+      - TEMPORAL_CLOUD_UI=false
+    networks:
+      - temporal-minimal
+    depends_on:
+      - temporal-minimal
+    restart: unless-stopped
+
+volumes:
+  postgres_minimal_data:
+    driver: local
+
+networks:
+  temporal-minimal:
+    driver: bridge

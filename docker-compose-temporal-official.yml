@@ -1,0 +1,134 @@
+# 基于Temporal官方配置的优化版本
+# 适配现有项目结构和数据库配置
+
+services:
+  # 阶段1：数据库服务（保持现有配置）
+  postgres:
+    image: postgres:16-alpine
+    container_name: cube_castle_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-cubecastle}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - temporal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-cubecastle}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 阶段2：搜索引擎服务
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    container_name: cube_castle_elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx512m"
+      - bootstrap.memory_lock=true
+      - action.auto_create_index=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - temporal-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=10s || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  # 阶段3：Temporal核心服务（基于官方配置）
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    container_name: cube_castle_temporal
+    ports:
+      - "7233:7233"
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_SEEDS=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-cubecastle}
+      # 启用Elasticsearch
+      - ENABLE_ES=true
+      - ES_SEEDS=elasticsearch
+      - ES_VERSION=v8
+      # 简化配置（移除复杂的单节点配置）
+      - TEMPORAL_LOG_LEVEL=info
+    volumes:
+      - temporal_data:/etc/temporal/config/dynamicconfig
+    networks:
+      - temporal-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 阶段4：Temporal UI服务
+  temporal-ui:
+    image: temporalio/ui:2.31.1
+    container_name: cube_castle_temporal_ui
+    ports:
+      - "8085:8080"  # 保持现有端口映射
+    environment:
+      - TEMPORAL_UI_ENABLED=true
+      - TEMPORAL_ADDRESS=temporal:7233  # 使用官方服务名
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000,http://localhost:8080,http://localhost:8085
+      - TEMPORAL_UI_PORT=8080
+      - TEMPORAL_CLOUD_UI=false
+      - TEMPORAL_NOTIFY_ON_NEW_VERSION=false
+    networks:
+      - temporal-network
+    depends_on:
+      - temporal  # 依赖Temporal核心服务
+    restart: unless-stopped
+
+  # 保持现有的其他服务
+  neo4j:
+    image: neo4j:5
+    container_name: cube_castle_neo4j
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-password}
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - temporal-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
+  neo4j_data:
+    driver: local
+  temporal_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+networks:
+  temporal-network:
+    driver: bridge
