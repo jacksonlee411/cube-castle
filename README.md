@@ -1,21 +1,28 @@
 # 🏰 Cube Castle - 企业级CoreHR SaaS平台
 
-> **版本**: v1.4.1-beta | **更新日期**: 2025年7月27日
+> **版本**: v1.5.0-alpha | **更新日期**: 2025年7月27日
 
-Cube Castle 是一个基于"城堡模型"架构的现代化企业级 HR SaaS 平台，采用模块化设计，集成了人工智能驱动的自然语言交互、分布式工作流编排、企业级安全架构和全面的系统监控。
+Cube Castle 是一个基于"城堡模型"架构和"元合约v6.0"驱动的现代化企业级 HR SaaS 平台，采用模块化设计，实现了从声明式配置到生产就绪代码的自动化转换，集成了企业级安全架构、多租户隔离和全面的数据治理。
 
-## 🎯 最新开发进展 (2025年7月27日)
+## 🎉 最新开发里程碑 (2025年7月27日)
 
-### ✅ 核心业务逻辑完成
-- **员工管理API**: 完整CRUD操作，字段映射修复完成
-- **组织管理API**: Mock数据响应机制，API路径统一
-- **前端错误处理**: 优化用户体验，统一错误提示
-- **AI服务集成**: Mock响应机制，支持自然语言查询
+### ✅ **Phase 1: 元合约编译器基础设施** - **圆满完成**
+- **🏗️ 元合约编译器**: 完整的CLI工具，支持YAML到Go代码自动转换
+- **📋 Person实体实现**: 11字段+3关系的完整员工模型，包含时态支持
+- **🔒 企业级安全**: 多层安全中间件，RBAC+租户隔离+数据分类
+- **⚡ 生产就绪**: 类型安全代码生成，零配置安全默认
 
-### 🚧 当前运行状态
-- **后端服务**: 运行在8080端口 (Mock模式)
-- **前端服务**: 运行在3000端口 (开发模式)
-- **AI服务**: Mock响应机制，支持智能查询
+### 🚀 **核心技术突破**
+- **"元合约即代码"**: 实现声明式YAML驱动的完整开发流程
+- **自动化安全**: 零手动配置的企业级安全集成
+- **Schema-as-Code**: Ent框架驱动的类型安全ORM生成
+- **标准化工作流**: 从元合约到API的一键生成管道
+
+### 📊 **当前系统状态**
+- **元合约编译器**: ✅ 生产就绪
+- **Person实体API**: ✅ 完整CRUD + 时态查询
+- **安全中间件**: ✅ 租户隔离 + RBAC + 数据分类
+- **开发工具链**: ✅ 标准化构建流程 (Makefile)
 
 ## 🏗️ 架构概览
 
@@ -35,19 +42,26 @@ Cube Castle 采用独特的"城堡模型"架构，实现了企业级安全和高
 - **城墙与门禁 (The Walls & Gates)**: 安全的模块间 API 接口
 - **护城河 (The Moat)**: 审计日志、威胁检测和安全防护 🆕
 
-### 技术栈 v3.0
+### 技术栈 v4.0 🆕
+
+#### **元合约驱动架构** 
+- **元合约编译器**: 自定义CLI工具 (YAML → Go代码自动转换)
+- **Schema生成**: Ent框架 v0.14+ (类型安全ORM + 自动迁移)
+- **API生成**: Chi Router + 中间件栈 (REST + 安全集成)
+- **类型系统**: Go 1.23+ 泛型 + 严格类型安全
 
 #### 核心技术栈
 - **后端**: Go 1.23+ (高性能、类型安全)
-- **前端**: Next.js 14+ + TypeScript + Tailwind CSS 🆕
+- **前端**: Next.js 14+ + TypeScript + Tailwind CSS
 - **数据库**: PostgreSQL 16+ (RLS多租户) + Neo4j 5+ (关系图谱)
 - **AI 服务**: Python 3.12+ + gRPC (智能对话)
-- **API**: OpenAPI 3.0 + Chi Router (标准化接口)
+- **API**: OpenAPI 3.0 + 自动生成处理器
 
 #### 企业级安全与架构 🆕
+- **元合约治理**: YAML驱动的数据治理 + 合规自动化
 - **授权引擎**: Open Policy Agent (OPA) 0.58+ (策略驱动)
 - **工作流引擎**: Temporal 1.25+ (分布式任务编排)
-- **多租户隔离**: PostgreSQL RLS (行级安全策略)
+- **多租户隔离**: PostgreSQL RLS + 自动生成安全中间件
 - **对话状态**: Redis 7.x (持久化会话管理)
 - **监控体系**: Prometheus + 结构化日志 (全方位可观测)
 
@@ -56,28 +70,68 @@ Cube Castle 采用独特的"城堡模型"架构，实现了企业级安全和高
 - **测试**: 完整测试体系 (单元 + 集成 + 安全测试)
 - **部署**: Kubernetes Ready + 高可用配置
 
-## 🚀 快速开始
+## 🚀 快速开始 - 元合约驱动开发
 
 ### 环境要求
 
 #### 基础要求
-- Go 1.23+
+- **Go 1.23+** (元合约编译器核心)
 - Python 3.12+
-- Node.js 18+ (用于Next.js前端) 🆕
+- Node.js 18+ (用于Next.js前端)
 - Docker & Docker Compose
 - PostgreSQL 16+
-- Redis 7.x 🆕
+- Redis 7.x
 
-#### 企业级组件 🆕
+#### 企业级组件
 - Temporal 1.25+ (工作流引擎)
 - 至少 16GB RAM (完整系统)
 - 至少 4 CPU 核心 (推荐 8核)
 
-### 1. 克隆项目
+### 1. 项目初始化
 
 ```bash
 git clone <repository-url>
-cd cube-castle
+cd cube-castle/go-app
+
+# 构建元合约编译器
+make build-compiler
+```
+
+### 2. 元合约驱动开发工作流 🆕
+
+```bash
+# 第一步：验证现有Person实体元合约
+make validate-person
+
+# 第二步：生成生产就绪代码
+make compile-person
+
+# 第三步：查看生成的代码
+ls -la generated/
+# 输出：
+# schema/person.go      - Ent数据模型
+# api/person_handler.go - REST API处理器
+```
+
+### 3. 创建新实体工作流 🆕
+
+```bash
+# 1. 创建新的元合约定义
+cat > test-data/department.yaml << EOF
+specification_version: "v6.0.0"
+resource_name: "department"
+namespace: "corehr.organization"
+# ... 其他字段定义
+EOF
+
+# 2. 验证元合约
+./metacontract-compiler -input test-data/department.yaml -validate
+
+# 3. 生成代码
+./metacontract-compiler -input test-data/department.yaml -output ./generated
+
+# 4. 集成到应用
+# (生成的代码即可直接使用)
 ```
 
 ### 2. 环境配置
