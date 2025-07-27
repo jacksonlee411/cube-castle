@@ -182,11 +182,16 @@ func (l *StructuredLogger) LogWorkflowEvent(workflowID, workflowType, status str
 func (l *StructuredLogger) LogError(errorType, message string, err error, context map[string]interface{}) {
 	contextJSON, _ := json.Marshal(context)
 	
+	errorStr := ""
+	if err != nil {
+		errorStr = err.Error()
+	}
+	
 	l.Error("error_occurred",
 		"event_type", "error_occurred",
 		"error_type", errorType,
 		"message", message,
-		"error", err.Error(),
+		"error", errorStr,
 		"context", string(contextJSON),
 		"timestamp", time.Now().Unix(),
 	)
