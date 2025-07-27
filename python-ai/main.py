@@ -14,6 +14,9 @@ from dotenv import load_dotenv
 import intelligence_pb2
 import intelligence_pb2_grpc
 
+# 导入对话状态管理器
+from dialogue_state import DialogueStateManager, ChatMessage
+
 # --- 从 .env 文件加载环境变量 ---
 load_dotenv()
 
@@ -109,10 +112,27 @@ ai_cache = AIResponseCache(max_size=500, ttl_seconds=1800)  # 30分钟TTL
 # --- gRPC Service Implementation ---
 class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer):
     def __init__(self):
-        """初始化服务，设置工作线程池"""
-        self.executor = futures.ThreadPoolExecutor(max_workers=20)  # 增加并发处理能力
+        """初始化服务，设置工作线程池和对话状态管理器"""
+        self.executor = futures.ThreadPoolExecutor(max_workers=20)
+        
+        # 初始化对话状态管理器
+        try:
+            redis_host = os.getenv("REDIS_HOST", "localhost")
+            redis_port = int(os.getenv("REDIS_PORT", "6379"))
+            self.dialogue_manager = DialogueStateManager(
+                redis_host=redis_host,
+                redis_port=redis_port,
+                session_ttl=1800,  # 30分钟
+                max_history_length=20
+            )
+            logging.info("✅ DialogueStateManager initialized successfully")
+        except Exception as e:
+            logging.warning(f"⚠️ Failed to initialize DialogueStateManager: {e}")
+            logging.warning("⚠️ Running without persistent dialogue state")
+            self.dialogue_manager = None
     
     def InterpretText(self, request: intelligence_pb2.InterpretRequest, context):
+        start_time = time.time()
         logging.info(f"Received text: '{request.user_text}' from session '{request.session_id}'")
         
         # 验证输入 - 拒绝空输入
@@ -129,15 +149,37 @@ class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer)
             context.set_details("User text is too long (max 5000 characters)")
             return intelligence_pb2.InterpretResponse()
 
-        # 首先检查缓存
-        logging.info(f"开始检查缓存: {request.user_text[:30]}...")
+        # 获取对话历史（如果可用）
+        conversation_history = []
+        if self.dialogue_manager:
+            try:
+                # 确保会话存在
+                self.dialogue_manager.create_session(request.session_id)
+                
+                # 获取对话历史
+                history_messages = self.dialogue_manager.get_conversation_history(
+                    request.session_id, limit=10
+                )
+                
+                # 转换为OpenAI消息格式
+                for msg in history_messages:
+                    conversation_history.append({
+                        "role": msg.role,
+                        "content": msg.content
+                    })
+                
+                logging.info(f"Retrieved {len(conversation_history)} messages from history")
+                
+            except Exception as e:
+                logging.warning(f"Failed to get conversation history: {e}")
+
+        # 检查简单缓存
         cached_response = ai_cache.get(request.user_text)
-        if cached_response is not None:
+        if cached_response is not None and len(conversation_history) == 0:
             logging.info(f"返回缓存结果: {request.user_text[:30]}...")
             return cached_response
-        
-        logging.info(f"缓存未命中，调用AI模型: {request.user_text[:30]}...")
 
+        # AI工具定义
         tools = [
             {
                 "type": "function",
@@ -153,7 +195,6 @@ class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer)
                     },
                 },
             },
-            # --- 这里是新增的部分 ---
             {
                 "type": "function",
                 "function": {
@@ -174,75 +215,130 @@ class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer)
                         "required": ["employee_id", "new_phone_number"],
                     },
                 },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "list_employees",
+                    "description": "List employees with optional search criteria",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "search": {
+                                "type": "string",
+                                "description": "Search term for employee name or number"
+                            },
+                            "page": {
+                                "type": "integer",
+                                "description": "Page number (default: 1)"
+                            }
+                        }
+                    },
+                },
             }
-            # -----------------------
         ]
 
         try:
-            # 优化AI模型调用 - 添加系统prompt提高意图识别准确率
+            # 构建包含历史的消息列表
             system_prompt = """你是一个专业的HR系统智能助手，专门识别用户的HR相关意图。
 
+你有记忆能力，可以记住之前的对话内容，请结合上下文进行回复。
+
 核心意图类型和对应的函数：
-1. update_phone_number - 更新电话号码 (关键词: 更新、修改、电话、手机、号码)
-2. get_employee_manager - 查看经理信息 (关键词: 经理、上级、主管、领导)
+1. list_employees - 查询员工列表 (关键词: 查询、查看、员工、列表、搜索)
+2. update_phone_number - 更新电话号码 (关键词: 更新、修改、电话、手机、号码)
+3. get_employee_manager - 查看经理信息 (关键词: 经理、上级、主管、领导)
 
 识别规则：
 - 仔细分析用户输入的关键词和上下文
-- 必须从上述2个意图中选择最匹配的一个
+- 结合之前的对话历史理解用户意图
+- 如果用户询问或搜索员工，选择list_employees
 - 如果用户提到更新、修改电话号码，选择update_phone_number
 - 如果用户询问经理、上级信息，选择get_employee_manager
 - 提取相关的结构化数据参数
 
-请根据用户输入识别意图并调用对应函数。"""
+请根据用户输入和对话历史识别意图并调用对应函数。"""
+
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # 添加历史对话（最近5轮）
+            messages.extend(conversation_history[-10:])
+            
+            # 添加当前用户消息
+            messages.append({"role": "user", "content": request.user_text})
 
             response = client.chat.completions.create(
                 model="deepseek-chat",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": request.user_text}
-                ],
+                messages=messages,
                 tools=tools,
                 tool_choice="auto",
-                temperature=0.1,  # 降低温度以提高响应一致性和速度
-                max_tokens=512,   # 限制输出长度以提高响应速度
-                stream=False,     # 禁用流式输出以简化处理
+                temperature=0.1,
+                max_tokens=512,
+                stream=False,
             )
 
             response_message = response.choices[0].message
             tool_calls = response_message.tool_calls
             
-            # 添加详细日志来诊断问题
-            logging.info(f"LLM响应详情:")
-            logging.info(f"  - 响应内容: {response_message.content}")
-            logging.info(f"  - 工具调用: {tool_calls}")
-
+            # 处理AI响应
             if tool_calls:
                 function_name = tool_calls[0].function.name
                 function_args_json = tool_calls[0].function.arguments
+                assistant_content = f"我识别到您的意图是：{function_name}，正在为您处理..."
 
                 logging.info(f"LLM wants to call function: {function_name} with args: {function_args_json}")
-
-                # 创建响应对象
-                result_response = intelligence_pb2.InterpretResponse(
-                    intent=function_name,
-                    structured_data_json=function_args_json
-                )
-                
-                # 将响应存入缓存
-                ai_cache.put(request.user_text, result_response)
-                
-                return result_response
             else:
-                # 没有检测到意图的情况
-                result_response = intelligence_pb2.InterpretResponse(
-                    intent="no_intent_detected", 
-                    structured_data_json="{}"
-                )
-                
-                # 将响应存入缓存
+                function_name = "no_intent_detected"
+                function_args_json = "{}"
+                assistant_content = response_message.content or "抱歉，我没有理解您的意图，请尝试重新表达。"
+
+            # 保存对话到Redis（如果可用）
+            if self.dialogue_manager:
+                try:
+                    user_message = ChatMessage(
+                        role="user",
+                        content=request.user_text,
+                        timestamp=start_time,
+                        intent=function_name
+                    )
+                    
+                    assistant_message = ChatMessage(
+                        role="assistant",
+                        content=assistant_content,
+                        timestamp=time.time(),
+                        intent=function_name
+                    )
+                    
+                    context_updates = {
+                        "last_intent": function_name,
+                        "last_activity": time.time(),
+                        "processing_time": time.time() - start_time
+                    }
+                    
+                    self.dialogue_manager.save_conversation_turn(
+                        request.session_id,
+                        user_message,
+                        assistant_message,
+                        context_updates
+                    )
+                    
+                except Exception as e:
+                    logging.warning(f"Failed to save conversation to Redis: {e}")
+
+            # 创建响应对象
+            result_response = intelligence_pb2.InterpretResponse(
+                intent=function_name,
+                structured_data_json=function_args_json
+            )
+            
+            # 简单缓存仅用于无历史的单次查询
+            if len(conversation_history) == 0:
                 ai_cache.put(request.user_text, result_response)
-                
-                return result_response
+            
+            processing_time = time.time() - start_time
+            logging.info(f"Request processed in {processing_time:.3f}s: {function_name}")
+            
+            return result_response
 
         except Exception as e:
             logging.error(f"Error calling OpenAI: {e}")

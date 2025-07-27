@@ -167,4 +167,29 @@ func SeedData(db *Database) error {
 
 	log.Println("🌱 PostgreSQL database has been seeded")
 	return nil
+}
+
+// InitDatabaseConnection 初始化数据库连接
+func InitDatabaseConnection() *Database {
+	config := NewDatabaseConfig()
+	
+	// 如果没有配置数据库URL，返回nil（使用Mock模式）
+	if config.PostgreSQLURL == "" {
+		return nil
+	}
+	
+	db, err := Connect(config)
+	if err != nil {
+		log.Printf("Failed to connect to database: %v", err)
+		return nil
+	}
+	
+	// 初始化数据库
+	if err := InitDatabase(db); err != nil {
+		log.Printf("Failed to initialize database: %v", err)
+		db.Close()
+		return nil
+	}
+	
+	return db
 } 
