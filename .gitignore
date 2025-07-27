@@ -1,15 +1,42 @@
 # Environment variables
 .env
 
-# Go build files
+# Build artifacts
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+go-app/server
+main
 
-# Python virtual environment
+# Dependencies and virtual environments
 python-ai/venv/
+venv/
+node_modules/
+nextjs-app/node_modules/
+
+# Build outputs and cache
+.next/
+dist/
+build/
+target/
+
+# Log files
+*.log
+startup.log
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+.cache/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # IDE files
 .idea/
@@ -18,3 +45,23 @@ python-ai/venv/
 # OS-specific files
 .DS_Store
 Thumbs.db
+*Zone.Identifier*
+
+# Backup files
+*.backup
+*.bak
+
+# Test reports and verification files
+*.html
+test_*.sh
+verify_*.sh
+*_test_report.md
+*验证*.md
+
+# Generated protobuf files (should be regenerated)
+*_pb2.py
+*_pb2.pyi
+*_pb2_grpc.py
+
+# Lock files (keep package.json but regenerate locks)
+package-lock.json
