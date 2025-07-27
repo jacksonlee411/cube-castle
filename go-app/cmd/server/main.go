@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +16,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"github.com/gaogu/cube-castle/go-app/generated/openapi"
+	"github.com/gaogu/cube-castle/go-app/generated/grpc/intelligence"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
@@ -26,7 +30,11 @@ import (
 const (
 	ServiceName = "cube-castle-api"
 	Version     = "v1.4.0"
+	AIServiceGRPCAddr = "localhost:50051"
 )
+
+// Global AI service client
+var aiClient intelligence.IntelligenceServiceClient
 
 func main() {
 	// 初始化结构化日志器
@@ -55,6 +63,15 @@ func main() {
 
 	// 初始化服务
 	coreHRService := initializeCoreHRService(db, logger)
+
+	// 初始化AI服务gRPC连接
+	err := initializeAIServiceClient(logger)
+	if err != nil {
+		logger.LogError("ai_service_init", "Failed to initialize AI service client", err, map[string]interface{}{
+			"grpc_addr": AIServiceGRPCAddr,
+		})
+		logger.Info("AI service will use fallback mode")
+	}
 
 	// 创建路由器
 	router := setupRoutes(logger, coreHRService)
@@ -180,6 +197,38 @@ func initializeCoreHRService(db interface{}, logger *logging.StructuredLogger) *
 	// 实际模式 - 这里需要根据实际的数据库连接类型进行调整
 	logger.Info("Initializing CoreHR service with database connection")
 	return corehr.NewMockService() // 暂时使用Mock，等数据库集成完成后更新
+}
+
+// initializeAIServiceClient 初始化AI服务gRPC客户端
+func initializeAIServiceClient(logger *logging.StructuredLogger) error {
+	// 建立gRPC连接
+	conn, err := grpc.Dial(AIServiceGRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+
+	// 创建客户端
+	aiClient = intelligence.NewIntelligenceServiceClient(conn)
+	
+	// 测试连接
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	testReq := &intelligence.InterpretRequest{
+		UserText:  "test connection",
+		SessionId: "connection_test",
+	}
+	
+	_, err = aiClient.InterpretText(ctx, testReq)
+	if err != nil {
+		logger.LogError("ai_service_test", "AI service connection test failed", err, map[string]interface{}{
+			"grpc_addr": AIServiceGRPCAddr,
+		})
+		return err
+	}
+	
+	logger.Info("✅ AI service gRPC client initialized successfully", "grpc_addr", AIServiceGRPCAddr)
+	return nil
 }
 
 // startSystemMetricsUpdater 启动系统指标更新器
@@ -379,7 +428,119 @@ func handleCreateOrganization(service *corehr.Service, logger *logging.Structure
 
 func handleInterpretText(logger *logging.StructuredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		respondJSON(w, http.StatusOK, map[string]string{"status": "not_implemented"})
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+
+		// 解析请求体
+		var reqData struct {
+			Text      string `json:"text"`
+			SessionId string `json:"sessionId"`
+		}
+		
+		if err := parseJSON(r, &reqData); err != nil {
+			reqLogger.LogError("parse_request", "Failed to parse interpret text request", err, nil)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// 验证输入
+		if reqData.Text == "" {
+			http.Error(w, "Text field is required", http.StatusBadRequest)
+			return
+		}
+
+		// 如果没有sessionId，生成一个
+		if reqData.SessionId == "" {
+			reqData.SessionId = uuid.New().String()
+		}
+
+		// 检查AI客户端是否可用
+		if aiClient == nil {
+			// 返回Mock响应
+			response := map[string]interface{}{
+				"intent":      "general_query",
+				"confidence":  0.9,
+				"response":    fmt.Sprintf("我理解您说的是：\"%s\"。这是一个模拟的AI回复，AI服务暂时不可用。", reqData.Text),
+				"entities":    []string{},
+				"sessionId":   reqData.SessionId,
+				"suggestions": []string{"请检查AI服务状态", "稍后重试", "联系技术支持"},
+			}
+			respondJSON(w, http.StatusOK, response)
+			return
+		}
+
+		// 调用AI服务
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+
+		grpcReq := &intelligence.InterpretRequest{
+			UserText:  reqData.Text,
+			SessionId: reqData.SessionId,
+		}
+
+		grpcResp, err := aiClient.InterpretText(ctx, grpcReq)
+		if err != nil {
+			reqLogger.LogError("ai_service_call", "Failed to call AI service", err, map[string]interface{}{
+				"text":       reqData.Text,
+				"session_id": reqData.SessionId,
+			})
+			
+			// 返回友好的错误响应
+			response := map[string]interface{}{
+				"intent":      "error",
+				"confidence":  1.0,
+				"response":    "抱歉，AI服务暂时不可用。请稍后再试。",
+				"entities":    []string{},
+				"sessionId":   reqData.SessionId,
+				"suggestions": []string{"请检查网络连接", "稍后重试", "联系技术支持"},
+			}
+			respondJSON(w, http.StatusOK, response)
+			return
+		}
+
+		// 构建响应
+		// 解析structured_data_json中的数据
+		var structuredData map[string]interface{}
+		if err := json.Unmarshal([]byte(grpcResp.StructuredDataJson), &structuredData); err != nil {
+			reqLogger.LogError("parse_structured_data", "Failed to parse structured data JSON", err, map[string]interface{}{
+				"structured_data": grpcResp.StructuredDataJson,
+			})
+			// 如果解析失败，使用基本响应
+			structuredData = map[string]interface{}{
+				"raw_response": grpcResp.StructuredDataJson,
+			}
+		}
+
+		// 构建标准化响应格式
+		response := map[string]interface{}{
+			"intent":      grpcResp.Intent,
+			"confidence":  0.9, // 默认置信度，Python服务未返回此字段
+			"response":    fmt.Sprintf("处理了您的请求：%s", reqData.Text),
+			"entities":    []string{},
+			"sessionId":   reqData.SessionId,
+			"suggestions": []string{},
+			"data":        structuredData, // 包含解析后的结构化数据
+		}
+
+		// 如果structured_data中有特定字段，提取到响应中
+		if responseText, ok := structuredData["response"]; ok {
+			response["response"] = responseText
+		}
+		if entities, ok := structuredData["entities"]; ok {
+			response["entities"] = entities
+		}
+		if suggestions, ok := structuredData["suggestions"]; ok {
+			response["suggestions"] = suggestions
+		}
+		if confidence, ok := structuredData["confidence"]; ok {
+			response["confidence"] = confidence
+		}
+
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+
+		respondJSON(w, http.StatusOK, response)
 	}
 }
 

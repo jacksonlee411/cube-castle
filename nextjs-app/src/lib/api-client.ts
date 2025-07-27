@@ -183,9 +183,11 @@ export const organizationApi = {
               code: 'HQ',
               description: '公司总部',
               level: 1,
-              parentId: null,
+              parentId: undefined,
               employeeCount: 10,
               tenantId: 'default',
+              type: 'company' as const,
+              status: 'active' as const,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             },
@@ -198,6 +200,8 @@ export const organizationApi = {
               parentId: '1',
               employeeCount: 8,
               tenantId: 'default',
+              type: 'department' as const,
+              status: 'active' as const,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }
@@ -207,8 +211,7 @@ export const organizationApi = {
             pageSize: 20,
             total: 2,
             totalPages: 1
-          },
-          totalCount: 2
+          }
         }
       }
       
@@ -217,8 +220,7 @@ export const organizationApi = {
       // 网络错误时返回空数据
       return {
         organizations: [],
-        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
-        totalCount: 0
+        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
       }
     }
   },
@@ -317,11 +319,7 @@ export const intelligenceApi = {
           intent: 'general_query',
           confidence: 0.9,
           response: `我理解您说的是："${data.text}"。这是一个模拟的AI回复，实际AI服务正在开发中。`,
-          context: {
-            sessionId,
-            timestamp: new Date().toISOString(),
-            processed: true
-          },
+          entities: [],
           sessionId,
           suggestions: [
             '您可以尝试询问员工信息',
@@ -341,11 +339,7 @@ export const intelligenceApi = {
         intent: 'error',
         confidence: 1.0,
         response: '抱歉，AI服务暂时不可用。请稍后再试或联系管理员。',
-        context: {
-          sessionId: data.sessionId || generateSessionId(),
-          timestamp: new Date().toISOString(),
-          error: true
-        },
+        entities: [],
         sessionId: data.sessionId || generateSessionId(),
         suggestions: ['请检查网络连接', '稍后重试', '联系技术支持']
       }

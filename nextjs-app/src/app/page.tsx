@@ -28,10 +28,10 @@ export default function HomePage() {
             <span className="text-xl font-bold">Cube Castle</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Link href="/login">
+            <Link href={"/login" as any}>
               <Button variant="ghost">登录</Button>
             </Link>
-            <Link href="/demo">
+            <Link href={"/demo" as any}>
               <Button>体验演示</Button>
             </Link>
           </div>
@@ -54,13 +54,13 @@ export default function HomePage() {
               分布式工作流编排、企业级安全架构和全面的系统监控
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-              <Link href="/demo">
+              <Link href={"/demo" as any}>
                 <Button size="lg" className="w-full sm:w-auto">
                   立即体验
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/features">
+              <Link href={"/features" as any}>
                 <Button variant="outline" size="lg" className="w-full sm:w-auto">
                   了解功能
                 </Button>
@@ -257,27 +257,27 @@ export default function HomePage() {
             <div>
               <h3 className="font-semibold">产品</h3>
               <ul className="mt-4 space-y-2 text-sm">
-                <li><Link href="/features" className="text-muted-foreground hover:text-foreground">功能特性</Link></li>
-                <li><Link href="/pricing" className="text-muted-foreground hover:text-foreground">定价方案</Link></li>
-                <li><Link href="/demo" className="text-muted-foreground hover:text-foreground">产品演示</Link></li>
+                <li><Link href={"/features" as any} className="text-muted-foreground hover:text-foreground">功能特性</Link></li>
+                <li><Link href={"/pricing" as any} className="text-muted-foreground hover:text-foreground">定价方案</Link></li>
+                <li><Link href={"/demo" as any} className="text-muted-foreground hover:text-foreground">产品演示</Link></li>
               </ul>
             </div>
             
             <div>
               <h3 className="font-semibold">支持</h3>
               <ul className="mt-4 space-y-2 text-sm">
-                <li><Link href="/docs" className="text-muted-foreground hover:text-foreground">帮助文档</Link></li>
-                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">联系我们</Link></li>
-                <li><Link href="/status" className="text-muted-foreground hover:text-foreground">系统状态</Link></li>
+                <li><Link href={"/docs" as any} className="text-muted-foreground hover:text-foreground">帮助文档</Link></li>
+                <li><Link href={"/contact" as any} className="text-muted-foreground hover:text-foreground">联系我们</Link></li>
+                <li><Link href={"/status" as any} className="text-muted-foreground hover:text-foreground">系统状态</Link></li>
               </ul>
             </div>
             
             <div>
               <h3 className="font-semibold">公司</h3>
               <ul className="mt-4 space-y-2 text-sm">
-                <li><Link href="/about" className="text-muted-foreground hover:text-foreground">关于我们</Link></li>
-                <li><Link href="/blog" className="text-muted-foreground hover:text-foreground">技术博客</Link></li>
-                <li><Link href="/careers" className="text-muted-foreground hover:text-foreground">加入我们</Link></li>
+                <li><Link href={"/about" as any} className="text-muted-foreground hover:text-foreground">关于我们</Link></li>
+                <li><Link href={"/blog" as any} className="text-muted-foreground hover:text-foreground">技术博客</Link></li>
+                <li><Link href={"/careers" as any} className="text-muted-foreground hover:text-foreground">加入我们</Link></li>
               </ul>
             </div>
           </div>

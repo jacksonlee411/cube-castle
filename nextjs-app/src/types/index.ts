@@ -78,6 +78,9 @@ export interface Organization extends BaseEntity {
   children?: Organization[]
   employeeCount?: number
   tenantId: string
+  type?: 'company' | 'department' | 'team'
+  status?: 'active' | 'inactive'
+  managerName?: string
 }
 
 export interface OrganizationTreeNode {

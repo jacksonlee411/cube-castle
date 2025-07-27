@@ -54,8 +54,7 @@ export default function EmployeesPage() {
       
       setEmployees(response.employees)
       setPagination({
-        total: response.pagination.total,
-        totalPages: response.pagination.totalPages
+        total: response.pagination.total
       })
     } catch (err) {
       setError('加载员工数据失败')
@@ -346,10 +345,10 @@ export default function EmployeesPage() {
             onSelectionChange={setSelectedEmployees}
             onPageChange={handlePageChange}
             onEmployeeClick={(employee) => {
-              router.push(`/employees/${employee.id}`)
+              router.push(`/employees/${employee.id}` as any)
             }}
             onEmployeeEdit={(employee) => {
-              router.push(`/employees/${employee.id}/edit`)
+              router.push(`/employees/${employee.id}/edit` as any)
             }}
             onEmployeeDelete={async (employee) => {
               if (confirm(`确定要删除员工 ${employee.fullName} 吗？`)) {

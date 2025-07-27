@@ -11,20 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Card, CardContent } from '@/components/ui/card'
-
-interface Organization {
-  id: string
-  name: string
-  code: string
-  type: 'company' | 'department' | 'team'
-  parentId?: string
-  level: number
-  employeeCount: number
-  managerName?: string
-  description?: string
-  status: 'active' | 'inactive'
-  children?: Organization[]
-}
+import { Organization } from '@/types'
 
 interface OrganizationTreeProps {
   organizations: Organization[]
@@ -99,14 +86,14 @@ const TreeNode = ({ organization, onUpdate, onDelete, onAddChild }: TreeNodeProp
               
               {/* 组织信息 */}
               <div className="flex items-center space-x-3">
-                {getTypeIcon(organization.type)}
+                {getTypeIcon(organization.type || 'department')}
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="font-medium">{organization.name}</span>
                     <Badge variant="outline" className="text-xs">
-                      {getTypeLabel(organization.type)}
+                      {getTypeLabel(organization.type || 'department')}
                     </Badge>
-                    <div className={`w-2 h-2 rounded-full ${getStatusColor(organization.status)}`} />
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(organization.status || 'active')}`} />
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {organization.code}

@@ -42,7 +42,7 @@ export default function OrganizationsPage() {
         ])
         // 处理API返回的数据结构
         setOrganizations(orgsResponse.organizations || [])
-        setStats(statsResponse.data || {
+        setStats(statsResponse || {
           total: 0,
           totalEmployees: 0,
           active: 0,
@@ -105,7 +105,7 @@ export default function OrganizationsPage() {
   const handleCreateOrganization = async (data: any) => {
     try {
       const response = await apiClient.organizations.createOrganization(data)
-      addOrganization(response.data)
+      addOrganization(response)
       setCreateDialogOpen(false)
     } catch (error) {
       console.error('Failed to create organization:', error)
@@ -115,7 +115,7 @@ export default function OrganizationsPage() {
   const handleUpdateOrganization = async (id: string, data: any) => {
     try {
       const response = await apiClient.organizations.updateOrganization(id, data)
-      updateOrganization(id, response.data)
+      updateOrganization(id, response)
     } catch (error) {
       console.error('Failed to update organization:', error)
     }
