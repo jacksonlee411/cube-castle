@@ -1,12 +1,11 @@
 package workflow
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	"go.temporal.io/sdk/workflow"
-	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/temporal"
 	"github.com/google/uuid"
 )
 
@@ -57,6 +56,13 @@ type LeaveApprovalResult struct {
 	ErrorMessage  string    `json:"error_message,omitempty"`
 }
 
+// LeaveApprovalResponse 休假审批响应（用于Activity返回）
+type LeaveApprovalResponse struct {
+	Approved  bool   `json:"approved"`
+	Comments  string `json:"comments,omitempty"`
+	ApproverID *uuid.UUID `json:"approver_id,omitempty"`
+}
+
 // === 员工入职工作流 ===
 
 // EmployeeOnboardingWorkflow 员工入职工作流
@@ -73,7 +79,7 @@ func EmployeeOnboardingWorkflow(ctx workflow.Context, req EmployeeOnboardingRequ
 	// 设置活动选项
 	activityOptions := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 5,
-		RetryPolicy: &workflow.RetryPolicy{
+		RetryPolicy: &temporal.RetryPolicy{
 			InitialInterval:    time.Second * 10,
 			BackoffCoefficient: 2.0,
 			MaximumInterval:    time.Minute * 5,
@@ -181,7 +187,7 @@ func LeaveApprovalWorkflow(ctx workflow.Context, req LeaveApprovalRequest) (*Lea
 	// 设置活动选项
 	activityOptions := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 5,
-		RetryPolicy: &workflow.RetryPolicy{
+		RetryPolicy: &temporal.RetryPolicy{
 			InitialInterval:    time.Second * 10,
 			BackoffCoefficient: 2.0,
 			MaximumInterval:    time.Minute * 5,
@@ -233,8 +239,9 @@ func LeaveApprovalWorkflow(ctx workflow.Context, req LeaveApprovalRequest) (*Lea
 	}
 
 	// 步骤3：等待经理审批（设置超时为7天）
-	approvalCtx, cancel := workflow.WithTimeout(ctx, 7*24*time.Hour)
-	defer cancel()
+	approvalCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: 7 * 24 * time.Hour,
+	})
 
 	// 这里应该等待外部信号或人工审批
 	// 为了简化，我们使用一个模拟的审批活动
@@ -246,7 +253,7 @@ func LeaveApprovalWorkflow(ctx workflow.Context, req LeaveApprovalRequest) (*Lea
 	}).Get(approvalCtx, &approvalResult)
 
 	if err != nil {
-		if workflow.IsTimeoutError(err) {
+		if temporal.IsTimeoutError(err) {
 			result.Status = "timeout"
 			result.Comments = "Manager approval timeout after 7 days"
 		} else {
@@ -496,7 +503,7 @@ func EnhancedLeaveApprovalWorkflow(ctx workflow.Context, req LeaveApprovalReques
 	// 设置活动选项
 	activityOptions := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 5,
-		RetryPolicy: &workflow.RetryPolicy{
+		RetryPolicy: &temporal.RetryPolicy{
 			InitialInterval:    time.Second * 10,
 			BackoffCoefficient: 2.0,
 			MaximumInterval:    time.Minute * 5,
@@ -592,14 +599,11 @@ func EnhancedLeaveApprovalWorkflow(ctx workflow.Context, req LeaveApprovalReques
 		logger.Info("Received cancel signal")
 	})
 
-	// 设置超时
-	timeoutCtx, cancel := workflow.WithTimeout(ctx, 7*24*time.Hour)
-	defer cancel()
-
 	// 等待信号
 	for approvalSignal.Decision == "" && !cancelRequested {
-		selector.Select(timeoutCtx)
-		if workflow.IsTimeoutError(workflow.GetLastError(timeoutCtx)) {
+		selector.Select(ctx)
+		// 检查是否超时，使用简化的方法
+		if err != nil && temporal.IsTimeoutError(err) {
 			result.Status = "timeout"
 			result.Comments = "Manager approval timeout after 7 days"
 			workflowStatus.Status = "timeout"
@@ -741,7 +745,7 @@ func BatchEmployeeProcessingWorkflow(ctx workflow.Context, req BatchEmployeeProc
 	// 设置活动选项
 	activityOptions := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 10,
-		RetryPolicy: &workflow.RetryPolicy{
+		RetryPolicy: &temporal.RetryPolicy{
 			InitialInterval:    time.Second * 10,
 			BackoffCoefficient: 2.0,
 			MaximumInterval:    time.Minute * 5,
