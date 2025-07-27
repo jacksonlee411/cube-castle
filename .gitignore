@@ -7,9 +7,21 @@
 *.dll
 *.so
 *.dylib
+go-app/server
+go-app/cube-castle-server
 
 # Python virtual environment
 python-ai/venv/
+python-ai/__pycache__/
+
+# Runtime files
+*.log
+*.pid
+
+# Next.js
+nextjs-app/.next/
+nextjs-app/out/
+nextjs-app/node_modules/
 
 # IDE files
 .idea/
