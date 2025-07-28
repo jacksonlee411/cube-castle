@@ -16,25 +16,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"github.com/gaogu/cube-castle/go-app/generated/openapi"
-	"github.com/gaogu/cube-castle/go-app/generated/grpc/intelligence"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
 	"github.com/gaogu/cube-castle/go-app/internal/corehr"
 	"github.com/gaogu/cube-castle/go-app/internal/common"
+	"github.com/gaogu/cube-castle/go-app/internal/metacontract"
+	"github.com/gaogu/cube-castle/go-app/internal/metacontracteditor"
 )
 
 const (
 	ServiceName = "cube-castle-api"
 	Version     = "v1.4.0"
-	AIServiceGRPCAddr = "localhost:50051"
 )
-
-// Global AI service client
-var aiClient intelligence.IntelligenceServiceClient
 
 func main() {
 	// 初始化结构化日志器
@@ -63,18 +58,10 @@ func main() {
 
 	// 初始化服务
 	coreHRService := initializeCoreHRService(db, logger)
-
-	// 初始化AI服务gRPC连接
-	err := initializeAIServiceClient(logger)
-	if err != nil {
-		logger.LogError("ai_service_init", "Failed to initialize AI service client", err, map[string]interface{}{
-			"grpc_addr": AIServiceGRPCAddr,
-		})
-		logger.Info("AI service will use fallback mode")
-	}
+	editorService := initializeEditorService(db, logger)
 
 	// 创建路由器
-	router := setupRoutes(logger, coreHRService)
+	router := setupRoutes(logger, coreHRService, editorService)
 
 	// 创建HTTP服务器
 	server := &http.Server{
@@ -130,7 +117,7 @@ func main() {
 }
 
 // setupRoutes 设置路由
-func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service) *chi.Mux {
+func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service, editorService *metacontracteditor.Service) *chi.Mux {
 	r := chi.NewRouter()
 
 	// 添加中间件
@@ -169,10 +156,24 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 			r.Post("/organizations", handleCreateOrganization(coreHRService, logger))
 		})
 
-		// Intelligence Gateway 路由
-		r.Route("/intelligence", func(r chi.Router) {
-			r.Post("/interpret", handleInterpretText(logger))
-			r.Get("/health", handleIntelligenceHealth(logger))
+		// Meta-Contract Editor 路由
+		r.Route("/metacontract", func(r chi.Router) {
+			// 项目管理
+			r.Get("/projects", handleListProjects(editorService, logger))
+			r.Post("/projects", handleCreateProject(editorService, logger))
+			r.Route("/projects/{projectID}", func(r chi.Router) {
+				r.Get("/", handleGetProject(editorService, logger))
+				r.Put("/", handleUpdateProject(editorService, logger))
+				r.Delete("/", handleDeleteProject(editorService, logger))
+				r.Post("/compile", handleCompileProject(editorService, logger))
+			})
+			
+			// 模板管理
+			r.Get("/templates", handleGetTemplates(editorService, logger))
+			
+			// 用户设置
+			r.Get("/settings", handleGetUserSettings(editorService, logger))
+			r.Put("/settings", handleUpdateUserSettings(editorService, logger))
 		})
 
 		// 监控和管理路由
@@ -184,6 +185,25 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 	})
 
 	return r
+}
+
+// initializeEditorService 初始化元合约编辑器服务
+func initializeEditorService(db interface{}, logger *logging.StructuredLogger) *metacontracteditor.Service {
+	// 创建编译器
+	compiler := metacontract.NewCompiler()
+	
+	if db == nil {
+		// Mock模式
+		logger.Info("Initializing Meta-Contract Editor service in mock mode")
+		mockRepo := createMockEditorRepository()
+		return metacontracteditor.NewService(mockRepo, compiler)
+	}
+
+	// 实际模式 - 这里需要根据实际的数据库连接类型进行调整
+	logger.Info("Initializing Meta-Contract Editor service with database connection")
+	// TODO: 创建实际的repository
+	mockRepo := createMockEditorRepository() // 暂时使用mock
+	return metacontracteditor.NewService(mockRepo, compiler)
 }
 
 // initializeCoreHRService 初始化CoreHR服务
@@ -199,36 +219,364 @@ func initializeCoreHRService(db interface{}, logger *logging.StructuredLogger) *
 	return corehr.NewMockService() // 暂时使用Mock，等数据库集成完成后更新
 }
 
-// initializeAIServiceClient 初始化AI服务gRPC客户端
-func initializeAIServiceClient(logger *logging.StructuredLogger) error {
-	// 建立gRPC连接
-	conn, err := grpc.Dial(AIServiceGRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return err
-	}
-
-	// 创建客户端
-	aiClient = intelligence.NewIntelligenceServiceClient(conn)
-	
-	// 测试连接
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	
-	testReq := &intelligence.InterpretRequest{
-		UserText:  "test connection",
-		SessionId: "connection_test",
-	}
-	
-	_, err = aiClient.InterpretText(ctx, testReq)
-	if err != nil {
-		logger.LogError("ai_service_test", "AI service connection test failed", err, map[string]interface{}{
-			"grpc_addr": AIServiceGRPCAddr,
+// Meta-Contract Editor 处理函数
+func handleListProjects(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+		
+		// 获取查询参数
+		limit := getIntParam(r, "limit", 10)
+		offset := getIntParam(r, "offset", 0)
+		
+		// 调用服务
+		projects, err := service.ListProjects(r.Context(), tenantID, limit, offset)
+		if err != nil {
+			reqLogger.LogError("list_projects", "Failed to list projects", err, map[string]interface{}{
+				"tenant_id": tenantID,
+				"limit": limit,
+				"offset": offset,
+			})
+			http.Error(w, "Failed to list projects", http.StatusInternalServerError)
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+		
+		// 返回响应
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"projects": projects,
+			"total": len(projects),
 		})
-		return err
 	}
-	
-	logger.Info("✅ AI service gRPC client initialized successfully", "grpc_addr", AIServiceGRPCAddr)
-	return nil
+}
+
+func handleCreateProject(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+		userID := getUserID(r.Context())
+		
+		// 解析请求体
+		var req metacontracteditor.CreateProjectRequest
+		if err := parseJSON(r, &req); err != nil {
+			reqLogger.LogError("parse_request", "Failed to parse create project request", err, nil)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		
+		// 设置租户ID和用户ID
+		req.TenantID = tenantID
+		req.UserID = userID
+		
+		// 调用服务
+		project, err := service.CreateProject(r.Context(), req)
+		if err != nil {
+			reqLogger.LogError("create_project", "Failed to create project", err, map[string]interface{}{
+				"name": req.Name,
+				"tenant_id": tenantID,
+			})
+			http.Error(w, "Failed to create project", http.StatusInternalServerError)
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusCreated, duration, r.UserAgent())
+		
+		// 返回响应
+		respondJSON(w, http.StatusCreated, project)
+	}
+}
+
+func handleGetProject(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+		
+		// 获取项目ID
+		projectID := chi.URLParam(r, "projectID")
+		if projectID == "" {
+			http.Error(w, "Project ID is required", http.StatusBadRequest)
+			return
+		}
+		
+		// 解析UUID
+		projectUUID, err := uuid.Parse(projectID)
+		if err != nil {
+			http.Error(w, "Invalid project ID", http.StatusBadRequest)
+			return
+		}
+		
+		// 调用服务
+		project, err := service.GetProject(r.Context(), projectUUID, tenantID)
+		if err != nil {
+			reqLogger.LogError("get_project", "Failed to get project", err, map[string]interface{}{
+				"project_id": projectID,
+				"tenant_id": tenantID,
+			})
+			if err.Error() == "project not found or access denied" {
+				http.Error(w, "Project not found", http.StatusNotFound)
+			} else {
+				http.Error(w, "Failed to get project", http.StatusInternalServerError)
+			}
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+		
+		// 返回响应
+		respondJSON(w, http.StatusOK, project)
+	}
+}
+
+func handleUpdateProject(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+		
+		// 获取项目ID
+		projectID := chi.URLParam(r, "projectID")
+		if projectID == "" {
+			http.Error(w, "Project ID is required", http.StatusBadRequest)
+			return
+		}
+		
+		// 解析UUID
+		projectUUID, err := uuid.Parse(projectID)
+		if err != nil {
+			http.Error(w, "Invalid project ID", http.StatusBadRequest)
+			return
+		}
+		
+		// 解析请求体
+		var req metacontracteditor.UpdateProjectRequest
+		if err := parseJSON(r, &req); err != nil {
+			reqLogger.LogError("parse_request", "Failed to parse update project request", err, nil)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		
+		// 设置租户ID
+		req.TenantID = tenantID
+		
+		// 调用服务
+		project, err := service.UpdateProject(r.Context(), projectUUID, req)
+		if err != nil {
+			reqLogger.LogError("update_project", "Failed to update project", err, map[string]interface{}{
+				"project_id": projectID,
+				"tenant_id": tenantID,
+			})
+			if err.Error() == "project not found or access denied" {
+				http.Error(w, "Project not found", http.StatusNotFound)
+			} else {
+				http.Error(w, "Failed to update project", http.StatusInternalServerError)
+			}
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+		
+		// 返回响应
+		respondJSON(w, http.StatusOK, project)
+	}
+}
+
+func handleDeleteProject(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+		
+		// 获取项目ID
+		projectID := chi.URLParam(r, "projectID")
+		if projectID == "" {
+			http.Error(w, "Project ID is required", http.StatusBadRequest)
+			return
+		}
+		
+		// 解析UUID
+		projectUUID, err := uuid.Parse(projectID)
+		if err != nil {
+			http.Error(w, "Invalid project ID", http.StatusBadRequest)
+			return
+		}
+		
+		// 调用服务
+		err = service.DeleteProject(r.Context(), projectUUID, tenantID)
+		if err != nil {
+			reqLogger.LogError("delete_project", "Failed to delete project", err, map[string]interface{}{
+				"project_id": projectID,
+				"tenant_id": tenantID,
+			})
+			if err.Error() == "project not found or access denied" {
+				http.Error(w, "Project not found", http.StatusNotFound)
+			} else {
+				http.Error(w, "Failed to delete project", http.StatusInternalServerError)
+			}
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusNoContent, duration, r.UserAgent())
+		
+		// 返回响应
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func handleCompileProject(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		
+		// 获取项目ID
+		projectID := chi.URLParam(r, "projectID")
+		if projectID == "" {
+			http.Error(w, "Project ID is required", http.StatusBadRequest)
+			return
+		}
+		
+		// 解析UUID
+		projectUUID, err := uuid.Parse(projectID)
+		if err != nil {
+			http.Error(w, "Invalid project ID", http.StatusBadRequest)
+			return
+		}
+		
+		// 解析请求体
+		var req metacontracteditor.CompileRequest
+		if err := parseJSON(r, &req); err != nil {
+			reqLogger.LogError("parse_request", "Failed to parse compile request", err, nil)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		
+		// 设置项目ID
+		req.ProjectID = projectUUID
+		
+		// 调用服务
+		response, err := service.CompileProject(r.Context(), req)
+		if err != nil {
+			reqLogger.LogError("compile_project", "Failed to compile project", err, map[string]interface{}{
+				"project_id": projectID,
+			})
+			http.Error(w, "Failed to compile project", http.StatusInternalServerError)
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+		
+		// 返回响应
+		respondJSON(w, http.StatusOK, response)
+	}
+}
+
+func handleGetTemplates(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		
+		// 获取查询参数
+		category := r.URL.Query().Get("category")
+		if category == "" {
+			category = "basic" // 默认分类
+		}
+		
+		// 调用服务
+		templates, err := service.GetTemplates(r.Context(), category)
+		if err != nil {
+			reqLogger.LogError("get_templates", "Failed to get templates", err, map[string]interface{}{
+				"category": category,
+			})
+			http.Error(w, "Failed to get templates", http.StatusInternalServerError)
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+		
+		// 返回响应
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"templates": templates,
+			"category": category,
+		})
+	}
+}
+
+func handleGetUserSettings(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		userID := getUserID(r.Context())
+		
+		// 调用服务
+		settings, err := service.GetUserSettings(r.Context(), userID)
+		if err != nil {
+			reqLogger.LogError("get_user_settings", "Failed to get user settings", err, map[string]interface{}{
+				"user_id": userID,
+			})
+			http.Error(w, "Failed to get user settings", http.StatusInternalServerError)
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+		
+		// 返回响应
+		respondJSON(w, http.StatusOK, settings)
+	}
+}
+
+func handleUpdateUserSettings(service *metacontracteditor.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		userID := getUserID(r.Context())
+		
+		// 解析请求体
+		var settings metacontracteditor.EditorSettings
+		if err := parseJSON(r, &settings); err != nil {
+			reqLogger.LogError("parse_request", "Failed to parse update settings request", err, nil)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		
+		// 设置用户ID
+		settings.UserID = userID
+		
+		// 调用服务
+		err := service.UpdateUserSettings(r.Context(), &settings)
+		if err != nil {
+			reqLogger.LogError("update_user_settings", "Failed to update user settings", err, map[string]interface{}{
+				"user_id": userID,
+			})
+			http.Error(w, "Failed to update user settings", http.StatusInternalServerError)
+			return
+		}
+		
+		// 记录指标
+		duration := time.Since(start)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+		
+		// 返回响应
+		respondJSON(w, http.StatusOK, map[string]string{"message": "Settings updated successfully"})
+	}
 }
 
 // startSystemMetricsUpdater 启动系统指标更新器
@@ -366,6 +714,211 @@ func getTenantID(ctx context.Context) uuid.UUID {
 	return uuid.MustParse("00000000-0000-0000-0000-000000000000")
 }
 
+// getUserID 从上下文获取用户ID
+func getUserID(ctx context.Context) uuid.UUID {
+	// TODO: 实现从JWT token或session中提取用户ID
+	// 这里先返回一个默认的用户ID用于测试
+	return uuid.MustParse("11111111-1111-1111-1111-111111111111")
+}
+
+// createMockEditorRepository 创建Mock编辑器Repository
+func createMockEditorRepository() metacontracteditor.Repository {
+	return &MockEditorRepository{
+		projects:  make(map[uuid.UUID]*metacontracteditor.EditorProject),
+		settings:  make(map[uuid.UUID]*metacontracteditor.EditorSettings),
+		templates: createDefaultTemplates(),
+	}
+}
+
+// MockEditorRepository Mock编辑器Repository实现
+type MockEditorRepository struct {
+	projects  map[uuid.UUID]*metacontracteditor.EditorProject
+	settings  map[uuid.UUID]*metacontracteditor.EditorSettings
+	templates []*metacontracteditor.ProjectTemplate
+}
+
+func (m *MockEditorRepository) CreateProject(ctx context.Context, project *metacontracteditor.EditorProject) error {
+	m.projects[project.ID] = project
+	return nil
+}
+
+func (m *MockEditorRepository) GetProject(ctx context.Context, projectID uuid.UUID) (*metacontracteditor.EditorProject, error) {
+	if project, exists := m.projects[projectID]; exists {
+		return project, nil
+	}
+	return nil, fmt.Errorf("project not found")
+}
+
+func (m *MockEditorRepository) UpdateProject(ctx context.Context, project *metacontracteditor.EditorProject) error {
+	if _, exists := m.projects[project.ID]; exists {
+		m.projects[project.ID] = project
+		return nil
+	}
+	return fmt.Errorf("project not found")
+}
+
+func (m *MockEditorRepository) ListProjects(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*metacontracteditor.EditorProject, error) {
+	var result []*metacontracteditor.EditorProject
+	for _, project := range m.projects {
+		if project.TenantID == tenantID {
+			result = append(result, project)
+		}
+	}
+	return result, nil
+}
+
+func (m *MockEditorRepository) DeleteProject(ctx context.Context, projectID uuid.UUID) error {
+	if _, exists := m.projects[projectID]; exists {
+		delete(m.projects, projectID)
+		return nil
+	}
+	return fmt.Errorf("project not found")
+}
+
+// Session operations (Mock implementations)
+func (m *MockEditorRepository) CreateSession(ctx context.Context, session *metacontracteditor.EditorSession) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+func (m *MockEditorRepository) GetSession(ctx context.Context, sessionID uuid.UUID) (*metacontracteditor.EditorSession, error) {
+	// Mock implementation - return a dummy session
+	return &metacontracteditor.EditorSession{
+		ID:        sessionID,
+		StartedAt: time.Now(),
+		LastSeen:  time.Now(),
+		Active:    true,
+	}, nil
+}
+
+func (m *MockEditorRepository) EndSession(ctx context.Context, sessionID uuid.UUID) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+func (m *MockEditorRepository) GetActiveSessions(ctx context.Context, projectID uuid.UUID) ([]*metacontracteditor.EditorSession, error) {
+	// Mock implementation - return empty list
+	return []*metacontracteditor.EditorSession{}, nil
+}
+
+func (m *MockEditorRepository) GetTemplates(ctx context.Context, category string) ([]*metacontracteditor.ProjectTemplate, error) {
+	var result []*metacontracteditor.ProjectTemplate
+	for _, template := range m.templates {
+		if template.Category == category {
+			result = append(result, template)
+		}
+	}
+	return result, nil
+}
+
+func (m *MockEditorRepository) CreateTemplate(ctx context.Context, template *metacontracteditor.ProjectTemplate) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+func (m *MockEditorRepository) GetUserSettings(ctx context.Context, userID uuid.UUID) (*metacontracteditor.EditorSettings, error) {
+	if settings, exists := m.settings[userID]; exists {
+		return settings, nil
+	}
+	// 返回默认设置
+	return &metacontracteditor.EditorSettings{
+		UserID:      userID,
+		Theme:       "vs-dark",
+		FontSize:    14,
+		AutoSave:    true,
+		AutoCompile: true,
+		KeyBindings: "default",
+		Settings:    make(map[string]interface{}),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (m *MockEditorRepository) UpdateUserSettings(ctx context.Context, settings *metacontracteditor.EditorSettings) error {
+	m.settings[settings.UserID] = settings
+	return nil
+}
+
+func createDefaultTemplates() []*metacontracteditor.ProjectTemplate {
+	return []*metacontracteditor.ProjectTemplate{
+		{
+			ID:       uuid.New(),
+			Name:     "Basic Entity",
+			Category: "basic",
+			Content: `resource_name: example_entity
+namespace: example.namespace
+version: "1.0.0"
+
+data_structure:
+  fields:
+    - name: id
+      type: UUID
+      constraints:
+        primary_key: true
+        required: true
+    
+    - name: name
+      type: String
+      constraints:
+        required: true
+        max_length: 255
+
+security_model:
+  access_control: rbac
+  data_classification: internal`,
+			Description: "A basic entity template with ID and name fields",
+			Tags:        []string{"basic", "crud"},
+		},
+		{
+			ID:       uuid.New(),
+			Name:     "Employee Template",
+			Category: "hr",
+			Content: `resource_name: employee
+namespace: hr.employees
+version: "1.0.0"
+
+data_structure:
+  fields:
+    - name: id
+      type: UUID
+      constraints:
+        primary_key: true
+        required: true
+    
+    - name: employee_id
+      type: String
+      constraints:
+        required: true
+        unique: true
+        max_length: 20
+    
+    - name: first_name
+      type: String
+      constraints:
+        required: true
+        max_length: 50
+    
+    - name: last_name
+      type: String
+      constraints:
+        required: true
+        max_length: 50
+    
+    - name: email
+      type: String
+      constraints:
+        required: true
+        unique: true
+        format: email
+
+security_model:
+  access_control: rbac
+  data_classification: confidential`,
+			Description: "Employee entity template for HR systems",
+			Tags:        []string{"hr", "employee"},
+		},
+	}
+}
+
 // parseJSON 解析JSON请求体
 func parseJSON(r *http.Request, v interface{}) error {
 	defer r.Body.Close()
@@ -426,123 +979,6 @@ func handleCreateOrganization(service *corehr.Service, logger *logging.Structure
 	}
 }
 
-func handleInterpretText(logger *logging.StructuredLogger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		reqLogger := logger.WithContext(r.Context())
-
-		// 解析请求体
-		var reqData struct {
-			Text      string `json:"text"`
-			SessionId string `json:"sessionId"`
-		}
-		
-		if err := parseJSON(r, &reqData); err != nil {
-			reqLogger.LogError("parse_request", "Failed to parse interpret text request", err, nil)
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-
-		// 验证输入
-		if reqData.Text == "" {
-			http.Error(w, "Text field is required", http.StatusBadRequest)
-			return
-		}
-
-		// 如果没有sessionId，生成一个
-		if reqData.SessionId == "" {
-			reqData.SessionId = uuid.New().String()
-		}
-
-		// 检查AI客户端是否可用
-		if aiClient == nil {
-			// 返回Mock响应
-			response := map[string]interface{}{
-				"intent":      "general_query",
-				"confidence":  0.9,
-				"response":    fmt.Sprintf("我理解您说的是：\"%s\"。这是一个模拟的AI回复，AI服务暂时不可用。", reqData.Text),
-				"entities":    []string{},
-				"sessionId":   reqData.SessionId,
-				"suggestions": []string{"请检查AI服务状态", "稍后重试", "联系技术支持"},
-			}
-			respondJSON(w, http.StatusOK, response)
-			return
-		}
-
-		// 调用AI服务
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-		defer cancel()
-
-		grpcReq := &intelligence.InterpretRequest{
-			UserText:  reqData.Text,
-			SessionId: reqData.SessionId,
-		}
-
-		grpcResp, err := aiClient.InterpretText(ctx, grpcReq)
-		if err != nil {
-			reqLogger.LogError("ai_service_call", "Failed to call AI service", err, map[string]interface{}{
-				"text":       reqData.Text,
-				"session_id": reqData.SessionId,
-			})
-			
-			// 返回友好的错误响应
-			response := map[string]interface{}{
-				"intent":      "error",
-				"confidence":  1.0,
-				"response":    "抱歉，AI服务暂时不可用。请稍后再试。",
-				"entities":    []string{},
-				"sessionId":   reqData.SessionId,
-				"suggestions": []string{"请检查网络连接", "稍后重试", "联系技术支持"},
-			}
-			respondJSON(w, http.StatusOK, response)
-			return
-		}
-
-		// 构建响应
-		// 解析structured_data_json中的数据
-		var structuredData map[string]interface{}
-		if err := json.Unmarshal([]byte(grpcResp.StructuredDataJson), &structuredData); err != nil {
-			reqLogger.LogError("parse_structured_data", "Failed to parse structured data JSON", err, map[string]interface{}{
-				"structured_data": grpcResp.StructuredDataJson,
-			})
-			// 如果解析失败，使用基本响应
-			structuredData = map[string]interface{}{
-				"raw_response": grpcResp.StructuredDataJson,
-			}
-		}
-
-		// 构建标准化响应格式
-		response := map[string]interface{}{
-			"intent":      grpcResp.Intent,
-			"confidence":  0.9, // 默认置信度，Python服务未返回此字段
-			"response":    fmt.Sprintf("处理了您的请求：%s", reqData.Text),
-			"entities":    []string{},
-			"sessionId":   reqData.SessionId,
-			"suggestions": []string{},
-			"data":        structuredData, // 包含解析后的结构化数据
-		}
-
-		// 如果structured_data中有特定字段，提取到响应中
-		if responseText, ok := structuredData["response"]; ok {
-			response["response"] = responseText
-		}
-		if entities, ok := structuredData["entities"]; ok {
-			response["entities"] = entities
-		}
-		if suggestions, ok := structuredData["suggestions"]; ok {
-			response["suggestions"] = suggestions
-		}
-		if confidence, ok := structuredData["confidence"]; ok {
-			response["confidence"] = confidence
-		}
-
-		// 记录指标
-		duration := time.Since(start)
-		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
-
-		respondJSON(w, http.StatusOK, response)
-	}
-}
 
 func handleIntelligenceHealth(logger *logging.StructuredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
