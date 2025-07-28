@@ -1,0 +1,69 @@
+specification_version: "1.0"
+api_id: "550e8400-e29b-41d4-a716-446655440000"
+namespace: "test"
+resource_name: "user"
+version: "1.0.0"
+
+data_structure:
+  primary_key: "id"
+  data_classification: "INTERNAL"
+  fields:
+    - name: "id"
+      type: "uuid"
+      required: true
+      unique: true
+      data_classification: "INTERNAL"
+    - name: "email"
+      type: "string"
+      required: true
+      unique: true
+      data_classification: "CONFIDENTIAL"
+      validation_rules:
+        - "email_format"
+    - name: "name"
+      type: "string"
+      required: true
+      data_classification: "INTERNAL"
+    - name: "age"
+      type: "int"
+      required: false
+      data_classification: "INTERNAL"
+    - name: "created_at"
+      type: "time"
+      required: true
+      data_classification: "INTERNAL"
+    - name: "active"
+      type: "bool"
+      required: true
+      data_classification: "INTERNAL"
+
+security_model:
+  tenant_isolation: true
+  access_control: "RBAC"
+  data_classification: "CONFIDENTIAL"
+  compliance_tags:
+    - "GDPR"
+    - "CCPA"
+
+temporal_behavior:
+  temporality_paradigm: "EVENT_DRIVEN"
+  state_transition_model: "EVENT_DRIVEN"
+  history_retention: "7 years"
+  event_driven: true
+
+api_behavior:
+  rest_enabled: true
+  graphql_enabled: true
+  events_enabled: true
+
+relationships:
+  - name: "user_profile"
+    type: "one-to-one"
+    target_entity: "profile"
+    cardinality: "1:1"
+    is_optional: false
+  - name: "user_posts"
+    type: "one-to-many"
+    target_entity: "post"
+    cardinality: "1:N"
+    is_optional: true

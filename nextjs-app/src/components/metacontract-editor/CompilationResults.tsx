@@ -15,8 +15,6 @@ import {
   Loader2,
   ExternalLink
 } from 'lucide-react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface CompileError {
   line: number;
@@ -219,18 +217,9 @@ export const CompilationResults: React.FC<CompilationResultsProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="max-h-40 overflow-auto">
-                  <SyntaxHighlighter
-                    language={getLanguageFromFilename(filename)}
-                    style={oneDark}
-                    customStyle={{
-                      margin: 0,
-                      padding: '0.5rem',
-                      fontSize: '0.75rem',
-                      borderRadius: '0.375rem'
-                    }}
-                  >
-                    {content}
-                  </SyntaxHighlighter>
+                  <pre className="bg-gray-900 text-gray-100 p-2 rounded text-xs font-mono overflow-auto">
+                    <code>{content}</code>
+                  </pre>
                 </div>
               </CardContent>
             </Card>

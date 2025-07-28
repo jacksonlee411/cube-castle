@@ -1,0 +1,669 @@
+# GraphQL schema for Situational Awareness Model (SAM)
+# internal/graphql/schema/sam.graphql
+
+# Core SAM Types
+type SituationalContext {
+  timestamp: Time!
+  alertLevel: AlertLevel!
+  organizationHealth: OrganizationHealth!
+  talentMetrics: TalentMetrics!
+  riskAssessment: RiskAssessment!
+  opportunities: OpportunityAnalysis!
+  recommendations: [StrategicRecommendation!]!
+}
+
+enum AlertLevel {
+  GREEN
+  YELLOW
+  ORANGE
+  RED
+}
+
+# Organization Health Types
+type OrganizationHealth {
+  overallScore: Float!
+  turnoverRate: Float!
+  engagementLevel: Float!
+  productivityIndex: Float!
+  spanOfControlHealth: Float!
+  departmentHealth: [DepartmentHealth!]!
+  trendAnalysis: HealthTrend!
+}
+
+type DepartmentHealth {
+  department: String!
+  healthScore: Float!
+  turnoverRate: Float!
+  averageTenure: Float!
+  managerEffectiveness: Float!
+  teamCohesion: Float!
+  workloadBalance: Float!
+  lastAssessment: Time!
+}
+
+type HealthTrend {
+  trend: TrendDirection!
+  trendStrength: Float!
+  keyDrivers: [String!]!
+  predictedHealth: Float!
+  confidence: Float!
+}
+
+enum TrendDirection {
+  IMPROVING
+  STABLE
+  DECLINING
+}
+
+# Talent Management Types
+type TalentMetrics {
+  talentPipelineHealth: Float!
+  successionReadiness: Float!
+  skillGapAnalysis: [SkillGap!]!
+  performanceDistribution: PerformanceDistribution!
+  learningDevelopmentROI: Float!
+  internalMobilityRate: Float!
+}
+
+type SkillGap {
+  skillArea: String!
+  currentLevel: Float!
+  requiredLevel: Float!
+  gapSize: Float!
+  priority: Priority!
+  affectedRoles: [String!]!
+  closureStrategy: [String!]!
+}
+
+type PerformanceDistribution {
+  highPerformers: Float!
+  solidPerformers: Float!
+  lowPerformers: Float!
+  performanceGaps: [String!]!
+}
+
+enum Priority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+# Risk Assessment Types
+type RiskAssessment {
+  overallRiskScore: Float!
+  keyPersonRisks: [KeyPersonRisk!]!
+  complianceRisks: [ComplianceRisk!]!
+  operationalRisks: [OperationalRisk!]!
+  talentFlightRisks: [TalentFlightRisk!]!
+  riskMitigation: [RiskMitigation!]!
+}
+
+type KeyPersonRisk {
+  employeeId: ID!
+  employeeName: String!
+  position: String!
+  department: String!
+  riskScore: Float!
+  riskFactors: [String!]!
+  businessImpact: String!
+  mitigationSteps: [String!]!
+  lastAssessment: Time!
+}
+
+type ComplianceRisk {
+  riskType: String!
+  severity: Severity!
+  description: String!
+  affectedAreas: [String!]!
+  complianceGaps: [String!]!
+  remediationPlan: [String!]!
+  deadline: Time!
+}
+
+type OperationalRisk {
+  riskCategory: String!
+  description: String!
+  probability: Float!
+  impact: Float!
+  riskScore: Float!
+  affectedTeams: [String!]!
+  contingencyPlan: [String!]!
+}
+
+type TalentFlightRisk {
+  employeeId: ID!
+  employeeName: String!
+  flightRisk: Float!
+  riskIndicators: [String!]!
+  retentionActions: [String!]!
+  timeFrame: String!
+}
+
+type RiskMitigation {
+  riskType: String!
+  mitigationAction: String!
+  effectiveness: Float!
+  timeline: String!
+  responsibleParty: String!
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+# Opportunity Analysis Types
+type OpportunityAnalysis {
+  talentOptimization: [TalentOptimization!]!
+  processImprovements: [ProcessImprovement!]!
+  structuralChanges: [StructuralChange!]!
+  investmentPriorities: [InvestmentPriority!]!
+  capabilityGaps: [CapabilityGap!]!
+}
+
+type TalentOptimization {
+  opportunityType: String!
+  description: String!
+  affectedRoles: [String!]!
+  expectedBenefit: String!
+  implementationSteps: [String!]!
+}
+
+type ProcessImprovement {
+  processArea: String!
+  currentState: String!
+  proposedState: String!
+  efficiencyGain: Float!
+  implementationComplexity: Complexity!
+}
+
+type StructuralChange {
+  changeType: String!
+  description: String!
+  rationale: String!
+  affectedTeams: [String!]!
+  implementationPhases: [String!]!
+}
+
+type InvestmentPriority {
+  investmentArea: String!
+  priority: Priority!
+  estimatedCost: Float!
+  expectedROI: Float!
+  justification: String!
+}
+
+type CapabilityGap {
+  capabilityArea: String!
+  currentLevel: Float!
+  requiredLevel: Float!
+  gapSize: Float!
+  closureStrategy: [String!]!
+}
+
+enum Complexity {
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
+}
+
+# Strategic Recommendations Types
+type StrategicRecommendation {
+  id: ID!
+  type: RecommendationType!
+  priority: Priority!
+  category: RecommendationCategory!
+  title: String!
+  description: String!
+  businessImpact: String!
+  implementation: ImplementationPlan!
+  roiEstimate: ROIEstimate!
+  riskFactors: [String!]!
+  successMetrics: SuccessMetrics!
+  dependencies: [String!]!
+  confidence: Float!
+}
+
+enum RecommendationType {
+  IMMEDIATE
+  SHORT_TERM
+  LONG_TERM
+}
+
+enum RecommendationCategory {
+  TALENT
+  STRUCTURE
+  PROCESS
+  RISK
+  TECHNOLOGY
+  CULTURE
+}
+
+type ImplementationPlan {
+  timeline: String!
+  phases: [ImplementationPhase!]!
+  resources: [ResourceRequirement!]!
+  keyMilestones: [Milestone!]!
+  successCriteria: [String!]!
+}
+
+type ImplementationPhase {
+  phaseNumber: Int!
+  phaseName: String!
+  duration: String!
+  activities: [String!]!
+  dependencies: [String!]!
+  deliverables: [String!]!
+}
+
+type ResourceRequirement {
+  resourceType: String!
+  quantity: Int!
+  skillRequirements: [String!]!
+  timeCommitment: String!
+}
+
+type Milestone {
+  name: String!
+  description: String!
+  targetDate: Time!
+  successMetrics: [String!]!
+}
+
+type ROIEstimate {
+  costSavings: Float!
+  revenueIncrease: Float!
+  efficiencyGains: Float!
+  riskReduction: Float!
+  timeToBreakeven: String!
+  confidenceLevel: Float!
+}
+
+type SuccessMetrics {
+  kpis: [KPI!]!
+  measurementPlan: String!
+  reportingCadence: String!
+}
+
+type KPI {
+  name: String!
+  description: String!
+  currentValue: Float!
+  targetValue: Float!
+  measurement: String!
+}
+
+# Advanced Analytics Types
+type OrganizationInsights {
+  insightType: InsightType!
+  summary: String!
+  keyFindings: [KeyFinding!]!
+  trendAnalysis: TrendAnalysis!
+  actionItems: [ActionItem!]!
+  generatedAt: Time!
+}
+
+enum InsightType {
+  ORGANIZATIONAL_HEALTH
+  TALENT_PIPELINE
+  PERFORMANCE_GAPS
+  RISK_ASSESSMENT
+  GROWTH_OPPORTUNITIES
+}
+
+type KeyFinding {
+  category: FindingCategory!
+  finding: String!
+  impact: Impact!
+  confidence: Float!
+  evidence: [String!]!
+  recommendation: String!
+}
+
+enum FindingCategory {
+  TALENT_MANAGEMENT
+  PERFORMANCE
+  STRUCTURE
+  PROCESS
+  CULTURE
+  RISK
+}
+
+enum Impact {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+type TrendAnalysis {
+  trend: String!
+  trendStrength: Float!
+  keyDrivers: [String!]!
+  predictedOutcome: String!
+  confidence: Float!
+}
+
+type ActionItem {
+  priority: Priority!
+  category: String!
+  action: String!
+  timeline: String!
+  responsibleParty: String!
+  expectedImpact: String!
+}
+
+# Talent Analytics Types
+type TalentAnalytics {
+  talentHealth: TalentHealthMetrics!
+  skillAnalysis: SkillAnalysis!
+  performanceInsights: PerformanceInsights!
+  careerPathAnalysis: CareerPathAnalysis!
+  generatedAt: Time!
+}
+
+type TalentHealthMetrics {
+  overallScore: Float!
+  engagementLevel: Float!
+  retentionRate: Float!
+  developmentIndex: Float!
+  successionReadiness: Float!
+}
+
+type SkillAnalysis {
+  skillGaps: [SkillGap!]!
+  developmentPriorities: [String!]!
+  emergingSkillNeeds: [String!]!
+  skillInventory: [SkillInventoryItem!]!
+}
+
+type SkillInventoryItem {
+  skillArea: String!
+  totalProficiency: Float!
+  employeeCount: Int!
+  averageLevel: Float!
+  expertCount: Int!
+}
+
+type PerformanceInsights {
+  highPerformersRatio: Float!
+  performanceGaps: [String!]!
+  improvementAreas: [String!]!
+  performanceTrends: [PerformanceTrend!]!
+}
+
+type PerformanceTrend {
+  metric: String!
+  trend: TrendDirection!
+  changePercentage: Float!
+  period: String!
+}
+
+type CareerPathAnalysis {
+  internalMobilityRate: Float!
+  promotionReadiness: Float!
+  careerPathClarity: Float!
+  developmentGaps: [String!]!
+  successorMapping: [SuccessorMapping!]!
+}
+
+type SuccessorMapping {
+  position: String!
+  readyCandidates: Int!
+  developingCandidates: Int!
+  gapAnalysis: String!
+}
+
+# Risk Insights Types
+type RiskInsights {
+  overallRiskLevel: RiskLevel!
+  riskScore: Float!
+  keyRisks: [RiskInsight!]!
+  trendAnalysis: RiskTrendAnalysis!
+  recommendations: [RiskRecommendation!]!
+  generatedAt: Time!
+}
+
+enum RiskLevel {
+  VERY_LOW
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+type RiskInsight {
+  riskType: String!
+  severity: Severity!
+  probability: Float!
+  impact: Float!
+  description: String!
+  affectedAreas: [String!]!
+  mitigationPlan: [String!]!
+  timeline: String!
+  monitoringKPIs: [String!]!
+}
+
+type RiskTrendAnalysis {
+  trend: TrendDirection!
+  riskEvolution: String!
+  emergingRisks: [String!]!
+  riskMitigation: [String!]!
+}
+
+type RiskRecommendation {
+  priority: Priority!
+  action: String!
+  expectedReduction: Float!
+  implementation: String!
+  monitoringPlan: String!
+}
+
+# Performance Predictions Types
+type PerformancePredictions {
+  predictionHorizon: String!
+  confidence: Float!
+  predictedMetrics: [MetricPrediction!]!
+  scenarioAnalysis: [ScenarioAnalysis!]!
+  generatedAt: Time!
+}
+
+type MetricPrediction {
+  metricName: String!
+  currentValue: Float!
+  predictedValue: Float!
+  changePercentage: Float!
+  trend: TrendDirection!
+  influencingFactors: [String!]!
+}
+
+type ScenarioAnalysis {
+  scenarioName: String!
+  probability: Float!
+  expectedOutcome: String!
+  keyAssumptions: [String!]!
+  impactMetrics: [ImpactMetric!]!
+}
+
+type ImpactMetric {
+  metric: String!
+  baselineValue: Float!
+  scenarioValue: Float!
+  impact: Float!
+}
+
+# Input Types
+input TimeRange {
+  startDate: Time!
+  endDate: Time!
+}
+
+input AnalysisFilters {
+  departments: [String!]
+  jobLevels: [String!]
+  timeRange: TimeRange
+  includeInactive: Boolean
+}
+
+input PredictionParameters {
+  horizon: String!
+  confidenceLevel: Float
+  scenarios: [String!]
+  includeExternalFactors: Boolean
+}
+
+# Queries
+extend type Query {
+  # Core SAM Queries
+  getSituationalContext(
+    filters: AnalysisFilters
+  ): SituationalContext!
+
+  # Detailed Analytics
+  getOrganizationInsights(
+    department: String
+    timeRange: TimeRange
+  ): OrganizationInsights!
+
+  getTalentAnalytics(
+    analysisType: String
+    department: String
+    filters: AnalysisFilters
+  ): TalentAnalytics!
+
+  getRiskInsights(
+    riskCategory: String
+    department: String
+    filters: AnalysisFilters
+  ): RiskInsights!
+
+  getPerformancePredictions(
+    predictionType: String
+    parameters: PredictionParameters
+  ): PerformancePredictions!
+
+  # Strategic Planning
+  getStrategicRecommendations(
+    category: RecommendationCategory
+    priority: Priority
+    department: String
+  ): [StrategicRecommendation!]!
+
+  # Specific Analysis
+  getSuccessionPlanning(
+    department: String
+    criticalRolesOnly: Boolean
+  ): [SuccessionPlan!]!
+
+  getSkillGapAnalysis(
+    department: String
+    skillCategory: String
+  ): [SkillGap!]!
+
+  getRiskAssessment(
+    riskType: String
+    severity: Severity
+    department: String
+  ): RiskAssessment!
+
+  # Benchmarking
+  getBenchmarkAnalysis(
+    benchmarkType: String
+    comparisonGroup: String
+  ): BenchmarkAnalysis!
+}
+
+# Additional Supporting Types
+type SuccessionPlan {
+  position: String!
+  currentHolder: Employee!
+  readyCandidates: [SuccessionCandidate!]!
+  developingCandidates: [SuccessionCandidate!]!
+  riskLevel: RiskLevel!
+  developmentPlan: [DevelopmentAction!]!
+}
+
+type SuccessionCandidate {
+  employee: Employee!
+  readinessScore: Float!
+  skillMatch: Float!
+  experienceMatch: Float!
+  developmentNeeds: [String!]!
+  timeToReadiness: String!
+}
+
+type DevelopmentAction {
+  actionType: String!
+  description: String!
+  timeline: String!
+  cost: Float!
+  expectedOutcome: String!
+}
+
+type BenchmarkAnalysis {
+  benchmarkType: String!
+  currentPerformance: Float!
+  industryAverage: Float!
+  topQuartile: Float!
+  percentileRank: Int!
+  improvementPotential: Float!
+  recommendations: [String!]!
+}
+
+# Subscriptions for Real-time Updates
+extend type Subscription {
+  # Real-time SAM updates
+  situationalContextUpdated: SituationalContext!
+  
+  # Alert notifications
+  riskAlertTriggered(
+    department: String
+    riskLevel: RiskLevel
+  ): RiskAlert!
+  
+  # Performance threshold alerts
+  performanceThresholdBreached(
+    metric: String
+    threshold: Float
+  ): PerformanceAlert!
+  
+  # Talent pipeline alerts
+  talentPipelineAlert(
+    department: String
+    alertType: String
+  ): TalentAlert!
+}
+
+type RiskAlert {
+  alertId: ID!
+  riskType: String!
+  severity: Severity!
+  description: String!
+  affectedAreas: [String!]!
+  recommendedActions: [String!]!
+  timestamp: Time!
+}
+
+type PerformanceAlert {
+  alertId: ID!
+  metric: String!
+  currentValue: Float!
+  threshold: Float!
+  trend: TrendDirection!
+  department: String
+  timestamp: Time!
+}
+
+type TalentAlert {
+  alertId: ID!
+  alertType: String!
+  description: String!
+  affectedEmployees: [ID!]!
+  recommendedActions: [String!]!
+  priority: Priority!
+  timestamp: Time!
+}
