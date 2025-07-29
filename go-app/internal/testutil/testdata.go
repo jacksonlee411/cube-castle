@@ -1,4 +1,4 @@
-package testdata
+package testutil
 
 // SampleMetaContracts contains sample meta-contract YAML files for testing
 

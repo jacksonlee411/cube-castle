@@ -9,6 +9,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/gaogu/cube-castle/go-app/ent"
+	_ "github.com/lib/pq"
 )
 
 // DatabaseConfig 数据库配置
@@ -192,4 +194,24 @@ func InitDatabaseConnection() *Database {
 	}
 	
 	return db
+}
+
+// GetEntClient 获取Ent客户端
+func GetEntClient() *ent.Client {
+	// 使用与迁移工具相同的连接字符串
+	connectionString := "postgresql://user:password@localhost:5432/cubecastle?sslmode=disable"
+	
+	// 从环境变量获取连接字符串（如果存在）
+	if envDB := os.Getenv("DATABASE_URL"); envDB != "" {
+		connectionString = envDB
+	}
+	
+	client, err := ent.Open("postgres", connectionString)
+	if err != nil {
+		log.Printf("Failed to open Ent client: %v", err)
+		// 返回nil，调用方需要处理这种情况
+		return nil
+	}
+	
+	return client
 } 

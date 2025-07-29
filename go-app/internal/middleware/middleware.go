@@ -39,7 +39,8 @@ func DataClassificationCheck(classification string) func(http.Handler) http.Hand
 
 // GetTenantID extracts tenant ID from request context
 func GetTenantID(ctx context.Context) uuid.UUID {
-	// Implementation placeholder for tenant ID extraction
-	// This would extract the tenant ID from the context
+	if tenantID, ok := ctx.Value("tenant_id").(uuid.UUID); ok {
+		return tenantID
+	}
 	return uuid.Nil
 }

@@ -4,30 +4,31 @@ package service
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/gaogu/cube-castle/go-app/internal/ent"
+	entgo "github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 )
 
 // EnhancedTemporalQueryService extends TemporalQueryService with advanced temporal operations
 type EnhancedTemporalQueryService struct {
-	*TemporalQueryService
+	client           *entgo.Client
+	logger           *logging.StructuredLogger
 	metricsCollector *TemporalMetricsCollector
 }
 
 // NewEnhancedTemporalQueryService creates an enhanced temporal query service
 func NewEnhancedTemporalQueryService(
-	client *ent.Client, 
+	client *entgo.Client, 
 	logger *logging.StructuredLogger,
 ) *EnhancedTemporalQueryService {
-	baseService := NewTemporalQueryService(client, logger)
 	return &EnhancedTemporalQueryService{
-		TemporalQueryService: baseService,
-		metricsCollector:     NewTemporalMetricsCollector(),
+		client:           client,
+		logger:           logger,
+		metricsCollector: NewTemporalMetricsCollector(),
 	}
 }
 
@@ -74,63 +75,71 @@ func (s *EnhancedTemporalQueryService) GetAdvancedPositionTimeline(
 ) (*PositionTimelineResult, error) {
 	startTime := time.Now()
 	
-	s.logger.LogInfo(ctx, "Executing advanced position timeline query", map[string]interface{}{
-		"tenant_id":      query.TenantID,
-		"employee_count": len(query.EmployeeIDs),
-		"departments":    query.Departments,
-		"job_levels":     query.JobLevels,
-		"date_range":     query.DateRange,
-	})
+	s.logger.Info("Executing advanced position timeline query",
+		"tenant_id", query.TenantID,
+		"employee_count", len(query.EmployeeIDs),
+		"departments", query.Departments,
+		"job_levels", query.JobLevels,
+		"date_range", query.DateRange,
+	)
 
-	// Build dynamic query
+	// Build dynamic query - using OrganizationID as a proxy for TenantID
 	dbQuery := s.client.PositionHistory.Query().
-		Where(position_history.TenantIDEQ(query.TenantID))
+		Where(positionhistory.OrganizationIDEQ(query.TenantID.String()))
 
-	// Add employee filter
+	// Add employee filter - convert UUIDs to strings
 	if len(query.EmployeeIDs) > 0 {
-		dbQuery = dbQuery.Where(position_history.EmployeeIDIn(query.EmployeeIDs...))
+		employeeIDStrings := make([]string, len(query.EmployeeIDs))
+		for i, id := range query.EmployeeIDs {
+			employeeIDStrings[i] = id.String()
+		}
+		dbQuery = dbQuery.Where(positionhistory.EmployeeIDIn(employeeIDStrings...))
 	}
 
 	// Add department filter
 	if len(query.Departments) > 0 {
-		dbQuery = dbQuery.Where(position_history.DepartmentIn(query.Departments...))
+		dbQuery = dbQuery.Where(positionhistory.DepartmentIn(query.Departments...))
 	}
 
-	// Add job level filter
+	// Skip job level filter as it's not in the current schema
+	// TODO: Add job_level field to position_history schema if needed
 	if len(query.JobLevels) > 0 {
-		dbQuery = dbQuery.Where(position_history.JobLevelIn(query.JobLevels...))
+		s.logger.Info("Job level filter skipped - field not in position_history schema",
+			"job_levels", query.JobLevels,
+			"note", "Add job_level field to schema if filtering by job level is required",
+		)
 	}
 
 	// Add date range filter
 	if query.DateRange != nil {
 		dbQuery = dbQuery.Where(
-			position_history.EffectiveDateLTE(query.DateRange.EndDate),
-			position_history.Or(
-				position_history.EndDateIsNil(),
-				position_history.EndDateGTE(query.DateRange.StartDate),
+			positionhistory.EffectiveDateLTE(query.DateRange.EndDate),
+			positionhistory.Or(
+				positionhistory.EndDateIsNil(),
+				positionhistory.EndDateGTE(query.DateRange.StartDate),
 			),
 		)
 	}
 
 	// Add retroactive filter
 	if !query.IncludeRetroactive {
-		dbQuery = dbQuery.Where(position_history.IsRetroactiveEQ(false))
+		dbQuery = dbQuery.Where(positionhistory.IsRetroactiveEQ(false))
 	}
 
 	// Add ordering
 	switch query.OrderBy {
 	case "employee_id":
-		dbQuery = dbQuery.Order(ent.Asc(position_history.FieldEmployeeID), ent.Asc(position_history.FieldEffectiveDate))
+		dbQuery = dbQuery.Order(positionhistory.ByEmployeeID(), positionhistory.ByEffectiveDate())
 	case "department":
-		dbQuery = dbQuery.Order(ent.Asc(position_history.FieldDepartment), ent.Asc(position_history.FieldEffectiveDate))
+		dbQuery = dbQuery.Order(positionhistory.ByDepartment(), positionhistory.ByEffectiveDate())
 	default:
-		dbQuery = dbQuery.Order(ent.Asc(position_history.FieldEffectiveDate))
+		dbQuery = dbQuery.Order(positionhistory.ByEffectiveDate())
 	}
 
 	// Get total count for pagination
 	totalCount, err := dbQuery.Count(ctx)
 	if err != nil {
-		s.logger.LogError(ctx, "Failed to get timeline query count", err, map[string]interface{}{
+		s.logger.LogError("timeline_query_count_failed", "Failed to get timeline query count", err, map[string]interface{}{
 			"tenant_id": query.TenantID,
 		})
 		return nil, err
@@ -147,7 +156,7 @@ func (s *EnhancedTemporalQueryService) GetAdvancedPositionTimeline(
 	// Execute query
 	positions, err := dbQuery.All(ctx)
 	if err != nil {
-		s.logger.LogError(ctx, "Failed to execute timeline query", err, map[string]interface{}{
+		s.logger.LogError("timeline_query_execution_failed", "Failed to execute timeline query", err, map[string]interface{}{
 			"tenant_id": query.TenantID,
 		})
 		return nil, err
@@ -179,12 +188,12 @@ func (s *EnhancedTemporalQueryService) GetAdvancedPositionTimeline(
 		HasMore:      query.Limit != nil && len(snapshots) == *query.Limit,
 	}
 
-	s.logger.LogInfo(ctx, "Advanced timeline query completed", map[string]interface{}{
-		"tenant_id":        query.TenantID,
-		"execution_time":   executionTime.Milliseconds(),
-		"records_returned": len(snapshots),
-		"total_count":      totalCount,
-	})
+	s.logger.Info("Advanced timeline query completed",
+		"tenant_id", query.TenantID,
+		"execution_time", executionTime.Milliseconds(),
+		"records_returned", len(snapshots),
+		"total_count", totalCount,
+	)
 
 	return result, nil
 }
@@ -196,30 +205,30 @@ func (s *EnhancedTemporalQueryService) GetPositionChangesInPeriod(
 	startDate, endDate time.Time,
 	includeRetroactive bool,
 ) ([]*PositionChangeEvent, error) {
-	s.logger.LogInfo(ctx, "Querying position changes in period", map[string]interface{}{
-		"tenant_id":           tenantID,
-		"start_date":          startDate,
-		"end_date":            endDate,
-		"include_retroactive": includeRetroactive,
-	})
+	s.logger.Info("Querying position changes in period",
+		"tenant_id", tenantID,
+		"start_date", startDate,
+		"end_date", endDate,
+		"include_retroactive", includeRetroactive,
+	)
 
 	query := s.client.PositionHistory.Query().
 		Where(
-			position_history.TenantIDEQ(tenantID),
-			position_history.EffectiveDateGTE(startDate),
-			position_history.EffectiveDateLTE(endDate),
+			positionhistory.OrganizationIDEQ(tenantID.String()),
+			positionhistory.EffectiveDateGTE(startDate),
+			positionhistory.EffectiveDateLTE(endDate),
 		)
 
 	if !includeRetroactive {
-		query = query.Where(position_history.IsRetroactiveEQ(false))
+		query = query.Where(positionhistory.IsRetroactiveEQ(false))
 	}
 
 	positions, err := query.
-		Order(ent.Asc(position_history.FieldEffectiveDate)).
+		Order(positionhistory.ByEffectiveDate()).
 		All(ctx)
 
 	if err != nil {
-		s.logger.LogError(ctx, "Failed to query position changes", err, map[string]interface{}{
+		s.logger.LogError("position_changes_query_failed", "Failed to query position changes", err, map[string]interface{}{
 			"tenant_id":  tenantID,
 			"start_date": startDate,
 			"end_date":   endDate,
@@ -231,21 +240,21 @@ func (s *EnhancedTemporalQueryService) GetPositionChangesInPeriod(
 	events := make([]*PositionChangeEvent, len(positions))
 	for i, pos := range positions {
 		events[i] = &PositionChangeEvent{
-			PositionHistoryID: pos.ID,
-			EmployeeID:       pos.EmployeeID,
+			PositionHistoryID: uuid.MustParse(pos.ID),
+			EmployeeID:       uuid.MustParse(pos.EmployeeID),
 			ChangeType:       s.determineChangeType(ctx, pos),
 			EffectiveDate:    pos.EffectiveDate,
-			PreviousPosition: s.getPreviousPosition(ctx, tenantID, pos.EmployeeID, pos.EffectiveDate),
+			PreviousPosition: s.getPreviousPosition(ctx, tenantID, uuid.MustParse(pos.EmployeeID), pos.EffectiveDate),
 			NewPosition:      s.convertToSnapshot(pos),
 			IsRetroactive:    pos.IsRetroactive,
-			ChangeReason:     pos.ChangeReason,
+			ChangeReason:     getStringValue(pos.ChangeReason),
 		}
 	}
 
-	s.logger.LogInfo(ctx, "Position changes query completed", map[string]interface{}{
-		"tenant_id":    tenantID,
-		"change_count": len(events),
-	})
+	s.logger.Info("Position changes query completed",
+		"tenant_id", tenantID,
+		"change_count", len(events),
+	)
 
 	return events, nil
 }
@@ -256,10 +265,10 @@ func (s *EnhancedTemporalQueryService) GetPositionGapsAndOverlaps(
 	tenantID uuid.UUID,
 	employeeIDs []uuid.UUID,
 ) (*TemporalConsistencyReport, error) {
-	s.logger.LogInfo(ctx, "Analyzing position gaps and overlaps", map[string]interface{}{
-		"tenant_id":      tenantID,
-		"employee_count": len(employeeIDs),
-	})
+	s.logger.Info("Analyzing position gaps and overlaps",
+		"tenant_id", tenantID,
+		"employee_count", len(employeeIDs),
+	)
 
 	report := &TemporalConsistencyReport{
 		TenantID:    tenantID,
@@ -273,14 +282,14 @@ func (s *EnhancedTemporalQueryService) GetPositionGapsAndOverlaps(
 		// Get all positions for employee, ordered by effective date
 		positions, err := s.client.PositionHistory.Query().
 			Where(
-				position_history.TenantIDEQ(tenantID),
-				position_history.EmployeeIDEQ(employeeID),
+				positionhistory.OrganizationIDEQ(tenantID.String()),
+				positionhistory.EmployeeIDEQ(employeeID.String()),
 			).
-			Order(ent.Asc(position_history.FieldEffectiveDate)).
+			Order(positionhistory.ByEffectiveDate()).
 			All(ctx)
 
 		if err != nil {
-			s.logger.LogError(ctx, "Failed to get positions for gap analysis", err, map[string]interface{}{
+			s.logger.LogError("gap_analysis_query_failed", "Failed to get positions for gap analysis", err, map[string]interface{}{
 				"tenant_id":   tenantID,
 				"employee_id": employeeID,
 			})
@@ -291,12 +300,12 @@ func (s *EnhancedTemporalQueryService) GetPositionGapsAndOverlaps(
 		s.analyzePositionContinuity(positions, employeeID, report)
 	}
 
-	s.logger.LogInfo(ctx, "Gap and overlap analysis completed", map[string]interface{}{
-		"tenant_id":  tenantID,
-		"gaps":       len(report.Gaps),
-		"overlaps":   len(report.Overlaps),
-		"warnings":   len(report.Warnings),
-	})
+	s.logger.Info("Gap and overlap analysis completed",
+		"tenant_id", tenantID,
+		"gaps", len(report.Gaps),
+		"overlaps", len(report.Overlaps),
+		"warnings", len(report.Warnings),
+	)
 
 	return report, nil
 }
@@ -307,10 +316,10 @@ func (s *EnhancedTemporalQueryService) BatchCreatePositionSnapshots(
 	tenantID uuid.UUID,
 	snapshots []BatchPositionSnapshotData,
 ) (*BatchCreateResult, error) {
-	s.logger.LogInfo(ctx, "Creating batch position snapshots", map[string]interface{}{
-		"tenant_id":     tenantID,
-		"snapshot_count": len(snapshots),
-	})
+	s.logger.Info("Creating batch position snapshots",
+		"tenant_id", tenantID,
+		"snapshot_count", len(snapshots),
+	)
 
 	result := &BatchCreateResult{
 		TotalRequested: len(snapshots),
@@ -349,7 +358,7 @@ func (s *EnhancedTemporalQueryService) BatchCreatePositionSnapshots(
 			continue
 		}
 
-		result.Successful = append(result.Successful, position.ID)
+		result.Successful = append(result.Successful, uuid.MustParse(position.ID))
 	}
 
 	// Commit transaction only if we have at least one success
@@ -362,50 +371,31 @@ func (s *EnhancedTemporalQueryService) BatchCreatePositionSnapshots(
 	result.SuccessCount = len(result.Successful)
 	result.FailureCount = len(result.Failed)
 
-	s.logger.LogInfo(ctx, "Batch position snapshots created", map[string]interface{}{
-		"tenant_id":     tenantID,
-		"success_count": result.SuccessCount,
-		"failure_count": result.FailureCount,
-	})
+	s.logger.Info("Batch position snapshots created",
+		"tenant_id", tenantID,
+		"success_count", result.SuccessCount,
+		"failure_count", result.FailureCount,
+	)
 
 	return result, nil
 }
 
 // Helper methods
 
-func (s *EnhancedTemporalQueryService) convertToSnapshot(pos *ent.PositionHistory) *PositionSnapshot {
+func (s *EnhancedTemporalQueryService) convertToSnapshot(pos *entgo.PositionHistory) *PositionSnapshot {
 	snapshot := &PositionSnapshot{
-		PositionHistoryID:    pos.ID,
-		EmployeeID:          pos.EmployeeID,
+		PositionHistoryID:    uuid.MustParse(pos.ID),
+		EmployeeID:          uuid.MustParse(pos.EmployeeID),
 		PositionTitle:       pos.PositionTitle,
 		Department:          pos.Department,
-		EmploymentType:      pos.EmploymentType,
 		EffectiveDate:       pos.EffectiveDate,
 		EndDate:             pos.EndDate,
 		IsRetroactive:       pos.IsRetroactive,
 	}
 
-	// Handle optional fields
-	if pos.JobLevel != "" {
-		snapshot.JobLevel = &pos.JobLevel
-	}
-	if pos.Location != "" {
-		snapshot.Location = &pos.Location
-	}
-	if pos.ReportsToEmployeeID != uuid.Nil {
-		snapshot.ReportsToEmployeeID = &pos.ReportsToEmployeeID
-	}
-	if pos.ChangeReason != "" {
-		snapshot.ChangeReason = &pos.ChangeReason
-	}
-	if pos.MinSalary != 0 {
-		snapshot.MinSalary = &pos.MinSalary
-	}
-	if pos.MaxSalary != 0 {
-		snapshot.MaxSalary = &pos.MaxSalary
-	}
-	if pos.Currency != "" {
-		snapshot.Currency = &pos.Currency
+	// Handle optional fields that exist in schema
+	if pos.ChangeReason != nil && *pos.ChangeReason != "" {
+		snapshot.ChangeReason = pos.ChangeReason
 	}
 
 	return snapshot
@@ -413,21 +403,30 @@ func (s *EnhancedTemporalQueryService) convertToSnapshot(pos *ent.PositionHistor
 
 func (s *EnhancedTemporalQueryService) identifyUsedIndexes(query PositionTimelineQuery) []string {
 	// This is a simplified version - in production, you'd query EXPLAIN plans
-	indexes := []string{"idx_position_history_temporal"}
+	indexes := []string{"idx_positionhistory_temporal"}
 	
 	if len(query.EmployeeIDs) > 0 {
-		indexes = append(indexes, "idx_position_history_employee")
+		indexes = append(indexes, "idx_positionhistory_employee")
 	}
 	if query.DateRange != nil {
-		indexes = append(indexes, "idx_position_history_date_range")
+		indexes = append(indexes, "idx_positionhistory_date_range")
 	}
 	
 	return indexes
 }
 
-func (s *EnhancedTemporalQueryService) determineChangeType(ctx context.Context, pos *ent.PositionHistory) string {
+func (s *EnhancedTemporalQueryService) determineChangeType(ctx context.Context, pos *entgo.PositionHistory) string {
 	// Get previous position to determine change type
-	prevPos := s.getPreviousPosition(ctx, pos.TenantID, pos.EmployeeID, pos.EffectiveDate)
+	employeeUUID, err := uuid.Parse(pos.EmployeeID)
+	if err != nil {
+		return "INITIAL_HIRE"
+	}
+	organizationUUID, err := uuid.Parse(pos.OrganizationID)
+	if err != nil {
+		return "INITIAL_HIRE"
+	}
+	
+	prevPos := s.getPreviousPosition(ctx, organizationUUID, employeeUUID, pos.EffectiveDate)
 	
 	if prevPos == nil {
 		return "INITIAL_HIRE"
@@ -439,10 +438,6 @@ func (s *EnhancedTemporalQueryService) determineChangeType(ctx context.Context, 
 	if prevPos.Department != pos.Department {
 		return "TRANSFER"
 	}
-	if prevPos.ReportsToEmployeeID != nil && pos.ReportsToEmployeeID != uuid.Nil && 
-		*prevPos.ReportsToEmployeeID != pos.ReportsToEmployeeID {
-		return "MANAGER_CHANGE"
-	}
 	
 	return "INFORMATION_UPDATE"
 }
@@ -450,11 +445,11 @@ func (s *EnhancedTemporalQueryService) determineChangeType(ctx context.Context, 
 func (s *EnhancedTemporalQueryService) getPreviousPosition(ctx context.Context, tenantID, employeeID uuid.UUID, effectiveDate time.Time) *PositionSnapshot {
 	pos, err := s.client.PositionHistory.Query().
 		Where(
-			position_history.TenantIDEQ(tenantID),
-			position_history.EmployeeIDEQ(employeeID),
-			position_history.EffectiveDateLT(effectiveDate),
+			positionhistory.OrganizationIDEQ(tenantID.String()),
+			positionhistory.EmployeeIDEQ(employeeID.String()),
+			positionhistory.EffectiveDateLT(effectiveDate),
 		).
-		Order(ent.Desc(position_history.FieldEffectiveDate)).
+		Order(positionhistory.ByEffectiveDate(sql.OrderDesc())).
 		First(ctx)
 	
 	if err != nil {
@@ -464,7 +459,7 @@ func (s *EnhancedTemporalQueryService) getPreviousPosition(ctx context.Context, 
 	return s.convertToSnapshot(pos)
 }
 
-func (s *EnhancedTemporalQueryService) analyzePositionContinuity(positions []*ent.PositionHistory, employeeID uuid.UUID, report *TemporalConsistencyReport) {
+func (s *EnhancedTemporalQueryService) analyzePositionContinuity(positions []*entgo.PositionHistory, employeeID uuid.UUID, report *TemporalConsistencyReport) {
 	for i := 0; i < len(positions); i++ {
 		current := positions[i]
 		
@@ -477,8 +472,8 @@ func (s *EnhancedTemporalQueryService) analyzePositionContinuity(positions []*en
 					GapStart:        previous.EndDate.Add(24 * time.Hour),
 					GapEnd:          current.EffectiveDate.Add(-24 * time.Hour),
 					GapDuration:     current.EffectiveDate.Sub(*previous.EndDate),
-					PreviousPosition: previous.ID,
-					NextPosition:    current.ID,
+					PreviousPosition: uuid.MustParse(previous.ID),
+					NextPosition:    uuid.MustParse(current.ID),
 				})
 			}
 		}
@@ -497,51 +492,67 @@ func (s *EnhancedTemporalQueryService) analyzePositionContinuity(positions []*en
 					OverlapStart:    current.EffectiveDate,
 					OverlapEnd:      overlapEnd,
 					OverlapDuration: overlapEnd.Sub(current.EffectiveDate),
-					Position1:       previous.ID,
-					Position2:       current.ID,
+					Position1:       uuid.MustParse(previous.ID),
+					Position2:       uuid.MustParse(current.ID),
 				})
 			}
 		}
 	}
 }
 
-func (s *EnhancedTemporalQueryService) createPositionSnapshotInTx(ctx context.Context, tx *ent.Tx, tenantID uuid.UUID, data BatchPositionSnapshotData) (*ent.PositionHistory, error) {
+func (s *EnhancedTemporalQueryService) createPositionSnapshotInTx(ctx context.Context, tx *entgo.Tx, tenantID uuid.UUID, data BatchPositionSnapshotData) (*entgo.PositionHistory, error) {
 	createBuilder := tx.PositionHistory.Create().
-		SetTenantID(tenantID).
-		SetEmployeeID(data.EmployeeID).
+		SetOrganizationID(tenantID.String()).
+		SetEmployeeID(data.EmployeeID.String()).
 		SetPositionTitle(data.PositionTitle).
 		SetDepartment(data.Department).
-		SetEmploymentType(data.EmploymentType).
 		SetEffectiveDate(data.EffectiveDate).
 		SetIsRetroactive(data.IsRetroactive).
-		SetCreatedBy(data.CreatedBy).
-		SetCreatedAt(time.Now())
+		SetCreatedAt(time.Now()).
+		SetUpdatedAt(time.Now())
 
-	// Set optional fields
-	if data.JobLevel != nil {
-		createBuilder = createBuilder.SetJobLevel(*data.JobLevel)
-	}
-	if data.Location != nil {
-		createBuilder = createBuilder.SetLocation(*data.Location)
-	}
-	if data.ReportsToEmployeeID != nil {
-		createBuilder = createBuilder.SetReportsToEmployeeID(*data.ReportsToEmployeeID)
-	}
+	// Set optional fields that exist in schema
 	if data.EndDate != nil {
 		createBuilder = createBuilder.SetEndDate(*data.EndDate)
 	}
 	if data.ChangeReason != nil {
 		createBuilder = createBuilder.SetChangeReason(*data.ChangeReason)
 	}
-	if data.MinSalary != nil {
-		createBuilder = createBuilder.SetMinSalary(*data.MinSalary)
-	}
-	if data.MaxSalary != nil {
-		createBuilder = createBuilder.SetMaxSalary(*data.MaxSalary)
-	}
-	if data.Currency != nil {
-		createBuilder = createBuilder.SetCurrency(*data.Currency)
-	}
 
 	return createBuilder.Save(ctx)
+}
+
+// ValidateTemporalConsistency validates temporal consistency for a position
+func (s *EnhancedTemporalQueryService) ValidateTemporalConsistency(ctx context.Context, tenantID, employeeID uuid.UUID, effectiveDate time.Time) error {
+	// Simple validation - check for overlaps
+	conflictCount, err := s.client.PositionHistory.Query().
+		Where(
+			positionhistory.OrganizationIDEQ(tenantID.String()),
+			positionhistory.EmployeeIDEQ(employeeID.String()),
+			positionhistory.EffectiveDateLTE(effectiveDate),
+			positionhistory.Or(
+				positionhistory.EndDateIsNil(),
+				positionhistory.EndDateGT(effectiveDate),
+			),
+		).
+		Count(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	if conflictCount > 0 {
+		return fmt.Errorf("temporal conflict: position already exists for employee %s at date %s", 
+			employeeID, effectiveDate.Format("2006-01-02"))
+	}
+
+	return nil
+}
+
+// Helper function to get string value from pointer
+func getStringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

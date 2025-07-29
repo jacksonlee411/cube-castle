@@ -21,6 +21,42 @@ func (f EmployeeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.EmployeeMutation", m)
 }
 
+// The OrganizationUnitFunc type is an adapter to allow the use of ordinary
+// function as OrganizationUnit mutator.
+type OrganizationUnitFunc func(context.Context, *ent.OrganizationUnitMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OrganizationUnitFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OrganizationUnitMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrganizationUnitMutation", m)
+}
+
+// The PositionFunc type is an adapter to allow the use of ordinary
+// function as Position mutator.
+type PositionFunc func(context.Context, *ent.PositionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PositionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PositionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PositionMutation", m)
+}
+
+// The PositionAttributeHistoryFunc type is an adapter to allow the use of ordinary
+// function as PositionAttributeHistory mutator.
+type PositionAttributeHistoryFunc func(context.Context, *ent.PositionAttributeHistoryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PositionAttributeHistoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PositionAttributeHistoryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PositionAttributeHistoryMutation", m)
+}
+
 // The PositionHistoryFunc type is an adapter to allow the use of ordinary
 // function as PositionHistory mutator.
 type PositionHistoryFunc func(context.Context, *ent.PositionHistoryMutation) (ent.Value, error)
@@ -31,6 +67,18 @@ func (f PositionHistoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PositionHistoryMutation", m)
+}
+
+// The PositionOccupancyHistoryFunc type is an adapter to allow the use of ordinary
+// function as PositionOccupancyHistory mutator.
+type PositionOccupancyHistoryFunc func(context.Context, *ent.PositionOccupancyHistoryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PositionOccupancyHistoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PositionOccupancyHistoryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PositionOccupancyHistoryMutation", m)
 }
 
 // Condition is a hook condition function.

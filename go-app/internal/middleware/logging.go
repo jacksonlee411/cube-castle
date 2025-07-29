@@ -126,15 +126,17 @@ func CORSMiddleware(next http.Handler) http.Handler {
 func TenantMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 从请求头获取租户ID
-		tenantID := r.Header.Get("X-Tenant-ID")
-		if tenantID == "" {
+		tenantIDStr := r.Header.Get("X-Tenant-ID")
+		if tenantIDStr == "" {
 			// 如果没有提供租户ID，可以从JWT token中提取或使用默认值
-			tenantID = "default"
+			tenantIDStr = "550e8400-e29b-41d4-a716-446655440000" // 默认租户ID
 		}
 		
-		// 添加租户ID到上下文
-		ctx := context.WithValue(r.Context(), TenantIDKey, tenantID)
-		r = r.WithContext(ctx)
+		// 解析为UUID并添加到上下文
+		if tenantID, err := uuid.Parse(tenantIDStr); err == nil {
+			ctx := context.WithValue(r.Context(), "tenant_id", tenantID)
+			r = r.WithContext(ctx)
+		}
 		
 		next.ServeHTTP(w, r)
 	})
@@ -172,9 +174,18 @@ func AuthMiddleware(logger *logging.StructuredLogger) func(http.Handler) http.Ha
 			r = r.WithContext(ctx)
 			
 			// 记录认证事件
-			tenantID := r.Context().Value(TenantIDKey).(string)
+			var tenantIDStr string
+			if tenantID := r.Context().Value(TenantIDKey); tenantID != nil {
+				if id, ok := tenantID.(uuid.UUID); ok {
+					tenantIDStr = id.String()
+				} else if id, ok := tenantID.(string); ok {
+					tenantIDStr = id
+				} else {
+					tenantIDStr = "unknown"
+				}
+			}
 			reqLogger := logger.WithContext(r.Context())
-			reqLogger.LogAuthEvent("jwt_validation", userID, tenantID, true, "token_valid")
+			reqLogger.LogAuthEvent("jwt_validation", userID, tenantIDStr, true, "token_valid")
 			
 			next.ServeHTTP(w, r)
 		})

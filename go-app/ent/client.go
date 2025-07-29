@@ -10,12 +10,18 @@ import (
 	"reflect"
 
 	"github.com/gaogu/cube-castle/go-app/ent/migrate"
+	"github.com/google/uuid"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
+	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
+	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 )
 
 // Client is the client that holds all ent builders.
@@ -25,8 +31,16 @@ type Client struct {
 	Schema *migrate.Schema
 	// Employee is the client for interacting with the Employee builders.
 	Employee *EmployeeClient
+	// OrganizationUnit is the client for interacting with the OrganizationUnit builders.
+	OrganizationUnit *OrganizationUnitClient
+	// Position is the client for interacting with the Position builders.
+	Position *PositionClient
+	// PositionAttributeHistory is the client for interacting with the PositionAttributeHistory builders.
+	PositionAttributeHistory *PositionAttributeHistoryClient
 	// PositionHistory is the client for interacting with the PositionHistory builders.
 	PositionHistory *PositionHistoryClient
+	// PositionOccupancyHistory is the client for interacting with the PositionOccupancyHistory builders.
+	PositionOccupancyHistory *PositionOccupancyHistoryClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -39,7 +53,11 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Employee = NewEmployeeClient(c.config)
+	c.OrganizationUnit = NewOrganizationUnitClient(c.config)
+	c.Position = NewPositionClient(c.config)
+	c.PositionAttributeHistory = NewPositionAttributeHistoryClient(c.config)
 	c.PositionHistory = NewPositionHistoryClient(c.config)
+	c.PositionOccupancyHistory = NewPositionOccupancyHistoryClient(c.config)
 }
 
 type (
@@ -130,10 +148,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		Employee:        NewEmployeeClient(cfg),
-		PositionHistory: NewPositionHistoryClient(cfg),
+		ctx:                      ctx,
+		config:                   cfg,
+		Employee:                 NewEmployeeClient(cfg),
+		OrganizationUnit:         NewOrganizationUnitClient(cfg),
+		Position:                 NewPositionClient(cfg),
+		PositionAttributeHistory: NewPositionAttributeHistoryClient(cfg),
+		PositionHistory:          NewPositionHistoryClient(cfg),
+		PositionOccupancyHistory: NewPositionOccupancyHistoryClient(cfg),
 	}, nil
 }
 
@@ -151,10 +173,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		Employee:        NewEmployeeClient(cfg),
-		PositionHistory: NewPositionHistoryClient(cfg),
+		ctx:                      ctx,
+		config:                   cfg,
+		Employee:                 NewEmployeeClient(cfg),
+		OrganizationUnit:         NewOrganizationUnitClient(cfg),
+		Position:                 NewPositionClient(cfg),
+		PositionAttributeHistory: NewPositionAttributeHistoryClient(cfg),
+		PositionHistory:          NewPositionHistoryClient(cfg),
+		PositionOccupancyHistory: NewPositionOccupancyHistoryClient(cfg),
 	}, nil
 }
 
@@ -183,15 +209,23 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Employee.Use(hooks...)
-	c.PositionHistory.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Employee, c.OrganizationUnit, c.Position, c.PositionAttributeHistory,
+		c.PositionHistory, c.PositionOccupancyHistory,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Employee.Intercept(interceptors...)
-	c.PositionHistory.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Employee, c.OrganizationUnit, c.Position, c.PositionAttributeHistory,
+		c.PositionHistory, c.PositionOccupancyHistory,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -199,8 +233,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *EmployeeMutation:
 		return c.Employee.mutate(ctx, m)
+	case *OrganizationUnitMutation:
+		return c.OrganizationUnit.mutate(ctx, m)
+	case *PositionMutation:
+		return c.Position.mutate(ctx, m)
+	case *PositionAttributeHistoryMutation:
+		return c.PositionAttributeHistory.mutate(ctx, m)
 	case *PositionHistoryMutation:
 		return c.PositionHistory.mutate(ctx, m)
+	case *PositionOccupancyHistoryMutation:
+		return c.PositionOccupancyHistory.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -339,6 +381,549 @@ func (c *EmployeeClient) mutate(ctx context.Context, m *EmployeeMutation) (Value
 	}
 }
 
+// OrganizationUnitClient is a client for the OrganizationUnit schema.
+type OrganizationUnitClient struct {
+	config
+}
+
+// NewOrganizationUnitClient returns a client for the OrganizationUnit from the given config.
+func NewOrganizationUnitClient(c config) *OrganizationUnitClient {
+	return &OrganizationUnitClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `organizationunit.Hooks(f(g(h())))`.
+func (c *OrganizationUnitClient) Use(hooks ...Hook) {
+	c.hooks.OrganizationUnit = append(c.hooks.OrganizationUnit, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `organizationunit.Intercept(f(g(h())))`.
+func (c *OrganizationUnitClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OrganizationUnit = append(c.inters.OrganizationUnit, interceptors...)
+}
+
+// Create returns a builder for creating a OrganizationUnit entity.
+func (c *OrganizationUnitClient) Create() *OrganizationUnitCreate {
+	mutation := newOrganizationUnitMutation(c.config, OpCreate)
+	return &OrganizationUnitCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OrganizationUnit entities.
+func (c *OrganizationUnitClient) CreateBulk(builders ...*OrganizationUnitCreate) *OrganizationUnitCreateBulk {
+	return &OrganizationUnitCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OrganizationUnitClient) MapCreateBulk(slice any, setFunc func(*OrganizationUnitCreate, int)) *OrganizationUnitCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OrganizationUnitCreateBulk{err: fmt.Errorf("calling to OrganizationUnitClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OrganizationUnitCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OrganizationUnitCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OrganizationUnit.
+func (c *OrganizationUnitClient) Update() *OrganizationUnitUpdate {
+	mutation := newOrganizationUnitMutation(c.config, OpUpdate)
+	return &OrganizationUnitUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OrganizationUnitClient) UpdateOne(ou *OrganizationUnit) *OrganizationUnitUpdateOne {
+	mutation := newOrganizationUnitMutation(c.config, OpUpdateOne, withOrganizationUnit(ou))
+	return &OrganizationUnitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OrganizationUnitClient) UpdateOneID(id uuid.UUID) *OrganizationUnitUpdateOne {
+	mutation := newOrganizationUnitMutation(c.config, OpUpdateOne, withOrganizationUnitID(id))
+	return &OrganizationUnitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OrganizationUnit.
+func (c *OrganizationUnitClient) Delete() *OrganizationUnitDelete {
+	mutation := newOrganizationUnitMutation(c.config, OpDelete)
+	return &OrganizationUnitDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OrganizationUnitClient) DeleteOne(ou *OrganizationUnit) *OrganizationUnitDeleteOne {
+	return c.DeleteOneID(ou.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OrganizationUnitClient) DeleteOneID(id uuid.UUID) *OrganizationUnitDeleteOne {
+	builder := c.Delete().Where(organizationunit.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OrganizationUnitDeleteOne{builder}
+}
+
+// Query returns a query builder for OrganizationUnit.
+func (c *OrganizationUnitClient) Query() *OrganizationUnitQuery {
+	return &OrganizationUnitQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOrganizationUnit},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OrganizationUnit entity by its id.
+func (c *OrganizationUnitClient) Get(ctx context.Context, id uuid.UUID) (*OrganizationUnit, error) {
+	return c.Query().Where(organizationunit.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OrganizationUnitClient) GetX(ctx context.Context, id uuid.UUID) *OrganizationUnit {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryParent queries the parent edge of a OrganizationUnit.
+func (c *OrganizationUnitClient) QueryParent(ou *OrganizationUnit) *OrganizationUnitQuery {
+	query := (&OrganizationUnitClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ou.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(organizationunit.Table, organizationunit.FieldID, id),
+			sqlgraph.To(organizationunit.Table, organizationunit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, organizationunit.ParentTable, organizationunit.ParentColumn),
+		)
+		fromV = sqlgraph.Neighbors(ou.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildren queries the children edge of a OrganizationUnit.
+func (c *OrganizationUnitClient) QueryChildren(ou *OrganizationUnit) *OrganizationUnitQuery {
+	query := (&OrganizationUnitClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ou.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(organizationunit.Table, organizationunit.FieldID, id),
+			sqlgraph.To(organizationunit.Table, organizationunit.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, organizationunit.ChildrenTable, organizationunit.ChildrenColumn),
+		)
+		fromV = sqlgraph.Neighbors(ou.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPositions queries the positions edge of a OrganizationUnit.
+func (c *OrganizationUnitClient) QueryPositions(ou *OrganizationUnit) *PositionQuery {
+	query := (&PositionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ou.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(organizationunit.Table, organizationunit.FieldID, id),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, organizationunit.PositionsTable, organizationunit.PositionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(ou.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OrganizationUnitClient) Hooks() []Hook {
+	return c.hooks.OrganizationUnit
+}
+
+// Interceptors returns the client interceptors.
+func (c *OrganizationUnitClient) Interceptors() []Interceptor {
+	return c.inters.OrganizationUnit
+}
+
+func (c *OrganizationUnitClient) mutate(ctx context.Context, m *OrganizationUnitMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OrganizationUnitCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OrganizationUnitUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OrganizationUnitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OrganizationUnitDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OrganizationUnit mutation op: %q", m.Op())
+	}
+}
+
+// PositionClient is a client for the Position schema.
+type PositionClient struct {
+	config
+}
+
+// NewPositionClient returns a client for the Position from the given config.
+func NewPositionClient(c config) *PositionClient {
+	return &PositionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `position.Hooks(f(g(h())))`.
+func (c *PositionClient) Use(hooks ...Hook) {
+	c.hooks.Position = append(c.hooks.Position, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `position.Intercept(f(g(h())))`.
+func (c *PositionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Position = append(c.inters.Position, interceptors...)
+}
+
+// Create returns a builder for creating a Position entity.
+func (c *PositionClient) Create() *PositionCreate {
+	mutation := newPositionMutation(c.config, OpCreate)
+	return &PositionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Position entities.
+func (c *PositionClient) CreateBulk(builders ...*PositionCreate) *PositionCreateBulk {
+	return &PositionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PositionClient) MapCreateBulk(slice any, setFunc func(*PositionCreate, int)) *PositionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PositionCreateBulk{err: fmt.Errorf("calling to PositionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PositionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PositionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Position.
+func (c *PositionClient) Update() *PositionUpdate {
+	mutation := newPositionMutation(c.config, OpUpdate)
+	return &PositionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PositionClient) UpdateOne(po *Position) *PositionUpdateOne {
+	mutation := newPositionMutation(c.config, OpUpdateOne, withPosition(po))
+	return &PositionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PositionClient) UpdateOneID(id uuid.UUID) *PositionUpdateOne {
+	mutation := newPositionMutation(c.config, OpUpdateOne, withPositionID(id))
+	return &PositionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Position.
+func (c *PositionClient) Delete() *PositionDelete {
+	mutation := newPositionMutation(c.config, OpDelete)
+	return &PositionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PositionClient) DeleteOne(po *Position) *PositionDeleteOne {
+	return c.DeleteOneID(po.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PositionClient) DeleteOneID(id uuid.UUID) *PositionDeleteOne {
+	builder := c.Delete().Where(position.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PositionDeleteOne{builder}
+}
+
+// Query returns a query builder for Position.
+func (c *PositionClient) Query() *PositionQuery {
+	return &PositionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePosition},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Position entity by its id.
+func (c *PositionClient) Get(ctx context.Context, id uuid.UUID) (*Position, error) {
+	return c.Query().Where(position.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PositionClient) GetX(ctx context.Context, id uuid.UUID) *Position {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryManager queries the manager edge of a Position.
+func (c *PositionClient) QueryManager(po *Position) *PositionQuery {
+	query := (&PositionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, id),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, position.ManagerTable, position.ManagerColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryDirectReports queries the direct_reports edge of a Position.
+func (c *PositionClient) QueryDirectReports(po *Position) *PositionQuery {
+	query := (&PositionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, id),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, position.DirectReportsTable, position.DirectReportsColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryDepartment queries the department edge of a Position.
+func (c *PositionClient) QueryDepartment(po *Position) *OrganizationUnitQuery {
+	query := (&OrganizationUnitClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, id),
+			sqlgraph.To(organizationunit.Table, organizationunit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, position.DepartmentTable, position.DepartmentColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOccupancyHistory queries the occupancy_history edge of a Position.
+func (c *PositionClient) QueryOccupancyHistory(po *Position) *PositionOccupancyHistoryQuery {
+	query := (&PositionOccupancyHistoryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, id),
+			sqlgraph.To(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, position.OccupancyHistoryTable, position.OccupancyHistoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAttributeHistory queries the attribute_history edge of a Position.
+func (c *PositionClient) QueryAttributeHistory(po *Position) *PositionAttributeHistoryQuery {
+	query := (&PositionAttributeHistoryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, id),
+			sqlgraph.To(positionattributehistory.Table, positionattributehistory.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, position.AttributeHistoryTable, position.AttributeHistoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PositionClient) Hooks() []Hook {
+	return c.hooks.Position
+}
+
+// Interceptors returns the client interceptors.
+func (c *PositionClient) Interceptors() []Interceptor {
+	return c.inters.Position
+}
+
+func (c *PositionClient) mutate(ctx context.Context, m *PositionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PositionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PositionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PositionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PositionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Position mutation op: %q", m.Op())
+	}
+}
+
+// PositionAttributeHistoryClient is a client for the PositionAttributeHistory schema.
+type PositionAttributeHistoryClient struct {
+	config
+}
+
+// NewPositionAttributeHistoryClient returns a client for the PositionAttributeHistory from the given config.
+func NewPositionAttributeHistoryClient(c config) *PositionAttributeHistoryClient {
+	return &PositionAttributeHistoryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `positionattributehistory.Hooks(f(g(h())))`.
+func (c *PositionAttributeHistoryClient) Use(hooks ...Hook) {
+	c.hooks.PositionAttributeHistory = append(c.hooks.PositionAttributeHistory, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `positionattributehistory.Intercept(f(g(h())))`.
+func (c *PositionAttributeHistoryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PositionAttributeHistory = append(c.inters.PositionAttributeHistory, interceptors...)
+}
+
+// Create returns a builder for creating a PositionAttributeHistory entity.
+func (c *PositionAttributeHistoryClient) Create() *PositionAttributeHistoryCreate {
+	mutation := newPositionAttributeHistoryMutation(c.config, OpCreate)
+	return &PositionAttributeHistoryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PositionAttributeHistory entities.
+func (c *PositionAttributeHistoryClient) CreateBulk(builders ...*PositionAttributeHistoryCreate) *PositionAttributeHistoryCreateBulk {
+	return &PositionAttributeHistoryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PositionAttributeHistoryClient) MapCreateBulk(slice any, setFunc func(*PositionAttributeHistoryCreate, int)) *PositionAttributeHistoryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PositionAttributeHistoryCreateBulk{err: fmt.Errorf("calling to PositionAttributeHistoryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PositionAttributeHistoryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PositionAttributeHistoryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PositionAttributeHistory.
+func (c *PositionAttributeHistoryClient) Update() *PositionAttributeHistoryUpdate {
+	mutation := newPositionAttributeHistoryMutation(c.config, OpUpdate)
+	return &PositionAttributeHistoryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PositionAttributeHistoryClient) UpdateOne(pah *PositionAttributeHistory) *PositionAttributeHistoryUpdateOne {
+	mutation := newPositionAttributeHistoryMutation(c.config, OpUpdateOne, withPositionAttributeHistory(pah))
+	return &PositionAttributeHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PositionAttributeHistoryClient) UpdateOneID(id uuid.UUID) *PositionAttributeHistoryUpdateOne {
+	mutation := newPositionAttributeHistoryMutation(c.config, OpUpdateOne, withPositionAttributeHistoryID(id))
+	return &PositionAttributeHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PositionAttributeHistory.
+func (c *PositionAttributeHistoryClient) Delete() *PositionAttributeHistoryDelete {
+	mutation := newPositionAttributeHistoryMutation(c.config, OpDelete)
+	return &PositionAttributeHistoryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PositionAttributeHistoryClient) DeleteOne(pah *PositionAttributeHistory) *PositionAttributeHistoryDeleteOne {
+	return c.DeleteOneID(pah.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PositionAttributeHistoryClient) DeleteOneID(id uuid.UUID) *PositionAttributeHistoryDeleteOne {
+	builder := c.Delete().Where(positionattributehistory.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PositionAttributeHistoryDeleteOne{builder}
+}
+
+// Query returns a query builder for PositionAttributeHistory.
+func (c *PositionAttributeHistoryClient) Query() *PositionAttributeHistoryQuery {
+	return &PositionAttributeHistoryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePositionAttributeHistory},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PositionAttributeHistory entity by its id.
+func (c *PositionAttributeHistoryClient) Get(ctx context.Context, id uuid.UUID) (*PositionAttributeHistory, error) {
+	return c.Query().Where(positionattributehistory.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PositionAttributeHistoryClient) GetX(ctx context.Context, id uuid.UUID) *PositionAttributeHistory {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPosition queries the position edge of a PositionAttributeHistory.
+func (c *PositionAttributeHistoryClient) QueryPosition(pah *PositionAttributeHistory) *PositionQuery {
+	query := (&PositionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pah.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(positionattributehistory.Table, positionattributehistory.FieldID, id),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, positionattributehistory.PositionTable, positionattributehistory.PositionColumn),
+		)
+		fromV = sqlgraph.Neighbors(pah.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PositionAttributeHistoryClient) Hooks() []Hook {
+	return c.hooks.PositionAttributeHistory
+}
+
+// Interceptors returns the client interceptors.
+func (c *PositionAttributeHistoryClient) Interceptors() []Interceptor {
+	return c.inters.PositionAttributeHistory
+}
+
+func (c *PositionAttributeHistoryClient) mutate(ctx context.Context, m *PositionAttributeHistoryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PositionAttributeHistoryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PositionAttributeHistoryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PositionAttributeHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PositionAttributeHistoryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PositionAttributeHistory mutation op: %q", m.Op())
+	}
+}
+
 // PositionHistoryClient is a client for the PositionHistory schema.
 type PositionHistoryClient struct {
 	config
@@ -472,12 +1057,163 @@ func (c *PositionHistoryClient) mutate(ctx context.Context, m *PositionHistoryMu
 	}
 }
 
+// PositionOccupancyHistoryClient is a client for the PositionOccupancyHistory schema.
+type PositionOccupancyHistoryClient struct {
+	config
+}
+
+// NewPositionOccupancyHistoryClient returns a client for the PositionOccupancyHistory from the given config.
+func NewPositionOccupancyHistoryClient(c config) *PositionOccupancyHistoryClient {
+	return &PositionOccupancyHistoryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `positionoccupancyhistory.Hooks(f(g(h())))`.
+func (c *PositionOccupancyHistoryClient) Use(hooks ...Hook) {
+	c.hooks.PositionOccupancyHistory = append(c.hooks.PositionOccupancyHistory, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `positionoccupancyhistory.Intercept(f(g(h())))`.
+func (c *PositionOccupancyHistoryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PositionOccupancyHistory = append(c.inters.PositionOccupancyHistory, interceptors...)
+}
+
+// Create returns a builder for creating a PositionOccupancyHistory entity.
+func (c *PositionOccupancyHistoryClient) Create() *PositionOccupancyHistoryCreate {
+	mutation := newPositionOccupancyHistoryMutation(c.config, OpCreate)
+	return &PositionOccupancyHistoryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PositionOccupancyHistory entities.
+func (c *PositionOccupancyHistoryClient) CreateBulk(builders ...*PositionOccupancyHistoryCreate) *PositionOccupancyHistoryCreateBulk {
+	return &PositionOccupancyHistoryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PositionOccupancyHistoryClient) MapCreateBulk(slice any, setFunc func(*PositionOccupancyHistoryCreate, int)) *PositionOccupancyHistoryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PositionOccupancyHistoryCreateBulk{err: fmt.Errorf("calling to PositionOccupancyHistoryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PositionOccupancyHistoryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PositionOccupancyHistoryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PositionOccupancyHistory.
+func (c *PositionOccupancyHistoryClient) Update() *PositionOccupancyHistoryUpdate {
+	mutation := newPositionOccupancyHistoryMutation(c.config, OpUpdate)
+	return &PositionOccupancyHistoryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PositionOccupancyHistoryClient) UpdateOne(poh *PositionOccupancyHistory) *PositionOccupancyHistoryUpdateOne {
+	mutation := newPositionOccupancyHistoryMutation(c.config, OpUpdateOne, withPositionOccupancyHistory(poh))
+	return &PositionOccupancyHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PositionOccupancyHistoryClient) UpdateOneID(id uuid.UUID) *PositionOccupancyHistoryUpdateOne {
+	mutation := newPositionOccupancyHistoryMutation(c.config, OpUpdateOne, withPositionOccupancyHistoryID(id))
+	return &PositionOccupancyHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PositionOccupancyHistory.
+func (c *PositionOccupancyHistoryClient) Delete() *PositionOccupancyHistoryDelete {
+	mutation := newPositionOccupancyHistoryMutation(c.config, OpDelete)
+	return &PositionOccupancyHistoryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PositionOccupancyHistoryClient) DeleteOne(poh *PositionOccupancyHistory) *PositionOccupancyHistoryDeleteOne {
+	return c.DeleteOneID(poh.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PositionOccupancyHistoryClient) DeleteOneID(id uuid.UUID) *PositionOccupancyHistoryDeleteOne {
+	builder := c.Delete().Where(positionoccupancyhistory.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PositionOccupancyHistoryDeleteOne{builder}
+}
+
+// Query returns a query builder for PositionOccupancyHistory.
+func (c *PositionOccupancyHistoryClient) Query() *PositionOccupancyHistoryQuery {
+	return &PositionOccupancyHistoryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePositionOccupancyHistory},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PositionOccupancyHistory entity by its id.
+func (c *PositionOccupancyHistoryClient) Get(ctx context.Context, id uuid.UUID) (*PositionOccupancyHistory, error) {
+	return c.Query().Where(positionoccupancyhistory.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PositionOccupancyHistoryClient) GetX(ctx context.Context, id uuid.UUID) *PositionOccupancyHistory {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPosition queries the position edge of a PositionOccupancyHistory.
+func (c *PositionOccupancyHistoryClient) QueryPosition(poh *PositionOccupancyHistory) *PositionQuery {
+	query := (&PositionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := poh.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID, id),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, positionoccupancyhistory.PositionTable, positionoccupancyhistory.PositionColumn),
+		)
+		fromV = sqlgraph.Neighbors(poh.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PositionOccupancyHistoryClient) Hooks() []Hook {
+	return c.hooks.PositionOccupancyHistory
+}
+
+// Interceptors returns the client interceptors.
+func (c *PositionOccupancyHistoryClient) Interceptors() []Interceptor {
+	return c.inters.PositionOccupancyHistory
+}
+
+func (c *PositionOccupancyHistoryClient) mutate(ctx context.Context, m *PositionOccupancyHistoryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PositionOccupancyHistoryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PositionOccupancyHistoryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PositionOccupancyHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PositionOccupancyHistoryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PositionOccupancyHistory mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Employee, PositionHistory []ent.Hook
+		Employee, OrganizationUnit, Position, PositionAttributeHistory, PositionHistory,
+		PositionOccupancyHistory []ent.Hook
 	}
 	inters struct {
-		Employee, PositionHistory []ent.Interceptor
+		Employee, OrganizationUnit, Position, PositionAttributeHistory, PositionHistory,
+		PositionOccupancyHistory []ent.Interceptor
 	}
 )

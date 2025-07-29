@@ -9,6 +9,12 @@
 *.dylib
 go-app/server
 go-app/cube-castle-server
+go-app/metacontract-compiler
+
+# Go test and coverage files
+*.test
+*.out
+coverage.txt
 
 # Python virtual environment
 python-ai/venv/
@@ -22,6 +28,10 @@ python-ai/__pycache__/
 nextjs-app/.next/
 nextjs-app/out/
 nextjs-app/node_modules/
+nextjs-app/.swc/
+nextjs-app/coverage/
+nextjs-app/test-results/
+nextjs-app/playwright-report/
 
 # IDE files
 .idea/

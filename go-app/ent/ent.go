@@ -13,7 +13,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
+	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
+	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -74,8 +78,12 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			employee.Table:        employee.ValidColumn,
-			positionhistory.Table: positionhistory.ValidColumn,
+			employee.Table:                 employee.ValidColumn,
+			organizationunit.Table:         organizationunit.ValidColumn,
+			position.Table:                 position.ValidColumn,
+			positionattributehistory.Table: positionattributehistory.ValidColumn,
+			positionhistory.Table:          positionhistory.ValidColumn,
+			positionoccupancyhistory.Table: positionoccupancyhistory.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

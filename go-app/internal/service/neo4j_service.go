@@ -313,7 +313,8 @@ func (s *Neo4jService) FindReportingPath(ctx context.Context, fromEmployeeID, to
 
 	record, err := result.Single(ctx)
 	if err != nil {
-		if err == neo4j.ErrNoRecordsFound {
+		// Check if no records found by comparing error message
+		if err.Error() == "result contains no more records" {
 			return nil, fmt.Errorf("no path found between employees %s and %s", fromEmployeeID, toEmployeeID)
 		}
 		return nil, fmt.Errorf("failed to get path result: %w", err)
@@ -460,7 +461,8 @@ func (s *Neo4jService) FindCommonManager(ctx context.Context, employeeIDs []stri
 
 	record, err := result.Single(ctx)
 	if err != nil {
-		if err == neo4j.ErrNoRecordsFound {
+		// Check if no records found by comparing error message
+		if err.Error() == "result contains no more records" {
 			return nil, fmt.Errorf("no common manager found for employees: %v", employeeIDs)
 		}
 		return nil, fmt.Errorf("failed to get common manager result: %w", err)

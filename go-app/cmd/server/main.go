@@ -17,6 +17,7 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/generated/openapi"
+	"github.com/gaogu/cube-castle/go-app/internal/handler"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
@@ -137,6 +138,22 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 	// Prometheus指标端点（不需要认证）
 	r.Handle("/metrics", metrics.MetricsHandler())
 
+	// 初始化Ent客户端
+	entClient := common.GetEntClient()
+	if entClient == nil {
+		logger.LogError("ent_client_init", "Failed to initialize Ent client", nil, nil)
+		// 在开发模式下继续运行，但不初始化需要数据库的处理器
+	}
+
+	// 初始化处理器（只有在数据库连接成功时才初始化）
+	var orgUnitHandler *handler.OrganizationUnitHandler
+	var positionHandler *handler.PositionHandler
+	
+	if entClient != nil {
+		orgUnitHandler = handler.NewOrganizationUnitHandler(entClient, logger)
+		positionHandler = handler.NewPositionHandler(entClient, logger)
+	}
+
 	// API v1 路由组
 	r.Route("/api/v1", func(r chi.Router) {
 		// CoreHR 模块路由
@@ -150,10 +167,52 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 				r.Get("/manager", handleGetEmployeeManager(coreHRService, logger))
 			})
 			
-			// 组织架构路由
+			// 现有组织架构路由
 			r.Get("/organizations", handleListOrganizations(coreHRService, logger))
 			r.Get("/organizations/tree", handleGetOrganizationTree(coreHRService, logger))
 			r.Post("/organizations", handleCreateOrganization(coreHRService, logger))
+		})
+
+		// 新的组织单元CRUD API
+		r.Route("/organization-units", func(r chi.Router) {
+			if orgUnitHandler != nil {
+				r.Get("/", orgUnitHandler.ListOrganizationUnits())
+				r.Post("/", orgUnitHandler.CreateOrganizationUnit())
+				r.Route("/{id}", func(r chi.Router) {
+					r.Get("/", orgUnitHandler.GetOrganizationUnit())
+					r.Put("/", orgUnitHandler.UpdateOrganizationUnit())
+					r.Delete("/", orgUnitHandler.DeleteOrganizationUnit())
+				})
+			} else {
+				// 数据库未连接时返回服务不可用
+				r.Get("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+				r.Post("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+			}
+		})
+
+		// 新的岗位CRUD API
+		r.Route("/positions", func(r chi.Router) {
+			if positionHandler != nil {
+				r.Get("/", positionHandler.ListPositions())
+				r.Post("/", positionHandler.CreatePosition())
+				r.Route("/{id}", func(r chi.Router) {
+					r.Get("/", positionHandler.GetPosition())
+					r.Put("/", positionHandler.UpdatePosition())
+					r.Delete("/", positionHandler.DeletePosition())
+				})
+			} else {
+				// 数据库未连接时返回服务不可用
+				r.Get("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+				r.Post("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+			}
 		})
 
 		// Meta-Contract Editor 路由

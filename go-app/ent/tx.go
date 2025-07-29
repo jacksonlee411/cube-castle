@@ -14,8 +14,16 @@ type Tx struct {
 	config
 	// Employee is the client for interacting with the Employee builders.
 	Employee *EmployeeClient
+	// OrganizationUnit is the client for interacting with the OrganizationUnit builders.
+	OrganizationUnit *OrganizationUnitClient
+	// Position is the client for interacting with the Position builders.
+	Position *PositionClient
+	// PositionAttributeHistory is the client for interacting with the PositionAttributeHistory builders.
+	PositionAttributeHistory *PositionAttributeHistoryClient
 	// PositionHistory is the client for interacting with the PositionHistory builders.
 	PositionHistory *PositionHistoryClient
+	// PositionOccupancyHistory is the client for interacting with the PositionOccupancyHistory builders.
+	PositionOccupancyHistory *PositionOccupancyHistoryClient
 
 	// lazily loaded.
 	client     *Client
@@ -148,7 +156,11 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Employee = NewEmployeeClient(tx.config)
+	tx.OrganizationUnit = NewOrganizationUnitClient(tx.config)
+	tx.Position = NewPositionClient(tx.config)
+	tx.PositionAttributeHistory = NewPositionAttributeHistoryClient(tx.config)
 	tx.PositionHistory = NewPositionHistoryClient(tx.config)
+	tx.PositionOccupancyHistory = NewPositionOccupancyHistoryClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

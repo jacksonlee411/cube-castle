@@ -9,5 +9,17 @@ import (
 // Employee is the predicate function for employee builders.
 type Employee func(*sql.Selector)
 
+// OrganizationUnit is the predicate function for organizationunit builders.
+type OrganizationUnit func(*sql.Selector)
+
+// Position is the predicate function for position builders.
+type Position func(*sql.Selector)
+
+// PositionAttributeHistory is the predicate function for positionattributehistory builders.
+type PositionAttributeHistory func(*sql.Selector)
+
 // PositionHistory is the predicate function for positionhistory builders.
 type PositionHistory func(*sql.Selector)
+
+// PositionOccupancyHistory is the predicate function for positionoccupancyhistory builders.
+type PositionOccupancyHistory func(*sql.Selector)

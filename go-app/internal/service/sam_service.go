@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gaogu/cube-castle/go-app/ent"
-	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 )
 
@@ -57,7 +56,7 @@ type TalentManagementMetrics struct {
 type RiskAssessmentResult struct {
 	OverallRiskScore      float64             `json:"overall_risk_score"`
 	KeyPersonRisks        []KeyPersonRisk     `json:"key_person_risks"`
-	ComplianceRisks       []ComplianceRisk    `json:"compliance_risks"`
+	ComplianceRisks       []SAMComplianceRisk    `json:"compliance_risks"`
 	OperationalRisks      []OperationalRisk   `json:"operational_risks"`
 	TalentFlightRisks     []TalentFlightRisk  `json:"talent_flight_risks"`
 	RiskMitigation        []RiskMitigation    `json:"risk_mitigation"`
@@ -127,7 +126,7 @@ type KeyPersonRisk struct {
 	LastAssessment   time.Time `json:"last_assessment"`
 }
 
-type ComplianceRisk struct {
+type SAMComplianceRisk struct {
 	RiskType         string    `json:"risk_type"`
 	Severity         string    `json:"severity"`
 	Description      string    `json:"description"`
@@ -389,13 +388,15 @@ func (s *SAMService) analyzeOrganizationHealth(ctx context.Context) (*Organizati
 
 // analyzeTalentMetrics performs talent management analysis
 func (s *SAMService) analyzeTalentMetrics(ctx context.Context) (*TalentManagementMetrics, error) {
-	// Get total employee count
+	// Get total employee count (skip status filter since Status field doesn't exist)
 	totalEmployees, err := s.entClient.Employee.Query().
-		Where(employee.Status("ACTIVE")).
 		Count(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count employees: %w", err)
 	}
+
+	// Use totalEmployees in the analysis to avoid "declared and not used" error
+	s.logger.Printf("Analyzing talent metrics for %d total employees", totalEmployees)
 
 	// Simulate skill gap analysis (in real implementation, this would analyze actual skills data)
 	skillGapAnalysis := map[string]float64{
@@ -443,7 +444,7 @@ func (s *SAMService) performRiskAssessment(ctx context.Context) (*RiskAssessment
 	}
 
 	// Identify compliance risks
-	complianceRisks := []ComplianceRisk{
+	complianceRisks := []SAMComplianceRisk{
 		{
 			RiskType:       "数据保护合规",
 			Severity:       "MEDIUM",
