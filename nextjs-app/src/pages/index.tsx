@@ -84,6 +84,25 @@ const HomePage: React.FC = () => {
           padding: '20px',
           backgroundColor: '#fafafa'
         }}>
+          <h3 style={{ color: '#722ed1', marginTop: '0' }}>💼 职位管理</h3>
+          <p style={{ color: '#666', marginBottom: '15px' }}>
+            完整的职位CRUD管理，包括FTE预算、层级关系和状态跟踪
+          </p>
+          <Link href="/positions" style={{ 
+            color: '#722ed1', 
+            textDecoration: 'none',
+            fontWeight: 'bold'
+          }}>
+            进入职位管理 →
+          </Link>
+        </div>
+
+        <div style={{ 
+          border: '1px solid #d9d9d9', 
+          borderRadius: '8px', 
+          padding: '20px',
+          backgroundColor: '#fafafa'
+        }}>
           <h3 style={{ color: '#fa8c16', marginTop: '0' }}>📊 SAM仪表板</h3>
           <p style={{ color: '#666', marginBottom: '15px' }}>
             AI驱动的组织态势感知和决策支持系统
@@ -122,13 +141,13 @@ const HomePage: React.FC = () => {
           padding: '20px',
           backgroundColor: '#fafafa'
         }}>
-          <h3 style={{ color: '#722ed1', marginTop: '0' }}>📝 Meta-Contract编辑器</h3>
+          <h3 style={{ color: '#13c2c2', marginTop: '0' }}>📝 Meta-Contract编辑器</h3>
           <p style={{ color: '#666', marginBottom: '15px' }}>
             智能化的元合约编辑器，支持YAML语法、实时编译和模板管理
           </p>
           <div style={{ marginBottom: '10px' }}>
             <Link href="/metacontract-editor/demo" style={{ 
-              color: '#722ed1', 
+              color: '#13c2c2', 
               textDecoration: 'none',
               fontWeight: 'bold',
               marginRight: '15px'
@@ -136,7 +155,7 @@ const HomePage: React.FC = () => {
               开始体验 →
             </Link>
             <Link href="/metacontract-editor" style={{ 
-              color: '#722ed1', 
+              color: '#13c2c2', 
               textDecoration: 'none',
               fontSize: '0.9rem',
               marginRight: '15px'
@@ -144,7 +163,7 @@ const HomePage: React.FC = () => {
               完整编辑器
             </Link>
             <Link href="/metacontract-editor/advanced" style={{ 
-              color: '#722ed1', 
+              color: '#13c2c2', 
               textDecoration: 'none',
               fontSize: '0.9rem'
             }}>

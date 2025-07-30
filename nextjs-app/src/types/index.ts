@@ -13,6 +13,9 @@ export interface PaginationInfo {
   totalPages: number
 }
 
+// 导出职位相关类型
+export * from './position'
+
 // 员工相关类型
 export interface Employee extends BaseEntity {
   employeeNumber: string
