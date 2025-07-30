@@ -73,8 +73,8 @@ func (a *EmployeeLifecycleActivities) CreateCandidateActivity(
 	// 4. 创建员工记录（预招聘状态）
 	position := "Candidate"
 	if req.PositionInfo != nil {
-		if posTitle, exists := req.PositionInfo.NewPosition["title"]; exists {
-			position = fmt.Sprintf("Candidate - %s", posTitle)
+		if req.PositionInfo.PositionTitle != "" {
+			position = fmt.Sprintf("Candidate - %s", req.PositionInfo.PositionTitle)
 		}
 	}
 
@@ -116,12 +116,12 @@ func (a *EmployeeLifecycleActivities) UpdateCandidateActivity(
 	ctx context.Context,
 	req InformationUpdateRequest,
 ) (*InformationUpdateResult, error) {
-	a.logger.LogInfo(ctx, "Updating candidate information", map[string]interface{}{
-		"tenant_id":   req.TenantID,
-		"employee_id": req.EmployeeID,
-		"update_type": req.UpdateType,
-		"function":    "UpdateCandidateActivity",
-	})
+	a.logger.Info("Updating candidate information",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"update_type", req.UpdateType,
+		"function", "UpdateCandidateActivity",
+	)
 
 	// 1. 输入验证
 	if req.TenantID == uuid.Nil {
@@ -149,10 +149,9 @@ func (a *EmployeeLifecycleActivities) UpdateCandidateActivity(
 			// TODO: Add tenant_id field check when Person schema is integrated
 		).Only(ctx)
 	if err != nil {
-		a.logger.LogError(ctx, "Candidate not found", map[string]interface{}{
+		a.logger.LogError("workflow_error", "Candidate not found", err, map[string]interface{}{
 			"employee_id": req.EmployeeID,
 			"tenant_id":   req.TenantID,
-			"error":       err.Error(),
 		})
 		return nil, fmt.Errorf("candidate not found: %w", err)
 	}
@@ -187,11 +186,10 @@ func (a *EmployeeLifecycleActivities) UpdateCandidateActivity(
 	}
 
 	if err != nil {
-		a.logger.LogError(ctx, "Failed to update candidate information", map[string]interface{}{
+		a.logger.LogError("workflow_error", "Failed to update candidate information", err, map[string]interface{}{
 			"employee_id": req.EmployeeID,
 			"update_type": req.UpdateType,
 			"update_id":   updateID,
-			"error":       err.Error(),
 		})
 		return &InformationUpdateResult{
 			UpdateID: updateID,
@@ -212,10 +210,9 @@ func (a *EmployeeLifecycleActivities) UpdateCandidateActivity(
 	if requiresApproval {
 		approvalID, err := a.initiateCandidateApprovalProcess(ctx, req)
 		if err != nil {
-			a.logger.LogError(ctx, "Failed to initiate candidate approval process", map[string]interface{}{
+			a.logger.LogError("workflow_error", "Failed to initiate candidate approval process", err, map[string]interface{}{
 				"employee_id": req.EmployeeID,
 				"update_id":   updateID,
-				"error":       err.Error(),
 			})
 			result.Status = "pending_approval_failed"
 		} else {
@@ -227,23 +224,22 @@ func (a *EmployeeLifecycleActivities) UpdateCandidateActivity(
 	// 6. 记录更新历史
 	err = a.recordCandidateUpdateHistory(ctx, req, updateID, result.Status)
 	if err != nil {
-		a.logger.LogError(ctx, "Failed to record candidate update history", map[string]interface{}{
+		a.logger.LogError("workflow_error", "Failed to record candidate update history", err, map[string]interface{}{
 			"employee_id": req.EmployeeID,
 			"update_id":   updateID,
-			"error":       err.Error(),
 		})
 		// 历史记录失败不影响主流程
 	}
 
-	a.logger.LogInfo(ctx, "Candidate information update completed", map[string]interface{}{
-		"tenant_id":         req.TenantID,
-		"employee_id":       req.EmployeeID,
-		"update_id":         updateID,
-		"update_type":       req.UpdateType,
-		"requires_approval": requiresApproval,
-		"status":            result.Status,
-		"success":           result.Success,
-	})
+	a.logger.Info("Candidate information update completed",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"update_id", updateID,
+		"update_type", req.UpdateType,
+		"requires_approval", requiresApproval,
+		"status", result.Status,
+		"success", result.Success,
+	)
 
 	return result, nil
 }
@@ -282,11 +278,11 @@ func (a *EmployeeLifecycleActivities) updateCandidateContactInformation(
 ) error {
 	// TODO: 实现候选人联系信息更新逻辑
 	// 当前数据模型中没有详细的联系信息字段，先记录日志
-	a.logger.LogInfo(ctx, "Candidate contact information update", map[string]interface{}{
-		"candidate_id": candidate.ID,
-		"update_data":  updateData,
-		"note":         "Candidate contact fields need to be added to schema",
-	})
+	a.logger.Info("Candidate contact information update",
+		"candidate_id", candidate.ID,
+		"update_data", updateData,
+		"note", "Candidate contact fields need to be added to schema",
+	)
 
 	return nil
 }
@@ -299,11 +295,11 @@ func (a *EmployeeLifecycleActivities) updateCandidateApplicationStatus(
 ) error {
 	// TODO: 实现候选人申请状态更新逻辑
 	// 这需要添加申请状态相关字段到数据模型
-	a.logger.LogInfo(ctx, "Candidate application status update", map[string]interface{}{
-		"candidate_id": candidate.ID,
-		"update_data":  updateData,
-		"note":         "Application status fields need to be added to schema",
-	})
+	a.logger.Info("Candidate application status update",
+		"candidate_id", candidate.ID,
+		"update_data", updateData,
+		"note", "Application status fields need to be added to schema",
+	)
 
 	return nil
 }
@@ -316,11 +312,11 @@ func (a *EmployeeLifecycleActivities) updateCandidateInterviewFeedback(
 ) error {
 	// TODO: 实现候选人面试反馈更新逻辑
 	// 这需要创建面试反馈相关的表和字段
-	a.logger.LogInfo(ctx, "Candidate interview feedback update", map[string]interface{}{
-		"candidate_id": candidate.ID,
-		"update_data":  updateData,
-		"note":         "Interview feedback system needs to be implemented",
-	})
+	a.logger.Info("Candidate interview feedback update",
+		"candidate_id", candidate.ID,
+		"update_data", updateData,
+		"note", "Interview feedback system needs to be implemented",
+	)
 
 	return nil
 }
@@ -335,13 +331,13 @@ func (a *EmployeeLifecycleActivities) initiateCandidateApprovalProcess(
 	// TODO: 集成实际的候选人审批工作流系统
 	// 候选人审批流程可能包括HR审批、招聘经理审批等
 
-	a.logger.LogInfo(ctx, "Candidate approval process initiated", map[string]interface{}{
-		"approval_id":  approvalID,
-		"candidate_id": req.EmployeeID,
-		"update_type":  req.UpdateType,
-		"updated_by":   req.UpdatedBy,
-		"note":         "Candidate approval workflow integration needed",
-	})
+	a.logger.Info("Candidate approval process initiated",
+		"approval_id", approvalID,
+		"candidate_id", req.EmployeeID,
+		"update_type", req.UpdateType,
+		"updated_by", req.UpdatedBy,
+		"note", "Candidate approval workflow integration needed",
+	)
 
 	return approvalID, nil
 }
@@ -356,15 +352,15 @@ func (a *EmployeeLifecycleActivities) recordCandidateUpdateHistory(
 	// TODO: 实现候选人更新历史记录到数据库
 	// 这需要创建一个专门的候选人更新历史表
 
-	a.logger.LogInfo(ctx, "Candidate update history recorded", map[string]interface{}{
-		"update_id":    updateID,
-		"candidate_id": req.EmployeeID,
-		"update_type":  req.UpdateType,
-		"status":       status,
-		"updated_by":   req.UpdatedBy,
-		"updated_at":   time.Now(),
-		"note":         "Candidate update history table needs to be created",
-	})
+	a.logger.Info("Candidate update history recorded",
+		"update_id", updateID,
+		"candidate_id", req.EmployeeID,
+		"update_type", req.UpdateType,
+		"status", status,
+		"updated_by", req.UpdatedBy,
+		"updated_at", time.Now(),
+		"note", "Candidate update history table needs to be created",
+	)
 
 	return nil
 }
@@ -482,8 +478,8 @@ func (a *EmployeeLifecycleActivities) InitializeOnboardingActivity(
 
 	// 6. 根据职位信息添加特定步骤
 	if req.PositionInfo != nil {
-		if posTitle, exists := req.PositionInfo.NewPosition["title"]; exists {
-			title := posTitle.(string)
+		if req.PositionInfo.PositionTitle != "" {
+			title := req.PositionInfo.PositionTitle
 
 			// 为技术职位添加特殊步骤
 			if strings.Contains(strings.ToLower(title), "engineer") ||
@@ -1139,12 +1135,12 @@ func (a *EmployeeLifecycleActivities) UpdateEmployeeInformationActivity(
 	ctx context.Context,
 	req InformationUpdateRequest,
 ) (*InformationUpdateResult, error) {
-	a.logger.LogInfo(ctx, "Updating employee information", map[string]interface{}{
-		"tenant_id":   req.TenantID,
-		"employee_id": req.EmployeeID,
-		"update_type": req.UpdateType,
-		"function":    "UpdateEmployeeInformationActivity",
-	})
+	a.logger.Info("Updating employee information",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"update_type", req.UpdateType,
+		"function", "UpdateEmployeeInformationActivity",
+	)
 
 	// 1. 输入验证
 	if req.TenantID == uuid.Nil {
@@ -1170,10 +1166,9 @@ func (a *EmployeeLifecycleActivities) UpdateEmployeeInformationActivity(
 			// TODO: Add tenant_id field check when Person schema is integrated
 		).Only(ctx)
 	if err != nil {
-		a.logger.LogError(ctx, "Employee not found", map[string]interface{}{
+		a.logger.LogError("workflow_error", "Employee not found", err, map[string]interface{}{
 			"employee_id": req.EmployeeID,
 			"tenant_id":   req.TenantID,
-			"error":       err.Error(),
 		})
 		return nil, fmt.Errorf("employee not found: %w", err)
 	}
@@ -1208,11 +1203,10 @@ func (a *EmployeeLifecycleActivities) UpdateEmployeeInformationActivity(
 	}
 
 	if err != nil {
-		a.logger.LogError(ctx, "Failed to update employee information", map[string]interface{}{
+		a.logger.LogError("workflow_error", "Failed to update employee information", err, map[string]interface{}{
 			"employee_id": req.EmployeeID,
 			"update_type": req.UpdateType,
 			"update_id":   updateID,
-			"error":       err.Error(),
 		})
 		return &InformationUpdateResult{
 			UpdateID: updateID,
@@ -1233,10 +1227,9 @@ func (a *EmployeeLifecycleActivities) UpdateEmployeeInformationActivity(
 	if requiresApproval {
 		approvalID, err := a.initiateApprovalProcess(ctx, req)
 		if err != nil {
-			a.logger.LogError(ctx, "Failed to initiate approval process", map[string]interface{}{
+			a.logger.LogError("workflow_error", "Failed to initiate approval process", err, map[string]interface{}{
 				"employee_id": req.EmployeeID,
 				"update_id":   updateID,
-				"error":       err.Error(),
 			})
 			// 审批流程创建失败，但信息已更新，标记为待审批
 			result.Status = "pending_approval_failed"
@@ -1249,23 +1242,22 @@ func (a *EmployeeLifecycleActivities) UpdateEmployeeInformationActivity(
 	// 6. 记录更新历史
 	err = a.recordUpdateHistory(ctx, req, updateID, result.Status)
 	if err != nil {
-		a.logger.LogError(ctx, "Failed to record update history", map[string]interface{}{
+		a.logger.LogError("workflow_error", "Failed to record update history", err, map[string]interface{}{
 			"employee_id": req.EmployeeID,
 			"update_id":   updateID,
-			"error":       err.Error(),
 		})
 		// 历史记录失败不影响主流程
 	}
 
-	a.logger.LogInfo(ctx, "Employee information update completed", map[string]interface{}{
-		"tenant_id":         req.TenantID,
-		"employee_id":       req.EmployeeID,
-		"update_id":         updateID,
-		"update_type":       req.UpdateType,
-		"requires_approval": requiresApproval,
-		"status":            result.Status,
-		"success":           result.Success,
-	})
+	a.logger.Info("Employee information update completed",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"update_id", updateID,
+		"update_type", req.UpdateType,
+		"requires_approval", requiresApproval,
+		"status", result.Status,
+		"success", result.Success,
+	)
 
 	return result, nil
 }
@@ -1285,10 +1277,10 @@ func (a *EmployeeLifecycleActivities) updatePersonalInformation(
 
 	if preferredName, ok := updateData["preferred_name"].(string); ok {
 		// TODO: 当Person schema集成时，添加preferred_name字段支持
-		a.logger.LogInfo(ctx, "Preferred name update noted", map[string]interface{}{
-			"preferred_name": preferredName,
-			"note":           "Will be implemented when Person schema is integrated",
-		})
+		a.logger.Info("Preferred name update noted",
+			"preferred_name", preferredName,
+			"note", "Will be implemented when Person schema is integrated",
+		)
 	}
 
 	if email, ok := updateData["email"].(string); ok && email != "" {
@@ -1308,11 +1300,11 @@ func (a *EmployeeLifecycleActivities) updateContactInformation(
 ) error {
 	// TODO: 实现联系信息更新逻辑
 	// 当前数据模型中没有详细的联系信息字段，先记录日志
-	a.logger.LogInfo(ctx, "Contact information update", map[string]interface{}{
-		"employee_id": employee.ID,
-		"update_data": updateData,
-		"note":        "Contact fields need to be added to schema",
-	})
+	a.logger.Info("Contact information update",
+		"employee_id", employee.ID,
+		"update_data", updateData,
+		"note", "Contact fields need to be added to schema",
+	)
 
 	// 模拟更新成功
 	return nil
@@ -1325,11 +1317,11 @@ func (a *EmployeeLifecycleActivities) updateEmergencyContactInformation(
 	updateData map[string]interface{},
 ) error {
 	// TODO: 实现紧急联系人信息更新逻辑
-	a.logger.LogInfo(ctx, "Emergency contact information update", map[string]interface{}{
-		"employee_id": employee.ID,
-		"update_data": updateData,
-		"note":        "Emergency contact fields need to be added to schema",
-	})
+	a.logger.Info("Emergency contact information update",
+		"employee_id", employee.ID,
+		"update_data", updateData,
+		"note", "Emergency contact fields need to be added to schema",
+	)
 
 	// 模拟更新成功
 	return nil
@@ -1343,10 +1335,10 @@ func (a *EmployeeLifecycleActivities) updateBankingInformation(
 ) error {
 	// TODO: 实现银行信息更新逻辑
 	// 银行信息通常需要加密存储和特殊处理
-	a.logger.LogInfo(ctx, "Banking information update", map[string]interface{}{
-		"employee_id": employee.ID,
-		"note":        "Banking information update requires encrypted storage implementation",
-	})
+	a.logger.Info("Banking information update",
+		"employee_id", employee.ID,
+		"note", "Banking information update requires encrypted storage implementation",
+	)
 
 	// 模拟更新成功
 	return nil
@@ -1362,13 +1354,13 @@ func (a *EmployeeLifecycleActivities) initiateApprovalProcess(
 	// TODO: 集成实际的审批工作流系统
 	// 这里应该调用审批工作流引擎创建审批任务
 
-	a.logger.LogInfo(ctx, "Approval process initiated", map[string]interface{}{
-		"approval_id": approvalID,
-		"employee_id": req.EmployeeID,
-		"update_type": req.UpdateType,
-		"updated_by":  req.UpdatedBy,
-		"note":        "Approval workflow integration needed",
-	})
+	a.logger.Info("Approval process initiated",
+		"approval_id", approvalID,
+		"employee_id", req.EmployeeID,
+		"update_type", req.UpdateType,
+		"updated_by", req.UpdatedBy,
+		"note", "Approval workflow integration needed",
+	)
 
 	return approvalID, nil
 }
@@ -1383,15 +1375,15 @@ func (a *EmployeeLifecycleActivities) recordUpdateHistory(
 	// TODO: 实现更新历史记录到数据库
 	// 这需要创建一个专门的更新历史表
 
-	a.logger.LogInfo(ctx, "Update history recorded", map[string]interface{}{
-		"update_id":   updateID,
-		"employee_id": req.EmployeeID,
-		"update_type": req.UpdateType,
-		"status":      status,
-		"updated_by":  req.UpdatedBy,
-		"updated_at":  time.Now(),
-		"note":        "Update history table needs to be created",
-	})
+	a.logger.Info("Update history recorded",
+		"update_id", updateID,
+		"employee_id", req.EmployeeID,
+		"update_type", req.UpdateType,
+		"status", status,
+		"updated_by", req.UpdatedBy,
+		"updated_at", time.Now(),
+		"note", "Update history table needs to be created",
+	)
 
 	return nil
 }
@@ -1401,11 +1393,11 @@ func (a *EmployeeLifecycleActivities) ProcessPerformanceReviewActivity(
 	ctx context.Context,
 	req PerformanceReviewRequest,
 ) (*PerformanceReviewResult, error) {
-	a.logger.LogInfo(ctx, "Processing performance review", map[string]interface{}{
-		"tenant_id":   req.TenantID,
-		"employee_id": req.EmployeeID,
-		"review_type": req.ReviewType,
-	})
+	a.logger.Info("Processing performance review",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"review_type", req.ReviewType,
+	)
 
 	// TODO: 实现绩效评估逻辑
 	// - 创建评估记录
@@ -1414,11 +1406,11 @@ func (a *EmployeeLifecycleActivities) ProcessPerformanceReviewActivity(
 
 	reviewID := uuid.New()
 
-	a.logger.LogInfo(ctx, "Performance review created", map[string]interface{}{
-		"tenant_id":   req.TenantID,
-		"employee_id": req.EmployeeID,
-		"review_id":   reviewID,
-	})
+	a.logger.Info("Performance review created",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"review_id", reviewID,
+	)
 
 	return &PerformanceReviewResult{
 		ReviewID: reviewID,
@@ -1432,11 +1424,11 @@ func (a *EmployeeLifecycleActivities) InitializeOffboardingActivity(
 	ctx context.Context,
 	req OffboardingInitializationRequest,
 ) (*OffboardingInitializationResult, error) {
-	a.logger.LogInfo(ctx, "Initializing offboarding process", map[string]interface{}{
-		"tenant_id":        req.TenantID,
-		"employee_id":      req.EmployeeID,
-		"termination_type": req.TerminationType,
-	})
+	a.logger.Info("Initializing offboarding process",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"termination_type", req.TerminationType,
+	)
 
 	// 生成标准离职步骤
 	offboardingSteps := []OffboardingStep{
@@ -1472,12 +1464,12 @@ func (a *EmployeeLifecycleActivities) InitializeOffboardingActivity(
 
 	offboardingID := uuid.New()
 
-	a.logger.LogInfo(ctx, "Offboarding initialized", map[string]interface{}{
-		"tenant_id":      req.TenantID,
-		"employee_id":    req.EmployeeID,
-		"offboarding_id": offboardingID,
-		"required_steps": len(offboardingSteps),
-	})
+	a.logger.Info("Offboarding initialized",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"offboarding_id", offboardingID,
+		"required_steps", len(offboardingSteps),
+	)
 
 	return &OffboardingInitializationResult{
 		OffboardingID: offboardingID,
@@ -1495,18 +1487,18 @@ func (a *EmployeeLifecycleActivities) CompleteOffboardingStepActivity(
 	stepID := stepData["step_id"].(string)
 	employeeID := stepData["employee_id"].(uuid.UUID)
 
-	a.logger.LogInfo(ctx, "Completing offboarding step", map[string]interface{}{
-		"employee_id": employeeID,
-		"step_id":     stepID,
-	})
+	a.logger.Info("Completing offboarding step",
+		"employee_id", employeeID,
+		"step_id", stepID,
+	)
 
 	// TODO: 实现具体的离职步骤完成逻辑
 	// 根据步骤类型执行相应的操作
 
-	a.logger.LogInfo(ctx, "Offboarding step completed", map[string]interface{}{
-		"employee_id": employeeID,
-		"step_id":     stepID,
-	})
+	a.logger.Info("Offboarding step completed",
+		"employee_id", employeeID,
+		"step_id", stepID,
+	)
 
 	return nil
 }
@@ -1518,18 +1510,18 @@ func (a *EmployeeLifecycleActivities) FinalizeTerminationActivity(
 ) error {
 	employeeID := data["employee_id"].(uuid.UUID)
 
-	a.logger.LogInfo(ctx, "Finalizing termination", map[string]interface{}{
-		"employee_id": employeeID,
-	})
+	a.logger.Info("Finalizing termination",
+		"employee_id", employeeID,
+	)
 
 	// TODO: 实现离职完成逻辑
 	// - 更新员工状态为 TERMINATED
 	// - 生成离职证明
 	// - 处理最终薪资结算
 
-	a.logger.LogInfo(ctx, "Termination finalized", map[string]interface{}{
-		"employee_id": employeeID,
-	})
+	a.logger.Info("Termination finalized",
+		"employee_id", employeeID,
+	)
 
 	return nil
 }
@@ -1539,17 +1531,17 @@ func (a *EmployeeLifecycleActivities) EndCurrentPositionActivity(
 	ctx context.Context,
 	employeeID uuid.UUID,
 ) error {
-	a.logger.LogInfo(ctx, "Ending current position", map[string]interface{}{
-		"employee_id": employeeID,
-	})
+	a.logger.Info("Ending current position",
+		"employee_id", employeeID,
+	)
 
 	// TODO: 实现结束当前职位逻辑
 	// - 更新当前职位记录的结束日期
 	// - 发布职位变更事件
 
-	a.logger.LogInfo(ctx, "Current position ended", map[string]interface{}{
-		"employee_id": employeeID,
-	})
+	a.logger.Info("Current position ended",
+		"employee_id", employeeID,
+	)
 
 	return nil
 }
@@ -1559,11 +1551,11 @@ func (a *EmployeeLifecycleActivities) ArchiveEmployeeRecordsActivity(
 	ctx context.Context,
 	req RecordArchivalRequest,
 ) (*RecordArchivalResult, error) {
-	a.logger.LogInfo(ctx, "Archiving employee records", map[string]interface{}{
-		"tenant_id":    req.TenantID,
-		"employee_id":  req.EmployeeID,
-		"archive_type": req.ArchiveType,
-	})
+	a.logger.Info("Archiving employee records",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"archive_type", req.ArchiveType,
+	)
 
 	// TODO: 实现记录归档逻辑
 	// - 将员工相关记录移至归档存储
@@ -1574,12 +1566,12 @@ func (a *EmployeeLifecycleActivities) ArchiveEmployeeRecordsActivity(
 	archiveLocation := fmt.Sprintf("archive://employee-records/%s/%s",
 		req.TenantID.String(), archiveID.String())
 
-	a.logger.LogInfo(ctx, "Employee records archived", map[string]interface{}{
-		"tenant_id":        req.TenantID,
-		"employee_id":      req.EmployeeID,
-		"archive_id":       archiveID,
-		"archive_location": archiveLocation,
-	})
+	a.logger.Info("Employee records archived",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"archive_id", archiveID,
+		"archive_location", archiveLocation,
+	)
 
 	return &RecordArchivalResult{
 		ArchiveID:       archiveID,
@@ -1593,11 +1585,11 @@ func (a *EmployeeLifecycleActivities) ProcessDataRetentionActivity(
 	ctx context.Context,
 	req DataRetentionRequest,
 ) (*DataRetentionResult, error) {
-	a.logger.LogInfo(ctx, "Processing data retention", map[string]interface{}{
-		"tenant_id":      req.TenantID,
-		"employee_id":    req.EmployeeID,
-		"retention_type": req.RetentionType,
-	})
+	a.logger.Info("Processing data retention",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"retention_type", req.RetentionType,
+	)
 
 	// TODO: 实现数据保留逻辑
 	// - 根据保留规则处理不同类型的数据
@@ -1622,12 +1614,12 @@ func (a *EmployeeLifecycleActivities) ProcessDataRetentionActivity(
 		}
 	}
 
-	a.logger.LogInfo(ctx, "Data retention processed", map[string]interface{}{
-		"tenant_id":            req.TenantID,
-		"employee_id":          req.EmployeeID,
-		"retention_id":         retentionID,
-		"processed_categories": len(processedCategories),
-	})
+	a.logger.Info("Data retention processed",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"retention_id", retentionID,
+		"processed_categories", len(processedCategories),
+	)
 
 	return &DataRetentionResult{
 		RetentionID:         retentionID,

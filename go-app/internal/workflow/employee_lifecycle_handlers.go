@@ -3,16 +3,15 @@ package workflow
 
 import (
 	"fmt"
-	"time"
 
-	"go.temporal.io/sdk/workflow"
 	"github.com/google/uuid"
+	"go.temporal.io/sdk/workflow"
 )
 
 // handleCreateCandidate 处理创建候选人
 func handleCreateCandidate(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Creating candidate", "employee_id", req.EmployeeID)
 
@@ -47,7 +46,7 @@ func handleCreateCandidate(ctx workflow.Context, req EmployeeLifecycleRequest, r
 // handleUpdateCandidate 处理更新候选人
 func handleUpdateCandidate(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Updating candidate information", "employee_id", req.EmployeeID)
 
@@ -81,7 +80,7 @@ func handleUpdateCandidate(ctx workflow.Context, req EmployeeLifecycleRequest, r
 // handleApproveHire 处理招聘审批
 func handleApproveHire(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing hire approval", "employee_id", req.EmployeeID)
 
@@ -96,8 +95,8 @@ func handleApproveHire(ctx workflow.Context, req EmployeeLifecycleRequest, resul
 	var approvalResult ApprovalWorkflowResult
 	err := workflow.ExecuteChildWorkflow(
 		workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
-			WorkflowID: fmt.Sprintf("hire-approval-%s-%d", 
-				req.EmployeeID.String(), 
+			WorkflowID: fmt.Sprintf("hire-approval-%s-%d",
+				req.EmployeeID.String(),
 				workflow.Now(ctx).Unix()),
 		}),
 		"HireApprovalWorkflow",
@@ -129,7 +128,7 @@ func handleApproveHire(ctx workflow.Context, req EmployeeLifecycleRequest, resul
 // handleStartOnboarding 处理开始入职
 func handleStartOnboarding(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Starting onboarding process", "employee_id", req.EmployeeID)
 
@@ -159,8 +158,8 @@ func handleStartOnboarding(ctx workflow.Context, req EmployeeLifecycleRequest, r
 	var onboardingResult EmployeeOnboardingResult
 	err = workflow.ExecuteChildWorkflow(
 		workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
-			WorkflowID: fmt.Sprintf("onboarding-%s-%d", 
-				req.EmployeeID.String(), 
+			WorkflowID: fmt.Sprintf("onboarding-%s-%d",
+				req.EmployeeID.String(),
 				workflow.Now(ctx).Unix()),
 		}),
 		"EmployeeOnboardingWorkflow",
@@ -179,8 +178,8 @@ func handleStartOnboarding(ctx workflow.Context, req EmployeeLifecycleRequest, r
 	result.ResultData = onboardingResult
 	status.Progress = 1.0
 
-	logger.Info("Onboarding process started successfully", 
-		"employee_id", req.EmployeeID, 
+	logger.Info("Onboarding process started successfully",
+		"employee_id", req.EmployeeID,
 		"onboarding_id", initResult.OnboardingID)
 	return result, nil
 }
@@ -188,7 +187,7 @@ func handleStartOnboarding(ctx workflow.Context, req EmployeeLifecycleRequest, r
 // handleCompleteOnboardingStep 处理完成入职步骤
 func handleCompleteOnboardingStep(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	stepID := req.OperationData["step_id"].(string)
 	logger.Info("Completing onboarding step", "employee_id", req.EmployeeID, "step_id", stepID)
@@ -216,7 +215,7 @@ func handleCompleteOnboardingStep(ctx workflow.Context, req EmployeeLifecycleReq
 // handleFinalizeOnboarding 处理完成入职
 func handleFinalizeOnboarding(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Finalizing onboarding process", "employee_id", req.EmployeeID)
 
@@ -236,9 +235,9 @@ func handleFinalizeOnboarding(ctx workflow.Context, req EmployeeLifecycleRequest
 	// 创建初始职位历史记录
 	var historyResult CreatePositionHistoryResult
 	err = workflow.ExecuteActivity(ctx, "CreatePositionHistoryActivity", CreatePositionHistoryRequest{
-		TenantID:     req.TenantID,
-		EmployeeID:   req.EmployeeID,
-		CreatedBy:    req.RequestedBy,
+		TenantID:      req.TenantID,
+		EmployeeID:    req.EmployeeID,
+		CreatedBy:     req.RequestedBy,
 		IsRetroactive: false,
 	}).Get(ctx, &historyResult)
 
@@ -257,7 +256,7 @@ func handleFinalizeOnboarding(ctx workflow.Context, req EmployeeLifecycleRequest
 // handlePositionChange 处理职位变更
 func handlePositionChange(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing position change", "employee_id", req.EmployeeID)
 
@@ -272,8 +271,8 @@ func handlePositionChange(ctx workflow.Context, req EmployeeLifecycleRequest, re
 	var positionResult PositionChangeResult
 	err := workflow.ExecuteChildWorkflow(
 		workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
-			WorkflowID: fmt.Sprintf("position-change-%s-%d", 
-				req.EmployeeID.String(), 
+			WorkflowID: fmt.Sprintf("position-change-%s-%d",
+				req.EmployeeID.String(),
 				workflow.Now(ctx).Unix()),
 		}),
 		"PositionChangeWorkflow",
@@ -293,8 +292,8 @@ func handlePositionChange(ctx workflow.Context, req EmployeeLifecycleRequest, re
 	result.ResultData = positionResult
 	status.Progress = 1.0
 
-	logger.Info("Position change completed", 
-		"employee_id", req.EmployeeID, 
+	logger.Info("Position change completed",
+		"employee_id", req.EmployeeID,
 		"success", positionResult.Success)
 	return result, nil
 }
@@ -302,7 +301,7 @@ func handlePositionChange(ctx workflow.Context, req EmployeeLifecycleRequest, re
 // handleUpdateInformation 处理信息更新
 func handleUpdateInformation(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	updateType := req.OperationData["update_type"].(string)
 	logger.Info("Updating employee information", "employee_id", req.EmployeeID, "update_type", updateType)
@@ -339,7 +338,7 @@ func handleUpdateInformation(ctx workflow.Context, req EmployeeLifecycleRequest,
 // handlePerformanceReview 处理绩效评估
 func handlePerformanceReview(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing performance review", "employee_id", req.EmployeeID)
 
@@ -373,7 +372,7 @@ func handlePerformanceReview(ctx workflow.Context, req EmployeeLifecycleRequest,
 // handleLeaveRequest 处理休假请求
 func handleLeaveRequest(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing leave request", "employee_id", req.EmployeeID)
 
@@ -388,14 +387,14 @@ func handleLeaveRequest(ctx workflow.Context, req EmployeeLifecycleRequest, resu
 	var leaveResult LeaveApprovalResult
 	err := workflow.ExecuteChildWorkflow(
 		workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
-			WorkflowID: fmt.Sprintf("leave-request-%s-%d", 
-				req.EmployeeID.String(), 
+			WorkflowID: fmt.Sprintf("leave-request-%s-%d",
+				req.EmployeeID.String(),
 				workflow.Now(ctx).Unix()),
 		}),
 		"EnhancedLeaveApprovalWorkflow",
 		LeaveApprovalRequest{
-			EmployeeID: req.EmployeeID,
-			TenantID:   req.TenantID,
+			EmployeeID:  req.EmployeeID,
+			TenantID:    req.TenantID,
 			RequestedAt: workflow.Now(ctx),
 		},
 	).Get(ctx, &leaveResult)
@@ -415,7 +414,7 @@ func handleLeaveRequest(ctx workflow.Context, req EmployeeLifecycleRequest, resu
 // handleStartOffboarding 处理开始离职
 func handleStartOffboarding(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Starting offboarding process", "employee_id", req.EmployeeID)
 
@@ -449,7 +448,7 @@ func handleStartOffboarding(ctx workflow.Context, req EmployeeLifecycleRequest, 
 // handleCompleteOffboardingStep 处理完成离职步骤
 func handleCompleteOffboardingStep(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	stepID := req.OperationData["step_id"].(string)
 	logger.Info("Completing offboarding step", "employee_id", req.EmployeeID, "step_id", stepID)
@@ -477,7 +476,7 @@ func handleCompleteOffboardingStep(ctx workflow.Context, req EmployeeLifecycleRe
 // handleFinalizeTermination 处理完成离职
 func handleFinalizeTermination(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Finalizing termination", "employee_id", req.EmployeeID)
 
@@ -511,7 +510,7 @@ func handleFinalizeTermination(ctx workflow.Context, req EmployeeLifecycleReques
 // handleArchiveRecords 处理记录归档
 func handleArchiveRecords(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Archiving employee records", "employee_id", req.EmployeeID)
 
@@ -545,7 +544,7 @@ func handleArchiveRecords(ctx workflow.Context, req EmployeeLifecycleRequest, re
 // handleDataRetention 处理数据保留
 func handleDataRetention(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing data retention", "employee_id", req.EmployeeID)
 

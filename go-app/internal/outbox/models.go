@@ -63,26 +63,26 @@ func (p *EventProcessor) GetHandler(eventType string) (EventHandler, bool) {
 // EventTypes 预定义的事件类型
 const (
 	// CoreHR 事件类型
-	EventTypeEmployeeCreated   = "employee.created"
-	EventTypeEmployeeUpdated   = "employee.updated"
-	EventTypeEmployeeDeleted   = "employee.deleted"
+	EventTypeEmployeeCreated      = "employee.created"
+	EventTypeEmployeeUpdated      = "employee.updated"
+	EventTypeEmployeeDeleted      = "employee.deleted"
 	EventTypeEmployeePhoneUpdated = "employee.phone_updated"
-	
+
 	// Organization 事件类型
 	EventTypeOrganizationCreated = "organization.created"
 	EventTypeOrganizationUpdated = "organization.updated"
 	EventTypeOrganizationDeleted = "organization.deleted"
-	
+
 	// Position 事件类型
 	EventTypePositionCreated = "position.created"
 	EventTypePositionUpdated = "position.updated"
 	EventTypePositionDeleted = "position.deleted"
-	
+
 	// Leave 事件类型
-	EventTypeLeaveRequestCreated = "leave_request.created"
+	EventTypeLeaveRequestCreated  = "leave_request.created"
 	EventTypeLeaveRequestApproved = "leave_request.approved"
 	EventTypeLeaveRequestRejected = "leave_request.rejected"
-	
+
 	// Notification 事件类型
 	EventTypeNotification = "notification.created"
 )
@@ -94,4 +94,4 @@ const (
 	AggregateTypePosition     = "Position"
 	AggregateTypeLeaveRequest = "LeaveRequest"
 	AggregateTypeNotification = "Notification"
-) 
+)

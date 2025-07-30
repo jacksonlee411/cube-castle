@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/ent"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/service"
+	"github.com/google/uuid"
 )
 
 // PositionChangeActivities implements activities for position change workflows
 type PositionChangeActivities struct {
-	entClient           *ent.Client
-	temporalQuerySvc    *service.TemporalQueryService
-	logger              *logging.StructuredLogger
+	entClient        *ent.Client
+	temporalQuerySvc *service.TemporalQueryService
+	logger           *logging.StructuredLogger
 }
 
 // NewPositionChangeActivities creates new position change activities
@@ -37,11 +37,11 @@ func (a *PositionChangeActivities) ValidateTemporalConsistencyActivity(
 	ctx context.Context,
 	req ValidateTemporalConsistencyRequest,
 ) (*TemporalValidationResult, error) {
-	a.logger.LogInfo(ctx, "Validating temporal consistency", map[string]interface{}{
-		"tenant_id":      req.TenantID,
-		"employee_id":    req.EmployeeID,
-		"effective_date": req.EffectiveDate,
-	})
+	a.logger.Info("Validating temporal consistency",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"effective_date", req.EffectiveDate,
+	)
 
 	err := a.temporalQuerySvc.ValidateTemporalConsistency(
 		ctx,
@@ -51,23 +51,23 @@ func (a *PositionChangeActivities) ValidateTemporalConsistencyActivity(
 	)
 
 	if err != nil {
-		a.logger.LogWarning(ctx, "Temporal consistency validation failed", map[string]interface{}{
-			"tenant_id":      req.TenantID,
-			"employee_id":    req.EmployeeID,
-			"effective_date": req.EffectiveDate,
-			"error":          err.Error(),
-		})
+		a.logger.Warn("Temporal consistency validation failed",
+			"tenant_id", req.TenantID,
+			"employee_id", req.EmployeeID,
+			"effective_date", req.EffectiveDate,
+			"error", err.Error(),
+		)
 		return &TemporalValidationResult{
 			IsValid:      false,
 			ErrorMessage: err.Error(),
 		}, nil
 	}
 
-	a.logger.LogInfo(ctx, "Temporal consistency validation passed", map[string]interface{}{
-		"tenant_id":      req.TenantID,
-		"employee_id":    req.EmployeeID,
-		"effective_date": req.EffectiveDate,
-	})
+	a.logger.Info("Temporal consistency validation passed",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"effective_date", req.EffectiveDate,
+	)
 
 	return &TemporalValidationResult{
 		IsValid: true,
@@ -79,21 +79,21 @@ func (a *PositionChangeActivities) AssessPositionChangeRiskActivity(
 	ctx context.Context,
 	req RiskAssessmentRequest,
 ) (*RiskAssessmentResult, error) {
-	a.logger.LogInfo(ctx, "Assessing position change risk", map[string]interface{}{
-		"tenant_id":      req.TenantID,
-		"employee_id":    req.EmployeeID,
-		"effective_date": req.EffectiveDate,
-		"new_position":   req.NewPosition.PositionTitle,
-	})
+	a.logger.Info("Assessing position change risk",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"effective_date", req.EffectiveDate,
+		"new_position", req.NewPosition.PositionTitle,
+	)
 
 	// Get current position for comparison
 	currentPosition, err := a.temporalQuerySvc.GetCurrentPosition(ctx, req.TenantID, req.EmployeeID)
 	if err != nil {
-		a.logger.LogWarning(ctx, "Could not retrieve current position for risk assessment", map[string]interface{}{
-			"tenant_id":   req.TenantID,
-			"employee_id": req.EmployeeID,
-			"error":       err.Error(),
-		})
+		a.logger.Warn("Could not retrieve current position for risk assessment",
+			"tenant_id", req.TenantID,
+			"employee_id", req.EmployeeID,
+			"error", err.Error(),
+		)
 		// Continue with assessment even if current position is not found (new employee)
 	}
 
@@ -235,14 +235,14 @@ func (a *PositionChangeActivities) AssessPositionChangeRiskActivity(
 		RiskFactors:       riskFactors,
 	}
 
-	a.logger.LogInfo(ctx, "Position change risk assessment completed", map[string]interface{}{
-		"tenant_id":         req.TenantID,
-		"employee_id":       req.EmployeeID,
-		"risk_level":        riskLevel,
-		"requires_approval": requiresApproval,
-		"risk_factors":      riskFactors,
-		"approval_steps":    len(approvalSteps),
-	})
+	a.logger.Info("Position change risk assessment completed",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"risk_level", riskLevel,
+		"requires_approval", requiresApproval,
+		"risk_factors", riskFactors,
+		"approval_steps", len(approvalSteps),
+	)
 
 	return result, nil
 }
@@ -252,11 +252,11 @@ func (a *PositionChangeActivities) ProcessRetroactivePositionChangeActivity(
 	ctx context.Context,
 	req ProcessRetroactiveRequest,
 ) (*RetroactiveProcessingResult, error) {
-	a.logger.LogInfo(ctx, "Processing retroactive position change", map[string]interface{}{
-		"tenant_id":      req.TenantID,
-		"employee_id":    req.EmployeeID,
-		"effective_date": req.EffectiveDate,
-	})
+	a.logger.Info("Processing retroactive position change",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"effective_date", req.EffectiveDate,
+	)
 
 	result := &RetroactiveProcessingResult{
 		RequiresRecalculation: false,
@@ -270,14 +270,14 @@ func (a *PositionChangeActivities) ProcessRetroactivePositionChangeActivity(
 
 	if monthsDiff > 0 {
 		result.RequiresRecalculation = true
-		
+
 		// List affected payroll periods
 		for i := 0; i < monthsDiff && i < 12; i++ { // Limit to 12 months
 			periodStart := req.EffectiveDate.AddDate(0, i, 0)
 			periodEnd := periodStart.AddDate(0, 1, -1)
-			result.AffectedPeriods = append(result.AffectedPeriods, 
-				fmt.Sprintf("%s to %s", 
-					periodStart.Format("2006-01-02"), 
+			result.AffectedPeriods = append(result.AffectedPeriods,
+				fmt.Sprintf("%s to %s",
+					periodStart.Format("2006-01-02"),
 					periodEnd.Format("2006-01-02")))
 		}
 	}
@@ -287,12 +287,12 @@ func (a *PositionChangeActivities) ProcessRetroactivePositionChangeActivity(
 		result.RequiresRecalculation = true
 	}
 
-	a.logger.LogInfo(ctx, "Retroactive processing completed", map[string]interface{}{
-		"tenant_id":             req.TenantID,
-		"employee_id":           req.EmployeeID,
-		"requires_recalculation": result.RequiresRecalculation,
-		"affected_periods":      len(result.AffectedPeriods),
-	})
+	a.logger.Info("Retroactive processing completed",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"requires_recalculation", result.RequiresRecalculation,
+		"affected_periods", len(result.AffectedPeriods),
+	)
 
 	return result, nil
 }
@@ -302,12 +302,12 @@ func (a *PositionChangeActivities) CreatePositionHistoryActivity(
 	ctx context.Context,
 	req CreatePositionHistoryRequest,
 ) (*CreatePositionHistoryResult, error) {
-	a.logger.LogInfo(ctx, "Creating position history record", map[string]interface{}{
-		"tenant_id":      req.TenantID,
-		"employee_id":    req.EmployeeID,
-		"effective_date": req.EffectiveDate,
-		"position_title": req.PositionData.PositionTitle,
-	})
+	a.logger.Info("Creating position history record",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"effective_date", req.EffectiveDate,
+		"position_title", req.PositionData.PositionTitle,
+	)
 
 	// Get previous position for result
 	var previousPosition *PositionChangeData
@@ -353,7 +353,7 @@ func (a *PositionChangeActivities) CreatePositionHistoryActivity(
 	)
 
 	if err != nil {
-		a.logger.LogError(ctx, "Failed to create position history record", err, map[string]interface{}{
+		a.logger.LogError("workflow_error", "Failed to create position history record", err, map[string]interface{}{
 			"tenant_id":      req.TenantID,
 			"employee_id":    req.EmployeeID,
 			"effective_date": req.EffectiveDate,
@@ -366,12 +366,12 @@ func (a *PositionChangeActivities) CreatePositionHistoryActivity(
 		PreviousPosition: previousPosition,
 	}
 
-	a.logger.LogInfo(ctx, "Position history record created successfully", map[string]interface{}{
-		"tenant_id":           req.TenantID,
-		"employee_id":         req.EmployeeID,
-		"position_history_id": snapshot.PositionHistoryID,
-		"effective_date":      req.EffectiveDate,
-	})
+	a.logger.Info("Position history record created successfully",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"position_history_id", snapshot.PositionHistoryID,
+		"effective_date", req.EffectiveDate,
+	)
 
 	return result, nil
 }
@@ -381,18 +381,18 @@ func (a *PositionChangeActivities) PublishPositionChangeEventActivity(
 	ctx context.Context,
 	req PublishEventRequest,
 ) error {
-	a.logger.LogInfo(ctx, "Publishing position change event", map[string]interface{}{
-		"event_type": req.EventType,
-		"tenant_id":  req.TenantID,
-	})
+	a.logger.Info("Publishing position change event",
+		"event_type", req.EventType,
+		"tenant_id", req.TenantID,
+	)
 
 	// TODO: Implement actual event publishing to message queue/event bus
 	// For now, just log the event
-	a.logger.LogInfo(ctx, "Position change event published", map[string]interface{}{
-		"event_type": req.EventType,
-		"tenant_id":  req.TenantID,
-		"payload":    req.Payload,
-	})
+	a.logger.Info("Position change event published",
+		"event_type", req.EventType,
+		"tenant_id", req.TenantID,
+		"payload", req.Payload,
+	)
 
 	return nil
 }
@@ -402,23 +402,23 @@ func (a *PositionChangeActivities) SendPositionChangeNotificationsActivity(
 	ctx context.Context,
 	req NotificationRequest,
 ) error {
-	a.logger.LogInfo(ctx, "Sending position change notifications", map[string]interface{}{
-		"tenant_id":          req.TenantID,
-		"employee_id":        req.EmployeeID,
-		"position_history_id": req.PositionHistoryID,
-		"change_type":        req.ChangeType,
-		"notify_count":       len(req.NotifyEmployees),
-	})
+	a.logger.Info("Sending position change notifications",
+		"tenant_id", req.TenantID,
+		"employee_id", req.EmployeeID,
+		"position_history_id", req.PositionHistoryID,
+		"change_type", req.ChangeType,
+		"notify_count", len(req.NotifyEmployees),
+	)
 
 	// TODO: Implement actual notification sending (email, Slack, etc.)
 	// For now, just log the notifications
 	for _, employeeID := range req.NotifyEmployees {
-		a.logger.LogInfo(ctx, "Notification sent", map[string]interface{}{
-			"tenant_id":          req.TenantID,
-			"recipient_id":       employeeID,
-			"position_history_id": req.PositionHistoryID,
-			"change_type":        req.ChangeType,
-		})
+		a.logger.Info("Notification sent",
+			"tenant_id", req.TenantID,
+			"recipient_id", employeeID,
+			"position_history_id", req.PositionHistoryID,
+			"change_type", req.ChangeType,
+		)
 	}
 
 	return nil

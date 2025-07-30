@@ -9,27 +9,27 @@ import (
 
 // TemporalMetricsCollector collects and tracks performance metrics for temporal queries
 type TemporalMetricsCollector struct {
-	mutex             sync.RWMutex
-	queryCount        int64
-	totalExecutionTime time.Duration
+	mutex                sync.RWMutex
+	queryCount           int64
+	totalExecutionTime   time.Duration
 	totalRecordsReturned int64
 	totalRecordsScanned  int64
-	queryTypeStats    map[string]*QueryTypeStats
-	performanceHistory []QueryPerformanceData
-	maxHistorySize    int
+	queryTypeStats       map[string]*QueryTypeStats
+	performanceHistory   []QueryPerformanceData
+	maxHistorySize       int
 }
 
 // QueryTypeStats tracks statistics for specific query types
 type QueryTypeStats struct {
-	Count              int64         `json:"count"`
-	TotalExecutionTime time.Duration `json:"total_execution_time"`
+	Count                int64         `json:"count"`
+	TotalExecutionTime   time.Duration `json:"total_execution_time"`
 	AverageExecutionTime time.Duration `json:"average_execution_time"`
-	MinExecutionTime   time.Duration `json:"min_execution_time"`
-	MaxExecutionTime   time.Duration `json:"max_execution_time"`
-	TotalRecordsReturned int64       `json:"total_records_returned"`
-	TotalRecordsScanned  int64       `json:"total_records_scanned"`
-	ErrorCount         int64         `json:"error_count"`
-	CacheHitRate       float64       `json:"cache_hit_rate"`
+	MinExecutionTime     time.Duration `json:"min_execution_time"`
+	MaxExecutionTime     time.Duration `json:"max_execution_time"`
+	TotalRecordsReturned int64         `json:"total_records_returned"`
+	TotalRecordsScanned  int64         `json:"total_records_scanned"`
+	ErrorCount           int64         `json:"error_count"`
+	CacheHitRate         float64       `json:"cache_hit_rate"`
 }
 
 // QueryPerformanceData represents performance data for a single query
@@ -45,13 +45,13 @@ type QueryPerformanceData struct {
 
 // TemporalMetricsSummary provides a summary of temporal query metrics
 type TemporalMetricsSummary struct {
-	TotalQueries         int64                    `json:"total_queries"`
-	AverageExecutionTime time.Duration            `json:"average_execution_time"`
-	TotalRecordsReturned int64                    `json:"total_records_returned"`
-	TotalRecordsScanned  int64                    `json:"total_records_scanned"`
+	TotalQueries         int64                      `json:"total_queries"`
+	AverageExecutionTime time.Duration              `json:"average_execution_time"`
+	TotalRecordsReturned int64                      `json:"total_records_returned"`
+	TotalRecordsScanned  int64                      `json:"total_records_scanned"`
 	QueryTypeBreakdown   map[string]*QueryTypeStats `json:"query_type_breakdown"`
-	PerformanceTrends    []QueryPerformanceData   `json:"performance_trends"`
-	GeneratedAt          time.Time                `json:"generated_at"`
+	PerformanceTrends    []QueryPerformanceData     `json:"performance_trends"`
+	GeneratedAt          time.Time                  `json:"generated_at"`
 }
 
 // NewTemporalMetricsCollector creates a new metrics collector
@@ -312,11 +312,11 @@ func (c *TemporalMetricsCollector) GetPerformanceAlerts() []PerformanceAlert {
 	for queryType, stats := range c.queryTypeStats {
 		if stats.AverageExecutionTime > time.Second {
 			alerts = append(alerts, PerformanceAlert{
-				AlertType: "SLOW_QUERY",
-				Severity:  "WARNING",
-				Message:   fmt.Sprintf("Query type '%s' has slow average execution time: %v", queryType, stats.AverageExecutionTime),
-				QueryType: queryType,
-				Threshold: time.Second,
+				AlertType:   "SLOW_QUERY",
+				Severity:    "WARNING",
+				Message:     fmt.Sprintf("Query type '%s' has slow average execution time: %v", queryType, stats.AverageExecutionTime),
+				QueryType:   queryType,
+				Threshold:   time.Second,
 				ActualValue: stats.AverageExecutionTime,
 			})
 		}
@@ -328,11 +328,11 @@ func (c *TemporalMetricsCollector) GetPerformanceAlerts() []PerformanceAlert {
 			errorRate := float64(stats.ErrorCount) / float64(stats.Count)
 			if errorRate > 0.05 {
 				alerts = append(alerts, PerformanceAlert{
-					AlertType: "HIGH_ERROR_RATE",
-					Severity:  "ERROR",
-					Message:   fmt.Sprintf("Query type '%s' has high error rate: %.2f%%", queryType, errorRate*100),
-					QueryType: queryType,
-					Threshold: 0.05,
+					AlertType:   "HIGH_ERROR_RATE",
+					Severity:    "ERROR",
+					Message:     fmt.Sprintf("Query type '%s' has high error rate: %.2f%%", queryType, errorRate*100),
+					QueryType:   queryType,
+					Threshold:   0.05,
 					ActualValue: errorRate,
 				})
 			}
@@ -344,10 +344,10 @@ func (c *TemporalMetricsCollector) GetPerformanceAlerts() []PerformanceAlert {
 		scanRatio := float64(c.totalRecordsScanned) / float64(c.totalRecordsReturned)
 		if scanRatio > 10.0 {
 			alerts = append(alerts, PerformanceAlert{
-				AlertType: "LOW_EFFICIENCY",
-				Severity:  "WARNING",
-				Message:   fmt.Sprintf("Overall query efficiency is low. Scan-to-return ratio: %.2f:1", scanRatio),
-				Threshold: 10.0,
+				AlertType:   "LOW_EFFICIENCY",
+				Severity:    "WARNING",
+				Message:     fmt.Sprintf("Overall query efficiency is low. Scan-to-return ratio: %.2f:1", scanRatio),
+				Threshold:   10.0,
 				ActualValue: scanRatio,
 			})
 		}

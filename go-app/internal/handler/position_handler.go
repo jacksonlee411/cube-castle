@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/types"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // PositionHandler handles HTTP requests for positions
@@ -71,7 +71,7 @@ type PositionResponse struct {
 func (h *PositionHandler) CreatePosition() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context (set by middleware)
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
@@ -217,7 +217,7 @@ func (h *PositionHandler) CreatePosition() http.HandlerFunc {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			
+
 			h.logger.LogError("create_position", "Failed to create position", err, map[string]interface{}{
 				"position_type": req.PositionType,
 				"department_id": req.DepartmentID,
@@ -247,7 +247,7 @@ func (h *PositionHandler) CreatePosition() http.HandlerFunc {
 func (h *PositionHandler) GetPosition() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
@@ -296,7 +296,7 @@ func (h *PositionHandler) GetPosition() http.HandlerFunc {
 func (h *PositionHandler) ListPositions() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
@@ -385,7 +385,7 @@ func (h *PositionHandler) ListPositions() http.HandlerFunc {
 func (h *PositionHandler) UpdatePosition() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
@@ -537,7 +537,7 @@ func (h *PositionHandler) UpdatePosition() http.HandlerFunc {
 				http.Error(w, "Failed to process details", http.StatusInternalServerError)
 				return
 			}
-			
+
 			err = json.Unmarshal(detailsJSON, &detailsMap)
 			if err != nil {
 				h.logger.LogError("update_position", "Failed to convert details to map", err, map[string]interface{}{
@@ -563,7 +563,7 @@ func (h *PositionHandler) UpdatePosition() http.HandlerFunc {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			
+
 			h.logger.LogError("update_position", "Failed to update position", err, map[string]interface{}{
 				"position_id": id,
 				"tenant_id":   tenantID,
@@ -590,7 +590,7 @@ func (h *PositionHandler) UpdatePosition() http.HandlerFunc {
 func (h *PositionHandler) DeletePosition() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {

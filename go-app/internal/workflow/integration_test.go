@@ -27,7 +27,7 @@ type IntegrationTestSuite struct {
 // SetupIntegrationTest 设置集成测试环境
 func SetupIntegrationTest(t *testing.T) *IntegrationTestSuite {
 	logger := logging.NewStructuredLogger()
-	
+
 	// 连接到本地Temporal服务
 	c, err := client.Dial(client.Options{
 		HostPort: "localhost:7233",
@@ -262,7 +262,7 @@ func TestWorkflowCancellation_Integration(t *testing.T) {
 	// 等待工作流结束
 	var result EmployeeOnboardingResult
 	err = we.Get(ctx, &result)
-	
+
 	// 取消的工作流可能返回错误或特定的结果
 	// 这取决于工作流的具体实现
 	suite.logger.Info("Workflow cancellation test completed",

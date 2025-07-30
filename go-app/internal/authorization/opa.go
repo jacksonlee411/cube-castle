@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/open-policy-agent/opa/rego"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
+	"github.com/open-policy-agent/opa/rego"
 )
 
 // OPAAuthorizer OPA授权器
@@ -30,10 +30,10 @@ type AuthorizationInput struct {
 
 // UserInfo 用户信息
 type UserInfo struct {
-	ID       string   `json:"id"`
-	Role     string   `json:"role"`
-	TenantID string   `json:"tenant_id"`
-	Groups   []string `json:"groups"`
+	ID         string                 `json:"id"`
+	Role       string                 `json:"role"`
+	TenantID   string                 `json:"tenant_id"`
+	Groups     []string               `json:"groups"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
@@ -91,12 +91,12 @@ func (o *OPAAuthorizer) loadPolicies() error {
 // Authorize 执行授权检查
 func (o *OPAAuthorizer) Authorize(ctx context.Context, input AuthorizationInput) (*AuthorizationResult, error) {
 	start := time.Now()
-	
+
 	o.logger.LogAccessAttempt(input.UserID, input.Resource, input.Action, false, "checking")
 
 	// 确定使用哪个策略
 	policyName := o.determinePolicyForResource(input.Resource)
-	
+
 	query, exists := o.queries[policyName]
 	if !exists {
 		return &AuthorizationResult{
@@ -134,7 +134,7 @@ func (o *OPAAuthorizer) Authorize(ctx context.Context, input AuthorizationInput)
 	// 记录授权结果
 	duration := time.Since(start)
 	o.logger.LogAccessAttempt(input.UserID, input.Resource, input.Action, allowed, reason)
-	
+
 	if allowed {
 		metrics.RecordAIRequest("authorization_success", "success", duration)
 	} else {
@@ -151,7 +151,7 @@ func (o *OPAAuthorizer) Authorize(ctx context.Context, input AuthorizationInput)
 func (o *OPAAuthorizer) AuthorizeHTTPRequest(ctx context.Context, userID, tenantID, method, path string, user UserInfo) (*AuthorizationResult, error) {
 	// 从HTTP方法和路径解析资源和动作
 	resource, action := o.parseHTTPRequest(method, path)
-	
+
 	input := AuthorizationInput{
 		UserID:   userID,
 		TenantID: tenantID,
@@ -187,7 +187,7 @@ func (o *OPAAuthorizer) determinePolicyForResource(resource string) string {
 func (o *OPAAuthorizer) parseHTTPRequest(method, path string) (resource, action string) {
 	// 简化的路径解析逻辑
 	pathParts := strings.Split(strings.Trim(path, "/"), "/")
-	
+
 	// 移除API版本前缀
 	if len(pathParts) > 2 && pathParts[0] == "api" {
 		pathParts = pathParts[2:] // 跳过 "api/v1"
@@ -213,9 +213,9 @@ func (o *OPAAuthorizer) parseHTTPRequest(method, path string) (resource, action 
 
 	// 提取资源名称
 	if len(pathParts) >= 2 {
-		module := pathParts[0]     // corehr, intelligence, etc.
-		resource = pathParts[1]    // employees, organizations, etc.
-		
+		module := pathParts[0]  // corehr, intelligence, etc.
+		resource = pathParts[1] // employees, organizations, etc.
+
 		// 组合模块和资源
 		return fmt.Sprintf("%s:%s", module, resource), action
 	} else if len(pathParts) == 1 {
@@ -229,7 +229,7 @@ func (o *OPAAuthorizer) parseHTTPRequest(method, path string) (resource, action 
 func (o *OPAAuthorizer) ValidateUser(ctx context.Context, userID, tenantID string) (*UserInfo, error) {
 	// 这里应该从用户服务或数据库获取用户信息
 	// 简化实现，返回基础用户信息
-	
+
 	user := &UserInfo{
 		ID:       userID,
 		TenantID: tenantID,
@@ -268,7 +268,7 @@ func (o *OPAAuthorizer) ReloadPolicies() error {
 // GetPolicyDecision 获取策略决策详情（用于调试）
 func (o *OPAAuthorizer) GetPolicyDecision(ctx context.Context, input AuthorizationInput) (map[string]interface{}, error) {
 	policyName := o.determinePolicyForResource(input.Resource)
-	
+
 	query, exists := o.queries[policyName]
 	if !exists {
 		return nil, fmt.Errorf("policy not found: %s", policyName)

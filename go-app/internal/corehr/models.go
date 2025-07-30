@@ -3,8 +3,8 @@ package corehr
 import (
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/common"
+	"github.com/google/uuid"
 )
 
 // Employee 员工模型
@@ -124,6 +124,6 @@ type EmployeeSearchRequest struct {
 // OrganizationTree 组织树结构
 type OrganizationTree struct {
 	Organization
-	Children []OrganizationTree `json:"children,omitempty"`
+	Children  []OrganizationTree `json:"children,omitempty"`
 	Employees []EmployeeResponse `json:"employees,omitempty"`
-} 
+}

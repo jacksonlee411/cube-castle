@@ -2,8 +2,8 @@ package corehr
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/outbox"
+	"github.com/google/uuid"
 )
 
 // OutboxAdapter CoreHR到Outbox的适配器
@@ -25,7 +25,7 @@ func (a *OutboxAdapter) GetEmployeeByID(ctx context.Context, tenantID, employeeI
 	if employee == nil {
 		return nil, nil
 	}
-	
+
 	return &outbox.EmployeeInfo{
 		ID:             employee.ID,
 		TenantID:       employee.TenantID,
@@ -57,7 +57,7 @@ func (a *OutboxAdapter) GetOrganizationByID(ctx context.Context, tenantID, organ
 	if organization == nil {
 		return nil, nil
 	}
-	
+
 	return &outbox.OrganizationInfo{
 		ID:       organization.ID,
 		TenantID: organization.TenantID,
@@ -80,4 +80,4 @@ func (a *OutboxAdapter) UpdateLeaveRequestStatus(ctx context.Context, tenantID, 
 	// 这里可以实现具体的休假申请状态更新逻辑
 	// 目前只是占位符实现
 	return nil
-} 
+}

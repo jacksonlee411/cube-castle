@@ -7,7 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/schema"
 	_ "github.com/lib/pq"
-	
+
 	"github.com/gaogu/cube-castle/go-app/ent"
 )
 
@@ -19,7 +19,7 @@ func main() {
 	defer client.Close()
 
 	ctx := context.Background()
-	
+
 	// Create schema diff and apply migration
 	err = client.Schema.Create(ctx,
 		schema.WithDropIndex(true),
@@ -29,7 +29,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
-	
+
 	fmt.Println("Database schema migration completed successfully!")
 	fmt.Println("Created tables: organization_units, positions, position_attribute_histories, position_occupancy_histories")
 }

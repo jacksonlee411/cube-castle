@@ -57,14 +57,14 @@ func TestModels(t *testing.T) {
 		Email:          "zhangsan@example.com",
 		Status:         "active",
 	}
-	
+
 	if employee.ID == uuid.Nil {
 		t.Error("Employee ID should not be nil")
 	}
 	if employee.EmployeeNumber == "" {
 		t.Error("Employee number should not be empty")
 	}
-	
+
 	// 测试Organization模型
 	org := &Organization{
 		ID:       uuid.New(),
@@ -74,11 +74,11 @@ func TestModels(t *testing.T) {
 		Level:    1,
 		Status:   "active",
 	}
-	
+
 	if org.ID == uuid.Nil {
 		t.Error("Organization ID should not be nil")
 	}
 	if org.Name == "" {
 		t.Error("Organization name should not be empty")
 	}
-} 
+}

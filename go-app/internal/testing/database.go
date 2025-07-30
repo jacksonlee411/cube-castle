@@ -24,33 +24,33 @@ const (
 
 // TestDatabaseConfig 测试数据库配置
 type TestDatabaseConfig struct {
-	Type           TestDatabaseType
+	Type             TestDatabaseType
 	ConnectionString string
-	CleanupOnClose bool
+	CleanupOnClose   bool
 }
 
 // GetTestDatabaseConfig 根据环境变量获取测试数据库配置
 func GetTestDatabaseConfig() *TestDatabaseConfig {
 	// 从环境变量读取测试数据库类型
 	dbType := os.Getenv("TEST_DB_TYPE")
-	
+
 	switch dbType {
 	case "postgres", "postgresql":
 		return &TestDatabaseConfig{
-			Type:           PostgreSQLTest,
+			Type:             PostgreSQLTest,
 			ConnectionString: GetPostgreSQLTestConnectionString(),
 			CleanupOnClose:   true,
 		}
 	case "sqlite", "sqlite_file":
 		return &TestDatabaseConfig{
-			Type:           SQLiteFile,
+			Type:             SQLiteFile,
 			ConnectionString: "file:testdb.sqlite?cache=shared&_fk=1",
 			CleanupOnClose:   true,
 		}
 	default:
 		// 默认使用SQLite内存数据库（最快）
 		return &TestDatabaseConfig{
-			Type:           SQLiteMemory,
+			Type:             SQLiteMemory,
 			ConnectionString: "file:ent?mode=memory&cache=shared&_fk=1",
 			CleanupOnClose:   false,
 		}
@@ -63,7 +63,7 @@ func GetPostgreSQLTestConnectionString() string {
 	if testDBURL != "" {
 		return testDBURL
 	}
-	
+
 	// 默认测试数据库连接
 	return "postgresql://postgres:password@localhost:5432/cubecastle_test?sslmode=disable"
 }
@@ -71,36 +71,36 @@ func GetPostgreSQLTestConnectionString() string {
 // SetupTestDatabase 设置测试数据库
 func SetupTestDatabase(t *testing.T) (*ent.Client, func()) {
 	config := GetTestDatabaseConfig()
-	
+
 	var client *ent.Client
 	var cleanup func()
-	
+
 	switch config.Type {
 	case SQLiteMemory:
 		client = enttest.Open(t, "sqlite3", config.ConnectionString)
 		cleanup = func() { client.Close() }
-		
+
 	case SQLiteFile:
 		client = enttest.Open(t, "sqlite3", config.ConnectionString)
-		cleanup = func() { 
+		cleanup = func() {
 			client.Close()
 			if config.CleanupOnClose {
 				os.Remove("testdb.sqlite")
 			}
 		}
-		
+
 	case PostgreSQLTest:
 		// 使用PostgreSQL测试数据库
 		client = setupPostgreSQLTestDB(t, config.ConnectionString)
-		cleanup = func() { 
+		cleanup = func() {
 			cleanupPostgreSQLTestDB(t, client)
 			client.Close()
 		}
-		
+
 	default:
 		t.Fatalf("Unsupported test database type: %s", config.Type)
 	}
-	
+
 	return client, cleanup
 }
 
@@ -110,28 +110,28 @@ func setupPostgreSQLTestDB(t *testing.T, connectionString string) *ent.Client {
 	if err != nil {
 		t.Skipf("无法连接到PostgreSQL测试数据库: %v", err)
 	}
-	
+
 	// 运行迁移
 	if err := client.Schema.Create(context.Background()); err != nil {
 		client.Close()
 		t.Fatalf("创建数据库schema失败: %v", err)
 	}
-	
+
 	return client
 }
 
 // cleanupPostgreSQLTestDB 清理PostgreSQL测试数据库
 func cleanupPostgreSQLTestDB(t *testing.T, client *ent.Client) {
 	ctx := context.Background()
-	
+
 	// 清理所有表的数据（保留结构）
 	tables := []string{
 		"position_occupancy_history",
-		"position_attribute_history", 
+		"position_attribute_history",
 		"positions",
 		"organization_units",
 	}
-	
+
 	for _, table := range tables {
 		// 使用Ent的实体删除方法而不是直接的SQL
 		switch table {
@@ -159,7 +159,7 @@ func cleanupPostgreSQLTestDB(t *testing.T, client *ent.Client) {
 func SetupTestHandler(t *testing.T) (*ent.Client, *logging.StructuredLogger, func()) {
 	client, cleanup := SetupTestDatabase(t)
 	logger := logging.NewStructuredLogger()
-	
+
 	return client, logger, cleanup
 }
 
@@ -174,7 +174,7 @@ type TestDatabaseInfo struct {
 // GetTestDatabaseInfo 获取当前测试数据库信息
 func GetTestDatabaseInfo() *TestDatabaseInfo {
 	config := GetTestDatabaseConfig()
-	
+
 	switch config.Type {
 	case SQLiteMemory:
 		return &TestDatabaseInfo{

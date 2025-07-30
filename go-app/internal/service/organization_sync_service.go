@@ -21,24 +21,24 @@ type OrganizationSyncService struct {
 
 // SyncOptions controls synchronization behavior
 type SyncOptions struct {
-	FullSync           bool `json:"full_sync"`
-	SyncEmployees      bool `json:"sync_employees"`
-	SyncPositions      bool `json:"sync_positions"`
-	SyncRelationships  bool `json:"sync_relationships"`
-	SyncDepartments    bool `json:"sync_departments"`
-	BatchSize          int  `json:"batch_size"`
+	FullSync          bool `json:"full_sync"`
+	SyncEmployees     bool `json:"sync_employees"`
+	SyncPositions     bool `json:"sync_positions"`
+	SyncRelationships bool `json:"sync_relationships"`
+	SyncDepartments   bool `json:"sync_departments"`
+	BatchSize         int  `json:"batch_size"`
 }
 
 // SyncResult contains synchronization results
 type SyncResult struct {
-	Success             bool      `json:"success"`
-	SyncedEmployees     int       `json:"synced_employees"`
-	SyncedPositions     int       `json:"synced_positions"`
-	SyncedRelationships int       `json:"synced_relationships"`
-	SyncedDepartments   int       `json:"synced_departments"`
-	Errors              []string  `json:"errors"`
-	StartTime           time.Time `json:"start_time"`
-	EndTime             time.Time `json:"end_time"`
+	Success             bool          `json:"success"`
+	SyncedEmployees     int           `json:"synced_employees"`
+	SyncedPositions     int           `json:"synced_positions"`
+	SyncedRelationships int           `json:"synced_relationships"`
+	SyncedDepartments   int           `json:"synced_departments"`
+	Errors              []string      `json:"errors"`
+	StartTime           time.Time     `json:"start_time"`
+	EndTime             time.Time     `json:"end_time"`
 	Duration            time.Duration `json:"duration"`
 }
 
@@ -107,14 +107,14 @@ func (s *OrganizationSyncService) SyncEmployee(ctx context.Context, employeeID s
 	// Convert to Neo4j format
 	employeeNode := EmployeeNode{
 		ID:         emp.ID,
-		EmployeeID: emp.ID, // Use ID as EmployeeID since EmployeeID field doesn't exist
+		EmployeeID: emp.ID,   // Use ID as EmployeeID since EmployeeID field doesn't exist
 		LegalName:  emp.Name, // Use Name as LegalName since LegalName field doesn't exist
 		Email:      emp.Email,
-		Status:     "ACTIVE", // Use default status since Status field doesn't exist
+		Status:     "ACTIVE",      // Use default status since Status field doesn't exist
 		HireDate:   emp.CreatedAt, // Use CreatedAt as HireDate since HireDate field doesn't exist
 		Properties: map[string]interface{}{
-			"preferred_name":    emp.Name, // Use Name as PreferredName since PreferredName field doesn't exist
-			"termination_date":  nil, // Set to nil since TerminationDate field doesn't exist
+			"preferred_name":   emp.Name, // Use Name as PreferredName since PreferredName field doesn't exist
+			"termination_date": nil,      // Set to nil since TerminationDate field doesn't exist
 			"created_at":       emp.CreatedAt,
 			"updated_at":       emp.UpdatedAt,
 		},
@@ -145,19 +145,19 @@ func (s *OrganizationSyncService) SyncPosition(ctx context.Context, positionID, 
 		PositionTitle: pos.PositionTitle,
 		Department:    pos.Department,
 		JobLevel:      "STANDARD", // Use default since JobLevel field doesn't exist
-		Location:      "ON_SITE", // Use default since Location field doesn't exist
+		Location:      "ON_SITE",  // Use default since Location field doesn't exist
 		EffectiveDate: pos.EffectiveDate,
 		EndDate:       pos.EndDate,
 		Properties: map[string]interface{}{
 			"employment_type":        "FULL_TIME", // Use default since EmploymentType field doesn't exist
-			"reports_to_employee_id": nil, // Set to nil since ReportsToEmployeeID field doesn't exist
+			"reports_to_employee_id": nil,         // Set to nil since ReportsToEmployeeID field doesn't exist
 			"change_reason":          pos.ChangeReason,
 			"is_retroactive":         pos.IsRetroactive,
-			"min_salary":            nil, // Set to nil since MinSalary field doesn't exist
-			"max_salary":            nil, // Set to nil since MaxSalary field doesn't exist
-			"currency":              "USD", // Use default since Currency field doesn't exist
-			"created_at":            pos.CreatedAt,
-			"updated_at":           pos.UpdatedAt,
+			"min_salary":             nil,   // Set to nil since MinSalary field doesn't exist
+			"max_salary":             nil,   // Set to nil since MaxSalary field doesn't exist
+			"currency":               "USD", // Use default since Currency field doesn't exist
+			"created_at":             pos.CreatedAt,
+			"updated_at":             pos.UpdatedAt,
 		},
 	}
 
@@ -196,14 +196,14 @@ func (s *OrganizationSyncService) syncAllEmployees(ctx context.Context, result *
 		for _, emp := range employees {
 			employeeNode := EmployeeNode{
 				ID:         emp.ID,
-				EmployeeID: emp.ID, // Use ID as EmployeeID since EmployeeID field doesn't exist
+				EmployeeID: emp.ID,   // Use ID as EmployeeID since EmployeeID field doesn't exist
 				LegalName:  emp.Name, // Use Name as LegalName since LegalName field doesn't exist
 				Email:      emp.Email,
-				Status:     "ACTIVE", // Use default status since Status field doesn't exist
+				Status:     "ACTIVE",      // Use default status since Status field doesn't exist
 				HireDate:   emp.CreatedAt, // Use CreatedAt as HireDate since HireDate field doesn't exist
 				Properties: map[string]interface{}{
-					"preferred_name":    emp.Name, // Use Name as PreferredName since PreferredName field doesn't exist
-					"termination_date":  nil, // Set to nil since TerminationDate field doesn't exist
+					"preferred_name":   emp.Name, // Use Name as PreferredName since PreferredName field doesn't exist
+					"termination_date": nil,      // Set to nil since TerminationDate field doesn't exist
 					"created_at":       emp.CreatedAt,
 					"updated_at":       emp.UpdatedAt,
 				},
@@ -264,19 +264,19 @@ func (s *OrganizationSyncService) syncAllPositions(ctx context.Context, result *
 				PositionTitle: pos.PositionTitle,
 				Department:    pos.Department,
 				JobLevel:      "STANDARD", // Use default since JobLevel field doesn't exist
-				Location:      "ON_SITE", // Use default since Location field doesn't exist
+				Location:      "ON_SITE",  // Use default since Location field doesn't exist
 				EffectiveDate: pos.EffectiveDate,
 				EndDate:       pos.EndDate,
 				Properties: map[string]interface{}{
 					"employment_type":        "FULL_TIME", // Use default since EmploymentType field doesn't exist
-					"reports_to_employee_id": nil, // Set to nil since ReportsToEmployeeID field doesn't exist
+					"reports_to_employee_id": nil,         // Set to nil since ReportsToEmployeeID field doesn't exist
 					"change_reason":          pos.ChangeReason,
 					"is_retroactive":         pos.IsRetroactive,
-					"min_salary":            nil, // Set to nil since MinSalary field doesn't exist
-					"max_salary":            nil, // Set to nil since MaxSalary field doesn't exist
-					"currency":              "USD", // Use default since Currency field doesn't exist
-					"created_at":            pos.CreatedAt,
-					"updated_at":            pos.UpdatedAt,
+					"min_salary":             nil,   // Set to nil since MinSalary field doesn't exist
+					"max_salary":             nil,   // Set to nil since MaxSalary field doesn't exist
+					"currency":               "USD", // Use default since Currency field doesn't exist
+					"created_at":             pos.CreatedAt,
+					"updated_at":             pos.UpdatedAt,
 				},
 			}
 
@@ -337,7 +337,7 @@ func (s *OrganizationSyncService) syncDepartments(ctx context.Context, result *S
 			Name: dept,
 			Properties: map[string]interface{}{
 				"employee_count": count,
-				"created_at":    time.Now(),
+				"created_at":     time.Now(),
 			},
 		}
 
@@ -452,8 +452,8 @@ func (s *OrganizationSyncService) HealthCheck(ctx context.Context) (map[string]i
 	// Check Neo4j connectivity (would need actual implementation)
 	health["checks"] = map[string]interface{}{
 		"postgres_employees": pgEmployeeCount,
-		"neo4j_connection":   "connected", // This would be an actual check
-		"last_sync":         time.Now().Add(-1 * time.Hour), // This would be stored
+		"neo4j_connection":   "connected",                    // This would be an actual check
+		"last_sync":          time.Now().Add(-1 * time.Hour), // This would be stored
 	}
 
 	return health, nil

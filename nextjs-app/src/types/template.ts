@@ -3,8 +3,6 @@
  * 支持企业级模板库、智能推荐、自定义管理等功能
  */
 
-import { MetaContractElement, MetaContractSchema } from '@/components/metacontract-editor/VisualEditor';
-
 // 模板分类枚举
 export enum TemplateCategory {
   // 行业模板
@@ -98,6 +96,19 @@ export interface TemplateAuthor {
   email?: string;
   organization?: string;
   verified: boolean; // 是否经过验证的作者
+}
+
+// 模板基础类型定义
+export interface MetaContractElement {
+  id: string;
+  name: string;
+  type: string;
+  properties: Record<string, any>;
+}
+
+export interface MetaContractSchema {
+  version: string;
+  elements: MetaContractElement[];
 }
 
 // 智能模板核心定义
@@ -316,8 +327,3 @@ export interface TemplateUsageStats {
   };
 }
 
-// 导出所有类型
-export type {
-  MetaContractElement,
-  MetaContractSchema
-};

@@ -6,10 +6,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/metacontract"
+	"github.com/google/uuid"
 )
 
 // Service provides the business logic for the meta-contract editor
@@ -115,7 +118,7 @@ func (s *Service) DeleteProject(ctx context.Context, projectID uuid.UUID, tenant
 // CompileProject compiles a project's meta-contract
 func (s *Service) CompileProject(ctx context.Context, req CompileRequest) (*CompileResponse, error) {
 	startTime := time.Now()
-	
+
 	response := &CompileResponse{
 		Success:        false,
 		GeneratedFiles: make(map[string]string),
@@ -256,27 +259,81 @@ type UpdateProjectRequest struct {
 
 // Helper methods
 func (s *Service) writeContentToTempFile(content string) (string, error) {
-	// Implementation to write content to temporary file
-	// This would use os.CreateTemp and write the content
-	return "", fmt.Errorf("not implemented")
+	// Create temporary file with .yaml extension
+	tmpFile, err := os.CreateTemp("", "metacontract-*.yaml")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	
+	// Write content to file
+	if _, err := tmpFile.WriteString(content); err != nil {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+		return "", fmt.Errorf("failed to write content: %w", err)
+	}
+	
+	if err := tmpFile.Close(); err != nil {
+		os.Remove(tmpFile.Name())
+		return "", fmt.Errorf("failed to close temp file: %w", err)
+	}
+	
+	return tmpFile.Name(), nil
 }
 
 func (s *Service) cleanupTempFile(path string) {
-	// Implementation to cleanup temporary file
+	if path != "" {
+		os.Remove(path)
+	}
 }
 
 func (s *Service) createTempOutputDir() (string, error) {
-	// Implementation to create temporary output directory
-	return "", fmt.Errorf("not implemented")
+	tmpDir, err := os.MkdirTemp("", "metacontract-output-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp directory: %w", err)
+	}
+	return tmpDir, nil
 }
 
 func (s *Service) cleanupTempDir(path string) {
-	// Implementation to cleanup temporary directory
+	if path != "" {
+		os.RemoveAll(path)
+	}
 }
 
 func (s *Service) readGeneratedFiles(dir string) (map[string]string, error) {
-	// Implementation to read generated files from directory
-	return nil, fmt.Errorf("not implemented")
+	files := make(map[string]string)
+	
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		
+		// Skip directories
+		if d.IsDir() {
+			return nil
+		}
+		
+		// Read file content
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to read file %s: %w", path, err)
+		}
+		
+		// Use relative path as key
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			relPath = filepath.Base(path)
+		}
+		
+		files[relPath] = string(content)
+		return nil
+	})
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to read generated files: %w", err)
+	}
+	
+	return files, nil
 }
 
 func (s *Service) updateProjectCompileStatus(ctx context.Context, projectID uuid.UUID, response *CompileResponse) error {

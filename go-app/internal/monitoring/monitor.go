@@ -30,9 +30,9 @@ type CheckResult struct {
 
 // SystemMetrics 系统指标
 type SystemMetrics struct {
-	CPU          CPUMetrics      `json:"cpu"`
-	Memory       MemoryMetrics   `json:"memory"`
-	HTTP         HTTPMetrics     `json:"http"`
+	CPU           CPUMetrics         `json:"cpu"`
+	Memory        MemoryMetrics      `json:"memory"`
+	HTTP          HTTPMetrics        `json:"http"`
 	CustomMetrics map[string]float64 `json:"custom_metrics"`
 }
 
@@ -53,10 +53,10 @@ type MemoryMetrics struct {
 
 // HTTPMetrics HTTP指标
 type HTTPMetrics struct {
-	RequestCount    int64           `json:"request_count"`
-	AverageLatency  time.Duration   `json:"average_latency_ms"`
-	ErrorRate       float64         `json:"error_rate_percent"`
-	StatusCodes     map[string]int64 `json:"status_codes"`
+	RequestCount    int64                     `json:"request_count"`
+	AverageLatency  time.Duration             `json:"average_latency_ms"`
+	ErrorRate       float64                   `json:"error_rate_percent"`
+	StatusCodes     map[string]int64          `json:"status_codes"`
 	EndpointMetrics map[string]EndpointMetric `json:"endpoints"`
 }
 
@@ -93,7 +93,7 @@ func NewMonitor(config *MonitorConfig) *Monitor {
 			Environment: "development",
 		}
 	}
-	
+
 	return &Monitor{
 		startTime: time.Now(),
 		httpMetrics: &HTTPMetrics{
@@ -111,7 +111,7 @@ func NewMonitor(config *MonitorConfig) *Monitor {
 func (m *Monitor) GetHealthStatus(ctx context.Context) *HealthStatus {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return &HealthStatus{
 		Service:     m.config.ServiceName,
 		Status:      "healthy",
@@ -127,7 +127,7 @@ func (m *Monitor) GetHealthStatus(ctx context.Context) *HealthStatus {
 func (m *Monitor) GetDetailedHealthStatus(ctx context.Context) *HealthStatus {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	status := &HealthStatus{
 		Service:     m.config.ServiceName,
 		Status:      "healthy",
@@ -137,17 +137,17 @@ func (m *Monitor) GetDetailedHealthStatus(ctx context.Context) *HealthStatus {
 		Checks:      make(map[string]CheckResult),
 		Metrics:     m.collectSystemMetrics(),
 	}
-	
+
 	// 执行详细检查
 	status.Checks["api"] = CheckResult{
 		Status:  "healthy",
 		Message: "API server is running",
 		Latency: time.Millisecond * 5,
 	}
-	
+
 	status.Checks["memory"] = m.checkMemory()
 	status.Checks["disk"] = m.checkDisk()
-	
+
 	// 确定总体状态
 	for _, check := range status.Checks {
 		if check.Status != "healthy" {
@@ -155,7 +155,7 @@ func (m *Monitor) GetDetailedHealthStatus(ctx context.Context) *HealthStatus {
 			break
 		}
 	}
-	
+
 	return status
 }
 
@@ -163,13 +163,13 @@ func (m *Monitor) GetDetailedHealthStatus(ctx context.Context) *HealthStatus {
 func (m *Monitor) RecordHTTPRequest(method, path string, statusCode int, latency time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	statusStr := fmt.Sprintf("%d", statusCode)
-	
+
 	// 更新HTTP指标
 	m.httpMetrics.RequestCount++
 	m.httpMetrics.StatusCodes[statusStr]++
-	
+
 	// 计算平均延迟
 	if m.httpMetrics.RequestCount == 1 {
 		m.httpMetrics.AverageLatency = latency
@@ -179,7 +179,7 @@ func (m *Monitor) RecordHTTPRequest(method, path string, statusCode int, latency
 			(int64(m.httpMetrics.AverageLatency)*int64(m.httpMetrics.RequestCount-1) + int64(latency)) / int64(m.httpMetrics.RequestCount),
 		)
 	}
-	
+
 	// 计算错误率
 	errorCount := int64(0)
 	for status, count := range m.httpMetrics.StatusCodes {
@@ -188,7 +188,7 @@ func (m *Monitor) RecordHTTPRequest(method, path string, statusCode int, latency
 		}
 	}
 	m.httpMetrics.ErrorRate = float64(errorCount) / float64(m.httpMetrics.RequestCount) * 100
-	
+
 	// 更新端点指标
 	endpointKey := method + " " + path
 	if metric, exists := m.httpMetrics.EndpointMetrics[endpointKey]; exists {
@@ -256,7 +256,7 @@ func (m *Monitor) GetHTTPMetrics() HTTPMetrics {
 // ServeHTTP 实现http.Handler接口
 func (m *Monitor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	
+
 	switch r.URL.Path {
 	case "/health":
 		m.handleHealth(w, r)
@@ -272,7 +272,7 @@ func (m *Monitor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	
+
 	// 记录监控端点的指标
 	latency := time.Since(start)
 	m.RecordHTTPRequest(r.Method, r.URL.Path, 200, latency)
@@ -282,20 +282,20 @@ func (m *Monitor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (m *Monitor) performHealthChecks(ctx context.Context) map[string]CheckResult {
 	checks := make(map[string]CheckResult)
-	
+
 	checks["api"] = CheckResult{
 		Status:  "healthy",
 		Message: "API server is running",
 		Latency: time.Millisecond * 5,
 	}
-	
+
 	return checks
 }
 
 func (m *Monitor) collectSystemMetrics() SystemMetrics {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	
+
 	return SystemMetrics{
 		CPU: CPUMetrics{
 			UsagePercent: 0, // 简化版本不实现实际CPU监控
@@ -316,17 +316,17 @@ func (m *Monitor) collectSystemMetrics() SystemMetrics {
 func (m *Monitor) checkMemory() CheckResult {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	
+
 	usagePercent := float64(memStats.HeapInuse) / float64(memStats.HeapSys) * 100
-	
+
 	status := "healthy"
 	message := fmt.Sprintf("Memory usage: %.2f%%", usagePercent)
-	
+
 	if usagePercent > 90 {
 		status = "warning"
 		message = fmt.Sprintf("High memory usage: %.2f%%", usagePercent)
 	}
-	
+
 	return CheckResult{
 		Status:  status,
 		Message: message,

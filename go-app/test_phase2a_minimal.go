@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"

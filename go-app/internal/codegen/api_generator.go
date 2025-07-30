@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-	
+
 	"github.com/gaogu/cube-castle/go-app/internal/types"
 )
 
@@ -20,12 +20,12 @@ type APIGenerator struct {
 func NewAPIGenerator() *APIGenerator {
 	return &APIGenerator{
 		templateEngine: template.New("api-routes").Funcs(template.FuncMap{
-			"title":      strings.Title,
-			"lower":      strings.ToLower,
-			"upper":      strings.ToUpper,
-			"camelCase":  toCamelCase,
-			"snakeCase":  toSnakeCase,
-			"plural":     toPlural,
+			"title":     strings.Title,
+			"lower":     strings.ToLower,
+			"upper":     strings.ToUpper,
+			"camelCase": toCamelCase,
+			"snakeCase": toSnakeCase,
+			"plural":    toPlural,
 		}),
 	}
 }
@@ -36,24 +36,24 @@ func (g *APIGenerator) Generate(contract *types.MetaContract, outputDir string) 
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
-	
+
 	// Generate REST API handlers
 	if err := g.generateRESTHandlers(contract, outputDir); err != nil {
 		return fmt.Errorf("failed to generate REST handlers: %w", err)
 	}
-	
+
 	// Generate GraphQL resolvers if enabled
 	if contract.APIBehavior.GraphQLEnabled {
 		if err := g.generateGraphQLResolvers(contract, outputDir); err != nil {
 			return fmt.Errorf("failed to generate GraphQL resolvers: %w", err)
 		}
 	}
-	
+
 	// Generate middleware configurations
 	if err := g.generateMiddleware(contract, outputDir); err != nil {
 		return fmt.Errorf("failed to generate middleware: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -378,18 +378,18 @@ type Update{{.ResourceName | title}}Request struct {
 {{end}}
 }
 `
-	
+
 	tmpl, err := g.templateEngine.Parse(tmplStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %w", err)
 	}
-	
+
 	// Create template data
 	data := &APITemplateData{
 		MetaContract: contract,
 		Fields:       g.convertAPIFields(contract.DataStructure.Fields),
 	}
-	
+
 	// Generate the file
 	filename := filepath.Join(outputDir, strings.ToLower(contract.ResourceName)+"_handler.go")
 	file, err := os.Create(filename)
@@ -397,11 +397,11 @@ type Update{{.ResourceName | title}}Request struct {
 		return fmt.Errorf("failed to create handler file: %w", err)
 	}
 	defer file.Close()
-	
+
 	if err := tmpl.Execute(file, data); err != nil {
 		return fmt.Errorf("failed to execute template: %w", err)
 	}
-	
+
 	return nil
 }
 

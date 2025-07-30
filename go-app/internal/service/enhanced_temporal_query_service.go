@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/google/uuid"
 	entgo "github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
+	"github.com/google/uuid"
 )
 
 // EnhancedTemporalQueryService extends TemporalQueryService with advanced temporal operations
@@ -22,7 +22,7 @@ type EnhancedTemporalQueryService struct {
 
 // NewEnhancedTemporalQueryService creates an enhanced temporal query service
 func NewEnhancedTemporalQueryService(
-	client *entgo.Client, 
+	client *entgo.Client,
 	logger *logging.StructuredLogger,
 ) *EnhancedTemporalQueryService {
 	return &EnhancedTemporalQueryService{
@@ -34,15 +34,15 @@ func NewEnhancedTemporalQueryService(
 
 // PositionTimelineQuery represents a complex timeline query request
 type PositionTimelineQuery struct {
-	TenantID     uuid.UUID  `json:"tenant_id"`
-	EmployeeIDs  []uuid.UUID `json:"employee_ids,omitempty"`
-	Departments  []string   `json:"departments,omitempty"`
-	JobLevels    []string   `json:"job_levels,omitempty"`
-	DateRange    *DateRange `json:"date_range,omitempty"`
-	IncludeRetroactive bool `json:"include_retroactive"`
-	OrderBy      string     `json:"order_by"` // "effective_date", "employee_id", "department"
-	Limit        *int       `json:"limit,omitempty"`
-	Offset       *int       `json:"offset,omitempty"`
+	TenantID           uuid.UUID   `json:"tenant_id"`
+	EmployeeIDs        []uuid.UUID `json:"employee_ids,omitempty"`
+	Departments        []string    `json:"departments,omitempty"`
+	JobLevels          []string    `json:"job_levels,omitempty"`
+	DateRange          *DateRange  `json:"date_range,omitempty"`
+	IncludeRetroactive bool        `json:"include_retroactive"`
+	OrderBy            string      `json:"order_by"` // "effective_date", "employee_id", "department"
+	Limit              *int        `json:"limit,omitempty"`
+	Offset             *int        `json:"offset,omitempty"`
 }
 
 // DateRange represents a time range for queries
@@ -61,11 +61,11 @@ type PositionTimelineResult struct {
 
 // QueryExecutionMetrics tracks query performance
 type QueryExecutionMetrics struct {
-	ExecutionTime    time.Duration `json:"execution_time"`
-	RecordsScanned   int          `json:"records_scanned"`
-	RecordsReturned  int          `json:"records_returned"`
-	IndexesUsed      []string     `json:"indexes_used"`
-	CacheHit         bool         `json:"cache_hit"`
+	ExecutionTime   time.Duration `json:"execution_time"`
+	RecordsScanned  int           `json:"records_scanned"`
+	RecordsReturned int           `json:"records_returned"`
+	IndexesUsed     []string      `json:"indexes_used"`
+	CacheHit        bool          `json:"cache_hit"`
 }
 
 // GetAdvancedPositionTimeline executes complex timeline queries with performance tracking
@@ -74,7 +74,7 @@ func (s *EnhancedTemporalQueryService) GetAdvancedPositionTimeline(
 	query PositionTimelineQuery,
 ) (*PositionTimelineResult, error) {
 	startTime := time.Now()
-	
+
 	s.logger.Info("Executing advanced position timeline query",
 		"tenant_id", query.TenantID,
 		"employee_count", len(query.EmployeeIDs),
@@ -241,13 +241,13 @@ func (s *EnhancedTemporalQueryService) GetPositionChangesInPeriod(
 	for i, pos := range positions {
 		events[i] = &PositionChangeEvent{
 			PositionHistoryID: uuid.MustParse(pos.ID),
-			EmployeeID:       uuid.MustParse(pos.EmployeeID),
-			ChangeType:       s.determineChangeType(ctx, pos),
-			EffectiveDate:    pos.EffectiveDate,
-			PreviousPosition: s.getPreviousPosition(ctx, tenantID, uuid.MustParse(pos.EmployeeID), pos.EffectiveDate),
-			NewPosition:      s.convertToSnapshot(pos),
-			IsRetroactive:    pos.IsRetroactive,
-			ChangeReason:     getStringValue(pos.ChangeReason),
+			EmployeeID:        uuid.MustParse(pos.EmployeeID),
+			ChangeType:        s.determineChangeType(ctx, pos),
+			EffectiveDate:     pos.EffectiveDate,
+			PreviousPosition:  s.getPreviousPosition(ctx, tenantID, uuid.MustParse(pos.EmployeeID), pos.EffectiveDate),
+			NewPosition:       s.convertToSnapshot(pos),
+			IsRetroactive:     pos.IsRetroactive,
+			ChangeReason:      getStringValue(pos.ChangeReason),
 		}
 	}
 
@@ -338,10 +338,10 @@ func (s *EnhancedTemporalQueryService) BatchCreatePositionSnapshots(
 		// Validate temporal consistency for each snapshot
 		if err := s.ValidateTemporalConsistency(ctx, tenantID, snapshotData.EmployeeID, snapshotData.EffectiveDate); err != nil {
 			result.Failed = append(result.Failed, BatchError{
-				Index:       i,
-				EmployeeID:  snapshotData.EmployeeID,
-				Error:       err.Error(),
-				ErrorType:   "TEMPORAL_CONFLICT",
+				Index:      i,
+				EmployeeID: snapshotData.EmployeeID,
+				Error:      err.Error(),
+				ErrorType:  "TEMPORAL_CONFLICT",
 			})
 			continue
 		}
@@ -350,10 +350,10 @@ func (s *EnhancedTemporalQueryService) BatchCreatePositionSnapshots(
 		position, err := s.createPositionSnapshotInTx(ctx, tx, tenantID, snapshotData)
 		if err != nil {
 			result.Failed = append(result.Failed, BatchError{
-				Index:       i,
-				EmployeeID:  snapshotData.EmployeeID,
-				Error:       err.Error(),
-				ErrorType:   "CREATE_FAILED",
+				Index:      i,
+				EmployeeID: snapshotData.EmployeeID,
+				Error:      err.Error(),
+				ErrorType:  "CREATE_FAILED",
 			})
 			continue
 		}
@@ -384,13 +384,13 @@ func (s *EnhancedTemporalQueryService) BatchCreatePositionSnapshots(
 
 func (s *EnhancedTemporalQueryService) convertToSnapshot(pos *entgo.PositionHistory) *PositionSnapshot {
 	snapshot := &PositionSnapshot{
-		PositionHistoryID:    uuid.MustParse(pos.ID),
-		EmployeeID:          uuid.MustParse(pos.EmployeeID),
-		PositionTitle:       pos.PositionTitle,
-		Department:          pos.Department,
-		EffectiveDate:       pos.EffectiveDate,
-		EndDate:             pos.EndDate,
-		IsRetroactive:       pos.IsRetroactive,
+		PositionHistoryID: uuid.MustParse(pos.ID),
+		EmployeeID:        uuid.MustParse(pos.EmployeeID),
+		PositionTitle:     pos.PositionTitle,
+		Department:        pos.Department,
+		EffectiveDate:     pos.EffectiveDate,
+		EndDate:           pos.EndDate,
+		IsRetroactive:     pos.IsRetroactive,
 	}
 
 	// Handle optional fields that exist in schema
@@ -404,14 +404,14 @@ func (s *EnhancedTemporalQueryService) convertToSnapshot(pos *entgo.PositionHist
 func (s *EnhancedTemporalQueryService) identifyUsedIndexes(query PositionTimelineQuery) []string {
 	// This is a simplified version - in production, you'd query EXPLAIN plans
 	indexes := []string{"idx_positionhistory_temporal"}
-	
+
 	if len(query.EmployeeIDs) > 0 {
 		indexes = append(indexes, "idx_positionhistory_employee")
 	}
 	if query.DateRange != nil {
 		indexes = append(indexes, "idx_positionhistory_date_range")
 	}
-	
+
 	return indexes
 }
 
@@ -425,20 +425,20 @@ func (s *EnhancedTemporalQueryService) determineChangeType(ctx context.Context, 
 	if err != nil {
 		return "INITIAL_HIRE"
 	}
-	
+
 	prevPos := s.getPreviousPosition(ctx, organizationUUID, employeeUUID, pos.EffectiveDate)
-	
+
 	if prevPos == nil {
 		return "INITIAL_HIRE"
 	}
-	
+
 	if prevPos.PositionTitle != pos.PositionTitle {
 		return "PROMOTION"
 	}
 	if prevPos.Department != pos.Department {
 		return "TRANSFER"
 	}
-	
+
 	return "INFORMATION_UPDATE"
 }
 
@@ -451,33 +451,33 @@ func (s *EnhancedTemporalQueryService) getPreviousPosition(ctx context.Context, 
 		).
 		Order(positionhistory.ByEffectiveDate(sql.OrderDesc())).
 		First(ctx)
-	
+
 	if err != nil {
 		return nil
 	}
-	
+
 	return s.convertToSnapshot(pos)
 }
 
 func (s *EnhancedTemporalQueryService) analyzePositionContinuity(positions []*entgo.PositionHistory, employeeID uuid.UUID, report *TemporalConsistencyReport) {
 	for i := 0; i < len(positions); i++ {
 		current := positions[i]
-		
+
 		// Check for gaps (previous position ended before current starts)
 		if i > 0 {
 			previous := positions[i-1]
 			if previous.EndDate != nil && previous.EndDate.Before(current.EffectiveDate.Add(-24*time.Hour)) {
 				report.Gaps = append(report.Gaps, PositionGap{
-					EmployeeID:      employeeID,
-					GapStart:        previous.EndDate.Add(24 * time.Hour),
-					GapEnd:          current.EffectiveDate.Add(-24 * time.Hour),
-					GapDuration:     current.EffectiveDate.Sub(*previous.EndDate),
+					EmployeeID:       employeeID,
+					GapStart:         previous.EndDate.Add(24 * time.Hour),
+					GapEnd:           current.EffectiveDate.Add(-24 * time.Hour),
+					GapDuration:      current.EffectiveDate.Sub(*previous.EndDate),
 					PreviousPosition: uuid.MustParse(previous.ID),
-					NextPosition:    uuid.MustParse(current.ID),
+					NextPosition:     uuid.MustParse(current.ID),
 				})
 			}
 		}
-		
+
 		// Check for overlaps (current position starts before previous ends)
 		if i > 0 {
 			previous := positions[i-1]
@@ -486,7 +486,7 @@ func (s *EnhancedTemporalQueryService) analyzePositionContinuity(positions []*en
 				if previous.EndDate != nil && previous.EndDate.Before(overlapEnd) {
 					overlapEnd = *previous.EndDate
 				}
-				
+
 				report.Overlaps = append(report.Overlaps, PositionOverlap{
 					EmployeeID:      employeeID,
 					OverlapStart:    current.EffectiveDate,
@@ -542,7 +542,7 @@ func (s *EnhancedTemporalQueryService) ValidateTemporalConsistency(ctx context.C
 	}
 
 	if conflictCount > 0 {
-		return fmt.Errorf("temporal conflict: position already exists for employee %s at date %s", 
+		return fmt.Errorf("temporal conflict: position already exists for employee %s at date %s",
 			employeeID, effectiveDate.Format("2006-01-02"))
 	}
 

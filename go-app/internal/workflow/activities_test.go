@@ -656,7 +656,7 @@ func TestActivities_TemporalIntegration(t *testing.T) {
 	}
 
 	env.RegisterActivity(activities.CreateEmployeeAccountActivity)
-	
+
 	result, err := activities.CreateEmployeeAccountActivity(context.Background(), createAccountReq)
 
 	assert.NoError(t, err)

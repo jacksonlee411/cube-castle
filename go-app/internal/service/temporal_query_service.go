@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
+	"entgo.io/ent/dialect/sql"
 	entgo "github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
-	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // TemporalQueryService provides temporal data query capabilities
@@ -29,7 +29,7 @@ func NewTemporalQueryService(client *entgo.Client, logger *logging.StructuredLog
 
 // PositionSnapshot represents a point-in-time view of an employee's position
 type PositionSnapshot struct {
-	PositionHistoryID    uuid.UUID  `json:"position_history_id"`
+	PositionHistoryID   uuid.UUID  `json:"position_history_id"`
 	EmployeeID          uuid.UUID  `json:"employee_id"`
 	PositionTitle       string     `json:"position_title"`
 	Department          string     `json:"department"`
@@ -78,7 +78,7 @@ func (s *TemporalQueryService) GetPositionAsOfDate(
 				"employee_id", employeeID,
 				"as_of_date", asOfDate,
 			)
-			return nil, fmt.Errorf("no position found for employee %s at date %s", 
+			return nil, fmt.Errorf("no position found for employee %s at date %s",
 				employeeID, asOfDate.Format("2006-01-02"))
 		}
 		s.logger.Error("Failed to query position as of date",
@@ -94,21 +94,21 @@ func (s *TemporalQueryService) GetPositionAsOfDate(
 	if err != nil {
 		return nil, fmt.Errorf("invalid employee ID format: %w", err)
 	}
-	
+
 	positionUUID, err := uuid.Parse(position.ID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid position ID format: %w", err)
 	}
 
 	snapshot := &PositionSnapshot{
-		PositionHistoryID:    positionUUID,
+		PositionHistoryID:   positionUUID,
 		EmployeeID:          employeeUUID,
 		PositionTitle:       position.PositionTitle,
 		Department:          position.Department,
-		JobLevel:            nil, // Field not available in current schema
-		Location:            nil, // Field not available in current schema
+		JobLevel:            nil,         // Field not available in current schema
+		Location:            nil,         // Field not available in current schema
 		EmploymentType:      "FULL_TIME", // Default value as field not available
-		ReportsToEmployeeID: nil, // Field not available in current schema
+		ReportsToEmployeeID: nil,         // Field not available in current schema
 		EffectiveDate:       position.EffectiveDate,
 		EndDate:             position.EndDate,
 		ChangeReason:        position.ChangeReason,
@@ -184,21 +184,21 @@ func (s *TemporalQueryService) GetPositionTimeline(
 		if err != nil {
 			return nil, fmt.Errorf("invalid employee ID format: %w", err)
 		}
-		
+
 		positionUUID, err := uuid.Parse(pos.ID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid position ID format: %w", err)
 		}
 
 		snapshot := &PositionSnapshot{
-			PositionHistoryID:    positionUUID,
+			PositionHistoryID:   positionUUID,
 			EmployeeID:          employeeUUID,
 			PositionTitle:       pos.PositionTitle,
 			Department:          pos.Department,
-			JobLevel:            nil, // Field not available in current schema
-			Location:            nil, // Field not available in current schema
+			JobLevel:            nil,         // Field not available in current schema
+			Location:            nil,         // Field not available in current schema
 			EmploymentType:      "FULL_TIME", // Default value as field not available
-			ReportsToEmployeeID: nil, // Field not available in current schema
+			ReportsToEmployeeID: nil,         // Field not available in current schema
 			EffectiveDate:       pos.EffectiveDate,
 			EndDate:             pos.EndDate,
 			ChangeReason:        pos.ChangeReason,
@@ -266,7 +266,7 @@ func (s *TemporalQueryService) ValidateTemporalConsistency(
 			"new_effective_date", newEffectiveDate,
 			"conflict_count", conflictCount,
 		)
-		return fmt.Errorf("temporal conflict: position already exists for employee %s at date %s", 
+		return fmt.Errorf("temporal conflict: position already exists for employee %s at date %s",
 			employeeID, newEffectiveDate.Format("2006-01-02"))
 	}
 
@@ -356,21 +356,21 @@ func (s *TemporalQueryService) CreatePositionSnapshot(
 	if err != nil {
 		return nil, fmt.Errorf("invalid employee ID format: %w", err)
 	}
-	
+
 	positionUUID, err := uuid.Parse(position.ID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid position ID format: %w", err)
 	}
 
 	snapshot := &PositionSnapshot{
-		PositionHistoryID:    positionUUID,
+		PositionHistoryID:   positionUUID,
 		EmployeeID:          employeeUUID,
 		PositionTitle:       position.PositionTitle,
 		Department:          position.Department,
-		JobLevel:            nil, // Field not available in current schema
-		Location:            nil, // Field not available in current schema
+		JobLevel:            nil,         // Field not available in current schema
+		Location:            nil,         // Field not available in current schema
 		EmploymentType:      "FULL_TIME", // Default value as field not available
-		ReportsToEmployeeID: nil, // Field not available in current schema
+		ReportsToEmployeeID: nil,         // Field not available in current schema
 		EffectiveDate:       position.EffectiveDate,
 		EndDate:             position.EndDate,
 		ChangeReason:        position.ChangeReason,

@@ -28,10 +28,10 @@ type Pagination struct {
 // PaginatedResponse 分页响应
 type PaginatedResponse[T any] struct {
 	Data       []T `json:"data"`
-	Total      int  `json:"total"`
-	Page       int  `json:"page"`
-	PageSize   int  `json:"page_size"`
-	TotalPages int  `json:"total_pages"`
+	Total      int `json:"total"`
+	Page       int `json:"page"`
+	PageSize   int `json:"page_size"`
+	TotalPages int `json:"total_pages"`
 }
 
 // APIResponse 标准API响应
@@ -79,14 +79,14 @@ type UserContext struct {
 
 // Event 事件基础结构
 type Event struct {
-	ID            uuid.UUID       `json:"id"`
-	AggregateID   uuid.UUID       `json:"aggregate_id"`
-	AggregateType string          `json:"aggregate_type"`
-	EventType     string          `json:"event_type"`
-	EventVersion  int             `json:"event_version"`
-	Payload       map[string]any  `json:"payload"`
-	Metadata      map[string]any  `json:"metadata,omitempty"`
-	CreatedAt     time.Time       `json:"created_at"`
+	ID            uuid.UUID      `json:"id"`
+	AggregateID   uuid.UUID      `json:"aggregate_id"`
+	AggregateType string         `json:"aggregate_type"`
+	EventType     string         `json:"event_type"`
+	EventVersion  int            `json:"event_version"`
+	Payload       map[string]any `json:"payload"`
+	Metadata      map[string]any `json:"metadata,omitempty"`
+	CreatedAt     time.Time      `json:"created_at"`
 }
 
 // ValidationError 验证错误
@@ -103,4 +103,4 @@ func (ve ValidationErrors) Error() string {
 		return "validation failed"
 	}
 	return ve[0].Message
-} 
+}

@@ -50,7 +50,7 @@ func NewOutboxProcessor(repo *Repository, eventProcessor *EventProcessor, config
 	if config == nil {
 		config = DefaultProcessorConfig()
 	}
-	
+
 	return &OutboxProcessor{
 		repo:           repo,
 		eventProcessor: eventProcessor,
@@ -61,13 +61,13 @@ func NewOutboxProcessor(repo *Repository, eventProcessor *EventProcessor, config
 // Start 启动处理器
 func (p *OutboxProcessor) Start(ctx context.Context) error {
 	log.Println("🚀 Starting Outbox Processor...")
-	
+
 	// 启动事件处理循环
 	go p.processEventsLoop(ctx)
-	
+
 	// 启动清理循环
 	go p.cleanupLoop(ctx)
-	
+
 	log.Println("✅ Outbox Processor started successfully")
 	return nil
 }
@@ -76,7 +76,7 @@ func (p *OutboxProcessor) Start(ctx context.Context) error {
 func (p *OutboxProcessor) processEventsLoop(ctx context.Context) {
 	ticker := time.NewTicker(p.config.PollingInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -94,7 +94,7 @@ func (p *OutboxProcessor) processEventsLoop(ctx context.Context) {
 func (p *OutboxProcessor) cleanupLoop(ctx context.Context) {
 	ticker := time.NewTicker(p.config.CleanupInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -114,13 +114,13 @@ func (p *OutboxProcessor) ProcessEvents(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get unprocessed events: %w", err)
 	}
-	
+
 	if len(events) == 0 {
 		return nil // 没有事件需要处理
 	}
-	
+
 	log.Printf("📦 Processing %d events", len(events))
-	
+
 	// 处理每个事件
 	for _, event := range events {
 		if err := p.processEvent(ctx, &event); err != nil {
@@ -128,7 +128,7 @@ func (p *OutboxProcessor) ProcessEvents(ctx context.Context) error {
 			// 继续处理下一个事件，不中断整个批次
 		}
 	}
-	
+
 	return nil
 }
 
@@ -141,17 +141,17 @@ func (p *OutboxProcessor) processEvent(ctx context.Context, event *Event) error 
 		// 标记为已处理，避免重复处理
 		return p.repo.MarkEventAsProcessed(ctx, event.ID)
 	}
-	
+
 	// 处理事件
 	if err := handler.HandleEvent(ctx, event); err != nil {
 		return fmt.Errorf("handler failed for event %s: %w", event.ID, err)
 	}
-	
+
 	// 标记事件为已处理
 	if err := p.repo.MarkEventAsProcessed(ctx, event.ID); err != nil {
 		return fmt.Errorf("failed to mark event as processed: %w", err)
 	}
-	
+
 	log.Printf("✅ Successfully processed event %s (%s)", event.ID, event.EventType)
 	return nil
 }
@@ -162,11 +162,11 @@ func (p *OutboxProcessor) cleanupProcessedEvents(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to cleanup processed events: %w", err)
 	}
-	
+
 	if deletedCount > 0 {
 		log.Printf("🧹 Cleaned up %d processed events", deletedCount)
 	}
-	
+
 	return nil
 }
 
@@ -176,10 +176,10 @@ func (p *OutboxProcessor) GetStats(ctx context.Context) (map[string]interface{},
 	if err != nil {
 		return nil, fmt.Errorf("failed to get event stats: %w", err)
 	}
-	
+
 	// 添加处理器配置信息
 	stats["processor_config"] = p.config
-	
+
 	return stats, nil
 }
 
@@ -195,11 +195,11 @@ func (p *OutboxProcessor) CreateEvent(ctx context.Context, req *CreateEventReque
 		Metadata:      req.Metadata,
 		CreatedAt:     time.Now(),
 	}
-	
+
 	if err := p.repo.CreateEvent(ctx, event); err != nil {
 		return nil, fmt.Errorf("failed to create event: %w", err)
 	}
-	
+
 	log.Printf("📝 Created event %s (%s)", event.ID, event.EventType)
 	return event, nil
 }
@@ -216,12 +216,12 @@ func (p *OutboxProcessor) CreateEventWithTransaction(ctx context.Context, tx pgx
 		Metadata:      req.Metadata,
 		CreatedAt:     time.Now(),
 	}
-	
+
 	query := `
 		INSERT INTO outbox.events (id, aggregate_id, aggregate_type, event_type, event_version, payload, metadata, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
-	
+
 	_, err := tx.Exec(ctx, query,
 		event.ID,
 		event.AggregateID,
@@ -232,11 +232,11 @@ func (p *OutboxProcessor) CreateEventWithTransaction(ctx context.Context, tx pgx
 		event.Metadata,
 		event.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event in transaction: %w", err)
 	}
-	
+
 	return event, nil
 }
 
@@ -246,16 +246,16 @@ func (p *OutboxProcessor) ReplayEvents(ctx context.Context, aggregateID uuid.UUI
 	if err != nil {
 		return fmt.Errorf("failed to get events for replay: %w", err)
 	}
-	
+
 	log.Printf("🔄 Replaying %d events for aggregate %s", len(events), aggregateID)
-	
+
 	for _, event := range events {
 		if err := p.processEvent(ctx, &event); err != nil {
 			log.Printf("❌ Failed to replay event %s: %v", event.ID, err)
 			return err
 		}
 	}
-	
+
 	log.Printf("✅ Successfully replayed %d events", len(events))
 	return nil
 }
@@ -266,16 +266,16 @@ func (p *OutboxProcessor) ReplayEventsByType(ctx context.Context, eventType stri
 	if err != nil {
 		return fmt.Errorf("failed to get events for replay: %w", err)
 	}
-	
+
 	log.Printf("🔄 Replaying %d events of type %s", len(events), eventType)
-	
+
 	for _, event := range events {
 		if err := p.processEvent(ctx, &event); err != nil {
 			log.Printf("❌ Failed to replay event %s: %v", event.ID, err)
 			return err
 		}
 	}
-	
+
 	log.Printf("✅ Successfully replayed %d events", len(events))
 	return nil
-} 
+}

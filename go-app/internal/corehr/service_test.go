@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/gaogu/cube-castle/go-app/generated/openapi"
+	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestService_CreateEmployee 测试创建员工（使用Mock模式）
@@ -18,7 +18,7 @@ func TestService_CreateEmployee(t *testing.T) {
 
 	ctx := context.Background()
 	tenantID := uuid.New()
-	
+
 	// 创建请求
 	req := &openapi.CreateEmployeeRequest{
 		EmployeeNumber: "EMP001",
@@ -166,12 +166,12 @@ func TestRepository_CreateEmployee(t *testing.T) {
 // TestOrganization_Structure 测试组织结构体
 func TestOrganization_Structure(t *testing.T) {
 	org := &Organization{
-		ID:       uuid.New(),
-		TenantID: uuid.New(),
-		Name:     "技术部",
-		Code:     "TECH",
-		Level:    1,
-		Status:   "active",
+		ID:        uuid.New(),
+		TenantID:  uuid.New(),
+		Name:      "技术部",
+		Code:      "TECH",
+		Level:     1,
+		Status:    "active",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

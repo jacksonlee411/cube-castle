@@ -16,7 +16,7 @@ type Repository interface {
 	// Project operations
 	CreateProject(ctx context.Context, project *EditorProject) error
 	GetProject(ctx context.Context, projectID uuid.UUID) (*EditorProject, error)
-	UpdateProject(ctx context.Context, project *EditorProject) error  
+	UpdateProject(ctx context.Context, project *EditorProject) error
 	ListProjects(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*EditorProject, error)
 	DeleteProject(ctx context.Context, projectID uuid.UUID) error
 
@@ -190,13 +190,13 @@ func (r *PostgreSQLRepository) GetTemplates(ctx context.Context, category string
 	query := `
 		SELECT id, name, description, category, content, tags, created_at, updated_at
 		FROM metacontract_editor_templates`
-	
+
 	args := []interface{}{}
 	if category != "" {
 		query += " WHERE category = $1"
 		args = append(args, category)
 	}
-	
+
 	query += " ORDER BY created_at DESC"
 
 	var templates []*ProjectTemplate
@@ -233,13 +233,13 @@ func (r *PostgreSQLRepository) GetUserSettings(ctx context.Context, userID uuid.
 
 	var settings EditorSettings
 	var settingsJSON []byte
-	
+
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(
 		&settings.UserID, &settings.Theme, &settings.FontSize,
 		&settings.AutoSave, &settings.AutoCompile, &settings.KeyBindings,
 		&settingsJSON, &settings.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}

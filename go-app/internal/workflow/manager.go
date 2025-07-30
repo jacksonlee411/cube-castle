@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/worker"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
+	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
 )
 
 const (
 	// TaskQueue 任务队列名称
 	TaskQueue = "cube-castle-corehr"
-	
+
 	// Workflow名称
 	EmployeeOnboardingWorkflowName = "EmployeeOnboardingWorkflow"
 	LeaveApprovalWorkflowName      = "LeaveApprovalWorkflow"
@@ -48,7 +48,7 @@ func NewTemporalManager(temporalHostPort string, logger *logging.StructuredLogge
 	// 注册工作流和活动
 	w.RegisterWorkflow(EmployeeOnboardingWorkflow)
 	w.RegisterWorkflow(LeaveApprovalWorkflow)
-	
+
 	w.RegisterActivity(activities.CreateEmployeeAccountActivity)
 	w.RegisterActivity(activities.AssignEquipmentAndPermissionsActivity)
 	w.RegisterActivity(activities.SendWelcomeEmailActivity)
@@ -70,7 +70,7 @@ func NewTemporalManager(temporalHostPort string, logger *logging.StructuredLogge
 // Start 启动Temporal Worker
 func (tm *TemporalManager) Start(ctx context.Context) error {
 	tm.logger.Info("Starting Temporal worker", "task_queue", TaskQueue)
-	
+
 	// 启动Worker
 	err := tm.worker.Start()
 	if err != nil {
@@ -92,14 +92,14 @@ func (tm *TemporalManager) Stop() {
 // StartEmployeeOnboarding 启动员工入职工作流
 func (tm *TemporalManager) StartEmployeeOnboarding(ctx context.Context, req EmployeeOnboardingRequest) (string, error) {
 	start := time.Now()
-	
+
 	workflowID := fmt.Sprintf("employee-onboarding-%s", req.EmployeeID.String())
-	
+
 	workflowOptions := client.StartWorkflowOptions{
-		ID:        workflowID,
-		TaskQueue: TaskQueue,
-		WorkflowExecutionTimeout: time.Hour * 24, // 24小时超时
-		WorkflowRunTimeout:       time.Hour * 2,  // 单次运行2小时超时
+		ID:                       workflowID,
+		TaskQueue:                TaskQueue,
+		WorkflowExecutionTimeout: time.Hour * 24,  // 24小时超时
+		WorkflowRunTimeout:       time.Hour * 2,   // 单次运行2小时超时
 		WorkflowTaskTimeout:      time.Minute * 5, // 任务5分钟超时
 	}
 
@@ -133,15 +133,15 @@ func (tm *TemporalManager) StartEmployeeOnboarding(ctx context.Context, req Empl
 // StartLeaveApproval 启动休假审批工作流
 func (tm *TemporalManager) StartLeaveApproval(ctx context.Context, req LeaveApprovalRequest) (string, error) {
 	start := time.Now()
-	
+
 	workflowID := fmt.Sprintf("leave-approval-%s", req.RequestID.String())
-	
+
 	workflowOptions := client.StartWorkflowOptions{
-		ID:        workflowID,
-		TaskQueue: TaskQueue,
+		ID:                       workflowID,
+		TaskQueue:                TaskQueue,
 		WorkflowExecutionTimeout: time.Hour * 24 * 8, // 8天超时（包含等待审批时间）
 		WorkflowRunTimeout:       time.Hour * 24 * 8, // 单次运行8天超时
-		WorkflowTaskTimeout:      time.Minute * 5,     // 任务5分钟超时
+		WorkflowTaskTimeout:      time.Minute * 5,    // 任务5分钟超时
 	}
 
 	tm.logger.Info("Starting leave approval workflow",
@@ -215,9 +215,9 @@ func (tm *TemporalManager) GetWorkflowStatus(ctx context.Context, workflowID str
 func (tm *TemporalManager) ListWorkflows(ctx context.Context, filter string, pageSize int) ([]*WorkflowStatusInfo, error) {
 	// 这是一个简化的实现
 	// 实际项目中应该使用Temporal的List API
-	
+
 	tm.logger.Info("Listing workflows", "filter", filter, "page_size", pageSize)
-	
+
 	// 暂时返回空列表，实际实现需要调用Temporal的API
 	return []*WorkflowStatusInfo{}, nil
 }
@@ -225,7 +225,7 @@ func (tm *TemporalManager) ListWorkflows(ctx context.Context, filter string, pag
 // CancelWorkflow 取消工作流
 func (tm *TemporalManager) CancelWorkflow(ctx context.Context, workflowID string, reason string) error {
 	tm.logger.Info("Cancelling workflow", "workflow_id", workflowID, "reason", reason)
-	
+
 	err := tm.client.CancelWorkflow(ctx, workflowID, "")
 	if err != nil {
 		tm.logger.LogError("cancel_workflow", "Failed to cancel workflow", err, map[string]interface{}{
@@ -245,7 +245,7 @@ func (tm *TemporalManager) HealthCheck(ctx context.Context) error {
 	if tm.client == nil {
 		return fmt.Errorf("temporal client is not initialized")
 	}
-	
+
 	return nil
 }
 
@@ -264,6 +264,6 @@ type WorkflowStatusInfo struct {
 // 辅助函数
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && s[0:len(substr)] == substr ||
-		   len(s) > len(substr) && s[len(s)-len(substr):] == substr ||
-		   len(s) > len(substr) && s[len(s)-len(substr)-1:len(s)-1] == substr
+		len(s) > len(substr) && s[len(s)-len(substr):] == substr ||
+		len(s) > len(substr) && s[len(s)-len(substr)-1:len(s)-1] == substr
 }

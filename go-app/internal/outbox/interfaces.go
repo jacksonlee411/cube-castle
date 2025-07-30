@@ -58,4 +58,4 @@ type LeaveRequestInfo struct {
 	LeaveType  string
 	Reason     string
 	Status     string
-} 
+}

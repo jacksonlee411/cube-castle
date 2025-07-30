@@ -7,16 +7,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/enttest"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/service"
 	"github.com/gaogu/cube-castle/go-app/internal/workflow"
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 // MockTemporalQueryService provides a mock implementation for TemporalQueryService
@@ -84,14 +84,14 @@ type PositionHistoryResolverTestSuite struct {
 func (suite *PositionHistoryResolverTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.logger = &logging.StructuredLogger{} // Simplified logger for tests
-	
+
 	// Create in-memory SQLite database for testing
 	suite.entClient = enttest.Open(suite.T(), "sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
-	
+
 	// Create mocks
 	suite.mockTemporalQuery = &MockTemporalQueryService{}
 	suite.mockWorkflowClient = &MockWorkflowClient{}
-	
+
 	// Initialize resolver
 	suite.resolver = NewPositionHistoryResolver(
 		suite.entClient,
@@ -153,7 +153,7 @@ func (suite *PositionHistoryResolverTestSuite) TestCurrentPosition() {
 	assert.Equal(suite.T(), snapshot.Department, position.Department)
 	assert.Equal(suite.T(), EmploymentType(snapshot.EmploymentType), position.EmploymentType)
 	assert.Equal(suite.T(), snapshot.IsRetroactive, position.IsRetroactive)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
@@ -191,7 +191,7 @@ func (suite *PositionHistoryResolverTestSuite) TestCurrentPositionWithDate() {
 	assert.NotNil(suite.T(), position)
 	assert.Equal(suite.T(), snapshot.PositionTitle, position.PositionTitle)
 	assert.Equal(suite.T(), snapshot.JobLevel, position.JobLevel)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
@@ -256,19 +256,19 @@ func (suite *PositionHistoryResolverTestSuite) TestPositionHistory() {
 	assert.NotNil(suite.T(), connection)
 	assert.Len(suite.T(), connection.Edges, 2)
 	assert.Equal(suite.T(), 2, connection.TotalCount)
-	
+
 	// Verify first position
 	firstPos := connection.Edges[0].Node
 	assert.Equal(suite.T(), snapshots[0].PositionTitle, firstPos.PositionTitle)
 	assert.Equal(suite.T(), snapshots[0].JobLevel, firstPos.JobLevel)
 	assert.NotNil(suite.T(), firstPos.EndDate)
-	
+
 	// Verify second position
 	secondPos := connection.Edges[1].Node
 	assert.Equal(suite.T(), snapshots[1].PositionTitle, secondPos.PositionTitle)
 	assert.Equal(suite.T(), snapshots[1].JobLevel, secondPos.JobLevel)
 	assert.Nil(suite.T(), secondPos.EndDate)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
@@ -303,7 +303,7 @@ func (suite *PositionHistoryResolverTestSuite) TestPositionHistoryWithDateRange(
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), connection)
 	assert.Len(suite.T(), connection.Edges, 1)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
@@ -341,7 +341,7 @@ func (suite *PositionHistoryResolverTestSuite) TestPositionHistoryWithLimit() {
 	assert.NotNil(suite.T(), connection)
 	assert.Len(suite.T(), connection.Edges, 1) // Should be limited to 1
 	assert.Equal(suite.T(), snapshots[0].PositionTitle, connection.Edges[0].Node.PositionTitle)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
@@ -385,12 +385,12 @@ func (suite *PositionHistoryResolverTestSuite) TestPositionTimeline() {
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), positions)
 	assert.Len(suite.T(), positions, 3)
-	
+
 	// Verify chronological order
 	assert.Equal(suite.T(), "初级工程师", positions[0].PositionTitle)
 	assert.Equal(suite.T(), "中级工程师", positions[1].PositionTitle)
 	assert.Equal(suite.T(), "高级工程师", positions[2].PositionTitle)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
@@ -420,14 +420,14 @@ func (suite *PositionHistoryResolverTestSuite) TestPositionTimelineWithMaxEntrie
 	assert.Len(suite.T(), positions, 2) // Should be limited to 2
 	assert.Equal(suite.T(), "职位1", positions[0].PositionTitle)
 	assert.Equal(suite.T(), "职位2", positions[1].PositionTitle)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
 // TestCreatePositionChange tests the CreatePositionChange mutation
 func (suite *PositionHistoryResolverTestSuite) TestCreatePositionChange() {
 	employeeID := uuid.New()
-	
+
 	input := CreatePositionChangeInput{
 		EmployeeID: employeeID.String(),
 		PositionData: PositionDataInput{
@@ -455,7 +455,7 @@ func (suite *PositionHistoryResolverTestSuite) TestCreatePositionChange() {
 	assert.NotNil(suite.T(), payload)
 	assert.NotNil(suite.T(), payload.WorkflowID)
 	assert.Empty(suite.T(), payload.Errors)
-	
+
 	suite.mockWorkflowClient.AssertExpectations(suite.T())
 }
 
@@ -476,7 +476,7 @@ func (suite *PositionHistoryResolverTestSuite) TestValidatePositionChange() {
 	assert.True(suite.T(), validation.IsValid)
 	assert.Empty(suite.T(), validation.Errors)
 	assert.Empty(suite.T(), validation.Warnings)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
@@ -499,7 +499,7 @@ func (suite *PositionHistoryResolverTestSuite) TestValidatePositionChangeWithCon
 	assert.Len(suite.T(), validation.Errors, 1)
 	assert.Equal(suite.T(), "TEMPORAL_CONFLICT", validation.Errors[0].Code)
 	assert.Equal(suite.T(), "effective_date", *validation.Errors[0].Field)
-	
+
 	suite.mockTemporalQuery.AssertExpectations(suite.T())
 }
 
@@ -597,9 +597,9 @@ func TestPositionHistoryResolverSuite(t *testing.T) {
 // SAMResolverTestSuite provides test suite for SAMResolver
 type SAMResolverTestSuite struct {
 	suite.Suite
-	resolver    *SAMResolver
-	mockSAM     *MockSAMService
-	ctx         context.Context
+	resolver *SAMResolver
+	mockSAM  *MockSAMService
+	ctx      context.Context
 }
 
 // SetupSuite runs once before all tests
@@ -660,13 +660,13 @@ func (suite *SAMResolverTestSuite) TestGetSituationalContext() {
 			OverallRiskScore: 0.45,
 			KeyPersonRisks: []service.KeyPersonRisk{
 				{
-					EmployeeID:     "emp-001",
-					EmployeeName:   "张三",
-					Position:       "技术总监",
-					Department:     "技术部",
-					RiskScore:      0.75,
-					RiskFactors:    []string{"单点依赖", "知识垄断"},
-					BusinessImpact: "技术决策延迟",
+					EmployeeID:      "emp-001",
+					EmployeeName:    "张三",
+					Position:        "技术总监",
+					Department:      "技术部",
+					RiskScore:       0.75,
+					RiskFactors:     []string{"单点依赖", "知识垄断"},
+					BusinessImpact:  "技术决策延迟",
 					MitigationSteps: []string{"知识分享", "副手培养"},
 				},
 			},
@@ -709,7 +709,7 @@ func (suite *SAMResolverTestSuite) TestGetSituationalContext() {
 	assert.Equal(suite.T(), 0.72, response.TalentMetrics.TalentPipelineHealth)
 	assert.Equal(suite.T(), 0.45, response.RiskAssessment.OverallRiskScore)
 	assert.Len(suite.T(), response.Recommendations, 1)
-	
+
 	suite.mockSAM.AssertExpectations(suite.T())
 }
 

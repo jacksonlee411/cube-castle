@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/schema"
 	_ "github.com/lib/pq"
-	
+
 	"github.com/gaogu/cube-castle/go-app/ent"
 )
 
@@ -21,7 +21,7 @@ func main() {
 	defer client.Close()
 
 	ctx := context.Background()
-	
+
 	// Create the schema DDL
 	var w io.Writer = os.Stdout
 	if len(os.Args) > 1 && os.Args[1] == "--file" {
@@ -32,9 +32,9 @@ func main() {
 		defer file.Close()
 		w = file
 	}
-	
+
 	// Generate and output the schema
-	err = client.Schema.WriteTo(ctx, w, 
+	err = client.Schema.WriteTo(ctx, w,
 		schema.WithDropIndex(true),
 		schema.WithDropColumn(true),
 		schema.WithForeignKeys(true),
@@ -42,7 +42,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed generating schema: %v", err)
 	}
-	
+
 	if len(os.Args) > 1 && os.Args[1] == "--file" {
 		fmt.Println("Database schema written to ent/migrate/schema.sql")
 	}

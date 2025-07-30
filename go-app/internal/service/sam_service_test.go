@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gaogu/cube-castle/go-app/ent"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/enttest"
+	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"github.com/gaogu/cube-castle/go-app/ent"
-	"github.com/gaogu/cube-castle/go-app/ent/enttest"
-	"github.com/gaogu/cube-castle/go-app/ent/employee"
-	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // MockNeo4jServiceForSAM provides a mock implementation for Neo4j service in SAM tests
@@ -66,24 +66,24 @@ func (m *MockNeo4jServiceForSAM) Close(ctx context.Context) error {
 // SAMServiceTestSuite provides test suite for SAMService
 type SAMServiceTestSuite struct {
 	suite.Suite
-	service      *SAMService
-	entClient    *ent.Client
-	mockNeo4j    *MockNeo4jServiceForSAM
-	ctx          context.Context
-	logger       *log.Logger
+	service   *SAMService
+	entClient *ent.Client
+	mockNeo4j *MockNeo4jServiceForSAM
+	ctx       context.Context
+	logger    *log.Logger
 }
 
 // SetupSuite runs once before all tests
 func (suite *SAMServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.logger = log.New(os.Stdout, "TEST: ", log.LstdFlags)
-	
+
 	// Create in-memory SQLite database for testing
 	suite.entClient = enttest.Open(suite.T(), "sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
-	
+
 	// Create mock Neo4j service
 	suite.mockNeo4j = &MockNeo4jServiceForSAM{}
-	
+
 	// Initialize SAM service
 	suite.service = NewSAMService(suite.entClient, suite.mockNeo4j, suite.logger)
 }
@@ -98,7 +98,7 @@ func (suite *SAMServiceTestSuite) SetupTest() {
 	// Clean database state
 	suite.entClient.PositionHistory.Delete().ExecX(suite.ctx)
 	suite.entClient.Employee.Delete().ExecX(suite.ctx)
-	
+
 	// Reset mock expectations
 	suite.mockNeo4j.ExpectedCalls = nil
 }
@@ -113,35 +113,35 @@ func (suite *SAMServiceTestSuite) TestGenerateSituationalContext() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), context)
-	
+
 	// Verify context structure
 	assert.NotZero(suite.T(), context.Timestamp)
 	assert.NotEmpty(suite.T(), context.AlertLevel)
 	assert.Contains(suite.T(), []string{"GREEN", "YELLOW", "ORANGE", "RED"}, context.AlertLevel)
-	
+
 	// Verify organization health metrics
 	assert.GreaterOrEqual(suite.T(), context.OrganizationHealth.OverallHealthScore, 0.0)
 	assert.LessOrEqual(suite.T(), context.OrganizationHealth.OverallHealthScore, 1.0)
 	assert.NotEmpty(suite.T(), context.OrganizationHealth.DepartmentHealthMap)
 	assert.NotEmpty(suite.T(), context.OrganizationHealth.TrendAnalysis.KeyDrivers)
-	
+
 	// Verify talent metrics
 	assert.GreaterOrEqual(suite.T(), context.TalentMetrics.TalentPipelineHealth, 0.0)
 	assert.LessOrEqual(suite.T(), context.TalentMetrics.TalentPipelineHealth, 1.0)
 	assert.NotEmpty(suite.T(), context.TalentMetrics.SkillGapAnalysis)
 	assert.NotEmpty(suite.T(), context.TalentMetrics.PerformanceDistribution.PerformanceGaps)
-	
+
 	// Verify risk assessment
 	assert.GreaterOrEqual(suite.T(), context.RiskAssessment.OverallRiskScore, 0.0)
 	assert.LessOrEqual(suite.T(), context.RiskAssessment.OverallRiskScore, 1.0)
 	assert.NotEmpty(suite.T(), context.RiskAssessment.KeyPersonRisks)
 	assert.NotEmpty(suite.T(), context.RiskAssessment.ComplianceRisks)
-	
+
 	// Verify opportunity analysis
 	assert.NotEmpty(suite.T(), context.OpportunityAnalysis.TalentOptimization)
 	assert.NotEmpty(suite.T(), context.OpportunityAnalysis.ProcessImprovements)
 	assert.NotEmpty(suite.T(), context.OpportunityAnalysis.StructuralChanges)
-	
+
 	// Verify recommendations
 	assert.NotEmpty(suite.T(), context.Recommendations)
 	for _, rec := range context.Recommendations {
@@ -165,7 +165,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOrganizationHealth() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orgHealth)
-	
+
 	// Verify health metrics
 	assert.GreaterOrEqual(suite.T(), orgHealth.OverallHealthScore, 0.0)
 	assert.LessOrEqual(suite.T(), orgHealth.OverallHealthScore, 1.0)
@@ -175,7 +175,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOrganizationHealth() {
 	assert.LessOrEqual(suite.T(), orgHealth.EmployeeEngagement, 1.0)
 	assert.GreaterOrEqual(suite.T(), orgHealth.ProductivityIndex, 0.0)
 	assert.LessOrEqual(suite.T(), orgHealth.ProductivityIndex, 1.0)
-	
+
 	// Verify department health map
 	assert.NotEmpty(suite.T(), orgHealth.DepartmentHealthMap)
 	for deptName, deptHealth := range orgHealth.DepartmentHealthMap {
@@ -187,7 +187,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOrganizationHealth() {
 		assert.GreaterOrEqual(suite.T(), deptHealth.ManagerEffectiveness, 0.0)
 		assert.LessOrEqual(suite.T(), deptHealth.ManagerEffectiveness, 1.0)
 	}
-	
+
 	// Verify trend analysis
 	assert.Contains(suite.T(), []string{"IMPROVING", "STABLE", "DECLINING"}, orgHealth.TrendAnalysis.Trend)
 	assert.GreaterOrEqual(suite.T(), orgHealth.TrendAnalysis.TrendStrength, 0.0)
@@ -207,7 +207,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeTalentMetrics() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), talentMetrics)
-	
+
 	// Verify talent metrics
 	assert.GreaterOrEqual(suite.T(), talentMetrics.TalentPipelineHealth, 0.0)
 	assert.LessOrEqual(suite.T(), talentMetrics.TalentPipelineHealth, 1.0)
@@ -216,7 +216,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeTalentMetrics() {
 	assert.GreaterOrEqual(suite.T(), talentMetrics.LearningDevelopmentROI, 0.0)
 	assert.GreaterOrEqual(suite.T(), talentMetrics.InternalMobilityRate, 0.0)
 	assert.LessOrEqual(suite.T(), talentMetrics.InternalMobilityRate, 1.0)
-	
+
 	// Verify skill gap analysis
 	assert.NotEmpty(suite.T(), talentMetrics.SkillGapAnalysis)
 	for skillArea, gapSize := range talentMetrics.SkillGapAnalysis {
@@ -224,7 +224,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeTalentMetrics() {
 		assert.GreaterOrEqual(suite.T(), gapSize, 0.0)
 		assert.LessOrEqual(suite.T(), gapSize, 1.0)
 	}
-	
+
 	// Verify performance distribution
 	perf := talentMetrics.PerformanceDistribution
 	assert.GreaterOrEqual(suite.T(), perf.HighPerformers, 0.0)
@@ -233,11 +233,11 @@ func (suite *SAMServiceTestSuite) TestAnalyzeTalentMetrics() {
 	assert.LessOrEqual(suite.T(), perf.SolidPerformers, 1.0)
 	assert.GreaterOrEqual(suite.T(), perf.LowPerformers, 0.0)
 	assert.LessOrEqual(suite.T(), perf.LowPerformers, 1.0)
-	
+
 	// Performance percentages should approximately sum to 1
 	total := perf.HighPerformers + perf.SolidPerformers + perf.LowPerformers
 	assert.InDelta(suite.T(), 1.0, total, 0.1)
-	
+
 	assert.NotEmpty(suite.T(), perf.PerformanceGaps)
 }
 
@@ -248,11 +248,11 @@ func (suite *SAMServiceTestSuite) TestPerformRiskAssessment() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), riskAssessment)
-	
+
 	// Verify overall risk score
 	assert.GreaterOrEqual(suite.T(), riskAssessment.OverallRiskScore, 0.0)
 	assert.LessOrEqual(suite.T(), riskAssessment.OverallRiskScore, 1.0)
-	
+
 	// Verify key person risks
 	assert.NotEmpty(suite.T(), riskAssessment.KeyPersonRisks)
 	for _, risk := range riskAssessment.KeyPersonRisks {
@@ -266,7 +266,7 @@ func (suite *SAMServiceTestSuite) TestPerformRiskAssessment() {
 		assert.NotEmpty(suite.T(), risk.MitigationSteps)
 		assert.NotZero(suite.T(), risk.LastAssessment)
 	}
-	
+
 	// Verify compliance risks
 	assert.NotEmpty(suite.T(), riskAssessment.ComplianceRisks)
 	for _, risk := range riskAssessment.ComplianceRisks {
@@ -277,7 +277,7 @@ func (suite *SAMServiceTestSuite) TestPerformRiskAssessment() {
 		assert.NotEmpty(suite.T(), risk.RemediationPlan)
 		assert.NotZero(suite.T(), risk.Deadline)
 	}
-	
+
 	// Verify operational risks
 	assert.NotEmpty(suite.T(), riskAssessment.OperationalRisks)
 	for _, risk := range riskAssessment.OperationalRisks {
@@ -291,7 +291,7 @@ func (suite *SAMServiceTestSuite) TestPerformRiskAssessment() {
 		assert.LessOrEqual(suite.T(), risk.RiskScore, 1.0)
 		assert.NotEmpty(suite.T(), risk.ContingencyPlan)
 	}
-	
+
 	// Verify talent flight risks
 	assert.NotEmpty(suite.T(), riskAssessment.TalentFlightRisks)
 	for _, risk := range riskAssessment.TalentFlightRisks {
@@ -303,7 +303,7 @@ func (suite *SAMServiceTestSuite) TestPerformRiskAssessment() {
 		assert.NotEmpty(suite.T(), risk.RetentionActions)
 		assert.NotEmpty(suite.T(), risk.TimeFrame)
 	}
-	
+
 	// Verify risk mitigation
 	assert.NotEmpty(suite.T(), riskAssessment.RiskMitigation)
 	for _, mitigation := range riskAssessment.RiskMitigation {
@@ -323,7 +323,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOpportunities() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), opportunities)
-	
+
 	// Verify talent optimization opportunities
 	assert.NotEmpty(suite.T(), opportunities.TalentOptimization)
 	for _, opt := range opportunities.TalentOptimization {
@@ -333,7 +333,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOpportunities() {
 		assert.NotEmpty(suite.T(), opt.ExpectedBenefit)
 		assert.NotEmpty(suite.T(), opt.ImplementationSteps)
 	}
-	
+
 	// Verify process improvements
 	assert.NotEmpty(suite.T(), opportunities.ProcessImprovements)
 	for _, improvement := range opportunities.ProcessImprovements {
@@ -343,7 +343,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOpportunities() {
 		assert.GreaterOrEqual(suite.T(), improvement.EfficiencyGain, 0.0)
 		assert.NotEmpty(suite.T(), improvement.ImplementationComplexity)
 	}
-	
+
 	// Verify structural changes
 	assert.NotEmpty(suite.T(), opportunities.StructuralChanges)
 	for _, change := range opportunities.StructuralChanges {
@@ -353,7 +353,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOpportunities() {
 		assert.NotEmpty(suite.T(), change.AffectedTeams)
 		assert.NotEmpty(suite.T(), change.ImplementationPhases)
 	}
-	
+
 	// Verify investment priorities
 	assert.NotEmpty(suite.T(), opportunities.InvestmentPriorities)
 	for _, priority := range opportunities.InvestmentPriorities {
@@ -363,7 +363,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOpportunities() {
 		assert.GreaterOrEqual(suite.T(), priority.ExpectedROI, 0.0)
 		assert.NotEmpty(suite.T(), priority.Justification)
 	}
-	
+
 	// Verify capability gaps
 	assert.NotEmpty(suite.T(), opportunities.CapabilityGaps)
 	for _, gap := range opportunities.CapabilityGaps {
@@ -384,15 +384,15 @@ func (suite *SAMServiceTestSuite) TestGenerateRecommendations() {
 		OverallHealthScore: 0.65, // Below threshold to trigger recommendation
 		TurnoverRate:       0.15,
 	}
-	
+
 	talentMetrics := &TalentManagementMetrics{
 		SuccessionReadiness: 0.55, // Below threshold to trigger recommendation
 	}
-	
+
 	riskAssessment := &RiskAssessmentResult{
 		OverallRiskScore: 0.75, // Above threshold to trigger critical recommendation
 	}
-	
+
 	opportunities := &OpportunityAnalysisResult{}
 
 	// Test recommendation generation
@@ -401,25 +401,25 @@ func (suite *SAMServiceTestSuite) TestGenerateRecommendations() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), recommendations)
-	
+
 	// Verify recommendations are sorted by priority and confidence
 	for i := 1; i < len(recommendations); i++ {
 		prev := recommendations[i-1]
 		curr := recommendations[i]
-		
+
 		priorityScore := map[string]int{"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
 		prevScore := priorityScore[prev.Priority]
 		currScore := priorityScore[curr.Priority]
-		
+
 		// Current should not have higher priority than previous
 		assert.LessOrEqual(suite.T(), currScore, prevScore)
-		
+
 		// If same priority, current should not have higher confidence
 		if prevScore == currScore {
 			assert.LessOrEqual(suite.T(), curr.Confidence, prev.Confidence)
 		}
 	}
-	
+
 	// Verify recommendation structure
 	for _, rec := range recommendations {
 		assert.NotEmpty(suite.T(), rec.ID)
@@ -431,7 +431,7 @@ func (suite *SAMServiceTestSuite) TestGenerateRecommendations() {
 		assert.NotEmpty(suite.T(), rec.BusinessImpact)
 		assert.GreaterOrEqual(suite.T(), rec.Confidence, 0.0)
 		assert.LessOrEqual(suite.T(), rec.Confidence, 1.0)
-		
+
 		// Verify implementation plan
 		impl := rec.Implementation
 		assert.NotEmpty(suite.T(), impl.Timeline)
@@ -439,7 +439,7 @@ func (suite *SAMServiceTestSuite) TestGenerateRecommendations() {
 		assert.NotEmpty(suite.T(), impl.Resources)
 		assert.NotEmpty(suite.T(), impl.KeyMilestones)
 		assert.NotEmpty(suite.T(), impl.SuccessCriteria)
-		
+
 		// Verify ROI estimate
 		roi := rec.ROIEstimate
 		assert.GreaterOrEqual(suite.T(), roi.CostSavings, 0.0)
@@ -455,11 +455,11 @@ func (suite *SAMServiceTestSuite) TestGenerateRecommendations() {
 // TestDetermineAlertLevel tests alert level determination logic
 func (suite *SAMServiceTestSuite) TestDetermineAlertLevel() {
 	testCases := []struct {
-		name           string
-		healthScore    float64
-		riskScore      float64
-		turnoverRate   float64
-		expectedAlert  string
+		name          string
+		healthScore   float64
+		riskScore     float64
+		turnoverRate  float64
+		expectedAlert string
 	}{
 		{
 			name:          "Green - Low risk, high health",
@@ -497,7 +497,7 @@ func (suite *SAMServiceTestSuite) TestDetermineAlertLevel() {
 				OverallHealthScore: tc.healthScore,
 				TurnoverRate:       tc.turnoverRate,
 			}
-			
+
 			riskAssessment := &RiskAssessmentResult{
 				OverallRiskScore: tc.riskScore,
 			}
@@ -522,7 +522,7 @@ func (suite *SAMServiceTestSuite) TestCreateImplementationPlan() {
 	assert.NotEmpty(suite.T(), plan.Resources)
 	assert.NotEmpty(suite.T(), plan.KeyMilestones)
 	assert.NotEmpty(suite.T(), plan.SuccessCriteria)
-	
+
 	// Verify phases
 	assert.Len(suite.T(), plan.Phases, 3) // Should have 3 phases
 	for i, phase := range plan.Phases {
@@ -531,13 +531,13 @@ func (suite *SAMServiceTestSuite) TestCreateImplementationPlan() {
 		assert.NotEmpty(suite.T(), phase.Duration)
 		assert.NotEmpty(suite.T(), phase.Activities)
 		assert.NotEmpty(suite.T(), phase.Deliverables)
-		
+
 		if i > 0 {
 			// Later phases should have dependencies
 			assert.NotEmpty(suite.T(), phase.Dependencies)
 		}
 	}
-	
+
 	// Verify resources
 	for _, resource := range plan.Resources {
 		assert.NotEmpty(suite.T(), resource.ResourceType)
@@ -545,7 +545,7 @@ func (suite *SAMServiceTestSuite) TestCreateImplementationPlan() {
 		assert.NotEmpty(suite.T(), resource.SkillRequirements)
 		assert.NotEmpty(suite.T(), resource.TimeCommitment)
 	}
-	
+
 	// Verify milestones
 	for _, milestone := range plan.KeyMilestones {
 		assert.NotEmpty(suite.T(), milestone.Name)
@@ -562,7 +562,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeOrganizationHealthWithNoData() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orgHealth)
-	
+
 	// Should handle empty data gracefully
 	assert.Equal(suite.T(), 0.0, orgHealth.OverallHealthScore) // No departments = 0 health
 	assert.Empty(suite.T(), orgHealth.DepartmentHealthMap)
@@ -576,7 +576,7 @@ func (suite *SAMServiceTestSuite) TestAnalyzeTalentMetricsWithNoEmployees() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), talentMetrics)
-	
+
 	// Should return default metrics even with no employees
 	assert.GreaterOrEqual(suite.T(), talentMetrics.TalentPipelineHealth, 0.0)
 	assert.NotEmpty(suite.T(), talentMetrics.SkillGapAnalysis)
@@ -619,7 +619,7 @@ func (suite *SAMServiceTestSuite) TestPerformanceWithLargeDataset() {
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), context)
 	assert.Less(suite.T(), duration, 5*time.Second, "SAM context generation should complete within 5 seconds for large dataset")
-	
+
 	// Verify the analysis handles large dataset correctly
 	assert.NotEmpty(suite.T(), context.OrganizationHealth.DepartmentHealthMap)
 	assert.NotEmpty(suite.T(), context.Recommendations)
@@ -724,7 +724,7 @@ func BenchmarkGenerateSituationalContext(b *testing.B) {
 	logger := log.New(os.Stdout, "BENCH: ", log.LstdFlags)
 	entClient := enttest.Open(b, "sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
 	defer entClient.Close()
-	
+
 	mockNeo4j := &MockNeo4jServiceForSAM{}
 	service := NewSAMService(entClient, mockNeo4j, logger)
 	ctx := context.Background()
@@ -763,7 +763,7 @@ func BenchmarkAnalyzeOrganizationHealth(b *testing.B) {
 	logger := log.New(os.Stdout, "BENCH: ", log.LstdFlags)
 	entClient := enttest.Open(b, "sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
 	defer entClient.Close()
-	
+
 	mockNeo4j := &MockNeo4jServiceForSAM{}
 	service := NewSAMService(entClient, mockNeo4j, logger)
 	ctx := context.Background()

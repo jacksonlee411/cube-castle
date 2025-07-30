@@ -29,10 +29,10 @@ func (r *Repository) GetEmployeeByID(ctx context.Context, tenantID, employeeID u
 		`SELECT id, tenant_id, employee_number, first_name, last_name, email, phone_number, position, department, hire_date, manager_id, status, created_at, updated_at 
 		 FROM corehr.employees WHERE id = $1 AND tenant_id = $2`,
 		employeeID, tenantID).Scan(
-		&employee.ID, &employee.TenantID, &employee.EmployeeNumber, &employee.FirstName, &employee.LastName, 
-		&employee.Email, &employee.PhoneNumber, &employee.Position, &employee.Department, &employee.HireDate, 
+		&employee.ID, &employee.TenantID, &employee.EmployeeNumber, &employee.FirstName, &employee.LastName,
+		&employee.Email, &employee.PhoneNumber, &employee.Position, &employee.Department, &employee.HireDate,
 		&employee.ManagerID, &employee.Status, &employee.CreatedAt, &employee.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -49,10 +49,10 @@ func (r *Repository) GetEmployeeByNumber(ctx context.Context, tenantID uuid.UUID
 		`SELECT id, tenant_id, employee_number, first_name, last_name, email, phone_number, position, department, hire_date, manager_id, status, created_at, updated_at 
 		 FROM corehr.employees WHERE employee_number = $1 AND tenant_id = $2`,
 		employeeNumber, tenantID).Scan(
-		&employee.ID, &employee.TenantID, &employee.EmployeeNumber, &employee.FirstName, &employee.LastName, 
-		&employee.Email, &employee.PhoneNumber, &employee.Position, &employee.Department, &employee.HireDate, 
+		&employee.ID, &employee.TenantID, &employee.EmployeeNumber, &employee.FirstName, &employee.LastName,
+		&employee.Email, &employee.PhoneNumber, &employee.Position, &employee.Department, &employee.HireDate,
 		&employee.ManagerID, &employee.Status, &employee.CreatedAt, &employee.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -65,7 +65,7 @@ func (r *Repository) GetEmployeeByNumber(ctx context.Context, tenantID uuid.UUID
 // ListEmployees 获取员工列表（支持分页和搜索）
 func (r *Repository) ListEmployees(ctx context.Context, tenantID uuid.UUID, page, pageSize int, search string) ([]Employee, int, error) {
 	offset := (page - 1) * pageSize
-	
+
 	var query string
 	var args []interface{}
 
@@ -95,8 +95,8 @@ func (r *Repository) ListEmployees(ctx context.Context, tenantID uuid.UUID, page
 	for rows.Next() {
 		var emp Employee
 		err := rows.Scan(
-			&emp.ID, &emp.TenantID, &emp.EmployeeNumber, &emp.FirstName, &emp.LastName, 
-			&emp.Email, &emp.PhoneNumber, &emp.Position, &emp.Department, &emp.HireDate, 
+			&emp.ID, &emp.TenantID, &emp.EmployeeNumber, &emp.FirstName, &emp.LastName,
+			&emp.Email, &emp.PhoneNumber, &emp.Position, &emp.Department, &emp.HireDate,
 			&emp.ManagerID, &emp.Status, &emp.CreatedAt, &emp.UpdatedAt)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan employee: %w", err)
@@ -129,14 +129,14 @@ func (r *Repository) CreateEmployee(ctx context.Context, employee *Employee) err
 	now := time.Now()
 	employee.CreatedAt = now
 	employee.UpdatedAt = now
-	
+
 	_, err := r.db.Exec(ctx,
 		`INSERT INTO corehr.employees (id, tenant_id, employee_number, first_name, last_name, email, phone_number, position, department, hire_date, manager_id, status, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-		employee.ID, employee.TenantID, employee.EmployeeNumber, employee.FirstName, employee.LastName, 
-		employee.Email, employee.PhoneNumber, employee.Position, employee.Department, employee.HireDate, 
+		employee.ID, employee.TenantID, employee.EmployeeNumber, employee.FirstName, employee.LastName,
+		employee.Email, employee.PhoneNumber, employee.Position, employee.Department, employee.HireDate,
 		employee.ManagerID, employee.Status, employee.CreatedAt, employee.UpdatedAt)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create employee: %w", err)
 	}
@@ -146,15 +146,15 @@ func (r *Repository) CreateEmployee(ctx context.Context, employee *Employee) err
 // UpdateEmployee 更新员工
 func (r *Repository) UpdateEmployee(ctx context.Context, employee *Employee) error {
 	employee.UpdatedAt = time.Now()
-	
+
 	_, err := r.db.Exec(ctx,
 		`UPDATE corehr.employees 
 		 SET first_name = $1, last_name = $2, email = $3, phone_number = $4, position = $5, department = $6, hire_date = $7, manager_id = $8, status = $9, updated_at = $10
 		 WHERE id = $11 AND tenant_id = $12`,
-		employee.FirstName, employee.LastName, employee.Email, employee.PhoneNumber, employee.Position, 
-		employee.Department, employee.HireDate, employee.ManagerID, employee.Status, employee.UpdatedAt, 
+		employee.FirstName, employee.LastName, employee.Email, employee.PhoneNumber, employee.Position,
+		employee.Department, employee.HireDate, employee.ManagerID, employee.Status, employee.UpdatedAt,
 		employee.ID, employee.TenantID)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to update employee: %w", err)
 	}
@@ -166,15 +166,15 @@ func (r *Repository) DeleteEmployee(ctx context.Context, tenantID, employeeID uu
 	result, err := r.db.Exec(ctx,
 		`DELETE FROM corehr.employees WHERE id = $1 AND tenant_id = $2`,
 		employeeID, tenantID)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to delete employee: %w", err)
 	}
-	
+
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("employee not found or not authorized")
 	}
-	
+
 	return nil
 }
 
@@ -187,10 +187,10 @@ func (r *Repository) GetManagerByEmployeeID(ctx context.Context, tenantID, emplo
 		 INNER JOIN corehr.employees emp ON emp.manager_id = e.id
 		 WHERE emp.id = $1 AND emp.tenant_id = $2 AND e.tenant_id = $2`,
 		employeeID, tenantID).Scan(
-		&manager.ID, &manager.TenantID, &manager.EmployeeNumber, &manager.FirstName, &manager.LastName, 
-		&manager.Email, &manager.PhoneNumber, &manager.Position, &manager.Department, &manager.HireDate, 
+		&manager.ID, &manager.TenantID, &manager.EmployeeNumber, &manager.FirstName, &manager.LastName,
+		&manager.Email, &manager.PhoneNumber, &manager.Position, &manager.Department, &manager.HireDate,
 		&manager.ManagerID, &manager.Status, &manager.CreatedAt, &manager.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -210,7 +210,7 @@ func (r *Repository) GetOrganizationByID(ctx context.Context, tenantID, orgID uu
 		 FROM corehr.organizations WHERE id = $1 AND tenant_id = $2`,
 		orgID, tenantID).Scan(
 		&org.ID, &org.TenantID, &org.Name, &org.Code, &org.ParentID, &org.Level, &org.CreatedAt, &org.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -263,7 +263,7 @@ func (r *Repository) GetOrganizationTree(ctx context.Context, tenantID uuid.UUID
 		FROM org_tree 
 		ORDER BY depth, level, name
 	`
-	
+
 	rows, err := r.db.Query(ctx, query, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query organization tree: %w", err)
@@ -281,9 +281,9 @@ func (r *Repository) GetOrganizationTree(ctx context.Context, tenantID uuid.UUID
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan organization tree: %w", err)
 		}
-		
+
 		orgMap[org.ID] = &org
-		
+
 		if org.ParentID == nil {
 			rootOrgs = append(rootOrgs, &org)
 		} else {
@@ -307,12 +307,12 @@ func (r *Repository) CreateOrganization(ctx context.Context, org *Organization) 
 	now := time.Now()
 	org.CreatedAt = now
 	org.UpdatedAt = now
-	
+
 	_, err := r.db.Exec(ctx,
 		`INSERT INTO corehr.organizations (id, tenant_id, name, code, parent_id, level, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		org.ID, org.TenantID, org.Name, org.Code, org.ParentID, org.Level, org.CreatedAt, org.UpdatedAt)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create organization: %w", err)
 	}
@@ -322,13 +322,13 @@ func (r *Repository) CreateOrganization(ctx context.Context, org *Organization) 
 // UpdateOrganization 更新组织
 func (r *Repository) UpdateOrganization(ctx context.Context, org *Organization) error {
 	org.UpdatedAt = time.Now()
-	
+
 	_, err := r.db.Exec(ctx,
 		`UPDATE corehr.organizations 
 		 SET name = $1, code = $2, parent_id = $3, level = $4, updated_at = $5
 		 WHERE id = $6 AND tenant_id = $7`,
 		org.Name, org.Code, org.ParentID, org.Level, org.UpdatedAt, org.ID, org.TenantID)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to update organization: %w", err)
 	}
@@ -340,15 +340,15 @@ func (r *Repository) DeleteOrganization(ctx context.Context, tenantID, orgID uui
 	result, err := r.db.Exec(ctx,
 		`DELETE FROM corehr.organizations WHERE id = $1 AND tenant_id = $2`,
 		orgID, tenantID)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to delete organization: %w", err)
 	}
-	
+
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("organization not found or not authorized")
 	}
-	
+
 	return nil
 }
 
@@ -361,9 +361,9 @@ func (r *Repository) GetPositionByID(ctx context.Context, tenantID, positionID u
 		`SELECT id, tenant_id, title, code, department_id, level, created_at, updated_at 
 		 FROM corehr.positions WHERE id = $1 AND tenant_id = $2`,
 		positionID, tenantID).Scan(
-		&position.ID, &position.TenantID, &position.Title, &position.Code, &position.DepartmentID, 
+		&position.ID, &position.TenantID, &position.Title, &position.Code, &position.DepartmentID,
 		&position.Level, &position.CreatedAt, &position.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -404,13 +404,13 @@ func (r *Repository) CreatePosition(ctx context.Context, position *Position) err
 	now := time.Now()
 	position.CreatedAt = now
 	position.UpdatedAt = now
-	
+
 	_, err := r.db.Exec(ctx,
 		`INSERT INTO corehr.positions (id, tenant_id, title, code, department_id, level, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		position.ID, position.TenantID, position.Title, position.Code, position.DepartmentID, 
+		position.ID, position.TenantID, position.Title, position.Code, position.DepartmentID,
 		position.Level, position.CreatedAt, position.UpdatedAt)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create position: %w", err)
 	}
@@ -420,14 +420,14 @@ func (r *Repository) CreatePosition(ctx context.Context, position *Position) err
 // UpdatePosition 更新职位
 func (r *Repository) UpdatePosition(ctx context.Context, position *Position) error {
 	position.UpdatedAt = time.Now()
-	
+
 	_, err := r.db.Exec(ctx,
 		`UPDATE corehr.positions 
 		 SET title = $1, code = $2, department_id = $3, level = $4, updated_at = $5
 		 WHERE id = $6 AND tenant_id = $7`,
-		position.Title, position.Code, position.DepartmentID, position.Level, position.UpdatedAt, 
+		position.Title, position.Code, position.DepartmentID, position.Level, position.UpdatedAt,
 		position.ID, position.TenantID)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to update position: %w", err)
 	}
@@ -439,14 +439,14 @@ func (r *Repository) DeletePosition(ctx context.Context, tenantID, positionID uu
 	result, err := r.db.Exec(ctx,
 		`DELETE FROM corehr.positions WHERE id = $1 AND tenant_id = $2`,
 		positionID, tenantID)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to delete position: %w", err)
 	}
-	
+
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("position not found or not authorized")
 	}
-	
+
 	return nil
-} 
+}

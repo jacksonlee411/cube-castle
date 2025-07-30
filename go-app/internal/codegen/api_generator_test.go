@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/gaogu/cube-castle/go-app/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/gaogu/cube-castle/go-app/internal/types"
 )
 
 func TestAPIGenerator_NewAPIGenerator(t *testing.T) {
@@ -19,15 +19,15 @@ func TestAPIGenerator_NewAPIGenerator(t *testing.T) {
 func TestAPIGenerator_Generate_Success(t *testing.T) {
 	generator := NewAPIGenerator()
 	contract := createTestAPIContract()
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_api_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate API code
 	err = generator.Generate(contract, outputDir)
-	
+
 	// Note: This may fail if templates are not fully implemented
 	if err != nil {
 		t.Logf("API generation error (may be expected): %v", err)
@@ -37,17 +37,17 @@ func TestAPIGenerator_Generate_Success(t *testing.T) {
 	} else {
 		// If generation succeeds, verify output directory exists
 		assert.DirExists(t, outputDir)
-		
+
 		// Check if any files were generated
 		files, err := os.ReadDir(outputDir)
 		require.NoError(t, err)
 		t.Logf("Generated %d API files", len(files))
-		
+
 		// Check for expected files
 		expectedFiles := []string{
 			contract.ResourceName + "_handler.go",
 		}
-		
+
 		for _, expectedFile := range expectedFiles {
 			expectedPath := filepath.Join(outputDir, expectedFile)
 			if _, err := os.Stat(expectedPath); err == nil {
@@ -60,27 +60,27 @@ func TestAPIGenerator_Generate_Success(t *testing.T) {
 func TestAPIGenerator_Generate_InvalidOutputDir(t *testing.T) {
 	generator := NewAPIGenerator()
 	contract := createTestAPIContract()
-	
+
 	// Try to generate in an invalid directory
 	invalidDir := "/root/nonexistent/deeply/nested/path"
-	
+
 	err := generator.Generate(contract, invalidDir)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create output directory")
 }
 
 func TestAPIGenerator_Generate_NilContract(t *testing.T) {
 	generator := NewAPIGenerator()
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_api_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate with nil contract (should handle gracefully)
 	err = generator.Generate(nil, outputDir)
-	
+
 	assert.Error(t, err)
 	// Should not panic, but provide meaningful error
 }
@@ -88,15 +88,15 @@ func TestAPIGenerator_Generate_NilContract(t *testing.T) {
 func TestAPIGenerator_Generate_EmptyContract(t *testing.T) {
 	generator := NewAPIGenerator()
 	contract := &types.MetaContract{} // Empty contract
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_api_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate with empty contract
 	err = generator.Generate(contract, outputDir)
-	
+
 	// May succeed or fail depending on implementation, but should not panic
 	if err != nil {
 		assert.NotContains(t, err.Error(), "panic")
@@ -106,7 +106,7 @@ func TestAPIGenerator_Generate_EmptyContract(t *testing.T) {
 func TestAPIGenerator_Generate_WithRESTEndpoints(t *testing.T) {
 	generator := NewAPIGenerator()
 	contract := createTestAPIContract()
-	
+
 	// Add REST endpoints
 	contract.APIConfiguration.RestEndpoints = []types.RestEndpoint{
 		{
@@ -120,15 +120,15 @@ func TestAPIGenerator_Generate_WithRESTEndpoints(t *testing.T) {
 			Description: "Manage specific test entity",
 		},
 	}
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_api_rest_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate API with REST endpoints
 	err = generator.Generate(contract, outputDir)
-	
+
 	if err != nil {
 		t.Logf("REST API generation error (may be expected): %v", err)
 		assert.NotContains(t, err.Error(), "panic")
@@ -144,20 +144,20 @@ func TestAPIGenerator_Generate_WithRESTEndpoints(t *testing.T) {
 func TestAPIGenerator_Generate_WithGraphQLTypes(t *testing.T) {
 	generator := NewAPIGenerator()
 	contract := createTestAPIContract()
-	
+
 	// Enable GraphQL types
 	contract.APIConfiguration.GraphQLTypes.Enabled = true
 	contract.APIConfiguration.GraphQLTypes.Mutations = true
 	contract.APIConfiguration.GraphQLTypes.Subscriptions = false
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_api_graphql_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate API with GraphQL
 	err = generator.Generate(contract, outputDir)
-	
+
 	if err != nil {
 		t.Logf("GraphQL API generation error (may be expected): %v", err)
 		assert.NotContains(t, err.Error(), "panic")
@@ -173,15 +173,15 @@ func TestAPIGenerator_Generate_WithGraphQLTypes(t *testing.T) {
 func TestAPIGenerator_Generate_ComplexAPI(t *testing.T) {
 	generator := NewAPIGenerator()
 	contract := createComplexAPIContract()
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_api_complex_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate complex API
 	err = generator.Generate(contract, outputDir)
-	
+
 	if err != nil {
 		t.Logf("Complex API generation error (may be expected): %v", err)
 		assert.NotContains(t, err.Error(), "panic")
@@ -196,10 +196,10 @@ func TestAPIGenerator_Generate_ComplexAPI(t *testing.T) {
 
 func TestAPIGenerator_TemplateEngine(t *testing.T) {
 	generator := NewAPIGenerator()
-	
+
 	// Test that template engine is properly initialized
 	assert.NotNil(t, generator.templateEngine)
-	
+
 	// Test template functions are registered
 	funcs := generator.templateEngine.Funcs(nil)
 	assert.NotEmpty(t, funcs)
@@ -209,10 +209,10 @@ func TestAPIGenerator_TemplateEngine(t *testing.T) {
 func TestAPIGenerator_ConcurrentGeneration(t *testing.T) {
 	generator := NewAPIGenerator()
 	contract := createTestAPIContract()
-	
+
 	const numGoroutines = 5
 	errors := make(chan error, numGoroutines)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			// Create unique output directory for each goroutine
@@ -222,13 +222,13 @@ func TestAPIGenerator_ConcurrentGeneration(t *testing.T) {
 				return
 			}
 			defer os.RemoveAll(outputDir)
-			
+
 			// Generate
 			err = generator.Generate(contract, outputDir)
 			errors <- err
 		}(i)
 	}
-	
+
 	// Collect results
 	for i := 0; i < numGoroutines; i++ {
 		err := <-errors
@@ -242,9 +242,9 @@ func TestAPIGenerator_ConcurrentGeneration(t *testing.T) {
 // Test API generation with different HTTP methods
 func TestAPIGenerator_HTTPMethods(t *testing.T) {
 	generator := NewAPIGenerator()
-	
+
 	httpMethods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"}
-	
+
 	for _, method := range httpMethods {
 		t.Run(method, func(t *testing.T) {
 			contract := createTestAPIContract()
@@ -254,15 +254,15 @@ func TestAPIGenerator_HTTPMethods(t *testing.T) {
 					Methods: []string{method},
 				},
 			}
-			
+
 			// Create temporary output directory
 			outputDir, err := os.MkdirTemp("", "test_api_method_*")
 			require.NoError(t, err)
 			defer os.RemoveAll(outputDir)
-			
+
 			// Generate API with specific method
 			err = generator.Generate(contract, outputDir)
-			
+
 			if err != nil {
 				t.Logf("API generation error for %s (may be expected): %v", method, err)
 				assert.NotContains(t, err.Error(), "panic")
@@ -274,22 +274,22 @@ func TestAPIGenerator_HTTPMethods(t *testing.T) {
 // Test API generation with security models
 func TestAPIGenerator_SecurityModels(t *testing.T) {
 	generator := NewAPIGenerator()
-	
+
 	securityModels := []string{"rbac", "abac", "dac", "mac"}
-	
+
 	for _, secModel := range securityModels {
 		t.Run(secModel, func(t *testing.T) {
 			contract := createTestAPIContract()
 			contract.SecurityModel.AccessControl = secModel
-			
+
 			// Create temporary output directory
 			outputDir, err := os.MkdirTemp("", "test_api_security_*")
 			require.NoError(t, err)
 			defer os.RemoveAll(outputDir)
-			
+
 			// Generate API with specific security model
 			err = generator.Generate(contract, outputDir)
-			
+
 			if err != nil {
 				t.Logf("API generation error for %s security (may be expected): %v", secModel, err)
 				assert.NotContains(t, err.Error(), "panic")
@@ -302,17 +302,17 @@ func TestAPIGenerator_SecurityModels(t *testing.T) {
 func BenchmarkAPIGenerator_Generate(b *testing.B) {
 	generator := NewAPIGenerator()
 	contract := createTestAPIContract()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		outputDir, err := os.MkdirTemp("", "bench_api_*")
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		// Generate (may fail, but shouldn't panic)
 		_ = generator.Generate(contract, outputDir)
-		
+
 		os.RemoveAll(outputDir)
 	}
 }
@@ -397,8 +397,8 @@ func createComplexAPIContract() *types.MetaContract {
 					},
 				},
 				{
-					Name: "status",
-					Type: "Enum",
+					Name:       "status",
+					Type:       "Enum",
 					EnumValues: []string{"active", "inactive", "pending"},
 					Constraints: types.FieldConstraints{
 						Required: true,

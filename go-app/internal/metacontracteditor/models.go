@@ -2,25 +2,25 @@
 package metacontracteditor
 
 import (
-	"time"
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/types"
+	"github.com/google/uuid"
+	"time"
 )
 
 // EditorProject represents a meta-contract editing project
 type EditorProject struct {
-	ID           uuid.UUID              `json:"id" db:"id"`
-	Name         string                 `json:"name" db:"name"`
-	Description  string                 `json:"description" db:"description"`
-	Content      string                 `json:"content" db:"content"` // YAML content
-	Version      string                 `json:"version" db:"version"`
-	Status       ProjectStatus          `json:"status" db:"status"`
-	TenantID     uuid.UUID              `json:"tenant_id" db:"tenant_id"`
-	CreatedBy    uuid.UUID              `json:"created_by" db:"created_by"`
-	CreatedAt    time.Time              `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time              `json:"updated_at" db:"updated_at"`
-	LastCompiled *time.Time             `json:"last_compiled,omitempty" db:"last_compiled"`
-	CompileError *string                `json:"compile_error,omitempty" db:"compile_error"`
+	ID           uuid.UUID     `json:"id" db:"id"`
+	Name         string        `json:"name" db:"name"`
+	Description  string        `json:"description" db:"description"`
+	Content      string        `json:"content" db:"content"` // YAML content
+	Version      string        `json:"version" db:"version"`
+	Status       ProjectStatus `json:"status" db:"status"`
+	TenantID     uuid.UUID     `json:"tenant_id" db:"tenant_id"`
+	CreatedBy    uuid.UUID     `json:"created_by" db:"created_by"`
+	CreatedAt    time.Time     `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time     `json:"updated_at" db:"updated_at"`
+	LastCompiled *time.Time    `json:"last_compiled,omitempty" db:"last_compiled"`
+	CompileError *string       `json:"compile_error,omitempty" db:"compile_error"`
 }
 
 // ProjectStatus defines the status of an editor project
@@ -43,12 +43,12 @@ type CompileRequest struct {
 
 // CompileResponse represents a compilation response
 type CompileResponse struct {
-	Success      bool                    `json:"success"`
-	Errors       []CompileError          `json:"errors,omitempty"`
-	Warnings     []CompileWarning        `json:"warnings,omitempty"`
-	GeneratedFiles map[string]string     `json:"generated_files,omitempty"` // filename -> content
-	Schema       *types.MetaContract     `json:"schema,omitempty"`
-	CompileTime  time.Duration           `json:"compile_time"`
+	Success        bool                `json:"success"`
+	Errors         []CompileError      `json:"errors,omitempty"`
+	Warnings       []CompileWarning    `json:"warnings,omitempty"`
+	GeneratedFiles map[string]string   `json:"generated_files,omitempty"` // filename -> content
+	Schema         *types.MetaContract `json:"schema,omitempty"`
+	CompileTime    time.Duration       `json:"compile_time"`
 }
 
 // CompileError represents a compilation error
@@ -62,10 +62,10 @@ type CompileError struct {
 
 // CompileWarning represents a compilation warning
 type CompileWarning struct {
-	Line     int    `json:"line"`
-	Column   int    `json:"column"`
-	Message  string `json:"message"`
-	Type     string `json:"type"`
+	Line    int    `json:"line"`
+	Column  int    `json:"column"`
+	Message string `json:"message"`
+	Type    string `json:"type"`
 }
 
 // EditorSession represents an active editing session
@@ -120,12 +120,12 @@ type ProjectTemplate struct {
 
 // EditorSettings represents user editor settings
 type EditorSettings struct {
-	UserID       uuid.UUID            `json:"user_id" db:"user_id"`
-	Theme        string               `json:"theme" db:"theme"`
-	FontSize     int                  `json:"font_size" db:"font_size"`
-	AutoSave     bool                 `json:"auto_save" db:"auto_save"`
-	AutoCompile  bool                 `json:"auto_compile" db:"auto_compile"`
-	KeyBindings  string               `json:"key_bindings" db:"key_bindings"`
-	Settings     map[string]interface{} `json:"settings" db:"settings"`
-	UpdatedAt    time.Time            `json:"updated_at" db:"updated_at"`
+	UserID      uuid.UUID              `json:"user_id" db:"user_id"`
+	Theme       string                 `json:"theme" db:"theme"`
+	FontSize    int                    `json:"font_size" db:"font_size"`
+	AutoSave    bool                   `json:"auto_save" db:"auto_save"`
+	AutoCompile bool                   `json:"auto_compile" db:"auto_compile"`
+	KeyBindings string                 `json:"key_bindings" db:"key_bindings"`
+	Settings    map[string]interface{} `json:"settings" db:"settings"`
+	UpdatedAt   time.Time              `json:"updated_at" db:"updated_at"`
 }

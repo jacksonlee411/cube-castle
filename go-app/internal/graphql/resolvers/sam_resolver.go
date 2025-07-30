@@ -53,37 +53,37 @@ func (r *SAMResolver) GetOrganizationInsights(ctx context.Context, args struct {
 		Summary:     "组织整体健康状况良好，但存在人才发展瓶颈",
 		KeyFindings: []*KeyFinding{
 			{
-				Category:    "TALENT_MANAGEMENT",
-				Finding:     "技术部门继任者准备度偏低",
-				Impact:      "HIGH",
-				Confidence:  0.85,
-				Evidence:    []string{"关键岗位缺乏备选人才", "技能传承机制不完善"},
+				Category:       "TALENT_MANAGEMENT",
+				Finding:        "技术部门继任者准备度偏低",
+				Impact:         "HIGH",
+				Confidence:     0.85,
+				Evidence:       []string{"关键岗位缺乏备选人才", "技能传承机制不完善"},
 				Recommendation: "建立技术领导力发展计划",
 			},
 			{
-				Category:    "PERFORMANCE",
-				Finding:     "跨部门协作效率有提升空间",
-				Impact:      "MEDIUM",
-				Confidence:  0.72,
-				Evidence:    []string{"项目交付周期较长", "部门间沟通频次偏低"},
+				Category:       "PERFORMANCE",
+				Finding:        "跨部门协作效率有提升空间",
+				Impact:         "MEDIUM",
+				Confidence:     0.72,
+				Evidence:       []string{"项目交付周期较长", "部门间沟通频次偏低"},
 				Recommendation: "实施跨职能团队合作机制",
 			},
 		},
 		TrendAnalysis: &TrendAnalysisResult{
-			Trend:           "STABLE_WITH_IMPROVEMENT_POTENTIAL",
-			TrendStrength:   0.65,
-			KeyDrivers:      []string{"员工满意度", "技能发展", "流程优化"},
+			Trend:            "STABLE_WITH_IMPROVEMENT_POTENTIAL",
+			TrendStrength:    0.65,
+			KeyDrivers:       []string{"员工满意度", "技能发展", "流程优化"},
 			PredictedOutcome: "在实施改进措施后，组织效能有望提升15-20%",
-			Confidence:      0.78,
+			Confidence:       0.78,
 		},
 		ActionItems: []*ActionItem{
 			{
-				Priority:        "HIGH",
-				Category:        "TALENT_DEVELOPMENT",
-				Action:          "启动高潜人才发展计划",
-				Timeline:        "3个月",
+				Priority:         "HIGH",
+				Category:         "TALENT_DEVELOPMENT",
+				Action:           "启动高潜人才发展计划",
+				Timeline:         "3个月",
 				ResponsibleParty: "人力资源部",
-				ExpectedImpact:  "提升继任者准备度至75%",
+				ExpectedImpact:   "提升继任者准备度至75%",
 			},
 		},
 	}
@@ -151,15 +151,15 @@ func (r *SAMResolver) GetRiskInsights(ctx context.Context, args struct {
 		RiskScore:        0.45,
 		KeyRisks: []*RiskInsightItem{
 			{
-				RiskType:        "KEY_PERSON_DEPENDENCY",
-				Severity:        "HIGH",
-				Probability:     0.35,
-				Impact:          0.80,
-				Description:     "技术总监存在关键人员依赖风险",
-				AffectedAreas:   []string{"技术架构", "团队管理", "技术决策"},
-				MitigationPlan:  []string{"知识文档化", "培养副手", "决策流程优化"},
-				Timeline:        "3个月",
-				MonitoringKPIs:  []string{"知识共享覆盖率", "决策参与度", "团队自主性"},
+				RiskType:       "KEY_PERSON_DEPENDENCY",
+				Severity:       "HIGH",
+				Probability:    0.35,
+				Impact:         0.80,
+				Description:    "技术总监存在关键人员依赖风险",
+				AffectedAreas:  []string{"技术架构", "团队管理", "技术决策"},
+				MitigationPlan: []string{"知识文档化", "培养副手", "决策流程优化"},
+				Timeline:       "3个月",
+				MonitoringKPIs: []string{"知识共享覆盖率", "决策参与度", "团队自主性"},
 			},
 		},
 		TrendAnalysis: &RiskTrendAnalysis{
@@ -170,7 +170,7 @@ func (r *SAMResolver) GetRiskInsights(ctx context.Context, args struct {
 		},
 		Recommendations: []*RiskRecommendation{
 			{
-				Priority:           "HIGH",
+				Priority:          "HIGH",
 				Action:            "建立技术知识库和流程标准化",
 				ExpectedReduction: 0.40,
 				Implementation:    "6周内完成关键流程文档化",
@@ -192,40 +192,40 @@ func (r *SAMResolver) GetPerformancePredictions(ctx context.Context, args struct
 		Confidence:        0.82,
 		PredictedMetrics: []*MetricPrediction{
 			{
-				MetricName:       "员工满意度",
-				CurrentValue:     0.75,
-				PredictedValue:   0.78,
-				ChangePercentage: 4.0,
-				Trend:            "IMPROVING",
+				MetricName:         "员工满意度",
+				CurrentValue:       0.75,
+				PredictedValue:     0.78,
+				ChangePercentage:   4.0,
+				Trend:              "IMPROVING",
 				InfluencingFactors: []string{"薪酬调整", "工作环境改善", "职业发展机会"},
 			},
 			{
-				MetricName:       "人员流失率",
-				CurrentValue:     0.12,
-				PredictedValue:   0.10,
-				ChangePercentage: -16.7,
-				Trend:            "IMPROVING",
+				MetricName:         "人员流失率",
+				CurrentValue:       0.12,
+				PredictedValue:     0.10,
+				ChangePercentage:   -16.7,
+				Trend:              "IMPROVING",
 				InfluencingFactors: []string{"薪酬竞争力提升", "内部晋升机会", "团队文化建设"},
 			},
 		},
 		ScenarioAnalysis: []*ScenarioResult{
 			{
-				ScenarioName:   "积极投资情况",
-				Probability:    0.30,
+				ScenarioName:    "积极投资情况",
+				Probability:     0.30,
 				ExpectedOutcome: "组织效能提升20%，员工满意度达到85%",
-				KeyAssumptions: []string{"培训投资增加", "薪酬调整到位", "流程优化完成"},
+				KeyAssumptions:  []string{"培训投资增加", "薪酬调整到位", "流程优化完成"},
 			},
 			{
-				ScenarioName:   "维持现状",
-				Probability:    0.60,
+				ScenarioName:    "维持现状",
+				Probability:     0.60,
 				ExpectedOutcome: "指标小幅改善，整体保持稳定",
-				KeyAssumptions: []string{"当前政策延续", "市场环境稳定", "竞争压力可控"},
+				KeyAssumptions:  []string{"当前政策延续", "市场环境稳定", "竞争压力可控"},
 			},
 			{
-				ScenarioName:   "挑战加剧",
-				Probability:    0.10,
+				ScenarioName:    "挑战加剧",
+				Probability:     0.10,
 				ExpectedOutcome: "人才竞争加剧，流失率可能上升至15%",
-				KeyAssumptions: []string{"行业竞争激化", "薪酬压力增大", "业务增长放缓"},
+				KeyAssumptions:  []string{"行业竞争激化", "薪酬压力增大", "业务增长放缓"},
 			},
 		},
 	}
@@ -235,63 +235,63 @@ func (r *SAMResolver) GetPerformancePredictions(ctx context.Context, args struct
 
 // Supporting type definitions for GraphQL responses
 type SituationalContextResponse struct {
-	Timestamp          string                       `json:"timestamp"`
-	AlertLevel         string                       `json:"alert_level"`
-	OrganizationHealth *OrganizationHealthResponse  `json:"organization_health"`
-	TalentMetrics      *TalentMetricsResponse       `json:"talent_metrics"`
-	RiskAssessment     *RiskAssessmentResponse      `json:"risk_assessment"`
-	Opportunities      *OpportunitiesResponse       `json:"opportunities"`
-	Recommendations    []*RecommendationResponse    `json:"recommendations"`
+	Timestamp          string                      `json:"timestamp"`
+	AlertLevel         string                      `json:"alert_level"`
+	OrganizationHealth *OrganizationHealthResponse `json:"organization_health"`
+	TalentMetrics      *TalentMetricsResponse      `json:"talent_metrics"`
+	RiskAssessment     *RiskAssessmentResponse     `json:"risk_assessment"`
+	Opportunities      *OpportunitiesResponse      `json:"opportunities"`
+	Recommendations    []*RecommendationResponse   `json:"recommendations"`
 }
 
 type OrganizationHealthResponse struct {
-	OverallScore      float64                         `json:"overall_score"`
-	TurnoverRate      float64                         `json:"turnover_rate"`
-	EngagementLevel   float64                         `json:"engagement_level"`
-	ProductivityIndex float64                         `json:"productivity_index"`
-	DepartmentHealth  []*DepartmentHealthResponse     `json:"department_health"`
-	TrendAnalysis     *HealthTrendResponse            `json:"trend_analysis"`
+	OverallScore      float64                     `json:"overall_score"`
+	TurnoverRate      float64                     `json:"turnover_rate"`
+	EngagementLevel   float64                     `json:"engagement_level"`
+	ProductivityIndex float64                     `json:"productivity_index"`
+	DepartmentHealth  []*DepartmentHealthResponse `json:"department_health"`
+	TrendAnalysis     *HealthTrendResponse        `json:"trend_analysis"`
 }
 
 type TalentMetricsResponse struct {
-	TalentPipelineHealth float64                    `json:"talent_pipeline_health"`
-	SuccessionReadiness  float64                    `json:"succession_readiness"`
-	SkillGaps           []*SkillGapResponse         `json:"skill_gaps"`
-	PerformanceMetrics  *PerformanceMetricsResponse `json:"performance_metrics"`
+	TalentPipelineHealth float64                     `json:"talent_pipeline_health"`
+	SuccessionReadiness  float64                     `json:"succession_readiness"`
+	SkillGaps            []*SkillGapResponse         `json:"skill_gaps"`
+	PerformanceMetrics   *PerformanceMetricsResponse `json:"performance_metrics"`
 }
 
 type RiskAssessmentResponse struct {
-	OverallRiskScore float64                  `json:"overall_risk_score"`
-	KeyRisks         []*KeyRiskResponse       `json:"key_risks"`
-	RiskTrends       *RiskTrendResponse       `json:"risk_trends"`
+	OverallRiskScore float64            `json:"overall_risk_score"`
+	KeyRisks         []*KeyRiskResponse `json:"key_risks"`
+	RiskTrends       *RiskTrendResponse `json:"risk_trends"`
 }
 
 type OpportunitiesResponse struct {
-	TalentOptimization []*TalentOptimizationResponse `json:"talent_optimization"`
+	TalentOptimization  []*TalentOptimizationResponse `json:"talent_optimization"`
 	ProcessImprovements []*ProcessImprovementResponse `json:"process_improvements"`
-	StructuralChanges  []*StructuralChangeResponse   `json:"structural_changes"`
+	StructuralChanges   []*StructuralChangeResponse   `json:"structural_changes"`
 }
 
 type RecommendationResponse struct {
-	ID              string                        `json:"id"`
-	Type            string                        `json:"type"`
-	Priority        string                        `json:"priority"`
-	Category        string                        `json:"category"`
-	Title           string                        `json:"title"`
-	Description     string                        `json:"description"`
-	BusinessImpact  string                        `json:"business_impact"`
-	Implementation  *ImplementationPlanResponse   `json:"implementation"`
-	ROIEstimate     *ROIEstimateResponse          `json:"roi_estimate"`
-	Confidence      float64                       `json:"confidence"`
+	ID             string                      `json:"id"`
+	Type           string                      `json:"type"`
+	Priority       string                      `json:"priority"`
+	Category       string                      `json:"category"`
+	Title          string                      `json:"title"`
+	Description    string                      `json:"description"`
+	BusinessImpact string                      `json:"business_impact"`
+	Implementation *ImplementationPlanResponse `json:"implementation"`
+	ROIEstimate    *ROIEstimateResponse        `json:"roi_estimate"`
+	Confidence     float64                     `json:"confidence"`
 }
 
 // Additional supporting types...
 type OrganizationInsightsResponse struct {
-	InsightType   string                 `json:"insight_type"`
-	Summary       string                 `json:"summary"`
-	KeyFindings   []*KeyFinding          `json:"key_findings"`
-	TrendAnalysis *TrendAnalysisResult   `json:"trend_analysis"`
-	ActionItems   []*ActionItem          `json:"action_items"`
+	InsightType   string               `json:"insight_type"`
+	Summary       string               `json:"summary"`
+	KeyFindings   []*KeyFinding        `json:"key_findings"`
+	TrendAnalysis *TrendAnalysisResult `json:"trend_analysis"`
+	ActionItems   []*ActionItem        `json:"action_items"`
 }
 
 type KeyFinding struct {
@@ -325,10 +325,10 @@ func convertOrganizationHealth(health service.OrganizationHealthMetrics) *Organi
 	deptHealth := make([]*DepartmentHealthResponse, 0)
 	for dept, h := range health.DepartmentHealthMap {
 		deptHealth = append(deptHealth, &DepartmentHealthResponse{
-			Department:          dept,
-			HealthScore:        h.HealthScore,
-			TurnoverRate:       h.TurnoverRate,
-			AverageTenure:      h.AverageTenure,
+			Department:           dept,
+			HealthScore:          h.HealthScore,
+			TurnoverRate:         h.TurnoverRate,
+			AverageTenure:        h.AverageTenure,
 			ManagerEffectiveness: h.ManagerEffectiveness,
 		})
 	}
@@ -360,11 +360,11 @@ func convertTalentMetrics(metrics service.TalentManagementMetrics) *TalentMetric
 	return &TalentMetricsResponse{
 		TalentPipelineHealth: metrics.TalentPipelineHealth,
 		SuccessionReadiness:  metrics.SuccessionReadiness,
-		SkillGaps:           skillGaps,
+		SkillGaps:            skillGaps,
 		PerformanceMetrics: &PerformanceMetricsResponse{
-			HighPerformersRatio: metrics.PerformanceDistribution.HighPerformers,
+			HighPerformersRatio:  metrics.PerformanceDistribution.HighPerformers,
 			SolidPerformersRatio: metrics.PerformanceDistribution.SolidPerformers,
-			LowPerformersRatio:  metrics.PerformanceDistribution.LowPerformers,
+			LowPerformersRatio:   metrics.PerformanceDistribution.LowPerformers,
 		},
 	}
 }
@@ -373,10 +373,10 @@ func convertRiskAssessment(assessment service.RiskAssessmentResult) *RiskAssessm
 	keyRisks := make([]*KeyRiskResponse, 0)
 	for _, risk := range assessment.KeyPersonRisks {
 		keyRisks = append(keyRisks, &KeyRiskResponse{
-			RiskType:     "KEY_PERSON",
-			EmployeeName: risk.EmployeeName,
-			RiskScore:    risk.RiskScore,
-			RiskFactors:  risk.RiskFactors,
+			RiskType:        "KEY_PERSON",
+			EmployeeName:    risk.EmployeeName,
+			RiskScore:       risk.RiskScore,
+			RiskFactors:     risk.RiskFactors,
 			MitigationSteps: risk.MitigationSteps,
 		})
 	}
@@ -385,7 +385,7 @@ func convertRiskAssessment(assessment service.RiskAssessmentResult) *RiskAssessm
 		OverallRiskScore: assessment.OverallRiskScore,
 		KeyRisks:         keyRisks,
 		RiskTrends: &RiskTrendResponse{
-			Trend: "STABLE",
+			Trend:         "STABLE",
 			RiskEvolution: "整体风险可控",
 		},
 	}
@@ -470,10 +470,10 @@ type TalentOptimizationResponse struct {
 }
 
 type ProcessImprovementResponse struct {
-	ProcessArea        string  `json:"process_area"`
-	CurrentState       string  `json:"current_state"`
-	ProposedState      string  `json:"proposed_state"`
-	EfficiencyGain     float64 `json:"efficiency_gain"`
+	ProcessArea    string  `json:"process_area"`
+	CurrentState   string  `json:"current_state"`
+	ProposedState  string  `json:"proposed_state"`
+	EfficiencyGain float64 `json:"efficiency_gain"`
 }
 
 type StructuralChangeResponse struct {
@@ -484,9 +484,9 @@ type StructuralChangeResponse struct {
 }
 
 type ImplementationPlanResponse struct {
-	Timeline        string                        `json:"timeline"`
-	KeyMilestones   []*MilestoneResponse          `json:"key_milestones"`
-	SuccessCriteria []string                      `json:"success_criteria"`
+	Timeline        string               `json:"timeline"`
+	KeyMilestones   []*MilestoneResponse `json:"key_milestones"`
+	SuccessCriteria []string             `json:"success_criteria"`
 }
 
 type MilestoneResponse struct {
@@ -497,20 +497,20 @@ type MilestoneResponse struct {
 }
 
 type ROIEstimateResponse struct {
-	CostSavings      float64 `json:"cost_savings"`
-	RevenueIncrease  float64 `json:"revenue_increase"`
-	EfficiencyGains  float64 `json:"efficiency_gains"`
-	RiskReduction    float64 `json:"risk_reduction"`
-	TimeToBreakeven  string  `json:"time_to_breakeven"`
-	ConfidenceLevel  float64 `json:"confidence_level"`
+	CostSavings     float64 `json:"cost_savings"`
+	RevenueIncrease float64 `json:"revenue_increase"`
+	EfficiencyGains float64 `json:"efficiency_gains"`
+	RiskReduction   float64 `json:"risk_reduction"`
+	TimeToBreakeven string  `json:"time_to_breakeven"`
+	ConfidenceLevel float64 `json:"confidence_level"`
 }
 
 // New types for additional queries
 type TalentAnalyticsResponse struct {
-	TalentHealth        *TalentHealthMetrics        `json:"talent_health"`
-	SkillAnalysis       *SkillAnalysisResult        `json:"skill_analysis"`
-	PerformanceInsights *PerformanceInsightsResult  `json:"performance_insights"`
-	CareerPathAnalysis  *CareerPathAnalysisResult   `json:"career_path_analysis"`
+	TalentHealth        *TalentHealthMetrics       `json:"talent_health"`
+	SkillAnalysis       *SkillAnalysisResult       `json:"skill_analysis"`
+	PerformanceInsights *PerformanceInsightsResult `json:"performance_insights"`
+	CareerPathAnalysis  *CareerPathAnalysisResult  `json:"career_path_analysis"`
 }
 
 type TalentHealthMetrics struct {
@@ -549,11 +549,11 @@ type CareerPathAnalysisResult struct {
 }
 
 type RiskInsightsResponse struct {
-	OverallRiskLevel string                   `json:"overall_risk_level"`
-	RiskScore        float64                  `json:"risk_score"`
-	KeyRisks         []*RiskInsightItem       `json:"key_risks"`
-	TrendAnalysis    *RiskTrendAnalysis       `json:"trend_analysis"`
-	Recommendations  []*RiskRecommendation    `json:"recommendations"`
+	OverallRiskLevel string                `json:"overall_risk_level"`
+	RiskScore        float64               `json:"risk_score"`
+	KeyRisks         []*RiskInsightItem    `json:"key_risks"`
+	TrendAnalysis    *RiskTrendAnalysis    `json:"trend_analysis"`
+	Recommendations  []*RiskRecommendation `json:"recommendations"`
 }
 
 type RiskInsightItem struct {
@@ -576,7 +576,7 @@ type RiskTrendAnalysis struct {
 }
 
 type RiskRecommendation struct {
-	Priority           string  `json:"priority"`
+	Priority          string  `json:"priority"`
 	Action            string  `json:"action"`
 	ExpectedReduction float64 `json:"expected_reduction"`
 	Implementation    string  `json:"implementation"`
@@ -584,10 +584,10 @@ type RiskRecommendation struct {
 }
 
 type PerformancePredictionsResponse struct {
-	PredictionHorizon string                `json:"prediction_horizon"`
-	Confidence        float64               `json:"confidence"`
-	PredictedMetrics  []*MetricPrediction   `json:"predicted_metrics"`
-	ScenarioAnalysis  []*ScenarioResult     `json:"scenario_analysis"`
+	PredictionHorizon string              `json:"prediction_horizon"`
+	Confidence        float64             `json:"confidence"`
+	PredictedMetrics  []*MetricPrediction `json:"predicted_metrics"`
+	ScenarioAnalysis  []*ScenarioResult   `json:"scenario_analysis"`
 }
 
 type MetricPrediction struct {

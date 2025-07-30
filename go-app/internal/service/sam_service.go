@@ -22,239 +22,239 @@ type SAMService struct {
 
 // SituationalContext represents the current organizational situation
 type SituationalContext struct {
-	Timestamp           time.Time                     `json:"timestamp"`
-	OrganizationHealth  OrganizationHealthMetrics     `json:"organization_health"`
-	TalentMetrics       TalentManagementMetrics       `json:"talent_metrics"`
-	RiskAssessment      RiskAssessmentResult          `json:"risk_assessment"`
-	OpportunityAnalysis OpportunityAnalysisResult     `json:"opportunity_analysis"`
-	Recommendations     []StrategicRecommendation     `json:"recommendations"`
-	AlertLevel          string                        `json:"alert_level"` // GREEN, YELLOW, ORANGE, RED
+	Timestamp           time.Time                 `json:"timestamp"`
+	OrganizationHealth  OrganizationHealthMetrics `json:"organization_health"`
+	TalentMetrics       TalentManagementMetrics   `json:"talent_metrics"`
+	RiskAssessment      RiskAssessmentResult      `json:"risk_assessment"`
+	OpportunityAnalysis OpportunityAnalysisResult `json:"opportunity_analysis"`
+	Recommendations     []StrategicRecommendation `json:"recommendations"`
+	AlertLevel          string                    `json:"alert_level"` // GREEN, YELLOW, ORANGE, RED
 }
 
 // OrganizationHealthMetrics represents organizational health indicators
 type OrganizationHealthMetrics struct {
-	OverallHealthScore    float64                        `json:"overall_health_score"`
-	TurnoverRate          float64                        `json:"turnover_rate"`
-	EmployeeEngagement    float64                        `json:"employee_engagement"`
-	ProductivityIndex     float64                        `json:"productivity_index"`
-	SpanOfControlHealth   float64                        `json:"span_of_control_health"`
-	DepartmentHealthMap   map[string]DepartmentHealth    `json:"department_health_map"`
-	TrendAnalysis         HealthTrendAnalysis            `json:"trend_analysis"`
+	OverallHealthScore  float64                     `json:"overall_health_score"`
+	TurnoverRate        float64                     `json:"turnover_rate"`
+	EmployeeEngagement  float64                     `json:"employee_engagement"`
+	ProductivityIndex   float64                     `json:"productivity_index"`
+	SpanOfControlHealth float64                     `json:"span_of_control_health"`
+	DepartmentHealthMap map[string]DepartmentHealth `json:"department_health_map"`
+	TrendAnalysis       HealthTrendAnalysis         `json:"trend_analysis"`
 }
 
 // TalentManagementMetrics represents talent pipeline and development metrics
 type TalentManagementMetrics struct {
-	TalentPipelineHealth    float64                    `json:"talent_pipeline_health"`
-	SuccessionReadiness     float64                    `json:"succession_readiness"`
-	SkillGapAnalysis        map[string]float64         `json:"skill_gap_analysis"`
-	PerformanceDistribution PerformanceDistribution    `json:"performance_distribution"`
-	LearningDevelopmentROI  float64                    `json:"learning_development_roi"`
-	InternalMobilityRate    float64                    `json:"internal_mobility_rate"`
+	TalentPipelineHealth    float64                 `json:"talent_pipeline_health"`
+	SuccessionReadiness     float64                 `json:"succession_readiness"`
+	SkillGapAnalysis        map[string]float64      `json:"skill_gap_analysis"`
+	PerformanceDistribution PerformanceDistribution `json:"performance_distribution"`
+	LearningDevelopmentROI  float64                 `json:"learning_development_roi"`
+	InternalMobilityRate    float64                 `json:"internal_mobility_rate"`
 }
 
 // RiskAssessmentResult represents identified risks and their impact
 type RiskAssessmentResult struct {
-	OverallRiskScore      float64             `json:"overall_risk_score"`
-	KeyPersonRisks        []KeyPersonRisk     `json:"key_person_risks"`
-	ComplianceRisks       []SAMComplianceRisk    `json:"compliance_risks"`
-	OperationalRisks      []OperationalRisk   `json:"operational_risks"`
-	TalentFlightRisks     []TalentFlightRisk  `json:"talent_flight_risks"`
-	RiskMitigation        []RiskMitigation    `json:"risk_mitigation"`
+	OverallRiskScore  float64             `json:"overall_risk_score"`
+	KeyPersonRisks    []KeyPersonRisk     `json:"key_person_risks"`
+	ComplianceRisks   []SAMComplianceRisk `json:"compliance_risks"`
+	OperationalRisks  []OperationalRisk   `json:"operational_risks"`
+	TalentFlightRisks []TalentFlightRisk  `json:"talent_flight_risks"`
+	RiskMitigation    []RiskMitigation    `json:"risk_mitigation"`
 }
 
 // OpportunityAnalysisResult represents growth and improvement opportunities
 type OpportunityAnalysisResult struct {
-	TalentOptimization    []TalentOptimization    `json:"talent_optimization"`
-	ProcessImprovements   []ProcessImprovement    `json:"process_improvements"`
-	StructuralChanges     []StructuralChange      `json:"structural_changes"`
-	InvestmentPriorities  []InvestmentPriority    `json:"investment_priorities"`
-	CapabilityGaps        []CapabilityGap         `json:"capability_gaps"`
+	TalentOptimization   []TalentOptimization `json:"talent_optimization"`
+	ProcessImprovements  []ProcessImprovement `json:"process_improvements"`
+	StructuralChanges    []StructuralChange   `json:"structural_changes"`
+	InvestmentPriorities []InvestmentPriority `json:"investment_priorities"`
+	CapabilityGaps       []CapabilityGap      `json:"capability_gaps"`
 }
 
 // StrategicRecommendation represents AI-driven strategic recommendations
 type StrategicRecommendation struct {
-	ID              string                 `json:"id"`
-	Type            string                 `json:"type"` // IMMEDIATE, SHORT_TERM, LONG_TERM
-	Priority        string                 `json:"priority"` // CRITICAL, HIGH, MEDIUM, LOW
-	Category        string                 `json:"category"` // TALENT, STRUCTURE, PROCESS, RISK
-	Title           string                 `json:"title"`
-	Description     string                 `json:"description"`
-	BusinessImpact  string                 `json:"business_impact"`
-	Implementation  ImplementationPlan     `json:"implementation"`
-	ROIEstimate     ROIEstimate            `json:"roi_estimate"`
-	RiskFactors     []string               `json:"risk_factors"`
-	Success         Metrics                `json:"success_metrics"`
-	Dependencies    []string               `json:"dependencies"`
-	Confidence      float64                `json:"confidence"`
+	ID             string             `json:"id"`
+	Type           string             `json:"type"`     // IMMEDIATE, SHORT_TERM, LONG_TERM
+	Priority       string             `json:"priority"` // CRITICAL, HIGH, MEDIUM, LOW
+	Category       string             `json:"category"` // TALENT, STRUCTURE, PROCESS, RISK
+	Title          string             `json:"title"`
+	Description    string             `json:"description"`
+	BusinessImpact string             `json:"business_impact"`
+	Implementation ImplementationPlan `json:"implementation"`
+	ROIEstimate    ROIEstimate        `json:"roi_estimate"`
+	RiskFactors    []string           `json:"risk_factors"`
+	Success        Metrics            `json:"success_metrics"`
+	Dependencies   []string           `json:"dependencies"`
+	Confidence     float64            `json:"confidence"`
 }
 
 // Supporting data structures
 type DepartmentHealth struct {
-	HealthScore           float64   `json:"health_score"`
-	TurnoverRate          float64   `json:"turnover_rate"`
-	AverageTenure         float64   `json:"average_tenure"`
-	ManagerEffectiveness  float64   `json:"manager_effectiveness"`
-	TeamCohesion          float64   `json:"team_cohesion"`
-	WorkloadBalance       float64   `json:"workload_balance"`
-	LastAssessment        time.Time `json:"last_assessment"`
+	HealthScore          float64   `json:"health_score"`
+	TurnoverRate         float64   `json:"turnover_rate"`
+	AverageTenure        float64   `json:"average_tenure"`
+	ManagerEffectiveness float64   `json:"manager_effectiveness"`
+	TeamCohesion         float64   `json:"team_cohesion"`
+	WorkloadBalance      float64   `json:"workload_balance"`
+	LastAssessment       time.Time `json:"last_assessment"`
 }
 
 type HealthTrendAnalysis struct {
-	Trend           string    `json:"trend"` // IMPROVING, STABLE, DECLINING
-	TrendStrength   float64   `json:"trend_strength"`
-	KeyDrivers      []string  `json:"key_drivers"`
-	PredictedHealth float64   `json:"predicted_health"`
-	Confidence      float64   `json:"confidence"`
+	Trend           string   `json:"trend"` // IMPROVING, STABLE, DECLINING
+	TrendStrength   float64  `json:"trend_strength"`
+	KeyDrivers      []string `json:"key_drivers"`
+	PredictedHealth float64  `json:"predicted_health"`
+	Confidence      float64  `json:"confidence"`
 }
 
 type PerformanceDistribution struct {
-	HighPerformers   float64 `json:"high_performers"`
-	SolidPerformers  float64 `json:"solid_performers"`
-	LowPerformers    float64 `json:"low_performers"`
-	PerformanceGaps  []string `json:"performance_gaps"`
+	HighPerformers  float64  `json:"high_performers"`
+	SolidPerformers float64  `json:"solid_performers"`
+	LowPerformers   float64  `json:"low_performers"`
+	PerformanceGaps []string `json:"performance_gaps"`
 }
 
 type KeyPersonRisk struct {
-	EmployeeID       string    `json:"employee_id"`
-	EmployeeName     string    `json:"employee_name"`
-	Position         string    `json:"position"`
-	Department       string    `json:"department"`
-	RiskScore        float64   `json:"risk_score"`
-	RiskFactors      []string  `json:"risk_factors"`
-	BusinessImpact   string    `json:"business_impact"`
-	MitigationSteps  []string  `json:"mitigation_steps"`
-	LastAssessment   time.Time `json:"last_assessment"`
+	EmployeeID      string    `json:"employee_id"`
+	EmployeeName    string    `json:"employee_name"`
+	Position        string    `json:"position"`
+	Department      string    `json:"department"`
+	RiskScore       float64   `json:"risk_score"`
+	RiskFactors     []string  `json:"risk_factors"`
+	BusinessImpact  string    `json:"business_impact"`
+	MitigationSteps []string  `json:"mitigation_steps"`
+	LastAssessment  time.Time `json:"last_assessment"`
 }
 
 type SAMComplianceRisk struct {
-	RiskType         string    `json:"risk_type"`
-	Severity         string    `json:"severity"`
-	Description      string    `json:"description"`
-	AffectedAreas    []string  `json:"affected_areas"`
-	ComplianceGaps   []string  `json:"compliance_gaps"`
-	RemediationPlan  []string  `json:"remediation_plan"`
-	Deadline         time.Time `json:"deadline"`
+	RiskType        string    `json:"risk_type"`
+	Severity        string    `json:"severity"`
+	Description     string    `json:"description"`
+	AffectedAreas   []string  `json:"affected_areas"`
+	ComplianceGaps  []string  `json:"compliance_gaps"`
+	RemediationPlan []string  `json:"remediation_plan"`
+	Deadline        time.Time `json:"deadline"`
 }
 
 type OperationalRisk struct {
-	RiskCategory     string   `json:"risk_category"`
-	Description      string   `json:"description"`
-	Probability      float64  `json:"probability"`
-	Impact           float64  `json:"impact"`
-	RiskScore        float64  `json:"risk_score"`
-	AffectedTeams    []string `json:"affected_teams"`
-	ContingencyPlan  []string `json:"contingency_plan"`
+	RiskCategory    string   `json:"risk_category"`
+	Description     string   `json:"description"`
+	Probability     float64  `json:"probability"`
+	Impact          float64  `json:"impact"`
+	RiskScore       float64  `json:"risk_score"`
+	AffectedTeams   []string `json:"affected_teams"`
+	ContingencyPlan []string `json:"contingency_plan"`
 }
 
 type TalentFlightRisk struct {
-	EmployeeID       string    `json:"employee_id"`
-	EmployeeName     string    `json:"employee_name"`
-	FlightRisk       float64   `json:"flight_risk"`
-	RiskIndicators   []string  `json:"risk_indicators"`
-	RetentionActions []string  `json:"retention_actions"`
-	TimeFrame        string    `json:"time_frame"`
+	EmployeeID       string   `json:"employee_id"`
+	EmployeeName     string   `json:"employee_name"`
+	FlightRisk       float64  `json:"flight_risk"`
+	RiskIndicators   []string `json:"risk_indicators"`
+	RetentionActions []string `json:"retention_actions"`
+	TimeFrame        string   `json:"time_frame"`
 }
 
 type RiskMitigation struct {
-	RiskType         string   `json:"risk_type"`
-	MitigationAction string   `json:"mitigation_action"`
-	Effectiveness    float64  `json:"effectiveness"`
-	Timeline         string   `json:"timeline"`
-	ResponsibleParty string   `json:"responsible_party"`
+	RiskType         string  `json:"risk_type"`
+	MitigationAction string  `json:"mitigation_action"`
+	Effectiveness    float64 `json:"effectiveness"`
+	Timeline         string  `json:"timeline"`
+	ResponsibleParty string  `json:"responsible_party"`
 }
 
 type TalentOptimization struct {
-	OpportunityType  string   `json:"opportunity_type"`
-	Description      string   `json:"description"`
-	AffectedRoles    []string `json:"affected_roles"`
-	ExpectedBenefit  string   `json:"expected_benefit"`
+	OpportunityType     string   `json:"opportunity_type"`
+	Description         string   `json:"description"`
+	AffectedRoles       []string `json:"affected_roles"`
+	ExpectedBenefit     string   `json:"expected_benefit"`
 	ImplementationSteps []string `json:"implementation_steps"`
 }
 
 type ProcessImprovement struct {
-	ProcessArea      string   `json:"process_area"`
-	CurrentState     string   `json:"current_state"`
-	ProposedState    string   `json:"proposed_state"`
-	EfficiencyGain   float64  `json:"efficiency_gain"`
-	ImplementationComplexity string `json:"implementation_complexity"`
+	ProcessArea              string  `json:"process_area"`
+	CurrentState             string  `json:"current_state"`
+	ProposedState            string  `json:"proposed_state"`
+	EfficiencyGain           float64 `json:"efficiency_gain"`
+	ImplementationComplexity string  `json:"implementation_complexity"`
 }
 
 type StructuralChange struct {
-	ChangeType       string   `json:"change_type"`
-	Description      string   `json:"description"`
-	Rationale        string   `json:"rationale"`
-	AffectedTeams    []string `json:"affected_teams"`
+	ChangeType           string   `json:"change_type"`
+	Description          string   `json:"description"`
+	Rationale            string   `json:"rationale"`
+	AffectedTeams        []string `json:"affected_teams"`
 	ImplementationPhases []string `json:"implementation_phases"`
 }
 
 type InvestmentPriority struct {
-	InvestmentArea   string   `json:"investment_area"`
-	Priority         string   `json:"priority"`
-	EstimatedCost    float64  `json:"estimated_cost"`
-	ExpectedROI      float64  `json:"expected_roi"`
-	Justification    string   `json:"justification"`
+	InvestmentArea string  `json:"investment_area"`
+	Priority       string  `json:"priority"`
+	EstimatedCost  float64 `json:"estimated_cost"`
+	ExpectedROI    float64 `json:"expected_roi"`
+	Justification  string  `json:"justification"`
 }
 
 type CapabilityGap struct {
-	CapabilityArea   string   `json:"capability_area"`
-	CurrentLevel     float64  `json:"current_level"`
-	RequiredLevel    float64  `json:"required_level"`
-	GapSize          float64  `json:"gap_size"`
-	ClosureStrategy  []string `json:"closure_strategy"`
+	CapabilityArea  string   `json:"capability_area"`
+	CurrentLevel    float64  `json:"current_level"`
+	RequiredLevel   float64  `json:"required_level"`
+	GapSize         float64  `json:"gap_size"`
+	ClosureStrategy []string `json:"closure_strategy"`
 }
 
 type ImplementationPlan struct {
-	Timeline         string              `json:"timeline"`
-	Phases           []ImplementationPhase `json:"phases"`
-	Resources        []ResourceRequirement `json:"resources"`
-	KeyMilestones    []Milestone         `json:"key_milestones"`
-	SuccessCriteria  []string            `json:"success_criteria"`
+	Timeline        string                `json:"timeline"`
+	Phases          []ImplementationPhase `json:"phases"`
+	Resources       []ResourceRequirement `json:"resources"`
+	KeyMilestones   []Milestone           `json:"key_milestones"`
+	SuccessCriteria []string              `json:"success_criteria"`
 }
 
 type ImplementationPhase struct {
-	PhaseNumber      int      `json:"phase_number"`
-	PhaseName        string   `json:"phase_name"`
-	Duration         string   `json:"duration"`
-	Activities       []string `json:"activities"`
-	Dependencies     []string `json:"dependencies"`
-	Deliverables     []string `json:"deliverables"`
+	PhaseNumber  int      `json:"phase_number"`
+	PhaseName    string   `json:"phase_name"`
+	Duration     string   `json:"duration"`
+	Activities   []string `json:"activities"`
+	Dependencies []string `json:"dependencies"`
+	Deliverables []string `json:"deliverables"`
 }
 
 type ResourceRequirement struct {
-	ResourceType     string   `json:"resource_type"`
-	Quantity         int      `json:"quantity"`
+	ResourceType      string   `json:"resource_type"`
+	Quantity          int      `json:"quantity"`
 	SkillRequirements []string `json:"skill_requirements"`
-	TimeCommitment   string   `json:"time_commitment"`
+	TimeCommitment    string   `json:"time_commitment"`
 }
 
 type Milestone struct {
-	Name             string    `json:"name"`
-	Description      string    `json:"description"`
-	TargetDate       time.Time `json:"target_date"`
-	SuccessMetrics   []string  `json:"success_metrics"`
+	Name           string    `json:"name"`
+	Description    string    `json:"description"`
+	TargetDate     time.Time `json:"target_date"`
+	SuccessMetrics []string  `json:"success_metrics"`
 }
 
 type ROIEstimate struct {
-	CostSavings      float64 `json:"cost_savings"`
-	RevenueIncrease  float64 `json:"revenue_increase"`
-	EfficiencyGains  float64 `json:"efficiency_gains"`
-	RiskReduction    float64 `json:"risk_reduction"`
-	TimeToBreakeven  string  `json:"time_to_breakeven"`
-	ConfidenceLevel  float64 `json:"confidence_level"`
+	CostSavings     float64 `json:"cost_savings"`
+	RevenueIncrease float64 `json:"revenue_increase"`
+	EfficiencyGains float64 `json:"efficiency_gains"`
+	RiskReduction   float64 `json:"risk_reduction"`
+	TimeToBreakeven string  `json:"time_to_breakeven"`
+	ConfidenceLevel float64 `json:"confidence_level"`
 }
 
 type Metrics struct {
-	KPIs             []KPI    `json:"kpis"`
-	MeasurementPlan  string   `json:"measurement_plan"`
-	ReportingCadence string   `json:"reporting_cadence"`
+	KPIs             []KPI  `json:"kpis"`
+	MeasurementPlan  string `json:"measurement_plan"`
+	ReportingCadence string `json:"reporting_cadence"`
 }
 
 type KPI struct {
-	Name             string  `json:"name"`
-	Description      string  `json:"description"`
-	CurrentValue     float64 `json:"current_value"`
-	TargetValue      float64 `json:"target_value"`
-	Measurement      string  `json:"measurement"`
+	Name         string  `json:"name"`
+	Description  string  `json:"description"`
+	CurrentValue float64 `json:"current_value"`
+	TargetValue  float64 `json:"target_value"`
+	Measurement  string  `json:"measurement"`
 }
 
 // NewSAMService creates a new SAM service instance
@@ -400,11 +400,11 @@ func (s *SAMService) analyzeTalentMetrics(ctx context.Context) (*TalentManagemen
 
 	// Simulate skill gap analysis (in real implementation, this would analyze actual skills data)
 	skillGapAnalysis := map[string]float64{
-		"Technical Leadership":     0.35,
-		"Data Analytics":          0.28,
+		"Technical Leadership":   0.35,
+		"Data Analytics":         0.28,
 		"Digital Transformation": 0.42,
-		"Project Management":      0.18,
-		"Cloud Technologies":      0.55,
+		"Project Management":     0.18,
+		"Cloud Technologies":     0.55,
 		"AI/ML Expertise":        0.68,
 	}
 
@@ -431,28 +431,28 @@ func (s *SAMService) performRiskAssessment(ctx context.Context) (*RiskAssessment
 	// Identify key person risks
 	keyPersonRisks := []KeyPersonRisk{
 		{
-			EmployeeID:     "emp-001",
-			EmployeeName:   "张三",
-			Position:       "技术总监",
-			Department:     "技术部",
-			RiskScore:      0.75,
-			RiskFactors:    []string{"单点依赖", "知识垄断", "团队规模过大"},
-			BusinessImpact: "技术决策延迟，团队效率下降",
+			EmployeeID:      "emp-001",
+			EmployeeName:    "张三",
+			Position:        "技术总监",
+			Department:      "技术部",
+			RiskScore:       0.75,
+			RiskFactors:     []string{"单点依赖", "知识垄断", "团队规模过大"},
+			BusinessImpact:  "技术决策延迟，团队效率下降",
 			MitigationSteps: []string{"知识分享计划", "副手培养", "流程标准化"},
-			LastAssessment: time.Now().Add(-7 * 24 * time.Hour),
+			LastAssessment:  time.Now().Add(-7 * 24 * time.Hour),
 		},
 	}
 
 	// Identify compliance risks
 	complianceRisks := []SAMComplianceRisk{
 		{
-			RiskType:       "数据保护合规",
-			Severity:       "MEDIUM",
-			Description:    "员工个人信息处理流程需要加强",
-			AffectedAreas:  []string{"人力资源部", "技术部"},
-			ComplianceGaps: []string{"数据分类标准", "访问控制机制"},
+			RiskType:        "数据保护合规",
+			Severity:        "MEDIUM",
+			Description:     "员工个人信息处理流程需要加强",
+			AffectedAreas:   []string{"人力资源部", "技术部"},
+			ComplianceGaps:  []string{"数据分类标准", "访问控制机制"},
 			RemediationPlan: []string{"制定数据分类政策", "实施最小权限原则", "定期审计"},
-			Deadline:       time.Now().Add(90 * 24 * time.Hour),
+			Deadline:        time.Now().Add(90 * 24 * time.Hour),
 		},
 	}
 
@@ -472,12 +472,12 @@ func (s *SAMService) performRiskAssessment(ctx context.Context) (*RiskAssessment
 	// Identify talent flight risks
 	talentFlightRisks := []TalentFlightRisk{
 		{
-			EmployeeID:     "emp-002",
-			EmployeeName:   "李四",
-			FlightRisk:     0.65,
-			RiskIndicators: []string{"市场薪酬差距", "职业发展瓶颈", "工作负荷过重"},
+			EmployeeID:       "emp-002",
+			EmployeeName:     "李四",
+			FlightRisk:       0.65,
+			RiskIndicators:   []string{"市场薪酬差距", "职业发展瓶颈", "工作负荷过重"},
 			RetentionActions: []string{"薪酬调整", "职业发展规划", "工作负荷优化"},
-			TimeFrame:      "3-6个月",
+			TimeFrame:        "3-6个月",
 		},
 	}
 
@@ -668,7 +668,7 @@ func (s *SAMService) generateRecommendations(
 		priorityScore := map[string]int{"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
 		iScore := priorityScore[recommendations[i].Priority]
 		jScore := priorityScore[recommendations[j].Priority]
-		
+
 		if iScore != jScore {
 			return iScore > jScore
 		}

@@ -14,7 +14,7 @@ import (
 
 var (
 	// === HTTP请求指标 ===
-	
+
 	// HTTPRequestsTotal HTTP请求总数计数器
 	HTTPRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -23,7 +23,7 @@ var (
 		},
 		[]string{"method", "path", "status"},
 	)
-	
+
 	// HTTPRequestDuration HTTP请求持续时间直方图
 	HTTPRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -33,7 +33,7 @@ var (
 		},
 		[]string{"method", "path"},
 	)
-	
+
 	// HTTPRequestsInFlight 正在处理的HTTP请求数量
 	HTTPRequestsInFlight = promauto.NewGauge(
 		prometheus.GaugeOpts{
@@ -43,7 +43,7 @@ var (
 	)
 
 	// === 业务指标 ===
-	
+
 	// EmployeesCreatedTotal 员工创建总数
 	EmployeesCreatedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -52,7 +52,7 @@ var (
 		},
 		[]string{"tenant_id"},
 	)
-	
+
 	// EmployeesUpdatedTotal 员工更新总数
 	EmployeesUpdatedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -61,7 +61,7 @@ var (
 		},
 		[]string{"tenant_id"},
 	)
-	
+
 	// EmployeesDeletedTotal 员工删除总数
 	EmployeesDeletedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -70,7 +70,7 @@ var (
 		},
 		[]string{"tenant_id"},
 	)
-	
+
 	// ActiveEmployeesGauge 当前活跃员工数量
 	ActiveEmployeesGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -79,7 +79,7 @@ var (
 		},
 		[]string{"tenant_id"},
 	)
-	
+
 	// OrganizationsCreatedTotal 组织创建总数
 	OrganizationsCreatedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -90,7 +90,7 @@ var (
 	)
 
 	// === AI服务指标 ===
-	
+
 	// AIRequestsTotal AI请求总数
 	AIRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -99,7 +99,7 @@ var (
 		},
 		[]string{"intent", "status"},
 	)
-	
+
 	// AIRequestDuration AI请求处理时间
 	AIRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -109,7 +109,7 @@ var (
 		},
 		[]string{"intent"},
 	)
-	
+
 	// AISessionsActive 活跃AI会话数量
 	AISessionsActive = promauto.NewGauge(
 		prometheus.GaugeOpts{
@@ -117,7 +117,7 @@ var (
 			Help: "Number of active AI sessions",
 		},
 	)
-	
+
 	// AIIntentAccuracy AI意图识别准确率
 	AIIntentAccuracy = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -128,7 +128,7 @@ var (
 	)
 
 	// === 数据库指标 ===
-	
+
 	// DatabaseOperationsTotal 数据库操作总数
 	DatabaseOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -137,7 +137,7 @@ var (
 		},
 		[]string{"operation", "table", "status"},
 	)
-	
+
 	// DatabaseOperationDuration 数据库操作持续时间
 	DatabaseOperationDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -147,7 +147,7 @@ var (
 		},
 		[]string{"operation", "table"},
 	)
-	
+
 	// DatabaseConnectionsActive 活跃数据库连接数
 	DatabaseConnectionsActive = promauto.NewGauge(
 		prometheus.GaugeOpts{
@@ -155,7 +155,7 @@ var (
 			Help: "Number of active database connections",
 		},
 	)
-	
+
 	// DatabaseConnectionsIdle 空闲数据库连接数
 	DatabaseConnectionsIdle = promauto.NewGauge(
 		prometheus.GaugeOpts{
@@ -165,7 +165,7 @@ var (
 	)
 
 	// === 发件箱指标 ===
-	
+
 	// OutboxEventsTotal 发件箱事件总数
 	OutboxEventsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -174,7 +174,7 @@ var (
 		},
 		[]string{"event_type", "status"},
 	)
-	
+
 	// OutboxEventsProcessingDuration 发件箱事件处理时间
 	OutboxEventsProcessingDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -184,7 +184,7 @@ var (
 		},
 		[]string{"event_type"},
 	)
-	
+
 	// OutboxEventsPending 待处理发件箱事件数量
 	OutboxEventsPending = promauto.NewGauge(
 		prometheus.GaugeOpts{
@@ -194,7 +194,7 @@ var (
 	)
 
 	// === 系统指标 ===
-	
+
 	// ServiceUptime 服务运行时间
 	ServiceUptime = promauto.NewGauge(
 		prometheus.GaugeOpts{
@@ -202,7 +202,7 @@ var (
 			Help: "Service uptime in seconds",
 		},
 	)
-	
+
 	// MemoryUsage 内存使用量
 	MemoryUsage = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -211,7 +211,7 @@ var (
 		},
 		[]string{"type"}, // heap, stack, sys
 	)
-	
+
 	// GoroutinesActive 活跃协程数量
 	GoroutinesActive = promauto.NewGauge(
 		prometheus.GaugeOpts{
@@ -221,7 +221,7 @@ var (
 	)
 
 	// === 错误指标 ===
-	
+
 	// ErrorsTotal 错误总数
 	ErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -230,7 +230,7 @@ var (
 		},
 		[]string{"component", "error_type"},
 	)
-	
+
 	// PanicRecoveries 恐慌恢复总数
 	PanicRecoveries = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -323,17 +323,17 @@ func RecordPanicRecovery(component string) {
 func PrometheusMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// 增加正在处理的请求数
 		HTTPRequestsInFlight.Inc()
 		defer HTTPRequestsInFlight.Dec()
-		
+
 		// 包装ResponseWriter以捕获状态码
 		wrappedWriter := &responseWriter{ResponseWriter: w, statusCode: 200}
-		
+
 		// 处理请求
 		next.ServeHTTP(wrappedWriter, r)
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		HTTPRequestsTotal.WithLabelValues(r.Method, r.URL.Path, strconv.Itoa(wrappedWriter.statusCode)).Inc()

@@ -71,7 +71,7 @@ func main() {
 
 	// Test 3: Node counts
 	fmt.Println("\n=== 测试3: 节点统计 ===")
-	
+
 	// Count Employee nodes
 	result, err = session.Run(ctx, "MATCH (e:Employee) RETURN count(e) as count", nil)
 	if err != nil {
@@ -84,7 +84,7 @@ func main() {
 		}
 	}
 
-	// Count Position nodes  
+	// Count Position nodes
 	result, err = session.Run(ctx, "MATCH (p:Position) RETURN count(p) as count", nil)
 	if err != nil {
 		log.Printf("❌ 统计Position节点失败: %v", err)
@@ -110,7 +110,7 @@ func main() {
 
 	// Test 4: Relationship analysis
 	fmt.Println("\n=== 测试4: 关系分析 ===")
-	
+
 	// Count REPORTS_TO relationships
 	result, err = session.Run(ctx, "MATCH ()-[r:REPORTS_TO]->() RETURN count(r) as count", nil)
 	if err != nil {
@@ -137,7 +137,7 @@ func main() {
 
 	// Test 5: Sample data queries
 	fmt.Println("\n=== 测试5: 样本数据查询 ===")
-	
+
 	// Get sample employees with their positions
 	result, err = session.Run(ctx, `
 		MATCH (e:Employee)-[h:HOLDS_POSITION]->(p:Position)
@@ -159,7 +159,7 @@ func main() {
 
 	// Test 6: Reporting hierarchy query
 	fmt.Println("\n=== 测试6: 汇报层级查询 ===")
-	
+
 	result, err = session.Run(ctx, `
 		MATCH path = (subordinate:Employee)-[:REPORTS_TO*1..3]->(manager:Employee)
 		RETURN subordinate.legal_name as subordinate, 
@@ -183,7 +183,7 @@ func main() {
 
 	// Test 7: Department structure
 	fmt.Println("\n=== 测试7: 部门结构查询 ===")
-	
+
 	result, err = session.Run(ctx, `
 		MATCH (d:Department)<-[:BELONGS_TO]-(p:Position)<-[:HOLDS_POSITION]-(e:Employee)
 		RETURN d.name as department, count(e) as employee_count
@@ -204,7 +204,7 @@ func main() {
 
 	// Test 8: Graph algorithms - centrality
 	fmt.Println("\n=== 测试8: 图算法测试 ===")
-	
+
 	result, err = session.Run(ctx, `
 		MATCH (e:Employee)
 		OPTIONAL MATCH (e)-[r:REPORTS_TO]->()
@@ -230,7 +230,7 @@ func main() {
 
 	// Test 9: Data freshness check
 	fmt.Println("\n=== 测试9: 数据新鲜度检查 ===")
-	
+
 	result, err = session.Run(ctx, `
 		MATCH (e:Employee)
 		WHERE exists(e.created_at)
@@ -250,14 +250,14 @@ func main() {
 
 	// Test 10: Performance test
 	fmt.Println("\n=== 测试10: 性能测试 ===")
-	
+
 	start := time.Now()
 	result, err = session.Run(ctx, `
 		MATCH (e:Employee)-[:HOLDS_POSITION]->(p:Position)-[:BELONGS_TO]->(d:Department)
 		RETURN count(*) as total_employee_position_department_paths
 	`, nil)
 	duration := time.Since(start)
-	
+
 	if err != nil {
 		log.Printf("❌ 性能测试查询失败: %v", err)
 	} else {

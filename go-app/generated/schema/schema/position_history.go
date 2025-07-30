@@ -3,13 +3,13 @@ package schema
 
 import (
 	"time"
-	
+
 	"entgo.io/ent"
-	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	
+
 	"github.com/gaogu/cube-castle/go-app/internal/ent/annotations"
 )
 
@@ -57,7 +57,6 @@ func (Position_history) Fields() []ent.Field {
 		field.Float64("max_salary").Annotations(annotations.MetaContractAnnotation{DataClassification: "RESTRICTED"}),
 
 		field.String("currency").Annotations(annotations.MetaContractAnnotation{DataClassification: "INTERNAL"}),
-
 	}
 }
 
@@ -68,7 +67,6 @@ func (Position_history) Edges() []ent.Edge {
 		edge.To("employee", Person.Type).Unique().Required(),
 
 		edge.To("reports_to", Person.Type).Unique(),
-
 	}
 }
 
@@ -77,7 +75,7 @@ func (Position_history) Indexes() []ent.Index {
 	return []ent.Index{
 		// Tenant isolation index
 		index.Fields("tenant_id"),
-		
+
 		// Time-based query optimization
 
 	}
@@ -88,26 +86,24 @@ func (Position_history) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		annotations.MetaContractAnnotation{
 			DataClassification: "INTERNAL",
-			ComplianceTags:     []string{
+			ComplianceTags: []string{
 
 				"SOX",
 
 				"GDPR",
 
 				"AUDIT_TRAIL",
-
 			},
 
 			PersistenceProfile: &annotations.PersistenceProfile{
-				PrimaryStore:    "postgresql",
-				IndexedIn:       []string{
+				PrimaryStore: "postgresql",
+				IndexedIn: []string{
 
 					"postgresql",
 
 					"neo4j",
-
 				},
-				GraphNodeLabel:  "PositionHistory",
+				GraphNodeLabel: "PositionHistory",
 				GraphEdgeDefinitions: []string{
 
 					"POSITION_HELD_BY -> Person",
@@ -115,10 +111,8 @@ func (Position_history) Annotations() []schema.Annotation {
 					"REPORTS_TO_POSITION -> PositionHistory",
 
 					"POSITION_IN_DEPARTMENT -> Organization",
-
 				},
 			},
-
 		},
 	}
 }

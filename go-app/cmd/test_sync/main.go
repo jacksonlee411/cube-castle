@@ -14,7 +14,7 @@ func main() {
 
 	// Create sample data in Neo4j directly for testing
 	ctx := context.Background()
-	
+
 	// Neo4j connection
 	driver, err := neo4j.NewDriverWithContext("bolt://localhost:7687", neo4j.BasicAuth("neo4j", "password", ""))
 	if err != nil {
@@ -66,13 +66,13 @@ func main() {
 			"hire_date": time.Date(2020, 1, 15, 0, 0, 0, 0, time.UTC),
 		},
 		{
-			"id": "emp-002", "employee_id": "EMP002", "legal_name": "李四", 
+			"id": "emp-002", "employee_id": "EMP002", "legal_name": "李四",
 			"email": "lisi@company.com", "status": "ACTIVE",
 			"hire_date": time.Date(2021, 3, 20, 0, 0, 0, 0, time.UTC),
 		},
 		{
 			"id": "emp-003", "employee_id": "EMP003", "legal_name": "王五",
-			"email": "wangwu@company.com", "status": "ACTIVE", 
+			"email": "wangwu@company.com", "status": "ACTIVE",
 			"hire_date": time.Date(2022, 6, 10, 0, 0, 0, 0, time.UTC),
 		},
 		{
@@ -330,7 +330,7 @@ func main() {
 	fmt.Println("\n🎉 Neo4j数据同步测试完成!")
 	fmt.Println("📝 现在Neo4j中包含完整的组织架构数据，可以支持:")
 	fmt.Println("   • 组织架构图生成")
-	fmt.Println("   • 汇报关系查询")  
+	fmt.Println("   • 汇报关系查询")
 	fmt.Println("   • 部门统计分析")
 	fmt.Println("   • 管理层分析")
 	fmt.Println("   • SAM态势感知分析")

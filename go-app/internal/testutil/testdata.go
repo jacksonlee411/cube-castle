@@ -512,15 +512,15 @@ relationships:
 // Sample natural language inputs for NLP testing
 const (
 	CreateUserEntityNL        = "Create a user entity with id, name, email, and phone fields"
-	AddFieldsNL              = "Add address and date_of_birth fields to the user entity"
-	CreateRelationshipNL     = "User has many posts and belongs to one organization"
-	ModifyFieldNL            = "Make email field required and unique"
-	CreateComplexEntityNL    = "Create an order entity with id, user_id, total_amount, status, items array, and created_at timestamp"
-	SecurityRequirementNL    = "Add encryption to credit card field and make it restricted access"
+	AddFieldsNL               = "Add address and date_of_birth fields to the user entity"
+	CreateRelationshipNL      = "User has many posts and belongs to one organization"
+	ModifyFieldNL             = "Make email field required and unique"
+	CreateComplexEntityNL     = "Create an order entity with id, user_id, total_amount, status, items array, and created_at timestamp"
+	SecurityRequirementNL     = "Add encryption to credit card field and make it restricted access"
 	PerformanceOptimizationNL = "Add indexes on frequently queried fields like email and status"
-	ValidationRulesNL        = "Add email format validation and length limits to name fields"
-	EnumFieldNL              = "Create status field with values: draft, published, archived"
-	JSONFieldNL              = "Add metadata field that can store any JSON data"
+	ValidationRulesNL         = "Add email format validation and length limits to name fields"
+	EnumFieldNL               = "Create status field with values: draft, published, archived"
+	JSONFieldNL               = "Add metadata field that can store any JSON data"
 )
 
 // Expected AI responses for testing

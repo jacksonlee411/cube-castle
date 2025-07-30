@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	
+
 	"github.com/gaogu/cube-castle/go-app/internal/ent"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
 )
@@ -28,29 +28,25 @@ func NewPersonHandler(client *ent.Client) *PersonHandler {
 // Routes registers all routes for person
 func (h *PersonHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	
+
 	// Apply middleware
 	r.Use(middleware.TenantContext)
 
 	r.Use(middleware.RBACAuthorization)
 
-
 	r.Use(middleware.DataClassificationCheck("CONFIDENTIAL"))
 
-	
 	// REST endpoints
 	r.Post("/", h.CreatePerson)
 	r.Get("/", h.ListPersons)
 	r.Get("/{id}", h.GetPerson)
 	r.Put("/{id}", h.UpdatePerson)
 	r.Delete("/{id}", h.DeletePerson)
-	
 
 	// Temporal endpoints
 	r.Get("/{id}/history", h.GetPersonHistory)
 	r.Get("/{id}/at/{timestamp}", h.GetPersonAtTime)
 
-	
 	return r
 }
 
@@ -61,67 +57,34 @@ func (h *PersonHandler) CreatePerson(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Create entity
 	entity, err := h.client.Person.
 		Create().
 		SetTenantID(tenantID).
-
-
-
-
 		SetTenant_id(req.Tenant_id).
-
-
-
 		SetEmployee_id(req.Employee_id).
-
-
-
 		SetLegal_name(req.Legal_name).
-
-
-
 		SetPreferred_name(req.Preferred_name).
-
-
-
 		SetEmail(req.Email).
-
-
-
 		SetStatus(req.Status).
-
-
-
 		SetHire_date(req.Hire_date).
-
-
-
 		SetTermination_date(req.Termination_date).
-
-
-
 		SetCreated_at(req.Created_at).
-
-
-
 		SetUpdated_at(req.Updated_at).
-
-
 		Save(r.Context())
-	
+
 	if err != nil {
 		http.Error(w, "Failed to create person", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entity)
 }
@@ -133,7 +96,7 @@ func (h *PersonHandler) ListPersons(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Parse query parameters
 	limit := 100 // default
 	if l := r.URL.Query().Get("limit"); l != "" {
@@ -141,14 +104,14 @@ func (h *PersonHandler) ListPersons(w http.ResponseWriter, r *http.Request) {
 			limit = parsed
 		}
 	}
-	
+
 	offset := 0
 	if o := r.URL.Query().Get("offset"); o != "" {
 		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
 			offset = parsed
 		}
 	}
-	
+
 	// Query entities
 	entities, err := h.client.Person.
 		Query().
@@ -156,12 +119,12 @@ func (h *PersonHandler) ListPersons(w http.ResponseWriter, r *http.Request) {
 		Limit(limit).
 		Offset(offset).
 		All(r.Context())
-	
+
 	if err != nil {
 		http.Error(w, "Failed to list persons", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entities)
 }
@@ -174,13 +137,13 @@ func (h *PersonHandler) GetPerson(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Query entity
 	entity, err := h.client.Person.
 		Query().
@@ -189,7 +152,7 @@ func (h *PersonHandler) GetPerson(w http.ResponseWriter, r *http.Request) {
 			person.TenantID(tenantID),
 		).
 		Only(r.Context())
-	
+
 	if err != nil {
 		if ent.IsNotFound(err) {
 			http.Error(w, "Person not found", http.StatusNotFound)
@@ -198,7 +161,7 @@ func (h *PersonHandler) GetPerson(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entity)
 }
@@ -211,64 +174,33 @@ func (h *PersonHandler) UpdatePerson(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
-	
+
 	var req UpdatePersonRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Update entity
 	entity, err := h.client.Person.
 		UpdateOneID(id).
 		Where(person.TenantID(tenantID)).
-
-
-
-
-
-
 		SetEmployee_id(req.Employee_id).
-
-
-
 		SetLegal_name(req.Legal_name).
-
-
-
 		SetPreferred_name(req.Preferred_name).
-
-
-
 		SetEmail(req.Email).
-
-
-
 		SetStatus(req.Status).
-
-
-
 		SetHire_date(req.Hire_date).
-
-
-
 		SetTermination_date(req.Termination_date).
-
-
-
-
-
 		SetUpdated_at(req.Updated_at).
-
-
 		Save(r.Context())
-	
+
 	if err != nil {
 		if ent.IsNotFound(err) {
 			http.Error(w, "Person not found", http.StatusNotFound)
@@ -277,7 +209,7 @@ func (h *PersonHandler) UpdatePerson(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entity)
 }
@@ -290,19 +222,19 @@ func (h *PersonHandler) DeletePerson(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Delete entity
 	err = h.client.Person.
 		DeleteOneID(id).
 		Where(person.TenantID(tenantID)).
 		Exec(r.Context())
-	
+
 	if err != nil {
 		if ent.IsNotFound(err) {
 			http.Error(w, "Person not found", http.StatusNotFound)
@@ -311,10 +243,9 @@ func (h *PersonHandler) DeletePerson(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }
-
 
 // GetPersonHistory gets the history of a person
 func (h *PersonHandler) GetPersonHistory(w http.ResponseWriter, r *http.Request) {
@@ -324,13 +255,13 @@ func (h *PersonHandler) GetPersonHistory(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Query history entities
 	history, err := h.client.PersonHistory.
 		Query().
@@ -340,12 +271,12 @@ func (h *PersonHandler) GetPersonHistory(w http.ResponseWriter, r *http.Request)
 		).
 		Order(ent.Desc(personhistory.FieldEffectiveDate)).
 		All(r.Context())
-	
+
 	if err != nil {
 		http.Error(w, "Failed to get person history", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(history)
 }
@@ -358,97 +289,48 @@ func (h *PersonHandler) GetPersonAtTime(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
-	
+
 	timestampStr := chi.URLParam(r, "timestamp")
 	// Parse timestamp and implement temporal query logic
 	// This would query the history table for the state at the specific time
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Temporal query not yet implemented",
-		"id": idStr,
+		"message":   "Temporal query not yet implemented",
+		"id":        idStr,
 		"timestamp": timestampStr,
 	})
 }
 
-
 // Request/Response types
 type CreatePersonRequest struct {
-
-
-
-
-
-
 	Employee_id string `json:"employee_id"`
-
-
 
 	Legal_name string `json:"legal_name"`
 
-
-
 	Preferred_name string `json:"preferred_name"`
-
-
 
 	Email string `json:"email"`
 
-
-
 	Status string `json:"status"`
-
-
 
 	Hire_date time.Time `json:"hire_date"`
 
-
-
 	Termination_date time.Time `json:"termination_date"`
-
-
-
-
-
-
 }
 
 type UpdatePersonRequest struct {
-
-
-
-
-
-
 	Employee_id string `json:"employee_id"`
-
-
 
 	Legal_name string `json:"legal_name"`
 
-
-
 	Preferred_name string `json:"preferred_name"`
-
-
 
 	Email string `json:"email"`
 
-
-
 	Status string `json:"status"`
-
-
 
 	Hire_date time.Time `json:"hire_date"`
 
-
-
 	Termination_date time.Time `json:"termination_date"`
-
-
-
-
-
-
 }

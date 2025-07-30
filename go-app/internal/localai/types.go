@@ -22,10 +22,10 @@ type CursorPosition struct {
 }
 
 type Suggestion struct {
-	Text        string `json:"text"`
-	Type        string `json:"type"`
+	Text        string  `json:"text"`
+	Type        string  `json:"type"`
 	Confidence  float64 `json:"confidence"`
-	Description string `json:"description"`
+	Description string  `json:"description"`
 }
 
 // NLP types
@@ -50,19 +50,19 @@ type NLPEntity struct {
 
 // Analysis types
 type AnalysisResult struct {
-	Issues        []Issue                `json:"issues"`
-	Performance   *PerformanceAnalysis   `json:"performance"`
-	Security      *SecurityAnalysis      `json:"security"`
-	Relationships []Relationship         `json:"relationships"`
+	Issues        []Issue              `json:"issues"`
+	Performance   *PerformanceAnalysis `json:"performance"`
+	Security      *SecurityAnalysis    `json:"security"`
+	Relationships []Relationship       `json:"relationships"`
 }
 
 type Issue struct {
-	Type        string `json:"type"`
-	Severity    string `json:"severity"`
-	Message     string `json:"message"`
-	Line        int    `json:"line"`
-	Column      int    `json:"column"`
-	Suggestion  string `json:"suggestion"`
+	Type       string `json:"type"`
+	Severity   string `json:"severity"`
+	Message    string `json:"message"`
+	Line       int    `json:"line"`
+	Column     int    `json:"column"`
+	Suggestion string `json:"suggestion"`
 }
 
 type PerformanceAnalysis struct {
@@ -73,7 +73,7 @@ type PerformanceAnalysis struct {
 
 type SecurityAnalysis struct {
 	Vulnerabilities []Issue `json:"vulnerabilities"`
-	Score          float64 `json:"score"`
+	Score           float64 `json:"score"`
 }
 
 type Relationship struct {
@@ -84,10 +84,10 @@ type Relationship struct {
 
 // Configuration
 type AIConfiguration struct {
-	Endpoint   string            `json:"endpoint"`
-	APIKey     string            `json:"api_key"`
-	Model      string            `json:"model"`
-	Settings   map[string]string `json:"settings"`
+	Endpoint string            `json:"endpoint"`
+	APIKey   string            `json:"api_key"`
+	Model    string            `json:"model"`
+	Settings map[string]string `json:"settings"`
 }
 
 // Service interface
@@ -100,7 +100,7 @@ type NLPEngine interface {
 	Process(req *NLPRequest) (*NLPResponse, error)
 }
 
-// Code Analyzer interface  
+// Code Analyzer interface
 type CodeAnalyzer interface {
 	Analyze(context, query string) (*AnalysisResult, error)
 }

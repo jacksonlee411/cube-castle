@@ -26,43 +26,43 @@ type Neo4jConfig struct {
 
 // Employee node representation in graph
 type EmployeeNode struct {
-	ID           string            `json:"id"`
-	EmployeeID   string            `json:"employee_id"`
-	LegalName    string            `json:"legal_name"`
-	Email        string            `json:"email"`
-	Status       string            `json:"status"`
-	HireDate     time.Time         `json:"hire_date"`
-	Properties   map[string]interface{} `json:"properties"`
+	ID         string                 `json:"id"`
+	EmployeeID string                 `json:"employee_id"`
+	LegalName  string                 `json:"legal_name"`
+	Email      string                 `json:"email"`
+	Status     string                 `json:"status"`
+	HireDate   time.Time              `json:"hire_date"`
+	Properties map[string]interface{} `json:"properties"`
 }
 
 // Position node representation in graph
 type PositionNode struct {
-	ID            string            `json:"id"`
-	PositionTitle string            `json:"position_title"`
-	Department    string            `json:"department"`
-	JobLevel      string            `json:"job_level"`
-	Location      string            `json:"location"`
-	EffectiveDate time.Time         `json:"effective_date"`
-	EndDate       *time.Time        `json:"end_date"`
+	ID            string                 `json:"id"`
+	PositionTitle string                 `json:"position_title"`
+	Department    string                 `json:"department"`
+	JobLevel      string                 `json:"job_level"`
+	Location      string                 `json:"location"`
+	EffectiveDate time.Time              `json:"effective_date"`
+	EndDate       *time.Time             `json:"end_date"`
 	Properties    map[string]interface{} `json:"properties"`
 }
 
 // Department node representation in graph
 type DepartmentNode struct {
-	ID         string            `json:"id"`
-	Name       string            `json:"name"`
-	ParentID   *string           `json:"parent_id"`
-	ManagerID  *string           `json:"manager_id"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	ParentID   *string                `json:"parent_id"`
+	ManagerID  *string                `json:"manager_id"`
 	Properties map[string]interface{} `json:"properties"`
 }
 
 // OrganizationalPath represents a path between employees
 type OrganizationalPath struct {
-	FromEmployee EmployeeNode   `json:"from_employee"`
-	ToEmployee   EmployeeNode   `json:"to_employee"`
-	Path         []PathSegment  `json:"path"`
-	Distance     int            `json:"distance"`
-	PathType     string         `json:"path_type"` // REPORTS_TO, PEER, CROSS_DEPARTMENT
+	FromEmployee EmployeeNode  `json:"from_employee"`
+	ToEmployee   EmployeeNode  `json:"to_employee"`
+	Path         []PathSegment `json:"path"`
+	Distance     int           `json:"distance"`
+	PathType     string        `json:"path_type"` // REPORTS_TO, PEER, CROSS_DEPARTMENT
 }
 
 // PathSegment represents one step in an organizational path
@@ -74,10 +74,10 @@ type PathSegment struct {
 
 // ReportingHierarchy represents the reporting structure
 type ReportingHierarchy struct {
-	Manager      EmployeeNode   `json:"manager"`
+	Manager       EmployeeNode   `json:"manager"`
 	DirectReports []EmployeeNode `json:"direct_reports"`
-	AllReports   []EmployeeNode `json:"all_reports"`
-	Depth        int            `json:"depth"`
+	AllReports    []EmployeeNode `json:"all_reports"`
+	Depth         int            `json:"depth"`
 }
 
 // NewNeo4jService creates a new Neo4j service instance

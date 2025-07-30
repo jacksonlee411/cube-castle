@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/types"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // OrganizationUnitHandler handles HTTP requests for organization units
@@ -67,7 +67,7 @@ type OrganizationUnitResponse struct {
 func (h *OrganizationUnitHandler) CreateOrganizationUnit() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context (set by middleware)
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
@@ -164,7 +164,7 @@ func (h *OrganizationUnitHandler) CreateOrganizationUnit() http.HandlerFunc {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			
+
 			h.logger.LogError("create_org_unit", "Failed to create organization unit", err, map[string]interface{}{
 				"unit_type": req.UnitType,
 				"name":      req.Name,
@@ -194,7 +194,7 @@ func (h *OrganizationUnitHandler) CreateOrganizationUnit() http.HandlerFunc {
 func (h *OrganizationUnitHandler) GetOrganizationUnit() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
@@ -243,7 +243,7 @@ func (h *OrganizationUnitHandler) GetOrganizationUnit() http.HandlerFunc {
 func (h *OrganizationUnitHandler) ListOrganizationUnits() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
@@ -325,7 +325,7 @@ func (h *OrganizationUnitHandler) ListOrganizationUnits() http.HandlerFunc {
 func (h *OrganizationUnitHandler) UpdateOrganizationUnit() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
@@ -448,7 +448,7 @@ func (h *OrganizationUnitHandler) UpdateOrganizationUnit() http.HandlerFunc {
 func (h *OrganizationUnitHandler) DeleteOrganizationUnit() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		// Get tenant ID from context
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {

@@ -61,7 +61,6 @@ src/
 │   │   └── index.tsx     # 职位管理页 (完整CRUD + FTE管理)
 │   ├── sam/              # SAM仪表板
 │   ├── workflows/        # 工作流管理
-│   ├── metacontract-editor/ # Meta-Contract编辑器
 │   └── test-antd.tsx     # Ant Design兼容性测试页
 ├── components/            # React 组件
 │   ├── ui/               # 基础 UI 组件

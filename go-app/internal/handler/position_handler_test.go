@@ -22,10 +22,10 @@ import (
 func setupPositionHandler(t *testing.T) (*PositionHandler, *ent.Client, func()) {
 	// Create test database using configurable backend
 	client, logger, cleanup := testutil.SetupTestHandler(t)
-	
+
 	// Create handler
 	handler := NewPositionHandler(client, logger)
-	
+
 	return handler, client, cleanup
 }
 
@@ -49,7 +49,7 @@ func TestPositionHandler_CreatePosition(t *testing.T) {
 
 	tenantID := uuid.New()
 	dept := createTestDepartment(t, client, tenantID)
-	
+
 	testCases := []struct {
 		name           string
 		payload        CreatePositionRequest
@@ -59,11 +59,11 @@ func TestPositionHandler_CreatePosition(t *testing.T) {
 		{
 			name: "Valid FULL_TIME position creation",
 			payload: CreatePositionRequest{
-				PositionType:  "FULL_TIME",
-				JobProfileID:  uuid.New(),
-				DepartmentID:  dept.ID,
-				Status:        "OPEN",
-				BudgetedFTE:   1.0,
+				PositionType: "FULL_TIME",
+				JobProfileID: uuid.New(),
+				DepartmentID: dept.ID,
+				Status:       "OPEN",
+				BudgetedFTE:  1.0,
 				Details: map[string]interface{}{
 					"work_schedule": "standard",
 					"location":      "office",
@@ -146,13 +146,13 @@ func TestPositionHandler_CreatePosition(t *testing.T) {
 				var response PositionResponse
 				err := json.Unmarshal(rr.Body.Bytes(), &response)
 				require.NoError(t, err)
-				
+
 				assert.Equal(t, tc.payload.PositionType, response.PositionType)
 				assert.Equal(t, tc.payload.JobProfileID, response.JobProfileID)
 				assert.Equal(t, tc.payload.DepartmentID, response.DepartmentID)
 				assert.Equal(t, tenantID, response.TenantID)
 				assert.NotEqual(t, uuid.Nil, response.ID)
-				
+
 				// Check default values
 				if tc.payload.Status == "" {
 					assert.Equal(t, "OPEN", response.Status)
@@ -171,7 +171,7 @@ func TestPositionHandler_GetPosition(t *testing.T) {
 
 	tenantID := uuid.New()
 	dept := createTestDepartment(t, client, tenantID)
-	
+
 	// Create test position
 	pos, err := client.Position.Create().
 		SetTenantID(tenantID).
@@ -237,7 +237,7 @@ func TestPositionHandler_GetPosition(t *testing.T) {
 				var response PositionResponse
 				err := json.Unmarshal(rr.Body.Bytes(), &response)
 				require.NoError(t, err)
-				
+
 				assert.Equal(t, pos.ID, response.ID)
 				assert.Equal(t, pos.PositionType.String(), response.PositionType)
 				assert.Equal(t, pos.JobProfileID, response.JobProfileID)
@@ -253,7 +253,7 @@ func TestPositionHandler_ListPositions(t *testing.T) {
 
 	tenantID := uuid.New()
 	dept := createTestDepartment(t, client, tenantID)
-	
+
 	// Create test positions
 	_, err := client.Position.Create().
 		SetTenantID(tenantID).
@@ -360,7 +360,7 @@ func TestPositionHandler_UpdatePosition(t *testing.T) {
 
 	tenantID := uuid.New()
 	dept := createTestDepartment(t, client, tenantID)
-	
+
 	// Create test position
 	pos, err := client.Position.Create().
 		SetTenantID(tenantID).
@@ -383,7 +383,7 @@ func TestPositionHandler_UpdatePosition(t *testing.T) {
 			name:       "Valid update",
 			positionID: pos.ID.String(),
 			payload: UpdatePositionRequest{
-				Status: stringPtr("FILLED"),
+				Status:      stringPtr("FILLED"),
 				BudgetedFTE: float64Ptr(0.8),
 			},
 			expectedStatus: http.StatusOK,
@@ -441,7 +441,7 @@ func TestPositionHandler_UpdatePosition(t *testing.T) {
 				var response PositionResponse
 				err := json.Unmarshal(rr.Body.Bytes(), &response)
 				require.NoError(t, err)
-				
+
 				if tc.payload.Status != nil {
 					assert.Equal(t, *tc.payload.Status, response.Status)
 				}
@@ -459,7 +459,7 @@ func TestPositionHandler_DeletePosition(t *testing.T) {
 
 	tenantID := uuid.New()
 	dept := createTestDepartment(t, client, tenantID)
-	
+
 	// Create test position
 	pos, err := client.Position.Create().
 		SetTenantID(tenantID).

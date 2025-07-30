@@ -23,25 +23,25 @@ func NewOrganizationResolver(neo4jService *service.Neo4jService) *OrganizationRe
 
 // OrganizationChart represents the organizational structure
 type OrganizationChart struct {
-	Department      string                 `json:"department"`
-	Employees       []*EmployeeInChart     `json:"employees"`
-	SubDepartments  []*SubDepartment       `json:"sub_departments"`
-	ManagerCount    int                    `json:"manager_count"`
-	TotalEmployees  int                    `json:"total_employees"`
+	Department     string             `json:"department"`
+	Employees      []*EmployeeInChart `json:"employees"`
+	SubDepartments []*SubDepartment   `json:"sub_departments"`
+	ManagerCount   int                `json:"manager_count"`
+	TotalEmployees int                `json:"total_employees"`
 }
 
 // SubDepartment represents a sub-department in the organization chart
 type SubDepartment struct {
-	Department     string              `json:"department"`
-	Employees      []*EmployeeInChart  `json:"employees"`
-	ManagerCount   int                 `json:"manager_count"`
-	TotalEmployees int                 `json:"total_employees"`
+	Department     string             `json:"department"`
+	Employees      []*EmployeeInChart `json:"employees"`
+	ManagerCount   int                `json:"manager_count"`
+	TotalEmployees int                `json:"total_employees"`
 }
 
 // EmployeeInChart represents an employee in the organization chart
 type EmployeeInChart struct {
-	ID              string          `json:"id"`
-	LegalName       string          `json:"legal_name"`
+	ID              string           `json:"id"`
+	LegalName       string           `json:"legal_name"`
 	CurrentPosition *PositionInChart `json:"current_position"`
 }
 
@@ -68,8 +68,8 @@ type PathStep struct {
 
 // CommonManager represents the common manager result
 type CommonManager struct {
-	ID              string          `json:"id"`
-	LegalName       string          `json:"legal_name"`
+	ID              string           `json:"id"`
+	LegalName       string           `json:"legal_name"`
 	CurrentPosition *PositionInChart `json:"current_position"`
 }
 
@@ -109,7 +109,7 @@ func (r *OrganizationResolver) GetOrganizationChart(ctx context.Context, args st
 				},
 			},
 			{
-				ID:        "emp-002", 
+				ID:        "emp-002",
 				LegalName: "李四",
 				CurrentPosition: &PositionInChart{
 					PositionTitle: "高级软件工程师",
@@ -279,32 +279,32 @@ func (r *OrganizationResolver) GetOrganizationMetrics(ctx context.Context, args 
 	// This would query Neo4j for various organizational metrics
 	// For now, return mock data
 	metrics := &OrganizationMetrics{
-		TotalEmployees:     156,
-		TotalDepartments:   12,
-		AverageTeamSize:    8.5,
-		MaxReportingDepth:  5,
-		SpanOfControl:      6.2,
+		TotalEmployees:    156,
+		TotalDepartments:  12,
+		AverageTeamSize:   8.5,
+		MaxReportingDepth: 5,
+		SpanOfControl:     6.2,
 		DepartmentMetrics: []*DepartmentMetric{
 			{
-				Department:     "技术部",
-				EmployeeCount:  45,
-				ManagerCount:   8,
-				AverageSpan:    5.6,
-				MaxDepth:       4,
+				Department:    "技术部",
+				EmployeeCount: 45,
+				ManagerCount:  8,
+				AverageSpan:   5.6,
+				MaxDepth:      4,
 			},
 			{
-				Department:     "产品部",
-				EmployeeCount:  28,
-				ManagerCount:   5,
-				AverageSpan:    5.6,
-				MaxDepth:       3,
+				Department:    "产品部",
+				EmployeeCount: 28,
+				ManagerCount:  5,
+				AverageSpan:   5.6,
+				MaxDepth:      3,
 			},
 			{
-				Department:     "销售部",
-				EmployeeCount:  32,
-				ManagerCount:   6,
-				AverageSpan:    5.3,
-				MaxDepth:       3,
+				Department:    "销售部",
+				EmployeeCount: 32,
+				ManagerCount:  6,
+				AverageSpan:   5.3,
+				MaxDepth:      3,
 			},
 		},
 	}
@@ -314,12 +314,12 @@ func (r *OrganizationResolver) GetOrganizationMetrics(ctx context.Context, args 
 
 // OrganizationMetrics represents organizational metrics
 type OrganizationMetrics struct {
-	TotalEmployees     int                 `json:"total_employees"`
-	TotalDepartments   int                 `json:"total_departments"`
-	AverageTeamSize    float64             `json:"average_team_size"`
-	MaxReportingDepth  int                 `json:"max_reporting_depth"`
-	SpanOfControl      float64             `json:"span_of_control"`
-	DepartmentMetrics  []*DepartmentMetric `json:"department_metrics"`
+	TotalEmployees    int                 `json:"total_employees"`
+	TotalDepartments  int                 `json:"total_departments"`
+	AverageTeamSize   float64             `json:"average_team_size"`
+	MaxReportingDepth int                 `json:"max_reporting_depth"`
+	SpanOfControl     float64             `json:"span_of_control"`
+	DepartmentMetrics []*DepartmentMetric `json:"department_metrics"`
 }
 
 // DepartmentMetric represents metrics for a specific department
@@ -335,7 +335,7 @@ type DepartmentMetric struct {
 func (r *OrganizationResolver) SyncEmployeeToGraph(ctx context.Context, employeeID string) error {
 	// This would typically be called when employee data changes
 	// to keep the graph database in sync with the relational database
-	
+
 	// Convert from relational data to graph node
 	employee := service.EmployeeNode{
 		ID:         employeeID,

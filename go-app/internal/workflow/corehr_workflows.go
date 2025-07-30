@@ -4,62 +4,62 @@ import (
 	"fmt"
 	"time"
 
-	"go.temporal.io/sdk/workflow"
-	"go.temporal.io/sdk/temporal"
 	"github.com/google/uuid"
+	"go.temporal.io/sdk/temporal"
+	"go.temporal.io/sdk/workflow"
 )
 
 // === 工作流请求和响应类型 ===
 
 // EmployeeOnboardingRequest 员工入职工作流请求
 type EmployeeOnboardingRequest struct {
-	EmployeeID   uuid.UUID `json:"employee_id"`
-	TenantID     uuid.UUID `json:"tenant_id"`
-	FirstName    string    `json:"first_name"`
-	LastName     string    `json:"last_name"`
-	Email        string    `json:"email"`
-	Department   string    `json:"department"`
-	Position     string    `json:"position"`
-	ManagerID    *uuid.UUID `json:"manager_id,omitempty"`
-	StartDate    time.Time `json:"start_date"`
+	EmployeeID uuid.UUID  `json:"employee_id"`
+	TenantID   uuid.UUID  `json:"tenant_id"`
+	FirstName  string     `json:"first_name"`
+	LastName   string     `json:"last_name"`
+	Email      string     `json:"email"`
+	Department string     `json:"department"`
+	Position   string     `json:"position"`
+	ManagerID  *uuid.UUID `json:"manager_id,omitempty"`
+	StartDate  time.Time  `json:"start_date"`
 }
 
 // EmployeeOnboardingResult 员工入职工作流结果
 type EmployeeOnboardingResult struct {
-	EmployeeID    uuid.UUID `json:"employee_id"`
-	Status        string    `json:"status"`
-	CompletedSteps []string `json:"completed_steps"`
-	ErrorMessage  string    `json:"error_message,omitempty"`
-	CompletedAt   time.Time `json:"completed_at"`
+	EmployeeID     uuid.UUID `json:"employee_id"`
+	Status         string    `json:"status"`
+	CompletedSteps []string  `json:"completed_steps"`
+	ErrorMessage   string    `json:"error_message,omitempty"`
+	CompletedAt    time.Time `json:"completed_at"`
 }
 
 // LeaveApprovalRequest 休假审批工作流请求
 type LeaveApprovalRequest struct {
-	RequestID     uuid.UUID `json:"request_id"`
-	EmployeeID    uuid.UUID `json:"employee_id"`
-	TenantID      uuid.UUID `json:"tenant_id"`
-	LeaveType     string    `json:"leave_type"`
-	StartDate     time.Time `json:"start_date"`
-	EndDate       time.Time `json:"end_date"`
-	Reason        string    `json:"reason"`
-	ManagerID     uuid.UUID `json:"manager_id"`
-	RequestedAt   time.Time `json:"requested_at"`
+	RequestID   uuid.UUID `json:"request_id"`
+	EmployeeID  uuid.UUID `json:"employee_id"`
+	TenantID    uuid.UUID `json:"tenant_id"`
+	LeaveType   string    `json:"leave_type"`
+	StartDate   time.Time `json:"start_date"`
+	EndDate     time.Time `json:"end_date"`
+	Reason      string    `json:"reason"`
+	ManagerID   uuid.UUID `json:"manager_id"`
+	RequestedAt time.Time `json:"requested_at"`
 }
 
 // LeaveApprovalResult 休假审批工作流结果
 type LeaveApprovalResult struct {
-	RequestID     uuid.UUID `json:"request_id"`
-	Status        string    `json:"status"` // pending, approved, rejected
-	ApproverID    *uuid.UUID `json:"approver_id,omitempty"`
-	ApprovedAt    *time.Time `json:"approved_at,omitempty"`
-	Comments      string    `json:"comments,omitempty"`
-	ErrorMessage  string    `json:"error_message,omitempty"`
+	RequestID    uuid.UUID  `json:"request_id"`
+	Status       string     `json:"status"` // pending, approved, rejected
+	ApproverID   *uuid.UUID `json:"approver_id,omitempty"`
+	ApprovedAt   *time.Time `json:"approved_at,omitempty"`
+	Comments     string     `json:"comments,omitempty"`
+	ErrorMessage string     `json:"error_message,omitempty"`
 }
 
 // LeaveApprovalResponse 休假审批响应（用于Activity返回）
 type LeaveApprovalResponse struct {
-	Approved  bool   `json:"approved"`
-	Comments  string `json:"comments,omitempty"`
+	Approved   bool       `json:"approved"`
+	Comments   string     `json:"comments,omitempty"`
 	ApproverID *uuid.UUID `json:"approver_id,omitempty"`
 }
 
@@ -145,12 +145,12 @@ func EmployeeOnboardingWorkflow(ctx workflow.Context, req EmployeeOnboardingRequ
 	if req.ManagerID != nil {
 		var managerNotificationResult NotifyManagerResult
 		err = workflow.ExecuteActivity(ctx, NotifyManagerActivity, NotifyManagerRequest{
-			ManagerID:      *req.ManagerID,
-			NewEmployeeID:  req.EmployeeID,
-			EmployeeName:   fmt.Sprintf("%s %s", req.FirstName, req.LastName),
-			StartDate:      req.StartDate,
-			Department:     req.Department,
-			Position:       req.Position,
+			ManagerID:     *req.ManagerID,
+			NewEmployeeID: req.EmployeeID,
+			EmployeeName:  fmt.Sprintf("%s %s", req.FirstName, req.LastName),
+			StartDate:     req.StartDate,
+			Department:    req.Department,
+			Position:      req.Position,
 		}).Get(ctx, &managerNotificationResult)
 
 		if err != nil {
@@ -164,9 +164,9 @@ func EmployeeOnboardingWorkflow(ctx workflow.Context, req EmployeeOnboardingRequ
 	// 完成工作流
 	result.Status = "completed"
 	result.CompletedAt = time.Now()
-	
-	logger.Info("Employee onboarding workflow completed", 
-		"employee_id", req.EmployeeID, 
+
+	logger.Info("Employee onboarding workflow completed",
+		"employee_id", req.EmployeeID,
 		"completed_steps", len(result.CompletedSteps))
 
 	return result, nil
@@ -247,8 +247,8 @@ func LeaveApprovalWorkflow(ctx workflow.Context, req LeaveApprovalRequest) (*Lea
 	// 为了简化，我们使用一个模拟的审批活动
 	var approvalResult ManagerApprovalResult
 	err = workflow.ExecuteActivity(approvalCtx, WaitForManagerApprovalActivity, WaitForManagerApprovalRequest{
-		RequestID: req.RequestID,
-		ManagerID: req.ManagerID,
+		RequestID:    req.RequestID,
+		ManagerID:    req.ManagerID,
 		TimeoutHours: 168, // 7天
 	}).Get(approvalCtx, &approvalResult)
 
@@ -296,8 +296,8 @@ func LeaveApprovalWorkflow(ctx workflow.Context, req LeaveApprovalRequest) (*Lea
 		}
 	}
 
-	logger.Info("Leave approval workflow completed", 
-		"request_id", req.RequestID, 
+	logger.Info("Leave approval workflow completed",
+		"request_id", req.RequestID,
 		"status", result.Status)
 
 	return result, nil
@@ -351,12 +351,12 @@ type SendEmailResult struct {
 
 // NotifyManagerRequest 通知经理请求
 type NotifyManagerRequest struct {
-	ManagerID      uuid.UUID `json:"manager_id"`
-	NewEmployeeID  uuid.UUID `json:"new_employee_id"`
-	EmployeeName   string    `json:"employee_name"`
-	StartDate      time.Time `json:"start_date"`
-	Department     string    `json:"department"`
-	Position       string    `json:"position"`
+	ManagerID     uuid.UUID `json:"manager_id"`
+	NewEmployeeID uuid.UUID `json:"new_employee_id"`
+	EmployeeName  string    `json:"employee_name"`
+	StartDate     time.Time `json:"start_date"`
+	Department    string    `json:"department"`
+	Position      string    `json:"position"`
 }
 
 // NotifyManagerResult 通知经理结果
@@ -435,8 +435,8 @@ type LeaveRejectedNotificationRequest struct {
 
 // 信号名称常量
 const (
-	SignalApproveLeave = "approve_leave"
-	SignalRejectLeave  = "reject_leave"
+	SignalApproveLeave   = "approve_leave"
+	SignalRejectLeave    = "reject_leave"
 	SignalCancelWorkflow = "cancel_workflow"
 	SignalUpdateWorkflow = "update_workflow"
 )
@@ -464,11 +464,11 @@ type WorkflowUpdateSignal struct {
 
 // WorkflowStatusQuery 工作流状态查询响应
 type WorkflowStatusQuery struct {
-	Status       string    `json:"status"`
-	CurrentStep  string    `json:"current_step"`
-	StartedAt    time.Time `json:"started_at"`
-	LastUpdated  time.Time `json:"last_updated"`
-	Progress     float64   `json:"progress"`
+	Status      string    `json:"status"`
+	CurrentStep string    `json:"current_step"`
+	StartedAt   time.Time `json:"started_at"`
+	LastUpdated time.Time `json:"last_updated"`
+	Progress    float64   `json:"progress"`
 }
 
 // === 增强的休假审批工作流（支持信号） ===
@@ -666,8 +666,8 @@ func EnhancedLeaveApprovalWorkflow(ctx workflow.Context, req LeaveApprovalReques
 	workflowStatus.Progress = 1.0
 	workflowStatus.LastUpdated = workflow.Now(ctx)
 
-	logger.Info("Enhanced leave approval workflow completed", 
-		"request_id", req.RequestID, 
+	logger.Info("Enhanced leave approval workflow completed",
+		"request_id", req.RequestID,
 		"status", result.Status)
 
 	return result, nil
@@ -693,14 +693,14 @@ type BatchEmployeeData struct {
 
 // BatchEmployeeProcessingResult 批量员工处理结果
 type BatchEmployeeProcessingResult struct {
-	BatchID       uuid.UUID                     `json:"batch_id"`
-	Status        string                        `json:"status"`
-	TotalCount    int                           `json:"total_count"`
-	SuccessCount  int                           `json:"success_count"`
-	FailureCount  int                           `json:"failure_count"`
-	Results       []BatchEmployeeProcessResult  `json:"results"`
-	CompletedAt   time.Time                     `json:"completed_at"`
-	ErrorMessage  string                        `json:"error_message,omitempty"`
+	BatchID      uuid.UUID                    `json:"batch_id"`
+	Status       string                       `json:"status"`
+	TotalCount   int                          `json:"total_count"`
+	SuccessCount int                          `json:"success_count"`
+	FailureCount int                          `json:"failure_count"`
+	Results      []BatchEmployeeProcessResult `json:"results"`
+	CompletedAt  time.Time                    `json:"completed_at"`
+	ErrorMessage string                       `json:"error_message,omitempty"`
 }
 
 // BatchEmployeeProcessResult 单个员工处理结果
@@ -713,9 +713,9 @@ type BatchEmployeeProcessResult struct {
 // BatchEmployeeProcessingWorkflow 批量员工处理工作流
 func BatchEmployeeProcessingWorkflow(ctx workflow.Context, req BatchEmployeeProcessingRequest) (*BatchEmployeeProcessingResult, error) {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("Starting batch employee processing workflow", 
-		"batch_id", req.BatchID, 
-		"operation", req.Operation, 
+	logger.Info("Starting batch employee processing workflow",
+		"batch_id", req.BatchID,
+		"operation", req.Operation,
 		"count", len(req.Employees))
 
 	result := &BatchEmployeeProcessingResult{
@@ -761,9 +761,9 @@ func BatchEmployeeProcessingWorkflow(ctx workflow.Context, req BatchEmployeeProc
 		if end > len(req.Employees) {
 			end = len(req.Employees)
 		}
-		
+
 		batch := req.Employees[i:end]
-		
+
 		// 为这一批创建并行任务
 		futures := make([]workflow.Future, len(batch))
 		for j, employee := range batch {
@@ -776,26 +776,26 @@ func BatchEmployeeProcessingWorkflow(ctx workflow.Context, req BatchEmployeeProc
 				Options:     req.Options,
 				RequestedBy: req.RequestedBy,
 			}
-			
+
 			futures[j] = workflow.ExecuteActivity(ctx, ProcessSingleEmployeeActivity, processReq)
 		}
-		
+
 		// 等待这一批完成
 		for j, future := range futures {
 			var processResult ProcessSingleEmployeeResult
 			err := future.Get(ctx, &processResult)
-			
+
 			batchResult := BatchEmployeeProcessResult{
 				EmployeeID: batch[j].EmployeeID,
 				Status:     processResult.Status,
 			}
-			
+
 			if err != nil {
 				batchResult.Status = "failed"
 				batchResult.ErrorMessage = err.Error()
 				result.FailureCount++
-				logger.Warn("Employee processing failed", 
-					"employee_id", batch[j].EmployeeID, 
+				logger.Warn("Employee processing failed",
+					"employee_id", batch[j].EmployeeID,
 					"error", err)
 			} else if processResult.Status == "success" {
 				result.SuccessCount++
@@ -803,19 +803,19 @@ func BatchEmployeeProcessingWorkflow(ctx workflow.Context, req BatchEmployeeProc
 				batchResult.ErrorMessage = processResult.ErrorMessage
 				result.FailureCount++
 			}
-			
+
 			result.Results = append(result.Results, batchResult)
 		}
-		
+
 		// 更新进度
 		completed := float64(len(result.Results))
 		total := float64(result.TotalCount)
 		workflowStatus.Progress = completed / total
 		workflowStatus.LastUpdated = workflow.Now(ctx)
-		
-		logger.Info("Batch processed", 
-			"completed", len(result.Results), 
-			"total", result.TotalCount, 
+
+		logger.Info("Batch processed",
+			"completed", len(result.Results),
+			"total", result.TotalCount,
 			"progress", workflowStatus.Progress)
 	}
 
@@ -827,14 +827,14 @@ func BatchEmployeeProcessingWorkflow(ctx workflow.Context, req BatchEmployeeProc
 	} else {
 		result.Status = "partial_success"
 	}
-	
+
 	result.CompletedAt = workflow.Now(ctx)
 	workflowStatus.Status = "completed"
 	workflowStatus.Progress = 1.0
 	workflowStatus.CurrentStep = "completed"
 	workflowStatus.LastUpdated = workflow.Now(ctx)
 
-	logger.Info("Batch employee processing workflow completed", 
+	logger.Info("Batch employee processing workflow completed",
 		"batch_id", req.BatchID,
 		"status", result.Status,
 		"success_count", result.SuccessCount,

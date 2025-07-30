@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-	
+
 	"github.com/gaogu/cube-castle/go-app/internal/types"
 )
 
@@ -20,11 +20,11 @@ type EntGenerator struct {
 func NewEntGenerator() *EntGenerator {
 	return &EntGenerator{
 		templateEngine: template.New("ent-schema").Funcs(template.FuncMap{
-			"title":      strings.Title,
-			"lower":      strings.ToLower,
-			"upper":      strings.ToUpper,
-			"camelCase":  toCamelCase,
-			"snakeCase":  toSnakeCase,
+			"title":     strings.Title,
+			"lower":     strings.ToLower,
+			"upper":     strings.ToUpper,
+			"camelCase": toCamelCase,
+			"snakeCase": toSnakeCase,
 		}),
 	}
 }
@@ -35,24 +35,24 @@ func (g *EntGenerator) Generate(contract *types.MetaContract, outputDir string) 
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
-	
+
 	// Generate main entity schema
 	if err := g.generateEntitySchema(contract, outputDir); err != nil {
 		return fmt.Errorf("failed to generate entity schema: %w", err)
 	}
-	
+
 	// Generate relationship schemas if defined
 	if err := g.generateRelationships(contract, outputDir); err != nil {
 		return fmt.Errorf("failed to generate relationships: %w", err)
 	}
-	
+
 	// Generate history entities if temporal behavior is event-driven
 	if contract.TemporalBehavior.TemporalityParadigm == "EVENT_DRIVEN" {
 		if err := g.generateHistoryEntities(contract, outputDir); err != nil {
 			return fmt.Errorf("failed to generate history entities: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -139,19 +139,19 @@ func ({{.ResourceName | title}}) Annotations() []schema.Annotation {
 	}
 }
 `
-	
+
 	tmpl, err := g.templateEngine.Parse(tmplStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %w", err)
 	}
-	
+
 	// Create template data with methods
 	data := &TemplateData{
-		MetaContract: contract,
-		Fields:       g.convertFields(contract.DataStructure.Fields),
+		MetaContract:  contract,
+		Fields:        g.convertFields(contract.DataStructure.Fields),
 		Relationships: g.convertRelationships(contract.Relationships),
 	}
-	
+
 	// Generate the file
 	filename := filepath.Join(outputDir, strings.ToLower(contract.ResourceName)+".go")
 	file, err := os.Create(filename)
@@ -159,11 +159,11 @@ func ({{.ResourceName | title}}) Annotations() []schema.Annotation {
 		return fmt.Errorf("failed to create schema file: %w", err)
 	}
 	defer file.Close()
-	
+
 	if err := tmpl.Execute(file, data); err != nil {
 		return fmt.Errorf("failed to execute template: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -216,21 +216,21 @@ func (f EntFieldDefinition) GenerateField() string {
 	default:
 		fieldType = "String" // fallback
 	}
-	
+
 	code := fmt.Sprintf("field.%s(\"%s\")", fieldType, f.Name)
-	
+
 	if f.Required {
 		code += ".NotEmpty()"
 	}
-	
+
 	if f.Unique {
 		code += ".Unique()"
 	}
-	
+
 	if f.DataClassification != "" {
 		code += fmt.Sprintf(".Annotations(annotations.MetaContractAnnotation{DataClassification: \"%s\"})", f.DataClassification)
 	}
-	
+
 	return code
 }
 
@@ -252,17 +252,17 @@ func (e EntEdgeDefinition) GenerateEdge() string {
 	default:
 		edgeType = "To"
 	}
-	
+
 	code := fmt.Sprintf("edge.%s(\"%s\", %s.Type)", edgeType, toSnakeCase(e.Name), strings.Title(e.TargetEntity))
-	
+
 	if e.Type == "one-to-one" {
 		code += ".Unique()"
 	}
-	
+
 	if !e.IsOptional {
 		code += ".Required()"
 	}
-	
+
 	return code
 }
 

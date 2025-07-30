@@ -135,54 +135,6 @@ const HomePage: React.FC = () => {
           </Link>
         </div>
 
-        <div style={{ 
-          border: '1px solid #d9d9d9', 
-          borderRadius: '8px', 
-          padding: '20px',
-          backgroundColor: '#fafafa'
-        }}>
-          <h3 style={{ color: '#13c2c2', marginTop: '0' }}>📝 Meta-Contract编辑器</h3>
-          <p style={{ color: '#666', marginBottom: '15px' }}>
-            智能化的元合约编辑器，支持YAML语法、实时编译和模板管理
-          </p>
-          <div style={{ marginBottom: '10px' }}>
-            <Link href="/metacontract-editor/demo" style={{ 
-              color: '#13c2c2', 
-              textDecoration: 'none',
-              fontWeight: 'bold',
-              marginRight: '15px'
-            }}>
-              开始体验 →
-            </Link>
-            <Link href="/metacontract-editor" style={{ 
-              color: '#13c2c2', 
-              textDecoration: 'none',
-              fontSize: '0.9rem',
-              marginRight: '15px'
-            }}>
-              完整编辑器
-            </Link>
-            <Link href="/metacontract-editor/advanced" style={{ 
-              color: '#13c2c2', 
-              textDecoration: 'none',
-              fontSize: '0.9rem'
-            }}>
-              高级功能
-            </Link>
-          </div>
-          <div style={{ 
-            fontSize: '0.8rem', 
-            color: '#999',
-            display: 'flex',
-            gap: '10px',
-            flexWrap: 'wrap'
-          }}>
-            <span>✨ 语法高亮</span>
-            <span>🔧 实时编译</span>
-            <span>📋 模板库</span>
-            <span>💾 项目管理</span>
-          </div>
-        </div>
       </div>
 
       <div style={{ 

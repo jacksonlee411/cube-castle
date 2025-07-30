@@ -7,8 +7,6 @@ import (
 
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
-
-	"github.com/google/uuid"
 )
 
 // EmployeeLifecycleWorkflow 员工完整生命周期工作流
@@ -34,12 +32,12 @@ func EmployeeLifecycleWorkflow(ctx workflow.Context, req EmployeeLifecycleReques
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 
 	result := &EmployeeLifecycleResult{
-		EmployeeID:      req.EmployeeID,
-		LifecycleStage:  req.LifecycleStage,
-		Operation:       req.Operation,
-		StartedAt:       workflow.Now(ctx),
-		Status:          "in_progress",
-		CompletedSteps:  []string{},
+		EmployeeID:     req.EmployeeID,
+		LifecycleStage: req.LifecycleStage,
+		Operation:      req.Operation,
+		StartedAt:      workflow.Now(ctx),
+		Status:         "in_progress",
+		CompletedSteps: []string{},
 	}
 
 	// 工作流状态跟踪
@@ -72,7 +70,7 @@ func EmployeeLifecycleWorkflow(ctx workflow.Context, req EmployeeLifecycleReques
 	// 异步处理信号
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		selector := workflow.NewSelector(ctx)
-		
+
 		selector.AddReceive(pauseChannel, func(c workflow.ReceiveChannel, more bool) {
 			var signal LifecyclePauseSignal
 			c.Receive(ctx, &signal)
@@ -158,9 +156,9 @@ func EmployeeLifecycleWorkflow(ctx workflow.Context, req EmployeeLifecycleReques
 }
 
 // handlePreHireStage 处理招聘前阶段
-func handlePreHireStage(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult, 
+func handlePreHireStage(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing pre-hire stage", "operation", req.Operation)
 
@@ -182,7 +180,7 @@ func handlePreHireStage(ctx workflow.Context, req EmployeeLifecycleRequest, resu
 // handleOnboardingStage 处理入职阶段
 func handleOnboardingStage(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing onboarding stage", "operation", req.Operation)
 
@@ -204,7 +202,7 @@ func handleOnboardingStage(ctx workflow.Context, req EmployeeLifecycleRequest, r
 // handleActiveStage 处理在职阶段
 func handleActiveStage(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing active stage", "operation", req.Operation)
 
@@ -228,7 +226,7 @@ func handleActiveStage(ctx workflow.Context, req EmployeeLifecycleRequest, resul
 // handleOffboardingStage 处理离职阶段
 func handleOffboardingStage(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing offboarding stage", "operation", req.Operation)
 
@@ -250,7 +248,7 @@ func handleOffboardingStage(ctx workflow.Context, req EmployeeLifecycleRequest, 
 // handleTerminatedStage 处理已离职阶段
 func handleTerminatedStage(ctx workflow.Context, req EmployeeLifecycleRequest, result *EmployeeLifecycleResult,
 	status *LifecycleWorkflowStatus, isPaused *bool, cancelRequested *bool) (*EmployeeLifecycleResult, error) {
-	
+
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Processing terminated stage", "operation", req.Operation)
 
@@ -273,11 +271,11 @@ func waitForResumeIfPaused(ctx workflow.Context, isPaused *bool, cancelRequested
 		// 等待1分钟后重新检查
 		_ = workflow.Sleep(ctx, time.Minute)
 	}
-	
+
 	if *cancelRequested {
 		return temporal.NewApplicationError("workflow_cancelled", "CANCELLED")
 	}
-	
+
 	return nil
 }
 
@@ -292,7 +290,7 @@ func checkCancellation(cancelRequested *bool) error {
 // 常量定义
 const (
 	QueryLifecycleStatus = "lifecycle_status"
-	
+
 	SignalPauseLifecycle  = "pause_lifecycle"
 	SignalResumeLifecycle = "resume_lifecycle"
 	SignalCancelLifecycle = "cancel_lifecycle"
@@ -301,7 +299,7 @@ const (
 // 生命周期阶段常量
 const (
 	LifecycleStagePREHIRE     = "PRE_HIRE"
-	LifecycleStageONBOARDING  = "ONBOARDING" 
+	LifecycleStageONBOARDING  = "ONBOARDING"
 	LifecycleStageACTIVE      = "ACTIVE"
 	LifecycleStageOFFBOARDING = "OFFBOARDING"
 	LifecycleStageTERMINATED  = "TERMINATED"
@@ -313,23 +311,23 @@ const (
 	OperationCREATE_CANDIDATE = "CREATE_CANDIDATE"
 	OperationUPDATE_CANDIDATE = "UPDATE_CANDIDATE"
 	OperationAPPROVE_HIRE     = "APPROVE_HIRE"
-	
+
 	// Onboarding operations
 	OperationSTART_ONBOARDING         = "START_ONBOARDING"
 	OperationCOMPLETE_ONBOARDING_STEP = "COMPLETE_ONBOARDING_STEP"
 	OperationFINALIZE_ONBOARDING      = "FINALIZE_ONBOARDING"
-	
+
 	// Active stage operations
-	OperationPOSITION_CHANGE      = "POSITION_CHANGE"
-	OperationUPDATE_INFORMATION   = "UPDATE_INFORMATION"
-	OperationPERFORMANCE_REVIEW   = "PERFORMANCE_REVIEW"
-	OperationLEAVE_REQUEST        = "LEAVE_REQUEST"
-	
+	OperationPOSITION_CHANGE    = "POSITION_CHANGE"
+	OperationUPDATE_INFORMATION = "UPDATE_INFORMATION"
+	OperationPERFORMANCE_REVIEW = "PERFORMANCE_REVIEW"
+	OperationLEAVE_REQUEST      = "LEAVE_REQUEST"
+
 	// Offboarding operations
 	OperationSTART_OFFBOARDING         = "START_OFFBOARDING"
 	OperationCOMPLETE_OFFBOARDING_STEP = "COMPLETE_OFFBOARDING_STEP"
 	OperationFINALIZE_TERMINATION      = "FINALIZE_TERMINATION"
-	
+
 	// Post-termination operations
 	OperationARCHIVE_RECORDS = "ARCHIVE_RECORDS"
 	OperationDATA_RETENTION  = "DATA_RETENTION"

@@ -18,16 +18,16 @@ type OrganizationUnitProfile interface {
 type DepartmentProfile struct {
 	// Head of unit person reference
 	HeadOfUnitPersonID *uuid.UUID `json:"head_of_unit_person_id,omitempty"`
-	
+
 	// Functional area classification
 	FunctionalArea string `json:"functional_area,omitempty"`
-	
+
 	// Associated cost center for financial reporting
 	CostCenter string `json:"cost_center,omitempty"`
-	
+
 	// Department-specific capabilities or focus areas
 	Capabilities []string `json:"capabilities,omitempty"`
-	
+
 	// Budget allocation responsibility flag
 	HasBudgetResponsibility bool `json:"has_budget_responsibility,omitempty"`
 }
@@ -48,22 +48,22 @@ func (d DepartmentProfile) Validate() error {
 type CostCenterProfile struct {
 	// Unique business code for the cost center
 	CostCenterCode string `json:"cost_center_code"`
-	
+
 	// Financial owner/manager person reference
 	FinancialOwnerID *uuid.UUID `json:"financial_owner_id,omitempty"`
-	
+
 	// Budget allocation amount
 	BudgetAllocation *float64 `json:"budget_allocation,omitempty"`
-	
+
 	// Currency for budget allocation
 	Currency string `json:"currency,omitempty"`
-	
+
 	// Fiscal year for budget period
 	FiscalYear string `json:"fiscal_year,omitempty"`
-	
+
 	// Cost center category (e.g., "OPERATIONAL", "STRATEGIC", "SUPPORT")
 	Category string `json:"category,omitempty"`
-	
+
 	// Whether this cost center can be charged to projects
 	IsChargeable bool `json:"is_chargeable,omitempty"`
 }
@@ -87,25 +87,25 @@ func (c CostCenterProfile) Validate() error {
 type CompanyProfile struct {
 	// Official legal entity registration number
 	LegalEntityID string `json:"legal_entity_id,omitempty"`
-	
+
 	// Tax registration identifier
 	TaxID string `json:"tax_id,omitempty"`
-	
+
 	// Legal entity name (may differ from display name)
 	LegalName string `json:"legal_name,omitempty"`
-	
+
 	// Primary business address
 	BusinessAddress map[string]interface{} `json:"business_address,omitempty"`
-	
+
 	// Incorporation date
 	IncorporationDate string `json:"incorporation_date,omitempty"`
-	
+
 	// Legal structure (e.g., "LLC", "CORP", "LTD")
 	LegalStructure string `json:"legal_structure,omitempty"`
-	
+
 	// Primary business jurisdiction
 	Jurisdiction string `json:"jurisdiction,omitempty"`
-	
+
 	// Industry classification codes
 	IndustryCodes []string `json:"industry_codes,omitempty"`
 }
@@ -126,31 +126,31 @@ func (c CompanyProfile) Validate() error {
 type ProjectTeamProfile struct {
 	// Project lead person reference
 	ProjectLeadPersonID *uuid.UUID `json:"project_lead_person_id,omitempty"`
-	
+
 	// Project start date
 	ProjectStartDate string `json:"project_start_date,omitempty"`
-	
+
 	// Project expected end date
 	ProjectEndDate string `json:"project_end_date,omitempty"`
-	
+
 	// Project status (e.g., "PLANNING", "ACTIVE", "ON_HOLD", "COMPLETED")
 	ProjectStatus string `json:"project_status,omitempty"`
-	
+
 	// Project budget allocation
 	ProjectBudget *float64 `json:"project_budget,omitempty"`
-	
+
 	// Project priority level
 	Priority string `json:"priority,omitempty"`
-	
+
 	// Stakeholder references
 	Stakeholders []uuid.UUID `json:"stakeholders,omitempty"`
-	
+
 	// Expected team size
 	TargetTeamSize int `json:"target_team_size,omitempty"`
-	
+
 	// Project objectives
 	Objectives []string `json:"objectives,omitempty"`
-	
+
 	// Success criteria
 	SuccessCriteria []string `json:"success_criteria,omitempty"`
 }
@@ -179,28 +179,28 @@ func ProfileFactory(unitType string, profileData json.RawMessage) (OrganizationU
 			return nil, fmt.Errorf("failed to unmarshal department profile: %w", err)
 		}
 		return profile, nil
-		
+
 	case "COST_CENTER":
 		var profile CostCenterProfile
 		if err := json.Unmarshal(profileData, &profile); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal cost center profile: %w", err)
 		}
 		return profile, nil
-		
+
 	case "COMPANY":
 		var profile CompanyProfile
 		if err := json.Unmarshal(profileData, &profile); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal company profile: %w", err)
 		}
 		return profile, nil
-		
+
 	case "PROJECT_TEAM":
 		var profile ProjectTeamProfile
 		if err := json.Unmarshal(profileData, &profile); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal project team profile: %w", err)
 		}
 		return profile, nil
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported unit type: %s", unitType)
 	}

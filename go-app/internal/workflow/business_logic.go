@@ -36,7 +36,7 @@ func (bl *BusinessLogic) CreateEmployeeAccount(ctx context.Context, req CreateAc
 
 	// 模拟账户创建业务逻辑
 	accountID := fmt.Sprintf("acc_%s", req.EmployeeID.String()[:8])
-	
+
 	// 记录业务事件
 	bl.logger.Info("Creating employee account",
 		"employee_id", req.EmployeeID,
@@ -64,7 +64,7 @@ func (bl *BusinessLogic) AssignEquipmentAndPermissions(ctx context.Context, req 
 
 	// 根据部门和职位确定设备清单
 	var assignedItems []string
-	
+
 	switch req.Department {
 	case "技术部", "Technology", "Engineering":
 		assignedItems = append(assignedItems, "laptop", "monitor", "keyboard", "mouse")
@@ -148,7 +148,7 @@ Employee ID: %s
 
 Best regards,
 HR Team
-	`, req.EmployeeName, req.Department, req.Position, 
+	`, req.EmployeeName, req.Department, req.Position,
 		req.StartDate.Format("January 2, 2006"), req.NewEmployeeID)
 
 	notificationID := fmt.Sprintf("notif_%d", time.Now().Unix())

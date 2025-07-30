@@ -14,14 +14,14 @@ func TestValidator_NewValidator(t *testing.T) {
 func TestValidator_Validate_Success(t *testing.T) {
 	validator := NewValidator()
 	contract := createValidTestContract()
-	
+
 	err := validator.Validate(contract)
 	assert.NoError(t, err)
 }
 
 func TestValidator_validateBasicStructure(t *testing.T) {
 	validator := NewValidator()
-	
+
 	testCases := []struct {
 		name          string
 		modifyFunc    func(*MetaContract)
@@ -68,14 +68,14 @@ func TestValidator_validateBasicStructure(t *testing.T) {
 			errorContains: "version is required",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			contract := createValidTestContract()
 			tc.modifyFunc(contract)
-			
+
 			err := validator.validateBasicStructure(contract)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorContains)
@@ -88,7 +88,7 @@ func TestValidator_validateBasicStructure(t *testing.T) {
 
 func TestValidator_validateDataStructure(t *testing.T) {
 	validator := NewValidator()
-	
+
 	testCases := []struct {
 		name          string
 		modifyFunc    func(*MetaContract)
@@ -137,14 +137,14 @@ func TestValidator_validateDataStructure(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			contract := createValidTestContract()
 			tc.modifyFunc(contract)
-			
+
 			err := validator.validateDataStructure(contract)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorContains)
@@ -157,7 +157,7 @@ func TestValidator_validateDataStructure(t *testing.T) {
 
 func TestValidator_validateField(t *testing.T) {
 	validator := NewValidator()
-	
+
 	testCases := []struct {
 		name          string
 		field         FieldDefinition
@@ -211,11 +211,11 @@ func TestValidator_validateField(t *testing.T) {
 			errorContains: "invalid data classification: INVALID_CLASS",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := validator.validateField(tc.field)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorContains)
@@ -228,7 +228,7 @@ func TestValidator_validateField(t *testing.T) {
 
 func TestValidator_validateSecurityModel(t *testing.T) {
 	validator := NewValidator()
-	
+
 	testCases := []struct {
 		name          string
 		modifyFunc    func(*MetaContract)
@@ -274,14 +274,14 @@ func TestValidator_validateSecurityModel(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			contract := createValidTestContract()
 			tc.modifyFunc(contract)
-			
+
 			err := validator.validateSecurityModel(contract)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorContains)
@@ -290,14 +290,14 @@ func TestValidator_validateSecurityModel(t *testing.T) {
 			}
 		})
 	}
-	
+
 	// Test all valid access control types
 	validAccessControls := []string{"RBAC", "ABAC", "DAC", "MAC"}
 	for _, ac := range validAccessControls {
 		t.Run("valid_access_control_"+ac, func(t *testing.T) {
 			contract := createValidTestContract()
 			contract.SecurityModel.AccessControl = ac
-			
+
 			err := validator.validateSecurityModel(contract)
 			assert.NoError(t, err)
 		})
@@ -306,7 +306,7 @@ func TestValidator_validateSecurityModel(t *testing.T) {
 
 func TestValidator_validateTemporalBehavior(t *testing.T) {
 	validator := NewValidator()
-	
+
 	testCases := []struct {
 		name          string
 		modifyFunc    func(*MetaContract)
@@ -345,14 +345,14 @@ func TestValidator_validateTemporalBehavior(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			contract := createValidTestContract()
 			tc.modifyFunc(contract)
-			
+
 			err := validator.validateTemporalBehavior(contract)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorContains)
@@ -361,26 +361,26 @@ func TestValidator_validateTemporalBehavior(t *testing.T) {
 			}
 		})
 	}
-	
+
 	// Test all valid paradigms
 	validParadigms := []string{"EVENT_DRIVEN", "SNAPSHOT", "HYBRID"}
 	for _, paradigm := range validParadigms {
 		t.Run("valid_paradigm_"+paradigm, func(t *testing.T) {
 			contract := createValidTestContract()
 			contract.TemporalBehavior.TemporalityParadigm = paradigm
-			
+
 			err := validator.validateTemporalBehavior(contract)
 			assert.NoError(t, err)
 		})
 	}
-	
+
 	// Test all valid state models
 	validStateModels := []string{"EVENT_DRIVEN", "STATE_MACHINE", "IMMUTABLE"}
 	for _, model := range validStateModels {
 		t.Run("valid_state_model_"+model, func(t *testing.T) {
 			contract := createValidTestContract()
 			contract.TemporalBehavior.StateTransitionModel = model
-			
+
 			err := validator.validateTemporalBehavior(contract)
 			assert.NoError(t, err)
 		})
@@ -389,7 +389,7 @@ func TestValidator_validateTemporalBehavior(t *testing.T) {
 
 func TestValidator_validateRelationships(t *testing.T) {
 	validator := NewValidator()
-	
+
 	testCases := []struct {
 		name          string
 		relationships []RelationshipDef
@@ -449,14 +449,14 @@ func TestValidator_validateRelationships(t *testing.T) {
 			expectError:   false,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			contract := createValidTestContract()
 			contract.Relationships = tc.relationships
-			
+
 			err := validator.validateRelationships(contract)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorContains)
@@ -465,7 +465,7 @@ func TestValidator_validateRelationships(t *testing.T) {
 			}
 		})
 	}
-	
+
 	// Test all valid relationship types
 	validRelationshipTypes := []string{"one-to-one", "one-to-many", "many-to-many"}
 	for _, relType := range validRelationshipTypes {
@@ -478,7 +478,7 @@ func TestValidator_validateRelationships(t *testing.T) {
 					TargetEntity: "target",
 				},
 			}
-			
+
 			err := validator.validateRelationships(contract)
 			assert.NoError(t, err)
 		})
@@ -504,7 +504,7 @@ func TestValidator_isValidFieldName(t *testing.T) {
 		{"invalid_special_chars_space", "test field", false},
 		{"invalid_special_chars_dot", "test.field", false},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := isValidFieldName(tc.input)
@@ -515,14 +515,14 @@ func TestValidator_isValidFieldName(t *testing.T) {
 
 func TestValidator_isValidFieldType(t *testing.T) {
 	validTypes := []string{"string", "int", "int64", "float64", "bool", "time", "uuid", "enum", "json"}
-	
+
 	for _, validType := range validTypes {
 		t.Run("valid_"+validType, func(t *testing.T) {
 			result := isValidFieldType(validType)
 			assert.True(t, result)
 		})
 	}
-	
+
 	invalidTypes := []string{"invalid", "number", "text", "datetime", ""}
 	for _, invalidType := range invalidTypes {
 		t.Run("invalid_"+invalidType, func(t *testing.T) {
@@ -534,20 +534,20 @@ func TestValidator_isValidFieldType(t *testing.T) {
 
 func TestValidator_isValidDataClassification(t *testing.T) {
 	validClassifications := []string{"PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"}
-	
+
 	for _, valid := range validClassifications {
 		t.Run("valid_"+valid, func(t *testing.T) {
 			result := isValidDataClassification(valid)
 			assert.True(t, result)
 		})
-		
+
 		// Test case insensitive
 		t.Run("valid_lowercase_"+valid, func(t *testing.T) {
 			result := isValidDataClassification(strings.ToLower(valid))
 			assert.True(t, result)
 		})
 	}
-	
+
 	invalidClassifications := []string{"INVALID", "SECRET", "PRIVATE", ""}
 	for _, invalid := range invalidClassifications {
 		t.Run("invalid_"+invalid, func(t *testing.T) {
@@ -561,7 +561,7 @@ func TestValidator_isValidDataClassification(t *testing.T) {
 func BenchmarkValidator_Validate(b *testing.B) {
 	validator := NewValidator()
 	contract := createValidTestContract()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err := validator.Validate(contract)
@@ -579,7 +579,7 @@ func BenchmarkValidator_validateField(b *testing.B) {
 		Required:           true,
 		DataClassification: "INTERNAL",
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err := validator.validateField(field)
@@ -592,12 +592,12 @@ func BenchmarkValidator_validateField(b *testing.B) {
 // Integration test with complex contract
 func TestValidator_Validate_ComplexContract(t *testing.T) {
 	validator := NewValidator()
-	
+
 	contract := &MetaContract{
 		SpecificationVersion: "2.0",
-		Namespace:           "complex_test",
-		ResourceName:        "complex_entity",
-		Version:            "2.1.0",
+		Namespace:            "complex_test",
+		ResourceName:         "complex_entity",
+		Version:              "2.1.0",
 		DataStructure: DataStructure{
 			PrimaryKey:         "id",
 			DataClassification: "CONFIDENTIAL",
@@ -636,7 +636,7 @@ func TestValidator_Validate_ComplexContract(t *testing.T) {
 			{Name: "siblings", Type: "many-to-many", TargetEntity: "sibling_entity", Cardinality: "M:N", IsOptional: true},
 		},
 	}
-	
+
 	err := validator.Validate(contract)
 	assert.NoError(t, err)
 }

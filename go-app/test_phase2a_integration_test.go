@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	_ "github.com/lib/pq"
 
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
@@ -24,18 +24,18 @@ import (
 // Phase2AIntegrationTestSuite Phase 2A 集成测试套件
 type Phase2AIntegrationTestSuite struct {
 	suite.Suite
-	ctx                context.Context
-	entClient          *ent.Client
-	db                 *sql.DB
-	logger             *logging.StructuredLogger
-	activities         *workflow.EmployeeLifecycleActivities
-	temporalQuerySvc   *service.TemporalQueryService
+	ctx              context.Context
+	entClient        *ent.Client
+	db               *sql.DB
+	logger           *logging.StructuredLogger
+	activities       *workflow.EmployeeLifecycleActivities
+	temporalQuerySvc *service.TemporalQueryService
 
 	// 测试数据
-	testTenantID       uuid.UUID
-	testEmployeeID     uuid.UUID
-	testCandidateID    uuid.UUID
-	testUpdaterID      uuid.UUID
+	testTenantID    uuid.UUID
+	testEmployeeID  uuid.UUID
+	testCandidateID uuid.UUID
+	testUpdaterID   uuid.UUID
 }
 
 // SetupSuite 测试套件初始化
@@ -96,7 +96,7 @@ func (s *Phase2AIntegrationTestSuite) TearDownSuite() {
 func (s *Phase2AIntegrationTestSuite) SetupTest() {
 	// 清理测试数据
 	s.cleanupTestData()
-	
+
 	// 创建测试员工记录
 	s.createTestEmployee()
 	s.createTestCandidate()
@@ -112,10 +112,10 @@ func (s *Phase2AIntegrationTestSuite) cleanupTestData() {
 	// 删除测试员工数据
 	s.entClient.Employee.Delete().
 		Where(
-			// TODO: 当 ent schema 支持 tenant_id 时添加过滤条件
+		// TODO: 当 ent schema 支持 tenant_id 时添加过滤条件
 		).
 		ExecX(s.ctx)
-	
+
 	s.logger.Debug("Test data cleaned up")
 }
 
@@ -125,10 +125,10 @@ func (s *Phase2AIntegrationTestSuite) createTestEmployee() {
 		SetID(s.testEmployeeID.String()).
 		// TODO: 添加 tenant_id 和其他必要字段
 		Save(s.ctx)
-	
+
 	require.NoError(s.T(), err, "Failed to create test employee")
 	require.NotNil(s.T(), employee, "Test employee should not be nil")
-	
+
 	s.logger.Info("Test employee created", "employee_id", employee.ID)
 }
 
@@ -138,10 +138,10 @@ func (s *Phase2AIntegrationTestSuite) createTestCandidate() {
 		SetID(s.testCandidateID.String()).
 		// TODO: 添加候选人状态标识和其他必要字段
 		Save(s.ctx)
-	
+
 	require.NoError(s.T(), err, "Failed to create test candidate")
 	require.NotNil(s.T(), candidate, "Test candidate should not be nil")
-	
+
 	s.logger.Info("Test candidate created", "candidate_id", candidate.ID)
 }
 
@@ -252,10 +252,10 @@ func (s *Phase2AIntegrationTestSuite) TestUpdateEmployeeInformation_BankingInfo(
 		EmployeeID: s.testEmployeeID,
 		UpdateType: "BANKING",
 		UpdateData: map[string]interface{}{
-			"bank_name":       "中国工商银行",
-			"account_number":  "6222080200001234567",
-			"routing_number":  "102100024",
-			"account_holder":  "张三",
+			"bank_name":      "中国工商银行",
+			"account_number": "6222080200001234567",
+			"routing_number": "102100024",
+			"account_holder": "张三",
 		},
 		UpdatedBy:        s.testUpdaterID,
 		RequiresApproval: true,
@@ -533,7 +533,7 @@ func main() {
 
 	// 设置测试环境
 	os.Setenv("GO_ENV", "test")
-	
+
 	// 创建临时测试数据库连接
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -543,7 +543,7 @@ func main() {
 
 	// 运行测试
 	fmt.Println("Running Phase 2A integration tests...")
-	
+
 	// 这里只是示例，实际应该通过 go test 运行
 	log.Println("Use 'go test -v test_phase2a_integration_test.go' to run the actual tests")
 }

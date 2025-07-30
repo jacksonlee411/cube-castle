@@ -42,7 +42,7 @@ func (l *StructuredLogger) WithContext(ctx context.Context) *StructuredLogger {
 			if tenantID := ctx.Value("tenant_id"); tenantID != nil {
 				return l.WithRequestContext(
 					requestID.(string),
-					userID.(string), 
+					userID.(string),
 					tenantID.(string),
 				)
 			}
@@ -181,12 +181,12 @@ func (l *StructuredLogger) LogWorkflowEvent(workflowID, workflowType, status str
 // LogError 记录错误事件
 func (l *StructuredLogger) LogError(errorType, message string, err error, context map[string]interface{}) {
 	contextJSON, _ := json.Marshal(context)
-	
+
 	errorStr := ""
 	if err != nil {
 		errorStr = err.Error()
 	}
-	
+
 	l.Error("error_occurred",
 		"event_type", "error_occurred",
 		"error_type", errorType,
@@ -200,7 +200,7 @@ func (l *StructuredLogger) LogError(errorType, message string, err error, contex
 // LogPerformanceMetric 记录性能指标
 func (l *StructuredLogger) LogPerformanceMetric(metricName string, value float64, unit string, tags map[string]string) {
 	tagsJSON, _ := json.Marshal(tags)
-	
+
 	l.Info("performance_metric",
 		"event_type", "performance_metric",
 		"metric_name", metricName,
@@ -214,7 +214,7 @@ func (l *StructuredLogger) LogPerformanceMetric(metricName string, value float64
 // LogHealthCheck 记录健康检查事件
 func (l *StructuredLogger) LogHealthCheck(component string, status string, checkDuration time.Duration, details map[string]interface{}) {
 	detailsJSON, _ := json.Marshal(details)
-	
+
 	l.Info("health_check",
 		"event_type", "health_check",
 		"component", component,
@@ -246,7 +246,7 @@ func (l *StructuredLogger) LogAccessAttempt(userID, resource, action string, all
 	if !allowed {
 		level = slog.LevelWarn
 	}
-	
+
 	l.Log(context.Background(), level, "access_attempt",
 		"event_type", "access_attempt",
 		"user_id", userID,
@@ -263,7 +263,7 @@ func (l *StructuredLogger) LogAccessAttempt(userID, resource, action string, all
 // LogDebug 记录调试信息
 func (l *StructuredLogger) LogDebug(component, message string, data map[string]interface{}) {
 	dataJSON, _ := json.Marshal(data)
-	
+
 	l.Debug("debug_info",
 		"event_type", "debug_info",
 		"component", component,
@@ -276,7 +276,7 @@ func (l *StructuredLogger) LogDebug(component, message string, data map[string]i
 // LogServiceStartup 记录服务启动事件
 func (l *StructuredLogger) LogServiceStartup(serviceName, version string, config map[string]interface{}) {
 	configJSON, _ := json.Marshal(config)
-	
+
 	l.Info("service_startup",
 		"event_type", "service_startup",
 		"service_name", serviceName,

@@ -1,4 +1,5 @@
 // 职位相关类型定义
+import { BaseEntity, Organization, Employee, PaginationInfo } from './index'
 
 export interface Position extends BaseEntity {
   positionType: PositionType

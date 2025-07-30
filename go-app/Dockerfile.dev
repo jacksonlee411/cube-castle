@@ -25,9 +25,6 @@ RUN go mod download && go mod verify
 # Copy source code
 COPY . .
 
-# Create directories for generated files
-RUN mkdir -p /tmp/metacontract-editor
-
 # Make sure air config exists
 COPY .air.toml ./
 

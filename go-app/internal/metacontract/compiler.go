@@ -3,7 +3,7 @@ package metacontract
 
 import (
 	"fmt"
-	
+
 	"github.com/gaogu/cube-castle/go-app/internal/codegen"
 )
 
@@ -32,22 +32,22 @@ func (c *Compiler) Compile(inputPath, outputPath string) error {
 	if err != nil {
 		return fmt.Errorf("parse failed: %w", err)
 	}
-	
+
 	// 2. Validate meta-contract completeness
 	if err := c.validator.Validate(contract); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
-	
+
 	// 3. Generate Ent Schema
 	if err := c.entGenerator.Generate(contract, outputPath+"/schema"); err != nil {
 		return fmt.Errorf("ent generation failed: %w", err)
 	}
-	
+
 	// 4. Generate API routes
 	if err := c.apiGenerator.Generate(contract, outputPath+"/api"); err != nil {
 		return fmt.Errorf("api generation failed: %w", err)
 	}
-	
+
 	return nil
 }
 

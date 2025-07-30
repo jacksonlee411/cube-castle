@@ -119,10 +119,10 @@ func (m *MockCodeAnalyzer) Analyze(context, query string) (*localai.AnalysisResu
 func CreateValidMetaContract() *types.MetaContract {
 	return &types.MetaContract{
 		SpecificationVersion: "1.0",
-		APIID:               uuid.New(),
-		Namespace:           "test",
-		ResourceName:        "user",
-		Version:            "1.0.0",
+		APIID:                uuid.New(),
+		Namespace:            "test",
+		ResourceName:         "user",
+		Version:              "1.0.0",
 		DataStructure: types.DataStructure{
 			PrimaryKey:         "id",
 			DataClassification: "INTERNAL",
@@ -403,19 +403,19 @@ func ValidateMetaContract(t *testing.T, contract *types.MetaContract) {
 	if contract == nil {
 		t.Fatal("Contract is nil")
 	}
-	
+
 	if contract.ResourceName == "" {
 		t.Error("ResourceName is empty")
 	}
-	
+
 	if contract.Namespace == "" {
 		t.Error("Namespace is empty")
 	}
-	
+
 	if len(contract.DataStructure.Fields) == 0 {
 		t.Error("No fields defined")
 	}
-	
+
 	// Validate primary key exists if specified
 	if contract.DataStructure.PrimaryKey != "" {
 		found := false
@@ -436,15 +436,15 @@ func ValidateAIResponse(t *testing.T, response *localai.AIResponse) {
 	if response == nil {
 		t.Fatal("Response is nil")
 	}
-	
+
 	if response.Type == "" {
 		t.Error("Response type is empty")
 	}
-	
+
 	if response.ProcessTime <= 0 {
 		t.Error("Process time should be greater than 0")
 	}
-	
+
 	// Validate suggestions if present
 	for i, suggestion := range response.Suggestions {
 		if suggestion.Label == "" {
@@ -462,10 +462,10 @@ func SetupTestEnvironment(t *testing.T) (string, func()) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	
+
 	cleanup := func() {
 		os.RemoveAll(tmpDir)
 	}
-	
+
 	return tmpDir, cleanup
 }

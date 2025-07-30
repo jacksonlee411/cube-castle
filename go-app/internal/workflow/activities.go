@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"go.temporal.io/sdk/activity"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
+	"go.temporal.io/sdk/activity"
 )
 
 // Activities 活动处理器
@@ -28,20 +28,20 @@ func NewActivities(logger *logging.StructuredLogger) *Activities {
 func (a *Activities) CreateEmployeeAccountActivity(ctx context.Context, req CreateAccountRequest) (*CreateAccountResult, error) {
 	start := time.Now()
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Creating employee account", 
+
+	logger.Info("Creating employee account",
 		"employee_id", req.EmployeeID,
 		"email", req.Email)
 
 	// 模拟账户创建过程
 	// 在实际实现中，这里会调用身份认证系统的API
-	
+
 	// 模拟处理时间
 	time.Sleep(2 * time.Second)
-	
+
 	// 记录业务日志
 	a.logger.LogEmployeeCreated(req.EmployeeID, req.TenantID, req.Email)
-	
+
 	// 记录指标
 	duration := time.Since(start)
 	metrics.RecordDatabaseOperation("CREATE", "user_accounts", "success", duration)
@@ -51,7 +51,7 @@ func (a *Activities) CreateEmployeeAccountActivity(ctx context.Context, req Crea
 		Success:   true,
 	}
 
-	logger.Info("Employee account created successfully", 
+	logger.Info("Employee account created successfully",
 		"employee_id", req.EmployeeID,
 		"account_id", result.AccountID)
 
@@ -62,18 +62,18 @@ func (a *Activities) CreateEmployeeAccountActivity(ctx context.Context, req Crea
 func (a *Activities) AssignEquipmentAndPermissionsActivity(ctx context.Context, req AssignEquipmentRequest) (*AssignEquipmentResult, error) {
 	start := time.Now()
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Assigning equipment and permissions", 
+
+	logger.Info("Assigning equipment and permissions",
 		"employee_id", req.EmployeeID,
 		"department", req.Department,
 		"position", req.Position)
 
 	// 模拟设备分配过程
 	// 在实际实现中，这里会调用设备管理系统和权限系统的API
-	
+
 	// 根据部门和职位确定设备清单
 	var assignedItems []string
-	
+
 	switch req.Department {
 	case "技术部", "Technology":
 		assignedItems = append(assignedItems, "laptop", "monitor", "keyboard", "mouse")
@@ -90,7 +90,7 @@ func (a *Activities) AssignEquipmentAndPermissionsActivity(ctx context.Context, 
 
 	// 模拟处理时间
 	time.Sleep(3 * time.Second)
-	
+
 	// 记录指标
 	duration := time.Since(start)
 	metrics.RecordDatabaseOperation("INSERT", "equipment_assignments", "success", duration)
@@ -100,7 +100,7 @@ func (a *Activities) AssignEquipmentAndPermissionsActivity(ctx context.Context, 
 		Success:       true,
 	}
 
-	logger.Info("Equipment and permissions assigned successfully", 
+	logger.Info("Equipment and permissions assigned successfully",
 		"employee_id", req.EmployeeID,
 		"assigned_items", assignedItems)
 
@@ -111,8 +111,8 @@ func (a *Activities) AssignEquipmentAndPermissionsActivity(ctx context.Context, 
 func (a *Activities) SendWelcomeEmailActivity(ctx context.Context, req WelcomeEmailRequest) (*SendEmailResult, error) {
 	start := time.Now()
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Sending welcome email", 
+
+	logger.Info("Sending welcome email",
 		"employee_id", req.EmployeeID,
 		"email", req.Email,
 		"first_name", req.FirstName)
@@ -134,7 +134,7 @@ The Cube Castle Team
 	// 模拟邮件发送过程
 	// 在实际实现中，这里会调用邮件服务的API
 	time.Sleep(1 * time.Second)
-	
+
 	// 记录指标
 	duration := time.Since(start)
 	metrics.RecordDatabaseOperation("INSERT", "email_logs", "success", duration)
@@ -144,15 +144,15 @@ The Cube Castle Team
 		Success:   true,
 	}
 
-	logger.Info("Welcome email sent successfully", 
+	logger.Info("Welcome email sent successfully",
 		"employee_id", req.EmployeeID,
 		"message_id", result.MessageID)
 
 	// 记录到业务日志
 	a.logger.LogDebug("welcome_email", "Email sent to new employee", map[string]interface{}{
-		"employee_id": req.EmployeeID,
-		"email":       req.Email,
-		"message_id":  result.MessageID,
+		"employee_id":     req.EmployeeID,
+		"email":           req.Email,
+		"message_id":      result.MessageID,
 		"content_preview": emailContent[:100] + "...",
 	})
 
@@ -163,8 +163,8 @@ The Cube Castle Team
 func (a *Activities) NotifyManagerActivity(ctx context.Context, req NotifyManagerRequest) (*NotifyManagerResult, error) {
 	start := time.Now()
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Notifying manager", 
+
+	logger.Info("Notifying manager",
 		"manager_id", req.ManagerID,
 		"new_employee_id", req.NewEmployeeID,
 		"employee_name", req.EmployeeName)
@@ -181,13 +181,13 @@ Employee ID: %s
 
 Best regards,
 HR Team
-	`, req.EmployeeName, req.Department, req.Position, 
+	`, req.EmployeeName, req.Department, req.Position,
 		req.StartDate.Format("January 2, 2006"), req.NewEmployeeID)
 
 	// 模拟通知发送过程
 	// 在实际实现中，这里会调用通知系统的API
 	time.Sleep(1 * time.Second)
-	
+
 	// 记录指标
 	duration := time.Since(start)
 	metrics.RecordDatabaseOperation("INSERT", "notifications", "success", duration)
@@ -197,7 +197,7 @@ HR Team
 		Success:        true,
 	}
 
-	logger.Info("Manager notification sent successfully", 
+	logger.Info("Manager notification sent successfully",
 		"manager_id", req.ManagerID,
 		"notification_id", result.NotificationID)
 
@@ -210,8 +210,8 @@ HR Team
 func (a *Activities) ValidateLeaveRequestActivity(ctx context.Context, req ValidateLeaveRequestRequest) (*ValidateLeaveRequestResult, error) {
 	start := time.Now()
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Validating leave request", 
+
+	logger.Info("Validating leave request",
 		"request_id", req.RequestID,
 		"employee_id", req.EmployeeID,
 		"leave_type", req.LeaveType,
@@ -263,12 +263,12 @@ func (a *Activities) ValidateLeaveRequestActivity(ctx context.Context, req Valid
 
 	// 模拟数据库查询检查冲突
 	time.Sleep(500 * time.Millisecond)
-	
+
 	// 记录指标
 	processingDuration := time.Since(start)
 	metrics.RecordDatabaseOperation("SELECT", "leave_requests", "success", processingDuration)
 
-	logger.Info("Leave request validation completed", 
+	logger.Info("Leave request validation completed",
 		"request_id", req.RequestID,
 		"is_valid", result.IsValid,
 		"reason", result.Reason)
@@ -280,8 +280,8 @@ func (a *Activities) ValidateLeaveRequestActivity(ctx context.Context, req Valid
 func (a *Activities) NotifyManagerForApprovalActivity(ctx context.Context, req NotifyManagerForApprovalRequest) (*NotifyManagerForApprovalResult, error) {
 	start := time.Now()
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Notifying manager for approval", 
+
+	logger.Info("Notifying manager for approval",
 		"request_id", req.RequestID,
 		"manager_id", req.ManagerID,
 		"employee_id", req.EmployeeID)
@@ -305,7 +305,7 @@ Please review and approve or reject this request.
 
 	// 模拟通知发送过程
 	time.Sleep(1 * time.Second)
-	
+
 	// 记录指标
 	duration := time.Since(start)
 	metrics.RecordDatabaseOperation("INSERT", "approval_notifications", "success", duration)
@@ -315,7 +315,7 @@ Please review and approve or reject this request.
 		Success:        true,
 	}
 
-	logger.Info("Manager approval notification sent successfully", 
+	logger.Info("Manager approval notification sent successfully",
 		"request_id", req.RequestID,
 		"notification_id", result.NotificationID)
 
@@ -325,15 +325,15 @@ Please review and approve or reject this request.
 // WaitForManagerApprovalActivity 等待经理审批活动
 func (a *Activities) WaitForManagerApprovalActivity(ctx context.Context, req WaitForManagerApprovalRequest) (*ManagerApprovalResult, error) {
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Waiting for manager approval", 
+
+	logger.Info("Waiting for manager approval",
 		"request_id", req.RequestID,
 		"manager_id", req.ManagerID,
 		"timeout_hours", req.TimeoutHours)
 
 	// 在实际实现中，这里会等待外部信号或查询审批状态
 	// 为了演示目的，我们模拟一个快速的自动审批
-	
+
 	// 模拟审批处理时间
 	time.Sleep(5 * time.Second)
 
@@ -353,7 +353,7 @@ func (a *Activities) WaitForManagerApprovalActivity(ctx context.Context, req Wai
 		result.Comments = "Request rejected automatically for demo purposes"
 	}
 
-	logger.Info("Manager approval completed", 
+	logger.Info("Manager approval completed",
 		"request_id", req.RequestID,
 		"decision", result.Decision)
 
@@ -363,8 +363,8 @@ func (a *Activities) WaitForManagerApprovalActivity(ctx context.Context, req Wai
 // SendLeaveApprovedNotificationActivity 发送休假审批通过通知活动
 func (a *Activities) SendLeaveApprovedNotificationActivity(ctx context.Context, req LeaveApprovedNotificationRequest) error {
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Sending leave approved notification", 
+
+	logger.Info("Sending leave approved notification",
 		"request_id", req.RequestID,
 		"employee_id", req.EmployeeID)
 
@@ -381,13 +381,13 @@ Please make sure to update your calendar and inform your team.
 
 Best regards,
 HR Team
-	`, req.RequestID, req.StartDate.Format("2006-01-02"), 
+	`, req.RequestID, req.StartDate.Format("2006-01-02"),
 		req.EndDate.Format("2006-01-02"), req.ApproverID)
 
 	// 模拟通知发送
 	time.Sleep(1 * time.Second)
 
-	logger.Info("Leave approved notification sent successfully", 
+	logger.Info("Leave approved notification sent successfully",
 		"request_id", req.RequestID)
 
 	return nil
@@ -396,8 +396,8 @@ HR Team
 // SendLeaveRejectedNotificationActivity 发送休假审批拒绝通知活动
 func (a *Activities) SendLeaveRejectedNotificationActivity(ctx context.Context, req LeaveRejectedNotificationRequest) error {
 	logger := activity.GetLogger(ctx)
-	
-	logger.Info("Sending leave rejected notification", 
+
+	logger.Info("Sending leave rejected notification",
 		"request_id", req.RequestID,
 		"employee_id", req.EmployeeID)
 
@@ -418,7 +418,7 @@ HR Team
 	// 模拟通知发送
 	time.Sleep(1 * time.Second)
 
-	logger.Info("Leave rejected notification sent successfully", 
+	logger.Info("Leave rejected notification sent successfully",
 		"request_id", req.RequestID)
 
 	return nil
@@ -429,13 +429,13 @@ HR Team
 // ProcessSingleEmployeeActivity 处理单个员工的活动
 func (a *Activities) ProcessSingleEmployeeActivity(ctx context.Context, req ProcessSingleEmployeeRequest) (ProcessSingleEmployeeResult, error) {
 	start := time.Now()
-	
+
 	result := ProcessSingleEmployeeResult{
 		EmployeeID: req.EmployeeID,
 		Status:     "success",
 	}
 
-	a.logger.Info("Processing single employee", 
+	a.logger.Info("Processing single employee",
 		"batch_id", req.BatchID,
 		"employee_id", req.EmployeeID,
 		"operation", req.Operation)
@@ -488,7 +488,7 @@ func (a *Activities) ProcessSingleEmployeeActivity(ctx context.Context, req Proc
 	duration := time.Since(start)
 	metrics.RecordAIRequest(fmt.Sprintf("process_employee_%s", req.Operation), result.Status, duration)
 
-	a.logger.Info("Single employee processing completed", 
+	a.logger.Info("Single employee processing completed",
 		"employee_id", req.EmployeeID,
 		"status", result.Status,
 		"duration", duration)
@@ -517,9 +517,9 @@ func (a *Activities) processEmployeeOnboard(ctx context.Context, req ProcessSing
 	}
 
 	// 记录入职事件
-	a.logger.Info("Business event: employee_onboarded", 
-		"employee_id", req.EmployeeID.String(), 
-		"tenant_id", req.TenantID.String(), 
+	a.logger.Info("Business event: employee_onboarded",
+		"employee_id", req.EmployeeID.String(),
+		"tenant_id", req.TenantID.String(),
 		"batch_id", req.BatchID,
 		"first_name", req.Data["first_name"],
 		"last_name", req.Data["last_name"],
@@ -542,9 +542,9 @@ func (a *Activities) processEmployeeOffboard(ctx context.Context, req ProcessSin
 	}
 
 	// 记录离职事件
-	a.logger.Info("Business event: employee_offboarded", 
-		"employee_id", req.EmployeeID.String(), 
-		"tenant_id", req.TenantID.String(), 
+	a.logger.Info("Business event: employee_offboarded",
+		"employee_id", req.EmployeeID.String(),
+		"tenant_id", req.TenantID.String(),
 		"batch_id", req.BatchID,
 		"last_working_day", req.Data["last_working_day"],
 		"reason", req.Data["reason"],
@@ -559,9 +559,9 @@ func (a *Activities) processEmployeeUpdate(ctx context.Context, req ProcessSingl
 	time.Sleep(80 * time.Millisecond) // 模拟处理时间
 
 	// 记录更新事件
-	a.logger.Info("Business event: employee_updated", 
-		"employee_id", req.EmployeeID.String(), 
-		"tenant_id", req.TenantID.String(), 
+	a.logger.Info("Business event: employee_updated",
+		"employee_id", req.EmployeeID.String(),
+		"tenant_id", req.TenantID.String(),
 		"batch_id", req.BatchID,
 		"updated_data", fmt.Sprintf("%+v", req.Data),
 	)

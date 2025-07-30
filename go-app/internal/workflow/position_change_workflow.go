@@ -13,13 +13,13 @@ import (
 
 // PositionChangeRequest represents a position change workflow request
 type PositionChangeRequest struct {
-	TenantID      uuid.UUID                `json:"tenant_id"`
-	EmployeeID    uuid.UUID                `json:"employee_id"`
-	NewPosition   PositionChangeData       `json:"new_position"`
-	EffectiveDate time.Time                `json:"effective_date"`
-	ChangeReason  string                   `json:"change_reason"`
-	RequestedBy   uuid.UUID                `json:"requested_by"`
-	ApprovalData  *PositionApprovalData    `json:"approval_data,omitempty"`
+	TenantID      uuid.UUID             `json:"tenant_id"`
+	EmployeeID    uuid.UUID             `json:"employee_id"`
+	NewPosition   PositionChangeData    `json:"new_position"`
+	EffectiveDate time.Time             `json:"effective_date"`
+	ChangeReason  string                `json:"change_reason"`
+	RequestedBy   uuid.UUID             `json:"requested_by"`
+	ApprovalData  *PositionApprovalData `json:"approval_data,omitempty"`
 }
 
 // PositionChangeData represents the new position data
@@ -37,10 +37,10 @@ type PositionChangeData struct {
 
 // PositionApprovalData represents approval workflow data
 type PositionApprovalData struct {
-	RequiresApproval bool                 `json:"requires_approval"`
-	ApprovalSteps    []ApprovalStep       `json:"approval_steps,omitempty"`
-	CurrentStep      int                  `json:"current_step"`
-	ApprovalHistory  []ApprovalEvent      `json:"approval_history,omitempty"`
+	RequiresApproval bool            `json:"requires_approval"`
+	ApprovalSteps    []ApprovalStep  `json:"approval_steps,omitempty"`
+	CurrentStep      int             `json:"current_step"`
+	ApprovalHistory  []ApprovalEvent `json:"approval_history,omitempty"`
 }
 
 // ApprovalStep represents a single approval step
@@ -55,11 +55,11 @@ type ApprovalStep struct {
 
 // ApprovalEvent represents an approval action
 type ApprovalEvent struct {
-	StepID      string    `json:"step_id"`
-	ApproverID  uuid.UUID `json:"approver_id"`
-	Action      string    `json:"action"` // APPROVED, REJECTED, DELEGATED
-	Comments    string    `json:"comments,omitempty"`
-	Timestamp   time.Time `json:"timestamp"`
+	StepID     string    `json:"step_id"`
+	ApproverID uuid.UUID `json:"approver_id"`
+	Action     string    `json:"action"` // APPROVED, REJECTED, DELEGATED
+	Comments   string    `json:"comments,omitempty"`
+	Timestamp  time.Time `json:"timestamp"`
 }
 
 // PositionChangeResult represents the workflow result
@@ -76,7 +76,7 @@ type PositionChangeResult struct {
 // PositionChangeWorkflow orchestrates the complete position change process
 func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*PositionChangeResult, error) {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("Starting position change workflow", 
+	logger.Info("Starting position change workflow",
 		"employee_id", req.EmployeeID,
 		"tenant_id", req.TenantID,
 		"effective_date", req.EffectiveDate,
@@ -101,7 +101,7 @@ func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*P
 
 	// Stage 1: Validation and Risk Assessment
 	logger.Info("Stage 1: Validation and risk assessment")
-	
+
 	var validationResult TemporalValidationResult
 	err := workflow.ExecuteActivity(ctx,
 		"ValidateTemporalConsistencyActivity",
@@ -123,12 +123,12 @@ func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*P
 	err = workflow.ExecuteActivity(ctx,
 		"AssessPositionChangeRiskActivity",
 		RiskAssessmentRequest{
-			TenantID:       req.TenantID,
-			EmployeeID:     req.EmployeeID,
+			TenantID:        req.TenantID,
+			EmployeeID:      req.EmployeeID,
 			CurrentPosition: nil, // Will be fetched in activity
-			NewPosition:    req.NewPosition,
-			EffectiveDate:  req.EffectiveDate,
-			ChangeReason:   req.ChangeReason,
+			NewPosition:     req.NewPosition,
+			EffectiveDate:   req.EffectiveDate,
+			ChangeReason:    req.ChangeReason,
 		}).Get(ctx, &riskResult)
 
 	if err != nil {
@@ -141,12 +141,12 @@ func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*P
 	// Stage 2: Approval Process (if required)
 	if riskResult.RequiresApproval {
 		logger.Info("Stage 2: Approval process required", "risk_level", riskResult.RiskLevel)
-		
+
 		var approvalResult ApprovalWorkflowResult
 		err = workflow.ExecuteChildWorkflow(
 			workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
-				WorkflowID: fmt.Sprintf("approval-%s-%d", 
-					req.EmployeeID.String(), 
+				WorkflowID: fmt.Sprintf("approval-%s-%d",
+					req.EmployeeID.String(),
 					req.EffectiveDate.Unix()),
 			}),
 			"PositionChangeApprovalWorkflow",
@@ -184,7 +184,7 @@ func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*P
 	// Stage 3: Retroactive Processing (if needed)
 	if result.IsRetroactive {
 		logger.Info("Stage 3: Processing retroactive position change")
-		
+
 		var retroResult RetroactiveProcessingResult
 		err = workflow.ExecuteActivity(ctx,
 			"ProcessRetroactivePositionChangeActivity",
@@ -205,11 +205,11 @@ func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*P
 		// If retroactive change affects payroll, trigger recalculation
 		if retroResult.RequiresRecalculation {
 			logger.Info("Triggering payroll recalculation due to retroactive change")
-			
+
 			err = workflow.ExecuteChildWorkflow(
 				workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
-					WorkflowID: fmt.Sprintf("payroll-recalc-%s-%d", 
-						req.EmployeeID.String(), 
+					WorkflowID: fmt.Sprintf("payroll-recalc-%s-%d",
+						req.EmployeeID.String(),
 						req.EffectiveDate.Unix()),
 				}),
 				"PayrollRecalculationWorkflow",
@@ -230,18 +230,18 @@ func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*P
 
 	// Stage 4: Create Position History Record
 	logger.Info("Stage 4: Creating position history record")
-	
+
 	var historyResult CreatePositionHistoryResult
 	err = workflow.ExecuteActivity(ctx,
 		"CreatePositionHistoryActivity",
 		CreatePositionHistoryRequest{
-			TenantID:        req.TenantID,
-			EmployeeID:      req.EmployeeID,
-			PositionData:    req.NewPosition,
-			EffectiveDate:   req.EffectiveDate,
-			ChangeReason:    req.ChangeReason,
-			CreatedBy:       req.RequestedBy,
-			IsRetroactive:   result.IsRetroactive,
+			TenantID:      req.TenantID,
+			EmployeeID:    req.EmployeeID,
+			PositionData:  req.NewPosition,
+			EffectiveDate: req.EffectiveDate,
+			ChangeReason:  req.ChangeReason,
+			CreatedBy:     req.RequestedBy,
+			IsRetroactive: result.IsRetroactive,
 		}).Get(ctx, &historyResult)
 
 	if err != nil {
@@ -256,7 +256,7 @@ func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*P
 
 	// Stage 5: Update Neo4j Graph Data
 	logger.Info("Stage 5: Updating graph data")
-	
+
 	err = workflow.ExecuteActivity(ctx,
 		"PublishPositionChangeEventActivity",
 		PublishEventRequest{
@@ -279,7 +279,7 @@ func PositionChangeWorkflow(ctx workflow.Context, req PositionChangeRequest) (*P
 
 	// Stage 6: Notification and Integration
 	logger.Info("Stage 6: Sending notifications")
-	
+
 	err = workflow.ExecuteActivity(ctx,
 		"SendPositionChangeNotificationsActivity",
 		NotificationRequest{
@@ -345,17 +345,17 @@ type ProcessRetroactiveRequest struct {
 
 type RetroactiveProcessingResult struct {
 	RequiresRecalculation bool     `json:"requires_recalculation"`
-	AffectedPeriods      []string `json:"affected_periods,omitempty"`
+	AffectedPeriods       []string `json:"affected_periods,omitempty"`
 }
 
 type CreatePositionHistoryRequest struct {
-	TenantID        uuid.UUID          `json:"tenant_id"`
-	EmployeeID      uuid.UUID          `json:"employee_id"`
-	PositionData    PositionChangeData `json:"position_data"`
-	EffectiveDate   time.Time          `json:"effective_date"`
-	ChangeReason    string             `json:"change_reason"`
-	CreatedBy       uuid.UUID          `json:"created_by"`
-	IsRetroactive   bool               `json:"is_retroactive"`
+	TenantID      uuid.UUID          `json:"tenant_id"`
+	EmployeeID    uuid.UUID          `json:"employee_id"`
+	PositionData  PositionChangeData `json:"position_data"`
+	EffectiveDate time.Time          `json:"effective_date"`
+	ChangeReason  string             `json:"change_reason"`
+	CreatedBy     uuid.UUID          `json:"created_by"`
+	IsRetroactive bool               `json:"is_retroactive"`
 }
 
 type CreatePositionHistoryResult struct {
@@ -398,15 +398,15 @@ type PayrollRecalculationRequest struct {
 // Approval workflow types
 
 type PositionApprovalRequest struct {
-	TenantID          uuid.UUID                `json:"tenant_id"`
-	EmployeeID        uuid.UUID                `json:"employee_id"`
-	PositionChangeReq PositionChangeRequest    `json:"position_change_req"`
-	RiskAssessment    RiskAssessmentResult     `json:"risk_assessment"`
-	ApprovalSteps     []ApprovalStep           `json:"approval_steps"`
+	TenantID          uuid.UUID             `json:"tenant_id"`
+	EmployeeID        uuid.UUID             `json:"employee_id"`
+	PositionChangeReq PositionChangeRequest `json:"position_change_req"`
+	RiskAssessment    RiskAssessmentResult  `json:"risk_assessment"`
+	ApprovalSteps     []ApprovalStep        `json:"approval_steps"`
 }
 
 type ApprovalWorkflowResult struct {
-	Approved        bool   `json:"approved"`
-	RejectionReason string `json:"rejection_reason,omitempty"`
+	Approved        bool            `json:"approved"`
+	RejectionReason string          `json:"rejection_reason,omitempty"`
 	ApprovalHistory []ApprovalEvent `json:"approval_history"`
 }

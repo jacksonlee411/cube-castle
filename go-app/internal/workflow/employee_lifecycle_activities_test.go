@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.temporal.io/sdk/testsuite"
 
-	"github.com/gaogu/cube-castle/go-app/internal/ent"
+	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/service"
 )
@@ -25,13 +25,13 @@ type EmployeeLifecycleActivitiesTestSuite struct {
 func (s *EmployeeLifecycleActivitiesTestSuite) SetupTest() {
 	s.env = s.NewTestActivityEnvironment()
 	s.ctx = context.Background()
-	
+
 	// 创建 mock 依赖
 	// 在实际环境中，这些应该是真实的或更完整的 mock 实现
 	var entClient *ent.Client
 	var temporalQuerySvc *service.TemporalQueryService
 	logger := &logging.StructuredLogger{}
-	
+
 	s.activities = NewEmployeeLifecycleActivities(entClient, temporalQuerySvc, logger)
 	s.env.RegisterActivity(s.activities)
 }
@@ -43,8 +43,8 @@ func TestEmployeeLifecycleActivitiesTestSuite(t *testing.T) {
 // TestUpdateEmployeeInformationActivity_InvalidInput 测试员工信息更新 - 无效输入
 func (s *EmployeeLifecycleActivitiesTestSuite) TestUpdateEmployeeInformationActivity_InvalidInput() {
 	testCases := []struct {
-		name string
-		req  InformationUpdateRequest
+		name          string
+		req           InformationUpdateRequest
 		expectedError string
 	}{
 		{
@@ -127,7 +127,7 @@ func (s *EmployeeLifecycleActivitiesTestSuite) TestUpdateCandidateActivity_Unsup
 	}
 
 	result, err := s.activities.UpdateCandidateActivity(s.ctx, req)
-	
+
 	s.Require().Error(err)
 	s.Require().Contains(err.Error(), "unsupported update_type for candidate")
 	s.Require().Nil(result)
@@ -136,8 +136,8 @@ func (s *EmployeeLifecycleActivitiesTestSuite) TestUpdateCandidateActivity_Unsup
 // TestUpdateCandidateActivity_InvalidInput 测试候选人信息更新 - 无效输入
 func (s *EmployeeLifecycleActivitiesTestSuite) TestUpdateCandidateActivity_InvalidInput() {
 	testCases := []struct {
-		name string
-		req  InformationUpdateRequest
+		name          string
+		req           InformationUpdateRequest
 		expectedError string
 	}{
 		{
@@ -178,7 +178,7 @@ func (s *EmployeeLifecycleActivitiesTestSuite) TestInformationUpdateRequest_Stru
 	tenantID := uuid.New()
 	employeeID := uuid.New()
 	updatedBy := uuid.New()
-	
+
 	req := InformationUpdateRequest{
 		TenantID:   tenantID,
 		EmployeeID: employeeID,
@@ -205,7 +205,7 @@ func (s *EmployeeLifecycleActivitiesTestSuite) TestInformationUpdateRequest_Stru
 func (s *EmployeeLifecycleActivitiesTestSuite) TestInformationUpdateResult_StructureValidation() {
 	updateID := uuid.New()
 	approvalID := uuid.New()
-	
+
 	result := InformationUpdateResult{
 		UpdateID:         updateID,
 		Status:           "pending_approval",

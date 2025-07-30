@@ -13,10 +13,10 @@ import (
 
 // Service 发件箱服务层
 type Service struct {
-	repo            *Repository
-	processor       *OutboxProcessor
-	eventProcessor  *EventProcessor
-	db              *pgxpool.Pool
+	repo           *Repository
+	processor      *OutboxProcessor
+	eventProcessor *EventProcessor
+	db             *pgxpool.Pool
 }
 
 // NewService 创建新的发件箱服务
@@ -24,7 +24,7 @@ func NewService(db *pgxpool.Pool) *Service {
 	repo := NewRepository(db)
 	eventProcessor := NewEventProcessor()
 	processor := NewOutboxProcessor(repo, eventProcessor, DefaultProcessorConfig())
-	
+
 	return &Service{
 		repo:           repo,
 		processor:      processor,
@@ -85,7 +85,7 @@ func (s *Service) CreateEmployeeCreatedEvent(ctx context.Context, employeeID uui
 	if err != nil {
 		return fmt.Errorf("failed to marshal employee created event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   employeeID,
 		AggregateType: AggregateTypeEmployee,
@@ -93,7 +93,7 @@ func (s *Service) CreateEmployeeCreatedEvent(ctx context.Context, employeeID uui
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEvent(ctx, req)
 	return err
 }
@@ -108,7 +108,7 @@ func (s *Service) CreateEmployeeUpdatedEvent(ctx context.Context, employeeID uui
 	if err != nil {
 		return fmt.Errorf("failed to marshal employee updated event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   employeeID,
 		AggregateType: AggregateTypeEmployee,
@@ -116,7 +116,7 @@ func (s *Service) CreateEmployeeUpdatedEvent(ctx context.Context, employeeID uui
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEvent(ctx, req)
 	return err
 }
@@ -124,15 +124,15 @@ func (s *Service) CreateEmployeeUpdatedEvent(ctx context.Context, employeeID uui
 // CreateEmployeePhoneUpdatedEvent 创建员工电话更新事件
 func (s *Service) CreateEmployeePhoneUpdatedEvent(ctx context.Context, employeeID uuid.UUID, oldPhoneNumber, newPhoneNumber string) error {
 	payload, err := json.Marshal(map[string]interface{}{
-		"employee_id":     employeeID.String(),
+		"employee_id":      employeeID.String(),
 		"old_phone_number": oldPhoneNumber,
 		"new_phone_number": newPhoneNumber,
-		"updated_at":      time.Now().Format(time.RFC3339),
+		"updated_at":       time.Now().Format(time.RFC3339),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal employee phone updated event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   employeeID,
 		AggregateType: AggregateTypeEmployee,
@@ -140,7 +140,7 @@ func (s *Service) CreateEmployeePhoneUpdatedEvent(ctx context.Context, employeeI
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEvent(ctx, req)
 	return err
 }
@@ -149,15 +149,15 @@ func (s *Service) CreateEmployeePhoneUpdatedEvent(ctx context.Context, employeeI
 func (s *Service) CreateOrganizationCreatedEvent(ctx context.Context, organizationID uuid.UUID, name, code string, parentID *uuid.UUID) error {
 	payload, err := json.Marshal(map[string]interface{}{
 		"organization_id": organizationID.String(),
-		"name":           name,
-		"code":           code,
-		"parent_id":      parentID.String(),
-		"created_at":     time.Now().Format(time.RFC3339),
+		"name":            name,
+		"code":            code,
+		"parent_id":       parentID.String(),
+		"created_at":      time.Now().Format(time.RFC3339),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal organization created event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   organizationID,
 		AggregateType: AggregateTypeOrganization,
@@ -165,7 +165,7 @@ func (s *Service) CreateOrganizationCreatedEvent(ctx context.Context, organizati
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEvent(ctx, req)
 	return err
 }
@@ -185,7 +185,7 @@ func (s *Service) CreateLeaveRequestCreatedEvent(ctx context.Context, requestID,
 	if err != nil {
 		return fmt.Errorf("failed to marshal leave request created event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   requestID,
 		AggregateType: AggregateTypeLeaveRequest,
@@ -193,7 +193,7 @@ func (s *Service) CreateLeaveRequestCreatedEvent(ctx context.Context, requestID,
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEvent(ctx, req)
 	return err
 }
@@ -201,16 +201,16 @@ func (s *Service) CreateLeaveRequestCreatedEvent(ctx context.Context, requestID,
 // CreateLeaveRequestApprovedEvent 创建休假申请批准事件
 func (s *Service) CreateLeaveRequestApprovedEvent(ctx context.Context, requestID, employeeID, approvedBy uuid.UUID, comment string) error {
 	payload, err := json.Marshal(map[string]interface{}{
-		"request_id":   requestID.String(),
-		"employee_id":  employeeID.String(),
-		"approved_by":  approvedBy.String(),
-		"approved_at":  time.Now().Format(time.RFC3339),
-		"comment":      comment,
+		"request_id":  requestID.String(),
+		"employee_id": employeeID.String(),
+		"approved_by": approvedBy.String(),
+		"approved_at": time.Now().Format(time.RFC3339),
+		"comment":     comment,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal leave request approved event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   requestID,
 		AggregateType: AggregateTypeLeaveRequest,
@@ -218,7 +218,7 @@ func (s *Service) CreateLeaveRequestApprovedEvent(ctx context.Context, requestID
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEvent(ctx, req)
 	return err
 }
@@ -226,16 +226,16 @@ func (s *Service) CreateLeaveRequestApprovedEvent(ctx context.Context, requestID
 // CreateLeaveRequestRejectedEvent 创建休假申请拒绝事件
 func (s *Service) CreateLeaveRequestRejectedEvent(ctx context.Context, requestID, employeeID, rejectedBy uuid.UUID, reason string) error {
 	payload, err := json.Marshal(map[string]interface{}{
-		"request_id":   requestID.String(),
-		"employee_id":  employeeID.String(),
-		"rejected_by":  rejectedBy.String(),
-		"rejected_at":  time.Now().Format(time.RFC3339),
-		"reason":       reason,
+		"request_id":  requestID.String(),
+		"employee_id": employeeID.String(),
+		"rejected_by": rejectedBy.String(),
+		"rejected_at": time.Now().Format(time.RFC3339),
+		"reason":      reason,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal leave request rejected event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   requestID,
 		AggregateType: AggregateTypeLeaveRequest,
@@ -243,7 +243,7 @@ func (s *Service) CreateLeaveRequestRejectedEvent(ctx context.Context, requestID
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEvent(ctx, req)
 	return err
 }
@@ -261,7 +261,7 @@ func (s *Service) CreateNotificationEvent(ctx context.Context, recipientID uuid.
 	if err != nil {
 		return fmt.Errorf("failed to marshal notification event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   recipientID,
 		AggregateType: "Notification",
@@ -269,7 +269,7 @@ func (s *Service) CreateNotificationEvent(ctx context.Context, recipientID uuid.
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEvent(ctx, req)
 	return err
 }
@@ -286,7 +286,7 @@ func (s *Service) CreateEmployeeCreatedEventWithTransaction(ctx context.Context,
 	if err != nil {
 		return fmt.Errorf("failed to marshal employee created event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   employeeID,
 		AggregateType: AggregateTypeEmployee,
@@ -294,7 +294,7 @@ func (s *Service) CreateEmployeeCreatedEventWithTransaction(ctx context.Context,
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEventWithTransaction(ctx, tx, req)
 	return err
 }
@@ -309,7 +309,7 @@ func (s *Service) CreateEmployeeUpdatedEventWithTransaction(ctx context.Context,
 	if err != nil {
 		return fmt.Errorf("failed to marshal employee updated event payload: %w", err)
 	}
-	
+
 	req := &CreateEventRequest{
 		AggregateID:   employeeID,
 		AggregateType: AggregateTypeEmployee,
@@ -317,7 +317,7 @@ func (s *Service) CreateEmployeeUpdatedEventWithTransaction(ctx context.Context,
 		EventVersion:  1,
 		Payload:       payload,
 	}
-	
+
 	_, err = s.CreateEventWithTransaction(ctx, tx, req)
 	return err
 }
@@ -340,4 +340,4 @@ func (s *Service) GetEventsByType(ctx context.Context, eventType string, limit i
 // GetEvents 获取所有事件
 func (s *Service) GetEvents(ctx context.Context, limit int) ([]Event, error) {
 	return s.repo.GetEvents(ctx, limit)
-} 
+}

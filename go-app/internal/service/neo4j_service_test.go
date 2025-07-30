@@ -171,23 +171,23 @@ func (m *MockNeo4jNode) GetProperties() map[string]any {
 // Neo4jServiceTestSuite provides test suite for Neo4jService
 type Neo4jServiceTestSuite struct {
 	suite.Suite
-	service    *Neo4jService
-	mockDriver *MockNeo4jDriver
+	service     *Neo4jService
+	mockDriver  *MockNeo4jDriver
 	mockSession *MockNeo4jSession
-	mockResult *MockNeo4jResult
-	ctx        context.Context
-	logger     *log.Logger
+	mockResult  *MockNeo4jResult
+	ctx         context.Context
+	logger      *log.Logger
 }
 
 // SetupSuite runs once before all tests
 func (suite *Neo4jServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.logger = log.New(os.Stdout, "TEST: ", log.LstdFlags)
-	
+
 	suite.mockDriver = &MockNeo4jDriver{}
 	suite.mockSession = &MockNeo4jSession{}
 	suite.mockResult = &MockNeo4jResult{}
-	
+
 	// Create service with mock driver
 	suite.service = &Neo4jService{
 		driver: suite.mockDriver,
@@ -280,7 +280,7 @@ func (suite *Neo4jServiceTestSuite) TestFindReportingPath() {
 	// Create mock record with path data
 	mockRecord := &neo4j.Record{}
 	mockRecord.Values = []interface{}{
-		nil, // path
+		nil,      // path
 		int64(2), // distance
 		[]interface{}{ // employees
 			map[string]interface{}{
@@ -311,7 +311,7 @@ func (suite *Neo4jServiceTestSuite) TestFindReportingPath() {
 	assert.Equal(suite.T(), 2, path.Distance)
 	assert.Equal(suite.T(), "REPORTS_TO", path.PathType)
 	assert.Len(suite.T(), path.Path, 2)
-	
+
 	suite.mockDriver.AssertExpectations(suite.T())
 	suite.mockSession.AssertExpectations(suite.T())
 	suite.mockResult.AssertExpectations(suite.T())
@@ -334,7 +334,7 @@ func (suite *Neo4jServiceTestSuite) TestFindReportingPath_NoPath() {
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), path)
 	assert.Contains(suite.T(), err.Error(), "no path found")
-	
+
 	suite.mockDriver.AssertExpectations(suite.T())
 	suite.mockSession.AssertExpectations(suite.T())
 	suite.mockResult.AssertExpectations(suite.T())
@@ -393,7 +393,7 @@ func (suite *Neo4jServiceTestSuite) TestGetReportingHierarchy() {
 	assert.Len(suite.T(), hierarchy.DirectReports, 1)
 	assert.Equal(suite.T(), "EMP001", hierarchy.DirectReports[0].EmployeeID)
 	assert.Equal(suite.T(), maxDepth, hierarchy.Depth)
-	
+
 	suite.mockDriver.AssertExpectations(suite.T())
 	suite.mockSession.AssertExpectations(suite.T())
 	suite.mockResult.AssertExpectations(suite.T())
@@ -433,7 +433,7 @@ func (suite *Neo4jServiceTestSuite) TestFindCommonManager() {
 	assert.NotNil(suite.T(), manager)
 	assert.Equal(suite.T(), "MGR001", manager.EmployeeID)
 	assert.Equal(suite.T(), "共同管理者", manager.LegalName)
-	
+
 	suite.mockDriver.AssertExpectations(suite.T())
 	suite.mockSession.AssertExpectations(suite.T())
 	suite.mockResult.AssertExpectations(suite.T())
@@ -455,7 +455,7 @@ func (suite *Neo4jServiceTestSuite) TestFindCommonManager_NoCommonManager() {
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), manager)
 	assert.Contains(suite.T(), err.Error(), "no common manager found")
-	
+
 	suite.mockDriver.AssertExpectations(suite.T())
 	suite.mockSession.AssertExpectations(suite.T())
 	suite.mockResult.AssertExpectations(suite.T())
@@ -496,7 +496,7 @@ func (suite *Neo4jServiceTestSuite) TestGetDepartmentStructure() {
 	assert.NotNil(suite.T(), dept)
 	assert.Equal(suite.T(), "技术部", dept.Name)
 	assert.Equal(suite.T(), "dept1", dept.ID)
-	
+
 	suite.mockDriver.AssertExpectations(suite.T())
 	suite.mockSession.AssertExpectations(suite.T())
 	suite.mockResult.AssertExpectations(suite.T())
@@ -532,7 +532,7 @@ func (suite *Neo4jServiceTestSuite) TestNodeToEmployee() {
 func (suite *Neo4jServiceTestSuite) TestNodeToDepartment() {
 	parentId := "parent1"
 	managerId := "mgr1"
-	
+
 	node := &MockNeo4jNode{
 		ElementId: "dept1",
 		Props: map[string]any{
@@ -588,7 +588,7 @@ func (suite *Neo4jServiceTestSuite) TestSyncEmployeeWithError() {
 
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "failed to sync employee")
-	
+
 	suite.mockDriver.AssertExpectations(suite.T())
 	suite.mockSession.AssertExpectations(suite.T())
 }
@@ -632,7 +632,7 @@ func (suite *Neo4jServiceTestSuite) TestPerformanceWithLargeDataset() {
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), manager)
 	assert.Less(suite.T(), duration, 100*time.Millisecond, "Query should complete within 100ms for large dataset")
-	
+
 	suite.mockDriver.AssertExpectations(suite.T())
 	suite.mockSession.AssertExpectations(suite.T())
 	suite.mockResult.AssertExpectations(suite.T())
@@ -688,12 +688,12 @@ func BenchmarkSyncEmployee(b *testing.B) {
 	mockDriver := &MockNeo4jDriver{}
 	mockSession := &MockNeo4jSession{}
 	mockResult := &MockNeo4jResult{}
-	
+
 	service := &Neo4jService{
 		driver: mockDriver,
 		logger: logger,
 	}
-	
+
 	ctx := context.Background()
 	employee := EmployeeNode{
 		ID:         "bench1",
@@ -725,18 +725,18 @@ func BenchmarkFindReportingPath(b *testing.B) {
 	mockDriver := &MockNeo4jDriver{}
 	mockSession := &MockNeo4jSession{}
 	mockResult := &MockNeo4jResult{}
-	
+
 	service := &Neo4jService{
 		driver: mockDriver,
 		logger: logger,
 	}
-	
+
 	ctx := context.Background()
 
 	// Create mock record with path data
 	mockRecord := &neo4j.Record{}
 	mockRecord.Values = []interface{}{
-		nil, // path
+		nil,      // path
 		int64(2), // distance
 		[]interface{}{ // employees
 			map[string]interface{}{

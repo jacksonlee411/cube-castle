@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/ent"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/service"
 	"github.com/gaogu/cube-castle/go-app/internal/workflow"
+	"github.com/google/uuid"
 )
 
 // PositionHistoryResolver handles GraphQL queries for position history
@@ -40,13 +40,13 @@ func NewPositionHistoryResolver(
 
 // CurrentPosition resolves the current position for an employee
 func (r *PositionHistoryResolver) CurrentPosition(
-	ctx context.Context, 
-	employee *Employee, 
+	ctx context.Context,
+	employee *Employee,
 	asOfDate *string,
 ) (*PositionHistory, error) {
 	tenantID := getTenantIDFromContext(ctx)
 	employeeID := uuid.MustParse(employee.ID)
-	
+
 	var queryDate time.Time
 	if asOfDate != nil {
 		var err error
@@ -312,7 +312,7 @@ func (r *PositionHistoryResolver) CreatePositionChange(
 
 	// Start the position change workflow
 	workflowID := fmt.Sprintf("position-change-%s-%d", employeeID.String(), time.Now().Unix())
-	
+
 	// TODO: Start actual Temporal workflow
 	r.logger.LogInfo(ctx, "Starting position change workflow", map[string]interface{}{
 		"workflow_id": workflowID,
@@ -336,7 +336,7 @@ func (r *PositionHistoryResolver) ValidatePositionChange(
 	effDate := parseTime(effectiveDate)
 
 	err := r.temporalQuerySvc.ValidateTemporalConsistency(ctx, tenantID, empID, effDate)
-	
+
 	if err != nil {
 		return &PositionChangeValidation{
 			IsValid: false,
@@ -450,36 +450,36 @@ func encodeEndCursor(edges []*PositionHistoryEdge) *string {
 // GraphQL types (these would normally be generated)
 
 type Employee struct {
-	ID             string  `json:"id"`
-	TenantID       string  `json:"tenantId"`
-	EmployeeID     string  `json:"employeeId"`
-	LegalName      string  `json:"legalName"`
-	PreferredName  *string `json:"preferredName"`
-	Email          string  `json:"email"`
-	Status         string  `json:"status"`
-	HireDate       string  `json:"hireDate"`
+	ID              string  `json:"id"`
+	TenantID        string  `json:"tenantId"`
+	EmployeeID      string  `json:"employeeId"`
+	LegalName       string  `json:"legalName"`
+	PreferredName   *string `json:"preferredName"`
+	Email           string  `json:"email"`
+	Status          string  `json:"status"`
+	HireDate        string  `json:"hireDate"`
 	TerminationDate *string `json:"terminationDate"`
 }
 
 type PositionHistory struct {
-	ID                  string          `json:"id"`
-	TenantID            string          `json:"tenantId"`
-	EmployeeID          string          `json:"employeeId"`
-	PositionTitle       string          `json:"positionTitle"`
-	Department          string          `json:"department"`
-	JobLevel            *string         `json:"jobLevel"`
-	Location            *string         `json:"location"`
-	EmploymentType      EmploymentType  `json:"employmentType"`
-	ReportsToEmployeeID *string         `json:"reportsToEmployeeId"`
-	EffectiveDate       string          `json:"effectiveDate"`
-	EndDate             *string         `json:"endDate"`
-	ChangeReason        *string         `json:"changeReason"`
-	IsRetroactive       bool            `json:"isRetroactive"`
-	CreatedBy           string          `json:"createdBy"`
-	CreatedAt           string          `json:"createdAt"`
-	MinSalary           *float64        `json:"minSalary"`
-	MaxSalary           *float64        `json:"maxSalary"`
-	Currency            *string         `json:"currency"`
+	ID                  string         `json:"id"`
+	TenantID            string         `json:"tenantId"`
+	EmployeeID          string         `json:"employeeId"`
+	PositionTitle       string         `json:"positionTitle"`
+	Department          string         `json:"department"`
+	JobLevel            *string        `json:"jobLevel"`
+	Location            *string        `json:"location"`
+	EmploymentType      EmploymentType `json:"employmentType"`
+	ReportsToEmployeeID *string        `json:"reportsToEmployeeId"`
+	EffectiveDate       string         `json:"effectiveDate"`
+	EndDate             *string        `json:"endDate"`
+	ChangeReason        *string        `json:"changeReason"`
+	IsRetroactive       bool           `json:"isRetroactive"`
+	CreatedBy           string         `json:"createdBy"`
+	CreatedAt           string         `json:"createdAt"`
+	MinSalary           *float64       `json:"minSalary"`
+	MaxSalary           *float64       `json:"maxSalary"`
+	Currency            *string        `json:"currency"`
 }
 
 type EmploymentType string
@@ -500,25 +500,25 @@ type CreatePositionChangeInput struct {
 }
 
 type PositionDataInput struct {
-	PositionTitle       string          `json:"positionTitle"`
-	Department          string          `json:"department"`
-	JobLevel            *string         `json:"jobLevel"`
-	Location            *string         `json:"location"`
-	EmploymentType      EmploymentType  `json:"employmentType"`
-	ReportsToEmployeeID *string         `json:"reportsToEmployeeId"`
-	MinSalary           *float64        `json:"minSalary"`
-	MaxSalary           *float64        `json:"maxSalary"`
-	Currency            *string         `json:"currency"`
+	PositionTitle       string         `json:"positionTitle"`
+	Department          string         `json:"department"`
+	JobLevel            *string        `json:"jobLevel"`
+	Location            *string        `json:"location"`
+	EmploymentType      EmploymentType `json:"employmentType"`
+	ReportsToEmployeeID *string        `json:"reportsToEmployeeId"`
+	MinSalary           *float64       `json:"minSalary"`
+	MaxSalary           *float64       `json:"maxSalary"`
+	Currency            *string        `json:"currency"`
 }
 
 type PositionHistoryFilters struct {
-	EmployeeIDs         []*string       `json:"employeeIds"`
-	Departments         []*string       `json:"departments"`
-	EmploymentTypes     []EmploymentType `json:"employmentTypes"`
-	EffectiveDateFrom   *string         `json:"effectiveDateFrom"`
-	EffectiveDateTo     *string         `json:"effectiveDateTo"`
-	IsRetroactive       *bool           `json:"isRetroactive"`
-	HasEndDate          *bool           `json:"hasEndDate"`
+	EmployeeIDs       []*string        `json:"employeeIds"`
+	Departments       []*string        `json:"departments"`
+	EmploymentTypes   []EmploymentType `json:"employmentTypes"`
+	EffectiveDateFrom *string          `json:"effectiveDateFrom"`
+	EffectiveDateTo   *string          `json:"effectiveDateTo"`
+	IsRetroactive     *bool            `json:"isRetroactive"`
+	HasEndDate        *bool            `json:"hasEndDate"`
 }
 
 type PositionHistoryConnection struct {
@@ -552,9 +552,9 @@ type UserError struct {
 }
 
 type PositionChangeValidation struct {
-	IsValid  bool                  `json:"isValid"`
-	Errors   []*ValidationError    `json:"errors"`
-	Warnings []*ValidationWarning  `json:"warnings"`
+	IsValid  bool                 `json:"isValid"`
+	Errors   []*ValidationError   `json:"errors"`
+	Warnings []*ValidationWarning `json:"warnings"`
 }
 
 type ValidationError struct {
@@ -564,8 +564,8 @@ type ValidationError struct {
 }
 
 type ValidationWarning struct {
-	Code     string         `json:"code"`
-	Message  string         `json:"message"`
+	Code     string          `json:"code"`
+	Message  string          `json:"message"`
 	Severity WarningSeverity `json:"severity"`
 }
 

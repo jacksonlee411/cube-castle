@@ -61,8 +61,7 @@ docker-compose up
 - 需要实现具体的业务逻辑
 
 ### 3. 前端界面
-- 需要在React应用中添加元合约编辑器组件
-- 路由: `/metacontract-editor`
+- 需要在React应用中添加其他管理组件
 
 ### 4. 测试
 - 单元测试

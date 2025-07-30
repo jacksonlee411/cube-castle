@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	
+
 	"github.com/gaogu/cube-castle/go-app/internal/ent"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
 )
@@ -28,25 +28,21 @@ func NewPosition_historyHandler(client *ent.Client) *Position_historyHandler {
 // Routes registers all routes for position_history
 func (h *Position_historyHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	
+
 	// Apply middleware
 	r.Use(middleware.TenantContext)
 
 	r.Use(middleware.RBACAuthorization)
 
-
 	r.Use(middleware.DataClassificationCheck("INTERNAL"))
 
-	
 	// REST endpoints
 	r.Post("/", h.CreatePosition_history)
 	r.Get("/", h.ListPosition_histories)
 	r.Get("/{id}", h.GetPosition_history)
 	r.Put("/{id}", h.UpdatePosition_history)
 	r.Delete("/{id}", h.DeletePosition_history)
-	
 
-	
 	return r
 }
 
@@ -57,95 +53,41 @@ func (h *Position_historyHandler) CreatePosition_history(w http.ResponseWriter, 
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Create entity
 	entity, err := h.client.Position_history.
 		Create().
 		SetTenantID(tenantID).
-
-
-
-
 		SetTenant_id(req.Tenant_id).
-
-
-
 		SetEmployee_id(req.Employee_id).
-
-
-
 		SetPosition_title(req.Position_title).
-
-
-
 		SetDepartment(req.Department).
-
-
-
 		SetJob_level(req.Job_level).
-
-
-
 		SetLocation(req.Location).
-
-
-
 		SetEmployment_type(req.Employment_type).
-
-
-
 		SetReports_to_employee_id(req.Reports_to_employee_id).
-
-
-
 		SetEffective_date(req.Effective_date).
-
-
-
 		SetEnd_date(req.End_date).
-
-
-
 		SetChange_reason(req.Change_reason).
-
-
-
 		SetIs_retroactive(req.Is_retroactive).
-
-
-
 		SetCreated_by(req.Created_by).
-
-
-
 		SetCreated_at(req.Created_at).
-
-
-
 		SetMin_salary(req.Min_salary).
-
-
-
 		SetMax_salary(req.Max_salary).
-
-
-
 		SetCurrency(req.Currency).
-
-
 		Save(r.Context())
-	
+
 	if err != nil {
 		http.Error(w, "Failed to create position_history", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entity)
 }
@@ -157,7 +99,7 @@ func (h *Position_historyHandler) ListPosition_histories(w http.ResponseWriter, 
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Parse query parameters
 	limit := 100 // default
 	if l := r.URL.Query().Get("limit"); l != "" {
@@ -165,14 +107,14 @@ func (h *Position_historyHandler) ListPosition_histories(w http.ResponseWriter, 
 			limit = parsed
 		}
 	}
-	
+
 	offset := 0
 	if o := r.URL.Query().Get("offset"); o != "" {
 		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
 			offset = parsed
 		}
 	}
-	
+
 	// Query entities
 	entities, err := h.client.Position_history.
 		Query().
@@ -180,12 +122,12 @@ func (h *Position_historyHandler) ListPosition_histories(w http.ResponseWriter, 
 		Limit(limit).
 		Offset(offset).
 		All(r.Context())
-	
+
 	if err != nil {
 		http.Error(w, "Failed to list position_histories", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entities)
 }
@@ -198,13 +140,13 @@ func (h *Position_historyHandler) GetPosition_history(w http.ResponseWriter, r *
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Query entity
 	entity, err := h.client.Position_history.
 		Query().
@@ -213,7 +155,7 @@ func (h *Position_historyHandler) GetPosition_history(w http.ResponseWriter, r *
 			position_history.TenantID(tenantID),
 		).
 		Only(r.Context())
-	
+
 	if err != nil {
 		if ent.IsNotFound(err) {
 			http.Error(w, "Position_history not found", http.StatusNotFound)
@@ -222,7 +164,7 @@ func (h *Position_historyHandler) GetPosition_history(w http.ResponseWriter, r *
 		}
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entity)
 }
@@ -235,92 +177,40 @@ func (h *Position_historyHandler) UpdatePosition_history(w http.ResponseWriter, 
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
-	
+
 	var req UpdatePosition_historyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Update entity
 	entity, err := h.client.Position_history.
 		UpdateOneID(id).
 		Where(position_history.TenantID(tenantID)).
-
-
-
-
-
-
 		SetEmployee_id(req.Employee_id).
-
-
-
 		SetPosition_title(req.Position_title).
-
-
-
 		SetDepartment(req.Department).
-
-
-
 		SetJob_level(req.Job_level).
-
-
-
 		SetLocation(req.Location).
-
-
-
 		SetEmployment_type(req.Employment_type).
-
-
-
 		SetReports_to_employee_id(req.Reports_to_employee_id).
-
-
-
 		SetEffective_date(req.Effective_date).
-
-
-
 		SetEnd_date(req.End_date).
-
-
-
 		SetChange_reason(req.Change_reason).
-
-
-
 		SetIs_retroactive(req.Is_retroactive).
-
-
-
 		SetCreated_by(req.Created_by).
-
-
-
-
-
 		SetMin_salary(req.Min_salary).
-
-
-
 		SetMax_salary(req.Max_salary).
-
-
-
 		SetCurrency(req.Currency).
-
-
 		Save(r.Context())
-	
+
 	if err != nil {
 		if ent.IsNotFound(err) {
 			http.Error(w, "Position_history not found", http.StatusNotFound)
@@ -329,7 +219,7 @@ func (h *Position_historyHandler) UpdatePosition_history(w http.ResponseWriter, 
 		}
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entity)
 }
@@ -342,19 +232,19 @@ func (h *Position_historyHandler) DeletePosition_history(w http.ResponseWriter, 
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
-	
+
 	tenantID := middleware.GetTenantID(r.Context())
 	if tenantID == uuid.Nil {
 		http.Error(w, "Tenant context required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Delete entity
 	err = h.client.Position_history.
 		DeleteOneID(id).
 		Where(position_history.TenantID(tenantID)).
 		Exec(r.Context())
-	
+
 	if err != nil {
 		if ent.IsNotFound(err) {
 			http.Error(w, "Position_history not found", http.StatusNotFound)
@@ -363,149 +253,71 @@ func (h *Position_historyHandler) DeletePosition_history(w http.ResponseWriter, 
 		}
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
-
-
 // Request/Response types
 type CreatePosition_historyRequest struct {
-
-
-
-
-
-
 	Employee_id uuid.UUID `json:"employee_id"`
-
-
 
 	Position_title string `json:"position_title"`
 
-
-
 	Department string `json:"department"`
-
-
 
 	Job_level string `json:"job_level"`
 
-
-
 	Location string `json:"location"`
-
-
 
 	Employment_type string `json:"employment_type"`
 
-
-
 	Reports_to_employee_id uuid.UUID `json:"reports_to_employee_id"`
-
-
 
 	Effective_date time.Time `json:"effective_date"`
 
-
-
 	End_date time.Time `json:"end_date"`
-
-
 
 	Change_reason string `json:"change_reason"`
 
-
-
 	Is_retroactive bool `json:"is_retroactive"`
-
-
 
 	Created_by uuid.UUID `json:"created_by"`
 
-
-
-
-
 	Min_salary float64 `json:"min_salary"`
-
-
 
 	Max_salary float64 `json:"max_salary"`
 
-
-
 	Currency string `json:"currency"`
-
-
 }
 
 type UpdatePosition_historyRequest struct {
-
-
-
-
-
-
 	Employee_id uuid.UUID `json:"employee_id"`
-
-
 
 	Position_title string `json:"position_title"`
 
-
-
 	Department string `json:"department"`
-
-
 
 	Job_level string `json:"job_level"`
 
-
-
 	Location string `json:"location"`
-
-
 
 	Employment_type string `json:"employment_type"`
 
-
-
 	Reports_to_employee_id uuid.UUID `json:"reports_to_employee_id"`
-
-
 
 	Effective_date time.Time `json:"effective_date"`
 
-
-
 	End_date time.Time `json:"end_date"`
-
-
 
 	Change_reason string `json:"change_reason"`
 
-
-
 	Is_retroactive bool `json:"is_retroactive"`
-
-
 
 	Created_by uuid.UUID `json:"created_by"`
 
-
-
-
-
 	Min_salary float64 `json:"min_salary"`
-
-
 
 	Max_salary float64 `json:"max_salary"`
 
-
-
 	Currency string `json:"currency"`
-
-
 }

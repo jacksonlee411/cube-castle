@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/worker"
-	"go.temporal.io/api/workflowservice/v1"
-	"go.temporal.io/api/enums/v1"
-	"go.temporal.io/sdk/temporal"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
+	"go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/workflowservice/v1"
+	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/temporal"
+	"go.temporal.io/sdk/worker"
 )
 
 // WorkflowManager 增强的工作流管理器
@@ -130,7 +130,7 @@ func (m *WorkflowManager) Stop() {
 // StartEmployeeOnboardingWorkflow 启动员工入职工作流
 func (m *WorkflowManager) StartEmployeeOnboardingWorkflow(ctx context.Context, req EmployeeOnboardingRequest) (*TemporalWorkflowExecution, error) {
 	workflowID := fmt.Sprintf("employee-onboarding-%s", req.EmployeeID.String())
-	
+
 	options := client.StartWorkflowOptions{
 		ID:        workflowID,
 		TaskQueue: m.taskQueue,
@@ -156,7 +156,7 @@ func (m *WorkflowManager) StartEmployeeOnboardingWorkflow(ctx context.Context, r
 		"employee_id", req.EmployeeID.String(),
 		"tenant_id", req.TenantID.String(),
 		"workflow_id", workflowID)
-	
+
 	return &TemporalWorkflowExecution{
 		WorkflowID: execution.GetID(),
 		RunID:      execution.GetRunID(),
@@ -166,7 +166,7 @@ func (m *WorkflowManager) StartEmployeeOnboardingWorkflow(ctx context.Context, r
 // StartLeaveApprovalWorkflow 启动休假审批工作流
 func (m *WorkflowManager) StartLeaveApprovalWorkflow(ctx context.Context, req LeaveApprovalRequest) (*TemporalWorkflowExecution, error) {
 	workflowID := fmt.Sprintf("leave-approval-%s", req.RequestID.String())
-	
+
 	options := client.StartWorkflowOptions{
 		ID:        workflowID,
 		TaskQueue: m.taskQueue,
@@ -182,18 +182,18 @@ func (m *WorkflowManager) StartLeaveApprovalWorkflow(ctx context.Context, req Le
 	execution, err := m.client.ExecuteWorkflow(ctx, options, LeaveApprovalWorkflow, req)
 	if err != nil {
 		m.logger.LogError("workflow", "Failed to start leave approval workflow", err, map[string]interface{}{
-			"request_id": req.RequestID,
+			"request_id":  req.RequestID,
 			"employee_id": req.EmployeeID,
 			"tenant_id":   req.TenantID,
 		})
 		return nil, fmt.Errorf("failed to start workflow: %w", err)
 	}
 
-	m.logger.Info("Workflow event: leave_approval_started", 
-		"employee_id", req.EmployeeID.String(), 
-		"tenant_id", req.TenantID.String(), 
+	m.logger.Info("Workflow event: leave_approval_started",
+		"employee_id", req.EmployeeID.String(),
+		"tenant_id", req.TenantID.String(),
 		"workflow_id", workflowID)
-	
+
 	return &TemporalWorkflowExecution{
 		WorkflowID: execution.GetID(),
 		RunID:      execution.GetRunID(),
@@ -203,7 +203,7 @@ func (m *WorkflowManager) StartLeaveApprovalWorkflow(ctx context.Context, req Le
 // StartEnhancedLeaveApprovalWorkflow 启动增强的休假审批工作流（支持信号）
 func (m *WorkflowManager) StartEnhancedLeaveApprovalWorkflow(ctx context.Context, req LeaveApprovalRequest) (*TemporalWorkflowExecution, error) {
 	workflowID := fmt.Sprintf("enhanced-leave-approval-%s", req.RequestID.String())
-	
+
 	options := client.StartWorkflowOptions{
 		ID:        workflowID,
 		TaskQueue: m.taskQueue,
@@ -219,18 +219,18 @@ func (m *WorkflowManager) StartEnhancedLeaveApprovalWorkflow(ctx context.Context
 	execution, err := m.client.ExecuteWorkflow(ctx, options, EnhancedLeaveApprovalWorkflow, req)
 	if err != nil {
 		m.logger.LogError("workflow", "Failed to start enhanced leave approval workflow", err, map[string]interface{}{
-			"request_id": req.RequestID,
+			"request_id":  req.RequestID,
 			"employee_id": req.EmployeeID,
 			"tenant_id":   req.TenantID,
 		})
 		return nil, fmt.Errorf("failed to start workflow: %w", err)
 	}
 
-	m.logger.Info("Workflow event: enhanced_leave_approval_started", 
-		"employee_id", req.EmployeeID.String(), 
-		"tenant_id", req.TenantID.String(), 
+	m.logger.Info("Workflow event: enhanced_leave_approval_started",
+		"employee_id", req.EmployeeID.String(),
+		"tenant_id", req.TenantID.String(),
 		"workflow_id", workflowID)
-	
+
 	return &TemporalWorkflowExecution{
 		WorkflowID: execution.GetID(),
 		RunID:      execution.GetRunID(),
@@ -240,7 +240,7 @@ func (m *WorkflowManager) StartEnhancedLeaveApprovalWorkflow(ctx context.Context
 // StartBatchEmployeeProcessingWorkflow 启动批量员工处理工作流
 func (m *WorkflowManager) StartBatchEmployeeProcessingWorkflow(ctx context.Context, req BatchEmployeeProcessingRequest) (*TemporalWorkflowExecution, error) {
 	workflowID := fmt.Sprintf("batch-employee-%s", req.BatchID.String())
-	
+
 	options := client.StartWorkflowOptions{
 		ID:        workflowID,
 		TaskQueue: m.taskQueue,
@@ -256,19 +256,19 @@ func (m *WorkflowManager) StartBatchEmployeeProcessingWorkflow(ctx context.Conte
 	execution, err := m.client.ExecuteWorkflow(ctx, options, BatchEmployeeProcessingWorkflow, req)
 	if err != nil {
 		m.logger.LogError("workflow", "Failed to start batch employee processing workflow", err, map[string]interface{}{
-			"batch_id": req.BatchID,
+			"batch_id":  req.BatchID,
 			"operation": req.Operation,
 			"tenant_id": req.TenantID,
-			"count": len(req.Employees),
+			"count":     len(req.Employees),
 		})
 		return nil, fmt.Errorf("failed to start workflow: %w", err)
 	}
 
-	m.logger.Info("Workflow event: batch_employee_processing_started", 
-		"batch_id", req.BatchID.String(), 
-		"tenant_id", req.TenantID.String(), 
+	m.logger.Info("Workflow event: batch_employee_processing_started",
+		"batch_id", req.BatchID.String(),
+		"tenant_id", req.TenantID.String(),
 		"workflow_id", workflowID)
-	
+
 	return &TemporalWorkflowExecution{
 		WorkflowID: execution.GetID(),
 		RunID:      execution.GetRunID(),
@@ -295,9 +295,9 @@ func (m *WorkflowManager) SendApprovalSignal(ctx context.Context, workflowID str
 		return fmt.Errorf("failed to send signal: %w", err)
 	}
 
-	m.logger.Info("Workflow event: approval_signal_sent", 
-		"workflow_id", workflowID, 
-		"run_id", runID, 
+	m.logger.Info("Workflow event: approval_signal_sent",
+		"workflow_id", workflowID,
+		"run_id", runID,
 		"decision", signal.Decision)
 	return nil
 }
@@ -313,8 +313,8 @@ func (m *WorkflowManager) CancelWorkflow(ctx context.Context, workflowID string,
 		return fmt.Errorf("failed to cancel workflow: %w", err)
 	}
 
-	m.logger.Info("Workflow event: workflow_cancelled", 
-		"workflow_id", workflowID, 
+	m.logger.Info("Workflow event: workflow_cancelled",
+		"workflow_id", workflowID,
 		"run_id", runID)
 	return nil
 }
@@ -351,7 +351,7 @@ func (m *WorkflowManager) ListWorkflows(ctx context.Context, query string, pageS
 	response, err := m.client.WorkflowService().ListWorkflowExecutions(ctx, request)
 	if err != nil {
 		m.logger.LogError("workflow", "Failed to list workflows", err, map[string]interface{}{
-			"query": query,
+			"query":     query,
 			"page_size": pageSize,
 		})
 		return nil, fmt.Errorf("failed to list workflows: %w", err)
@@ -383,7 +383,7 @@ func (m *WorkflowManager) ListWorkflows(ctx context.Context, query string, pageS
 // GetWorkflowHistory 获取工作流历史
 func (m *WorkflowManager) GetWorkflowHistory(ctx context.Context, workflowID string, runID string) (*WorkflowHistory, error) {
 	iter := m.client.GetWorkflowHistory(ctx, workflowID, runID, false, enums.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
-	
+
 	var events []WorkflowHistoryEvent
 	for iter.HasNext() {
 		event, err := iter.Next()
@@ -451,7 +451,7 @@ func (m *WorkflowManager) HealthCheck(ctx context.Context) error {
 func (m *WorkflowManager) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
 	// 这里可以实现更详细的指标收集
 	// 例如：活跃工作流数量、完成率、平均执行时间等
-	
+
 	// 简化实现，返回基础指标
 	activeWorkflows, err := m.ListWorkflows(ctx, "ExecutionStatus='Running'", 1000, nil)
 	if err != nil {

@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/enttest"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 // TemporalQueryServiceTestSuite provides test suite for TemporalQueryService
@@ -26,10 +26,10 @@ type TemporalQueryServiceTestSuite struct {
 // SetupSuite runs once before all tests
 func (suite *TemporalQueryServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	
+
 	// Create in-memory SQLite database for testing
 	suite.client = enttest.Open(suite.T(), "sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
-	
+
 	// Initialize service
 	suite.service = NewTemporalQueryService(suite.client, nil)
 }
@@ -83,10 +83,10 @@ func (suite *TemporalQueryServiceTestSuite) TestGetPositionAsOfDate() {
 
 	// Test cases
 	testCases := []struct {
-		name         string
-		asOfDate     time.Time
-		expectedPos  *ent.PositionHistory
-		expectError  bool
+		name        string
+		asOfDate    time.Time
+		expectedPos *ent.PositionHistory
+		expectError bool
 	}{
 		{
 			name:        "Position at start date",
@@ -201,7 +201,7 @@ func (suite *TemporalQueryServiceTestSuite) TestGetPositionTimeline() {
 	// Test with date range filter
 	fromDate := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
 	toDate := time.Date(2022, 12, 31, 23, 59, 59, 0, time.UTC)
-	
+
 	filteredTimeline, err := suite.service.GetPositionTimeline(suite.ctx, employee.ID, &fromDate, &toDate, 10)
 
 	assert.NoError(suite.T(), err)
@@ -292,7 +292,7 @@ func (suite *TemporalQueryServiceTestSuite) TestValidateTemporalConsistency_With
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), result.IsValid)
 	assert.NotEmpty(suite.T(), result.Violations)
-	
+
 	// Check violation type
 	hasOverlapViolation := false
 	for _, violation := range result.Violations {
@@ -503,7 +503,7 @@ func BenchmarkGetPositionAsOfDate(b *testing.B) {
 	for i := 0; i < 10; i++ {
 		startDate := time.Date(2020+i, 1, 1, 0, 0, 0, 0, time.UTC)
 		endDate := time.Date(2020+i, 12, 31, 23, 59, 59, 0, time.UTC)
-		
+
 		client.PositionHistory.Create().
 			SetEmployeeID(employee.ID).
 			SetPositionTitle("职位" + string(rune(i+'1'))).

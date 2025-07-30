@@ -37,7 +37,7 @@ func TestOutboxService_CreateNotificationEvent(t *testing.T) {
 func TestEventPayloadMarshaling(t *testing.T) {
 	// 测试事件载荷的JSON序列化
 	employeeData := map[string]interface{}{
-		"employee_id":   "123e4567-e89b-12d3-a456-426614174000",
+		"employee_id": "123e4567-e89b-12d3-a456-426614174000",
 		"employee_data": map[string]interface{}{
 			"first_name": "张三",
 			"last_name":  "李",
@@ -45,19 +45,19 @@ func TestEventPayloadMarshaling(t *testing.T) {
 		},
 		"created_at": time.Now().Format(time.RFC3339),
 	}
-	
+
 	payload, err := json.Marshal(employeeData)
 	if err != nil {
 		t.Errorf("Failed to marshal JSON: %v", err)
 	}
-	
+
 	// 验证JSON可以正确反序列化
 	var unmarshaled map[string]interface{}
 	err = json.Unmarshal(payload, &unmarshaled)
 	if err != nil {
 		t.Errorf("Failed to unmarshal JSON: %v", err)
 	}
-	
+
 	assert.Equal(t, employeeData["employee_id"], unmarshaled["employee_id"])
 	assert.NotNil(t, unmarshaled["employee_data"])
 	assert.NotNil(t, unmarshaled["created_at"])
@@ -92,7 +92,7 @@ func TestCreateEventRequest(t *testing.T) {
 		EventVersion:  1,
 		Payload:       []byte(`{"test": "data"}`),
 	}
-	
+
 	assert.NotNil(t, req.AggregateID)
 	assert.Equal(t, AggregateTypeEmployee, req.AggregateType)
 	assert.Equal(t, EventTypeEmployeeCreated, req.EventType)
@@ -113,7 +113,7 @@ func TestEventStructure(t *testing.T) {
 		ProcessedAt:   nil,
 		CreatedAt:     time.Now(),
 	}
-	
+
 	assert.NotNil(t, event.ID)
 	assert.NotNil(t, event.AggregateID)
 	assert.Equal(t, AggregateTypeEmployee, event.AggregateType)
@@ -126,11 +126,11 @@ func TestEventStructure(t *testing.T) {
 // 集成测试（需要实际数据库）
 func TestOutboxServiceIntegration(t *testing.T) {
 	t.Skip("Integration test - requires actual database")
-	
+
 	// 这个测试需要实际的数据库连接
 	// 在实际环境中，应该使用测试数据库进行集成测试
 	// ctx := context.Background()
-	
+
 	// 1. 创建数据库连接
 	// 2. 初始化发件箱服务
 	// 3. 创建事件
@@ -138,4 +138,4 @@ func TestOutboxServiceIntegration(t *testing.T) {
 	// 5. 处理事件
 	// 6. 验证事件被标记为已处理
 	// 7. 测试事件重放
-} 
+}

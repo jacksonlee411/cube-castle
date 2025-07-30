@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gaogu/cube-castle/go-app/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/gaogu/cube-castle/go-app/internal/types"
 )
 
 func TestEntGenerator_NewEntGenerator(t *testing.T) {
@@ -20,15 +20,15 @@ func TestEntGenerator_NewEntGenerator(t *testing.T) {
 func TestEntGenerator_Generate_Success(t *testing.T) {
 	generator := NewEntGenerator()
 	contract := createTestMetaContract()
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_ent_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate Ent schemas
 	err = generator.Generate(contract, outputDir)
-	
+
 	// Note: This may fail if templates are not fully implemented
 	if err != nil {
 		t.Logf("Ent generation error (may be expected): %v", err)
@@ -38,7 +38,7 @@ func TestEntGenerator_Generate_Success(t *testing.T) {
 	} else {
 		// If generation succeeds, verify output directory exists
 		assert.DirExists(t, outputDir)
-		
+
 		// Check if any files were generated
 		files, err := os.ReadDir(outputDir)
 		require.NoError(t, err)
@@ -49,27 +49,27 @@ func TestEntGenerator_Generate_Success(t *testing.T) {
 func TestEntGenerator_Generate_InvalidOutputDir(t *testing.T) {
 	generator := NewEntGenerator()
 	contract := createTestMetaContract()
-	
+
 	// Try to generate in an invalid directory
 	invalidDir := "/root/nonexistent/deeply/nested/path"
-	
+
 	err := generator.Generate(contract, invalidDir)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create output directory")
 }
 
 func TestEntGenerator_Generate_NilContract(t *testing.T) {
 	generator := NewEntGenerator()
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_ent_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate with nil contract (should handle gracefully)
 	err = generator.Generate(nil, outputDir)
-	
+
 	assert.Error(t, err)
 	// Should not panic, but provide meaningful error
 }
@@ -77,15 +77,15 @@ func TestEntGenerator_Generate_NilContract(t *testing.T) {
 func TestEntGenerator_Generate_EmptyContract(t *testing.T) {
 	generator := NewEntGenerator()
 	contract := &types.MetaContract{} // Empty contract
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_ent_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate with empty contract
 	err = generator.Generate(contract, outputDir)
-	
+
 	// May succeed or fail depending on implementation, but should not panic
 	if err != nil {
 		assert.NotContains(t, err.Error(), "panic")
@@ -95,15 +95,15 @@ func TestEntGenerator_Generate_EmptyContract(t *testing.T) {
 func TestEntGenerator_Generate_ComplexContract(t *testing.T) {
 	generator := NewEntGenerator()
 	contract := createComplexTestMetaContract()
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_ent_complex_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate with complex contract
 	err = generator.Generate(contract, outputDir)
-	
+
 	if err != nil {
 		t.Logf("Complex contract generation error (may be expected): %v", err)
 		assert.NotContains(t, err.Error(), "panic")
@@ -119,18 +119,18 @@ func TestEntGenerator_Generate_ComplexContract(t *testing.T) {
 func TestEntGenerator_Generate_TemporalContract(t *testing.T) {
 	generator := NewEntGenerator()
 	contract := createTestMetaContract()
-	
+
 	// Set temporal behavior to event-driven to test history entity generation
 	contract.TemporalBehavior.TemporalityParadigm = "EVENT_DRIVEN"
-	
+
 	// Create temporary output directory
 	outputDir, err := os.MkdirTemp("", "test_ent_temporal_*")
 	require.NoError(t, err)
 	defer os.RemoveAll(outputDir)
-	
+
 	// Generate with temporal contract
 	err = generator.Generate(contract, outputDir)
-	
+
 	if err != nil {
 		t.Logf("Temporal contract generation error (may be expected): %v", err)
 		assert.NotContains(t, err.Error(), "panic")
@@ -145,10 +145,10 @@ func TestEntGenerator_Generate_TemporalContract(t *testing.T) {
 
 func TestEntGenerator_TemplateEngine(t *testing.T) {
 	generator := NewEntGenerator()
-	
+
 	// Test that template engine is properly initialized
 	assert.NotNil(t, generator.templateEngine)
-	
+
 	// Test template functions are registered
 	funcs := generator.templateEngine.Funcs(nil)
 	assert.NotEmpty(t, funcs)
@@ -158,7 +158,7 @@ func TestEntGenerator_HelperFunctions(t *testing.T) {
 	// Test title function
 	result := strings.Title("test_string")
 	assert.Equal(t, "Test_string", result)
-	
+
 	// Test case conversion functions (these should be available in the template)
 	testCases := []struct {
 		input    string
@@ -171,13 +171,13 @@ func TestEntGenerator_HelperFunctions(t *testing.T) {
 		{"test", "test", "test"},
 		{"Test", "test", "test"},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			// Test camelCase conversion
 			camelResult := toCamelCase(tc.input)
 			assert.Equal(t, tc.camelExp, camelResult)
-			
+
 			// Test snake_case conversion
 			snakeResult := toSnakeCase(tc.input)
 			assert.Equal(t, tc.snakeExp, snakeResult)
@@ -189,10 +189,10 @@ func TestEntGenerator_HelperFunctions(t *testing.T) {
 func TestEntGenerator_ConcurrentGeneration(t *testing.T) {
 	generator := NewEntGenerator()
 	contract := createTestMetaContract()
-	
+
 	const numGoroutines = 5
 	errors := make(chan error, numGoroutines)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			// Create unique output directory for each goroutine
@@ -202,13 +202,13 @@ func TestEntGenerator_ConcurrentGeneration(t *testing.T) {
 				return
 			}
 			defer os.RemoveAll(outputDir)
-			
+
 			// Generate
 			err = generator.Generate(contract, outputDir)
 			errors <- err
 		}(i)
 	}
-	
+
 	// Collect results
 	for i := 0; i < numGoroutines; i++ {
 		err := <-errors
@@ -223,17 +223,17 @@ func TestEntGenerator_ConcurrentGeneration(t *testing.T) {
 func BenchmarkEntGenerator_Generate(b *testing.B) {
 	generator := NewEntGenerator()
 	contract := createTestMetaContract()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		outputDir, err := os.MkdirTemp("", "bench_ent_*")
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		// Generate (may fail, but shouldn't panic)
 		_ = generator.Generate(contract, outputDir)
-		
+
 		os.RemoveAll(outputDir)
 	}
 }
@@ -324,8 +324,8 @@ func createComplexTestMetaContract() *types.MetaContract {
 					},
 				},
 				{
-					Name: "status",
-					Type: "Enum",
+					Name:       "status",
+					Type:       "Enum",
 					EnumValues: []string{"active", "inactive", "pending"},
 					Constraints: types.FieldConstraints{
 						Required: true,
@@ -406,7 +406,7 @@ func toCamelCase(s string) string {
 	if s == "" {
 		return s
 	}
-	
+
 	parts := strings.Split(s, "_")
 	if len(parts) == 1 {
 		// Convert first character to lowercase
@@ -415,7 +415,7 @@ func toCamelCase(s string) string {
 		}
 		return s
 	}
-	
+
 	result := strings.ToLower(parts[0])
 	for i := 1; i < len(parts); i++ {
 		if len(parts[i]) > 0 {
@@ -429,12 +429,12 @@ func toSnakeCase(s string) string {
 	if s == "" {
 		return s
 	}
-	
+
 	// If already snake_case, return as is
 	if strings.Contains(s, "_") {
 		return strings.ToLower(s)
 	}
-	
+
 	// Convert camelCase or PascalCase to snake_case
 	result := ""
 	for i, char := range s {

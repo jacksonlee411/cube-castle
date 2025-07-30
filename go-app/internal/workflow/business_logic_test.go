@@ -273,9 +273,9 @@ func TestBusinessLogic_ValidateLeaveRequest(t *testing.T) {
 	yesterday := now.AddDate(0, 0, -1)
 
 	tests := []struct {
-		name      string
-		request   ValidateLeaveRequestRequest
-		expectValid bool
+		name           string
+		request        ValidateLeaveRequestRequest
+		expectValid    bool
 		expectedReason string
 	}{
 		{
@@ -300,7 +300,7 @@ func TestBusinessLogic_ValidateLeaveRequest(t *testing.T) {
 				StartDate:  nextWeek,
 				EndDate:    tomorrow,
 			},
-			expectValid: false,
+			expectValid:    false,
 			expectedReason: "Start date must be before end date",
 		},
 		{
@@ -313,7 +313,7 @@ func TestBusinessLogic_ValidateLeaveRequest(t *testing.T) {
 				StartDate:  yesterday,
 				EndDate:    tomorrow,
 			},
-			expectValid: false,
+			expectValid:    false,
 			expectedReason: "Cannot request leave for past dates",
 		},
 		{
@@ -326,7 +326,7 @@ func TestBusinessLogic_ValidateLeaveRequest(t *testing.T) {
 				StartDate:  tomorrow,
 				EndDate:    nextWeek,
 			},
-			expectValid: false,
+			expectValid:    false,
 			expectedReason: "Invalid leave type",
 		},
 		{
@@ -339,7 +339,7 @@ func TestBusinessLogic_ValidateLeaveRequest(t *testing.T) {
 				StartDate:  tomorrow,
 				EndDate:    tomorrow.AddDate(0, 0, 35), // 35 days
 			},
-			expectValid: false,
+			expectValid:    false,
 			expectedReason: "Leave duration cannot exceed 30 days",
 		},
 	}
@@ -368,7 +368,7 @@ func TestBusinessLogic_Integration(t *testing.T) {
 	// 完整的员工入职流程测试
 	employeeID := uuid.New()
 	tenantID := uuid.New()
-	
+
 	// 1. 创建账户
 	accountResult, err := bl.CreateEmployeeAccount(ctx, CreateAccountRequest{
 		EmployeeID: employeeID,
@@ -405,12 +405,12 @@ func TestBusinessLogic_Integration(t *testing.T) {
 	// 4. 通知经理
 	managerID := uuid.New()
 	notificationResult, err := bl.NotifyManager(ctx, NotifyManagerRequest{
-		ManagerID:      managerID,
-		NewEmployeeID:  employeeID,
-		EmployeeName:   "Integration Test",
-		StartDate:      time.Now().AddDate(0, 0, 7),
-		Department:     "Engineering",
-		Position:       "Senior Developer",
+		ManagerID:     managerID,
+		NewEmployeeID: employeeID,
+		EmployeeName:  "Integration Test",
+		StartDate:     time.Now().AddDate(0, 0, 7),
+		Department:    "Engineering",
+		Position:      "Senior Developer",
 	})
 	require.NoError(t, err)
 	assert.True(t, notificationResult.Success)

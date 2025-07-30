@@ -3,13 +3,13 @@ package schema
 
 import (
 	"time"
-	
+
 	"entgo.io/ent"
-	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	
+
 	"github.com/gaogu/cube-castle/go-app/internal/ent/annotations"
 )
 
@@ -43,7 +43,6 @@ func (Person) Fields() []ent.Field {
 		field.Time("created_at").NotEmpty().Annotations(annotations.MetaContractAnnotation{DataClassification: "INTERNAL"}),
 
 		field.Time("updated_at").NotEmpty().Annotations(annotations.MetaContractAnnotation{DataClassification: "INTERNAL"}),
-
 	}
 }
 
@@ -56,7 +55,6 @@ func (Person) Edges() []ent.Edge {
 		edge.To("direct_reports", Person.Type),
 
 		edge.To("organization", Organization.Type).Unique().Required(),
-
 	}
 }
 
@@ -65,11 +63,10 @@ func (Person) Indexes() []ent.Index {
 	return []ent.Index{
 		// Tenant isolation index
 		index.Fields("tenant_id"),
-		
+
 		// Time-based query optimization
 
 		index.Fields("tenant_id", "effective_date"),
-
 	}
 }
 
@@ -78,26 +75,24 @@ func (Person) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		annotations.MetaContractAnnotation{
 			DataClassification: "CONFIDENTIAL",
-			ComplianceTags:     []string{
+			ComplianceTags: []string{
 
 				"GDPR",
 
 				"SOX",
 
 				"PII",
-
 			},
 
 			PersistenceProfile: &annotations.PersistenceProfile{
-				PrimaryStore:    "postgresql",
-				IndexedIn:       []string{
+				PrimaryStore: "postgresql",
+				IndexedIn: []string{
 
 					"postgresql",
 
 					"neo4j",
-
 				},
-				GraphNodeLabel:  "Person",
+				GraphNodeLabel: "Person",
 				GraphEdgeDefinitions: []string{
 
 					"WORKS_FOR -> Organization",
@@ -105,10 +100,8 @@ func (Person) Annotations() []schema.Annotation {
 					"REPORTS_TO -> Person",
 
 					"MEMBER_OF -> Team",
-
 				},
 			},
-
 		},
 	}
 }

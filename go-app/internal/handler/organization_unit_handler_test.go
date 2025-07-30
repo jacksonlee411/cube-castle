@@ -21,10 +21,10 @@ import (
 func setupOrganizationUnitHandler(t *testing.T) (*OrganizationUnitHandler, *ent.Client, func()) {
 	// Create test database using configurable backend
 	client, logger, cleanup := testutil.SetupTestHandler(t)
-	
+
 	// Create handler
 	handler := NewOrganizationUnitHandler(client, logger)
-	
+
 	return handler, client, cleanup
 }
 
@@ -34,7 +34,7 @@ func TestOrganizationUnitHandler_CreateOrganizationUnit(t *testing.T) {
 
 	// Test data
 	tenantID := uuid.New()
-	
+
 	testCases := []struct {
 		name           string
 		payload        CreateOrganizationUnitRequest
@@ -119,7 +119,7 @@ func TestOrganizationUnitHandler_CreateOrganizationUnit(t *testing.T) {
 				var response OrganizationUnitResponse
 				err := json.Unmarshal(rr.Body.Bytes(), &response)
 				require.NoError(t, err)
-				
+
 				assert.Equal(t, tc.payload.UnitType, response.UnitType)
 				assert.Equal(t, tc.payload.Name, response.Name)
 				assert.Equal(t, tc.payload.Description, response.Description)
@@ -135,7 +135,7 @@ func TestOrganizationUnitHandler_GetOrganizationUnit(t *testing.T) {
 	defer cleanup()
 
 	tenantID := uuid.New()
-	
+
 	// Create test organization unit
 	orgUnit, err := client.OrganizationUnit.Create().
 		SetTenantID(tenantID).
@@ -202,7 +202,7 @@ func TestOrganizationUnitHandler_GetOrganizationUnit(t *testing.T) {
 				var response OrganizationUnitResponse
 				err := json.Unmarshal(rr.Body.Bytes(), &response)
 				require.NoError(t, err)
-				
+
 				assert.Equal(t, orgUnit.ID, response.ID)
 				assert.Equal(t, orgUnit.Name, response.Name)
 				assert.Equal(t, orgUnit.UnitType.String(), response.UnitType)
@@ -216,7 +216,7 @@ func TestOrganizationUnitHandler_ListOrganizationUnits(t *testing.T) {
 	defer cleanup()
 
 	tenantID := uuid.New()
-	
+
 	// Create test organization units
 	_, err := client.OrganizationUnit.Create().
 		SetTenantID(tenantID).

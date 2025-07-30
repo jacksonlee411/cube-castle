@@ -13,18 +13,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gaogu/cube-castle/go-app/generated/openapi"
+	"github.com/gaogu/cube-castle/go-app/internal/common"
+	"github.com/gaogu/cube-castle/go-app/internal/corehr"
+	"github.com/gaogu/cube-castle/go-app/internal/handler"
+	"github.com/gaogu/cube-castle/go-app/internal/logging"
+	"github.com/gaogu/cube-castle/go-app/internal/metacontract"
+	"github.com/gaogu/cube-castle/go-app/internal/metacontracteditor"
+	"github.com/gaogu/cube-castle/go-app/internal/metrics"
+	"github.com/gaogu/cube-castle/go-app/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
-	"github.com/gaogu/cube-castle/go-app/generated/openapi"
-	"github.com/gaogu/cube-castle/go-app/internal/handler"
-	"github.com/gaogu/cube-castle/go-app/internal/logging"
-	"github.com/gaogu/cube-castle/go-app/internal/metrics"
-	"github.com/gaogu/cube-castle/go-app/internal/middleware"
-	"github.com/gaogu/cube-castle/go-app/internal/corehr"
-	"github.com/gaogu/cube-castle/go-app/internal/common"
-	"github.com/gaogu/cube-castle/go-app/internal/metacontract"
-	"github.com/gaogu/cube-castle/go-app/internal/metacontracteditor"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -35,7 +37,7 @@ const (
 func main() {
 	// 初始化结构化日志器
 	logger := logging.NewStructuredLogger()
-	
+
 	// 记录服务启动
 	startTime := time.Now()
 	logger.LogServiceStartup(ServiceName, Version, map[string]interface{}{
@@ -148,7 +150,7 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 	// 初始化处理器（只有在数据库连接成功时才初始化）
 	var orgUnitHandler *handler.OrganizationUnitHandler
 	var positionHandler *handler.PositionHandler
-	
+
 	if entClient != nil {
 		orgUnitHandler = handler.NewOrganizationUnitHandler(entClient, logger)
 		positionHandler = handler.NewPositionHandler(entClient, logger)
@@ -166,7 +168,7 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 				r.Delete("/", handleDeleteEmployee(coreHRService, logger))
 				r.Get("/manager", handleGetEmployeeManager(coreHRService, logger))
 			})
-			
+
 			// 现有组织架构路由
 			r.Get("/organizations", handleListOrganizations(coreHRService, logger))
 			r.Get("/organizations/tree", handleGetOrganizationTree(coreHRService, logger))
@@ -226,10 +228,10 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 				r.Delete("/", handleDeleteProject(editorService, logger))
 				r.Post("/compile", handleCompileProject(editorService, logger))
 			})
-			
+
 			// 模板管理
 			r.Get("/templates", handleGetTemplates(editorService, logger))
-			
+
 			// 用户设置
 			r.Get("/settings", handleGetUserSettings(editorService, logger))
 			r.Put("/settings", handleUpdateUserSettings(editorService, logger))
@@ -250,7 +252,7 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 func initializeEditorService(db interface{}, logger *logging.StructuredLogger) *metacontracteditor.Service {
 	// 创建编译器
 	compiler := metacontract.NewCompiler()
-	
+
 	if db == nil {
 		// Mock模式
 		logger.Info("Initializing Meta-Contract Editor service in mock mode")
@@ -258,10 +260,36 @@ func initializeEditorService(db interface{}, logger *logging.StructuredLogger) *
 		return metacontracteditor.NewService(mockRepo, compiler)
 	}
 
-	// 实际模式 - 这里需要根据实际的数据库连接类型进行调整
+	// 实际模式 - 转换数据库连接
 	logger.Info("Initializing Meta-Contract Editor service with database connection")
-	// TODO: 创建实际的repository
-	mockRepo := createMockEditorRepository() // 暂时使用mock
+	
+	// 尝试从Database结构体获取PostgreSQL连接
+	if database, ok := db.(*common.Database); ok && database != nil && database.PostgreSQL != nil {
+		// 创建sqlx连接用于repository
+		sqlxDB, err := sqlx.Open("postgres", os.Getenv("DATABASE_URL"))
+		if err != nil {
+			logger.LogError("db_conversion", "Failed to create sqlx connection", err, nil)
+			logger.Info("Falling back to mock mode")
+			mockRepo := createMockEditorRepository()
+			return metacontracteditor.NewService(mockRepo, compiler)
+		}
+		
+		// 测试连接
+		if err := sqlxDB.Ping(); err != nil {
+			logger.LogError("db_ping", "Failed to ping database", err, nil)
+			logger.Info("Falling back to mock mode")
+			mockRepo := createMockEditorRepository()
+			return metacontracteditor.NewService(mockRepo, compiler)
+		}
+		
+		// 创建实际的repository
+		repo := metacontracteditor.NewPostgreSQLRepository(sqlxDB)
+		return metacontracteditor.NewService(repo, compiler)
+	}
+
+	// 如果转换失败，使用mock
+	logger.Info("Unable to use database connection, falling back to mock mode")
+	mockRepo := createMockEditorRepository()
 	return metacontracteditor.NewService(mockRepo, compiler)
 }
 
@@ -284,31 +312,31 @@ func handleListProjects(service *metacontracteditor.Service, logger *logging.Str
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
 		tenantID := getTenantID(r.Context())
-		
+
 		// 获取查询参数
 		limit := getIntParam(r, "limit", 10)
 		offset := getIntParam(r, "offset", 0)
-		
+
 		// 调用服务
 		projects, err := service.ListProjects(r.Context(), tenantID, limit, offset)
 		if err != nil {
 			reqLogger.LogError("list_projects", "Failed to list projects", err, map[string]interface{}{
 				"tenant_id": tenantID,
-				"limit": limit,
-				"offset": offset,
+				"limit":     limit,
+				"offset":    offset,
 			})
 			http.Error(w, "Failed to list projects", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
-		
+
 		// 返回响应
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"projects": projects,
-			"total": len(projects),
+			"total":    len(projects),
 		})
 	}
 }
@@ -319,7 +347,7 @@ func handleCreateProject(service *metacontracteditor.Service, logger *logging.St
 		reqLogger := logger.WithContext(r.Context())
 		tenantID := getTenantID(r.Context())
 		userID := getUserID(r.Context())
-		
+
 		// 解析请求体
 		var req metacontracteditor.CreateProjectRequest
 		if err := parseJSON(r, &req); err != nil {
@@ -327,26 +355,26 @@ func handleCreateProject(service *metacontracteditor.Service, logger *logging.St
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 设置租户ID和用户ID
 		req.TenantID = tenantID
 		req.UserID = userID
-		
+
 		// 调用服务
 		project, err := service.CreateProject(r.Context(), req)
 		if err != nil {
 			reqLogger.LogError("create_project", "Failed to create project", err, map[string]interface{}{
-				"name": req.Name,
+				"name":      req.Name,
 				"tenant_id": tenantID,
 			})
 			http.Error(w, "Failed to create project", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusCreated, duration, r.UserAgent())
-		
+
 		// 返回响应
 		respondJSON(w, http.StatusCreated, project)
 	}
@@ -357,27 +385,27 @@ func handleGetProject(service *metacontracteditor.Service, logger *logging.Struc
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
 		tenantID := getTenantID(r.Context())
-		
+
 		// 获取项目ID
 		projectID := chi.URLParam(r, "projectID")
 		if projectID == "" {
 			http.Error(w, "Project ID is required", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 解析UUID
 		projectUUID, err := uuid.Parse(projectID)
 		if err != nil {
 			http.Error(w, "Invalid project ID", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 调用服务
 		project, err := service.GetProject(r.Context(), projectUUID, tenantID)
 		if err != nil {
 			reqLogger.LogError("get_project", "Failed to get project", err, map[string]interface{}{
 				"project_id": projectID,
-				"tenant_id": tenantID,
+				"tenant_id":  tenantID,
 			})
 			if err.Error() == "project not found or access denied" {
 				http.Error(w, "Project not found", http.StatusNotFound)
@@ -386,11 +414,11 @@ func handleGetProject(service *metacontracteditor.Service, logger *logging.Struc
 			}
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
-		
+
 		// 返回响应
 		respondJSON(w, http.StatusOK, project)
 	}
@@ -401,21 +429,21 @@ func handleUpdateProject(service *metacontracteditor.Service, logger *logging.St
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
 		tenantID := getTenantID(r.Context())
-		
+
 		// 获取项目ID
 		projectID := chi.URLParam(r, "projectID")
 		if projectID == "" {
 			http.Error(w, "Project ID is required", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 解析UUID
 		projectUUID, err := uuid.Parse(projectID)
 		if err != nil {
 			http.Error(w, "Invalid project ID", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 解析请求体
 		var req metacontracteditor.UpdateProjectRequest
 		if err := parseJSON(r, &req); err != nil {
@@ -423,16 +451,16 @@ func handleUpdateProject(service *metacontracteditor.Service, logger *logging.St
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 设置租户ID
 		req.TenantID = tenantID
-		
+
 		// 调用服务
 		project, err := service.UpdateProject(r.Context(), projectUUID, req)
 		if err != nil {
 			reqLogger.LogError("update_project", "Failed to update project", err, map[string]interface{}{
 				"project_id": projectID,
-				"tenant_id": tenantID,
+				"tenant_id":  tenantID,
 			})
 			if err.Error() == "project not found or access denied" {
 				http.Error(w, "Project not found", http.StatusNotFound)
@@ -441,11 +469,11 @@ func handleUpdateProject(service *metacontracteditor.Service, logger *logging.St
 			}
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
-		
+
 		// 返回响应
 		respondJSON(w, http.StatusOK, project)
 	}
@@ -456,27 +484,27 @@ func handleDeleteProject(service *metacontracteditor.Service, logger *logging.St
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
 		tenantID := getTenantID(r.Context())
-		
+
 		// 获取项目ID
 		projectID := chi.URLParam(r, "projectID")
 		if projectID == "" {
 			http.Error(w, "Project ID is required", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 解析UUID
 		projectUUID, err := uuid.Parse(projectID)
 		if err != nil {
 			http.Error(w, "Invalid project ID", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 调用服务
 		err = service.DeleteProject(r.Context(), projectUUID, tenantID)
 		if err != nil {
 			reqLogger.LogError("delete_project", "Failed to delete project", err, map[string]interface{}{
 				"project_id": projectID,
-				"tenant_id": tenantID,
+				"tenant_id":  tenantID,
 			})
 			if err.Error() == "project not found or access denied" {
 				http.Error(w, "Project not found", http.StatusNotFound)
@@ -485,11 +513,11 @@ func handleDeleteProject(service *metacontracteditor.Service, logger *logging.St
 			}
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusNoContent, duration, r.UserAgent())
-		
+
 		// 返回响应
 		w.WriteHeader(http.StatusNoContent)
 	}
@@ -499,21 +527,21 @@ func handleCompileProject(service *metacontracteditor.Service, logger *logging.S
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
-		
+
 		// 获取项目ID
 		projectID := chi.URLParam(r, "projectID")
 		if projectID == "" {
 			http.Error(w, "Project ID is required", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 解析UUID
 		projectUUID, err := uuid.Parse(projectID)
 		if err != nil {
 			http.Error(w, "Invalid project ID", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 解析请求体
 		var req metacontracteditor.CompileRequest
 		if err := parseJSON(r, &req); err != nil {
@@ -521,10 +549,10 @@ func handleCompileProject(service *metacontracteditor.Service, logger *logging.S
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 设置项目ID
 		req.ProjectID = projectUUID
-		
+
 		// 调用服务
 		response, err := service.CompileProject(r.Context(), req)
 		if err != nil {
@@ -534,11 +562,11 @@ func handleCompileProject(service *metacontracteditor.Service, logger *logging.S
 			http.Error(w, "Failed to compile project", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
-		
+
 		// 返回响应
 		respondJSON(w, http.StatusOK, response)
 	}
@@ -548,13 +576,13 @@ func handleGetTemplates(service *metacontracteditor.Service, logger *logging.Str
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
-		
+
 		// 获取查询参数
 		category := r.URL.Query().Get("category")
 		if category == "" {
 			category = "basic" // 默认分类
 		}
-		
+
 		// 调用服务
 		templates, err := service.GetTemplates(r.Context(), category)
 		if err != nil {
@@ -564,15 +592,15 @@ func handleGetTemplates(service *metacontracteditor.Service, logger *logging.Str
 			http.Error(w, "Failed to get templates", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
-		
+
 		// 返回响应
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"templates": templates,
-			"category": category,
+			"category":  category,
 		})
 	}
 }
@@ -582,7 +610,7 @@ func handleGetUserSettings(service *metacontracteditor.Service, logger *logging.
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
 		userID := getUserID(r.Context())
-		
+
 		// 调用服务
 		settings, err := service.GetUserSettings(r.Context(), userID)
 		if err != nil {
@@ -592,11 +620,11 @@ func handleGetUserSettings(service *metacontracteditor.Service, logger *logging.
 			http.Error(w, "Failed to get user settings", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
-		
+
 		// 返回响应
 		respondJSON(w, http.StatusOK, settings)
 	}
@@ -607,7 +635,7 @@ func handleUpdateUserSettings(service *metacontracteditor.Service, logger *loggi
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
 		userID := getUserID(r.Context())
-		
+
 		// 解析请求体
 		var settings metacontracteditor.EditorSettings
 		if err := parseJSON(r, &settings); err != nil {
@@ -615,10 +643,10 @@ func handleUpdateUserSettings(service *metacontracteditor.Service, logger *loggi
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		
+
 		// 设置用户ID
 		settings.UserID = userID
-		
+
 		// 调用服务
 		err := service.UpdateUserSettings(r.Context(), &settings)
 		if err != nil {
@@ -628,11 +656,11 @@ func handleUpdateUserSettings(service *metacontracteditor.Service, logger *loggi
 			http.Error(w, "Failed to update user settings", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// 记录指标
 		duration := time.Since(start)
 		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
-		
+
 		// 返回响应
 		respondJSON(w, http.StatusOK, map[string]string{"message": "Settings updated successfully"})
 	}
@@ -649,10 +677,10 @@ func startSystemMetricsUpdater(logger *logging.StructuredLogger, startTime time.
 			// 更新系统指标
 			var m runtime.MemStats
 			runtime.ReadMemStats(&m)
-			
+
 			uptime := time.Since(startTime)
 			goroutines := runtime.NumGoroutine()
-			
+
 			metrics.UpdateSystemMetrics(
 				uptime,
 				m.HeapAlloc,
@@ -679,20 +707,20 @@ func handleListEmployees(service *corehr.Service, logger *logging.StructuredLogg
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
-		
+
 		// 获取查询参数
 		page := getIntParam(r, "page", 1)
 		pageSize := getIntParam(r, "page_size", 20)
 		search := r.URL.Query().Get("search")
 		tenantID := getTenantID(r.Context())
-		
+
 		// 调用服务
 		response, err := service.ListEmployees(r.Context(), tenantID, page, pageSize, search)
 		if err != nil {
 			reqLogger.LogError("list_employees", "Failed to list employees", err, map[string]interface{}{
-				"page": page,
+				"page":      page,
 				"page_size": pageSize,
-				"search": search,
+				"search":    search,
 			})
 			metrics.RecordError("corehr", "list_employees_error")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -729,8 +757,8 @@ func handleCreateEmployee(service *corehr.Service, logger *logging.StructuredLog
 		if err != nil {
 			reqLogger.LogError("create_employee", "Failed to create employee", err, map[string]interface{}{
 				"employee_number": req.EmployeeNumber,
-				"first_name": req.FirstName,
-				"last_name": req.LastName,
+				"first_name":      req.FirstName,
+				"last_name":       req.LastName,
 			})
 			metrics.RecordError("corehr", "create_employee_error")
 			http.Error(w, "Failed to create employee", http.StatusInternalServerError)
@@ -1037,7 +1065,6 @@ func handleCreateOrganization(service *corehr.Service, logger *logging.Structure
 		respondJSON(w, http.StatusOK, map[string]string{"status": "not_implemented"})
 	}
 }
-
 
 func handleIntelligenceHealth(logger *logging.StructuredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

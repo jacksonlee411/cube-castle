@@ -24,7 +24,7 @@ func AuthorizationMiddleware(authorizer *authorization.OPAAuthorizer, logger *lo
 			// 从上下文获取用户信息
 			userID := getUserIDFromContext(r.Context())
 			tenantID := getTenantIDFromContext(r.Context())
-			
+
 			if userID == "" {
 				logger.LogSecurityEvent("missing_user_id", "", getClientIP(r), "Missing user ID in request", "high")
 				http.Error(w, "Unauthorized: Missing user identification", http.StatusUnauthorized)
@@ -59,16 +59,16 @@ func AuthorizationMiddleware(authorizer *authorization.OPAAuthorizer, logger *lo
 
 			// 检查授权结果
 			if !result.Allowed {
-				logger.LogSecurityEvent("access_denied", userID, getClientIP(r), 
+				logger.LogSecurityEvent("access_denied", userID, getClientIP(r),
 					"Access denied: "+result.Reason, "medium")
-				
+
 				// 返回详细的错误信息（在生产环境中可能需要简化）
 				errorResponse := map[string]interface{}{
 					"error":   "Forbidden",
 					"message": "Access denied",
 					"reason":  result.Reason,
 				}
-				
+
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(errorResponse)
@@ -177,7 +177,7 @@ func RoleBasedMiddleware(requiredRoles ...string) func(http.Handler) http.Handle
 					"required_roles": requiredRoles,
 					"user_role":      user.Role,
 				}
-				
+
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(errorResponse)
@@ -230,10 +230,10 @@ func ResourceOwnerMiddleware(getResourceOwnerID func(*http.Request) string) func
 			resourceOwnerID := getResourceOwnerID(r)
 			if resourceOwnerID != user.ID {
 				errorResponse := map[string]interface{}{
-					"error":   "Forbidden", 
+					"error":   "Forbidden",
 					"message": "You can only access your own resources",
 				}
-				
+
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(errorResponse)
@@ -263,17 +263,17 @@ func TenantIsolationMiddleware(logger *logging.StructuredLogger) func(http.Handl
 
 			// 获取请求中的租户ID
 			requestTenantID := getTenantIDFromContext(r.Context())
-			
+
 			// 检查租户隔离
 			if user.TenantID != requestTenantID && user.Role != "admin" {
 				logger.LogSecurityEvent("tenant_isolation_violation", user.ID, getClientIP(r),
 					"Attempted cross-tenant access", "high")
-				
+
 				errorResponse := map[string]interface{}{
 					"error":   "Forbidden",
 					"message": "Cross-tenant access not allowed",
 				}
-				
+
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(errorResponse)

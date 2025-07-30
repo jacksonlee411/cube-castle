@@ -86,9 +86,9 @@ func (s *EmployeeLifecycleWorkflowTestSuite) TestEmployeeLifecycleWorkflow_Onboa
 		LifecycleStage: LifecycleStageONBOARDING,
 		Operation:      OperationSTART_ONBOARDING,
 		OperationData: map[string]interface{}{
-			"start_date":  time.Now().AddDate(0, 0, 7),
-			"department":  "Engineering",
-			"position":    "Software Engineer",
+			"start_date": time.Now().AddDate(0, 0, 7),
+			"department": "Engineering",
+			"position":   "Software Engineer",
 		},
 		RequestedBy: requestedBy,
 	}
@@ -137,7 +137,7 @@ func (s *EmployeeLifecycleWorkflowTestSuite) TestEmployeeLifecycleWorkflow_Activ
 		LifecycleStage: LifecycleStageACTIVE,
 		Operation:      OperationPOSITION_CHANGE,
 		OperationData: map[string]interface{}{
-			"new_position": "Senior Software Engineer",
+			"new_position":   "Senior Software Engineer",
 			"new_department": "Platform Engineering",
 			"effective_date": time.Now().AddDate(0, 0, 30),
 		},
@@ -183,7 +183,7 @@ func (s *EmployeeLifecycleWorkflowTestSuite) TestEmployeeLifecycleWorkflow_Offbo
 		OperationData: map[string]interface{}{
 			"termination_type": "VOLUNTARY",
 			"termination_date": time.Now().AddDate(0, 0, 14),
-			"reason":          "Career advancement",
+			"reason":           "Career advancement",
 		},
 		RequestedBy: requestedBy,
 	}

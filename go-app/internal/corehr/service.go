@@ -6,16 +6,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/generated/openapi"
 	"github.com/gaogu/cube-castle/go-app/internal/outbox"
+	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Service CoreHR 服务层
 type Service struct {
-	repo    *Repository
-	outbox  *outbox.Service
+	repo   *Repository
+	outbox *outbox.Service
 }
 
 // NewService 创建新的 CoreHR 服务
@@ -58,9 +58,9 @@ func (s *Service) ListEmployees(ctx context.Context, tenantID uuid.UUID, page, p
 	}
 
 	return &openapi.EmployeeListResponse{
-		Employees:   &openapiEmployees,
-		Pagination:  &pagination,
-		TotalCount:  &totalCount,
+		Employees:  &openapiEmployees,
+		Pagination: &pagination,
+		TotalCount: &totalCount,
 	}, nil
 }
 
@@ -135,7 +135,7 @@ func (s *Service) CreateEmployee(ctx context.Context, tenantID uuid.UUID, req *o
 			"department":      employee.Department,
 			"hire_date":       employee.HireDate.Format(time.RFC3339),
 		}
-		
+
 		err = s.outbox.CreateEmployeeCreatedEvent(ctx, employee.ID, employeeData)
 		if err != nil {
 			// 记录错误但不影响员工创建
@@ -438,7 +438,7 @@ func (s *Service) listEmployeesMock(ctx context.Context, page, pageSize int, sea
 	now := time.Now()
 	id1 := uuid.New()
 	id2 := uuid.New()
-	
+
 	employees := []openapi.Employee{
 		{
 			Id:             &id1,
@@ -464,16 +464,16 @@ func (s *Service) listEmployeesMock(ctx context.Context, page, pageSize int, sea
 		},
 	}
 
-			// 如果有搜索关键词，过滤数据
-		if search != "" {
-			filteredEmployees := []openapi.Employee{}
-			for _, emp := range employees {
-				if emp.FirstName == search || emp.LastName == search || emp.EmployeeNumber == search {
-					filteredEmployees = append(filteredEmployees, emp)
-				}
+	// 如果有搜索关键词，过滤数据
+	if search != "" {
+		filteredEmployees := []openapi.Employee{}
+		for _, emp := range employees {
+			if emp.FirstName == search || emp.LastName == search || emp.EmployeeNumber == search {
+				filteredEmployees = append(filteredEmployees, emp)
 			}
-			employees = filteredEmployees
 		}
+		employees = filteredEmployees
+	}
 
 	totalCount := len(employees)
 	totalPages := (totalCount + pageSize - 1) / pageSize
@@ -489,9 +489,9 @@ func (s *Service) listEmployeesMock(ctx context.Context, page, pageSize int, sea
 	}
 
 	return &openapi.EmployeeListResponse{
-		Employees:   &employees,
-		Pagination:  &pagination,
-		TotalCount:  &totalCount,
+		Employees:  &employees,
+		Pagination: &pagination,
+		TotalCount: &totalCount,
 	}, nil
 }
 
@@ -500,7 +500,7 @@ func (s *Service) getEmployeeMock(ctx context.Context, employeeID uuid.UUID) (*o
 	// Mock 数据
 	status := openapi.EmployeeStatus("active")
 	now := time.Now()
-	
+
 	employee := openapi.Employee{
 		Id:             &employeeID,
 		EmployeeNumber: "EMP001",
@@ -521,7 +521,7 @@ func (s *Service) createEmployeeMock(ctx context.Context, req *openapi.CreateEmp
 	status := openapi.EmployeeStatus("active")
 	now := time.Now()
 	id := uuid.New()
-	
+
 	employee := openapi.Employee{
 		Id:             &id,
 		EmployeeNumber: req.EmployeeNumber,
@@ -541,7 +541,7 @@ func (s *Service) createEmployeeMock(ctx context.Context, req *openapi.CreateEmp
 func (s *Service) updateEmployeeMock(ctx context.Context, employeeID uuid.UUID, req *openapi.UpdateEmployeeRequest) (*openapi.Employee, error) {
 	status := openapi.EmployeeStatus("active")
 	now := time.Now()
-	
+
 	employee := openapi.Employee{
 		Id:             &employeeID,
 		EmployeeNumber: "EMP001",
@@ -564,7 +564,7 @@ func (s *Service) listOrganizationsMock(ctx context.Context) (*openapi.Organizat
 	now := time.Now()
 	id1 := uuid.New()
 	id2 := uuid.New()
-	
+
 	organizations := []openapi.Organization{
 		{
 			Id:        &id1,
@@ -600,7 +600,7 @@ func (s *Service) getOrganizationTreeMock(ctx context.Context) (*openapi.Organiz
 	id2 := uuid.New()
 	id3 := uuid.New()
 	id4 := uuid.New()
-	
+
 	name1 := "技术部"
 	name2 := "人事部"
 	name3 := "前端组"
@@ -611,7 +611,7 @@ func (s *Service) getOrganizationTreeMock(ctx context.Context) (*openapi.Organiz
 	code4 := "BACKEND"
 	level1 := 1
 	level2 := 2
-	
+
 	tree := []openapi.OrganizationTreeNode{
 		{
 			Id:    &id1,
@@ -651,7 +651,7 @@ func (s *Service) createOrganizationMock(ctx context.Context, name, code string,
 	status := openapi.OrganizationStatus("active")
 	now := time.Now()
 	id := uuid.New()
-	
+
 	level := 1
 	org := openapi.Organization{
 		Id:        &id,
@@ -664,4 +664,4 @@ func (s *Service) createOrganizationMock(ctx context.Context, name, code string,
 	}
 
 	return &org, nil
-} 
+}
