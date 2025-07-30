@@ -57,7 +57,7 @@ export function AppNav({ className }: AppNavProps) {
     <nav className={cn('border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60', className)}>
       <div className="container-responsive flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center space-x-2">
+        <Link href={"/dashboard" as any} className="flex items-center space-x-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Castle className="h-5 w-5" />
           </div>
@@ -71,7 +71,7 @@ export function AppNav({ className }: AppNavProps) {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={item.href as any}
                 className={cn(
                   'flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary',
                   isActive 
@@ -119,7 +119,7 @@ export function AppNav({ className }: AppNavProps) {
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={item.href as any}
                     className={cn(
                       'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                       isActive 

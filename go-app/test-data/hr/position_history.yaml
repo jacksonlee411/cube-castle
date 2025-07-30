@@ -1,0 +1,162 @@
+specification_version: "v6.0.0"
+api_id: "550e8400-e29b-41d4-a716-446655440002"
+namespace: "hr.employees"
+resource_name: "position_history"
+version: "1.0.0"
+
+data_structure:
+  primary_key: "id"
+  data_classification: "INTERNAL"
+  fields:
+    # 基础标识
+    - name: "id"
+      type: "uuid"
+      required: true
+      unique: true
+      data_classification: "INTERNAL"
+    
+    - name: "tenant_id" 
+      type: "uuid"
+      required: true
+      data_classification: "INTERNAL"
+    
+    # 关联实体
+    - name: "employee_id"
+      type: "uuid"
+      required: true
+      data_classification: "INTERNAL"
+      
+    # 职位信息快照
+    - name: "position_title"
+      type: "string"
+      required: true
+      data_classification: "INTERNAL"
+      validation_rules:
+        - "maxLength: 100"
+    
+    - name: "department"
+      type: "string"
+      required: true
+      data_classification: "INTERNAL"
+      validation_rules:
+        - "maxLength: 100"
+      
+    - name: "job_level"
+      type: "string"
+      required: false
+      data_classification: "INTERNAL"
+      validation_rules:
+        - "maxLength: 50"
+      
+    - name: "location"
+      type: "string"
+      required: false
+      data_classification: "INTERNAL"
+      validation_rules:
+        - "maxLength: 100"
+      
+    - name: "employment_type"
+      type: "enum"
+      required: true
+      data_classification: "INTERNAL"
+    
+    # 汇报关系
+    - name: "reports_to_employee_id"
+      type: "uuid"
+      required: false
+      data_classification: "INTERNAL"
+    
+    # 时态字段 (核心)
+    - name: "effective_date"
+      type: "time"
+      required: true
+      data_classification: "INTERNAL"
+      
+    - name: "end_date"
+      type: "time"
+      required: false
+      data_classification: "INTERNAL"
+      
+    # 变更元数据
+    - name: "change_reason"
+      type: "string"
+      required: false
+      data_classification: "INTERNAL"
+      validation_rules:
+        - "maxLength: 500"
+      
+    - name: "is_retroactive"
+      type: "bool"
+      required: true
+      data_classification: "INTERNAL"
+      
+    - name: "created_by"
+      type: "uuid"
+      required: true
+      data_classification: "INTERNAL"
+      
+    - name: "created_at"
+      type: "time"
+      required: true
+      data_classification: "INTERNAL"
+      
+    # 薪酬范围信息 (可选)
+    - name: "min_salary"
+      type: "float64"
+      required: false
+      data_classification: "RESTRICTED"
+      
+    - name: "max_salary"
+      type: "float64"
+      required: false
+      data_classification: "RESTRICTED"
+      
+    - name: "currency"
+      type: "string"
+      required: false
+      data_classification: "INTERNAL"
+      validation_rules:
+        - "maxLength: 3"
+
+  persistence_profile:
+    primary_store: "postgresql"
+    indexed_in: ["postgresql", "neo4j"]
+    graph_node_label: "PositionHistory"
+    graph_edge_definitions:
+      - "POSITION_HELD_BY -> Person"
+      - "REPORTS_TO_POSITION -> PositionHistory"
+      - "POSITION_IN_DEPARTMENT -> Organization"
+
+security_model:
+  tenant_isolation: true
+  access_control: "RBAC"
+  data_classification: "INTERNAL"
+  compliance_tags:
+    - "SOX"
+    - "GDPR"
+    - "AUDIT_TRAIL"
+
+temporal_behavior:
+  temporality_paradigm: "SNAPSHOT"
+  state_transition_model: "IMMUTABLE"
+  history_retention: "10_YEARS"
+  event_driven: true
+
+api_behavior:
+  rest_enabled: true
+  graphql_enabled: true
+  events_enabled: true
+
+relationships:
+  - name: "employee"
+    type: "one-to-one"
+    target_entity: "Person"
+    cardinality: "1"
+    is_optional: false
+    graph_edge: "POSITION_HELD_BY"
+  - name: "reports_to"
+    type: "one-to-one"
+    target_entity: "Person"
+    cardinality: "0..1"
+    is_optional: true
+    graph_edge: "REPORTS_TO_POSITION"

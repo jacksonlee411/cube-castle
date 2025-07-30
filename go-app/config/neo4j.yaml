@@ -1,0 +1,100 @@
+# Configuration for Neo4j graph database integration
+# config/neo4j.yaml
+
+neo4j:
+  # Connection settings
+  uri: ${NEO4J_URI:-bolt://localhost:7687}
+  username: ${NEO4J_USERNAME:-neo4j}
+  password: ${NEO4J_PASSWORD:-password123}
+  database: ${NEO4J_DATABASE:-neo4j}
+  
+  # Connection pool settings
+  max_connection_lifetime: 30m
+  max_connection_pool_size: 50
+  connection_acquisition_timeout: 2m
+  
+  # Performance settings
+  fetch_size: 1000
+  max_transaction_retry_time: 30s
+  
+  # Logging
+  log_level: ${NEO4J_LOG_LEVEL:-INFO}
+  
+  # Health check settings
+  health_check:
+    enabled: true
+    interval: 30s
+    timeout: 10s
+    retries: 3
+  
+  # Synchronization settings
+  sync:
+    enabled: ${NEO4J_SYNC_ENABLED:-true}
+    batch_size: 100
+    full_sync_interval: 24h
+    incremental_sync_interval: 5m
+    
+    # What to sync
+    sync_employees: true
+    sync_positions: true
+    sync_relationships: true
+    sync_departments: true
+    
+    # Sync strategies
+    on_startup: true
+    on_employee_change: true
+    on_position_change: true
+    on_relationship_change: true
+  
+  # Query optimization
+  query:
+    default_limit: 1000
+    max_limit: 10000
+    timeout: 30s
+    
+    # Caching
+    cache_enabled: true
+    cache_ttl: 300s  # 5 minutes
+    
+    # Query complexity limits
+    max_depth: 10
+    max_nodes: 50000
+
+# Environment-specific overrides
+environments:
+  development:
+    neo4j:
+      uri: bolt://localhost:7687
+      log_level: DEBUG
+      sync:
+        full_sync_interval: 1h
+        incremental_sync_interval: 1m
+  
+  testing:
+    neo4j:
+      uri: bolt://localhost:7688
+      database: test
+      sync:
+        enabled: false
+  
+  staging:
+    neo4j:
+      uri: ${NEO4J_URI}
+      username: ${NEO4J_USERNAME}
+      password: ${NEO4J_PASSWORD}
+      max_connection_pool_size: 20
+      sync:
+        full_sync_interval: 12h
+        incremental_sync_interval: 10m
+  
+  production:
+    neo4j:
+      uri: ${NEO4J_URI}
+      username: ${NEO4J_USERNAME} 
+      password: ${NEO4J_PASSWORD}
+      max_connection_pool_size: 100
+      query:
+        cache_ttl: 600s  # 10 minutes
+      sync:
+        full_sync_interval: 24h
+        incremental_sync_interval: 15m

@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/sdk/testsuite"
-	"go.temporal.io/sdk/workflow"
 )
 
 // Test the CoreHR workflow types and functions
@@ -221,10 +220,8 @@ func TestEmployeeOnboardingWorkflow(t *testing.T) {
 
 	// Mock activities (since we don't have the actual implementations)
 	env.OnActivity("CreateEmployeeAccountActivity", mock.Anything, mock.Anything).Return(&CreateAccountResult{
-		AccountID: uuid.New(),
-		Username:  "john.doe",
-		Email:     "john.doe@example.com",
-		Active:    true,
+		AccountID: "acc_" + uuid.New().String()[:8],
+		Success:   true,
 	}, nil)
 
 	request := EmployeeOnboardingRequest{
@@ -285,9 +282,8 @@ func TestLeaveApprovalWorkflow(t *testing.T) {
 
 	// Mock activities
 	env.OnActivity("ValidateLeaveRequestActivity", mock.Anything, mock.Anything).Return(&ValidateLeaveRequestResult{
-		Valid:      true,
-		EmployeeID: uuid.New(),
-		TenantID:   uuid.New(),
+		IsValid: true,
+		Reason:  "",
 	}, nil)
 
 	request := LeaveApprovalRequest{
@@ -334,10 +330,8 @@ func TestWorkflowPerformance(t *testing.T) {
 
 			// Mock activities
 			env.OnActivity("CreateEmployeeAccountActivity", mock.Anything, mock.Anything).Return(&CreateAccountResult{
-				AccountID: uuid.New(),
-				Username:  fmt.Sprintf("employee%d", i),
-				Email:     fmt.Sprintf("employee%d@example.com", i),
-				Active:    true,
+				AccountID: "acc_" + uuid.New().String()[:8],
+				Success:   true,
 			}, nil)
 
 			request := EmployeeOnboardingRequest{

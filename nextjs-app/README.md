@@ -2,28 +2,67 @@
 
 这是 Cube Castle 企业级 HR 管理平台的 Next.js 前端应用。
 
+## ✨ 最新更新 (v1.5.0)
+
+### 🎯 完整CRUD功能已恢复 
+- ✅ **员工管理页面** - 完整CRUD操作，支持高级筛选和分页
+- ✅ **组织架构管理** - 树形视图和表格视图，层级关系管理
+- ✅ **职位管理页面** - FTE预算管理，利用率统计和状态跟踪
+- ✅ **员工职位历史** - 时间线视图，工作流跟踪，GraphQL错误已修复
+- ✅ **主页导航** - 新增职位管理入口，优化用户体验
+
+### 🔧 技术改进
+- **GraphQL依赖移除** - 职位历史页面使用独立实现，提高稳定性
+- **ES模块兼容性** - 完全解决Ant Design兼容性问题
+- **UAT测试就绪** - 所有核心功能可进行完整测试
+
 ## 🚀 技术栈
 
-- **Framework**: Next.js 14+ (App Router)
+- **Framework**: Next.js 14.1.4 (稳定版本)
 - **Language**: TypeScript
+- **UI Library**: Ant Design 5.20.6 (已优化兼容性)
 - **Styling**: Tailwind CSS
-- **UI Components**: Headless UI + 自定义组件
-- **Icons**: Lucide React + Heroicons
+- **Icons**: @ant-design/icons 5.3.7 + Lucide React + Heroicons
 - **State Management**: Zustand
 - **Data Fetching**: SWR
 - **Forms**: React Hook Form + Zod
 - **Testing**: Jest + Testing Library + Playwright
 - **Linting**: ESLint + Prettier
 
+> ⚠️ **版本说明**: 当前使用稳定版本组合以确保ES模块兼容性，详见 `ES_MODULE_COMPATIBILITY_FIX_REPORT.md`
+
+## 📦 核心依赖版本 (已验证兼容)
+
+```json
+{
+  "next": "14.1.4",
+  "antd": "5.20.6", 
+  "@ant-design/icons": "5.3.7",
+  "rc-util": "5.38.2",
+  "@rc-component/util": "1.1.0"
+}
+```
+
+**🔒 版本锁定**: 这些版本已经过完整的ES模块兼容性测试，请勿随意升级。
+
 ## 📁 项目结构
 
 ```
 src/
-├── app/                    # App Router 页面
-│   ├── globals.css        # 全局样式
-│   ├── layout.tsx         # 根布局
-│   ├── page.tsx          # 首页
-│   └── demo/             # 演示页面
+├── pages/                  # Next.js Pages Router
+│   ├── index.tsx          # 主页 (包含所有模块导航)
+│   ├── employees/         # 员工管理模块
+│   │   ├── index.tsx     # 员工列表页 (完整CRUD)
+│   │   └── positions/    # 员工职位历史
+│   │       └── [id].tsx  # 职位历史详情 (已修复GraphQL错误)
+│   ├── organization/      # 组织架构模块  
+│   │   └── chart.tsx     # 组织架构管理 (完整功能)
+│   ├── positions/         # 职位管理模块
+│   │   └── index.tsx     # 职位管理页 (完整CRUD + FTE管理)
+│   ├── sam/              # SAM仪表板
+│   ├── workflows/        # 工作流管理
+│   ├── metacontract-editor/ # Meta-Contract编辑器
+│   └── test-antd.tsx     # Ant Design兼容性测试页
 ├── components/            # React 组件
 │   ├── ui/               # 基础 UI 组件
 │   └── providers.tsx     # 全局 Provider
@@ -31,10 +70,20 @@ src/
 │   ├── api.ts           # API 客户端
 │   └── utils.ts         # 工具函数
 ├── hooks/               # 自定义 Hooks
+│   └── useEmployees.ts  # 员工数据管理Hook
 ├── store/               # 状态管理
 ├── types/               # TypeScript 类型定义
+│   ├── index.ts         # 核心类型定义
+│   └── position.ts      # 职位相关类型
 └── api/                 # API 接口定义
 ```
+
+### 🎯 核心功能页面
+- **`/`** - 主页仪表板，包含所有模块快速访问
+- **`/employees`** - 员工管理，完整CRUD操作
+- **`/organization/chart`** - 组织架构可视化管理
+- **`/positions`** - 职位管理，FTE预算和利用率分析
+- **`/employees/positions/[id]`** - 员工职位变更历史和工作流跟踪
 
 ## 🛠️ 开发指南
 

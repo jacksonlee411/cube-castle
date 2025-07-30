@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.temporal.io/sdk/activity"
-	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 )
@@ -171,7 +170,7 @@ func (a *Activities) NotifyManagerActivity(ctx context.Context, req NotifyManage
 		"employee_name", req.EmployeeName)
 
 	// 构造通知内容
-	notificationContent := fmt.Sprintf(`
+	_ = fmt.Sprintf(`
 Hello,
 
 A new employee, %s, will be joining your team in the %s department as a %s starting on %s.
@@ -288,7 +287,7 @@ func (a *Activities) NotifyManagerForApprovalActivity(ctx context.Context, req N
 		"employee_id", req.EmployeeID)
 
 	// 构造审批通知内容
-	notificationContent := fmt.Sprintf(`
+	_ = fmt.Sprintf(`
 You have a new leave request to review:
 
 Request ID: %s
@@ -370,7 +369,7 @@ func (a *Activities) SendLeaveApprovedNotificationActivity(ctx context.Context, 
 		"employee_id", req.EmployeeID)
 
 	// 构造通知内容
-	notificationContent := fmt.Sprintf(`
+	_ = fmt.Sprintf(`
 Good news! Your leave request has been approved.
 
 Request ID: %s
@@ -403,7 +402,7 @@ func (a *Activities) SendLeaveRejectedNotificationActivity(ctx context.Context, 
 		"employee_id", req.EmployeeID)
 
 	// 构造通知内容
-	notificationContent := fmt.Sprintf(`
+	_ = fmt.Sprintf(`
 We regret to inform you that your leave request has been rejected.
 
 Request ID: %s
@@ -518,14 +517,16 @@ func (a *Activities) processEmployeeOnboard(ctx context.Context, req ProcessSing
 	}
 
 	// 记录入职事件
-	a.logger.LogBusinessEvent("employee_onboarded", req.EmployeeID.String(), req.TenantID.String(), map[string]interface{}{
-		"batch_id":    req.BatchID,
-		"first_name":  req.Data["first_name"],
-		"last_name":   req.Data["last_name"],
-		"email":       req.Data["email"],
-		"department":  req.Data["department"],
-		"position":    req.Data["position"],
-	})
+	a.logger.Info("Business event: employee_onboarded", 
+		"employee_id", req.EmployeeID.String(), 
+		"tenant_id", req.TenantID.String(), 
+		"batch_id", req.BatchID,
+		"first_name", req.Data["first_name"],
+		"last_name", req.Data["last_name"],
+		"email", req.Data["email"],
+		"department", req.Data["department"],
+		"position", req.Data["position"],
+	)
 
 	return nil
 }
@@ -541,11 +542,13 @@ func (a *Activities) processEmployeeOffboard(ctx context.Context, req ProcessSin
 	}
 
 	// 记录离职事件
-	a.logger.LogBusinessEvent("employee_offboarded", req.EmployeeID.String(), req.TenantID.String(), map[string]interface{}{
-		"batch_id":         req.BatchID,
-		"last_working_day": req.Data["last_working_day"],
-		"reason":           req.Data["reason"],
-	})
+	a.logger.Info("Business event: employee_offboarded", 
+		"employee_id", req.EmployeeID.String(), 
+		"tenant_id", req.TenantID.String(), 
+		"batch_id", req.BatchID,
+		"last_working_day", req.Data["last_working_day"],
+		"reason", req.Data["reason"],
+	)
 
 	return nil
 }
@@ -556,10 +559,76 @@ func (a *Activities) processEmployeeUpdate(ctx context.Context, req ProcessSingl
 	time.Sleep(80 * time.Millisecond) // 模拟处理时间
 
 	// 记录更新事件
-	a.logger.LogBusinessEvent("employee_updated", req.EmployeeID.String(), req.TenantID.String(), map[string]interface{}{
-		"batch_id":     req.BatchID,
-		"updated_data": req.Data,
-	})
+	a.logger.Info("Business event: employee_updated", 
+		"employee_id", req.EmployeeID.String(), 
+		"tenant_id", req.TenantID.String(), 
+		"batch_id", req.BatchID,
+		"updated_data", fmt.Sprintf("%+v", req.Data),
+	)
 
+	return nil
+}
+
+// === 入职工作流活动函数 ===
+
+// CreateEmployeeAccountActivity 创建员工账户活动
+func CreateEmployeeAccountActivity(ctx context.Context, req EmployeeOnboardingRequest) error {
+	// 模拟创建员工账户
+	return nil
+}
+
+// AssignEquipmentAndPermissionsActivity 分配设备和权限活动
+func AssignEquipmentAndPermissionsActivity(ctx context.Context, req EmployeeOnboardingRequest) error {
+	// 模拟分配设备和权限
+	return nil
+}
+
+// SendWelcomeEmailActivity 发送欢迎邮件活动
+func SendWelcomeEmailActivity(ctx context.Context, req EmployeeOnboardingRequest) error {
+	// 模拟发送欢迎邮件
+	return nil
+}
+
+// NotifyManagerActivity 通知经理活动
+func NotifyManagerActivity(ctx context.Context, req EmployeeOnboardingRequest) error {
+	// 模拟通知经理
+	return nil
+}
+
+// === 休假审批工作流活动函数 ===
+
+// ValidateLeaveRequestActivity 验证休假请求活动
+func ValidateLeaveRequestActivity(ctx context.Context, req LeaveApprovalRequest) error {
+	// 模拟验证休假请求
+	return nil
+}
+
+// NotifyManagerForApprovalActivity 通知经理审批活动
+func NotifyManagerForApprovalActivity(ctx context.Context, req LeaveApprovalRequest) error {
+	// 模拟通知经理审批
+	return nil
+}
+
+// WaitForManagerApprovalActivity 等待经理审批活动
+func WaitForManagerApprovalActivity(ctx context.Context, req LeaveApprovalRequest) (LeaveApprovalResponse, error) {
+	// 模拟等待经理审批，实际应该是长时间运行的任务
+	return LeaveApprovalResponse{Approved: true, Comments: "Approved"}, nil
+}
+
+// SendLeaveApprovedNotificationActivity 发送休假批准通知活动
+func SendLeaveApprovedNotificationActivity(ctx context.Context, req LeaveApprovalRequest) error {
+	// 模拟发送批准通知
+	return nil
+}
+
+// SendLeaveRejectedNotificationActivity 发送休假拒绝通知活动
+func SendLeaveRejectedNotificationActivity(ctx context.Context, req LeaveApprovalRequest) error {
+	// 模拟发送拒绝通知
+	return nil
+}
+
+// ProcessSingleEmployeeActivity 处理单个员工数据活动
+func ProcessSingleEmployeeActivity(ctx context.Context, req ProcessSingleEmployeeRequest) error {
+	// 模拟处理单个员工数据
 	return nil
 }

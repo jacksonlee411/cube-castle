@@ -1,0 +1,9 @@
+# Missing required fields
+specification_version: ""  # Empty required field
+# api_id is missing
+# namespace is missing
+resource_name: ""  # Empty required field
+version: ""        # Empty required field
+
+data_structure:
+  fields: []  # Empty fields array

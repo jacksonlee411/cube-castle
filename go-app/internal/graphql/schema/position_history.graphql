@@ -1,0 +1,346 @@
+// internal/graphql/schema/position_history.graphql
+
+# Employee position history with temporal tracking
+type PositionHistory {
+  id: ID!
+  tenantId: ID!
+  employeeId: ID!
+  
+  # Position information
+  positionTitle: String!
+  department: String!
+  jobLevel: String
+  location: String
+  employmentType: EmploymentType!
+  
+  # Reporting relationship
+  reportsToEmployeeId: ID
+  
+  # Temporal fields
+  effectiveDate: Time!
+  endDate: Time
+  
+  # Change metadata
+  changeReason: String
+  isRetroactive: Boolean!
+  createdBy: ID!
+  createdAt: Time!
+  
+  # Salary information (restricted access)
+  minSalary: Float
+  maxSalary: Float
+  currency: String
+  
+  # Relationships
+  employee: Employee!
+  reportsTo: Employee
+}
+
+# Employee with temporal position capabilities
+type Employee {
+  id: ID!
+  tenantId: ID!
+  employeeId: String!
+  legalName: String!
+  preferredName: String
+  email: String!
+  status: String!
+  hireDate: Time!
+  terminationDate: Time
+  
+  # Temporal position queries
+  currentPosition(asOfDate: Time): PositionHistory
+  positionHistory(fromDate: Time, toDate: Time, limit: Int = 50): PositionHistoryConnection!
+  positionTimeline(maxEntries: Int = 100): [PositionHistory!]!
+  
+  # Organizational relationships (temporal-aware)
+  directReports(asOfDate: Time): [Employee!]!
+  manager(asOfDate: Time): Employee
+  reportingChain(direction: HierarchyDirection = UP, maxLevels: Int = 10): [Employee!]!
+}
+
+# Position timeline connection for pagination
+type PositionHistoryConnection {
+  edges: [PositionHistoryEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type PositionHistoryEdge {
+  node: PositionHistory!
+  cursor: String!
+}
+
+# Enums
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum HierarchyDirection {
+  UP
+  DOWN
+  BOTH
+}
+
+# Input types for mutations
+input CreatePositionChangeInput {
+  employeeId: ID!
+  positionData: PositionDataInput!
+  effectiveDate: Time!
+  changeReason: String
+  isRetroactive: Boolean = false
+}
+
+input PositionDataInput {
+  positionTitle: String!
+  department: String!
+  jobLevel: String
+  location: String
+  employmentType: EmploymentType!
+  reportsToEmployeeId: ID
+  minSalary: Float
+  maxSalary: Float
+  currency: String = "CNY"
+}
+
+input EmployeeFilters {
+  search: String
+  department: String
+  status: String
+  employmentType: EmploymentType
+  managerId: ID
+  hiredAfter: Time
+  hiredBefore: Time
+}
+
+input PositionHistoryFilters {
+  employeeIds: [ID!]
+  departments: [String!]
+  employmentTypes: [EmploymentType!]
+  effectiveDateFrom: Time
+  effectiveDateTo: Time
+  isRetroactive: Boolean
+  hasEndDate: Boolean
+}
+
+# Payloads for mutations
+type CreatePositionChangePayload {
+  positionHistory: PositionHistory
+  workflowId: String
+  errors: [UserError!]
+}
+
+type UserError {
+  message: String!
+  field: String
+  code: String
+}
+
+# Queries
+type Query {
+  # Employee queries
+  employee(id: ID!): Employee
+  employees(
+    filters: EmployeeFilters
+    first: Int = 20
+    after: String
+  ): EmployeeConnection!
+  
+  # Position history queries
+  positionHistory(id: ID!): PositionHistory
+  positionHistories(
+    filters: PositionHistoryFilters
+    first: Int = 20
+    after: String
+    orderBy: PositionHistoryOrderBy = EFFECTIVE_DATE_DESC
+  ): PositionHistoryConnection!
+  
+  # Organizational queries (temporal-aware)
+  organizationChart(
+    rootDepartment: String
+    asOfDate: Time
+    maxLevels: Int = 5
+  ): OrganizationChart!
+  
+  # Analytics queries
+  positionChangeAnalytics(
+    fromDate: Time!
+    toDate: Time!
+    groupBy: AnalyticsGroupBy = MONTH
+  ): [PositionChangeAnalytics!]!
+  
+  # Search queries
+  findReportingPath(fromEmployeeId: ID!, toEmployeeId: ID!): [Employee!]
+  findCommonManager(employeeIds: [ID!]!): Employee
+  
+  # Temporal consistency validation
+  validatePositionChange(
+    employeeId: ID!
+    effectiveDate: Time!
+  ): PositionChangeValidation!
+}
+
+# Mutations
+type Mutation {
+  # Position change operations
+  createPositionChange(input: CreatePositionChangeInput!): CreatePositionChangePayload!
+  
+  # Workflow operations
+  approvePositionChange(workflowId: String!, comments: String): ApprovalPayload!
+  rejectPositionChange(workflowId: String!, reason: String!): ApprovalPayload!
+  
+  # Bulk operations
+  bulkCreatePositionChanges(changes: [CreatePositionChangeInput!]!): BulkPositionChangePayload!
+}
+
+# Subscriptions for real-time updates
+type Subscription {
+  # Employee position changes
+  employeePositionChanged(employeeId: ID): PositionHistory!
+  
+  # Organization structure changes
+  organizationChanged(department: String): OrganizationChart!
+  
+  # Workflow status updates
+  workflowStatusChanged(workflowId: String!): WorkflowStatus!
+  
+  # Position change approvals
+  positionChangeApprovalRequired(approverId: ID!): PositionApprovalRequest!
+}
+
+# Supporting types
+type OrganizationChart {
+  department: String!
+  employees: [Employee!]!
+  subDepartments: [OrganizationChart!]!
+  managerCount: Int!
+  totalEmployees: Int!
+}
+
+type PositionChangeAnalytics {
+  period: String!
+  totalChanges: Int!
+  newHires: Int!
+  promotions: Int!
+  lateralMoves: Int!
+  departmentChanges: Int!
+  retroactiveChanges: Int!
+  averageSalaryChange: Float
+}
+
+type PositionChangeValidation {
+  isValid: Boolean!
+  errors: [ValidationError!]!
+  warnings: [ValidationWarning!]!
+}
+
+type ValidationError {
+  code: String!
+  message: String!
+  field: String
+}
+
+type ValidationWarning {
+  code: String!
+  message: String!
+  severity: WarningSeverity!
+}
+
+type WorkflowStatus {
+  workflowId: String!
+  status: WorkflowStatusType!
+  currentStep: String
+  progress: Float!
+  startedAt: Time!
+  updatedAt: Time!
+  completedAt: Time
+  error: String
+}
+
+type PositionApprovalRequest {
+  workflowId: String!
+  employeeId: ID!
+  currentPosition: PositionHistory
+  newPosition: PositionDataInput!
+  requestedBy: ID!
+  requestedAt: Time!
+  dueDate: Time!
+  priority: ApprovalPriority!
+}
+
+type ApprovalPayload {
+  success: Boolean!
+  workflowId: String!
+  errors: [UserError!]
+}
+
+type BulkPositionChangePayload {
+  successCount: Int!
+  errorCount: Int!
+  results: [CreatePositionChangePayload!]!
+}
+
+# Additional enums
+enum PositionHistoryOrderBy {
+  EFFECTIVE_DATE_ASC
+  EFFECTIVE_DATE_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  EMPLOYEE_NAME_ASC
+  EMPLOYEE_NAME_DESC
+}
+
+enum AnalyticsGroupBy {
+  DAY
+  WEEK
+  MONTH
+  QUARTER
+  YEAR
+}
+
+enum WarningSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum WorkflowStatusType {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  COMPLETED
+  FAILED
+}
+
+enum ApprovalPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+# Common types
+scalar Time
+scalar JSON
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type EmployeeConnection {
+  edges: [EmployeeEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type EmployeeEdge {
+  node: Employee!
+  cursor: String!
+}

@@ -19,21 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
-
-interface Organization {
-  id: string
-  name: string
-  code: string
-  type: 'company' | 'department' | 'team'
-  parentId?: string
-  level: number
-  employeeCount: number
-  managerName?: string
-  description?: string
-  status: 'active' | 'inactive'
-  createdAt: string
-  updatedAt: string
-}
+import { Organization } from '@/types'
 
 interface OrganizationTableProps {
   organizations: Organization[]
@@ -163,7 +149,7 @@ export const OrganizationTable = ({ organizations, onUpdate, onDelete }: Organiz
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-3">
-                    {getTypeIcon(org.type)}
+                    {getTypeIcon(org.type || 'department')}
                     <div>
                       <div className="font-medium">{org.name}</div>
                       <div className="text-sm text-muted-foreground">{org.code}</div>
@@ -172,7 +158,7 @@ export const OrganizationTable = ({ organizations, onUpdate, onDelete }: Organiz
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {getTypeLabel(org.type)}
+                    {getTypeLabel(org.type || 'department')}
                   </Badge>
                 </TableCell>
                 <TableCell>{getParentName(org.parentId)}</TableCell>
@@ -180,7 +166,7 @@ export const OrganizationTable = ({ organizations, onUpdate, onDelete }: Organiz
                 <TableCell>
                   <span className="font-medium">{org.employeeCount}</span>
                 </TableCell>
-                <TableCell>{getStatusBadge(org.status)}</TableCell>
+                <TableCell>{getStatusBadge(org.status || 'active')}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDate(org.createdAt)}
                 </TableCell>

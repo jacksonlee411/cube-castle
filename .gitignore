@@ -8,10 +8,21 @@
 *.so
 *.dylib
 go-app/server
+<<<<<<< HEAD
 main
+=======
+go-app/cube-castle-server
+go-app/metacontract-compiler
+
+# Go test and coverage files
+*.test
+*.out
+coverage.txt
+>>>>>>> feature/employee-model-implementation
 
 # Dependencies and virtual environments
 python-ai/venv/
+<<<<<<< HEAD
 venv/
 node_modules/
 nextjs-app/node_modules/
@@ -37,6 +48,22 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+=======
+python-ai/__pycache__/
+
+# Runtime files
+*.log
+*.pid
+
+# Next.js
+nextjs-app/.next/
+nextjs-app/out/
+nextjs-app/node_modules/
+nextjs-app/.swc/
+nextjs-app/coverage/
+nextjs-app/test-results/
+nextjs-app/playwright-report/
+>>>>>>> feature/employee-model-implementation
 
 # IDE files
 .idea/

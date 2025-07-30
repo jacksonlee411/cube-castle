@@ -1,0 +1,97 @@
+# Test Configuration and CI/CD Integration
+
+## Makefile for Test Automation
+.PHONY: test test-unit test-integration test-e2e test-coverage test-performance test-all
+
+# Go test flags
+GO_TEST_FLAGS ?= -v -race -timeout=10m
+COVERAGE_OUT ?= coverage.out
+COVERAGE_HTML ?= coverage.html
+
+# Test directories
+UNIT_TEST_DIRS := ./internal/service/... ./internal/graphql/resolvers/...
+INTEGRATION_TEST_DIRS := ./test/integration/...
+E2E_TEST_DIRS := ./test/e2e/...
+
+# Database setup for tests
+TEST_DB_URL ?= "file:ent?mode=memory&cache=shared&_fk=1"
+
+##@ Testing
+
+test: test-unit test-integration  ## Run unit and integration tests
+	@echo "✅ All tests completed"
+
+test-unit:  ## Run unit tests
+	@echo "🧪 Running unit tests..."
+	@go test $(GO_TEST_FLAGS) $(UNIT_TEST_DIRS)
+
+test-integration:  ## Run integration tests
+	@echo "🔗 Running integration tests..."
+	@TEST_DB_URL=$(TEST_DB_URL) go test $(GO_TEST_FLAGS) $(INTEGRATION_TEST_DIRS)
+
+test-e2e:  ## Run end-to-end tests
+	@echo "🌐 Running E2E tests..."
+	@E2E_BASE_URL=http://localhost:3000 go test $(GO_TEST_FLAGS) $(E2E_TEST_DIRS)
+
+test-coverage:  ## Run tests with coverage report
+	@echo "📊 Running tests with coverage..."
+	@go test $(GO_TEST_FLAGS) -coverprofile=$(COVERAGE_OUT) $(UNIT_TEST_DIRS) $(INTEGRATION_TEST_DIRS)
+	@go tool cover -html=$(COVERAGE_OUT) -o $(COVERAGE_HTML)
+	@echo "Coverage report generated: $(COVERAGE_HTML)"
+
+test-performance:  ## Run performance benchmarks
+	@echo "⚡ Running performance benchmarks..."
+	@go test -bench=. -benchmem $(UNIT_TEST_DIRS) $(INTEGRATION_TEST_DIRS)
+
+test-all: test-unit test-integration test-e2e test-coverage  ## Run all tests including E2E
+	@echo "🎯 All test suites completed"
+
+##@ Test Utilities
+
+test-clean:  ## Clean test artifacts
+	@echo "🧹 Cleaning test artifacts..."
+	@rm -f $(COVERAGE_OUT) $(COVERAGE_HTML)
+	@go clean -testcache
+
+test-verbose:  ## Run tests with verbose output
+	@echo "📝 Running tests with verbose output..."
+	@go test -v -race -count=1 $(UNIT_TEST_DIRS) $(INTEGRATION_TEST_DIRS)
+
+test-race:  ## Run tests with race detection
+	@echo "🏃 Running tests with race detection..."
+	@go test -race $(UNIT_TEST_DIRS) $(INTEGRATION_TEST_DIRS)
+
+test-short:  ## Run tests with short flag (skip long-running tests)
+	@echo "⏱️ Running short tests..."
+	@go test -short $(GO_TEST_FLAGS) $(UNIT_TEST_DIRS)
+
+##@ Database
+
+test-db-setup:  ## Set up test database
+	@echo "🗄️ Setting up test database..."
+	@go run cmd/migrate/main.go --test
+
+test-db-reset:  ## Reset test database
+	@echo "🔄 Resetting test database..."
+	@go run cmd/migrate/main.go --test --reset
+
+##@ CI/CD
+
+ci-test:  ## Run tests for CI environment
+	@echo "🤖 Running CI tests..."
+	@go test -v -race -coverprofile=$(COVERAGE_OUT) -covermode=atomic $(UNIT_TEST_DIRS) $(INTEGRATION_TEST_DIRS)
+
+ci-quality:  ## Run quality checks for CI
+	@echo "✨ Running quality checks..."
+	@golangci-lint run
+	@go vet ./...
+	@go fmt ./...
+
+ci-security:  ## Run security scans for CI
+	@echo "🔒 Running security scans..."
+	@gosec ./...
+
+help:  ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+.DEFAULT_GOAL := help

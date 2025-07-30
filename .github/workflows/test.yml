@@ -1,0 +1,431 @@
+# GitHub Actions CI/CD Pipeline for Employee Model Testing
+
+name: Employee Model Tests
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+    paths:
+      - 'go-app/**'
+      - 'nextjs-app/**'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'go-app/**'
+      - 'nextjs-app/**'
+      - '.github/workflows/test.yml'
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  GO_VERSION: '1.21'
+  NODE_VERSION: '18'
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  # Backend Go Tests
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_USER: testuser
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      neo4j:
+        image: neo4j:5.0-community
+        env:
+          NEO4J_AUTH: neo4j/testpassword
+          NEO4J_dbms_memory_pagecache_size: 256M
+          NEO4J_dbms_memory_heap_initial__size: 256M
+          NEO4J_dbms_memory_heap_max__size: 512M
+        ports:
+          - 7474:7474
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache-dependency-path: go-app/go.sum
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('go-app/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install dependencies
+      working-directory: go-app
+      run: |
+        go mod download
+        go mod verify
+
+    - name: Install test tools
+      run: |
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+
+    - name: Run linting
+      working-directory: go-app
+      run: golangci-lint run --timeout=5m
+
+    - name: Run security scan
+      working-directory: go-app
+      run: gosec -fmt sarif -out gosec-report.sarif -stdout -verbose=text ./...
+
+    - name: Upload security scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: go-app/gosec-report.sarif
+
+    - name: Wait for services
+      run: |
+        timeout 60 bash -c 'until pg_isready -h localhost -p 5432 -U testuser; do sleep 1; done'
+        timeout 60 bash -c 'until curl -f http://localhost:7474; do sleep 1; done'
+
+    - name: Run unit tests
+      working-directory: go-app
+      env:
+        TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+        NEO4J_URI: "bolt://localhost:7687"
+        NEO4J_USERNAME: "neo4j"
+        NEO4J_PASSWORD: "testpassword"
+      run: |
+        make -f Makefile.test test-unit
+
+    - name: Run integration tests
+      working-directory: go-app
+      env:
+        TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+        NEO4J_URI: "bolt://localhost:7687"
+        NEO4J_USERNAME: "neo4j"
+        NEO4J_PASSWORD: "testpassword"
+      run: |
+        make -f Makefile.test test-integration
+
+    - name: Run tests with coverage
+      working-directory: go-app
+      env:
+        TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+        NEO4J_URI: "bolt://localhost:7687"
+        NEO4J_USERNAME: "neo4j"
+        NEO4J_PASSWORD: "testpassword"
+      run: |
+        make -f Makefile.test test-coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: go-app/coverage.out
+        flags: backend
+        name: backend-coverage
+
+    - name: Run performance benchmarks
+      working-directory: go-app
+      run: |
+        make -f Makefile.test test-performance | tee benchmark-results.txt
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: go-app/benchmark-results.txt
+
+  # Frontend Tests
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: nextjs-app/package-lock.json
+
+    - name: Install dependencies
+      working-directory: nextjs-app
+      run: npm ci
+
+    - name: Run linting
+      working-directory: nextjs-app
+      run: npm run lint
+
+    - name: Run type checking
+      working-directory: nextjs-app
+      run: npm run type-check
+
+    - name: Run unit tests
+      working-directory: nextjs-app
+      run: npm run test:unit
+
+    - name: Run component tests
+      working-directory: nextjs-app
+      run: npm run test:component
+
+    - name: Upload frontend coverage
+      uses: codecov/codecov-action@v3
+      with:
+        directory: nextjs-app/coverage
+        flags: frontend
+        name: frontend-coverage
+
+  # End-to-End Tests
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [backend-tests, frontend-tests]
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_USER: testuser
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: nextjs-app/package-lock.json
+
+    - name: Install backend dependencies
+      working-directory: go-app
+      run: go mod download
+
+    - name: Install frontend dependencies
+      working-directory: nextjs-app
+      run: npm ci
+
+    - name: Build backend
+      working-directory: go-app
+      run: go build -o bin/server cmd/server/main.go
+
+    - name: Build frontend
+      working-directory: nextjs-app
+      env:
+        NODE_ENV: production
+      run: npm run build
+
+    - name: Start backend server
+      working-directory: go-app
+      env:
+        DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+        PORT: 8080
+      run: |
+        ./bin/server &
+        echo $! > server.pid
+
+    - name: Start frontend server
+      working-directory: nextjs-app
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:8080
+        PORT: 3000
+      run: |
+        npm start &
+        echo $! > frontend.pid
+
+    - name: Wait for servers
+      run: |
+        timeout 120 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+        timeout 120 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
+
+    - name: Install Playwright browsers
+      working-directory: go-app
+      run: |
+        npm install -D @playwright/test
+        npx playwright install chromium firefox webkit
+
+    - name: Run E2E tests
+      working-directory: go-app
+      env:
+        E2E_BASE_URL: http://localhost:3000
+        API_BASE_URL: http://localhost:8080
+      run: |
+        make -f Makefile.test test-e2e
+
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: e2e-results
+        path: |
+          go-app/test-results/
+          go-app/playwright-report/
+
+    - name: Stop servers
+      if: always()
+      run: |
+        [ -f go-app/server.pid ] && kill $(cat go-app/server.pid) || true
+        [ -f nextjs-app/frontend.pid ] && kill $(cat nextjs-app/frontend.pid) || true
+
+  # Security and Quality Gates
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run npm audit
+      working-directory: nextjs-app
+      run: |
+        npm audit --audit-level=moderate || true
+
+  # Docker Build Test
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build backend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: go-app
+        file: go-app/Dockerfile
+        push: false
+        tags: employee-model-backend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build frontend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: nextjs-app
+        file: nextjs-app/Dockerfile
+        push: false
+        tags: employee-model-frontend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Test Results Summary
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, e2e-tests, security-scan, docker-build]
+    if: always()
+    
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+
+    - name: Generate test summary
+      run: |
+        echo "# Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Backend Tests" >> $GITHUB_STEP_SUMMARY
+        echo "Status: ${{ needs.backend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Frontend Tests" >> $GITHUB_STEP_SUMMARY
+        echo "Status: ${{ needs.frontend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## E2E Tests" >> $GITHUB_STEP_SUMMARY
+        echo "Status: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Security Scan" >> $GITHUB_STEP_SUMMARY
+        echo "Status: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Docker Build" >> $GITHUB_STEP_SUMMARY
+        echo "Status: ${{ needs.docker-build.result }}" >> $GITHUB_STEP_SUMMARY
+
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const summary = `
+          ## 🧪 Test Results Summary
+          
+          | Test Suite | Status |
+          |------------|--------|
+          | Backend Tests | ${{ needs.backend-tests.result == 'success' && '✅' || '❌' }} ${{ needs.backend-tests.result }} |
+          | Frontend Tests | ${{ needs.frontend-tests.result == 'success' && '✅' || '❌' }} ${{ needs.frontend-tests.result }} |
+          | E2E Tests | ${{ needs.e2e-tests.result == 'success' && '✅' || '❌' }} ${{ needs.e2e-tests.result }} |
+          | Security Scan | ${{ needs.security-scan.result == 'success' && '✅' || '❌' }} ${{ needs.security-scan.result }} |
+          | Docker Build | ${{ needs.docker-build.result == 'success' && '✅' || '❌' }} ${{ needs.docker-build.result }} |
+          
+          [View detailed results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });

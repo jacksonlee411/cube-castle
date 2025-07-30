@@ -1,0 +1,214 @@
+# Enhanced Makefile for Cube Castle Employee Management System
+# Includes comprehensive testing framework and automation
+
+# Go parameters
+GOCMD=go
+GOBUILD=$(GOCMD) build
+GOCLEAN=$(GOCMD) clean
+GOTEST=$(GOCMD) test
+GOGET=$(GOCMD) get
+GOMOD=$(GOCMD) mod
+
+# Binary names
+SERVER_BINARY=cube-castle-server
+COMPILER_BINARY=metacontract-compiler
+
+# Test parameters
+TEST_TIMEOUT=10m
+TEST_FLAGS=-v -race -timeout=$(TEST_TIMEOUT)
+COVERAGE_OUT=coverage.out
+COVERAGE_HTML=coverage.html
+
+# Colors for output
+GREEN=\033[0;32m
+RED=\033[0;31m
+YELLOW=\033[1;33m
+BLUE=\033[0;34m
+NC=\033[0m # No Color
+
+.PHONY: help build test clean dev-setup server compiler test-all test-handlers test-coverage lint fmt mod-tidy docker-build docker-run
+
+# Default target
+help: ## Display this help message
+	@echo "Cube Castle Employee Management System - Enhanced Makefile"
+	@echo ""
+	@echo "Available targets:"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+## Build Targets
+
+build: server compiler ## Build all binaries
+	@echo -e "$(GREEN)✅ Build completed successfully$(NC)"
+
+server: ## Build the main server binary
+	@echo -e "$(BLUE)🔧 Building server...$(NC)"
+	$(GOBUILD) -o $(SERVER_BINARY) ./cmd/server
+	@echo -e "$(GREEN)✅ Server binary built: $(SERVER_BINARY)$(NC)"
+
+compiler: ## Build the meta-contract compiler
+	@echo -e "$(BLUE)🔧 Building meta-contract compiler...$(NC)"
+	$(GOBUILD) -o $(COMPILER_BINARY) ./cmd/metacontract-compiler
+	@echo -e "$(GREEN)✅ Compiler binary built: $(COMPILER_BINARY)$(NC)"
+
+## Testing Targets
+
+test: ## Run comprehensive automated test suite
+	@echo -e "$(BLUE)🚀 Running comprehensive test suite...$(NC)"
+	@./test_automation_framework.sh
+
+test-quick: ## Run quick unit tests only
+	@echo -e "$(BLUE)⚡ Running quick unit tests...$(NC)"
+	$(GOTEST) $(TEST_FLAGS) ./internal/handler/... ./internal/service/... ./internal/common/...
+
+test-handlers: ## Run API handler tests specifically
+	@echo -e "$(BLUE)🧪 Running API handler tests...$(NC)"
+	$(GOTEST) $(TEST_FLAGS) ./internal/handler/...
+
+test-coverage: ## Run tests with coverage report
+	@echo -e "$(BLUE)📊 Running tests with coverage...$(NC)"
+	$(GOTEST) $(TEST_FLAGS) -coverprofile=$(COVERAGE_OUT) ./internal/...
+	$(GOCMD) tool cover -html=$(COVERAGE_OUT) -o $(COVERAGE_HTML)
+	@echo -e "$(GREEN)✅ Coverage report generated: $(COVERAGE_HTML)$(NC)"
+
+test-integration: ## Run integration tests
+	@echo -e "$(BLUE)🔗 Running integration tests...$(NC)"
+	$(GOTEST) $(TEST_FLAGS) ./internal/workflow/... ./internal/corehr/...
+
+test-benchmarks: ## Run performance benchmarks
+	@echo -e "$(BLUE)⚡ Running benchmarks...$(NC)"
+	$(GOTEST) -bench=. -benchmem ./internal/...
+
+## Code Quality Targets
+
+lint: ## Run linter (if available)
+	@echo -e "$(BLUE)🔍 Running linter...$(NC)"
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run; \
+	else \
+		echo -e "$(YELLOW)⚠️ golangci-lint not found, skipping...$(NC)"; \
+	fi
+
+fmt: ## Format Go code
+	@echo -e "$(BLUE)📝 Formatting code...$(NC)"
+	$(GOCMD) fmt ./...
+	@echo -e "$(GREEN)✅ Code formatted$(NC)"
+
+vet: ## Run go vet
+	@echo -e "$(BLUE)🔍 Running go vet...$(NC)"
+	$(GOCMD) vet ./...
+	@echo -e "$(GREEN)✅ Vet completed$(NC)"
+
+mod-tidy: ## Tidy and vendor Go modules
+	@echo -e "$(BLUE)📦 Tidying modules...$(NC)"
+	$(GOMOD) tidy
+	@echo -e "$(GREEN)✅ Modules tidied$(NC)"
+
+## Development Targets
+
+dev-setup: build ## Set up development environment
+	@echo -e "$(BLUE)🚀 Setting up development environment...$(NC)"
+	@make test-quick
+	@echo -e "$(GREEN)✅ Development environment ready!$(NC)"
+	@echo ""
+	@echo -e "$(BLUE)📋 Generated Files:$(NC)"
+	@ls -la build/ 2>/dev/null || echo "No build directory yet"
+	@echo ""
+	@echo -e "$(BLUE)🔧 Next Steps:$(NC)"
+	@echo "  1. Run 'make server' to start the API server"
+	@echo "  2. Run 'make test' to execute full test suite"
+	@echo "  3. Run 'make test-coverage' for coverage analysis"
+
+run-server: server ## Build and run the server
+	@echo -e "$(BLUE)🚀 Starting Cube Castle API server...$(NC)"
+	./$(SERVER_BINARY)
+
+## Database Targets
+
+db-migrate: ## Run database migrations
+	@echo -e "$(BLUE)🗄️ Running database migrations...$(NC)"
+	$(GOCMD) run ./cmd/migrate/main.go
+
+db-schema: ## Generate database schema
+	@echo -e "$(BLUE)📊 Generating database schema...$(NC)"
+	$(GOCMD) run ./cmd/schema/main.go
+
+## Docker Targets
+
+docker-build: ## Build Docker image
+	@echo -e "$(BLUE)🐳 Building Docker image...$(NC)"
+	docker build -t cube-castle-api .
+	@echo -e "$(GREEN)✅ Docker image built$(NC)"
+
+docker-run: docker-build ## Build and run Docker container
+	@echo -e "$(BLUE)🐳 Running Docker container...$(NC)"
+	docker run -p 8080:8080 cube-castle-api
+
+## Cleanup Targets
+
+clean: ## Clean build artifacts and test cache
+	@echo -e "$(BLUE)🧹 Cleaning build artifacts...$(NC)"
+	$(GOCLEAN)
+	rm -f $(SERVER_BINARY) $(COMPILER_BINARY)
+	rm -f $(COVERAGE_OUT) $(COVERAGE_HTML)
+	rm -rf build/ generated/
+	$(GOCMD) clean -testcache
+	@echo -e "$(GREEN)✅ Cleanup completed$(NC)"
+
+clean-all: clean ## Clean everything including modules cache
+	@echo -e "$(BLUE)🧹 Deep cleaning...$(NC)"
+	$(GOCMD) clean -modcache
+	@echo -e "$(GREEN)✅ Deep cleanup completed$(NC)"
+
+## Validation Targets
+
+validate: lint vet test-quick ## Run all validation steps
+	@echo -e "$(GREEN)✅ All validation steps completed$(NC)"
+
+validate-full: lint vet test ## Run comprehensive validation
+	@echo -e "$(GREEN)✅ Full validation completed$(NC)"
+
+## CI/CD Targets
+
+ci-test: ## Run tests in CI environment
+	@echo -e "$(BLUE)🤖 Running CI tests...$(NC)"
+	$(GOTEST) -v -race -coverprofile=$(COVERAGE_OUT) -covermode=atomic ./internal/...
+
+ci-build: ## Build in CI environment
+	@echo -e "$(BLUE)🤖 Building in CI environment...$(NC)"
+	CGO_ENABLED=0 GOOS=linux $(GOBUILD) -a -installsuffix cgo -o $(SERVER_BINARY) ./cmd/server
+
+## Meta Targets
+
+all: clean mod-tidy validate-full build ## Complete build pipeline
+	@echo -e "$(GREEN)🎉 Complete build pipeline finished!$(NC)"
+
+status: ## Show project status
+	@echo -e "$(BLUE)📊 Project Status$(NC)"
+	@echo "Git branch: $$(git branch --show-current 2>/dev/null || echo 'unknown')"
+	@echo "Go version: $$(go version)"
+	@echo "Modules status:"
+	@$(GOMOD) list -m all | head -5
+	@echo ""
+	@echo "Test files count: $$(find . -name '*_test.go' | wc -l)"
+	@echo "Source files count: $$(find . -name '*.go' -not -name '*_test.go' | wc -l)"
+
+info: ## Show detailed project information
+	@echo -e "$(BLUE)📋 Cube Castle Employee Management System$(NC)"
+	@echo "Version: Development"
+	@echo "Language: Go"
+	@echo "Framework: Chi Router + Ent ORM"
+	@echo "Database: PostgreSQL (Production) / SQLite (Testing)"
+	@echo "Testing: Go native + testify"
+	@echo ""
+	@echo -e "$(BLUE)🏗️ Architecture Components:$(NC)"
+	@echo "• API Handlers: Organization Units, Positions"
+	@echo "• Business Logic: Employee Lifecycle Workflows"
+	@echo "• Meta-Contract System: Dynamic schema compilation"
+	@echo "• Temporal Integration: Workflow orchestration"
+	@echo "• Multi-tenant Architecture: Tenant isolation"
+	@echo ""
+	@echo -e "$(BLUE)🧪 Testing Framework:$(NC)"
+	@echo "• Unit Tests: API handlers, business services"
+	@echo "• Integration Tests: Database operations, workflows"
+	@echo "• Automated Test Suite: Comprehensive coverage"
+	@echo "• Performance Tests: Benchmarks and profiling"

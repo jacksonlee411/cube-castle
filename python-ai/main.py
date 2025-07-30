@@ -5,8 +5,13 @@ import os
 import time
 import hashlib
 from typing import Dict, Optional, Tuple
+import traceback
+import signal
+import sys
 
 import grpc
+from grpc import aio
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 import openai  # 引入openai库
 from dotenv import load_dotenv
 
@@ -15,19 +20,36 @@ import intelligence_pb2
 import intelligence_pb2_grpc
 
 # 导入对话状态管理器
-from dialogue_state import DialogueStateManager, ChatMessage
+try:
+    from dialogue_state import DialogueStateManager, ChatMessage
+except ImportError:
+    print("警告: dialogue_state模块未找到，将使用简化版本")
+    DialogueStateManager = None
+    ChatMessage = None
 
 # --- 从 .env 文件加载环境变量 ---
 load_dotenv()
 
+# --- 配置日志 ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # --- OpenAI客户端优化配置 ---
 # 创建一个OpenAI客户端，优化连接池和超时设置
-client = openai.OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_API_BASE_URL"),
-    max_retries=2,  # 减少重试次数以提高响应速度
-    timeout=15.0,   # 设置较短的超时时间
-)
+try:
+    client = openai.OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        base_url=os.getenv("OPENAI_API_BASE_URL"),
+        max_retries=2,  # 减少重试次数以提高响应速度
+        timeout=15.0,   # 设置较短的超时时间
+    )
+    logger.info("OpenAI客户端初始化成功")
+except Exception as e:
+    logger.error(f"OpenAI客户端初始化失败: {e}")
+    client = None
 # -------------------------
 
 # AI响应缓存类
@@ -349,29 +371,67 @@ class IntelligenceServiceImpl(intelligence_pb2_grpc.IntelligenceServiceServicer)
 # ... 文件后面的 serve() 和 main() 函数保持不变 ...
 async def serve() -> None:
     port = "50051"
-    # 增加gRPC服务器的并发处理能力
+    
+    # 增强的gRPC服务器配置，提升连接可靠性
     options = [
-        ('grpc.keepalive_time_ms', 30000),
-        ('grpc.keepalive_timeout_ms', 5000),
-        ('grpc.keepalive_permit_without_calls', True),
-        ('grpc.http2.max_pings_without_data', 0),  
-        ('grpc.http2.min_time_between_pings_ms', 10000),
-        ('grpc.http2.min_ping_interval_without_data_ms', 300000),
-        ('grpc.max_connection_idle_ms', 60000),
+        ('grpc.keepalive_time_ms', 30000),           # 30秒发送keepalive ping
+        ('grpc.keepalive_timeout_ms', 5000),         # 5秒keepalive超时
+        ('grpc.keepalive_permit_without_calls', True), # 允许无调用时发送keepalive
+        ('grpc.http2.max_pings_without_data', 0),    # 无限制ping数量
+        ('grpc.http2.min_time_between_pings_ms', 10000), # 10秒最小ping间隔
+        ('grpc.http2.min_ping_interval_without_data_ms', 300000), # 5分钟无数据ping间隔
+        ('grpc.max_connection_idle_ms', 60000),      # 60秒连接空闲超时
+        ('grpc.max_send_message_length', 100 * 1024 * 1024),  # 100MB最大发送消息
+        ('grpc.max_receive_message_length', 100 * 1024 * 1024), # 100MB最大接收消息
+        ('grpc.max_connection_age_ms', 30 * 60 * 1000),  # 30分钟最大连接年龄
+        ('grpc.max_connection_age_grace_ms', 5 * 60 * 1000), # 5分钟优雅关闭时间
     ]
     
     server = grpc.aio.server(
         futures.ThreadPoolExecutor(max_workers=50),
         options=options
     )
+    
+    # 添加健康检查服务
+    health_servicer = health.HealthServicer()
+    health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
+    
+    # 注册AI服务
     intelligence_pb2_grpc.add_IntelligenceServiceServicer_to_server(
         IntelligenceServiceImpl(), server
     )
     
-    server.add_insecure_port(f"[::]:{port}")
-    logging.info(f"🧙 Python AI Service 'The Wizard Tower' is listening on gRPC port {port}")
+    # 设置健康检查状态
+    health_servicer.set("", health_pb2.HealthCheckResponse.SERVING)
+    health_servicer.set("intelligence", health_pb2.HealthCheckResponse.SERVING)
+    
+    # 启动服务器
+    listen_addr = f"[::]:{port}"
+    server.add_insecure_port(listen_addr)
+    
+    logger.info(f"🧙 Python AI Service 'The Wizard Tower' is starting...")
+    logger.info(f"📡 gRPC server listening on {listen_addr}")
+    logger.info(f"🏥 Health check service enabled")
+    logger.info(f"💬 Dialogue state management ready")
+    
     await server.start()
-    await server.wait_for_termination()
+    
+    logger.info("✅ AI Service successfully started and ready to serve requests")
+    
+    # 优雅关闭处理
+    def signal_handler(signum, frame):
+        logger.info(f"📥 Received signal {signum}, starting graceful shutdown...")
+        
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    try:
+        await server.wait_for_termination()
+    except KeyboardInterrupt:
+        logger.info("🛑 Keyboard interrupt received, shutting down...")
+    finally:
+        logger.info("🔚 AI Service shutdown completed")
+        await server.stop(grace=5)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
