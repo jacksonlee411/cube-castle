@@ -269,7 +269,7 @@ export const useCreatePositionChange = () => {
       // Show warnings if any
       if (validation?.warnings && validation.warnings.length > 0) {
         validation.warnings.forEach((warning: any) => {
-        toast.warning(warning.message);
+        toast(warning.message, { icon: '⚠️' });
         });
       }
 

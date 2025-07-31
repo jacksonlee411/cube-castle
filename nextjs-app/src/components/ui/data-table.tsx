@@ -240,7 +240,44 @@ export function createActionsColumn<T>(
   const ActionsComponent = actions
   return {
     id: "actions",
+    header: "操作",
     enableHiding: false,
     cell: ({ row }) => <ActionsComponent row={row.original} />,
   }
+}
+
+// 快速操作按钮组件
+export function QuickActions<T>({
+  row,
+  actions,
+}: {
+  row: T
+  actions: Array<{
+    label: string
+    onClick: (data: T) => void
+    variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  }>
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">打开菜单</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>操作</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {actions.map((action, index) => (
+          <DropdownMenuItem
+            key={index}
+            onClick={() => action.onClick(row)}
+          >
+            {action.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }

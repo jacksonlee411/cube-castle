@@ -198,11 +198,11 @@ const EmployeesPage: React.FC = () => {
     setFormData({});
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "default" | "destructive" | "secondary" => {
     const colors = {
-      ACTIVE: 'default',
-      INACTIVE: 'destructive',
-      PENDING: 'secondary'
+      ACTIVE: 'default' as const,
+      INACTIVE: 'destructive' as const,
+      PENDING: 'secondary' as const
     };
     return colors[status as keyof typeof colors] || 'default';
   };

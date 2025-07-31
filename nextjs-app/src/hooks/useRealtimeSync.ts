@@ -39,6 +39,8 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
     onConnectionChange,
   } = options;
 
+  const projectId = 'cube-castle'; // 默认项目ID
+
   const {
     setRealtimeConnection,
     setSubscription,
@@ -49,25 +51,21 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
 
   const realtimeState = useRealtimeState();
   
-  // WebSocket连接管理
-  const { 
-    connect, 
-    disconnect, 
-    subscribe, 
-    unsubscribe, 
-    isConnected 
-  } = useWebSocket({
-    onConnect: () => {
+  // WebSocket连接管理  
+  const wsResult = useWebSocket(projectId);
+  
+  // 连接状态变化处理
+  useEffect(() => {
+    if (wsResult.isConnected) {
       setRealtimeConnection(true);
       onConnectionChange?.(true);
+      reconnectAttempts.current = 0; // 重置重连计数
       
       // 连接成功后启用订阅
       subscriptions.forEach(type => {
         setSubscription(type, true);
       });
-    },
-    
-    onDisconnect: () => {
+    } else {
       setRealtimeConnection(false);
       onConnectionChange?.(false);
       
@@ -75,13 +73,8 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
       subscriptions.forEach(type => {
         setSubscription(type, false);
       });
-    },
-    
-    onError: (error) => {
-      console.error('WebSocket error:', error);
-      onError?.(error);
-    },
-  });
+    }
+  }, [wsResult.isConnected, subscriptions, setRealtimeConnection, onConnectionChange, setSubscription]);
 
   // 重连尝试计数
   const reconnectAttempts = useRef(0);
@@ -98,10 +91,10 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
     
     reconnectTimer.current = setTimeout(() => {
       console.log(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})`);
-      connect();
+      // TODO: 实现重连逻辑
     }, reconnectDelay * reconnectAttempts.current); // 指数退避
     
-  }, [autoReconnect, maxReconnectAttempts, reconnectDelay, connect]);
+  }, [autoReconnect, maxReconnectAttempts, reconnectDelay]);
 
   // 处理实时数据更新
   const handleDataUpdate = useCallback(async (type: string, data: any) => {
@@ -191,7 +184,7 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
 
   // 定期数据同步
   const performPeriodicSync = useCallback(async () => {
-    if (!isConnected) return;
+    if (!wsResult.isConnected) return;
 
     try {
       // 刷新所有订阅的数据类型
@@ -206,12 +199,12 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
     } catch (error) {
       console.error('Periodic sync failed:', error);
     }
-  }, [isConnected, subscriptions, realtimeState.subscriptions, refreshApolloCache]);
+  }, [wsResult.isConnected, subscriptions, realtimeState.subscriptions, refreshApolloCache]);
 
   // 启动实时同步
   const startSync = useCallback(() => {
     // 连接WebSocket
-    connect();
+    wsResult.sendMessage({ type: 'connect' });
 
     // 设置定期同步
     if (syncInterval > 0) {
@@ -222,18 +215,19 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
     subscriptions.forEach(type => {
       const subscriptionQuery = getSubscriptionQuery(type);
       if (subscriptionQuery) {
-        subscribe(subscriptionQuery, (data) => {
-          handleDataUpdate(type.toUpperCase() + '_UPDATED', data);
-        });
+        // TODO: 实现订阅逻辑
+        // wsResult.subscribe(subscriptionQuery, (data) => {
+        //   handleDataUpdate(type.toUpperCase() + '_UPDATED', data);
+        // });
       }
     });
 
-  }, [connect, performPeriodicSync, syncInterval, subscriptions, subscribe, handleDataUpdate]);
+  }, [wsResult.sendMessage, performPeriodicSync, syncInterval, subscriptions, handleDataUpdate]);
 
   // 停止实时同步
   const stopSync = useCallback(() => {
     // 断开WebSocket
-    disconnect();
+    wsResult.sendMessage({ type: 'disconnect' });
 
     // 清理定时器
     if (reconnectTimer.current) {
@@ -245,14 +239,14 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
 
     // 取消所有订阅
     subscriptions.forEach(type => {
-      unsubscribe(type);
+      // TODO: 实现取消订阅逻辑
       setSubscription(type, false);
     });
 
     // 重置重连计数
     reconnectAttempts.current = 0;
 
-  }, [disconnect, subscriptions, unsubscribe, setSubscription]);
+  }, [wsResult.sendMessage, subscriptions, setSubscription]);
 
   // 手动触发数据同步
   const manualSync = useCallback(async (types?: string[]) => {
@@ -271,17 +265,17 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
 
   // 连接状态变化时的重连逻辑
   useEffect(() => {
-    if (!isConnected && realtimeState.connected) {
+    if (!wsResult.isConnected && realtimeState.connected) {
       // 从连接状态变为断开，尝试重连
       attemptReconnect();
-    } else if (isConnected && !realtimeState.connected) {
+    } else if (wsResult.isConnected && !realtimeState.connected) {
       // 重连成功，重置计数器
       reconnectAttempts.current = 0;
       if (reconnectTimer.current) {
         clearTimeout(reconnectTimer.current);
       }
     }
-  }, [isConnected, realtimeState.connected, attemptReconnect]);
+  }, [wsResult.isConnected, realtimeState.connected, attemptReconnect]);
 
   return {
     // 状态

@@ -7,22 +7,60 @@ const Typography = React.forwardRef<
     variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'text'
   }
 >(({ className, variant = 'p', ...props }, ref) => {
-  const Component = variant === 'text' ? 'span' : variant === 'p' ? 'p' : variant
+  if (variant === 'h1') {
+    return (
+      <h1
+        className={cn('scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl', className)}
+        ref={ref as React.ForwardedRef<HTMLHeadingElement>}
+        {...props}
+      />
+    )
+  }
+  
+  if (variant === 'h2') {
+    return (
+      <h2
+        className={cn('scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0', className)}
+        ref={ref as React.ForwardedRef<HTMLHeadingElement>}
+        {...props}
+      />
+    )
+  }
+  
+  if (variant === 'h3') {
+    return (
+      <h3
+        className={cn('scroll-m-20 text-2xl font-semibold tracking-tight', className)}
+        ref={ref as React.ForwardedRef<HTMLHeadingElement>}
+        {...props}
+      />
+    )
+  }
+  
+  if (variant === 'h4') {
+    return (
+      <h4
+        className={cn('scroll-m-20 text-xl font-semibold tracking-tight', className)}
+        ref={ref as React.ForwardedRef<HTMLHeadingElement>}
+        {...props}
+      />
+    )
+  }
+  
+  if (variant === 'text') {
+    return (
+      <span
+        className={cn('text-sm font-medium leading-none', className)}
+        ref={ref as React.ForwardedRef<HTMLSpanElement>}
+        {...props}
+      />
+    )
+  }
 
   return (
-    <Component
-      className={cn(
-        {
-          'scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl': variant === 'h1',
-          'scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0': variant === 'h2',
-          'scroll-m-20 text-2xl font-semibold tracking-tight': variant === 'h3',
-          'scroll-m-20 text-xl font-semibold tracking-tight': variant === 'h4',
-          'leading-7 [&:not(:first-child)]:mt-6': variant === 'p',
-          'text-sm font-medium leading-none': variant === 'text',
-        },
-        className
-      )}
-      ref={ref}
+    <p
+      className={cn('leading-7 [&:not(:first-child)]:mt-6', className)}
+      ref={ref as React.ForwardedRef<HTMLParagraphElement>}
       {...props}
     />
   )
@@ -35,20 +73,49 @@ const Title = React.forwardRef<
     level?: 1 | 2 | 3 | 4 | 5
   }
 >(({ className, level = 1, ...props }, ref) => {
-  const Component = `h${level}` as keyof JSX.IntrinsicElements
-
+  if (level === 1) {
+    return (
+      <h1
+        className={cn('scroll-m-20 text-4xl font-extrabold tracking-tight', className)}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+  
+  if (level === 2) {
+    return (
+      <h2
+        className={cn('scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight', className)}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+  
+  if (level === 3) {
+    return (
+      <h3
+        className={cn('scroll-m-20 text-2xl font-semibold tracking-tight', className)}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+  
+  if (level === 4) {
+    return (
+      <h4
+        className={cn('scroll-m-20 text-xl font-semibold tracking-tight', className)}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+  
   return (
-    <Component
-      className={cn(
-        {
-          'scroll-m-20 text-4xl font-extrabold tracking-tight': level === 1,
-          'scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight': level === 2,
-          'scroll-m-20 text-2xl font-semibold tracking-tight': level === 3,
-          'scroll-m-20 text-xl font-semibold tracking-tight': level === 4,
-          'text-lg font-semibold': level === 5,
-        },
-        className
-      )}
+    <h5
+      className={cn('text-lg font-semibold', className)}
       ref={ref}
       {...props}
     />
