@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
@@ -304,6 +305,11 @@ func (pohu *PositionOccupancyHistoryUpdate) SetPosition(p *Position) *PositionOc
 	return pohu.SetPositionID(p.ID)
 }
 
+// SetEmployee sets the "employee" edge to the Employee entity.
+func (pohu *PositionOccupancyHistoryUpdate) SetEmployee(e *Employee) *PositionOccupancyHistoryUpdate {
+	return pohu.SetEmployeeID(e.ID)
+}
+
 // Mutation returns the PositionOccupancyHistoryMutation object of the builder.
 func (pohu *PositionOccupancyHistoryUpdate) Mutation() *PositionOccupancyHistoryMutation {
 	return pohu.mutation
@@ -312,6 +318,12 @@ func (pohu *PositionOccupancyHistoryUpdate) Mutation() *PositionOccupancyHistory
 // ClearPosition clears the "position" edge to the Position entity.
 func (pohu *PositionOccupancyHistoryUpdate) ClearPosition() *PositionOccupancyHistoryUpdate {
 	pohu.mutation.ClearPosition()
+	return pohu
+}
+
+// ClearEmployee clears the "employee" edge to the Employee entity.
+func (pohu *PositionOccupancyHistoryUpdate) ClearEmployee() *PositionOccupancyHistoryUpdate {
+	pohu.mutation.ClearEmployee()
 	return pohu
 }
 
@@ -366,6 +378,9 @@ func (pohu *PositionOccupancyHistoryUpdate) check() error {
 	if pohu.mutation.PositionCleared() && len(pohu.mutation.PositionIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PositionOccupancyHistory.position"`)
 	}
+	if pohu.mutation.EmployeeCleared() && len(pohu.mutation.EmployeeIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "PositionOccupancyHistory.employee"`)
+	}
 	return nil
 }
 
@@ -380,9 +395,6 @@ func (pohu *PositionOccupancyHistoryUpdate) sqlSave(ctx context.Context) (n int,
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := pohu.mutation.EmployeeID(); ok {
-		_spec.SetField(positionoccupancyhistory.FieldEmployeeID, field.TypeUUID, value)
 	}
 	if value, ok := pohu.mutation.StartDate(); ok {
 		_spec.SetField(positionoccupancyhistory.FieldStartDate, field.TypeTime, value)
@@ -478,6 +490,35 @@ func (pohu *PositionOccupancyHistoryUpdate) sqlSave(ctx context.Context) (n int,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pohu.mutation.EmployeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   positionoccupancyhistory.EmployeeTable,
+			Columns: []string{positionoccupancyhistory.EmployeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pohu.mutation.EmployeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   positionoccupancyhistory.EmployeeTable,
+			Columns: []string{positionoccupancyhistory.EmployeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -779,6 +820,11 @@ func (pohuo *PositionOccupancyHistoryUpdateOne) SetPosition(p *Position) *Positi
 	return pohuo.SetPositionID(p.ID)
 }
 
+// SetEmployee sets the "employee" edge to the Employee entity.
+func (pohuo *PositionOccupancyHistoryUpdateOne) SetEmployee(e *Employee) *PositionOccupancyHistoryUpdateOne {
+	return pohuo.SetEmployeeID(e.ID)
+}
+
 // Mutation returns the PositionOccupancyHistoryMutation object of the builder.
 func (pohuo *PositionOccupancyHistoryUpdateOne) Mutation() *PositionOccupancyHistoryMutation {
 	return pohuo.mutation
@@ -787,6 +833,12 @@ func (pohuo *PositionOccupancyHistoryUpdateOne) Mutation() *PositionOccupancyHis
 // ClearPosition clears the "position" edge to the Position entity.
 func (pohuo *PositionOccupancyHistoryUpdateOne) ClearPosition() *PositionOccupancyHistoryUpdateOne {
 	pohuo.mutation.ClearPosition()
+	return pohuo
+}
+
+// ClearEmployee clears the "employee" edge to the Employee entity.
+func (pohuo *PositionOccupancyHistoryUpdateOne) ClearEmployee() *PositionOccupancyHistoryUpdateOne {
+	pohuo.mutation.ClearEmployee()
 	return pohuo
 }
 
@@ -854,6 +906,9 @@ func (pohuo *PositionOccupancyHistoryUpdateOne) check() error {
 	if pohuo.mutation.PositionCleared() && len(pohuo.mutation.PositionIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PositionOccupancyHistory.position"`)
 	}
+	if pohuo.mutation.EmployeeCleared() && len(pohuo.mutation.EmployeeIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "PositionOccupancyHistory.employee"`)
+	}
 	return nil
 }
 
@@ -885,9 +940,6 @@ func (pohuo *PositionOccupancyHistoryUpdateOne) sqlSave(ctx context.Context) (_n
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := pohuo.mutation.EmployeeID(); ok {
-		_spec.SetField(positionoccupancyhistory.FieldEmployeeID, field.TypeUUID, value)
 	}
 	if value, ok := pohuo.mutation.StartDate(); ok {
 		_spec.SetField(positionoccupancyhistory.FieldStartDate, field.TypeTime, value)
@@ -983,6 +1035,35 @@ func (pohuo *PositionOccupancyHistoryUpdateOne) sqlSave(ctx context.Context) (_n
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pohuo.mutation.EmployeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   positionoccupancyhistory.EmployeeTable,
+			Columns: []string{positionoccupancyhistory.EmployeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pohuo.mutation.EmployeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   positionoccupancyhistory.EmployeeTable,
+			Columns: []string{positionoccupancyhistory.EmployeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

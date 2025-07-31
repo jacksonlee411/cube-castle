@@ -3,9 +3,12 @@
 package employee
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 const (
@@ -13,25 +16,79 @@ const (
 	Label = "employee"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
+	// FieldTenantID holds the string denoting the tenant_id field in the database.
+	FieldTenantID = "tenant_id"
+	// FieldEmployeeType holds the string denoting the employee_type field in the database.
+	FieldEmployeeType = "employee_type"
+	// FieldEmployeeNumber holds the string denoting the employee_number field in the database.
+	FieldEmployeeNumber = "employee_number"
+	// FieldFirstName holds the string denoting the first_name field in the database.
+	FieldFirstName = "first_name"
+	// FieldLastName holds the string denoting the last_name field in the database.
+	FieldLastName = "last_name"
 	// FieldEmail holds the string denoting the email field in the database.
 	FieldEmail = "email"
+	// FieldPersonalEmail holds the string denoting the personal_email field in the database.
+	FieldPersonalEmail = "personal_email"
+	// FieldPhoneNumber holds the string denoting the phone_number field in the database.
+	FieldPhoneNumber = "phone_number"
+	// FieldCurrentPositionID holds the string denoting the current_position_id field in the database.
+	FieldCurrentPositionID = "current_position_id"
+	// FieldEmploymentStatus holds the string denoting the employment_status field in the database.
+	FieldEmploymentStatus = "employment_status"
+	// FieldHireDate holds the string denoting the hire_date field in the database.
+	FieldHireDate = "hire_date"
+	// FieldTerminationDate holds the string denoting the termination_date field in the database.
+	FieldTerminationDate = "termination_date"
+	// FieldEmployeeDetails holds the string denoting the employee_details field in the database.
+	FieldEmployeeDetails = "employee_details"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldPosition holds the string denoting the position field in the database.
 	FieldPosition = "position"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// EdgeCurrentPosition holds the string denoting the current_position edge name in mutations.
+	EdgeCurrentPosition = "current_position"
+	// EdgePositionHistory holds the string denoting the position_history edge name in mutations.
+	EdgePositionHistory = "position_history"
 	// Table holds the table name of the employee in the database.
 	Table = "employees"
+	// CurrentPositionTable is the table that holds the current_position relation/edge.
+	CurrentPositionTable = "employees"
+	// CurrentPositionInverseTable is the table name for the Position entity.
+	// It exists in this package in order to avoid circular dependency with the "position" package.
+	CurrentPositionInverseTable = "positions"
+	// CurrentPositionColumn is the table column denoting the current_position relation/edge.
+	CurrentPositionColumn = "current_position_id"
+	// PositionHistoryTable is the table that holds the position_history relation/edge.
+	PositionHistoryTable = "position_occupancy_histories"
+	// PositionHistoryInverseTable is the table name for the PositionOccupancyHistory entity.
+	// It exists in this package in order to avoid circular dependency with the "positionoccupancyhistory" package.
+	PositionHistoryInverseTable = "position_occupancy_histories"
+	// PositionHistoryColumn is the table column denoting the position_history relation/edge.
+	PositionHistoryColumn = "employee_id"
 )
 
 // Columns holds all SQL columns for employee fields.
 var Columns = []string{
 	FieldID,
-	FieldName,
+	FieldTenantID,
+	FieldEmployeeType,
+	FieldEmployeeNumber,
+	FieldFirstName,
+	FieldLastName,
 	FieldEmail,
+	FieldPersonalEmail,
+	FieldPhoneNumber,
+	FieldCurrentPositionID,
+	FieldEmploymentStatus,
+	FieldHireDate,
+	FieldTerminationDate,
+	FieldEmployeeDetails,
+	FieldName,
 	FieldPosition,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -48,13 +105,81 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// EmployeeNumberValidator is a validator for the "employee_number" field. It is called by the builders before save.
+	EmployeeNumberValidator func(string) error
+	// FirstNameValidator is a validator for the "first_name" field. It is called by the builders before save.
+	FirstNameValidator func(string) error
+	// LastNameValidator is a validator for the "last_name" field. It is called by the builders before save.
+	LastNameValidator func(string) error
+	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	EmailValidator func(string) error
+	// PersonalEmailValidator is a validator for the "personal_email" field. It is called by the builders before save.
+	PersonalEmailValidator func(string) error
+	// PhoneNumberValidator is a validator for the "phone_number" field. It is called by the builders before save.
+	PhoneNumberValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )
+
+// EmployeeType defines the type for the "employee_type" enum field.
+type EmployeeType string
+
+// EmployeeType values.
+const (
+	EmployeeTypeFULL_TIME  EmployeeType = "FULL_TIME"
+	EmployeeTypePART_TIME  EmployeeType = "PART_TIME"
+	EmployeeTypeCONTRACTOR EmployeeType = "CONTRACTOR"
+	EmployeeTypeINTERN     EmployeeType = "INTERN"
+)
+
+func (et EmployeeType) String() string {
+	return string(et)
+}
+
+// EmployeeTypeValidator is a validator for the "employee_type" field enum values. It is called by the builders before save.
+func EmployeeTypeValidator(et EmployeeType) error {
+	switch et {
+	case EmployeeTypeFULL_TIME, EmployeeTypePART_TIME, EmployeeTypeCONTRACTOR, EmployeeTypeINTERN:
+		return nil
+	default:
+		return fmt.Errorf("employee: invalid enum value for employee_type field: %q", et)
+	}
+}
+
+// EmploymentStatus defines the type for the "employment_status" enum field.
+type EmploymentStatus string
+
+// EmploymentStatusPENDING_START is the default value of the EmploymentStatus enum.
+const DefaultEmploymentStatus = EmploymentStatusPENDING_START
+
+// EmploymentStatus values.
+const (
+	EmploymentStatusACTIVE        EmploymentStatus = "ACTIVE"
+	EmploymentStatusON_LEAVE      EmploymentStatus = "ON_LEAVE"
+	EmploymentStatusTERMINATED    EmploymentStatus = "TERMINATED"
+	EmploymentStatusSUSPENDED     EmploymentStatus = "SUSPENDED"
+	EmploymentStatusPENDING_START EmploymentStatus = "PENDING_START"
+)
+
+func (es EmploymentStatus) String() string {
+	return string(es)
+}
+
+// EmploymentStatusValidator is a validator for the "employment_status" field enum values. It is called by the builders before save.
+func EmploymentStatusValidator(es EmploymentStatus) error {
+	switch es {
+	case EmploymentStatusACTIVE, EmploymentStatusON_LEAVE, EmploymentStatusTERMINATED, EmploymentStatusSUSPENDED, EmploymentStatusPENDING_START:
+		return nil
+	default:
+		return fmt.Errorf("employee: invalid enum value for employment_status field: %q", es)
+	}
+}
 
 // OrderOption defines the ordering options for the Employee queries.
 type OrderOption func(*sql.Selector)
@@ -64,14 +189,69 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
+// ByTenantID orders the results by the tenant_id field.
+func ByTenantID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTenantID, opts...).ToFunc()
+}
+
+// ByEmployeeType orders the results by the employee_type field.
+func ByEmployeeType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmployeeType, opts...).ToFunc()
+}
+
+// ByEmployeeNumber orders the results by the employee_number field.
+func ByEmployeeNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmployeeNumber, opts...).ToFunc()
+}
+
+// ByFirstName orders the results by the first_name field.
+func ByFirstName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFirstName, opts...).ToFunc()
+}
+
+// ByLastName orders the results by the last_name field.
+func ByLastName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastName, opts...).ToFunc()
 }
 
 // ByEmail orders the results by the email field.
 func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEmail, opts...).ToFunc()
+}
+
+// ByPersonalEmail orders the results by the personal_email field.
+func ByPersonalEmail(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPersonalEmail, opts...).ToFunc()
+}
+
+// ByPhoneNumber orders the results by the phone_number field.
+func ByPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPhoneNumber, opts...).ToFunc()
+}
+
+// ByCurrentPositionID orders the results by the current_position_id field.
+func ByCurrentPositionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrentPositionID, opts...).ToFunc()
+}
+
+// ByEmploymentStatus orders the results by the employment_status field.
+func ByEmploymentStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmploymentStatus, opts...).ToFunc()
+}
+
+// ByHireDate orders the results by the hire_date field.
+func ByHireDate(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHireDate, opts...).ToFunc()
+}
+
+// ByTerminationDate orders the results by the termination_date field.
+func ByTerminationDate(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTerminationDate, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByPosition orders the results by the position field.
@@ -87,4 +267,39 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByCurrentPositionField orders the results by current_position field.
+func ByCurrentPositionField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCurrentPositionStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByPositionHistoryCount orders the results by position_history count.
+func ByPositionHistoryCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPositionHistoryStep(), opts...)
+	}
+}
+
+// ByPositionHistory orders the results by position_history terms.
+func ByPositionHistory(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPositionHistoryStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newCurrentPositionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CurrentPositionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CurrentPositionTable, CurrentPositionColumn),
+	)
+}
+func newPositionHistoryStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PositionHistoryInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PositionHistoryTable, PositionHistoryColumn),
+	)
 }

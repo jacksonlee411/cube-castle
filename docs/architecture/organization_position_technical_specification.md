@@ -2,9 +2,13 @@
 
 **文档类型**: 技术规范参考  
 **创建时间**: 2025-07-29  
-**版本**: v1.0  
+**版本**: v1.1  
 **状态**: 参考指南  
 **适用对象**: 开发团队、架构师、代码审查员
+
+**相关文档**:
+- [Employee Organization Position Analysis](./employee_organization_position_analysis.md) - 当前状态分析
+- [Employee Optimization Implementation Plan](./employee_optimization_implementation_plan.md) - 实施方案
 
 ---
 

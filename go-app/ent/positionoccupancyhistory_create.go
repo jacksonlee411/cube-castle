@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/google/uuid"
@@ -253,6 +254,11 @@ func (pohc *PositionOccupancyHistoryCreate) SetPosition(p *Position) *PositionOc
 	return pohc.SetPositionID(p.ID)
 }
 
+// SetEmployee sets the "employee" edge to the Employee entity.
+func (pohc *PositionOccupancyHistoryCreate) SetEmployee(e *Employee) *PositionOccupancyHistoryCreate {
+	return pohc.SetEmployeeID(e.ID)
+}
+
 // Mutation returns the PositionOccupancyHistoryMutation object of the builder.
 func (pohc *PositionOccupancyHistoryCreate) Mutation() *PositionOccupancyHistoryMutation {
 	return pohc.mutation
@@ -356,6 +362,9 @@ func (pohc *PositionOccupancyHistoryCreate) check() error {
 	if len(pohc.mutation.PositionIDs()) == 0 {
 		return &ValidationError{Name: "position", err: errors.New(`ent: missing required edge "PositionOccupancyHistory.position"`)}
 	}
+	if len(pohc.mutation.EmployeeIDs()) == 0 {
+		return &ValidationError{Name: "employee", err: errors.New(`ent: missing required edge "PositionOccupancyHistory.employee"`)}
+	}
 	return nil
 }
 
@@ -394,10 +403,6 @@ func (pohc *PositionOccupancyHistoryCreate) createSpec() (*PositionOccupancyHist
 	if value, ok := pohc.mutation.TenantID(); ok {
 		_spec.SetField(positionoccupancyhistory.FieldTenantID, field.TypeUUID, value)
 		_node.TenantID = value
-	}
-	if value, ok := pohc.mutation.EmployeeID(); ok {
-		_spec.SetField(positionoccupancyhistory.FieldEmployeeID, field.TypeUUID, value)
-		_node.EmployeeID = value
 	}
 	if value, ok := pohc.mutation.StartDate(); ok {
 		_spec.SetField(positionoccupancyhistory.FieldStartDate, field.TypeTime, value)
@@ -474,6 +479,23 @@ func (pohc *PositionOccupancyHistoryCreate) createSpec() (*PositionOccupancyHist
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.PositionID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pohc.mutation.EmployeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   positionoccupancyhistory.EmployeeTable,
+			Columns: []string{positionoccupancyhistory.EmployeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.EmployeeID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

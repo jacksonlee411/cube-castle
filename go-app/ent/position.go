@@ -55,13 +55,15 @@ type PositionEdges struct {
 	DirectReports []*Position `json:"direct_reports,omitempty"`
 	// Organization unit that contains this position
 	Department *OrganizationUnit `json:"department,omitempty"`
+	// Employees currently assigned to this position
+	CurrentIncumbents []*Employee `json:"current_incumbents,omitempty"`
 	// Historical record of employees who occupied this position
 	OccupancyHistory []*PositionOccupancyHistory `json:"occupancy_history,omitempty"`
 	// Historical record of position attribute changes
 	AttributeHistory []*PositionAttributeHistory `json:"attribute_history,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // ManagerOrErr returns the Manager value or an error if the edge
@@ -95,10 +97,19 @@ func (e PositionEdges) DepartmentOrErr() (*OrganizationUnit, error) {
 	return nil, &NotLoadedError{edge: "department"}
 }
 
+// CurrentIncumbentsOrErr returns the CurrentIncumbents value or an error if the edge
+// was not loaded in eager-loading.
+func (e PositionEdges) CurrentIncumbentsOrErr() ([]*Employee, error) {
+	if e.loadedTypes[3] {
+		return e.CurrentIncumbents, nil
+	}
+	return nil, &NotLoadedError{edge: "current_incumbents"}
+}
+
 // OccupancyHistoryOrErr returns the OccupancyHistory value or an error if the edge
 // was not loaded in eager-loading.
 func (e PositionEdges) OccupancyHistoryOrErr() ([]*PositionOccupancyHistory, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.OccupancyHistory, nil
 	}
 	return nil, &NotLoadedError{edge: "occupancy_history"}
@@ -107,7 +118,7 @@ func (e PositionEdges) OccupancyHistoryOrErr() ([]*PositionOccupancyHistory, err
 // AttributeHistoryOrErr returns the AttributeHistory value or an error if the edge
 // was not loaded in eager-loading.
 func (e PositionEdges) AttributeHistoryOrErr() ([]*PositionAttributeHistory, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.AttributeHistory, nil
 	}
 	return nil, &NotLoadedError{edge: "attribute_history"}
@@ -240,6 +251,11 @@ func (po *Position) QueryDirectReports() *PositionQuery {
 // QueryDepartment queries the "department" edge of the Position entity.
 func (po *Position) QueryDepartment() *OrganizationUnitQuery {
 	return NewPositionClient(po.config).QueryDepartment(po)
+}
+
+// QueryCurrentIncumbents queries the "current_incumbents" edge of the Position entity.
+func (po *Position) QueryCurrentIncumbents() *EmployeeQuery {
+	return NewPositionClient(po.config).QueryCurrentIncumbents(po)
 }
 
 // QueryOccupancyHistory queries the "occupancy_history" edge of the Position entity.

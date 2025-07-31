@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
@@ -186,6 +187,21 @@ func (pu *PositionUpdate) SetDepartment(o *OrganizationUnit) *PositionUpdate {
 	return pu.SetDepartmentID(o.ID)
 }
 
+// AddCurrentIncumbentIDs adds the "current_incumbents" edge to the Employee entity by IDs.
+func (pu *PositionUpdate) AddCurrentIncumbentIDs(ids ...uuid.UUID) *PositionUpdate {
+	pu.mutation.AddCurrentIncumbentIDs(ids...)
+	return pu
+}
+
+// AddCurrentIncumbents adds the "current_incumbents" edges to the Employee entity.
+func (pu *PositionUpdate) AddCurrentIncumbents(e ...*Employee) *PositionUpdate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return pu.AddCurrentIncumbentIDs(ids...)
+}
+
 // AddOccupancyHistoryIDs adds the "occupancy_history" edge to the PositionOccupancyHistory entity by IDs.
 func (pu *PositionUpdate) AddOccupancyHistoryIDs(ids ...uuid.UUID) *PositionUpdate {
 	pu.mutation.AddOccupancyHistoryIDs(ids...)
@@ -252,6 +268,27 @@ func (pu *PositionUpdate) RemoveDirectReports(p ...*Position) *PositionUpdate {
 func (pu *PositionUpdate) ClearDepartment() *PositionUpdate {
 	pu.mutation.ClearDepartment()
 	return pu
+}
+
+// ClearCurrentIncumbents clears all "current_incumbents" edges to the Employee entity.
+func (pu *PositionUpdate) ClearCurrentIncumbents() *PositionUpdate {
+	pu.mutation.ClearCurrentIncumbents()
+	return pu
+}
+
+// RemoveCurrentIncumbentIDs removes the "current_incumbents" edge to Employee entities by IDs.
+func (pu *PositionUpdate) RemoveCurrentIncumbentIDs(ids ...uuid.UUID) *PositionUpdate {
+	pu.mutation.RemoveCurrentIncumbentIDs(ids...)
+	return pu
+}
+
+// RemoveCurrentIncumbents removes "current_incumbents" edges to Employee entities.
+func (pu *PositionUpdate) RemoveCurrentIncumbents(e ...*Employee) *PositionUpdate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return pu.RemoveCurrentIncumbentIDs(ids...)
 }
 
 // ClearOccupancyHistory clears all "occupancy_history" edges to the PositionOccupancyHistory entity.
@@ -482,6 +519,51 @@ func (pu *PositionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(organizationunit.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pu.mutation.CurrentIncumbentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.CurrentIncumbentsTable,
+			Columns: []string{position.CurrentIncumbentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedCurrentIncumbentsIDs(); len(nodes) > 0 && !pu.mutation.CurrentIncumbentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.CurrentIncumbentsTable,
+			Columns: []string{position.CurrentIncumbentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.CurrentIncumbentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.CurrentIncumbentsTable,
+			Columns: []string{position.CurrentIncumbentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -753,6 +835,21 @@ func (puo *PositionUpdateOne) SetDepartment(o *OrganizationUnit) *PositionUpdate
 	return puo.SetDepartmentID(o.ID)
 }
 
+// AddCurrentIncumbentIDs adds the "current_incumbents" edge to the Employee entity by IDs.
+func (puo *PositionUpdateOne) AddCurrentIncumbentIDs(ids ...uuid.UUID) *PositionUpdateOne {
+	puo.mutation.AddCurrentIncumbentIDs(ids...)
+	return puo
+}
+
+// AddCurrentIncumbents adds the "current_incumbents" edges to the Employee entity.
+func (puo *PositionUpdateOne) AddCurrentIncumbents(e ...*Employee) *PositionUpdateOne {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return puo.AddCurrentIncumbentIDs(ids...)
+}
+
 // AddOccupancyHistoryIDs adds the "occupancy_history" edge to the PositionOccupancyHistory entity by IDs.
 func (puo *PositionUpdateOne) AddOccupancyHistoryIDs(ids ...uuid.UUID) *PositionUpdateOne {
 	puo.mutation.AddOccupancyHistoryIDs(ids...)
@@ -819,6 +916,27 @@ func (puo *PositionUpdateOne) RemoveDirectReports(p ...*Position) *PositionUpdat
 func (puo *PositionUpdateOne) ClearDepartment() *PositionUpdateOne {
 	puo.mutation.ClearDepartment()
 	return puo
+}
+
+// ClearCurrentIncumbents clears all "current_incumbents" edges to the Employee entity.
+func (puo *PositionUpdateOne) ClearCurrentIncumbents() *PositionUpdateOne {
+	puo.mutation.ClearCurrentIncumbents()
+	return puo
+}
+
+// RemoveCurrentIncumbentIDs removes the "current_incumbents" edge to Employee entities by IDs.
+func (puo *PositionUpdateOne) RemoveCurrentIncumbentIDs(ids ...uuid.UUID) *PositionUpdateOne {
+	puo.mutation.RemoveCurrentIncumbentIDs(ids...)
+	return puo
+}
+
+// RemoveCurrentIncumbents removes "current_incumbents" edges to Employee entities.
+func (puo *PositionUpdateOne) RemoveCurrentIncumbents(e ...*Employee) *PositionUpdateOne {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return puo.RemoveCurrentIncumbentIDs(ids...)
 }
 
 // ClearOccupancyHistory clears all "occupancy_history" edges to the PositionOccupancyHistory entity.
@@ -1079,6 +1197,51 @@ func (puo *PositionUpdateOne) sqlSave(ctx context.Context) (_node *Position, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(organizationunit.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.CurrentIncumbentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.CurrentIncumbentsTable,
+			Columns: []string{position.CurrentIncumbentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedCurrentIncumbentsIDs(); len(nodes) > 0 && !puo.mutation.CurrentIncumbentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.CurrentIncumbentsTable,
+			Columns: []string{position.CurrentIncumbentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.CurrentIncumbentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.CurrentIncumbentsTable,
+			Columns: []string{position.CurrentIncumbentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -10,24 +11,85 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/google/uuid"
 )
 
 // Employee is the model entity for the Employee schema.
 type Employee struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID string `json:"id,omitempty"`
-	// Name holds the value of the "name" field.
-	Name string `json:"name,omitempty"`
-	// Email holds the value of the "email" field.
+	// Global unique identifier, immutable primary key
+	ID uuid.UUID `json:"id,omitempty"`
+	// Multi-tenant isolation foundation, enforces data boundary
+	TenantID uuid.UUID `json:"tenant_id,omitempty"`
+	// Employee type discriminator for details slot determination
+	EmployeeType employee.EmployeeType `json:"employee_type,omitempty"`
+	// Employee number, unique within enterprise
+	EmployeeNumber string `json:"employee_number,omitempty"`
+	// Employee first name
+	FirstName string `json:"first_name,omitempty"`
+	// Employee last name
+	LastName string `json:"last_name,omitempty"`
+	// Corporate email address
 	Email string `json:"email,omitempty"`
-	// Position holds the value of the "position" field.
+	// Personal email address
+	PersonalEmail *string `json:"personal_email,omitempty"`
+	// Contact phone number
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	// Current primary position reference
+	CurrentPositionID *uuid.UUID `json:"current_position_id,omitempty"`
+	// Current employment status
+	EmploymentStatus employee.EmploymentStatus `json:"employment_status,omitempty"`
+	// Employment start date
+	HireDate time.Time `json:"hire_date,omitempty"`
+	// Employment end date (if applicable)
+	TerminationDate *time.Time `json:"termination_date,omitempty"`
+	// Polymorphic configuration based on employee_type discriminator
+	EmployeeDetails map[string]interface{} `json:"employee_details,omitempty"`
+	// Legacy name field - will be deprecated
+	Name string `json:"name,omitempty"`
+	// Legacy position field - will be deprecated
 	Position string `json:"position,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
+	// Immutable creation timestamp for audit trail
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	// Last modification timestamp, auto-updated
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the EmployeeQuery when eager-loading is set.
+	Edges        EmployeeEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// EmployeeEdges holds the relations/edges for other nodes in the graph.
+type EmployeeEdges struct {
+	// Employee current primary position
+	CurrentPosition *Position `json:"current_position,omitempty"`
+	// Employee position occupancy history records
+	PositionHistory []*PositionOccupancyHistory `json:"position_history,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// CurrentPositionOrErr returns the CurrentPosition value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EmployeeEdges) CurrentPositionOrErr() (*Position, error) {
+	if e.CurrentPosition != nil {
+		return e.CurrentPosition, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: position.Label}
+	}
+	return nil, &NotLoadedError{edge: "current_position"}
+}
+
+// PositionHistoryOrErr returns the PositionHistory value or an error if the edge
+// was not loaded in eager-loading.
+func (e EmployeeEdges) PositionHistoryOrErr() ([]*PositionOccupancyHistory, error) {
+	if e.loadedTypes[1] {
+		return e.PositionHistory, nil
+	}
+	return nil, &NotLoadedError{edge: "position_history"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -35,10 +97,16 @@ func (*Employee) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case employee.FieldID, employee.FieldName, employee.FieldEmail, employee.FieldPosition:
+		case employee.FieldCurrentPositionID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case employee.FieldEmployeeDetails:
+			values[i] = new([]byte)
+		case employee.FieldEmployeeType, employee.FieldEmployeeNumber, employee.FieldFirstName, employee.FieldLastName, employee.FieldEmail, employee.FieldPersonalEmail, employee.FieldPhoneNumber, employee.FieldEmploymentStatus, employee.FieldName, employee.FieldPosition:
 			values[i] = new(sql.NullString)
-		case employee.FieldCreatedAt, employee.FieldUpdatedAt:
+		case employee.FieldHireDate, employee.FieldTerminationDate, employee.FieldCreatedAt, employee.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case employee.FieldID, employee.FieldTenantID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -55,22 +123,100 @@ func (e *Employee) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case employee.FieldID:
-			if value, ok := values[i].(*sql.NullString); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
-			} else if value.Valid {
-				e.ID = value.String
+			} else if value != nil {
+				e.ID = *value
 			}
-		case employee.FieldName:
+		case employee.FieldTenantID:
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field tenant_id", values[i])
+			} else if value != nil {
+				e.TenantID = *value
+			}
+		case employee.FieldEmployeeType:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
+				return fmt.Errorf("unexpected type %T for field employee_type", values[i])
 			} else if value.Valid {
-				e.Name = value.String
+				e.EmployeeType = employee.EmployeeType(value.String)
+			}
+		case employee.FieldEmployeeNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field employee_number", values[i])
+			} else if value.Valid {
+				e.EmployeeNumber = value.String
+			}
+		case employee.FieldFirstName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field first_name", values[i])
+			} else if value.Valid {
+				e.FirstName = value.String
+			}
+		case employee.FieldLastName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field last_name", values[i])
+			} else if value.Valid {
+				e.LastName = value.String
 			}
 		case employee.FieldEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field email", values[i])
 			} else if value.Valid {
 				e.Email = value.String
+			}
+		case employee.FieldPersonalEmail:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field personal_email", values[i])
+			} else if value.Valid {
+				e.PersonalEmail = new(string)
+				*e.PersonalEmail = value.String
+			}
+		case employee.FieldPhoneNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field phone_number", values[i])
+			} else if value.Valid {
+				e.PhoneNumber = new(string)
+				*e.PhoneNumber = value.String
+			}
+		case employee.FieldCurrentPositionID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field current_position_id", values[i])
+			} else if value.Valid {
+				e.CurrentPositionID = new(uuid.UUID)
+				*e.CurrentPositionID = *value.S.(*uuid.UUID)
+			}
+		case employee.FieldEmploymentStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field employment_status", values[i])
+			} else if value.Valid {
+				e.EmploymentStatus = employee.EmploymentStatus(value.String)
+			}
+		case employee.FieldHireDate:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field hire_date", values[i])
+			} else if value.Valid {
+				e.HireDate = value.Time
+			}
+		case employee.FieldTerminationDate:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field termination_date", values[i])
+			} else if value.Valid {
+				e.TerminationDate = new(time.Time)
+				*e.TerminationDate = value.Time
+			}
+		case employee.FieldEmployeeDetails:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field employee_details", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &e.EmployeeDetails); err != nil {
+					return fmt.Errorf("unmarshal field employee_details: %w", err)
+				}
+			}
+		case employee.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				e.Name = value.String
 			}
 		case employee.FieldPosition:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -103,6 +249,16 @@ func (e *Employee) Value(name string) (ent.Value, error) {
 	return e.selectValues.Get(name)
 }
 
+// QueryCurrentPosition queries the "current_position" edge of the Employee entity.
+func (e *Employee) QueryCurrentPosition() *PositionQuery {
+	return NewEmployeeClient(e.config).QueryCurrentPosition(e)
+}
+
+// QueryPositionHistory queries the "position_history" edge of the Employee entity.
+func (e *Employee) QueryPositionHistory() *PositionOccupancyHistoryQuery {
+	return NewEmployeeClient(e.config).QueryPositionHistory(e)
+}
+
 // Update returns a builder for updating this Employee.
 // Note that you need to call Employee.Unwrap() before calling this method if this Employee
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -126,11 +282,55 @@ func (e *Employee) String() string {
 	var builder strings.Builder
 	builder.WriteString("Employee(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", e.ID))
-	builder.WriteString("name=")
-	builder.WriteString(e.Name)
+	builder.WriteString("tenant_id=")
+	builder.WriteString(fmt.Sprintf("%v", e.TenantID))
+	builder.WriteString(", ")
+	builder.WriteString("employee_type=")
+	builder.WriteString(fmt.Sprintf("%v", e.EmployeeType))
+	builder.WriteString(", ")
+	builder.WriteString("employee_number=")
+	builder.WriteString(e.EmployeeNumber)
+	builder.WriteString(", ")
+	builder.WriteString("first_name=")
+	builder.WriteString(e.FirstName)
+	builder.WriteString(", ")
+	builder.WriteString("last_name=")
+	builder.WriteString(e.LastName)
 	builder.WriteString(", ")
 	builder.WriteString("email=")
 	builder.WriteString(e.Email)
+	builder.WriteString(", ")
+	if v := e.PersonalEmail; v != nil {
+		builder.WriteString("personal_email=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := e.PhoneNumber; v != nil {
+		builder.WriteString("phone_number=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := e.CurrentPositionID; v != nil {
+		builder.WriteString("current_position_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("employment_status=")
+	builder.WriteString(fmt.Sprintf("%v", e.EmploymentStatus))
+	builder.WriteString(", ")
+	builder.WriteString("hire_date=")
+	builder.WriteString(e.HireDate.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := e.TerminationDate; v != nil {
+		builder.WriteString("termination_date=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("employee_details=")
+	builder.WriteString(fmt.Sprintf("%v", e.EmployeeDetails))
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(e.Name)
 	builder.WriteString(", ")
 	builder.WriteString("position=")
 	builder.WriteString(e.Position)

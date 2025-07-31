@@ -309,7 +309,7 @@ func (c *EmployeeClient) UpdateOne(e *Employee) *EmployeeUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *EmployeeClient) UpdateOneID(id string) *EmployeeUpdateOne {
+func (c *EmployeeClient) UpdateOneID(id uuid.UUID) *EmployeeUpdateOne {
 	mutation := newEmployeeMutation(c.config, OpUpdateOne, withEmployeeID(id))
 	return &EmployeeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -326,7 +326,7 @@ func (c *EmployeeClient) DeleteOne(e *Employee) *EmployeeDeleteOne {
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *EmployeeClient) DeleteOneID(id string) *EmployeeDeleteOne {
+func (c *EmployeeClient) DeleteOneID(id uuid.UUID) *EmployeeDeleteOne {
 	builder := c.Delete().Where(employee.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -343,17 +343,49 @@ func (c *EmployeeClient) Query() *EmployeeQuery {
 }
 
 // Get returns a Employee entity by its id.
-func (c *EmployeeClient) Get(ctx context.Context, id string) (*Employee, error) {
+func (c *EmployeeClient) Get(ctx context.Context, id uuid.UUID) (*Employee, error) {
 	return c.Query().Where(employee.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *EmployeeClient) GetX(ctx context.Context, id string) *Employee {
+func (c *EmployeeClient) GetX(ctx context.Context, id uuid.UUID) *Employee {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryCurrentPosition queries the current_position edge of a Employee.
+func (c *EmployeeClient) QueryCurrentPosition(e *Employee) *PositionQuery {
+	query := (&PositionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(employee.Table, employee.FieldID, id),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, employee.CurrentPositionTable, employee.CurrentPositionColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPositionHistory queries the position_history edge of a Employee.
+func (c *EmployeeClient) QueryPositionHistory(e *Employee) *PositionOccupancyHistoryQuery {
+	query := (&PositionOccupancyHistoryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(employee.Table, employee.FieldID, id),
+			sqlgraph.To(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, employee.PositionHistoryTable, employee.PositionHistoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -711,6 +743,22 @@ func (c *PositionClient) QueryDepartment(po *Position) *OrganizationUnitQuery {
 			sqlgraph.From(position.Table, position.FieldID, id),
 			sqlgraph.To(organizationunit.Table, organizationunit.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, position.DepartmentTable, position.DepartmentColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCurrentIncumbents queries the current_incumbents edge of a Position.
+func (c *PositionClient) QueryCurrentIncumbents(po *Position) *EmployeeQuery {
+	query := (&EmployeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, id),
+			sqlgraph.To(employee.Table, employee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, position.CurrentIncumbentsTable, position.CurrentIncumbentsColumn),
 		)
 		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
 		return fromV, nil
@@ -1174,6 +1222,22 @@ func (c *PositionOccupancyHistoryClient) QueryPosition(poh *PositionOccupancyHis
 			sqlgraph.From(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID, id),
 			sqlgraph.To(position.Table, position.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, positionoccupancyhistory.PositionTable, positionoccupancyhistory.PositionColumn),
+		)
+		fromV = sqlgraph.Neighbors(poh.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEmployee queries the employee edge of a PositionOccupancyHistory.
+func (c *PositionOccupancyHistoryClient) QueryEmployee(poh *PositionOccupancyHistory) *EmployeeQuery {
+	query := (&EmployeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := poh.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID, id),
+			sqlgraph.To(employee.Table, employee.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, positionoccupancyhistory.EmployeeTable, positionoccupancyhistory.EmployeeColumn),
 		)
 		fromV = sqlgraph.Neighbors(poh.driver.Dialect(), step)
 		return fromV, nil

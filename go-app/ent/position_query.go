@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
@@ -23,15 +24,16 @@ import (
 // PositionQuery is the builder for querying Position entities.
 type PositionQuery struct {
 	config
-	ctx                  *QueryContext
-	order                []position.OrderOption
-	inters               []Interceptor
-	predicates           []predicate.Position
-	withManager          *PositionQuery
-	withDirectReports    *PositionQuery
-	withDepartment       *OrganizationUnitQuery
-	withOccupancyHistory *PositionOccupancyHistoryQuery
-	withAttributeHistory *PositionAttributeHistoryQuery
+	ctx                   *QueryContext
+	order                 []position.OrderOption
+	inters                []Interceptor
+	predicates            []predicate.Position
+	withManager           *PositionQuery
+	withDirectReports     *PositionQuery
+	withDepartment        *OrganizationUnitQuery
+	withCurrentIncumbents *EmployeeQuery
+	withOccupancyHistory  *PositionOccupancyHistoryQuery
+	withAttributeHistory  *PositionAttributeHistoryQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -127,6 +129,28 @@ func (pq *PositionQuery) QueryDepartment() *OrganizationUnitQuery {
 			sqlgraph.From(position.Table, position.FieldID, selector),
 			sqlgraph.To(organizationunit.Table, organizationunit.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, position.DepartmentTable, position.DepartmentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCurrentIncumbents chains the current query on the "current_incumbents" edge.
+func (pq *PositionQuery) QueryCurrentIncumbents() *EmployeeQuery {
+	query := (&EmployeeClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, selector),
+			sqlgraph.To(employee.Table, employee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, position.CurrentIncumbentsTable, position.CurrentIncumbentsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -365,16 +389,17 @@ func (pq *PositionQuery) Clone() *PositionQuery {
 		return nil
 	}
 	return &PositionQuery{
-		config:               pq.config,
-		ctx:                  pq.ctx.Clone(),
-		order:                append([]position.OrderOption{}, pq.order...),
-		inters:               append([]Interceptor{}, pq.inters...),
-		predicates:           append([]predicate.Position{}, pq.predicates...),
-		withManager:          pq.withManager.Clone(),
-		withDirectReports:    pq.withDirectReports.Clone(),
-		withDepartment:       pq.withDepartment.Clone(),
-		withOccupancyHistory: pq.withOccupancyHistory.Clone(),
-		withAttributeHistory: pq.withAttributeHistory.Clone(),
+		config:                pq.config,
+		ctx:                   pq.ctx.Clone(),
+		order:                 append([]position.OrderOption{}, pq.order...),
+		inters:                append([]Interceptor{}, pq.inters...),
+		predicates:            append([]predicate.Position{}, pq.predicates...),
+		withManager:           pq.withManager.Clone(),
+		withDirectReports:     pq.withDirectReports.Clone(),
+		withDepartment:        pq.withDepartment.Clone(),
+		withCurrentIncumbents: pq.withCurrentIncumbents.Clone(),
+		withOccupancyHistory:  pq.withOccupancyHistory.Clone(),
+		withAttributeHistory:  pq.withAttributeHistory.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
@@ -411,6 +436,17 @@ func (pq *PositionQuery) WithDepartment(opts ...func(*OrganizationUnitQuery)) *P
 		opt(query)
 	}
 	pq.withDepartment = query
+	return pq
+}
+
+// WithCurrentIncumbents tells the query-builder to eager-load the nodes that are connected to
+// the "current_incumbents" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PositionQuery) WithCurrentIncumbents(opts ...func(*EmployeeQuery)) *PositionQuery {
+	query := (&EmployeeClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withCurrentIncumbents = query
 	return pq
 }
 
@@ -514,10 +550,11 @@ func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Pos
 	var (
 		nodes       = []*Position{}
 		_spec       = pq.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			pq.withManager != nil,
 			pq.withDirectReports != nil,
 			pq.withDepartment != nil,
+			pq.withCurrentIncumbents != nil,
 			pq.withOccupancyHistory != nil,
 			pq.withAttributeHistory != nil,
 		}
@@ -556,6 +593,13 @@ func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Pos
 	if query := pq.withDepartment; query != nil {
 		if err := pq.loadDepartment(ctx, query, nodes, nil,
 			func(n *Position, e *OrganizationUnit) { n.Edges.Department = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := pq.withCurrentIncumbents; query != nil {
+		if err := pq.loadCurrentIncumbents(ctx, query, nodes,
+			func(n *Position) { n.Edges.CurrentIncumbents = []*Employee{} },
+			func(n *Position, e *Employee) { n.Edges.CurrentIncumbents = append(n.Edges.CurrentIncumbents, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -671,6 +715,39 @@ func (pq *PositionQuery) loadDepartment(ctx context.Context, query *Organization
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (pq *PositionQuery) loadCurrentIncumbents(ctx context.Context, query *EmployeeQuery, nodes []*Position, init func(*Position), assign func(*Position, *Employee)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Position)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(employee.FieldCurrentPositionID)
+	}
+	query.Where(predicate.Employee(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(position.CurrentIncumbentsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CurrentPositionID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "current_position_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "current_position_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

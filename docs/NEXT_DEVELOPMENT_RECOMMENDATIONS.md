@@ -19,7 +19,14 @@
 
 ## 🔴 第一优先级：核心功能完善 (1-2周)
 
-### 1.1 完善员工管理API实现
+### 1.1 完善员工-组织-职位关系集成
+**目标**: 建立完整的三模块关系体系
+
+**参考文档**: 
+- [Employee Organization Position Analysis](./architecture/employee_organization_position_analysis.md) - 当前状态详细分析
+- [Employee Optimization Implementation Plan](./architecture/employee_optimization_implementation_plan.md) - 4周实施方案
+
+### 1.2 完善员工管理API实现  
 **目标**: 实现完整的员工CRUD操作
 
 **具体任务**:

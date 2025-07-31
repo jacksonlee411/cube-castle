@@ -124,13 +124,13 @@ func (PositionOccupancyHistory) Edges() []ent.Edge {
 			Required().
 			Comment("The position this occupancy record belongs to"),
 
-		// Reference to the employee (when Employee schema is available)
-		// edge.From("employee", Employee.Type).
-		//     Field("employee_id").
-		//     Ref("position_history").
-		//     Unique().
-		//     Required().
-		//     Comment("The employee who occupied the position"),
+		// Reference to the employee (now activated)
+		edge.From("employee", Employee.Type).
+			Field("employee_id").
+			Ref("position_history").
+			Unique().
+			Required().
+			Comment("The employee who occupied the position"),
 	}
 }
 

@@ -10,18 +10,85 @@ import (
 var (
 	// EmployeesColumns holds the columns for the "employees" table.
 	EmployeesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true},
-		{Name: "name", Type: field.TypeString},
-		{Name: "email", Type: field.TypeString},
-		{Name: "position", Type: field.TypeString},
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "employee_type", Type: field.TypeEnum, Enums: []string{"FULL_TIME", "PART_TIME", "CONTRACTOR", "INTERN"}},
+		{Name: "employee_number", Type: field.TypeString, Size: 50},
+		{Name: "first_name", Type: field.TypeString, Size: 100},
+		{Name: "last_name", Type: field.TypeString, Size: 100},
+		{Name: "email", Type: field.TypeString, Size: 255},
+		{Name: "personal_email", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "phone_number", Type: field.TypeString, Nullable: true, Size: 20},
+		{Name: "employment_status", Type: field.TypeEnum, Enums: []string{"ACTIVE", "ON_LEAVE", "TERMINATED", "SUSPENDED", "PENDING_START"}, Default: "PENDING_START"},
+		{Name: "hire_date", Type: field.TypeTime},
+		{Name: "termination_date", Type: field.TypeTime, Nullable: true},
+		{Name: "employee_details", Type: field.TypeJSON, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "position", Type: field.TypeString, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "current_position_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// EmployeesTable holds the schema information for the "employees" table.
 	EmployeesTable = &schema.Table{
 		Name:       "employees",
 		Columns:    EmployeesColumns,
 		PrimaryKey: []*schema.Column{EmployeesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "employees_positions_current_incumbents",
+				Columns:    []*schema.Column{EmployeesColumns[17]},
+				RefColumns: []*schema.Column{PositionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "employee_tenant_id_employee_type",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[2]},
+			},
+			{
+				Name:    "employee_tenant_id_employee_number",
+				Unique:  true,
+				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[3]},
+			},
+			{
+				Name:    "employee_tenant_id_email",
+				Unique:  true,
+				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[6]},
+			},
+			{
+				Name:    "employee_tenant_id_employment_status",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[9]},
+			},
+			{
+				Name:    "employee_current_position_id",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[17]},
+			},
+			{
+				Name:    "employee_tenant_id_hire_date",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[10]},
+			},
+			{
+				Name:    "employee_tenant_id_employment_status_employee_type",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[9], EmployeesColumns[2]},
+			},
+			{
+				Name:    "employee_email",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[6]},
+			},
+			{
+				Name:    "employee_name",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[13]},
+			},
+		},
 	}
 	// OrganizationUnitsColumns holds the columns for the "organization_units" table.
 	OrganizationUnitsColumns = []*schema.Column{
@@ -246,7 +313,6 @@ var (
 	PositionOccupancyHistoriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "tenant_id", Type: field.TypeUUID},
-		{Name: "employee_id", Type: field.TypeUUID},
 		{Name: "start_date", Type: field.TypeTime},
 		{Name: "end_date", Type: field.TypeTime, Nullable: true},
 		{Name: "is_active", Type: field.TypeBool, Default: true},
@@ -262,6 +328,7 @@ var (
 		{Name: "source_event_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "employee_id", Type: field.TypeUUID},
 		{Name: "position_id", Type: field.TypeUUID},
 	}
 	// PositionOccupancyHistoriesTable holds the schema information for the "position_occupancy_histories" table.
@@ -270,6 +337,12 @@ var (
 		Columns:    PositionOccupancyHistoriesColumns,
 		PrimaryKey: []*schema.Column{PositionOccupancyHistoriesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "position_occupancy_histories_employees_position_history",
+				Columns:    []*schema.Column{PositionOccupancyHistoriesColumns[17]},
+				RefColumns: []*schema.Column{EmployeesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
 			{
 				Symbol:     "position_occupancy_histories_positions_occupancy_history",
 				Columns:    []*schema.Column{PositionOccupancyHistoriesColumns[18]},
@@ -281,12 +354,12 @@ var (
 			{
 				Name:    "positionoccupancyhistory_position_id_start_date",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[18], PositionOccupancyHistoriesColumns[3]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[18], PositionOccupancyHistoriesColumns[2]},
 			},
 			{
 				Name:    "positionoccupancyhistory_employee_id_start_date",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[2], PositionOccupancyHistoriesColumns[3]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[17], PositionOccupancyHistoriesColumns[2]},
 			},
 			{
 				Name:    "positionoccupancyhistory_tenant_id",
@@ -296,37 +369,37 @@ var (
 			{
 				Name:    "positionoccupancyhistory_start_date_end_date",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[3], PositionOccupancyHistoriesColumns[4]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[2], PositionOccupancyHistoriesColumns[3]},
 			},
 			{
 				Name:    "positionoccupancyhistory_assignment_type_start_date",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[6], PositionOccupancyHistoriesColumns[3]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[5], PositionOccupancyHistoriesColumns[2]},
 			},
 			{
 				Name:    "positionoccupancyhistory_position_id_fte_percentage_start_date",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[18], PositionOccupancyHistoriesColumns[8], PositionOccupancyHistoriesColumns[3]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[18], PositionOccupancyHistoriesColumns[7], PositionOccupancyHistoriesColumns[2]},
 			},
 			{
 				Name:    "positionoccupancyhistory_approved_by_approval_date",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[10], PositionOccupancyHistoriesColumns[11]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[9], PositionOccupancyHistoriesColumns[10]},
 			},
 			{
 				Name:    "positionoccupancyhistory_source_event_id",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[15]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[14]},
 			},
 			{
 				Name:    "positionoccupancyhistory_employee_id_start_date_end_date",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[2], PositionOccupancyHistoriesColumns[3], PositionOccupancyHistoriesColumns[4]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[17], PositionOccupancyHistoriesColumns[2], PositionOccupancyHistoriesColumns[3]},
 			},
 			{
 				Name:    "positionoccupancyhistory_performance_review_cycle_start_date",
 				Unique:  false,
-				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[14], PositionOccupancyHistoriesColumns[3]},
+				Columns: []*schema.Column{PositionOccupancyHistoriesColumns[13], PositionOccupancyHistoriesColumns[2]},
 			},
 		},
 	}
@@ -342,9 +415,11 @@ var (
 )
 
 func init() {
+	EmployeesTable.ForeignKeys[0].RefTable = PositionsTable
 	OrganizationUnitsTable.ForeignKeys[0].RefTable = OrganizationUnitsTable
 	PositionsTable.ForeignKeys[0].RefTable = OrganizationUnitsTable
 	PositionsTable.ForeignKeys[1].RefTable = PositionsTable
 	PositionAttributeHistoriesTable.ForeignKeys[0].RefTable = PositionsTable
-	PositionOccupancyHistoriesTable.ForeignKeys[0].RefTable = PositionsTable
+	PositionOccupancyHistoriesTable.ForeignKeys[0].RefTable = EmployeesTable
+	PositionOccupancyHistoriesTable.ForeignKeys[1].RefTable = PositionsTable
 }

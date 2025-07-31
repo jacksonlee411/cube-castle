@@ -211,26 +211,6 @@ func EmployeeIDNotIn(vs ...uuid.UUID) predicate.PositionOccupancyHistory {
 	return predicate.PositionOccupancyHistory(sql.FieldNotIn(FieldEmployeeID, vs...))
 }
 
-// EmployeeIDGT applies the GT predicate on the "employee_id" field.
-func EmployeeIDGT(v uuid.UUID) predicate.PositionOccupancyHistory {
-	return predicate.PositionOccupancyHistory(sql.FieldGT(FieldEmployeeID, v))
-}
-
-// EmployeeIDGTE applies the GTE predicate on the "employee_id" field.
-func EmployeeIDGTE(v uuid.UUID) predicate.PositionOccupancyHistory {
-	return predicate.PositionOccupancyHistory(sql.FieldGTE(FieldEmployeeID, v))
-}
-
-// EmployeeIDLT applies the LT predicate on the "employee_id" field.
-func EmployeeIDLT(v uuid.UUID) predicate.PositionOccupancyHistory {
-	return predicate.PositionOccupancyHistory(sql.FieldLT(FieldEmployeeID, v))
-}
-
-// EmployeeIDLTE applies the LTE predicate on the "employee_id" field.
-func EmployeeIDLTE(v uuid.UUID) predicate.PositionOccupancyHistory {
-	return predicate.PositionOccupancyHistory(sql.FieldLTE(FieldEmployeeID, v))
-}
-
 // StartDateEQ applies the EQ predicate on the "start_date" field.
 func StartDateEQ(v time.Time) predicate.PositionOccupancyHistory {
 	return predicate.PositionOccupancyHistory(sql.FieldEQ(FieldStartDate, v))
@@ -901,6 +881,29 @@ func HasPosition() predicate.PositionOccupancyHistory {
 func HasPositionWith(preds ...predicate.Position) predicate.PositionOccupancyHistory {
 	return predicate.PositionOccupancyHistory(func(s *sql.Selector) {
 		step := newPositionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasEmployee applies the HasEdge predicate on the "employee" edge.
+func HasEmployee() predicate.PositionOccupancyHistory {
+	return predicate.PositionOccupancyHistory(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, EmployeeTable, EmployeeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasEmployeeWith applies the HasEdge predicate on the "employee" edge with a given conditions (other predicates).
+func HasEmployeeWith(preds ...predicate.Employee) predicate.PositionOccupancyHistory {
+	return predicate.PositionOccupancyHistory(func(s *sql.Selector) {
+		step := newEmployeeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

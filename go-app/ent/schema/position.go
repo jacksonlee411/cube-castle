@@ -96,6 +96,10 @@ func (Position) Edges() []ent.Edge {
 			Required().
 			Comment("Organization unit that contains this position"),
 
+		// Current Incumbents (Employee Relationship)
+		edge.To("current_incumbents", Employee.Type).
+			Comment("Employees currently assigned to this position"),
+
 		// Occupancy History (Temporal Relationships)
 		edge.To("occupancy_history", PositionOccupancyHistory.Type).
 			Comment("Historical record of employees who occupied this position"),

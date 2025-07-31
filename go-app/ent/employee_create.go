@@ -11,6 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
+	"github.com/google/uuid"
 )
 
 // EmployeeCreate is the builder for creating a Employee entity.
@@ -20,9 +23,33 @@ type EmployeeCreate struct {
 	hooks    []Hook
 }
 
-// SetName sets the "name" field.
-func (ec *EmployeeCreate) SetName(s string) *EmployeeCreate {
-	ec.mutation.SetName(s)
+// SetTenantID sets the "tenant_id" field.
+func (ec *EmployeeCreate) SetTenantID(u uuid.UUID) *EmployeeCreate {
+	ec.mutation.SetTenantID(u)
+	return ec
+}
+
+// SetEmployeeType sets the "employee_type" field.
+func (ec *EmployeeCreate) SetEmployeeType(et employee.EmployeeType) *EmployeeCreate {
+	ec.mutation.SetEmployeeType(et)
+	return ec
+}
+
+// SetEmployeeNumber sets the "employee_number" field.
+func (ec *EmployeeCreate) SetEmployeeNumber(s string) *EmployeeCreate {
+	ec.mutation.SetEmployeeNumber(s)
+	return ec
+}
+
+// SetFirstName sets the "first_name" field.
+func (ec *EmployeeCreate) SetFirstName(s string) *EmployeeCreate {
+	ec.mutation.SetFirstName(s)
+	return ec
+}
+
+// SetLastName sets the "last_name" field.
+func (ec *EmployeeCreate) SetLastName(s string) *EmployeeCreate {
+	ec.mutation.SetLastName(s)
 	return ec
 }
 
@@ -32,9 +59,113 @@ func (ec *EmployeeCreate) SetEmail(s string) *EmployeeCreate {
 	return ec
 }
 
+// SetPersonalEmail sets the "personal_email" field.
+func (ec *EmployeeCreate) SetPersonalEmail(s string) *EmployeeCreate {
+	ec.mutation.SetPersonalEmail(s)
+	return ec
+}
+
+// SetNillablePersonalEmail sets the "personal_email" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillablePersonalEmail(s *string) *EmployeeCreate {
+	if s != nil {
+		ec.SetPersonalEmail(*s)
+	}
+	return ec
+}
+
+// SetPhoneNumber sets the "phone_number" field.
+func (ec *EmployeeCreate) SetPhoneNumber(s string) *EmployeeCreate {
+	ec.mutation.SetPhoneNumber(s)
+	return ec
+}
+
+// SetNillablePhoneNumber sets the "phone_number" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillablePhoneNumber(s *string) *EmployeeCreate {
+	if s != nil {
+		ec.SetPhoneNumber(*s)
+	}
+	return ec
+}
+
+// SetCurrentPositionID sets the "current_position_id" field.
+func (ec *EmployeeCreate) SetCurrentPositionID(u uuid.UUID) *EmployeeCreate {
+	ec.mutation.SetCurrentPositionID(u)
+	return ec
+}
+
+// SetNillableCurrentPositionID sets the "current_position_id" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillableCurrentPositionID(u *uuid.UUID) *EmployeeCreate {
+	if u != nil {
+		ec.SetCurrentPositionID(*u)
+	}
+	return ec
+}
+
+// SetEmploymentStatus sets the "employment_status" field.
+func (ec *EmployeeCreate) SetEmploymentStatus(es employee.EmploymentStatus) *EmployeeCreate {
+	ec.mutation.SetEmploymentStatus(es)
+	return ec
+}
+
+// SetNillableEmploymentStatus sets the "employment_status" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillableEmploymentStatus(es *employee.EmploymentStatus) *EmployeeCreate {
+	if es != nil {
+		ec.SetEmploymentStatus(*es)
+	}
+	return ec
+}
+
+// SetHireDate sets the "hire_date" field.
+func (ec *EmployeeCreate) SetHireDate(t time.Time) *EmployeeCreate {
+	ec.mutation.SetHireDate(t)
+	return ec
+}
+
+// SetTerminationDate sets the "termination_date" field.
+func (ec *EmployeeCreate) SetTerminationDate(t time.Time) *EmployeeCreate {
+	ec.mutation.SetTerminationDate(t)
+	return ec
+}
+
+// SetNillableTerminationDate sets the "termination_date" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillableTerminationDate(t *time.Time) *EmployeeCreate {
+	if t != nil {
+		ec.SetTerminationDate(*t)
+	}
+	return ec
+}
+
+// SetEmployeeDetails sets the "employee_details" field.
+func (ec *EmployeeCreate) SetEmployeeDetails(m map[string]interface{}) *EmployeeCreate {
+	ec.mutation.SetEmployeeDetails(m)
+	return ec
+}
+
+// SetName sets the "name" field.
+func (ec *EmployeeCreate) SetName(s string) *EmployeeCreate {
+	ec.mutation.SetName(s)
+	return ec
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillableName(s *string) *EmployeeCreate {
+	if s != nil {
+		ec.SetName(*s)
+	}
+	return ec
+}
+
 // SetPosition sets the "position" field.
 func (ec *EmployeeCreate) SetPosition(s string) *EmployeeCreate {
 	ec.mutation.SetPosition(s)
+	return ec
+}
+
+// SetNillablePosition sets the "position" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillablePosition(s *string) *EmployeeCreate {
+	if s != nil {
+		ec.SetPosition(*s)
+	}
 	return ec
 }
 
@@ -67,9 +198,37 @@ func (ec *EmployeeCreate) SetNillableUpdatedAt(t *time.Time) *EmployeeCreate {
 }
 
 // SetID sets the "id" field.
-func (ec *EmployeeCreate) SetID(s string) *EmployeeCreate {
-	ec.mutation.SetID(s)
+func (ec *EmployeeCreate) SetID(u uuid.UUID) *EmployeeCreate {
+	ec.mutation.SetID(u)
 	return ec
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillableID(u *uuid.UUID) *EmployeeCreate {
+	if u != nil {
+		ec.SetID(*u)
+	}
+	return ec
+}
+
+// SetCurrentPosition sets the "current_position" edge to the Position entity.
+func (ec *EmployeeCreate) SetCurrentPosition(p *Position) *EmployeeCreate {
+	return ec.SetCurrentPositionID(p.ID)
+}
+
+// AddPositionHistoryIDs adds the "position_history" edge to the PositionOccupancyHistory entity by IDs.
+func (ec *EmployeeCreate) AddPositionHistoryIDs(ids ...uuid.UUID) *EmployeeCreate {
+	ec.mutation.AddPositionHistoryIDs(ids...)
+	return ec
+}
+
+// AddPositionHistory adds the "position_history" edges to the PositionOccupancyHistory entity.
+func (ec *EmployeeCreate) AddPositionHistory(p ...*PositionOccupancyHistory) *EmployeeCreate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return ec.AddPositionHistoryIDs(ids...)
 }
 
 // Mutation returns the EmployeeMutation object of the builder.
@@ -107,6 +266,10 @@ func (ec *EmployeeCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (ec *EmployeeCreate) defaults() {
+	if _, ok := ec.mutation.EmploymentStatus(); !ok {
+		v := employee.DefaultEmploymentStatus
+		ec.mutation.SetEmploymentStatus(v)
+	}
 	if _, ok := ec.mutation.CreatedAt(); !ok {
 		v := employee.DefaultCreatedAt()
 		ec.mutation.SetCreatedAt(v)
@@ -115,18 +278,77 @@ func (ec *EmployeeCreate) defaults() {
 		v := employee.DefaultUpdatedAt()
 		ec.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := ec.mutation.ID(); !ok {
+		v := employee.DefaultID()
+		ec.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
 func (ec *EmployeeCreate) check() error {
-	if _, ok := ec.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Employee.name"`)}
+	if _, ok := ec.mutation.TenantID(); !ok {
+		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Employee.tenant_id"`)}
+	}
+	if _, ok := ec.mutation.EmployeeType(); !ok {
+		return &ValidationError{Name: "employee_type", err: errors.New(`ent: missing required field "Employee.employee_type"`)}
+	}
+	if v, ok := ec.mutation.EmployeeType(); ok {
+		if err := employee.EmployeeTypeValidator(v); err != nil {
+			return &ValidationError{Name: "employee_type", err: fmt.Errorf(`ent: validator failed for field "Employee.employee_type": %w`, err)}
+		}
+	}
+	if _, ok := ec.mutation.EmployeeNumber(); !ok {
+		return &ValidationError{Name: "employee_number", err: errors.New(`ent: missing required field "Employee.employee_number"`)}
+	}
+	if v, ok := ec.mutation.EmployeeNumber(); ok {
+		if err := employee.EmployeeNumberValidator(v); err != nil {
+			return &ValidationError{Name: "employee_number", err: fmt.Errorf(`ent: validator failed for field "Employee.employee_number": %w`, err)}
+		}
+	}
+	if _, ok := ec.mutation.FirstName(); !ok {
+		return &ValidationError{Name: "first_name", err: errors.New(`ent: missing required field "Employee.first_name"`)}
+	}
+	if v, ok := ec.mutation.FirstName(); ok {
+		if err := employee.FirstNameValidator(v); err != nil {
+			return &ValidationError{Name: "first_name", err: fmt.Errorf(`ent: validator failed for field "Employee.first_name": %w`, err)}
+		}
+	}
+	if _, ok := ec.mutation.LastName(); !ok {
+		return &ValidationError{Name: "last_name", err: errors.New(`ent: missing required field "Employee.last_name"`)}
+	}
+	if v, ok := ec.mutation.LastName(); ok {
+		if err := employee.LastNameValidator(v); err != nil {
+			return &ValidationError{Name: "last_name", err: fmt.Errorf(`ent: validator failed for field "Employee.last_name": %w`, err)}
+		}
 	}
 	if _, ok := ec.mutation.Email(); !ok {
 		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "Employee.email"`)}
 	}
-	if _, ok := ec.mutation.Position(); !ok {
-		return &ValidationError{Name: "position", err: errors.New(`ent: missing required field "Employee.position"`)}
+	if v, ok := ec.mutation.Email(); ok {
+		if err := employee.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Employee.email": %w`, err)}
+		}
+	}
+	if v, ok := ec.mutation.PersonalEmail(); ok {
+		if err := employee.PersonalEmailValidator(v); err != nil {
+			return &ValidationError{Name: "personal_email", err: fmt.Errorf(`ent: validator failed for field "Employee.personal_email": %w`, err)}
+		}
+	}
+	if v, ok := ec.mutation.PhoneNumber(); ok {
+		if err := employee.PhoneNumberValidator(v); err != nil {
+			return &ValidationError{Name: "phone_number", err: fmt.Errorf(`ent: validator failed for field "Employee.phone_number": %w`, err)}
+		}
+	}
+	if _, ok := ec.mutation.EmploymentStatus(); !ok {
+		return &ValidationError{Name: "employment_status", err: errors.New(`ent: missing required field "Employee.employment_status"`)}
+	}
+	if v, ok := ec.mutation.EmploymentStatus(); ok {
+		if err := employee.EmploymentStatusValidator(v); err != nil {
+			return &ValidationError{Name: "employment_status", err: fmt.Errorf(`ent: validator failed for field "Employee.employment_status": %w`, err)}
+		}
+	}
+	if _, ok := ec.mutation.HireDate(); !ok {
+		return &ValidationError{Name: "hire_date", err: errors.New(`ent: missing required field "Employee.hire_date"`)}
 	}
 	if _, ok := ec.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Employee.created_at"`)}
@@ -149,10 +371,10 @@ func (ec *EmployeeCreate) sqlSave(ctx context.Context) (*Employee, error) {
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		if id, ok := _spec.ID.Value.(string); ok {
-			_node.ID = id
-		} else {
-			return nil, fmt.Errorf("unexpected Employee.ID type: %T", _spec.ID.Value)
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
 		}
 	}
 	ec.mutation.id = &_node.ID
@@ -163,19 +385,63 @@ func (ec *EmployeeCreate) sqlSave(ctx context.Context) (*Employee, error) {
 func (ec *EmployeeCreate) createSpec() (*Employee, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Employee{config: ec.config}
-		_spec = sqlgraph.NewCreateSpec(employee.Table, sqlgraph.NewFieldSpec(employee.FieldID, field.TypeString))
+		_spec = sqlgraph.NewCreateSpec(employee.Table, sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID))
 	)
 	if id, ok := ec.mutation.ID(); ok {
 		_node.ID = id
-		_spec.ID.Value = id
+		_spec.ID.Value = &id
 	}
-	if value, ok := ec.mutation.Name(); ok {
-		_spec.SetField(employee.FieldName, field.TypeString, value)
-		_node.Name = value
+	if value, ok := ec.mutation.TenantID(); ok {
+		_spec.SetField(employee.FieldTenantID, field.TypeUUID, value)
+		_node.TenantID = value
+	}
+	if value, ok := ec.mutation.EmployeeType(); ok {
+		_spec.SetField(employee.FieldEmployeeType, field.TypeEnum, value)
+		_node.EmployeeType = value
+	}
+	if value, ok := ec.mutation.EmployeeNumber(); ok {
+		_spec.SetField(employee.FieldEmployeeNumber, field.TypeString, value)
+		_node.EmployeeNumber = value
+	}
+	if value, ok := ec.mutation.FirstName(); ok {
+		_spec.SetField(employee.FieldFirstName, field.TypeString, value)
+		_node.FirstName = value
+	}
+	if value, ok := ec.mutation.LastName(); ok {
+		_spec.SetField(employee.FieldLastName, field.TypeString, value)
+		_node.LastName = value
 	}
 	if value, ok := ec.mutation.Email(); ok {
 		_spec.SetField(employee.FieldEmail, field.TypeString, value)
 		_node.Email = value
+	}
+	if value, ok := ec.mutation.PersonalEmail(); ok {
+		_spec.SetField(employee.FieldPersonalEmail, field.TypeString, value)
+		_node.PersonalEmail = &value
+	}
+	if value, ok := ec.mutation.PhoneNumber(); ok {
+		_spec.SetField(employee.FieldPhoneNumber, field.TypeString, value)
+		_node.PhoneNumber = &value
+	}
+	if value, ok := ec.mutation.EmploymentStatus(); ok {
+		_spec.SetField(employee.FieldEmploymentStatus, field.TypeEnum, value)
+		_node.EmploymentStatus = value
+	}
+	if value, ok := ec.mutation.HireDate(); ok {
+		_spec.SetField(employee.FieldHireDate, field.TypeTime, value)
+		_node.HireDate = value
+	}
+	if value, ok := ec.mutation.TerminationDate(); ok {
+		_spec.SetField(employee.FieldTerminationDate, field.TypeTime, value)
+		_node.TerminationDate = &value
+	}
+	if value, ok := ec.mutation.EmployeeDetails(); ok {
+		_spec.SetField(employee.FieldEmployeeDetails, field.TypeJSON, value)
+		_node.EmployeeDetails = value
+	}
+	if value, ok := ec.mutation.Name(); ok {
+		_spec.SetField(employee.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := ec.mutation.Position(); ok {
 		_spec.SetField(employee.FieldPosition, field.TypeString, value)
@@ -188,6 +454,39 @@ func (ec *EmployeeCreate) createSpec() (*Employee, *sqlgraph.CreateSpec) {
 	if value, ok := ec.mutation.UpdatedAt(); ok {
 		_spec.SetField(employee.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := ec.mutation.CurrentPositionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   employee.CurrentPositionTable,
+			Columns: []string{employee.CurrentPositionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CurrentPositionID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.PositionHistoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   employee.PositionHistoryTable,
+			Columns: []string{employee.PositionHistoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionoccupancyhistory.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

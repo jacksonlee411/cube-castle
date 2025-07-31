@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
@@ -175,6 +176,21 @@ func (pc *PositionCreate) AddDirectReports(p ...*Position) *PositionCreate {
 // SetDepartment sets the "department" edge to the OrganizationUnit entity.
 func (pc *PositionCreate) SetDepartment(o *OrganizationUnit) *PositionCreate {
 	return pc.SetDepartmentID(o.ID)
+}
+
+// AddCurrentIncumbentIDs adds the "current_incumbents" edge to the Employee entity by IDs.
+func (pc *PositionCreate) AddCurrentIncumbentIDs(ids ...uuid.UUID) *PositionCreate {
+	pc.mutation.AddCurrentIncumbentIDs(ids...)
+	return pc
+}
+
+// AddCurrentIncumbents adds the "current_incumbents" edges to the Employee entity.
+func (pc *PositionCreate) AddCurrentIncumbents(e ...*Employee) *PositionCreate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return pc.AddCurrentIncumbentIDs(ids...)
 }
 
 // AddOccupancyHistoryIDs adds the "occupancy_history" edge to the PositionOccupancyHistory entity by IDs.
@@ -418,6 +434,22 @@ func (pc *PositionCreate) createSpec() (*Position, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.DepartmentID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.CurrentIncumbentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.CurrentIncumbentsTable,
+			Columns: []string{position.CurrentIncumbentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := pc.mutation.OccupancyHistoryIDs(); len(nodes) > 0 {

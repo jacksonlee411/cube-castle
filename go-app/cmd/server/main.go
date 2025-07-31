@@ -23,6 +23,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/metacontracteditor"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
+	"github.com/gaogu/cube-castle/go-app/internal/service"
 	"github.com/gaogu/cube-castle/go-app/internal/validation"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -152,11 +153,25 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 	// 初始化处理器（只有在数据库连接成功时才初始化）
 	var orgUnitHandler *handler.OrganizationUnitHandler
 	var positionHandler *handler.PositionHandler
+	var employeeHandler *handler.EmployeeHandler
+	var positionAssignmentHandler *handler.PositionAssignmentHandler
+	var lifecycleHandler *handler.EmployeeLifecycleHandler
+	var analyticsHandler *handler.AnalyticsHandler
 	var validator *validation.EmployeeValidator
 
 	if entClient != nil {
 		orgUnitHandler = handler.NewOrganizationUnitHandler(entClient, logger)
 		positionHandler = handler.NewPositionHandler(entClient, logger)
+		employeeHandler = handler.NewEmployeeHandler(entClient, logger)
+		
+		// 初始化高级服务和处理器
+		positionAssignmentService := service.NewPositionAssignmentService(entClient, logger)
+		lifecycleService := service.NewEmployeeLifecycleService(entClient, logger)
+		analyticsService := service.NewAnalyticsService(entClient, logger)
+		
+		positionAssignmentHandler = handler.NewPositionAssignmentHandler(positionAssignmentService, logger)
+		lifecycleHandler = handler.NewEmployeeLifecycleHandler(lifecycleService, logger)
+		analyticsHandler = handler.NewAnalyticsHandler(analyticsService, logger)
 		
 		// 初始化验证器（需要数据库访问）
 		if coreHRService != nil {
@@ -227,6 +242,75 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
 				}))
 				r.Post("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+			}
+		})
+
+		// 新的员工CRUD API
+		r.Route("/employees", func(r chi.Router) {
+			if employeeHandler != nil {
+				// CRUD operations
+				r.Get("/", employeeHandler.ListEmployees())
+				r.Post("/", employeeHandler.CreateEmployee())
+				r.Route("/{id}", func(r chi.Router) {
+					r.Get("/", employeeHandler.GetEmployee())
+					r.Put("/", employeeHandler.UpdateEmployee())
+					r.Delete("/", employeeHandler.DeleteEmployee())
+
+					// Position-related operations
+					r.Post("/assign-position", employeeHandler.AssignPosition())
+					r.Get("/position-history", employeeHandler.GetPositionHistory())
+				})
+			} else {
+				// 数据库未连接时返回服务不可用
+				r.Get("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+				r.Post("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+			}
+		})
+
+		// Advanced Employee Management APIs
+		r.Route("/assignments", func(r chi.Router) {
+			if positionAssignmentHandler != nil {
+				r.Post("/", positionAssignmentHandler.AssignPosition())
+				r.Post("/transfer", positionAssignmentHandler.TransferEmployee())
+				r.Delete("/{employeeId}", positionAssignmentHandler.EndAssignment())
+				r.Get("/active", positionAssignmentHandler.GetActiveAssignments())
+			} else {
+				// Database service unavailable fallback
+				r.Post("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+			}
+		})
+
+		r.Route("/lifecycle", func(r chi.Router) {
+			if lifecycleHandler != nil {
+				r.Post("/onboard", lifecycleHandler.OnboardEmployee())
+				r.Post("/offboard", lifecycleHandler.OffboardEmployee())
+				r.Post("/promote", lifecycleHandler.PromoteEmployee())
+				r.Post("/status-change", lifecycleHandler.ChangeEmploymentStatus())
+			} else {
+				// Database service unavailable fallback
+				r.Post("/onboard", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+			}
+		})
+
+		r.Route("/analytics", func(r chi.Router) {
+			if analyticsHandler != nil {
+				r.Get("/metrics", analyticsHandler.GetOrganizationalMetrics())
+				r.Get("/employees/{id}/history", analyticsHandler.GetEmployeeHistory())
+				r.Get("/positions/{id}/history", analyticsHandler.GetPositionHistory())
+				r.Get("/assignments/history", analyticsHandler.GetHistoricalAssignments())
+			} else {
+				// Database service unavailable fallback
+				r.Get("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
 				}))
 			}

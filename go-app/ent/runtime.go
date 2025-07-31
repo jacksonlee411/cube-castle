@@ -21,16 +21,100 @@ import (
 func init() {
 	employeeFields := schema.Employee{}.Fields()
 	_ = employeeFields
+	// employeeDescEmployeeNumber is the schema descriptor for employee_number field.
+	employeeDescEmployeeNumber := employeeFields[3].Descriptor()
+	// employee.EmployeeNumberValidator is a validator for the "employee_number" field. It is called by the builders before save.
+	employee.EmployeeNumberValidator = func() func(string) error {
+		validators := employeeDescEmployeeNumber.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(employee_number string) error {
+			for _, fn := range fns {
+				if err := fn(employee_number); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// employeeDescFirstName is the schema descriptor for first_name field.
+	employeeDescFirstName := employeeFields[4].Descriptor()
+	// employee.FirstNameValidator is a validator for the "first_name" field. It is called by the builders before save.
+	employee.FirstNameValidator = func() func(string) error {
+		validators := employeeDescFirstName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(first_name string) error {
+			for _, fn := range fns {
+				if err := fn(first_name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// employeeDescLastName is the schema descriptor for last_name field.
+	employeeDescLastName := employeeFields[5].Descriptor()
+	// employee.LastNameValidator is a validator for the "last_name" field. It is called by the builders before save.
+	employee.LastNameValidator = func() func(string) error {
+		validators := employeeDescLastName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(last_name string) error {
+			for _, fn := range fns {
+				if err := fn(last_name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// employeeDescEmail is the schema descriptor for email field.
+	employeeDescEmail := employeeFields[6].Descriptor()
+	// employee.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	employee.EmailValidator = func() func(string) error {
+		validators := employeeDescEmail.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(email string) error {
+			for _, fn := range fns {
+				if err := fn(email); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// employeeDescPersonalEmail is the schema descriptor for personal_email field.
+	employeeDescPersonalEmail := employeeFields[7].Descriptor()
+	// employee.PersonalEmailValidator is a validator for the "personal_email" field. It is called by the builders before save.
+	employee.PersonalEmailValidator = employeeDescPersonalEmail.Validators[0].(func(string) error)
+	// employeeDescPhoneNumber is the schema descriptor for phone_number field.
+	employeeDescPhoneNumber := employeeFields[8].Descriptor()
+	// employee.PhoneNumberValidator is a validator for the "phone_number" field. It is called by the builders before save.
+	employee.PhoneNumberValidator = employeeDescPhoneNumber.Validators[0].(func(string) error)
 	// employeeDescCreatedAt is the schema descriptor for created_at field.
-	employeeDescCreatedAt := employeeFields[4].Descriptor()
+	employeeDescCreatedAt := employeeFields[16].Descriptor()
 	// employee.DefaultCreatedAt holds the default value on creation for the created_at field.
 	employee.DefaultCreatedAt = employeeDescCreatedAt.Default.(func() time.Time)
 	// employeeDescUpdatedAt is the schema descriptor for updated_at field.
-	employeeDescUpdatedAt := employeeFields[5].Descriptor()
+	employeeDescUpdatedAt := employeeFields[17].Descriptor()
 	// employee.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	employee.DefaultUpdatedAt = employeeDescUpdatedAt.Default.(func() time.Time)
 	// employee.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	employee.UpdateDefaultUpdatedAt = employeeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// employeeDescID is the schema descriptor for id field.
+	employeeDescID := employeeFields[0].Descriptor()
+	// employee.DefaultID holds the default value on creation for the id field.
+	employee.DefaultID = employeeDescID.Default.(func() uuid.UUID)
 	organizationunitFields := schema.OrganizationUnit{}.Fields()
 	_ = organizationunitFields
 	// organizationunitDescName is the schema descriptor for name field.

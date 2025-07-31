@@ -460,6 +460,29 @@ func HasDepartmentWith(preds ...predicate.OrganizationUnit) predicate.Position {
 	})
 }
 
+// HasCurrentIncumbents applies the HasEdge predicate on the "current_incumbents" edge.
+func HasCurrentIncumbents() predicate.Position {
+	return predicate.Position(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CurrentIncumbentsTable, CurrentIncumbentsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCurrentIncumbentsWith applies the HasEdge predicate on the "current_incumbents" edge with a given conditions (other predicates).
+func HasCurrentIncumbentsWith(preds ...predicate.Employee) predicate.Position {
+	return predicate.Position(func(s *sql.Selector) {
+		step := newCurrentIncumbentsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasOccupancyHistory applies the HasEdge predicate on the "occupancy_history" edge.
 func HasOccupancyHistory() predicate.Position {
 	return predicate.Position(func(s *sql.Selector) {

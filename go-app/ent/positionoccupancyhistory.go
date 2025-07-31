@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/google/uuid"
@@ -67,9 +68,11 @@ type PositionOccupancyHistory struct {
 type PositionOccupancyHistoryEdges struct {
 	// The position this occupancy record belongs to
 	Position *Position `json:"position,omitempty"`
+	// The employee who occupied the position
+	Employee *Employee `json:"employee,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // PositionOrErr returns the Position value or an error if the edge
@@ -81,6 +84,17 @@ func (e PositionOccupancyHistoryEdges) PositionOrErr() (*Position, error) {
 		return nil, &NotFoundError{label: position.Label}
 	}
 	return nil, &NotLoadedError{edge: "position"}
+}
+
+// EmployeeOrErr returns the Employee value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PositionOccupancyHistoryEdges) EmployeeOrErr() (*Employee, error) {
+	if e.Employee != nil {
+		return e.Employee, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: employee.Label}
+	}
+	return nil, &NotLoadedError{edge: "employee"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -253,6 +267,11 @@ func (poh *PositionOccupancyHistory) Value(name string) (ent.Value, error) {
 // QueryPosition queries the "position" edge of the PositionOccupancyHistory entity.
 func (poh *PositionOccupancyHistory) QueryPosition() *PositionQuery {
 	return NewPositionOccupancyHistoryClient(poh.config).QueryPosition(poh)
+}
+
+// QueryEmployee queries the "employee" edge of the PositionOccupancyHistory entity.
+func (poh *PositionOccupancyHistory) QueryEmployee() *EmployeeQuery {
+	return NewPositionOccupancyHistoryClient(poh.config).QueryEmployee(poh)
 }
 
 // Update returns a builder for updating this PositionOccupancyHistory.

@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -12,16 +13,21 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
+	"github.com/google/uuid"
 )
 
 // EmployeeQuery is the builder for querying Employee entities.
 type EmployeeQuery struct {
 	config
-	ctx        *QueryContext
-	order      []employee.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Employee
+	ctx                 *QueryContext
+	order               []employee.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.Employee
+	withCurrentPosition *PositionQuery
+	withPositionHistory *PositionOccupancyHistoryQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +64,50 @@ func (eq *EmployeeQuery) Order(o ...employee.OrderOption) *EmployeeQuery {
 	return eq
 }
 
+// QueryCurrentPosition chains the current query on the "current_position" edge.
+func (eq *EmployeeQuery) QueryCurrentPosition() *PositionQuery {
+	query := (&PositionClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(employee.Table, employee.FieldID, selector),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, employee.CurrentPositionTable, employee.CurrentPositionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPositionHistory chains the current query on the "position_history" edge.
+func (eq *EmployeeQuery) QueryPositionHistory() *PositionOccupancyHistoryQuery {
+	query := (&PositionOccupancyHistoryClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(employee.Table, employee.FieldID, selector),
+			sqlgraph.To(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, employee.PositionHistoryTable, employee.PositionHistoryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first Employee entity from the query.
 // Returns a *NotFoundError when no Employee was found.
 func (eq *EmployeeQuery) First(ctx context.Context) (*Employee, error) {
@@ -82,8 +132,8 @@ func (eq *EmployeeQuery) FirstX(ctx context.Context) *Employee {
 
 // FirstID returns the first Employee ID from the query.
 // Returns a *NotFoundError when no Employee ID was found.
-func (eq *EmployeeQuery) FirstID(ctx context.Context) (id string, err error) {
-	var ids []string
+func (eq *EmployeeQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = eq.Limit(1).IDs(setContextOp(ctx, eq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -95,7 +145,7 @@ func (eq *EmployeeQuery) FirstID(ctx context.Context) (id string, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (eq *EmployeeQuery) FirstIDX(ctx context.Context) string {
+func (eq *EmployeeQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := eq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -133,8 +183,8 @@ func (eq *EmployeeQuery) OnlyX(ctx context.Context) *Employee {
 // OnlyID is like Only, but returns the only Employee ID in the query.
 // Returns a *NotSingularError when more than one Employee ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (eq *EmployeeQuery) OnlyID(ctx context.Context) (id string, err error) {
-	var ids []string
+func (eq *EmployeeQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = eq.Limit(2).IDs(setContextOp(ctx, eq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -150,7 +200,7 @@ func (eq *EmployeeQuery) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (eq *EmployeeQuery) OnlyIDX(ctx context.Context) string {
+func (eq *EmployeeQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := eq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -178,7 +228,7 @@ func (eq *EmployeeQuery) AllX(ctx context.Context) []*Employee {
 }
 
 // IDs executes the query and returns a list of Employee IDs.
-func (eq *EmployeeQuery) IDs(ctx context.Context) (ids []string, err error) {
+func (eq *EmployeeQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if eq.ctx.Unique == nil && eq.path != nil {
 		eq.Unique(true)
 	}
@@ -190,7 +240,7 @@ func (eq *EmployeeQuery) IDs(ctx context.Context) (ids []string, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (eq *EmployeeQuery) IDsX(ctx context.Context) []string {
+func (eq *EmployeeQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := eq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -245,15 +295,39 @@ func (eq *EmployeeQuery) Clone() *EmployeeQuery {
 		return nil
 	}
 	return &EmployeeQuery{
-		config:     eq.config,
-		ctx:        eq.ctx.Clone(),
-		order:      append([]employee.OrderOption{}, eq.order...),
-		inters:     append([]Interceptor{}, eq.inters...),
-		predicates: append([]predicate.Employee{}, eq.predicates...),
+		config:              eq.config,
+		ctx:                 eq.ctx.Clone(),
+		order:               append([]employee.OrderOption{}, eq.order...),
+		inters:              append([]Interceptor{}, eq.inters...),
+		predicates:          append([]predicate.Employee{}, eq.predicates...),
+		withCurrentPosition: eq.withCurrentPosition.Clone(),
+		withPositionHistory: eq.withPositionHistory.Clone(),
 		// clone intermediate query.
 		sql:  eq.sql.Clone(),
 		path: eq.path,
 	}
+}
+
+// WithCurrentPosition tells the query-builder to eager-load the nodes that are connected to
+// the "current_position" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EmployeeQuery) WithCurrentPosition(opts ...func(*PositionQuery)) *EmployeeQuery {
+	query := (&PositionClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withCurrentPosition = query
+	return eq
+}
+
+// WithPositionHistory tells the query-builder to eager-load the nodes that are connected to
+// the "position_history" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EmployeeQuery) WithPositionHistory(opts ...func(*PositionOccupancyHistoryQuery)) *EmployeeQuery {
+	query := (&PositionOccupancyHistoryClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withPositionHistory = query
+	return eq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -262,12 +336,12 @@ func (eq *EmployeeQuery) Clone() *EmployeeQuery {
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		TenantID uuid.UUID `json:"tenant_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Employee.Query().
-//		GroupBy(employee.FieldName).
+//		GroupBy(employee.FieldTenantID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (eq *EmployeeQuery) GroupBy(field string, fields ...string) *EmployeeGroupBy {
@@ -285,11 +359,11 @@ func (eq *EmployeeQuery) GroupBy(field string, fields ...string) *EmployeeGroupB
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		TenantID uuid.UUID `json:"tenant_id,omitempty"`
 //	}
 //
 //	client.Employee.Query().
-//		Select(employee.FieldName).
+//		Select(employee.FieldTenantID).
 //		Scan(ctx, &v)
 func (eq *EmployeeQuery) Select(fields ...string) *EmployeeSelect {
 	eq.ctx.Fields = append(eq.ctx.Fields, fields...)
@@ -332,8 +406,12 @@ func (eq *EmployeeQuery) prepareQuery(ctx context.Context) error {
 
 func (eq *EmployeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Employee, error) {
 	var (
-		nodes = []*Employee{}
-		_spec = eq.querySpec()
+		nodes       = []*Employee{}
+		_spec       = eq.querySpec()
+		loadedTypes = [2]bool{
+			eq.withCurrentPosition != nil,
+			eq.withPositionHistory != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Employee).scanValues(nil, columns)
@@ -341,6 +419,7 @@ func (eq *EmployeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Emp
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Employee{config: eq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -352,7 +431,85 @@ func (eq *EmployeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Emp
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := eq.withCurrentPosition; query != nil {
+		if err := eq.loadCurrentPosition(ctx, query, nodes, nil,
+			func(n *Employee, e *Position) { n.Edges.CurrentPosition = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withPositionHistory; query != nil {
+		if err := eq.loadPositionHistory(ctx, query, nodes,
+			func(n *Employee) { n.Edges.PositionHistory = []*PositionOccupancyHistory{} },
+			func(n *Employee, e *PositionOccupancyHistory) {
+				n.Edges.PositionHistory = append(n.Edges.PositionHistory, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (eq *EmployeeQuery) loadCurrentPosition(ctx context.Context, query *PositionQuery, nodes []*Employee, init func(*Employee), assign func(*Employee, *Position)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Employee)
+	for i := range nodes {
+		if nodes[i].CurrentPositionID == nil {
+			continue
+		}
+		fk := *nodes[i].CurrentPositionID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(position.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "current_position_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (eq *EmployeeQuery) loadPositionHistory(ctx context.Context, query *PositionOccupancyHistoryQuery, nodes []*Employee, init func(*Employee), assign func(*Employee, *PositionOccupancyHistory)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Employee)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(positionoccupancyhistory.FieldEmployeeID)
+	}
+	query.Where(predicate.PositionOccupancyHistory(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(employee.PositionHistoryColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.EmployeeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "employee_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (eq *EmployeeQuery) sqlCount(ctx context.Context) (int, error) {
@@ -365,7 +522,7 @@ func (eq *EmployeeQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (eq *EmployeeQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(employee.Table, employee.Columns, sqlgraph.NewFieldSpec(employee.FieldID, field.TypeString))
+	_spec := sqlgraph.NewQuerySpec(employee.Table, employee.Columns, sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID))
 	_spec.From = eq.sql
 	if unique := eq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -379,6 +536,9 @@ func (eq *EmployeeQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != employee.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if eq.withCurrentPosition != nil {
+			_spec.Node.AddColumnOnce(employee.FieldCurrentPositionID)
 		}
 	}
 	if ps := eq.predicates; len(ps) > 0 {

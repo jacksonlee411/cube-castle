@@ -42,6 +42,8 @@ const (
 	EdgeDirectReports = "direct_reports"
 	// EdgeDepartment holds the string denoting the department edge name in mutations.
 	EdgeDepartment = "department"
+	// EdgeCurrentIncumbents holds the string denoting the current_incumbents edge name in mutations.
+	EdgeCurrentIncumbents = "current_incumbents"
 	// EdgeOccupancyHistory holds the string denoting the occupancy_history edge name in mutations.
 	EdgeOccupancyHistory = "occupancy_history"
 	// EdgeAttributeHistory holds the string denoting the attribute_history edge name in mutations.
@@ -63,6 +65,13 @@ const (
 	DepartmentInverseTable = "organization_units"
 	// DepartmentColumn is the table column denoting the department relation/edge.
 	DepartmentColumn = "department_id"
+	// CurrentIncumbentsTable is the table that holds the current_incumbents relation/edge.
+	CurrentIncumbentsTable = "employees"
+	// CurrentIncumbentsInverseTable is the table name for the Employee entity.
+	// It exists in this package in order to avoid circular dependency with the "employee" package.
+	CurrentIncumbentsInverseTable = "employees"
+	// CurrentIncumbentsColumn is the table column denoting the current_incumbents relation/edge.
+	CurrentIncumbentsColumn = "current_position_id"
 	// OccupancyHistoryTable is the table that holds the occupancy_history relation/edge.
 	OccupancyHistoryTable = "position_occupancy_histories"
 	// OccupancyHistoryInverseTable is the table name for the PositionOccupancyHistory entity.
@@ -251,6 +260,20 @@ func ByDepartmentField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
+// ByCurrentIncumbentsCount orders the results by current_incumbents count.
+func ByCurrentIncumbentsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCurrentIncumbentsStep(), opts...)
+	}
+}
+
+// ByCurrentIncumbents orders the results by current_incumbents terms.
+func ByCurrentIncumbents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCurrentIncumbentsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByOccupancyHistoryCount orders the results by occupancy_history count.
 func ByOccupancyHistoryCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -297,6 +320,13 @@ func newDepartmentStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(DepartmentInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, DepartmentTable, DepartmentColumn),
+	)
+}
+func newCurrentIncumbentsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CurrentIncumbentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CurrentIncumbentsTable, CurrentIncumbentsColumn),
 	)
 }
 func newOccupancyHistoryStep() *sqlgraph.Step {

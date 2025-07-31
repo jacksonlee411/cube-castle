@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
@@ -25,6 +26,7 @@ type PositionOccupancyHistoryQuery struct {
 	inters       []Interceptor
 	predicates   []predicate.PositionOccupancyHistory
 	withPosition *PositionQuery
+	withEmployee *EmployeeQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -76,6 +78,28 @@ func (pohq *PositionOccupancyHistoryQuery) QueryPosition() *PositionQuery {
 			sqlgraph.From(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID, selector),
 			sqlgraph.To(position.Table, position.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, positionoccupancyhistory.PositionTable, positionoccupancyhistory.PositionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pohq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryEmployee chains the current query on the "employee" edge.
+func (pohq *PositionOccupancyHistoryQuery) QueryEmployee() *EmployeeQuery {
+	query := (&EmployeeClient{config: pohq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pohq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pohq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID, selector),
+			sqlgraph.To(employee.Table, employee.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, positionoccupancyhistory.EmployeeTable, positionoccupancyhistory.EmployeeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pohq.driver.Dialect(), step)
 		return fromU, nil
@@ -276,6 +300,7 @@ func (pohq *PositionOccupancyHistoryQuery) Clone() *PositionOccupancyHistoryQuer
 		inters:       append([]Interceptor{}, pohq.inters...),
 		predicates:   append([]predicate.PositionOccupancyHistory{}, pohq.predicates...),
 		withPosition: pohq.withPosition.Clone(),
+		withEmployee: pohq.withEmployee.Clone(),
 		// clone intermediate query.
 		sql:  pohq.sql.Clone(),
 		path: pohq.path,
@@ -290,6 +315,17 @@ func (pohq *PositionOccupancyHistoryQuery) WithPosition(opts ...func(*PositionQu
 		opt(query)
 	}
 	pohq.withPosition = query
+	return pohq
+}
+
+// WithEmployee tells the query-builder to eager-load the nodes that are connected to
+// the "employee" edge. The optional arguments are used to configure the query builder of the edge.
+func (pohq *PositionOccupancyHistoryQuery) WithEmployee(opts ...func(*EmployeeQuery)) *PositionOccupancyHistoryQuery {
+	query := (&EmployeeClient{config: pohq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pohq.withEmployee = query
 	return pohq
 }
 
@@ -371,8 +407,9 @@ func (pohq *PositionOccupancyHistoryQuery) sqlAll(ctx context.Context, hooks ...
 	var (
 		nodes       = []*PositionOccupancyHistory{}
 		_spec       = pohq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			pohq.withPosition != nil,
+			pohq.withEmployee != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -396,6 +433,12 @@ func (pohq *PositionOccupancyHistoryQuery) sqlAll(ctx context.Context, hooks ...
 	if query := pohq.withPosition; query != nil {
 		if err := pohq.loadPosition(ctx, query, nodes, nil,
 			func(n *PositionOccupancyHistory, e *Position) { n.Edges.Position = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := pohq.withEmployee; query != nil {
+		if err := pohq.loadEmployee(ctx, query, nodes, nil,
+			func(n *PositionOccupancyHistory, e *Employee) { n.Edges.Employee = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -431,6 +474,35 @@ func (pohq *PositionOccupancyHistoryQuery) loadPosition(ctx context.Context, que
 	}
 	return nil
 }
+func (pohq *PositionOccupancyHistoryQuery) loadEmployee(ctx context.Context, query *EmployeeQuery, nodes []*PositionOccupancyHistory, init func(*PositionOccupancyHistory), assign func(*PositionOccupancyHistory, *Employee)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*PositionOccupancyHistory)
+	for i := range nodes {
+		fk := nodes[i].EmployeeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(employee.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "employee_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (pohq *PositionOccupancyHistoryQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := pohq.querySpec()
@@ -459,6 +531,9 @@ func (pohq *PositionOccupancyHistoryQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if pohq.withPosition != nil {
 			_spec.Node.AddColumnOnce(positionoccupancyhistory.FieldPositionID)
+		}
+		if pohq.withEmployee != nil {
+			_spec.Node.AddColumnOnce(positionoccupancyhistory.FieldEmployeeID)
 		}
 	}
 	if ps := pohq.predicates; len(ps) > 0 {
