@@ -1,41 +1,49 @@
-// src/pages/employees/index.tsx - Full CRUD functionality for UAT testing
 import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  Table, 
-  Button, 
-  Input, 
-  Select, 
-  Space, 
-  Tag, 
-  Avatar, 
-  Modal,
-  Form,
-  DatePicker,
-  notification,
-  Dropdown,
-  Menu,
-  Tooltip
-} from 'antd';
-import { 
-  PlusOutlined, 
-  SearchOutlined, 
-  MoreOutlined,
-  UserOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  CalendarOutlined,
-  TeamOutlined,
-  HistoryOutlined,
-  EditOutlined,
-  DeleteOutlined
-} from '@ant-design/icons';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
-import dayjs from 'dayjs';
+import { format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
+import { 
+  Plus, 
+  Search, 
+  MoreHorizontal,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Users,
+  History,
+  Edit2,
+  Trash2
+} from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { ColumnDef } from '@tanstack/react-table';
 
-const { Search } = Input;
-const { Option } = Select;
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { DatePicker } from '@/components/ui/date-picker';
+import { DataTable, createSortableColumn, createActionsColumn } from '@/components/ui/data-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Employee {
   id: string;
@@ -56,15 +64,11 @@ const EmployeesPage: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
-  const [searchText, setSearchText] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState<Partial<Employee>>({});
 
-  // Sample data with full CRUD capabilities
+  // Sample data
   useEffect(() => {
     setLoading(true);
     setTimeout(() => {
@@ -117,34 +121,9 @@ const EmployeesPage: React.FC = () => {
       ];
       
       setEmployees(sampleEmployees);
-      setFilteredEmployees(sampleEmployees);
       setLoading(false);
     }, 1000);
   }, []);
-
-  // Filter employees based on search and filters
-  useEffect(() => {
-    let filtered = employees;
-
-    if (searchText) {
-      filtered = filtered.filter(emp => 
-        emp.legalName.toLowerCase().includes(searchText.toLowerCase()) ||
-        emp.employeeId.toLowerCase().includes(searchText.toLowerCase()) ||
-        emp.email.toLowerCase().includes(searchText.toLowerCase()) ||
-        (emp.position && emp.position.toLowerCase().includes(searchText.toLowerCase()))
-      );
-    }
-
-    if (departmentFilter) {
-      filtered = filtered.filter(emp => emp.department === departmentFilter);
-    }
-
-    if (statusFilter) {
-      filtered = filtered.filter(emp => emp.status === statusFilter);
-    }
-
-    setFilteredEmployees(filtered);
-  }, [employees, searchText, departmentFilter, statusFilter]);
 
   const handleCreateEmployee = async (values: any) => {
     try {
@@ -158,7 +137,7 @@ const EmployeesPage: React.FC = () => {
           legalName: values.legalName,
           preferredName: values.preferredName,
           email: values.email,
-          hireDate: dayjs(values.hireDate).format('YYYY-MM-DD'),
+          hireDate: values.hireDate ? format(new Date(values.hireDate), 'yyyy-MM-dd') : '',
           department: values.department,
           position: values.position,
           managerName: values.managerName
@@ -168,10 +147,7 @@ const EmployeesPage: React.FC = () => {
           emp.id === editingEmployee.id ? updatedEmployee : emp
         ));
 
-        notification.success({
-          message: '员工更新成功',
-          description: `员工 ${values.legalName} 信息已更新。`,
-        });
+        toast.success(`员工 ${values.legalName} 信息已更新`);
       } else {
         // Create new employee
         const newEmployee: Employee = {
@@ -181,7 +157,7 @@ const EmployeesPage: React.FC = () => {
           preferredName: values.preferredName,
           email: values.email,
           status: 'ACTIVE',
-          hireDate: dayjs(values.hireDate).format('YYYY-MM-DD'),
+          hireDate: values.hireDate ? format(new Date(values.hireDate), 'yyyy-MM-dd') : '',
           department: values.department,
           position: values.position,
           managerName: values.managerName
@@ -189,18 +165,12 @@ const EmployeesPage: React.FC = () => {
 
         setEmployees(prev => [...prev, newEmployee]);
         
-        notification.success({
-          message: '员工创建成功',
-          description: `员工 ${values.legalName} 已成功添加到系统中。`,
-        });
+        toast.success(`员工 ${values.legalName} 已成功添加到系统中`);
       }
       
       handleModalClose();
     } catch (error) {
-      notification.error({
-        message: editingEmployee ? '员工更新失败' : '员工创建失败',
-        description: '操作时发生错误，请重试。',
-      });
+      toast.error('操作时发生错误，请重试');
     } finally {
       setLoading(false);
     }
@@ -208,41 +178,31 @@ const EmployeesPage: React.FC = () => {
 
   const handleEdit = (employee: Employee) => {
     setEditingEmployee(employee);
-    form.setFieldsValue({
+    setFormData({
       ...employee,
-      hireDate: dayjs(employee.hireDate)
+      hireDate: employee.hireDate
     });
     setIsModalVisible(true);
   };
 
   const handleDelete = (employee: Employee) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除员工 ${employee.legalName} 吗？此操作不可撤销。`,
-      okText: '删除',
-      okType: 'danger',
-      cancelText: '取消',
-      onOk: () => {
-        setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
-        notification.success({
-          message: '员工删除成功',
-          description: `员工 ${employee.legalName} 已从系统中删除。`,
-        });
-      }
-    });
+    if (confirm(`确定要删除员工 ${employee.legalName} 吗？此操作不可撤销。`)) {
+      setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+      toast.success(`员工 ${employee.legalName} 已从系统中删除`);
+    }
   };
 
   const handleModalClose = () => {
     setIsModalVisible(false);
     setEditingEmployee(null);
-    form.resetFields();
+    setFormData({});
   };
 
   const getStatusColor = (status: string) => {
     const colors = {
-      ACTIVE: 'green',
-      INACTIVE: 'red',
-      PENDING: 'orange'
+      ACTIVE: 'default',
+      INACTIVE: 'destructive',
+      PENDING: 'secondary'
     };
     return colors[status as keyof typeof colors] || 'default';
   };
@@ -256,347 +216,269 @@ const EmployeesPage: React.FC = () => {
     return labels[status as keyof typeof labels] || status;
   };
 
-  const getActionMenu = (employee: Employee) => (
-    <Menu>
-      <Menu.Item 
-        key="edit" 
-        icon={<EditOutlined />}
-        onClick={() => handleEdit(employee)}
-      >
-        编辑信息
-      </Menu.Item>
-      <Menu.Item 
-        key="positions" 
-        icon={<HistoryOutlined />}
-        onClick={() => router.push(`/employees/positions/${employee.id}`)}
-      >
-        职位历史
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item 
-        key="delete" 
-        icon={<DeleteOutlined />}
-        onClick={() => handleDelete(employee)}
-        style={{ color: '#ff4d4f' }}
-      >
-        删除员工
-      </Menu.Item>
-    </Menu>
+  const ActionsCell = ({ row }: { row: Employee }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleEdit(row)}>
+          <Edit2 className="mr-2 h-4 w-4" />
+          编辑信息
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push(`/employees/positions/${row.id}`)}>
+          <History className="mr-2 h-4 w-4" />
+          职位历史
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => handleDelete(row)} className="text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" />
+          删除员工
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
-  const columns = [
+  const columns: ColumnDef<Employee>[] = [
     {
-      title: '员工信息',
-      key: 'employee',
-      render: (record: Employee) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Avatar 
-            size={40} 
-            icon={<UserOutlined />}
-            src={record.avatar}
-            style={{ backgroundColor: '#1890ff' }}
-          >
-            {record.legalName.charAt(0)}
-          </Avatar>
-          <div>
-            <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-              {record.legalName}
-              {record.preferredName && (
-                <span style={{ color: '#888', marginLeft: '8px' }}>
-                  ({record.preferredName})
-                </span>
-              )}
+      accessorKey: 'legalName',
+      header: '员工信息',
+      cell: ({ row }) => {
+        const employee = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center">
+              {employee.legalName.charAt(0)}
             </div>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              <Space size="small">
-                <span>{record.employeeId}</span>
+            <div>
+              <div className="font-medium">
+                {employee.legalName}
+                {employee.preferredName && (
+                  <span className="text-gray-500 ml-2">
+                    ({employee.preferredName})
+                  </span>
+                )}
+              </div>
+              <div className="text-sm text-gray-500 flex items-center gap-2">
+                <span>{employee.employeeId}</span>
                 <span>•</span>
-                <span>{record.email}</span>
-              </Space>
+                <span>{employee.email}</span>
+              </div>
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-      title: '职位信息',
-      key: 'position',
-      render: (record: Employee) => (
-        <div>
-          <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-            {record.position || '未设置'}
+      accessorKey: 'position',
+      header: '职位信息',
+      cell: ({ row }) => {
+        const employee = row.original;
+        return (
+          <div>
+            <div className="font-medium">
+              {employee.position || '未设置'}
+            </div>
+            <div className="text-sm text-gray-500">
+              {employee.department || '未设置部门'}
+            </div>
           </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            {record.department || '未设置部门'}
+        );
+      },
+    },
+    {
+      accessorKey: 'managerName',
+      header: '直属经理',
+      cell: ({ row }) => {
+        const managerName = row.original.managerName;
+        return (
+          <div className="flex items-center gap-2">
+            {managerName ? (
+              <>
+                <Users className="h-4 w-4 text-blue-500" />
+                <span>{managerName}</span>
+              </>
+            ) : (
+              <span className="text-gray-400">无</span>
+            )}
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-      title: '直属经理',
-      dataIndex: 'managerName',
-      key: 'manager',
-      render: (managerName: string) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {managerName ? (
-            <>
-              <TeamOutlined style={{ color: '#1890ff' }} />
-              <span>{managerName}</span>
-            </>
-          ) : (
-            <span style={{ color: '#999' }}>无</span>
-          )}
-        </div>
-      ),
+      accessorKey: 'hireDate',
+      header: '入职日期',
+      cell: ({ row }) => {
+        const hireDate = row.original.hireDate;
+        return (
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-green-500" />
+            <span>{format(new Date(hireDate), 'yyyy年MM月dd日', { locale: zhCN })}</span>
+          </div>
+        );
+      },
     },
     {
-      title: '入职日期',
-      dataIndex: 'hireDate',
-      key: 'hireDate',
-      render: (hireDate: string) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <CalendarOutlined style={{ color: '#52c41a' }} />
-          <span>{dayjs(hireDate).format('YYYY年MM月DD日')}</span>
-        </div>
-      ),
-      sorter: (a: Employee, b: Employee) => 
-        dayjs(a.hireDate).unix() - dayjs(b.hireDate).unix(),
+      accessorKey: 'status',
+      header: '状态',
+      cell: ({ row }) => {
+        const status = row.original.status;
+        return (
+          <Badge variant={getStatusColor(status)}>
+            {getStatusLabel(status)}
+          </Badge>
+        );
+      },
     },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>
-          {getStatusLabel(status)}
-        </Tag>
-      ),
-      filters: [
-        { text: '在职', value: 'ACTIVE' },
-        { text: '离职', value: 'INACTIVE' },
-        { text: '待入职', value: 'PENDING' },
-      ],
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 120,
-      render: (record: Employee) => (
-        <Space>
-          <Tooltip title="编辑员工">
-            <Button 
-              type="text" 
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Dropdown 
-            overlay={getActionMenu(record)} 
-            trigger={['click']}
-            placement="bottomRight"
-          >
-            <Button type="text" icon={<MoreOutlined />} />
-          </Dropdown>
-        </Space>
-      ),
-    },
+    createActionsColumn<Employee>(ActionsCell),
   ];
 
   const departments = Array.from(new Set(employees.map(emp => emp.department).filter(Boolean)));
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div className="p-6">
       {/* Header */}
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>员工管理</h1>
-          <p style={{ margin: '4px 0 0 0', color: '#666' }}>
+          <h1 className="text-2xl font-bold">员工管理</h1>
+          <p className="text-gray-600 mt-1">
             管理公司员工信息、职位变更和组织结构 - 完整CRUD功能
           </p>
         </div>
         <Button 
-          type="primary" 
-          icon={<PlusOutlined />}
-          size="large"
+          size="lg"
           onClick={() => setIsModalVisible(true)}
         >
+          <Plus className="mr-2 h-4 w-4" />
           新增员工
         </Button>
       </div>
 
-      {/* Filters */}
-      <Card style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Search
-            placeholder="搜索员工姓名、工号、邮箱或职位"
-            style={{ width: '300px' }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-          />
-          
-          <Select
-            placeholder="选择部门"
-            style={{ width: '150px' }}
-            value={departmentFilter}
-            onChange={setDepartmentFilter}
-            allowClear
-          >
-            {departments.map(dept => (
-              <Option key={dept} value={dept}>{dept}</Option>
-            ))}
-          </Select>
-          
-          <Select
-            placeholder="选择状态"
-            style={{ width: '120px' }}
-            value={statusFilter}
-            onChange={setStatusFilter}
-            allowClear
-          >
-            <Option value="ACTIVE">在职</Option>
-            <Option value="INACTIVE">离职</Option>
-            <Option value="PENDING">待入职</Option>
-          </Select>
-          
-          <div style={{ color: '#666', fontSize: '14px' }}>
-            共找到 {filteredEmployees.length} 名员工
-          </div>
-        </div>
-      </Card>
-
       {/* Employee Table */}
       <Card>
-        <Table
-          columns={columns}
-          dataSource={filteredEmployees}
-          loading={loading}
-          rowKey="id"
-          pagination={{
-            total: filteredEmployees.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => 
-              `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
-          }}
-          scroll={{ x: 1000 }}
-        />
+        <CardContent className="p-6">
+          <DataTable
+            columns={columns}
+            data={employees}
+            searchKey="legalName"
+            searchPlaceholder="搜索员工姓名、工号、邮箱或职位..."
+          />
+        </CardContent>
       </Card>
 
       {/* Create/Edit Employee Modal */}
-      <Modal
-        title={editingEmployee ? '编辑员工信息' : '新增员工'}
-        open={isModalVisible}
-        onCancel={handleModalClose}
-        footer={null}
-        width={600}
-        destroyOnClose
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleCreateEmployee}
-          initialValues={{
-            status: 'ACTIVE'
-          }}
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <Form.Item
-              label="员工工号"
-              name="employeeId"
-              rules={[{ required: true, message: '请输入员工工号' }]}
-            >
-              <Input placeholder="如: EMP001" />
-            </Form.Item>
-            
-            <Form.Item
-              label="法定姓名"
-              name="legalName"
-              rules={[{ required: true, message: '请输入法定姓名' }]}
-            >
-              <Input placeholder="员工的法定姓名" />
-            </Form.Item>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <Form.Item
-              label="常用姓名"
-              name="preferredName"
-            >
-              <Input placeholder="常用的英文姓名(可选)" />
-            </Form.Item>
-            
-            <Form.Item
-              label="邮箱地址"
-              name="email"
-              rules={[
-                { required: true, message: '请输入邮箱地址' },
-                { type: 'email', message: '请输入有效的邮箱地址' }
-              ]}
-            >
-              <Input placeholder="employee@company.com" />
-            </Form.Item>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <Form.Item
-              label="所属部门"
-              name="department"
-              rules={[{ required: true, message: '请选择所属部门' }]}
-            >
-              <Select placeholder="选择部门">
-                <Option value="技术部">技术部</Option>
-                <Option value="产品部">产品部</Option>
-                <Option value="人事部">人事部</Option>
-                <Option value="财务部">财务部</Option>
-                <Option value="市场部">市场部</Option>
-                <Option value="运营部">运营部</Option>
-              </Select>
-            </Form.Item>
-            
-            <Form.Item
-              label="职位"
-              name="position"
-              rules={[{ required: true, message: '请输入职位' }]}
-            >
-              <Input placeholder="如: 高级软件工程师" />
-            </Form.Item>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <Form.Item
-              label="入职日期"
-              name="hireDate"
-              rules={[{ required: true, message: '请选择入职日期' }]}
-            >
-              <DatePicker 
-                style={{ width: '100%' }}
-                placeholder="选择入职日期"
-                format="YYYY-MM-DD"
+      <Dialog open={isModalVisible} onOpenChange={setIsModalVisible}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingEmployee ? '编辑员工信息' : '新增员工'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">员工工号</label>
+              <Input 
+                placeholder="如: EMP001"
+                value={formData.employeeId || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, employeeId: e.target.value }))}
               />
-            </Form.Item>
+            </div>
             
-            <Form.Item
-              label="直属经理"
-              name="managerName"
-            >
-              <Input placeholder="直属经理姓名(可选)" />
-            </Form.Item>
+            <div>
+              <label className="text-sm font-medium">法定姓名</label>
+              <Input 
+                placeholder="员工的法定姓名"
+                value={formData.legalName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, legalName: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">常用姓名</label>
+              <Input 
+                placeholder="常用的英文姓名(可选)"
+                value={formData.preferredName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, preferredName: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">邮箱地址</label>
+              <Input 
+                type="email"
+                placeholder="employee@company.com"
+                value={formData.email || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">所属部门</label>
+              <Select 
+                value={formData.department || ''}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择部门" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="技术部">技术部</SelectItem>
+                  <SelectItem value="产品部">产品部</SelectItem>
+                  <SelectItem value="人事部">人事部</SelectItem>
+                  <SelectItem value="财务部">财务部</SelectItem>
+                  <SelectItem value="市场部">市场部</SelectItem>
+                  <SelectItem value="运营部">运营部</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">职位</label>
+              <Input 
+                placeholder="如: 高级软件工程师"
+                value={formData.position || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">入职日期</label>
+              <DatePicker 
+                date={formData.hireDate ? new Date(formData.hireDate) : undefined}
+                onDateChange={(date) => setFormData(prev => ({ 
+                  ...prev, 
+                  hireDate: date ? format(date, 'yyyy-MM-dd') : ''
+                }))}
+                placeholder="选择入职日期"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">直属经理</label>
+              <Input 
+                placeholder="直属经理姓名(可选)"
+                value={formData.managerName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, managerName: e.target.value }))}
+              />
+            </div>
           </div>
 
-          <Form.Item style={{ marginTop: '24px', marginBottom: 0, textAlign: 'right' }}>
-            <Space>
-              <Button onClick={handleModalClose}>
-                取消
-              </Button>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                {editingEmployee ? '更新' : '创建'}
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={handleModalClose}>
+              取消
+            </Button>
+            <Button 
+              onClick={() => handleCreateEmployee(formData)} 
+              disabled={loading}
+            >
+              {editingEmployee ? '更新' : '创建'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

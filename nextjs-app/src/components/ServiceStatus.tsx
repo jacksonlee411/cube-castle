@@ -1,12 +1,16 @@
 // src/components/ServiceStatus.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Alert, Badge, Button, Space, Tooltip } from 'antd';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { toast } from 'react-hot-toast';
 import { 
-  CheckCircleOutlined, 
-  CloseCircleOutlined, 
-  LoadingOutlined,
-  SyncOutlined 
-} from '@ant-design/icons';
+  CheckCircle, 
+  XCircle, 
+  Loader2,
+  RefreshCw,
+  AlertTriangle
+} from 'lucide-react';
 import { restApiClient } from '@/lib/rest-api-client';
 import { apolloClient } from '@/lib/graphql-client';
 import { gql } from '@apollo/client';
@@ -100,10 +104,10 @@ const ServiceStatus: React.FC<ServiceStatusProps> = ({
 
   const getStatusIcon = (status: ServiceHealth['graphql']) => {
     switch (status) {
-      case 'healthy': return <CheckCircleOutlined />;
-      case 'unhealthy': return <CloseCircleOutlined />;
-      case 'checking': return <LoadingOutlined />;
-      default: return <CloseCircleOutlined />;
+      case 'healthy': return <CheckCircle className="h-4 w-4" />;
+      case 'unhealthy': return <XCircle className="h-4 w-4" />;
+      case 'checking': return <Loader2 className="h-4 w-4 animate-spin" />;
+      default: return <XCircle className="h-4 w-4" />;
     }
   };
 
@@ -122,90 +126,130 @@ const ServiceStatus: React.FC<ServiceStatusProps> = ({
   if (!showDetails) {
     // Simple badge display
     return (
-      <Tooltip 
-        title={`GraphQL: ${getStatusText(serviceHealth.graphql)}, REST: ${getStatusText(serviceHealth.rest)}`}
-      >
-        <Badge 
-          status={isAllHealthy ? 'success' : hasUnhealthyService ? 'error' : 'processing'} 
-          text="服务状态"
-          className={className}
-          style={style}
-        />
-      </Tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className={className} style={style}>
+              <Badge 
+                status={isAllHealthy ? 'success' : hasUnhealthyService ? 'error' : 'processing'} 
+                text="服务状态"
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>GraphQL: {getStatusText(serviceHealth.graphql)}, REST: {getStatusText(serviceHealth.rest)}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
   return (
     <div className={className} style={style}>
       {hasUnhealthyService && (
-        <Alert
-          message="服务连接异常"
-          description="部分服务不可用，系统将自动使用备用服务。"
-          type="warning"
-          showIcon
-          style={{ marginBottom: '16px' }}
-          action={
-            <Button 
-              size="small" 
-              icon={<SyncOutlined />} 
-              onClick={performHealthCheck}
-              loading={isChecking}
-            >
-              重新检查
-            </Button>
-          }
-        />
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 mb-4 shadow-sm">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <AlertTriangle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">
+                服务连接异常
+              </h3>
+              <div className="mt-1 text-sm text-yellow-700">
+                部分服务不可用，系统将自动使用备用服务。
+              </div>
+              <div className="mt-3">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={performHealthCheck}
+                  disabled={isChecking}
+                  className="bg-white text-yellow-800 border-yellow-300 hover:bg-yellow-50"
+                >
+                  {isChecking ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  重新检查
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       
-      <Space direction="vertical" style={{ width: '100%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>服务状态：</span>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium text-gray-900">服务状态：</span>
           <Button 
-            size="small" 
-            icon={<SyncOutlined />} 
+            size="sm" 
+            variant="outline"
             onClick={performHealthCheck}
-            loading={isChecking}
+            disabled={isChecking}
           >
+            {isChecking ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
             刷新
           </Button>
         </div>
         
-        <Space>
-          <Badge 
-            status={getStatusColor(serviceHealth.graphql)} 
-            text={
-              <span>
-                GraphQL: {getStatusText(serviceHealth.graphql)}
-                {serviceHealth.graphql === 'healthy' && 
-                  <Tooltip title="实时数据同步可用">
-                    {' '}(完整功能)
-                  </Tooltip>
-                }
-              </span>
-            }
-          />
-        </Space>
+        <div className="space-y-2">
+          <div className="flex items-center">
+            <Badge 
+              status={getStatusColor(serviceHealth.graphql)} 
+              text={
+                <span className="flex items-center">
+                  GraphQL: {getStatusText(serviceHealth.graphql)}
+                  {serviceHealth.graphql === 'healthy' && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="ml-1 text-xs text-gray-500">(完整功能)</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>实时数据同步可用</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </span>
+              }
+            />
+          </div>
+          
+          <div className="flex items-center">
+            <Badge 
+              status={getStatusColor(serviceHealth.rest)} 
+              text={
+                <span className="flex items-center">
+                  REST API: {getStatusText(serviceHealth.rest)}
+                  {serviceHealth.rest === 'healthy' && serviceHealth.graphql === 'unhealthy' && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="ml-1 text-xs text-gray-500">(备用服务)</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>基础功能可用，但缺少实时更新</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </span>
+              }
+            />
+          </div>
+        </div>
         
-        <Space>
-          <Badge 
-            status={getStatusColor(serviceHealth.rest)} 
-            text={
-              <span>
-                REST API: {getStatusText(serviceHealth.rest)}
-                {serviceHealth.rest === 'healthy' && serviceHealth.graphql === 'unhealthy' &&
-                  <Tooltip title="基础功能可用，但缺少实时更新">
-                    {' '}(备用服务)
-                  </Tooltip>
-                }
-              </span>
-            }
-          />
-        </Space>
-        
-        <div style={{ fontSize: '12px', color: '#666' }}>
+        <div className="text-xs text-gray-500">
           上次检查: {serviceHealth.lastCheck.toLocaleTimeString()}
         </div>
-      </Space>
+      </div>
     </div>
   );
 };

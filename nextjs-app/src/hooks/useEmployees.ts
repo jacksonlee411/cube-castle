@@ -11,7 +11,7 @@ import {
   EMPLOYEE_POSITION_CHANGED 
 } from '@/lib/graphql-queries';
 import { restApiClient, handleApiError } from '@/lib/rest-api-client';
-import { notification } from 'antd';
+import { toast } from 'react-hot-toast';
 
 export interface EmployeeFilters {
   search?: string;
@@ -212,10 +212,12 @@ export const useEmployee = (employeeId: string) => {
           refetch();
         }
         
-        notification.success({
-          message: '职位信息已更新',
-          description: '员工职位信息已实时更新',
-        });
+        toast.success(
+          '职位信息已更新',
+          {
+            duration: 3000,
+          }
+        );
       }
     },
   });
@@ -267,10 +269,7 @@ export const useCreatePositionChange = () => {
       // Show warnings if any
       if (validation?.warnings && validation.warnings.length > 0) {
         validation.warnings.forEach((warning: any) => {
-          notification.warning({
-            message: '注意',
-            description: warning.message,
-          });
+        toast.warning(warning.message);
         });
       }
 
@@ -287,12 +286,14 @@ export const useCreatePositionChange = () => {
         throw new Error(errorMessages);
       }
 
-      notification.success({
-        message: '职位变更已提交',
-        description: data?.workflowId 
-          ? `工作流 ${data.workflowId} 已启动，请等待审批。` 
+      toast.success(
+        data?.workflowId 
+          ? `职位变更已提交，工作流 ${data.workflowId} 已启动，请等待审批。` 
           : '职位变更已完成。',
-      });
+        {
+          duration: 4000,
+        }
+      );
 
       return {
         success: true,
@@ -300,10 +301,12 @@ export const useCreatePositionChange = () => {
         workflowId: data?.workflowId,
       };
     } catch (err: any) {
-      notification.error({
-        message: '职位变更失败',
-        description: err.message || '创建职位变更时发生错误',
-      });
+      toast.error(
+        `职位变更失败: ${err.message || '创建职位变更时发生错误'}`,
+        {
+          duration: 5000,
+        }
+      );
       
       return {
         success: false,
@@ -368,10 +371,12 @@ export const usePositionTimeline = (employeeId: string, maxEntries: number = 20)
         // Refetch timeline when position changes
         refetch();
         
-        notification.success({
-          message: '职位历史已更新',
-          description: '员工职位历史记录已实时更新',
-        });
+        toast.success(
+          '职位历史已更新',
+          {
+            duration: 3000,
+          }
+        );
       }
     },
   });

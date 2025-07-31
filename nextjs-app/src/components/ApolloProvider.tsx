@@ -2,7 +2,7 @@
 import React, { ReactNode, useEffect, useState } from 'react';
 import { ApolloProvider as BaseApolloProvider } from '@apollo/client';
 import { apolloClient, restoreCache, persistCache } from '@/lib/graphql-client';
-import { Spin } from 'antd';
+import { Loader2 } from 'lucide-react';
 
 interface ApolloProviderProps {
   children: ReactNode;
@@ -84,17 +84,11 @@ const ApolloProvider: React.FC<ApolloProviderProps> = ({ children }) => {
   // Enhanced loading UI with cache restoration status
   if (!clientReady) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        gap: '16px'
-      }}>
-        <Spin size="large" tip="正在初始化应用..." />
+      <div className="flex flex-col justify-center items-center h-screen gap-4">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="text-lg">正在初始化应用...</div>
         {cacheRestored && (
-          <div style={{ fontSize: '14px', color: '#666' }}>
+          <div className="text-sm text-gray-600">
             缓存已恢复，性能已优化
           </div>
         )}

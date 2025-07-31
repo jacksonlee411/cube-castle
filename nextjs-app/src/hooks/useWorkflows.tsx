@@ -1,5 +1,5 @@
-// src/hooks/useWorkflows.ts
-import { useState, useEffect } from 'react';
+// src/hooks/useWorkflows.tsx
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import { 
   GET_WORKFLOW_STATUS,
@@ -8,7 +8,8 @@ import {
   WORKFLOW_STATUS_CHANGED,
   POSITION_CHANGE_APPROVAL_REQUIRED
 } from '@/lib/graphql-queries';
-import { notification, Button } from 'antd';
+import { toast } from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
 import { createElement } from 'react';
 
 export interface WorkflowStatus {
@@ -64,25 +65,13 @@ export const useWorkflowStatus = (workflowId: string) => {
         
         // Show notification for status changes
         if (newStatus.status === 'COMPLETED') {
-          notification.success({
-            message: '工作流已完成',
-            description: '职位变更工作流已成功完成',
-          });
+          toast.success('工作流已完成');
         } else if (newStatus.status === 'FAILED') {
-          notification.error({
-            message: '工作流失败',
-            description: newStatus.error || '工作流执行过程中发生错误',
-          });
+          toast.error(newStatus.error || '工作流执行过程中发生错误');
         } else if (newStatus.status === 'APPROVED') {
-          notification.success({
-            message: '审批通过',
-            description: '职位变更已获得审批',
-          });
+          toast.success('审批通过');
         } else if (newStatus.status === 'REJECTED') {
-          notification.warning({
-            message: '审批被拒',
-            description: '职位变更审批被拒绝',
-          });
+          toast.error('审批被拒');
         }
       }
     },
@@ -123,20 +112,14 @@ export const usePositionChangeApproval = () => {
         throw new Error(errorMessages);
       }
 
-      notification.success({
-        message: '审批成功',
-        description: '职位变更审批已通过',
-      });
+      toast.success('审批成功');
 
       return {
         success: true,
         workflowId: data?.workflowId,
       };
     } catch (err: any) {
-      notification.error({
-        message: '审批失败',
-        description: err.message || '处理审批时发生错误',
-      });
+      toast.error(`审批失败: ${err.message || '处理审批时发生错误'}`);
       
       return {
         success: false,
@@ -158,20 +141,14 @@ export const usePositionChangeApproval = () => {
         throw new Error(errorMessages);
       }
 
-      notification.success({
-        message: '已拒绝审批',
-        description: '职位变更审批已被拒绝',
-      });
+      toast.success('已拒绝审批');
 
       return {
         success: true,
         workflowId: data?.workflowId,
       };
     } catch (err: any) {
-      notification.error({
-        message: '操作失败',
-        description: err.message || '处理拒绝时发生错误',
-      });
+      toast.error(`操作失败: ${err.message || '处理拒绝时发生错误'}`);
       
       return {
         success: false,
@@ -209,18 +186,43 @@ export const useApprovalRequests = (approverId: string) => {
           // Add new request
           const updated = [newRequest, ...prev];
           
-          // Show notification
-          notification.info({
-            message: '新的审批请求',
-            description: `员工 ${newRequest.employeeId} 的职位变更需要您的审批`,
-            duration: 0, // Don't auto-close
-            key: newRequest.workflowId,
-            btn: createElement(Button, {
-              type: 'primary',
-              size: 'small',
-              onClick: () => window.location.href = `/workflows/${newRequest.workflowId}`
-            }, '立即处理'),
-          });
+          // Show notification with toast and custom button
+          const toastId = toast.custom(
+            (t) => (
+              <div className="bg-blue-500 text-white p-4 rounded shadow-lg max-w-md">
+                <div className="flex items-start">
+                  <div className="flex-1">
+                    <h4 className="font-medium">新的审批请求</h4>
+                    <p className="text-sm mt-1">员工 {newRequest.employeeId} 的职位变更需要您的审批</p>
+                    <div className="mt-3 flex gap-2">
+                      <Button 
+                        size="sm"
+                        onClick={() => {
+                          window.location.href = `/workflows/${newRequest.workflowId}`;
+                          toast.dismiss(toastId);
+                        }}
+                        className="bg-white text-blue-500 hover:bg-gray-100"
+                      >
+                        立即处理
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => toast.dismiss(toastId)}
+                        className="bg-transparent border-white text-white hover:bg-white hover:text-blue-500"
+                      >
+                        关闭
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ),
+            {
+              duration: Infinity, // Don't auto-close
+              id: newRequest.workflowId,
+            }
+          );
           
           return updated;
         });
@@ -237,7 +239,7 @@ export const useApprovalRequests = (approverId: string) => {
     );
     
     // Close the notification
-    notification.destroy(workflowId);
+    toast.dismiss(workflowId);
   };
 
   return {

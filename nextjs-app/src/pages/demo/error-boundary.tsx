@@ -1,13 +1,15 @@
 // src/pages/demo/error-boundary.tsx
 import React, { useState } from 'react';
-import { Card, Button, Space, Typography, Divider, Alert } from 'antd';
-import { BugOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Typography, Title, Text } from '@/components/ui/typography';
+import { Divider } from '@/components/ui/divider';
+import { Bug, RefreshCw, Zap, AlertTriangle } from 'lucide-react';
 import withGraphQLErrorBoundary from '@/components/withGraphQLErrorBoundary';
 import ServiceStatus from '@/components/ServiceStatus';
 import { useEmployee } from '@/hooks/useEmployees';
 import { GetServerSideProps } from 'next';
-
-const { Title, Paragraph, Text } = Typography;
+import { toast } from 'react-hot-toast';
 
 // Component that intentionally triggers GraphQL errors
 const GraphQLErrorDemo: React.FC = () => {
@@ -59,14 +61,14 @@ const GraphQLErrorDemo: React.FC = () => {
           <Space>
             <Button 
               type="primary" 
-              icon={<ThunderboltOutlined />}
+              icon={<Zap className="h-4 w-4" />}
               onClick={handleTriggerError}
               disabled={triggerError}
             >
               触发GraphQL错误
             </Button>
             <Button 
-              icon={<ReloadOutlined />}
+              icon={<RefreshCw className="h-4 w-4" />}
               onClick={handleReset}
               disabled={!triggerError}
             >

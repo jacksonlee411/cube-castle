@@ -1,5 +1,5 @@
 // src/lib/rest-api-client.ts
-import { notification } from 'antd';
+import { toast } from 'react-hot-toast';
 
 // REST API base configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:8080/api/v1';
@@ -267,11 +267,12 @@ export const handleApiError = (error: any, context: string = 'API调用') => {
     }
   }
 
-  notification.error({
-    message: `${context} - ${message}`,
-    description,
-    duration: 5,
-  });
+  toast.error(
+    `${context} - ${message}: ${description}`,
+    {
+      duration: 5000,
+    }
+  );
 };
 
 export default RestApiClient;
