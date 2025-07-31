@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gaogu/cube-castle/go-app/ent"
@@ -664,5 +665,3 @@ func contains(s, substr string) bool {
 	substr = strings.ToLower(substr)
 	return strings.Contains(s, substr)
 }
-
-import "strings"

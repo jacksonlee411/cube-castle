@@ -31,7 +31,7 @@ func NewMockService() *Service {
 // ListEmployees 获取员工列表
 func (s *Service) ListEmployees(ctx context.Context, tenantID uuid.UUID, page, pageSize int, search string) (*openapi.EmployeeListResponse, error) {
 	if s.repo == nil {
-		return s.listEmployeesMock(ctx, page, pageSize, search)
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	employees, totalCount, err := s.repo.ListEmployees(ctx, tenantID, page, pageSize, search)
@@ -67,7 +67,7 @@ func (s *Service) ListEmployees(ctx context.Context, tenantID uuid.UUID, page, p
 // GetEmployee 根据 ID 获取员工
 func (s *Service) GetEmployee(ctx context.Context, tenantID, employeeID uuid.UUID) (*openapi.Employee, error) {
 	if s.repo == nil {
-		return s.getEmployeeMock(ctx, employeeID)
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	employee, err := s.repo.GetEmployeeByID(ctx, tenantID, employeeID)
@@ -86,7 +86,7 @@ func (s *Service) GetEmployee(ctx context.Context, tenantID, employeeID uuid.UUI
 // CreateEmployee 创建员工
 func (s *Service) CreateEmployee(ctx context.Context, tenantID uuid.UUID, req *openapi.CreateEmployeeRequest) (*openapi.Employee, error) {
 	if s.repo == nil {
-		return s.createEmployeeMock(ctx, req)
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	// 检查员工编号是否已存在
@@ -150,7 +150,7 @@ func (s *Service) CreateEmployee(ctx context.Context, tenantID uuid.UUID, req *o
 // UpdateEmployee 更新员工信息
 func (s *Service) UpdateEmployee(ctx context.Context, tenantID, employeeID uuid.UUID, req *openapi.UpdateEmployeeRequest) (*openapi.Employee, error) {
 	if s.repo == nil {
-		return s.updateEmployeeMock(ctx, employeeID, req)
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	// 获取现有员工
@@ -234,7 +234,7 @@ func (s *Service) UpdateEmployee(ctx context.Context, tenantID, employeeID uuid.
 // DeleteEmployee 删除员工
 func (s *Service) DeleteEmployee(ctx context.Context, tenantID, employeeID uuid.UUID) error {
 	if s.repo == nil {
-		return nil // Mock模式直接返回成功
+		return fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	// 获取员工信息用于事件创建
@@ -274,7 +274,7 @@ func (s *Service) DeleteEmployee(ctx context.Context, tenantID, employeeID uuid.
 // ListOrganizations 获取组织列表
 func (s *Service) ListOrganizations(ctx context.Context, tenantID uuid.UUID) (*openapi.OrganizationListResponse, error) {
 	if s.repo == nil {
-		return s.listOrganizationsMock(ctx)
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	organizations, err := s.repo.ListOrganizations(ctx, tenantID)
@@ -298,7 +298,7 @@ func (s *Service) ListOrganizations(ctx context.Context, tenantID uuid.UUID) (*o
 // GetOrganizationTree 获取组织树
 func (s *Service) GetOrganizationTree(ctx context.Context, tenantID uuid.UUID) (*openapi.OrganizationTreeResponse, error) {
 	if s.repo == nil {
-		return s.getOrganizationTreeMock(ctx)
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	orgTrees, err := s.repo.GetOrganizationTree(ctx, tenantID)
@@ -320,7 +320,7 @@ func (s *Service) GetOrganizationTree(ctx context.Context, tenantID uuid.UUID) (
 // CreateOrganization 创建组织
 func (s *Service) CreateOrganization(ctx context.Context, tenantID uuid.UUID, name, code string, parentID *uuid.UUID) (*openapi.Organization, error) {
 	if s.repo == nil {
-		return s.createOrganizationMock(ctx, name, code, parentID)
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	// 创建组织实体
@@ -356,7 +356,7 @@ func (s *Service) CreateOrganization(ctx context.Context, tenantID uuid.UUID, na
 // GetManagerByEmployeeId 根据员工ID获取经理
 func (s *Service) GetManagerByEmployeeId(ctx context.Context, tenantID, employeeID uuid.UUID) (*openapi.Employee, error) {
 	if s.repo == nil {
-		return s.getEmployeeMock(ctx, employeeID) // Mock模式返回员工本身
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
 	}
 
 	manager, err := s.repo.GetManagerByEmployeeID(ctx, tenantID, employeeID)

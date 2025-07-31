@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -596,5 +597,3 @@ func (s *EmployeeLifecycleService) recordLifecycleEvent(ctx context.Context, ten
 	)
 	return nil
 }
-
-import "encoding/json"

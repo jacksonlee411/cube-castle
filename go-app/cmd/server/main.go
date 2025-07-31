@@ -23,11 +23,13 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/metacontracteditor"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
+	"github.com/gaogu/cube-castle/go-app/internal/outbox"
 	"github.com/gaogu/cube-castle/go-app/internal/service"
 	"github.com/gaogu/cube-castle/go-app/internal/validation"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -50,9 +52,22 @@ func main() {
 		"port":       "8080",
 	})
 
+	// 检查生产环境安全
+	env := os.Getenv("DEPLOYMENT_ENV")
+	if env == "production" || env == "prod" {
+		logger.Info("Production environment detected - mock mode disabled")
+	}
+
 	// 初始化数据库连接
 	db := common.InitDatabaseConnection()
 	if db == nil {
+		if env == "production" || env == "prod" {
+			logger.LogError("database_init", "CRITICAL: Database unavailable in production environment", nil, map[string]interface{}{
+				"service": ServiceName,
+				"environment": env,
+			})
+			log.Fatal("Production deployment requires database connection")
+		}
 		logger.LogError("database_init", "Failed to initialize database", nil, map[string]interface{}{
 			"service": ServiceName,
 		})
@@ -172,18 +187,39 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 		positionAssignmentHandler = handler.NewPositionAssignmentHandler(positionAssignmentService, logger)
 		lifecycleHandler = handler.NewEmployeeLifecycleHandler(lifecycleService, logger)
 		analyticsHandler = handler.NewAnalyticsHandler(analyticsService, logger)
-		
-		// 初始化验证器（需要数据库访问）
-		if coreHRService != nil {
-			// 获取CoreHR repository（需要从service中获取或重新创建）
-			// 为简化，这里使用Mock验证器
+	}
+
+	// 初始化验证器
+	// 检查是否可以使用真实验证器
+	if db != nil {
+		// 尝试转换数据库连接类型
+		if pgxDB, ok := db.(*pgxpool.Pool); ok {
+			// 创建Repository用于验证器
+			repo := corehr.NewRepository(pgxDB)
+			coreHRChecker := validation.NewCoreHRValidationChecker(repo)
+			validator = validation.NewEmployeeValidator(coreHRChecker, coreHRChecker, coreHRChecker, coreHRChecker)
+			logger.Info("✅ Initialized CoreHR validation checker with database connection")
+		} else {
+			// 数据库类型不匹配，使用Mock验证器
 			mockChecker := validation.NewMockValidationChecker()
 			validator = validation.NewEmployeeValidator(mockChecker, mockChecker, mockChecker, mockChecker)
+			logger.Warn("⚠️ Database type mismatch, using mock validation checker")
 		}
 	} else {
-		// 数据库未连接时使用Mock验证器
+		// 数据库未连接
 		mockChecker := validation.NewMockValidationChecker()
 		validator = validation.NewEmployeeValidator(mockChecker, mockChecker, mockChecker, mockChecker)
+		
+		// 根据环境给出不同的日志级别
+		env := os.Getenv("DEPLOYMENT_ENV")
+		if env == "production" || env == "prod" {
+			logger.LogError("validation_init", "CRITICAL: Using mock validation in production - database required", nil, map[string]interface{}{
+				"environment": env,
+				"service": ServiceName,
+			})
+		} else {
+			logger.Info("🔧 Using mock validation checker - database not available")
+		}
 	}
 
 	// API v1 路由组
@@ -400,9 +436,25 @@ func initializeCoreHRService(db interface{}, logger *logging.StructuredLogger) *
 		return corehr.NewMockService()
 	}
 
-	// 实际模式 - 这里需要根据实际的数据库连接类型进行调整
+	// 实际模式 - 使用数据库连接
 	logger.Info("Initializing CoreHR service with database connection")
-	return corehr.NewMockService() // 暂时使用Mock，等数据库集成完成后更新
+	
+	// 转换数据库连接类型
+	pgxDB, ok := db.(*pgxpool.Pool)
+	if !ok {
+		logger.LogError("database_type_error", "Invalid database connection type", nil, map[string]interface{}{
+			"expected": "*pgxpool.Pool",
+			"actual": fmt.Sprintf("%T", db),
+		})
+		return corehr.NewMockService()
+	}
+	
+	// 创建真实的Repository和Service
+	repo := corehr.NewRepository(pgxDB)
+	outboxService := outbox.NewService(pgxDB, logger)
+	
+	logger.Info("CoreHR service initialized with real database implementation")
+	return corehr.NewService(repo, outboxService)
 }
 
 // Meta-Contract Editor 处理函数
