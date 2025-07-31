@@ -176,11 +176,19 @@ END;
 $$ language 'plpgsql';
 
 -- Apply updated_at triggers to relevant tables
+DROP TRIGGER IF EXISTS update_employees_updated_at ON corehr.employees;
 CREATE TRIGGER update_employees_updated_at BEFORE UPDATE ON corehr.employees FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_organizations_updated_at ON corehr.organizations;
 CREATE TRIGGER update_organizations_updated_at BEFORE UPDATE ON corehr.organizations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_positions_updated_at ON corehr.positions;
 CREATE TRIGGER update_positions_updated_at BEFORE UPDATE ON corehr.positions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_users_updated_at ON identity.users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON identity.users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_roles_updated_at ON identity.roles;
 CREATE TRIGGER update_roles_updated_at BEFORE UPDATE ON identity.roles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_tenants_updated_at ON tenancy.tenants;
 CREATE TRIGGER update_tenants_updated_at BEFORE UPDATE ON tenancy.tenants FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_tenant_configs_updated_at ON tenancy.tenant_configs;
 CREATE TRIGGER update_tenant_configs_updated_at BEFORE UPDATE ON tenancy.tenant_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_conversations_updated_at ON intelligence.conversations;
 CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON intelligence.conversations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
