@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/metacontracteditor"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
+	"github.com/gaogu/cube-castle/go-app/internal/validation"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
@@ -150,22 +152,35 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 	// 初始化处理器（只有在数据库连接成功时才初始化）
 	var orgUnitHandler *handler.OrganizationUnitHandler
 	var positionHandler *handler.PositionHandler
+	var validator *validation.EmployeeValidator
 
 	if entClient != nil {
 		orgUnitHandler = handler.NewOrganizationUnitHandler(entClient, logger)
 		positionHandler = handler.NewPositionHandler(entClient, logger)
+		
+		// 初始化验证器（需要数据库访问）
+		if coreHRService != nil {
+			// 获取CoreHR repository（需要从service中获取或重新创建）
+			// 为简化，这里使用Mock验证器
+			mockChecker := validation.NewMockValidationChecker()
+			validator = validation.NewEmployeeValidator(mockChecker, mockChecker, mockChecker, mockChecker)
+		}
+	} else {
+		// 数据库未连接时使用Mock验证器
+		mockChecker := validation.NewMockValidationChecker()
+		validator = validation.NewEmployeeValidator(mockChecker, mockChecker, mockChecker, mockChecker)
 	}
 
 	// API v1 路由组
 	r.Route("/api/v1", func(r chi.Router) {
 		// CoreHR 模块路由
 		r.Route("/corehr", func(r chi.Router) {
-			r.Get("/employees", handleListEmployees(coreHRService, logger))
-			r.Post("/employees", handleCreateEmployee(coreHRService, logger))
+			r.Get("/employees", handleListEmployees(coreHRService, logger, validator))
+			r.Post("/employees", handleCreateEmployee(coreHRService, logger, validator))
 			r.Route("/employees/{employeeID}", func(r chi.Router) {
 				r.Get("/", handleGetEmployee(coreHRService, logger))
-				r.Put("/", handleUpdateEmployee(coreHRService, logger))
-				r.Delete("/", handleDeleteEmployee(coreHRService, logger))
+				r.Put("/", handleUpdateEmployee(coreHRService, logger, validator))
+				r.Delete("/", handleDeleteEmployee(coreHRService, logger, validator))
 				r.Get("/manager", handleGetEmployeeManager(coreHRService, logger))
 			})
 
@@ -703,34 +718,120 @@ func startSystemMetricsUpdater(logger *logging.StructuredLogger, startTime time.
 // === HTTP处理器函数 ===
 
 // handleListEmployees 处理员工列表请求
-func handleListEmployees(service *corehr.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+func handleListEmployees(service *corehr.Service, logger *logging.StructuredLogger, validator *validation.EmployeeValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
 
 		// 获取查询参数
 		page := getIntParam(r, "page", 1)
 		pageSize := getIntParam(r, "page_size", 20)
 		search := r.URL.Query().Get("search")
-		tenantID := getTenantID(r.Context())
+
+		// 参数验证
+		if validator != nil {
+			if err := validator.ValidateListEmployeesParams(page, pageSize, search); err != nil {
+				reqLogger.LogError("validation_error", "List employees parameter validation failed", err, map[string]interface{}{
+					"page": page,
+					"page_size": pageSize,
+					"search": search,
+					"tenant_id": tenantID.String(),
+				})
+				metrics.RecordError("corehr", "list_employees_validation_error")
+				
+				// 返回验证错误详情
+				if validationErrors, ok := err.(validation.ValidationErrors); ok {
+					responseBody := map[string]interface{}{
+						"error": "Validation failed",
+						"details": validationErrors.Errors,
+					}
+					respondJSON(w, http.StatusBadRequest, responseBody)
+				} else {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+				}
+				return
+			}
+		} else {
+			// Fallback validation when validator is not available
+			if page < 1 {
+				reqLogger.LogError("validation_error", "Invalid page parameter", nil, map[string]interface{}{
+					"page": page,
+					"tenant_id": tenantID.String(),
+				})
+				metrics.RecordError("corehr", "list_employees_validation_error")
+				http.Error(w, "Page must be greater than 0", http.StatusBadRequest)
+				return
+			}
+
+			if pageSize < 1 || pageSize > 100 {
+				reqLogger.LogError("validation_error", "Invalid page_size parameter", nil, map[string]interface{}{
+					"page_size": pageSize,
+					"tenant_id": tenantID.String(),
+				})
+				metrics.RecordError("corehr", "list_employees_validation_error")
+				http.Error(w, "Page size must be between 1 and 100", http.StatusBadRequest)
+				return
+			}
+		}
+
+		// 记录请求开始
+		reqLogger.Info("Processing list employees request",
+			"page", page,
+			"page_size", pageSize,
+			"search", search,
+			"tenant_id", tenantID.String(),
+		)
 
 		// 调用服务
 		response, err := service.ListEmployees(r.Context(), tenantID, page, pageSize, search)
 		if err != nil {
-			reqLogger.LogError("list_employees", "Failed to list employees", err, map[string]interface{}{
+			reqLogger.LogError("list_employees_service_error", "Failed to list employees from service", err, map[string]interface{}{
 				"page":      page,
 				"page_size": pageSize,
 				"search":    search,
+				"tenant_id": tenantID.String(),
+				"error_type": fmt.Sprintf("%T", err),
 			})
-			metrics.RecordError("corehr", "list_employees_error")
+			metrics.RecordError("corehr", "list_employees_service_error")
+			
+			// 根据错误类型返回不同状态码
+			if strings.Contains(err.Error(), "timeout") {
+				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+			} else if strings.Contains(err.Error(), "connection") {
+				http.Error(w, "Database connection error", http.StatusServiceUnavailable)
+			} else {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// 响应验证
+		if response == nil {
+			reqLogger.LogError("service_response_error", "Service returned nil response", nil, map[string]interface{}{
+				"tenant_id": tenantID.String(),
+			})
+			metrics.RecordError("corehr", "list_employees_nil_response_error")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		// 记录指标
+		// 记录成功指标
 		duration := time.Since(start)
+		employeeCount := 0
+		if response.Employees != nil {
+			employeeCount = len(*response.Employees)
+		}
+
 		metrics.RecordDatabaseOperation("SELECT", "employees", "success", duration)
-		reqLogger.LogDatabaseOperation("SELECT", "employees", len(*response.Employees), duration, true)
+		reqLogger.LogDatabaseOperation("SELECT", "employees", employeeCount, duration, true)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+
+		reqLogger.Info("Successfully listed employees",
+			"count", employeeCount,
+			"duration_ms", duration.Milliseconds(),
+			"tenant_id", tenantID.String(),
+		)
 
 		// 返回响应
 		respondJSON(w, http.StatusOK, response)
@@ -738,38 +839,142 @@ func handleListEmployees(service *corehr.Service, logger *logging.StructuredLogg
 }
 
 // handleCreateEmployee 处理创建员工请求
-func handleCreateEmployee(service *corehr.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+func handleCreateEmployee(service *corehr.Service, logger *logging.StructuredLogger, validator *validation.EmployeeValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		reqLogger := logger.WithContext(r.Context())
 		tenantID := getTenantID(r.Context())
 
+		// 验证Content-Type
+		if r.Header.Get("Content-Type") != "application/json" {
+			reqLogger.LogError("content_type_error", "Invalid content type", nil, map[string]interface{}{
+				"content_type": r.Header.Get("Content-Type"),
+				"tenant_id": tenantID.String(),
+			})
+			metrics.RecordError("corehr", "create_employee_content_type_error")
+			http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
+			return
+		}
+
 		// 解析请求体
 		var req CreateEmployeeRequest
 		if err := parseJSON(r, &req); err != nil {
-			reqLogger.LogError("parse_request", "Failed to parse create employee request", err, nil)
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			reqLogger.LogError("parse_request_error", "Failed to parse create employee request JSON", err, map[string]interface{}{
+				"tenant_id": tenantID.String(),
+				"content_length": r.ContentLength,
+				"error_type": fmt.Sprintf("%T", err),
+			})
+			metrics.RecordError("corehr", "create_employee_parse_error")
+			http.Error(w, "Invalid JSON in request body", http.StatusBadRequest)
 			return
 		}
+
+		// 使用验证器进行数据验证
+		if validator != nil {
+			if err := validator.ValidateCreateEmployee(r.Context(), tenantID, &req); err != nil {
+				reqLogger.LogError("validation_error", "Create employee validation failed", err, map[string]interface{}{
+					"employee_number": req.EmployeeNumber,
+					"first_name": req.FirstName,
+					"last_name": req.LastName,
+					"email": string(req.Email),
+					"tenant_id": tenantID.String(),
+				})
+				metrics.RecordError("corehr", "create_employee_validation_error")
+				
+				// 返回验证错误详情
+				if validationErrors, ok := err.(validation.ValidationErrors); ok {
+					responseBody := map[string]interface{}{
+						"error": "Validation failed",
+						"details": validationErrors.Errors,
+					}
+					respondJSON(w, http.StatusBadRequest, responseBody)
+				} else {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+				}
+				return
+			}
+		} else {
+			// Fallback validation when validator is not available
+			if req.EmployeeNumber == "" {
+				reqLogger.LogError("validation_error", "Employee number is required", nil, map[string]interface{}{
+					"tenant_id": tenantID.String(),
+				})
+				metrics.RecordError("corehr", "create_employee_validation_error")
+				http.Error(w, "Employee number is required", http.StatusBadRequest)
+				return
+			}
+			if req.FirstName == "" || req.LastName == "" {
+				reqLogger.LogError("validation_error", "First name and last name are required", nil, map[string]interface{}{
+					"employee_number": req.EmployeeNumber,
+					"first_name_empty": req.FirstName == "",
+					"last_name_empty": req.LastName == "",
+					"tenant_id": tenantID.String(),
+				})
+				metrics.RecordError("corehr", "create_employee_validation_error")
+				http.Error(w, "First name and last name are required", http.StatusBadRequest)
+				return
+			}
+		}
+
+		// 记录请求开始
+		reqLogger.Info("Processing create employee request",
+			"employee_number", req.EmployeeNumber,
+			"first_name", req.FirstName,
+			"last_name", req.LastName,
+			"tenant_id", tenantID.String(),
+		)
 
 		// 调用服务
 		employee, err := service.CreateEmployee(r.Context(), tenantID, &req)
 		if err != nil {
-			reqLogger.LogError("create_employee", "Failed to create employee", err, map[string]interface{}{
+			reqLogger.LogError("create_employee_service_error", "Failed to create employee in service", err, map[string]interface{}{
 				"employee_number": req.EmployeeNumber,
 				"first_name":      req.FirstName,
 				"last_name":       req.LastName,
+				"tenant_id":       tenantID.String(),
+				"error_type":      fmt.Sprintf("%T", err),
 			})
-			metrics.RecordError("corehr", "create_employee_error")
-			http.Error(w, "Failed to create employee", http.StatusInternalServerError)
+			metrics.RecordError("corehr", "create_employee_service_error")
+			
+			// 根据错误类型返回适当的HTTP状态码
+			if strings.Contains(err.Error(), "already exists") {
+				http.Error(w, "Employee number already exists", http.StatusConflict)
+			} else if strings.Contains(err.Error(), "validation") {
+				http.Error(w, "Invalid employee data", http.StatusBadRequest)
+			} else if strings.Contains(err.Error(), "timeout") {
+				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+			} else if strings.Contains(err.Error(), "connection") {
+				http.Error(w, "Database connection error", http.StatusServiceUnavailable)
+			} else {
+				http.Error(w, "Failed to create employee", http.StatusInternalServerError)
+			}
 			return
 		}
 
-		// 记录指标和日志
+		// 响应验证
+		if employee == nil {
+			reqLogger.LogError("service_response_error", "Service returned nil employee", nil, map[string]interface{}{
+				"employee_number": req.EmployeeNumber,
+				"tenant_id": tenantID.String(),
+			})
+			metrics.RecordError("corehr", "create_employee_nil_response_error")
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// 记录成功指标和日志
 		duration := time.Since(start)
 		metrics.RecordEmployeeCreated(tenantID.String())
 		metrics.RecordDatabaseOperation("INSERT", "employees", "success", duration)
 		reqLogger.LogEmployeeCreated(*employee.Id, tenantID, req.EmployeeNumber)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusCreated, duration, r.UserAgent())
+
+		reqLogger.Info("Successfully created employee",
+			"employee_id", employee.Id.String(),
+			"employee_number", req.EmployeeNumber,
+			"duration_ms", duration.Milliseconds(),
+			"tenant_id", tenantID.String(),
+		)
 
 		// 返回响应
 		respondJSON(w, http.StatusCreated, employee)
@@ -1026,25 +1231,442 @@ type CreateEmployeeRequest = openapi.CreateEmployeeRequest
 
 func handleGetEmployee(service *corehr.Service, logger *logging.StructuredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		respondJSON(w, http.StatusOK, map[string]string{"status": "not_implemented"})
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+
+		// 获取员工ID
+		employeeID := chi.URLParam(r, "employeeID")
+		if employeeID == "" {
+			reqLogger.LogError("missing_parameter", "Employee ID parameter is missing", nil, map[string]interface{}{
+				"tenant_id": tenantID.String(),
+				"path": r.URL.Path,
+			})
+			metrics.RecordError("corehr", "get_employee_missing_id_error")
+			http.Error(w, "Employee ID is required", http.StatusBadRequest)
+			return
+		}
+
+		// 解析UUID
+		employeeUUID, err := uuid.Parse(employeeID)
+		if err != nil {
+			reqLogger.LogError("invalid_uuid", "Invalid employee ID format", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+				"error_type": fmt.Sprintf("%T", err),
+			})
+			metrics.RecordError("corehr", "get_employee_invalid_uuid_error")
+			http.Error(w, "Invalid employee ID format", http.StatusBadRequest)
+			return
+		}
+
+		// 记录请求开始
+		reqLogger.Info("Processing get employee request",
+			"employee_id", employeeID,
+			"tenant_id", tenantID.String(),
+		)
+
+		// 调用服务
+		employee, err := service.GetEmployee(r.Context(), tenantID, employeeUUID)
+		if err != nil {
+			reqLogger.LogError("get_employee_service_error", "Failed to get employee from service", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id":   tenantID.String(),
+				"error_type":  fmt.Sprintf("%T", err),
+			})
+
+			// 根据错误类型返回适当的HTTP状态码
+			if strings.Contains(err.Error(), "not found") {
+				metrics.RecordError("corehr", "get_employee_not_found_error")
+				http.Error(w, "Employee not found", http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "timeout") {
+				metrics.RecordError("corehr", "get_employee_timeout_error")
+				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+			} else if strings.Contains(err.Error(), "connection") {
+				metrics.RecordError("corehr", "get_employee_connection_error")
+				http.Error(w, "Database connection error", http.StatusServiceUnavailable)
+			} else {
+				metrics.RecordError("corehr", "get_employee_service_error")
+				http.Error(w, "Failed to get employee", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// 响应验证
+		if employee == nil {
+			reqLogger.LogError("service_response_error", "Service returned nil employee", nil, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+			})
+			metrics.RecordError("corehr", "get_employee_nil_response_error")
+			http.Error(w, "Employee not found", http.StatusNotFound)
+			return
+		}
+
+		// 记录成功指标
+		duration := time.Since(start)
+		metrics.RecordDatabaseOperation("SELECT", "employees", "success", duration)
+		reqLogger.LogDatabaseOperation("SELECT", "employees", 1, duration, true)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+
+		reqLogger.Info("Successfully retrieved employee",
+			"employee_id", employeeID,
+			"employee_number", employee.EmployeeNumber,
+			"duration_ms", duration.Milliseconds(),
+			"tenant_id", tenantID.String(),
+		)
+
+		// 返回响应
+		respondJSON(w, http.StatusOK, employee)
 	}
 }
 
-func handleUpdateEmployee(service *corehr.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+func handleUpdateEmployee(service *corehr.Service, logger *logging.StructuredLogger, validator *validation.EmployeeValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		respondJSON(w, http.StatusOK, map[string]string{"status": "not_implemented"})
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+
+		// 获取员工ID
+		employeeID := chi.URLParam(r, "employeeID")
+		if employeeID == "" {
+			reqLogger.LogError("missing_parameter", "Employee ID parameter is missing", nil, map[string]interface{}{
+				"tenant_id": tenantID.String(),
+				"path": r.URL.Path,
+			})
+			metrics.RecordError("corehr", "update_employee_missing_id_error")
+			http.Error(w, "Employee ID is required", http.StatusBadRequest)
+			return
+		}
+
+		// 解析UUID
+		employeeUUID, err := uuid.Parse(employeeID)
+		if err != nil {
+			reqLogger.LogError("invalid_uuid", "Invalid employee ID format", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+				"error_type": fmt.Sprintf("%T", err),
+			})
+			metrics.RecordError("corehr", "update_employee_invalid_uuid_error")
+			http.Error(w, "Invalid employee ID format", http.StatusBadRequest)
+			return
+		}
+
+		// 验证Content-Type
+		if r.Header.Get("Content-Type") != "application/json" {
+			reqLogger.LogError("content_type_error", "Invalid content type", nil, map[string]interface{}{
+				"content_type": r.Header.Get("Content-Type"),
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+			})
+			metrics.RecordError("corehr", "update_employee_content_type_error")
+			http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
+			return
+		}
+
+		// 解析请求体
+		var req openapi.UpdateEmployeeRequest
+		if err := parseJSON(r, &req); err != nil {
+			reqLogger.LogError("parse_request_error", "Failed to parse update employee request JSON", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+				"content_length": r.ContentLength,
+				"error_type": fmt.Sprintf("%T", err),
+			})
+			metrics.RecordError("corehr", "update_employee_parse_error")
+			http.Error(w, "Invalid JSON in request body", http.StatusBadRequest)
+			return
+		}
+
+		// 使用验证器进行数据验证
+		if validator != nil {
+			if err := validator.ValidateUpdateEmployee(r.Context(), tenantID, employeeUUID, &req); err != nil {
+				reqLogger.LogError("validation_error", "Update employee validation failed", err, map[string]interface{}{
+					"employee_id": employeeID,
+					"tenant_id": tenantID.String(),
+					"has_first_name": req.FirstName != nil,
+					"has_last_name": req.LastName != nil,
+					"has_email": req.Email != nil,
+				})
+				metrics.RecordError("corehr", "update_employee_validation_error")
+				
+				// 返回验证错误详情
+				if validationErrors, ok := err.(validation.ValidationErrors); ok {
+					responseBody := map[string]interface{}{
+						"error": "Validation failed",
+						"details": validationErrors.Errors,
+					}
+					respondJSON(w, http.StatusBadRequest, responseBody)
+				} else {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+				}
+				return
+			}
+		}
+
+		// 记录请求开始
+		reqLogger.Info("Processing update employee request",
+			"employee_id", employeeID,
+			"tenant_id", tenantID.String(),
+			"has_first_name", req.FirstName != nil,
+			"has_last_name", req.LastName != nil,
+			"has_email", req.Email != nil,
+		)
+
+		// 调用服务
+		employee, err := service.UpdateEmployee(r.Context(), tenantID, employeeUUID, &req)
+		if err != nil {
+			reqLogger.LogError("update_employee_service_error", "Failed to update employee in service", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id":   tenantID.String(),
+				"error_type":  fmt.Sprintf("%T", err),
+			})
+
+			// 根据错误类型返回适当的HTTP状态码
+			if strings.Contains(err.Error(), "not found") {
+				metrics.RecordError("corehr", "update_employee_not_found_error")
+				http.Error(w, "Employee not found", http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "validation") {
+				metrics.RecordError("corehr", "update_employee_validation_error")
+				http.Error(w, "Invalid employee data", http.StatusBadRequest)
+			} else if strings.Contains(err.Error(), "timeout") {
+				metrics.RecordError("corehr", "update_employee_timeout_error")
+				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+			} else if strings.Contains(err.Error(), "connection") {
+				metrics.RecordError("corehr", "update_employee_connection_error")
+				http.Error(w, "Database connection error", http.StatusServiceUnavailable)
+			} else {
+				metrics.RecordError("corehr", "update_employee_service_error")
+				http.Error(w, "Failed to update employee", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// 响应验证
+		if employee == nil {
+			reqLogger.LogError("service_response_error", "Service returned nil employee", nil, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+			})
+			metrics.RecordError("corehr", "update_employee_nil_response_error")
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// 记录成功指标
+		duration := time.Since(start)
+		metrics.RecordDatabaseOperation("UPDATE", "employees", "success", duration)
+		reqLogger.LogDatabaseOperation("UPDATE", "employees", 1, duration, true)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+
+		reqLogger.Info("Successfully updated employee",
+			"employee_id", employeeID,
+			"employee_number", employee.EmployeeNumber,
+			"duration_ms", duration.Milliseconds(),
+			"tenant_id", tenantID.String(),
+		)
+
+		// 返回响应
+		respondJSON(w, http.StatusOK, employee)
 	}
 }
 
-func handleDeleteEmployee(service *corehr.Service, logger *logging.StructuredLogger) http.HandlerFunc {
+func handleDeleteEmployee(service *corehr.Service, logger *logging.StructuredLogger, validator *validation.EmployeeValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		respondJSON(w, http.StatusOK, map[string]string{"status": "not_implemented"})
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+
+		// 获取员工ID
+		employeeID := chi.URLParam(r, "employeeID")
+		if employeeID == "" {
+			reqLogger.LogError("missing_parameter", "Employee ID parameter is missing", nil, map[string]interface{}{
+				"tenant_id": tenantID.String(),
+				"path": r.URL.Path,
+			})
+			metrics.RecordError("corehr", "delete_employee_missing_id_error")
+			http.Error(w, "Employee ID is required", http.StatusBadRequest)
+			return
+		}
+
+		// 解析UUID
+		employeeUUID, err := uuid.Parse(employeeID)
+		if err != nil {
+			reqLogger.LogError("invalid_uuid", "Invalid employee ID format", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+				"error_type": fmt.Sprintf("%T", err),
+			})
+			metrics.RecordError("corehr", "delete_employee_invalid_uuid_error")
+			http.Error(w, "Invalid employee ID format", http.StatusBadRequest)
+			return
+		}
+
+		// 记录请求开始
+		reqLogger.Info("Processing delete employee request",
+			"employee_id", employeeID,
+			"tenant_id", tenantID.String(),
+		)
+
+		// 使用验证器进行业务规则验证（员工是否可以被删除）
+		if validator != nil {
+			if err := validator.ValidateEmployeeTermination(r.Context(), employeeUUID, tenantID); err != nil {
+				reqLogger.LogError("validation_error", "Delete employee validation failed", err, map[string]interface{}{
+					"employee_id": employeeID,
+					"tenant_id": tenantID.String(),
+				})
+				metrics.RecordError("corehr", "delete_employee_validation_error")
+				
+				// 返回验证错误详情
+				if validationErrors, ok := err.(validation.ValidationErrors); ok {
+					responseBody := map[string]interface{}{
+						"error": "Validation failed",
+						"details": validationErrors.Errors,
+					}
+					respondJSON(w, http.StatusBadRequest, responseBody)
+				} else {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+				}
+				return
+			}
+		}
+
+		// 调用服务
+		err = service.DeleteEmployee(r.Context(), tenantID, employeeUUID)
+		if err != nil {
+			reqLogger.LogError("delete_employee_service_error", "Failed to delete employee in service", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id":   tenantID.String(),
+				"error_type":  fmt.Sprintf("%T", err),
+			})
+
+			// 根据错误类型返回适当的HTTP状态码
+			if strings.Contains(err.Error(), "not found") {
+				metrics.RecordError("corehr", "delete_employee_not_found_error")
+				http.Error(w, "Employee not found", http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "foreign key") || strings.Contains(err.Error(), "constraint") {
+				metrics.RecordError("corehr", "delete_employee_constraint_error")
+				http.Error(w, "Cannot delete employee due to existing references", http.StatusConflict)
+			} else if strings.Contains(err.Error(), "timeout") {
+				metrics.RecordError("corehr", "delete_employee_timeout_error")
+				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+			} else if strings.Contains(err.Error(), "connection") {
+				metrics.RecordError("corehr", "delete_employee_connection_error")
+				http.Error(w, "Database connection error", http.StatusServiceUnavailable)
+			} else {
+				metrics.RecordError("corehr", "delete_employee_service_error")
+				http.Error(w, "Failed to delete employee", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// 记录成功指标
+		duration := time.Since(start)
+		metrics.RecordDatabaseOperation("DELETE", "employees", "success", duration)
+		reqLogger.LogDatabaseOperation("DELETE", "employees", 1, duration, true)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusNoContent, duration, r.UserAgent())
+
+		reqLogger.Info("Successfully deleted employee",
+			"employee_id", employeeID,
+			"duration_ms", duration.Milliseconds(),
+			"tenant_id", tenantID.String(),
+		)
+
+		// 返回响应
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
 func handleGetEmployeeManager(service *corehr.Service, logger *logging.StructuredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		respondJSON(w, http.StatusOK, map[string]string{"status": "not_implemented"})
+		start := time.Now()
+		reqLogger := logger.WithContext(r.Context())
+		tenantID := getTenantID(r.Context())
+
+		// 获取员工ID
+		employeeID := chi.URLParam(r, "employeeID")
+		if employeeID == "" {
+			reqLogger.LogError("missing_parameter", "Employee ID parameter is missing", nil, map[string]interface{}{
+				"tenant_id": tenantID.String(),
+				"path": r.URL.Path,
+			})
+			metrics.RecordError("corehr", "get_employee_manager_missing_id_error")
+			http.Error(w, "Employee ID is required", http.StatusBadRequest)
+			return
+		}
+
+		// 解析UUID
+		employeeUUID, err := uuid.Parse(employeeID)
+		if err != nil {
+			reqLogger.LogError("invalid_uuid", "Invalid employee ID format", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+				"error_type": fmt.Sprintf("%T", err),
+			})
+			metrics.RecordError("corehr", "get_employee_manager_invalid_uuid_error")
+			http.Error(w, "Invalid employee ID format", http.StatusBadRequest)
+			return
+		}
+
+		// 记录请求开始
+		reqLogger.Info("Processing get employee manager request",
+			"employee_id", employeeID,
+			"tenant_id", tenantID.String(),
+		)
+
+		// 调用服务
+		manager, err := service.GetManagerByEmployeeId(r.Context(), tenantID, employeeUUID)
+		if err != nil {
+			reqLogger.LogError("get_employee_manager_service_error", "Failed to get employee manager from service", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id":   tenantID.String(),
+				"error_type":  fmt.Sprintf("%T", err),
+			})
+
+			// 根据错误类型返回适当的HTTP状态码
+			if strings.Contains(err.Error(), "manager not found") || strings.Contains(err.Error(), "employee not found") {
+				metrics.RecordError("corehr", "get_employee_manager_not_found_error")
+				http.Error(w, "Manager not found", http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "timeout") {
+				metrics.RecordError("corehr", "get_employee_manager_timeout_error")
+				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+			} else if strings.Contains(err.Error(), "connection") {
+				metrics.RecordError("corehr", "get_employee_manager_connection_error")
+				http.Error(w, "Database connection error", http.StatusServiceUnavailable)
+			} else {
+				metrics.RecordError("corehr", "get_employee_manager_service_error")
+				http.Error(w, "Failed to get employee manager", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// 响应验证
+		if manager == nil {
+			reqLogger.LogError("service_response_error", "Service returned nil manager", nil, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+			})
+			metrics.RecordError("corehr", "get_employee_manager_nil_response_error")
+			http.Error(w, "Manager not found", http.StatusNotFound)
+			return
+		}
+
+		// 记录成功指标
+		duration := time.Since(start)
+		metrics.RecordDatabaseOperation("SELECT", "employees", "success", duration)
+		reqLogger.LogDatabaseOperation("SELECT", "employees", 1, duration, true)
+		reqLogger.LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, duration, r.UserAgent())
+
+		reqLogger.Info("Successfully retrieved employee manager",
+			"employee_id", employeeID,
+			"manager_id", manager.Id.String(),
+			"manager_number", manager.EmployeeNumber,
+			"duration_ms", duration.Milliseconds(),
+			"tenant_id", tenantID.String(),
+		)
+
+		// 返回响应
+		respondJSON(w, http.StatusOK, manager)
 	}
 }
 

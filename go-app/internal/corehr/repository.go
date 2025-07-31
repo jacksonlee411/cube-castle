@@ -62,6 +62,26 @@ func (r *Repository) GetEmployeeByNumber(ctx context.Context, tenantID uuid.UUID
 	return &employee, nil
 }
 
+// GetEmployeeByEmail 根据邮箱获取员工
+func (r *Repository) GetEmployeeByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*Employee, error) {
+	var employee Employee
+	err := r.db.QueryRow(ctx,
+		`SELECT id, tenant_id, employee_number, first_name, last_name, email, phone_number, position, department, hire_date, manager_id, status, created_at, updated_at 
+		 FROM corehr.employees WHERE email = $1 AND tenant_id = $2`,
+		email, tenantID).Scan(
+		&employee.ID, &employee.TenantID, &employee.EmployeeNumber, &employee.FirstName, &employee.LastName,
+		&employee.Email, &employee.PhoneNumber, &employee.Position, &employee.Department, &employee.HireDate,
+		&employee.ManagerID, &employee.Status, &employee.CreatedAt, &employee.UpdatedAt)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee by email: %w", err)
+	}
+	return &employee, nil
+}
+
 // ListEmployees 获取员工列表（支持分页和搜索）
 func (r *Repository) ListEmployees(ctx context.Context, tenantID uuid.UUID, page, pageSize int, search string) ([]Employee, int, error) {
 	offset := (page - 1) * pageSize

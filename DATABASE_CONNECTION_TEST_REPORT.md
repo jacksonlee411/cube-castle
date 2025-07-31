@@ -287,6 +287,61 @@ Cube Castle项目的数据库基础设施运行状况良好，所有4个核心�
 
 ---
 
-**报告生成时间**: 2025年7月31日 06:35  
+---
+
+## 附加测试 - Go应用数据库连接验证 (2025-07-31 08:28)
+
+### PostgreSQL 连接状态更新
+
+**最新测试结果**: ✅ **成功**
+
+通过执行 `/home/shangmeilin/cube-castle/test-database-connections.sh` 脚本，验证了Go应用的数据库连接配置：
+
+#### 连接测试详情
+- **测试时间**: 2025-07-31 08:28
+- **测试脚本**: `test-database-connections.sh`
+- **成功连接**: `postgresql://user:password@localhost:5432/cubecastle`
+- **数据库表数量**: 18个用户表 (比之前报告的12个表有所增加)
+- **应用状态**: 已从Mock模式切换到生产数据库模式
+
+#### 应用集成验证
+从服务器日志分析 (`server.log` 第210-363行)：
+- ✅ 数据库操作正常执行
+- ✅ 员工管理API端点全功能可用 (`/api/v1/corehr/employees`)
+- ✅ HTTP请求成功处理 (200, 201状态码)
+- ✅ 数据库SELECT操作正常完成
+- ✅ 性能指标稳定 (内存使用 ~1.7MB，响应时间 <1ms)
+
+#### 环境配置建议
+
+**立即使用**:
+```bash
+export DATABASE_URL='postgresql://user:password@localhost:5432/cubecastle'
+cd /home/shangmeilin/cube-castle/go-app
+go run cmd/server/main.go
+```
+
+**验证连接**:
+```bash
+psql "postgresql://user:password@localhost:5432/cubecastle" -c "SELECT version();"
+```
+
+### 开发进度状态
+
+✅ **已完成**:
+- 员工管理API Get/Update/Delete操作实现
+- GetEmployeeManager API端点实现  
+- 数据库连接和Repository实现验证
+
+🔄 **进行中**:
+- 员工CRUD操作错误处理和日志完善
+
+⏳ **计划中**:
+- 数据验证和业务规则检查
+- 集成测试编写
+
+---
+
+**报告生成时间**: 2025年7月31日 06:35 (初始) | 2025年7月31日 08:28 (更新)  
 **下次测试建议**: 每周执行一次全面测试，每日执行快速连接检查  
 **联系方式**: 如有疑问，请查看项目文档或联系开发团队
