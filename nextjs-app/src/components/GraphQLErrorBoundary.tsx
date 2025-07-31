@@ -46,8 +46,7 @@ class GraphQLErrorBoundary extends React.Component<
       this.props.onError(error, errorInfo);
     }
 
-    // Log to console for debugging
-    console.error('GraphQL Error Boundary caught an error:', error, errorInfo);
+    // GraphQL Error Boundary caught an error - error details available in error and errorInfo state
   }
 
   handleRetry = () => {

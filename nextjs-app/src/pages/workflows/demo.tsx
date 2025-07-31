@@ -1,5 +1,5 @@
 // src/pages/workflows/demo.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Card, 
   Typography, 
@@ -83,7 +83,7 @@ const WorkflowDemoPage: React.FC = () => {
   const [form] = Form.useForm();
 
   // 模拟工作流数据
-  const demoWorkflows: WorkflowDemo[] = [
+  const demoWorkflows: WorkflowDemo[] = useMemo(() => [
     {
       id: 'wf-001',
       type: 'POSITION_CHANGE',
@@ -168,11 +168,11 @@ const WorkflowDemoPage: React.FC = () => {
       created_at: '2025-01-15 16:00:00',
       estimated_completion: '2025-01-18 18:00:00'
     }
-  ];
+  ], []);
 
   useEffect(() => {
     setWorkflows(demoWorkflows);
-  }, []);
+  }, [demoWorkflows]);
 
   const getStatusColor = (status: WorkflowDemo['status']) => {
     switch (status) {

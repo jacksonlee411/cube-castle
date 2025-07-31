@@ -1,5 +1,5 @@
 // src/components/ServiceStatus.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Alert, Badge, Button, Space, Tooltip } from 'antd';
 import { 
   CheckCircleOutlined, 
@@ -48,7 +48,7 @@ const ServiceStatus: React.FC<ServiceStatusProps> = ({
       });
       return !!result.data;
     } catch (error) {
-      console.warn('GraphQL health check failed:', error);
+      // GraphQL health check failed
       return false;
     }
   };
@@ -58,12 +58,12 @@ const ServiceStatus: React.FC<ServiceStatusProps> = ({
       const result = await restApiClient.healthCheck();
       return result.success;
     } catch (error) {
-      console.warn('REST API health check failed:', error);
+      // REST API health check failed
       return false;
     }
   };
 
-  const performHealthCheck = async () => {
+  const performHealthCheck = useCallback(async () => {
     setIsChecking(true);
     
     const [graphqlHealthy, restHealthy] = await Promise.all([
@@ -78,7 +78,7 @@ const ServiceStatus: React.FC<ServiceStatusProps> = ({
     });
     
     setIsChecking(false);
-  };
+  }, []);
 
   useEffect(() => {
     performHealthCheck();
@@ -87,7 +87,7 @@ const ServiceStatus: React.FC<ServiceStatusProps> = ({
     const interval = setInterval(performHealthCheck, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [performHealthCheck]);
 
   const getStatusColor = (status: ServiceHealth['graphql']) => {
     switch (status) {

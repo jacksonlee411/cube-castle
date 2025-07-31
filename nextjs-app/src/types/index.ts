@@ -35,6 +35,28 @@ export interface Employee extends BaseEntity {
   tenantId: string
 }
 
+// 扩展Employee类型以支持实际API返回的字段格式
+export interface EmployeeApiResponse extends BaseEntity {
+  employee_number: string
+  first_name: string
+  last_name: string
+  email: string
+  phone_number?: string
+  hire_date: string
+  status: EmployeeStatus
+  job_title?: string
+  organization_id?: string
+  position_id?: string
+  manager_id?: string
+  tenant_id: string
+}
+
+// 类型转换工具函数类型
+export type EmployeeConverter = {
+  fromApi: (apiData: EmployeeApiResponse) => Employee
+  toApi: (employee: Partial<Employee>) => Partial<EmployeeApiResponse>
+}
+
 export enum EmployeeStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',

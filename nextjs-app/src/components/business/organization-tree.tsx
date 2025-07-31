@@ -182,8 +182,7 @@ export const OrganizationTree = ({ organizations, onUpdate, onDelete }: Organiza
   
   const handleAddChild = (parentId: string) => {
     setSelectedParent(parentId)
-    // 这里应该打开创建对话框，并设置父级ID
-    console.log('Add child to:', parentId)
+    // TODO: Open create dialog and set parent ID
   }
   
   if (treeData.length === 0) {

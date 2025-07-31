@@ -114,15 +114,13 @@ export class IntelligentTemplateApplicationEngine {
         template,
         appliedElements: resolvedElements,
         conflicts: conflicts.length > 0 ? conflicts.map(c => ({
-          type: c.existing.type,
+          type: this.mapConflictType(c.type),
           existing: c.existing,
           template: c.template,
-          resolution: config.conflictResolution?.[c.id] || c.suggestedResolution
+          resolution: this.mapResolutionStrategy(config.conflictResolution?.[c.id] || c.suggestedResolution)
         })) : undefined,
         warnings,
-        performance: performanceImpact,
-        backup,
-        validationResults
+        performance: performanceImpact
       };
       
     } catch (error) {
@@ -130,7 +128,7 @@ export class IntelligentTemplateApplicationEngine {
         success: false,
         template,
         appliedElements: [],
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        warnings: [error instanceof Error ? error.message : 'Unknown error occurred']
       };
     }
   }
@@ -376,7 +374,7 @@ export class IntelligentTemplateApplicationEngine {
           
           switch (resolution) {
             case ConflictResolutionStrategy.MERGE:
-              resolvedElement = this.mergeElements([conflict.existing], [templateElement])[0] || resolvedElement;
+              resolvedElement = this.mergeElements([conflict.existing], [templateElement], 'additive', true)[0] || resolvedElement;
               break;
               
             case ConflictResolutionStrategy.REPLACE:
@@ -657,5 +655,41 @@ export class IntelligentTemplateApplicationEngine {
     }
     
     return report.join('\\n');
+  }
+
+  /**
+   * 映射冲突类型到模板应用结果类型
+   */
+  private mapConflictType(conflictType: FieldConflictType): 'field' | 'relationship' | 'security' | 'validation' {
+    switch (conflictType) {
+      case FieldConflictType.NAME_CONFLICT:
+      case FieldConflictType.TYPE_MISMATCH:
+      case FieldConflictType.CONSTRAINT_CONFLICT:
+        return 'field';
+      case FieldConflictType.RELATIONSHIP_CONFLICT:
+        return 'relationship';
+      default:
+        return 'field';
+    }
+  }
+
+  /**
+   * 映射解决策略到模板应用结果类型
+   */
+  private mapResolutionStrategy(strategy: ConflictResolutionStrategy): 'merge' | 'replace' | 'rename' | 'skip' {
+    switch (strategy) {
+      case ConflictResolutionStrategy.MERGE:
+        return 'merge';
+      case ConflictResolutionStrategy.REPLACE:
+        return 'replace';
+      case ConflictResolutionStrategy.RENAME:
+        return 'rename';
+      case ConflictResolutionStrategy.SKIP:
+        return 'skip';
+      case ConflictResolutionStrategy.ASK_USER:
+        return 'skip'; // 默认跳过需要用户决策的项目
+      default:
+        return 'skip';
+    }
   }
 }

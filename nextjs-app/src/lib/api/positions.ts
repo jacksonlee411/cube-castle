@@ -173,7 +173,7 @@ class PositionApiClient {
         throw error
       }
       
-      console.error('职位API请求错误:', error)
+      // 职位API请求错误 - error handled by throwing specific error
       throw new PositionApiError('网络请求失败，请检查网络连接', 0, 'NETWORK_ERROR')
     }
   }

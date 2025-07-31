@@ -183,22 +183,8 @@ export class IndustryTemplates {
     ];
 
     const schema: MetaContractSchema = {
-      specification_version: '1.0',
-      api_id: 'employee-management-api',
-      namespace: 'hr',
-      resource_name: 'employees',
-      data_structure: {
-        primary_key: 'id',
-        data_classification: 'confidential',
-        fields: elements.filter(e => e.type === 'field').map(e => e.properties)
-      },
-      relationships: elements.filter(e => e.type === 'relationship').map(e => e.properties),
-      security_model: {
-        access_control: 'rbac',
-        encryption: ['salary'],
-        audit_trail: true,
-        data_retention: '7_years'
-      }
+      version: '1.0',
+      elements: elements
     };
 
     return {
@@ -316,22 +302,8 @@ export class IndustryTemplates {
     ];
 
     const schema: MetaContractSchema = {
-      specification_version: '1.0',
-      api_id: 'financial-account-api',
-      namespace: 'finance',
-      resource_name: 'accounts',
-      data_structure: {
-        primary_key: 'id',
-        data_classification: 'restricted',
-        fields: elements.map(e => e.properties)
-      },
-      security_model: {
-        access_control: 'attribute_based',
-        encryption: ['balance', 'account_id'],
-        audit_trail: true,
-        compliance: ['PCI_DSS', 'SOX'],
-        data_retention: '10_years'
-      }
+      version: '1.0',
+      elements: elements
     };
 
     return {
@@ -437,15 +409,8 @@ export class IndustryTemplates {
     ];
 
     const schema: MetaContractSchema = {
-      specification_version: '1.0',
-      api_id: 'ecommerce-product-api',
-      namespace: 'ecommerce',
-      resource_name: 'products',
-      data_structure: {
-        primary_key: 'id',
-        data_classification: 'public',
-        fields: elements.map(e => e.properties)
-      }
+      version: '1.0',
+      elements: elements
     };
 
     return {
@@ -570,20 +535,8 @@ export class TechnicalPatternTemplates {
     ];
 
     const schema: MetaContractSchema = {
-      specification_version: '1.0',
-      api_id: 'audit-trail-api',
-      namespace: 'system',
-      resource_name: 'audit_logs',
-      data_structure: {
-        primary_key: 'audit_id',
-        data_classification: 'internal',
-        fields: elements.map(e => e.properties)
-      },
-      security_model: {
-        access_control: 'strict',
-        immutable: true,
-        retention_policy: 'indefinite'
-      }
+      version: '1.0',
+      elements: elements
     };
 
     return {
@@ -649,19 +602,8 @@ export class TechnicalPatternTemplates {
     ];
 
     const schema: MetaContractSchema = {
-      specification_version: '1.0',
-      api_id: 'soft-delete-api',
-      namespace: 'system',
-      resource_name: 'soft_deletable',
-      data_structure: {
-        primary_key: 'id',
-        data_classification: 'internal',
-        fields: elements.map(e => e.properties)
-      },
-      business_logic: {
-        default_scope: 'WHERE deleted_at IS NULL',
-        recovery_enabled: true
-      }
+      version: '1.0',
+      elements: elements
     };
 
     return {
@@ -753,20 +695,8 @@ export class SecurityPatternTemplates {
     ];
 
     const schema: MetaContractSchema = {
-      specification_version: '1.0',
-      api_id: 'rbac-role-api',
-      namespace: 'security',
-      resource_name: 'roles',
-      data_structure: {
-        primary_key: 'role_id',
-        data_classification: 'confidential',
-        fields: elements.map(e => e.properties)
-      },
-      security_model: {
-        access_control: 'admin_only',
-        audit_trail: true,
-        immutable_system_roles: true
-      }
+      version: '1.0',
+      elements: elements
     };
 
     return {

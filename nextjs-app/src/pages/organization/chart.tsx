@@ -365,7 +365,7 @@ const OrganizationChartPage: React.FC = () => {
       .map(unit => ({
         title: (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Tag color={getUnitTypeColor(unit.unitType)} size="small">
+            <Tag color={getUnitTypeColor(unit.unitType)}>
               {getUnitTypeLabel(unit.unitType)}
             </Tag>
             <span style={{ fontWeight: 'bold' }}>{unit.name}</span>

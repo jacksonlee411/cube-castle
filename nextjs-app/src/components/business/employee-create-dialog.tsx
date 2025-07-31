@@ -138,7 +138,7 @@ export function EmployeeCreateDialog({
       onOpenChange(false)
       
     } catch (error: any) {
-      console.error('Failed to create employee:', error)
+      // Failed to create employee - error handled by UI feedback
       
       // 显示具体的错误信息
       if (error.response?.data?.message) {

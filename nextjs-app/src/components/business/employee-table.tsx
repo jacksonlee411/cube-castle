@@ -35,10 +35,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Employee, Organization, EmployeeStatus } from '@/types'
+import { Employee, Organization, EmployeeStatus, EmployeeApiResponse } from '@/types'
+import { employeeConverter, isValidEmployeeApiResponse } from '@/utils/type-converters'
 
 interface EmployeeTableProps {
-  employees: Employee[]
+  employees: (Employee | EmployeeApiResponse)[] // 支持两种格式
   loading?: boolean
   error?: string | null
   organizations: Organization[]
@@ -68,10 +69,18 @@ export function EmployeeTable({
   onEmployeeEdit,
   onEmployeeDelete
 }: EmployeeTableProps) {
+  // 标准化员工数据格式
+  const normalizedEmployees: Employee[] = employees.map(emp => {
+    if (isValidEmployeeApiResponse(emp)) {
+      return employeeConverter.fromApi(emp)
+    }
+    return emp as Employee
+  })
+
   // 处理全选
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      onSelectionChange(employees.map(emp => emp.id))
+      onSelectionChange(normalizedEmployees.map(emp => emp.id))
     } else {
       onSelectionChange([])
     }
@@ -166,7 +175,7 @@ export function EmployeeTable({
     )
   }
 
-  if (employees.length === 0) {
+  if (normalizedEmployees.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -190,8 +199,8 @@ export function EmployeeTable({
               <TableHead className="w-12">
                 <Checkbox
                   checked={
-                    employees.length > 0 && 
-                    selectedEmployees.length === employees.length
+                    normalizedEmployees.length > 0 && 
+                    selectedEmployees.length === normalizedEmployees.length
                   }
                   onCheckedChange={handleSelectAll}
                 />
@@ -206,7 +215,7 @@ export function EmployeeTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {employees.map((employee) => (
+            {normalizedEmployees.map((employee) => (
               <TableRow 
                 key={employee.id}
                 className="cursor-pointer hover:bg-muted/50"
@@ -223,9 +232,9 @@ export function EmployeeTable({
                 
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="font-medium">{(employee as any).first_name + ' ' + (employee as any).last_name}</div>
+                    <div className="font-medium">{employee.fullName}</div>
                     <div className="text-sm text-muted-foreground">
-                      #{(employee as any).employee_number}
+                      #{employee.employeeNumber}
                     </div>
                   </div>
                 </TableCell>
@@ -236,10 +245,10 @@ export function EmployeeTable({
                       <Mail className="mr-1 h-3 w-3" />
                       {employee.email}
                     </div>
-                    {(employee as any).phone_number && (
+                    {employee.phoneNumber && (
                       <div className="flex items-center text-sm text-muted-foreground">
                         <Phone className="mr-1 h-3 w-3" />
-                        {(employee as any).phone_number}
+                        {employee.phoneNumber}
                       </div>
                     )}
                   </div>
@@ -247,19 +256,19 @@ export function EmployeeTable({
                 
                 <TableCell>
                   <div className="text-sm">
-                    {getOrganizationName((employee as any).organization_id)}
+                    {getOrganizationName(employee.organizationId)}
                   </div>
                 </TableCell>
                 
                 <TableCell>
                   <div className="text-sm">
-                    {(employee as any).position_id || '-'}
+                    {employee.jobTitle || '-'}
                   </div>
                 </TableCell>
                 
                 <TableCell>
                   <div className="text-sm">
-                    {(employee as any).hire_date ? format(new Date((employee as any).hire_date), 'yyyy年MM月dd日', { 
+                    {employee.hireDate ? format(new Date(employee.hireDate), 'yyyy年MM月dd日', { 
                       locale: zhCN 
                     }) : '-'}
                   </div>

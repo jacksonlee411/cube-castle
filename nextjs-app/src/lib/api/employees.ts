@@ -234,7 +234,7 @@ class ApiClient {
         throw error
       }
       
-      console.error('API请求错误:', error)
+      // API请求错误 - error handled by throwing specific error
       throw new ApiError('网络请求失败，请检查网络连接', 0, 'NETWORK_ERROR')
     }
   }

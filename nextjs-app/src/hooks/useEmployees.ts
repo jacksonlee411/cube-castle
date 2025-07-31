@@ -1,5 +1,5 @@
 // src/hooks/useEmployees.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useSubscription, gql } from '@apollo/client';
 import { apolloClient } from '@/lib/graphql-client';
 import { 
@@ -143,7 +143,7 @@ export const useEmployee = (employeeId: string) => {
         });
         setApolloInitialized(true);
       } catch (error) {
-        console.warn('Apollo client not ready, using REST API immediately:', error);
+        // Apollo client not ready, using REST API immediately
         setRestFallback(true);
         setApolloInitialized(false);
       }
@@ -152,7 +152,7 @@ export const useEmployee = (employeeId: string) => {
     checkApolloClient();
   }, []);
 
-  const tryRestApiFallback = async () => {
+  const tryRestApiFallback = useCallback(async () => {
     if (!restFallback && employeeId) {
       setRestFallback(true);
       setRestLoading(true);
@@ -172,14 +172,14 @@ export const useEmployee = (employeeId: string) => {
         setRestLoading(false);
       }
     }
-  };
+  }, [restFallback, employeeId]);
 
   // Use REST API immediately if Apollo is not initialized or if forced
   useEffect(() => {
     if (employeeId && (!apolloInitialized || restFallback)) {
       tryRestApiFallback();
     }
-  }, [employeeId, apolloInitialized, restFallback]);
+  }, [employeeId, apolloInitialized, restFallback, tryRestApiFallback]);
 
   const { data, loading, error, refetch } = useQuery(GET_EMPLOYEE, {
     variables: { id: employeeId },
@@ -187,7 +187,7 @@ export const useEmployee = (employeeId: string) => {
     errorPolicy: 'all',
     fetchPolicy: 'cache-first', // Use cache-first to avoid immediate network requests
     onError: async (graphQLError) => {
-      console.warn('GraphQL query failed, falling back to REST API:', graphQLError);
+      // GraphQL query failed, falling back to REST API
       await tryRestApiFallback();
     },
   });

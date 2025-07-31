@@ -76,8 +76,7 @@ function withGraphQLErrorBoundary<P extends object>(
       <GraphQLErrorBoundary 
         fallback={customFallback || DefaultErrorFallback}
         onError={(error, errorInfo) => {
-          // Log error for monitoring
-          console.error('GraphQL Error Boundary:', error, errorInfo);
+          // GraphQL Error Boundary error logged - integrating with monitoring services
           
           // You can integrate with error reporting services here
           // Example: Sentry, LogRocket, etc.

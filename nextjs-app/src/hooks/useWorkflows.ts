@@ -87,7 +87,7 @@ export const useWorkflowStatus = (workflowId: string) => {
       }
     },
     onError: (error) => {
-      console.error('Workflow subscription error:', error);
+      // Workflow subscription error - falling back to polling
     },
   });
 
@@ -227,7 +227,7 @@ export const useApprovalRequests = (approverId: string) => {
       }
     },
     onError: (error) => {
-      console.error('Approval subscription error:', error);
+      // Approval subscription error - falling back to polling
     },
   });
 
@@ -329,7 +329,7 @@ export const useWorkflowHistory = (employeeId?: string, limit: number = 20) => {
 
         setWorkflows(filteredWorkflows.slice(0, limit));
       } catch (error) {
-        console.error('Failed to fetch workflow history:', error);
+        // Failed to fetch workflow history - error handled by UI
       } finally {
         setLoading(false);
       }

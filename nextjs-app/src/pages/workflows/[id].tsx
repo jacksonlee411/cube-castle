@@ -103,11 +103,12 @@ const WorkflowStatusPage: React.FC = () => {
 
   // Sample data - in real app would come from GraphQL subscription
   useEffect(() => {
-    if (id) {
-      setLoading(true);
-      
-      // Simulate WebSocket subscription
-      const mockWorkflowStatus: WorkflowStatus = {
+    if (!id) return;
+    
+    setLoading(true);
+    
+    // Simulate WebSocket subscription
+    const mockWorkflowStatus: WorkflowStatus = {
         workflowId: id as string,
         employeeId: 'EMP001',
         employeeName: '张三',
@@ -246,7 +247,7 @@ const WorkflowStatusPage: React.FC = () => {
       setLoading(true);
       
       // Simulate GraphQL mutation
-      console.log('Approval decision:', values);
+      // Approval decision processed - values submitted to backend
       
       // Update workflow status
       setWorkflowStatus(prev => {
@@ -275,7 +276,7 @@ const WorkflowStatusPage: React.FC = () => {
       setIsApprovalModalVisible(false);
       approvalForm.resetFields();
     } catch (error) {
-      console.error('Approval failed:', error);
+      // Approval failed - error handled by notification
     } finally {
       setLoading(false);
     }

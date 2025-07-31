@@ -66,9 +66,11 @@
   "devDependencies": {
     "@ant-design/icons": "5.3.7",
     "@apollo/client": "^3.13.8",
+    "@jest/types": "^30.0.5",
     "@playwright/test": "^1.45.0",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.0.0",
+    "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.0",

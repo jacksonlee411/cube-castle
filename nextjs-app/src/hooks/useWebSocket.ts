@@ -19,8 +19,7 @@ export const useWebSocket = (projectId?: string): UseWebSocketReturn => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
-    // Simulate sending message
-    console.log('Sending message:', message);
+    // Simulate sending message - WebSocket not yet implemented
     
     // Simulate receiving response after delay
     setTimeout(() => {

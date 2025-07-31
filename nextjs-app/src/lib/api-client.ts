@@ -103,7 +103,7 @@ aiClient.interceptors.request.use(
 aiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
-    console.error('AI Service Error:', error)
+    // AI Service Error - error handled by caller
     if (error.response?.data?.message) {
       toast.error(`AI服务错误: ${error.response.data.message}`)
     } else {

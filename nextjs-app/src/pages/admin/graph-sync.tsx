@@ -5,6 +5,7 @@ import { SyncOutlined, DatabaseOutlined, CheckCircleOutlined, CloseCircleOutline
 import { useMutation } from '@apollo/client';
 import { FULL_GRAPH_SYNC, SYNC_DEPARTMENT, SYNC_EMPLOYEE_TO_GRAPH } from '@/lib/graphql-queries';
 import dayjs from 'dayjs';
+import { GetServerSideProps } from 'next';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -407,5 +408,12 @@ const GraphSyncAdminPage: React.FC = () => {
     </div>
   );
 };
+
+// 禁用SSR预渲染，避免Apollo Client上下文错误
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  }
+}
 
 export default GraphSyncAdminPage;

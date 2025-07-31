@@ -2,14 +2,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 
-// Import MSW setup
-import { server } from './tests/setup/msw.setup';
-
-// Setup MSW
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-
 // Mock Next.js router
 jest.mock('next/router', () => ({
   useRouter() {

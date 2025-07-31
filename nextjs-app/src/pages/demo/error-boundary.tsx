@@ -5,6 +5,7 @@ import { BugOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-design/ic
 import withGraphQLErrorBoundary from '@/components/withGraphQLErrorBoundary';
 import ServiceStatus from '@/components/ServiceStatus';
 import { useEmployee } from '@/hooks/useEmployees';
+import { GetServerSideProps } from 'next';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -152,5 +153,12 @@ const GraphQLErrorDemo: React.FC = () => {
     </div>
   );
 };
+
+// 禁用SSR预渲染，避免Apollo Client上下文错误
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  }
+}
 
 export default withGraphQLErrorBoundary(GraphQLErrorDemo);

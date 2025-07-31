@@ -48,7 +48,7 @@ class RestApiClient {
         data,
       };
     } catch (error: any) {
-      console.error(`REST API Error for ${endpoint}:`, error);
+      // REST API Error - error handled by caller
       return {
         success: false,
         error: error.message || 'Network error',

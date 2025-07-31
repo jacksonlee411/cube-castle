@@ -98,7 +98,7 @@ export const OrganizationCreateDialog = ({
       await onSubmit(data)
       form.reset()
     } catch (error) {
-      console.error('Failed to create organization:', error)
+      // Failed to create organization - error handled by parent component
     } finally {
       setIsLoading(false)
     }

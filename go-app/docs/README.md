@@ -7,11 +7,11 @@
 ## 🚀 快速导航
 
 ### 🔥 最新更新
+- [🆕 前端功能调查报告](reports/frontend_functionality_investigation_report.md) - 2025-07-31 🆕
 - [🆕 Mock替换项目进展更新](reports/mock_replacement_progress_update_20250731_131500.md) - 2025-07-31 🆕
 - [🆕 Mock替换项目最终报告](reports/mock_replacement_project_final_report.md) - 2025-07-31 🆕
 - [🆕 CoreHR API文档 v1.7.0](api/corehr_api_documentation.md) - 2025-07-31 🆕
 - [项目清理报告](../PROJECT_CLEANUP_REPORT.md) - 2025-07-31
-- [文档管理规范](../DOCUMENTATION_MAINTENANCE.md) - 2025-07-31
 
 ### 📖 文档分类
 
@@ -26,6 +26,7 @@
 - [⚡ 工作流 API 指南](api/workflow_api_guide.md) - 工作流系统API
 
 #### 📊 技术报告
+- [🆕 前端功能调查报告](reports/frontend_functionality_investigation_report.md) - Next.js应用全面功能分析 🆕
 - [🆕 Mock替换项目进展更新](reports/mock_replacement_progress_update_20250731_131500.md) - Mock系统替换完整报告 🆕
 - [🆕 Mock替换项目最终报告](reports/mock_replacement_project_final_report.md) - 项目总结和技术实现 🆕
 - [📈 员工模型阶段2进展报告](reports/employee_model_phase2_progress_report.md)
@@ -145,19 +146,20 @@
 
 ### 文档数量统计
 - **API文档**: 3个（包含v1.7.0真实数据库版本） 🆕
-- **技术报告**: 7个（新增2个Mock替换报告） 🆕  
+- **技术报告**: 8个（新增前端功能调查报告） 🆕  
 - **测试文档**: 2个
 - **故障排除**: 1个
 - **历史归档**: 6个
 - **项目规范**: 2个（新增CHANGELOG.md） 🆕
 
 ### 最近更新频率
-- **本月更新**: 6个文档 🆕
-- **本周更新**: 5个文档 🆕
-- **今日更新**: 4个文档 🆕
+- **本月更新**: 7个文档 🆕
+- **本周更新**: 6个文档 🆕
+- **今日更新**: 5个文档 🆕
 
 ### v1.7.0版本更新亮点 🆕
 - ✅ **Mock替换系统完成**: 所有Mock实现已替换为真实数据库操作
+- ✅ **前端功能全面调查**: Next.js应用完整技术分析和优化建议
 - ✅ **API文档全面更新**: 反映真实数据库操作的API行为
 - ✅ **性能基准建立**: 完整的性能指标和基准测试
 - ✅ **企业级错误处理**: 统一的错误处理机制和清晰的错误信息
