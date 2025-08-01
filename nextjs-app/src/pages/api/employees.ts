@@ -18,6 +18,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     console.log('🔗 API代理请求:', fullUrl);
     
+    // 检查是否来自SWR调用
+    const userAgent = req.headers['user-agent'];
+    const referer = req.headers.referer;
+    console.log('📡 请求来源分析:', {
+      method,
+      userAgent: userAgent?.substring(0, 50),
+      referer,
+      hasReferer: !!referer,
+      isFromBrowser: userAgent?.includes('Mozilla'),
+      queryParams: Object.keys(query)
+    });
+    
     // 发送请求到Go后端
     const response = await fetch(fullUrl, {
       method: method || 'GET',
@@ -32,6 +44,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     const data = await response.json();
     console.log('✅ 后端响应:', data.total_count, '个员工');
+    console.log('📊 API数据结构:', {
+      hasEmployees: !!data.employees,
+      employeesCount: data.employees?.length || 0,
+      totalCount: data.total_count,
+      dataKeys: Object.keys(data || {}),
+      firstEmployee: data.employees?.[0] ? {
+        id: data.employees[0].id,
+        name: `${data.employees[0].first_name} ${data.employees[0].last_name}`,
+        email: data.employees[0].email
+      } : null
+    });
     
     // 返回数据给前端
     res.status(200).json(data);

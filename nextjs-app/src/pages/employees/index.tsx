@@ -43,6 +43,9 @@ import { PieChart, BarChart } from '@/components/ui/data-visualization';
 
 // Import SWR hooks
 import { useEmployeesSWR, useEmployeeStatsSWR, Employee } from '@/hooks/useEmployeesSWR';
+import { ForceSWRComponent } from '@/components/ForceSWRComponent';
+import { SWRDebugComponent } from '@/components/SWRDebugComponent';
+import ClientOnlyWrapper from '@/components/ClientOnlyWrapper';
 
 const EmployeesPage: React.FC = () => {
   const router = useRouter();

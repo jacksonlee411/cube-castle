@@ -11,47 +11,8 @@ export const SWRProvider: React.FC<SWRProviderProps> = ({ children }) => {
   return (
     <SWRConfig
       value={{
-        // Global fetcher with monitoring
-        fetcher: async (url: string) => {
-          console.log('🌐 Global SWR Fetcher: 开始获取数据', url);
-          const startTime = Date.now();
-          
-          try {
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-              const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
-              const duration = Date.now() - startTime;
-              console.error('❌ Global SWR Fetcher: HTTP错误', response.status, response.statusText);
-              logger.trackSWRRequest(url, false, duration, error);
-              throw error;
-            }
-            
-            const data = await response.json();
-            const duration = Date.now() - startTime;
-            console.log('✅ Global SWR Fetcher: 成功获取数据', {
-              hasEmployees: !!data.employees,
-              employeesCount: data.employees?.length || 0,
-              totalCount: data.total_count,
-              dataKeys: Object.keys(data || {})
-            });
-            logger.trackSWRRequest(url, true, duration);
-            
-            return data;
-          } catch (error) {
-            const duration = Date.now() - startTime;
-            console.error('💥 Global SWR Fetcher: 请求失败', {
-              error: error instanceof Error ? error.message : error,
-              url,
-              timestamp: new Date().toISOString()
-            });
-            logger.trackSWRRequest(url, false, duration, error as Error);
-            throw error;
-          }
-        },
-        
-        // Global defaults optimized for performance
-        dedupingInterval: 2000,        // Lower deduplication interval
+        // Global defaults optimized for data fetching
+        dedupingInterval: 0,           // DISABLE deduplication to ensure fetches occur
         refreshInterval: 0,            // No automatic refresh by default
         revalidateOnFocus: true,       // ENABLE revalidate on focus to trigger fetches
         revalidateOnReconnect: true,   // Revalidate on network reconnect
@@ -109,8 +70,8 @@ export const SWRProvider: React.FC<SWRProviderProps> = ({ children }) => {
         // Fallback data
         fallback: {},
         
-        // Focus threshold
-        focusThrottleInterval: 5000,   // Throttle focus revalidation to 5 seconds
+        // Focus threshold - disable throttling for immediate response
+        focusThrottleInterval: 0,      // DISABLE focus throttling to ensure immediate fetches
       }}
     >
       {children}
