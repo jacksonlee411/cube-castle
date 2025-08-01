@@ -25,11 +25,20 @@ const fetcher = async (url: string) => {
   console.log('🚀 SWR Fetcher: 开始获取数据', url);
   
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+    });
     
     if (!response.ok) {
       const errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       console.error('❌ SWR Fetcher: HTTP错误', response.status, response.statusText);
+      
+      // Log response details for debugging
+      const responseText = await response.text().catch(() => 'Unable to read response');
+      console.error('🔍 Response details:', responseText.substring(0, 500));
       
       // 提供用户友好的错误信息
       if (response.status >= 500) {
@@ -43,12 +52,27 @@ const fetcher = async (url: string) => {
       }
     }
     
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('❌ SWR Fetcher: 非JSON响应', contentType);
+      throw new Error('服务器返回了无效的数据格式');
+    }
+    
     const data = await response.json();
-    console.log('✅ SWR Fetcher: 成功获取数据', data.employees?.length || 0, '个员工');
+    console.log('✅ SWR Fetcher: 成功获取数据', {
+      hasEmployees: !!data.employees,
+      employeesCount: data.employees?.length || 0,
+      totalCount: data.total_count,
+      dataKeys: Object.keys(data || {})
+    });
     
     return data;
   } catch (error) {
-    console.error('💥 SWR Fetcher: 请求失败', error);
+    console.error('💥 SWR Fetcher: 请求失败', {
+      error: error instanceof Error ? error.message : error,
+      url,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 };
@@ -97,11 +121,43 @@ export function useEmployeesSWR(options: UseEmployeesOptions = {}): UseEmployees
   }, [page, pageSize, search, department]);
   
   console.log('🔗 SWR URL:', url);
+  console.log('🔧 SWR Hook Initialization:', {
+    url,
+    page,
+    pageSize,
+    search,
+    department
+  });
+
+  // TEST: Manual fetch to verify the API works
+  React.useEffect(() => {
+    const testFetch = async () => {
+      console.log('🧪 Manual Test Fetch:', url);
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🧪 Manual Test Success:', {
+            hasEmployees: !!data.employees,
+            employeesCount: data.employees?.length || 0,
+            totalCount: data.total_count
+          });
+        } else {
+          console.error('🧪 Manual Test Failed:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('🧪 Manual Test Error:', error);
+      }
+    };
+    
+    testFetch();
+  }, [url]);
   
   // Enhanced SWR configuration with production-grade features
   const { data, error, isLoading, mutate } = useSWR<EmployeesResponse>(
     url, 
-    fetcher,
+    // Remove local fetcher - use global fetcher from SWRProvider
+    // fetcher,
     {
       // 数据同步策略
       revalidateOnFocus: true,           // 窗口聚焦时重新验证
@@ -109,23 +165,33 @@ export function useEmployeesSWR(options: UseEmployeesOptions = {}): UseEmployees
       revalidateIfStale: true,           // 数据过期时重新验证
       refreshInterval: 30000,            // 30秒自动刷新
       
-      // 缓存和去重策略
-      dedupingInterval: 5000,            // 5秒内去重相同请求
-      focusThrottleInterval: 5000,       // 聚焦节流间隔
+      // 缓存和去重策略 - 优化配置
+      dedupingInterval: 2000,            // 降低到2秒内去重相同请求 (更频繁刷新)
+      focusThrottleInterval: 1000,       // 降低聚焦节流间隔到1秒
       
       // 错误重试策略
       errorRetryCount: 3,                // 最多重试3次
-      errorRetryInterval: 5000,          // 重试间隔5秒
+      errorRetryInterval: 3000,          // 降低重试间隔到3秒
       shouldRetryOnError: (error) => {
         // 对于客户端错误(4xx)不重试，对于服务器错误(5xx)重试
         if (error.message.includes('HTTP 4')) return false;
         return true;
       },
       
+      // 强制初始数据获取
+      fallbackData: undefined,           // 明确设置为undefined
+      keepPreviousData: false,           // 不保留旧数据，强制重新获取
+      
       // 成功回调
       onSuccess: (data) => {
         const count = data?.employees?.length || 0;
         console.log('🎉 SWR Success: 成功加载', count, '个员工');
+        console.log('🔍 Success data details:', {
+          hasData: !!data,
+          dataKeys: data ? Object.keys(data) : [],
+          employeesCount: count,
+          totalCount: data?.total_count
+        });
         
         // 仅在数据加载成功且有数据时显示成功提示
         if (count > 0 && !isLoading) {
@@ -139,6 +205,13 @@ export function useEmployeesSWR(options: UseEmployeesOptions = {}): UseEmployees
       // 错误回调
       onError: (error) => {
         console.error('❌ SWR Error:', error.message);
+        console.error('🔍 Error details:', {
+          errorType: typeof error,
+          errorMessage: error.message,
+          errorStack: error.stack?.substring(0, 200),
+          url,
+          timestamp: new Date().toISOString()
+        });
         
         // 显示用户友好的错误提示
         toast.error(`数据加载失败: ${error.message}`, {
@@ -162,6 +235,17 @@ export function useEmployeesSWR(options: UseEmployeesOptions = {}): UseEmployees
   
   // Enhanced data transformation with memoization and error handling
   const employees = React.useMemo(() => {
+    console.log('🔍 SWR Data Analysis:', {
+      hasData: !!data,
+      dataType: typeof data,
+      dataKeys: data ? Object.keys(data) : [],
+      hasEmployees: !!data?.employees,
+      employeesType: typeof data?.employees,
+      employeesLength: Array.isArray(data?.employees) ? data.employees.length : 'not-array',
+      totalCount: data?.total_count,
+      rawData: data ? JSON.stringify(data).substring(0, 200) + '...' : 'null'
+    });
+
     if (!data?.employees || !Array.isArray(data.employees)) {
       console.log('📊 No valid employees data');
       return [];
