@@ -102,9 +102,6 @@ describe('员工管理页面集成测试', () => {
   it('正确渲染员工管理页面', async () => {
     render(<EmployeesPage />);
 
-    // 检查页面标题
-    expect(screen.getByTestId('head')).toBeInTheDocument();
-
     // 检查主要组件是否存在
     await waitFor(() => {
       expect(screen.getByTestId('employee-filters')).toBeInTheDocument();

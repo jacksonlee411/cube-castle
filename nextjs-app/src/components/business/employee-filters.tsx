@@ -46,13 +46,13 @@ export function EmployeeFilters({
   // 获取状态显示文本
   const getStatusLabel = (status: string) => {
     const option = statusOptions.find(opt => opt.value === status)
-    return option?.label || status
+    return option?.label ?? status
   }
 
   // 获取组织显示文本
   const getOrganizationLabel = (organizationId: string) => {
     const org = organizations.find(o => o.id === organizationId)
-    return org?.name || organizationId
+    return org?.name ?? organizationId
   }
 
   return (

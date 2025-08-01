@@ -115,7 +115,7 @@ export function EmployeeTable({
   const getOrganizationName = (organizationId?: string) => {
     if (!organizationId) return '-'
     const org = organizations.find(o => o.id === organizationId)
-    return org?.name || organizationId
+    return org?.name ?? organizationId
   }
 
   // 分页计算
@@ -262,7 +262,7 @@ export function EmployeeTable({
                 
                 <TableCell>
                   <div className="text-sm">
-                    {employee.jobTitle || '-'}
+                    {employee.jobTitle ?? '-'}
                   </div>
                 </TableCell>
                 

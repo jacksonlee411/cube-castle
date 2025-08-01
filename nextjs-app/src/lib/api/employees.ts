@@ -7,7 +7,7 @@ import { Employee, EmployeeStatus, CreateEmployeeRequest, UpdateEmployeeRequest,
 
 // API基础配置
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
-const EMPLOYEES_ENDPOINT = '/api/v1/persons'
+const EMPLOYEES_ENDPOINT = '/api/v1/corehr/employees'
 
 // 错误类定义
 export class ApiError extends Error {

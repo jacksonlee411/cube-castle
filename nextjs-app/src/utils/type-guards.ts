@@ -11,6 +11,7 @@ import {
   BaseEntity,
   PaginationInfo
 } from '@/types'
+import { logger } from '@/lib/logger';
 
 /**
  * 检查对象是否为有效的BaseEntity
@@ -213,10 +214,10 @@ export const safeTypeConversion = <T>(
       return obj
     }
     
-    console.warn(`${context}: Type conversion failed, using fallback value`)
+    logger.warn(`${context}: Type conversion failed, using fallback value`)
     return fallback
   } catch (error) {
-    console.error(`${context}: Error during type conversion:`, error)
+    logger.error(`${context}: Error during type conversion:`, error)
     return fallback
   }
 }

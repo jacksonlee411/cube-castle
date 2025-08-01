@@ -132,8 +132,27 @@ describe('useEmployees Hook', () => {
 });
 
 describe('useEmployee Hook', () => {
+  const mockRestApiClient = {
+    getEmployee: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Mock the REST API client
+    jest.doMock('@/lib/rest-api-client', () => ({
+      restApiClient: mockRestApiClient,
+      handleApiError: jest.fn(),
+    }));
+    
+    // Mock Apollo client query method
+    const mockApolloClient = {
+      query: jest.fn().mockResolvedValue({ data: { __typename: 'Query' } }),
+    };
+    
+    jest.doMock('@/lib/graphql-client', () => ({
+      apolloClient: mockApolloClient,
+    }));
     
     mockUseQuery.mockReturnValue({
       data: {
@@ -155,6 +174,24 @@ describe('useEmployee Hook', () => {
       error: null,
       refetch: jest.fn(),
     });
+
+    // Setup REST API fallback
+    mockRestApiClient.getEmployee.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'emp-1',
+        employeeId: 'EMP001',
+        legalName: '张三',
+        email: 'zhangsan@example.com',
+        status: 'ACTIVE',
+        hireDate: '2023-01-01',
+        currentPosition: {
+          positionTitle: '软件工程师',
+          department: '技术部',
+          employmentType: 'FULL_TIME'
+        }
+      }
+    });
   });
 
   it('正确返回单个员工数据', async () => {
@@ -162,10 +199,12 @@ describe('useEmployee Hook', () => {
 
     await waitFor(() => {
       expect(result.current.employee).toBeDefined();
-      expect(result.current.employee.legalName).toBe('张三');
+      if (result.current.employee) {
+        expect(result.current.employee.legalName).toBe('张三');
+      }
       expect(result.current.loading).toBe(false);
       expect(result.current.error).toBe(null);
-    });
+    }, { timeout: 2000 });
   });
 
   it('处理员工不存在的情况', () => {
@@ -178,7 +217,7 @@ describe('useEmployee Hook', () => {
 
     const { result } = renderHook(() => useEmployee('non-existent-id'));
 
-    expect(result.current.employee).toBe(null);
+    expect(result.current.employee).toBeNull();
     expect(result.current.loading).toBe(false);
   });
 

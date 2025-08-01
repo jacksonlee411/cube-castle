@@ -50,26 +50,29 @@ func Connect(config *DatabaseConfig) (*Database, error) {
 		return nil, fmt.Errorf("failed to ping PostgreSQL: %w", err)
 	}
 
-	// 连接 Neo4j
-	neo4jDriver, err := neo4j.NewDriverWithContext(
-		config.Neo4jURI,
-		neo4j.BasicAuth(config.Neo4jUser, config.Neo4jPassword, ""),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Neo4j driver: %w", err)
-	}
-
-	// 测试 Neo4j 连接
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := neo4jDriver.VerifyConnectivity(ctx); err != nil {
-		return nil, fmt.Errorf("failed to verify Neo4j connectivity: %w", err)
-	}
-
-	return &Database{
+	// 创建Database对象，Neo4j可以为nil
+	db := &Database{
 		PostgreSQL: pgPool,
-		Neo4j:      neo4jDriver,
-	}, nil
+		Neo4j:      nil, // 暂时不使用Neo4j
+	}
+
+	// 如果Neo4j配置可用，尝试连接
+	if config.Neo4jURI != "" {
+		neo4jDriver, err := neo4j.NewDriverWithContext(
+			config.Neo4jURI,
+			neo4j.BasicAuth(config.Neo4jUser, config.Neo4jPassword, ""),
+		)
+		if err == nil {
+			// 测试 Neo4j 连接
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := neo4jDriver.VerifyConnectivity(ctx); err == nil {
+				db.Neo4j = neo4jDriver
+			}
+		}
+	}
+
+	return db, nil
 }
 
 // Close 关闭数据库连接

@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { devtools } from 'zustand/middleware'
 import { apolloClient } from '@/lib/graphql-client'
 import { Employee, Organization, User, Tenant, Theme, AppState, Notification } from '@/types'
+import { logger } from '@/lib/logger';
 
 // 实时同步状态接口
 interface RealtimeState {
@@ -240,7 +241,7 @@ const useAppStore = create<AppStore>()(
 
           } catch (error) {
             // Apollo 同步失败 - 继续使用本地状态
-            console.warn('Apollo sync failed:', error);
+            logger.warn('Apollo sync failed:', error);
           }
         },
 
@@ -270,7 +271,7 @@ const useAppStore = create<AppStore>()(
             }));
 
           } catch (error) {
-            console.warn('Apollo cache refresh failed:', error);
+            logger.warn('Apollo cache refresh failed:', error);
           }
         },
 

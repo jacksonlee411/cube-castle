@@ -82,7 +82,7 @@ func main() {
 	editorService := initializeEditorService(db, logger)
 
 	// 创建路由器
-	router := setupRoutes(logger, coreHRService, editorService)
+	router := setupRoutes(logger, coreHRService, editorService, db)
 
 	// 创建HTTP服务器
 	server := &http.Server{
@@ -138,7 +138,7 @@ func main() {
 }
 
 // setupRoutes 设置路由
-func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service, editorService *metacontracteditor.Service) *chi.Mux {
+func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service, editorService *metacontracteditor.Service, db interface{}) *chi.Mux {
 	r := chi.NewRouter()
 
 	// 添加中间件
@@ -439,11 +439,24 @@ func initializeCoreHRService(db interface{}, logger *logging.StructuredLogger) *
 	// 实际模式 - 使用数据库连接
 	logger.Info("Initializing CoreHR service with database connection")
 	
-	// 转换数据库连接类型
-	pgxDB, ok := db.(*pgxpool.Pool)
-	if !ok {
+	// 转换数据库连接类型 - 支持 *common.Database 类型
+	var pgxDB *pgxpool.Pool
+	
+	switch dbConn := db.(type) {
+	case *pgxpool.Pool:
+		// 直接使用pgxPool
+		pgxDB = dbConn
+	case *common.Database:
+		// 从common.Database结构体中提取PostgreSQL连接
+		if dbConn != nil && dbConn.PostgreSQL != nil {
+			pgxDB = dbConn.PostgreSQL
+		} else {
+			logger.LogError("database_error", "PostgreSQL connection is nil in Database struct", nil, nil)
+			return corehr.NewMockService()
+		}
+	default:
 		logger.LogError("database_type_error", "Invalid database connection type", nil, map[string]interface{}{
-			"expected": "*pgxpool.Pool",
+			"expected": "*pgxpool.Pool or *common.Database",
 			"actual": fmt.Sprintf("%T", db),
 		})
 		return corehr.NewMockService()
@@ -451,7 +464,7 @@ func initializeCoreHRService(db interface{}, logger *logging.StructuredLogger) *
 	
 	// 创建真实的Repository和Service
 	repo := corehr.NewRepository(pgxDB)
-	outboxService := outbox.NewService(pgxDB, logger)
+	outboxService := outbox.NewService(pgxDB)
 	
 	logger.Info("CoreHR service initialized with real database implementation")
 	return corehr.NewService(repo, outboxService)

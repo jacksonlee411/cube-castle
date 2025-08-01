@@ -12,104 +12,110 @@ import {
 } from '@/lib/graphql-queries';
 import { restApiClient, handleApiError } from '@/lib/rest-api-client';
 import { toast } from 'react-hot-toast';
+import {
+  GraphQLEmployee,
+  GraphQLEmployeeFilters,
+  GraphQLEmployeesResponse,
+  GraphQLEmployeeResponse,
+  GraphQLPositionChangeInput,
+  GraphQLPositionChangeValidation,
+  GraphQLPositionChangeResult,
+  GraphQLEmployeePositionChangedPayload,
+  GraphQLPositionTimelineResponse,
+  GraphQLApprovePositionChangeResult,
+  GraphQLRejectPositionChangeResult
+} from '@/types/graphql';
 
-export interface EmployeeFilters {
-  search?: string;
-  department?: string;
-  status?: string;
-  employmentType?: string;
-  managerId?: string;
-  hiredAfter?: string;
-  hiredBefore?: string;
-}
+// Re-export for backward compatibility
+export type EmployeeFilters = GraphQLEmployeeFilters;
+export type Employee = GraphQLEmployee;
+export type CreatePositionChangeInput = GraphQLPositionChangeInput;
 
-export interface Employee {
-  id: string;
-  employeeId: string;
-  legalName: string;
-  preferredName?: string;
-  email: string;
-  status: string;
-  hireDate: string;
-  terminationDate?: string;
-  currentPosition?: {
-    positionTitle: string;
-    department: string;
-    jobLevel?: string;
-    location?: string;
-    employmentType: string;
-    effectiveDate: string;
-  };
-}
-
-export interface CreatePositionChangeInput {
-  employeeId: string;
-  positionData: {
-    positionTitle: string;
-    department: string;
-    jobLevel?: string;
-    location?: string;
-    employmentType: string;
-    reportsToEmployeeId?: string;
-    minSalary?: number;
-    maxSalary?: number;
-    currency?: string;
-  };
-  effectiveDate: string;
-  changeReason?: string;
-  isRetroactive?: boolean;
-}
-
-// Hook for fetching employees with filters and pagination
+// Hook for fetching employees with filters and pagination (using REST API)
 export const useEmployees = (
   filters?: EmployeeFilters,
   pageSize: number = 20
 ) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const [hasNextPage, setHasNextPage] = useState(true);
-  const [cursor, setCursor] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const { data, loading, error, fetchMore } = useQuery(GET_EMPLOYEES, {
-    variables: {
-      filters,
-      first: pageSize,
-      after: cursor,
-    },
-    notifyOnNetworkStatusChange: true,
-    errorPolicy: 'all',
-  });
-
-  useEffect(() => {
-    if (data?.employees) {
-      const newEmployees = data.employees.edges.map((edge: any) => edge.node);
+  const fetchEmployees = async (page: number = 1, isLoadMore: boolean = false) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('page_size', pageSize.toString());
       
-      if (cursor === null) {
-        // Initial load or filter change
-        setEmployees(newEmployees);
-      } else {
-        // Load more
-        setEmployees(prev => [...prev, ...newEmployees]);
+      // Add filters
+      if (filters?.search) queryParams.append('search', filters.search);
+      if (filters?.department) queryParams.append('department', filters.department);
+      if (filters?.status) queryParams.append('status', filters.status);
+      if (filters?.employmentType) queryParams.append('employment_type', filters.employmentType);
+      
+      const response = await fetch(`/api/employees?${queryParams.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      setHasNextPage(data.employees.pageInfo.hasNextPage);
+      const data = await response.json();
+
+      if (data && data.employees) {
+        const newEmployees = data.employees.map((emp: any) => ({
+          id: emp.id,
+          employeeId: emp.employee_number,
+          legalName: `${emp.first_name} ${emp.last_name}`,
+          preferredName: emp.first_name,
+          email: emp.email,
+          status: emp.status?.toUpperCase() || 'ACTIVE',
+          hireDate: emp.hire_date,
+          currentPosition: undefined, // Will be populated if needed
+        }));
+
+        if (isLoadMore) {
+          setEmployees(prev => [...prev, ...newEmployees]);
+        } else {
+          setEmployees(newEmployees);
+        }
+        
+        setTotalCount(data.total_count || 0);
+        setHasNextPage(data.pagination?.has_next || false);
+      } else {
+        throw new Error('Failed to fetch employees');
+      }
+    } catch (err: any) {
+      setError(err);
+      handleApiError(err, '获取员工列表');
+    } finally {
+      setLoading(false);
     }
-  }, [data, cursor]);
+  };
+
+  // Initial load and when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchEmployees(1, false);
+  }, [filters, pageSize]);
 
   const loadMore = async () => {
     if (hasNextPage && !loading) {
-      const result = await fetchMore({
-        variables: {
-          after: data?.employees.pageInfo.endCursor,
-        },
-      });
-      
-      setCursor(result.data.employees.pageInfo.endCursor);
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      await fetchEmployees(nextPage, true);
     }
   };
 
   const refresh = () => {
-    setCursor(null);
+    setCurrentPage(1);
     setEmployees([]);
+    fetchEmployees(1, false);
   };
 
   return {
@@ -119,134 +125,74 @@ export const useEmployees = (
     hasNextPage,
     loadMore,
     refresh,
-    totalCount: data?.employees?.totalCount || 0,
+    totalCount,
   };
 };
 
-// Hook for fetching a single employee with REST API fallback
+// Hook for fetching a single employee with REST API
 export const useEmployee = (employeeId: string) => {
-  const [restFallback, setRestFallback] = useState(false);
-  const [restData, setRestData] = useState<any>(null);
-  const [restLoading, setRestLoading] = useState(false);
-  const [restError, setRestError] = useState<any>(null);
-  const [apolloInitialized, setApolloInitialized] = useState(false);
+  const [employee, setEmployee] = useState<GraphQLEmployee | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Check if Apollo client is properly initialized
-  useEffect(() => {
-    const checkApolloClient = async () => {
-      try {
-        // Test if Apollo client can make a simple query
-        const result = await apolloClient.query({
-          query: gql`query TestQuery { __typename }`,
-          fetchPolicy: 'network-only',
-          errorPolicy: 'ignore'
+  const fetchEmployee = async () => {
+    if (!employeeId) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/employees/${employeeId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const emp = await response.json();
+      
+      if (emp) {
+        setEmployee({
+          id: emp.id,
+          employeeId: emp.employee_number,
+          legalName: `${emp.first_name} ${emp.last_name}`,
+          preferredName: emp.first_name,
+          email: emp.email,
+          status: emp.status?.toUpperCase() || 'ACTIVE',
+          hireDate: emp.hire_date,
+          currentPosition: undefined, // Will be populated if needed
         });
-        setApolloInitialized(true);
-      } catch (error) {
-        // Apollo client not ready, using REST API immediately
-        setRestFallback(true);
-        setApolloInitialized(false);
+      } else {
+        throw new Error('Failed to fetch employee');
       }
-    };
-
-    checkApolloClient();
-  }, []);
-
-  const tryRestApiFallback = useCallback(async () => {
-    if (!restFallback && employeeId) {
-      setRestFallback(true);
-      setRestLoading(true);
-      try {
-        const result = await restApiClient.getEmployee(employeeId);
-        if (result.success) {
-          setRestData({ employee: result.data });
-          setRestError(null);
-        } else {
-          setRestError(new Error(result.error || 'REST API failed'));
-          handleApiError(result, 'GraphQL服务不可用，REST备用服务也失败');
-        }
-      } catch (err) {
-        setRestError(err);
-        handleApiError(err, '获取員工信息');
-      } finally {
-        setRestLoading(false);
-      }
-    }
-  }, [restFallback, employeeId]);
-
-  // Use REST API immediately if Apollo is not initialized or if forced
-  useEffect(() => {
-    if (employeeId && (!apolloInitialized || restFallback)) {
-      tryRestApiFallback();
-    }
-  }, [employeeId, apolloInitialized, restFallback, tryRestApiFallback]);
-
-  const { data, loading, error, refetch } = useQuery(GET_EMPLOYEE, {
-    variables: { id: employeeId },
-    skip: !employeeId || restFallback || !apolloInitialized,
-    errorPolicy: 'all',
-    fetchPolicy: 'cache-first', // Use cache-first to avoid immediate network requests
-    onError: async (graphQLError) => {
-      // GraphQL query failed, falling back to REST API
-      await tryRestApiFallback();
-    },
-  });
-
-  // Subscribe to position changes for this employee (only works with GraphQL)
-  useSubscription(EMPLOYEE_POSITION_CHANGED, {
-    variables: { employeeId },
-    skip: !employeeId || restFallback,
-    onData: ({ data: subscriptionData }) => {
-      if (subscriptionData?.data?.employeePositionChanged) {
-        // Refetch employee data when position changes
-        if (restFallback) {
-          // Refresh REST data
-          setRestLoading(true);
-          restApiClient.getEmployee(employeeId).then(result => {
-            if (result.success) {
-              setRestData({ employee: result.data });
-            }
-            setRestLoading(false);
-          });
-        } else {
-          refetch();
-        }
-        
-        toast.success(
-          '职位信息已更新',
-          {
-            duration: 3000,
-          }
-        );
-      }
-    },
-  });
-
-  const retry = async () => {
-    if (restFallback) {
-      // Try to switch back to GraphQL
-      setRestFallback(false);
-      setRestData(null);
-      setRestError(null);
-      refetch();
-    } else {
-      refetch();
+    } catch (err: any) {
+      setError(err);
+      handleApiError(err, '获取员工信息');
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchEmployee();
+  }, [employeeId]);
+
+  const refetch = () => {
+    fetchEmployee();
+  };
+
   return {
-    employee: restFallback ? restData?.employee : data?.employee,
-    loading: restFallback ? restLoading : loading,
-    error: restFallback ? restError : error,
-    refetch: retry,
-    isUsingRestFallback: restFallback,
+    employee,
+    loading,
+    error,
+    refetch,
+    isUsingRestFallback: true, // Always true since we're using REST API
   };
 };
 
 // Hook for creating position changes
 export const useCreatePositionChange = () => {
-  const [createPositionChange, { loading, error }] = useMutation(CREATE_POSITION_CHANGE);
-  const [validatePositionChange] = useMutation(VALIDATE_POSITION_CHANGE);
+  const [createPositionChange, { loading, error }] = useMutation<{ createPositionChange: GraphQLPositionChangeResult }>(CREATE_POSITION_CHANGE);
+  const [validatePositionChange] = useMutation<{ validatePositionChange: GraphQLPositionChangeValidation }>(VALIDATE_POSITION_CHANGE);
 
   const create = async (input: CreatePositionChangeInput) => {
     try {
@@ -261,14 +207,14 @@ export const useCreatePositionChange = () => {
       const validation = validationResult.data?.validatePositionChange;
       
       if (!validation?.isValid) {
-        const errors = validation?.errors || [];
-        const errorMessages = errors.map((err: any) => err.message).join(', ');
+        const errors = validation?.errors ?? [];
+        const errorMessages = errors.map(err => err.message).join(', ');
         throw new Error(`验证失败: ${errorMessages}`);
       }
 
       // Show warnings if any
       if (validation?.warnings && validation.warnings.length > 0) {
-        validation.warnings.forEach((warning: any) => {
+        validation.warnings.forEach(warning => {
         toast(warning.message, { icon: '⚠️' });
         });
       }
@@ -282,7 +228,7 @@ export const useCreatePositionChange = () => {
       const data = result.data?.createPositionChange;
       
       if (data?.errors && data.errors.length > 0) {
-        const errorMessages = data.errors.map((err: any) => err.message).join(', ');
+        const errorMessages = data.errors.map(err => err.message).join(', ');
         throw new Error(errorMessages);
       }
 

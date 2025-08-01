@@ -8,6 +8,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useAppActions, useRealtimeState } from '@/store';
 import { apolloClient } from '@/lib/graphql-client';
 import { useWebSocket } from './useWebSocket';
+import { logger } from '@/lib/logger';
 
 interface RealtimeSyncOptions {
   // 启用的订阅类型
@@ -90,7 +91,7 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
     reconnectAttempts.current += 1;
     
     reconnectTimer.current = setTimeout(() => {
-      console.log(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})`);
+      logger.debug(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})`);
       // TODO: 实现重连逻辑
     }, reconnectDelay * reconnectAttempts.current); // 指数退避
     
@@ -170,14 +171,14 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
           break;
 
         default:
-          console.warn('Unknown data update type:', type);
+          logger.warn('Unknown data update type:', type);
       }
 
       // 同步状态到Apollo
       await syncWithApollo();
 
     } catch (error) {
-      console.error('Failed to handle data update:', error);
+      logger.error('Failed to handle data update:', error);
       onError?.(error as Error);
     }
   }, [updateLastUpdate, syncWithApollo, onError]);
@@ -197,7 +198,7 @@ export const useRealtimeSync = (options: RealtimeSyncOptions = {}) => {
       }
       
     } catch (error) {
-      console.error('Periodic sync failed:', error);
+      logger.error('Periodic sync failed:', error);
     }
   }, [wsResult.isConnected, subscriptions, realtimeState.subscriptions, refreshApolloCache]);
 

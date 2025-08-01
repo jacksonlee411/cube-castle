@@ -10,6 +10,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
+	"github.com/google/uuid"
 )
 
 // OrganizationSyncService handles synchronization between PostgreSQL and Neo4j
@@ -96,9 +97,15 @@ func (s *OrganizationSyncService) FullSync(ctx context.Context) (*SyncResult, er
 
 // SyncEmployee synchronizes a single employee to Neo4j
 func (s *OrganizationSyncService) SyncEmployee(ctx context.Context, employeeID string) error {
+	// Parse employee ID to UUID
+	empUUID, err := uuid.Parse(employeeID)
+	if err != nil {
+		return fmt.Errorf("invalid employee ID format: %w", err)
+	}
+
 	// Get employee from PostgreSQL
 	emp, err := s.entClient.Employee.Query().
-		Where(employee.ID(employeeID)).
+		Where(employee.ID(empUUID)).
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get employee %s: %w", employeeID, err)
@@ -106,12 +113,12 @@ func (s *OrganizationSyncService) SyncEmployee(ctx context.Context, employeeID s
 
 	// Convert to Neo4j format
 	employeeNode := EmployeeNode{
-		ID:         emp.ID,
-		EmployeeID: emp.ID,   // Use ID as EmployeeID since EmployeeID field doesn't exist
-		LegalName:  emp.Name, // Use Name as LegalName since LegalName field doesn't exist
+		ID:         emp.ID.String(),
+		EmployeeID: emp.ID.String(),
+		LegalName:  fmt.Sprintf("%s %s", emp.FirstName, emp.LastName),
 		Email:      emp.Email,
-		Status:     "ACTIVE",      // Use default status since Status field doesn't exist
-		HireDate:   emp.CreatedAt, // Use CreatedAt as HireDate since HireDate field doesn't exist
+		Status:     string(emp.EmploymentStatus),
+		HireDate:   emp.HireDate,
 		Properties: map[string]interface{}{
 			"preferred_name":   emp.Name, // Use Name as PreferredName since PreferredName field doesn't exist
 			"termination_date": nil,      // Set to nil since TerminationDate field doesn't exist
@@ -195,15 +202,15 @@ func (s *OrganizationSyncService) syncAllEmployees(ctx context.Context, result *
 		// Sync each employee
 		for _, emp := range employees {
 			employeeNode := EmployeeNode{
-				ID:         emp.ID,
-				EmployeeID: emp.ID,   // Use ID as EmployeeID since EmployeeID field doesn't exist
-				LegalName:  emp.Name, // Use Name as LegalName since LegalName field doesn't exist
+				ID:         emp.ID.String(),
+				EmployeeID: emp.ID.String(),
+				LegalName:  fmt.Sprintf("%s %s", emp.FirstName, emp.LastName),
 				Email:      emp.Email,
-				Status:     "ACTIVE",      // Use default status since Status field doesn't exist
-				HireDate:   emp.CreatedAt, // Use CreatedAt as HireDate since HireDate field doesn't exist
+				Status:     string(emp.EmploymentStatus),
+				HireDate:   emp.HireDate,
 				Properties: map[string]interface{}{
-					"preferred_name":   emp.Name, // Use Name as PreferredName since PreferredName field doesn't exist
-					"termination_date": nil,      // Set to nil since TerminationDate field doesn't exist
+					"preferred_name":   emp.Name,
+					"termination_date": emp.TerminationDate,
 					"created_at":       emp.CreatedAt,
 					"updated_at":       emp.UpdatedAt,
 				},
@@ -250,9 +257,16 @@ func (s *OrganizationSyncService) syncAllPositions(ctx context.Context, result *
 
 		// Sync each position
 		for _, pos := range positions {
+			// Parse employee ID string to UUID
+			empUUID, err := uuid.Parse(pos.EmployeeID)
+			if err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("Invalid employee ID format %s: %v", pos.EmployeeID, err))
+				continue
+			}
+
 			// Get employee separately since Edges.Employee is not available
 			emp, err := s.entClient.Employee.Query().
-				Where(employee.ID(pos.EmployeeID)).
+				Where(employee.ID(empUUID)).
 				Only(ctx)
 			if err != nil {
 				result.Errors = append(result.Errors, fmt.Sprintf("Position %s has no employee: %v", pos.ID, err))
@@ -280,7 +294,7 @@ func (s *OrganizationSyncService) syncAllPositions(ctx context.Context, result *
 				},
 			}
 
-			if err := s.neo4jService.SyncPosition(ctx, positionNode, emp.ID); err != nil {
+			if err := s.neo4jService.SyncPosition(ctx, positionNode, emp.ID.String()); err != nil {
 				result.Errors = append(result.Errors, fmt.Sprintf("Position %s sync failed: %v", pos.ID, err))
 				continue
 			}
@@ -370,9 +384,16 @@ func (s *OrganizationSyncService) SyncDepartment(ctx context.Context, department
 
 	// Sync each employee and their position
 	for _, pos := range positions {
+		// Parse employee ID string to UUID
+		empUUID, err := uuid.Parse(pos.EmployeeID)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("Invalid employee ID format %s: %v", pos.EmployeeID, err))
+			continue
+		}
+
 		// Get employee separately since WithEmployee() is not available
 		emp, err := s.entClient.Employee.Query().
-			Where(employee.ID(pos.EmployeeID)).
+			Where(employee.ID(empUUID)).
 			Only(ctx)
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("Employee %s not found: %v", pos.EmployeeID, err))
@@ -380,14 +401,14 @@ func (s *OrganizationSyncService) SyncDepartment(ctx context.Context, department
 		}
 
 		// Sync employee
-		if err := s.SyncEmployee(ctx, emp.ID); err != nil {
+		if err := s.SyncEmployee(ctx, emp.ID.String()); err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("Employee %s sync failed: %v", emp.ID, err))
 			continue
 		}
 		result.SyncedEmployees++
 
 		// Sync position
-		if err := s.SyncPosition(ctx, pos.ID, emp.ID); err != nil {
+		if err := s.SyncPosition(ctx, pos.ID, emp.ID.String()); err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("Position %s sync failed: %v", pos.ID, err))
 			continue
 		}

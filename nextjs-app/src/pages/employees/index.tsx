@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { 
   Plus, 
-  Search, 
   MoreHorizontal,
   User,
   Mail,
@@ -13,7 +12,14 @@ import {
   Users,
   History,
   Edit2,
-  Trash2
+  Trash2,
+  Grid,
+  List,
+  UserCheck,
+  UserPlus,
+  Building,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { ColumnDef } from '@tanstack/react-table';
@@ -22,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { SWRMonitoring } from '@/components/ui/swr-monitoring';
 import { 
   Select,
   SelectContent,
@@ -45,92 +52,112 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface Employee {
-  id: string;
-  employeeId: string;
-  legalName: string;
-  preferredName?: string;
-  email: string;
-  status: string;
-  hireDate: string;
-  department?: string;
-  position?: string;
-  managerId?: string;
-  managerName?: string;
-  avatar?: string;
-}
+// 新增的UI组件
+import StatCard, { StatCardsGrid } from '@/components/ui/stat-card';
+import EmployeeCard, { EmployeeCardsGrid, EmployeeCardSkeleton } from '@/components/ui/employee-card';
+import SmartFilter, { FilterOption, ActiveFilter } from '@/components/ui/smart-filter';
+import { PieChart, BarChart } from '@/components/ui/data-visualization';
+
+// Import SWR hooks
+import { useEmployeesSWR, useEmployeeStatsSWR, Employee } from '@/hooks/useEmployeesSWR';
 
 const EmployeesPage: React.FC = () => {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  
+  // Local state
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState<Partial<Employee>>({});
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [searchValue, setSearchValue] = useState('');
+  const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
 
-  // Sample data
-  useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      const sampleEmployees: Employee[] = [
-        {
-          id: '1',
-          employeeId: 'EMP001',
-          legalName: '张三',
-          preferredName: 'Zhang San',
-          email: 'zhangsan@company.com',
-          status: 'ACTIVE',
-          hireDate: '2023-01-15',
-          department: '技术部',
-          position: '高级软件工程师',
-          managerName: '李四'
-        },
-        {
-          id: '2',
-          employeeId: 'EMP002',
-          legalName: '王五',
-          email: 'wangwu@company.com',
-          status: 'ACTIVE',
-          hireDate: '2023-03-20',
-          department: '产品部',
-          position: '产品经理',
-          managerName: '赵六'
-        },
-        {
-          id: '3',
-          employeeId: 'EMP003',
-          legalName: '刘七',
-          email: 'liuqi@company.com',
-          status: 'INACTIVE',
-          hireDate: '2022-08-10',
-          department: '技术部',
-          position: '前端工程师',
-          managerName: '李四'
-        },
-        {
-          id: '4',
-          employeeId: 'EMP004',
-          legalName: '陈八',
-          email: 'chenba@company.com',
-          status: 'ACTIVE',
-          hireDate: '2024-01-08',
-          department: '人事部',
-          position: 'HR专员',
-          managerName: '周九'
-        }
-      ];
+  // SWR data fetching
+  const { 
+    employees, 
+    totalCount, 
+    isLoading, 
+    isError, 
+    error, 
+    mutate 
+  } = useEmployeesSWR({
+    search: searchValue,
+    department: activeFilters.find(f => f.key === 'department')?.value,
+  });
+
+  const { 
+    stats, 
+    departmentData,
+    isLoading: statsLoading 
+  } = useEmployeeStatsSWR();
+
+  // Error state component
+  const ErrorState = () => (
+    <Card className="p-6 text-center">
+      <div className="flex flex-col items-center gap-4">
+        <AlertCircle className="h-12 w-12 text-red-500" />
+        <div>
+          <h3 className="text-lg font-semibold text-red-600">数据加载失败</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            {error?.message || '无法连接到服务器，请检查网络连接'}
+          </p>
+        </div>
+        <Button 
+          onClick={() => mutate()} 
+          variant="outline" 
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          重试
+        </Button>
+      </div>
+    </Card>
+  );
+
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="space-y-6">
+      {/* Stats skeleton */}
+      <StatCardsGrid columns={4}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="p-6">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded w-1/4 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+            </div>
+          </Card>
+        ))}
+      </StatCardsGrid>
       
-      setEmployees(sampleEmployees);
-      setLoading(false);
-    }, 1000);
-  }, []);
+      {/* Charts skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Card key={i} className="p-6">
+            <div className="animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+              <div className="h-40 bg-gray-200 rounded"></div>
+            </div>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Table/Cards skeleton */}
+      <Card className="p-6">
+        <div className="animate-pulse space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-16 bg-gray-200 rounded"></div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
 
   const handleCreateEmployee = async (values: any) => {
     try {
-      setLoading(true);
-      
       if (editingEmployee) {
-        // Update existing employee
+        // Update existing employee (local state only for now)
         const updatedEmployee: Employee = {
           ...editingEmployee,
           employeeId: values.employeeId,
@@ -143,36 +170,32 @@ const EmployeesPage: React.FC = () => {
           managerName: values.managerName
         };
 
-        setEmployees(prev => prev.map(emp => 
-          emp.id === editingEmployee.id ? updatedEmployee : emp
-        ));
-
+        // In a real app, this would make an API call
         toast.success(`员工 ${values.legalName} 信息已更新`);
       } else {
-        // Create new employee
+        // Create new employee (local state only for now)
         const newEmployee: Employee = {
           id: Date.now().toString(),
           employeeId: values.employeeId,
           legalName: values.legalName,
           preferredName: values.preferredName,
           email: values.email,
-          status: 'ACTIVE',
+          status: 'active',
           hireDate: values.hireDate ? format(new Date(values.hireDate), 'yyyy-MM-dd') : '',
           department: values.department,
           position: values.position,
           managerName: values.managerName
         };
 
-        setEmployees(prev => [...prev, newEmployee]);
-        
+        // In a real app, this would make an API call
         toast.success(`员工 ${values.legalName} 已成功添加到系统中`);
       }
       
+      // Refresh data
+      mutate();
       handleModalClose();
     } catch (error) {
       toast.error('操作时发生错误，请重试');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -187,8 +210,9 @@ const EmployeesPage: React.FC = () => {
 
   const handleDelete = (employee: Employee) => {
     if (confirm(`确定要删除员工 ${employee.legalName} 吗？此操作不可撤销。`)) {
-      setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+      // In a real app, this would make an API call
       toast.success(`员工 ${employee.legalName} 已从系统中删除`);
+      mutate(); // Refresh data
     }
   };
 
@@ -198,20 +222,91 @@ const EmployeesPage: React.FC = () => {
     setFormData({});
   };
 
+  // Filter employees based on search and active filters
+  const filteredEmployees = employees.filter(employee => {
+    // Search filter
+    if (searchValue) {
+      const searchLower = searchValue.toLowerCase();
+      if (!employee.legalName.toLowerCase().includes(searchLower) &&
+          !employee.employeeId.toLowerCase().includes(searchLower) &&
+          !employee.email.toLowerCase().includes(searchLower) &&
+          !(employee.department?.toLowerCase().includes(searchLower)) &&
+          !(employee.position?.toLowerCase().includes(searchLower))) {
+        return false;
+      }
+    }
+
+    // Active filters
+    for (const filter of activeFilters) {
+      if (filter.key === 'department' && employee.department !== filter.value) {
+        return false;
+      }
+      if (filter.key === 'status' && employee.status !== filter.value) {
+        return false;
+      }
+      if (filter.key === 'position' && employee.position !== filter.value) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Filter options configuration
+  const filterOptions: FilterOption[] = [
+    {
+      key: 'department',
+      label: '部门',
+      type: 'select',
+      options: Array.from(new Set(employees.map(emp => emp.department).filter(Boolean)))
+        .map(dept => ({ label: dept!, value: dept! }))
+    },
+    {
+      key: 'status',
+      label: '状态',
+      type: 'select',
+      options: [
+        { label: '在职', value: 'active' },
+        { label: '离职', value: 'inactive' },
+        { label: '待入职', value: 'pending' }
+      ]
+    },
+    {
+      key: 'position',
+      label: '职位',
+      type: 'text',
+      placeholder: '输入职位关键词'
+    }
+  ];
+
+  // Preset filter configurations
+  const filterPresets = [
+    {
+      label: '全部在职员工',
+      icon: <UserCheck className="w-4 h-4" />,
+      filters: [{ key: 'status', label: '状态', value: 'active', displayValue: '在职' }]
+    },
+    {
+      label: '技术部员工',
+      icon: <Building className="w-4 h-4" />,
+      filters: [{ key: 'department', label: '部门', value: '技术部', displayValue: '技术部' }]
+    }
+  ];
+
   const getStatusColor = (status: string): "default" | "destructive" | "secondary" => {
     const colors = {
-      ACTIVE: 'default' as const,
-      INACTIVE: 'destructive' as const,
-      PENDING: 'secondary' as const
+      active: 'default' as const,
+      inactive: 'destructive' as const,
+      pending: 'secondary' as const
     };
     return colors[status as keyof typeof colors] || 'default';
   };
 
   const getStatusLabel = (status: string) => {
     const labels = {
-      ACTIVE: '在职',
-      INACTIVE: '离职',
-      PENDING: '待入职'
+      active: '在职',
+      inactive: '离职',
+      pending: '待入职'
     };
     return labels[status as keyof typeof labels] || status;
   };
@@ -335,38 +430,237 @@ const EmployeesPage: React.FC = () => {
     createActionsColumn<Employee>(ActionsCell),
   ];
 
-  const departments = Array.from(new Set(employees.map(emp => emp.department).filter(Boolean)));
+  // Show error state
+  if (isError) {
+    return (
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 page-enter">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-display-large">员工管理</h1>
+            <p className="text-sm sm:text-body-large text-muted-foreground mt-2">
+              基于Workday风格的现代化员工管理系统 - 完整CRUD功能与数据可视化
+            </p>
+          </div>
+        </div>
+        <ErrorState />
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoading && employees.length === 0) {
+    return (
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 page-enter">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-display-large">员工管理</h1>
+            <p className="text-sm sm:text-body-large text-muted-foreground mt-2">
+              基于Workday风格的现代化员工管理系统 - 完整CRUD功能与数据可视化
+            </p>
+          </div>
+          <Button size="lg" disabled className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            新增员工
+          </Button>
+        </div>
+        <LoadingSkeleton />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 page-enter">
       {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold">员工管理</h1>
-          <p className="text-gray-600 mt-1">
-            管理公司员工信息、职位变更和组织结构 - 完整CRUD功能
+          <h1 className="text-2xl sm:text-display-large">员工管理</h1>
+          <p className="text-sm sm:text-body-large text-muted-foreground mt-2">
+            基于Workday风格的现代化员工管理系统 - 完整CRUD功能与数据可视化
           </p>
         </div>
         <Button 
           size="lg"
           onClick={() => setIsModalVisible(true)}
+          className="w-full sm:w-auto btn-primary-animate"
         >
           <Plus className="mr-2 h-4 w-4" />
           新增员工
         </Button>
       </div>
 
-      {/* Employee Table */}
-      <Card>
-        <CardContent className="p-6">
-          <DataTable
-            columns={columns}
-            data={employees}
-            searchKey="legalName"
-            searchPlaceholder="搜索员工姓名、工号、邮箱或职位..."
-          />
-        </CardContent>
+      {/* Statistics Cards */}
+      <StatCardsGrid columns={4}>
+        <StatCard
+          title="总员工数"
+          value={stats.total}
+          change={8.5}
+          changeLabel="较上月"
+          icon={<Users className="w-8 h-8" />}
+          variant="primary"
+          loading={statsLoading}
+        />
+        <StatCard
+          title="在职员工"
+          value={stats.active}
+          change={2.1}
+          changeLabel="较上月"
+          icon={<UserCheck className="w-8 h-8" />}
+          variant="success"
+          loading={statsLoading}
+        />
+        <StatCard
+          title="待入职"
+          value={stats.pending}
+          change={-1.2}
+          changeLabel="较上月"
+          icon={<UserPlus className="w-8 h-8" />}
+          variant="warning"
+          loading={statsLoading}
+        />
+        <StatCard
+          title="部门数量"
+          value={stats.departments}
+          change={0}
+          changeLabel="较上月"
+          icon={<Building className="w-8 h-8" />}
+          variant="default"
+          loading={statsLoading}
+        />
+      </StatCardsGrid>
+
+      {/* Data Visualization */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <PieChart
+          data={departmentData}
+          title="部门分布"
+          description="各部门员工数量分布情况"
+          loading={statsLoading}
+        />
+        <BarChart
+          data={[
+            { label: '在职', value: stats.active },
+            { label: '离职', value: stats.inactive },
+            { label: '待入职', value: stats.pending }
+          ]}
+          title="员工状态统计"
+          description="不同状态员工数量对比"
+          loading={statsLoading}
+        />
+      </div>
+
+      {/* Smart Filter Toolbar */}
+      <SmartFilter
+        filterOptions={filterOptions}
+        activeFilters={activeFilters}
+        onFiltersChange={setActiveFilters}
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        presets={filterPresets}
+        searchPlaceholder="搜索员工姓名、工号、部门或职位..."
+      />
+
+      {/* View Mode and Operations Toolbar */}
+      <Card className="p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">视图模式:</span>
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className="flex items-center gap-2 text-xs sm:text-sm"
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline">表格视图</span>
+              </Button>
+              <Button
+                variant={viewMode === 'card' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('card')}
+                className="flex items-center gap-2 text-xs sm:text-sm"
+              >
+                <Grid className="h-4 w-4" />
+                <span className="hidden sm:inline">卡片视图</span>
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            {selectedEmployees.length > 0 && (
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                已选择 {selectedEmployees.length} 个员工
+              </Badge>
+            )}
+            <span className="text-muted-foreground">
+              显示 {filteredEmployees.length} / {totalCount} 个员工
+            </span>
+            {isLoading && (
+              <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+            )}
+          </div>
+        </div>
       </Card>
+
+      {/* Main Content Area */}
+      {viewMode === 'table' ? (
+        <Card>
+          <CardContent className="p-6">
+            <DataTable
+              columns={columns}
+              data={filteredEmployees}
+              searchKey="legalName"
+              searchPlaceholder="搜索员工姓名、工号、邮箱或职位..."
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <EmployeeCardsGrid columns={3}>
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, index) => (
+              <EmployeeCardSkeleton key={index} />
+            ))
+          ) : (
+            filteredEmployees.map((employee) => (
+              <EmployeeCard
+                key={employee.id}
+                employee={{
+                  ...employee,
+                  name: employee.legalName
+                }}
+                selectable={true}
+                selected={selectedEmployees.includes(employee.id)}
+                onSelectionChange={(selected) => {
+                  if (selected) {
+                    setSelectedEmployees(prev => [...prev, employee.id]);
+                  } else {
+                    setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
+                  }
+                }}
+                onClick={() => router.push(`/employees/${employee.id}`)}
+                actions={[
+                  {
+                    label: '编辑信息',
+                    icon: <Edit2 className="w-4 h-4" />,
+                    onClick: () => handleEdit(employee)
+                  },
+                  {
+                    label: '职位历史',
+                    icon: <History className="w-4 h-4" />,
+                    onClick: () => router.push(`/employees/positions/${employee.id}`)
+                  },
+                  {
+                    label: '删除员工',
+                    icon: <Trash2 className="w-4 h-4" />,
+                    onClick: () => handleDelete(employee),
+                    variant: 'destructive'
+                  }
+                ]}
+              />
+            ))
+          )}
+        </EmployeeCardsGrid>
+      )}
 
       {/* Create/Edit Employee Modal */}
       <Dialog open={isModalVisible} onOpenChange={setIsModalVisible}>
@@ -470,15 +764,15 @@ const EmployeesPage: React.FC = () => {
             <Button variant="outline" onClick={handleModalClose}>
               取消
             </Button>
-            <Button 
-              onClick={() => handleCreateEmployee(formData)} 
-              disabled={loading}
-            >
+            <Button onClick={() => handleCreateEmployee(formData)}>
               {editingEmployee ? '更新' : '创建'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* SWR Performance Monitoring Component */}
+      <SWRMonitoring />
     </div>
   );
 };

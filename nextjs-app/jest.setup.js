@@ -74,295 +74,49 @@ jest.mock('dayjs', () => {
   return mockDayjs;
 });
 
-// Mock Ant Design components
-jest.mock('antd', () => {
-  const React = require('react');
-  
-  // Mock Menu component
-  const Menu = ({ children }) => React.createElement('ul', { 'data-testid': 'menu' }, children);
-  Menu.Item = ({ children, onClick, icon, disabled }) => 
-    React.createElement('li', { 
-      'data-testid': 'menu-item', 
-      onClick: disabled ? undefined : onClick,
-      'data-disabled': disabled
-    }, icon, children);
-  Menu.Divider = () => React.createElement('hr', { 'data-testid': 'menu-divider' });
 
-  // Mock Table component
-  const Table = ({ columns, dataSource, loading, pagination, onChange }) => {
-    if (loading) {
-      return React.createElement('div', { 'data-testid': 'table-loading' }, 'Loading...');
-    }
-    
-    if (!dataSource || dataSource.length === 0) {
-      return React.createElement('div', { 'data-testid': 'table-empty' }, 'No data');
-    }
-    
-    return React.createElement('table', { 'data-testid': 'table' },
-      React.createElement('thead', {},
-        React.createElement('tr', {},
-          columns?.map((col, idx) => 
-            React.createElement('th', { key: idx }, col.title)
-          )
-        )
-      ),
-      React.createElement('tbody', {},
-        dataSource?.map((item, idx) => 
-          React.createElement('tr', { key: idx },
-            columns?.map((col, colIdx) => 
-              React.createElement('td', { key: `${idx}-${colIdx}` }, 
-                // 简化渲染：只返回基本文本内容
-                col.render ? String(item[col.dataIndex] || item.legalName || 'Rendered') : String(item[col.dataIndex] || '')
-              )
-            )
-          )
-        )
-      )
-    );
-  };
+// Modern UI components mocks (shadcn/ui + Radix UI)
+jest.mock('@/components/ui/table', () => ({
+  Table: ({ children, ...props }) => React.createElement('table', { 'data-testid': 'table', ...props }, children),
+  TableBody: ({ children, ...props }) => React.createElement('tbody', { ...props }, children),
+  TableCell: ({ children, ...props }) => React.createElement('td', { ...props }, children),
+  TableHead: ({ children, ...props }) => React.createElement('thead', { ...props }, children),
+  TableHeader: ({ children, ...props }) => React.createElement('tr', { ...props }, children),
+  TableRow: ({ children, ...props }) => React.createElement('tr', { ...props }, children),
+}));
 
-  // Mock Form components
-  const Form = ({ children, onFinish, form, initialValues }) => {
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (onFinish) onFinish({});
-    };
-    return React.createElement('form', { onSubmit: handleSubmit, 'data-testid': 'form' }, children);
-  };
-  Form.Item = ({ children, label, name, rules }) => 
-    React.createElement('div', { 'data-testid': 'form-item' },
-      label && React.createElement('label', { htmlFor: name }, label),
-      React.cloneElement(children, { id: name, name })
-    );
-  Form.useForm = () => [{
-    getFieldsValue: () => ({}),
-    setFieldsValue: () => {},
-    resetFields: () => {},
-    validateFields: () => Promise.resolve({}),
-  }];
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, onClick, disabled, variant, size, ...props }) => 
+    React.createElement('button', { 
+      onClick: disabled ? undefined : onClick, 
+      disabled, 
+      'data-variant': variant,
+      'data-size': size,
+      'data-testid': 'button',
+      ...props 
+    }, children),
+}));
 
-  return {
-    Card: ({ children, title, extra, ...props }) => 
-      React.createElement('div', { 'data-testid': 'card', className: 'ant-card', ...props },
-        (title || extra) && React.createElement('div', { 'data-testid': 'card-header', className: 'ant-card-header' }, title, extra),
-        React.createElement('div', { 'data-testid': 'card-body', className: 'ant-card-body' }, children)
-      ),
-    Table,
-    Button: ({ children, onClick, type, size, icon, loading, ...props }) => 
-      React.createElement('button', { 
-        onClick, 
-        'data-testid': 'button', 
-        type: type || 'button', 
-        className: loading ? 'ant-btn-loading' : '', 
-        ...props 
-      }, icon, children),
-    Input: (() => {
-      const InputComponent = ({ placeholder, onChange, value, ...props }) => 
-        React.createElement('input', { placeholder, onChange, value, 'data-testid': 'input', ...props });
-      
-      InputComponent.Search = ({ placeholder, onSearch, onChange, value, ...searchProps }) => 
-        React.createElement('input', { 
-          placeholder, 
-          onChange, 
-          value, 
-          'data-testid': 'input-search',
-          onKeyPress: (e) => e.key === 'Enter' && onSearch && onSearch(e.target.value),
-          ...searchProps 
-        });
-      
-      InputComponent.TextArea = ({ placeholder, onChange, value, maxLength, ...props }) => 
-        React.createElement('textarea', { placeholder, onChange, value, maxLength, 'data-testid': 'textarea', ...props });
-      
-      return InputComponent;
-    })(),
-    Select: (() => {
-      const SelectComponent = ({ children, onChange, value, placeholder, ...props }) => {
-        const handleChange = (event) => {
-          if (onChange) onChange(event.target.value);
-        };
-        
-        return React.createElement('select', { 
-          onChange: handleChange, 
-          value: value || '', 
-          'data-testid': 'select',
-          ...props 
-        }, 
-          placeholder && React.createElement('option', { value: '' }, placeholder),
-          children
-        );
-      };
-      
-      SelectComponent.Option = ({ children, value }) => React.createElement('option', { value }, children);
-      
-      return SelectComponent;
-    })(),
-    Space: ({ children, ...props }) => 
-      React.createElement('div', { 'data-testid': 'space', style: { display: 'flex', gap: '8px' }, ...props }, children),
-    Row: ({ children, gutter, justify, align, ...props }) => 
-      React.createElement('div', { 'data-testid': 'row', style: { display: 'flex', flexWrap: 'wrap' }, ...props }, children),
-    Col: ({ children, span, xs, sm, md, lg, xl, ...props }) => 
-      React.createElement('div', { 'data-testid': 'col', style: { flex: span ? `0 0 ${(span/24)*100}%` : '1' }, ...props }, children),
-    Tag: ({ children, color, className, ...props }) => 
-      React.createElement('span', { 'data-testid': 'tag', style: { color }, className: `ant-tag ${className || ''}`, ...props }, children),
-    Avatar: ({ src, icon, children, ...props }) => 
-      React.createElement('div', { 'data-testid': 'avatar', ...props }, 
-        src ? React.createElement('img', { src, alt: 'avatar' }) : (icon || children)
-      ),
-    Modal: ({ children, visible, open, title, onOk, onCancel, ...props }) => {
-      const isVisible = visible || open;
-      return isVisible ? React.createElement('div', { 'data-testid': 'modal', ...props },
-        title && React.createElement('h3', {}, title),
-        children,
-        React.createElement('div', { 'data-testid': 'modal-footer' },
-          React.createElement('button', { onClick: onCancel }, '取消'),
-          React.createElement('button', { onClick: onOk }, '确定')
-        )
-      ) : null;
-    },
-    Form,
-    DatePicker: ({ onChange, value, ...props }) => 
-      React.createElement('input', { 
-        type: 'date', 
-        onChange: (e) => onChange && onChange(e.target.value), 
-        value, 
-        'data-testid': 'date-picker',
-        ...props 
-      }),
-    Radio: (() => {
-      const RadioComponent = ({ children, value, checked, onChange, ...props }) => 
-        React.createElement('input', { 
-          type: 'radio', 
-          value, 
-          checked, 
-          onChange, 
-          'data-testid': 'radio',
-          ...props 
-        });
-      
-      RadioComponent.Group = ({ children, value, onChange, ...props }) => 
-        React.createElement('div', { 'data-testid': 'radio-group', ...props }, children);
-      
-      return RadioComponent;
-    })(),
-    Steps: (() => {
-      const StepsComponent = ({ children, current, direction, ...props }) => 
-        React.createElement('div', { 'data-testid': 'steps', ...props }, children);
-      
-      StepsComponent.Step = ({ title, description, status, icon, ...props }) => 
-        React.createElement('div', { 'data-testid': 'step', ...props }, icon, title, description);
-      
-      return StepsComponent;
-    })(),
-    Timeline: ({ children, ...props }) => 
-      React.createElement('ol', { 'data-testid': 'timeline', ...props }, children),
-    Descriptions: (() => {
-      const DescriptionsComponent = ({ children, title, ...props }) => 
-        React.createElement('div', { 'data-testid': 'descriptions', ...props },
-          title && React.createElement('div', { 'data-testid': 'descriptions-title' }, title),
-          children
-        );
-      
-      DescriptionsComponent.Item = ({ label, children, ...props }) => 
-        React.createElement('div', { 'data-testid': 'descriptions-item', ...props },
-          React.createElement('span', { 'data-testid': 'descriptions-label' }, label),
-          React.createElement('span', { 'data-testid': 'descriptions-content' }, children)
-        );
-      
-      return DescriptionsComponent;
-    })(),
-    notification: {
-      success: jest.fn(),
-      error: jest.fn(),
-      warning: jest.fn(),
-      info: jest.fn(),
-    },
-    Dropdown: ({ children, overlay, trigger, ...props }) => 
-      React.createElement('div', { 'data-testid': 'dropdown', ...props }, children),
-    Menu,
-    Tooltip: ({ children, title, ...props }) => 
-      React.createElement('div', { 'data-testid': 'tooltip', title, ...props }, children),
-    Typography: {
-      Title: ({ children, level, ...props }) => 
-        React.createElement(`h${level || 1}`, { 'data-testid': 'typography-title', ...props }, children),
-      Text: ({ children, type, strong, ...props }) => 
-        React.createElement(strong ? 'strong' : 'span', { 'data-testid': 'typography-text', ...props }, children),
-      Paragraph: ({ children, ...props }) => 
-        React.createElement('p', { 'data-testid': 'typography-paragraph', ...props }, children),
-    },
-    message: {
-      success: jest.fn(),
-      error: jest.fn(),
-      warning: jest.fn(),
-      info: jest.fn(),
-    },
-    Tabs: (() => {
-      const TabsComponent = ({ children, defaultActiveKey, onChange, ...props }) => {
-        return React.createElement('div', { 'data-testid': 'tabs', ...props }, children);
-      };
-      
-      // 为了兼容旧版本的TabPane，添加TabPane支持
-      TabsComponent.TabPane = ({ children, tab, key, ...props }) => 
-        React.createElement('div', { 'data-testid': 'tab-pane', 'data-tab': tab, 'data-key': key, ...props }, children);
-      
-      return TabsComponent;
-    })(),
-    Progress: ({ percent, status, ...props }) => 
-      React.createElement('div', { 'data-testid': 'progress', ...props }, `${percent}%`),
-    Alert: ({ message, type, showIcon, ...props }) => 
-      React.createElement('div', { 'data-testid': 'alert', className: `ant-alert ant-alert-${type}`, ...props }, message),
-    Statistic: ({ title, value, prefix, suffix, ...props }) => 
-      React.createElement('div', { 'data-testid': 'statistic', ...props },
-        title && React.createElement('div', { className: 'ant-statistic-title' }, title),
-        React.createElement('div', { className: 'ant-statistic-content' }, prefix, value, suffix)
-      ),
-    Timeline: (() => {
-      const TimelineComponent = ({ children, ...props }) => 
-        React.createElement('ol', { 'data-testid': 'timeline', ...props }, children);
-      
-      TimelineComponent.Item = ({ children, color, dot, ...props }) => 
-        React.createElement('li', { 'data-testid': 'timeline-item', ...props }, dot, children);
-      
-      return TimelineComponent;
-    })(),
-    Divider: ({ children, ...props }) => 
-      React.createElement('hr', { 'data-testid': 'divider', ...props }, children),
-    Spin: ({ children, size, loading, ...props }) => {
-      if (loading === false) return children;
-      return React.createElement('div', { 'data-testid': 'spin', className: `ant-spin ${size ? `ant-spin-${size}` : ''}`, ...props },
-        React.createElement('span', { className: 'ant-spin-dot', role: 'img', 'aria-label': 'loading' }),
-        children
-      );
-    },
-  };
-});
-jest.mock('@ant-design/icons', () => ({
-  UserOutlined: () => React.createElement('span', { 'data-testid': 'user-icon' }),
-  ApartmentOutlined: () => React.createElement('span', { 'data-testid': 'apartment-icon' }),
-  DashboardOutlined: () => React.createElement('span', { 'data-testid': 'dashboard-icon' }),
-  HistoryOutlined: () => React.createElement('span', { 'data-testid': 'history-icon' }),
-  WorkflowOutlined: () => React.createElement('span', { 'data-testid': 'workflow-icon' }),
-  RightOutlined: () => React.createElement('span', { 'data-testid': 'right-icon' }),
-  PlusOutlined: () => React.createElement('span', { 'data-testid': 'plus-icon' }),
-  EditOutlined: () => React.createElement('span', { 'data-testid': 'edit-icon' }),
-  DeleteOutlined: () => React.createElement('span', { 'data-testid': 'delete-icon' }),
-  SearchOutlined: () => React.createElement('span', { 'data-testid': 'search-icon' }),
-  FilterOutlined: () => React.createElement('span', { 'data-testid': 'filter-icon' }),
-  SyncOutlined: () => React.createElement('span', { 'data-testid': 'sync-icon' }),
-  LoadingOutlined: () => React.createElement('span', { 'data-testid': 'loading-icon' }),
-  CheckCircleOutlined: () => React.createElement('span', { 'data-testid': 'check-circle-icon' }),
-  ClockCircleOutlined: () => React.createElement('span', { 'data-testid': 'clock-circle-icon' }),
-  CloseCircleOutlined: () => React.createElement('span', { 'data-testid': 'close-circle-icon' }),
-  ExclamationCircleOutlined: () => React.createElement('span', { 'data-testid': 'exclamation-icon' }),
-  PlayCircleOutlined: () => React.createElement('span', { 'data-testid': 'play-circle-icon' }),
-  PauseCircleOutlined: () => React.createElement('span', { 'data-testid': 'pause-circle-icon' }),
-  MoreOutlined: () => React.createElement('span', { 'data-testid': 'more-icon' }),
-  EyeOutlined: () => React.createElement('span', { 'data-testid': 'eye-icon' }),
-  DownloadOutlined: () => React.createElement('span', { 'data-testid': 'download-icon' }),
-  ReloadOutlined: () => React.createElement('span', { 'data-testid': 'reload-icon' }),
-  InfoCircleOutlined: () => React.createElement('span', { 'data-testid': 'info-icon' }),
-  WarningOutlined: () => React.createElement('span', { 'data-testid': 'warning-icon' }),
-  TeamOutlined: () => React.createElement('span', { 'data-testid': 'team-icon' }),
-  BranchesOutlined: () => React.createElement('span', { 'data-testid': 'branches-icon' }),
+jest.mock('@/components/ui/card', () => ({
+  Card: ({ children, ...props }) => React.createElement('div', { ...props, 'data-testid': 'card' }, children),
+  CardContent: ({ children, ...props }) => React.createElement('div', { ...props, 'data-testid': 'card-content' }, children),
+  CardHeader: ({ children, ...props }) => React.createElement('div', { ...props, 'data-testid': 'card-header' }, children),
+  CardTitle: ({ children, ...props }) => React.createElement('h3', { ...props, 'data-testid': 'card-title' }, children),
+}));
+
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+  log: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
 }));
 
 // Mock Chart.js

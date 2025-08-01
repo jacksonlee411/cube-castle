@@ -1,5 +1,6 @@
 // 类型转换工具函数
 import { Employee, EmployeeApiResponse, EmployeeConverter } from '@/types'
+import { logger } from '@/lib/logger';
 import { isValidEmployeeApiResponse, isValidEmployee } from './type-guards'
 
 /**
@@ -66,12 +67,12 @@ export const convertEmployeesFromApi = (apiEmployees: EmployeeApiResponse[]): Em
 export const safeConvertEmployeeFromApi = (apiData: unknown): Employee | null => {
   try {
     if (!isValidEmployeeApiResponse(apiData)) {
-      console.warn('Invalid employee API response data:', apiData)
+      logger.warn('Invalid employee API response data:', apiData)
       return null
     }
     return employeeConverter.fromApi(apiData)
   } catch (error) {
-    console.error('Error converting employee from API:', error)
+    logger.error('Error converting employee from API:', error)
     return null
   }
 }
