@@ -1,10 +1,12 @@
 // src/pages/_app.tsx - 应用入口文件，引入Workday风格主题
 import React from 'react';
 import type { AppProps } from 'next/app';
+import { useRouter } from 'next/router';
 import { ApolloProvider } from '@apollo/client';
 import { Toaster } from 'react-hot-toast';
 import { apolloClient } from '@/lib/graphql-client';
 import GraphQLErrorBoundary from '@/components/GraphQLErrorBoundary';
+import RESTErrorBoundary from '@/components/RESTErrorBoundary';
 
 // 引入样式文件
 import '@/styles/workday-theme.css';
@@ -21,12 +23,21 @@ interface CubecastleAppProps extends AppProps {
 }
 
 export default function CubeCastleApp({ Component, pageProps }: CubecastleAppProps) {
+  const router = useRouter();
+  
   // 获取页面级布局函数（如果有的话）
   const getLayout = Component.getLayout ?? ((page) => page);
 
+  // 定义哪些页面使用REST/SWR (不需要GraphQL错误边界)
+  const restPages = ['/employees', '/api/employees'];
+  const isRESTPage = restPages.includes(router.pathname);
+
+  // 选择合适的错误边界
+  const ErrorBoundaryComponent = isRESTPage ? RESTErrorBoundary : GraphQLErrorBoundary;
+
   return (
     <ApolloProvider client={apolloClient}>
-      <GraphQLErrorBoundary>
+      <ErrorBoundaryComponent>
         {getLayout(<Component {...pageProps} />)}
         
         {/* 全局通知系统 */}
@@ -73,7 +84,7 @@ export default function CubeCastleApp({ Component, pageProps }: CubecastleAppPro
             },
           }}
         />
-      </GraphQLErrorBoundary>
+      </ErrorBoundaryComponent>
     </ApolloProvider>
   );
 }

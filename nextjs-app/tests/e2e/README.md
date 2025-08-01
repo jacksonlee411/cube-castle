@@ -44,6 +44,7 @@ This E2E test suite provides comprehensive testing coverage for the Cube Castle 
 
 ### Test Configuration:
 - **Playwright Framework**: Cross-browser E2E testing
+- **Chrome Browser**: ✅ 已安装并验证 (2025-08-01)
 - **Parallel Execution**: Tests run concurrently for speed
 - **Screenshot Capture**: Automatic screenshots on test completion
 - **Video Recording**: Failed test recordings for debugging

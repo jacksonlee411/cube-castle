@@ -81,6 +81,7 @@ Cube Castle 采用独特的"城堡模型"架构，实现了企业级安全和高
 - Docker & Docker Compose
 - PostgreSQL 16+
 - Redis 7.x
+- **Chrome浏览器** ✅ (E2E测试和Playwright自动化) - 已安装并验证
 
 #### 企业级组件
 - Temporal 1.25+ (工作流引擎)

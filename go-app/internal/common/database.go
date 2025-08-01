@@ -29,11 +29,33 @@ type Database struct {
 
 // NewDatabaseConfig 从环境变量创建数据库配置
 func NewDatabaseConfig() *DatabaseConfig {
+	// 如果环境变量为空，使用默认开发环境配置
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		// 开发环境默认配置，与.env文件一致
+		databaseURL = "postgresql://user:password@localhost:5432/cubecastle?sslmode=disable"
+	}
+	
+	neo4jURI := os.Getenv("NEO4J_URI")
+	if neo4jURI == "" {
+		neo4jURI = "bolt://localhost:7687"
+	}
+	
+	neo4jUser := os.Getenv("NEO4J_USER")
+	if neo4jUser == "" {
+		neo4jUser = "neo4j"
+	}
+	
+	neo4jPassword := os.Getenv("NEO4J_PASSWORD")
+	if neo4jPassword == "" {
+		neo4jPassword = "password123"
+	}
+	
 	return &DatabaseConfig{
-		PostgreSQLURL: os.Getenv("DATABASE_URL"),
-		Neo4jURI:      os.Getenv("NEO4J_URI"),
-		Neo4jUser:     os.Getenv("NEO4J_USER"),
-		Neo4jPassword: os.Getenv("NEO4J_PASSWORD"),
+		PostgreSQLURL: databaseURL,
+		Neo4jURI:      neo4jURI,
+		Neo4jUser:     neo4jUser,
+		Neo4jPassword: neo4jPassword,
 	}
 }
 

@@ -1,12 +1,10 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+// Removed DropdownMenu imports to avoid Radix UI state cycles
 
 export interface FilterOption {
   key: string;
@@ -23,7 +21,7 @@ export interface ActiveFilter {
   displayValue: string;
 }
 
-export interface SmartFilterProps {
+export interface SmartFilterIsolatedProps {
   /** 可用的筛选选项 */
   filterOptions: FilterOption[];
   /** 当前激活的筛选条件 */
@@ -48,7 +46,7 @@ export interface SmartFilterProps {
   className?: string;
 }
 
-export function SmartFilter({
+export function SmartFilterIsolated({
   filterOptions,
   activeFilters,
   onFiltersChange,
@@ -58,10 +56,52 @@ export function SmartFilter({
   presets = [],
   showAdvanced = true,
   className
-}: SmartFilterProps) {
+}: SmartFilterIsolatedProps) {
+  // 完全独立的内部状态
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
+  const [internalFilters, setInternalFilters] = useState<ActiveFilter[]>([]);
+  const [showPresetMenu, setShowPresetMenu] = useState(false);
+  const stableFiltersRef = useRef<ActiveFilter[]>([]);
+  const presetMenuRef = useRef<HTMLDivElement>(null);
+  
+  // 同步外部状态到内部状态（单向数据流）
+  useEffect(() => {
+    if (JSON.stringify(activeFilters) !== JSON.stringify(stableFiltersRef.current)) {
+      stableFiltersRef.current = activeFilters;
+      setInternalFilters([...activeFilters]);
+    }
+  }, [activeFilters]);
 
-  // 添加筛选条件 - 移除activeFilters依赖避免循环
+  // 点击外部关闭预设菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (presetMenuRef.current && !presetMenuRef.current.contains(event.target as Node)) {
+        setShowPresetMenu(false);
+      }
+    };
+
+    if (showPresetMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPresetMenu]);
+
+  // 稳定的更新函数，完全隔离状态传播
+  const updateFilters = useCallback((newFilters: ActiveFilter[]) => {
+    const uniqueFilters = [...newFilters];
+    setInternalFilters(uniqueFilters);
+    stableFiltersRef.current = uniqueFilters;
+    
+    // 延迟传播到外部，防止同步更新循环
+    setTimeout(() => {
+      onFiltersChange(uniqueFilters);
+    }, 0);
+  }, [onFiltersChange]);
+
+  // 添加筛选条件 - 完全隔离的实现
   const addFilter = useCallback((option: FilterOption, value: string) => {
     if (!value || (Array.isArray(value) && value.length === 0)) return;
 
@@ -79,61 +119,70 @@ export function SmartFilter({
       displayValue
     };
 
-    // 直接更新筛选条件数组
-    const updatedFilters = activeFilters.filter(f => f.key !== option.key);
-    onFiltersChange([...updatedFilters, newFilter]);
-  }, [onFiltersChange, activeFilters]);
+    const currentFilters = [...stableFiltersRef.current];
+    const updatedFilters = currentFilters.filter(f => f.key !== option.key);
+    updatedFilters.push(newFilter);
+    
+    updateFilters(updatedFilters);
+  }, [updateFilters]);
 
-  // 移除筛选条件
+  // 移除筛选条件 - 完全隔离的实现
   const removeFilter = useCallback((key: string) => {
-    const updatedFilters = activeFilters.filter(f => f.key !== key);
-    onFiltersChange(updatedFilters);
-  }, [onFiltersChange, activeFilters]);
+    const currentFilters = [...stableFiltersRef.current];
+    const updatedFilters = currentFilters.filter(f => f.key !== key);
+    updateFilters(updatedFilters);
+  }, [updateFilters]);
 
   // 清除所有筛选条件
   const clearAllFilters = useCallback(() => {
-    onFiltersChange([]);
+    updateFilters([]);
     onSearchChange('');
-  }, [onFiltersChange, onSearchChange]);
+  }, [updateFilters, onSearchChange]);
 
   // 应用预设方案
   const applyPreset = useCallback((preset: typeof presets[0]) => {
-    onFiltersChange(preset.filters);
-  }, [onFiltersChange]);
+    updateFilters([...preset.filters]);
+  }, [updateFilters]);
 
-  // 渲染快速筛选按钮 - 完全稳定化避免引用循环
+  // 完全隔离的下拉选择器渲染器
+  const renderSelectFilter = useCallback((option: FilterOption) => {
+    const activeFilter = internalFilters.find(f => f.key === option.key);
+    const currentValue = activeFilter?.value || '';
+    
+    return (
+      <div key={option.key} className="min-w-[120px]">
+        <select
+          value={currentValue}
+          onChange={(e) => {
+            if (e.target.value) {
+              addFilter(option, e.target.value);
+            } else {
+              removeFilter(option.key);
+            }
+          }}
+          className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">{option.label}</option>
+          {option.options?.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }, [internalFilters, addFilter, removeFilter]);
+
+  // 渲染快速筛选按钮 - 稳定化
   const renderQuickFilters = useMemo(() => {
     const quickOptions = filterOptions
       .filter(option => option.type === 'select' && option.options)
       .slice(0, 3);
 
-    return quickOptions.map((option) => {
-      // 找到当前选项的活跃值
-      const activeFilter = activeFilters.find(f => f.key === option.key);
-      const currentValue = activeFilter?.value || undefined; // 使用undefined而不是空字符串
-      
-      return (
-        <Select 
-          key={option.key} 
-          value={currentValue}
-          onValueChange={(value) => addFilter(option, value)}
-        >
-          <SelectTrigger className="w-auto min-w-[120px] h-9 text-sm">
-            <SelectValue placeholder={option.label} />
-          </SelectTrigger>
-          <SelectContent>
-            {option.options?.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
-    });
-  }, [filterOptions, activeFilters]); // 移除addFilter依赖，因为它现在是稳定的
+    return quickOptions.map(renderSelectFilter);
+  }, [filterOptions, renderSelectFilter]);
 
-  // 渲染高级筛选面板 - 稳定化Select组件避免引用循环
+  // 渲染高级筛选面板 - 完全隔离
   const renderAdvancedPanel = useCallback(() => (
     <Card className="p-4 space-y-4 border-dashed">
       <div className="flex items-center justify-between">
@@ -163,21 +212,24 @@ export function SmartFilter({
             )}
             
             {option.type === 'select' && (
-              <Select 
-                value={activeFilters.find(f => f.key === option.key)?.value || undefined}
-                onValueChange={(value) => addFilter(option, value)}
+              <select
+                value={internalFilters.find(f => f.key === option.key)?.value || ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    addFilter(option, e.target.value);
+                  } else {
+                    removeFilter(option.key);
+                  }
+                }}
+                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder={option.placeholder || '请选择'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {option.options?.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">{option.placeholder || '请选择'}</option>
+                {option.options?.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             )}
             
             {option.type === 'date' && (
@@ -191,7 +243,7 @@ export function SmartFilter({
         ))}
       </div>
     </Card>
-  ), [filterOptions, activeFilters, addFilter]);
+  ), [filterOptions, internalFilters, addFilter, removeFilter]);
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -219,27 +271,35 @@ export function SmartFilter({
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">
-              {/* 预设方案 */}
+              {/* 预设方案 - 原生实现替代DropdownMenu */}
               {presets.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9 text-xs sm:text-sm">
-                      📋 <span className="hidden sm:inline ml-1">预设方案</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    {presets.map((preset, index) => (
-                      <DropdownMenuItem
-                        key={index}
-                        onClick={() => applyPreset(preset)}
-                        className="flex items-center gap-2"
-                      >
-                        {preset.icon}
-                        {preset.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="relative" ref={presetMenuRef}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-9 text-xs sm:text-sm"
+                    onClick={() => setShowPresetMenu(!showPresetMenu)}
+                  >
+                    📋 <span className="hidden sm:inline ml-1">预设方案</span>
+                  </Button>
+                  {showPresetMenu && (
+                    <div className="absolute top-full left-0 mt-1 w-48 rounded-md border bg-popover p-1 text-popover-foreground shadow-md z-50">
+                      {presets.map((preset, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            applyPreset(preset);
+                            setShowPresetMenu(false);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                        >
+                          {preset.icon}
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* 高级筛选按钮 */}
@@ -258,7 +318,7 @@ export function SmartFilter({
               )}
 
               {/* 清除按钮 */}
-              {(activeFilters.length > 0 || searchValue) && (
+              {(internalFilters.length > 0 || searchValue) && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -274,10 +334,10 @@ export function SmartFilter({
       </Card>
 
       {/* 激活的筛选条件标签 */}
-      {activeFilters.length > 0 && (
+      {internalFilters.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-body-small text-gray-500">已应用筛选:</span>
-          {activeFilters.map((filter) => (
+          {internalFilters.map((filter) => (
             <Badge
               key={filter.key}
               variant="secondary"
@@ -302,11 +362,11 @@ export function SmartFilter({
       {/* 筛选结果统计 */}
       <div className="flex items-center justify-between text-body-small text-gray-500">
         <div className="flex items-center gap-2">
-          {(activeFilters.length > 0 || searchValue) && (
+          {(internalFilters.length > 0 || searchValue) && (
             <>
               <span>🔍</span>
               <span>
-                已应用 {activeFilters.length + (searchValue ? 1 : 0)} 个筛选条件
+                已应用 {internalFilters.length + (searchValue ? 1 : 0)} 个筛选条件
               </span>
             </>
           )}
@@ -316,4 +376,4 @@ export function SmartFilter({
   );
 }
 
-export default SmartFilter;
+export default SmartFilterIsolated;

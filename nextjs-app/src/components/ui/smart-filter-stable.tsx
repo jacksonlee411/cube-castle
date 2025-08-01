@@ -1,12 +1,12 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+// 暂时移除Radix UI组件，使用原生实现避免循环依赖
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export interface FilterOption {
   key: string;
@@ -23,7 +23,7 @@ export interface ActiveFilter {
   displayValue: string;
 }
 
-export interface SmartFilterProps {
+export interface SmartFilterStableProps {
   /** 可用的筛选选项 */
   filterOptions: FilterOption[];
   /** 当前激活的筛选条件 */
@@ -48,7 +48,7 @@ export interface SmartFilterProps {
   className?: string;
 }
 
-export function SmartFilter({
+export function SmartFilterStable({
   filterOptions,
   activeFilters,
   onFiltersChange,
@@ -58,10 +58,33 @@ export function SmartFilter({
   presets = [],
   showAdvanced = true,
   className
-}: SmartFilterProps) {
+}: SmartFilterStableProps) {
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
+  
+  // 使用ref来保存稳定的状态快照，避免循环依赖
+  const filtersRef = useRef<ActiveFilter[]>(activeFilters);
+  const updatePendingRef = useRef(false);
+  
+  // 同步外部状态到ref（单向数据流）
+  useEffect(() => {
+    if (!updatePendingRef.current) {
+      filtersRef.current = activeFilters;
+    }
+  }, [activeFilters]);
 
-  // 添加筛选条件 - 移除activeFilters依赖避免循环
+  // 稳定的更新函数，使用debounce避免频繁更新
+  const updateFiltersStable = useCallback((newFilters: ActiveFilter[]) => {
+    filtersRef.current = newFilters;
+    updatePendingRef.current = true;
+    
+    // 使用setTimeout批处理更新，避免同步循环
+    setTimeout(() => {
+      onFiltersChange(newFilters);
+      updatePendingRef.current = false;
+    }, 0);
+  }, [onFiltersChange]);
+
+  // 添加筛选条件 - 完全基于ref的稳定实现
   const addFilter = useCallback((option: FilterOption, value: string) => {
     if (!value || (Array.isArray(value) && value.length === 0)) return;
 
@@ -79,61 +102,124 @@ export function SmartFilter({
       displayValue
     };
 
-    // 直接更新筛选条件数组
-    const updatedFilters = activeFilters.filter(f => f.key !== option.key);
-    onFiltersChange([...updatedFilters, newFilter]);
-  }, [onFiltersChange, activeFilters]);
+    // 基于current ref状态，避免依赖state
+    const currentFilters = [...filtersRef.current];
+    const updatedFilters = currentFilters.filter(f => f.key !== option.key);
+    updatedFilters.push(newFilter);
+    
+    updateFiltersStable(updatedFilters);
+  }, [updateFiltersStable]);
 
-  // 移除筛选条件
+  // 移除筛选条件 - 基于ref的稳定实现
   const removeFilter = useCallback((key: string) => {
-    const updatedFilters = activeFilters.filter(f => f.key !== key);
-    onFiltersChange(updatedFilters);
-  }, [onFiltersChange, activeFilters]);
+    const currentFilters = [...filtersRef.current];
+    const updatedFilters = currentFilters.filter(f => f.key !== key);
+    updateFiltersStable(updatedFilters);
+  }, [updateFiltersStable]);
 
   // 清除所有筛选条件
   const clearAllFilters = useCallback(() => {
-    onFiltersChange([]);
+    updateFiltersStable([]);
     onSearchChange('');
-  }, [onFiltersChange, onSearchChange]);
+  }, [updateFiltersStable, onSearchChange]);
 
   // 应用预设方案
   const applyPreset = useCallback((preset: typeof presets[0]) => {
-    onFiltersChange(preset.filters);
-  }, [onFiltersChange]);
+    updateFiltersStable([...preset.filters]);
+  }, [updateFiltersStable]);
 
-  // 渲染快速筛选按钮 - 完全稳定化避免引用循环
+  // 原生Select组件，避免Radix UI循环依赖
+  const NativeSelectFilter = useCallback(({ option }: { option: FilterOption }) => {
+    const activeFilter = activeFilters.find(f => f.key === option.key);
+    const currentValue = activeFilter?.value ?? '';
+    
+    return (
+      <select
+        key={`native-select-${option.key}`}
+        value={currentValue}
+        onChange={(e) => {
+          if (e.target.value) {
+            addFilter(option, e.target.value);
+          } else {
+            removeFilter(option.key);
+          }
+        }}
+        className="flex h-9 w-auto min-w-[120px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <option value="">{option.label}</option>
+        {option.options?.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    );
+  }, [activeFilters, addFilter, removeFilter]);
+
+// 原生下拉菜单组件，避免Radix UI循环依赖
+const NativeDropdownMenu: React.FC<{ 
+  children: React.ReactNode, 
+  items: Array<{ label: string, onClick: () => void, icon?: React.ReactNode }> 
+}> = ({ children, items }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+    
+    // 必须有返回值或返回undefined
+    return undefined;
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <div onClick={() => setIsOpen(!isOpen)}>
+        {children}
+      </div>
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-48 rounded-md border bg-popover p-1 text-popover-foreground shadow-md z-50">
+          {items.map((item, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                item.onClick();
+                setIsOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+NativeDropdownMenu.displayName = 'NativeDropdownMenu';
+
+  // 渲染快速筛选按钮 - 移除循环依赖
   const renderQuickFilters = useMemo(() => {
     const quickOptions = filterOptions
       .filter(option => option.type === 'select' && option.options)
       .slice(0, 3);
 
-    return quickOptions.map((option) => {
-      // 找到当前选项的活跃值
-      const activeFilter = activeFilters.find(f => f.key === option.key);
-      const currentValue = activeFilter?.value || undefined; // 使用undefined而不是空字符串
-      
-      return (
-        <Select 
-          key={option.key} 
-          value={currentValue}
-          onValueChange={(value) => addFilter(option, value)}
-        >
-          <SelectTrigger className="w-auto min-w-[120px] h-9 text-sm">
-            <SelectValue placeholder={option.label} />
-          </SelectTrigger>
-          <SelectContent>
-            {option.options?.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
-    });
-  }, [filterOptions, activeFilters]); // 移除addFilter依赖，因为它现在是稳定的
+    return quickOptions.map((option) => (
+      <NativeSelectFilter key={option.key} option={option} />
+    ));
+  }, [filterOptions, NativeSelectFilter]); // 使用原生组件
 
-  // 渲染高级筛选面板 - 稳定化Select组件避免引用循环
+  // 渲染高级筛选面板 - 稳定化实现
   const renderAdvancedPanel = useCallback(() => (
     <Card className="p-4 space-y-4 border-dashed">
       <div className="flex items-center justify-between">
@@ -163,21 +249,24 @@ export function SmartFilter({
             )}
             
             {option.type === 'select' && (
-              <Select 
-                value={activeFilters.find(f => f.key === option.key)?.value || undefined}
-                onValueChange={(value) => addFilter(option, value)}
+              <select
+                value={activeFilters.find(f => f.key === option.key)?.value ?? ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    addFilter(option, e.target.value);
+                  } else {
+                    removeFilter(option.key);
+                  }
+                }}
+                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder={option.placeholder || '请选择'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {option.options?.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">{option.placeholder ?? '请选择'}</option>
+                {option.options?.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             )}
             
             {option.type === 'date' && (
@@ -191,7 +280,7 @@ export function SmartFilter({
         ))}
       </div>
     </Card>
-  ), [filterOptions, activeFilters, addFilter]);
+  ), [filterOptions, activeFilters, addFilter, removeFilter]);
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -219,27 +308,19 @@ export function SmartFilter({
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">
-              {/* 预设方案 */}
+              {/* 预设方案 - 使用原生下拉菜单 */}
               {presets.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9 text-xs sm:text-sm">
-                      📋 <span className="hidden sm:inline ml-1">预设方案</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    {presets.map((preset, index) => (
-                      <DropdownMenuItem
-                        key={index}
-                        onClick={() => applyPreset(preset)}
-                        className="flex items-center gap-2"
-                      >
-                        {preset.icon}
-                        {preset.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <NativeDropdownMenu
+                  items={presets.map((preset) => ({
+                    label: preset.label,
+                    icon: preset.icon,
+                    onClick: () => applyPreset(preset)
+                  }))}
+                >
+                  <Button variant="outline" size="sm" className="h-9 text-xs sm:text-sm">
+                    📋 <span className="hidden sm:inline ml-1">预设方案</span>
+                  </Button>
+                </NativeDropdownMenu>
               )}
 
               {/* 高级筛选按钮 */}
@@ -316,4 +397,4 @@ export function SmartFilter({
   );
 }
 
-export default SmartFilter;
+export default SmartFilterStable;

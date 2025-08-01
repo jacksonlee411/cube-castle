@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -29,33 +29,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SWRMonitoring } from '@/components/ui/swr-monitoring';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+// Removed Select imports to avoid Radix UI state cycles
+// Removed Dialog imports to avoid Radix UI state cycles
 import { DatePicker } from '@/components/ui/date-picker';
-import { DataTable, createSortableColumn, createActionsColumn } from '@/components/ui/data-table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DataTable, createSortableColumn } from '@/components/ui/data-table';
+// Removed DropdownMenu imports to avoid Radix UI state cycles
 
 // 新增的UI组件
 import StatCard, { StatCardsGrid } from '@/components/ui/stat-card';
 import EmployeeCard, { EmployeeCardsGrid, EmployeeCardSkeleton } from '@/components/ui/employee-card';
-import SmartFilter, { FilterOption, ActiveFilter } from '@/components/ui/smart-filter';
+import SmartFilterStable, { FilterOption, ActiveFilter } from '@/components/ui/smart-filter-stable';
 import { PieChart, BarChart } from '@/components/ui/data-visualization';
 
 // Import SWR hooks
@@ -72,8 +55,12 @@ const EmployeesPage: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [showModal, setShowModal] = useState(false);
 
-  // SWR data fetching
+  // 稳定化过滤器状态管理函数
+  const handleFiltersChange = useCallback((filters: ActiveFilter[]) => {
+    setActiveFilters(filters);
+  }, []);
   const { 
     employees, 
     totalCount, 
@@ -217,9 +204,16 @@ const EmployeesPage: React.FC = () => {
   };
 
   const handleModalClose = () => {
-    setIsModalVisible(false);
+    setShowModal(false);
     setEditingEmployee(null);
     setFormData({});
+  };
+
+  // Modal overlay click handler
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleModalClose();
+    }
   };
 
   // Filter employees based on search and active filters
@@ -252,35 +246,39 @@ const EmployeesPage: React.FC = () => {
     return true;
   });
 
-  // Filter options configuration
-  const filterOptions: FilterOption[] = [
-    {
-      key: 'department',
-      label: '部门',
-      type: 'select',
-      options: Array.from(new Set(employees.map(emp => emp.department).filter(Boolean)))
-        .map(dept => ({ label: dept!, value: dept! }))
-    },
-    {
-      key: 'status',
-      label: '状态',
-      type: 'select',
-      options: [
-        { label: '在职', value: 'active' },
-        { label: '离职', value: 'inactive' },
-        { label: '待入职', value: 'pending' }
-      ]
-    },
-    {
-      key: 'position',
-      label: '职位',
-      type: 'text',
-      placeholder: '输入职位关键词'
-    }
-  ];
+  // Filter options configuration - 深度稳定化防止引用循环
+  const filterOptions: FilterOption[] = useMemo(() => {
+    // 使用Set来获取唯一部门，避免重复计算
+    const uniqueDepartments = Array.from(new Set(employees.map(emp => emp.department).filter(Boolean)));
+    
+    return [
+      {
+        key: 'department',
+        label: '部门',
+        type: 'select',
+        options: uniqueDepartments.map(dept => ({ label: dept!, value: dept! }))
+      },
+      {
+        key: 'status',
+        label: '状态',
+        type: 'select',
+        options: [
+          { label: '在职', value: 'active' },
+          { label: '离职', value: 'inactive' },
+          { label: '待入职', value: 'pending' }
+        ]
+      },
+      {
+        key: 'position',
+        label: '职位',
+        type: 'text',
+        placeholder: '输入职位关键词'
+      }
+    ];
+  }, [employees.length]); // 只依赖员工数量，避免因数据细节变化而重新创建
 
-  // Preset filter configurations
-  const filterPresets = [
+  // Preset filter configurations (memoized to prevent re-creation)
+  const filterPresets = useMemo(() => [
     {
       label: '全部在职员工',
       icon: <UserCheck className="w-4 h-4" />,
@@ -291,7 +289,7 @@ const EmployeesPage: React.FC = () => {
       icon: <Building className="w-4 h-4" />,
       filters: [{ key: 'department', label: '部门', value: '技术部', displayValue: '技术部' }]
     }
-  ];
+  ], []);
 
   const getStatusColor = (status: string): "default" | "destructive" | "secondary" => {
     const colors = {
@@ -311,30 +309,77 @@ const EmployeesPage: React.FC = () => {
     return labels[status as keyof typeof labels] || status;
   };
 
-  const ActionsCell = ({ row }: { row: Employee }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0">
+  // 稳定的下拉菜单组件，避免循环依赖
+  const StableActionsCell = React.memo(({ employee }: { employee: Employee }) => {
+    const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+    const menuRef = React.useRef<HTMLDivElement>(null);
+
+    // 使用单独的状态管理，避免全局状态循环
+    React.useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+          setIsMenuOpen(false);
+        }
+      };
+
+      if (isMenuOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }
+      
+      // 确保所有代码路径都有返回值
+      return undefined;
+    }, [isMenuOpen]);
+
+    return (
+      <div className="relative" ref={menuRef}>
+        <Button 
+          variant="ghost" 
+          className="h-8 w-8 p-0"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleEdit(row)}>
-          <Edit2 className="mr-2 h-4 w-4" />
-          编辑信息
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push(`/employees/positions/${row.id}`)}>
-          <History className="mr-2 h-4 w-4" />
-          职位历史
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => handleDelete(row)} className="text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" />
-          删除员工
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+        {isMenuOpen && (
+          <div className="absolute right-0 top-full mt-1 w-48 rounded-md border bg-popover p-1 text-popover-foreground shadow-md z-50">
+            <button
+              onClick={() => {
+                handleEdit(employee);
+                setIsMenuOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+            >
+              <Edit2 className="h-4 w-4" />
+              编辑信息
+            </button>
+            <button
+              onClick={() => {
+                router.push(`/employees/positions/${employee.id}`);
+                setIsMenuOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+            >
+              <History className="h-4 w-4" />
+              职位历史
+            </button>
+            <div className="my-1 h-px bg-border" />
+            <button
+              onClick={() => {
+                handleDelete(employee);
+                setIsMenuOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              删除员工
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  });
+
+  StableActionsCell.displayName = 'StableActionsCell';
 
   const columns: ColumnDef<Employee>[] = [
     {
@@ -427,7 +472,11 @@ const EmployeesPage: React.FC = () => {
         );
       },
     },
-    createActionsColumn<Employee>(ActionsCell),
+    {
+      id: 'actions',
+      header: '操作',
+      cell: ({ row }) => <StableActionsCell employee={row.original} />,
+    },
   ];
 
   // Show error state
@@ -480,7 +529,7 @@ const EmployeesPage: React.FC = () => {
         </div>
         <Button 
           size="lg"
-          onClick={() => setIsModalVisible(true)}
+          onClick={() => setShowModal(true)}
           className="w-full sm:w-auto btn-primary-animate"
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -549,10 +598,10 @@ const EmployeesPage: React.FC = () => {
       </div>
 
       {/* Smart Filter Toolbar */}
-      <SmartFilter
+      <SmartFilterStable
         filterOptions={filterOptions}
         activeFilters={activeFilters}
-        onFiltersChange={setActiveFilters}
+        onFiltersChange={handleFiltersChange}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         presets={filterPresets}
@@ -662,114 +711,126 @@ const EmployeesPage: React.FC = () => {
         </EmployeeCardsGrid>
       )}
 
-      {/* Create/Edit Employee Modal */}
-      <Dialog open={isModalVisible} onOpenChange={setIsModalVisible}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingEmployee ? '编辑员工信息' : '新增员工'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">员工工号</label>
-              <Input 
-                placeholder="如: EMP001"
-                value={formData.employeeId || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, employeeId: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium">法定姓名</label>
-              <Input 
-                placeholder="员工的法定姓名"
-                value={formData.legalName || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, legalName: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium">常用姓名</label>
-              <Input 
-                placeholder="常用的英文姓名(可选)"
-                value={formData.preferredName || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, preferredName: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium">邮箱地址</label>
-              <Input 
-                type="email"
-                placeholder="employee@company.com"
-                value={formData.email || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium">所属部门</label>
-              <Select 
-                value={formData.department || ''}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+      {/* Native Modal Implementation */}
+      {showModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={handleOverlayClick}
+        >
+          <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-lg overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-lg font-semibold">
+                {editingEmployee ? '编辑员工信息' : '新增员工'}
+              </h2>
+              <button
+                onClick={handleModalClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="选择部门" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="技术部">技术部</SelectItem>
-                  <SelectItem value="产品部">产品部</SelectItem>
-                  <SelectItem value="人事部">人事部</SelectItem>
-                  <SelectItem value="财务部">财务部</SelectItem>
-                  <SelectItem value="市场部">市场部</SelectItem>
-                  <SelectItem value="运营部">运营部</SelectItem>
-                </SelectContent>
-              </Select>
+                ✕
+              </button>
             </div>
             
-            <div>
-              <label className="text-sm font-medium">职位</label>
-              <Input 
-                placeholder="如: 高级软件工程师"
-                value={formData.position || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium">入职日期</label>
-              <DatePicker 
-                date={formData.hireDate ? new Date(formData.hireDate) : undefined}
-                onDateChange={(date) => setFormData(prev => ({ 
-                  ...prev, 
-                  hireDate: date ? format(date, 'yyyy-MM-dd') : ''
-                }))}
-                placeholder="选择入职日期"
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium">直属经理</label>
-              <Input 
-                placeholder="直属经理姓名(可选)"
-                value={formData.managerName || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, managerName: e.target.value }))}
-              />
-            </div>
-          </div>
+            {/* Content */}
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">员工工号</label>
+                  <Input 
+                    placeholder="如: EMP001"
+                    value={formData.employeeId || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, employeeId: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">法定姓名</label>
+                  <Input 
+                    placeholder="员工的法定姓名"
+                    value={formData.legalName || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, legalName: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">常用姓名</label>
+                  <Input 
+                    placeholder="常用的英文姓名(可选)"
+                    value={formData.preferredName || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, preferredName: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">邮箱地址</label>
+                  <Input 
+                    type="email"
+                    placeholder="employee@company.com"
+                    value={formData.email || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">所属部门</label>
+                  <select 
+                    value={formData.department || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">选择部门</option>
+                    <option value="技术部">技术部</option>
+                    <option value="产品部">产品部</option>
+                    <option value="人事部">人事部</option>
+                    <option value="财务部">财务部</option>
+                    <option value="市场部">市场部</option>
+                    <option value="运营部">运营部</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">职位</label>
+                  <Input 
+                    placeholder="如: 高级软件工程师"
+                    value={formData.position || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">入职日期</label>
+                  <DatePicker 
+                    date={formData.hireDate ? new Date(formData.hireDate) : undefined}
+                    onDateChange={(date) => setFormData(prev => ({ 
+                      ...prev, 
+                      hireDate: date ? format(date, 'yyyy-MM-dd') : ''
+                    }))}
+                    placeholder="选择入职日期"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">直属经理</label>
+                  <Input 
+                    placeholder="直属经理姓名(可选)"
+                    value={formData.managerName || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, managerName: e.target.value }))}
+                  />
+                </div>
+              </div>
 
-          <div className="flex justify-end gap-2 mt-6">
-            <Button variant="outline" onClick={handleModalClose}>
-              取消
-            </Button>
-            <Button onClick={() => handleCreateEmployee(formData)}>
-              {editingEmployee ? '更新' : '创建'}
-            </Button>
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" onClick={handleModalClose}>
+                  取消
+                </Button>
+                <Button onClick={() => handleCreateEmployee(formData)}>
+                  {editingEmployee ? '更新' : '创建'}
+                </Button>
+              </div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
       
       {/* SWR Performance Monitoring Component */}
       <SWRMonitoring />

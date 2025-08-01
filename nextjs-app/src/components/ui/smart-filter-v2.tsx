@@ -1,12 +1,15 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export interface FilterOption {
   key: string;
@@ -48,7 +51,7 @@ export interface SmartFilterProps {
   className?: string;
 }
 
-export function SmartFilter({
+export function SmartFilterV2({
   filterOptions,
   activeFilters,
   onFiltersChange,
@@ -61,7 +64,7 @@ export function SmartFilter({
 }: SmartFilterProps) {
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
 
-  // 添加筛选条件 - 移除activeFilters依赖避免循环
+  // 添加筛选条件
   const addFilter = useCallback((option: FilterOption, value: string) => {
     if (!value || (Array.isArray(value) && value.length === 0)) return;
 
@@ -79,16 +82,15 @@ export function SmartFilter({
       displayValue
     };
 
-    // 直接更新筛选条件数组
+    // 替换同key的筛选条件
     const updatedFilters = activeFilters.filter(f => f.key !== option.key);
     onFiltersChange([...updatedFilters, newFilter]);
-  }, [onFiltersChange, activeFilters]);
+  }, [activeFilters, onFiltersChange]);
 
   // 移除筛选条件
   const removeFilter = useCallback((key: string) => {
-    const updatedFilters = activeFilters.filter(f => f.key !== key);
-    onFiltersChange(updatedFilters);
-  }, [onFiltersChange, activeFilters]);
+    onFiltersChange(activeFilters.filter(f => f.key !== key));
+  }, [activeFilters, onFiltersChange]);
 
   // 清除所有筛选条件
   const clearAllFilters = useCallback(() => {
@@ -101,40 +103,46 @@ export function SmartFilter({
     onFiltersChange(preset.filters);
   }, [onFiltersChange]);
 
-  // 渲染快速筛选按钮 - 完全稳定化避免引用循环
-  const renderQuickFilters = useMemo(() => {
+  // 渲染下拉选择器 - 使用原生select避免Radix UI问题
+  const renderSelectFilter = (option: FilterOption) => {
+    const activeFilter = activeFilters.find(f => f.key === option.key);
+    const currentValue = activeFilter?.value || '';
+    
+    return (
+      <div key={option.key} className="min-w-[120px]">
+        <select
+          value={currentValue}
+          onChange={(e) => {
+            if (e.target.value) {
+              addFilter(option, e.target.value);
+            } else {
+              removeFilter(option.key);
+            }
+          }}
+          className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">{option.label}</option>
+          {option.options?.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
+
+  // 渲染快速筛选按钮
+  const renderQuickFilters = () => {
     const quickOptions = filterOptions
       .filter(option => option.type === 'select' && option.options)
       .slice(0, 3);
 
-    return quickOptions.map((option) => {
-      // 找到当前选项的活跃值
-      const activeFilter = activeFilters.find(f => f.key === option.key);
-      const currentValue = activeFilter?.value || undefined; // 使用undefined而不是空字符串
-      
-      return (
-        <Select 
-          key={option.key} 
-          value={currentValue}
-          onValueChange={(value) => addFilter(option, value)}
-        >
-          <SelectTrigger className="w-auto min-w-[120px] h-9 text-sm">
-            <SelectValue placeholder={option.label} />
-          </SelectTrigger>
-          <SelectContent>
-            {option.options?.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
-    });
-  }, [filterOptions, activeFilters]); // 移除addFilter依赖，因为它现在是稳定的
+    return quickOptions.map(renderSelectFilter);
+  };
 
-  // 渲染高级筛选面板 - 稳定化Select组件避免引用循环
-  const renderAdvancedPanel = useCallback(() => (
+  // 渲染高级筛选面板
+  const renderAdvancedPanel = () => (
     <Card className="p-4 space-y-4 border-dashed">
       <div className="flex items-center justify-between">
         <h4 className="text-display-small font-medium">高级筛选</h4>
@@ -163,21 +171,24 @@ export function SmartFilter({
             )}
             
             {option.type === 'select' && (
-              <Select 
-                value={activeFilters.find(f => f.key === option.key)?.value || undefined}
-                onValueChange={(value) => addFilter(option, value)}
+              <select
+                value={activeFilters.find(f => f.key === option.key)?.value || ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    addFilter(option, e.target.value);
+                  } else {
+                    removeFilter(option.key);
+                  }
+                }}
+                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder={option.placeholder || '请选择'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {option.options?.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">{option.placeholder || '请选择'}</option>
+                {option.options?.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             )}
             
             {option.type === 'date' && (
@@ -191,7 +202,7 @@ export function SmartFilter({
         ))}
       </div>
     </Card>
-  ), [filterOptions, activeFilters, addFilter]);
+  );
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -215,7 +226,7 @@ export function SmartFilter({
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-3">
             {/* 快速筛选 */}
             <div className="flex items-center gap-2 flex-wrap">
-              {renderQuickFilters}
+              {renderQuickFilters()}
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">
@@ -316,4 +327,4 @@ export function SmartFilter({
   );
 }
 
-export default SmartFilter;
+export default SmartFilterV2;
