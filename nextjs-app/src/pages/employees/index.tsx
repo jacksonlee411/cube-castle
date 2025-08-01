@@ -29,11 +29,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SWRMonitoring } from '@/components/ui/swr-monitoring';
-// Removed Select imports to avoid Radix UI state cycles
-// Removed Dialog imports to avoid Radix UI state cycles
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DataTable, createSortableColumn } from '@/components/ui/data-table';
-// Removed DropdownMenu imports to avoid Radix UI state cycles
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 // 新增的UI组件
 import StatCard, { StatCardsGrid } from '@/components/ui/stat-card';
