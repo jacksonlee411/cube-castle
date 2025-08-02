@@ -82,7 +82,7 @@ func (c *EmployeeEventConsumer) handleEmployeeCreated(ctx context.Context, event
 	}
 	
 	// 执行同步
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		if err := syncOp.Execute(ctx, tx); err != nil {
 			return nil, err
 		}
@@ -147,7 +147,7 @@ func (c *EmployeeEventConsumer) handleEmployeeUpdated(ctx context.Context, event
 	}
 	
 	// 执行同步
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		if err := syncOp.Execute(ctx, tx); err != nil {
 			return nil, err
 		}
@@ -189,7 +189,7 @@ func (c *EmployeeEventConsumer) handleEmployeeDeleted(ctx context.Context, event
 	}
 	
 	// 执行软删除（标记为已删除而不是物理删除）
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		// 软删除：标记为已删除状态
 		cypher := `
 			MATCH (e:Employee) 
@@ -249,7 +249,7 @@ func (c *EmployeeEventConsumer) handleEmployeeHired(ctx context.Context, event e
 	}
 	
 	// 更新员工状态为已雇佣
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		cypher := `
 			MATCH (e:Employee) 
 			WHERE e.id = $employee_id AND e.tenant_id = $tenant_id
@@ -308,7 +308,7 @@ func (c *EmployeeEventConsumer) handleEmployeeTerminated(ctx context.Context, ev
 	}
 	
 	// 更新员工状态为已终止
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		cypher := `
 			MATCH (e:Employee) 
 			WHERE e.id = $employee_id AND e.tenant_id = $tenant_id
@@ -370,7 +370,7 @@ func (c *EmployeeEventConsumer) handleEmployeePhoneUpdated(ctx context.Context, 
 	}
 	
 	// 更新员工电话信息
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		cypher := `
 			MATCH (e:Employee) 
 			WHERE e.id = $employee_id AND e.tenant_id = $tenant_id

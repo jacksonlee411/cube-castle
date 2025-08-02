@@ -202,16 +202,17 @@ func (s *CDCSyncService) ProcessEventBatch(ctx context.Context, events []events.
 	results := make(chan error, len(events))
 	
 	for _, event := range events {
-		go func(e events.DomainEvent) {
+		event := event // 避免闭包变量问题
+		go func() {
 			semaphore <- struct{}{} // 获取信号量
 			defer func() { <-semaphore }() // 释放信号量
 			
-			err := s.ProcessEvent(ctx, e)
+			err := s.ProcessEvent(ctx, event)
 			if err != nil {
-				log.Printf("⚠️ 批量处理中事件失败: %s - %v", e.GetEventID(), err)
+				log.Printf("⚠️ 批量处理中事件失败: %s - %v", event.GetEventID(), err)
 			}
 			results <- err
-		}(event)
+		}()
 	}
 	
 	// 等待所有事件处理完成

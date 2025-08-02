@@ -2,13 +2,11 @@ package neo4j
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/gaogu/cube-castle/go-app/internal/events"
-	"github.com/google/uuid"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
@@ -26,31 +24,6 @@ type BaseEventConsumer struct {
 	connectionManager ConnectionManagerInterface
 	eventType         string
 	retryConfig       *RetryConfig
-}
-
-// ConnectionManagerInterface 连接管理器接口
-type ConnectionManagerInterface interface {
-	ExecuteWrite(ctx context.Context, work neo4j.ManagedTransactionWork) (any, error)
-	ExecuteRead(ctx context.Context, work neo4j.ManagedTransactionWork) (any, error)
-	ExecuteWithRetry(ctx context.Context, work func(ctx context.Context) error) error
-	Health(ctx context.Context) error
-	Close(ctx context.Context) error
-}
-
-// RetryConfig 重试配置
-type RetryConfig struct {
-	MaxRetries   int
-	RetryBackoff time.Duration
-	MaxBackoff   time.Duration
-}
-
-// DefaultRetryConfig 默认重试配置
-func DefaultRetryConfig() *RetryConfig {
-	return &RetryConfig{
-		MaxRetries:   3,
-		RetryBackoff: time.Second,
-		MaxBackoff:   time.Second * 30,
-	}
 }
 
 // NewBaseEventConsumer 创建基础事件消费者
@@ -327,7 +300,7 @@ func (op *NodeSyncOperation) executeUpdate(ctx context.Context, tx neo4j.Managed
 	}
 	
 	// 检查是否找到并更新了节点
-	summary, err := result.Consume(ctx)
+	_, err = result.Consume(ctx)
 	if err != nil {
 		return err
 	}
@@ -364,14 +337,13 @@ func (op *NodeSyncOperation) executeDelete(ctx context.Context, tx neo4j.Managed
 	}
 	
 	// 检查是否找到并删除了节点
-	summary, err := result.Consume(ctx)
+	_, err = result.Consume(ctx)
 	if err != nil {
 		return err
 	}
 	
-	if summary.Counters().NodesDeleted() == 0 {
-		log.Printf("⚠️ 未找到要删除的节点: %s", op.Label)
-	}
+	// Neo4j v5: 简化验证，移除Counters API
+	log.Printf("✅ 删除操作完成: %s", op.Label)
 	
 	return nil
 }

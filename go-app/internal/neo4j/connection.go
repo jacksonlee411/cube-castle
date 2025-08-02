@@ -32,10 +32,16 @@ type ConnectionConfig struct {
 type ConnectionManager struct {
 	driver neo4j.DriverWithContext
 	config *ConnectionConfig
+	
+	// 新增：指标统计
+	metrics *ConnectionManagerMetrics
+	
+	// 新增：重试配置
+	retryConfig *RetryConfig
 }
 
 // NewConnectionManager 创建Neo4j连接管理器
-func NewConnectionManager(config *ConnectionConfig) (*ConnectionManager, error) {
+func NewConnectionManager(config *ConnectionConfig) (ConnectionManagerInterface, error) {
 	// 验证配置
 	if err := validateConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid Neo4j configuration: %w", err)
@@ -72,9 +78,16 @@ func NewConnectionManager(config *ConnectionConfig) (*ConnectionManager, error) 
 	
 	log.Printf("✅ Neo4j connection established successfully: %s", config.URI)
 	
+	// 初始化指标和重试配置
+	metrics := &ConnectionManagerMetrics{
+		LastErrorTime: time.Time{},
+	}
+	
 	return &ConnectionManager{
-		driver: driver,
-		config: config,
+		driver:      driver,
+		config:      config,
+		metrics:     metrics,
+		retryConfig: DefaultRetryConfig(),
 	}, nil
 }
 
@@ -148,14 +161,35 @@ func (cm *ConnectionManager) Close(ctx context.Context) error {
 
 // GetStatistics 获取连接统计信息
 func (cm *ConnectionManager) GetStatistics() map[string]interface{} {
-	// TODO: 实现连接池统计信息
-	return map[string]interface{}{
-		"uri":              cm.config.URI,
-		"database":         cm.config.Database,
-		"max_connections":  cm.config.MaxConnections,
-		"connection_timeout": cm.config.ConnectionTimeout.String(),
-		"status":           "connected",
+	stats := map[string]interface{}{
+		"type":                "real",
+		"uri":                 cm.config.URI,
+		"database":            cm.config.Database,
+		"max_connections":     cm.config.MaxConnections,
+		"connection_timeout":  cm.config.ConnectionTimeout.String(),
+		"status":              "connected",
+		
+		// 指标统计
+		"total_operations":    cm.metrics.TotalOperations,
+		"successful_ops":      cm.metrics.SuccessfulOps,
+		"failed_ops":          cm.metrics.FailedOps,
+		"error_rate":          cm.metrics.ErrorRate,
+		"average_latency":     cm.metrics.AverageLatency.String(),
+		"total_retries":       cm.metrics.TotalRetries,
+		"retry_success_rate":  cm.metrics.RetrySuccessRate,
 	}
+	
+	if !cm.metrics.LastErrorTime.IsZero() {
+		stats["last_error"] = cm.metrics.LastError
+		stats["last_error_time"] = cm.metrics.LastErrorTime.Format(time.RFC3339)
+	}
+	
+	return stats
+}
+
+// GetType 获取连接管理器类型
+func (cm *ConnectionManager) GetType() ConnectionManagerType {
+	return ConnectionManagerTypeReal
 }
 
 // Neo4jConfigFromEnv 从环境变量创建配置
@@ -177,15 +211,66 @@ func Neo4jConfigFromEnv() *ConnectionConfig {
 	return config
 }
 
+// MockConfig Mock连接管理器配置
+type MockConfig struct {
+	// 行为配置
+	SuccessRate    float64       `json:"success_rate"`    // 成功率 0.0-1.0
+	LatencyMin     time.Duration `json:"latency_min"`     // 最小延迟
+	LatencyMax     time.Duration `json:"latency_max"`     // 最大延迟
+	EnableMetrics  bool          `json:"enable_metrics"`  // 启用统计
+	
+	// 错误模拟
+	ErrorTypes     []string      `json:"error_types"`     // 错误类型列表
+	ErrorRate      float64       `json:"error_rate"`      // 错误率
+	
+	// 连接配置
+	MaxConnections int           `json:"max_connections"` // 模拟最大连接数
+	DatabaseName   string        `json:"database_name"`   // 数据库名称
+}
+
+// DefaultMockConfig 默认Mock配置
+func DefaultMockConfig() *MockConfig {
+	return &MockConfig{
+		SuccessRate:    1.0,
+		LatencyMin:     time.Millisecond * 1,
+		LatencyMax:     time.Millisecond * 10,
+		EnableMetrics:  true,
+		ErrorTypes:     []string{},
+		ErrorRate:      0.0,
+		MaxConnections: 50,
+		DatabaseName:   "mock_neo4j",
+	}
+}
+
 // MockConnectionManager Mock连接管理器（开发环境）
 type MockConnectionManager struct {
 	connected bool
+	config    *MockConfig
+	metrics   *ConnectionManagerMetrics
+	
+	// 新增：操作计数器
+	operationCount int64
 }
 
-// NewMockConnectionManager 创建Mock连接管理器
-func NewMockConnectionManager() *MockConnectionManager {
-	log.Println("🔧 Using Mock Neo4j connection manager")
-	return &MockConnectionManager{connected: true}
+// NewMockConnectionManager 创建Mock连接管理器（使用默认配置）
+func NewMockConnectionManager() ConnectionManagerInterface {
+	return NewMockConnectionManagerWithConfig(DefaultMockConfig())
+}
+
+// NewMockConnectionManagerWithConfig 创建带配置的Mock连接管理器
+func NewMockConnectionManagerWithConfig(config *MockConfig) ConnectionManagerInterface {
+	log.Printf("🔧 Using Mock Neo4j connection manager (success_rate: %.2f)", config.SuccessRate)
+	
+	metrics := &ConnectionManagerMetrics{
+		LastErrorTime: time.Time{},
+	}
+	
+	return &MockConnectionManager{
+		connected:      true,
+		config:         config,
+		metrics:        metrics,
+		operationCount: 0,
+	}
 }
 
 func (m *MockConnectionManager) GetSession(ctx context.Context) neo4j.SessionWithContext {
@@ -193,17 +278,66 @@ func (m *MockConnectionManager) GetSession(ctx context.Context) neo4j.SessionWit
 }
 
 func (m *MockConnectionManager) ExecuteWrite(ctx context.Context, work neo4j.ManagedTransactionWork) (any, error) {
+	start := time.Now()
+	m.operationCount++
+	m.metrics.TotalOperations++
+	
+	// 模拟延迟
+	m.simulateLatency()
+	
+	// 模拟错误
+	if err := m.simulateError("write"); err != nil {
+		m.metrics.FailedOps++
+		m.updateMetrics(time.Since(start), err)
+		return nil, err
+	}
+	
 	log.Println("📝 Mock Neo4j write operation executed")
-	return nil, nil
+	m.metrics.SuccessfulOps++
+	m.updateMetrics(time.Since(start), nil)
+	return "mock_write_result", nil
 }
 
 func (m *MockConnectionManager) ExecuteRead(ctx context.Context, work neo4j.ManagedTransactionWork) (any, error) {
+	start := time.Now()
+	m.operationCount++
+	m.metrics.TotalOperations++
+	
+	// 模拟延迟
+	m.simulateLatency()
+	
+	// 模拟错误
+	if err := m.simulateError("read"); err != nil {
+		m.metrics.FailedOps++
+		m.updateMetrics(time.Since(start), err)
+		return nil, err
+	}
+	
 	log.Println("📖 Mock Neo4j read operation executed")
-	return nil, nil
+	m.metrics.SuccessfulOps++
+	m.updateMetrics(time.Since(start), nil)
+	return "mock_read_result", nil
 }
 
 func (m *MockConnectionManager) ExecuteWithRetry(ctx context.Context, work func(ctx context.Context) error) error {
+	start := time.Now()
+	m.operationCount++
+	m.metrics.TotalOperations++
+	m.metrics.TotalRetries++
+	
+	// 模拟延迟
+	m.simulateLatency()
+	
+	// 模拟错误
+	if err := m.simulateError("retry"); err != nil {
+		m.metrics.FailedOps++
+		m.updateMetrics(time.Since(start), err)
+		return err
+	}
+	
 	log.Println("🔄 Mock Neo4j retry operation executed")
+	m.metrics.SuccessfulOps++
+	m.updateMetrics(time.Since(start), nil)
 	return nil
 }
 
@@ -219,9 +353,28 @@ func (m *MockConnectionManager) Close(ctx context.Context) error {
 
 func (m *MockConnectionManager) GetStatistics() map[string]interface{} {
 	return map[string]interface{}{
-		"type":   "mock",
-		"status": "connected",
+		"type":                "mock",
+		"status":              "connected",
+		"database_name":       m.config.DatabaseName,
+		"max_connections":     m.config.MaxConnections,
+		"success_rate":        m.config.SuccessRate,
+		"latency_range":       fmt.Sprintf("%v-%v", m.config.LatencyMin, m.config.LatencyMax),
+		
+		// 指标统计
+		"total_operations":    m.metrics.TotalOperations,
+		"successful_ops":      m.metrics.SuccessfulOps,
+		"failed_ops":          m.metrics.FailedOps,
+		"error_rate":          m.metrics.ErrorRate,
+		"average_latency":     m.metrics.AverageLatency.String(),
+		"total_retries":       m.metrics.TotalRetries,
+		"retry_success_rate":  m.metrics.RetrySuccessRate,
+		"operation_count":     m.operationCount,
 	}
+}
+
+// GetType 获取连接管理器类型
+func (m *MockConnectionManager) GetType() ConnectionManagerType {
+	return ConnectionManagerTypeMock
 }
 
 // 辅助函数
@@ -312,4 +465,89 @@ func getEnvDuration(key string, defaultValue string) time.Duration {
 		return defaultDuration
 	}
 	return time.Second * 30 // 默认30秒
+}
+
+// Mock模拟方法
+
+// simulateLatency 模拟延迟
+func (m *MockConnectionManager) simulateLatency() {
+	if m.config.LatencyMin <= 0 && m.config.LatencyMax <= 0 {
+		return
+	}
+	
+	var latency time.Duration
+	if m.config.LatencyMax > m.config.LatencyMin {
+		diff := m.config.LatencyMax - m.config.LatencyMin
+		latency = m.config.LatencyMin + time.Duration(float64(diff)*randomFloat())
+	} else {
+		latency = m.config.LatencyMin
+	}
+	
+	time.Sleep(latency)
+}
+
+// simulateError 模拟错误
+func (m *MockConnectionManager) simulateError(operation string) error {
+	if m.config.ErrorRate <= 0 {
+		return nil
+	}
+	
+	if randomFloat() < m.config.ErrorRate {
+		errorMsg := fmt.Sprintf("mock %s operation failed", operation)
+		if len(m.config.ErrorTypes) > 0 {
+			errorType := m.config.ErrorTypes[int(randomFloat()*float64(len(m.config.ErrorTypes)))]
+			errorMsg = fmt.Sprintf("mock %s error: %s", operation, errorType)
+		}
+		return fmt.Errorf(errorMsg)
+	}
+	
+	return nil
+}
+
+// updateMetrics 更新指标
+func (m *MockConnectionManager) updateMetrics(duration time.Duration, err error) {
+	if !m.config.EnableMetrics {
+		return
+	}
+	
+	// 更新延迟统计
+	if m.metrics.TotalOperations == 1 {
+		m.metrics.AverageLatency = duration
+		m.metrics.MinLatency = duration
+		m.metrics.MaxLatency = duration
+	} else {
+		// 计算平均延迟
+		totalTime := time.Duration(float64(m.metrics.AverageLatency) * float64(m.metrics.TotalOperations-1))
+		m.metrics.AverageLatency = (totalTime + duration) / time.Duration(m.metrics.TotalOperations)
+		
+		if duration < m.metrics.MinLatency {
+			m.metrics.MinLatency = duration
+		}
+		if duration > m.metrics.MaxLatency {
+			m.metrics.MaxLatency = duration
+		}
+	}
+	
+	// 更新错误统计
+	if err != nil {
+		m.metrics.LastError = err.Error()
+		m.metrics.LastErrorTime = time.Now()
+	}
+	
+	// 计算错误率
+	if m.metrics.TotalOperations > 0 {
+		m.metrics.ErrorRate = float64(m.metrics.FailedOps) / float64(m.metrics.TotalOperations)
+	}
+	
+	// 计算重试成功率
+	if m.metrics.TotalRetries > 0 {
+		successfulRetries := m.metrics.TotalRetries - m.metrics.FailedOps
+		m.metrics.RetrySuccessRate = float64(successfulRetries) / float64(m.metrics.TotalRetries)
+	}
+}
+
+// randomFloat 生成0-1之间的随机浮点数
+func randomFloat() float64 {
+	// 简单的伪随机数生成
+	return float64(time.Now().UnixNano()%1000) / 1000.0
 }

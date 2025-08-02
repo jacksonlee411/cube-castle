@@ -57,7 +57,7 @@ func (c *OrganizationEventConsumer) handleOrganizationCreated(ctx context.Contex
 	}
 	
 	// 执行组织节点创建和层级关系建立
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		// 创建组织节点
 		orgSyncOp := &NodeSyncOperation{
 			Label:      "Organization",
@@ -166,7 +166,7 @@ func (c *OrganizationEventConsumer) handleOrganizationUpdated(ctx context.Contex
 	}
 	
 	// 执行同步
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		if err := syncOp.Execute(ctx, tx); err != nil {
 			return nil, err
 		}
@@ -208,7 +208,7 @@ func (c *OrganizationEventConsumer) handleOrganizationDeleted(ctx context.Contex
 	}
 	
 	// 执行软删除并处理级联关系
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		// 软删除组织节点
 		cypher := `
 			MATCH (org:Organization) 
@@ -283,7 +283,7 @@ func (c *OrganizationEventConsumer) handleOrganizationRestructured(ctx context.C
 	}
 	
 	// 执行组织结构重组
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		// 如果有新的父组织关系，先删除旧关系
 		if eventData.NewParentOrgID != nil {
 			// 删除现有的父级关系
@@ -392,7 +392,7 @@ func (c *OrganizationEventConsumer) handleOrganizationActivated(ctx context.Cont
 	}
 	
 	// 激活组织
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		cypher := `
 			MATCH (org:Organization) 
 			WHERE org.id = $org_id AND org.tenant_id = $tenant_id
@@ -451,7 +451,7 @@ func (c *OrganizationEventConsumer) handleOrganizationDeactivated(ctx context.Co
 	}
 	
 	// 停用组织
-	_, err = c.connectionManager.ExecuteWrite(ctx, func(ctx context.Context, tx neo4j.ManagedTransaction) (any, error) {
+	_, err = c.connectionManager.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		cypher := `
 			MATCH (org:Organization) 
 			WHERE org.id = $org_id AND org.tenant_id = $tenant_id
