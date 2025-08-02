@@ -92,20 +92,74 @@ export interface EmployeeListResponse {
   pagination: PaginationInfo
 }
 
-// 组织架构相关类型
+// 组织架构相关类型 (与后端OrganizationUnit模型对齐)
 export interface Organization extends BaseEntity {
+  tenant_id: string
+  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM'  // Backend enum
   name: string
-  code: string
   description?: string
+  parent_unit_id?: string
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED'  // Backend enum
+  profile?: Record<string, any>
+  
+  // Computed fields for UI
   level: number
-  parentId?: string
-  parent?: Organization
+  employee_count: number
   children?: Organization[]
+  
+  // Legacy compatibility fields (deprecated, will be removed)
+  /** @deprecated Use unit_type instead */
+  type?: 'company' | 'department' | 'team' | 'group'
+  /** @deprecated Use parent_unit_id instead */
+  parentId?: string
+  /** @deprecated Use employee_count instead */
   employeeCount?: number
-  tenantId: string
-  type?: 'company' | 'department' | 'team'
-  status?: 'active' | 'inactive'
-  managerName?: string
+  /** @deprecated Use status === 'ACTIVE' instead */
+  isActive?: boolean
+  /** @deprecated Use tenant_id instead */
+  tenantId?: string
+}
+
+// SWR API响应类型 (对齐员工管理模块标准)
+export interface OrganizationsResponse {
+  organizations: Organization[]
+  total_count: number
+  hierarchy_depth?: number
+  total_employees?: number
+}
+
+// 组织统计数据类型
+export interface OrganizationStats {
+  total: number
+  active: number
+  inactive: number
+  companies: number
+  departments: number
+  projectTeams: number
+  costCenters: number
+  totalEmployees: number
+  maxLevel: number
+}
+
+// 组织类型分布数据
+export interface OrganizationTypeData {
+  label: string
+  value: number
+  color: string
+}
+
+// 组织创建/更新请求类型 (与后端对齐)
+export interface OrganizationCreateData {
+  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM'
+  name: string
+  description?: string
+  parent_unit_id?: string
+  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED'
+  profile?: Record<string, any>
+}
+
+export interface OrganizationUpdateData extends Partial<OrganizationCreateData> {
+  id: string
 }
 
 export interface OrganizationTreeNode {
@@ -128,17 +182,20 @@ export interface OrganizationTreeResponse {
 }
 
 export interface CreateOrganizationRequest {
+  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM'
   name: string
-  code: string
   description?: string
-  parentId?: string
+  parent_unit_id?: string
+  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED'
+  profile?: Record<string, any>
 }
 
 export interface UpdateOrganizationRequest {
   name?: string
-  code?: string
   description?: string
-  parentId?: string
+  parent_unit_id?: string
+  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED'
+  profile?: Record<string, any>
 }
 
 // 租户相关类型

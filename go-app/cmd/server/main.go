@@ -24,6 +24,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
 	"github.com/gaogu/cube-castle/go-app/internal/outbox"
+	"github.com/gaogu/cube-castle/go-app/internal/routes"
 	"github.com/gaogu/cube-castle/go-app/internal/service"
 	"github.com/gaogu/cube-castle/go-app/internal/validation"
 	"github.com/go-chi/chi/v5"
@@ -166,7 +167,6 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 	}
 
 	// 初始化处理器（只有在数据库连接成功时才初始化）
-	var orgUnitHandler *handler.OrganizationUnitHandler
 	var positionHandler *handler.PositionHandler
 	var employeeHandler *handler.EmployeeHandler
 	var positionAssignmentHandler *handler.PositionAssignmentHandler
@@ -175,7 +175,6 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 	var validator *validation.EmployeeValidator
 
 	if entClient != nil {
-		orgUnitHandler = handler.NewOrganizationUnitHandler(entClient, logger)
 		positionHandler = handler.NewPositionHandler(entClient, logger)
 		employeeHandler = handler.NewEmployeeHandler(entClient, logger)
 		
@@ -234,33 +233,22 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 				r.Delete("/", handleDeleteEmployee(coreHRService, logger, validator))
 				r.Get("/manager", handleGetEmployeeManager(coreHRService, logger))
 			})
-
-			// 现有组织架构路由
-			r.Get("/organizations", handleListOrganizations(coreHRService, logger))
-			r.Get("/organizations/tree", handleGetOrganizationTree(coreHRService, logger))
-			r.Post("/organizations", handleCreateOrganization(coreHRService, logger))
 		})
 
-		// 新的组织单元CRUD API
-		r.Route("/organization-units", func(r chi.Router) {
-			if orgUnitHandler != nil {
-				r.Get("/", orgUnitHandler.ListOrganizationUnits())
-				r.Post("/", orgUnitHandler.CreateOrganizationUnit())
-				r.Route("/{id}", func(r chi.Router) {
-					r.Get("/", orgUnitHandler.GetOrganizationUnit())
-					r.Put("/", orgUnitHandler.UpdateOrganizationUnit())
-					r.Delete("/", orgUnitHandler.DeleteOrganizationUnit())
-				})
-			} else {
-				// 数据库未连接时返回服务不可用
+		// Setup organization routes using the adapter
+		if entClient != nil {
+			routes.SetupOrganizationRoutes(r, entClient, logger)
+		} else {
+			// Database unavailable fallback for organization routes
+			r.Route("/corehr/organizations", func(r chi.Router) {
 				r.Get("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
 				}))
 				r.Post("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
 				}))
-			}
-		})
+			})
+		}
 
 		// 新的岗位CRUD API
 		r.Route("/positions", func(r chi.Router) {

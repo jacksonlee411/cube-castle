@@ -95,15 +95,14 @@ export const isValidOrganization = (obj: unknown): obj is Organization => {
   return (
     isBaseEntity(org) &&
     typeof org.name === 'string' &&
-    typeof org.code === 'string' &&
+    typeof org.tenant_id === 'string' &&
     typeof org.level === 'number' &&
-    typeof org.tenantId === 'string' &&
     (org.description === undefined || typeof org.description === 'string') &&
-    (org.parentId === undefined || typeof org.parentId === 'string') &&
-    (org.employeeCount === undefined || typeof org.employeeCount === 'number') &&
-    (org.type === undefined || ['company', 'department', 'team'].includes(org.type)) &&
-    (org.status === undefined || ['active', 'inactive'].includes(org.status)) &&
-    (org.managerName === undefined || typeof org.managerName === 'string')
+    (org.parent_unit_id === undefined || typeof org.parent_unit_id === 'string') &&
+    (org.employee_count === undefined || typeof org.employee_count === 'number') &&
+    (org.unit_type === undefined || ['COMPANY', 'DEPARTMENT', 'PROJECT_TEAM', 'COST_CENTER'].includes(org.unit_type)) &&
+    (org.status === undefined || ['ACTIVE', 'INACTIVE', 'PLANNED'].includes(org.status)) &&
+    (org.profile?.managerName === undefined || typeof org.profile.managerName === 'string')
   )
 }
 

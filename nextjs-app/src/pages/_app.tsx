@@ -25,6 +25,25 @@ interface CubecastleAppProps extends AppProps {
 export default function CubeCastleApp({ Component, pageProps }: CubecastleAppProps) {
   const router = useRouter();
   
+  // 开发环境自动认证配置
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // 检查并设置默认认证信息
+      const tenantId = localStorage.getItem('tenant_id');
+      const authToken = localStorage.getItem('auth_token');
+      
+      if (!tenantId) {
+        localStorage.setItem('tenant_id', '550e8400-e29b-41d4-a716-446655440000');
+        console.log('🔧 开发环境: 已设置默认 tenant_id');
+      }
+      
+      if (!authToken) {
+        localStorage.setItem('auth_token', 'dev-token');
+        console.log('🔧 开发环境: 已设置默认 auth_token');
+      }
+    }
+  }, []);
+  
   // 获取页面级布局函数（如果有的话）
   const getLayout = Component.getLayout ?? ((page) => page);
 

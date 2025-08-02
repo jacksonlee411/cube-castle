@@ -44,296 +44,116 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface Organization {
-  id: string;
-  name: string;
-  type: 'company' | 'department' | 'team' | 'group';
-  parentId?: string;
-  level: number;
-  managerId?: string;
-  managerName?: string;
-  employeeCount: number;
-  maxCapacity?: number;
-  description?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  children?: Organization[];
-}
+// Import modern SWR hooks, error boundary, and real API
+import { useOrganizationsSWR, useOrganizationChartSWR, useOrganizationStatsSWR } from '@/hooks/useOrganizationsSWR';
+import RESTErrorBoundary from '@/components/RESTErrorBoundary';
+import { Organization, OrganizationCreateData } from '@/types';
+import { organizationApi } from '@/lib/api-client';
 
 const OrganizationChartPage: React.FC = () => {
+  return (
+    <RESTErrorBoundary
+      resetOnPropsChange={true}
+      onError={(error: Error, errorInfo: React.ErrorInfo) => {
+        console.error('🛡️ Organization Chart Error:', {
+          error: error.message,
+          stack: error.stack,
+          componentStack: errorInfo.componentStack,
+          type: 'ORGANIZATION_CHART_ERROR',
+          timestamp: new Date().toISOString(),
+        });
+      }}
+    >
+      <OrganizationChartContent />
+    </RESTErrorBoundary>
+  );
+};
+
+// Separate content component for better error boundary isolation
+const OrganizationChartContent: React.FC = () => {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [flatOrganizations, setFlatOrganizations] = useState<Organization[]>([]);
+  
+  // Modern SWR data fetching (replacing useEffect)
+  const { 
+    organizations, 
+    totalCount, 
+    isLoading, 
+    isError, 
+    error,
+    mutate 
+  } = useOrganizationsSWR();
+  
+  const { 
+    chart, 
+    flatChart, 
+    isLoading: isChartLoading 
+  } = useOrganizationChartSWR();
+  
+  const { 
+    stats, 
+    typeData, 
+    isLoading: isStatsLoading 
+  } = useOrganizationStatsSWR();
+
+  // UI state management
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null);
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
-  const [formData, setFormData] = useState<Partial<Organization>>({});
+  const [formData, setFormData] = useState<Partial<OrganizationCreateData>>({});
 
-  // Sample data
+  // Initialize expanded nodes when data loads
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      const sampleOrganizations: Organization[] = [
-        {
-          id: '1',
-          name: 'Cube Castle 科技有限公司',
-          type: 'company',
-          level: 0,
-          managerId: 'CEO001',
-          managerName: '张伟',
-          employeeCount: 45,
-          maxCapacity: 60,
-          description: '专业的企业人力资源管理平台',
-          isActive: true,
-          createdAt: '2020-01-01',
-          updatedAt: '2024-12-01'
-        },
-        {
-          id: '2',
-          name: '技术部',
-          type: 'department',
-          parentId: '1',
-          level: 1,
-          managerId: 'TEC001',
-          managerName: '李强',
-          employeeCount: 18,
-          maxCapacity: 25,
-          description: '负责产品研发和技术创新',
-          isActive: true,
-          createdAt: '2020-01-01',
-          updatedAt: '2024-11-15'
-        },
-        {
-          id: '3',
-          name: '产品部',
-          type: 'department',
-          parentId: '1',
-          level: 1,
-          managerId: 'PRD001',
-          managerName: '王敏',
-          employeeCount: 8,
-          maxCapacity: 12,
-          description: '负责产品规划和用户体验',
-          isActive: true,
-          createdAt: '2020-06-01',
-          updatedAt: '2024-10-20'
-        },
-        {
-          id: '4',
-          name: '人事部',
-          type: 'department',
-          parentId: '1',
-          level: 1,
-          managerId: 'HR001',
-          managerName: '陈静',
-          employeeCount: 5,
-          maxCapacity: 8,
-          description: '负责人力资源管理和企业文化建设',
-          isActive: true,
-          createdAt: '2020-01-01',
-          updatedAt: '2024-09-30'
-        },
-        {
-          id: '5',
-          name: '前端开发团队',
-          type: 'team',
-          parentId: '2',
-          level: 2,
-          managerId: 'FE001',
-          managerName: '刘洋',
-          employeeCount: 6,
-          maxCapacity: 8,
-          description: '负责前端产品开发和用户界面',
-          isActive: true,
-          createdAt: '2020-03-01',
-          updatedAt: '2024-11-01'
-        },
-        {
-          id: '6',
-          name: '后端开发团队',
-          type: 'team',
-          parentId: '2',
-          level: 2,
-          managerId: 'BE001',
-          managerName: '赵磊',
-          employeeCount: 8,
-          maxCapacity: 10,
-          description: '负责后端服务开发和系统架构',
-          isActive: true,
-          createdAt: '2020-03-01',
-          updatedAt: '2024-10-15'
-        },
-        {
-          id: '7',
-          name: 'DevOps团队',
-          type: 'team',
-          parentId: '2',
-          level: 2,
-          managerId: 'OPS001',
-          managerName: '孙杰',
-          employeeCount: 4,
-          maxCapacity: 6,
-          description: '负责基础设施和运维自动化',
-          isActive: true,
-          createdAt: '2021-01-01',
-          updatedAt: '2024-09-20'
-        },
-        {
-          id: '8',
-          name: '产品策划组',
-          type: 'group',
-          parentId: '3',
-          level: 2,
-          managerId: 'PM001',
-          managerName: '周莉',
-          employeeCount: 4,
-          maxCapacity: 6,
-          description: '负责产品需求分析和功能规划',
-          isActive: true,
-          createdAt: '2020-08-01',
-          updatedAt: '2024-08-10'
-        },
-        {
-          id: '9',
-          name: 'UX设计组',
-          type: 'group',
-          parentId: '3',
-          level: 2,
-          managerId: 'UX001',
-          managerName: '吴芳',
-          employeeCount: 4,
-          maxCapacity: 6,
-          description: '负责用户体验设计和交互设计',
-          isActive: true,
-          createdAt: '2020-10-01',
-          updatedAt: '2024-07-25'
-        }
-      ];
-      
-      // Build tree structure
-      const organizationMap = new Map<string, Organization>();
-      const rootOrganizations: Organization[] = [];
-      
-      sampleOrganizations.forEach(org => {
-        organizationMap.set(org.id, { ...org, children: [] });
-      });
-      
-      sampleOrganizations.forEach(org => {
-        const orgWithChildren = organizationMap.get(org.id)!;
-        if (org.parentId) {
-          const parent = organizationMap.get(org.parentId);
-          if (parent) {
-            parent.children!.push(orgWithChildren);
-          }
-        } else {
-          rootOrganizations.push(orgWithChildren);
-        }
-      });
-      
-      setOrganizations(rootOrganizations);
-      setFlatOrganizations(sampleOrganizations);
-      
-      // 默认展开前两层
+    if (chart.length > 0) {
+      // Auto-expand first two levels for better UX
       const defaultExpanded = new Set<string>();
-      sampleOrganizations.forEach(org => {
+      flatChart.forEach(org => {
         if (org.level <= 1) {
           defaultExpanded.add(org.id);
         }
       });
       setExpandedNodes(defaultExpanded);
-      
-      setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  }, [chart, flatChart]);
 
-  const handleCreateOrganization = async (values: any) => {
+  // Create/Update organization using real PostgreSQL API (aligned with backend model)
+  const handleCreateOrganization = async (values: OrganizationCreateData) => {
     try {
-      setLoading(true);
-      
       if (editingOrganization) {
-        // Update existing organization
-        const updatedOrg: Organization = {
-          ...editingOrganization,
-          name: values.name,
-          type: values.type,
-          parentId: values.parentId,
-          level: calculateLevel(values.parentId),
-          managerId: values.managerId,
-          managerName: values.managerName,
-          maxCapacity: Number(values.maxCapacity),
-          description: values.description,
-          isActive: values.isActive,
-          updatedAt: new Date().toISOString().split('T')[0]
-        };
-
-        setFlatOrganizations(prev => prev.map(org => 
-          org.id === editingOrganization.id ? updatedOrg : org
-        ));
-
+        // Update existing organization via PostgreSQL API
+        console.log('📝 更新组织:', editingOrganization.id, values);
+        
+        await organizationApi.updateOrganization(editingOrganization.id, values);
+        
+        // Revalidate SWR data to refresh UI
+        mutate();
         toast.success(`组织 ${values.name} 信息已更新`);
       } else {
-        // Create new organization
-        const newOrg: Organization = {
-          id: Date.now().toString(),
-          name: values.name,
-          type: values.type,
-          parentId: values.parentId,
-          level: calculateLevel(values.parentId),
-          managerId: values.managerId,
-          managerName: values.managerName,
-          employeeCount: 0,
-          maxCapacity: Number(values.maxCapacity),
-          description: values.description,
-          isActive: values.isActive ?? true,
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0]
-        };
-
-        setFlatOrganizations(prev => [...prev, newOrg]);
+        // Create new organization via PostgreSQL API  
+        console.log('🎯 创建新组织 (backend model):', values);
         
+        const newOrg = await organizationApi.createOrganization(values);
+        
+        // Revalidate SWR data to refresh UI immediately
+        mutate();
+        
+        console.log('🎉 组织创建成功:', newOrg.name, '(ID:', newOrg.id, ')');
         toast.success(`组织 ${values.name} 已成功创建`);
       }
       
-      // Rebuild tree
-      rebuildTree();
       handleModalClose();
     } catch (error) {
+      // If something fails, revalidate to ensure UI is consistent
+      mutate();
       toast.error('操作时发生错误，请重试');
-    } finally {
-      setLoading(false);
+      console.error('Organization operation failed:', error);
     }
   };
 
   const calculateLevel = (parentId?: string): number => {
     if (!parentId) return 0;
-    const parent = flatOrganizations.find(org => org.id === parentId);
+    const parent = flatChart.find(org => org.id === parentId);
     return parent ? parent.level + 1 : 0;
-  };
-
-  const rebuildTree = () => {
-    const organizationMap = new Map<string, Organization>();
-    const rootOrganizations: Organization[] = [];
-    
-    flatOrganizations.forEach(org => {
-      organizationMap.set(org.id, { ...org, children: [] });
-    });
-    
-    flatOrganizations.forEach(org => {
-      const orgWithChildren = organizationMap.get(org.id)!;
-      if (org.parentId) {
-        const parent = organizationMap.get(org.parentId);
-        if (parent) {
-          parent.children!.push(orgWithChildren);
-        }
-      } else {
-        rootOrganizations.push(orgWithChildren);
-      }
-    });
-    
-    setOrganizations(rootOrganizations);
   };
 
   const handleEdit = (organization: Organization) => {
@@ -342,42 +162,52 @@ const OrganizationChartPage: React.FC = () => {
     setIsModalVisible(true);
   };
 
-  const handleDelete = (organization: Organization) => {
-    const hasChildren = flatOrganizations.some(org => org.parentId === organization.id);
+  const handleDelete = async (organization: Organization) => {
+    const hasChildren = flatChart.some((org: Organization) => org.parent_unit_id === organization.id);
     
     if (hasChildren) {
       toast.error(`组织 ${organization.name} 下还有子部门，无法删除`);
       return;
     }
     
-    if (organization.employeeCount > 0) {
-      toast.error(`组织 ${organization.name} 下还有 ${organization.employeeCount} 名员工，无法删除`);
+    if ((organization.employee_count || 0) > 0) {
+      toast.error(`组织 ${organization.name} 下还有 ${organization.employee_count} 名员工，无法删除`);
       return;
     }
 
     if (confirm(`确定要删除组织 ${organization.name} 吗？此操作不可撤销。`)) {
-      setFlatOrganizations(prev => prev.filter(org => org.id !== organization.id));
-      rebuildTree();
-      toast.success(`组织 ${organization.name} 已从系统中删除`);
+      try {
+        console.log('🗑️ 删除组织:', organization.id, organization.name);
+        
+        // Delete via PostgreSQL API
+        await organizationApi.deleteOrganization(organization.id);
+        
+        // Revalidate data
+        mutate();
+        toast.success(`组织 ${organization.name} 已从系统中删除`);
+      } catch (error) {
+        console.error('删除组织失败:', error);
+        toast.error('删除操作失败，请重试');
+      }
     }
   };
 
   const handleAddChild = (parentOrg: Organization) => {
     setSelectedParentId(parentOrg.id);
     setFormData({ 
-      parentId: parentOrg.id,
-      type: getDefaultChildType(parentOrg.type),
-      isActive: true 
+      parent_unit_id: parentOrg.id,
+      unit_type: getDefaultChildType(parentOrg.unit_type),
+      status: 'ACTIVE'
     });
     setIsModalVisible(true);
   };
 
-  const getDefaultChildType = (parentType: Organization['type']): Organization['type'] => {
-    switch (parentType) {
-      case 'company': return 'department';
-      case 'department': return 'team';
-      case 'team': return 'group';
-      default: return 'group';
+  const getDefaultChildType = (parentUnitType: Organization['unit_type']): Organization['unit_type'] => {
+    switch (parentUnitType) {
+      case 'COMPANY': return 'DEPARTMENT';
+      case 'DEPARTMENT': return 'PROJECT_TEAM';
+      case 'PROJECT_TEAM': return 'COST_CENTER';
+      default: return 'DEPARTMENT';
     }
   };
 
@@ -399,7 +229,7 @@ const OrganizationChartPage: React.FC = () => {
   };
 
   const expandAll = () => {
-    const allIds = new Set(flatOrganizations.map(org => org.id));
+    const allIds = new Set(flatChart.map((org: Organization) => org.id));
     setExpandedNodes(allIds);
   };
 
@@ -407,24 +237,24 @@ const OrganizationChartPage: React.FC = () => {
     setExpandedNodes(new Set());
   };
 
-  const getTypeColor = (type: Organization['type']) => {
+  const getTypeColor = (unitType: Organization['unit_type']) => {
     const colors = {
-      company: 'bg-blue-500',
-      department: 'bg-purple-500', 
-      team: 'bg-green-500',
-      group: 'bg-orange-500'
+      COMPANY: 'bg-blue-500',
+      DEPARTMENT: 'bg-purple-500', 
+      PROJECT_TEAM: 'bg-green-500',
+      COST_CENTER: 'bg-orange-500'
     };
-    return colors[type] || 'bg-gray-500';
+    return colors[unitType] || 'bg-gray-500';
   };
 
-  const getTypeLabel = (type: Organization['type']) => {
+  const getTypeLabel = (unitType: Organization['unit_type']) => {
     const labels = {
-      company: '公司',
-      department: '部门',
-      team: '团队',
-      group: '小组'
+      COMPANY: '公司',
+      DEPARTMENT: '部门',
+      PROJECT_TEAM: '项目团队',
+      COST_CENTER: '成本中心'
     };
-    return labels[type] || type;
+    return labels[unitType] || unitType;
   };
 
   const getOccupancyColor = (rate: number): string => {
@@ -436,16 +266,27 @@ const OrganizationChartPage: React.FC = () => {
   const OrgNodeActions = ({ org }: { org: Organization }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-6 w-6 p-0"
+          data-testid={`org-action-menu-${org.id}`}
+        >
           <MoreHorizontal className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleEdit(org)}>
+      <DropdownMenuContent align="end" data-testid={`org-action-menu-content-${org.id}`}>
+        <DropdownMenuItem 
+          onClick={() => handleEdit(org)}
+          data-testid={`edit-org-${org.id}`}
+        >
           <Edit2 className="mr-2 h-3 w-3" />
           编辑组织
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddChild(org)}>
+        <DropdownMenuItem 
+          onClick={() => handleAddChild(org)}
+          data-testid={`add-child-${org.id}`}
+        >
           <UserPlus className="mr-2 h-3 w-3" />
           添加子部门
         </DropdownMenuItem>
@@ -453,7 +294,8 @@ const OrganizationChartPage: React.FC = () => {
         <DropdownMenuItem 
           onClick={() => handleDelete(org)} 
           className="text-destructive"
-          disabled={org.employeeCount > 0}
+          disabled={(org.employee_count || 0) > 0}
+          data-testid={`delete-org-${org.id}`}
         >
           <Trash2 className="mr-2 h-3 w-3" />
           删除组织
@@ -465,7 +307,7 @@ const OrganizationChartPage: React.FC = () => {
   const renderOrgNode = (org: Organization, depth: number = 0) => {
     const hasChildren = org.children && org.children.length > 0;
     const isExpanded = expandedNodes.has(org.id);
-    const occupancyRate = org.maxCapacity ? org.employeeCount / org.maxCapacity : 0;
+    const occupancyRate = org.profile?.maxCapacity ? (org.employee_count || 0) / org.profile.maxCapacity : 0;
     
     return (
       <div key={org.id} className="mb-2">
@@ -475,6 +317,7 @@ const OrganizationChartPage: React.FC = () => {
             depth > 0 ? 'ml-8' : ''
           }`}
           style={{ marginLeft: depth * 24 }}
+          data-testid={`org-node-${org.id}`}
         >
           {/* Connection Lines */}
           {depth > 0 && (
@@ -501,7 +344,7 @@ const OrganizationChartPage: React.FC = () => {
           )}
           
           {/* Organization Icon */}
-          <div className={`w-8 h-8 rounded-full ${getTypeColor(org.type)} text-white flex items-center justify-center mr-3`}>
+          <div className={`w-8 h-8 rounded-full ${getTypeColor(org.unit_type)} text-white flex items-center justify-center mr-3`}>
             <Building2 className="h-4 w-4" />
           </div>
           
@@ -510,9 +353,9 @@ const OrganizationChartPage: React.FC = () => {
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-medium text-sm">{org.name}</h3>
               <Badge variant="outline" className="text-xs">
-                {getTypeLabel(org.type)}
+                {getTypeLabel(org.unit_type)}
               </Badge>
-              {!org.isActive && (
+              {org.status === 'INACTIVE' && (
                 <Badge variant="secondary" className="text-xs">
                   已停用
                 </Badge>
@@ -520,20 +363,20 @@ const OrganizationChartPage: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-4 text-xs text-gray-500">
-              {org.managerName && (
+              {org.profile?.managerName && (
                 <div className="flex items-center gap-1">
                   <Crown className="h-3 w-3" />
-                  <span>{org.managerName}</span>
+                  <span>{org.profile.managerName}</span>
                 </div>
               )}
               
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
-                <span>{org.employeeCount}</span>
-                {org.maxCapacity && (
+                <span>{org.employee_count || 0}</span>
+                {org.profile?.maxCapacity && (
                   <>
                     <span>/</span>
-                    <span>{org.maxCapacity}</span>
+                    <span>{org.profile.maxCapacity}</span>
                     <span className={getOccupancyColor(occupancyRate)}>
                       ({(occupancyRate * 100).toFixed(0)}%)
                     </span>
@@ -563,18 +406,18 @@ const OrganizationChartPage: React.FC = () => {
   };
 
   const organizationTypes = [
-    { value: 'company', label: '公司' },
-    { value: 'department', label: '部门' },
-    { value: 'team', label: '团队' },
-    { value: 'group', label: '小组' }
+    { value: 'COMPANY', label: '公司' },
+    { value: 'DEPARTMENT', label: '部门' },
+    { value: 'PROJECT_TEAM', label: '项目团队' },
+    { value: 'COST_CENTER', label: '成本中心' }
   ];
 
   const getParentOptions = () => {
-    return flatOrganizations
+    return flatChart
       .filter(org => org.id !== editingOrganization?.id)
       .map(org => ({
         value: org.id,
-        label: `${org.name} (${getTypeLabel(org.type)}) - L${org.level}`
+        label: `${org.name} (${getTypeLabel(org.unit_type)}) - L${org.level}`
       }));
   };
 
@@ -611,7 +454,7 @@ const OrganizationChartPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">组织总数</p>
-                <p className="text-2xl font-bold">{flatOrganizations.length}</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
               </div>
               <Building2 className="h-8 w-8 text-blue-500" />
             </div>
@@ -624,7 +467,7 @@ const OrganizationChartPage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">总员工数</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {flatOrganizations.reduce((sum, org) => sum + org.employeeCount, 0)}
+                  {stats.totalEmployees}
                 </p>
               </div>
               <Users className="h-8 w-8 text-green-500" />
@@ -638,7 +481,7 @@ const OrganizationChartPage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">最大层级</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {Math.max(...flatOrganizations.map(org => org.level)) + 1}
+                  {stats.maxLevel + 1}
                 </p>
               </div>
               <Layers className="h-8 w-8 text-purple-500" />
@@ -650,15 +493,9 @@ const OrganizationChartPage: React.FC = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">平均占用率</p>
+                <p className="text-sm text-gray-600">活跃组织</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {flatOrganizations.length > 0 
-                    ? Math.round(flatOrganizations
-                        .filter(org => org.maxCapacity)
-                        .reduce((sum, org) => 
-                          sum + (org.maxCapacity! > 0 ? org.employeeCount / org.maxCapacity! : 0), 0
-                        ) / flatOrganizations.filter(org => org.maxCapacity).length * 100) 
-                    : 0}%
+                  {stats.active}
                 </p>
               </div>
               <Crown className="h-8 w-8 text-orange-500" />
@@ -676,13 +513,13 @@ const OrganizationChartPage: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          {loading ? (
+          {isLoading || isChartLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-gray-500">加载中...</div>
             </div>
-          ) : organizations.length > 0 ? (
-            <div className="space-y-2">
-              {organizations.map(org => renderOrgNode(org))}
+          ) : chart.length > 0 ? (
+            <div className="space-y-2" data-testid="org-tree">
+              {chart.map((org: Organization) => renderOrgNode(org))}
             </div>
           ) : (
             <Alert>
@@ -716,8 +553,8 @@ const OrganizationChartPage: React.FC = () => {
             <div>
               <label className="text-sm font-medium">组织类型 *</label>
               <Select 
-                value={formData.type || ''}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as Organization['type'] }))}
+                value={formData.unit_type || ''}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, unit_type: value as Organization['unit_type'] }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="选择类型" />
@@ -735,14 +572,14 @@ const OrganizationChartPage: React.FC = () => {
             <div>
               <label className="text-sm font-medium">上级组织</label>
               <Select 
-                value={formData.parentId || ''}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, parentId: value || undefined }))}
+                value={formData.parent_unit_id || 'none'}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, parent_unit_id: value === 'none' ? undefined : value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="选择上级组织" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">无上级组织</SelectItem>
+                  <SelectItem value="none">无上级组织</SelectItem>
                   {getParentOptions().map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -756,8 +593,11 @@ const OrganizationChartPage: React.FC = () => {
               <label className="text-sm font-medium">负责人姓名</label>
               <Input 
                 placeholder="负责人姓名"
-                value={formData.managerName || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, managerName: e.target.value }))}
+                value={formData.profile?.managerName || ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  profile: { ...prev.profile, managerName: e.target.value }
+                }))}
               />
             </div>
             
@@ -766,23 +606,27 @@ const OrganizationChartPage: React.FC = () => {
               <Input 
                 type="number"
                 placeholder="如: 20"
-                value={formData.maxCapacity || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, maxCapacity: Number(e.target.value) }))}
+                value={formData.profile?.maxCapacity || ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  profile: { ...prev.profile, maxCapacity: Number(e.target.value) }
+                }))}
               />
             </div>
 
             <div>
               <label className="text-sm font-medium">状态</label>
               <Select 
-                value={formData.isActive !== undefined ? String(formData.isActive) : 'true'}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, isActive: value === 'true' }))}
+                value={formData.status || 'ACTIVE'}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Organization['status'] }))}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="true">正常运营</SelectItem>
-                  <SelectItem value="false">已停用</SelectItem>
+                  <SelectItem value="ACTIVE">正常运营</SelectItem>
+                  <SelectItem value="INACTIVE">已停用</SelectItem>
+                  <SelectItem value="PLANNED">计划中</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -803,8 +647,12 @@ const OrganizationChartPage: React.FC = () => {
               取消
             </Button>
             <Button 
-              onClick={() => handleCreateOrganization(formData)} 
-              disabled={loading}
+              onClick={() => {
+                if (formData.name && formData.unit_type) {
+                  handleCreateOrganization(formData as OrganizationCreateData);
+                }
+              }} 
+              disabled={isLoading || !formData.name || !formData.unit_type}
             >
               {editingOrganization ? '更新' : '创建'}
             </Button>

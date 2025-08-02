@@ -24,6 +24,15 @@ README.md           # 项目概述和快速开始 (Project overview and quick st
 CHANGELOG.md        # 版本历史和变更 (Version history and changes)
 ```
 
+### 最新文档索引 (Recent Documentation Index)
+
+#### 架构文档 (Architecture Documents)
+- `castle_blueprint.md` - 城堡蓝图：HR SaaS宏伟愿景的务实实现路径 (Castle Blueprint: Pragmatic Implementation Path for HR SaaS Grand Vision)
+- `organization_module_refactoring_proposal.md` - 组织管理模块架构重构方案 (Organization Module Architecture Refactoring Proposal)
+
+#### 分析报告 (Analysis Reports)  
+- `organization_module_conservative_analysis.md` - 组织管理模块保守架构分析报告 (Organization Module Conservative Architecture Analysis Report)
+
 ## 📝 命名约定 (Naming Conventions)
 
 ### 文件命名规则 (File Naming Rules)

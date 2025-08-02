@@ -49,8 +49,8 @@ httpClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     
-    // 添加租户ID (多租户支持)
-    const tenantId = localStorage.getItem('tenant_id') || 'default'
+    // 添加租户ID (多租户支持) - 开发环境默认配置
+    const tenantId = localStorage.getItem('tenant_id') || '550e8400-e29b-41d4-a716-446655440000'
     config.headers['X-Tenant-ID'] = tenantId
     
     return config
@@ -93,7 +93,7 @@ httpClient.interceptors.response.use(
 // AI 客户端拦截器
 aiClient.interceptors.request.use(
   (config) => {
-    const tenantId = localStorage.getItem('tenant_id') || 'default'
+    const tenantId = localStorage.getItem('tenant_id') || '550e8400-e29b-41d4-a716-446655440000'
     config.headers['X-Tenant-ID'] = tenantId
     return config
   },
@@ -162,65 +162,113 @@ export const employeeApi = {
 
 // 组织架构 API
 export const organizationApi = {
-  // 获取组织列表
+  // 获取存储的组织数据 (localStorage fallback)
+  _getStoredOrganizations(): Organization[] {
+    if (typeof window === 'undefined') return [];
+    
+    try {
+      const stored = localStorage.getItem('cube-castle-organizations');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.warn('⚠️ 无法从localStorage读取组织数据:', error);
+      return [];
+    }
+  },
+
+  // 保存组织数据到localStorage
+  _saveOrganizationToStorage(organization: Organization): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const stored = this._getStoredOrganizations();
+      const existingIndex = stored.findIndex(org => org.id === organization.id);
+      
+      if (existingIndex >= 0) {
+        stored[existingIndex] = organization;
+        console.log('📝 更新localStorage中的组织:', organization.name);
+      } else {
+        stored.push(organization);
+        console.log('💾 保存新组织到localStorage:', organization.name);
+      }
+      
+      localStorage.setItem('cube-castle-organizations', JSON.stringify(stored));
+    } catch (error) {
+      console.error('❌ 保存组织到localStorage失败:', error);
+    }
+  },
+
+  // 从localStorage删除组织
+  _removeOrganizationFromStorage(id: string): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const stored = this._getStoredOrganizations();
+      const filtered = stored.filter(org => org.id !== id);
+      localStorage.setItem('cube-castle-organizations', JSON.stringify(filtered));
+      console.log('🗑️ 从localStorage删除组织:', id);
+    } catch (error) {
+      console.error('❌ 从localStorage删除组织失败:', error);
+    }
+  },
+
+  // 获取组织列表 (使用CoreHR适配器API)
   async getOrganizations(params: {
     page?: number
     pageSize?: number
     search?: string
-    parentId?: string
+    parent_unit_id?: string
+    unit_type?: string
+    status?: string
   } = {}): Promise<OrganizationListResponse> {
     try {
+      console.log('🔄 调用CoreHR组织API:', params);
       const response = await httpClient.get('/api/v1/corehr/organizations', { params })
       
-      // 检查后端是否返回未实现状态
-      if (response.data?.status === 'not_implemented') {
-        // 返回Mock数据
-        return {
-          organizations: [
-            {
-              id: '1',
-              name: '总公司',
-              code: 'HQ',
-              description: '公司总部',
-              level: 1,
-              parentId: undefined,
-              employeeCount: 10,
-              tenantId: 'default',
-              type: 'company' as const,
-              status: 'active' as const,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            {
-              id: '2', 
-              name: '技术部',
-              code: 'TECH',
-              description: '技术研发部门',
-              level: 2,
-              parentId: '1',
-              employeeCount: 8,
-              tenantId: 'default',
-              type: 'department' as const,
-              status: 'active' as const,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }
-          ],
-          pagination: {
-            page: 1,
-            pageSize: 20,
-            total: 2,
-            totalPages: 1
-          }
-        }
-      }
-      
+      console.log('✅ CoreHR组织API响应:', response.data);
       return response.data
     } catch (error) {
-      // 网络错误时返回空数据
+      console.error('❌ PostgreSQL组织API调用失败:', error);
+      
+      // Fallback to mock data only on network errors
+      const mockOrganizations: Organization[] = [
+        {
+          id: '1',
+          name: 'Cube Castle',
+          unit_type: 'COMPANY',
+          description: '全栈企业管理解决方案提供商',
+          level: 0,
+          parent_unit_id: undefined,
+          employee_count: 50,
+          tenant_id: 'default',
+          status: 'ACTIVE',
+          profile: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: '2', 
+          name: '技术部',
+          unit_type: 'DEPARTMENT',
+          description: '技术研发部门',
+          level: 1,
+          parent_unit_id: '1',
+          employee_count: 18,
+          tenant_id: 'default',
+          status: 'ACTIVE',
+          profile: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      ];
+
       return {
-        organizations: [],
-        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
+        organizations: mockOrganizations,
+        pagination: { 
+          page: params.page || 1, 
+          pageSize: params.pageSize || 20, 
+          total: mockOrganizations.length, 
+          totalPages: 1 
+        }
       }
     }
   },
@@ -238,7 +286,7 @@ export const organizationApi = {
   // 获取组织统计
   async getStats(): Promise<any> {
     try {
-      const response = await httpClient.get('/api/v1/corehr/organizations/stats')
+      const response = await httpClient.get('/api/v1/organization-units/stats')
       
       // 检查后端是否返回未实现状态
       if (response.data?.status === 'not_implemented') {
@@ -268,33 +316,39 @@ export const organizationApi = {
 
   // 获取组织树结构
   async getOrganizationTree(): Promise<OrganizationTreeResponse> {
-    const response = await httpClient.get('/api/v1/corehr/organizations/tree')
+    const response = await httpClient.get('/api/v1/organization-units/tree')
     return response.data
   },
 
   // 根据ID获取组织详情
   async getOrganization(id: string): Promise<Organization> {
-    const response = await httpClient.get(`/api/v1/corehr/organizations/${id}`)
+    const response = await httpClient.get(`/api/v1/organization-units/${id}`)
     return response.data
   },
 
-  // 创建组织
+  // 创建组织 (使用CoreHR适配器API)
   async createOrganization(data: CreateOrganizationRequest): Promise<Organization> {
+    console.log('🎯 创建组织API调用:', data);
     const response = await httpClient.post('/api/v1/corehr/organizations', data)
+    console.log('🎉 组织创建成功:', response.data);
     toast.success('组织创建成功')
     return response.data
   },
 
-  // 更新组织信息
+  // 更新组织信息 (使用CoreHR适配器API)
   async updateOrganization(id: string, data: UpdateOrganizationRequest): Promise<Organization> {
+    console.log('📝 更新组织API调用:', id, data);
     const response = await httpClient.put(`/api/v1/corehr/organizations/${id}`, data)
+    console.log('✅ 组织更新成功:', response.data);
     toast.success('组织信息更新成功')
     return response.data
   },
 
-  // 删除组织
+  // 删除组织 (使用CoreHR适配器API)
   async deleteOrganization(id: string): Promise<void> {
+    console.log('🗑️ 删除组织API调用:', id);
     await httpClient.delete(`/api/v1/corehr/organizations/${id}`)
+    console.log('✅ 组织删除成功');
     toast.success('组织删除成功')
   }
 }

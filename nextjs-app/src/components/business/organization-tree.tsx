@@ -31,34 +31,47 @@ const TreeNode = ({ organization, onUpdate, onDelete, onAddChild }: TreeNodeProp
   
   const hasChildren = organization.children && organization.children.length > 0
   
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'company':
+  const getTypeIcon = (unitType: string) => {
+    switch (unitType) {
+      case 'COMPANY':
         return <Building className="h-4 w-4 text-blue-500" />
-      case 'department':
+      case 'DEPARTMENT':
         return <Building className="h-4 w-4 text-green-500" />
-      case 'team':
+      case 'PROJECT_TEAM':
         return <Users className="h-4 w-4 text-purple-500" />
+      case 'COST_CENTER':
+        return <Building className="h-4 w-4 text-orange-500" />
       default:
         return <Building className="h-4 w-4" />
     }
   }
   
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'company':
+  const getTypeLabel = (unitType: string) => {
+    switch (unitType) {
+      case 'COMPANY':
         return '公司'
-      case 'department':
+      case 'DEPARTMENT':
         return '部门'
-      case 'team':
-        return '小组'
+      case 'PROJECT_TEAM':
+        return '项目团队'
+      case 'COST_CENTER':
+        return '成本中心'
       default:
-        return type
+        return unitType
     }
   }
   
   const getStatusColor = (status: string) => {
-    return status === 'active' ? 'bg-green-500' : 'bg-gray-500'
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-green-500'
+      case 'INACTIVE':
+        return 'bg-gray-500'
+      case 'PLANNED':
+        return 'bg-blue-500'
+      default:
+        return 'bg-gray-500'
+    }
   }
 
   return (
@@ -86,19 +99,19 @@ const TreeNode = ({ organization, onUpdate, onDelete, onAddChild }: TreeNodeProp
               
               {/* 组织信息 */}
               <div className="flex items-center space-x-3">
-                {getTypeIcon(organization.type || 'department')}
+                {getTypeIcon(organization.unit_type || 'DEPARTMENT')}
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="font-medium">{organization.name}</span>
                     <Badge variant="outline" className="text-xs">
-                      {getTypeLabel(organization.type || 'department')}
+                      {getTypeLabel(organization.unit_type || 'DEPARTMENT')}
                     </Badge>
-                    <div className={`w-2 h-2 rounded-full ${getStatusColor(organization.status || 'active')}`} />
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(organization.status || 'ACTIVE')}`} />
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {organization.code}
-                    {organization.managerName && ` · 负责人: ${organization.managerName}`}
-                    · {organization.employeeCount} 人
+                    {organization.id.slice(0, 8)}
+                    {organization.profile?.managerName && ` · 负责人: ${organization.profile.managerName}`}
+                    · {organization.employee_count || 0} 人
                   </div>
                 </div>
               </div>

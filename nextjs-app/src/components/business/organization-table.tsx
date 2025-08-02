@@ -30,43 +30,52 @@ interface OrganizationTableProps {
 export const OrganizationTable = ({ organizations, onUpdate, onDelete }: OrganizationTableProps) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'company':
+  const getTypeIcon = (unitType: string) => {
+    switch (unitType) {
+      case 'COMPANY':
         return <Building className="h-4 w-4 text-blue-500" />
-      case 'department':
+      case 'DEPARTMENT':
         return <Building className="h-4 w-4 text-green-500" />
-      case 'team':
+      case 'PROJECT_TEAM':
         return <Users className="h-4 w-4 text-purple-500" />
+      case 'COST_CENTER':
+        return <Building className="h-4 w-4 text-orange-500" />
       default:
         return <Building className="h-4 w-4" />
     }
   }
   
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'company':
+  const getTypeLabel = (unitType: string) => {
+    switch (unitType) {
+      case 'COMPANY':
         return '公司'
-      case 'department':
+      case 'DEPARTMENT':
         return '部门'
-      case 'team':
-        return '小组'
+      case 'PROJECT_TEAM':
+        return '项目团队'
+      case 'COST_CENTER':
+        return '成本中心'
       default:
-        return type
+        return unitType
     }
   }
   
   const getStatusBadge = (status: string) => {
-    return status === 'active' ? (
-      <Badge className="bg-green-100 text-green-800">活跃</Badge>
-    ) : (
-      <Badge variant="secondary">停用</Badge>
-    )
+    switch (status) {
+      case 'ACTIVE':
+        return <Badge className="bg-green-100 text-green-800">活跃</Badge>
+      case 'INACTIVE':
+        return <Badge variant="secondary">停用</Badge>
+      case 'PLANNED':
+        return <Badge className="bg-blue-100 text-blue-800">计划中</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
   }
   
-  const getParentName = (parentId?: string) => {
-    if (!parentId) return '-'
-    const parent = organizations.find(org => org.id === parentId)
+  const getParentName = (parentUnitId?: string) => {
+    if (!parentUnitId) return '-'
+    const parent = organizations.find(org => org.id === parentUnitId)
     return parent ? parent.name : '-'
   }
   
@@ -149,26 +158,26 @@ export const OrganizationTable = ({ organizations, onUpdate, onDelete }: Organiz
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-3">
-                    {getTypeIcon(org.type || 'department')}
+                    {getTypeIcon(org.unit_type || 'DEPARTMENT')}
                     <div>
                       <div className="font-medium">{org.name}</div>
-                      <div className="text-sm text-muted-foreground">{org.code}</div>
+                      <div className="text-sm text-muted-foreground">{org.id.slice(0, 8)}</div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {getTypeLabel(org.type || 'department')}
+                    {getTypeLabel(org.unit_type || 'DEPARTMENT')}
                   </Badge>
                 </TableCell>
-                <TableCell>{getParentName(org.parentId)}</TableCell>
-                <TableCell>{org.managerName || '-'}</TableCell>
+                <TableCell>{getParentName(org.parent_unit_id)}</TableCell>
+                <TableCell>{org.profile?.managerName || '-'}</TableCell>
                 <TableCell>
-                  <span className="font-medium">{org.employeeCount}</span>
+                  <span className="font-medium">{org.employee_count || 0}</span>
                 </TableCell>
-                <TableCell>{getStatusBadge(org.status || 'active')}</TableCell>
+                <TableCell>{getStatusBadge(org.status || 'ACTIVE')}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {formatDate(org.createdAt)}
+                  {formatDate(org.createdAt || new Date().toISOString())}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
