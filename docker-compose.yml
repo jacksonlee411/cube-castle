@@ -215,7 +215,7 @@ services:
       start_period: 30s
       
   kafka-connect:
-    image: registry.cn-hangzhou.aliyuncs.com/zhengqing/kafka-connect:2.4
+    image: debezium/connect:2.4
     hostname: kafka-connect
     container_name: cube_castle_kafka_connect
     depends_on:

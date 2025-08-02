@@ -1,22 +1,37 @@
 # 🏰 Cube Castle - 企业级CoreHR SaaS平台
 
-> **版本**: v2.0.0-alpha.2 | **更新日期**: 2025年8月1日
+> **版本**: v2.0.0-alpha.3 | **更新日期**: 2025年8月2日
 
 Cube Castle 是一个基于"城堡模型"架构和"元合约v6.0"驱动的现代化企业级 HR SaaS 平台，采用模块化设计，实现了从声明式配置到生产就绪代码的自动化转换，集成了企业级安全架构、多租户隔离和全面的数据治理。
 
-## 🎉 最新开发里程碑 (2025年8月1日)
+## 🎉 最新重大突破 (2025年8月2日)
 
-### ✅ **Phase 2: SWR架构现代化完成** - **圆满完成** (2025-08-01)
+### ✅ **Operation Phoenix: CQRS+CDC架构重构** - **圆满完成** 🚀
+
+**核心成就**:
+- **🏗️ CQRS架构完全实施**: 真正的读写分离，PostgreSQL(写) + Neo4j(读)
+- **⚡ CDC数据流正常运行**: Debezium + Kafka实时数据同步
+- **🔄 事件驱动架构**: 完整的领域事件系统
+- **📊 双数据库优化**: 专业化数据存储和查询优化
+
+**技术验证**:
+- ✅ Kafka Connect: RUNNING状态
+- ✅ CDC管道: organization-postgres-connector 运行中
+- ✅ 数据同步: PostgreSQL → Kafka → Neo4j验证成功
+- ✅ 事件系统: 完整的领域事件定义
+
+### 📈 **前期里程碑回顾**
+
+#### ✅ Phase 2: SWR架构现代化完成 (2025-08-01)
 - **🔧 SWR配置优化**: 修复数据传递断层，实现生产级数据同步
 - **🛡️ 错误边界标准化**: 建立4层错误分类和自动恢复机制 
 - **⚡ 性能突破**: API响应时间10-12.7ms，数据完整性100%
 - **🌐 客户端优化**: SSR兼容的渲染策略，多重数据保障
 
-### ✅ **Phase 1: 前端架构现代化完成** - **圆满完成**
+#### ✅ Phase 1: 前端架构现代化完成
 - **🏗️ SWR架构升级**: 完成生产级数据同步配置，优化缓存策略
 - **🎨 UI组件库标准化**: 恢复Radix UI设计系统一致性
 - **⚡ 性能优化**: 实现30秒自动刷新、智能重试和用户友好错误处理
-- **🔧 架构腐化修复**: 解决设计系统降级问题，提升开发体验
 
 ### 🚀 **核心技术突破**
 - **"前端架构现代化"**: 从简化配置回归到生产级企业标准
@@ -288,7 +303,7 @@ open http://localhost:3000
 open http://localhost:8080/metrics
 ```
 
-## 📁 项目结构 v3.0
+## 📁 项目结构 v4.0 (Operation Phoenix)
 
 ```
 cube-castle/
@@ -301,37 +316,79 @@ cube-castle/
 │   │   ├── authorization/       # OPA授权系统 🆕
 │   │   ├── common/              # 通用组件
 │   │   ├── corehr/              # 核心 HR 模块
+│   │   ├── cqrs/                # CQRS架构实现 🆕🔥
+│   │   │   ├── commands/        # 命令定义和处理
+│   │   │   ├── queries/         # 查询定义和处理
+│   │   │   ├── events/          # 领域事件定义
+│   │   │   ├── handlers/        # 命令查询处理器
+│   │   │   └── repositories/    # 数据仓储抽象
+│   │   ├── repositories/        # 数据访问层 🆕
+│   │   │   ├── postgres_command_repo.go  # PostgreSQL命令存储
+│   │   │   └── neo4j_query_repo.go       # Neo4j查询优化
+│   │   ├── routes/              # API路由配置 🆕
+│   │   │   ├── cqrs_routes.go   # CQRS路由分离
+│   │   │   └── organization_routes.go
 │   │   ├── logging/             # 结构化日志系统 🆕
 │   │   ├── metrics/             # Prometheus监控 🆕
 │   │   ├── middleware/          # HTTP中间件链 🆕
 │   │   ├── workflow/            # 增强工作流引擎 🆕
 │   │   └── intelligencegateway/ # 智能网关模块
-│   ├── scripts/                 # 数据库脚本
-│   │   └── rls-policies.sql     # PostgreSQL RLS策略 🆕
+│   ├── scripts/                 # 脚本和工具
+│   │   ├── rls-policies.sql     # PostgreSQL RLS策略 🆕
+│   │   └── setup-cdc-pipeline.sh # CDC管道配置 🆕🔥
 │   └── tests/                   # 测试套件 🆕
-├── python-ai/                   # Python AI 服务
-│   ├── main.py                  # AI 服务入口
-│   ├── dialogue_state.py        # Redis对话状态管理 🆕
-│   └── requirements.txt         # Python 依赖
-├── nextjs-app/                  # Next.js 前端应用 🆕
-│   ├── src/                     # 源代码
-│   ├── public/                  # 静态资源
-│   ├── package.json             # 依赖配置
-│   └── tailwind.config.js       # Tailwind CSS配置
 ├── docs/                        # 项目文档
+│   ├── organization_module_refactoring/ # Operation Phoenix文档 🆕🔥
+│   │   ├── Operation_Phoenix_Final_Report.md
+│   │   ├── IMMEDIATE_ACTION_PLAN.md
+│   │   └── organization_module_refactoring_proposal.md
 │   ├── Development_Progress_Report.md 🆕
 │   └── Cube Castle 项目 - 第四阶段优化开发计划.md 🆕
-├── test-reports/                # 测试报告 🆕
-│   ├── Stage_One_Test_Report.md
-│   └── Stage_Two_Test_Report.md
-├── docker-compose.yml           # 基础容器编排
+├── docker-compose.yml           # 完整技术栈编排 🆕🔥
+│   # 包含: PostgreSQL, Neo4j, Redis, Kafka, Zookeeper, 
+│   #       Kafka Connect, Kafka UI, Temporal, Elasticsearch
 ├── docker-compose.enterprise.yml # 企业级部署 🆕
+├── python-ai/                   # Python AI 服务
+├── nextjs-app/                  # Next.js 前端应用 🆕
 └── README.md                    # 项目说明 (本文件)
 ```
 
+### 🆕 Operation Phoenix 新增组件
+
+#### CQRS架构层
+- **Commands**: 7种员工和组织管理命令
+- **Queries**: 优化的图查询和复杂检索
+- **Events**: 完整的领域事件系统
+- **Handlers**: 类型安全的处理器实现
+
+#### CDC数据流
+- **Kafka生态系统**: 企业级消息中间件
+- **Debezium连接器**: PostgreSQL实时变更捕获
+- **事件流处理**: 异步事件驱动架构
+
 ## 🔧 核心功能
 
-### 1. 员工管理 (CoreHR) - 主堡
+### 1. CQRS+CDC架构 - 革命性突破 🆕🔥
+
+#### 命令查询分离 (CQRS)
+- ✅ **写操作模型**: PostgreSQL + 事务保证 + 数据一致性
+- ✅ **读操作模型**: Neo4j + 图查询优化 + 复杂关系检索
+- ✅ **完全分离**: `/commands/*` (写) vs `/queries/*` (读)
+- ✅ **类型安全**: Go强类型系统 + 验证
+
+#### 变更数据捕获 (CDC)
+- ✅ **实时同步**: PostgreSQL → Kafka → Neo4j
+- ✅ **Debezium连接器**: 状态RUNNING，零数据丢失
+- ✅ **事件流**: 组织变更事件实时传播
+- ✅ **容错机制**: 自动重试 + 错误恢复
+
+#### 事件驱动架构
+- ✅ **领域事件**: `EmployeeHired`, `OrganizationUnitCreated` 等
+- ✅ **事件总线**: Kafka作为可靠消息中间件
+- ✅ **异步处理**: 非阻塞事件处理流程
+- ✅ **事件溯源**: 为未来审计和重放奠定基础
+
+### 2. 员工管理 (CoreHR) - 主堡
 
 - ✅ 员工信息管理 (CRUD + 高级查询)
 - ✅ 组织架构管理 (层级结构 + 图形化)

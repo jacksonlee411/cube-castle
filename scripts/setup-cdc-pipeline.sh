@@ -112,7 +112,7 @@ curl -X POST http://localhost:8083/connectors \
   -d '{
     "name": "organization-postgres-connector",
     "config": {
-      "connector.class": "io.debezium.connector.postgresql.PostgreSqlConnector",
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
       "tasks.max": "1",
       "database.hostname": "postgres",
       "database.port": "5432",
