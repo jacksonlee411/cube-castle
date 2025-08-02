@@ -16,8 +16,7 @@ ALTER TABLE workflow.executions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workflow.activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workflow.signals ENABLE ROW LEVEL SECURITY;
 
--- 发件箱表启用RLS
-ALTER TABLE outbox.events ENABLE ROW LEVEL SECURITY;
+-- Outbox table RLS removed in Phase 4
 
 -- ===============================
 -- 2. 租户上下文管理函数
@@ -233,21 +232,7 @@ CREATE POLICY tenant_isolation_workflow_activities ON workflow.activities
         )
     );
 
--- ===============================
--- 7. 发件箱表 RLS 策略
--- ===============================
-
--- 发件箱事件表策略
-DROP POLICY IF EXISTS tenant_isolation_outbox_events ON outbox.events;
-CREATE POLICY tenant_isolation_outbox_events ON outbox.events
-    FOR ALL
-    USING (
-        tenant_id = get_current_tenant_id() AND
-        get_current_user_role() IN ('admin', 'hr')
-    )
-    WITH CHECK (
-        tenant_id = get_current_tenant_id()
-    );
+-- Outbox RLS policies removed in Phase 4
 
 -- ===============================
 -- 8. RLS 策略测试函数
@@ -348,8 +333,7 @@ ON corehr.positions (tenant_id, id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_workflow_executions_tenant_id_performance 
 ON workflow.executions (tenant_id, id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_outbox_events_tenant_id_performance 
-ON outbox.events (tenant_id, id);
+-- Outbox performance index removed in Phase 4
 
 -- 为基于角色的访问创建复合索引
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_employees_tenant_manager 
@@ -377,7 +361,7 @@ SELECT
     qual,
     with_check
 FROM pg_policies 
-WHERE schemaname IN ('corehr', 'workflow', 'outbox')
+WHERE schemaname IN ('corehr', 'workflow')
 ORDER BY schemaname, tablename, policyname;
 
 -- 创建租户数据统计视图
@@ -466,7 +450,7 @@ BEGIN
     RAISE NOTICE '==============================================';
     RAISE NOTICE 'PostgreSQL RLS 多租户隔离策略部署完成！';
     RAISE NOTICE '==============================================';
-    RAISE NOTICE '已启用的表: employees, organizations, positions, workflow.executions, outbox.events';
+    RAISE NOTICE '已启用的表: employees, organizations, positions, workflow.executions';
     RAISE NOTICE '使用方法: SELECT set_user_context(user_id, role, tenant_id);';
     RAISE NOTICE '测试命令: SELECT * FROM test_rls_policies();';
     RAISE NOTICE '监控命令: SELECT * FROM rls_policy_stats;';

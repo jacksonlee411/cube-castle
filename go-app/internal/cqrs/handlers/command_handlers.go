@@ -1,31 +1,24 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/cqrs/commands"
-	"github.com/gaogu/cube-castle/go-app/internal/cqrs/events"
+	"github.com/gaogu/cube-castle/go-app/internal/events"
 	"github.com/gaogu/cube-castle/go-app/internal/repositories"
 )
 
 // CommandHandler 命令处理器
 type CommandHandler struct {
 	postgresRepo repositories.PostgresCommandRepository
-	eventBus     EventBus
-}
-
-// EventBus 事件总线接口
-type EventBus interface {
-	Publish(ctx context.Context, event events.DomainEvent) error
+	eventBus     events.EventBus
 }
 
 // NewCommandHandler 创建命令处理器
-func NewCommandHandler(repo repositories.PostgresCommandRepository, eventBus EventBus) *CommandHandler {
+func NewCommandHandler(repo repositories.PostgresCommandRepository, eventBus events.EventBus) *CommandHandler {
 	return &CommandHandler{
 		postgresRepo: repo,
 		eventBus:     eventBus,
@@ -64,17 +57,7 @@ func (h *CommandHandler) HireEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 发布领域事件
-	event := events.EmployeeHired{
-		EventID:      uuid.New(),
-		EmployeeID:   employeeID,
-		TenantID:     cmd.TenantID,
-		FirstName:    cmd.FirstName,
-		LastName:     cmd.LastName,
-		Email:        cmd.Email,
-		HireDate:     cmd.HireDate,
-		EmployeeType: cmd.EmployeeType,
-		Timestamp:    time.Now(),
-	}
+	event := events.NewEmployeeHired(cmd.TenantID, employeeID, "", cmd.FirstName, cmd.LastName, cmd.Email, cmd.HireDate)
 
 	if err := h.eventBus.Publish(r.Context(), event); err != nil {
 		// 记录日志但不阻止响应
@@ -121,13 +104,18 @@ func (h *CommandHandler) UpdateEmployee(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// 发布事件
-	event := events.EmployeeUpdated{
-		EventID:    uuid.New(),
-		EmployeeID: cmd.ID,
-		TenantID:   cmd.TenantID,
-		Changes:    changes,
-		Timestamp:  time.Now(),
+	updatedFields := make(map[string]interface{})
+	if cmd.FirstName != nil {
+		updatedFields["first_name"] = *cmd.FirstName
 	}
+	if cmd.LastName != nil {
+		updatedFields["last_name"] = *cmd.LastName
+	}
+	if cmd.Email != nil {
+		updatedFields["email"] = *cmd.Email
+	}
+	
+	event := events.NewEmployeeUpdated(cmd.TenantID, cmd.ID, "", updatedFields)
 
 	h.eventBus.Publish(r.Context(), event)
 
@@ -169,17 +157,7 @@ func (h *CommandHandler) CreateOrganizationUnit(w http.ResponseWriter, r *http.R
 	}
 
 	// 发布事件
-	event := events.OrganizationUnitCreated{
-		EventID:      uuid.New(),
-		UnitID:       unitID,
-		TenantID:     cmd.TenantID,
-		UnitType:     cmd.UnitType,
-		Name:         cmd.Name,
-		Description:  cmd.Description,
-		ParentUnitID: cmd.ParentUnitID,
-		Profile:      cmd.Profile,
-		Timestamp:    time.Now(),
-	}
+	event := events.NewOrganizationCreated(cmd.TenantID, unitID, cmd.Name, "", nil, 1)
 
 	h.eventBus.Publish(r.Context(), event)
 

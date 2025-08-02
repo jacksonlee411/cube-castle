@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE SCHEMA IF NOT EXISTS corehr;
 CREATE SCHEMA IF NOT EXISTS identity;
 CREATE SCHEMA IF NOT EXISTS tenancy;
-CREATE SCHEMA IF NOT EXISTS outbox;
+-- Outbox schema removed in Phase 4
 CREATE SCHEMA IF NOT EXISTS intelligence;
 
 -- CoreHR Module Tables
@@ -120,18 +120,7 @@ CREATE TABLE IF NOT EXISTS tenancy.tenant_configs (
     UNIQUE(tenant_id, config_key)
 );
 
--- Outbox Pattern Tables
-CREATE TABLE IF NOT EXISTS outbox.events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    aggregate_id UUID NOT NULL,
-    aggregate_type VARCHAR(100) NOT NULL,
-    event_type VARCHAR(100) NOT NULL,
-    event_version INTEGER DEFAULT 1,
-    payload JSONB NOT NULL,
-    metadata JSONB,
-    processed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- Outbox Pattern Tables removed in Phase 4 - replaced with Kafka EventBus
 
 -- Intelligence Gateway Tables
 CREATE TABLE IF NOT EXISTS intelligence.conversations (
@@ -162,8 +151,7 @@ CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON identity.users(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_users_employee_id ON identity.users(employee_id);
 CREATE INDEX IF NOT EXISTS idx_roles_tenant_id ON identity.roles(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_permissions_tenant_id ON identity.permissions(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_outbox_events_processed ON outbox.events(processed_at) WHERE processed_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_outbox_events_aggregate ON outbox.events(aggregate_id, aggregate_type);
+-- Outbox indexes removed in Phase 4
 CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON intelligence.conversations(session_id);
 
 -- Create updated_at trigger function

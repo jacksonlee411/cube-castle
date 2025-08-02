@@ -10,7 +10,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/common"
 	"github.com/gaogu/cube-castle/go-app/internal/corehr"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
-	"github.com/gaogu/cube-castle/go-app/internal/outbox"
+	// outbox import removed in Phase 4
 	"github.com/gaogu/cube-castle/go-app/internal/validation"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -99,10 +99,9 @@ func testServiceInitialization(t *testing.T, logger *logging.StructuredLogger) {
 	repo := corehr.NewRepository(db.PostgreSQL)
 	assert.NotNil(t, repo, "Repository应该能够初始化")
 
-	outboxService := outbox.NewService(db.PostgreSQL)
-	assert.NotNil(t, outboxService, "Outbox服务应该能够初始化")
+	// Outbox service removed in Phase 4
 
-	service := corehr.NewService(repo, outboxService)
+	service := corehr.NewService(repo)
 	assert.NotNil(t, service, "CoreHR服务应该能够初始化")
 
 	t.Log("✅ 真实服务初始化测试通过")
@@ -151,8 +150,8 @@ func testEmployeeServiceIntegration(t *testing.T, logger *logging.StructuredLogg
 		service = corehr.NewMockService()
 	} else {
 		repo := corehr.NewRepository(db.PostgreSQL)
-		outboxService := outbox.NewService(db.PostgreSQL)
-		service = corehr.NewService(repo, outboxService)
+		// Outbox service removed in Phase 4
+		service = corehr.NewService(repo)
 	}
 
 	ctx := context.Background()
@@ -224,8 +223,8 @@ func testOrganizationServiceIntegration(t *testing.T, logger *logging.Structured
 		service = corehr.NewMockService()
 	} else {
 		repo := corehr.NewRepository(db.PostgreSQL)
-		outboxService := outbox.NewService(db.PostgreSQL)
-		service = corehr.NewService(repo, outboxService)
+		// Outbox service removed in Phase 4
+		service = corehr.NewService(repo)
 	}
 
 	ctx := context.Background()
@@ -314,8 +313,8 @@ func testErrorHandlingIntegration(t *testing.T, logger *logging.StructuredLogger
 		service = corehr.NewService(nil, nil) // 故意传入nil来测试错误处理
 	} else {
 		repo := corehr.NewRepository(db.PostgreSQL)
-		outboxService := outbox.NewService(db.PostgreSQL)
-		service = corehr.NewService(repo, outboxService)
+		// Outbox service removed in Phase 4
+		service = corehr.NewService(repo)
 	}
 
 	ctx := context.Background()

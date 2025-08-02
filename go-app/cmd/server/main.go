@@ -17,13 +17,13 @@ import (
 	"github.com/gaogu/cube-castle/go-app/generated/openapi"
 	"github.com/gaogu/cube-castle/go-app/internal/common"
 	"github.com/gaogu/cube-castle/go-app/internal/corehr"
+	"github.com/gaogu/cube-castle/go-app/internal/events"
 	"github.com/gaogu/cube-castle/go-app/internal/handler"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/gaogu/cube-castle/go-app/internal/metacontract"
 	"github.com/gaogu/cube-castle/go-app/internal/metacontracteditor"
 	"github.com/gaogu/cube-castle/go-app/internal/metrics"
 	"github.com/gaogu/cube-castle/go-app/internal/middleware"
-	"github.com/gaogu/cube-castle/go-app/internal/outbox"
 	"github.com/gaogu/cube-castle/go-app/internal/routes"
 	"github.com/gaogu/cube-castle/go-app/internal/service"
 	"github.com/gaogu/cube-castle/go-app/internal/validation"
@@ -39,6 +39,39 @@ const (
 	ServiceName = "cube-castle-api"
 	Version     = "v1.4.0"
 )
+
+// 全局EventBus服务管理器
+var eventBusManager *events.EventBusManager
+
+// MockEventBusService Mock事件总线服务（用于开发环境）
+type MockEventBusService struct {
+	eventBus events.EventBus
+}
+
+func (m *MockEventBusService) GetEventBus() events.EventBus {
+	return m.eventBus
+}
+
+func (m *MockEventBusService) GetSerializer() events.EventSerializer {
+	factory := events.NewEventSerializerFactory()
+	return factory.CreateJSONSerializer()
+}
+
+func (m *MockEventBusService) GetValidator() *events.EventValidator {
+	return events.NewEventValidator()
+}
+
+func (m *MockEventBusService) Start(ctx context.Context) error {
+	return nil // Mock实现不需要启动
+}
+
+func (m *MockEventBusService) Stop() error {
+	return nil // Mock实现不需要停止
+}
+
+func (m *MockEventBusService) Health() error {
+	return nil // Mock实现始终健康
+}
 
 func main() {
 	// 初始化结构化日志器
@@ -78,9 +111,32 @@ func main() {
 		logger.Info("Database connected successfully")
 	}
 
+	// 初始化EventBus系统
+	eventBusManager = initializeEventBusManager(logger, env)
+	
+	// 启动EventBus服务
+	ctx := context.Background()
+	if err := eventBusManager.StartAll(ctx); err != nil {
+		logger.LogError("eventbus_start", "Failed to start EventBus services", err, map[string]interface{}{
+			"service": ServiceName,
+		})
+		if env == "production" || env == "prod" {
+			log.Fatal("Production deployment requires EventBus to be running")
+		}
+		logger.Warn("EventBus failed to start, continuing without event publishing")
+	}
+
 	// 初始化服务
 	coreHRService := initializeCoreHRService(db, logger)
 	editorService := initializeEditorService(db, logger)
+
+	// 将EventBus注入到CoreHR Service中
+	if eventBusManager != nil {
+		if service, exists := eventBusManager.GetService("main"); exists {
+			coreHRService.SetEventBus(service.GetEventBus())
+			logger.Info("EventBus injected into CoreHR Service successfully")
+		}
+	}
 
 	// 创建路由器
 	router := setupRoutes(logger, coreHRService, editorService, db)
@@ -132,10 +188,100 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// 停止EventBus服务
+	if eventBusManager != nil {
+		if err := eventBusManager.StopAll(); err != nil {
+			logger.LogError("eventbus_shutdown", "Failed to stop EventBus services", err, nil)
+		} else {
+			logger.Info("EventBus services stopped successfully")
+		}
+	}
+
 	// 记录服务关闭
 	uptime := time.Since(startTime)
 	logger.LogServiceShutdown(ServiceName, "graceful_shutdown", uptime)
 	logger.Info("✅ Server exited successfully")
+}
+
+// initializeEventBusManager 初始化EventBus管理器
+func initializeEventBusManager(logger *logging.StructuredLogger, env string) *events.EventBusManager {
+	manager := events.NewEventBusManager()
+	
+	// 创建主EventBus配置
+	config := events.ConfigFromEnv()
+	
+	// 根据环境调整配置
+	if env == "production" || env == "prod" {
+		// 生产环境配置
+		config.EnableMetrics = true
+		config.MaxRetries = 5
+		config.RetryBackoff = time.Second * 3
+		logger.Info("Using production EventBus configuration")
+	} else {
+		// 开发环境配置 - 可以连接到本地Kafka或使用Mock
+		kafkaServers := os.Getenv("KAFKA_BOOTSTRAP_SERVERS")
+		if kafkaServers == "" {
+			// Kafka不可用，使用Mock EventBus
+			logger.Info("Kafka not available, using Mock EventBus for development")
+			factory := events.NewEventBusFactory()
+			mockEventBus := factory.CreateMockEventBus()
+			
+			// 创建Mock服务包装器
+			mockService := &MockEventBusService{
+				eventBus: mockEventBus,
+			}
+			
+			// 注册Mock服务
+			manager.RegisterService("main", mockService)
+			return manager
+		}
+		logger.Info("Using development EventBus configuration")
+	}
+	
+	// 创建真实的EventBus服务
+	eventBusService, err := events.NewEventBusService(config)
+	if err != nil {
+		logger.LogError("eventbus_init", "Failed to create EventBus service", err, map[string]interface{}{
+			"kafka_servers": config.KafkaBootstrapServers,
+		})
+		
+		// 降级到Mock EventBus
+		logger.Info("Falling back to Mock EventBus")
+		factory := events.NewEventBusFactory()
+		mockEventBus := factory.CreateMockEventBus()
+		
+		// 创建Mock服务包装器
+		mockService := &MockEventBusService{
+			eventBus: mockEventBus,
+		}
+		manager.RegisterService("main", mockService)
+		return manager
+	}
+	
+	// 注册主EventBus服务
+	manager.RegisterService("main", eventBusService)
+	
+	logger.Info("EventBus manager initialized successfully",
+		"kafka_servers", config.KafkaBootstrapServers,
+		"topic_prefix", config.KafkaTopicPrefix,
+		"consumer_group", config.KafkaConsumerGroup,
+	)
+	
+	return manager
+}
+
+// getEventBus 获取EventBus实例（供其他代码使用）
+func getEventBus() events.EventBus {
+	if eventBusManager == nil {
+		return nil
+	}
+	
+	service, exists := eventBusManager.GetService("main")
+	if !exists {
+		return nil
+	}
+	
+	return service.GetEventBus()
 }
 
 // setupRoutes 设置路由
@@ -452,10 +598,9 @@ func initializeCoreHRService(db interface{}, logger *logging.StructuredLogger) *
 	
 	// 创建真实的Repository和Service
 	repo := corehr.NewRepository(pgxDB)
-	outboxService := outbox.NewService(pgxDB)
 	
 	logger.Info("CoreHR service initialized with real database implementation")
-	return corehr.NewService(repo, outboxService)
+	return corehr.NewService(repo)
 }
 
 // Meta-Contract Editor 处理函数

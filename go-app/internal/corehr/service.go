@@ -7,25 +7,44 @@ import (
 	"time"
 
 	"github.com/gaogu/cube-castle/go-app/generated/openapi"
-	"github.com/gaogu/cube-castle/go-app/internal/outbox"
+	"github.com/gaogu/cube-castle/go-app/internal/events"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Service CoreHR 服务层
 type Service struct {
-	repo   *Repository
-	outbox *outbox.Service
+	repo     *Repository
+	eventBus events.EventBus
 }
 
 // NewService 创建新的 CoreHR 服务
-func NewService(repo *Repository, outbox *outbox.Service) *Service {
-	return &Service{repo: repo, outbox: outbox}
+func NewService(repo *Repository) *Service {
+	return &Service{
+		repo:     repo,
+		eventBus: nil, // EventBus 将通过 SetEventBus 方法设置
+	}
+}
+
+// NewServiceWithEventBus 创建带有EventBus的CoreHR服务
+func NewServiceWithEventBus(repo *Repository, eventBus events.EventBus) *Service {
+	return &Service{
+		repo:     repo,
+		eventBus: eventBus,
+	}
+}
+
+// SetEventBus 设置EventBus（用于依赖注入）
+func (s *Service) SetEventBus(eventBus events.EventBus) {
+	s.eventBus = eventBus
 }
 
 // NewMockService 创建 Mock 服务（用于测试）
 func NewMockService() *Service {
-	return &Service{repo: nil, outbox: nil}
+	return &Service{
+		repo:     nil,
+		eventBus: nil,
+	}
 }
 
 // ListEmployees 获取员工列表
@@ -124,22 +143,15 @@ func (s *Service) CreateEmployee(ctx context.Context, tenantID uuid.UUID, req *o
 		return nil, fmt.Errorf("failed to create employee: %w", err)
 	}
 
-	// 创建员工创建事件
-	if s.outbox != nil {
-		employeeData := map[string]interface{}{
-			"employee_number": employee.EmployeeNumber,
-			"first_name":      employee.FirstName,
-			"last_name":       employee.LastName,
-			"email":           employee.Email,
-			"position":        employee.Position,
-			"department":      employee.Department,
-			"hire_date":       employee.HireDate.Format(time.RFC3339),
-		}
-
-		err = s.outbox.CreateEmployeeCreatedEvent(ctx, employee.ID, employeeData)
-		if err != nil {
-			// 记录错误但不影响员工创建
-			fmt.Printf("Warning: failed to create employee event: %v\n", err)
+	// 发布员工创建事件
+	if s.eventBus != nil {
+		event := events.NewEmployeeCreated(tenantID, employee.ID, employee.EmployeeNumber, 
+			employee.FirstName, employee.LastName, employee.Email, employee.HireDate)
+		
+		if err := s.eventBus.Publish(ctx, event); err != nil {
+			// 记录事件发布失败，但不阻止主流程
+			// 在生产环境中应该有重试机制或者死信队列
+			fmt.Printf("Failed to publish EmployeeCreated event: %v\n", err)
 		}
 	}
 
@@ -162,12 +174,14 @@ func (s *Service) UpdateEmployee(ctx context.Context, tenantID, employeeID uuid.
 		return nil, fmt.Errorf("employee not found")
 	}
 
-	// 记录更新的字段
-	updatedFields := make(map[string]interface{})
+	// Record the old phone number for potential event publishing
 	var oldPhoneNumber string
 	if employee.PhoneNumber != nil {
 		oldPhoneNumber = *employee.PhoneNumber
 	}
+
+	// Record updated fields for event publishing
+	updatedFields := make(map[string]interface{})
 
 	// 更新字段
 	if req.FirstName != nil {
@@ -206,23 +220,21 @@ func (s *Service) UpdateEmployee(ctx context.Context, tenantID, employeeID uuid.
 		return nil, fmt.Errorf("failed to update employee: %w", err)
 	}
 
-	// 创建事件
-	if s.outbox != nil {
-		// 创建员工更新事件
-		if len(updatedFields) > 0 {
-			err = s.outbox.CreateEmployeeUpdatedEvent(ctx, employee.ID, updatedFields)
-			if err != nil {
-				// 记录错误但不影响员工更新
-				fmt.Printf("Warning: failed to create employee updated event: %v\n", err)
-			}
+	// 发布员工更新事件
+	if s.eventBus != nil && len(updatedFields) > 0 {
+		event := events.NewEmployeeUpdated(tenantID, employee.ID, employee.EmployeeNumber, updatedFields)
+		
+		if err := s.eventBus.Publish(ctx, event); err != nil {
+			fmt.Printf("Failed to publish EmployeeUpdated event: %v\n", err)
 		}
-
-		// 如果电话号码更新了，创建专门的电话更新事件
-		if req.PhoneNumber != nil && oldPhoneNumber != *req.PhoneNumber {
-			err = s.outbox.CreateEmployeePhoneUpdatedEvent(ctx, employee.ID, oldPhoneNumber, *req.PhoneNumber)
-			if err != nil {
-				// 记录错误但不影响员工更新
-				fmt.Printf("Warning: failed to create phone updated event: %v\n", err)
+		
+		// 如果电话号码发生变化，发布专门的电话更新事件
+		if newPhone, exists := updatedFields["phone_number"]; exists {
+			phoneEvent := events.NewEmployeePhoneUpdated(tenantID, employee.ID, 
+				employee.EmployeeNumber, oldPhoneNumber, newPhone.(string))
+			
+			if err := s.eventBus.Publish(ctx, phoneEvent); err != nil {
+				fmt.Printf("Failed to publish EmployeePhoneUpdated event: %v\n", err)
 			}
 		}
 	}
@@ -252,20 +264,13 @@ func (s *Service) DeleteEmployee(ctx context.Context, tenantID, employeeID uuid.
 		return fmt.Errorf("failed to delete employee: %w", err)
 	}
 
-	// 创建员工删除事件
-	if s.outbox != nil {
-		payload, err := s.outbox.CreateEvent(ctx, &outbox.CreateEventRequest{
-			AggregateID:   employeeID,
-			AggregateType: outbox.AggregateTypeEmployee,
-			EventType:     outbox.EventTypeEmployeeDeleted,
-			EventVersion:  1,
-			Payload:       []byte(fmt.Sprintf(`{"employee_id":"%s","deleted_at":"%s"}`, employeeID, time.Now().Format(time.RFC3339))),
-		})
-		if err != nil {
-			// 记录错误但不影响员工删除
-			fmt.Printf("Warning: failed to create employee deleted event: %v\n", err)
+	// 发布员工删除事件
+	if s.eventBus != nil {
+		event := events.NewEmployeeDeleted(tenantID, employee.ID, employee.EmployeeNumber)
+		
+		if err := s.eventBus.Publish(ctx, event); err != nil {
+			fmt.Printf("Failed to publish EmployeeDeleted event: %v\n", err)
 		}
-		_ = payload // 避免未使用变量警告
 	}
 
 	return nil
@@ -340,12 +345,12 @@ func (s *Service) CreateOrganization(ctx context.Context, tenantID uuid.UUID, na
 		return nil, fmt.Errorf("failed to create organization: %w", err)
 	}
 
-	// 创建组织创建事件
-	if s.outbox != nil {
-		eventErr := s.outbox.CreateOrganizationCreatedEvent(ctx, org.ID, org.Name, org.Code, org.ParentID)
-		if eventErr != nil {
-			// 记录错误但不影响组织创建
-			fmt.Printf("Warning: failed to create organization event: %v\n", eventErr)
+	// 发布组织创建事件
+	if s.eventBus != nil {
+		event := events.NewOrganizationCreated(tenantID, org.ID, org.Name, org.Code, org.ParentID, org.Level)
+		
+		if err := s.eventBus.Publish(ctx, event); err != nil {
+			fmt.Printf("Failed to publish OrganizationCreated event: %v\n", err)
 		}
 	}
 

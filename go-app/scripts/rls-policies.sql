@@ -13,7 +13,7 @@ ALTER TABLE corehr.employee_positions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE corehr.organization_hierarchies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workflow.workflow_instances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workflow.workflow_activities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE outbox.events ENABLE ROW LEVEL SECURITY;
+-- Outbox table RLS removed in Phase 4
 
 -- ===========================================
 -- 租户上下文管理函数
@@ -244,23 +244,7 @@ CREATE POLICY workflow_activities_tenant_isolation ON workflow.workflow_activiti
         OR is_super_admin()
     );
 
--- ===========================================
--- 发件箱表的RLS策略
--- ===========================================
-
--- 发件箱事件表策略
-CREATE POLICY outbox_events_tenant_isolation ON outbox.events
-    USING (
-        tenant_id = get_current_tenant_id()
-        OR is_super_admin()
-    );
-
-CREATE POLICY outbox_events_insert_policy ON outbox.events
-    FOR INSERT
-    WITH CHECK (
-        tenant_id = get_current_tenant_id()
-        OR is_super_admin()
-    );
+-- Outbox RLS policies removed in Phase 4
 
 -- ===========================================
 -- 性能优化索引
@@ -279,8 +263,7 @@ ON corehr.positions (tenant_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_workflow_instances_tenant_id 
 ON workflow.workflow_instances (tenant_id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_outbox_events_tenant_id 
-ON outbox.events (tenant_id);
+-- Outbox index removed in Phase 4
 
 -- 复合索引用于常见查询模式
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_employees_tenant_number 
@@ -541,19 +524,19 @@ CREATE TABLE IF NOT EXISTS system.tenant_migration_log (
 -- 为应用程序角色授予必要权限
 GRANT USAGE ON SCHEMA corehr TO cube_castle_app;
 GRANT USAGE ON SCHEMA workflow TO cube_castle_app;
-GRANT USAGE ON SCHEMA outbox TO cube_castle_app;
+-- Outbox schema permissions removed in Phase 4
 GRANT USAGE ON SCHEMA system TO cube_castle_app;
 
 -- 授予表权限
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA corehr TO cube_castle_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA workflow TO cube_castle_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA outbox TO cube_castle_app;
+-- Outbox table permissions removed in Phase 4
 GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA system TO cube_castle_app;
 
 -- 授予序列权限
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA corehr TO cube_castle_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA workflow TO cube_castle_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA outbox TO cube_castle_app;
+-- Outbox sequence permissions removed in Phase 4
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA system TO cube_castle_app;
 
 -- 授予函数执行权限
