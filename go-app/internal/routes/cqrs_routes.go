@@ -14,7 +14,12 @@ func SetupCQRSRoutes(r chi.Router, cmdHandler *handlers.CommandHandler, queryHan
 		r.Put("/update-employee", cmdHandler.UpdateEmployee)
 		r.Post("/terminate-employee", cmdHandler.TerminateEmployee)
 		
-		// 组织单元管理命令
+		// 组织管理命令 (新实现)
+		r.Post("/organizations", cmdHandler.CreateOrganization)
+		r.Put("/organizations/{id}", cmdHandler.UpdateOrganization)
+		r.Delete("/organizations/{id}", cmdHandler.DeleteOrganization)
+		
+		// 组织单元管理命令 (向后兼容)
 		r.Post("/create-organization-unit", cmdHandler.CreateOrganizationUnit)
 		r.Put("/update-organization-unit", cmdHandler.UpdateOrganizationUnit)
 		r.Delete("/delete-organization-unit", cmdHandler.DeleteOrganizationUnit)
@@ -30,7 +35,13 @@ func SetupCQRSRoutes(r chi.Router, cmdHandler *handlers.CommandHandler, queryHan
 		r.Get("/employees/{id}", queryHandler.GetEmployee)
 		r.Get("/employees", queryHandler.SearchEmployees)
 		
-		// 组织结构查询
+		// 组织查询 (新实现)
+		r.Get("/organizations", queryHandler.ListOrganizations)
+		r.Get("/organizations/{id}", queryHandler.GetOrganization)
+		r.Get("/organization-tree", queryHandler.GetOrganizationTree)
+		r.Get("/organization-stats", queryHandler.GetOrganizationStats)
+		
+		// 组织结构查询 (向后兼容)
 		r.Get("/organization-chart", queryHandler.GetOrgChart)
 		r.Get("/organization-units/{id}", queryHandler.GetOrganizationUnit)
 		r.Get("/organization-units", queryHandler.ListOrganizationUnits)
