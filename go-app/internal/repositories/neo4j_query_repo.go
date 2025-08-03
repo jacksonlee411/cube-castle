@@ -102,6 +102,7 @@ type Neo4jQueryRepository interface {
 	// 员工查询
 	GetEmployee(ctx context.Context, query queries.FindEmployeeQuery) (*EmployeeNode, error)
 	SearchEmployees(ctx context.Context, query queries.SearchEmployeesQuery) (*EmployeeSearchResponse, error)
+	GetEmployeeStats(ctx context.Context, query queries.GetEmployeeStatsQuery) (*queries.EmployeeStatsResponse, error)
 
 	// 组织架构查询
 	GetOrgChart(ctx context.Context, query queries.GetOrgChartQuery) (*OrgChartResponse, error)

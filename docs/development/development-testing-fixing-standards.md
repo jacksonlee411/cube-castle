@@ -516,7 +516,152 @@ func (evs *EmployeeValidationService) ValidateEmployee(ctx context.Context, req 
 
 ---
 
-# 四、流程集成与自动化
+# 四、服务器生命周期管理
+
+## 4.1 优雅关闭与重启机制
+
+### 4.1.1 服务器优雅关闭原理
+
+服务器实现了完善的优雅关闭机制，通过监听系统信号来协调服务停止：
+
+```go
+// 服务器优雅关闭实现 (main.go:268-297)
+quit := make(chan os.Signal, 1)
+signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+<-quit
+
+logger.Info("🛑 Shutting down server...")
+
+// 创建30秒超时上下文
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+// 优雅关闭HTTP服务器
+if err := server.Shutdown(ctx); err != nil {
+    logger.LogError("server_shutdown", "Server forced to shutdown", err, nil)
+    log.Fatal(err)
+}
+
+// 停止EventBus服务
+if eventBusManager != nil {
+    if err := eventBusManager.StopAll(); err != nil {
+        logger.LogError("eventbus_shutdown", "Failed to stop EventBus services", err, nil)
+    }
+}
+```
+
+### 4.1.2 优雅重启脚本
+
+**避免直接杀死进程**，使用专门的重启脚本 `scripts/graceful-restart.sh`：
+
+```bash
+# 推荐的重启方式
+./scripts/graceful-restart.sh restart
+
+# 其他操作
+./scripts/graceful-restart.sh status    # 检查服务器状态
+./scripts/graceful-restart.sh stop     # 优雅停止
+./scripts/graceful-restart.sh start    # 启动服务器
+./scripts/graceful-restart.sh rebuild  # 仅重新编译
+```
+
+### 4.1.3 重启脚本功能特性
+
+- **信号管理**: 使用 `SIGTERM` 信号触发优雅关闭
+- **超时保护**: 35秒超时，超过后强制终止
+- **健康检查**: 验证服务器启动状态和API响应
+- **日志记录**: 完整的操作日志记录
+- **进程管理**: 智能进程发现和PID管理
+
+```bash
+# 脚本核心逻辑示例
+graceful_stop() {
+    local pid=$(find_server_process)
+    if [ -n "$pid" ]; then
+        log "Sending SIGTERM for graceful shutdown..."
+        kill -TERM "$pid"
+        
+        # 等待优雅关闭 (最多35秒)
+        local count=0
+        while [ $count -lt 35 ]; do
+            if ! kill -0 "$pid" 2>/dev/null; then
+                log "Server stopped gracefully after ${count}s"
+                return 0
+            fi
+            sleep 1
+            count=$((count + 1))
+        done
+    fi
+}
+```
+
+### 4.1.4 重启最佳实践
+
+**开发环境重启流程**:
+1. 确保代码已编译并通过基础检查
+2. 使用优雅重启脚本停止现有服务
+3. 启动新版本服务器
+4. 验证服务健康状态
+5. 验证关键功能正常工作
+
+**❌ 避免的做法**:
+```bash
+# 直接杀死进程 - 可能导致数据不一致
+pkill -f "./server"
+kill -9 <pid>
+
+# 不验证启动状态就继续操作
+./bin/server &  # 没有检查是否成功启动
+```
+
+**✅ 推荐的做法**:
+```bash
+# 使用优雅重启脚本
+./scripts/graceful-restart.sh restart
+
+# 验证重启成功
+curl -f http://localhost:8080/health
+```
+
+### 4.1.5 服务监控与健康检查
+
+**健康检查端点**:
+- `/health` - 基础健康检查
+- `/health/detailed` - 详细健康状态
+- `/health/cdc` - CDC服务健康检查
+- `/health/neo4j-sync` - Neo4j同步服务检查
+- `/health/data-consistency` - 数据一致性检查
+
+**监控指标**:
+```bash
+# 检查服务状态
+curl -s http://localhost:8080/health | jq .
+
+# 检查进程状态
+pgrep -f "cube-castle.*server"
+
+# 检查端口占用
+netstat -tulpn | grep :8080
+```
+
+### 4.1.6 应急处理流程
+
+**服务无响应处理**:
+1. 检查进程是否存在: `pgrep -f server`
+2. 检查端口是否占用: `netstat -tulpn | grep :8080`
+3. 查看服务日志: `tail -f /tmp/cube-castle-server.log`
+4. 尝试优雅重启: `./scripts/graceful-restart.sh restart`
+5. 如果无法优雅关闭，使用强制重启并记录问题
+
+**数据库连接问题**:
+1. 检查数据库服务状态
+2. 验证环境变量配置
+3. 测试数据库连接
+4. 重启服务器使用新的连接
+
+---
+
+# 五、流程集成与自动化
 
 ## 4.1 CI/CD集成
 

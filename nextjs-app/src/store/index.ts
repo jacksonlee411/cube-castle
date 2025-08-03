@@ -6,16 +6,11 @@ import { apolloClient } from '@/lib/graphql-client'
 import { Employee, Organization, User, Tenant, Theme, AppState, Notification } from '@/types'
 import { logger } from '@/lib/logger';
 
-// 实时同步状态接口
-interface RealtimeState {
-  connected: boolean;
-  lastUpdate: string | null;
-  subscriptions: {
-    employees: boolean;
-    organizations: boolean;
-    positions: boolean;
-    workflows: boolean;
-  };
+// 自动刷新状态接口 (替代实时同步)
+interface AutoRefreshState {
+  enabled: boolean;
+  lastRefresh: string | null;
+  interval: number; // 刷新间隔(毫秒)
 }
 
 // 缓存管理状态接口
@@ -34,8 +29,8 @@ interface CacheState {
 
 // 应用全局状态 - Phase 2 现代化扩展
 interface AppStore extends AppState {
-  // Phase 2: 实时同步状态
-  realtime: RealtimeState;
+  // 自动刷新状态 (替代实时同步)
+  autoRefresh: AutoRefreshState;
   
   // Phase 2: 缓存管理状态
   cache: CacheState;
@@ -58,10 +53,10 @@ interface AppStore extends AppState {
   markNotificationRead: (id: string) => void
   clearAllNotifications: () => void
   
-  // Phase 2: 实时同步操作
-  setRealtimeConnection: (connected: boolean) => void;
-  setSubscription: (key: keyof RealtimeState['subscriptions'], active: boolean) => void;
-  updateLastUpdate: () => void;
+  // 自动刷新操作 (替代实时同步)
+  setAutoRefresh: (enabled: boolean) => void;
+  setRefreshInterval: (interval: number) => void;
+  updateLastRefresh: () => void;
   
   // Phase 2: 缓存管理操作
   setCacheRefresh: (key: keyof CacheState['lastRefresh']) => void;
@@ -87,16 +82,11 @@ const useAppStore = create<AppStore>()(
         sidebarOpen: true,
         notifications: [],
         
-        // Phase 2: 实时同步初始状态
-        realtime: {
-          connected: false,
-          lastUpdate: null,
-          subscriptions: {
-            employees: false,
-            organizations: false,
-            positions: false,
-            workflows: false,
-          },
+        // 自动刷新初始状态 (替代实时同步)
+        autoRefresh: {
+          enabled: true,
+          lastRefresh: null,
+          interval: 30000, // 30秒
         },
         
         // Phase 2: 缓存管理初始状态
@@ -158,23 +148,20 @@ const useAppStore = create<AppStore>()(
 
         clearAllNotifications: () => set({ notifications: [] }),
 
-        // Phase 2: 实时同步操作
-        setRealtimeConnection: (connected) =>
+        // 自动刷新操作 (替代实时同步)
+        setAutoRefresh: (enabled) =>
           set((state) => ({
-            realtime: { ...state.realtime, connected },
+            autoRefresh: { ...state.autoRefresh, enabled },
           })),
 
-        setSubscription: (key, active) =>
+        setRefreshInterval: (interval) =>
           set((state) => ({
-            realtime: {
-              ...state.realtime,
-              subscriptions: { ...state.realtime.subscriptions, [key]: active },
-            },
+            autoRefresh: { ...state.autoRefresh, interval },
           })),
 
-        updateLastUpdate: () =>
+        updateLastRefresh: () =>
           set((state) => ({
-            realtime: { ...state.realtime, lastUpdate: new Date().toISOString() },
+            autoRefresh: { ...state.autoRefresh, lastRefresh: new Date().toISOString() },
           })),
 
         // Phase 2: 缓存管理操作
@@ -211,11 +198,6 @@ const useAppStore = create<AppStore>()(
               // Token 处理在 graphql-client.ts 中
             }
 
-            // 同步实时连接状态
-            if (state.realtime.connected) {
-              // WebSocket 连接状态已同步
-            }
-
             // 同步本地状态到 Apollo Client 本地缓存
             await apolloClient.writeQuery({
               query: require('graphql-tag')`
@@ -223,9 +205,10 @@ const useAppStore = create<AppStore>()(
                   localAppState {
                     theme
                     sidebarOpen
-                    realtime {
-                      connected
-                      subscriptions
+                    autoRefresh {
+                      enabled
+                      lastRefresh
+                      interval
                     }
                   }
                 }
@@ -234,7 +217,7 @@ const useAppStore = create<AppStore>()(
                 localAppState: {
                   theme: state.theme,
                   sidebarOpen: state.sidebarOpen,
-                  realtime: state.realtime,
+                  autoRefresh: state.autoRefresh,
                 },
               },
             });
@@ -286,15 +269,10 @@ const useAppStore = create<AppStore>()(
             theme: 'system',
             sidebarOpen: true,
             notifications: [],
-            realtime: {
-              connected: false,
-              lastUpdate: null,
-              subscriptions: {
-                employees: false,
-                organizations: false,
-                positions: false,
-                workflows: false,
-              },
+            autoRefresh: {
+              enabled: true,
+              lastRefresh: null,
+              interval: 30000,
             },
             cache: {
               lastRefresh: {
@@ -317,9 +295,10 @@ const useAppStore = create<AppStore>()(
         partialize: (state) => ({
           theme: state.theme,
           sidebarOpen: state.sidebarOpen,
-          realtime: {
-            subscriptions: state.realtime.subscriptions,
-            // 不持久化连接状态，每次启动重新连接
+          autoRefresh: {
+            enabled: state.autoRefresh.enabled,
+            interval: state.autoRefresh.interval,
+            // 不持久化lastRefresh时间戳
           },
           // 不持久化敏感信息（用户、token、通知）
         })
@@ -572,7 +551,7 @@ export const useUIState = () => useAppStore((state) => ({
   sidebarOpen: state.sidebarOpen 
 }));
 
-export const useRealtimeState = () => useAppStore((state) => state.realtime);
+export const useAutoRefreshState = () => useAppStore((state) => state.autoRefresh);
 export const useCacheState = () => useAppStore((state) => state.cache);
 export const useNotifications = () => useAppStore((state) => state.notifications);
 
@@ -592,10 +571,10 @@ export const useAppActions = () => useAppStore((state) => ({
   markNotificationRead: state.markNotificationRead,
   clearAllNotifications: state.clearAllNotifications,
   
-  // Phase 2: 实时同步操作
-  setRealtimeConnection: state.setRealtimeConnection,
-  setSubscription: state.setSubscription,
-  updateLastUpdate: state.updateLastUpdate,
+  // 自动刷新操作 (替代实时同步)
+  setAutoRefresh: state.setAutoRefresh,
+  setRefreshInterval: state.setRefreshInterval,
+  updateLastRefresh: state.updateLastRefresh,
   
   // Phase 2: 缓存操作
   setCacheRefresh: state.setCacheRefresh,

@@ -24,6 +24,19 @@ type Neo4jConfig struct {
 	Database string `json:"database" yaml:"database"`
 }
 
+// OrganizationNode represents an organization unit in the graph
+type OrganizationNode struct {
+	ID           string                 `json:"id"`
+	TenantID     string                 `json:"tenant_id"`
+	UnitType     string                 `json:"unit_type"`
+	Name         string                 `json:"name"`
+	Description  string                 `json:"description"`
+	Status       string                 `json:"status"`
+	IsActive     bool                   `json:"is_active"`
+	ParentUnitID string                 `json:"parent_unit_id"`
+	Properties   map[string]interface{} `json:"properties"`
+}
+
 // Employee node representation in graph
 type EmployeeNode struct {
 	ID         string                 `json:"id"`
@@ -86,9 +99,11 @@ func NewNeo4jService(config Neo4jConfig, logger *log.Logger) (*Neo4jService, err
 		config.URI,
 		neo4j.BasicAuth(config.Username, config.Password, ""),
 		func(c *neo4j.Config) {
-			c.MaxConnectionLifetime = 30 * time.Minute
-			c.MaxConnectionPoolSize = 50
-			c.ConnectionAcquisitionTimeout = 2 * time.Minute
+			c.MaxConnectionLifetime = 5 * time.Minute  // 减少连接生命周期
+			c.MaxConnectionPoolSize = 10              // 减少连接池大小
+			c.ConnectionAcquisitionTimeout = 30 * time.Second  // 减少获取超时
+			c.SocketConnectTimeout = 15 * time.Second  // 添加Socket连接超时
+			c.SocketKeepalive = true                   // 启用keepalive
 		},
 	)
 	if err != nil {
@@ -156,6 +171,10 @@ func (s *Neo4jService) initializeSchema(ctx context.Context) error {
 
 // SyncEmployee creates or updates an employee node in the graph
 func (s *Neo4jService) SyncEmployee(ctx context.Context, employee EmployeeNode) error {
+	// 创建带超时的上下文
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	
 	session := s.driver.NewSession(ctx, neo4j.SessionConfig{
 		AccessMode: neo4j.AccessModeWrite,
 	})
@@ -580,4 +599,391 @@ func (s *Neo4jService) nodeToDepartment(node neo4j.Node) DepartmentNode {
 	}
 
 	return dept
+}
+
+// GetEmployee retrieves an employee by ID from Neo4j
+func (s *Neo4jService) GetEmployee(ctx context.Context, employeeID string) (*EmployeeNode, error) {
+	session := s.driver.NewSession(ctx, neo4j.SessionConfig{
+		AccessMode: neo4j.AccessModeRead,
+	})
+	defer session.Close(ctx)
+
+	query := `
+		MATCH (e:Employee {employee_id: $employee_id})
+		OPTIONAL MATCH (e)-[:HOLDS_POSITION]->(p:Position)
+		OPTIONAL MATCH (p)-[:BELONGS_TO]->(d:Department)
+		OPTIONAL MATCH (m:Employee)-[:MANAGES]->(e)
+		RETURN e,
+			   p.position_title as position_title,
+			   d.name as department,
+			   m.legal_name as manager_name
+	`
+
+	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		result, err := tx.Run(ctx, query, map[string]any{
+			"employee_id": employeeID,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if result.Next(ctx) {
+			record := result.Record()
+			if empNode, found := record.Get("e"); found {
+				if node, ok := empNode.(neo4j.Node); ok {
+					employee := s.nodeToEmployee(node)
+					
+					// Add additional fields
+					if posTitle, found := record.Get("position_title"); found && posTitle != nil {
+						employee.Properties["position_title"] = posTitle
+					}
+					if dept, found := record.Get("department"); found && dept != nil {
+						employee.Properties["department"] = dept
+					}
+					if manager, found := record.Get("manager_name"); found && manager != nil {
+						employee.Properties["manager_name"] = manager
+					}
+					
+					return &employee, nil
+				}
+			}
+		}
+		return nil, nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee %s: %w", employeeID, err)
+	}
+
+	if result == nil {
+		return nil, fmt.Errorf("employee not found: %s", employeeID)
+	}
+
+	employee := result.(*EmployeeNode)
+	return employee, nil
+}
+
+// SearchEmployees searches for employees by various criteria in Neo4j
+func (s *Neo4jService) SearchEmployees(ctx context.Context, filters map[string]interface{}, limit, offset int) ([]*EmployeeNode, int, error) {
+	session := s.driver.NewSession(ctx, neo4j.SessionConfig{
+		AccessMode: neo4j.AccessModeRead,
+	})
+	defer session.Close(ctx)
+
+	// Build dynamic query based on filters
+	whereClause := "WHERE 1=1"
+	params := make(map[string]any)
+	
+	if name, ok := filters["name"].(string); ok && name != "" {
+		whereClause += " AND (e.legal_name CONTAINS $name OR e.employee_id CONTAINS $name)"
+		params["name"] = name
+	}
+	
+	if email, ok := filters["email"].(string); ok && email != "" {
+		whereClause += " AND e.email CONTAINS $email"
+		params["email"] = email
+	}
+	
+	if department, ok := filters["department"].(string); ok && department != "" {
+		whereClause += " AND d.name = $department"
+		params["department"] = department
+	}
+	
+	if status, ok := filters["status"].(string); ok && status != "" {
+		whereClause += " AND e.status = $status"
+		params["status"] = status
+	}
+
+	params["limit"] = limit
+	params["offset"] = offset
+
+	// Count query
+	countQuery := fmt.Sprintf(`
+		MATCH (e:Employee)
+		OPTIONAL MATCH (e)-[:HOLDS_POSITION]->(p:Position)
+		OPTIONAL MATCH (p)-[:BELONGS_TO]->(d:Department)
+		%s
+		RETURN COUNT(e) as total
+	`, whereClause)
+
+	// Data query
+	dataQuery := fmt.Sprintf(`
+		MATCH (e:Employee)
+		OPTIONAL MATCH (e)-[:HOLDS_POSITION]->(p:Position)
+		OPTIONAL MATCH (p)-[:BELONGS_TO]->(d:Department)
+		OPTIONAL MATCH (m:Employee)-[:MANAGES]->(e)
+		%s
+		RETURN e,
+			   p.position_title as position_title,
+			   d.name as department,
+			   m.legal_name as manager_name
+		ORDER BY e.legal_name
+		SKIP $offset
+		LIMIT $limit
+	`, whereClause)
+
+	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		// Get total count
+		countResult, err := tx.Run(ctx, countQuery, params)
+		if err != nil {
+			return nil, err
+		}
+
+		var total int
+		if countResult.Next(ctx) {
+			if count, found := countResult.Record().Get("total"); found {
+				if c, ok := count.(int64); ok {
+					total = int(c)
+				}
+			}
+		}
+
+		// Get data
+		dataResult, err := tx.Run(ctx, dataQuery, params)
+		if err != nil {
+			return nil, err
+		}
+
+		var employees []*EmployeeNode
+		for dataResult.Next(ctx) {
+			record := dataResult.Record()
+			if empNode, found := record.Get("e"); found {
+				if node, ok := empNode.(neo4j.Node); ok {
+					employee := s.nodeToEmployee(node)
+					
+					// Add additional fields
+					if posTitle, found := record.Get("position_title"); found && posTitle != nil {
+						employee.Properties["position_title"] = posTitle
+					}
+					if dept, found := record.Get("department"); found && dept != nil {
+						employee.Properties["department"] = dept
+					}
+					if manager, found := record.Get("manager_name"); found && manager != nil {
+						employee.Properties["manager_name"] = manager
+					}
+					
+					employees = append(employees, &employee)
+				}
+			}
+		}
+
+		return map[string]interface{}{
+			"employees": employees,
+			"total":     total,
+		}, nil
+	})
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to search employees: %w", err)
+	}
+
+	resultMap := result.(map[string]interface{})
+	employees := resultMap["employees"].([]*EmployeeNode)
+	total := resultMap["total"].(int)
+
+	return employees, total, nil
+}
+
+// SyncOrganization creates or updates an organization unit node in the graph
+func (s *Neo4jService) SyncOrganization(ctx context.Context, org OrganizationNode) error {
+	// 创建带超时的上下文
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	
+	session := s.driver.NewSession(ctx, neo4j.SessionConfig{
+		AccessMode: neo4j.AccessModeWrite,
+	})
+	defer session.Close(ctx)
+
+	query := `
+		MERGE (o:OrganizationUnit {id: $id, tenant_id: $tenant_id})
+		SET o.unit_type = $unit_type,
+		    o.name = $name,
+		    o.description = $description,
+		    o.status = $status,
+		    o.is_active = $is_active,
+		    o.updated_at = datetime()
+		WITH o
+		
+		// Create parent relationship if parent_unit_id is provided
+		FOREACH (parentId IN CASE WHEN $parent_unit_id <> '' THEN [$parent_unit_id] ELSE [] END |
+			MERGE (parent:OrganizationUnit {id: parentId, tenant_id: $tenant_id})
+			MERGE (parent)-[:PARENT_OF]->(o)
+		)
+		
+		RETURN o
+	`
+
+	params := map[string]interface{}{
+		"id":             org.ID,
+		"tenant_id":      org.TenantID,
+		"unit_type":      org.UnitType,
+		"name":           org.Name,
+		"description":    org.Description,
+		"status":         org.Status,
+		"is_active":      org.IsActive,
+		"parent_unit_id": org.ParentUnitID,
+	}
+
+	_, err := session.Run(ctx, query, params)
+	if err != nil {
+		return fmt.Errorf("failed to sync organization %s: %w", org.ID, err)
+	}
+
+	s.logger.Printf("Synced organization %s (%s) to Neo4j", org.ID, org.Name)
+	return nil
+}
+
+// DeleteOrganization deletes an organization unit from the graph
+func (s *Neo4jService) DeleteOrganization(ctx context.Context, orgID, tenantID string) error {
+	// 创建带超时的上下文
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	
+	session := s.driver.NewSession(ctx, neo4j.SessionConfig{
+		AccessMode: neo4j.AccessModeWrite,
+	})
+	defer session.Close(ctx)
+
+	query := `
+		MATCH (o:OrganizationUnit {id: $id, tenant_id: $tenant_id})
+		DETACH DELETE o
+		RETURN count(o) as deleted_count
+	`
+
+	params := map[string]interface{}{
+		"id":        orgID,
+		"tenant_id": tenantID,
+	}
+
+	result, err := session.Run(ctx, query, params)
+	if err != nil {
+		return fmt.Errorf("failed to delete organization %s: %w", orgID, err)
+	}
+
+	record, err := result.Single(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get delete result for organization %s: %w", orgID, err)
+	}
+
+	deletedCount, found := record.Get("deleted_count")
+	if !found {
+		return fmt.Errorf("could not determine if organization %s was deleted", orgID)
+	}
+
+	if count, ok := deletedCount.(int64); ok {
+		s.logger.Printf("Deleted %d organization nodes for ID %s", count, orgID)
+	}
+
+	return nil
+}
+
+// GetOrganization retrieves an organization by ID from Neo4j
+func (s *Neo4jService) GetOrganization(ctx context.Context, orgID, tenantID string) (*OrganizationNode, error) {
+	session := s.driver.NewSession(ctx, neo4j.SessionConfig{
+		AccessMode: neo4j.AccessModeRead,
+	})
+	defer session.Close(ctx)
+
+	query := `
+		MATCH (o:OrganizationUnit {id: $id, tenant_id: $tenant_id})
+		OPTIONAL MATCH (parent:OrganizationUnit)-[:PARENT_OF]->(o)
+		OPTIONAL MATCH (o)-[:PARENT_OF]->(child:OrganizationUnit)
+		RETURN o,
+			   parent.id as parent_id,
+			   collect(child.id) as child_ids
+	`
+
+	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		result, err := tx.Run(ctx, query, map[string]any{
+			"id":        orgID,
+			"tenant_id": tenantID,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if result.Next(ctx) {
+			record := result.Record()
+			if orgNode, found := record.Get("o"); found {
+				if node, ok := orgNode.(neo4j.Node); ok {
+					org := s.nodeToOrganization(node)
+					
+					// Add parent information
+					if parentID, found := record.Get("parent_id"); found && parentID != nil {
+						if pid, ok := parentID.(string); ok {
+							org.ParentUnitID = pid
+						}
+					}
+					
+					// Add child information
+					if childIDs, found := record.Get("child_ids"); found && childIDs != nil {
+						if children, ok := childIDs.([]interface{}); ok {
+							var childList []string
+							for _, child := range children {
+								if childStr, ok := child.(string); ok {
+									childList = append(childList, childStr)
+								}
+							}
+							org.Properties["child_unit_ids"] = childList
+						}
+					}
+					
+					return &org, nil
+				}
+			}
+		}
+		return nil, nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization %s: %w", orgID, err)
+	}
+
+	if result == nil {
+		return nil, fmt.Errorf("organization not found: %s", orgID)
+	}
+
+	organization := result.(*OrganizationNode)
+	return organization, nil
+}
+
+// Helper function to convert Neo4j node to OrganizationNode
+func (s *Neo4jService) nodeToOrganization(node neo4j.Node) OrganizationNode {
+	props := node.Props
+	org := OrganizationNode{
+		Properties: make(map[string]interface{}),
+	}
+
+	if id, ok := props["id"].(string); ok {
+		org.ID = id
+	}
+	if tenantID, ok := props["tenant_id"].(string); ok {
+		org.TenantID = tenantID
+	}
+	if unitType, ok := props["unit_type"].(string); ok {
+		org.UnitType = unitType
+	}
+	if name, ok := props["name"].(string); ok {
+		org.Name = name
+	}
+	if description, ok := props["description"].(string); ok {
+		org.Description = description
+	}
+	if status, ok := props["status"].(string); ok {
+		org.Status = status
+	}
+	if isActive, ok := props["is_active"].(bool); ok {
+		org.IsActive = isActive
+	}
+
+	// Copy additional properties
+	for k, v := range props {
+		if k != "id" && k != "tenant_id" && k != "unit_type" && k != "name" && 
+		   k != "description" && k != "status" && k != "is_active" {
+			org.Properties[k] = v
+		}
+	}
+
+	return org
 }

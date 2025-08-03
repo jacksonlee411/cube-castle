@@ -1,11 +1,24 @@
 // CQRS API 客户端统一导出
 import { organizationCommands } from './commands'
 import { organizationQueries } from './queries'
+import { employeeCommands } from './employee-commands'
+import { employeeQueries } from './employee-queries'
 
-export { organizationCommands, organizationQueries }
+export { organizationCommands, organizationQueries, employeeCommands, employeeQueries }
 
 // 重新导出类型以便于使用
 export type { CreateOrganizationRequest, UpdateOrganizationRequest, Organization } from '@/types'
+export type { Employee, EmployeeFilters, EmployeeStats } from '@/types/employee'
+export type { 
+  CreateEmployeeCommand, 
+  UpdateEmployeeCommand, 
+  TerminateEmployeeCommand,
+  CommandResponse 
+} from './employee-commands'
+export type { 
+  EmployeeSearchParams, 
+  EmployeeSearchResponse 
+} from './employee-queries'
 
 // CQRS 操作状态枚举
 export enum CQRSOperationStatus {
@@ -92,6 +105,8 @@ export class CQRSClient {
 export default {
   commands: organizationCommands,
   queries: organizationQueries,
+  employeeCommands,
+  employeeQueries,
   CQRSClient,
   CQRSOperationStatus
 }

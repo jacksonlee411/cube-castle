@@ -12,7 +12,7 @@ func SetupCQRSRoutes(r chi.Router, cmdHandler *handlers.CommandHandler, queryHan
 		// 员工管理命令
 		r.Post("/hire-employee", cmdHandler.HireEmployee)
 		r.Put("/update-employee", cmdHandler.UpdateEmployee)
-		// r.Post("/terminate-employee", cmdHandler.TerminateEmployee) // 未实现
+		r.Post("/terminate-employee", cmdHandler.TerminateEmployee)
 		
 		// 组织管理命令 (新实现)
 		r.Post("/organizations", cmdHandler.CreateOrganization)
@@ -34,6 +34,7 @@ func SetupCQRSRoutes(r chi.Router, cmdHandler *handlers.CommandHandler, queryHan
 		// 员工查询
 		r.Get("/employees/{id}", queryHandler.GetEmployee)
 		r.Get("/employees", queryHandler.SearchEmployees)
+		r.Get("/employees/stats", queryHandler.GetEmployeeStats)
 		
 		// 组织查询 (新实现)
 		r.Get("/organizations", queryHandler.ListOrganizations)

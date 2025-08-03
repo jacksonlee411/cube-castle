@@ -51,6 +51,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Import CQRS hooks and components
 import { useOrganizationCQRS, useOrganizationTree, useOrganizationStats } from '@/hooks/useOrganizationCQRS';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import RESTErrorBoundary from '@/components/RESTErrorBoundary';
 import { Organization, CreateOrganizationRequest } from '@/types';
 
@@ -113,6 +114,14 @@ const OrganizationChartContent: React.FC = () => {
   
   // Stats with specialized hook
   const { stats: liveStats, refresh: refreshStats } = useOrganizationStats();
+
+  // 自动刷新功能 (替代WebSocket实时更新)
+  useAutoRefresh(refreshAll, {
+    interval: 30000,        // 30秒自动刷新
+    enabled: true,          // 默认启用
+    enableOnFocus: true,    // 窗口获得焦点时刷新
+    enableOnVisible: true,  // 页面可见时刷新
+  });
 
   // UI state management (local state only for modal and form)
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -348,20 +357,20 @@ const OrganizationChartContent: React.FC = () => {
     
     return (
       <div key={org.id} className="mb-2">
-        {/* Organization Node */}
+        {/* Organization Node - 修复：正确的层级缩进显示 */}
         <div 
           className={`relative flex items-center p-3 bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow ${
-            depth > 0 ? 'ml-8' : ''
-          } ${selectedOrganization?.id === org.id ? 'ring-2 ring-blue-500' : ''}`}
-          style={{ marginLeft: depth * 24 }}
+            selectedOrganization?.id === org.id ? 'ring-2 ring-blue-500' : ''
+          }`}
+          style={{ marginLeft: depth * 32 }} // 修复：增加缩进量使层级更明显
           data-testid={`org-node-${org.id}`}
           onClick={() => selectOrganization(org)}
         >
-          {/* Connection Lines */}
+          {/* Connection Lines - 修复：层级连接线 */}
           {depth > 0 && (
             <>
-              <div className="absolute -left-6 top-1/2 w-6 h-px bg-gray-300"></div>
-              <div className="absolute -left-6 -top-3 w-px h-6 bg-gray-300"></div>
+              <div className="absolute -left-8 top-1/2 w-8 h-px bg-gray-300"></div>
+              <div className="absolute -left-8 -top-3 w-px h-6 bg-gray-300"></div>
             </>
           )}
           
@@ -396,6 +405,10 @@ const OrganizationChartContent: React.FC = () => {
               <Badge variant="outline" className="text-xs">
                 {getTypeLabel(org.unit_type)}
               </Badge>
+              {/* 层级显示徽章 */}
+              <Badge variant="secondary" className="text-xs">
+                L{org.level}
+              </Badge>
               {org.status === 'INACTIVE' && (
                 <Badge variant="secondary" className="text-xs">
                   已停用
@@ -428,6 +441,8 @@ const OrganizationChartContent: React.FC = () => {
               <div className="flex items-center gap-1">
                 <Layers className="h-3 w-3" />
                 <span>L{org.level}</span>
+                <span className="text-gray-400">·</span>
+                <span className="text-gray-400">深度{depth}</span>
               </div>
             </div>
           </div>
@@ -436,7 +451,7 @@ const OrganizationChartContent: React.FC = () => {
           <OrgNodeActions org={org} />
         </div>
         
-        {/* Children */}
+        {/* Children - 修复：递归渲染时正确传递depth+1 */}
         {hasChildren && isExpanded && org.children && (
           <div className="mt-2">
             {org.children.map(child => renderOrgNode(child, depth + 1))}
@@ -654,8 +669,8 @@ const OrganizationChartContent: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                // Organization Tree
-                currentOrgTree.map((org: Organization) => renderOrgNode(org))
+                // Organization Tree - 修复：传递正确的depth参数
+                currentOrgTree.map((org: Organization) => renderOrgNode(org, 0))
               )}
             </div>
           ) : (

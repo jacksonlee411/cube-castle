@@ -686,17 +686,30 @@ export const organizationSelectors = {
     state.organizations.filter(org => !org.parent_unit_id),
   
   organizationTree: (state: CQRSOrganizationState) => {
-    // 构建树形结构的逻辑
-    const buildTree = (orgs: Organization[], parentId?: string): Organization[] => {
+    // 修复：构建树形结构的逻辑 - 正确处理null值匹配
+    const buildTree = (orgs: Organization[], parentId: string | null = null): Organization[] => {
       return orgs
-        .filter(org => org.parent_unit_id === parentId)
+        .filter(org => {
+          // 修复逻辑：正确匹配父级关系
+          if (parentId === null) {
+            return !org.parent_unit_id; // 根节点：parent_unit_id为空
+          }
+          return org.parent_unit_id === parentId; // 子节点：parent_unit_id匹配
+        })
         .map(org => ({
           ...org,
           children: buildTree(orgs, org.id)
         }))
+        .sort((a, b) => {
+          // 按层级和名称排序，确保显示顺序一致
+          if (a.level !== b.level) {
+            return a.level - b.level;
+          }
+          return a.name.localeCompare(b.name);
+        });
     }
     
-    return buildTree(state.organizations)
+    return buildTree(state.organizations, null);
   }
 }
 

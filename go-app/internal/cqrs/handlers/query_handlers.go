@@ -117,6 +117,37 @@ func (h *QueryHandler) SearchEmployees(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(employees)
 }
 
+// GetEmployeeStats 获取员工统计信息
+func (h *QueryHandler) GetEmployeeStats(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		http.Error(w, "Missing tenant_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	// 构建员工统计查询
+	query := queries.GetEmployeeStatsQuery{
+		TenantID: tenantUUID,
+	}
+
+	// 使用查询处理器获取统计信息
+	result, err := h.neo4jRepo.GetEmployeeStats(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to get employee stats: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 返回JSON响应
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
 // GetOrgChart 获取组织架构图
 func (h *QueryHandler) GetOrgChart(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.URL.Query().Get("tenant_id")

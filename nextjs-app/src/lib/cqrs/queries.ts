@@ -43,7 +43,7 @@ class OrganizationQueryService {
   }
 
   /**
-   * 获取组织架构图 - 层级树形结构
+   * 获取组织架构图 - 层级树形结构 (回退到扁平数据+前端buildTree)
    */
   async getOrganizationChart(params: {
     root_unit_id?: string
@@ -57,18 +57,24 @@ class OrganizationQueryService {
       total_employees: number
     }
   }> {
-    console.log('🔍 CQRS查询: 获取组织架构图', params)
+    console.log('🔍 CQRS查询: 获取组织架构图 (扁平数据)', params)
     
+    // 回退：使用扁平组织列表API，前端buildTree构建层级
     const response = await this.client.get('/organizations', { params })
     
     console.log('✅ 组织架构图查询成功:', response.data)
+    
+    // 确保返回的数据包含完整的层级结构
+    const chartData = response.data.organizations || response.data
+    const metadata = response.data.metadata || {
+      total_units: Array.isArray(chartData) ? chartData.length : 0,
+      max_depth: Math.max(...chartData.map((org: any) => org.level || 0), 0),
+      total_employees: chartData.reduce((sum: number, org: any) => sum + (org.employee_count || 0), 0)
+    }
+    
     return {
-      chart: response.data.organizations || response.data,
-      metadata: {
-        total_units: response.data.organizations?.length || response.data.length || 0,
-        max_depth: 5,
-        total_employees: 0
-      }
+      chart: chartData,
+      metadata
     }
   }
 
@@ -259,10 +265,15 @@ class OrganizationQueryService {
     
     return {
       summary: {
-        total_organizations: backendData.total || backendData.total_organizations || 0,
-        total_employees: backendData.totalEmployees || backendData.total_employees || 0,
-        active_organizations: backendData.active || backendData.active_organizations || 0,
-        max_depth: backendData.max_depth || 1
+        total: backendData.total || backendData.total_organizations || 0,
+        active: backendData.active || backendData.active_organizations || 0,
+        inactive: 0, // 计算或从后端获取
+        companies: 0,
+        departments: 0, 
+        projectTeams: 0,
+        costCenters: 0,
+        totalEmployees: backendData.totalEmployees || backendData.total_employees || 0,
+        maxLevel: backendData.max_depth || 1
       },
       trends: data.trends,
       unit_type_distribution: data.unit_type_distribution || [],

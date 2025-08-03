@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -67,8 +68,10 @@ func (h *CommandHandler) HireEmployee(w http.ResponseWriter, r *http.Request) {
 	event := events.NewEmployeeHired(cmd.TenantID, employeeID, "", cmd.FirstName, cmd.LastName, cmd.Email, cmd.HireDate)
 
 	if err := h.eventBus.Publish(r.Context(), event); err != nil {
-		// 记录日志但不阻止响应
-		// TODO: 实现重试机制
+		// 记录错误但不阻止响应
+		fmt.Printf("❌ 事件发布失败: %v\n", err)
+	} else {
+		fmt.Printf("✅ 事件已发布: employee.hired, ID=%s, TenantID=%s\n", employeeID, cmd.TenantID)
 	}
 
 	// 返回成功响应
@@ -132,6 +135,49 @@ func (h *CommandHandler) UpdateEmployee(w http.ResponseWriter, r *http.Request) 
 		"status":  "updated",
 		"message": "Employee updated successfully",
 	})
+}
+
+// TerminateEmployee 处理终止员工命令
+func (h *CommandHandler) TerminateEmployee(w http.ResponseWriter, r *http.Request) {
+	var cmd commands.TerminateEmployeeCommand
+	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// 构建更新字段映射 - 更新员工状态为已终止
+	changes := map[string]interface{}{
+		"employment_status": "TERMINATED",
+		"termination_date":  cmd.TerminationDate,
+		"updated_at":        time.Now(),
+	}
+
+	// 执行更新员工状态
+	err := h.postgresRepo.UpdateEmployee(r.Context(), cmd.ID, cmd.TenantID, changes)
+	if err != nil {
+		http.Error(w, "Failed to terminate employee", http.StatusInternalServerError)
+		return
+	}
+
+	// 发布员工终止事件
+	event := events.NewEmployeeTerminated(cmd.TenantID, cmd.ID, "", cmd.Reason, cmd.TerminationDate)
+	if err := h.eventBus.Publish(r.Context(), event); err != nil {
+		// 记录日志但不阻止响应
+		// TODO: 实现重试机制
+	}
+
+	// 返回成功响应
+	response := map[string]interface{}{
+		"employee_id":       cmd.ID,
+		"status":           "terminated",
+		"termination_date": cmd.TerminationDate,
+		"reason":           cmd.Reason,
+		"message":          "Employee terminated successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 // CreateOrganizationUnit 处理创建组织单元命令

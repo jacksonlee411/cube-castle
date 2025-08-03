@@ -19,15 +19,20 @@ import {
   WorkflowInstance,
   WorkflowStatsResponse
 } from '@/types'
-
-// API 基础配置
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-const AI_API_URL = process.env.NEXT_PUBLIC_AI_API_URL || 'http://localhost:8081'
+import { 
+  API_BASE_URL, 
+  AI_API_URL, 
+  DEFAULT_TENANT_ID, 
+  DEFAULT_TIMEOUT,
+  REST_ROUTES,
+  AI_ROUTES,
+  buildApiUrl 
+} from '@/lib/routes'
 
 // 创建 HTTP 客户端
 const httpClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: DEFAULT_TIMEOUT.STANDARD,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -36,7 +41,7 @@ const httpClient: AxiosInstance = axios.create({
 // 创建 AI 服务客户端 (gRPC Gateway)
 const aiClient: AxiosInstance = axios.create({
   baseURL: AI_API_URL,
-  timeout: 15000,
+  timeout: DEFAULT_TIMEOUT.AI_SERVICE,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -52,7 +57,7 @@ httpClient.interceptors.request.use(
     }
     
     // 添加租户ID (多租户支持) - 开发环境默认配置
-    const tenantId = localStorage.getItem('tenant_id') || '550e8400-e29b-41d4-a716-446655440000'
+    const tenantId = localStorage.getItem('tenant_id') || DEFAULT_TENANT_ID
     config.headers['X-Tenant-ID'] = tenantId
     
     return config
@@ -95,7 +100,7 @@ httpClient.interceptors.response.use(
 // AI 客户端拦截器
 aiClient.interceptors.request.use(
   (config) => {
-    const tenantId = localStorage.getItem('tenant_id') || '550e8400-e29b-41d4-a716-446655440000'
+    const tenantId = localStorage.getItem('tenant_id') || DEFAULT_TENANT_ID
     config.headers['X-Tenant-ID'] = tenantId
     return config
   },
@@ -125,39 +130,39 @@ export const employeeApi = {
     status?: string
     organizationId?: string
   } = {}): Promise<EmployeeListResponse> {
-    const response = await httpClient.get('/api/v1/corehr/employees', { params })
+    const response = await httpClient.get(REST_ROUTES.COREHR.EMPLOYEES, { params })
     return response.data
   },
 
   // 根据ID获取员工详情
   async getEmployee(id: string): Promise<Employee> {
-    const response = await httpClient.get(`/api/v1/corehr/employees/${id}`)
+    const response = await httpClient.get(REST_ROUTES.COREHR.EMPLOYEE_BY_ID(id))
     return response.data
   },
 
   // 创建员工
   async createEmployee(data: CreateEmployeeRequest): Promise<Employee> {
-    const response = await httpClient.post('/api/v1/corehr/employees', data)
+    const response = await httpClient.post(REST_ROUTES.COREHR.EMPLOYEES, data)
     toast.success('员工创建成功')
     return response.data
   },
 
   // 更新员工信息
   async updateEmployee(id: string, data: UpdateEmployeeRequest): Promise<Employee> {
-    const response = await httpClient.put(`/api/v1/corehr/employees/${id}`, data)
+    const response = await httpClient.put(REST_ROUTES.COREHR.EMPLOYEE_BY_ID(id), data)
     toast.success('员工信息更新成功')
     return response.data
   },
 
   // 删除员工
   async deleteEmployee(id: string): Promise<void> {
-    await httpClient.delete(`/api/v1/corehr/employees/${id}`)
+    await httpClient.delete(REST_ROUTES.COREHR.EMPLOYEE_BY_ID(id))
     toast.success('员工删除成功')
   },
 
   // 批量操作
   async bulkUpdateEmployees(ids: string[], data: Partial<UpdateEmployeeRequest>): Promise<void> {
-    await httpClient.patch('/api/v1/corehr/employees/bulk', { ids, data })
+    await httpClient.patch(buildApiUrl('/api/v1/corehr/employees/bulk'), { ids, data })
     toast.success(`批量更新 ${ids.length} 名员工成功`)
   }
 }
@@ -175,7 +180,7 @@ export const organizationApi = {
   } = {}): Promise<OrganizationsApiResponse> {
     try {
       console.log('🔄 调用CoreHR组织API:', params);
-      const response = await httpClient.get('/api/v1/corehr/organizations', { params })
+      const response = await httpClient.get(REST_ROUTES.COREHR.ORGANIZATIONS, { params })
       
       console.log('✅ CoreHR组织API响应:', response.data);
       return response.data
@@ -218,7 +223,7 @@ export const organizationApi = {
   // 获取组织统计 (使用CoreHR适配器API)
   async getStats(): Promise<OrganizationStatsApiResponse> {
     try {
-      const response = await httpClient.get('/api/v1/corehr/organizations/stats')
+      const response = await httpClient.get(REST_ROUTES.COREHR.ORGANIZATION_STATS)
       return response.data
     } catch (error) {
       console.warn('⚠️ 组织统计API暂不可用，使用默认数据');
@@ -236,7 +241,7 @@ export const organizationApi = {
 
   // 根据ID获取组织详情 (使用CoreHR适配器API)
   async getOrganization(id: string): Promise<Organization> {
-    const response = await httpClient.get(`/api/v1/corehr/organizations/${id}`)
+    const response = await httpClient.get(REST_ROUTES.COREHR.ORGANIZATION_BY_ID(id))
     return response.data
   },
 
@@ -251,7 +256,7 @@ export const organizationApi = {
     }
     
     console.log('🎯 创建组织API调用 (清理后数据):', cleanData);
-    const response = await httpClient.post('/api/v1/corehr/organizations', cleanData)
+    const response = await httpClient.post(REST_ROUTES.COREHR.ORGANIZATIONS, cleanData)
     console.log('🎉 组织创建成功:', response.data);
     return response.data
   },
@@ -265,7 +270,7 @@ export const organizationApi = {
     }
     
     console.log('📝 更新组织API调用:', id, cleanData);
-    const response = await httpClient.put(`/api/v1/corehr/organizations/${id}`, cleanData)
+    const response = await httpClient.put(REST_ROUTES.COREHR.ORGANIZATION_BY_ID(id), cleanData)
     console.log('✅ 组织更新成功:', response.data);
     return response.data
   },
@@ -273,7 +278,7 @@ export const organizationApi = {
   // 删除组织 (使用CoreHR适配器API)
   async deleteOrganization(id: string): Promise<void> {
     console.log('🗑️ 删除组织API调用:', id);
-    await httpClient.delete(`/api/v1/corehr/organizations/${id}`)
+    await httpClient.delete(REST_ROUTES.COREHR.ORGANIZATION_BY_ID(id))
     console.log('✅ 组织删除成功');
   }
 }
@@ -286,7 +291,7 @@ export const intelligenceApi = {
       // 为了保持会话状态，我们添加会话ID
       const sessionId = data.sessionId || generateSessionId()
       
-      const response = await httpClient.post('/api/v1/intelligence/interpret', {
+      const response = await httpClient.post(AI_ROUTES.INTELLIGENCE.INTERPRET, {
         ...data,
         sessionId
       })
@@ -328,7 +333,7 @@ export const intelligenceApi = {
   // 获取对话历史 (如果AI服务支持)
   async getConversationHistory(sessionId: string): Promise<any[]> {
     try {
-      const response = await httpClient.get(`/api/v1/intelligence/conversations/${sessionId}`)
+      const response = await httpClient.get(AI_ROUTES.INTELLIGENCE.CONVERSATION_HISTORY(sessionId))
       return response.data.history || []
     } catch {
       // 如果服务不支持历史记录，返回空数组
@@ -339,7 +344,7 @@ export const intelligenceApi = {
   // 清除对话历史
   async clearConversationHistory(sessionId: string): Promise<void> {
     try {
-      await httpClient.delete(`/api/v1/intelligence/conversations/${sessionId}`)
+      await httpClient.delete(AI_ROUTES.INTELLIGENCE.CONVERSATION_HISTORY(sessionId))
     } catch {
       // 忽略删除失败的情况
     }
@@ -355,19 +360,19 @@ export const workflowApi = {
     status?: string
     workflowName?: string
   } = {}): Promise<{ instances: WorkflowInstance[], pagination: any }> {
-    const response = await httpClient.get('/api/v1/workflows/instances', { params })
+    const response = await httpClient.get(REST_ROUTES.WORKFLOWS.INSTANCES, { params })
     return response.data
   },
 
   // 获取工作流实例详情
   async getWorkflowInstance(id: string): Promise<WorkflowInstance> {
-    const response = await httpClient.get(`/api/v1/workflows/instances/${id}`)
+    const response = await httpClient.get(REST_ROUTES.WORKFLOWS.INSTANCE_BY_ID(id))
     return response.data
   },
 
   // 启动工作流
   async startWorkflow(workflowName: string, input: any): Promise<WorkflowInstance> {
-    const response = await httpClient.post('/api/v1/workflows/start', {
+    const response = await httpClient.post(REST_ROUTES.WORKFLOWS.START, {
       workflowName,
       input
     })
@@ -377,7 +382,7 @@ export const workflowApi = {
 
   // 获取工作流统计信息
   async getWorkflowStats(): Promise<WorkflowStatsResponse> {
-    const response = await httpClient.get('/api/v1/workflows/stats')
+    const response = await httpClient.get(REST_ROUTES.WORKFLOWS.STATS)
     return response.data
   }
 }
@@ -386,19 +391,19 @@ export const workflowApi = {
 export const systemApi = {
   // 获取系统健康状态
   async getSystemHealth(): Promise<SystemHealth> {
-    const response = await httpClient.get('/api/v1/system/health')
+    const response = await httpClient.get(REST_ROUTES.SYSTEM.HEALTH)
     return response.data
   },
 
   // 获取业务指标
   async getBusinessMetrics(): Promise<BusinessMetrics> {
-    const response = await httpClient.get('/api/v1/system/metrics/business')
+    const response = await httpClient.get(REST_ROUTES.SYSTEM.METRICS)
     return response.data
   },
 
   // 获取系统版本信息
   async getSystemInfo(): Promise<any> {
-    const response = await httpClient.get('/api/v1/system/info')
+    const response = await httpClient.get(REST_ROUTES.SYSTEM.INFO)
     return response.data
   }
 }

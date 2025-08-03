@@ -4,6 +4,40 @@ import (
 	"github.com/google/uuid"
 )
 
+// === 员工查询 ===
+
+// GetEmployeeQuery 获取单个员工查询
+type GetEmployeeQuery struct {
+	TenantID   uuid.UUID `json:"tenant_id" validate:"required"`
+	EmployeeID uuid.UUID `json:"employee_id" validate:"required"`
+}
+
+// SearchEmployeesQuery 员工搜索查询
+type SearchEmployeesQuery struct {
+	TenantID   uuid.UUID `json:"tenant_id" validate:"required"`
+	Name       *string   `json:"name,omitempty"`
+	Email      *string   `json:"email,omitempty"`
+	Department *string   `json:"department,omitempty"`
+	Status     *string   `json:"status,omitempty" validate:"omitempty,oneof=ACTIVE INACTIVE TERMINATED"`
+	Limit      int       `json:"limit" validate:"min=1,max=1000"`
+	Offset     int       `json:"offset" validate:"min=0"`
+}
+
+// GetEmployeeStatsQuery 员工统计查询
+type GetEmployeeStatsQuery struct {
+	TenantID uuid.UUID `json:"tenant_id" validate:"required"`
+}
+
+// EmployeeStatsResponse 员工统计响应
+type EmployeeStatsResponse struct {
+	Total       int `json:"total"`
+	Active      int `json:"active"`
+	Inactive    int `json:"inactive"`
+	NewThisWeek int `json:"new_this_week"`
+}
+
+// === 组织查询 ===
+
 // GetOrganizationQuery 获取单个组织查询
 type GetOrganizationQuery struct {
 	TenantID uuid.UUID `json:"tenant_id" validate:"required"`
@@ -121,16 +155,6 @@ type OrganizationStats struct {
 type FindEmployeeQuery struct {
 	TenantID uuid.UUID `json:"tenant_id" validate:"required"`
 	ID       uuid.UUID `json:"id" validate:"required"`
-}
-
-// SearchEmployeesQuery 搜索员工查询
-type SearchEmployeesQuery struct {
-	TenantID   uuid.UUID `json:"tenant_id" validate:"required"`
-	Name       *string   `json:"name,omitempty"`
-	Email      *string   `json:"email,omitempty"`
-	Department *string   `json:"department,omitempty"`
-	Limit      int       `json:"limit" validate:"min=1,max=1000"`
-	Offset     int       `json:"offset" validate:"min=0"`
 }
 
 // GetReportingHierarchyQuery 获取汇报层级查询

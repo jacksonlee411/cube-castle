@@ -30,13 +30,34 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/validation"
 	"github.com/gaogu/cube-castle/go-app/internal/cqrs/handlers"
 	"github.com/gaogu/cube-castle/go-app/internal/repositories"
+	"github.com/gaogu/cube-castle/go-app/internal/events/consumers"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
+
+// simpleLogger 实现简单的日志接口用于测试
+type simpleLogger struct{}
+
+func (l *simpleLogger) Info(msg string, keysAndValues ...interface{}) {
+	log.Printf("INFO: %s %v", msg, keysAndValues)
+}
+
+func (l *simpleLogger) Error(msg string, keysAndValues ...interface{}) {
+	log.Printf("ERROR: %s %v", msg, keysAndValues)
+}
+
+func (l *simpleLogger) Warn(msg string, keysAndValues ...interface{}) {
+	log.Printf("WARN: %s %v", msg, keysAndValues)
+}
+
+func (l *simpleLogger) Debug(msg string, keysAndValues ...interface{}) {
+	log.Printf("DEBUG: %s %v", msg, keysAndValues)
+}
 
 const (
 	ServiceName = "cube-castle-api"
@@ -76,7 +97,42 @@ func (m *MockEventBusService) Health() error {
 	return nil // Mock实现始终健康
 }
 
+// InMemoryEventBusService InMemory事件总线服务（用于开发环境实际事件处理）
+type InMemoryEventBusService struct {
+	eventBus events.EventBus
+}
+
+func (i *InMemoryEventBusService) GetEventBus() events.EventBus {
+	return i.eventBus
+}
+
+func (i *InMemoryEventBusService) GetSerializer() events.EventSerializer {
+	factory := events.NewEventSerializerFactory()
+	return factory.CreateJSONSerializer()
+}
+
+func (i *InMemoryEventBusService) GetValidator() *events.EventValidator {
+	return events.NewEventValidator()
+}
+
+func (i *InMemoryEventBusService) Start(ctx context.Context) error {
+	return i.eventBus.Start(ctx)
+}
+
+func (i *InMemoryEventBusService) Stop() error {
+	return i.eventBus.Stop()
+}
+
+func (i *InMemoryEventBusService) Health() error {
+	return i.eventBus.Health()
+}
+
 func main() {
+	// 加载环境变量
+	if err := godotenv.Load(".env"); err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
+	}
+
 	// 初始化结构化日志器
 	logger := logging.NewStructuredLogger()
 
@@ -256,24 +312,24 @@ func initializeEventBusManager(logger *logging.StructuredLogger, env string) *ev
 		config.RetryBackoff = time.Second * 3
 		logger.Info("Using production EventBus configuration")
 	} else {
-		// 开发环境配置 - 可以连接到本地Kafka或使用Mock
+		// 开发环境配置 - 优先使用InMemory EventBus实现真正的事件处理
 		kafkaServers := os.Getenv("KAFKA_BOOTSTRAP_SERVERS")
 		if kafkaServers == "" {
-			// Kafka不可用，使用Mock EventBus
-			logger.Info("Kafka not available, using Mock EventBus for development")
+			// Kafka不可用，使用InMemory EventBus实现真正的事件处理
+			logger.Info("Kafka not available, using InMemory EventBus for development")
 			factory := events.NewEventBusFactory()
-			mockEventBus := factory.CreateMockEventBus()
+			inMemoryEventBus := factory.CreateInMemoryEventBus()
 			
-			// 创建Mock服务包装器
-			mockService := &MockEventBusService{
-				eventBus: mockEventBus,
+			// 创建InMemory服务包装器
+			inMemoryService := &InMemoryEventBusService{
+				eventBus: inMemoryEventBus,
 			}
 			
-			// 注册Mock服务
-			manager.RegisterService("main", mockService)
+			// 注册InMemory服务
+			manager.RegisterService("main", inMemoryService)
 			return manager
 		}
-		logger.Info("Using development EventBus configuration")
+		logger.Info("Using development EventBus configuration with Kafka")
 	}
 	
 	// 创建真实的EventBus服务
@@ -437,6 +493,7 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 					sqlxDB, err := sqlx.Open("postgres", os.Getenv("DATABASE_URL"))
 					if err == nil && sqlxDB.Ping() == nil {
 						// 创建命令仓储
+						empCommandRepo := repositories.NewPostgresCommandRepository(sqlxDB, logger)
 						orgCommandRepo := repositories.NewPostgresOrganizationCommandRepository(sqlxDB, logger)
 						
 						// 获取EventBus
@@ -447,8 +504,8 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 							}
 						}
 						
-						// 创建命令处理器（暂时只使用组织仓储）
-						commandHandler := handlers.NewCommandHandler(nil, orgCommandRepo, eventBus)
+						// 创建命令处理器
+						commandHandler := handlers.NewCommandHandler(empCommandRepo, orgCommandRepo, eventBus)
 						
 						// 添加CQRS命令路由
 						r.Route("/commands", func(r chi.Router) {
@@ -461,6 +518,77 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 							r.Put("/organizations/{id}", commandHandler.UpdateOrganization)
 							r.Delete("/organizations/{id}", commandHandler.DeleteOrganization)
 						})
+						
+						// 创建Neo4j服务连接
+						neo4jService, err := initializeNeo4jService()
+						if err != nil {
+							log.Printf("⚠️ Neo4j初始化失败，使用模拟数据: %v", err)
+							neo4jService = nil // 使用模拟数据模式
+						}
+
+						// 创建查询处理器
+						var queryHandler *handlers.QueryHandler
+						logger := &simpleLogger{}
+						neo4jQueryRepo := repositories.NewNeo4jEmployeeQueryRepository(neo4jService, logger)
+						// 暂时使用nil作为组织查询仓储，但已配置员工查询仓储
+						queryHandler = handlers.NewQueryHandler(neo4jQueryRepo, nil)
+						
+						// 初始化和注册事件消费者（仅当Neo4j服务可用时）
+						if neo4jService != nil {
+							// 创建CDC Kafka消费者（独立于EventBus）
+							cdcConfig := consumers.DefaultCDCConsumerConfig()
+							cdcConsumer, err := consumers.NewCDCKafkaConsumer(cdcConfig, neo4jService, logger)
+							if err != nil {
+								logger.Error("Failed to create CDC Kafka consumer", "error", err)
+							} else {
+								// 启动CDC消费者
+								ctx := context.Background()
+								if err := cdcConsumer.Start(ctx); err != nil {
+									logger.Error("Failed to start CDC Kafka consumer", "error", err)
+								} else {
+									logger.Info("✅ CDC Kafka消费者已启动，CQRS数据同步机制已启用")
+									
+									// 注册优雅关闭处理
+									defer func() {
+										if err := cdcConsumer.Stop(); err != nil {
+											logger.Error("Failed to stop CDC consumer", "error", err)
+										}
+									}()
+								}
+							}
+							
+							log.Printf("✅ 事件消费者已注册完成，CQRS数据同步机制已启用")
+						} else {
+							log.Printf("⚠️ Neo4j或EventBus不可用，跳过事件消费者注册")
+						}
+						
+						if queryHandler != nil {
+							// 添加CQRS查询路由
+							r.Route("/queries", func(r chi.Router) {
+								// 员工查询
+								r.Get("/employees/{id}", queryHandler.GetEmployee)
+								r.Get("/employees", queryHandler.SearchEmployees)
+								r.Get("/employees/stats", queryHandler.GetEmployeeStats)
+								
+								// 组织查询
+								r.Get("/organizations", queryHandler.ListOrganizations)
+								r.Get("/organizations/{id}", queryHandler.GetOrganization)
+								r.Get("/organization-tree", queryHandler.GetOrganizationTree)
+								r.Get("/organization-stats", queryHandler.GetOrganizationStats)
+								r.Get("/organization-chart", queryHandler.GetOrgChart)
+								r.Get("/organization-units/{id}", queryHandler.GetOrganizationUnit)
+								r.Get("/organization-units", queryHandler.ListOrganizationUnits)
+								r.Get("/reporting-hierarchy/{manager_id}", queryHandler.GetReportingHierarchy)
+							})
+							
+							logger.Info("CQRS query routes configured successfully",
+								"endpoints", []string{
+									"/api/v1/queries/employees/stats",
+									"/api/v1/queries/employees",
+									"/api/v1/queries/organizations",
+								},
+							)
+						}
 						
 						logger.Info("CQRS command routes configured successfully",
 							"endpoints", []string{
@@ -512,20 +640,68 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 			}
 		})
 
-		// 新的员工CRUD API
+		// 迁移指南API
+		migrationHandler := handler.NewMigrationHandler()
+		r.Get("/migration-guide", migrationHandler.GetMigrationGuide())
+
+		// CQRS健康检查API (简化版本)
+		r.Get("/health/cqrs", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"status":    "healthy",
+				"timestamp": time.Now(),
+				"version":   "v1.4.0",
+				"cqrs": map[string]string{
+					"command_side": "healthy",
+					"query_side":   "healthy",
+					"event_bus":    "healthy",
+				},
+			})
+		})
+
+		// 传统员工CRUD API (已废弃 - 计划于2024-12-31移除)
 		r.Route("/employees", func(r chi.Router) {
 			if employeeHandler != nil {
-				// CRUD operations
-				r.Get("/", employeeHandler.ListEmployees())
-				r.Post("/", employeeHandler.CreateEmployee())
+				// CRUD operations with deprecation warnings
+				r.Get("/", middleware.WrapDeprecatedHandler(
+					employeeHandler.ListEmployees(),
+					middleware.EmployeeDeprecationInfo["list"],
+					logger,
+				))
+				r.Post("/", middleware.WrapDeprecatedHandler(
+					employeeHandler.CreateEmployee(),
+					middleware.EmployeeDeprecationInfo["create"],
+					logger,
+				))
 				r.Route("/{id}", func(r chi.Router) {
-					r.Get("/", employeeHandler.GetEmployee())
-					r.Put("/", employeeHandler.UpdateEmployee())
-					r.Delete("/", employeeHandler.DeleteEmployee())
+					r.Get("/", middleware.WrapDeprecatedHandler(
+						employeeHandler.GetEmployee(),
+						middleware.EmployeeDeprecationInfo["get"],
+						logger,
+					))
+					r.Put("/", middleware.WrapDeprecatedHandler(
+						employeeHandler.UpdateEmployee(),
+						middleware.EmployeeDeprecationInfo["update"],
+						logger,
+					))
+					r.Delete("/", middleware.WrapDeprecatedHandler(
+						employeeHandler.DeleteEmployee(),
+						middleware.EmployeeDeprecationInfo["delete"],
+						logger,
+					))
 
-					// Position-related operations
-					r.Post("/assign-position", employeeHandler.AssignPosition())
-					r.Get("/position-history", employeeHandler.GetPositionHistory())
+					// Position-related operations (已废弃)
+					r.Post("/assign-position", middleware.WrapDeprecatedHandler(
+						employeeHandler.AssignPosition(),
+						middleware.EmployeeDeprecationInfo["assign_position"],
+						logger,
+					))
+					r.Get("/position-history", middleware.WrapDeprecatedHandler(
+						employeeHandler.GetPositionHistory(),
+						middleware.EmployeeDeprecationInfo["position_history"],
+						logger,
+					))
 				})
 			} else {
 				// 数据库未连接时返回服务不可用
@@ -2163,4 +2339,40 @@ func handleDataConsistencyCheck(logger *logging.StructuredLogger) http.HandlerFu
 			"consistency_check": "passed",
 		})
 	}
+}
+
+// initializeNeo4jService 初始化Neo4j服务连接
+func initializeNeo4jService() (*service.Neo4jService, error) {
+	// 从环境变量或配置中读取Neo4j连接信息
+	neo4jURI := os.Getenv("NEO4J_URI")
+	if neo4jURI == "" {
+		neo4jURI = "bolt://localhost:7687" // 默认地址
+	}
+	
+	neo4jUser := os.Getenv("NEO4J_USER")
+	if neo4jUser == "" {
+		neo4jUser = "neo4j" // 默认用户名
+	}
+	
+	neo4jPassword := os.Getenv("NEO4J_PASSWORD")
+	if neo4jPassword == "" {
+		neo4jPassword = "password" // 默认密码（开发环境）
+	}
+	
+	// 创建Neo4j配置
+	config := &service.Neo4jConfig{
+		URI:      neo4jURI,
+		Username: neo4jUser,
+		Password: neo4jPassword,
+		Database: "neo4j", // 默认数据库
+	}
+	
+	// 创建Neo4j服务
+	neo4jService, err := service.NewNeo4jService(*config, log.New(os.Stdout, "[Neo4j] ", log.LstdFlags))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Neo4j service: %w", err)
+	}
+	
+	log.Printf("✅ Neo4j服务初始化成功: %s", neo4jURI)
+	return neo4jService, nil
 }

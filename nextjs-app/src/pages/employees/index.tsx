@@ -28,7 +28,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { SWRMonitoring } from '@/components/ui/swr-monitoring';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -41,10 +40,9 @@ import EmployeeCard, { EmployeeCardsGrid, EmployeeCardSkeleton } from '@/compone
 import SmartFilterStable, { FilterOption, ActiveFilter } from '@/components/ui/smart-filter-stable';
 import { PieChart, BarChart } from '@/components/ui/data-visualization';
 
-// Import SWR hooks
-import { useEmployeesSWR, useEmployeeStatsSWR, Employee } from '@/hooks/useEmployeesSWR';
-import { ForceSWRComponent } from '@/components/ForceSWRComponent';
-import { SWRDebugComponent } from '@/components/SWRDebugComponent';
+// Import CQRS hooks
+import { useEmployeeCQRS, useEmployeeStats } from '@/hooks/useEmployeeCQRS';
+import { Employee } from '@/types/employee';
 import ClientOnlyWrapper from '@/components/ClientOnlyWrapper';
 
 const EmployeesPage: React.FC = () => {
@@ -64,23 +62,21 @@ const EmployeesPage: React.FC = () => {
   const handleFiltersChange = useCallback((filters: ActiveFilter[]) => {
     setActiveFilters(filters);
   }, []);
-  const { 
-    employees, 
-    totalCount, 
-    isLoading, 
-    isError, 
-    error, 
-    mutate 
-  } = useEmployeesSWR({
-    search: searchValue,
-    department: activeFilters.find(f => f.key === 'department')?.value,
-  });
+  // 使用 CQRS Employee Hook
+  const {
+    employees,
+    filteredEmployees,
+    isLoading,
+    hasErrors,
+    searchEmployees,
+    setFilters,
+    refreshAll
+  } = useEmployeeCQRS();
 
   const { 
-    stats, 
-    departmentData,
+    stats,
     isLoading: statsLoading 
-  } = useEmployeeStatsSWR();
+  } = useEmployeeStats();
 
   // Error state component
   const ErrorState = () => (
@@ -90,11 +86,11 @@ const EmployeesPage: React.FC = () => {
         <div>
           <h3 className="text-lg font-semibold text-red-600">数据加载失败</h3>
           <p className="text-sm text-gray-600 mt-1">
-            {error?.message || '无法连接到服务器，请检查网络连接'}
+            无法连接到服务器，请检查网络连接
           </p>
         </div>
         <Button 
-          onClick={() => mutate()} 
+          onClick={() => refreshAll()} 
           variant="outline" 
           className="flex items-center gap-2"
         >
@@ -182,7 +178,7 @@ const EmployeesPage: React.FC = () => {
       }
       
       // Refresh data
-      mutate();
+      refreshAll();
       handleModalClose();
     } catch (error) {
       toast.error('操作时发生错误，请重试');
@@ -202,7 +198,7 @@ const EmployeesPage: React.FC = () => {
     if (confirm(`确定要删除员工 ${employee.legalName} 吗？此操作不可撤销。`)) {
       // In a real app, this would make an API call
       toast.success(`员工 ${employee.legalName} 已从系统中删除`);
-      mutate(); // Refresh data
+      refreshAll(); // Refresh data
     }
   };
 
@@ -219,35 +215,24 @@ const EmployeesPage: React.FC = () => {
     }
   };
 
-  // Filter employees based on search and active filters
-  const filteredEmployees = employees.filter(employee => {
-    // Search filter
+  // 使用CQRS Hook的搜索和过滤功能
+  React.useEffect(() => {
     if (searchValue) {
-      const searchLower = searchValue.toLowerCase();
-      if (!employee.legalName.toLowerCase().includes(searchLower) &&
-          !employee.employeeId.toLowerCase().includes(searchLower) &&
-          !employee.email.toLowerCase().includes(searchLower) &&
-          !(employee.department?.toLowerCase().includes(searchLower)) &&
-          !(employee.position?.toLowerCase().includes(searchLower))) {
-        return false;
-      }
+      searchEmployees(searchValue);
     }
+  }, [searchValue, searchEmployees]);
 
-    // Active filters
-    for (const filter of activeFilters) {
-      if (filter.key === 'department' && employee.department !== filter.value) {
-        return false;
-      }
-      if (filter.key === 'status' && employee.status !== filter.value) {
-        return false;
-      }
-      if (filter.key === 'position' && employee.position !== filter.value) {
-        return false;
-      }
+  React.useEffect(() => {
+    if (activeFilters.length > 0) {
+      const filterMap = activeFilters.reduce((acc, filter) => {
+        acc[filter.key] = filter.value;
+        return acc;
+      }, {} as Record<string, string>);
+      setFilters(filterMap);
+    } else {
+      setFilters({});
     }
-
-    return true;
-  });
+  }, [activeFilters, setFilters]);
 
   // Filter options configuration - 深度稳定化防止引用循环
   const filterOptions: FilterOption[] = useMemo(() => {
@@ -278,7 +263,7 @@ const EmployeesPage: React.FC = () => {
         placeholder: '输入职位关键词'
       }
     ];
-  }, [employees.length]); // 只依赖员工数量，避免因数据细节变化而重新创建
+  }, [employees]); // 依赖整个 employees 数组，确保过滤器选项正确更新
 
   // Preset filter configurations (memoized to prevent re-creation)
   const filterPresets = useMemo(() => [
@@ -482,8 +467,8 @@ const EmployeesPage: React.FC = () => {
     },
   ];
 
-  // Show error state
-  if (isError) {
+  // Show error state only if there are no employees and there are errors
+  if (hasErrors && employees.length === 0 && !isLoading) {
     return (
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 page-enter">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -544,7 +529,7 @@ const EmployeesPage: React.FC = () => {
       <StatCardsGrid columns={4}>
         <StatCard
           title="总员工数"
-          value={stats.total}
+          value={stats?.total || 0}
           change={8.5}
           changeLabel="较上月"
           icon={<Users className="w-8 h-8" />}
@@ -553,7 +538,7 @@ const EmployeesPage: React.FC = () => {
         />
         <StatCard
           title="在职员工"
-          value={stats.active}
+          value={stats?.active || 0}
           change={2.1}
           changeLabel="较上月"
           icon={<UserCheck className="w-8 h-8" />}
@@ -562,7 +547,7 @@ const EmployeesPage: React.FC = () => {
         />
         <StatCard
           title="待入职"
-          value={stats.pending}
+          value={stats?.pending || 0}
           change={-1.2}
           changeLabel="较上月"
           icon={<UserPlus className="w-8 h-8" />}
@@ -571,7 +556,7 @@ const EmployeesPage: React.FC = () => {
         />
         <StatCard
           title="部门数量"
-          value={stats.departments}
+          value={stats?.departments || 0}
           change={0}
           changeLabel="较上月"
           icon={<Building className="w-8 h-8" />}
@@ -583,16 +568,23 @@ const EmployeesPage: React.FC = () => {
       {/* Data Visualization */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <PieChart
-          data={departmentData}
+          data={[
+            { label: '技术部', value: employees.filter(e => e.department === '技术部').length },
+            { label: '产品部', value: employees.filter(e => e.department === '产品部').length },
+            { label: '人事部', value: employees.filter(e => e.department === '人事部').length },
+            { label: '财务部', value: employees.filter(e => e.department === '财务部').length },
+            { label: '市场部', value: employees.filter(e => e.department === '市场部').length },
+            { label: '运营部', value: employees.filter(e => e.department === '运营部').length },
+          ].filter(item => item.value > 0)}
           title="部门分布"
           description="各部门员工数量分布情况"
           loading={statsLoading}
         />
         <BarChart
           data={[
-            { label: '在职', value: stats.active },
-            { label: '离职', value: stats.inactive },
-            { label: '待入职', value: stats.pending }
+            { label: '在职', value: stats?.active || 0 },
+            { label: '离职', value: stats?.inactive || 0 },
+            { label: '待入职', value: stats?.pending || 0 }
           ]}
           title="员工状态统计"
           description="不同状态员工数量对比"
@@ -645,7 +637,7 @@ const EmployeesPage: React.FC = () => {
               </Badge>
             )}
             <span className="text-muted-foreground">
-              显示 {filteredEmployees.length} / {totalCount} 个员工
+              显示 {filteredEmployees.length} / {employees.length} 个员工
             </span>
             {isLoading && (
               <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
@@ -678,7 +670,8 @@ const EmployeesPage: React.FC = () => {
                 key={employee.id}
                 employee={{
                   ...employee,
-                  name: employee.legalName
+                  name: employee.legalName,
+                  phone: employee.phone || undefined
                 }}
                 selectable={true}
                 selected={selectedEmployees.includes(employee.id)}
@@ -834,9 +827,6 @@ const EmployeesPage: React.FC = () => {
           </div>
         </div>
       )}
-      
-      {/* SWR Performance Monitoring Component */}
-      <SWRMonitoring />
     </div>
   );
 };
