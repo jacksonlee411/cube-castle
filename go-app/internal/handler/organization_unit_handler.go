@@ -560,8 +560,8 @@ func (h *OrganizationUnitHandler) convertToResponse(orgUnit *ent.OrganizationUni
 		Name:         orgUnit.Name,
 		Description:  orgUnit.Description,
 		ParentUnitID: orgUnit.ParentUnitID,
-		Status:       orgUnit.Status.String(),
-		Profile:      orgUnit.Profile, // Already map[string]interface{}
+		Status:       orgUnit.Status.String(),        // Now using correct Status field
+		Profile:      orgUnit.Profile,               // Already map[string]interface{}
 		CreatedAt:    orgUnit.CreatedAt,
 		UpdatedAt:    orgUnit.UpdatedAt,
 	}

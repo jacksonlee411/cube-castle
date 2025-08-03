@@ -13,7 +13,12 @@ import {
   ArrowUp,
   ArrowDown,
   Expand,
-  Minimize
+  Minimize,
+  RefreshCw,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -44,11 +49,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Import modern SWR hooks, error boundary, and real API
-import { useOrganizationsSWR, useOrganizationChartSWR, useOrganizationStatsSWR } from '@/hooks/useOrganizationsSWR';
+// Import CQRS hooks and components
+import { useOrganizationCQRS, useOrganizationTree, useOrganizationStats } from '@/hooks/useOrganizationCQRS';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import RESTErrorBoundary from '@/components/RESTErrorBoundary';
-import { Organization, OrganizationCreateData } from '@/types';
-import { organizationApi } from '@/lib/api-client';
+import { Organization, CreateOrganizationRequest } from '@/types';
 
 const OrganizationChartPage: React.FC = () => {
   return (
@@ -73,86 +78,139 @@ const OrganizationChartPage: React.FC = () => {
 const OrganizationChartContent: React.FC = () => {
   const router = useRouter();
   
-  // Modern SWR data fetching (replacing useEffect)
+  // CQRS data fetching - unified state management
   const { 
-    organizations, 
-    totalCount, 
-    isLoading, 
-    isError, 
-    error,
-    mutate 
-  } = useOrganizationsSWR();
+    organizations,
+    orgChart,
+    orgStats,
+    isLoading,
+    isRefreshing,
+    hasErrors,
+    errors,
+    filteredOrganizations,
+    organizationTree,
+    createOrganization,
+    updateOrganization,
+    deleteOrganization,
+    refreshAll,
+    searchQuery,
+    setSearchQuery,
+    filters,
+    setFilters,
+    viewMode,
+    setViewMode
+  } = useOrganizationCQRS();
   
-  const { 
-    chart, 
-    flatChart, 
-    isLoading: isChartLoading 
-  } = useOrganizationChartSWR();
+  // Tree-specific operations
+  const {
+    expandedNodes,
+    selectedOrganization,
+    toggleNodeExpansion,
+    selectOrganization,
+    expandAll,
+    collapseAll,
+    isNodeExpanded
+  } = useOrganizationTree();
   
-  const { 
-    stats, 
-    typeData, 
-    isLoading: isStatsLoading 
-  } = useOrganizationStatsSWR();
+  // Stats with specialized hook
+  const { stats: liveStats, refresh: refreshStats } = useOrganizationStats();
 
-  // UI state management
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  // 自动刷新功能 (替代WebSocket实时更新)
+  useAutoRefresh(refreshAll, {
+    interval: 30000,        // 30秒自动刷新
+    enabled: true,          // 默认启用
+    enableOnFocus: true,    // 窗口获得焦点时刷新
+    enableOnVisible: true,  // 页面可见时刷新
+  });
+
+  // UI state management (local state only for modal and form)
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null);
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
-  const [formData, setFormData] = useState<Partial<OrganizationCreateData>>({});
+  const [formData, setFormData] = useState<Partial<CreateOrganizationRequest>>({});
 
-  // Initialize expanded nodes when data loads
+  // Use the current stats data (prioritize live stats, fallback to store stats)
+  // 统一数据格式映射函数
+  const mapStatsFormat = (stats: any) => ({
+    total: stats?.total_organizations || 0,
+    active: stats?.active_organizations || 0,
+    inactive: (stats?.total_organizations || 0) - (stats?.active_organizations || 0),
+    totalEmployees: stats?.total_employees || 0,
+    maxLevel: stats?.max_depth || 0
+  });
+  
+  const currentStats = liveStats ? mapStatsFormat(liveStats) 
+    : orgStats ? mapStatsFormat(orgStats) 
+    : {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      totalEmployees: 0,
+      maxLevel: 0
+    };
+
+  // Use organizationTree from CQRS hook instead of chart data
+  const currentOrgTree = organizationTree.length > 0 ? organizationTree : orgChart;
+
+  // Initialize expanded nodes when data loads - now managed by CQRS store
   useEffect(() => {
-    if (chart.length > 0) {
+    if (currentOrgTree.length > 0) {
       // Auto-expand first two levels for better UX
       const defaultExpanded = new Set<string>();
-      flatChart.forEach(org => {
+      organizations.forEach(org => {
         if (org.level <= 1) {
           defaultExpanded.add(org.id);
         }
       });
-      setExpandedNodes(defaultExpanded);
+      // Only expand if not already managed by store
+      defaultExpanded.forEach(id => {
+        if (!isNodeExpanded(id)) {
+          toggleNodeExpansion(id);
+        }
+      });
     }
-  }, [chart, flatChart]);
+  }, [currentOrgTree, organizations]);
 
-  // Create/Update organization using real PostgreSQL API (aligned with backend model)
-  const handleCreateOrganization = async (values: OrganizationCreateData) => {
+  // Create/Update organization using CQRS commands with optimistic updates
+  const handleCreateOrganization = async (values: CreateOrganizationRequest) => {
     try {
       if (editingOrganization) {
-        // Update existing organization via PostgreSQL API
-        console.log('📝 更新组织:', editingOrganization.id, values);
+        // Update existing organization via CQRS command
+        console.log('📝 更新组织 (CQRS):', editingOrganization.id, values);
         
-        await organizationApi.updateOrganization(editingOrganization.id, values);
+        const result = await updateOrganization(editingOrganization.id, values);
         
-        // Revalidate SWR data to refresh UI
-        mutate();
-        toast.success(`组织 ${values.name} 信息已更新`);
+        if (result) {
+          console.log('🎉 组织更新成功 (CQRS):', result.name, '(ID:', result.id, ')');
+          toast.success(`组织 ${values.name} 信息已更新`);
+        } else {
+          throw new Error('更新失败');
+        }
       } else {
-        // Create new organization via PostgreSQL API  
-        console.log('🎯 创建新组织 (backend model):', values);
+        // Create new organization via CQRS command  
+        console.log('🎯 创建新组织 (CQRS):', values);
         
-        const newOrg = await organizationApi.createOrganization(values);
+        const result = await createOrganization(values);
         
-        // Revalidate SWR data to refresh UI immediately
-        mutate();
-        
-        console.log('🎉 组织创建成功:', newOrg.name, '(ID:', newOrg.id, ')');
-        toast.success(`组织 ${values.name} 已成功创建`);
+        if (result) {
+          console.log('🎉 组织创建成功 (CQRS):', result.name, '(ID:', result.id, ')');
+          toast.success(`组织 ${values.name} 已成功创建`);
+        } else {
+          throw new Error('创建失败');
+        }
       }
       
       handleModalClose();
     } catch (error) {
-      // If something fails, revalidate to ensure UI is consistent
-      mutate();
-      toast.error('操作时发生错误，请重试');
+      // Error handling is managed by CQRS store
       console.error('Organization operation failed:', error);
+      // Toast already shown by CQRS store
     }
   };
 
   const calculateLevel = (parentId?: string): number => {
     if (!parentId) return 0;
-    const parent = flatChart.find(org => org.id === parentId);
+    const parent = organizations.find(org => org.id === parentId);
     return parent ? parent.level + 1 : 0;
   };
 
@@ -163,7 +221,7 @@ const OrganizationChartContent: React.FC = () => {
   };
 
   const handleDelete = async (organization: Organization) => {
-    const hasChildren = flatChart.some((org: Organization) => org.parent_unit_id === organization.id);
+    const hasChildren = organizations.some((org: Organization) => org.parent_unit_id === organization.id);
     
     if (hasChildren) {
       toast.error(`组织 ${organization.name} 下还有子部门，无法删除`);
@@ -177,17 +235,20 @@ const OrganizationChartContent: React.FC = () => {
 
     if (confirm(`确定要删除组织 ${organization.name} 吗？此操作不可撤销。`)) {
       try {
-        console.log('🗑️ 删除组织:', organization.id, organization.name);
+        console.log('🗑️ 删除组织 (CQRS):', organization.id, organization.name);
         
-        // Delete via PostgreSQL API
-        await organizationApi.deleteOrganization(organization.id);
+        // Delete via CQRS command with optimistic update
+        const success = await deleteOrganization(organization.id);
         
-        // Revalidate data
-        mutate();
-        toast.success(`组织 ${organization.name} 已从系统中删除`);
+        if (success) {
+          console.log('✅ 组织删除成功 (CQRS)');
+          // Toast already shown by CQRS store
+        } else {
+          throw new Error('删除失败');
+        }
       } catch (error) {
         console.error('删除组织失败:', error);
-        toast.error('删除操作失败，请重试');
+        // Error toast already handled by CQRS store
       }
     }
   };
@@ -218,24 +279,9 @@ const OrganizationChartContent: React.FC = () => {
     setFormData({});
   };
 
-  const toggleExpanded = (nodeId: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(nodeId)) {
-      newExpanded.delete(nodeId);
-    } else {
-      newExpanded.add(nodeId);
-    }
-    setExpandedNodes(newExpanded);
-  };
-
-  const expandAll = () => {
-    const allIds = new Set(flatChart.map((org: Organization) => org.id));
-    setExpandedNodes(allIds);
-  };
-
-  const collapseAll = () => {
-    setExpandedNodes(new Set());
-  };
+  // Use CQRS store managed expand/collapse
+  const handleExpandAll = () => expandAll();
+  const handleCollapseAll = () => collapseAll();
 
   const getTypeColor = (unitType: Organization['unit_type']) => {
     const colors = {
@@ -306,24 +352,25 @@ const OrganizationChartContent: React.FC = () => {
 
   const renderOrgNode = (org: Organization, depth: number = 0) => {
     const hasChildren = org.children && org.children.length > 0;
-    const isExpanded = expandedNodes.has(org.id);
+    const isExpanded = isNodeExpanded(org.id);
     const occupancyRate = org.profile?.maxCapacity ? (org.employee_count || 0) / org.profile.maxCapacity : 0;
     
     return (
       <div key={org.id} className="mb-2">
-        {/* Organization Node */}
+        {/* Organization Node - 修复：正确的层级缩进显示 */}
         <div 
           className={`relative flex items-center p-3 bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow ${
-            depth > 0 ? 'ml-8' : ''
+            selectedOrganization?.id === org.id ? 'ring-2 ring-blue-500' : ''
           }`}
-          style={{ marginLeft: depth * 24 }}
+          style={{ marginLeft: depth * 32 }} // 修复：增加缩进量使层级更明显
           data-testid={`org-node-${org.id}`}
+          onClick={() => selectOrganization(org)}
         >
-          {/* Connection Lines */}
+          {/* Connection Lines - 修复：层级连接线 */}
           {depth > 0 && (
             <>
-              <div className="absolute -left-6 top-1/2 w-6 h-px bg-gray-300"></div>
-              <div className="absolute -left-6 -top-3 w-px h-6 bg-gray-300"></div>
+              <div className="absolute -left-8 top-1/2 w-8 h-px bg-gray-300"></div>
+              <div className="absolute -left-8 -top-3 w-px h-6 bg-gray-300"></div>
             </>
           )}
           
@@ -333,7 +380,10 @@ const OrganizationChartContent: React.FC = () => {
               variant="ghost"
               size="sm"
               className="h-6 w-6 p-0 mr-2"
-              onClick={() => toggleExpanded(org.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNodeExpansion(org.id);
+              }}
             >
               {isExpanded ? (
                 <ArrowDown className="h-3 w-3" />
@@ -354,6 +404,10 @@ const OrganizationChartContent: React.FC = () => {
               <h3 className="font-medium text-sm">{org.name}</h3>
               <Badge variant="outline" className="text-xs">
                 {getTypeLabel(org.unit_type)}
+              </Badge>
+              {/* 层级显示徽章 */}
+              <Badge variant="secondary" className="text-xs">
+                L{org.level}
               </Badge>
               {org.status === 'INACTIVE' && (
                 <Badge variant="secondary" className="text-xs">
@@ -387,6 +441,8 @@ const OrganizationChartContent: React.FC = () => {
               <div className="flex items-center gap-1">
                 <Layers className="h-3 w-3" />
                 <span>L{org.level}</span>
+                <span className="text-gray-400">·</span>
+                <span className="text-gray-400">深度{depth}</span>
               </div>
             </div>
           </div>
@@ -395,7 +451,7 @@ const OrganizationChartContent: React.FC = () => {
           <OrgNodeActions org={org} />
         </div>
         
-        {/* Children */}
+        {/* Children - 修复：递归渲染时正确传递depth+1 */}
         {hasChildren && isExpanded && org.children && (
           <div className="mt-2">
             {org.children.map(child => renderOrgNode(child, depth + 1))}
@@ -413,7 +469,7 @@ const OrganizationChartContent: React.FC = () => {
   ];
 
   const getParentOptions = () => {
-    return flatChart
+    return organizations
       .filter(org => org.id !== editingOrganization?.id)
       .map(org => ({
         value: org.id,
@@ -428,33 +484,89 @@ const OrganizationChartContent: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold">组织架构图</h1>
           <p className="text-gray-600 mt-1">
-            可视化组织结构管理 - 支持层级展示、拖拽编辑和人员配置
+            CQRS 架构 - 支持实时更新、乐观处理和智能缓存
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={expandAll}>
+          {/* Refresh Controls */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refreshAll}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? '刷新中...' : '刷新数据'}
+          </Button>
+          
+          {/* View Mode Controls */}
+          <Button variant="outline" size="sm" onClick={handleExpandAll}>
             <Expand className="mr-2 h-4 w-4" />
             全部展开
           </Button>
-          <Button variant="outline" size="sm" onClick={collapseAll}>
+          <Button variant="outline" size="sm" onClick={handleCollapseAll}>
             <Minimize className="mr-2 h-4 w-4" />
             全部收起
           </Button>
-          <Button onClick={() => setIsModalVisible(true)}>
+          
+          {/* Create Button */}
+          <Button onClick={() => setIsModalVisible(true)} disabled={isLoading}>
             <Plus className="mr-2 h-4 w-4" />
             新增组织
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Search and Filters */}
+      <div className="mb-6 flex gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="搜索组织名称或描述..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select 
+          value={filters.unit_type || 'all'} 
+          onValueChange={(value) => setFilters({ ...filters, unit_type: value === 'all' ? undefined : value })}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="组织类型" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">所有类型</SelectItem>
+            <SelectItem value="COMPANY">公司</SelectItem>
+            <SelectItem value="DEPARTMENT">部门</SelectItem>
+            <SelectItem value="PROJECT_TEAM">项目团队</SelectItem>
+            <SelectItem value="COST_CENTER">成本中心</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select 
+          value={filters.status || 'all'} 
+          onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value })}
+        >
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="状态" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">所有状态</SelectItem>
+            <SelectItem value="ACTIVE">活跃</SelectItem>
+            <SelectItem value="INACTIVE">停用</SelectItem>
+            <SelectItem value="PLANNED">计划中</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Stats Cards - Using CQRS data */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">组织总数</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-2xl font-bold">{currentStats.total || 0}</p>
               </div>
               <Building2 className="h-8 w-8 text-blue-500" />
             </div>
@@ -467,7 +579,7 @@ const OrganizationChartContent: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">总员工数</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {stats.totalEmployees}
+                  {currentStats.totalEmployees || 0}
                 </p>
               </div>
               <Users className="h-8 w-8 text-green-500" />
@@ -481,7 +593,7 @@ const OrganizationChartContent: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">最大层级</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {stats.maxLevel + 1}
+                  {(currentStats.maxLevel || 0) + 1}
                 </p>
               </div>
               <Layers className="h-8 w-8 text-purple-500" />
@@ -495,7 +607,7 @@ const OrganizationChartContent: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">活跃组织</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {stats.active}
+                  {currentStats.active || 0}
                 </p>
               </div>
               <Crown className="h-8 w-8 text-orange-500" />
@@ -504,27 +616,75 @@ const OrganizationChartContent: React.FC = () => {
         </Card>
       </div>
 
-      {/* Organization Tree */}
+      {/* Organization Tree - CQRS Enhanced */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             组织架构树
+            {hasErrors && (
+              <Badge variant="destructive" className="ml-2">
+                有错误
+              </Badge>
+            )}
+            {isLoading && (
+              <Badge variant="secondary" className="ml-2">
+                加载中...
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          {isLoading || isChartLoading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-gray-500">加载中...</div>
+              <div className="text-gray-500">正在加载组织数据...</div>
             </div>
-          ) : chart.length > 0 ? (
+          ) : hasErrors ? (
+            <Alert>
+              <AlertDescription className="text-red-600">
+                数据加载失败：{Object.values(errors).filter(Boolean).join(', ')}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-4"
+                  onClick={refreshAll}
+                >
+                  重试
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : currentOrgTree.length > 0 ? (
             <div className="space-y-2" data-testid="org-tree">
-              {chart.map((org: Organization) => renderOrgNode(org))}
+              {/* Display filtered organizations if searching, otherwise show tree */}
+              {searchQuery ? (
+                // Search Results
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    搜索 "{searchQuery}" 找到 {filteredOrganizations.length} 个结果
+                  </p>
+                  {filteredOrganizations.map((org: Organization) => (
+                    <div key={org.id} className="mb-2">
+                      {renderOrgNode(org, 0)}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                // Organization Tree - 修复：传递正确的depth参数
+                currentOrgTree.map((org: Organization) => renderOrgNode(org, 0))
+              )}
             </div>
           ) : (
             <Alert>
               <AlertDescription>
                 暂无组织架构数据，请先创建组织。
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-4"
+                  onClick={() => setIsModalVisible(true)}
+                >
+                  创建组织
+                </Button>
               </AlertDescription>
             </Alert>
           )}
@@ -649,12 +809,12 @@ const OrganizationChartContent: React.FC = () => {
             <Button 
               onClick={() => {
                 if (formData.name && formData.unit_type) {
-                  handleCreateOrganization(formData as OrganizationCreateData);
+                  handleCreateOrganization(formData as CreateOrganizationRequest);
                 }
               }} 
               disabled={isLoading || !formData.name || !formData.unit_type}
             >
-              {editingOrganization ? '更新' : '创建'}
+              {isLoading ? '处理中...' : (editingOrganization ? '更新' : '创建')}
             </Button>
           </div>
         </DialogContent>

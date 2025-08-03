@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -13,13 +14,18 @@ import (
 
 // QueryHandler 查询处理器
 type QueryHandler struct {
-	neo4jRepo repositories.Neo4jQueryRepository
+	neo4jRepo        repositories.Neo4jQueryRepository
+	organizationRepo repositories.OrganizationQueryRepository
 }
 
 // NewQueryHandler 创建查询处理器
-func NewQueryHandler(repo repositories.Neo4jQueryRepository) *QueryHandler {
+func NewQueryHandler(
+	repo repositories.Neo4jQueryRepository,
+	orgRepo repositories.OrganizationQueryRepository,
+) *QueryHandler {
 	return &QueryHandler{
-		neo4jRepo: repo,
+		neo4jRepo:        repo,
+		organizationRepo: orgRepo,
 	}
 }
 
@@ -109,6 +115,37 @@ func (h *QueryHandler) SearchEmployees(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(employees)
+}
+
+// GetEmployeeStats 获取员工统计信息
+func (h *QueryHandler) GetEmployeeStats(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		http.Error(w, "Missing tenant_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	// 构建员工统计查询
+	query := queries.GetEmployeeStatsQuery{
+		TenantID: tenantUUID,
+	}
+
+	// 使用查询处理器获取统计信息
+	result, err := h.neo4jRepo.GetEmployeeStats(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to get employee stats: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 返回JSON响应
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
 // GetOrgChart 获取组织架构图
@@ -277,15 +314,210 @@ func (h *QueryHandler) ListOrganizationUnits(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(units)
 }
 
-// TODO: 实现其他查询处理器方法
-func (h *QueryHandler) FindEmployeePath(w http.ResponseWriter, r *http.Request) {
-	// 实现员工路径查找逻辑
+// ListOrganizations 组织列表查询 (新实现)
+func (h *QueryHandler) ListOrganizations(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+	if tenantID == "" {
+		http.Error(w, "Missing tenant_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	// 解析查询参数
+	query := queries.ListOrganizationsQuery{
+		TenantID: tenantUUID,
+		Page:     1,
+		PageSize: 50,
+	}
+
+	if parentID := r.URL.Query().Get("parent_unit_id"); parentID != "" {
+		if parentUUID, err := uuid.Parse(parentID); err == nil {
+			query.ParentUnitID = &parentUUID
+		}
+	}
+	if unitType := r.URL.Query().Get("unit_type"); unitType != "" {
+		query.UnitType = &unitType
+	}
+	if status := r.URL.Query().Get("status"); status != "" {
+		query.Status = &status
+	}
+	if search := r.URL.Query().Get("search"); search != "" {
+		query.Search = &search
+	}
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if page, err := strconv.Atoi(pageStr); err == nil && page > 0 {
+			query.Page = page
+		}
+	}
+	if pageSizeStr := r.URL.Query().Get("page_size"); pageSizeStr != "" {
+		if pageSize, err := strconv.Atoi(pageSizeStr); err == nil && pageSize > 0 && pageSize <= 1000 {
+			query.PageSize = pageSize
+		}
+	}
+
+	organizations, pagination, err := h.organizationRepo.ListOrganizations(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to list organizations", http.StatusInternalServerError)
+		return
+	}
+
+	// 构建响应
+	response := map[string]interface{}{
+		"organizations": organizations,
+		"pagination":    pagination,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
-func (h *QueryHandler) GetDepartmentStructure(w http.ResponseWriter, r *http.Request) {
-	// 实现部门结构查询逻辑
+// GetOrganization 获取单个组织 (新实现)
+func (h *QueryHandler) GetOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID := chi.URLParam(r, "id")
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+
+	if orgID == "" || tenantID == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	orgUUID, err := uuid.Parse(orgID)
+	if err != nil {
+		http.Error(w, "Invalid organization ID format", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	query := queries.GetOrganizationQuery{
+		TenantID: tenantUUID,
+		ID:       orgUUID,
+	}
+
+	organization, err := h.organizationRepo.GetOrganization(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Organization not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(organization)
 }
 
-func (h *QueryHandler) FindCommonManager(w http.ResponseWriter, r *http.Request) {
-	// 实现共同管理者查找逻辑
+// GetOrganizationTree 组织树查询 (新实现)
+func (h *QueryHandler) GetOrganizationTree(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+	if tenantID == "" {
+		http.Error(w, "Missing tenant_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	query := queries.GetOrganizationTreeQuery{
+		TenantID:        tenantUUID,
+		MaxDepth:        5,
+		IncludeInactive: false,
+		ExpandAll:       false,
+	}
+
+	if rootID := r.URL.Query().Get("root_unit_id"); rootID != "" {
+		if rootUUID, err := uuid.Parse(rootID); err == nil {
+			query.RootUnitID = &rootUUID
+		}
+	}
+	if depthStr := r.URL.Query().Get("max_depth"); depthStr != "" {
+		if depth, err := strconv.Atoi(depthStr); err == nil && depth > 0 && depth <= 10 {
+			query.MaxDepth = depth
+		}
+	}
+	if includeInactiveStr := r.URL.Query().Get("include_inactive"); includeInactiveStr == "true" {
+		query.IncludeInactive = true
+	}
+	if expandAllStr := r.URL.Query().Get("expand_all"); expandAllStr == "true" {
+		query.ExpandAll = true
+	}
+
+	tree, err := h.organizationRepo.GetOrganizationTree(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to get organization tree", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"tree": tree,
+		"metadata": map[string]interface{}{
+			"max_depth":    query.MaxDepth,
+			"total_nodes":  len(tree),
+			"generated_at": time.Now().Format(time.RFC3339),
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetOrganizationStats 组织统计查询 (新实现)
+func (h *QueryHandler) GetOrganizationStats(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+	if tenantID == "" {
+		http.Error(w, "Missing tenant_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	query := queries.GetOrganizationStatsQuery{
+		TenantID:    tenantUUID,
+		Granularity: "daily",
+	}
+
+	if unitType := r.URL.Query().Get("unit_type"); unitType != "" {
+		query.UnitType = &unitType
+	}
+	if parentID := r.URL.Query().Get("parent_id"); parentID != "" {
+		if parentUUID, err := uuid.Parse(parentID); err == nil {
+			query.ParentID = &parentUUID
+		}
+	}
+
+	stats, err := h.organizationRepo.GetOrganizationStats(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to get organization stats", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": stats,
+	})
 }

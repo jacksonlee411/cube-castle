@@ -101,3 +101,6 @@ coverage/
 **/public/sw.js.map
 **/public/workbox-*.js.map
 **/public/worker-*.js.map
+
+# Deprecated code backup
+src/_deprecated_swr_backup/

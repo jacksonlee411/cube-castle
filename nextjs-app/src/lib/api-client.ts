@@ -6,8 +6,10 @@ import {
   CreateEmployeeRequest, 
   UpdateEmployeeRequest,
   Organization,
-  OrganizationListResponse,
-  OrganizationTreeResponse,
+  OrganizationProfile,
+  OrganizationsApiResponse,
+  OrganizationChartApiResponse,
+  OrganizationStatsApiResponse,
   CreateOrganizationRequest,
   UpdateOrganizationRequest,
   InterpretRequest,
@@ -17,15 +19,20 @@ import {
   WorkflowInstance,
   WorkflowStatsResponse
 } from '@/types'
-
-// API 基础配置
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-const AI_API_URL = process.env.NEXT_PUBLIC_AI_API_URL || 'http://localhost:8081'
+import { 
+  API_BASE_URL, 
+  AI_API_URL, 
+  DEFAULT_TENANT_ID, 
+  DEFAULT_TIMEOUT,
+  REST_ROUTES,
+  AI_ROUTES,
+  buildApiUrl 
+} from '@/lib/routes'
 
 // 创建 HTTP 客户端
 const httpClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: DEFAULT_TIMEOUT.STANDARD,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -34,7 +41,7 @@ const httpClient: AxiosInstance = axios.create({
 // 创建 AI 服务客户端 (gRPC Gateway)
 const aiClient: AxiosInstance = axios.create({
   baseURL: AI_API_URL,
-  timeout: 15000,
+  timeout: DEFAULT_TIMEOUT.AI_SERVICE,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -50,7 +57,7 @@ httpClient.interceptors.request.use(
     }
     
     // 添加租户ID (多租户支持) - 开发环境默认配置
-    const tenantId = localStorage.getItem('tenant_id') || '550e8400-e29b-41d4-a716-446655440000'
+    const tenantId = localStorage.getItem('tenant_id') || DEFAULT_TENANT_ID
     config.headers['X-Tenant-ID'] = tenantId
     
     return config
@@ -93,7 +100,7 @@ httpClient.interceptors.response.use(
 // AI 客户端拦截器
 aiClient.interceptors.request.use(
   (config) => {
-    const tenantId = localStorage.getItem('tenant_id') || '550e8400-e29b-41d4-a716-446655440000'
+    const tenantId = localStorage.getItem('tenant_id') || DEFAULT_TENANT_ID
     config.headers['X-Tenant-ID'] = tenantId
     return config
   },
@@ -123,95 +130,46 @@ export const employeeApi = {
     status?: string
     organizationId?: string
   } = {}): Promise<EmployeeListResponse> {
-    const response = await httpClient.get('/api/v1/corehr/employees', { params })
+    const response = await httpClient.get(REST_ROUTES.COREHR.EMPLOYEES, { params })
     return response.data
   },
 
   // 根据ID获取员工详情
   async getEmployee(id: string): Promise<Employee> {
-    const response = await httpClient.get(`/api/v1/corehr/employees/${id}`)
+    const response = await httpClient.get(REST_ROUTES.COREHR.EMPLOYEE_BY_ID(id))
     return response.data
   },
 
   // 创建员工
   async createEmployee(data: CreateEmployeeRequest): Promise<Employee> {
-    const response = await httpClient.post('/api/v1/corehr/employees', data)
+    const response = await httpClient.post(REST_ROUTES.COREHR.EMPLOYEES, data)
     toast.success('员工创建成功')
     return response.data
   },
 
   // 更新员工信息
   async updateEmployee(id: string, data: UpdateEmployeeRequest): Promise<Employee> {
-    const response = await httpClient.put(`/api/v1/corehr/employees/${id}`, data)
+    const response = await httpClient.put(REST_ROUTES.COREHR.EMPLOYEE_BY_ID(id), data)
     toast.success('员工信息更新成功')
     return response.data
   },
 
   // 删除员工
   async deleteEmployee(id: string): Promise<void> {
-    await httpClient.delete(`/api/v1/corehr/employees/${id}`)
+    await httpClient.delete(REST_ROUTES.COREHR.EMPLOYEE_BY_ID(id))
     toast.success('员工删除成功')
   },
 
   // 批量操作
   async bulkUpdateEmployees(ids: string[], data: Partial<UpdateEmployeeRequest>): Promise<void> {
-    await httpClient.patch('/api/v1/corehr/employees/bulk', { ids, data })
+    await httpClient.patch(buildApiUrl('/api/v1/corehr/employees/bulk'), { ids, data })
     toast.success(`批量更新 ${ids.length} 名员工成功`)
   }
 }
 
-// 组织架构 API
+// 统一的组织架构API适配器 (完全对齐后端organization_adapter.go)
 export const organizationApi = {
-  // 获取存储的组织数据 (localStorage fallback)
-  _getStoredOrganizations(): Organization[] {
-    if (typeof window === 'undefined') return [];
-    
-    try {
-      const stored = localStorage.getItem('cube-castle-organizations');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.warn('⚠️ 无法从localStorage读取组织数据:', error);
-      return [];
-    }
-  },
-
-  // 保存组织数据到localStorage
-  _saveOrganizationToStorage(organization: Organization): void {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      const stored = this._getStoredOrganizations();
-      const existingIndex = stored.findIndex(org => org.id === organization.id);
-      
-      if (existingIndex >= 0) {
-        stored[existingIndex] = organization;
-        console.log('📝 更新localStorage中的组织:', organization.name);
-      } else {
-        stored.push(organization);
-        console.log('💾 保存新组织到localStorage:', organization.name);
-      }
-      
-      localStorage.setItem('cube-castle-organizations', JSON.stringify(stored));
-    } catch (error) {
-      console.error('❌ 保存组织到localStorage失败:', error);
-    }
-  },
-
-  // 从localStorage删除组织
-  _removeOrganizationFromStorage(id: string): void {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      const stored = this._getStoredOrganizations();
-      const filtered = stored.filter(org => org.id !== id);
-      localStorage.setItem('cube-castle-organizations', JSON.stringify(filtered));
-      console.log('🗑️ 从localStorage删除组织:', id);
-    } catch (error) {
-      console.error('❌ 从localStorage删除组织失败:', error);
-    }
-  },
-
-  // 获取组织列表 (使用CoreHR适配器API)
+  // 获取组织列表 (标准化API调用)
   async getOrganizations(params: {
     page?: number
     pageSize?: number
@@ -219,10 +177,10 @@ export const organizationApi = {
     parent_unit_id?: string
     unit_type?: string
     status?: string
-  } = {}): Promise<OrganizationListResponse> {
+  } = {}): Promise<OrganizationsApiResponse> {
     try {
       console.log('🔄 调用CoreHR组织API:', params);
-      const response = await httpClient.get('/api/v1/corehr/organizations', { params })
+      const response = await httpClient.get(REST_ROUTES.COREHR.ORGANIZATIONS, { params })
       
       console.log('✅ CoreHR组织API响应:', response.data);
       return response.data
@@ -232,30 +190,19 @@ export const organizationApi = {
       // Fallback to mock data only on network errors
       const mockOrganizations: Organization[] = [
         {
-          id: '1',
+          id: '186b1cd6-de34-4418-8219-22c917334787',
           name: 'Cube Castle',
           unit_type: 'COMPANY',
           description: '全栈企业管理解决方案提供商',
           level: 0,
           parent_unit_id: undefined,
           employee_count: 50,
-          tenant_id: 'default',
+          tenant_id: '00000000-0000-0000-0000-000000000001',
           status: 'ACTIVE',
-          profile: {},
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: '2', 
-          name: '技术部',
-          unit_type: 'DEPARTMENT',
-          description: '技术研发部门',
-          level: 1,
-          parent_unit_id: '1',
-          employee_count: 18,
-          tenant_id: 'default',
-          status: 'ACTIVE',
-          profile: {},
+          profile: {
+            managerName: 'CEO',
+            maxCapacity: 200
+          },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
@@ -265,7 +212,7 @@ export const organizationApi = {
         organizations: mockOrganizations,
         pagination: { 
           page: params.page || 1, 
-          pageSize: params.pageSize || 20, 
+          pageSize: params.pageSize || 100, 
           total: mockOrganizations.length, 
           totalPages: 1 
         }
@@ -273,83 +220,66 @@ export const organizationApi = {
     }
   },
 
-  // 获取组织列表 (别名方法)
-  async getList(params: {
-    page?: number
-    pageSize?: number
-    search?: string
-    parentId?: string
-  } = {}): Promise<OrganizationListResponse> {
-    return this.getOrganizations(params)
-  },
-
-  // 获取组织统计
-  async getStats(): Promise<any> {
+  // 获取组织统计 (使用CoreHR适配器API)
+  async getStats(): Promise<OrganizationStatsApiResponse> {
     try {
-      const response = await httpClient.get('/api/v1/organization-units/stats')
-      
-      // 检查后端是否返回未实现状态
-      if (response.data?.status === 'not_implemented') {
-        return {
-          data: {
-            total: 2,
-            totalEmployees: 4,
-            active: 2,
-            inactive: 0
-          }
-        }
-      }
-      
+      const response = await httpClient.get(REST_ROUTES.COREHR.ORGANIZATION_STATS)
       return response.data
     } catch (error) {
+      console.warn('⚠️ 组织统计API暂不可用，使用默认数据');
       // 返回默认统计数据
       return {
         data: {
-          total: 0,
-          totalEmployees: 0,
-          active: 0,
-          inactive: 0
+          total: 1,
+          active: 1,
+          inactive: 0,
+          totalEmployees: 0
         }
       }
     }
   },
 
-  // 获取组织树结构
-  async getOrganizationTree(): Promise<OrganizationTreeResponse> {
-    const response = await httpClient.get('/api/v1/organization-units/tree')
-    return response.data
-  },
-
-  // 根据ID获取组织详情
+  // 根据ID获取组织详情 (使用CoreHR适配器API)
   async getOrganization(id: string): Promise<Organization> {
-    const response = await httpClient.get(`/api/v1/organization-units/${id}`)
+    const response = await httpClient.get(REST_ROUTES.COREHR.ORGANIZATION_BY_ID(id))
     return response.data
   },
 
-  // 创建组织 (使用CoreHR适配器API)
+  // 创建组织 (严格类型检查和数据清理)
   async createOrganization(data: CreateOrganizationRequest): Promise<Organization> {
-    console.log('🎯 创建组织API调用:', data);
-    const response = await httpClient.post('/api/v1/corehr/organizations', data)
+    // 数据清理和类型确保
+    const cleanData: CreateOrganizationRequest = {
+      ...data,
+      parent_unit_id: data.parent_unit_id ? String(data.parent_unit_id).trim() : undefined,
+      status: data.status || 'ACTIVE',
+      profile: data.profile || {}
+    }
+    
+    console.log('🎯 创建组织API调用 (清理后数据):', cleanData);
+    const response = await httpClient.post(REST_ROUTES.COREHR.ORGANIZATIONS, cleanData)
     console.log('🎉 组织创建成功:', response.data);
-    toast.success('组织创建成功')
     return response.data
   },
 
-  // 更新组织信息 (使用CoreHR适配器API)
+  // 更新组织信息 (严格类型检查)
   async updateOrganization(id: string, data: UpdateOrganizationRequest): Promise<Organization> {
-    console.log('📝 更新组织API调用:', id, data);
-    const response = await httpClient.put(`/api/v1/corehr/organizations/${id}`, data)
+    // 数据清理
+    const cleanData: UpdateOrganizationRequest = {
+      ...data,
+      parent_unit_id: data.parent_unit_id ? String(data.parent_unit_id).trim() : undefined
+    }
+    
+    console.log('📝 更新组织API调用:', id, cleanData);
+    const response = await httpClient.put(REST_ROUTES.COREHR.ORGANIZATION_BY_ID(id), cleanData)
     console.log('✅ 组织更新成功:', response.data);
-    toast.success('组织信息更新成功')
     return response.data
   },
 
   // 删除组织 (使用CoreHR适配器API)
   async deleteOrganization(id: string): Promise<void> {
     console.log('🗑️ 删除组织API调用:', id);
-    await httpClient.delete(`/api/v1/corehr/organizations/${id}`)
+    await httpClient.delete(REST_ROUTES.COREHR.ORGANIZATION_BY_ID(id))
     console.log('✅ 组织删除成功');
-    toast.success('组织删除成功')
   }
 }
 
@@ -361,7 +291,7 @@ export const intelligenceApi = {
       // 为了保持会话状态，我们添加会话ID
       const sessionId = data.sessionId || generateSessionId()
       
-      const response = await httpClient.post('/api/v1/intelligence/interpret', {
+      const response = await httpClient.post(AI_ROUTES.INTELLIGENCE.INTERPRET, {
         ...data,
         sessionId
       })
@@ -403,7 +333,7 @@ export const intelligenceApi = {
   // 获取对话历史 (如果AI服务支持)
   async getConversationHistory(sessionId: string): Promise<any[]> {
     try {
-      const response = await httpClient.get(`/api/v1/intelligence/conversations/${sessionId}`)
+      const response = await httpClient.get(AI_ROUTES.INTELLIGENCE.CONVERSATION_HISTORY(sessionId))
       return response.data.history || []
     } catch {
       // 如果服务不支持历史记录，返回空数组
@@ -414,7 +344,7 @@ export const intelligenceApi = {
   // 清除对话历史
   async clearConversationHistory(sessionId: string): Promise<void> {
     try {
-      await httpClient.delete(`/api/v1/intelligence/conversations/${sessionId}`)
+      await httpClient.delete(AI_ROUTES.INTELLIGENCE.CONVERSATION_HISTORY(sessionId))
     } catch {
       // 忽略删除失败的情况
     }
@@ -430,19 +360,19 @@ export const workflowApi = {
     status?: string
     workflowName?: string
   } = {}): Promise<{ instances: WorkflowInstance[], pagination: any }> {
-    const response = await httpClient.get('/api/v1/workflows/instances', { params })
+    const response = await httpClient.get(REST_ROUTES.WORKFLOWS.INSTANCES, { params })
     return response.data
   },
 
   // 获取工作流实例详情
   async getWorkflowInstance(id: string): Promise<WorkflowInstance> {
-    const response = await httpClient.get(`/api/v1/workflows/instances/${id}`)
+    const response = await httpClient.get(REST_ROUTES.WORKFLOWS.INSTANCE_BY_ID(id))
     return response.data
   },
 
   // 启动工作流
   async startWorkflow(workflowName: string, input: any): Promise<WorkflowInstance> {
-    const response = await httpClient.post('/api/v1/workflows/start', {
+    const response = await httpClient.post(REST_ROUTES.WORKFLOWS.START, {
       workflowName,
       input
     })
@@ -452,7 +382,7 @@ export const workflowApi = {
 
   // 获取工作流统计信息
   async getWorkflowStats(): Promise<WorkflowStatsResponse> {
-    const response = await httpClient.get('/api/v1/workflows/stats')
+    const response = await httpClient.get(REST_ROUTES.WORKFLOWS.STATS)
     return response.data
   }
 }
@@ -461,19 +391,19 @@ export const workflowApi = {
 export const systemApi = {
   // 获取系统健康状态
   async getSystemHealth(): Promise<SystemHealth> {
-    const response = await httpClient.get('/api/v1/system/health')
+    const response = await httpClient.get(REST_ROUTES.SYSTEM.HEALTH)
     return response.data
   },
 
   // 获取业务指标
   async getBusinessMetrics(): Promise<BusinessMetrics> {
-    const response = await httpClient.get('/api/v1/system/metrics/business')
+    const response = await httpClient.get(REST_ROUTES.SYSTEM.METRICS)
     return response.data
   },
 
   // 获取系统版本信息
   async getSystemInfo(): Promise<any> {
-    const response = await httpClient.get('/api/v1/system/info')
+    const response = await httpClient.get(REST_ROUTES.SYSTEM.INFO)
     return response.data
   }
 }

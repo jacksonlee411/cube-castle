@@ -26,6 +26,8 @@ const (
 	FieldDescription = "description"
 	// FieldParentUnitID holds the string denoting the parent_unit_id field in the database.
 	FieldParentUnitID = "parent_unit_id"
+	// FieldLevel holds the string denoting the level field in the database.
+	FieldLevel = "level"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldProfile holds the string denoting the profile field in the database.
@@ -67,6 +69,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldParentUnitID,
+	FieldLevel,
 	FieldStatus,
 	FieldProfile,
 	FieldCreatedAt,
@@ -88,6 +91,8 @@ var (
 	NameValidator func(string) error
 	// DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	DescriptionValidator func(string) error
+	// DefaultLevel holds the default value on creation for the "level" field.
+	DefaultLevel int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -181,6 +186,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByParentUnitID orders the results by the parent_unit_id field.
 func ByParentUnitID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldParentUnitID, opts...).ToFunc()
+}
+
+// ByLevel orders the results by the level field.
+func ByLevel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLevel, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

@@ -80,11 +80,8 @@ type UpdateOrganizationRequest struct {
 
 // convertToOrganizationResponse converts backend OrganizationUnit to API response
 func (a *OrganizationAdapter) convertToOrganizationResponse(unit *ent.OrganizationUnit) OrganizationResponse {
-	// Calculate level based on parent hierarchy (TODO: implement proper recursive calculation)
-	level := 0
-	if unit.ParentUnitID != nil {
-		level = 1 // Simplified for now
-	}
+	// Use the level field from database which stores the correct hierarchy level
+	level := unit.Level
 
 	// Convert UUIDs to strings
 	id := unit.ID.String()
@@ -95,7 +92,7 @@ func (a *OrganizationAdapter) convertToOrganizationResponse(unit *ent.Organizati
 		pid := unit.ParentUnitID.String()
 		parentUnitId = &pid
 	}
-
+	
 	return OrganizationResponse{
 		ID:            id,
 		TenantID:      tenantId,
@@ -103,7 +100,7 @@ func (a *OrganizationAdapter) convertToOrganizationResponse(unit *ent.Organizati
 		Name:          unit.Name,
 		Description:   unit.Description,
 		ParentUnitID:  parentUnitId,
-		Status:        unit.Status.String(),        // Keep backend enum: ACTIVE, INACTIVE, PLANNED
+		Status:        unit.Status.String(),        // Now using correct Status field
 		Profile:       unit.Profile,                // Keep as-is
 		CreatedAt:     unit.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
 		UpdatedAt:     unit.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
@@ -166,6 +163,7 @@ func (a *OrganizationAdapter) GetOrganizations() http.HandlerFunc {
 			query = query.Where(organizationunit.UnitTypeEQ(organizationunit.UnitType(unitType)))
 		}
 		
+		// Filter by status if provided
 		if status := r.URL.Query().Get("status"); status != "" {
 			query = query.Where(organizationunit.StatusEQ(organizationunit.Status(status)))
 		}
@@ -543,10 +541,8 @@ func (a *OrganizationAdapter) GetOrganizationStats() http.HandlerFunc {
 
 		// Get active count
 		active, err := a.client.OrganizationUnit.Query().
-			Where(
-				organizationunit.TenantIDEQ(tenantID),
-				organizationunit.StatusEQ(organizationunit.StatusACTIVE),
-			).
+			Where(organizationunit.TenantIDEQ(tenantID)).
+			Where(organizationunit.StatusEQ(organizationunit.StatusACTIVE)).
 			Count(ctx)
 
 		if err != nil {

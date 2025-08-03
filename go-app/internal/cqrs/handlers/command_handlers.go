@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gaogu/cube-castle/go-app/internal/cqrs/commands"
 	"github.com/gaogu/cube-castle/go-app/internal/events"
@@ -13,15 +15,21 @@ import (
 
 // CommandHandler 命令处理器
 type CommandHandler struct {
-	postgresRepo repositories.PostgresCommandRepository
-	eventBus     events.EventBus
+	postgresRepo     repositories.PostgresCommandRepository
+	organizationRepo repositories.OrganizationCommandRepository
+	eventBus         events.EventBus
 }
 
 // NewCommandHandler 创建命令处理器
-func NewCommandHandler(repo repositories.PostgresCommandRepository, eventBus events.EventBus) *CommandHandler {
+func NewCommandHandler(
+	repo repositories.PostgresCommandRepository, 
+	orgRepo repositories.OrganizationCommandRepository,
+	eventBus events.EventBus,
+) *CommandHandler {
 	return &CommandHandler{
-		postgresRepo: repo,
-		eventBus:     eventBus,
+		postgresRepo:     repo,
+		organizationRepo: orgRepo,
+		eventBus:         eventBus,
 	}
 }
 
@@ -60,8 +68,10 @@ func (h *CommandHandler) HireEmployee(w http.ResponseWriter, r *http.Request) {
 	event := events.NewEmployeeHired(cmd.TenantID, employeeID, "", cmd.FirstName, cmd.LastName, cmd.Email, cmd.HireDate)
 
 	if err := h.eventBus.Publish(r.Context(), event); err != nil {
-		// 记录日志但不阻止响应
-		// TODO: 实现重试机制
+		// 记录错误但不阻止响应
+		fmt.Printf("❌ 事件发布失败: %v\n", err)
+	} else {
+		fmt.Printf("✅ 事件已发布: employee.hired, ID=%s, TenantID=%s\n", employeeID, cmd.TenantID)
 	}
 
 	// 返回成功响应
@@ -127,6 +137,49 @@ func (h *CommandHandler) UpdateEmployee(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// TerminateEmployee 处理终止员工命令
+func (h *CommandHandler) TerminateEmployee(w http.ResponseWriter, r *http.Request) {
+	var cmd commands.TerminateEmployeeCommand
+	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// 构建更新字段映射 - 更新员工状态为已终止
+	changes := map[string]interface{}{
+		"employment_status": "TERMINATED",
+		"termination_date":  cmd.TerminationDate,
+		"updated_at":        time.Now(),
+	}
+
+	// 执行更新员工状态
+	err := h.postgresRepo.UpdateEmployee(r.Context(), cmd.ID, cmd.TenantID, changes)
+	if err != nil {
+		http.Error(w, "Failed to terminate employee", http.StatusInternalServerError)
+		return
+	}
+
+	// 发布员工终止事件
+	event := events.NewEmployeeTerminated(cmd.TenantID, cmd.ID, "", cmd.Reason, cmd.TerminationDate)
+	if err := h.eventBus.Publish(r.Context(), event); err != nil {
+		// 记录日志但不阻止响应
+		// TODO: 实现重试机制
+	}
+
+	// 返回成功响应
+	response := map[string]interface{}{
+		"employee_id":       cmd.ID,
+		"status":           "terminated",
+		"termination_date": cmd.TerminationDate,
+		"reason":           cmd.Reason,
+		"message":          "Employee terminated successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
 // CreateOrganizationUnit 处理创建组织单元命令
 func (h *CommandHandler) CreateOrganizationUnit(w http.ResponseWriter, r *http.Request) {
 	var cmd commands.CreateOrganizationUnitCommand
@@ -172,23 +225,191 @@ func (h *CommandHandler) CreateOrganizationUnit(w http.ResponseWriter, r *http.R
 	json.NewEncoder(w).Encode(response)
 }
 
-// TODO: 实现其他命令处理器方法
-func (h *CommandHandler) TerminateEmployee(w http.ResponseWriter, r *http.Request) {
-	// 实现员工终止逻辑
+// CreateOrganization 创建组织 (新实现)
+func (h *CommandHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
+	var cmd commands.CreateOrganizationCommand
+	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// 验证租户ID
+	tenantIDStr := r.Header.Get("X-Tenant-ID")
+	if tenantIDStr == "" {
+		http.Error(w, "Missing tenant ID", http.StatusBadRequest)
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		return
+	}
+	cmd.TenantID = tenantID
+
+	orgID := uuid.New()
+
+	// 构建组织实体
+	org := repositories.Organization{
+		ID:           orgID,
+		TenantID:     cmd.TenantID,
+		UnitType:     cmd.UnitType,
+		Name:         cmd.Name,
+		Description:  cmd.Description,
+		ParentUnitID: cmd.ParentUnitID,
+		Status:       cmd.Status,
+		Profile:      cmd.Profile,
+		Level:        0, // 由系统计算
+		IsActive:     cmd.Status == "ACTIVE",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	// 在PostgreSQL中创建组织
+	err = h.organizationRepo.CreateOrganization(r.Context(), org)
+	if err != nil {
+		http.Error(w, "Failed to create organization", http.StatusInternalServerError)
+		return
+	}
+
+	// 发布领域事件
+	event := events.NewOrganizationCreated(cmd.TenantID, orgID, cmd.Name, cmd.UnitType, cmd.ParentUnitID, 1)
+	if err := h.eventBus.Publish(r.Context(), event); err != nil {
+		// 记录日志但不阻止响应
+		// TODO: 实现重试机制
+	}
+
+	// 返回成功响应
+	response := map[string]interface{}{
+		"id":       orgID,
+		"status":   "created",
+		"message":  "Organization created successfully",
+		"data":     org,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
 }
 
-func (h *CommandHandler) UpdateOrganizationUnit(w http.ResponseWriter, r *http.Request) {
-	// 实现组织单元更新逻辑
+// UpdateOrganization 更新组织
+func (h *CommandHandler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
+	var cmd commands.UpdateOrganizationCommand
+	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// 从URL获取组织ID
+	orgIDStr := chi.URLParam(r, "id")
+	if orgIDStr == "" {
+		http.Error(w, "Missing organization ID", http.StatusBadRequest)
+		return
+	}
+
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
+		return
+	}
+	cmd.ID = orgID
+
+	// 验证租户ID
+	tenantIDStr := r.Header.Get("X-Tenant-ID")
+	if tenantIDStr == "" {
+		http.Error(w, "Missing tenant ID", http.StatusBadRequest)
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		return
+	}
+	cmd.TenantID = tenantID
+
+	// 构建更新字段映射
+	changes := make(map[string]interface{})
+	if cmd.Name != nil {
+		changes["name"] = *cmd.Name
+	}
+	if cmd.Description != nil {
+		changes["description"] = *cmd.Description
+	}
+	if cmd.ParentUnitID != nil {
+		changes["parent_unit_id"] = *cmd.ParentUnitID
+	}
+	if cmd.Status != nil {
+		changes["status"] = *cmd.Status
+		changes["is_active"] = *cmd.Status == "ACTIVE"
+	}
+	if cmd.Profile != nil {
+		changes["profile"] = cmd.Profile
+	}
+	changes["updated_at"] = time.Now()
+
+	// 执行更新
+	err = h.organizationRepo.UpdateOrganization(r.Context(), cmd.ID, cmd.TenantID, changes)
+	if err != nil {
+		http.Error(w, "Failed to update organization", http.StatusInternalServerError)
+		return
+	}
+
+	// 发布事件
+	event := events.NewOrganizationUpdated(cmd.TenantID, cmd.ID, "", changes)
+	h.eventBus.Publish(r.Context(), event)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "updated",
+		"message": "Organization updated successfully",
+	})
 }
 
-func (h *CommandHandler) DeleteOrganizationUnit(w http.ResponseWriter, r *http.Request) {
-	// 实现组织单元删除逻辑
-}
+// DeleteOrganization 删除组织
+func (h *CommandHandler) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
+	// 从URL获取组织ID
+	orgIDStr := chi.URLParam(r, "id")
+	if orgIDStr == "" {
+		http.Error(w, "Missing organization ID", http.StatusBadRequest)
+		return
+	}
 
-func (h *CommandHandler) CreatePosition(w http.ResponseWriter, r *http.Request) {
-	// 实现职位创建逻辑
-}
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
+		return
+	}
 
-func (h *CommandHandler) AssignEmployeePosition(w http.ResponseWriter, r *http.Request) {
-	// 实现员工职位分配逻辑
+	// 验证租户ID
+	tenantIDStr := r.Header.Get("X-Tenant-ID")
+	if tenantIDStr == "" {
+		http.Error(w, "Missing tenant ID", http.StatusBadRequest)
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		return
+	}
+
+	// 执行删除
+	err = h.organizationRepo.DeleteOrganization(r.Context(), orgID, tenantID)
+	if err != nil {
+		http.Error(w, "Failed to delete organization", http.StatusInternalServerError)
+		return
+	}
+
+	// 发布事件
+	event := events.NewOrganizationDeleted(tenantID, orgID, "", "")
+	h.eventBus.Publish(r.Context(), event)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "deleted",
+		"message": "Organization deleted successfully",
+	})
 }

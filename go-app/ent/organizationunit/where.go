@@ -76,6 +76,11 @@ func ParentUnitID(v uuid.UUID) predicate.OrganizationUnit {
 	return predicate.OrganizationUnit(sql.FieldEQ(FieldParentUnitID, v))
 }
 
+// Level applies equality check predicate on the "level" field. It's identical to LevelEQ.
+func Level(v int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldEQ(FieldLevel, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.OrganizationUnit {
 	return predicate.OrganizationUnit(sql.FieldEQ(FieldCreatedAt, v))
@@ -314,6 +319,46 @@ func ParentUnitIDIsNil() predicate.OrganizationUnit {
 // ParentUnitIDNotNil applies the NotNil predicate on the "parent_unit_id" field.
 func ParentUnitIDNotNil() predicate.OrganizationUnit {
 	return predicate.OrganizationUnit(sql.FieldNotNull(FieldParentUnitID))
+}
+
+// LevelEQ applies the EQ predicate on the "level" field.
+func LevelEQ(v int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldEQ(FieldLevel, v))
+}
+
+// LevelNEQ applies the NEQ predicate on the "level" field.
+func LevelNEQ(v int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldNEQ(FieldLevel, v))
+}
+
+// LevelIn applies the In predicate on the "level" field.
+func LevelIn(vs ...int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldIn(FieldLevel, vs...))
+}
+
+// LevelNotIn applies the NotIn predicate on the "level" field.
+func LevelNotIn(vs ...int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldNotIn(FieldLevel, vs...))
+}
+
+// LevelGT applies the GT predicate on the "level" field.
+func LevelGT(v int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldGT(FieldLevel, v))
+}
+
+// LevelGTE applies the GTE predicate on the "level" field.
+func LevelGTE(v int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldGTE(FieldLevel, v))
+}
+
+// LevelLT applies the LT predicate on the "level" field.
+func LevelLT(v int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldLT(FieldLevel, v))
+}
+
+// LevelLTE applies the LTE predicate on the "level" field.
+func LevelLTE(v int) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldLTE(FieldLevel, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

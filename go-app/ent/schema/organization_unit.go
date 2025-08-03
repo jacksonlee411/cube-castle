@@ -52,6 +52,11 @@ func (OrganizationUnit) Fields() []ent.Field {
 			Nillable().
 			Comment("Self-referencing foreign key for organizational hierarchy"),
 
+		// Hierarchical Level (computed field for frontend compatibility)
+		field.Int("level").
+			Default(0).
+			Comment("Hierarchy depth level, 0 for root, computed from parent chain"),
+
 		// Operational Status
 		field.Enum("status").
 			Values("ACTIVE", "INACTIVE", "PLANNED").

@@ -180,8 +180,8 @@ export const OrganizationTree = ({ organizations, onUpdate, onDelete }: Organiza
     // 构建父子关系
     orgs.forEach(org => {
       const orgNode = orgMap.get(org.id)!
-      if (org.parentId && orgMap.has(org.parentId)) {
-        const parent = orgMap.get(org.parentId)!
+      if (org.parent_unit_id && orgMap.has(org.parent_unit_id)) {
+        const parent = orgMap.get(org.parent_unit_id)!
         parent.children!.push(orgNode)
       } else {
         roots.push(orgNode)

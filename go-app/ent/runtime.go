@@ -139,12 +139,16 @@ func init() {
 	organizationunitDescDescription := organizationunitFields[4].Descriptor()
 	// organizationunit.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	organizationunit.DescriptionValidator = organizationunitDescDescription.Validators[0].(func(string) error)
+	// organizationunitDescLevel is the schema descriptor for level field.
+	organizationunitDescLevel := organizationunitFields[6].Descriptor()
+	// organizationunit.DefaultLevel holds the default value on creation for the level field.
+	organizationunit.DefaultLevel = organizationunitDescLevel.Default.(int)
 	// organizationunitDescCreatedAt is the schema descriptor for created_at field.
-	organizationunitDescCreatedAt := organizationunitFields[8].Descriptor()
+	organizationunitDescCreatedAt := organizationunitFields[9].Descriptor()
 	// organizationunit.DefaultCreatedAt holds the default value on creation for the created_at field.
 	organizationunit.DefaultCreatedAt = organizationunitDescCreatedAt.Default.(func() time.Time)
 	// organizationunitDescUpdatedAt is the schema descriptor for updated_at field.
-	organizationunitDescUpdatedAt := organizationunitFields[9].Descriptor()
+	organizationunitDescUpdatedAt := organizationunitFields[10].Descriptor()
 	// organizationunit.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	organizationunit.DefaultUpdatedAt = organizationunitDescUpdatedAt.Default.(func() time.Time)
 	// organizationunit.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
