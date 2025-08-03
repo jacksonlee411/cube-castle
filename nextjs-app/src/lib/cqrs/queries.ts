@@ -7,7 +7,7 @@ class OrganizationQueryService {
 
   constructor(baseURL: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') {
     this.client = axios.create({
-      baseURL: `${baseURL}/api/v1/queries`,
+      baseURL: `${baseURL}/api/v1/corehr`,
       timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
@@ -59,10 +59,17 @@ class OrganizationQueryService {
   }> {
     console.log('🔍 CQRS查询: 获取组织架构图', params)
     
-    const response = await this.client.get('/organization-chart', { params })
+    const response = await this.client.get('/organizations', { params })
     
     console.log('✅ 组织架构图查询成功:', response.data)
-    return response.data
+    return {
+      chart: response.data.organizations || response.data,
+      metadata: {
+        total_units: response.data.organizations?.length || response.data.length || 0,
+        max_depth: 5,
+        total_employees: 0
+      }
+    }
   }
 
   /**
@@ -85,10 +92,18 @@ class OrganizationQueryService {
   }> {
     console.log('🔍 CQRS查询: 列出组织单元', params)
     
-    const response = await this.client.get('/organization-units', { params })
+    const response = await this.client.get('/organizations', { params })
     
     console.log('✅ 组织单元列表查询成功:', response.data)
-    return response.data
+    return {
+      units: response.data.organizations || response.data,
+      pagination: {
+        limit: params.limit || 1000,
+        offset: params.offset || 0,
+        total: response.data.organizations?.length || response.data.length || 0,
+        has_more: false
+      }
+    }
   }
 
   /**
@@ -233,10 +248,26 @@ class OrganizationQueryService {
   }> {
     console.log('🔍 CQRS查询: 获取组织分析', params)
     
-    const response = await this.client.get('/organization-analytics', { params })
+    // 修复：使用正确的CoreHR适配端点
+    const response = await this.client.get('/organizations/stats', { params })
     
     console.log('✅ 组织分析查询成功:', response.data)
-    return response.data
+    
+    // 适配后端返回的数据格式到前端期望格式
+    const data = response.data
+    const backendData = data.data || data // 处理可能的嵌套结构
+    
+    return {
+      summary: {
+        total_organizations: backendData.total || backendData.total_organizations || 0,
+        total_employees: backendData.totalEmployees || backendData.total_employees || 0,
+        active_organizations: backendData.active || backendData.active_organizations || 0,
+        max_depth: backendData.max_depth || 1
+      },
+      trends: data.trends,
+      unit_type_distribution: data.unit_type_distribution || [],
+      level_distribution: data.level_distribution || []
+    }
   }
 
   /**

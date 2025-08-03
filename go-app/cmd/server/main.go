@@ -27,6 +27,8 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/routes"
 	"github.com/gaogu/cube-castle/go-app/internal/service"
 	"github.com/gaogu/cube-castle/go-app/internal/validation"
+	"github.com/gaogu/cube-castle/go-app/internal/cqrs/handlers"
+	"github.com/gaogu/cube-castle/go-app/internal/repositories"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
@@ -384,6 +386,57 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 		// Setup organization routes using the adapter
 		if entClient != nil {
 			routes.SetupOrganizationRoutes(r, entClient, logger)
+			
+			// Initialize CQRS handlers properly
+			if db != nil {
+				// 初始化CQRS命令处理器
+				if database, ok := db.(*common.Database); ok && database != nil && database.PostgreSQL != nil {
+					// 创建sqlx连接用于CQRS repository
+					sqlxDB, err := sqlx.Open("postgres", os.Getenv("DATABASE_URL"))
+					if err == nil && sqlxDB.Ping() == nil {
+						// 创建命令仓储
+						orgCommandRepo := repositories.NewPostgresOrganizationCommandRepository(sqlxDB, logger)
+						
+						// 获取EventBus
+						var eventBus events.EventBus
+						if eventBusManager != nil {
+							if service, exists := eventBusManager.GetService("main"); exists {
+								eventBus = service.GetEventBus()
+							}
+						}
+						
+						// 创建命令处理器（暂时只使用组织仓储）
+						commandHandler := handlers.NewCommandHandler(nil, orgCommandRepo, eventBus)
+						
+						// 添加CQRS命令路由
+						r.Route("/commands", func(r chi.Router) {
+							// 员工命令
+							r.Post("/employees/hire", commandHandler.HireEmployee)
+							r.Put("/employees/update", commandHandler.UpdateEmployee)
+							
+							// 组织命令
+							r.Post("/organizations", commandHandler.CreateOrganization)
+							r.Put("/organizations/{id}", commandHandler.UpdateOrganization)
+							r.Delete("/organizations/{id}", commandHandler.DeleteOrganization)
+						})
+						
+						logger.Info("CQRS command routes configured successfully",
+							"endpoints", []string{
+								"/api/v1/commands/employees/hire",
+								"/api/v1/commands/employees/update",
+								"/api/v1/commands/organizations",
+								"/api/v1/commands/organizations/{id}",
+							},
+						)
+					} else {
+						logger.Warn("Failed to initialize CQRS handlers - database connection issue")
+					}
+				} else {
+					logger.Warn("Failed to initialize CQRS handlers - invalid database type")
+				}
+			} else {
+				logger.Warn("CQRS handlers not initialized - database unavailable")
+			}
 		} else {
 			// Database unavailable fallback for organization routes
 			r.Route("/corehr/organizations", func(r chi.Router) {
@@ -512,6 +565,25 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 			r.Get("/health/detailed", handleDetailedHealth(logger))
 			r.Post("/cache/clear", handleClearCache(logger))
 		})
+	})
+
+	// 根路由 - 提供API服务信息
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"service": "Cube Castle API",
+			"version": "v1.4.0",
+			"status":  "running",
+			"endpoints": map[string]string{
+				"health":        "/health",
+				"metrics":       "/metrics",
+				"organizations": "/api/v1/corehr/organizations",
+				"employees":     "/api/v1/corehr/employees",
+				"api_docs":      "/api/v1/docs",
+			},
+			"timestamp": time.Now().Format(time.RFC3339),
+		}
+		json.NewEncoder(w).Encode(response)
 	})
 
 	return r

@@ -8,6 +8,10 @@ import { apolloClient } from '@/lib/graphql-client';
 import GraphQLErrorBoundary from '@/components/GraphQLErrorBoundary';
 import RESTErrorBoundary from '@/components/RESTErrorBoundary';
 
+// 初始化 Immer MapSet 插件
+import { enableMapSet } from 'immer';
+enableMapSet();
+
 // 引入样式文件
 import '@/styles/workday-theme.css';
 import '@/styles/animations.css';

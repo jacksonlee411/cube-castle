@@ -7,7 +7,7 @@ class OrganizationCommandService {
 
   constructor(baseURL: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') {
     this.client = axios.create({
-      baseURL: `${baseURL}/api/v1/commands`,
+      baseURL: `${baseURL}/api/v1/corehr`,
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ class OrganizationCommandService {
 
     console.log('🎯 CQRS命令: 创建组织单元', payload)
     
-    const response = await this.client.post('/create-organization-unit', payload)
+    const response = await this.client.post('/organizations', payload)
     
     console.log('✅ 组织单元创建命令成功:', response.data)
     return response.data
@@ -81,7 +81,7 @@ class OrganizationCommandService {
 
     console.log('📝 CQRS命令: 更新组织单元', payload)
     
-    const response = await this.client.put('/update-organization-unit', payload)
+    const response = await this.client.put(`/organizations/${id}`, payload)
     
     console.log('✅ 组织单元更新命令成功:', response.data)
     return response.data
@@ -103,7 +103,7 @@ class OrganizationCommandService {
 
     console.log('🗑️ CQRS命令: 删除组织单元', payload)
     
-    const response = await this.client.delete('/delete-organization-unit', { data: payload })
+    const response = await this.client.delete(`/organizations/${id}`, { data: payload })
     
     console.log('✅ 组织单元删除命令成功:', response.data)
     return response.data

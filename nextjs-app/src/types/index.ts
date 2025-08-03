@@ -92,40 +92,62 @@ export interface EmployeeListResponse {
   pagination: PaginationInfo
 }
 
-// 组织架构相关类型 (与后端OrganizationUnit模型对齐)
+// 组织架构相关类型 (完全对齐后端OrganizationUnit模型)
 export interface Organization extends BaseEntity {
   tenant_id: string
-  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM'  // Backend enum
+  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM'
   name: string
   description?: string
   parent_unit_id?: string
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED'  // Backend enum
-  profile?: Record<string, any>
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED'
+  profile?: OrganizationProfile
   
-  // Computed fields for UI
+  // 后端计算字段
   level: number
   employee_count: number
   children?: Organization[]
-  
-  // Legacy compatibility fields (deprecated, will be removed)
-  /** @deprecated Use unit_type instead */
-  type?: 'company' | 'department' | 'team' | 'group'
-  /** @deprecated Use parent_unit_id instead */
-  parentId?: string
-  /** @deprecated Use employee_count instead */
-  employeeCount?: number
-  /** @deprecated Use status === 'ACTIVE' instead */
-  isActive?: boolean
-  /** @deprecated Use tenant_id instead */
-  tenantId?: string
 }
 
-// SWR API响应类型 (对齐员工管理模块标准)
-export interface OrganizationsResponse {
+// 专门的组织配置类型
+export interface OrganizationProfile {
+  managerName?: string
+  maxCapacity?: number
+  budget?: number
+  location?: string
+  costCenter?: string
+  [key: string]: any  // 允许扩展字段
+}
+
+// SWR API响应类型 (对齐后端organization_adapter.go)
+export interface OrganizationsApiResponse {
   organizations: Organization[]
-  total_count: number
-  hierarchy_depth?: number
-  total_employees?: number
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+// 组织图表API响应类型
+export interface OrganizationChartApiResponse {
+  chart: Organization[]  // 树形结构
+  flatChart: Organization[]  // 扁平结构
+  stats: {
+    total: number
+    maxLevel: number
+    totalEmployees: number
+  }
+}
+
+// 组织统计API响应类型
+export interface OrganizationStatsApiResponse {
+  data: {
+    total: number
+    active: number
+    inactive: number
+    totalEmployees: number
+  }
 }
 
 // 组织统计数据类型
@@ -148,17 +170,28 @@ export interface OrganizationTypeData {
   color: string
 }
 
-// 组织创建/更新请求类型 (与后端对齐)
-export interface OrganizationCreateData {
+// 组织创建请求类型 (完全对齐后端CreateOrganizationRequest)
+export interface CreateOrganizationRequest {
   unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM'
   name: string
   description?: string
   parent_unit_id?: string
   status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED'
-  profile?: Record<string, any>
+  profile?: OrganizationProfile
 }
 
-export interface OrganizationUpdateData extends Partial<OrganizationCreateData> {
+// 组织更新请求类型 (完全对齐后端UpdateOrganizationRequest)
+export interface UpdateOrganizationRequest {
+  name?: string
+  description?: string
+  parent_unit_id?: string
+  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED'
+  profile?: OrganizationProfile
+}
+
+// 向后兼容的别名（逐步迁移）
+export type OrganizationCreateData = CreateOrganizationRequest
+export interface OrganizationUpdateData extends Partial<UpdateOrganizationRequest> {
   id: string
 }
 
@@ -181,21 +214,20 @@ export interface OrganizationTreeResponse {
   tree: OrganizationTreeNode[]
 }
 
-export interface CreateOrganizationRequest {
-  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM'
-  name: string
-  description?: string
-  parent_unit_id?: string
-  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED'
-  profile?: Record<string, any>
+// 类型工具函数
+export interface OrganizationTypeUtils {
+  getTypeLabel: (unitType: Organization['unit_type']) => string
+  getTypeColor: (unitType: Organization['unit_type']) => string
+  getDefaultChildType: (parentType: Organization['unit_type']) => Organization['unit_type']
+  validateParentChild: (parentType: Organization['unit_type'], childType: Organization['unit_type']) => boolean
 }
 
-export interface UpdateOrganizationRequest {
-  name?: string
-  description?: string
-  parent_unit_id?: string
-  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED'
-  profile?: Record<string, any>
+// 组织层级关系验证
+export interface OrganizationHierarchy {
+  COMPANY: { allowedChildren: ['DEPARTMENT', 'COST_CENTER'] }
+  DEPARTMENT: { allowedChildren: ['PROJECT_TEAM', 'COST_CENTER'] }
+  PROJECT_TEAM: { allowedChildren: ['COST_CENTER'] }
+  COST_CENTER: { allowedChildren: [] }
 }
 
 // 租户相关类型

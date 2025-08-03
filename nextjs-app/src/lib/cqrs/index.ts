@@ -1,6 +1,8 @@
 // CQRS API 客户端统一导出
-export { organizationCommands } from './commands'
-export { organizationQueries } from './queries'
+import { organizationCommands } from './commands'
+import { organizationQueries } from './queries'
+
+export { organizationCommands, organizationQueries }
 
 // 重新导出类型以便于使用
 export type { CreateOrganizationRequest, UpdateOrganizationRequest, Organization } from '@/types'

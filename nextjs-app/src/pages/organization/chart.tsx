@@ -119,13 +119,24 @@ const OrganizationChartContent: React.FC = () => {
   const [formData, setFormData] = useState<Partial<CreateOrganizationRequest>>({});
 
   // Use the current stats data (prioritize live stats, fallback to store stats)
-  const currentStats = liveStats || orgStats || {
-    total: 0,
-    active: 0,
-    inactive: 0,
-    totalEmployees: 0,
-    maxLevel: 0
-  };
+  // 统一数据格式映射函数
+  const mapStatsFormat = (stats: any) => ({
+    total: stats?.total_organizations || 0,
+    active: stats?.active_organizations || 0,
+    inactive: (stats?.total_organizations || 0) - (stats?.active_organizations || 0),
+    totalEmployees: stats?.total_employees || 0,
+    maxLevel: stats?.max_depth || 0
+  });
+  
+  const currentStats = liveStats ? mapStatsFormat(liveStats) 
+    : orgStats ? mapStatsFormat(orgStats) 
+    : {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      totalEmployees: 0,
+      maxLevel: 0
+    };
 
   // Use organizationTree from CQRS hook instead of chart data
   const currentOrgTree = organizationTree.length > 0 ? organizationTree : orgChart;

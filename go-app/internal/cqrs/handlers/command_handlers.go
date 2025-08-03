@@ -357,7 +357,7 @@ func (h *CommandHandler) DeleteOrganization(w http.ResponseWriter, r *http.Reque
 	}
 
 	// 发布事件
-	event := events.NewOrganizationDeleted(tenantID, orgID, "")
+	event := events.NewOrganizationDeleted(tenantID, orgID, "", "")
 	h.eventBus.Publish(r.Context(), event)
 
 	w.Header().Set("Content-Type", "application/json")
