@@ -68,6 +68,20 @@ func (ouc *OrganizationUnitCreate) SetNillableParentUnitID(u *uuid.UUID) *Organi
 	return ouc
 }
 
+// SetLevel sets the "level" field.
+func (ouc *OrganizationUnitCreate) SetLevel(i int) *OrganizationUnitCreate {
+	ouc.mutation.SetLevel(i)
+	return ouc
+}
+
+// SetNillableLevel sets the "level" field if the given value is not nil.
+func (ouc *OrganizationUnitCreate) SetNillableLevel(i *int) *OrganizationUnitCreate {
+	if i != nil {
+		ouc.SetLevel(*i)
+	}
+	return ouc
+}
+
 // SetStatus sets the "status" field.
 func (ouc *OrganizationUnitCreate) SetStatus(o organizationunit.Status) *OrganizationUnitCreate {
 	ouc.mutation.SetStatus(o)
@@ -214,6 +228,10 @@ func (ouc *OrganizationUnitCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (ouc *OrganizationUnitCreate) defaults() {
+	if _, ok := ouc.mutation.Level(); !ok {
+		v := organizationunit.DefaultLevel
+		ouc.mutation.SetLevel(v)
+	}
 	if _, ok := ouc.mutation.Status(); !ok {
 		v := organizationunit.DefaultStatus
 		ouc.mutation.SetStatus(v)
@@ -257,6 +275,9 @@ func (ouc *OrganizationUnitCreate) check() error {
 		if err := organizationunit.DescriptionValidator(v); err != nil {
 			return &ValidationError{Name: "description", err: fmt.Errorf(`ent: validator failed for field "OrganizationUnit.description": %w`, err)}
 		}
+	}
+	if _, ok := ouc.mutation.Level(); !ok {
+		return &ValidationError{Name: "level", err: errors.New(`ent: missing required field "OrganizationUnit.level"`)}
 	}
 	if _, ok := ouc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "OrganizationUnit.status"`)}
@@ -322,6 +343,10 @@ func (ouc *OrganizationUnitCreate) createSpec() (*OrganizationUnit, *sqlgraph.Cr
 	if value, ok := ouc.mutation.Description(); ok {
 		_spec.SetField(organizationunit.FieldDescription, field.TypeString, value)
 		_node.Description = &value
+	}
+	if value, ok := ouc.mutation.Level(); ok {
+		_spec.SetField(organizationunit.FieldLevel, field.TypeInt, value)
+		_node.Level = value
 	}
 	if value, ok := ouc.mutation.Status(); ok {
 		_spec.SetField(organizationunit.FieldStatus, field.TypeEnum, value)

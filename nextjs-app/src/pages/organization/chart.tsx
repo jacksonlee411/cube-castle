@@ -16,7 +16,9 @@ import {
   Minimize,
   RefreshCw,
   Search,
-  Filter
+  Filter,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 

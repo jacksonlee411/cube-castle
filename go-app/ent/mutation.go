@@ -1519,6 +1519,8 @@ type OrganizationUnitMutation struct {
 	unit_type        *organizationunit.UnitType
 	name             *string
 	description      *string
+	level            *int
+	addlevel         *int
 	status           *organizationunit.Status
 	profile          *map[string]interface{}
 	created_at       *time.Time
@@ -1845,6 +1847,62 @@ func (m *OrganizationUnitMutation) ParentUnitIDCleared() bool {
 func (m *OrganizationUnitMutation) ResetParentUnitID() {
 	m.parent = nil
 	delete(m.clearedFields, organizationunit.FieldParentUnitID)
+}
+
+// SetLevel sets the "level" field.
+func (m *OrganizationUnitMutation) SetLevel(i int) {
+	m.level = &i
+	m.addlevel = nil
+}
+
+// Level returns the value of the "level" field in the mutation.
+func (m *OrganizationUnitMutation) Level() (r int, exists bool) {
+	v := m.level
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLevel returns the old "level" field's value of the OrganizationUnit entity.
+// If the OrganizationUnit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationUnitMutation) OldLevel(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLevel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLevel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLevel: %w", err)
+	}
+	return oldValue.Level, nil
+}
+
+// AddLevel adds i to the "level" field.
+func (m *OrganizationUnitMutation) AddLevel(i int) {
+	if m.addlevel != nil {
+		*m.addlevel += i
+	} else {
+		m.addlevel = &i
+	}
+}
+
+// AddedLevel returns the value that was added to the "level" field in this mutation.
+func (m *OrganizationUnitMutation) AddedLevel() (r int, exists bool) {
+	v := m.addlevel
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetLevel resets all changes to the "level" field.
+func (m *OrganizationUnitMutation) ResetLevel() {
+	m.level = nil
+	m.addlevel = nil
 }
 
 // SetStatus sets the "status" field.
@@ -2186,7 +2244,7 @@ func (m *OrganizationUnitMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OrganizationUnitMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.tenant_id != nil {
 		fields = append(fields, organizationunit.FieldTenantID)
 	}
@@ -2201,6 +2259,9 @@ func (m *OrganizationUnitMutation) Fields() []string {
 	}
 	if m.parent != nil {
 		fields = append(fields, organizationunit.FieldParentUnitID)
+	}
+	if m.level != nil {
+		fields = append(fields, organizationunit.FieldLevel)
 	}
 	if m.status != nil {
 		fields = append(fields, organizationunit.FieldStatus)
@@ -2232,6 +2293,8 @@ func (m *OrganizationUnitMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case organizationunit.FieldParentUnitID:
 		return m.ParentUnitID()
+	case organizationunit.FieldLevel:
+		return m.Level()
 	case organizationunit.FieldStatus:
 		return m.Status()
 	case organizationunit.FieldProfile:
@@ -2259,6 +2322,8 @@ func (m *OrganizationUnitMutation) OldField(ctx context.Context, name string) (e
 		return m.OldDescription(ctx)
 	case organizationunit.FieldParentUnitID:
 		return m.OldParentUnitID(ctx)
+	case organizationunit.FieldLevel:
+		return m.OldLevel(ctx)
 	case organizationunit.FieldStatus:
 		return m.OldStatus(ctx)
 	case organizationunit.FieldProfile:
@@ -2311,6 +2376,13 @@ func (m *OrganizationUnitMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetParentUnitID(v)
 		return nil
+	case organizationunit.FieldLevel:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLevel(v)
+		return nil
 	case organizationunit.FieldStatus:
 		v, ok := value.(organizationunit.Status)
 		if !ok {
@@ -2346,13 +2418,21 @@ func (m *OrganizationUnitMutation) SetField(name string, value ent.Value) error 
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *OrganizationUnitMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addlevel != nil {
+		fields = append(fields, organizationunit.FieldLevel)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *OrganizationUnitMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case organizationunit.FieldLevel:
+		return m.AddedLevel()
+	}
 	return nil, false
 }
 
@@ -2361,6 +2441,13 @@ func (m *OrganizationUnitMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *OrganizationUnitMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case organizationunit.FieldLevel:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLevel(v)
+		return nil
 	}
 	return fmt.Errorf("unknown OrganizationUnit numeric field %s", name)
 }
@@ -2423,6 +2510,9 @@ func (m *OrganizationUnitMutation) ResetField(name string) error {
 		return nil
 	case organizationunit.FieldParentUnitID:
 		m.ResetParentUnitID()
+		return nil
+	case organizationunit.FieldLevel:
+		m.ResetLevel()
 		return nil
 	case organizationunit.FieldStatus:
 		m.ResetStatus()

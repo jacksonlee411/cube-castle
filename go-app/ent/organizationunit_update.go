@@ -98,6 +98,27 @@ func (ouu *OrganizationUnitUpdate) ClearParentUnitID() *OrganizationUnitUpdate {
 	return ouu
 }
 
+// SetLevel sets the "level" field.
+func (ouu *OrganizationUnitUpdate) SetLevel(i int) *OrganizationUnitUpdate {
+	ouu.mutation.ResetLevel()
+	ouu.mutation.SetLevel(i)
+	return ouu
+}
+
+// SetNillableLevel sets the "level" field if the given value is not nil.
+func (ouu *OrganizationUnitUpdate) SetNillableLevel(i *int) *OrganizationUnitUpdate {
+	if i != nil {
+		ouu.SetLevel(*i)
+	}
+	return ouu
+}
+
+// AddLevel adds i to the "level" field.
+func (ouu *OrganizationUnitUpdate) AddLevel(i int) *OrganizationUnitUpdate {
+	ouu.mutation.AddLevel(i)
+	return ouu
+}
+
 // SetStatus sets the "status" field.
 func (ouu *OrganizationUnitUpdate) SetStatus(o organizationunit.Status) *OrganizationUnitUpdate {
 	ouu.mutation.SetStatus(o)
@@ -317,6 +338,12 @@ func (ouu *OrganizationUnitUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if ouu.mutation.DescriptionCleared() {
 		_spec.ClearField(organizationunit.FieldDescription, field.TypeString)
 	}
+	if value, ok := ouu.mutation.Level(); ok {
+		_spec.SetField(organizationunit.FieldLevel, field.TypeInt, value)
+	}
+	if value, ok := ouu.mutation.AddedLevel(); ok {
+		_spec.AddField(organizationunit.FieldLevel, field.TypeInt, value)
+	}
 	if value, ok := ouu.mutation.Status(); ok {
 		_spec.SetField(organizationunit.FieldStatus, field.TypeEnum, value)
 	}
@@ -533,6 +560,27 @@ func (ouuo *OrganizationUnitUpdateOne) SetNillableParentUnitID(u *uuid.UUID) *Or
 // ClearParentUnitID clears the value of the "parent_unit_id" field.
 func (ouuo *OrganizationUnitUpdateOne) ClearParentUnitID() *OrganizationUnitUpdateOne {
 	ouuo.mutation.ClearParentUnitID()
+	return ouuo
+}
+
+// SetLevel sets the "level" field.
+func (ouuo *OrganizationUnitUpdateOne) SetLevel(i int) *OrganizationUnitUpdateOne {
+	ouuo.mutation.ResetLevel()
+	ouuo.mutation.SetLevel(i)
+	return ouuo
+}
+
+// SetNillableLevel sets the "level" field if the given value is not nil.
+func (ouuo *OrganizationUnitUpdateOne) SetNillableLevel(i *int) *OrganizationUnitUpdateOne {
+	if i != nil {
+		ouuo.SetLevel(*i)
+	}
+	return ouuo
+}
+
+// AddLevel adds i to the "level" field.
+func (ouuo *OrganizationUnitUpdateOne) AddLevel(i int) *OrganizationUnitUpdateOne {
+	ouuo.mutation.AddLevel(i)
 	return ouuo
 }
 
@@ -784,6 +832,12 @@ func (ouuo *OrganizationUnitUpdateOne) sqlSave(ctx context.Context) (_node *Orga
 	}
 	if ouuo.mutation.DescriptionCleared() {
 		_spec.ClearField(organizationunit.FieldDescription, field.TypeString)
+	}
+	if value, ok := ouuo.mutation.Level(); ok {
+		_spec.SetField(organizationunit.FieldLevel, field.TypeInt, value)
+	}
+	if value, ok := ouuo.mutation.AddedLevel(); ok {
+		_spec.AddField(organizationunit.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := ouuo.mutation.Status(); ok {
 		_spec.SetField(organizationunit.FieldStatus, field.TypeEnum, value)

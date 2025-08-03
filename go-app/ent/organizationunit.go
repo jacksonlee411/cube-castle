@@ -30,6 +30,8 @@ type OrganizationUnit struct {
 	Description *string `json:"description,omitempty"`
 	// Self-referencing foreign key for organizational hierarchy
 	ParentUnitID *uuid.UUID `json:"parent_unit_id,omitempty"`
+	// Hierarchy depth level, 0 for root, computed from parent chain
+	Level int `json:"level,omitempty"`
 	// Current operational status of the organization unit
 	Status organizationunit.Status `json:"status,omitempty"`
 	// Polymorphic configuration based on unit_type discriminator
@@ -95,6 +97,8 @@ func (*OrganizationUnit) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case organizationunit.FieldProfile:
 			values[i] = new([]byte)
+		case organizationunit.FieldLevel:
+			values[i] = new(sql.NullInt64)
 		case organizationunit.FieldUnitType, organizationunit.FieldName, organizationunit.FieldDescription, organizationunit.FieldStatus:
 			values[i] = new(sql.NullString)
 		case organizationunit.FieldCreatedAt, organizationunit.FieldUpdatedAt:
@@ -153,6 +157,12 @@ func (ou *OrganizationUnit) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ou.ParentUnitID = new(uuid.UUID)
 				*ou.ParentUnitID = *value.S.(*uuid.UUID)
+			}
+		case organizationunit.FieldLevel:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field level", values[i])
+			} else if value.Valid {
+				ou.Level = int(value.Int64)
 			}
 		case organizationunit.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -249,6 +259,9 @@ func (ou *OrganizationUnit) String() string {
 		builder.WriteString("parent_unit_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("level=")
+	builder.WriteString(fmt.Sprintf("%v", ou.Level))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", ou.Status))

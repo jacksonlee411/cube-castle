@@ -16,9 +16,10 @@ enableMapSet();
 import '@/styles/workday-theme.css';
 import '@/styles/animations.css';
 import '@/styles/mobile-enhancements.css';
+import '@/styles/organization-tree.css';
 
-// Tailwind CSS基础样式
-import 'tailwindcss/tailwind.css';
+// Tailwind CSS基础样式 - 修复导入问题
+import '../styles/globals.css';
 
 interface CubecastleAppProps extends AppProps {
   Component: AppProps['Component'] & {
