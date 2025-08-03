@@ -97,6 +97,7 @@ var (
 		{Name: "unit_type", Type: field.TypeEnum, Enums: []string{"DEPARTMENT", "COST_CENTER", "COMPANY", "PROJECT_TEAM"}},
 		{Name: "name", Type: field.TypeString, Size: 100},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 500},
+		{Name: "level", Type: field.TypeInt, Default: 0},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"ACTIVE", "INACTIVE", "PLANNED"}, Default: "ACTIVE"},
 		{Name: "profile", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
@@ -111,7 +112,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "organization_units_organization_units_children",
-				Columns:    []*schema.Column{OrganizationUnitsColumns[9]},
+				Columns:    []*schema.Column{OrganizationUnitsColumns[10]},
 				RefColumns: []*schema.Column{OrganizationUnitsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -125,7 +126,7 @@ var (
 			{
 				Name:    "organizationunit_parent_unit_id",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationUnitsColumns[9]},
+				Columns: []*schema.Column{OrganizationUnitsColumns[10]},
 			},
 			{
 				Name:    "organizationunit_tenant_id_name",
@@ -135,12 +136,12 @@ var (
 			{
 				Name:    "organizationunit_tenant_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationUnitsColumns[1], OrganizationUnitsColumns[5]},
+				Columns: []*schema.Column{OrganizationUnitsColumns[1], OrganizationUnitsColumns[6]},
 			},
 			{
 				Name:    "organizationunit_tenant_id_unit_type_status",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationUnitsColumns[1], OrganizationUnitsColumns[2], OrganizationUnitsColumns[5]},
+				Columns: []*schema.Column{OrganizationUnitsColumns[1], OrganizationUnitsColumns[2], OrganizationUnitsColumns[6]},
 			},
 		},
 	}

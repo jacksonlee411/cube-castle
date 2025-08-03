@@ -80,11 +80,8 @@ type UpdateOrganizationRequest struct {
 
 // convertToOrganizationResponse converts backend OrganizationUnit to API response
 func (a *OrganizationAdapter) convertToOrganizationResponse(unit *ent.OrganizationUnit) OrganizationResponse {
-	// Calculate level based on parent hierarchy (TODO: implement proper recursive calculation)
-	level := 0
-	if unit.ParentUnitID != nil {
-		level = 1 // Simplified for now
-	}
+	// Use the level field from database which stores the correct hierarchy level
+	level := unit.Level
 
 	// Convert UUIDs to strings
 	id := unit.ID.String()
