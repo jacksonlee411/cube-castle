@@ -10,8 +10,8 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 )
 
-// Employee PostgreSQL中的员工实体
-type Employee struct {
+// EmployeeEntity PostgreSQL中的员工实体
+type EmployeeEntity struct {
 	ID               uuid.UUID              `db:"id"`
 	TenantID         uuid.UUID              `db:"tenant_id"`
 	EmployeeType     string                 `db:"employee_type"`
@@ -41,24 +41,10 @@ type OrganizationUnit struct {
 	UpdatedAt    time.Time              `db:"updated_at"`
 }
 
-// Position PostgreSQL中的职位实体
-type Position struct {
-	ID           uuid.UUID `db:"id"`
-	TenantID     uuid.UUID `db:"tenant_id"`
-	Title        string    `db:"title"`
-	Department   string    `db:"department"`
-	Level        string    `db:"level"`
-	Description  *string   `db:"description"`
-	Requirements *string   `db:"requirements"`
-	IsActive     bool      `db:"is_active"`
-	CreatedAt    time.Time `db:"created_at"`
-	UpdatedAt    time.Time `db:"updated_at"`
-}
-
 // PostgresCommandRepository PostgreSQL命令仓储接口
 type PostgresCommandRepository interface {
 	// 员工管理
-	CreateEmployee(ctx context.Context, employee Employee) error
+	CreateEmployee(ctx context.Context, employee EmployeeEntity) error
 	UpdateEmployee(ctx context.Context, id, tenantID uuid.UUID, changes map[string]interface{}) error
 	TerminateEmployee(ctx context.Context, id, tenantID uuid.UUID, terminationDate time.Time, reason string) error
 
@@ -88,7 +74,7 @@ func NewPostgresCommandRepository(db *sqlx.DB, logger *logging.StructuredLogger)
 }
 
 // CreateEmployee 创建员工
-func (r *postgresCommandRepository) CreateEmployee(ctx context.Context, employee Employee) error {
+func (r *postgresCommandRepository) CreateEmployee(ctx context.Context, employee EmployeeEntity) error {
 	personalInfoJSON, err := json.Marshal(employee.PersonalInfo)
 	if err != nil {
 		r.logger.Error("Failed to marshal personal info", "error", err)

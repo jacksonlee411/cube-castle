@@ -609,7 +609,7 @@ func (s *Neo4jService) GetEmployee(ctx context.Context, employeeID string) (*Emp
 	defer session.Close(ctx)
 
 	query := `
-		MATCH (e:Employee {employee_id: $employee_id})
+		MATCH (e:Employee {id: $employee_id})
 		OPTIONAL MATCH (e)-[:HOLDS_POSITION]->(p:Position)
 		OPTIONAL MATCH (p)-[:BELONGS_TO]->(d:Department)
 		OPTIONAL MATCH (m:Employee)-[:MANAGES]->(e)
@@ -618,6 +618,9 @@ func (s *Neo4jService) GetEmployee(ctx context.Context, employeeID string) (*Emp
 			   d.name as department,
 			   m.legal_name as manager_name
 	`
+
+	s.logger.Printf("DEBUG: GetEmployee query for ID: %s", employeeID)
+	s.logger.Printf("DEBUG: Query: %s", query)
 
 	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		result, err := tx.Run(ctx, query, map[string]any{
@@ -986,4 +989,9 @@ func (s *Neo4jService) nodeToOrganization(node neo4j.Node) OrganizationNode {
 	}
 
 	return org
+}
+
+// GetDriver 获取Neo4j驱动程序
+func (s *Neo4jService) GetDriver() neo4j.DriverWithContext {
+	return s.driver
 }

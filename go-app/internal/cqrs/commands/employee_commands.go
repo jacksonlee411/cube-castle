@@ -52,16 +52,6 @@ type UpdateOrganizationUnitCommand struct {
 	Profile     map[string]interface{} `json:"profile,omitempty"`
 }
 
-// CreatePositionCommand 创建职位命令
-type CreatePositionCommand struct {
-	TenantID     uuid.UUID `json:"tenant_id" validate:"required"`
-	Title        string    `json:"title" validate:"required,min=1,max=100"`
-	Department   string    `json:"department" validate:"required"`
-	Level        string    `json:"level" validate:"required"`
-	Description  *string   `json:"description,omitempty"`
-	Requirements *string   `json:"requirements,omitempty"`
-}
-
 // AssignEmployeePositionCommand 分配员工职位命令
 type AssignEmployeePositionCommand struct {
 	EmployeeID   uuid.UUID `json:"employee_id" validate:"required"`

@@ -30,6 +30,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/validation"
 	"github.com/gaogu/cube-castle/go-app/internal/cqrs/handlers"
 	"github.com/gaogu/cube-castle/go-app/internal/repositories"
+	"github.com/gaogu/cube-castle/go-app/internal/services"
 	"github.com/gaogu/cube-castle/go-app/internal/events/consumers"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -496,6 +497,10 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 						empCommandRepo := repositories.NewPostgresCommandRepository(sqlxDB, logger)
 						orgCommandRepo := repositories.NewPostgresOrganizationCommandRepository(sqlxDB, logger)
 						
+						// 创建职位命令仓储（包含Outbox Pattern支持）
+						outboxRepo := repositories.NewPostgresOutboxRepository(sqlxDB)
+						posCommandRepo := repositories.NewPostgresPositionRepository(sqlxDB, outboxRepo)
+						
 						// 获取EventBus
 						var eventBus events.EventBus
 						if eventBusManager != nil {
@@ -504,8 +509,32 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 							}
 						}
 						
+						// 初始化Outbox处理器服务
+						if eventBus != nil {
+							outboxProcessorService := services.NewOutboxProcessorService(
+								outboxRepo, 
+								eventBus, 
+								logger, 
+								nil, // 使用默认配置
+							)
+							
+							// 启动Outbox处理器
+							if err := outboxProcessorService.Start(); err != nil {
+								logger.Error("Failed to start outbox processor", "error", err)
+							} else {
+								logger.Info("✅ Outbox processor service started successfully")
+							}
+							
+							// 注册优雅关闭处理
+							defer func() {
+								if err := outboxProcessorService.Stop(); err != nil {
+									logger.Error("Failed to stop outbox processor", "error", err)
+								}
+							}()
+						}
+						
 						// 创建命令处理器
-						commandHandler := handlers.NewCommandHandler(empCommandRepo, orgCommandRepo, eventBus)
+						commandHandler := handlers.NewCommandHandler(empCommandRepo, orgCommandRepo, posCommandRepo, eventBus)
 						
 						// 添加CQRS命令路由
 						r.Route("/commands", func(r chi.Router) {
@@ -517,6 +546,15 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 							r.Post("/organizations", commandHandler.CreateOrganization)
 							r.Put("/organizations/{id}", commandHandler.UpdateOrganization)
 							r.Delete("/organizations/{id}", commandHandler.DeleteOrganization)
+							
+							// 职位命令 (新实现)
+							r.Post("/positions", commandHandler.CreatePosition)
+							r.Put("/positions/{id}", commandHandler.UpdatePosition)
+							r.Delete("/positions/{id}", commandHandler.DeletePosition)
+							
+							// 职位分配命令
+							r.Post("/positions/assign-employee", commandHandler.AssignEmployeeToPosition)
+							r.Post("/positions/remove-employee", commandHandler.RemoveEmployeeFromPosition)
 						})
 						
 						// 创建Neo4j服务连接
@@ -530,8 +568,15 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 						var queryHandler *handlers.QueryHandler
 						logger := &simpleLogger{}
 						neo4jQueryRepo := repositories.NewNeo4jEmployeeQueryRepository(neo4jService, logger)
-						// 暂时使用nil作为组织查询仓储，但已配置员工查询仓储
-						queryHandler = handlers.NewQueryHandler(neo4jQueryRepo, nil)
+						
+						// 创建Neo4j组织查询仓储
+						neo4jOrgQueryRepo := repositories.NewNeo4jOrganizationQueryRepository(neo4jService.GetDriver(), logger)
+						
+						// 创建Neo4j职位查询仓储
+						neo4jPosQueryRepo := repositories.NewNeo4jPositionQueryRepositoryV2(neo4jService, logger)
+						
+						// 创建查询处理器，集成所有查询仓储
+						queryHandler = handlers.NewQueryHandler(neo4jQueryRepo, neo4jOrgQueryRepo, neo4jPosQueryRepo)
 						
 						// 初始化和注册事件消费者（仅当Neo4j服务可用时）
 						if neo4jService != nil {
@@ -579,6 +624,17 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 								r.Get("/organization-units/{id}", queryHandler.GetOrganizationUnit)
 								r.Get("/organization-units", queryHandler.ListOrganizationUnits)
 								r.Get("/reporting-hierarchy/{manager_id}", queryHandler.GetReportingHierarchy)
+								
+								// 职位查询 (新实现)
+								r.Get("/positions/{id}", queryHandler.GetPosition)
+								r.Get("/positions/{id}/relations", queryHandler.GetPositionWithRelations)
+								r.Get("/positions", queryHandler.SearchPositions)
+								r.Get("/positions/hierarchy", queryHandler.GetPositionHierarchy)
+								r.Get("/positions/stats", queryHandler.GetPositionStats)
+								
+								// 职位-员工关系查询
+								r.Get("/employees/{employee_id}/positions", queryHandler.GetEmployeePositions)
+								r.Get("/positions/{position_id}/employees", queryHandler.GetPositionEmployees)
 							})
 							
 							logger.Info("CQRS query routes configured successfully",
@@ -586,6 +642,8 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 									"/api/v1/queries/employees/stats",
 									"/api/v1/queries/employees",
 									"/api/v1/queries/organizations",
+									"/api/v1/queries/positions",
+									"/api/v1/queries/positions/hierarchy",
 								},
 							)
 						}

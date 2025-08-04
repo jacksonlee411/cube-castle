@@ -24,9 +24,14 @@ func SetupCQRSRoutes(r chi.Router, cmdHandler *handlers.CommandHandler, queryHan
 		// r.Put("/update-organization-unit", cmdHandler.UpdateOrganizationUnit) // 未实现
 		// r.Delete("/delete-organization-unit", cmdHandler.DeleteOrganizationUnit) // 未实现
 		
-		// 职位管理命令
-		// r.Post("/assign-employee-position", cmdHandler.AssignEmployeePosition) // 未实现
-		// r.Post("/create-position", cmdHandler.CreatePosition) // 未实现
+		// 职位管理命令 (新实现)
+		r.Post("/positions", cmdHandler.CreatePosition)
+		r.Put("/positions/{id}", cmdHandler.UpdatePosition)
+		r.Delete("/positions/{id}", cmdHandler.DeletePosition)
+		
+		// 职位分配命令
+		r.Post("/positions/assign-employee", cmdHandler.AssignEmployeeToPosition)
+		r.Post("/positions/remove-employee", cmdHandler.RemoveEmployeeFromPosition)
 	})
 	
 	// 查询端点 - 所有读操作  
@@ -50,6 +55,17 @@ func SetupCQRSRoutes(r chi.Router, cmdHandler *handlers.CommandHandler, queryHan
 		// 层级关系查询
 		r.Get("/reporting-hierarchy/{manager_id}", queryHandler.GetReportingHierarchy)
 		// r.Get("/employee-path/{from_id}/{to_id}", queryHandler.FindEmployeePath) // 未实现
+		
+		// 职位查询 (新实现)
+		r.Get("/positions/{id}", queryHandler.GetPosition)
+		r.Get("/positions/{id}/relations", queryHandler.GetPositionWithRelations)
+		r.Get("/positions", queryHandler.SearchPositions)
+		r.Get("/positions/hierarchy", queryHandler.GetPositionHierarchy)
+		r.Get("/positions/stats", queryHandler.GetPositionStats)
+		
+		// 职位-员工关系查询
+		r.Get("/employees/{employee_id}/positions", queryHandler.GetEmployeePositions)
+		r.Get("/positions/{position_id}/employees", queryHandler.GetPositionEmployees)
 		
 		// 高级查询
 		// r.Get("/department-structure/{dept_id}", queryHandler.GetDepartmentStructure) // 未实现

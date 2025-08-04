@@ -16,16 +16,19 @@ import (
 type QueryHandler struct {
 	neo4jRepo        repositories.Neo4jQueryRepository
 	organizationRepo repositories.OrganizationQueryRepository
+	positionRepo     repositories.PositionQueryRepository
 }
 
 // NewQueryHandler 创建查询处理器
 func NewQueryHandler(
 	repo repositories.Neo4jQueryRepository,
 	orgRepo repositories.OrganizationQueryRepository,
+	posRepo repositories.PositionQueryRepository,
 ) *QueryHandler {
 	return &QueryHandler{
 		neo4jRepo:        repo,
 		organizationRepo: orgRepo,
+		positionRepo:     posRepo,
 	}
 }
 
@@ -519,5 +522,348 @@ func (h *QueryHandler) GetOrganizationStats(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"data": stats,
+	})
+}
+
+// === 职位查询处理器 ===
+
+// GetPosition 获取单个职位信息
+func (h *QueryHandler) GetPosition(w http.ResponseWriter, r *http.Request) {
+	positionID := chi.URLParam(r, "id")
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+
+	if positionID == "" || tenantID == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	posUUID, err := uuid.Parse(positionID)
+	if err != nil {
+		http.Error(w, "Invalid position ID format", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	query := queries.GetPositionQuery{
+		TenantID: tenantUUID,
+		ID:       posUUID,
+	}
+
+	position, err := h.positionRepo.GetPosition(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Position not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(position)
+}
+
+// GetPositionWithRelations 获取职位及其关联信息
+func (h *QueryHandler) GetPositionWithRelations(w http.ResponseWriter, r *http.Request) {
+	positionID := chi.URLParam(r, "id")
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+
+	if positionID == "" || tenantID == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	posUUID, err := uuid.Parse(positionID)
+	if err != nil {
+		http.Error(w, "Invalid position ID format", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	position, err := h.positionRepo.GetPositionWithRelations(r.Context(), posUUID, tenantUUID)
+	if err != nil {
+		http.Error(w, "Position not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(position)
+}
+
+// SearchPositions 搜索职位
+func (h *QueryHandler) SearchPositions(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+	if tenantID == "" {
+		http.Error(w, "Missing tenant_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	// 构建搜索参数
+	params := repositories.SearchPositionsParams{
+		TenantID: tenantUUID,
+		Limit:    50, // 默认值
+		Offset:   0,  // 默认值
+	}
+
+	// 解析查询参数
+	if status := r.URL.Query().Get("status"); status != "" {
+		params.Status = &status
+	}
+	if posType := r.URL.Query().Get("position_type"); posType != "" {
+		params.PositionType = &posType
+	}
+	if deptID := r.URL.Query().Get("department_id"); deptID != "" {
+		if deptUUID, err := uuid.Parse(deptID); err == nil {
+			params.DepartmentID = &deptUUID
+		}
+	}
+	if search := r.URL.Query().Get("search"); search != "" {
+		params.Search = &search
+	}
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 && limit <= 1000 {
+			params.Limit = limit
+		}
+	}
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if offset, err := strconv.Atoi(offsetStr); err == nil && offset >= 0 {
+			params.Offset = offset
+		}
+	}
+
+	positions, total, err := h.positionRepo.SearchPositions(r.Context(), params)
+	if err != nil {
+		http.Error(w, "Failed to search positions", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"positions": positions,
+		"pagination": map[string]interface{}{
+			"total":  total,
+			"limit":  params.Limit,
+			"offset": params.Offset,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetPositionHierarchy 获取职位层级关系
+func (h *QueryHandler) GetPositionHierarchy(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+	if tenantID == "" {
+		http.Error(w, "Missing tenant_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	query := queries.GetPositionHierarchyQuery{
+		TenantID: tenantUUID,
+		MaxDepth: 5, // 默认值
+	}
+
+	if rootPosID := r.URL.Query().Get("root_position_id"); rootPosID != "" {
+		if rootUUID, err := uuid.Parse(rootPosID); err == nil {
+			query.RootPositionID = &rootUUID
+		}
+	}
+	if deptID := r.URL.Query().Get("department_id"); deptID != "" {
+		if deptUUID, err := uuid.Parse(deptID); err == nil {
+			query.DepartmentID = &deptUUID
+		}
+	}
+	if depthStr := r.URL.Query().Get("max_depth"); depthStr != "" {
+		if depth, err := strconv.Atoi(depthStr); err == nil && depth > 0 && depth <= 10 {
+			query.MaxDepth = depth
+		}
+	}
+
+	hierarchy, err := h.positionRepo.GetPositionHierarchy(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to get position hierarchy", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"hierarchy": hierarchy,
+		"metadata": map[string]interface{}{
+			"max_depth":    query.MaxDepth,
+			"total_nodes":  len(hierarchy),
+			"generated_at": time.Now().Format(time.RFC3339),
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetEmployeePositions 获取员工的职位历史
+func (h *QueryHandler) GetEmployeePositions(w http.ResponseWriter, r *http.Request) {
+	employeeID := chi.URLParam(r, "employee_id")
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+
+	if employeeID == "" || tenantID == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	empUUID, err := uuid.Parse(employeeID)
+	if err != nil {
+		http.Error(w, "Invalid employee ID format", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	query := queries.GetEmployeePositionsQuery{
+		TenantID:     tenantUUID,
+		EmployeeID:   empUUID,
+		IncludePast:  false, // 默认只返回当前职位
+	}
+
+	if includePastStr := r.URL.Query().Get("include_past"); includePastStr == "true" {
+		query.IncludePast = true
+	}
+
+	positions, err := h.positionRepo.GetEmployeePositions(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to get employee positions", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"employee_id": empUUID,
+		"positions":   positions,
+		"total":       len(positions),
+	})
+}
+
+// GetPositionEmployees 获取职位下的员工
+func (h *QueryHandler) GetPositionEmployees(w http.ResponseWriter, r *http.Request) {
+	positionID := chi.URLParam(r, "position_id")
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+
+	if positionID == "" || tenantID == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	posUUID, err := uuid.Parse(positionID)
+	if err != nil {
+		http.Error(w, "Invalid position ID format", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	query := queries.GetPositionEmployeesQuery{
+		TenantID:     tenantUUID,
+		PositionID:   posUUID,
+		OnlyCurrent:  true, // 默认只返回当前员工
+	}
+
+	if onlyCurrentStr := r.URL.Query().Get("only_current"); onlyCurrentStr == "false" {
+		query.OnlyCurrent = false
+	}
+
+	employees, err := h.positionRepo.GetPositionEmployees(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to get position employees", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"position_id": posUUID,
+		"employees":   employees,
+		"total":       len(employees),
+	})
+}
+
+// GetPositionStats 获取职位统计信息
+func (h *QueryHandler) GetPositionStats(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		tenantID = r.Header.Get("X-Tenant-ID")
+	}
+	if tenantID == "" {
+		http.Error(w, "Missing tenant_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID format", http.StatusBadRequest)
+		return
+	}
+
+	query := queries.GetPositionStatsQuery{
+		TenantID: tenantUUID,
+	}
+
+	if deptID := r.URL.Query().Get("department_id"); deptID != "" {
+		if deptUUID, err := uuid.Parse(deptID); err == nil {
+			query.DepartmentID = &deptUUID
+		}
+	}
+
+	stats, err := h.positionRepo.GetPositionStats(r.Context(), query)
+	if err != nil {
+		http.Error(w, "Failed to get position stats", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": stats,
+		"metadata": map[string]interface{}{
+			"generated_at": time.Now().Format(time.RFC3339),
+		},
 	})
 }

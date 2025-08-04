@@ -32,6 +32,7 @@ func NewNeo4jEmployeeQueryRepository(neo4jService *service.Neo4jService, logger 
 // GetEmployee 获取单个员工信息
 func (r *Neo4jEmployeeQueryRepository) GetEmployee(ctx context.Context, query queries.FindEmployeeQuery) (*EmployeeNode, error) {
 	// 调用Neo4j服务获取员工
+	r.logger.Info("DEBUG REPO: Getting employee", "employee_id", query.ID.String(), "tenant_id", query.TenantID)
 	serviceEmployee, err := r.neo4jService.GetEmployee(ctx, query.ID.String())
 	if err != nil {
 		r.logger.Error("Failed to get employee from Neo4j", "employee_id", query.ID, "tenant_id", query.TenantID, "error", err)
@@ -91,7 +92,7 @@ func (r *Neo4jEmployeeQueryRepository) SearchEmployees(ctx context.Context, quer
 	var employees []EmployeeNode
 	for _, serviceEmp := range serviceEmployees {
 		employee := EmployeeNode{
-			ID:               parseUUID(serviceEmp.EmployeeID), // Use EmployeeID instead of ID
+			ID:               parseUUID(serviceEmp.ID), // Use ID field which contains UUID
 			TenantID:         query.TenantID,
 			FirstName:        extractFirstName(serviceEmp.LegalName),
 			LastName:         extractLastName(serviceEmp.LegalName),
