@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
@@ -185,7 +186,7 @@ func (s *Neo4jService) SyncEmployee(ctx context.Context, employee EmployeeNode) 
 		SET e.id = $id,
 		    e.legal_name = $legal_name,
 		    e.email = $email,
-		    e.status = $status,
+		    e.employment_status = $status,
 		    e.hire_date = datetime($hire_date),
 		    e.updated_at = datetime()
 		RETURN e
@@ -548,13 +549,29 @@ func (s *Neo4jService) nodeToEmployee(node neo4j.Node) EmployeeNode {
 	if empId, ok := props["employee_id"].(string); ok {
 		employee.EmployeeID = empId
 	}
-	if name, ok := props["legal_name"].(string); ok {
+	// Build legal name from first_name and last_name
+	firstName := ""
+	lastName := ""
+	if fn, ok := props["first_name"].(string); ok {
+		firstName = fn
+	}
+	if ln, ok := props["last_name"].(string); ok {
+		lastName = ln
+	}
+	// Combine names for legal_name field
+	if firstName != "" || lastName != "" {
+		employee.LegalName = strings.TrimSpace(firstName + " " + lastName)
+	}
+	// Also check for legacy legal_name field
+	if name, ok := props["legal_name"].(string); ok && employee.LegalName == "" {
 		employee.LegalName = name
 	}
 	if email, ok := props["email"].(string); ok {
 		employee.Email = email
 	}
-	if status, ok := props["status"].(string); ok {
+	if status, ok := props["employment_status"].(string); ok {
+		employee.Status = status
+	} else if status, ok := props["status"].(string); ok {
 		employee.Status = status
 	}
 	if hireDate, ok := props["hire_date"].(time.Time); ok {
