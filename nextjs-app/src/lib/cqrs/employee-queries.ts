@@ -14,6 +14,8 @@ export interface EmployeeSearchParams {
   status?: string
   limit?: number
   offset?: number
+  page?: number
+  pageSize?: number
 }
 
 // Employee Search Response
@@ -41,7 +43,7 @@ export class EmployeeQueryAPI {
   }
 
   /**
-   * Search employees using CQRS query handler
+   * Search employees using CQRS query handler with pagination support
    */
   async searchEmployees(params: EmployeeSearchParams = {}): Promise<EmployeeSearchResponse> {
     const requestId = createEmployeeRequestId('search')
@@ -50,14 +52,25 @@ export class EmployeeQueryAPI {
 
     return retryManager.executeWithRetry(async () => {
       try {
+        // Calculate limit and offset from page params if provided
+        let limit = params.limit || 100
+        let offset = params.offset || 0
+        
+        if (params.page !== undefined && params.pageSize !== undefined) {
+          limit = params.pageSize
+          offset = (params.page - 1) * params.pageSize
+        }
+
         const url = buildUrlWithParams(
           '/api/v1/queries/employees',
           {
             tenant_id: this.tenantId,
-            limit: params.limit || 20,
-            offset: params.offset || 0,
+            limit,
+            offset,
             ...Object.fromEntries(
-              Object.entries(params).filter(([_, value]) => value !== undefined && value !== null)
+              Object.entries(params).filter(([key, value]) => 
+                value !== undefined && value !== null && key !== 'page' && key !== 'pageSize'
+              )
             )
           },
           this.baseURL
@@ -115,6 +128,21 @@ export class EmployeeQueryAPI {
         throw cqrsError
       }
     }, { operation: 'searchEmployees', params, requestId })
+  }
+
+  /**
+   * Search employees with explicit pagination parameters
+   */
+  async searchEmployeesWithPagination(
+    page: number = 1, 
+    pageSize: number = 100, 
+    filters: Omit<EmployeeSearchParams, 'page' | 'pageSize' | 'limit' | 'offset'> = {}
+  ): Promise<EmployeeSearchResponse> {
+    return this.searchEmployees({
+      ...filters,
+      page,
+      pageSize
+    })
   }
 
   /**
@@ -292,7 +320,7 @@ export class EmployeeQueryAPI {
       return {
         employees: [],
         total_count: data?.total_count || 0,
-        limit: data?.limit || 20,
+        limit: data?.limit || 100,
         offset: data?.offset || 0,
       }
     }
@@ -302,7 +330,7 @@ export class EmployeeQueryAPI {
     return {
       employees,
       total_count: data.total_count || employees.length,
-      limit: data.limit || 20,
+      limit: data.limit || 100,
       offset: data.offset || 0,
     }
   }
@@ -325,7 +353,7 @@ export class EmployeeQueryAPI {
 
     return {
       id: emp.id || emp.employee_id || '',
-      employeeId: emp.employee_id || emp.employeeId || emp.id || '',
+      employeeId: emp.personal_info?.business_id?.toString() || emp.employee_id || emp.employeeId || emp.id || '',
       legalName,
       preferredName: emp.preferred_name || emp.preferredName || null,
       email: emp.email || '',

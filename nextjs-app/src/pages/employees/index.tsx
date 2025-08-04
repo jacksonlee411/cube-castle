@@ -42,14 +42,16 @@ import { PieChart, BarChart } from '@/components/ui/data-visualization';
 
 // Import CQRS hooks
 import { useEmployeeCQRS, useEmployeeStats } from '@/hooks/useEmployeeCQRS';
+import { useEmployeePagination } from '@/hooks/useEmployeePagination';
 import { Employee } from '@/types/employee';
 import ClientOnlyWrapper from '@/components/ClientOnlyWrapper';
+import { ServerPaginatedTable } from '@/components/ui/server-paginated-table';
+import { ServerPaginationControls } from '@/components/ui/server-pagination-controls';
 
 const EmployeesPage: React.FC = () => {
   const router = useRouter();
   
   // Local state
-  const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState<Partial<Employee>>({});
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
@@ -62,22 +64,36 @@ const EmployeesPage: React.FC = () => {
   const handleFiltersChange = useCallback((filters: ActiveFilter[]) => {
     setActiveFilters(filters);
   }, []);
-  // 使用 CQRS Employee Hook
+  
+  // 使用新的分页 Hook 替代原有的 CQRS Hook
   const {
     employees,
-    filteredEmployees,
+    pagination,
     isLoading,
-    hasErrors,
-    searchEmployees,
-    setFilters,
-    refreshAll
-  } = useEmployeeCQRS();
+    error,
+    loadPage,
+    changePageSize,
+    applyFilters,
+    refresh
+  } = useEmployeePagination(50); // 默认每页50项
 
   const { 
     stats,
     isLoading: statsLoading 
   } = useEmployeeStats();
 
+  // 当过滤器改变时应用过滤器
+  React.useEffect(() => {
+    if (activeFilters.length > 0) {
+      const filterMap = activeFilters.reduce((acc, filter) => {
+        acc[filter.key] = filter.value;
+        return acc;
+      }, {} as Record<string, string>);
+      applyFilters(filterMap);
+    } else {
+      applyFilters({});
+    }
+  }, [activeFilters, applyFilters]);
   // Error state component
   const ErrorState = () => (
     <Card className="p-6 text-center">
@@ -86,15 +102,16 @@ const EmployeesPage: React.FC = () => {
         <div>
           <h3 className="text-lg font-semibold text-red-600">数据加载失败</h3>
           <p className="text-sm text-gray-600 mt-1">
-            无法连接到服务器，请检查网络连接
+            {error || '无法连接到服务器，请检查网络连接'}
           </p>
         </div>
         <Button 
-          onClick={() => refreshAll()} 
+          onClick={() => refresh()} 
           variant="outline" 
           className="flex items-center gap-2"
+          disabled={isLoading}
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           重试
         </Button>
       </div>
@@ -178,7 +195,7 @@ const EmployeesPage: React.FC = () => {
       }
       
       // Refresh data
-      refreshAll();
+      refresh();
       handleModalClose();
     } catch (error) {
       toast.error('操作时发生错误，请重试');
@@ -191,14 +208,14 @@ const EmployeesPage: React.FC = () => {
       ...employee,
       hireDate: employee.hireDate
     });
-    setIsModalVisible(true);
+    setShowModal(true);
   };
 
   const handleDelete = (employee: Employee) => {
     if (confirm(`确定要删除员工 ${employee.legalName} 吗？此操作不可撤销。`)) {
       // In a real app, this would make an API call
       toast.success(`员工 ${employee.legalName} 已从系统中删除`);
-      refreshAll(); // Refresh data
+      refresh(); // Refresh data
     }
   };
 
@@ -215,24 +232,7 @@ const EmployeesPage: React.FC = () => {
     }
   };
 
-  // 使用CQRS Hook的搜索和过滤功能
-  React.useEffect(() => {
-    if (searchValue) {
-      searchEmployees(searchValue);
-    }
-  }, [searchValue, searchEmployees]);
-
-  React.useEffect(() => {
-    if (activeFilters.length > 0) {
-      const filterMap = activeFilters.reduce((acc, filter) => {
-        acc[filter.key] = filter.value;
-        return acc;
-      }, {} as Record<string, string>);
-      setFilters(filterMap);
-    } else {
-      setFilters({});
-    }
-  }, [activeFilters, setFilters]);
+  // 使用CQRS Hook的搜索和过滤功能已移至 useEmployeePagination Hook 中处理
 
   // Filter options configuration - 深度稳定化防止引用循环
   const filterOptions: FilterOption[] = useMemo(() => {
@@ -467,8 +467,8 @@ const EmployeesPage: React.FC = () => {
     },
   ];
 
-  // Show error state only if there are no employees and there are errors
-  if (hasErrors && employees.length === 0 && !isLoading) {
+  // Show error state only if there are errors and no employees loaded
+  if (error && employees.length === 0 && !isLoading) {
     return (
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 page-enter">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -637,7 +637,7 @@ const EmployeesPage: React.FC = () => {
               </Badge>
             )}
             <span className="text-muted-foreground">
-              显示 {filteredEmployees.length} / {employees.length} 个员工
+              当前页显示 {employees.length} 个员工，共 {pagination.totalCount} 个员工
             </span>
             {isLoading && (
               <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
@@ -650,61 +650,84 @@ const EmployeesPage: React.FC = () => {
       {viewMode === 'table' ? (
         <Card>
           <CardContent className="p-6">
-            <DataTable
+            <ServerPaginatedTable
               columns={columns}
-              data={filteredEmployees}
+              data={employees}
               searchKey="legalName"
               searchPlaceholder="搜索员工姓名、工号、邮箱或职位..."
+              totalCount={pagination.totalCount}
+              currentPage={pagination.currentPage}
+              pageSize={pagination.pageSize}
+              onPageChange={loadPage}
+              onPageSizeChange={changePageSize}
+              isLoading={isLoading}
             />
           </CardContent>
         </Card>
       ) : (
-        <EmployeeCardsGrid columns={3}>
-          {isLoading ? (
-            Array.from({ length: 6 }).map((_, index) => (
-              <EmployeeCardSkeleton key={index} />
-            ))
-          ) : (
-            filteredEmployees.map((employee) => (
-              <EmployeeCard
-                key={employee.id}
-                employee={{
-                  ...employee,
-                  name: employee.legalName,
-                  phone: employee.phone || undefined
-                }}
-                selectable={true}
-                selected={selectedEmployees.includes(employee.id)}
-                onSelectionChange={(selected) => {
-                  if (selected) {
-                    setSelectedEmployees(prev => [...prev, employee.id]);
-                  } else {
-                    setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
-                  }
-                }}
-                onClick={() => router.push(`/employees/${employee.id}`)}
-                actions={[
-                  {
-                    label: '编辑信息',
-                    icon: <Edit2 className="w-4 h-4" />,
-                    onClick: () => handleEdit(employee)
-                  },
-                  {
-                    label: '职位历史',
-                    icon: <History className="w-4 h-4" />,
-                    onClick: () => router.push(`/employees/positions/${employee.id}`)
-                  },
-                  {
-                    label: '删除员工',
-                    icon: <Trash2 className="w-4 h-4" />,
-                    onClick: () => handleDelete(employee),
-                    variant: 'destructive'
-                  }
-                ]}
+        <>
+          <EmployeeCardsGrid columns={3}>
+            {isLoading ? (
+              Array.from({ length: pagination.pageSize }).map((_, index) => (
+                <EmployeeCardSkeleton key={index} />
+              ))
+            ) : (
+              employees.map((employee) => (
+                <EmployeeCard
+                  key={employee.id}
+                  employee={{
+                    ...employee,
+                    name: employee.legalName,
+                    phone: employee.phone || undefined
+                  }}
+                  selectable={true}
+                  selected={selectedEmployees.includes(employee.id)}
+                  onSelectionChange={(selected) => {
+                    if (selected) {
+                      setSelectedEmployees(prev => [...prev, employee.id]);
+                    } else {
+                      setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
+                    }
+                  }}
+                  onClick={() => router.push(`/employees/${employee.id}`)}
+                  actions={[
+                    {
+                      label: '编辑信息',
+                      icon: <Edit2 className="w-4 h-4" />,
+                      onClick: () => handleEdit(employee)
+                    },
+                    {
+                      label: '职位历史',
+                      icon: <History className="w-4 h-4" />,
+                      onClick: () => router.push(`/employees/positions/${employee.id}`)
+                    },
+                    {
+                      label: '删除员工',
+                      icon: <Trash2 className="w-4 h-4" />,
+                      onClick: () => handleDelete(employee),
+                      variant: 'destructive'
+                    }
+                  ]}
+                />
+              ))
+            )}
+          </EmployeeCardsGrid>
+          
+          {/* Card view pagination controls */}
+          <Card>
+            <CardContent className="p-4">
+              <ServerPaginationControls
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                pageSize={pagination.pageSize}
+                totalCount={pagination.totalCount}
+                onPageChange={loadPage}
+                onPageSizeChange={changePageSize}
+                isLoading={isLoading}
               />
-            ))
-          )}
-        </EmployeeCardsGrid>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Native Modal Implementation */}
