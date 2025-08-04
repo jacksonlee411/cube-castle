@@ -15,6 +15,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
@@ -34,6 +35,7 @@ type PositionQuery struct {
 	withCurrentIncumbents *EmployeeQuery
 	withOccupancyHistory  *PositionOccupancyHistoryQuery
 	withAttributeHistory  *PositionAttributeHistoryQuery
+	withAssignments       *PositionAssignmentQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -195,6 +197,28 @@ func (pq *PositionQuery) QueryAttributeHistory() *PositionAttributeHistoryQuery 
 			sqlgraph.From(position.Table, position.FieldID, selector),
 			sqlgraph.To(positionattributehistory.Table, positionattributehistory.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, position.AttributeHistoryTable, position.AttributeHistoryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAssignments chains the current query on the "assignments" edge.
+func (pq *PositionQuery) QueryAssignments() *PositionAssignmentQuery {
+	query := (&PositionAssignmentClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, selector),
+			sqlgraph.To(positionassignment.Table, positionassignment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, position.AssignmentsTable, position.AssignmentsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -400,6 +424,7 @@ func (pq *PositionQuery) Clone() *PositionQuery {
 		withCurrentIncumbents: pq.withCurrentIncumbents.Clone(),
 		withOccupancyHistory:  pq.withOccupancyHistory.Clone(),
 		withAttributeHistory:  pq.withAttributeHistory.Clone(),
+		withAssignments:       pq.withAssignments.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
@@ -469,6 +494,17 @@ func (pq *PositionQuery) WithAttributeHistory(opts ...func(*PositionAttributeHis
 		opt(query)
 	}
 	pq.withAttributeHistory = query
+	return pq
+}
+
+// WithAssignments tells the query-builder to eager-load the nodes that are connected to
+// the "assignments" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PositionQuery) WithAssignments(opts ...func(*PositionAssignmentQuery)) *PositionQuery {
+	query := (&PositionAssignmentClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withAssignments = query
 	return pq
 }
 
@@ -550,13 +586,14 @@ func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Pos
 	var (
 		nodes       = []*Position{}
 		_spec       = pq.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [7]bool{
 			pq.withManager != nil,
 			pq.withDirectReports != nil,
 			pq.withDepartment != nil,
 			pq.withCurrentIncumbents != nil,
 			pq.withOccupancyHistory != nil,
 			pq.withAttributeHistory != nil,
+			pq.withAssignments != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -618,6 +655,13 @@ func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Pos
 			func(n *Position, e *PositionAttributeHistory) {
 				n.Edges.AttributeHistory = append(n.Edges.AttributeHistory, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := pq.withAssignments; query != nil {
+		if err := pq.loadAssignments(ctx, query, nodes,
+			func(n *Position) { n.Edges.Assignments = []*PositionAssignment{} },
+			func(n *Position, e *PositionAssignment) { n.Edges.Assignments = append(n.Edges.Assignments, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -796,6 +840,36 @@ func (pq *PositionQuery) loadAttributeHistory(ctx context.Context, query *Positi
 	}
 	query.Where(predicate.PositionAttributeHistory(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(position.AttributeHistoryColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PositionID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "position_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (pq *PositionQuery) loadAssignments(ctx context.Context, query *PositionAssignmentQuery, nodes []*Position, init func(*Position), assign func(*Position, *PositionAssignment)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Position)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(positionassignment.FieldPositionID)
+	}
+	query.Where(predicate.PositionAssignment(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(position.AssignmentsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

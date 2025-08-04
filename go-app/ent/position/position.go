@@ -18,6 +18,8 @@ const (
 	FieldID = "id"
 	// FieldTenantID holds the string denoting the tenant_id field in the database.
 	FieldTenantID = "tenant_id"
+	// FieldBusinessID holds the string denoting the business_id field in the database.
+	FieldBusinessID = "business_id"
 	// FieldPositionType holds the string denoting the position_type field in the database.
 	FieldPositionType = "position_type"
 	// FieldJobProfileID holds the string denoting the job_profile_id field in the database.
@@ -48,6 +50,8 @@ const (
 	EdgeOccupancyHistory = "occupancy_history"
 	// EdgeAttributeHistory holds the string denoting the attribute_history edge name in mutations.
 	EdgeAttributeHistory = "attribute_history"
+	// EdgeAssignments holds the string denoting the assignments edge name in mutations.
+	EdgeAssignments = "assignments"
 	// Table holds the table name of the position in the database.
 	Table = "positions"
 	// ManagerTable is the table that holds the manager relation/edge.
@@ -86,12 +90,20 @@ const (
 	AttributeHistoryInverseTable = "position_attribute_histories"
 	// AttributeHistoryColumn is the table column denoting the attribute_history relation/edge.
 	AttributeHistoryColumn = "position_id"
+	// AssignmentsTable is the table that holds the assignments relation/edge.
+	AssignmentsTable = "position_assignments"
+	// AssignmentsInverseTable is the table name for the PositionAssignment entity.
+	// It exists in this package in order to avoid circular dependency with the "positionassignment" package.
+	AssignmentsInverseTable = "position_assignments"
+	// AssignmentsColumn is the table column denoting the assignments relation/edge.
+	AssignmentsColumn = "position_id"
 )
 
 // Columns holds all SQL columns for position fields.
 var Columns = []string{
 	FieldID,
 	FieldTenantID,
+	FieldBusinessID,
 	FieldPositionType,
 	FieldJobProfileID,
 	FieldDepartmentID,
@@ -114,6 +126,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// BusinessIDValidator is a validator for the "business_id" field. It is called by the builders before save.
+	BusinessIDValidator func(string) error
 	// DefaultBudgetedFte holds the default value on creation for the "budgeted_fte" field.
 	DefaultBudgetedFte float64
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -190,6 +204,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByTenantID orders the results by the tenant_id field.
 func ByTenantID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTenantID, opts...).ToFunc()
+}
+
+// ByBusinessID orders the results by the business_id field.
+func ByBusinessID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBusinessID, opts...).ToFunc()
 }
 
 // ByPositionType orders the results by the position_type field.
@@ -301,6 +320,20 @@ func ByAttributeHistory(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newAttributeHistoryStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByAssignmentsCount orders the results by assignments count.
+func ByAssignmentsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAssignmentsStep(), opts...)
+	}
+}
+
+// ByAssignments orders the results by assignments terms.
+func ByAssignments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAssignmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newManagerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -341,5 +374,12 @@ func newAttributeHistoryStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AttributeHistoryInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AttributeHistoryTable, AttributeHistoryColumn),
+	)
+}
+func newAssignmentsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AssignmentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AssignmentsTable, AssignmentsColumn),
 	)
 }

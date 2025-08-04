@@ -14,6 +14,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
@@ -30,6 +31,20 @@ type PositionUpdate struct {
 // Where appends a list predicates to the PositionUpdate builder.
 func (pu *PositionUpdate) Where(ps ...predicate.Position) *PositionUpdate {
 	pu.mutation.Where(ps...)
+	return pu
+}
+
+// SetBusinessID sets the "business_id" field.
+func (pu *PositionUpdate) SetBusinessID(s string) *PositionUpdate {
+	pu.mutation.SetBusinessID(s)
+	return pu
+}
+
+// SetNillableBusinessID sets the "business_id" field if the given value is not nil.
+func (pu *PositionUpdate) SetNillableBusinessID(s *string) *PositionUpdate {
+	if s != nil {
+		pu.SetBusinessID(*s)
+	}
 	return pu
 }
 
@@ -232,6 +247,21 @@ func (pu *PositionUpdate) AddAttributeHistory(p ...*PositionAttributeHistory) *P
 	return pu.AddAttributeHistoryIDs(ids...)
 }
 
+// AddAssignmentIDs adds the "assignments" edge to the PositionAssignment entity by IDs.
+func (pu *PositionUpdate) AddAssignmentIDs(ids ...uuid.UUID) *PositionUpdate {
+	pu.mutation.AddAssignmentIDs(ids...)
+	return pu
+}
+
+// AddAssignments adds the "assignments" edges to the PositionAssignment entity.
+func (pu *PositionUpdate) AddAssignments(p ...*PositionAssignment) *PositionUpdate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return pu.AddAssignmentIDs(ids...)
+}
+
 // Mutation returns the PositionMutation object of the builder.
 func (pu *PositionUpdate) Mutation() *PositionMutation {
 	return pu.mutation
@@ -333,6 +363,27 @@ func (pu *PositionUpdate) RemoveAttributeHistory(p ...*PositionAttributeHistory)
 	return pu.RemoveAttributeHistoryIDs(ids...)
 }
 
+// ClearAssignments clears all "assignments" edges to the PositionAssignment entity.
+func (pu *PositionUpdate) ClearAssignments() *PositionUpdate {
+	pu.mutation.ClearAssignments()
+	return pu
+}
+
+// RemoveAssignmentIDs removes the "assignments" edge to PositionAssignment entities by IDs.
+func (pu *PositionUpdate) RemoveAssignmentIDs(ids ...uuid.UUID) *PositionUpdate {
+	pu.mutation.RemoveAssignmentIDs(ids...)
+	return pu
+}
+
+// RemoveAssignments removes "assignments" edges to PositionAssignment entities.
+func (pu *PositionUpdate) RemoveAssignments(p ...*PositionAssignment) *PositionUpdate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return pu.RemoveAssignmentIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (pu *PositionUpdate) Save(ctx context.Context) (int, error) {
 	pu.defaults()
@@ -371,6 +422,11 @@ func (pu *PositionUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pu *PositionUpdate) check() error {
+	if v, ok := pu.mutation.BusinessID(); ok {
+		if err := position.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "Position.business_id": %w`, err)}
+		}
+	}
 	if v, ok := pu.mutation.PositionType(); ok {
 		if err := position.PositionTypeValidator(v); err != nil {
 			return &ValidationError{Name: "position_type", err: fmt.Errorf(`ent: validator failed for field "Position.position_type": %w`, err)}
@@ -398,6 +454,9 @@ func (pu *PositionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := pu.mutation.BusinessID(); ok {
+		_spec.SetField(position.FieldBusinessID, field.TypeString, value)
 	}
 	if value, ok := pu.mutation.PositionType(); ok {
 		_spec.SetField(position.FieldPositionType, field.TypeEnum, value)
@@ -661,6 +720,51 @@ func (pu *PositionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if pu.mutation.AssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.AssignmentsTable,
+			Columns: []string{position.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedAssignmentsIDs(); len(nodes) > 0 && !pu.mutation.AssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.AssignmentsTable,
+			Columns: []string{position.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.AssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.AssignmentsTable,
+			Columns: []string{position.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{position.Label}
@@ -679,6 +783,20 @@ type PositionUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *PositionMutation
+}
+
+// SetBusinessID sets the "business_id" field.
+func (puo *PositionUpdateOne) SetBusinessID(s string) *PositionUpdateOne {
+	puo.mutation.SetBusinessID(s)
+	return puo
+}
+
+// SetNillableBusinessID sets the "business_id" field if the given value is not nil.
+func (puo *PositionUpdateOne) SetNillableBusinessID(s *string) *PositionUpdateOne {
+	if s != nil {
+		puo.SetBusinessID(*s)
+	}
+	return puo
 }
 
 // SetPositionType sets the "position_type" field.
@@ -880,6 +998,21 @@ func (puo *PositionUpdateOne) AddAttributeHistory(p ...*PositionAttributeHistory
 	return puo.AddAttributeHistoryIDs(ids...)
 }
 
+// AddAssignmentIDs adds the "assignments" edge to the PositionAssignment entity by IDs.
+func (puo *PositionUpdateOne) AddAssignmentIDs(ids ...uuid.UUID) *PositionUpdateOne {
+	puo.mutation.AddAssignmentIDs(ids...)
+	return puo
+}
+
+// AddAssignments adds the "assignments" edges to the PositionAssignment entity.
+func (puo *PositionUpdateOne) AddAssignments(p ...*PositionAssignment) *PositionUpdateOne {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return puo.AddAssignmentIDs(ids...)
+}
+
 // Mutation returns the PositionMutation object of the builder.
 func (puo *PositionUpdateOne) Mutation() *PositionMutation {
 	return puo.mutation
@@ -981,6 +1114,27 @@ func (puo *PositionUpdateOne) RemoveAttributeHistory(p ...*PositionAttributeHist
 	return puo.RemoveAttributeHistoryIDs(ids...)
 }
 
+// ClearAssignments clears all "assignments" edges to the PositionAssignment entity.
+func (puo *PositionUpdateOne) ClearAssignments() *PositionUpdateOne {
+	puo.mutation.ClearAssignments()
+	return puo
+}
+
+// RemoveAssignmentIDs removes the "assignments" edge to PositionAssignment entities by IDs.
+func (puo *PositionUpdateOne) RemoveAssignmentIDs(ids ...uuid.UUID) *PositionUpdateOne {
+	puo.mutation.RemoveAssignmentIDs(ids...)
+	return puo
+}
+
+// RemoveAssignments removes "assignments" edges to PositionAssignment entities.
+func (puo *PositionUpdateOne) RemoveAssignments(p ...*PositionAssignment) *PositionUpdateOne {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return puo.RemoveAssignmentIDs(ids...)
+}
+
 // Where appends a list predicates to the PositionUpdate builder.
 func (puo *PositionUpdateOne) Where(ps ...predicate.Position) *PositionUpdateOne {
 	puo.mutation.Where(ps...)
@@ -1032,6 +1186,11 @@ func (puo *PositionUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (puo *PositionUpdateOne) check() error {
+	if v, ok := puo.mutation.BusinessID(); ok {
+		if err := position.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "Position.business_id": %w`, err)}
+		}
+	}
 	if v, ok := puo.mutation.PositionType(); ok {
 		if err := position.PositionTypeValidator(v); err != nil {
 			return &ValidationError{Name: "position_type", err: fmt.Errorf(`ent: validator failed for field "Position.position_type": %w`, err)}
@@ -1076,6 +1235,9 @@ func (puo *PositionUpdateOne) sqlSave(ctx context.Context) (_node *Position, err
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := puo.mutation.BusinessID(); ok {
+		_spec.SetField(position.FieldBusinessID, field.TypeString, value)
 	}
 	if value, ok := puo.mutation.PositionType(); ok {
 		_spec.SetField(position.FieldPositionType, field.TypeEnum, value)
@@ -1332,6 +1494,51 @@ func (puo *PositionUpdateOne) sqlSave(ctx context.Context) (_node *Position, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(positionattributehistory.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.AssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.AssignmentsTable,
+			Columns: []string{position.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedAssignmentsIDs(); len(nodes) > 0 && !puo.mutation.AssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.AssignmentsTable,
+			Columns: []string{position.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.AssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.AssignmentsTable,
+			Columns: []string{position.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

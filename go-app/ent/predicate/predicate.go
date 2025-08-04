@@ -6,6 +6,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// AssignmentDetails is the predicate function for assignmentdetails builders.
+type AssignmentDetails func(*sql.Selector)
+
+// AssignmentHistory is the predicate function for assignmenthistory builders.
+type AssignmentHistory func(*sql.Selector)
+
 // Employee is the predicate function for employee builders.
 type Employee func(*sql.Selector)
 
@@ -14,6 +20,9 @@ type OrganizationUnit func(*sql.Selector)
 
 // Position is the predicate function for position builders.
 type Position func(*sql.Selector)
+
+// PositionAssignment is the predicate function for positionassignment builders.
+type PositionAssignment func(*sql.Selector)
 
 // PositionAttributeHistory is the predicate function for positionattributehistory builders.
 type PositionAttributeHistory func(*sql.Selector)

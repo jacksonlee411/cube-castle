@@ -11,9 +11,12 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/gaogu/cube-castle/go-app/ent/assignmentdetails"
+	"github.com/gaogu/cube-castle/go-app/ent/assignmenthistory"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
@@ -30,13 +33,2248 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
+	TypeAssignmentDetails        = "AssignmentDetails"
+	TypeAssignmentHistory        = "AssignmentHistory"
 	TypeEmployee                 = "Employee"
 	TypeOrganizationUnit         = "OrganizationUnit"
 	TypePosition                 = "Position"
+	TypePositionAssignment       = "PositionAssignment"
 	TypePositionAttributeHistory = "PositionAttributeHistory"
 	TypePositionHistory          = "PositionHistory"
 	TypePositionOccupancyHistory = "PositionOccupancyHistory"
 )
+
+// AssignmentDetailsMutation represents an operation that mutates the AssignmentDetails nodes in the graph.
+type AssignmentDetailsMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *uuid.UUID
+	tenant_id            *uuid.UUID
+	pay_grade_id         *uuid.UUID
+	compensation_plan_id *uuid.UUID
+	work_location        *string
+	work_arrangement     *assignmentdetails.WorkArrangement
+	assignment_reason    *assignmentdetails.AssignmentReason
+	change_reason        *string
+	notes                *string
+	approved_by          *uuid.UUID
+	approved_at          *time.Time
+	approval_status      *assignmentdetails.ApprovalStatus
+	custom_fields        *map[string]interface{}
+	created_at           *time.Time
+	updated_at           *time.Time
+	clearedFields        map[string]struct{}
+	assignment           *uuid.UUID
+	clearedassignment    bool
+	done                 bool
+	oldValue             func(context.Context) (*AssignmentDetails, error)
+	predicates           []predicate.AssignmentDetails
+}
+
+var _ ent.Mutation = (*AssignmentDetailsMutation)(nil)
+
+// assignmentdetailsOption allows management of the mutation configuration using functional options.
+type assignmentdetailsOption func(*AssignmentDetailsMutation)
+
+// newAssignmentDetailsMutation creates new mutation for the AssignmentDetails entity.
+func newAssignmentDetailsMutation(c config, op Op, opts ...assignmentdetailsOption) *AssignmentDetailsMutation {
+	m := &AssignmentDetailsMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAssignmentDetails,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAssignmentDetailsID sets the ID field of the mutation.
+func withAssignmentDetailsID(id uuid.UUID) assignmentdetailsOption {
+	return func(m *AssignmentDetailsMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AssignmentDetails
+		)
+		m.oldValue = func(ctx context.Context) (*AssignmentDetails, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AssignmentDetails.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAssignmentDetails sets the old AssignmentDetails of the mutation.
+func withAssignmentDetails(node *AssignmentDetails) assignmentdetailsOption {
+	return func(m *AssignmentDetailsMutation) {
+		m.oldValue = func(context.Context) (*AssignmentDetails, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AssignmentDetailsMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AssignmentDetailsMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AssignmentDetails entities.
+func (m *AssignmentDetailsMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AssignmentDetailsMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AssignmentDetailsMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AssignmentDetails.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAssignmentID sets the "assignment_id" field.
+func (m *AssignmentDetailsMutation) SetAssignmentID(u uuid.UUID) {
+	m.assignment = &u
+}
+
+// AssignmentID returns the value of the "assignment_id" field in the mutation.
+func (m *AssignmentDetailsMutation) AssignmentID() (r uuid.UUID, exists bool) {
+	v := m.assignment
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssignmentID returns the old "assignment_id" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldAssignmentID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssignmentID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssignmentID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssignmentID: %w", err)
+	}
+	return oldValue.AssignmentID, nil
+}
+
+// ResetAssignmentID resets all changes to the "assignment_id" field.
+func (m *AssignmentDetailsMutation) ResetAssignmentID() {
+	m.assignment = nil
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (m *AssignmentDetailsMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *AssignmentDetailsMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *AssignmentDetailsMutation) ResetTenantID() {
+	m.tenant_id = nil
+}
+
+// SetPayGradeID sets the "pay_grade_id" field.
+func (m *AssignmentDetailsMutation) SetPayGradeID(u uuid.UUID) {
+	m.pay_grade_id = &u
+}
+
+// PayGradeID returns the value of the "pay_grade_id" field in the mutation.
+func (m *AssignmentDetailsMutation) PayGradeID() (r uuid.UUID, exists bool) {
+	v := m.pay_grade_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPayGradeID returns the old "pay_grade_id" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldPayGradeID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPayGradeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPayGradeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPayGradeID: %w", err)
+	}
+	return oldValue.PayGradeID, nil
+}
+
+// ClearPayGradeID clears the value of the "pay_grade_id" field.
+func (m *AssignmentDetailsMutation) ClearPayGradeID() {
+	m.pay_grade_id = nil
+	m.clearedFields[assignmentdetails.FieldPayGradeID] = struct{}{}
+}
+
+// PayGradeIDCleared returns if the "pay_grade_id" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) PayGradeIDCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldPayGradeID]
+	return ok
+}
+
+// ResetPayGradeID resets all changes to the "pay_grade_id" field.
+func (m *AssignmentDetailsMutation) ResetPayGradeID() {
+	m.pay_grade_id = nil
+	delete(m.clearedFields, assignmentdetails.FieldPayGradeID)
+}
+
+// SetCompensationPlanID sets the "compensation_plan_id" field.
+func (m *AssignmentDetailsMutation) SetCompensationPlanID(u uuid.UUID) {
+	m.compensation_plan_id = &u
+}
+
+// CompensationPlanID returns the value of the "compensation_plan_id" field in the mutation.
+func (m *AssignmentDetailsMutation) CompensationPlanID() (r uuid.UUID, exists bool) {
+	v := m.compensation_plan_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompensationPlanID returns the old "compensation_plan_id" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldCompensationPlanID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompensationPlanID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompensationPlanID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompensationPlanID: %w", err)
+	}
+	return oldValue.CompensationPlanID, nil
+}
+
+// ClearCompensationPlanID clears the value of the "compensation_plan_id" field.
+func (m *AssignmentDetailsMutation) ClearCompensationPlanID() {
+	m.compensation_plan_id = nil
+	m.clearedFields[assignmentdetails.FieldCompensationPlanID] = struct{}{}
+}
+
+// CompensationPlanIDCleared returns if the "compensation_plan_id" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) CompensationPlanIDCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldCompensationPlanID]
+	return ok
+}
+
+// ResetCompensationPlanID resets all changes to the "compensation_plan_id" field.
+func (m *AssignmentDetailsMutation) ResetCompensationPlanID() {
+	m.compensation_plan_id = nil
+	delete(m.clearedFields, assignmentdetails.FieldCompensationPlanID)
+}
+
+// SetWorkLocation sets the "work_location" field.
+func (m *AssignmentDetailsMutation) SetWorkLocation(s string) {
+	m.work_location = &s
+}
+
+// WorkLocation returns the value of the "work_location" field in the mutation.
+func (m *AssignmentDetailsMutation) WorkLocation() (r string, exists bool) {
+	v := m.work_location
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkLocation returns the old "work_location" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldWorkLocation(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkLocation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkLocation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkLocation: %w", err)
+	}
+	return oldValue.WorkLocation, nil
+}
+
+// ClearWorkLocation clears the value of the "work_location" field.
+func (m *AssignmentDetailsMutation) ClearWorkLocation() {
+	m.work_location = nil
+	m.clearedFields[assignmentdetails.FieldWorkLocation] = struct{}{}
+}
+
+// WorkLocationCleared returns if the "work_location" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) WorkLocationCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldWorkLocation]
+	return ok
+}
+
+// ResetWorkLocation resets all changes to the "work_location" field.
+func (m *AssignmentDetailsMutation) ResetWorkLocation() {
+	m.work_location = nil
+	delete(m.clearedFields, assignmentdetails.FieldWorkLocation)
+}
+
+// SetWorkArrangement sets the "work_arrangement" field.
+func (m *AssignmentDetailsMutation) SetWorkArrangement(aa assignmentdetails.WorkArrangement) {
+	m.work_arrangement = &aa
+}
+
+// WorkArrangement returns the value of the "work_arrangement" field in the mutation.
+func (m *AssignmentDetailsMutation) WorkArrangement() (r assignmentdetails.WorkArrangement, exists bool) {
+	v := m.work_arrangement
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkArrangement returns the old "work_arrangement" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldWorkArrangement(ctx context.Context) (v assignmentdetails.WorkArrangement, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkArrangement is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkArrangement requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkArrangement: %w", err)
+	}
+	return oldValue.WorkArrangement, nil
+}
+
+// ClearWorkArrangement clears the value of the "work_arrangement" field.
+func (m *AssignmentDetailsMutation) ClearWorkArrangement() {
+	m.work_arrangement = nil
+	m.clearedFields[assignmentdetails.FieldWorkArrangement] = struct{}{}
+}
+
+// WorkArrangementCleared returns if the "work_arrangement" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) WorkArrangementCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldWorkArrangement]
+	return ok
+}
+
+// ResetWorkArrangement resets all changes to the "work_arrangement" field.
+func (m *AssignmentDetailsMutation) ResetWorkArrangement() {
+	m.work_arrangement = nil
+	delete(m.clearedFields, assignmentdetails.FieldWorkArrangement)
+}
+
+// SetAssignmentReason sets the "assignment_reason" field.
+func (m *AssignmentDetailsMutation) SetAssignmentReason(ar assignmentdetails.AssignmentReason) {
+	m.assignment_reason = &ar
+}
+
+// AssignmentReason returns the value of the "assignment_reason" field in the mutation.
+func (m *AssignmentDetailsMutation) AssignmentReason() (r assignmentdetails.AssignmentReason, exists bool) {
+	v := m.assignment_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssignmentReason returns the old "assignment_reason" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldAssignmentReason(ctx context.Context) (v assignmentdetails.AssignmentReason, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssignmentReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssignmentReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssignmentReason: %w", err)
+	}
+	return oldValue.AssignmentReason, nil
+}
+
+// ClearAssignmentReason clears the value of the "assignment_reason" field.
+func (m *AssignmentDetailsMutation) ClearAssignmentReason() {
+	m.assignment_reason = nil
+	m.clearedFields[assignmentdetails.FieldAssignmentReason] = struct{}{}
+}
+
+// AssignmentReasonCleared returns if the "assignment_reason" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) AssignmentReasonCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldAssignmentReason]
+	return ok
+}
+
+// ResetAssignmentReason resets all changes to the "assignment_reason" field.
+func (m *AssignmentDetailsMutation) ResetAssignmentReason() {
+	m.assignment_reason = nil
+	delete(m.clearedFields, assignmentdetails.FieldAssignmentReason)
+}
+
+// SetChangeReason sets the "change_reason" field.
+func (m *AssignmentDetailsMutation) SetChangeReason(s string) {
+	m.change_reason = &s
+}
+
+// ChangeReason returns the value of the "change_reason" field in the mutation.
+func (m *AssignmentDetailsMutation) ChangeReason() (r string, exists bool) {
+	v := m.change_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChangeReason returns the old "change_reason" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldChangeReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChangeReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChangeReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChangeReason: %w", err)
+	}
+	return oldValue.ChangeReason, nil
+}
+
+// ClearChangeReason clears the value of the "change_reason" field.
+func (m *AssignmentDetailsMutation) ClearChangeReason() {
+	m.change_reason = nil
+	m.clearedFields[assignmentdetails.FieldChangeReason] = struct{}{}
+}
+
+// ChangeReasonCleared returns if the "change_reason" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) ChangeReasonCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldChangeReason]
+	return ok
+}
+
+// ResetChangeReason resets all changes to the "change_reason" field.
+func (m *AssignmentDetailsMutation) ResetChangeReason() {
+	m.change_reason = nil
+	delete(m.clearedFields, assignmentdetails.FieldChangeReason)
+}
+
+// SetNotes sets the "notes" field.
+func (m *AssignmentDetailsMutation) SetNotes(s string) {
+	m.notes = &s
+}
+
+// Notes returns the value of the "notes" field in the mutation.
+func (m *AssignmentDetailsMutation) Notes() (r string, exists bool) {
+	v := m.notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotes returns the old "notes" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldNotes(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+	}
+	return oldValue.Notes, nil
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (m *AssignmentDetailsMutation) ClearNotes() {
+	m.notes = nil
+	m.clearedFields[assignmentdetails.FieldNotes] = struct{}{}
+}
+
+// NotesCleared returns if the "notes" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) NotesCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldNotes]
+	return ok
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *AssignmentDetailsMutation) ResetNotes() {
+	m.notes = nil
+	delete(m.clearedFields, assignmentdetails.FieldNotes)
+}
+
+// SetApprovedBy sets the "approved_by" field.
+func (m *AssignmentDetailsMutation) SetApprovedBy(u uuid.UUID) {
+	m.approved_by = &u
+}
+
+// ApprovedBy returns the value of the "approved_by" field in the mutation.
+func (m *AssignmentDetailsMutation) ApprovedBy() (r uuid.UUID, exists bool) {
+	v := m.approved_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldApprovedBy returns the old "approved_by" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldApprovedBy(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldApprovedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldApprovedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldApprovedBy: %w", err)
+	}
+	return oldValue.ApprovedBy, nil
+}
+
+// ClearApprovedBy clears the value of the "approved_by" field.
+func (m *AssignmentDetailsMutation) ClearApprovedBy() {
+	m.approved_by = nil
+	m.clearedFields[assignmentdetails.FieldApprovedBy] = struct{}{}
+}
+
+// ApprovedByCleared returns if the "approved_by" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) ApprovedByCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldApprovedBy]
+	return ok
+}
+
+// ResetApprovedBy resets all changes to the "approved_by" field.
+func (m *AssignmentDetailsMutation) ResetApprovedBy() {
+	m.approved_by = nil
+	delete(m.clearedFields, assignmentdetails.FieldApprovedBy)
+}
+
+// SetApprovedAt sets the "approved_at" field.
+func (m *AssignmentDetailsMutation) SetApprovedAt(t time.Time) {
+	m.approved_at = &t
+}
+
+// ApprovedAt returns the value of the "approved_at" field in the mutation.
+func (m *AssignmentDetailsMutation) ApprovedAt() (r time.Time, exists bool) {
+	v := m.approved_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldApprovedAt returns the old "approved_at" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldApprovedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldApprovedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldApprovedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldApprovedAt: %w", err)
+	}
+	return oldValue.ApprovedAt, nil
+}
+
+// ClearApprovedAt clears the value of the "approved_at" field.
+func (m *AssignmentDetailsMutation) ClearApprovedAt() {
+	m.approved_at = nil
+	m.clearedFields[assignmentdetails.FieldApprovedAt] = struct{}{}
+}
+
+// ApprovedAtCleared returns if the "approved_at" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) ApprovedAtCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldApprovedAt]
+	return ok
+}
+
+// ResetApprovedAt resets all changes to the "approved_at" field.
+func (m *AssignmentDetailsMutation) ResetApprovedAt() {
+	m.approved_at = nil
+	delete(m.clearedFields, assignmentdetails.FieldApprovedAt)
+}
+
+// SetApprovalStatus sets the "approval_status" field.
+func (m *AssignmentDetailsMutation) SetApprovalStatus(as assignmentdetails.ApprovalStatus) {
+	m.approval_status = &as
+}
+
+// ApprovalStatus returns the value of the "approval_status" field in the mutation.
+func (m *AssignmentDetailsMutation) ApprovalStatus() (r assignmentdetails.ApprovalStatus, exists bool) {
+	v := m.approval_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldApprovalStatus returns the old "approval_status" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldApprovalStatus(ctx context.Context) (v assignmentdetails.ApprovalStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldApprovalStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldApprovalStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldApprovalStatus: %w", err)
+	}
+	return oldValue.ApprovalStatus, nil
+}
+
+// ResetApprovalStatus resets all changes to the "approval_status" field.
+func (m *AssignmentDetailsMutation) ResetApprovalStatus() {
+	m.approval_status = nil
+}
+
+// SetCustomFields sets the "custom_fields" field.
+func (m *AssignmentDetailsMutation) SetCustomFields(value map[string]interface{}) {
+	m.custom_fields = &value
+}
+
+// CustomFields returns the value of the "custom_fields" field in the mutation.
+func (m *AssignmentDetailsMutation) CustomFields() (r map[string]interface{}, exists bool) {
+	v := m.custom_fields
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomFields returns the old "custom_fields" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldCustomFields(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomFields is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomFields requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomFields: %w", err)
+	}
+	return oldValue.CustomFields, nil
+}
+
+// ClearCustomFields clears the value of the "custom_fields" field.
+func (m *AssignmentDetailsMutation) ClearCustomFields() {
+	m.custom_fields = nil
+	m.clearedFields[assignmentdetails.FieldCustomFields] = struct{}{}
+}
+
+// CustomFieldsCleared returns if the "custom_fields" field was cleared in this mutation.
+func (m *AssignmentDetailsMutation) CustomFieldsCleared() bool {
+	_, ok := m.clearedFields[assignmentdetails.FieldCustomFields]
+	return ok
+}
+
+// ResetCustomFields resets all changes to the "custom_fields" field.
+func (m *AssignmentDetailsMutation) ResetCustomFields() {
+	m.custom_fields = nil
+	delete(m.clearedFields, assignmentdetails.FieldCustomFields)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AssignmentDetailsMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AssignmentDetailsMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AssignmentDetailsMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AssignmentDetailsMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AssignmentDetailsMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AssignmentDetails entity.
+// If the AssignmentDetails object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentDetailsMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AssignmentDetailsMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// ClearAssignment clears the "assignment" edge to the PositionAssignment entity.
+func (m *AssignmentDetailsMutation) ClearAssignment() {
+	m.clearedassignment = true
+	m.clearedFields[assignmentdetails.FieldAssignmentID] = struct{}{}
+}
+
+// AssignmentCleared reports if the "assignment" edge to the PositionAssignment entity was cleared.
+func (m *AssignmentDetailsMutation) AssignmentCleared() bool {
+	return m.clearedassignment
+}
+
+// AssignmentIDs returns the "assignment" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AssignmentID instead. It exists only for internal usage by the builders.
+func (m *AssignmentDetailsMutation) AssignmentIDs() (ids []uuid.UUID) {
+	if id := m.assignment; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAssignment resets all changes to the "assignment" edge.
+func (m *AssignmentDetailsMutation) ResetAssignment() {
+	m.assignment = nil
+	m.clearedassignment = false
+}
+
+// Where appends a list predicates to the AssignmentDetailsMutation builder.
+func (m *AssignmentDetailsMutation) Where(ps ...predicate.AssignmentDetails) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AssignmentDetailsMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AssignmentDetailsMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AssignmentDetails, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AssignmentDetailsMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AssignmentDetailsMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AssignmentDetails).
+func (m *AssignmentDetailsMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AssignmentDetailsMutation) Fields() []string {
+	fields := make([]string, 0, 15)
+	if m.assignment != nil {
+		fields = append(fields, assignmentdetails.FieldAssignmentID)
+	}
+	if m.tenant_id != nil {
+		fields = append(fields, assignmentdetails.FieldTenantID)
+	}
+	if m.pay_grade_id != nil {
+		fields = append(fields, assignmentdetails.FieldPayGradeID)
+	}
+	if m.compensation_plan_id != nil {
+		fields = append(fields, assignmentdetails.FieldCompensationPlanID)
+	}
+	if m.work_location != nil {
+		fields = append(fields, assignmentdetails.FieldWorkLocation)
+	}
+	if m.work_arrangement != nil {
+		fields = append(fields, assignmentdetails.FieldWorkArrangement)
+	}
+	if m.assignment_reason != nil {
+		fields = append(fields, assignmentdetails.FieldAssignmentReason)
+	}
+	if m.change_reason != nil {
+		fields = append(fields, assignmentdetails.FieldChangeReason)
+	}
+	if m.notes != nil {
+		fields = append(fields, assignmentdetails.FieldNotes)
+	}
+	if m.approved_by != nil {
+		fields = append(fields, assignmentdetails.FieldApprovedBy)
+	}
+	if m.approved_at != nil {
+		fields = append(fields, assignmentdetails.FieldApprovedAt)
+	}
+	if m.approval_status != nil {
+		fields = append(fields, assignmentdetails.FieldApprovalStatus)
+	}
+	if m.custom_fields != nil {
+		fields = append(fields, assignmentdetails.FieldCustomFields)
+	}
+	if m.created_at != nil {
+		fields = append(fields, assignmentdetails.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, assignmentdetails.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AssignmentDetailsMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case assignmentdetails.FieldAssignmentID:
+		return m.AssignmentID()
+	case assignmentdetails.FieldTenantID:
+		return m.TenantID()
+	case assignmentdetails.FieldPayGradeID:
+		return m.PayGradeID()
+	case assignmentdetails.FieldCompensationPlanID:
+		return m.CompensationPlanID()
+	case assignmentdetails.FieldWorkLocation:
+		return m.WorkLocation()
+	case assignmentdetails.FieldWorkArrangement:
+		return m.WorkArrangement()
+	case assignmentdetails.FieldAssignmentReason:
+		return m.AssignmentReason()
+	case assignmentdetails.FieldChangeReason:
+		return m.ChangeReason()
+	case assignmentdetails.FieldNotes:
+		return m.Notes()
+	case assignmentdetails.FieldApprovedBy:
+		return m.ApprovedBy()
+	case assignmentdetails.FieldApprovedAt:
+		return m.ApprovedAt()
+	case assignmentdetails.FieldApprovalStatus:
+		return m.ApprovalStatus()
+	case assignmentdetails.FieldCustomFields:
+		return m.CustomFields()
+	case assignmentdetails.FieldCreatedAt:
+		return m.CreatedAt()
+	case assignmentdetails.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AssignmentDetailsMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case assignmentdetails.FieldAssignmentID:
+		return m.OldAssignmentID(ctx)
+	case assignmentdetails.FieldTenantID:
+		return m.OldTenantID(ctx)
+	case assignmentdetails.FieldPayGradeID:
+		return m.OldPayGradeID(ctx)
+	case assignmentdetails.FieldCompensationPlanID:
+		return m.OldCompensationPlanID(ctx)
+	case assignmentdetails.FieldWorkLocation:
+		return m.OldWorkLocation(ctx)
+	case assignmentdetails.FieldWorkArrangement:
+		return m.OldWorkArrangement(ctx)
+	case assignmentdetails.FieldAssignmentReason:
+		return m.OldAssignmentReason(ctx)
+	case assignmentdetails.FieldChangeReason:
+		return m.OldChangeReason(ctx)
+	case assignmentdetails.FieldNotes:
+		return m.OldNotes(ctx)
+	case assignmentdetails.FieldApprovedBy:
+		return m.OldApprovedBy(ctx)
+	case assignmentdetails.FieldApprovedAt:
+		return m.OldApprovedAt(ctx)
+	case assignmentdetails.FieldApprovalStatus:
+		return m.OldApprovalStatus(ctx)
+	case assignmentdetails.FieldCustomFields:
+		return m.OldCustomFields(ctx)
+	case assignmentdetails.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case assignmentdetails.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AssignmentDetails field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AssignmentDetailsMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case assignmentdetails.FieldAssignmentID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssignmentID(v)
+		return nil
+	case assignmentdetails.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
+		return nil
+	case assignmentdetails.FieldPayGradeID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPayGradeID(v)
+		return nil
+	case assignmentdetails.FieldCompensationPlanID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompensationPlanID(v)
+		return nil
+	case assignmentdetails.FieldWorkLocation:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkLocation(v)
+		return nil
+	case assignmentdetails.FieldWorkArrangement:
+		v, ok := value.(assignmentdetails.WorkArrangement)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkArrangement(v)
+		return nil
+	case assignmentdetails.FieldAssignmentReason:
+		v, ok := value.(assignmentdetails.AssignmentReason)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssignmentReason(v)
+		return nil
+	case assignmentdetails.FieldChangeReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChangeReason(v)
+		return nil
+	case assignmentdetails.FieldNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotes(v)
+		return nil
+	case assignmentdetails.FieldApprovedBy:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetApprovedBy(v)
+		return nil
+	case assignmentdetails.FieldApprovedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetApprovedAt(v)
+		return nil
+	case assignmentdetails.FieldApprovalStatus:
+		v, ok := value.(assignmentdetails.ApprovalStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetApprovalStatus(v)
+		return nil
+	case assignmentdetails.FieldCustomFields:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomFields(v)
+		return nil
+	case assignmentdetails.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case assignmentdetails.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentDetails field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AssignmentDetailsMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AssignmentDetailsMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AssignmentDetailsMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown AssignmentDetails numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AssignmentDetailsMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(assignmentdetails.FieldPayGradeID) {
+		fields = append(fields, assignmentdetails.FieldPayGradeID)
+	}
+	if m.FieldCleared(assignmentdetails.FieldCompensationPlanID) {
+		fields = append(fields, assignmentdetails.FieldCompensationPlanID)
+	}
+	if m.FieldCleared(assignmentdetails.FieldWorkLocation) {
+		fields = append(fields, assignmentdetails.FieldWorkLocation)
+	}
+	if m.FieldCleared(assignmentdetails.FieldWorkArrangement) {
+		fields = append(fields, assignmentdetails.FieldWorkArrangement)
+	}
+	if m.FieldCleared(assignmentdetails.FieldAssignmentReason) {
+		fields = append(fields, assignmentdetails.FieldAssignmentReason)
+	}
+	if m.FieldCleared(assignmentdetails.FieldChangeReason) {
+		fields = append(fields, assignmentdetails.FieldChangeReason)
+	}
+	if m.FieldCleared(assignmentdetails.FieldNotes) {
+		fields = append(fields, assignmentdetails.FieldNotes)
+	}
+	if m.FieldCleared(assignmentdetails.FieldApprovedBy) {
+		fields = append(fields, assignmentdetails.FieldApprovedBy)
+	}
+	if m.FieldCleared(assignmentdetails.FieldApprovedAt) {
+		fields = append(fields, assignmentdetails.FieldApprovedAt)
+	}
+	if m.FieldCleared(assignmentdetails.FieldCustomFields) {
+		fields = append(fields, assignmentdetails.FieldCustomFields)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AssignmentDetailsMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AssignmentDetailsMutation) ClearField(name string) error {
+	switch name {
+	case assignmentdetails.FieldPayGradeID:
+		m.ClearPayGradeID()
+		return nil
+	case assignmentdetails.FieldCompensationPlanID:
+		m.ClearCompensationPlanID()
+		return nil
+	case assignmentdetails.FieldWorkLocation:
+		m.ClearWorkLocation()
+		return nil
+	case assignmentdetails.FieldWorkArrangement:
+		m.ClearWorkArrangement()
+		return nil
+	case assignmentdetails.FieldAssignmentReason:
+		m.ClearAssignmentReason()
+		return nil
+	case assignmentdetails.FieldChangeReason:
+		m.ClearChangeReason()
+		return nil
+	case assignmentdetails.FieldNotes:
+		m.ClearNotes()
+		return nil
+	case assignmentdetails.FieldApprovedBy:
+		m.ClearApprovedBy()
+		return nil
+	case assignmentdetails.FieldApprovedAt:
+		m.ClearApprovedAt()
+		return nil
+	case assignmentdetails.FieldCustomFields:
+		m.ClearCustomFields()
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentDetails nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AssignmentDetailsMutation) ResetField(name string) error {
+	switch name {
+	case assignmentdetails.FieldAssignmentID:
+		m.ResetAssignmentID()
+		return nil
+	case assignmentdetails.FieldTenantID:
+		m.ResetTenantID()
+		return nil
+	case assignmentdetails.FieldPayGradeID:
+		m.ResetPayGradeID()
+		return nil
+	case assignmentdetails.FieldCompensationPlanID:
+		m.ResetCompensationPlanID()
+		return nil
+	case assignmentdetails.FieldWorkLocation:
+		m.ResetWorkLocation()
+		return nil
+	case assignmentdetails.FieldWorkArrangement:
+		m.ResetWorkArrangement()
+		return nil
+	case assignmentdetails.FieldAssignmentReason:
+		m.ResetAssignmentReason()
+		return nil
+	case assignmentdetails.FieldChangeReason:
+		m.ResetChangeReason()
+		return nil
+	case assignmentdetails.FieldNotes:
+		m.ResetNotes()
+		return nil
+	case assignmentdetails.FieldApprovedBy:
+		m.ResetApprovedBy()
+		return nil
+	case assignmentdetails.FieldApprovedAt:
+		m.ResetApprovedAt()
+		return nil
+	case assignmentdetails.FieldApprovalStatus:
+		m.ResetApprovalStatus()
+		return nil
+	case assignmentdetails.FieldCustomFields:
+		m.ResetCustomFields()
+		return nil
+	case assignmentdetails.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case assignmentdetails.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentDetails field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AssignmentDetailsMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.assignment != nil {
+		edges = append(edges, assignmentdetails.EdgeAssignment)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AssignmentDetailsMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case assignmentdetails.EdgeAssignment:
+		if id := m.assignment; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AssignmentDetailsMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AssignmentDetailsMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AssignmentDetailsMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedassignment {
+		edges = append(edges, assignmentdetails.EdgeAssignment)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AssignmentDetailsMutation) EdgeCleared(name string) bool {
+	switch name {
+	case assignmentdetails.EdgeAssignment:
+		return m.clearedassignment
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AssignmentDetailsMutation) ClearEdge(name string) error {
+	switch name {
+	case assignmentdetails.EdgeAssignment:
+		m.ClearAssignment()
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentDetails unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AssignmentDetailsMutation) ResetEdge(name string) error {
+	switch name {
+	case assignmentdetails.EdgeAssignment:
+		m.ResetAssignment()
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentDetails edge %s", name)
+}
+
+// AssignmentHistoryMutation represents an operation that mutates the AssignmentHistory nodes in the graph.
+type AssignmentHistoryMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *uuid.UUID
+	tenant_id         *uuid.UUID
+	event_type        *assignmenthistory.EventType
+	event_date        *time.Time
+	previous_values   *map[string]interface{}
+	new_values        *map[string]interface{}
+	reason            *string
+	changed_by        *uuid.UUID
+	created_at        *time.Time
+	clearedFields     map[string]struct{}
+	assignment        *uuid.UUID
+	clearedassignment bool
+	done              bool
+	oldValue          func(context.Context) (*AssignmentHistory, error)
+	predicates        []predicate.AssignmentHistory
+}
+
+var _ ent.Mutation = (*AssignmentHistoryMutation)(nil)
+
+// assignmenthistoryOption allows management of the mutation configuration using functional options.
+type assignmenthistoryOption func(*AssignmentHistoryMutation)
+
+// newAssignmentHistoryMutation creates new mutation for the AssignmentHistory entity.
+func newAssignmentHistoryMutation(c config, op Op, opts ...assignmenthistoryOption) *AssignmentHistoryMutation {
+	m := &AssignmentHistoryMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAssignmentHistory,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAssignmentHistoryID sets the ID field of the mutation.
+func withAssignmentHistoryID(id uuid.UUID) assignmenthistoryOption {
+	return func(m *AssignmentHistoryMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AssignmentHistory
+		)
+		m.oldValue = func(ctx context.Context) (*AssignmentHistory, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AssignmentHistory.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAssignmentHistory sets the old AssignmentHistory of the mutation.
+func withAssignmentHistory(node *AssignmentHistory) assignmenthistoryOption {
+	return func(m *AssignmentHistoryMutation) {
+		m.oldValue = func(context.Context) (*AssignmentHistory, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AssignmentHistoryMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AssignmentHistoryMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AssignmentHistory entities.
+func (m *AssignmentHistoryMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AssignmentHistoryMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AssignmentHistoryMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AssignmentHistory.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAssignmentID sets the "assignment_id" field.
+func (m *AssignmentHistoryMutation) SetAssignmentID(u uuid.UUID) {
+	m.assignment = &u
+}
+
+// AssignmentID returns the value of the "assignment_id" field in the mutation.
+func (m *AssignmentHistoryMutation) AssignmentID() (r uuid.UUID, exists bool) {
+	v := m.assignment
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssignmentID returns the old "assignment_id" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldAssignmentID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssignmentID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssignmentID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssignmentID: %w", err)
+	}
+	return oldValue.AssignmentID, nil
+}
+
+// ResetAssignmentID resets all changes to the "assignment_id" field.
+func (m *AssignmentHistoryMutation) ResetAssignmentID() {
+	m.assignment = nil
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (m *AssignmentHistoryMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *AssignmentHistoryMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *AssignmentHistoryMutation) ResetTenantID() {
+	m.tenant_id = nil
+}
+
+// SetEventType sets the "event_type" field.
+func (m *AssignmentHistoryMutation) SetEventType(at assignmenthistory.EventType) {
+	m.event_type = &at
+}
+
+// EventType returns the value of the "event_type" field in the mutation.
+func (m *AssignmentHistoryMutation) EventType() (r assignmenthistory.EventType, exists bool) {
+	v := m.event_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventType returns the old "event_type" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldEventType(ctx context.Context) (v assignmenthistory.EventType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventType: %w", err)
+	}
+	return oldValue.EventType, nil
+}
+
+// ResetEventType resets all changes to the "event_type" field.
+func (m *AssignmentHistoryMutation) ResetEventType() {
+	m.event_type = nil
+}
+
+// SetEventDate sets the "event_date" field.
+func (m *AssignmentHistoryMutation) SetEventDate(t time.Time) {
+	m.event_date = &t
+}
+
+// EventDate returns the value of the "event_date" field in the mutation.
+func (m *AssignmentHistoryMutation) EventDate() (r time.Time, exists bool) {
+	v := m.event_date
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventDate returns the old "event_date" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldEventDate(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventDate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventDate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventDate: %w", err)
+	}
+	return oldValue.EventDate, nil
+}
+
+// ResetEventDate resets all changes to the "event_date" field.
+func (m *AssignmentHistoryMutation) ResetEventDate() {
+	m.event_date = nil
+}
+
+// SetPreviousValues sets the "previous_values" field.
+func (m *AssignmentHistoryMutation) SetPreviousValues(value map[string]interface{}) {
+	m.previous_values = &value
+}
+
+// PreviousValues returns the value of the "previous_values" field in the mutation.
+func (m *AssignmentHistoryMutation) PreviousValues() (r map[string]interface{}, exists bool) {
+	v := m.previous_values
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreviousValues returns the old "previous_values" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldPreviousValues(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreviousValues is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreviousValues requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreviousValues: %w", err)
+	}
+	return oldValue.PreviousValues, nil
+}
+
+// ClearPreviousValues clears the value of the "previous_values" field.
+func (m *AssignmentHistoryMutation) ClearPreviousValues() {
+	m.previous_values = nil
+	m.clearedFields[assignmenthistory.FieldPreviousValues] = struct{}{}
+}
+
+// PreviousValuesCleared returns if the "previous_values" field was cleared in this mutation.
+func (m *AssignmentHistoryMutation) PreviousValuesCleared() bool {
+	_, ok := m.clearedFields[assignmenthistory.FieldPreviousValues]
+	return ok
+}
+
+// ResetPreviousValues resets all changes to the "previous_values" field.
+func (m *AssignmentHistoryMutation) ResetPreviousValues() {
+	m.previous_values = nil
+	delete(m.clearedFields, assignmenthistory.FieldPreviousValues)
+}
+
+// SetNewValues sets the "new_values" field.
+func (m *AssignmentHistoryMutation) SetNewValues(value map[string]interface{}) {
+	m.new_values = &value
+}
+
+// NewValues returns the value of the "new_values" field in the mutation.
+func (m *AssignmentHistoryMutation) NewValues() (r map[string]interface{}, exists bool) {
+	v := m.new_values
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNewValues returns the old "new_values" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldNewValues(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNewValues is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNewValues requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNewValues: %w", err)
+	}
+	return oldValue.NewValues, nil
+}
+
+// ClearNewValues clears the value of the "new_values" field.
+func (m *AssignmentHistoryMutation) ClearNewValues() {
+	m.new_values = nil
+	m.clearedFields[assignmenthistory.FieldNewValues] = struct{}{}
+}
+
+// NewValuesCleared returns if the "new_values" field was cleared in this mutation.
+func (m *AssignmentHistoryMutation) NewValuesCleared() bool {
+	_, ok := m.clearedFields[assignmenthistory.FieldNewValues]
+	return ok
+}
+
+// ResetNewValues resets all changes to the "new_values" field.
+func (m *AssignmentHistoryMutation) ResetNewValues() {
+	m.new_values = nil
+	delete(m.clearedFields, assignmenthistory.FieldNewValues)
+}
+
+// SetReason sets the "reason" field.
+func (m *AssignmentHistoryMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *AssignmentHistoryMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ClearReason clears the value of the "reason" field.
+func (m *AssignmentHistoryMutation) ClearReason() {
+	m.reason = nil
+	m.clearedFields[assignmenthistory.FieldReason] = struct{}{}
+}
+
+// ReasonCleared returns if the "reason" field was cleared in this mutation.
+func (m *AssignmentHistoryMutation) ReasonCleared() bool {
+	_, ok := m.clearedFields[assignmenthistory.FieldReason]
+	return ok
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *AssignmentHistoryMutation) ResetReason() {
+	m.reason = nil
+	delete(m.clearedFields, assignmenthistory.FieldReason)
+}
+
+// SetChangedBy sets the "changed_by" field.
+func (m *AssignmentHistoryMutation) SetChangedBy(u uuid.UUID) {
+	m.changed_by = &u
+}
+
+// ChangedBy returns the value of the "changed_by" field in the mutation.
+func (m *AssignmentHistoryMutation) ChangedBy() (r uuid.UUID, exists bool) {
+	v := m.changed_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChangedBy returns the old "changed_by" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldChangedBy(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChangedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChangedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChangedBy: %w", err)
+	}
+	return oldValue.ChangedBy, nil
+}
+
+// ClearChangedBy clears the value of the "changed_by" field.
+func (m *AssignmentHistoryMutation) ClearChangedBy() {
+	m.changed_by = nil
+	m.clearedFields[assignmenthistory.FieldChangedBy] = struct{}{}
+}
+
+// ChangedByCleared returns if the "changed_by" field was cleared in this mutation.
+func (m *AssignmentHistoryMutation) ChangedByCleared() bool {
+	_, ok := m.clearedFields[assignmenthistory.FieldChangedBy]
+	return ok
+}
+
+// ResetChangedBy resets all changes to the "changed_by" field.
+func (m *AssignmentHistoryMutation) ResetChangedBy() {
+	m.changed_by = nil
+	delete(m.clearedFields, assignmenthistory.FieldChangedBy)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AssignmentHistoryMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AssignmentHistoryMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AssignmentHistory entity.
+// If the AssignmentHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssignmentHistoryMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AssignmentHistoryMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearAssignment clears the "assignment" edge to the PositionAssignment entity.
+func (m *AssignmentHistoryMutation) ClearAssignment() {
+	m.clearedassignment = true
+	m.clearedFields[assignmenthistory.FieldAssignmentID] = struct{}{}
+}
+
+// AssignmentCleared reports if the "assignment" edge to the PositionAssignment entity was cleared.
+func (m *AssignmentHistoryMutation) AssignmentCleared() bool {
+	return m.clearedassignment
+}
+
+// AssignmentIDs returns the "assignment" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AssignmentID instead. It exists only for internal usage by the builders.
+func (m *AssignmentHistoryMutation) AssignmentIDs() (ids []uuid.UUID) {
+	if id := m.assignment; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAssignment resets all changes to the "assignment" edge.
+func (m *AssignmentHistoryMutation) ResetAssignment() {
+	m.assignment = nil
+	m.clearedassignment = false
+}
+
+// Where appends a list predicates to the AssignmentHistoryMutation builder.
+func (m *AssignmentHistoryMutation) Where(ps ...predicate.AssignmentHistory) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AssignmentHistoryMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AssignmentHistoryMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AssignmentHistory, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AssignmentHistoryMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AssignmentHistoryMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AssignmentHistory).
+func (m *AssignmentHistoryMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AssignmentHistoryMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.assignment != nil {
+		fields = append(fields, assignmenthistory.FieldAssignmentID)
+	}
+	if m.tenant_id != nil {
+		fields = append(fields, assignmenthistory.FieldTenantID)
+	}
+	if m.event_type != nil {
+		fields = append(fields, assignmenthistory.FieldEventType)
+	}
+	if m.event_date != nil {
+		fields = append(fields, assignmenthistory.FieldEventDate)
+	}
+	if m.previous_values != nil {
+		fields = append(fields, assignmenthistory.FieldPreviousValues)
+	}
+	if m.new_values != nil {
+		fields = append(fields, assignmenthistory.FieldNewValues)
+	}
+	if m.reason != nil {
+		fields = append(fields, assignmenthistory.FieldReason)
+	}
+	if m.changed_by != nil {
+		fields = append(fields, assignmenthistory.FieldChangedBy)
+	}
+	if m.created_at != nil {
+		fields = append(fields, assignmenthistory.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AssignmentHistoryMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case assignmenthistory.FieldAssignmentID:
+		return m.AssignmentID()
+	case assignmenthistory.FieldTenantID:
+		return m.TenantID()
+	case assignmenthistory.FieldEventType:
+		return m.EventType()
+	case assignmenthistory.FieldEventDate:
+		return m.EventDate()
+	case assignmenthistory.FieldPreviousValues:
+		return m.PreviousValues()
+	case assignmenthistory.FieldNewValues:
+		return m.NewValues()
+	case assignmenthistory.FieldReason:
+		return m.Reason()
+	case assignmenthistory.FieldChangedBy:
+		return m.ChangedBy()
+	case assignmenthistory.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AssignmentHistoryMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case assignmenthistory.FieldAssignmentID:
+		return m.OldAssignmentID(ctx)
+	case assignmenthistory.FieldTenantID:
+		return m.OldTenantID(ctx)
+	case assignmenthistory.FieldEventType:
+		return m.OldEventType(ctx)
+	case assignmenthistory.FieldEventDate:
+		return m.OldEventDate(ctx)
+	case assignmenthistory.FieldPreviousValues:
+		return m.OldPreviousValues(ctx)
+	case assignmenthistory.FieldNewValues:
+		return m.OldNewValues(ctx)
+	case assignmenthistory.FieldReason:
+		return m.OldReason(ctx)
+	case assignmenthistory.FieldChangedBy:
+		return m.OldChangedBy(ctx)
+	case assignmenthistory.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AssignmentHistory field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AssignmentHistoryMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case assignmenthistory.FieldAssignmentID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssignmentID(v)
+		return nil
+	case assignmenthistory.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
+		return nil
+	case assignmenthistory.FieldEventType:
+		v, ok := value.(assignmenthistory.EventType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventType(v)
+		return nil
+	case assignmenthistory.FieldEventDate:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventDate(v)
+		return nil
+	case assignmenthistory.FieldPreviousValues:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreviousValues(v)
+		return nil
+	case assignmenthistory.FieldNewValues:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNewValues(v)
+		return nil
+	case assignmenthistory.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	case assignmenthistory.FieldChangedBy:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChangedBy(v)
+		return nil
+	case assignmenthistory.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentHistory field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AssignmentHistoryMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AssignmentHistoryMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AssignmentHistoryMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown AssignmentHistory numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AssignmentHistoryMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(assignmenthistory.FieldPreviousValues) {
+		fields = append(fields, assignmenthistory.FieldPreviousValues)
+	}
+	if m.FieldCleared(assignmenthistory.FieldNewValues) {
+		fields = append(fields, assignmenthistory.FieldNewValues)
+	}
+	if m.FieldCleared(assignmenthistory.FieldReason) {
+		fields = append(fields, assignmenthistory.FieldReason)
+	}
+	if m.FieldCleared(assignmenthistory.FieldChangedBy) {
+		fields = append(fields, assignmenthistory.FieldChangedBy)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AssignmentHistoryMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AssignmentHistoryMutation) ClearField(name string) error {
+	switch name {
+	case assignmenthistory.FieldPreviousValues:
+		m.ClearPreviousValues()
+		return nil
+	case assignmenthistory.FieldNewValues:
+		m.ClearNewValues()
+		return nil
+	case assignmenthistory.FieldReason:
+		m.ClearReason()
+		return nil
+	case assignmenthistory.FieldChangedBy:
+		m.ClearChangedBy()
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentHistory nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AssignmentHistoryMutation) ResetField(name string) error {
+	switch name {
+	case assignmenthistory.FieldAssignmentID:
+		m.ResetAssignmentID()
+		return nil
+	case assignmenthistory.FieldTenantID:
+		m.ResetTenantID()
+		return nil
+	case assignmenthistory.FieldEventType:
+		m.ResetEventType()
+		return nil
+	case assignmenthistory.FieldEventDate:
+		m.ResetEventDate()
+		return nil
+	case assignmenthistory.FieldPreviousValues:
+		m.ResetPreviousValues()
+		return nil
+	case assignmenthistory.FieldNewValues:
+		m.ResetNewValues()
+		return nil
+	case assignmenthistory.FieldReason:
+		m.ResetReason()
+		return nil
+	case assignmenthistory.FieldChangedBy:
+		m.ResetChangedBy()
+		return nil
+	case assignmenthistory.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentHistory field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AssignmentHistoryMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.assignment != nil {
+		edges = append(edges, assignmenthistory.EdgeAssignment)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AssignmentHistoryMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case assignmenthistory.EdgeAssignment:
+		if id := m.assignment; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AssignmentHistoryMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AssignmentHistoryMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AssignmentHistoryMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedassignment {
+		edges = append(edges, assignmenthistory.EdgeAssignment)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AssignmentHistoryMutation) EdgeCleared(name string) bool {
+	switch name {
+	case assignmenthistory.EdgeAssignment:
+		return m.clearedassignment
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AssignmentHistoryMutation) ClearEdge(name string) error {
+	switch name {
+	case assignmenthistory.EdgeAssignment:
+		m.ClearAssignment()
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentHistory unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AssignmentHistoryMutation) ResetEdge(name string) error {
+	switch name {
+	case assignmenthistory.EdgeAssignment:
+		m.ResetAssignment()
+		return nil
+	}
+	return fmt.Errorf("unknown AssignmentHistory edge %s", name)
+}
 
 // EmployeeMutation represents an operation that mutates the Employee nodes in the graph.
 type EmployeeMutation struct {
@@ -44,6 +2282,7 @@ type EmployeeMutation struct {
 	op                      Op
 	typ                     string
 	id                      *uuid.UUID
+	business_id             *string
 	tenant_id               *uuid.UUID
 	employee_type           *employee.EmployeeType
 	employee_number         *string
@@ -66,6 +2305,9 @@ type EmployeeMutation struct {
 	position_history        map[uuid.UUID]struct{}
 	removedposition_history map[uuid.UUID]struct{}
 	clearedposition_history bool
+	assignments             map[uuid.UUID]struct{}
+	removedassignments      map[uuid.UUID]struct{}
+	clearedassignments      bool
 	done                    bool
 	oldValue                func(context.Context) (*Employee, error)
 	predicates              []predicate.Employee
@@ -173,6 +2415,42 @@ func (m *EmployeeMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetBusinessID sets the "business_id" field.
+func (m *EmployeeMutation) SetBusinessID(s string) {
+	m.business_id = &s
+}
+
+// BusinessID returns the value of the "business_id" field in the mutation.
+func (m *EmployeeMutation) BusinessID() (r string, exists bool) {
+	v := m.business_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBusinessID returns the old "business_id" field's value of the Employee entity.
+// If the Employee object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EmployeeMutation) OldBusinessID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBusinessID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBusinessID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBusinessID: %w", err)
+	}
+	return oldValue.BusinessID, nil
+}
+
+// ResetBusinessID resets all changes to the "business_id" field.
+func (m *EmployeeMutation) ResetBusinessID() {
+	m.business_id = nil
 }
 
 // SetTenantID sets the "tenant_id" field.
@@ -959,6 +3237,60 @@ func (m *EmployeeMutation) ResetPositionHistory() {
 	m.removedposition_history = nil
 }
 
+// AddAssignmentIDs adds the "assignments" edge to the PositionAssignment entity by ids.
+func (m *EmployeeMutation) AddAssignmentIDs(ids ...uuid.UUID) {
+	if m.assignments == nil {
+		m.assignments = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.assignments[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAssignments clears the "assignments" edge to the PositionAssignment entity.
+func (m *EmployeeMutation) ClearAssignments() {
+	m.clearedassignments = true
+}
+
+// AssignmentsCleared reports if the "assignments" edge to the PositionAssignment entity was cleared.
+func (m *EmployeeMutation) AssignmentsCleared() bool {
+	return m.clearedassignments
+}
+
+// RemoveAssignmentIDs removes the "assignments" edge to the PositionAssignment entity by IDs.
+func (m *EmployeeMutation) RemoveAssignmentIDs(ids ...uuid.UUID) {
+	if m.removedassignments == nil {
+		m.removedassignments = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.assignments, ids[i])
+		m.removedassignments[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAssignments returns the removed IDs of the "assignments" edge to the PositionAssignment entity.
+func (m *EmployeeMutation) RemovedAssignmentsIDs() (ids []uuid.UUID) {
+	for id := range m.removedassignments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AssignmentsIDs returns the "assignments" edge IDs in the mutation.
+func (m *EmployeeMutation) AssignmentsIDs() (ids []uuid.UUID) {
+	for id := range m.assignments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAssignments resets all changes to the "assignments" edge.
+func (m *EmployeeMutation) ResetAssignments() {
+	m.assignments = nil
+	m.clearedassignments = false
+	m.removedassignments = nil
+}
+
 // Where appends a list predicates to the EmployeeMutation builder.
 func (m *EmployeeMutation) Where(ps ...predicate.Employee) {
 	m.predicates = append(m.predicates, ps...)
@@ -993,7 +3325,10 @@ func (m *EmployeeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EmployeeMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
+	if m.business_id != nil {
+		fields = append(fields, employee.FieldBusinessID)
+	}
 	if m.tenant_id != nil {
 		fields = append(fields, employee.FieldTenantID)
 	}
@@ -1053,6 +3388,8 @@ func (m *EmployeeMutation) Fields() []string {
 // schema.
 func (m *EmployeeMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case employee.FieldBusinessID:
+		return m.BusinessID()
 	case employee.FieldTenantID:
 		return m.TenantID()
 	case employee.FieldEmployeeType:
@@ -1096,6 +3433,8 @@ func (m *EmployeeMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *EmployeeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case employee.FieldBusinessID:
+		return m.OldBusinessID(ctx)
 	case employee.FieldTenantID:
 		return m.OldTenantID(ctx)
 	case employee.FieldEmployeeType:
@@ -1139,6 +3478,13 @@ func (m *EmployeeMutation) OldField(ctx context.Context, name string) (ent.Value
 // type.
 func (m *EmployeeMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case employee.FieldBusinessID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBusinessID(v)
+		return nil
 	case employee.FieldTenantID:
 		v, ok := value.(uuid.UUID)
 		if !ok {
@@ -1352,6 +3698,9 @@ func (m *EmployeeMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *EmployeeMutation) ResetField(name string) error {
 	switch name {
+	case employee.FieldBusinessID:
+		m.ResetBusinessID()
+		return nil
 	case employee.FieldTenantID:
 		m.ResetTenantID()
 		return nil
@@ -1409,12 +3758,15 @@ func (m *EmployeeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *EmployeeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.current_position != nil {
 		edges = append(edges, employee.EdgeCurrentPosition)
 	}
 	if m.position_history != nil {
 		edges = append(edges, employee.EdgePositionHistory)
+	}
+	if m.assignments != nil {
+		edges = append(edges, employee.EdgeAssignments)
 	}
 	return edges
 }
@@ -1433,15 +3785,24 @@ func (m *EmployeeMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case employee.EdgeAssignments:
+		ids := make([]ent.Value, 0, len(m.assignments))
+		for id := range m.assignments {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *EmployeeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedposition_history != nil {
 		edges = append(edges, employee.EdgePositionHistory)
+	}
+	if m.removedassignments != nil {
+		edges = append(edges, employee.EdgeAssignments)
 	}
 	return edges
 }
@@ -1456,18 +3817,27 @@ func (m *EmployeeMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case employee.EdgeAssignments:
+		ids := make([]ent.Value, 0, len(m.removedassignments))
+		for id := range m.removedassignments {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *EmployeeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedcurrent_position {
 		edges = append(edges, employee.EdgeCurrentPosition)
 	}
 	if m.clearedposition_history {
 		edges = append(edges, employee.EdgePositionHistory)
+	}
+	if m.clearedassignments {
+		edges = append(edges, employee.EdgeAssignments)
 	}
 	return edges
 }
@@ -1480,6 +3850,8 @@ func (m *EmployeeMutation) EdgeCleared(name string) bool {
 		return m.clearedcurrent_position
 	case employee.EdgePositionHistory:
 		return m.clearedposition_history
+	case employee.EdgeAssignments:
+		return m.clearedassignments
 	}
 	return false
 }
@@ -1505,6 +3877,9 @@ func (m *EmployeeMutation) ResetEdge(name string) error {
 	case employee.EdgePositionHistory:
 		m.ResetPositionHistory()
 		return nil
+	case employee.EdgeAssignments:
+		m.ResetAssignments()
+		return nil
 	}
 	return fmt.Errorf("unknown Employee edge %s", name)
 }
@@ -1515,6 +3890,7 @@ type OrganizationUnitMutation struct {
 	op               Op
 	typ              string
 	id               *uuid.UUID
+	business_id      *string
 	tenant_id        *uuid.UUID
 	unit_type        *organizationunit.UnitType
 	name             *string
@@ -1641,6 +4017,42 @@ func (m *OrganizationUnitMutation) IDs(ctx context.Context) ([]uuid.UUID, error)
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetBusinessID sets the "business_id" field.
+func (m *OrganizationUnitMutation) SetBusinessID(s string) {
+	m.business_id = &s
+}
+
+// BusinessID returns the value of the "business_id" field in the mutation.
+func (m *OrganizationUnitMutation) BusinessID() (r string, exists bool) {
+	v := m.business_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBusinessID returns the old "business_id" field's value of the OrganizationUnit entity.
+// If the OrganizationUnit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationUnitMutation) OldBusinessID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBusinessID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBusinessID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBusinessID: %w", err)
+	}
+	return oldValue.BusinessID, nil
+}
+
+// ResetBusinessID resets all changes to the "business_id" field.
+func (m *OrganizationUnitMutation) ResetBusinessID() {
+	m.business_id = nil
 }
 
 // SetTenantID sets the "tenant_id" field.
@@ -2244,7 +4656,10 @@ func (m *OrganizationUnitMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OrganizationUnitMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
+	if m.business_id != nil {
+		fields = append(fields, organizationunit.FieldBusinessID)
+	}
 	if m.tenant_id != nil {
 		fields = append(fields, organizationunit.FieldTenantID)
 	}
@@ -2283,6 +4698,8 @@ func (m *OrganizationUnitMutation) Fields() []string {
 // schema.
 func (m *OrganizationUnitMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case organizationunit.FieldBusinessID:
+		return m.BusinessID()
 	case organizationunit.FieldTenantID:
 		return m.TenantID()
 	case organizationunit.FieldUnitType:
@@ -2312,6 +4729,8 @@ func (m *OrganizationUnitMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *OrganizationUnitMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case organizationunit.FieldBusinessID:
+		return m.OldBusinessID(ctx)
 	case organizationunit.FieldTenantID:
 		return m.OldTenantID(ctx)
 	case organizationunit.FieldUnitType:
@@ -2341,6 +4760,13 @@ func (m *OrganizationUnitMutation) OldField(ctx context.Context, name string) (e
 // type.
 func (m *OrganizationUnitMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case organizationunit.FieldBusinessID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBusinessID(v)
+		return nil
 	case organizationunit.FieldTenantID:
 		v, ok := value.(uuid.UUID)
 		if !ok {
@@ -2496,6 +4922,9 @@ func (m *OrganizationUnitMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *OrganizationUnitMutation) ResetField(name string) error {
 	switch name {
+	case organizationunit.FieldBusinessID:
+		m.ResetBusinessID()
+		return nil
 	case organizationunit.FieldTenantID:
 		m.ResetTenantID()
 		return nil
@@ -2665,6 +5094,7 @@ type PositionMutation struct {
 	typ                       string
 	id                        *uuid.UUID
 	tenant_id                 *uuid.UUID
+	business_id               *string
 	position_type             *position.PositionType
 	job_profile_id            *uuid.UUID
 	status                    *position.Status
@@ -2690,6 +5120,9 @@ type PositionMutation struct {
 	attribute_history         map[uuid.UUID]struct{}
 	removedattribute_history  map[uuid.UUID]struct{}
 	clearedattribute_history  bool
+	assignments               map[uuid.UUID]struct{}
+	removedassignments        map[uuid.UUID]struct{}
+	clearedassignments        bool
 	done                      bool
 	oldValue                  func(context.Context) (*Position, error)
 	predicates                []predicate.Position
@@ -2833,6 +5266,42 @@ func (m *PositionMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err er
 // ResetTenantID resets all changes to the "tenant_id" field.
 func (m *PositionMutation) ResetTenantID() {
 	m.tenant_id = nil
+}
+
+// SetBusinessID sets the "business_id" field.
+func (m *PositionMutation) SetBusinessID(s string) {
+	m.business_id = &s
+}
+
+// BusinessID returns the value of the "business_id" field in the mutation.
+func (m *PositionMutation) BusinessID() (r string, exists bool) {
+	v := m.business_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBusinessID returns the old "business_id" field's value of the Position entity.
+// If the Position object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionMutation) OldBusinessID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBusinessID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBusinessID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBusinessID: %w", err)
+	}
+	return oldValue.BusinessID, nil
+}
+
+// ResetBusinessID resets all changes to the "business_id" field.
+func (m *PositionMutation) ResetBusinessID() {
+	m.business_id = nil
 }
 
 // SetPositionType sets the "position_type" field.
@@ -3488,6 +5957,60 @@ func (m *PositionMutation) ResetAttributeHistory() {
 	m.removedattribute_history = nil
 }
 
+// AddAssignmentIDs adds the "assignments" edge to the PositionAssignment entity by ids.
+func (m *PositionMutation) AddAssignmentIDs(ids ...uuid.UUID) {
+	if m.assignments == nil {
+		m.assignments = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.assignments[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAssignments clears the "assignments" edge to the PositionAssignment entity.
+func (m *PositionMutation) ClearAssignments() {
+	m.clearedassignments = true
+}
+
+// AssignmentsCleared reports if the "assignments" edge to the PositionAssignment entity was cleared.
+func (m *PositionMutation) AssignmentsCleared() bool {
+	return m.clearedassignments
+}
+
+// RemoveAssignmentIDs removes the "assignments" edge to the PositionAssignment entity by IDs.
+func (m *PositionMutation) RemoveAssignmentIDs(ids ...uuid.UUID) {
+	if m.removedassignments == nil {
+		m.removedassignments = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.assignments, ids[i])
+		m.removedassignments[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAssignments returns the removed IDs of the "assignments" edge to the PositionAssignment entity.
+func (m *PositionMutation) RemovedAssignmentsIDs() (ids []uuid.UUID) {
+	for id := range m.removedassignments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AssignmentsIDs returns the "assignments" edge IDs in the mutation.
+func (m *PositionMutation) AssignmentsIDs() (ids []uuid.UUID) {
+	for id := range m.assignments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAssignments resets all changes to the "assignments" edge.
+func (m *PositionMutation) ResetAssignments() {
+	m.assignments = nil
+	m.clearedassignments = false
+	m.removedassignments = nil
+}
+
 // Where appends a list predicates to the PositionMutation builder.
 func (m *PositionMutation) Where(ps ...predicate.Position) {
 	m.predicates = append(m.predicates, ps...)
@@ -3522,9 +6045,12 @@ func (m *PositionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PositionMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.tenant_id != nil {
 		fields = append(fields, position.FieldTenantID)
+	}
+	if m.business_id != nil {
+		fields = append(fields, position.FieldBusinessID)
 	}
 	if m.position_type != nil {
 		fields = append(fields, position.FieldPositionType)
@@ -3563,6 +6089,8 @@ func (m *PositionMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case position.FieldTenantID:
 		return m.TenantID()
+	case position.FieldBusinessID:
+		return m.BusinessID()
 	case position.FieldPositionType:
 		return m.PositionType()
 	case position.FieldJobProfileID:
@@ -3592,6 +6120,8 @@ func (m *PositionMutation) OldField(ctx context.Context, name string) (ent.Value
 	switch name {
 	case position.FieldTenantID:
 		return m.OldTenantID(ctx)
+	case position.FieldBusinessID:
+		return m.OldBusinessID(ctx)
 	case position.FieldPositionType:
 		return m.OldPositionType(ctx)
 	case position.FieldJobProfileID:
@@ -3625,6 +6155,13 @@ func (m *PositionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTenantID(v)
+		return nil
+	case position.FieldBusinessID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBusinessID(v)
 		return nil
 	case position.FieldPositionType:
 		v, ok := value.(position.PositionType)
@@ -3771,6 +6308,9 @@ func (m *PositionMutation) ResetField(name string) error {
 	case position.FieldTenantID:
 		m.ResetTenantID()
 		return nil
+	case position.FieldBusinessID:
+		m.ResetBusinessID()
+		return nil
 	case position.FieldPositionType:
 		m.ResetPositionType()
 		return nil
@@ -3804,7 +6344,7 @@ func (m *PositionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PositionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.manager != nil {
 		edges = append(edges, position.EdgeManager)
 	}
@@ -3822,6 +6362,9 @@ func (m *PositionMutation) AddedEdges() []string {
 	}
 	if m.attribute_history != nil {
 		edges = append(edges, position.EdgeAttributeHistory)
+	}
+	if m.assignments != nil {
+		edges = append(edges, position.EdgeAssignments)
 	}
 	return edges
 }
@@ -3862,13 +6405,19 @@ func (m *PositionMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case position.EdgeAssignments:
+		ids := make([]ent.Value, 0, len(m.assignments))
+		for id := range m.assignments {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PositionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.removeddirect_reports != nil {
 		edges = append(edges, position.EdgeDirectReports)
 	}
@@ -3880,6 +6429,9 @@ func (m *PositionMutation) RemovedEdges() []string {
 	}
 	if m.removedattribute_history != nil {
 		edges = append(edges, position.EdgeAttributeHistory)
+	}
+	if m.removedassignments != nil {
+		edges = append(edges, position.EdgeAssignments)
 	}
 	return edges
 }
@@ -3912,13 +6464,19 @@ func (m *PositionMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case position.EdgeAssignments:
+		ids := make([]ent.Value, 0, len(m.removedassignments))
+		for id := range m.removedassignments {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PositionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.clearedmanager {
 		edges = append(edges, position.EdgeManager)
 	}
@@ -3936,6 +6494,9 @@ func (m *PositionMutation) ClearedEdges() []string {
 	}
 	if m.clearedattribute_history {
 		edges = append(edges, position.EdgeAttributeHistory)
+	}
+	if m.clearedassignments {
+		edges = append(edges, position.EdgeAssignments)
 	}
 	return edges
 }
@@ -3956,6 +6517,8 @@ func (m *PositionMutation) EdgeCleared(name string) bool {
 		return m.clearedoccupancy_history
 	case position.EdgeAttributeHistory:
 		return m.clearedattribute_history
+	case position.EdgeAssignments:
+		return m.clearedassignments
 	}
 	return false
 }
@@ -3996,8 +6559,1155 @@ func (m *PositionMutation) ResetEdge(name string) error {
 	case position.EdgeAttributeHistory:
 		m.ResetAttributeHistory()
 		return nil
+	case position.EdgeAssignments:
+		m.ResetAssignments()
+		return nil
 	}
 	return fmt.Errorf("unknown Position edge %s", name)
+}
+
+// PositionAssignmentMutation represents an operation that mutates the PositionAssignment nodes in the graph.
+type PositionAssignmentMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *uuid.UUID
+	tenant_id       *uuid.UUID
+	start_date      *time.Time
+	end_date        *time.Time
+	is_current      *bool
+	fte             *float64
+	addfte          *float64
+	assignment_type *positionassignment.AssignmentType
+	created_at      *time.Time
+	updated_at      *time.Time
+	clearedFields   map[string]struct{}
+	position        *uuid.UUID
+	clearedposition bool
+	employee        *uuid.UUID
+	clearedemployee bool
+	details         map[uuid.UUID]struct{}
+	removeddetails  map[uuid.UUID]struct{}
+	cleareddetails  bool
+	history         map[uuid.UUID]struct{}
+	removedhistory  map[uuid.UUID]struct{}
+	clearedhistory  bool
+	done            bool
+	oldValue        func(context.Context) (*PositionAssignment, error)
+	predicates      []predicate.PositionAssignment
+}
+
+var _ ent.Mutation = (*PositionAssignmentMutation)(nil)
+
+// positionassignmentOption allows management of the mutation configuration using functional options.
+type positionassignmentOption func(*PositionAssignmentMutation)
+
+// newPositionAssignmentMutation creates new mutation for the PositionAssignment entity.
+func newPositionAssignmentMutation(c config, op Op, opts ...positionassignmentOption) *PositionAssignmentMutation {
+	m := &PositionAssignmentMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePositionAssignment,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPositionAssignmentID sets the ID field of the mutation.
+func withPositionAssignmentID(id uuid.UUID) positionassignmentOption {
+	return func(m *PositionAssignmentMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PositionAssignment
+		)
+		m.oldValue = func(ctx context.Context) (*PositionAssignment, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PositionAssignment.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPositionAssignment sets the old PositionAssignment of the mutation.
+func withPositionAssignment(node *PositionAssignment) positionassignmentOption {
+	return func(m *PositionAssignmentMutation) {
+		m.oldValue = func(context.Context) (*PositionAssignment, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PositionAssignmentMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PositionAssignmentMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PositionAssignment entities.
+func (m *PositionAssignmentMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PositionAssignmentMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PositionAssignmentMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PositionAssignment.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (m *PositionAssignmentMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *PositionAssignmentMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *PositionAssignmentMutation) ResetTenantID() {
+	m.tenant_id = nil
+}
+
+// SetPositionID sets the "position_id" field.
+func (m *PositionAssignmentMutation) SetPositionID(u uuid.UUID) {
+	m.position = &u
+}
+
+// PositionID returns the value of the "position_id" field in the mutation.
+func (m *PositionAssignmentMutation) PositionID() (r uuid.UUID, exists bool) {
+	v := m.position
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPositionID returns the old "position_id" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldPositionID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPositionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPositionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPositionID: %w", err)
+	}
+	return oldValue.PositionID, nil
+}
+
+// ResetPositionID resets all changes to the "position_id" field.
+func (m *PositionAssignmentMutation) ResetPositionID() {
+	m.position = nil
+}
+
+// SetEmployeeID sets the "employee_id" field.
+func (m *PositionAssignmentMutation) SetEmployeeID(u uuid.UUID) {
+	m.employee = &u
+}
+
+// EmployeeID returns the value of the "employee_id" field in the mutation.
+func (m *PositionAssignmentMutation) EmployeeID() (r uuid.UUID, exists bool) {
+	v := m.employee
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEmployeeID returns the old "employee_id" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldEmployeeID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEmployeeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEmployeeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEmployeeID: %w", err)
+	}
+	return oldValue.EmployeeID, nil
+}
+
+// ResetEmployeeID resets all changes to the "employee_id" field.
+func (m *PositionAssignmentMutation) ResetEmployeeID() {
+	m.employee = nil
+}
+
+// SetStartDate sets the "start_date" field.
+func (m *PositionAssignmentMutation) SetStartDate(t time.Time) {
+	m.start_date = &t
+}
+
+// StartDate returns the value of the "start_date" field in the mutation.
+func (m *PositionAssignmentMutation) StartDate() (r time.Time, exists bool) {
+	v := m.start_date
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartDate returns the old "start_date" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldStartDate(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartDate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartDate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartDate: %w", err)
+	}
+	return oldValue.StartDate, nil
+}
+
+// ResetStartDate resets all changes to the "start_date" field.
+func (m *PositionAssignmentMutation) ResetStartDate() {
+	m.start_date = nil
+}
+
+// SetEndDate sets the "end_date" field.
+func (m *PositionAssignmentMutation) SetEndDate(t time.Time) {
+	m.end_date = &t
+}
+
+// EndDate returns the value of the "end_date" field in the mutation.
+func (m *PositionAssignmentMutation) EndDate() (r time.Time, exists bool) {
+	v := m.end_date
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEndDate returns the old "end_date" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldEndDate(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEndDate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEndDate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEndDate: %w", err)
+	}
+	return oldValue.EndDate, nil
+}
+
+// ClearEndDate clears the value of the "end_date" field.
+func (m *PositionAssignmentMutation) ClearEndDate() {
+	m.end_date = nil
+	m.clearedFields[positionassignment.FieldEndDate] = struct{}{}
+}
+
+// EndDateCleared returns if the "end_date" field was cleared in this mutation.
+func (m *PositionAssignmentMutation) EndDateCleared() bool {
+	_, ok := m.clearedFields[positionassignment.FieldEndDate]
+	return ok
+}
+
+// ResetEndDate resets all changes to the "end_date" field.
+func (m *PositionAssignmentMutation) ResetEndDate() {
+	m.end_date = nil
+	delete(m.clearedFields, positionassignment.FieldEndDate)
+}
+
+// SetIsCurrent sets the "is_current" field.
+func (m *PositionAssignmentMutation) SetIsCurrent(b bool) {
+	m.is_current = &b
+}
+
+// IsCurrent returns the value of the "is_current" field in the mutation.
+func (m *PositionAssignmentMutation) IsCurrent() (r bool, exists bool) {
+	v := m.is_current
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsCurrent returns the old "is_current" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldIsCurrent(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsCurrent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsCurrent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsCurrent: %w", err)
+	}
+	return oldValue.IsCurrent, nil
+}
+
+// ResetIsCurrent resets all changes to the "is_current" field.
+func (m *PositionAssignmentMutation) ResetIsCurrent() {
+	m.is_current = nil
+}
+
+// SetFte sets the "fte" field.
+func (m *PositionAssignmentMutation) SetFte(f float64) {
+	m.fte = &f
+	m.addfte = nil
+}
+
+// Fte returns the value of the "fte" field in the mutation.
+func (m *PositionAssignmentMutation) Fte() (r float64, exists bool) {
+	v := m.fte
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFte returns the old "fte" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldFte(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFte is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFte requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFte: %w", err)
+	}
+	return oldValue.Fte, nil
+}
+
+// AddFte adds f to the "fte" field.
+func (m *PositionAssignmentMutation) AddFte(f float64) {
+	if m.addfte != nil {
+		*m.addfte += f
+	} else {
+		m.addfte = &f
+	}
+}
+
+// AddedFte returns the value that was added to the "fte" field in this mutation.
+func (m *PositionAssignmentMutation) AddedFte() (r float64, exists bool) {
+	v := m.addfte
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFte resets all changes to the "fte" field.
+func (m *PositionAssignmentMutation) ResetFte() {
+	m.fte = nil
+	m.addfte = nil
+}
+
+// SetAssignmentType sets the "assignment_type" field.
+func (m *PositionAssignmentMutation) SetAssignmentType(pt positionassignment.AssignmentType) {
+	m.assignment_type = &pt
+}
+
+// AssignmentType returns the value of the "assignment_type" field in the mutation.
+func (m *PositionAssignmentMutation) AssignmentType() (r positionassignment.AssignmentType, exists bool) {
+	v := m.assignment_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssignmentType returns the old "assignment_type" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldAssignmentType(ctx context.Context) (v positionassignment.AssignmentType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssignmentType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssignmentType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssignmentType: %w", err)
+	}
+	return oldValue.AssignmentType, nil
+}
+
+// ResetAssignmentType resets all changes to the "assignment_type" field.
+func (m *PositionAssignmentMutation) ResetAssignmentType() {
+	m.assignment_type = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PositionAssignmentMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PositionAssignmentMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PositionAssignmentMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PositionAssignmentMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PositionAssignmentMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PositionAssignment entity.
+// If the PositionAssignment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PositionAssignmentMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PositionAssignmentMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// ClearPosition clears the "position" edge to the Position entity.
+func (m *PositionAssignmentMutation) ClearPosition() {
+	m.clearedposition = true
+	m.clearedFields[positionassignment.FieldPositionID] = struct{}{}
+}
+
+// PositionCleared reports if the "position" edge to the Position entity was cleared.
+func (m *PositionAssignmentMutation) PositionCleared() bool {
+	return m.clearedposition
+}
+
+// PositionIDs returns the "position" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PositionID instead. It exists only for internal usage by the builders.
+func (m *PositionAssignmentMutation) PositionIDs() (ids []uuid.UUID) {
+	if id := m.position; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPosition resets all changes to the "position" edge.
+func (m *PositionAssignmentMutation) ResetPosition() {
+	m.position = nil
+	m.clearedposition = false
+}
+
+// ClearEmployee clears the "employee" edge to the Employee entity.
+func (m *PositionAssignmentMutation) ClearEmployee() {
+	m.clearedemployee = true
+	m.clearedFields[positionassignment.FieldEmployeeID] = struct{}{}
+}
+
+// EmployeeCleared reports if the "employee" edge to the Employee entity was cleared.
+func (m *PositionAssignmentMutation) EmployeeCleared() bool {
+	return m.clearedemployee
+}
+
+// EmployeeIDs returns the "employee" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// EmployeeID instead. It exists only for internal usage by the builders.
+func (m *PositionAssignmentMutation) EmployeeIDs() (ids []uuid.UUID) {
+	if id := m.employee; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetEmployee resets all changes to the "employee" edge.
+func (m *PositionAssignmentMutation) ResetEmployee() {
+	m.employee = nil
+	m.clearedemployee = false
+}
+
+// AddDetailIDs adds the "details" edge to the AssignmentDetails entity by ids.
+func (m *PositionAssignmentMutation) AddDetailIDs(ids ...uuid.UUID) {
+	if m.details == nil {
+		m.details = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.details[ids[i]] = struct{}{}
+	}
+}
+
+// ClearDetails clears the "details" edge to the AssignmentDetails entity.
+func (m *PositionAssignmentMutation) ClearDetails() {
+	m.cleareddetails = true
+}
+
+// DetailsCleared reports if the "details" edge to the AssignmentDetails entity was cleared.
+func (m *PositionAssignmentMutation) DetailsCleared() bool {
+	return m.cleareddetails
+}
+
+// RemoveDetailIDs removes the "details" edge to the AssignmentDetails entity by IDs.
+func (m *PositionAssignmentMutation) RemoveDetailIDs(ids ...uuid.UUID) {
+	if m.removeddetails == nil {
+		m.removeddetails = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.details, ids[i])
+		m.removeddetails[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedDetails returns the removed IDs of the "details" edge to the AssignmentDetails entity.
+func (m *PositionAssignmentMutation) RemovedDetailsIDs() (ids []uuid.UUID) {
+	for id := range m.removeddetails {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// DetailsIDs returns the "details" edge IDs in the mutation.
+func (m *PositionAssignmentMutation) DetailsIDs() (ids []uuid.UUID) {
+	for id := range m.details {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetDetails resets all changes to the "details" edge.
+func (m *PositionAssignmentMutation) ResetDetails() {
+	m.details = nil
+	m.cleareddetails = false
+	m.removeddetails = nil
+}
+
+// AddHistoryIDs adds the "history" edge to the AssignmentHistory entity by ids.
+func (m *PositionAssignmentMutation) AddHistoryIDs(ids ...uuid.UUID) {
+	if m.history == nil {
+		m.history = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.history[ids[i]] = struct{}{}
+	}
+}
+
+// ClearHistory clears the "history" edge to the AssignmentHistory entity.
+func (m *PositionAssignmentMutation) ClearHistory() {
+	m.clearedhistory = true
+}
+
+// HistoryCleared reports if the "history" edge to the AssignmentHistory entity was cleared.
+func (m *PositionAssignmentMutation) HistoryCleared() bool {
+	return m.clearedhistory
+}
+
+// RemoveHistoryIDs removes the "history" edge to the AssignmentHistory entity by IDs.
+func (m *PositionAssignmentMutation) RemoveHistoryIDs(ids ...uuid.UUID) {
+	if m.removedhistory == nil {
+		m.removedhistory = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.history, ids[i])
+		m.removedhistory[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedHistory returns the removed IDs of the "history" edge to the AssignmentHistory entity.
+func (m *PositionAssignmentMutation) RemovedHistoryIDs() (ids []uuid.UUID) {
+	for id := range m.removedhistory {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// HistoryIDs returns the "history" edge IDs in the mutation.
+func (m *PositionAssignmentMutation) HistoryIDs() (ids []uuid.UUID) {
+	for id := range m.history {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetHistory resets all changes to the "history" edge.
+func (m *PositionAssignmentMutation) ResetHistory() {
+	m.history = nil
+	m.clearedhistory = false
+	m.removedhistory = nil
+}
+
+// Where appends a list predicates to the PositionAssignmentMutation builder.
+func (m *PositionAssignmentMutation) Where(ps ...predicate.PositionAssignment) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PositionAssignmentMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PositionAssignmentMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PositionAssignment, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PositionAssignmentMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PositionAssignmentMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PositionAssignment).
+func (m *PositionAssignmentMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PositionAssignmentMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.tenant_id != nil {
+		fields = append(fields, positionassignment.FieldTenantID)
+	}
+	if m.position != nil {
+		fields = append(fields, positionassignment.FieldPositionID)
+	}
+	if m.employee != nil {
+		fields = append(fields, positionassignment.FieldEmployeeID)
+	}
+	if m.start_date != nil {
+		fields = append(fields, positionassignment.FieldStartDate)
+	}
+	if m.end_date != nil {
+		fields = append(fields, positionassignment.FieldEndDate)
+	}
+	if m.is_current != nil {
+		fields = append(fields, positionassignment.FieldIsCurrent)
+	}
+	if m.fte != nil {
+		fields = append(fields, positionassignment.FieldFte)
+	}
+	if m.assignment_type != nil {
+		fields = append(fields, positionassignment.FieldAssignmentType)
+	}
+	if m.created_at != nil {
+		fields = append(fields, positionassignment.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, positionassignment.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PositionAssignmentMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case positionassignment.FieldTenantID:
+		return m.TenantID()
+	case positionassignment.FieldPositionID:
+		return m.PositionID()
+	case positionassignment.FieldEmployeeID:
+		return m.EmployeeID()
+	case positionassignment.FieldStartDate:
+		return m.StartDate()
+	case positionassignment.FieldEndDate:
+		return m.EndDate()
+	case positionassignment.FieldIsCurrent:
+		return m.IsCurrent()
+	case positionassignment.FieldFte:
+		return m.Fte()
+	case positionassignment.FieldAssignmentType:
+		return m.AssignmentType()
+	case positionassignment.FieldCreatedAt:
+		return m.CreatedAt()
+	case positionassignment.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PositionAssignmentMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case positionassignment.FieldTenantID:
+		return m.OldTenantID(ctx)
+	case positionassignment.FieldPositionID:
+		return m.OldPositionID(ctx)
+	case positionassignment.FieldEmployeeID:
+		return m.OldEmployeeID(ctx)
+	case positionassignment.FieldStartDate:
+		return m.OldStartDate(ctx)
+	case positionassignment.FieldEndDate:
+		return m.OldEndDate(ctx)
+	case positionassignment.FieldIsCurrent:
+		return m.OldIsCurrent(ctx)
+	case positionassignment.FieldFte:
+		return m.OldFte(ctx)
+	case positionassignment.FieldAssignmentType:
+		return m.OldAssignmentType(ctx)
+	case positionassignment.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case positionassignment.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PositionAssignment field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PositionAssignmentMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case positionassignment.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
+		return nil
+	case positionassignment.FieldPositionID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPositionID(v)
+		return nil
+	case positionassignment.FieldEmployeeID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEmployeeID(v)
+		return nil
+	case positionassignment.FieldStartDate:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartDate(v)
+		return nil
+	case positionassignment.FieldEndDate:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEndDate(v)
+		return nil
+	case positionassignment.FieldIsCurrent:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsCurrent(v)
+		return nil
+	case positionassignment.FieldFte:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFte(v)
+		return nil
+	case positionassignment.FieldAssignmentType:
+		v, ok := value.(positionassignment.AssignmentType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssignmentType(v)
+		return nil
+	case positionassignment.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case positionassignment.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PositionAssignment field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PositionAssignmentMutation) AddedFields() []string {
+	var fields []string
+	if m.addfte != nil {
+		fields = append(fields, positionassignment.FieldFte)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PositionAssignmentMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case positionassignment.FieldFte:
+		return m.AddedFte()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PositionAssignmentMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case positionassignment.FieldFte:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFte(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PositionAssignment numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PositionAssignmentMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(positionassignment.FieldEndDate) {
+		fields = append(fields, positionassignment.FieldEndDate)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PositionAssignmentMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PositionAssignmentMutation) ClearField(name string) error {
+	switch name {
+	case positionassignment.FieldEndDate:
+		m.ClearEndDate()
+		return nil
+	}
+	return fmt.Errorf("unknown PositionAssignment nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PositionAssignmentMutation) ResetField(name string) error {
+	switch name {
+	case positionassignment.FieldTenantID:
+		m.ResetTenantID()
+		return nil
+	case positionassignment.FieldPositionID:
+		m.ResetPositionID()
+		return nil
+	case positionassignment.FieldEmployeeID:
+		m.ResetEmployeeID()
+		return nil
+	case positionassignment.FieldStartDate:
+		m.ResetStartDate()
+		return nil
+	case positionassignment.FieldEndDate:
+		m.ResetEndDate()
+		return nil
+	case positionassignment.FieldIsCurrent:
+		m.ResetIsCurrent()
+		return nil
+	case positionassignment.FieldFte:
+		m.ResetFte()
+		return nil
+	case positionassignment.FieldAssignmentType:
+		m.ResetAssignmentType()
+		return nil
+	case positionassignment.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case positionassignment.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PositionAssignment field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PositionAssignmentMutation) AddedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.position != nil {
+		edges = append(edges, positionassignment.EdgePosition)
+	}
+	if m.employee != nil {
+		edges = append(edges, positionassignment.EdgeEmployee)
+	}
+	if m.details != nil {
+		edges = append(edges, positionassignment.EdgeDetails)
+	}
+	if m.history != nil {
+		edges = append(edges, positionassignment.EdgeHistory)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PositionAssignmentMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case positionassignment.EdgePosition:
+		if id := m.position; id != nil {
+			return []ent.Value{*id}
+		}
+	case positionassignment.EdgeEmployee:
+		if id := m.employee; id != nil {
+			return []ent.Value{*id}
+		}
+	case positionassignment.EdgeDetails:
+		ids := make([]ent.Value, 0, len(m.details))
+		for id := range m.details {
+			ids = append(ids, id)
+		}
+		return ids
+	case positionassignment.EdgeHistory:
+		ids := make([]ent.Value, 0, len(m.history))
+		for id := range m.history {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PositionAssignmentMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.removeddetails != nil {
+		edges = append(edges, positionassignment.EdgeDetails)
+	}
+	if m.removedhistory != nil {
+		edges = append(edges, positionassignment.EdgeHistory)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PositionAssignmentMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case positionassignment.EdgeDetails:
+		ids := make([]ent.Value, 0, len(m.removeddetails))
+		for id := range m.removeddetails {
+			ids = append(ids, id)
+		}
+		return ids
+	case positionassignment.EdgeHistory:
+		ids := make([]ent.Value, 0, len(m.removedhistory))
+		for id := range m.removedhistory {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PositionAssignmentMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.clearedposition {
+		edges = append(edges, positionassignment.EdgePosition)
+	}
+	if m.clearedemployee {
+		edges = append(edges, positionassignment.EdgeEmployee)
+	}
+	if m.cleareddetails {
+		edges = append(edges, positionassignment.EdgeDetails)
+	}
+	if m.clearedhistory {
+		edges = append(edges, positionassignment.EdgeHistory)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PositionAssignmentMutation) EdgeCleared(name string) bool {
+	switch name {
+	case positionassignment.EdgePosition:
+		return m.clearedposition
+	case positionassignment.EdgeEmployee:
+		return m.clearedemployee
+	case positionassignment.EdgeDetails:
+		return m.cleareddetails
+	case positionassignment.EdgeHistory:
+		return m.clearedhistory
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PositionAssignmentMutation) ClearEdge(name string) error {
+	switch name {
+	case positionassignment.EdgePosition:
+		m.ClearPosition()
+		return nil
+	case positionassignment.EdgeEmployee:
+		m.ClearEmployee()
+		return nil
+	}
+	return fmt.Errorf("unknown PositionAssignment unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PositionAssignmentMutation) ResetEdge(name string) error {
+	switch name {
+	case positionassignment.EdgePosition:
+		m.ResetPosition()
+		return nil
+	case positionassignment.EdgeEmployee:
+		m.ResetEmployee()
+		return nil
+	case positionassignment.EdgeDetails:
+		m.ResetDetails()
+		return nil
+	case positionassignment.EdgeHistory:
+		m.ResetHistory()
+		return nil
+	}
+	return fmt.Errorf("unknown PositionAssignment edge %s", name)
 }
 
 // PositionAttributeHistoryMutation represents an operation that mutates the PositionAttributeHistory nodes in the graph.

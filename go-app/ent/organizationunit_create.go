@@ -22,6 +22,12 @@ type OrganizationUnitCreate struct {
 	hooks    []Hook
 }
 
+// SetBusinessID sets the "business_id" field.
+func (ouc *OrganizationUnitCreate) SetBusinessID(s string) *OrganizationUnitCreate {
+	ouc.mutation.SetBusinessID(s)
+	return ouc
+}
+
 // SetTenantID sets the "tenant_id" field.
 func (ouc *OrganizationUnitCreate) SetTenantID(u uuid.UUID) *OrganizationUnitCreate {
 	ouc.mutation.SetTenantID(u)
@@ -252,6 +258,14 @@ func (ouc *OrganizationUnitCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ouc *OrganizationUnitCreate) check() error {
+	if _, ok := ouc.mutation.BusinessID(); !ok {
+		return &ValidationError{Name: "business_id", err: errors.New(`ent: missing required field "OrganizationUnit.business_id"`)}
+	}
+	if v, ok := ouc.mutation.BusinessID(); ok {
+		if err := organizationunit.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "OrganizationUnit.business_id": %w`, err)}
+		}
+	}
 	if _, ok := ouc.mutation.TenantID(); !ok {
 		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "OrganizationUnit.tenant_id"`)}
 	}
@@ -327,6 +341,10 @@ func (ouc *OrganizationUnitCreate) createSpec() (*OrganizationUnit, *sqlgraph.Cr
 	if id, ok := ouc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = &id
+	}
+	if value, ok := ouc.mutation.BusinessID(); ok {
+		_spec.SetField(organizationunit.FieldBusinessID, field.TypeString, value)
+		_node.BusinessID = value
 	}
 	if value, ok := ouc.mutation.TenantID(); ok {
 		_spec.SetField(organizationunit.FieldTenantID, field.TypeUUID, value)

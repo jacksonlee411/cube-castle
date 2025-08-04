@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
+	"regexp"
 	"time"
 )
 
@@ -24,6 +25,14 @@ func (OrganizationUnit) Fields() []ent.Field {
 			Default(uuid.New).
 			Immutable().
 			Comment("Global unique identifier, immutable primary key"),
+
+		// Business ID (User-friendly identifier)
+		field.String("business_id").
+			Unique().
+			NotEmpty().
+			MaxLen(6).
+			Match(regexp.MustCompile(`^[1-9][0-9]{5}$`)).
+			Comment("Business ID - user-friendly identifier (100000-999999)"),
 
 		field.UUID("tenant_id", uuid.UUID{}).
 			Immutable().
@@ -102,6 +111,10 @@ func (OrganizationUnit) Indexes() []ent.Index {
 	return []ent.Index{
 		// Multi-tenant isolation optimization
 		index.Fields("tenant_id", "unit_type"),
+
+		// Business ID optimization (primary lookup)
+		index.Fields("business_id"),
+		index.Fields("tenant_id", "business_id"),
 
 		// Hierarchical query optimization
 		index.Fields("parent_unit_id"),

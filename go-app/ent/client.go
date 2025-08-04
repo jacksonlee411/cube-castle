@@ -16,9 +16,12 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/gaogu/cube-castle/go-app/ent/assignmentdetails"
+	"github.com/gaogu/cube-castle/go-app/ent/assignmenthistory"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
@@ -29,12 +32,18 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// AssignmentDetails is the client for interacting with the AssignmentDetails builders.
+	AssignmentDetails *AssignmentDetailsClient
+	// AssignmentHistory is the client for interacting with the AssignmentHistory builders.
+	AssignmentHistory *AssignmentHistoryClient
 	// Employee is the client for interacting with the Employee builders.
 	Employee *EmployeeClient
 	// OrganizationUnit is the client for interacting with the OrganizationUnit builders.
 	OrganizationUnit *OrganizationUnitClient
 	// Position is the client for interacting with the Position builders.
 	Position *PositionClient
+	// PositionAssignment is the client for interacting with the PositionAssignment builders.
+	PositionAssignment *PositionAssignmentClient
 	// PositionAttributeHistory is the client for interacting with the PositionAttributeHistory builders.
 	PositionAttributeHistory *PositionAttributeHistoryClient
 	// PositionHistory is the client for interacting with the PositionHistory builders.
@@ -52,9 +61,12 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.AssignmentDetails = NewAssignmentDetailsClient(c.config)
+	c.AssignmentHistory = NewAssignmentHistoryClient(c.config)
 	c.Employee = NewEmployeeClient(c.config)
 	c.OrganizationUnit = NewOrganizationUnitClient(c.config)
 	c.Position = NewPositionClient(c.config)
+	c.PositionAssignment = NewPositionAssignmentClient(c.config)
 	c.PositionAttributeHistory = NewPositionAttributeHistoryClient(c.config)
 	c.PositionHistory = NewPositionHistoryClient(c.config)
 	c.PositionOccupancyHistory = NewPositionOccupancyHistoryClient(c.config)
@@ -150,9 +162,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:                      ctx,
 		config:                   cfg,
+		AssignmentDetails:        NewAssignmentDetailsClient(cfg),
+		AssignmentHistory:        NewAssignmentHistoryClient(cfg),
 		Employee:                 NewEmployeeClient(cfg),
 		OrganizationUnit:         NewOrganizationUnitClient(cfg),
 		Position:                 NewPositionClient(cfg),
+		PositionAssignment:       NewPositionAssignmentClient(cfg),
 		PositionAttributeHistory: NewPositionAttributeHistoryClient(cfg),
 		PositionHistory:          NewPositionHistoryClient(cfg),
 		PositionOccupancyHistory: NewPositionOccupancyHistoryClient(cfg),
@@ -175,9 +190,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:                      ctx,
 		config:                   cfg,
+		AssignmentDetails:        NewAssignmentDetailsClient(cfg),
+		AssignmentHistory:        NewAssignmentHistoryClient(cfg),
 		Employee:                 NewEmployeeClient(cfg),
 		OrganizationUnit:         NewOrganizationUnitClient(cfg),
 		Position:                 NewPositionClient(cfg),
+		PositionAssignment:       NewPositionAssignmentClient(cfg),
 		PositionAttributeHistory: NewPositionAttributeHistoryClient(cfg),
 		PositionHistory:          NewPositionHistoryClient(cfg),
 		PositionOccupancyHistory: NewPositionOccupancyHistoryClient(cfg),
@@ -187,7 +205,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Employee.
+//		AssignmentDetails.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -210,7 +228,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Employee, c.OrganizationUnit, c.Position, c.PositionAttributeHistory,
+		c.AssignmentDetails, c.AssignmentHistory, c.Employee, c.OrganizationUnit,
+		c.Position, c.PositionAssignment, c.PositionAttributeHistory,
 		c.PositionHistory, c.PositionOccupancyHistory,
 	} {
 		n.Use(hooks...)
@@ -221,7 +240,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Employee, c.OrganizationUnit, c.Position, c.PositionAttributeHistory,
+		c.AssignmentDetails, c.AssignmentHistory, c.Employee, c.OrganizationUnit,
+		c.Position, c.PositionAssignment, c.PositionAttributeHistory,
 		c.PositionHistory, c.PositionOccupancyHistory,
 	} {
 		n.Intercept(interceptors...)
@@ -231,12 +251,18 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AssignmentDetailsMutation:
+		return c.AssignmentDetails.mutate(ctx, m)
+	case *AssignmentHistoryMutation:
+		return c.AssignmentHistory.mutate(ctx, m)
 	case *EmployeeMutation:
 		return c.Employee.mutate(ctx, m)
 	case *OrganizationUnitMutation:
 		return c.OrganizationUnit.mutate(ctx, m)
 	case *PositionMutation:
 		return c.Position.mutate(ctx, m)
+	case *PositionAssignmentMutation:
+		return c.PositionAssignment.mutate(ctx, m)
 	case *PositionAttributeHistoryMutation:
 		return c.PositionAttributeHistory.mutate(ctx, m)
 	case *PositionHistoryMutation:
@@ -245,6 +271,304 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PositionOccupancyHistory.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AssignmentDetailsClient is a client for the AssignmentDetails schema.
+type AssignmentDetailsClient struct {
+	config
+}
+
+// NewAssignmentDetailsClient returns a client for the AssignmentDetails from the given config.
+func NewAssignmentDetailsClient(c config) *AssignmentDetailsClient {
+	return &AssignmentDetailsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `assignmentdetails.Hooks(f(g(h())))`.
+func (c *AssignmentDetailsClient) Use(hooks ...Hook) {
+	c.hooks.AssignmentDetails = append(c.hooks.AssignmentDetails, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `assignmentdetails.Intercept(f(g(h())))`.
+func (c *AssignmentDetailsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AssignmentDetails = append(c.inters.AssignmentDetails, interceptors...)
+}
+
+// Create returns a builder for creating a AssignmentDetails entity.
+func (c *AssignmentDetailsClient) Create() *AssignmentDetailsCreate {
+	mutation := newAssignmentDetailsMutation(c.config, OpCreate)
+	return &AssignmentDetailsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AssignmentDetails entities.
+func (c *AssignmentDetailsClient) CreateBulk(builders ...*AssignmentDetailsCreate) *AssignmentDetailsCreateBulk {
+	return &AssignmentDetailsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AssignmentDetailsClient) MapCreateBulk(slice any, setFunc func(*AssignmentDetailsCreate, int)) *AssignmentDetailsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AssignmentDetailsCreateBulk{err: fmt.Errorf("calling to AssignmentDetailsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AssignmentDetailsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AssignmentDetailsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AssignmentDetails.
+func (c *AssignmentDetailsClient) Update() *AssignmentDetailsUpdate {
+	mutation := newAssignmentDetailsMutation(c.config, OpUpdate)
+	return &AssignmentDetailsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AssignmentDetailsClient) UpdateOne(ad *AssignmentDetails) *AssignmentDetailsUpdateOne {
+	mutation := newAssignmentDetailsMutation(c.config, OpUpdateOne, withAssignmentDetails(ad))
+	return &AssignmentDetailsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AssignmentDetailsClient) UpdateOneID(id uuid.UUID) *AssignmentDetailsUpdateOne {
+	mutation := newAssignmentDetailsMutation(c.config, OpUpdateOne, withAssignmentDetailsID(id))
+	return &AssignmentDetailsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AssignmentDetails.
+func (c *AssignmentDetailsClient) Delete() *AssignmentDetailsDelete {
+	mutation := newAssignmentDetailsMutation(c.config, OpDelete)
+	return &AssignmentDetailsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AssignmentDetailsClient) DeleteOne(ad *AssignmentDetails) *AssignmentDetailsDeleteOne {
+	return c.DeleteOneID(ad.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AssignmentDetailsClient) DeleteOneID(id uuid.UUID) *AssignmentDetailsDeleteOne {
+	builder := c.Delete().Where(assignmentdetails.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AssignmentDetailsDeleteOne{builder}
+}
+
+// Query returns a query builder for AssignmentDetails.
+func (c *AssignmentDetailsClient) Query() *AssignmentDetailsQuery {
+	return &AssignmentDetailsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAssignmentDetails},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AssignmentDetails entity by its id.
+func (c *AssignmentDetailsClient) Get(ctx context.Context, id uuid.UUID) (*AssignmentDetails, error) {
+	return c.Query().Where(assignmentdetails.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AssignmentDetailsClient) GetX(ctx context.Context, id uuid.UUID) *AssignmentDetails {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAssignment queries the assignment edge of a AssignmentDetails.
+func (c *AssignmentDetailsClient) QueryAssignment(ad *AssignmentDetails) *PositionAssignmentQuery {
+	query := (&PositionAssignmentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ad.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(assignmentdetails.Table, assignmentdetails.FieldID, id),
+			sqlgraph.To(positionassignment.Table, positionassignment.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, assignmentdetails.AssignmentTable, assignmentdetails.AssignmentColumn),
+		)
+		fromV = sqlgraph.Neighbors(ad.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AssignmentDetailsClient) Hooks() []Hook {
+	return c.hooks.AssignmentDetails
+}
+
+// Interceptors returns the client interceptors.
+func (c *AssignmentDetailsClient) Interceptors() []Interceptor {
+	return c.inters.AssignmentDetails
+}
+
+func (c *AssignmentDetailsClient) mutate(ctx context.Context, m *AssignmentDetailsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AssignmentDetailsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AssignmentDetailsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AssignmentDetailsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AssignmentDetailsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AssignmentDetails mutation op: %q", m.Op())
+	}
+}
+
+// AssignmentHistoryClient is a client for the AssignmentHistory schema.
+type AssignmentHistoryClient struct {
+	config
+}
+
+// NewAssignmentHistoryClient returns a client for the AssignmentHistory from the given config.
+func NewAssignmentHistoryClient(c config) *AssignmentHistoryClient {
+	return &AssignmentHistoryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `assignmenthistory.Hooks(f(g(h())))`.
+func (c *AssignmentHistoryClient) Use(hooks ...Hook) {
+	c.hooks.AssignmentHistory = append(c.hooks.AssignmentHistory, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `assignmenthistory.Intercept(f(g(h())))`.
+func (c *AssignmentHistoryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AssignmentHistory = append(c.inters.AssignmentHistory, interceptors...)
+}
+
+// Create returns a builder for creating a AssignmentHistory entity.
+func (c *AssignmentHistoryClient) Create() *AssignmentHistoryCreate {
+	mutation := newAssignmentHistoryMutation(c.config, OpCreate)
+	return &AssignmentHistoryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AssignmentHistory entities.
+func (c *AssignmentHistoryClient) CreateBulk(builders ...*AssignmentHistoryCreate) *AssignmentHistoryCreateBulk {
+	return &AssignmentHistoryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AssignmentHistoryClient) MapCreateBulk(slice any, setFunc func(*AssignmentHistoryCreate, int)) *AssignmentHistoryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AssignmentHistoryCreateBulk{err: fmt.Errorf("calling to AssignmentHistoryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AssignmentHistoryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AssignmentHistoryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AssignmentHistory.
+func (c *AssignmentHistoryClient) Update() *AssignmentHistoryUpdate {
+	mutation := newAssignmentHistoryMutation(c.config, OpUpdate)
+	return &AssignmentHistoryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AssignmentHistoryClient) UpdateOne(ah *AssignmentHistory) *AssignmentHistoryUpdateOne {
+	mutation := newAssignmentHistoryMutation(c.config, OpUpdateOne, withAssignmentHistory(ah))
+	return &AssignmentHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AssignmentHistoryClient) UpdateOneID(id uuid.UUID) *AssignmentHistoryUpdateOne {
+	mutation := newAssignmentHistoryMutation(c.config, OpUpdateOne, withAssignmentHistoryID(id))
+	return &AssignmentHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AssignmentHistory.
+func (c *AssignmentHistoryClient) Delete() *AssignmentHistoryDelete {
+	mutation := newAssignmentHistoryMutation(c.config, OpDelete)
+	return &AssignmentHistoryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AssignmentHistoryClient) DeleteOne(ah *AssignmentHistory) *AssignmentHistoryDeleteOne {
+	return c.DeleteOneID(ah.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AssignmentHistoryClient) DeleteOneID(id uuid.UUID) *AssignmentHistoryDeleteOne {
+	builder := c.Delete().Where(assignmenthistory.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AssignmentHistoryDeleteOne{builder}
+}
+
+// Query returns a query builder for AssignmentHistory.
+func (c *AssignmentHistoryClient) Query() *AssignmentHistoryQuery {
+	return &AssignmentHistoryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAssignmentHistory},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AssignmentHistory entity by its id.
+func (c *AssignmentHistoryClient) Get(ctx context.Context, id uuid.UUID) (*AssignmentHistory, error) {
+	return c.Query().Where(assignmenthistory.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AssignmentHistoryClient) GetX(ctx context.Context, id uuid.UUID) *AssignmentHistory {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAssignment queries the assignment edge of a AssignmentHistory.
+func (c *AssignmentHistoryClient) QueryAssignment(ah *AssignmentHistory) *PositionAssignmentQuery {
+	query := (&PositionAssignmentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ah.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(assignmenthistory.Table, assignmenthistory.FieldID, id),
+			sqlgraph.To(positionassignment.Table, positionassignment.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, assignmenthistory.AssignmentTable, assignmenthistory.AssignmentColumn),
+		)
+		fromV = sqlgraph.Neighbors(ah.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AssignmentHistoryClient) Hooks() []Hook {
+	return c.hooks.AssignmentHistory
+}
+
+// Interceptors returns the client interceptors.
+func (c *AssignmentHistoryClient) Interceptors() []Interceptor {
+	return c.inters.AssignmentHistory
+}
+
+func (c *AssignmentHistoryClient) mutate(ctx context.Context, m *AssignmentHistoryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AssignmentHistoryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AssignmentHistoryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AssignmentHistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AssignmentHistoryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AssignmentHistory mutation op: %q", m.Op())
 	}
 }
 
@@ -381,6 +705,22 @@ func (c *EmployeeClient) QueryPositionHistory(e *Employee) *PositionOccupancyHis
 			sqlgraph.From(employee.Table, employee.FieldID, id),
 			sqlgraph.To(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, employee.PositionHistoryTable, employee.PositionHistoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAssignments queries the assignments edge of a Employee.
+func (c *EmployeeClient) QueryAssignments(e *Employee) *PositionAssignmentQuery {
+	query := (&PositionAssignmentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(employee.Table, employee.FieldID, id),
+			sqlgraph.To(positionassignment.Table, positionassignment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, employee.AssignmentsTable, employee.AssignmentsColumn),
 		)
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
 		return fromV, nil
@@ -798,6 +1138,22 @@ func (c *PositionClient) QueryAttributeHistory(po *Position) *PositionAttributeH
 	return query
 }
 
+// QueryAssignments queries the assignments edge of a Position.
+func (c *PositionClient) QueryAssignments(po *Position) *PositionAssignmentQuery {
+	query := (&PositionAssignmentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, id),
+			sqlgraph.To(positionassignment.Table, positionassignment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, position.AssignmentsTable, position.AssignmentsColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PositionClient) Hooks() []Hook {
 	return c.hooks.Position
@@ -820,6 +1176,203 @@ func (c *PositionClient) mutate(ctx context.Context, m *PositionMutation) (Value
 		return (&PositionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Position mutation op: %q", m.Op())
+	}
+}
+
+// PositionAssignmentClient is a client for the PositionAssignment schema.
+type PositionAssignmentClient struct {
+	config
+}
+
+// NewPositionAssignmentClient returns a client for the PositionAssignment from the given config.
+func NewPositionAssignmentClient(c config) *PositionAssignmentClient {
+	return &PositionAssignmentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `positionassignment.Hooks(f(g(h())))`.
+func (c *PositionAssignmentClient) Use(hooks ...Hook) {
+	c.hooks.PositionAssignment = append(c.hooks.PositionAssignment, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `positionassignment.Intercept(f(g(h())))`.
+func (c *PositionAssignmentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PositionAssignment = append(c.inters.PositionAssignment, interceptors...)
+}
+
+// Create returns a builder for creating a PositionAssignment entity.
+func (c *PositionAssignmentClient) Create() *PositionAssignmentCreate {
+	mutation := newPositionAssignmentMutation(c.config, OpCreate)
+	return &PositionAssignmentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PositionAssignment entities.
+func (c *PositionAssignmentClient) CreateBulk(builders ...*PositionAssignmentCreate) *PositionAssignmentCreateBulk {
+	return &PositionAssignmentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PositionAssignmentClient) MapCreateBulk(slice any, setFunc func(*PositionAssignmentCreate, int)) *PositionAssignmentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PositionAssignmentCreateBulk{err: fmt.Errorf("calling to PositionAssignmentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PositionAssignmentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PositionAssignmentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PositionAssignment.
+func (c *PositionAssignmentClient) Update() *PositionAssignmentUpdate {
+	mutation := newPositionAssignmentMutation(c.config, OpUpdate)
+	return &PositionAssignmentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PositionAssignmentClient) UpdateOne(pa *PositionAssignment) *PositionAssignmentUpdateOne {
+	mutation := newPositionAssignmentMutation(c.config, OpUpdateOne, withPositionAssignment(pa))
+	return &PositionAssignmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PositionAssignmentClient) UpdateOneID(id uuid.UUID) *PositionAssignmentUpdateOne {
+	mutation := newPositionAssignmentMutation(c.config, OpUpdateOne, withPositionAssignmentID(id))
+	return &PositionAssignmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PositionAssignment.
+func (c *PositionAssignmentClient) Delete() *PositionAssignmentDelete {
+	mutation := newPositionAssignmentMutation(c.config, OpDelete)
+	return &PositionAssignmentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PositionAssignmentClient) DeleteOne(pa *PositionAssignment) *PositionAssignmentDeleteOne {
+	return c.DeleteOneID(pa.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PositionAssignmentClient) DeleteOneID(id uuid.UUID) *PositionAssignmentDeleteOne {
+	builder := c.Delete().Where(positionassignment.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PositionAssignmentDeleteOne{builder}
+}
+
+// Query returns a query builder for PositionAssignment.
+func (c *PositionAssignmentClient) Query() *PositionAssignmentQuery {
+	return &PositionAssignmentQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePositionAssignment},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PositionAssignment entity by its id.
+func (c *PositionAssignmentClient) Get(ctx context.Context, id uuid.UUID) (*PositionAssignment, error) {
+	return c.Query().Where(positionassignment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PositionAssignmentClient) GetX(ctx context.Context, id uuid.UUID) *PositionAssignment {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPosition queries the position edge of a PositionAssignment.
+func (c *PositionAssignmentClient) QueryPosition(pa *PositionAssignment) *PositionQuery {
+	query := (&PositionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pa.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(positionassignment.Table, positionassignment.FieldID, id),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, positionassignment.PositionTable, positionassignment.PositionColumn),
+		)
+		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEmployee queries the employee edge of a PositionAssignment.
+func (c *PositionAssignmentClient) QueryEmployee(pa *PositionAssignment) *EmployeeQuery {
+	query := (&EmployeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pa.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(positionassignment.Table, positionassignment.FieldID, id),
+			sqlgraph.To(employee.Table, employee.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, positionassignment.EmployeeTable, positionassignment.EmployeeColumn),
+		)
+		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryDetails queries the details edge of a PositionAssignment.
+func (c *PositionAssignmentClient) QueryDetails(pa *PositionAssignment) *AssignmentDetailsQuery {
+	query := (&AssignmentDetailsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pa.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(positionassignment.Table, positionassignment.FieldID, id),
+			sqlgraph.To(assignmentdetails.Table, assignmentdetails.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, positionassignment.DetailsTable, positionassignment.DetailsColumn),
+		)
+		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryHistory queries the history edge of a PositionAssignment.
+func (c *PositionAssignmentClient) QueryHistory(pa *PositionAssignment) *AssignmentHistoryQuery {
+	query := (&AssignmentHistoryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pa.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(positionassignment.Table, positionassignment.FieldID, id),
+			sqlgraph.To(assignmenthistory.Table, assignmenthistory.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, positionassignment.HistoryTable, positionassignment.HistoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PositionAssignmentClient) Hooks() []Hook {
+	return c.hooks.PositionAssignment
+}
+
+// Interceptors returns the client interceptors.
+func (c *PositionAssignmentClient) Interceptors() []Interceptor {
+	return c.inters.PositionAssignment
+}
+
+func (c *PositionAssignmentClient) mutate(ctx context.Context, m *PositionAssignmentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PositionAssignmentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PositionAssignmentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PositionAssignmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PositionAssignmentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PositionAssignment mutation op: %q", m.Op())
 	}
 }
 
@@ -1273,11 +1826,13 @@ func (c *PositionOccupancyHistoryClient) mutate(ctx context.Context, m *Position
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Employee, OrganizationUnit, Position, PositionAttributeHistory, PositionHistory,
+		AssignmentDetails, AssignmentHistory, Employee, OrganizationUnit, Position,
+		PositionAssignment, PositionAttributeHistory, PositionHistory,
 		PositionOccupancyHistory []ent.Hook
 	}
 	inters struct {
-		Employee, OrganizationUnit, Position, PositionAttributeHistory, PositionHistory,
+		AssignmentDetails, AssignmentHistory, Employee, OrganizationUnit, Position,
+		PositionAssignment, PositionAttributeHistory, PositionHistory,
 		PositionOccupancyHistory []ent.Interceptor
 	}
 )

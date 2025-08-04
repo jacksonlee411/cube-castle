@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
 	"github.com/google/uuid"
@@ -28,6 +29,20 @@ type EmployeeUpdate struct {
 // Where appends a list predicates to the EmployeeUpdate builder.
 func (eu *EmployeeUpdate) Where(ps ...predicate.Employee) *EmployeeUpdate {
 	eu.mutation.Where(ps...)
+	return eu
+}
+
+// SetBusinessID sets the "business_id" field.
+func (eu *EmployeeUpdate) SetBusinessID(s string) *EmployeeUpdate {
+	eu.mutation.SetBusinessID(s)
+	return eu
+}
+
+// SetNillableBusinessID sets the "business_id" field if the given value is not nil.
+func (eu *EmployeeUpdate) SetNillableBusinessID(s *string) *EmployeeUpdate {
+	if s != nil {
+		eu.SetBusinessID(*s)
+	}
 	return eu
 }
 
@@ -287,6 +302,21 @@ func (eu *EmployeeUpdate) AddPositionHistory(p ...*PositionOccupancyHistory) *Em
 	return eu.AddPositionHistoryIDs(ids...)
 }
 
+// AddAssignmentIDs adds the "assignments" edge to the PositionAssignment entity by IDs.
+func (eu *EmployeeUpdate) AddAssignmentIDs(ids ...uuid.UUID) *EmployeeUpdate {
+	eu.mutation.AddAssignmentIDs(ids...)
+	return eu
+}
+
+// AddAssignments adds the "assignments" edges to the PositionAssignment entity.
+func (eu *EmployeeUpdate) AddAssignments(p ...*PositionAssignment) *EmployeeUpdate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return eu.AddAssignmentIDs(ids...)
+}
+
 // Mutation returns the EmployeeMutation object of the builder.
 func (eu *EmployeeUpdate) Mutation() *EmployeeMutation {
 	return eu.mutation
@@ -317,6 +347,27 @@ func (eu *EmployeeUpdate) RemovePositionHistory(p ...*PositionOccupancyHistory) 
 		ids[i] = p[i].ID
 	}
 	return eu.RemovePositionHistoryIDs(ids...)
+}
+
+// ClearAssignments clears all "assignments" edges to the PositionAssignment entity.
+func (eu *EmployeeUpdate) ClearAssignments() *EmployeeUpdate {
+	eu.mutation.ClearAssignments()
+	return eu
+}
+
+// RemoveAssignmentIDs removes the "assignments" edge to PositionAssignment entities by IDs.
+func (eu *EmployeeUpdate) RemoveAssignmentIDs(ids ...uuid.UUID) *EmployeeUpdate {
+	eu.mutation.RemoveAssignmentIDs(ids...)
+	return eu
+}
+
+// RemoveAssignments removes "assignments" edges to PositionAssignment entities.
+func (eu *EmployeeUpdate) RemoveAssignments(p ...*PositionAssignment) *EmployeeUpdate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return eu.RemoveAssignmentIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -357,6 +408,11 @@ func (eu *EmployeeUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (eu *EmployeeUpdate) check() error {
+	if v, ok := eu.mutation.BusinessID(); ok {
+		if err := employee.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "Employee.business_id": %w`, err)}
+		}
+	}
 	if v, ok := eu.mutation.EmployeeType(); ok {
 		if err := employee.EmployeeTypeValidator(v); err != nil {
 			return &ValidationError{Name: "employee_type", err: fmt.Errorf(`ent: validator failed for field "Employee.employee_type": %w`, err)}
@@ -411,6 +467,9 @@ func (eu *EmployeeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := eu.mutation.BusinessID(); ok {
+		_spec.SetField(employee.FieldBusinessID, field.TypeString, value)
 	}
 	if value, ok := eu.mutation.EmployeeType(); ok {
 		_spec.SetField(employee.FieldEmployeeType, field.TypeEnum, value)
@@ -546,6 +605,51 @@ func (eu *EmployeeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if eu.mutation.AssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   employee.AssignmentsTable,
+			Columns: []string{employee.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.RemovedAssignmentsIDs(); len(nodes) > 0 && !eu.mutation.AssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   employee.AssignmentsTable,
+			Columns: []string{employee.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.AssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   employee.AssignmentsTable,
+			Columns: []string{employee.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, eu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{employee.Label}
@@ -564,6 +668,20 @@ type EmployeeUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *EmployeeMutation
+}
+
+// SetBusinessID sets the "business_id" field.
+func (euo *EmployeeUpdateOne) SetBusinessID(s string) *EmployeeUpdateOne {
+	euo.mutation.SetBusinessID(s)
+	return euo
+}
+
+// SetNillableBusinessID sets the "business_id" field if the given value is not nil.
+func (euo *EmployeeUpdateOne) SetNillableBusinessID(s *string) *EmployeeUpdateOne {
+	if s != nil {
+		euo.SetBusinessID(*s)
+	}
+	return euo
 }
 
 // SetEmployeeType sets the "employee_type" field.
@@ -822,6 +940,21 @@ func (euo *EmployeeUpdateOne) AddPositionHistory(p ...*PositionOccupancyHistory)
 	return euo.AddPositionHistoryIDs(ids...)
 }
 
+// AddAssignmentIDs adds the "assignments" edge to the PositionAssignment entity by IDs.
+func (euo *EmployeeUpdateOne) AddAssignmentIDs(ids ...uuid.UUID) *EmployeeUpdateOne {
+	euo.mutation.AddAssignmentIDs(ids...)
+	return euo
+}
+
+// AddAssignments adds the "assignments" edges to the PositionAssignment entity.
+func (euo *EmployeeUpdateOne) AddAssignments(p ...*PositionAssignment) *EmployeeUpdateOne {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return euo.AddAssignmentIDs(ids...)
+}
+
 // Mutation returns the EmployeeMutation object of the builder.
 func (euo *EmployeeUpdateOne) Mutation() *EmployeeMutation {
 	return euo.mutation
@@ -852,6 +985,27 @@ func (euo *EmployeeUpdateOne) RemovePositionHistory(p ...*PositionOccupancyHisto
 		ids[i] = p[i].ID
 	}
 	return euo.RemovePositionHistoryIDs(ids...)
+}
+
+// ClearAssignments clears all "assignments" edges to the PositionAssignment entity.
+func (euo *EmployeeUpdateOne) ClearAssignments() *EmployeeUpdateOne {
+	euo.mutation.ClearAssignments()
+	return euo
+}
+
+// RemoveAssignmentIDs removes the "assignments" edge to PositionAssignment entities by IDs.
+func (euo *EmployeeUpdateOne) RemoveAssignmentIDs(ids ...uuid.UUID) *EmployeeUpdateOne {
+	euo.mutation.RemoveAssignmentIDs(ids...)
+	return euo
+}
+
+// RemoveAssignments removes "assignments" edges to PositionAssignment entities.
+func (euo *EmployeeUpdateOne) RemoveAssignments(p ...*PositionAssignment) *EmployeeUpdateOne {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return euo.RemoveAssignmentIDs(ids...)
 }
 
 // Where appends a list predicates to the EmployeeUpdate builder.
@@ -905,6 +1059,11 @@ func (euo *EmployeeUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (euo *EmployeeUpdateOne) check() error {
+	if v, ok := euo.mutation.BusinessID(); ok {
+		if err := employee.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "Employee.business_id": %w`, err)}
+		}
+	}
 	if v, ok := euo.mutation.EmployeeType(); ok {
 		if err := employee.EmployeeTypeValidator(v); err != nil {
 			return &ValidationError{Name: "employee_type", err: fmt.Errorf(`ent: validator failed for field "Employee.employee_type": %w`, err)}
@@ -976,6 +1135,9 @@ func (euo *EmployeeUpdateOne) sqlSave(ctx context.Context) (_node *Employee, err
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := euo.mutation.BusinessID(); ok {
+		_spec.SetField(employee.FieldBusinessID, field.TypeString, value)
 	}
 	if value, ok := euo.mutation.EmployeeType(); ok {
 		_spec.SetField(employee.FieldEmployeeType, field.TypeEnum, value)
@@ -1104,6 +1266,51 @@ func (euo *EmployeeUpdateOne) sqlSave(ctx context.Context) (_node *Employee, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(positionoccupancyhistory.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.AssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   employee.AssignmentsTable,
+			Columns: []string{employee.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.RemovedAssignmentsIDs(); len(nodes) > 0 && !euo.mutation.AssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   employee.AssignmentsTable,
+			Columns: []string{employee.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.AssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   employee.AssignmentsTable,
+			Columns: []string{employee.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

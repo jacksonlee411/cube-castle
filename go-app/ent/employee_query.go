@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
 	"github.com/google/uuid"
@@ -28,6 +29,7 @@ type EmployeeQuery struct {
 	predicates          []predicate.Employee
 	withCurrentPosition *PositionQuery
 	withPositionHistory *PositionOccupancyHistoryQuery
+	withAssignments     *PositionAssignmentQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -101,6 +103,28 @@ func (eq *EmployeeQuery) QueryPositionHistory() *PositionOccupancyHistoryQuery {
 			sqlgraph.From(employee.Table, employee.FieldID, selector),
 			sqlgraph.To(positionoccupancyhistory.Table, positionoccupancyhistory.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, employee.PositionHistoryTable, employee.PositionHistoryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAssignments chains the current query on the "assignments" edge.
+func (eq *EmployeeQuery) QueryAssignments() *PositionAssignmentQuery {
+	query := (&PositionAssignmentClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(employee.Table, employee.FieldID, selector),
+			sqlgraph.To(positionassignment.Table, positionassignment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, employee.AssignmentsTable, employee.AssignmentsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
@@ -302,6 +326,7 @@ func (eq *EmployeeQuery) Clone() *EmployeeQuery {
 		predicates:          append([]predicate.Employee{}, eq.predicates...),
 		withCurrentPosition: eq.withCurrentPosition.Clone(),
 		withPositionHistory: eq.withPositionHistory.Clone(),
+		withAssignments:     eq.withAssignments.Clone(),
 		// clone intermediate query.
 		sql:  eq.sql.Clone(),
 		path: eq.path,
@@ -330,18 +355,29 @@ func (eq *EmployeeQuery) WithPositionHistory(opts ...func(*PositionOccupancyHist
 	return eq
 }
 
+// WithAssignments tells the query-builder to eager-load the nodes that are connected to
+// the "assignments" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EmployeeQuery) WithAssignments(opts ...func(*PositionAssignmentQuery)) *EmployeeQuery {
+	query := (&PositionAssignmentClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withAssignments = query
+	return eq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
 // Example:
 //
 //	var v []struct {
-//		TenantID uuid.UUID `json:"tenant_id,omitempty"`
+//		BusinessID string `json:"business_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Employee.Query().
-//		GroupBy(employee.FieldTenantID).
+//		GroupBy(employee.FieldBusinessID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (eq *EmployeeQuery) GroupBy(field string, fields ...string) *EmployeeGroupBy {
@@ -359,11 +395,11 @@ func (eq *EmployeeQuery) GroupBy(field string, fields ...string) *EmployeeGroupB
 // Example:
 //
 //	var v []struct {
-//		TenantID uuid.UUID `json:"tenant_id,omitempty"`
+//		BusinessID string `json:"business_id,omitempty"`
 //	}
 //
 //	client.Employee.Query().
-//		Select(employee.FieldTenantID).
+//		Select(employee.FieldBusinessID).
 //		Scan(ctx, &v)
 func (eq *EmployeeQuery) Select(fields ...string) *EmployeeSelect {
 	eq.ctx.Fields = append(eq.ctx.Fields, fields...)
@@ -408,9 +444,10 @@ func (eq *EmployeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Emp
 	var (
 		nodes       = []*Employee{}
 		_spec       = eq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			eq.withCurrentPosition != nil,
 			eq.withPositionHistory != nil,
+			eq.withAssignments != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -443,6 +480,13 @@ func (eq *EmployeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Emp
 			func(n *Employee, e *PositionOccupancyHistory) {
 				n.Edges.PositionHistory = append(n.Edges.PositionHistory, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withAssignments; query != nil {
+		if err := eq.loadAssignments(ctx, query, nodes,
+			func(n *Employee) { n.Edges.Assignments = []*PositionAssignment{} },
+			func(n *Employee, e *PositionAssignment) { n.Edges.Assignments = append(n.Edges.Assignments, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -496,6 +540,36 @@ func (eq *EmployeeQuery) loadPositionHistory(ctx context.Context, query *Positio
 	}
 	query.Where(predicate.PositionOccupancyHistory(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(employee.PositionHistoryColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.EmployeeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "employee_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (eq *EmployeeQuery) loadAssignments(ctx context.Context, query *PositionAssignmentQuery, nodes []*Employee, init func(*Employee), assign func(*Employee, *PositionAssignment)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Employee)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(positionassignment.FieldEmployeeID)
+	}
+	query.Where(predicate.PositionAssignment(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(employee.AssignmentsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

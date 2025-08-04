@@ -12,12 +12,18 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// AssignmentDetails is the client for interacting with the AssignmentDetails builders.
+	AssignmentDetails *AssignmentDetailsClient
+	// AssignmentHistory is the client for interacting with the AssignmentHistory builders.
+	AssignmentHistory *AssignmentHistoryClient
 	// Employee is the client for interacting with the Employee builders.
 	Employee *EmployeeClient
 	// OrganizationUnit is the client for interacting with the OrganizationUnit builders.
 	OrganizationUnit *OrganizationUnitClient
 	// Position is the client for interacting with the Position builders.
 	Position *PositionClient
+	// PositionAssignment is the client for interacting with the PositionAssignment builders.
+	PositionAssignment *PositionAssignmentClient
 	// PositionAttributeHistory is the client for interacting with the PositionAttributeHistory builders.
 	PositionAttributeHistory *PositionAttributeHistoryClient
 	// PositionHistory is the client for interacting with the PositionHistory builders.
@@ -155,9 +161,12 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.AssignmentDetails = NewAssignmentDetailsClient(tx.config)
+	tx.AssignmentHistory = NewAssignmentHistoryClient(tx.config)
 	tx.Employee = NewEmployeeClient(tx.config)
 	tx.OrganizationUnit = NewOrganizationUnitClient(tx.config)
 	tx.Position = NewPositionClient(tx.config)
+	tx.PositionAssignment = NewPositionAssignmentClient(tx.config)
 	tx.PositionAttributeHistory = NewPositionAttributeHistoryClient(tx.config)
 	tx.PositionHistory = NewPositionHistoryClient(tx.config)
 	tx.PositionOccupancyHistory = NewPositionOccupancyHistoryClient(tx.config)
@@ -170,7 +179,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Employee.QueryXXX(), the query will be executed
+// applies a query, for example: AssignmentDetails.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

@@ -13,6 +13,7 @@ import (
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/google/uuid"
@@ -28,6 +29,12 @@ type PositionCreate struct {
 // SetTenantID sets the "tenant_id" field.
 func (pc *PositionCreate) SetTenantID(u uuid.UUID) *PositionCreate {
 	pc.mutation.SetTenantID(u)
+	return pc
+}
+
+// SetBusinessID sets the "business_id" field.
+func (pc *PositionCreate) SetBusinessID(s string) *PositionCreate {
+	pc.mutation.SetBusinessID(s)
 	return pc
 }
 
@@ -223,6 +230,21 @@ func (pc *PositionCreate) AddAttributeHistory(p ...*PositionAttributeHistory) *P
 	return pc.AddAttributeHistoryIDs(ids...)
 }
 
+// AddAssignmentIDs adds the "assignments" edge to the PositionAssignment entity by IDs.
+func (pc *PositionCreate) AddAssignmentIDs(ids ...uuid.UUID) *PositionCreate {
+	pc.mutation.AddAssignmentIDs(ids...)
+	return pc
+}
+
+// AddAssignments adds the "assignments" edges to the PositionAssignment entity.
+func (pc *PositionCreate) AddAssignments(p ...*PositionAssignment) *PositionCreate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return pc.AddAssignmentIDs(ids...)
+}
+
 // Mutation returns the PositionMutation object of the builder.
 func (pc *PositionCreate) Mutation() *PositionMutation {
 	return pc.mutation
@@ -284,6 +306,14 @@ func (pc *PositionCreate) defaults() {
 func (pc *PositionCreate) check() error {
 	if _, ok := pc.mutation.TenantID(); !ok {
 		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Position.tenant_id"`)}
+	}
+	if _, ok := pc.mutation.BusinessID(); !ok {
+		return &ValidationError{Name: "business_id", err: errors.New(`ent: missing required field "Position.business_id"`)}
+	}
+	if v, ok := pc.mutation.BusinessID(); ok {
+		if err := position.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "Position.business_id": %w`, err)}
+		}
 	}
 	if _, ok := pc.mutation.PositionType(); !ok {
 		return &ValidationError{Name: "position_type", err: errors.New(`ent: missing required field "Position.position_type"`)}
@@ -357,6 +387,10 @@ func (pc *PositionCreate) createSpec() (*Position, *sqlgraph.CreateSpec) {
 	if value, ok := pc.mutation.TenantID(); ok {
 		_spec.SetField(position.FieldTenantID, field.TypeUUID, value)
 		_node.TenantID = value
+	}
+	if value, ok := pc.mutation.BusinessID(); ok {
+		_spec.SetField(position.FieldBusinessID, field.TypeString, value)
+		_node.BusinessID = value
 	}
 	if value, ok := pc.mutation.PositionType(); ok {
 		_spec.SetField(position.FieldPositionType, field.TypeEnum, value)
@@ -477,6 +511,22 @@ func (pc *PositionCreate) createSpec() (*Position, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(positionattributehistory.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.AssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.AssignmentsTable,
+			Columns: []string{position.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

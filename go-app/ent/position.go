@@ -23,6 +23,8 @@ type Position struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// Multi-tenant isolation foundation, enforces data boundary
 	TenantID uuid.UUID `json:"tenant_id,omitempty"`
+	// Business ID - user-friendly identifier (1000000-9999999)
+	BusinessID string `json:"business_id,omitempty"`
 	// Position type discriminator for details slot determination
 	PositionType position.PositionType `json:"position_type,omitempty"`
 	// Reference to JobProfile entity (position template)
@@ -61,9 +63,11 @@ type PositionEdges struct {
 	OccupancyHistory []*PositionOccupancyHistory `json:"occupancy_history,omitempty"`
 	// Historical record of position attribute changes
 	AttributeHistory []*PositionAttributeHistory `json:"attribute_history,omitempty"`
+	// Position assignments to employees
+	Assignments []*PositionAssignment `json:"assignments,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // ManagerOrErr returns the Manager value or an error if the edge
@@ -124,6 +128,15 @@ func (e PositionEdges) AttributeHistoryOrErr() ([]*PositionAttributeHistory, err
 	return nil, &NotLoadedError{edge: "attribute_history"}
 }
 
+// AssignmentsOrErr returns the Assignments value or an error if the edge
+// was not loaded in eager-loading.
+func (e PositionEdges) AssignmentsOrErr() ([]*PositionAssignment, error) {
+	if e.loadedTypes[6] {
+		return e.Assignments, nil
+	}
+	return nil, &NotLoadedError{edge: "assignments"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Position) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -135,7 +148,7 @@ func (*Position) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case position.FieldBudgetedFte:
 			values[i] = new(sql.NullFloat64)
-		case position.FieldPositionType, position.FieldStatus:
+		case position.FieldBusinessID, position.FieldPositionType, position.FieldStatus:
 			values[i] = new(sql.NullString)
 		case position.FieldCreatedAt, position.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -167,6 +180,12 @@ func (po *Position) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field tenant_id", values[i])
 			} else if value != nil {
 				po.TenantID = *value
+			}
+		case position.FieldBusinessID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field business_id", values[i])
+			} else if value.Valid {
+				po.BusinessID = value.String
 			}
 		case position.FieldPositionType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -268,6 +287,11 @@ func (po *Position) QueryAttributeHistory() *PositionAttributeHistoryQuery {
 	return NewPositionClient(po.config).QueryAttributeHistory(po)
 }
 
+// QueryAssignments queries the "assignments" edge of the Position entity.
+func (po *Position) QueryAssignments() *PositionAssignmentQuery {
+	return NewPositionClient(po.config).QueryAssignments(po)
+}
+
 // Update returns a builder for updating this Position.
 // Note that you need to call Position.Unwrap() before calling this method if this Position
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -293,6 +317,9 @@ func (po *Position) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", po.ID))
 	builder.WriteString("tenant_id=")
 	builder.WriteString(fmt.Sprintf("%v", po.TenantID))
+	builder.WriteString(", ")
+	builder.WriteString("business_id=")
+	builder.WriteString(po.BusinessID)
 	builder.WriteString(", ")
 	builder.WriteString("position_type=")
 	builder.WriteString(fmt.Sprintf("%v", po.PositionType))

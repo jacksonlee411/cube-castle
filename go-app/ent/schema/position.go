@@ -1,12 +1,14 @@
 package schema
 
 import (
+	"regexp"
+	"time"
+
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Position holds the schema definition for the Position entity.
@@ -29,6 +31,14 @@ func (Position) Fields() []ent.Field {
 		field.UUID("tenant_id", uuid.UUID{}).
 			Immutable().
 			Comment("Multi-tenant isolation foundation, enforces data boundary"),
+
+		// Business ID for user-friendly identification
+		field.String("business_id").
+			Unique().
+			NotEmpty().
+			MaxLen(7).
+			Match(regexp.MustCompile(`^[1-9][0-9]{6}$`)).
+			Comment("Business ID - user-friendly identifier (1000000-9999999)"),
 
 		// Polymorphic Discriminator
 		field.Enum("position_type").
@@ -107,6 +117,10 @@ func (Position) Edges() []ent.Edge {
 		// Attribute History (Temporal Changes)
 		edge.To("attribute_history", PositionAttributeHistory.Type).
 			Comment("Historical record of position attribute changes"),
+
+		// Position Assignments
+		edge.To("assignments", PositionAssignment.Type).
+			Comment("Position assignments to employees"),
 	}
 }
 

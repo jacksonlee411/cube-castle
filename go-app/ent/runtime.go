@@ -5,9 +5,12 @@ package ent
 import (
 	"time"
 
+	"github.com/gaogu/cube-castle/go-app/ent/assignmentdetails"
+	"github.com/gaogu/cube-castle/go-app/ent/assignmenthistory"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
@@ -19,10 +22,67 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	assignmentdetailsFields := schema.AssignmentDetails{}.Fields()
+	_ = assignmentdetailsFields
+	// assignmentdetailsDescWorkLocation is the schema descriptor for work_location field.
+	assignmentdetailsDescWorkLocation := assignmentdetailsFields[5].Descriptor()
+	// assignmentdetails.WorkLocationValidator is a validator for the "work_location" field. It is called by the builders before save.
+	assignmentdetails.WorkLocationValidator = assignmentdetailsDescWorkLocation.Validators[0].(func(string) error)
+	// assignmentdetailsDescChangeReason is the schema descriptor for change_reason field.
+	assignmentdetailsDescChangeReason := assignmentdetailsFields[8].Descriptor()
+	// assignmentdetails.ChangeReasonValidator is a validator for the "change_reason" field. It is called by the builders before save.
+	assignmentdetails.ChangeReasonValidator = assignmentdetailsDescChangeReason.Validators[0].(func(string) error)
+	// assignmentdetailsDescCreatedAt is the schema descriptor for created_at field.
+	assignmentdetailsDescCreatedAt := assignmentdetailsFields[14].Descriptor()
+	// assignmentdetails.DefaultCreatedAt holds the default value on creation for the created_at field.
+	assignmentdetails.DefaultCreatedAt = assignmentdetailsDescCreatedAt.Default.(func() time.Time)
+	// assignmentdetailsDescUpdatedAt is the schema descriptor for updated_at field.
+	assignmentdetailsDescUpdatedAt := assignmentdetailsFields[15].Descriptor()
+	// assignmentdetails.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	assignmentdetails.DefaultUpdatedAt = assignmentdetailsDescUpdatedAt.Default.(func() time.Time)
+	// assignmentdetails.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	assignmentdetails.UpdateDefaultUpdatedAt = assignmentdetailsDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// assignmentdetailsDescID is the schema descriptor for id field.
+	assignmentdetailsDescID := assignmentdetailsFields[0].Descriptor()
+	// assignmentdetails.DefaultID holds the default value on creation for the id field.
+	assignmentdetails.DefaultID = assignmentdetailsDescID.Default.(func() uuid.UUID)
+	assignmenthistoryFields := schema.AssignmentHistory{}.Fields()
+	_ = assignmenthistoryFields
+	// assignmenthistoryDescReason is the schema descriptor for reason field.
+	assignmenthistoryDescReason := assignmenthistoryFields[7].Descriptor()
+	// assignmenthistory.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
+	assignmenthistory.ReasonValidator = assignmenthistoryDescReason.Validators[0].(func(string) error)
+	// assignmenthistoryDescCreatedAt is the schema descriptor for created_at field.
+	assignmenthistoryDescCreatedAt := assignmenthistoryFields[9].Descriptor()
+	// assignmenthistory.DefaultCreatedAt holds the default value on creation for the created_at field.
+	assignmenthistory.DefaultCreatedAt = assignmenthistoryDescCreatedAt.Default.(func() time.Time)
+	// assignmenthistoryDescID is the schema descriptor for id field.
+	assignmenthistoryDescID := assignmenthistoryFields[0].Descriptor()
+	// assignmenthistory.DefaultID holds the default value on creation for the id field.
+	assignmenthistory.DefaultID = assignmenthistoryDescID.Default.(func() uuid.UUID)
 	employeeFields := schema.Employee{}.Fields()
 	_ = employeeFields
+	// employeeDescBusinessID is the schema descriptor for business_id field.
+	employeeDescBusinessID := employeeFields[1].Descriptor()
+	// employee.BusinessIDValidator is a validator for the "business_id" field. It is called by the builders before save.
+	employee.BusinessIDValidator = func() func(string) error {
+		validators := employeeDescBusinessID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(business_id string) error {
+			for _, fn := range fns {
+				if err := fn(business_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// employeeDescEmployeeNumber is the schema descriptor for employee_number field.
-	employeeDescEmployeeNumber := employeeFields[3].Descriptor()
+	employeeDescEmployeeNumber := employeeFields[4].Descriptor()
 	// employee.EmployeeNumberValidator is a validator for the "employee_number" field. It is called by the builders before save.
 	employee.EmployeeNumberValidator = func() func(string) error {
 		validators := employeeDescEmployeeNumber.Validators
@@ -40,7 +100,7 @@ func init() {
 		}
 	}()
 	// employeeDescFirstName is the schema descriptor for first_name field.
-	employeeDescFirstName := employeeFields[4].Descriptor()
+	employeeDescFirstName := employeeFields[5].Descriptor()
 	// employee.FirstNameValidator is a validator for the "first_name" field. It is called by the builders before save.
 	employee.FirstNameValidator = func() func(string) error {
 		validators := employeeDescFirstName.Validators
@@ -58,7 +118,7 @@ func init() {
 		}
 	}()
 	// employeeDescLastName is the schema descriptor for last_name field.
-	employeeDescLastName := employeeFields[5].Descriptor()
+	employeeDescLastName := employeeFields[6].Descriptor()
 	// employee.LastNameValidator is a validator for the "last_name" field. It is called by the builders before save.
 	employee.LastNameValidator = func() func(string) error {
 		validators := employeeDescLastName.Validators
@@ -76,7 +136,7 @@ func init() {
 		}
 	}()
 	// employeeDescEmail is the schema descriptor for email field.
-	employeeDescEmail := employeeFields[6].Descriptor()
+	employeeDescEmail := employeeFields[7].Descriptor()
 	// employee.EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	employee.EmailValidator = func() func(string) error {
 		validators := employeeDescEmail.Validators
@@ -94,19 +154,19 @@ func init() {
 		}
 	}()
 	// employeeDescPersonalEmail is the schema descriptor for personal_email field.
-	employeeDescPersonalEmail := employeeFields[7].Descriptor()
+	employeeDescPersonalEmail := employeeFields[8].Descriptor()
 	// employee.PersonalEmailValidator is a validator for the "personal_email" field. It is called by the builders before save.
 	employee.PersonalEmailValidator = employeeDescPersonalEmail.Validators[0].(func(string) error)
 	// employeeDescPhoneNumber is the schema descriptor for phone_number field.
-	employeeDescPhoneNumber := employeeFields[8].Descriptor()
+	employeeDescPhoneNumber := employeeFields[9].Descriptor()
 	// employee.PhoneNumberValidator is a validator for the "phone_number" field. It is called by the builders before save.
 	employee.PhoneNumberValidator = employeeDescPhoneNumber.Validators[0].(func(string) error)
 	// employeeDescCreatedAt is the schema descriptor for created_at field.
-	employeeDescCreatedAt := employeeFields[16].Descriptor()
+	employeeDescCreatedAt := employeeFields[17].Descriptor()
 	// employee.DefaultCreatedAt holds the default value on creation for the created_at field.
 	employee.DefaultCreatedAt = employeeDescCreatedAt.Default.(func() time.Time)
 	// employeeDescUpdatedAt is the schema descriptor for updated_at field.
-	employeeDescUpdatedAt := employeeFields[17].Descriptor()
+	employeeDescUpdatedAt := employeeFields[18].Descriptor()
 	// employee.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	employee.DefaultUpdatedAt = employeeDescUpdatedAt.Default.(func() time.Time)
 	// employee.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -117,8 +177,27 @@ func init() {
 	employee.DefaultID = employeeDescID.Default.(func() uuid.UUID)
 	organizationunitFields := schema.OrganizationUnit{}.Fields()
 	_ = organizationunitFields
+	// organizationunitDescBusinessID is the schema descriptor for business_id field.
+	organizationunitDescBusinessID := organizationunitFields[1].Descriptor()
+	// organizationunit.BusinessIDValidator is a validator for the "business_id" field. It is called by the builders before save.
+	organizationunit.BusinessIDValidator = func() func(string) error {
+		validators := organizationunitDescBusinessID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(business_id string) error {
+			for _, fn := range fns {
+				if err := fn(business_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// organizationunitDescName is the schema descriptor for name field.
-	organizationunitDescName := organizationunitFields[3].Descriptor()
+	organizationunitDescName := organizationunitFields[4].Descriptor()
 	// organizationunit.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	organizationunit.NameValidator = func() func(string) error {
 		validators := organizationunitDescName.Validators
@@ -136,19 +215,19 @@ func init() {
 		}
 	}()
 	// organizationunitDescDescription is the schema descriptor for description field.
-	organizationunitDescDescription := organizationunitFields[4].Descriptor()
+	organizationunitDescDescription := organizationunitFields[5].Descriptor()
 	// organizationunit.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	organizationunit.DescriptionValidator = organizationunitDescDescription.Validators[0].(func(string) error)
 	// organizationunitDescLevel is the schema descriptor for level field.
-	organizationunitDescLevel := organizationunitFields[6].Descriptor()
+	organizationunitDescLevel := organizationunitFields[7].Descriptor()
 	// organizationunit.DefaultLevel holds the default value on creation for the level field.
 	organizationunit.DefaultLevel = organizationunitDescLevel.Default.(int)
 	// organizationunitDescCreatedAt is the schema descriptor for created_at field.
-	organizationunitDescCreatedAt := organizationunitFields[9].Descriptor()
+	organizationunitDescCreatedAt := organizationunitFields[10].Descriptor()
 	// organizationunit.DefaultCreatedAt holds the default value on creation for the created_at field.
 	organizationunit.DefaultCreatedAt = organizationunitDescCreatedAt.Default.(func() time.Time)
 	// organizationunitDescUpdatedAt is the schema descriptor for updated_at field.
-	organizationunitDescUpdatedAt := organizationunitFields[10].Descriptor()
+	organizationunitDescUpdatedAt := organizationunitFields[11].Descriptor()
 	// organizationunit.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	organizationunit.DefaultUpdatedAt = organizationunitDescUpdatedAt.Default.(func() time.Time)
 	// organizationunit.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -159,16 +238,35 @@ func init() {
 	organizationunit.DefaultID = organizationunitDescID.Default.(func() uuid.UUID)
 	positionFields := schema.Position{}.Fields()
 	_ = positionFields
+	// positionDescBusinessID is the schema descriptor for business_id field.
+	positionDescBusinessID := positionFields[2].Descriptor()
+	// position.BusinessIDValidator is a validator for the "business_id" field. It is called by the builders before save.
+	position.BusinessIDValidator = func() func(string) error {
+		validators := positionDescBusinessID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(business_id string) error {
+			for _, fn := range fns {
+				if err := fn(business_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// positionDescBudgetedFte is the schema descriptor for budgeted_fte field.
-	positionDescBudgetedFte := positionFields[7].Descriptor()
+	positionDescBudgetedFte := positionFields[8].Descriptor()
 	// position.DefaultBudgetedFte holds the default value on creation for the budgeted_fte field.
 	position.DefaultBudgetedFte = positionDescBudgetedFte.Default.(float64)
 	// positionDescCreatedAt is the schema descriptor for created_at field.
-	positionDescCreatedAt := positionFields[9].Descriptor()
+	positionDescCreatedAt := positionFields[10].Descriptor()
 	// position.DefaultCreatedAt holds the default value on creation for the created_at field.
 	position.DefaultCreatedAt = positionDescCreatedAt.Default.(func() time.Time)
 	// positionDescUpdatedAt is the schema descriptor for updated_at field.
-	positionDescUpdatedAt := positionFields[10].Descriptor()
+	positionDescUpdatedAt := positionFields[11].Descriptor()
 	// position.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	position.DefaultUpdatedAt = positionDescUpdatedAt.Default.(func() time.Time)
 	// position.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -177,6 +275,30 @@ func init() {
 	positionDescID := positionFields[0].Descriptor()
 	// position.DefaultID holds the default value on creation for the id field.
 	position.DefaultID = positionDescID.Default.(func() uuid.UUID)
+	positionassignmentFields := schema.PositionAssignment{}.Fields()
+	_ = positionassignmentFields
+	// positionassignmentDescIsCurrent is the schema descriptor for is_current field.
+	positionassignmentDescIsCurrent := positionassignmentFields[6].Descriptor()
+	// positionassignment.DefaultIsCurrent holds the default value on creation for the is_current field.
+	positionassignment.DefaultIsCurrent = positionassignmentDescIsCurrent.Default.(bool)
+	// positionassignmentDescFte is the schema descriptor for fte field.
+	positionassignmentDescFte := positionassignmentFields[7].Descriptor()
+	// positionassignment.DefaultFte holds the default value on creation for the fte field.
+	positionassignment.DefaultFte = positionassignmentDescFte.Default.(float64)
+	// positionassignmentDescCreatedAt is the schema descriptor for created_at field.
+	positionassignmentDescCreatedAt := positionassignmentFields[9].Descriptor()
+	// positionassignment.DefaultCreatedAt holds the default value on creation for the created_at field.
+	positionassignment.DefaultCreatedAt = positionassignmentDescCreatedAt.Default.(func() time.Time)
+	// positionassignmentDescUpdatedAt is the schema descriptor for updated_at field.
+	positionassignmentDescUpdatedAt := positionassignmentFields[10].Descriptor()
+	// positionassignment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	positionassignment.DefaultUpdatedAt = positionassignmentDescUpdatedAt.Default.(func() time.Time)
+	// positionassignment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	positionassignment.UpdateDefaultUpdatedAt = positionassignmentDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// positionassignmentDescID is the schema descriptor for id field.
+	positionassignmentDescID := positionassignmentFields[0].Descriptor()
+	// positionassignment.DefaultID holds the default value on creation for the id field.
+	positionassignment.DefaultID = positionassignmentDescID.Default.(func() uuid.UUID)
 	positionattributehistoryFields := schema.PositionAttributeHistory{}.Fields()
 	_ = positionattributehistoryFields
 	// positionattributehistoryDescCreatedAt is the schema descriptor for created_at field.

@@ -25,36 +25,7 @@ type Employee struct {
 	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
 }
 
-// CreateEmployeeRequest 创建员工请求
-type CreateEmployeeRequest struct {
-	EmployeeNumber string     `json:"employee_number" validate:"required"`
-	FirstName      string     `json:"first_name" validate:"required"`
-	LastName       string     `json:"last_name" validate:"required"`
-	Email          string     `json:"email" validate:"required,email"`
-	PhoneNumber    *string    `json:"phone_number,omitempty"`
-	Position       *string    `json:"position,omitempty"`
-	Department     *string    `json:"department,omitempty"`
-	HireDate       time.Time  `json:"hire_date" validate:"required"`
-	ManagerID      *uuid.UUID `json:"manager_id,omitempty"`
-}
-
-// UpdateEmployeeRequest 更新员工请求
-type UpdateEmployeeRequest struct {
-	FirstName   *string    `json:"first_name,omitempty"`
-	LastName    *string    `json:"last_name,omitempty"`
-	Email       *string    `json:"email,omitempty" validate:"omitempty,email"`
-	PhoneNumber *string    `json:"phone_number,omitempty"`
-	Position    *string    `json:"position,omitempty"`
-	Department  *string    `json:"department,omitempty"`
-	ManagerID   *uuid.UUID `json:"manager_id,omitempty"`
-	Status      *string    `json:"status,omitempty"`
-}
-
-// EmployeeResponse 员工响应
-type EmployeeResponse struct {
-	Employee
-	Manager *EmployeeResponse `json:"manager,omitempty"`
-}
+// 注意： CreateEmployeeRequest, UpdateEmployeeRequest, EmployeeResponse 在 employee_service_enhanced.go 中定义
 
 // Organization 组织模型
 type Organization struct {

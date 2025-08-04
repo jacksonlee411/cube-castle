@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
+	"regexp"
 	"time"
 )
 
@@ -24,6 +25,14 @@ func (Employee) Fields() []ent.Field {
 			Default(uuid.New).
 			Immutable().
 			Comment("Global unique identifier, immutable primary key"),
+
+		// Business ID (User-friendly identifier)
+		field.String("business_id").
+			Unique().
+			NotEmpty().
+			MaxLen(8).
+			Match(regexp.MustCompile(`^[1-9][0-9]{0,7}$`)).
+			Comment("Business ID - user-friendly identifier (1-99999999)"),
 
 		field.UUID("tenant_id", uuid.UUID{}).
 			Immutable().
@@ -128,6 +137,10 @@ func (Employee) Edges() []ent.Edge {
 		// Position History Relationship
 		edge.To("position_history", PositionOccupancyHistory.Type).
 			Comment("Employee position occupancy history records"),
+
+		// Position Assignments Relationship
+		edge.To("assignments", PositionAssignment.Type).
+			Comment("Employee position assignments"),
 	}
 }
 
@@ -136,6 +149,10 @@ func (Employee) Indexes() []ent.Index {
 	return []ent.Index{
 		// Multi-tenant isolation optimization
 		index.Fields("tenant_id", "employee_type"),
+
+		// Business ID optimization (primary lookup)
+		index.Fields("business_id"),
+		index.Fields("tenant_id", "business_id"),
 
 		// Employee number uniqueness (tenant-scoped)
 		index.Fields("tenant_id", "employee_number").Unique(),

@@ -12,9 +12,12 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/gaogu/cube-castle/go-app/ent/assignmentdetails"
+	"github.com/gaogu/cube-castle/go-app/ent/assignmenthistory"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionattributehistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionhistory"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
@@ -78,9 +81,12 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			assignmentdetails.Table:        assignmentdetails.ValidColumn,
+			assignmenthistory.Table:        assignmenthistory.ValidColumn,
 			employee.Table:                 employee.ValidColumn,
 			organizationunit.Table:         organizationunit.ValidColumn,
 			position.Table:                 position.ValidColumn,
+			positionassignment.Table:       positionassignment.ValidColumn,
 			positionattributehistory.Table: positionattributehistory.ValidColumn,
 			positionhistory.Table:          positionhistory.ValidColumn,
 			positionoccupancyhistory.Table: positionoccupancyhistory.ValidColumn,

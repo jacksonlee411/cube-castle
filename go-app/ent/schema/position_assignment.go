@@ -49,6 +49,14 @@ func (PositionAssignment) Edges() []ent.Edge {
             Field("employee_id").
             Required().
             Unique(),
+
+        // Assignment Details
+        edge.To("details", AssignmentDetails.Type).
+            Comment("Detailed assignment information"),
+
+        // Assignment History  
+        edge.To("history", AssignmentHistory.Type).
+            Comment("Assignment change history"),
     }
 }
 

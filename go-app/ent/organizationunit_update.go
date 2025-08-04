@@ -30,6 +30,20 @@ func (ouu *OrganizationUnitUpdate) Where(ps ...predicate.OrganizationUnit) *Orga
 	return ouu
 }
 
+// SetBusinessID sets the "business_id" field.
+func (ouu *OrganizationUnitUpdate) SetBusinessID(s string) *OrganizationUnitUpdate {
+	ouu.mutation.SetBusinessID(s)
+	return ouu
+}
+
+// SetNillableBusinessID sets the "business_id" field if the given value is not nil.
+func (ouu *OrganizationUnitUpdate) SetNillableBusinessID(s *string) *OrganizationUnitUpdate {
+	if s != nil {
+		ouu.SetBusinessID(*s)
+	}
+	return ouu
+}
+
 // SetUnitType sets the "unit_type" field.
 func (ouu *OrganizationUnitUpdate) SetUnitType(ot organizationunit.UnitType) *OrganizationUnitUpdate {
 	ouu.mutation.SetUnitType(ot)
@@ -291,6 +305,11 @@ func (ouu *OrganizationUnitUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ouu *OrganizationUnitUpdate) check() error {
+	if v, ok := ouu.mutation.BusinessID(); ok {
+		if err := organizationunit.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "OrganizationUnit.business_id": %w`, err)}
+		}
+	}
 	if v, ok := ouu.mutation.UnitType(); ok {
 		if err := organizationunit.UnitTypeValidator(v); err != nil {
 			return &ValidationError{Name: "unit_type", err: fmt.Errorf(`ent: validator failed for field "OrganizationUnit.unit_type": %w`, err)}
@@ -325,6 +344,9 @@ func (ouu *OrganizationUnitUpdate) sqlSave(ctx context.Context) (n int, err erro
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := ouu.mutation.BusinessID(); ok {
+		_spec.SetField(organizationunit.FieldBusinessID, field.TypeString, value)
 	}
 	if value, ok := ouu.mutation.UnitType(); ok {
 		_spec.SetField(organizationunit.FieldUnitType, field.TypeEnum, value)
@@ -493,6 +515,20 @@ type OrganizationUnitUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *OrganizationUnitMutation
+}
+
+// SetBusinessID sets the "business_id" field.
+func (ouuo *OrganizationUnitUpdateOne) SetBusinessID(s string) *OrganizationUnitUpdateOne {
+	ouuo.mutation.SetBusinessID(s)
+	return ouuo
+}
+
+// SetNillableBusinessID sets the "business_id" field if the given value is not nil.
+func (ouuo *OrganizationUnitUpdateOne) SetNillableBusinessID(s *string) *OrganizationUnitUpdateOne {
+	if s != nil {
+		ouuo.SetBusinessID(*s)
+	}
+	return ouuo
 }
 
 // SetUnitType sets the "unit_type" field.
@@ -769,6 +805,11 @@ func (ouuo *OrganizationUnitUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ouuo *OrganizationUnitUpdateOne) check() error {
+	if v, ok := ouuo.mutation.BusinessID(); ok {
+		if err := organizationunit.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "OrganizationUnit.business_id": %w`, err)}
+		}
+	}
 	if v, ok := ouuo.mutation.UnitType(); ok {
 		if err := organizationunit.UnitTypeValidator(v); err != nil {
 			return &ValidationError{Name: "unit_type", err: fmt.Errorf(`ent: validator failed for field "OrganizationUnit.unit_type": %w`, err)}
@@ -820,6 +861,9 @@ func (ouuo *OrganizationUnitUpdateOne) sqlSave(ctx context.Context) (_node *Orga
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := ouuo.mutation.BusinessID(); ok {
+		_spec.SetField(organizationunit.FieldBusinessID, field.TypeString, value)
 	}
 	if value, ok := ouuo.mutation.UnitType(); ok {
 		_spec.SetField(organizationunit.FieldUnitType, field.TypeEnum, value)

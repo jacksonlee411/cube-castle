@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
+	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
 	"github.com/google/uuid"
 )
@@ -21,6 +22,12 @@ type EmployeeCreate struct {
 	config
 	mutation *EmployeeMutation
 	hooks    []Hook
+}
+
+// SetBusinessID sets the "business_id" field.
+func (ec *EmployeeCreate) SetBusinessID(s string) *EmployeeCreate {
+	ec.mutation.SetBusinessID(s)
+	return ec
 }
 
 // SetTenantID sets the "tenant_id" field.
@@ -231,6 +238,21 @@ func (ec *EmployeeCreate) AddPositionHistory(p ...*PositionOccupancyHistory) *Em
 	return ec.AddPositionHistoryIDs(ids...)
 }
 
+// AddAssignmentIDs adds the "assignments" edge to the PositionAssignment entity by IDs.
+func (ec *EmployeeCreate) AddAssignmentIDs(ids ...uuid.UUID) *EmployeeCreate {
+	ec.mutation.AddAssignmentIDs(ids...)
+	return ec
+}
+
+// AddAssignments adds the "assignments" edges to the PositionAssignment entity.
+func (ec *EmployeeCreate) AddAssignments(p ...*PositionAssignment) *EmployeeCreate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return ec.AddAssignmentIDs(ids...)
+}
+
 // Mutation returns the EmployeeMutation object of the builder.
 func (ec *EmployeeCreate) Mutation() *EmployeeMutation {
 	return ec.mutation
@@ -286,6 +308,14 @@ func (ec *EmployeeCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ec *EmployeeCreate) check() error {
+	if _, ok := ec.mutation.BusinessID(); !ok {
+		return &ValidationError{Name: "business_id", err: errors.New(`ent: missing required field "Employee.business_id"`)}
+	}
+	if v, ok := ec.mutation.BusinessID(); ok {
+		if err := employee.BusinessIDValidator(v); err != nil {
+			return &ValidationError{Name: "business_id", err: fmt.Errorf(`ent: validator failed for field "Employee.business_id": %w`, err)}
+		}
+	}
 	if _, ok := ec.mutation.TenantID(); !ok {
 		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Employee.tenant_id"`)}
 	}
@@ -391,6 +421,10 @@ func (ec *EmployeeCreate) createSpec() (*Employee, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
+	if value, ok := ec.mutation.BusinessID(); ok {
+		_spec.SetField(employee.FieldBusinessID, field.TypeString, value)
+		_node.BusinessID = value
+	}
 	if value, ok := ec.mutation.TenantID(); ok {
 		_spec.SetField(employee.FieldTenantID, field.TypeUUID, value)
 		_node.TenantID = value
@@ -481,6 +515,22 @@ func (ec *EmployeeCreate) createSpec() (*Employee, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(positionoccupancyhistory.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.AssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   employee.AssignmentsTable,
+			Columns: []string{employee.AssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(positionassignment.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

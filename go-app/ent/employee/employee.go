@@ -16,6 +16,8 @@ const (
 	Label = "employee"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldBusinessID holds the string denoting the business_id field in the database.
+	FieldBusinessID = "business_id"
 	// FieldTenantID holds the string denoting the tenant_id field in the database.
 	FieldTenantID = "tenant_id"
 	// FieldEmployeeType holds the string denoting the employee_type field in the database.
@@ -54,6 +56,8 @@ const (
 	EdgeCurrentPosition = "current_position"
 	// EdgePositionHistory holds the string denoting the position_history edge name in mutations.
 	EdgePositionHistory = "position_history"
+	// EdgeAssignments holds the string denoting the assignments edge name in mutations.
+	EdgeAssignments = "assignments"
 	// Table holds the table name of the employee in the database.
 	Table = "employees"
 	// CurrentPositionTable is the table that holds the current_position relation/edge.
@@ -70,11 +74,19 @@ const (
 	PositionHistoryInverseTable = "position_occupancy_histories"
 	// PositionHistoryColumn is the table column denoting the position_history relation/edge.
 	PositionHistoryColumn = "employee_id"
+	// AssignmentsTable is the table that holds the assignments relation/edge.
+	AssignmentsTable = "position_assignments"
+	// AssignmentsInverseTable is the table name for the PositionAssignment entity.
+	// It exists in this package in order to avoid circular dependency with the "positionassignment" package.
+	AssignmentsInverseTable = "position_assignments"
+	// AssignmentsColumn is the table column denoting the assignments relation/edge.
+	AssignmentsColumn = "employee_id"
 )
 
 // Columns holds all SQL columns for employee fields.
 var Columns = []string{
 	FieldID,
+	FieldBusinessID,
 	FieldTenantID,
 	FieldEmployeeType,
 	FieldEmployeeNumber,
@@ -105,6 +117,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// BusinessIDValidator is a validator for the "business_id" field. It is called by the builders before save.
+	BusinessIDValidator func(string) error
 	// EmployeeNumberValidator is a validator for the "employee_number" field. It is called by the builders before save.
 	EmployeeNumberValidator func(string) error
 	// FirstNameValidator is a validator for the "first_name" field. It is called by the builders before save.
@@ -187,6 +201,11 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByBusinessID orders the results by the business_id field.
+func ByBusinessID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBusinessID, opts...).ToFunc()
 }
 
 // ByTenantID orders the results by the tenant_id field.
@@ -289,6 +308,20 @@ func ByPositionHistory(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPositionHistoryStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByAssignmentsCount orders the results by assignments count.
+func ByAssignmentsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAssignmentsStep(), opts...)
+	}
+}
+
+// ByAssignments orders the results by assignments terms.
+func ByAssignments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAssignmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCurrentPositionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -301,5 +334,12 @@ func newPositionHistoryStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PositionHistoryInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, PositionHistoryTable, PositionHistoryColumn),
+	)
+}
+func newAssignmentsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AssignmentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AssignmentsTable, AssignmentsColumn),
 	)
 }

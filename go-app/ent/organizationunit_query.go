@@ -370,12 +370,12 @@ func (ouq *OrganizationUnitQuery) WithPositions(opts ...func(*PositionQuery)) *O
 // Example:
 //
 //	var v []struct {
-//		TenantID uuid.UUID `json:"tenant_id,omitempty"`
+//		BusinessID string `json:"business_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.OrganizationUnit.Query().
-//		GroupBy(organizationunit.FieldTenantID).
+//		GroupBy(organizationunit.FieldBusinessID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (ouq *OrganizationUnitQuery) GroupBy(field string, fields ...string) *OrganizationUnitGroupBy {
@@ -393,11 +393,11 @@ func (ouq *OrganizationUnitQuery) GroupBy(field string, fields ...string) *Organ
 // Example:
 //
 //	var v []struct {
-//		TenantID uuid.UUID `json:"tenant_id,omitempty"`
+//		BusinessID string `json:"business_id,omitempty"`
 //	}
 //
 //	client.OrganizationUnit.Query().
-//		Select(organizationunit.FieldTenantID).
+//		Select(organizationunit.FieldBusinessID).
 //		Scan(ctx, &v)
 func (ouq *OrganizationUnitQuery) Select(fields ...string) *OrganizationUnitSelect {
 	ouq.ctx.Fields = append(ouq.ctx.Fields, fields...)

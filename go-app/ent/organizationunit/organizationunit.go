@@ -16,6 +16,8 @@ const (
 	Label = "organization_unit"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldBusinessID holds the string denoting the business_id field in the database.
+	FieldBusinessID = "business_id"
 	// FieldTenantID holds the string denoting the tenant_id field in the database.
 	FieldTenantID = "tenant_id"
 	// FieldUnitType holds the string denoting the unit_type field in the database.
@@ -64,6 +66,7 @@ const (
 // Columns holds all SQL columns for organizationunit fields.
 var Columns = []string{
 	FieldID,
+	FieldBusinessID,
 	FieldTenantID,
 	FieldUnitType,
 	FieldName,
@@ -87,6 +90,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// BusinessIDValidator is a validator for the "business_id" field. It is called by the builders before save.
+	BusinessIDValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
 	// DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
@@ -161,6 +166,11 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByBusinessID orders the results by the business_id field.
+func ByBusinessID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBusinessID, opts...).ToFunc()
 }
 
 // ByTenantID orders the results by the tenant_id field.

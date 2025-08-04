@@ -56,6 +56,11 @@ func IDLTE(id uuid.UUID) predicate.OrganizationUnit {
 	return predicate.OrganizationUnit(sql.FieldLTE(FieldID, id))
 }
 
+// BusinessID applies equality check predicate on the "business_id" field. It's identical to BusinessIDEQ.
+func BusinessID(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldEQ(FieldBusinessID, v))
+}
+
 // TenantID applies equality check predicate on the "tenant_id" field. It's identical to TenantIDEQ.
 func TenantID(v uuid.UUID) predicate.OrganizationUnit {
 	return predicate.OrganizationUnit(sql.FieldEQ(FieldTenantID, v))
@@ -89,6 +94,71 @@ func CreatedAt(v time.Time) predicate.OrganizationUnit {
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.OrganizationUnit {
 	return predicate.OrganizationUnit(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// BusinessIDEQ applies the EQ predicate on the "business_id" field.
+func BusinessIDEQ(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldEQ(FieldBusinessID, v))
+}
+
+// BusinessIDNEQ applies the NEQ predicate on the "business_id" field.
+func BusinessIDNEQ(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldNEQ(FieldBusinessID, v))
+}
+
+// BusinessIDIn applies the In predicate on the "business_id" field.
+func BusinessIDIn(vs ...string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldIn(FieldBusinessID, vs...))
+}
+
+// BusinessIDNotIn applies the NotIn predicate on the "business_id" field.
+func BusinessIDNotIn(vs ...string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldNotIn(FieldBusinessID, vs...))
+}
+
+// BusinessIDGT applies the GT predicate on the "business_id" field.
+func BusinessIDGT(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldGT(FieldBusinessID, v))
+}
+
+// BusinessIDGTE applies the GTE predicate on the "business_id" field.
+func BusinessIDGTE(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldGTE(FieldBusinessID, v))
+}
+
+// BusinessIDLT applies the LT predicate on the "business_id" field.
+func BusinessIDLT(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldLT(FieldBusinessID, v))
+}
+
+// BusinessIDLTE applies the LTE predicate on the "business_id" field.
+func BusinessIDLTE(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldLTE(FieldBusinessID, v))
+}
+
+// BusinessIDContains applies the Contains predicate on the "business_id" field.
+func BusinessIDContains(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldContains(FieldBusinessID, v))
+}
+
+// BusinessIDHasPrefix applies the HasPrefix predicate on the "business_id" field.
+func BusinessIDHasPrefix(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldHasPrefix(FieldBusinessID, v))
+}
+
+// BusinessIDHasSuffix applies the HasSuffix predicate on the "business_id" field.
+func BusinessIDHasSuffix(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldHasSuffix(FieldBusinessID, v))
+}
+
+// BusinessIDEqualFold applies the EqualFold predicate on the "business_id" field.
+func BusinessIDEqualFold(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldEqualFold(FieldBusinessID, v))
+}
+
+// BusinessIDContainsFold applies the ContainsFold predicate on the "business_id" field.
+func BusinessIDContainsFold(v string) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(sql.FieldContainsFold(FieldBusinessID, v))
 }
 
 // TenantIDEQ applies the EQ predicate on the "tenant_id" field.

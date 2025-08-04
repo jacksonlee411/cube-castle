@@ -9,6 +9,30 @@ import (
 	"github.com/gaogu/cube-castle/go-app/ent"
 )
 
+// The AssignmentDetailsFunc type is an adapter to allow the use of ordinary
+// function as AssignmentDetails mutator.
+type AssignmentDetailsFunc func(context.Context, *ent.AssignmentDetailsMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AssignmentDetailsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AssignmentDetailsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AssignmentDetailsMutation", m)
+}
+
+// The AssignmentHistoryFunc type is an adapter to allow the use of ordinary
+// function as AssignmentHistory mutator.
+type AssignmentHistoryFunc func(context.Context, *ent.AssignmentHistoryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AssignmentHistoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AssignmentHistoryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AssignmentHistoryMutation", m)
+}
+
 // The EmployeeFunc type is an adapter to allow the use of ordinary
 // function as Employee mutator.
 type EmployeeFunc func(context.Context, *ent.EmployeeMutation) (ent.Value, error)
@@ -43,6 +67,18 @@ func (f PositionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PositionMutation", m)
+}
+
+// The PositionAssignmentFunc type is an adapter to allow the use of ordinary
+// function as PositionAssignment mutator.
+type PositionAssignmentFunc func(context.Context, *ent.PositionAssignmentMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PositionAssignmentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PositionAssignmentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PositionAssignmentMutation", m)
 }
 
 // The PositionAttributeHistoryFunc type is an adapter to allow the use of ordinary

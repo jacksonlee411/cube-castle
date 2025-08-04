@@ -8,9 +8,70 @@ import (
 )
 
 var (
+	// AssignmentDetailsColumns holds the columns for the "assignment_details" table.
+	AssignmentDetailsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "pay_grade_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "compensation_plan_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "work_location", Type: field.TypeString, Nullable: true, Size: 200},
+		{Name: "work_arrangement", Type: field.TypeEnum, Nullable: true, Enums: []string{"ON_SITE", "REMOTE", "HYBRID"}},
+		{Name: "assignment_reason", Type: field.TypeEnum, Nullable: true, Enums: []string{"NEW_HIRE", "PROMOTION", "TRANSFER", "DEMOTION", "LATERAL_MOVE", "TEMPORARY_ASSIGNMENT", "RETURN_FROM_LEAVE"}},
+		{Name: "change_reason", Type: field.TypeString, Nullable: true, Size: 500},
+		{Name: "notes", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "approved_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "approved_at", Type: field.TypeTime, Nullable: true},
+		{Name: "approval_status", Type: field.TypeEnum, Enums: []string{"PENDING", "APPROVED", "REJECTED"}, Default: "APPROVED"},
+		{Name: "custom_fields", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "assignment_id", Type: field.TypeUUID},
+	}
+	// AssignmentDetailsTable holds the schema information for the "assignment_details" table.
+	AssignmentDetailsTable = &schema.Table{
+		Name:       "assignment_details",
+		Columns:    AssignmentDetailsColumns,
+		PrimaryKey: []*schema.Column{AssignmentDetailsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "assignment_details_position_assignments_details",
+				Columns:    []*schema.Column{AssignmentDetailsColumns[15]},
+				RefColumns: []*schema.Column{PositionAssignmentsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
+	// AssignmentHistoriesColumns holds the columns for the "assignment_histories" table.
+	AssignmentHistoriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "event_type", Type: field.TypeEnum, Enums: []string{"CREATED", "UPDATED", "ENDED", "EXTENDED"}},
+		{Name: "event_date", Type: field.TypeTime},
+		{Name: "previous_values", Type: field.TypeJSON, Nullable: true},
+		{Name: "new_values", Type: field.TypeJSON, Nullable: true},
+		{Name: "reason", Type: field.TypeString, Nullable: true, Size: 500},
+		{Name: "changed_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "assignment_id", Type: field.TypeUUID},
+	}
+	// AssignmentHistoriesTable holds the schema information for the "assignment_histories" table.
+	AssignmentHistoriesTable = &schema.Table{
+		Name:       "assignment_histories",
+		Columns:    AssignmentHistoriesColumns,
+		PrimaryKey: []*schema.Column{AssignmentHistoriesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "assignment_histories_position_assignments_history",
+				Columns:    []*schema.Column{AssignmentHistoriesColumns[9]},
+				RefColumns: []*schema.Column{PositionAssignmentsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// EmployeesColumns holds the columns for the "employees" table.
 	EmployeesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
+		{Name: "business_id", Type: field.TypeString, Unique: true, Size: 8},
 		{Name: "tenant_id", Type: field.TypeUUID},
 		{Name: "employee_type", Type: field.TypeEnum, Enums: []string{"FULL_TIME", "PART_TIME", "CONTRACTOR", "INTERN"}},
 		{Name: "employee_number", Type: field.TypeString, Size: 50},
@@ -37,7 +98,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "employees_positions_current_incumbents",
-				Columns:    []*schema.Column{EmployeesColumns[17]},
+				Columns:    []*schema.Column{EmployeesColumns[18]},
 				RefColumns: []*schema.Column{PositionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -46,53 +107,64 @@ var (
 			{
 				Name:    "employee_tenant_id_employee_type",
 				Unique:  false,
-				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[2]},
+				Columns: []*schema.Column{EmployeesColumns[2], EmployeesColumns[3]},
+			},
+			{
+				Name:    "employee_business_id",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[1]},
+			},
+			{
+				Name:    "employee_tenant_id_business_id",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[2], EmployeesColumns[1]},
 			},
 			{
 				Name:    "employee_tenant_id_employee_number",
 				Unique:  true,
-				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[3]},
+				Columns: []*schema.Column{EmployeesColumns[2], EmployeesColumns[4]},
 			},
 			{
 				Name:    "employee_tenant_id_email",
 				Unique:  true,
-				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[6]},
+				Columns: []*schema.Column{EmployeesColumns[2], EmployeesColumns[7]},
 			},
 			{
 				Name:    "employee_tenant_id_employment_status",
 				Unique:  false,
-				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[9]},
+				Columns: []*schema.Column{EmployeesColumns[2], EmployeesColumns[10]},
 			},
 			{
 				Name:    "employee_current_position_id",
 				Unique:  false,
-				Columns: []*schema.Column{EmployeesColumns[17]},
+				Columns: []*schema.Column{EmployeesColumns[18]},
 			},
 			{
 				Name:    "employee_tenant_id_hire_date",
 				Unique:  false,
-				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[10]},
+				Columns: []*schema.Column{EmployeesColumns[2], EmployeesColumns[11]},
 			},
 			{
 				Name:    "employee_tenant_id_employment_status_employee_type",
 				Unique:  false,
-				Columns: []*schema.Column{EmployeesColumns[1], EmployeesColumns[9], EmployeesColumns[2]},
+				Columns: []*schema.Column{EmployeesColumns[2], EmployeesColumns[10], EmployeesColumns[3]},
 			},
 			{
 				Name:    "employee_email",
 				Unique:  false,
-				Columns: []*schema.Column{EmployeesColumns[6]},
+				Columns: []*schema.Column{EmployeesColumns[7]},
 			},
 			{
 				Name:    "employee_name",
 				Unique:  false,
-				Columns: []*schema.Column{EmployeesColumns[13]},
+				Columns: []*schema.Column{EmployeesColumns[14]},
 			},
 		},
 	}
 	// OrganizationUnitsColumns holds the columns for the "organization_units" table.
 	OrganizationUnitsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
+		{Name: "business_id", Type: field.TypeString, Unique: true, Size: 6},
 		{Name: "tenant_id", Type: field.TypeUUID},
 		{Name: "unit_type", Type: field.TypeEnum, Enums: []string{"DEPARTMENT", "COST_CENTER", "COMPANY", "PROJECT_TEAM"}},
 		{Name: "name", Type: field.TypeString, Size: 100},
@@ -112,7 +184,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "organization_units_organization_units_children",
-				Columns:    []*schema.Column{OrganizationUnitsColumns[10]},
+				Columns:    []*schema.Column{OrganizationUnitsColumns[11]},
 				RefColumns: []*schema.Column{OrganizationUnitsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -121,27 +193,37 @@ var (
 			{
 				Name:    "organizationunit_tenant_id_unit_type",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationUnitsColumns[1], OrganizationUnitsColumns[2]},
+				Columns: []*schema.Column{OrganizationUnitsColumns[2], OrganizationUnitsColumns[3]},
+			},
+			{
+				Name:    "organizationunit_business_id",
+				Unique:  false,
+				Columns: []*schema.Column{OrganizationUnitsColumns[1]},
+			},
+			{
+				Name:    "organizationunit_tenant_id_business_id",
+				Unique:  false,
+				Columns: []*schema.Column{OrganizationUnitsColumns[2], OrganizationUnitsColumns[1]},
 			},
 			{
 				Name:    "organizationunit_parent_unit_id",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationUnitsColumns[10]},
+				Columns: []*schema.Column{OrganizationUnitsColumns[11]},
 			},
 			{
 				Name:    "organizationunit_tenant_id_name",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationUnitsColumns[1], OrganizationUnitsColumns[3]},
+				Columns: []*schema.Column{OrganizationUnitsColumns[2], OrganizationUnitsColumns[4]},
 			},
 			{
 				Name:    "organizationunit_tenant_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationUnitsColumns[1], OrganizationUnitsColumns[6]},
+				Columns: []*schema.Column{OrganizationUnitsColumns[2], OrganizationUnitsColumns[7]},
 			},
 			{
 				Name:    "organizationunit_tenant_id_unit_type_status",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationUnitsColumns[1], OrganizationUnitsColumns[2], OrganizationUnitsColumns[6]},
+				Columns: []*schema.Column{OrganizationUnitsColumns[2], OrganizationUnitsColumns[3], OrganizationUnitsColumns[7]},
 			},
 		},
 	}
@@ -149,6 +231,7 @@ var (
 	PositionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "business_id", Type: field.TypeString, Unique: true, Size: 7},
 		{Name: "position_type", Type: field.TypeEnum, Enums: []string{"FULL_TIME", "PART_TIME", "CONTINGENT_WORKER", "INTERN"}},
 		{Name: "job_profile_id", Type: field.TypeUUID},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"OPEN", "FILLED", "FROZEN", "PENDING_ELIMINATION"}, Default: "OPEN"},
@@ -167,13 +250,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "positions_organization_units_positions",
-				Columns:    []*schema.Column{PositionsColumns[9]},
+				Columns:    []*schema.Column{PositionsColumns[10]},
 				RefColumns: []*schema.Column{OrganizationUnitsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "positions_positions_direct_reports",
-				Columns:    []*schema.Column{PositionsColumns[10]},
+				Columns:    []*schema.Column{PositionsColumns[11]},
 				RefColumns: []*schema.Column{PositionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -182,37 +265,88 @@ var (
 			{
 				Name:    "position_tenant_id_position_type",
 				Unique:  false,
-				Columns: []*schema.Column{PositionsColumns[1], PositionsColumns[2]},
+				Columns: []*schema.Column{PositionsColumns[1], PositionsColumns[3]},
 			},
 			{
 				Name:    "position_department_id",
 				Unique:  false,
-				Columns: []*schema.Column{PositionsColumns[9]},
+				Columns: []*schema.Column{PositionsColumns[10]},
 			},
 			{
 				Name:    "position_manager_position_id",
 				Unique:  false,
-				Columns: []*schema.Column{PositionsColumns[10]},
+				Columns: []*schema.Column{PositionsColumns[11]},
 			},
 			{
 				Name:    "position_tenant_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{PositionsColumns[1], PositionsColumns[4]},
+				Columns: []*schema.Column{PositionsColumns[1], PositionsColumns[5]},
 			},
 			{
 				Name:    "position_job_profile_id",
 				Unique:  false,
-				Columns: []*schema.Column{PositionsColumns[3]},
+				Columns: []*schema.Column{PositionsColumns[4]},
 			},
 			{
 				Name:    "position_tenant_id_budgeted_fte",
 				Unique:  false,
-				Columns: []*schema.Column{PositionsColumns[1], PositionsColumns[5]},
+				Columns: []*schema.Column{PositionsColumns[1], PositionsColumns[6]},
 			},
 			{
 				Name:    "position_tenant_id_department_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{PositionsColumns[1], PositionsColumns[9], PositionsColumns[4]},
+				Columns: []*schema.Column{PositionsColumns[1], PositionsColumns[10], PositionsColumns[5]},
+			},
+		},
+	}
+	// PositionAssignmentsColumns holds the columns for the "position_assignments" table.
+	PositionAssignmentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "start_date", Type: field.TypeTime},
+		{Name: "end_date", Type: field.TypeTime, Nullable: true},
+		{Name: "is_current", Type: field.TypeBool, Default: false},
+		{Name: "fte", Type: field.TypeFloat64, Default: 1},
+		{Name: "assignment_type", Type: field.TypeEnum, Enums: []string{"PRIMARY", "SECONDARY", "ACTING"}, Default: "PRIMARY"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "employee_id", Type: field.TypeUUID},
+		{Name: "position_id", Type: field.TypeUUID},
+	}
+	// PositionAssignmentsTable holds the schema information for the "position_assignments" table.
+	PositionAssignmentsTable = &schema.Table{
+		Name:       "position_assignments",
+		Columns:    PositionAssignmentsColumns,
+		PrimaryKey: []*schema.Column{PositionAssignmentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "position_assignments_employees_assignments",
+				Columns:    []*schema.Column{PositionAssignmentsColumns[9]},
+				RefColumns: []*schema.Column{EmployeesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "position_assignments_positions_assignments",
+				Columns:    []*schema.Column{PositionAssignmentsColumns[10]},
+				RefColumns: []*schema.Column{PositionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "positionassignment_tenant_id_employee_id_is_current",
+				Unique:  false,
+				Columns: []*schema.Column{PositionAssignmentsColumns[1], PositionAssignmentsColumns[9], PositionAssignmentsColumns[4]},
+			},
+			{
+				Name:    "positionassignment_tenant_id_position_id_is_current",
+				Unique:  false,
+				Columns: []*schema.Column{PositionAssignmentsColumns[1], PositionAssignmentsColumns[10], PositionAssignmentsColumns[4]},
+			},
+			{
+				Name:    "positionassignment_tenant_id_employee_id_is_current_assignment_type",
+				Unique:  true,
+				Columns: []*schema.Column{PositionAssignmentsColumns[1], PositionAssignmentsColumns[9], PositionAssignmentsColumns[4], PositionAssignmentsColumns[6]},
 			},
 		},
 	}
@@ -406,9 +540,12 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AssignmentDetailsTable,
+		AssignmentHistoriesTable,
 		EmployeesTable,
 		OrganizationUnitsTable,
 		PositionsTable,
+		PositionAssignmentsTable,
 		PositionAttributeHistoriesTable,
 		PositionHistoriesTable,
 		PositionOccupancyHistoriesTable,
@@ -416,10 +553,14 @@ var (
 )
 
 func init() {
+	AssignmentDetailsTable.ForeignKeys[0].RefTable = PositionAssignmentsTable
+	AssignmentHistoriesTable.ForeignKeys[0].RefTable = PositionAssignmentsTable
 	EmployeesTable.ForeignKeys[0].RefTable = PositionsTable
 	OrganizationUnitsTable.ForeignKeys[0].RefTable = OrganizationUnitsTable
 	PositionsTable.ForeignKeys[0].RefTable = OrganizationUnitsTable
 	PositionsTable.ForeignKeys[1].RefTable = PositionsTable
+	PositionAssignmentsTable.ForeignKeys[0].RefTable = EmployeesTable
+	PositionAssignmentsTable.ForeignKeys[1].RefTable = PositionsTable
 	PositionAttributeHistoriesTable.ForeignKeys[0].RefTable = PositionsTable
 	PositionOccupancyHistoriesTable.ForeignKeys[0].RefTable = EmployeesTable
 	PositionOccupancyHistoriesTable.ForeignKeys[1].RefTable = PositionsTable

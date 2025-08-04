@@ -21,6 +21,8 @@ type Employee struct {
 	// ID of the ent.
 	// Global unique identifier, immutable primary key
 	ID uuid.UUID `json:"id,omitempty"`
+	// Business ID - user-friendly identifier (1-99999999)
+	BusinessID string `json:"business_id,omitempty"`
 	// Multi-tenant isolation foundation, enforces data boundary
 	TenantID uuid.UUID `json:"tenant_id,omitempty"`
 	// Employee type discriminator for details slot determination
@@ -67,9 +69,11 @@ type EmployeeEdges struct {
 	CurrentPosition *Position `json:"current_position,omitempty"`
 	// Employee position occupancy history records
 	PositionHistory []*PositionOccupancyHistory `json:"position_history,omitempty"`
+	// Employee position assignments
+	Assignments []*PositionAssignment `json:"assignments,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // CurrentPositionOrErr returns the CurrentPosition value or an error if the edge
@@ -92,6 +96,15 @@ func (e EmployeeEdges) PositionHistoryOrErr() ([]*PositionOccupancyHistory, erro
 	return nil, &NotLoadedError{edge: "position_history"}
 }
 
+// AssignmentsOrErr returns the Assignments value or an error if the edge
+// was not loaded in eager-loading.
+func (e EmployeeEdges) AssignmentsOrErr() ([]*PositionAssignment, error) {
+	if e.loadedTypes[2] {
+		return e.Assignments, nil
+	}
+	return nil, &NotLoadedError{edge: "assignments"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Employee) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -101,7 +114,7 @@ func (*Employee) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case employee.FieldEmployeeDetails:
 			values[i] = new([]byte)
-		case employee.FieldEmployeeType, employee.FieldEmployeeNumber, employee.FieldFirstName, employee.FieldLastName, employee.FieldEmail, employee.FieldPersonalEmail, employee.FieldPhoneNumber, employee.FieldEmploymentStatus, employee.FieldName, employee.FieldPosition:
+		case employee.FieldBusinessID, employee.FieldEmployeeType, employee.FieldEmployeeNumber, employee.FieldFirstName, employee.FieldLastName, employee.FieldEmail, employee.FieldPersonalEmail, employee.FieldPhoneNumber, employee.FieldEmploymentStatus, employee.FieldName, employee.FieldPosition:
 			values[i] = new(sql.NullString)
 		case employee.FieldHireDate, employee.FieldTerminationDate, employee.FieldCreatedAt, employee.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -127,6 +140,12 @@ func (e *Employee) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value != nil {
 				e.ID = *value
+			}
+		case employee.FieldBusinessID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field business_id", values[i])
+			} else if value.Valid {
+				e.BusinessID = value.String
 			}
 		case employee.FieldTenantID:
 			if value, ok := values[i].(*uuid.UUID); !ok {
@@ -259,6 +278,11 @@ func (e *Employee) QueryPositionHistory() *PositionOccupancyHistoryQuery {
 	return NewEmployeeClient(e.config).QueryPositionHistory(e)
 }
 
+// QueryAssignments queries the "assignments" edge of the Employee entity.
+func (e *Employee) QueryAssignments() *PositionAssignmentQuery {
+	return NewEmployeeClient(e.config).QueryAssignments(e)
+}
+
 // Update returns a builder for updating this Employee.
 // Note that you need to call Employee.Unwrap() before calling this method if this Employee
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -282,6 +306,9 @@ func (e *Employee) String() string {
 	var builder strings.Builder
 	builder.WriteString("Employee(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", e.ID))
+	builder.WriteString("business_id=")
+	builder.WriteString(e.BusinessID)
+	builder.WriteString(", ")
 	builder.WriteString("tenant_id=")
 	builder.WriteString(fmt.Sprintf("%v", e.TenantID))
 	builder.WriteString(", ")

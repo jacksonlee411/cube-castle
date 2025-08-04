@@ -56,6 +56,11 @@ func IDLTE(id uuid.UUID) predicate.Employee {
 	return predicate.Employee(sql.FieldLTE(FieldID, id))
 }
 
+// BusinessID applies equality check predicate on the "business_id" field. It's identical to BusinessIDEQ.
+func BusinessID(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldEQ(FieldBusinessID, v))
+}
+
 // TenantID applies equality check predicate on the "tenant_id" field. It's identical to TenantIDEQ.
 func TenantID(v uuid.UUID) predicate.Employee {
 	return predicate.Employee(sql.FieldEQ(FieldTenantID, v))
@@ -124,6 +129,71 @@ func CreatedAt(v time.Time) predicate.Employee {
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.Employee {
 	return predicate.Employee(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// BusinessIDEQ applies the EQ predicate on the "business_id" field.
+func BusinessIDEQ(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldEQ(FieldBusinessID, v))
+}
+
+// BusinessIDNEQ applies the NEQ predicate on the "business_id" field.
+func BusinessIDNEQ(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldNEQ(FieldBusinessID, v))
+}
+
+// BusinessIDIn applies the In predicate on the "business_id" field.
+func BusinessIDIn(vs ...string) predicate.Employee {
+	return predicate.Employee(sql.FieldIn(FieldBusinessID, vs...))
+}
+
+// BusinessIDNotIn applies the NotIn predicate on the "business_id" field.
+func BusinessIDNotIn(vs ...string) predicate.Employee {
+	return predicate.Employee(sql.FieldNotIn(FieldBusinessID, vs...))
+}
+
+// BusinessIDGT applies the GT predicate on the "business_id" field.
+func BusinessIDGT(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldGT(FieldBusinessID, v))
+}
+
+// BusinessIDGTE applies the GTE predicate on the "business_id" field.
+func BusinessIDGTE(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldGTE(FieldBusinessID, v))
+}
+
+// BusinessIDLT applies the LT predicate on the "business_id" field.
+func BusinessIDLT(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldLT(FieldBusinessID, v))
+}
+
+// BusinessIDLTE applies the LTE predicate on the "business_id" field.
+func BusinessIDLTE(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldLTE(FieldBusinessID, v))
+}
+
+// BusinessIDContains applies the Contains predicate on the "business_id" field.
+func BusinessIDContains(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldContains(FieldBusinessID, v))
+}
+
+// BusinessIDHasPrefix applies the HasPrefix predicate on the "business_id" field.
+func BusinessIDHasPrefix(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldHasPrefix(FieldBusinessID, v))
+}
+
+// BusinessIDHasSuffix applies the HasSuffix predicate on the "business_id" field.
+func BusinessIDHasSuffix(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldHasSuffix(FieldBusinessID, v))
+}
+
+// BusinessIDEqualFold applies the EqualFold predicate on the "business_id" field.
+func BusinessIDEqualFold(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldEqualFold(FieldBusinessID, v))
+}
+
+// BusinessIDContainsFold applies the ContainsFold predicate on the "business_id" field.
+func BusinessIDContainsFold(v string) predicate.Employee {
+	return predicate.Employee(sql.FieldContainsFold(FieldBusinessID, v))
 }
 
 // TenantIDEQ applies the EQ predicate on the "tenant_id" field.
@@ -1014,6 +1084,29 @@ func HasPositionHistory() predicate.Employee {
 func HasPositionHistoryWith(preds ...predicate.PositionOccupancyHistory) predicate.Employee {
 	return predicate.Employee(func(s *sql.Selector) {
 		step := newPositionHistoryStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAssignments applies the HasEdge predicate on the "assignments" edge.
+func HasAssignments() predicate.Employee {
+	return predicate.Employee(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AssignmentsTable, AssignmentsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAssignmentsWith applies the HasEdge predicate on the "assignments" edge with a given conditions (other predicates).
+func HasAssignmentsWith(preds ...predicate.PositionAssignment) predicate.Employee {
+	return predicate.Employee(func(s *sql.Selector) {
+		step := newAssignmentsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
