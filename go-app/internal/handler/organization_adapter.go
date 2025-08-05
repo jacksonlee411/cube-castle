@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
+	"github.com/gaogu/cube-castle/go-app/internal/common"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -17,14 +19,16 @@ type OrganizationAdapter struct {
 	unitHandler *OrganizationUnitHandler
 	client      *ent.Client
 	logger      *logging.StructuredLogger
+	businessIDService *common.BusinessIDService
 }
 
 // NewOrganizationAdapter creates a new organization adapter
-func NewOrganizationAdapter(client *ent.Client, logger *logging.StructuredLogger) *OrganizationAdapter {
+func NewOrganizationAdapter(client *ent.Client, logger *logging.StructuredLogger, db *sql.DB) *OrganizationAdapter {
 	return &OrganizationAdapter{
 		unitHandler: NewOrganizationUnitHandler(client, logger),
 		client:      client,
 		logger:      logger,
+		businessIDService: common.NewBusinessIDService(db),
 	}
 }
 
@@ -139,14 +143,31 @@ func (a *OrganizationAdapter) GetOrganizations() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		// Get tenant ID from context
+		// Get tenant ID from context or query parameter
 		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
 		if !ok {
-			// For development, use default tenant
-			tenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
-			a.logger.Info("No tenant ID in context, using default", 
-				"default_tenant", tenantID,
-			)
+			// Try to get tenant_id from query parameter
+			if tenantIDStr := r.URL.Query().Get("tenant_id"); tenantIDStr != "" {
+				if parsedTenantID, err := uuid.Parse(tenantIDStr); err == nil {
+					tenantID = parsedTenantID
+					a.logger.Info("Using tenant ID from query parameter", 
+						"tenant_id", tenantID,
+					)
+				} else {
+					a.logger.Warn("Invalid tenant_id format in query parameter", 
+						"tenant_id_string", tenantIDStr,
+						"error", err,
+					)
+					// Fall back to default tenant
+					tenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+				}
+			} else {
+				// For development, use default tenant
+				tenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+				a.logger.Info("No tenant ID in context or query, using default", 
+					"default_tenant", tenantID,
+				)
+			}
 		}
 
 		// Query organization units
@@ -240,9 +261,22 @@ func (a *OrganizationAdapter) CreateOrganization() http.HandlerFunc {
 		// Convert to backend request
 		unitReq := a.convertToCreateUnitRequest(req)
 
+		// Generate business ID for organization
+		businessID, err := a.businessIDService.GenerateBusinessID(ctx, common.EntityTypeOrganization)
+		if err != nil {
+			a.logger.LogError("create_organization", "Failed to generate business ID", err, map[string]interface{}{
+				"name":      req.Name,
+				"unit_type": req.UnitType,
+				"tenant_id": tenantID,
+			})
+			http.Error(w, "Failed to generate business ID", http.StatusInternalServerError)
+			return
+		}
+
 		// Create organization unit using existing handler logic
 		builder := a.client.OrganizationUnit.Create().
 			SetTenantID(tenantID).
+			SetBusinessID(businessID).
 			SetUnitType(organizationunit.UnitType(unitReq.UnitType)).
 			SetName(unitReq.Name).
 			SetStatus(organizationunit.Status(unitReq.Status))

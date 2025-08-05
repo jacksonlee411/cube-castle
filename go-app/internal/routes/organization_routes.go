@@ -1,17 +1,36 @@
 package routes
 
 import (
+	"database/sql"
+	"os"
+	
 	"github.com/gaogu/cube-castle/go-app/ent"
 	"github.com/gaogu/cube-castle/go-app/internal/handler"
 	"github.com/gaogu/cube-castle/go-app/internal/logging"
 	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
 )
 
 // SetupOrganizationRoutes configures organization API routes
 // Maps frontend /api/v1/corehr/organizations/* to backend OrganizationUnit handlers
-func SetupOrganizationRoutes(r chi.Router, client *ent.Client, logger *logging.StructuredLogger) {
+func SetupOrganizationRoutes(r chi.Router, client *ent.Client, logger *logging.StructuredLogger, db *sql.DB) {
+	// If db is not provided, try to create one from DATABASE_URL
+	if db == nil {
+		databaseURL := os.Getenv("DATABASE_URL")
+		if databaseURL == "" {
+			databaseURL = "postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+		}
+		
+		var err error
+		db, err = sql.Open("postgres", databaseURL)
+		if err != nil {
+			logger.LogError("setup_organization_routes", "Failed to open database connection", err, nil)
+			// Continue without business ID service - will cause 500 errors but won't crash
+		}
+	}
+
 	// Create organization adapter
-	orgAdapter := handler.NewOrganizationAdapter(client, logger)
+	orgAdapter := handler.NewOrganizationAdapter(client, logger, db)
 
 	// CoreHR Organization API routes (frontend compatibility)
 	r.Route("/corehr/organizations", func(r chi.Router) {

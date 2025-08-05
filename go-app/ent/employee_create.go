@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
@@ -104,6 +105,20 @@ func (ec *EmployeeCreate) SetCurrentPositionID(u uuid.UUID) *EmployeeCreate {
 func (ec *EmployeeCreate) SetNillableCurrentPositionID(u *uuid.UUID) *EmployeeCreate {
 	if u != nil {
 		ec.SetCurrentPositionID(*u)
+	}
+	return ec
+}
+
+// SetDepartmentID sets the "department_id" field.
+func (ec *EmployeeCreate) SetDepartmentID(u uuid.UUID) *EmployeeCreate {
+	ec.mutation.SetDepartmentID(u)
+	return ec
+}
+
+// SetNillableDepartmentID sets the "department_id" field if the given value is not nil.
+func (ec *EmployeeCreate) SetNillableDepartmentID(u *uuid.UUID) *EmployeeCreate {
+	if u != nil {
+		ec.SetDepartmentID(*u)
 	}
 	return ec
 }
@@ -221,6 +236,11 @@ func (ec *EmployeeCreate) SetNillableID(u *uuid.UUID) *EmployeeCreate {
 // SetCurrentPosition sets the "current_position" edge to the Position entity.
 func (ec *EmployeeCreate) SetCurrentPosition(p *Position) *EmployeeCreate {
 	return ec.SetCurrentPositionID(p.ID)
+}
+
+// SetDepartment sets the "department" edge to the OrganizationUnit entity.
+func (ec *EmployeeCreate) SetDepartment(o *OrganizationUnit) *EmployeeCreate {
+	return ec.SetDepartmentID(o.ID)
 }
 
 // AddPositionHistoryIDs adds the "position_history" edge to the PositionOccupancyHistory entity by IDs.
@@ -504,6 +524,23 @@ func (ec *EmployeeCreate) createSpec() (*Employee, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.CurrentPositionID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.DepartmentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   employee.DepartmentTable,
+			Columns: []string{employee.DepartmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationunit.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.DepartmentID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ec.mutation.PositionHistoryIDs(); len(nodes) > 0 {

@@ -610,6 +610,29 @@ func HasPositionsWith(preds ...predicate.Position) predicate.OrganizationUnit {
 	})
 }
 
+// HasEmployees applies the HasEdge predicate on the "employees" edge.
+func HasEmployees() predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, EmployeesTable, EmployeesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasEmployeesWith applies the HasEdge predicate on the "employees" edge with a given conditions (other predicates).
+func HasEmployeesWith(preds ...predicate.Employee) predicate.OrganizationUnit {
+	return predicate.OrganizationUnit(func(s *sql.Selector) {
+		step := newEmployeesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.OrganizationUnit) predicate.OrganizationUnit {
 	return predicate.OrganizationUnit(sql.AndPredicates(predicates...))

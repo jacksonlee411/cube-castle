@@ -2,6 +2,7 @@ package corehr
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -159,7 +160,134 @@ func (s *Service) CreateEmployee(ctx context.Context, tenantID uuid.UUID, req *o
 	return &openapiEmployee, nil
 }
 
-// UpdateEmployee 更新员工信息
+// UpdateEmployeeWithRawJSON 更新员工信息，支持业务ID参数
+func (s *Service) UpdateEmployeeWithRawJSON(ctx context.Context, tenantID, employeeID uuid.UUID, req *openapi.UpdateEmployeeRequest, rawJSON []byte) (*openapi.Employee, error) {
+	if s.repo == nil {
+		return nil, fmt.Errorf("service not properly initialized: repository is nil")
+	}
+
+	// 解析原始JSON以提取department_id等业务ID参数
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(rawJSON, &rawData); err != nil {
+		return nil, fmt.Errorf("failed to parse raw JSON: %w", err)
+	}
+
+	// 获取现有员工
+	employee, err := s.repo.GetEmployeeByID(ctx, tenantID, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee: %w", err)
+	}
+	if employee == nil {
+		return nil, fmt.Errorf("employee not found")
+	}
+
+	// Record the old phone number for potential event publishing
+	var oldPhoneNumber string
+	if employee.PhoneNumber != nil {
+		oldPhoneNumber = *employee.PhoneNumber
+	}
+
+	// Record updated fields for event publishing
+	updatedFields := make(map[string]interface{})
+
+	// 更新字段
+	if req.FirstName != nil {
+		employee.FirstName = *req.FirstName
+		updatedFields["first_name"] = *req.FirstName
+	}
+	if req.LastName != nil {
+		employee.LastName = *req.LastName
+		updatedFields["last_name"] = *req.LastName
+	}
+	if req.Email != nil {
+		employee.Email = string(*req.Email)
+		updatedFields["email"] = string(*req.Email)
+	}
+	if req.PhoneNumber != nil {
+		employee.PhoneNumber = req.PhoneNumber
+		updatedFields["phone_number"] = *req.PhoneNumber
+	}
+	if req.PositionId != nil {
+		// 暂时设为nil，因为Position字段不存在
+		updatedFields["position_id"] = req.PositionId.String()
+	}
+	
+	// 处理department_id参数（业务ID）
+	if departmentID, exists := rawData["department_id"]; exists {
+		if departmentIDStr, ok := departmentID.(string); ok && departmentIDStr != "" {
+			// 通过business_id查找组织单位名称
+			var orgName string
+			err := s.repo.db.QueryRow(ctx,
+				`SELECT name FROM organization_units WHERE business_id = $1 AND tenant_id = $2`,
+				departmentIDStr, tenantID).Scan(&orgName)
+			if err != nil {
+				// 如果找不到组织，记录错误但继续处理其他字段
+				updatedFields["department_id_error"] = fmt.Sprintf("Organization with business_id %s not found", departmentIDStr)
+			} else {
+				// 更新员工的部门字段
+				employee.Department = &orgName
+				updatedFields["department"] = orgName
+				updatedFields["department_id"] = departmentIDStr
+			}
+		}
+	}
+	
+	// 处理organization_id参数（如果是业务ID格式）
+	if req.OrganizationId != nil {
+		// 解析业务ID并查找组织名称
+		orgBusinessID := req.OrganizationId.String()
+		
+		// 通过business_id查找组织单位名称
+		var orgName string
+		err := s.repo.db.QueryRow(ctx,
+			`SELECT name FROM organization_units WHERE business_id = $1 AND tenant_id = $2`,
+			orgBusinessID, tenantID).Scan(&orgName)
+		if err != nil {
+			// 如果找不到组织，记录错误但继续处理其他字段
+			updatedFields["organization_id_error"] = fmt.Sprintf("Organization with business_id %s not found", orgBusinessID)
+		} else {
+			// 更新员工的部门字段
+			employee.Department = &orgName
+			updatedFields["department"] = orgName
+			updatedFields["organization_id"] = orgBusinessID
+		}
+	}
+	
+	// ManagerId字段不存在，暂时跳过
+	if req.Status != nil {
+		employee.Status = string(*req.Status)
+		updatedFields["status"] = string(*req.Status)
+	}
+
+	// 更新员工
+	err = s.repo.UpdateEmployee(ctx, employee)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update employee: %w", err)
+	}
+
+	// 发布员工更新事件
+	if s.eventBus != nil && len(updatedFields) > 0 {
+		event := events.NewEmployeeUpdated(tenantID, employee.ID, employee.EmployeeNumber, updatedFields)
+		
+		if err := s.eventBus.Publish(ctx, event); err != nil {
+			fmt.Printf("Failed to publish EmployeeUpdated event: %v\n", err)
+		}
+		
+		// 如果电话号码发生变化，发布专门的电话更新事件
+		if newPhone, exists := updatedFields["phone_number"]; exists {
+			phoneEvent := events.NewEmployeePhoneUpdated(tenantID, employee.ID, 
+				employee.EmployeeNumber, oldPhoneNumber, newPhone.(string))
+			
+			if err := s.eventBus.Publish(ctx, phoneEvent); err != nil {
+				fmt.Printf("Failed to publish EmployeePhoneUpdated event: %v\n", err)
+			}
+		}
+	}
+
+	openapiEmployee := s.convertToOpenAPIEmployee(*employee)
+	return &openapiEmployee, nil
+}
+
 func (s *Service) UpdateEmployee(ctx context.Context, tenantID, employeeID uuid.UUID, req *openapi.UpdateEmployeeRequest) (*openapi.Employee, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("service not properly initialized: repository is nil")
@@ -205,8 +333,23 @@ func (s *Service) UpdateEmployee(ctx context.Context, tenantID, employeeID uuid.
 		updatedFields["position_id"] = req.PositionId.String()
 	}
 	if req.OrganizationId != nil {
-		// 暂时设为nil，因为Department字段不存在
-		updatedFields["organization_id"] = req.OrganizationId.String()
+		// 解析业务ID并查找组织名称
+		orgBusinessID := req.OrganizationId.String()
+		
+		// 通过business_id查找组织单位名称
+		var orgName string
+		err := s.repo.db.QueryRow(ctx,
+			`SELECT name FROM organization_units WHERE business_id = $1 AND tenant_id = $2`,
+			orgBusinessID, tenantID).Scan(&orgName)
+		if err != nil {
+			// 如果找不到组织，记录错误但继续处理其他字段
+			updatedFields["organization_id_error"] = fmt.Sprintf("Organization with business_id %s not found", orgBusinessID)
+		} else {
+			// 更新员工的部门字段
+			employee.Department = &orgName
+			updatedFields["department"] = orgName
+			updatedFields["organization_id"] = orgBusinessID
+		}
 	}
 	// ManagerId字段不存在，暂时跳过
 	if req.Status != nil {

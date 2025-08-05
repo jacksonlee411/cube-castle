@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
@@ -28,6 +29,7 @@ type EmployeeQuery struct {
 	inters              []Interceptor
 	predicates          []predicate.Employee
 	withCurrentPosition *PositionQuery
+	withDepartment      *OrganizationUnitQuery
 	withPositionHistory *PositionOccupancyHistoryQuery
 	withAssignments     *PositionAssignmentQuery
 	// intermediate query (i.e. traversal path).
@@ -81,6 +83,28 @@ func (eq *EmployeeQuery) QueryCurrentPosition() *PositionQuery {
 			sqlgraph.From(employee.Table, employee.FieldID, selector),
 			sqlgraph.To(position.Table, position.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, employee.CurrentPositionTable, employee.CurrentPositionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryDepartment chains the current query on the "department" edge.
+func (eq *EmployeeQuery) QueryDepartment() *OrganizationUnitQuery {
+	query := (&OrganizationUnitClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(employee.Table, employee.FieldID, selector),
+			sqlgraph.To(organizationunit.Table, organizationunit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, employee.DepartmentTable, employee.DepartmentColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
@@ -325,6 +349,7 @@ func (eq *EmployeeQuery) Clone() *EmployeeQuery {
 		inters:              append([]Interceptor{}, eq.inters...),
 		predicates:          append([]predicate.Employee{}, eq.predicates...),
 		withCurrentPosition: eq.withCurrentPosition.Clone(),
+		withDepartment:      eq.withDepartment.Clone(),
 		withPositionHistory: eq.withPositionHistory.Clone(),
 		withAssignments:     eq.withAssignments.Clone(),
 		// clone intermediate query.
@@ -341,6 +366,17 @@ func (eq *EmployeeQuery) WithCurrentPosition(opts ...func(*PositionQuery)) *Empl
 		opt(query)
 	}
 	eq.withCurrentPosition = query
+	return eq
+}
+
+// WithDepartment tells the query-builder to eager-load the nodes that are connected to
+// the "department" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EmployeeQuery) WithDepartment(opts ...func(*OrganizationUnitQuery)) *EmployeeQuery {
+	query := (&OrganizationUnitClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withDepartment = query
 	return eq
 }
 
@@ -444,8 +480,9 @@ func (eq *EmployeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Emp
 	var (
 		nodes       = []*Employee{}
 		_spec       = eq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			eq.withCurrentPosition != nil,
+			eq.withDepartment != nil,
 			eq.withPositionHistory != nil,
 			eq.withAssignments != nil,
 		}
@@ -471,6 +508,12 @@ func (eq *EmployeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Emp
 	if query := eq.withCurrentPosition; query != nil {
 		if err := eq.loadCurrentPosition(ctx, query, nodes, nil,
 			func(n *Employee, e *Position) { n.Edges.CurrentPosition = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withDepartment; query != nil {
+		if err := eq.loadDepartment(ctx, query, nodes, nil,
+			func(n *Employee, e *OrganizationUnit) { n.Edges.Department = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -518,6 +561,38 @@ func (eq *EmployeeQuery) loadCurrentPosition(ctx context.Context, query *Positio
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "current_position_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (eq *EmployeeQuery) loadDepartment(ctx context.Context, query *OrganizationUnitQuery, nodes []*Employee, init func(*Employee), assign func(*Employee, *OrganizationUnit)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Employee)
+	for i := range nodes {
+		if nodes[i].DepartmentID == nil {
+			continue
+		}
+		fk := *nodes[i].DepartmentID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(organizationunit.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "department_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -613,6 +688,9 @@ func (eq *EmployeeQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if eq.withCurrentPosition != nil {
 			_spec.Node.AddColumnOnce(employee.FieldCurrentPositionID)
+		}
+		if eq.withDepartment != nil {
+			_spec.Node.AddColumnOnce(employee.FieldDepartmentID)
 		}
 	}
 	if ps := eq.predicates; len(ps) > 0 {

@@ -40,9 +40,11 @@ import EmployeeCard, { EmployeeCardsGrid, EmployeeCardSkeleton } from '@/compone
 import SmartFilterStable, { FilterOption, ActiveFilter } from '@/components/ui/smart-filter-stable';
 import { PieChart, BarChart } from '@/components/ui/data-visualization';
 
-// Import CQRS hooks
+// Import CQRS hooks and commands
 import { useEmployeeCQRS, useEmployeeStats } from '@/hooks/useEmployeeCQRS';
 import { useEmployeePagination } from '@/hooks/useEmployeePagination';
+import { employeeCommands } from '@/lib/cqrs/employee-commands';
+import { organizationApi, positionApi } from '@/lib/api-client';
 import { Employee } from '@/types/employee';
 import ClientOnlyWrapper from '@/components/ClientOnlyWrapper';
 import { ServerPaginatedTable } from '@/components/ui/server-paginated-table';
@@ -59,6 +61,14 @@ const EmployeesPage: React.FC = () => {
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
+  
+  // Dynamic data state
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [positions, setPositions] = useState<{ id: string; title: string }[]>([]);
+  const [managers, setManagers] = useState<{ id: string; name: string }[]>([]);
+  const [isDepartmentsLoading, setIsDepartmentsLoading] = useState(false);
+  const [isPositionsLoading, setIsPositionsLoading] = useState(false);
+  const [isManagersLoading, setIsManagersLoading] = useState(false);
 
   // 稳定化过滤器状态管理函数
   const handleFiltersChange = useCallback((filters: ActiveFilter[]) => {
@@ -94,6 +104,35 @@ const EmployeesPage: React.FC = () => {
       applyFilters({});
     }
   }, [activeFilters, applyFilters]);
+
+  // 加载部门数据
+  React.useEffect(() => {
+    const fetchDepartments = async () => {
+      setIsDepartmentsLoading(true);
+      try {
+        const response = await organizationApi.getOrganizations({
+          unit_type: 'DEPARTMENT',
+          status: 'ACTIVE',
+          pageSize: 100 // Get all departments
+        });
+        
+        const deptNames = response.organizations
+          .filter(org => org.unit_type === 'DEPARTMENT')
+          .map(org => org.name);
+        
+        setDepartments(deptNames);
+        console.log('✅ 成功加载部门列表:', deptNames);
+      } catch (error) {
+        console.error('❌ 加载部门列表失败:', error);
+        // 使用fallback数据
+        setDepartments(['技术部', '产品部', '人事部', '财务部', '市场部', '运营部']);
+      } finally {
+        setIsDepartmentsLoading(false);
+      }
+    };
+    
+    fetchDepartments();
+  }, []);
   // Error state component
   const ErrorState = () => (
     <Card className="p-6 text-center">
@@ -160,45 +199,77 @@ const EmployeesPage: React.FC = () => {
   const handleCreateEmployee = async (values: any) => {
     try {
       if (editingEmployee) {
-        // Update existing employee (local state only for now)
-        const updatedEmployee: Employee = {
-          ...editingEmployee,
-          employeeId: values.employeeId,
-          legalName: values.legalName,
-          preferredName: values.preferredName,
+        // Update existing employee using CQRS command with proper IDs
+        const updateData: any = {
+          id: editingEmployee.id,
+          first_name: values.legalName.split(' ')[0] || values.legalName,
+          last_name: values.legalName.split(' ')[1] || '',
           email: values.email,
-          hireDate: values.hireDate ? format(new Date(values.hireDate), 'yyyy-MM-dd') : '',
           department: values.department,
-          position: values.position,
-          managerName: values.managerName
         };
 
-        // In a real app, this would make an API call
-        toast.success(`员工 ${values.legalName} 信息已更新`);
+        // Use position ID if available, otherwise fall back to position title
+        if (values.positionId) {
+          updateData.position_id = values.positionId;
+        } else if (values.position) {
+          updateData.position = values.position;
+        }
+
+        // Use manager ID if available, otherwise fall back to manager name
+        if (values.managerId) {
+          updateData.manager_id = values.managerId;
+        } else if (values.managerName) {
+          updateData.manager_name = values.managerName;
+        }
+
+        const result = await employeeCommands.updateEmployee(updateData);
+        
+        if (result.success) {
+          toast.success(`员工 ${values.legalName} 信息已更新`);
+          refresh(); // Refresh the employee list
+          handleModalClose();
+        } else {
+          throw new Error(result.error || '更新员工信息失败');
+        }
       } else {
-        // Create new employee (local state only for now)
-        const newEmployee: Employee = {
-          id: Date.now().toString(),
-          employeeId: values.employeeId,
-          legalName: values.legalName,
-          preferredName: values.preferredName,
+        // Create new employee using CQRS command with proper IDs
+        const createData: any = {
+          employee_type: 'FULL_TIME',
+          first_name: values.legalName.split(' ')[0] || values.legalName,
+          last_name: values.legalName.split(' ')[1] || '',
           email: values.email,
-          status: 'active',
-          hireDate: values.hireDate ? format(new Date(values.hireDate), 'yyyy-MM-dd') : '',
+          phone: values.phone || undefined,
+          hire_date: values.hireDate ? format(new Date(values.hireDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
           department: values.department,
-          position: values.position,
-          managerName: values.managerName
         };
 
-        // In a real app, this would make an API call
-        toast.success(`员工 ${values.legalName} 已成功添加到系统中`);
+        // Use position ID if available, otherwise fall back to position title
+        if (values.positionId) {
+          createData.position_id = values.positionId;
+        } else if (values.position) {
+          createData.position = values.position;
+        }
+
+        // Use manager ID if available, otherwise fall back to manager name
+        if (values.managerId) {
+          createData.manager_id = values.managerId;
+        } else if (values.managerName) {
+          createData.manager_name = values.managerName;
+        }
+
+        const result = await employeeCommands.createEmployee(createData);
+        
+        if (result.success) {
+          toast.success(`员工 ${values.legalName} 已成功添加到系统中`);
+          refresh(); // Refresh the employee list
+          handleModalClose();
+        } else {
+          throw new Error(result.error || '创建员工失败');
+        }
       }
-      
-      // Refresh data
-      refresh();
-      handleModalClose();
     } catch (error) {
-      toast.error('操作时发生错误，请重试');
+      console.error('Employee operation failed:', error);
+      toast.error(error instanceof Error ? error.message : '操作时发生错误，请重试');
     }
   };
 
@@ -206,16 +277,37 @@ const EmployeesPage: React.FC = () => {
     setEditingEmployee(employee);
     setFormData({
       ...employee,
-      hireDate: employee.hireDate
+      hireDate: employee.hireDate,
+      positionId: employee.positionId || '', // 如果有职位ID则使用
+      managerId: employee.managerId || '',   // 如果有经理ID则使用
     });
     setShowModal(true);
+    
+    // 如果员工有部门，自动加载该部门的职位和经理列表
+    if (employee.department) {
+      handleDepartmentChange(employee.department);
+    }
   };
 
-  const handleDelete = (employee: Employee) => {
+  const handleDelete = async (employee: Employee) => {
     if (confirm(`确定要删除员工 ${employee.legalName} 吗？此操作不可撤销。`)) {
-      // In a real app, this would make an API call
-      toast.success(`员工 ${employee.legalName} 已从系统中删除`);
-      refresh(); // Refresh data
+      try {
+        const result = await employeeCommands.terminateEmployee({
+          id: employee.id,
+          termination_date: format(new Date(), 'yyyy-MM-dd'),
+          reason: '手动删除',
+        });
+        
+        if (result.success) {
+          toast.success(`员工 ${employee.legalName} 已从系统中删除`);
+          refresh(); // Refresh the employee list
+        } else {
+          throw new Error(result.error || '删除员工失败');
+        }
+      } catch (error) {
+        console.error('Employee deletion failed:', error);
+        toast.error(error instanceof Error ? error.message : '删除员工时发生错误，请重试');
+      }
     }
   };
 
@@ -223,6 +315,52 @@ const EmployeesPage: React.FC = () => {
     setShowModal(false);
     setEditingEmployee(null);
     setFormData({});
+    setPositions([]); // 清空职位列表
+    setManagers([]); // 清空经理列表
+  };
+
+  // 部门变化时获取对应职位和经理
+  const handleDepartmentChange = async (department: string) => {
+    setFormData(prev => ({ ...prev, department, position: '', managerId: '' }));
+    
+    if (department) {
+      // 获取职位列表
+      setIsPositionsLoading(true);
+      try {
+        const positionsData = await positionApi.getPositionsByDepartment(department);
+        const positionOptions = positionsData.map(pos => ({
+          id: pos.id,
+          title: pos.title
+        }));
+        setPositions(positionOptions);
+        console.log(`✅ 加载部门 ${department} 的职位列表:`, positionOptions);
+      } catch (error) {
+        console.error('Failed to fetch positions:', error);
+        setPositions([]);
+      } finally {
+        setIsPositionsLoading(false);
+      }
+
+      // 获取经理列表
+      setIsManagersLoading(true);
+      try {
+        const managersData = await positionApi.getPotentialManagers(department);
+        const managerOptions = managersData.map(mgr => ({
+          id: mgr.id,
+          name: mgr.fullName
+        }));
+        setManagers(managerOptions);
+        console.log(`✅ 加载部门 ${department} 的经理列表:`, managerOptions);
+      } catch (error) {
+        console.error('Failed to fetch managers:', error);
+        setManagers([]);
+      } finally {
+        setIsManagersLoading(false);
+      }
+    } else {
+      setPositions([]);
+      setManagers([]);
+    }
   };
 
   // Modal overlay click handler
@@ -794,26 +932,40 @@ const EmployeesPage: React.FC = () => {
                   <label className="text-sm font-medium">所属部门</label>
                   <select 
                     value={formData.department || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+                    onChange={(e) => handleDepartmentChange(e.target.value)}
                     className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={isDepartmentsLoading}
                   >
-                    <option value="">选择部门</option>
-                    <option value="技术部">技术部</option>
-                    <option value="产品部">产品部</option>
-                    <option value="人事部">人事部</option>
-                    <option value="财务部">财务部</option>
-                    <option value="市场部">市场部</option>
-                    <option value="运营部">运营部</option>
+                    <option value="">
+                      {isDepartmentsLoading ? '加载中...' : '选择部门'}
+                    </option>
+                    {departments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
                   </select>
                 </div>
                 
                 <div>
                   <label className="text-sm font-medium">职位</label>
-                  <Input 
-                    placeholder="如: 高级软件工程师"
-                    value={formData.position || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                  />
+                  <select 
+                    value={formData.positionId || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, positionId: e.target.value, position: positions.find(p => p.id === e.target.value)?.title || '' }))}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!formData.department || isPositionsLoading}
+                  >
+                    <option value="">
+                      {!formData.department ? '请先选择部门' : 
+                       isPositionsLoading ? '加载中...' : '选择职位'}
+                    </option>
+                    {positions.map(pos => (
+                      <option key={pos.id} value={pos.id}>{pos.title}</option>
+                    ))}
+                  </select>
+                  {!formData.department && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      选择部门后可选择相应职位
+                    </p>
+                  )}
                 </div>
                 
                 <div>
@@ -830,11 +982,25 @@ const EmployeesPage: React.FC = () => {
                 
                 <div>
                   <label className="text-sm font-medium">直属经理</label>
-                  <Input 
-                    placeholder="直属经理姓名(可选)"
-                    value={formData.managerName || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, managerName: e.target.value }))}
-                  />
+                  <select 
+                    value={formData.managerId || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, managerId: e.target.value, managerName: managers.find(m => m.id === e.target.value)?.name || '' }))}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!formData.department || isManagersLoading}
+                  >
+                    <option value="">
+                      {!formData.department ? '请先选择部门' : 
+                       isManagersLoading ? '加载中...' : '选择直属经理(可选)'}
+                    </option>
+                    {managers.map(mgr => (
+                      <option key={mgr.id} value={mgr.id}>{mgr.name}</option>
+                    ))}
+                  </select>
+                  {!formData.department && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      选择部门后可选择相应经理
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/google/uuid"
 )
@@ -41,6 +42,8 @@ type Employee struct {
 	PhoneNumber *string `json:"phone_number,omitempty"`
 	// Current primary position reference
 	CurrentPositionID *uuid.UUID `json:"current_position_id,omitempty"`
+	// Direct department/organization unit reference for efficient queries
+	DepartmentID *uuid.UUID `json:"department_id,omitempty"`
 	// Current employment status
 	EmploymentStatus employee.EmploymentStatus `json:"employment_status,omitempty"`
 	// Employment start date
@@ -67,13 +70,15 @@ type Employee struct {
 type EmployeeEdges struct {
 	// Employee current primary position
 	CurrentPosition *Position `json:"current_position,omitempty"`
+	// Employee current department/organization unit
+	Department *OrganizationUnit `json:"department,omitempty"`
 	// Employee position occupancy history records
 	PositionHistory []*PositionOccupancyHistory `json:"position_history,omitempty"`
 	// Employee position assignments
 	Assignments []*PositionAssignment `json:"assignments,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // CurrentPositionOrErr returns the CurrentPosition value or an error if the edge
@@ -87,10 +92,21 @@ func (e EmployeeEdges) CurrentPositionOrErr() (*Position, error) {
 	return nil, &NotLoadedError{edge: "current_position"}
 }
 
+// DepartmentOrErr returns the Department value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EmployeeEdges) DepartmentOrErr() (*OrganizationUnit, error) {
+	if e.Department != nil {
+		return e.Department, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: organizationunit.Label}
+	}
+	return nil, &NotLoadedError{edge: "department"}
+}
+
 // PositionHistoryOrErr returns the PositionHistory value or an error if the edge
 // was not loaded in eager-loading.
 func (e EmployeeEdges) PositionHistoryOrErr() ([]*PositionOccupancyHistory, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.PositionHistory, nil
 	}
 	return nil, &NotLoadedError{edge: "position_history"}
@@ -99,7 +115,7 @@ func (e EmployeeEdges) PositionHistoryOrErr() ([]*PositionOccupancyHistory, erro
 // AssignmentsOrErr returns the Assignments value or an error if the edge
 // was not loaded in eager-loading.
 func (e EmployeeEdges) AssignmentsOrErr() ([]*PositionAssignment, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.Assignments, nil
 	}
 	return nil, &NotLoadedError{edge: "assignments"}
@@ -110,7 +126,7 @@ func (*Employee) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case employee.FieldCurrentPositionID:
+		case employee.FieldCurrentPositionID, employee.FieldDepartmentID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case employee.FieldEmployeeDetails:
 			values[i] = new([]byte)
@@ -204,6 +220,13 @@ func (e *Employee) assignValues(columns []string, values []any) error {
 				e.CurrentPositionID = new(uuid.UUID)
 				*e.CurrentPositionID = *value.S.(*uuid.UUID)
 			}
+		case employee.FieldDepartmentID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field department_id", values[i])
+			} else if value.Valid {
+				e.DepartmentID = new(uuid.UUID)
+				*e.DepartmentID = *value.S.(*uuid.UUID)
+			}
 		case employee.FieldEmploymentStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field employment_status", values[i])
@@ -273,6 +296,11 @@ func (e *Employee) QueryCurrentPosition() *PositionQuery {
 	return NewEmployeeClient(e.config).QueryCurrentPosition(e)
 }
 
+// QueryDepartment queries the "department" edge of the Employee entity.
+func (e *Employee) QueryDepartment() *OrganizationUnitQuery {
+	return NewEmployeeClient(e.config).QueryDepartment(e)
+}
+
 // QueryPositionHistory queries the "position_history" edge of the Employee entity.
 func (e *Employee) QueryPositionHistory() *PositionOccupancyHistoryQuery {
 	return NewEmployeeClient(e.config).QueryPositionHistory(e)
@@ -339,6 +367,11 @@ func (e *Employee) String() string {
 	builder.WriteString(", ")
 	if v := e.CurrentPositionID; v != nil {
 		builder.WriteString("current_position_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := e.DepartmentID; v != nil {
+		builder.WriteString("department_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

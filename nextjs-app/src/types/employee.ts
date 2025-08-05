@@ -1,15 +1,18 @@
 // Employee interface for SWR-based data fetching
 export interface Employee {
   id: string;
-  employeeId: string;
-  legalName: string;
-  preferredName?: string | null;
+  businessId: string;
+  employeeNumber: string;
+  personName: string; // 统一姓名字段
   email: string;
-  phone?: string | null;
+  personalEmail?: string | null;
+  phoneNumber?: string | null;
   status: 'active' | 'inactive' | 'pending';
   hireDate: string;
   department?: string;
+  departmentId?: string;
   position?: string;
+  positionId?: string;
   managerId?: string;
   managerName?: string | null;
   avatar?: string;
@@ -32,9 +35,15 @@ export interface EmployeeStats {
   departments: number;
 }
 
-// Department data for charts
-export interface DepartmentData {
-  label: string;
-  value: number;
-  color: string;
+// Update employee request interface
+export interface UpdateEmployeeRequest {
+  personName?: string;
+  email?: string;
+  personalEmail?: string;
+  phoneNumber?: string;
+  departmentId?: string;
+  positionId?: string;
+  status?: 'active' | 'inactive' | 'pending';
+  hireDate?: string;
+  managerId?: string;
 }

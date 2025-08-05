@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
@@ -214,6 +215,21 @@ func (ouu *OrganizationUnitUpdate) AddPositions(p ...*Position) *OrganizationUni
 	return ouu.AddPositionIDs(ids...)
 }
 
+// AddEmployeeIDs adds the "employees" edge to the Employee entity by IDs.
+func (ouu *OrganizationUnitUpdate) AddEmployeeIDs(ids ...uuid.UUID) *OrganizationUnitUpdate {
+	ouu.mutation.AddEmployeeIDs(ids...)
+	return ouu
+}
+
+// AddEmployees adds the "employees" edges to the Employee entity.
+func (ouu *OrganizationUnitUpdate) AddEmployees(e ...*Employee) *OrganizationUnitUpdate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return ouu.AddEmployeeIDs(ids...)
+}
+
 // Mutation returns the OrganizationUnitMutation object of the builder.
 func (ouu *OrganizationUnitUpdate) Mutation() *OrganizationUnitMutation {
 	return ouu.mutation
@@ -265,6 +281,27 @@ func (ouu *OrganizationUnitUpdate) RemovePositions(p ...*Position) *Organization
 		ids[i] = p[i].ID
 	}
 	return ouu.RemovePositionIDs(ids...)
+}
+
+// ClearEmployees clears all "employees" edges to the Employee entity.
+func (ouu *OrganizationUnitUpdate) ClearEmployees() *OrganizationUnitUpdate {
+	ouu.mutation.ClearEmployees()
+	return ouu
+}
+
+// RemoveEmployeeIDs removes the "employees" edge to Employee entities by IDs.
+func (ouu *OrganizationUnitUpdate) RemoveEmployeeIDs(ids ...uuid.UUID) *OrganizationUnitUpdate {
+	ouu.mutation.RemoveEmployeeIDs(ids...)
+	return ouu
+}
+
+// RemoveEmployees removes "employees" edges to Employee entities.
+func (ouu *OrganizationUnitUpdate) RemoveEmployees(e ...*Employee) *OrganizationUnitUpdate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return ouu.RemoveEmployeeIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -497,6 +534,51 @@ func (ouu *OrganizationUnitUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if ouu.mutation.EmployeesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   organizationunit.EmployeesTable,
+			Columns: []string{organizationunit.EmployeesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ouu.mutation.RemovedEmployeesIDs(); len(nodes) > 0 && !ouu.mutation.EmployeesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   organizationunit.EmployeesTable,
+			Columns: []string{organizationunit.EmployeesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ouu.mutation.EmployeesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   organizationunit.EmployeesTable,
+			Columns: []string{organizationunit.EmployeesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ouu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{organizationunit.Label}
@@ -701,6 +783,21 @@ func (ouuo *OrganizationUnitUpdateOne) AddPositions(p ...*Position) *Organizatio
 	return ouuo.AddPositionIDs(ids...)
 }
 
+// AddEmployeeIDs adds the "employees" edge to the Employee entity by IDs.
+func (ouuo *OrganizationUnitUpdateOne) AddEmployeeIDs(ids ...uuid.UUID) *OrganizationUnitUpdateOne {
+	ouuo.mutation.AddEmployeeIDs(ids...)
+	return ouuo
+}
+
+// AddEmployees adds the "employees" edges to the Employee entity.
+func (ouuo *OrganizationUnitUpdateOne) AddEmployees(e ...*Employee) *OrganizationUnitUpdateOne {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return ouuo.AddEmployeeIDs(ids...)
+}
+
 // Mutation returns the OrganizationUnitMutation object of the builder.
 func (ouuo *OrganizationUnitUpdateOne) Mutation() *OrganizationUnitMutation {
 	return ouuo.mutation
@@ -752,6 +849,27 @@ func (ouuo *OrganizationUnitUpdateOne) RemovePositions(p ...*Position) *Organiza
 		ids[i] = p[i].ID
 	}
 	return ouuo.RemovePositionIDs(ids...)
+}
+
+// ClearEmployees clears all "employees" edges to the Employee entity.
+func (ouuo *OrganizationUnitUpdateOne) ClearEmployees() *OrganizationUnitUpdateOne {
+	ouuo.mutation.ClearEmployees()
+	return ouuo
+}
+
+// RemoveEmployeeIDs removes the "employees" edge to Employee entities by IDs.
+func (ouuo *OrganizationUnitUpdateOne) RemoveEmployeeIDs(ids ...uuid.UUID) *OrganizationUnitUpdateOne {
+	ouuo.mutation.RemoveEmployeeIDs(ids...)
+	return ouuo
+}
+
+// RemoveEmployees removes "employees" edges to Employee entities.
+func (ouuo *OrganizationUnitUpdateOne) RemoveEmployees(e ...*Employee) *OrganizationUnitUpdateOne {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return ouuo.RemoveEmployeeIDs(ids...)
 }
 
 // Where appends a list predicates to the OrganizationUnitUpdate builder.
@@ -1007,6 +1125,51 @@ func (ouuo *OrganizationUnitUpdateOne) sqlSave(ctx context.Context) (_node *Orga
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ouuo.mutation.EmployeesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   organizationunit.EmployeesTable,
+			Columns: []string{organizationunit.EmployeesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ouuo.mutation.RemovedEmployeesIDs(); len(nodes) > 0 && !ouuo.mutation.EmployeesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   organizationunit.EmployeesTable,
+			Columns: []string{organizationunit.EmployeesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ouuo.mutation.EmployeesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   organizationunit.EmployeesTable,
+			Columns: []string{organizationunit.EmployeesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

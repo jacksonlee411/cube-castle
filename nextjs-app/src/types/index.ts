@@ -13,6 +13,29 @@ export interface PaginationInfo {
   totalPages: number
 }
 
+// 简化的职位类型（用于下拉选择）
+export interface Position {
+  id: string
+  title: string
+  departmentId: string
+  departmentName: string
+  level: string
+  status: 'OPEN' | 'FILLED' | 'FROZEN' | 'PENDING_ELIMINATION'
+  requirements: string[]
+  salary: {
+    min: number
+    max: number
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+// 职位列表响应
+export interface PositionListResponse {
+  positions: Position[]
+  pagination: PaginationInfo
+}
+
 // 导出职位相关类型
 export * from './position'
 

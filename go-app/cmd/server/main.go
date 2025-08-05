@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -32,6 +35,8 @@ import (
 	"github.com/gaogu/cube-castle/go-app/internal/repositories"
 	"github.com/gaogu/cube-castle/go-app/internal/services"
 	"github.com/gaogu/cube-castle/go-app/internal/events/consumers"
+	"github.com/gaogu/cube-castle/go-app/ent"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
@@ -39,6 +44,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"regexp"
 )
 
 // simpleLogger 实现简单的日志接口用于测试
@@ -58,6 +64,18 @@ func (l *simpleLogger) Warn(msg string, keysAndValues ...interface{}) {
 
 func (l *simpleLogger) Debug(msg string, keysAndValues ...interface{}) {
 	log.Printf("DEBUG: %s %v", msg, keysAndValues)
+}
+
+// isValidBusinessID validates business ID format (1-99999999)
+func isValidBusinessID(businessID string) bool {
+	matched, _ := regexp.MatchString(`^[1-9][0-9]{0,7}$`, businessID)
+	return matched
+}
+
+// isValidOrganizationBusinessID validates organization business ID format (100000-999999)
+func isValidOrganizationBusinessID(businessID string) bool {
+	matched, _ := regexp.MatchString(`^[1-9][0-9]{5}$`, businessID)
+	return matched
 }
 
 const (
@@ -387,11 +405,11 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.RecoveryMiddleware(logger))
-	r.Use(middleware.LoggingMiddleware(logger))
 	r.Use(metrics.PrometheusMiddleware)
 	r.Use(middleware.CORSMiddleware)
 	r.Use(middleware.TenantMiddleware)
 	r.Use(middleware.AuthMiddleware(logger))
+	r.Use(middleware.LoggingMiddleware(logger))
 	r.Use(chimiddleware.Timeout(60 * time.Second))
 
 	// 健康检查端点（不需要认证）
@@ -484,7 +502,22 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 
 		// Setup organization routes using the adapter
 		if entClient != nil {
-			routes.SetupOrganizationRoutes(r, entClient, logger)
+			var sqlDB *sql.DB
+			if db != nil {
+				// Create sql.DB connection for business ID service
+				databaseURL := os.Getenv("DATABASE_URL")
+				if databaseURL == "" {
+					databaseURL = "postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+				}
+				
+				var err error
+				sqlDB, err = sql.Open("postgres", databaseURL)
+				if err != nil {
+					logger.LogError("setup_routes", "Failed to open sql.DB connection", err, nil)
+					sqlDB = nil
+				}
+			}
+			routes.SetupOrganizationRoutes(r, entClient, logger, sqlDB)
 			
 			// Initialize CQRS handlers properly
 			if db != nil {
@@ -541,6 +574,7 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 							// 员工命令
 							r.Post("/employees/hire", commandHandler.HireEmployee)
 							r.Put("/employees/update", commandHandler.UpdateEmployee)
+							r.Put("/update-employee", commandHandler.UpdateEmployee)
 							
 							// 组织命令
 							r.Post("/organizations", commandHandler.CreateOrganization)
@@ -682,6 +716,8 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 			if positionHandler != nil {
 				r.Get("/", positionHandler.ListPositions())
 				r.Post("/", positionHandler.CreatePosition())
+				// 新增：根据部门获取职位列表的API
+				r.Get("/by-department", positionHandler.GetPositionsByDepartment())
 				r.Route("/{id}", func(r chi.Router) {
 					r.Get("/", positionHandler.GetPosition())
 					r.Put("/", positionHandler.UpdatePosition())
@@ -693,6 +729,9 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
 				}))
 				r.Post("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+				}))
+				r.Get("/by-department", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
 				}))
 			}
@@ -732,6 +771,8 @@ func setupRoutes(logger *logging.StructuredLogger, coreHRService *corehr.Service
 					middleware.EmployeeDeprecationInfo["create"],
 					logger,
 				))
+				// 新增：获取潜在经理列表的API
+				r.Get("/potential-managers", employeeHandler.GetPotentialManagers())
 				r.Route("/{id}", func(r chi.Router) {
 					r.Get("/", middleware.WrapDeprecatedHandler(
 						employeeHandler.GetEmployee(),
@@ -1628,12 +1669,18 @@ func getIntParam(r *http.Request, key string, defaultValue int) int {
 // getTenantID 从上下文获取租户ID
 func getTenantID(ctx context.Context) uuid.UUID {
 	if tenantID := ctx.Value(middleware.TenantIDKey); tenantID != nil {
-		if id, err := uuid.Parse(tenantID.(string)); err == nil {
+		if id, ok := tenantID.(uuid.UUID); ok {
 			return id
+		}
+		// 兼容性处理：如果存储的是字符串类型
+		if id, ok := tenantID.(string); ok {
+			if parsedID, err := uuid.Parse(id); err == nil {
+				return parsedID
+			}
 		}
 	}
 	// 返回默认租户ID
-	return uuid.MustParse("00000000-0000-0000-0000-000000000000")
+	return uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 }
 
 // getUserID 从上下文获取用户ID
@@ -1969,18 +2016,56 @@ func handleUpdateEmployee(service *corehr.Service, logger *logging.StructuredLog
 			return
 		}
 
-		// 解析UUID
-		employeeUUID, err := uuid.Parse(employeeID)
-		if err != nil {
-			reqLogger.LogError("invalid_uuid", "Invalid employee ID format", err, map[string]interface{}{
+		// 解析和验证业务ID
+		if !isValidBusinessID(employeeID) {
+			reqLogger.LogError("invalid_business_id", "Invalid employee business ID format", nil, map[string]interface{}{
 				"employee_id": employeeID,
-				"tenant_id": tenantID.String(),
-				"error_type": fmt.Sprintf("%T", err),
+				"tenant_id":   tenantID.String(),
 			})
-			metrics.RecordError("corehr", "update_employee_invalid_uuid_error")
+			metrics.RecordError("corehr", "update_employee_invalid_business_id_error")
 			http.Error(w, "Invalid employee ID format", http.StatusBadRequest)
 			return
 		}
+
+		// 通过业务ID查找员工获取UUID - 直接查询数据库
+		entClient := common.GetEntClient()
+		if entClient == nil {
+			reqLogger.LogError("ent_client_unavailable", "Ent client not available for business ID lookup", nil, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id":   tenantID.String(),
+			})
+			metrics.RecordError("corehr", "update_employee_ent_client_error")
+			http.Error(w, "Database service unavailable", http.StatusServiceUnavailable)
+			return
+		}
+
+		entEmployee, err := entClient.Employee.Query().
+			Where(
+				employee.BusinessIDEQ(employeeID),
+				employee.TenantIDEQ(tenantID),
+			).
+			Only(r.Context())
+		if err != nil {
+			if ent.IsNotFound(err) {
+				reqLogger.LogError("employee_not_found", "Employee not found by business ID", err, map[string]interface{}{
+					"employee_id": employeeID,
+					"tenant_id":   tenantID.String(),
+				})
+				metrics.RecordError("corehr", "update_employee_not_found_error")
+				http.Error(w, "Employee not found", http.StatusNotFound)
+				return
+			}
+			reqLogger.LogError("lookup_employee_error", "Failed to lookup employee by business ID", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id":   tenantID.String(),
+				"error_type":  fmt.Sprintf("%T", err),
+			})
+			metrics.RecordError("corehr", "update_employee_lookup_error")
+			http.Error(w, "Failed to lookup employee", http.StatusInternalServerError)
+			return
+		}
+
+		employeeUUID := entEmployee.ID
 
 		// 验证Content-Type
 		if r.Header.Get("Content-Type") != "application/json" {
@@ -1994,7 +2079,19 @@ func handleUpdateEmployee(service *corehr.Service, logger *logging.StructuredLog
 			return
 		}
 
-		// 解析请求体
+		// 解析请求体 - 首先保存原始JSON用于业务ID处理
+		rawBody, err := io.ReadAll(r.Body)
+		if err != nil {
+			reqLogger.LogError("read_body_error", "Failed to read request body", err, map[string]interface{}{
+				"employee_id": employeeID,
+				"tenant_id": tenantID.String(),
+			})
+			metrics.RecordError("corehr", "update_employee_read_error")
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(rawBody))
+		
 		var req openapi.UpdateEmployeeRequest
 		if err := parseJSON(r, &req); err != nil {
 			reqLogger.LogError("parse_request_error", "Failed to parse update employee request JSON", err, map[string]interface{}{
@@ -2043,8 +2140,8 @@ func handleUpdateEmployee(service *corehr.Service, logger *logging.StructuredLog
 			"has_email", req.Email != nil,
 		)
 
-		// 调用服务
-		employee, err := service.UpdateEmployee(r.Context(), tenantID, employeeUUID, &req)
+		// 调用服务 - 传递原始JSON以处理业务ID参数
+		updatedEmployee, err := service.UpdateEmployeeWithRawJSON(r.Context(), tenantID, employeeUUID, &req, rawBody)
 		if err != nil {
 			reqLogger.LogError("update_employee_service_error", "Failed to update employee in service", err, map[string]interface{}{
 				"employee_id": employeeID,
@@ -2073,7 +2170,7 @@ func handleUpdateEmployee(service *corehr.Service, logger *logging.StructuredLog
 		}
 
 		// 响应验证
-		if employee == nil {
+		if updatedEmployee == nil {
 			reqLogger.LogError("service_response_error", "Service returned nil employee", nil, map[string]interface{}{
 				"employee_id": employeeID,
 				"tenant_id": tenantID.String(),
@@ -2091,13 +2188,13 @@ func handleUpdateEmployee(service *corehr.Service, logger *logging.StructuredLog
 
 		reqLogger.Info("Successfully updated employee",
 			"employee_id", employeeID,
-			"employee_number", employee.EmployeeNumber,
+			"employee_number", updatedEmployee.EmployeeNumber,
 			"duration_ms", duration.Milliseconds(),
 			"tenant_id", tenantID.String(),
 		)
 
 		// 返回响应
-		respondJSON(w, http.StatusOK, employee)
+		respondJSON(w, http.StatusOK, updatedEmployee)
 	}
 }
 

@@ -37,17 +37,44 @@ func (l *StructuredLogger) WithRequestContext(requestID, userID, tenantID string
 
 // WithContext 从context中提取并添加上下文信息
 func (l *StructuredLogger) WithContext(ctx context.Context) *StructuredLogger {
-	if requestID := ctx.Value("request_id"); requestID != nil {
-		if userID := ctx.Value("user_id"); userID != nil {
-			if tenantID := ctx.Value("tenant_id"); tenantID != nil {
-				return l.WithRequestContext(
-					requestID.(string),
-					userID.(string),
-					tenantID.(string),
-				)
-			}
+	// Import middleware package types (we need to add import if not already present)
+	type ContextKey string
+	const (
+		RequestIDKey ContextKey = "request_id"
+		UserIDKey    ContextKey = "user_id"
+		TenantIDKey  ContextKey = "tenant_id"
+	)
+	
+	var requestID, userID, tenantID string
+	
+	// 提取RequestID
+	if rid := ctx.Value(RequestIDKey); rid != nil {
+		if ridStr, ok := rid.(string); ok {
+			requestID = ridStr
 		}
 	}
+	
+	// 提取UserID
+	if uid := ctx.Value(UserIDKey); uid != nil {
+		if uidStr, ok := uid.(string); ok {
+			userID = uidStr
+		}
+	}
+	
+	// 提取TenantID
+	if tid := ctx.Value(TenantIDKey); tid != nil {
+		if tidUUID, ok := tid.(uuid.UUID); ok {
+			tenantID = tidUUID.String()
+		} else if tidStr, ok := tid.(string); ok {
+			tenantID = tidStr
+		}
+	}
+	
+	// 如果有任何上下文信息，创建包含这些信息的日志器
+	if requestID != "" || userID != "" || tenantID != "" {
+		return l.WithRequestContext(requestID, userID, tenantID)
+	}
+	
 	return l
 }
 

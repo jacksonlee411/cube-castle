@@ -82,6 +82,12 @@ func (Employee) Fields() []ent.Field {
 			Nillable().
 			Comment("Current primary position reference"),
 
+		// Department Relationship - Direct relationship for improved performance
+		field.UUID("department_id", uuid.UUID{}).
+			Optional().
+			Nillable().
+			Comment("Direct department/organization unit reference for efficient queries"),
+
 		// Employment Status
 		field.Enum("employment_status").
 			Values("ACTIVE", "ON_LEAVE", "TERMINATED", "SUSPENDED", "PENDING_START").
@@ -134,6 +140,13 @@ func (Employee) Edges() []ent.Edge {
 			Unique().
 			Comment("Employee current primary position"),
 
+		// Department Relationship - Direct reference for performance
+		edge.From("department", OrganizationUnit.Type).
+			Field("department_id").
+			Ref("employees").
+			Unique().
+			Comment("Employee current department/organization unit"),
+
 		// Position History Relationship
 		edge.To("position_history", PositionOccupancyHistory.Type).
 			Comment("Employee position occupancy history records"),
@@ -165,6 +178,13 @@ func (Employee) Indexes() []ent.Index {
 
 		// Current position relationship optimization
 		index.Fields("current_position_id"),
+
+		// Department relationship optimization 
+		index.Fields("department_id"),
+		index.Fields("tenant_id", "department_id"),
+		
+		// Combined position and department optimization
+		index.Fields("current_position_id", "department_id"),
 
 		// Hire date query optimization
 		index.Fields("tenant_id", "hire_date"),

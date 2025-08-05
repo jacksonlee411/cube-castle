@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/google/uuid"
@@ -197,6 +198,21 @@ func (ouc *OrganizationUnitCreate) AddPositions(p ...*Position) *OrganizationUni
 		ids[i] = p[i].ID
 	}
 	return ouc.AddPositionIDs(ids...)
+}
+
+// AddEmployeeIDs adds the "employees" edge to the Employee entity by IDs.
+func (ouc *OrganizationUnitCreate) AddEmployeeIDs(ids ...uuid.UUID) *OrganizationUnitCreate {
+	ouc.mutation.AddEmployeeIDs(ids...)
+	return ouc
+}
+
+// AddEmployees adds the "employees" edges to the Employee entity.
+func (ouc *OrganizationUnitCreate) AddEmployees(e ...*Employee) *OrganizationUnitCreate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return ouc.AddEmployeeIDs(ids...)
 }
 
 // Mutation returns the OrganizationUnitMutation object of the builder.
@@ -424,6 +440,22 @@ func (ouc *OrganizationUnitCreate) createSpec() (*OrganizationUnit, *sqlgraph.Cr
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ouc.mutation.EmployeesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   organizationunit.EmployeesTable,
+			Columns: []string{organizationunit.EmployeesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(employee.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

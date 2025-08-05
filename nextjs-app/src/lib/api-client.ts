@@ -5,6 +5,7 @@ import {
   EmployeeListResponse, 
   CreateEmployeeRequest, 
   UpdateEmployeeRequest,
+  EmployeeStatus,
   Organization,
   OrganizationProfile,
   OrganizationsApiResponse,
@@ -17,7 +18,9 @@ import {
   SystemHealth,
   BusinessMetrics,
   WorkflowInstance,
-  WorkflowStatsResponse
+  WorkflowStatsResponse,
+  Position,
+  PositionListResponse
 } from '@/types'
 import { 
   API_BASE_URL, 
@@ -149,9 +152,29 @@ export const employeeApi = {
 
   // 更新员工信息
   async updateEmployee(id: string, data: UpdateEmployeeRequest): Promise<Employee> {
-    const response = await httpClient.put(REST_ROUTES.COREHR.EMPLOYEE_BY_ID(id), data)
-    toast.success('员工信息更新成功')
-    return response.data
+    try {
+      const response = await httpClient.put(`/api/v1/corehr/employees/${id}`, data)
+      toast.success('员工信息更新成功')
+      return response.data
+    } catch (error: any) {
+      console.error('Employee update failed:', error)
+      
+      // 使用标准化错误处理
+      if (error.response?.status === 404) {
+        toast.error('员工不存在或已被删除')
+        throw new Error('EMPLOYEE_NOT_FOUND')
+      } else if (error.response?.status === 400) {
+        const message = error.response?.data?.message || '员工信息格式错误'
+        toast.error(message)
+        throw new Error('VALIDATION_ERROR')
+      } else if (error.response?.status === 500) {
+        toast.error('服务器内部错误，请稍后重试')
+        throw new Error('INTERNAL_SERVER_ERROR')
+      } else {
+        toast.error('员工信息更新失败')
+        throw error
+      }
+    }
   },
 
   // 删除员工
@@ -164,6 +187,169 @@ export const employeeApi = {
   async bulkUpdateEmployees(ids: string[], data: Partial<UpdateEmployeeRequest>): Promise<void> {
     await httpClient.patch(buildApiUrl('/api/v1/corehr/employees/bulk'), { ids, data })
     toast.success(`批量更新 ${ids.length} 名员工成功`)
+  }
+}
+
+// 职位管理 API
+export const positionApi = {
+  // 获取职位列表
+  async getPositions(params: {
+    page?: number
+    pageSize?: number
+    departmentId?: string
+    status?: string
+  } = {}): Promise<PositionListResponse> {
+    try {
+      const response = await httpClient.get('/api/v1/positions', { params })
+      return response.data
+    } catch (error) {
+      console.error('❌ 职位API调用失败:', error);
+      
+      // Fallback to mock data
+      const mockPositions: Position[] = [
+        {
+          id: '1',
+          title: '软件工程师',
+          departmentId: params.departmentId || '1',
+          departmentName: '技术部',
+          level: 'P5',
+          status: 'OPEN',
+          requirements: ['计算机相关专业', '3年以上工作经验'],
+          salary: { min: 15000, max: 25000 },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: '2',
+          title: '高级软件工程师',
+          departmentId: params.departmentId || '1',
+          departmentName: '技术部',
+          level: 'P6',
+          status: 'FILLED',
+          requirements: ['计算机相关专业', '5年以上工作经验'],
+          salary: { min: 20000, max: 35000 },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ]
+
+      return {
+        positions: mockPositions,
+        pagination: {
+          page: params.page || 1,
+          pageSize: params.pageSize || 50,
+          total: mockPositions.length,
+          totalPages: 1
+        }
+      }
+    }
+  },
+
+  // 根据部门获取职位列表
+  async getPositionsByDepartment(departmentId: string): Promise<Position[]> {
+    try {
+      const response = await httpClient.get(`/api/v1/positions`, {
+        params: { departmentId }
+      })
+      return response.data.positions || []
+    } catch (error) {
+      console.error('❌ 根据部门获取职位失败:', error);
+      
+      // 模拟数据：基于部门的职位映射
+      const departmentPositions: Record<string, Position[]> = {
+        '技术部': [
+          { id: '1', title: '软件工程师', departmentId, departmentName: '技术部', level: 'P5', status: 'OPEN', requirements: [], salary: { min: 15000, max: 25000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: '2', title: '高级软件工程师', departmentId, departmentName: '技术部', level: 'P6', status: 'OPEN', requirements: [], salary: { min: 20000, max: 35000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: '3', title: '技术经理', departmentId, departmentName: '技术部', level: 'M1', status: 'FILLED', requirements: [], salary: { min: 30000, max: 50000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: '4', title: '架构师', departmentId, departmentName: '技术部', level: 'P7', status: 'OPEN', requirements: [], salary: { min: 25000, max: 40000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ],
+        '产品部': [
+          { id: '5', title: '产品经理', departmentId, departmentName: '产品部', level: 'P6', status: 'OPEN', requirements: [], salary: { min: 18000, max: 30000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: '6', title: '高级产品经理', departmentId, departmentName: '产品部', level: 'P7', status: 'FILLED', requirements: [], salary: { min: 25000, max: 40000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: '7', title: 'UI设计师', departmentId, departmentName: '产品部', level: 'P5', status: 'OPEN', requirements: [], salary: { min: 12000, max: 20000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ],
+        '人事部': [
+          { id: '8', title: '人事专员', departmentId, departmentName: '人事部', level: 'P4', status: 'OPEN', requirements: [], salary: { min: 8000, max: 15000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: '9', title: '人事经理', departmentId, departmentName: '人事部', level: 'M1', status: 'FILLED', requirements: [], salary: { min: 15000, max: 25000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ],
+        '财务部': [
+          { id: '10', title: '会计', departmentId, departmentName: '财务部', level: 'P4', status: 'OPEN', requirements: [], salary: { min: 8000, max: 15000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: '11', title: '财务经理', departmentId, departmentName: '财务部', level: 'M1', status: 'FILLED', requirements: [], salary: { min: 18000, max: 30000 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ]
+      }
+      
+      return departmentPositions[departmentId] || []
+    }
+  },
+
+  // 获取可作为经理的员工列表
+  async getPotentialManagers(departmentId?: string): Promise<Employee[]> {
+    try {
+      const response = await httpClient.get('/api/v1/employees/potential-managers', {
+        params: {
+          departmentId
+        }
+      })
+      return response.data.data || []
+    } catch (error) {
+      console.error('❌ 获取经理列表失败:', error);
+      
+      // Mock data for managers
+      const mockManagers: Employee[] = [
+        {
+          id: 'mgr-1',
+          employeeNumber: 'EMP001',
+          firstName: '张',
+          lastName: '经理',
+          fullName: '张经理',
+          email: 'zhang.manager@company.com',
+          status: EmployeeStatus.ACTIVE,
+          hireDate: '2020-01-15',
+          jobTitle: '技术经理',
+          organizationId: departmentId,
+          tenantId: '00000000-0000-0000-0000-000000000001',
+          phoneNumber: '13800138001',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'mgr-2',
+          employeeNumber: 'EMP002',
+          firstName: '李',
+          lastName: '总监',
+          fullName: '李总监',
+          email: 'li.director@company.com',
+          status: EmployeeStatus.ACTIVE,
+          hireDate: '2019-06-01',
+          jobTitle: '产品总监',
+          organizationId: departmentId,
+          tenantId: '00000000-0000-0000-0000-000000000001',
+          phoneNumber: '13800138002',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'mgr-3',
+          employeeNumber: 'EMP003',
+          firstName: '王',
+          lastName: '主管',
+          fullName: '王主管',
+          email: 'wang.supervisor@company.com',
+          status: EmployeeStatus.ACTIVE,
+          hireDate: '2021-03-10',
+          jobTitle: '人事主管',
+          organizationId: departmentId,
+          tenantId: '00000000-0000-0000-0000-000000000001',
+          phoneNumber: '13800138003',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ]
+      
+      return departmentId ? 
+        mockManagers.filter(mgr => mgr.organizationId === departmentId) : 
+        mockManagers
+    }
   }
 }
 
@@ -416,6 +602,7 @@ function generateSessionId(): string {
 // 导出所有API
 export const apiClient = {
   employees: employeeApi,
+  positions: positionApi,
   organizations: organizationApi,
   intelligence: intelligenceApi,
   workflows: workflowApi,

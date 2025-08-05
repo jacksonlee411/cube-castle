@@ -36,8 +36,8 @@ func LoggingMiddleware(logger *logging.StructuredLogger) func(http.Handler) http
 			ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
 			r = r.WithContext(ctx)
 
-			// 创建请求上下文日志器
-			reqLogger := logger.WithRequestContext(requestID, "", "")
+			// 创建请求上下文日志器 - 使用WithContext从上下文中提取用户和租户信息
+			reqLogger := logger.WithContext(r.Context())
 
 			// 记录请求开始
 			reqLogger.Info("HTTP request started",
@@ -134,7 +134,7 @@ func TenantMiddleware(next http.Handler) http.Handler {
 
 		// 解析为UUID并添加到上下文
 		if tenantID, err := uuid.Parse(tenantIDStr); err == nil {
-			ctx := context.WithValue(r.Context(), "tenant_id", tenantID)
+			ctx := context.WithValue(r.Context(), TenantIDKey, tenantID)
 			r = r.WithContext(ctx)
 		}
 

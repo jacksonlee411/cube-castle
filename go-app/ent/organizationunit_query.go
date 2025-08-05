@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/gaogu/cube-castle/go-app/ent/employee"
 	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/predicate"
@@ -28,6 +29,7 @@ type OrganizationUnitQuery struct {
 	withParent    *OrganizationUnitQuery
 	withChildren  *OrganizationUnitQuery
 	withPositions *PositionQuery
+	withEmployees *EmployeeQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -123,6 +125,28 @@ func (ouq *OrganizationUnitQuery) QueryPositions() *PositionQuery {
 			sqlgraph.From(organizationunit.Table, organizationunit.FieldID, selector),
 			sqlgraph.To(position.Table, position.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, organizationunit.PositionsTable, organizationunit.PositionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(ouq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryEmployees chains the current query on the "employees" edge.
+func (ouq *OrganizationUnitQuery) QueryEmployees() *EmployeeQuery {
+	query := (&EmployeeClient{config: ouq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := ouq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := ouq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(organizationunit.Table, organizationunit.FieldID, selector),
+			sqlgraph.To(employee.Table, employee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, organizationunit.EmployeesTable, organizationunit.EmployeesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ouq.driver.Dialect(), step)
 		return fromU, nil
@@ -325,6 +349,7 @@ func (ouq *OrganizationUnitQuery) Clone() *OrganizationUnitQuery {
 		withParent:    ouq.withParent.Clone(),
 		withChildren:  ouq.withChildren.Clone(),
 		withPositions: ouq.withPositions.Clone(),
+		withEmployees: ouq.withEmployees.Clone(),
 		// clone intermediate query.
 		sql:  ouq.sql.Clone(),
 		path: ouq.path,
@@ -361,6 +386,17 @@ func (ouq *OrganizationUnitQuery) WithPositions(opts ...func(*PositionQuery)) *O
 		opt(query)
 	}
 	ouq.withPositions = query
+	return ouq
+}
+
+// WithEmployees tells the query-builder to eager-load the nodes that are connected to
+// the "employees" edge. The optional arguments are used to configure the query builder of the edge.
+func (ouq *OrganizationUnitQuery) WithEmployees(opts ...func(*EmployeeQuery)) *OrganizationUnitQuery {
+	query := (&EmployeeClient{config: ouq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	ouq.withEmployees = query
 	return ouq
 }
 
@@ -442,10 +478,11 @@ func (ouq *OrganizationUnitQuery) sqlAll(ctx context.Context, hooks ...queryHook
 	var (
 		nodes       = []*OrganizationUnit{}
 		_spec       = ouq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			ouq.withParent != nil,
 			ouq.withChildren != nil,
 			ouq.withPositions != nil,
+			ouq.withEmployees != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -483,6 +520,13 @@ func (ouq *OrganizationUnitQuery) sqlAll(ctx context.Context, hooks ...queryHook
 		if err := ouq.loadPositions(ctx, query, nodes,
 			func(n *OrganizationUnit) { n.Edges.Positions = []*Position{} },
 			func(n *OrganizationUnit, e *Position) { n.Edges.Positions = append(n.Edges.Positions, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := ouq.withEmployees; query != nil {
+		if err := ouq.loadEmployees(ctx, query, nodes,
+			func(n *OrganizationUnit) { n.Edges.Employees = []*Employee{} },
+			func(n *OrganizationUnit, e *Employee) { n.Edges.Employees = append(n.Edges.Employees, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -579,6 +623,39 @@ func (ouq *OrganizationUnitQuery) loadPositions(ctx context.Context, query *Posi
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "department_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (ouq *OrganizationUnitQuery) loadEmployees(ctx context.Context, query *EmployeeQuery, nodes []*OrganizationUnit, init func(*OrganizationUnit), assign func(*OrganizationUnit, *Employee)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*OrganizationUnit)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(employee.FieldDepartmentID)
+	}
+	query.Where(predicate.Employee(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(organizationunit.EmployeesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.DepartmentID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "department_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "department_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

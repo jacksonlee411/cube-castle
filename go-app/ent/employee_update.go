@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/gaogu/cube-castle/go-app/ent/employee"
+	"github.com/gaogu/cube-castle/go-app/ent/organizationunit"
 	"github.com/gaogu/cube-castle/go-app/ent/position"
 	"github.com/gaogu/cube-castle/go-app/ent/positionassignment"
 	"github.com/gaogu/cube-castle/go-app/ent/positionoccupancyhistory"
@@ -176,6 +177,26 @@ func (eu *EmployeeUpdate) ClearCurrentPositionID() *EmployeeUpdate {
 	return eu
 }
 
+// SetDepartmentID sets the "department_id" field.
+func (eu *EmployeeUpdate) SetDepartmentID(u uuid.UUID) *EmployeeUpdate {
+	eu.mutation.SetDepartmentID(u)
+	return eu
+}
+
+// SetNillableDepartmentID sets the "department_id" field if the given value is not nil.
+func (eu *EmployeeUpdate) SetNillableDepartmentID(u *uuid.UUID) *EmployeeUpdate {
+	if u != nil {
+		eu.SetDepartmentID(*u)
+	}
+	return eu
+}
+
+// ClearDepartmentID clears the value of the "department_id" field.
+func (eu *EmployeeUpdate) ClearDepartmentID() *EmployeeUpdate {
+	eu.mutation.ClearDepartmentID()
+	return eu
+}
+
 // SetEmploymentStatus sets the "employment_status" field.
 func (eu *EmployeeUpdate) SetEmploymentStatus(es employee.EmploymentStatus) *EmployeeUpdate {
 	eu.mutation.SetEmploymentStatus(es)
@@ -287,6 +308,11 @@ func (eu *EmployeeUpdate) SetCurrentPosition(p *Position) *EmployeeUpdate {
 	return eu.SetCurrentPositionID(p.ID)
 }
 
+// SetDepartment sets the "department" edge to the OrganizationUnit entity.
+func (eu *EmployeeUpdate) SetDepartment(o *OrganizationUnit) *EmployeeUpdate {
+	return eu.SetDepartmentID(o.ID)
+}
+
 // AddPositionHistoryIDs adds the "position_history" edge to the PositionOccupancyHistory entity by IDs.
 func (eu *EmployeeUpdate) AddPositionHistoryIDs(ids ...uuid.UUID) *EmployeeUpdate {
 	eu.mutation.AddPositionHistoryIDs(ids...)
@@ -325,6 +351,12 @@ func (eu *EmployeeUpdate) Mutation() *EmployeeMutation {
 // ClearCurrentPosition clears the "current_position" edge to the Position entity.
 func (eu *EmployeeUpdate) ClearCurrentPosition() *EmployeeUpdate {
 	eu.mutation.ClearCurrentPosition()
+	return eu
+}
+
+// ClearDepartment clears the "department" edge to the OrganizationUnit entity.
+func (eu *EmployeeUpdate) ClearDepartment() *EmployeeUpdate {
+	eu.mutation.ClearDepartment()
 	return eu
 }
 
@@ -553,6 +585,35 @@ func (eu *EmployeeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if eu.mutation.DepartmentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   employee.DepartmentTable,
+			Columns: []string{employee.DepartmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationunit.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.DepartmentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   employee.DepartmentTable,
+			Columns: []string{employee.DepartmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationunit.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -814,6 +875,26 @@ func (euo *EmployeeUpdateOne) ClearCurrentPositionID() *EmployeeUpdateOne {
 	return euo
 }
 
+// SetDepartmentID sets the "department_id" field.
+func (euo *EmployeeUpdateOne) SetDepartmentID(u uuid.UUID) *EmployeeUpdateOne {
+	euo.mutation.SetDepartmentID(u)
+	return euo
+}
+
+// SetNillableDepartmentID sets the "department_id" field if the given value is not nil.
+func (euo *EmployeeUpdateOne) SetNillableDepartmentID(u *uuid.UUID) *EmployeeUpdateOne {
+	if u != nil {
+		euo.SetDepartmentID(*u)
+	}
+	return euo
+}
+
+// ClearDepartmentID clears the value of the "department_id" field.
+func (euo *EmployeeUpdateOne) ClearDepartmentID() *EmployeeUpdateOne {
+	euo.mutation.ClearDepartmentID()
+	return euo
+}
+
 // SetEmploymentStatus sets the "employment_status" field.
 func (euo *EmployeeUpdateOne) SetEmploymentStatus(es employee.EmploymentStatus) *EmployeeUpdateOne {
 	euo.mutation.SetEmploymentStatus(es)
@@ -925,6 +1006,11 @@ func (euo *EmployeeUpdateOne) SetCurrentPosition(p *Position) *EmployeeUpdateOne
 	return euo.SetCurrentPositionID(p.ID)
 }
 
+// SetDepartment sets the "department" edge to the OrganizationUnit entity.
+func (euo *EmployeeUpdateOne) SetDepartment(o *OrganizationUnit) *EmployeeUpdateOne {
+	return euo.SetDepartmentID(o.ID)
+}
+
 // AddPositionHistoryIDs adds the "position_history" edge to the PositionOccupancyHistory entity by IDs.
 func (euo *EmployeeUpdateOne) AddPositionHistoryIDs(ids ...uuid.UUID) *EmployeeUpdateOne {
 	euo.mutation.AddPositionHistoryIDs(ids...)
@@ -963,6 +1049,12 @@ func (euo *EmployeeUpdateOne) Mutation() *EmployeeMutation {
 // ClearCurrentPosition clears the "current_position" edge to the Position entity.
 func (euo *EmployeeUpdateOne) ClearCurrentPosition() *EmployeeUpdateOne {
 	euo.mutation.ClearCurrentPosition()
+	return euo
+}
+
+// ClearDepartment clears the "department" edge to the OrganizationUnit entity.
+func (euo *EmployeeUpdateOne) ClearDepartment() *EmployeeUpdateOne {
+	euo.mutation.ClearDepartment()
 	return euo
 }
 
@@ -1221,6 +1313,35 @@ func (euo *EmployeeUpdateOne) sqlSave(ctx context.Context) (_node *Employee, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.DepartmentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   employee.DepartmentTable,
+			Columns: []string{employee.DepartmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationunit.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.DepartmentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   employee.DepartmentTable,
+			Columns: []string{employee.DepartmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationunit.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

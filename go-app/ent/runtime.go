@@ -162,11 +162,11 @@ func init() {
 	// employee.PhoneNumberValidator is a validator for the "phone_number" field. It is called by the builders before save.
 	employee.PhoneNumberValidator = employeeDescPhoneNumber.Validators[0].(func(string) error)
 	// employeeDescCreatedAt is the schema descriptor for created_at field.
-	employeeDescCreatedAt := employeeFields[17].Descriptor()
+	employeeDescCreatedAt := employeeFields[18].Descriptor()
 	// employee.DefaultCreatedAt holds the default value on creation for the created_at field.
 	employee.DefaultCreatedAt = employeeDescCreatedAt.Default.(func() time.Time)
 	// employeeDescUpdatedAt is the schema descriptor for updated_at field.
-	employeeDescUpdatedAt := employeeFields[18].Descriptor()
+	employeeDescUpdatedAt := employeeFields[19].Descriptor()
 	// employee.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	employee.DefaultUpdatedAt = employeeDescUpdatedAt.Default.(func() time.Time)
 	// employee.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -88,6 +88,7 @@ var (
 		{Name: "position", Type: field.TypeString, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "department_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "current_position_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// EmployeesTable holds the schema information for the "employees" table.
@@ -97,8 +98,14 @@ var (
 		PrimaryKey: []*schema.Column{EmployeesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "employees_positions_current_incumbents",
+				Symbol:     "employees_organization_units_employees",
 				Columns:    []*schema.Column{EmployeesColumns[18]},
+				RefColumns: []*schema.Column{OrganizationUnitsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "employees_positions_current_incumbents",
+				Columns:    []*schema.Column{EmployeesColumns[19]},
 				RefColumns: []*schema.Column{PositionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -137,7 +144,22 @@ var (
 			{
 				Name:    "employee_current_position_id",
 				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[19]},
+			},
+			{
+				Name:    "employee_department_id",
+				Unique:  false,
 				Columns: []*schema.Column{EmployeesColumns[18]},
+			},
+			{
+				Name:    "employee_tenant_id_department_id",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[2], EmployeesColumns[18]},
+			},
+			{
+				Name:    "employee_current_position_id_department_id",
+				Unique:  false,
+				Columns: []*schema.Column{EmployeesColumns[19], EmployeesColumns[18]},
 			},
 			{
 				Name:    "employee_tenant_id_hire_date",
@@ -555,7 +577,8 @@ var (
 func init() {
 	AssignmentDetailsTable.ForeignKeys[0].RefTable = PositionAssignmentsTable
 	AssignmentHistoriesTable.ForeignKeys[0].RefTable = PositionAssignmentsTable
-	EmployeesTable.ForeignKeys[0].RefTable = PositionsTable
+	EmployeesTable.ForeignKeys[0].RefTable = OrganizationUnitsTable
+	EmployeesTable.ForeignKeys[1].RefTable = PositionsTable
 	OrganizationUnitsTable.ForeignKeys[0].RefTable = OrganizationUnitsTable
 	PositionsTable.ForeignKeys[0].RefTable = OrganizationUnitsTable
 	PositionsTable.ForeignKeys[1].RefTable = PositionsTable

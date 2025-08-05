@@ -103,6 +103,10 @@ func (OrganizationUnit) Edges() []ent.Edge {
 		// Containment Relationships - positions belong to this organization unit
 		edge.To("positions", Position.Type).
 			Comment("Positions contained within this organization unit"),
+
+		// Employee Relationships - employees directly assigned to this organization unit
+		edge.To("employees", Employee.Type).
+			Comment("Employees directly assigned to this organization unit"),
 	}
 }
 

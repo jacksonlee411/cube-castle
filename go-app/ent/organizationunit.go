@@ -56,9 +56,11 @@ type OrganizationUnitEdges struct {
 	Children []*OrganizationUnit `json:"children,omitempty"`
 	// Positions contained within this organization unit
 	Positions []*Position `json:"positions,omitempty"`
+	// Employees directly assigned to this organization unit
+	Employees []*Employee `json:"employees,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // ParentOrErr returns the Parent value or an error if the edge
@@ -88,6 +90,15 @@ func (e OrganizationUnitEdges) PositionsOrErr() ([]*Position, error) {
 		return e.Positions, nil
 	}
 	return nil, &NotLoadedError{edge: "positions"}
+}
+
+// EmployeesOrErr returns the Employees value or an error if the edge
+// was not loaded in eager-loading.
+func (e OrganizationUnitEdges) EmployeesOrErr() ([]*Employee, error) {
+	if e.loadedTypes[3] {
+		return e.Employees, nil
+	}
+	return nil, &NotLoadedError{edge: "employees"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -224,6 +235,11 @@ func (ou *OrganizationUnit) QueryChildren() *OrganizationUnitQuery {
 // QueryPositions queries the "positions" edge of the OrganizationUnit entity.
 func (ou *OrganizationUnit) QueryPositions() *PositionQuery {
 	return NewOrganizationUnitClient(ou.config).QueryPositions(ou)
+}
+
+// QueryEmployees queries the "employees" edge of the OrganizationUnit entity.
+func (ou *OrganizationUnit) QueryEmployees() *EmployeeQuery {
+	return NewOrganizationUnitClient(ou.config).QueryEmployees(ou)
 }
 
 // Update returns a builder for updating this OrganizationUnit.

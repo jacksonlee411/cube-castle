@@ -415,12 +415,10 @@ components:
           description: "System UUID - for internal integration"
           example: "e60891dc-7d20-444b-9002-22419238d499"
         # 业务字段
-        first_name:
+        person_name:
           type: string
-          example: "张"
-        last_name:
-          type: string
-          example: "三"
+          description: "员工姓名"
+          example: "张三"
         email:
           type: string
           format: email
@@ -466,20 +464,17 @@ components:
           format: date-time
       required:
         - id
-        - first_name
-        - last_name
+        - person_name
         - email
         - hire_date
 
     CreateEmployeeRequest:
       type: object
       properties:
-        first_name:
+        person_name:
           type: string
-          example: "张"
-        last_name:
-          type: string
-          example: "三"
+          description: "员工姓名"
+          example: "张三"
         email:
           type: string
           format: email
@@ -512,18 +507,16 @@ components:
           nullable: true
           example: "2"
       required:
-        - first_name
-        - last_name
+        - person_name
         - email
         - hire_date
 
     UpdateEmployeeRequest:
       type: object
       properties:
-        first_name:
+        person_name:
           type: string
-        last_name:
-          type: string
+          description: "员工姓名"
         email:
           type: string
           format: email

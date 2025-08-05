@@ -696,6 +696,22 @@ func (c *EmployeeClient) QueryCurrentPosition(e *Employee) *PositionQuery {
 	return query
 }
 
+// QueryDepartment queries the department edge of a Employee.
+func (c *EmployeeClient) QueryDepartment(e *Employee) *OrganizationUnitQuery {
+	query := (&OrganizationUnitClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(employee.Table, employee.FieldID, id),
+			sqlgraph.To(organizationunit.Table, organizationunit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, employee.DepartmentTable, employee.DepartmentColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryPositionHistory queries the position_history edge of a Employee.
 func (c *EmployeeClient) QueryPositionHistory(e *Employee) *PositionOccupancyHistoryQuery {
 	query := (&PositionOccupancyHistoryClient{config: c.config}).Query()
@@ -902,6 +918,22 @@ func (c *OrganizationUnitClient) QueryPositions(ou *OrganizationUnit) *PositionQ
 			sqlgraph.From(organizationunit.Table, organizationunit.FieldID, id),
 			sqlgraph.To(position.Table, position.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, organizationunit.PositionsTable, organizationunit.PositionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(ou.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEmployees queries the employees edge of a OrganizationUnit.
+func (c *OrganizationUnitClient) QueryEmployees(ou *OrganizationUnit) *EmployeeQuery {
+	query := (&EmployeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ou.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(organizationunit.Table, organizationunit.FieldID, id),
+			sqlgraph.To(employee.Table, employee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, organizationunit.EmployeesTable, organizationunit.EmployeesColumn),
 		)
 		fromV = sqlgraph.Neighbors(ou.driver.Dialect(), step)
 		return fromV, nil

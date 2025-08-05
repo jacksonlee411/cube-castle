@@ -36,6 +36,8 @@ const (
 	FieldPhoneNumber = "phone_number"
 	// FieldCurrentPositionID holds the string denoting the current_position_id field in the database.
 	FieldCurrentPositionID = "current_position_id"
+	// FieldDepartmentID holds the string denoting the department_id field in the database.
+	FieldDepartmentID = "department_id"
 	// FieldEmploymentStatus holds the string denoting the employment_status field in the database.
 	FieldEmploymentStatus = "employment_status"
 	// FieldHireDate holds the string denoting the hire_date field in the database.
@@ -54,6 +56,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// EdgeCurrentPosition holds the string denoting the current_position edge name in mutations.
 	EdgeCurrentPosition = "current_position"
+	// EdgeDepartment holds the string denoting the department edge name in mutations.
+	EdgeDepartment = "department"
 	// EdgePositionHistory holds the string denoting the position_history edge name in mutations.
 	EdgePositionHistory = "position_history"
 	// EdgeAssignments holds the string denoting the assignments edge name in mutations.
@@ -67,6 +71,13 @@ const (
 	CurrentPositionInverseTable = "positions"
 	// CurrentPositionColumn is the table column denoting the current_position relation/edge.
 	CurrentPositionColumn = "current_position_id"
+	// DepartmentTable is the table that holds the department relation/edge.
+	DepartmentTable = "employees"
+	// DepartmentInverseTable is the table name for the OrganizationUnit entity.
+	// It exists in this package in order to avoid circular dependency with the "organizationunit" package.
+	DepartmentInverseTable = "organization_units"
+	// DepartmentColumn is the table column denoting the department relation/edge.
+	DepartmentColumn = "department_id"
 	// PositionHistoryTable is the table that holds the position_history relation/edge.
 	PositionHistoryTable = "position_occupancy_histories"
 	// PositionHistoryInverseTable is the table name for the PositionOccupancyHistory entity.
@@ -96,6 +107,7 @@ var Columns = []string{
 	FieldPersonalEmail,
 	FieldPhoneNumber,
 	FieldCurrentPositionID,
+	FieldDepartmentID,
 	FieldEmploymentStatus,
 	FieldHireDate,
 	FieldTerminationDate,
@@ -253,6 +265,11 @@ func ByCurrentPositionID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrentPositionID, opts...).ToFunc()
 }
 
+// ByDepartmentID orders the results by the department_id field.
+func ByDepartmentID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDepartmentID, opts...).ToFunc()
+}
+
 // ByEmploymentStatus orders the results by the employment_status field.
 func ByEmploymentStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEmploymentStatus, opts...).ToFunc()
@@ -295,6 +312,13 @@ func ByCurrentPositionField(field string, opts ...sql.OrderTermOption) OrderOpti
 	}
 }
 
+// ByDepartmentField orders the results by department field.
+func ByDepartmentField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newDepartmentStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByPositionHistoryCount orders the results by position_history count.
 func ByPositionHistoryCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -327,6 +351,13 @@ func newCurrentPositionStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CurrentPositionInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, CurrentPositionTable, CurrentPositionColumn),
+	)
+}
+func newDepartmentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(DepartmentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, DepartmentTable, DepartmentColumn),
 	)
 }
 func newPositionHistoryStep() *sqlgraph.Step {

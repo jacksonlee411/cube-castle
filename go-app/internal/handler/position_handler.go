@@ -67,6 +67,173 @@ type PositionResponse struct {
 	UpdatedAt         time.Time              `json:"updated_at"`
 }
 
+// SimplePositionResponse represents a simplified position for frontend dropdowns
+type SimplePositionResponse struct {
+	ID             string  `json:"id"`
+	Title          string  `json:"title"`
+	DepartmentID   string  `json:"departmentId"`
+	DepartmentName string  `json:"departmentName"`
+	Level          string  `json:"level"`
+	Status         string  `json:"status"`
+	Requirements   []string `json:"requirements"`
+	Salary         struct {
+		Min int `json:"min"`
+		Max int `json:"max"`
+	} `json:"salary"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
+// GetPositionsByDepartment handles GET /api/v1/positions/by-department/{departmentName}
+func (h *PositionHandler) GetPositionsByDepartment() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		
+		tenantID, ok := ctx.Value("tenant_id").(uuid.UUID)
+		if !ok {
+			h.logger.LogError("get_positions_by_department", "No tenant ID in context", nil, nil)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		departmentName := r.URL.Query().Get("departmentId") // Actually department name from frontend
+		if departmentName == "" {
+			departmentName = chi.URLParam(r, "departmentName")
+		}
+
+		if departmentName == "" {
+			http.Error(w, "Department name is required", http.StatusBadRequest)
+			return
+		}
+
+		// First, find the department by name to get its ID
+		department, err := h.client.OrganizationUnit.Query().
+			Where(
+				organizationunit.NameEQ(departmentName),
+				organizationunit.TenantIDEQ(tenantID),
+			).
+			Only(ctx)
+
+		if err != nil {
+			if ent.IsNotFound(err) {
+				h.logger.Info("Department not found, returning empty positions",
+					"department", departmentName,
+					"tenant_id", tenantID,
+				)
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"positions": []SimplePositionResponse{},
+				})
+				return
+			}
+			h.logger.LogError("get_positions_by_department", "Failed to find department", err, map[string]interface{}{
+				"department": departmentName,
+				"tenant_id": tenantID,
+			})
+			http.Error(w, "Failed to find department", http.StatusInternalServerError)
+			return
+		}
+
+		// Query positions by department ID
+		positions, err := h.client.Position.Query().
+			Where(
+				position.DepartmentIDEQ(department.ID),
+				position.TenantIDEQ(tenantID),
+			).
+			All(ctx)
+
+		if err != nil {
+			h.logger.LogError("get_positions_by_department", "Failed to fetch positions", err, map[string]interface{}{
+				"department": departmentName,
+				"department_id": department.ID,
+				"tenant_id": tenantID,
+			})
+			http.Error(w, "Failed to fetch positions", http.StatusInternalServerError)
+			return
+		}
+
+		// Convert to SimplePositionResponse format for frontend
+		simplePositions := make([]SimplePositionResponse, len(positions))
+		for i, pos := range positions {
+			simplePositions[i] = SimplePositionResponse{
+				ID:             pos.ID.String(),
+				Title:          string(pos.PositionType), // Use PositionType as title for now
+				DepartmentID:   department.ID.String(),
+				DepartmentName: department.Name,
+				Level:          "P5", // Default level, can be enhanced with job profile data
+				Status:         string(pos.Status),
+				Requirements:   []string{}, // Empty for now
+				CreatedAt:      pos.CreatedAt.Format(time.RFC3339),
+				UpdatedAt:      pos.UpdatedAt.Format(time.RFC3339),
+			}
+			// Set default salary range based on position type
+			simplePositions[i].Salary.Min = 10000
+			simplePositions[i].Salary.Max = 20000
+		}
+		
+		h.logger.Info("Fetched positions by department from database",
+			"department", departmentName,
+			"department_id", department.ID,
+			"count", len(simplePositions),
+			"tenant_id", tenantID,
+		)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"positions": simplePositions,
+		})
+	}
+}
+
+// generateMockPositionsByDepartment returns mock positions for a department
+func generateMockPositionsByDepartment(departmentName string) []SimplePositionResponse {
+	positions := map[string][]SimplePositionResponse{
+		"技术部": {
+			{ID: "pos-1", Title: "软件工程师", DepartmentID: departmentName, DepartmentName: "技术部", Level: "P5", Status: "OPEN", Requirements: []string{"计算机相关专业", "3年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+			{ID: "pos-2", Title: "高级软件工程师", DepartmentID: departmentName, DepartmentName: "技术部", Level: "P6", Status: "OPEN", Requirements: []string{"计算机相关专业", "5年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+			{ID: "pos-3", Title: "技术经理", DepartmentID: departmentName, DepartmentName: "技术部", Level: "M1", Status: "FILLED", Requirements: []string{"技术管理经验", "8年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+			{ID: "pos-4", Title: "架构师", DepartmentID: departmentName, DepartmentName: "技术部", Level: "P7", Status: "OPEN", Requirements: []string{"系统架构经验", "10年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+		},
+		"产品部": {
+			{ID: "pos-5", Title: "产品经理", DepartmentID: departmentName, DepartmentName: "产品部", Level: "P6", Status: "OPEN", Requirements: []string{"产品管理经验", "3年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+			{ID: "pos-6", Title: "高级产品经理", DepartmentID: departmentName, DepartmentName: "产品部", Level: "P7", Status: "FILLED", Requirements: []string{"产品管理经验", "5年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+			{ID: "pos-7", Title: "UI设计师", DepartmentID: departmentName, DepartmentName: "产品部", Level: "P5", Status: "OPEN", Requirements: []string{"UI设计经验", "3年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+		},
+		"人事部": {
+			{ID: "pos-8", Title: "人事专员", DepartmentID: departmentName, DepartmentName: "人事部", Level: "P4", Status: "OPEN", Requirements: []string{"人力资源专业", "2年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+			{ID: "pos-9", Title: "人事经理", DepartmentID: departmentName, DepartmentName: "人事部", Level: "M1", Status: "FILLED", Requirements: []string{"人力资源管理", "5年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+		},
+		"财务部": {
+			{ID: "pos-10", Title: "会计", DepartmentID: departmentName, DepartmentName: "财务部", Level: "P4", Status: "OPEN", Requirements: []string{"会计专业", "2年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+			{ID: "pos-11", Title: "财务经理", DepartmentID: departmentName, DepartmentName: "财务部", Level: "M1", Status: "FILLED", Requirements: []string{"财务管理", "5年以上经验"}, CreatedAt: time.Now().Format(time.RFC3339), UpdatedAt: time.Now().Format(time.RFC3339)},
+		},
+	}
+
+	// Set salary ranges
+	for i := range positions[departmentName] {
+		pos := &positions[departmentName][i]
+		switch pos.Level {
+		case "P4":
+			pos.Salary.Min = 8000
+			pos.Salary.Max = 15000
+		case "P5":
+			pos.Salary.Min = 12000
+			pos.Salary.Max = 20000
+		case "P6":
+			pos.Salary.Min = 18000
+			pos.Salary.Max = 30000
+		case "P7":
+			pos.Salary.Min = 25000
+			pos.Salary.Max = 40000
+		case "M1":
+			pos.Salary.Min = 20000
+			pos.Salary.Max = 35000
+		}
+	}
+
+	return positions[departmentName]
+}
+
 // CreatePosition handles POST /api/v1/positions
 func (h *PositionHandler) CreatePosition() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
