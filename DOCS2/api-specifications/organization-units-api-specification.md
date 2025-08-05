@@ -9,6 +9,27 @@
 
 组织单元管理API提供完整的企业组织架构管理功能，支持层级结构、多种单元类型和灵活的配置选项，实现多租户隔离和完整的CRUD操作。
 
+### 🏷️ 标识符设计说明 ⭐
+
+**重要变更**: 本API采用全新的标识符命名策略，详见[ADR-006标识符命名策略](../architecture-decisions/ADR-006-identifier-naming-strategy.md)
+
+```yaml
+对外标识符: 
+  - 主要字段: "code" (7位数字编码，如 "1000001")
+  - 关系引用: "parent_code" (引用父级组织编码)
+  - 业务含义: 组织编码，业务人员直观理解
+
+内部标识符:
+  - UUID仅在系统内部使用，完全对外隐藏
+  - 数据库主键继续使用UUID确保性能
+  - API响应中不包含任何UUID字段
+
+设计优势:
+  - 降低用户认知负担 (只需理解一种ID)
+  - 符合企业级HR系统行业标准
+  - 提供更直观的业务语义
+```
+
 ### 核心特性
 - **层级结构**: 支持父子关系的组织架构
 - **多种类型**: 部门、成本中心、公司、项目团队等
@@ -22,9 +43,9 @@
 |------|------|------|------|
 | GET | `/api/v1/organization-units` | 获取组织单元列表 | Bearer Token |
 | POST | `/api/v1/organization-units` | 创建组织单元 | Bearer Token |
-| GET | `/api/v1/organization-units/{id}` | 获取单个组织单元 | Bearer Token |
-| PUT | `/api/v1/organization-units/{id}` | 更新组织单元 | Bearer Token |
-| DELETE | `/api/v1/organization-units/{id}` | 删除组织单元 | Bearer Token |
+| GET | `/api/v1/organization-units/{code}` | 获取单个组织单元 | Bearer Token |
+| PUT | `/api/v1/organization-units/{code}` | 更新组织单元 | Bearer Token |
+| DELETE | `/api/v1/organization-units/{code}` | 删除组织单元 | Bearer Token |
 | GET | `/api/v1/corehr/organizations` | CoreHR兼容接口 | Bearer Token |
 | POST | `/api/v1/corehr/organizations` | CoreHR兼容接口 | Bearer Token |
 | GET | `/api/v1/corehr/organizations/stats` | 获取组织统计信息 | Bearer Token |
@@ -34,19 +55,18 @@
 ### 组织单元核心模型
 ```json
 {
-  "id": "uuid",
-  "business_id": "string (100000-999999)",
-  "tenant_id": "uuid",
-  "unit_type": "DEPARTMENT | COST_CENTER | COMPANY | PROJECT_TEAM",
+  "code": "string (7位数字: 1000000-9999999)",
   "name": "string",
   "description": "string (optional)",
-  "parent_unit_id": "uuid (optional)",
+  "parent_code": "string (optional, 父级组织编码)",
+  "unit_type": "DEPARTMENT | COST_CENTER | COMPANY | PROJECT_TEAM",
   "level": "number",
   "status": "ACTIVE | INACTIVE | PLANNED",
   "profile": {},
   "created_at": "2025-08-04T00:00:00Z",
   "updated_at": "2025-08-04T00:00:00Z"
 }
+```
 ```
 
 ### 单元类型枚举

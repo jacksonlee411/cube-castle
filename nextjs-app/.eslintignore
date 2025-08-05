@@ -1,8 +1,0 @@
-node_modules/
-.next/
-out/
-build/
-dist/
-.cache/
-coverage/
-src/_deprecated_swr_backup/

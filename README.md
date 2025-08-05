@@ -782,7 +782,7 @@ docker-compose -f docker-compose.production.yml up -d
 ## 🆘 支持与社区
 
 - 📧 **邮箱**: support@cubecastle.com
-- 📖 **文档**: [docs/](docs/)
+- 📖 **文档**: [DOCS2/](DOCS2/)
 - 🐛 **问题反馈**: [Issues](../../issues)
 - 💬 **讨论区**: [Discussions](../../discussions)
 - 📊 **项目看板**: [Project Board](../../projects)
