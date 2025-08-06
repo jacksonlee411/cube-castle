@@ -1,10 +1,15 @@
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 
+// 项目默认租户ID - 高谷集团
+const DEFAULT_TENANT_ID = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
+
 export class ApiClient {
   private baseURL: string;
+  private tenantID: string;
 
-  constructor(baseURL: string = API_BASE_URL) {
+  constructor(baseURL: string = API_BASE_URL, tenantID: string = DEFAULT_TENANT_ID) {
     this.baseURL = baseURL;
+    this.tenantID = tenantID;
   }
 
   private async request<T>(
@@ -16,7 +21,7 @@ export class ApiClient {
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9', // 默认租户ID
+        'X-Tenant-ID': this.tenantID, // 使用统一的默认租户ID
         ...options.headers,
       },
       ...options,

@@ -24,7 +24,7 @@
 - **GraphQL混合协议支持**：为复杂关系查询提供GraphQL选项
 - **智能协议选择策略**：基于查询复杂度的协议选择决策矩阵  
 - **混合架构风险管理**：GraphQL特有的风险控制和应急预案
-- **前端集成最佳实践**：Apollo Client与SWR缓存的协调策略
+- **前端集成最佳实践**：Apollo Client与React Query缓存的协调策略
 - **性能优化增强**：GraphQL查询优化和缓存同步策略
 
 ### **城堡模型与CQRS的战略契合**
@@ -852,7 +852,7 @@ export function useEmployeeWithRelations(employeeId: string) {
     data: restData, 
     error: restError,
     mutate: restMutate
-  } = useSWR(
+  } = useQuery(
     shouldUseFallback ? `/api/v1/queries/employees/${employeeId}?tenant_id=${tenantId}` : null,
     fetcher
   );
@@ -907,7 +907,7 @@ export function useEmployeeWithRelations(employeeId: string) {
         },
       });
     } else {
-      // 更新SWR缓存
+      // 更新React Query缓存
       restMutate(updatedEmployee, false);
     }
   }, [result.source, restMutate]);
@@ -1245,7 +1245,7 @@ func (c *XXXEventConsumer) handleXXXCreated(ctx context.Context, event DomainEve
 **实施检查清单**:
 - [ ] **代码城堡化清理**
   - [ ] 移除冗余REST端点
-  - [ ] 删除旧SWR相关代码
+  - [ ] 删除旧React Query相关代码
   - [ ] 清理废弃的API适配器
   - [ ] 更新路由配置
 
@@ -1613,7 +1613,7 @@ curl -X POST /api/admin/castle/performance/degradation-mode \
 城堡CQRS回滚策略:
   阶段1回滚 (查询端):
     操作步骤:
-      - 前端切换回SWR Hook (配置开关)
+      - 前端切换回React Query Hook (配置开关)
       - 停用CQRS查询端点 (路由配置)
       - 恢复原始REST API (服务重启)
     回滚时间: < 15分钟
@@ -1709,7 +1709,7 @@ curl -X POST /api/admin/castle/performance/degradation-mode \
 
   混合协议优化: 🔧
     缓存同步优化:
-      - Apollo Client与SWR缓存协调
+      - Apollo Client与React Query缓存协调
       - REST命令后智能GraphQL缓存更新
       - 缓存一致性实时监控
       - 缓存预热和预取策略
@@ -1831,9 +1831,9 @@ curl -X POST /api/admin/castle/performance/degradation-mode \
     - Event Consumer: "/go-app/internal/events/consumers/"
 
   前端集成:
-    - CQRS Hooks: "/nextjs-app/src/hooks/cqrs/"
-    - State Management: "/nextjs-app/src/store/"
-    - API Client: "/nextjs-app/src/lib/api-client.ts"
+    - CQRS Hooks: "/frontend/src/hooks/cqrs/"
+    - State Management: "/frontend/src/store/"
+    - API Client: "/frontend/src/lib/api-client.ts"
 
   测试示例:
     - 单元测试: "/go-app/tests/unit/"

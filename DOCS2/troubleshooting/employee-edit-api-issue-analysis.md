@@ -25,7 +25,7 @@
 ```
 
 **受影响文件**:
-- `nextjs-app/src/lib/api-client.ts:155` - updateEmployee函数
+- `frontend/src/lib/api-client.ts:155` - updateEmployee函数
 - `go-app/cmd/server/main.go` - 路由配置
 
 ### 2. 数据模型设计缺陷

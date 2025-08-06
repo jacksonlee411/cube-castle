@@ -19,7 +19,7 @@
 ## 🔍 问题详细分析
 
 ### 问题1：数据提交无效
-**文件**: `/nextjs-app/src/pages/employees/index.tsx`  
+**文件**: `/frontend/src/pages/employees/index.tsx`  
 **代码行**: 160-203
 
 ```typescript
@@ -48,7 +48,7 @@ const handleCreateEmployee = async (values: any) => {
 - 只做了本地状态更新和UI刷新，数据没有持久化
 
 ### 问题2：部门数据硬编码
-**文件**: `/nextjs-app/src/pages/employees/index.tsx`  
+**文件**: `/frontend/src/pages/employees/index.tsx`  
 **代码行**: 800-807
 
 ```typescript
@@ -69,7 +69,7 @@ const handleCreateEmployee = async (values: any) => {
 - 新增部门时前端不会自动更新
 
 ### 问题3：职位与部门无联动
-**文件**: `/nextjs-app/src/pages/employees/index.tsx`  
+**文件**: `/frontend/src/pages/employees/index.tsx`  
 **代码行**: 811-817
 
 ```typescript
@@ -112,7 +112,7 @@ const handleCreateEmployee = async (values: any) => {
 
 ### 方案1：集成CQRS命令系统 (推荐)
 
-**修改文件**: `/nextjs-app/src/pages/employees/index.tsx`
+**修改文件**: `/frontend/src/pages/employees/index.tsx`
 
 ```typescript
 // 1. 引入CQRS hooks

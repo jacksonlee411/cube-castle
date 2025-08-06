@@ -13,7 +13,7 @@
 
 ### 技术栈概况
 - **后端**: Go + Ent ORM + PostgreSQL + Chi Router
-- **前端**: Next.js 14.1.4 + TypeScript + TailwindCSS + SWR
+- **前端**: Vite 5.0+ + React 18+ + TypeScript + Canvas Kit + React Query
 - **架构**: 分层架构 (Handler → Service → Repository)
 - **数据库**: PostgreSQL with 业务ID标准化
 
@@ -181,7 +181,7 @@
 - [ ] **测试环境**: 是否同意临时增加测试环境资源？
 
 ### 技术选择
-- [ ] **技术栈**: 是否保持当前Go + Next.js技术栈？
+- [ ] **技术栈**: 是否保持当前Go + Vite + Canvas Kit技术栈？
 - [ ] **数据库**: 是否同意执行数据库schema优化？
 - [ ] **部署策略**: 倾向于渐进式部署还是蓝绿部署？
 

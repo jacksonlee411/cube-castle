@@ -668,7 +668,7 @@ func redirectToCorehrAPI(w http.ResponseWriter, r *http.Request) {
 // pages/employees/index.tsx
 export default function EmployeesPage() {
   // 使用新的API客户端
-  const { data: employees, error } = useSWR(
+  const { data: employees, error } = useQuery(
     'employees',
     () => apiClient.employees.getEmployees({ page: 1, limit: 20 })
   )
@@ -700,10 +700,10 @@ const MIGRATION_CHECKLIST = {
 **删除重复实现**:
 ```bash
 # 第1步: 备份现有文件
-cp nextjs-app/src/lib/api/employees.ts nextjs-app/src/lib/api/employees.ts.backup
+cp frontend/src/lib/api/employees.ts frontend/src/lib/api/employees.ts.backup
 
 # 第2步: 删除重复文件
-rm nextjs-app/src/lib/api/employees.ts
+rm frontend/src/lib/api/employees.ts
 
 # 第3步: 更新导入语句
 # 批量替换 import from '@/lib/api/employees' → import { apiClient } from '@/lib/api'

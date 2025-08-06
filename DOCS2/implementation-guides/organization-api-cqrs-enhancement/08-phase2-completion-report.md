@@ -310,17 +310,23 @@ API响应:
 
 ## 🚀 下一阶段规划
 
-### Phase 3: 性能优化和监控完善
-- **缓存层**: Redis缓存热点数据
-- **分布式追踪**: OpenTelemetry集成
-- **指标监控**: Prometheus + Grafana
-- **压力测试**: 大规模并发测试
+### Phase 3: GraphQL现代化查询升级 ⭐ 新增重点
+- **GraphQL查询端**: Neo4j + GraphQL天然优势
+- **智能降级**: GraphQL优先，失败自动降级REST
+- **CUD操作保持**: 命令端继续使用REST API
+- **渐进式升级**: 保持完全向后兼容
 
-### Phase 4: 多租户和安全增强
+### Phase 4: 性能优化和监控完善 (更新)
+- **缓存层**: Redis缓存热点数据 + GraphQL查询缓存
+- **分布式追踪**: OpenTelemetry集成 + GraphQL查询追踪
+- **指标监控**: Prometheus + Grafana + GraphQL查询监控
+- **压力测试**: 大规模并发测试 + GraphQL性能基准
+
+### Phase 5: 多租户和安全增强 (原Phase 4升级)
 - **租户隔离**: 数据和服务级别隔离
-- **认证授权**: JWT + RBAC
-- **API限流**: 租户级别限流
-- **审计日志**: 完整的操作审计
+- **认证授权**: JWT + RBAC + GraphQL字段级权限
+- **API限流**: 租户级别限流 + GraphQL查询复杂度限制
+- **审计日志**: 完整的操作审计 + GraphQL查询日志
 
 ---
 

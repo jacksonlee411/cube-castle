@@ -14,7 +14,7 @@
 ### 文档来源
 - **OpenAPI规范**: `contracts/openapi.yaml`
 - **后端Handler实现**: `go-app/internal/handler/*.go`
-- **前端API客户端**: `nextjs-app/src/lib/api-client.ts`
+- **前端API客户端**: `frontend/src/lib/api-client.ts`
 - **DOCS文档**: `docs/api/` 和相关MD文件
 - **DOCS2文档**: `DOCS2/api-specifications/` 和架构决策记录
 
@@ -59,7 +59,7 @@
 路径: /api/v1/employees  (employees-api-specification.md)
 状态: ❌ 缺少 /corehr 前缀
 
-# 前端实际使用 (nextjs-app/src/lib/routes.ts:77)
+# 前端实际使用 (frontend/src/lib/routes.ts:77)
 路径: /api/v1/corehr/employees
 状态: ✅ 与OpenAPI一致
 ```
@@ -81,7 +81,7 @@ CQRS命令: /api/v1/commands/create-organization
 兼容路径: /api/v1/corehr/organizations
 状态: ❌ 两套不同路径规范
 
-# 前端路由配置 (nextjs-app/src/lib/routes.ts)
+# 前端路由配置 (frontend/src/lib/routes.ts)
 CQRS_ROUTES: /api/v1/queries/organizations
 REST_ROUTES: /api/v1/corehr/organizations
 状态: ❌ 多套路由同时维护
@@ -271,22 +271,22 @@ authorization: "No authorization required"
 
 **职位管理API** (前端使用但OpenAPI缺失):
 ```yaml
-# nextjs-app/src/lib/api-client.ts:203
+# frontend/src/lib/api-client.ts:203
 GET /api/v1/positions
 
-# nextjs-app/src/lib/api-client.ts:251  
+# frontend/src/lib/api-client.ts:251  
 GET /api/v1/positions (带参数查询)
 ```
 
 **批量操作API** (代码实现但未文档化):
 ```yaml
-# nextjs-app/src/lib/api-client.ts:188
+# frontend/src/lib/api-client.ts:188
 PATCH /api/v1/corehr/employees/bulk
 ```
 
 **系统管理API** (路由定义但OpenAPI缺失):
 ```yaml
-# nextjs-app/src/lib/routes.ts:86-88
+# frontend/src/lib/routes.ts:86-88
 GET /api/v1/system/health
 GET /api/v1/system/info  
 GET /api/v1/system/metrics/business
@@ -294,7 +294,7 @@ GET /api/v1/system/metrics/business
 
 **工作流API** (前端使用但OpenAPI缺失):
 ```yaml
-# nextjs-app/src/lib/routes.ts:93-96
+# frontend/src/lib/routes.ts:93-96
 GET /api/v1/workflows/instances
 GET /api/v1/workflows/instances/{id}
 POST /api/v1/workflows/start
