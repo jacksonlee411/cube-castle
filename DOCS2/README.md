@@ -12,10 +12,11 @@
 - `README.md` - 架构基础文档索引
 
 ### 📋 `/api-specifications/` - API规范文档
-- `employees-api-specification.md` - 员工管理API规范
+- `employee-management-api-specification.md` - 员工管理API规范 (v2.0 Person Name优化版)
+- `employee-management-api-integration-guide.md` - 员工管理API集成指南
 - `organization-units-api-specification.md` - 组织单元API规范
 - `positions-api-specification.md` - 职位管理API规范
-- `api-design-principles.md` - API设计原则和标准
+- `api-design-principles.md` - API设计原则和标准 (v2.0更新)
 
 ### 🎯 `/architecture-decisions/` - 架构决策记录
 - `ADR-001-positions-api-architecture.md` - 职位API架构决策
@@ -25,6 +26,7 @@
 
 ### 📖 `/implementation-guides/` - 实施指南
 - `frontend-api-integration.md` - 前端API集成指南
+- `person-name-optimization-implementation-plan.md` - Person Name优化实施方案
 - `/api-refactoring-2025/` - API重构2025专项
   - `01-refactoring-master-plan.md` - 重构总体规划
   - `04-api-documentation-issues-investigation-report.md` - API文档问题调查报告
@@ -53,9 +55,11 @@
 - ✅ 城堡蓝图迁移完成
 - ✅ 架构基础文档索引建立
 
-### 📋 API规范 (已建立)
+### 📋 API规范 (v2.0更新)
+- ✅ 员工管理API规范完成 (Person Name优化版)
+- ✅ 员工管理API集成指南完成
 - ✅ 核心业务API规范完成
-- ✅ API设计原则建立
+- ✅ API设计原则更新 (统一编码命名规范)
 
 ### 🎯 架构决策 (持续更新)
 - ✅ 核心架构决策记录完成

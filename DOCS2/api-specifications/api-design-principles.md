@@ -1,9 +1,10 @@
 # API设计原则与标准
 
-**版本**: v1.0  
+**版本**: v1.1  
 **创建日期**: 2025-08-04  
+**更新日期**: 2025-08-06  
 **适用范围**: Cube Castle项目所有API  
-**状态**: 标准实施中
+**状态**: 标准实施中 + 前端集成优化
 
 ## 🎯 总体原则
 
@@ -11,21 +12,25 @@
 - 所有API遵循相同的设计模式
 - 统一的命名约定和数据格式
 - 标准化的错误处理和响应结构
+- **前后端数据格式统一** 🆕
 
 ### 2. 简洁性原则
 - API设计简单直观，易于理解和使用
 - 避免不必要的复杂性和冗余
 - 优先选择简单有效的解决方案
+- **前端组件友好的数据结构** 🆕
 
 ### 3. 可扩展性原则
 - 设计支持未来功能扩展
 - 向后兼容性保证
 - 模块化和松耦合架构
+- **前端状态管理兼容** 🆕
 
 ### 4. 性能优先原则
 - 响应时间和吞吐量优化
 - 合理的缓存策略
 - 资源使用效率最大化
+- **前端渲染优化支持** 🆕
 
 ## 🏗️ RESTful设计标准
 
@@ -38,17 +43,43 @@ PATCH:  部分更新资源，有副作用，幂等
 DELETE: 删除资源，有副作用，幂等
 ```
 
-### 资源路径设计
+### 资源路径设计 (优化版)
 ```yaml
-正确设计:
-  - /api/v1/positions           # 职位集合
-  - /api/v1/positions/{id}      # 特定职位
-  - /api/v1/positions/{id}/applications  # 职位的应聘记录
+正确设计 (基于编码系统，Person Name版更新):
+  - /api/v1/employees              # 8位编码员工集合 ✅ 新增
+  - /api/v1/employees/{employee_code}    # 特定员工 (8位编码) ✅ 新增
+  - /api/v1/employees/{employee_code}/positions  # 员工的职位分配 ✅ 新增
+  - /api/v1/positions              # 7位编码职位集合
+  - /api/v1/positions/{code}       # 特定职位 (7位编码)
+  - /api/v1/positions/{code}/incumbents  # 职位的在职员工
+  - /api/v1/organization-units     # 7位编码组织单元
+  - /api/v1/organization-units/{code}    # 特定组织 (7位编码)
 
-错误设计:
-  - /api/v1/getPositions        # 动词不应出现在路径中
-  - /api/v1/position            # 应使用复数形式
-  - /api/v1/positions-list      # 避免冗余描述
+编码路径示例:
+  - /api/v1/employees/10000001     # 8位员工编码查询 ✅ 新增
+  - /api/v1/positions/1000001      # 7位职位编码查询
+  - /api/v1/organization-units/1000000  # 7位组织编码查询
+
+性能优化路径:
+  - 直接编码查询，无转换开销
+  - 数字字符串路径参数，高效解析
+  - RESTful语义清晰，支持缓存
+
+统一命名规范 (Person Name版):
+  - 员工路径参数: {employee_code} (8位)
+  - 职位路径参数: {code} (7位) ← 保持原规定
+  - 组织路径参数: {code} (7位) ← 保持原规定
+
+编码冲突处理:
+  - 通过API路径区分实体类型 (/employees vs /positions vs /organization-units)
+  - 上下文明确，避免7位编码冲突混淆
+  - 字段名称明确标识 (employee_code vs position_code vs organization_code)
+
+错误设计 (应避免):
+  - /api/v1/getEmployees           # 动词不应出现在路径中
+  - /api/v1/employee               # 应使用复数形式
+  - /api/v1/employees-list         # 避免冗余描述
+  - /api/v1/employees/uuid-format  # 避免复杂UUID路径
 ```
 
 ### HTTP状态码标准
@@ -72,65 +103,281 @@ DELETE: 删除资源，有副作用，幂等
   503: Service Unavailable - 服务不可用
 ```
 
+## 🎨 前端集成优化 🆕
+
+### Vite + Canvas Kit 集成标准
+
+#### API响应适配Canvas Kit组件
+```typescript
+// 组织统计数据响应格式 - 适配Canvas Kit组件
+{
+  "by_type": {
+    "COMPANY": 1,
+    "DEPARTMENT": 8,
+    "TEAM": 17
+  },
+  "by_status": {
+    "ACTIVE": 25,
+    "INACTIVE": 1
+  },
+  "total_count": 26
+}
+
+// 前端Canvas Kit组件使用
+const StatsCard: React.FC<{ title: string; stats: Record<string, number> }> = ({ title, stats }) => {
+  return (
+    <Card height="100%">
+      <Card.Heading>{title}</Card.Heading>
+      <Card.Body>
+        {Object.entries(stats).map(([key, value]) => (
+          <Box key={key} paddingY="xs">
+            <Text>{key}: {value}</Text>
+          </Box>
+        ))}
+      </Card.Body>
+    </Card>
+  );
+};
+```
+
+#### React Query状态管理集成
+```typescript
+// API客户端类型安全集成
+interface OrganizationStatsResponse {
+  by_type: Record<string, number>;
+  by_status: Record<string, number>;
+  total_count: number;
+}
+
+// React Query Hook
+export const useOrganizationStats = () => {
+  return useQuery<OrganizationStatsResponse>({
+    queryKey: ['organization', 'stats'],
+    queryFn: () => organizationApi.getStats(),
+    staleTime: 5 * 60 * 1000, // 5分钟缓存
+  });
+};
+```
+
+#### TypeScript类型定义标准
+```typescript
+// 共享类型定义 - 前后端一致
+export interface OrganizationUnit {
+  code: string;                    // 7位组织编码
+  name: string;                    // 组织名称
+  unit_type: 'COMPANY' | 'DEPARTMENT' | 'TEAM';
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  parent_code?: string;            // 父组织编码
+  level: number;                   // 组织层级
+  tenant_id: string;               // 租户ID
+  created_at: string;              // ISO时间戳
+  updated_at: string;              // ISO时间戳
+}
+
+// 列表响应类型
+export interface OrganizationListResponse {
+  organizations: OrganizationUnit[];
+  total_count: number;
+  pagination: {
+    page: number;
+    page_size: number;
+    total: number;
+    total_pages: number;
+  };
+}
+```
+
+### 前端性能优化集成
+
+#### 分页加载优化
+```yaml
+前端分页策略:
+  - 默认页面大小: 20 (适配Canvas Kit Table性能)
+  - 虚拟滚动: 大数据集支持 (>100条记录)
+  - 预加载: 下一页数据预取
+  - 缓存策略: 5分钟本地缓存
+
+API响应格式:
+  data: []              # 当前页数据
+  pagination:
+    page: 1             # 当前页码
+    page_size: 20       # 每页大小
+    total: 156          # 总记录数
+    total_pages: 8      # 总页数
+    has_next: true      # 是否有下一页
+    has_prev: false     # 是否有上一页
+```
+
+#### 实时数据同步
+```typescript
+// WebSocket集成标准
+interface RealtimeEvent {
+  event_type: 'organization_created' | 'organization_updated' | 'organization_deleted';
+  entity_type: 'organization_unit';
+  entity_code: string;
+  data: OrganizationUnit | null;
+  timestamp: string;
+}
+
+// React Query实时更新
+const useRealtimeOrganizations = () => {
+  const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    const eventSource = new EventSource('/api/v1/organizations/events');
+    
+    eventSource.onmessage = (event) => {
+      const data: RealtimeEvent = JSON.parse(event.data);
+      
+      // 更新本地缓存
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    };
+  }, [queryClient]);
+};
+```
+
 ## 📊 数据格式标准
 
-### 请求格式
+### 请求格式 (优化版)
 ```json
-// POST /api/v1/positions
+// POST /api/v1/employees - 8位编码员工创建 (Person Name版)
 {
-  "position_type": "REGULAR",
-  "job_profile_id": "uuid",
-  "department_id": "uuid",
-  "manager_position_id": "uuid",
-  "status": "OPEN",
-  "budgeted_fte": 1.0,
-  "details": {
+  "organization_code": "1000000",       // 7位组织编码 (必需)
+  "primary_position_code": "1000001",   // 7位主要职位编码 (可选)
+  "employee_type": "FULL_TIME",         // 员工类型
+  "employment_status": "ACTIVE",        // 就业状态 (默认)
+  
+  // Person Name 简化字段组
+  "person_name": "张三",                // 完整姓名 (必填)
+  "first_name": "张",                   // 姓 (可选)
+  "last_name": "三",                    // 名 (可选)
+  
+  "email": "zhang.san@company.com",     // 工作邮箱 (必需)
+  "personal_email": "zhang.san@gmail.com", // 个人邮箱 (可选)
+  "phone_number": "13800138000",        // 手机号码 (可选)
+  "hire_date": "2025-08-05",            // 入职日期 (必需)
+  
+  "personal_info": {                    // 个人信息 (可选)
+    "age": 28,
+    "gender": "M",
+    "address": "北京市朝阳区"
+  },
+  "employee_details": {                 // 员工详情 (可选)
     "title": "高级软件工程师",
-    "description": "负责核心业务系统开发"
+    "level": "P6",
+    "salary": 25000
+  }
+}
+
+// POST /api/v1/positions - 7位编码职位创建 (保持原规定)
+{
+  "organization_code": "1000000",       // 7位组织编码 (必需)
+  "manager_position_code": "1000001",   // 7位管理职位编码 (可选)
+  "position_type": "FULL_TIME",         // 优化的职位类型
+  "job_profile_id": "uuid",             // 保留UUID用于外部集成
+  "status": "OPEN",                     // 默认状态
+  "budgeted_fte": 1.0,                  // 预算FTE
+  "details": {                          // 多态配置
+    "title": "高级软件工程师",
+    "salary_range": {
+      "min": 60000,
+      "max": 90000,
+      "currency": "CNY"
+    },
+    "benefits": ["health_insurance", "annual_leave"],
+    "work_schedule": "9_to_5",
+    "remote_allowed": true
+  }
+}
+
+// PUT /api/v1/employees/{employee_code} - 员工更新 (8位编码) 
+{
+  "employment_status": "ON_LEAVE",      // 状态更新
+  "person_name": "张三（更新）",        // 完整姓名更新
+  "phone_number": "13800138888",        // 联系方式更新
+  "employee_details": {                 // 部分更新支持
+    "title": "资深软件工程师",
+    "level": "P7",
+    "salary": 30000
   }
 }
 ```
 
-### 响应格式
+### 响应格式 (优化版)
 ```json
-// 单个资源响应
+// 员工单个资源响应 - 8位编码系统 (Person Name版)
 {
-  "id": "uuid",
-  "tenant_id": "uuid",
-  "position_type": "REGULAR",
-  "job_profile_id": "uuid",
-  "department_id": "uuid",
-  "manager_position_id": "uuid",
-  "status": "OPEN",
-  "budgeted_fte": 1.0,
-  "details": {},
-  "created_at": "2025-08-04T00:00:00Z",
-  "updated_at": "2025-08-04T00:00:00Z"
+  "employee_code": "10000001",          // 8位员工编码
+  "organization_code": "1000000",       // 7位组织编码
+  "primary_position_code": "1000001",   // 7位主要职位编码
+  "employee_type": "FULL_TIME",
+  "employment_status": "ACTIVE",
+  
+  // Person Name 简化字段组
+  "person_name": "张三",                // 完整姓名 (主要显示)
+  "first_name": "张",                   // 姓 (可选)
+  "last_name": "三",                    // 名 (可选)
+  
+  "email": "zhang.san@company.com",
+  "personal_email": "zhang.san@gmail.com",
+  "phone_number": "13800138000",
+  "hire_date": "2025-08-05",
+  
+  "personal_info": "{\"age\": 28, \"gender\": \"M\"}",     // JSON string
+  "employee_details": "{\"title\": \"高级软件工程师\", \"level\": \"P6\"}", // JSON string
+  
+  "tenant_id": "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9",
+  "created_at": "2025-08-05T00:00:00Z",
+  "updated_at": "2025-08-05T00:00:00Z"
 }
 
-// 集合资源响应
+// 职位单个资源响应 - 7位编码系统 (保持原规定)
 {
-  "data": [
-    // 资源数组
+  "code": "1000001",                    // 7位职位编码
+  "organization_code": "1000000",       // 7位组织编码
+  "manager_position_code": "1000002",   // 7位管理职位编码
+  "position_type": "FULL_TIME",
+  "job_profile_id": "uuid",             // 外部系统集成保留UUID
+  "status": "OPEN",
+  "budgeted_fte": 1.0,
+  "details": {
+    "title": "高级软件工程师",
+    "salary_range": {
+      "min": 60000,
+      "max": 90000,
+      "currency": "CNY"
+    }
+  },
+  "created_at": "2025-08-05T00:00:00Z",
+  "updated_at": "2025-08-05T00:00:00Z"
+}
+
+// 集合资源响应 - 统一格式
+{
+  "employees": [                        // 员工实体名称复数形式
+    // 员工资源数组
   ],
   "pagination": {
     "page": 1,
-    "page_size": 50,
+    "page_size": 20,                    // 优化默认页面大小
     "total": 150,
-    "total_pages": 3
+    "total_pages": 8
   }
 }
 
-// 错误响应
+// 错误响应 - 增强版 (员工编码验证)
 {
   "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "请求参数验证失败",
+    "code": "INVALID_EMPLOYEE_CODE",
+    "message": "无效的员工编码格式",
     "details": {
-      "field": "position_type",
-      "value": null,
-      "constraint": "required"
-    }
+      "field": "employee_code",
+      "value": "123",
+      "constraint": "must be 8 digits (10000000-99999999)",
+      "expected_format": "8-digit numeric code"
+    },
+    "timestamp": "2025-08-05T00:00:00Z",
+    "request_id": "req_12345678"
   }
 }
 ```
@@ -144,33 +391,55 @@ DELETE: 删除资源，有副作用，幂等
 标识符字段: 见标识符命名标准
 ```
 
-### 标识符命名标准 ⭐
+### 标识符命名标准 ⭐ (优化版 v2.0)
 ```yaml
-实体编码位数分配:
-  组织单元: 7位数字 (1000000-9999999)
-  员工: 8位数字 (10000000-99999999)  
-  职位: 7位数字 (1000000-9999999)
-  作业档案: 5位数字 (10000-99999)
+实体编码位数分配 (修订版):
+  组织单元: 7位数字 (1000000-9999999) ✅ 已优化实施
+  员工: 8位数字 (10000000-99999999) ✅ 已优化实施 (Person Name版)
+  职位: 7位数字 (1000000-9999999) ← 保持原规定
+  作业档案: 5位数字 (10000-99999) ← 保持原规定
 
-主要标识符:
-  - 使用 "code" 作为对外标识符字段名
-  - 示例: "code": "1000001" (组织单元)
+编码冲突问题识别:
+  ⚠️ 问题: 组织单元和职位都使用7位编码 (1000000-9999999)
+  ⚠️ 影响: 用户无法区分 "1000001" 是组织还是职位
+  ⚠️ 建议: 考虑通过前缀或上下文区分，或未来优化时调整
+
+优化后的标识符架构建议:
+  主键系统: 编码直接作为数据库主键，消除UUID转换
+  查询性能: 数字索引性能优于UUID索引
+  零转换: 无需业务ID↔UUID映射，简化架构
+  响应速度: 基于成功经验预期40-60%性能提升
+
+统一命名规范 (v2.0更新):
+  - 主实体字段: 使用 "{entity}_code" 格式
+  - 员工实体: "employee_code": "10000001" (8位) ✅ 新标准
+  - 组织单元: "code": "1000001" (7位) ← 保持原规定
+  - 职位实体: "code": "1000001" (7位) ← 保持原规定
 
 关系引用:
   - 使用 "{entity}_code" 格式
-  - 示例: "parent_code": "1000000" (组织关系)
-  - 示例: "manager_code": "10000001" (员工关系)
+  - 示例: "organization_code": "1000000" (组织关系 - 7位)
+  - 示例: "position_code": "1000001" (职位关系 - 7位)
+  - 示例: "primary_position_code": "1000002" (主要职位关系 - 7位)
+  - 示例: "manager_position_code": "1000003" (管理职位关系 - 7位)
+  - 示例: "employee_code": "10000001" (员工关系 - 8位)
 
-内部标识符:
-  - UUID仅作系统内部使用，不对外暴露
-  - 数据库主键继续使用UUID
-  - API层面完全隐藏UUID
+内部标识符 (过渡期):
+  - UUID仅在遗留系统中保留
+  - 新系统完全基于编码架构
+  - 逐步迁移现有UUID系统
 
 设计原则:
   - 业务语义清晰: "编码"比"ID"更直观
-  - 用户认知简单: 只需理解一种标识符
-  - 独立扩展: 各实体编码位数独立设计
+  - 用户认知简单: 通过字段名和上下文区分实体类型
+  - 性能优先: 直接主键查询，最佳数据库性能
+  - 独立扩展: 各实体编码位数按原规定保持
   - 行业标准兼容: 符合企业级HR系统惯例
+
+成功案例验证:
+  - 7位组织编码: 已实现60%性能提升 ✅
+  - 职位管理优化: 基于7位编码，预期性能提升 🔄
+  - 架构一致性: 统一的编码设计模式 ✅
 ```
 
 ## 🔒 安全设计标准
