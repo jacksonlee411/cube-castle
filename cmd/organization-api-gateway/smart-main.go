@@ -38,9 +38,9 @@ type ServiceEndpoints struct {
 }
 
 var endpoints = ServiceEndpoints{
-	GraphQLService: "http://localhost:8090",
-	RestService:    "http://localhost:8080",
-	CommandService: "http://localhost:9090",
+	GraphQLService: "http://localhost:8090", // 唯一的查询服务
+	RestService:    "",                      // 已停用
+	CommandService: "http://localhost:9090", // 保留命令服务
 }
 
 // ===== 服务健康状态管理 =====
@@ -63,7 +63,6 @@ func NewHealthMonitor(logger *log.Logger) *HealthMonitor {
 	return &HealthMonitor{
 		services: map[string]*ServiceHealth{
 			"graphql": {Available: true, LastCheck: time.Now()},
-			"rest":    {Available: true, LastCheck: time.Now()},
 			"command": {Available: true, LastCheck: time.Now()},
 		},
 		mutex:  sync.RWMutex{},
@@ -152,7 +151,6 @@ func (hm *HealthMonitor) StartMonitoring(ctx context.Context) {
 			return
 		case <-ticker.C:
 			go hm.CheckService("graphql", endpoints.GraphQLService)
-			go hm.CheckService("rest", endpoints.RestService)
 			go hm.CheckService("command", endpoints.CommandService)
 		}
 	}

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 // 项目默认租户ID - 高谷集团
 const DEFAULT_TENANT_ID = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';

@@ -19,16 +19,60 @@ export const organizationAPI = {
     const queryString = searchParams.toString();
     const endpoint = `/organization-units${queryString ? `?${queryString}` : ''}`;
     
-    return apiClient.get<OrganizationListResponse>(endpoint);
+    const response = await apiClient.get<{data: {organizations: any[]}}>(endpoint);
+    
+    // 适配后端返回的数据格式
+    const adaptedOrganizations = response.data.organizations.map(org => ({
+      code: org.code,
+      parent_code: org.parentCode,
+      name: org.name,
+      unit_type: org.unitType,
+      status: org.status,
+      level: org.level,
+      path: org.path,
+      sort_order: org.sortOrder,
+      description: org.description,
+      created_at: org.createdAt,
+      updated_at: org.updatedAt,
+    }));
+    
+    return {
+      organizations: adaptedOrganizations,
+      total_count: response.data.organizations.length,
+      page: 1,
+      page_size: response.data.organizations.length,
+    };
   },
 
   // 获取单个组织单元
   getByCode: async (code: string): Promise<OrganizationUnit> => {
-    return apiClient.get<OrganizationUnit>(`/organization-units/${code}`);
+    const response = await apiClient.get<{data: any}>(`/organization-units/${code}`);
+    const org = response.data;
+    
+    return {
+      code: org.code,
+      parent_code: org.parentCode,
+      name: org.name,
+      unit_type: org.unitType,
+      status: org.status,
+      level: org.level,
+      path: org.path,
+      sort_order: org.sortOrder,
+      description: org.description,
+      created_at: org.createdAt,
+      updated_at: org.updatedAt,
+    };
   },
 
   // 获取组织统计信息
   getStats: async (): Promise<OrganizationStats> => {
-    return apiClient.get<OrganizationStats>('/organization-units/stats');
+    const response = await apiClient.get<{data: {organizationStats: any}}>('/organization-units/stats');
+    const stats = response.data.organizationStats;
+    
+    return {
+      total_count: stats.totalCount || 0,
+      by_type: stats.byType || {},
+      by_status: stats.byStatus || {},
+    };
   },
 };
