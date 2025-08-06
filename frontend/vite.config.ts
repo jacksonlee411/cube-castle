@@ -1,0 +1,50 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { resolve } from 'node:path'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  
+  // 开发性能优化
+  server: {
+    port: 3000,
+    hmr: { overlay: false }
+  },
+  
+  // 路径别名配置  
+  resolve: {
+    alias: {
+      '@': resolve(process.cwd(), './src'),
+      '@shared': resolve(process.cwd(), './src/shared'),
+      '@layout': resolve(process.cwd(), './src/layout')
+    }
+  },
+  
+  // 预构建优化
+  optimizeDeps: {
+    include: [
+      '@workday/canvas-kit-react',
+      '@workday/canvas-tokens-web',
+      '@workday/canvas-kit-react-fonts'
+    ]
+  },
+  
+  // 测试环境配置
+  
+  // 大型应用性能优化
+  build: {
+    target: 'es2015',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-canvas': ['@workday/canvas-kit-react'],
+          'vendor-router': ['react-router-dom'],
+          'vendor-state': ['zustand', '@tanstack/react-query']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
+  }
+})
