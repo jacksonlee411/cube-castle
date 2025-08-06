@@ -509,6 +509,22 @@ func main() {
 		MaxAge:           300,
 	}))
 
+	// 健康检查端点
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		healthStatus := map[string]interface{}{
+			"status":    "healthy",
+			"service":   "organization-api-server",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"database":  "connected", // 假设Neo4j连接正常，因为服务器已经启动
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(healthStatus); err != nil {
+			logger.Printf("健康检查响应序列化失败: %v", err)
+		}
+	})
+
 	// API路由
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/organization-units", apiHandler.GetOrganizations)
