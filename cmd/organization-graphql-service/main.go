@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"fmt"
+	"crypto/md5"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,6 +19,7 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/redis/go-redis/v9"
 )
 
 // 默认租户配置
@@ -77,16 +80,16 @@ var schemaString = `
 type Organization struct {
 	code        string `json:"code"`
 	name        string `json:"name"`
-	unitType    string `json:"unit_type"`
+	unitType    string `json:"unitType"`
 	status      string `json:"status"`
 	level       int    `json:"level"`
 	path        string `json:"path"`
-	sortOrder   int    `json:"sort_order"`
+	sortOrder   int    `json:"sortOrder"`
 	description string `json:"description"`
 	profile     string `json:"profile"`
-	parentCode  string `json:"parent_code"`
-	createdAt   string `json:"created_at"`
-	updatedAt   string `json:"updated_at"`
+	parentCode  string `json:"parentCode"`
+	createdAt   string `json:"createdAt"`
+	updatedAt   string `json:"updatedAt"`
 }
 
 // GraphQL字段解析方法
@@ -140,20 +143,47 @@ type LevelCount struct {
 func (l LevelCount) Level() string { return l.level }
 func (l LevelCount) Count() int32  { return int32(l.count) }
 
-// Neo4j仓储
+// Neo4j仓储（带Redis缓存）
 type Neo4jOrganizationRepository struct {
-	driver neo4j.DriverWithContext
-	logger *log.Logger
+	driver      neo4j.DriverWithContext
+	redisClient *redis.Client
+	logger      *log.Logger
+	cacheTTL    time.Duration
 }
 
-func NewNeo4jOrganizationRepository(driver neo4j.DriverWithContext, logger *log.Logger) *Neo4jOrganizationRepository {
+func NewNeo4jOrganizationRepository(driver neo4j.DriverWithContext, redisClient *redis.Client, logger *log.Logger) *Neo4jOrganizationRepository {
 	return &Neo4jOrganizationRepository{
-		driver: driver,
-		logger: logger,
+		driver:      driver,
+		redisClient: redisClient,
+		logger:      logger,
+		cacheTTL:    5 * time.Minute, // 5分钟缓存
 	}
 }
 
+// 生成缓存键
+func (r *Neo4jOrganizationRepository) getCacheKey(operation string, params ...interface{}) string {
+	h := md5.New()
+	h.Write([]byte(fmt.Sprintf("org:%s:%v", operation, params)))
+	return fmt.Sprintf("cache:%x", h.Sum(nil))
+}
+
 func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, first, offset int) ([]Organization, error) {
+	// 生成缓存键
+	cacheKey := r.getCacheKey("organizations", tenantID.String(), first, offset)
+	
+	// 尝试从缓存获取
+	if r.redisClient != nil {
+		cachedData, err := r.redisClient.Get(ctx, cacheKey).Result()
+		if err == nil {
+			var organizations []Organization
+			if json.Unmarshal([]byte(cachedData), &organizations) == nil {
+				r.logger.Printf("[Cache HIT] 从缓存返回组织列表 - 键: %s, 数量: %d", cacheKey, len(organizations))
+				return organizations, nil
+			}
+		}
+		r.logger.Printf("[Cache MISS] 缓存未命中，查询数据库 - 键: %s", cacheKey)
+	}
+
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
@@ -196,6 +226,14 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 			updatedAt:   getStringValue(record, "updated_at"),
 		}
 		organizations = append(organizations, org)
+	}
+
+	// 将结果写入缓存
+	if r.redisClient != nil && len(organizations) > 0 {
+		if cacheData, err := json.Marshal(organizations); err == nil {
+			r.redisClient.Set(ctx, cacheKey, string(cacheData), r.cacheTTL)
+			r.logger.Printf("[Cache SET] 缓存已更新 - 键: %s, 数量: %d, TTL: %v", cacheKey, len(organizations), r.cacheTTL)
+		}
 	}
 
 	return organizations, result.Err()
@@ -245,6 +283,22 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 }
 
 func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*OrganizationStats, error) {
+	// 生成缓存键
+	cacheKey := r.getCacheKey("stats", tenantID.String())
+	
+	// 尝试从缓存获取
+	if r.redisClient != nil {
+		cachedData, err := r.redisClient.Get(ctx, cacheKey).Result()
+		if err == nil {
+			var stats OrganizationStats
+			if json.Unmarshal([]byte(cachedData), &stats) == nil {
+				r.logger.Printf("[Cache HIT] 从缓存返回统计信息 - 键: %s", cacheKey)
+				return &stats, nil
+			}
+		}
+		r.logger.Printf("[Cache MISS] 缓存未命中，查询数据库 - 键: %s", cacheKey)
+	}
+
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
@@ -284,6 +338,15 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 				{level: "级别2", count: total - 1},
 			},
 		}
+		
+		// 将结果写入缓存
+		if r.redisClient != nil {
+			if cacheData, err := json.Marshal(stats); err == nil {
+				r.redisClient.Set(ctx, cacheKey, string(cacheData), r.cacheTTL)
+				r.logger.Printf("[Cache SET] 统计缓存已更新 - 键: %s, TTL: %v", cacheKey, r.cacheTTL)
+			}
+		}
+		
 		return stats, nil
 	}
 
@@ -412,8 +475,32 @@ func main() {
 	}
 	logger.Println("Neo4j连接成功")
 
+	// Redis连接
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisDB := 0
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     redisAddr,
+		Password: redisPassword,
+		DB:       redisDB,
+	})
+
+	// 测试Redis连接
+	_, err = redisClient.Ping(context.Background()).Result()
+	if err != nil {
+		logger.Printf("Redis连接失败，将不使用缓存: %v", err)
+		redisClient = nil
+	} else {
+		logger.Println("Redis连接成功，缓存功能已启用")
+	}
+
 	// 创建仓储和解析器
-	repo := NewNeo4jOrganizationRepository(driver, logger)
+	repo := NewNeo4jOrganizationRepository(driver, redisClient, logger)
 	resolver := &Resolver{repo: repo, logger: logger}
 
 	// 创建GraphQL schema
@@ -479,7 +566,7 @@ func main() {
 	// 获取端口
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8081"
+		port = "8090"  // 智能网关期望的GraphQL服务端口
 	}
 
 	server := &http.Server{
