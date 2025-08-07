@@ -302,55 +302,120 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
-	// 获取总数和类型统计
-	query := `
+	// 获取总数
+	totalQuery := `
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
-		RETURN 
-			count(o) as total,
-			collect({type: o.unit_type, count: 1}) as types,
-			collect({status: o.status, count: 1}) as statuses,
-			collect({level: toString(o.level), count: 1}) as levels
+		RETURN count(o) as total
 	`
-
-	result, err := session.Run(ctx, query, map[string]interface{}{
+	
+	totalResult, err := session.Run(ctx, totalQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("查询总数失败: %w", err)
 	}
 
-	if result.Next(ctx) {
-		record := result.Record()
-		total := int(record.Values[0].(int64))
-
-		// 简化统计，实际应该聚合计算
-		stats := &OrganizationStats{
-			totalCount: total,
-			byType: []TypeCount{
-				{typeVal: "COMPANY", count: 1},
-				{typeVal: "DEPARTMENT", count: total - 1},
-			},
-			byStatus: []StatusCount{
-				{status: "ACTIVE", count: total},
-			},
-			byLevel: []LevelCount{
-				{level: "级别1", count: 1},
-				{level: "级别2", count: total - 1},
-			},
-		}
-		
-		// 将结果写入缓存
-		if r.redisClient != nil {
-			if cacheData, err := json.Marshal(stats); err == nil {
-				r.redisClient.Set(ctx, cacheKey, string(cacheData), r.cacheTTL)
-				r.logger.Printf("[Cache SET] 统计缓存已更新 - 键: %s, TTL: %v", cacheKey, r.cacheTTL)
-			}
-		}
-		
-		return stats, nil
+	var total int
+	if totalResult.Next(ctx) {
+		record := totalResult.Record()
+		total = int(record.Values[0].(int64))
 	}
 
-	return nil, nil
+	// 按类型统计
+	typeQuery := `
+		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
+		RETURN o.unit_type as type, count(o) as count
+		ORDER BY type
+	`
+	
+	typeResult, err := session.Run(ctx, typeQuery, map[string]interface{}{
+		"tenant_id": tenantID.String(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("按类型统计失败: %w", err)
+	}
+
+	var byType []TypeCount
+	for typeResult.Next(ctx) {
+		record := typeResult.Record()
+		unitType := getStringValue(record, "type")
+		count := getIntValue(record, "count")
+		byType = append(byType, TypeCount{
+			typeVal: unitType,
+			count:   count,
+		})
+	}
+
+	// 按状态统计
+	statusQuery := `
+		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
+		RETURN o.status as status, count(o) as count
+		ORDER BY status
+	`
+	
+	statusResult, err := session.Run(ctx, statusQuery, map[string]interface{}{
+		"tenant_id": tenantID.String(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("按状态统计失败: %w", err)
+	}
+
+	var byStatus []StatusCount
+	for statusResult.Next(ctx) {
+		record := statusResult.Record()
+		status := getStringValue(record, "status")
+		count := getIntValue(record, "count")
+		byStatus = append(byStatus, StatusCount{
+			status: status,
+			count:  count,
+		})
+	}
+
+	// 按级别统计
+	levelQuery := `
+		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
+		RETURN toString(o.level) as level, count(o) as count
+		ORDER BY level
+	`
+	
+	levelResult, err := session.Run(ctx, levelQuery, map[string]interface{}{
+		"tenant_id": tenantID.String(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("按级别统计失败: %w", err)
+	}
+
+	var byLevel []LevelCount
+	for levelResult.Next(ctx) {
+		record := levelResult.Record()
+		level := getStringValue(record, "level")
+		count := getIntValue(record, "count")
+		byLevel = append(byLevel, LevelCount{
+			level: fmt.Sprintf("级别%s", level),
+			count: count,
+		})
+	}
+
+	// 构建统计结果
+	stats := &OrganizationStats{
+		totalCount: total,
+		byType:     byType,
+		byStatus:   byStatus,
+		byLevel:    byLevel,
+	}
+	
+	// 将结果写入缓存
+	if r.redisClient != nil {
+		if cacheData, err := json.Marshal(stats); err == nil {
+			r.redisClient.Set(ctx, cacheKey, string(cacheData), r.cacheTTL)
+			r.logger.Printf("[Cache SET] 统计缓存已更新 - 键: %s, TTL: %v", cacheKey, r.cacheTTL)
+		}
+	}
+	
+	r.logger.Printf("[Stats] 统计查询完成 - 总数: %d, 类型数: %d, 状态数: %d, 级别数: %d", 
+		total, len(byType), len(byStatus), len(byLevel))
+	
+	return stats, nil
 }
 
 // Helper functions

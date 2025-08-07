@@ -1,3 +1,10 @@
+// API错误类型定义
+export interface APIError {
+  message: string;
+  status: number;
+  statusText: string;
+}
+
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 // 项目默认租户ID - 高谷集团
@@ -18,34 +25,51 @@ export class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Tenant-ID': this.tenantID, // 使用统一的默认租户ID
-        ...options.headers,
-      },
-      ...options,
-    });
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant-ID': this.tenantID,
+          ...options.headers,
+        },
+        ...options,
+      });
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        const error: APIError = {
+          message: `API request failed: ${response.status} ${response.statusText}`,
+          status: response.status,
+          statusText: response.statusText
+        };
+        throw error;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return response.json();
+      } else {
+        return response.text() as unknown as T;
+      }
+    } catch (error) {
+      if (error instanceof Error && 'status' in error) {
+        throw error;
+      }
+      throw new Error(`Network error: ${error}`);
     }
-
-    return response.json();
   }
 
   public get<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  public post<T>(endpoint: string, data: any): Promise<T> {
+  public post<T>(endpoint: string, data: Record<string, unknown>): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  public put<T>(endpoint: string, data: any): Promise<T> {
+  public put<T>(endpoint: string, data: Record<string, unknown>): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -58,3 +82,4 @@ export class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+export { APIError };

@@ -1,5 +1,15 @@
 import { apiClient } from './client';
-import type { OrganizationUnit, OrganizationListResponse, OrganizationStats } from '../types';
+import type { 
+  OrganizationUnit, 
+  OrganizationListResponse, 
+  OrganizationStats, 
+  APIResponse,
+  OrganizationListAPIResponse,
+  OrganizationStatsAPIResponse,
+  GraphQLOrganizationResponse,
+  GraphQLStatsTypeItem,
+  GraphQLStatsStatusItem
+} from '../types';
 
 export const organizationAPI = {
   // 获取组织单元列表
@@ -19,10 +29,10 @@ export const organizationAPI = {
     const queryString = searchParams.toString();
     const endpoint = `/organization-units${queryString ? `?${queryString}` : ''}`;
     
-    const response = await apiClient.get<{data: {organizations: any[]}}>(endpoint);
+    const response = await apiClient.get<APIResponse<OrganizationListAPIResponse>>(endpoint);
     
     // 适配后端返回的数据格式
-    const adaptedOrganizations = response.data.organizations.map(org => ({
+    const adaptedOrganizations: OrganizationUnit[] = response.data.organizations.map((org: GraphQLOrganizationResponse) => ({
       code: org.code,
       parent_code: org.parentCode,
       name: org.name,
@@ -46,7 +56,7 @@ export const organizationAPI = {
 
   // 获取单个组织单元
   getByCode: async (code: string): Promise<OrganizationUnit> => {
-    const response = await apiClient.get<{data: any}>(`/organization-units/${code}`);
+    const response = await apiClient.get<APIResponse<GraphQLOrganizationResponse>>(`/organization-units/${code}`);
     const org = response.data;
     
     return {
@@ -66,13 +76,29 @@ export const organizationAPI = {
 
   // 获取组织统计信息
   getStats: async (): Promise<OrganizationStats> => {
-    const response = await apiClient.get<{data: {organizationStats: any}}>('/organization-units/stats');
+    const response = await apiClient.get<APIResponse<OrganizationStatsAPIResponse>>('/organization-units/stats');
     const stats = response.data.organizationStats;
+    
+    // 将GraphQL返回的数组格式转换为前端期望的对象格式
+    const byTypeMap: Record<string, number> = {};
+    const byStatusMap: Record<string, number> = {};
+    
+    if (Array.isArray(stats.byType)) {
+      stats.byType.forEach((item: GraphQLStatsTypeItem) => {
+        byTypeMap[item.type] = item.count;
+      });
+    }
+    
+    if (Array.isArray(stats.byStatus)) {
+      stats.byStatus.forEach((item: GraphQLStatsStatusItem) => {
+        byStatusMap[item.status] = item.count;
+      });
+    }
     
     return {
       total_count: stats.totalCount || 0,
-      by_type: stats.byType || {},
-      by_status: stats.byStatus || {},
+      by_type: byTypeMap,
+      by_status: byStatusMap,
     };
   },
 };
