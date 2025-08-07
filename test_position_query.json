@@ -1,0 +1,8 @@
+{
+  "query": "query GetPositions($tenantId: ID!, $first: Int, $offset: Int) { positions(tenantId: $tenantId, first: $first, offset: $offset) { id title code status type } }",
+  "variables": {
+    "tenantId": "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9",
+    "first": 5,
+    "offset": 0
+  }
+}
