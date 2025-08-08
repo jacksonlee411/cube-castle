@@ -1,13 +1,17 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { OrganizationDashboard } from './features/organizations/OrganizationDashboard'
+import TestCrud from './TestCrud'
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<AppShell />}>
-        {/* 默认重定向到组织管理 */}
-        <Route index element={<Navigate to="/organizations" replace />} />
+        {/* 默认重定向到测试页面 */}
+        <Route index element={<Navigate to="/test" replace />} />
+        
+        {/* CRUD测试页面 */}
+        <Route path="/test" element={<TestCrud />} />
         
         {/* 组织管理模块 */}
         <Route path="/organizations" element={<OrganizationDashboard />} />

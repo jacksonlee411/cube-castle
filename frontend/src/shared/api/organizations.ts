@@ -10,6 +10,7 @@ import type {
   GraphQLStatsTypeItem,
   GraphQLStatsStatusItem
 } from '../types';
+import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
 
 export const organizationAPI = {
   // 获取组织单元列表
@@ -36,8 +37,8 @@ export const organizationAPI = {
       code: org.code,
       parent_code: org.parentCode,
       name: org.name,
-      unit_type: org.unitType,
-      status: org.status,
+      unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
+      status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
       level: org.level,
       path: org.path,
       sort_order: org.sortOrder,
@@ -63,8 +64,8 @@ export const organizationAPI = {
       code: org.code,
       parent_code: org.parentCode,
       name: org.name,
-      unit_type: org.unitType,
-      status: org.status,
+      unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
+      status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
       level: org.level,
       path: org.path,
       sort_order: org.sortOrder,
@@ -83,13 +84,15 @@ export const organizationAPI = {
     const byTypeMap: Record<string, number> = {};
     const byStatusMap: Record<string, number> = {};
     
-    if (Array.isArray(stats.byType)) {
+    // 安全检查 - 如果byType不存在或不是数组，初始化为空对象
+    if (stats.byType && Array.isArray(stats.byType)) {
       stats.byType.forEach((item: GraphQLStatsTypeItem) => {
         byTypeMap[item.type] = item.count;
       });
     }
     
-    if (Array.isArray(stats.byStatus)) {
+    // 安全检查 - 如果byStatus不存在或不是数组，初始化为空对象
+    if (stats.byStatus && Array.isArray(stats.byStatus)) {
       stats.byStatus.forEach((item: GraphQLStatsStatusItem) => {
         byStatusMap[item.status] = item.count;
       });
@@ -100,5 +103,64 @@ export const organizationAPI = {
       by_type: byTypeMap,
       by_status: byStatusMap,
     };
+  },
+
+  // 新增组织单元
+  create: async (data: CreateOrganizationInput): Promise<OrganizationUnit> => {
+    const response = await apiClient.post<APIResponse<GraphQLOrganizationResponse>>('/organization-units', {
+      code: data.code,
+      parent_code: data.parent_code,
+      name: data.name,
+      unit_type: data.unit_type,
+      status: data.status,
+      level: data.level,
+      sort_order: data.sort_order,
+      description: data.description,
+    });
+    const org = response.data;
+    
+    return {
+      code: org.code,
+      parent_code: org.parentCode,
+      name: org.name,
+      unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
+      status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
+      level: org.level,
+      path: org.path,
+      sort_order: org.sortOrder,
+      description: org.description,
+      created_at: org.createdAt,
+      updated_at: org.updatedAt,
+    };
+  },
+
+  // 更新组织单元
+  update: async (code: string, data: Omit<UpdateOrganizationInput, 'code'>): Promise<OrganizationUnit> => {
+    const response = await apiClient.put<APIResponse<GraphQLOrganizationResponse>>(`/organization-units/${code}`, {
+      name: data.name,
+      status: data.status,
+      description: data.description,
+      sort_order: data.sort_order,
+    });
+    const org = response.data;
+    
+    return {
+      code: org.code,
+      parent_code: org.parentCode,
+      name: org.name,
+      unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
+      status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
+      level: org.level,
+      path: org.path,
+      sort_order: org.sortOrder,
+      description: org.description,
+      created_at: org.createdAt,
+      updated_at: org.updatedAt,
+    };
+  },
+
+  // 删除组织单元
+  delete: async (code: string): Promise<void> => {
+    await apiClient.delete(`/organization-units/${code}`);
   },
 };

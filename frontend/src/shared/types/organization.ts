@@ -52,8 +52,8 @@ export interface GraphQLStatsStatusItem {
 
 export interface GraphQLStatsResponse {
   totalCount: number;
-  byType: GraphQLStatsTypeItem[];
-  byStatus: GraphQLStatsStatusItem[];
+  byType?: GraphQLStatsTypeItem[];
+  byStatus?: GraphQLStatsStatusItem[];
 }
 
 export interface APIResponse<T> {
