@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { OrganizationDashboard } from './features/organizations/OrganizationDashboard'
 import TestCrud from './TestCrud'
+import CanvasKitTest from './CanvasKitTest'
 
 function App() {
   return (
@@ -12,6 +13,9 @@ function App() {
         
         {/* CRUD测试页面 */}
         <Route path="/test" element={<TestCrud />} />
+        
+        {/* Canvas Kit 测试页面 */}
+        <Route path="/canvas-test" element={<CanvasKitTest />} />
         
         {/* 组织管理模块 */}
         <Route path="/organizations" element={<OrganizationDashboard />} />

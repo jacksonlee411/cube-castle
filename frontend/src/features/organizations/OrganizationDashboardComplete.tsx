@@ -37,6 +37,18 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
     sort_order: organization?.sort_order || 0,
   });
 
+  const model = useModalModel({
+    initialFocusRef: React.useRef<HTMLInputElement>(null),
+  });
+
+  React.useEffect(() => {
+    if (isOpen && !model.state.visibility === 'visible') {
+      model.events.open();
+    } else if (!isOpen && model.state.visibility === 'visible') {
+      model.events.close();
+    }
+  }, [isOpen, model]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -72,15 +84,16 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
+  const handleClose = () => {
+    model.events.close();
+    onClose();
+  };
 
   return (
-    <Modal>
+    <Modal model={model}>
       <Modal.Overlay>
         <Modal.Card width={600}>
-          <Modal.CloseIcon aria-label="关闭" onClick={onClose} />
+          <Modal.CloseIcon aria-label="关闭" />
           <Modal.Heading>{isEditing ? '编辑组织单元' : '新增组织单元'}</Modal.Heading>
           <Modal.Body>
             <form onSubmit={handleSubmit}>
@@ -199,9 +212,9 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
               </FormField>
 
               <Box display="flex" justifyContent="flex-end" gap="s">
-                <SecondaryButton type="button" onClick={onClose}>
+                <Modal.CloseButton as={SecondaryButton} onClick={handleClose}>
                   取消
-                </SecondaryButton>
+                </Modal.CloseButton>
                 <PrimaryButton 
                   type="submit" 
                   disabled={createMutation.isPending || updateMutation.isPending}
