@@ -1,0 +1,113 @@
+export interface APIResponse<T> {
+  data: T;
+  status: 'success' | 'error';
+  message?: string;
+  trace_id?: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total_count: number;
+  page: number;
+  page_size: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+// GraphQL specific types with strict typing
+export interface GraphQLResponse<T> {
+  data?: T;
+  errors?: GraphQLError[];
+}
+
+export interface GraphQLError {
+  message: string;
+  locations?: Array<{
+    line: number;
+    column: number;
+  }>;
+  path?: Array<string | number>;
+  extensions?: Record<string, unknown>;
+}
+
+// Strict GraphQL variables interface
+export interface GraphQLVariables {
+  searchText?: string;
+  unitType?: OrganizationUnitType;
+  status?: OrganizationStatus;
+  level?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+// API Error types
+export class APIError extends Error {
+  public readonly status: number;
+  public readonly statusText: string;
+  public readonly response?: unknown;
+
+  constructor(status: number, statusText: string, response?: unknown) {
+    super(`API Error: ${status} ${statusText}`);
+    this.name = 'APIError';
+    this.status = status;
+    this.statusText = statusText;
+    this.response = response;
+  }
+}
+
+// Validation Error
+export class ValidationError extends Error {
+  public readonly errors: ValidationIssue[];
+
+  constructor(message: string, errors: ValidationIssue[]) {
+    super(message);
+    this.name = 'ValidationError';
+    this.errors = errors;
+  }
+}
+
+export interface ValidationIssue {
+  field: string;
+  message: string;
+  code: string;
+}
+
+// Type guards for API responses
+export const isGraphQLResponse = <T>(response: unknown): response is GraphQLResponse<T> => {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    ('data' in response || 'errors' in response)
+  );
+};
+
+export const hasGraphQLErrors = <T>(response: GraphQLResponse<T>): response is GraphQLResponse<T> & { errors: GraphQLError[] } => {
+  return Array.isArray(response.errors) && response.errors.length > 0;
+};
+
+export const isAPIError = (error: unknown): error is APIError => {
+  return error instanceof APIError;
+};
+
+export const isValidationError = (error: unknown): error is ValidationError => {
+  return error instanceof ValidationError;
+};
+
+// Utility types for API operations
+export type APIResult<T> = Promise<T>;
+export type APIOperation<TInput, TOutput> = (input: TInput) => APIResult<TOutput>;
+
+// HTTP method types
+export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+
+// Request configuration
+export interface RequestConfig {
+  method: HTTPMethod;
+  headers?: Record<string, string>;
+  params?: Record<string, string | number | boolean>;
+  timeout?: number;
+}
+
+// Organization-specific API types
+export type OrganizationUnitType = 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
+export type OrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED';

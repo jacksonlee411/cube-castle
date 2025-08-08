@@ -8,9 +8,9 @@ import { useDebounce } from '../../shared/hooks/useDebounce';
 
 export interface FilterState {
   searchText: string;
-  unit_type?: string;
-  status?: string;
-  level?: number;
+  unit_type: string | undefined;
+  status: string | undefined;
+  level: number | undefined;
   page: number;
   pageSize: number;
 }

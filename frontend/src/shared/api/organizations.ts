@@ -6,15 +6,34 @@ import type {
   APIResponse,
   GraphQLOrganizationResponse,
   CreateOrganizationResponse,
-  UpdateOrganizationResponse
+  UpdateOrganizationResponse,
+  GraphQLResponse,
+  GraphQLVariables,
+  OrganizationUnitType,
+  OrganizationStatus
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
+import { 
+  validateGraphQLVariables,
+  validateGraphQLOrganizationList,
+  validateGraphQLOrganizationResponse,
+  validateOrganizationUnit,
+  validateUpdateOrganizationInput,
+  safeTransformGraphQLToOrganizationUnit,
+  safeTransformCreateInputToAPI,
+  isGraphQLError,
+  isGraphQLSuccessResponse,
+  ValidationError,
+  isValidationError,
+  isAPIError,
+  isNetworkError
+} from './type-guards';
 
 export interface OrganizationQueryParams {
-  searchText?: string;
-  unit_type?: string;
-  status?: string;
-  level?: number;
+  searchText?: string | undefined;
+  unit_type?: OrganizationUnitType | undefined;
+  status?: OrganizationStatus | undefined;
+  level?: number | undefined;
   page?: number;
   pageSize?: number;
 }
@@ -22,8 +41,15 @@ export interface OrganizationQueryParams {
 export const organizationAPI = {
   // 获取组织单元列表
   getAll: async (params?: OrganizationQueryParams): Promise<OrganizationListResponse> => {
-    // 构建GraphQL查询变量
-    const variables: any = {};
+    try {
+      // 构建并验证GraphQL查询变量
+      const variables: GraphQLVariables = {};
+      
+      if (params) {
+        // 验证输入参数
+        const validatedParams = validateGraphQLVariables(params);
+        Object.assign(variables, validatedParams);
+      }
     let queryArgs = '';
     
     if (params) {
@@ -98,51 +124,66 @@ export const organizationAPI = {
       variables: variables
     };
     
-    const response = await fetch('http://localhost:8090/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
-      },
-      body: JSON.stringify(graphqlQuery),
-    });
-    
-    const graphqlResponse = await response.json();
-    
-    // 如果后端不支持新的查询参数，回退到旧的查询方式
-    if (graphqlResponse?.errors) {
-      console.warn('GraphQL errors:', graphqlResponse.errors);
-      return organizationAPI.getAllFallback(params);
-    }
-    
-    const organizationsData = graphqlResponse?.data?.organizations;
-    
-    // 如果后端返回的是新格式（包含items、totalCount等）
-    if (organizationsData && typeof organizationsData === 'object' && 'items' in organizationsData) {
-      const adaptedOrganizations: OrganizationUnit[] = organizationsData.items.map((org: GraphQLOrganizationResponse) => ({
-        code: org.code,
-        parent_code: org.parentCode || '',
-        name: org.name,
-        unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
-        status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
-        level: org.level,
-        path: org.path,
-        sort_order: org.sortOrder || 0,
-        description: org.description || '',
-        created_at: org.createdAt || '',
-        updated_at: org.updatedAt || '',
-      }));
+      const response = await fetch('http://localhost:8090/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
+        },
+        body: JSON.stringify(graphqlQuery),
+      });
       
-      return {
-        organizations: adaptedOrganizations,
-        total_count: organizationsData.totalCount || adaptedOrganizations.length,
-        page: organizationsData.page || 1,
-        page_size: organizationsData.pageSize || adaptedOrganizations.length,
-      };
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const graphqlResponse = await response.json();
+      
+      // 检查GraphQL错误
+      if (isGraphQLError(graphqlResponse)) {
+        console.warn('GraphQL errors:', graphqlResponse.errors);
+        return organizationAPI.getAllFallback(params);
+      }
+      
+      // 验证GraphQL成功响应
+      if (!isGraphQLSuccessResponse(graphqlResponse)) {
+        throw new ValidationError('Invalid GraphQL response structure', [{
+          message: 'Response missing data field',
+          code: 'invalid_structure',
+          path: ['data']
+        }]);
+      }
+      
+      const organizationsData = graphqlResponse.data?.organizations;
+      
+      // 如果后端返回的是新格式（包含items、totalCount等）
+      if (organizationsData && typeof organizationsData === 'object' && 'items' in organizationsData) {
+        // 使用运行时验证替换类型断言
+        const validatedItems = validateGraphQLOrganizationList(organizationsData.items);
+        const adaptedOrganizations: OrganizationUnit[] = validatedItems.map(safeTransformGraphQLToOrganizationUnit);
+        
+        return {
+          organizations: adaptedOrganizations,
+          total_count: organizationsData.totalCount || adaptedOrganizations.length,
+          page: organizationsData.page || 1,
+          page_size: organizationsData.pageSize || adaptedOrganizations.length,
+        };
+      }
+      
+      // 如果后端返回的是旧格式，回退到客户端筛选
+      return organizationAPI.getAllFallback(params);
+    } catch (error) {
+      if (isValidationError(error)) {
+        console.error('[Organization API] Validation failed:', error.details);
+        throw error;
+      } else if (isNetworkError(error)) {
+        console.error('[Organization API] Network error:', error.message);
+        throw new Error('Network connection failed. Please check your internet connection.');
+      } else {
+        console.error('[Organization API] Unexpected error:', error);
+        throw error;
+      }
     }
-    
-    // 如果后端返回的是旧格式，回退到客户端筛选
-    return organizationAPI.getAllFallback(params);
   },
 
   // 回退方法：如果后端不支持筛选，在前端进行筛选
@@ -176,23 +217,12 @@ export const organizationAPI = {
       body: JSON.stringify(graphqlQuery),
     });
     
-    const graphqlResponse = await response.json();
+    const graphqlResponse: GraphQLResponse<{ organizations: GraphQLOrganizationResponse[] }> = await response.json();
     const organizations = graphqlResponse?.data?.organizations;
     
-    // 适配数据格式
-    let adaptedOrganizations: OrganizationUnit[] = (organizations || []).map((org: GraphQLOrganizationResponse) => ({
-      code: org.code,
-      parent_code: org.parentCode || '',
-      name: org.name,
-      unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
-      status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
-      level: org.level,
-      path: org.path,
-      sort_order: org.sortOrder || 0,
-      description: org.description || '',
-      created_at: org.createdAt || '',
-      updated_at: org.updatedAt || '',
-    }));
+    // 使用运行时验证适配数据格式
+    const validatedOrganizations = validateGraphQLOrganizationList(organizations || []);
+    let adaptedOrganizations: OrganizationUnit[] = validatedOrganizations.map(safeTransformGraphQLToOrganizationUnit);
 
     // 在前端应用筛选条件
     if (params) {
@@ -236,22 +266,25 @@ export const organizationAPI = {
 
   // 获取单个组织单元
   getByCode: async (code: string): Promise<OrganizationUnit> => {
-    const response = await apiClient.get<APIResponse<GraphQLOrganizationResponse>>(`/organization-units/${code}`);
-    const org = response.data;
-    
-    return {
-      code: org.code,
-      parent_code: org.parentCode || '', // 处理null值
-      name: org.name,
-      unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
-      status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
-      level: org.level,
-      path: org.path,
-      sort_order: org.sortOrder || 0, // 处理null值
-      description: org.description || '', // 处理null值
-      created_at: org.createdAt || '',
-      updated_at: org.updatedAt || '',
-    };
+    try {
+      const response = await apiClient.get<APIResponse<GraphQLOrganizationResponse>>(`/organization-units/${code}`);
+      
+      // 验证响应数据
+      const validatedOrg = validateGraphQLOrganizationResponse(response.data);
+      
+      return safeTransformGraphQLToOrganizationUnit(validatedOrg);
+    } catch (error) {
+      if (isValidationError(error)) {
+        console.error(`[Organization API] Validation failed for org ${code}:`, error.details);
+        throw error;
+      } else if (isAPIError(error)) {
+        console.error(`[Organization API] API error for org ${code}:`, error.status, error.statusText);
+        throw error;
+      } else {
+        console.error(`[Organization API] Unexpected error for org ${code}:`, error);
+        throw error;
+      }
+    }
   },
 
   // 获取组织统计信息
@@ -284,8 +317,12 @@ export const organizationAPI = {
       body: JSON.stringify(graphqlQuery),
     });
     
-    const graphqlResponse = await response.json();
-    const stats = graphqlResponse.data.organizationStats;
+    const graphqlResponse: GraphQLResponse<{ organizationStats: { totalCount: number; byType: Array<{unitType: string; count: number}>; byStatus: Array<{status: string; count: number}> } }> = await response.json();
+    const stats = graphqlResponse.data?.organizationStats;
+    
+    if (!stats) {
+      throw new Error('No organization stats data received');
+    }
     
     // 将GraphQL返回的数组格式转换为前端期望的对象格式
     const byTypeMap: Record<string, number> = {};
@@ -317,37 +354,20 @@ export const organizationAPI = {
     try {
       console.log('[Organization API] Creating:', data);
       
-      // 构建请求体，过滤undefined字段
-      const requestBody: Record<string, any> = {
-        name: data.name,
-        unit_type: data.unit_type,
-        status: data.status,
-        level: data.level,
-        sort_order: data.sort_order,
-        description: data.description,
-      };
-      
-      // 只有当code不为undefined时才添加
-      if (data.code !== undefined) {
-        requestBody.code = data.code;
-      }
-      
-      // 只有当parent_code不为undefined时才添加
-      if (data.parent_code !== undefined) {
-        requestBody.parent_code = data.parent_code;
-      }
+      // 使用安全的类型转换构建请求体
+      const requestBody = safeTransformCreateInputToAPI(data);
       
       const response = await apiClient.post<CreateOrganizationResponse>('/organization-units', requestBody);
       
       console.log('[Organization API] Create response:', response);
       
-      // 构造返回的组织单元对象
-      const newOrg: OrganizationUnit = {
-        code: response.code,
+      // 构造返回的组织单元对象 - 使用验证确保数据安全
+      const newOrgData = {
+        code: response['code'],
         parent_code: data.parent_code || '', 
-        name: response.name || data.name,
-        unit_type: (response.unit_type || data.unit_type) as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
-        status: (response.status || data.status) as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
+        name: response['name'] || data.name,
+        unit_type: response.unit_type || data.unit_type,
+        status: response.status || data.status,
         level: data.level || 1,
         path: response.path || '',
         sort_order: data.sort_order || 0,
@@ -356,11 +376,22 @@ export const organizationAPI = {
         updated_at: response.updated_at || new Date().toISOString(),
       };
       
-      console.log('[Organization API] Created org:', newOrg);
-      return newOrg;
+      // 验证构造的组织对象
+      const validatedNewOrg = validateOrganizationUnit(newOrgData);
+      
+      console.log('[Organization API] Created org:', validatedNewOrg);
+      return validatedNewOrg;
     } catch (error) {
       console.error('[Organization API] Create failed:', error);
-      throw error;
+      if (isValidationError(error)) {
+        console.error('[Organization API] Validation failed during create:', error.details);
+        throw error;
+      } else if (isAPIError(error)) {
+        console.error('[Organization API] API error during create:', error.status, error.statusText);
+        throw error;
+      } else {
+        throw error;
+      }
     }
   },
 
@@ -369,11 +400,15 @@ export const organizationAPI = {
     try {
       console.log(`[Organization API] Updating ${code}:`, data);
       
+      // 验证更新输入数据
+      const updateData = { ...data, code }; // 添加code用于验证
+      const validatedUpdateInput = validateUpdateOrganizationInput(updateData);
+      
       const response = await apiClient.put<UpdateOrganizationResponse>(`/organization-units/${code}`, {
-        name: data.name,
-        status: data.status,
-        description: data.description,
-        sort_order: data.sort_order,
+        name: validatedUpdateInput.name,
+        status: validatedUpdateInput.status,
+        description: validatedUpdateInput.description,
+        sort_order: validatedUpdateInput.sort_order,
       });
       
       console.log(`[Organization API] Update response:`, response);
@@ -384,26 +419,36 @@ export const organizationAPI = {
         console.log(`[Organization API] Refreshed data:`, updatedOrg);
         return updatedOrg;
       } catch (fetchError) {
-        console.warn(`[Organization API] Failed to fetch updated data, using response:`, fetchError);
+        console.warn(`[Organization API] Failed to fetch updated data, constructing from response:`, fetchError);
         
-        // 如果获取失败，构造返回数据
-        return {
+        // 如果获取失败，构造返回数据并验证
+        const fallbackData = {
           code: code,
           parent_code: '',
-          name: data.name || '',
+          name: validatedUpdateInput.name || '',
           unit_type: 'DEPARTMENT',
-          status: data.status || 'ACTIVE',
+          status: validatedUpdateInput.status || 'ACTIVE',
           level: 1,
           path: '',
-          sort_order: data.sort_order || 0,
-          description: data.description || '',
+          sort_order: validatedUpdateInput.sort_order || 0,
+          description: validatedUpdateInput.description || '',
           created_at: '',
           updated_at: response.updated_at || new Date().toISOString(),
         };
+        
+        return validateOrganizationUnit(fallbackData);
       }
     } catch (error) {
       console.error(`[Organization API] Update failed:`, error);
-      throw error;
+      if (isValidationError(error)) {
+        console.error('[Organization API] Validation failed during update:', error.details);
+        throw error;
+      } else if (isAPIError(error)) {
+        console.error('[Organization API] API error during update:', error.status, error.statusText);
+        throw error;
+      } else {
+        throw error;
+      }
     }
   },
 

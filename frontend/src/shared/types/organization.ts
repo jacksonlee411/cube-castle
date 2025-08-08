@@ -56,10 +56,6 @@ export interface GraphQLStatsResponse {
   byStatus?: GraphQLStatsStatusItem[];
 }
 
-export interface APIResponse<T> {
-  data: T;
-}
-
 export interface OrganizationListAPIResponse {
   organizations: GraphQLOrganizationResponse[];
 }
@@ -86,5 +82,5 @@ export interface CreateOrganizationResponse {
 export interface UpdateOrganizationResponse {
   code: string;
   updated_at: string;
-  changes: Record<string, any>;
+  changes: Record<string, unknown>;
 }

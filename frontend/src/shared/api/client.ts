@@ -1,9 +1,4 @@
-// API错误类型定义
-export interface APIError {
-  message: string;
-  status: number;
-  statusText: string;
-}
+import { APIError } from '../types/api';
 
 const API_BASE_URL = 'http://localhost:9090/api/v1';
 
@@ -53,11 +48,11 @@ export class ApiClient {
           // 忽略解析错误的错误
         }
         
-        const error: APIError = {
-          message: errorMessage,
-          status: response.status,
-          statusText: response.statusText
-        };
+        const error = new APIError(
+          response.status,
+          response.statusText,
+          errorMessage
+        );
         console.error('[API] Error:', error);
         throw error;
       }
