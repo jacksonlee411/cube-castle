@@ -12,6 +12,9 @@ import { useOrganizations, useOrganizationStats } from '../../shared/hooks/useOr
 import { useCreateOrganization, useUpdateOrganization, useDeleteOrganization } from '../../shared/hooks/useOrganizationMutations'
 import type { OrganizationUnit } from '../../shared/types'
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../shared/hooks/useOrganizationMutations'
+import type { OrganizationQueryParams } from '../../shared/api/organizations'
+import { OrganizationFilters, type FilterState } from './OrganizationFilters'
+import { PaginationControls } from './PaginationControls'
 
 // 组织单元表单组件 - 使用Canvas Kit v13最佳实践
 interface OrganizationFormProps {
@@ -24,6 +27,9 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
   const createMutation = useCreateOrganization();
   const updateMutation = useUpdateOrganization();
   const isEditing = !!organization;
+  
+  // 添加提交锁定状态
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   // Canvas Kit v13 Modal - 使用正确的API模式
   const model = useModalModel();
@@ -62,8 +68,25 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
     });
   }, [organization]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = React.useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('[Form] handleSubmit调用 - 时间戳:', Date.now());
+    
+    // 强制防重复提交检查
+    if (isSubmitting || createMutation.isPending || updateMutation.isPending) {
+      console.log('[Form] 🚫 阻止重复提交 - 当前状态:', { 
+        isSubmitting, 
+        createPending: createMutation.isPending, 
+        updatePending: updateMutation.isPending 
+      });
+      return;
+    }
+    
+    // 设置提交锁定
+    setIsSubmitting(true);
+    console.log('[Form] 🔒 设置提交锁定 - 时间戳:', Date.now());
     
     try {
       if (isEditing) {
@@ -75,10 +98,12 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
           sort_order: formData.sort_order,
         };
         
+        console.log('[Form] Submitting update:', updateData);
         await updateMutation.mutateAsync(updateData);
+        console.log('[Form] Update successful');
       } else {
         const createData: CreateOrganizationInput = {
-          code: formData.code,
+          code: formData.code.trim() || undefined, // 空字符串转为undefined，让后端自动生成
           name: formData.name,
           unit_type: formData.unit_type as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
           status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
@@ -88,19 +113,71 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
           parent_code: formData.parent_code || undefined,
         };
         
+        console.log('[Form] Submitting create:', createData);
         await createMutation.mutateAsync(createData);
+        console.log('[Form] Create successful');
+      }
+      
+      // 添加成功提示
+      console.log(`[Form] ${isEditing ? '更新' : '创建'}成功！`);
+      
+      // 重置表单数据
+      if (!isEditing) {
+        setFormData({
+          code: '',
+          name: '',
+          unit_type: 'DEPARTMENT',
+          status: 'ACTIVE',
+          description: '',
+          parent_code: '',
+          level: 1,
+          sort_order: 0,
+        });
       }
       
       // 使用Modal事件API关闭
       model.events.hide();
       onClose();
     } catch (error) {
-      console.error('表单提交失败:', error);
+      console.error(`[Form] ${isEditing ? '更新' : '创建'}失败:`, error);
+      
+      // 改进的错误信息处理
+      let errorMessage = '操作失败';
+      
+      if (error && typeof error === 'object' && 'message' in error) {
+        const apiError = error as any;
+        
+        // 检查是否包含具体的数据库错误信息
+        if (apiError.message.includes('duplicate key value violates unique constraint')) {
+          if (apiError.message.includes('uk_tenant_name')) {
+            errorMessage = '组织名称已存在，请使用不同的名称';
+          } else {
+            errorMessage = '数据重复，请检查输入信息';
+          }
+        } else if (apiError.message.includes('Network connection failed')) {
+          errorMessage = '网络连接失败，请检查服务器状态';
+        } else {
+          // 使用原始错误信息，但去掉技术细节
+          errorMessage = apiError.message.split(' - ')[0] || errorMessage;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      // 无论成功失败都释放锁定
+      setIsSubmitting(false);
+      console.log('[Form] 🔓 释放提交锁定 - 时间戳:', Date.now());
     }
-  };
+  }, [isEditing, formData, createMutation, updateMutation, isSubmitting, model, onClose]);
 
   // 处理Modal关闭 - 使用正确的事件API
   const handleClose = () => {
+    // 重置提交状态
+    setIsSubmitting(false);
+    console.log('[Form] Modal关闭，重置提交状态');
+    
     model.events.hide();
     onClose();
   };
@@ -109,22 +186,25 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
     <Modal model={model}>
       <Modal.Overlay>
         <Modal.Card width={600}>
-          <Modal.CloseIcon aria-label="关闭" />
+          <Modal.CloseIcon aria-label="关闭" onClick={handleClose} />
           <Modal.Heading>{isEditing ? '编辑组织单元' : '新增组织单元'}</Modal.Heading>
           <Modal.Body>
             <form onSubmit={handleSubmit}>
               <FormField marginBottom="m">
-                <FormField.Label>组织编码 *</FormField.Label>
+                <FormField.Label>组织编码</FormField.Label>
                 <FormField.Field>
                   <FormField.Input
                     as={TextInput}
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    disabled={isEditing}
-                    placeholder="请输入组织编码"
-                    required
+                    disabled={true}
+                    placeholder="系统自动生成编码"
+                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                   />
                 </FormField.Field>
+                <FormField.Hint>
+                  {isEditing ? "编码不可修改" : "系统将自动生成唯一编码"}
+                </FormField.Hint>
               </FormField>
 
               <FormField marginBottom="m">
@@ -233,7 +313,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
                 </SecondaryButton>
                 <PrimaryButton 
                   type="submit" 
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={isSubmitting || createMutation.isPending || updateMutation.isPending}
                 >
                   {isEditing ? '更新' : '创建'}
                 </PrimaryButton>
@@ -251,7 +331,8 @@ const OrganizationTable: React.FC<{
   organizations: OrganizationUnit[]; 
   onEdit: (org: OrganizationUnit) => void;
   onDelete: (code: string) => void;
-}> = ({ organizations, onEdit, onDelete }) => {
+  deleteMutation: any; // 传入删除mutation以获取loading状态
+}> = ({ organizations, onEdit, onDelete, deleteMutation }) => {
   return (
     <Table>
       <Table.Head>
@@ -265,29 +346,57 @@ const OrganizationTable: React.FC<{
         </Table.Row>
       </Table.Head>
       <Table.Body>
-        {organizations.map((org, index) => (
-          <Table.Row key={org.code || `org-${index}`}>
-            <Table.Cell>{org.code}</Table.Cell>
-            <Table.Cell>{org.name}</Table.Cell>
-            <Table.Cell>{org.unit_type}</Table.Cell>
-            <Table.Cell>
-              <Text color={org.status === 'ACTIVE' ? 'positive' : 'default'}>
-                {org.status}
-              </Text>
-            </Table.Cell>
-            <Table.Cell>{org.level}</Table.Cell>
-            <Table.Cell>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <TertiaryButton size="small" onClick={() => onEdit(org)}>
-                  编辑
-                </TertiaryButton>
-                <DeleteButton size="small" onClick={() => onDelete(org.code)}>
-                  删除
-                </DeleteButton>
-              </div>
-            </Table.Cell>
-          </Table.Row>
-        ))}
+        {organizations.map((org, index) => {
+          const isDeleting = deleteMutation.isPending && deleteMutation.variables === org.code;
+          return (
+            <Table.Row 
+              key={org.code || `org-${index}`}
+              style={{ 
+                opacity: isDeleting ? 0.6 : 1,
+                transition: 'opacity 0.3s ease'
+              }}
+            >
+              <Table.Cell>{org.code}</Table.Cell>
+              <Table.Cell>
+                {org.name}
+                {isDeleting && (
+                  <Text typeLevel="subtext.small" color="hint" marginLeft="xs">
+                    (删除中...)
+                  </Text>
+                )}
+              </Table.Cell>
+              <Table.Cell>{org.unit_type}</Table.Cell>
+              <Table.Cell>
+                <Text color={
+                  org.status === 'ACTIVE' ? 'positive' : 
+                  org.status === 'PLANNED' ? 'hint' : 
+                  'default'
+                }>
+                  {org.status}
+                </Text>
+              </Table.Cell>
+              <Table.Cell>{org.level}</Table.Cell>
+              <Table.Cell>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <TertiaryButton 
+                    size="small" 
+                    onClick={() => onEdit(org)}
+                    disabled={deleteMutation.isPending} // 删除进行时禁用编辑
+                  >
+                    编辑
+                  </TertiaryButton>
+                  <DeleteButton 
+                    size="small" 
+                    onClick={() => onDelete(org.code)}
+                    disabled={deleteMutation.isPending} // 防止重复点击
+                  >
+                    {isDeleting ? '删除中...' : '删除'}
+                  </DeleteButton>
+                </div>
+              </Table.Cell>
+            </Table.Row>
+          );
+        })}
       </Table.Body>
     </Table>
   );
@@ -312,12 +421,32 @@ const StatsCard: React.FC<{ title: string; stats: Record<string, number> }> = ({
 };
 
 export const OrganizationDashboard: React.FC = () => {
-  const { data: organizationData, isLoading: orgLoading, error: orgError } = useOrganizations();
-  const { data: statsData } = useOrganizationStats();
-  const deleteMutation = useDeleteOrganization();
-  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState<OrganizationUnit | undefined>(undefined);
+  
+  // 筛选状态管理
+  const [filters, setFilters] = useState<FilterState>({
+    searchText: '',
+    unit_type: undefined,
+    status: undefined,
+    level: undefined,
+    page: 1,
+    pageSize: 20,
+  });
+
+  // 将筛选状态转换为API查询参数
+  const queryParams: OrganizationQueryParams = {
+    searchText: filters.searchText || undefined,
+    unit_type: filters.unit_type || undefined,
+    status: filters.status || undefined,
+    level: filters.level || undefined,
+    page: filters.page,
+    pageSize: filters.pageSize,
+  };
+
+  const { data: organizationData, isLoading: orgLoading, error: orgError, isFetching } = useOrganizations(queryParams);
+  const { data: statsData } = useOrganizationStats();
+  const deleteMutation = useDeleteOrganization();
   
   const handleCreate = () => {
     setSelectedOrganization(undefined);
@@ -331,7 +460,14 @@ export const OrganizationDashboard: React.FC = () => {
   
   const handleDelete = async (code: string) => {
     if (window.confirm('确定要删除这个组织单元吗？')) {
-      await deleteMutation.mutateAsync(code);
+      try {
+        await deleteMutation.mutateAsync(code);
+        // 删除成功，React Query会自动invalidateQueries刷新数据
+      } catch (error) {
+        // 错误处理已在mutation中完成，这里可以添加用户友好的错误提示
+        console.error('Delete operation failed:', error);
+        // 可以添加toast通知等
+      }
     }
   };
   
@@ -340,7 +476,15 @@ export const OrganizationDashboard: React.FC = () => {
     setSelectedOrganization(undefined);
   };
 
-  if (orgLoading) {
+  const handleFiltersChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
+
+  const handlePageChange = (page: number) => {
+    setFilters(prev => ({ ...prev, page }));
+  };
+
+  if (orgLoading && !isFetching) {
     return (
       <Box padding="l">
         <Text>加载组织数据中...</Text>
@@ -362,13 +506,29 @@ export const OrganizationDashboard: React.FC = () => {
       <Box marginBottom="l">
         <Heading size="large">组织架构管理</Heading>
         <Box paddingTop="m">
-          <PrimaryButton marginRight="s" onClick={handleCreate}>新增组织单元</PrimaryButton>
-          <SecondaryButton marginRight="s">导入数据</SecondaryButton>
-          <TertiaryButton>导出报告</TertiaryButton>
+          <PrimaryButton 
+            marginRight="s" 
+            onClick={handleCreate}
+            disabled={deleteMutation.isPending} // 删除进行时禁用新建
+          >
+            新增组织单元
+          </PrimaryButton>
+          <SecondaryButton 
+            marginRight="s"
+            disabled={deleteMutation.isPending} // 删除进行时禁用导入
+          >
+            导入数据
+          </SecondaryButton>
+          <TertiaryButton disabled={deleteMutation.isPending}>导出报告</TertiaryButton>
+          {deleteMutation.isPending && (
+            <Text typeLevel="subtext.small" color="hint" marginLeft="m">
+              正在删除组织单元...
+            </Text>
+          )}
         </Box>
       </Box>
 
-      {/* 统计信息卡片 - 恢复Canvas Kit Card组件 */}
+      {/* 统计信息卡片 */}
       {statsData && (
         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'stretch', gap: '16px' }}>
           <Box flex={1}>
@@ -397,26 +557,74 @@ export const OrganizationDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 组织单元列表 - 恢复Canvas Kit Card组件 */}
+      {/* 筛选面板 */}
+      <OrganizationFilters 
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+      />
+
+      {/* 组织单元列表 */}
       <Card>
-        <Card.Heading>组织单元列表</Card.Heading>
+        <Card.Heading>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>组织单元列表</span>
+            {isFetching && (
+              <Text typeLevel="subtext.small" color="hint">
+                加载中...
+              </Text>
+            )}
+          </div>
+        </Card.Heading>
         <Card.Body>
-          <Text marginBottom="m">共 {organizationData?.total_count || 0} 个单元</Text>
-          {organizationData?.organizations && organizationData.organizations.length > 0 ? (
-            <OrganizationTable 
-              organizations={organizationData.organizations} 
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+          {organizationData && organizationData.organizations && organizationData.organizations.length > 0 ? (
+            <>
+              <OrganizationTable 
+                organizations={organizationData.organizations} 
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                deleteMutation={deleteMutation}
+              />
+              
+              {/* 分页控件 */}
+              <PaginationControls
+                currentPage={filters.page}
+                totalCount={organizationData?.total_count || 0}
+                pageSize={filters.pageSize}
+                onPageChange={handlePageChange}
+                disabled={isFetching || deleteMutation.isPending}
+              />
+            </>
           ) : (
             <Box padding="xl" textAlign="center">
-              <Text>暂无组织数据</Text>
+              <Text>
+                {filters.searchText || filters.unit_type || filters.status || filters.level
+                  ? '没有找到符合筛选条件的组织单元'
+                  : '暂无组织数据'
+                }
+              </Text>
+              {(filters.searchText || filters.unit_type || filters.status || filters.level) && (
+                <Box marginTop="s">
+                  <SecondaryButton 
+                    size="small"
+                    onClick={() => setFilters({
+                      searchText: '',
+                      unit_type: undefined,
+                      status: undefined,
+                      level: undefined,
+                      page: 1,
+                      pageSize: 20,
+                    })}
+                  >
+                    清除筛选条件
+                  </SecondaryButton>
+                </Box>
+              )}
             </Box>
           )}
         </Card.Body>
       </Card>
 
-      {/* 新增/编辑模态窗口 - 恢复完整的Canvas Kit Modal + FormField */}
+      {/* 新增/编辑模态窗口 */}
       <OrganizationForm 
         organization={selectedOrganization}
         isOpen={isFormOpen}

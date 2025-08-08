@@ -5,7 +5,7 @@ export interface APIError {
   statusText: string;
 }
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'http://localhost:9090/api/v1';
 
 // 项目默认租户ID - 高谷集团
 const DEFAULT_TENANT_ID = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
@@ -26,6 +26,8 @@ export class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
     
     try {
+      console.log(`[API] ${options.method || 'GET'} ${url}`, options.body ? JSON.parse(options.body as string) : '');
+      
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
@@ -35,26 +37,65 @@ export class ApiClient {
         ...options,
       });
 
-      if (!response.ok) {
+      console.log(`[API] Response: ${response.status} ${response.statusText}`);
+
+      // 检查响应状态，但对于204 No Content等成功状态码不抛出错误
+      if (!response.ok && response.status !== 204) {
+        let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+        
+        // 尝试获取详细错误信息
+        try {
+          const errorBody = await response.text();
+          if (errorBody) {
+            errorMessage += ` - ${errorBody}`;
+          }
+        } catch {
+          // 忽略解析错误的错误
+        }
+        
         const error: APIError = {
-          message: `API request failed: ${response.status} ${response.statusText}`,
+          message: errorMessage,
           status: response.status,
           statusText: response.statusText
         };
+        console.error('[API] Error:', error);
         throw error;
+      }
+
+      // 处理成功响应
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        console.log('[API] Success: No content');
+        return {} as T;
       }
 
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
-        return response.json();
+        const result = await response.json();
+        console.log('[API] Success:', result);
+        return result;
       } else {
-        return response.text() as unknown as T;
+        const result = await response.text();
+        console.log('[API] Success (text):', result);
+        return result as unknown as T;
       }
     } catch (error) {
-      if (error instanceof Error && 'status' in error) {
+      // 检查是否为APIError（有status属性的错误）
+      if (error && typeof error === 'object' && 'status' in error) {
+        // 重新抛出API错误
         throw error;
       }
-      throw new Error(`Network error: ${error}`);
+      
+      // 网络错误或其他异常的详细处理
+      console.error('[API] Network/Parse error:', error);
+      
+      let errorMessage = 'Network connection failed';
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = 'Unable to connect to server. Please check if the service is running.';
+      } else if (error instanceof Error) {
+        errorMessage = `Request failed: ${error.message}`;
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 

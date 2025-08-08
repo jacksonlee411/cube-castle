@@ -41,14 +41,15 @@ type OrganizationCommand interface {
 
 // 创建组织命令
 type CreateOrganizationCommand struct {
-	CommandID   uuid.UUID `json:"command_id"`
-	TenantID    uuid.UUID `json:"tenant_id"`
-	Name        string    `json:"name" validate:"required,min=1,max=100"`
-	ParentCode  *string   `json:"parent_code,omitempty"`
-	UnitType    string    `json:"unit_type" validate:"required,oneof=COMPANY DEPARTMENT TEAM"`
-	Description *string   `json:"description,omitempty"`
-	SortOrder   *int      `json:"sort_order,omitempty"`
-	RequestedBy uuid.UUID `json:"requested_by" validate:"required"`
+	CommandID    uuid.UUID `json:"command_id"`
+	TenantID     uuid.UUID `json:"tenant_id"`
+	RequestedCode *string   `json:"requested_code,omitempty"` // 用户请求的编码
+	Name         string    `json:"name" validate:"required,min=1,max=100"`
+	ParentCode   *string   `json:"parent_code,omitempty"`
+	UnitType     string    `json:"unit_type" validate:"required,oneof=COMPANY DEPARTMENT TEAM"`
+	Description  *string   `json:"description,omitempty"`
+	SortOrder    *int      `json:"sort_order,omitempty"`
+	RequestedBy  uuid.UUID `json:"requested_by" validate:"required"`
 }
 
 func (c CreateOrganizationCommand) GetCommandID() uuid.UUID { return c.CommandID }
@@ -65,7 +66,7 @@ type UpdateOrganizationCommand struct {
 	TenantID    uuid.UUID `json:"tenant_id"`
 	Code        string    `json:"code" validate:"required"`
 	Name        *string   `json:"name,omitempty"`
-	Status      *string   `json:"status,omitempty" validate:"omitempty,oneof=ACTIVE INACTIVE"`
+	Status      *string   `json:"status,omitempty" validate:"omitempty,oneof=ACTIVE INACTIVE PLANNED"`
 	Description *string   `json:"description,omitempty"`
 	SortOrder   *int      `json:"sort_order,omitempty"`
 	RequestedBy uuid.UUID `json:"requested_by" validate:"required"`
@@ -265,10 +266,26 @@ func NewPostgresOrganizationRepository(pool *pgxpool.Pool, logger *log.Logger) *
 }
 
 func (r *PostgresOrganizationRepository) CreateOrganization(ctx context.Context, cmd CreateOrganizationCommand) (*CreateOrganizationResult, error) {
-	// 生成新的组织代码
-	code, err := r.generateOrganizationCode(ctx, cmd.TenantID)
-	if err != nil {
-		return nil, fmt.Errorf("生成组织代码失败: %w", err)
+	// 确定使用的组织代码
+	var code string
+	var err error
+	
+	if cmd.RequestedCode != nil && *cmd.RequestedCode != "" {
+		// 使用用户提供的编码，但需要验证唯一性
+		code = *cmd.RequestedCode
+		exists, err := r.codeExists(ctx, code, cmd.TenantID)
+		if err != nil {
+			return nil, fmt.Errorf("检查编码唯一性失败: %w", err)
+		}
+		if exists {
+			return nil, fmt.Errorf("组织编码 '%s' 已存在", code)
+		}
+	} else {
+		// 自动生成编码
+		code, err = r.generateOrganizationCode(ctx, cmd.TenantID)
+		if err != nil {
+			return nil, fmt.Errorf("生成组织代码失败: %w", err)
+		}
 	}
 
 	// 计算层级和路径
@@ -308,7 +325,8 @@ func (r *PostgresOrganizationRepository) CreateOrganization(ctx context.Context,
 		return nil, fmt.Errorf("插入组织记录失败: %w", err)
 	}
 
-	r.logger.Printf("组织创建成功: code=%s, name=%s", code, cmd.Name)
+	r.logger.Printf("组织创建成功: code=%s, name=%s (用户提供编码: %v)", 
+		code, cmd.Name, cmd.RequestedCode != nil)
 
 	return &CreateOrganizationResult{
 		Code:      code,
@@ -429,10 +447,26 @@ func (r *PostgresOrganizationRepository) DeleteOrganization(ctx context.Context,
 }
 
 // 辅助方法
+func (r *PostgresOrganizationRepository) codeExists(ctx context.Context, code string, tenantID uuid.UUID) (bool, error) {
+	var count int
+	err := r.pool.QueryRow(ctx,
+		"SELECT COUNT(*) FROM organization_units WHERE code = $1 AND tenant_id = $2",
+		code, tenantID,
+	).Scan(&count)
+	
+	if err != nil {
+		return false, err
+	}
+	
+	return count > 0, nil
+}
+
 func (r *PostgresOrganizationRepository) generateOrganizationCode(ctx context.Context, tenantID uuid.UUID) (string, error) {
 	var maxCode int
 	err := r.pool.QueryRow(ctx,
-		"SELECT COALESCE(MAX(CAST(code AS INTEGER)), 1000000) FROM organization_units WHERE tenant_id = $1",
+		`SELECT COALESCE(MAX(CAST(code AS INTEGER)), 1000000) 
+		 FROM organization_units 
+		 WHERE tenant_id = $1 AND code ~ '^[0-9]+$'`,
 		tenantID,
 	).Scan(&maxCode)
 
@@ -625,6 +659,7 @@ func (h *CommandAPIHandler) CreateOrganization(w http.ResponseWriter, r *http.Re
 
 	// 解析请求体
 	var req struct {
+		Code        *string `json:"code,omitempty"`        // 添加用户输入的编码字段
 		Name        string  `json:"name"`
 		ParentCode  *string `json:"parent_code,omitempty"`
 		UnitType    string  `json:"unit_type"`
@@ -639,14 +674,15 @@ func (h *CommandAPIHandler) CreateOrganization(w http.ResponseWriter, r *http.Re
 
 	// 构建命令
 	cmd := CreateOrganizationCommand{
-		CommandID:   uuid.New(),
-		TenantID:    tenantID,
-		Name:        req.Name,
-		ParentCode:  req.ParentCode,
-		UnitType:    req.UnitType,
-		Description: req.Description,
-		SortOrder:   req.SortOrder,
-		RequestedBy: uuid.New(), // 实际应用中应从认证信息获取
+		CommandID:    uuid.New(),
+		TenantID:     tenantID,
+		RequestedCode: req.Code,               // 传递用户提供的编码
+		Name:         req.Name,
+		ParentCode:   req.ParentCode,
+		UnitType:     req.UnitType,
+		Description:  req.Description,
+		SortOrder:    req.SortOrder,
+		RequestedBy:  uuid.New(), // 实际应用中应从认证信息获取
 	}
 
 	// 执行命令
