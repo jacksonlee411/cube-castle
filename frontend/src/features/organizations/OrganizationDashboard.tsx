@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Box } from '@workday/canvas-kit-react/layout'
 import { Card } from '@workday/canvas-kit-react/card'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
@@ -7,7 +7,6 @@ import { Table } from '@workday/canvas-kit-react/table'
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal'
 import { FormField } from '@workday/canvas-kit-react/form-field'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
-import { Select } from '@workday/canvas-kit-react/select'
 import { TextArea } from '@workday/canvas-kit-react/text-area'
 import { useOrganizations, useOrganizationStats } from '../../shared/hooks/useOrganizations'
 import { useCreateOrganization, useUpdateOrganization, useDeleteOrganization } from '../../shared/hooks/useOrganizationMutations'
@@ -25,6 +24,9 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
   const createMutation = useCreateOrganization();
   const updateMutation = useUpdateOrganization();
   const isEditing = !!organization;
+  
+  // Canvas Kit v13 Modal - 使用正确的API模式
+  const model = useModalModel();
 
   const [formData, setFormData] = useState({
     code: organization?.code || '',
@@ -36,6 +38,29 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
     level: organization?.level || 1,
     sort_order: organization?.sort_order || 0,
   });
+
+  // 正确的Modal状态管理 - 使用事件API
+  React.useEffect(() => {
+    if (isOpen && model.state.visibility !== 'visible') {
+      model.events.show();
+    } else if (!isOpen && model.state.visibility === 'visible') {
+      model.events.hide();
+    }
+  }, [isOpen, model]);
+
+  // 重置表单数据当organization改变时
+  useEffect(() => {
+    setFormData({
+      code: organization?.code || '',
+      name: organization?.name || '',
+      unit_type: organization?.unit_type || 'DEPARTMENT',
+      status: organization?.status || 'ACTIVE',
+      description: organization?.description || '',
+      parent_code: organization?.parent_code || '',
+      level: organization?.level || 1,
+      sort_order: organization?.sort_order || 0,
+    });
+  }, [organization]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,21 +91,25 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
         await createMutation.mutateAsync(createData);
       }
       
+      // 使用Modal事件API关闭
+      model.events.hide();
       onClose();
     } catch (error) {
       console.error('表单提交失败:', error);
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
+  // 处理Modal关闭 - 使用正确的事件API
+  const handleClose = () => {
+    model.events.hide();
+    onClose();
+  };
 
   return (
-    <Modal>
+    <Modal model={model}>
       <Modal.Overlay>
         <Modal.Card width={600}>
-          <Modal.CloseIcon aria-label="关闭" onClick={onClose} />
+          <Modal.CloseIcon aria-label="关闭" />
           <Modal.Heading>{isEditing ? '编辑组织单元' : '新增组织单元'}</Modal.Heading>
           <Modal.Body>
             <form onSubmit={handleSubmit}>
@@ -116,16 +145,16 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
                   <FormField marginBottom="m">
                     <FormField.Label>组织类型 *</FormField.Label>
                     <FormField.Field>
-                      <FormField.Input
-                        as={Select}
+                      <select
                         value={formData.unit_type}
-                        onChange={(value) => setFormData({ ...formData, unit_type: value })}
+                        onChange={(e) => setFormData({ ...formData, unit_type: e.target.value as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM' })}
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                       >
                         <option value="DEPARTMENT">部门</option>
                         <option value="COST_CENTER">成本中心</option>
                         <option value="COMPANY">公司</option>
                         <option value="PROJECT_TEAM">项目团队</option>
-                      </FormField.Input>
+                      </select>
                     </FormField.Field>
                   </FormField>
 
@@ -160,15 +189,15 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
               <FormField marginBottom="m">
                 <FormField.Label>状态 *</FormField.Label>
                 <FormField.Field>
-                  <FormField.Input
-                    as={Select}
+                  <select
                     value={formData.status}
-                    onChange={(value) => setFormData({ ...formData, status: value })}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'ACTIVE' | 'INACTIVE' | 'PLANNED' })}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                   >
                     <option value="ACTIVE">激活</option>
                     <option value="INACTIVE">停用</option>
                     <option value="PLANNED">计划中</option>
-                  </FormField.Input>
+                  </select>
                 </FormField.Field>
               </FormField>
 
@@ -198,8 +227,8 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
                 </FormField.Field>
               </FormField>
 
-              <Box display="flex" justifyContent="flex-end" gap="s">
-                <SecondaryButton type="button" onClick={onClose}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <SecondaryButton type="button" onClick={handleClose}>
                   取消
                 </SecondaryButton>
                 <PrimaryButton 
@@ -208,7 +237,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ organization, onClo
                 >
                   {isEditing ? '更新' : '创建'}
                 </PrimaryButton>
-              </Box>
+              </div>
             </form>
           </Modal.Body>
         </Modal.Card>
@@ -248,14 +277,14 @@ const OrganizationTable: React.FC<{
             </Table.Cell>
             <Table.Cell>{org.level}</Table.Cell>
             <Table.Cell>
-              <Box display="flex" gap="xs">
+              <div style={{ display: 'flex', gap: '4px' }}>
                 <TertiaryButton size="small" onClick={() => onEdit(org)}>
                   编辑
                 </TertiaryButton>
                 <DeleteButton size="small" onClick={() => onDelete(org.code)}>
                   删除
                 </DeleteButton>
-              </Box>
+              </div>
             </Table.Cell>
           </Table.Row>
         ))}
@@ -270,13 +299,13 @@ const StatsCard: React.FC<{ title: string; stats: Record<string, number> }> = ({
     <Card height="100%">
       <Card.Heading>{title}</Card.Heading>
       <Card.Body>
-        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
           {Object.entries(stats).map(([key, value], index) => (
             <Box key={`${title}-${key}-${index}`} paddingY="xs">
               <Text>{key}: {value}</Text>
             </Box>
           ))}
-        </Box>
+        </div>
       </Card.Body>
     </Card>
   );
@@ -341,7 +370,7 @@ export const OrganizationDashboard: React.FC = () => {
 
       {/* 统计信息卡片 - 恢复Canvas Kit Card组件 */}
       {statsData && (
-        <Box marginBottom="l" display="flex" alignItems="stretch" gap="l">
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'stretch', gap: '16px' }}>
           <Box flex={1}>
             <StatsCard 
               title="按类型统计" 
@@ -358,14 +387,14 @@ export const OrganizationDashboard: React.FC = () => {
             <Card height="100%">
               <Card.Heading>总体概况</Card.Heading>
               <Card.Body>
-                <Box textAlign="center" display="flex" flexDirection="column" justifyContent="center" height="100%">
-                  <Text size="xxLarge" fontWeight="bold">{statsData.total_count}</Text>
+                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+                  <Text fontWeight="bold" style={{ fontSize: '2rem' }}>{statsData.total_count}</Text>
                   <Text>组织单元总数</Text>
-                </Box>
+                </div>
               </Card.Body>
             </Card>
           </Box>
-        </Box>
+        </div>
       )}
 
       {/* 组织单元列表 - 恢复Canvas Kit Card组件 */}

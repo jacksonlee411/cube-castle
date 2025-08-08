@@ -10,7 +10,7 @@ export const useOrganizations = (params?: {
 }) => {
   return useQuery({
     queryKey: ['organizations', params],
-    queryFn: () => organizationAPI.getAll(params),
+    queryFn: () => organizationAPI.getAll(),
   });
 };
 

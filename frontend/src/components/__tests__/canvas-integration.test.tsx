@@ -1,8 +1,4 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
-import { vi } from 'vitest';
 
 describe('Canvas Kit Integration', () => {
   it('应该成功渲染实际Canvas组件', () => {

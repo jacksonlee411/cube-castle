@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'node:path'
@@ -30,8 +31,6 @@ export default defineConfig({
     ]
   },
   
-  // 测试环境配置
-  
   // 大型应用性能优化
   build: {
     target: 'es2015',
@@ -46,5 +45,13 @@ export default defineConfig({
       }
     },
     chunkSizeWarningLimit: 1000
+  },
+
+  // 测试环境配置
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.ts',
+    css: true
   }
 })

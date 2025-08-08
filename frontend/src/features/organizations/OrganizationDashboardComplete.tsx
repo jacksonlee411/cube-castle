@@ -354,7 +354,7 @@ export const OrganizationDashboard: React.FC = () => {
 
       {/* 统计信息卡片 - 恢复Canvas Kit Card组件 */}
       {statsData && (
-        <Box marginBottom="l" display="flex" alignItems="stretch" gap="l">
+        <Box as="div" marginBottom="l" display="flex" alignItems="stretch" gap="l">
           <Box flex={1}>
             <StatsCard 
               title="按类型统计" 
@@ -371,8 +371,8 @@ export const OrganizationDashboard: React.FC = () => {
             <Card height="100%">
               <Card.Heading>总体概况</Card.Heading>
               <Card.Body>
-                <Box textAlign="center" display="flex" flexDirection="column" justifyContent="center" height="100%">
-                  <Text size="xxLarge" fontWeight="bold">{statsData.total_count}</Text>
+                <Box as="div" textAlign="center" display="flex" flexDirection="column" justifyContent="center" height="100%">
+                  <Text as="div" fontWeight="bold" style={{ fontSize: '2rem' }}>{statsData.total_count}</Text>
                   <Text>组织单元总数</Text>
                 </Box>
               </Card.Body>

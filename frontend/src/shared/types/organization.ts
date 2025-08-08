@@ -67,3 +67,24 @@ export interface OrganizationListAPIResponse {
 export interface OrganizationStatsAPIResponse {
   organizationStats: GraphQLStatsResponse;
 }
+
+// 命令API响应类型 - 用于创建和更新操作
+export interface CreateOrganizationResponse {
+  code: string;
+  name: string;
+  unit_type: string;
+  status: string;
+  created_at: string;
+  level?: number;
+  parent_code?: string;
+  sort_order?: number;
+  description?: string;
+  path?: string;
+  updated_at?: string;
+}
+
+export interface UpdateOrganizationResponse {
+  code: string;
+  updated_at: string;
+  changes: Record<string, any>;
+}

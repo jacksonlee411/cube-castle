@@ -26,8 +26,8 @@ vi.mock('@workday/canvas-kit-react/button', () => ({
 }));
 
 vi.mock('@workday/canvas-kit-react/text', () => ({
-  Heading: ({ children, ...props }: any) => React.createElement('h1', { 'data-testid': 'canvas-heading' }, children),
-  Text: ({ children, ...props }: any) => React.createElement('span', { 'data-testid': 'canvas-text' }, children)
+  Heading: ({ children }: any) => React.createElement('h1', { 'data-testid': 'canvas-heading' }, children),
+  Text: ({ children }: any) => React.createElement('span', { 'data-testid': 'canvas-text' }, children)
 }));
 
 vi.mock('@workday/canvas-kit-react/card', () => ({

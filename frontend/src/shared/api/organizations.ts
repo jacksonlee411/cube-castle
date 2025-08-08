@@ -4,22 +4,15 @@ import type {
   OrganizationListResponse, 
   OrganizationStats, 
   APIResponse,
-  OrganizationListAPIResponse,
-  OrganizationStatsAPIResponse,
   GraphQLOrganizationResponse,
-  GraphQLStatsTypeItem,
-  GraphQLStatsStatusItem
+  CreateOrganizationResponse,
+  UpdateOrganizationResponse
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
 
 export const organizationAPI = {
   // 获取组织单元列表
-  getAll: async (params?: {
-    unit_type?: string;
-    status?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<OrganizationListResponse> => {
+  getAll: async (): Promise<OrganizationListResponse> => {
     // 直接调用GraphQL
     const graphqlQuery = {
       query: `
@@ -156,7 +149,7 @@ export const organizationAPI = {
 
   // 新增组织单元
   create: async (data: CreateOrganizationInput): Promise<OrganizationUnit> => {
-    const response = await apiClient.post<APIResponse<GraphQLOrganizationResponse>>('/organization-units', {
+    const response = await apiClient.post<CreateOrganizationResponse>('/organization-units', {
       code: data.code,
       parent_code: data.parent_code,
       name: data.name,
@@ -166,46 +159,52 @@ export const organizationAPI = {
       sort_order: data.sort_order,
       description: data.description,
     });
-    const org = response.data;
     
+    // 后端API返回简化格式，直接使用response数据
     return {
-      code: org.code,
-      parent_code: org.parentCode || '', // 处理null值
-      name: org.name,
-      unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
-      status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
-      level: org.level,
-      path: org.path,
-      sort_order: org.sortOrder || 0, // 处理null值
-      description: org.description || '', // 处理null值
-      created_at: org.createdAt || '',
-      updated_at: org.updatedAt || '',
+      code: response.code,
+      parent_code: response.parent_code || '', 
+      name: response.name,
+      unit_type: response.unit_type as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
+      status: response.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
+      level: response.level || 1,
+      path: response.path || '',
+      sort_order: response.sort_order || 0,
+      description: response.description || '',
+      created_at: response.created_at || '',
+      updated_at: response.updated_at || '',
     };
   },
 
   // 更新组织单元
   update: async (code: string, data: Omit<UpdateOrganizationInput, 'code'>): Promise<OrganizationUnit> => {
-    const response = await apiClient.put<APIResponse<GraphQLOrganizationResponse>>(`/organization-units/${code}`, {
+    const response = await apiClient.put<UpdateOrganizationResponse>(`/organization-units/${code}`, {
       name: data.name,
       status: data.status,
       description: data.description,
       sort_order: data.sort_order,
     });
-    const org = response.data;
     
-    return {
-      code: org.code,
-      parent_code: org.parentCode || '', // 处理null值
-      name: org.name,
-      unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
-      status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
-      level: org.level,
-      path: org.path,
-      sort_order: org.sortOrder || 0, // 处理null值
-      description: org.description || '', // 处理null值
-      created_at: org.createdAt || '',
-      updated_at: org.updatedAt || '',
-    };
+    // 更新API只返回code和updated_at，需要重新获取完整数据
+    try {
+      const updatedOrg = await organizationAPI.getByCode(code);
+      return updatedOrg;
+    } catch (error) {
+      // 如果获取失败，返回最少的有效数据
+      return {
+        code: response.code,
+        parent_code: '',
+        name: data.name || '',
+        unit_type: 'DEPARTMENT',
+        status: data.status || 'ACTIVE',
+        level: 1,
+        path: '',
+        sort_order: data.sort_order || 0,
+        description: data.description || '',
+        created_at: '',
+        updated_at: response.updated_at || '',
+      };
+    }
   },
 
   // 删除组织单元
