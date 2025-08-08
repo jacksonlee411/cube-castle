@@ -61,7 +61,7 @@ var schemaString = `
 	}
 
 	type TypeCount {
-		type: String!
+		unitType: String!
 		count: Int!
 	}
 
@@ -76,72 +76,93 @@ var schemaString = `
 	}
 `
 
-// GraphQL组织模型
+// GraphQL组织模型 - 使用不同的内部字段名来避免冲突
 type Organization struct {
-	code        string `json:"code"`
-	name        string `json:"name"`
-	unitType    string `json:"unitType"`
-	status      string `json:"status"`
-	level       int    `json:"level"`
-	path        string `json:"path"`
-	sortOrder   int    `json:"sortOrder"`
-	description string `json:"description"`
-	profile     string `json:"profile"`
-	parentCode  string `json:"parentCode"`
-	createdAt   string `json:"createdAt"`
-	updatedAt   string `json:"updatedAt"`
+	CodeField        string `json:"code"`
+	NameField        string `json:"name"`
+	UnitTypeField    string `json:"unitType"`
+	StatusField      string `json:"status"`
+	LevelField       int    `json:"level"`
+	PathField        string `json:"path"`
+	SortOrderField   int    `json:"sortOrder"`
+	DescriptionField string `json:"description"`
+	ProfileField     string `json:"profile"`
+	ParentCodeField  string `json:"parentCode"`
+	CreatedAtField   string `json:"createdAt"`
+	UpdatedAtField   string `json:"updatedAt"`
 }
 
-// GraphQL字段解析方法
-func (o Organization) Code() string        { return o.code }
-func (o Organization) Name() string        { return o.name }
-func (o Organization) UnitType() string    { return o.unitType }
-func (o Organization) Status() string      { return o.status }
-func (o Organization) Level() int32        { return int32(o.level) }
-func (o Organization) Path() *string       { if o.path == "" { return nil }; return &o.path }
-func (o Organization) SortOrder() *int32   { if o.sortOrder == 0 { return nil }; s := int32(o.sortOrder); return &s }
-func (o Organization) Description() *string { if o.description == "" { return nil }; return &o.description }
-func (o Organization) Profile() *string    { if o.profile == "" { return nil }; return &o.profile }
-func (o Organization) ParentCode() *string { if o.parentCode == "" { return nil }; return &o.parentCode }
-func (o Organization) CreatedAt() string   { return o.createdAt }
-func (o Organization) UpdatedAt() string   { return o.updatedAt }
+// GraphQL字段解析器 - 必须与Schema字段名大小写完全匹配
+func (o Organization) Code() string        { return o.CodeField }
+func (o Organization) Name() string        { return o.NameField }
+func (o Organization) UnitType() string    { return o.UnitTypeField }
+func (o Organization) Status() string      { return o.StatusField }
+func (o Organization) Level() int32        { return int32(o.LevelField) }
+func (o Organization) Path() *string       { 
+	if o.PathField == "" { return nil }
+	return &o.PathField 
+}
+func (o Organization) SortOrder() *int32   { 
+	if o.SortOrderField == 0 { return nil }
+	val := int32(o.SortOrderField)
+	return &val 
+}
+func (o Organization) Description() *string { 
+	if o.DescriptionField == "" { return nil }
+	return &o.DescriptionField 
+}
+func (o Organization) Profile() *string { 
+	if o.ProfileField == "" { return nil }
+	return &o.ProfileField 
+}
+func (o Organization) ParentCode() *string { 
+	if o.ParentCodeField == "" { return nil }
+	return &o.ParentCodeField 
+}
+func (o Organization) CreatedAt() string   { return o.CreatedAtField }
+func (o Organization) UpdatedAt() string   { return o.UpdatedAtField }
+
 
 // GraphQL统计模型
 type OrganizationStats struct {
-	totalCount int          `json:"total_count"`
-	byType     []TypeCount  `json:"by_type"`
-	byStatus   []StatusCount `json:"by_status"`
-	byLevel    []LevelCount  `json:"by_level"`
+	TotalCountField int          `json:"total_count"`
+	ByTypeField     []TypeCount  `json:"by_type"`
+	ByStatusField   []StatusCount `json:"by_status"`
+	ByLevelField    []LevelCount  `json:"by_level"`
 }
 
-func (s OrganizationStats) TotalCount() int32     { return int32(s.totalCount) }
-func (s OrganizationStats) ByType() []TypeCount   { return s.byType }
-func (s OrganizationStats) ByStatus() []StatusCount { return s.byStatus }
-func (s OrganizationStats) ByLevel() []LevelCount { return s.byLevel }
+func (s OrganizationStats) TotalCount() int32        { return int32(s.TotalCountField) }
+func (s OrganizationStats) ByType() []TypeCount      { return s.ByTypeField }
+func (s OrganizationStats) ByStatus() []StatusCount  { return s.ByStatusField }
+func (s OrganizationStats) ByLevel() []LevelCount    { return s.ByLevelField }
+
 
 type TypeCount struct {
-	typeVal string `json:"type"`
-	count   int    `json:"count"`
+	TypeField string `json:"type"`
+	CountField   int    `json:"count"`
 }
 
-func (t TypeCount) Type() string  { return t.typeVal }
-func (t TypeCount) Count() int32  { return int32(t.count) }
+func (t TypeCount) UnitType() string  { return t.TypeField }
+func (t TypeCount) Count() int32       { return int32(t.CountField) }
+
 
 type StatusCount struct {
-	status string `json:"status"`
-	count  int    `json:"count"`
+	StatusField string `json:"status"`
+	CountField  int    `json:"count"`
 }
 
-func (s StatusCount) Status() string { return s.status }
-func (s StatusCount) Count() int32   { return int32(s.count) }
+func (s StatusCount) Status() string { return s.StatusField }
+func (s StatusCount) Count() int32   { return int32(s.CountField) }
+
 
 type LevelCount struct {
-	level string `json:"level"`
-	count int    `json:"count"`
+	LevelField string `json:"level"`
+	CountField int    `json:"count"`
 }
 
-func (l LevelCount) Level() string { return l.level }
-func (l LevelCount) Count() int32  { return int32(l.count) }
+func (l LevelCount) Level() string { return l.LevelField }
+func (l LevelCount) Count() int32  { return int32(l.CountField) }
+
 
 // Neo4j仓储（带Redis缓存）
 type Neo4jOrganizationRepository struct {
@@ -212,18 +233,18 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 		record := result.Record()
 		
 		org := Organization{
-			code:        getStringValue(record, "code"),
-			name:        getStringValue(record, "name"),
-			unitType:    getStringValue(record, "unit_type"),
-			status:      getStringValue(record, "status"),
-			level:       getIntValue(record, "level"),
-			path:        getStringValue(record, "path"),
-			sortOrder:   getIntValue(record, "sort_order"),
-			description: getStringValue(record, "description"),
-			profile:     getStringValue(record, "profile"),
-			parentCode:  getStringValue(record, "parent_code"),
-			createdAt:   getStringValue(record, "created_at"),
-			updatedAt:   getStringValue(record, "updated_at"),
+			CodeField:        getStringValue(record, "code"),
+			NameField:        getStringValue(record, "name"),
+			UnitTypeField:    getStringValue(record, "unit_type"),
+			StatusField:      getStringValue(record, "status"),
+			LevelField:       getIntValue(record, "level"),
+			PathField:        getStringValue(record, "path"),
+			SortOrderField:   getIntValue(record, "sort_order"),
+			DescriptionField: getStringValue(record, "description"),
+			ProfileField:     getStringValue(record, "profile"),
+			ParentCodeField:  getStringValue(record, "parent_code"),
+			CreatedAtField:   getStringValue(record, "created_at"),
+			UpdatedAtField:   getStringValue(record, "updated_at"),
 		}
 		organizations = append(organizations, org)
 	}
@@ -263,18 +284,18 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 	if result.Next(ctx) {
 		record := result.Record()
 		org := &Organization{
-			code:        getStringValue(record, "code"),
-			name:        getStringValue(record, "name"),
-			unitType:    getStringValue(record, "unit_type"),
-			status:      getStringValue(record, "status"),
-			level:       getIntValue(record, "level"),
-			path:        getStringValue(record, "path"),
-			sortOrder:   getIntValue(record, "sort_order"),
-			description: getStringValue(record, "description"),
-			profile:     getStringValue(record, "profile"),
-			parentCode:  getStringValue(record, "parent_code"),
-			createdAt:   getStringValue(record, "created_at"),
-			updatedAt:   getStringValue(record, "updated_at"),
+			CodeField:        getStringValue(record, "code"),
+			NameField:        getStringValue(record, "name"),
+			UnitTypeField:    getStringValue(record, "unit_type"),
+			StatusField:      getStringValue(record, "status"),
+			LevelField:       getIntValue(record, "level"),
+			PathField:        getStringValue(record, "path"),
+			SortOrderField:   getIntValue(record, "sort_order"),
+			DescriptionField: getStringValue(record, "description"),
+			ProfileField:     getStringValue(record, "profile"),
+			ParentCodeField:  getStringValue(record, "parent_code"),
+			CreatedAtField:   getStringValue(record, "created_at"),
+			UpdatedAtField:   getStringValue(record, "updated_at"),
 		}
 		return org, nil
 	}
@@ -341,8 +362,8 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		unitType := getStringValue(record, "type")
 		count := getIntValue(record, "count")
 		byType = append(byType, TypeCount{
-			typeVal: unitType,
-			count:   count,
+			TypeField: unitType,
+			CountField:   count,
 		})
 	}
 
@@ -366,8 +387,8 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		status := getStringValue(record, "status")
 		count := getIntValue(record, "count")
 		byStatus = append(byStatus, StatusCount{
-			status: status,
-			count:  count,
+			StatusField: status,
+			CountField:  count,
 		})
 	}
 
@@ -391,17 +412,17 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		level := getStringValue(record, "level")
 		count := getIntValue(record, "count")
 		byLevel = append(byLevel, LevelCount{
-			level: fmt.Sprintf("级别%s", level),
-			count: count,
+			LevelField: fmt.Sprintf("级别%s", level),
+			CountField: count,
 		})
 	}
 
 	// 构建统计结果
 	stats := &OrganizationStats{
-		totalCount: total,
-		byType:     byType,
-		byStatus:   byStatus,
-		byLevel:    byLevel,
+		TotalCountField: total,
+		ByTypeField:     byType,
+		ByStatusField:   byStatus,
+		ByLevelField:    byLevel,
 	}
 	
 	// 将结果写入缓存
@@ -485,7 +506,7 @@ func (r *Resolver) Organization(ctx context.Context, args struct{
 	}
 	
 	if org != nil {
-		r.logger.Printf("[GraphQL] 查询单个组织成功 - 组织: %s", org.Name())
+		r.logger.Printf("[GraphQL] 查询单个组织成功 - 组织: %s", org.NameField)
 	} else {
 		r.logger.Printf("[GraphQL] 组织不存在 - 代码: %s", args.Code)
 	}
@@ -504,7 +525,7 @@ func (r *Resolver) OrganizationStats(ctx context.Context) (*OrganizationStats, e
 		return nil, err
 	}
 	
-	r.logger.Printf("[GraphQL] 查询组织统计成功 - 总数: %d", stats.TotalCount())
+	r.logger.Printf("[GraphQL] 查询组织统计成功 - 总数: %d", stats.TotalCountField)
 	return stats, nil
 }
 

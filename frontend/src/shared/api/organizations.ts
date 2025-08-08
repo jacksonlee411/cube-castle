@@ -20,38 +20,59 @@ export const organizationAPI = {
     limit?: number;
     offset?: number;
   }): Promise<OrganizationListResponse> => {
-    const searchParams = new URLSearchParams();
+    // 直接调用GraphQL
+    const graphqlQuery = {
+      query: `
+        query {
+          organizations {
+            code
+            name
+            unitType
+            status
+            level
+            parentCode
+            path
+            sortOrder
+            description
+            createdAt
+            updatedAt
+          }
+        }
+      `
+    };
     
-    if (params?.unit_type) searchParams.set('unit_type', params.unit_type);
-    if (params?.status) searchParams.set('status', params.status);
-    if (params?.limit) searchParams.set('limit', params.limit.toString());
-    if (params?.offset) searchParams.set('offset', params.offset.toString());
+    const response = await fetch('http://localhost:8090/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
+      },
+      body: JSON.stringify(graphqlQuery),
+    });
     
-    const queryString = searchParams.toString();
-    const endpoint = `/organization-units${queryString ? `?${queryString}` : ''}`;
+    const graphqlResponse = await response.json();
+    const organizations = graphqlResponse.data.organizations;
     
-    const response = await apiClient.get<APIResponse<OrganizationListAPIResponse>>(endpoint);
-    
-    // 适配后端返回的数据格式
-    const adaptedOrganizations: OrganizationUnit[] = response.data.organizations.map((org: GraphQLOrganizationResponse) => ({
+    // 适配后端返回的数据格式 - 修复字段名映射问题
+    const adaptedOrganizations: OrganizationUnit[] = organizations.map((org: GraphQLOrganizationResponse) => ({
       code: org.code,
-      parent_code: org.parentCode,
+      parent_code: org.parentCode || '', // 处理null值
       name: org.name,
       unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
       status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
       level: org.level,
       path: org.path,
-      sort_order: org.sortOrder,
-      description: org.description,
-      created_at: org.createdAt,
-      updated_at: org.updatedAt,
+      sort_order: org.sortOrder || 0, // 处理null值
+      description: org.description || '', // 处理null值
+      created_at: org.createdAt || '',
+      updated_at: org.updatedAt || '',
     }));
     
     return {
       organizations: adaptedOrganizations,
-      total_count: response.data.organizations.length,
+      total_count: adaptedOrganizations.length,
       page: 1,
-      page_size: response.data.organizations.length,
+      page_size: adaptedOrganizations.length,
     };
   },
 
@@ -62,23 +83,51 @@ export const organizationAPI = {
     
     return {
       code: org.code,
-      parent_code: org.parentCode,
+      parent_code: org.parentCode || '', // 处理null值
       name: org.name,
       unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
       status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
       level: org.level,
       path: org.path,
-      sort_order: org.sortOrder,
-      description: org.description,
-      created_at: org.createdAt,
-      updated_at: org.updatedAt,
+      sort_order: org.sortOrder || 0, // 处理null值
+      description: org.description || '', // 处理null值
+      created_at: org.createdAt || '',
+      updated_at: org.updatedAt || '',
     };
   },
 
   // 获取组织统计信息
   getStats: async (): Promise<OrganizationStats> => {
-    const response = await apiClient.get<APIResponse<OrganizationStatsAPIResponse>>('/organization-units/stats');
-    const stats = response.data.organizationStats;
+    // 直接调用GraphQL
+    const graphqlQuery = {
+      query: `
+        query {
+          organizationStats {
+            totalCount
+            byType {
+              unitType
+              count
+            }
+            byStatus {
+              status
+              count
+            }
+          }
+        }
+      `
+    };
+    
+    const response = await fetch('http://localhost:8090/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
+      },
+      body: JSON.stringify(graphqlQuery),
+    });
+    
+    const graphqlResponse = await response.json();
+    const stats = graphqlResponse.data.organizationStats;
     
     // 将GraphQL返回的数组格式转换为前端期望的对象格式
     const byTypeMap: Record<string, number> = {};
@@ -86,14 +135,14 @@ export const organizationAPI = {
     
     // 安全检查 - 如果byType不存在或不是数组，初始化为空对象
     if (stats.byType && Array.isArray(stats.byType)) {
-      stats.byType.forEach((item: GraphQLStatsTypeItem) => {
-        byTypeMap[item.type] = item.count;
+      stats.byType.forEach((item: {unitType: string, count: number}) => {
+        byTypeMap[item.unitType] = item.count;
       });
     }
     
     // 安全检查 - 如果byStatus不存在或不是数组，初始化为空对象
     if (stats.byStatus && Array.isArray(stats.byStatus)) {
-      stats.byStatus.forEach((item: GraphQLStatsStatusItem) => {
+      stats.byStatus.forEach((item: {status: string, count: number}) => {
         byStatusMap[item.status] = item.count;
       });
     }
@@ -121,16 +170,16 @@ export const organizationAPI = {
     
     return {
       code: org.code,
-      parent_code: org.parentCode,
+      parent_code: org.parentCode || '', // 处理null值
       name: org.name,
       unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
       status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
       level: org.level,
       path: org.path,
-      sort_order: org.sortOrder,
-      description: org.description,
-      created_at: org.createdAt,
-      updated_at: org.updatedAt,
+      sort_order: org.sortOrder || 0, // 处理null值
+      description: org.description || '', // 处理null值
+      created_at: org.createdAt || '',
+      updated_at: org.updatedAt || '',
     };
   },
 
@@ -146,16 +195,16 @@ export const organizationAPI = {
     
     return {
       code: org.code,
-      parent_code: org.parentCode,
+      parent_code: org.parentCode || '', // 处理null值
       name: org.name,
       unit_type: org.unitType as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
       status: org.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
       level: org.level,
       path: org.path,
-      sort_order: org.sortOrder,
-      description: org.description,
-      created_at: org.createdAt,
-      updated_at: org.updatedAt,
+      sort_order: org.sortOrder || 0, // 处理null值
+      description: org.description || '', // 处理null值
+      created_at: org.createdAt || '',
+      updated_at: org.updatedAt || '',
     };
   },
 
