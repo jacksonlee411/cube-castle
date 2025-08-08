@@ -323,55 +323,53 @@ func (r *PostgresOrganizationRepository) UpdateOrganization(ctx context.Context,
 	// 构建动态更新查询
 	setParts := []string{}
 	args := []interface{}{}
-	argIndex := 1
 	changes := make(map[string]interface{})
 
+	// 收集需要更新的字段
 	if cmd.Name != nil {
-		setParts = append(setParts, fmt.Sprintf("name = $%d", argIndex))
+		setParts = append(setParts, "name = $"+fmt.Sprintf("%d", len(args)+1))
 		args = append(args, *cmd.Name)
 		changes["name"] = *cmd.Name
-		argIndex++
 	}
 
 	if cmd.Status != nil {
-		setParts = append(setParts, fmt.Sprintf("status = $%d", argIndex))
+		setParts = append(setParts, "status = $"+fmt.Sprintf("%d", len(args)+1))
 		args = append(args, *cmd.Status)
 		changes["status"] = *cmd.Status
-		argIndex++
 	}
 
 	if cmd.Description != nil {
-		setParts = append(setParts, fmt.Sprintf("description = $%d", argIndex))
+		setParts = append(setParts, "description = $"+fmt.Sprintf("%d", len(args)+1))
 		args = append(args, *cmd.Description)
 		changes["description"] = *cmd.Description
-		argIndex++
 	}
 
 	if cmd.SortOrder != nil {
-		setParts = append(setParts, fmt.Sprintf("sort_order = $%d", argIndex))
+		setParts = append(setParts, "sort_order = $"+fmt.Sprintf("%d", len(args)+1))
 		args = append(args, *cmd.SortOrder)
 		changes["sort_order"] = *cmd.SortOrder
-		argIndex++
 	}
 
 	if len(setParts) == 0 {
 		return nil, fmt.Errorf("没有提供更新字段")
 	}
 
-	// 添加updated_at
-	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", argIndex))
+	// 添加updated_at字段
 	now := time.Now()
+	setParts = append(setParts, "updated_at = $"+fmt.Sprintf("%d", len(args)+1))
 	args = append(args, now)
-	argIndex++
 
 	// 添加WHERE条件参数
-	args = append(args, cmd.Code, cmd.TenantID)
+	args = append(args, cmd.Code)
+	whereCode := "$" + fmt.Sprintf("%d", len(args))
+	args = append(args, cmd.TenantID)
+	whereTenant := "$" + fmt.Sprintf("%d", len(args))
 
 	query := fmt.Sprintf(`
 		UPDATE organization_units 
 		SET %s
-		WHERE code = $%d AND tenant_id = $%d`,
-		strings.Join(setParts, ", "), argIndex-2, argIndex-1)
+		WHERE code = %s AND tenant_id = %s`,
+		strings.Join(setParts, ", "), whereCode, whereTenant)
 
 	result, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
