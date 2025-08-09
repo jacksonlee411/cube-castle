@@ -341,11 +341,11 @@ func startHealthServer(logger *log.Logger) {
 	})
 	
 	server := &http.Server{
-		Addr:    ":8082",
+		Addr:    ":8086",
 		Handler: mux,
 	}
 	
-	logger.Printf("🔍 健康检查服务器启动 - 端口 8082")
+	logger.Printf("🔍 健康检查服务器启动 - 端口 8086")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Printf("❌ 健康检查服务器错误: %v", err)
 	}

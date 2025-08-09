@@ -147,8 +147,8 @@ echo "--------------------------------"
 # 启动4个必需的服务（顺序很重要）
 start_and_verify_service "cmd/organization-command-service" "命令服务 (端口9090)" "http://localhost:9090/health" || exit 1
 start_and_verify_service "cmd/organization-query-service-unified" "查询服务 (端口8090)" "http://localhost:8090/health" || exit 1
-start_and_verify_service "cmd/organization-sync-service" "同步服务" "http://localhost:8082/health" || exit 1
-start_and_verify_service "cmd/organization-cache-invalidator" "缓存失效服务" "http://localhost:8082/health" || { 
+start_and_verify_service "cmd/organization-sync-service" "同步服务" "http://localhost:8084/health" || exit 1
+start_and_verify_service "cmd/organization-cache-invalidator" "缓存失效服务" "http://localhost:8086/health" || { 
     print_warning "缓存失效服务健康检查失败，但服务可能正在运行"
 }
 
@@ -195,8 +195,8 @@ echo ""
 echo "📊 服务状态总览:"
 echo "  🔧 命令服务: http://localhost:9090/health"
 echo "  📊 查询服务: http://localhost:8090/health"  
-echo "  🔄 同步服务: 后台运行"
-echo "  🗑️  缓存失效: 后台运行"
+echo "  🔄 同步服务: http://localhost:8084/health"
+echo "  🗑️  缓存失效: http://localhost:8086/health"
 echo ""
 echo "🌐 访问地址:"
 echo "  📱 前端应用: http://localhost:3000/ (需单独启动: cd frontend && npm run dev)"

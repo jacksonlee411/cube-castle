@@ -88,6 +88,10 @@ run_check_with_output "查询服务 (端口8090)" "curl -s http://localhost:8090
 run_check "同步服务进程" "pgrep -f 'organization-sync-service.*main.go'"
 run_check "缓存失效服务进程" "pgrep -f 'organization-cache-invalidator.*main.go'"
 
+# 或者检查HTTP健康端点（如果可用）
+run_check_with_output "同步服务 (端口8084)" "curl -s http://localhost:8084/health" "healthy"
+run_check_with_output "缓存失效服务 (端口8086)" "curl -s http://localhost:8086/health" "healthy"
+
 echo ""
 echo "📋 第3步: CDC数据管道检查"
 echo "----------------------------"
