@@ -17,6 +17,7 @@ export interface OrganizationListResponse {
   total_count: number;
   page: number;
   page_size: number;
+  total_pages: number;
 }
 
 export interface OrganizationStats {

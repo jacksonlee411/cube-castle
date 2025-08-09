@@ -50,7 +50,7 @@ var schemaString = `
 	}
 
 	type Query {
-		organizations(first: Int, offset: Int): [Organization!]!
+		organizations(first: Int, offset: Int, searchText: String): [Organization!]!
 		organization(code: String!): Organization
 		organizationStats: OrganizationStats!
 	}
@@ -190,9 +190,9 @@ func (r *Neo4jOrganizationRepository) getCacheKey(operation string, params ...in
 	return fmt.Sprintf("cache:%x", h.Sum(nil))
 }
 
-func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, first, offset int) ([]Organization, error) {
-	// 生成缓存键
-	cacheKey := r.getCacheKey("organizations", tenantID.String(), first, offset)
+func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, first, offset int, searchText string) ([]Organization, error) {
+	// 生成缓存键 (包含搜索文本)
+	cacheKey := r.getCacheKey("organizations", tenantID.String(), first, offset, searchText)
 	
 	// 尝试从缓存获取
 	if r.redisClient != nil {
@@ -210,8 +210,22 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
-	query := `
+	// 构建搜索条件
+	searchCondition := ""
+	params := map[string]interface{}{
+		"tenant_id": tenantID.String(),
+		"first":     int64(first),
+		"offset":    int64(offset),
+	}
+	
+	if searchText != "" {
+		searchCondition = "AND (o.name CONTAINS $searchText OR o.code CONTAINS $searchText)"
+		params["searchText"] = searchText
+	}
+
+	query := fmt.Sprintf(`
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
+		WHERE true %s
 		RETURN o.code as code, o.name as name, o.unit_type as unit_type, 
 		       o.status as status, o.level as level, o.path as path,
 		       o.sort_order as sort_order, o.description as description,
@@ -219,13 +233,9 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 		       o.created_at as created_at, o.updated_at as updated_at
 		ORDER BY o.sort_order, o.code
 		SKIP $offset LIMIT $first
-	`
+	`, searchCondition)
 
-	result, err := session.Run(ctx, query, map[string]interface{}{
-		"tenant_id": tenantID.String(),
-		"first":     int64(first),
-		"offset":    int64(offset),
-	})
+	result, err := session.Run(ctx, query, params)
 	if err != nil {
 		return nil, err
 	}
@@ -467,11 +477,13 @@ type Resolver struct {
 }
 
 func (r *Resolver) Organizations(ctx context.Context, args struct{
-	First  *int32
-	Offset *int32
+	First      *int32
+	Offset     *int32
+	SearchText *string
 }) ([]Organization, error) {
 	first := 50
 	offset := 0
+	searchText := ""
 	
 	if args.First != nil {
 		first = int(*args.First)
@@ -479,12 +491,15 @@ func (r *Resolver) Organizations(ctx context.Context, args struct{
 	if args.Offset != nil {
 		offset = int(*args.Offset)
 	}
+	if args.SearchText != nil {
+		searchText = *args.SearchText
+	}
 
 	tenantID := DefaultTenantID // 暂时使用默认租户
 	
-	r.logger.Printf("[GraphQL] 查询组织列表 - 租户: %s, first: %d, offset: %d", tenantID, first, offset)
+	r.logger.Printf("[GraphQL] 查询组织列表 - 租户: %s, first: %d, offset: %d, searchText: %s", tenantID, first, offset, searchText)
 	
-	organizations, err := r.repo.GetOrganizations(ctx, tenantID, first, offset)
+	organizations, err := r.repo.GetOrganizations(ctx, tenantID, first, offset, searchText)
 	if err != nil {
 		r.logger.Printf("[GraphQL] 查询组织列表失败: %v", err)
 		return nil, err
@@ -630,9 +645,10 @@ func main() {
 			
 			ctx := r.Context()
 			organizations, err := resolver.Organizations(ctx, struct{
-				First  *int32
-				Offset *int32
-			}{&first, &offset})
+				First      *int32
+				Offset     *int32
+				SearchText *string
+			}{&first, &offset, nil})
 			
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

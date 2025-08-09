@@ -1,4 +1,3 @@
-import { apiClient } from './client';
 import type { 
   OrganizationUnit, 
   OrganizationListResponse, 
@@ -14,6 +13,64 @@ import {
   SimpleValidationError,
   formatValidationErrors
 } from '../validation/simple-validation';
+
+// GraphQL客户端 - 使用正确的端口8090
+const GRAPHQL_ENDPOINT = 'http://localhost:8090/graphql';
+
+const graphqlClient = {
+  async request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+    const response = await fetch(GRAPHQL_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        variables
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`GraphQL Error: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json() as GraphQLResponse<T>;
+    
+    if (result.errors) {
+      throw new Error(`GraphQL Error: ${result.errors[0].message}`);
+    }
+
+    if (!result.data) {
+      throw new Error('No data returned from GraphQL');
+    }
+
+    return result.data;
+  }
+};
+
+// REST API客户端 - 使用命令服务端口9090
+const REST_ENDPOINT = 'http://localhost:9090/api/v1';
+
+const restClient = {
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${REST_ENDPOINT}${endpoint}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      throw new Error(`REST Error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+};
 
 export interface OrganizationQueryParams {
   searchText?: string | undefined;
@@ -43,10 +100,10 @@ export const organizationAPI = {
         }
       }
 
-      // 构建GraphQL查询
+      // 构建GraphQL查询和变量
       const graphqlQuery = `
-        query GetOrganizations($first: Int, $offset: Int) {
-          organizations(first: $first, offset: $offset) {
+        query GetOrganizations($first: Int, $offset: Int, $searchText: String) {
+          organizations(first: $first, offset: $offset, searchText: $searchText) {
             code
             name
             unitType
@@ -67,25 +124,14 @@ export const organizationAPI = {
 
       const variables = {
         first: params?.pageSize || 50,
-        offset: ((params?.page || 1) - 1) * (params?.pageSize || 50)
+        offset: ((params?.page || 1) - 1) * (params?.pageSize || 50),
+        searchText: params?.searchText || null
       };
 
-      const response = await apiClient.post<GraphQLResponse<{
+      const data = await graphqlClient.request<{
         organizations: any[];
         organizationStats: { totalCount: number };
-      }>>('/graphql', {
-        query: graphqlQuery,
-        variables
-      });
-
-      if (response.data.errors) {
-        throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
-      }
-
-      const data = response.data.data;
-      if (!data) {
-        throw new Error('No data returned from GraphQL');
-      }
+      }>(graphqlQuery, variables);
 
       // 简化的数据转换 - 无需复杂的Zod验证
       const organizations = data.organizations.map((org: any) => {
@@ -100,24 +146,18 @@ export const organizationAPI = {
       }).filter(Boolean);
 
       return {
-        data: organizations,
-        total: data.organizationStats.totalCount,
+        organizations: organizations,
+        total_count: data.organizationStats.totalCount,
         page: params?.page || 1,
-        pageSize: organizations.length,
-        totalPages: Math.ceil(data.organizationStats.totalCount / (params?.pageSize || 50))
+        page_size: organizations.length,
+        total_pages: Math.ceil(data.organizationStats.totalCount / (params?.pageSize || 50))
       };
 
     } catch (error) {
       console.error('Error fetching organizations:', error);
       
-      if (isSimpleValidationError(error)) {
+      if (error instanceof SimpleValidationError) {
         throw error;
-      }
-      if (isNetworkError(error)) {
-        throw new Error('Network connection failed. Please check your internet connection.');
-      }
-      if (isAPIError(error)) {
-        throw new Error(`Server error: ${error.response?.data?.message || 'Unknown error'}`);
       }
       
       throw new Error('Failed to fetch organizations. Please try again.');
@@ -152,18 +192,11 @@ export const organizationAPI = {
         }
       `;
 
-      const response = await apiClient.post<GraphQLResponse<{
+      const data = await graphqlClient.request<{
         organization: any;
-      }>>('/graphql', {
-        query: graphqlQuery,
-        variables: { code }
-      });
+      }>(graphqlQuery, { code });
 
-      if (response.data.errors) {
-        throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
-      }
-
-      const organization = response.data.data?.organization;
+      const organization = data.organization;
       if (!organization) {
         throw new Error(`组织 ${code} 不存在`);
       }
@@ -207,17 +240,11 @@ export const organizationAPI = {
         }
       `;
 
-      const response = await apiClient.post<GraphQLResponse<{
+      const data = await graphqlClient.request<{
         organizationStats: any;
-      }>>('/graphql', {
-        query: graphqlQuery
-      });
+      }>(graphqlQuery);
 
-      if (response.data.errors) {
-        throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
-      }
-
-      const stats = response.data.data?.organizationStats;
+      const stats = data.organizationStats;
       if (!stats) {
         throw new Error('No statistics data returned');
       }
@@ -260,14 +287,17 @@ export const organizationAPI = {
       // 转换为API格式
       const apiData = safeTransform.cleanCreateInput(input);
 
-      const response = await apiClient.post('/api/v1/organization-units', apiData);
+      const response = await restClient.request<any>('/organization-units', {
+        method: 'POST',
+        body: JSON.stringify(apiData),
+      });
       
       // 简单的响应验证
-      if (!response.data?.code) {
+      if (!response.code) {
         throw new Error('Invalid response from server');
       }
 
-      return response.data;
+      return response;
 
     } catch (error: any) {
       console.error('Error creating organization:', error);
@@ -275,9 +305,9 @@ export const organizationAPI = {
       if (error instanceof SimpleValidationError) {
         throw error;
       }
-      if (error.response?.status >= 400) {
+      if (error.message?.includes('REST Error:')) {
         // 服务器端验证错误
-        const serverMessage = error.response?.data?.message || error.response?.data?.error;
+        const serverMessage = error.message;
         throw new Error(serverMessage || 'Failed to create organization');
       }
       
@@ -306,13 +336,16 @@ export const organizationAPI = {
       // 转换为API格式
       const apiData = safeTransform.cleanUpdateInput(input);
 
-      const response = await apiClient.put(`/api/v1/organization-units/${code}`, apiData);
+      const response = await restClient.request<any>(`/organization-units/${code}`, {
+        method: 'PUT',
+        body: JSON.stringify(apiData),
+      });
       
-      if (!response.data?.code) {
+      if (!response.code) {
         throw new Error('Invalid response from server');
       }
 
-      return response.data;
+      return response;
 
     } catch (error: any) {
       console.error('Error updating organization:', code, error);
@@ -320,8 +353,8 @@ export const organizationAPI = {
       if (error instanceof SimpleValidationError) {
         throw error;
       }
-      if (error.response?.status >= 400) {
-        const serverMessage = error.response?.data?.message || error.response?.data?.error;
+      if (error.message?.includes('REST Error:')) {
+        const serverMessage = error.message;
         throw new Error(serverMessage || 'Failed to update organization');
       }
       
@@ -336,13 +369,15 @@ export const organizationAPI = {
         throw new SimpleValidationError('Organization code is required', { code: 'Code is required' });
       }
 
-      await apiClient.delete(`/api/v1/organization-units/${code}`);
+      await restClient.request<void>(`/organization-units/${code}`, {
+        method: 'DELETE'
+      });
 
     } catch (error) {
       console.error('Error deleting organization:', code, error);
       
-      if (isAPIError(error)) {
-        const serverMessage = error.response?.data?.message || error.response?.data?.error;
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('REST Error:')) {
+        const serverMessage = error.message;
         throw new Error(serverMessage || 'Failed to delete organization');
       }
       

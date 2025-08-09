@@ -689,7 +689,7 @@ func main() {
 	// 创建Kafka消费者
 	consumer, err := NewKafkaEventConsumer(
 		[]string{"localhost:9092"},
-		"neo4j-sync-group-v2",  // 使用新的消费者组
+		"neo4j-sync-full-replay",  // 完全重放所有消息
 		syncSvc,
 		logger,
 	)
@@ -764,11 +764,11 @@ func startHealthServer(logger *log.Logger) {
 	})
 	
 	server := &http.Server{
-		Addr:    ":8081",
+		Addr:    ":8082",
 		Handler: mux,
 	}
 	
-	logger.Printf("🔍 健康检查服务器启动 - 端口 8081")
+	logger.Printf("🔍 健康检查服务器启动 - 端口 8082")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Printf("❌ 健康检查服务器错误: %v", err)
 	}

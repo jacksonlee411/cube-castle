@@ -10,7 +10,7 @@ const initialFilters: FilterState = {
   status: undefined,
   level: undefined,
   page: 1,
-  pageSize: 20,
+  pageSize: 100, // 增加默认页面大小以确保所有组织都能显示
 };
 
 export const useOrganizationDashboard = () => {

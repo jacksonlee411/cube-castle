@@ -1,2 +1,2 @@
 export * from './client';
-export * from './organizations';
+export * from './organizations-simplified';
