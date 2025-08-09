@@ -20,6 +20,8 @@ import (
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/redis/go-redis/v9"
+	"cube-castle-deployment-test/pkg/monitoring"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // 默认租户配置
@@ -484,10 +486,12 @@ func (r *Resolver) Organizations(ctx context.Context, args struct{
 	
 	organizations, err := r.repo.GetOrganizations(ctx, tenantID, first, offset)
 	if err != nil {
+		monitoring.RecordOrganizationOperation("query_list", "failed", "graphql-server") // 记录失败指标
 		r.logger.Printf("[GraphQL] 查询组织列表失败: %v", err)
 		return nil, err
 	}
 	
+	monitoring.RecordOrganizationOperation("query_list", "success", "graphql-server") // 记录成功指标
 	r.logger.Printf("[GraphQL] 查询组织列表成功 - 返回 %d 个组织", len(organizations))
 	return organizations, nil
 }
@@ -501,13 +505,16 @@ func (r *Resolver) Organization(ctx context.Context, args struct{
 	
 	org, err := r.repo.GetOrganization(ctx, tenantID, args.Code)
 	if err != nil {
+		monitoring.RecordOrganizationOperation("query_single", "failed", "graphql-server") // 记录失败指标
 		r.logger.Printf("[GraphQL] 查询单个组织失败: %v", err)
 		return nil, err
 	}
 	
 	if org != nil {
+		monitoring.RecordOrganizationOperation("query_single", "success", "graphql-server") // 记录成功指标
 		r.logger.Printf("[GraphQL] 查询单个组织成功 - 组织: %s", org.NameField)
 	} else {
+		monitoring.RecordOrganizationOperation("query_single", "not_found", "graphql-server") // 记录未找到指标
 		r.logger.Printf("[GraphQL] 组织不存在 - 代码: %s", args.Code)
 	}
 	
@@ -521,10 +528,12 @@ func (r *Resolver) OrganizationStats(ctx context.Context) (*OrganizationStats, e
 	
 	stats, err := r.repo.GetOrganizationStats(ctx, tenantID)
 	if err != nil {
+		monitoring.RecordOrganizationOperation("query_stats", "failed", "graphql-server") // 记录失败指标
 		r.logger.Printf("[GraphQL] 查询组织统计失败: %v", err)
 		return nil, err
 	}
 	
+	monitoring.RecordOrganizationOperation("query_stats", "success", "graphql-server") // 记录成功指标
 	r.logger.Printf("[GraphQL] 查询组织统计成功 - 总数: %d", stats.TotalCountField)
 	return stats, nil
 }
@@ -597,6 +606,7 @@ func main() {
 
 	// 中间件
 	r.Use(middleware.Logger)
+	r.Use(monitoring.MetricsMiddleware("graphql-server")) // 添加指标收集中间件
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -648,6 +658,9 @@ func main() {
 			"status":  "healthy",
 		})
 	})
+
+	// Prometheus指标端点
+	r.Handle("/metrics", promhttp.Handler())
 
 	// 获取端口
 	port := os.Getenv("PORT")

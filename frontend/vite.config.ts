@@ -13,12 +13,19 @@ export default defineConfig({
     hmr: { overlay: false },
     proxy: {
       '/api/metrics': {
-        target: 'http://localhost:9999',
+        target: 'http://localhost:8090',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/metrics/, '/metrics')
       }
+    },
+    // 静态文件服务 - 提供Playwright测试报告访问
+    fs: {
+      allow: ['..'] // 允许访问上级目录的文件
     }
   },
+
+  // 静态文件配置
+  publicDir: 'public',
   
   // 路径别名配置  
   resolve: {

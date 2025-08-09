@@ -47,7 +47,7 @@ export const mockMetrics: SystemMetrics = {
     { 
       name: '前端应用', 
       status: 'online', 
-      port: '3001', 
+      port: '3000', 
       responseTime: '12ms', 
       requests: '245',
       uptime: '100%' 

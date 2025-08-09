@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
-import { PrimaryButton } from '@workday/canvas-kit-react/button';
+import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Text } from '@workday/canvas-kit-react/text';
 
 interface ControlPanelProps {
@@ -38,7 +38,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           )}
         </Box>
         
-        <Flex gap="m" alignItems="center">
+        <Flex gap="m" alignItems="center" flexWrap="wrap">
           <Text variant="hint" fontSize={12}>
             自动刷新: 30秒
           </Text>
@@ -49,6 +49,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           >
             {loading ? '刷新中...' : '🔄 手动刷新'}
           </PrimaryButton>
+          <SecondaryButton
+            size="small"
+            onClick={() => {
+              // 打开Playwright测试报告
+              const reportPath = '/playwright-report/index.html';
+              window.open(reportPath, '_blank');
+            }}
+          >
+            📊 测试报告
+          </SecondaryButton>
         </Flex>
       </Flex>
     </Box>

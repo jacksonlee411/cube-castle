@@ -11,6 +11,7 @@ import (
 	"github.com/cube-castle/cmd/organization-command-server/internal/application/handlers"
 	"github.com/cube-castle/cmd/organization-command-server/internal/infrastructure/logging"
 	"github.com/cube-castle/cmd/organization-command-server/internal/presentation/http/middleware"
+	"cube-castle-deployment-test/pkg/monitoring"
 )
 
 // CreateOrganizationRequest represents the HTTP request for creating an organization
@@ -89,10 +90,12 @@ func (h *OrganizationHTTPHandler) CreateOrganization(w http.ResponseWriter, r *h
 	// Execute command
 	result, err := h.handler.HandleCreateOrganization(ctx, cmd)
 	if err != nil {
+		monitoring.RecordOrganizationOperation("create", "failed", "command-server") // 记录失败指标
 		h.errorHandler.WriteErrorResponse(w, r, err, http.StatusInternalServerError)
 		return
 	}
 	
+	monitoring.RecordOrganizationOperation("create", "success", "command-server") // 记录成功指标
 	// Return success response
 	h.writeJSONResponse(w, http.StatusCreated, result)
 }
@@ -142,10 +145,12 @@ func (h *OrganizationHTTPHandler) UpdateOrganization(w http.ResponseWriter, r *h
 	// Execute command
 	result, err := h.handler.HandleUpdateOrganization(ctx, cmd)
 	if err != nil {
+		monitoring.RecordOrganizationOperation("update", "failed", "command-server") // 记录失败指标
 		h.errorHandler.WriteErrorResponse(w, r, err, http.StatusInternalServerError)
 		return
 	}
 	
+	monitoring.RecordOrganizationOperation("update", "success", "command-server") // 记录成功指标
 	// Return success response
 	h.writeJSONResponse(w, http.StatusOK, result)
 }
@@ -179,10 +184,12 @@ func (h *OrganizationHTTPHandler) DeleteOrganization(w http.ResponseWriter, r *h
 	// Execute command
 	result, err := h.handler.HandleDeleteOrganization(ctx, cmd)
 	if err != nil {
+		monitoring.RecordOrganizationOperation("delete", "failed", "command-server") // 记录失败指标
 		h.errorHandler.WriteErrorResponse(w, r, err, http.StatusInternalServerError)
 		return
 	}
 	
+	monitoring.RecordOrganizationOperation("delete", "success", "command-server") // 记录成功指标
 	// Return success response
 	h.writeJSONResponse(w, http.StatusOK, result)
 }

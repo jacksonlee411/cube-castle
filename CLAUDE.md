@@ -32,15 +32,18 @@ cd /home/shangmeilin/cube-castle
 # 启动前端开发服务器
 cd /home/shangmeilin/cube-castle/frontend
 npm run dev
+
+# 启动GraphQL服务器(带监控指标)
+go run cmd/organization-graphql-service/main.go
 ```
 
 ### 服务端口
 - 前端开发服务器: http://localhost:3001
 - 后端命令API: http://localhost:9090
 - 后端查询API: http://localhost:8090
+- **监控指标端点**: http://localhost:8090/metrics ⭐
 - PostgreSQL数据库: localhost:5432
 - Neo4j数据库: localhost:7474
-- 指标收集服务: http://localhost:9999/metrics
 - 监控面板: file:///home/shangmeilin/cube-castle/monitoring/dashboard.html
 
 ### 测试命令
@@ -107,28 +110,50 @@ cd monitoring && go run metrics-server.go
 - **后端单元测试**: Go测试覆盖类型验证、中间件、业务逻辑
 - **集成测试**: MCP浏览器自动化验证端到端流程
 
+## 监控系统实施状态
+
 ### Phase 4: 监控与可观测性实施 (已完成 ✅)
 
 #### 监控系统架构
-1. **指标收集服务**: Go语言实现的Prometheus兼容指标服务器
-   - 端口: 9999
-   - 提供 `/metrics` 端点
-   - 收集HTTP请求指标、业务操作指标
+1. **真实指标收集**: 完整的Prometheus兼容指标系统
+   - GraphQL服务器(8090)内置 `/metrics` 端点
+   - HTTP请求指标、业务操作指标自动收集
+   - 支持多服务标签分离 (graphql-server, command-server)
 
-2. **监控配置**: 完整的Prometheus + Grafana配置
-   - `monitoring/prometheus.yml`: Prometheus配置
-   - `monitoring/alert_rules.yml`: 告警规则定义
-   - `monitoring/docker-compose.monitoring.yml`: 容器化部署
+2. **前端监控面板**: 混合真实数据显示
+   - 自动解析Prometheus指标格式
+   - 真实服务健康检查机制
+   - 智能fallback到模拟数据
 
-3. **可视化面板**: HTML监控仪表板
-   - 实时系统状态显示
-   - 服务健康检查
-   - 性能指标可视化
+3. **完整指标类型**:
+   - `http_requests_total`: HTTP请求计数 (按method, status, service分组)
+   - `http_request_duration_seconds`: 请求响应时间直方图
+   - `organization_operations_total`: 业务操作计数 (按operation, status, service分组)
 
-4. **告警机制**: 基于性能阈值的自动告警
-   - 高响应时间告警 (>2秒)
-   - 错误率告警 (>10%)
-   - 服务宕机告警
+4. **集成测试验证**: ✅ 端到端指标流程验证完成
+   - GraphQL查询 → 指标生成 → 前端显示
+   - 业务操作指标正确记录 (query_list: success)
+   - HTTP性能指标准确收集 (平均9.89ms响应时间)
+
+#### 当前指标示例
+```prometheus
+# HTTP性能指标
+http_requests_total{method="POST",service="graphql-server",status="OK"} 1
+http_request_duration_seconds_sum{endpoint="/graphql",method="POST",service="graphql-server"} 0.009891935
+
+# 业务操作指标  
+organization_operations_total{operation="query_list",service="graphql-server",status="success"} 1
+```
+
+#### 前端代理配置
+```typescript
+// vite.config.ts
+'/api/metrics': {
+  target: 'http://localhost:8090',  // 指向GraphQL服务器
+  changeOrigin: true,
+  rewrite: (path) => path.replace(/^\/api\/metrics/, '/metrics')
+}
+```
 
 #### 集成测试扩展
 1. **Schema验证测试**: 完整的运行时验证测试套件
@@ -230,7 +255,7 @@ cube-castle/
 - 文档路径: `/home/shangmeilin/cube-castle/DOCS2/`
 - 监控路径: `/home/shangmeilin/cube-castle/monitoring/`
 - 最后更新: 2025-08-09
-- 当前版本: Phase 4 完成 (包含监控系统和扩展测试)
+- 当前版本: Phase 4+ 真实指标监控完成 (包含端到端验证的完整监控系统)
 
 ---
 *这个文档会随着项目发展持续更新*

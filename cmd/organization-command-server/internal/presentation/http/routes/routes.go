@@ -7,6 +7,7 @@ import (
 
 	"github.com/cube-castle/cmd/organization-command-server/internal/presentation/http/handlers"
 	custommiddleware "github.com/cube-castle/cmd/organization-command-server/internal/presentation/http/middleware"
+	"cube-castle-deployment-test/pkg/monitoring"
 )
 
 // RouterConfig contains the dependencies needed for setting up routes
@@ -24,6 +25,7 @@ func SetupRoutes(config RouterConfig) chi.Router {
 	// Basic middleware
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
+	r.Use(monitoring.MetricsMiddleware("command-server")) // 添加指标收集中间件
 	r.Use(config.RequestLogger.Handle)
 	r.Use(config.ErrorHandler.Handle)
 	r.Use(middleware.Recoverer)

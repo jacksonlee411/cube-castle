@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Grid } from '@workday/canvas-kit-react/layout';
+import { space } from '@workday/canvas-kit-react/tokens';
 import type { ServiceStatus } from '../../../shared/types/monitoring';
 import { ServiceCard } from './ServiceCard';
 
@@ -19,12 +20,8 @@ export const ServiceStatusGrid: React.FC<ServiceStatusGridProps> = ({ services =
 
   return (
     <Grid
-      gridTemplateColumns={{
-        default: '1fr',
-        medium: 'repeat(2, 1fr)',
-        large: 'repeat(3, 1fr)'
-      }}
-      gap="m"
+      gridTemplateColumns="repeat(3, 1fr)"
+      gridGap={space.m}
     >
       {services.map((service, index) => (
         <ServiceCard key={service.name + index} service={service} />
