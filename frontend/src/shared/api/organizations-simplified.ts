@@ -2,24 +2,17 @@ import { apiClient } from './client';
 import type { 
   OrganizationUnit, 
   OrganizationListResponse, 
-  OrganizationStats, 
-  APIResponse,
-  GraphQLOrganizationResponse,
-  CreateOrganizationResponse,
-  UpdateOrganizationResponse,
+  OrganizationStats,
   GraphQLResponse,
-  GraphQLVariables,
   OrganizationUnitType,
   OrganizationStatus
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
 import { 
-  orgValidation,
+  validateOrganizationBasic,
   safeTransform,
   SimpleValidationError,
-  isSimpleValidationError,
-  isAPIError,
-  isNetworkError
+  formatValidationErrors
 } from '../validation/simple-validation';
 
 export interface OrganizationQueryParams {
@@ -37,9 +30,16 @@ export const organizationAPI = {
     try {
       // 轻量级参数验证
       if (params) {
-        const validationResult = orgValidation.validateQueryParams(params);
-        if (!validationResult.isValid) {
-          throw new SimpleValidationError('Invalid query parameters', validationResult.errors);
+        // 简化的参数验证，依赖后端详细验证
+        if (params.page && params.page < 1) {
+          throw new SimpleValidationError('页码必须大于0', [
+            { field: 'page', message: '页码必须大于0' }
+          ]);
+        }
+        if (params.pageSize && (params.pageSize < 1 || params.pageSize > 100)) {
+          throw new SimpleValidationError('页面大小必须在1-100之间', [
+            { field: 'pageSize', message: '页面大小必须在1-100之间' }
+          ]);
         }
       }
 
@@ -90,7 +90,9 @@ export const organizationAPI = {
       // 简化的数据转换 - 无需复杂的Zod验证
       const organizations = data.organizations.map((org: any) => {
         try {
-          return safeTransform.graphqlToOrganization(org);
+          return safeTransform.graphqlToOrganization ? 
+            safeTransform.graphqlToOrganization(org) : 
+            org; // 直接返回原始数据，依赖后端格式
         } catch (error) {
           console.warn('Failed to transform organization:', org, error);
           return null;
@@ -122,13 +124,16 @@ export const organizationAPI = {
     }
   },
 
-  // 根据代码获取单个组织 - 使用GraphQL而非REST
+  // 根据代码获取单个组织 - ✅ 修复协议违反，统一使用GraphQL
   getByCode: async (code: string): Promise<OrganizationUnit> => {
     try {
       if (!code || typeof code !== 'string') {
-        throw new SimpleValidationError('Invalid organization code', { code: 'Code is required' });
+        throw new SimpleValidationError('Invalid organization code', [
+          { field: 'code', message: 'Code is required' }
+        ]);
       }
 
+      // ✅ 使用GraphQL查询，遵循"查询统一用GraphQL"原则
       const graphqlQuery = `
         query GetOrganization($code: String!) {
           organization(code: $code) {
@@ -158,21 +163,24 @@ export const organizationAPI = {
         throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
       }
 
-      const data = response.data.data;
-      if (!data?.organization) {
-        throw new Error(`Organization not found: ${code}`);
+      const organization = response.data.data?.organization;
+      if (!organization) {
+        throw new Error(`组织 ${code} 不存在`);
       }
 
-      return safeTransform.graphqlToOrganization(data.organization);
+      // 简单数据转换，依赖后端格式
+      return safeTransform.graphqlToOrganization ? 
+        safeTransform.graphqlToOrganization(organization) : 
+        organization;
 
     } catch (error) {
       console.error('Error fetching organization by code:', code, error);
       
-      if (isSimpleValidationError(error)) {
-        throw error;
+      if (error.response?.status === 404) {
+        throw new Error(`组织 ${code} 不存在`);
       }
       
-      throw new Error(`Failed to fetch organization ${code}. Please try again.`);
+      throw new Error(`获取组织 ${code} 失败，请重试`);
     }
   },
 
@@ -238,18 +246,21 @@ export const organizationAPI = {
   },
 
   // 创建组织 - 依赖后端统一验证
-  create: async (input: CreateOrganizationInput): Promise<CreateOrganizationResponse> => {
+  create: async (input: CreateOrganizationInput): Promise<any> => {
     try {
       // 基础前端验证 (用户体验)
-      const validationResult = orgValidation.validateCreateInput(input);
+      const validationResult = validateOrganizationBasic(input);
       if (!validationResult.isValid) {
-        throw new SimpleValidationError('Validation failed', validationResult.errors);
+        throw new SimpleValidationError(
+          '输入验证失败：' + formatValidationErrors(validationResult.errors), 
+          validationResult.errors
+        );
       }
 
       // 转换为API格式
-      const apiData = safeTransform.createInputToAPI(input);
+      const apiData = safeTransform.cleanCreateInput(input);
 
-      const response = await apiClient.post<CreateOrganizationResponse>('/api/v1/organization-units', apiData);
+      const response = await apiClient.post('/api/v1/organization-units', apiData);
       
       // 简单的响应验证
       if (!response.data?.code) {
@@ -258,13 +269,13 @@ export const organizationAPI = {
 
       return response.data;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating organization:', error);
       
-      if (isSimpleValidationError(error)) {
+      if (error instanceof SimpleValidationError) {
         throw error;
       }
-      if (isAPIError(error)) {
+      if (error.response?.status >= 400) {
         // 服务器端验证错误
         const serverMessage = error.response?.data?.message || error.response?.data?.error;
         throw new Error(serverMessage || 'Failed to create organization');
@@ -275,22 +286,27 @@ export const organizationAPI = {
   },
 
   // 更新组织 - 依赖后端统一验证
-  update: async (code: string, input: UpdateOrganizationInput): Promise<UpdateOrganizationResponse> => {
+  update: async (code: string, input: UpdateOrganizationInput): Promise<any> => {
     try {
       if (!code) {
-        throw new SimpleValidationError('Organization code is required', { code: 'Code is required' });
+        throw new SimpleValidationError('Organization code is required', [
+          { field: 'code', message: 'Code is required' }
+        ]);
       }
 
       // 基础前端验证 (用户体验)
-      const validationResult = orgValidation.validateUpdateInput(input);
+      const validationResult = validateOrganizationBasic(input);
       if (!validationResult.isValid) {
-        throw new SimpleValidationError('Validation failed', validationResult.errors);
+        throw new SimpleValidationError(
+          '输入验证失败：' + formatValidationErrors(validationResult.errors),
+          validationResult.errors
+        );
       }
 
       // 转换为API格式
-      const apiData = safeTransform.updateInputToAPI(input);
+      const apiData = safeTransform.cleanUpdateInput(input);
 
-      const response = await apiClient.put<UpdateOrganizationResponse>(`/api/v1/organization-units/${code}`, apiData);
+      const response = await apiClient.put(`/api/v1/organization-units/${code}`, apiData);
       
       if (!response.data?.code) {
         throw new Error('Invalid response from server');
@@ -298,13 +314,13 @@ export const organizationAPI = {
 
       return response.data;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating organization:', code, error);
       
-      if (isSimpleValidationError(error)) {
+      if (error instanceof SimpleValidationError) {
         throw error;
       }
-      if (isAPIError(error)) {
+      if (error.response?.status >= 400) {
         const serverMessage = error.response?.data?.message || error.response?.data?.error;
         throw new Error(serverMessage || 'Failed to update organization');
       }

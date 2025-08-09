@@ -1,0 +1,45 @@
+server:
+  port: 9090
+  read_timeout: "30s"
+  write_timeout: "30s" 
+  idle_timeout: "120s"
+
+database:
+  host: "localhost"
+  port: 5432
+  database: "cubecastle"
+  username: "user"
+  password: "password"
+  max_connections: 25
+  min_connections: 5
+  max_conn_lifetime: "30m"
+  ssl_mode: "disable"
+
+kafka:
+  brokers:
+    - "localhost:9092"
+  event_topic: "organization.events"
+  client_id: "organization-command-service"
+  acks: "all"
+  retries: 3
+  batch_size: 16384
+  linger_ms: 10
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  database: 0
+
+logger:
+  level: "info"
+  format: "json"
+  output: "stdout"
+  time_format: "2006-01-02T15:04:05.000Z07:00"
+
+app:
+  name: "Organization Command Service"
+  version: "1.0.0"
+  environment: "development"
+  default_tenant_id: "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"
+  default_tenant_name: "高谷集团"

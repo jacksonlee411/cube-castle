@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 	"fmt"
@@ -20,7 +21,6 @@ import (
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/redis/go-redis/v9"
-	"cube-castle-deployment-test/pkg/monitoring"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -486,12 +486,10 @@ func (r *Resolver) Organizations(ctx context.Context, args struct{
 	
 	organizations, err := r.repo.GetOrganizations(ctx, tenantID, first, offset)
 	if err != nil {
-		monitoring.RecordOrganizationOperation("query_list", "failed", "graphql-server") // 记录失败指标
 		r.logger.Printf("[GraphQL] 查询组织列表失败: %v", err)
 		return nil, err
 	}
 	
-	monitoring.RecordOrganizationOperation("query_list", "success", "graphql-server") // 记录成功指标
 	r.logger.Printf("[GraphQL] 查询组织列表成功 - 返回 %d 个组织", len(organizations))
 	return organizations, nil
 }
@@ -505,16 +503,13 @@ func (r *Resolver) Organization(ctx context.Context, args struct{
 	
 	org, err := r.repo.GetOrganization(ctx, tenantID, args.Code)
 	if err != nil {
-		monitoring.RecordOrganizationOperation("query_single", "failed", "graphql-server") // 记录失败指标
 		r.logger.Printf("[GraphQL] 查询单个组织失败: %v", err)
 		return nil, err
 	}
 	
 	if org != nil {
-		monitoring.RecordOrganizationOperation("query_single", "success", "graphql-server") // 记录成功指标
 		r.logger.Printf("[GraphQL] 查询单个组织成功 - 组织: %s", org.NameField)
 	} else {
-		monitoring.RecordOrganizationOperation("query_single", "not_found", "graphql-server") // 记录未找到指标
 		r.logger.Printf("[GraphQL] 组织不存在 - 代码: %s", args.Code)
 	}
 	
@@ -528,12 +523,10 @@ func (r *Resolver) OrganizationStats(ctx context.Context) (*OrganizationStats, e
 	
 	stats, err := r.repo.GetOrganizationStats(ctx, tenantID)
 	if err != nil {
-		monitoring.RecordOrganizationOperation("query_stats", "failed", "graphql-server") // 记录失败指标
 		r.logger.Printf("[GraphQL] 查询组织统计失败: %v", err)
 		return nil, err
 	}
 	
-	monitoring.RecordOrganizationOperation("query_stats", "success", "graphql-server") // 记录成功指标
 	r.logger.Printf("[GraphQL] 查询组织统计成功 - 总数: %d", stats.TotalCountField)
 	return stats, nil
 }
@@ -606,7 +599,6 @@ func main() {
 
 	// 中间件
 	r.Use(middleware.Logger)
-	r.Use(monitoring.MetricsMiddleware("graphql-server")) // 添加指标收集中间件
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -616,6 +608,70 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	// REST API 端点 - 统一查询协议
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/organization-units", func(w http.ResponseWriter, r *http.Request) {
+			// 将REST查询转换为GraphQL查询
+			first := int32(50)
+			offset := int32(0)
+			
+			if firstStr := r.URL.Query().Get("limit"); firstStr != "" {
+				if f, err := strconv.ParseInt(firstStr, 10, 32); err == nil {
+					first = int32(f)
+				}
+			}
+			
+			if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+				if o, err := strconv.ParseInt(offsetStr, 10, 32); err == nil {
+					offset = int32(o)
+				}
+			}
+			
+			ctx := r.Context()
+			organizations, err := resolver.Organizations(ctx, struct{
+				First  *int32
+				Offset *int32
+			}{&first, &offset})
+			
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"organizations": organizations,
+				"total": len(organizations),
+			})
+		})
+		
+		r.Get("/organization-units/{code}", func(w http.ResponseWriter, r *http.Request) {
+			code := chi.URLParam(r, "code")
+			if code == "" {
+				http.Error(w, "缺少组织代码", http.StatusBadRequest)
+				return
+			}
+			
+			ctx := r.Context()
+			org, err := resolver.Organization(ctx, struct{
+				Code string
+			}{code})
+			
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			
+			if org == nil {
+				http.Error(w, "组织不存在", http.StatusNotFound)
+				return
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(org)
+		})
+	})
 
 	// GraphQL端点
 	r.Handle("/graphql", &relay.Handler{Schema: schema})
