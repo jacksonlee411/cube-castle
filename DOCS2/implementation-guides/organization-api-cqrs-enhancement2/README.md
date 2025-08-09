@@ -48,6 +48,24 @@
   - 企业级改进建议和实施路径
   - **关键发现**: 数据同步完全失效，需立即修复
 
+### 务实重构方案 (NEW - 2025-08-09)
+- **[08-pragmatic-cdc-refactor-plan-v2.md](./08-pragmatic-cdc-refactor-plan-v2.md)** - 🛠️ **务实CDC重构方案v2.0**
+  - 基于成熟Debezium基础设施的企业级解决方案
+  - 避免重复造轮子，利用成熟CDC生态
+  - 修复网络配置问题，重构消费者代码
+  - 精确缓存失效策略，替代cache:*暴力方案
+  - **核心价值**: 3-4小时完成实施 vs 2周重写
+
+- **[09-pragmatic-implementation-guide.md](./09-pragmatic-implementation-guide.md)** - 📋 **务实方案实施指南**
+  - 详细的分步实施教程
+  - 企业级监控和性能基准
+  - 运维最佳实践和故障排查
+  - 快速开始和验证流程
+
+- **[scripts/fix-debezium-network-v2.sh](./scripts/fix-debezium-network-v2.sh)** - 🔧 **Debezium网络修复脚本**
+- **[scripts/validate-pragmatic-cdc-v2.sh](./scripts/validate-pragmatic-cdc-v2.sh)** - 🧪 **端到端验证脚本**  
+- **[code/enhanced-sync-service-v2.go](./code/enhanced-sync-service-v2.go)** - 💻 **增强版同步服务**
+
 ### 待创建文档
 - **06-api-unification-strategy.md** - 🔄 API统一策略
 - **08-data-consistency-solution.md** - 💾 数据一致性解决方案  
