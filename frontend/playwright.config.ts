@@ -9,8 +9,10 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3000', // 实际的前端端口
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
 
   projects: [
@@ -22,10 +24,11 @@ export default defineConfig({
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
     },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // Webkit暂时禁用 - WSL环境缺少系统依赖
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
   ],
 
   webServer: {

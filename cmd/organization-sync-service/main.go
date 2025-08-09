@@ -548,7 +548,7 @@ func NewKafkaEventConsumer(brokers []string, groupID string, syncSvc *Neo4jSyncS
 	config := &kafka.ConfigMap{
 		"bootstrap.servers": strings.Join(brokers, ","),
 		"group.id":          groupID,
-		"auto.offset.reset": "earliest",
+		"auto.offset.reset": "latest",  // 从最新位置开始
 		"enable.auto.commit": true,
 		"auto.commit.interval.ms": 1000,
 	}
@@ -654,12 +654,16 @@ func (c *KafkaEventConsumer) processDomainEvent(ctx context.Context, msg *kafka.
 func (c *KafkaEventConsumer) processCDCEvent(ctx context.Context, msg *kafka.Message) error {
 	c.logger.Printf("处理CDC事件")
 
-	var event CDCOrganizationEvent
-	if err := json.Unmarshal(msg.Value, &event); err != nil {
-		return fmt.Errorf("反序列化CDC事件失败: %w", err)
+	// 解析Debezium消息格式
+	var debeziumMsg struct {
+		Payload CDCOrganizationEvent `json:"payload"`
+	}
+	if err := json.Unmarshal(msg.Value, &debeziumMsg); err != nil {
+		return fmt.Errorf("反序列化Debezium消息失败: %w", err)
 	}
 
-	return c.syncSvc.HandleCDCEvent(ctx, event)
+	c.logger.Printf("CDC操作类型: %s", debeziumMsg.Payload.Op)
+	return c.syncSvc.HandleCDCEvent(ctx, debeziumMsg.Payload)
 }
 
 func (c *KafkaEventConsumer) Close() error {
@@ -684,7 +688,7 @@ func main() {
 	// 创建Kafka消费者
 	consumer, err := NewKafkaEventConsumer(
 		[]string{"localhost:9092"},
-		"neo4j-sync-group",
+		"neo4j-sync-group-v2",  // 使用新的消费者组
 		syncSvc,
 		logger,
 	)
