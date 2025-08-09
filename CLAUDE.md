@@ -62,34 +62,42 @@ Cube Castle是一个基于CQRS架构的人力资源管理系统，包含前端Re
 
 ## 开发环境配置
 
-### 启动命令 (现代化简洁版)
+### 启动命令 (完整CQRS架构版 - 修复组织更名问题)
 ```bash
-# 简洁CQRS架构启动流程 (避免过度工程化)
+# 🚀 完整CQRS架构启动流程 (包含所有必需服务)
 cd /home/shangmeilin/cube-castle
 
+# 方式1: 一键启动 (推荐) 
+./scripts/start-cqrs-complete.sh
+
+# 方式2: 手动启动 (调试用)
 # 1. 启动基础设施 (PostgreSQL, Neo4j, Redis, Kafka)
 docker-compose up -d
 
-# 2. 启动2个核心服务 (简洁架构原则)
-cd cmd/organization-command-service && go run main.go &    # REST API - CUD操作
-cd cmd/organization-query-service-unified && go run main.go &  # GraphQL - 查询操作
+# 2. 启动4个核心服务 (⚠️ 缺一不可，否则组织更名等功能失效)
+cd cmd/organization-command-service && go run main.go &         # 端口9090 - REST API
+cd cmd/organization-query-service-unified && go run main.go &   # 端口8090 - GraphQL
+cd cmd/organization-sync-service && go run main.go &            # Neo4j数据同步
+cd cmd/organization-cache-invalidator && go run main.go &       # ⚠️ 关键：缓存失效服务
 
-# 3. 启动同步服务 (基于成熟Debezium，避免重复造轮子)
-cd cmd/organization-sync-service && go run main.go &
+# 3. 启动前端开发服务器
+cd frontend && npm run dev  # 端口3000
 
-# 4. 修复Debezium CDC配置 (如需要)
-./scripts/fix-debezium-network.sh
-
-# 5. 启动前端开发服务器
-cd frontend && npm run dev
-
-# 6. 验证服务状态
-curl http://localhost:9090/health  # 命令服务
-curl http://localhost:8090/health  # 查询服务
+# 4. 系统健康检查
+./scripts/health-check-cqrs.sh
 ```
 
-# 5. 配置CDC管道 (首次运行)
+### 故障排除命令
+```bash
+# 完整健康检查 (诊断组织更名等问题)
+./scripts/health-check-cqrs.sh
+
+# 重新配置CDC管道 (如果Debezium失效)
 ./scripts/setup-cdc-pipeline.sh
+
+# 检查服务状态
+curl http://localhost:9090/health  # 命令服务
+curl http://localhost:8090/health  # 查询服务
 ```
 
 ### 服务端口 (现代化简洁架构)
@@ -363,32 +371,27 @@ cube-castle/
 
 ## 已知问题与解决方案
 
-### 当前问题
-1. **多租户缓存隔离**: ⚠️ 中等风险
-   - **问题**: 当前缓存失效使用`cache:*`模式，单租户更新会清空所有租户缓存
-   - **影响**: 性能隔离不足，存在"吵闹邻居"效应
-   - **风险等级**: 性能影响高，数据安全风险低 (缓存键已包含租户ID)
-   - **解决方案**: 实施精确缓存失效策略
-   ```go
-   // 建议优化
-   patterns := []string{
-       fmt.Sprintf("cache:*:%s:*", tenantID), // 只失效特定租户
-   }
-   ```
+### 解决的关键问题 ✅
+1. **组织更名不生效问题**: ✅ 已完全解决 (2025-08-09)
+   - **根因**: 缓存失效服务`organization-cache-invalidator`未启动
+   - **解决方案**: 启动脚本现包含所有4个必需服务
+   - **预防措施**: 新增健康检查脚本`health-check-cqrs.sh`自动检测
 
-2. **E2E测试稳定性**: 部分Playwright测试时序问题
-   - 状态: 实时同步验证测试已建立并通过
-   - 解决方案: 调整测试等待策略和选择器精确度
+2. **Debezium网络配置问题**: ✅ 已完全解决
+   - **根因**: 主机名不一致(`cube_castle_postgres` vs `postgres`)  
+   - **解决方案**: Docker Compose添加网络别名，脚本自动重配连接器
+   - **预防措施**: 配置一致性验证
 
-3. **硬编码租户限制**: 当前系统使用DefaultTenantID
-   - 状态: 架构支持多租户，但应用层硬编码单租户
-   - 影响: 无法支持真正的多租户部署
-
-### 解决的问题 ✅
-1. **架构一致性问题**: ✅ 已完全解决 (2025-08-09)
+3. **架构一致性问题**: ✅ 已完全解决 (2025-08-09)
    - **问题**: getByCode使用REST API，违反"查询统一用GraphQL"原则
    - **解决方案**: 修改getByCode使用GraphQL查询 `organization(code: $code)`
    - **验证结果**: 所有查询操作统一使用GraphQL，命令操作统一使用REST API
+
+### 当前问题
+1. **前端端口不一致**: ⚠️ 低风险
+   - **问题**: CLAUDE.md显示3003端口，实际Vite使用3000端口
+   - **影响**: 文档与实际不符，但不影响功能
+   - **临时方案**: 使用实际端口http://localhost:3000/
 
 2. **过度工程化问题**: ✅ 已完全解决 (Phase 1-2优化)
    - **问题**: 6个服务、889行验证代码、25个Go文件DDD抽象

@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: cube_castle_postgres
+    hostname: postgres  # 确保Debezium连接器可以使用postgres主机名
     command: >
       postgres -c wal_level=logical 
                -c max_replication_slots=10 
@@ -15,7 +16,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - castle-net
+      castle-net:
+        aliases:
+          - postgres  # 网络别名，确保服务发现一致性
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-cubecastle}"]
       interval: 10s
