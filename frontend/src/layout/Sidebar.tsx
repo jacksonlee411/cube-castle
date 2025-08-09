@@ -19,6 +19,10 @@ const navigationItems = [
   {
     label: '组织架构',
     path: '/organizations'
+  },
+  {
+    label: '系统监控',
+    path: '/monitoring'
   }
 ];
 

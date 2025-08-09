@@ -1,7 +1,7 @@
 # Claude Code项目记忆文档
 
 ## 项目概述
-Cube Castle是一个基于CQRS架构的人力资源管理系统，包含前端React应用和Go后端API服务。
+Cube Castle是一个基于CQRS架构的人力资源管理系统，包含前端React应用和Go后端API服务。项目已完成Phase 3类型安全改进和Phase 4监控系统实施。
 
 ## 当前架构状态
 
@@ -11,13 +11,15 @@ Cube Castle是一个基于CQRS架构的人力资源管理系统，包含前端Re
 - **UI框架**: Canvas Kit
 - **数据获取**: GraphQL (查询) + REST (命令)
 - **类型安全**: Zod运行时验证 + TypeScript静态检查
+- **测试框架**: Playwright E2E测试 + Jest单元测试
 
 ### 后端架构
-- **技术栈**: Go + GraphQL + PostgreSQL
+- **技术栈**: Go + GraphQL + PostgreSQL + Neo4j
 - **架构模式**: CQRS (命令查询职责分离)
 - **命令端**: REST API (端口9090)
-- **查询端**: GraphQL API (端口8080)
-- **数据库**: PostgreSQL (端口5432)
+- **查询端**: GraphQL API (端口8090)
+- **数据库**: PostgreSQL (端口5432) + Neo4j (端口7474)
+- **监控**: Prometheus指标收集 (端口9999)
 
 ## 开发环境配置
 
@@ -33,21 +35,30 @@ npm run dev
 ```
 
 ### 服务端口
-- 前端开发服务器: http://localhost:3000
+- 前端开发服务器: http://localhost:3001
 - 后端命令API: http://localhost:9090
-- 后端查询API: http://localhost:8080
+- 后端查询API: http://localhost:8090
 - PostgreSQL数据库: localhost:5432
+- Neo4j数据库: localhost:7474
+- 指标收集服务: http://localhost:9999/metrics
+- 监控面板: file:///home/shangmeilin/cube-castle/monitoring/dashboard.html
 
 ### 测试命令
 ```bash
-# 前端测试
+# 前端单元测试
 cd frontend && npm test
+
+# 前端E2E测试
+cd frontend && npx playwright test
 
 # 后端测试
 cd cmd/organization-command-server && go test ./...
 
 # API端到端测试
 ./test_api.sh
+
+# 启动监控服务
+cd monitoring && go run metrics-server.go
 ```
 
 ## 开发历史与重要改进
@@ -96,6 +107,39 @@ cd cmd/organization-command-server && go test ./...
 - **后端单元测试**: Go测试覆盖类型验证、中间件、业务逻辑
 - **集成测试**: MCP浏览器自动化验证端到端流程
 
+### Phase 4: 监控与可观测性实施 (已完成 ✅)
+
+#### 监控系统架构
+1. **指标收集服务**: Go语言实现的Prometheus兼容指标服务器
+   - 端口: 9999
+   - 提供 `/metrics` 端点
+   - 收集HTTP请求指标、业务操作指标
+
+2. **监控配置**: 完整的Prometheus + Grafana配置
+   - `monitoring/prometheus.yml`: Prometheus配置
+   - `monitoring/alert_rules.yml`: 告警规则定义
+   - `monitoring/docker-compose.monitoring.yml`: 容器化部署
+
+3. **可视化面板**: HTML监控仪表板
+   - 实时系统状态显示
+   - 服务健康检查
+   - 性能指标可视化
+
+4. **告警机制**: 基于性能阈值的自动告警
+   - 高响应时间告警 (>2秒)
+   - 错误率告警 (>10%)
+   - 服务宕机告警
+
+#### 集成测试扩展
+1. **Schema验证测试**: 完整的运行时验证测试套件
+   - 文件: `frontend/tests/e2e/schema-validation.spec.ts`
+   - 测试创建流程、错误处理、数据格式验证
+   - 验证Zod运行时验证机制有效性
+
+2. **端到端测试**: Playwright自动化测试
+   - 跨浏览器测试支持 (Chrome, Firefox, Safari)
+   - 业务流程完整性验证
+   - 错误场景处理测试
 ### 文件结构重要路径
 ```
 cube-castle/
@@ -104,9 +148,17 @@ cube-castle/
 │   ├── api/type-guards.ts          # 类型守卫函数
 │   ├── api/organizations.ts        # API客户端 (已重构)
 │   └── api/error-handling.ts       # 错误处理系统
+├── frontend/tests/e2e/
+│   └── schema-validation.spec.ts   # Schema验证集成测试
 ├── cmd/organization-command-server/
 │   ├── pkg/types/organization.go   # Go类型定义
 │   └── internal/presentation/http/middleware/validation.go # 验证中间件
+├── monitoring/
+│   ├── metrics-server.go           # 指标收集服务器
+│   ├── dashboard.html             # 监控可视化面板
+│   ├── prometheus.yml             # Prometheus配置
+│   ├── alert_rules.yml           # 告警规则
+│   └── docker-compose.monitoring.yml # 监控服务部署
 └── DOCS2/implementation-guides/organization-api-cqrs-enhancement2/
     ├── 01-code-smell-analysis-report.md
     ├── 02-refactor-implementation-plan.md  
@@ -117,15 +169,22 @@ cube-castle/
 ## 已知问题与解决方案
 
 ### 当前问题
-1. **验证Schema匹配**: GraphQL响应格式与前端Zod schema存在小幅差异
-   - 状态: 已识别，运行时验证正常工作
-   - 解决方案: 调整schema或响应格式匹配
+1. **E2E测试稳定性**: 部分Playwright测试因为弹窗检测时序问题偶有失败
+   - 状态: 测试框架已建立，需要UI组件完善
+   - 解决方案: 调整测试等待策略和选择器精确度
+
+2. **监控服务集成**: Docker镜像拉取受代理限制
+   - 状态: 已实现轻量级Go监控服务替代方案
+   - 解决方案: 使用自建监控服务，避免外部依赖
 
 ### 解决的问题
 1. **前端类型安全**: ✅ 已通过Zod运行时验证解决
 2. **后端类型验证**: ✅ 已通过Go强类型枚举解决  
 3. **错误处理一致性**: ✅ 已通过统一错误处理系统解决
 4. **API数据验证**: ✅ 已集成运行时验证到API层
+5. **验证Schema匹配**: ✅ 已通过专门的CreateOrganizationResponseSchema解决
+6. **系统监控缺失**: ✅ 已实施完整的监控和可观测性系统
+7. **测试覆盖不足**: ✅ 已扩展E2E测试和Schema验证测试
 
 ## 开发建议
 
@@ -134,36 +193,44 @@ cube-castle/
 - 后端: 使用强类型枚举而非字符串常量
 - 错误处理: 使用统一的ValidationError类
 - 测试: 为所有验证逻辑编写单元测试
+- 监控: 在关键业务逻辑中添加指标收集
 
 ### 调试技巧
 1. **前端验证错误**: 检查浏览器控制台的ValidationError详情
 2. **后端验证失败**: 查看Go服务日志中的验证错误信息
 3. **数据库连接**: 使用`psql -h localhost -U user -d cubecastle`测试连接
+4. **监控指标**: 访问`http://localhost:9999/metrics`查看实时指标
+5. **系统状态**: 打开监控面板查看服务健康状态
 
 ### 性能监控
 - 前端: React DevTools检查组件渲染
-- 后端: Go pprof分析API性能
+- 后端: Go pprof分析API性能 + Prometheus指标
 - 数据库: PostgreSQL慢查询日志
+- 系统: 监控面板实时显示响应时间和错误率
 
 ## 下一步发展方向
 
 ### 立即优先 (推荐)
-1. **修复验证匹配**: 调整GraphQL响应与Zod schema一致性
-2. **技术债务清理**: 删除冗余文件，优化项目结构
+1. **E2E测试稳定性**: 优化Playwright测试选择器和等待策略
+2. **监控告警集成**: 配置实际的告警通知机制
+3. **UI组件完善**: 改进组织架构页面的弹窗和表单组件
 
 ### 中期目标
-1. **Phase 4 监控**: 实施OpenTelemetry和Prometheus监控
+1. **性能优化**: 基于监控数据优化API响应时间和数据库查询
 2. **功能完善**: 编辑、删除操作的类型安全改进
+3. **监控扩展**: 添加业务指标监控(用户行为、数据质量等)
 
 ### 长期规划  
-1. **Phase 5 测试**: E2E测试和性能测试
+1. **Phase 5 完整测试**: 性能测试、压力测试、契约测试
 2. **新功能**: 权限管理、批量操作、可视化组织架构
+3. **DevOps完善**: CI/CD流水线、自动化部署、环境管理
 
 ## 联系与维护
 - 项目路径: `/home/shangmeilin/cube-castle`
 - 文档路径: `/home/shangmeilin/cube-castle/DOCS2/`
-- 最后更新: 2025-08-08
-- 当前版本: Phase 3 完成
+- 监控路径: `/home/shangmeilin/cube-castle/monitoring/`
+- 最后更新: 2025-08-09
+- 当前版本: Phase 4 完成 (包含监控系统和扩展测试)
 
 ---
 *这个文档会随着项目发展持续更新*

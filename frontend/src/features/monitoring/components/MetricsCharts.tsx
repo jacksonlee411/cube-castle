@@ -1,0 +1,138 @@
+import React from 'react';
+import { Box } from '@workday/canvas-kit-react/layout';
+import { Text } from '@workday/canvas-kit-react/text';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
+import type { ChartData } from '../../../shared/types/monitoring';
+
+interface MetricsChartsProps {
+  data?: ChartData;
+}
+
+export const MetricsCharts: React.FC<MetricsChartsProps> = ({ data }) => {
+  if (!data) {
+    return (
+      <Box padding="l" textAlign="center">
+        <Box as="span" fontSize="48px">📈</Box>
+        <Box marginTop="s">暂无图表数据</Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      {/* 响应时间图表 */}
+      <Box marginBottom="xl">
+        <Text variant="subtext" fontWeight="bold" marginBottom="m">
+          📊 平均响应时间 (毫秒)
+        </Text>
+        <Box height="200px" width="100%">
+          <ResponsiveContainer>
+            <LineChart data={data.responseTime}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="timestamp" 
+                fontSize={12}
+                tick={{ fill: '#666' }}
+              />
+              <YAxis 
+                fontSize={12}
+                tick={{ fill: '#666' }}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#3498db" 
+                strokeWidth={2}
+                dot={{ r: 4, fill: '#3498db' }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
+      </Box>
+
+      {/* 错误率图表 */}
+      <Box marginBottom="xl">
+        <Text variant="subtext" fontWeight="bold" marginBottom="m">
+          🚨 错误率 (%)
+        </Text>
+        <Box height="200px" width="100%">
+          <ResponsiveContainer>
+            <LineChart data={data.errorRate}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="timestamp" 
+                fontSize={12}
+                tick={{ fill: '#666' }}
+              />
+              <YAxis 
+                fontSize={12}
+                tick={{ fill: '#666' }}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#e74c3c" 
+                strokeWidth={2}
+                dot={{ r: 4, fill: '#e74c3c' }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
+      </Box>
+
+      {/* 请求量图表 */}
+      <Box>
+        <Text variant="subtext" fontWeight="bold" marginBottom="m">
+          📈 请求量 (次/分钟)
+        </Text>
+        <Box height="200px" width="100%">
+          <ResponsiveContainer>
+            <LineChart data={data.requestVolume}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="timestamp" 
+                fontSize={12}
+                tick={{ fill: '#666' }}
+              />
+              <YAxis 
+                fontSize={12}
+                tick={{ fill: '#666' }}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#27ae60" 
+                strokeWidth={2}
+                dot={{ r: 4, fill: '#27ae60' }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
+      </Box>
+    </Box>
+  );
+};

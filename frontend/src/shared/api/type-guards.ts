@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { 
   OrganizationUnitSchema, 
   CreateOrganizationInputSchema, 
+  CreateOrganizationResponseSchema,
   UpdateOrganizationInputSchema,
   GraphQLVariablesSchema,
   GraphQLOrganizationResponseSchema
@@ -9,6 +10,7 @@ import {
 import type { 
   ValidatedOrganizationUnit,
   ValidatedCreateOrganizationInput,
+  ValidatedCreateOrganizationResponse,
   ValidatedUpdateOrganizationInput,
   ValidatedGraphQLVariables,
   ValidatedGraphQLOrganizationResponse 
@@ -51,6 +53,15 @@ export const validateUpdateOrganizationInput = (data: unknown): ValidatedUpdateO
   const result = UpdateOrganizationInputSchema.safeParse(data);
   if (!result.success) {
     throw new ValidationError('Invalid update organization input', result.error.issues);
+  }
+  return result.data;
+};
+
+// 创建组织响应验证函数
+export const validateCreateOrganizationResponse = (data: unknown): ValidatedCreateOrganizationResponse => {
+  const result = CreateOrganizationResponseSchema.safeParse(data);
+  if (!result.success) {
+    throw new ValidationError('Invalid create organization response', result.error.issues);
   }
   return result.data;
 };

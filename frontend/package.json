@@ -22,9 +22,11 @@
     "@workday/canvas-kit-react-fonts": "^13.2.15",
     "@workday/canvas-kit-styling": "^13.2.15",
     "@workday/canvas-tokens-web": "^2.1.1",
+    "date-fns": "^4.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.7.1",
+    "recharts": "^3.1.2",
     "zod": "^4.0.15",
     "zustand": "^5.0.7"
   },

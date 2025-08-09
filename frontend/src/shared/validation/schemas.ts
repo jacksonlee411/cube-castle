@@ -27,6 +27,16 @@ export const CreateOrganizationInputSchema = z.object({
   description: z.string().optional().or(z.literal('')),
 });
 
+// 创建组织单元响应验证模式 (后端实际返回的字段)
+export const CreateOrganizationResponseSchema = z.object({
+  code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'),
+  name: z.string(),
+  unit_type: z.enum(['DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM']),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']),
+  created_at: z.string().datetime(),
+  // 注意：后端创建响应不包含这些字段：level, parent_code, sort_order, description, updated_at, path
+});
+
 // 更新组织单元输入验证模式
 export const UpdateOrganizationInputSchema = CreateOrganizationInputSchema.partial().extend({
   code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'), // 更新时code必需
@@ -60,6 +70,7 @@ export const GraphQLOrganizationResponseSchema = z.object({
 // 导出推导类型
 export type ValidatedOrganizationUnit = z.infer<typeof OrganizationUnitSchema>;
 export type ValidatedCreateOrganizationInput = z.infer<typeof CreateOrganizationInputSchema>;
+export type ValidatedCreateOrganizationResponse = z.infer<typeof CreateOrganizationResponseSchema>;
 export type ValidatedUpdateOrganizationInput = z.infer<typeof UpdateOrganizationInputSchema>;
 export type ValidatedGraphQLVariables = z.infer<typeof GraphQLVariablesSchema>;
 export type ValidatedGraphQLOrganizationResponse = z.infer<typeof GraphQLOrganizationResponseSchema>;

@@ -28,27 +28,30 @@
 ## 📁 文档结构
 
 ### 核心分析文档
-- **01-code-smell-analysis-report.md** - 🔍 深度代码异味分析报告
+- **[01-code-smell-analysis-report.md](./01-code-smell-analysis-report.md)** - 🔍 深度代码异味分析报告
   - 前端组件结构问题分析
   - 后端架构设计问题诊断  
   - API设计和数据流问题评估
   - 优先级分级和重构建议
 
-### 实施计划文档 (待创建)
-- **02-refactor-roadmap.md** - 🗺️ 详细重构路线图
-- **03-frontend-component-refactor-plan.md** - 🎨 前端组件重构方案
-- **04-backend-architecture-redesign.md** - 🏗️ 后端架构重新设计
-- **05-api-unification-strategy.md** - 🔄 API统一策略
-- **06-data-consistency-solution.md** - 💾 数据一致性解决方案
-- **07-performance-optimization-plan.md** - ⚡ 性能优化计划
-- **08-testing-strategy.md** - 🧪 测试策略制定
-- **09-deployment-rollback-plan.md** - 🚀 部署和回滚计划
+### 已完成实施文档
+- **[02-refactor-implementation-plan.md](./02-refactor-implementation-plan.md)** - ✅ 重构实施计划 
+- **[03-system-simplification-plan.md](./03-system-simplification-plan.md)** - ✅ 系统简化方案
+- **[04-next-steps-recommendations.md](./04-next-steps-recommendations.md)** - ✅ 下一步发展建议
+- **[05-solution3-cache-update-test-report.md](./05-solution3-cache-update-test-report.md)** - ✅ 方案3直接缓存更新测试报告
+
+### 待创建文档
+- **06-api-unification-strategy.md** - 🔄 API统一策略
+- **07-data-consistency-solution.md** - 💾 数据一致性解决方案  
+- **08-performance-optimization-plan.md** - ⚡ 性能优化计划
+- **09-testing-strategy.md** - 🧪 测试策略制定
+- **10-deployment-rollback-plan.md** - 🚀 部署和回滚计划
 
 ### 进度跟踪文档 (待创建)
-- **10-phase1-completion-report.md** - Phase 1完成报告
-- **11-phase2-completion-report.md** - Phase 2完成报告
-- **12-phase3-completion-report.md** - Phase 3完成报告
-- **13-final-summary-report.md** - 最终总结报告
+- **11-phase1-completion-report.md** - Phase 1完成报告
+- **12-phase2-completion-report.md** - Phase 2完成报告
+- **13-phase3-completion-report.md** - Phase 3完成报告
+- **14-final-summary-report.md** - 最终总结报告
 
 ---
 

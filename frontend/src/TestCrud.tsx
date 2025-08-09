@@ -9,7 +9,7 @@ const TestCrud: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: '测试部门',
+          name: `测试部门_${Date.now()}`,
           unit_type: 'DEPARTMENT',
           description: '这是一个测试部门'
         })

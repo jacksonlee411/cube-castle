@@ -34,11 +34,32 @@ export const useCreateOrganization = () => {
       console.log('[Mutation] Create successful:', response);
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (createdOrganization) => {
       console.log('[Mutation] Create success, invalidating queries');
-      // 刷新组织列表和统计
-      queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-stats'] });
+      
+      // 立即失效所有相关查询缓存
+      queryClient.invalidateQueries({ 
+        queryKey: ['organizations'],
+        exact: false
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization-stats'],
+        exact: false
+      });
+      
+      // 强制重新获取数据以确保立即显示新创建的组织
+      queryClient.refetchQueries({ 
+        queryKey: ['organizations'],
+        type: 'active'
+      });
+      
+      queryClient.refetchQueries({ 
+        queryKey: ['organization-stats'],
+        type: 'active'
+      });
+      
+      console.log('[Mutation] Create cache invalidation and refetch completed');
     },
     onError: (error) => {
       console.error('[Mutation] Create failed:', error);
@@ -57,12 +78,37 @@ export const useUpdateOrganization = () => {
       console.log('[Mutation] Update successful:', response);
       return response;
     },
-    onSuccess: (_, variables) => {
-      console.log('[Mutation] Update success, invalidating queries');
-      // 刷新相关查询
-      queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      queryClient.invalidateQueries({ queryKey: ['organization', variables.code] });
-      queryClient.invalidateQueries({ queryKey: ['organization-stats'] });
+    onSuccess: (updatedOrganization, variables) => {
+      console.log('[Mutation] Update success, invalidating queries for:', variables.code);
+      
+      // 立即失效所有相关查询缓存
+      queryClient.invalidateQueries({ 
+        queryKey: ['organizations'],
+        exact: false
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization', variables.code],
+        exact: false
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization-stats'],
+        exact: false
+      });
+      
+      // 强制重新获取数据以确保立即显示更新的组织
+      queryClient.refetchQueries({ 
+        queryKey: ['organizations'],
+        type: 'active'
+      });
+      
+      queryClient.refetchQueries({ 
+        queryKey: ['organization-stats'],
+        type: 'active'
+      });
+      
+      console.log('[Mutation] Update cache invalidation and refetch completed');
     },
     onError: (error) => {
       console.error('[Mutation] Update failed:', error);
@@ -80,11 +126,81 @@ export const useDeleteOrganization = () => {
       await organizationAPI.delete(code);
       console.log('[Mutation] Delete successful for:', code);
     },
-    onSuccess: () => {
-      console.log('[Mutation] Delete success, invalidating queries');
-      // 刷新组织列表和统计
-      queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-stats'] });
+    onSuccess: (_, organizationCode) => {
+      console.log('[Mutation] Delete success, updating cache for:', organizationCode);
+      
+      // 方案3: 直接更新缓存数据，立即反映删除结果
+      
+      // 1. 直接从组织列表缓存中移除已删除的组织
+      queryClient.setQueryData(['organizations'], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        console.log('[Cache Update] Removing organization from cache:', organizationCode);
+        
+        // 处理分页数据结构
+        if (oldData.pages) {
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              data: page.data ? page.data.filter((org: any) => org.code !== organizationCode) : []
+            }))
+          };
+        } 
+        // 处理简单数组数据结构
+        else if (Array.isArray(oldData)) {
+          return oldData.filter((org: any) => org.code !== organizationCode);
+        }
+        // 处理带data属性的对象结构
+        else if (oldData.data && Array.isArray(oldData.data)) {
+          return {
+            ...oldData,
+            data: oldData.data.filter((org: any) => org.code !== organizationCode)
+          };
+        }
+        
+        return oldData;
+      });
+      
+      // 2. 更新统计数据缓存
+      queryClient.setQueryData(['organization-stats'], (oldStats: any) => {
+        if (!oldStats) return oldStats;
+        
+        console.log('[Cache Update] Updating stats after deletion');
+        
+        // 假设统计数据结构包含总数和分类统计
+        const newStats = { ...oldStats };
+        
+        // 减少总数
+        if (typeof newStats.total === 'number') {
+          newStats.total = Math.max(0, newStats.total - 1);
+        }
+        
+        // 更新按状态统计（需要知道被删除组织的状态）
+        // 这里可以从删除前的数据中获取，或者让API返回更多信息
+        
+        return newStats;
+      });
+      
+      // 3. 移除被删除组织的单个查询缓存
+      queryClient.removeQueries({ 
+        queryKey: ['organization', organizationCode] 
+      });
+      
+      // 4. 后台异步刷新数据以确保数据一致性（可选）
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          queryKey: ['organizations'], 
+          exact: false 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['organization-stats'], 
+          exact: false 
+        });
+        console.log('[Cache Update] Background refresh completed');
+      }, 2000); // 2秒后后台刷新，确保服务端数据同步
+      
+      console.log('[Mutation] Direct cache update completed');
     },
     onError: (error) => {
       console.error('[Mutation] Delete failed:', error);

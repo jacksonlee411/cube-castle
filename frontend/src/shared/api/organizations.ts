@@ -18,6 +18,7 @@ import {
   validateGraphQLOrganizationList,
   validateGraphQLOrganizationResponse,
   validateOrganizationUnit,
+  validateCreateOrganizationResponse,
   validateUpdateOrganizationInput,
   safeTransformGraphQLToOrganizationUnit,
   safeTransformCreateInputToAPI,
@@ -361,26 +362,39 @@ export const organizationAPI = {
       
       console.log('[Organization API] Create response:', response);
       
-      // 构造返回的组织单元对象 - 使用验证确保数据安全
-      const newOrgData = {
-        code: response['code'],
-        parent_code: data.parent_code || '', 
-        name: response['name'] || data.name,
-        unit_type: response.unit_type || data.unit_type,
-        status: response.status || data.status,
-        level: data.level || 1,
-        path: response.path || '',
-        sort_order: data.sort_order || 0,
-        description: data.description || '',
-        created_at: response.created_at || new Date().toISOString(),
-        updated_at: response.updated_at || new Date().toISOString(),
-      };
+      // 使用专门的验证函数验证创建响应
+      const validatedResponse = validateCreateOrganizationResponse(response);
       
-      // 验证构造的组织对象
-      const validatedNewOrg = validateOrganizationUnit(newOrgData);
+      console.log('[Organization API] Validated create response:', validatedResponse);
       
-      console.log('[Organization API] Created org:', validatedNewOrg);
-      return validatedNewOrg;
+      // 重新获取完整的组织单元数据，因为创建响应只包含部分字段
+      try {
+        const fullOrgData = await organizationAPI.getByCode(validatedResponse.code);
+        console.log('[Organization API] Created org with full data:', fullOrgData);
+        return fullOrgData;
+      } catch (fetchError) {
+        console.warn('[Organization API] Failed to fetch full data after create, constructing minimal data:', fetchError);
+        
+        // 如果无法获取完整数据，构造包含所有必要字段的对象
+        const minimalOrgData = {
+          code: validatedResponse.code,
+          parent_code: data.parent_code || '',
+          name: validatedResponse.name,
+          unit_type: validatedResponse.unit_type,
+          status: validatedResponse.status,
+          level: data.level || 1,
+          path: '',
+          sort_order: data.sort_order || 0,
+          description: data.description || '',
+          created_at: validatedResponse.created_at,
+          updated_at: validatedResponse.created_at,
+        };
+        
+        // 验证构造的完整对象
+        const validatedFullOrg = validateOrganizationUnit(minimalOrgData);
+        console.log('[Organization API] Created org with minimal data:', validatedFullOrg);
+        return validatedFullOrg;
+      }
     } catch (error) {
       console.error('[Organization API] Create failed:', error);
       if (isValidationError(error)) {

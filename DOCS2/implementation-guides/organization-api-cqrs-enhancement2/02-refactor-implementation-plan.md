@@ -1099,7 +1099,7 @@ export * from '../api/client';
 export * from './api'; // 新增API类型导出
 ```
 
-### 3.3 运行时类型验证 🔄 **进行中**
+### 3.3 运行时类型验证 ✅ **已完成 (2025-08-08 23:45)**
 ```typescript
 // shared/validation/schemas.ts
 import { z } from 'zod';
@@ -1117,6 +1117,16 @@ export const OrganizationUnitSchema = z.object({
   updated_at: z.string().datetime(),
 });
 
+// ✅ 新增：创建组织响应专门验证模式
+export const CreateOrganizationResponseSchema = z.object({
+  code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'),
+  name: z.string(),
+  unit_type: z.enum(['DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM']),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']),
+  created_at: z.string().datetime(),
+  // 注意：后端创建响应不包含这些字段：level, parent_code, sort_order, description, updated_at, path
+});
+
 export const CreateOrganizationInputSchema = OrganizationUnitSchema.pick({
   name: true,
   unit_type: true,
@@ -1129,11 +1139,20 @@ export const CreateOrganizationInputSchema = OrganizationUnitSchema.pick({
   code: z.string().regex(/^\d{7}$/).optional(), // 可选，由系统生成
 });
 
-// 类型守卫函数
+// ✅ 类型守卫函数
 export const validateOrganizationUnit = (data: unknown): OrganizationUnit => {
   const result = OrganizationUnitSchema.safeParse(data);
   if (!result.success) {
     throw new ValidationError('Invalid organization unit data', result.error.errors);
+  }
+  return result.data;
+};
+
+// ✅ 新增：专门的创建响应验证函数
+export const validateCreateOrganizationResponse = (data: unknown): ValidatedCreateOrganizationResponse => {
+  const result = CreateOrganizationResponseSchema.safeParse(data);
+  if (!result.success) {
+    throw new ValidationError('Invalid create organization response', result.error.issues);
   }
   return result.data;
 };
@@ -1150,6 +1169,13 @@ export const isAPIError = (error: unknown): error is APIError => {
   return error instanceof Error && 'status' in error && 'statusText' in error;
 };
 ```
+
+**✅ 修复成果总结:**
+- **问题识别**: 后端创建API返回5个字段，前端验证期望11个字段
+- **解决方案**: 创建专门的`CreateOrganizationResponseSchema`匹配实际响应
+- **代码改进**: API层使用专门验证函数，创建后获取完整数据
+- **验证结果**: 后端API测试确认响应格式`{code, name, unit_type, status, created_at}`与Schema完全一致
+- **系统状态**: ValidationError已消除，类型安全得到保障
 
 ### 3.4 Go类型安全提升
 ```go

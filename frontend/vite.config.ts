@@ -10,7 +10,14 @@ export default defineConfig({
   // 开发性能优化
   server: {
     port: 3000,
-    hmr: { overlay: false }
+    hmr: { overlay: false },
+    proxy: {
+      '/api/metrics': {
+        target: 'http://localhost:9999',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/metrics/, '/metrics')
+      }
+    }
   },
   
   // 路径别名配置  
