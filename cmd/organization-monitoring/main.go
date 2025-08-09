@@ -264,15 +264,6 @@ func (ms *MonitoringServer) Start(ctx context.Context, port int) {
 
 func (ms *MonitoringServer) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
-	// 简单的健康检查
-	health := map[string]string{
-		"status":    "healthy",
-		"service":   "organization-sync-monitoring",
-		"timestamp": time.Now().Format(time.RFC3339),
-		"version":   "v6.0-debezium-enhanced",
-	}
-	
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, `{"status":"healthy","service":"organization-sync-monitoring","timestamp":"%s","version":"v6.0-debezium-enhanced"}`, time.Now().Format(time.RFC3339))
 }
