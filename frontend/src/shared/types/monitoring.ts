@@ -75,6 +75,14 @@ export const mockMetrics: SystemMetrics = {
       responseTime: '8ms', 
       requests: '15',
       uptime: '100%' 
+    },
+    { 
+      name: '数据同步服务', 
+      status: 'online', 
+      port: 'CDC', 
+      responseTime: '2ms', 
+      requests: 'PostgreSQL→Neo4j',
+      uptime: '99.7%' 
     }
   ],
   charts: {

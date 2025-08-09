@@ -1,25 +1,25 @@
-import type { OrganizationUnit } from '../../../../shared/types';
+import type { OrganizationUnit, OrganizationStatus } from '../../../../shared/types';
 
 export interface OrganizationTableProps {
   organizations: OrganizationUnit[];
   onEdit: (org: OrganizationUnit) => void;
-  onDelete: (code: string) => void;
+  onToggleStatus: (code: string, currentStatus: OrganizationStatus) => void;
   loading?: boolean;
-  deletingId?: string | undefined;
+  togglingId?: string | undefined;
 }
 
 export interface OrganizationTableRowProps {
   organization: OrganizationUnit;
   onEdit: (org: OrganizationUnit) => void;
-  onDelete: (code: string) => void;
-  isDeleting: boolean;
-  isAnyDeleting: boolean;
+  onToggleStatus: (code: string, currentStatus: OrganizationStatus) => void;
+  isToggling: boolean;
+  isAnyToggling: boolean;
 }
 
 export interface TableActionsProps {
   organization: OrganizationUnit;
   onEdit: (org: OrganizationUnit) => void;
-  onDelete: (code: string) => void;
-  isDeleting: boolean;
+  onToggleStatus: (code: string, currentStatus: OrganizationStatus) => void;
+  isToggling: boolean;
   disabled: boolean;
 }

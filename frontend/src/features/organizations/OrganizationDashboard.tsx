@@ -15,30 +15,30 @@ import { useOrganizationActions } from './hooks/useOrganizationActions';
 
 const DashboardHeader: React.FC<{
   onCreateClick: () => void;
-  isDeleting: boolean;
-}> = ({ onCreateClick, isDeleting }) => (
+  isToggling: boolean;
+}> = ({ onCreateClick, isToggling }) => (
   <Box marginBottom="l">
     <Heading size="large">组织架构管理</Heading>
     <Box paddingTop="m">
       <PrimaryButton 
         marginRight="s" 
         onClick={onCreateClick}
-        disabled={isDeleting}
+        disabled={isToggling}
       >
         新增组织单元
       </PrimaryButton>
       <SecondaryButton 
         marginRight="s"
-        disabled={isDeleting}
+        disabled={isToggling}
       >
         导入数据
       </SecondaryButton>
-      <TertiaryButton disabled={isDeleting}>
+      <TertiaryButton disabled={isToggling}>
         导出报告
       </TertiaryButton>
-      {isDeleting && (
+      {isToggling && (
         <Text typeLevel="subtext.small" color="hint" marginLeft="m">
-          正在删除组织单元...
+          正在更新组织状态...
         </Text>
       )}
     </Box>
@@ -99,11 +99,11 @@ export const OrganizationDashboard: React.FC = () => {
   const {
     selectedOrg,
     isFormOpen,
-    deletingId,
-    isDeleting,
+    togglingId,
+    isToggling,
     handleCreate,
     handleEdit,
-    handleDelete,
+    handleToggleStatus,
     handleFormClose,
     handleFormSubmit,
   } = useOrganizationActions();
@@ -122,7 +122,7 @@ export const OrganizationDashboard: React.FC = () => {
     <Box data-testid="organization-dashboard">
       <DashboardHeader 
         onCreateClick={handleCreate}
-        isDeleting={isDeleting}
+        isToggling={isToggling}
       />
       
       {stats && <StatsCards stats={stats} />}
@@ -149,9 +149,9 @@ export const OrganizationDashboard: React.FC = () => {
               <OrganizationTable
                 organizations={organizations}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onToggleStatus={handleToggleStatus}
                 loading={isFetching}
-                deletingId={deletingId}
+                togglingId={togglingId}
               />
               
               <PaginationControls
@@ -159,7 +159,7 @@ export const OrganizationDashboard: React.FC = () => {
                 totalCount={totalCount}
                 pageSize={filters.pageSize}
                 onPageChange={handlePageChange}
-                disabled={isFetching || isDeleting}
+                disabled={isFetching || isToggling}
               />
             </>
           ) : (

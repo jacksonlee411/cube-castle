@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -300,10 +301,52 @@ func main() {
 
 	logger.Println("🚀 组织缓存失效服务启动成功")
 	
+	// 启动健康检查服务器
+	go startHealthServer(logger)
+	
 	// 开始消费
 	if err := invalidator.StartConsuming(ctx); err != nil {
 		log.Fatalf("消费失败: %v", err)
 	}
 	
 	logger.Println("缓存失效服务已关闭")
+}
+
+// 健康检查服务器
+func startHealthServer(logger *log.Logger) {
+	mux := http.NewServeMux()
+	
+	// 健康检查端点
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"service": "organization-cache-invalidator",
+			"status": "healthy",
+			"timestamp": time.Now().Format(time.RFC3339),
+			"features": []string{
+				"精确缓存失效",
+				"Redis集成", 
+				"Kafka消息消费",
+				"CDC事件处理",
+			},
+		}
+		json.NewEncoder(w).Encode(response)
+	})
+	
+	// 指标端点
+	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("# Cache invalidator metrics\ncache_invalidator_status 1\n"))
+	})
+	
+	server := &http.Server{
+		Addr:    ":8082",
+		Handler: mux,
+	}
+	
+	logger.Printf("🔍 健康检查服务器启动 - 端口 8082")
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Printf("❌ 健康检查服务器错误: %v", err)
+	}
 }

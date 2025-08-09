@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
-import { useDeleteOrganization, useCreateOrganization, useUpdateOrganization } from '../../../shared/hooks/useOrganizationMutations';
-import type { OrganizationUnit } from '../../../shared/types';
+import { useToggleOrganizationStatus, useCreateOrganization, useUpdateOrganization } from '../../../shared/hooks/useOrganizationMutations';
+import type { OrganizationUnit, OrganizationStatus } from '../../../shared/types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../../shared/hooks/useOrganizationMutations';
 
 export const useOrganizationActions = () => {
   const [selectedOrg, setSelectedOrg] = useState<OrganizationUnit | undefined>();
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  const deleteMutation = useDeleteOrganization();
+  const toggleStatusMutation = useToggleOrganizationStatus();
   const createMutation = useCreateOrganization();
   const updateMutation = useUpdateOrganization();
 
@@ -21,15 +21,20 @@ export const useOrganizationActions = () => {
     setIsFormOpen(true);
   }, []);
 
-  const handleDelete = useCallback(async (code: string) => {
-    if (window.confirm('确定要删除这个组织单元吗？')) {
+  const handleToggleStatus = useCallback(async (code: string, currentStatus: OrganizationStatus) => {
+    const newStatus: OrganizationStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const confirmMessage = newStatus === 'INACTIVE' 
+      ? '确定要停用这个组织单元吗？' 
+      : '确定要启用这个组织单元吗？';
+      
+    if (window.confirm(confirmMessage)) {
       try {
-        await deleteMutation.mutateAsync(code);
+        await toggleStatusMutation.mutateAsync({ code, status: newStatus });
       } catch (error) {
-        console.error('Delete operation failed:', error);
+        console.error('Toggle status operation failed:', error);
       }
     }
-  }, [deleteMutation]);
+  }, [toggleStatusMutation]);
 
   const handleFormClose = useCallback(() => {
     setIsFormOpen(false);
@@ -54,22 +59,22 @@ export const useOrganizationActions = () => {
     }
   }, [selectedOrg, createMutation, updateMutation]);
 
-  // Get the currently deleting item ID for UI state
-  const deletingId = deleteMutation.isPending ? deleteMutation.variables : undefined;
+  // Get the currently toggling item ID for UI state
+  const togglingId = toggleStatusMutation.isPending ? toggleStatusMutation.variables?.code : undefined;
 
   return {
     // State
     selectedOrg,
     isFormOpen,
-    deletingId,
+    togglingId,
     
     // Mutation state
-    isDeleting: deleteMutation.isPending,
+    isToggling: toggleStatusMutation.isPending,
     
     // Actions
     handleCreate,
     handleEdit,
-    handleDelete,
+    handleToggleStatus,
     handleFormClose,
     handleFormSubmit,
   };

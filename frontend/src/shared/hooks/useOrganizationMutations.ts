@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { organizationAPI } from '../api/organizations';
-import type { OrganizationUnit } from '../types';
+import type { OrganizationUnit, OrganizationStatus } from '../types';
 
 // 新增组织单元的输入类型
 export interface CreateOrganizationInput {
@@ -21,6 +21,12 @@ export interface UpdateOrganizationInput {
   status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
   description?: string;
   sort_order?: number;
+}
+
+// 状态切换输入类型
+export interface ToggleStatusInput {
+  code: string;
+  status: OrganizationStatus;
 }
 
 // 新增组织单元
@@ -116,94 +122,51 @@ export const useUpdateOrganization = () => {
   });
 };
 
-// 删除组织单元
-export const useDeleteOrganization = () => {
+// 状态切换操作 (替代删除操作)
+export const useToggleOrganizationStatus = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (code: string): Promise<void> => {
-      console.log('[Mutation] Deleting organization:', code);
-      await organizationAPI.delete(code);
-      console.log('[Mutation] Delete successful for:', code);
+    mutationFn: async (data: ToggleStatusInput): Promise<OrganizationUnit> => {
+      console.log('[Mutation] Toggling organization status:', data);
+      const response = await organizationAPI.update(data.code, { status: data.status });
+      console.log('[Mutation] Toggle status successful:', response);
+      return response;
     },
-    onSuccess: (_, organizationCode) => {
-      console.log('[Mutation] Delete success, updating cache for:', organizationCode);
+    onSuccess: (updatedOrganization, variables) => {
+      console.log('[Mutation] Status toggle success, invalidating queries for:', variables.code);
       
-      // 方案3: 直接更新缓存数据，立即反映删除结果
-      
-      // 1. 直接从组织列表缓存中移除已删除的组织
-      queryClient.setQueryData(['organizations'], (oldData: any) => {
-        if (!oldData) return oldData;
-        
-        console.log('[Cache Update] Removing organization from cache:', organizationCode);
-        
-        // 处理分页数据结构
-        if (oldData.pages) {
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page: any) => ({
-              ...page,
-              data: page.data ? page.data.filter((org: any) => org.code !== organizationCode) : []
-            }))
-          };
-        } 
-        // 处理简单数组数据结构
-        else if (Array.isArray(oldData)) {
-          return oldData.filter((org: any) => org.code !== organizationCode);
-        }
-        // 处理带data属性的对象结构
-        else if (oldData.data && Array.isArray(oldData.data)) {
-          return {
-            ...oldData,
-            data: oldData.data.filter((org: any) => org.code !== organizationCode)
-          };
-        }
-        
-        return oldData;
+      // 立即失效所有相关查询缓存 - 遵循CQRS原则
+      queryClient.invalidateQueries({ 
+        queryKey: ['organizations'],
+        exact: false
       });
       
-      // 2. 更新统计数据缓存
-      queryClient.setQueryData(['organization-stats'], (oldStats: any) => {
-        if (!oldStats) return oldStats;
-        
-        console.log('[Cache Update] Updating stats after deletion');
-        
-        // 假设统计数据结构包含总数和分类统计
-        const newStats = { ...oldStats };
-        
-        // 减少总数
-        if (typeof newStats.total === 'number') {
-          newStats.total = Math.max(0, newStats.total - 1);
-        }
-        
-        // 更新按状态统计（需要知道被删除组织的状态）
-        // 这里可以从删除前的数据中获取，或者让API返回更多信息
-        
-        return newStats;
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization', variables.code],
+        exact: false
       });
       
-      // 3. 移除被删除组织的单个查询缓存
-      queryClient.removeQueries({ 
-        queryKey: ['organization', organizationCode] 
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization-stats'],
+        exact: false
       });
       
-      // 4. 后台异步刷新数据以确保数据一致性（可选）
-      setTimeout(() => {
-        queryClient.invalidateQueries({ 
-          queryKey: ['organizations'], 
-          exact: false 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['organization-stats'], 
-          exact: false 
-        });
-        console.log('[Cache Update] Background refresh completed');
-      }, 2000); // 2秒后后台刷新，确保服务端数据同步
+      // 强制重新获取数据以确保立即显示状态变更
+      queryClient.refetchQueries({ 
+        queryKey: ['organizations'],
+        type: 'active'
+      });
       
-      console.log('[Mutation] Direct cache update completed');
+      queryClient.refetchQueries({ 
+        queryKey: ['organization-stats'],
+        type: 'active'
+      });
+      
+      console.log('[Mutation] Status toggle cache invalidation and refetch completed');
     },
     onError: (error) => {
-      console.error('[Mutation] Delete failed:', error);
+      console.error('[Mutation] Toggle status failed:', error);
     },
   });
 };

@@ -19,23 +19,23 @@ const TableHeader: React.FC = () => (
 export const OrganizationTable: React.FC<OrganizationTableProps> = ({
   organizations,
   onEdit,
-  onDelete,
-  deletingId
+  onToggleStatus,
+  togglingId
 }) => {
   return (
     <Table data-testid="organization-table">
       <TableHeader />
       <Table.Body>
         {organizations.map((org, index) => {
-          const isDeleting = deletingId === org.code;
+          const isToggling = togglingId === org.code;
           return (
             <TableRow
               key={org.code || `org-${index}`}
               organization={org}
               onEdit={onEdit}
-              onDelete={onDelete}
-              isDeleting={isDeleting}
-              isAnyDeleting={!!deletingId}
+              onToggleStatus={onToggleStatus}
+              isToggling={isToggling}
+              isAnyToggling={!!togglingId}
             />
           );
         })}

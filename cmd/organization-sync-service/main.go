@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -710,6 +711,9 @@ func main() {
 	logger.Printf("🚀 Neo4j同步服务启动成功")
 	logger.Printf("监听主题: %v", topics)
 
+	// 启动健康检查服务器
+	go startHealthServer(logger)
+
 	// 创建上下文处理优雅关闭
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -729,4 +733,43 @@ func main() {
 	}
 
 	logger.Println("Neo4j同步服务已关闭")
+}
+
+// 健康检查服务器
+func startHealthServer(logger *log.Logger) {
+	mux := http.NewServeMux()
+	
+	// 健康检查端点
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"service": "organization-sync-service",
+			"status": "healthy",
+			"timestamp": time.Now().Format(time.RFC3339),
+			"features": []string{
+				"CDC数据捕获",
+				"Neo4j实时同步", 
+				"Kafka消息消费",
+				"Debezium集成",
+			},
+		}
+		json.NewEncoder(w).Encode(response)
+	})
+	
+	// 指标端点
+	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("# Sync service metrics\nsync_service_status 1\n"))
+	})
+	
+	server := &http.Server{
+		Addr:    ":8081",
+		Handler: mux,
+	}
+	
+	logger.Printf("🔍 健康检查服务器启动 - 端口 8081")
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Printf("❌ 健康检查服务器错误: %v", err)
+	}
 }

@@ -1,16 +1,20 @@
 import React from 'react';
-import { TertiaryButton, DeleteButton } from '@workday/canvas-kit-react/button';
+import { TertiaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import type { TableActionsProps } from './TableTypes';
 
 export const TableActions: React.FC<TableActionsProps> = ({
   organization,
   onEdit,
-  onDelete,
-  isDeleting,
+  onToggleStatus,
+  isToggling,
   disabled
 }) => {
   const handleEdit = () => onEdit(organization);
-  const handleDelete = () => onDelete(organization.code);
+  const handleToggleStatus = () => onToggleStatus(organization.code, organization.status);
+
+  const isActive = organization.status === 'ACTIVE';
+  const buttonText = isActive ? '停用' : '启用';
+  const loadingText = isActive ? '停用中...' : '启用中...';
 
   return (
     <div style={{ display: 'flex', gap: '4px' }}>
@@ -22,14 +26,15 @@ export const TableActions: React.FC<TableActionsProps> = ({
       >
         编辑
       </TertiaryButton>
-      <DeleteButton 
+      <SecondaryButton 
         size="small" 
-        onClick={handleDelete}
+        onClick={handleToggleStatus}
         disabled={disabled}
-        data-testid={`delete-button-${organization.code}`}
+        data-testid={`toggle-status-button-${organization.code}`}
+        variant={isActive ? 'inverse' : 'primary'}
       >
-        {isDeleting ? '删除中...' : '删除'}
-      </DeleteButton>
+        {isToggling ? loadingText : buttonText}
+      </SecondaryButton>
     </div>
   );
 };

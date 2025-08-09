@@ -7,14 +7,14 @@ import type { OrganizationTableRowProps } from './TableTypes';
 export const TableRow: React.FC<OrganizationTableRowProps> = ({
   organization,
   onEdit,
-  onDelete,
-  isDeleting,
-  isAnyDeleting
+  onToggleStatus,
+  isToggling,
+  isAnyToggling
 }) => {
   return (
     <Table.Row 
       style={{ 
-        opacity: isDeleting ? 0.6 : 1,
+        opacity: isToggling ? 0.6 : 1,
         transition: 'opacity 0.3s ease'
       }}
       data-testid={`table-row-${organization.code}`}
@@ -22,9 +22,9 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
       <Table.Cell>{organization.code}</Table.Cell>
       <Table.Cell>
         {organization.name}
-        {isDeleting && (
+        {isToggling && (
           <Text typeLevel="subtext.small" color="hint" marginLeft="xs">
-            (删除中...)
+            (状态更新中...)
           </Text>
         )}
       </Table.Cell>
@@ -35,7 +35,9 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
           organization.status === 'PLANNED' ? 'hint' : 
           'default'
         }>
-          {organization.status}
+          {organization.status === 'ACTIVE' ? '启用' : 
+           organization.status === 'INACTIVE' ? '停用' : 
+           organization.status}
         </Text>
       </Table.Cell>
       <Table.Cell>{organization.level}</Table.Cell>
@@ -43,9 +45,9 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
         <TableActions
           organization={organization}
           onEdit={onEdit}
-          onDelete={onDelete}
-          isDeleting={isDeleting}
-          disabled={isAnyDeleting}
+          onToggleStatus={onToggleStatus}
+          isToggling={isToggling}
+          disabled={isAnyToggling}
         />
       </Table.Cell>
     </Table.Row>

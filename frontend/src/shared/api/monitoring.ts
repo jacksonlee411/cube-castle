@@ -128,14 +128,23 @@ export class MonitoringService {
       { name: 'frontend', url: 'http://localhost:3000' },
       { name: 'metrics-server', url: 'http://localhost:9999' },
       { name: 'postgres', url: 'http://localhost:5432' },
-      { name: 'neo4j', url: 'http://localhost:7474' }
+      { name: 'neo4j', url: 'http://localhost:7474' },
+      { name: 'data-sync', url: 'http://localhost:8083/connectors/organization-postgres-connector/status' }
     ];
 
     const healthResults: Record<string, boolean> = {};
     
     // 并行检查所有服务
     const healthChecks = services.map(async (service) => {
-      const isHealthy = await this.checkServiceHealth(service.url, service.name);
+      let isHealthy = false;
+      
+      if (service.name === 'data-sync') {
+        // 特殊处理数据同步服务：检查Debezium CDC状态
+        isHealthy = await this.checkDataSyncHealth();
+      } else {
+        isHealthy = await this.checkServiceHealth(service.url, service.name);
+      }
+      
       healthResults[service.name] = isHealthy;
       return { [service.name]: isHealthy };
     });
@@ -144,6 +153,30 @@ export class MonitoringService {
     
     console.log('[HealthCheck] 所有服务健康状态:', healthResults);
     return healthResults;
+  }
+
+  /**
+   * 检查数据同步服务健康状态
+   */
+  static async checkDataSyncHealth(): Promise<boolean> {
+    try {
+      // 通过Vite代理访问Debezium CDC连接器状态
+      const response = await fetch('/api/debezium/connectors/organization-postgres-connector/status', {
+        timeout: 3000
+      });
+      
+      if (response.ok) {
+        const status = await response.json();
+        const isRunning = status.connector?.state === 'RUNNING';
+        console.log('[DataSyncHealth] CDC连接器状态:', status.connector?.state);
+        return isRunning;
+      }
+      
+      return false;
+    } catch (error) {
+      console.warn('[DataSyncHealth] 数据同步服务检查失败:', error);
+      return false;
+    }
   }
 
   /**
@@ -173,7 +206,8 @@ export class MonitoringService {
       '前端应用': 'frontend',
       'PostgreSQL数据库': 'postgres',
       'Neo4j图数据库': 'neo4j',
-      '指标收集服务': 'metrics-server'
+      '指标收集服务': 'metrics-server',
+      '数据同步服务': 'data-sync'
     };
     return keyMap[displayName] || displayName.toLowerCase();
   }

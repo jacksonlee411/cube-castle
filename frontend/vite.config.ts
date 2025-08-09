@@ -16,6 +16,11 @@ export default defineConfig({
         target: 'http://localhost:8090',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/metrics/, '/metrics')
+      },
+      '/api/debezium': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/debezium/, '')
       }
     },
     // 静态文件服务 - 提供Playwright测试报告访问
