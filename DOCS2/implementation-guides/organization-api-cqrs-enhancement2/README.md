@@ -40,9 +40,17 @@
 - **[04-next-steps-recommendations.md](./04-next-steps-recommendations.md)** - ✅ 下一步发展建议
 - **[05-solution3-cache-update-test-report.md](./05-solution3-cache-update-test-report.md)** - ✅ 方案3直接缓存更新测试报告
 
+### 调查分析文档
+- **[07-data-sync-code-smell-investigation-report.md](./07-data-sync-code-smell-investigation-report.md)** - 🔍 **数据同步功能代码异味调查报告**
+  - 组织架构模块数据同步功能全面代码异味分析
+  - PostgreSQL与Neo4j数据同步失效问题诊断
+  - 重复造轮子、过度过程化等代码质量问题识别
+  - 企业级改进建议和实施路径
+  - **关键发现**: 数据同步完全失效，需立即修复
+
 ### 待创建文档
 - **06-api-unification-strategy.md** - 🔄 API统一策略
-- **07-data-consistency-solution.md** - 💾 数据一致性解决方案  
+- **08-data-consistency-solution.md** - 💾 数据一致性解决方案  
 - **08-performance-optimization-plan.md** - ⚡ 性能优化计划
 - **09-testing-strategy.md** - 🧪 测试策略制定
 - **10-deployment-rollback-plan.md** - 🚀 部署和回滚计划
