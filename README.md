@@ -384,6 +384,57 @@ docker-compose up -d
 - **代码债务**: 已优化 (重复代码消除)
 - **性能债务**: 已解决 (企业级响应时间)
 
+## 🔧 常见问题解决方案
+
+### Canvas Kit图标导入问题
+
+#### 🚨 **问题现象**
+```
+The requested module '/src/features/temporal/components/TemporalStatusSelector.tsx' 
+does not provide an export named 'TemporalStatus'
+```
+
+#### 🎯 **根本原因**
+**TypeScript类型与值的导出混淆** - 将TypeScript类型作为值进行导入导致运行时错误。
+
+#### ✅ **解决方案**
+
+**1. 识别问题文件**:
+```bash
+find frontend/src -name "*.tsx" | xargs grep -l "TemporalStatus"
+```
+
+**2. 修复导入语句** - 严格区分类型导入与值导入:
+```typescript
+// ❌ 错误写法 (混合导入)
+import { TemporalStatusSelector, TemporalStatus } from './TemporalStatusSelector';
+
+// ✅ 正确写法 (分离导入) 
+import { TemporalStatusSelector } from './TemporalStatusSelector';
+import type { TemporalStatus } from './TemporalStatusSelector';
+```
+
+**3. 清除缓存重启**:
+```bash
+rm -rf node_modules/.vite  # 清除Vite缓存
+npm run dev                # 重启开发服务器
+```
+
+#### 💡 **最佳实践**
+- 始终使用 `import type {}` 明确导入TypeScript类型
+- 避免在单个import语句中混合类型和值的导入
+- 在TypeScript项目中保持类型导入的明确性
+
+#### 🔍 **相关文件**
+修复涉及的核心文件：
+- `OrganizationFilters.tsx`
+- `PlannedOrganizationForm.tsx` 
+- `TemporalInfoDisplay.tsx`
+- `temporal/index.ts`
+- `temporal/components/index.ts`
+
+---
+
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
