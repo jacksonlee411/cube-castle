@@ -8,9 +8,7 @@
 *.so
 *.dylib
 go-app/server
-<<<<<<< HEAD
 main
-=======
 go-app/cube-castle-server
 go-app/metacontract-compiler
 
@@ -18,11 +16,9 @@ go-app/metacontract-compiler
 *.test
 *.out
 coverage.txt
->>>>>>> feature/employee-model-implementation
 
 # Dependencies and virtual environments
 python-ai/venv/
-<<<<<<< HEAD
 venv/
 node_modules/
 nextjs-app/node_modules/
@@ -48,47 +44,40 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-=======
 python-ai/__pycache__/
 
 # Runtime files
-*.log
 *.pid
 
-# Next.js
-nextjs-app/.next/
-nextjs-app/out/
-nextjs-app/node_modules/
-nextjs-app/.swc/
-nextjs-app/coverage/
-nextjs-app/test-results/
-nextjs-app/playwright-report/
->>>>>>> feature/employee-model-implementation
-
-# IDE files
-.idea/
+# IDE and editor files
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# OS-specific files
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-*Zone.Identifier*
 
-# Backup files
-*.backup
-*.bak
+# Test results and reports (E2E tests)
+frontend/test-results/
+frontend/playwright-report/
+*.test-results/
+test-results/
 
-# Test reports and verification files
-*.html
-test_*.sh
-verify_*.sh
-*_test_report.md
-*验证*.md
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
-# Generated protobuf files (should be regenerated)
-*_pb2.py
-*_pb2.pyi
-*_pb2_grpc.py
-
-# Lock files (keep package.json but regenerate locks)
-package-lock.json
+# Docker volumes
+data/
+postgres-data/
+neo4j-data/
+redis-data/
