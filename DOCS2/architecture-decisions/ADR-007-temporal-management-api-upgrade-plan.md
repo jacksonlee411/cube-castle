@@ -80,6 +80,42 @@ ALTER TABLE organization_units ADD CONSTRAINT organization_units_pkey
     PRIMARY KEY (code, version);
 ```
 
+**1.1.1 结束日期管理策略** ⭐
+
+采用**智能自动管理 + 业务规则约束**策略：
+
+```sql
+-- 自动管理触发器：创建新版本时自动设置前版本end_date
+CREATE OR REPLACE FUNCTION auto_manage_end_date()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- 当插入新版本时，自动设置前版本的end_date
+    UPDATE organization_units 
+    SET end_date = NEW.effective_date - INTERVAL '1 day',
+        is_current = false
+    WHERE code = NEW.code 
+      AND is_current = true 
+      AND version != NEW.version;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_auto_end_date
+    BEFORE INSERT ON organization_units
+    FOR EACH ROW EXECUTE FUNCTION auto_manage_end_date();
+```
+
+**结束日期管理规则**：
+
+| 场景 | 管理方式 | 自动程度 | 说明 |
+|------|----------|----------|------|
+| **正常版本更新** | 🤖 全自动 | 100% | 新版本生效时，前版本end_date自动设为(新生效日期-1天) |
+| **组织重组** | 🤖 自动+验证 | 90% | 自动计算，但验证时间线连续性 |
+| **组织解散** | 👤 手动指定 | 20% | 明确设置end_date，无后续版本 |
+| **未来规划** | 👤 手动+自动 | 50% | 手动规划变更，自动维护一致性 |
+| **追溯修正** | 🤖 自动重算 | 95% | 自动重新计算所有受影响版本的日期 |
+
 **1.2 新增事件表**
 ```sql
 -- 创建组织事件表
@@ -137,20 +173,38 @@ GET /api/v1/organization-units/{code}/versions/{version}     // 特定版本查�
 ```go
 // 事件驱动变更请求
 type OrganizationChangeEvent struct {
-    EventType     string     `json:"event_type"`      // CREATE, UPDATE, RESTRUCTURE
+    EventType     string     `json:"event_type"`      // CREATE, UPDATE, RESTRUCTURE, DISSOLVE
     EffectiveDate time.Time  `json:"effective_date"`  // 生效日期
+    EndDate       *time.Time `json:"end_date,omitempty"` // 结束日期(特殊场景手动指定)
     ChangeData    ChangeData `json:"change_data"`     // 变更内容
     ChangeReason  string     `json:"change_reason"`   // 变更原因
 }
 
 // 新增事件API端点
-POST /api/v1/organization-units/{code}/events    // 创建变更事件
-GET  /api/v1/organization-units/{code}/events    // 查询变更事件历史
+POST /api/v1/organization-units/{code}/events              // 创建变更事件
+GET  /api/v1/organization-units/{code}/events              // 查询变更事件历史
+POST /api/v1/organization-units/{code}/timeline/plan-change // 规划未来变更
+```
+
+**2.2.1 结束日期管理API**
+```go
+// 特殊业务场景API
+type TimelineManagementRequest struct {
+    Action        string     `json:"action"`          // DISSOLVE, PLAN_CHANGE, CORRECT
+    EffectiveDate time.Time  `json:"effective_date"`  // 操作生效日期
+    EndDate       *time.Time `json:"end_date,omitempty"` // 明确指定的结束日期
+    Reason        string     `json:"reason"`          // 操作原因
+}
+
+// 时间线管理端点
+POST /api/v1/organization-units/{code}/timeline/dissolve   // 组织解散(手动设置end_date)
+POST /api/v1/organization-units/{code}/timeline/plan       // 未来变更规划  
+POST /api/v1/organization-units/{code}/timeline/correct    // 追溯修正
 ```
 
 ### 阶段3：完整事件驱动重构 (6周实施)
 
-**3.1 时间线一致性检查**
+**3.1 时间线一致性检查与结束日期验证**
 ```go
 // 实现timeline_consistency_policy
 type TimelineConsistencyPolicy string
@@ -159,6 +213,56 @@ const (
     NO_OVERLAPS        TimelineConsistencyPolicy = "NO_OVERLAPS"  // 不允许重叠
     CONTINUOUS_HISTORY TimelineConsistencyPolicy = "CONTINUOUS"   // 连续历史记录
 )
+
+// 时间线一致性验证器
+func ValidateTimelineContinuity(orgCode string, newEffectiveDate time.Time) error {
+    currentVersion := getCurrentVersion(orgCode)
+    
+    // 规则1：新版本生效日期必须 = 当前版本end_date + 1天
+    if currentVersion.EndDate != nil {
+        expectedDate := currentVersion.EndDate.AddDate(0, 0, 1)
+        if !newEffectiveDate.Equal(expectedDate) {
+            return fmt.Errorf("时间线不连续：期望生效日期为 %s", expectedDate)
+        }
+    }
+    
+    // 规则2：不允许未来日期之前插入版本
+    if hasVersionAfter(orgCode, newEffectiveDate) {
+        return fmt.Errorf("不允许在已存在的未来版本之前插入")
+    }
+    
+    // 规则3：验证结束日期合理性
+    if endDate != nil && !endDate.After(newEffectiveDate) {
+        return fmt.Errorf("结束日期必须晚于生效日期")
+    }
+    
+    return nil
+}
+
+// 自动化结束日期管理规则引擎
+type EndDateManagementRule struct {
+    Condition string
+    Action    string  
+    Priority  int
+}
+
+var endDateRules = []EndDateManagementRule{
+    {
+        Condition: "CREATE_NEW_VERSION",
+        Action:    "AUTO_SET_PREVIOUS_END_DATE", 
+        Priority:  1,
+    },
+    {
+        Condition: "ORGANIZATION_DISSOLVE",
+        Action:    "SET_EXPLICIT_END_DATE",
+        Priority:  2,
+    },
+    {
+        Condition: "RETROACTIVE_CORRECTION", 
+        Action:    "RECALCULATE_ALL_SUBSEQUENT_DATES",
+        Priority:  3,
+    },
+}
 ```
 
 **3.2 追溯处理支持**
@@ -208,6 +312,19 @@ supports_future_dating: true
 supports_retroactivity: true
 retroactivity_triggers_recalculation: ["PAYROLL", "POSITION_ASSIGNMENTS"]
 
+# 结束日期管理配置 ⭐
+end_date_management:
+  strategy: "INTELLIGENT_AUTO"           # 智能自动管理策略
+  auto_calculation: true                 # 自动计算前版本结束日期  
+  manual_override_scenarios:             # 允许手动指定的场景
+    - "ORGANIZATION_DISSOLVE"           # 组织解散
+    - "FUTURE_PLANNING"                 # 未来变更规划
+    - "RETROACTIVE_CORRECTION"          # 追溯修正
+  validation_rules:
+    - "END_DATE_AFTER_EFFECTIVE_DATE"   # 结束日期必须晚于生效日期
+    - "NO_TIMELINE_GAPS"                # 不允许时间线间隙
+    - "CONTINUOUS_VERSION_CHAIN"        # 版本链必须连续
+
 timeline_query_parameters:
   as_of_date: 
     type: "date"
@@ -216,6 +333,9 @@ timeline_query_parameters:
     from_date: "date" 
     to_date: "date"
     description: "查询指定时间范围内的变更历史"
+  include_dissolved:
+    type: "boolean"  
+    description: "是否包含已解散的组织单元"
 ```
 
 ## 实施优先级与风险控制
@@ -240,6 +360,22 @@ timeline_query_parameters:
 - 🛡️ **渐进迁移**：现有数据自动生成version=1, effective_date=created_at
 - 🛡️ **兼容性保证**：现有前端代码无需修改
 - 🛡️ **回滚机制**：每个阶段都支持快速回滚到前一版本
+- 🛡️ **结束日期保护**：自动管理机制防止人为时间线错误
+- 🛡️ **一致性验证**：实施前完整的时间线一致性检查
+
+### 结束日期管理实施风险缓解 ⭐
+
+**技术风险**：
+- ❌ **风险**：自动触发器可能导致意外的end_date修改
+- ✅ **缓解**：事务性操作 + 详细审计日志 + 回滚机制
+
+**业务风险**：
+- ❌ **风险**：复杂业务场景下时间线可能出现不一致
+- ✅ **缓解**：分层验证机制 + 业务规则引擎 + 人工审核流程
+
+**数据完整性风险**：
+- ❌ **风险**：历史数据迁移过程中可能丢失时间信息
+- ✅ **缓解**：迁移脚本 + 数据校验 + 完整备份策略
 
 ## 业务价值评估
 
@@ -265,14 +401,29 @@ timeline_query_parameters:
 ## 后续行动
 
 1. **立即执行**: Phase 1数据模型扩展设计与实施
-2. **4周后**: Phase 2 API扩展开发
+   - 实施结束日期自动管理触发器
+   - 建立时间线一致性验证机制
+2. **4周后**: Phase 2 API扩展开发  
+   - 开发结束日期管理专用API
+   - 实施业务场景特殊处理逻辑
 3. **7周后**: Phase 3事件驱动重构
+   - 完善结束日期管理规则引擎
+   - 实施完整的时间线验证体系
 4. **13周后**: 完整合规性验证与性能优化
+   - 端到端结束日期管理测试
+   - 元合约v6.0完整合规性验证
+
+### 结束日期管理关键里程碑 ⭐
+
+**Week 2**: 自动管理触发器完成并测试通过  
+**Week 5**: 特殊业务场景API开发完成  
+**Week 9**: 规则引擎与验证体系集成测试  
+**Week 13**: 生产环境部署与性能优化
 
 ---
 
-**文档版本**: v1.0  
-**最后更新**: 2025-08-10  
+**文档版本**: v1.1  
+**最后更新**: 2025-08-10 (结束日期管理策略优化)  
 **相关文档**: 
 - [元合约v6.0规范](../architecture-foundations/metacontract-v6.0-specification.md)
 - [组织架构API规范](../api-specifications/organization-units-api-specification.md)
