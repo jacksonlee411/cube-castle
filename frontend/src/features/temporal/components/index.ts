@@ -11,6 +11,10 @@ export { default as VersionComparison } from './VersionComparison';
 export { default as TemporalTable } from './TemporalTable';
 export { default as TemporalSettings } from './TemporalSettings';
 
+// 添加时态状态选择器的导出
+export { TemporalStatusSelector, temporalStatusUtils, TEMPORAL_STATUS_OPTIONS } from './TemporalStatusSelector';
+export type { TemporalStatus, TemporalStatusSelectorProps } from './TemporalStatusSelector';
+
 // 组件Props类型
 export type { TemporalNavbarProps } from './TemporalNavbar';
 export type { DateTimePickerProps } from './DateTimePicker';

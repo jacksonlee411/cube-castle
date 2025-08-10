@@ -1,6 +1,11 @@
 import React from 'react';
-import { Box } from '@workday/canvas-kit-react/layout';
+import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { 
+  chartIcon, 
+  activityStreamIcon
+} from '@workday/canvas-system-icons-web';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
 import type { ChartData } from '../../../shared/types/monitoring';
 
@@ -12,7 +17,7 @@ export const MetricsCharts: React.FC<MetricsChartsProps> = ({ data }) => {
   if (!data) {
     return (
       <Box padding="l" textAlign="center">
-        <Box as="span" fontSize="48px">📈</Box>
+        <SystemIcon icon={chartIcon} size={48} />
         <Box marginTop="s">暂无图表数据</Box>
       </Box>
     );
@@ -22,9 +27,12 @@ export const MetricsCharts: React.FC<MetricsChartsProps> = ({ data }) => {
     <Box>
       {/* 响应时间图表 */}
       <Box marginBottom="xl">
-        <Text variant="subtext" fontWeight="bold" marginBottom="m">
-          📊 平均响应时间 (毫秒)
-        </Text>
+        <Flex alignItems="center" style={{gap: '8px'}} marginBottom="m">
+          <SystemIcon icon={chartIcon} size={16} />
+          <Text fontWeight="bold">
+            平均响应时间 (毫秒)
+          </Text>
+        </Flex>
         <Box height="200px" width="100%">
           <ResponsiveContainer>
             <LineChart data={data.responseTime}>
@@ -60,7 +68,7 @@ export const MetricsCharts: React.FC<MetricsChartsProps> = ({ data }) => {
 
       {/* 错误率图表 */}
       <Box marginBottom="xl">
-        <Text variant="subtext" fontWeight="bold" marginBottom="m">
+        <Text fontWeight="bold" marginBottom="m">
           🚨 错误率 (%)
         </Text>
         <Box height="200px" width="100%">
@@ -98,9 +106,12 @@ export const MetricsCharts: React.FC<MetricsChartsProps> = ({ data }) => {
 
       {/* 请求量图表 */}
       <Box>
-        <Text variant="subtext" fontWeight="bold" marginBottom="m">
-          📈 请求量 (次/分钟)
-        </Text>
+        <Flex alignItems="center" style={{gap: '8px'}} marginBottom="m">
+          <SystemIcon icon={activityStreamIcon} size={16} />
+          <Text fontWeight="bold">
+            请求量 (次/分钟)
+          </Text>
+        </Flex>
         <Box height="200px" width="100%">
           <ResponsiveContainer>
             <LineChart data={data.requestVolume}>

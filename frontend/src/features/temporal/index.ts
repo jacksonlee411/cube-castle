@@ -6,7 +6,26 @@
 export { default as TemporalDashboard } from './TemporalDashboard';
 export type { TemporalDashboardProps } from './TemporalDashboard';
 
-// 子组件
+// 时态管理组件
+export { TemporalDatePicker, validateTemporalDate } from './components/TemporalDatePicker';
+export { 
+  TemporalStatusSelector, 
+  temporalStatusUtils,
+  TEMPORAL_STATUS_OPTIONS 
+} from './components/TemporalStatusSelector';
+export type { TemporalStatus } from './components/TemporalStatusSelector';
+export { PlannedOrganizationForm } from './components/PlannedOrganizationForm';
+export { 
+  TemporalInfoDisplay, 
+  TemporalStatusBadge,
+  TemporalDateRange 
+} from './components/TemporalInfoDisplay';
+
+// 时态管理相关类型
+export type { PlannedOrganizationData } from './components/PlannedOrganizationForm';
+export type { TemporalInfo } from './components/TemporalInfoDisplay';
+
+// 子组件（原有）
 export * from './components';
 
 // 工具函数和常量

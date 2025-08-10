@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Box } from '@workday/canvas-kit-react/layout';
+import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { 
+  chartIcon, 
+  exclamationTriangleIcon, 
+  clockIcon,
+  homeIcon,
+  activityStreamIcon
+} from '@workday/canvas-system-icons-web';
 import type { SystemMetrics } from '../../shared/types/monitoring';
 import { MonitoringService } from '../../shared/api/monitoring';
 import { ServiceStatusGrid } from './components/ServiceStatusGrid';
@@ -51,9 +59,9 @@ export const MonitoringDashboard: React.FC = () => {
   if (error) {
     return (
       <Box padding="l" textAlign="center">
-        <Box as="span" fontSize="48px">⚠️</Box>
+        <SystemIcon icon={exclamationTriangleIcon} size={48} color="red" />
         <Box marginTop="s">
-          <Text variant="subtext" color="red">
+          <Text as="div" color="red">
             {error}
           </Text>
         </Box>
@@ -68,10 +76,13 @@ export const MonitoringDashboard: React.FC = () => {
     <Box>
       {/* 页面标题 */}
       <Box marginBottom="l">
-        <Text as="h1" variant="heading" fontSize={28}>
-          📊 系统监控
-        </Text>
-        <Text variant="subtext" marginTop="xs">
+        <Flex alignItems="center" style={{gap: '8px'}}>
+          <SystemIcon icon={chartIcon} size={24} />
+          <Text as="h1">
+            系统监控
+          </Text>
+        </Flex>
+        <Text as="p" marginTop="xs">
           实时监控系统状态和性能指标
         </Text>
       </Box>
@@ -85,26 +96,32 @@ export const MonitoringDashboard: React.FC = () => {
 
       {loading && !metrics ? (
         <Box padding="xl" textAlign="center">
-          <Box as="span" fontSize="48px">⏳</Box>
+          <SystemIcon icon={clockIcon} size={48} />
           <Box marginTop="s">
-            <Text variant="subtext">正在加载监控数据...</Text>
+            <Text as="div">正在加载监控数据...</Text>
           </Box>
         </Box>
       ) : (
         <>
           {/* 服务状态网格 */}
           <Box marginBottom="xl">
-            <Text variant="subtext" fontWeight="bold" marginBottom="m">
-              🖥️ 服务状态概览
-            </Text>
+            <Flex alignItems="center" style={{gap: '8px'}} marginBottom="m">
+              <SystemIcon icon={homeIcon} size={20} />
+              <Text as="h3" fontWeight="bold">
+                服务状态概览
+              </Text>
+            </Flex>
             <ServiceStatusGrid services={metrics?.services} />
           </Box>
 
           {/* 性能指标图表 */}
           <Box>
-            <Text variant="subtext" fontWeight="bold" marginBottom="m">
-              📈 性能指标趋势
-            </Text>
+            <Flex alignItems="center" style={{gap: '8px'}} marginBottom="m">
+              <SystemIcon icon={activityStreamIcon} size={20} />
+              <Text as="h3" fontWeight="bold">
+                性能指标趋势
+              </Text>
+            </Flex>
             <MetricsCharts data={metrics?.charts} />
           </Box>
         </>

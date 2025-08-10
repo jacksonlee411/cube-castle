@@ -2,6 +2,12 @@ import React from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Text } from '@workday/canvas-kit-react/text';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { 
+  activityStreamIcon, 
+  chartIcon,
+  clockIcon
+} from '@workday/canvas-system-icons-web';
 
 interface ControlPanelProps {
   lastUpdated?: string;
@@ -28,9 +34,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         gap="m"
       >
         <Box textAlign={{ default: 'center', medium: 'left' }}>
-          <Text variant="subtext" fontWeight="bold" marginBottom="xs">
-            🔄 实时监控面板
-          </Text>
+          <Flex alignItems="center" style={{gap: '8px'}}>
+            <SystemIcon icon={clockIcon} size={16} />
+            <Text fontWeight="bold" marginBottom="xs">
+              实时监控面板
+            </Text>
+          </Flex>
           {lastUpdated && (
             <Text variant="hint" fontSize={12}>
               最后更新: {lastUpdated}
@@ -46,8 +55,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             size="small"
             onClick={onRefresh}
             disabled={loading}
+            icon={activityStreamIcon}
           >
-            {loading ? '刷新中...' : '🔄 手动刷新'}
+            {loading ? '刷新中...' : '手动刷新'}
           </PrimaryButton>
           <SecondaryButton
             size="small"
@@ -56,8 +66,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               const reportPath = '/playwright-report/index.html';
               window.open(reportPath, '_blank');
             }}
+            icon={chartIcon}
           >
-            📊 测试报告
+            测试报告
           </SecondaryButton>
         </Flex>
       </Flex>

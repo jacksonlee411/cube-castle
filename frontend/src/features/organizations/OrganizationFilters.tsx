@@ -1,10 +1,14 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Box } from '@workday/canvas-kit-react/layout';
+import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Card } from '@workday/canvas-kit-react/card';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
-import { SecondaryButton } from '@workday/canvas-kit-react/button';
+import { SecondaryButton, PrimaryButton } from '@workday/canvas-kit-react/button';
+import { Switch } from '@workday/canvas-kit-react/switch';
 import { useDebounce } from '../../shared/hooks/useDebounce';
+import { TemporalStatusSelector } from '../temporal/components/TemporalStatusSelector';
+import type { TemporalStatus } from '../temporal/components/TemporalStatusSelector';
+import { TemporalDatePicker, validateTemporalDate } from '../temporal/components/TemporalDatePicker';
 
 export interface FilterState {
   searchText: string;
@@ -13,11 +17,19 @@ export interface FilterState {
   level: number | undefined;
   page: number;
   pageSize: number;
+  // 时态筛选字段
+  temporalMode?: 'current' | 'historical' | 'all';
+  showOnlyTemporal?: boolean;
+  temporalStatus?: TemporalStatus;
+  effectiveDateFrom?: string;
+  effectiveDateTo?: string;
+  pointInTime?: string;
 }
 
 interface OrganizationFiltersProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
+  showTemporalFilters?: boolean;
 }
 
 interface SelectOption {
@@ -40,6 +52,12 @@ const STATUS_OPTIONS: SelectOption[] = [
   { label: '计划中', value: 'PLANNED' },
 ];
 
+const TEMPORAL_MODE_OPTIONS: SelectOption[] = [
+  { label: '当前组织', value: 'current' },
+  { label: '历史数据', value: 'historical' },
+  { label: '全部数据', value: 'all' },
+];
+
 const LEVEL_OPTIONS: SelectOption[] = [
   { label: '全部层级', value: '' },
   { label: '1级', value: '1' },
@@ -59,8 +77,10 @@ const PAGE_SIZE_OPTIONS: SelectOption[] = [
 export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
   filters,
   onFiltersChange,
+  showTemporalFilters = false,
 }) => {
   const [localSearchText, setLocalSearchText] = useState(filters.searchText);
+  const [showAdvancedTemporal, setShowAdvancedTemporal] = useState(false);
   
   // 使用防抖处理搜索文本
   const debouncedSearchText = useDebounce(localSearchText, 300);
@@ -99,8 +119,16 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
       level: undefined,
       page: 1,
       pageSize: 20,
+      // 重置时态筛选
+      temporalMode: 'current',
+      showOnlyTemporal: false,
+      temporalStatus: undefined,
+      effectiveDateFrom: undefined,
+      effectiveDateTo: undefined,
+      pointInTime: undefined,
     };
     setLocalSearchText('');
+    setShowAdvancedTemporal(false);
     onFiltersChange(resetFilters);
   }, [onFiltersChange]);
 
@@ -110,132 +138,262 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
       filters.searchText ||
       filters.unit_type ||
       filters.status ||
-      filters.level
+      filters.level ||
+      (showTemporalFilters && (
+        filters.showOnlyTemporal ||
+        filters.temporalStatus ||
+        filters.effectiveDateFrom ||
+        filters.effectiveDateTo ||
+        filters.pointInTime ||
+        (filters.temporalMode && filters.temporalMode !== 'current')
+      ))
     );
-  }, [filters.searchText, filters.unit_type, filters.status, filters.level]);
+  }, [
+    filters.searchText, filters.unit_type, filters.status, filters.level,
+    filters.showOnlyTemporal, filters.temporalStatus, filters.effectiveDateFrom,
+    filters.effectiveDateTo, filters.pointInTime, filters.temporalMode,
+    showTemporalFilters
+  ]);
 
   return (
     <Card marginBottom="m">
       <Card.Heading>筛选条件</Card.Heading>
       <Card.Body>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
-          {/* 搜索框 */}
-          <Box minWidth="200px">
-            <FormField>
-              <FormField.Label>组织名称</FormField.Label>
-              <FormField.Field>
-                <TextInput
-                  placeholder="搜索组织名称..."
-                  value={localSearchText}
-                  onChange={(e) => setLocalSearchText(e.target.value)}
-                />
-              </FormField.Field>
-            </FormField>
-          </Box>
+        <Flex flexDirection="column" gap="m">
+          {/* 基本筛选条件 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
+            {/* 搜索框 */}
+            <Box minWidth="200px">
+              <FormField>
+                <FormField.Label>组织名称</FormField.Label>
+                <FormField.Field>
+                  <TextInput
+                    placeholder="搜索组织名称..."
+                    value={localSearchText}
+                    onChange={(e) => setLocalSearchText(e.target.value)}
+                  />
+                </FormField.Field>
+              </FormField>
+            </Box>
 
-          {/* 类型筛选 */}
-          <Box minWidth="150px">
-            <FormField>
-              <FormField.Label>组织类型</FormField.Label>
-              <FormField.Field>
-                <select
-                  value={filters.unit_type || ''}
-                  onChange={(e) => handleFilterChange('unit_type', e.target.value || undefined)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
-                >
-                  {UNIT_TYPE_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </FormField.Field>
-            </FormField>
-          </Box>
+            {/* 类型筛选 */}
+            <Box minWidth="150px">
+              <FormField>
+                <FormField.Label>组织类型</FormField.Label>
+                <FormField.Field>
+                  <select
+                    value={filters.unit_type || ''}
+                    onChange={(e) => handleFilterChange('unit_type', e.target.value || undefined)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+                  >
+                    {UNIT_TYPE_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </FormField.Field>
+              </FormField>
+            </Box>
 
-          {/* 状态筛选 */}
-          <Box minWidth="150px">
-            <FormField>
-              <FormField.Label>状态</FormField.Label>
-              <FormField.Field>
-                <select
-                  value={filters.status || ''}
-                  onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
-                >
-                  {STATUS_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </FormField.Field>
-            </FormField>
-          </Box>
+            {/* 状态筛选 */}
+            <Box minWidth="150px">
+              <FormField>
+                <FormField.Label>状态</FormField.Label>
+                <FormField.Field>
+                  <select
+                    value={filters.status || ''}
+                    onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+                  >
+                    {STATUS_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </FormField.Field>
+              </FormField>
+            </Box>
 
-          {/* 层级筛选 */}
-          <Box minWidth="130px">
-            <FormField>
-              <FormField.Label>层级</FormField.Label>
-              <FormField.Field>
-                <select
-                  value={filters.level ? filters.level.toString() : ''}
-                  onChange={(e) => handleFilterChange('level', e.target.value ? parseInt(e.target.value) : undefined)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
-                >
-                  {LEVEL_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </FormField.Field>
-            </FormField>
-          </Box>
+            {/* 层级筛选 */}
+            <Box minWidth="130px">
+              <FormField>
+                <FormField.Label>层级</FormField.Label>
+                <FormField.Field>
+                  <select
+                    value={filters.level ? filters.level.toString() : ''}
+                    onChange={(e) => handleFilterChange('level', e.target.value ? parseInt(e.target.value) : undefined)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+                  >
+                    {LEVEL_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </FormField.Field>
+              </FormField>
+            </Box>
 
-          {/* 每页显示数量 */}
-          <Box minWidth="130px">
-            <FormField>
-              <FormField.Label>显示数量</FormField.Label>
-              <FormField.Field>
-                <select
-                  value={filters.pageSize.toString()}
-                  onChange={(e) => handleFilterChange('pageSize', parseInt(e.target.value))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
-                >
-                  {PAGE_SIZE_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </FormField.Field>
-            </FormField>
-          </Box>
+            {/* 每页显示数量 */}
+            <Box minWidth="130px">
+              <FormField>
+                <FormField.Label>显示数量</FormField.Label>
+                <FormField.Field>
+                  <select
+                    value={filters.pageSize.toString()}
+                    onChange={(e) => handleFilterChange('pageSize', parseInt(e.target.value))}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+                  >
+                    {PAGE_SIZE_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </FormField.Field>
+              </FormField>
+            </Box>
 
-          {/* 重置按钮 */}
-          <Box>
-            <SecondaryButton 
-              onClick={handleReset}
-              disabled={!hasActiveFilters}
-            >
-              重置筛选
-            </SecondaryButton>
-          </Box>
-        </div>
+            {/* 重置按钮 */}
+            <Box>
+              <SecondaryButton 
+                onClick={handleReset}
+                disabled={!hasActiveFilters}
+              >
+                重置筛选
+              </SecondaryButton>
+            </Box>
+          </div>
 
-        {/* 激活筛选条件提示 */}
-        {hasActiveFilters && (
-          <Box marginTop="s">
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              已激活筛选条件:
-              {filters.searchText && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>名称: {filters.searchText}</span>}
-              {filters.unit_type && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>类型: {UNIT_TYPE_OPTIONS.find(o => o.value === filters.unit_type)?.label}</span>}
-              {filters.status && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>状态: {STATUS_OPTIONS.find(o => o.value === filters.status)?.label}</span>}
-              {filters.level && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>层级: {filters.level}级</span>}
-            </div>
-          </Box>
-        )}
+          {/* 时态筛选区域 */}
+          {showTemporalFilters && (
+            <Card variant="outline" padding="s">
+              <Card.Heading>时态筛选</Card.Heading>
+              <Card.Body>
+                <Flex flexDirection="column" gap="m">
+                  {/* 时态模式选择 */}
+                  <Flex gap="m" alignItems="flex-end">
+                    <Box minWidth="150px">
+                      <FormField>
+                        <FormField.Label>时态模式</FormField.Label>
+                        <FormField.Field>
+                          <select
+                            value={filters.temporalMode || 'current'}
+                            onChange={(e) => handleFilterChange('temporalMode', e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+                          >
+                            {TEMPORAL_MODE_OPTIONS.map(option => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </FormField.Field>
+                      </FormField>
+                    </Box>
+
+                    {/* 仅显示时态组织开关 */}
+                    <FormField label="仅显示时态组织">
+                      <Switch 
+                        checked={filters.showOnlyTemporal || false}
+                        onChange={(checked) => handleFilterChange('showOnlyTemporal', checked)}
+                      />
+                    </FormField>
+
+                    {/* 高级时态筛选开关 */}
+                    <PrimaryButton
+                      variant="secondary"
+                      onClick={() => setShowAdvancedTemporal(!showAdvancedTemporal)}
+                    >
+                      {showAdvancedTemporal ? '收起' : '展开'}高级筛选
+                    </PrimaryButton>
+                  </Flex>
+
+                  {/* 时态状态筛选 */}
+                  <TemporalStatusSelector
+                    label="时态状态"
+                    value={filters.temporalStatus}
+                    onChange={(value) => handleFilterChange('temporalStatus', value)}
+                    includeAll={true}
+                    placeholder="选择时态状态"
+                  />
+
+                  {/* 高级时态筛选 */}
+                  {showAdvancedTemporal && (
+                    <Flex flexDirection="column" gap="m">
+                      {/* 生效日期范围 */}
+                      <Flex gap="m">
+                        <TemporalDatePicker
+                          label="生效日期从"
+                          value={filters.effectiveDateFrom || ''}
+                          onChange={(value) => handleFilterChange('effectiveDateFrom', value || undefined)}
+                          maxDate={filters.effectiveDateTo}
+                          helperText="筛选在此日期之后生效的组织"
+                        />
+                        <TemporalDatePicker
+                          label="生效日期到"
+                          value={filters.effectiveDateTo || ''}
+                          onChange={(value) => handleFilterChange('effectiveDateTo', value || undefined)}
+                          minDate={filters.effectiveDateFrom}
+                          helperText="筛选在此日期之前生效的组织"
+                        />
+                      </Flex>
+
+                      {/* 历史时点查询 */}
+                      <TemporalDatePicker
+                        label="历史时点查询"
+                        value={filters.pointInTime || ''}
+                        onChange={(value) => handleFilterChange('pointInTime', value || undefined)}
+                        maxDate={validateTemporalDate.getTodayString()}
+                        helperText="查看在指定时间点有效的组织"
+                      />
+                    </Flex>
+                  )}
+                </Flex>
+              </Card.Body>
+            </Card>
+          )}
+
+          {/* 激活筛选条件提示 */}
+          {hasActiveFilters && (
+            <Box>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                已激活筛选条件:
+                {filters.searchText && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>名称: {filters.searchText}</span>}
+                {filters.unit_type && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>类型: {UNIT_TYPE_OPTIONS.find(o => o.value === filters.unit_type)?.label}</span>}
+                {filters.status && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>状态: {STATUS_OPTIONS.find(o => o.value === filters.status)?.label}</span>}
+                {filters.level && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>层级: {filters.level}级</span>}
+                {showTemporalFilters && filters.temporalMode && filters.temporalMode !== 'current' && (
+                  <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#fff3e0', borderRadius: '4px' }}>
+                    时态: {TEMPORAL_MODE_OPTIONS.find(o => o.value === filters.temporalMode)?.label}
+                  </span>
+                )}
+                {filters.showOnlyTemporal && (
+                  <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#fff3e0', borderRadius: '4px' }}>
+                    仅时态组织
+                  </span>
+                )}
+                {filters.temporalStatus && (
+                  <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#fff3e0', borderRadius: '4px' }}>
+                    时态状态: {filters.temporalStatus}
+                  </span>
+                )}
+                {(filters.effectiveDateFrom || filters.effectiveDateTo) && (
+                  <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#fff3e0', borderRadius: '4px' }}>
+                    生效期间: {filters.effectiveDateFrom || '开始'} - {filters.effectiveDateTo || '结束'}
+                  </span>
+                )}
+                {filters.pointInTime && (
+                  <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#fff3e0', borderRadius: '4px' }}>
+                    时点: {validateTemporalDate.formatDateDisplay(filters.pointInTime)}
+                  </span>
+                )}
+              </div>
+            </Box>
+          )}
+        </Flex>
       </Card.Body>
     </Card>
   );
