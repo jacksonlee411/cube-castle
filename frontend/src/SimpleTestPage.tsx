@@ -57,14 +57,14 @@ export const SimpleTestPage: React.FC = () => {
 
   return (
     <Box padding="xl" maxWidth="800px">
-      <Text as="h1" typeLevel="heading.large">
+      <Text as="h1">
         Cube Castle - MCP浏览器验证
       </Text>
       
       <Card margin="m">
         <Card.Heading>CQRS协议验证</Card.Heading>
         <Card.Body>
-          <Box display="flex" gap="s" marginBottom="m">
+          <Box display="flex" marginBottom="m" style={{gap: '16px'}}>
             <PrimaryButton 
               onClick={testGraphQLQuery}
               disabled={loading}

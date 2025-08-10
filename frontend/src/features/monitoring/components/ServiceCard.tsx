@@ -34,7 +34,6 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service }) => {
           <Flex alignItems="center" gap="xs" marginBottom="xs">
             <Text fontSize={14}>{getStatusIcon(service.status)}</Text>
             <Text 
-              variant="subtext" 
               fontWeight="bold"
               color={getStatusColor(service.status)}
             >
