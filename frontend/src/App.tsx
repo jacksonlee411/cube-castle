@@ -3,6 +3,9 @@ import { AppShell } from './layout/AppShell'
 import { OrganizationDashboard } from './features/organizations/OrganizationDashboard'
 import { MonitoringDashboard } from './features/monitoring/MonitoringDashboard'
 import TestCrud from './TestCrud'
+// import TemporalComponentTest from './TemporalComponentTest'
+// import SimpleTemporalTest from './SimpleTemporalTest'
+import MinimalTemporalTest from './MinimalTemporalTest'
 
 function App() {
   return (
@@ -13,6 +16,9 @@ function App() {
         
         {/* CRUD测试页面 */}
         <Route path="/test" element={<TestCrud />} />
+        
+        {/* 时态管理组件测试页面 */}
+        <Route path="/temporal-test" element={<MinimalTemporalTest />} />
         
         {/* 组织管理模块 */}
         <Route path="/organizations" element={<OrganizationDashboard />} />

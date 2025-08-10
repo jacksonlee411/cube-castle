@@ -7,6 +7,7 @@ import {
   GraphQLVariablesSchema,
   GraphQLOrganizationResponseSchema
 } from '../validation/schemas';
+import type { CreateOrganizationInput } from '../hooks/useOrganizationMutations';
 import type { 
   ValidatedOrganizationUnit,
   ValidatedCreateOrganizationInput,
@@ -15,8 +16,8 @@ import type {
   ValidatedGraphQLVariables,
   ValidatedGraphQLOrganizationResponse 
 } from '../validation/schemas';
-import type { OrganizationUnit, CreateOrganizationInput, UpdateOrganizationInput } from '../types/organization';
-import type { GraphQLResponse, GraphQLError, GraphQLVariables } from '../types/api';
+import type { OrganizationUnit } from '../types/organization';
+import type { GraphQLResponse, GraphQLError } from '../types/api';
 
 // 验证错误类
 export class ValidationError extends Error {
@@ -176,11 +177,11 @@ export const safeTransformCreateInputToAPI = (
   };
 
   // 只添加有值的可选字段
-  if (validated.code !== undefined) {
-    apiPayload.code = validated.code;
+  if (validated['code'] !== undefined) {
+    apiPayload.code = validated['code'];
   }
-  if (validated.parent_code !== undefined && validated.parent_code !== '') {
-    apiPayload.parent_code = validated.parent_code;
+  if (validated['parent_code'] !== undefined && validated['parent_code'] !== '') {
+    apiPayload.parent_code = validated['parent_code'];
   }
 
   return apiPayload;

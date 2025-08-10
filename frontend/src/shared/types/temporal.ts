@@ -18,6 +18,9 @@ export interface TemporalQueryParams {
   dateRange?: DateRange;     // 查询时间范围
   includeHistory?: boolean;  // 是否包含历史版本
   includeFuture?: boolean;   // 是否包含未来规划
+  mode?: TemporalMode;       // 查询模式
+  limit?: number;           // 查询数量限制
+  eventTypes?: string[];    // 事件类型过滤
 }
 
 // 版本信息
@@ -47,7 +50,7 @@ export interface TemporalOrganizationUnit {
 
   // 时态扩展字段
   effective_date: string;     // 生效日期
-  end_date?: string;          // 结束日期 (null表示当前有效)
+  end_date: string | undefined;  // 结束日期 (undefined表示当前有效)
   is_current: boolean;        // 是否为当前版本
   version_number: number;     // 版本号
   predecessor_id?: string;    // 前一版本ID
@@ -150,4 +153,22 @@ export interface TemporalPermissions {
   canModifyHistory: boolean;  // 时间线校正权限
   canCancelPlannedChanges: boolean;
   maxHistoryViewDays?: number;
+}
+
+// 时间线视图配置
+export interface TimelineViewConfig {
+  showEvents: boolean;
+  showVersions: boolean;
+  dateFormat: string;
+  timeRange: DateRange;
+  eventTypes: EventType[];
+}
+
+// 时态上下文
+export interface TemporalContext {
+  mode: TemporalMode;
+  currentDate: Date;
+  viewConfig: TimelineViewConfig;
+  permissions: TemporalPermissions;
+  cacheConfig: TemporalCacheConfig;
 }

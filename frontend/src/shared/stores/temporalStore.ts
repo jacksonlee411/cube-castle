@@ -49,7 +49,7 @@ export interface TemporalActions {
   setMode: (mode: TemporalMode) => void;
   
   // 设置查询时间点
-  setAsOfDate: (date: string) => void;
+  setAsOfDate: (date: Date) => void;
   
   // 设置时间范围
   setDateRange: (range: DateRange) => void;
@@ -81,40 +81,51 @@ export interface TemporalActions {
 const defaultState: TemporalState = {
   context: {
     mode: 'current',
-    asOfDate: new Date().toISOString(),
-    effectiveDate: new Date().toISOString(),
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    version: 1
+    currentDate: new Date(),
+    viewConfig: {
+      showEvents: true,
+      showVersions: true,
+      dateFormat: 'YYYY-MM-DD',
+      timeRange: {
+        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        end: new Date()
+      },
+      eventTypes: []
+    },
+    permissions: {
+      canViewHistory: true,
+      canViewFuture: true,
+      canCreatePlannedChanges: false,
+      canModifyHistory: false,
+      canCancelPlannedChanges: false
+    },
+    cacheConfig: {
+      currentDataTTL: 300,
+      historicalDataTTL: 3600,
+      maxVersionsCache: 100,
+      enablePrefetch: false
+    }
   },
   
   queryParams: {
-    mode: 'current',
-    asOfDate: new Date().toISOString(),
+    asOfDate: new Date(),
     dateRange: {
-      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30天前
-      end: new Date().toISOString()
+      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      end: new Date()
     },
-    limit: 50,
-    includeInactive: false,
-    eventTypes: []
+    includeHistory: false,
+    includeFuture: false
   },
   
   viewConfig: {
-    mode: 'timeline',
-    zoom: 'month',
-    groupBy: 'organization',
-    showInactive: false,
-    showFuture: true,
-    eventFilters: {
-      types: [],
-      statuses: [],
-      priority: 'all'
+    showEvents: true,
+    showVersions: true,
+    dateFormat: 'YYYY-MM-DD',
+    timeRange: {
+      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      end: new Date()
     },
-    displayOptions: {
-      showDetails: true,
-      showMetadata: false,
-      compactMode: false
-    }
+    eventTypes: []
   },
   
   cache: {
@@ -141,15 +152,15 @@ export const useTemporalStore = create<TemporalState & TemporalActions>()(
     setMode: (mode: TemporalMode) => {
       set((state) => ({
         context: { ...state.context, mode },
-        queryParams: { ...state.queryParams, mode },
+        queryParams: state.queryParams,
         error: null
       }));
     },
 
     // 设置查询时间点
-    setAsOfDate: (date: string) => {
+    setAsOfDate: (date: Date) => {
       set((state) => ({
-        context: { ...state.context, asOfDate: date },
+        context: state.context,
         queryParams: { ...state.queryParams, asOfDate: date },
         error: null
       }));
@@ -322,16 +333,9 @@ const actionsSelector = (state: TemporalState & TemporalActions) => ({
 // 时态操作钩子 - 修复无限循环问题，使用浅比较优化
 export const useTemporalActions = () => {
   return useTemporalStore(
-    actionsSelector,
-    // 使用浅比较避免不必要的重渲染
-    (a, b) => {
-      if (a === b) return true;
-      const keys = Object.keys(a) as Array<keyof typeof a>;
-      return keys.length === Object.keys(b).length && 
-             keys.every(key => a[key] === b[key]);
-    }
+    actionsSelector
   );
 };
 
 // 导出类型
-export type { TemporalState, TemporalActions };
+export type { TemporalState as TemporalStoreState, TemporalActions as TemporalStoreActions };

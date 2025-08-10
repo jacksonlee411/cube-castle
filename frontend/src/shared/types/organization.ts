@@ -33,6 +33,19 @@ export interface OrganizationStats {
   by_status: Record<string, number>;
 }
 
+// 组织查询参数
+export interface OrganizationQueryParams {
+  name?: string;
+  unit_type?: string;
+  status?: string;
+  parent_code?: string;
+  level?: number;
+  page?: number;
+  page_size?: number;
+  sort_by?: string;
+  sort_order?: 'ASC' | 'DESC';
+}
+
 // GraphQL API响应类型定义
 export interface GraphQLOrganizationResponse {
   code: string;

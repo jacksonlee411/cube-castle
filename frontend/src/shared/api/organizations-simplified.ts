@@ -4,14 +4,14 @@ import type {
   OrganizationStats,
   GraphQLResponse,
   OrganizationUnitType,
-  OrganizationStatus
+  OrganizationStatus,
+  OrganizationQueryParams
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
 import type { 
   TemporalQueryParams,
   TemporalOrganizationUnit,
-  TimelineEvent,
-  TemporalMode
+  TimelineEvent
 } from '../types/temporal';
 import { 
   validateOrganizationBasic,
@@ -44,7 +44,7 @@ const graphqlClient = {
 
     const result = await response.json() as GraphQLResponse<T>;
     
-    if (result.errors) {
+    if (result.errors && result.errors.length > 0) {
       throw new Error(`GraphQL Error: ${result.errors[0].message}`);
     }
 
@@ -80,20 +80,16 @@ const restClient = {
   }
 };
 
-export interface OrganizationQueryParams {
-  searchText?: string | undefined;
-  unit_type?: OrganizationUnitType | undefined;
-  status?: OrganizationStatus | undefined;
-  level?: number | undefined;
-  page?: number;
+// 扩展查询参数以支持时态查询
+interface ExtendedOrganizationQueryParams extends OrganizationQueryParams {
+  searchText?: string;
   pageSize?: number;
-  // 时态查询参数
   temporalParams?: TemporalQueryParams;
 }
 
 export const organizationAPI = {
   // 获取组织单元列表 - 使用GraphQL (修复getByCode问题)
-  getAll: async (params?: OrganizationQueryParams): Promise<OrganizationListResponse> => {
+  getAll: async (params?: ExtendedOrganizationQueryParams): Promise<OrganizationListResponse> => {
     try {
       // 轻量级参数验证
       if (params) {
@@ -327,10 +323,10 @@ export const organizationAPI = {
         safeTransform.graphqlToOrganization(organization) : 
         organization;
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching organization by code:', code, error);
       
-      if (error.response?.status === 404) {
+      if (error instanceof Error && 'response' in error && (error as any).response?.status === 404) {
         throw new Error(`组织 ${code} 不存在`);
       }
       
@@ -372,7 +368,7 @@ export const organizationAPI = {
 
       // 简化的数据转换
       return {
-        total: stats.totalCount || 0,
+        total_count: stats.totalCount || 0,
         by_type: stats.byType?.reduce((acc: any, item: any) => {
           acc[item.unitType] = item.count;
           return acc;
@@ -501,7 +497,9 @@ export const organizationAPI = {
   delete: async (code: string): Promise<void> => {
     try {
       if (!code) {
-        throw new SimpleValidationError('Organization code is required', { code: 'Code is required' });
+        throw new SimpleValidationError('Organization code is required', [
+          { field: 'code', message: 'Code is required' }
+        ]);
       }
 
       await restClient.request<void>(`/organization-units/${code}`, {

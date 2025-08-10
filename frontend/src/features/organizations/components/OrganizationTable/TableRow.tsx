@@ -1,52 +1,21 @@
 import React from 'react';
 import { Table } from '@workday/canvas-kit-react/table';
 import { Text } from '@workday/canvas-kit-react/text';
-// import { Badge } from '@workday/canvas-kit-react';
 import { TableActions } from './TableActions';
 import type { OrganizationTableRowProps } from './TableTypes';
+import { 
+  TemporalInfoDisplay, 
+  TemporalStatusBadge,
+  TemporalDateRange 
+} from '../../../temporal/components/TemporalInfoDisplay';
+// import { TemporalStatus, temporalStatusUtils } from '../../../temporal/components/TemporalStatusSelector';
 
-// 时态状态显示组件
-const TemporalStatusBadge: React.FC<{
-  organization: any; // 支持时态字段的组织对象
-  isHistorical: boolean;
-}> = ({ organization, isHistorical }) => {
-  if (!isHistorical || !organization.temporalStatus) {
-    return null;
-  }
+type TemporalStatus = 'ACTIVE' | 'PLANNED' | 'INACTIVE';
 
-  const getBadgeProps = (status: string) => {
-    switch (status) {
-      case 'active':
-        return { color: 'positive', text: '生效中' };
-      case 'planned':
-        return { color: 'neutral', text: '计划中' };
-      case 'expired':
-        return { color: 'critical', text: '已失效' };
-      default:
-        return { color: 'neutral', text: '未知' };
-    }
-  };
-
-  const badgeProps = getBadgeProps(organization.temporalStatus);
-  return (
-    <Text color={badgeProps.color as any}>
-      {badgeProps.text}
-    </Text>
-  );
-};
-
-// 格式化日期显示
-const formatDate = (dateStr?: string) => {
-  if (!dateStr) return '-';
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-  } catch {
-    return dateStr;
+// 临时的状态工具函数
+const temporalStatusUtils = {
+  isTemporal: (effectiveDate?: string, endDate?: string): boolean => {
+    return !!(effectiveDate || endDate);
   }
 };
 
@@ -60,6 +29,13 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
   isHistorical = false,
   showTemporalInfo = false
 }) => {
+  // 计算时态状态
+  const temporalStatus = organization.status as TemporalStatus;
+  const isTemporal = temporalStatusUtils.isTemporal(
+    organization.effective_date, 
+    organization.end_date
+  );
+  
   // 时态模式下的样式调整
   const getRowStyle = () => {
     const baseStyle = {
@@ -67,11 +43,30 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
       transition: 'opacity 0.3s ease'
     };
 
+    // PLANNED组织的特殊样式
+    if (temporalStatus === 'PLANNED') {
+      return {
+        ...baseStyle,
+        backgroundColor: 'rgba(8, 117, 225, 0.05)', // 淡蓝色背景表示计划组织
+        borderLeft: '3px solid #0875E1'
+      };
+    }
+
+    // 历史数据样式
     if (isHistorical) {
       return {
         ...baseStyle,
-        backgroundColor: 'rgba(103, 123, 148, 0.05)', // 淡蓝色背景表示历史数据
+        backgroundColor: 'rgba(103, 123, 148, 0.05)', 
         border: '1px solid rgba(103, 123, 148, 0.1)'
+      };
+    }
+
+    // INACTIVE组织的样式
+    if (temporalStatus === 'INACTIVE') {
+      return {
+        ...baseStyle,
+        backgroundColor: 'rgba(153, 153, 153, 0.05)',
+        color: '#666666'
       };
     }
 
@@ -84,6 +79,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
       data-testid={`table-row-${organization.code}`}
     >
       <Table.Cell>{organization.code}</Table.Cell>
+      
       <Table.Cell>
         {organization.name}
         {isToggling && (
@@ -96,41 +92,67 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
             📖
           </Text>
         )}
+        {/* 计划组织标识 */}
+        {temporalStatus === 'PLANNED' && (
+          <Text as="span" typeLevel="subtext.small" color="positive" marginLeft="xs">
+            📅 计划
+          </Text>
+        )}
       </Table.Cell>
+      
       <Table.Cell>{organization.unit_type}</Table.Cell>
+      
       <Table.Cell>
-        <Text color={
-          organization.status === 'ACTIVE' ? 'positive' : 
-          organization.status === 'PLANNED' ? 'hint' : 
-          'default'
-        }>
-          {organization.status === 'ACTIVE' ? '启用' : 
-           organization.status === 'INACTIVE' ? '停用' : 
-           organization.status}
-        </Text>
+        <span 
+          style={{
+            display: 'inline-block',
+            padding: '2px 6px',
+            borderRadius: '12px',
+            fontSize: '11px',
+            fontWeight: '500',
+            backgroundColor: temporalStatus === 'ACTIVE' ? '#00A844' : 
+                           temporalStatus === 'PLANNED' ? '#0875E1' : '#999999',
+            color: 'white'
+          }}
+        >
+          {temporalStatus === 'ACTIVE' ? '✓ 启用' :
+           temporalStatus === 'PLANNED' ? '📅 计划' :
+           temporalStatus === 'INACTIVE' ? '⏸️ 停用' : temporalStatus}
+        </span>
       </Table.Cell>
+      
       <Table.Cell>{organization.level}</Table.Cell>
       
       {/* 时态信息列 */}
-      {(showTemporalInfo || isHistorical) && (
-        <>
-          <Table.Cell>
-            <Text typeLevel="subtext.small">
-              {formatDate((organization as any).effectiveFrom)}
-            </Text>
-          </Table.Cell>
-          <Table.Cell>
-            <Text typeLevel="subtext.small">
-              {formatDate((organization as any).effectiveTo)}
-            </Text>
-          </Table.Cell>
-          <Table.Cell>
-            <TemporalStatusBadge 
-              organization={organization} 
-              isHistorical={isHistorical} 
+      {(showTemporalInfo || isTemporal) && (
+        <Table.Cell>
+          {isTemporal ? (
+            <TemporalDateRange 
+              effectiveDate={organization.effective_date}
+              endDate={organization.end_date}
+              format="short"
             />
-          </Table.Cell>
-        </>
+          ) : (
+            <Text variant="small" color="licorice300">-</Text>
+          )}
+        </Table.Cell>
+      )}
+      
+      {/* 时态详细信息 */}
+      {showTemporalInfo && isTemporal && (
+        <Table.Cell>
+          <TemporalInfoDisplay 
+            temporalInfo={{
+              effective_date: organization.effective_date,
+              end_date: organization.end_date,
+              status: temporalStatus,
+              is_temporal: isTemporal,
+              change_reason: organization.change_reason,
+              version: organization.version
+            }}
+            variant="compact"
+          />
+        </Table.Cell>
       )}
       
       <Table.Cell>

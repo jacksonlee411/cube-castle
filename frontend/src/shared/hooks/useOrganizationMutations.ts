@@ -43,7 +43,7 @@ export const useCreateOrganization = () => {
       console.log('[Mutation] Create successful:', response);
       return response;
     },
-    onSuccess: (createdOrganization) => {
+    onSuccess: () => {
       console.log('[Mutation] Create success, invalidating queries');
       
       // 立即失效所有相关查询缓存
@@ -142,7 +142,10 @@ export const useToggleOrganizationStatus = () => {
   return useMutation({
     mutationFn: async (data: ToggleStatusInput): Promise<OrganizationUnit> => {
       console.log('[Mutation] Toggling organization status:', data);
-      const response = await organizationAPI.update(data.code, { status: data.status });
+      const response = await organizationAPI.update(data.code, { 
+        code: data.code,
+        status: data.status 
+      });
       console.log('[Mutation] Toggle status successful:', response);
       return response;
     },
