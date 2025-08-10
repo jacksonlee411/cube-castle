@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { useCreateOrganization, useUpdateOrganization } from '../../../../shared/hooks/useOrganizationMutations';
+// import { useTemporalMode } from '../../../../shared/hooks/useTemporalQuery';
+import organizationAPI from '../../../../shared/api/organizations-simplified';
 import { FormFields } from './FormFields';
 import { validateForm } from './ValidationRules';
 import type { OrganizationFormProps, FormData } from './FormTypes';
@@ -10,12 +12,18 @@ import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../../
 export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   organization,
   isOpen,
-  onClose
+  onClose,
+  temporalMode = 'current',
+  isHistorical = false,
+  enableTemporalFeatures = true
 }) => {
   const createMutation = useCreateOrganization();
   const updateMutation = useUpdateOrganization();
-  const isEditing = !!organization;
+  // const { isCurrent, isPlanning } = useTemporalMode();
+  const isCurrent = true;
+  const isPlanning = false;
   
+  const isEditing = !!organization;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const model = useModalModel();
 
@@ -28,6 +36,11 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     parent_code: organization?.parent_code || '',
     level: organization?.level || 1,
     sort_order: organization?.sort_order || 0,
+    // 时态字段
+    is_temporal: false,
+    effective_from: '',
+    effective_to: '',
+    change_reason: '',
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -52,6 +65,11 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
       parent_code: organization?.parent_code || '',
       level: organization?.level || 1,
       sort_order: organization?.sort_order || 0,
+      // 时态字段重置
+      is_temporal: false,
+      effective_from: '',
+      effective_to: '',
+      change_reason: '',
     });
     setFormErrors({});
   }, [organization]);
@@ -87,7 +105,18 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           parent_code: formData.parent_code || undefined,
         };
         
-        await updateMutation.mutateAsync(updateData);
+        // 时态更新
+        if (formData.is_temporal) {
+          const temporalUpdateData = {
+            ...updateData,
+            effectiveFrom: formData.effective_from,
+            effectiveTo: formData.effective_to,
+            changeReason: formData.change_reason
+          };
+          await organizationAPI.updateTemporal(organization!.code, temporalUpdateData);
+        } else {
+          await updateMutation.mutateAsync(updateData);
+        }
       } else {
         const createData: CreateOrganizationInput = {
           code: formData.code && formData.code.trim() ? formData.code.trim() : undefined,
@@ -100,7 +129,18 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           parent_code: formData.parent_code || undefined,
         };
         
-        await createMutation.mutateAsync(createData);
+        // 时态创建
+        if (formData.is_temporal) {
+          const temporalCreateData = {
+            ...createData,
+            effectiveFrom: formData.effective_from!,
+            effectiveTo: formData.effective_to || undefined,
+            changeReason: formData.change_reason
+          };
+          await organizationAPI.createTemporal(temporalCreateData);
+        } else {
+          await createMutation.mutateAsync(createData);
+        }
       }
       
       // Reset form if creating new
@@ -114,6 +154,11 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           parent_code: '',
           level: 1,
           sort_order: 0,
+          // 重置时态字段
+          is_temporal: false,
+          effective_from: '',
+          effective_to: '',
+          change_reason: '',
         });
       }
       
@@ -162,6 +207,16 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           <Modal.CloseIcon aria-label="关闭" onClick={handleClose} />
           <Modal.Heading>
             {isEditing ? '编辑组织单元' : '新增组织单元'}
+            {formData.is_temporal && (
+              <span style={{ 
+                marginLeft: '8px', 
+                fontSize: '14px', 
+                color: '#1890ff',
+                fontWeight: 'normal'
+              }}>
+                ⚙️ 时态管理
+              </span>
+            )}
           </Modal.Heading>
           <Modal.Body>
             <form onSubmit={handleSubmit} data-testid="organization-form-content">
@@ -169,6 +224,8 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
                 formData={formData}
                 setFormData={setFormData}
                 isEditing={isEditing}
+                temporalMode={temporalMode}
+                enableTemporalFeatures={enableTemporalFeatures && !isHistorical}
               />
 
               {Object.keys(formErrors).length > 0 && (
@@ -200,7 +257,11 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
                   disabled={isSubmitting || createMutation.isPending || updateMutation.isPending}
                   data-testid="form-submit-button"
                 >
-                  {isEditing ? '更新' : '创建'}
+                  {isSubmitting ? '处理中...' : 
+                   formData.is_temporal ? 
+                     (isEditing ? '更新时态组织' : '创建计划组织') : 
+                     (isEditing ? '更新' : '创建')
+                  }
                 </PrimaryButton>
               </div>
             </form>

@@ -1,0 +1,58 @@
+/**
+ * 时态功能模块入口文件
+ */
+
+// 主要组件
+export { default as TemporalDashboard } from './TemporalDashboard';
+export type { TemporalDashboardProps } from './TemporalDashboard';
+
+// 子组件
+export * from './components';
+
+// 工具函数和常量
+export const TEMPORAL_CONSTANTS = {
+  CACHE_DURATION: 5 * 60 * 1000, // 5分钟
+  MAX_HISTORY_VERSIONS: 50,
+  MAX_TIMELINE_EVENTS: 100,
+  DEFAULT_PAGE_SIZE: 20
+} as const;
+
+// 工具函数
+export const temporalUtils = {
+  formatTemporalDate: (dateStr: string, options?: Intl.DateTimeFormatOptions) => {
+    try {
+      return new Date(dateStr).toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        ...options
+      });
+    } catch {
+      return dateStr;
+    }
+  },
+
+  isTemporalOrganization: (org: any): boolean => {
+    return !!(org.effective_from || org.effective_to || org.is_temporal);
+  },
+
+  getTemporalStatus: (org: any, asOfDate?: string) => {
+    const now = asOfDate ? new Date(asOfDate) : new Date();
+    const effectiveFrom = org.effective_from ? new Date(org.effective_from) : null;
+    const effectiveTo = org.effective_to ? new Date(org.effective_to) : null;
+
+    if (effectiveFrom && now < effectiveFrom) {
+      return 'future'; // 未来生效
+    }
+    if (effectiveTo && now > effectiveTo) {
+      return 'expired'; // 已失效
+    }
+    return 'active'; // 当前有效
+  },
+
+  buildTemporalQueryKey: (organizationCode: string, params: any) => {
+    return `temporal:${organizationCode}:${JSON.stringify(params)}`;
+  }
+};

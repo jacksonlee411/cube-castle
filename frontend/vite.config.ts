@@ -21,6 +21,16 @@ export default defineConfig({
         target: 'http://localhost:8083',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/debezium/, '')
+      },
+      '/api/v1': {
+        target: 'http://localhost:9090',
+        changeOrigin: true,
+        secure: false
+      },
+      '/graphql': {
+        target: 'http://localhost:8090',
+        changeOrigin: true,
+        secure: false
       }
     },
     // 静态文件服务 - 提供Playwright测试报告访问

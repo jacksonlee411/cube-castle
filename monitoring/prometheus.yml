@@ -22,11 +22,26 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 10s
 
+  # 时态管理API监控 (Phase 4集成)
+  - job_name: 'temporal-api'
+    static_configs:
+      - targets: ['localhost:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    honor_labels: true
+
   - job_name: 'frontend-app'
     static_configs:
       - targets: ['localhost:3001']
     metrics_path: '/api/metrics'
     scrape_interval: 30s
+
+  # Redis缓存监控
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['localhost:9121']
+    scrape_interval: 15s
 
   - job_name: 'postgres-exporter'
     static_configs:

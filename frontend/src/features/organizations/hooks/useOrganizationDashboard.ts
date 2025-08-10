@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useOrganizations, useOrganizationStats } from '../../../shared/hooks/useOrganizations';
+// import { useTemporalOrganizations, useTemporalMode, useTemporalQueryState } from '../../../shared/hooks/useTemporalQuery';
 import type { OrganizationQueryParams } from '../../../shared/api/organizations';
 import type { OrganizationUnitType, OrganizationStatus } from '../../../shared/types/api';
 import type { FilterState } from '../OrganizationFilters';
@@ -16,6 +17,13 @@ const initialFilters: FilterState = {
 export const useOrganizationDashboard = () => {
   const [filters, setFilters] = useState<FilterState>(initialFilters);
 
+  // 时态模式和状态 - 暂时禁用
+  // const { isCurrent, isHistorical, isPlanning } = useTemporalMode();
+  // const { context: temporalContext } = useTemporalQueryState();
+  const isCurrent = true;
+  const isHistorical = false;
+  const isPlanning = false;
+
   // Convert filters to query parameters
   const queryParams: OrganizationQueryParams = useMemo(() => ({
     searchText: filters.searchText || undefined,
@@ -26,14 +34,35 @@ export const useOrganizationDashboard = () => {
     pageSize: filters.pageSize,
   }), [filters]);
 
+  // 根据时态模式选择使用不同的数据获取策略 - 暂时只使用传统数据
+  const useTemporalData = false; // isHistorical || isPlanning;
+  
+  // 传统数据获取（当前模式）
   const { 
     data: organizationData, 
-    isLoading, 
-    error, 
-    isFetching 
-  } = useOrganizations(queryParams);
+    isLoading: traditionalLoading, 
+    error: traditionalError, 
+    isFetching: traditionalFetching 
+  } = useOrganizations(queryParams); // 移除不支持的enabled选项
 
-  const { data: stats } = useOrganizationStats();
+  // 时态数据获取（历史/规划模式）- 暂时禁用
+  // const {
+  //   data: temporalOrganizations,
+  //   isLoading: temporalLoading,
+  //   error: temporalError,
+  //   isFetching: temporalFetching,
+  //   temporalContext: temporalOrgContext,
+  //   isHistorical: temporalIsHistorical
+  // } = useTemporalOrganizations(queryParams);
+
+  // 统一数据输出 - 只使用传统数据
+  const organizations = organizationData?.organizations || [];
+  const totalCount = organizationData?.total_count || 0;
+  const isLoading = traditionalLoading;
+  const isFetching = traditionalFetching;
+  const error = traditionalError;
+
+  const { data: stats } = useOrganizationStats(); // 移除不支持的enabled选项
 
   const resetFilters = () => {
     setFilters(initialFilters);
@@ -53,9 +82,9 @@ export const useOrganizationDashboard = () => {
 
   return {
     // Data
-    organizations: organizationData?.organizations || [],
-    totalCount: organizationData?.total_count || 0,
-    stats,
+    organizations: organizations || [],
+    totalCount,
+    stats: useTemporalData ? null : stats, // 时态模式下不显示统计
     
     // Loading states
     isLoading: isLoading && !isFetching,
@@ -71,5 +100,11 @@ export const useOrganizationDashboard = () => {
     updateFilters,
     resetFilters,
     handlePageChange,
+
+    // Temporal context - 使用默认值
+    temporalMode: 'current',
+    isHistorical: false,
+    isPlanning: false,
+    temporalContext: null
   };
 };

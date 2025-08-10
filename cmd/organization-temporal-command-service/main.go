@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -18,9 +19,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	_ "github.com/lib/pq"
-	"cube-castle-deployment-test/pkg/monitoring"
+	"github.com/redis/go-redis/v9"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -325,15 +325,48 @@ func (r *TemporalOrganizationRepository) GetNextVersion(ctx context.Context, tx 
 // ===== HTTP处理器 =====
 
 type TemporalOrganizationHandler struct {
-	repo *TemporalOrganizationRepository
-	db   *sql.DB
+	repo        *TemporalOrganizationRepository
+	db          *sql.DB
+	redisClient *redis.Client
+	cacheTTL    time.Duration
 }
 
 func NewTemporalOrganizationHandler(db *sql.DB) *TemporalOrganizationHandler {
+	// 初始化Redis客户端
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	
 	return &TemporalOrganizationHandler{
-		repo: NewTemporalOrganizationRepository(db),
-		db:   db,
+		repo:        NewTemporalOrganizationRepository(db),
+		db:          db,
+		redisClient: redisClient,
+		cacheTTL:    5 * time.Minute, // 5分钟缓存TTL
 	}
+}
+
+// 生成时态查询缓存键
+func (h *TemporalOrganizationHandler) getCacheKey(tenantID, code string, opts *TemporalQueryOptions) string {
+	hasher := md5.New()
+	optsStr := ""
+	if opts != nil {
+		if opts.AsOfDate != nil {
+			optsStr += fmt.Sprintf("asof:%v", opts.AsOfDate.Format("2006-01-02"))
+		}
+		if opts.IncludeHistory {
+			optsStr += ":hist"
+		}
+		if opts.IncludeFuture {
+			optsStr += ":future"
+		}
+		if opts.Version != nil {
+			optsStr += fmt.Sprintf(":v%d", *opts.Version)
+		}
+	}
+	hasher.Write([]byte(fmt.Sprintf("temporal:%s:%s:%s", tenantID, code, optsStr)))
+	return fmt.Sprintf("cache:%x", hasher.Sum(nil))
 }
 
 func (h *TemporalOrganizationHandler) getTenantID(r *http.Request) uuid.UUID {
@@ -379,10 +412,28 @@ func (h *TemporalOrganizationHandler) GetOrganizationTemporal(w http.ResponseWri
 	
 	tenantID := h.getTenantID(r)
 	
+	// 生成缓存键
+	cacheKey := h.getCacheKey(tenantID.String(), code, opts)
+	
+	// 尝试从缓存获取
+	if h.redisClient != nil {
+		cachedData, err := h.redisClient.Get(r.Context(), cacheKey).Result()
+		if err == nil {
+			var cachedResponse map[string]interface{}
+			if json.Unmarshal([]byte(cachedData), &cachedResponse) == nil {
+				log.Printf("[CACHE HIT] 时态查询缓存命中 - 键: %s, 组织: %s", cacheKey, code)
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(cachedResponse)
+				return
+			}
+		}
+		log.Printf("[CACHE MISS] 时态查询缓存未命中，查询数据库 - 键: %s", cacheKey)
+	}
+	
 	// 执行时态查询
 	organizations, err := h.repo.GetByCodeTemporal(r.Context(), tenantID, code, opts)
 	if err != nil {
-		monitoring.RecordOrganizationOperation("temporal_get", "failed", "command-service")
+	// monitoring.RecordOrganizationOperation("temporal_get", "failed", "command-service")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "TEMPORAL_QUERY_ERROR", "时态查询失败", err)
 		return
 	}
@@ -400,7 +451,15 @@ func (h *TemporalOrganizationHandler) GetOrganizationTemporal(w http.ResponseWri
 		"queried_at":    time.Now().Format(time.RFC3339),
 	}
 	
-	monitoring.RecordOrganizationOperation("temporal_get", "success", "command-service")
+	// 将结果写入缓存
+	if h.redisClient != nil {
+		if cacheData, err := json.Marshal(response); err == nil {
+			h.redisClient.Set(r.Context(), cacheKey, string(cacheData), h.cacheTTL)
+			log.Printf("[CACHE SET] 时态查询结果已缓存 - 键: %s, 组织: %s, TTL: %v", cacheKey, code, h.cacheTTL)
+		}
+	}
+	
+	// monitoring.RecordOrganizationOperation("temporal_get", "success", "command-service")
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
@@ -484,7 +543,7 @@ func (h *TemporalOrganizationHandler) CreateOrganizationEvent(w http.ResponseWri
 		"processed_at":   time.Now().Format(time.RFC3339),
 	}
 	
-	monitoring.RecordOrganizationOperation("event_create", "success", "command-service")
+	// monitoring.RecordOrganizationOperation("event_create", "success", "command-service")
 	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -673,7 +732,7 @@ func main() {
 	// 启动服务器
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "9090"
+		port = "9091"  // 使用9091端口避免与命令服务冲突
 	}
 	
 	server := &http.Server{

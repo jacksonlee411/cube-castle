@@ -124,8 +124,7 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
             <FormField>
               <FormField.Label>组织名称</FormField.Label>
               <FormField.Field>
-                <FormField.Input
-                  as={TextInput}
+                <TextInput
                   placeholder="搜索组织名称..."
                   value={localSearchText}
                   onChange={(e) => setLocalSearchText(e.target.value)}

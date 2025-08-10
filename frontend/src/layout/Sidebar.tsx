@@ -5,23 +5,23 @@ import { useNavigate, useLocation } from 'react-router-dom'
 
 const navigationItems = [
   {
-    label: '仪表板',
+    label: '📊 仪表板',
     path: '/dashboard'
   },
   {
-    label: '员工管理', 
+    label: '👤 员工管理', 
     path: '/employees'
   },
   {
-    label: '职位管理',
+    label: '💼 职位管理',
     path: '/positions'
   },
   {
-    label: '组织架构',
+    label: '🏢 组织架构',
     path: '/organizations'
   },
   {
-    label: '系统监控',
+    label: '📈 系统监控',
     path: '/monitoring'
   }
 ];

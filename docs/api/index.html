@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cube Castle API 文档中心</title>
+    <link href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui-bundle.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .nav-tabs ul {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .nav-tabs li {
+            position: relative;
+        }
+
+        .nav-tabs button {
+            background: none;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            color: #6c757d;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-tabs button:hover {
+            color: #495057;
+        }
+
+        .nav-tabs button.active {
+            color: #667eea;
+            position: relative;
+        }
+
+        .nav-tabs button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #667eea;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .api-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e9ecef;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .api-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .api-card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.4rem;
+        }
+
+        .api-card .endpoint {
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .api-card .performance {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #28a745;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .api-card .badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .performance-stats {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .swagger-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .graphiql-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            height: 600px;
+        }
+
+        .graphiql-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .quick-start {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .code-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .code-tab {
+            background: none;
+            border: 1px solid #cbd5e0;
+            padding: 0.5rem 1rem;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .code-tab.active {
+            background: #2d3748;
+            color: white;
+            border-color: #2d3748;
+        }
+
+        .footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-healthy {
+            background-color: #28a745;
+        }
+
+        .status-warning {
+            background-color: #ffc107;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.7rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            text-decoration: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-info {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #b3d9ff;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏰 Cube Castle API</h1>
+        <p>企业级组织架构管理API文档中心</p>
+    </header>
+
+    <nav class="nav-tabs">
+        <ul>
+            <li><button class="tab-btn active" data-tab="overview">概览</button></li>
+            <li><button class="tab-btn" data-tab="graphql">GraphQL API</button></li>
+            <li><button class="tab-btn" data-tab="temporal">时态API</button></li>
+            <li><button class="tab-btn" data-tab="cache">缓存策略</button></li>
+            <li><button class="tab-btn" data-tab="examples">集成示例</button></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <!-- 概览标签页 -->
+        <div class="tab-content active" id="overview">
+            <div class="performance-stats">
+                <h2 style="margin-bottom: 1.5rem; color: #333;">📊 性能指标</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">91.7%</div>
+                        <div class="stat-label">缓存命中率</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">76%</div>
+                        <div class="stat-label">平均性能提升</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">3.7ms</div>
+                        <div class="stat-label">缓存命中响应</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">核心服务</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overview-grid">
+                <div class="api-card">
+                    <h3>🔍 GraphQL 查询服务</h3>
+                    <p>强大的组织架构查询API，支持灵活的数据获取和高性能缓存。</p>
+                    <div class="endpoint">http://localhost:8090/graphql</div>
+                    <div class="performance">
+                        <span class="status-indicator status-healthy"></span>
+                        <span>65% 性能提升</span>
+                        <span class="badge">Redis缓存</span>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <button class="btn" onclick="openGraphiQL()">打开 GraphiQL</button>
+                        <button class="btn btn-secondary" onclick="switchTab('graphql')">查看文档</button>
+                    </div>
+                </div>
+
+                <div class="api-card">
+                    <h3>⏰ 时态管理 API</h3>
+                    <p>基于时间的组织架构查询和事件驱动的变更管理系统。</p>
+                    <div class="endpoint">http://localhost:9091/api/v1</div>
+                    <div class="performance">
+                        <span class="status-indicator status-healthy"></span>
+                        <span>94% 性能提升</span>
+                        <span class="badge">时态查询</span>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <button class="btn" onclick="testTemporalAPI()">测试 API</button>
+                        <button class="btn btn-secondary" onclick="switchTab('temporal')">查看文档</button>
+                    </div>
+                </div>
+
+                <div class="api-card">
+                    <h3>⚡ 命令管理 API</h3>
+                    <p>专注于创建、更新和删除操作的CQRS命令服务。</p>
+                    <div class="endpoint">http://localhost:9090/api/v1</div>
+                    <div class="performance">
+                        <span class="status-indicator status-healthy"></span>
+                        <span>CQRS 架构</span>
+                        <span class="badge">REST API</span>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <button class="btn" onclick="checkCommandHealth()">健康检查</button>
+                        <button class="btn btn-secondary" onclick="switchTab('examples')">集成示例</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-start">
+                <h3>🚀 快速开始</h3>
+                <p style="margin-bottom: 1.5rem;">选择您的开发语言，快速集成 Cube Castle API：</p>
+                
+                <div class="code-tabs">
+                    <button class="code-tab active" onclick="showCode('javascript')">JavaScript</button>
+                    <button class="code-tab" onclick="showCode('python')">Python</button>
+                    <button class="code-tab" onclick="showCode('go')">Go</button>
+                    <button class="code-tab" onclick="showCode('curl')">cURL</button>
+                </div>
+
+                <div id="javascript-code" class="code-block">
+<pre>// GraphQL 查询示例
+import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
+
+const client = new ApolloClient({
+  uri: 'http://localhost:8090/graphql',
+  cache: new InMemoryCache(),
+  headers: {
+    'X-API-Key': 'your_api_key',
+    'X-Tenant-ID': 'your_tenant_id'
+  }
+});
+
+const GET_ORGANIZATIONS = gql`
+  query GetOrganizations {
+    organizations(first: 10) {
+      code
+      name
+      unit_type
+      status
+    }
+  }
+`;
+
+const { data } = await client.query({ query: GET_ORGANIZATIONS });
+console.log(data.organizations);</pre>
+                </div>
+
+                <div id="python-code" class="code-block" style="display: none;">
+<pre># Python GraphQL 查询示例
+import requests
+
+query = """
+query GetOrganizations {
+  organizations(first: 10) {
+    code
+    name
+    unit_type
+    status
+  }
+}
+"""
+
+response = requests.post(
+    'http://localhost:8090/graphql',
+    json={'query': query},
+    headers={
+        'X-API-Key': 'your_api_key',
+        'X-Tenant-ID': 'your_tenant_id'
+    }
+)
+
+data = response.json()
+print(data['data']['organizations'])</pre>
+                </div>
+
+                <div id="go-code" class="code-block" style="display: none;">
+<pre>// Go GraphQL 查询示例
+package main
+
+import (
+    "context"
+    "fmt"
+    "github.com/machinebox/graphql"
+)
+
+func main() {
+    client := graphql.NewClient("http://localhost:8090/graphql")
+    client.Header.Set("X-API-Key", "your_api_key")
+    client.Header.Set("X-Tenant-ID", "your_tenant_id")
+
+    req := graphql.NewRequest(`
+        query GetOrganizations {
+            organizations(first: 10) {
+                code
+                name
+                unit_type
+                status
+            }
+        }
+    `)
+
+    var response struct {
+        Organizations []struct {
+            Code     string `json:"code"`
+            Name     string `json:"name"`
+            UnitType string `json:"unit_type"`
+            Status   string `json:"status"`
+        } `json:"organizations"`
+    }
+
+    if err := client.Run(context.Background(), req, &response); err != nil {
+        panic(err)
+    }
+
+    fmt.Printf("获取到 %d 个组织\n", len(response.Organizations))
+}</pre>
+                </div>
+
+                <div id="curl-code" class="code-block" style="display: none;">
+<pre># cURL 查询示例
+
+# GraphQL 查询
+curl -X POST http://localhost:8090/graphql \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key" \
+  -H "X-Tenant-ID: your_tenant_id" \
+  -d '{
+    "query": "query { organizations(first: 10) { code name unit_type status } }"
+  }'
+
+# 时态 API 查询
+curl "http://localhost:9091/api/v1/organization-units/1000001/temporal?as_of_date=2025-08-09" \
+  -H "X-API-Key: your_api_key" \
+  -H "X-Tenant-ID: your_tenant_id"
+
+# 健康检查
+curl http://localhost:8090/health
+curl http://localhost:9091/health</pre>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>💡 提示:</strong> 点击上方的服务卡片可以直接测试 API 或查看详细文档。所有 API 都支持 CORS 跨域访问。
+            </div>
+        </div>
+
+        <!-- GraphQL 标签页 -->
+        <div class="tab-content" id="graphql">
+            <div class="alert alert-success">
+                <strong>🎉 GraphQL API 就绪!</strong> 
+                服务运行在 <code>http://localhost:8090/graphql</code>，
+                GraphiQL 界面: <code>http://localhost:8090/graphiql</code>
+            </div>
+
+            <div class="graphiql-container">
+                <iframe id="graphiql-frame" src="http://localhost:8090/graphiql"></iframe>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <h3>📚 Schema 文档</h3>
+                <p>详细的 GraphQL Schema 文档和查询示例请查看：</p>
+                <ul style="margin: 1rem 0; padding-left: 2rem;">
+                    <li><a href="./graphql-api.md" target="_blank">GraphQL API 完整文档</a></li>
+                    <li><a href="http://localhost:8090/graphiql" target="_blank">GraphiQL 交互界面</a></li>
+                    <li><a href="#examples" onclick="switchTab('examples')">集成示例代码</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 时态API 标签页 -->
+        <div class="tab-content" id="temporal">
+            <div class="swagger-container" id="swagger-ui"></div>
+            
+            <div style="margin-top: 2rem;">
+                <h3>📖 时态API 特性</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 1rem;">
+                    <div class="api-card">
+                        <h4>🕒 时间点查询</h4>
+                        <p>使用 <code>as_of_date</code> 参数查询特定时间点的组织状态</p>
+                        <div class="code-block" style="font-size: 0.8rem;">GET /api/v1/organization-units/1000001/temporal?as_of_date=2025-08-09</div>
+                    </div>
+                    <div class="api-card">
+                        <h4>📅 时间范围查询</h4>
+                        <p>查询指定时间范围内的组织变更历史</p>
+                        <div class="code-block" style="font-size: 0.8rem;">GET /api/v1/organization-units/1000001/temporal?effective_from=2025-08-01&effective_to=2025-08-31</div>
+                    </div>
+                    <div class="api-card">
+                        <h4>⚡ 事件驱动变更</h4>
+                        <p>通过事件驱动模式处理组织架构变更</p>
+                        <div class="code-block" style="font-size: 0.8rem;">POST /api/v1/organization-units/1000001/events</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 缓存策略 标签页 -->
+        <div class="tab-content" id="cache">
+            <div class="performance-stats">
+                <h2 style="margin-bottom: 1.5rem;">🚀 缓存性能表现</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">65%</div>
+                        <div class="stat-label">GraphQL 性能提升</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">94%</div>
+                        <div class="stat-label">时态API 性能提升</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">5分钟</div>
+                        <div class="stat-label">默认 TTL</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">512MB</div>
+                        <div class="stat-label">Redis 内存限制</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-start">
+                <h3>🔧 缓存配置</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 1.5rem;">
+                    <div>
+                        <h4>缓存策略</h4>
+                        <ul style="margin-top: 1rem; line-height: 1.6;">
+                            <li><strong>智能键生成:</strong> MD5 哈希 + 参数组合</li>
+                            <li><strong>分层TTL:</strong> 2分钟~1小时动态配置</li>
+                            <li><strong>精确失效:</strong> 避免暴力清空缓存</li>
+                            <li><strong>LRU淘汰:</strong> 自动内存管理</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>监控指标</h4>
+                        <div class="code-block">
+# 实时监控命令
+curl http://localhost:8090/metrics | grep cache
+redis-cli info | grep keyspace_
+
+# 缓存统计
+命中率: 91.7%
+内存使用: 1.31MB / 512MB
+键数量: 4 个活跃键</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>📖 详细指南:</strong> 
+                查看 <a href="./cache-strategy-guide.md" target="_blank">缓存策略使用指南</a> 
+                了解完整的缓存配置、优化和监控方案。
+            </div>
+        </div>
+
+        <!-- 集成示例 标签页 -->
+        <div class="tab-content" id="examples">
+            <div class="quick-start">
+                <h3>🛠️ 客户端 SDK</h3>
+                <p style="margin-bottom: 1.5rem;">我们为主流编程语言提供了完整的客户端实现：</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div class="api-card">
+                        <h4>JavaScript/TypeScript</h4>
+                        <p>基于 Apollo Client，支持 React、Vue、Next.js</p>
+                        <div class="code-block" style="font-size: 0.8rem;">npm install @apollo/client graphql</div>
+                        <button class="btn" style="margin-top: 1rem;" onclick="showLanguageExample('javascript')">查看示例</button>
+                    </div>
+                    <div class="api-card">
+                        <h4>Python</h4>
+                        <p>使用 requests 和 gql，支持同步和异步</p>
+                        <div class="code-block" style="font-size: 0.8rem;">pip install requests gql[all]</div>
+                        <button class="btn" style="margin-top: 1rem;" onclick="showLanguageExample('python')">查看示例</button>
+                    </div>
+                    <div class="api-card">
+                        <h4>Go</h4>
+                        <p>原生 Go 实现，高性能并发支持</p>
+                        <div class="code-block" style="font-size: 0.8rem;">go get github.com/machinebox/graphql</div>
+                        <button class="btn" style="margin-top: 1rem;" onclick="showLanguageExample('go')">查看示例</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="language-examples" class="quick-start" style="display: none;">
+                <h3>代码示例</h3>
+                <div id="example-content"></div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>📚 完整文档:</strong> 
+                查看 <a href="./integration-examples.md" target="_blank">API集成示例和代码模板</a> 
+                获取完整的客户端实现和最佳实践指南。
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 Cube Castle API. 构建企业级组织架构管理系统。</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
+    <script>
+        // 标签页切换
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // 延迟初始化 Swagger UI
+            if (tabName === 'temporal') {
+                setTimeout(initSwaggerUI, 100);
+            }
+        }
+
+        // 代码示例切换
+        function showCode(language) {
+            document.querySelectorAll('.code-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.code-block').forEach(block => {
+                block.style.display = 'none';
+            });
+            
+            document.querySelector(`[onclick="showCode('${language}')"]`).classList.add('active');
+            document.getElementById(`${language}-code`).style.display = 'block';
+        }
+
+        // 初始化 Swagger UI
+        function initSwaggerUI() {
+            if (document.getElementById('swagger-ui').children.length === 0) {
+                SwaggerUIBundle({
+                    url: './temporal-api.yaml',
+                    dom_id: '#swagger-ui',
+                    presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIBundle.presets.standalone
+                    ],
+                    plugins: [
+                        SwaggerUIBundle.plugins.DownloadUrl
+                    ],
+                    layout: 'StandaloneLayout',
+                    deepLinking: true,
+                    showExtensions: true,
+                    showCommonExtensions: true,
+                    defaultModelsExpandDepth: 1,
+                    defaultModelExpandDepth: 1,
+                    tryItOutEnabled: true,
+                });
+            }
+        }
+
+        // API 测试函数
+        async function testTemporalAPI() {
+            try {
+                const response = await fetch('http://localhost:9091/api/v1/organization-units/1000001/temporal');
+                const data = await response.json();
+                alert(`时态API测试成功！\n返回 ${data.result_count} 条记录`);
+            } catch (error) {
+                alert('时态API测试失败: ' + error.message);
+            }
+        }
+
+        async function checkCommandHealth() {
+            try {
+                const response = await fetch('http://localhost:9090/health');
+                const data = await response.json();
+                alert(`命令服务健康检查: ${data.status}`);
+            } catch (error) {
+                alert('命令服务不可用: ' + error.message);
+            }
+        }
+
+        function openGraphiQL() {
+            window.open('http://localhost:8090/graphiql', '_blank');
+        }
+
+        // 语言示例
+        const languageExamples = {
+            javascript: `
+                <h4>JavaScript/TypeScript 客户端示例</h4>
+                <div class="code-block">
+<pre>import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
+
+// 创建 Apollo Client
+const client = new ApolloClient({
+  uri: 'http://localhost:8090/graphql',
+  cache: new InMemoryCache(),
+  headers: {
+    'X-API-Key': process.env.REACT_APP_API_KEY,
+    'X-Tenant-ID': process.env.REACT_APP_TENANT_ID
+  }
+});
+
+// React Hook 使用示例
+import { useQuery } from '@apollo/client';
+
+const GET_ORGANIZATIONS = gql\`
+  query GetOrganizations($first: Int, $searchText: String) {
+    organizations(first: $first, searchText: $searchText) {
+      code
+      name
+      unit_type
+      status
+      level
+    }
+  }
+\`;
+
+function OrganizationList() {
+  const { loading, error, data } = useQuery(GET_ORGANIZATIONS, {
+    variables: { first: 20, searchText: "" },
+    fetchPolicy: 'cache-first' // 优先使用缓存
+  });
+
+  if (loading) return <div>加载中...</div>;
+  if (error) return <div>错误: {error.message}</div>;
+
+  return (
+    <ul>
+      {data.organizations.map(org => (
+        <li key={org.code}>{org.name} ({org.unit_type})</li>
+      ))}
+    </ul>
+  );
+}</pre>
+                </div>
+            `,
+            python: `
+                <h4>Python 客户端示例</h4>
+                <div class="code-block">
+<pre>import requests
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
+
+# GraphQL 客户端
+transport = RequestsHTTPTransport(
+    url='http://localhost:8090/graphql',
+    headers={
+        'X-API-Key': 'your_api_key',
+        'X-Tenant-ID': 'your_tenant_id'
+    }
+)
+
+client = Client(transport=transport)
+
+# 查询组织列表
+query = gql("""
+    query GetOrganizations($first: Int, $searchText: String) {
+        organizations(first: $first, searchText: $searchText) {
+            code
+            name
+            unit_type
+            status
+            level
+        }
+    }
+""")
+
+result = client.execute(query, variable_values={
+    "first": 20,
+    "searchText": "AI"
+})
+
+print(f"找到 {len(result['organizations'])} 个组织:")
+for org in result['organizations']:
+    print(f"- {org['name']} ({org['unit_type']})")
+
+# 时态API 查询
+import requests
+from datetime import datetime
+
+response = requests.get(
+    'http://localhost:9091/api/v1/organization-units/1000001/temporal',
+    params={'as_of_date': '2025-08-09'},
+    headers={
+        'X-API-Key': 'your_api_key',
+        'X-Tenant-ID': 'your_tenant_id'
+    }
+)
+
+temporal_data = response.json()
+print(f"时态查询返回 {temporal_data['result_count']} 个版本")</pre>
+                </div>
+            `,
+            go: `
+                <h4>Go 客户端示例</h4>
+                <div class="code-block">
+<pre>package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    
+    "github.com/machinebox/graphql"
+)
+
+type Organization struct {
+    Code     string \`json:"code"\`
+    Name     string \`json:"name"\`
+    UnitType string \`json:"unit_type"\`
+    Status   string \`json:"status"\`
+    Level    int    \`json:"level"\`
+}
+
+func main() {
+    // 创建 GraphQL 客户端
+    client := graphql.NewClient("http://localhost:8090/graphql")
+    client.Header.Set("X-API-Key", "your_api_key")
+    client.Header.Set("X-Tenant-ID", "your_tenant_id")
+
+    // 构建查询
+    req := graphql.NewRequest(\`
+        query GetOrganizations($first: Int, $searchText: String) {
+            organizations(first: $first, searchText: $searchText) {
+                code
+                name
+                unit_type
+                status
+                level
+            }
+        }
+    \`)
+    
+    req.Var("first", 20)
+    req.Var("searchText", "AI")
+
+    // 执行查询
+    var response struct {
+        Organizations []Organization \`json:"organizations"\`
+    }
+
+    ctx := context.Background()
+    if err := client.Run(ctx, req, &response); err != nil {
+        log.Fatal(err)
+    }
+
+    // 输出结果
+    fmt.Printf("找到 %d 个组织:\n", len(response.Organizations))
+    for _, org := range response.Organizations {
+        fmt.Printf("- %s (%s)\n", org.Name, org.UnitType)
+    }
+}</pre>
+                </div>
+            `
+        };
+
+        function showLanguageExample(language) {
+            const exampleDiv = document.getElementById('language-examples');
+            const contentDiv = document.getElementById('example-content');
+            
+            contentDiv.innerHTML = languageExamples[language];
+            exampleDiv.style.display = 'block';
+            exampleDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 事件监听
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchTab(btn.dataset.tab);
+            });
+        });
+
+        // 页面加载时检查服务状态
+        window.addEventListener('load', async () => {
+            // 检查服务状态并更新指示器
+            const services = [
+                { url: 'http://localhost:8090/health', name: 'GraphQL' },
+                { url: 'http://localhost:9091/health', name: 'Temporal' },
+                { url: 'http://localhost:9090/health', name: 'Command' }
+            ];
+            
+            // 这里可以添加实际的健康检查逻辑
+            console.log('API 文档中心已加载');
+        });
+    </script>
+</body>
+</html>

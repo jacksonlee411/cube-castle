@@ -1,3 +1,5 @@
+# Phase 4: 增强监控配置
+# 集成时态API和缓存性能监控
 groups:
 - name: cube_castle_alerts
   rules:
@@ -29,10 +31,82 @@ groups:
       description: "PostgreSQL database is not responding"
 
   - alert: ServiceDown
-    expr: up{job=~"organization-.*"} == 0
+    expr: up{job=~"organization-.*|temporal-.*"} == 0
     for: 1m
     labels:
       severity: critical
     annotations:
       summary: "{{ $labels.job }} service is down"
       description: "{{ $labels.job }} has been down for more than 1 minute"
+
+# Phase 4: 时态API和缓存性能监控告警
+- name: temporal_api_performance
+  rules:
+  - alert: TemporalAPIHighLatency
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="temporal-api"}[5m])) > 0.5
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "时态API响应时间过高"
+      description: "时态API 95%分位数响应时间超过500ms，当前值: {{ $value | printf "%.2f" }}s"
+      
+  - alert: TemporalAPISlowQueries
+    expr: rate(temporal_query_duration_seconds_sum{operation="as_of_date"}[5m]) / rate(temporal_query_duration_seconds_count{operation="as_of_date"}[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "时态查询性能下降"
+      description: "as_of_date查询平均响应时间超过100ms，当前值: {{ $value | printf "%.3f" }}s"
+
+- name: cache_performance_alerts
+  rules:
+  - alert: CacheHitRateLow
+    expr: (
+      rate(cache_operations_total{result="hit"}[5m]) / 
+      (
+        rate(cache_operations_total{result="hit"}[5m]) + 
+        rate(cache_operations_total{result="miss"}[5m])
+      )
+    ) < 0.85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "缓存命中率过低"
+      description: "Redis缓存命中率低于85%，当前值: {{ $value | printf "%.2f" }}%，可能影响API性能"
+      
+  - alert: CacheConnectionFailure
+    expr: up{job="redis-exporter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis缓存服务不可用"
+      description: "Redis缓存服务已停止响应，所有缓存性能优化将失效"
+      
+  - alert: MemoryUsageHigh
+    expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Redis内存使用率过高"
+      description: "Redis内存使用率超过80%，当前值: {{ $value | printf "%.1f" }}%，可能引起缓存淘汰"
+
+# GraphQL + 时态API整合性能监控
+- name: api_performance_combined
+  rules:
+  - alert: OverallAPIPerformanceDegradation
+    expr: (
+      histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"organization-.*|temporal-.*"}[5m])) > 0.2
+    ) and (
+      rate(cache_operations_total{result="hit"}[5m]) / (rate(cache_operations_total[5m])) < 0.9
+    )
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "API整体性能下降"
+      description: "API响应时间超过200ms且缓存命中率低于90%，系统整体性能下降"

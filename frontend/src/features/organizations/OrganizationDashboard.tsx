@@ -13,32 +13,66 @@ import { PaginationControls } from './PaginationControls';
 import { useOrganizationDashboard } from './hooks/useOrganizationDashboard';
 import { useOrganizationActions } from './hooks/useOrganizationActions';
 
+// 时态管理组件导入 - 暂时禁用 (第一次修复失败，需要更深层修复)
+// import { TemporalNavbar } from '../temporal/components/TemporalNavbar';
+// import { useTemporalMode, useTemporalQueryState } from '../../shared/hooks/useTemporalQuery';
+// import type { TemporalMode } from '../../shared/types/temporal';
+
 const DashboardHeader: React.FC<{
   onCreateClick: () => void;
+  onCreatePlannedClick?: () => void;
   isToggling: boolean;
-}> = ({ onCreateClick, isToggling }) => (
+  temporalMode?: TemporalMode;
+  isHistorical?: boolean;
+}> = ({ onCreateClick, onCreatePlannedClick, isToggling, temporalMode = 'current', isHistorical = false }) => (
   <Box marginBottom="l">
-    <Heading size="large">组织架构管理</Heading>
+    <Heading size="large">
+      组织架构管理
+      {isHistorical && (
+        <Text as="span" typeLevel="subtext.medium" color="hint" marginLeft="s">
+          (历史视图)
+        </Text>
+      )}
+    </Heading>
     <Box paddingTop="m">
       <PrimaryButton 
         marginRight="s" 
         onClick={onCreateClick}
-        disabled={isToggling}
+        disabled={isToggling || isHistorical}
       >
-        新增组织单元
+        {isHistorical ? '新增组织单元 (历史模式禁用)' : '新增组织单元'}
       </PrimaryButton>
+      
+      {/* 计划组织创建按钮 */}
+      {onCreatePlannedClick && !isHistorical && (
+        <PrimaryButton 
+          marginRight="s" 
+          onClick={onCreatePlannedClick}
+          disabled={isToggling}
+          variant="outline"
+          style={{ borderColor: '#1890ff', color: '#1890ff' }}
+        >
+          📅 新增计划组织
+        </PrimaryButton>
+      )}
+      
       <SecondaryButton 
         marginRight="s"
-        disabled={isToggling}
+        disabled={isToggling || isHistorical}
       >
         导入数据
       </SecondaryButton>
-      <TertiaryButton disabled={isToggling}>
+      <TertiaryButton disabled={isToggling || isHistorical}>
         导出报告
       </TertiaryButton>
       {isToggling && (
         <Text typeLevel="subtext.small" color="hint" marginLeft="m">
           正在更新组织状态...
+        </Text>
+      )}
+      {isHistorical && (
+        <Text typeLevel="subtext.small" color="hint" marginLeft="m">
+          📖 当前查看历史数据，部分操作已禁用
         </Text>
       )}
     </Box>
@@ -82,6 +116,7 @@ const ErrorState: React.FC<{ error: Error }> = ({ error }) => (
 );
 
 export const OrganizationDashboard: React.FC = () => {
+  // 传统组织数据和操作
   const {
     organizations,
     totalCount,
@@ -108,21 +143,63 @@ export const OrganizationDashboard: React.FC = () => {
     handleFormSubmit,
   } = useOrganizationActions();
 
-  if (isLoading) {
+  // 计划组织创建处理 - 重新启用
+  const handleCreatePlanned = () => {
+    const plannedOrgTemplate = {
+      name: '',
+      unit_type: 'DEPARTMENT',
+      status: 'PLANNED',
+      description: '',
+      parent_code: '',
+      level: 1,
+      sort_order: 0,
+      _isPlannedCreation: true
+    };
+    handleCreate(plannedOrgTemplate as any);
+  };
+
+  // 时态管理状态和操作 - 暂时禁用 (第一次修复失败，需要更深层修复)
+  // const { mode: temporalMode, isHistorical, isCurrent, isPlanning } = useTemporalMode();
+  // const { loading: temporalLoading, error: temporalError, context: temporalContext } = useTemporalQueryState();
+  const temporalMode = 'current';
+  const isHistorical = false;
+  const isCurrent = true;
+  const isPlanning = false;
+  const temporalLoading = { organizations: false };
+  const temporalError = null;
+  const temporalContext = null;
+
+  // 时态模式变更处理 - 暂时禁用 (第一次修复失败，需要更深层修复)
+  // const handleTemporalModeChange = (newMode: TemporalMode) => {
+  //   console.log(`时态模式切换到: ${newMode}`);
+  // };
+
+  if (isLoading || temporalLoading.organizations) {
     return <LoadingState />;
   }
 
-  if (error) {
-    return <ErrorState error={error} />;
+  if (error || temporalError) {
+    return <ErrorState error={error || new Error(temporalError || 'Temporal query error')} />;
   }
 
   const hasOrganizations = organizations && organizations.length > 0;
 
   return (
     <Box data-testid="organization-dashboard">
+      {/* 时态导航栏 - 暂时禁用 (第一次修复失败，需要更深层修复) */}
+      {/* <Box marginBottom="l">
+        <TemporalNavbar
+          onModeChange={handleTemporalModeChange}
+          showAdvancedSettings={true}
+        />
+      </Box> */}
+
       <DashboardHeader 
         onCreateClick={handleCreate}
+        onCreatePlannedClick={handleCreatePlanned}
         isToggling={isToggling}
+        temporalMode={temporalMode}
+        isHistorical={isHistorical}
       />
       
       {stats && <StatsCards stats={stats} />}
@@ -135,10 +212,22 @@ export const OrganizationDashboard: React.FC = () => {
       <Card>
         <Card.Heading>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>组织单元列表</span>
-            {isFetching && (
+            <span>
+              组织单元列表
+              {isHistorical && (
+                <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="s">
+                  - 历史时点: {temporalContext?.asOfDate ? new Date(temporalContext.asOfDate).toLocaleDateString('zh-CN') : '未指定'}
+                </Text>
+              )}
+              {isPlanning && (
+                <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="s">
+                  - 规划视图
+                </Text>
+              )}
+            </span>
+            {(isFetching || temporalLoading.organizations) && (
               <Text typeLevel="subtext.small" color="hint">
-                加载中...
+                {temporalLoading.organizations ? '加载时态数据中...' : '加载中...'}
               </Text>
             )}
           </div>
@@ -148,10 +237,12 @@ export const OrganizationDashboard: React.FC = () => {
             <>
               <OrganizationTable
                 organizations={organizations}
-                onEdit={handleEdit}
-                onToggleStatus={handleToggleStatus}
-                loading={isFetching}
+                onEdit={isHistorical ? undefined : handleEdit} // 历史模式禁用编辑
+                onToggleStatus={isHistorical ? undefined : handleToggleStatus} // 历史模式禁用状态切换
+                loading={isFetching || temporalLoading.organizations}
                 togglingId={togglingId}
+                temporalMode={temporalMode}
+                isHistorical={isHistorical}
               />
               
               <PaginationControls
@@ -159,7 +250,7 @@ export const OrganizationDashboard: React.FC = () => {
                 totalCount={totalCount}
                 pageSize={filters.pageSize}
                 onPageChange={handlePageChange}
-                disabled={isFetching || isToggling}
+                disabled={isFetching || isToggling || temporalLoading.organizations}
               />
             </>
           ) : (
@@ -171,12 +262,18 @@ export const OrganizationDashboard: React.FC = () => {
         </Card.Body>
       </Card>
 
-      <OrganizationForm 
-        organization={selectedOrg}
-        isOpen={isFormOpen}
-        onClose={handleFormClose}
-        onSubmit={handleFormSubmit}
-      />
+      {/* 组织表单 - 历史模式下禁用 */}
+      {!isHistorical && (
+        <OrganizationForm 
+          organization={selectedOrg}
+          isOpen={isFormOpen}
+          onClose={handleFormClose}
+          onSubmit={handleFormSubmit}
+          temporalMode={temporalMode}
+          isHistorical={isHistorical}
+          enableTemporalFeatures={true}
+        />
+      )}
     </Box>
   );
 };
