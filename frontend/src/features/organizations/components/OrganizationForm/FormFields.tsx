@@ -47,59 +47,61 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         </FormField.Field>
       </FormField>
 
-      {!isEditing && (
-        <>
-          <FormField marginBottom="m">
-            <FormField.Label>组织类型 *</FormField.Label>
-            <FormField.Field>
-              <select
-                value={formData.unit_type}
-                onChange={(e) => updateField('unit_type', e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '8px', 
-                  borderRadius: '4px', 
-                  border: '1px solid #ddd' 
-                }}
-                data-testid="form-field-unit-type"
-              >
-                <option value="DEPARTMENT">部门</option>
-                <option value="COST_CENTER">成本中心</option>
-                <option value="COMPANY">公司</option>
-                <option value="PROJECT_TEAM">项目团队</option>
-              </select>
-            </FormField.Field>
-          </FormField>
+      <FormField marginBottom="m">
+        <FormField.Label>组织类型 *</FormField.Label>
+        <FormField.Field>
+          <select
+            value={formData.unit_type}
+            onChange={(e) => updateField('unit_type', e.target.value)}
+            disabled={false}
+            style={{ 
+              width: '100%', 
+              padding: '8px', 
+              borderRadius: '4px', 
+              border: '1px solid #ddd',
+              backgroundColor: 'white',
+              cursor: 'pointer'
+            }}
+            data-testid="form-field-unit-type"
+          >
+            <option value="DEPARTMENT">部门</option>
+            <option value="COST_CENTER">成本中心</option>
+            <option value="COMPANY">公司</option>
+            <option value="PROJECT_TEAM">项目团队</option>
+          </select>
+        </FormField.Field>
+      </FormField>
 
-          <FormField marginBottom="m">
-            <FormField.Label>上级组织编码</FormField.Label>
-            <FormField.Field>
-              <FormField.Input
-                as={TextInput}
-                value={formData.parent_code}
-                onChange={(e) => updateField('parent_code', e.target.value)}
-                placeholder="请输入上级组织编码"
-                data-testid="form-field-parent-code"
-              />
-            </FormField.Field>
-          </FormField>
+      <FormField marginBottom="m">
+        <FormField.Label>上级组织编码</FormField.Label>
+        <FormField.Field>
+          <FormField.Input
+            as={TextInput}
+            value={formData.parent_code}
+            onChange={(e) => updateField('parent_code', e.target.value)}
+            disabled={false}
+            placeholder="请输入上级组织编码"
+            data-testid="form-field-parent-code"
+          />
+        </FormField.Field>
+      </FormField>
 
-          <FormField marginBottom="m">
-            <FormField.Label>组织层级 *</FormField.Label>
-            <FormField.Field>
-              <FormField.Input
-                as={TextInput}
-                type="number"
-                value={formData.level}
-                onChange={(e) => updateField('level', parseInt(e.target.value) || 1)}
-                min="1"
-                required
-                data-testid="form-field-level"
-              />
-            </FormField.Field>
-          </FormField>
-        </>
-      )}
+      <FormField marginBottom="m">
+        <FormField.Label>组织层级</FormField.Label>
+        <FormField.Field>
+          <FormField.Input
+            as={TextInput}
+            type="number"
+            value={formData.level}
+            disabled={true}
+            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+            data-testid="form-field-level"
+          />
+        </FormField.Field>
+        <FormField.Hint>
+          层级由上级组织关系自动计算，不可手动修改
+        </FormField.Hint>
+      </FormField>
 
       <FormField marginBottom="m">
         <FormField.Label>状态 *</FormField.Label>

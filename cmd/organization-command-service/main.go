@@ -64,7 +64,7 @@ func ValidateCreateOrganization(req *CreateOrganizationRequest) error {
 	}
 	
 	validTypes := map[string]bool{
-		"COMPANY": true, "DEPARTMENT": true, "TEAM": true,
+		"COMPANY": true, "DEPARTMENT": true, "COST_CENTER": true, "PROJECT_TEAM": true,
 	}
 	if !validTypes[req.UnitType] {
 		return fmt.Errorf("无效的组织类型: %s", req.UnitType)
@@ -89,7 +89,7 @@ func ValidateUpdateOrganization(req *UpdateOrganizationRequest) error {
 	
 	if req.UnitType != nil {
 		validTypes := map[string]bool{
-			"COMPANY": true, "DEPARTMENT": true, "TEAM": true,
+			"COMPANY": true, "DEPARTMENT": true, "COST_CENTER": true, "PROJECT_TEAM": true,
 		}
 		if !validTypes[*req.UnitType] {
 			return fmt.Errorf("无效的组织类型: %s", *req.UnitType)
@@ -108,6 +108,8 @@ func ValidateUpdateOrganization(req *UpdateOrganizationRequest) error {
 	if req.SortOrder != nil && *req.SortOrder < 0 {
 		return fmt.Errorf("排序顺序不能为负数")
 	}
+
+	// 移除Level验证：level由parent_code自动计算，不允许手动设置
 	
 	return nil
 }
@@ -128,6 +130,8 @@ type UpdateOrganizationRequest struct {
 	Status      *string `json:"status,omitempty"`
 	SortOrder   *int    `json:"sort_order,omitempty"`
 	Description *string `json:"description,omitempty"`
+	// Level       *int    `json:"level,omitempty"`        // 移除：level由parent_code自动计算
+	ParentCode  *string `json:"parent_code,omitempty"`     // 通过修改parent_code来改变层级
 }
 
 type OrganizationResponse struct {
@@ -255,6 +259,14 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	if req.Description != nil {
 		setParts = append(setParts, fmt.Sprintf("description = $%d", argIndex))
 		args = append(args, *req.Description)
+		argIndex++
+	}
+
+	// 移除Level更新逻辑：level由数据库触发器根据parent_code自动计算
+
+	if req.ParentCode != nil {
+		setParts = append(setParts, fmt.Sprintf("parent_code = $%d", argIndex))
+		args = append(args, *req.ParentCode)
 		argIndex++
 	}
 	

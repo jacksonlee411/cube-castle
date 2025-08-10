@@ -30,4 +30,5 @@ export interface ValidationRules {
   name: (value: string) => string | null;
   code: (value: string) => string | null;
   level: (value: number) => string | null;
+  unit_type: (value: string) => string | null;
 }

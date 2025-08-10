@@ -311,7 +311,7 @@ test.describe('业务流程端到端测试', () => {
       return result.data?.organizations || [];
     });
 
-    // 3. 验证数据一致性
+    // 3. 验证数据一致性 - 考虑状态显示的本地化
     if (frontendData.length > 0 && apiData.length > 0) {
       const firstFrontendItem = frontendData[0];
       const firstApiItem = apiData[0];
@@ -319,7 +319,15 @@ test.describe('业务流程端到端测试', () => {
       expect(firstFrontendItem.code).toBe(firstApiItem.code);
       expect(firstFrontendItem.name).toBe(firstApiItem.name);
       expect(firstFrontendItem.type).toBe(firstApiItem.unitType);
-      expect(firstFrontendItem.status).toBe(firstApiItem.status);
+      
+      // 状态字段处理本地化映射
+      const statusMap = {
+        'ACTIVE': '启用',
+        'INACTIVE': '禁用',
+        'PLANNED': '计划'
+      };
+      const expectedStatus = statusMap[firstApiItem.status] || firstApiItem.status;
+      expect(firstFrontendItem.status).toBe(expectedStatus);
     }
   });
 });

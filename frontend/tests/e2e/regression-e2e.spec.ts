@@ -68,7 +68,8 @@ test.describe('回归测试和兼容性验证', () => {
     });
 
     expect(restResult.status).toBe(200);
-    expect(restResult.data).toHaveProperty('data');
+    // 修正：REST API直接返回数据，不包装在'data'字段中
+    expect(restResult.data).toHaveProperty('organizations');
   });
 
   test('数据迁移验证测试', async ({ page }) => {

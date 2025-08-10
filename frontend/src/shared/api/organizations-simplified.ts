@@ -9,6 +9,8 @@ import type {
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
 import { 
   validateOrganizationBasic,
+  validateOrganizationUpdate,
+  validateStatusUpdate,
   safeTransform,
   SimpleValidationError,
   formatValidationErrors
@@ -145,12 +147,16 @@ export const organizationAPI = {
         }
       }).filter(Boolean);
 
+      // 🔧 修复: 区分全局总数和筛选结果总数
+      const isFiltered = !!(params?.searchText || params?.unit_type || params?.status || params?.level);
+      const filteredTotalCount = isFiltered ? organizations.length : data.organizationStats.totalCount;
+      
       return {
         organizations: organizations,
-        total_count: data.organizationStats.totalCount,
+        total_count: filteredTotalCount,
         page: params?.page || 1,
         page_size: organizations.length,
-        total_pages: Math.ceil(data.organizationStats.totalCount / (params?.pageSize || 50))
+        total_pages: Math.ceil(filteredTotalCount / (params?.pageSize || 50))
       };
 
     } catch (error) {
@@ -315,7 +321,7 @@ export const organizationAPI = {
     }
   },
 
-  // 更新组织 - 依赖后端统一验证
+  // 更新组织 - 智能验证，根据更新内容选择合适的验证策略
   update: async (code: string, input: UpdateOrganizationInput): Promise<any> => {
     try {
       if (!code) {
@@ -324,8 +330,22 @@ export const organizationAPI = {
         ]);
       }
 
-      // 基础前端验证 (用户体验)
-      const validationResult = validateOrganizationBasic(input);
+      // 智能验证策略：根据更新的字段选择验证方法
+      let validationResult;
+      
+      const inputKeys = Object.keys(input);
+      const isStatusOnlyUpdate = inputKeys.length === 1 && inputKeys[0] === 'status';
+      
+      if (isStatusOnlyUpdate) {
+        // 仅状态更新，使用状态专用验证
+        console.log('[API] Status-only update detected, using validateStatusUpdate');
+        validationResult = validateStatusUpdate(input);
+      } else {
+        // 完整更新，使用更新专用验证（不验证unit_type）
+        console.log('[API] Full update detected, using validateOrganizationUpdate');
+        validationResult = validateOrganizationUpdate(input);
+      }
+      
       if (!validationResult.isValid) {
         throw new SimpleValidationError(
           '输入验证失败：' + formatValidationErrors(validationResult.errors),

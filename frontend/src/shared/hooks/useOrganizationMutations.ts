@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { organizationAPI } from '../api/organizations';
+import { organizationAPI } from '../api/organizations-simplified';
 import type { OrganizationUnit, OrganizationStatus } from '../types';
 
 // 新增组织单元的输入类型
@@ -18,9 +18,12 @@ export interface CreateOrganizationInput {
 export interface UpdateOrganizationInput {
   code: string;
   name?: string;
+  unit_type?: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
   status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
   description?: string;
   sort_order?: number;
+  level?: number;
+  parent_code?: string;
 }
 
 // 状态切换输入类型
@@ -114,6 +117,16 @@ export const useUpdateOrganization = () => {
         type: 'active'
       });
       
+      // 新增：直接设置缓存数据以提供即时反馈
+      queryClient.setQueryData(['organization', variables.code], updatedOrganization);
+      
+      // 新增：移除过时的缓存数据
+      queryClient.removeQueries({ 
+        queryKey: ['organizations'],
+        exact: false,
+        type: 'inactive'
+      });
+      
       console.log('[Mutation] Update cache invalidation and refetch completed');
     },
     onError: (error) => {
@@ -162,6 +175,19 @@ export const useToggleOrganizationStatus = () => {
         queryKey: ['organization-stats'],
         type: 'active'
       });
+      
+      // 新增：直接设置缓存数据以提供即时反馈
+      queryClient.setQueryData(['organization', variables.code], updatedOrganization);
+      
+      // 新增：移除过时的缓存数据
+      queryClient.removeQueries({ 
+        queryKey: ['organizations'],
+        exact: false,
+        type: 'inactive'
+      });
+      
+      // 新增：强制清除所有可能的缓存变体
+      queryClient.clear();
       
       console.log('[Mutation] Status toggle cache invalidation and refetch completed');
     },

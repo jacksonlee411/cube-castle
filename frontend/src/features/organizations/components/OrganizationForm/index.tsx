@@ -66,7 +66,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     }
     
     // Validate form
-    const errors = validateForm(formData);
+    const errors = validateForm(formData, isEditing);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -79,9 +79,12 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         const updateData: UpdateOrganizationInput = {
           code: organization!.code,
           name: formData.name,
+          unit_type: formData.unit_type as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
           status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
           description: formData.description,
           sort_order: formData.sort_order,
+          level: formData.level,
+          parent_code: formData.parent_code || undefined,
         };
         
         await updateMutation.mutateAsync(updateData);
