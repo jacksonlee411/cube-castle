@@ -10,6 +10,13 @@ export interface OrganizationUnit {
   description?: string;
   created_at: string;
   updated_at: string;
+  // 时态管理字段 (统一命名)
+  effective_date?: string;
+  end_date?: string;
+  is_temporal?: boolean;
+  version?: number;
+  change_reason?: string;
+  is_current?: boolean;
 }
 
 export interface OrganizationListResponse {
@@ -39,6 +46,13 @@ export interface GraphQLOrganizationResponse {
   description?: string;
   createdAt: string;
   updatedAt: string;
+  // 时态管理字段 (统一命名)
+  effectiveDate?: string;
+  endDate?: string;
+  isTemporal?: boolean;
+  version?: number;
+  changeReason?: string;
+  isCurrent?: boolean;
 }
 
 export interface GraphQLStatsTypeItem {
@@ -78,10 +92,22 @@ export interface CreateOrganizationResponse {
   description?: string;
   path?: string;
   updated_at?: string;
+  // 时态管理字段 (统一命名)
+  effective_date?: string;
+  end_date?: string;
+  is_temporal?: boolean;
+  version?: number;
+  change_reason?: string;
+  is_current?: boolean;
 }
 
 export interface UpdateOrganizationResponse {
   code: string;
   updated_at: string;
   changes: Record<string, unknown>;
+  // 时态管理字段 (统一命名)
+  effective_date?: string;
+  end_date?: string;
+  version?: number;
+  change_reason?: string;
 }

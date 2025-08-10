@@ -35,18 +35,23 @@ var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 // GraphQL Schema定义
 var schemaString = `
 	type Organization {
+		tenant_id: String!
 		code: String!
+		parent_code: String
 		name: String!
-		unitType: String!
+		unit_type: String!
 		status: String!
 		level: Int!
 		path: String
-		sortOrder: Int
+		sort_order: Int
 		description: String
 		profile: String
-		parentCode: String
-		createdAt: String!
-		updatedAt: String!
+		created_at: String!
+		updated_at: String!
+		effective_date: String!
+		end_date: String
+		version: Int!
+		is_current: Boolean!
 	}
 
 	type Query {
@@ -78,51 +83,64 @@ var schemaString = `
 	}
 `
 
-// GraphQL组织模型 - 使用不同的内部字段名来避免冲突
+// GraphQL组织模型 - 匹配时态API格式
 type Organization struct {
-	CodeField        string `json:"code"`
-	NameField        string `json:"name"`
-	UnitTypeField    string `json:"unitType"`
-	StatusField      string `json:"status"`
-	LevelField       int    `json:"level"`
-	PathField        string `json:"path"`
-	SortOrderField   int    `json:"sortOrder"`
-	DescriptionField string `json:"description"`
-	ProfileField     string `json:"profile"`
-	ParentCodeField  string `json:"parentCode"`
-	CreatedAtField   string `json:"createdAt"`
-	UpdatedAtField   string `json:"updatedAt"`
+	TenantIdField      string `json:"tenant_id"`
+	CodeField          string `json:"code"`
+	ParentCodeField    string `json:"parent_code"`
+	NameField          string `json:"name"`
+	UnitTypeField      string `json:"unit_type"`
+	StatusField        string `json:"status"`
+	LevelField         int    `json:"level"`
+	PathField          string `json:"path"`
+	SortOrderField     int    `json:"sort_order"`
+	DescriptionField   string `json:"description"`
+	ProfileField       string `json:"profile"`
+	CreatedAtField     string `json:"created_at"`
+	UpdatedAtField     string `json:"updated_at"`
+	EffectiveDateField string `json:"effective_date"`
+	EndDateField       string `json:"end_date"`
+	VersionField       int    `json:"version"`
+	IsCurrentField     bool   `json:"is_current"`
 }
 
-// GraphQL字段解析器 - 必须与Schema字段名大小写完全匹配
-func (o Organization) Code() string        { return o.CodeField }
-func (o Organization) Name() string        { return o.NameField }
-func (o Organization) UnitType() string    { return o.UnitTypeField }
-func (o Organization) Status() string      { return o.StatusField }
-func (o Organization) Level() int32        { return int32(o.LevelField) }
-func (o Organization) Path() *string       { 
+// GraphQL字段解析器 - 匹配时态API Schema字段名
+func (o Organization) Tenant_id() string      { return o.TenantIdField }
+func (o Organization) Code() string           { return o.CodeField }
+func (o Organization) Parent_code() *string   { 
+	if o.ParentCodeField == "" { return nil }
+	return &o.ParentCodeField 
+}
+func (o Organization) Name() string           { return o.NameField }
+func (o Organization) Unit_type() string      { return o.UnitTypeField }
+func (o Organization) Status() string         { return o.StatusField }
+func (o Organization) Level() int32           { return int32(o.LevelField) }
+func (o Organization) Path() *string          { 
 	if o.PathField == "" { return nil }
 	return &o.PathField 
 }
-func (o Organization) SortOrder() *int32   { 
+func (o Organization) Sort_order() *int32     { 
 	if o.SortOrderField == 0 { return nil }
 	val := int32(o.SortOrderField)
 	return &val 
 }
-func (o Organization) Description() *string { 
+func (o Organization) Description() *string   { 
 	if o.DescriptionField == "" { return nil }
 	return &o.DescriptionField 
 }
-func (o Organization) Profile() *string { 
+func (o Organization) Profile() *string       { 
 	if o.ProfileField == "" { return nil }
 	return &o.ProfileField 
 }
-func (o Organization) ParentCode() *string { 
-	if o.ParentCodeField == "" { return nil }
-	return &o.ParentCodeField 
+func (o Organization) Created_at() string     { return o.CreatedAtField }
+func (o Organization) Updated_at() string     { return o.UpdatedAtField }
+func (o Organization) Effective_date() string { return o.EffectiveDateField }
+func (o Organization) End_date() *string      { 
+	if o.EndDateField == "" { return nil }
+	return &o.EndDateField 
 }
-func (o Organization) CreatedAt() string   { return o.CreatedAtField }
-func (o Organization) UpdatedAt() string   { return o.UpdatedAtField }
+func (o Organization) Version() int32         { return int32(o.VersionField) }
+func (o Organization) Is_current() bool       { return o.IsCurrentField }
 
 
 // GraphQL统计模型
@@ -226,11 +244,13 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 	query := fmt.Sprintf(`
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
 		WHERE true %s
-		RETURN o.code as code, o.name as name, o.unit_type as unit_type, 
-		       o.status as status, o.level as level, o.path as path,
-		       o.sort_order as sort_order, o.description as description,
-		       o.profile as profile, o.parent_code as parent_code,
-		       o.created_at as created_at, o.updated_at as updated_at
+		RETURN o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
+		       o.name as name, o.unit_type as unit_type, o.status as status, 
+		       o.level as level, o.path as path, o.sort_order as sort_order,
+		       o.description as description, o.profile as profile,
+		       o.created_at as created_at, o.updated_at as updated_at,
+		       o.effective_date as effective_date, o.end_date as end_date,
+		       o.version as version, o.is_current as is_current
 		ORDER BY o.sort_order, o.code
 		SKIP $offset LIMIT $first
 	`, searchCondition)
@@ -245,18 +265,23 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 		record := result.Record()
 		
 		org := Organization{
-			CodeField:        getStringValue(record, "code"),
-			NameField:        getStringValue(record, "name"),
-			UnitTypeField:    getStringValue(record, "unit_type"),
-			StatusField:      getStringValue(record, "status"),
-			LevelField:       getIntValue(record, "level"),
-			PathField:        getStringValue(record, "path"),
-			SortOrderField:   getIntValue(record, "sort_order"),
-			DescriptionField: getStringValue(record, "description"),
-			ProfileField:     getStringValue(record, "profile"),
-			ParentCodeField:  getStringValue(record, "parent_code"),
-			CreatedAtField:   getStringValue(record, "created_at"),
-			UpdatedAtField:   getStringValue(record, "updated_at"),
+			TenantIdField:      getStringValue(record, "tenant_id"),
+			CodeField:          getStringValue(record, "code"),
+			ParentCodeField:    getStringValue(record, "parent_code"),
+			NameField:          getStringValue(record, "name"),
+			UnitTypeField:      getStringValue(record, "unit_type"),
+			StatusField:        getStringValue(record, "status"),
+			LevelField:         getIntValue(record, "level"),
+			PathField:          getStringValue(record, "path"),
+			SortOrderField:     getIntValue(record, "sort_order"),
+			DescriptionField:   getStringValue(record, "description"),
+			ProfileField:       getStringValue(record, "profile"),
+			CreatedAtField:     getStringValue(record, "created_at"),
+			UpdatedAtField:     getStringValue(record, "updated_at"),
+			EffectiveDateField: getStringValue(record, "effective_date"),
+			EndDateField:       getStringValue(record, "end_date"),
+			VersionField:       getIntValue(record, "version"),
+			IsCurrentField:     getBoolValue(record, "is_current"),
 		}
 		organizations = append(organizations, org)
 	}
@@ -278,11 +303,13 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 
 	query := `
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id, code: $code})
-		RETURN o.code as code, o.name as name, o.unit_type as unit_type, 
-		       o.status as status, o.level as level, o.path as path,
-		       o.sort_order as sort_order, o.description as description,
-		       o.profile as profile, o.parent_code as parent_code,
-		       o.created_at as created_at, o.updated_at as updated_at
+		RETURN o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
+		       o.name as name, o.unit_type as unit_type, o.status as status, 
+		       o.level as level, o.path as path, o.sort_order as sort_order,
+		       o.description as description, o.profile as profile,
+		       o.created_at as created_at, o.updated_at as updated_at,
+		       o.effective_date as effective_date, o.end_date as end_date,
+		       o.version as version, o.is_current as is_current
 	`
 
 	result, err := session.Run(ctx, query, map[string]interface{}{
@@ -296,18 +323,23 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 	if result.Next(ctx) {
 		record := result.Record()
 		org := &Organization{
-			CodeField:        getStringValue(record, "code"),
-			NameField:        getStringValue(record, "name"),
-			UnitTypeField:    getStringValue(record, "unit_type"),
-			StatusField:      getStringValue(record, "status"),
-			LevelField:       getIntValue(record, "level"),
-			PathField:        getStringValue(record, "path"),
-			SortOrderField:   getIntValue(record, "sort_order"),
-			DescriptionField: getStringValue(record, "description"),
-			ProfileField:     getStringValue(record, "profile"),
-			ParentCodeField:  getStringValue(record, "parent_code"),
-			CreatedAtField:   getStringValue(record, "created_at"),
-			UpdatedAtField:   getStringValue(record, "updated_at"),
+			TenantIdField:      getStringValue(record, "tenant_id"),
+			CodeField:          getStringValue(record, "code"),
+			ParentCodeField:    getStringValue(record, "parent_code"),
+			NameField:          getStringValue(record, "name"),
+			UnitTypeField:      getStringValue(record, "unit_type"),
+			StatusField:        getStringValue(record, "status"),
+			LevelField:         getIntValue(record, "level"),
+			PathField:          getStringValue(record, "path"),
+			SortOrderField:     getIntValue(record, "sort_order"),
+			DescriptionField:   getStringValue(record, "description"),
+			ProfileField:       getStringValue(record, "profile"),
+			CreatedAtField:     getStringValue(record, "created_at"),
+			UpdatedAtField:     getStringValue(record, "updated_at"),
+			EffectiveDateField: getStringValue(record, "effective_date"),
+			EndDateField:       getStringValue(record, "end_date"),
+			VersionField:       getIntValue(record, "version"),
+			IsCurrentField:     getBoolValue(record, "is_current"),
 		}
 		return org, nil
 	}
@@ -468,6 +500,15 @@ func getIntValue(record *neo4j.Record, key string) int {
 		}
 	}
 	return 0
+}
+
+func getBoolValue(record *neo4j.Record, key string) bool {
+	if value, ok := record.Get(key); ok && value != nil {
+		if b, ok := value.(bool); ok {
+			return b
+		}
+	}
+	return true // 默认为当前版本
 }
 
 // GraphQL Resolver

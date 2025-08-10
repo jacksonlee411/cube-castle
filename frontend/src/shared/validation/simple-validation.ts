@@ -166,19 +166,23 @@ export const safeTransform = {
       }
     }
     
-    // GraphQL格式转换
+    // GraphQL格式转换 (支持下划线命名约定)
     return {
-      code: orgData.code || orgData.CodeField || '',
-      name: orgData.name || orgData.NameField || '',
-      unit_type: orgData.unitType || orgData.unit_type || orgData.UnitTypeField || '',
-      status: orgData.status || orgData.StatusField || 'ACTIVE',
-      level: orgData.level || orgData.LevelField || 1,
-      parent_code: orgData.parentCode || orgData.parent_code || orgData.ParentCodeField || '',
-      path: orgData.path || orgData.PathField || '',
-      sort_order: orgData.sortOrder || orgData.sort_order || orgData.SortOrderField || 0,
-      description: orgData.description || orgData.DescriptionField || '',
-      created_at: orgData.createdAt || orgData.created_at || orgData.CreatedAtField || '',
-      updated_at: orgData.updatedAt || orgData.updated_at || orgData.UpdatedAtField || ''
+      code: orgData.code || '',
+      name: orgData.name || '',
+      unit_type: orgData.unit_type || orgData.unitType || '',  // 支持两种命名方式
+      status: orgData.status || 'ACTIVE',
+      level: orgData.level || 1,
+      parent_code: orgData.parent_code || orgData.parentCode || '',
+      path: orgData.path || '',
+      sort_order: orgData.sort_order || orgData.sortOrder || 0,
+      description: orgData.description || '',
+      created_at: orgData.created_at || orgData.createdAt || '',
+      updated_at: orgData.updated_at || orgData.updatedAt || '',
+      // 时态字段（如果存在）
+      effective_date: orgData.effective_date || orgData.effectiveDate || null,
+      end_date: orgData.end_date || orgData.endDate || null,
+      is_temporal: orgData.is_temporal || orgData.isTemporal || false
     };
   },
 

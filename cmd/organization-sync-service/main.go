@@ -17,6 +17,74 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
+// ===== Debezium日期字段处理 =====
+
+// DebeziumDate 处理Debezium序列化的date字段，可能是数字或字符串
+type DebeziumDate struct {
+	value string
+}
+
+// UnmarshalJSON 处理Debezium的日期序列化格式
+func (d *DebeziumDate) UnmarshalJSON(data []byte) error {
+	// 处理null值
+	if string(data) == "null" {
+		d.value = ""
+		return nil
+	}
+	
+	// 尝试解析为数字（Debezium days since epoch）
+	if len(data) > 0 && data[0] != '"' {
+		var days int64
+		if err := json.Unmarshal(data, &days); err == nil {
+			// 转换为YYYY-MM-DD格式
+			epochDate := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+			targetDate := epochDate.AddDate(0, 0, int(days))
+			d.value = targetDate.Format("2006-01-02")
+			return nil
+		}
+	}
+	
+	// 尝试解析为字符串
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		d.value = str
+		return nil
+	}
+	
+	return fmt.Errorf("cannot unmarshal date field: %s", string(data))
+}
+
+// String 返回日期字符串
+func (d *DebeziumDate) String() string {
+	return d.value
+}
+
+// parseDebeziumDate 解析Debezium日期字段
+func parseDebeziumDate(rawData json.RawMessage) (string, error) {
+	if string(rawData) == "null" {
+		return "", nil
+	}
+	
+	// 尝试解析为数字（Debezium days since epoch）
+	if len(rawData) > 0 && rawData[0] != '"' {
+		var days int64
+		if err := json.Unmarshal(rawData, &days); err == nil {
+			// 转换为YYYY-MM-DD格式
+			epochDate := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+			targetDate := epochDate.AddDate(0, 0, int(days))
+			return targetDate.Format("2006-01-02"), nil
+		}
+	}
+	
+	// 尝试解析为字符串
+	var str string
+	if err := json.Unmarshal(rawData, &str); err == nil {
+		return str, nil
+	}
+	
+	return "", fmt.Errorf("无法解析日期字段: %s", string(rawData))
+}
+
 // 项目默认租户配置
 const (
 	DefaultTenantIDString = "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"
@@ -66,19 +134,26 @@ type CDCOrganizationEvent struct {
 }
 
 type CDCOrganizationData struct {
-	ID          *string    `json:"id"`
-	TenantID    *string    `json:"tenant_id"`
-	Code        *string    `json:"code"`
-	ParentCode  *string    `json:"parent_code"`
-	Name        *string    `json:"name"`
-	UnitType    *string    `json:"unit_type"`
-	Status      *string    `json:"status"`
-	Level       *int       `json:"level"`
-	Path        *string    `json:"path"`
-	SortOrder   *int       `json:"sort_order"`
-	Description *string    `json:"description"`
-	CreatedAt   *time.Time `json:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at"`
+	ID           *string         `json:"id"`
+	TenantID     *string         `json:"tenant_id"`
+	Code         *string         `json:"code"`
+	ParentCode   *string         `json:"parent_code"`
+	Name         *string         `json:"name"`
+	UnitType     *string         `json:"unit_type"`
+	Status       *string         `json:"status"`
+	Level        *int            `json:"level"`
+	Path         *string         `json:"path"`
+	SortOrder    *int            `json:"sort_order"`
+	Description  *string         `json:"description"`
+	CreatedAt    *time.Time      `json:"created_at"`
+	UpdatedAt    *time.Time      `json:"updated_at"`
+	// 时态管理字段 - 使用json.RawMessage进行调试
+	EffectiveDate *json.RawMessage `json:"effective_date"`
+	EndDate       *json.RawMessage `json:"end_date"`
+	IsTemporal    *bool           `json:"is_temporal"`
+	Version       *int            `json:"version"`
+	ChangeReason  *string         `json:"change_reason"`
+	IsCurrent     *bool           `json:"is_current"`
 }
 
 type CDCSource struct {
@@ -336,7 +411,13 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 			org.sort_order = COALESCE($sort_order, 0),
 			org.description = COALESCE($description, ''),
 			org.created_at = datetime($created_at),
-			org.updated_at = datetime($updated_at)
+			org.updated_at = datetime($updated_at),
+			org.effective_date = $effective_date,
+			org.end_date = $end_date,
+			org.is_temporal = COALESCE($is_temporal, false),
+			org.version = COALESCE($version, 1),
+			org.change_reason = COALESCE($change_reason, ''),
+			org.is_current = COALESCE($is_current, true)
 		WITH org
 		OPTIONAL MATCH (parent:OrganizationUnit {code: $parent_code, tenant_id: $tenant_id})
 		WHERE $parent_code IS NOT NULL AND $parent_code <> ''
@@ -406,6 +487,55 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		params["parent_code"] = nil
 	}
 
+	// 时态管理字段映射 - 处理json.RawMessage
+	if data.EffectiveDate != nil {
+		dateStr, err := parseDebeziumDate(*data.EffectiveDate)
+		if err != nil {
+			log.Printf("解析effective_date失败: %v, 原始数据: %s", err, string(*data.EffectiveDate))
+			params["effective_date"] = nil
+		} else {
+			params["effective_date"] = dateStr
+		}
+	} else {
+		params["effective_date"] = nil
+	}
+
+	if data.EndDate != nil {
+		dateStr, err := parseDebeziumDate(*data.EndDate)
+		if err != nil {
+			log.Printf("解析end_date失败: %v, 原始数据: %s", err, string(*data.EndDate))
+			params["end_date"] = nil
+		} else {
+			params["end_date"] = dateStr
+		}
+	} else {
+		params["end_date"] = nil
+	}
+
+	if data.IsTemporal != nil {
+		params["is_temporal"] = *data.IsTemporal
+	} else {
+		params["is_temporal"] = false
+	}
+
+	if data.Version != nil {
+		params["version"] = *data.Version
+	} else {
+		params["version"] = 1
+	}
+
+	if data.ChangeReason != nil {
+		params["change_reason"] = *data.ChangeReason
+	} else {
+		params["change_reason"] = ""
+	}
+
+	if data.IsCurrent != nil {
+		params["is_current"] = *data.IsCurrent
+	} else {
+		params["is_current"] = true
+	}
+
 	_, err := s.session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		result, err := tx.Run(ctx, query, params)
 		if err != nil {
@@ -443,7 +573,13 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 			org.path = COALESCE($path, org.path),
 			org.sort_order = COALESCE($sort_order, org.sort_order),
 			org.description = COALESCE($description, org.description),
-			org.updated_at = datetime($updated_at)
+			org.updated_at = datetime($updated_at),
+			org.effective_date = CASE WHEN $effective_date IS NULL THEN org.effective_date ELSE datetime($effective_date) END,
+			org.end_date = CASE WHEN $end_date IS NULL THEN org.end_date ELSE datetime($end_date) END,
+			org.is_temporal = COALESCE($is_temporal, org.is_temporal),
+			org.version = COALESCE($version, org.version),
+			org.change_reason = COALESCE($change_reason, org.change_reason),
+			org.is_current = COALESCE($is_current, org.is_current)
 		RETURN org.code as code`
 
 	params := map[string]interface{}{
@@ -476,6 +612,55 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		params["updated_at"] = data.UpdatedAt.Format(time.RFC3339)
 	} else {
 		params["updated_at"] = time.Now().Format(time.RFC3339)
+	}
+
+	// 时态管理字段映射 (更新版本) - 处理json.RawMessage
+	if data.EffectiveDate != nil {
+		dateStr, err := parseDebeziumDate(*data.EffectiveDate)
+		if err != nil {
+			log.Printf("解析effective_date失败: %v, 原始数据: %s", err, string(*data.EffectiveDate))
+			params["effective_date"] = nil
+		} else {
+			params["effective_date"] = dateStr
+		}
+	} else {
+		params["effective_date"] = nil
+	}
+
+	if data.EndDate != nil {
+		dateStr, err := parseDebeziumDate(*data.EndDate)
+		if err != nil {
+			log.Printf("解析end_date失败: %v, 原始数据: %s", err, string(*data.EndDate))
+			params["end_date"] = nil
+		} else {
+			params["end_date"] = dateStr
+		}
+	} else {
+		params["end_date"] = nil
+	}
+
+	if data.IsTemporal != nil {
+		params["is_temporal"] = *data.IsTemporal
+	} else {
+		params["is_temporal"] = nil
+	}
+
+	if data.Version != nil {
+		params["version"] = *data.Version
+	} else {
+		params["version"] = nil
+	}
+
+	if data.ChangeReason != nil {
+		params["change_reason"] = *data.ChangeReason
+	} else {
+		params["change_reason"] = nil
+	}
+
+	if data.IsCurrent != nil {
+		params["is_current"] = *data.IsCurrent
+	} else {
+		params["is_current"] = nil
 	}
 
 	_, err := s.session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {

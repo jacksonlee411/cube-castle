@@ -7,6 +7,12 @@ import type {
   OrganizationStatus
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
+import type { 
+  TemporalQueryParams,
+  TemporalOrganizationUnit,
+  TimelineEvent,
+  TemporalMode
+} from '../types/temporal';
 import { 
   validateOrganizationBasic,
   validateOrganizationUpdate,
@@ -17,7 +23,7 @@ import {
 } from '../validation/simple-validation';
 
 // GraphQL客户端 - 使用正确的端口8090
-const GRAPHQL_ENDPOINT = 'http://localhost:8090/graphql';
+const GRAPHQL_ENDPOINT = '/graphql';
 
 const graphqlClient = {
   async request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -51,7 +57,7 @@ const graphqlClient = {
 };
 
 // REST API客户端 - 使用命令服务端口9090
-const REST_ENDPOINT = 'http://localhost:9090/api/v1';
+const REST_ENDPOINT = '/api/v1';
 
 const restClient = {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -81,6 +87,8 @@ export interface OrganizationQueryParams {
   level?: number | undefined;
   page?: number;
   pageSize?: number;
+  // 时态查询参数
+  temporalParams?: TemporalQueryParams;
 }
 
 export const organizationAPI = {
@@ -102,33 +110,97 @@ export const organizationAPI = {
         }
       }
 
-      // 构建GraphQL查询和变量
-      const graphqlQuery = `
-        query GetOrganizations($first: Int, $offset: Int, $searchText: String) {
-          organizations(first: $first, offset: $offset, searchText: $searchText) {
-            code
-            name
-            unitType
-            status
-            level
-            path
-            sortOrder
-            description
-            parentCode
-            createdAt
-            updatedAt
+      // 构建GraphQL查询和变量 (基础版本，不含时态参数)
+      const useTemporalQuery = params?.temporalParams && Object.keys(params.temporalParams).length > 0;
+      
+      let graphqlQuery, variables;
+      
+      if (useTemporalQuery) {
+        // 时态查询版本
+        graphqlQuery = `
+          query GetOrganizations(
+            $first: Int, 
+            $offset: Int, 
+            $searchText: String,
+            $asOfDate: String,
+            $effectiveFrom: String,
+            $effectiveTo: String,
+            $temporalMode: String
+          ) {
+            organizations(
+              first: $first, 
+              offset: $offset, 
+              searchText: $searchText,
+              asOfDate: $asOfDate,
+              effectiveFrom: $effectiveFrom,
+              effectiveTo: $effectiveTo,
+              temporalMode: $temporalMode
+            ) {
+              code
+              name
+              unit_type
+              status
+              level
+              path
+              sort_order
+              description
+              parent_code
+              created_at
+              updated_at
+              effective_date
+              end_date
+              is_temporal
+            }
+            organizationStats {
+              totalCount
+            }
           }
-          organizationStats {
-            totalCount
+        `;
+        variables = {
+          first: params?.pageSize || 50,
+          offset: ((params?.page || 1) - 1) * (params?.pageSize || 50),
+          searchText: params?.searchText || null,
+          asOfDate: params?.temporalParams?.asOfDate || null,
+          effectiveFrom: params?.temporalParams?.dateRange?.start || null,
+          effectiveTo: params?.temporalParams?.dateRange?.end || null,
+          temporalMode: params?.temporalParams?.mode || 'current'
+        };
+      } else {
+        // 基础查询版本（不含时态参数）
+        graphqlQuery = `
+          query GetOrganizations(
+            $first: Int, 
+            $offset: Int, 
+            $searchText: String
+          ) {
+            organizations(
+              first: $first, 
+              offset: $offset, 
+              searchText: $searchText
+            ) {
+              code
+              name
+              unit_type
+              status
+              level
+              path
+              sort_order
+              description
+              parent_code
+              created_at
+              updated_at
+            }
+            organizationStats {
+              totalCount
+            }
           }
-        }
-      `;
-
-      const variables = {
-        first: params?.pageSize || 50,
-        offset: ((params?.page || 1) - 1) * (params?.pageSize || 50),
-        searchText: params?.searchText || null
-      };
+        `;
+        variables = {
+          first: params?.pageSize || 50,
+          offset: ((params?.page || 1) - 1) * (params?.pageSize || 50),
+          searchText: params?.searchText || null
+        };
+      }
 
       const data = await graphqlClient.request<{
         organizations: any[];
@@ -148,7 +220,7 @@ export const organizationAPI = {
       }).filter(Boolean);
 
       // 🔧 修复: 区分全局总数和筛选结果总数
-      const isFiltered = !!(params?.searchText || params?.unit_type || params?.status || params?.level);
+      const isFiltered = !!(params?.searchText || params?.unit_type || params?.status || params?.level || params?.temporalParams);
       const filteredTotalCount = isFiltered ? organizations.length : data.organizationStats.totalCount;
       
       return {
@@ -170,8 +242,8 @@ export const organizationAPI = {
     }
   },
 
-  // 根据代码获取单个组织 - ✅ 修复协议违反，统一使用GraphQL
-  getByCode: async (code: string): Promise<OrganizationUnit> => {
+  // 根据代码获取单个组织 - ✅ 修复协议违反，统一使用GraphQL (支持时态查询)
+  getByCode: async (code: string, temporalParams?: TemporalQueryParams): Promise<OrganizationUnit> => {
     try {
       if (!code || typeof code !== 'string') {
         throw new SimpleValidationError('Invalid organization code', [
@@ -179,28 +251,71 @@ export const organizationAPI = {
         ]);
       }
 
-      // ✅ 使用GraphQL查询，遵循"查询统一用GraphQL"原则
-      const graphqlQuery = `
-        query GetOrganization($code: String!) {
-          organization(code: $code) {
-            code
-            name
-            unitType
-            status
-            level
-            path
-            sortOrder
-            description
-            parentCode
-            createdAt
-            updatedAt
+      // ✅ 使用GraphQL查询，遵循"查询统一用GraphQL"原则 (基础版本)
+      const useTemporalQuery = temporalParams && Object.keys(temporalParams).length > 0;
+      
+      let graphqlQuery, variables;
+      
+      if (useTemporalQuery) {
+        // 时态查询版本
+        graphqlQuery = `
+          query GetOrganization(
+            $code: String!, 
+            $asOfDate: String,
+            $temporalMode: String
+          ) {
+            organization(
+              code: $code, 
+              asOfDate: $asOfDate,
+              temporalMode: $temporalMode
+            ) {
+              code
+              name
+              unit_type
+              status
+              level
+              path
+              sort_order
+              description
+              parent_code
+              created_at
+              updated_at
+              effective_date
+              end_date
+              is_temporal
+            }
           }
-        }
-      `;
+        `;
+        variables = {
+          code,
+          asOfDate: temporalParams?.asOfDate || null,
+          temporalMode: temporalParams?.mode || 'current'
+        };
+      } else {
+        // 基础查询版本（不含时态参数）
+        graphqlQuery = `
+          query GetOrganization($code: String!) {
+            organization(code: $code) {
+              code
+              name
+              unit_type
+              status
+              level
+              path
+              sort_order
+              description
+              parent_code
+              created_at
+              updated_at
+            }
+          }
+        `;
+        variables = { code };
+      }
 
       const data = await graphqlClient.request<{
         organization: any;
-      }>(graphqlQuery, { code });
+      }>(graphqlQuery, variables);
 
       const organization = data.organization;
       if (!organization) {
@@ -402,6 +517,231 @@ export const organizationAPI = {
       }
       
       throw new Error('Failed to delete organization. Please try again.');
+    }
+  },
+
+  // ====== 时态管理API方法 ======
+
+  // 获取组织的历史版本
+  getHistory: async (code: string, params?: TemporalQueryParams): Promise<TemporalOrganizationUnit[]> => {
+    try {
+      if (!code || typeof code !== 'string') {
+        throw new SimpleValidationError('Invalid organization code', [
+          { field: 'code', message: 'Code is required' }
+        ]);
+      }
+
+      const graphqlQuery = `
+        query GetOrganizationHistory(
+          $code: String!,
+          $dateFrom: String,
+          $dateTo: String,
+          $limit: Int
+        ) {
+          organizationHistory(
+            code: $code,
+            dateFrom: $dateFrom,
+            dateTo: $dateTo,
+            limit: $limit
+          ) {
+            code
+            name
+            unitType
+            status
+            level
+            path
+            sortOrder
+            description
+            parentCode
+            effectiveFrom
+            effectiveTo
+            isTemporal
+            version
+            changeReason
+            changedBy
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const variables = {
+        code,
+        dateFrom: params?.dateRange?.start || null,
+        dateTo: params?.dateRange?.end || null,
+        limit: params?.limit || 50
+      };
+
+      const data = await graphqlClient.request<{
+        organizationHistory: any[];
+      }>(graphqlQuery, variables);
+
+      return data.organizationHistory || [];
+
+    } catch (error) {
+      console.error('Error fetching organization history:', code, error);
+      throw new Error(`获取组织 ${code} 历史记录失败，请重试`);
+    }
+  },
+
+  // 获取组织的时间线事件
+  getTimeline: async (code: string, params?: TemporalQueryParams): Promise<TimelineEvent[]> => {
+    try {
+      if (!code || typeof code !== 'string') {
+        throw new SimpleValidationError('Invalid organization code', [
+          { field: 'code', message: 'Code is required' }
+        ]);
+      }
+
+      const graphqlQuery = `
+        query GetOrganizationTimeline(
+          $code: String!,
+          $dateFrom: String,
+          $dateTo: String,
+          $eventTypes: [String],
+          $limit: Int
+        ) {
+          organizationTimeline(
+            code: $code,
+            dateFrom: $dateFrom,
+            dateTo: $dateTo,
+            eventTypes: $eventTypes,
+            limit: $limit
+          ) {
+            id
+            organizationCode
+            eventType
+            eventDate
+            effectiveDate
+            status
+            title
+            description
+            metadata
+            previousValue
+            newValue
+            triggeredBy
+            approvedBy
+            createdAt
+          }
+        }
+      `;
+
+      const variables = {
+        code,
+        dateFrom: params?.dateRange?.start || null,
+        dateTo: params?.dateRange?.end || null,
+        eventTypes: params?.eventTypes || null,
+        limit: params?.limit || 100
+      };
+
+      const data = await graphqlClient.request<{
+        organizationTimeline: any[];
+      }>(graphqlQuery, variables);
+
+      return data.organizationTimeline || [];
+
+    } catch (error) {
+      console.error('Error fetching organization timeline:', code, error);
+      throw new Error(`获取组织 ${code} 时间线失败，请重试`);
+    }
+  },
+
+  // 创建时态组织记录
+  createTemporal: async (input: CreateOrganizationInput & { 
+    effectiveFrom: string; 
+    effectiveTo?: string; 
+    changeReason?: string;
+  }): Promise<any> => {
+    try {
+      // 基础前端验证
+      const validationResult = validateOrganizationBasic(input);
+      if (!validationResult.isValid) {
+        throw new SimpleValidationError(
+          '输入验证失败：' + formatValidationErrors(validationResult.errors), 
+          validationResult.errors
+        );
+      }
+
+      // 转换为API格式
+      const apiData = {
+        ...safeTransform.cleanCreateInput(input),
+        effective_date: input.effectiveDate,
+        end_date: input.endDate,
+        change_reason: input.changeReason,
+        is_temporal: true
+      };
+
+      const response = await restClient.request<any>('/organization-units/temporal', {
+        method: 'POST',
+        body: JSON.stringify(apiData),
+      });
+      
+      if (!response.code) {
+        throw new Error('Invalid response from server');
+      }
+
+      return response;
+
+    } catch (error: any) {
+      console.error('Error creating temporal organization:', error);
+      
+      if (error instanceof SimpleValidationError) {
+        throw error;
+      }
+      
+      throw new Error('Failed to create temporal organization. Please try again.');
+    }
+  },
+
+  // 更新时态组织记录
+  updateTemporal: async (code: string, input: UpdateOrganizationInput & {
+    effectiveFrom?: string;
+    effectiveTo?: string;
+    changeReason?: string;
+  }): Promise<any> => {
+    try {
+      if (!code) {
+        throw new SimpleValidationError('Organization code is required', [
+          { field: 'code', message: 'Code is required' }
+        ]);
+      }
+
+      // 智能验证策略
+      const validationResult = validateOrganizationUpdate(input);
+      if (!validationResult.isValid) {
+        throw new SimpleValidationError(
+          '输入验证失败：' + formatValidationErrors(validationResult.errors),
+          validationResult.errors
+        );
+      }
+
+      // 转换为API格式
+      const apiData = {
+        ...safeTransform.cleanUpdateInput(input),
+        effective_date: input.effectiveDate,
+        end_date: input.endDate,
+        change_reason: input.changeReason
+      };
+
+      const response = await restClient.request<any>(`/organization-units/${code}/temporal`, {
+        method: 'PUT',
+        body: JSON.stringify(apiData),
+      });
+      
+      if (!response.code) {
+        throw new Error('Invalid response from server');
+      }
+
+      return response;
+
+    } catch (error: any) {
+      console.error('Error updating temporal organization:', code, error);
+      
+      if (error instanceof SimpleValidationError) {
+        throw error;
+      }
+      
+      throw new Error('Failed to update temporal organization. Please try again.');
     }
   }
 };
