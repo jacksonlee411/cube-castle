@@ -13,6 +13,7 @@ import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { Modal } from '@workday/canvas-kit-react/modal';
 import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
+import { InlineNewVersionForm } from './InlineNewVersionForm';
 import { SimpleTimelineVisualization } from './SimpleTimelineVisualization';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { 
@@ -537,7 +538,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 视图选项卡状态
-  const [activeTab, setActiveTab] = useState<'details' | 'timeline'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'timeline' | 'new-version'>('details');
 
   // 加载时态版本数据
   const loadVersions = useCallback(async () => {
@@ -614,7 +615,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const handleCreateVersion = useCallback(() => {
     setEditMode('create');
     setSelectedVersion(null);
-    setShowEditForm(true);
+    setActiveTab('new-version'); // 切换到新增版本选项卡，而不是打开Modal
   }, []);
 
   const handleEditVersion = useCallback((version: TemporalVersion) => {
@@ -648,7 +649,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       if (response.ok) {
         // 刷新数据
         await loadVersions();
-        setShowEditForm(false);
+        setActiveTab('details'); // 创建成功后切换回详情选项卡
         alert('时态版本创建成功！');
       } else {
         const errorData = await response.json();
@@ -665,7 +666,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
   const handleFormClose = useCallback(() => {
     if (!isSubmitting) {
-      setShowEditForm(false);
+      setActiveTab('details'); // 取消时切换回详情选项卡
       setSelectedVersion(null);
     }
   }, [isSubmitting]);
@@ -737,6 +738,17 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             >
               📊 时间线可视化
             </SecondaryButton>
+            <SecondaryButton
+              size="small"
+              onClick={() => setActiveTab('new-version')}
+              variant={activeTab === 'new-version' ? 'primary' : 'secondary'}
+              style={{
+                backgroundColor: activeTab === 'new-version' ? colors.greenFresca600 : 'transparent',
+                color: activeTab === 'new-version' ? 'white' : colors.greenFresca600
+              }}
+            >
+              ➕ 新增版本
+            </SecondaryButton>
           </Flex>
 
           {/* 选项卡内容 */}
@@ -748,10 +760,17 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               isLoading={isLoading}
               readonly={readonly}
             />
-          ) : (
+          ) : activeTab === 'timeline' ? (
             <SimpleTimelineVisualization
               organizationCode={organizationCode}
               onRefresh={loadVersions}
+            />
+          ) : (
+            <InlineNewVersionForm
+              organizationCode={organizationCode}
+              onSubmit={handleFormSubmit}
+              onCancel={handleFormClose}
+              isSubmitting={isSubmitting}
             />
           )}
         </Box>
@@ -797,16 +816,18 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         </Modal>
       )}
 
-      {/* 编辑表单 */}
-      <TemporalEditForm
-        isOpen={showEditForm}
-        onClose={handleFormClose}
-        onSubmit={handleFormSubmit}
-        organizationCode={organizationCode}
-        initialData={selectedVersion}
-        mode={editMode}
-        isSubmitting={isSubmitting}
-      />
+      {/* 编辑表单 - 保留用于编辑现有版本 */}
+      {editMode === 'edit' && (
+        <TemporalEditForm
+          isOpen={showEditForm}
+          onClose={handleFormClose}
+          onSubmit={handleFormSubmit}
+          organizationCode={organizationCode}
+          initialData={selectedVersion}
+          mode={editMode}
+          isSubmitting={isSubmitting}
+        />
+      )}
     </Box>
   );
 };
