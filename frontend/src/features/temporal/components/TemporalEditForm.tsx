@@ -174,6 +174,11 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
     }
   };
 
+  // 只在isOpen为true时才渲染Modal
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <Modal onClose={handleClose} heading={mode === 'create' ? '新增时态版本' : '编辑时态版本'}>
       <Box padding="l" width="600px">
