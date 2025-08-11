@@ -7,7 +7,7 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
-import { Badge } from '@workday/canvas-kit-react/badge';
+import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { Select } from '@workday/canvas-kit-react/select';
 import { Tabs } from '@workday/canvas-kit-react/tabs';

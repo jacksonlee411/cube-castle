@@ -29,6 +29,11 @@ const navigationItems = [
     icon: clockIcon
   },
   {
+    label: '时态管理演示',
+    path: '/temporal-demo',
+    icon: clockIcon
+  },
+  {
     label: '员工管理', 
     path: '/employees',
     icon: userIcon

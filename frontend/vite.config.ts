@@ -22,6 +22,18 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/debezium/, '')
       },
+      // 时态管理API路由到9091端口 - 事件驱动端点 (必须在通用路由之前)
+      '^/api/v1/organization-units/[^/]+/events': {
+        target: 'http://localhost:9091',
+        changeOrigin: true,
+        secure: false
+      },
+      '^/api/v1/organization-units/[^/]+/temporal': {
+        target: 'http://localhost:9091',
+        changeOrigin: true,
+        secure: false
+      },
+      // 其他API路由到9090端口
       '/api/v1': {
         target: 'http://localhost:9090',
         changeOrigin: true,

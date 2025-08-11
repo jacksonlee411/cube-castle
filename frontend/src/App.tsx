@@ -1,10 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { OrganizationDashboard } from './features/organizations/OrganizationDashboard'
+import { OrganizationTemporalPage } from './features/organizations/OrganizationTemporalPage'
 import { MonitoringDashboard } from './features/monitoring/MonitoringDashboard'
+import { TemporalVerificationPage } from './features/temporal/TemporalVerificationPage'
 import TestCrud from './TestCrud'
-// import TemporalComponentTest from './TemporalComponentTest'
-// import SimpleTemporalTest from './SimpleTemporalTest'
 import MinimalTemporalTest from './MinimalTemporalTest'
 
 function App() {
@@ -20,8 +20,14 @@ function App() {
         {/* 时态管理组件测试页面 */}
         <Route path="/temporal-test" element={<MinimalTemporalTest />} />
         
+        {/* 时态管理验证页面 */}
+        <Route path="/temporal-verify" element={<TemporalVerificationPage />} />
+        
         {/* 组织管理模块 */}
         <Route path="/organizations" element={<OrganizationDashboard />} />
+        
+        {/* 组织时态管理页面 */}
+        <Route path="/organizations/:code/temporal" element={<OrganizationTemporalPage />} />
         
         {/* 系统监控模块 */}
         <Route path="/monitoring" element={<MonitoringDashboard />} />

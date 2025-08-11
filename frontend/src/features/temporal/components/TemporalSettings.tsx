@@ -159,13 +159,13 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
               查询时间点 (As Of Date)
             </Text>
             <TextInput
-              type="datetime-local"
+              type="date"
               value={localParams.asOfDate ? 
-                new Date(localParams.asOfDate).toISOString().slice(0, 16) : 
+                localParams.asOfDate.slice(0, 10) : 
                 ''
               }
               onChange={(e) => updateLocalParams({ 
-                asOfDate: e.target.value ? new Date(e.target.value).toISOString() : undefined 
+                asOfDate: e.target.value ? e.target.value : undefined 
               })}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
@@ -218,13 +218,13 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
                 开始时间
               </Text>
               <TextInput
-                type="datetime-local"
+                type="date"
                 value={localParams.dateRange?.start ? 
-                  new Date(localParams.dateRange.start).toISOString().slice(0, 16) : 
+                  localParams.dateRange.start.slice(0, 10) : 
                   ''
                 }
                 onChange={(e) => handleDateRangeChange('start', 
-                  e.target.value ? new Date(e.target.value).toISOString() : ''
+                  e.target.value ? e.target.value : ''
                 )}
               />
             </Box>
@@ -234,13 +234,13 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
                 结束时间
               </Text>
               <TextInput
-                type="datetime-local"
+                type="date"
                 value={localParams.dateRange?.end ? 
-                  new Date(localParams.dateRange.end).toISOString().slice(0, 16) : 
+                  localParams.dateRange.end.slice(0, 10) : 
                   ''
                 }
                 onChange={(e) => handleDateRangeChange('end', 
-                  e.target.value ? new Date(e.target.value).toISOString() : ''
+                  e.target.value ? e.target.value : ''
                 )}
               />
             </Box>

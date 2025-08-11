@@ -23,6 +23,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
   organization,
   onEdit,
   onToggleStatus,
+  onTemporalManage,
   isToggling,
   isAnyToggling,
   temporalMode = 'current',
@@ -160,6 +161,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
           organization={organization}
           onEdit={onEdit}
           onToggleStatus={onToggleStatus}
+          onTemporalManage={onTemporalManage}
           isToggling={isToggling}
           disabled={isAnyToggling}
           isHistorical={isHistorical}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box } from '@workday/canvas-kit-react/layout';
 import { Heading, Text } from '@workday/canvas-kit-react/text';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
@@ -13,7 +14,7 @@ import { PaginationControls } from './PaginationControls';
 import { useOrganizationDashboard } from './hooks/useOrganizationDashboard';
 import { useOrganizationActions } from './hooks/useOrganizationActions';
 
-// 时态管理组件导入 - 暂时禁用 (第一次修复失败，需要更深层修复)
+// 时态管理组件导入 - 暂时禁用以修复无限循环错误
 // import { TemporalNavbar } from '../temporal/components/TemporalNavbar';
 // import { useTemporalMode, useTemporalQueryState } from '../../shared/hooks/useTemporalQuery';
 // import type { TemporalMode } from '../../shared/types/temporal';
@@ -22,7 +23,7 @@ const DashboardHeader: React.FC<{
   onCreateClick: () => void;
   onCreatePlannedClick?: () => void;
   isToggling: boolean;
-  temporalMode?: TemporalMode;
+  temporalMode?: 'current' | 'historical';
   isHistorical?: boolean;
 }> = ({ onCreateClick, onCreatePlannedClick, isToggling, temporalMode = 'current', isHistorical = false }) => (
   <Box marginBottom="l">
@@ -45,15 +46,14 @@ const DashboardHeader: React.FC<{
       
       {/* 计划组织创建按钮 */}
       {onCreatePlannedClick && !isHistorical && (
-        <PrimaryButton 
+        <SecondaryButton 
           marginRight="s" 
           onClick={onCreatePlannedClick}
           disabled={isToggling}
-          variant="outline"
           style={{ borderColor: '#1890ff', color: '#1890ff' }}
         >
           📅 新增计划组织
-        </PrimaryButton>
+        </SecondaryButton>
       )}
       
       <SecondaryButton 
@@ -116,6 +116,8 @@ const ErrorState: React.FC<{ error: Error }> = ({ error }) => (
 );
 
 export const OrganizationDashboard: React.FC = () => {
+  const navigate = useNavigate();
+
   // 传统组织数据和操作
   const {
     organizations,
@@ -143,6 +145,11 @@ export const OrganizationDashboard: React.FC = () => {
     handleFormSubmit,
   } = useOrganizationActions();
 
+  // 时态管理导航处理器
+  const handleTemporalManage = (organizationCode: string) => {
+    navigate(`/organizations/${organizationCode}/temporal`);
+  };
+
   // 计划组织创建处理 - 重新启用
   const handleCreatePlanned = () => {
     const plannedOrgTemplate = {
@@ -155,21 +162,18 @@ export const OrganizationDashboard: React.FC = () => {
       sort_order: 0,
       _isPlannedCreation: true
     };
-    handleCreate(plannedOrgTemplate as any);
+    handleCreate();
   };
 
-  // 时态管理状态和操作 - 暂时禁用 (第一次修复失败，需要更深层修复)
+  // 时态管理状态和操作 - 暂时禁用以修复无限循环错误
   // const { mode: temporalMode, isHistorical, isCurrent, isPlanning } = useTemporalMode();
   // const { loading: temporalLoading, error: temporalError, context: temporalContext } = useTemporalQueryState();
-  const temporalMode = 'current';
+  const temporalMode = 'current' as const;
   const isHistorical = false;
-  const isCurrent = true;
   const isPlanning = false;
   const temporalLoading = { organizations: false };
-  const temporalError = null;
-  const temporalContext = null;
 
-  // 时态模式变更处理 - 暂时禁用 (第一次修复失败，需要更深层修复)
+  // 时态模式变更处理 - 暂时禁用以修复无限循环错误
   // const handleTemporalModeChange = (newMode: TemporalMode) => {
   //   console.log(`时态模式切换到: ${newMode}`);
   // };
@@ -178,15 +182,15 @@ export const OrganizationDashboard: React.FC = () => {
     return <LoadingState />;
   }
 
-  if (error || temporalError) {
-    return <ErrorState error={error || new Error(temporalError || 'Temporal query error')} />;
+  if (error) {
+    return <ErrorState error={error} />;
   }
 
   const hasOrganizations = organizations && organizations.length > 0;
 
   return (
     <Box data-testid="organization-dashboard">
-      {/* 时态导航栏 - 暂时禁用 (第一次修复失败，需要更深层修复) */}
+      {/* 时态导航栏 - 暂时禁用以修复无限循环错误 */}
       {/* <Box marginBottom="l">
         <TemporalNavbar
           onModeChange={handleTemporalModeChange}
@@ -239,6 +243,7 @@ export const OrganizationDashboard: React.FC = () => {
                 organizations={organizations}
                 onEdit={isHistorical ? undefined : handleEdit} // 历史模式禁用编辑
                 onToggleStatus={isHistorical ? undefined : handleToggleStatus} // 历史模式禁用状态切换
+                onTemporalManage={handleTemporalManage} // 时态管理导航
                 loading={isFetching || temporalLoading.organizations}
                 togglingId={togglingId}
                 temporalMode={temporalMode}

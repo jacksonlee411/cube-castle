@@ -5,7 +5,7 @@ import type { ServiceStatus } from '../../../shared/types/monitoring';
 import { ServiceCard } from './ServiceCard';
 
 interface ServiceStatusGridProps {
-  services?: ServiceStatus[];
+  services?: ServiceStatus[] | undefined;
 }
 
 export const ServiceStatusGrid: React.FC<ServiceStatusGridProps> = ({ services = [] }) => {

@@ -23,8 +23,8 @@ export interface TemporalQueryParams {
   eventTypes?: string[];    // 事件类型过滤
 }
 
-// 版本信息
-export interface VersionInfo {
+// 变更信息 (纯日期生效模型)
+export interface ChangeInfo {
   id: string;
   timestamp: Date;
   type: 'creation' | 'modification' | 'deletion' | 'status_change';
@@ -48,23 +48,20 @@ export interface TemporalOrganizationUnit {
   created_at: string;
   updated_at: string;
 
-  // 时态扩展字段
+  // 时态扩展字段 (纯日期生效模型)
   effective_date: string;     // 生效日期
-  end_date: string | undefined;  // 结束日期 (undefined表示当前有效)
-  is_current: boolean;        // 是否为当前版本
-  version_number: number;     // 版本号
-  predecessor_id?: string;    // 前一版本ID
-  successor_id?: string;      // 后一版本ID
+  end_date?: string;          // 结束日期 (可选，undefined表示当前有效)
+  is_current: boolean;        // 是否为当前有效记录
   change_reason?: string;     // 变更原因
   approved_by?: string;       // 批准人
   approved_at?: string;       // 批准时间
 }
 
-// 组织历史版本列表
+// 组织历史记录列表 (纯日期生效模型)
 export interface OrganizationHistory {
   organizationCode: string;
-  versions: TemporalOrganizationUnit[];
-  totalVersions: number;
+  records: TemporalOrganizationUnit[];  // 改名为records，去掉版本概念
+  totalRecords: number;                 // 改名为totalRecords
   timelineEvents: TimelineEvent[];
 }
 
@@ -110,19 +107,19 @@ export interface TemporalQueryOptions {
   mode: TemporalMode;
   selectedDate?: Date;
   dateRange?: DateRange;
-  compareVersions?: string[];  // 需要对比的版本ID列表
+  compareRecords?: string[];  // 需要对比的记录ID列表 (纯日期模型)
   includeMetadata?: boolean;
   maxResults?: number;
 }
 
-// 时态统计信息
+// 时态统计信息 (纯日期生效模型)
 export interface TemporalStats {
-  totalVersions: number;
-  activeVersions: number;
-  plannedChanges: number;
-  lastModified: Date;
-  averageLifespanDays: number;
-  changeFrequency: number;  // 每月变更次数
+  totalRecords: number;          // 总记录数
+  activeRecords: number;         // 当前有效记录数
+  plannedChanges: number;        // 计划中的变更数
+  lastModified: Date;            // 最后修改时间
+  averageLifespanDays: number;   // 平均生命周期(天)
+  changeFrequency: number;       // 每月变更次数
 }
 
 // 批量时态操作
@@ -137,11 +134,11 @@ export interface BatchTemporalOperation {
   progress?: number;  // 0-100
 }
 
-// 时态缓存配置
+// 时态缓存配置 (纯日期生效模型)
 export interface TemporalCacheConfig {
   currentDataTTL: number;     // 当前数据缓存时长 (秒)
   historicalDataTTL: number;  // 历史数据缓存时长 (秒) 
-  maxVersionsCache: number;   // 最大缓存版本数
+  maxRecordsCache: number;    // 最大缓存记录数 (去掉版本概念)
   enablePrefetch: boolean;    // 是否启用预取
 }
 
@@ -155,13 +152,13 @@ export interface TemporalPermissions {
   maxHistoryViewDays?: number;
 }
 
-// 时间线视图配置
+// 时间线视图配置 (纯日期生效模型)
 export interface TimelineViewConfig {
-  showEvents: boolean;
-  showVersions: boolean;
-  dateFormat: string;
-  timeRange: DateRange;
-  eventTypes: EventType[];
+  showEvents: boolean;          // 显示事件
+  showRecords: boolean;         // 显示历史记录 (替换showVersions)
+  dateFormat: string;           // 日期格式
+  timeRange: DateRange;         // 时间范围
+  eventTypes: EventType[];      // 事件类型
 }
 
 // 时态上下文

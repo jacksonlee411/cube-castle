@@ -225,21 +225,21 @@ test.describe('时态管理系统 E2E 测试套件', () => {
     });
   });
 
-  test.describe('6. 版本对比功能测试', () => {
+  test.describe('6. 记录对比功能测试', () => {
     
-    test('应该能够进行版本对比', async ({ page }) => {
-      // 访问版本对比页面（如果有直接链接）
-      const versionComparisonButton = page.locator('button:has-text("版本对比")').first();
+    test('应该能够进行记录对比', async ({ page }) => {
+      // 访问记录对比页面（如果有直接链接）
+      const versionComparisonButton = page.locator('button:has-text("记录对比")').first();
       if (await versionComparisonButton.isVisible()) {
         await versionComparisonButton.click();
         
-        // 验证版本对比界面加载
-        await expect(page.locator('[data-testid="version-comparison"]')).toBeVisible();
+        // 验证记录对比界面加载
+        await expect(page.locator('[data-testid="record-comparison"]')).toBeVisible();
         
-        // 验证版本选择器
+        // 验证日期选择器
         const versionSelectors = page.locator('select');
         const selectorCount = await versionSelectors.count();
-        expect(selectorCount).toBeGreaterThanOrEqual(2); // 至少两个版本选择器
+        expect(selectorCount).toBeGreaterThanOrEqual(2); // 至少两个日期选择器
       }
     });
   });

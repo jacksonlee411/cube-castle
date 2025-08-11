@@ -13,7 +13,7 @@ import type {
   TimelineEvent,
   TemporalMode
 } from '../types/temporal';
-import type { OrganizationUnit } from '../types/organization';
+import type { OrganizationUnit, OrganizationQueryParams } from '../types/organization';
 
 // 查询键生成器
 const QUERY_KEYS = {
@@ -31,7 +31,7 @@ const QUERY_KEYS = {
 // 缓存配置
 const CACHE_CONFIG = {
   staleTime: 5 * 60 * 1000, // 5分钟
-  cacheTime: 10 * 60 * 1000, // 10分钟
+  gcTime: 10 * 60 * 1000, // 10分钟
   refetchOnWindowFocus: false,
   refetchOnMount: true,
 };
@@ -71,18 +71,15 @@ export function useTemporalOrganizations(
       const response = await organizationAPI.getAll(params);
       const organizations = response.organizations;
 
-      // 转换为时态组织单元格式
+      // 转换为时态组织单元格式 (纯日期模型)
       const temporalOrganizations: TemporalOrganizationUnit[] = organizations.map(org => ({
         ...org,
-        effective_date: org.created_at,
-        end_date: undefined,
-        is_current: true,
-        version_number: 1,
-        predecessor_id: undefined,
-        successor_id: undefined,
-        change_reason: undefined,
-        approved_by: undefined,
-        approved_at: undefined
+        effective_date: org.created_at,  // 使用创建时间作为生效日期
+        end_date: undefined,             // 当前有效，未结束
+        is_current: true,                // 当前有效记录
+        change_reason: undefined,        // 无变更原因
+        approved_by: undefined,          // 无批准人
+        approved_at: undefined           // 无批准时间
       }));
 
       // 缓存结果
@@ -135,7 +132,7 @@ export function useOrganizationHistory(
   enabled: boolean = true
 ): UseQueryResult<TemporalOrganizationUnit[]> & {
   hasHistory: boolean;
-  latestVersion: TemporalOrganizationUnit | undefined;
+  latestRecord: TemporalOrganizationUnit | undefined;  // 更新字段名
 } {
   const temporalQueryParams = temporalSelectors.useQueryParams();
   
@@ -168,12 +165,12 @@ export function useOrganizationHistory(
   });
 
   const hasHistory = (query.data?.length ?? 0) > 1;
-  const latestVersion = query.data?.[0]; // 假设按时间倒序排列
+  const latestRecord = query.data?.[0]; // 最新记录 (纯日期模型)
 
   return {
     ...query,
     hasHistory,
-    latestVersion
+    latestRecord  // 更名为latestRecord
   };
 }
 
@@ -190,7 +187,7 @@ export function useOrganizationTimeline(
   const temporalQueryParams = temporalSelectors.useQueryParams();
   
   // 使用稳定的actions引用
-  const { getCachedTimeline, cacheTimeline } = useTemporalActions();
+  const { getCachedTimeline, gcTimeline } = useTemporalActions();
 
   const finalParams = { ...temporalQueryParams, ...params };
   const queryKey = QUERY_KEYS.timeline(code, finalParams);
@@ -209,7 +206,7 @@ export function useOrganizationTimeline(
       const timeline = await organizationAPI.getTimeline(code, finalParams);
 
       // 缓存结果
-      cacheTimeline(cacheKey, timeline);
+      gcTimeline(cacheKey, timeline);
 
       return timeline;
     },

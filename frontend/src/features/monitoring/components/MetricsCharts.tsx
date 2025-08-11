@@ -10,7 +10,7 @@ import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tool
 import type { ChartData } from '../../../shared/types/monitoring';
 
 interface MetricsChartsProps {
-  data?: ChartData;
+  data?: ChartData | undefined;
 }
 
 export const MetricsCharts: React.FC<MetricsChartsProps> = ({ data }) => {

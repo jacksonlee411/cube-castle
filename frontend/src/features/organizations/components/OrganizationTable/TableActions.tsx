@@ -1,19 +1,22 @@
 import React from 'react';
-import { TertiaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
+import { TertiaryButton, SecondaryButton, ToolbarIconButton as IconButton } from '@workday/canvas-kit-react/button';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
+import { calendarIcon } from '@workday/canvas-system-icons-web';
 import type { TableActionsProps } from './TableTypes';
 
 export const TableActions: React.FC<TableActionsProps> = ({
   organization,
   onEdit,
   onToggleStatus,
+  onTemporalManage,
   isToggling,
   disabled,
   isHistorical = false
 }) => {
   const handleEdit = () => onEdit?.(organization);
   const handleToggleStatus = () => onToggleStatus?.(organization.code, organization.status);
+  const handleTemporalManage = () => onTemporalManage?.(organization.code);
 
   const isActive = organization.status === 'ACTIVE';
   const buttonText = isActive ? '停用' : '启用';
@@ -42,6 +45,17 @@ export const TableActions: React.FC<TableActionsProps> = ({
             {buttonText}
           </SecondaryButton>
         </Tooltip>
+        {onTemporalManage && (
+          <Tooltip title="查看历史版本的时态管理">
+            <IconButton 
+              size="small" 
+              aria-label="时态管理"
+              icon={calendarIcon}
+              onClick={handleTemporalManage}
+              data-testid={`temporal-manage-button-${organization.code}`}
+            />
+          </Tooltip>
+        )}
         <Text typeLevel="subtext.small" color="hint">
           📖
         </Text>
@@ -69,6 +83,18 @@ export const TableActions: React.FC<TableActionsProps> = ({
       >
         {isToggling ? loadingText : buttonText}
       </SecondaryButton>
+      {onTemporalManage && (
+        <Tooltip title="时态管理">
+          <IconButton 
+            size="small" 
+            aria-label="时态管理"
+            icon={calendarIcon}
+            onClick={handleTemporalManage}
+            disabled={disabled}
+            data-testid={`temporal-manage-button-${organization.code}`}
+          />
+        </Tooltip>
+      )}
     </div>
   );
 };

@@ -28,6 +28,7 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
   organizations,
   onEdit,
   onToggleStatus,
+  onTemporalManage,
   togglingId,
   temporalMode = 'current',
   isHistorical = false,
@@ -57,6 +58,7 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
                 organization={org}
                 onEdit={onEdit}
                 onToggleStatus={onToggleStatus}
+                onTemporalManage={onTemporalManage}
                 isToggling={isToggling}
                 isAnyToggling={!!togglingId}
                 temporalMode={temporalMode}

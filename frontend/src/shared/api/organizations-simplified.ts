@@ -554,7 +554,6 @@ export const organizationAPI = {
             effectiveFrom
             effectiveTo
             isTemporal
-            version
             changeReason
             changedBy
             createdAt
@@ -691,10 +690,10 @@ export const organizationAPI = {
     }
   },
 
-  // 更新时态组织记录
+  // 更新时态组织记录 - 使用事件驱动API
   updateTemporal: async (code: string, input: UpdateOrganizationInput & {
-    effectiveFrom?: string;
-    effectiveTo?: string;
+    effectiveDate?: string;
+    endDate?: string;
     changeReason?: string;
   }): Promise<any> => {
     try {
@@ -713,20 +712,22 @@ export const organizationAPI = {
         );
       }
 
-      // 转换为API格式
-      const apiData = {
-        ...safeTransform.cleanUpdateInput(input),
-        effective_date: input.effectiveDate,
-        end_date: input.endDate,
-        change_reason: input.changeReason
+      // 转换为事件驱动API格式 - 修复日期格式
+      const eventData = {
+        event_type: "UPDATE",
+        effective_date: input.effectiveDate ? new Date(input.effectiveDate + 'T00:00:00Z').toISOString() : new Date().toISOString(),
+        end_date: input.endDate ? new Date(input.endDate + 'T00:00:00Z').toISOString() : null,
+        change_data: safeTransform.cleanUpdateInput(input),
+        change_reason: input.changeReason || "组织信息更新"
       };
 
-      const response = await restClient.request<any>(`/organization-units/${code}/temporal`, {
-        method: 'PUT',
-        body: JSON.stringify(apiData),
+      // 使用事件驱动端点
+      const response = await restClient.request<any>(`/organization-units/${code}/events`, {
+        method: 'POST',
+        body: JSON.stringify(eventData),
       });
       
-      if (!response.code) {
+      if (!response.event_id) {
         throw new Error('Invalid response from server');
       }
 

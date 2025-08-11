@@ -10,7 +10,7 @@ import {
 } from '@workday/canvas-system-icons-web';
 
 interface ControlPanelProps {
-  lastUpdated?: string;
+  lastUpdated?: string | undefined;
   loading?: boolean;
   onRefresh?: () => void;
 }
@@ -30,10 +30,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       <Flex 
         alignItems="center" 
         justifyContent="space-between"
-        flexDirection={{ default: 'column', medium: 'row' }}
+        flexDirection="column"
         gap="m"
       >
-        <Box textAlign={{ default: 'center', medium: 'left' }}>
+        <Box textAlign="center">
           <Flex alignItems="center" style={{gap: '8px'}}>
             <SystemIcon icon={clockIcon} size={16} />
             <Text fontWeight="bold" marginBottom="xs">

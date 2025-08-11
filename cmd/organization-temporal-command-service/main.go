@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -32,41 +31,38 @@ const (
 
 var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 
-// ===== 扩展的时态业务实体 =====
+// ===== 简化的时态业务实体（移除版本字段） =====
 
 type Organization struct {
-	TenantID          string     `json:"tenant_id" db:"tenant_id"`
-	Code              string     `json:"code" db:"code"`
-	ParentCode        *string    `json:"parent_code,omitempty" db:"parent_code"`
-	Name              string     `json:"name" db:"name"`
-	UnitType          string     `json:"unit_type" db:"unit_type"`
-	Status            string     `json:"status" db:"status"`
-	Level             int        `json:"level" db:"level"`
-	Path              string     `json:"path" db:"path"`
-	SortOrder         int        `json:"sort_order" db:"sort_order"`
-	Description       string     `json:"description" db:"description"`
-	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
+	TenantID      string     `json:"tenant_id" db:"tenant_id"`
+	Code          string     `json:"code" db:"code"`
+	ParentCode    *string    `json:"parent_code,omitempty" db:"parent_code"`
+	Name          string     `json:"name" db:"name"`
+	UnitType      string     `json:"unit_type" db:"unit_type"`
+	Status        string     `json:"status" db:"status"`
+	Level         int        `json:"level" db:"level"`
+	Path          string     `json:"path" db:"path"`
+	SortOrder     int        `json:"sort_order" db:"sort_order"`
+	Description   string     `json:"description" db:"description"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 	
-	// 新增时态字段
-	EffectiveDate     *time.Time `json:"effective_date,omitempty" db:"effective_date"`
-	EndDate           *time.Time `json:"end_date,omitempty" db:"end_date"`
-	Version           *int       `json:"version,omitempty" db:"version"`
-	SupersedesVersion *int       `json:"supersedes_version,omitempty" db:"supersedes_version"`
-	ChangeReason      *string    `json:"change_reason,omitempty" db:"change_reason"`
-	IsCurrent         *bool      `json:"is_current,omitempty" db:"is_current"`
+	// 时态字段（符合行业标准）
+	EffectiveDate *time.Time `json:"effective_date,omitempty" db:"effective_date"`
+	EndDate       *time.Time `json:"end_date,omitempty" db:"end_date"`
+	ChangeReason  *string    `json:"change_reason,omitempty" db:"change_reason"`
+	IsCurrent     *bool      `json:"is_current,omitempty" db:"is_current"`
 }
 
-// 时态查询选项
+// 时态查询选项（移除版本相关参数）
 type TemporalQueryOptions struct {
-	AsOfDate        *time.Time `json:"as_of_date,omitempty"`        // 时间点查询
-	EffectiveFrom   *time.Time `json:"effective_from,omitempty"`    // 生效起始时间
-	EffectiveTo     *time.Time `json:"effective_to,omitempty"`      // 生效结束时间  
-	IncludeHistory  bool       `json:"include_history,omitempty"`   // 包含历史版本
-	IncludeFuture   bool       `json:"include_future,omitempty"`    // 包含未来版本
-	IncludeDissolved bool      `json:"include_dissolved,omitempty"` // 包含已解散组织
-	Version         *int       `json:"version,omitempty"`           // 特定版本
-	MaxVersions     int        `json:"max_versions,omitempty"`      // 最大版本数量
+	AsOfDate         *time.Time `json:"as_of_date,omitempty"`        // 时间点查询
+	EffectiveDate    *time.Time `json:"effective_date,omitempty"`    // 生效日期过滤
+	EndDate          *time.Time `json:"end_date,omitempty"`          // 结束日期过滤  
+	IncludeHistory   bool       `json:"include_history,omitempty"`   // 包含历史版本
+	IncludeFuture    bool       `json:"include_future,omitempty"`    // 包含未来版本
+	IncludeDissolved bool       `json:"include_dissolved,omitempty"` // 包含已解散组织
+	MaxRecords       int        `json:"max_records,omitempty"`       // 最大记录数量
 }
 
 // 组织变更事件请求
@@ -91,15 +87,6 @@ type OrganizationEvent struct {
 	TenantID          string     `json:"tenant_id" db:"tenant_id"`
 }
 
-// 时间线操作请求
-type TimelineOperationRequest struct {
-	Operation     string                 `json:"operation"`               // CORRECT, CANCEL, VOID
-	TargetDate    time.Time              `json:"target_date"`             // 操作目标日期
-	TargetVersion *int                   `json:"target_version,omitempty"` // 目标版本
-	NewData       map[string]interface{} `json:"new_data,omitempty"`      // 校正数据
-	Reason        string                 `json:"reason"`                  // 操作原因
-}
-
 // ===== 时态仓储层 =====
 
 type TemporalOrganizationRepository struct {
@@ -110,7 +97,7 @@ func NewTemporalOrganizationRepository(db *sql.DB) *TemporalOrganizationReposito
 	return &TemporalOrganizationRepository{db: db}
 }
 
-// HTTP查询参数解析
+// HTTP查询参数解析（移除版本参数）
 func ParseTemporalQuery(r *http.Request) (*TemporalQueryOptions, error) {
 	opts := &TemporalQueryOptions{}
 	
@@ -123,16 +110,16 @@ func ParseTemporalQuery(r *http.Request) (*TemporalQueryOptions, error) {
 		}
 	}
 	
-	// 解析日期范围
-	if fromStr := r.URL.Query().Get("effective_from"); fromStr != "" {
-		if from, err := time.Parse("2006-01-02", fromStr); err == nil {
-			opts.EffectiveFrom = &from
+	// 解析effective_date和end_date
+	if effectiveDateStr := r.URL.Query().Get("effective_date"); effectiveDateStr != "" {
+		if effectiveDate, err := time.Parse("2006-01-02", effectiveDateStr); err == nil {
+			opts.EffectiveDate = &effectiveDate
 		}
 	}
 	
-	if toStr := r.URL.Query().Get("effective_to"); toStr != "" {
-		if to, err := time.Parse("2006-01-02", toStr); err == nil {
-			opts.EffectiveTo = &to
+	if endDateStr := r.URL.Query().Get("end_date"); endDateStr != "" {
+		if endDate, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			opts.EndDate = &endDate
 		}
 	}
 	
@@ -141,24 +128,10 @@ func ParseTemporalQuery(r *http.Request) (*TemporalQueryOptions, error) {
 	opts.IncludeFuture = r.URL.Query().Get("include_future") == "true" 
 	opts.IncludeDissolved = r.URL.Query().Get("include_dissolved") == "true"
 	
-	// 解析版本参数
-	if versionStr := r.URL.Query().Get("version"); versionStr != "" {
-		if version, err := strconv.Atoi(versionStr); err == nil {
-			opts.Version = &version
-		}
-	}
-	
-	// 解析最大版本数
-	if maxVersionsStr := r.URL.Query().Get("max_versions"); maxVersionsStr != "" {
-		if maxVersions, err := strconv.Atoi(maxVersionsStr); err == nil {
-			opts.MaxVersions = maxVersions
-		}
-	}
-	
 	return opts, nil
 }
 
-// 时态查询实现
+// 时态查询实现（基于纯日期模型）
 func (r *TemporalOrganizationRepository) GetByCodeTemporal(ctx context.Context, tenantID uuid.UUID, code string, opts *TemporalQueryOptions) ([]*Organization, error) {
 	var conditions []string
 	var args []interface{}
@@ -173,66 +146,76 @@ func (r *TemporalOrganizationRepository) GetByCodeTemporal(ctx context.Context, 
 	args = append(args, code)
 	argIndex++
 	
-	// 时间点查询：查询在指定日期有效的版本
+	// 时间点查询：查询在指定日期有效的记录，优化NULL值处理
 	if opts.AsOfDate != nil {
 		conditions = append(conditions, fmt.Sprintf(
-			"effective_date <= $%d AND (end_date IS NULL OR end_date >= $%d)", 
+			"COALESCE(effective_date, CURRENT_TIMESTAMP) <= $%d AND (end_date IS NULL OR end_date >= $%d)", 
 			argIndex, argIndex))
 		args = append(args, *opts.AsOfDate)
 		argIndex++
 	}
 	
-	// 日期范围查询
-	if opts.EffectiveFrom != nil {
-		conditions = append(conditions, fmt.Sprintf("effective_date >= $%d", argIndex))
-		args = append(args, *opts.EffectiveFrom)
+	// 日期范围查询，优化NULL值处理
+	if opts.EffectiveDate != nil {
+		conditions = append(conditions, fmt.Sprintf("COALESCE(effective_date, CURRENT_TIMESTAMP) >= $%d", argIndex))
+		args = append(args, *opts.EffectiveDate)
 		argIndex++
 	}
 	
-	if opts.EffectiveTo != nil {
-		conditions = append(conditions, fmt.Sprintf("effective_date <= $%d", argIndex))
-		args = append(args, *opts.EffectiveTo)
+	if opts.EndDate != nil {
+		conditions = append(conditions, fmt.Sprintf("COALESCE(end_date, '9999-12-31'::timestamp) <= $%d", argIndex))
+		args = append(args, *opts.EndDate)
 		argIndex++
 	}
 	
-	// 特定版本查询
-	if opts.Version != nil {
-		conditions = append(conditions, fmt.Sprintf("version = $%d", argIndex))
-		args = append(args, *opts.Version)
-		argIndex++
-	}
-	
-	// 当前版本过滤
-	if !opts.IncludeHistory && opts.AsOfDate == nil && opts.Version == nil {
+	// 当前记录过滤 - 如果既没有时间点查询，也没有明确包含历史，则只返回当前记录
+	if !opts.IncludeHistory && opts.AsOfDate == nil {
 		conditions = append(conditions, "is_current = true")
 	}
 	
-	// 未来版本过滤
-	if !opts.IncludeFuture {
-		conditions = append(conditions, "effective_date <= CURRENT_DATE")
+	// 未来记录过滤 - 只在明确不包含未来记录时过滤，但不影响当前记录
+	if !opts.IncludeFuture && opts.AsOfDate == nil && opts.IncludeHistory {
+		conditions = append(conditions, "COALESCE(effective_date, CURRENT_TIMESTAMP) <= CURRENT_TIMESTAMP")
 	}
 	
-	// 已解散组织过滤
-	if !opts.IncludeDissolved {
+	// 已解散组织过滤 - 当包含历史记录时，不应该过滤已解散组织
+	if !opts.IncludeDissolved && !opts.IncludeHistory && opts.AsOfDate == nil {
 		conditions = append(conditions, "(end_date IS NULL OR end_date > CURRENT_DATE)")
 	}
 	
-	// 构建查询
+	// 特殊处理：当明确要求包含历史记录时，确保不过滤任何历史记录
+	if opts.IncludeHistory {
+		// 如果包含历史记录，则移除可能的已解散组织过滤条件
+		// 不添加任何关于end_date的过滤条件
+	}
+	
+	// 构建查询（按日期排序）- 使用COALESCE处理NULL值，优化扫描性能
 	query := fmt.Sprintf(`
-		SELECT tenant_id, code, parent_code, name, unit_type, status,
-		       level, path, sort_order, description, created_at, updated_at,
-		       effective_date, end_date, version, supersedes_version, change_reason, is_current
+		SELECT tenant_id, code, 
+		       COALESCE(parent_code, '') as parent_code,
+		       name, unit_type, status, level, path, sort_order,
+		       COALESCE(description, '') as description,
+		       created_at, updated_at,
+		       COALESCE(effective_date, CURRENT_TIMESTAMP) as effective_date,
+		       end_date,
+		       COALESCE(change_reason, '') as change_reason,
+		       COALESCE(is_current, false) as is_current
 		FROM organization_units 
 		WHERE %s
-		ORDER BY version DESC
+		ORDER BY COALESCE(effective_date, CURRENT_TIMESTAMP) DESC
 		%s
 	`, strings.Join(conditions, " AND "), 
 	   func() string {
-		   if opts.MaxVersions > 0 {
-			   return fmt.Sprintf("LIMIT %d", opts.MaxVersions)
+		   if opts.MaxRecords > 0 {
+			   return fmt.Sprintf("LIMIT %d", opts.MaxRecords)
 		   }
 		   return ""
 	   }())
+	
+	// 调试：打印查询条件和参数
+	log.Printf("[DEBUG] 时态查询 - code: %s, conditions: %v, args: %v", code, conditions, args)
+	log.Printf("[DEBUG] 查询选项 - IncludeHistory: %v, IncludeFuture: %v, IncludeDissolved: %v", 
+		opts.IncludeHistory, opts.IncludeFuture, opts.IncludeDissolved)
 	
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -243,16 +226,34 @@ func (r *TemporalOrganizationRepository) GetByCodeTemporal(ctx context.Context, 
 	var organizations []*Organization
 	for rows.Next() {
 		org := &Organization{}
+		var parentCode, changeReason string
+		var endDate sql.NullTime
+		var isCurrent bool
+		var effectiveDate time.Time
+		
 		err := rows.Scan(
-			&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+			&org.TenantID, &org.Code, &parentCode, &org.Name,
 			&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
 			&org.Description, &org.CreatedAt, &org.UpdatedAt,
-			&org.EffectiveDate, &org.EndDate, &org.Version, &org.SupersedesVersion,
-			&org.ChangeReason, &org.IsCurrent,
+			&effectiveDate, &endDate, &changeReason, &isCurrent,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("扫描时态查询结果失败: %w", err)
 		}
+		
+		// 处理字段赋值
+		if parentCode != "" {
+			org.ParentCode = &parentCode
+		}
+		org.EffectiveDate = &effectiveDate
+		if endDate.Valid {
+			org.EndDate = &endDate.Time
+		}
+		if changeReason != "" {
+			org.ChangeReason = &changeReason
+		}
+		org.IsCurrent = &isCurrent
+		
 		organizations = append(organizations, org)
 	}
 	
@@ -282,44 +283,20 @@ func (r *TemporalOrganizationRepository) CreateOrganizationEvent(ctx context.Con
 	return eventID, nil
 }
 
-// 创建组织版本历史记录
-func (r *TemporalOrganizationRepository) CreateOrganizationVersion(ctx context.Context, tx *sql.Tx, org *Organization) error {
-	// 序列化组织数据为JSON
-	orgData, err := json.Marshal(org)
-	if err != nil {
-		return fmt.Errorf("序列化组织数据失败: %w", err)
-	}
+// 创建组织历史记录（使用统一的organization_units表）
+func (r *TemporalOrganizationRepository) CreateOrganizationHistory(ctx context.Context, tx *sql.Tx, org *Organization) error {
+	// 历史记录已经通过INSERT到organization_units表创建，这里只需记录日志
+	log.Printf("✅ 组织历史记录已创建: %s (生效日期: %v)", 
+		org.Code, 
+		func() string {
+			if org.EffectiveDate != nil {
+				return org.EffectiveDate.Format("2006-01-02")
+			}
+			return "当前时间"
+		}())
 	
-	query := `
-		INSERT INTO organization_versions (
-			organization_code, version, effective_date, end_date,
-			snapshot_data, change_reason, tenant_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-	
-	_, err = tx.ExecContext(ctx, query,
-		org.Code, *org.Version, *org.EffectiveDate, org.EndDate,
-		orgData, *org.ChangeReason, org.TenantID,
-	)
-	
-	if err != nil {
-		return fmt.Errorf("创建组织版本历史失败: %w", err)
-	}
-	
+	// 不需要额外操作，organization_units表本身就是时态数据存储
 	return nil
-}
-
-// 获取组织的下一个版本号
-func (r *TemporalOrganizationRepository) GetNextVersion(ctx context.Context, tx *sql.Tx, code string) (int, error) {
-	var maxVersion int
-	query := `SELECT COALESCE(MAX(version), 0) + 1 FROM organization_units WHERE code = $1`
-	
-	err := tx.QueryRowContext(ctx, query, code).Scan(&maxVersion)
-	if err != nil {
-		return 0, fmt.Errorf("获取下一个版本号失败: %w", err)
-	}
-	
-	return maxVersion, nil
 }
 
 // ===== HTTP处理器 =====
@@ -355,14 +332,17 @@ func (h *TemporalOrganizationHandler) getCacheKey(tenantID, code string, opts *T
 		if opts.AsOfDate != nil {
 			optsStr += fmt.Sprintf("asof:%v", opts.AsOfDate.Format("2006-01-02"))
 		}
+		if opts.EffectiveDate != nil {
+			optsStr += fmt.Sprintf("effdate:%v", opts.EffectiveDate.Format("2006-01-02"))
+		}
+		if opts.EndDate != nil {
+			optsStr += fmt.Sprintf("enddate:%v", opts.EndDate.Format("2006-01-02"))
+		}
 		if opts.IncludeHistory {
 			optsStr += ":hist"
 		}
 		if opts.IncludeFuture {
 			optsStr += ":future"
-		}
-		if opts.Version != nil {
-			optsStr += fmt.Sprintf(":v%d", *opts.Version)
 		}
 	}
 	hasher.Write([]byte(fmt.Sprintf("temporal:%s:%s:%s", tenantID, code, optsStr)))
@@ -433,13 +413,12 @@ func (h *TemporalOrganizationHandler) GetOrganizationTemporal(w http.ResponseWri
 	// 执行时态查询
 	organizations, err := h.repo.GetByCodeTemporal(r.Context(), tenantID, code, opts)
 	if err != nil {
-	// monitoring.RecordOrganizationOperation("temporal_get", "failed", "command-service")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "TEMPORAL_QUERY_ERROR", "时态查询失败", err)
 		return
 	}
 	
 	if len(organizations) == 0 {
-		h.writeErrorResponse(w, http.StatusNotFound, "NOT_FOUND", "未找到匹配的组织版本", nil)
+		h.writeErrorResponse(w, http.StatusNotFound, "NOT_FOUND", "未找到匹配的组织记录", nil)
 		return
 	}
 	
@@ -458,8 +437,6 @@ func (h *TemporalOrganizationHandler) GetOrganizationTemporal(w http.ResponseWri
 			log.Printf("[CACHE SET] 时态查询结果已缓存 - 键: %s, 组织: %s, TTL: %v", cacheKey, code, h.cacheTTL)
 		}
 	}
-	
-	// monitoring.RecordOrganizationOperation("temporal_get", "success", "command-service")
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
@@ -511,10 +488,12 @@ func (h *TemporalOrganizationHandler) CreateOrganizationEvent(w http.ResponseWri
 		return
 	}
 	
-	// 2. 处理不同类型的事件
+	// 2. 处理不同类型的事件（简化处理，不使用版本号）
 	switch req.EventType {
-	case "UPDATE", "RESTRUCTURE":
+	case "UPDATE":
 		err = h.handleUpdateEvent(r.Context(), tx, tenantID, code, &req)
+	case "RESTRUCTURE":
+		err = h.handleRESTRUCTUREEvent(r.Context(), tx, tenantID, code, &req)
 	case "DISSOLVE":
 		err = h.handleDissolveEvent(r.Context(), tx, tenantID, code, &req)
 	case "ACTIVATE", "DEACTIVATE":
@@ -543,34 +522,35 @@ func (h *TemporalOrganizationHandler) CreateOrganizationEvent(w http.ResponseWri
 		"processed_at":   time.Now().Format(time.RFC3339),
 	}
 	
-	// monitoring.RecordOrganizationOperation("event_create", "success", "command-service")
-	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
 
-// 处理更新事件
+// 处理更新事件（无版本号逻辑）
 func (h *TemporalOrganizationHandler) handleUpdateEvent(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string, req *OrganizationChangeEvent) error {
-	// 获取当前版本
-	currentOrg, err := h.getCurrentVersion(ctx, tx, tenantID, code)
+	// 获取当前记录
+	currentOrg, err := h.getCurrentRecord(ctx, tx, tenantID, code)
 	if err != nil {
-		return fmt.Errorf("获取当前版本失败: %w", err)
+		return fmt.Errorf("获取当前记录失败: %w", err)
 	}
 	
-	// 创建新版本
-	newVersion, err := h.repo.GetNextVersion(ctx, tx, code)
+	// 设置当前记录的结束日期
+	endDate := req.EffectiveDate.AddDate(0, 0, -1)
+	_, err = tx.ExecContext(ctx,
+		"UPDATE organization_units SET end_date = $1, is_current = false WHERE code = $2 AND tenant_id = $3 AND is_current = true",
+		endDate, code, tenantID.String())
 	if err != nil {
-		return fmt.Errorf("获取新版本号失败: %w", err)
+		return fmt.Errorf("更新当前记录结束日期失败: %w", err)
 	}
 	
-	// 应用变更数据
+	// 创建新记录
 	updatedOrg := *currentOrg
-	updatedOrg.Version = &newVersion
 	updatedOrg.EffectiveDate = &req.EffectiveDate
 	updatedOrg.EndDate = req.EndDate
 	updatedOrg.ChangeReason = &req.ChangeReason
-	updatedOrg.SupersedesVersion = currentOrg.Version
+	isCurrent := true
+	updatedOrg.IsCurrent = &isCurrent
 	
 	// 应用具体的字段变更
 	for field, value := range req.ChangeData {
@@ -591,12 +571,45 @@ func (h *TemporalOrganizationHandler) handleUpdateEvent(ctx context.Context, tx 
 			if desc, ok := value.(string); ok {
 				updatedOrg.Description = desc
 			}
+		case "parent_code":
+			if parentCode, ok := value.(string); ok && parentCode != "" {
+				updatedOrg.ParentCode = &parentCode
+				// 当父组织变更时，需要重新计算层级信息
+				level, path, err := h.calculateHierarchy(ctx, tx, tenantID, parentCode, code)
+				if err != nil {
+					return fmt.Errorf("重新计算层级信息失败: %w", err)
+				}
+				updatedOrg.Level = level
+				updatedOrg.Path = path
+			} else if parentCode == "" {
+				// 设置为根组织
+				updatedOrg.ParentCode = nil
+				updatedOrg.Level = 1
+				updatedOrg.Path = "/" + code
+			}
 		}
 	}
 	
-	// 创建版本历史记录
-	if err := h.repo.CreateOrganizationVersion(ctx, tx, &updatedOrg); err != nil {
-		return fmt.Errorf("创建版本历史记录失败: %w", err)
+	// 插入新记录 - 优化：让触发器处理层级计算，但提供充足的信息
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO organization_units (
+			code, parent_code, tenant_id, name, unit_type, status, level, path, 
+			sort_order, description, effective_date, end_date, change_reason, is_current
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`,
+		updatedOrg.Code, updatedOrg.ParentCode, updatedOrg.TenantID,
+		updatedOrg.Name, updatedOrg.UnitType, updatedOrg.Status,
+		updatedOrg.Level, updatedOrg.Path, updatedOrg.SortOrder,
+		updatedOrg.Description, updatedOrg.EffectiveDate, updatedOrg.EndDate,
+		updatedOrg.ChangeReason, updatedOrg.IsCurrent)
+	
+	if err != nil {
+		return fmt.Errorf("插入新记录失败: %w", err)
+	}
+	
+	// 创建历史记录
+	if err := h.repo.CreateOrganizationHistory(ctx, tx, &updatedOrg); err != nil {
+		return fmt.Errorf("创建历史记录失败: %w", err)
 	}
 	
 	return nil
@@ -610,7 +623,7 @@ func (h *TemporalOrganizationHandler) handleDissolveEvent(ctx context.Context, t
 		endDate = &req.EffectiveDate
 	}
 	
-	// 更新当前版本的结束日期和状态
+	// 更新当前记录的结束日期和状态
 	_, err := tx.ExecContext(ctx,
 		"UPDATE organization_units SET end_date = $1, status = 'INACTIVE', is_current = false WHERE code = $2 AND tenant_id = $3 AND is_current = true",
 		*endDate, code, tenantID.String())
@@ -628,7 +641,7 @@ func (h *TemporalOrganizationHandler) handleStatusEvent(ctx context.Context, tx 
 		newStatus = "INACTIVE"
 	}
 	
-	// 直接更新当前版本的状态
+	// 直接更新当前记录的状态
 	_, err := tx.ExecContext(ctx,
 		"UPDATE organization_units SET status = $1, updated_at = NOW() WHERE code = $2 AND tenant_id = $3 AND is_current = true",
 		newStatus, code, tenantID.String())
@@ -636,32 +649,174 @@ func (h *TemporalOrganizationHandler) handleStatusEvent(ctx context.Context, tx 
 	return err
 }
 
-// 获取当前版本
-func (h *TemporalOrganizationHandler) getCurrentVersion(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*Organization, error) {
+// 处理重组事件
+func (h *TemporalOrganizationHandler) handleRESTRUCTUREEvent(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string, req *OrganizationChangeEvent) error {
+	// 获取当前记录
+	currentOrg, err := h.getCurrentRecord(ctx, tx, tenantID, code)
+	if err != nil {
+		return fmt.Errorf("获取当前记录失败: %w", err)
+	}
+
+	// 正确计算当前记录的结束日期：新记录生效日期前一天
+	endDate := req.EffectiveDate.AddDate(0, 0, -1)
+	
+	// 时态连续性检查：确保不会产生时间线间隙
+	if currentOrg.EffectiveDate != nil && endDate.Before(*currentOrg.EffectiveDate) {
+		return fmt.Errorf("时态连续性违反: 结束日期(%s)不能早于当前记录生效日期(%s)", 
+			endDate.Format("2006-01-02"), currentOrg.EffectiveDate.Format("2006-01-02"))
+	}
+	
+	// 更新所有当前记录的状态
+	_, err = tx.ExecContext(ctx,
+		`UPDATE organization_units 
+		 SET end_date = $1, is_current = false 
+		 WHERE code = $2 AND tenant_id = $3 AND is_current = true`,
+		endDate, code, tenantID.String())
+	if err != nil {
+		return fmt.Errorf("更新当前记录结束日期失败: %w", err)
+	}
+
+	// 创建重组后的新记录
+	newOrg := *currentOrg
+	newOrg.EffectiveDate = &req.EffectiveDate
+	newOrg.EndDate = req.EndDate  // 可为nil，表示当前生效
+	newOrg.ChangeReason = &req.ChangeReason
+	isCurrent := true
+	newOrg.IsCurrent = &isCurrent
+
+	// 应用重组变更数据
+	if changeData, ok := req.ChangeData["unit_type"]; ok {
+		if unitType, ok := changeData.(string); ok {
+			newOrg.UnitType = unitType
+		}
+	}
+	if changeData, ok := req.ChangeData["name"]; ok {
+		if name, ok := changeData.(string); ok {
+			newOrg.Name = name
+		}
+	}
+	if changeData, ok := req.ChangeData["parent_code"]; ok {
+		if parentCode, ok := changeData.(string); ok && parentCode != "" {
+			newOrg.ParentCode = &parentCode
+		} else {
+			newOrg.ParentCode = nil
+		}
+	}
+	
+	// 插入新的重组记录
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO organization_units (
+			code, parent_code, tenant_id, name, unit_type, status, level, path, 
+			sort_order, description, effective_date, end_date, change_reason, is_current
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`,
+		newOrg.Code, newOrg.ParentCode, newOrg.TenantID,
+		newOrg.Name, newOrg.UnitType, newOrg.Status,
+		newOrg.Level, newOrg.Path, newOrg.SortOrder,
+		newOrg.Description, newOrg.EffectiveDate, newOrg.EndDate,
+		newOrg.ChangeReason, newOrg.IsCurrent)
+	
+	if err != nil {
+		return fmt.Errorf("插入重组记录失败: %w", err)
+	}
+
+	// 创建历史记录
+	if err := h.repo.CreateOrganizationHistory(ctx, tx, &newOrg); err != nil {
+		return fmt.Errorf("创建重组历史记录失败: %w", err)
+	}
+
+	return nil
+}
+
+// 获取当前记录
+func (h *TemporalOrganizationHandler) getCurrentRecord(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*Organization, error) {
 	query := `
 		SELECT tenant_id, code, parent_code, name, unit_type, status,
 		       level, path, sort_order, description, created_at, updated_at,
-		       effective_date, end_date, version, supersedes_version, change_reason, is_current
+		       effective_date, end_date, change_reason, is_current
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2 AND is_current = true
 	`
 	
 	org := &Organization{}
+	var changeReason, endDate sql.NullString
+	var isCurrent sql.NullBool
+	var effectiveDate sql.NullTime
+	
 	err := tx.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
 		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
 		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&org.EffectiveDate, &org.EndDate, &org.Version, &org.SupersedesVersion,
-		&org.ChangeReason, &org.IsCurrent,
+		&effectiveDate, &endDate, &changeReason, &isCurrent,
 	)
 	
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("未找到组织 %s 的当前版本", code)
+		return nil, fmt.Errorf("未找到组织 %s 的当前记录", code)
 	} else if err != nil {
-		return nil, fmt.Errorf("查询当前版本失败: %w", err)
+		return nil, fmt.Errorf("查询当前记录失败: %w", err)
+	}
+	
+	// 处理NULL值
+	if effectiveDate.Valid {
+		org.EffectiveDate = &effectiveDate.Time
+	}
+	if endDate.Valid {
+		t, _ := time.Parse("2006-01-02", endDate.String)
+		org.EndDate = &t
+	}
+	if changeReason.Valid {
+		org.ChangeReason = &changeReason.String
+	}
+	if isCurrent.Valid {
+		org.IsCurrent = &isCurrent.Bool
 	}
 	
 	return org, nil
+}
+
+// 计算组织层级信息 - 为时态记录创建提供准确的层级数据
+func (h *TemporalOrganizationHandler) calculateHierarchy(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, parentCode, currentCode string) (int, string, error) {
+	if parentCode == "" {
+		// 根组织
+		return 1, "/" + currentCode, nil
+	}
+	
+	// 查询父组织的当前记录
+	query := `
+		SELECT level, path 
+		FROM organization_units 
+		WHERE tenant_id = $1 AND code = $2 AND is_current = true
+	`
+	
+	var parentLevel int
+	var parentPath string
+	err := tx.QueryRowContext(ctx, query, tenantID.String(), parentCode).Scan(&parentLevel, &parentPath)
+	
+	if err == sql.ErrNoRows {
+		// 如果父组织当前记录不存在，查找最新的记录
+		query = `
+			SELECT level, path 
+			FROM organization_units 
+			WHERE tenant_id = $1 AND code = $2 
+			ORDER BY effective_date DESC 
+			LIMIT 1
+		`
+		err = tx.QueryRowContext(ctx, query, tenantID.String(), parentCode).Scan(&parentLevel, &parentPath)
+		
+		if err == sql.ErrNoRows {
+			return 0, "", fmt.Errorf("父组织 %s 不存在", parentCode)
+		} else if err != nil {
+			return 0, "", fmt.Errorf("查询父组织层级信息失败: %w", err)
+		}
+	} else if err != nil {
+		return 0, "", fmt.Errorf("查询父组织当前记录失败: %w", err)
+	}
+	
+	// 计算当前组织的层级和路径
+	currentLevel := parentLevel + 1
+	currentPath := parentPath + "/" + currentCode
+	
+	return currentLevel, currentPath, nil
 }
 
 // ===== 主程序 =====
@@ -708,9 +863,9 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "healthy",
-			"service": "organization-temporal-command-service",
+			"service": "organization-temporal-command-service-no-version",
 			"timestamp": time.Now().Format(time.RFC3339),
-			"features": []string{"temporal-queries", "event-driven-changes", "timeline-management"},
+			"features": []string{"temporal-queries", "event-driven-changes", "date-based-versioning"},
 		})
 	})
 	
@@ -742,11 +897,11 @@ func main() {
 	
 	// 优雅关闭
 	go func() {
-		log.Printf("🚀 时态组织命令服务启动在端口 %s", port)
+		log.Printf("🚀 时态组织命令服务启动在端口 %s (无版本号模式)", port)
 		log.Println("📋 支持的功能:")
 		log.Println("  - 时态查询 (as_of_date, effective_from, effective_to)")
 		log.Println("  - 事件驱动变更 (UPDATE, RESTRUCTURE, DISSOLVE)")
-		log.Println("  - 版本历史管理")
+		log.Println("  - 纯日期生效管理（符合行业标准）")
 		log.Println("  - 时间线一致性保证")
 		
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

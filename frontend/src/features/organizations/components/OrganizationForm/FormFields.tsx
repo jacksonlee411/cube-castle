@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 import type { FormFieldsProps } from './FormTypes';
 
-// 日期时间格式化工具
+// 日期格式化工具 (统一使用date类型)
+const formatDateForInput = (dateStr?: string) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    // 返回 YYYY-MM-DD 格式用于 type="date" 输入框
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch {
+    return '';
+  }
+};
+
+// 保持向后兼容（废弃但保留）
 const formatDateTimeLocal = (dateStr?: string) => {
   if (!dateStr) return '';
   try {
@@ -257,9 +272,9 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                   生效时间 *
                 </label>
                 <input
-                  type="datetime-local"
-                  value={formatDateTimeLocal(formData.effective_from as string)}
-                  onChange={(e) => updateField('effective_from', parseLocalDateTime(e.target.value))}
+                  type="date"
+                  value={formatDateForInput(formData.effective_from as string)}
+                  onChange={(e) => updateField('effective_from', e.target.value)}
                   style={inputStyle}
                   data-testid="form-field-effective-from"
                 />
@@ -273,9 +288,9 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                   失效时间
                 </label>
                 <input
-                  type="datetime-local"
-                  value={formatDateTimeLocal(formData.effective_to as string)}
-                  onChange={(e) => updateField('effective_to', parseLocalDateTime(e.target.value))}
+                  type="date"
+                  value={formatDateForInput(formData.effective_to as string)}
+                  onChange={(e) => updateField('effective_to', e.target.value)}
                   style={inputStyle}
                   data-testid="form-field-effective-to"
                 />

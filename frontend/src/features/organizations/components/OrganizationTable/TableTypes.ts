@@ -3,8 +3,9 @@ import type { TemporalMode } from '../../../../shared/types/temporal';
 
 export interface OrganizationTableProps {
   organizations: OrganizationUnit[];
-  onEdit?: (org: OrganizationUnit) => void;
-  onToggleStatus?: (code: string, currentStatus: OrganizationStatus) => void;
+  onEdit?: (org: OrganizationUnit) => void | undefined;
+  onToggleStatus?: (code: string, currentStatus: OrganizationStatus) => void | undefined;
+  onTemporalManage?: (code: string) => void | undefined;
   loading?: boolean;
   togglingId?: string | undefined;
   // 时态相关属性
@@ -17,6 +18,7 @@ export interface OrganizationTableRowProps {
   organization: OrganizationUnit;
   onEdit?: (org: OrganizationUnit) => void;
   onToggleStatus?: (code: string, currentStatus: OrganizationStatus) => void;
+  onTemporalManage?: (code: string) => void;
   isToggling: boolean;
   isAnyToggling: boolean;
   // 时态相关属性
@@ -29,6 +31,7 @@ export interface TableActionsProps {
   organization: OrganizationUnit;
   onEdit?: (org: OrganizationUnit) => void;
   onToggleStatus?: (code: string, currentStatus: OrganizationStatus) => void;
+  onTemporalManage?: (code: string) => void;
   isToggling: boolean;
   disabled: boolean;
   // 时态相关属性

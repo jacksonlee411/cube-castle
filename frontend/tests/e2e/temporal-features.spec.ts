@@ -84,25 +84,25 @@ test.describe('时态管理功能', () => {
     }
   });
 
-  test('应该能够查看组织的历史版本对比', async ({ page }) => {
+  test('应该能够查看组织的历史记录对比', async ({ page }) => {
     // 等待表格加载
     await expect(page.getByText('组织架构')).toBeVisible();
     
     // 点击第一个组织的历史按钮
-    const historyButton = page.getByRole('button', { name: '查看历史版本' }).first();
+    const historyButton = page.getByRole('button', { name: '查看历史记录' }).first();
     await historyButton.click();
     
-    // 验证版本对比弹窗打开
-    await expect(page.getByText('版本历史')).toBeVisible();
+    // 验证记录对比弹窗打开
+    await expect(page.getByText('记录历史')).toBeVisible();
     
-    // 验证版本对比内容
-    const versionContent = page.locator('[data-testid="version-comparison"]');
+    // 验证记录对比内容
+    const versionContent = page.locator('[data-testid="record-comparison"]');
     if (await versionContent.isVisible()) {
-      // 如果有历史版本，验证对比功能
-      await expect(page.getByText('版本对比')).toBeVisible();
+      // 如果有历史记录，验证对比功能
+      await expect(page.getByText('记录对比')).toBeVisible();
     } else {
-      // 如果没有历史版本，应该显示相应提示
-      await expect(page.getByText('仅有一个版本，无法对比')).toBeVisible();
+      // 如果没有历史记录，应该显示相应提示
+      await expect(page.getByText('仅有一个记录，无法对比')).toBeVisible();
     }
   });
 
@@ -117,12 +117,12 @@ test.describe('时态管理功能', () => {
     // 应该显示选择组织的提示（因为没有选中的组织）
     await expect(page.getByText('请从组织列表中选择一个组织来查看其时间线')).toBeVisible();
     
-    // 切换到版本对比标签页
-    const comparisonTab = page.getByRole('tab', { name: '版本对比' });
+    // 切换到记录对比标签页
+    const comparisonTab = page.getByRole('tab', { name: '记录对比' });
     if (await comparisonTab.isVisible()) {
       await comparisonTab.click();
       await expect(comparisonTab).toHaveAttribute('aria-selected', 'true');
-      await expect(page.getByText('请从组织列表中选择一个组织来查看版本对比')).toBeVisible();
+      await expect(page.getByText('请从组织列表中选择一个组织来查看记录对比')).toBeVisible();
     }
   });
 

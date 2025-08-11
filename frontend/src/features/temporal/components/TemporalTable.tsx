@@ -6,8 +6,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Table } from '@workday/canvas-kit-react/table';
-import { PrimaryButton, SecondaryButton, IconButton } from '@workday/canvas-kit-react/button';
-import { Badge } from '@workday/canvas-kit-react/badge';
+import { PrimaryButton, SecondaryButton, ToolbarIconButton as IconButton } from '@workday/canvas-kit-react/button';
+import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { Checkbox } from '@workday/canvas-kit-react/checkbox';
 import { 

@@ -134,8 +134,7 @@ type Organization struct {
 	EffectiveDate *Date `json:"effective_date,omitempty" db:"effective_date"`
 	EndDate       *Date `json:"end_date,omitempty" db:"end_date"`
 	IsTemporal    bool  `json:"is_temporal" db:"is_temporal"`
-	Version       int   `json:"version" db:"version"`
-	ChangeReason  string `json:"change_reason,omitempty" db:"change_reason"`
+	ChangeReason  *string `json:"change_reason,omitempty" db:"change_reason"`
 	IsCurrent     bool  `json:"is_current" db:"is_current"`
 }
 
@@ -339,8 +338,7 @@ type OrganizationResponse struct {
 	EffectiveDate *Date  `json:"effective_date,omitempty"`
 	EndDate       *Date  `json:"end_date,omitempty"`
 	IsTemporal    bool   `json:"is_temporal"`
-	Version       int    `json:"version"`
-	ChangeReason  string `json:"change_reason,omitempty"`
+	ChangeReason  *string `json:"change_reason,omitempty"`
 }
 
 type ErrorResponse struct {
@@ -381,13 +379,12 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *Organization) 
 		INSERT INTO organization_units (
 			tenant_id, code, parent_code, name, unit_type, status, 
 			level, path, sort_order, description, created_at, updated_at,
-			effective_date, end_date, is_temporal, version, change_reason
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-		RETURNING created_at, updated_at, version
+			effective_date, end_date, is_temporal, change_reason
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		RETURNING created_at, updated_at
 	`
 	
 	var createdAt, updatedAt time.Time
-	var version int
 	
 	// 确保effective_date始终有值（数据库约束要求）
 	var effectiveDate *Date
@@ -416,9 +413,8 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *Organization) 
 		effectiveDate, // Date类型
 		org.EndDate,   // 允许为nil
 		org.IsTemporal,
-		1, // 初始版本号
 		org.ChangeReason,
-	).Scan(&createdAt, &updatedAt, &version)
+	).Scan(&createdAt, &updatedAt)
 	
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -434,7 +430,6 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *Organization) 
 	
 	org.CreatedAt = createdAt
 	org.UpdatedAt = updatedAt
-	org.Version = version
 	org.EffectiveDate = effectiveDate // 确保返回的组织有effective_date值
 	
 	r.logger.Printf("组织创建成功: %s - %s (时态: %v)", org.Code, org.Name, org.IsTemporal)
@@ -524,7 +519,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		WHERE tenant_id = $1 AND code = $2
 		RETURNING tenant_id, code, parent_code, name, unit_type, status,
 		          level, path, sort_order, description, created_at, updated_at,
-		          effective_date, end_date, is_temporal, version, change_reason
+		          effective_date, end_date, is_temporal, change_reason
 	`, strings.Join(setParts, ", "))
 	
 	var org Organization
@@ -532,7 +527,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
 		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.Version, &org.ChangeReason,
+		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
 	)
 	
 	if err != nil {
@@ -542,7 +537,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		return nil, fmt.Errorf("更新组织失败: %w", err)
 	}
 	
-	r.logger.Printf("组织更新成功: %s - %s (时态: %v, 版本: %d)", org.Code, org.Name, org.IsTemporal, org.Version)
+	r.logger.Printf("组织更新成功: %s - %s (时态: %v)", org.Code, org.Name, org.IsTemporal)
 	return &org, nil
 }
 
@@ -576,7 +571,7 @@ func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UU
 	query := `
 		SELECT tenant_id, code, parent_code, name, unit_type, status,
 		       level, path, sort_order, description, created_at, updated_at,
-		       effective_date, end_date, is_temporal, version, change_reason
+		       effective_date, end_date, is_temporal, change_reason
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2
 	`
@@ -586,7 +581,7 @@ func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UU
 		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
 		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.Version, &org.ChangeReason,
+		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
 	)
 	
 	if err != nil {
@@ -689,7 +684,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		EffectiveDate: req.EffectiveDate,
 		EndDate:       req.EndDate,
 		IsTemporal:    req.IsTemporal,
-		ChangeReason:  req.ChangeReason,
+		ChangeReason:  func() *string { if req.ChangeReason == "" { return nil } else { return &req.ChangeReason } }(),
 	}
 
 	// 确保effective_date字段始终有值（数据库约束要求）
@@ -856,7 +851,7 @@ func (h *OrganizationHandler) CreatePlannedOrganization(w http.ResponseWriter, r
 		EffectiveDate: &req.EffectiveDate,
 		EndDate:       req.EndDate,
 		IsTemporal:    true,
-		ChangeReason:  req.ChangeReason,
+		ChangeReason:  &req.ChangeReason,
 	}
 
 	// 保存到数据库
@@ -1023,7 +1018,6 @@ func (h *OrganizationHandler) toOrganizationResponse(org *Organization) *Organiz
 		EffectiveDate: org.EffectiveDate,
 		EndDate:       org.EndDate,
 		IsTemporal:    org.IsTemporal,
-		Version:       org.Version,
 		ChangeReason:  org.ChangeReason,
 	}
 }
