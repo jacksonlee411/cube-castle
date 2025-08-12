@@ -34,7 +34,7 @@ type TemporalSyncConfig struct {
 func loadConfig() *TemporalSyncConfig {
 	return &TemporalSyncConfig{
 		KafkaBootstrapServers: getEnv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
-		KafkaTopic:           getEnv("KAFKA_TOPIC", "cubecastle.public.organization_units"),
+		KafkaTopic:           getEnv("KAFKA_TOPIC", "organization_db.public.organization_units"),
 		Neo4jURI:             getEnv("NEO4J_URI", "bolt://localhost:7687"),
 		Neo4jUsername:        getEnv("NEO4J_USERNAME", "neo4j"),
 		Neo4jPassword:        getEnv("NEO4J_PASSWORD", "password"),
@@ -75,19 +75,70 @@ type DebeziumEvent struct {
 }
 
 type TemporalOrganization struct {
-	TenantID      string  `json:"tenant_id"`
-	Code          string  `json:"code"`
-	ParentCode    *string `json:"parent_code"`
-	Name          string  `json:"name"`
-	UnitType      string  `json:"unit_type"`
-	Status        string  `json:"status"`
-	EffectiveDate string  `json:"effective_date"`
-	EndDate       *string `json:"end_date"`
-	IsCurrent     bool    `json:"is_current"`
-	ChangeReason  *string `json:"change_reason"`
-	IsTemporal    bool    `json:"is_temporal"`
-	CreatedAt     string  `json:"created_at"`
-	UpdatedAt     string  `json:"updated_at"`
+	TenantID      string      `json:"tenant_id"`
+	Code          string      `json:"code"`
+	ParentCode    *string     `json:"parent_code"`
+	Name          string      `json:"name"`
+	UnitType      string      `json:"unit_type"`
+	Status        string      `json:"status"`
+	EffectiveDate interface{} `json:"effective_date"` // 可以是string或int64
+	EndDate       interface{} `json:"end_date"`       // 可以是string或int64或nil
+	IsCurrent     bool        `json:"is_current"`
+	ChangeReason  *string     `json:"change_reason"`
+	IsTemporal    bool        `json:"is_temporal"`
+	CreatedAt     interface{} `json:"created_at"`     // 可以是string或int64
+	UpdatedAt     interface{} `json:"updated_at"`     // 可以是string或int64
+}
+
+// ===== 辅助函数 =====
+
+// 将interface{}时间值转换为字符串
+func formatTimeValue(value interface{}) string {
+	if value == nil {
+		return ""
+	}
+	
+	switch v := value.(type) {
+	case string:
+		return v
+	case int64:
+		// Debezium时间戳转换为ISO日期格式
+		if v == 0 {
+			return ""
+		}
+		return time.Unix(v/1000, (v%1000)*1000000).Format("2006-01-02")
+	case float64:
+		if v == 0 {
+			return ""
+		}
+		return time.Unix(int64(v)/1000, (int64(v)%1000)*1000000).Format("2006-01-02")
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+// 将interface{}时间值转换为Neo4j datetime格式
+func formatDateTimeValue(value interface{}) string {
+	if value == nil {
+		return ""
+	}
+	
+	switch v := value.(type) {
+	case string:
+		return v
+	case int64:
+		if v == 0 {
+			return ""
+		}
+		return time.Unix(v/1000, (v%1000)*1000000).Format(time.RFC3339)
+	case float64:
+		if v == 0 {
+			return ""
+		}
+		return time.Unix(int64(v)/1000, (int64(v)%1000)*1000000).Format(time.RFC3339)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
 
 // ===== 时态同步服务 =====
@@ -241,10 +292,35 @@ func (s *TemporalSyncService) processTemporalEvent(ctx context.Context, msg *kaf
 }
 
 func (s *TemporalSyncService) parseTemporalOrganization(data json.RawMessage) (*TemporalOrganization, error) {
-	var org TemporalOrganization
-	if err := json.Unmarshal(data, &org); err != nil {
-		return nil, err
+	// 先解析为map以便处理不同类型的字段
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("解析原始数据失败: %w", err)
 	}
+	
+	org := &TemporalOrganization{
+		TenantID:    getStringValue(rawData, "tenant_id"),
+		Code:        getStringValue(rawData, "code"),
+		Name:        getStringValue(rawData, "name"),
+		UnitType:    getStringValue(rawData, "unit_type"),
+		Status:      getStringValue(rawData, "status"),
+		IsCurrent:   getBoolValue(rawData, "is_current"),
+		IsTemporal:  true, // 默认为时态记录
+	}
+	
+	// 处理可为空的字符串字段
+	if parentCode := getStringValue(rawData, "parent_code"); parentCode != "" {
+		org.ParentCode = &parentCode
+	}
+	if changeReason := getStringValue(rawData, "change_reason"); changeReason != "" {
+		org.ChangeReason = &changeReason
+	}
+	
+	// 处理时间字段
+	org.EffectiveDate = rawData["effective_date"]
+	org.EndDate = rawData["end_date"]
+	org.CreatedAt = rawData["created_at"]
+	org.UpdatedAt = rawData["updated_at"]
 	
 	// 验证必需字段
 	if org.Code == "" || org.Name == "" || org.TenantID == "" {
@@ -252,7 +328,27 @@ func (s *TemporalSyncService) parseTemporalOrganization(data json.RawMessage) (*
 			org.Code, org.Name, org.TenantID)
 	}
 	
-	return &org, nil
+	return org, nil
+}
+
+// 辅助函数：安全地提取字符串值
+func getStringValue(data map[string]interface{}, key string) string {
+	if value, exists := data[key]; exists && value != nil {
+		if str, ok := value.(string); ok {
+			return str
+		}
+	}
+	return ""
+}
+
+// 辅助函数：安全地提取布尔值
+func getBoolValue(data map[string]interface{}, key string) bool {
+	if value, exists := data[key]; exists && value != nil {
+		if b, ok := value.(bool); ok {
+			return b
+		}
+	}
+	return false
 }
 
 func (s *TemporalSyncService) handleOrganizationCreated(ctx context.Context, org *TemporalOrganization) error {
@@ -288,13 +384,13 @@ func (s *TemporalSyncService) handleOrganizationCreated(ctx context.Context, org
 			"name":           org.Name,
 			"unit_type":      org.UnitType,
 			"status":         org.Status,
-			"effective_date": org.EffectiveDate,
-			"end_date":       org.EndDate,
+			"effective_date": formatTimeValue(org.EffectiveDate),
+			"end_date":       formatTimeValue(org.EndDate),
 			"is_current":     org.IsCurrent,
 			"change_reason":  org.ChangeReason,
 			"is_temporal":    org.IsTemporal,
-			"created_at":     org.CreatedAt,
-			"updated_at":     org.UpdatedAt,
+			"created_at":     formatDateTimeValue(org.CreatedAt),
+			"updated_at":     formatDateTimeValue(org.UpdatedAt),
 		})
 		
 		if err != nil {
@@ -341,7 +437,7 @@ func (s *TemporalSyncService) handleOrganizationUpdated(ctx context.Context, org
 		findResult, err := tx.Run(ctx, findQuery, map[string]interface{}{
 			"tenant_id":      org.TenantID,
 			"code":           org.Code,
-			"effective_date": org.EffectiveDate,
+			"effective_date": formatTimeValue(org.EffectiveDate),
 		})
 		
 		if err != nil {
@@ -366,15 +462,15 @@ func (s *TemporalSyncService) handleOrganizationUpdated(ctx context.Context, org
 			_, err = tx.Run(ctx, updateQuery, map[string]interface{}{
 				"tenant_id":      org.TenantID,
 				"code":           org.Code,
-				"effective_date": org.EffectiveDate,
+				"effective_date": formatTimeValue(org.EffectiveDate),
 				"name":           org.Name,
 				"parent_code":    org.ParentCode,
 				"unit_type":      org.UnitType,
 				"status":         org.Status,
-				"end_date":       org.EndDate,
+				"end_date":       formatTimeValue(org.EndDate),
 				"is_current":     org.IsCurrent,
 				"change_reason":  org.ChangeReason,
-				"updated_at":     org.UpdatedAt,
+				"updated_at":     formatDateTimeValue(org.UpdatedAt),
 			})
 			
 			if err != nil {
@@ -409,13 +505,13 @@ func (s *TemporalSyncService) handleOrganizationUpdated(ctx context.Context, org
 				"name":           org.Name,
 				"unit_type":      org.UnitType,
 				"status":         org.Status,
-				"effective_date": org.EffectiveDate,
-				"end_date":       org.EndDate,
+				"effective_date": formatTimeValue(org.EffectiveDate),
+				"end_date":       formatTimeValue(org.EndDate),
 				"is_current":     org.IsCurrent,
 				"change_reason":  org.ChangeReason,
 				"is_temporal":    org.IsTemporal,
-				"created_at":     org.CreatedAt,
-				"updated_at":     org.UpdatedAt,
+				"created_at":     formatDateTimeValue(org.CreatedAt),
+				"updated_at":     formatDateTimeValue(org.UpdatedAt),
 			})
 			
 			if err != nil {
@@ -458,7 +554,7 @@ func (s *TemporalSyncService) handleOrganizationDeleted(ctx context.Context, org
 		result, err := tx.Run(ctx, query, map[string]interface{}{
 			"tenant_id":      org.TenantID,
 			"code":           org.Code,
-			"effective_date": org.EffectiveDate,
+			"effective_date": formatTimeValue(org.EffectiveDate),
 		})
 		
 		if err != nil {

@@ -1,89 +1,132 @@
+# 时态管理服务集群 Docker Compose 配置
+# 使用标准化环境变量配置
 version: '3.8'
 
 services:
-  # Temporal数据库
-  temporal-postgresql:
-    image: postgres:13
-    environment:
-      POSTGRES_PASSWORD: temporal
-      POSTGRES_USER: temporal
-      POSTGRES_DB: temporal
+  # 时态REST命令服务
+  temporal-rest-service:
+    build:
+      context: ./cmd/organization-temporal-rest-service
+      dockerfile: Dockerfile
+    container_name: cube_castle_temporal_rest
     ports:
-      - "5433:5432"
-    volumes:
-      - temporal_postgres_data:/var/lib/postgresql/data
-    networks:
-      - temporal-network
-
-  # Temporal服务器
-  temporal:
-    image: temporalio/auto-setup:1.25.1
+      - "${TEMPORAL_REST_PORT:-9093}:${TEMPORAL_REST_PORT:-9093}"
+    environment:
+      - PORT=${TEMPORAL_REST_PORT:-9093}
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-user}
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - DB_NAME=${DB_NAME:-cubecastle}
+      - DB_SSL_MODE=${DB_SSL_MODE:-disable}
+      - REDIS_ADDR=${REDIS_ADDR:-redis:6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - DEFAULT_TENANT_ID=${DEFAULT_TENANT_ID:-3b99930c-4dc6-4cc9-8e4d-7d960a931cb9}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - METRICS_ENABLED=${METRICS_ENABLED:-true}
+      - HEALTH_CHECK_TIMEOUT=${HEALTH_CHECK_TIMEOUT:-5s}
     depends_on:
-      - temporal-postgresql
-    environment:
-      - DB=postgresql
-      - DB_PORT=5432
-      - POSTGRES_USER=temporal
-      - POSTGRES_PWD=temporal
-      - POSTGRES_SEEDS=temporal-postgresql
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
-    ports:
-      - "7233:7233"   # gRPC
-      - "8233:8233"   # HTTP
-    volumes:
-      - ./temporal-config:/etc/temporal/config/dynamicconfig
+      - postgres
+      - redis
     networks:
-      - temporal-network
+      - cube_castle_network
+    restart: ${RESTART_POLICY:-unless-stopped}
     healthcheck:
-      test: ["CMD", "temporal", "workflow", "list", "--namespace", "default"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${TEMPORAL_REST_PORT:-9093}/health"]
+      interval: ${HEALTH_CHECK_INTERVAL:-30s}
+      timeout: ${HEALTH_CHECK_TIMEOUT:-10s}
+      retries: ${HEALTH_CHECK_RETRIES:-3}
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-512m}
+          cpus: '${CPU_LIMIT:-0.5}'
 
-  # Temporal Web UI
-  temporal-web:
-    image: temporalio/web:1.18.0
+  # 时态GraphQL查询服务
+  temporal-query-service:
+    build:
+      context: ./cmd/organization-temporal-query-service
+      dockerfile: Dockerfile
+    container_name: cube_castle_temporal_query
+    ports:
+      - "${TEMPORAL_QUERY_PORT:-8091}:${TEMPORAL_QUERY_PORT:-8091}"
+    environment:
+      - PORT=${TEMPORAL_QUERY_PORT:-8091}
+      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - NEO4J_USERNAME=${NEO4J_USERNAME:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-password}
+      - NEO4J_DATABASE=${NEO4J_DATABASE:-neo4j}
+      - NEO4J_MAX_CONNECTION_POOL_SIZE=${NEO4J_MAX_CONNECTION_POOL_SIZE:-100}
+      - REDIS_ADDR=${REDIS_ADDR:-redis:6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - DEFAULT_TENANT_ID=${DEFAULT_TENANT_ID:-3b99930c-4dc6-4cc9-8e4d-7d960a931cb9}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CACHE_TTL=${CACHE_TTL:-3600s}
+      - METRICS_ENABLED=${METRICS_ENABLED:-true}
     depends_on:
-      - temporal
+      - neo4j
+      - redis
+    networks:
+      - cube_castle_network
+    restart: ${RESTART_POLICY:-unless-stopped}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${TEMPORAL_QUERY_PORT:-8091}/health"]
+      interval: ${HEALTH_CHECK_INTERVAL:-30s}
+      timeout: ${HEALTH_CHECK_TIMEOUT:-10s}
+      retries: ${HEALTH_CHECK_RETRIES:-3}
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-512m}
+          cpus: '${CPU_LIMIT:-0.5}'
+
+  # 时态CDC同步服务
+  temporal-sync-service:
+    build:
+      context: ./cmd/organization-temporal-sync-service
+      dockerfile: Dockerfile
+    container_name: cube_castle_temporal_sync
+    ports:
+      - "${TEMPORAL_SYNC_PORT:-8092}:${TEMPORAL_SYNC_PORT:-8092}"
     environment:
-      - TEMPORAL_GRPC_ENDPOINT=temporal:7233
-      - TEMPORAL_PERMIT_WRITE_API=true
-    ports:
-      - "8080:8080"
+      - PORT=${TEMPORAL_SYNC_PORT:-8092}
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      - KAFKA_TOPIC=${KAFKA_TOPIC:-organization_db.public.organization_units}
+      - KAFKA_GROUP_ID=${KAFKA_GROUP_ID:-temporal-sync-service}
+      - KAFKA_AUTO_OFFSET_RESET=${KAFKA_AUTO_OFFSET_RESET:-latest}
+      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - NEO4J_USERNAME=${NEO4J_USERNAME:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-password}
+      - NEO4J_DATABASE=${NEO4J_DATABASE:-neo4j}
+      - REDIS_ADDR=${REDIS_ADDR:-redis:6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - DEFAULT_TENANT_ID=${DEFAULT_TENANT_ID:-3b99930c-4dc6-4cc9-8e4d-7d960a931cb9}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CDC_BATCH_SIZE=${CDC_BATCH_SIZE:-100}
+      - CDC_FLUSH_INTERVAL=${CDC_FLUSH_INTERVAL:-1s}
+      - CACHE_INVALIDATION_STRATEGY=${CACHE_INVALIDATION_STRATEGY:-precise}
+      - METRICS_ENABLED=${METRICS_ENABLED:-true}
+    depends_on:
+      - kafka
+      - neo4j
+      - redis
     networks:
-      - temporal-network
-
-  # Redis for session management
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    networks:
-      - temporal-network
-
-  # PostgreSQL for main application
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_PASSWORD: cube_castle
-      POSTGRES_USER: cube_castle
-      POSTGRES_DB: cube_castle
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./go-app/scripts:/docker-entrypoint-initdb.d
-    networks:
-      - temporal-network
-
-volumes:
-  temporal_postgres_data:
-  postgres_data:
-  redis_data:
+      - cube_castle_network
+    restart: ${RESTART_POLICY:-unless-stopped}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${TEMPORAL_SYNC_PORT:-8092}/health"]
+      interval: ${HEALTH_CHECK_INTERVAL:-30s}
+      timeout: ${HEALTH_CHECK_TIMEOUT:-10s}
+      retries: ${HEALTH_CHECK_RETRIES:-3}
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-512m}
+          cpus: '${CPU_LIMIT:-0.5}'
 
 networks:
-  temporal-network:
-    driver: bridge
+  cube_castle_network:
+    external: true
