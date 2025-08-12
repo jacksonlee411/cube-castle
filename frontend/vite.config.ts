@@ -40,16 +40,9 @@ export default defineConfig({
         secure: false
       },
       '/graphql': {
-        target: 'http://localhost:8090',
-        changeOrigin: true,
-        secure: false
-      },
-      // 时态GraphQL查询 - 路由到8097端口的时态查询服务
-      '/temporal-graphql': {
         target: 'http://localhost:8097',
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/temporal-graphql/, '/graphql')
+        secure: false
       }
     },
     // 静态文件服务 - 提供Playwright测试报告访问

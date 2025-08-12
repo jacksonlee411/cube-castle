@@ -14,16 +14,24 @@ import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { 
   colors, 
   space, 
-  borderRadius,
-  fontSizes 
+  borderRadius
 } from '@workday/canvas-kit-react/tokens';
+
+// 简化字体大小定义
+const fontSizes = {
+  body: {
+    small: '12px',
+    medium: '14px',
+    large: '16px'
+  },
+  caption: '11px'
+};
 import {
-  CalendarIcon,
-  SearchIcon,
-  RefreshIcon,
-  HistoryIcon,
-  FilterIcon
+  calendarIcon,
+  searchIcon,
+  filterIcon
 } from '@workday/canvas-system-icons-web';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
 
 // 使用新的GraphQL时态查询钩子
 import { 
@@ -307,7 +315,7 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
     return (
       <Card padding={space.m} marginBottom={space.m}>
         <Flex alignItems="center" marginBottom={space.s}>
-          <CalendarIcon size={20} />
+          <SystemIcon icon={calendarIcon} size={20} />
           <Text 
             marginLeft={space.xs} 
             fontWeight="medium"
@@ -413,7 +421,6 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
       {/* 标题和操作栏 */}
       <Flex justifyContent="space-between" alignItems="center" marginBottom={space.m}>
         <Flex alignItems="center">
-          <HistoryIcon size={24} />
           <Text 
             marginLeft={space.s} 
             fontWeight="medium"
@@ -425,7 +432,6 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
         
         <Flex gap={space.s}>
           <SecondaryButton onClick={handleRefreshAll}>
-            <RefreshIcon size={16} />
             刷新
           </SecondaryButton>
           <SecondaryButton onClick={handleClearCacheAndRefresh}>
@@ -441,7 +447,7 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
       {showFilters && (
         <Card padding={space.m} marginBottom={space.m}>
           <Flex alignItems="center" marginBottom={space.s}>
-            <FilterIcon size={16} />
+            <SystemIcon icon={filterIcon} size={16} />
             <Text marginLeft={space.xs} fontWeight="medium">
               时间范围过滤
             </Text>

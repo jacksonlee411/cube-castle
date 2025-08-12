@@ -12,8 +12,8 @@ import type {
   TimelineEvent
 } from '../types/temporal';
 
-// GraphQL端点 - 使用开发代理路径，路由到8097端口的时态查询服务
-const TEMPORAL_GRAPHQL_ENDPOINT = '/temporal-graphql';
+// GraphQL端点 - 直接路由到标准GraphQL服务（8090端口）
+const TEMPORAL_GRAPHQL_ENDPOINT = '/graphql';
 
 interface TemporalGraphQLClient {
   request<T>(query: string, variables?: Record<string, unknown>): Promise<T>;

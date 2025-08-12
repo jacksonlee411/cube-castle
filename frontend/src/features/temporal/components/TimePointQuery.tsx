@@ -1,133 +1,140 @@
 /**
- * 时间点查询组件 - 快速查询特定时间点的组织状态
+ * 时间点查询组件 - 基于GraphQL时态查询
+ * 提供直观的时间点查询界面和结果展示
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
-import { Select } from '@workday/canvas-kit-react/select';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { 
   colors, 
   space, 
-  borderRadius,
-  fontSizes 
+  borderRadius
 } from '@workday/canvas-kit-react/tokens';
 import {
-  CalendarIcon,
-  SearchIcon,
-  ClockIcon,
-  InfoIcon
+  calendarIcon,
+  searchIcon,
+  infoIcon
 } from '@workday/canvas-system-icons-web';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
 
+// 使用新的GraphQL时态查询钩子
 import { 
   useOrganizationAsOfDate,
   useTemporalQueryUtils
 } from '../../../shared/hooks/useTemporalGraphQL';
-import type { TemporalOrganizationUnit } from '../../../shared/types/temporal';
+import type { 
+  TemporalOrganizationUnit
+} from '../../../shared/types/temporal';
+
+// 简化字体大小定义
+const fontSizes = {
+  body: {
+    small: '12px',
+    medium: '14px'
+  },
+  heading: {
+    medium: '16px'
+  }
+};
 
 interface TimePointQueryProps {
   organizationCode: string;
+  onQueryResult?: (date: string, result: TemporalOrganizationUnit | null) => void;
   initialDate?: string;
-  onResult?: (date: string, result: TemporalOrganizationUnit | null) => void;
-  onError?: (error: Error) => void;
   showQuickDates?: boolean;
-  disabled?: boolean;
+  compact?: boolean;
 }
 
 export const TimePointQuery: React.FC<TimePointQueryProps> = ({
   organizationCode,
+  onQueryResult,
   initialDate,
-  onResult,
-  onError,
   showQuickDates = true,
-  disabled = false
+  compact = false
 }) => {
   const [queryDate, setQueryDate] = useState(() => {
     return initialDate || new Date().toISOString().split('T')[0];
   });
 
-  const [hasExecutedQuery, setHasExecutedQuery] = useState(false);
-
-  // 使用GraphQL时间点查询钩子
+  // GraphQL查询钩子
   const {
-    data: result,
-    isLoading,
-    error,
-    refetch,
+    data: asOfDateRecord,
+    isLoading: isQuerying,
+    error: queryError,
+    refetch: executeQuery,
     hasData,
     isEmpty,
     isHistoricalRecord
   } = useOrganizationAsOfDate(organizationCode, queryDate, {
     enabled: false, // 手动触发查询
     onSuccess: (data) => {
-      onResult?.(queryDate, data);
-      setHasExecutedQuery(true);
-    },
-    onError: (error) => {
-      onError?.(error);
-      setHasExecutedQuery(true);
+      onQueryResult?.(queryDate, data);
     }
   });
 
+  // 工具钩子
   const { getCommonDatePoints, formatTemporalRecord } = useTemporalQueryUtils();
 
   // 常用时间点
-  const commonDates = useMemo(() => {
-    const dates = getCommonDatePoints();
-    return [
-      { label: '今天', value: dates.today },
-      { label: '昨天', value: dates.yesterday },
-      { label: '一周前', value: dates.lastWeek },
-      { label: '一个月前', value: dates.lastMonth },
-      { label: '年初', value: dates.yearStart },
-      { label: '去年底', value: dates.lastYearEnd },
-    ];
-  }, [getCommonDatePoints]);
+  const commonDates = useMemo(() => getCommonDatePoints(), [getCommonDatePoints]);
 
-  // 执行查询
-  const handleQuery = useCallback(() => {
-    if (disabled || !queryDate) return;
-    refetch();
-  }, [disabled, queryDate, refetch]);
+  // 处理查询执行
+  const handleExecuteQuery = useCallback(() => {
+    executeQuery();
+  }, [executeQuery]);
 
-  // 快速日期选择
-  const handleQuickDateSelect = useCallback((date: string) => {
+  // 处理日期变更
+  const handleDateChange = useCallback((date: string) => {
     setQueryDate(date);
-    setHasExecutedQuery(false);
   }, []);
 
-  // 渲染查询结果
-  const renderResult = () => {
-    if (!hasExecutedQuery) return null;
+  // 处理快速日期选择
+  const handleQuickDateSelect = useCallback((date: string, label: string) => {
+    setQueryDate(date);
+    // 自动执行查询
+    setTimeout(() => {
+      executeQuery();
+    }, 100);
+  }, [executeQuery]);
 
-    if (isLoading) {
+  // 渲染查询结果
+  const renderQueryResult = () => {
+    if (isQuerying) {
       return (
-        <Box padding={space.s}>
+        <Card padding={space.m} marginTop={space.s}>
           <Flex alignItems="center">
             <LoadingDots />
             <Text marginLeft={space.s}>正在查询 {queryDate} 的组织状态...</Text>
           </Flex>
-        </Box>
+        </Card>
       );
     }
 
-    if (error) {
+    if (queryError) {
       return (
         <Card 
-          padding={space.s} 
+          padding={space.m} 
+          marginTop={space.s}
           backgroundColor={colors.cinnamon100}
           border={`1px solid ${colors.cinnamon300}`}
         >
-          <Flex alignItems="center">
-            <InfoIcon size={16} color={colors.cinnamon600} />
-            <Text marginLeft={space.xs} color={colors.cinnamon600}>
-              查询失败: {error.message}
+          <Flex alignItems="center" marginBottom={space.s}>
+            <SystemIcon icon={infoIcon} size={16} color={colors.cinnamon600} />
+            <Text marginLeft={space.xs} color={colors.cinnamon600} fontWeight="medium">
+              查询失败
             </Text>
           </Flex>
+          <Text fontSize={fontSizes.body.small} color={colors.cinnamon600}>
+            {queryError.message}
+          </Text>
+          <SecondaryButton onClick={handleExecuteQuery} marginTop={space.s} size="small">
+            重试查询
+          </SecondaryButton>
         </Card>
       );
     }
@@ -135,44 +142,56 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
     if (isEmpty) {
       return (
         <Card 
-          padding={space.s} 
+          padding={space.m} 
+          marginTop={space.s}
           backgroundColor={colors.licorice100}
           border={`1px solid ${colors.licorice300}`}
         >
-          <Flex alignItems="center">
-            <InfoIcon size={16} color={colors.licorice400} />
-            <Text marginLeft={space.xs} color={colors.licorice400}>
-              在 {queryDate} 时间点没有找到该组织的记录
+          <Flex alignItems="center" marginBottom={space.s}>
+            <SystemIcon icon={infoIcon} size={16} color={colors.licorice400} />
+            <Text marginLeft={space.xs} color={colors.licorice400} fontWeight="medium">
+              无查询结果
             </Text>
           </Flex>
+          <Text fontSize={fontSizes.body.small} color={colors.licorice400}>
+            在 <strong>{queryDate}</strong> 时间点没有找到组织 <strong>{organizationCode}</strong> 的记录
+          </Text>
         </Card>
       );
     }
 
-    if (hasData && result) {
-      const formatted = formatTemporalRecord(result);
+    if (hasData && asOfDateRecord) {
+      const formatted = formatTemporalRecord(asOfDateRecord);
       
       return (
         <Card 
-          padding={space.s}
+          padding={space.m} 
+          marginTop={space.s}
           backgroundColor={isHistoricalRecord ? colors.peach100 : colors.blueberry100}
           border={`1px solid ${isHistoricalRecord ? colors.peach300 : colors.blueberry300}`}
         >
           <Flex justifyContent="space-between" alignItems="flex-start" marginBottom={space.s}>
-            <Text 
-              fontWeight="medium" 
-              fontSize={fontSizes.body.medium}
-              color={colors.licorice500}
-            >
-              {result.name}
-            </Text>
+            <Flex alignItems="center">
+              <SystemIcon 
+                icon={isHistoricalRecord ? infoIcon : infoIcon} 
+                size={16} 
+                color={isHistoricalRecord ? colors.peach600 : colors.blueberry600} 
+              />
+              <Text 
+                marginLeft={space.xs} 
+                fontWeight="medium"
+                color={isHistoricalRecord ? colors.peach600 : colors.blueberry600}
+              >
+                查询结果 ({queryDate})
+              </Text>
+            </Flex>
             <Box
-              backgroundColor={isHistoricalRecord ? colors.peach400 : colors.blueberry400}
+              backgroundColor={isHistoricalRecord ? colors.peach500 : colors.blueberry500}
               color={colors.frenchVanilla100}
               paddingX={space.xs}
               paddingY={space.xxxs}
               borderRadius={borderRadius.s}
-              fontSize={fontSizes.caption}
+              fontSize={fontSizes.body.small}
               fontWeight="medium"
             >
               {isHistoricalRecord ? '历史记录' : '当前记录'}
@@ -180,28 +199,54 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
           </Flex>
 
           <Box>
-            <Text fontSize={fontSizes.body.small} color={colors.licorice300}>
-              <strong>生效期间:</strong> {formatted.effectivePeriod}
+            <Text 
+              fontSize={fontSizes.heading.medium} 
+              fontWeight="medium" 
+              marginBottom={space.xs}
+              color={colors.licorice500}
+            >
+              {asOfDateRecord.name}
             </Text>
-            <Text fontSize={fontSizes.body.small} color={colors.licorice300}>
-              <strong>组织类型:</strong> {formatted.organizationType}
-            </Text>
-            <Text fontSize={fontSizes.body.small} color={colors.licorice300}>
-              <strong>状态:</strong> {formatted.organizationStatus}
-            </Text>
-            {result.change_reason && (
-              <Text fontSize={fontSizes.body.small} color={colors.licorice300}>
-                <strong>变更原因:</strong> {result.change_reason}
-              </Text>
-            )}
-          </Box>
+            
+            <Flex gap={space.l} flexWrap="wrap" marginBottom={space.s}>
+              <Box>
+                <Text fontSize={fontSizes.body.small} color={colors.licorice400}>组织代码</Text>
+                <Text fontSize={fontSizes.body.medium}>{asOfDateRecord.code}</Text>
+              </Box>
+              
+              <Box>
+                <Text fontSize={fontSizes.body.small} color={colors.licorice400}>生效期间</Text>
+                <Text fontSize={fontSizes.body.medium}>{formatted.effectivePeriod}</Text>
+              </Box>
+              
+              <Box>
+                <Text fontSize={fontSizes.body.small} color={colors.licorice400}>组织类型</Text>
+                <Text fontSize={fontSizes.body.medium}>{formatted.organizationType}</Text>
+              </Box>
+              
+              <Box>
+                <Text fontSize={fontSizes.body.small} color={colors.licorice400}>状态</Text>
+                <Text fontSize={fontSizes.body.medium}>{formatted.organizationStatus}</Text>
+              </Box>
+            </Flex>
 
-          {/* 详细信息 */}
-          <Box marginTop={space.s}>
-            <Text fontSize={fontSizes.caption} color={colors.licorice300}>
-              组织代码: {result.code} | 级别: {result.level}
-              {result.parent_code && ` | 上级: ${result.parent_code}`}
-            </Text>
+            {asOfDateRecord.change_reason && (
+              <Box marginTop={space.s}>
+                <Text fontSize={fontSizes.body.small} color={colors.licorice400}>变更原因</Text>
+                <Text fontSize={fontSizes.body.medium} fontStyle="italic">
+                  {asOfDateRecord.change_reason}
+                </Text>
+              </Box>
+            )}
+            
+            {asOfDateRecord.description && (
+              <Box marginTop={space.s}>
+                <Text fontSize={fontSizes.body.small} color={colors.licorice400}>描述</Text>
+                <Text fontSize={fontSizes.body.medium}>
+                  {asOfDateRecord.description}
+                </Text>
+              </Box>
+            )}
           </Box>
         </Card>
       );
@@ -210,74 +255,118 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
     return null;
   };
 
-  return (
-    <Box>
-      {/* 查询表单 */}
-      <Card padding={space.m} marginBottom={space.m}>
-        <Flex alignItems="center" marginBottom={space.s}>
-          <ClockIcon size={20} />
-          <Text 
-            marginLeft={space.xs} 
-            fontWeight="medium"
-            fontSize={fontSizes.body.medium}
-          >
-            时间点查询
-          </Text>
-        </Flex>
+  // 渲染快速日期选择器
+  const renderQuickDatePicker = () => {
+    if (!showQuickDates) return null;
 
-        <Flex alignItems="flex-end" gap={space.s} marginBottom={space.m}>
-          <FormField 
-            label="查询日期"
-            isRequired
-            hint="选择要查询的具体日期"
-          >
+    const quickDateLabels = {
+      today: '今天',
+      yesterday: '昨天',
+      lastWeek: '一周前',
+      lastMonth: '一月前',
+      yearStart: '年初',
+      lastYearEnd: '去年底'
+    };
+
+    return (
+      <Box marginTop={space.s}>
+        <Text fontSize={fontSizes.body.small} color={colors.licorice400} marginBottom={space.xs}>
+          快速选择:
+        </Text>
+        <Flex gap={space.xs} flexWrap="wrap">
+          {Object.entries(commonDates).map(([key, date]) => (
+            <SecondaryButton
+              key={key}
+              size="small"
+              onClick={() => handleQuickDateSelect(date, quickDateLabels[key as keyof typeof quickDateLabels])}
+              variant={queryDate === date ? 'primary' : 'secondary'}
+            >
+              {quickDateLabels[key as keyof typeof quickDateLabels] || key}
+            </SecondaryButton>
+          ))}
+        </Flex>
+      </Box>
+    );
+  };
+
+  if (compact) {
+    return (
+      <Box>
+        <Flex alignItems="flex-end" gap={space.s} marginBottom={space.s}>
+          <FormField label="查询日期">
             <TextInput
               type="date"
               value={queryDate}
-              onChange={(e) => setQueryDate(e.target.value)}
-              disabled={disabled}
+              onChange={(e) => handleDateChange(e.target.value)}
             />
           </FormField>
           
-          <PrimaryButton 
-            onClick={handleQuery} 
-            disabled={disabled || isLoading || !queryDate}
-          >
-            <SearchIcon size={16} />
-            {isLoading ? '查询中...' : '查询'}
+          <PrimaryButton onClick={handleExecuteQuery} disabled={isQuerying}>
+            {isQuerying ? '查询中...' : '查询'}
           </PrimaryButton>
         </Flex>
+        
+        {renderQuickDatePicker()}
+        {renderQueryResult()}
+      </Box>
+    );
+  }
 
-        {/* 快速日期选择 */}
-        {showQuickDates && (
-          <Box>
-            <Text 
-              fontSize={fontSizes.body.small} 
-              color={colors.licorice400}
-              marginBottom={space.xs}
-            >
-              快速选择:
-            </Text>
-            <Flex gap={space.xs} flexWrap="wrap">
-              {commonDates.map(({ label, value }) => (
-                <SecondaryButton
-                  key={label}
-                  size="small"
-                  variant={queryDate === value ? 'primary' : 'secondary'}
-                  onClick={() => handleQuickDateSelect(value)}
-                  disabled={disabled}
-                >
-                  {label}
-                </SecondaryButton>
-              ))}
-            </Flex>
-          </Box>
-        )}
-      </Card>
+  return (
+    <Card padding={space.m}>
+      <Flex alignItems="center" marginBottom={space.m}>
+        <SystemIcon icon={calendarIcon} size={20} />
+        <Text 
+          marginLeft={space.s} 
+          fontWeight="medium"
+          fontSize={fontSizes.heading.medium}
+        >
+          时间点查询
+        </Text>
+      </Flex>
 
-      {/* 查询结果 */}
-      {renderResult()}
-    </Box>
+      <Flex alignItems="flex-end" gap={space.s} marginBottom={space.s}>
+        <FormField label="查询日期">
+          <TextInput
+            type="date"
+            value={queryDate}
+            onChange={(e) => handleDateChange(e.target.value)}
+          />
+        </FormField>
+        
+        <FormField label="组织代码">
+          <TextInput
+            value={organizationCode}
+            disabled
+            placeholder="组织代码"
+          />
+        </FormField>
+        
+        <PrimaryButton onClick={handleExecuteQuery} disabled={isQuerying}>
+          <SystemIcon icon={searchIcon} size={16} />
+          {isQuerying ? '查询中...' : '查询'}
+        </PrimaryButton>
+      </Flex>
+
+      {renderQuickDatePicker()}
+      {renderQueryResult()}
+
+      {/* 查询说明 */}
+      <Box marginTop={space.l} padding={space.s} backgroundColor={colors.soap100}>
+        <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block" marginBottom={space.xs}>
+          <strong>使用说明:</strong>
+        </Text>
+        <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block" marginBottom={space.xs}>
+          • 选择查询日期，系统将返回该时间点有效的组织记录
+        </Text>
+        <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block" marginBottom={space.xs}>
+          • 蓝色背景表示当前有效记录，橙色背景表示历史记录
+        </Text>
+        <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block">
+          • 可使用快速选择按钮快速设置常用日期
+        </Text>
+      </Box>
+    </Card>
   );
 };
 

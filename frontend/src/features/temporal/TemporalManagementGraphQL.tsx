@@ -15,46 +15,31 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { 
   colors, 
   space, 
-  borderRadius,
-  type as canvasType
+  borderRadius
 } from '@workday/canvas-kit-react/tokens';
 
 // 简化字体大小定义
 const fontSizes = {
   body: {
-    small: canvasType.properties.fontSizes['12'],
-    medium: canvasType.properties.fontSizes['14']
+    small: '12px',
+    medium: '14px'
   },
   heading: {
-    large: canvasType.properties.fontSizes['24']
+    large: '24px'
   }
 };
 import {
-  timelineAllIcon,
   calendarIcon,
   searchIcon,
-  infoIcon,
-  clockIcon
+  infoIcon
 } from '@workday/canvas-system-icons-web';
 
-// 导入新的时态组件 - 暂时注释掉以修复依赖问题
-// import { TemporalHistoryViewer } from './components/TemporalHistoryViewer';
-// import { TimePointQuery } from './components/TimePointQuery';
-// import type { TemporalOrganizationUnit } from '../../shared/types/temporal';
+// 导入新的时态组件
+import { TemporalHistoryViewer } from './components/TemporalHistoryViewer';
+import { TimePointQuery } from './components/TimePointQuery';
+import type { TemporalOrganizationUnit } from '../../shared/types/temporal';
 
-// 简化的类型定义
-interface TemporalOrganizationUnit {
-  code: string;
-  name: string;
-  effective_date: string;
-  end_date?: string;
-  unit_type: string;
-  status: string;
-  level: number;
-  is_current: boolean;
-  change_reason?: string;
-  description?: string;
-}
+// 简化的类型定义 - 删除重复定义
 
 const DEMO_ORGANIZATION_CODES = [
   { label: '1000056 - 完整历史记录演示 (14条记录)', value: '1000056' },
@@ -63,7 +48,7 @@ const DEMO_ORGANIZATION_CODES = [
   { label: '1000002 - 部门组织', value: '1000002' },
 ];
 
-export const TemporalManagementDemo: React.FC = () => {
+export const TemporalManagementGraphQL: React.FC = () => {
   const [selectedOrganizationCode, setSelectedOrganizationCode] = useState('1000056');
   const [customCode, setCustomCode] = useState('');
   const [useCustomCode, setUseCustomCode] = useState(false);
@@ -293,36 +278,28 @@ export const TemporalManagementDemo: React.FC = () => {
         </Tabs.List>
 
         <Tabs.Panel>
-          {/* 历史记录查看器 - 暂时显示占位符 */}
+          {/* 历史记录查看器 - 真实功能组件 */}
           <Box paddingTop={space.m}>
-            <Card padding={space.m}>
-              <Text fontSize={fontSizes.body.medium} fontWeight="medium" marginBottom={space.s}>
-                历史记录查看器
-              </Text>
-              <Text fontSize={fontSizes.body.small} color={colors.licorice400}>
-                当前查询组织: {currentCode}
-              </Text>
-              <Text fontSize={fontSizes.body.small} color={colors.licorice400} marginTop={space.s}>
-                功能正在修复中，请稍后再试...
-              </Text>
-            </Card>
+            <TemporalHistoryViewer
+              organizationCode={currentCode}
+              onRecordSelect={handleRecordSelect}
+              onTimePointQuery={handleTimePointQuery}
+              showTimePointQuery={false} // 时间点查询单独显示
+              showFilters={true}
+              maxHeight="500px"
+            />
           </Box>
         </Tabs.Panel>
 
         <Tabs.Panel>
-          {/* 时间点查询 - 暂时显示占位符 */}
+          {/* 时间点查询 - 真实功能组件 */}
           <Box paddingTop={space.m}>
-            <Card padding={space.m}>
-              <Text fontSize={fontSizes.body.medium} fontWeight="medium" marginBottom={space.s}>
-                时间点查询
-              </Text>
-              <Text fontSize={fontSizes.body.small} color={colors.licorice400}>
-                当前查询组织: {currentCode}
-              </Text>
-              <Text fontSize={fontSizes.body.small} color={colors.licorice400} marginTop={space.s}>
-                功能正在修复中，请稍后再试...
-              </Text>
-            </Card>
+            <TimePointQuery
+              organizationCode={currentCode}
+              onQueryResult={handleTimePointQuery}
+              showQuickDates={true}
+              compact={false}
+            />
           </Box>
         </Tabs.Panel>
       </Tabs>
@@ -361,4 +338,4 @@ export const TemporalManagementDemo: React.FC = () => {
   );
 };
 
-export default TemporalManagementDemo;
+export default TemporalManagementGraphQL;

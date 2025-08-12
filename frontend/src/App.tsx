@@ -6,6 +6,7 @@ import { MonitoringDashboard } from './features/monitoring/MonitoringDashboard'
 import { TemporalVerificationPage } from './features/temporal/TemporalVerificationPage'
 import { TemporalManagementDemo } from './features/temporal/TemporalManagementDemo'
 import TemporalManagementGraphQL from './features/temporal/TemporalManagementGraphQL'
+import TemporalGraphQLDemoPage from './features/temporal/TemporalGraphQLDemoPage'
 import TestCrud from './TestCrud'
 import MinimalTemporalTest from './MinimalTemporalTest'
 
@@ -13,8 +14,11 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<AppShell />}>
-        {/* 默认重定向到测试页面 */}
-        <Route index element={<Navigate to="/test" replace />} />
+        {/* 默认重定向到时态GraphQL演示页面 */}
+        <Route index element={<Navigate to="/temporal-graphql-demo" replace />} />
+        
+        {/* 时态GraphQL完整演示页面 - 新增 */}
+        <Route path="/temporal-graphql-demo" element={<TemporalGraphQLDemoPage />} />
         
         {/* CRUD测试页面 */}
         <Route path="/test" element={<TestCrud />} />

@@ -101,7 +101,7 @@ export function useOrganizationHistory(
   });
 
   const historyCount = query.data?.length || 0;
-  const hasHistory = historyCount > 1;
+  const hasHistory = historyCount > 0;
   const latestRecord = query.data?.[0]; // 按时间倒序，第一个是最新的
   const currentRecord = query.data?.find(record => record.is_current);
   const historicalRecords = query.data?.filter(record => !record.is_current) || [];
