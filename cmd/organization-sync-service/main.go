@@ -401,8 +401,9 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 
 	s.logger.Printf("处理CDC创建事件: %s - %s", *data.Code, *data.Name)
 
+	// Neo4j时态数据建模最佳实践 - Bitemporal模式
 	query := `
-		MERGE (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
+		MERGE (org:OrganizationUnit {code: $code, tenant_id: $tenant_id, version: $version})
 		SET org.name = $name,
 			org.unit_type = $unit_type,
 			org.status = COALESCE($status, 'ACTIVE'),
@@ -410,26 +411,48 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 			org.path = COALESCE($path, '/' + $code),
 			org.sort_order = COALESCE($sort_order, 0),
 			org.description = COALESCE($description, ''),
-			org.created_at = datetime($created_at),
-			org.updated_at = datetime($updated_at),
-			org.effective_date = $effective_date,
-			org.end_date = $end_date,
-			org.is_temporal = COALESCE($is_temporal, false),
-			org.version = COALESCE($version, 1),
+			
+			// 业务时间维度 (Business Time)
+			org.effective_date = CASE WHEN $effective_date IS NULL THEN NULL ELSE date($effective_date) END,
+			org.end_date = CASE WHEN $end_date IS NULL THEN NULL ELSE date($end_date) END,
+			
+			// 系统时间维度 (System Time)
+			org.valid_from = datetime($valid_from),
+			org.valid_to = datetime('9999-12-31T23:59:59Z'),
+			
+			// 时态管理属性
+			org.is_temporal = COALESCE($is_temporal, true),
+			org.is_current = COALESCE($is_current, true),
 			org.change_reason = COALESCE($change_reason, ''),
-			org.is_current = COALESCE($is_current, true)
+			org.version = COALESCE($version, 1),
+			
+			// 审计字段
+			org.created_at = datetime($created_at),
+			org.updated_at = datetime($updated_at)
 		WITH org
-		OPTIONAL MATCH (parent:OrganizationUnit {code: $parent_code, tenant_id: $tenant_id})
+		
+		// 处理父子关系的时态版本
+		OPTIONAL MATCH (parent:OrganizationUnit {code: $parent_code, tenant_id: $tenant_id, is_current: true})
 		WHERE $parent_code IS NOT NULL AND $parent_code <> ''
 		FOREACH (p IN CASE WHEN parent IS NOT NULL THEN [parent] ELSE [] END |
-			MERGE (p)-[:HAS_CHILD]->(org)
+			MERGE (p)-[r:HAS_CHILD {
+				effective_from: COALESCE(org.effective_date, date.statement()),
+				effective_to: org.end_date,
+				valid_from: datetime($valid_from),
+				valid_to: datetime('9999-12-31T23:59:59Z'),
+				relationship_type: 'REPORTING'
+			}]->(org)
 		)
 		RETURN org.code as code`
 
+	// 系统时间戳 - 用于System Time维度
+	systemTime := time.Unix(tsMs/1000, (tsMs%1000)*1000000).Format(time.RFC3339)
+
 	params := map[string]interface{}{
-		"code":      *data.Code,
-		"tenant_id": *data.TenantID,
-		"name":      *data.Name,
+		"code":       *data.Code,
+		"tenant_id":  *data.TenantID,
+		"name":       *data.Name,
+		"valid_from": systemTime, // System Time - 系统记录时间
 	}
 
 	// 安全处理可选字段
@@ -564,27 +587,51 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 
 	s.logger.Printf("处理CDC更新事件: %s", *data.Code)
 
+	// Neo4j时态更新 - 创建新版本记录而非原地更新
 	query := `
-		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
-		SET org.name = COALESCE($name, org.name),
-			org.unit_type = COALESCE($unit_type, org.unit_type),
-			org.status = COALESCE($status, org.status),
-			org.level = COALESCE($level, org.level),
-			org.path = COALESCE($path, org.path),
-			org.sort_order = COALESCE($sort_order, org.sort_order),
-			org.description = COALESCE($description, org.description),
-			org.updated_at = datetime($updated_at),
-			org.effective_date = CASE WHEN $effective_date IS NULL THEN org.effective_date ELSE datetime($effective_date) END,
-			org.end_date = CASE WHEN $end_date IS NULL THEN org.end_date ELSE datetime($end_date) END,
-			org.is_temporal = COALESCE($is_temporal, org.is_temporal),
-			org.version = COALESCE($version, org.version),
-			org.change_reason = COALESCE($change_reason, org.change_reason),
-			org.is_current = COALESCE($is_current, org.is_current)
-		RETURN org.code as code`
+		// 首先将旧版本标记为无效
+		MATCH (oldOrg:OrganizationUnit {code: $code, tenant_id: $tenant_id, is_current: true})
+		SET oldOrg.is_current = false,
+		    oldOrg.valid_to = datetime($valid_from)
+		
+		// 创建新版本记录
+		WITH oldOrg
+		MERGE (newOrg:OrganizationUnit {code: $code, tenant_id: $tenant_id, version: $version})
+		SET newOrg.name = COALESCE($name, oldOrg.name),
+			newOrg.unit_type = COALESCE($unit_type, oldOrg.unit_type),
+			newOrg.status = COALESCE($status, oldOrg.status),
+			newOrg.level = COALESCE($level, oldOrg.level),
+			newOrg.path = COALESCE($path, oldOrg.path),
+			newOrg.sort_order = COALESCE($sort_order, oldOrg.sort_order),
+			newOrg.description = COALESCE($description, oldOrg.description),
+			
+			// 业务时间维度更新
+			newOrg.effective_date = CASE WHEN $effective_date IS NULL THEN oldOrg.effective_date ELSE date($effective_date) END,
+			newOrg.end_date = CASE WHEN $end_date IS NULL THEN oldOrg.end_date ELSE date($end_date) END,
+			
+			// 系统时间维度 - 新记录
+			newOrg.valid_from = datetime($valid_from),
+			newOrg.valid_to = datetime('9999-12-31T23:59:59Z'),
+			
+			// 时态管理属性
+			newOrg.is_temporal = COALESCE($is_temporal, oldOrg.is_temporal, true),
+			newOrg.is_current = COALESCE($is_current, true),
+			newOrg.change_reason = COALESCE($change_reason, '数据更新'),
+			newOrg.version = COALESCE($version, oldOrg.version + 1),
+			
+			// 审计字段
+			newOrg.created_at = oldOrg.created_at,
+			newOrg.updated_at = datetime($updated_at)
+		
+		RETURN newOrg.code as code`
+
+	// 系统时间戳 - 用于System Time维度
+	systemTime := time.Unix(tsMs/1000, (tsMs%1000)*1000000).Format(time.RFC3339)
 
 	params := map[string]interface{}{
-		"code":      *data.Code,
-		"tenant_id": *data.TenantID,
+		"code":       *data.Code,
+		"tenant_id":  *data.TenantID,
+		"valid_from": systemTime, // System Time - 系统记录时间
 	}
 
 	if data.Name != nil {

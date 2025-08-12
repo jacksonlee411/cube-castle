@@ -52,12 +52,21 @@ var schemaString = `
 		end_date: String
 		version: Int!
 		is_current: Boolean!
+		# 时态管理扩展字段
+		change_reason: String
+		valid_from: String!
+		valid_to: String!
 	}
 
 	type Query {
+		# 传统查询 (当前数据) - 保持兼容性
 		organizations(first: Int, offset: Int, searchText: String): [Organization!]!
 		organization(code: String!): Organization
 		organizationStats: OrganizationStats!
+		
+		# 时态查询 - Neo4j最佳实践
+		organizationAsOfDate(code: String!, asOfDate: String!): Organization
+		organizationHistory(code: String!, fromDate: String!, toDate: String!): [Organization!]!
 	}
 
 	type OrganizationStats {
@@ -102,6 +111,10 @@ type Organization struct {
 	EndDateField       string `json:"end_date"`
 	VersionField       int    `json:"version"`
 	IsCurrentField     bool   `json:"is_current"`
+	// 时态管理扩展字段
+	ChangeReasonField  string `json:"change_reason"`
+	ValidFromField     string `json:"valid_from"`
+	ValidToField       string `json:"valid_to"`
 }
 
 // GraphQL字段解析器 - 匹配时态API Schema字段名
@@ -141,6 +154,13 @@ func (o Organization) End_date() *string      {
 }
 func (o Organization) Version() int32         { return int32(o.VersionField) }
 func (o Organization) Is_current() bool       { return o.IsCurrentField }
+// 时态管理字段解析器
+func (o Organization) Change_reason() *string { 
+	if o.ChangeReasonField == "" { return nil }
+	return &o.ChangeReasonField 
+}
+func (o Organization) Valid_from() string     { return o.ValidFromField }
+func (o Organization) Valid_to() string       { return o.ValidToField }
 
 
 // GraphQL统计模型
@@ -347,6 +367,33 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 	return nil, nil
 }
 
+// 时态数据记录转换方法 - 支持完整时态字段
+func (r *Neo4jOrganizationRepository) recordToOrganization(record *neo4j.Record) Organization {
+	return Organization{
+		TenantIdField:      getStringValue(record, "tenant_id"),
+		CodeField:          getStringValue(record, "code"),
+		ParentCodeField:    getStringValue(record, "parent_code"),
+		NameField:          getStringValue(record, "name"),
+		UnitTypeField:      getStringValue(record, "unit_type"),
+		StatusField:        getStringValue(record, "status"),
+		LevelField:         getIntValue(record, "level"),
+		PathField:          getStringValue(record, "path"),
+		SortOrderField:     getIntValue(record, "sort_order"),
+		DescriptionField:   getStringValue(record, "description"),
+		ProfileField:       getStringValue(record, "profile"),
+		CreatedAtField:     getStringValue(record, "created_at"),
+		UpdatedAtField:     getStringValue(record, "updated_at"),
+		EffectiveDateField: getStringValue(record, "effective_date"),
+		EndDateField:       getStringValue(record, "end_date"),
+		VersionField:       getIntValue(record, "version"),
+		IsCurrentField:     getBoolValue(record, "is_current"),
+		// 时态管理扩展字段
+		ChangeReasonField:  getStringValue(record, "change_reason"),
+		ValidFromField:     getStringValue(record, "valid_from"),
+		ValidToField:       getStringValue(record, "valid_to"),
+	}
+}
+
 func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*OrganizationStats, error) {
 	// 生成缓存键
 	cacheKey := r.getCacheKey("stats", tenantID.String())
@@ -516,6 +563,152 @@ type Resolver struct {
 	repo   *Neo4jOrganizationRepository
 	logger *log.Logger
 }
+
+// === 时态查询解析器 - Neo4j最佳实践 ===
+
+// 按时间点查询组织 (as_of_date)
+func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct{
+	Code     string
+	AsOfDate string
+}) (*Organization, error) {
+	tenantID := DefaultTenantID
+	
+	r.logger.Printf("[GraphQL] 时态查询 as_of_date - 租户: %s, 代码: %s, 时间点: %s", tenantID, args.Code, args.AsOfDate)
+	
+	// 生成缓存键
+	cacheKey := r.repo.getCacheKey("temporal_as_of", tenantID.String(), args.Code, args.AsOfDate)
+	
+	// 检查缓存
+	if r.repo.redisClient != nil {
+		if cachedData, err := r.repo.redisClient.Get(ctx, cacheKey).Result(); err == nil {
+			var org Organization
+			if json.Unmarshal([]byte(cachedData), &org) == nil {
+				r.logger.Printf("[Cache HIT] 时态查询缓存命中 - 键: %s", cacheKey)
+				return &org, nil
+			}
+		}
+		r.logger.Printf("[Cache MISS] 时态查询缓存未命中 - 键: %s", cacheKey)
+	}
+	
+	session := r.repo.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+	
+	// Neo4j时态查询 - 兼容字符串日期格式
+	query := `
+		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
+		WHERE org.effective_date <= $as_of_date
+		  AND (org.end_date IS NULL OR org.end_date >= $as_of_date)
+		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
+		LIMIT 1
+		RETURN org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
+		       org.name as name, org.unit_type as unit_type, org.status as status,
+		       org.level as level, org.path as path, org.sort_order as sort_order,
+		       org.description as description, org.effective_date as effective_date,
+		       org.end_date as end_date, org.is_current as is_current,
+		       org.change_reason as change_reason, org.version as version,
+		       org.valid_from as valid_from, org.valid_to as valid_to
+	`
+	
+	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		result, err := tx.Run(ctx, query, map[string]interface{}{
+			"code":        args.Code,
+			"tenant_id":   tenantID.String(),
+			"as_of_date":  args.AsOfDate,
+		})
+		if err != nil {
+			return nil, err
+		}
+		
+		if result.Next(ctx) {
+			record := result.Record()
+			org := r.repo.recordToOrganization(record)
+			return org, nil
+		}
+		return nil, nil
+	})
+	
+	if err != nil {
+		r.logger.Printf("[GraphQL] 时态查询失败: %v", err)
+		return nil, err
+	}
+	
+	if result != nil {
+		org := result.(Organization)
+		// 缓存历史数据1小时
+		if r.repo.redisClient != nil {
+			if data, err := json.Marshal(org); err == nil {
+				r.repo.redisClient.Set(ctx, cacheKey, data, time.Hour)
+				r.logger.Printf("[Cache SET] 时态查询结果已缓存 - 键: %s", cacheKey)
+			}
+		}
+		
+		r.logger.Printf("[GraphQL] 时态查询成功 - 组织: %s", org.Name)
+		return &org, nil
+	}
+	
+	r.logger.Printf("[GraphQL] 时态查询无结果 - 代码: %s, 时间点: %s", args.Code, args.AsOfDate)
+	return nil, nil
+}
+
+// 查询组织历史记录 (时间范围)
+func (r *Resolver) OrganizationHistory(ctx context.Context, args struct{
+	Code     string
+	FromDate string
+	ToDate   string
+}) ([]Organization, error) {
+	tenantID := DefaultTenantID
+	
+	r.logger.Printf("[GraphQL] 时态历史查询 - 租户: %s, 代码: %s, 时间范围: %s~%s", tenantID, args.Code, args.FromDate, args.ToDate)
+	
+	session := r.repo.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+	
+	// Neo4j时态范围查询（兼容字符串日期）
+	query := `
+		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
+		WHERE org.effective_date >= $from_date
+		  AND org.effective_date <= $to_date
+		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
+		RETURN org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
+		       org.name as name, org.unit_type as unit_type, org.status as status,
+		       org.level as level, org.path as path, org.sort_order as sort_order,
+		       org.description as description, org.effective_date as effective_date,
+		       org.end_date as end_date, org.is_current as is_current,
+		       org.change_reason as change_reason, org.version as version,
+		       org.valid_from as valid_from, org.valid_to as valid_to
+	`
+	
+	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		result, err := tx.Run(ctx, query, map[string]interface{}{
+			"code":      args.Code,
+			"tenant_id": tenantID.String(),
+			"from_date": args.FromDate,
+			"to_date":   args.ToDate,
+		})
+		if err != nil {
+			return nil, err
+		}
+		
+		var organizations []Organization
+		for result.Next(ctx) {
+			record := result.Record()
+			org := r.repo.recordToOrganization(record)
+			organizations = append(organizations, org)
+		}
+		return organizations, nil
+	})
+	
+	if err != nil {
+		r.logger.Printf("[GraphQL] 时态历史查询失败: %v", err)
+		return nil, err
+	}
+	
+	organizations := result.([]Organization)
+	r.logger.Printf("[GraphQL] 时态历史查询成功 - 返回 %d 条记录", len(organizations))
+	return organizations, nil
+}
+
+// === 传统查询解析器 (保持兼容) ===
 
 func (r *Resolver) Organizations(ctx context.Context, args struct{
 	First      *int32
