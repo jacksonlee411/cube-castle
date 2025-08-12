@@ -4,6 +4,8 @@ import { OrganizationDashboard } from './features/organizations/OrganizationDash
 import { OrganizationTemporalPage } from './features/organizations/OrganizationTemporalPage'
 import { MonitoringDashboard } from './features/monitoring/MonitoringDashboard'
 import { TemporalVerificationPage } from './features/temporal/TemporalVerificationPage'
+import { TemporalManagementDemo } from './features/temporal/TemporalManagementDemo'
+import TemporalManagementGraphQL from './features/temporal/TemporalManagementGraphQL'
 import TestCrud from './TestCrud'
 import MinimalTemporalTest from './MinimalTemporalTest'
 
@@ -19,6 +21,12 @@ function App() {
         
         {/* 时态管理组件测试页面 */}
         <Route path="/temporal-test" element={<MinimalTemporalTest />} />
+        
+        {/* 时态管理演示页面 */}
+        <Route path="/temporal-demo" element={<TemporalManagementDemo />} />
+        
+        {/* 时态管理GraphQL演示页面 - P3开发成果 */}
+        <Route path="/temporal-graphql" element={<TemporalManagementGraphQL />} />
         
         {/* 时态管理验证页面 */}
         <Route path="/temporal-verify" element={<TemporalVerificationPage />} />

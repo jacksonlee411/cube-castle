@@ -269,7 +269,7 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
 
           {/* 时态筛选区域 */}
           {showTemporalFilters && (
-            <Card variant="outline" padding="s">
+            <Card padding="s">
               <Card.Heading>时态筛选</Card.Heading>
               <Card.Body>
                 <Flex flexDirection="column" gap="m">
@@ -295,20 +295,22 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
                     </Box>
 
                     {/* 仅显示时态组织开关 */}
-                    <FormField label="仅显示时态组织">
+                    <FormField>
+                      <FormField.Label>仅显示时态组织</FormField.Label>
+                      <FormField.Field>
                       <Switch 
                         checked={filters.showOnlyTemporal || false}
                         onChange={(checked) => handleFilterChange('showOnlyTemporal', checked)}
                       />
+                      </FormField.Field>
                     </FormField>
 
                     {/* 高级时态筛选开关 */}
-                    <PrimaryButton
-                      variant="secondary"
+                    <SecondaryButton
                       onClick={() => setShowAdvancedTemporal(!showAdvancedTemporal)}
                     >
                       {showAdvancedTemporal ? '收起' : '展开'}高级筛选
-                    </PrimaryButton>
+                    </SecondaryButton>
                   </Flex>
 
                   {/* 时态状态筛选 */}

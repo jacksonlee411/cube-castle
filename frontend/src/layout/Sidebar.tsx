@@ -34,6 +34,11 @@ const navigationItems = [
     icon: clockIcon
   },
   {
+    label: '时态GraphQL演示',
+    path: '/temporal-graphql',
+    icon: clockIcon
+  },
+  {
     label: '员工管理', 
     path: '/employees',
     icon: userIcon

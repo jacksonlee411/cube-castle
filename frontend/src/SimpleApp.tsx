@@ -135,12 +135,15 @@ const SimpleApp: React.FC = () => {
       <Card marginBottom="m">
         <Card.Heading>组织管理功能测试</Card.Heading>
         <Card.Body>
-          <FormField label="组织名称">
-            <TextInput 
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              placeholder="输入测试组织名称"
-            />
+          <FormField>
+            <FormField.Label>组织名称</FormField.Label>
+            <FormField.Field>
+              <TextInput 
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                placeholder="输入测试组织名称"
+              />
+            </FormField.Field>
           </FormField>
           
           <Flex gap="s" marginTop="m">

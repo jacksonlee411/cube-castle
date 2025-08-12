@@ -25,7 +25,7 @@ const DashboardHeader: React.FC<{
   isToggling: boolean;
   temporalMode?: 'current' | 'historical';
   isHistorical?: boolean;
-}> = ({ onCreateClick, onCreatePlannedClick, isToggling, temporalMode = 'current', isHistorical = false }) => (
+}> = ({ onCreateClick, onCreatePlannedClick, isToggling, isHistorical = false }) => (
   <Box marginBottom="l">
     <Heading size="large">
       组织架构管理
@@ -220,7 +220,7 @@ export const OrganizationDashboard: React.FC = () => {
               组织单元列表
               {isHistorical && (
                 <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="s">
-                  - 历史时点: {temporalContext?.asOfDate ? new Date(temporalContext.asOfDate).toLocaleDateString('zh-CN') : '未指定'}
+                  - 历史时点: {/* temporalContext?.asOfDate ? new Date(temporalContext.asOfDate).toLocaleDateString('zh-CN') : */ '历史模式'}
                 </Text>
               )}
               {isPlanning && (
@@ -242,7 +242,7 @@ export const OrganizationDashboard: React.FC = () => {
               <OrganizationTable
                 organizations={organizations}
                 onEdit={isHistorical ? undefined : handleEdit} // 历史模式禁用编辑
-                onToggleStatus={isHistorical ? undefined : handleToggleStatus} // 历史模式禁用状态切换
+                onToggleStatus={isHistorical ? undefined : (code, status) => { handleToggleStatus(code, status); }} // 历史模式禁用状态切换
                 onTemporalManage={handleTemporalManage} // 时态管理导航
                 loading={isFetching || temporalLoading.organizations}
                 togglingId={togglingId}

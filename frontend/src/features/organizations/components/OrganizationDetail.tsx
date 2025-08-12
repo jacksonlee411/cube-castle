@@ -9,7 +9,7 @@ import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-
 import { Card } from '@workday/canvas-kit-react/card';
 import { Badge } from '../../../shared/components/Badge';
 import { Tabs } from '@workday/canvas-kit-react/tabs';
-import { LoadingSpinner } from '@workday/canvas-kit-react/loading-animation';
+import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 
 // 组织管理和时态功能导入
 import { OrganizationForm } from '../organizations/components/OrganizationForm';
@@ -245,7 +245,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
     return (
       <Box padding="l">
         <Flex justifyContent="center" alignItems="center" height="200px">
-          <LoadingSpinner />
+          <LoadingDots />
           <Text marginLeft="m">加载组织详情中...</Text>
         </Flex>
       </Box>
@@ -430,7 +430,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
               
               {historyLoading ? (
                 <Flex justifyContent="center" padding="l">
-                  <LoadingSpinner />
+                  <LoadingDots />
                   <Text marginLeft="m">加载历史版本...</Text>
                 </Flex>
               ) : hasHistory ? (
