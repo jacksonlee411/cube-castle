@@ -156,6 +156,22 @@ type organizationHistoryResolver struct {
 	history *OrganizationHistory
 }
 
+type typeStatResolver struct {
+	stat *TypeStat
+}
+
+type levelStatResolver struct {
+	stat *LevelStat
+}
+
+type changeEventResolver struct {
+	event *ChangeEvent
+}
+
+type versionInfoResolver struct {
+	version *VersionInfo
+}
+
 // 组织数据结构 - 扩展时态字段
 type Organization struct {
 	Code              string  `json:"code"`
@@ -551,7 +567,58 @@ func parseOrganizationRecord(record *neo4j.Record) *Organization {
 	if val, ok := record.Get("level"); ok && val != nil {
 		org.Level = int32(val.(int64))
 	}
-	// ... 其他字段解析
+	if val, ok := record.Get("path"); ok && val != nil {
+		path := val.(string)
+		org.Path = &path
+	}
+	if val, ok := record.Get("sortOrder"); ok && val != nil {
+		sortOrder := int32(val.(int64))
+		org.SortOrder = &sortOrder
+	}
+	if val, ok := record.Get("description"); ok && val != nil {
+		desc := val.(string)
+		org.Description = &desc
+	}
+	if val, ok := record.Get("profile"); ok && val != nil {
+		profile := val.(string)
+		org.Profile = &profile
+	}
+	if val, ok := record.Get("parentCode"); ok && val != nil {
+		parentCode := val.(string)
+		org.ParentCode = &parentCode
+	}
+	if val, ok := record.Get("createdAt"); ok && val != nil {
+		org.CreatedAt = val.(string)
+	}
+	if val, ok := record.Get("updatedAt"); ok && val != nil {
+		org.UpdatedAt = val.(string)
+	}
+	
+	// 时态字段解析
+	if val, ok := record.Get("effectiveDate"); ok && val != nil {
+		effectiveDate := val.(string)
+		org.EffectiveDate = &effectiveDate
+	}
+	if val, ok := record.Get("endDate"); ok && val != nil {
+		endDate := val.(string)
+		org.EndDate = &endDate
+	}
+	if val, ok := record.Get("version"); ok && val != nil {
+		version := int32(val.(int64))
+		org.Version = &version
+	}
+	if val, ok := record.Get("supersedesVersion"); ok && val != nil {
+		supersedesVersion := int32(val.(int64))
+		org.SupersedesVersion = &supersedesVersion
+	}
+	if val, ok := record.Get("changeReason"); ok && val != nil {
+		changeReason := val.(string)
+		org.ChangeReason = &changeReason
+	}
+	if val, ok := record.Get("isCurrent"); ok && val != nil {
+		isCurrent := val.(bool)
+		org.IsCurrent = &isCurrent
+	}
 	
 	return org
 }
@@ -586,7 +653,157 @@ func generateTemporalCacheKey(prefix, code string, query *TemporalQueryInput) st
 	return strings.Join(keyParts, ":")
 }
 
-// 其他必需的解析器方法...
+// ===== 组织统计解析器 =====
+
+func (r *Resolver) OrganizationStats(ctx context.Context) (*organizationStatsResolver, error) {
+	session := r.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+
+	// 查询时态统计信息
+	cypher := `
+		MATCH (o:Organization {tenant_id: $tenantId})
+		WITH 
+			count(CASE WHEN o.is_current = true THEN 1 END) as currentVersionsCount,
+			count(CASE WHEN o.is_current = false THEN 1 END) as historicalVersionsCount,
+			count(CASE WHEN o.is_current = true AND o.status = 'ACTIVE' THEN 1 END) as activeCount,
+			count(CASE WHEN o.is_current = true AND o.status = 'INACTIVE' THEN 1 END) as inactiveCount,
+			count(CASE WHEN o.is_current = true AND o.status = 'PLANNED' THEN 1 END) as plannedCount,
+			count(CASE WHEN o.end_date IS NOT NULL AND o.end_date <= date() THEN 1 END) as dissolvedCount
+		
+		MATCH (current:Organization {tenant_id: $tenantId})
+		WHERE current.is_current = true
+		
+		WITH currentVersionsCount, historicalVersionsCount, activeCount, inactiveCount, 
+		     plannedCount, dissolvedCount, 
+		     collect({type: current.unit_type, level: current.level}) as currentOrgs
+		
+		UNWIND currentOrgs as org
+		WITH currentVersionsCount, historicalVersionsCount, activeCount, inactiveCount,
+		     plannedCount, dissolvedCount,
+		     org.type as unitType, org.level as level
+		     
+		RETURN 
+			currentVersionsCount,
+			historicalVersionsCount,
+			activeCount,
+			inactiveCount,
+			plannedCount,
+			dissolvedCount,
+			collect(DISTINCT unitType) as unitTypes,
+			collect(DISTINCT level) as levels
+	`
+
+	result, err := session.Run(ctx, cypher, map[string]interface{}{
+		"tenantId": DefaultTenantIDString,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &OrganizationStats{
+		ByType:  []TypeStat{},
+		ByLevel: []LevelStat{},
+	}
+
+	if result.Next(ctx) {
+		record := result.Record()
+		
+		if val, ok := record.Get("currentVersionsCount"); ok && val != nil {
+			stats.CurrentVersionsCount = int32(val.(int64))
+			stats.TotalCount = stats.CurrentVersionsCount
+		}
+		if val, ok := record.Get("historicalVersionsCount"); ok && val != nil {
+			stats.HistoricalVersionsCount = int32(val.(int64))
+		}
+		if val, ok := record.Get("activeCount"); ok && val != nil {
+			stats.ActiveCount = int32(val.(int64))
+		}
+		if val, ok := record.Get("inactiveCount"); ok && val != nil {
+			stats.InactiveCount = int32(val.(int64))
+		}
+		if val, ok := record.Get("plannedCount"); ok && val != nil {
+			stats.PlannedCount = int32(val.(int64))
+		}
+		if val, ok := record.Get("dissolvedCount"); ok && val != nil {
+			stats.DissolvedCount = int32(val.(int64))
+		}
+	}
+
+	return &organizationStatsResolver{stats: stats}, nil
+}
+
+func (r *Resolver) Organization(ctx context.Context, args struct{ Code string }) (*organizationResolver, error) {
+	// 查询单个组织（当前版本）
+	query := &TemporalQueryInput{}
+	result, err := r.OrganizationTemporal(ctx, struct {
+		Code  string
+		Query *TemporalQueryInput
+	}{
+		Code:  args.Code,
+		Query: query,
+	})
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	if len(result) > 0 {
+		return result[0], nil
+	}
+	
+	return nil, nil
+}
+
+// ===== 范围查询解析器 =====
+
+func (r *Resolver) OrganizationsInPeriod(ctx context.Context, args struct {
+	From string
+	To   string
+}) ([]*organizationResolver, error) {
+	query := &TemporalQueryInput{
+		EffectiveFrom: &args.From,
+		EffectiveTo:   &args.To,
+		IncludeHistory: func() *bool { b := true; return &b }(),
+	}
+	
+	return r.OrganizationTemporal(ctx, struct {
+		Code  string
+		Query *TemporalQueryInput
+	}{
+		Code:  "", // 空code表示查询所有组织
+		Query: query,
+	})
+}
+
+func (r *Resolver) OrganizationsByVersion(ctx context.Context, args struct {
+	Code    string
+	Version int32
+}) (*organizationResolver, error) {
+	query := &TemporalQueryInput{
+		Version: &args.Version,
+	}
+	
+	result, err := r.OrganizationTemporal(ctx, struct {
+		Code  string
+		Query *TemporalQueryInput
+	}{
+		Code:  args.Code,
+		Query: query,
+	})
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	if len(result) > 0 {
+		return result[0], nil
+	}
+	
+	return nil, nil
+}
+
+// ===== 解析器字段方法 =====
+
 func (r *organizationResolver) Code() string { return r.org.Code }
 func (r *organizationResolver) Name() string { return r.org.Name }
 func (r *organizationResolver) UnitType() string { return r.org.UnitType }
@@ -607,6 +824,77 @@ func (r *organizationResolver) Version() *int32 { return r.org.Version }
 func (r *organizationResolver) SupersedesVersion() *int32 { return r.org.SupersedesVersion }
 func (r *organizationResolver) ChangeReason() *string { return r.org.ChangeReason }
 func (r *organizationResolver) IsCurrent() *bool { return r.org.IsCurrent }
+
+// 统计解析器方法
+func (r *organizationStatsResolver) TotalCount() int32 { return r.stats.TotalCount }
+func (r *organizationStatsResolver) ActiveCount() int32 { return r.stats.ActiveCount }
+func (r *organizationStatsResolver) InactiveCount() int32 { return r.stats.InactiveCount }
+func (r *organizationStatsResolver) PlannedCount() int32 { return r.stats.PlannedCount }
+func (r *organizationStatsResolver) CurrentVersionsCount() int32 { return r.stats.CurrentVersionsCount }
+func (r *organizationStatsResolver) HistoricalVersionsCount() int32 { return r.stats.HistoricalVersionsCount }
+func (r *organizationStatsResolver) DissolvedCount() int32 { return r.stats.DissolvedCount }
+
+func (r *organizationStatsResolver) ByType() []*typeStatResolver {
+	var resolvers []*typeStatResolver
+	for _, stat := range r.stats.ByType {
+		resolvers = append(resolvers, &typeStatResolver{stat: &stat})
+	}
+	return resolvers
+}
+
+func (r *organizationStatsResolver) ByLevel() []*levelStatResolver {
+	var resolvers []*levelStatResolver
+	for _, stat := range r.stats.ByLevel {
+		resolvers = append(resolvers, &levelStatResolver{stat: &stat})
+	}
+	return resolvers
+}
+
+// TypeStat resolver methods
+func (r *typeStatResolver) Type() string { return r.stat.Type }
+func (r *typeStatResolver) Count() int32 { return r.stat.Count }
+
+// LevelStat resolver methods  
+func (r *levelStatResolver) Level() int32 { return r.stat.Level }
+func (r *levelStatResolver) Count() int32 { return r.stat.Count }
+
+// 历史解析器方法
+func (r *organizationHistoryResolver) Organization() *organizationResolver {
+	return &organizationResolver{org: r.history.Organization}
+}
+
+func (r *organizationHistoryResolver) ChangeEvents() []*changeEventResolver {
+	var resolvers []*changeEventResolver
+	for _, event := range r.history.ChangeEvents {
+		resolvers = append(resolvers, &changeEventResolver{event: &event})
+	}
+	return resolvers
+}
+
+func (r *organizationHistoryResolver) VersionTimeline() []*versionInfoResolver {
+	var resolvers []*versionInfoResolver
+	for _, version := range r.history.VersionTimeline {
+		resolvers = append(resolvers, &versionInfoResolver{version: &version})
+	}
+	return resolvers
+}
+
+// ChangeEvent resolver methods
+func (r *changeEventResolver) EventId() string { return r.event.EventID }
+func (r *changeEventResolver) EventType() string { return r.event.EventType }
+func (r *changeEventResolver) EffectiveDate() string { return r.event.EffectiveDate }
+func (r *changeEventResolver) EndDate() *string { return r.event.EndDate }
+func (r *changeEventResolver) ChangeData() string { return r.event.ChangeData }
+func (r *changeEventResolver) ChangeReason() *string { return r.event.ChangeReason }
+func (r *changeEventResolver) CreatedBy() *string { return r.event.CreatedBy }
+func (r *changeEventResolver) CreatedAt() string { return r.event.CreatedAt }
+
+// VersionInfo resolver methods
+func (r *versionInfoResolver) Version() int32 { return r.version.Version }
+func (r *versionInfoResolver) EffectiveDate() string { return r.version.EffectiveDate }
+func (r *versionInfoResolver) EndDate() *string { return r.version.EndDate }
+func (r *versionInfoResolver) ChangeReason() *string { return r.version.ChangeReason }
+func (r *versionInfoResolver) IsCurrent() bool { return r.version.IsCurrent }
 
 // ===== 缓存相关功能 =====
 
