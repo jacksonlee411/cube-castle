@@ -59,31 +59,6 @@ func (d *DebeziumDate) String() string {
 	return d.value
 }
 
-// parseDebeziumDate 解析Debezium日期字段
-func parseDebeziumDate(rawData json.RawMessage) (string, error) {
-	if string(rawData) == "null" {
-		return "", nil
-	}
-	
-	// 尝试解析为数字（Debezium days since epoch）
-	if len(rawData) > 0 && rawData[0] != '"' {
-		var days int64
-		if err := json.Unmarshal(rawData, &days); err == nil {
-			// 转换为YYYY-MM-DD格式
-			epochDate := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-			targetDate := epochDate.AddDate(0, 0, int(days))
-			return targetDate.Format("2006-01-02"), nil
-		}
-	}
-	
-	// 尝试解析为字符串
-	var str string
-	if err := json.Unmarshal(rawData, &str); err == nil {
-		return str, nil
-	}
-	
-	return "", fmt.Errorf("无法解析日期字段: %s", string(rawData))
-}
 
 // 项目默认租户配置
 const (
@@ -147,9 +122,9 @@ type CDCOrganizationData struct {
 	Description  *string         `json:"description"`
 	CreatedAt    *time.Time      `json:"created_at"`
 	UpdatedAt    *time.Time      `json:"updated_at"`
-	// 时态管理字段 - 使用json.RawMessage进行调试
-	EffectiveDate *json.RawMessage `json:"effective_date"`
-	EndDate       *json.RawMessage `json:"end_date"`
+	// 时态管理字段 - 使用DebeziumDate处理Debezium序列化格式
+	EffectiveDate *DebeziumDate `json:"effective_date"`
+	EndDate       *DebeziumDate `json:"end_date"`
 	IsTemporal    *bool           `json:"is_temporal"`
 	ChangeReason  *string         `json:"change_reason"`
 	IsCurrent     *bool           `json:"is_current"`
@@ -508,27 +483,15 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		params["parent_code"] = nil
 	}
 
-	// 时态管理字段映射 - 处理json.RawMessage
+	// 时态管理字段映射 - 使用DebeziumDate类型
 	if data.EffectiveDate != nil {
-		dateStr, err := parseDebeziumDate(*data.EffectiveDate)
-		if err != nil {
-			log.Printf("解析effective_date失败: %v, 原始数据: %s", err, string(*data.EffectiveDate))
-			params["effective_date"] = nil
-		} else {
-			params["effective_date"] = dateStr
-		}
+		params["effective_date"] = data.EffectiveDate.String()
 	} else {
 		params["effective_date"] = nil
 	}
 
 	if data.EndDate != nil {
-		dateStr, err := parseDebeziumDate(*data.EndDate)
-		if err != nil {
-			log.Printf("解析end_date失败: %v, 原始数据: %s", err, string(*data.EndDate))
-			params["end_date"] = nil
-		} else {
-			params["end_date"] = dateStr
-		}
+		params["end_date"] = data.EndDate.String()
 	} else {
 		params["end_date"] = nil
 	}
@@ -656,27 +619,15 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		params["updated_at"] = time.Now().Format(time.RFC3339)
 	}
 
-	// 时态管理字段映射 (更新版本) - 处理json.RawMessage
+	// 时态管理字段映射 (更新版本) - 使用DebeziumDate类型
 	if data.EffectiveDate != nil {
-		dateStr, err := parseDebeziumDate(*data.EffectiveDate)
-		if err != nil {
-			log.Printf("解析effective_date失败: %v, 原始数据: %s", err, string(*data.EffectiveDate))
-			params["effective_date"] = nil
-		} else {
-			params["effective_date"] = dateStr
-		}
+		params["effective_date"] = data.EffectiveDate.String()
 	} else {
 		params["effective_date"] = nil
 	}
 
 	if data.EndDate != nil {
-		dateStr, err := parseDebeziumDate(*data.EndDate)
-		if err != nil {
-			log.Printf("解析end_date失败: %v, 原始数据: %s", err, string(*data.EndDate))
-			params["end_date"] = nil
-		} else {
-			params["end_date"] = dateStr
-		}
+		params["end_date"] = data.EndDate.String()
 	} else {
 		params["end_date"] = nil
 	}
@@ -768,11 +719,15 @@ type KafkaEventConsumer struct {
 
 func NewKafkaEventConsumer(brokers []string, groupID string, syncSvc *Neo4jSyncService, logger *log.Logger) (*KafkaEventConsumer, error) {
 	config := &kafka.ConfigMap{
-		"bootstrap.servers": strings.Join(brokers, ","),
-		"group.id":          groupID,
-		"auto.offset.reset": "latest",  // 从最新位置开始
-		"enable.auto.commit": true,
+		"bootstrap.servers":        strings.Join(brokers, ","),
+		"group.id":                groupID,
+		"auto.offset.reset":       "latest", // 从最新位置开始
+		"enable.auto.commit":      true,
 		"auto.commit.interval.ms": 1000,
+		// 添加错误处理配置
+		"session.timeout.ms":      30000, // 30秒会话超时
+		"heartbeat.interval.ms":   10000, // 10秒心跳间隔
+		"max.poll.interval.ms":    300000, // 5分钟最大轮询间隔
 	}
 
 	consumer, err := kafka.NewConsumer(config)
@@ -814,6 +769,8 @@ func (c *KafkaEventConsumer) StartConsuming(ctx context.Context) error {
 
 			if err := c.processMessage(ctx, msg); err != nil {
 				c.logger.Printf("处理消息失败: %v", err)
+				// 添加退避延迟防止高CPU占用
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}
@@ -910,7 +867,7 @@ func main() {
 	// 创建Kafka消费者
 	consumer, err := NewKafkaEventConsumer(
 		[]string{"localhost:9092"},
-		"neo4j-sync-full-replay",  // 完全重放所有消息
+		"neo4j-sync-latest",  // 只处理最新消息，避免重复处理历史消息
 		syncSvc,
 		logger,
 	)
