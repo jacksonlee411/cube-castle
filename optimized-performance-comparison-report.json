@@ -1,0 +1,300 @@
+{
+  "optimization_test_completed": true,
+  "performance_results": {
+    "test_summary": {
+      "iterations": 8,
+      "test_org_codes": [
+        "1000000",
+        "1000001",
+        "1000002",
+        "1000003"
+      ],
+      "timestamp": "2025-08-13T13:39:25.453645",
+      "test_type": "optimized_clean_data"
+    },
+    "postgresql_results": {
+      "1000000": {
+        "times": [
+          8.381125997402705,
+          4.49809099882259,
+          1.7855149999377318,
+          1.0276050015818328,
+          0.9458810018259101,
+          0.8962480023910757,
+          0.8981319988379255,
+          1.0275439999531955
+        ],
+        "avg_time": 2.432517750094121,
+        "min_time": 0.8962480023910757,
+        "max_time": 8.381125997402705,
+        "std_dev": 2.697708809519262,
+        "result_count": 1,
+        "sample_result": [
+          {
+            "code": "1000000",
+            "name": "高谷集团",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000000"
+          }
+        ]
+      },
+      "1000001": {
+        "times": [
+          1.4042619986867066,
+          0.9553989984851796,
+          0.8728899993002415,
+          1.304116001847433,
+          0.8789310013526119,
+          0.8978110017778818,
+          0.9585740008333232,
+          1.0741350015450735
+        ],
+        "avg_time": 1.0432647504785564,
+        "min_time": 0.8728899993002415,
+        "max_time": 1.4042619986867066,
+        "std_dev": 0.20403018136549209,
+        "result_count": 0,
+        "sample_result": []
+      },
+      "1000002": {
+        "times": [
+          2.044607997959247,
+          1.859560998127563,
+          1.4097450002736878,
+          2.567067997006234,
+          2.07979799961322,
+          1.598784998350311,
+          1.9544130009307992,
+          3.1877080000413116
+        ],
+        "avg_time": 2.0877107490377966,
+        "min_time": 1.4097450002736878,
+        "max_time": 3.1877080000413116,
+        "std_dev": 0.5619105580609475,
+        "result_count": 0,
+        "sample_result": []
+      },
+      "1000003": {
+        "times": [
+          1.3404050005192403,
+          1.0229180006717797,
+          0.9682669988251291,
+          1.9606860005296767,
+          1.15022999671055,
+          1.708560001134174,
+          1.161629999842262,
+          1.6198340017581359
+        ],
+        "avg_time": 1.3665662499988684,
+        "min_time": 0.9682669988251291,
+        "max_time": 1.9606860005296767,
+        "std_dev": 0.3586290607912561,
+        "result_count": 2,
+        "sample_result": [
+          {
+            "code": "1000003",
+            "name": "销售部",
+            "level": 2,
+            "hierarchy_depth": 0,
+            "path": "/1000000/1000003"
+          },
+          {
+            "code": "1000000",
+            "name": "高谷集团",
+            "level": 1,
+            "hierarchy_depth": 1,
+            "path": "/1000000"
+          }
+        ]
+      }
+    },
+    "neo4j_results": {
+      "1000000": {
+        "times": [
+          116.71422899962636,
+          7.335738999245223,
+          2.8484449976531323,
+          2.271969999128487,
+          1.6232790003414266,
+          2.060112998151453,
+          3.490794999379432,
+          1.9848550000460818
+        ],
+        "avg_time": 17.29117812419645,
+        "min_time": 1.6232790003414266,
+        "max_time": 116.71422899962636,
+        "std_dev": 40.214470523182406,
+        "result_count": 1,
+        "sample_result": [
+          {
+            "code": "1000000",
+            "name": "高谷集团",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000000"
+          }
+        ]
+      },
+      "1000001": {
+        "times": [
+          4.060784001922002,
+          2.487428002496017,
+          7.824956999684218,
+          12.002351999399252,
+          10.629319000145188,
+          10.534264001762494,
+          9.031066998431925,
+          6.351809002808295
+        ],
+        "avg_time": 7.865247500831174,
+        "min_time": 2.487428002496017,
+        "max_time": 12.002351999399252,
+        "std_dev": 3.357837602463152,
+        "result_count": 0,
+        "sample_result": []
+      },
+      "1000002": {
+        "times": [
+          3.6172779982734937,
+          2.618917998916004,
+          5.878138999833027,
+          2.748360999248689,
+          3.346891000546748,
+          6.053195000276901,
+          2.57379899994703,
+          2.3276520005310886
+        ],
+        "avg_time": 3.6455291246966226,
+        "min_time": 2.3276520005310886,
+        "max_time": 6.053195000276901,
+        "std_dev": 1.4935877850675616,
+        "result_count": 0,
+        "sample_result": []
+      },
+      "1000003": {
+        "times": [
+          4.137894000450615,
+          5.311333999998169,
+          11.941344000661047,
+          3.3209379980689846,
+          2.07807100014179,
+          1.9325829998706467,
+          2.1692160007660277,
+          3.6112870002398267
+        ],
+        "avg_time": 4.312833375024638,
+        "min_time": 1.9325829998706467,
+        "max_time": 11.941344000661047,
+        "std_dev": 3.293991403643313,
+        "result_count": 2,
+        "sample_result": [
+          {
+            "code": "1000000",
+            "name": "高谷集团",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000000"
+          },
+          {
+            "code": "1000003",
+            "name": "销售部",
+            "level": 2,
+            "hierarchy_depth": 1,
+            "path": "/1000000/1000003"
+          }
+        ]
+      }
+    },
+    "performance_comparison": {
+      "1000000": {
+        "postgresql_avg_ms": 2.433,
+        "neo4j_avg_ms": 17.291,
+        "speedup_ratio": 7.11,
+        "winner": "PostgreSQL",
+        "postgresql_result_count": 1,
+        "neo4j_result_count": 1,
+        "data_consistent": true,
+        "performance_improvement": 610.8346125543135
+      },
+      "1000001": {
+        "postgresql_avg_ms": 1.043,
+        "neo4j_avg_ms": 7.865,
+        "speedup_ratio": 7.54,
+        "winner": "PostgreSQL",
+        "postgresql_result_count": 0,
+        "neo4j_result_count": 0,
+        "data_consistent": true,
+        "performance_improvement": 653.9071455470247
+      },
+      "1000002": {
+        "postgresql_avg_ms": 2.088,
+        "neo4j_avg_ms": 3.646,
+        "speedup_ratio": 1.75,
+        "winner": "PostgreSQL",
+        "postgresql_result_count": 0,
+        "neo4j_result_count": 0,
+        "data_consistent": true,
+        "performance_improvement": 74.6184966656328
+      },
+      "1000003": {
+        "postgresql_avg_ms": 1.367,
+        "neo4j_avg_ms": 4.313,
+        "speedup_ratio": 3.16,
+        "winner": "PostgreSQL",
+        "postgresql_result_count": 2,
+        "neo4j_result_count": 2,
+        "data_consistent": true,
+        "performance_improvement": 215.5963624177174
+      }
+    }
+  },
+  "overall_analysis": {
+    "postgresql_overall": {
+      "avg_response_time": 1.733,
+      "min_response_time": 1.043,
+      "max_response_time": 2.433,
+      "std_dev": 0.639
+    },
+    "neo4j_overall": {
+      "avg_response_time": 8.279,
+      "min_response_time": 3.646,
+      "max_response_time": 17.291,
+      "std_dev": 6.287
+    },
+    "overall_winner": "PostgreSQL",
+    "data_consistency_rate": 100,
+    "performance_gap": 6.546
+  },
+  "recommendations": {
+    "performance_summary": {
+      "test_completed": true,
+      "data_quality": "优秀",
+      "recommended_approach": "PostgreSQL"
+    },
+    "postgresql_recommendations": [
+      "PostgreSQL在层级查询方面表现出色",
+      "递归CTE查询性能稳定可靠",
+      "适合作为CQRS架构的主要层级计算引擎",
+      "建议添加适当的索引优化查询性能"
+    ],
+    "neo4j_recommendations": [
+      "Neo4j在当前场景下性能不如PostgreSQL",
+      "建议暂时保持PostgreSQL作为主要层级计算引擎",
+      "Neo4j可用于其他图关系查询场景",
+      "如需使用Neo4j，考虑进一步优化查询算法"
+    ],
+    "architecture_recommendations": [
+      "建议采用PostgreSQL为主的CQRS架构",
+      "使用Redis缓存提升查询性能",
+      "保持Neo4j作为辅助图查询引擎",
+      "优先投入PostgreSQL查询优化"
+    ]
+  },
+  "test_environment": {
+    "postgresql_optimized": true,
+    "neo4j_optimized": true,
+    "data_cleaned": true,
+    "test_date": "2025-08-13T13:39:25.776975"
+  }
+}

@@ -1,0 +1,354 @@
+{
+  "consistency_verification": [
+    {
+      "org_code": "1000056",
+      "postgresql_count": 2,
+      "neo4j_count": 38,
+      "data_consistent": false,
+      "postgresql_sample": [
+        {
+          "code": "1000056",
+          "name": "测试部门 - 时态管理功能验证v7",
+          "level": 2,
+          "hierarchy_depth": 0,
+          "path": "/1000000/1000056"
+        },
+        {
+          "code": "1000000",
+          "name": "高谷集团",
+          "level": 1,
+          "hierarchy_depth": 1,
+          "path": "/1000000"
+        }
+      ],
+      "neo4j_sample": [
+        {
+          "code": "1000056",
+          "name": "端到端测试未来重组部门v5",
+          "level": 1,
+          "hierarchy_depth": 0,
+          "path": "/1000056"
+        },
+        {
+          "code": "1000056",
+          "name": "端到端测试未来重组部门v5",
+          "level": 1,
+          "hierarchy_depth": 0,
+          "path": "/1000056"
+        }
+      ]
+    },
+    {
+      "org_code": "1000001",
+      "postgresql_count": 2,
+      "neo4j_count": 26,
+      "data_consistent": false,
+      "postgresql_sample": [
+        {
+          "code": "1000001",
+          "name": "AI治理办公室(时态更新测试)",
+          "level": 1,
+          "hierarchy_depth": 0,
+          "path": "/1000001"
+        },
+        {
+          "code": "1000000",
+          "name": "高谷集团",
+          "level": 1,
+          "hierarchy_depth": 1,
+          "path": "/1000000"
+        }
+      ],
+      "neo4j_sample": [
+        {
+          "code": "1000001",
+          "name": "AI治理办公室(CDC测试)",
+          "level": 1,
+          "hierarchy_depth": 0,
+          "path": "/1000001"
+        },
+        {
+          "code": "1000001",
+          "name": "AI治理办公室(CDC测试)",
+          "level": 1,
+          "hierarchy_depth": 0,
+          "path": "/1000001"
+        }
+      ]
+    },
+    {
+      "org_code": "1000002",
+      "postgresql_count": 2,
+      "neo4j_count": 6,
+      "data_consistent": false,
+      "postgresql_sample": [
+        {
+          "code": "1000002",
+          "name": "产品部-更新测试",
+          "level": 2,
+          "hierarchy_depth": 0,
+          "path": "/1000000/1000002"
+        },
+        {
+          "code": "1000000",
+          "name": "高谷集团",
+          "level": 1,
+          "hierarchy_depth": 1,
+          "path": "/1000000"
+        }
+      ],
+      "neo4j_sample": [
+        {
+          "code": "1000002",
+          "name": "产品部-更新测试",
+          "level": 2,
+          "hierarchy_depth": 0,
+          "path": "/1000000/1000002"
+        },
+        {
+          "code": "1000002",
+          "name": "产品部-更新测试",
+          "level": 2,
+          "hierarchy_depth": 0,
+          "path": "/1000000/1000002"
+        }
+      ]
+    }
+  ],
+  "performance_comparison": {
+    "test_summary": {
+      "iterations": 5,
+      "test_org_codes": [
+        "1000056",
+        "1000001",
+        "1000002"
+      ],
+      "timestamp": "2025-08-13 13:24:25"
+    },
+    "postgresql_results": {
+      "1000056": {
+        "times": [
+          1.9190929997421335,
+          1.3546930022130255,
+          1.4363419977598824,
+          1.2211809989821631,
+          1.2250939980731346
+        ],
+        "avg_time": 1.4312805993540678,
+        "min_time": 1.2211809989821631,
+        "max_time": 1.9190929997421335,
+        "std_dev": 0.28744867906560473,
+        "result_count": 2,
+        "sample_result": [
+          {
+            "code": "1000056",
+            "name": "测试部门 - 时态管理功能验证v7",
+            "level": 2,
+            "hierarchy_depth": 0,
+            "path": "/1000000/1000056"
+          },
+          {
+            "code": "1000000",
+            "name": "高谷集团",
+            "level": 1,
+            "hierarchy_depth": 1,
+            "path": "/1000000"
+          }
+        ]
+      },
+      "1000001": {
+        "times": [
+          1.418315001501469,
+          1.0063299996545538,
+          1.1743809991457965,
+          1.0795750022225548,
+          0.6981390033615753
+        ],
+        "avg_time": 1.0753480011771899,
+        "min_time": 0.6981390033615753,
+        "max_time": 1.418315001501469,
+        "std_dev": 0.2619646341126797,
+        "result_count": 2,
+        "sample_result": [
+          {
+            "code": "1000001",
+            "name": "AI治理办公室(时态更新测试)",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000001"
+          },
+          {
+            "code": "1000000",
+            "name": "高谷集团",
+            "level": 1,
+            "hierarchy_depth": 1,
+            "path": "/1000000"
+          }
+        ]
+      },
+      "1000002": {
+        "times": [
+          1.5191200000117533,
+          1.155560999904992,
+          0.953357000980759,
+          0.7202910019259434,
+          0.7792010001139715
+        ],
+        "avg_time": 1.0255060005874839,
+        "min_time": 0.7202910019259434,
+        "max_time": 1.5191200000117533,
+        "std_dev": 0.3238815022834632,
+        "result_count": 2,
+        "sample_result": [
+          {
+            "code": "1000002",
+            "name": "产品部-更新测试",
+            "level": 2,
+            "hierarchy_depth": 0,
+            "path": "/1000000/1000002"
+          },
+          {
+            "code": "1000000",
+            "name": "高谷集团",
+            "level": 1,
+            "hierarchy_depth": 1,
+            "path": "/1000000"
+          }
+        ]
+      }
+    },
+    "neo4j_results": {
+      "1000056": {
+        "times": [
+          5.743424000684172,
+          7.5728430019808,
+          13.662335997651098,
+          14.465880001807818,
+          6.775745998311322
+        ],
+        "avg_time": 9.644045800087042,
+        "min_time": 5.743424000684172,
+        "max_time": 14.465880001807818,
+        "std_dev": 4.096602750647488,
+        "result_count": 38,
+        "sample_result": [
+          {
+            "code": "1000056",
+            "name": "端到端测试未来重组部门v5",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000056"
+          },
+          {
+            "code": "1000056",
+            "name": "端到端测试未来重组部门v5",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000056"
+          },
+          {
+            "code": "1000056",
+            "name": "端到端测试未来重组部门v5",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000056"
+          }
+        ]
+      },
+      "1000001": {
+        "times": [
+          5.568664997554151,
+          5.12918100139359,
+          12.495278999267612,
+          5.597409002803033,
+          8.029628999793204
+        ],
+        "avg_time": 7.364032600162318,
+        "min_time": 5.12918100139359,
+        "max_time": 12.495278999267612,
+        "std_dev": 3.0867285921867764,
+        "result_count": 26,
+        "sample_result": [
+          {
+            "code": "1000001",
+            "name": "AI治理办公室(CDC测试)",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000001"
+          },
+          {
+            "code": "1000001",
+            "name": "AI治理办公室(CDC测试)",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000001"
+          },
+          {
+            "code": "1000001",
+            "name": "AI治理办公室(CDC测试)",
+            "level": 1,
+            "hierarchy_depth": 0,
+            "path": "/1000001"
+          }
+        ]
+      },
+      "1000002": {
+        "times": [
+          11.628686002950417,
+          7.185384998592781,
+          2.9110069990565535,
+          1.8205230007879436,
+          2.8387889979057945
+        ],
+        "avg_time": 5.276877999858698,
+        "min_time": 1.8205230007879436,
+        "max_time": 11.628686002950417,
+        "std_dev": 4.107185086097248,
+        "result_count": 6,
+        "sample_result": [
+          {
+            "code": "1000002",
+            "name": "产品部-更新测试",
+            "level": 2,
+            "hierarchy_depth": 0,
+            "path": "/1000000/1000002"
+          },
+          {
+            "code": "1000002",
+            "name": "产品部-更新测试",
+            "level": 2,
+            "hierarchy_depth": 0,
+            "path": "/1000000/1000002"
+          },
+          {
+            "code": "1000002",
+            "name": "产品部-更新测试",
+            "level": 2,
+            "hierarchy_depth": 0,
+            "path": "/1000000/1000002"
+          }
+        ]
+      }
+    },
+    "performance_comparison": {
+      "1000056": {
+        "postgresql_avg_ms": 1.431,
+        "neo4j_avg_ms": 9.644,
+        "postgresql_faster_by": 6.74,
+        "winner": "PostgreSQL"
+      },
+      "1000001": {
+        "postgresql_avg_ms": 1.075,
+        "neo4j_avg_ms": 7.364,
+        "postgresql_faster_by": 6.85,
+        "winner": "PostgreSQL"
+      },
+      "1000002": {
+        "postgresql_avg_ms": 1.026,
+        "neo4j_avg_ms": 5.277,
+        "postgresql_faster_by": 5.15,
+        "winner": "PostgreSQL"
+      }
+    }
+  }
+}

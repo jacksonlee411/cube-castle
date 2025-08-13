@@ -39,6 +39,44 @@ import { TemporalHistoryViewer } from './components/TemporalHistoryViewer';
 import { TimePointQuery } from './components/TimePointQuery';
 import type { TemporalOrganizationUnit } from '../../shared/types/temporal';
 
+// 路径解析工具函数
+const parseOrganizationPath = (path: string, level: number) => {
+  if (!path) return { 
+    pathSegments: [], 
+    pathDescription: '无路径信息',
+    levelDescription: '未知层级'
+  };
+
+  const segments = path.split('/').filter(segment => segment !== '');
+  const levelDescriptions = [
+    '未知层级',      // 0级 - 不应该存在
+    '根组织',        // 1级
+    '一级部门',      // 2级  
+    '二级部门',      // 3级
+    '三级部门',      // 4级
+    '四级部门',      // 5级
+    '多级部门'       // 6级及以上
+  ];
+
+  const levelDescription = level <= 5 ? levelDescriptions[level] : levelDescriptions[6];
+  
+  // 创建路径描述
+  let pathDescription = '';
+  if (segments.length === 1) {
+    pathDescription = `根组织 (${segments[0]})`;
+  } else if (segments.length === 2) {
+    pathDescription = `${segments[0]} → ${segments[1]}`;
+  } else if (segments.length >= 3) {
+    pathDescription = `${segments[0]} → ... → ${segments[segments.length-1]} (共${segments.length}级)`;
+  }
+
+  return {
+    pathSegments: segments,
+    pathDescription,
+    levelDescription
+  };
+};
+
 // 简化的类型定义 - 删除重复定义
 
 const DEMO_ORGANIZATION_CODES = [
@@ -90,6 +128,9 @@ export const TemporalManagementGraphQL: React.FC = () => {
   const renderSelectedRecordDetails = () => {
     if (!selectedRecord) return null;
 
+    // 解析路径信息
+    const pathInfo = parseOrganizationPath(selectedRecord.path, selectedRecord.level);
+
     return (
       <Card padding={space.m} marginTop={space.m}>
         <Flex alignItems="center" marginBottom={space.s}>
@@ -133,8 +174,10 @@ export const TemporalManagementGraphQL: React.FC = () => {
             </Box>
             
             <Box>
-              <Text fontSize={fontSizes.body.small} color={colors.licorice400}>级别</Text>
-              <Text fontSize={fontSizes.body.medium}>{selectedRecord.level}</Text>
+              <Text fontSize={fontSizes.body.small} color={colors.licorice400}>组织层级</Text>
+              <Text fontSize={fontSizes.body.medium}>
+                第 {selectedRecord.level} 级 ({pathInfo.levelDescription})
+              </Text>
             </Box>
             
             <Box>
@@ -144,6 +187,32 @@ export const TemporalManagementGraphQL: React.FC = () => {
               </Text>
             </Box>
           </Flex>
+
+          {/* 级联长路径 - 单独一行显示 */}
+          <Box marginTop={space.s}>
+            <Text fontSize={fontSizes.body.small} color={colors.licorice400}>级联长路径</Text>
+            <Text 
+              fontSize={fontSizes.body.medium} 
+              fontFamily="monospace"
+              backgroundColor={colors.soap200}
+              padding={space.xs}
+              borderRadius={borderRadius.s}
+              wordBreak="break-all"
+              marginTop={space.xs}
+            >
+              {selectedRecord.path || 'N/A'}
+            </Text>
+            
+            {/* 路径解释 */}
+            <Box marginTop={space.xs}>
+              <Text fontSize={fontSizes.body.small} color={colors.licorice400}>
+                <strong>路径解释：</strong> {pathInfo.pathDescription}
+              </Text>
+              <Text fontSize={fontSizes.body.small} color={colors.licorice400}>
+                说明：显示从根组织到当前组织的完整层级路径，数字为组织代码
+              </Text>
+            </Box>
+          </Box>
 
           {selectedRecord.change_reason && (
             <Box marginTop={space.s}>
@@ -329,8 +398,14 @@ export const TemporalManagementGraphQL: React.FC = () => {
           <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block" marginBottom={space.xs}>
             • <strong>实时GraphQL查询</strong>: 直接查询Neo4j时态数据，响应时间&lt;100ms
           </Text>
-          <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block">
+          <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block" marginBottom={space.xs}>
             • <strong>推荐测试</strong>: 使用1000056组织代码，包含14条完整的历史记录
+          </Text>
+          <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block" marginBottom={space.xs}>
+            • <strong>组织层级</strong>: 显示组织在层级结构中的位置（1级=根组织，2级=一级子组织）
+          </Text>
+          <Text fontSize={fontSizes.body.small} color={colors.licorice400} display="block">
+            • <strong>级联长路径</strong>: 完整层级路径，如"/1000000/1000001/1000056"表示根组织→一级部门→当前组织
           </Text>
         </Box>
       </Card>
