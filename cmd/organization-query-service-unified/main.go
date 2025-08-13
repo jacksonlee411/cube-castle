@@ -269,7 +269,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 		       o.level as level, o.path as path, o.sort_order as sort_order,
 		       o.description as description, o.profile as profile,
 		       o.created_at as created_at, o.updated_at as updated_at,
-		       o.effective_date as effective_date, o.end_date as end_date,
+		       toString(o.effective_date) as effective_date, toString(o.end_date) as end_date,
 		       o.version as version, o.is_current as is_current
 		ORDER BY o.sort_order, o.code
 		SKIP $offset LIMIT $first
@@ -328,7 +328,7 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 		       o.level as level, o.path as path, o.sort_order as sort_order,
 		       o.description as description, o.profile as profile,
 		       o.created_at as created_at, o.updated_at as updated_at,
-		       o.effective_date as effective_date, o.end_date as end_date,
+		       toString(o.effective_date) as effective_date, toString(o.end_date) as end_date,
 		       o.version as version, o.is_current as is_current
 		ORDER BY o.is_current DESC, o.effective_date DESC
 		LIMIT 1
@@ -532,10 +532,28 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 	return stats, nil
 }
 
-// Helper functions
+// Helper functions  
 func getStringValue(record *neo4j.Record, key string) string {
 	if value, ok := record.Get(key); ok && value != nil {
 		if str, ok := value.(string); ok {
+			return str
+		}
+		// 处理time.Time类型
+		if t, ok := value.(time.Time); ok {
+			return t.Format("2006-01-02") // 返回 YYYY-MM-DD 格式
+		}
+		
+		// 对于其他类型，直接转换为字符串
+		if str := fmt.Sprintf("%v", value); str != "<nil>" && str != "" {
+			// 如果字符串看起来像日期，尝试解析
+			if t, err := time.Parse("2006-01-02", str); err == nil {
+				return t.Format("2006-01-02")
+			}
+			// 如果包含时间信息，尝试解析并只取日期部分
+			if t, err := time.Parse("2006-01-02T15:04:05Z", str); err == nil {
+				return t.Format("2006-01-02")
+			}
+			// 返回原始字符串
 			return str
 		}
 	}
@@ -605,8 +623,8 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct{
 		RETURN org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
 		       org.name as name, org.unit_type as unit_type, org.status as status,
 		       org.level as level, org.path as path, org.sort_order as sort_order,
-		       org.description as description, org.effective_date as effective_date,
-		       org.end_date as end_date, org.is_current as is_current,
+		       org.description as description, toString(org.effective_date) as effective_date,
+		       toString(org.end_date) as end_date, org.is_current as is_current,
 		       org.change_reason as change_reason, org.version as version,
 		       org.valid_from as valid_from, org.valid_to as valid_to
 	`
@@ -674,8 +692,8 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct{
 		RETURN org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
 		       org.name as name, org.unit_type as unit_type, org.status as status,
 		       org.level as level, org.path as path, org.sort_order as sort_order,
-		       org.description as description, org.effective_date as effective_date,
-		       org.end_date as end_date, org.is_current as is_current,
+		       org.description as description, toString(org.effective_date) as effective_date,
+		       toString(org.end_date) as end_date, org.is_current as is_current,
 		       org.change_reason as change_reason, org.version as version,
 		       org.valid_from as valid_from, org.valid_to as valid_to
 	`
