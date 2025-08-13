@@ -263,7 +263,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 
 	query := fmt.Sprintf(`
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
-		WHERE true %s
+		WHERE o.is_current = true %s
 		RETURN o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
 		       o.name as name, o.unit_type as unit_type, o.status as status, 
 		       o.level as level, o.path as path, o.sort_order as sort_order,
@@ -330,6 +330,8 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 		       o.created_at as created_at, o.updated_at as updated_at,
 		       o.effective_date as effective_date, o.end_date as end_date,
 		       o.version as version, o.is_current as is_current
+		ORDER BY o.is_current DESC, o.effective_date DESC
+		LIMIT 1
 	`
 
 	result, err := session.Run(ctx, query, map[string]interface{}{
@@ -593,11 +595,11 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct{
 	session := r.repo.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 	
-	// Neo4j时态查询 - 兼容字符串日期格式
+	// Neo4j时态查询 - 使用date()函数进行正确的日期比较
 	query := `
 		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
-		WHERE org.effective_date <= $as_of_date
-		  AND (org.end_date IS NULL OR org.end_date >= $as_of_date)
+		WHERE org.effective_date <= date($as_of_date)
+		  AND (org.end_date IS NULL OR org.end_date >= date($as_of_date))
 		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
 		LIMIT 1
 		RETURN org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
@@ -663,11 +665,11 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct{
 	session := r.repo.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 	
-	// Neo4j时态范围查询（兼容字符串日期）
+	// Neo4j时态范围查询 - 使用date()函数进行正确的日期比较
 	query := `
 		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
-		WHERE org.effective_date >= $from_date
-		  AND org.effective_date <= $to_date
+		WHERE org.effective_date >= date($from_date)
+		  AND org.effective_date <= date($to_date)
 		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
 		RETURN org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
 		       org.name as name, org.unit_type as unit_type, org.status as status,

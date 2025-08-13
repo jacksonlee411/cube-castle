@@ -151,7 +151,6 @@ type CDCOrganizationData struct {
 	EffectiveDate *json.RawMessage `json:"effective_date"`
 	EndDate       *json.RawMessage `json:"end_date"`
 	IsTemporal    *bool           `json:"is_temporal"`
-	Version       *int            `json:"version"`
 	ChangeReason  *string         `json:"change_reason"`
 	IsCurrent     *bool           `json:"is_current"`
 }
@@ -401,9 +400,9 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 
 	s.logger.Printf("处理CDC创建事件: %s - %s", *data.Code, *data.Name)
 
-	// Neo4j时态数据建模最佳实践 - Bitemporal模式
+	// Neo4j纯日期生效模型 - 无version字段
 	query := `
-		MERGE (org:OrganizationUnit {code: $code, tenant_id: $tenant_id, version: $version})
+		MERGE (org:OrganizationUnit {code: $code, tenant_id: $tenant_id, effective_date: $effective_date})
 		SET org.name = $name,
 			org.unit_type = $unit_type,
 			org.status = COALESCE($status, 'ACTIVE'),
@@ -413,7 +412,7 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 			org.description = COALESCE($description, ''),
 			
 			// 业务时间维度 (Business Time)
-			org.effective_date = CASE WHEN $effective_date IS NULL THEN NULL ELSE date($effective_date) END,
+			org.effective_date = CASE WHEN $effective_date IS NULL THEN date() ELSE date($effective_date) END,
 			org.end_date = CASE WHEN $end_date IS NULL THEN NULL ELSE date($end_date) END,
 			
 			// 系统时间维度 (System Time)
@@ -424,7 +423,6 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 			org.is_temporal = COALESCE($is_temporal, true),
 			org.is_current = COALESCE($is_current, true),
 			org.change_reason = COALESCE($change_reason, ''),
-			org.version = COALESCE($version, 1),
 			
 			// 审计字段
 			org.created_at = datetime($created_at),
@@ -436,7 +434,7 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		WHERE $parent_code IS NOT NULL AND $parent_code <> ''
 		FOREACH (p IN CASE WHEN parent IS NOT NULL THEN [parent] ELSE [] END |
 			MERGE (p)-[r:HAS_CHILD {
-				effective_from: COALESCE(org.effective_date, date.statement()),
+				effective_from: COALESCE(org.effective_date, date()),
 				effective_to: org.end_date,
 				valid_from: datetime($valid_from),
 				valid_to: datetime('9999-12-31T23:59:59Z'),
@@ -541,12 +539,6 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		params["is_temporal"] = false
 	}
 
-	if data.Version != nil {
-		params["version"] = *data.Version
-	} else {
-		params["version"] = 1
-	}
-
 	if data.ChangeReason != nil {
 		params["change_reason"] = *data.ChangeReason
 	} else {
@@ -587,41 +579,44 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 
 	s.logger.Printf("处理CDC更新事件: %s", *data.Code)
 
-	// Neo4j时态更新 - 创建新版本记录而非原地更新
+	// Neo4j纯日期生效模型更新 - 基于effective_date创建新记录
 	query := `
-		// 首先将旧版本标记为无效
+		// 首先将当前记录标记为无效
 		MATCH (oldOrg:OrganizationUnit {code: $code, tenant_id: $tenant_id, is_current: true})
 		SET oldOrg.is_current = false,
-		    oldOrg.valid_to = datetime($valid_from)
+		    oldOrg.valid_to = datetime($valid_from),
+		    oldOrg.end_date = CASE WHEN $effective_date IS NULL THEN date() ELSE date($effective_date) END
 		
-		// 创建新版本记录
+		// 创建新的生效记录
 		WITH oldOrg
-		MERGE (newOrg:OrganizationUnit {code: $code, tenant_id: $tenant_id, version: $version})
-		SET newOrg.name = COALESCE($name, oldOrg.name),
-			newOrg.unit_type = COALESCE($unit_type, oldOrg.unit_type),
-			newOrg.status = COALESCE($status, oldOrg.status),
-			newOrg.level = COALESCE($level, oldOrg.level),
-			newOrg.path = COALESCE($path, oldOrg.path),
-			newOrg.sort_order = COALESCE($sort_order, oldOrg.sort_order),
-			newOrg.description = COALESCE($description, oldOrg.description),
+		CREATE (newOrg:OrganizationUnit {
+			code: $code,
+			tenant_id: $tenant_id,
+			effective_date: CASE WHEN $effective_date IS NULL THEN date() ELSE date($effective_date) END,
+			name: COALESCE($name, oldOrg.name),
+			unit_type: COALESCE($unit_type, oldOrg.unit_type),
+			status: COALESCE($status, oldOrg.status),
+			level: COALESCE($level, oldOrg.level),
+			path: COALESCE($path, oldOrg.path),
+			sort_order: COALESCE($sort_order, oldOrg.sort_order),
+			description: COALESCE($description, oldOrg.description),
 			
-			// 业务时间维度更新
-			newOrg.effective_date = CASE WHEN $effective_date IS NULL THEN oldOrg.effective_date ELSE date($effective_date) END,
-			newOrg.end_date = CASE WHEN $end_date IS NULL THEN oldOrg.end_date ELSE date($end_date) END,
+			// 业务时间维度
+			end_date: CASE WHEN $end_date IS NULL THEN NULL ELSE date($end_date) END,
 			
-			// 系统时间维度 - 新记录
-			newOrg.valid_from = datetime($valid_from),
-			newOrg.valid_to = datetime('9999-12-31T23:59:59Z'),
+			// 系统时间维度
+			valid_from: datetime($valid_from),
+			valid_to: datetime('9999-12-31T23:59:59Z'),
 			
 			// 时态管理属性
-			newOrg.is_temporal = COALESCE($is_temporal, oldOrg.is_temporal, true),
-			newOrg.is_current = COALESCE($is_current, true),
-			newOrg.change_reason = COALESCE($change_reason, '数据更新'),
-			newOrg.version = COALESCE($version, oldOrg.version + 1),
+			is_temporal: COALESCE($is_temporal, oldOrg.is_temporal, true),
+			is_current: COALESCE($is_current, true),
+			change_reason: COALESCE($change_reason, '数据更新'),
 			
 			// 审计字段
-			newOrg.created_at = oldOrg.created_at,
-			newOrg.updated_at = datetime($updated_at)
+			created_at: oldOrg.created_at,
+			updated_at: datetime($updated_at)
+		})
 		
 		RETURN newOrg.code as code`
 
@@ -690,12 +685,6 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		params["is_temporal"] = *data.IsTemporal
 	} else {
 		params["is_temporal"] = nil
-	}
-
-	if data.Version != nil {
-		params["version"] = *data.Version
-	} else {
-		params["version"] = nil
 	}
 
 	if data.ChangeReason != nil {
