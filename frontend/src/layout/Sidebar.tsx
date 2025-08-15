@@ -4,10 +4,7 @@ import { PrimaryButton } from '@workday/canvas-kit-react/button'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   dashboardIcon,
-  activityStreamIcon,
   clockIcon,
-  userIcon,
-  jobInfoIcon,
   homeIcon,
   chartIcon
 } from '@workday/canvas-system-icons-web';
@@ -17,11 +14,6 @@ const navigationItems = [
     label: '仪表板',
     path: '/dashboard',
     icon: dashboardIcon
-  },
-  {
-    label: 'CRUD测试',
-    path: '/test',
-    icon: activityStreamIcon
   },
   {
     label: '时态组件测试',
@@ -37,16 +29,6 @@ const navigationItems = [
     label: '时态GraphQL演示',
     path: '/temporal-graphql',
     icon: clockIcon
-  },
-  {
-    label: '员工管理', 
-    path: '/employees',
-    icon: userIcon
-  },
-  {
-    label: '职位管理',
-    path: '/positions',
-    icon: jobInfoIcon
   },
   {
     label: '组织架构',

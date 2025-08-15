@@ -7,7 +7,6 @@ import { TemporalVerificationPage } from './features/temporal/TemporalVerificati
 import { TemporalManagementDemo } from './features/temporal/TemporalManagementDemo'
 import TemporalManagementGraphQL from './features/temporal/TemporalManagementGraphQL'
 import TemporalGraphQLDemoPage from './features/temporal/TemporalGraphQLDemoPage'
-import TestCrud from './TestCrud'
 import MinimalTemporalTest from './MinimalTemporalTest'
 
 function App() {
@@ -19,9 +18,6 @@ function App() {
         
         {/* 时态GraphQL完整演示页面 - 新增 */}
         <Route path="/temporal-graphql-demo" element={<TemporalGraphQLDemoPage />} />
-        
-        {/* CRUD测试页面 */}
-        <Route path="/test" element={<TestCrud />} />
         
         {/* 时态管理组件测试页面 */}
         <Route path="/temporal-test" element={<MinimalTemporalTest />} />
@@ -46,8 +42,6 @@ function App() {
         
         {/* 其他功能模块占位 */}
         <Route path="/dashboard" element={<div>仪表板 - 开发中</div>} />
-        <Route path="/employees" element={<div>员工管理 - 开发中</div>} />
-        <Route path="/positions" element={<div>职位管理 - 开发中</div>} />
       </Route>
     </Routes>
   )

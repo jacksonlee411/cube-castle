@@ -1,0 +1,146 @@
+# Cube Castle 应用层容器编排
+# 基于专家级架构优化建议
+version: '3.8'
+
+services:
+  # 前端应用
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - command-service
+      - query-service
+    environment:
+      - VITE_API_BASE_URL=http://localhost:9090
+      - VITE_GRAPHQL_URL=http://localhost:8090/graphql
+      - VITE_TEMPORAL_URL=http://localhost:9091
+    networks:
+      - cube-castle-network
+
+  # 命令服务 (CQRS-C)
+  command-service:
+    build:
+      context: ./cmd/organization-command-service
+      dockerfile: Dockerfile
+    ports:
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=cubecastle
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - REDIS_URL=redis:6379
+    networks:
+      - cube-castle-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 查询服务 (CQRS-Q)
+  query-service:
+    build:
+      context: ./cmd/organization-query-service-unified
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8090"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NEO4J_URL=neo4j://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=password
+      - REDIS_URL=redis:6379
+    networks:
+      - cube-castle-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 时态管理服务
+  temporal-service:
+    build:
+      context: ./cmd/organization-temporal-command-service
+      dockerfile: Dockerfile
+    ports:
+      - "9091:9091"
+    depends_on:
+      - postgres
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=cubecastle
+      - DB_USER=user
+      - DB_PASSWORD=password
+    networks:
+      - cube-castle-network
+    restart: unless-stopped
+
+  # CDC同步服务
+  sync-service:
+    build:
+      context: ./cmd/organization-sync-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - neo4j
+      - kafka
+    environment:
+      - DB_HOST=postgres
+      - NEO4J_URL=neo4j://neo4j:7687
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=organization_db.public.organization_units
+    networks:
+      - cube-castle-network
+    restart: unless-stopped
+
+  # 缓存失效服务
+  cache-invalidator:
+    build:
+      context: ./cmd/organization-cache-invalidator
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+      - kafka
+    environment:
+      - REDIS_URL=redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=organization_db.public.organization_units
+    networks:
+      - cube-castle-network
+    restart: unless-stopped
+
+# 网络配置
+networks:
+  cube-castle-network:
+    driver: bridge
+    external: true
+  default:
+    external: true
+    name: cube_castle_default
+
+# 健康检查和监控
+x-healthcheck: &default-healthcheck
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s

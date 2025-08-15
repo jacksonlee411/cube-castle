@@ -641,12 +641,65 @@ func (h *TemporalOrganizationHandler) handleStatusEvent(ctx context.Context, tx 
 		newStatus = "INACTIVE"
 	}
 	
-	// 直接更新当前记录的状态
-	_, err := tx.ExecContext(ctx,
-		"UPDATE organization_units SET status = $1, updated_at = NOW() WHERE code = $2 AND tenant_id = $3 AND is_current = true",
-		newStatus, code, tenantID.String())
+	// 支持基于effective_date的历史记录状态变更
+	var updateQuery string
+	var args []interface{}
+	
+	if req.EffectiveDate.IsZero() {
+		// 如果没有指定生效日期，则更新当前记录
+		updateQuery = "UPDATE organization_units SET status = $1, updated_at = NOW() WHERE code = $2 AND tenant_id = $3 AND is_current = true"
+		args = []interface{}{newStatus, code, tenantID.String()}
+	} else {
+		// 如果指定了生效日期，则更新特定日期的记录
+		updateQuery = "UPDATE organization_units SET status = $1, updated_at = NOW() WHERE code = $2 AND tenant_id = $3 AND effective_date = $4"
+		args = []interface{}{newStatus, code, tenantID.String(), req.EffectiveDate}
+	}
+	
+	result, err := tx.ExecContext(ctx, updateQuery, args...)
+	if err != nil {
+		return fmt.Errorf("状态变更失败: %w", err)
+	}
+	
+	// 检查是否有记录被更新
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("获取更新结果失败: %w", err)
+	}
+	
+	if rowsAffected == 0 {
+		if req.EffectiveDate.IsZero() {
+			return fmt.Errorf("未找到组织 %s 的当前记录", code)
+		} else {
+			return fmt.Errorf("未找到组织 %s 在日期 %s 的记录", code, req.EffectiveDate.Format("2006-01-02"))
+		}
+	}
+	
+	log.Printf("✅ 状态变更成功: 组织=%s, 日期=%v, 新状态=%s, 影响记录=%d条", 
+		code, 
+		func() string {
+			if req.EffectiveDate.IsZero() {
+				return "当前记录"
+			}
+			return req.EffectiveDate.Format("2006-01-02")
+		}(), 
+		newStatus, 
+		rowsAffected)
+	
+	// 如果是DEACTIVATE操作且指定了生效日期，触发gap填充
+	if req.EventType == "DEACTIVATE" && !req.EffectiveDate.IsZero() && newStatus == "INACTIVE" {
+		log.Printf("🔄 触发gap填充: 组织=%s 的 %s 记录已作废，开始填充时间空洞", code, req.EffectiveDate.Format("2006-01-02"))
 		
-	return err
+		// 执行gap填充 - 使用我们优化过的smart_timeline_fill函数
+		_, err := tx.ExecContext(ctx, "SELECT smart_timeline_fill($1)", code)
+		if err != nil {
+			log.Printf("⚠️ Gap填充失败: %v", err)
+			// 不返回错误，允许状态变更成功，但记录gap填充失败
+		} else {
+			log.Printf("✅ Gap填充完成: 组织=%s 时间轴已优化", code)
+		}
+	}
+		
+	return nil
 }
 
 // 处理重组事件

@@ -22,6 +22,7 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/redis/go-redis/v9"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"cube-castle-deployment-test/pkg/health"
 )
 
 // 默认租户配置
@@ -975,15 +976,117 @@ func main() {
 		w.Write([]byte(graphiqlHTML))
 	})
 
-	// 健康检查端点
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	// 健康检查端点 - 增强版
+	healthManager := health.NewHealthManager("organization-graphql-service", "2.0.0")
+	
+	// 添加Neo4j健康检查
+	healthManager.AddChecker(&health.Neo4jChecker{
+		Name:   "neo4j",
+		Driver: driver,
+	})
+	
+	// 添加Redis健康检查
+	healthManager.AddChecker(&health.RedisChecker{
+		Name:   "redis", 
+		Client: redisClient,
+	})
+	
+	// 创建告警管理器
+	alertManager := health.NewAlertManager("organization-graphql-service")
+	
+	// 添加告警规则
+	alertManager.AddRule(health.AlertRule{
+		Name:          "neo4j-unhealthy",
+		Component:     "neo4j",
+		Condition:     health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
+		Level:         health.AlertLevelCritical,
+		Message:       "Neo4j数据库连接失败 - %s状态为%s: %s",
+		Cooldown:      5 * time.Minute,
+		MaxRetries:    3,
+		EnabledBy:     time.Now(),
+	})
+	
+	alertManager.AddRule(health.AlertRule{
+		Name:          "redis-unhealthy",
+		Component:     "redis",
+		Condition:     health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
+		Level:         health.AlertLevelWarning,
+		Message:       "Redis缓存服务异常 - %s状态为%s: %s",
+		Cooldown:      3 * time.Minute,
+		MaxRetries:    2,
+		EnabledBy:     time.Now(),
+	})
+	
+	alertManager.AddRule(health.AlertRule{
+		Name:          "slow-response",
+		Component:     "", // 适用于所有组件
+		Condition:     health.AlertCondition{ResponseTimeGT: func() *time.Duration { d := 5 * time.Second; return &d }()},
+		Level:         health.AlertLevelWarning,
+		Message:       "响应时间过慢 - %s响应时间%s超过5秒: %s",
+		Cooldown:      10 * time.Minute,
+		MaxRetries:    1,
+		EnabledBy:     time.Now(),
+	})
+	
+	// 配置告警渠道
+	if webhookURL := os.Getenv("ALERT_WEBHOOK_URL"); webhookURL != "" {
+		webhookChannel := health.NewWebhookChannel("primary-webhook", webhookURL)
+		webhookChannel.AddHeader("Authorization", "Bearer "+os.Getenv("WEBHOOK_TOKEN"))
+		alertManager.AddChannel(webhookChannel)
+		logger.Println("告警Webhook已配置:", webhookURL)
+	}
+	
+	if slackWebhook := os.Getenv("SLACK_WEBHOOK_URL"); slackWebhook != "" {
+		slackChannel := health.NewSlackChannel(slackWebhook, "#alerts", "Cube Castle Monitor")
+		alertManager.AddChannel(slackChannel)
+		logger.Println("Slack告警已配置")
+	}
+	
+	// 启动告警处理协程
+	go func() {
+		ticker := time.NewTicker(30 * time.Second) // 每30秒检查一次
+		defer ticker.Stop()
+		
+		for {
+			select {
+			case <-ticker.C:
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				health := healthManager.Check(ctx)
+				alertManager.ProcessHealthCheck(ctx, health)
+				cancel()
+			case <-context.Background().Done():
+				return
+			}
+		}
+	}()
+	
+	r.Get("/health", healthManager.Handler())
+	
+	// 告警管理端点
+	r.Get("/alerts", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{
-			"service": "organization-graphql-service",
-			"status":  "healthy",
+		alerts := alertManager.GetActiveAlerts()
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"active_alerts": alerts,
+			"total":        len(alerts),
+			"timestamp":    time.Now(),
 		})
 	})
+	
+	r.Get("/alerts/history", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		history := alertManager.GetAlertHistory(50) // 最近50条
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"alert_history": history,
+			"total":        len(history),
+			"timestamp":    time.Now(),
+		})
+	})
+	
+	// 详细状态报告
+	statusReporter := health.NewStatusReporter(healthManager, "http://localhost:8090")
+	r.Get("/status", statusReporter.DashboardHandler())
+	r.Get("/status/dashboard", statusReporter.DashboardHandler())
 
 	// Prometheus指标端点
 	r.Handle("/metrics", promhttp.Handler())
@@ -1017,6 +1120,8 @@ func main() {
 	logger.Printf("🚀 GraphQL组织服务启动在端口 :%s", port)
 	logger.Println("GraphiQL开发界面: http://localhost:" + port + "/graphiql")
 	logger.Println("GraphQL端点: http://localhost:" + port + "/graphql")
+	logger.Println("告警管理: http://localhost:" + port + "/alerts")
+	logger.Println("状态仪表板: http://localhost:" + port + "/status")
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("GraphQL服务器启动失败: %v", err)

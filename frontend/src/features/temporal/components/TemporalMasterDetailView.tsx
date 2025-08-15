@@ -209,9 +209,9 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                       </Box>
                       
                       {!readonly && onDeleteVersion && !version.is_current && (
-                        <Tooltip title="删除版本">
+                        <Tooltip title="作废版本">
                           <IconButton
-                            aria-label="删除版本"
+                            aria-label="作废版本"
                             size="small"
                             variant="square"
                             onClick={(e) => {
@@ -576,17 +576,24 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [organizationCode]);
 
-  // 删除版本处理
+  // 作废版本处理
   const handleDeleteVersion = useCallback(async (version: TemporalVersion) => {
     if (!version || isDeleting) return;
     
     try {
       setIsDeleting(true);
+      
+      // 使用DEACTIVATE事件而不是DELETE请求
       const response = await fetch(
-        `http://localhost:9091/api/v1/organization-units/${organizationCode}/temporal/${version.effective_date}`,
+        `http://localhost:9091/api/v1/organization-units/${organizationCode}/events`,
         {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' }
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_type: 'DEACTIVATE',
+            effective_date: version.effective_date,
+            change_reason: '通过时态管理页面作废版本'
+          })
         }
       );
       
@@ -595,17 +602,17 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         await loadVersions();
         setShowDeleteConfirm(null);
         
-        // 如果删除的是选中的版本，重新选择
+        // 如果作废的是选中的版本，重新选择
         if (selectedVersion?.effective_date === version.effective_date) {
           setSelectedVersion(null);
         }
       } else {
-        console.error('Failed to delete version:', response.statusText);
-        alert('删除失败，请稍后重试');
+        console.error('Failed to deactivate version:', response.statusText);
+        alert('作废失败，请稍后重试');
       }
     } catch (error) {
-      console.error('Error deleting version:', error);
-      alert('删除失败，请检查网络连接');
+      console.error('Error deactivating version:', error);
+      alert('作废失败，请检查网络连接');
     } finally {
       setIsDeleting(false);
     }
@@ -776,24 +783,24 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         </Box>
       </Flex>
 
-      {/* 删除确认对话框 */}
+      {/* 作废确认对话框 */}
       {showDeleteConfirm && (
         <Modal
           onClose={() => setShowDeleteConfirm(null)}
-          heading="确认删除版本"
+          heading="确认作废版本"
         >
           <Box padding="l">
             <Flex alignItems="flex-start" gap="m" marginBottom="l">
               <Box fontSize="24px" color={colors.cinnamon600}>⚠️</Box>
               <Box>
                 <Text typeLevel="body.medium" marginBottom="s">
-                  确定要删除生效日期为 <strong>{new Date(showDeleteConfirm.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
+                  确定要作废生效日期为 <strong>{new Date(showDeleteConfirm.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
                 </Text>
                 <Text typeLevel="subtext.small" color="hint" marginBottom="s">
                   版本名称: {showDeleteConfirm.name}
                 </Text>
                 <Text typeLevel="subtext.small" color={colors.cinnamon600}>
-                  ⚠️ 删除后将自动填补时间空洞，此操作不可撤销
+                  ⚠️ 作废后将自动填补时间空洞，此操作不可撤销
                 </Text>
               </Box>
             </Flex>
@@ -809,7 +816,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 onClick={() => handleDeleteVersion(showDeleteConfirm)}
                 disabled={isDeleting}
               >
-                {isDeleting ? '删除中...' : '确认删除'}
+                {isDeleting ? '作废中...' : '确认作废'}
               </PrimaryButton>
             </Flex>
           </Box>
