@@ -1,0 +1,11 @@
+id, name, state, populationPercent, type, entityType, labelsOrTypes, properties, indexProvider, owningConstraint, lastRead, readCount
+1, "index_343aff4e", "ONLINE", 100.0, "LOOKUP", "NODE", NULL, NULL, "token-lookup-1.0", NULL, 2025-08-15T21:45:02.845Z, 967
+2, "index_f7700477", "ONLINE", 100.0, "LOOKUP", "RELATIONSHIP", NULL, NULL, "token-lookup-1.0", NULL, 2025-08-13T05:21:28.364Z, 7
+30, "org_name_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["name"], "range-1.0", NULL, 2025-08-07T12:46:16.025Z, 1
+28, "org_status_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["status"], "range-1.0", NULL, 2025-08-07T12:47:56.505Z, 2
+29, "org_type_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["unit_type"], "range-1.0", NULL, NULL, 0
+7, "org_unit_id_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["id"], "range-1.0", NULL, NULL, 0
+8, "org_unit_tenant_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["tenant_id"], "range-1.0", NULL, 2025-08-13T11:26:39.335Z, 3218
+26, "temporal_effective_date", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["effective_date"], "range-1.0", NULL, 2025-08-15T21:28:06.712Z, 310
+27, "temporal_end_date", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["end_date"], "range-1.0", NULL, 2025-08-13T07:02:33.080Z, 6
+37, "temporal_is_current", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["is_current"], "range-1.0", NULL, 2025-08-15T10:51:23.397Z, 1239

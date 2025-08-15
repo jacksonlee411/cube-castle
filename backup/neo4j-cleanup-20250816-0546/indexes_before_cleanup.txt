@@ -1,0 +1,38 @@
+id, name, state, populationPercent, type, entityType, labelsOrTypes, properties, indexProvider, owningConstraint, lastRead, readCount
+14, "department_name_unique", "ONLINE", 100.0, "RANGE", "NODE", ["Department"], ["name"], "range-1.0", "department_name_unique", NULL, 0
+21, "department_parent", "ONLINE", 100.0, "RANGE", "NODE", ["Department"], ["parent_id"], "range-1.0", NULL, NULL, 0
+17, "employee_email", "ONLINE", 100.0, "RANGE", "NODE", ["Employee"], ["email"], "range-1.0", NULL, NULL, 0
+3, "employee_id_index", "ONLINE", 100.0, "RANGE", "NODE", ["Employee"], ["id"], "range-1.0", NULL, 2025-08-03T23:53:44.093Z, 5
+12, "employee_id_unique", "ONLINE", 100.0, "RANGE", "NODE", ["Employee"], ["employee_id"], "range-1.0", "employee_id_unique", 2025-08-03T23:50:59.706Z, 14
+16, "employee_legal_name", "ONLINE", 100.0, "RANGE", "NODE", ["Employee"], ["legal_name"], "range-1.0", NULL, NULL, 0
+4, "employee_tenant_index", "ONLINE", 100.0, "RANGE", "NODE", ["Employee"], ["tenant_id"], "range-1.0", NULL, 2025-08-04T04:44:27.547Z, 470
+25, "index_34239e3c", "ONLINE", 100.0, "RANGE", "NODE", ["Organization"], ["tenant_id"], "range-1.0", NULL, 2025-08-12T23:51:16.919Z, 93
+1, "index_343aff4e", "ONLINE", 100.0, "LOOKUP", "NODE", NULL, NULL, "token-lookup-1.0", NULL, 2025-08-15T21:45:02.845Z, 967
+23, "index_a25a2881", "ONLINE", 100.0, "RANGE", "NODE", ["Organization"], ["business_id"], "range-1.0", NULL, 2025-08-04T03:59:26.742Z, 2
+24, "index_d0ccf087", "ONLINE", 100.0, "RANGE", "NODE", ["Position"], ["business_id"], "range-1.0", NULL, 2025-08-04T03:59:09.811Z, 1
+22, "index_f6eaccb5", "ONLINE", 100.0, "RANGE", "NODE", ["Employee"], ["business_id"], "range-1.0", NULL, 2025-08-04T23:51:24.344Z, 6
+2, "index_f7700477", "ONLINE", 100.0, "LOOKUP", "RELATIONSHIP", NULL, NULL, "token-lookup-1.0", NULL, 2025-08-13T05:21:28.364Z, 7
+40, "org_hierarchy_lookup", "ONLINE", 100.0, "RANGE", "NODE", ["Organization"], ["tenant_id", "parent_code"], "range-1.0", NULL, 2025-08-13T05:37:23.755Z, 17
+41, "org_level_lookup", "ONLINE", 100.0, "RANGE", "NODE", ["Organization"], ["tenant_id", "level"], "range-1.0", NULL, NULL, 0
+30, "org_name_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["name"], "range-1.0", NULL, 2025-08-07T12:46:16.025Z, 1
+28, "org_status_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["status"], "range-1.0", NULL, 2025-08-07T12:47:56.505Z, 2
+29, "org_type_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["unit_type"], "range-1.0", NULL, NULL, 0
+38, "org_unique_current", "ONLINE", 100.0, "RANGE", "NODE", ["Organization"], ["tenant_id", "code"], "range-1.0", "org_unique_current", 2025-08-13T05:39:25.775Z, 725
+7, "org_unit_id_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["id"], "range-1.0", NULL, NULL, 0
+8, "org_unit_tenant_index", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["tenant_id"], "range-1.0", NULL, 2025-08-13T11:26:39.335Z, 3218
+19, "position_department", "ONLINE", 100.0, "RANGE", "NODE", ["Position"], ["department"], "range-1.0", NULL, NULL, 0
+20, "position_effective_date", "ONLINE", 100.0, "RANGE", "NODE", ["Position"], ["effective_date"], "range-1.0", NULL, NULL, 0
+5, "position_id_index", "ONLINE", 100.0, "RANGE", "NODE", ["Position"], ["id"], "range-1.0", NULL, NULL, 0
+6, "position_tenant_index", "ONLINE", 100.0, "RANGE", "NODE", ["Position"], ["tenant_id"], "range-1.0", NULL, 2025-08-07T09:50:55.393Z, 52
+18, "position_title", "ONLINE", 100.0, "RANGE", "NODE", ["Position"], ["position_title"], "range-1.0", NULL, NULL, 0
+26, "temporal_effective_date", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["effective_date"], "range-1.0", NULL, 2025-08-15T21:28:06.712Z, 310
+27, "temporal_end_date", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["end_date"], "range-1.0", NULL, 2025-08-13T07:02:33.080Z, 6
+37, "temporal_is_current", "ONLINE", 100.0, "RANGE", "NODE", ["OrganizationUnit"], ["is_current"], "range-1.0", NULL, 2025-08-15T10:51:23.397Z, 1239
+33, "temporal_org_current", "ONLINE", 100.0, "RANGE", "NODE", ["TemporalOrganization"], ["tenant_id", "is_current"], "range-1.0", NULL, NULL, 0
+34, "temporal_org_date", "ONLINE", 100.0, "RANGE", "NODE", ["TemporalOrganization"], ["tenant_id", "effective_date"], "range-1.0", NULL, NULL, 0
+36, "temporal_org_hierarchy", "ONLINE", 100.0, "RANGE", "NODE", ["TemporalOrganization"], ["tenant_id", "level", "effective_date"], "range-1.0", NULL, NULL, 0
+35, "temporal_org_parent", "ONLINE", 100.0, "RANGE", "NODE", ["TemporalOrganization"], ["tenant_id", "parent_code", "effective_date"], "range-1.0", NULL, NULL, 0
+31, "temporal_org_unique", "ONLINE", 100.0, "RANGE", "NODE", ["TemporalOrganization"], ["tenant_id", "code", "effective_date"], "range-1.0", "temporal_org_unique", NULL, 0
+9, "workflow_id_index", "ONLINE", 100.0, "RANGE", "NODE", ["WorkflowInstance"], ["id"], "range-1.0", NULL, 2025-07-29T23:25:19.408Z, 1
+10, "workflow_tenant_index", "ONLINE", 100.0, "RANGE", "NODE", ["WorkflowInstance"], ["tenant_id"], "range-1.0", NULL, 2025-07-29T23:25:19.283Z, 1
+11, "workflow_type_index", "ONLINE", 100.0, "RANGE", "NODE", ["WorkflowInstance"], ["workflow_type"], "range-1.0", NULL, NULL, 0
