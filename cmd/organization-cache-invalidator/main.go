@@ -9,12 +9,21 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/redis/go-redis/v9"
+)
+
+// ===== 基础监控变量 =====
+var (
+	cacheInvalidationCount int64 // 缓存失效总数
+	cacheErrorCount        int64 // 错误总数
+	serviceStartTime       time.Time
 )
 
 // CDC事件模型
@@ -225,6 +234,8 @@ func (c *CacheInvalidator) StartConsuming(ctx context.Context) error {
 			msg, err := c.consumer.ReadMessage(1000)
 			if err != nil {
 				if err.(kafka.Error).Code() == kafka.ErrTimedOut {
+					// 紧急修复：添加休眠避免CPU密集型轮询
+					time.Sleep(100 * time.Millisecond)
 					continue
 				}
 				c.logger.Printf("消费消息失败: %v", err)
@@ -233,6 +244,9 @@ func (c *CacheInvalidator) StartConsuming(ctx context.Context) error {
 
 			if err := c.processMessage(ctx, msg); err != nil {
 				c.logger.Printf("处理消息失败: %v", err)
+				atomic.AddInt64(&cacheErrorCount, 1)
+			} else {
+				atomic.AddInt64(&cacheInvalidationCount, 1)
 			}
 		}
 	}
@@ -259,6 +273,14 @@ func (c *CacheInvalidator) Close() error {
 	}
 	
 	return nil
+}
+
+// 计算成功率
+func calculateSuccessRate(processed, errors int64) float64 {
+	if processed == 0 {
+		return 100.0
+	}
+	return float64(processed-errors) / float64(processed) * 100.0
 }
 
 func main() {
@@ -301,6 +323,9 @@ func main() {
 
 	logger.Println("🚀 组织缓存失效服务启动成功")
 	
+	// 初始化监控
+	serviceStartTime = time.Now()
+	
 	// 启动健康检查服务器
 	go startHealthServer(logger)
 	
@@ -319,15 +344,33 @@ func startHealthServer(logger *log.Logger) {
 	// 健康检查端点
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		
+		// 获取运行时统计信息
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		
+		invalidationCount := atomic.LoadInt64(&cacheInvalidationCount)
+		errorCount := atomic.LoadInt64(&cacheErrorCount)
+		uptime := time.Since(serviceStartTime)
+		
 		response := map[string]interface{}{
 			"service": "organization-cache-invalidator",
 			"status": "healthy",
 			"timestamp": time.Now().Format(time.RFC3339),
+			"uptime_seconds": int64(uptime.Seconds()),
+			"performance": map[string]interface{}{
+				"cache_invalidations": invalidationCount,
+				"cache_errors":        errorCount,
+				"success_rate":        calculateSuccessRate(invalidationCount, errorCount),
+				"memory_mb":           m.Alloc / 1024 / 1024,
+				"goroutines":          runtime.NumGoroutine(),
+			},
 			"features": []string{
 				"精确缓存失效",
 				"Redis集成", 
 				"Kafka消息消费",
 				"CDC事件处理",
+				"CPU优化修复", // 新增：标记已修复CPU问题
 			},
 		}
 		json.NewEncoder(w).Encode(response)

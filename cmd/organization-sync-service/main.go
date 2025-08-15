@@ -8,13 +8,22 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/google/uuid"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+)
+
+// ===== 基础监控变量 =====
+var (
+	messageProcessedCount int64  // 处理消息总数
+	messageErrorCount     int64  // 错误消息总数
+	serviceStartTime      time.Time
 )
 
 // ===== Debezium日期字段处理 =====
@@ -109,7 +118,6 @@ type CDCOrganizationEvent struct {
 }
 
 type CDCOrganizationData struct {
-	ID           *string         `json:"id"`
 	TenantID     *string         `json:"tenant_id"`
 	Code         *string         `json:"code"`
 	ParentCode   *string         `json:"parent_code"`
@@ -373,12 +381,25 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		return fmt.Errorf("CDC CREATE事件缺少必要字段")
 	}
 
-	s.logger.Printf("处理CDC创建事件: %s - %s", *data.Code, *data.Name)
+	// 跳过生效日期为空的记录 - 不符合时态数据模型要求
+	if data.EffectiveDate == nil || data.EffectiveDate.String() == "" {
+		s.logger.Printf("⚠️ 跳过生效日期为空的记录: %s - %s (不符合时态数据模型)", *data.Code, *data.Name)
+		return nil
+	}
 
-	// Neo4j纯日期生效模型 - 无version字段
+	// UUID全局标识符处理 - P1-1修复 (基于PostgreSQL复合主键)
+	// PostgreSQL主键是(code, effective_date)，所以用这些生成确定性UUID
+	globalID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(*data.TenantID+*data.Code+data.EffectiveDate.String())).String()
+	s.logger.Printf("✅ 处理CDC创建事件: %s - %s (确定性UUID: %s, 生效日期: %s)", 
+		*data.Code, *data.Name, globalID, data.EffectiveDate.String())
+
+	// Neo4j纯日期生效模型 - 使用UUID作为主键，复合键作为业务键
 	query := `
-		MERGE (org:OrganizationUnit {code: $code, tenant_id: $tenant_id, effective_date: $effective_date})
-		SET org.name = $name,
+		MERGE (org:OrganizationUnit {uuid: $uuid})
+		SET org.code = $code,
+			org.tenant_id = $tenant_id,
+			org.effective_date = date($effective_date),
+			org.name = $name,
 			org.unit_type = $unit_type,
 			org.status = COALESCE($status, 'ACTIVE'),
 			org.level = COALESCE($level, 1),
@@ -386,9 +407,8 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 			org.sort_order = COALESCE($sort_order, 0),
 			org.description = COALESCE($description, ''),
 			
-			// 业务时间维度 (Business Time)
-			org.effective_date = CASE WHEN $effective_date IS NULL THEN date() ELSE date($effective_date) END,
-			org.end_date = CASE WHEN $end_date IS NULL THEN NULL ELSE date($end_date) END,
+			// 业务时间维度 (Business Time) - 安全的日期处理
+			org.end_date = CASE WHEN $end_date IS NULL OR $end_date = '' THEN NULL ELSE date($end_date) END,
 			
 			// 系统时间维度 (System Time)
 			org.valid_from = datetime($valid_from),
@@ -404,24 +424,25 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 			org.updated_at = datetime($updated_at)
 		WITH org
 		
-		// 处理父子关系的时态版本
+		// 处理父子关系的时态版本 - 安全的关系处理，避免NULL约束
 		OPTIONAL MATCH (parent:OrganizationUnit {code: $parent_code, tenant_id: $tenant_id, is_current: true})
 		WHERE $parent_code IS NOT NULL AND $parent_code <> ''
 		FOREACH (p IN CASE WHEN parent IS NOT NULL THEN [parent] ELSE [] END |
 			MERGE (p)-[r:HAS_CHILD {
-				effective_from: COALESCE(org.effective_date, date()),
-				effective_to: org.end_date,
+				effective_from: org.effective_date,
 				valid_from: datetime($valid_from),
 				valid_to: datetime('9999-12-31T23:59:59Z'),
 				relationship_type: 'REPORTING'
 			}]->(org)
+			SET r.effective_to = CASE WHEN org.end_date IS NOT NULL THEN org.end_date ELSE NULL END
 		)
-		RETURN org.code as code`
+		RETURN org.uuid as uuid`
 
 	// 系统时间戳 - 用于System Time维度
 	systemTime := time.Unix(tsMs/1000, (tsMs%1000)*1000000).Format(time.RFC3339)
 
 	params := map[string]interface{}{
+		"uuid":       globalID,         // UUID全局标识符
 		"code":       *data.Code,
 		"tenant_id":  *data.TenantID,
 		"name":       *data.Name,
@@ -483,12 +504,8 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		params["parent_code"] = nil
 	}
 
-	// 时态管理字段映射 - 使用DebeziumDate类型
-	if data.EffectiveDate != nil {
-		params["effective_date"] = data.EffectiveDate.String()
-	} else {
-		params["effective_date"] = nil
-	}
+	// 时态管理字段映射 - 使用DebeziumDate类型，生效日期已验证非空
+	params["effective_date"] = data.EffectiveDate.String()
 
 	if data.EndDate != nil {
 		params["end_date"] = data.EndDate.String()
@@ -540,53 +557,56 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		return fmt.Errorf("CDC UPDATE事件缺少必要字段")
 	}
 
-	s.logger.Printf("处理CDC更新事件: %s", *data.Code)
+	// 跳过生效日期为空的更新记录 - 不符合时态数据模型要求
+	if data.EffectiveDate == nil || data.EffectiveDate.String() == "" {
+		s.logger.Printf("⚠️ 跳过生效日期为空的更新记录: %s (不符合时态数据模型)", *data.Code)
+		return nil
+	}
 
-	// Neo4j纯日期生效模型更新 - 基于effective_date创建新记录
+	// UUID全局标识符处理 - P1-1修复 (基于PostgreSQL复合主键)
+	// PostgreSQL主键是(code, effective_date)，所以用这些生成确定性UUID
+	globalID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(*data.TenantID+*data.Code+data.EffectiveDate.String())).String()
+	s.logger.Printf("✅ 处理CDC更新事件: %s (确定性UUID: %s, 生效日期: %s)", 
+		*data.Code, globalID, data.EffectiveDate.String())
+
+	// Neo4j纯日期生效模型更新 - 使用UUID查找现有记录
 	query := `
-		// 首先将当前记录标记为无效
-		MATCH (oldOrg:OrganizationUnit {code: $code, tenant_id: $tenant_id, is_current: true})
-		SET oldOrg.is_current = false,
-		    oldOrg.valid_to = datetime($valid_from),
-		    oldOrg.end_date = CASE WHEN $effective_date IS NULL THEN date() ELSE date($effective_date) END
-		
-		// 创建新的生效记录
-		WITH oldOrg
-		CREATE (newOrg:OrganizationUnit {
-			code: $code,
-			tenant_id: $tenant_id,
-			effective_date: CASE WHEN $effective_date IS NULL THEN date() ELSE date($effective_date) END,
-			name: COALESCE($name, oldOrg.name),
-			unit_type: COALESCE($unit_type, oldOrg.unit_type),
-			status: COALESCE($status, oldOrg.status),
-			level: COALESCE($level, oldOrg.level),
-			path: COALESCE($path, oldOrg.path),
-			sort_order: COALESCE($sort_order, oldOrg.sort_order),
-			description: COALESCE($description, oldOrg.description),
+		// 使用UUID查找并更新记录，如果不存在则创建
+		MERGE (org:OrganizationUnit {uuid: $uuid})
+		SET org.code = $code,
+			org.tenant_id = $tenant_id,
+			org.effective_date = date($effective_date),
+			org.name = COALESCE($name, org.name),
+			org.unit_type = COALESCE($unit_type, org.unit_type),
+			org.status = COALESCE($status, org.status),
+			org.level = COALESCE($level, org.level),
+			org.path = COALESCE($path, org.path),
+			org.sort_order = COALESCE($sort_order, org.sort_order),
+			org.description = COALESCE($description, org.description),
 			
 			// 业务时间维度
-			end_date: CASE WHEN $end_date IS NULL THEN NULL ELSE date($end_date) END,
+			org.end_date = CASE WHEN $end_date IS NULL OR $end_date = '' THEN NULL ELSE date($end_date) END,
 			
 			// 系统时间维度
-			valid_from: datetime($valid_from),
-			valid_to: datetime('9999-12-31T23:59:59Z'),
+			org.valid_from = CASE WHEN org.valid_from IS NULL THEN datetime($valid_from) ELSE org.valid_from END,
+			org.valid_to = datetime('9999-12-31T23:59:59Z'),
 			
 			// 时态管理属性
-			is_temporal: COALESCE($is_temporal, oldOrg.is_temporal, true),
-			is_current: COALESCE($is_current, true),
-			change_reason: COALESCE($change_reason, '数据更新'),
+			org.is_temporal = COALESCE($is_temporal, org.is_temporal, true),
+			org.is_current = COALESCE($is_current, org.is_current),
+			org.change_reason = COALESCE($change_reason, '数据更新'),
 			
 			// 审计字段
-			created_at: oldOrg.created_at,
-			updated_at: datetime($updated_at)
-		})
+			org.created_at = CASE WHEN org.created_at IS NULL THEN datetime($created_at) ELSE org.created_at END,
+			org.updated_at = datetime($updated_at)
 		
-		RETURN newOrg.code as code`
+		RETURN org.uuid as uuid`
 
 	// 系统时间戳 - 用于System Time维度
 	systemTime := time.Unix(tsMs/1000, (tsMs%1000)*1000000).Format(time.RFC3339)
 
 	params := map[string]interface{}{
+		"uuid":       globalID,         // UUID全局标识符
 		"code":       *data.Code,
 		"tenant_id":  *data.TenantID,
 		"valid_from": systemTime, // System Time - 系统记录时间
@@ -619,12 +639,8 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		params["updated_at"] = time.Now().Format(time.RFC3339)
 	}
 
-	// 时态管理字段映射 (更新版本) - 使用DebeziumDate类型
-	if data.EffectiveDate != nil {
-		params["effective_date"] = data.EffectiveDate.String()
-	} else {
-		params["effective_date"] = nil
-	}
+	// 时态管理字段映射 (更新版本) - 使用DebeziumDate类型，生效日期已验证非空
+	params["effective_date"] = data.EffectiveDate.String()
 
 	if data.EndDate != nil {
 		params["end_date"] = data.EndDate.String()
@@ -758,6 +774,8 @@ func (c *KafkaEventConsumer) StartConsuming(ctx context.Context) error {
 			msg, err := c.consumer.ReadMessage(1000)
 			if err != nil {
 				if err.(kafka.Error).Code() == kafka.ErrTimedOut {
+					// 紧急修复：添加休眠避免CPU密集型轮询
+					time.Sleep(100 * time.Millisecond)
 					continue
 				}
 				c.logger.Printf("消费消息失败: %v", err)
@@ -769,8 +787,11 @@ func (c *KafkaEventConsumer) StartConsuming(ctx context.Context) error {
 
 			if err := c.processMessage(ctx, msg); err != nil {
 				c.logger.Printf("处理消息失败: %v", err)
+				atomic.AddInt64(&messageErrorCount, 1)
 				// 添加退避延迟防止高CPU占用
 				time.Sleep(100 * time.Millisecond)
+			} else {
+				atomic.AddInt64(&messageProcessedCount, 1)
 			}
 		}
 	}
@@ -888,6 +909,9 @@ func main() {
 
 	logger.Printf("🚀 Neo4j同步服务启动成功")
 	logger.Printf("监听主题: %v", topics)
+	
+	// 初始化监控
+	serviceStartTime = time.Now()
 
 	// 启动健康检查服务器
 	go startHealthServer(logger)
@@ -913,6 +937,14 @@ func main() {
 	logger.Println("Neo4j同步服务已关闭")
 }
 
+// 计算成功率
+func calculateSuccessRate(processed, errors int64) float64 {
+	if processed == 0 {
+		return 100.0
+	}
+	return float64(processed-errors) / float64(processed) * 100.0
+}
+
 // 健康检查服务器
 func startHealthServer(logger *log.Logger) {
 	mux := http.NewServeMux()
@@ -920,15 +952,33 @@ func startHealthServer(logger *log.Logger) {
 	// 健康检查端点
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		
+		// 获取运行时统计信息
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		
+		processedCount := atomic.LoadInt64(&messageProcessedCount)
+		errorCount := atomic.LoadInt64(&messageErrorCount)
+		uptime := time.Since(serviceStartTime)
+		
 		response := map[string]interface{}{
 			"service": "organization-sync-service",
 			"status": "healthy",
 			"timestamp": time.Now().Format(time.RFC3339),
+			"uptime_seconds": int64(uptime.Seconds()),
+			"performance": map[string]interface{}{
+				"messages_processed": processedCount,
+				"messages_error":     errorCount,
+				"success_rate":       calculateSuccessRate(processedCount, errorCount),
+				"memory_mb":          m.Alloc / 1024 / 1024,
+				"goroutines":         runtime.NumGoroutine(),
+			},
 			"features": []string{
 				"CDC数据捕获",
 				"Neo4j实时同步", 
 				"Kafka消息消费",
 				"Debezium集成",
+				"CPU优化修复", // 新增：标记已修复CPU问题
 			},
 		}
 		json.NewEncoder(w).Encode(response)
