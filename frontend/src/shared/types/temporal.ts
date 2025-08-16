@@ -24,10 +24,10 @@ export interface TemporalQueryParams {
   eventTypes?: EventType[]; // 事件类型过滤
 }
 
-// 变更信息 (纯日期生效模型)
+// 变更信息 (纯日期生效模型 - 统一字符串类型)
 export interface ChangeInfo {
   id: string;
-  timestamp: Date;
+  timestamp: string;  // 统一为字符串类型
   type: 'creation' | 'modification' | 'deletion' | 'status_change';
   description: string;
   author?: string;
@@ -118,18 +118,18 @@ export interface TemporalStats {
   totalRecords: number;          // 总记录数
   activeRecords: number;         // 当前有效记录数
   plannedChanges: number;        // 计划中的变更数
-  lastModified: Date;            // 最后修改时间
+  lastModified: string;            // 最后修改时间 (统一为字符串)
   averageLifespanDays: number;   // 平均生命周期(天)
   changeFrequency: number;       // 每月变更次数
 }
 
-// 批量时态操作
+// 批量时态操作 (统一字符串类型)
 export interface BatchTemporalOperation {
   operationId: string;
   type: 'bulk_update' | 'bulk_delete' | 'bulk_plan';
   organizationCodes: string[];
-  effectiveDate: Date;
-  endDate?: Date;
+  effectiveDate: string;  // 统一为字符串
+  endDate?: string;       // 统一为字符串
   changes: Record<string, unknown>;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   progress?: number;  // 0-100
@@ -162,10 +162,10 @@ export interface TimelineViewConfig {
   eventTypes: EventType[];      // 事件类型
 }
 
-// 时态上下文
+// 时态上下文 (统一字符串类型)
 export interface TemporalContext {
   mode: TemporalMode;
-  currentDate: Date;
+  currentDate: string;  // 统一为字符串
   viewConfig: TimelineViewConfig;
   permissions: TemporalPermissions;
   cacheConfig: TemporalCacheConfig;

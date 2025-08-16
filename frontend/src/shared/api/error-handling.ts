@@ -1,6 +1,18 @@
 import React from 'react';
 import { isValidationError, isAPIError, isNetworkError } from './type-guards';
 
+// API错误接口
+interface APIErrorResponse {
+  status?: number;
+  statusText?: string;
+}
+
+export interface APIError extends Error {
+  status: number;
+  statusText: string;
+  response?: APIErrorResponse;
+}
+
 // 统一错误处理器
 export class ErrorHandler {
   private static logError(context: string, error: unknown): void {
@@ -12,7 +24,9 @@ export class ErrorHandler {
       console.error('Validation details:', error.details);
     } else if (isAPIError(error)) {
       console.error('API Error:', error.status, error.statusText);
-      console.error('Response:', error.response);
+      if (error.response) {
+        console.error('Response:', error.response);
+      }
     } else if (isNetworkError(error)) {
       console.error('Network Error:', error.message);
     }
@@ -122,7 +136,6 @@ export class UserFriendlyError extends Error {
 // 表单验证错误类型
 export interface FormValidationErrors {
   [field: string]: string[];
-  _form?: string[]; // 通用表单错误
 }
 
 // 错误类型守卫

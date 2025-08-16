@@ -1,5 +1,5 @@
 /**
- * 时态管理React钩子 - 基于GraphQL时态查询
+ * 时态管理React钩子 - 基于GraphQL时态查询 (统一字符串类型版本)
  * 提供organizationAsOfDate和organizationHistory的React集成
  */
 import { useCallback, useEffect } from 'react';
@@ -11,6 +11,7 @@ import type {
   TemporalOrganizationUnit,
   TimelineEvent
 } from '../types/temporal';
+import { TemporalConverter } from '../utils/temporal-converter';
 
 // 时态查询键生成器
 const TEMPORAL_QUERY_KEYS = {
@@ -136,9 +137,9 @@ export function useOrganizationTimeline(
   const hasEvents = eventCount > 0;
   const latestEvent = query.data?.[0]; // 最新事件
 
-  // 按年份分组事件
+  // 按年份分组事件 (使用统一的字符串timestamp)
   const eventsGroupedByYear = query.data?.reduce((groups, event) => {
-    const year = new Date(event.timestamp).getFullYear().toString(); // 修正：使用timestamp而非eventDate
+    const year = TemporalConverter.isoToDate(event.timestamp).getFullYear().toString(); // 统一使用TemporalConverter
     if (!groups[year]) {
       groups[year] = [];
     }
@@ -279,18 +280,23 @@ export function useTemporalCacheManager() {
  * 时态查询工具钩子 - 提供常用的时态查询辅助功能
  */
 export function useTemporalQueryUtils() {
-  // 生成常用的时间点
+  // 生成常用的时间点 (统一字符串格式)
   const getCommonDatePoints = useCallback(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
+    const now = TemporalConverter.getCurrentISOString();
     
     return {
-      today: now.toISOString().split('T')[0],
-      yesterday: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      lastWeek: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      lastMonth: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      yearStart: `${currentYear}-01-01`,
-      lastYearEnd: `${currentYear - 1}-12-31`,
+      today: TemporalConverter.dateToDateString(now),
+      yesterday: TemporalConverter.dateToDateString(
+        TemporalConverter.dateToIso(new Date(Date.now() - 24 * 60 * 60 * 1000))
+      ),
+      lastWeek: TemporalConverter.dateToDateString(
+        TemporalConverter.dateToIso(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+      ),
+      lastMonth: TemporalConverter.dateToDateString(
+        TemporalConverter.dateToIso(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+      ),
+      yearStart: `${new Date().getFullYear()}-01-01`,
+      lastYearEnd: `${new Date().getFullYear() - 1}-12-31`,
     };
   }, []);
 

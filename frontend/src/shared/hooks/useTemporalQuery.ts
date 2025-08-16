@@ -1,5 +1,5 @@
 /**
- * 时态查询钩子函数
+ * 时态查询钩子函数 (统一字符串类型版本)
  * 提供时态数据查询、缓存和状态管理功能
  */
 import { useCallback } from 'react';
@@ -14,6 +14,7 @@ import type {
   TemporalMode
 } from '../types/temporal';
 import type { OrganizationUnit, OrganizationQueryParams } from '../types/organization';
+import { TemporalConverter } from '../utils/temporal-converter';
 
 // 查询键生成器
 const QUERY_KEYS = {
@@ -71,10 +72,10 @@ export function useTemporalOrganizations(
       const response = await organizationAPI.getAll(params);
       const organizations = response.organizations;
 
-      // 转换为时态组织单元格式 (纯日期模型)
+      // 转换为时态组织单元格式 (纯日期模型，统一字符串类型)
       const temporalOrganizations: TemporalOrganizationUnit[] = organizations.map(org => ({
         ...org,
-        effective_date: org.created_at,  // 使用创建时间作为生效日期
+        effective_date: TemporalConverter.dateToIso(org.created_at),  // 统一为ISO字符串
         end_date: undefined,             // 当前有效，未结束
         is_current: true,                // 当前有效记录
         change_reason: undefined,        // 无变更原因
@@ -246,9 +247,9 @@ export function useTemporalMode() {
 
       // 设置时间点（如果提供）
       if (options?.asOfDate) {
-        setAsOfDate(options.asOfDate);
+        setAsOfDate(TemporalConverter.dateToIso(options.asOfDate));
       } else if (newMode === 'current') {
-        setAsOfDate(new Date().toISOString());
+        setAsOfDate(TemporalConverter.getCurrentISOString());
       }
     },
     [setMode, setAsOfDate, queryClient]
@@ -373,15 +374,20 @@ export function useTemporalUtils() {
   const { setQueryParams } = useTemporalActions();
 
   const setDateRange = useCallback(
-    (start: Date, end: Date) => {
-      setQueryParams({ dateRange: { start, end } });
+    (start: string, end: string) => {
+      // 验证并标准化日期字符串
+      const normalizedStart = TemporalConverter.dateToIso(start);
+      const normalizedEnd = TemporalConverter.dateToIso(end);
+      setQueryParams({ dateRange: { start: normalizedStart, end: normalizedEnd } });
     },
     [setQueryParams]
   );
 
   const setAsOfDate = useCallback(
-    (date: Date) => {
-      setQueryParams({ asOfDate: date });
+    (date: string) => {
+      // 验证并标准化日期字符串
+      const normalizedDate = TemporalConverter.dateToIso(date);
+      setQueryParams({ asOfDate: normalizedDate });
     },
     [setQueryParams]
   );

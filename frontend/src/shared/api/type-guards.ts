@@ -112,23 +112,28 @@ export const isGraphQLError = (response: unknown): response is { errors: GraphQL
 export const isGraphQLSuccessResponse = <T>(
   response: unknown
 ): response is GraphQLResponse<T> => {
+  if (typeof response !== 'object' || response === null) {
+    return false;
+  }
+  
+  const obj = response as Record<string, unknown>;
   return (
-    typeof response === 'object' && 
-    response !== null && 
-    'data' in response &&
-    (response as Record<string, unknown>).data !== null &&
-    (response as Record<string, unknown>).data !== undefined
+    'data' in obj &&
+    obj.data !== null &&
+    obj.data !== undefined
   );
 };
 
+import type { APIError } from './error-handling';
+
 // API错误类型守卫
-export const isAPIError = (error: unknown): error is Error & { status: number; statusText: string } => {
+export const isAPIError = (error: unknown): error is APIError => {
   return (
     error instanceof Error && 
     'status' in error && 
     'statusText' in error &&
-    typeof (error as Record<string, unknown>).status === 'number' &&
-    typeof (error as Record<string, unknown>).statusText === 'string'
+    typeof (error as APIError).status === 'number' &&
+    typeof (error as APIError).statusText === 'string'
   );
 };
 

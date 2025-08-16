@@ -1,5 +1,5 @@
 /**
- * 时态管理全局状态存储
+ * 时态管理全局状态存储 (统一字符串类型版本)
  * 使用Zustand提供轻量级状态管理
  */
 import { create } from 'zustand';
@@ -13,6 +13,7 @@ import type {
   TimelineViewConfig,
   TemporalContext
 } from '../types/temporal';
+import { TemporalConverter } from '../utils/temporal-converter';
 
 // 时态存储状态接口
 export interface TemporalState {
@@ -43,15 +44,15 @@ export interface TemporalState {
   error: string | null;
 }
 
-// 时态存储操作接口
+// 时态存储操作接口 (统一字符串类型)
 export interface TemporalActions {
   // 设置时态模式
   setMode: (mode: TemporalMode) => void;
   
-  // 设置查询时间点
-  setAsOfDate: (date: Date) => void;
+  // 设置查询时间点 (统一为字符串)
+  setAsOfDate: (date: string) => void;
   
-  // 设置时间范围
+  // 设置时间范围 (统一为字符串)
   setDateRange: (range: DateRange) => void;
   
   // 设置查询参数
@@ -77,18 +78,18 @@ export interface TemporalActions {
   reset: () => void;
 }
 
-// 默认状态
+// 默认状态 (统一字符串类型)
 const defaultState: TemporalState = {
   context: {
     mode: 'current',
-    currentDate: new Date(),
+    currentDate: TemporalConverter.getCurrentISOString(),
     viewConfig: {
       showEvents: true,
       showRecords: true,  // 修正：替换showVersions为showRecords
       dateFormat: 'YYYY-MM-DD',
       timeRange: {
-        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        end: new Date()
+        start: TemporalConverter.dateToIso(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+        end: TemporalConverter.getCurrentISOString()
       },
       eventTypes: []
     },
@@ -108,10 +109,10 @@ const defaultState: TemporalState = {
   },
   
   queryParams: {
-    asOfDate: new Date(),
+    asOfDate: TemporalConverter.getCurrentISOString(),
     dateRange: {
-      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      end: new Date()
+      start: TemporalConverter.dateToIso(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+      end: TemporalConverter.getCurrentISOString()
     },
     includeHistory: false,
     includeFuture: false
@@ -122,8 +123,8 @@ const defaultState: TemporalState = {
     showRecords: true,  // 修正：替换showVersions为showRecords
     dateFormat: 'YYYY-MM-DD',
     timeRange: {
-      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      end: new Date()
+      start: TemporalConverter.dateToIso(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+      end: TemporalConverter.getCurrentISOString()
     },
     eventTypes: []
   },
@@ -157,27 +158,36 @@ export const useTemporalStore = create<TemporalState & TemporalActions>()(
       }));
     },
 
-    // 设置查询时间点
-    setAsOfDate: (date: Date) => {
+    // 设置查询时间点 (统一字符串类型)
+    setAsOfDate: (date: string) => {
+      // 验证并标准化日期字符串
+      const normalizedDate = TemporalConverter.dateToIso(date);
       set((state) => ({
         context: state.context,
-        queryParams: { ...state.queryParams, asOfDate: date },
+        queryParams: { ...state.queryParams, asOfDate: normalizedDate },
         error: null
       }));
     },
 
-    // 设置时间范围
+    // 设置时间范围 (统一字符串类型)
     setDateRange: (range: DateRange) => {
+      // 标准化时间范围
+      const normalizedRange: DateRange = {
+        start: TemporalConverter.dateToIso(range.start),
+        end: TemporalConverter.dateToIso(range.end)
+      };
       set((state) => ({
-        queryParams: { ...state.queryParams, dateRange: range },
+        queryParams: { ...state.queryParams, dateRange: normalizedRange },
         error: null
       }));
     },
 
-    // 设置查询参数
+    // 设置查询参数 (统一字符串类型)
     setQueryParams: (params: Partial<TemporalQueryParams>) => {
+      // 标准化查询参数中的日期字段
+      const normalizedParams = TemporalConverter.normalizeTemporalQueryParams(params);
       set((state) => ({
-        queryParams: { ...state.queryParams, ...params },
+        queryParams: { ...state.queryParams, ...normalizedParams },
         error: null
       }));
     },

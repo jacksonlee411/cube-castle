@@ -357,9 +357,15 @@ describe('Type Guards and Validators', () => {
   });
 
   describe('ValidationError Class', () => {
+interface MockZodIssue {
+  message: string;
+  code: 'custom';
+  path: string[];
+}
+
     it('should create ValidationError with message and details', () => {
-      const details = [
-        { message: 'Invalid field', code: 'invalid', path: ['name'] }
+      const details: MockZodIssue[] = [
+        { message: 'Invalid field', code: 'custom', path: ['name'] }
       ];
       const error = new ValidationError('Validation failed', details);
 
