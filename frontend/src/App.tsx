@@ -3,33 +3,13 @@ import { AppShell } from './layout/AppShell'
 import { OrganizationDashboard } from './features/organizations/OrganizationDashboard'
 import { OrganizationTemporalPage } from './features/organizations/OrganizationTemporalPage'
 import { MonitoringDashboard } from './features/monitoring/MonitoringDashboard'
-import { TemporalVerificationPage } from './features/temporal/TemporalVerificationPage'
-import { TemporalManagementDemo } from './features/temporal/TemporalManagementDemo'
-import TemporalManagementGraphQL from './features/temporal/TemporalManagementGraphQL'
-import TemporalGraphQLDemoPage from './features/temporal/TemporalGraphQLDemoPage'
-import MinimalTemporalTest from './MinimalTemporalTest'
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<AppShell />}>
-        {/* 默认重定向到时态GraphQL演示页面 */}
-        <Route index element={<Navigate to="/temporal-graphql-demo" replace />} />
-        
-        {/* 时态GraphQL完整演示页面 - 新增 */}
-        <Route path="/temporal-graphql-demo" element={<TemporalGraphQLDemoPage />} />
-        
-        {/* 时态管理组件测试页面 */}
-        <Route path="/temporal-test" element={<MinimalTemporalTest />} />
-        
-        {/* 时态管理演示页面 */}
-        <Route path="/temporal-demo" element={<TemporalManagementDemo />} />
-        
-        {/* 时态管理GraphQL演示页面 - P3开发成果 */}
-        <Route path="/temporal-graphql" element={<TemporalManagementGraphQL />} />
-        
-        {/* 时态管理验证页面 */}
-        <Route path="/temporal-verify" element={<TemporalVerificationPage />} />
+        {/* 默认重定向到组织架构管理页面 */}
+        <Route index element={<Navigate to="/organizations" replace />} />
         
         {/* 组织管理模块 */}
         <Route path="/organizations" element={<OrganizationDashboard />} />
