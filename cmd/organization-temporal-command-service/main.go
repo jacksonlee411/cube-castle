@@ -915,10 +915,41 @@ func main() {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
+			"service": "Organization Temporal Command Service",
+			"version": "2.0.0",
 			"status": "healthy",
-			"service": "organization-temporal-command-service-no-version",
 			"timestamp": time.Now().Format(time.RFC3339),
+			"architecture": "CQRS Temporal Side - 时态查询和事件管理",
 			"features": []string{"temporal-queries", "event-driven-changes", "date-based-versioning"},
+		})
+	})
+	
+	// 根路径信息 - 时态服务完整接口文档
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"service": "Organization Temporal Command Service",
+			"version": "2.0.0",
+			"architecture": "CQRS Temporal Side - 时态查询和事件管理",
+			"endpoints": map[string]string{
+				"temporal_query": "GET /api/v1/organization-units/{code}/temporal?as_of_date=YYYY-MM-DD",
+				"create_event":   "POST /api/v1/organization-units/{code}/events",
+				"health":         "GET /health",
+				"metrics":        "GET /metrics",
+			},
+			"query_parameters": map[string]string{
+				"as_of_date":     "查询指定日期的组织状态 (YYYY-MM-DD)",
+				"effective_from": "查询时间范围起始日期 (YYYY-MM-DD)",
+				"effective_to":   "查询时间范围结束日期 (YYYY-MM-DD)",
+			},
+			"temporal_features": []string{
+				"纯日期生效模型 - 符合行业标准",
+				"时间点查询 - as_of_date参数支持",
+				"时间范围查询 - effective_from/to参数支持",
+				"事件驱动变更 - UPDATE/RESTRUCTURE/DISSOLVE支持",
+				"缓存优化 - Redis缓存提升查询性能",
+			},
+			"note": "本服务专注时态查询，常规CRUD操作请使用命令服务(9090)或查询服务(8090)",
 		})
 	})
 	
