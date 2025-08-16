@@ -20,6 +20,7 @@ import {
   colors, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
+import { baseColors } from '../../../shared/utils/colorTokens';
 // 暂时使用文本图标替代
 // import {
 //   addIcon,
@@ -422,7 +423,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
         >
           {/* 基本信息 */}
           <Box>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={colors.blueberry600}>
+            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.blueberry[600]}>
               📋 基本信息
             </Text>
             <Box marginLeft="m">
@@ -443,7 +444,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
 
           {/* 层级信息 */}
           <Box>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={colors.peach600}>
+            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.peach[600]}>
               🏗️ 层级结构
             </Text>
             <Box marginLeft="m">
@@ -464,7 +465,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
 
           {/* 时态信息 */}
           <Box>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={colors.greenFresca600}>
+            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.greenFresca[600]}>
               ⏰ 生效期间
             </Text>
             <Box marginLeft="m">
@@ -486,7 +487,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
 
           {/* 系统信息 */}
           <Box>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={colors.cantaloupe600}>
+            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.cantaloupe[600]}>
               🔧 系统信息
             </Text>
             <Box marginLeft="m">
@@ -505,7 +506,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
 
         {/* 描述信息 */}
         {version.description && (
-          <Box marginTop="m" padding="m" backgroundColor={colors.soap300} borderRadius={borderRadius.s}>
+          <Box marginTop="m" padding="m" backgroundColor={baseColors.soap[300]} borderRadius={borderRadius.s}>
             <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s">
               📝 描述信息
             </Text>
@@ -741,8 +742,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               size="small"
               onClick={() => setActiveTab('details')}
               style={{
-                backgroundColor: activeTab === 'details' ? colors.blueberry600 : 'transparent',
-                color: activeTab === 'details' ? 'white' : colors.blueberry600
+                backgroundColor: activeTab === 'details' ? baseColors.blueberry[600] : 'transparent',
+                color: activeTab === 'details' ? 'white' : baseColors.blueberry[600]
               }}
             >
               📋 版本详情
@@ -751,8 +752,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               size="small"
               onClick={() => setActiveTab('timeline')}
               style={{
-                backgroundColor: activeTab === 'timeline' ? colors.blueberry600 : 'transparent',
-                color: activeTab === 'timeline' ? 'white' : colors.blueberry600
+                backgroundColor: activeTab === 'timeline' ? baseColors.blueberry[600] : 'transparent',
+                color: activeTab === 'timeline' ? 'white' : baseColors.blueberry[600]
               }}
             >
               📊 时间线可视化
@@ -761,8 +762,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               size="small"
               onClick={() => setActiveTab('new-version')}
               style={{
-                backgroundColor: activeTab === 'new-version' ? colors.greenFresca600 : 'transparent',
-                color: activeTab === 'new-version' ? 'white' : colors.greenFresca600
+                backgroundColor: activeTab === 'new-version' ? baseColors.greenFresca[600] : 'transparent',
+                color: activeTab === 'new-version' ? 'white' : baseColors.greenFresca[600]
               }}
             >
               ➕ 新增版本
@@ -804,7 +805,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               <Modal.Body>
                 <Box padding="l">
             <Flex alignItems="flex-start" gap="m" marginBottom="l">
-              <Box fontSize="24px" color={colors.cinnamon600}>⚠️</Box>
+              <Box fontSize="24px" color={baseColors.cinnamon[600]}>⚠️</Box>
               <Box>
                 <Text typeLevel="body.medium" marginBottom="s">
                   确定要作废生效日期为 <strong>{new Date(showDeleteConfirm.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
@@ -812,7 +813,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 <Text typeLevel="subtext.small" color="hint" marginBottom="s">
                   版本名称: {showDeleteConfirm.name}
                 </Text>
-                <Text typeLevel="subtext.small" color={colors.cinnamon600}>
+                <Text typeLevel="subtext.small" color={baseColors.cinnamon[600]}>
                   ⚠️ 作废后将自动填补时间空洞，此操作不可撤销
                 </Text>
               </Box>

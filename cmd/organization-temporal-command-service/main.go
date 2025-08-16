@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -872,6 +873,228 @@ func (h *TemporalOrganizationHandler) calculateHierarchy(ctx context.Context, tx
 	return currentLevel, currentPath, nil
 }
 
+// 时间线事件结构
+type TimelineEvent struct {
+	ID            string                 `json:"id"`
+	Title         string                 `json:"title"`
+	Description   string                 `json:"description"`
+	EventType     string                 `json:"event_type"`
+	EventDate     string                 `json:"event_date"`
+	EffectiveDate string                 `json:"effective_date"`
+	Status        string                 `json:"status"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	TriggeredBy   string                 `json:"triggered_by,omitempty"`
+}
+
+// 获取组织时间线
+func (h *TemporalOrganizationHandler) GetOrganizationTimeline(w http.ResponseWriter, r *http.Request) {
+	code := chi.URLParam(r, "code")
+	if code == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
+		return
+	}
+
+	tenantID := h.getTenantID(r)
+	limit := 50 // 默认限制50条记录
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+			limit = parsedLimit
+		}
+	}
+
+	// 查询时间线事件
+	events, err := h.getTimelineEvents(r.Context(), tenantID, code, limit)
+	if err != nil {
+		log.Printf("获取时间线事件失败: %v", err)
+		h.writeErrorResponse(w, http.StatusInternalServerError, "QUERY_FAILED", "获取时间线失败", err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"timeline":     events,
+		"count":        len(events),
+		"organization": code,
+		"queried_at":   time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// 获取时间线事件数据
+func (h *TemporalOrganizationHandler) getTimelineEvents(ctx context.Context, tenantID uuid.UUID, code string, limit int) ([]TimelineEvent, error) {
+	// 查询组织的所有历史记录，按创建时间倒序
+	query := `
+		SELECT 
+			code,
+			name,
+			unit_type,
+			status,
+			effective_date,
+			end_date,
+			change_reason,
+			created_at,
+			updated_at,
+			is_current
+		FROM organization_units 
+		WHERE tenant_id = $1 AND code = $2
+		ORDER BY created_at DESC, effective_date DESC
+		LIMIT $3`
+
+	rows, err := h.db.QueryContext(ctx, query, tenantID.String(), code, limit)
+	if err != nil {
+		return nil, fmt.Errorf("查询历史记录失败: %w", err)
+	}
+	defer rows.Close()
+
+	var events []TimelineEvent
+	for rows.Next() {
+		var (
+			orgCode        string
+			name           string
+			unitType       string
+			status         string
+			effectiveDate  *time.Time
+			endDate        *time.Time
+			changeReason   *string
+			createdAt      time.Time
+			updatedAt      time.Time
+			isCurrent      *bool
+		)
+
+		err := rows.Scan(
+			&orgCode, &name, &unitType, &status,
+			&effectiveDate, &endDate, &changeReason,
+			&createdAt, &updatedAt, &isCurrent,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("扫描记录失败: %w", err)
+		}
+
+		// 确定事件类型和描述
+		eventType, title, description := h.determineEventType(
+			name, unitType, status, effectiveDate, endDate, 
+			changeReason, isCurrent, createdAt, updatedAt,
+		)
+
+		// 构建时间线事件
+		event := TimelineEvent{
+			ID:            fmt.Sprintf("%s_%d", orgCode, createdAt.Unix()),
+			Title:         title,
+			Description:   description,
+			EventType:     eventType,
+			EventDate:     createdAt.Format(time.RFC3339),
+			EffectiveDate: formatTimePtr(effectiveDate),
+			Status:        status,
+			Metadata: map[string]interface{}{
+				"name":        name,
+				"unit_type":   unitType,
+				"end_date":    formatTimePtr(endDate),
+				"is_current":  isCurrent,
+				"updated_at":  updatedAt.Format(time.RFC3339),
+			},
+			TriggeredBy: "系统用户", // 可以后续扩展为实际用户信息
+		}
+
+		if changeReason != nil {
+			event.Metadata["change_reason"] = *changeReason
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
+}
+
+// 确定事件类型和描述
+func (h *TemporalOrganizationHandler) determineEventType(
+	name, unitType, status string,
+	effectiveDate, endDate *time.Time,
+	changeReason *string,
+	isCurrent *bool,
+	createdAt, updatedAt time.Time,
+) (eventType, title, description string) {
+	
+	// 根据时间和状态判断事件类型
+	now := time.Now()
+	isActive := status == "ACTIVE"
+	isPlanned := status == "PLANNED"
+	
+	// 判断是否是创建事件（通常创建时间和更新时间相近）
+	isCreation := updatedAt.Sub(createdAt).Seconds() < 5
+	
+	// 判断是否已结束
+	isEnded := endDate != nil && endDate.Before(now)
+
+	switch {
+	case isCreation && isPlanned:
+		eventType = "create"
+		title = fmt.Sprintf("创建计划组织: %s", name)
+		description = fmt.Sprintf("新建了%s类型的计划组织，预计于%s生效", 
+			h.getUnitTypeName(unitType), formatTimePtr(effectiveDate))
+			
+	case isCreation && isActive:
+		eventType = "create"
+		title = fmt.Sprintf("创建组织: %s", name)
+		description = fmt.Sprintf("新建了%s类型的组织单元，立即生效", 
+			h.getUnitTypeName(unitType))
+			
+	case !isCreation && isActive && isCurrent != nil && *isCurrent:
+		eventType = "activate"
+		title = fmt.Sprintf("激活组织: %s", name)
+		description = fmt.Sprintf("组织单元状态变更为激活")
+		
+	case !isCreation && status == "INACTIVE":
+		eventType = "deactivate"
+		title = fmt.Sprintf("停用组织: %s", name)
+		description = fmt.Sprintf("组织单元状态变更为停用")
+		
+	case !isCreation && isEnded:
+		eventType = "dissolve"
+		title = fmt.Sprintf("解散组织: %s", name)
+		description = fmt.Sprintf("组织单元于%s解散", formatTimePtr(endDate))
+		
+	case !isCreation:
+		eventType = "update"
+		title = fmt.Sprintf("更新组织: %s", name)
+		description = fmt.Sprintf("组织信息发生变更")
+		
+	default:
+		eventType = "update"
+		title = fmt.Sprintf("组织变更: %s", name)
+		description = fmt.Sprintf("组织单元信息更新")
+	}
+	
+	// 添加变更原因到描述中
+	if changeReason != nil && *changeReason != "" {
+		description += fmt.Sprintf("，变更原因：%s", *changeReason)
+	}
+	
+	return eventType, title, description
+}
+
+// 获取组织类型中文名
+func (h *TemporalOrganizationHandler) getUnitTypeName(unitType string) string {
+	typeNames := map[string]string{
+		"COMPANY":      "公司",
+		"DEPARTMENT":   "部门",
+		"COST_CENTER":  "成本中心",
+		"PROJECT_TEAM": "项目团队",
+	}
+	if name, exists := typeNames[unitType]; exists {
+		return name
+	}
+	return unitType
+}
+
+// 格式化时间指针
+func formatTimePtr(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format(time.RFC3339)
+}
+
 // ===== 主程序 =====
 
 func main() {
@@ -960,6 +1183,9 @@ func main() {
 	r.Route("/api/v1/organization-units", func(r chi.Router) {
 		// 时态查询端点
 		r.Get("/{code}/temporal", handler.GetOrganizationTemporal)
+
+		// 时间线可视化端点 - 新增
+		r.Get("/{code}/timeline", handler.GetOrganizationTimeline)
 
 		// 事件驱动变更端点
 		r.Post("/{code}/events", handler.CreateOrganizationEvent)

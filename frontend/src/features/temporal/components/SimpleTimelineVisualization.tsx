@@ -40,13 +40,13 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
   // 获取事件类型样式
   const getEventTypeStyle = (eventType: string) => {
     const styles = {
-      create: { color: colors.greenFresca600, bgColor: '#E8F5E8', icon: '🏗️' },
-      update: { color: colors.blueberry600, bgColor: '#E3F2FD', icon: '✏️' },
-      delete: { color: colors.cinnamon600, bgColor: '#FFEBEE', icon: '🗑️' },
-      activate: { color: colors.greenFresca600, bgColor: '#E8F5E8', icon: '✅' },
+      create: { color: '#2ECC71', bgColor: '#E8F5E8', icon: '🏗️' },
+      update: { color: '#3498DB', bgColor: '#E3F2FD', icon: '✏️' },
+      delete: { color: '#E74C3C', bgColor: '#FFEBEE', icon: '🗑️' },
+      activate: { color: '#2ECC71', bgColor: '#E8F5E8', icon: '✅' },
       deactivate: { color: '#666666', bgColor: '#F5F5F5', icon: '🚫' },
-      restructure: { color: colors.peach600, bgColor: '#FFF3E0', icon: '🔄' },
-      dissolve: { color: colors.cinnamon600, bgColor: '#FFEBEE', icon: '💥' }
+      restructure: { color: '#F39C12', bgColor: '#FFF3E0', icon: '🔄' },
+      dissolve: { color: '#E74C3C', bgColor: '#FFEBEE', icon: '💥' }
     };
     return styles[eventType as keyof typeof styles] || styles.update;
   };
@@ -219,7 +219,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
                           {event.title}
                         </Text>
                         <Flex alignItems="center" gap="s">
-                          <Badge color={eventStyle.color.replace('#', '') as 'primary' | 'secondary' | 'success' | 'warning' | 'danger'} size="small">
+                          <Badge color="primary" size="small">
                             {event.event_type}
                           </Badge>
                           <Badge variant="outline" size="small">
