@@ -5,13 +5,18 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TemporalNavbar } from '../TemporalNavbar';
-import { useTemporalStore } from '../../../shared/stores/temporalStore';
+
+// 导入要mock的模块
+import * as useTemporalQuery from '../../../shared/hooks/useTemporalQuery';
+import * as temporalStore from '../../../shared/stores/temporalStore';
 
 // 模拟钩子
 jest.mock('../../../shared/hooks/useTemporalQuery');
 jest.mock('../../../shared/stores/temporalStore');
 
-const mockUseTemporalStore = useTemporalStore as jest.MockedFunction<typeof useTemporalStore>;
+// 类型断言mock函数
+const mockUseTemporalQuery = useTemporalQuery as jest.Mocked<typeof useTemporalQuery>;
+const mockTemporalStore = temporalStore as jest.Mocked<typeof temporalStore>;
 
 // 创建测试包装器
 const createWrapper = () => {
@@ -62,18 +67,18 @@ describe('TemporalNavbar', () => {
     jest.clearAllMocks();
     
     // 模拟钩子返回值
-    require('../../../shared/hooks/useTemporalQuery').useTemporalMode.mockReturnValue(mockDefaultState);
-    require('../../../shared/hooks/useTemporalQuery').useTemporalQueryState.mockReturnValue({
+    mockUseTemporalQuery.useTemporalMode.mockReturnValue(mockDefaultState);
+    mockUseTemporalQuery.useTemporalQueryState.mockReturnValue({
       loading: mockDefaultState.loading,
       error: mockDefaultState.error,
       context: mockDefaultState.context,
       cacheStats: mockDefaultState.cacheStats,
       refreshCache: mockDefaultState.refreshCache
     });
-    require('../../../shared/stores/temporalStore').useTemporalActions.mockReturnValue({
+    mockTemporalStore.useTemporalActions.mockReturnValue({
       setError: mockDefaultState.setError
     });
-    require('../../../shared/stores/temporalStore').temporalSelectors.useQueryParams.mockReturnValue({
+    mockTemporalStore.temporalSelectors.useQueryParams.mockReturnValue({
       mode: 'current',
       asOfDate: '2024-08-10T00:00:00.000Z'
     });
@@ -96,7 +101,7 @@ describe('TemporalNavbar', () => {
 
   it('should call switchToCurrent when current button is clicked', async () => {
     const mockSwitchToCurrent = jest.fn();
-    require('../../../shared/hooks/useTemporalQuery').useTemporalMode.mockReturnValue({
+    mockUseTemporalQuery.useTemporalMode.mockReturnValue({
       ...mockDefaultState,
       switchToCurrent: mockSwitchToCurrent
     });
@@ -123,7 +128,7 @@ describe('TemporalNavbar', () => {
 
   it('should call switchToPlanning when planning button is clicked', async () => {
     const mockSwitchToPlanning = jest.fn();
-    require('../../../shared/hooks/useTemporalQuery').useTemporalMode.mockReturnValue({
+    mockUseTemporalQuery.useTemporalMode.mockReturnValue({
       ...mockDefaultState,
       switchToPlanning: mockSwitchToPlanning
     });
@@ -145,7 +150,7 @@ describe('TemporalNavbar', () => {
   });
 
   it('should display historical mode when in historical mode', () => {
-    require('../../../shared/hooks/useTemporalQuery').useTemporalMode.mockReturnValue({
+    mockUseTemporalQuery.useTemporalMode.mockReturnValue({
       ...mockDefaultState,
       mode: 'historical',
       isCurrent: false,
@@ -156,7 +161,7 @@ describe('TemporalNavbar', () => {
         asOfDate: '2024-06-01T00:00:00.000Z'
       }
     });
-    require('../../../shared/hooks/useTemporalQuery').useTemporalQueryState.mockReturnValue({
+    mockUseTemporalQuery.useTemporalQueryState.mockReturnValue({
       ...mockDefaultState,
       context: {
         ...mockDefaultState.context,
@@ -171,7 +176,7 @@ describe('TemporalNavbar', () => {
   });
 
   it('should show loading indicator when loading', () => {
-    require('../../../shared/hooks/useTemporalQuery').useTemporalQueryState.mockReturnValue({
+    mockUseTemporalQuery.useTemporalQueryState.mockReturnValue({
       ...mockDefaultState,
       loading: {
         organizations: true,
@@ -186,7 +191,7 @@ describe('TemporalNavbar', () => {
   });
 
   it('should show error message when there is an error', () => {
-    require('../../../shared/hooks/useTemporalQuery').useTemporalQueryState.mockReturnValue({
+    mockUseTemporalQuery.useTemporalQueryState.mockReturnValue({
       ...mockDefaultState,
       error: 'Test error message'
     });
@@ -197,7 +202,7 @@ describe('TemporalNavbar', () => {
   });
 
   it('should show cache stats when cache has data', () => {
-    require('../../../shared/hooks/useTemporalQuery').useTemporalQueryState.mockReturnValue({
+    mockUseTemporalQuery.useTemporalQueryState.mockReturnValue({
       ...mockDefaultState,
       cacheStats: {
         organizationsCount: 5,
@@ -213,7 +218,7 @@ describe('TemporalNavbar', () => {
 
   it('should call refreshCache when refresh button is clicked', async () => {
     const mockRefreshCache = jest.fn();
-    require('../../../shared/hooks/useTemporalQuery').useTemporalQueryState.mockReturnValue({
+    mockUseTemporalQuery.useTemporalQueryState.mockReturnValue({
       ...mockDefaultState,
       refreshCache: mockRefreshCache
     });
@@ -229,7 +234,7 @@ describe('TemporalNavbar', () => {
   });
 
   it('should disable buttons when loading', () => {
-    require('../../../shared/hooks/useTemporalQuery').useTemporalQueryState.mockReturnValue({
+    mockUseTemporalQuery.useTemporalQueryState.mockReturnValue({
       ...mockDefaultState,
       loading: {
         organizations: true,

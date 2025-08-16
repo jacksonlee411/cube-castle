@@ -5,14 +5,11 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
-import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
-import { Select } from '@workday/canvas-kit-react/select';
-import { Modal } from '@workday/canvas-kit-react/modal';
-import { colors } from '@workday/canvas-kit-react/tokens';
+import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 
 export interface TemporalEditFormData {
   name: string;
@@ -83,6 +80,18 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Modal model
+  const model = useModalModel();
+
+  // 同步Modal状态
+  React.useEffect(() => {
+    if (isOpen && model.state.visibility !== 'visible') {
+      model.events.show();
+    } else if (!isOpen && model.state.visibility === 'visible') {
+      model.events.hide();
+    }
+  }, [isOpen, model]);
 
   // 初始化表单数据
   useEffect(() => {
@@ -170,6 +179,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
 
   const handleClose = () => {
     if (!isSubmitting) {
+      model.events.hide();
       onClose();
     }
   };
@@ -180,9 +190,14 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
   }
 
   return (
-    <Modal onClose={handleClose} heading={mode === 'create' ? '新增时态版本' : '编辑时态版本'}>
-      <Box padding="l" width="600px">
-        <form onSubmit={handleSubmit}>
+    <Modal model={model}>
+      <Modal.Overlay>
+        <Modal.Card>
+          <Modal.CloseIcon onClick={handleClose} />
+          <Modal.Heading>{mode === 'create' ? '新增时态版本' : '编辑时态版本'}</Modal.Heading>
+          <Modal.Body>
+          <Box padding="l" width="600px">
+            <form onSubmit={handleSubmit}>
           <Box marginBottom="l">
             <Text typeLevel="body.small" color="hint">
               组织编码: {organizationCode}
@@ -193,51 +208,73 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
           <Box marginBottom="l">
             <Heading size="small" marginBottom="s">基本信息</Heading>
             
-            <FormField label="组织名称" required error={errors.name}>
-              <TextInput
-                value={formData.name}
-                onChange={handleInputChange('name')}
-                placeholder="请输入组织名称"
-                disabled={isSubmitting}
-              />
+            <FormField
+              isRequired
+              error={errors.name ? "error" : undefined}
+            >
+              <FormField.Label>组织名称</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextInput}
+                  value={formData.name}
+                  onChange={handleInputChange('name')}
+                  placeholder="请输入组织名称"
+                  disabled={isSubmitting}
+                />
+                {errors.name && (
+                  <FormField.Hint>{errors.name}</FormField.Hint>
+                )}
+              </FormField.Field>
             </FormField>
 
-            <FormField label="组织类型" required>
-              <Select
-                value={formData.unit_type}
-                onChange={handleInputChange('unit_type')}
-                disabled={isSubmitting}
-              >
-                {unitTypeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+            <FormField isRequired>
+              <FormField.Label>组织类型</FormField.Label>
+              <FormField.Field>
+                <select
+                  value={formData.unit_type}
+                  onChange={handleInputChange('unit_type')}
+                  disabled={isSubmitting}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  {unitTypeOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </FormField.Field>
             </FormField>
 
-            <FormField label="组织状态" required>
-              <Select
-                value={formData.status}
-                onChange={handleInputChange('status')}
-                disabled={isSubmitting}
-              >
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+            <FormField isRequired>
+              <FormField.Label>组织状态</FormField.Label>
+              <FormField.Field>
+                <select
+                  value={formData.status}
+                  onChange={handleInputChange('status')}
+                  disabled={isSubmitting}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  {statusOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </FormField.Field>
             </FormField>
 
-            <FormField label="描述信息">
-              <TextArea
-                value={formData.description}
-                onChange={handleInputChange('description')}
-                placeholder="请输入组织描述信息"
-                disabled={isSubmitting}
-                rows={3}
-              />
+            <FormField>
+              <FormField.Label>描述信息</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextArea}
+                  value={formData.description}
+                  onChange={handleInputChange('description')}
+                  placeholder="请输入组织描述信息"
+                  disabled={isSubmitting}
+                  rows={3}
+                />
+              </FormField.Field>
             </FormField>
           </Box>
 
@@ -245,37 +282,61 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
           <Box marginBottom="l">
             <Heading size="small" marginBottom="s">时态信息</Heading>
 
-            <FormField label="生效日期" required error={errors.effective_date}>
-              <TextInput
-                type="date"
-                value={formData.effective_date}
-                onChange={handleInputChange('effective_date')}
-                disabled={isSubmitting}
-              />
+            <FormField
+              isRequired
+              error={errors.effective_date ? "error" : undefined}
+            >
+              <FormField.Label>生效日期</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextInput}
+                  type="date"
+                  value={formData.effective_date}
+                  onChange={handleInputChange('effective_date')}
+                  disabled={isSubmitting}
+                />
+                {errors.effective_date && (
+                  <FormField.Hint>{errors.effective_date}</FormField.Hint>
+                )}
+              </FormField.Field>
             </FormField>
 
-            <FormField label="事件类型" required>
-              <Select
-                value={formData.event_type}
-                onChange={handleInputChange('event_type')}
-                disabled={isSubmitting}
-              >
-                {eventTypeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+            <FormField isRequired>
+              <FormField.Label>事件类型</FormField.Label>
+              <FormField.Field>
+                <select
+                  value={formData.event_type}
+                  onChange={handleInputChange('event_type')}
+                  disabled={isSubmitting}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  {eventTypeOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </FormField.Field>
             </FormField>
 
-            <FormField label="变更原因" required error={errors.change_reason}>
-              <TextArea
-                value={formData.change_reason}
-                onChange={handleInputChange('change_reason')}
-                placeholder="请说明此次变更的原因"
-                disabled={isSubmitting}
-                rows={2}
-              />
+            <FormField
+              isRequired
+              error={errors.change_reason ? "error" : undefined}
+            >
+              <FormField.Label>变更原因</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextArea}
+                  value={formData.change_reason}
+                  onChange={handleInputChange('change_reason')}
+                  placeholder="请说明此次变更的原因"
+                  disabled={isSubmitting}
+                  rows={2}
+                />
+                {errors.change_reason && (
+                  <FormField.Hint>{errors.change_reason}</FormField.Hint>
+                )}
+              </FormField.Field>
             </FormField>
           </Box>
 
@@ -294,11 +355,13 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
               {isSubmitting ? '提交中...' : mode === 'create' ? '创建' : '更新'}
             </PrimaryButton>
           </Flex>
-        </form>
-      </Box>
+            </form>
+          </Box>
+        </Modal.Body>
+      </Modal.Card>
+      </Modal.Overlay>
     </Modal>
   );
 };
 
-export type { TemporalEditFormData };
 export default TemporalEditForm;

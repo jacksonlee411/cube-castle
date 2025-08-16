@@ -3,7 +3,7 @@ import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { useCreateOrganization, useUpdateOrganization } from '../../../../shared/hooks/useOrganizationMutations';
 // import { useTemporalMode } from '../../../../shared/hooks/useTemporalQuery';
-import organizationAPI from '../../../../shared/api/organizations-simplified';
+import organizationAPI from '../../../../shared/api/organizations';
 import { FormFields } from './FormFields';
 import { validateForm } from './ValidationRules';
 import type { OrganizationFormProps, FormData } from './FormTypes';
@@ -20,8 +20,6 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   const createMutation = useCreateOrganization();
   const updateMutation = useUpdateOrganization();
   // const { isCurrent, isPlanning } = useTemporalMode();
-  const isCurrent = true;
-  const isPlanning = false;
   
   const isEditing = !!organization;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -170,7 +168,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
       let errorMessage = '操作失败';
       
       if (error && typeof error === 'object' && 'message' in error) {
-        const apiError = error as any;
+        const apiError = error as { message: string };
         
         if (apiError.message.includes('duplicate key value violates unique constraint')) {
           if (apiError.message.includes('uk_tenant_name')) {
@@ -191,7 +189,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [isEditing, formData, createMutation, updateMutation, isSubmitting, model, onClose]);
+  }, [isEditing, formData, createMutation, updateMutation, isSubmitting, model, onClose, organization]);
 
   const handleClose = () => {
     setIsSubmitting(false);

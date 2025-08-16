@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box } from '@workday/canvas-kit-react/layout';
+import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Heading, Text } from '@workday/canvas-kit-react/text';
 import { SecondaryButton } from '@workday/canvas-kit-react/button';
 import { TemporalMasterDetailView } from '../temporal/components/TemporalMasterDetailView';
@@ -43,11 +43,10 @@ export const OrganizationTemporalPage: React.FC = () => {
   return (
     <Box>
       {/* 面包屑导航 */}
-      <Box padding="m" borderBottom="1px solid #E9ECEF" marginBottom="m">
-        <Box display="flex" alignItems="center" gap="s">
+      <Box padding="m" borderBottom="solid" borderColor="soap300" marginBottom="m">
+        <Flex alignItems="center" gap="s">
           <SecondaryButton
             size="small"
-            variant="plain"
             onClick={handleBackToList}
           >
             ← 组织列表
@@ -64,7 +63,7 @@ export const OrganizationTemporalPage: React.FC = () => {
           <Text typeLevel="subtext.medium" fontWeight="medium">
             时态管理
           </Text>
-        </Box>
+        </Flex>
       </Box>
 
       {/* 主要内容区：时态管理主从视图 */}

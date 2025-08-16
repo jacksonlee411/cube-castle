@@ -8,19 +8,20 @@ export type TemporalMode = 'current' | 'historical' | 'planning';
 
 // 时间范围定义
 export interface DateRange {
-  start: Date;
-  end: Date;
+  start: string;
+  end: string;
 }
 
 // 时态查询参数
 export interface TemporalQueryParams {
-  asOfDate?: Date;           // 查询特定时间点的数据
+  asOfDate?: string;         // 查询特定时间点的数据
   dateRange?: DateRange;     // 查询时间范围
   includeHistory?: boolean;  // 是否包含历史版本
   includeFuture?: boolean;   // 是否包含未来规划
+  includeInactive?: boolean; // 是否包含停用数据
   mode?: TemporalMode;       // 查询模式
   limit?: number;           // 查询数量限制
-  eventTypes?: string[];    // 事件类型过滤
+  eventTypes?: EventType[]; // 事件类型过滤
 }
 
 // 变更信息 (纯日期生效模型)
@@ -69,7 +70,7 @@ export interface OrganizationHistory {
 export interface TimelineEvent {
   id: string;
   organizationCode: string;
-  timestamp: Date;
+  timestamp: string;
   type: EventType;
   title: string;
   description?: string;

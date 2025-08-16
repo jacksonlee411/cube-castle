@@ -64,34 +64,38 @@ export const TemporalStatusSelector: React.FC<TemporalStatusSelectorProps> = ({
 
   return (
     <FormField
-      label={label}
-      required={required}
-      error={error ? FormField.ErrorType.Error : undefined}
-      hintText={error || helperText}
+      isRequired={required}
+      error={error ? "error" : undefined}
     >
-      <select
-        value={value || ''}
-        onChange={handleChange}
-        disabled={disabled}
-        style={{ 
-          width: '100%', 
-          padding: '8px', 
-          borderRadius: '4px', 
-          border: '1px solid #ddd', 
-          fontSize: '14px' 
-        }}
-      >
-        <option value="" disabled>{placeholder}</option>
-        {options.map((option) => (
-          <option 
-            key={option.value} 
-            value={option.value}
-            title={option.description}
-          >
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <FormField.Label>{label}</FormField.Label>
+      <FormField.Field>
+        <select
+          value={value || ''}
+          onChange={handleChange}
+          disabled={disabled}
+          style={{ 
+            width: '100%', 
+            padding: '8px', 
+            borderRadius: '4px', 
+            border: '1px solid #ddd', 
+            fontSize: '14px' 
+          }}
+        >
+          <option value="" disabled>{placeholder}</option>
+          {options.map((option) => (
+            <option 
+              key={option.value} 
+              value={option.value}
+              title={option.description}
+            >
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {(error || helperText) && (
+          <FormField.Hint>{error || helperText}</FormField.Hint>
+        )}
+      </FormField.Field>
     </FormField>
   );
 };

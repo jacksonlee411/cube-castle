@@ -1,14 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import { Modal } from '@workday/canvas-kit-react/modal';
+import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { Flex } from '@workday/canvas-kit-react/layout';
 import { TemporalDatePicker, validateTemporalDate } from './TemporalDatePicker';
-import { TemporalStatusSelector } from './TemporalStatusSelector';
-import type { TemporalStatus } from './TemporalStatusSelector';
-import { UnitTypeSelector, UnitType } from '../../organizations/components/OrganizationForm/FormFields';
+
+// 定义组织类型 - 从FormFields中复制过来
+export type UnitType = 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
 
 export interface PlannedOrganizationData {
   name: string;
@@ -58,6 +58,18 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Modal model
+  const model = useModalModel();
+
+  // 同步Modal状态
+  React.useEffect(() => {
+    if (isOpen && model.state.visibility !== 'visible') {
+      model.events.show();
+    } else if (!isOpen && model.state.visibility === 'visible') {
+      model.events.hide();
+    }
+  }, [isOpen, model]);
 
   // 重置表单
   const resetForm = useCallback(() => {
@@ -156,56 +168,78 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
   // 取消处理
   const handleCancel = () => {
     resetForm();
+    model.events.hide();
     onClose();
   };
 
   const minDate = validateTemporalDate.getTodayString();
 
   return (
-    <Modal isOpen={isOpen} onClose={handleCancel}>
-      <Modal.Card style={{ width: '600px', maxWidth: '90vw' }}>
-        <Modal.CloseIcon onClick={handleCancel} />
-        
-        <Modal.Heading>创建计划组织</Modal.Heading>
+    <Modal model={model}>
+      <Modal.Overlay>
+        <Modal.Card width="600px" maxWidth="90vw">
+          <Modal.CloseIcon onClick={handleCancel} />
+          
+          <Modal.Heading>创建计划组织</Modal.Heading>
         
         <Modal.Body>
           <Flex flexDirection="column" gap="m">
             {parentOrganization && (
-              <FormField label="上级组织" hintText={`将在 ${parentOrganization.name} 下创建计划组织`}>
-                <TextInput value={parentOrganization.name} disabled />
-              </FormField>
+            <FormField>
+              <FormField.Label>上级组织</FormField.Label>
+              <FormField.Field>
+                <FormField.Input as={TextInput} value={parentOrganization.name} disabled />
+                <FormField.Hint>将在 {parentOrganization.name} 下创建计划组织</FormField.Hint>
+              </FormField.Field>
+            </FormField>
             )}
 
             <FormField
-              label="组织名称"
-              required
-              error={errors.name ? FormField.ErrorType.Error : undefined}
-              hintText={errors.name}
+              isRequired
+              error={errors.name ? "error" : undefined}
             >
-              <TextInput
-                value={formData.name}
-                onChange={(e) => handleFieldChange('name', e.target.value)}
-                placeholder="请输入组织名称"
-              />
+              <FormField.Label>组织名称</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextInput}
+                  value={formData.name}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
+                  placeholder="请输入组织名称"
+                />
+                {errors.name && (
+                  <FormField.Hint>{errors.name}</FormField.Hint>
+                )}
+              </FormField.Field>
             </FormField>
 
-            <UnitTypeSelector
-              value={formData.unit_type}
-              onChange={(value) => handleFieldChange('unit_type', value)}
-              error={errors.unit_type}
-              required
-            />
+            <FormField>
+              <FormField.Label>组织类型 *</FormField.Label>
+              <FormField.Field>
+                <select
+                  value={formData.unit_type}
+                  onChange={(e) => handleFieldChange('unit_type', e.target.value as UnitType)}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  <option value="DEPARTMENT">部门</option>
+                  <option value="COST_CENTER">成本中心</option>
+                  <option value="COMPANY">公司</option>
+                  <option value="PROJECT_TEAM">项目团队</option>
+                </select>
+              </FormField.Field>
+            </FormField>
 
-            <FormField
-              label="组织描述"
-              hintText="可选，描述组织的职能和目的"
-            >
-              <TextArea
-                value={formData.description}
-                onChange={(e) => handleFieldChange('description', e.target.value)}
-                placeholder="请输入组织描述"
-                rows={3}
-              />
+            <FormField>
+              <FormField.Label>组织描述</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextArea}
+                  value={formData.description}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  placeholder="请输入组织描述"
+                  rows={3}
+                />
+                <FormField.Hint>可选，描述组织的职能和目的</FormField.Hint>
+              </FormField.Field>
             </FormField>
 
             <TemporalDatePicker
@@ -228,17 +262,22 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
             />
 
             <FormField
-              label="变更原因"
-              required
-              error={errors.change_reason ? FormField.ErrorType.Error : undefined}
-              hintText={errors.change_reason || '请说明创建此计划组织的原因'}
+              isRequired
+              error={errors.change_reason ? "error" : undefined}
             >
-              <TextArea
-                value={formData.change_reason}
-                onChange={(e) => handleFieldChange('change_reason', e.target.value)}
-                placeholder="例如：业务扩展需要、组织架构调整、新项目启动等"
-                rows={3}
-              />
+              <FormField.Label>变更原因</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextArea}
+                  value={formData.change_reason}
+                  onChange={(e) => handleFieldChange('change_reason', e.target.value)}
+                  placeholder="例如：业务扩展需要、组织架构调整、新项目启动等"
+                  rows={3}
+                />
+                <FormField.Hint>
+                  {errors.change_reason || '请说明创建此计划组织的原因'}
+                </FormField.Hint>
+              </FormField.Field>
             </FormField>
 
             {errors.general && (
@@ -246,20 +285,20 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
                 {errors.general}
               </div>
             )}
+
+            {/* 按钮区域 */}
+            <Flex gap="s" justifyContent="flex-end" marginTop="l">
+              <SecondaryButton onClick={handleCancel} disabled={loading}>
+                取消
+              </SecondaryButton>
+              <PrimaryButton onClick={handleSubmit} disabled={loading}>
+                {loading ? '创建中...' : '创建计划组织'}
+              </PrimaryButton>
+            </Flex>
           </Flex>
         </Modal.Body>
-        
-        <Modal.Footer>
-          <Flex gap="s" justifyContent="flex-end">
-            <SecondaryButton onClick={handleCancel} disabled={loading}>
-              取消
-            </SecondaryButton>
-            <PrimaryButton onClick={handleSubmit} disabled={loading}>
-              {loading ? '创建中...' : '创建计划组织'}
-            </PrimaryButton>
-          </Flex>
-        </Modal.Footer>
       </Modal.Card>
+      </Modal.Overlay>
     </Modal>
   );
 };

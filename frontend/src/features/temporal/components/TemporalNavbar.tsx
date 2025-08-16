@@ -4,7 +4,7 @@
  */
 import React, { useState, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
-import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
+import { SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
@@ -45,12 +45,10 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
     switchToCurrent, 
     switchToHistorical, 
     switchToPlanning,
-    isCurrent,
-    isHistorical,
-    isPlanning
+    isCurrent
   } = useTemporalMode();
   
-  const { loading, error, context, cacheStats, refreshCache } = useTemporalQueryState();
+  const { loading, error, cacheStats, refreshCache } = useTemporalQueryState();
   const { setError } = useTemporalActions();
   const queryParams = temporalSelectors.useQueryParams();
 
@@ -75,7 +73,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to switch mode');
     }
-  }, [switchToCurrent, switchToHistorical, switchToPlanning, setError, onModeChange]);
+  }, [switchToCurrent, switchToPlanning, setError, onModeChange]);
 
   // 历史模式日期选择
   const handleHistoricalDateSelect = useCallback(async (date: string) => {
@@ -99,22 +97,6 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
     }
   }, [refreshCache, setError]);
 
-  // 格式化显示时间
-  const formatDisplayTime = (dateStr: string) => {
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
   // 获取模式显示信息
   const getModeDisplay = () => {
     switch (mode) {
@@ -130,7 +112,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
           label: '历史视图',
           color: colors.blueberry600,
           icon: "📜",
-          description: `显示 ${formatDisplayTime(context.asOfDate)} 时的组织架构`
+          description: `显示历史时间点的组织架构`
         };
       case 'planning':
         return {
@@ -157,7 +139,10 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
         <Flex gap={space.xs}>
           <Tooltip title="当前有效的组织架构">
             <SecondaryButton
-              variant={isCurrent ? 'primary' : 'secondary'}
+              style={{
+                backgroundColor: isCurrent ? colors.blueberry600 : 'transparent',
+                color: isCurrent ? 'white' : colors.blueberry600
+              }}
               size={compact ? 'small' : 'medium'}
               onClick={() => handleModeChange('current')}
               disabled={loading.organizations}
@@ -227,7 +212,6 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
           {/* 刷新按钮 */}
           <Tooltip title="刷新数据缓存">
             <SecondaryButton
-              variant="plain"
               size={compact ? 'small' : 'medium'}
               onClick={handleRefreshCache}
               disabled={loading.organizations || loading.timeline}
@@ -240,7 +224,6 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
           {showAdvancedSettings && (
             <Tooltip title="时态查询设置">
               <SecondaryButton
-                variant="plain"
                 size={compact ? 'small' : 'medium'}
                 onClick={openSettings}
               >
@@ -275,7 +258,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
           isOpen={showDatePicker}
           onClose={() => setShowDatePicker(false)}
           onSelect={handleHistoricalDateSelect}
-          defaultDate={context.asOfDate}
+          defaultDate={new Date().toISOString().split('T')[0]}
           title="选择历史查看时点"
         />
       )}

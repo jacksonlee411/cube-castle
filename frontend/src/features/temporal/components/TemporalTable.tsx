@@ -6,7 +6,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Table } from '@workday/canvas-kit-react/table';
-import { PrimaryButton, SecondaryButton, ToolbarIconButton as IconButton } from '@workday/canvas-kit-react/button';
+import { SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { Checkbox } from '@workday/canvas-kit-react/checkbox';
@@ -15,19 +15,20 @@ import {
   space, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import {
-  EditIcon,
-  DeleteIcon,
-  HistoryIcon,
-  TimelineIcon,
-  InfoIcon,
-  CompareIcon,
-  FilterIcon
-} from '@workday/canvas-kit-react/icon';
-import { useTemporalOrganizations } from '../../shared/hooks/useTemporalQuery';
-import { temporalSelectors } from '../../shared/stores/temporalStore';
-import type { OrganizationUnit, OrganizationQueryParams } from '../../shared/types/organization';
-import type { TemporalMode } from '../../shared/types/temporal';
+  editIcon,
+  xIcon,
+  clockIcon,
+  timelineAllIcon,
+  infoIcon,
+  shareIcon, // 用于比较功能
+  filterIcon
+} from '@workday/canvas-system-icons-web';
+import { useTemporalOrganizations } from '../../../shared/hooks/useTemporalQuery';
+import { temporalSelectors } from '../../../shared/stores/temporalStore';
+import type { OrganizationUnit, OrganizationQueryParams } from '../../../shared/types/organization';
+import type { TemporalMode } from '../../../shared/types/temporal';
 
 export interface TemporalTableProps {
   /** 查询参数 */
@@ -67,7 +68,6 @@ interface TemporalIndicatorProps {
 
 const TemporalIndicator: React.FC<TemporalIndicatorProps> = ({
   mode,
-  organization,
   compact
 }) => {
   const getIndicatorStyle = () => {
@@ -137,7 +137,7 @@ const TemporalField: React.FC<TemporalFieldProps> = ({
   mode
 }) => {
   const value = organization[field];
-  const isTemporalField = field === 'effective_from' || field === 'effective_to';
+  const isTemporalField = field === 'effective_date' || field === 'end_date';
   
   // 格式化显示值
   const formatValue = (val: unknown) => {
@@ -234,7 +234,7 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
   } = useTemporalOrganizations({
     ...queryParams,
     page: currentPage,
-    pageSize
+    page_size: pageSize  // 修正：使用正确的参数名
   });
 
   // 表格列定义
@@ -378,7 +378,7 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
 
           {/* 选择统计 */}
           {showSelection && selectedRows.size > 0 && (
-            <Badge color={colors.blueberry600} variant="solid">
+            <Badge color={colors.blueberry600} variant="outline">
               已选择 {selectedRows.size} 项
             </Badge>
           )}
@@ -387,11 +387,11 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
         {/* 批量操作按钮 */}
         {showSelection && selectedRows.size > 0 && (
           <Flex gap={space.s}>
-            <SecondaryButton variant="secondary" size="small">
-              <CompareIcon /> 批量对比
+            <SecondaryButton size="small">
+              <SystemIcon icon={shareIcon} size={16} /> 批量对比
             </SecondaryButton>
-            <SecondaryButton variant="secondary" size="small">
-              <FilterIcon /> 导出选中
+            <SecondaryButton size="small">
+              <SystemIcon icon={filterIcon} size={16} /> 导出选中
             </SecondaryButton>
           </Flex>
         )}
@@ -421,7 +421,7 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
               {showTemporalIndicators && (
                 <Table.Header width="40px">
                   <Tooltip title="时态状态">
-                    <InfoIcon size="small" />
+                    <SystemIcon icon={infoIcon} size={16} />
                   </Tooltip>
                 </Table.Header>
               )}
@@ -490,65 +490,61 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
                     <Flex gap={space.xs}>
                       {/* 编辑按钮 - 历史模式下禁用 */}
                       <Tooltip title={isHistorical ? '历史模式下不可编辑' : '编辑组织'}>
-                        <IconButton
-                          variant="plain"
+                        <TertiaryButton
                           size="small"
                           disabled={isHistorical}
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                             e.stopPropagation();
                             onEdit?.(organization);
                           }}
                         >
-                          <EditIcon />
-                        </IconButton>
+                          <SystemIcon icon={editIcon} size={16} />
+                        </TertiaryButton>
                       </Tooltip>
 
                       {/* 历史按钮 */}
                       {onViewHistory && (
                         <Tooltip title="查看历史版本">
-                          <IconButton
-                            variant="plain"
+                          <TertiaryButton
                             size="small"
-                            onClick={(e) => {
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                               e.stopPropagation();
                               onViewHistory(organization);
                             }}
                           >
-                            <HistoryIcon />
-                          </IconButton>
+                            <SystemIcon icon={clockIcon} size={16} />
+                          </TertiaryButton>
                         </Tooltip>
                       )}
 
                       {/* 时间线按钮 */}
                       {onViewTimeline && (
                         <Tooltip title="查看时间线">
-                          <IconButton
-                            variant="plain"
+                          <TertiaryButton
                             size="small"
-                            onClick={(e) => {
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                               e.stopPropagation();
                               onViewTimeline(organization);
                             }}
                           >
-                            <TimelineIcon />
-                          </IconButton>
+                            <SystemIcon icon={timelineAllIcon} size={16} />
+                          </TertiaryButton>
                         </Tooltip>
                       )}
 
                       {/* 删除按钮 - 历史模式下禁用 */}
                       {onDelete && (
                         <Tooltip title={isHistorical ? '历史模式下不可删除' : '删除组织'}>
-                          <IconButton
-                            variant="plain"
+                          <TertiaryButton
                             size="small"
                             disabled={isHistorical}
-                            onClick={(e) => {
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                               e.stopPropagation();
                               onDelete(organization);
                             }}
                           >
-                            <DeleteIcon />
-                          </IconButton>
+                            <SystemIcon icon={xIcon} size={16} />
+                          </TertiaryButton>
                         </Tooltip>
                       )}
                     </Flex>

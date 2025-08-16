@@ -9,7 +9,7 @@ import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { Card } from '@workday/canvas-kit-react/card';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
-import { useTemporalHealth, type TemporalOrganizationRecord } from '../../shared/hooks/useTemporalAPI';
+import { useTemporalHealth } from '../../shared/hooks/useTemporalAPI';
 
 // 模拟的组织列表数据
 const mockOrganizations = [
@@ -94,8 +94,8 @@ const SimpleBadge: React.FC<SimpleBadgeProps> = ({ children, variant = 'neutral'
  */
 export const TemporalManagementSimple: React.FC = () => {
   // 状态管理
-  const [selectedOrgCode, setSelectedOrgCode] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [, setSelectedOrgCode] = useState<string | null>(null);
 
   // 时态服务健康检查
   const { data: healthData, isLoading: isHealthLoading } = useTemporalHealth();

@@ -2,13 +2,13 @@
  * 简化的时态数据可视化组件
  * 展示组织架构时间线事件
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Badge } from '../../../shared/components/Badge';
-import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
+import { colors } from '@workday/canvas-kit-react/tokens';
 
 // 简化的时间线事件类型
 interface TimelineEvent {
@@ -19,7 +19,7 @@ interface TimelineEvent {
   event_date: string;
   effective_date: string;
   status: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   triggered_by?: string;
 }
 
@@ -68,7 +68,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
   };
 
   // 加载时间线数据
-  const loadTimeline = async () => {
+  const loadTimeline = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -88,11 +88,11 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [organizationCode]);
 
   useEffect(() => {
     loadTimeline();
-  }, [organizationCode]);
+  }, [organizationCode, loadTimeline]);
 
   const handleRefresh = () => {
     loadTimeline();
@@ -184,16 +184,18 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
                 <Flex alignItems="flex-start" gap="m">
                   {/* 时间轴点 */}
                   <Box
-                    width="40px"
-                    height="40px"
-                    borderRadius="50%"
-                    backgroundColor={eventStyle.bgColor}
-                    border={`2px solid ${eventStyle.color}`}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    fontSize="18px"
-                    flexShrink={0}
+                    cs={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      backgroundColor: eventStyle.bgColor,
+                      border: `2px solid ${eventStyle.color}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "18px",
+                      flexShrink: 0
+                    }}
                   >
                     {eventStyle.icon}
                   </Box>
@@ -217,7 +219,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
                           {event.title}
                         </Text>
                         <Flex alignItems="center" gap="s">
-                          <Badge color={eventStyle.color.replace('#', '') as any} size="small">
+                          <Badge color={eventStyle.color.replace('#', '') as 'primary' | 'secondary' | 'success' | 'warning' | 'danger'} size="small">
                             {event.event_type}
                           </Badge>
                           <Badge variant="outline" size="small">

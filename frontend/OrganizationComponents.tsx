@@ -105,7 +105,11 @@ export const useOrganizationUnits = (apiBaseURL?: string) => {
   const [organizations, setOrganizations] = useState<OrganizationUnit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<{
+    total_count: number;
+    by_type: Record<string, number>;
+    by_status: Record<string, number>;
+  } | null>(null);
 
   // 获取组织列表
   const fetchOrganizations = async (params?: {
@@ -194,7 +198,7 @@ export const OrganizationSelector: React.FC<{
 
   useEffect(() => {
     fetchOrganizations(filter);
-  }, [filter]);
+  }, [filter, fetchOrganizations]);
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const code = event.target.value;
@@ -247,7 +251,7 @@ export const OrganizationTable: React.FC<{
   useEffect(() => {
     fetchOrganizations(filter);
     fetchStats();
-  }, [filter]);
+  }, [filter, fetchOrganizations, fetchStats]);
 
   if (loading) {
     return <div style={{ padding: '20px', textAlign: 'center' }}>加载中...</div>;

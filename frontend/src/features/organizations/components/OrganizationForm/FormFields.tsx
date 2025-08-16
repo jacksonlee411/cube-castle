@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import type { FormFieldsProps } from './FormTypes';
 
 // 日期格式化工具 (统一使用date类型)
@@ -16,32 +16,6 @@ const formatDateForInput = (dateStr?: string) => {
   }
 };
 
-// 保持向后兼容（废弃但保留）
-const formatDateTimeLocal = (dateStr?: string) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    // 转换为本地时间格式 (YYYY-MM-DDTHH:mm)
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  } catch {
-    return '';
-  }
-};
-
-const parseLocalDateTime = (localDateTimeStr: string) => {
-  if (!localDateTimeStr) return '';
-  try {
-    return new Date(localDateTimeStr).toISOString();
-  } catch {
-    return '';
-  }
-};
-
 export const FormFields: React.FC<FormFieldsProps> = ({
   formData,
   setFormData,
@@ -51,9 +25,9 @@ export const FormFields: React.FC<FormFieldsProps> = ({
 }) => {
   const [showAdvancedTemporal, setShowAdvancedTemporal] = useState(false);
   
-  const updateField = (field: string, value: any) => {
+  const updateField = useCallback((field: string, value: string | number | boolean) => {
     setFormData({ ...formData, [field]: value });
-  };
+  }, [formData, setFormData]);
 
   const isTemporal = formData.is_temporal as boolean;
   const isPlannedStatus = formData.status === 'PLANNED';
@@ -68,7 +42,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
       tomorrow.setHours(9, 0, 0, 0); // 默认上午9点
       updateField('effective_from', tomorrow.toISOString());
     }
-  }, [isPlannedStatus, isTemporal]);
+  }, [isPlannedStatus, isTemporal, updateField]);
 
   const inputStyle = {
     width: '100%',

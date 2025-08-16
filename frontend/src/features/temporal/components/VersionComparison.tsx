@@ -6,7 +6,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
-import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { Select } from '@workday/canvas-kit-react/select';
@@ -18,7 +17,6 @@ import {
   fontSizes 
 } from '@workday/canvas-kit-react/tokens';
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   CompareIcon,
   HistoryIcon,
@@ -61,7 +59,6 @@ interface FieldDiffProps {
 }
 
 const FieldDiff: React.FC<FieldDiffProps> = ({
-  field,
   fieldLabel,
   leftValue,
   rightValue,
@@ -318,9 +315,9 @@ export const VersionComparison: React.FC<VersionComparisonProps> = ({
 
     return fieldsToCompare.map(field => ({
       ...field,
-      leftValue: (leftVersion as any)[field.key],
-      rightValue: (rightVersion as any)[field.key],
-      hasChange: (leftVersion as any)[field.key] !== (rightVersion as any)[field.key]
+      leftValue: leftVersion[field.key as keyof TemporalOrganizationUnit],
+      rightValue: rightVersion[field.key as keyof TemporalOrganizationUnit],
+      hasChange: leftVersion[field.key as keyof TemporalOrganizationUnit] !== rightVersion[field.key as keyof TemporalOrganizationUnit]
     }));
   }, [leftVersion, rightVersion]);
 

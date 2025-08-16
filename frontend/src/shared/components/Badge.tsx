@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import styled from '@emotion/styled';
-import { colors, space } from '@workday/canvas-kit-react/tokens';
+import { colors } from '@workday/canvas-kit-react/tokens';
 
 export interface BadgeProps {
   children: React.ReactNode;

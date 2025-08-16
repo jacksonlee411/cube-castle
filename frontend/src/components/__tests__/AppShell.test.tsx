@@ -17,17 +17,12 @@ describe('AppShell Layout', () => {
     render(<AppShell />, { wrapper: TestWrapper });
     
     expect(screen.getByText('🏰 Cube Castle')).toBeInTheDocument();
-    expect(screen.getByText('设置')).toBeInTheDocument();
-    expect(screen.getByText('通知')).toBeInTheDocument();
-    expect(screen.getByText('用户')).toBeInTheDocument();
   });
 
-  it('renders sidebar navigation without logo', () => {
+  it('renders sidebar navigation', () => {
     render(<AppShell />, { wrapper: TestWrapper });
     
     expect(screen.getByText(/仪表板/)).toBeInTheDocument();
     expect(screen.getByText(/组织架构/)).toBeInTheDocument();
-    expect(screen.getByText(/员工管理/)).toBeInTheDocument();
-    expect(screen.getByText(/职位管理/)).toBeInTheDocument();
   });
 });

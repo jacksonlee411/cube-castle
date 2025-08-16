@@ -6,15 +6,12 @@ import React, { useState, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
-import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
-import { Select } from '@workday/canvas-kit-react/select';
 import { Checkbox } from '@workday/canvas-kit-react/checkbox';
-import { SystemIcon } from '@workday/canvas-kit-react/icon';
-import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
+import { colors, space } from '@workday/canvas-kit-react/tokens';
 import { useTemporalActions } from '../../../shared/stores/temporalStore';
-import type { TemporalQueryParams, EventType } from '../../shared/types/temporal';
+import type { TemporalQueryParams, EventType } from '../../../shared/types/temporal';
 
 export interface TemporalSettingsProps {
   /** 是否显示弹窗 */
@@ -37,21 +34,31 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
   const [localParams, setLocalParams] = useState<TemporalQueryParams>(queryParams);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Modal model
+  const model = useModalModel();
+
+  // 同步Modal状态
+  React.useEffect(() => {
+    if (isOpen && model.state.visibility !== 'visible') {
+      model.events.show();
+    } else if (!isOpen && model.state.visibility === 'visible') {
+      model.events.hide();
+    }
+  }, [isOpen, model]);
+
   // 时态操作
   const { setQueryParams, clearCache } = useTemporalActions();
 
   // 事件类型选项
   const eventTypeOptions: { value: EventType; label: string }[] = [
-    { value: 'create', label: '创建' },
-    { value: 'update', label: '更新' },
-    { value: 'delete', label: '删除' },
-    { value: 'activate', label: '激活' },
-    { value: 'deactivate', label: '停用' },
-    { value: 'restructure', label: '重组' },
-    { value: 'merge', label: '合并' },
-    { value: 'split', label: '拆分' },
-    { value: 'transfer', label: '转移' },
-    { value: 'rename', label: '重命名' }
+    { value: 'organization_created', label: '创建' },
+    { value: 'organization_updated', label: '更新' },
+    { value: 'organization_deleted', label: '删除' },
+    { value: 'status_changed', label: '状态变更' },
+    { value: 'hierarchy_changed', label: '层级变更' },
+    { value: 'metadata_updated', label: '元数据更新' },
+    { value: 'planned_change', label: '计划变更' },
+    { value: 'change_cancelled', label: '取消变更' }
   ];
 
   // 更新本地参数
@@ -126,14 +133,15 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
   }
 
   return (
-    <Modal onClose={onClose}>
-      <Card 
-        padding={space.l}
-        minWidth="600px"
-        maxWidth="800px"
-        maxHeight="80vh"
-        overflow="auto"
-      >
+    <Modal model={model}>
+      <Modal.Overlay>
+        <Modal.Card
+          padding={space.l}
+          minWidth="600px"
+          maxWidth="800px"
+          maxHeight="80vh"
+          overflow="auto"
+        >
         {/* 标题 */}
         <Flex alignItems="center" gap={space.s} marginBottom={space.l}>
           ⚙️
@@ -165,7 +173,7 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
                 ''
               }
               onChange={(e) => updateLocalParams({ 
-                asOfDate: e.target.value ? e.target.value : undefined 
+                asOfDate: e.target.value ? e.target.value + 'T00:00:00Z' : undefined 
               })}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
@@ -178,16 +186,17 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
             <Text fontSize="small" marginBottom={space.s}>
               查询结果限制
             </Text>
-            <Select
+            <select
               value={String(localParams.limit || 50)}
-              onChange={(value) => updateLocalParams({ limit: parseInt(value) })}
+              onChange={(e) => updateLocalParams({ limit: parseInt(e.target.value) })}
+              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
             >
-              <MenuItem value="10">10 条</MenuItem>
-              <MenuItem value="20">20 条</MenuItem>
-              <MenuItem value="50">50 条</MenuItem>
-              <MenuItem value="100">100 条</MenuItem>
-              <MenuItem value="200">200 条</MenuItem>
-            </Select>
+              <option value="10">10 条</option>
+              <option value="20">20 条</option>
+              <option value="50">50 条</option>
+              <option value="100">100 条</option>
+              <option value="200">200 条</option>
+            </select>
           </Box>
 
           {/* 包含停用数据 */}
@@ -204,7 +213,7 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
           </Box>
         </Box>
 
-        <Divider />
+        <hr />
 
         {/* 时间范围设置 */}
         <Box marginBottom={space.l}>
@@ -251,7 +260,7 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
           </Text>
         </Box>
 
-        <Divider />
+        <hr />
 
         {/* 事件类型筛选 */}
         <Box marginBottom={space.l}>
@@ -264,9 +273,11 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
           </Text>
 
           <Box
-            display="grid"
-            gridTemplateColumns="repeat(auto-fit, minmax(150px, 1fr))"
-            gap={space.s}
+            cs={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: space.s
+            }}
           >
             {eventTypeOptions.map(option => (
               <Checkbox
@@ -284,7 +295,7 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
           </Text>
         </Box>
 
-        <Divider />
+        <hr />
 
         {/* 缓存管理 */}
         <Box marginBottom={space.l}>
@@ -294,7 +305,6 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
 
           <Flex alignItems="center" gap={space.s}>
             <SecondaryButton
-              variant="secondary"
               size="small"
               onClick={handleClearCache}
             >
@@ -326,7 +336,8 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
             </PrimaryButton>
           </Flex>
         </Flex>
-      </Card>
+      </Modal.Card>
+      </Modal.Overlay>
     </Modal>
   );
 };

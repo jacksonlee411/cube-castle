@@ -6,25 +6,19 @@ import React, { useState, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
-import { Tabs, TabsList, Tab, TabPanel } from '@workday/canvas-kit-react/tabs';
-import { PrimaryButton } from '@workday/canvas-kit-react/button';
-import { Modal } from '@workday/canvas-kit-react/modal';
-import { colors, space } from '@workday/canvas-kit-react/tokens';
+import { Tabs, useTabsModel } from '@workday/canvas-kit-react/tabs';
+import { SecondaryButton } from '@workday/canvas-kit-react/button';
+import { space } from '@workday/canvas-kit-react/tokens';
 import {
   TemporalNavbar,
   TemporalTable,
   Timeline,
-  VersionComparison,
-  DateTimePicker
+  VersionComparison
 } from './components';
 import type { 
   OrganizationUnit,
   OrganizationQueryParams 
 } from '../../shared/types/organization';
-import type { 
-  TemporalOrganizationUnit,
-  TimelineEvent 
-} from '../../shared/types/temporal';
 
 export interface TemporalDashboardProps {
   /** 初始查询参数 */
@@ -45,11 +39,16 @@ export const TemporalDashboard: React.FC<TemporalDashboardProps> = ({
   showAdvancedFeatures = true
 }) => {
   // 状态管理
-  const [activeTab, setActiveTab] = useState('table');
+  const [activeTab] = useState('table');
+  
+  // Tabs模型 (Canvas Kit v13)
+  const tabsModel = useTabsModel({
+    initialTab: activeTab
+  });
   const [selectedOrganization, setSelectedOrganization] = useState<OrganizationUnit | null>(null);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
-  const [queryParams, setQueryParams] = useState<OrganizationQueryParams>(
+  const [queryParams] = useState<OrganizationQueryParams>(
     initialQueryParams || {}
   );
 
@@ -90,15 +89,15 @@ export const TemporalDashboard: React.FC<TemporalDashboardProps> = ({
 
       {/* 主要内容区域 */}
       <Card padding={space.m}>
-        <Tabs activeKey={activeTab} onSelectionChange={setActiveTab}>
-          <TabsList>
-            <Tab value="table">组织列表</Tab>
-            <Tab value="timeline">时间线视图</Tab>
-            {showAdvancedFeatures && <Tab value="comparison">版本对比</Tab>}
-          </TabsList>
+        <Tabs model={tabsModel}>
+          <Tabs.List>
+            <Tabs.Item name="table">组织列表</Tabs.Item>
+            <Tabs.Item name="timeline">时间线视图</Tabs.Item>
+            {showAdvancedFeatures && <Tabs.Item name="comparison">版本对比</Tabs.Item>}
+          </Tabs.List>
 
           {/* 组织列表标签页 */}
-          <TabPanel value="table">
+          <Tabs.Panel>
             <Box marginTop={space.m}>
               <TemporalTable
                 queryParams={queryParams}
@@ -113,63 +112,42 @@ export const TemporalDashboard: React.FC<TemporalDashboardProps> = ({
                 onViewTimeline={handleViewTimeline}
               />
             </Box>
-          </TabPanel>
-
+          </Tabs.Panel>
+          
           {/* 时间线视图标签页 */}
-          <TabPanel value="timeline">
+          <Tabs.Panel>
             <Box marginTop={space.m}>
-              {selectedOrganization ? (
-                <Timeline
-                  organizationCode={selectedOrganization.code}
-                  compact={compact}
-                  showFilters={true}
-                  showActions={showAdvancedFeatures}
-                />
-              ) : (
-                <Box 
-                  padding={space.l}
-                  textAlign="center"
-                  backgroundColor={colors.soap100}
-                  borderRadius="8px"
-                >
-                  <Text color={colors.licorice500}>
-                    请从组织列表中选择一个组织来查看其时间线
-                  </Text>
-                </Box>
-              )}
+              <Text>时间线视图功能开发中...</Text>
             </Box>
-          </TabPanel>
-
+          </Tabs.Panel>
+          
           {/* 版本对比标签页 */}
           {showAdvancedFeatures && (
-            <TabPanel value="comparison">
+            <Tabs.Panel>
               <Box marginTop={space.m}>
-                {selectedOrganization ? (
-                  <VersionComparison
-                    organizationCode={selectedOrganization.code}
-                    compact={compact}
-                  />
-                ) : (
-                  <Box 
-                    padding={space.l}
-                    textAlign="center"
-                    backgroundColor={colors.soap100}
-                    borderRadius="8px"
-                  >
-                    <Text color={colors.licorice500}>
-                      请从组织列表中选择一个组织来查看版本对比
-                    </Text>
-                  </Box>
-                )}
+                <Text>版本对比功能开发中...</Text>
               </Box>
-            </TabPanel>
+            </Tabs.Panel>
           )}
         </Tabs>
       </Card>
 
       {/* 时间线弹窗 */}
       {showTimelineModal && selectedOrganization && (
-        <Modal onClose={() => setShowTimelineModal(false)}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}
+        >
           <Card padding={space.l} minWidth="800px" maxHeight="80vh" overflow="auto">
             <Flex justifyContent="space-between" alignItems="center" marginBottom={space.m}>
               <Text fontSize="large" fontWeight="bold">
@@ -186,12 +164,25 @@ export const TemporalDashboard: React.FC<TemporalDashboardProps> = ({
               showActions={true}
             />
           </Card>
-        </Modal>
+        </div>
       )}
 
       {/* 版本对比弹窗 */}
       {showVersionModal && selectedOrganization && (
-        <Modal onClose={() => setShowVersionModal(false)}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}
+        >
           <Card padding={space.l} minWidth="1000px" maxHeight="80vh" overflow="auto">
             <Flex justifyContent="space-between" alignItems="center" marginBottom={space.m}>
               <Text fontSize="large" fontWeight="bold">
@@ -206,7 +197,7 @@ export const TemporalDashboard: React.FC<TemporalDashboardProps> = ({
               compact={false}
             />
           </Card>
-        </Modal>
+        </div>
       )}
     </Box>
   );

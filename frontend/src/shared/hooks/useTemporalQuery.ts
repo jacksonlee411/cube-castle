@@ -5,7 +5,7 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
-import organizationAPI from '../api/organizations-simplified';
+import organizationAPI from '../api/organizations';
 import { useTemporalStore, useTemporalActions, temporalSelectors } from '../stores/temporalStore';
 import type { 
   TemporalQueryParams,
@@ -285,14 +285,14 @@ export function useTemporalQueryState() {
 
   // 使用稳定的actions引用
   const { setError, clearCache } = useTemporalActions();
+  const queryClient = useQueryClient();
 
   const clearError = useCallback(() => setError(null), [setError]);
 
   const refreshCache = useCallback(async () => {
-    const queryClient = useQueryClient();
     clearCache();
     await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.temporal });
-  }, [clearCache]);
+  }, [clearCache, queryClient]);
 
   return {
     loading,
@@ -391,7 +391,7 @@ export function useTemporalUtils() {
   }, [setQueryParams]);
 
   const setEventTypes = useCallback(
-    (eventTypes: string[]) => {
+    (_eventTypes: string[]) => {
       setQueryParams({ includeFuture: true });
     },
     [setQueryParams]

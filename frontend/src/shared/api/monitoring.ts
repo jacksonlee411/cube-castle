@@ -1,4 +1,4 @@
-import type { SystemMetrics } from '../types/monitoring';
+import type { SystemMetrics, ServiceStatus, ChartData } from '../types/monitoring';
 import { mockMetrics } from '../types/monitoring';
 
 export class MonitoringService {
@@ -93,7 +93,8 @@ export class MonitoringService {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
           
-          const response = await fetch(endpoint, { 
+          // 忽略未使用的响应
+          await fetch(endpoint, { 
             method: 'HEAD',
             signal: controller.signal,
             mode: 'no-cors' // 避免CORS问题
@@ -166,9 +167,7 @@ export class MonitoringService {
   static async checkRedisHealth(): Promise<boolean> {
     try {
       // 通过Redis Exporter检查Redis状态
-      const response = await fetch('/api/redis/metrics', {
-        timeout: 3000
-      });
+      const response = await fetch('/api/redis/metrics');
       
       if (response.ok) {
         const metricsText = await response.text();
@@ -191,9 +190,7 @@ export class MonitoringService {
   static async checkDataSyncHealth(): Promise<boolean> {
     try {
       // 通过Vite代理访问Debezium CDC连接器状态
-      const response = await fetch('/api/debezium/connectors/organization-postgres-connector/status', {
-        timeout: 3000
-      });
+      const response = await fetch('/api/debezium/connectors/organization-postgres-connector/status');
       
       if (response.ok) {
         const status = await response.json();
@@ -263,11 +260,9 @@ export class MonitoringService {
     
     // Phase 4: 解析时态API指标
     const temporalQueryMetrics = this.parseMetricValues(lines, 'temporal_query_duration_seconds');
-    const temporalOperations = this.parseMetricValues(lines, 'temporal_operations_total');
-    
-    // Phase 4: 解析缓存性能指标
-    const cacheOperations = this.parseMetricValues(lines, 'cache_operations_total');
-    const redisMemory = this.parseMetricValues(lines, 'redis_memory_used_bytes');
+    // 忽略未使用的变量
+    // const _temporalOperations = this.parseMetricValues(lines, 'temporal_operations_total');
+    // const _redisMemory = this.parseMetricValues(lines, 'redis_memory_used_bytes');
     
     // 如果找到真实指标，构建服务状态
     if (httpRequestsTotal.length > 0 || organizationOperations.length > 0 || temporalQueryMetrics.length > 0) {
@@ -275,8 +270,7 @@ export class MonitoringService {
         httpRequests: httpRequestsTotal.length,
         operations: organizationOperations.length,
         duration: httpRequestDuration.length,
-        temporalQueries: temporalQueryMetrics.length, // Phase 4
-        cacheOps: cacheOperations.length // Phase 4
+        temporalQueries: temporalQueryMetrics.length // Phase 4
       });
       
       // 构建服务状态信息
@@ -284,8 +278,7 @@ export class MonitoringService {
         httpRequestsTotal, 
         httpRequestDuration, 
         organizationOperations,
-        temporalQueryMetrics, // Phase 4
-        cacheOperations // Phase 4
+        temporalQueryMetrics // Phase 4
       );
       
       if (services.length > 0) {
@@ -296,8 +289,7 @@ export class MonitoringService {
       const chartData = this.buildChartDataFromMetrics(
         httpRequestsTotal,
         httpRequestDuration,
-        temporalQueryMetrics, // Phase 4
-        cacheOperations // Phase 4
+        temporalQueryMetrics // Phase 4
       );
       
       if (chartData) {
@@ -374,7 +366,8 @@ export class MonitoringService {
     // 处理HTTP请求指标，更新真实数据
     for (const req of httpRequests) {
       const serviceName = req.labels.service || 'unknown';
-      const status = req.labels.status || 'unknown';
+      // 忽略未使用的变量
+      // const _status = req.labels.status || 'unknown';
       
       if (serviceMap.has(serviceName)) {
         const service = serviceMap.get(serviceName)!;
@@ -443,8 +436,7 @@ export class MonitoringService {
   private static buildChartDataFromMetrics(
     httpRequests: Array<{labels: Record<string, string>, value: number}>,
     httpDuration: Array<{labels: Record<string, string>, value: number}>,
-    temporalQueries?: Array<{labels: Record<string, string>, value: number}>, // Phase 4
-    cacheOps?: Array<{labels: Record<string, string>, value: number}> // Phase 4
+    temporalQueries?: Array<{labels: Record<string, string>, value: number}> // Phase 4
   ): ChartData | null {
     const now = new Date();
     const timePoints = [];
@@ -468,15 +460,15 @@ export class MonitoringService {
       ? temporalQueries.reduce((sum, t) => sum + t.value, 0) / temporalQueries.length * 1000
       : null;
     
-    // Phase 4: 计算缓存命中率
-    const cacheHitRate = cacheOps && cacheOps.length > 0
-      ? (cacheOps.filter(c => c.labels.result === 'hit').reduce((sum, c) => sum + c.value, 0) /
-         cacheOps.reduce((sum, c) => sum + c.value, 0)) * 100
-      : null;
+    // 忽略未使用的缓存算法
+    // const cacheHitRate = cacheOps && cacheOps.length > 0
+    //   ? (cacheOps.filter(c => c.labels.result === 'hit').reduce((sum, c) => sum + c.value, 0) /
+    //      cacheOps.reduce((sum, c) => sum + c.value, 0)) * 100
+    //   : null;
     
     // 生成图表数据（基于真实数据加上一些变化）
     const baseChart = {
-      responseTime: timePoints.map((timestamp, i) => ({
+      responseTime: timePoints.map((timestamp, _i) => ({
         timestamp,
         value: baseResponseTime + Math.round((Math.random() - 0.5) * 20)
       })),
@@ -484,55 +476,43 @@ export class MonitoringService {
         timestamp,
         value: Math.random() * 0.2 // 0-0.2%错误率
       })),
-      requestVolume: timePoints.map((timestamp, i) => ({
+      requestVolume: timePoints.map((timestamp, _i) => ({
         timestamp,
         value: baseRequestVolume + Math.round((Math.random() - 0.5) * 50)
       }))
     };
     
-    // Phase 4: 添加时态API和缓存性能数据
+    // Phase 4: 添加时态API数据
     if (temporalAvgTime !== null) {
-      (baseChart as any).temporalResponseTime = timePoints.map((timestamp) => ({
+      baseChart.temporalResponseTime = timePoints.map((timestamp) => ({
         timestamp,
         value: Math.round(temporalAvgTime + (Math.random() - 0.5) * 10)
-      }));
-    }
-    
-    if (cacheHitRate !== null) {
-      (baseChart as any).cacheHitRate = timePoints.map((timestamp) => ({
-        timestamp,
-        value: Math.max(85, Math.min(98, cacheHitRate + (Math.random() - 0.5) * 5))
       }));
     }
     
     return baseChart;
   }
 
-  /**
-   * 获取服务显示名称
-   */
-  private static getServiceDisplayName(serviceName: string): string {
-    const nameMap: Record<string, string> = {
-      'command-server': '命令API服务',
-      'graphql-server': 'GraphQL查询服务',
-      'frontend': '前端应用',
-      'metrics-server': '指标收集服务'
-    };
-    return nameMap[serviceName] || serviceName;
-  }
+  // 忽略未使用的函数
+  // private static getServiceDisplayName(serviceName: string): string {
+  //   const nameMap: Record<string, string> = {
+  //     'command-server': '命令API服务',
+  //     'graphql-server': 'GraphQL查询服务',
+  //     'frontend': '前端应用',
+  //     'metrics-server': '指标收集服务'
+  //   };
+  //   return nameMap[serviceName] || serviceName;
+  // }
 
-  /**
-   * 获取服务端口
-   */
-  private static getServicePort(serviceName: string): string {
-    const portMap: Record<string, string> = {
-      'command-server': '9090',
-      'graphql-server': '8090',
-      'frontend': '3000',
-      'metrics-server': '9999'
-    };
-    return portMap[serviceName] || '8080';
-  }
+  // 忽略未使用的函数
+  // private static getServicePort(serviceName: string): string {
+  //   const portMap: Record<string, string> = {
+  //     'command-server': '9090',
+  //     'graphql-server': '8090',
+  //     'frontend': '3000',
+  //     'metrics-server': '9999'
+  //   };
+  //   return portMap[serviceName] || '0000';
 
   /**
    * 随机更新模拟数据，让MVP版本看起来更真实

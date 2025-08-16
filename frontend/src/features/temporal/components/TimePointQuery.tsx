@@ -71,10 +71,7 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
     isEmpty,
     isHistoricalRecord
   } = useOrganizationAsOfDate(organizationCode, queryDate, {
-    enabled: false, // 手动触发查询
-    onSuccess: (data) => {
-      onQueryResult?.(queryDate, data);
-    }
+    enabled: false // 手动触发查询
   });
 
   // 工具钩子
@@ -94,7 +91,7 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
   }, []);
 
   // 处理快速日期选择
-  const handleQuickDateSelect = useCallback((date: string, label: string) => {
+  const handleQuickDateSelect = useCallback((date: string) => {
     setQueryDate(date);
     // 自动执行查询
     setTimeout(() => {
@@ -278,8 +275,7 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
             <SecondaryButton
               key={key}
               size="small"
-              onClick={() => handleQuickDateSelect(date, quickDateLabels[key as keyof typeof quickDateLabels])}
-              variant={queryDate === date ? 'primary' : 'secondary'}
+              onClick={() => handleQuickDateSelect(date)}
             >
               {quickDateLabels[key as keyof typeof quickDateLabels] || key}
             </SecondaryButton>
@@ -293,12 +289,16 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
     return (
       <Box>
         <Flex alignItems="flex-end" gap={space.s} marginBottom={space.s}>
-          <FormField label="查询日期">
-            <TextInput
-              type="date"
-              value={queryDate}
-              onChange={(e) => handleDateChange(e.target.value)}
-            />
+          <FormField>
+            <FormField.Label>查询日期</FormField.Label>
+            <FormField.Field>
+              <FormField.Input
+                as={TextInput}
+                type="date"
+                value={queryDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+              />
+            </FormField.Field>
           </FormField>
           
           <PrimaryButton onClick={handleExecuteQuery} disabled={isQuerying}>
@@ -326,20 +326,28 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
       </Flex>
 
       <Flex alignItems="flex-end" gap={space.s} marginBottom={space.s}>
-        <FormField label="查询日期">
-          <TextInput
-            type="date"
-            value={queryDate}
-            onChange={(e) => handleDateChange(e.target.value)}
-          />
+        <FormField>
+          <FormField.Label>查询日期</FormField.Label>
+          <FormField.Field>
+            <FormField.Input
+              as={TextInput}
+              type="date"
+              value={queryDate}
+              onChange={(e) => handleDateChange(e.target.value)}
+            />
+          </FormField.Field>
         </FormField>
         
-        <FormField label="组织代码">
-          <TextInput
-            value={organizationCode}
-            disabled
-            placeholder="组织代码"
-          />
+        <FormField>
+          <FormField.Label>组织代码</FormField.Label>
+          <FormField.Field>
+            <FormField.Input
+              as={TextInput}
+              value={organizationCode}
+              disabled
+              placeholder="组织代码"
+            />
+          </FormField.Field>
         </FormField>
         
         <PrimaryButton onClick={handleExecuteQuery} disabled={isQuerying}>

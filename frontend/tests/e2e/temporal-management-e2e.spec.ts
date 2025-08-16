@@ -391,7 +391,12 @@ test.describe('时态管理系统 E2E 测试套件', () => {
 });
 
 // 辅助函数：创建测试组织
-async function createTestOrganization(page: Page, orgData: any) {
+async function createTestOrganization(page: Page, orgData: {
+  name: string;
+  unit_type?: string;
+  status?: string;
+  description?: string;
+}) {
   const addButton = page.locator('button:has-text("新增组织")').first();
   await addButton.click();
   

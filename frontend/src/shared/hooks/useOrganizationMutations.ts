@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { organizationAPI } from '../api/organizations-simplified';
+import { organizationAPI } from '../api/organizations';
 import type { OrganizationUnit, OrganizationStatus } from '../types';
 
 // 新增组织单元的输入类型
@@ -12,6 +12,7 @@ export interface CreateOrganizationInput {
   level: number;
   sort_order: number;
   description?: string;
+  [key: string]: unknown; // 添加索引签名以兼容Record<string, unknown>
 }
 
 // 更新组织单元的输入类型
@@ -24,6 +25,7 @@ export interface UpdateOrganizationInput {
   sort_order?: number;
   level?: number;
   parent_code?: string;
+  [key: string]: unknown; // 添加索引签名以兼容Record<string, unknown>
 }
 
 // 状态切换输入类型
@@ -43,8 +45,8 @@ export const useCreateOrganization = () => {
       console.log('[Mutation] Create successful:', response);
       return response;
     },
-    onSuccess: () => {
-      console.log('[Mutation] Create success, invalidating queries');
+    onSettled: () => {
+      console.log('[Mutation] Create settled, invalidating queries');
       
       // 立即失效所有相关查询缓存
       queryClient.invalidateQueries({ 
@@ -70,9 +72,6 @@ export const useCreateOrganization = () => {
       
       console.log('[Mutation] Create cache invalidation and refetch completed');
     },
-    onError: (error) => {
-      console.error('[Mutation] Create failed:', error);
-    },
   });
 };
 
@@ -87,8 +86,8 @@ export const useUpdateOrganization = () => {
       console.log('[Mutation] Update successful:', response);
       return response;
     },
-    onSuccess: (updatedOrganization, variables) => {
-      console.log('[Mutation] Update success, invalidating queries for:', variables.code);
+    onSettled: (data, error, variables) => {
+      console.log('[Mutation] Update settled:', variables.code);
       
       // 立即失效所有相关查询缓存
       queryClient.invalidateQueries({ 
@@ -118,7 +117,9 @@ export const useUpdateOrganization = () => {
       });
       
       // 新增：直接设置缓存数据以提供即时反馈
-      queryClient.setQueryData(['organization', variables.code], updatedOrganization);
+      if (data) {
+        queryClient.setQueryData(['organization', variables.code], data);
+      }
       
       // 新增：移除过时的缓存数据
       queryClient.removeQueries({ 
@@ -128,9 +129,6 @@ export const useUpdateOrganization = () => {
       });
       
       console.log('[Mutation] Update cache invalidation and refetch completed');
-    },
-    onError: (error) => {
-      console.error('[Mutation] Update failed:', error);
     },
   });
 };
@@ -149,8 +147,8 @@ export const useToggleOrganizationStatus = () => {
       console.log('[Mutation] Toggle status successful:', response);
       return response;
     },
-    onSuccess: (updatedOrganization, variables) => {
-      console.log('[Mutation] Status toggle success, invalidating queries for:', variables.code);
+    onSettled: (data, error, variables) => {
+      console.log('[Mutation] Status toggle settled:', variables.code);
       
       // 立即失效所有相关查询缓存 - 遵循CQRS原则
       queryClient.invalidateQueries({ 
@@ -180,7 +178,9 @@ export const useToggleOrganizationStatus = () => {
       });
       
       // 新增：直接设置缓存数据以提供即时反馈
-      queryClient.setQueryData(['organization', variables.code], updatedOrganization);
+      if (data) {
+        queryClient.setQueryData(['organization', variables.code], data);
+      }
       
       // 新增：移除过时的缓存数据
       queryClient.removeQueries({ 
@@ -193,9 +193,6 @@ export const useToggleOrganizationStatus = () => {
       queryClient.clear();
       
       console.log('[Mutation] Status toggle cache invalidation and refetch completed');
-    },
-    onError: (error) => {
-      console.error('[Mutation] Toggle status failed:', error);
     },
   });
 };

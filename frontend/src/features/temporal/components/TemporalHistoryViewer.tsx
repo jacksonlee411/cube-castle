@@ -9,7 +9,6 @@ import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
-import { Select } from '@workday/canvas-kit-react/select';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { 
   colors, 
@@ -28,7 +27,6 @@ const fontSizes = {
 };
 import {
   calendarIcon,
-  searchIcon,
   filterIcon
 } from '@workday/canvas-system-icons-web';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
@@ -41,8 +39,7 @@ import {
   useTemporalCacheManager
 } from '../../../shared/hooks/useTemporalGraphQL';
 import type { 
-  TemporalOrganizationUnit,
-  TimelineEvent
+  TemporalOrganizationUnit
 } from '../../../shared/types/temporal';
 
 interface TemporalHistoryViewerProps {
@@ -80,10 +77,7 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
     error: historyError,
     refetch: refetchHistory,
     hasHistory,
-    historyCount,
-    latestRecord,
-    currentRecord,
-    historicalRecords
+    historyCount
   } = useOrganizationHistory(organizationCode, {
     fromDate: dateRange.fromDate,
     toDate: dateRange.toDate
@@ -97,15 +91,19 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
     hasData: hasAsOfDateData,
     isHistoricalRecord
   } = useOrganizationAsOfDate(organizationCode, asOfDate, {
-    enabled: showTimePointQuery,
-    onSuccess: (data) => {
-      onTimePointQuery?.(asOfDate, data);
-    }
+    enabled: showTimePointQuery
   });
+
+  // 处理onSuccess回调
+  React.useEffect(() => {
+    if (asOfDateRecord && showTimePointQuery) {
+      onTimePointQuery?.(asOfDate, asOfDateRecord);
+    }
+  }, [asOfDateRecord, asOfDate, showTimePointQuery, onTimePointQuery]);
 
   // 工具钩子
   const { getCommonDatePoints, formatTemporalRecord, compareRecords } = useTemporalQueryUtils();
-  const { clearAllTemporalCache, invalidateHistoryCache } = useTemporalCacheManager();
+  const { clearAllTemporalCache } = useTemporalCacheManager();
 
   // 常用时间点
   const commonDates = useMemo(() => getCommonDatePoints(), [getCommonDatePoints]);
@@ -178,7 +176,6 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
         {historyRecords.map((record, index) => {
           const formatted = formatTemporalRecord(record);
           const isFirst = index === 0;
-          const isLast = index === historyRecords.length - 1;
           
           return (
             <Card
@@ -326,12 +323,16 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
         </Flex>
 
         <Flex alignItems="flex-end" gap={space.s} marginBottom={space.m}>
-          <FormField label="查询日期">
-            <TextInput
-              type="date"
-              value={asOfDate}
-              onChange={(e) => setAsOfDate(e.target.value)}
-            />
+          <FormField>
+            <FormField.Label>查询日期</FormField.Label>
+            <FormField.Field>
+              <FormField.Input
+                as={TextInput}
+                type="date"
+                value={asOfDate}
+                onChange={(e) => setAsOfDate(e.target.value)}
+              />
+            </FormField.Field>
           </FormField>
           
           <PrimaryButton onClick={handleAsOfDateQuery} disabled={isAsOfDateLoading}>
@@ -454,19 +455,27 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
           </Flex>
           
           <Flex gap={space.s}>
-            <FormField label="起始日期">
-              <TextInput
-                type="date"
-                value={dateRange.fromDate}
-                onChange={(e) => handleDateRangeChange('fromDate', e.target.value)}
-              />
+            <FormField>
+              <FormField.Label>起始日期</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextInput}
+                  type="date"
+                  value={dateRange.fromDate}
+                  onChange={(e) => handleDateRangeChange('fromDate', e.target.value)}
+                />
+              </FormField.Field>
             </FormField>
-            <FormField label="结束日期">
-              <TextInput
-                type="date"
-                value={dateRange.toDate}
-                onChange={(e) => handleDateRangeChange('toDate', e.target.value)}
-              />
+            <FormField>
+              <FormField.Label>结束日期</FormField.Label>
+              <FormField.Field>
+                <FormField.Input
+                  as={TextInput}
+                  type="date"
+                  value={dateRange.toDate}
+                  onChange={(e) => handleDateRangeChange('toDate', e.target.value)}
+                />
+              </FormField.Field>
             </FormField>
           </Flex>
         </Card>

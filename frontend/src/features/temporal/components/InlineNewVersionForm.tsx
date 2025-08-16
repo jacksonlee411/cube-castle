@@ -175,51 +175,61 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             </Heading>
             
             <Box marginLeft="m">
-              <FormField label="组织名称" required error={errors.name}>
-                <TextInput
-                  value={formData.name}
-                  onChange={handleInputChange('name')}
-                  placeholder="请输入组织名称"
-                  disabled={isSubmitting}
-                />
+              <FormField error={errors.name ? "error" : undefined}>
+                <FormField.Label>组织名称 *</FormField.Label>
+                <FormField.Field>
+                  <TextInput
+                    value={formData.name}
+                    onChange={handleInputChange('name')}
+                    placeholder="请输入组织名称"
+                    disabled={isSubmitting}
+                  />
+                </FormField.Field>
               </FormField>
 
-              <FormField label="组织类型" required>
-                <Select
-                  value={formData.unit_type}
-                  onChange={handleInputChange('unit_type')}
-                  disabled={isSubmitting}
-                >
-                  {unitTypeOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+              <FormField>
+                <FormField.Label>组织类型 *</FormField.Label>
+                <FormField.Field>
+                  <Select
+                    value={formData.unit_type}
+                    onChange={handleInputChange('unit_type')}
+                  >
+                    {unitTypeOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField.Field>
               </FormField>
 
-              <FormField label="组织状态" required>
-                <Select
-                  value={formData.status}
-                  onChange={handleInputChange('status')}
-                  disabled={isSubmitting}
-                >
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+              <FormField>
+                <FormField.Label>组织状态 *</FormField.Label>
+                <FormField.Field>
+                  <Select
+                    value={formData.status}
+                    onChange={handleInputChange('status')}
+                  >
+                    {statusOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField.Field>
               </FormField>
 
-              <FormField label="描述信息">
-                <TextArea
-                  value={formData.description}
-                  onChange={handleInputChange('description')}
-                  placeholder="请输入组织描述信息"
-                  disabled={isSubmitting}
-                  rows={3}
-                />
+              <FormField>
+                <FormField.Label>描述信息</FormField.Label>
+                <FormField.Field>
+                  <TextArea
+                    value={formData.description}
+                    onChange={handleInputChange('description')}
+                    placeholder="请输入组织描述信息"
+                    disabled={isSubmitting}
+                    rows={3}
+                  />
+                </FormField.Field>
               </FormField>
             </Box>
           </Box>
@@ -231,37 +241,45 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             </Heading>
 
             <Box marginLeft="m">
-              <FormField label="生效日期" required error={errors.effective_date}>
-                <TextInput
-                  type="date"
-                  value={formData.effective_date}
-                  onChange={handleInputChange('effective_date')}
-                  disabled={isSubmitting}
-                />
+              <FormField error={errors.effective_date ? "error" : undefined}>
+                <FormField.Label>生效日期 *</FormField.Label>
+                <FormField.Field>
+                  <TextInput
+                    type="date"
+                    value={formData.effective_date}
+                    onChange={handleInputChange('effective_date')}
+                    disabled={isSubmitting}
+                  />
+                </FormField.Field>
               </FormField>
 
-              <FormField label="事件类型" required>
-                <Select
-                  value={formData.event_type}
-                  onChange={handleInputChange('event_type')}
-                  disabled={isSubmitting}
-                >
-                  {eventTypeOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+              <FormField>
+                <FormField.Label>事件类型 *</FormField.Label>
+                <FormField.Field>
+                  <Select
+                    value={formData.event_type}
+                    onChange={handleInputChange('event_type')}
+                  >
+                    {eventTypeOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField.Field>
               </FormField>
 
-              <FormField label="变更原因" required error={errors.change_reason}>
-                <TextArea
-                  value={formData.change_reason}
-                  onChange={handleInputChange('change_reason')}
-                  placeholder="请详细说明此次变更的原因和目的"
-                  disabled={isSubmitting}
-                  rows={3}
-                />
+              <FormField error={errors.change_reason ? "error" : undefined}>
+                <FormField.Label>变更原因 *</FormField.Label>
+                <FormField.Field>
+                  <TextArea
+                    value={formData.change_reason}
+                    onChange={handleInputChange('change_reason')}
+                    placeholder="请详细说明此次变更的原因和目的"
+                    disabled={isSubmitting}
+                    rows={3}
+                  />
+                </FormField.Field>
               </FormField>
             </Box>
           </Box>

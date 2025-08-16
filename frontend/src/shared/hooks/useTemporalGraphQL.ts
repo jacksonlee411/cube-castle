@@ -2,15 +2,14 @@
  * 时态管理React钩子 - 基于GraphQL时态查询
  * 提供organizationAsOfDate和organizationHistory的React集成
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import temporalAPI from '../api/temporal-graphql-client';
 import type { 
   TemporalQueryParams,
   TemporalOrganizationUnit,
-  TimelineEvent,
-  TemporalMode
+  TimelineEvent
 } from '../types/temporal';
 
 // 时态查询键生成器
@@ -45,8 +44,6 @@ export function useOrganizationAsOfDate(
   asOfDate: string,
   options?: {
     enabled?: boolean;
-    onSuccess?: (data: TemporalOrganizationUnit | null) => void;
-    onError?: (error: Error) => void;
   }
 ): UseQueryResult<TemporalOrganizationUnit | null> & {
   hasData: boolean;
@@ -58,8 +55,6 @@ export function useOrganizationAsOfDate(
     queryFn: () => temporalAPI.getOrganizationAsOfDate(code, asOfDate),
     ...TEMPORAL_CACHE_CONFIG,
     enabled: !!(code && asOfDate && options?.enabled !== false),
-    onSuccess: options?.onSuccess,
-    onError: options?.onError,
   });
 
   const hasData = !!query.data;
@@ -143,7 +138,7 @@ export function useOrganizationTimeline(
 
   // 按年份分组事件
   const eventsGroupedByYear = query.data?.reduce((groups, event) => {
-    const year = new Date(event.eventDate).getFullYear().toString();
+    const year = new Date(event.timestamp).getFullYear().toString(); // 修正：使用timestamp而非eventDate
     if (!groups[year]) {
       groups[year] = [];
     }
@@ -168,7 +163,6 @@ export function useBatchOrganizationsAsOfDate(
   asOfDate: string,
   options?: {
     enabled?: boolean;
-    onSuccess?: (data: Record<string, TemporalOrganizationUnit | null>) => void;
   }
 ): UseQueryResult<Record<string, TemporalOrganizationUnit | null>> & {
   successCount: number;
@@ -180,7 +174,6 @@ export function useBatchOrganizationsAsOfDate(
     queryFn: () => temporalAPI.getBatchOrganizationsAsOfDate(codes, asOfDate),
     ...TEMPORAL_CACHE_CONFIG,
     enabled: !!(codes.length > 0 && asOfDate && options?.enabled !== false),
-    onSuccess: options?.onSuccess,
   });
 
   const successCount = Object.values(query.data || {}).filter(Boolean).length;
@@ -227,7 +220,7 @@ export function useTemporalCacheManager() {
   const invalidateAsOfDateCache = useCallback(
     (code?: string) => {
       const queryKey = code 
-        ? TEMPORAL_QUERY_KEYS.asOfDate(code, '*' as any)
+        ? TEMPORAL_QUERY_KEYS.asOfDate(code, '*')
         : TEMPORAL_QUERY_KEYS.temporal;
       return queryClient.invalidateQueries({ queryKey });
     },
@@ -323,8 +316,8 @@ export function useTemporalQueryUtils() {
     (record1: TemporalOrganizationUnit, record2: TemporalOrganizationUnit) => {
       const changes: Array<{
         field: string;
-        oldValue: any;
-        newValue: any;
+        oldValue: string | number | undefined;
+        newValue: string | number | undefined;
         displayName: string;
       }> = [];
 
@@ -338,8 +331,8 @@ export function useTemporalQueryUtils() {
       };
 
       Object.entries(fieldMappings).forEach(([field, displayName]) => {
-        const oldValue = (record1 as any)[field];
-        const newValue = (record2 as any)[field];
+        const oldValue = (record1 as any)[field]; // 修正：使用any类型避免类型转换错误
+        const newValue = (record2 as any)[field]; // 修正：使用any类型避免类型转换错误
         
         if (oldValue !== newValue) {
           changes.push({

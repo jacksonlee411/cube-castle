@@ -7,9 +7,7 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Text } from '@workday/canvas-kit-react/text';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
-import { Modal } from '@workday/canvas-kit-react/modal';
 import { Card } from '@workday/canvas-kit-react/card';
-import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
 
 export interface DateTimePickerProps {
@@ -129,18 +127,6 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     setCustomInput(dateTime);
   }, []);
 
-  // 处理日期变更
-  const handleDateChange = useCallback((date: string) => {
-    setSelectedDate(date);
-    updateCustomInput(date, selectedTime);
-  }, [selectedTime]);
-
-  // 处理时间变更
-  const handleTimeChange = useCallback((time: string) => {
-    setSelectedTime(time);
-    updateCustomInput(selectedDate, time);
-  }, [selectedDate]);
-
   // 更新自定义输入
   const updateCustomInput = useCallback((date: string, time: string) => {
     if (date) {
@@ -148,6 +134,18 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
       setCustomInput(dateTime);
     }
   }, [showTime]);
+
+  // 处理日期变更
+  const handleDateChange = useCallback((date: string) => {
+    setSelectedDate(date);
+    updateCustomInput(date, selectedTime);
+  }, [selectedTime, updateCustomInput]);
+
+  // 处理时间变更
+  const handleTimeChange = useCallback((time: string) => {
+    setSelectedTime(time);
+    updateCustomInput(selectedDate, time);
+  }, [selectedDate, updateCustomInput]);
 
   // 处理自定义输入变更
   const handleCustomInputChange = useCallback((value: string) => {
@@ -222,11 +220,25 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   }
 
   return (
-    <Modal onClose={onClose}>
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000
+      }}
+    >
       <Card 
         padding={space.l}
         minWidth="500px"
         maxWidth="600px"
+        backgroundColor={colors.frenchVanilla100}
       >
         <Box marginBottom={space.m}>
           <Text fontSize="large" fontWeight="bold">
@@ -251,7 +263,6 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 {presetOptions.map((preset, index) => (
                   <SecondaryButton
                     key={index}
-                    variant="plain"
                     size="small"
                     onClick={() => handlePresetClick(preset)}
                     style={{
@@ -276,7 +287,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             </Box>
           )}
 
-          <Divider orientation="vertical" />
+          <Box width="1px" backgroundColor={colors.soap300} height="200px" marginX={space.s} />
 
           {/* 自定义选择 */}
           <Box flex="1">
@@ -339,7 +350,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
         {/* 操作按钮 */}
         <Flex justifyContent="flex-end" gap={space.s} marginTop={space.l}>
-          <SecondaryButton variant="secondary" onClick={onClose}>
+          <SecondaryButton onClick={onClose}>
             取消
           </SecondaryButton>
           <PrimaryButton onClick={handleConfirm}>
@@ -347,7 +358,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
           </PrimaryButton>
         </Flex>
       </Card>
-    </Modal>
+    </div>
   );
 };
 

@@ -84,7 +84,7 @@ const defaultState: TemporalState = {
     currentDate: new Date(),
     viewConfig: {
       showEvents: true,
-      showVersions: true,
+      showRecords: true,  // 修正：替换showVersions为showRecords
       dateFormat: 'YYYY-MM-DD',
       timeRange: {
         start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -102,7 +102,7 @@ const defaultState: TemporalState = {
     cacheConfig: {
       currentDataTTL: 300,
       historicalDataTTL: 3600,
-      maxVersionsCache: 100,
+      maxRecordsCache: 100,  // 修正：替换maxVersionsCache为maxRecordsCache
       enablePrefetch: false
     }
   },
@@ -119,7 +119,7 @@ const defaultState: TemporalState = {
   
   viewConfig: {
     showEvents: true,
-    showVersions: true,
+    showRecords: true,  // 修正：替换showVersions为showRecords
     dateFormat: 'YYYY-MM-DD',
     timeRange: {
       start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),

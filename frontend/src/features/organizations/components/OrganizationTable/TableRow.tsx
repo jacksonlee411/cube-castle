@@ -5,7 +5,6 @@ import { TableActions } from './TableActions';
 import type { OrganizationTableRowProps } from './TableTypes';
 import { 
   TemporalInfoDisplay, 
-  TemporalStatusBadge,
   TemporalDateRange 
 } from '../../../temporal/components/TemporalInfoDisplay';
 // import { TemporalStatus, temporalStatusUtils } from '../../../temporal/components/TemporalStatusSelector';
@@ -26,7 +25,6 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
   onTemporalManage,
   isToggling,
   isAnyToggling,
-  temporalMode = 'current',
   isHistorical = false,
   showTemporalInfo = false
 }) => {
@@ -134,7 +132,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
               format="short"
             />
           ) : (
-            <Text variant="small" color="licorice300">-</Text>
+            <Text typeLevel="body.small" color="hint">-</Text>
           )}
         </Table.Cell>
       )}

@@ -8,17 +8,16 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
-import { PrimaryButton, SecondaryButton, TertiaryButton, ToolbarIconButton as IconButton } from '@workday/canvas-kit-react/button';
+import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
-import { Modal } from '@workday/canvas-kit-react/modal';
+import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
 import { InlineNewVersionForm } from './InlineNewVersionForm';
 import { SimpleTimelineVisualization } from './SimpleTimelineVisualization';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { 
   colors, 
-  space, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
 // 暂时使用文本图标替代
@@ -122,14 +121,13 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
           <Heading size="small">时间轴导航</Heading>
           {!readonly && onAddVersion && (
             <Tooltip title="新增版本">
-              <IconButton
+              <TertiaryButton
                 aria-label="新增版本"
-                size="small"
-                variant="square"
                 onClick={onAddVersion}
+                size="small"
               >
                 ➕
-              </IconButton>
+              </TertiaryButton>
             </Tooltip>
           )}
         </Flex>
@@ -158,7 +156,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
           />
 
           {/* 版本节点 */}
-          {versions.map((version, index) => {
+          {versions.map((version) => {
             const statusInfo = getVersionStatusIndicator(version);
             const isSelected = selectedVersion?.effective_date === version.effective_date;
             
@@ -201,7 +199,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                           {formatDate(version.effective_date)}
                         </Text>
                         <Badge 
-                          color={statusInfo.color.replace('#', '') as any}
+                          color={statusInfo.color.replace('#', '') as 'primary' | 'secondary' | 'success' | 'warning' | 'danger'}
                           size="small"
                         >
                           {statusInfo.label}
@@ -210,17 +208,16 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                       
                       {!readonly && onDeleteVersion && !version.is_current && (
                         <Tooltip title="作废版本">
-                          <IconButton
+                          <TertiaryButton
                             aria-label="作废版本"
                             size="small"
-                            variant="square"
-                            onClick={(e) => {
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                               e.stopPropagation();
                               onDeleteVersion(version);
                             }}
                           >
                             🗑️
-                          </IconButton>
+                          </TertiaryButton>
                         </Tooltip>
                       )}
                     </Flex>
@@ -295,10 +292,9 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
 }) => {
   if (!version) {
     return (
-      <Box
-        flex="1"
+      <Flex
+        flex={1}
         padding="l"
-        display="flex"
         alignItems="center"
         justifyContent="center"
         backgroundColor="#F8F9FA"
@@ -311,7 +307,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
             请选择左侧时间轴节点查看版本详情
           </Text>
         </Box>
-      </Box>
+      </Flex>
     );
   }
 
@@ -336,7 +332,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
       label: status, 
       color: 'licorice400' 
     };
-    return <Badge color={config.color as any}>{config.label}</Badge>;
+    return <Badge color={config.color as 'greenFresca600' | 'cinnamon600' | 'blueberry600' | 'licorice400'}>{config.label}</Badge>;
   };
 
   // 智能操作按钮逻辑
@@ -417,7 +413,13 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
         </Flex>
 
         {/* 版本详细信息 */}
-        <Box display="grid" gridTemplateColumns="repeat(auto-fit, minmax(250px, 1fr))" gap="m">
+        <Box
+          cs={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+            gap: "16px" // 使用像素值而不是token
+          }}
+        >
           {/* 基本信息 */}
           <Box>
             <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={colors.blueberry600}>
@@ -539,6 +541,18 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   
   // 视图选项卡状态
   const [activeTab, setActiveTab] = useState<'details' | 'timeline' | 'new-version'>('details');
+
+  // Modal model for delete confirmation
+  const deleteModalModel = useModalModel();
+
+  // 同步Modal状态
+  React.useEffect(() => {
+    if (showDeleteConfirm && deleteModalModel.state.visibility !== 'visible') {
+      deleteModalModel.events.show();
+    } else if (!showDeleteConfirm && deleteModalModel.state.visibility === 'visible') {
+      deleteModalModel.events.hide();
+    }
+  }, [showDeleteConfirm, deleteModalModel]);
 
   // 加载时态版本数据
   const loadVersions = useCallback(async () => {
@@ -726,7 +740,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             <SecondaryButton
               size="small"
               onClick={() => setActiveTab('details')}
-              variant={activeTab === 'details' ? 'primary' : 'secondary'}
               style={{
                 backgroundColor: activeTab === 'details' ? colors.blueberry600 : 'transparent',
                 color: activeTab === 'details' ? 'white' : colors.blueberry600
@@ -737,7 +750,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             <SecondaryButton
               size="small"
               onClick={() => setActiveTab('timeline')}
-              variant={activeTab === 'timeline' ? 'primary' : 'secondary'}
               style={{
                 backgroundColor: activeTab === 'timeline' ? colors.blueberry600 : 'transparent',
                 color: activeTab === 'timeline' ? 'white' : colors.blueberry600
@@ -748,7 +760,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             <SecondaryButton
               size="small"
               onClick={() => setActiveTab('new-version')}
-              variant={activeTab === 'new-version' ? 'primary' : 'secondary'}
               style={{
                 backgroundColor: activeTab === 'new-version' ? colors.greenFresca600 : 'transparent',
                 color: activeTab === 'new-version' ? 'white' : colors.greenFresca600
@@ -785,11 +796,13 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
       {/* 作废确认对话框 */}
       {showDeleteConfirm && (
-        <Modal
-          onClose={() => setShowDeleteConfirm(null)}
-          heading="确认作废版本"
-        >
-          <Box padding="l">
+        <Modal model={deleteModalModel}>
+          <Modal.Overlay>
+            <Modal.Card>
+              <Modal.CloseIcon onClick={() => setShowDeleteConfirm(null)} />
+              <Modal.Heading>确认作废版本</Modal.Heading>
+              <Modal.Body>
+                <Box padding="l">
             <Flex alignItems="flex-start" gap="m" marginBottom="l">
               <Box fontSize="24px" color={colors.cinnamon600}>⚠️</Box>
               <Box>
@@ -819,7 +832,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 {isDeleting ? '作废中...' : '确认作废'}
               </PrimaryButton>
             </Flex>
-          </Box>
+              </Box>
+            </Modal.Body>
+          </Modal.Card>
+          </Modal.Overlay>
         </Modal>
       )}
 

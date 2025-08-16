@@ -3,7 +3,7 @@
  * 支持时间线的可视化、导航和操作
  */
 
-import type { TemporalOrganizationUnit, TimelineEvent, EventType, EventStatus } from './temporal';
+import type { TimelineEvent, EventType, EventStatus } from './temporal';
 
 // 时间线视图配置
 export interface TimelineViewConfig {

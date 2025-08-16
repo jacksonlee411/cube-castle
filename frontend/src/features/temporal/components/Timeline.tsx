@@ -6,32 +6,29 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
-import { PrimaryButton, SecondaryButton, ToolbarIconButton as IconButton } from '@workday/canvas-kit-react/button';
+import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { Menu } from '@workday/canvas-kit-react/menu';
 import { 
   colors, 
-  space, 
-  borderRadius,
-  fontSizes 
+  space
 } from '@workday/canvas-kit-react/tokens';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import {
-  AddIcon,
-  EditIcon,
-  DeleteIcon,
-  MoreVerticalIcon,
-  FilterIcon,
-  ExpandIcon,
-  CollapseIcon
-} from '@workday/canvas-kit-react/icon';
-import { useOrganizationTimeline } from '../../shared/hooks/useTemporalQuery';
+  addIcon,
+  moreVerticalIcon,
+  filterIcon,
+  expandIcon,
+  collapseIcon
+} from '@workday/canvas-system-icons-web';
+import { useOrganizationTimeline } from '../../../shared/hooks/useTemporalQuery';
 import type { 
   TimelineEvent, 
   EventType, 
   EventStatus,
   TemporalQueryParams
-} from '../../shared/types/temporal';
+} from '../../../shared/types/temporal';
 
 export interface TimelineProps {
   /** 组织代码 */
@@ -66,7 +63,6 @@ interface TimelineEventItemProps {
 
 const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
   event,
-  isFirst,
   isLast,
   compact,
   showActions,
@@ -188,16 +184,15 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
           {/* 操作菜单 */}
           {showActions && (
             <Box position="relative">
-              <IconButton
-                variant="plain"
+              <TertiaryButton
                 size="small"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                   e.stopPropagation();
                   setShowMenu(!showMenu);
                 }}
               >
                 <MoreVerticalIcon />
-              </IconButton>
+              </TertiaryButton>
 
               {showMenu && (
                 <Menu onClose={() => setShowMenu(false)}>
@@ -262,7 +257,6 @@ export const Timeline: React.FC<TimelineProps> = ({
   onAddEvent
 }) => {
   const [eventFilter, setEventFilter] = useState<EventType[]>([]);
-  const [statusFilter, setStatusFilter] = useState<EventStatus[]>([]);
   const [expanded, setExpanded] = useState(!compact);
 
   // 获取时间线数据
@@ -278,6 +272,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   // 筛选事件
   const filteredEvents = useMemo(() => {
+    const statusFilter: EventStatus[] = []; // No status filtering currently implemented
     let filtered = events;
 
     if (eventFilter.length > 0) {
@@ -289,7 +284,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     }
 
     return filtered.slice(0, maxEvents);
-  }, [events, eventFilter, statusFilter, maxEvents]);
+  }, [events, eventFilter, maxEvents]);
 
   // 获取事件类型统计
   const eventTypeStats = useMemo(() => {
@@ -306,14 +301,6 @@ export const Timeline: React.FC<TimelineProps> = ({
       prev.includes(eventType) 
         ? prev.filter(t => t !== eventType)
         : [...prev, eventType]
-    );
-  }, []);
-
-  const handleStatusFilter = useCallback((status: EventStatus) => {
-    setStatusFilter(prev => 
-      prev.includes(status) 
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
     );
   }, []);
 
@@ -367,21 +354,20 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* 筛选器按钮 */}
           {showFilters && (
             <Tooltip title="筛选事件">
-              <IconButton variant="plain" size="small">
+              <TertiaryButton size="small">
                 <FilterIcon />
-              </IconButton>
+              </TertiaryButton>
             </Tooltip>
           )}
 
           {/* 展开/收起按钮 */}
           <Tooltip title={expanded ? '收起时间线' : '展开时间线'}>
-            <IconButton 
-              variant="plain" 
+            <TertiaryButton 
               size="small"
               onClick={() => setExpanded(!expanded)}
             >
               {expanded ? <CollapseIcon /> : <ExpandIcon />}
-            </IconButton>
+            </TertiaryButton>
           </Tooltip>
 
           {/* 添加事件按钮 */}

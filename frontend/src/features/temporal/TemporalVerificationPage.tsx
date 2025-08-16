@@ -93,10 +93,15 @@ const SimpleBadge: React.FC<SimpleBadgeProps> = ({ children, variant = 'neutral'
  */
 export const TemporalVerificationPage: React.FC = () => {
   // 状态管理
-  const [selectedOrgCode, setSelectedOrgCode] = useState<string | null>(null);
+  const [, setSelectedOrgCode] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [temporalServiceStatus, setTemporalServiceStatus] = useState<'checking' | 'healthy' | 'error' | 'unknown'>('checking');
-  const [healthData, setHealthData] = useState<any>(null);
+  const [healthData, setHealthData] = useState<{
+    service: string;
+    status: string;
+    features?: string[];
+    timestamp: string;
+  } | null>(null);
 
   // 检查时态服务健康状态
   useEffect(() => {

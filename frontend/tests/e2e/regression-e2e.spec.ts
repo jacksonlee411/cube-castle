@@ -145,7 +145,7 @@ test.describe('回归测试和兼容性验证', () => {
         const testData = { test: 'value' };
         const { test } = testData; // 解构赋值
         return Promise.resolve(test === 'value');
-      } catch (error) {
+      } catch (_error) {
         return false;
       }
     });
@@ -164,7 +164,7 @@ test.describe('回归测试和兼容性验证', () => {
       try {
         const response = await fetch('http://localhost:8090/health');
         return response.ok;
-      } catch (error) {
+      } catch (_error) {
         return false;
       }
     });
@@ -187,11 +187,11 @@ test.describe('回归测试和兼容性验证', () => {
 
     // 2. 测试内存使用情况
     const memoryUsage = await page.evaluate(() => {
-      // @ts-ignore
+      // @ts-expect-error - performance.memory is not in standard types but exists in Chrome
       return performance.memory ? {
-        // @ts-ignore
+        // @ts-expect-error - performance.memory is not in standard types but exists in Chrome
         usedJSHeapSize: performance.memory.usedJSHeapSize,
-        // @ts-ignore
+        // @ts-expect-error - performance.memory is not in standard types but exists in Chrome
         totalJSHeapSize: performance.memory.totalJSHeapSize
       } : null;
     });

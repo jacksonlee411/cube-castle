@@ -43,12 +43,16 @@ export const TemporalDatePicker: React.FC<TemporalDatePickerProps> = ({
 
   return (
     <FormField
-      label={label}
-      required={required}
-      error={error ? FormField.ErrorType.Error : undefined}
-      hintText={error || helperText}
+      isRequired={required}
+      error={error ? "error" : undefined}
     >
-      <TextInput {...inputProps} />
+      <FormField.Label>{label}</FormField.Label>
+      <FormField.Field>
+        <FormField.Input as={TextInput} {...inputProps} />
+        {(error || helperText) && (
+          <FormField.Hint>{error || helperText}</FormField.Hint>
+        )}
+      </FormField.Field>
     </FormField>
   );
 };

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useOrganizations, useOrganizationStats } from '../../../shared/hooks/useOrganizations';
 // import { useTemporalOrganizations, useTemporalMode, useTemporalQueryState } from '../../../shared/hooks/useTemporalQuery';
-import type { OrganizationQueryParams } from '../../../shared/api/organizations';
+import type { OrganizationQueryParams } from '../../../shared/types/organization';
 import type { OrganizationUnitType, OrganizationStatus } from '../../../shared/types/api';
 import type { FilterState } from '../OrganizationFilters';
 
@@ -20,9 +20,6 @@ export const useOrganizationDashboard = () => {
   // 时态模式和状态 - 暂时禁用
   // const { isCurrent, isHistorical, isPlanning } = useTemporalMode();
   // const { context: temporalContext } = useTemporalQueryState();
-  const isCurrent = true;
-  const isHistorical = false;
-  const isPlanning = false;
 
   // Convert filters to query parameters
   const queryParams: OrganizationQueryParams = useMemo(() => ({

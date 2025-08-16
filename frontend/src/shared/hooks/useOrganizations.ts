@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { organizationAPI, type OrganizationQueryParams } from '../api';
+import { organizationAPI } from '../api';
+import type { OrganizationQueryParams } from '../types/organization';
 
 // 组织单元列表查询 - 修复无限循环问题
 export const useOrganizations = (params?: OrganizationQueryParams) => {

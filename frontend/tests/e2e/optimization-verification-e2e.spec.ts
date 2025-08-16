@@ -121,7 +121,7 @@ test.describe('优化效果验证测试', () => {
         }, port);
         
         if (response) activeServices.push(port);
-      } catch (error) {
+      } catch (_error) {
         // 服务不可用
       }
     }

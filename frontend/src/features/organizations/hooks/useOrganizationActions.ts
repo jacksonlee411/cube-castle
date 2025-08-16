@@ -45,9 +45,10 @@ export const useOrganizationActions = () => {
     try {
       if (selectedOrg) {
         // Edit mode
+        const { code: _, ...updateData } = data as UpdateOrganizationInput;
         await updateMutation.mutateAsync({ 
           code: selectedOrg.code, 
-          ...data as UpdateOrganizationInput 
+          ...updateData 
         });
       } else {
         // Create mode
@@ -57,7 +58,7 @@ export const useOrganizationActions = () => {
     } catch (error) {
       console.error('Form submission failed:', error);
     }
-  }, [selectedOrg, createMutation, updateMutation]);
+  }, [selectedOrg, createMutation, updateMutation, handleFormClose]);
 
   // Get the currently toggling item ID for UI state
   const togglingId = toggleStatusMutation.isPending ? toggleStatusMutation.variables?.code : undefined;

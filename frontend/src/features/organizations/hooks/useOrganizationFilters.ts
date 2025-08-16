@@ -20,7 +20,7 @@ export const useOrganizationFilters = (
     });
   };
 
-  const updateFilter = (field: keyof FilterState, value: any) => {
+  const updateFilter = (field: keyof FilterState, value: FilterState[keyof FilterState]) => {
     onFiltersChange({
       ...filters,
       [field]: value,

@@ -7,9 +7,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TemporalTable } from '../TemporalTable';
 import type { OrganizationUnit } from '../../../shared/types/organization';
 
+// 导入要mock的模块
+import * as useTemporalQuery from '../../../shared/hooks/useTemporalQuery';
+import * as temporalStore from '../../../shared/stores/temporalStore';
+
 // 模拟钩子
 jest.mock('../../../shared/hooks/useTemporalQuery');
 jest.mock('../../../shared/stores/temporalStore');
+
+// 类型断言mock函数
+const mockUseTemporalQuery = useTemporalQuery as jest.Mocked<typeof useTemporalQuery>;
+const mockTemporalStore = temporalStore as jest.Mocked<typeof temporalStore>;
 
 // 模拟数据
 const mockOrganizations: OrganizationUnit[] = [
@@ -56,7 +64,7 @@ describe('TemporalTable', () => {
     jest.clearAllMocks();
     
     // 模拟钩子返回值
-    require('../../../shared/hooks/useTemporalQuery').useTemporalOrganizations.mockReturnValue({
+    mockUseTemporalQuery.useTemporalOrganizations.mockReturnValue({
       data: mockOrganizations,
       isLoading: false,
       isError: false,
@@ -67,7 +75,7 @@ describe('TemporalTable', () => {
       }
     });
 
-    require('../../../shared/stores/temporalStore').temporalSelectors = {
+    mockTemporalStore.temporalSelectors = {
       useContext: jest.fn().mockReturnValue({
         mode: 'current',
         asOfDate: '2024-08-10T00:00:00.000Z'
@@ -195,7 +203,7 @@ describe('TemporalTable', () => {
   });
 
   it('should show loading state', () => {
-    require('../../../shared/hooks/useTemporalQuery').useTemporalOrganizations.mockReturnValue({
+    mockUseTemporalQuery.useTemporalOrganizations.mockReturnValue({
       data: [],
       isLoading: true,
       isError: false,
@@ -209,7 +217,7 @@ describe('TemporalTable', () => {
   });
 
   it('should show error state', () => {
-    require('../../../shared/hooks/useTemporalQuery').useTemporalOrganizations.mockReturnValue({
+    mockUseTemporalQuery.useTemporalOrganizations.mockReturnValue({
       data: [],
       isLoading: false,
       isError: true,
@@ -223,7 +231,7 @@ describe('TemporalTable', () => {
   });
 
   it('should show empty state when no data', () => {
-    require('../../../shared/hooks/useTemporalQuery').useTemporalOrganizations.mockReturnValue({
+    mockUseTemporalQuery.useTemporalOrganizations.mockReturnValue({
       data: [],
       isLoading: false,
       isError: false,
@@ -251,14 +259,14 @@ describe('TemporalTable', () => {
   });
 
   it('should disable edit and delete buttons in historical mode', () => {
-    require('../../../shared/stores/temporalStore').temporalSelectors = {
+    mockTemporalStore.temporalSelectors = {
       useContext: jest.fn().mockReturnValue({
         mode: 'historical',
         asOfDate: '2024-06-01T00:00:00.000Z'
       })
     };
 
-    require('../../../shared/hooks/useTemporalQuery').useTemporalOrganizations.mockReturnValue({
+    mockUseTemporalQuery.useTemporalOrganizations.mockReturnValue({
       data: mockOrganizations,
       isLoading: false,
       isError: false,
@@ -276,14 +284,14 @@ describe('TemporalTable', () => {
   });
 
   it('should show temporal fields in historical mode', () => {
-    require('../../../shared/stores/temporalStore').temporalSelectors = {
+    mockTemporalStore.temporalSelectors = {
       useContext: jest.fn().mockReturnValue({
         mode: 'historical',
         asOfDate: '2024-06-01T00:00:00.000Z'
       })
     };
 
-    require('../../../shared/hooks/useTemporalQuery').useTemporalOrganizations.mockReturnValue({
+    mockUseTemporalQuery.useTemporalOrganizations.mockReturnValue({
       data: mockOrganizations,
       isLoading: false,
       isError: false,

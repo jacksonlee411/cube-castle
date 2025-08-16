@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { ValidationError, isValidationError, isAPIError, isNetworkError } from './type-guards';
+import React from 'react';
+import { isValidationError, isAPIError, isNetworkError } from './type-guards';
 
 // 统一错误处理器
 export class ErrorHandler {
@@ -74,7 +74,7 @@ export class ErrorHandler {
   }
   
   // 组件错误边界处理
-  static handleComponentError(context: string, error: Error, errorInfo?: any): void {
+  static handleComponentError(context: string, error: Error, _errorInfo?: React.ErrorInfo): void {
     this.logError(context, error);
     
     // 发送错误报告到监控服务（如果需要）
@@ -131,7 +131,7 @@ export const isUserFriendlyError = (error: unknown): error is UserFriendlyError 
 };
 
 // 异步操作错误包装器
-export const withErrorHandling = <T extends any[], R>(
+export const withErrorHandling = <T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
   context: string
 ) => {
@@ -158,7 +158,7 @@ export const useErrorHandler = () => {
 };
 
 // 通用错误恢复策略
-export const withRetry = <T extends any[], R>(
+export const withRetry = <T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
   maxRetries: number = 3,
   delay: number = 1000

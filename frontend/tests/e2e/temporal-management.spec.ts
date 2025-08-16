@@ -298,7 +298,7 @@ test.describe('时态管理错误处理', () => {
     await page.waitForTimeout(1000);
     
     // 验证没有搜索结果或显示适当消息
-    const noResultsMessage = page.locator('text=没有找到匹配的组织').or(
+    const _noResultsMessage = page.locator('text=没有找到匹配的组织').or(
       page.locator('tbody tr')
     );
     

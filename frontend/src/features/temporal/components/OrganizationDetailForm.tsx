@@ -11,7 +11,7 @@ import { Select } from '@workday/canvas-kit-react/select';
 import { Checkbox } from '@workday/canvas-kit-react/checkbox';
 import { Badge } from '../../../shared/components/Badge';
 import { Card } from '@workday/canvas-kit-react/card';
-import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
+import { colors, space } from '@workday/canvas-kit-react/tokens';
 import type { TemporalOrganizationRecord } from '../../../shared/hooks/useTemporalAPI';
 
 export interface OrganizationDetailFormProps {
@@ -20,7 +20,7 @@ export interface OrganizationDetailFormProps {
   /** 是否处于编辑模式 */
   isEditing: boolean;
   /** 字段变更回调 */
-  onFieldChange: (field: keyof TemporalOrganizationRecord, value: any) => void;
+  onFieldChange: (field: keyof TemporalOrganizationRecord, value: string | number | boolean) => void;
 }
 
 /**
@@ -64,16 +64,15 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           📋 基础信息
         </Text>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={space.m} marginBottom={space.m}>
+        <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
           {/* 组织代码 */}
-          <Box>
+          <Box flex={1}>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
               组织代码
             </Text>
             <TextInput
               value={record.code}
               disabled={true}
-              backgroundColor={colors.soap200}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
               系统自动生成，不可修改
@@ -81,22 +80,21 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           </Box>
 
           {/* 租户ID */}
-          <Box>
+          <Box flex={1}>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
               租户ID
             </Text>
             <TextInput
-              value={record.tenant_id}
+              value={record.tenant_id || ''}
               disabled={true}
-              backgroundColor={colors.soap200}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
               系统分配的租户标识
             </Text>
           </Box>
-        </Box>
+        </Flex>
 
-        <Box display="grid" gridTemplateColumns="2fr 1fr 1fr" gap={space.m} marginBottom={space.m}>
+        <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
           {/* 组织名称 */}
           <Box>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
@@ -120,17 +118,27 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
               组织类型 *
             </Text>
-            <Select
-              value={record.unit_type}
-              disabled={!isEditing}
-              onChange={(value) => isEditing && onFieldChange('unit_type', value)}
-            >
-              {unitTypeOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
+            {isEditing ? (
+              <Select items={unitTypeOptions}>
+                <Select.Input 
+                  value={record.unit_type}
+                  onChange={(e) => onFieldChange('unit_type', e.target.value)}
+                />
+                <Select.Popper>
+                  <Select.Card>
+                    <Select.List>
+                      {(option: any) => (
+                        <Select.Item key={option.value}>
+                          {option.label}
+                        </Select.Item>
+                      )}
+                    </Select.List>
+                  </Select.Card>
+                </Select.Popper>
+              </Select>
+            ) : (
+              <Text>{unitTypeOptions.find(opt => opt.value === record.unit_type)?.label || record.unit_type}</Text>
+            )}
           </Box>
 
           {/* 状态 */}
@@ -139,15 +147,22 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               状态 *
             </Text>
             {isEditing ? (
-              <Select
-                value={record.status}
-                onChange={(value) => onFieldChange('status', value)}
-              >
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+              <Select items={statusOptions}>
+                <Select.Input 
+                  value={record.status}
+                  onChange={(e) => onFieldChange('status', e.target.value)}
+                />
+                <Select.Popper>
+                  <Select.Card>
+                    <Select.List>
+                      {(option: any) => (
+                        <Select.Item key={option.value}>
+                          {option.label}
+                        </Select.Item>
+                      )}
+                    </Select.List>
+                  </Select.Card>
+                </Select.Popper>
               </Select>
             ) : (
               <Box paddingTop={space.xs}>
@@ -157,9 +172,9 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               </Box>
             )}
           </Box>
-        </Box>
+        </Flex>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr 1fr" gap={space.m} marginBottom={space.m}>
+        <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
           {/* 层级 */}
           <Box>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
@@ -197,13 +212,12 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             <TextInput
               value={record.path}
               disabled={true}
-              backgroundColor={colors.soap200}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
               系统自动维护的层级路径
             </Text>
           </Box>
-        </Box>
+        </Flex>
 
         {/* 描述 */}
         <Box>
@@ -231,7 +245,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           ⏰ 时态管理信息
         </Text>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={space.m} marginBottom={space.m}>
+        <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
           {/* 生效日期 */}
           <Box>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
@@ -257,13 +271,13 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               type="date"
               value={record.end_date?.slice(0, 10) || ''}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('end_date', e.target.value ? e.target.value + 'T00:00:00Z' : undefined)}
+              onChange={(e) => isEditing && onFieldChange('end_date', e.target.value ? e.target.value + 'T00:00:00Z' : '')}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
               可选，留空表示持续有效
             </Text>
           </Box>
-        </Box>
+        </Flex>
 
         {/* 当前有效状态 */}
         <Box marginBottom={space.m}>
@@ -310,7 +324,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           🔍 系统信息
         </Text>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={space.m} marginBottom={space.m}>
+        <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
           {/* 创建时间 */}
           <Box>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
@@ -319,7 +333,6 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             <TextInput
               value={record.created_at ? new Date(record.created_at).toLocaleString('zh-CN') : ''}
               disabled={true}
-              backgroundColor={colors.soap200}
             />
           </Box>
 
@@ -331,12 +344,11 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             <TextInput
               value={record.updated_at ? new Date(record.updated_at).toLocaleString('zh-CN') : ''}
               disabled={true}
-              backgroundColor={colors.soap200}
             />
           </Box>
-        </Box>
+        </Flex>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={space.m}>
+        <Flex gap={space.m} flexDirection="row">
           {/* 批准人 */}
           <Box>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
@@ -359,10 +371,10 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               type="datetime-local"
               value={record.approved_at ? new Date(record.approved_at).toISOString().slice(0, 16) : ''}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('approved_at', e.target.value ? new Date(e.target.value).toISOString() : undefined)}
+              onChange={(e) => isEditing && onFieldChange('approved_at', e.target.value ? new Date(e.target.value).toISOString() : '')}
             />
           </Box>
-        </Box>
+        </Flex>
       </Card>
 
       {/* 数据有效性验证提示 */}

@@ -152,16 +152,6 @@ export const OrganizationDashboard: React.FC = () => {
 
   // 计划组织创建处理 - 重新启用
   const handleCreatePlanned = () => {
-    const plannedOrgTemplate = {
-      name: '',
-      unit_type: 'DEPARTMENT',
-      status: 'PLANNED',
-      description: '',
-      parent_code: '',
-      level: 1,
-      sort_order: 0,
-      _isPlannedCreation: true
-    };
     handleCreate();
   };
 

@@ -3,7 +3,6 @@
  * 专门用于时态查询功能：organizationAsOfDate 和 organizationHistory
  */
 import type { 
-  OrganizationUnit, 
   GraphQLResponse,
 } from '../types';
 import type { 
@@ -159,20 +158,41 @@ const TEMPORAL_QUERIES = {
   `
 };
 
+// GraphQL响应数据的类型（部分字段可能缺失）
+interface GraphQLOrganizationData {
+  tenant_id?: string;
+  code?: string;
+  parent_code?: string;
+  name?: string;
+  unit_type?: string;
+  status?: string;
+  level?: number;
+  path?: string;
+  sort_order?: number;
+  description?: string;
+  profile?: string;
+  created_at?: string;
+  updated_at?: string;
+  effective_date?: string;
+  end_date?: string;
+  is_temporal?: boolean;
+  version?: number;
+  change_reason?: string;
+  is_current?: boolean;
+}
+
 // 时态数据转换器
-function transformToTemporalOrganization(data: any): TemporalOrganizationUnit {
+function transformToTemporalOrganization(data: GraphQLOrganizationData): TemporalOrganizationUnit {
   return {
-    tenant_id: data.tenant_id || '',
     code: data.code || '',
     parent_code: data.parent_code || '',
     name: data.name || '',
-    unit_type: data.unit_type as any || 'DEPARTMENT',
-    status: data.status as any || 'ACTIVE',
+    unit_type: (data.unit_type as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM') || 'DEPARTMENT',
+    status: (data.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED') || 'ACTIVE',
     level: data.level || 1,
     path: data.path || '',
     sort_order: data.sort_order || 0,
     description: data.description || '',
-    profile: data.profile || '',
     created_at: data.created_at || '',
     updated_at: data.updated_at || '',
     effective_date: data.effective_date || '',
@@ -198,7 +218,7 @@ export const temporalAPI = {
   ): Promise<TemporalOrganizationUnit | null> {
     try {
       const data = await temporalGraphQLClient.request<{
-        organizationAsOfDate: any | null;
+        organizationAsOfDate: GraphQLOrganizationData | null;
       }>(
         TEMPORAL_QUERIES.ORGANIZATION_AS_OF_DATE,
         { code, asOfDate }
@@ -234,7 +254,7 @@ export const temporalAPI = {
       const toDate = params?.toDate || '2050-01-01';
 
       const data = await temporalGraphQLClient.request<{
-        organizationHistory: any[];
+        organizationHistory: GraphQLOrganizationData[];
       }>(
         TEMPORAL_QUERIES.ORGANIZATION_HISTORY,
         { code, fromDate, toDate }
@@ -263,12 +283,13 @@ export const temporalAPI = {
       // 将历史记录转换为时间线事件
       const timeline: TimelineEvent[] = history.map((record, index) => ({
         id: `${record.code}-${record.effective_date}`,
-        eventType: index === 0 ? 'CREATE' : 'UPDATE',
-        eventDate: record.effective_date,
-        description: `${record.name} - ${record.change_reason || '组织变更'}`,
         organizationCode: record.code,
-        organizationName: record.name,
-        changedFields: [], // 可以根据需要计算变更字段
+        timestamp: new Date(record.effective_date), // 修正：使用timestamp而非eventDate
+        type: index === 0 ? 'organization_created' : 'organization_updated', // 修正：使用定义的EventType
+        title: `${record.name} - ${record.change_reason || '组织变更'}`, // 修正：使用title而非description
+        description: record.change_reason || '组织变更',
+        changes: [], // 可以根据需要计算变更字段
+        status: record.is_current ? 'active' : 'completed', // 修正：添加status字段
         metadata: {
           status: record.status,
           unit_type: record.unit_type,

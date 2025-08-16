@@ -103,8 +103,8 @@ export const isGraphQLError = (response: unknown): response is { errors: GraphQL
     typeof response === 'object' && 
     response !== null && 
     'errors' in response &&
-    Array.isArray((response as any).errors) &&
-    (response as any).errors.length > 0
+    Array.isArray((response as Record<string, unknown>).errors) &&
+    (response as Record<string, unknown>).errors.length > 0
   );
 };
 
@@ -116,8 +116,8 @@ export const isGraphQLSuccessResponse = <T>(
     typeof response === 'object' && 
     response !== null && 
     'data' in response &&
-    (response as any).data !== null &&
-    (response as any).data !== undefined
+    (response as Record<string, unknown>).data !== null &&
+    (response as Record<string, unknown>).data !== undefined
   );
 };
 
@@ -127,8 +127,8 @@ export const isAPIError = (error: unknown): error is Error & { status: number; s
     error instanceof Error && 
     'status' in error && 
     'statusText' in error &&
-    typeof (error as any).status === 'number' &&
-    typeof (error as any).statusText === 'string'
+    typeof (error as Record<string, unknown>).status === 'number' &&
+    typeof (error as Record<string, unknown>).statusText === 'string'
   );
 };
 

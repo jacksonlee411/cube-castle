@@ -8,23 +8,20 @@ import { Heading, Text } from '@workday/canvas-kit-react/text';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { Card } from '@workday/canvas-kit-react/card';
 import { Badge } from '../../../shared/components/Badge';
-import { Tabs } from '@workday/canvas-kit-react/tabs';
+import { Tabs, useTabsModel } from '@workday/canvas-kit-react/tabs';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 
 // 组织管理和时态功能导入
-import { OrganizationForm } from '../organizations/components/OrganizationForm';
-import { OrganizationTable } from '../organizations/components/OrganizationTable';
-import { Timeline } from '../temporal/components/Timeline';
-import { VersionComparison } from '../temporal/components/VersionComparison';
-import { TemporalNavbar } from '../temporal/components/TemporalNavbar';
+import { OrganizationForm } from './OrganizationForm';
+import { TemporalNavbar } from '../../temporal/components/TemporalNavbar';
 
 // Hooks导入
-import { useTemporalOrganization, useOrganizationHistory, useOrganizationTimeline, useTemporalMode } from '../../shared/hooks/useTemporalQuery';
-import { useOrganizationActions } from '../organizations/hooks/useOrganizationActions';
+import { useTemporalOrganization, useOrganizationHistory, useOrganizationTimeline, useTemporalMode } from '../../../shared/hooks/useTemporalQuery';
+import { useOrganizationActions } from '../hooks/useOrganizationActions';
 
 // Types导入
-import type { OrganizationUnit } from '../../shared/types/organization';
-import type { TimelineEvent, TemporalOrganizationUnit, TemporalMode } from '../../shared/types/temporal';
+import type { OrganizationUnit } from '../../../shared/types/organization';
+import type { TemporalMode } from '../../../shared/types/temporal';
 
 export interface OrganizationDetailProps {
   /** 组织编码 */
@@ -33,8 +30,6 @@ export interface OrganizationDetailProps {
   readonly?: boolean;
   /** 返回回调 */
   onBack?: () => void;
-  /** 组织更新回调 */
-  onOrganizationUpdated?: (organization: OrganizationUnit) => void;
 }
 
 /**
@@ -63,7 +58,7 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || { label: status, color: 'licorice400' };
-    return <Badge color={config.color as any}>{config.label}</Badge>;
+    return <Badge color={config.color as 'greenFresca600' | 'cinnamon600' | 'blueberry600' | 'licorice400'}>{config.label}</Badge>;
   };
 
   const getUnitTypeName = (unitType: string) => {
@@ -98,7 +93,7 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
             </Text>
           )}
           
-          <Box display="flex" gap="m" marginBottom="s">
+          <Flex gap="m" marginBottom="s">
             {organization.parent_code && (
               <Text typeLevel="subtext.small">
                 上级组织: {organization.parent_code}
@@ -107,7 +102,7 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
             <Text typeLevel="subtext.small">
               排序: {organization.sort_order}
             </Text>
-          </Box>
+          </Flex>
         </Box>
 
         <Box>
@@ -154,13 +149,18 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
 export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
   organizationCode,
   readonly = false,
-  onBack,
-  onOrganizationUpdated
+  onBack
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'timeline' | 'comparison'>('overview');
+  // 状态管理
+  const [activeTab] = useState('overview');
+  
+  // Tabs模型 (Canvas Kit v13)
+  const tabsModel = useTabsModel({
+    initialTab: activeTab
+  });
 
   // 时态模式管理
-  const { mode: temporalMode, isHistorical, isCurrent } = useTemporalMode();
+  const { mode: temporalMode, isHistorical } = useTemporalMode();
 
   // 组织数据查询
   const {
@@ -174,14 +174,11 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
   // 历史版本查询
   const {
     data: historyVersions = [],
-    isLoading: historyLoading,
-    hasHistory,
-    latestVersion
+    hasHistory
   } = useOrganizationHistory(organizationCode, { limit: 20 });
 
   // 时间线事件查询
   const {
-    data: timelineEvents = [],
     isLoading: timelineLoading,
     hasEvents: hasTimelineEvents,
     eventCount,
@@ -193,7 +190,6 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
   const {
     selectedOrg,
     isFormOpen,
-    togglingId,
     isToggling,
     handleEdit,
     handleToggleStatus,
@@ -217,22 +213,9 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
   // 切换状态处理
   const handleToggleOrganizationStatus = useCallback(() => {
     if (organization) {
-      handleToggleStatus(organization.code);
+      handleToggleStatus(organization.code, organization.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
     }
   }, [organization, handleToggleStatus]);
-
-  // 时间线事件点击处理
-  const handleTimelineEventClick = useCallback((event: TimelineEvent) => {
-    // 实现事件详情显示或跳转
-    console.log('Timeline event clicked:', event);
-    alert(`查看事件详情:\n\n${event.title}\n${event.description || ''}\n\n日期: ${new Date(event.eventDate).toLocaleString('zh-CN')}`);
-  }, []);
-
-  // 版本比较处理
-  const handleVersionComparison = useCallback((version1: TemporalOrganizationUnit, version2: TemporalOrganizationUnit) => {
-    // 设置版本对比标签
-    setActiveTab('comparison');
-  }, []);
 
   // 刷新所有数据
   const handleRefreshAll = useCallback(() => {
@@ -264,7 +247,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
             {orgErrorMessage?.message || '无法加载组织信息，请检查组织编码或网络连接'}
           </Text>
           <Box>
-            <PrimaryButton onClick={refetchOrganization} marginRight="s">
+            <PrimaryButton onClick={() => refetchOrganization()} marginRight="s">
               重试
             </PrimaryButton>
             {onBack && (
@@ -330,46 +313,30 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
       </Box>
 
       {/* 详情标签页 */}
-      <Tabs>
+      <Tabs model={tabsModel}>
         <Tabs.List>
-          <Tabs.Item 
-            name="overview"
-            onClick={() => setActiveTab('overview')}
-            isActive={activeTab === 'overview'}
-          >
+          <Tabs.Item name="overview">
             概览信息
           </Tabs.Item>
-          <Tabs.Item 
-            name="timeline"
-            onClick={() => setActiveTab('timeline')}
-            isActive={activeTab === 'timeline'}
-          >
+          <Tabs.Item name="timeline">
             时间线 {hasTimelineEvents && <Badge color="blueberry600">{eventCount}</Badge>}
           </Tabs.Item>
-          <Tabs.Item 
-            name="history"
-            onClick={() => setActiveTab('history')}
-            isActive={activeTab === 'history'}
-          >
+          <Tabs.Item name="history">
             历史版本 {hasHistory && <Badge color="greenFresca600">{historyVersions.length}</Badge>}
           </Tabs.Item>
-          <Tabs.Item 
-            name="comparison"
-            onClick={() => setActiveTab('comparison')}
-            isActive={activeTab === 'comparison'}
-          >
+          <Tabs.Item name="comparison">
             版本对比
           </Tabs.Item>
         </Tabs.List>
 
-        <Tabs.Panel name="overview">
+        <Tabs.Panel>
           <Box marginTop="l">
             <Card padding="m">
               <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
                 📋 组织概览信息
               </Text>
               
-              <Box display="grid" gridTemplateColumns="repeat(auto-fit, minmax(250px, 1fr))" gap="m">
+              <Flex flexDirection="column" gap="m">
                 <Box>
                   <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s">基本信息</Text>
                   <Text typeLevel="body.small">编码: {organization.code}</Text>
@@ -401,99 +368,50 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
                     )}
                   </Box>
                 )}
-              </Box>
+              </Flex>
             </Card>
           </Box>
         </Tabs.Panel>
 
-        <Tabs.Panel name="timeline">
-          <Box marginTop="l">
-            <Timeline
-              organizationCode={organizationCode}
-              queryParams={{ limit: 50 }}
-              compact={false}
-              maxEvents={50}
-              showFilters={true}
-              showActions={!readonly}
-              onEventClick={handleTimelineEventClick}
-              onAddEvent={readonly ? undefined : () => alert('添加事件功能开发中')}
-            />
-          </Box>
-        </Tabs.Panel>
-
-        <Tabs.Panel name="history">
+        <Tabs.Panel>
           <Box marginTop="l">
             <Card padding="m">
               <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
-                📚 历史版本记录
+                📈 时间线
               </Text>
-              
-              {historyLoading ? (
-                <Flex justifyContent="center" padding="l">
-                  <LoadingDots />
-                  <Text marginLeft="m">加载历史版本...</Text>
-                </Flex>
-              ) : hasHistory ? (
-                <Box>
-                  <Text typeLevel="body.medium" marginBottom="m">
-                    共 {historyVersions.length} 个历史版本
-                  </Text>
-                  {/* 这里可以展示历史版本列表，或者复用OrganizationTable组件 */}
-                  <Box>
-                    {historyVersions.slice(0, 5).map((version, index) => (
-                      <Box
-                        key={version.version || index}
-                        padding="s"
-                        marginBottom="s"
-                        style={{ 
-                          backgroundColor: index === 0 ? '#f0f7ff' : '#f8f9fa',
-                          borderRadius: '4px',
-                          border: '1px solid #e9ecef'
-                        }}
-                      >
-                        <Flex justifyContent="space-between" alignItems="center">
-                          <Text typeLevel="body.medium">
-                            版本 {version.version} - {version.name}
-                          </Text>
-                          <Text typeLevel="subtext.small" color="hint">
-                            {version.effectiveFrom ? new Date(version.effectiveFrom).toLocaleString('zh-CN') : ''}
-                          </Text>
-                        </Flex>
-                        {version.changeReason && (
-                          <Text typeLevel="subtext.small" color="hint" marginTop="xs">
-                            变更原因: {version.changeReason}
-                          </Text>
-                        )}
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-              ) : (
-                <Text color="hint">暂无历史版本记录</Text>
-              )}
+              <Text typeLevel="body.medium">
+                时间线功能开发中...
+              </Text>
             </Card>
           </Box>
         </Tabs.Panel>
 
-        <Tabs.Panel name="comparison">
+        <Tabs.Panel>
           <Box marginTop="l">
-            {hasHistory && historyVersions.length >= 2 ? (
-              <VersionComparison
-                organizationCode={organizationCode}
-                version1={historyVersions[0]}
-                version2={historyVersions[1]}
-                compact={false}
-                showMetadata={true}
-              />
-            ) : (
-              <Card padding="l">
-                <Text textAlign="center" color="hint">
-                  需要至少2个历史版本才能进行对比
-                </Text>
-              </Card>
-            )}
+            <Card padding="m">
+              <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
+                📚 历史版本
+              </Text>
+              <Text typeLevel="body.medium">
+                历史版本功能开发中...
+              </Text>
+            </Card>
           </Box>
         </Tabs.Panel>
+
+        <Tabs.Panel>
+          <Box marginTop="l">
+            <Card padding="m">
+              <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
+                🔄 版本对比
+              </Text>
+              <Text typeLevel="body.medium">
+                版本对比功能开发中...
+              </Text>
+            </Card>
+          </Box>
+        </Tabs.Panel>
+
       </Tabs>
 
       {/* 编辑表单 */}

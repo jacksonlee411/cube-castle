@@ -53,11 +53,11 @@ export const temporalUtils = {
     }
   },
 
-  isTemporalOrganization: (org: any): boolean => {
+  isTemporalOrganization: (org: { effective_from?: string; effective_to?: string; is_temporal?: boolean }): boolean => {
     return !!(org.effective_from || org.effective_to || org.is_temporal);
   },
 
-  getTemporalStatus: (org: any, asOfDate?: string) => {
+  getTemporalStatus: (org: { effective_from?: string; effective_to?: string }, asOfDate?: string) => {
     const now = asOfDate ? new Date(asOfDate) : new Date();
     const effectiveFrom = org.effective_from ? new Date(org.effective_from) : null;
     const effectiveTo = org.effective_to ? new Date(org.effective_to) : null;
@@ -71,7 +71,7 @@ export const temporalUtils = {
     return 'active'; // 当前有效
   },
 
-  buildTemporalQueryKey: (organizationCode: string, params: any) => {
+  buildTemporalQueryKey: (organizationCode: string, params: Record<string, unknown>) => {
     return `temporal:${organizationCode}:${JSON.stringify(params)}`;
   }
 };

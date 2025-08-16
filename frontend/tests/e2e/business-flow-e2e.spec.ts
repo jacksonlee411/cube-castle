@@ -149,7 +149,7 @@ test.describe('业务流程端到端测试', () => {
     }
 
     // 3. 验证分页功能（如果有足够数据）
-    const paginationArea = page.locator('[data-testid*="pagination"], .pagination').first();
+    const _paginationArea = page.locator('[data-testid*="pagination"], .pagination').first();
     const nextPageButton = page.getByRole('button', { name: /下一页|Next|>/ });
     
     // 检查是否有分页控件

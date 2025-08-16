@@ -1,10 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   validateOrganizationUnit,
   validateCreateOrganizationInput,
-  validateUpdateOrganizationInput,
-  validateGraphQLVariables,
-  validateGraphQLOrganizationResponse,
   validateGraphQLOrganizationList,
   isGraphQLError,
   isGraphQLSuccessResponse,
@@ -189,7 +186,7 @@ describe('Type Guards and Validators', () => {
 
     describe('isAPIError', () => {
       it('should return true for API error with status and statusText', () => {
-        const apiError = new Error('API failed') as any;
+        const apiError = new Error('API failed') as Error & { status: number; statusText: string };
         apiError.status = 404;
         apiError.statusText = 'Not Found';
 

@@ -30,7 +30,6 @@ const fontSizes = {
 };
 import {
   calendarIcon,
-  searchIcon,
   infoIcon
 } from '@workday/canvas-system-icons-web';
 
@@ -294,7 +293,6 @@ export const TemporalManagementGraphQL: React.FC = () => {
               <Select
                 value={selectedOrganizationCode}
                 onChange={(e) => handleOrganizationSelect(e.target.value)}
-                disabled={useCustomCode}
               >
                 {DEMO_ORGANIZATION_CODES.map(({ label, value }) => (
                   <option key={value} value={value}>

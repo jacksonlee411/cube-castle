@@ -9,7 +9,6 @@ import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
-import { Select } from '@workday/canvas-kit-react/select';
 import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
 import { useTemporalDateRangeQuery, useTemporalAsOfDateQuery, TemporalDateUtils } from '../../../shared/hooks/useTemporalAPI';
 import type { TemporalOrganizationRecord } from '../../../shared/hooks/useTemporalAPI';
@@ -169,7 +168,7 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
   }, [editingRecord, onSave]);
 
   // 处理字段变更
-  const handleFieldChange = useCallback((field: keyof TemporalOrganizationRecord, value: any) => {
+  const handleFieldChange = useCallback((field: keyof TemporalOrganizationRecord, value: string | number | boolean) => {
     if (!editingRecord) return;
     setEditingRecord(prev => prev ? { ...prev, [field]: value } : null);
   }, [editingRecord]);
@@ -178,23 +177,27 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
 
   return (
     <Box
-      position="fixed"
-      top="0"
-      left="0"
-      right="0"
-      bottom="0"
-      backgroundColor="rgba(0, 0, 0, 0.5)"
-      zIndex="1000"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
+      cs={{
+        position: "fixed",
+        top: "0",
+        left: "0",
+        right: "0",
+        bottom: "0",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}
     >
       <Card
-        width="1200px"
-        height="80vh"
-        maxHeight="800px"
-        overflow="hidden"
-        padding="0"
+        cs={{
+          width: "1200px",
+          height: "80vh",
+          maxHeight: "800px",
+          overflow: "hidden",
+          padding: "0"
+        }}
       >
         {/* 标题栏 */}
         <Box
@@ -244,11 +247,15 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
           </Box>
 
           {/* 右侧详情编辑区 */}
-          <Box flex="1" padding={space.l} overflow="auto">
+          <Box 
+            flex={1} 
+            padding={space.l} 
+            cs={{ overflow: "auto" }}
+          >
             {isSelectedLoading ? (
-              <Box display="flex" alignItems="center" justifyContent="center" height="100%">
+              <Flex alignItems="center" justifyContent="center" height="100%">
                 <Text>加载详情中...</Text>
-              </Box>
+              </Flex>
             ) : selectedRecord ? (
               <Box>
                 {/* 记录信息头部 */}
@@ -287,9 +294,9 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
                 />
               </Box>
             ) : (
-              <Box display="flex" alignItems="center" justifyContent="center" height="100%">
+              <Flex alignItems="center" justifyContent="center" height="100%">
                 <Text>选择时间轴上的节点查看详情</Text>
-              </Box>
+              </Flex>
             )}
           </Box>
         </Flex>
@@ -337,46 +344,51 @@ const TimelineNodeComponent: React.FC<TimelineNodeComponentProps> = ({
       {/* 连接线 */}
       {!isLast && (
         <Box
-          position="absolute"
-          left="11px"
-          top="24px"
-          width="2px"
-          height="32px"
-          backgroundColor={colors.soap400}
+          cs={{
+            position: "absolute",
+            left: "11px",
+            top: "24px",
+            width: "2px",
+            height: "32px",
+            backgroundColor: colors.soap400
+          }}
         />
       )}
 
       {/* 节点内容 */}
       <Flex
         alignItems="flex-start"
-        cursor="pointer"
-        padding={space.s}
-        borderRadius={borderRadius.m}
-        backgroundColor={getNodeBackgroundColor(node.type, isSelected)}
-        border={isSelected ? `2px solid ${getNodeColor(node.type)}` : '2px solid transparent'}
-        onClick={onClick}
-        _hover={{
-          backgroundColor: getNodeBackgroundColor(node.type, true)
+        cs={{
+          cursor: "pointer",
+          padding: space.s,
+          borderRadius: borderRadius.m,
+          backgroundColor: getNodeBackgroundColor(node.type, isSelected),
+          border: isSelected ? `2px solid ${getNodeColor(node.type)}` : '2px solid transparent'
         }}
+        onClick={onClick}
       >
         {/* 时间轴圆点 */}
         <Box
-          width="24px"
-          height="24px"
-          borderRadius="50%"
-          backgroundColor={getNodeColor(node.type)}
-          marginRight={space.s}
-          marginTop="2px"
-          flexShrink={0}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+          cs={{
+            width: "24px",
+            height: "24px",
+            borderRadius: "50%",
+            backgroundColor: getNodeColor(node.type),
+            marginRight: space.s,
+            marginTop: "2px",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}
         >
           <Box
-            width="8px"
-            height="8px"
-            borderRadius="50%"
-            backgroundColor="white"
+            cs={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: "white"
+            }}
           />
         </Box>
 
@@ -403,7 +415,7 @@ const TimelineNodeComponent: React.FC<TimelineNodeComponentProps> = ({
 interface OrganizationDetailFormProps {
   record: TemporalOrganizationRecord;
   isEditing: boolean;
-  onFieldChange: (field: keyof TemporalOrganizationRecord, value: any) => void;
+  onFieldChange: (field: keyof TemporalOrganizationRecord, value: string | number | boolean) => void;
 }
 
 const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
@@ -419,13 +431,22 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           基础信息
         </Text>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={space.m} marginBottom={space.m}>
+        <Box 
+          cs={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: space.m
+          }}
+          marginBottom={space.m}
+        >
           <Box>
             <Text fontSize="small" marginBottom={space.xs}>组织代码</Text>
             <TextInput
               value={record.code}
               disabled={true}
-              backgroundColor={colors.soap200}
+              cs={{
+                backgroundColor: colors.soap200
+              }}
             />
           </Box>
 
@@ -439,32 +460,41 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           </Box>
         </Box>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={space.m} marginBottom={space.m}>
+        <Box 
+          cs={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: space.m
+          }}
+          marginBottom={space.m}
+        >
           <Box>
             <Text fontSize="small" marginBottom={space.xs}>组织类型</Text>
-            <Select
+            <select
               value={record.unit_type}
               disabled={!isEditing}
-              onChange={(value) => isEditing && onFieldChange('unit_type', value)}
+              onChange={(e) => isEditing && onFieldChange('unit_type', e.target.value)}
+              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
             >
               <option value="COMPANY">公司</option>
               <option value="DEPARTMENT">部门</option>
               <option value="COST_CENTER">成本中心</option>
               <option value="PROJECT_TEAM">项目团队</option>
-            </Select>
+            </select>
           </Box>
 
           <Box>
             <Text fontSize="small" marginBottom={space.xs}>状态</Text>
-            <Select
+            <select
               value={record.status}
               disabled={!isEditing}
-              onChange={(value) => isEditing && onFieldChange('status', value)}
+              onChange={(e) => isEditing && onFieldChange('status', e.target.value)}
+              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
             >
               <option value="ACTIVE">启用</option>
               <option value="INACTIVE">停用</option>
               <option value="PLANNED">计划中</option>
-            </Select>
+            </select>
           </Box>
         </Box>
 
@@ -485,14 +515,25 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           时态信息
         </Text>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={space.m} marginBottom={space.m}>
+        <Box 
+          cs={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: space.m
+          }}
+          marginBottom={space.m}
+        >
           <Box>
             <Text fontSize="small" marginBottom={space.xs}>生效日期</Text>
             <TextInput
               type="date"
               value={record.effective_date?.slice(0, 10) || ''}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('effective_date', e.target.value + 'T00:00:00Z')}
+              onChange={(e) => {
+                if (isEditing && e.target.value) {
+                  onFieldChange('effective_date', e.target.value + 'T00:00:00Z');
+                }
+              }}
             />
           </Box>
 
@@ -502,7 +543,7 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               type="date"
               value={record.end_date?.slice(0, 10) || ''}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('end_date', e.target.value ? e.target.value + 'T00:00:00Z' : undefined)}
+              onChange={(e) => isEditing && onFieldChange('end_date', e.target.value ? e.target.value + 'T00:00:00Z' : '')}
             />
           </Box>
         </Box>
@@ -524,13 +565,21 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           审批信息
         </Text>
 
-        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={space.m}>
+        <Box 
+          cs={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: space.m
+          }}
+        >
           <Box>
             <Text fontSize="small" marginBottom={space.xs}>批准人</Text>
             <TextInput
               value={record.approved_by || ''}
               disabled={true}
-              backgroundColor={colors.soap200}
+              cs={{
+                backgroundColor: colors.soap200
+              }}
             />
           </Box>
 
@@ -539,7 +588,9 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             <TextInput
               value={record.approved_at ? new Date(record.approved_at).toLocaleString('zh-CN') : ''}
               disabled={true}
-              backgroundColor={colors.soap200}
+              cs={{
+                backgroundColor: colors.soap200
+              }}
             />
           </Box>
         </Box>

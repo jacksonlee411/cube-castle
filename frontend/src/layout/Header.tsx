@@ -16,11 +16,13 @@ export const Header: React.FC = () => {
     >
       {/* 品牌标识：占满整行 */}
       <Box 
-        height="100%" 
-        width="100%"
-        display="flex" 
-        alignItems="center" 
-        paddingX="l"
+        cs={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          paddingX: "l"
+        }}
       >
         <Heading size="large" color="blackPepper500" fontWeight="bold" width="100%">
           🏰 Cube Castle

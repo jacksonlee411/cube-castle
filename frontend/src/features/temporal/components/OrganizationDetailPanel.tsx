@@ -7,10 +7,6 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
-import { TextInput } from '@workday/canvas-kit-react/text-input';
-import { TextArea } from '@workday/canvas-kit-react/text-area';
-import { Select } from '@workday/canvas-kit-react/select';
-import { Checkbox } from '@workday/canvas-kit-react/checkbox';
 import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
@@ -213,7 +209,7 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
   }, [editingRecord, onSave]);
 
   // 处理字段变更
-  const handleFieldChange = useCallback((field: keyof TemporalOrganizationRecord, value: any) => {
+  const handleFieldChange = useCallback((field: keyof TemporalOrganizationRecord, value: string | number | boolean) => {
     if (!editingRecord) return;
     
     setEditingRecord(prev => prev ? { ...prev, [field]: value } : null);
@@ -240,16 +236,18 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
 
   return (
     <Box
-      position="fixed"
-      top="0"
-      left="0"
-      right="0"
-      bottom="0"
-      backgroundColor="rgba(0, 0, 0, 0.5)"
-      zIndex="1000"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
+      cs={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
     >
       <Card
         width="1400px"
@@ -332,7 +330,7 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
               </Flex>
 
               {isRangeLoading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" padding={space.l}>
+                <Box cs={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: space.l }}>
                   <Text>加载时间轴...</Text>
                 </Box>
               ) : rangeError ? (
@@ -378,7 +376,7 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
             backgroundColor="white"
           >
             {isSelectedLoading ? (
-              <Box display="flex" alignItems="center" justifyContent="center" height="100%">
+              <Box cs={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                 <Text>加载详情中...</Text>
               </Box>
             ) : selectedRecord ? (
@@ -419,7 +417,7 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
                         {onDelete && (
                           <SecondaryButton 
                             onClick={handleDelete}
-                            variant="destructive"
+                            variant="inverse"
                           >
                             删除
                           </SecondaryButton>
@@ -449,7 +447,7 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
                 />
               </Box>
             ) : (
-              <Box display="flex" alignItems="center" justifyContent="center" height="100%">
+              <Box cs={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                 <Box textAlign="center">
                   <Text fontSize="medium" marginBottom={space.s}>
                     选择时间轴上的节点查看详情
@@ -529,30 +527,30 @@ const TimelineNodeComponent: React.FC<TimelineNodeComponentProps> = ({
       <Tooltip title={`点击查看 ${node.displayDate} 的详情`}>
         <Flex
           alignItems="flex-start"
-          cursor="pointer"
-          padding={space.s}
-          borderRadius={borderRadius.m}
-          backgroundColor={getNodeBackgroundColor(node.type, isSelected)}
-          border={isSelected ? `2px solid ${getNodeColor(node.type)}` : '2px solid transparent'}
-          onClick={onClick}
-          _hover={{
-            backgroundColor: getNodeBackgroundColor(node.type, true),
-            border: `2px solid ${getNodeColor(node.type)}`
+          cs={{
+            cursor: 'pointer',
+            padding: space.s,
+            borderRadius: borderRadius.m,
+            backgroundColor: getNodeBackgroundColor(node.type, isSelected),
+            border: isSelected ? `2px solid ${getNodeColor(node.type)}` : '2px solid transparent'
           }}
+          onClick={onClick}
         >
           {/* 时间轴圆点 */}
           <Box
-            width="32px"
-            height="32px"
-            borderRadius="50%"
-            backgroundColor={getNodeColor(node.type)}
-            marginRight={space.s}
-            marginTop="2px"
-            flexShrink={0}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            border={`2px solid white`}
+            cs={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: getNodeColor(node.type),
+              marginRight: space.s,
+              marginTop: '2px',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid white'
+            }}
           >
             <Text fontSize="small">
               {getChangeTypeIcon(node.changeType)}

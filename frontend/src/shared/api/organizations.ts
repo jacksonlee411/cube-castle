@@ -3,11 +3,17 @@ import type {
   OrganizationListResponse, 
   OrganizationStats,
   GraphQLResponse,
-  OrganizationUnitType,
-  OrganizationStatus,
   OrganizationQueryParams
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
+
+// GraphQL统计响应接口
+interface GraphQLStatsResponse {
+  totalCount: number;
+  byType?: Array<{ unitType: string; count: number }>;
+  byStatus?: Array<{ status: string; count: number }>;
+  byLevel?: Array<{ level: number; count: number }>;
+}
 import type { 
   TemporalQueryParams,
   TemporalOrganizationUnit,
@@ -199,12 +205,12 @@ export const organizationAPI = {
       }
 
       const data = await graphqlClient.request<{
-        organizations: any[];
+        organizations: Partial<OrganizationUnit>[];
         organizationStats: { totalCount: number };
       }>(graphqlQuery, variables);
 
       // 简化的数据转换 - 无需复杂的Zod验证
-      const organizations = data.organizations.map((org: any) => {
+      const organizations = data.organizations.map((org: Partial<OrganizationUnit>) => {
         try {
           return safeTransform.graphqlToOrganization ? 
             safeTransform.graphqlToOrganization(org) : 
@@ -220,7 +226,7 @@ export const organizationAPI = {
       const filteredTotalCount = isFiltered ? organizations.length : data.organizationStats.totalCount;
       
       return {
-        organizations: organizations,
+        organizations: organizations.filter((org): org is OrganizationUnit => org !== null),
         total_count: filteredTotalCount,
         page: params?.page || 1,
         page_size: organizations.length,
@@ -310,7 +316,7 @@ export const organizationAPI = {
       }
 
       const data = await graphqlClient.request<{
-        organization: any;
+        organization: Partial<OrganizationUnit>;
       }>(graphqlQuery, variables);
 
       const organization = data.organization;
@@ -319,14 +325,21 @@ export const organizationAPI = {
       }
 
       // 简单数据转换，依赖后端格式
-      return safeTransform.graphqlToOrganization ? 
-        safeTransform.graphqlToOrganization(organization) : 
-        organization;
+      if (safeTransform.graphqlToOrganization) {
+        const transformed = safeTransform.graphqlToOrganization(organization) as unknown as OrganizationUnit;
+        // 确保转换后的对象包含所有必需字段
+        if (transformed && typeof transformed === 'object' && 'code' in transformed && 'name' in transformed) {
+          return transformed as OrganizationUnit;
+        }
+      }
+      
+      return organization as OrganizationUnit;
 
     } catch (error: unknown) {
       console.error('Error fetching organization by code:', code, error);
       
-      if (error instanceof Error && 'response' in error && (error as any).response?.status === 404) {
+      if (error instanceof Error && 'response' in error && 
+          (error as Error & { response?: { status?: number } }).response?.status === 404) {
         throw new Error(`组织 ${code} 不存在`);
       }
       
@@ -358,7 +371,7 @@ export const organizationAPI = {
       `;
 
       const data = await graphqlClient.request<{
-        organizationStats: any;
+        organizationStats: GraphQLStatsResponse;
       }>(graphqlQuery);
 
       const stats = data.organizationStats;
@@ -369,16 +382,12 @@ export const organizationAPI = {
       // 简化的数据转换
       return {
         total_count: stats.totalCount || 0,
-        by_type: stats.byType?.reduce((acc: any, item: any) => {
+        by_type: stats.byType?.reduce((acc: Record<string, number>, item: { unitType: string; count: number }) => {
           acc[item.unitType] = item.count;
           return acc;
         }, {}) || {},
-        by_status: stats.byStatus?.reduce((acc: any, item: any) => {
+        by_status: stats.byStatus?.reduce((acc: Record<string, number>, item: { status: string; count: number }) => {
           acc[item.status] = item.count;
-          return acc;
-        }, {}) || {},
-        by_level: stats.byLevel?.reduce((acc: any, item: any) => {
-          acc[item.level] = item.count;
           return acc;
         }, {}) || {}
       };
@@ -390,7 +399,7 @@ export const organizationAPI = {
   },
 
   // 创建组织 - 依赖后端统一验证
-  create: async (input: CreateOrganizationInput): Promise<any> => {
+  create: async (input: CreateOrganizationInput): Promise<OrganizationUnit> => {
     try {
       // 基础前端验证 (用户体验)
       const validationResult = validateOrganizationBasic(input);
@@ -404,7 +413,7 @@ export const organizationAPI = {
       // 转换为API格式
       const apiData = safeTransform.cleanCreateInput(input);
 
-      const response = await restClient.request<any>('/organization-units', {
+      const response = await restClient.request<OrganizationUnit>('/organization-units', {
         method: 'POST',
         body: JSON.stringify(apiData),
       });
@@ -422,7 +431,7 @@ export const organizationAPI = {
       if (error instanceof SimpleValidationError) {
         throw error;
       }
-      if (error.message?.includes('REST Error:')) {
+      if (error?.message?.includes('REST Error:')) {
         // 服务器端验证错误
         const serverMessage = error.message;
         throw new Error(serverMessage || 'Failed to create organization');
@@ -433,7 +442,7 @@ export const organizationAPI = {
   },
 
   // 更新组织 - 智能验证，根据更新内容选择合适的验证策略
-  update: async (code: string, input: UpdateOrganizationInput): Promise<any> => {
+  update: async (code: string, input: UpdateOrganizationInput): Promise<OrganizationUnit> => {
     try {
       if (!code) {
         throw new SimpleValidationError('Organization code is required', [
@@ -467,7 +476,7 @@ export const organizationAPI = {
       // 转换为API格式
       const apiData = safeTransform.cleanUpdateInput(input);
 
-      const response = await restClient.request<any>(`/organization-units/${code}`, {
+      const response = await restClient.request<OrganizationUnit>(`/organization-units/${code}`, {
         method: 'PUT',
         body: JSON.stringify(apiData),
       });
@@ -484,7 +493,7 @@ export const organizationAPI = {
       if (error instanceof SimpleValidationError) {
         throw error;
       }
-      if (error.message?.includes('REST Error:')) {
+      if (error?.message?.includes('REST Error:')) {
         const serverMessage = error.message;
         throw new Error(serverMessage || 'Failed to update organization');
       }
@@ -570,7 +579,7 @@ export const organizationAPI = {
       };
 
       const data = await graphqlClient.request<{
-        organizationHistory: any[];
+        organizationHistory: TemporalOrganizationUnit[];
       }>(graphqlQuery, variables);
 
       return data.organizationHistory || [];
@@ -632,7 +641,7 @@ export const organizationAPI = {
       };
 
       const data = await graphqlClient.request<{
-        organizationTimeline: any[];
+        organizationTimeline: TimelineEvent[];
       }>(graphqlQuery, variables);
 
       return data.organizationTimeline || [];
@@ -648,7 +657,7 @@ export const organizationAPI = {
     effectiveFrom: string; 
     effectiveTo?: string; 
     changeReason?: string;
-  }): Promise<any> => {
+  }): Promise<TemporalOrganizationUnit> => {
     try {
       // 基础前端验证
       const validationResult = validateOrganizationBasic(input);
@@ -662,13 +671,13 @@ export const organizationAPI = {
       // 转换为API格式
       const apiData = {
         ...safeTransform.cleanCreateInput(input),
-        effective_date: input.effectiveDate,
-        end_date: input.endDate,
+        effective_date: input.effectiveFrom, // 修正：字段名映射
+        end_date: input.effectiveTo,      // 修正：字段名映射
         change_reason: input.changeReason,
         is_temporal: true
       };
 
-      const response = await restClient.request<any>('/organization-units/temporal', {
+      const response = await restClient.request<TemporalOrganizationUnit>('/organization-units/temporal', {
         method: 'POST',
         body: JSON.stringify(apiData),
       });
@@ -679,7 +688,7 @@ export const organizationAPI = {
 
       return response;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating temporal organization:', error);
       
       if (error instanceof SimpleValidationError) {
@@ -695,7 +704,7 @@ export const organizationAPI = {
     effectiveDate?: string;
     endDate?: string;
     changeReason?: string;
-  }): Promise<any> => {
+  }): Promise<TemporalOrganizationUnit> => {
     try {
       if (!code) {
         throw new SimpleValidationError('Organization code is required', [
@@ -722,18 +731,19 @@ export const organizationAPI = {
       };
 
       // 使用事件驱动端点
-      const response = await restClient.request<any>(`/organization-units/${code}/events`, {
+      const response = await restClient.request<TemporalOrganizationUnit>(`/organization-units/${code}/events`, {
         method: 'POST',
         body: JSON.stringify(eventData),
       });
       
-      if (!response.event_id) {
+      // 验证响应是否有效 - 修正：检查核心字段而非event_id
+      if (!response.code) {
         throw new Error('Invalid response from server');
       }
 
       return response;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating temporal organization:', code, error);
       
       if (error instanceof SimpleValidationError) {

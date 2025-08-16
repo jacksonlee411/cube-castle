@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-// import { organizationsApi } from '../../shared/api/organizations-simplified';
+// import { organizationsApi } from '../../shared/api/organizations';
 import type { PlannedOrganizationData } from '../components/PlannedOrganizationForm';
 
 /**
@@ -27,7 +27,7 @@ export const useCreatePlannedOrganization = () => {
       return response.json();
     },
 
-    onSuccess: () => {
+    onSettled: () => {
       // 成功后刷新组织列表
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
       queryClient.invalidateQueries({ queryKey: ['organizationStats'] });
@@ -39,8 +39,6 @@ export const useCreatePlannedOrganization = () => {
  * 时态查询钩子
  */
 export const useTemporalQuery = () => {
-  const queryClient = useQueryClient();
-
   return {
     // 按时间点查询组织
     queryByPointInTime: async (pointInTime: string) => {
@@ -143,7 +141,7 @@ export const useUpdateTemporalInfo = () => {
       return response.json();
     },
 
-    onSuccess: () => {
+    onSettled: () => {
       // 成功后刷新相关查询
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
       queryClient.invalidateQueries({ queryKey: ['organizationStats'] });

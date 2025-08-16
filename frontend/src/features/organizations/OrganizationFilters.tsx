@@ -3,7 +3,7 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Card } from '@workday/canvas-kit-react/card';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
-import { SecondaryButton, PrimaryButton } from '@workday/canvas-kit-react/button';
+import { SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Switch } from '@workday/canvas-kit-react/switch';
 import { useDebounce } from '../../shared/hooks/useDebounce';
 import { TemporalStatusSelector } from '../temporal/components/TemporalStatusSelector';
@@ -96,7 +96,7 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
     }
   }, [debouncedSearchText, filters, onFiltersChange]);
 
-  const handleFilterChange = useCallback((key: keyof FilterState, value: any) => {
+  const handleFilterChange = useCallback((key: keyof FilterState, value: FilterState[keyof FilterState]) => {
     const newFilters = {
       ...filters,
       [key]: value,
@@ -300,7 +300,7 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
                       <FormField.Field>
                       <Switch 
                         checked={filters.showOnlyTemporal || false}
-                        onChange={(checked) => handleFilterChange('showOnlyTemporal', checked)}
+                        onChange={(e) => handleFilterChange('showOnlyTemporal', e.target.checked)}
                       />
                       </FormField.Field>
                     </FormField>

@@ -1,8 +1,7 @@
 import React from 'react';
-import { TertiaryButton, SecondaryButton, ToolbarIconButton as IconButton } from '@workday/canvas-kit-react/button';
+import { TertiaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
-import { calendarIcon } from '@workday/canvas-system-icons-web';
 import type { TableActionsProps } from './TableTypes';
 
 export const TableActions: React.FC<TableActionsProps> = ({
@@ -40,20 +39,19 @@ export const TableActions: React.FC<TableActionsProps> = ({
             size="small" 
             disabled={true}
             data-testid={`toggle-status-button-${organization.code}`}
-            variant={isActive ? 'inverse' : 'primary'}
           >
             {buttonText}
           </SecondaryButton>
         </Tooltip>
         {onTemporalManage && (
           <Tooltip title="查看历史版本的时态管理">
-            <IconButton 
-              size="small" 
+            <TertiaryButton 
               aria-label="时态管理"
-              icon={calendarIcon}
               onClick={handleTemporalManage}
               data-testid={`temporal-manage-button-${organization.code}`}
-            />
+            >
+              📅
+            </TertiaryButton>
           </Tooltip>
         )}
         <Text typeLevel="subtext.small" color="hint">
@@ -79,20 +77,19 @@ export const TableActions: React.FC<TableActionsProps> = ({
         onClick={handleToggleStatus}
         disabled={disabled || !onToggleStatus}
         data-testid={`toggle-status-button-${organization.code}`}
-        variant={isActive ? 'inverse' : 'primary'}
       >
         {isToggling ? loadingText : buttonText}
       </SecondaryButton>
       {onTemporalManage && (
         <Tooltip title="时态管理">
-          <IconButton 
-            size="small" 
+          <TertiaryButton 
             aria-label="时态管理"
-            icon={calendarIcon}
             onClick={handleTemporalManage}
             disabled={disabled}
             data-testid={`temporal-manage-button-${organization.code}`}
-          />
+          >
+            📅
+          </TertiaryButton>
         </Tooltip>
       )}
     </div>
