@@ -148,7 +148,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             borderRadius={borderRadius.m}
           >
             <Text typeLevel="subtext.small" color={colors.licorice700}>
-              📋 新增模式
+              详情 新增模式
             </Text>
           </Box>
         </Flex>
@@ -162,7 +162,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
           border={`1px solid ${colors.blueberry200}`}
         >
           <Text typeLevel="subtext.medium" color={colors.blueberry700}>
-            💡 <strong>提示:</strong> 新增版本将在指定生效日期自动生效，请确保填写准确的组织信息和变更原因。
+            提示 <strong>提示:</strong> 新增版本将在指定生效日期自动生效，请确保填写准确的组织信息和变更原因。
             左侧时间轴将保持可见，便于参考历史版本信息。
           </Text>
         </Box>
@@ -171,7 +171,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
           {/* 基本信息 */}
           <Box marginBottom="l">
             <Heading size="small" marginBottom="s" color={colors.blueberry600}>
-              📋 基本信息
+              详情 基本信息
             </Heading>
             
             <Box marginLeft="m">

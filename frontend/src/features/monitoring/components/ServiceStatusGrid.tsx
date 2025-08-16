@@ -12,7 +12,7 @@ export const ServiceStatusGrid: React.FC<ServiceStatusGridProps> = ({ services =
   if (services.length === 0) {
     return (
       <Box padding="l" textAlign="center">
-        <Box as="span" fontSize="48px">📊</Box>
+        <Box as="span" fontSize="48px">数据</Box>
         <Box marginTop="s">暂无服务数据</Box>
       </Box>
     );

@@ -297,7 +297,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             
             <Box marginBottom={space.m}>
               <Text fontSize="small" marginBottom={space.xs}>
-                📅 日期
+                计划 日期
               </Text>
               <TextInput
                 type="date"
@@ -311,7 +311,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             {showTime && (
               <Box marginBottom={space.m}>
                 <Text fontSize="small" marginBottom={space.xs}>
-                  🕰️ 时间
+                  时间 时间
                 </Text>
                 <TextInput
                   type="time"

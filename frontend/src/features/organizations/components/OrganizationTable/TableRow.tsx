@@ -94,7 +94,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
         {/* 计划组织标识 */}
         {temporalStatus === 'PLANNED' && (
           <Text as="span" typeLevel="subtext.small" color="positive" marginLeft="xs">
-            📅 计划
+            计划 计划
           </Text>
         )}
       </Table.Cell>
@@ -115,8 +115,8 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
           }}
         >
           {temporalStatus === 'ACTIVE' ? '✓ 启用' :
-           temporalStatus === 'PLANNED' ? '📅 计划' :
-           temporalStatus === 'INACTIVE' ? '⏸️ 停用' : temporalStatus}
+           temporalStatus === 'PLANNED' ? '计划 计划' :
+           temporalStatus === 'INACTIVE' ? '停用 停用' : temporalStatus}
         </span>
       </Table.Cell>
       

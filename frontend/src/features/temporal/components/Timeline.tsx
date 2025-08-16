@@ -16,11 +16,13 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import {
-  addIcon,
-  moreVerticalIcon,
-  filterIcon,
-  expandIcon,
-  collapseIcon
+  editIcon,
+  trashIcon,
+  checkIcon,
+  xIcon,
+  clockIcon,
+  shareIcon,
+  textEditIcon
 } from '@workday/canvas-system-icons-web';
 import { useOrganizationTimeline } from '../../../shared/hooks/useTemporalQuery';
 import type { 
@@ -71,25 +73,25 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
   const [showMenu, setShowMenu] = useState(false);
 
   // 获取事件类型样式
-  const getEventTypeStyle = (eventType: EventType) => {
-    const styles = {
-      create: { color: colors.greenFresca600, bgColor: colors.greenFresca100, icon: '🏗️' },
-      update: { color: colors.blueberry600, bgColor: colors.blueberry100, icon: '✏️' },
-      delete: { color: colors.cinnamon600, bgColor: colors.cinnamon100, icon: '🗑️' },
-      activate: { color: colors.greenFresca600, bgColor: colors.greenFresca100, icon: '✅' },
-      deactivate: { color: colors.licorice400, bgColor: colors.licorice100, icon: '🚫' },
-      restructure: { color: colors.peach600, bgColor: colors.peach100, icon: '🔄' },
-      merge: { color: colors.plum600, bgColor: colors.plum100, icon: '🔗' },
-      split: { color: colors.cantaloupe600, bgColor: colors.cantaloupe100, icon: '✂️' },
-      transfer: { color: colors.blueberry600, bgColor: colors.blueberry100, icon: '📤' },
-      rename: { color: colors.peach600, bgColor: colors.peach100, icon: '📝' }
+  const getEventTypeStyle = (eventType: string) => {
+    const styles: Record<string, any> = {
+      create: { color: colors.greenFresca600, bgColor: colors.greenFresca100, icon: editIcon },
+      update: { color: colors.blueberry600, bgColor: colors.blueberry100, icon: editIcon },
+      delete: { color: colors.cinnamon600, bgColor: colors.cinnamon100, icon: trashIcon },
+      activate: { color: colors.greenFresca600, bgColor: colors.greenFresca100, icon: checkIcon },
+      deactivate: { color: colors.licorice400, bgColor: colors.licorice100, icon: xIcon },
+      restructure: { color: colors.peach600, bgColor: colors.peach100, icon: clockIcon },
+      merge: { color: colors.plum600, bgColor: colors.plum100, icon: shareIcon },
+      split: { color: colors.cantaloupe600, bgColor: colors.cantaloupe100, icon: textEditIcon },
+      transfer: { color: colors.blueberry600, bgColor: colors.blueberry100, icon: editIcon },
+      rename: { color: colors.peach600, bgColor: colors.peach100, icon: textEditIcon }
     };
     return styles[eventType] || styles.update;
   };
 
   // 获取状态样式
-  const getStatusStyle = (status: EventStatus) => {
-    const styles = {
+  const getStatusStyle = (status: string) => {
+    const styles: Record<string, any> = {
       pending: { color: colors.cantaloupe600, label: '待处理' },
       approved: { color: colors.blueberry600, label: '已批准' },
       rejected: { color: colors.cinnamon600, label: '已拒绝' },
@@ -99,8 +101,8 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
     return styles[status] || styles.pending;
   };
 
-  const eventTypeStyle = getEventTypeStyle(event.eventType);
-  const statusStyle = getStatusStyle(event.status);
+  const eventTypeStyle = getEventTypeStyle(event.event_type || 'update');
+  const statusStyle = getStatusStyle(event.status || 'pending');
 
   // 格式化时间
   const formatEventTime = (dateStr: string) => {
@@ -307,7 +309,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   if (isLoading) {
     return (
       <Card padding={space.m}>
-        <Text>🔄 加载时间线数据...</Text>
+        <Text>加载时间线数据...</Text>
       </Card>
     );
   }

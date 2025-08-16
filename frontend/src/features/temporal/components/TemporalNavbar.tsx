@@ -7,6 +7,15 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import {
+  clockIcon,
+  documentIcon,
+  calendarIcon,
+  syncIcon,
+  gearIcon,
+  exclamationIcon
+} from '@workday/canvas-system-icons-web';
 import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
 import { useTemporalMode, useTemporalQueryState } from '../../../shared/hooks/useTemporalQuery';
 import { useTemporalActions, temporalSelectors } from '../../../shared/stores/temporalStore';
@@ -104,21 +113,21 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
         return {
           label: '当前视图',
           color: colors.greenFresca600,
-          icon: "⏰",
+          icon: clockIcon,
           description: '显示当前有效的组织架构'
         };
       case 'historical':
         return {
           label: '历史视图',
           color: colors.blueberry600,
-          icon: "📜",
+          icon: documentIcon,
           description: `显示历史时间点的组织架构`
         };
       case 'planning':
         return {
           label: '规划视图',
           color: colors.peach600,
-          icon: "📅",
+          icon: calendarIcon,
           description: '显示未来规划的组织架构变更'
         };
     }
@@ -147,7 +156,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
               onClick={() => handleModeChange('current')}
               disabled={loading.organizations}
             >
-              ⏰
+              <SystemIcon icon={clockIcon} size={16} />
               {!compact && '当前'}
             </SecondaryButton>
           </Tooltip>
@@ -158,7 +167,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
               onClick={() => handleModeChange('historical')}
               disabled={loading.organizations}
             >
-              📜
+              <SystemIcon icon={documentIcon} size={16} />
               {!compact && '历史'}
             </SecondaryButton>
           </Tooltip>
@@ -169,7 +178,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
               onClick={() => handleModeChange('planning')}
               disabled={loading.organizations}
             >
-              📅
+              <SystemIcon icon={calendarIcon} size={16} />
               {!compact && '规划'}
             </SecondaryButton>
           </Tooltip>
@@ -178,7 +187,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
         {/* 当前模式状态显示 */}
         <Flex alignItems="center" gap={space.s}>
           <Flex alignItems="center" gap={space.s}>
-            <Text fontSize="small">{modeDisplay.icon}</Text>
+            <SystemIcon icon={modeDisplay.icon} size={16} color={modeDisplay.color} />
             <Text
               fontSize="small"
               color={modeDisplay.color}
@@ -201,7 +210,6 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
           {!compact && cacheStats.totalCacheSize > 0 && (
             <Tooltip title={`缓存: ${cacheStats.organizationsCount} 组织, ${cacheStats.timelinesCount} 时间线`}>
               <Flex alignItems="center" gap={space.xs}>
-                <Text fontSize="small">💾</Text>
                 <Text fontSize="small" color={colors.licorice400}>
                   {cacheStats.totalCacheSize}
                 </Text>
@@ -216,7 +224,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
               onClick={handleRefreshCache}
               disabled={loading.organizations || loading.timeline}
             >
-              🔄
+              <SystemIcon icon={syncIcon} size={16} />
             </SecondaryButton>
           </Tooltip>
 
@@ -227,7 +235,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
                 size={compact ? 'small' : 'medium'}
                 onClick={openSettings}
               >
-                ⚙️
+                <SystemIcon icon={gearIcon} size={16} />
               </SecondaryButton>
             </Tooltip>
           )}
@@ -238,7 +246,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
       {error && (
         <Box marginTop={space.s}>
           <Text color={colors.cinnamon600} fontSize="small">
-            ⚠️ {error}
+            <SystemIcon icon={exclamationIcon} size={16} color={colors.cinnamon600} /> {error}
           </Text>
         </Box>
       )}
@@ -247,7 +255,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
       {(loading.organizations || loading.timeline) && (
         <Box marginTop={space.s}>
           <Text color={colors.blueberry600} fontSize="small">
-            🔄 {loading.organizations ? '加载组织数据...' : '加载时间线数据...'}
+            {loading.organizations ? '加载组织数据...' : '加载时间线数据...'}
           </Text>
         </Box>
       )}

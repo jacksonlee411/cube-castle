@@ -61,7 +61,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
       {/* 基础信息卡片 */}
       <Card marginBottom={space.l} padding={space.m}>
         <Text fontSize="medium" fontWeight="bold" marginBottom={space.m}>
-          📋 基础信息
+          详情 基础信息
         </Text>
 
         <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
@@ -381,7 +381,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
       {isEditing && (
         <Card padding={space.m} backgroundColor={colors.blueberry50}>
           <Text fontSize="small" fontWeight="bold" marginBottom={space.xs}>
-            💡 编辑提示
+            提示 编辑提示
           </Text>
           <Box as="ul" marginLeft={space.m}>
             <Box as="li" marginBottom={space.xs}>

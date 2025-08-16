@@ -144,7 +144,7 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
         >
         {/* 标题 */}
         <Flex alignItems="center" gap={space.s} marginBottom={space.l}>
-          ⚙️
+          设置
           <Text fontSize="large" fontWeight="bold">
             时态查询设置
           </Text>
@@ -321,7 +321,7 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
           <SecondaryButton
             onClick={handleReset}
           >
-            🔄 重置为默认
+            刷新 重置为默认
           </SecondaryButton>
 
           <Flex gap={space.s}>

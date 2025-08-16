@@ -50,7 +50,7 @@ export const TableActions: React.FC<TableActionsProps> = ({
               onClick={handleTemporalManage}
               data-testid={`temporal-manage-button-${organization.code}`}
             >
-              📅
+              计划
             </TertiaryButton>
           </Tooltip>
         )}
@@ -88,7 +88,7 @@ export const TableActions: React.FC<TableActionsProps> = ({
             disabled={disabled}
             data-testid={`temporal-manage-button-${organization.code}`}
           >
-            📅
+            计划
           </TertiaryButton>
         </Tooltip>
       )}

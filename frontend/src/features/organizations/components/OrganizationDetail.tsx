@@ -290,7 +290,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
               onClick={handleRefreshAll}
               disabled={orgLoading || timelineLoading}
             >
-              🔄 刷新
+              刷新 刷新
             </SecondaryButton>
             {onBack && (
               <TertiaryButton onClick={onBack}>
@@ -333,7 +333,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
           <Box marginTop="l">
             <Card padding="m">
               <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
-                📋 组织概览信息
+                详情 组织概览信息
               </Text>
               
               <Flex flexDirection="column" gap="m">
@@ -403,7 +403,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
           <Box marginTop="l">
             <Card padding="m">
               <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
-                🔄 版本对比
+                刷新 版本对比
               </Text>
               <Text typeLevel="body.medium">
                 版本对比功能开发中...

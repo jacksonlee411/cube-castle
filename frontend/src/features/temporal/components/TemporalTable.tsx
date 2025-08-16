@@ -340,7 +340,7 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
   if (isLoading) {
     return (
       <Box padding={space.m}>
-        <Text>🔄 加载组织数据...</Text>
+        <Text>刷新 加载组织数据...</Text>
       </Box>
     );
   }
@@ -601,7 +601,7 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
       {(isHistorical || isPlanning) && (
         <Box marginTop={space.s}>
           <Text fontSize="small" color={colors.licorice500}>
-            ℹ️ {isHistorical ? '当前显示历史' : '当前显示规划'}模式数据，
+            信息 {isHistorical ? '当前显示历史' : '当前显示规划'}模式数据，
             {isHistorical && '编辑和删除功能已禁用'}
             {isPlanning && '显示未来规划的组织变更'}
           </Text>

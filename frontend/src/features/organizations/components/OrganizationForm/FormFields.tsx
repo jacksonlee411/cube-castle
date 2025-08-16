@@ -175,7 +175,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         </select>
         {isPlannedStatus && (
           <div style={hintStyle}>
-            📅 计划中的组织将自动启用时态管理功能
+            计划 计划中的组织将自动启用时态管理功能
           </div>
         )}
       </div>
@@ -213,7 +213,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         <div style={cardStyle}>
           <div style={{ marginBottom: '16px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>
-              ⚙️ 时态管理设置
+              设置 时态管理设置
             </h3>
             <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
               配置组织的生效和失效时间，实现精确的时态管理
@@ -333,9 +333,9 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                       display: 'inline-block',
                       fontSize: '12px'
                     }}>
-                      {temporalMode === 'current' ? '🔄 当前模式' : 
+                      {temporalMode === 'current' ? '刷新 当前模式' : 
                        temporalMode === 'historical' ? '📖 历史模式' : 
-                       '📅 规划模式'}
+                       '计划 规划模式'}
                     </div>
                     <div style={hintStyle}>
                       当前的时态查询模式，影响数据的显示和编辑行为

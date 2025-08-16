@@ -217,7 +217,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                               onDeleteVersion(version);
                             }}
                           >
-                            🗑️
+                            删除
                           </TertiaryButton>
                         </Tooltip>
                       )}
@@ -396,7 +396,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
                   disabled={buttonState.edit === 'disabled' || isLoading}
                   onClick={() => onEdit?.(version)}
                 >
-                  ✏️ 编辑
+                  编辑 编辑
                 </PrimaryButton>
               </Tooltip>
               
@@ -406,7 +406,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
                   disabled={buttonState.delete === 'disabled' || isLoading}
                   onClick={() => onDelete?.(version)}
                 >
-                  🗑️ 作废
+                  删除 作废
                 </SecondaryButton>
               </Tooltip>
             </Flex>
@@ -424,7 +424,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
           {/* 基本信息 */}
           <Box>
             <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.blueberry[600]}>
-              📋 基本信息
+              详情 基本信息
             </Text>
             <Box marginLeft="m">
               <Text typeLevel="body.small" marginBottom="xs">
@@ -445,7 +445,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
           {/* 层级信息 */}
           <Box>
             <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.peach[600]}>
-              🏗️ 层级结构
+              创建 层级结构
             </Text>
             <Box marginLeft="m">
               <Text typeLevel="body.small" marginBottom="xs">
@@ -488,7 +488,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
           {/* 系统信息 */}
           <Box>
             <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.cantaloupe[600]}>
-              🔧 系统信息
+              系统 系统信息
             </Text>
             <Box marginLeft="m">
               <Text typeLevel="body.small" marginBottom="xs">
@@ -711,7 +711,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         
         <Flex gap="s">
           <SecondaryButton onClick={loadVersions} disabled={isLoading}>
-            🔄 刷新
+            刷新 刷新
           </SecondaryButton>
           {onBack && (
             <TertiaryButton onClick={onBack}>
@@ -746,7 +746,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 color: activeTab === 'details' ? 'white' : baseColors.blueberry[600]
               }}
             >
-              📋 版本详情
+              详情 版本详情
             </SecondaryButton>
             <SecondaryButton
               size="small"
@@ -756,7 +756,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 color: activeTab === 'timeline' ? 'white' : baseColors.blueberry[600]
               }}
             >
-              📊 时间线可视化
+              数据 时间线可视化
             </SecondaryButton>
             <SecondaryButton
               size="small"
@@ -805,7 +805,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               <Modal.Body>
                 <Box padding="l">
             <Flex alignItems="flex-start" gap="m" marginBottom="l">
-              <Box fontSize="24px" color={baseColors.cinnamon[600]}>⚠️</Box>
+              <Box fontSize="24px" color={baseColors.cinnamon[600]}>警告</Box>
               <Box>
                 <Text typeLevel="body.medium" marginBottom="s">
                   确定要作废生效日期为 <strong>{new Date(showDeleteConfirm.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
@@ -814,7 +814,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   版本名称: {showDeleteConfirm.name}
                 </Text>
                 <Text typeLevel="subtext.small" color={baseColors.cinnamon[600]}>
-                  ⚠️ 作废后将自动填补时间空洞，此操作不可撤销
+                  警告 作废后将自动填补时间空洞，此操作不可撤销
                 </Text>
               </Box>
             </Flex>

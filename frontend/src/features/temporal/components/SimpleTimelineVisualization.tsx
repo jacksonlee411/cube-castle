@@ -7,6 +7,15 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { 
+  editIcon,
+  trashIcon,
+  checkIcon,
+  xIcon,
+  clockIcon,
+  exclamationCircleIcon
+} from '@workday/canvas-system-icons-web';
 import { Badge } from '../../../shared/components/Badge';
 import { colors } from '@workday/canvas-kit-react/tokens';
 
@@ -40,13 +49,13 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
   // 获取事件类型样式
   const getEventTypeStyle = (eventType: string) => {
     const styles = {
-      create: { color: '#2ECC71', bgColor: '#E8F5E8', icon: '🏗️' },
-      update: { color: '#3498DB', bgColor: '#E3F2FD', icon: '✏️' },
-      delete: { color: '#E74C3C', bgColor: '#FFEBEE', icon: '🗑️' },
-      activate: { color: '#2ECC71', bgColor: '#E8F5E8', icon: '✅' },
-      deactivate: { color: '#666666', bgColor: '#F5F5F5', icon: '🚫' },
-      restructure: { color: '#F39C12', bgColor: '#FFF3E0', icon: '🔄' },
-      dissolve: { color: '#E74C3C', bgColor: '#FFEBEE', icon: '💥' }
+      create: { color: '#2ECC71', bgColor: '#E8F5E8', icon: editIcon },
+      update: { color: '#3498DB', bgColor: '#E3F2FD', icon: editIcon },
+      delete: { color: '#E74C3C', bgColor: '#FFEBEE', icon: trashIcon },
+      activate: { color: '#2ECC71', bgColor: '#E8F5E8', icon: checkIcon },
+      deactivate: { color: '#666666', bgColor: '#F5F5F5', icon: xIcon },
+      restructure: { color: '#F39C12', bgColor: '#FFF3E0', icon: clockIcon },
+      dissolve: { color: '#E74C3C', bgColor: '#FFEBEE', icon: exclamationCircleIcon }
     };
     return styles[eventType as keyof typeof styles] || styles.update;
   };
@@ -103,7 +112,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
     return (
       <Card padding="l">
         <Flex justifyContent="center" alignItems="center" minHeight="200px">
-          <Text>🔄 加载时间线数据...</Text>
+          <Text>加载时间线数据...</Text>
         </Flex>
       </Card>
     );
@@ -113,7 +122,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
     return (
       <Card padding="l">
         <Flex justifyContent="center" alignItems="center" flexDirection="column" minHeight="200px" gap="m">
-          <Text color={colors.cinnamon600}>❌ {error}</Text>
+          <Text color={colors.cinnamon600}>{error}</Text>
           <PrimaryButton size="small" onClick={handleRefresh}>
             重试
           </PrimaryButton>
@@ -126,7 +135,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
     return (
       <Card padding="l">
         <Flex justifyContent="center" alignItems="center" flexDirection="column" minHeight="200px" gap="m">
-          <Text color="#666666">📭 暂无时间线事件</Text>
+          <Text color="#666666">暂无时间线事件</Text>
           <SecondaryButton size="small" onClick={handleRefresh}>
             刷新
           </SecondaryButton>
@@ -149,7 +158,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
         </Box>
         
         <SecondaryButton size="small" onClick={handleRefresh}>
-          🔄 刷新
+          刷新
         </SecondaryButton>
       </Flex>
 
@@ -197,7 +206,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
                       flexShrink: 0
                     }}
                   >
-                    {eventStyle.icon}
+                    <SystemIcon icon={eventStyle.icon} size={20} color={eventStyle.color} />
                   </Box>
 
                   {/* 事件内容 */}
@@ -232,10 +241,10 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
                     {/* 事件时间 */}
                     <Box marginBottom="s">
                       <Text fontSize="small" color="#666666">
-                        🕐 事件时间: {formatDate(event.event_date)}
+                        事件时间: {formatDate(event.event_date)}
                       </Text>
                       <Text fontSize="small" color="#666666">
-                        📅 生效时间: {formatDate(event.effective_date)}
+                        生效时间: {formatDate(event.effective_date)}
                       </Text>
                     </Box>
 

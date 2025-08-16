@@ -52,7 +52,7 @@ const DashboardHeader: React.FC<{
           disabled={isToggling}
           style={{ borderColor: '#1890ff', color: '#1890ff' }}
         >
-          📅 新增计划组织
+          计划 新增计划组织
         </SecondaryButton>
       )}
       

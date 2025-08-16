@@ -502,10 +502,10 @@ const TimelineNodeComponent: React.FC<TimelineNodeComponentProps> = ({
   const getChangeTypeIcon = (changeType?: TimelineNode['changeType']) => {
     switch (changeType) {
       case 'created': return '🆕';
-      case 'activated': return '✅';
+      case 'activated': return '启用';
       case 'deactivated': return '❌';
-      case 'planned': return '📅';
-      default: return '✏️';
+      case 'planned': return '计划';
+      default: return '编辑';
     }
   };
 

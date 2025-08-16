@@ -346,7 +346,7 @@ export const VersionComparison: React.FC<VersionComparisonProps> = ({
   if (isLoading) {
     return (
       <Card padding={space.m}>
-        <Text>🔄 加载版本历史数据...</Text>
+        <Text>刷新 加载版本历史数据...</Text>
       </Card>
     );
   }

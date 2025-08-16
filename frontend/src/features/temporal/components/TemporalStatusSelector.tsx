@@ -150,8 +150,8 @@ export const temporalStatusUtils = {
   getStatusIcon: (status: TemporalStatus): string => {
     switch (status) {
       case 'ACTIVE': return '✓';
-      case 'PLANNED': return '📅';
-      case 'INACTIVE': return '⏸️';
+      case 'PLANNED': return '';
+      case 'INACTIVE': return '';
       default: return '•';
     }
   }
