@@ -119,11 +119,11 @@ func (h *OrganizationHandler) GetOrganizations(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	
+
 	// 简单的JSON序列化
 	fmt.Fprintf(w, `{
 		"organizations": [`)
-	
+
 	for i, unit := range units {
 		if i > 0 {
 			fmt.Fprintf(w, ",")
@@ -138,11 +138,11 @@ func (h *OrganizationHandler) GetOrganizations(w http.ResponseWriter, r *http.Re
 			"sort_order": %d,
 			"created_at": "%s",
 			"updated_at": "%s"`,
-			unit.Code, unit.Name, unit.UnitType, unit.Status, 
+			unit.Code, unit.Name, unit.UnitType, unit.Status,
 			unit.Level, unit.Path, unit.SortOrder,
 			unit.CreatedAt.Format(time.RFC3339),
 			unit.UpdatedAt.Format(time.RFC3339))
-		
+
 		if unit.ParentCode != nil {
 			fmt.Fprintf(w, `,"parent_code": "%s"`, *unit.ParentCode)
 		}
@@ -151,7 +151,7 @@ func (h *OrganizationHandler) GetOrganizations(w http.ResponseWriter, r *http.Re
 		}
 		fmt.Fprintf(w, "}")
 	}
-	
+
 	fmt.Fprintf(w, `],
 		"total_count": %d,
 		"page": %d,
@@ -179,7 +179,7 @@ func (h *OrganizationHandler) GetOrganizationByCode(w http.ResponseWriter, r *ht
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2
 	`
-	
+
 	err := h.db.Get(&unit, query, tenantID, code)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
@@ -192,7 +192,7 @@ func (h *OrganizationHandler) GetOrganizationByCode(w http.ResponseWriter, r *ht
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	
+
 	fmt.Fprintf(w, `{
 		"code": "%s",
 		"name": "%s",
@@ -207,7 +207,7 @@ func (h *OrganizationHandler) GetOrganizationByCode(w http.ResponseWriter, r *ht
 		unit.Level, unit.Path, unit.SortOrder,
 		unit.CreatedAt.Format(time.RFC3339),
 		unit.UpdatedAt.Format(time.RFC3339))
-	
+
 	if unit.ParentCode != nil {
 		fmt.Fprintf(w, `,"parent_code": "%s"`, *unit.ParentCode)
 	}
@@ -265,11 +265,11 @@ func (h *OrganizationHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	
+
 	fmt.Fprintf(w, `{
 		"total_count": %d,
 		"by_type": {`, totalCount)
-	
+
 	first := true
 	for unitType, count := range typeStats {
 		if !first {
@@ -278,10 +278,10 @@ func (h *OrganizationHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `"%s": %d`, unitType, count)
 		first = false
 	}
-	
+
 	fmt.Fprintf(w, `},
 		"by_status": {`)
-	
+
 	first = true
 	for status, count := range statusStats {
 		if !first {
@@ -290,7 +290,7 @@ func (h *OrganizationHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `"%s": %d`, status, count)
 		first = false
 	}
-	
+
 	fmt.Fprintf(w, `}
 	}`)
 }
@@ -327,12 +327,12 @@ func main() {
 
 	// 设置路由
 	r := chi.NewRouter()
-	
+
 	// 中间件
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	
+
 	// CORS设置
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -379,7 +379,7 @@ func main() {
 	log.Printf("🚀 Organization Units API v2.0 starting on :8080")
 	log.Printf("📊 Health check: http://localhost:8080/health")
 	log.Printf("📋 API endpoint: http://localhost:8080/api/v1/organization-units")
-	
+
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server failed to start: %v", err)
 	}

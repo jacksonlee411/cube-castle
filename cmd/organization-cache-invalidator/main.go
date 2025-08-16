@@ -36,19 +36,19 @@ type CDCOrganizationEvent struct {
 }
 
 type CDCOrganizationData struct {
-	ID         *string `json:"id"`
-	TenantID   *string `json:"tenant_id"`
-	Code       *string `json:"code"`
-	ParentCode *string `json:"parent_code"`
-	Name       *string `json:"name"`
-	UnitType   *string `json:"unit_type"`
-	Status     *string `json:"status"`
-	Level      *int    `json:"level"`
-	Path       *string `json:"path"`
-	SortOrder  *int    `json:"sort_order"`
-	Description *string `json:"description"`
-	CreatedAt  *time.Time `json:"created_at"`
-	UpdatedAt  *time.Time `json:"updated_at"`
+	ID          *string    `json:"id"`
+	TenantID    *string    `json:"tenant_id"`
+	Code        *string    `json:"code"`
+	ParentCode  *string    `json:"parent_code"`
+	Name        *string    `json:"name"`
+	UnitType    *string    `json:"unit_type"`
+	Status      *string    `json:"status"`
+	Level       *int       `json:"level"`
+	Path        *string    `json:"path"`
+	SortOrder   *int       `json:"sort_order"`
+	Description *string    `json:"description"`
+	CreatedAt   *time.Time `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
 }
 
 type CDCSource struct {
@@ -87,10 +87,10 @@ func NewCacheInvalidator(redisAddr, redisPassword string, kafkaBrokers []string,
 
 	// Kafka消费者配置
 	config := &kafka.ConfigMap{
-		"bootstrap.servers": strings.Join(kafkaBrokers, ","),
-		"group.id":          groupID,
-		"auto.offset.reset": "latest",
-		"enable.auto.commit": true,
+		"bootstrap.servers":       strings.Join(kafkaBrokers, ","),
+		"group.id":                groupID,
+		"auto.offset.reset":       "latest",
+		"enable.auto.commit":      true,
 		"auto.commit.interval.ms": 1000,
 	}
 
@@ -140,7 +140,7 @@ func (c *CacheInvalidator) invalidateOrganizationCaches(ctx context.Context, ten
 	}
 
 	if totalInvalidated > 0 {
-		c.logger.Printf("✅ 缓存失效完成 - 租户: %s, 影响组织: %s, 总计失效: %d 个缓存项", 
+		c.logger.Printf("✅ 缓存失效完成 - 租户: %s, 影响组织: %s, 总计失效: %d 个缓存项",
 			tenantID, affectedCode, totalInvalidated)
 	} else {
 		c.logger.Printf("ℹ️ 未找到需要失效的缓存 - 租户: %s, 影响组织: %s", tenantID, affectedCode)
@@ -152,7 +152,7 @@ func (c *CacheInvalidator) invalidateOrganizationCaches(ctx context.Context, ten
 // 处理CDC事件
 func (c *CacheInvalidator) processCDCEvent(ctx context.Context, event CDCOrganizationEvent) error {
 	var tenantID, code string
-	
+
 	// 根据操作类型获取租户ID和组织代码
 	switch event.Op {
 	case "c", "u": // CREATE, UPDATE
@@ -186,7 +186,7 @@ func (c *CacheInvalidator) processCDCEvent(ctx context.Context, event CDCOrganiz
 	}
 
 	c.logger.Printf("🔄 处理CDC事件 - 操作: %s, 租户: %s, 组织: %s", event.Op, tenantID, code)
-	
+
 	// 失效相关缓存
 	return c.invalidateOrganizationCaches(ctx, tenantID, code)
 }
@@ -200,7 +200,7 @@ func (c *CacheInvalidator) processMessage(ctx context.Context, msg *kafka.Messag
 		return nil
 	}
 
-	c.logger.Printf("📨 收到CDC事件消息 - Topic: %s, Partition: %d, Offset: %d", 
+	c.logger.Printf("📨 收到CDC事件消息 - Topic: %s, Partition: %d, Offset: %d",
 		topic, msg.TopicPartition.Partition, msg.TopicPartition.Offset)
 
 	// 解析Debezium消息格式
@@ -255,23 +255,23 @@ func (c *CacheInvalidator) StartConsuming(ctx context.Context) error {
 // 关闭资源
 func (c *CacheInvalidator) Close() error {
 	var errs []error
-	
+
 	if c.consumer != nil {
 		if err := c.consumer.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("关闭Kafka消费者失败: %w", err))
 		}
 	}
-	
+
 	if c.redisClient != nil {
 		if err := c.redisClient.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("关闭Redis连接失败: %w", err))
 		}
 	}
-	
+
 	if len(errs) > 0 {
 		return fmt.Errorf("关闭资源时发生错误: %v", errs)
 	}
-	
+
 	return nil
 }
 
@@ -291,14 +291,14 @@ func main() {
 	if redisAddr == "" {
 		redisAddr = "localhost:6379"
 	}
-	
+
 	redisPassword := os.Getenv("REDIS_PASSWORD")
-	
+
 	kafkaBrokers := []string{"localhost:9092"}
 	if brokers := os.Getenv("KAFKA_BROKERS"); brokers != "" {
 		kafkaBrokers = strings.Split(brokers, ",")
 	}
-	
+
 	groupID := "cache-invalidator-group"
 
 	// 创建缓存失效服务
@@ -310,53 +310,53 @@ func main() {
 
 	// 创建上下文处理优雅关闭
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// 优雅关闭
 	go func() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 		<-sigint
-		
+
 		logger.Println("正在关闭缓存失效服务...")
 		cancel()
 	}()
 
 	logger.Println("🚀 组织缓存失效服务启动成功")
-	
+
 	// 初始化监控
 	serviceStartTime = time.Now()
-	
+
 	// 启动健康检查服务器
 	go startHealthServer(logger)
-	
+
 	// 开始消费
 	if err := invalidator.StartConsuming(ctx); err != nil {
 		log.Fatalf("消费失败: %v", err)
 	}
-	
+
 	logger.Println("缓存失效服务已关闭")
 }
 
 // 健康检查服务器
 func startHealthServer(logger *log.Logger) {
 	mux := http.NewServeMux()
-	
+
 	// 健康检查端点
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		// 获取运行时统计信息
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
-		
+
 		invalidationCount := atomic.LoadInt64(&cacheInvalidationCount)
 		errorCount := atomic.LoadInt64(&cacheErrorCount)
 		uptime := time.Since(serviceStartTime)
-		
+
 		response := map[string]interface{}{
-			"service": "organization-cache-invalidator",
-			"status": "healthy",
-			"timestamp": time.Now().Format(time.RFC3339),
+			"service":        "organization-cache-invalidator",
+			"status":         "healthy",
+			"timestamp":      time.Now().Format(time.RFC3339),
 			"uptime_seconds": int64(uptime.Seconds()),
 			"performance": map[string]interface{}{
 				"cache_invalidations": invalidationCount,
@@ -367,7 +367,7 @@ func startHealthServer(logger *log.Logger) {
 			},
 			"features": []string{
 				"精确缓存失效",
-				"Redis集成", 
+				"Redis集成",
 				"Kafka消息消费",
 				"CDC事件处理",
 				"CPU优化修复", // 新增：标记已修复CPU问题
@@ -375,19 +375,19 @@ func startHealthServer(logger *log.Logger) {
 		}
 		json.NewEncoder(w).Encode(response)
 	})
-	
+
 	// 指标端点
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("# Cache invalidator metrics\ncache_invalidator_status 1\n"))
 	})
-	
+
 	server := &http.Server{
 		Addr:    ":8086",
 		Handler: mux,
 	}
-	
+
 	logger.Printf("🔍 健康检查服务器启动 - 端口 8086")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Printf("❌ 健康检查服务器错误: %v", err)

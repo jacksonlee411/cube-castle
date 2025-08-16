@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-	
+
 	"cube-castle-deployment-test/internal/cache"
 )
 
@@ -68,7 +68,7 @@ func (service *Neo4jQueryService) GetOrganizations(ctx context.Context, tenantID
 	var organizations []cache.Organization
 	for result.Next(ctx) {
 		record := result.Record()
-		
+
 		org := cache.Organization{
 			Code:        getStringValue(record, "code"),
 			TenantID:    tenantID.String(),
@@ -88,7 +88,7 @@ func (service *Neo4jQueryService) GetOrganizations(ctx context.Context, tenantID
 				org.CreatedAt = t
 			}
 		}
-		
+
 		if updatedAt := getStringValue(record, "updated_at"); updatedAt != "" {
 			if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
 				org.UpdatedAt = t
@@ -130,7 +130,7 @@ func (service *Neo4jQueryService) GetOrganization(ctx context.Context, tenantID 
 
 	if result.Next(ctx) {
 		record := result.Record()
-		
+
 		org := &cache.Organization{
 			Code:        getStringValue(record, "code"),
 			TenantID:    tenantID.String(),
@@ -150,7 +150,7 @@ func (service *Neo4jQueryService) GetOrganization(ctx context.Context, tenantID 
 				org.CreatedAt = t
 			}
 		}
-		
+
 		if updatedAt := getStringValue(record, "updated_at"); updatedAt != "" {
 			if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
 				org.UpdatedAt = t
@@ -178,7 +178,7 @@ func (service *Neo4jQueryService) GetOrganizationStats(ctx context.Context, tena
 		WHERE o.status <> 'DELETED'
 		RETURN count(o) as total
 	`
-	
+
 	totalResult, err := session.Run(ctx, totalQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
@@ -199,7 +199,7 @@ func (service *Neo4jQueryService) GetOrganizationStats(ctx context.Context, tena
 		RETURN o.unit_type as unit_type, count(o) as count
 		ORDER BY unit_type
 	`
-	
+
 	typeResult, err := session.Run(ctx, typeQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
@@ -225,7 +225,7 @@ func (service *Neo4jQueryService) GetOrganizationStats(ctx context.Context, tena
 		RETURN o.status as status, count(o) as count
 		ORDER BY status
 	`
-	
+
 	statusResult, err := session.Run(ctx, statusQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
@@ -251,7 +251,7 @@ func (service *Neo4jQueryService) GetOrganizationStats(ctx context.Context, tena
 		RETURN toString(o.level) as level, count(o) as count
 		ORDER BY level
 	`
-	
+
 	levelResult, err := session.Run(ctx, levelQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
@@ -278,9 +278,9 @@ func (service *Neo4jQueryService) GetOrganizationStats(ctx context.Context, tena
 		ByLevel:    byLevel,
 	}
 
-	service.logger.Printf("[L3] Neo4j统计查询完成: 总数=%d, 类型=%d, 状态=%d, 级别=%d", 
+	service.logger.Printf("[L3] Neo4j统计查询完成: 总数=%d, 类型=%d, 状态=%d, 级别=%d",
 		total, len(byType), len(byStatus), len(byLevel))
-	
+
 	return stats, nil
 }
 

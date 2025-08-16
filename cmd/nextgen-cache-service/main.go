@@ -20,31 +20,31 @@ import (
 	"github.com/google/uuid"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/redis/go-redis/v9"
-	
+
 	"cube-castle-deployment-test/internal/cache"
 )
 
 // 新一代缓存管理服务
 type NextGenCacheService struct {
-	cacheManager  *cache.UnifiedCacheManager
-	cdcConsumer   *kafka.Consumer
-	eventBus      *cache.CacheEventBus
-	logger        *log.Logger
-	config        *ServiceConfig
-	ctx           context.Context
-	cancel        context.CancelFunc
+	cacheManager *cache.UnifiedCacheManager
+	cdcConsumer  *kafka.Consumer
+	eventBus     *cache.CacheEventBus
+	logger       *log.Logger
+	config       *ServiceConfig
+	ctx          context.Context
+	cancel       context.CancelFunc
 }
 
 // 服务配置
 type ServiceConfig struct {
-	RedisAddr      string
-	RedisPassword  string
-	KafkaBrokers   []string
-	Neo4jURI       string
-	Neo4jUsername  string
-	Neo4jPassword  string
-	Port           string
-	WriteThrough   bool
+	RedisAddr       string
+	RedisPassword   string
+	KafkaBrokers    []string
+	Neo4jURI        string
+	Neo4jUsername   string
+	Neo4jPassword   string
+	Port            string
+	WriteThrough    bool
 	ConsistencyMode string
 }
 
@@ -94,9 +94,9 @@ func NewNextGenCacheService(config *ServiceConfig, logger *log.Logger) (*NextGen
 
 	// 5. 创建Kafka消费者
 	kafkaConfig := &kafka.ConfigMap{
-		"bootstrap.servers": strings.Join(config.KafkaBrokers, ","),
-		"group.id":          "nextgen-cache-service",
-		"auto.offset.reset": "latest",
+		"bootstrap.servers":  strings.Join(config.KafkaBrokers, ","),
+		"group.id":           "nextgen-cache-service",
+		"auto.offset.reset":  "latest",
 		"enable.auto.commit": true,
 	}
 
@@ -142,7 +142,7 @@ func (service *NextGenCacheService) Start() error {
 // 启动CDC消费者
 func (service *NextGenCacheService) startCDCConsumer() {
 	topics := []string{"organization_db.public.organization_units"}
-	
+
 	if err := service.cdcConsumer.SubscribeTopics(topics, nil); err != nil {
 		service.logger.Printf("❌ 订阅Kafka主题失败: %v", err)
 		return
@@ -175,7 +175,7 @@ func (service *NextGenCacheService) startCDCConsumer() {
 // 处理CDC消息
 func (service *NextGenCacheService) processCDCMessage(msg *kafka.Message) error {
 	topic := *msg.TopicPartition.Topic
-	
+
 	if topic != "organization_db.public.organization_units" {
 		return nil
 	}
@@ -266,7 +266,7 @@ func (service *NextGenCacheService) startHTTPServer() {
 		r.Get("/organizations", service.handleGetOrganizations)
 		r.Get("/organizations/{code}", service.handleGetOrganization)
 		r.Get("/organizations/stats", service.handleGetStats)
-		
+
 		// 缓存管理接口
 		r.Delete("/cache/refresh", service.handleRefreshCache)
 		r.Get("/cache/stats", service.handleGetCacheStats)
@@ -292,23 +292,23 @@ func (service *NextGenCacheService) startHTTPServer() {
 func (service *NextGenCacheService) handleGetOrganizations(w http.ResponseWriter, r *http.Request) {
 	// 解析查询参数
 	tenantID := uuid.MustParse("3b99930c-4dc6-4cc9-8e4d-7d960a931cb9") // 默认租户
-	
+
 	first := 50
 	if f := r.URL.Query().Get("first"); f != "" {
 		if parsed, err := strconv.Atoi(f); err == nil {
 			first = parsed
 		}
 	}
-	
+
 	offset := 0
 	if o := r.URL.Query().Get("offset"); o != "" {
 		if parsed, err := strconv.Atoi(o); err == nil {
 			offset = parsed
 		}
 	}
-	
+
 	searchText := r.URL.Query().Get("searchText")
-	
+
 	params := cache.QueryParams{
 		First:      first,
 		Offset:     offset,
@@ -536,15 +536,15 @@ func (service *NextGenCacheService) waitForShutdown() error {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		
+
 		if service.cdcConsumer != nil {
 			service.cdcConsumer.Close()
 		}
-		
+
 		if service.cacheManager != nil {
 			service.cacheManager.Close()
 		}
-		
+
 		if service.eventBus != nil {
 			service.eventBus.Close()
 		}

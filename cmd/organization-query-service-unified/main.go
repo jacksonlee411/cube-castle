@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,9 +12,8 @@ import (
 	"strconv"
 	"syscall"
 	"time"
-	"fmt"
-	"crypto/md5"
 
+	"cube-castle-deployment-test/pkg/health"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -20,9 +21,8 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-	"github.com/redis/go-redis/v9"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"cube-castle-deployment-test/pkg/health"
+	"github.com/redis/go-redis/v9"
 )
 
 // 默认租户配置
@@ -113,79 +113,91 @@ type Organization struct {
 	VersionField       int    `json:"version"`
 	IsCurrentField     bool   `json:"is_current"`
 	// 时态管理扩展字段
-	ChangeReasonField  string `json:"change_reason"`
-	ValidFromField     string `json:"valid_from"`
-	ValidToField       string `json:"valid_to"`
+	ChangeReasonField string `json:"change_reason"`
+	ValidFromField    string `json:"valid_from"`
+	ValidToField      string `json:"valid_to"`
 }
 
 // GraphQL字段解析器 - 匹配时态API Schema字段名
-func (o Organization) Tenant_id() string      { return o.TenantIdField }
-func (o Organization) Code() string           { return o.CodeField }
-func (o Organization) Parent_code() *string   { 
-	if o.ParentCodeField == "" { return nil }
-	return &o.ParentCodeField 
+func (o Organization) Tenant_id() string { return o.TenantIdField }
+func (o Organization) Code() string      { return o.CodeField }
+func (o Organization) Parent_code() *string {
+	if o.ParentCodeField == "" {
+		return nil
+	}
+	return &o.ParentCodeField
 }
-func (o Organization) Name() string           { return o.NameField }
-func (o Organization) Unit_type() string      { return o.UnitTypeField }
-func (o Organization) Status() string         { return o.StatusField }
-func (o Organization) Level() int32           { return int32(o.LevelField) }
-func (o Organization) Path() *string          { 
-	if o.PathField == "" { return nil }
-	return &o.PathField 
+func (o Organization) Name() string      { return o.NameField }
+func (o Organization) Unit_type() string { return o.UnitTypeField }
+func (o Organization) Status() string    { return o.StatusField }
+func (o Organization) Level() int32      { return int32(o.LevelField) }
+func (o Organization) Path() *string {
+	if o.PathField == "" {
+		return nil
+	}
+	return &o.PathField
 }
-func (o Organization) Sort_order() *int32     { 
-	if o.SortOrderField == 0 { return nil }
+func (o Organization) Sort_order() *int32 {
+	if o.SortOrderField == 0 {
+		return nil
+	}
 	val := int32(o.SortOrderField)
-	return &val 
+	return &val
 }
-func (o Organization) Description() *string   { 
-	if o.DescriptionField == "" { return nil }
-	return &o.DescriptionField 
+func (o Organization) Description() *string {
+	if o.DescriptionField == "" {
+		return nil
+	}
+	return &o.DescriptionField
 }
-func (o Organization) Profile() *string       { 
-	if o.ProfileField == "" { return nil }
-	return &o.ProfileField 
+func (o Organization) Profile() *string {
+	if o.ProfileField == "" {
+		return nil
+	}
+	return &o.ProfileField
 }
 func (o Organization) Created_at() string     { return o.CreatedAtField }
 func (o Organization) Updated_at() string     { return o.UpdatedAtField }
 func (o Organization) Effective_date() string { return o.EffectiveDateField }
-func (o Organization) End_date() *string      { 
-	if o.EndDateField == "" { return nil }
-	return &o.EndDateField 
+func (o Organization) End_date() *string {
+	if o.EndDateField == "" {
+		return nil
+	}
+	return &o.EndDateField
 }
-func (o Organization) Version() int32         { return int32(o.VersionField) }
-func (o Organization) Is_current() bool       { return o.IsCurrentField }
-// 时态管理字段解析器
-func (o Organization) Change_reason() *string { 
-	if o.ChangeReasonField == "" { return nil }
-	return &o.ChangeReasonField 
-}
-func (o Organization) Valid_from() string     { return o.ValidFromField }
-func (o Organization) Valid_to() string       { return o.ValidToField }
+func (o Organization) Version() int32   { return int32(o.VersionField) }
+func (o Organization) Is_current() bool { return o.IsCurrentField }
 
+// 时态管理字段解析器
+func (o Organization) Change_reason() *string {
+	if o.ChangeReasonField == "" {
+		return nil
+	}
+	return &o.ChangeReasonField
+}
+func (o Organization) Valid_from() string { return o.ValidFromField }
+func (o Organization) Valid_to() string   { return o.ValidToField }
 
 // GraphQL统计模型
 type OrganizationStats struct {
-	TotalCountField int          `json:"total_count"`
-	ByTypeField     []TypeCount  `json:"by_type"`
+	TotalCountField int           `json:"total_count"`
+	ByTypeField     []TypeCount   `json:"by_type"`
 	ByStatusField   []StatusCount `json:"by_status"`
 	ByLevelField    []LevelCount  `json:"by_level"`
 }
 
-func (s OrganizationStats) TotalCount() int32        { return int32(s.TotalCountField) }
-func (s OrganizationStats) ByType() []TypeCount      { return s.ByTypeField }
-func (s OrganizationStats) ByStatus() []StatusCount  { return s.ByStatusField }
-func (s OrganizationStats) ByLevel() []LevelCount    { return s.ByLevelField }
-
+func (s OrganizationStats) TotalCount() int32       { return int32(s.TotalCountField) }
+func (s OrganizationStats) ByType() []TypeCount     { return s.ByTypeField }
+func (s OrganizationStats) ByStatus() []StatusCount { return s.ByStatusField }
+func (s OrganizationStats) ByLevel() []LevelCount   { return s.ByLevelField }
 
 type TypeCount struct {
-	TypeField string `json:"type"`
-	CountField   int    `json:"count"`
+	TypeField  string `json:"type"`
+	CountField int    `json:"count"`
 }
 
-func (t TypeCount) UnitType() string  { return t.TypeField }
-func (t TypeCount) Count() int32       { return int32(t.CountField) }
-
+func (t TypeCount) UnitType() string { return t.TypeField }
+func (t TypeCount) Count() int32     { return int32(t.CountField) }
 
 type StatusCount struct {
 	StatusField string `json:"status"`
@@ -195,7 +207,6 @@ type StatusCount struct {
 func (s StatusCount) Status() string { return s.StatusField }
 func (s StatusCount) Count() int32   { return int32(s.CountField) }
 
-
 type LevelCount struct {
 	LevelField string `json:"level"`
 	CountField int    `json:"count"`
@@ -203,7 +214,6 @@ type LevelCount struct {
 
 func (l LevelCount) Level() string { return l.LevelField }
 func (l LevelCount) Count() int32  { return int32(l.CountField) }
-
 
 // Neo4j仓储（带Redis缓存）
 type Neo4jOrganizationRepository struct {
@@ -232,7 +242,7 @@ func (r *Neo4jOrganizationRepository) getCacheKey(operation string, params ...in
 func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, first, offset int, searchText string) ([]Organization, error) {
 	// 生成缓存键 (包含搜索文本)
 	cacheKey := r.getCacheKey("organizations", tenantID.String(), first, offset, searchText)
-	
+
 	// 尝试从缓存获取
 	if r.redisClient != nil {
 		cachedData, err := r.redisClient.Get(ctx, cacheKey).Result()
@@ -256,7 +266,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 		"first":     int64(first),
 		"offset":    int64(offset),
 	}
-	
+
 	if searchText != "" {
 		searchCondition = "AND (o.name CONTAINS $searchText OR o.code CONTAINS $searchText)"
 		params["searchText"] = searchText
@@ -284,7 +294,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 	var organizations []Organization
 	for result.Next(ctx) {
 		record := result.Record()
-		
+
 		org := Organization{
 			TenantIdField:      getStringValue(record, "tenant_id"),
 			CodeField:          getStringValue(record, "code"),
@@ -391,16 +401,16 @@ func (r *Neo4jOrganizationRepository) recordToOrganization(record *neo4j.Record)
 		VersionField:       getIntValue(record, "version"),
 		IsCurrentField:     getBoolValue(record, "is_current"),
 		// 时态管理扩展字段
-		ChangeReasonField:  getStringValue(record, "change_reason"),
-		ValidFromField:     getStringValue(record, "valid_from"),
-		ValidToField:       getStringValue(record, "valid_to"),
+		ChangeReasonField: getStringValue(record, "change_reason"),
+		ValidFromField:    getStringValue(record, "valid_from"),
+		ValidToField:      getStringValue(record, "valid_to"),
 	}
 }
 
 func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*OrganizationStats, error) {
 	// 生成缓存键
 	cacheKey := r.getCacheKey("stats", tenantID.String())
-	
+
 	// 尝试从缓存获取
 	if r.redisClient != nil {
 		cachedData, err := r.redisClient.Get(ctx, cacheKey).Result()
@@ -422,7 +432,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
 		RETURN count(o) as total
 	`
-	
+
 	totalResult, err := session.Run(ctx, totalQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
@@ -442,7 +452,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		RETURN o.unit_type as type, count(o) as count
 		ORDER BY type
 	`
-	
+
 	typeResult, err := session.Run(ctx, typeQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
@@ -456,8 +466,8 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		unitType := getStringValue(record, "type")
 		count := getIntValue(record, "count")
 		byType = append(byType, TypeCount{
-			TypeField: unitType,
-			CountField:   count,
+			TypeField:  unitType,
+			CountField: count,
 		})
 	}
 
@@ -467,7 +477,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		RETURN o.status as status, count(o) as count
 		ORDER BY status
 	`
-	
+
 	statusResult, err := session.Run(ctx, statusQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
@@ -492,7 +502,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		RETURN toString(o.level) as level, count(o) as count
 		ORDER BY level
 	`
-	
+
 	levelResult, err := session.Run(ctx, levelQuery, map[string]interface{}{
 		"tenant_id": tenantID.String(),
 	})
@@ -518,7 +528,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 		ByStatusField:   byStatus,
 		ByLevelField:    byLevel,
 	}
-	
+
 	// 将结果写入缓存
 	if r.redisClient != nil {
 		if cacheData, err := json.Marshal(stats); err == nil {
@@ -526,14 +536,14 @@ func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, 
 			r.logger.Printf("[Cache SET] 统计缓存已更新 - 键: %s, TTL: %v", cacheKey, r.cacheTTL)
 		}
 	}
-	
-	r.logger.Printf("[Stats] 统计查询完成 - 总数: %d, 类型数: %d, 状态数: %d, 级别数: %d", 
+
+	r.logger.Printf("[Stats] 统计查询完成 - 总数: %d, 类型数: %d, 状态数: %d, 级别数: %d",
 		total, len(byType), len(byStatus), len(byLevel))
-	
+
 	return stats, nil
 }
 
-// Helper functions  
+// Helper functions
 func getStringValue(record *neo4j.Record, key string) string {
 	if value, ok := record.Get(key); ok && value != nil {
 		if str, ok := value.(string); ok {
@@ -543,7 +553,7 @@ func getStringValue(record *neo4j.Record, key string) string {
 		if t, ok := value.(time.Time); ok {
 			return t.Format("2006-01-02") // 返回 YYYY-MM-DD 格式
 		}
-		
+
 		// 对于其他类型，直接转换为字符串
 		if str := fmt.Sprintf("%v", value); str != "<nil>" && str != "" {
 			// 如果字符串看起来像日期，尝试解析
@@ -588,17 +598,17 @@ type Resolver struct {
 // === 时态查询解析器 - Neo4j最佳实践 ===
 
 // 按时间点查询组织 (as_of_date)
-func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct{
+func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct {
 	Code     string
 	AsOfDate string
 }) (*Organization, error) {
 	tenantID := DefaultTenantID
-	
+
 	r.logger.Printf("[GraphQL] 时态查询 as_of_date - 租户: %s, 代码: %s, 时间点: %s", tenantID, args.Code, args.AsOfDate)
-	
+
 	// 生成缓存键
 	cacheKey := r.repo.getCacheKey("temporal_as_of", tenantID.String(), args.Code, args.AsOfDate)
-	
+
 	// 检查缓存
 	if r.repo.redisClient != nil {
 		if cachedData, err := r.repo.redisClient.Get(ctx, cacheKey).Result(); err == nil {
@@ -610,10 +620,10 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct{
 		}
 		r.logger.Printf("[Cache MISS] 时态查询缓存未命中 - 键: %s", cacheKey)
 	}
-	
+
 	session := r.repo.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
-	
+
 	// Neo4j时态查询 - 使用date()函数进行正确的日期比较
 	query := `
 		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
@@ -629,17 +639,17 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct{
 		       org.change_reason as change_reason, org.version as version,
 		       org.valid_from as valid_from, org.valid_to as valid_to
 	`
-	
+
 	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		result, err := tx.Run(ctx, query, map[string]interface{}{
-			"code":        args.Code,
-			"tenant_id":   tenantID.String(),
-			"as_of_date":  args.AsOfDate,
+			"code":       args.Code,
+			"tenant_id":  tenantID.String(),
+			"as_of_date": args.AsOfDate,
 		})
 		if err != nil {
 			return nil, err
 		}
-		
+
 		if result.Next(ctx) {
 			record := result.Record()
 			org := r.repo.recordToOrganization(record)
@@ -647,12 +657,12 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct{
 		}
 		return nil, nil
 	})
-	
+
 	if err != nil {
 		r.logger.Printf("[GraphQL] 时态查询失败: %v", err)
 		return nil, err
 	}
-	
+
 	if result != nil {
 		org := result.(Organization)
 		// 缓存历史数据1小时
@@ -662,28 +672,28 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct{
 				r.logger.Printf("[Cache SET] 时态查询结果已缓存 - 键: %s", cacheKey)
 			}
 		}
-		
+
 		r.logger.Printf("[GraphQL] 时态查询成功 - 组织: %s", org.Name)
 		return &org, nil
 	}
-	
+
 	r.logger.Printf("[GraphQL] 时态查询无结果 - 代码: %s, 时间点: %s", args.Code, args.AsOfDate)
 	return nil, nil
 }
 
 // 查询组织历史记录 (时间范围)
-func (r *Resolver) OrganizationHistory(ctx context.Context, args struct{
+func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 	Code     string
 	FromDate string
 	ToDate   string
 }) ([]Organization, error) {
 	tenantID := DefaultTenantID
-	
+
 	r.logger.Printf("[GraphQL] 时态历史查询 - 租户: %s, 代码: %s, 时间范围: %s~%s", tenantID, args.Code, args.FromDate, args.ToDate)
-	
+
 	session := r.repo.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
-	
+
 	// Neo4j时态范围查询 - 使用date()函数进行正确的日期比较
 	query := `
 		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
@@ -698,7 +708,7 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct{
 		       org.change_reason as change_reason, org.version as version,
 		       org.valid_from as valid_from, org.valid_to as valid_to
 	`
-	
+
 	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		result, err := tx.Run(ctx, query, map[string]interface{}{
 			"code":      args.Code,
@@ -709,7 +719,7 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct{
 		if err != nil {
 			return nil, err
 		}
-		
+
 		var organizations []Organization
 		for result.Next(ctx) {
 			record := result.Record()
@@ -718,12 +728,12 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct{
 		}
 		return organizations, nil
 	})
-	
+
 	if err != nil {
 		r.logger.Printf("[GraphQL] 时态历史查询失败: %v", err)
 		return nil, err
 	}
-	
+
 	organizations := result.([]Organization)
 	r.logger.Printf("[GraphQL] 时态历史查询成功 - 返回 %d 条记录", len(organizations))
 	return organizations, nil
@@ -731,7 +741,7 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct{
 
 // === 传统查询解析器 (保持兼容) ===
 
-func (r *Resolver) Organizations(ctx context.Context, args struct{
+func (r *Resolver) Organizations(ctx context.Context, args struct {
 	First      *int32
 	Offset     *int32
 	SearchText *string
@@ -739,7 +749,7 @@ func (r *Resolver) Organizations(ctx context.Context, args struct{
 	first := 50
 	offset := 0
 	searchText := ""
-	
+
 	if args.First != nil {
 		first = int(*args.First)
 	}
@@ -751,52 +761,52 @@ func (r *Resolver) Organizations(ctx context.Context, args struct{
 	}
 
 	tenantID := DefaultTenantID // 暂时使用默认租户
-	
+
 	r.logger.Printf("[GraphQL] 查询组织列表 - 租户: %s, first: %d, offset: %d, searchText: %s", tenantID, first, offset, searchText)
-	
+
 	organizations, err := r.repo.GetOrganizations(ctx, tenantID, first, offset, searchText)
 	if err != nil {
 		r.logger.Printf("[GraphQL] 查询组织列表失败: %v", err)
 		return nil, err
 	}
-	
+
 	r.logger.Printf("[GraphQL] 查询组织列表成功 - 返回 %d 个组织", len(organizations))
 	return organizations, nil
 }
 
-func (r *Resolver) Organization(ctx context.Context, args struct{
+func (r *Resolver) Organization(ctx context.Context, args struct {
 	Code string
 }) (*Organization, error) {
 	tenantID := DefaultTenantID
-	
+
 	r.logger.Printf("[GraphQL] 查询单个组织 - 租户: %s, 代码: %s", tenantID, args.Code)
-	
+
 	org, err := r.repo.GetOrganization(ctx, tenantID, args.Code)
 	if err != nil {
 		r.logger.Printf("[GraphQL] 查询单个组织失败: %v", err)
 		return nil, err
 	}
-	
+
 	if org != nil {
 		r.logger.Printf("[GraphQL] 查询单个组织成功 - 组织: %s", org.NameField)
 	} else {
 		r.logger.Printf("[GraphQL] 组织不存在 - 代码: %s", args.Code)
 	}
-	
+
 	return org, nil
 }
 
 func (r *Resolver) OrganizationStats(ctx context.Context) (*OrganizationStats, error) {
 	tenantID := DefaultTenantID
-	
+
 	r.logger.Printf("[GraphQL] 查询组织统计 - 租户: %s", tenantID)
-	
+
 	stats, err := r.repo.GetOrganizationStats(ctx, tenantID)
 	if err != nil {
 		r.logger.Printf("[GraphQL] 查询组织统计失败: %v", err)
 		return nil, err
 	}
-	
+
 	r.logger.Printf("[GraphQL] 查询组织统计成功 - 总数: %d", stats.TotalCountField)
 	return stats, nil
 }
@@ -885,60 +895,60 @@ func main() {
 			// 将REST查询转换为GraphQL查询
 			first := int32(50)
 			offset := int32(0)
-			
+
 			if firstStr := r.URL.Query().Get("limit"); firstStr != "" {
 				if f, err := strconv.ParseInt(firstStr, 10, 32); err == nil {
 					first = int32(f)
 				}
 			}
-			
+
 			if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
 				if o, err := strconv.ParseInt(offsetStr, 10, 32); err == nil {
 					offset = int32(o)
 				}
 			}
-			
+
 			ctx := r.Context()
-			organizations, err := resolver.Organizations(ctx, struct{
+			organizations, err := resolver.Organizations(ctx, struct {
 				First      *int32
 				Offset     *int32
 				SearchText *string
 			}{&first, &offset, nil})
-			
+
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"organizations": organizations,
-				"total": len(organizations),
+				"total":         len(organizations),
 			})
 		})
-		
+
 		r.Get("/organization-units/{code}", func(w http.ResponseWriter, r *http.Request) {
 			code := chi.URLParam(r, "code")
 			if code == "" {
 				http.Error(w, "缺少组织代码", http.StatusBadRequest)
 				return
 			}
-			
+
 			ctx := r.Context()
-			org, err := resolver.Organization(ctx, struct{
+			org, err := resolver.Organization(ctx, struct {
 				Code string
 			}{code})
-			
+
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			
+
 			if org == nil {
 				http.Error(w, "组织不存在", http.StatusNotFound)
 				return
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(org)
 		})
@@ -946,7 +956,7 @@ func main() {
 
 	// GraphQL端点
 	r.Handle("/graphql", &relay.Handler{Schema: schema})
-	
+
 	// GraphiQL开发界面
 	r.Get("/graphiql", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
@@ -978,56 +988,56 @@ func main() {
 
 	// 健康检查端点 - 增强版
 	healthManager := health.NewHealthManager("organization-graphql-service", "2.0.0")
-	
+
 	// 添加Neo4j健康检查
 	healthManager.AddChecker(&health.Neo4jChecker{
 		Name:   "neo4j",
 		Driver: driver,
 	})
-	
+
 	// 添加Redis健康检查 - 暂时禁用由于版本兼容性问题
 	// healthManager.AddChecker(&health.RedisChecker{
-	//	Name:   "redis", 
+	//	Name:   "redis",
 	//	Client: redisClient,
 	// })
-	
+
 	// 创建告警管理器
 	alertManager := health.NewAlertManager("organization-graphql-service")
-	
+
 	// 添加告警规则
 	alertManager.AddRule(health.AlertRule{
-		Name:          "neo4j-unhealthy",
-		Component:     "neo4j",
-		Condition:     health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
-		Level:         health.AlertLevelCritical,
-		Message:       "Neo4j数据库连接失败 - %s状态为%s: %s",
-		Cooldown:      5 * time.Minute,
-		MaxRetries:    3,
-		EnabledBy:     time.Now(),
+		Name:       "neo4j-unhealthy",
+		Component:  "neo4j",
+		Condition:  health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
+		Level:      health.AlertLevelCritical,
+		Message:    "Neo4j数据库连接失败 - %s状态为%s: %s",
+		Cooldown:   5 * time.Minute,
+		MaxRetries: 3,
+		EnabledBy:  time.Now(),
 	})
-	
+
 	alertManager.AddRule(health.AlertRule{
-		Name:          "redis-unhealthy",
-		Component:     "redis",
-		Condition:     health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
-		Level:         health.AlertLevelWarning,
-		Message:       "Redis缓存服务异常 - %s状态为%s: %s",
-		Cooldown:      3 * time.Minute,
-		MaxRetries:    2,
-		EnabledBy:     time.Now(),
+		Name:       "redis-unhealthy",
+		Component:  "redis",
+		Condition:  health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
+		Level:      health.AlertLevelWarning,
+		Message:    "Redis缓存服务异常 - %s状态为%s: %s",
+		Cooldown:   3 * time.Minute,
+		MaxRetries: 2,
+		EnabledBy:  time.Now(),
 	})
-	
+
 	alertManager.AddRule(health.AlertRule{
-		Name:          "slow-response",
-		Component:     "", // 适用于所有组件
-		Condition:     health.AlertCondition{ResponseTimeGT: func() *time.Duration { d := 5 * time.Second; return &d }()},
-		Level:         health.AlertLevelWarning,
-		Message:       "响应时间过慢 - %s响应时间%s超过5秒: %s",
-		Cooldown:      10 * time.Minute,
-		MaxRetries:    1,
-		EnabledBy:     time.Now(),
+		Name:       "slow-response",
+		Component:  "", // 适用于所有组件
+		Condition:  health.AlertCondition{ResponseTimeGT: func() *time.Duration { d := 5 * time.Second; return &d }()},
+		Level:      health.AlertLevelWarning,
+		Message:    "响应时间过慢 - %s响应时间%s超过5秒: %s",
+		Cooldown:   10 * time.Minute,
+		MaxRetries: 1,
+		EnabledBy:  time.Now(),
 	})
-	
+
 	// 配置告警渠道
 	if webhookURL := os.Getenv("ALERT_WEBHOOK_URL"); webhookURL != "" {
 		webhookChannel := health.NewWebhookChannel("primary-webhook", webhookURL)
@@ -1035,18 +1045,18 @@ func main() {
 		alertManager.AddChannel(webhookChannel)
 		logger.Println("告警Webhook已配置:", webhookURL)
 	}
-	
+
 	if slackWebhook := os.Getenv("SLACK_WEBHOOK_URL"); slackWebhook != "" {
 		slackChannel := health.NewSlackChannel(slackWebhook, "#alerts", "Cube Castle Monitor")
 		alertManager.AddChannel(slackChannel)
 		logger.Println("Slack告警已配置")
 	}
-	
+
 	// 启动告警处理协程
 	go func() {
 		ticker := time.NewTicker(30 * time.Second) // 每30秒检查一次
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -1059,30 +1069,30 @@ func main() {
 			}
 		}
 	}()
-	
+
 	r.Get("/health", healthManager.Handler())
-	
+
 	// 告警管理端点
 	r.Get("/alerts", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		alerts := alertManager.GetActiveAlerts()
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"active_alerts": alerts,
-			"total":        len(alerts),
-			"timestamp":    time.Now(),
+			"total":         len(alerts),
+			"timestamp":     time.Now(),
 		})
 	})
-	
+
 	r.Get("/alerts/history", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		history := alertManager.GetAlertHistory(50) // 最近50条
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"alert_history": history,
-			"total":        len(history),
-			"timestamp":    time.Now(),
+			"total":         len(history),
+			"timestamp":     time.Now(),
 		})
 	})
-	
+
 	// 详细状态报告
 	statusReporter := health.NewStatusReporter(healthManager, "http://localhost:8090")
 	r.Get("/status", statusReporter.DashboardHandler())
@@ -1094,7 +1104,7 @@ func main() {
 	// 获取端口
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8090"  // 智能网关期望的GraphQL服务端口
+		port = "8090" // 智能网关期望的GraphQL服务端口
 	}
 
 	server := &http.Server{

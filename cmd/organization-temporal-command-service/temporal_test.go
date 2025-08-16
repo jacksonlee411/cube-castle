@@ -52,7 +52,7 @@ func setupTest(t *testing.T) {
 	var err error
 	testDB, err = sql.Open("postgres", "postgres://user:password@localhost:5432/cubecastle?sslmode=disable")
 	require.NoError(t, err)
-	
+
 	err = testDB.Ping()
 	require.NoError(t, err)
 }
@@ -79,7 +79,7 @@ func createTestOrg(t *testing.T, code string) *TestOrganization {
 		EffectiveDate: func() *time.Time { t := time.Now(); return &t }(),
 		IsCurrent:     func() *bool { b := true; return &b }(),
 	}
-	
+
 	// 确保测试数据存在
 	_, err := testDB.Exec(`
 		INSERT INTO organization_units (
@@ -89,10 +89,10 @@ func createTestOrg(t *testing.T, code string) *TestOrganization {
 		ON CONFLICT (code) DO UPDATE SET
 			name = EXCLUDED.name,
 			updated_at = EXCLUDED.updated_at
-	`, org.TenantID, org.Code, org.Name, org.UnitType, org.Status, org.Level, 
+	`, org.TenantID, org.Code, org.Name, org.UnitType, org.Status, org.Level,
 		org.Path, org.SortOrder, org.Description, org.CreatedAt, org.UpdatedAt,
 		org.EffectiveDate, org.IsCurrent)
-	
+
 	require.NoError(t, err)
 	return org
 }
@@ -101,9 +101,9 @@ func createTestOrg(t *testing.T, code string) *TestOrganization {
 
 func TestTemporalQueryParsing(t *testing.T) {
 	tests := []struct {
-		name       string
-		query      string
-		expectFuture bool
+		name          string
+		query         string
+		expectFuture  bool
 		expectHistory bool
 	}{
 		{
@@ -123,15 +123,15 @@ func TestTemporalQueryParsing(t *testing.T) {
 			expectHistory: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", "/?"+tt.query, nil)
-			
+
 			// 模拟解析逻辑
 			includeFuture := req.URL.Query().Get("include_future") == "true"
 			includeHistory := req.URL.Query().Get("include_history") == "true"
-			
+
 			assert.Equal(t, tt.expectFuture, includeFuture)
 			assert.Equal(t, tt.expectHistory, includeHistory)
 		})
@@ -141,10 +141,10 @@ func TestTemporalQueryParsing(t *testing.T) {
 func TestTemporalAPIIntegration(t *testing.T) {
 	setupTest(t)
 	defer teardownTest()
-	
+
 	// 创建测试组织
 	testOrg := createTestOrg(t, "TEST001")
-	
+
 	tests := []struct {
 		name           string
 		url            string
@@ -179,14 +179,14 @@ func TestTemporalAPIIntegration(t *testing.T) {
 			},
 		},
 	}
-	
+
 	client := &http.Client{Timeout: 5 * time.Second}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var req *http.Request
 			var err error
-			
+
 			if tt.method == "POST" && tt.body != nil {
 				bodyBytes, _ := json.Marshal(tt.body)
 				req, err = http.NewRequest(tt.method, "http://localhost:9091"+tt.url, bytes.NewBuffer(bodyBytes))
@@ -194,10 +194,10 @@ func TestTemporalAPIIntegration(t *testing.T) {
 			} else {
 				req, err = http.NewRequest(tt.method, "http://localhost:9091"+tt.url, nil)
 			}
-			
+
 			require.NoError(t, err)
 			req.Header.Set("X-Tenant-ID", testTenantID.String())
-			
+
 			resp, err := client.Do(req)
 			if err != nil {
 				t.Logf("API请求失败 (可能时态服务未运行): %v", err)
@@ -205,14 +205,14 @@ func TestTemporalAPIIntegration(t *testing.T) {
 				return
 			}
 			defer resp.Body.Close()
-			
+
 			// 验证响应状态
 			if resp.StatusCode == tt.expectedStatus {
 				t.Logf("✅ %s 测试通过 - 状态码: %d", tt.name, resp.StatusCode)
 			} else {
 				t.Logf("⚠️  %s 测试状态码不匹配 - 期望: %d, 实际: %d", tt.name, tt.expectedStatus, resp.StatusCode)
 			}
-			
+
 			// 对于成功的响应，验证JSON格式
 			if resp.StatusCode < 400 {
 				var result map[string]interface{}
@@ -226,12 +226,12 @@ func TestTemporalAPIIntegration(t *testing.T) {
 func TestDatabaseConnection(t *testing.T) {
 	setupTest(t)
 	defer teardownTest()
-	
+
 	// 测试数据库连接
 	var count int
 	err := testDB.QueryRow("SELECT COUNT(*) FROM organization_units WHERE tenant_id = $1", testTenantID).Scan(&count)
 	assert.NoError(t, err)
-	
+
 	t.Logf("数据库中找到 %d 个组织记录", count)
 }
 
@@ -241,18 +241,18 @@ func TestCacheKeyConsistency(t *testing.T) {
 		tenant1, org1, tenant2, org2 string
 		shouldMatch                  bool
 	}{
-		{"tenant1", "org1", "tenant1", "org1", true},   // 相同参数
-		{"tenant1", "org1", "tenant2", "org1", false},  // 不同租户
-		{"tenant1", "org1", "tenant1", "org2", false},  // 不同组织
-		{"tenant2", "org2", "tenant2", "org2", true},   // 相同参数（不同值）
+		{"tenant1", "org1", "tenant1", "org1", true},  // 相同参数
+		{"tenant1", "org1", "tenant2", "org1", false}, // 不同租户
+		{"tenant1", "org1", "tenant1", "org2", false}, // 不同组织
+		{"tenant2", "org2", "tenant2", "org2", true},  // 相同参数（不同值）
 	}
-	
+
 	for i, tt := range tests {
 		t.Run(string(rune('A'+i)), func(t *testing.T) {
 			// 模拟缓存键生成逻辑
 			key1 := tt.tenant1 + ":" + tt.org1
 			key2 := tt.tenant2 + ":" + tt.org2
-			
+
 			if tt.shouldMatch {
 				assert.Equal(t, key1, key2)
 			} else {
@@ -284,7 +284,7 @@ func TestTenantIDHandling(t *testing.T) {
 			isValid:  false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := uuid.Parse(tt.tenantID)
@@ -302,29 +302,29 @@ func TestTenantIDHandling(t *testing.T) {
 func TestQueryPerformance(t *testing.T) {
 	setupTest(t)
 	defer teardownTest()
-	
+
 	// 创建测试数据
 	testOrg := createTestOrg(t, "PERF001")
-	
+
 	// 测试查询性能
 	start := time.Now()
-	
+
 	for i := 0; i < 10; i++ {
 		var count int
 		err := testDB.QueryRow(
 			"SELECT COUNT(*) FROM organization_units WHERE tenant_id = $1 AND code = $2",
 			testTenantID, testOrg.Code,
 		).Scan(&count)
-		
+
 		assert.NoError(t, err)
 		assert.Greater(t, count, 0)
 	}
-	
+
 	duration := time.Since(start)
 	avgDuration := duration / 10
-	
+
 	t.Logf("平均查询时间: %v", avgDuration)
-	
+
 	// 性能预期：单次查询应该在10ms以内
 	assert.Less(t, avgDuration, 10*time.Millisecond, "查询性能应该在可接受范围内")
 }
@@ -333,9 +333,9 @@ func TestQueryPerformance(t *testing.T) {
 
 func TestErrorHandling(t *testing.T) {
 	tests := []struct {
-		name          string
-		scenario      string
-		expectError   bool
+		name        string
+		scenario    string
+		expectError bool
 	}{
 		{
 			name:        "空组织代码",
@@ -353,11 +353,11 @@ func TestErrorHandling(t *testing.T) {
 			expectError: false, // 假设系统接受特殊字符
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			isEmpty := tt.scenario == ""
-			
+
 			if tt.expectError {
 				assert.True(t, isEmpty || len(tt.scenario) > 50, "应该检测到错误情况")
 			} else {
@@ -372,9 +372,9 @@ func TestErrorHandling(t *testing.T) {
 func BenchmarkDatabaseQuery(b *testing.B) {
 	setupTest(&testing.T{})
 	defer teardownTest()
-	
+
 	createTestOrg(&testing.T{}, "BENCH001")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var count int
@@ -399,7 +399,7 @@ func BenchmarkJSONMarshal(b *testing.B) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		json.Marshal(org)

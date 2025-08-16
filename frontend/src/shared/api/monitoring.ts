@@ -24,7 +24,7 @@ export class MonitoringService {
         const parsedMetrics = this.parsePrometheusMetrics(rawMetrics);
         
         // 合并真实指标和mock数据
-        let finalMetrics = {
+        const finalMetrics = {
           ...mockMetrics,
           ...parsedMetrics,
           lastUpdated: new Date().toLocaleString()

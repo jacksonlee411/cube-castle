@@ -21,8 +21,8 @@ import (
 
 // ===== 基础监控变量 =====
 var (
-	messageProcessedCount int64  // 处理消息总数
-	messageErrorCount     int64  // 错误消息总数
+	messageProcessedCount int64 // 处理消息总数
+	messageErrorCount     int64 // 错误消息总数
 	serviceStartTime      time.Time
 )
 
@@ -40,7 +40,7 @@ func (d *DebeziumDate) UnmarshalJSON(data []byte) error {
 		d.value = ""
 		return nil
 	}
-	
+
 	// 尝试解析为数字（Debezium days since epoch）
 	if len(data) > 0 && data[0] != '"' {
 		var days int64
@@ -52,14 +52,14 @@ func (d *DebeziumDate) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	
+
 	// 尝试解析为字符串
 	var str string
 	if err := json.Unmarshal(data, &str); err == nil {
 		d.value = str
 		return nil
 	}
-	
+
 	return fmt.Errorf("cannot unmarshal date field: %s", string(data))
 }
 
@@ -67,7 +67,6 @@ func (d *DebeziumDate) UnmarshalJSON(data []byte) error {
 func (d *DebeziumDate) String() string {
 	return d.value
 }
-
 
 // 项目默认租户配置
 const (
@@ -118,24 +117,24 @@ type CDCOrganizationEvent struct {
 }
 
 type CDCOrganizationData struct {
-	TenantID     *string         `json:"tenant_id"`
-	Code         *string         `json:"code"`
-	ParentCode   *string         `json:"parent_code"`
-	Name         *string         `json:"name"`
-	UnitType     *string         `json:"unit_type"`
-	Status       *string         `json:"status"`
-	Level        *int            `json:"level"`
-	Path         *string         `json:"path"`
-	SortOrder    *int            `json:"sort_order"`
-	Description  *string         `json:"description"`
-	CreatedAt    *time.Time      `json:"created_at"`
-	UpdatedAt    *time.Time      `json:"updated_at"`
+	TenantID    *string    `json:"tenant_id"`
+	Code        *string    `json:"code"`
+	ParentCode  *string    `json:"parent_code"`
+	Name        *string    `json:"name"`
+	UnitType    *string    `json:"unit_type"`
+	Status      *string    `json:"status"`
+	Level       *int       `json:"level"`
+	Path        *string    `json:"path"`
+	SortOrder   *int       `json:"sort_order"`
+	Description *string    `json:"description"`
+	CreatedAt   *time.Time `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
 	// 时态管理字段 - 使用DebeziumDate处理Debezium序列化格式
 	EffectiveDate *DebeziumDate `json:"effective_date"`
 	EndDate       *DebeziumDate `json:"end_date"`
-	IsTemporal    *bool           `json:"is_temporal"`
-	ChangeReason  *string         `json:"change_reason"`
-	IsCurrent     *bool           `json:"is_current"`
+	IsTemporal    *bool         `json:"is_temporal"`
+	ChangeReason  *string       `json:"change_reason"`
+	IsCurrent     *bool         `json:"is_current"`
 }
 
 type CDCSource struct {
@@ -390,7 +389,7 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 	// UUID全局标识符处理 - P1-1修复 (基于PostgreSQL复合主键)
 	// PostgreSQL主键是(code, effective_date)，所以用这些生成确定性UUID
 	globalID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(*data.TenantID+*data.Code+data.EffectiveDate.String())).String()
-	s.logger.Printf("✅ 处理CDC创建事件: %s - %s (确定性UUID: %s, 生效日期: %s)", 
+	s.logger.Printf("✅ 处理CDC创建事件: %s - %s (确定性UUID: %s, 生效日期: %s)",
 		*data.Code, *data.Name, globalID, data.EffectiveDate.String())
 
 	// Neo4j纯日期生效模型 - 使用UUID作为主键，复合键作为业务键
@@ -442,7 +441,7 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 	systemTime := time.Unix(tsMs/1000, (tsMs%1000)*1000000).Format(time.RFC3339)
 
 	params := map[string]interface{}{
-		"uuid":       globalID,         // UUID全局标识符
+		"uuid":       globalID, // UUID全局标识符
 		"code":       *data.Code,
 		"tenant_id":  *data.TenantID,
 		"name":       *data.Name,
@@ -566,7 +565,7 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 	// UUID全局标识符处理 - P1-1修复 (基于PostgreSQL复合主键)
 	// PostgreSQL主键是(code, effective_date)，所以用这些生成确定性UUID
 	globalID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(*data.TenantID+*data.Code+data.EffectiveDate.String())).String()
-	s.logger.Printf("✅ 处理CDC更新事件: %s (确定性UUID: %s, 生效日期: %s)", 
+	s.logger.Printf("✅ 处理CDC更新事件: %s (确定性UUID: %s, 生效日期: %s)",
 		*data.Code, globalID, data.EffectiveDate.String())
 
 	// Neo4j纯日期生效模型更新 - 使用UUID查找现有记录
@@ -606,7 +605,7 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 	systemTime := time.Unix(tsMs/1000, (tsMs%1000)*1000000).Format(time.RFC3339)
 
 	params := map[string]interface{}{
-		"uuid":       globalID,         // UUID全局标识符
+		"uuid":       globalID, // UUID全局标识符
 		"code":       *data.Code,
 		"tenant_id":  *data.TenantID,
 		"valid_from": systemTime, // System Time - 系统记录时间
@@ -768,20 +767,20 @@ func (c *KafkaEventConsumer) Subscribe(topics []string) error {
 
 func (c *KafkaEventConsumer) StartConsuming(ctx context.Context, topics []string) error {
 	c.logger.Println("🚀 开始消费Kafka事件...")
-	
+
 	// 创建消费者组处理器
 	handler := &consumerGroupHandler{
 		consumer: c,
 		logger:   c.logger,
 	}
-	
+
 	// 在goroutine中处理错误
 	go func() {
 		for err := range c.consumer.Errors() {
 			c.logger.Printf("消费者错误: %v", err)
 		}
 	}()
-	
+
 	// 消费循环
 	for {
 		select {
@@ -810,14 +809,14 @@ func (h *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 	for message := range claim.Messages() {
 		h.logger.Printf("收到消息: topic=%s, partition=%d, offset=%d",
 			message.Topic, message.Partition, message.Offset)
-		
+
 		if err := h.consumer.processMessage(session.Context(), message); err != nil {
 			h.logger.Printf("处理消息失败: %v", err)
 			atomic.AddInt64(&messageErrorCount, 1)
 		} else {
 			atomic.AddInt64(&messageProcessedCount, 1)
 		}
-		
+
 		// 标记消息已处理
 		session.MarkMessage(message, "")
 	}
@@ -914,7 +913,7 @@ func main() {
 	// 创建Kafka消费者
 	consumer, err := NewKafkaEventConsumer(
 		[]string{"localhost:9092"},
-		"neo4j-sync-latest",  // 只处理最新消息，避免重复处理历史消息
+		"neo4j-sync-latest", // 只处理最新消息，避免重复处理历史消息
 		syncSvc,
 		logger,
 	)
@@ -930,7 +929,7 @@ func main() {
 
 	logger.Printf("🚀 Neo4j同步服务启动成功")
 	logger.Printf("监听主题: %v", topics)
-	
+
 	// 初始化监控
 	serviceStartTime = time.Now()
 
@@ -969,26 +968,26 @@ func calculateSuccessRate(processed, errors int64) float64 {
 // 健康检查服务器
 func startHealthServer(logger *log.Logger) {
 	mux := http.NewServeMux()
-	
+
 	// 健康检查端点
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		// 获取运行时统计信息
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
-		
+
 		processedCount := atomic.LoadInt64(&messageProcessedCount)
 		errorCount := atomic.LoadInt64(&messageErrorCount)
 		uptime := time.Since(serviceStartTime)
-		
+
 		response := map[string]interface{}{
-			"service": "Organization Sync Service",
-			"version": "2.0.0",
-			"status": "healthy",
-			"timestamp": time.Now().Format(time.RFC3339),
+			"service":        "Organization Sync Service",
+			"version":        "2.0.0",
+			"status":         "healthy",
+			"timestamp":      time.Now().Format(time.RFC3339),
 			"uptime_seconds": int64(uptime.Seconds()),
-			"architecture": "CQRS Data Sync - PostgreSQL到Neo4j实时同步",
+			"architecture":   "CQRS Data Sync - PostgreSQL到Neo4j实时同步",
 			"performance": map[string]interface{}{
 				"messages_processed": processedCount,
 				"messages_error":     errorCount,
@@ -998,7 +997,7 @@ func startHealthServer(logger *log.Logger) {
 			},
 			"features": []string{
 				"CDC数据捕获",
-				"Neo4j实时同步", 
+				"Neo4j实时同步",
 				"Kafka消息消费",
 				"Debezium集成",
 				"CPU优化修复", // 新增：标记已修复CPU问题
@@ -1006,19 +1005,19 @@ func startHealthServer(logger *log.Logger) {
 		}
 		json.NewEncoder(w).Encode(response)
 	})
-	
+
 	// 指标端点
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("# Sync service metrics\nsync_service_status 1\n"))
 	})
-	
+
 	server := &http.Server{
 		Addr:    ":8085", // 修改为8085避免与其他服务冲突
 		Handler: mux,
 	}
-	
+
 	logger.Printf("🔍 健康检查服务器启动 - 端口 8085")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Printf("❌ 健康检查服务器错误: %v", err)

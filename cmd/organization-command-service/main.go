@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"cube-castle-deployment-test/pkg/monitoring"
 	"database/sql"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,7 +21,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
-	"cube-castle-deployment-test/pkg/monitoring"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	// "github.com/go-redis/redis/v8"
 	// "cube-castle-deployment-test/pkg/health"
@@ -120,24 +120,24 @@ var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 // ===== 简化的业务实体 =====
 
 type Organization struct {
-	TenantID      string    `json:"tenant_id" db:"tenant_id"`
-	Code          string    `json:"code" db:"code"`
-	ParentCode    *string   `json:"parent_code,omitempty" db:"parent_code"`
-	Name          string    `json:"name" db:"name"`
-	UnitType      string    `json:"unit_type" db:"unit_type"`
-	Status        string    `json:"status" db:"status"`
-	Level         int       `json:"level" db:"level"`
-	Path          string    `json:"path" db:"path"`
-	SortOrder     int       `json:"sort_order" db:"sort_order"`
-	Description   string    `json:"description" db:"description"`
-	CreatedAt     time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
+	TenantID    string    `json:"tenant_id" db:"tenant_id"`
+	Code        string    `json:"code" db:"code"`
+	ParentCode  *string   `json:"parent_code,omitempty" db:"parent_code"`
+	Name        string    `json:"name" db:"name"`
+	UnitType    string    `json:"unit_type" db:"unit_type"`
+	Status      string    `json:"status" db:"status"`
+	Level       int       `json:"level" db:"level"`
+	Path        string    `json:"path" db:"path"`
+	SortOrder   int       `json:"sort_order" db:"sort_order"`
+	Description string    `json:"description" db:"description"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 	// 时态管理字段 (使用Date类型)
-	EffectiveDate *Date `json:"effective_date,omitempty" db:"effective_date"`
-	EndDate       *Date `json:"end_date,omitempty" db:"end_date"`
-	IsTemporal    bool  `json:"is_temporal" db:"is_temporal"`
+	EffectiveDate *Date   `json:"effective_date,omitempty" db:"effective_date"`
+	EndDate       *Date   `json:"end_date,omitempty" db:"end_date"`
+	IsTemporal    bool    `json:"is_temporal" db:"is_temporal"`
 	ChangeReason  *string `json:"change_reason,omitempty" db:"change_reason"`
-	IsCurrent     bool  `json:"is_current" db:"is_current"`
+	IsCurrent     bool    `json:"is_current" db:"is_current"`
 }
 
 // ===== 简化的业务验证 =====
@@ -146,26 +146,26 @@ func ValidateCreateOrganization(req *CreateOrganizationRequest) error {
 	if strings.TrimSpace(req.Name) == "" {
 		return fmt.Errorf("组织名称不能为空")
 	}
-	
+
 	if len(req.Name) > 100 {
 		return fmt.Errorf("组织名称不能超过100个字符")
 	}
-	
+
 	if req.UnitType == "" {
 		return fmt.Errorf("组织类型不能为空")
 	}
-	
+
 	validTypes := map[string]bool{
 		"COMPANY": true, "DEPARTMENT": true, "COST_CENTER": true, "PROJECT_TEAM": true,
 	}
 	if !validTypes[req.UnitType] {
 		return fmt.Errorf("无效的组织类型: %s", req.UnitType)
 	}
-	
+
 	if req.SortOrder < 0 {
 		return fmt.Errorf("排序顺序不能为负数")
 	}
-	
+
 	// 时态管理验证
 	if req.IsTemporal {
 		if req.EffectiveDate == nil {
@@ -178,7 +178,7 @@ func ValidateCreateOrganization(req *CreateOrganizationRequest) error {
 			return fmt.Errorf("时态组织必须提供变更原因")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -191,7 +191,7 @@ func ValidateUpdateOrganization(req *UpdateOrganizationRequest) error {
 			return fmt.Errorf("组织名称不能超过100个字符")
 		}
 	}
-	
+
 	if req.UnitType != nil {
 		validTypes := map[string]bool{
 			"COMPANY": true, "DEPARTMENT": true, "COST_CENTER": true, "PROJECT_TEAM": true,
@@ -200,7 +200,7 @@ func ValidateUpdateOrganization(req *UpdateOrganizationRequest) error {
 			return fmt.Errorf("无效的组织类型: %s", *req.UnitType)
 		}
 	}
-	
+
 	if req.Status != nil {
 		validStatuses := map[string]bool{
 			"ACTIVE": true, "INACTIVE": true, "PLANNED": true,
@@ -209,13 +209,13 @@ func ValidateUpdateOrganization(req *UpdateOrganizationRequest) error {
 			return fmt.Errorf("无效的状态: %s", *req.Status)
 		}
 	}
-	
+
 	if req.SortOrder != nil && *req.SortOrder < 0 {
 		return fmt.Errorf("排序顺序不能为负数")
 	}
 
 	// 移除Level验证：level由parent_code自动计算，不允许手动设置
-	
+
 	// 时态管理验证
 	if req.IsTemporal != nil && *req.IsTemporal {
 		if req.EffectiveDate == nil {
@@ -228,7 +228,7 @@ func ValidateUpdateOrganization(req *UpdateOrganizationRequest) error {
 			return fmt.Errorf("时态更新必须提供变更原因")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -316,7 +316,7 @@ type UpdateOrganizationRequest struct {
 	SortOrder   *int    `json:"sort_order,omitempty"`
 	Description *string `json:"description,omitempty"`
 	// Level       *int    `json:"level,omitempty"`        // 移除：level由parent_code自动计算
-	ParentCode  *string `json:"parent_code,omitempty"`     // 通过修改parent_code来改变层级
+	ParentCode *string `json:"parent_code,omitempty"` // 通过修改parent_code来改变层级
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date   `json:"effective_date,omitempty"`
 	EndDate       *Date   `json:"end_date,omitempty"`
@@ -325,21 +325,21 @@ type UpdateOrganizationRequest struct {
 }
 
 type OrganizationResponse struct {
-	Code          string    `json:"code"`
-	Name          string    `json:"name"`
-	UnitType      string    `json:"unit_type"`
-	Status        string    `json:"status"`
-	Level         int       `json:"level"`
-	Path          string    `json:"path"`
-	SortOrder     int       `json:"sort_order"`
-	Description   string    `json:"description"`
-	ParentCode    *string   `json:"parent_code,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	UnitType    string    `json:"unit_type"`
+	Status      string    `json:"status"`
+	Level       int       `json:"level"`
+	Path        string    `json:"path"`
+	SortOrder   int       `json:"sort_order"`
+	Description string    `json:"description"`
+	ParentCode  *string   `json:"parent_code,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 	// 时态管理字段 (使用Date类型)
-	EffectiveDate *Date  `json:"effective_date,omitempty"`
-	EndDate       *Date  `json:"end_date,omitempty"`
-	IsTemporal    bool   `json:"is_temporal"`
+	EffectiveDate *Date   `json:"effective_date,omitempty"`
+	EndDate       *Date   `json:"end_date,omitempty"`
+	IsTemporal    bool    `json:"is_temporal"`
 	ChangeReason  *string `json:"change_reason,omitempty"`
 }
 
@@ -366,13 +366,13 @@ func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code ~ '^[0-9]{7}$'
 	`
-	
+
 	var nextCode int
 	err := r.db.QueryRowContext(ctx, query, tenantID.String()).Scan(&nextCode)
 	if err != nil {
 		return "", fmt.Errorf("生成组织代码失败: %w", err)
 	}
-	
+
 	return fmt.Sprintf("%07d", nextCode), nil
 }
 
@@ -385,9 +385,9 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *Organization) 
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		RETURNING created_at, updated_at
 	`
-	
+
 	var createdAt, updatedAt time.Time
-	
+
 	// 确保effective_date始终有值（数据库约束要求）
 	var effectiveDate *Date
 	if org.EffectiveDate != nil {
@@ -417,7 +417,7 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *Organization) 
 		org.IsTemporal,
 		org.ChangeReason,
 	).Scan(&createdAt, &updatedAt)
-	
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
@@ -429,11 +429,11 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *Organization) 
 		}
 		return nil, fmt.Errorf("创建组织失败: %w", err)
 	}
-	
+
 	org.CreatedAt = createdAt
 	org.UpdatedAt = updatedAt
 	org.EffectiveDate = effectiveDate // 确保返回的组织有effective_date值
-	
+
 	r.logger.Printf("组织创建成功: %s - %s (时态: %v)", org.Code, org.Name, org.IsTemporal)
 	return org, nil
 }
@@ -449,25 +449,25 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		args = append(args, *req.Name)
 		argIndex++
 	}
-	
+
 	if req.UnitType != nil {
 		setParts = append(setParts, fmt.Sprintf("unit_type = $%d", argIndex))
 		args = append(args, *req.UnitType)
 		argIndex++
 	}
-	
+
 	if req.Status != nil {
 		setParts = append(setParts, fmt.Sprintf("status = $%d", argIndex))
 		args = append(args, *req.Status)
 		argIndex++
 	}
-	
+
 	if req.SortOrder != nil {
 		setParts = append(setParts, fmt.Sprintf("sort_order = $%d", argIndex))
 		args = append(args, *req.SortOrder)
 		argIndex++
 	}
-	
+
 	if req.Description != nil {
 		setParts = append(setParts, fmt.Sprintf("description = $%d", argIndex))
 		args = append(args, *req.Description)
@@ -481,40 +481,40 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		args = append(args, *req.ParentCode)
 		argIndex++
 	}
-	
+
 	// 时态管理字段更新
 	if req.EffectiveDate != nil {
 		setParts = append(setParts, fmt.Sprintf("effective_date = $%d", argIndex))
 		args = append(args, *req.EffectiveDate)
 		argIndex++
 	}
-	
+
 	if req.EndDate != nil {
 		setParts = append(setParts, fmt.Sprintf("end_date = $%d", argIndex))
 		args = append(args, *req.EndDate)
 		argIndex++
 	}
-	
+
 	if req.IsTemporal != nil {
 		setParts = append(setParts, fmt.Sprintf("is_temporal = $%d", argIndex))
 		args = append(args, *req.IsTemporal)
 		argIndex++
 	}
-	
+
 	if req.ChangeReason != nil {
 		setParts = append(setParts, fmt.Sprintf("change_reason = $%d", argIndex))
 		args = append(args, *req.ChangeReason)
 		argIndex++
 	}
-	
+
 	if len(setParts) == 0 {
 		return r.GetByCode(ctx, tenantID, code) // No changes
 	}
-	
+
 	// 添加updated_at
 	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", argIndex))
 	args = append(args, time.Now())
-	
+
 	query := fmt.Sprintf(`
 		UPDATE organization_units 
 		SET %s
@@ -523,7 +523,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		          level, path, sort_order, description, created_at, updated_at,
 		          effective_date, end_date, is_temporal, change_reason
 	`, strings.Join(setParts, ", "))
-	
+
 	var org Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
@@ -531,14 +531,14 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("组织不存在: %s", code)
 		}
 		return nil, fmt.Errorf("更新组织失败: %w", err)
 	}
-	
+
 	r.logger.Printf("组织更新成功: %s - %s (时态: %v)", org.Code, org.Name, org.IsTemporal)
 	return &org, nil
 }
@@ -550,21 +550,21 @@ func (r *OrganizationRepository) Delete(ctx context.Context, tenantID uuid.UUID,
 		SET status = 'INACTIVE', updated_at = $3
 		WHERE tenant_id = $1 AND code = $2 AND status != 'INACTIVE'
 	`
-	
+
 	result, err := r.db.ExecContext(ctx, query, tenantID.String(), code, time.Now())
 	if err != nil {
 		return fmt.Errorf("删除组织失败: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("获取删除结果失败: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return fmt.Errorf("组织不存在或已删除: %s", code)
 	}
-	
+
 	r.logger.Printf("组织删除成功: %s", code)
 	return nil
 }
@@ -577,7 +577,7 @@ func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UU
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2
 	`
-	
+
 	var org Organization
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
 		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
@@ -585,14 +585,14 @@ func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UU
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("组织不存在: %s", code)
 		}
 		return nil, fmt.Errorf("查询组织失败: %w", err)
 	}
-	
+
 	return &org, nil
 }
 
@@ -600,16 +600,16 @@ func (r *OrganizationRepository) CalculatePath(ctx context.Context, tenantID uui
 	if parentCode == nil {
 		return "/" + code, 1, nil
 	}
-	
+
 	query := `
 		SELECT path, level 
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2
 	`
-	
+
 	var parentPath string
 	var parentLevel int
-	
+
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), *parentCode).Scan(&parentPath, &parentLevel)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -617,10 +617,10 @@ func (r *OrganizationRepository) CalculatePath(ctx context.Context, tenantID uui
 		}
 		return "", 0, fmt.Errorf("查询父组织失败: %w", err)
 	}
-	
+
 	path := parentPath + "/" + code
 	level := parentLevel + 1
-	
+
 	return path, level, nil
 }
 
@@ -652,7 +652,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	}
 
 	tenantID := h.getTenantID(r)
-	
+
 	// 生成组织代码
 	code, err := h.repo.GenerateCode(r.Context(), tenantID)
 	if err != nil {
@@ -672,21 +672,27 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	// 创建组织实体
 	now := time.Now()
 	org := &Organization{
-		TenantID:      tenantID.String(),
-		Code:          code,
-		ParentCode:    req.ParentCode,
-		Name:          req.Name,
-		UnitType:      req.UnitType,
-		Status:        "ACTIVE",
-		Level:         level,
-		Path:          path,
-		SortOrder:     req.SortOrder,
-		Description:   req.Description,
+		TenantID:    tenantID.String(),
+		Code:        code,
+		ParentCode:  req.ParentCode,
+		Name:        req.Name,
+		UnitType:    req.UnitType,
+		Status:      "ACTIVE",
+		Level:       level,
+		Path:        path,
+		SortOrder:   req.SortOrder,
+		Description: req.Description,
 		// 时态管理字段 - 使用Date类型
 		EffectiveDate: req.EffectiveDate,
 		EndDate:       req.EndDate,
 		IsTemporal:    req.IsTemporal,
-		ChangeReason:  func() *string { if req.ChangeReason == "" { return nil } else { return &req.ChangeReason } }(),
+		ChangeReason: func() *string {
+			if req.ChangeReason == "" {
+				return nil
+			} else {
+				return &req.ChangeReason
+			}
+		}(),
 	}
 
 	// 确保effective_date字段始终有值（数据库约束要求）
@@ -705,10 +711,10 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 
 	// 构建响应
 	response := h.toOrganizationResponse(createdOrg)
-	
+
 	monitoring.RecordOrganizationOperation("create", "success", "command-service")
 	h.logger.Printf("组织创建成功: %s - %s", response.Code, response.Name)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
@@ -746,10 +752,10 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 
 	// 构建响应
 	response := h.toOrganizationResponse(updatedOrg)
-	
+
 	monitoring.RecordOrganizationOperation("update", "success", "command-service")
 	h.logger.Printf("组织更新成功: %s - %s", response.Code, response.Name)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -773,7 +779,7 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 
 	monitoring.RecordOrganizationOperation("delete", "success", "command-service")
 	h.logger.Printf("组织删除成功: %s", code)
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -796,9 +802,9 @@ func (h *OrganizationHandler) GetOrganization(w http.ResponseWriter, r *http.Req
 
 	// 构建响应
 	response := h.toOrganizationResponse(org)
-	
+
 	monitoring.RecordOrganizationOperation("get", "success", "command-service")
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -821,7 +827,7 @@ func (h *OrganizationHandler) CreatePlannedOrganization(w http.ResponseWriter, r
 	}
 
 	tenantID := h.getTenantID(r)
-	
+
 	// 生成组织代码
 	code, err := h.repo.GenerateCode(r.Context(), tenantID)
 	if err != nil {
@@ -866,10 +872,10 @@ func (h *OrganizationHandler) CreatePlannedOrganization(w http.ResponseWriter, r
 
 	// 构建响应
 	response := h.toOrganizationResponse(createdOrg)
-	
+
 	monitoring.RecordOrganizationOperation("create_planned", "success", "command-service")
 	h.logger.Printf("计划组织创建成功: %s - %s (生效时间: %v)", response.Code, response.Name, req.EffectiveDate)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
@@ -917,10 +923,10 @@ func (h *OrganizationHandler) TemporalStateChange(w http.ResponseWriter, r *http
 
 	// 构建响应
 	response := h.toOrganizationResponse(updatedOrg)
-	
+
 	monitoring.RecordOrganizationOperation("temporal_change", "success", "command-service")
 	h.logger.Printf("时态状态变更成功: %s - %s -> %s", code, req.Status, req.ChangeReason)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -932,39 +938,39 @@ func (h *OrganizationHandler) validateCreatePlannedOrganization(req *CreatePlann
 	if strings.TrimSpace(req.Name) == "" {
 		return fmt.Errorf("组织名称不能为空")
 	}
-	
+
 	if len(req.Name) > 100 {
 		return fmt.Errorf("组织名称不能超过100个字符")
 	}
-	
+
 	if req.UnitType == "" {
 		return fmt.Errorf("组织类型不能为空")
 	}
-	
+
 	validTypes := map[string]bool{
 		"COMPANY": true, "DEPARTMENT": true, "COST_CENTER": true, "PROJECT_TEAM": true,
 	}
 	if !validTypes[req.UnitType] {
 		return fmt.Errorf("无效的组织类型: %s", req.UnitType)
 	}
-	
+
 	if req.SortOrder < 0 {
 		return fmt.Errorf("排序顺序不能为负数")
 	}
-	
+
 	// 计划组织必须有未来生效时间
 	if req.EffectiveDate.Time.Before(time.Now()) {
 		return fmt.Errorf("计划组织的生效日期必须在当前日期之后")
 	}
-	
+
 	if req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
 		return fmt.Errorf("生效日期不能晚于失效日期")
 	}
-	
+
 	if strings.TrimSpace(req.ChangeReason) == "" {
 		return fmt.Errorf("计划组织必须提供变更原因")
 	}
-	
+
 	return nil
 }
 
@@ -976,15 +982,15 @@ func (h *OrganizationHandler) validateTemporalStateChange(req *TemporalStateChan
 	if !validStatuses[req.Status] {
 		return fmt.Errorf("无效的状态: %s", req.Status)
 	}
-	
+
 	if req.EffectiveDate != nil && req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
 		return fmt.Errorf("生效日期不能晚于失效日期")
 	}
-	
+
 	if strings.TrimSpace(req.ChangeReason) == "" {
 		return fmt.Errorf("时态状态变更必须提供变更原因")
 	}
-	
+
 	return nil
 }
 
@@ -993,29 +999,29 @@ func (h *OrganizationHandler) getTenantID(r *http.Request) uuid.UUID {
 	if tenantIDStr == "" {
 		return DefaultTenantID
 	}
-	
+
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		h.logger.Printf("无效的租户ID，使用默认值: %s", tenantIDStr)
 		return DefaultTenantID
 	}
-	
+
 	return tenantID
 }
 
 func (h *OrganizationHandler) toOrganizationResponse(org *Organization) *OrganizationResponse {
 	return &OrganizationResponse{
-		Code:          org.Code,
-		Name:          org.Name,
-		UnitType:      org.UnitType,
-		Status:        org.Status,
-		Level:         org.Level,
-		Path:          org.Path,
-		SortOrder:     org.SortOrder,
-		Description:   org.Description,
-		ParentCode:    org.ParentCode,
-		CreatedAt:     org.CreatedAt,
-		UpdatedAt:     org.UpdatedAt,
+		Code:        org.Code,
+		Name:        org.Name,
+		UnitType:    org.UnitType,
+		Status:      org.Status,
+		Level:       org.Level,
+		Path:        org.Path,
+		SortOrder:   org.SortOrder,
+		Description: org.Description,
+		ParentCode:  org.ParentCode,
+		CreatedAt:   org.CreatedAt,
+		UpdatedAt:   org.UpdatedAt,
 		// 时态管理字段
 		EffectiveDate: org.EffectiveDate,
 		EndDate:       org.EndDate,
@@ -1027,17 +1033,17 @@ func (h *OrganizationHandler) toOrganizationResponse(org *Organization) *Organiz
 func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, statusCode int, code, message string, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	
+
 	errorResp := ErrorResponse{
 		Code:    code,
 		Message: message,
 	}
-	
+
 	if err != nil {
 		errorResp.Error = err.Error()
 		h.logger.Printf("错误响应 [%d %s]: %v", statusCode, code, err)
 	}
-	
+
 	json.NewEncoder(w).Encode(errorResp)
 }
 
@@ -1088,7 +1094,7 @@ func main() {
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		
+
 		errorResp := ErrorResponse{
 			Code:    "NOT_FOUND",
 			Message: "端点不存在",
@@ -1101,7 +1107,7 @@ func main() {
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		
+
 		errorResp := ErrorResponse{
 			Code:    "METHOD_NOT_ALLOWED",
 			Message: "方法不允许",
@@ -1117,10 +1123,10 @@ func main() {
 			// ❌ 移除GET接口 - 违反CQRS原则，查询应使用GraphQL服务(8090)
 			r.Put("/{code}", handler.UpdateOrganization)
 			r.Delete("/{code}", handler.DeleteOrganization)
-			
+
 			// 时态管理专用端点
-			r.Post("/planned", handler.CreatePlannedOrganization)                    // 创建计划组织
-			r.Put("/{code}/temporal-state", handler.TemporalStateChange)            // 时态状态变更
+			r.Post("/planned", handler.CreatePlannedOrganization)        // 创建计划组织
+			r.Put("/{code}/temporal-state", handler.TemporalStateChange) // 时态状态变更
 		})
 	})
 
@@ -1128,10 +1134,10 @@ func main() {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"service": "Temporal Organization Command Service (CQRS)",
-			"version": "2.0.0",
-			"status": "healthy",
-			"timestamp": time.Now().Format(time.RFC3339),
+			"service":      "Temporal Organization Command Service (CQRS)",
+			"version":      "2.0.0",
+			"status":       "healthy",
+			"timestamp":    time.Now().Format(time.RFC3339),
 			"architecture": "CQRS Command Side - 仅支持CUD操作",
 		})
 	})
@@ -1143,25 +1149,25 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"service": "Temporal Organization Command Service (CQRS)",
-			"version": "2.0.0", 
+			"service":      "Temporal Organization Command Service (CQRS)",
+			"version":      "2.0.0",
 			"architecture": "CQRS Command Side - 仅支持CUD操作",
 			"endpoints": map[string]string{
-				"create":         "POST /api/v1/organization-units",
+				"create": "POST /api/v1/organization-units",
 				// ❌ 移除GET - 查询请使用GraphQL服务(8090)
 				"update":         "PUT /api/v1/organization-units/{code}",
 				"delete":         "DELETE /api/v1/organization-units/{code}",
 				"create_planned": "POST /api/v1/organization-units/planned",
 				"temporal_state": "PUT /api/v1/organization-units/{code}/temporal-state",
 				"health":         "GET /health",
-				"alerts":         "GET /alerts", 
+				"alerts":         "GET /alerts",
 				"status":         "GET /status",
 				"metrics":        "GET /metrics",
 			},
 			"cqrs_note": "查询操作请使用GraphQL服务 http://localhost:8090/graphql",
 			"temporal_features": []string{
 				"计划组织创建 - 支持未来生效的组织",
-				"时态状态变更 - 支持生效时间和失效时间管理", 
+				"时态状态变更 - 支持生效时间和失效时间管理",
 				"版本控制 - 自动版本管理和历史追踪",
 				"变更原因记录 - 强制记录所有时态变更的原因",
 				"数据库触发器 - 自动创建历史版本和时间线事件",
