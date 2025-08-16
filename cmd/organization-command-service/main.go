@@ -22,8 +22,8 @@ import (
 	_ "github.com/lib/pq"
 	"cube-castle-deployment-test/pkg/monitoring"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/go-redis/redis/v8"
-	"cube-castle-deployment-test/pkg/health"
+	// "github.com/go-redis/redis/v8"
+	// "cube-castle-deployment-test/pkg/health"
 )
 
 // ===== 自定义日期类型 =====
@@ -1110,11 +1110,11 @@ func main() {
 		json.NewEncoder(w).Encode(errorResp)
 	})
 
-	// API路由
+	// API路由 - CQRS命令端 (仅CUD操作)
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/organization-units", func(r chi.Router) {
 			r.Post("/", handler.CreateOrganization)
-			r.Get("/{code}", handler.GetOrganization)
+			// ❌ 移除GET接口 - 违反CQRS原则，查询应使用GraphQL服务(8090)
 			r.Put("/{code}", handler.UpdateOrganization)
 			r.Delete("/{code}", handler.DeleteOrganization)
 			
@@ -1124,165 +1124,44 @@ func main() {
 		})
 	})
 
-	// 健康检查 - 增强版
-	healthManager := health.NewHealthManager("temporal-organization-command-service", "2.0.0")
-	
-	// 添加PostgreSQL健康检查
-	healthManager.AddChecker(&health.PostgreSQLChecker{
-		Name: "postgresql",
-		DB:   db,
-	})
-	
-	// 添加Redis健康检查 (如果配置了Redis)
-	var redisClient *redis.Client
-	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
-		redisOpts, err := redis.ParseURL("redis://" + redisURL)
-		if err == nil {
-			redisClient = redis.NewClient(redisOpts)
-			healthManager.AddChecker(&health.RedisChecker{
-				Name:   "redis",
-				Client: redisClient,
-			})
-		}
-	}
-	
-	// 添加查询服务依赖检查
-	healthManager.AddChecker(&health.DependencyChecker{
-		Name:       "query-service",
-		URL:        "http://localhost:8090/health",
-		Required:   false, // 可选依赖
-		MaxRetries: 2,
-	})
-	
-	// 添加时态服务依赖检查
-	healthManager.AddChecker(&health.DependencyChecker{
-		Name:       "temporal-service", 
-		URL:        "http://localhost:9091/health",
-		Required:   false,
-		MaxRetries: 2,
-	})
-	
-	// 创建告警管理器
-	alertManager := health.NewAlertManager("temporal-organization-command-service")
-	
-	// 添加告警规则
-	alertManager.AddRule(health.AlertRule{
-		Name:          "postgresql-unhealthy",
-		Component:     "postgresql",
-		Condition:     health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
-		Level:         health.AlertLevelCritical,
-		Message:       "PostgreSQL数据库连接失败 - %s状态为%s: %s",
-		Cooldown:      5 * time.Minute,
-		MaxRetries:    3,
-		EnabledBy:     time.Now(),
-	})
-	
-	alertManager.AddRule(health.AlertRule{
-		Name:          "dependency-failure",
-		Component:     "", // 适用于所有依赖
-		Condition:     health.AlertCondition{ConsecutiveFails: func() *int { i := 3; return &i }()},
-		Level:         health.AlertLevelWarning,
-		Message:       "服务依赖连续失败 - %s连续失败%s次: %s",
-		Cooldown:      10 * time.Minute,
-		MaxRetries:    2,
-		EnabledBy:     time.Now(),
-	})
-	
-	alertManager.AddRule(health.AlertRule{
-		Name:          "high-latency",
-		Component:     "", // 适用于所有组件
-		Condition:     health.AlertCondition{ResponseTimeGT: func() *time.Duration { d := 3 * time.Second; return &d }()},
-		Level:         health.AlertLevelWarning,
-		Message:       "响应时间过慢 - %s响应时间%s超过3秒: %s",
-		Cooldown:      15 * time.Minute,
-		MaxRetries:    1,
-		EnabledBy:     time.Now(),
-	})
-	
-	// 配置告警渠道
-	if webhookURL := os.Getenv("ALERT_WEBHOOK_URL"); webhookURL != "" {
-		webhookChannel := health.NewWebhookChannel("primary-webhook", webhookURL)
-		webhookChannel.AddHeader("Authorization", "Bearer "+os.Getenv("WEBHOOK_TOKEN"))
-		alertManager.AddChannel(webhookChannel)
-		logger.Println("告警Webhook已配置:", webhookURL)
-	}
-	
-	if slackWebhook := os.Getenv("SLACK_WEBHOOK_URL"); slackWebhook != "" {
-		slackChannel := health.NewSlackChannel(slackWebhook, "#alerts", "Cube Castle Monitor")
-		alertManager.AddChannel(slackChannel)
-		logger.Println("Slack告警已配置")
-	}
-	
-	// 启动告警处理协程
-	go func() {
-		ticker := time.NewTicker(30 * time.Second) // 每30秒检查一次
-		defer ticker.Stop()
-		
-		for {
-			select {
-			case <-ticker.C:
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				health := healthManager.Check(ctx)
-				alertManager.ProcessHealthCheck(ctx, health)
-				cancel()
-			case <-context.Background().Done():
-				return
-			}
-		}
-	}()
-	
-	r.Get("/health", healthManager.Handler())
-	
-	// 告警管理端点
-	r.Get("/alerts", func(w http.ResponseWriter, r *http.Request) {
+	// 简化健康检查
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		alerts := alertManager.GetActiveAlerts()
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"active_alerts": alerts,
-			"total":        len(alerts),
-			"timestamp":    time.Now(),
+			"service": "Temporal Organization Command Service (CQRS)",
+			"version": "2.0.0",
+			"status": "healthy",
+			"timestamp": time.Now().Format(time.RFC3339),
+			"architecture": "CQRS Command Side - 仅支持CUD操作",
 		})
 	})
-	
-	r.Get("/alerts/history", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		history := alertManager.GetAlertHistory(50) // 最近50条
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"alert_history": history,
-			"total":        len(history),
-			"timestamp":    time.Now(),
-		})
-	})
-	
-	// 详细状态报告
-	statusReporter := health.NewStatusReporter(healthManager, "http://localhost:9090")
-	r.Get("/status", statusReporter.DashboardHandler())
-	r.Get("/status/dashboard", statusReporter.DashboardHandler())
 
 	// Prometheus指标端点
 	r.Handle("/metrics", promhttp.Handler())
 
-	// 根路径信息
+	// 根路径信息 - CQRS命令服务完整文档
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"service": "Temporal Organization Command Service",
-			"version": "2.0.0", // 升级版本号
+			"service": "Temporal Organization Command Service (CQRS)",
+			"version": "2.0.0", 
+			"architecture": "CQRS Command Side - 仅支持CUD操作",
 			"endpoints": map[string]string{
 				"create":         "POST /api/v1/organization-units",
-				"get":            "GET /api/v1/organization-units/{code}",
+				// ❌ 移除GET - 查询请使用GraphQL服务(8090)
 				"update":         "PUT /api/v1/organization-units/{code}",
 				"delete":         "DELETE /api/v1/organization-units/{code}",
-				"create_planned": "POST /api/v1/organization-units/planned",        // 新增端点
-				"temporal_state": "PUT /api/v1/organization-units/{code}/temporal-state", // 新增端点
+				"create_planned": "POST /api/v1/organization-units/planned",
+				"temporal_state": "PUT /api/v1/organization-units/{code}/temporal-state",
 				"health":         "GET /health",
-				"metrics":        "GET /metrics",
-				"alerts":         "GET /alerts",
+				"alerts":         "GET /alerts", 
 				"status":         "GET /status",
+				"metrics":        "GET /metrics",
 			},
-			"temporal_features": []string{ // 新增时态功能说明
+			"cqrs_note": "查询操作请使用GraphQL服务 http://localhost:8090/graphql",
+			"temporal_features": []string{
 				"计划组织创建 - 支持未来生效的组织",
-				"时态状态变更 - 支持生效时间和失效时间管理",
+				"时态状态变更 - 支持生效时间和失效时间管理", 
 				"版本控制 - 自动版本管理和历史追踪",
 				"变更原因记录 - 强制记录所有时态变更的原因",
 				"数据库触发器 - 自动创建历史版本和时间线事件",

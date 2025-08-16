@@ -151,7 +151,7 @@ func (c *RedisChecker) Check(ctx context.Context) HealthCheck {
 // Neo4jChecker Neo4j数据库健康检查器
 type Neo4jChecker struct {
 	Name   string
-	Driver neo4j.Driver
+	Driver neo4j.DriverWithContext
 }
 
 func (c *Neo4jChecker) Check(ctx context.Context) HealthCheck {

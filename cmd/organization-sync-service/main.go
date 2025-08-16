@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/IBM/sarama"
 	"github.com/google/uuid"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
@@ -728,26 +728,28 @@ func (s *Neo4jSyncService) handleCDCDelete(ctx context.Context, data *CDCOrganiz
 // ===== Kafka消费者 =====
 
 type KafkaEventConsumer struct {
-	consumer *kafka.Consumer
+	consumer sarama.ConsumerGroup
 	syncSvc  *Neo4jSyncService
 	logger   *log.Logger
+	client   sarama.Client
 }
 
 func NewKafkaEventConsumer(brokers []string, groupID string, syncSvc *Neo4jSyncService, logger *log.Logger) (*KafkaEventConsumer, error) {
-	config := &kafka.ConfigMap{
-		"bootstrap.servers":        strings.Join(brokers, ","),
-		"group.id":                groupID,
-		"auto.offset.reset":       "latest", // 从最新位置开始
-		"enable.auto.commit":      true,
-		"auto.commit.interval.ms": 1000,
-		// 添加错误处理配置
-		"session.timeout.ms":      30000, // 30秒会话超时
-		"heartbeat.interval.ms":   10000, // 10秒心跳间隔
-		"max.poll.interval.ms":    300000, // 5分钟最大轮询间隔
+	config := sarama.NewConfig()
+	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
+	config.Consumer.Offsets.Initial = sarama.OffsetNewest
+	config.Consumer.Return.Errors = true
+	config.Consumer.Group.Session.Timeout = 30 * time.Second
+	config.Consumer.Group.Heartbeat.Interval = 10 * time.Second
+
+	client, err := sarama.NewClient(brokers, config)
+	if err != nil {
+		return nil, fmt.Errorf("创建Kafka客户端失败: %w", err)
 	}
 
-	consumer, err := kafka.NewConsumer(config)
+	consumer, err := sarama.NewConsumerGroupFromClient(groupID, client)
 	if err != nil {
+		client.Close()
 		return nil, fmt.Errorf("创建Kafka消费者失败: %w", err)
 	}
 
@@ -755,55 +757,78 @@ func NewKafkaEventConsumer(brokers []string, groupID string, syncSvc *Neo4jSyncS
 		consumer: consumer,
 		syncSvc:  syncSvc,
 		logger:   logger,
+		client:   client,
 	}, nil
 }
 
 func (c *KafkaEventConsumer) Subscribe(topics []string) error {
-	return c.consumer.SubscribeTopics(topics, nil)
+	// Sarama使用不同的订阅机制，在StartConsuming中处理
+	return nil
 }
 
-func (c *KafkaEventConsumer) StartConsuming(ctx context.Context) error {
+func (c *KafkaEventConsumer) StartConsuming(ctx context.Context, topics []string) error {
 	c.logger.Println("🚀 开始消费Kafka事件...")
-
+	
+	// 创建消费者组处理器
+	handler := &consumerGroupHandler{
+		consumer: c,
+		logger:   c.logger,
+	}
+	
+	// 在goroutine中处理错误
+	go func() {
+		for err := range c.consumer.Errors() {
+			c.logger.Printf("消费者错误: %v", err)
+		}
+	}()
+	
+	// 消费循环
 	for {
 		select {
 		case <-ctx.Done():
 			c.logger.Println("收到停止信号，停止消费...")
-			return nil
+			return c.consumer.Close()
 		default:
-			msg, err := c.consumer.ReadMessage(1000)
-			if err != nil {
-				if err.(kafka.Error).Code() == kafka.ErrTimedOut {
-					// 紧急修复：添加休眠避免CPU密集型轮询
-					time.Sleep(100 * time.Millisecond)
-					continue
-				}
-				c.logger.Printf("消费消息失败: %v", err)
-				continue
-			}
-
-			c.logger.Printf("收到消息: topic=%s, partition=%d, offset=%d",
-				*msg.TopicPartition.Topic, msg.TopicPartition.Partition, msg.TopicPartition.Offset)
-
-			if err := c.processMessage(ctx, msg); err != nil {
-				c.logger.Printf("处理消息失败: %v", err)
-				atomic.AddInt64(&messageErrorCount, 1)
-				// 添加退避延迟防止高CPU占用
-				time.Sleep(100 * time.Millisecond)
-			} else {
-				atomic.AddInt64(&messageProcessedCount, 1)
+			if err := c.consumer.Consume(ctx, topics, handler); err != nil {
+				c.logger.Printf("消费失败: %v", err)
+				time.Sleep(1 * time.Second)
 			}
 		}
 	}
 }
 
-func (c *KafkaEventConsumer) processMessage(ctx context.Context, msg *kafka.Message) error {
-	topic := *msg.TopicPartition.Topic
+// consumerGroupHandler 实现sarama.ConsumerGroupHandler接口
+type consumerGroupHandler struct {
+	consumer *KafkaEventConsumer
+	logger   *log.Logger
+}
+
+func (h *consumerGroupHandler) Setup(sarama.ConsumerGroupSession) error   { return nil }
+func (h *consumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error { return nil }
+
+func (h *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for message := range claim.Messages() {
+		h.logger.Printf("收到消息: topic=%s, partition=%d, offset=%d",
+			message.Topic, message.Partition, message.Offset)
+		
+		if err := h.consumer.processMessage(session.Context(), message); err != nil {
+			h.logger.Printf("处理消息失败: %v", err)
+			atomic.AddInt64(&messageErrorCount, 1)
+		} else {
+			atomic.AddInt64(&messageProcessedCount, 1)
+		}
+		
+		// 标记消息已处理
+		session.MarkMessage(message, "")
+	}
+	return nil
+}
+
+func (c *KafkaEventConsumer) processMessage(ctx context.Context, msg *sarama.ConsumerMessage) error {
+	topic := msg.Topic
 
 	switch topic {
-	case "organization.events":
-		return c.processDomainEvent(ctx, msg)
-	case "organization_db.public.organization_units":
+	case "cubecastle-postgres.public.organization_units":
 		return c.processCDCEvent(ctx, msg)
 	default:
 		c.logger.Printf("⚠️ 未知主题: %s", topic)
@@ -811,11 +836,11 @@ func (c *KafkaEventConsumer) processMessage(ctx context.Context, msg *kafka.Mess
 	}
 }
 
-func (c *KafkaEventConsumer) processDomainEvent(ctx context.Context, msg *kafka.Message) error {
+func (c *KafkaEventConsumer) processDomainEvent(ctx context.Context, msg *sarama.ConsumerMessage) error {
 	// 从消息头获取事件类型
 	eventType := ""
 	for _, header := range msg.Headers {
-		if header.Key == "event-type" {
+		if string(header.Key) == "event-type" {
 			eventType = string(header.Value)
 			break
 		}
@@ -851,24 +876,25 @@ func (c *KafkaEventConsumer) processDomainEvent(ctx context.Context, msg *kafka.
 	}
 }
 
-func (c *KafkaEventConsumer) processCDCEvent(ctx context.Context, msg *kafka.Message) error {
+func (c *KafkaEventConsumer) processCDCEvent(ctx context.Context, msg *sarama.ConsumerMessage) error {
 	c.logger.Printf("处理CDC事件")
 
-	// 解析Debezium消息格式
-	var debeziumMsg struct {
-		Payload CDCOrganizationEvent `json:"payload"`
-	}
-	if err := json.Unmarshal(msg.Value, &debeziumMsg); err != nil {
-		return fmt.Errorf("反序列化Debezium消息失败: %w", err)
+	// 直接解析Debezium消息格式(无payload包装)
+	var cdcEvent CDCOrganizationEvent
+	if err := json.Unmarshal(msg.Value, &cdcEvent); err != nil {
+		return fmt.Errorf("反序列化CDC消息失败: %w", err)
 	}
 
-	c.logger.Printf("CDC操作类型: %s", debeziumMsg.Payload.Op)
-	return c.syncSvc.HandleCDCEvent(ctx, debeziumMsg.Payload)
+	c.logger.Printf("CDC操作类型: %s", cdcEvent.Op)
+	return c.syncSvc.HandleCDCEvent(ctx, cdcEvent)
 }
 
 func (c *KafkaEventConsumer) Close() error {
 	if c.consumer != nil {
-		return c.consumer.Close()
+		c.consumer.Close()
+	}
+	if c.client != nil {
+		return c.client.Close()
 	}
 	return nil
 }
@@ -899,12 +925,7 @@ func main() {
 
 	// 订阅主题
 	topics := []string{
-		"organization.events",
-		"organization_db.public.organization_units",
-	}
-
-	if err := consumer.Subscribe(topics); err != nil {
-		log.Fatalf("订阅Kafka主题失败: %v", err)
+		"cubecastle-postgres.public.organization_units",
 	}
 
 	logger.Printf("🚀 Neo4j同步服务启动成功")
@@ -930,7 +951,7 @@ func main() {
 	}()
 
 	// 开始消费
-	if err := consumer.StartConsuming(ctx); err != nil {
+	if err := consumer.StartConsuming(ctx, topics); err != nil {
 		log.Fatalf("消费失败: %v", err)
 	}
 
@@ -962,10 +983,12 @@ func startHealthServer(logger *log.Logger) {
 		uptime := time.Since(serviceStartTime)
 		
 		response := map[string]interface{}{
-			"service": "organization-sync-service",
+			"service": "Organization Sync Service",
+			"version": "2.0.0",
 			"status": "healthy",
 			"timestamp": time.Now().Format(time.RFC3339),
 			"uptime_seconds": int64(uptime.Seconds()),
+			"architecture": "CQRS Data Sync - PostgreSQL到Neo4j实时同步",
 			"performance": map[string]interface{}{
 				"messages_processed": processedCount,
 				"messages_error":     errorCount,
@@ -992,11 +1015,11 @@ func startHealthServer(logger *log.Logger) {
 	})
 	
 	server := &http.Server{
-		Addr:    ":8084",
+		Addr:    ":8085", // 修改为8085避免与其他服务冲突
 		Handler: mux,
 	}
 	
-	logger.Printf("🔍 健康检查服务器启动 - 端口 8084")
+	logger.Printf("🔍 健康检查服务器启动 - 端口 8085")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Printf("❌ 健康检查服务器错误: %v", err)
 	}

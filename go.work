@@ -1,0 +1,17 @@
+go 1.23.12
+
+use ./cmd/organization-command-service
+
+use ./cmd/organization-query-service-unified
+
+use ./cmd/organization-sync-service
+
+use (
+	.
+	./cmd/organization-cache-invalidator
+	./cmd/organization-temporal-command-service
+	./monitoring
+	./pkg/health
+	./pkg/monitoring
+	./shared
+)

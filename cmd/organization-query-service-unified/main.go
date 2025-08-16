@@ -985,11 +985,11 @@ func main() {
 		Driver: driver,
 	})
 	
-	// 添加Redis健康检查
-	healthManager.AddChecker(&health.RedisChecker{
-		Name:   "redis", 
-		Client: redisClient,
-	})
+	// 添加Redis健康检查 - 暂时禁用由于版本兼容性问题
+	// healthManager.AddChecker(&health.RedisChecker{
+	//	Name:   "redis", 
+	//	Client: redisClient,
+	// })
 	
 	// 创建告警管理器
 	alertManager := health.NewAlertManager("organization-graphql-service")

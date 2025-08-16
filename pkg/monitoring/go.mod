@@ -1,5 +1,5 @@
-module cube-castle-deployment-test/pkg/monitoring
+module github.com/cube-castle/pkg/monitoring
 
-go 1.22
+go 1.23.12
 
-require github.com/prometheus/client_golang v1.17.0
+require github.com/prometheus/client_golang v1.20.5
