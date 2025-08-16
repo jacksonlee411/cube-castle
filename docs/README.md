@@ -1,130 +1,112 @@
-# 时态管理系统文档中心
+# 📚 我的文档导航中心
 
-## 📚 文档导航
+> **极简设计原则**: 一个目录，一个导航，够用就好！
 
-### 🚀 快速开始
-- **[快速开始指南](./temporal-management-quickstart.md)** - 5分钟快速上手时态管理功能
-- **[用户指南](./temporal-management-user-guide.md)** - 完整的功能说明和操作指南
-- **[故障排除](./troubleshooting.md)** - 常见问题诊断和解决方案
+## 🔥 常用文档 (一键直达)
 
-### 🔧 技术文档
-- **[API接口文档](./api/temporal-management-api.md)** - 完整的API参考手册
-- **[系统架构](../CLAUDE.md)** - CQRS架构和技术实现细节
-- **[缓存策略](./api/cache-strategy-guide.md)** - Redis缓存和性能优化
-- **[集成示例](./api/integration-examples.md)** - 前端后端集成示例
+### 🚀 立即开始
+- [生产部署指南](setup/deployment-guide.md) - 完整的生产环境部署流程
+- [API快速参考](api/README.md) - 所有API接口总览
+- [故障排除手册](guides/troubleshooting.md) - 常见问题快速解决
 
-### 📊 技术规格
-- **[OpenAPI规范](./api/temporal-api.yaml)** - 标准化API定义
-- **[GraphQL Schema](./api/graphql-api.md)** - 查询服务接口定义
-- **[监控指标](./api-docs/METRICS.md)** - 性能监控和系统指标
+### 🎯 核心功能
+- [时态管理快速开始](guides/temporal-management-quickstart.md) - 时态功能使用指南
+- [时态管理用户手册](guides/temporal-management-user-guide.md) - 详细使用说明
+- [GraphQL API文档](api/graphql-api.md) - GraphQL接口完整参考
+- [REST API文档](api/temporal-management-api.md) - REST接口参考
 
-## 🎯 按使用场景查找
+### 🏗️ 架构文档
+- [元合约v6.0规范](architecture/metacontract-v6.0-specification.md) - 核心设计合约
+- [城堡蓝图](architecture/castle-blueprint.md) - 系统架构蓝图
+- [CQRS统一实施指南](architecture/cqrs-unified-implementation-guide-v3.md) - CQRS架构指南
 
-### 新用户入门
-1. [快速开始指南](./temporal-management-quickstart.md) - 了解基本操作
-2. [用户指南](./temporal-management-user-guide.md) - 学习完整功能
-3. [故障排除](./troubleshooting.md) - 解决常见问题
+## 📂 目录结构
 
-### 开发人员集成
-1. [API接口文档](./api/temporal-management-api.md) - 了解API接口
-2. [集成示例](./api/integration-examples.md) - 参考代码示例
-3. [系统架构](../CLAUDE.md) - 理解技术架构
+```
+docs/
+├── 🚀 setup/          # 环境配置与部署
+├── 📖 guides/         # 使用指南与最佳实践  
+├── 🔌 api/            # API文档与示例
+├── 🏗️ architecture/   # 架构设计文档
+├── 📝 notes/          # 个人笔记与临时文档
+└── 📁 archive/        # 不常用的历史文档
+```
 
-### 运维管理员
-1. [故障排除](./troubleshooting.md) - 系统维护和问题排查
-2. [监控指标](./api-docs/METRICS.md) - 性能监控
-3. [缓存策略](./api/cache-strategy-guide.md) - 性能优化
+### 🚀 setup/ - 环境配置
+快速配置开发和生产环境的所有指南
+- 开发环境配置
+- 生产部署指南  
+- Docker配置
+- 依赖管理
 
-### 产品经理/业务人员
-1. [用户指南](./temporal-management-user-guide.md) - 了解业务功能
-2. [快速开始指南](./temporal-management-quickstart.md) - 快速体验
-3. [集成示例](./api/integration-examples.md) - 了解应用场景
+### 📖 guides/ - 使用指南
+日常使用的操作指南和最佳实践
+- 用户使用指南
+- 故障排除手册
+- 最佳实践总结
+- 维护操作指南
 
-## 🔍 功能特性索引
+### 🔌 api/ - API文档
+完整的API参考文档和使用示例
+- REST API参考
+- GraphQL API参考
+- API使用示例
+- 集成指南
 
-### 核心功能
-- **纯日期生效模型** - 符合企业级HR系统标准
-- **强制时间连续性** - 自动填补时间空洞
-- **事件驱动架构** - 支持多种变更事件类型
-- **实时数据同步** - CDC机制保证数据一致性
-- **可视化时间线** - 直观的变更历史展示
+### 🏗️ architecture/ - 架构设计
+系统核心架构文档和设计规范
+- 元合约v6.0规范
+- 城堡蓝图架构
+- CQRS实施指南
+- 设计决策记录
 
-### 高级功能
-- **智能缓存系统** - Redis缓存+精确失效
-- **性能监控** - Prometheus指标+健康检查
-- **权限控制** - 基于角色的操作权限
-- **数据导入导出** - 多格式支持
-- **批量操作** - 提高操作效率
+### 📝 notes/ - 个人工作区
+开发过程中的笔记、想法和临时文档
+- `todo.md` - 待办事项
+- `ideas.md` - 想法记录  
+- `debugging.md` - 调试记录
+- `temp/` - 临时文件夹
 
-## 📈 版本历史
+## 🔍 快速搜索技巧
 
-### v1.2-Temporal (当前版本)
-- ✅ 完成纯日期生效模型迁移
-- ✅ 移除版本号依赖，清理遗留代码
-- ✅ 实现事件驱动时态管理
-- ✅ 完善时间线可视化功能
-- ✅ 优化查询性能和缓存策略
-- ✅ 完成E2E测试，覆盖率92%
+```bash
+# 在所有文档中搜索关键词
+grep -r "关键词" docs/
 
-### v1.1-CQRS (历史版本)
-- ✅ 实现CQRS架构分离
-- ✅ 建立CDC数据同步机制
-- ✅ 完成前后端协议统一
-- ✅ 实现Redis缓存系统
+# 只搜索API文档
+grep -r "关键词" docs/api/
 
-### v1.0-基础版 (历史版本)
-- ✅ 基础组织架构管理
-- ✅ 简单时态查询功能
-- ✅ 基础前端界面
+# 搜索指南文档
+grep -r "关键词" docs/guides/
 
-## 🚀 系统状态
+# 查找特定文件类型
+find docs/ -name "*.md" | grep "关键词"
+```
 
-### 当前部署状态
-- **前端服务**: ✅ 运行中 (端口3000)
-- **查询服务**: ✅ 运行中 (端口8090, GraphQL)
-- **命令服务**: ✅ 运行中 (端口9090, REST)
-- **时态管理服务**: ✅ 运行中 (端口9091) ⭐
-- **数据同步**: ✅ CDC实时同步 (<300ms)
+## 📝 个人使用习惯
 
-### 质量保证
-- **E2E测试覆盖率**: 92%
-- **API响应时间**: <100ms (查询), <1s (命令)
-- **数据一致性**: 100%
-- **缓存命中率**: >90%
-- **生产就绪状态**: ✅ 已验证
+### 日常工作流
+1. **查文档** → 先看这个README找到对应链接
+2. **写笔记** → 直接放到`notes/`对应文件
+3. **临时内容** → 放到`notes/temp/`，定期清理
+4. **更新文档** → 就地编辑，无需复杂流程
 
-## 📞 支持和反馈
+### 简单维护规则
+- ✅ **常用内容** → 放在对应的功能目录
+- ✅ **临时内容** → 放在`notes/`
+- ✅ **过时内容** → 移到`archive/`  
+- ✅ **每月清理** → 整理`notes/temp/`
 
-### 获取帮助
-1. **查看故障排除指南** - 自助解决常见问题
-2. **运行系统健康检查** - `./scripts/health-check-cqrs.sh`
-3. **查看系统日志** - `docker-compose logs -f`
+## 🎯 文档哲学
 
-### 文档反馈
-如发现文档问题或需要补充，请在以下位置反馈：
-- 项目路径: `/home/shangmeilin/cube-castle`
-- 文档路径: `/home/shangmeilin/cube-castle/docs/`
-
-### 系统信息
-- **技术栈**: Go + React + PostgreSQL + Neo4j + Redis + Kafka
-- **架构模式**: CQRS + 事件驱动 + CDC数据同步
-- **部署方式**: Docker Compose + 微服务架构
-- **监控系统**: Prometheus + 自定义健康检查
+> **够用就好，简单就是美**
+> 
+> - 不追求完美的分类
+> - 不制定复杂的规则  
+> - 专注于快速查找和使用
+> - 保持足够的灵活性
 
 ---
 
-## 📋 快速链接
-
-| 文档类型 | 文档名称 | 适用人群 | 预计阅读时间 |
-|---------|---------|----------|-------------|
-| 入门指南 | [快速开始](./temporal-management-quickstart.md) | 所有用户 | 5分钟 |
-| 用户手册 | [用户指南](./temporal-management-user-guide.md) | 业务用户 | 30分钟 |
-| 技术文档 | [API文档](./api/temporal-management-api.md) | 开发人员 | 45分钟 |
-| 运维指南 | [故障排除](./troubleshooting.md) | 运维人员 | 20分钟 |
-| 系统架构 | [CLAUDE.md](../CLAUDE.md) | 技术人员 | 60分钟 |
-
----
-
-*时态管理系统文档中心 - 一站式文档导航*  
-*最后更新: 2025-08-11*  
-*系统版本: v1.2-Temporal*
+*最后更新: 2025-08-16*  
+*维护者: 单人团队，极简高效* 🚀

@@ -1,5 +1,0 @@
-id, name, type, entityType, labelsOrTypes, properties, ownedIndex, propertyType
-15, "department_name_unique", "UNIQUENESS", "NODE", ["Department"], ["name"], "department_name_unique", NULL
-13, "employee_id_unique", "UNIQUENESS", "NODE", ["Employee"], ["employee_id"], "employee_id_unique", NULL
-39, "org_unique_current", "UNIQUENESS", "NODE", ["Organization"], ["tenant_id", "code"], "org_unique_current", NULL
-32, "temporal_org_unique", "UNIQUENESS", "NODE", ["TemporalOrganization"], ["tenant_id", "code", "effective_date"], "temporal_org_unique", NULL

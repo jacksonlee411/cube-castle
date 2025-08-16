@@ -441,7 +441,13 @@ npm run dev                # 重启开发服务器
 
 ## 🆘 支持与文档
 
-- 📖 **项目文档**: [CLAUDE.md](CLAUDE.md) - 完整的项目记忆文档
+### 📚 文档导航
+- 📖 **项目记忆**: [CLAUDE.md](CLAUDE.md) - 完整的项目记忆文档
+- 📋 **API文档**: [DOCS2/](DOCS2/) - 架构设计和API规范
+- 🔧 **技术文档**: [docs/](docs/) - 用户指南和技术手册
+- 📁 **历史文档**: [archive/](archive/) - 过时文档归档
+
+### 🔗 快速链接
 - 🐛 **问题反馈**: [Issues](../../issues)
 - 💬 **技术讨论**: [Discussions](../../discussions)
 - 📊 **项目看板**: [Project Board](../../projects)
