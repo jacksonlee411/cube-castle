@@ -14,7 +14,6 @@ import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
 import { InlineNewVersionForm } from './InlineNewVersionForm';
-import { SimpleTimelineVisualization } from './SimpleTimelineVisualization';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { 
   colors, 
@@ -53,7 +52,6 @@ export interface TemporalVersion {
 
 export interface TemporalMasterDetailViewProps {
   organizationCode: string;
-  onBack?: () => void;
   readonly?: boolean;
 }
 
@@ -64,7 +62,6 @@ interface TimelineNavigationProps {
   versions: TemporalVersion[];
   selectedVersion: TemporalVersion | null;
   onVersionSelect: (version: TemporalVersion) => void;
-  onAddVersion?: () => void;
   onDeleteVersion?: (version: TemporalVersion) => void;
   isLoading: boolean;
   readonly?: boolean;
@@ -74,7 +71,6 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
   versions,
   selectedVersion,
   onVersionSelect,
-  onAddVersion,
   onDeleteVersion,
   isLoading,
   readonly = false
@@ -140,17 +136,6 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
       <Box marginBottom="m">
         <Flex justifyContent="space-between" alignItems="center" marginBottom="s">
           <Heading size="small">时间轴导航</Heading>
-          {!readonly && onAddVersion && (
-            <Tooltip title="新增版本">
-              <TertiaryButton
-                aria-label="新增版本"
-                onClick={onAddVersion}
-                size="small"
-              >
-                ➕
-              </TertiaryButton>
-            </Tooltip>
-          )}
         </Flex>
         <Text typeLevel="subtext.small" color="hint">
           点击版本节点查看详情
@@ -561,7 +546,6 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
  */
 export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> = ({
   organizationCode,
-  onBack,
   readonly = false
 }) => {
   // 状态管理
@@ -577,7 +561,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 视图选项卡状态
-  const [activeTab, setActiveTab] = useState<'details' | 'timeline' | 'new-version'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'new-version'>('details');
 
   // Modal model for delete confirmation
   const deleteModalModel = useModalModel();
@@ -749,11 +733,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           <SecondaryButton onClick={loadVersions} disabled={isLoading}>
             刷新
           </SecondaryButton>
-          {onBack && (
-            <TertiaryButton onClick={onBack}>
-              ← 返回
-            </TertiaryButton>
-          )}
         </Flex>
       </Flex>
 
@@ -764,7 +743,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           versions={versions}
           selectedVersion={selectedVersion}
           onVersionSelect={setSelectedVersion}
-          onAddVersion={readonly ? undefined : handleCreateVersion}
           onDeleteVersion={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
           isLoading={isLoading}
           readonly={readonly}
@@ -786,16 +764,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             </SecondaryButton>
             <SecondaryButton
               size="small"
-              onClick={() => setActiveTab('timeline')}
-              style={{
-                backgroundColor: activeTab === 'timeline' ? baseColors.blueberry[600] : 'transparent',
-                color: activeTab === 'timeline' ? 'white' : baseColors.blueberry[600]
-              }}
-            >
-              时间线可视化
-            </SecondaryButton>
-            <SecondaryButton
-              size="small"
               onClick={() => setActiveTab('new-version')}
               style={{
                 backgroundColor: activeTab === 'new-version' ? baseColors.greenFresca[600] : 'transparent',
@@ -814,11 +782,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               onDelete={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
               isLoading={isLoading}
               readonly={readonly}
-            />
-          ) : activeTab === 'timeline' ? (
-            <SimpleTimelineVisualization
-              organizationCode={organizationCode}
-              onRefresh={loadVersions}
             />
           ) : (
             <InlineNewVersionForm
