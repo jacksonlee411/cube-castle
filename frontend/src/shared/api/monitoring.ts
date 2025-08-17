@@ -230,7 +230,7 @@ export class MonitoringService {
     const keyMap: Record<string, string> = {
       '命令API服务': 'command-server',
       'GraphQL查询服务': 'graphql-server', 
-      '时态管理API': 'temporal-api', // Phase 4
+      '组织详情API': 'temporal-api', // Phase 4
       '前端应用': 'frontend',
       'PostgreSQL数据库': 'postgres',
       'Neo4j图数据库': 'neo4j',
@@ -392,7 +392,7 @@ export class MonitoringService {
         const serviceName = 'temporal-api';
         if (!serviceMap.has(serviceName)) {
           serviceMap.set(serviceName, {
-            name: '时态管理API',
+            name: '组织详情API',
             port: '9091',
             status: 'online',
             requests: '0',

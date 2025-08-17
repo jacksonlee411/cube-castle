@@ -239,10 +239,10 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
         </Box>
       </Card>
 
-      {/* 时态管理信息卡片 */}
+      {/* 组织详情信息卡片 */}
       <Card marginBottom={space.l} padding={space.m}>
         <Text fontSize="medium" fontWeight="bold" marginBottom={space.m}>
-          ⏰ 时态管理信息
+          ⏰ 组织详情信息
         </Text>
 
         <Flex gap={space.m} marginBottom={space.m} flexDirection="row">

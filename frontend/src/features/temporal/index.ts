@@ -6,7 +6,7 @@
 export { default as TemporalDashboard } from './TemporalDashboard';
 export type { TemporalDashboardProps } from './TemporalDashboard';
 
-// 时态管理组件
+// 组织详情组件
 export { TemporalDatePicker, validateTemporalDate } from './components/TemporalDatePicker';
 export { 
   TemporalStatusSelector, 
@@ -21,7 +21,7 @@ export {
   TemporalDateRange 
 } from './components/TemporalInfoDisplay';
 
-// 时态管理相关类型
+// 组织详情相关类型
 export type { PlannedOrganizationData } from './components/PlannedOrganizationForm';
 export type { TemporalInfo } from './components/TemporalInfoDisplay';
 

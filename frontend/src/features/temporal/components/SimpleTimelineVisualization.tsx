@@ -292,7 +292,7 @@ export const SimpleTimelineVisualization: React.FC<SimpleTimelineVisualizationPr
               时间线统计: 最新事件 {formatDate(events[0]?.event_date || '')}
             </Text>
             <Text fontSize="small" color="#666666">
-              数据来源: 时态管理服务 (端口9091)
+              数据来源: 组织详情服务 (端口9091)
             </Text>
           </Flex>
         </Card>

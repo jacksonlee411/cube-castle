@@ -1,5 +1,5 @@
 /**
- * 时态管理集成组件
+ * 组织详情集成组件
  * 整合所有时态功能到一个统一的界面中
  */
 import React, { useState, useCallback } from 'react';
@@ -30,8 +30,8 @@ export interface TemporalDashboardProps {
 }
 
 /**
- * 时态管理仪表板组件
- * 集成了所有时态管理功能的主界面
+ * 组织详情仪表板组件
+ * 集成了所有组织详情功能的主界面
  */
 export const TemporalDashboard: React.FC<TemporalDashboardProps> = ({
   initialQueryParams,

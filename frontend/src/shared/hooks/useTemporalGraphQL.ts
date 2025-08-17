@@ -1,5 +1,5 @@
 /**
- * 时态管理React钩子 - 基于GraphQL时态查询 (统一字符串类型版本)
+ * 组织详情React钩子 - 基于GraphQL时态查询 (统一字符串类型版本)
  * 提供organizationAsOfDate和organizationHistory的React集成
  */
 import { useCallback, useEffect } from 'react';

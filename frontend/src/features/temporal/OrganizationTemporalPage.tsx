@@ -1,6 +1,6 @@
 /**
- * 组织时态管理页面
- * 集成了主从视图设计的完整时态管理体验
+ * 组织详情页面
+ * 集成了主从视图设计的完整组织详情体验
  */
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';

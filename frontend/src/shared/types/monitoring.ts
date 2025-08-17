@@ -55,9 +55,9 @@ export const mockMetrics: SystemMetrics = {
       requests: '89',
       uptime: '99.8%' 
     },
-    // Phase 4: 新增时态管理API
+    // Phase 4: 新增组织详情API
     {
-      name: '时态管理API',
+      name: '组织详情API',
       status: 'online',
       port: '9091',
       responseTime: '12ms', // 94%性能提升后的响应时间

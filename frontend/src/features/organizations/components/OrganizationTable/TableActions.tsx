@@ -44,9 +44,9 @@ export const TableActions: React.FC<TableActionsProps> = ({
           </SecondaryButton>
         </Tooltip>
         {onTemporalManage && (
-          <Tooltip title="查看历史版本的时态管理">
+          <Tooltip title="查看历史版本的组织详情">
             <TertiaryButton 
-              aria-label="时态管理"
+              aria-label="组织详情"
               onClick={handleTemporalManage}
               data-testid={`temporal-manage-button-${organization.code}`}
             >
@@ -81,9 +81,9 @@ export const TableActions: React.FC<TableActionsProps> = ({
         {isToggling ? loadingText : buttonText}
       </SecondaryButton>
       {onTemporalManage && (
-        <Tooltip title="时态管理">
+        <Tooltip title="组织详情">
           <TertiaryButton 
-            aria-label="时态管理"
+            aria-label="组织详情"
             onClick={handleTemporalManage}
             disabled={disabled}
             data-testid={`temporal-manage-button-${organization.code}`}

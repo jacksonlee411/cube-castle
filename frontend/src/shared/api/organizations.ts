@@ -527,7 +527,7 @@ export const organizationAPI = {
     }
   },
 
-  // ====== 时态管理API方法 ======
+  // ====== 组织详情API方法 ======
 
   // 获取组织的历史版本
   getHistory: async (code: string, params?: TemporalQueryParams): Promise<TemporalOrganizationUnit[]> => {

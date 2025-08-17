@@ -1,11 +1,11 @@
 /**
- * 时态管理API客户端钩子 (纯日期生效模型)
- * 连接到端口9091的时态管理服务
+ * 组织详情API客户端钩子 (纯日期生效模型)
+ * 连接到端口9091的组织详情服务
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-// 时态管理API基础URL
+// 组织详情API基础URL
 const TEMPORAL_API_BASE = 'http://localhost:9091/api/v1';
 
 // 查询参数接口 (纯日期生效模型)
@@ -53,7 +53,7 @@ export interface TemporalHealthResponse {
 }
 
 /**
- * 时态管理服务健康检查
+ * 组织详情服务健康检查
  */
 export function useTemporalHealth() {
   return useQuery({
@@ -61,7 +61,7 @@ export function useTemporalHealth() {
     queryFn: async (): Promise<TemporalHealthResponse> => {
       const response = await fetch(`${TEMPORAL_API_BASE.replace('/api/v1', '')}/health`);
       if (!response.ok) {
-        throw new Error('时态管理服务不可用');
+        throw new Error('组织详情服务不可用');
       }
       return response.json();
     },

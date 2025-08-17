@@ -1,5 +1,5 @@
 /**
- * 时态管理编辑表单组件
+ * 组织详情编辑表单组件
  * 支持创建和编辑时态版本
  */
 import React, { useState, useEffect } from 'react';

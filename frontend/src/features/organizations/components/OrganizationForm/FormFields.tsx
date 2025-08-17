@@ -175,7 +175,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         </select>
         {isPlannedStatus && (
           <div style={hintStyle}>
-            计划 计划中的组织将自动启用时态管理功能
+            计划 计划中的组织将自动启用组织详情功能
           </div>
         )}
       </div>
@@ -208,15 +208,15 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         />
       </div>
 
-      {/* 时态管理功能区域 - 完全移除Canvas Kit组件 */}
+      {/* 组织详情功能区域 - 完全移除Canvas Kit组件 */}
       {enableTemporalFeatures && (
         <div style={cardStyle}>
           <div style={{ marginBottom: '16px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>
-              设置 时态管理设置
+              设置 组织详情设置
             </h3>
             <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-              配置组织的生效和失效时间，实现精确的时态管理
+              配置组织的生效和失效时间，实现精确的组织详情
             </p>
           </div>
 
@@ -230,11 +230,11 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                 data-testid="form-field-is-temporal"
                 style={{ marginRight: '8px' }}
               />
-              启用时态管理
+              启用组织详情
             </label>
             {isPlannedStatus && (
               <div style={hintStyle}>
-                计划中的组织必须启用时态管理
+                计划中的组织必须启用组织详情
               </div>
             )}
           </div>

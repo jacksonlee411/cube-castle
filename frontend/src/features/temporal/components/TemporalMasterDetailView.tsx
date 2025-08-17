@@ -1,5 +1,5 @@
 /**
- * 时态管理主从视图组件
+ * 组织详情主从视图组件
  * 左侧：垂直交互式时间轴导航
  * 右侧：动态版本详情卡片
  * 实现强制时间连续性的完整用户体验
@@ -542,7 +542,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
 };
 
 /**
- * 时态管理主从视图主组件
+ * 组织详情主从视图主组件
  */
 export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> = ({
   organizationCode,
@@ -627,7 +627,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           body: JSON.stringify({
             event_type: 'DEACTIVATE',
             effective_date: version.effective_date,
-            change_reason: '通过时态管理页面作废版本'
+            change_reason: '通过组织详情页面作废版本'
           })
         }
       );
@@ -723,7 +723,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       {/* 页面头部 */}
       <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
         <Box>
-          <Heading size="large">时态管理 - {organizationCode}</Heading>
+          <Heading size="large">组织详情 - {organizationCode}</Heading>
           <Text typeLevel="subtext.medium" color="hint">
             强制时间连续性的组织架构管理
           </Text>

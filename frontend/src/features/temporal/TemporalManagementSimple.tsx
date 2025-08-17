@@ -1,5 +1,5 @@
 /**
- * 简化版时态管理集成示例组件
+ * 简化版组织详情集成示例组件
  * 移除Canvas Kit Badge依赖，使用简单的HTML样式
  */
 import React, { useState, useCallback } from 'react';
@@ -90,7 +90,7 @@ const SimpleBadge: React.FC<SimpleBadgeProps> = ({ children, variant = 'neutral'
 };
 
 /**
- * 简化版时态管理集成演示页面
+ * 简化版组织详情集成演示页面
  */
 export const TemporalManagementSimple: React.FC = () => {
   // 状态管理
@@ -109,7 +109,7 @@ export const TemporalManagementSimple: React.FC = () => {
   // 处理查看详情
   const handleViewDetails = useCallback((orgCode: string) => {
     setSelectedOrgCode(orgCode);
-    alert(`点击了查看详情: ${orgCode}\n\n这里会打开时态管理详情面板，包含：\n• 左侧垂直时间轴\n• 右侧组织详情编辑\n• 时态数据查询和显示`);
+    alert(`点击了查看详情: ${orgCode}\n\n这里会打开组织详情面板，包含：\n• 左侧垂直时间轴\n• 右侧组织详情编辑\n• 时态数据查询和显示`);
   }, []);
 
   // 获取状态标签
@@ -149,7 +149,7 @@ export const TemporalManagementSimple: React.FC = () => {
       <Box marginBottom={space.l}>
         <Flex alignItems="center" justifyContent="space-between" marginBottom={space.m}>
           <Text fontSize="xl" fontWeight="bold">
-            时态管理集成演示 (简化版)
+            组织详情集成演示 (简化版)
           </Text>
           
           <Flex alignItems="center" gap={space.s}>
@@ -280,7 +280,7 @@ export const TemporalManagementSimple: React.FC = () => {
           </Box>
           <Box as="li" marginBottom={space.s}>
             <Text fontSize="small">
-              <strong>实时数据加载</strong>: 连接到端口9091的时态管理服务，获取真实的时态数据
+              <strong>实时数据加载</strong>: 连接到端口9091的组织详情服务，获取真实的时态数据
             </Text>
           </Box>
           <Box as="li" marginBottom={space.s}>

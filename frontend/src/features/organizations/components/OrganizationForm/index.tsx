@@ -212,7 +212,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
                 color: '#1890ff',
                 fontWeight: 'normal'
               }}>
-                设置 时态管理
+                设置 组织详情
               </span>
             )}
           </Modal.Heading>

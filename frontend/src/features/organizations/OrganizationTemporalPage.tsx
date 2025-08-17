@@ -1,7 +1,7 @@
 /**
- * 组织时态管理专用页面
+ * 组织组织详情专用页面
  * 路由: /organizations/{code}/temporal
- * 集成TemporalMasterDetailView组件实现完整的时态管理体验
+ * 集成TemporalMasterDetailView组件实现完整的组织详情体验
  */
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -11,8 +11,8 @@ import { SecondaryButton } from '@workday/canvas-kit-react/button';
 import { TemporalMasterDetailView } from '../temporal/components/TemporalMasterDetailView';
 
 /**
- * 组织时态管理页面组件
- * 提供特定组织的时态管理功能集成中心
+ * 组织组织详情页面组件
+ * 提供特定组织的组织详情功能集成中心
  */
 export const OrganizationTemporalPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
@@ -26,7 +26,7 @@ export const OrganizationTemporalPage: React.FC = () => {
           无效的组织编码
         </Heading>
         <Text typeLevel="body.medium" color="hint" marginBottom="l">
-          请从组织列表页面正确访问时态管理功能
+          请从组织列表页面正确访问组织详情功能
         </Text>
         <SecondaryButton onClick={() => navigate('/organizations')}>
           返回组织列表
@@ -61,12 +61,12 @@ export const OrganizationTemporalPage: React.FC = () => {
             /
           </Text>
           <Text typeLevel="subtext.medium" fontWeight="medium">
-            时态管理
+            组织详情
           </Text>
         </Flex>
       </Box>
 
-      {/* 主要内容区：时态管理主从视图 */}
+      {/* 主要内容区：组织详情主从视图 */}
       <TemporalMasterDetailView
         organizationCode={code}
         onBack={handleBackToList}

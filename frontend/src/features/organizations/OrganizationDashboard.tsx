@@ -14,7 +14,7 @@ import { PaginationControls } from './PaginationControls';
 import { useOrganizationDashboard } from './hooks/useOrganizationDashboard';
 import { useOrganizationActions } from './hooks/useOrganizationActions';
 
-// 时态管理组件导入 - 暂时禁用以修复无限循环错误
+// 组织详情组件导入 - 暂时禁用以修复无限循环错误
 // import { TemporalNavbar } from '../temporal/components/TemporalNavbar';
 // import { useTemporalMode, useTemporalQueryState } from '../../shared/hooks/useTemporalQuery';
 // import type { TemporalMode } from '../../shared/types/temporal';
@@ -145,7 +145,7 @@ export const OrganizationDashboard: React.FC = () => {
     handleFormSubmit,
   } = useOrganizationActions();
 
-  // 时态管理导航处理器
+  // 组织详情导航处理器
   const handleTemporalManage = (organizationCode: string) => {
     navigate(`/organizations/${organizationCode}/temporal`);
   };
@@ -155,7 +155,7 @@ export const OrganizationDashboard: React.FC = () => {
     handleCreate();
   };
 
-  // 时态管理状态和操作 - 暂时禁用以修复无限循环错误
+  // 组织详情状态和操作 - 暂时禁用以修复无限循环错误
   // const { mode: temporalMode, isHistorical, isCurrent, isPlanning } = useTemporalMode();
   // const { loading: temporalLoading, error: temporalError, context: temporalContext } = useTemporalQueryState();
   const temporalMode = 'current' as const;
@@ -233,7 +233,7 @@ export const OrganizationDashboard: React.FC = () => {
                 organizations={organizations}
                 onEdit={isHistorical ? undefined : handleEdit} // 历史模式禁用编辑
                 onToggleStatus={isHistorical ? undefined : (code, status) => { handleToggleStatus(code, status); }} // 历史模式禁用状态切换
-                onTemporalManage={handleTemporalManage} // 时态管理导航
+                onTemporalManage={handleTemporalManage} // 组织详情导航
                 loading={isFetching || temporalLoading.organizations}
                 togglingId={togglingId}
                 temporalMode={temporalMode}

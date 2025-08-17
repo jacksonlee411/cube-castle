@@ -1,5 +1,5 @@
 /**
- * 时态管理GraphQL查询客户端
+ * 组织详情GraphQL查询客户端
  * 专门用于时态查询功能：organizationAsOfDate 和 organizationHistory
  */
 import type { 
