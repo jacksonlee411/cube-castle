@@ -86,13 +86,33 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
     const endDate = version.end_date ? new Date(version.end_date) : null;
     
     if (version.is_current) {
-      return { color: colors.greenFresca600, label: '生效中' };
+      return { 
+        color: colors.greenFresca600, 
+        dotColor: colors.greenFresca600, 
+        label: '生效中',
+        isDeactivated: false
+      };
     } else if (effectiveDate > today) {
-      return { color: colors.blueberry600, label: '计划中' };
+      return { 
+        color: colors.blueberry600, 
+        dotColor: 'white', 
+        label: '计划中',
+        isDeactivated: false
+      };
     } else if (endDate && endDate < today) {
-      return { color: colors.licorice400, label: '已结束' };
+      return { 
+        color: colors.licorice400, 
+        dotColor: colors.licorice400, 
+        label: '已结束',
+        isDeactivated: false
+      };
     } else {
-      return { color: colors.cinnamon600, label: '已作废' };
+      return { 
+        color: colors.cinnamon600, 
+        dotColor: colors.licorice400, 
+        label: '已作废',
+        isDeactivated: true
+      };
     }
   };
 
@@ -176,7 +196,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                   width="12px"
                   height="12px"
                   borderRadius="50%"
-                  backgroundColor={statusInfo.color}
+                  backgroundColor={statusInfo.dotColor}
                   border="2px solid white"
                   boxShadow="0 2px 4px rgba(0,0,0,0.1)"
                 />
@@ -197,7 +217,13 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                     <Box marginBottom="xs">
                       <Box display="flex" alignItems="center" justifyContent="space-between">
                         {/* 生效日期 */}
-                        <Text typeLevel="body.medium" fontWeight="bold">
+                        <Text 
+                          typeLevel="body.medium" 
+                          fontWeight="bold"
+                          style={{
+                            textDecoration: statusInfo.isDeactivated ? 'line-through' : 'none'
+                          }}
+                        >
                           {formatDate(version.effective_date)}
                         </Text>
                         
