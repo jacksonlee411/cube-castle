@@ -69,6 +69,11 @@ export default defineConfig({
       '@workday/canvas-kit-react',
       '@workday/canvas-tokens-web',
       '@workday/canvas-kit-react-fonts'
+    ],
+    exclude: [
+      'playwright-core',
+      '@playwright/test', 
+      'chromium-bidi'
     ]
   },
   
@@ -93,6 +98,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
-    css: true
+    css: true,
+    exclude: [
+      'node_modules',
+      'dist',
+      'tests/e2e/**' // 排除E2E测试文件，这些由Playwright处理
+    ]
   }
 })

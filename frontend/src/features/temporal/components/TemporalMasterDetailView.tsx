@@ -224,38 +224,54 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                     </Flex>
 
                     {/* 版本名称 */}
-                    <Text 
-                      typeLevel="body.small" 
-                      fontWeight="medium"
-                      marginBottom="xs"
-                      style={{ 
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {version.name}
-                    </Text>
-
-                    {/* 变更摘要 */}
-                    {version.change_reason && (
+                    <Box marginBottom="xs">
+                      <Text typeLevel="subtext.small" color="hint">
+                        组织名称：
+                      </Text>
                       <Text 
-                        typeLevel="subtext.small" 
-                        color="hint"
+                        typeLevel="body.small" 
+                        fontWeight="medium"
+                        marginLeft="xs"
                         style={{ 
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis'
                         }}
                       >
-                        {version.change_reason}
+                        {version.name}
                       </Text>
+                    </Box>
+
+                    {/* 变更摘要 */}
+                    {version.change_reason && (
+                      <Box marginBottom="xs">
+                        <Text typeLevel="subtext.small" color="hint">
+                          变更原因：
+                        </Text>
+                        <Text 
+                          typeLevel="subtext.small" 
+                          color="hint"
+                          marginLeft="xs"
+                          style={{ 
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {version.change_reason}
+                        </Text>
+                      </Box>
                     )}
 
                     {/* 时间范围 */}
-                    <Text typeLevel="subtext.small" color="hint" marginTop="xs">
-                      {formatDateRange(version.effective_date, version.end_date)}
-                    </Text>
+                    <Box>
+                      <Text typeLevel="subtext.small" color="hint">
+                        有效期间：
+                      </Text>
+                      <Text typeLevel="subtext.small" color="hint" marginLeft="xs">
+                        {formatDateRange(version.effective_date, version.end_date)}
+                      </Text>
+                    </Box>
                   </Card>
                 </Box>
               </Box>
@@ -396,7 +412,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
                   disabled={buttonState.edit === 'disabled' || isLoading}
                   onClick={() => onEdit?.(version)}
                 >
-                  编辑 编辑
+                  编辑
                 </PrimaryButton>
               </Tooltip>
               
@@ -406,7 +422,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
                   disabled={buttonState.delete === 'disabled' || isLoading}
                   onClick={() => onDelete?.(version)}
                 >
-                  删除 作废
+                  作废
                 </SecondaryButton>
               </Tooltip>
             </Flex>
@@ -423,94 +439,136 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
         >
           {/* 基本信息 */}
           <Box>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.blueberry[600]}>
-              详情 基本信息
-            </Text>
-            <Box marginLeft="m">
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>组织名称:</strong> {version.name}
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>组织编码:</strong> {version.code}
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>组织类型:</strong> {getUnitTypeName(version.unit_type)}
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>当前状态:</strong> {version.status}
-              </Text>
+            <Heading size="small" marginBottom="s" color={baseColors.blueberry[600]}>
+              基本信息
+            </Heading>
+            <Box marginLeft="s" padding="s" backgroundColor={baseColors.soap[200]} borderRadius={borderRadius.s}>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">组织名称：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{version.name}</Text>
+              </Box>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">组织编码：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{version.code}</Text>
+              </Box>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">组织类型：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{getUnitTypeName(version.unit_type)}</Text>
+              </Box>
+              <Box>
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">当前状态：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{version.status}</Text>
+              </Box>
             </Box>
           </Box>
 
           {/* 层级信息 */}
           <Box>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.peach[600]}>
-              创建 层级结构
-            </Text>
-            <Box marginLeft="m">
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>层级:</strong> 第 {version.level} 级
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>上级组织:</strong> {version.parent_code || '无'}
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>路径:</strong> {version.path}
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>排序:</strong> {version.sort_order}
-              </Text>
+            <Heading size="small" marginBottom="s" color={baseColors.peach[600]}>
+              层级结构
+            </Heading>
+            <Box marginLeft="s" padding="s" backgroundColor={baseColors.soap[200]} borderRadius={borderRadius.s}>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">层级：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">第 {version.level} 级</Text>
+              </Box>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">上级组织：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{version.parent_code || '无'}</Text>
+              </Box>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">路径：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{version.path}</Text>
+              </Box>
+              <Box>
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">排序：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{version.sort_order}</Text>
+              </Box>
             </Box>
           </Box>
 
           {/* 时态信息 */}
           <Box>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.greenFresca[600]}>
-              ⏰ 生效期间
-            </Text>
-            <Box marginLeft="m">
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>生效日期:</strong> {new Date(version.effective_date).toLocaleDateString('zh-CN')}
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>失效日期:</strong> {
+            <Heading size="small" marginBottom="s" color={baseColors.greenFresca[600]}>
+              生效期间
+            </Heading>
+            <Box marginLeft="s" padding="s" backgroundColor={baseColors.soap[200]} borderRadius={borderRadius.s}>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">生效日期：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{new Date(version.effective_date).toLocaleDateString('zh-CN')}</Text>
+              </Box>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">失效日期：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{
                   version.end_date 
                     ? new Date(version.end_date).toLocaleDateString('zh-CN')
                     : '无限期有效'
-                }
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>变更原因:</strong> {version.change_reason || '无'}
-              </Text>
+                }</Text>
+              </Box>
+              <Box>
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">变更原因：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{version.change_reason || '无'}</Text>
+              </Box>
             </Box>
           </Box>
 
           {/* 系统信息 */}
           <Box>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s" color={baseColors.cantaloupe[600]}>
-              系统 系统信息
-            </Text>
-            <Box marginLeft="m">
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>创建时间:</strong> {new Date(version.created_at).toLocaleString('zh-CN')}
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>更新时间:</strong> {new Date(version.updated_at).toLocaleString('zh-CN')}
-              </Text>
-              <Text typeLevel="body.small" marginBottom="xs">
-                <strong>是否当前:</strong> {version.is_current ? '是' : '否'}
-              </Text>
+            <Heading size="small" marginBottom="s" color={baseColors.cantaloupe[600]}>
+              系统信息
+            </Heading>
+            <Box marginLeft="s" padding="s" backgroundColor={baseColors.soap[200]} borderRadius={borderRadius.s}>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">创建时间：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{new Date(version.created_at).toLocaleString('zh-CN')}</Text>
+              </Box>
+              <Box marginBottom="s">
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">更新时间：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{new Date(version.updated_at).toLocaleString('zh-CN')}</Text>
+              </Box>
+              <Box>
+                <Text typeLevel="body.small">
+                  <Text as="span" fontWeight="bold">是否当前：</Text>
+                </Text>
+                <Text typeLevel="body.small" marginLeft="s">{version.is_current ? '是' : '否'}</Text>
+              </Box>
             </Box>
           </Box>
         </Box>
 
         {/* 描述信息 */}
         {version.description && (
-          <Box marginTop="m" padding="m" backgroundColor={baseColors.soap[300]} borderRadius={borderRadius.s}>
-            <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s">
-              📝 描述信息
-            </Text>
-            <Text typeLevel="body.medium">
+          <Box marginTop="l" padding="m" backgroundColor={baseColors.soap[300]} borderRadius={borderRadius.m}>
+            <Heading size="small" marginBottom="s" color={baseColors.licorice[500]}>
+              描述信息
+            </Heading>
+            <Text typeLevel="body.medium" lineHeight="1.6">
               {version.description}
             </Text>
           </Box>
@@ -711,7 +769,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         
         <Flex gap="s">
           <SecondaryButton onClick={loadVersions} disabled={isLoading}>
-            刷新 刷新
+            刷新
           </SecondaryButton>
           {onBack && (
             <TertiaryButton onClick={onBack}>
@@ -746,7 +804,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 color: activeTab === 'details' ? 'white' : baseColors.blueberry[600]
               }}
             >
-              详情 版本详情
+              版本详情
             </SecondaryButton>
             <SecondaryButton
               size="small"
@@ -756,7 +814,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 color: activeTab === 'timeline' ? 'white' : baseColors.blueberry[600]
               }}
             >
-              数据 时间线可视化
+              时间线可视化
             </SecondaryButton>
             <SecondaryButton
               size="small"

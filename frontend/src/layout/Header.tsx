@@ -8,11 +8,12 @@ export const Header: React.FC = () => {
       as="header" 
       height={64} 
       width="100vw"
-      backgroundColor="frenchVanilla100"
-      borderBottom="1px solid" 
-      borderColor="soap500"
-      boxShadow="depth.1"
       position="relative"
+      cs={{
+        backgroundColor: '#FEF7E0', // frenchVanilla100 equivalent
+        borderBottom: '1px solid #E6E4E0', // soap500 equivalent
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' // depth.1 equivalent
+      }}
     >
       {/* 品牌标识：占满整行 */}
       <Box 

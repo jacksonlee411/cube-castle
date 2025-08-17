@@ -12,7 +12,11 @@ export const AppShell: React.FC = () => (
     {/* 主内容区域 */}
     <Box as="div" display="flex" height="calc(100vh - 64px)">
       {/* 左侧导航 */}
-      <Box as="div" width={240} borderRight="1px solid" borderColor="neutral.300">
+      <Box 
+        as="div" 
+        width={240} 
+        cs={{ borderRight: '1px solid #E5E5E5' }}
+      >
         <Sidebar />
       </Box>
       
