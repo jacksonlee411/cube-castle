@@ -87,29 +87,29 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
     
     if (version.is_current) {
       return { 
-        color: colors.greenFresca600, 
-        dotColor: colors.greenFresca600, 
+        color: baseColors.greenFresca[600], 
+        dotColor: baseColors.greenFresca[600], 
         label: '生效中',
         isDeactivated: false
       };
     } else if (effectiveDate > today) {
       return { 
-        color: colors.blueberry600, 
+        color: baseColors.blueberry[600], 
         dotColor: 'white', 
         label: '计划中',
         isDeactivated: false
       };
     } else if (endDate && endDate < today) {
       return { 
-        color: colors.licorice400, 
-        dotColor: colors.licorice400, 
+        color: baseColors.licorice[400], 
+        dotColor: baseColors.licorice[400], 
         label: '已结束',
         isDeactivated: false
       };
     } else {
       return { 
-        color: colors.cinnamon600, 
-        dotColor: colors.licorice400, 
+        color: baseColors.cinnamon[600], 
+        dotColor: baseColors.licorice[400], 
         label: '已作废',
         isDeactivated: true
       };
