@@ -19,17 +19,9 @@ import {
   colors, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { plusIcon } from '@workday/canvas-system-icons-web';
 import { baseColors } from '../../../shared/utils/colorTokens';
-// 暂时使用文本图标替代
-// import {
-//   addIcon,
-//   editIcon,
-//   deleteIcon,
-//   moreVerticalIcon,
-//   calendarIcon,
-//   infoIcon,
-//   warningIcon
-// } from '@workday/canvas-system-icons-web';
 
 // Types
 export interface TemporalVersion {
@@ -718,12 +710,21 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     loadVersions();
   }, [loadVersions]);
 
+  // 获取当前版本的组织名称用于页面标题
+  const getCurrentOrganizationName = () => {
+    const currentVersion = versions.find(v => v.is_current);
+    return currentVersion?.name || '';
+  };
+
   return (
     <Box padding="l">
       {/* 页面头部 */}
       <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
         <Box>
-          <Heading size="large">组织详情 - {organizationCode}</Heading>
+          <Heading size="large">
+            组织详情 - {organizationCode}
+            {getCurrentOrganizationName() && ` ${getCurrentOrganizationName()}`}
+          </Heading>
           <Text typeLevel="subtext.medium" color="hint">
             强制时间连续性的组织架构管理
           </Text>
@@ -752,25 +753,20 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         <Box flex="1">
           {/* 选项卡头部 */}
           <Flex marginBottom="m" gap="s">
-            <SecondaryButton
+            <PrimaryButton
               size="small"
+              variant={activeTab === 'details' ? 'primary' : 'secondary'}
               onClick={() => setActiveTab('details')}
-              style={{
-                backgroundColor: activeTab === 'details' ? baseColors.blueberry[600] : 'transparent',
-                color: activeTab === 'details' ? 'white' : baseColors.blueberry[600]
-              }}
             >
               版本详情
-            </SecondaryButton>
+            </PrimaryButton>
             <SecondaryButton
               size="small"
+              variant={activeTab === 'new-version' ? 'primary' : 'secondary'}
               onClick={() => setActiveTab('new-version')}
-              style={{
-                backgroundColor: activeTab === 'new-version' ? baseColors.greenFresca[600] : 'transparent',
-                color: activeTab === 'new-version' ? 'white' : baseColors.greenFresca[600]
-              }}
+              icon={plusIcon}
             >
-              ➕ 新增版本
+              新增版本
             </SecondaryButton>
           </Flex>
 
