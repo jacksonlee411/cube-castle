@@ -86,13 +86,13 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
     const endDate = version.end_date ? new Date(version.end_date) : null;
     
     if (version.is_current) {
-      return { color: '#2ECC71', icon: '🟢', label: '生效中' }; // 绿色
+      return { color: colors.greenFresca600, label: '生效中' };
     } else if (effectiveDate > today) {
-      return { color: '#3498DB', icon: '🔵', label: '计划中' }; // 蓝色
+      return { color: colors.blueberry600, label: '计划中' };
     } else if (endDate && endDate < today) {
-      return { color: '#95A5A6', icon: '⚫', label: '已结束' }; // 灰色
+      return { color: colors.licorice400, label: '已结束' };
     } else {
-      return { color: '#E74C3C', icon: '🔴', label: '已作废' }; // 红色
+      return { color: colors.cinnamon600, label: '已作废' };
     }
   };
 
@@ -193,75 +193,27 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                     }}
                     onClick={() => onVersionSelect(version)}
                   >
-                    {/* 节点头部 */}
-                    <Flex justifyContent="space-between" alignItems="flex-start" marginBottom="xs">
-                      <Box flex="1">
-                        <Text typeLevel="subtext.medium" fontWeight="bold">
+                    {/* 节点头部 - 日期与状态同行 */}
+                    <Box marginBottom="xs">
+                      <Box display="flex" alignItems="center" justifyContent="space-between">
+                        {/* 生效日期 */}
+                        <Text typeLevel="body.medium" fontWeight="bold">
                           {formatDate(version.effective_date)}
                         </Text>
-                        <Badge 
-                          color={statusInfo.color.replace('#', '') as 'primary' | 'secondary' | 'success' | 'warning' | 'danger'}
-                          size="small"
+                        
+                        {/* 状态标识 */}
+                        <Text 
+                          typeLevel="subtext.medium" 
+                          color={statusInfo.color}
+                          fontWeight="medium"
+                          marginLeft="m"
                         >
                           {statusInfo.label}
-                        </Badge>
+                        </Text>
                       </Box>
-                      
-                      {!readonly && onDeleteVersion && !version.is_current && (
-                        <Tooltip title="作废版本">
-                          <TertiaryButton
-                            aria-label="作废版本"
-                            size="small"
-                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                              e.stopPropagation();
-                              onDeleteVersion(version);
-                            }}
-                          >
-                            删除
-                          </TertiaryButton>
-                        </Tooltip>
-                      )}
-                    </Flex>
-
-                    {/* 版本名称 */}
-                    <Box marginBottom="xs">
-                      <Text typeLevel="subtext.small" color="hint">
-                        组织名称：
-                      </Text>
-                      <Text 
-                        typeLevel="body.small" 
-                        fontWeight="medium"
-                        marginLeft="xs"
-                        style={{ 
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                      >
-                        {version.name}
-                      </Text>
                     </Box>
 
-                    {/* 变更摘要 */}
-                    {version.change_reason && (
-                      <Box marginBottom="xs">
-                        <Text typeLevel="subtext.small" color="hint">
-                          变更原因：
-                        </Text>
-                        <Text 
-                          typeLevel="subtext.small" 
-                          color="hint"
-                          marginLeft="xs"
-                          style={{ 
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}
-                        >
-                          {version.change_reason}
-                        </Text>
-                      </Box>
-                    )}
+
 
                     {/* 时间范围 */}
                     <Box>
