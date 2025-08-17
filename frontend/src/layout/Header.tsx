@@ -1,6 +1,8 @@
 import React from 'react'
-import { Box } from '@workday/canvas-kit-react/layout'
+import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading } from '@workday/canvas-kit-react/text'
+import { SystemIcon } from '@workday/canvas-kit-react/icon'
+import { cubeIcon } from '@workday/canvas-system-icons-web'
 
 export const Header: React.FC = () => {
   return (
@@ -10,8 +12,8 @@ export const Header: React.FC = () => {
       width="100vw"
       position="relative"
       cs={{
-        backgroundColor: '#FEF7E0', // frenchVanilla100 equivalent
-        borderBottom: '1px solid #E6E4E0', // soap500 equivalent
+        backgroundColor: '#0875e1', // blueberry500 - Workday主题蓝色
+        borderBottom: '1px solid #0e5eb8', // blueberry600 equivalent
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' // depth.1 equivalent
       }}
     >
@@ -25,9 +27,12 @@ export const Header: React.FC = () => {
           paddingX: "l"
         }}
       >
-        <Heading size="large" color="blackPepper500" fontWeight="bold" width="100%">
-          🏰 Cube Castle
-        </Heading>
+        <Flex cs={{ alignItems: "center", gap: "l", width: "100%" }}>
+          <SystemIcon icon={cubeIcon} size={72} color="frenchVanilla100" />
+          <Heading size="large" color="frenchVanilla100" fontWeight="bold">
+            Cube Castle
+          </Heading>
+        </Flex>
       </Box>
     </Box>
   );
