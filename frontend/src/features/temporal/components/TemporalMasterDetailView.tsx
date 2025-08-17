@@ -554,6 +554,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   
   // 视图选项卡状态
   const [activeTab, setActiveTab] = useState<'details' | 'new-version'>('details');
+  
+  // 表单模式状态 - 新增功能
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [formInitialData, setFormInitialData] = useState<{
+    name: string;
+    unit_type: string;
+    status: string;
+    description?: string;
+    parent_code?: string;
+  } | null>(null);
 
   // Modal model for delete confirmation
   const deleteModalModel = useModalModel();
@@ -647,10 +657,42 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
   // 编辑功能处理
   const handleCreateVersion = useCallback(() => {
-    setEditMode('create');
+    setFormMode('create');
+    setFormInitialData(null);
     setSelectedVersion(null);
     setActiveTab('new-version'); // 切换到新增版本选项卡，而不是打开Modal
   }, []);
+
+  // 基于选中版本创建新版本的处理函数 - 新增功能
+  const handleCreateFromVersion = useCallback((version: TemporalVersion) => {
+    setFormMode('edit');
+    setFormInitialData({
+      name: version.name,
+      unit_type: version.unit_type,
+      status: version.status,
+      description: version.description || '',
+      parent_code: version.parent_code || ''
+    });
+    setSelectedVersion(version);
+    setActiveTab('new-version'); // 切换到新增版本选项卡
+  }, []);
+
+  // 时间轴版本选择处理 - 增强功能
+  const handleVersionSelect = useCallback((version: TemporalVersion) => {
+    setSelectedVersion(version);
+    
+    // 如果当前在新增版本选项卡，自动预填充选中版本的数据
+    if (activeTab === 'new-version') {
+      setFormMode('edit');
+      setFormInitialData({
+        name: version.name,
+        unit_type: version.unit_type,
+        status: version.status,
+        description: version.description || '',
+        parent_code: version.parent_code || ''
+      });
+    }
+  }, [activeTab]);
 
   const handleEditVersion = useCallback((version: TemporalVersion) => {
     setEditMode('edit');
@@ -667,15 +709,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            event_type: formData.event_type,
+            event_type: 'UPDATE',
             effective_date: new Date(formData.effective_date + 'T00:00:00Z').toISOString(),
             change_data: {
               name: formData.name,
               unit_type: formData.unit_type,
               status: formData.status,
-              description: formData.description
+              description: formData.description,
+              parent_code: formData.parent_code
             },
-            change_reason: formData.change_reason
+            change_reason: '通过组织信息详情页面更新组织信息'
           })
         }
       );
@@ -701,6 +744,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const handleFormClose = useCallback(() => {
     if (!isSubmitting) {
       setActiveTab('details'); // 取消时切换回详情选项卡
+      setFormMode('create'); // 重置为新增模式
+      setFormInitialData(null); // 清除预填充数据
       setSelectedVersion(null);
     }
   }, [isSubmitting]);
@@ -743,7 +788,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         <TimelineNavigation
           versions={versions}
           selectedVersion={selectedVersion}
-          onVersionSelect={setSelectedVersion}
+          onVersionSelect={handleVersionSelect}
           onDeleteVersion={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
           isLoading={isLoading}
           readonly={readonly}
@@ -785,6 +830,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               onSubmit={handleFormSubmit}
               onCancel={handleFormClose}
               isSubmitting={isSubmitting}
+              mode={formMode}
+              initialData={formInitialData}
             />
           )}
         </Box>

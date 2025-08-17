@@ -17,8 +17,7 @@ export interface TemporalEditFormData {
   status: string;
   description?: string;
   effective_date: string;
-  change_reason: string;
-  event_type: 'UPDATE' | 'RESTRUCTURE' | 'DISSOLVE';
+  parent_code?: string;
 }
 
 export interface TemporalVersion {

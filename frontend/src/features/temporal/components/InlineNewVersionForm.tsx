@@ -10,7 +10,6 @@ import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
-import { Select } from '@workday/canvas-kit-react/select';
 import { colors, borderRadius } from '@workday/canvas-kit-react/tokens';
 import { type TemporalEditFormData } from './TemporalEditForm';
 
@@ -19,6 +18,14 @@ export interface InlineNewVersionFormProps {
   onSubmit: (data: TemporalEditFormData) => Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
+  mode?: 'create' | 'edit';
+  initialData?: {
+    name: string;
+    unit_type: string;
+    status: string;
+    description?: string;
+    parent_code?: string;
+  };
 }
 
 const unitTypeOptions = [
@@ -34,17 +41,14 @@ const statusOptions = [
   { label: '停用', value: 'INACTIVE' },
 ];
 
-const eventTypeOptions = [
-  { label: '更新', value: 'UPDATE' },
-  { label: '重组', value: 'RESTRUCTURE' },
-  { label: '撤销', value: 'DISSOLVE' },
-];
 
 export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   organizationCode,
   onSubmit,
   onCancel,
-  isSubmitting = false
+  isSubmitting = false,
+  mode = 'create',
+  initialData
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
@@ -52,27 +56,39 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     status: 'PLANNED',
     description: '',
     effective_date: new Date().toISOString().split('T')[0], // 默认今天
-    change_reason: '',
-    event_type: 'RESTRUCTURE'
+    parent_code: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 初始化表单数据 - 默认明天生效
+  // 初始化表单数据 - 支持预填充模式
   useEffect(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    setFormData({
-      name: '',
-      unit_type: 'DEPARTMENT',
-      status: 'PLANNED',
-      description: '',
-      effective_date: tomorrow.toISOString().split('T')[0], // 默认明天生效
-      change_reason: '',
-      event_type: 'RESTRUCTURE'
-    });
+    
+    if (mode === 'edit' && initialData) {
+      // 编辑模式 - 使用传入的初始数据预填充表单
+      setFormData({
+        name: initialData.name,
+        unit_type: initialData.unit_type,
+        status: initialData.status,
+        description: initialData.description || '',
+        effective_date: tomorrow.toISOString().split('T')[0], // 生效日期仍然默认明天
+        parent_code: initialData.parent_code || ''
+      });
+    } else {
+      // 新增模式 - 使用默认值
+      setFormData({
+        name: '',
+        unit_type: 'DEPARTMENT',
+        status: 'PLANNED',
+        description: '',
+        effective_date: tomorrow.toISOString().split('T')[0], // 默认明天生效
+        parent_code: ''
+      });
+    }
     setErrors({});
-  }, []);
+  }, [mode, initialData]);
 
   const handleInputChange = (field: keyof TemporalEditFormData) => (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -105,10 +121,6 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       }
     }
     
-    if (!formData.change_reason.trim()) {
-      newErrors.change_reason = '变更原因是必填项';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -134,10 +146,12 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
         <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
           <Box>
             <Heading size="medium" marginBottom="s">
-              新增时态版本
+              {mode === 'edit' ? '编辑组织信息' : '组织信息详情'}
             </Heading>
             <Text typeLevel="subtext.medium" color="hint">
-              为组织 {organizationCode} 创建新的时态版本
+              {mode === 'edit' 
+                ? `基于现有版本编辑组织 ${organizationCode} 的信息` 
+                : `为组织 ${organizationCode} 编辑组织信息`}
             </Text>
           </Box>
           
@@ -148,7 +162,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             borderRadius={borderRadius.m}
           >
             <Text typeLevel="subtext.small" color={colors.licorice700}>
-              详情 新增模式
+              详情 {mode === 'edit' ? '编辑模式' : '新增模式'}
             </Text>
           </Box>
         </Flex>
@@ -162,16 +176,38 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
           border={`1px solid ${colors.blueberry200}`}
         >
           <Text typeLevel="subtext.medium" color={colors.blueberry700}>
-            提示 <strong>提示:</strong> 新增版本将在指定生效日期自动生效，请确保填写准确的组织信息和变更原因。
-            左侧时间轴将保持可见，便于参考历史版本信息。
+            提示 <strong>提示:</strong> {mode === 'edit' 
+              ? '编辑模式将基于选中的历史版本创建新的版本，在指定生效日期自动生效。左侧时间轴显示了该版本的历史信息。'
+              : '新增版本将在指定生效日期自动生效，请确保填写准确的组织信息和变更原因。左侧时间轴将保持可见，便于参考历史版本信息。'}
           </Text>
         </Box>
 
         <form onSubmit={handleSubmit}>
+          {/* 生效日期 - 最重要的信息放在最上方 */}
+          <Box marginBottom="l">
+            <Heading size="small" marginBottom="s" color={colors.blueberry600}>
+              生效日期
+            </Heading>
+            
+            <Box marginLeft="m">
+              <FormField error={errors.effective_date ? "error" : undefined}>
+                <FormField.Label>生效日期 *</FormField.Label>
+                <FormField.Field>
+                  <TextInput
+                    type="date"
+                    value={formData.effective_date}
+                    onChange={handleInputChange('effective_date')}
+                    disabled={isSubmitting}
+                  />
+                </FormField.Field>
+              </FormField>
+            </Box>
+          </Box>
+
           {/* 基本信息 */}
           <Box marginBottom="l">
             <Heading size="small" marginBottom="s" color={colors.blueberry600}>
-              详情 基本信息
+              基本信息
             </Heading>
             
             <Box marginLeft="m">
@@ -188,34 +224,62 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
               </FormField>
 
               <FormField>
+                <FormField.Label>上级组织编码</FormField.Label>
+                <FormField.Field>
+                  <TextInput
+                    value={formData.parent_code || ''}
+                    onChange={handleInputChange('parent_code')}
+                    placeholder="请输入上级组织编码（可选）"
+                    disabled={isSubmitting}
+                  />
+                </FormField.Field>
+              </FormField>
+
+              <FormField>
                 <FormField.Label>组织类型 *</FormField.Label>
                 <FormField.Field>
-                  <Select
+                  <select
                     value={formData.unit_type}
                     onChange={handleInputChange('unit_type')}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${colors.soap400}`,
+                      borderRadius: borderRadius.m,
+                      fontSize: '14px',
+                      backgroundColor: 'white'
+                    }}
                   >
                     {unitTypeOptions.map(option => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
                     ))}
-                  </Select>
+                  </select>
                 </FormField.Field>
               </FormField>
 
               <FormField>
                 <FormField.Label>组织状态 *</FormField.Label>
                 <FormField.Field>
-                  <Select
+                  <select
                     value={formData.status}
                     onChange={handleInputChange('status')}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${colors.soap400}`,
+                      borderRadius: borderRadius.m,
+                      fontSize: '14px',
+                      backgroundColor: 'white'
+                    }}
                   >
                     {statusOptions.map(option => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
                     ))}
-                  </Select>
+                  </select>
                 </FormField.Field>
               </FormField>
 
@@ -226,56 +290,6 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     value={formData.description}
                     onChange={handleInputChange('description')}
                     placeholder="请输入组织描述信息"
-                    disabled={isSubmitting}
-                    rows={3}
-                  />
-                </FormField.Field>
-              </FormField>
-            </Box>
-          </Box>
-
-          {/* 时态信息 */}
-          <Box marginBottom="l">
-            <Heading size="small" marginBottom="s" color={colors.greenFresca600}>
-              ⏰ 时态信息
-            </Heading>
-
-            <Box marginLeft="m">
-              <FormField error={errors.effective_date ? "error" : undefined}>
-                <FormField.Label>生效日期 *</FormField.Label>
-                <FormField.Field>
-                  <TextInput
-                    type="date"
-                    value={formData.effective_date}
-                    onChange={handleInputChange('effective_date')}
-                    disabled={isSubmitting}
-                  />
-                </FormField.Field>
-              </FormField>
-
-              <FormField>
-                <FormField.Label>事件类型 *</FormField.Label>
-                <FormField.Field>
-                  <Select
-                    value={formData.event_type}
-                    onChange={handleInputChange('event_type')}
-                  >
-                    {eventTypeOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField.Field>
-              </FormField>
-
-              <FormField error={errors.change_reason ? "error" : undefined}>
-                <FormField.Label>变更原因 *</FormField.Label>
-                <FormField.Field>
-                  <TextArea
-                    value={formData.change_reason}
-                    onChange={handleInputChange('change_reason')}
-                    placeholder="请详细说明此次变更的原因和目的"
                     disabled={isSubmitting}
                     rows={3}
                   />
@@ -301,7 +315,9 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 type="submit"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? '创建中...' : '创建新版本'}
+                {isSubmitting 
+                  ? (mode === 'edit' ? '创建中...' : '创建中...') 
+                  : (mode === 'edit' ? '基于此版本创建' : '创建新版本')}
               </PrimaryButton>
             </Flex>
           </Box>
