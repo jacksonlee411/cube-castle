@@ -611,6 +611,13 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		"valid_from": systemTime, // System Time - 系统记录时间
 	}
 
+	// 处理created_at参数 - 修复Neo4j参数缺失问题
+	if data.CreatedAt != nil {
+		params["created_at"] = data.CreatedAt.Format(time.RFC3339)
+	} else {
+		params["created_at"] = time.Now().Format(time.RFC3339)
+	}
+
 	if data.Name != nil {
 		params["name"] = *data.Name
 	}
@@ -637,6 +644,10 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 	} else {
 		params["updated_at"] = time.Now().Format(time.RFC3339)
 	}
+
+	// 调试日志：记录所有参数以便排查问题
+	s.logger.Printf("[DEBUG] CDC更新参数: uuid=%s, code=%s, effective_date=%s, created_at=%v", 
+		globalID, *data.Code, data.EffectiveDate.String(), params["created_at"])
 
 	// 时态管理字段映射 (更新版本) - 使用DebeziumDate类型，生效日期已验证非空
 	params["effective_date"] = data.EffectiveDate.String()
