@@ -566,8 +566,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [editMode, setEditMode] = useState<'create' | 'edit'>('create');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // 视图选项卡状态
-  const [activeTab, setActiveTab] = useState<'details' | 'new-version' | 'edit-history'>('details');
+  // 视图选项卡状态 - 默认显示编辑历史记录页面
+  const [activeTab, setActiveTab] = useState<'details' | 'new-version' | 'edit-history'>('edit-history');
   
   // 表单模式状态 - 新增功能
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -613,10 +613,21 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         
         // 默认选中当前版本
         const currentVersion = sortedVersions.find((v: TemporalVersion) => v.is_current);
-        if (currentVersion) {
-          setSelectedVersion(currentVersion);
-        } else if (sortedVersions.length > 0) {
-          setSelectedVersion(sortedVersions[0]);
+        const defaultVersion = currentVersion || sortedVersions[0];
+        
+        if (defaultVersion) {
+          setSelectedVersion(defaultVersion);
+          
+          // 由于默认显示编辑历史记录页面，需要预设表单数据
+          setFormMode('edit');
+          setFormInitialData({
+            name: defaultVersion.name,
+            unit_type: defaultVersion.unit_type,
+            status: defaultVersion.status,
+            description: defaultVersion.description || '',
+            parent_code: defaultVersion.parent_code || '',
+            effective_date: defaultVersion.effective_date
+          });
         }
       } else {
         console.error('Failed to load temporal versions:', response.statusText);
@@ -693,7 +704,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     setActiveTab('new-version'); // 切换到新增版本选项卡
   }, []);
 
-  // 时间轴版本选择处理 - 增强功能
+  // 时间轴版本选择处理 - 增强功能，支持编辑历史记录页面联动
   const handleVersionSelect = useCallback((version: TemporalVersion) => {
     setSelectedVersion(version);
     
@@ -707,6 +718,19 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         description: version.description || '',
         parent_code: version.parent_code || '',
         effective_date: version.effective_date // 添加生效日期绑定
+      });
+    }
+    
+    // 如果当前在编辑历史记录选项卡，更新表单数据显示选中版本的信息
+    if (activeTab === 'edit-history') {
+      setFormMode('edit');
+      setFormInitialData({
+        name: version.name,
+        unit_type: version.unit_type,
+        status: version.status,
+        description: version.description || '',
+        parent_code: version.parent_code || '',
+        effective_date: version.effective_date
       });
     }
   }, [activeTab]);
@@ -880,10 +904,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           <Flex marginBottom="m" gap="s">
             <PrimaryButton
               size="small"
-              variant={activeTab === 'details' ? 'primary' : 'secondary'}
-              onClick={() => setActiveTab('details')}
+              variant={activeTab === 'edit-history' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('edit-history')}
             >
-              版本详情
+              编辑历史记录
             </PrimaryButton>
             <SecondaryButton
               size="small"
@@ -891,19 +915,29 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               onClick={() => setActiveTab('new-version')}
               icon={plusIcon}
             >
-              新增版本
+              编辑组织信息
+            </SecondaryButton>
+            <SecondaryButton
+              size="small"
+              variant={activeTab === 'details' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('details')}
+            >
+              版本详情
             </SecondaryButton>
           </Flex>
 
           {/* 选项卡内容 */}
-          {activeTab === 'details' ? (
-            <VersionDetailCard
-              version={selectedVersion}
-              onEdit={readonly ? undefined : handleCreateFromVersion} // 修改：编辑按钮使用从版本创建新版本
-              onEditHistory={readonly ? undefined : handleEditHistory} // 新增：历史记录编辑
-              onDelete={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
-              isLoading={isLoading}
-              readonly={readonly}
+          {activeTab === 'edit-history' ? (
+            // 历史记录编辑模式
+            <InlineNewVersionForm
+              organizationCode={organizationCode}
+              onSubmit={handleFormSubmit} // 先使用现有的函数，稍后更新
+              onCancel={handleHistoryEditClose}
+              isSubmitting={isSubmitting}
+              mode="edit-history"
+              initialData={formInitialData}
+              selectedVersion={selectedVersion}
+              onEditHistory={handleHistoryEditSubmit}
             />
           ) : activeTab === 'new-version' ? (
             <InlineNewVersionForm
@@ -917,16 +951,13 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               onEditHistory={handleEditHistory}
             />
           ) : (
-            // 历史记录编辑模式
-            <InlineNewVersionForm
-              organizationCode={organizationCode}
-              onSubmit={handleFormSubmit} // 先使用现有的函数，稍后更新
-              onCancel={handleHistoryEditClose}
-              isSubmitting={isSubmitting}
-              mode="edit-history"
-              initialData={formInitialData}
-              selectedVersion={selectedVersion}
-              onEditHistory={handleHistoryEditSubmit}
+            <VersionDetailCard
+              version={selectedVersion}
+              onEdit={readonly ? undefined : handleCreateFromVersion} // 修改：编辑按钮使用从版本创建新版本
+              onEditHistory={readonly ? undefined : handleEditHistory} // 新增：历史记录编辑
+              onDelete={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
+              isLoading={isLoading}
+              readonly={readonly}
             />
           )}
         </Box>
