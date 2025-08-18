@@ -297,6 +297,7 @@ type OrganizationVersionInfo struct {
 }
 
 type CreateOrganizationRequest struct {
+	Code        *string `json:"code,omitempty"`          // 可选：指定组织代码（用于时态记录）
 	Name        string  `json:"name" validate:"required,max=100"`
 	UnitType    string  `json:"unit_type" validate:"required"`
 	ParentCode  *string `json:"parent_code,omitempty"`
@@ -632,12 +633,22 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 
 	tenantID := h.getTenantID(r)
 
-	// 生成组织代码
-	code, err := h.repo.GenerateCode(r.Context(), tenantID)
-	if err != nil {
-		monitoring.RecordOrganizationOperation("create", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusInternalServerError, "CODE_GENERATION_ERROR", "生成组织代码失败", err)
-		return
+	// 确定组织代码 - 支持指定代码（用于时态记录）
+	var code string
+	if req.Code != nil && strings.TrimSpace(*req.Code) != "" {
+		// 使用指定的代码（通常用于创建时态记录）
+		code = strings.TrimSpace(*req.Code)
+		h.logger.Printf("DEBUG: 使用指定的组织代码: %s", code)
+	} else {
+		// 生成新的组织代码
+		var err error
+		code, err = h.repo.GenerateCode(r.Context(), tenantID)
+		if err != nil {
+			monitoring.RecordOrganizationOperation("create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "CODE_GENERATION_ERROR", "生成组织代码失败", err)
+			return
+		}
+		h.logger.Printf("DEBUG: 生成新的组织代码: %s", code)
 	}
 
 	// 计算路径和级别
