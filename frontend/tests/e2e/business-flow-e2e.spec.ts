@@ -18,10 +18,10 @@ test.describe('业务流程端到端测试', () => {
     const formModal = page.getByTestId('organization-form');
     await expect(formModal).toBeVisible();
     
-    // 3. 填写表单字段
-    await page.locator('input[name="name"]').fill('测试部门E2E');
-    await page.locator('select[name="unit_type"]').selectOption('DEPARTMENT');
-    await page.locator('input[name="description"]').fill('E2E测试创建的组织');
+    // 3. 填写表单字段 - 使用更可靠的测试选择器
+    await page.getByTestId('form-field-name').fill('测试部门E2E');
+    await page.getByTestId('form-field-unit-type').selectOption('DEPARTMENT');
+    await page.getByTestId('form-field-description').fill('E2E测试创建的组织');
     
     // 4. 提交表单
     await page.getByTestId('form-submit-button').click();
@@ -55,8 +55,8 @@ test.describe('业务流程端到端测试', () => {
       await expect(formModal).toBeVisible();
       await expect(page.getByText('编辑组织单元')).toBeVisible();
       
-      // 修改名称
-      const nameInput = page.locator('input[name="name"]');
+      // 修改名称 - 使用更可靠的测试选择器
+      const nameInput = page.getByTestId('form-field-name');
       await nameInput.clear();
       await nameInput.fill('测试部门E2E-已更新');
       

@@ -508,7 +508,9 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	}
 
 	if len(setParts) == 0 {
-		return r.GetByCode(ctx, tenantID, code) // No changes
+		// 无字段需要更新，返回空响应(避免查询操作)
+		// 注意：CQRS命令端不应执行查询操作
+		return nil, fmt.Errorf("无字段需要更新，操作被忽略")
 	}
 
 	// 添加updated_at
@@ -569,32 +571,9 @@ func (r *OrganizationRepository) Delete(ctx context.Context, tenantID uuid.UUID,
 	return nil
 }
 
-func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UUID, code string) (*Organization, error) {
-	query := `
-		SELECT tenant_id, code, parent_code, name, unit_type, status,
-		       level, path, sort_order, description, created_at, updated_at,
-		       effective_date, end_date, is_temporal, change_reason
-		FROM organization_units 
-		WHERE tenant_id = $1 AND code = $2
-	`
-
-	var org Organization
-	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
-		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
-		&org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
-	)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("组织不存在: %s", code)
-		}
-		return nil, fmt.Errorf("查询组织失败: %w", err)
-	}
-
-	return &org, nil
-}
+// ❌ 已移除 GetByCode - 违反CQRS原则
+// 所有查询操作必须使用GraphQL服务 (端口8090)
+// 查询接口: http://localhost:8090/graphql
 
 func (r *OrganizationRepository) CalculatePath(ctx context.Context, tenantID uuid.UUID, parentCode *string, code string) (string, int, error) {
 	if parentCode == nil {
@@ -783,31 +762,9 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *OrganizationHandler) GetOrganization(w http.ResponseWriter, r *http.Request) {
-	code := chi.URLParam(r, "code")
-	if code == "" {
-		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
-		return
-	}
-
-	tenantID := h.getTenantID(r)
-
-	// 查询组织
-	org, err := h.repo.GetByCode(r.Context(), tenantID, code)
-	if err != nil {
-		monitoring.RecordOrganizationOperation("get", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusNotFound, "NOT_FOUND", "组织不存在", err)
-		return
-	}
-
-	// 构建响应
-	response := h.toOrganizationResponse(org)
-
-	monitoring.RecordOrganizationOperation("get", "success", "command-service")
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
+// ❌ 已移除 GetOrganization - 违反CQRS原则
+// 所有查询操作必须使用GraphQL服务 (端口8090)
+// 查询接口: http://localhost:8090/graphql
 
 // ===== 时态专用处理器方法 =====
 
@@ -1213,7 +1170,7 @@ func main() {
 	logger.Printf("📍 API端点: http://localhost:%s/api/v1/organization-units", port)
 	logger.Printf("📍 时态端点: http://localhost:%s/api/v1/organization-units/planned", port)
 	logger.Printf("📍 监控指标: http://localhost:%s/metrics", port)
-	logger.Printf("✅ DDD简化完成: 25个文件 → 1个文件 (减少96%)")
+	logger.Printf("✅ DDD简化完成: 25个文件 → 1个文件 (减少96%%)")
 	logger.Printf("⏰ 时态管理集成: 支持计划组织和状态变更")
 	logger.Printf("📊 版本控制: 自动历史版本和时间线事件")
 

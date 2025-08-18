@@ -1,16 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import type { FormFieldsProps } from './FormTypes';
+import { TemporalConverter } from '../../../../shared/utils/temporal-converter';
 
-// 日期格式化工具 (统一使用date类型)
+// 日期格式化工具 (使用TemporalConverter统一处理)
 const formatDateForInput = (dateStr?: string) => {
   if (!dateStr) return '';
   try {
-    const date = new Date(dateStr);
-    // 返回 YYYY-MM-DD 格式用于 type="date" 输入框
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return TemporalConverter.dateToDateString(dateStr);
   } catch {
     return '';
   }
@@ -36,11 +32,11 @@ export const FormFields: React.FC<FormFieldsProps> = ({
   React.useEffect(() => {
     if (isPlannedStatus && !isTemporal) {
       updateField('is_temporal', true);
-      // 设置默认生效时间为明天
+      // 使用TemporalConverter设置默认生效时间为明天上午9点
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(9, 0, 0, 0); // 默认上午9点
-      updateField('effective_from', tomorrow.toISOString());
+      tomorrow.setHours(9, 0, 0, 0);
+      updateField('effective_from', TemporalConverter.dateToIso(tomorrow));
     }
   }, [isPlannedStatus, isTemporal, updateField]);
 
@@ -103,6 +99,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         </label>
         <input
           type="text"
+          name="name"
           value={formData.name}
           onChange={(e) => updateField('name', e.target.value)}
           placeholder="请输入组织名称"
@@ -117,6 +114,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
           组织类型 *
         </label>
         <select
+          name="unit_type"
           value={formData.unit_type}
           onChange={(e) => updateField('unit_type', e.target.value)}
           style={inputStyle}
@@ -199,6 +197,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
           描述
         </label>
         <textarea
+          name="description"
           value={formData.description}
           onChange={(e) => updateField('description', e.target.value)}
           placeholder="请输入组织描述"

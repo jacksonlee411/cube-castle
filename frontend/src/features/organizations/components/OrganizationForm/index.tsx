@@ -8,6 +8,7 @@ import { FormFields } from './FormFields';
 import { validateForm } from './ValidationRules';
 import type { OrganizationFormProps, FormData } from './FormTypes';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../../../shared/hooks/useOrganizationMutations';
+import { TemporalConverter } from '../../../../shared/utils/temporal-converter';
 
 export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   organization,
@@ -103,12 +104,12 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           parent_code: formData.parent_code || undefined,
         };
         
-        // 时态更新
+        // 时态更新 (统一字符串类型处理)
         if (formData.is_temporal) {
           const temporalUpdateData = {
             ...updateData,
-            effectiveFrom: formData.effective_from,
-            effectiveTo: formData.effective_to,
+            effectiveFrom: TemporalConverter.dateToIso(formData.effective_from),
+            effectiveTo: formData.effective_to ? TemporalConverter.dateToIso(formData.effective_to) : undefined,
             changeReason: formData.change_reason
           };
           await organizationAPI.updateTemporal(organization!.code, temporalUpdateData);
@@ -127,12 +128,12 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           parent_code: formData.parent_code || undefined,
         };
         
-        // 时态创建
+        // 时态创建 (统一字符串类型处理)
         if (formData.is_temporal) {
           const temporalCreateData = {
             ...createData,
-            effectiveFrom: formData.effective_from!,
-            effectiveTo: formData.effective_to || undefined,
+            effectiveFrom: TemporalConverter.dateToIso(formData.effective_from!),
+            effectiveTo: formData.effective_to ? TemporalConverter.dateToIso(formData.effective_to) : undefined,
             changeReason: formData.change_reason
           };
           await organizationAPI.createTemporal(temporalCreateData);

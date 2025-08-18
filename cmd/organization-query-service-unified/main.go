@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -673,7 +672,7 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct {
 			}
 		}
 
-		r.logger.Printf("[GraphQL] 时态查询成功 - 组织: %s", org.Name)
+		r.logger.Printf("[GraphQL] 时态查询成功 - 组织: %s", org.Name())
 		return &org, nil
 	}
 
@@ -889,70 +888,9 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	// REST API 端点 - 统一查询协议
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/organization-units", func(w http.ResponseWriter, r *http.Request) {
-			// 将REST查询转换为GraphQL查询
-			first := int32(50)
-			offset := int32(0)
-
-			if firstStr := r.URL.Query().Get("limit"); firstStr != "" {
-				if f, err := strconv.ParseInt(firstStr, 10, 32); err == nil {
-					first = int32(f)
-				}
-			}
-
-			if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
-				if o, err := strconv.ParseInt(offsetStr, 10, 32); err == nil {
-					offset = int32(o)
-				}
-			}
-
-			ctx := r.Context()
-			organizations, err := resolver.Organizations(ctx, struct {
-				First      *int32
-				Offset     *int32
-				SearchText *string
-			}{&first, &offset, nil})
-
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"organizations": organizations,
-				"total":         len(organizations),
-			})
-		})
-
-		r.Get("/organization-units/{code}", func(w http.ResponseWriter, r *http.Request) {
-			code := chi.URLParam(r, "code")
-			if code == "" {
-				http.Error(w, "缺少组织代码", http.StatusBadRequest)
-				return
-			}
-
-			ctx := r.Context()
-			org, err := resolver.Organization(ctx, struct {
-				Code string
-			}{code})
-
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			if org == nil {
-				http.Error(w, "组织不存在", http.StatusNotFound)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(org)
-		})
-	})
+	// ❌ 已移除REST兼容接口 - 强制纯GraphQL查询协议
+	// 所有查询必须使用GraphQL: http://localhost:8090/graphql
+	// GraphiQL开发界面: http://localhost:8090/graphiql
 
 	// GraphQL端点
 	r.Handle("/graphql", &relay.Handler{Schema: schema})

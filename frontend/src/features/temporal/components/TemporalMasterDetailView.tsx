@@ -8,9 +8,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
-import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
-import { Badge } from '../../../shared/components/Badge';
-import { Tooltip } from '@workday/canvas-kit-react/tooltip';
+import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
 import { InlineNewVersionForm } from './InlineNewVersionForm';
@@ -19,7 +17,6 @@ import {
   colors, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
-import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { plusIcon } from '@workday/canvas-system-icons-web';
 import { baseColors } from '../../../shared/utils/colorTokens';
 
@@ -74,6 +71,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
     const effectiveDate = new Date(version.effective_date);
     const endDate = version.end_date ? new Date(version.end_date) : null;
     
+    // 1. 当前生效的版本
     if (version.is_current) {
       return { 
         color: colors.greenApple500, 
@@ -81,27 +79,61 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
         label: '生效中',
         isDeactivated: false
       };
-    } else if (effectiveDate > today) {
+    } 
+    
+    // 2. 未来计划的版本
+    else if (effectiveDate > today) {
       return { 
         color: colors.blueberry600, 
         dotColor: 'white', 
         label: '计划中',
         isDeactivated: false
       };
-    } else if (endDate && endDate < today) {
+    } 
+    
+    // 3. 已停用的版本（组织状态为INACTIVE）
+    else if (version.status === 'INACTIVE') {
+      return { 
+        color: colors.cantaloupe600, 
+        dotColor: colors.cantaloupe600, 
+        label: '已停用',
+        isDeactivated: false
+      };
+    }
+    
+    // 4. 自然结束的版本（有明确的end_date且已过期）
+    else if (endDate && endDate < today) {
       return { 
         color: colors.licorice400, 
         dotColor: colors.licorice400, 
         label: '已结束',
         isDeactivated: false
       };
-    } else {
-      return { 
-        color: colors.cinnamon600, 
-        dotColor: colors.licorice400, 
-        label: '已作废',
-        isDeactivated: true
-      };
+    } 
+    
+    // 5. 已作废的版本（通过作废操作删除，通常通过change_reason识别）
+    else {
+      // 检查是否为作废操作
+      const isDeactivated = version.change_reason?.includes('作废') || 
+                           version.change_reason?.includes('DEACTIVATE') ||
+                           (!endDate && !version.is_current && effectiveDate <= today);
+      
+      if (isDeactivated) {
+        return { 
+          color: colors.cinnamon600, 
+          dotColor: colors.cinnamon600, 
+          label: '已作废',
+          isDeactivated: true
+        };
+      } else {
+        // 默认已结束状态
+        return { 
+          color: colors.licorice400, 
+          dotColor: colors.licorice400, 
+          label: '已结束',
+          isDeactivated: false
+        };
+      }
     }
   };
 
@@ -193,7 +225,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                   >
                     {/* 节点头部 - 日期与状态同行 */}
                     <Box marginBottom="xs">
-                      <Box display="flex" alignItems="center" justifyContent="space-between">
+                      <Flex alignItems="center" justifyContent="space-between">
                         {/* 生效日期 */}
                         <Text 
                           typeLevel="body.medium" 
@@ -214,7 +246,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                         >
                           {statusInfo.label}
                         </Text>
-                      </Box>
+                      </Flex>
                     </Box>
 
 
@@ -246,308 +278,6 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
 };
 
 /**
- * 右侧动态版本详情卡片区
- */
-interface VersionDetailCardProps {
-  version: TemporalVersion | null;
-  onEdit?: (version: TemporalVersion) => void;
-  onEditHistory?: (version: TemporalVersion) => void; // 新增：历史记录编辑
-  onDelete?: (version: TemporalVersion) => void;
-  isLoading?: boolean;
-  readonly?: boolean;
-}
-
-const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
-  version,
-  onEdit,
-  onEditHistory, // 新增参数
-  onDelete,
-  isLoading = false,
-  readonly = false
-}) => {
-  if (!version) {
-    return (
-      <Flex
-        flex={1}
-        padding="l"
-        alignItems="center"
-        justifyContent="center"
-        backgroundColor="#F8F9FA"
-        borderRadius={borderRadius.m}
-        border="1px solid #E9ECEF"
-      >
-        <Box textAlign="center">
-          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiPjxjaXJjbGUgY3g9IjI0IiBjeT0iMjQiIHI9IjIwIiBmaWxsPSIjQ0NDIi8+PC9zdmc+" width={48} height={48} alt="Calendar" />
-          <Text typeLevel="subtext.large" color="hint" marginTop="m">
-            请选择左侧时间轴节点查看版本详情
-          </Text>
-        </Box>
-      </Flex>
-    );
-  }
-
-  const getUnitTypeName = (unitType: string) => {
-    const typeNames = {
-      'COMPANY': '公司',
-      'DEPARTMENT': '部门', 
-      'COST_CENTER': '成本中心',
-      'PROJECT_TEAM': '项目团队'
-    };
-    return typeNames[unitType as keyof typeof typeNames] || unitType;
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'ACTIVE': { label: '启用', color: 'greenFresca600' },
-      'INACTIVE': { label: '停用', color: 'cinnamon600' },
-      'PLANNED': { label: '计划中', color: 'blueberry600' }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || { 
-      label: status, 
-      color: 'licorice400' 
-    };
-    return <Badge color={config.color as 'greenFresca600' | 'cinnamon600' | 'blueberry600' | 'licorice400'}>{config.label}</Badge>;
-  };
-
-  // 智能操作按钮逻辑
-  const getButtonState = () => {
-    const today = new Date();
-    const effectiveDate = new Date(version.effective_date);
-    const endDate = version.end_date ? new Date(version.end_date) : null;
-    
-    if (endDate && endDate < today) {
-      // 历史记录
-      return { 
-        edit: 'disabled', 
-        delete: 'disabled', 
-        tooltip: '历史记录不可修改' 
-      };
-    } else if (version.is_current) {
-      // 当前版本
-      return { 
-        edit: 'limited', 
-        delete: 'confirm-as-invalid', 
-        tooltip: '当前版本需谨慎操作' 
-      };
-    } else if (effectiveDate > today) {
-      // 未来版本
-      return { 
-        edit: 'enabled', 
-        delete: 'enabled', 
-        tooltip: '可自由编辑计划版本' 
-      };
-    }
-    
-    return { edit: 'enabled', delete: 'enabled', tooltip: '' };
-  };
-
-  const buttonState = getButtonState();
-
-  return (
-    <Box flex="1" padding="m">
-      <Card padding="l">
-        {/* 动态标题 */}
-        <Flex justifyContent="space-between" alignItems="flex-start" marginBottom="l">
-          <Box>
-            <Heading size="medium" marginBottom="s">
-              版本详情 (生效于: {new Date(version.effective_date).toLocaleDateString('zh-CN')})
-            </Heading>
-            <Flex alignItems="center" gap="s">
-              {getStatusBadge(version.status)}
-              {version.is_current && (
-                <Badge color="greenFresca600">当前版本</Badge>
-              )}
-            </Flex>
-          </Box>
-
-          {/* 智能操作按钮 */}
-          {!readonly && (
-            <Flex gap="s">
-              <Tooltip title={buttonState.edit === 'disabled' ? buttonState.tooltip : '基于此版本创建新版本'}>
-                <PrimaryButton
-                  size="small"
-                  disabled={buttonState.edit === 'disabled' || isLoading}
-                  onClick={() => onEdit?.(version)}
-                >
-                  编辑
-                </PrimaryButton>
-              </Tooltip>
-              
-              {/* 直接的历史记录修改按钮 */}
-              <Tooltip title="直接修改该条历史记录的内容和时间戳">
-                <SecondaryButton
-                  size="small"
-                  disabled={isLoading}
-                  onClick={() => onEditHistory?.(version)}
-                >
-                  修改历史记录
-                </SecondaryButton>
-              </Tooltip>
-              
-              <Tooltip title={buttonState.delete === 'disabled' ? buttonState.tooltip : '作废版本'}>
-                <TertiaryButton
-                  size="small"
-                  disabled={buttonState.delete === 'disabled' || isLoading}
-                  onClick={() => onDelete?.(version)}
-                >
-                  作废
-                </TertiaryButton>
-              </Tooltip>
-            </Flex>
-          )}
-        </Flex>
-
-        {/* 版本详细信息 */}
-        <Box
-          cs={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "16px" // 使用像素值而不是token
-          }}
-        >
-          {/* 基本信息 */}
-          <Box>
-            <Heading size="small" marginBottom="s" color={baseColors.blueberry[600]}>
-              基本信息
-            </Heading>
-            <Box marginLeft="s" padding="s" backgroundColor={baseColors.soap[200]} borderRadius={borderRadius.s}>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">组织名称：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{version.name}</Text>
-              </Box>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">组织编码：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{version.code}</Text>
-              </Box>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">组织类型：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{getUnitTypeName(version.unit_type)}</Text>
-              </Box>
-              <Box>
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">当前状态：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{version.status}</Text>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* 层级信息 */}
-          <Box>
-            <Heading size="small" marginBottom="s" color={baseColors.peach[600]}>
-              层级结构
-            </Heading>
-            <Box marginLeft="s" padding="s" backgroundColor={baseColors.soap[200]} borderRadius={borderRadius.s}>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">层级：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">第 {version.level} 级</Text>
-              </Box>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">上级组织：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{version.parent_code || '无'}</Text>
-              </Box>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">路径：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{version.path}</Text>
-              </Box>
-              <Box>
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">排序：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{version.sort_order}</Text>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* 时态信息 */}
-          <Box>
-            <Heading size="small" marginBottom="s" color={baseColors.greenFresca[600]}>
-              生效期间
-            </Heading>
-            <Box marginLeft="s" padding="s" backgroundColor={baseColors.soap[200]} borderRadius={borderRadius.s}>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">生效日期：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{new Date(version.effective_date).toLocaleDateString('zh-CN')}</Text>
-              </Box>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">失效日期：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{
-                  version.end_date 
-                    ? new Date(version.end_date).toLocaleDateString('zh-CN')
-                    : '无限期有效'
-                }</Text>
-              </Box>
-              <Box>
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">变更原因：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{version.change_reason || '无'}</Text>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* 系统信息 */}
-          <Box>
-            <Heading size="small" marginBottom="s" color={baseColors.cantaloupe[600]}>
-              系统信息
-            </Heading>
-            <Box marginLeft="s" padding="s" backgroundColor={baseColors.soap[200]} borderRadius={borderRadius.s}>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">创建时间：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{new Date(version.created_at).toLocaleString('zh-CN')}</Text>
-              </Box>
-              <Box marginBottom="s">
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">更新时间：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{new Date(version.updated_at).toLocaleString('zh-CN')}</Text>
-              </Box>
-              <Box>
-                <Text typeLevel="body.small">
-                  <Text as="span" fontWeight="bold">是否当前：</Text>
-                </Text>
-                <Text typeLevel="body.small" marginLeft="s">{version.is_current ? '是' : '否'}</Text>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-
-        {/* 描述信息 */}
-        {version.description && (
-          <Box marginTop="l" padding="m" backgroundColor={baseColors.soap[300]} borderRadius={borderRadius.m}>
-            <Heading size="small" marginBottom="s" color={baseColors.licorice[500]}>
-              描述信息
-            </Heading>
-            <Text typeLevel="body.medium" lineHeight="1.6">
-              {version.description}
-            </Text>
-          </Box>
-        )}
-      </Card>
-    </Box>
-  );
-};
-
-/**
  * 组织详情主从视图主组件
  */
 export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> = ({
@@ -567,7 +297,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 视图选项卡状态 - 默认显示编辑历史记录页面
-  const [activeTab, setActiveTab] = useState<'details' | 'new-version' | 'edit-history'>('edit-history');
+  const [activeTab, setActiveTab] = useState<'new-version' | 'edit-history'>('edit-history');
   
   // 表单模式状态 - 新增功能
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -681,29 +411,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [organizationCode, selectedVersion, isDeleting, loadVersions]);
 
-  // 编辑功能处理
-  const handleCreateVersion = useCallback(() => {
-    setFormMode('create');
-    setFormInitialData(null);
-    setSelectedVersion(null);
-    setActiveTab('new-version'); // 切换到新增版本选项卡，而不是打开Modal
-  }, []);
-
-  // 基于选中版本创建新版本的处理函数 - 新增功能
-  const handleCreateFromVersion = useCallback((version: TemporalVersion) => {
-    setFormMode('edit');
-    setFormInitialData({
-      name: version.name,
-      unit_type: version.unit_type,
-      status: version.status,
-      description: version.description || '',
-      parent_code: version.parent_code || '',
-      effective_date: version.effective_date // 添加生效日期绑定
-    });
-    setSelectedVersion(version);
-    setActiveTab('new-version'); // 切换到新增版本选项卡
-  }, []);
-
   // 时间轴版本选择处理 - 增强功能，支持编辑历史记录页面联动
   const handleVersionSelect = useCallback((version: TemporalVersion) => {
     setSelectedVersion(version);
@@ -735,12 +442,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [activeTab]);
 
-  const handleEditVersion = useCallback((version: TemporalVersion) => {
-    setEditMode('edit');
-    setSelectedVersion(version);
-    setShowEditForm(true);
-  }, []);
-
   const handleFormSubmit = useCallback(async (formData: TemporalEditFormData) => {
     setIsSubmitting(true);
     try {
@@ -767,7 +468,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       if (response.ok) {
         // 刷新数据
         await loadVersions();
-        setActiveTab('details'); // 创建成功后切换回详情选项卡
+        setActiveTab('edit-history'); // 创建成功后切换回历史记录选项卡
         alert('时态版本创建成功！');
       } else {
         const errorData = await response.json();
@@ -784,7 +485,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
   const handleFormClose = useCallback(() => {
     if (!isSubmitting) {
-      setActiveTab('details'); // 取消时切换回详情选项卡
+      setActiveTab('edit-history'); // 取消时切换回历史记录选项卡
       setFormMode('create'); // 重置为新增模式
       setFormInitialData(null); // 清除预填充数据
       setSelectedVersion(null);
@@ -808,7 +509,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
   const handleHistoryEditClose = useCallback(() => {
     if (!isSubmitting) {
-      setActiveTab('details'); // 取消时切换回详情选项卡
+      setActiveTab('edit-history'); // 取消时切换回历史记录选项卡
       setFormMode('create');
       setFormInitialData(null);
       // 保持selectedVersion，以便返回详情页面
@@ -839,7 +540,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       if (response.ok) {
         // 刷新数据
         await loadVersions();
-        setActiveTab('details'); // 提交成功后切换回详情选项卡
+        setActiveTab('edit-history'); // 提交成功后切换回历史记录选项卡
         alert('历史记录修改成功！');
       } else {
         const errorData = await response.json();
@@ -904,25 +605,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           <Flex marginBottom="m" gap="s">
             <PrimaryButton
               size="small"
-              variant={activeTab === 'edit-history' ? 'primary' : 'secondary'}
               onClick={() => setActiveTab('edit-history')}
             >
               编辑历史记录
             </PrimaryButton>
             <SecondaryButton
               size="small"
-              variant={activeTab === 'new-version' ? 'primary' : 'secondary'}
               onClick={() => setActiveTab('new-version')}
               icon={plusIcon}
             >
               编辑组织信息
-            </SecondaryButton>
-            <SecondaryButton
-              size="small"
-              variant={activeTab === 'details' ? 'primary' : 'secondary'}
-              onClick={() => setActiveTab('details')}
-            >
-              版本详情
             </SecondaryButton>
           </Flex>
 
@@ -940,7 +632,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               onEditHistory={handleHistoryEditSubmit}
               onDeactivate={handleDeleteVersion} // 传递作废功能
             />
-          ) : activeTab === 'new-version' ? (
+          ) : (
+            // 编辑组织信息模式
             <InlineNewVersionForm
               organizationCode={organizationCode}
               onSubmit={handleFormSubmit}
@@ -950,15 +643,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               initialData={formInitialData}
               selectedVersion={selectedVersion}
               onEditHistory={handleEditHistory}
-            />
-          ) : (
-            <VersionDetailCard
-              version={selectedVersion}
-              onEdit={readonly ? undefined : handleCreateFromVersion} // 修改：编辑按钮使用从版本创建新版本
-              onEditHistory={readonly ? undefined : handleEditHistory} // 新增：历史记录编辑
-              onDelete={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
-              isLoading={isLoading}
-              readonly={readonly}
             />
           )}
         </Box>

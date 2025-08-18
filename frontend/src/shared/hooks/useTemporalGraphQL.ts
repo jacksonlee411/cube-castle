@@ -6,12 +6,12 @@ import { useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import temporalAPI from '../api/temporal-graphql-client';
+import { TemporalConverter } from '../utils/temporal-converter';
 import type { 
   TemporalQueryParams,
   TemporalOrganizationUnit,
   TimelineEvent
 } from '../types/temporal';
-import { TemporalConverter } from '../utils/temporal-converter';
 
 // 时态查询键生成器
 const TEMPORAL_QUERY_KEYS = {
@@ -295,8 +295,8 @@ export function useTemporalQueryUtils() {
       lastMonth: TemporalConverter.dateToDateString(
         TemporalConverter.dateToIso(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
       ),
-      yearStart: `${new Date().getFullYear()}-01-01`,
-      lastYearEnd: `${new Date().getFullYear() - 1}-12-31`,
+      yearStart: `${TemporalConverter.isoToDate(TemporalConverter.getCurrentISOString()).getFullYear()}-01-01`,
+      lastYearEnd: `${TemporalConverter.isoToDate(TemporalConverter.getCurrentISOString()).getFullYear() - 1}-12-31`,
     };
   }, []);
 

@@ -4,6 +4,7 @@
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { TemporalConverter } from '../utils/temporal-converter';
 
 // 组织详情API基础URL
 const TEMPORAL_API_BASE = 'http://localhost:9091/api/v1';
@@ -242,27 +243,27 @@ export class TemporalAPIError extends Error {
   }
 }
 
-// 导出常用日期格式化函数
+// 导出常用日期格式化函数 (统一使用TemporalConverter)
 export const TemporalDateUtils = {
-  today: () => new Date().toISOString().slice(0, 10),
+  today: () => TemporalConverter.getCurrentDateString(),
   yesterday: () => {
     const date = new Date();
     date.setDate(date.getDate() - 1);
-    return date.toISOString().slice(0, 10);
+    return TemporalConverter.dateToDateString(date);
   },
   nextWeek: () => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
-    return date.toISOString().slice(0, 10);
+    return TemporalConverter.dateToDateString(date);
   },
   startOfMonth: () => {
     const date = new Date();
     date.setDate(1);
-    return date.toISOString().slice(0, 10);
+    return TemporalConverter.dateToDateString(date);
   },
   endOfMonth: () => {
     const date = new Date();
     date.setMonth(date.getMonth() + 1, 0);
-    return date.toISOString().slice(0, 10);
+    return TemporalConverter.dateToDateString(date);
   },
 };
