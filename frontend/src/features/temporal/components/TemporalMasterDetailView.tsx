@@ -25,6 +25,7 @@ import { baseColors } from '../../../shared/utils/colorTokens';
 
 // Types
 export interface TemporalVersion {
+  record_id: string; // UUID唯一标识符
   code: string;
   name: string;
   unit_type: string;
@@ -250,6 +251,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
 interface VersionDetailCardProps {
   version: TemporalVersion | null;
   onEdit?: (version: TemporalVersion) => void;
+  onEditHistory?: (version: TemporalVersion) => void; // 新增：历史记录编辑
   onDelete?: (version: TemporalVersion) => void;
   isLoading?: boolean;
   readonly?: boolean;
@@ -258,6 +260,7 @@ interface VersionDetailCardProps {
 const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
   version,
   onEdit,
+  onEditHistory, // 新增参数
   onDelete,
   isLoading = false,
   readonly = false
@@ -361,7 +364,7 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
           {/* 智能操作按钮 */}
           {!readonly && (
             <Flex gap="s">
-              <Tooltip title={buttonState.edit === 'disabled' ? buttonState.tooltip : '编辑版本'}>
+              <Tooltip title={buttonState.edit === 'disabled' ? buttonState.tooltip : '基于此版本创建新版本'}>
                 <PrimaryButton
                   size="small"
                   disabled={buttonState.edit === 'disabled' || isLoading}
@@ -371,14 +374,25 @@ const VersionDetailCard: React.FC<VersionDetailCardProps> = ({
                 </PrimaryButton>
               </Tooltip>
               
-              <Tooltip title={buttonState.delete === 'disabled' ? buttonState.tooltip : '作废版本'}>
+              {/* 直接的历史记录修改按钮 */}
+              <Tooltip title="直接修改该条历史记录的内容和时间戳">
                 <SecondaryButton
+                  size="small"
+                  disabled={isLoading}
+                  onClick={() => onEditHistory?.(version)}
+                >
+                  修改历史记录
+                </SecondaryButton>
+              </Tooltip>
+              
+              <Tooltip title={buttonState.delete === 'disabled' ? buttonState.tooltip : '作废版本'}>
+                <TertiaryButton
                   size="small"
                   disabled={buttonState.delete === 'disabled' || isLoading}
                   onClick={() => onDelete?.(version)}
                 >
                   作废
-                </SecondaryButton>
+                </TertiaryButton>
               </Tooltip>
             </Flex>
           )}
@@ -553,7 +567,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 视图选项卡状态
-  const [activeTab, setActiveTab] = useState<'details' | 'new-version'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'new-version' | 'edit-history'>('details');
   
   // 表单模式状态 - 新增功能
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -563,6 +577,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     status: string;
     description?: string;
     parent_code?: string;
+    effective_date?: string; // 添加生效日期
   } | null>(null);
 
   // Modal model for delete confirmation
@@ -671,7 +686,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       unit_type: version.unit_type,
       status: version.status,
       description: version.description || '',
-      parent_code: version.parent_code || ''
+      parent_code: version.parent_code || '',
+      effective_date: version.effective_date // 添加生效日期绑定
     });
     setSelectedVersion(version);
     setActiveTab('new-version'); // 切换到新增版本选项卡
@@ -689,7 +705,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         unit_type: version.unit_type,
         status: version.status,
         description: version.description || '',
-        parent_code: version.parent_code || ''
+        parent_code: version.parent_code || '',
+        effective_date: version.effective_date // 添加生效日期绑定
       });
     }
   }, [activeTab]);
@@ -749,6 +766,69 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       setSelectedVersion(null);
     }
   }, [isSubmitting]);
+
+  // 历史记录编辑相关函数
+  const handleEditHistory = useCallback((version: TemporalVersion) => {
+    setFormMode('edit');
+    setFormInitialData({
+      name: version.name,
+      unit_type: version.unit_type,
+      status: version.status,
+      description: version.description || '',
+      parent_code: version.parent_code || '',
+      effective_date: version.effective_date
+    });
+    setSelectedVersion(version);
+    setActiveTab('edit-history'); // 切换到历史记录编辑选项卡
+  }, []);
+
+  const handleHistoryEditClose = useCallback(() => {
+    if (!isSubmitting) {
+      setActiveTab('details'); // 取消时切换回详情选项卡
+      setFormMode('create');
+      setFormInitialData(null);
+      // 保持selectedVersion，以便返回详情页面
+    }
+  }, [isSubmitting]);
+
+  const handleHistoryEditSubmit = useCallback(async (updateData: any) => {
+    setIsSubmitting(true);
+    try {
+      // 使用record_id UUID作为唯一标识符
+      const response = await fetch(
+        `http://localhost:9091/api/v1/organization-units/history/${updateData.record_id}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: updateData.name,
+            unit_type: updateData.unit_type,
+            status: updateData.status,
+            description: updateData.description,
+            effective_date: updateData.effective_date,
+            parent_code: updateData.parent_code,
+            change_reason: '通过组织详情页面修改历史记录'
+          })
+        }
+      );
+      
+      if (response.ok) {
+        // 刷新数据
+        await loadVersions();
+        setActiveTab('details'); // 提交成功后切换回详情选项卡
+        alert('历史记录修改成功！');
+      } else {
+        const errorData = await response.json();
+        console.error('修改失败:', errorData);
+        alert(`修改失败: ${errorData.message || response.statusText}`);
+      }
+    } catch (error) {
+      console.error('修改历史记录失败:', error);
+      alert('修改失败，请检查网络连接');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [organizationCode, loadVersions]);
 
   // 组件挂载时加载数据
   useEffect(() => {
@@ -819,12 +899,13 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           {activeTab === 'details' ? (
             <VersionDetailCard
               version={selectedVersion}
-              onEdit={readonly ? undefined : handleEditVersion}
+              onEdit={readonly ? undefined : handleCreateFromVersion} // 修改：编辑按钮使用从版本创建新版本
+              onEditHistory={readonly ? undefined : handleEditHistory} // 新增：历史记录编辑
               onDelete={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
               isLoading={isLoading}
               readonly={readonly}
             />
-          ) : (
+          ) : activeTab === 'new-version' ? (
             <InlineNewVersionForm
               organizationCode={organizationCode}
               onSubmit={handleFormSubmit}
@@ -832,6 +913,20 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               isSubmitting={isSubmitting}
               mode={formMode}
               initialData={formInitialData}
+              selectedVersion={selectedVersion}
+              onEditHistory={handleEditHistory}
+            />
+          ) : (
+            // 历史记录编辑模式
+            <InlineNewVersionForm
+              organizationCode={organizationCode}
+              onSubmit={handleFormSubmit} // 先使用现有的函数，稍后更新
+              onCancel={handleHistoryEditClose}
+              isSubmitting={isSubmitting}
+              mode="edit-history"
+              initialData={formInitialData}
+              selectedVersion={selectedVersion}
+              onEditHistory={handleHistoryEditSubmit}
             />
           )}
         </Box>

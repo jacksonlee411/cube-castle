@@ -18,14 +18,29 @@ export interface InlineNewVersionFormProps {
   onSubmit: (data: TemporalEditFormData) => Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
-  mode?: 'create' | 'edit';
+  mode?: 'create' | 'edit' | 'edit-history'; // 添加历史记录编辑模式
   initialData?: {
     name: string;
     unit_type: string;
     status: string;
     description?: string;
     parent_code?: string;
+    effective_date?: string;
   };
+  // 新增历史记录编辑相关props
+  selectedVersion?: {
+    record_id: string; // UUID唯一标识符
+    created_at: string;
+    updated_at: string;
+    code: string;
+    name: string;
+    unit_type: string;
+    status: string;
+    effective_date: string;
+    description?: string;
+    parent_code?: string;
+  } | null;
+  onEditHistory?: (versionData: any) => Promise<void>;
 }
 
 const unitTypeOptions = [
@@ -48,7 +63,9 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   onCancel,
   isSubmitting = false,
   mode = 'create',
-  initialData
+  initialData,
+  selectedVersion,
+  onEditHistory
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
@@ -60,22 +77,34 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // 历史记录编辑相关状态
+  const [isEditingHistory, setIsEditingHistory] = useState(false);
+  const [originalHistoryData, setOriginalHistoryData] = useState<any>(null);
 
-  // 初始化表单数据 - 支持预填充模式
+  // 初始化表单数据 - 支持预填充模式和历史记录编辑
   useEffect(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    if (mode === 'edit' && initialData) {
-      // 编辑模式 - 使用传入的初始数据预填充表单
+    if ((mode === 'edit' || mode === 'edit-history') && initialData) {
+      // 编辑模式 - 使用传入的初始数据预填充表单，包括原始生效日期
       setFormData({
         name: initialData.name,
         unit_type: initialData.unit_type,
         status: initialData.status,
         description: initialData.description || '',
-        effective_date: tomorrow.toISOString().split('T')[0], // 生效日期仍然默认明天
+        effective_date: initialData.effective_date 
+          ? new Date(initialData.effective_date).toISOString().split('T')[0] 
+          : tomorrow.toISOString().split('T')[0], // 如果没有提供生效日期，使用明天
         parent_code: initialData.parent_code || ''
       });
+      
+      // 如果是历史记录编辑模式，保存原始数据
+      if (mode === 'edit-history' && selectedVersion) {
+        setOriginalHistoryData(selectedVersion);
+        setIsEditingHistory(false); // 初始时为只读模式
+      }
     } else {
       // 新增模式 - 使用默认值
       setFormData({
@@ -88,7 +117,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       });
     }
     setErrors({});
-  }, [mode, initialData]);
+  }, [mode, initialData, selectedVersion]);
 
   const handleInputChange = (field: keyof TemporalEditFormData) => (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -125,6 +154,52 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // 历史记录编辑相关处理函数
+  const handleEditHistoryToggle = () => {
+    setIsEditingHistory(!isEditingHistory);
+  };
+
+  const handleEditHistorySubmit = async () => {
+    if (!validateForm() || !onEditHistory || !originalHistoryData) {
+      return;
+    }
+
+    try {
+      // 构建更新数据，包含ID和更新时间戳
+      const updateData = {
+        ...originalHistoryData,
+        name: formData.name,
+        unit_type: formData.unit_type,
+        status: formData.status,
+        description: formData.description,
+        effective_date: formData.effective_date,
+        parent_code: formData.parent_code,
+        updated_at: new Date().toISOString()
+      };
+      
+      await onEditHistory(updateData);
+      setIsEditingHistory(false); // 提交后回到只读模式
+    } catch (error) {
+      console.error('修改历史记录失败:', error);
+    }
+  };
+
+  const handleCancelEditHistory = () => {
+    // 恢复原始数据
+    if (originalHistoryData) {
+      setFormData({
+        name: originalHistoryData.name,
+        unit_type: originalHistoryData.unit_type,
+        status: originalHistoryData.status,
+        description: originalHistoryData.description || '',
+        effective_date: new Date(originalHistoryData.effective_date).toISOString().split('T')[0],
+        parent_code: originalHistoryData.parent_code || ''
+      });
+    }
+    setIsEditingHistory(false);
+    setErrors({});
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
@@ -146,12 +221,16 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
         <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
           <Box>
             <Heading size="medium" marginBottom="s">
-              {mode === 'edit' ? '编辑组织信息' : '组织信息详情'}
+              {mode === 'edit-history' 
+                ? (isEditingHistory ? '编辑历史记录' : '查看历史记录')
+                : mode === 'edit' ? '编辑组织信息' : '组织信息详情'}
             </Heading>
             <Text typeLevel="subtext.medium" color="hint">
-              {mode === 'edit' 
-                ? `基于现有版本编辑组织 ${organizationCode} 的信息` 
-                : `为组织 ${organizationCode} 编辑组织信息`}
+              {mode === 'edit-history' 
+                ? `${isEditingHistory ? '修改' : '查看'}组织 ${organizationCode} 的历史记录信息`
+                : mode === 'edit' 
+                  ? `基于现有版本编辑组织 ${organizationCode} 的信息` 
+                  : `为组织 ${organizationCode} 编辑组织信息`}
             </Text>
           </Box>
           
@@ -162,7 +241,9 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             borderRadius={borderRadius.m}
           >
             <Text typeLevel="subtext.small" color={colors.licorice700}>
-              详情 {mode === 'edit' ? '编辑模式' : '新增模式'}
+              {mode === 'edit-history' 
+                ? (isEditingHistory ? '历史记录 编辑中' : '历史记录 只读')
+                : `详情 ${mode === 'edit' ? '编辑模式' : '新增模式'}`}
             </Text>
           </Box>
         </Flex>
@@ -176,11 +257,62 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
           border={`1px solid ${colors.blueberry200}`}
         >
           <Text typeLevel="subtext.medium" color={colors.blueberry700}>
-            提示 <strong>提示:</strong> {mode === 'edit' 
-              ? '编辑模式将基于选中的历史版本创建新的版本，在指定生效日期自动生效。左侧时间轴显示了该版本的历史信息。'
-              : '新增版本将在指定生效日期自动生效，请确保填写准确的组织信息和变更原因。左侧时间轴将保持可见，便于参考历史版本信息。'}
+            提示 <strong>提示:</strong> {mode === 'edit-history' 
+              ? (isEditingHistory 
+                  ? '您正在编辑历史记录，修改将直接更新该条记录的数据和时间戳。'
+                  : '点击"修改历史记录"按钮可以编辑此条历史记录的内容。')
+              : mode === 'edit' 
+                ? '编辑模式将基于选中的历史版本创建新的版本，在指定生效日期自动生效。左侧时间轴显示了该版本的历史信息。'
+                : '新增版本将在指定生效日期自动生效，请确保填写准确的组织信息和变更原因。左侧时间轴将保持可见，便于参考历史版本信息。'}
           </Text>
         </Box>
+
+        {/* 历史记录元数据显示 */}
+        {mode === 'edit-history' && originalHistoryData && (
+          <Box
+            marginBottom="l"
+            padding="m"
+            backgroundColor={colors.soap100}
+            borderRadius={borderRadius.m}
+            border={`1px solid ${colors.soap300}`}
+          >
+            <Heading size="small" marginBottom="s" color={colors.licorice600}>
+              记录信息
+            </Heading>
+            <Box
+              cs={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                gap: "12px"
+              }}
+            >
+              <Box>
+                <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
+                  记录UUID:
+                </Text>
+                <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700} style={{fontFamily: 'monospace'}}>
+                  {originalHistoryData.record_id}
+                </Text>
+              </Box>
+              <Box>
+                <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
+                  创建时间:
+                </Text>
+                <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
+                  {new Date(originalHistoryData.created_at).toLocaleString('zh-CN')}
+                </Text>
+              </Box>
+              <Box>
+                <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
+                  最后更新:
+                </Text>
+                <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
+                  {new Date(originalHistoryData.updated_at).toLocaleString('zh-CN')}
+                </Text>
+              </Box>
+            </Box>
+          </Box>
+        )}
 
         <form onSubmit={handleSubmit}>
           {/* 生效日期 - 最重要的信息放在最上方 */}
@@ -197,7 +329,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     type="date"
                     value={formData.effective_date}
                     onChange={handleInputChange('effective_date')}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                   />
                 </FormField.Field>
               </FormField>
@@ -218,7 +350,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     value={formData.name}
                     onChange={handleInputChange('name')}
                     placeholder="请输入组织名称"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                   />
                 </FormField.Field>
               </FormField>
@@ -230,7 +362,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     value={formData.parent_code || ''}
                     onChange={handleInputChange('parent_code')}
                     placeholder="请输入上级组织编码（可选）"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                   />
                 </FormField.Field>
               </FormField>
@@ -241,13 +373,14 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                   <select
                     value={formData.unit_type}
                     onChange={handleInputChange('unit_type')}
+                    disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
                       border: `1px solid ${colors.soap400}`,
                       borderRadius: borderRadius.m,
                       fontSize: '14px',
-                      backgroundColor: 'white'
+                      backgroundColor: (isSubmitting || (mode === 'edit-history' && !isEditingHistory)) ? '#f5f5f5' : 'white'
                     }}
                   >
                     {unitTypeOptions.map(option => (
@@ -265,13 +398,14 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                   <select
                     value={formData.status}
                     onChange={handleInputChange('status')}
+                    disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
                       border: `1px solid ${colors.soap400}`,
                       borderRadius: borderRadius.m,
                       fontSize: '14px',
-                      backgroundColor: 'white'
+                      backgroundColor: (isSubmitting || (mode === 'edit-history' && !isEditingHistory)) ? '#f5f5f5' : 'white'
                     }}
                   >
                     {statusOptions.map(option => (
@@ -290,7 +424,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     value={formData.description}
                     onChange={handleInputChange('description')}
                     placeholder="请输入组织描述信息"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                     rows={3}
                   />
                 </FormField.Field>
@@ -304,22 +438,62 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             paddingTop="l"
             borderTop={`1px solid ${colors.soap300}`}
           >
-            <Flex gap="s" justifyContent="flex-end">
-              <SecondaryButton 
-                onClick={onCancel}
-                disabled={isSubmitting}
-              >
-                取消
-              </SecondaryButton>
-              <PrimaryButton 
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting 
-                  ? (mode === 'edit' ? '创建中...' : '创建中...') 
-                  : (mode === 'edit' ? '基于此版本创建' : '创建新版本')}
-              </PrimaryButton>
-            </Flex>
+            {mode === 'edit-history' ? (
+              // 历史记录编辑模式的按钮
+              <Flex gap="s" justifyContent="flex-end">
+                {!isEditingHistory ? (
+                  // 只读模式的按钮
+                  <>
+                    <SecondaryButton 
+                      onClick={onCancel}
+                      disabled={isSubmitting}
+                    >
+                      关闭
+                    </SecondaryButton>
+                    <PrimaryButton 
+                      onClick={handleEditHistoryToggle}
+                      disabled={isSubmitting}
+                    >
+                      修改历史记录
+                    </PrimaryButton>
+                  </>
+                ) : (
+                  // 编辑模式的按钮
+                  <>
+                    <SecondaryButton 
+                      onClick={handleCancelEditHistory}
+                      disabled={isSubmitting}
+                    >
+                      取消编辑
+                    </SecondaryButton>
+                    <PrimaryButton 
+                      onClick={handleEditHistorySubmit}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? '提交中...' : '提交修改'}
+                    </PrimaryButton>
+                  </>
+                )}
+              </Flex>
+            ) : (
+              // 原有的新增/编辑版本模式的按钮
+              <Flex gap="s" justifyContent="flex-end">
+                <SecondaryButton 
+                  onClick={onCancel}
+                  disabled={isSubmitting}
+                >
+                  取消
+                </SecondaryButton>
+                <PrimaryButton 
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting 
+                    ? (mode === 'edit' ? '创建中...' : '创建中...') 
+                    : (mode === 'edit' ? '基于此版本创建' : '创建新版本')}
+                </PrimaryButton>
+              </Flex>
+            )}
           </Box>
         </form>
       </Card>
