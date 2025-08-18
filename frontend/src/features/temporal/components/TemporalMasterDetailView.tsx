@@ -19,14 +19,31 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { plusIcon } from '@workday/canvas-system-icons-web';
 import { baseColors } from '../../../shared/utils/colorTokens';
+import { 
+  LifecycleStatusBadge, 
+  LIFECYCLE_STATES 
+} from './FiveStateStatusSelector';
 
-// Types
+// 状态映射函数：将后端状态映射到前端五状态生命周期管理系统
+const mapBackendStatusToLifecycleStatus = (backendStatus: string, isCurrent: boolean): 'CURRENT' | 'HISTORICAL' | 'PLANNED' => {
+  // 根据后端状态和is_current标志确定生命周期状态
+  if (backendStatus === 'PLANNED') {
+    return 'PLANNED';
+  } else if (backendStatus === 'ACTIVE' && isCurrent) {
+    return 'CURRENT';
+  } else {
+    // INACTIVE 或 非当前的 ACTIVE 都被视为历史记录
+    return 'HISTORICAL';
+  }
+};
+
+// Types - 五状态生命周期管理系统
 export interface TemporalVersion {
   record_id: string; // UUID唯一标识符
   code: string;
   name: string;
   unit_type: string;
-  status: string;
+  status: string; // 组织状态：ACTIVE, INACTIVE, PLANNED
   effective_date: string;
   end_date?: string | null;
   change_reason?: string;
@@ -38,6 +55,17 @@ export interface TemporalVersion {
   path: string;
   parent_code?: string;
   sort_order: number;
+  
+  // 五状态生命周期管理字段
+  lifecycle_status: 'CURRENT' | 'HISTORICAL' | 'PLANNED'; // 生命周期状态
+  business_status: 'ACTIVE' | 'SUSPENDED'; // 业务状态
+  data_status: 'NORMAL' | 'DELETED'; // 数据状态
+  suspended_at?: string | null; // 停用时间
+  suspended_by?: string | null; // 停用者
+  suspension_reason?: string | null; // 停用原因
+  deleted_at?: string | null; // 删除时间
+  deleted_by?: string | null; // 删除者
+  deletion_reason?: string | null; // 删除原因
 }
 
 export interface TemporalMasterDetailViewProps {
@@ -65,75 +93,64 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
   isLoading,
   readonly = false
 }) => {
-  // 获取版本状态指示器
+  // 获取版本状态指示器 - 基于五状态生命周期管理系统
   const getVersionStatusIndicator = (version: TemporalVersion) => {
-    const today = new Date();
-    const effectiveDate = new Date(version.effective_date);
-    const endDate = version.end_date ? new Date(version.end_date) : null;
-    
-    // 1. 当前生效的版本
-    if (version.is_current) {
+    // 1. 软删除状态（优先级最高）
+    if (version.data_status === 'DELETED') {
       return { 
-        color: colors.greenApple500, 
-        dotColor: colors.greenApple500, 
-        label: '生效中',
-        isDeactivated: false
+        color: colors.cinnamon600, 
+        dotColor: colors.cinnamon600, 
+        label: '已删除',
+        isDeactivated: true,
+        badge: 'DELETED' as const
       };
-    } 
+    }
     
-    // 2. 未来计划的版本
-    else if (effectiveDate > today) {
-      return { 
-        color: colors.blueberry600, 
-        dotColor: 'white', 
-        label: '计划中',
-        isDeactivated: false
-      };
-    } 
-    
-    // 3. 已停用的版本（组织状态为INACTIVE）
-    else if (version.status === 'INACTIVE') {
+    // 2. 业务停用状态
+    if (version.business_status === 'SUSPENDED') {
       return { 
         color: colors.cantaloupe600, 
         dotColor: colors.cantaloupe600, 
         label: '已停用',
-        isDeactivated: false
+        isDeactivated: false,
+        badge: 'SUSPENDED' as const
       };
     }
     
-    // 4. 自然结束的版本（有明确的end_date且已过期）
-    else if (endDate && endDate < today) {
-      return { 
-        color: colors.licorice400, 
-        dotColor: colors.licorice400, 
-        label: '已结束',
-        isDeactivated: false
-      };
-    } 
-    
-    // 5. 已作废的版本（通过作废操作删除，通常通过change_reason识别）
-    else {
-      // 检查是否为作废操作
-      const isDeactivated = version.change_reason?.includes('作废') || 
-                           version.change_reason?.includes('DEACTIVATE') ||
-                           (!endDate && !version.is_current && effectiveDate <= today);
-      
-      if (isDeactivated) {
+    // 3. 生命周期状态
+    switch (version.lifecycle_status) {
+      case 'CURRENT':
         return { 
-          color: colors.cinnamon600, 
-          dotColor: colors.cinnamon600, 
-          label: '已作废',
-          isDeactivated: true
+          color: colors.greenApple500, 
+          dotColor: colors.greenApple500, 
+          label: '生效中',
+          isDeactivated: false,
+          badge: 'CURRENT' as const
         };
-      } else {
-        // 默认已结束状态
+      case 'PLANNED':
+        return { 
+          color: colors.blueberry600, 
+          dotColor: 'white', 
+          label: '计划中',
+          isDeactivated: false,
+          badge: 'PLANNED' as const
+        };
+      case 'HISTORICAL':
         return { 
           color: colors.licorice400, 
           dotColor: colors.licorice400, 
-          label: '已结束',
-          isDeactivated: false
+          label: '历史记录',
+          isDeactivated: false,
+          badge: 'HISTORICAL' as const
         };
-      }
+      default:
+        return { 
+          color: colors.licorice400, 
+          dotColor: colors.licorice400, 
+          label: '未知状态',
+          isDeactivated: false,
+          badge: 'HISTORICAL' as const
+        };
     }
   };
 
@@ -141,10 +158,35 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
     return new Date(dateStr).toLocaleDateString('zh-CN');
   };
 
-  const formatDateRange = (startDate: string, endDate?: string | null) => {
-    const start = formatDate(startDate);
-    if (!endDate) return `${start} ~ 至今`;
-    return `${start} ~ ${formatDate(endDate)}`;
+  const formatDateRange = (version: TemporalVersion, allVersions: TemporalVersion[]) => {
+    const start = formatDate(version.effective_date);
+    
+    // 根据时态管理规则计算结束日期
+    if (version.end_date) {
+      // 如果有明确的结束日期，使用它
+      return `${start} ~ ${formatDate(version.end_date)}`;
+    }
+    
+    // 找到下一个生效日期更晚的版本
+    const nextVersion = allVersions
+      .filter(v => new Date(v.effective_date) > new Date(version.effective_date))
+      .sort((a, b) => new Date(a.effective_date).getTime() - new Date(b.effective_date).getTime())[0];
+    
+    if (nextVersion) {
+      // 如果有下一个版本，当前版本的结束日期是下一个版本生效日期的前一天
+      const nextDate = new Date(nextVersion.effective_date);
+      nextDate.setDate(nextDate.getDate() - 1);
+      return `${start} ~ ${formatDate(nextDate.toISOString().split('T')[0])}`;
+    }
+    
+    // 如果没有下一个版本，根据生命周期状态决定显示内容
+    if (version.lifecycle_status === 'PLANNED') {
+      // 计划中的记录显示"未来"
+      return `${start} ~ 未来`;
+    } else {
+      // 当前记录或历史记录显示"至今"
+      return `${start} ~ 至今`;
+    }
   };
 
   return (
@@ -237,16 +279,25 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                           {formatDate(version.effective_date)}
                         </Text>
                         
-                        {/* 状态标识 */}
-                        <Text 
-                          typeLevel="subtext.medium" 
-                          color={statusInfo.color}
-                          fontWeight="medium"
-                          marginLeft="m"
-                        >
-                          {statusInfo.label}
-                        </Text>
+                        {/* 五状态生命周期标识 */}
+                        <LifecycleStatusBadge 
+                          status={statusInfo.badge} 
+                          size="small"
+                        />
                       </Flex>
+                    </Box>
+                    
+                    {/* 组织名称 */}
+                    <Box marginBottom="xs">
+                      <Text 
+                        typeLevel="body.small" 
+                        fontWeight="medium"
+                        style={{
+                          textDecoration: statusInfo.isDeactivated ? 'line-through' : 'none'
+                        }}
+                      >
+                        {version.name}
+                      </Text>
                     </Box>
 
 
@@ -257,7 +308,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                         有效期间：
                       </Text>
                       <Text typeLevel="subtext.small" color="hint" marginLeft="xs">
-                        {formatDateRange(version.effective_date, version.end_date)}
+                        {formatDateRange(version, versions)}
                       </Text>
                     </Box>
                   </Card>
@@ -336,7 +387,17 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       
       if (response.ok) {
         const data = await response.json();
-        const sortedVersions = data.organizations.sort((a: TemporalVersion, b: TemporalVersion) => 
+        
+        // 映射后端状态到前端五状态生命周期管理系统
+        const mappedVersions = data.organizations.map((version: any) => ({
+          ...version,
+          // 添加五状态生命周期字段映射
+          lifecycle_status: mapBackendStatusToLifecycleStatus(version.status, version.is_current),
+          business_status: version.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
+          data_status: 'NORMAL' // 默认为正常状态，除非后端明确标记为删除
+        }));
+        
+        const sortedVersions = mappedVersions.sort((a: TemporalVersion, b: TemporalVersion) => 
           new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()
         );
         setVersions(sortedVersions);

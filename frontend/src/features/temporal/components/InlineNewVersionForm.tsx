@@ -13,6 +13,7 @@ import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { colors, borderRadius } from '@workday/canvas-kit-react/tokens';
 import { type TemporalEditFormData } from './TemporalEditForm';
+import { FiveStateStatusSelector, LIFECYCLE_STATES, type LifecycleStatus } from './FiveStateStatusSelector';
 
 export interface InlineNewVersionFormProps {
   organizationCode: string;
@@ -24,6 +25,7 @@ export interface InlineNewVersionFormProps {
     name: string;
     unit_type: string;
     status: string;
+    lifecycle_status?: string;
     description?: string;
     parent_code?: string;
     effective_date?: string;
@@ -52,12 +54,6 @@ const unitTypeOptions = [
   { label: '项目团队', value: 'PROJECT_TEAM' },
 ];
 
-const statusOptions = [
-  { label: '启用', value: 'ACTIVE' },
-  { label: '计划中', value: 'PLANNED' },
-  { label: '停用', value: 'INACTIVE' },
-];
-
 
 export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   organizationCode,
@@ -73,7 +69,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
     unit_type: 'DEPARTMENT',
-    status: 'PLANNED',
+    lifecycle_status: 'PLANNED',
     description: '',
     effective_date: new Date().toISOString().split('T')[0], // 默认今天
     parent_code: ''
@@ -111,7 +107,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setFormData({
         name: initialData.name,
         unit_type: initialData.unit_type,
-        status: initialData.status,
+        lifecycle_status: initialData.lifecycle_status || 'PLANNED',
         description: initialData.description || '',
         effective_date: initialData.effective_date 
           ? new Date(initialData.effective_date).toISOString().split('T')[0] 
@@ -129,7 +125,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setFormData({
         name: '',
         unit_type: 'DEPARTMENT',
-        status: 'PLANNED',
+        lifecycle_status: 'PLANNED',
         description: '',
         effective_date: tomorrow.toISOString().split('T')[0], // 默认明天生效
         parent_code: ''
@@ -189,7 +185,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
         ...originalHistoryData,
         name: formData.name,
         unit_type: formData.unit_type,
-        status: formData.status,
+        status: formData.lifecycle_status,
         description: formData.description,
         effective_date: formData.effective_date,
         parent_code: formData.parent_code,
@@ -209,7 +205,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setFormData({
         name: originalHistoryData.name,
         unit_type: originalHistoryData.unit_type,
-        status: originalHistoryData.status,
+        lifecycle_status: originalHistoryData.status || 'PLANNED',
         description: originalHistoryData.description || '',
         effective_date: new Date(originalHistoryData.effective_date).toISOString().split('T')[0],
         parent_code: originalHistoryData.parent_code || ''
@@ -361,30 +357,21 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 </FormField.Field>
               </FormField>
 
-              <FormField>
-                <FormField.Label>组织状态 *</FormField.Label>
-                <FormField.Field>
-                  <select
-                    value={formData.status}
-                    onChange={handleInputChange('status')}
-                    disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: `1px solid ${colors.soap400}`,
-                      borderRadius: borderRadius.m,
-                      fontSize: '14px',
-                      backgroundColor: (isSubmitting || (mode === 'edit-history' && !isEditingHistory)) ? '#f5f5f5' : 'white'
-                    }}
-                  >
-                    {statusOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </FormField.Field>
-              </FormField>
+              <FiveStateStatusSelector
+                value={formData.lifecycle_status}
+                onChange={(status: LifecycleStatus) => {
+                  setFormData(prev => ({ ...prev, lifecycle_status: status.key }));
+                  // 清除错误
+                  if (errors.lifecycle_status) {
+                    setErrors(prev => ({ ...prev, lifecycle_status: '' }));
+                  }
+                }}
+                disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
+                includeDeleted={false}
+                label="组织状态"
+                required={true}
+                error={errors.lifecycle_status}
+              />
 
               <FormField>
                 <FormField.Label>描述信息</FormField.Label>

@@ -10,21 +10,24 @@ import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
+import { FiveStateStatusSelector, LIFECYCLE_STATES, type LifecycleStatus } from './FiveStateStatusSelector';
 
 export interface TemporalEditFormData {
   name: string;
   unit_type: string;
-  status: string;
+  lifecycle_status: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
   description?: string;
   effective_date: string;
   parent_code?: string;
+  change_reason?: string;
+  event_type?: string;
 }
 
 export interface TemporalVersion {
   code: string;
   name: string;
   unit_type: string;
-  status: string;
+  lifecycle_status: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
   description?: string;
   effective_date: string;
   change_reason?: string;
@@ -47,12 +50,6 @@ const unitTypeOptions = [
   { label: '项目团队', value: 'PROJECT_TEAM' },
 ];
 
-const statusOptions = [
-  { label: '启用', value: 'ACTIVE' },
-  { label: '计划中', value: 'PLANNED' },
-  { label: '停用', value: 'INACTIVE' },
-];
-
 const eventTypeOptions = [
   { label: '更新', value: 'UPDATE' },
   { label: '重组', value: 'RESTRUCTURE' },
@@ -71,7 +68,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
     unit_type: 'DEPARTMENT',
-    status: 'PLANNED',
+    lifecycle_status: 'PLANNED',
     description: '',
     effective_date: new Date().toISOString().split('T')[0], // 默认今天
     change_reason: '',
@@ -99,7 +96,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
         setFormData({
           name: initialData.name,
           unit_type: initialData.unit_type,
-          status: initialData.status,
+          lifecycle_status: initialData.lifecycle_status,
           description: initialData.description || '',
           effective_date: new Date(initialData.effective_date).toISOString().split('T')[0],
           change_reason: initialData.change_reason || '',
@@ -112,7 +109,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
         setFormData({
           name: '',
           unit_type: 'DEPARTMENT',
-          status: 'PLANNED',
+          lifecycle_status: 'PLANNED',
           description: '',
           effective_date: tomorrow.toISOString().split('T')[0], // 默认明天生效
           change_reason: '',
@@ -244,23 +241,21 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
               </FormField.Field>
             </FormField>
 
-            <FormField isRequired>
-              <FormField.Label>组织状态</FormField.Label>
-              <FormField.Field>
-                <select
-                  value={formData.status}
-                  onChange={handleInputChange('status')}
-                  disabled={isSubmitting}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                >
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </FormField.Field>
-            </FormField>
+            <FiveStateStatusSelector
+              value={formData.lifecycle_status}
+              onChange={(status: LifecycleStatus) => {
+                setFormData(prev => ({ ...prev, lifecycle_status: status.key }));
+                // 清除错误
+                if (errors.lifecycle_status) {
+                  setErrors(prev => ({ ...prev, lifecycle_status: '' }));
+                }
+              }}
+              disabled={isSubmitting}
+              includeDeleted={false}
+              label="组织状态"
+              required={true}
+              error={errors.lifecycle_status}
+            />
 
             <FormField>
               <FormField.Label>描述信息</FormField.Label>
