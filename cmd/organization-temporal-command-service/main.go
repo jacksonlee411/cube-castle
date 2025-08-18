@@ -35,6 +35,7 @@ var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 // ===== 简化的时态业务实体（移除版本字段） =====
 
 type Organization struct {
+	RecordID    string    `json:"record_id" db:"record_id"` // UUID唯一标识符
 	TenantID    string    `json:"tenant_id" db:"tenant_id"`
 	Code        string    `json:"code" db:"code"`
 	ParentCode  *string   `json:"parent_code,omitempty" db:"parent_code"`
@@ -192,7 +193,7 @@ func (r *TemporalOrganizationRepository) GetByCodeTemporal(ctx context.Context, 
 
 	// 构建查询（按日期排序）- 使用COALESCE处理NULL值，优化扫描性能
 	query := fmt.Sprintf(`
-		SELECT tenant_id, code, 
+		SELECT record_id, tenant_id, code, 
 		       COALESCE(parent_code, '') as parent_code,
 		       name, unit_type, status, level, path, sort_order,
 		       COALESCE(description, '') as description,
@@ -233,7 +234,7 @@ func (r *TemporalOrganizationRepository) GetByCodeTemporal(ctx context.Context, 
 		var effectiveDate time.Time
 
 		err := rows.Scan(
-			&org.TenantID, &org.Code, &parentCode, &org.Name,
+			&org.RecordID, &org.TenantID, &org.Code, &parentCode, &org.Name,
 			&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
 			&org.Description, &org.CreatedAt, &org.UpdatedAt,
 			&effectiveDate, &endDate, &changeReason, &isCurrent,
@@ -785,7 +786,7 @@ func (h *TemporalOrganizationHandler) handleRESTRUCTUREEvent(ctx context.Context
 // 获取当前记录
 func (h *TemporalOrganizationHandler) getCurrentRecord(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*Organization, error) {
 	query := `
-		SELECT tenant_id, code, parent_code, name, unit_type, status,
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
 		       level, path, sort_order, description, created_at, updated_at,
 		       effective_date, end_date, change_reason, is_current
 		FROM organization_units 
@@ -798,7 +799,7 @@ func (h *TemporalOrganizationHandler) getCurrentRecord(ctx context.Context, tx *
 	var effectiveDate sql.NullTime
 
 	err := tx.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
-		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
 		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&effectiveDate, &endDate, &changeReason, &isCurrent,
@@ -873,6 +874,194 @@ func (h *TemporalOrganizationHandler) calculateHierarchy(ctx context.Context, tx
 	return currentLevel, currentPath, nil
 }
 
+// 历史记录更新请求结构
+type UpdateHistoryRecordRequest struct {
+	Name           string  `json:"name"`
+	UnitType       string  `json:"unit_type"`
+	Status         string  `json:"status"`
+	Description    string  `json:"description"`
+	EffectiveDate  string  `json:"effective_date"`
+	ParentCode     *string `json:"parent_code,omitempty"`
+	ChangeReason   string  `json:"change_reason"`
+}
+
+// 历史记录直接更新处理器
+func (h *TemporalOrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http.Request) {
+	recordID := chi.URLParam(r, "record_id")
+	if recordID == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_RECORD_ID", "缺少记录ID", nil)
+		return
+	}
+
+	var req UpdateHistoryRecordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
+		return
+	}
+
+	// 验证必填字段
+	if req.Name == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_NAME", "组织名称是必填项", nil)
+		return
+	}
+	if req.UnitType == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_UNIT_TYPE", "组织类型是必填项", nil)
+		return
+	}
+	if req.Status == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_STATUS", "组织状态是必填项", nil)
+		return
+	}
+
+	tenantID := h.getTenantID(r)
+
+	// 解析生效日期
+	var effectiveDate time.Time
+	var err error
+	if req.EffectiveDate != "" {
+		effectiveDate, err = time.Parse("2006-01-02", req.EffectiveDate)
+		if err != nil {
+			h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_EFFECTIVE_DATE", "生效日期格式无效", err)
+			return
+		}
+	}
+
+	// 开始事务
+	tx, err := h.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusInternalServerError, "TRANSACTION_ERROR", "开始事务失败", err)
+		return
+	}
+	defer tx.Rollback()
+
+	// 首先检查记录是否存在
+	var existingOrg Organization
+	checkQuery := `
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
+		       level, path, sort_order, description, created_at, updated_at,
+		       effective_date, end_date, change_reason, is_current
+		FROM organization_units 
+		WHERE record_id = $1 AND tenant_id = $2
+	`
+
+	var changeReason, endDate sql.NullString
+	var isCurrent sql.NullBool
+	var effectiveDateDB sql.NullTime
+
+	err = tx.QueryRowContext(r.Context(), checkQuery, recordID, tenantID.String()).Scan(
+		&existingOrg.RecordID, &existingOrg.TenantID, &existingOrg.Code, &existingOrg.ParentCode, &existingOrg.Name,
+		&existingOrg.UnitType, &existingOrg.Status, &existingOrg.Level, &existingOrg.Path, &existingOrg.SortOrder,
+		&existingOrg.Description, &existingOrg.CreatedAt, &existingOrg.UpdatedAt,
+		&effectiveDateDB, &endDate, &changeReason, &isCurrent,
+	)
+
+	if err == sql.ErrNoRows {
+		h.writeErrorResponse(w, http.StatusNotFound, "NOT_FOUND", "未找到指定的历史记录", nil)
+		return
+	} else if err != nil {
+		h.writeErrorResponse(w, http.StatusInternalServerError, "QUERY_ERROR", "查询记录失败", err)
+		return
+	}
+
+	// 处理NULL值
+	if effectiveDateDB.Valid {
+		existingOrg.EffectiveDate = &effectiveDateDB.Time
+	}
+	if endDate.Valid {
+		t, _ := time.Parse("2006-01-02", endDate.String)
+		existingOrg.EndDate = &t
+	}
+	if changeReason.Valid {
+		existingOrg.ChangeReason = &changeReason.String
+	}
+	if isCurrent.Valid {
+		existingOrg.IsCurrent = &isCurrent.Bool
+	}
+
+	// 构建更新语句
+	updateQuery := `
+		UPDATE organization_units 
+		SET name = $1, unit_type = $2, status = $3, description = $4, 
+		    parent_code = $5, effective_date = $6, change_reason = $7, updated_at = NOW()
+		WHERE record_id = $8 AND tenant_id = $9
+	`
+
+	// 执行更新
+	result, err := tx.ExecContext(r.Context(), updateQuery,
+		req.Name, req.UnitType, req.Status, req.Description,
+		req.ParentCode, effectiveDate, req.ChangeReason,
+		recordID, tenantID.String())
+
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusInternalServerError, "UPDATE_ERROR", "更新历史记录失败", err)
+		return
+	}
+
+	// 检查是否有记录被更新
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusInternalServerError, "UPDATE_CHECK_ERROR", "检查更新结果失败", err)
+		return
+	}
+
+	if rowsAffected == 0 {
+		h.writeErrorResponse(w, http.StatusNotFound, "NOT_UPDATED", "没有记录被更新", nil)
+		return
+	}
+
+	// 如果父组织变更，需要重新计算层级信息
+	if req.ParentCode != nil && (existingOrg.ParentCode == nil || *req.ParentCode != *existingOrg.ParentCode) {
+		level, path, err := h.calculateHierarchy(r.Context(), tx, tenantID, *req.ParentCode, existingOrg.Code)
+		if err != nil {
+			log.Printf("⚠️ 重新计算层级信息失败: %v", err)
+			// 不返回错误，允许更新继续完成
+		} else {
+			// 更新层级信息
+			_, err = tx.ExecContext(r.Context(),
+				"UPDATE organization_units SET level = $1, path = $2 WHERE record_id = $3",
+				level, path, recordID)
+			if err != nil {
+				log.Printf("⚠️ 更新层级信息失败: %v", err)
+			}
+		}
+	}
+
+	// 提交事务
+	if err := tx.Commit(); err != nil {
+		h.writeErrorResponse(w, http.StatusInternalServerError, "COMMIT_ERROR", "提交事务失败", err)
+		return
+	}
+
+	// 清除相关缓存 - 使用组织代码进行缓存失效
+	if h.redisClient != nil {
+		// 模糊匹配并删除与该组织相关的所有缓存
+		ctx := r.Context()
+		keys, err := h.redisClient.Keys(ctx, fmt.Sprintf("cache:*:%s:*", existingOrg.Code)).Result()
+		if err == nil && len(keys) > 0 {
+			h.redisClient.Del(ctx, keys...)
+			log.Printf("[CACHE CLEAR] 历史记录更新后清除缓存 - 组织: %s, 清除键数: %d", existingOrg.Code, len(keys))
+		}
+	}
+
+	// 构建响应
+	response := map[string]interface{}{
+		"record_id":      recordID,
+		"code":           existingOrg.Code,
+		"name":           req.Name,
+		"unit_type":      req.UnitType,
+		"status":         req.Status,
+		"effective_date": req.EffectiveDate,
+		"updated_at":     time.Now().Format(time.RFC3339),
+		"message":        "历史记录更新成功",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+	log.Printf("✅ 历史记录更新成功: 记录ID=%s, 组织=%s, 名称=%s", recordID, existingOrg.Code, req.Name)
+}
+
 // 时间线事件结构
 type TimelineEvent struct {
 	ID            string                 `json:"id"`
@@ -926,6 +1115,7 @@ func (h *TemporalOrganizationHandler) getTimelineEvents(ctx context.Context, ten
 	// 查询组织的所有历史记录，按创建时间倒序
 	query := `
 		SELECT 
+			record_id,
 			code,
 			name,
 			unit_type,
@@ -950,6 +1140,7 @@ func (h *TemporalOrganizationHandler) getTimelineEvents(ctx context.Context, ten
 	var events []TimelineEvent
 	for rows.Next() {
 		var (
+			recordID       string
 			orgCode        string
 			name           string
 			unitType       string
@@ -963,7 +1154,7 @@ func (h *TemporalOrganizationHandler) getTimelineEvents(ctx context.Context, ten
 		)
 
 		err := rows.Scan(
-			&orgCode, &name, &unitType, &status,
+			&recordID, &orgCode, &name, &unitType, &status,
 			&effectiveDate, &endDate, &changeReason,
 			&createdAt, &updatedAt, &isCurrent,
 		)
@@ -1189,6 +1380,9 @@ func main() {
 
 		// 事件驱动变更端点
 		r.Post("/{code}/events", handler.CreateOrganizationEvent)
+
+		// 历史记录直接更新端点 - 新增
+		r.Put("/history/{record_id}", handler.UpdateHistoryRecord)
 
 		// 时态查询端点的查询字符串版本
 		r.Get("/{code}", handler.GetOrganizationTemporal) // 支持时态查询参数
