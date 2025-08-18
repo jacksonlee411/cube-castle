@@ -6,10 +6,11 @@ import React, { useState, useEffect } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
-import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
+import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
+import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { colors, borderRadius } from '@workday/canvas-kit-react/tokens';
 import { type TemporalEditFormData } from './TemporalEditForm';
 
@@ -41,6 +42,7 @@ export interface InlineNewVersionFormProps {
     parent_code?: string;
   } | null;
   onEditHistory?: (versionData: any) => Promise<void>;
+  onDeactivate?: (version: any) => Promise<void>; // 新增作废功能
 }
 
 const unitTypeOptions = [
@@ -65,7 +67,8 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   mode = 'create',
   initialData,
   selectedVersion,
-  onEditHistory
+  onEditHistory,
+  onDeactivate
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
@@ -81,6 +84,22 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   // 历史记录编辑相关状态
   const [isEditingHistory, setIsEditingHistory] = useState(false);
   const [originalHistoryData, setOriginalHistoryData] = useState<any>(null);
+  
+  // 作废功能相关状态
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  
+  // Modal管理
+  const deactivateModalModel = useModalModel();
+
+  // 同步Modal状态
+  React.useEffect(() => {
+    if (showDeactivateConfirm && deactivateModalModel.state.visibility !== 'visible') {
+      deactivateModalModel.events.show();
+    } else if (!showDeactivateConfirm && deactivateModalModel.state.visibility === 'visible') {
+      deactivateModalModel.events.hide();
+    }
+  }, [showDeactivateConfirm, deactivateModalModel]);
 
   // 初始化表单数据 - 支持预填充模式和历史记录编辑
   useEffect(() => {
@@ -200,6 +219,32 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     setErrors({});
   };
 
+  // 作废功能处理函数
+  const handleDeactivateClick = () => {
+    setShowDeactivateConfirm(true);
+  };
+
+  const handleDeactivateConfirm = async () => {
+    if (!onDeactivate || !selectedVersion || isDeactivating) return;
+    
+    try {
+      setIsDeactivating(true);
+      await onDeactivate(selectedVersion);
+      setShowDeactivateConfirm(false);
+      // 作废成功后关闭页面
+      onCancel();
+    } catch (error) {
+      console.error('作废失败:', error);
+      alert('作废失败，请重试');
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const handleDeactivateCancel = () => {
+    setShowDeactivateConfirm(false);
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
@@ -234,85 +279,9 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             </Text>
           </Box>
           
-          {/* 表单状态指示器 */}
-          <Box
-            padding="s"
-            backgroundColor={colors.soap200}
-            borderRadius={borderRadius.m}
-          >
-            <Text typeLevel="subtext.small" color={colors.licorice700}>
-              {mode === 'edit-history' 
-                ? (isEditingHistory ? '历史记录 编辑中' : '历史记录 只读')
-                : `详情 ${mode === 'edit' ? '编辑模式' : '新增模式'}`}
-            </Text>
-          </Box>
         </Flex>
 
-        {/* 注意事项提示 */}
-        <Box
-          marginBottom="l"
-          padding="m"
-          backgroundColor={colors.blueberry50}
-          borderRadius={borderRadius.m}
-          border={`1px solid ${colors.blueberry200}`}
-        >
-          <Text typeLevel="subtext.medium" color={colors.blueberry700}>
-            提示 <strong>提示:</strong> {mode === 'edit-history' 
-              ? (isEditingHistory 
-                  ? '您正在编辑历史记录，修改将直接更新该条记录的数据和时间戳。'
-                  : '点击"修改历史记录"按钮可以编辑此条历史记录的内容。')
-              : mode === 'edit' 
-                ? '编辑模式将基于选中的历史版本创建新的版本，在指定生效日期自动生效。左侧时间轴显示了该版本的历史信息。'
-                : '新增版本将在指定生效日期自动生效，请确保填写准确的组织信息和变更原因。左侧时间轴将保持可见，便于参考历史版本信息。'}
-          </Text>
-        </Box>
-
-        {/* 历史记录元数据显示 */}
-        {mode === 'edit-history' && originalHistoryData && (
-          <Box
-            marginBottom="l"
-            padding="m"
-            backgroundColor={colors.soap100}
-            borderRadius={borderRadius.m}
-            border={`1px solid ${colors.soap300}`}
-          >
-            <Heading size="small" marginBottom="s" color={colors.licorice600}>
-              记录信息
-            </Heading>
-            <Box
-              cs={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "12px"
-              }}
-            >
-              <Box>
-                <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
-                  记录UUID:
-                </Text>
-                <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700} style={{fontFamily: 'monospace'}}>
-                  {originalHistoryData.record_id}
-                </Text>
-              </Box>
-              <Box>
-                <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
-                  创建时间:
-                </Text>
-                <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
-                  {new Date(originalHistoryData.created_at).toLocaleString('zh-CN')}
-                </Text>
-              </Box>
-              <Box>
-                <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
-                  最后更新:
-                </Text>
-                <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
-                  {new Date(originalHistoryData.updated_at).toLocaleString('zh-CN')}
-                </Text>
-              </Box>
-            </Box>
-          </Box>
-        )}
+        {/* 历史记录元数据显示 - 移到最下方 */}
 
         <form onSubmit={handleSubmit}>
           {/* 生效日期 - 最重要的信息放在最上方 */}
@@ -432,6 +401,47 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             </Box>
           </Box>
 
+          {/* 历史记录元数据显示 - 移到表单底部 */}
+          {mode === 'edit-history' && originalHistoryData && (
+            <Box marginBottom="l" marginTop="l">
+              <Heading size="small" marginBottom="s" color={colors.licorice600}>
+                记录信息
+              </Heading>
+              <Box
+                cs={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                  gap: "12px"
+                }}
+              >
+                <Box>
+                  <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
+                    记录UUID:
+                  </Text>
+                  <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700} style={{fontFamily: 'monospace'}}>
+                    {originalHistoryData.record_id}
+                  </Text>
+                </Box>
+                <Box>
+                  <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
+                    创建时间:
+                  </Text>
+                  <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
+                    {new Date(originalHistoryData.created_at).toLocaleString('zh-CN')}
+                  </Text>
+                </Box>
+                <Box>
+                  <Text typeLevel="subtext.small" fontWeight="bold" color={colors.licorice500}>
+                    最后更新:
+                  </Text>
+                  <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
+                    {new Date(originalHistoryData.updated_at).toLocaleString('zh-CN')}
+                  </Text>
+                </Box>
+              </Box>
+            </Box>
+          )}
+
           {/* 操作按钮 */}
           <Box
             marginTop="xl"
@@ -440,40 +450,55 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
           >
             {mode === 'edit-history' ? (
               // 历史记录编辑模式的按钮
-              <Flex gap="s" justifyContent="flex-end">
-                {!isEditingHistory ? (
-                  // 只读模式的按钮
-                  <>
-                    <SecondaryButton 
-                      onClick={onCancel}
-                      disabled={isSubmitting}
+              <Flex gap="s" justifyContent="space-between">
+                {/* 左侧作废按钮 */}
+                <Box>
+                  {selectedVersion && !isEditingHistory && (
+                    <TertiaryButton 
+                      onClick={handleDeactivateClick}
+                      disabled={isSubmitting || isDeactivating}
                     >
-                      关闭
-                    </SecondaryButton>
-                    <PrimaryButton 
-                      onClick={handleEditHistoryToggle}
-                      disabled={isSubmitting}
-                    >
-                      修改历史记录
-                    </PrimaryButton>
-                  </>
-                ) : (
-                  // 编辑模式的按钮
-                  <>
-                    <SecondaryButton 
-                      onClick={handleCancelEditHistory}
-                      disabled={isSubmitting}
-                    >
-                      取消编辑
-                    </SecondaryButton>
-                    <PrimaryButton 
-                      onClick={handleEditHistorySubmit}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? '提交中...' : '提交修改'}
-                    </PrimaryButton>
-                  </>
-                )}
+                      作废此版本
+                    </TertiaryButton>
+                  )}
+                </Box>
+                
+                {/* 右侧主要操作按钮 */}
+                <Flex gap="s">
+                  {!isEditingHistory ? (
+                    // 只读模式的按钮
+                    <>
+                      <SecondaryButton 
+                        onClick={onCancel}
+                        disabled={isSubmitting}
+                      >
+                        关闭
+                      </SecondaryButton>
+                      <PrimaryButton 
+                        onClick={handleEditHistoryToggle}
+                        disabled={isSubmitting}
+                      >
+                        修改历史记录
+                      </PrimaryButton>
+                    </>
+                  ) : (
+                    // 编辑模式的按钮
+                    <>
+                      <SecondaryButton 
+                        onClick={handleCancelEditHistory}
+                        disabled={isSubmitting}
+                      >
+                        取消编辑
+                      </SecondaryButton>
+                      <PrimaryButton 
+                        onClick={handleEditHistorySubmit}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? '提交中...' : '提交修改'}
+                      </PrimaryButton>
+                    </>
+                  )}
+                </Flex>
               </Flex>
             ) : (
               // 原有的新增/编辑版本模式的按钮
@@ -497,6 +522,51 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
           </Box>
         </form>
       </Card>
+
+      {/* 作废确认对话框 */}
+      {showDeactivateConfirm && selectedVersion && (
+        <Modal model={deactivateModalModel}>
+          <Modal.Overlay>
+            <Modal.Card>
+              <Modal.CloseIcon onClick={handleDeactivateCancel} />
+              <Modal.Heading>确认作废版本</Modal.Heading>
+              <Modal.Body>
+                <Box padding="l">
+                  <Flex alignItems="flex-start" gap="m" marginBottom="l">
+                    <Box fontSize="24px" color={colors.cinnamon600}>⚠️</Box>
+                    <Box>
+                      <Text typeLevel="body.medium" marginBottom="s">
+                        确定要作废生效日期为 <strong>{new Date(selectedVersion.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
+                      </Text>
+                      <Text typeLevel="subtext.small" color="hint" marginBottom="s">
+                        版本名称: {selectedVersion.name}
+                      </Text>
+                      <Text typeLevel="subtext.small" color={colors.cinnamon600}>
+                        ⚠️ 作废后将自动填补时间空洞，此操作不可撤销
+                      </Text>
+                    </Box>
+                  </Flex>
+                  
+                  <Flex gap="s" justifyContent="flex-end">
+                    <SecondaryButton 
+                      onClick={handleDeactivateCancel}
+                      disabled={isDeactivating}
+                    >
+                      取消
+                    </SecondaryButton>
+                    <PrimaryButton 
+                      onClick={handleDeactivateConfirm}
+                      disabled={isDeactivating}
+                    >
+                      {isDeactivating ? '作废中...' : '确认作废'}
+                    </PrimaryButton>
+                  </Flex>
+                </Box>
+              </Modal.Body>
+            </Modal.Card>
+          </Modal.Overlay>
+        </Modal>
+      )}
     </Box>
   );
 };

@@ -938,6 +938,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               initialData={formInitialData}
               selectedVersion={selectedVersion}
               onEditHistory={handleHistoryEditSubmit}
+              onDeactivate={handleDeleteVersion} // 传递作废功能
             />
           ) : activeTab === 'new-version' ? (
             <InlineNewVersionForm
