@@ -12,15 +12,15 @@ import { Checkbox } from '@workday/canvas-kit-react/checkbox';
 import { Badge } from '../../../shared/components/Badge';
 import { Card } from '@workday/canvas-kit-react/card';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
-import type { TemporalOrganizationRecord } from '../../../shared/hooks/useTemporalAPI';
+import type { TemporalOrganizationUnit } from '../../../shared/types/temporal';
 
 export interface OrganizationDetailFormProps {
   /** 组织记录 */
-  record: TemporalOrganizationRecord;
+  record: TemporalOrganizationUnit;
   /** 是否处于编辑模式 */
   isEditing: boolean;
   /** 字段变更回调 */
-  onFieldChange: (field: keyof TemporalOrganizationRecord, value: string | number | boolean) => void;
+  onFieldChange: (field: keyof TemporalOrganizationUnit, value: string | number | boolean) => void;
 }
 
 /**

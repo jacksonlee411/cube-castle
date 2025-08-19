@@ -11,12 +11,11 @@ import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
 import { 
-  useTemporalDateRangeQuery, 
-  useTemporalAsOfDateQuery, 
-  useTemporalHealth,
-  TemporalDateUtils,
-  type TemporalOrganizationRecord 
-} from '../../../shared/hooks/useTemporalAPI';
+  useOrganizationHistory,
+  useOrganizationAsOfDate,
+  type TemporalOrganizationUnit
+} from '../../../shared/hooks/useTemporalGraphQL';
+import { TemporalConverter } from '../../../shared/utils/temporal-converter';
 import { OrganizationDetailForm } from './OrganizationDetailForm';
 
 export interface OrganizationDetailPanelProps {
@@ -27,7 +26,7 @@ export interface OrganizationDetailPanelProps {
   /** 关闭回调 */
   onClose: () => void;
   /** 保存回调 */
-  onSave: (record: TemporalOrganizationRecord) => Promise<void>;
+  onSave: (record: TemporalOrganizationUnit) => Promise<void>;
   /** 删除回调 */
   onDelete?: (organizationCode: string) => Promise<void>;
 }
@@ -38,7 +37,7 @@ interface TimelineNode {
   displayDate: string;
   type: 'current' | 'historical' | 'planned';
   label: string;
-  record?: TemporalOrganizationRecord;
+  record?: TemporalOrganizationUnit;
   changeType?: 'created' | 'modified' | 'planned' | 'activated' | 'deactivated';
 }
 
@@ -56,35 +55,33 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
   onDelete
 }) => {
   // 状态管理
-  const [selectedDate, setSelectedDate] = useState<string>(TemporalDateUtils.today());
-  const [selectedRecord, setSelectedRecord] = useState<TemporalOrganizationRecord | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(TemporalConverter.getCurrentDateString());
+  const [selectedRecord, setSelectedRecord] = useState<TemporalOrganizationUnit | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('view');
-  const [editingRecord, setEditingRecord] = useState<TemporalOrganizationRecord | null>(null);
+  const [editingRecord, setEditingRecord] = useState<TemporalOrganizationUnit | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
 
-  // 时态服务健康检查
-  const { data: healthData } = useTemporalHealth();
+  // 查询足够长的时间范围以包含所有历史数据
+  const startDate = new Date('1900-01-01'); // 从1900年开始查询
+  const endDate = new Date();
+  endDate.setFullYear(endDate.getFullYear() + 2); // 到未来2年
 
-  // 查询过去12个月到未来6个月的时间范围
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-  const sixMonthsLater = new Date();
-  sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
-
-  // 获取时间范围内的所有记录
-  const { data: rangeData, isLoading: isRangeLoading, error: rangeError } = useTemporalDateRangeQuery(
+  // 获取时间范围内的所有记录 - 使用GraphQL历史查询
+  const { data: historyData, isLoading: isRangeLoading, error: rangeError } = useOrganizationHistory(
     organizationCode,
-    twelveMonthsAgo.toISOString().slice(0, 10),
-    sixMonthsLater.toISOString().slice(0, 10),
-    isOpen
+    {
+      fromDate: TemporalConverter.dateToDateString(startDate),
+      toDate: TemporalConverter.dateToDateString(endDate),
+      enabled: isOpen
+    }
   );
 
-  // 获取当前选中日期的详细记录
-  const { data: selectedData, isLoading: isSelectedLoading } = useTemporalAsOfDateQuery(
+  // 获取当前选中日期的详细记录 - 使用GraphQL时间点查询
+  const { data: selectedData, isLoading: isSelectedLoading } = useOrganizationAsOfDate(
     organizationCode,
     selectedDate,
-    isOpen && !!selectedDate
+    { enabled: isOpen && !!selectedDate }
   );
 
   // 生成时间轴节点
@@ -92,11 +89,11 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
     const nodes: TimelineNode[] = [];
     const today = new Date();
     
-    if (rangeData?.organizations) {
+    if (historyData && historyData.length > 0) {
       // 为每个记录创建时间轴节点
-      rangeData.organizations.forEach(record => {
-        const effectiveDate = new Date(record.effective_date);
-        const dateStr = record.effective_date.slice(0, 10);
+      historyData.forEach(record => {
+        const effectiveDate = TemporalConverter.isoToDate(record.effective_date);
+        const dateStr = TemporalConverter.dateToDateString(record.effective_date);
         
         let type: 'current' | 'historical' | 'planned';
         let changeType: TimelineNode['changeType'] = 'modified';
@@ -129,7 +126,7 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
     }
 
     // 添加当前日期节点（如果没有对应记录）
-    const todayStr = TemporalDateUtils.today();
+    const todayStr = TemporalConverter.getCurrentDateString();
     if (!nodes.find(n => n.date === todayStr)) {
       nodes.push({
         date: todayStr,
@@ -142,16 +139,15 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
 
     // 按日期倒序排序（最新的在上面）
     return nodes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [rangeData]);
+  }, [historyData]);
 
   const timelineNodes = generateTimelineNodes();
 
   // 当选中日期变化时，更新选中的记录
   useEffect(() => {
-    if (selectedData?.organizations && selectedData.organizations.length > 0) {
-      const record = selectedData.organizations[0];
-      setSelectedRecord(record);
-      setEditingRecord({ ...record });
+    if (selectedData) {
+      setSelectedRecord(selectedData);
+      setEditingRecord({ ...selectedData });
       setHasUnsavedChanges(false);
     }
   }, [selectedData]);
@@ -209,7 +205,7 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
   }, [editingRecord, onSave]);
 
   // 处理字段变更
-  const handleFieldChange = useCallback((field: keyof TemporalOrganizationRecord, value: string | number | boolean) => {
+  const handleFieldChange = useCallback((field: keyof TemporalOrganizationUnit, value: string | number | boolean) => {
     if (!editingRecord) return;
     
     setEditingRecord(prev => prev ? { ...prev, [field]: value } : null);
@@ -268,16 +264,6 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
                 组织详情 - {organizationCode}
               </Text>
               
-              {/* 时态服务状态 */}
-              {healthData && (
-                <Badge
-                  variant={healthData.status === 'healthy' ? 'positive' : 'negative'}
-                  size="small"
-                >
-                  {healthData.status === 'healthy' ? '时态服务正常' : '时态服务异常'}
-                </Badge>
-              )}
-
               {/* 视图模式指示器 */}
               <Badge
                 variant={viewMode === 'edit' ? 'caution' : 'neutral'}

@@ -373,23 +373,46 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [showDeleteConfirm, deleteModalModel]);
 
-  // 加载时态版本数据
+  // 加载时态版本数据 - 使用GraphQL查询符合CQRS架构
   const loadVersions = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `http://localhost:9091/api/v1/organization-units/${organizationCode}/temporal?include_history=true&include_future=true`,
-        {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      const response = await fetch('/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            query GetOrganizationHistory($code: String!, $fromDate: String!, $toDate: String!) {
+              organizationHistory(code: $code, fromDate: $fromDate, toDate: $toDate) {
+                code
+                name
+                unit_type
+                status
+                level
+                path
+                description
+                effective_date
+                end_date
+                change_reason
+                is_current
+                created_at
+                updated_at
+              }
+            }
+          `,
+          variables: {
+            code: organizationCode,
+            fromDate: '1900-01-01',  // 扩展到1900年以包含所有历史数据
+            toDate: '2030-12-31'
+          }
+        })
+      });
       
       if (response.ok) {
         const data = await response.json();
         
-        // 映射后端状态到前端五状态生命周期管理系统
-        const mappedVersions = data.organizations.map((version: any) => ({
+        // 映射GraphQL数据到前端五状态生命周期管理系统
+        const mappedVersions = data.data.organizationHistory.map((version: any) => ({
           ...version,
           // 添加五状态生命周期字段映射
           lifecycle_status: mapBackendStatusToLifecycleStatus(version.status, version.is_current),

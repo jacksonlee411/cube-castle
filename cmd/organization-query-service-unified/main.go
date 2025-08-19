@@ -64,9 +64,49 @@ var schemaString = `
 		organization(code: String!): Organization
 		organizationStats: OrganizationStats!
 		
-		# 时态查询 - Neo4j最佳实践
+		# 时态查询 - CQRS架构符合的GraphQL查询
 		organizationAsOfDate(code: String!, asOfDate: String!): Organization
 		organizationHistory(code: String!, fromDate: String!, toDate: String!): [Organization!]!
+		
+		# ❌ 已移除过时的时态查询接口，现使用标准化接口:
+		# - organizationHistory: 历史记录查询
+		# - organizationAsOfDate: 时间点查询
+	}
+	
+	# 时态查询响应类型
+	type TemporalQueryResponse {
+		organizations: [Organization!]!
+		queriedAt: String!
+		queryOptions: TemporalQueryOptions!
+		resultCount: Int!
+	}
+	
+	# 时态查询选项类型
+	type TemporalQueryOptions {
+		asOfDate: String
+		effectiveFrom: String
+		effectiveTo: String
+		includeHistory: Boolean
+		includeFuture: Boolean
+		includeDissolved: Boolean
+	}
+	
+	# 时间线响应类型
+	type TimelineResponse {
+		events: [TimelineEvent!]!
+		totalCount: Int!
+		queriedAt: String!
+	}
+	
+	# 时间线事件类型
+	type TimelineEvent {
+		eventId: String!
+		eventType: String!
+		effectiveDate: String!
+		endDate: String
+		changeReason: String
+		organizationSnapshot: Organization!
+		createdAt: String!
 	}
 
 	type OrganizationStats {

@@ -10,8 +10,9 @@ import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
-import { useTemporalDateRangeQuery, useTemporalAsOfDateQuery, TemporalDateUtils } from '../../../shared/hooks/useTemporalAPI';
-import type { TemporalOrganizationRecord } from '../../../shared/hooks/useTemporalAPI';
+import { useOrganizationHistory, useOrganizationAsOfDate } from '../../../shared/hooks/useTemporalGraphQL';
+import type { TemporalOrganizationUnit } from '../../../shared/types/temporal';
+import { TemporalConverter } from '../../../shared/utils/temporal-converter';
 
 export interface TemporalOrganizationEditorProps {
   /** 组织代码 */
@@ -21,7 +22,7 @@ export interface TemporalOrganizationEditorProps {
   /** 关闭回调 */
   onClose: () => void;
   /** 保存回调 */
-  onSave: (record: TemporalOrganizationRecord) => Promise<void>;
+  onSave: (record: TemporalOrganizationUnit) => Promise<void>;
 }
 
 // 时间轴节点类型
@@ -30,7 +31,7 @@ interface TimelineNode {
   displayDate: string;
   type: 'current' | 'historical' | 'planned';
   label: string;
-  record?: TemporalOrganizationRecord;
+  record?: TemporalOrganizationUnit;
 }
 
 /**
@@ -43,10 +44,10 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
   onSave
 }) => {
   // 状态管理
-  const [selectedDate, setSelectedDate] = useState<string>(TemporalDateUtils.today());
-  const [selectedRecord, setSelectedRecord] = useState<TemporalOrganizationRecord | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(TemporalConverter.getCurrentDateString());
+  const [selectedRecord, setSelectedRecord] = useState<TemporalOrganizationUnit | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<TemporalOrganizationRecord | null>(null);
+  const [editingRecord, setEditingRecord] = useState<TemporalOrganizationUnit | null>(null);
 
   // 查询过去6个月到未来3个月的时间范围
   const sixMonthsAgo = new Date();
@@ -54,19 +55,21 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
   const threeMonthsLater = new Date();
   threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
 
-  // 获取时间范围内的所有记录
-  const { data: rangeData, isLoading: isRangeLoading } = useTemporalDateRangeQuery(
+  // 获取时间范围内的所有记录 - 使用GraphQL历史查询
+  const { data: historyData, isLoading: isRangeLoading } = useOrganizationHistory(
     organizationCode,
-    sixMonthsAgo.toISOString().slice(0, 10),
-    threeMonthsLater.toISOString().slice(0, 10),
-    isOpen
+    {
+      fromDate: TemporalConverter.dateToDateString(sixMonthsAgo),
+      toDate: TemporalConverter.dateToDateString(threeMonthsLater),
+      enabled: isOpen
+    }
   );
 
-  // 获取当前选中日期的详细记录
-  const { data: selectedData, isLoading: isSelectedLoading } = useTemporalAsOfDateQuery(
+  // 获取当前选中日期的详细记录 - 使用GraphQL时间点查询
+  const { data: selectedData, isLoading: isSelectedLoading } = useOrganizationAsOfDate(
     organizationCode,
     selectedDate,
-    isOpen && !!selectedDate
+    { enabled: isOpen && !!selectedDate }
   );
 
   // 生成时间轴节点
@@ -74,11 +77,11 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
     const nodes: TimelineNode[] = [];
     const today = new Date();
     
-    if (rangeData?.organizations) {
+    if (historyData && historyData.length > 0) {
       // 为每个记录创建时间轴节点
-      rangeData.organizations.forEach(record => {
-        const effectiveDate = new Date(record.effective_date);
-        const dateStr = record.effective_date.slice(0, 10);
+      historyData.forEach(record => {
+        const effectiveDate = TemporalConverter.isoToDate(record.effective_date);
+        const dateStr = TemporalConverter.dateToDateString(record.effective_date);
         
         let type: 'current' | 'historical' | 'planned';
         if (effectiveDate > today) {
@@ -104,7 +107,7 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
     }
 
     // 添加当前日期节点（如果没有记录）
-    const todayStr = TemporalDateUtils.today();
+    const todayStr = TemporalConverter.getCurrentDateString();
     if (!nodes.find(n => n.date === todayStr)) {
       nodes.push({
         date: todayStr,
@@ -116,15 +119,15 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
 
     // 按日期排序
     return nodes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [rangeData]);
+  }, [historyData]);
 
   const timelineNodes = generateTimelineNodes();
 
   // 当选中日期变化时，更新选中的记录
   useEffect(() => {
-    if (selectedData?.organizations && selectedData.organizations.length > 0) {
-      setSelectedRecord(selectedData.organizations[0]);
-      setEditingRecord({ ...selectedData.organizations[0] });
+    if (selectedData) {
+      setSelectedRecord(selectedData);
+      setEditingRecord({ ...selectedData });
     }
   }, [selectedData]);
 
@@ -168,7 +171,7 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
   }, [editingRecord, onSave]);
 
   // 处理字段变更
-  const handleFieldChange = useCallback((field: keyof TemporalOrganizationRecord, value: string | number | boolean) => {
+  const handleFieldChange = useCallback((field: keyof TemporalOrganizationUnit, value: string | number | boolean) => {
     if (!editingRecord) return;
     setEditingRecord(prev => prev ? { ...prev, [field]: value } : null);
   }, [editingRecord]);
@@ -413,9 +416,9 @@ const TimelineNodeComponent: React.FC<TimelineNodeComponentProps> = ({
 
 // 组织详情表单组件
 interface OrganizationDetailFormProps {
-  record: TemporalOrganizationRecord;
+  record: TemporalOrganizationUnit;
   isEditing: boolean;
-  onFieldChange: (field: keyof TemporalOrganizationRecord, value: string | number | boolean) => void;
+  onFieldChange: (field: keyof TemporalOrganizationUnit, value: string | number | boolean) => void;
 }
 
 const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
@@ -575,8 +578,9 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           <Box>
             <Text fontSize="small" marginBottom={space.xs}>批准人</Text>
             <TextInput
-              value={record.approved_by || ''}
+              value={''}
               disabled={true}
+              placeholder="暂无批准人信息"
               cs={{
                 backgroundColor: colors.soap200
               }}
@@ -586,8 +590,9 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           <Box>
             <Text fontSize="small" marginBottom={space.xs}>批准时间</Text>
             <TextInput
-              value={record.approved_at ? new Date(record.approved_at).toLocaleString('zh-CN') : ''}
+              value={''}
               disabled={true}
+              placeholder="暂无批准时间信息"
               cs={{
                 backgroundColor: colors.soap200
               }}

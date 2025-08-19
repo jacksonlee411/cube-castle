@@ -1370,22 +1370,31 @@ func main() {
 	// 监控指标
 	r.Handle("/metrics", promhttp.Handler())
 
-	// API路由
+	// API路由 - 严格CQRS命令端：只保留CUD操作
 	r.Route("/api/v1/organization-units", func(r chi.Router) {
-		// 时态查询端点
-		r.Get("/{code}/temporal", handler.GetOrganizationTemporal)
-
-		// 时间线可视化端点 - 新增
-		r.Get("/{code}/timeline", handler.GetOrganizationTimeline)
-
-		// 事件驱动变更端点
+		// 事件驱动变更端点 (符合CQRS命令端)
 		r.Post("/{code}/events", handler.CreateOrganizationEvent)
 
-		// 历史记录直接更新端点 - 新增
+		// 历史记录直接更新端点 (符合CQRS命令端)
 		r.Put("/history/{record_id}", handler.UpdateHistoryRecord)
-
-		// 时态查询端点的查询字符串版本
-		r.Get("/{code}", handler.GetOrganizationTemporal) // 支持时态查询参数
+		
+		// ❌ 已移除违反CQRS的查询端点:
+		// - GET /{code}/temporal (已移除 - 违反CQRS，应使用GraphQL)
+		// - GET /{code}/timeline (已移除 - 违反CQRS，应使用GraphQL)
+		// - GET /{code} (已移除 - 违反CQRS，应使用GraphQL)
+		
+		// ✋ CQRS架构保护：拒绝所有查询请求
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error_code": "CQRS_VIOLATION",
+				"message": "此服务仅支持命令操作(CUD)，查询操作请使用GraphQL服务(端口8090)",
+				"allowed_methods": []string{"POST", "PUT", "DELETE"},
+				"query_service": "http://localhost:8090/graphql",
+				"architecture": "严格CQRS - 命令查询分离",
+			})
+		})
 	})
 
 	// 启动服务器
@@ -1401,12 +1410,13 @@ func main() {
 
 	// 优雅关闭
 	go func() {
-		log.Printf("🚀 时态组织命令服务启动在端口 %s (无版本号模式)", port)
-		log.Println("📋 支持的功能:")
-		log.Println("  - 时态查询 (as_of_date, effective_from, effective_to)")
+		log.Printf("🚀 时态组织命令服务启动在端口 %s (严格CQRS命令端)", port)
+		log.Println("📋 CQRS命令端功能:")
 		log.Println("  - 事件驱动变更 (UPDATE, RESTRUCTURE, DISSOLVE)")
+		log.Println("  - 历史记录更新 (PUT /history/{record_id})")
 		log.Println("  - 纯日期生效管理（符合行业标准）")
-		log.Println("  - 时间线一致性保证")
+		log.Println("🚫 已移除查询功能 (现使用GraphQL/Neo4j查询端)")
+		log.Println("✅ 严格遵循CQRS架构 - 命令与查询分离")
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal("服务器启动失败:", err)

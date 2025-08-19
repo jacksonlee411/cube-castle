@@ -22,17 +22,21 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/debezium/, '')
       },
-      // 时态管理API路由到9091端口 - 事件驱动端点 (必须在通用路由之前)
+      // 时态管理API路由 - 符合严格CQRS架构
+      // 事件驱动端点 (命令操作) 路由到9091端口
       '^/api/v1/organization-units/[^/]+/events': {
         target: 'http://localhost:9091',
         changeOrigin: true,
         secure: false
       },
-      '^/api/v1/organization-units/[^/]+/temporal': {
+      // 历史记录更新端点 (命令操作) 路由到9091端口  
+      '^/api/v1/organization-units/history/[^/]+': {
         target: 'http://localhost:9091',
         changeOrigin: true,
         secure: false
       },
+      // ❌ 已移除时态查询端点 - 现在使用GraphQL查询
+      // '^/api/v1/organization-units/[^/]+/temporal': 现统一使用 /graphql 端点
       // 其他API路由到9090端口
       '/api/v1': {
         target: 'http://localhost:9090',

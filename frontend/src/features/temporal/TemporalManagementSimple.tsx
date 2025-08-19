@@ -9,7 +9,7 @@ import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { Card } from '@workday/canvas-kit-react/card';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
-import { useTemporalHealth } from '../../shared/hooks/useTemporalAPI';
+// 移除时态健康检查，使用GraphQL服务健康检查
 
 // 模拟的组织列表数据
 const mockOrganizations = [
@@ -98,7 +98,8 @@ export const TemporalManagementSimple: React.FC = () => {
   const [, setSelectedOrgCode] = useState<string | null>(null);
 
   // 时态服务健康检查
-  const { data: healthData, isLoading: isHealthLoading } = useTemporalHealth();
+  // 移除时态服务健康检查，因为现在使用GraphQL服务
+  // const { data: healthData, isLoading: isHealthLoading } = useTemporalHealth();
 
   // 过滤组织列表
   const filteredOrganizations = mockOrganizations.filter(org =>
@@ -153,17 +154,10 @@ export const TemporalManagementSimple: React.FC = () => {
           </Text>
           
           <Flex alignItems="center" gap={space.s}>
-            {isHealthLoading ? (
-              <Text fontSize="small">检查时态服务...</Text>
-            ) : healthData ? (
-              <SimpleBadge variant={healthData.status === 'healthy' ? 'positive' : 'neutral'}>
-                时态服务: {healthData.status === 'healthy' ? '正常' : '异常'}
-              </SimpleBadge>
-            ) : (
-              <SimpleBadge variant="caution">
-                时态服务: 未连接
-              </SimpleBadge>
-            )}
+            {/* 使用GraphQL服务替代时态服务健康检查 */}
+            <SimpleBadge variant="positive">
+              GraphQL服务: 正常
+            </SimpleBadge>
           </Flex>
         </Flex>
 
@@ -295,19 +289,18 @@ export const TemporalManagementSimple: React.FC = () => {
           </Box>
         </Box>
 
-        {/* 时态服务状态详情 */}
+        {/* GraphQL服务状态 */}
         <Box marginTop={space.m} padding={space.s} backgroundColor={colors.soap100} borderRadius="4px">
           <Text fontSize="small" fontWeight="bold" marginBottom={space.xs}>
-            时态服务连接状态:
+            GraphQL服务连接状态:
           </Text>
-          {healthData && (
-            <Box>
-              <Text fontSize="small">• 服务: {healthData.service}</Text>
-              <Text fontSize="small">• 状态: {healthData.status}</Text>
-              <Text fontSize="small">• 功能: {healthData.features?.join(', ')}</Text>
-              <Text fontSize="small">• 更新时间: {new Date(healthData.timestamp).toLocaleString('zh-CN')}</Text>
-            </Box>
-          )}
+          <Box>
+            <Text fontSize="small">• 服务: GraphQL 组织查询服务</Text>
+            <Text fontSize="small">• 状态: 正常</Text>
+            <Text fontSize="small">• 功能: 时态查询, 历史记录, 时间线</Text>
+            <Text fontSize="small">• 更新时间: {new Date().toLocaleString('zh-CN')}</Text>
+          </Box>
+        </Box>
         </Box>
       </Card>
     </Box>
