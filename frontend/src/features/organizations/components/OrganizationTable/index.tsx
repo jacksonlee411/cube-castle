@@ -26,7 +26,6 @@ const TableHeader: React.FC<{ showTemporalInfo?: boolean }> = ({ showTemporalInf
 
 export const OrganizationTable: React.FC<OrganizationTableProps> = ({
   organizations,
-  onEdit,
   onToggleStatus,
   onTemporalManage,
   togglingId,
@@ -56,7 +55,6 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
               <TableRow
                 key={org.code || `org-${index}`}
                 organization={org}
-                onEdit={onEdit}
                 onToggleStatus={onToggleStatus}
                 onTemporalManage={onTemporalManage}
                 isToggling={isToggling}

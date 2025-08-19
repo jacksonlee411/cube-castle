@@ -164,12 +164,16 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     if (!formData.effective_date) {
       newErrors.effective_date = '生效日期是必填项';
     } else {
-      const effectiveDate = new Date(formData.effective_date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (effectiveDate < today) {
-        newErrors.effective_date = '生效日期不能早于今天';
+      // 对于完全新建组织单元（mode === 'create'），取消生效日期限制
+      // 对于编辑现有组织或历史记录，仍然保持日期限制以维护数据完整性
+      if (mode !== 'create') {
+        const effectiveDate = new Date(formData.effective_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (effectiveDate < today) {
+          newErrors.effective_date = '生效日期不能早于今天';
+        }
       }
     }
     

@@ -3,7 +3,6 @@ import type { TemporalMode } from '../../../../shared/types/temporal';
 
 export interface OrganizationTableProps {
   organizations: OrganizationUnit[];
-  onEdit?: (org: OrganizationUnit) => void | undefined;
   onToggleStatus?: (code: string, currentStatus: OrganizationStatus) => void | undefined;
   onTemporalManage?: (code: string) => void | undefined;
   loading?: boolean;
@@ -16,7 +15,6 @@ export interface OrganizationTableProps {
 
 export interface OrganizationTableRowProps {
   organization: OrganizationUnit;
-  onEdit?: (org: OrganizationUnit) => void;
   onToggleStatus?: (code: string, currentStatus: OrganizationStatus) => void;
   onTemporalManage?: (code: string) => void;
   isToggling: boolean;
@@ -29,7 +27,6 @@ export interface OrganizationTableRowProps {
 
 export interface TableActionsProps {
   organization: OrganizationUnit;
-  onEdit?: (org: OrganizationUnit) => void;
   onToggleStatus?: (code: string, currentStatus: OrganizationStatus) => void;
   onTemporalManage?: (code: string) => void;
   isToggling: boolean;

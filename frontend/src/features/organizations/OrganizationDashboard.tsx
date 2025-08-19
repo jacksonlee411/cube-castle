@@ -236,7 +236,6 @@ export const OrganizationDashboard: React.FC = () => {
             <>
               <OrganizationTable
                 organizations={organizations}
-                onEdit={isHistorical ? undefined : handleEdit} // 历史模式禁用编辑
                 onToggleStatus={isHistorical ? undefined : (code, status) => { handleToggleStatus(code, status); }} // 历史模式禁用状态切换
                 onTemporalManage={handleTemporalManage} // 组织详情导航
                 loading={isFetching || temporalLoading.organizations}

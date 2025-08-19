@@ -538,24 +538,45 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     try {
       if (isCreateMode) {
         // 创建新组织
+        // 状态映射：lifecycle_status -> API status
+        const mapLifecycleStatusToApiStatus = (lifecycleStatus: string) => {
+          switch (lifecycleStatus) {
+            case 'CURRENT': return 'ACTIVE';
+            case 'PLANNED': return 'PLANNED';
+            case 'HISTORICAL':
+            case 'SUSPENDED':
+            case 'DELETED': 
+              return 'INACTIVE';
+            default: 
+              return 'ACTIVE';
+          }
+        };
+        
+        const requestBody = {
+          name: formData.name,
+          unit_type: formData.unit_type,
+          description: formData.description || '',
+          parent_code: formData.parent_code || null,
+          effective_date: formData.effective_date
+        };
+        
+        console.log('提交创建组织请求:', requestBody);
+        
         const response = await fetch('http://localhost:9090/api/v1/organization-units', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            unit_type: formData.unit_type,
-            status: formData.lifecycle_status || formData.status || 'ACTIVE',
-            description: formData.description || '',
-            parent_code: formData.parent_code || null,
-            effective_date: formData.effective_date
-          })
+          body: JSON.stringify(requestBody)
         });
+        
+        console.log('API响应状态:', response.status, response.statusText);
         
         if (response.ok) {
           const result = await response.json();
+          console.log('创建成功响应:', result);
           const newOrganizationCode = result.code || result.organization?.code;
           
           if (newOrganizationCode && onCreateSuccess) {
+            console.log('跳转到新组织:', newOrganizationCode);
             // 触发创建成功回调，跳转到新创建的组织详情页面
             onCreateSuccess(newOrganizationCode);
             return; // 创建模式下不需要后续的刷新逻辑
@@ -564,7 +585,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             alert('创建成功，但未能获取新组织编码，请手动刷新页面');
           }
         } else {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({ message: response.statusText }));
           console.error('创建组织失败:', errorData);
           alert(`创建失败: ${errorData.message || response.statusText}`);
         }
@@ -635,12 +656,17 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
   const handleHistoryEditClose = useCallback(() => {
     if (!isSubmitting) {
-      setActiveTab('edit-history'); // 取消时切换回历史记录选项卡
-      setFormMode('create');
-      setFormInitialData(null);
-      // 保持selectedVersion，以便返回详情页面
+      // 历史记录编辑页面关闭时应该返回组织列表页面
+      if (onBack) {
+        onBack();
+      } else {
+        // 回退方案：重置状态，但这不是预期的用户体验
+        setActiveTab('edit-history');
+        setFormMode('create');
+        setFormInitialData(null);
+      }
     }
-  }, [isSubmitting]);
+  }, [isSubmitting, onBack]);
 
   const handleHistoryEditSubmit = useCallback(async (updateData: any) => {
     setIsSubmitting(true);

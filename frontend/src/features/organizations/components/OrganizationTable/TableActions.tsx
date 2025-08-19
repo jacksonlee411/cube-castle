@@ -6,14 +6,12 @@ import type { TableActionsProps } from './TableTypes';
 
 export const TableActions: React.FC<TableActionsProps> = ({
   organization,
-  onEdit,
   onToggleStatus,
   onTemporalManage,
   isToggling,
   disabled,
   isHistorical = false
 }) => {
-  const handleEdit = () => onEdit?.(organization);
   const handleToggleStatus = () => onToggleStatus?.(organization.code, organization.status);
   const handleTemporalManage = () => onTemporalManage?.(organization.code);
 
@@ -25,15 +23,6 @@ export const TableActions: React.FC<TableActionsProps> = ({
   if (isHistorical) {
     return (
       <div style={{ display: 'flex', gap: '4px' }}>
-        <Tooltip title="历史数据不支持编辑">
-          <TertiaryButton 
-            size="small" 
-            disabled={true}
-            data-testid={`edit-button-${organization.code}`}
-          >
-            编辑
-          </TertiaryButton>
-        </Tooltip>
         <Tooltip title="历史数据不支持状态变更">
           <SecondaryButton 
             size="small" 
@@ -50,7 +39,7 @@ export const TableActions: React.FC<TableActionsProps> = ({
               onClick={handleTemporalManage}
               data-testid={`temporal-manage-button-${organization.code}`}
             >
-              计划
+              详情
             </TertiaryButton>
           </Tooltip>
         )}
@@ -61,17 +50,9 @@ export const TableActions: React.FC<TableActionsProps> = ({
     );
   }
 
-  // 正常模式下的操作按钮
+  // 正常模式下的操作按钮（移除编辑按钮）
   return (
     <div style={{ display: 'flex', gap: '4px' }}>
-      <TertiaryButton 
-        size="small" 
-        onClick={handleEdit}
-        disabled={disabled || !onEdit}
-        data-testid={`edit-button-${organization.code}`}
-      >
-        编辑
-      </TertiaryButton>
       <SecondaryButton 
         size="small" 
         onClick={handleToggleStatus}
@@ -88,7 +69,7 @@ export const TableActions: React.FC<TableActionsProps> = ({
             disabled={disabled}
             data-testid={`temporal-manage-button-${organization.code}`}
           >
-            计划
+            详情
           </TertiaryButton>
         </Tooltip>
       )}
