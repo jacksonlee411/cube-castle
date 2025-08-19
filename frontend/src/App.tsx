@@ -14,7 +14,8 @@ function App() {
         {/* 组织管理模块 */}
         <Route path="/organizations" element={<OrganizationDashboard />} />
         
-        {/* 组织详情页面 */}
+        {/* 组织相关页面 - 统一使用参数化路由 */}
+        <Route path="/organizations/:code" element={<OrganizationTemporalPage />} />
         <Route path="/organizations/:code/temporal" element={<OrganizationTemporalPage />} />
         
         {/* 系统监控模块 */}

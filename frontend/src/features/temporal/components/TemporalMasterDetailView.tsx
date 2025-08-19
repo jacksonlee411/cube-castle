@@ -69,8 +69,11 @@ export interface TemporalVersion {
 }
 
 export interface TemporalMasterDetailViewProps {
-  organizationCode: string;
+  organizationCode: string | null; // 允许null用于创建模式
   readonly?: boolean;
+  onBack?: () => void; // 返回回调
+  onCreateSuccess?: (newOrganizationCode: string) => void; // 创建成功回调
+  isCreateMode?: boolean; // 是否为创建模式
 }
 
 /**
@@ -333,25 +336,28 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
  */
 export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> = ({
   organizationCode,
-  readonly = false
+  readonly = false,
+  onBack,
+  onCreateSuccess,
+  isCreateMode = false
 }) => {
   // 状态管理
   const [versions, setVersions] = useState<TemporalVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<TemporalVersion | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isCreateMode); // 创建模式不需要加载数据
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<TemporalVersion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
   // 编辑表单状态
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [editMode, setEditMode] = useState<'create' | 'edit'>('create');
+  const [showEditForm, setShowEditForm] = useState(isCreateMode); // 创建模式默认显示编辑表单
+  const [editMode, setEditMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 视图选项卡状态 - 默认显示编辑历史记录页面
   const [activeTab, setActiveTab] = useState<'new-version' | 'edit-history'>('edit-history');
   
   // 表单模式状态 - 新增功能
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [formMode, setFormMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
   const [formInitialData, setFormInitialData] = useState<{
     name: string;
     unit_type: string;
@@ -530,43 +536,78 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const handleFormSubmit = useCallback(async (formData: TemporalEditFormData) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(
-        `http://localhost:9091/api/v1/organization-units/${organizationCode}/events`,
-        {
+      if (isCreateMode) {
+        // 创建新组织
+        const response = await fetch('http://localhost:9090/api/v1/organization-units', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            event_type: 'UPDATE',
-            effective_date: new Date(formData.effective_date + 'T00:00:00Z').toISOString(),
-            change_data: {
-              name: formData.name,
-              unit_type: formData.unit_type,
-              status: formData.status,
-              description: formData.description,
-              parent_code: formData.parent_code
-            },
-            change_reason: '通过组织信息详情页面更新组织信息'
+            name: formData.name,
+            unit_type: formData.unit_type,
+            status: formData.lifecycle_status || formData.status || 'ACTIVE',
+            description: formData.description || '',
+            parent_code: formData.parent_code || null,
+            effective_date: formData.effective_date
           })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          const newOrganizationCode = result.code || result.organization?.code;
+          
+          if (newOrganizationCode && onCreateSuccess) {
+            // 触发创建成功回调，跳转到新创建的组织详情页面
+            onCreateSuccess(newOrganizationCode);
+            return; // 创建模式下不需要后续的刷新逻辑
+          } else {
+            console.error('创建成功但未返回组织编码:', result);
+            alert('创建成功，但未能获取新组织编码，请手动刷新页面');
+          }
+        } else {
+          const errorData = await response.json();
+          console.error('创建组织失败:', errorData);
+          alert(`创建失败: ${errorData.message || response.statusText}`);
         }
-      );
-      
-      if (response.ok) {
-        // 刷新数据
-        await loadVersions();
-        setActiveTab('edit-history'); // 创建成功后切换回历史记录选项卡
-        alert('时态版本创建成功！');
       } else {
-        const errorData = await response.json();
-        console.error('创建失败:', errorData);
-        alert(`创建失败: ${errorData.message}`);
+        // 更新现有组织的时态版本
+        const response = await fetch(
+          `http://localhost:9091/api/v1/organization-units/${organizationCode}/events`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event_type: 'UPDATE',
+              effective_date: new Date(formData.effective_date + 'T00:00:00Z').toISOString(),
+              change_data: {
+                name: formData.name,
+                unit_type: formData.unit_type,
+                status: formData.lifecycle_status || formData.status,
+                description: formData.description,
+                parent_code: formData.parent_code
+              },
+              change_reason: '通过组织信息详情页面更新组织信息'
+            })
+          }
+        );
+        
+        if (response.ok) {
+          // 刷新数据
+          await loadVersions();
+          setActiveTab('edit-history'); // 创建成功后切换回历史记录选项卡
+          alert('时态版本创建成功！');
+        } else {
+          const errorData = await response.json();
+          console.error('创建失败:', errorData);
+          alert(`创建失败: ${errorData.message}`);
+        }
       }
     } catch (error) {
-      console.error('创建时态版本失败:', error);
-      alert('创建失败，请检查网络连接');
+      console.error(isCreateMode ? '创建组织失败:' : '创建时态版本失败:', error);
+      alert(isCreateMode ? '创建失败，请检查网络连接' : '创建失败，请检查网络连接');
     } finally {
       setIsSubmitting(false);
     }
-  }, [organizationCode, loadVersions]);
+  }, [organizationCode, loadVersions, isCreateMode, onCreateSuccess]);
 
   const handleFormClose = useCallback(() => {
     if (!isSubmitting) {
@@ -640,10 +681,12 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [organizationCode, loadVersions]);
 
-  // 组件挂载时加载数据
+  // 组件挂载时加载数据 - 创建模式跳过加载
   useEffect(() => {
-    loadVersions();
-  }, [loadVersions]);
+    if (!isCreateMode && organizationCode) {
+      loadVersions();
+    }
+  }, [loadVersions, isCreateMode, organizationCode]);
 
   // 获取当前版本的组织名称用于页面标题
   const getCurrentOrganizationName = () => {
@@ -657,11 +700,14 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
         <Box>
           <Heading size="large">
-            组织详情 - {organizationCode}
-            {getCurrentOrganizationName() && ` ${getCurrentOrganizationName()}`}
+            {isCreateMode ? (
+              '新建组织 - 编辑组织信息'
+            ) : (
+              `组织详情 - ${organizationCode}${getCurrentOrganizationName() ? ` ${getCurrentOrganizationName()}` : ''}`
+            )}
           </Heading>
           <Text typeLevel="subtext.medium" color="hint">
-            强制时间连续性的组织架构管理
+            {isCreateMode ? '填写组织基本信息，系统将自动分配组织代码' : '强制时间连续性的组织架构管理'}
           </Text>
         </Box>
         
@@ -675,60 +721,120 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       {/* 主从视图布局 */}
       <Flex gap="l" height="calc(100vh - 220px)">
         {/* 左侧：垂直交互式时间轴导航 */}
-        <TimelineNavigation
-          versions={versions}
-          selectedVersion={selectedVersion}
-          onVersionSelect={handleVersionSelect}
-          onDeleteVersion={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
-          isLoading={isLoading}
-          readonly={readonly}
-        />
+        {!isCreateMode && (
+          <TimelineNavigation
+            versions={versions}
+            selectedVersion={selectedVersion}
+            onVersionSelect={handleVersionSelect}
+            onDeleteVersion={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
+            isLoading={isLoading}
+            readonly={readonly}
+          />
+        )}
+
+        {/* 创建模式下的提示区域 */}
+        {isCreateMode && (
+          <Box
+            width="350px"
+            height="calc(100vh - 200px)"
+            backgroundColor="#F8F9FA"
+            borderRadius={borderRadius.m}
+            border="1px solid #E9ECEF"
+            padding="m"
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Box textAlign="center">
+              <Text typeLevel="heading.small" marginBottom="m">
+                创建新组织
+              </Text>
+              <Text typeLevel="body.medium" color="hint" marginBottom="l">
+                填写右侧表单信息后，系统将自动分配组织编码并生成首个时态记录
+              </Text>
+              <Box
+                width="60px"
+                height="60px"
+                borderRadius="50%"
+                backgroundColor={colors.blueberry600}
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                margin="auto"
+              >
+                <Text color="white" typeLevel="heading.medium">
+                  +
+                </Text>
+              </Box>
+            </Box>
+          </Box>
+        )}
 
         {/* 右侧：选项卡视图 */}
         <Box flex="1">
-          {/* 选项卡头部 */}
-          <Flex marginBottom="m" gap="s">
-            <PrimaryButton
-              size="small"
-              onClick={() => setActiveTab('edit-history')}
-            >
-              编辑历史记录
-            </PrimaryButton>
-            <SecondaryButton
-              size="small"
-              onClick={() => setActiveTab('new-version')}
-              icon={plusIcon}
-            >
-              编辑组织信息
-            </SecondaryButton>
-          </Flex>
-
-          {/* 选项卡内容 */}
-          {activeTab === 'edit-history' ? (
-            // 历史记录编辑模式
+          {isCreateMode ? (
+            // 创建模式：直接显示创建表单
             <InlineNewVersionForm
-              organizationCode={organizationCode}
-              onSubmit={handleFormSubmit} // 先使用现有的函数，稍后更新
-              onCancel={handleHistoryEditClose}
+              organizationCode={null} // 创建模式下传入null
+              onSubmit={handleFormSubmit}
+              onCancel={() => {
+                if (onBack) {
+                  onBack(); // 创建模式下取消应该返回上一页
+                }
+              }}
               isSubmitting={isSubmitting}
-              mode="edit-history"
-              initialData={formInitialData}
-              selectedVersion={selectedVersion}
-              onEditHistory={handleHistoryEditSubmit}
-              onDeactivate={handleDeleteVersion} // 传递作废功能
+              mode="create"
+              initialData={null}
+              selectedVersion={null}
             />
           ) : (
-            // 编辑组织信息模式
-            <InlineNewVersionForm
-              organizationCode={organizationCode}
-              onSubmit={handleFormSubmit}
-              onCancel={handleFormClose}
-              isSubmitting={isSubmitting}
-              mode={formMode}
-              initialData={formInitialData}
-              selectedVersion={selectedVersion}
-              onEditHistory={handleEditHistory}
-            />
+            <>
+              {/* 选项卡头部 */}
+              <Flex marginBottom="m" gap="s">
+                <PrimaryButton
+                  size="small"
+                  onClick={() => setActiveTab('edit-history')}
+                >
+                  编辑历史记录
+                </PrimaryButton>
+                <SecondaryButton
+                  size="small"
+                  onClick={() => setActiveTab('new-version')}
+                  icon={plusIcon}
+                >
+                  编辑组织信息
+                </SecondaryButton>
+              </Flex>
+
+              {/* 选项卡内容 */}
+              {activeTab === 'edit-history' ? (
+                // 历史记录编辑模式
+                <InlineNewVersionForm
+                  organizationCode={organizationCode}
+                  onSubmit={handleFormSubmit} // 先使用现有的函数，稍后更新
+                  onCancel={handleHistoryEditClose}
+                  isSubmitting={isSubmitting}
+                  mode="edit-history"
+                  initialData={formInitialData}
+                  selectedVersion={selectedVersion}
+                  onEditHistory={handleHistoryEditSubmit}
+                  onDeactivate={handleDeleteVersion} // 传递作废功能
+                />
+              ) : (
+                // 编辑组织信息模式
+                <InlineNewVersionForm
+                  organizationCode={organizationCode}
+                  onSubmit={handleFormSubmit}
+                  onCancel={handleFormClose}
+                  isSubmitting={isSubmitting}
+                  mode={formMode}
+                  initialData={formInitialData}
+                  selectedVersion={selectedVersion}
+                  onEditHistory={handleEditHistory}
+                />
+              )}
+            </>
           )}
         </Box>
       </Flex>

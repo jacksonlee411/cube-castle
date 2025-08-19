@@ -16,7 +16,7 @@ import { type TemporalEditFormData } from './TemporalEditForm';
 import { FiveStateStatusSelector, LIFECYCLE_STATES, type LifecycleStatus } from './FiveStateStatusSelector';
 
 export interface InlineNewVersionFormProps {
-  organizationCode: string;
+  organizationCode: string | null; // 允许null用于创建模式
   onSubmit: (data: TemporalEditFormData) => Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
@@ -29,7 +29,7 @@ export interface InlineNewVersionFormProps {
     description?: string;
     parent_code?: string;
     effective_date?: string;
-  };
+  } | null; // 允许null
   // 新增历史记录编辑相关props
   selectedVersion?: {
     record_id: string; // UUID唯一标识符
@@ -262,16 +262,20 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
         <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
           <Box>
             <Heading size="medium" marginBottom="s">
-              {mode === 'edit-history' 
-                ? (isEditingHistory ? '编辑历史记录' : '查看历史记录')
-                : mode === 'edit' ? '编辑组织信息' : '组织信息详情'}
+              {mode === 'create' 
+                ? '新建组织信息'
+                : mode === 'edit-history' 
+                  ? (isEditingHistory ? '编辑历史记录' : '查看历史记录')
+                  : '编辑组织信息'}
             </Heading>
             <Text typeLevel="subtext.medium" color="hint">
-              {mode === 'edit-history' 
-                ? `${isEditingHistory ? '修改' : '查看'}组织 ${organizationCode} 的历史记录信息`
-                : mode === 'edit' 
-                  ? `基于现有版本编辑组织 ${organizationCode} 的信息` 
-                  : `为组织 ${organizationCode} 编辑组织信息`}
+              {mode === 'create'
+                ? '填写新组织的基本信息，系统将自动分配组织编码'
+                : mode === 'edit-history' 
+                  ? `${isEditingHistory ? '修改' : '查看'}组织 ${organizationCode} 的历史记录信息`
+                  : mode === 'edit' 
+                    ? `基于现有版本编辑组织 ${organizationCode} 的信息` 
+                    : `为组织 ${organizationCode} 编辑组织信息`}
             </Text>
           </Box>
           
@@ -501,8 +505,8 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                   disabled={isSubmitting}
                 >
                   {isSubmitting 
-                    ? (mode === 'edit' ? '创建中...' : '创建中...') 
-                    : (mode === 'edit' ? '基于此版本创建' : '创建新版本')}
+                    ? (mode === 'create' ? '创建中...' : mode === 'edit' ? '创建中...' : '创建中...')
+                    : (mode === 'create' ? '创建组织' : mode === 'edit' ? '基于此版本创建' : '创建新版本')}
                 </PrimaryButton>
               </Flex>
             )}

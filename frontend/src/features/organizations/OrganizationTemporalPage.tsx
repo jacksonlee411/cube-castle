@@ -1,7 +1,7 @@
 /**
- * 组织组织详情专用页面
- * 路由: /organizations/{code}/temporal
- * 集成TemporalMasterDetailView组件实现完整的组织详情体验
+ * 组织详情专用页面
+ * 路由: /organizations/{code}/temporal 或 /organizations/new
+ * 集成TemporalMasterDetailView组件实现完整的组织详情和创建体验
  */
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -11,15 +11,18 @@ import { SecondaryButton } from '@workday/canvas-kit-react/button';
 import { TemporalMasterDetailView } from '../temporal/components/TemporalMasterDetailView';
 
 /**
- * 组织组织详情页面组件
- * 提供特定组织的组织详情功能集成中心
+ * 组织详情页面组件
+ * 支持查看现有组织详情或创建新组织
  */
 export const OrganizationTemporalPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
 
-  // 路由参数验证
-  if (!code) {
+  // 检测创建模式
+  const isCreateMode = code === 'new';
+  
+  // 路由参数验证 - 对于创建模式，允许code为'new'
+  if (!code || (code !== 'new' && !code.match(/^\d+$/))) {
     return (
       <Box padding="xl" textAlign="center">
         <Heading size="medium" marginBottom="m">
@@ -40,6 +43,12 @@ export const OrganizationTemporalPage: React.FC = () => {
     navigate('/organizations');
   };
 
+  // 创建成功后的页面跳转处理
+  const handleCreateSuccess = (newOrganizationCode: string) => {
+    // 跳转到新创建的组织详情页面
+    navigate(`/organizations/${newOrganizationCode}/temporal`, { replace: true });
+  };
+
   return (
     <Box>
       {/* 面包屑导航 */}
@@ -55,22 +64,24 @@ export const OrganizationTemporalPage: React.FC = () => {
             /
           </Text>
           <Text typeLevel="subtext.medium" fontWeight="medium">
-            {code}
+            {isCreateMode ? '新建组织' : code}
           </Text>
           <Text typeLevel="subtext.medium" color="hint">
             /
           </Text>
           <Text typeLevel="subtext.medium" fontWeight="medium">
-            组织详情
+            {isCreateMode ? '编辑组织信息' : '组织详情'}
           </Text>
         </Flex>
       </Box>
 
       {/* 主要内容区：组织详情主从视图 */}
       <TemporalMasterDetailView
-        organizationCode={code}
+        organizationCode={isCreateMode ? null : code}
         onBack={handleBackToList}
+        onCreateSuccess={isCreateMode ? handleCreateSuccess : undefined}
         readonly={false}
+        isCreateMode={isCreateMode}
       />
     </Box>
   );

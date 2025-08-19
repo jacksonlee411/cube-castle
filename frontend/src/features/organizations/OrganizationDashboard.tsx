@@ -145,6 +145,11 @@ export const OrganizationDashboard: React.FC = () => {
     handleFormSubmit,
   } = useOrganizationActions();
 
+  // 新建组织处理器 - 修改为页面跳转而不是打开Modal
+  const handleCreateOrganization = () => {
+    navigate('/organizations/new');
+  };
+
   // 组织详情导航处理器
   const handleTemporalManage = (organizationCode: string) => {
     navigate(`/organizations/${organizationCode}/temporal`);
@@ -189,7 +194,7 @@ export const OrganizationDashboard: React.FC = () => {
       </Box> */}
 
       <DashboardHeader 
-        onCreateClick={handleCreate}
+        onCreateClick={handleCreateOrganization}
         onCreatePlannedClick={handleCreatePlanned}
         isToggling={isToggling}
         temporalMode={temporalMode}
