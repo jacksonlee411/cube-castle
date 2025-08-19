@@ -397,6 +397,7 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		MERGE (org:OrganizationUnit {uuid: $uuid})
 		SET org.code = $code,
 			org.tenant_id = $tenant_id,
+			org.record_id = $record_id,
 			org.effective_date = date($effective_date),
 			org.name = $name,
 			org.unit_type = $unit_type,
@@ -442,6 +443,7 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 
 	params := map[string]interface{}{
 		"uuid":       globalID, // UUID全局标识符
+		"record_id":  globalID, // record_id字段使用相同的UUID
 		"code":       *data.Code,
 		"tenant_id":  *data.TenantID,
 		"name":       *data.Name,
@@ -574,6 +576,7 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		MERGE (org:OrganizationUnit {uuid: $uuid})
 		SET org.code = $code,
 			org.tenant_id = $tenant_id,
+			org.record_id = $record_id,
 			org.effective_date = date($effective_date),
 			org.name = COALESCE($name, org.name),
 			org.unit_type = COALESCE($unit_type, org.unit_type),
@@ -606,6 +609,7 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 
 	params := map[string]interface{}{
 		"uuid":       globalID, // UUID全局标识符
+		"record_id":  globalID, // record_id字段使用相同的UUID
 		"code":       *data.Code,
 		"tenant_id":  *data.TenantID,
 		"valid_from": systemTime, // System Time - 系统记录时间

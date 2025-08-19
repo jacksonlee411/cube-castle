@@ -54,6 +54,15 @@ const unitTypeOptions = [
   { label: '项目团队', value: 'PROJECT_TEAM' },
 ];
 
+// 获取当月1日的日期字符串 (避免时区问题)
+const getCurrentMonthFirstDay = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // getMonth() 返回0-11，需要+1
+  const paddedMonth = month.toString().padStart(2, '0');
+  return `${year}-${paddedMonth}-01`;
+};
+
 
 export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   organizationCode,
@@ -71,7 +80,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     unit_type: 'DEPARTMENT',
     lifecycle_status: 'PLANNED',
     description: '',
-    effective_date: new Date().toISOString().split('T')[0], // 默认今天
+    effective_date: getCurrentMonthFirstDay(), // 默认当月1日
     parent_code: ''
   });
 
@@ -99,8 +108,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
 
   // 初始化表单数据 - 支持预填充模式和历史记录编辑
   useEffect(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const firstDayOfMonth = getCurrentMonthFirstDay();
     
     if ((mode === 'edit' || mode === 'edit-history') && initialData) {
       // 编辑模式 - 使用传入的初始数据预填充表单，包括原始生效日期
@@ -111,7 +119,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
         description: initialData.description || '',
         effective_date: initialData.effective_date 
           ? new Date(initialData.effective_date).toISOString().split('T')[0] 
-          : tomorrow.toISOString().split('T')[0], // 如果没有提供生效日期，使用明天
+          : firstDayOfMonth, // 如果没有提供生效日期，使用当月1日
         parent_code: initialData.parent_code || ''
       });
       
@@ -127,7 +135,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
         unit_type: 'DEPARTMENT',
         lifecycle_status: 'PLANNED',
         description: '',
-        effective_date: tomorrow.toISOString().split('T')[0], // 默认明天生效
+        effective_date: firstDayOfMonth, // 默认当月1日生效
         parent_code: ''
       });
     }
