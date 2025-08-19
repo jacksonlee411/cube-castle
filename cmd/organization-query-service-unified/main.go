@@ -350,8 +350,8 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 			SortOrderField:     getIntValue(record, "sort_order"),
 			DescriptionField:   getStringValue(record, "description"),
 			ProfileField:       getStringValue(record, "profile"),
-			CreatedAtField:     getStringValue(record, "created_at"),
-			UpdatedAtField:     getStringValue(record, "updated_at"),
+			CreatedAtField:     getDateTimeValue(record, "created_at"),
+			UpdatedAtField:     getDateTimeValue(record, "updated_at"),
 			EffectiveDateField: getStringValue(record, "effective_date"),
 			EndDateField:       getStringValue(record, "end_date"),
 			VersionField:       getIntValue(record, "version"),
@@ -411,8 +411,8 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 			SortOrderField:     getIntValue(record, "sort_order"),
 			DescriptionField:   getStringValue(record, "description"),
 			ProfileField:       getStringValue(record, "profile"),
-			CreatedAtField:     getStringValue(record, "created_at"),
-			UpdatedAtField:     getStringValue(record, "updated_at"),
+			CreatedAtField:     getDateTimeValue(record, "created_at"),
+			UpdatedAtField:     getDateTimeValue(record, "updated_at"),
 			EffectiveDateField: getStringValue(record, "effective_date"),
 			EndDateField:       getStringValue(record, "end_date"),
 			VersionField:       getIntValue(record, "version"),
@@ -439,8 +439,8 @@ func (r *Neo4jOrganizationRepository) recordToOrganization(record *neo4j.Record)
 		SortOrderField:     getIntValue(record, "sort_order"),
 		DescriptionField:   getStringValue(record, "description"),
 		ProfileField:       getStringValue(record, "profile"),
-		CreatedAtField:     getStringValue(record, "created_at"),
-		UpdatedAtField:     getStringValue(record, "updated_at"),
+		CreatedAtField:     getDateTimeValue(record, "created_at"),
+		UpdatedAtField:     getDateTimeValue(record, "updated_at"),
 		EffectiveDateField: getStringValue(record, "effective_date"),
 		EndDateField:       getStringValue(record, "end_date"),
 		VersionField:       getIntValue(record, "version"),
@@ -608,6 +608,33 @@ func getStringValue(record *neo4j.Record, key string) string {
 			// 如果包含时间信息，尝试解析并只取日期部分
 			if t, err := time.Parse("2006-01-02T15:04:05Z", str); err == nil {
 				return t.Format("2006-01-02")
+			}
+			// 返回原始字符串
+			return str
+		}
+	}
+	return ""
+}
+
+// getDateTimeValue 专门处理日期时间字段，保留完整的时间戳
+func getDateTimeValue(record *neo4j.Record, key string) string {
+	if value, ok := record.Get(key); ok && value != nil {
+		if str, ok := value.(string); ok {
+			return str
+		}
+		// 处理time.Time类型 - 返回完整的时间戳
+		if t, ok := value.(time.Time); ok {
+			return t.Format(time.RFC3339) // 返回完整的时间戳格式
+		}
+
+		// 对于其他类型，直接转换为字符串
+		if str := fmt.Sprintf("%v", value); str != "<nil>" && str != "" {
+			// 如果包含时间信息，保持原格式
+			if _, err := time.Parse("2006-01-02T15:04:05Z", str); err == nil {
+				return str
+			}
+			if _, err := time.Parse(time.RFC3339, str); err == nil {
+				return str
 			}
 			// 返回原始字符串
 			return str
