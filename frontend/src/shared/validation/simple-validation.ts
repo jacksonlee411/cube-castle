@@ -169,6 +169,7 @@ export const safeTransform = {
     // GraphQL格式转换 (支持下划线命名约定)
     return {
       code: orgData.code || '',
+      record_id: orgData.record_id || '',  // UUID唯一标识符
       name: orgData.name || '',
       unit_type: orgData.unit_type || orgData.unitType || '',  // 支持两种命名方式
       status: orgData.status || 'ACTIVE',

@@ -385,6 +385,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             query GetOrganizationHistory($code: String!, $fromDate: String!, $toDate: String!) {
               organizationHistory(code: $code, fromDate: $fromDate, toDate: $toDate) {
                 code
+                record_id
                 name
                 unit_type
                 status

@@ -272,6 +272,7 @@ export const organizationAPI = {
               temporalMode: $temporalMode
             ) {
               code
+              record_id
               name
               unit_type
               status
@@ -299,6 +300,7 @@ export const organizationAPI = {
           query GetOrganization($code: String!) {
             organization(code: $code) {
               code
+              record_id
               name
               unit_type
               status

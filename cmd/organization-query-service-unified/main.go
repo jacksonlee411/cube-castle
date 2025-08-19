@@ -35,6 +35,7 @@ var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 // GraphQL Schema定义
 var schemaString = `
 	type Organization {
+		record_id: String!
 		tenant_id: String!
 		code: String!
 		parent_code: String
@@ -134,6 +135,7 @@ var schemaString = `
 
 // GraphQL组织模型 - 匹配时态API格式
 type Organization struct {
+	RecordIdField      string `json:"record_id"`
 	TenantIdField      string `json:"tenant_id"`
 	CodeField          string `json:"code"`
 	ParentCodeField    string `json:"parent_code"`
@@ -158,6 +160,7 @@ type Organization struct {
 }
 
 // GraphQL字段解析器 - 匹配时态API Schema字段名
+func (o Organization) Record_id() string { return o.RecordIdField }
 func (o Organization) Tenant_id() string { return o.TenantIdField }
 func (o Organization) Code() string      { return o.CodeField }
 func (o Organization) Parent_code() *string {
@@ -314,7 +317,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 	query := fmt.Sprintf(`
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
 		WHERE o.is_current = true %s
-		RETURN o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
+		RETURN o.record_id as record_id, o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
 		       o.name as name, o.unit_type as unit_type, o.status as status, 
 		       o.level as level, o.path as path, o.sort_order as sort_order,
 		       o.description as description, o.profile as profile,
@@ -335,6 +338,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 		record := result.Record()
 
 		org := Organization{
+			RecordIdField:      getStringValue(record, "record_id"),
 			TenantIdField:      getStringValue(record, "tenant_id"),
 			CodeField:          getStringValue(record, "code"),
 			ParentCodeField:    getStringValue(record, "parent_code"),
@@ -373,7 +377,7 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 
 	query := `
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id, code: $code})
-		RETURN o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
+		RETURN o.record_id as record_id, o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
 		       o.name as name, o.unit_type as unit_type, o.status as status, 
 		       o.level as level, o.path as path, o.sort_order as sort_order,
 		       o.description as description, o.profile as profile,
@@ -395,6 +399,7 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 	if result.Next(ctx) {
 		record := result.Record()
 		org := &Organization{
+			RecordIdField:      getStringValue(record, "record_id"),
 			TenantIdField:      getStringValue(record, "tenant_id"),
 			CodeField:          getStringValue(record, "code"),
 			ParentCodeField:    getStringValue(record, "parent_code"),
@@ -422,6 +427,7 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 // 时态数据记录转换方法 - 支持完整时态字段
 func (r *Neo4jOrganizationRepository) recordToOrganization(record *neo4j.Record) Organization {
 	return Organization{
+		RecordIdField:      getStringValue(record, "record_id"),
 		TenantIdField:      getStringValue(record, "tenant_id"),
 		CodeField:          getStringValue(record, "code"),
 		ParentCodeField:    getStringValue(record, "parent_code"),
@@ -670,7 +676,7 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct {
 		  AND (org.end_date IS NULL OR org.end_date >= date($as_of_date))
 		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
 		LIMIT 1
-		RETURN org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
+		RETURN org.record_id as record_id, org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
 		       org.name as name, org.unit_type as unit_type, org.status as status,
 		       org.level as level, org.path as path, org.sort_order as sort_order,
 		       org.description as description, toString(org.effective_date) as effective_date,
@@ -739,12 +745,13 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 		WHERE org.effective_date >= date($from_date)
 		  AND org.effective_date <= date($to_date)
 		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
-		RETURN org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
+		RETURN org.record_id as record_id, org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
 		       org.name as name, org.unit_type as unit_type, org.status as status,
 		       org.level as level, org.path as path, org.sort_order as sort_order,
 		       org.description as description, toString(org.effective_date) as effective_date,
 		       toString(org.end_date) as end_date, org.is_current as is_current,
 		       org.change_reason as change_reason, org.version as version,
+		       org.created_at as created_at, org.updated_at as updated_at,
 		       org.valid_from as valid_from, org.valid_to as valid_to
 	`
 

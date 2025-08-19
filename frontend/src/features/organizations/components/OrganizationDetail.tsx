@@ -85,6 +85,12 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
           
           <Text typeLevel="subtext.medium" color="hint" marginBottom="s">
             编码: {organization.code} • 类型: {getUnitTypeName(organization.unit_type)} • 层级: {organization.level}
+            {organization.record_id && (
+              <>
+                <br />
+                UUID: {organization.record_id}
+              </>
+            )}
           </Text>
           
           {organization.description && (
@@ -340,6 +346,9 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
                 <Box>
                   <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s">基本信息</Text>
                   <Text typeLevel="body.small">编码: {organization.code}</Text>
+                  {organization.record_id && (
+                    <Text typeLevel="body.small">UUID: {organization.record_id}</Text>
+                  )}
                   <Text typeLevel="body.small">名称: {organization.name}</Text>
                   <Text typeLevel="body.small">状态: {organization.status}</Text>
                   <Text typeLevel="body.small">类型: {organization.unit_type}</Text>
