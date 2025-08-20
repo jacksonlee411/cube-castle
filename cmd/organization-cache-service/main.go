@@ -24,8 +24,8 @@ import (
 	"cube-castle-deployment-test/internal/cache"
 )
 
-// 新一代缓存管理服务
-type NextGenCacheService struct {
+// 组织缓存管理服务
+type OrganizationCacheService struct {
 	cacheManager *cache.UnifiedCacheManager
 	cdcConsumer  *kafka.Consumer
 	eventBus     *cache.CacheEventBus
@@ -49,7 +49,7 @@ type ServiceConfig struct {
 }
 
 // 初始化服务
-func NewNextGenCacheService(config *ServiceConfig, logger *log.Logger) (*NextGenCacheService, error) {
+func NewOrganizationCacheService(config *ServiceConfig, logger *log.Logger) (*OrganizationCacheService, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// 1. 创建Redis客户端
@@ -95,7 +95,7 @@ func NewNextGenCacheService(config *ServiceConfig, logger *log.Logger) (*NextGen
 	// 5. 创建Kafka消费者
 	kafkaConfig := &kafka.ConfigMap{
 		"bootstrap.servers":  strings.Join(config.KafkaBrokers, ","),
-		"group.id":           "nextgen-cache-service",
+		"group.id":           "organization-cache-service",
 		"auto.offset.reset":  "latest",
 		"enable.auto.commit": true,
 	}
@@ -109,7 +109,7 @@ func NewNextGenCacheService(config *ServiceConfig, logger *log.Logger) (*NextGen
 	// 6. 创建事件总线
 	eventBus := cache.NewCacheEventBus()
 
-	service := &NextGenCacheService{
+	service := &OrganizationCacheService{
 		cacheManager: cacheManager,
 		cdcConsumer:  consumer,
 		eventBus:     eventBus,
@@ -123,8 +123,8 @@ func NewNextGenCacheService(config *ServiceConfig, logger *log.Logger) (*NextGen
 }
 
 // 启动服务
-func (service *NextGenCacheService) Start() error {
-	service.logger.Println("🚀 启动新一代缓存管理服务...")
+func (service *OrganizationCacheService) Start() error {
+	service.logger.Println("🚀 启动组织缓存管理服务...")
 
 	// 1. 启动CDC消费者
 	go service.startCDCConsumer()
@@ -140,7 +140,7 @@ func (service *NextGenCacheService) Start() error {
 }
 
 // 启动CDC消费者
-func (service *NextGenCacheService) startCDCConsumer() {
+func (service *OrganizationCacheService) startCDCConsumer() {
 	topics := []string{"organization_db.public.organization_units"}
 
 	if err := service.cdcConsumer.SubscribeTopics(topics, nil); err != nil {
@@ -173,7 +173,7 @@ func (service *NextGenCacheService) startCDCConsumer() {
 }
 
 // 处理CDC消息
-func (service *NextGenCacheService) processCDCMessage(msg *kafka.Message) error {
+func (service *OrganizationCacheService) processCDCMessage(msg *kafka.Message) error {
 	topic := *msg.TopicPartition.Topic
 
 	if topic != "organization_db.public.organization_units" {
@@ -244,7 +244,7 @@ func (service *NextGenCacheService) processCDCMessage(msg *kafka.Message) error 
 }
 
 // 启动HTTP服务器
-func (service *NextGenCacheService) startHTTPServer() {
+func (service *OrganizationCacheService) startHTTPServer() {
 	r := chi.NewRouter()
 
 	// 中间件
@@ -289,7 +289,7 @@ func (service *NextGenCacheService) startHTTPServer() {
 }
 
 // 处理获取组织列表
-func (service *NextGenCacheService) handleGetOrganizations(w http.ResponseWriter, r *http.Request) {
+func (service *OrganizationCacheService) handleGetOrganizations(w http.ResponseWriter, r *http.Request) {
 	// 解析查询参数
 	tenantID := uuid.MustParse("3b99930c-4dc6-4cc9-8e4d-7d960a931cb9") // 默认租户
 
@@ -341,7 +341,7 @@ func (service *NextGenCacheService) handleGetOrganizations(w http.ResponseWriter
 }
 
 // 处理获取单个组织
-func (service *NextGenCacheService) handleGetOrganization(w http.ResponseWriter, r *http.Request) {
+func (service *OrganizationCacheService) handleGetOrganization(w http.ResponseWriter, r *http.Request) {
 	code := chi.URLParam(r, "code")
 	tenantID := uuid.MustParse("3b99930c-4dc6-4cc9-8e4d-7d960a931cb9")
 
@@ -373,7 +373,7 @@ func (service *NextGenCacheService) handleGetOrganization(w http.ResponseWriter,
 }
 
 // 处理获取统计信息
-func (service *NextGenCacheService) handleGetStats(w http.ResponseWriter, r *http.Request) {
+func (service *OrganizationCacheService) handleGetStats(w http.ResponseWriter, r *http.Request) {
 	tenantID := uuid.MustParse("3b99930c-4dc6-4cc9-8e4d-7d960a931cb9")
 
 	startTime := time.Now()
@@ -399,7 +399,7 @@ func (service *NextGenCacheService) handleGetStats(w http.ResponseWriter, r *htt
 }
 
 // 处理缓存刷新
-func (service *NextGenCacheService) handleRefreshCache(w http.ResponseWriter, r *http.Request) {
+func (service *OrganizationCacheService) handleRefreshCache(w http.ResponseWriter, r *http.Request) {
 	tenantID := uuid.MustParse("3b99930c-4dc6-4cc9-8e4d-7d960a931cb9")
 	entityType := r.URL.Query().Get("type")
 	entityID := r.URL.Query().Get("id")
@@ -424,7 +424,7 @@ func (service *NextGenCacheService) handleRefreshCache(w http.ResponseWriter, r 
 }
 
 // 处理获取缓存统计
-func (service *NextGenCacheService) handleGetCacheStats(w http.ResponseWriter, r *http.Request) {
+func (service *OrganizationCacheService) handleGetCacheStats(w http.ResponseWriter, r *http.Request) {
 	stats := service.cacheManager.GetCacheStats(r.Context())
 
 	w.Header().Set("Content-Type", "application/json")
@@ -432,7 +432,7 @@ func (service *NextGenCacheService) handleGetCacheStats(w http.ResponseWriter, r
 }
 
 // 处理一致性检查
-func (service *NextGenCacheService) handleCheckConsistency(w http.ResponseWriter, r *http.Request) {
+func (service *OrganizationCacheService) handleCheckConsistency(w http.ResponseWriter, r *http.Request) {
 	// 简化版一致性检查
 	result := map[string]interface{}{
 		"status":     "healthy",
@@ -445,9 +445,9 @@ func (service *NextGenCacheService) handleCheckConsistency(w http.ResponseWriter
 }
 
 // 健康检查
-func (service *NextGenCacheService) handleHealth(w http.ResponseWriter, r *http.Request) {
+func (service *OrganizationCacheService) handleHealth(w http.ResponseWriter, r *http.Request) {
 	health := map[string]interface{}{
-		"service":   "nextgen-cache-service",
+		"service":   "organization-cache-service",
 		"status":    "healthy",
 		"timestamp": time.Now().Format(time.RFC3339),
 		"features": []string{
@@ -465,10 +465,10 @@ func (service *NextGenCacheService) handleHealth(w http.ResponseWriter, r *http.
 }
 
 // 指标端点
-func (service *NextGenCacheService) handleMetrics(w http.ResponseWriter, r *http.Request) {
+func (service *OrganizationCacheService) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	stats := service.cacheManager.GetCacheStats(r.Context())
 
-	metrics := fmt.Sprintf(`# NextGen Cache Service Metrics
+	metrics := fmt.Sprintf(`# Organization Cache Service Metrics
 cache_l1_hits_total %d
 cache_l1_misses_total %d  
 cache_l1_size_current %d
@@ -496,7 +496,7 @@ func boolToMetric(b bool) string {
 }
 
 // 启动健康监控
-func (service *NextGenCacheService) startHealthMonitor() {
+func (service *OrganizationCacheService) startHealthMonitor() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -517,7 +517,7 @@ func (service *NextGenCacheService) startHealthMonitor() {
 }
 
 // 等待关闭信号
-func (service *NextGenCacheService) waitForShutdown() error {
+func (service *OrganizationCacheService) waitForShutdown() error {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
@@ -562,7 +562,7 @@ func (service *NextGenCacheService) waitForShutdown() error {
 
 // 主函数
 func main() {
-	logger := log.New(os.Stdout, "[NEXTGEN-CACHE] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[ORG-CACHE] ", log.LstdFlags)
 
 	// 配置参数
 	config := &ServiceConfig{
@@ -578,18 +578,18 @@ func main() {
 	}
 
 	// 创建服务
-	service, err := NewNextGenCacheService(config, logger)
+	service, err := NewOrganizationCacheService(config, logger)
 	if err != nil {
 		log.Fatalf("❌ 创建服务失败: %v", err)
 	}
 
 	// 启动服务
-	logger.Println("🚀 新一代缓存管理服务启动...")
+	logger.Println("🚀 组织缓存管理服务启动...")
 	if err := service.Start(); err != nil {
 		log.Fatalf("❌ 服务运行失败: %v", err)
 	}
 
-	logger.Println("👋 新一代缓存管理服务已退出")
+	logger.Println("👋 组织缓存管理服务已退出")
 }
 
 // 获取环境变量
