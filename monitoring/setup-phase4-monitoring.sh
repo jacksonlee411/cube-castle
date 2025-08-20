@@ -70,7 +70,7 @@ if ! pgrep -f "prometheus" > /dev/null; then
                    --storage.tsdb.path="$PROMETHEUS_DIR/data" \
                    --web.console.templates="$PROMETHEUS_DIR/consoles" \
                    --web.console.libraries="$PROMETHEUS_DIR/console_libraries" \
-                   --web.listen-address=:9090 \
+                   --web.listen-address=:9099 \
                    --web.enable-lifecycle &
         echo "✅ Prometheus 已启动"
     else

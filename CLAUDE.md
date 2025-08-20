@@ -148,7 +148,13 @@
 - "任何临时绕过都可能成为长期技术债务，必须避免"
 
 ## 项目概述
-Cube Castle是一个基于CQRS架构的人力资源管理系统，包含前端React应用和Go后端API服务。项目已完成现代化简洁CQRS架构实施和务实CDC重构，**后端API和数据同步功能在开发环境中基本可用，但前端UI存在依赖问题导致用户界面无法正常工作**。
+Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端React应用和Go后端API服务。项目专注于组织架构管理和系统监控功能，已完成现代化简洁CQRS架构实施和务实CDC重构，**后端API和数据同步功能在开发环境中基本可用，但前端UI存在依赖问题导致用户界面无法正常工作**。
+
+**注意：** 基于项目聚焦原则，已完全移除以下模块以确保代码库的简洁性和维护性：
+- AI智能网关模块（70%完成度）
+- 业务智能分析模块（40%完成度）  
+- 员工管理系统（30%完成度 - API设计阶段）
+- 职位管理系统（25%完成度 - 数据模型阶段）
 
 ## ⚠️ 当前实际状态 (基于诚实和悲观谨慎原则 - 2025-08-16)
 
@@ -1073,7 +1079,7 @@ cube-castle/
 #### 🔄 升级路径
 ```bash
 # 1. 启动升级后的时态管理服务
-cd cmd/organization-temporal-command-service
+# 时态管理已整合到现有服务中，无需单独启动服务
 go run main_no_version.go  # 端口9091 - 纯日期生效模型
 
 # 2. 验证时态查询功能
@@ -1129,7 +1135,7 @@ cd frontend && npm run dev
 - 文档路径: `/home/shangmeilin/cube-castle/docs/` (统一文档管理)
 - 监控路径: `/home/shangmeilin/cube-castle/monitoring/`
 - CDC同步服务: `/home/shangmeilin/cube-castle/cmd/organization-sync-service/`
-- **时态管理服务**: `/home/shangmeilin/cube-castle/cmd/organization-temporal-command-service/` ⭐ **新增**
+- **时态管理功能**: 已整合到查询服务和命令服务中 ⭐ **已整合**
 - **时态工具类**: `/home/shangmeilin/cube-castle/frontend/src/shared/utils/temporal-converter.ts` ⭐ **新增**
 - 最后更新: 2025-08-16
 - 当前版本: **生产环境就绪版 (v2.1-Canvas-Kit-Standards)** ⭐ **重大版本升级**

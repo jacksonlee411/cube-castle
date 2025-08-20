@@ -31,7 +31,7 @@ echo "   ✅ 基础设施服务正常"
 
 echo "📋 2. 执行后端单元测试..."
 
-cd /home/shangmeilin/cube-castle/cmd/organization-temporal-command-service
+# 时态管理功能已整合到现有服务中，无需单独目录
 
 echo "   清理测试环境..."
 go clean -testcache

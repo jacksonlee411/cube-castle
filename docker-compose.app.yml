@@ -16,7 +16,7 @@ services:
     environment:
       - VITE_API_BASE_URL=http://localhost:9090
       - VITE_GRAPHQL_URL=http://localhost:8090/graphql
-      - VITE_TEMPORAL_URL=http://localhost:9091
+      # 时态管理功能已整合到现有服务中
     networks:
       - cube-castle-network
 
@@ -76,24 +76,8 @@ services:
       retries: 3
       start_period: 40s
 
-  # 时态管理服务
-  temporal-service:
-    build:
-      context: ./cmd/organization-temporal-command-service
-      dockerfile: Dockerfile
-    ports:
-      - "9091:9091"
-    depends_on:
-      - postgres
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=cubecastle
-      - DB_USER=user
-      - DB_PASSWORD=password
-    networks:
-      - cube-castle-network
-    restart: unless-stopped
+  # 时态管理功能已整合到query-service和command-service中
+  # temporal-service 已删除 - 功能由现有服务提供
 
   # CDC同步服务
   sync-service:

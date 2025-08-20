@@ -84,14 +84,14 @@ if ! pgrep -f "prometheus" > /dev/null; then
         prometheus \
             --config.file="prometheus.yml" \
             --storage.tsdb.path="data" \
-            --web.listen-address=:9090 \
+            --web.listen-address=:9099 \
             --web.enable-lifecycle \
             --log.level=info > prometheus.log 2>&1 &
         
         # 等待启动
         sleep 3
         
-        if curl -f -s "http://localhost:9090/api/v1/status/config" > /dev/null; then
+        if curl -f -s "http://localhost:9099/api/v1/status/config" > /dev/null; then
             echo "✅ Prometheus启动成功 (端口 9090)"
         else
             echo "❌ Prometheus启动失败，请检查配置"
@@ -151,7 +151,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://localhost:9090
+    url: http://localhost:9099
     isDefault: true
     editable: true
 EOF
@@ -188,7 +188,7 @@ services=(
     "http://localhost:8090/health|GraphQL API"
     "http://localhost:9090/health|Command API"
     "http://localhost:3000|前端应用"
-    "http://localhost:9090|Prometheus"
+    "http://localhost:9099|Prometheus"
     "http://localhost:9121/metrics|Redis Exporter"
 )
 
@@ -206,11 +206,11 @@ echo "2. 监控指标验证..."
 
 # 检查Prometheus指标收集
 echo "📊 检查Prometheus指标..."
-if curl -s "http://localhost:9090/api/v1/query?query=up" | grep -q '"status":"success"'; then
+if curl -s "http://localhost:9099/api/v1/query?query=up" | grep -q '"status":"success"'; then
     echo "✅ Prometheus API正常工作"
     
     # 检查具体指标
-    temporal_metrics=$(curl -s "http://localhost:9090/api/v1/label/__name__/values" | grep -c "temporal\|cache" || echo "0")
+    temporal_metrics=$(curl -s "http://localhost:9099/api/v1/label/__name__/values" | grep -c "temporal\|cache" || echo "0")
     if [ "$temporal_metrics" -gt 5 ]; then
         echo "✅ 时态API和缓存指标已收集 ($temporal_metrics 个)"
     else
@@ -231,7 +231,7 @@ fi
 
 echo ""
 echo "3. 告警规则验证..."
-if curl -s "http://localhost:9090/api/v1/rules" | grep -q "temporal_api_performance\|cache_performance"; then
+if curl -s "http://localhost:9099/api/v1/rules" | grep -q "temporal_api_performance\|cache_performance"; then
     echo "✅ Phase 4告警规则已加载"
 else
     echo "⚠️  告警规则待加载，请检查配置"
@@ -255,7 +255,7 @@ echo "🎯 === 监控集成验证完成 ==="
 echo ""
 echo "📊 监控访问地址:"
 echo "   🖥️  前端监控面板: http://localhost:3000/monitoring" 
-echo "   📈 Prometheus: http://localhost:9090"
+echo "   📈 Prometheus: http://localhost:9099"
 echo "   📊 Redis指标: http://localhost:9121/metrics"
 echo ""
 echo "🎖️  Phase 4监控集成状态:"
@@ -281,7 +281,7 @@ case "$1" in
         
         # 启动Prometheus
         if ! pgrep -f "prometheus" > /dev/null; then
-            prometheus --config.file=prometheus.yml --storage.tsdb.path=data --web.listen-address=:9090 &
+            prometheus --config.file=prometheus.yml --storage.tsdb.path=data --web.listen-address=:9099 &
             echo "✅ Prometheus已启动"
         fi
         

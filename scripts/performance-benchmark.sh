@@ -96,14 +96,14 @@ echo ""
 echo "🔄 Redis缓存性能分析"
 echo "从服务日志分析缓存命中情况:"
 
-if [ -f "/home/shangmeilin/cube-castle/cmd/organization-temporal-command-service/temporal-9091.log" ]; then
+if [ -f "/home/shangmeilin/cube-castle/logs/temporal-service.log" ]; then
     echo "最近的缓存活动:"
-    tail -n 20 "/home/shangmeilin/cube-castle/cmd/organization-temporal-command-service/temporal-9091.log" | grep -E "(CACHE HIT|CACHE MISS|CACHE SET)"
+    tail -n 20 "/home/shangmeilin/cube-castle/logs/temporal-service.log" | grep -E "(CACHE HIT|CACHE MISS|CACHE SET)"
     
     echo ""
     echo "缓存统计:"
-    cache_hits=$(grep "CACHE HIT" /home/shangmeilin/cube-castle/cmd/organization-temporal-command-service/temporal-9091.log | wc -l)
-    cache_misses=$(grep "CACHE MISS" /home/shangmeilin/cube-castle/cmd/organization-temporal-command-service/temporal-9091.log | wc -l)
+    cache_hits=$(grep "CACHE HIT" /home/shangmeilin/cube-castle/logs/temporal-service.log | wc -l)
+    cache_misses=$(grep "CACHE MISS" /home/shangmeilin/cube-castle/logs/temporal-service.log | wc -l)
     cache_total=$(( $cache_hits + $cache_misses ))
     
     if [ $cache_total -gt 0 ]; then

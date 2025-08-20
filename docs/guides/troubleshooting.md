@@ -26,7 +26,7 @@ ps aux | grep main_no_version
 lsof -i :9091
 
 # 3. 查看服务日志
-cd cmd/organization-temporal-command-service
+# 时态管理功能已整合到现有服务中
 go run main_no_version.go
 ```
 
@@ -53,7 +53,7 @@ sudo lsof -i :9091
 sudo kill -9 <PID>
 
 # 重新启动服务
-cd cmd/organization-temporal-command-service && go run main_no_version.go
+# 时态管理功能已整合到现有服务中 && go run main_no_version.go
 ```
 
 #### 原因3: Redis连接失败
@@ -378,7 +378,7 @@ docker-compose up --build
 **解决方案**:
 ```bash
 # 检查CORS配置
-cd cmd/organization-temporal-command-service
+# 时态管理功能已整合到现有服务中
 grep -n "cors" main_no_version.go
 
 # 确认CORS配置正确
