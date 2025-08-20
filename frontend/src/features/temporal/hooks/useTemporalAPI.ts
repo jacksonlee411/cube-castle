@@ -2,38 +2,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 // import { organizationsApi } from '../../shared/api/organizations';
 import type { PlannedOrganizationData } from '../components/PlannedOrganizationForm';
 
-/**
- * 创建计划组织的钩子
- */
-export const useCreatePlannedOrganization = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: PlannedOrganizationData) => {
-      // 调用计划组织专用API端点
-      const response = await fetch('http://localhost:9090/api/v1/organization-units/planned', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.message || '创建计划组织失败');
-      }
-
-      return response.json();
-    },
-
-    onSettled: () => {
-      // 成功后刷新组织列表
-      queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      queryClient.invalidateQueries({ queryKey: ['organizationStats'] });
-    },
-  });
-};
+// ❌ 已移除 useCreatePlannedOrganization - 简化时态管理API
+// 使用基础创建API统一处理，通过status字段区分
+// 
+// 原功能替代方案：
+// const response = await fetch('http://localhost:9090/api/v1/organization-units', {
+//   method: 'POST',
+//   body: JSON.stringify({ ...data, status: 'PLANNED' }),
+// });
 
 /**
  * 时态查询钩子
@@ -117,34 +93,7 @@ export const useTemporalQuery = () => {
   };
 };
 
-/**
- * 更新组织时态信息的钩子
- */
-export const useUpdateTemporalInfo = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ code, ...data }: { code: string } & Partial<PlannedOrganizationData>) => {
-      const response = await fetch(`http://localhost:9090/api/v1/organization-units/${code}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.message || '更新时态信息失败');
-      }
-
-      return response.json();
-    },
-
-    onSettled: () => {
-      // 成功后刷新相关查询
-      queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      queryClient.invalidateQueries({ queryKey: ['organizationStats'] });
-    },
-  });
-};
+// ❌ 已移除 useUpdateTemporalInfo - 功能重复
+// 使用基础更新API统一处理时态信息更新
+// 
+// 原功能保留：直接使用 PUT /api/v1/organization-units/{code} 即可

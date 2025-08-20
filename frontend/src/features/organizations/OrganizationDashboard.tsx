@@ -21,10 +21,9 @@ import { useOrganizationActions } from './hooks/useOrganizationActions';
 
 const DashboardHeader: React.FC<{
   onCreateClick: () => void;
-  onCreatePlannedClick?: () => void;
   temporalMode?: 'current' | 'historical';
   isHistorical?: boolean;
-}> = ({ onCreateClick, onCreatePlannedClick, isHistorical = false }) => (
+}> = ({ onCreateClick, isHistorical = false }) => (
   <Box marginBottom="l">
     <Heading size="large">
       组织架构管理
@@ -43,8 +42,8 @@ const DashboardHeader: React.FC<{
         {isHistorical ? '新增组织单元 (历史模式禁用)' : '新增组织单元'}
       </PrimaryButton>
       
-      {/* 计划组织创建按钮 */}
-      {onCreatePlannedClick && !isHistorical && (
+      {/* ❌ 已移除计划组织创建按钮 - 简化API设计 */}
+      {/* {onCreatePlannedClick && !isHistorical && (
         <SecondaryButton 
           marginRight="s" 
           onClick={onCreatePlannedClick}
@@ -52,7 +51,7 @@ const DashboardHeader: React.FC<{
         >
           计划 新增计划组织
         </SecondaryButton>
-      )}
+      )} */}
       
       <SecondaryButton 
         marginRight="s"
@@ -145,10 +144,10 @@ export const OrganizationDashboard: React.FC = () => {
     navigate(`/organizations/${organizationCode}/temporal`);
   };
 
-  // 计划组织创建处理 - 重新启用
-  const handleCreatePlanned = () => {
-    handleCreate();
-  };
+  // ❌ 已移除计划组织创建处理 - API已移除
+  // const handleCreatePlanned = () => {
+  //   handleCreate(); // 现在统一使用基础创建功能
+  // };
 
   // 组织详情状态和操作 - 暂时禁用以修复无限循环错误
   // const { mode: temporalMode, isHistorical, isCurrent, isPlanning } = useTemporalMode();
@@ -185,7 +184,7 @@ export const OrganizationDashboard: React.FC = () => {
 
       <DashboardHeader 
         onCreateClick={handleCreateOrganization}
-        onCreatePlannedClick={handleCreatePlanned}
+        // onCreatePlannedClick={handleCreatePlanned} // ❌ 已移除
         temporalMode={temporalMode}
         isHistorical={isHistorical}
       />

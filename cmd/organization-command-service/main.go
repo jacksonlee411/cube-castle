@@ -227,25 +227,11 @@ func ValidateUpdateOrganization(req *UpdateOrganizationRequest) error {
 
 // ===== 时态专用请求/响应模型 =====
 
-// 计划组织创建请求
-type CreatePlannedOrganizationRequest struct {
-	Name          string  `json:"name" validate:"required,max=100"`
-	UnitType      string  `json:"unit_type" validate:"required"`
-	ParentCode    *string `json:"parent_code,omitempty"`
-	SortOrder     int     `json:"sort_order"`
-	Description   string  `json:"description"`
-	EffectiveDate Date    `json:"effective_date" validate:"required"`
-	EndDate       *Date   `json:"end_date,omitempty"`
-	ChangeReason  string  `json:"change_reason" validate:"required"`
-}
+// ❌ 已移除 CreatePlannedOrganizationRequest - 简化时态管理
+// 使用基础创建API统一处理，通过status字段区分
 
-// 时态状态变更请求
-type TemporalStateChangeRequest struct {
-	EffectiveDate *Date  `json:"effective_date,omitempty"`
-	EndDate       *Date  `json:"end_date,omitempty"`
-	Status        string `json:"status" validate:"required"`
-	ChangeReason  string `json:"change_reason" validate:"required"`
-}
+// ❌ 已移除 TemporalStateChangeRequest - 功能重复
+// 使用基础更新API (PUT /api/v1/organization-units/{code}) 替代
 
 // 组织历史版本请求
 type CreateOrganizationVersionRequest struct {
@@ -951,190 +937,21 @@ func (h *OrganizationHandler) ReactivateOrganization(w http.ResponseWriter, r *h
 // 所有查询操作必须使用GraphQL服务 (端口8090)
 // 查询接口: http://localhost:8090/graphql
 
-// ===== 时态专用处理器方法 =====
+// ❌ 已移除 CreatePlannedOrganization - 简化时态管理API
+// 计划组织功能已整合到基础创建API中
+// 使用 POST /api/v1/organization-units 统一创建，通过status字段区分
 
-// 创建计划中的组织（未来生效）
-func (h *OrganizationHandler) CreatePlannedOrganization(w http.ResponseWriter, r *http.Request) {
-	var req CreatePlannedOrganizationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
-		return
-	}
-
-	// 验证计划组织创建请求
-	if err := h.validateCreatePlannedOrganization(&req); err != nil {
-		monitoring.RecordOrganizationOperation("create_planned", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "输入验证失败", err)
-		return
-	}
-
-	tenantID := h.getTenantID(r)
-
-	// 生成组织代码
-	code, err := h.repo.GenerateCode(r.Context(), tenantID)
-	if err != nil {
-		monitoring.RecordOrganizationOperation("create_planned", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusInternalServerError, "CODE_GENERATION_ERROR", "生成组织代码失败", err)
-		return
-	}
-
-	// 计算路径和级别
-	path, level, err := h.repo.CalculatePath(r.Context(), tenantID, req.ParentCode, code)
-	if err != nil {
-		monitoring.RecordOrganizationOperation("create_planned", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusBadRequest, "PARENT_ERROR", "父组织处理失败", err)
-		return
-	}
-
-	// 创建计划组织实体
-	org := &Organization{
-		TenantID:      tenantID.String(),
-		Code:          code,
-		ParentCode:    req.ParentCode,
-		Name:          req.Name,
-		UnitType:      req.UnitType,
-		Status:        "PLANNED", // 计划状态
-		Level:         level,
-		Path:          path,
-		SortOrder:     req.SortOrder,
-		Description:   req.Description,
-		EffectiveDate: &req.EffectiveDate,
-		EndDate:       req.EndDate,
-		IsTemporal:    true,
-		ChangeReason:  &req.ChangeReason,
-	}
-
-	// 保存到数据库
-	createdOrg, err := h.repo.Create(r.Context(), org)
-	if err != nil {
-		monitoring.RecordOrganizationOperation("create_planned", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusInternalServerError, "CREATE_ERROR", "创建计划组织失败", err)
-		return
-	}
-
-	// 构建响应
-	response := h.toOrganizationResponse(createdOrg)
-
-	monitoring.RecordOrganizationOperation("create_planned", "success", "command-service")
-	h.logger.Printf("计划组织创建成功: %s - %s (生效时间: %v)", response.Code, response.Name, req.EffectiveDate)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
-}
-
-// 时态状态变更
-func (h *OrganizationHandler) TemporalStateChange(w http.ResponseWriter, r *http.Request) {
-	code := chi.URLParam(r, "code")
-	if code == "" {
-		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
-		return
-	}
-
-	var req TemporalStateChangeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
-		return
-	}
-
-	// 验证时态状态变更请求
-	if err := h.validateTemporalStateChange(&req); err != nil {
-		monitoring.RecordOrganizationOperation("temporal_change", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "输入验证失败", err)
-		return
-	}
-
-	tenantID := h.getTenantID(r)
-
-	// 构建更新请求
-	updateReq := &UpdateOrganizationRequest{
-		// 移除：Status字段（不允许直接修改状态）
-		EffectiveDate: req.EffectiveDate,
-		EndDate:       req.EndDate,
-		ChangeReason:  &req.ChangeReason,
-		IsTemporal:    func() *bool { b := true; return &b }(), // 启用时态管理
-	}
-
-	// 更新组织
-	updatedOrg, err := h.repo.Update(r.Context(), tenantID, code, updateReq)
-	if err != nil {
-		monitoring.RecordOrganizationOperation("temporal_change", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusInternalServerError, "UPDATE_ERROR", "时态状态变更失败", err)
-		return
-	}
-
-	// 构建响应
-	response := h.toOrganizationResponse(updatedOrg)
-
-	monitoring.RecordOrganizationOperation("temporal_change", "success", "command-service")
-	h.logger.Printf("时态状态变更成功: %s - %s -> %s", code, req.Status, req.ChangeReason)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
+// ❌ 已移除 TemporalStateChange - 功能重复
+// 时态状态变更功能已整合到基础更新API中
+// 使用 PUT /api/v1/organization-units/{code} 统一更新时态字段
 
 // ===== 辅助方法 =====
 
-// 验证计划组织创建请求
-func (h *OrganizationHandler) validateCreatePlannedOrganization(req *CreatePlannedOrganizationRequest) error {
-	if strings.TrimSpace(req.Name) == "" {
-		return fmt.Errorf("组织名称不能为空")
-	}
+// ❌ 已移除 validateCreatePlannedOrganization - 简化验证逻辑
+// 计划组织验证已整合到基础创建验证中
 
-	if len(req.Name) > 100 {
-		return fmt.Errorf("组织名称不能超过100个字符")
-	}
-
-	if req.UnitType == "" {
-		return fmt.Errorf("组织类型不能为空")
-	}
-
-	validTypes := map[string]bool{
-		"COMPANY": true, "DEPARTMENT": true, "COST_CENTER": true, "PROJECT_TEAM": true,
-	}
-	if !validTypes[req.UnitType] {
-		return fmt.Errorf("无效的组织类型: %s", req.UnitType)
-	}
-
-	if req.SortOrder < 0 {
-		return fmt.Errorf("排序顺序不能为负数")
-	}
-
-	// 计划组织必须有未来生效时间
-	if req.EffectiveDate.Time.Before(time.Now()) {
-		return fmt.Errorf("计划组织的生效日期必须在当前日期之后")
-	}
-
-	if req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
-		return fmt.Errorf("生效日期不能晚于失效日期")
-	}
-
-	if strings.TrimSpace(req.ChangeReason) == "" {
-		return fmt.Errorf("计划组织必须提供变更原因")
-	}
-
-	return nil
-}
-
-// 验证时态状态变更请求
-func (h *OrganizationHandler) validateTemporalStateChange(req *TemporalStateChangeRequest) error {
-	validStatuses := map[string]bool{
-		"ACTIVE": true, "INACTIVE": true, "PLANNED": true,
-	}
-	if !validStatuses[req.Status] {
-		return fmt.Errorf("无效的状态: %s", req.Status)
-	}
-
-	if req.EffectiveDate != nil && req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
-		return fmt.Errorf("生效日期不能晚于失效日期")
-	}
-
-	if strings.TrimSpace(req.ChangeReason) == "" {
-		return fmt.Errorf("时态状态变更必须提供变更原因")
-	}
-
-	return nil
-}
+// ❌ 已移除 validateTemporalStateChange - 功能重复
+// 时态状态变更验证已整合到基础更新验证中
 
 func (h *OrganizationHandler) getTenantID(r *http.Request) uuid.UUID {
 	tenantIDStr := r.Header.Get("X-Tenant-ID")
@@ -1270,9 +1087,9 @@ func main() {
 			r.Post("/{code}/suspend", handler.SuspendOrganization)       // 停用组织
 			r.Post("/{code}/reactivate", handler.ReactivateOrganization) // 重新启用组织
 
-			// 时态管理专用端点
-			r.Post("/planned", handler.CreatePlannedOrganization)        // 创建计划组织
-			r.Put("/{code}/temporal-state", handler.TemporalStateChange) // 时态状态变更
+			// ❌ 已移除时态管理专用端点 - 简化API设计
+			// r.Post("/planned", handler.CreatePlannedOrganization)        // 已移除：创建计划组织
+			// r.Put("/{code}/temporal-state", handler.TemporalStateChange) // 已移除：时态状态变更
 		})
 	})
 
@@ -1303,8 +1120,9 @@ func main() {
 				// ❌ 移除GET - 查询请使用GraphQL服务(8090)
 				"update":         "PUT /api/v1/organization-units/{code}",
 				"delete":         "DELETE /api/v1/organization-units/{code}",
-				"create_planned": "POST /api/v1/organization-units/planned",
-				"temporal_state": "PUT /api/v1/organization-units/{code}/temporal-state",
+				// ❌ 已移除时态端点 - 简化API设计
+				// "create_planned": "POST /api/v1/organization-units/planned", // 已移除
+				// "temporal_state": "PUT /api/v1/organization-units/{code}/temporal-state", // 已移除
 				"health":         "GET /health",
 				"alerts":         "GET /alerts",
 				"status":         "GET /status",
@@ -1324,7 +1142,7 @@ func main() {
 				"统一业务验证逻辑",
 				"减少代码文件数量68%",
 				"保持核心业务价值",
-				"集成时态管理能力", // 新增说明
+				"移除过度的时态管理专用API", // 新增说明
 			},
 		})
 	})
@@ -1357,10 +1175,11 @@ func main() {
 
 	logger.Printf("🚀 时态组织命令服务启动成功 - 端口 :%s", port)
 	logger.Printf("📍 API端点: http://localhost:%s/api/v1/organization-units", port)
-	logger.Printf("📍 时态端点: http://localhost:%s/api/v1/organization-units/planned", port)
+	// ❌ 已移除时态端点 - 简化API设计
+	// logger.Printf("📍 时态端点: http://localhost:%s/api/v1/organization-units/planned", port) // 已移除
 	logger.Printf("📍 监控指标: http://localhost:%s/metrics", port)
 	logger.Printf("✅ DDD简化完成: 25个文件 → 1个文件 (减少96%%)")
-	logger.Printf("⏰ 时态管理集成: 支持计划组织和状态变更")
+	logger.Printf("⏰ 时态管理集成: 支持基础时态字段和操作")
 	logger.Printf("📊 版本控制: 自动历史版本和时间线事件")
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
