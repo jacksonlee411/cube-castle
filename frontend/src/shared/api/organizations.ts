@@ -754,6 +754,82 @@ export const organizationAPI = {
       
       throw new Error('Failed to update temporal organization. Please try again.');
     }
+  },
+
+  // === 新增：操作驱动状态管理API ===
+
+  // 停用组织
+  suspend: async (code: string, reason: string): Promise<OrganizationUnit> => {
+    try {
+      if (!code) {
+        throw new SimpleValidationError('Organization code is required', [
+          { field: 'code', message: 'Code is required' }
+        ]);
+      }
+
+      if (!reason || !reason.trim()) {
+        throw new SimpleValidationError('Suspend reason is required', [
+          { field: 'reason', message: 'Reason is required' }
+        ]);
+      }
+
+      const response = await restClient.request<OrganizationUnit>(`/organization-units/${code}/suspend`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      
+      if (!response.code) {
+        throw new Error('Invalid response from server');
+      }
+
+      return response;
+
+    } catch (error: any) {
+      console.error('Error suspending organization:', code, error);
+      
+      if (error instanceof SimpleValidationError) {
+        throw error;
+      }
+      
+      throw new Error('Failed to suspend organization. Please try again.');
+    }
+  },
+
+  // 重新启用组织
+  reactivate: async (code: string, reason: string): Promise<OrganizationUnit> => {
+    try {
+      if (!code) {
+        throw new SimpleValidationError('Organization code is required', [
+          { field: 'code', message: 'Code is required' }
+        ]);
+      }
+
+      if (!reason || !reason.trim()) {
+        throw new SimpleValidationError('Reactivate reason is required', [
+          { field: 'reason', message: 'Reason is required' }
+        ]);
+      }
+
+      const response = await restClient.request<OrganizationUnit>(`/organization-units/${code}/reactivate`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      
+      if (!response.code) {
+        throw new Error('Invalid response from server');
+      }
+
+      return response;
+
+    } catch (error: any) {
+      console.error('Error reactivating organization:', code, error);
+      
+      if (error instanceof SimpleValidationError) {
+        throw error;
+      }
+      
+      throw new Error('Failed to reactivate organization. Please try again.');
+    }
   }
 };
 

@@ -4,7 +4,7 @@ export interface OrganizationUnit {
   parent_code?: string;
   name: string;
   unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
   level: number;
   path: string;
   sort_order: number;
@@ -125,4 +125,29 @@ export interface UpdateOrganizationResponse {
   end_date?: string;
   version?: number;
   change_reason?: string;
+}
+
+// 组织操作请求和响应类型 (操作驱动状态管理)
+export interface SuspendOrganizationRequest {
+  reason: string;
+}
+
+export interface ReactivateOrganizationRequest {
+  reason: string;
+}
+
+export interface SuspendOrganizationResponse {
+  code: string;
+  name: string;
+  status: 'SUSPENDED';
+  suspended_at: string;
+  reason: string;
+}
+
+export interface ReactivateOrganizationResponse {
+  code: string;
+  name: string;
+  status: 'ACTIVE';
+  reactivated_at: string;
+  reason: string;
 }

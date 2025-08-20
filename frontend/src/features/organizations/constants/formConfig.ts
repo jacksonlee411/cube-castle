@@ -6,8 +6,8 @@ export const ORGANIZATION_UNIT_TYPES = {
 } as const;
 
 export const ORGANIZATION_STATUSES = {
-  ACTIVE: '激活',
-  INACTIVE: '停用',
+  ACTIVE: '启用',
+  SUSPENDED: '停用',
   PLANNED: '计划中'
 } as const;
 

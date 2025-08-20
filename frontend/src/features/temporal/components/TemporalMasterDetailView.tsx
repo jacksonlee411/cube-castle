@@ -19,22 +19,33 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { plusIcon } from '@workday/canvas-system-icons-web';
 import { baseColors } from '../../../shared/utils/colorTokens';
-import { 
-  LifecycleStatusBadge, 
-  LIFECYCLE_STATES 
-} from './FiveStateStatusSelector';
+import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
 
-// 状态映射函数：将后端状态映射到前端五状态生命周期管理系统
-const mapBackendStatusToLifecycleStatus = (backendStatus: string, isCurrent: boolean): 'CURRENT' | 'HISTORICAL' | 'PLANNED' => {
-  // 根据后端状态和is_current标志确定生命周期状态
-  if (backendStatus === 'PLANNED') {
-    return 'PLANNED';
-  } else if (backendStatus === 'ACTIVE' && isCurrent) {
-    return 'CURRENT';
-  } else {
-    // INACTIVE 或 非当前的 ACTIVE 都被视为历史记录
-    return 'HISTORICAL';
+// 状态映射函数：将后端状态映射到新的三状态系统
+const mapBackendStatusToOrganizationStatus = (backendStatus: string): OrganizationStatus => {
+  // 映射到新的三状态系统：ACTIVE, SUSPENDED, PLANNED
+  switch (backendStatus) {
+    case 'ACTIVE':
+      return 'ACTIVE';
+    case 'INACTIVE':
+    case 'SUSPENDED':
+      return 'SUSPENDED';
+    case 'PLANNED':
+      return 'PLANNED';
+    default:
+      return 'ACTIVE'; // 默认状态
   }
+};
+
+// 状态映射函数：将后端状态映射到生命周期状态
+const mapBackendStatusToLifecycleStatus = (status: string, isCurrent: boolean): 'CURRENT' | 'HISTORICAL' | 'PLANNED' => {
+  if (status === 'PLANNED') {
+    return 'PLANNED';
+  }
+  if (isCurrent) {
+    return 'CURRENT';
+  }
+  return 'HISTORICAL';
 };
 
 // Types - 五状态生命周期管理系统
@@ -282,9 +293,9 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                           {formatDate(version.effective_date)}
                         </Text>
                         
-                        {/* 五状态生命周期标识 */}
-                        <LifecycleStatusBadge 
-                          status={statusInfo.badge} 
+                        {/* 状态标识 - 使用新的简化状态系统 */}
+                        <StatusBadge 
+                          status={mapBackendStatusToOrganizationStatus(version.status)} 
                           size="small"
                         />
                       </Flex>

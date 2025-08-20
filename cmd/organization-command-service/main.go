@@ -201,14 +201,7 @@ func ValidateUpdateOrganization(req *UpdateOrganizationRequest) error {
 		}
 	}
 
-	if req.Status != nil {
-		validStatuses := map[string]bool{
-			"ACTIVE": true, "INACTIVE": true, "PLANNED": true,
-		}
-		if !validStatuses[*req.Status] {
-			return fmt.Errorf("无效的状态: %s", *req.Status)
-		}
-	}
+	// 移除：Status字段验证（不允许直接修改状态）
 
 	if req.SortOrder != nil && *req.SortOrder < 0 {
 		return fmt.Errorf("排序顺序不能为负数")
@@ -313,7 +306,7 @@ type CreateOrganizationRequest struct {
 type UpdateOrganizationRequest struct {
 	Name        *string `json:"name,omitempty"`
 	UnitType    *string `json:"unit_type,omitempty"`
-	Status      *string `json:"status,omitempty"`
+	// 移除：Status字段（不允许直接修改状态）
 	SortOrder   *int    `json:"sort_order,omitempty"`
 	Description *string `json:"description,omitempty"`
 	// Level       *int    `json:"level,omitempty"`        // 移除：level由parent_code自动计算
@@ -342,6 +335,15 @@ type OrganizationResponse struct {
 	EndDate       *Date   `json:"end_date,omitempty"`
 	IsTemporal    bool    `json:"is_temporal"`
 	ChangeReason  *string `json:"change_reason,omitempty"`
+}
+
+// 组织操作请求类型
+type SuspendOrganizationRequest struct {
+	Reason string `json:"reason" validate:"required"`
+}
+
+type ReactivateOrganizationRequest struct {
+	Reason string `json:"reason" validate:"required"`
 }
 
 type ErrorResponse struct {
@@ -457,11 +459,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		argIndex++
 	}
 
-	if req.Status != nil {
-		setParts = append(setParts, fmt.Sprintf("status = $%d", argIndex))
-		args = append(args, *req.Status)
-		argIndex++
-	}
+	// 移除：Status字段更新（不允许直接修改状态）
 
 	if req.SortOrder != nil {
 		setParts = append(setParts, fmt.Sprintf("sort_order = $%d", argIndex))
@@ -570,6 +568,104 @@ func (r *OrganizationRepository) Delete(ctx context.Context, tenantID uuid.UUID,
 
 	r.logger.Printf("组织删除成功: %s", code)
 	return nil
+}
+
+// Suspend 停用组织（设置状态为SUSPENDED）
+func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID, code string, reason string) (*Organization, error) {
+	query := `
+		UPDATE organization_units 
+		SET status = 'SUSPENDED', updated_at = $3
+		WHERE tenant_id = $1 AND code = $2 AND status = 'ACTIVE'
+		RETURNING tenant_id, code, parent_code, name, unit_type, status, 
+		         level, path, sort_order, description, created_at, updated_at,
+		         effective_date, end_date, is_temporal, change_reason
+	`
+	
+	var org Organization
+	var parentCode sql.NullString
+	var effectiveDate, endDate sql.NullTime
+	var changeReason sql.NullString
+	
+	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
+		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
+		&org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
+		&effectiveDate, &endDate, &org.IsTemporal, &changeReason,
+	)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("组织不存在或状态不是ACTIVE: %s", code)
+		}
+		return nil, fmt.Errorf("停用组织失败: %w", err)
+	}
+	
+	// 处理可空字段
+	if parentCode.Valid {
+		org.ParentCode = &parentCode.String
+	}
+	if effectiveDate.Valid {
+		d := &Date{effectiveDate.Time}
+		org.EffectiveDate = d
+	}
+	if endDate.Valid {
+		d := &Date{endDate.Time}
+		org.EndDate = d
+	}
+	if changeReason.Valid {
+		org.ChangeReason = &changeReason.String
+	}
+	
+	r.logger.Printf("组织停用成功: %s - %s", org.Code, org.Name)
+	return &org, nil
+}
+
+// Reactivate 重新启用组织（设置状态为ACTIVE）
+func (r *OrganizationRepository) Reactivate(ctx context.Context, tenantID uuid.UUID, code string, reason string) (*Organization, error) {
+	query := `
+		UPDATE organization_units 
+		SET status = 'ACTIVE', updated_at = $3
+		WHERE tenant_id = $1 AND code = $2 AND status = 'SUSPENDED'
+		RETURNING tenant_id, code, parent_code, name, unit_type, status, 
+		         level, path, sort_order, description, created_at, updated_at,
+		         effective_date, end_date, is_temporal, change_reason
+	`
+	
+	var org Organization
+	var parentCode sql.NullString
+	var effectiveDate, endDate sql.NullTime
+	var changeReason sql.NullString
+	
+	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
+		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
+		&org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
+		&effectiveDate, &endDate, &org.IsTemporal, &changeReason,
+	)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("组织不存在或状态不是SUSPENDED: %s", code)
+		}
+		return nil, fmt.Errorf("重新启用组织失败: %w", err)
+	}
+	
+	// 处理可空字段
+	if parentCode.Valid {
+		org.ParentCode = &parentCode.String
+	}
+	if effectiveDate.Valid {
+		d := &Date{effectiveDate.Time}
+		org.EffectiveDate = d
+	}
+	if endDate.Valid {
+		d := &Date{endDate.Time}
+		org.EndDate = d
+	}
+	if changeReason.Valid {
+		org.ChangeReason = &changeReason.String
+	}
+	
+	r.logger.Printf("组织重新启用成功: %s - %s", org.Code, org.Name)
+	return &org, nil
 }
 
 // ❌ 已移除 GetByCode - 违反CQRS原则
@@ -773,6 +869,84 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// SuspendOrganization 停用组织
+func (h *OrganizationHandler) SuspendOrganization(w http.ResponseWriter, r *http.Request) {
+	code := chi.URLParam(r, "code")
+	if code == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
+		return
+	}
+	
+	var req SuspendOrganizationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
+		return
+	}
+	
+	if req.Reason == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "停用原因不能为空", nil)
+		return
+	}
+	
+	tenantID := h.getTenantID(r)
+	
+	// 停用组织
+	org, err := h.repo.Suspend(r.Context(), tenantID, code, req.Reason)
+	if err != nil {
+		monitoring.RecordOrganizationOperation("suspend", "failed", "command-service")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "SUSPEND_ERROR", "停用组织失败", err)
+		return
+	}
+	
+	// 构建响应
+	response := h.toOrganizationResponse(org)
+	monitoring.RecordOrganizationOperation("suspend", "success", "command-service")
+	h.logger.Printf("组织停用成功: %s - %s", response.Code, response.Name)
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// ReactivateOrganization 重新启用组织
+func (h *OrganizationHandler) ReactivateOrganization(w http.ResponseWriter, r *http.Request) {
+	code := chi.URLParam(r, "code")
+	if code == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
+		return
+	}
+	
+	var req ReactivateOrganizationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
+		return
+	}
+	
+	if req.Reason == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "重启原因不能为空", nil)
+		return
+	}
+	
+	tenantID := h.getTenantID(r)
+	
+	// 重新启用组织
+	org, err := h.repo.Reactivate(r.Context(), tenantID, code, req.Reason)
+	if err != nil {
+		monitoring.RecordOrganizationOperation("reactivate", "failed", "command-service")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "REACTIVATE_ERROR", "重新启用组织失败", err)
+		return
+	}
+	
+	// 构建响应
+	response := h.toOrganizationResponse(org)
+	monitoring.RecordOrganizationOperation("reactivate", "success", "command-service")
+	h.logger.Printf("组织重新启用成功: %s - %s", response.Code, response.Name)
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
 // ❌ 已移除 GetOrganization - 违反CQRS原则
 // 所有查询操作必须使用GraphQL服务 (端口8090)
 // 查询接口: http://localhost:8090/graphql
@@ -874,7 +1048,7 @@ func (h *OrganizationHandler) TemporalStateChange(w http.ResponseWriter, r *http
 
 	// 构建更新请求
 	updateReq := &UpdateOrganizationRequest{
-		Status:        &req.Status,
+		// 移除：Status字段（不允许直接修改状态）
 		EffectiveDate: req.EffectiveDate,
 		EndDate:       req.EndDate,
 		ChangeReason:  &req.ChangeReason,
@@ -1091,6 +1265,10 @@ func main() {
 			// ❌ 移除GET接口 - 违反CQRS原则，查询应使用GraphQL服务(8090)
 			r.Put("/{code}", handler.UpdateOrganization)
 			r.Delete("/{code}", handler.DeleteOrganization)
+
+			// 组织状态操作端点
+			r.Post("/{code}/suspend", handler.SuspendOrganization)       // 停用组织
+			r.Post("/{code}/reactivate", handler.ReactivateOrganization) // 重新启用组织
 
 			// 时态管理专用端点
 			r.Post("/planned", handler.CreatePlannedOrganization)        // 创建计划组织

@@ -8,7 +8,7 @@ export interface CreateOrganizationInput {
   parent_code?: string;
   name: string;
   unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
   level: number;
   sort_order: number;
   description?: string;
@@ -20,7 +20,7 @@ export interface UpdateOrganizationInput {
   code: string;
   name?: string;
   unit_type?: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
-  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  status?: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
   description?: string;
   sort_order?: number;
   level?: number;
@@ -124,6 +124,110 @@ export const useUpdateOrganization = () => {
       });
       
       console.log('[Mutation] Update cache invalidation and refetch completed');
+    },
+  });
+};
+
+// === 新增：操作驱动状态管理Hooks ===
+
+// 停用组织
+export const useSuspendOrganization = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ code, reason }: { code: string; reason: string }): Promise<OrganizationUnit> => {
+      console.log('[Mutation] Suspending organization:', code, reason);
+      const response = await organizationAPI.suspend(code, reason);
+      console.log('[Mutation] Suspend successful:', response);
+      return response;
+    },
+    onSettled: (data, error, variables) => {
+      console.log('[Mutation] Suspend settled:', variables.code);
+      
+      // 立即失效所有相关查询缓存
+      queryClient.invalidateQueries({ 
+        queryKey: ['organizations'],
+        exact: false
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization', variables.code],
+        exact: false
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization-stats'],
+        exact: false
+      });
+      
+      // 强制重新获取数据以确保立即显示状态变更
+      queryClient.refetchQueries({ 
+        queryKey: ['organizations'],
+        type: 'active'
+      });
+      
+      queryClient.refetchQueries({ 
+        queryKey: ['organization-stats'],
+        type: 'active'
+      });
+      
+      // 直接设置缓存数据以提供即时反馈
+      if (data) {
+        queryClient.setQueryData(['organization', variables.code], data);
+      }
+      
+      console.log('[Mutation] Suspend cache invalidation and refetch completed');
+    },
+  });
+};
+
+// 重新启用组织
+export const useReactivateOrganization = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ code, reason }: { code: string; reason: string }): Promise<OrganizationUnit> => {
+      console.log('[Mutation] Reactivating organization:', code, reason);
+      const response = await organizationAPI.reactivate(code, reason);
+      console.log('[Mutation] Reactivate successful:', response);
+      return response;
+    },
+    onSettled: (data, error, variables) => {
+      console.log('[Mutation] Reactivate settled:', variables.code);
+      
+      // 立即失效所有相关查询缓存
+      queryClient.invalidateQueries({ 
+        queryKey: ['organizations'],
+        exact: false
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization', variables.code],
+        exact: false
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['organization-stats'],
+        exact: false
+      });
+      
+      // 强制重新获取数据以确保立即显示状态变更
+      queryClient.refetchQueries({ 
+        queryKey: ['organizations'],
+        type: 'active'
+      });
+      
+      queryClient.refetchQueries({ 
+        queryKey: ['organization-stats'],
+        type: 'active'
+      });
+      
+      // 直接设置缓存数据以提供即时反馈
+      if (data) {
+        queryClient.setQueryData(['organization', variables.code], data);
+      }
+      
+      console.log('[Mutation] Reactivate cache invalidation and refetch completed');
     },
   });
 };

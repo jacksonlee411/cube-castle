@@ -21,7 +21,22 @@ import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { colors, borderRadius } from '@workday/canvas-kit-react/tokens';
 import { type TemporalEditFormData } from './TemporalEditForm';
-import { FiveStateStatusSelector, LIFECYCLE_STATES, type LifecycleStatus } from './FiveStateStatusSelector';
+import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+
+// 添加映射函数
+const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): OrganizationStatus => {
+  switch (lifecycleStatus) {
+    case 'CURRENT':
+    case 'ACTIVE':
+      return 'ACTIVE';
+    case 'SUSPENDED':
+      return 'SUSPENDED';
+    case 'PLANNED':
+      return 'PLANNED';
+    default:
+      return 'ACTIVE';
+  }
+};
 
 export interface InlineNewVersionFormProps {
   organizationCode: string | null; // 允许null用于创建模式
@@ -549,21 +564,18 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 required={true}
               />
 
-              <FiveStateStatusSelector
-                value={formData.lifecycle_status}
-                onChange={(status: LifecycleStatus) => {
-                  setFormData(prev => ({ ...prev, lifecycle_status: status.key }));
-                  // 清除错误
-                  if (errors.lifecycle_status) {
-                    setErrors(prev => ({ ...prev, lifecycle_status: '' }));
-                  }
-                }}
-                disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
-                includeDeleted={false}
-                label="组织状态"
-                required={true}
-                error={errors.lifecycle_status}
-              />
+              <FormField>
+                <FormField.Label>组织状态 *</FormField.Label>
+                <FormField.Field>
+                  <StatusBadge 
+                    status={mapLifecycleStatusToOrganizationStatus(formData.lifecycle_status)} 
+                    size="medium"
+                  />
+                  <Text typeLevel="subtext.small" color="hint" marginTop="xs">
+                    状态由系统根据操作自动管理
+                  </Text>
+                </FormField.Field>
+              </FormField>
 
               <FormField>
                 <FormField.Label>描述信息</FormField.Label>
