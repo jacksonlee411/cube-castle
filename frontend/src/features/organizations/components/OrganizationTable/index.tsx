@@ -26,9 +26,7 @@ const TableHeader: React.FC<{ showTemporalInfo?: boolean }> = ({ showTemporalInf
 
 export const OrganizationTable: React.FC<OrganizationTableProps> = ({
   organizations,
-  onToggleStatus,
   onTemporalManage,
-  togglingId,
   temporalMode = 'current',
   isHistorical = false,
   showTemporalInfo = false
@@ -50,15 +48,12 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
           </Table.Row>
         ) : (
           organizations.map((org, index) => {
-            const isToggling = togglingId === org.code;
             return (
               <TableRow
                 key={org.code || `org-${index}`}
                 organization={org}
-                onToggleStatus={onToggleStatus}
                 onTemporalManage={onTemporalManage}
-                isToggling={isToggling}
-                isAnyToggling={!!togglingId}
+                isAnyToggling={false} // 移除状态切换功能，始终为false
                 temporalMode={temporalMode}
                 isHistorical={isHistorical}
                 showTemporalInfo={showTemporalInfo || isHistorical}

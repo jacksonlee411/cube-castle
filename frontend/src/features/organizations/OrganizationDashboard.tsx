@@ -22,10 +22,9 @@ import { useOrganizationActions } from './hooks/useOrganizationActions';
 const DashboardHeader: React.FC<{
   onCreateClick: () => void;
   onCreatePlannedClick?: () => void;
-  isToggling: boolean;
   temporalMode?: 'current' | 'historical';
   isHistorical?: boolean;
-}> = ({ onCreateClick, onCreatePlannedClick, isToggling, isHistorical = false }) => (
+}> = ({ onCreateClick, onCreatePlannedClick, isHistorical = false }) => (
   <Box marginBottom="l">
     <Heading size="large">
       组织架构管理
@@ -39,7 +38,7 @@ const DashboardHeader: React.FC<{
       <PrimaryButton 
         marginRight="s" 
         onClick={onCreateClick}
-        disabled={isToggling || isHistorical}
+        disabled={isHistorical}
       >
         {isHistorical ? '新增组织单元 (历史模式禁用)' : '新增组织单元'}
       </PrimaryButton>
@@ -49,7 +48,6 @@ const DashboardHeader: React.FC<{
         <SecondaryButton 
           marginRight="s" 
           onClick={onCreatePlannedClick}
-          disabled={isToggling}
           style={{ borderColor: '#1890ff', color: '#1890ff' }}
         >
           计划 新增计划组织
@@ -58,18 +56,13 @@ const DashboardHeader: React.FC<{
       
       <SecondaryButton 
         marginRight="s"
-        disabled={isToggling || isHistorical}
+        disabled={isHistorical}
       >
         导入数据
       </SecondaryButton>
-      <TertiaryButton disabled={isToggling || isHistorical}>
+      <TertiaryButton disabled={isHistorical}>
         导出报告
       </TertiaryButton>
-      {isToggling && (
-        <Text typeLevel="subtext.small" color="hint" marginLeft="m">
-          正在更新组织状态...
-        </Text>
-      )}
       {isHistorical && (
         <Text typeLevel="subtext.small" color="hint" marginLeft="m">
           📖 当前查看历史数据，部分操作已禁用
@@ -136,11 +129,8 @@ export const OrganizationDashboard: React.FC = () => {
   const {
     selectedOrg,
     isFormOpen,
-    togglingId,
-    isToggling,
     handleCreate,
     handleEdit,
-    handleToggleStatus,
     handleFormClose,
     handleFormSubmit,
   } = useOrganizationActions();
@@ -196,7 +186,6 @@ export const OrganizationDashboard: React.FC = () => {
       <DashboardHeader 
         onCreateClick={handleCreateOrganization}
         onCreatePlannedClick={handleCreatePlanned}
-        isToggling={isToggling}
         temporalMode={temporalMode}
         isHistorical={isHistorical}
       />
@@ -236,10 +225,7 @@ export const OrganizationDashboard: React.FC = () => {
             <>
               <OrganizationTable
                 organizations={organizations}
-                onToggleStatus={isHistorical ? undefined : (code, status) => { handleToggleStatus(code, status); }} // 历史模式禁用状态切换
                 onTemporalManage={handleTemporalManage} // 组织详情导航
-                loading={isFetching || temporalLoading.organizations}
-                togglingId={togglingId}
                 temporalMode={temporalMode}
                 isHistorical={isHistorical}
               />
@@ -249,7 +235,7 @@ export const OrganizationDashboard: React.FC = () => {
                 totalCount={totalCount}
                 pageSize={filters.pageSize}
                 onPageChange={handlePageChange}
-                disabled={isFetching || isToggling || temporalLoading.organizations}
+                disabled={isFetching || temporalLoading.organizations}
               />
             </>
           ) : (

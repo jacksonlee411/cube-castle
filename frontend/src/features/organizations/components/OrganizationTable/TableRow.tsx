@@ -20,9 +20,7 @@ const temporalStatusUtils = {
 
 export const TableRow: React.FC<OrganizationTableRowProps> = ({
   organization,
-  onToggleStatus,
   onTemporalManage,
-  isToggling,
   isAnyToggling,
   isHistorical = false,
   showTemporalInfo = false
@@ -37,7 +35,6 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
   // 时态模式下的样式调整
   const getRowStyle = () => {
     const baseStyle = {
-      opacity: isToggling ? 0.6 : 1,
       transition: 'opacity 0.3s ease'
     };
 
@@ -80,11 +77,6 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
       
       <Table.Cell>
         {organization.name}
-        {isToggling && (
-          <Text typeLevel="subtext.small" color="hint" marginLeft="xs">
-            (状态更新中...)
-          </Text>
-        )}
         {isHistorical && (
           <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="xs">
             📖
@@ -156,9 +148,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
       <Table.Cell>
         <TableActions
           organization={organization}
-          onToggleStatus={onToggleStatus}
           onTemporalManage={onTemporalManage}
-          isToggling={isToggling}
           disabled={isAnyToggling}
           isHistorical={isHistorical}
         />
