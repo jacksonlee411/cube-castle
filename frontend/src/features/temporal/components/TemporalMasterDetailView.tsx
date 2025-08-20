@@ -835,26 +835,26 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   size="small"
                   onClick={() => setActiveTab('edit-history')}
                 >
-                  编辑历史记录
+                  编辑记录
                 </PrimaryButton>
                 <SecondaryButton
                   size="small"
                   onClick={() => setActiveTab('new-version')}
                   icon={plusIcon}
                 >
-                  编辑组织信息
+                  插入新记录
                 </SecondaryButton>
               </Flex>
 
               {/* 选项卡内容 */}
               {activeTab === 'edit-history' ? (
-                // 历史记录编辑模式
+                // 记录编辑模式
                 <InlineNewVersionForm
                   organizationCode={organizationCode}
                   onSubmit={handleFormSubmit} // 先使用现有的函数，稍后更新
                   onCancel={handleHistoryEditClose}
                   isSubmitting={isSubmitting}
-                  mode="edit-history"
+                  mode="edit"
                   initialData={formInitialData}
                   selectedVersion={selectedVersion}
                   allVersions={versions.map(v => ({ // 传递版本数据用于日期范围验证
@@ -867,16 +867,21 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   onDeactivate={handleDeleteVersion} // 传递作废功能
                 />
               ) : (
-                // 编辑组织信息模式
+                // 插入新记录模式
                 <InlineNewVersionForm
                   organizationCode={organizationCode}
                   onSubmit={handleFormSubmit}
                   onCancel={handleFormClose}
                   isSubmitting={isSubmitting}
-                  mode={formMode}
+                  mode="insert"
                   initialData={formInitialData}
                   selectedVersion={selectedVersion}
-                  allVersions={null} // 非历史编辑模式不需要版本数据
+                  allVersions={versions.map(v => ({ // 传递版本数据用于插入位置验证
+                    record_id: v.record_id,
+                    effective_date: v.effective_date,
+                    end_date: v.end_date,
+                    is_current: v.is_current
+                  }))}
                   onEditHistory={handleEditHistory}
                 />
               )}

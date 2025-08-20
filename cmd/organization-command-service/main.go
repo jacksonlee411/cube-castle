@@ -427,6 +427,238 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *Organization) 
 	return org, nil
 }
 
+// CreateWithTemporalManagement 创建时态记录，自动处理时间连续性和end_date调整
+func (r *OrganizationRepository) CreateWithTemporalManagement(ctx context.Context, tx *sql.Tx, org *Organization) (*Organization, error) {
+	r.logger.Printf("DEBUG: 开始时态记录插入处理 - 组织: %s, 生效日期: %v", org.Code, org.EffectiveDate)
+	
+	// 第一步：查询同一组织代码的现有记录，按生效日期排序
+	existingRecordsQuery := `
+		SELECT record_id, code, effective_date, end_date, is_current
+		FROM organization_units 
+		WHERE tenant_id = $1 AND code = $2
+		ORDER BY effective_date ASC
+	`
+	
+	rows, err := tx.QueryContext(ctx, existingRecordsQuery, org.TenantID, org.Code)
+	if err != nil {
+		return nil, fmt.Errorf("查询现有时态记录失败: %w", err)
+	}
+	defer rows.Close()
+	
+	type ExistingRecord struct {
+		RecordID      string
+		Code          string
+		EffectiveDate *Date
+		EndDate       *Date
+		IsCurrent     bool
+	}
+	
+	var existingRecords []ExistingRecord
+	for rows.Next() {
+		var record ExistingRecord
+		var effectiveDate, endDate sql.NullTime
+		var isCurrent sql.NullBool
+		
+		err := rows.Scan(&record.RecordID, &record.Code, &effectiveDate, &endDate, &isCurrent)
+		if err != nil {
+			return nil, fmt.Errorf("扫描现有记录失败: %w", err)
+		}
+		
+		if effectiveDate.Valid {
+			record.EffectiveDate = &Date{effectiveDate.Time}
+		}
+		if endDate.Valid {
+			record.EndDate = &Date{endDate.Time}
+		}
+		if isCurrent.Valid {
+			record.IsCurrent = isCurrent.Bool
+		}
+		
+		existingRecords = append(existingRecords, record)
+	}
+	
+	newEffectiveDate := org.EffectiveDate
+	r.logger.Printf("DEBUG: 找到 %d 条现有记录，新记录生效日期: %v", len(existingRecords), newEffectiveDate)
+	
+	if len(existingRecords) == 0 {
+		// 没有现有记录，直接创建
+		r.logger.Printf("DEBUG: 没有现有记录，直接创建")
+		return r.CreateInTransaction(ctx, tx, org)
+	}
+	
+	// 第二步：分析插入位置和所需的end_date调整
+	insertPosition := -1 // -1表示插入到最前面，len表示插入到最后面
+	
+	for i, existing := range existingRecords {
+		if newEffectiveDate.Time.Before(existing.EffectiveDate.Time) {
+			insertPosition = i
+			break
+		}
+	}
+	
+	if insertPosition == -1 {
+		insertPosition = len(existingRecords)
+	}
+	
+	r.logger.Printf("DEBUG: 插入位置: %d (总共 %d 条记录)", insertPosition, len(existingRecords))
+	
+	// 第三步：更新相关记录的end_date和is_current状态
+	if insertPosition == 0 {
+		// 插入到最前面 - 新记录成为最早的记录
+		r.logger.Printf("DEBUG: 插入到最前面，新记录成为历史记录")
+		
+		// 计算新记录的结束日期：下一条记录生效日期的前一天
+		if len(existingRecords) > 0 {
+			nextDate := existingRecords[0].EffectiveDate.Time
+			endDate := nextDate.AddDate(0, 0, -1)
+			org.EndDate = &Date{endDate}
+		}
+		
+		// 新插入的历史记录不是当前记录
+		org.IsCurrent = false
+		
+	} else if insertPosition == len(existingRecords) {
+		// 插入到最后面 - 新记录成为当前记录
+		r.logger.Printf("DEBUG: 插入到最后面，新记录成为当前记录")
+		
+		// 更新之前的当前记录：设置结束日期并取消is_current状态
+		lastRecord := existingRecords[len(existingRecords)-1]
+		if lastRecord.IsCurrent {
+			endDate := newEffectiveDate.Time.AddDate(0, 0, -1)
+			updateQuery := `
+				UPDATE organization_units 
+				SET end_date = $1, is_current = false, updated_at = NOW()
+				WHERE record_id = $2 AND tenant_id = $3
+			`
+			_, err = tx.ExecContext(ctx, updateQuery, endDate, lastRecord.RecordID, org.TenantID)
+			if err != nil {
+				return nil, fmt.Errorf("更新前一条记录的结束日期失败: %w", err)
+			}
+			r.logger.Printf("DEBUG: 更新记录 %s 的结束日期为: %v", lastRecord.RecordID, endDate.Format("2006-01-02"))
+		}
+		
+		// 新记录成为当前记录，无结束日期
+		org.EndDate = nil
+		org.IsCurrent = true
+		
+	} else {
+		// 插入到中间 - 新记录成为历史记录
+		r.logger.Printf("DEBUG: 插入到中间位置 %d，新记录成为历史记录", insertPosition)
+		
+		// 更新前一条记录的结束日期
+		if insertPosition > 0 {
+			prevRecord := existingRecords[insertPosition-1]
+			endDate := newEffectiveDate.Time.AddDate(0, 0, -1)
+			updatePrevQuery := `
+				UPDATE organization_units 
+				SET end_date = $1, updated_at = NOW()
+				WHERE record_id = $2 AND tenant_id = $3
+			`
+			_, err = tx.ExecContext(ctx, updatePrevQuery, endDate, prevRecord.RecordID, org.TenantID)
+			if err != nil {
+				return nil, fmt.Errorf("更新前一条记录的结束日期失败: %w", err)
+			}
+			r.logger.Printf("DEBUG: 更新前一条记录 %s 的结束日期为: %v", prevRecord.RecordID, endDate.Format("2006-01-02"))
+		}
+		
+		// 设置新记录的结束日期为下一条记录生效日期的前一天
+		nextRecord := existingRecords[insertPosition]
+		nextDate := nextRecord.EffectiveDate.Time
+		endDate := nextDate.AddDate(0, 0, -1)
+		org.EndDate = &Date{endDate}
+		
+		// 中间插入的记录不是当前记录
+		org.IsCurrent = false
+		
+		r.logger.Printf("DEBUG: 新记录结束日期设为: %v", org.EndDate.Format("2006-01-02"))
+	}
+	
+	// 第四步：插入新记录
+	r.logger.Printf("DEBUG: 插入新记录 - is_current: %v, end_date: %v", 
+		org.IsCurrent, 
+		func() string {
+			if org.EndDate != nil {
+				return org.EndDate.Format("2006-01-02")
+			}
+			return "null"
+		}())
+	
+	return r.CreateInTransaction(ctx, tx, org)
+}
+
+// CreateInTransaction 在事务中创建记录的内部方法
+func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sql.Tx, org *Organization) (*Organization, error) {
+	query := `
+		INSERT INTO organization_units (
+			tenant_id, code, parent_code, name, unit_type, status, 
+			level, path, sort_order, description, created_at, updated_at,
+			effective_date, end_date, is_temporal, change_reason, is_current
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		RETURNING created_at, updated_at
+	`
+
+	var createdAt, updatedAt time.Time
+
+	// 确保effective_date始终有值（数据库约束要求）
+	var effectiveDate *Date
+	if org.EffectiveDate != nil {
+		effectiveDate = org.EffectiveDate
+		r.logger.Printf("DEBUG: 使用提供的effective_date: %v", effectiveDate.String())
+	} else {
+		now := time.Now()
+		effectiveDate = NewDate(now.Year(), now.Month(), now.Day())
+		r.logger.Printf("DEBUG: 使用默认effective_date: %v", effectiveDate.String())
+	}
+
+	err := tx.QueryRowContext(ctx, query,
+		org.TenantID,
+		org.Code,
+		org.ParentCode,
+		org.Name,
+		org.UnitType,
+		org.Status,
+		org.Level,
+		org.Path,
+		org.SortOrder,
+		org.Description,
+		time.Now(),
+		time.Now(),
+		effectiveDate, // Date类型
+		org.EndDate,   // 允许为nil
+		org.IsTemporal,
+		org.ChangeReason,
+		org.IsCurrent, // 添加is_current字段
+	).Scan(&createdAt, &updatedAt)
+
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code {
+			case "23505": // unique violation
+				return nil, fmt.Errorf("组织代码已存在: %s", org.Code)
+			case "23503": // foreign key violation
+				return nil, fmt.Errorf("父组织不存在: %s", *org.ParentCode)
+			}
+		}
+		return nil, fmt.Errorf("创建组织失败: %w", err)
+	}
+
+	org.CreatedAt = createdAt
+	org.UpdatedAt = updatedAt
+	org.EffectiveDate = effectiveDate // 确保返回的组织有effective_date值
+
+	r.logger.Printf("时态组织创建成功: %s - %s (生效日期: %v, 结束日期: %v, 当前: %v)", 
+		org.Code, org.Name, 
+		org.EffectiveDate.String(),
+		func() string {
+			if org.EndDate != nil {
+				return org.EndDate.String()
+			}
+			return "无"
+		}(),
+		org.IsCurrent)
+	return org, nil
+}
+
 func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID, code string, req *UpdateOrganizationRequest) (*Organization, error) {
 	// 构建动态更新查询
 	setParts := []string{}
@@ -773,12 +1005,43 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		org.EffectiveDate = today
 	}
 
-	// 保存到数据库
-	createdOrg, err := h.repo.Create(r.Context(), org)
-	if err != nil {
-		monitoring.RecordOrganizationOperation("create", "failed", "command-service")
-		h.writeErrorResponse(w, http.StatusInternalServerError, "CREATE_ERROR", "创建组织失败", err)
-		return
+	// 时态管理：如果指定了组织代码且有生效日期，需要处理时态记录插入逻辑
+	var createdOrg *Organization
+	if req.Code != nil && strings.TrimSpace(*req.Code) != "" && org.EffectiveDate != nil {
+		h.logger.Printf("DEBUG: 开始时态记录插入处理 - 代码: %s, 生效日期: %v", code, org.EffectiveDate.String())
+		
+		// 使用事务确保数据一致性
+		tx, err := h.repo.db.Begin()
+		if err != nil {
+			monitoring.RecordOrganizationOperation("create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "TRANSACTION_ERROR", "开始事务失败", err)
+			return
+		}
+		defer tx.Rollback()
+		
+		// 调用时态插入逻辑
+		createdOrg, err = h.repo.CreateWithTemporalManagement(r.Context(), tx, org)
+		if err != nil {
+			monitoring.RecordOrganizationOperation("create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "TEMPORAL_CREATE_ERROR", "时态记录创建失败", err)
+			return
+		}
+		
+		// 提交事务
+		if err = tx.Commit(); err != nil {
+			monitoring.RecordOrganizationOperation("create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "COMMIT_ERROR", "提交事务失败", err)
+			return
+		}
+	} else {
+		// 普通创建逻辑
+		var err error
+		createdOrg, err = h.repo.Create(r.Context(), org)
+		if err != nil {
+			monitoring.RecordOrganizationOperation("create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "CREATE_ERROR", "创建组织失败", err)
+			return
+		}
 	}
 
 	// 构建响应

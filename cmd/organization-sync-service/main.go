@@ -117,6 +117,7 @@ type CDCOrganizationEvent struct {
 }
 
 type CDCOrganizationData struct {
+	RecordID    *string    `json:"record_id"`    // ⭐ UUID主键 - 跨系统唯一标识符
 	TenantID    *string    `json:"tenant_id"`
 	Code        *string    `json:"code"`
 	ParentCode  *string    `json:"parent_code"`
@@ -386,10 +387,19 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		return nil
 	}
 
-	// UUID全局标识符处理 - P1-1修复 (基于PostgreSQL复合主键)
-	// PostgreSQL主键是(code, effective_date)，所以用这些生成确定性UUID
-	globalID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(*data.TenantID+*data.Code+data.EffectiveDate.String())).String()
-	s.logger.Printf("✅ 处理CDC创建事件: %s - %s (确定性UUID: %s, 生效日期: %s)",
+	// ⭐ UUID跨系统一致性修复 - 使用PostgreSQL的record_id而非重新生成
+	// 关键修复：保持UUID在PostgreSQL和Neo4j之间的一致性
+	var globalID string
+	if data.RecordID != nil && *data.RecordID != "" {
+		// 使用PostgreSQL提供的record_id UUID
+		globalID = *data.RecordID
+		s.logger.Printf("✅ 使用PostgreSQL record_id: %s", globalID)
+	} else {
+		// 回退方案：如果CDC事件中没有record_id，记录错误
+		s.logger.Printf("❌ 严重错误：CDC事件缺少record_id字段，这违反了UUID跨系统一致性原则")
+		return fmt.Errorf("CDC事件缺少record_id字段，无法保证跨系统UUID一致性")
+	}
+	s.logger.Printf("✅ 处理CDC创建事件: %s - %s (PostgreSQL UUID: %s, 生效日期: %s)",
 		*data.Code, *data.Name, globalID, data.EffectiveDate.String())
 
 	// Neo4j纯日期生效模型 - 使用UUID作为主键，复合键作为业务键
@@ -402,6 +412,7 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 			org.name = $name,
 			org.unit_type = $unit_type,
 			org.status = COALESCE($status, 'ACTIVE'),
+			org.parent_code = $parent_code,
 			org.level = COALESCE($level, 1),
 			org.path = COALESCE($path, '/' + $code),
 			org.sort_order = COALESCE($sort_order, 0),
@@ -564,11 +575,20 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		return nil
 	}
 
-	// UUID全局标识符处理 - P1-1修复 (基于PostgreSQL复合主键)
-	// PostgreSQL主键是(code, effective_date)，所以用这些生成确定性UUID
-	globalID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(*data.TenantID+*data.Code+data.EffectiveDate.String())).String()
-	s.logger.Printf("✅ 处理CDC更新事件: %s (确定性UUID: %s, 生效日期: %s)",
-		*data.Code, globalID, data.EffectiveDate.String())
+	// ⭐ UUID跨系统一致性修复 - 使用PostgreSQL的record_id而非重新生成
+	// 关键修复：保持UUID在PostgreSQL和Neo4j之间的一致性
+	var globalID string
+	if data.RecordID != nil && *data.RecordID != "" {
+		// 使用PostgreSQL提供的record_id UUID
+		globalID = *data.RecordID
+		s.logger.Printf("✅ 使用PostgreSQL record_id: %s", globalID)
+	} else {
+		// 回退方案：如果CDC事件中没有record_id，记录错误
+		s.logger.Printf("❌ 严重错误：CDC事件缺少record_id字段，这违反了UUID跨系统一致性原则")
+		return fmt.Errorf("CDC事件缺少record_id字段，无法保证跨系统UUID一致性")
+	}
+	s.logger.Printf("✅ 处理CDC更新事件: %s - %s (PostgreSQL UUID: %s, 生效日期: %s)",
+		*data.Code, *data.Name, globalID, data.EffectiveDate.String())
 
 	// Neo4j纯日期生效模型更新 - 使用UUID查找现有记录
 	query := `
@@ -581,6 +601,7 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 			org.name = COALESCE($name, org.name),
 			org.unit_type = COALESCE($unit_type, org.unit_type),
 			org.status = COALESCE($status, org.status),
+			org.parent_code = COALESCE($parent_code, org.parent_code),
 			org.level = COALESCE($level, org.level),
 			org.path = COALESCE($path, org.path),
 			org.sort_order = COALESCE($sort_order, org.sort_order),
@@ -608,7 +629,7 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 	systemTime := time.Unix(tsMs/1000, (tsMs%1000)*1000000).Format(time.RFC3339)
 
 	params := map[string]interface{}{
-		"uuid":       globalID, // UUID全局标识符
+		"uuid":       globalID, // UUID全局标识符 - 使用PostgreSQL的record_id
 		"record_id":  globalID, // record_id字段使用相同的UUID
 		"code":       *data.Code,
 		"tenant_id":  *data.TenantID,
@@ -648,10 +669,17 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 	} else {
 		params["updated_at"] = time.Now().Format(time.RFC3339)
 	}
+	
+	// 添加parent_code参数处理 - 修复关键字段缺失问题
+	if data.ParentCode != nil && *data.ParentCode != "" {
+		params["parent_code"] = *data.ParentCode
+	} else {
+		params["parent_code"] = nil
+	}
 
-	// 调试日志：记录所有参数以便排查问题
-	s.logger.Printf("[DEBUG] CDC更新参数: uuid=%s, code=%s, effective_date=%s, created_at=%v", 
-		globalID, *data.Code, data.EffectiveDate.String(), params["created_at"])
+	// 调试日志：记录所有参数以便排查问题（包含parent_code）
+	s.logger.Printf("[DEBUG] CDC更新参数: uuid=%s, code=%s, effective_date=%s, parent_code=%v, created_at=%v", 
+		globalID, *data.Code, data.EffectiveDate.String(), params["parent_code"], params["created_at"])
 
 	// 时态管理字段映射 (更新版本) - 使用DebeziumDate类型，生效日期已验证非空
 	params["effective_date"] = data.EffectiveDate.String()

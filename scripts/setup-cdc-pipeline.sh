@@ -88,8 +88,7 @@ BEGIN
     
     -- 创建发布（如果不存在）
     IF NOT EXISTS (SELECT FROM pg_publication WHERE pubname = 'organization_publication') THEN
-        CREATE PUBLICATION organization_publication FOR TABLE 
-            employees, organization_units, positions;
+        CREATE PUBLICATION organization_publication FOR TABLE organization_units;
     END IF;
     
     RAISE NOTICE 'PostgreSQL逻辑复制配置完成';
@@ -119,15 +118,16 @@ curl -X POST http://localhost:8083/connectors \
       "database.user": "debezium_user",
       "database.password": "debezium_pass",
       "database.dbname": "cubecastle",
-      "database.server.name": "organization_db",
-      "table.include.list": "public.employees,public.organization_units,public.positions",
+      "database.server.name": "cubecastle-postgres",
+      "table.include.list": "public.organization_units",
       "publication.name": "organization_publication",
       "plugin.name": "pgoutput",
       "slot.name": "organization_slot",
       "key.converter": "org.apache.kafka.connect.json.JsonConverter",
       "value.converter": "org.apache.kafka.connect.json.JsonConverter",
       "key.converter.schemas.enable": false,
-      "value.converter.schemas.enable": false
+      "value.converter.schemas.enable": false,
+      "topic.prefix": "cubecastle-postgres"
     }
   }'
 
