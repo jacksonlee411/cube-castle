@@ -45,6 +45,7 @@ export interface TemporalVersion {
   lifecycle_status: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
   description?: string;
   effective_date: string;
+  parent_code?: string;  // 修复：添加上级组织编码字段
   change_reason?: string;
 }
 
@@ -86,6 +87,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
     lifecycle_status: 'PLANNED',
     description: '',
     effective_date: new Date().toISOString().split('T')[0], // 默认今天
+    parent_code: '', // 修复：添加上级组织编码字段
     change_reason: '',
     event_type: 'UPDATE'
   });
@@ -114,6 +116,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
           lifecycle_status: initialData.lifecycle_status,
           description: initialData.description || '',
           effective_date: new Date(initialData.effective_date).toISOString().split('T')[0],
+          parent_code: initialData.parent_code || '', // 修复：添加上级组织编码初始化
           change_reason: initialData.change_reason || '',
           event_type: 'UPDATE'
         });
@@ -127,6 +130,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
           lifecycle_status: 'PLANNED',
           description: '',
           effective_date: tomorrow.toISOString().split('T')[0], // 默认明天生效
+          parent_code: '', // 修复：添加上级组织编码默认值
           change_reason: '',
           event_type: 'RESTRUCTURE'
         });

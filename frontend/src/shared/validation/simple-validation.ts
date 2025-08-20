@@ -174,7 +174,7 @@ export const safeTransform = {
       unit_type: orgData.unit_type || orgData.unitType || '',  // 支持两种命名方式
       status: orgData.status || 'ACTIVE',
       level: orgData.level || 1,
-      parent_code: orgData.parent_code || orgData.parentCode || '',
+      parent_code: orgData.parent_code || orgData.parentCode || null, // 修复：使用null而不是空字符串
       path: orgData.path || '',
       sort_order: orgData.sort_order || orgData.sortOrder || 0,
       description: orgData.description || '',

@@ -409,6 +409,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 level
                 path
                 description
+                parent_code
                 effective_date
                 end_date
                 change_reason
