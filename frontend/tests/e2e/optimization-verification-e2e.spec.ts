@@ -204,7 +204,7 @@ test.describe('优化效果验证测试', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: '{ organizations(first: 50) { code name } }'
+          query: '{ organization_units(first: 50) { code name } }'
         })
       });
     });

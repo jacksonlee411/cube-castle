@@ -144,7 +144,7 @@ test.describe('时态API集成测试', () => {
     if (currentRecordResponse.ok()) {
       const data = await currentRecordResponse.json();
       expect(data).toHaveProperty('organizations');
-      expect(Array.isArray(data.organizations)).toBeTruthy();
+      expect(Array.isArray(data.organization_units)).toBeTruthy();
     } else {
       // 如果404，说明测试组织不存在，这是可接受的
       expect([200, 404]).toContain(currentRecordResponse.status());

@@ -142,7 +142,7 @@ test.describe('时态管理系统集成测试', () => {
     expect(response.ok()).toBeTruthy();
     
     const data = await response.json();
-    const organizations = data.organizations;
+    const organizations = data.organization_units;
     
     // 验证数据结构
     expect(Array.isArray(organizations)).toBeTruthy();

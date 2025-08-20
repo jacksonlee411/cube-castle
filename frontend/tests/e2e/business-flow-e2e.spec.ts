@@ -221,7 +221,7 @@ test.describe('业务流程端到端测试', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: `{
-            organizations(first: 50) {
+            organization_units(first: 50) {
               code
               name
               unitType
@@ -298,7 +298,7 @@ test.describe('业务流程端到端测试', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: `{
-            organizations(first: 50) {
+            organization_units(first: 50) {
               code
               name
               unitType

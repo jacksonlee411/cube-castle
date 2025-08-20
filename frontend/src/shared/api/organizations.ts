@@ -129,7 +129,7 @@ export const organizationAPI = {
             $effectiveTo: String,
             $temporalMode: String
           ) {
-            organizations(
+            organization_units(
               first: $first, 
               offset: $offset, 
               searchText: $searchText,
@@ -153,7 +153,7 @@ export const organizationAPI = {
               end_date
               is_temporal
             }
-            organizationStats {
+            organization_unit_stats {
               totalCount
             }
           }
@@ -175,7 +175,7 @@ export const organizationAPI = {
             $offset: Int, 
             $searchText: String
           ) {
-            organizations(
+            organization_units(
               first: $first, 
               offset: $offset, 
               searchText: $searchText
@@ -192,7 +192,7 @@ export const organizationAPI = {
               created_at
               updated_at
             }
-            organizationStats {
+            organization_unit_stats {
               totalCount
             }
           }
@@ -205,12 +205,12 @@ export const organizationAPI = {
       }
 
       const data = await graphqlClient.request<{
-        organizations: Partial<OrganizationUnit>[];
-        organizationStats: { totalCount: number };
+        organization_units: Partial<OrganizationUnit>[];
+        organization_unit_stats: { totalCount: number };
       }>(graphqlQuery, variables);
 
       // 简化的数据转换 - 无需复杂的Zod验证
-      const organizations = data.organizations.map((org: Partial<OrganizationUnit>) => {
+      const organizations = data.organization_units.map((org: Partial<OrganizationUnit>) => {
         try {
           return safeTransform.graphqlToOrganization ? 
             safeTransform.graphqlToOrganization(org) : 
@@ -223,7 +223,7 @@ export const organizationAPI = {
 
       // 🔧 修复: 区分全局总数和筛选结果总数
       const isFiltered = !!(params?.searchText || params?.unit_type || params?.status || params?.level || params?.temporalParams);
-      const filteredTotalCount = isFiltered ? organizations.length : data.organizationStats.totalCount;
+      const filteredTotalCount = isFiltered ? organizations.length : data.organization_unit_stats.totalCount;
       
       return {
         organizations: organizations.filter((org): org is OrganizationUnit => org !== null),
@@ -298,7 +298,7 @@ export const organizationAPI = {
         // 基础查询版本（不含时态参数）
         graphqlQuery = `
           query GetOrganization($code: String!) {
-            organization(code: $code) {
+            organization_unit(code: $code) {
               code
               record_id
               name
@@ -318,10 +318,10 @@ export const organizationAPI = {
       }
 
       const data = await graphqlClient.request<{
-        organization: Partial<OrganizationUnit>;
+        organization_unit: Partial<OrganizationUnit>;
       }>(graphqlQuery, variables);
 
-      const organization = data.organization;
+      const organization = data.organization_unit;
       if (!organization) {
         throw new Error(`组织 ${code} 不存在`);
       }

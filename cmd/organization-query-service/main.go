@@ -60,10 +60,10 @@ var schemaString = `
 	}
 
 	type Query {
-		# 传统查询 (当前数据) - 保持兼容性
-		organizations(first: Int, offset: Int, searchText: String): [Organization!]!
-		organization(code: String!): Organization
-		organizationStats: OrganizationStats!
+		# 传统查询 (当前数据) - 命名一致性修复
+		organization_units(first: Int, offset: Int, searchText: String): [Organization!]!
+		organization_unit(code: String!): Organization
+		organization_unit_stats: OrganizationStats!
 		
 		# 时态查询 - CQRS架构符合的GraphQL查询
 		organizationAsOfDate(code: String!, asOfDate: String!): Organization
@@ -76,7 +76,7 @@ var schemaString = `
 	
 	# 时态查询响应类型
 	type TemporalQueryResponse {
-		organizations: [Organization!]!
+		organization_units: [Organization!]!
 		queriedAt: String!
 		queryOptions: TemporalQueryOptions!
 		resultCount: Int!
@@ -814,7 +814,7 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 
 // === 传统查询解析器 (保持兼容) ===
 
-func (r *Resolver) Organizations(ctx context.Context, args struct {
+func (r *Resolver) Organization_units(ctx context.Context, args struct {
 	First      *int32
 	Offset     *int32
 	SearchText *string
@@ -847,7 +847,7 @@ func (r *Resolver) Organizations(ctx context.Context, args struct {
 	return organizations, nil
 }
 
-func (r *Resolver) Organization(ctx context.Context, args struct {
+func (r *Resolver) Organization_unit(ctx context.Context, args struct {
 	Code string
 }) (*Organization, error) {
 	tenantID := DefaultTenantID
@@ -869,7 +869,7 @@ func (r *Resolver) Organization(ctx context.Context, args struct {
 	return org, nil
 }
 
-func (r *Resolver) OrganizationStats(ctx context.Context) (*OrganizationStats, error) {
+func (r *Resolver) Organization_unit_stats(ctx context.Context) (*OrganizationStats, error) {
 	tenantID := DefaultTenantID
 
 	r.logger.Printf("[GraphQL] 查询组织统计 - 租户: %s", tenantID)

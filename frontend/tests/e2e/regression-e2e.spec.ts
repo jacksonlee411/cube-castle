@@ -34,7 +34,7 @@ test.describe('回归测试和兼容性验证', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: `{
-            organizations(first: 50) {
+            organization_units(first: 50) {
               code
               name
               unitType
@@ -104,7 +104,7 @@ test.describe('回归测试和兼容性验证', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: `{
-            organizations(first: 50) {
+            organization_units(first: 50) {
               code
               name
               unitType
@@ -210,7 +210,7 @@ test.describe('回归测试和兼容性验证', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: '{ organizations(first: 50) { code name } }'
+          query: '{ organization_units(first: 50) { code name } }'
         })
       });
       return response.json();
