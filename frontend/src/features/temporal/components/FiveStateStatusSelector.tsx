@@ -127,6 +127,7 @@ export const FiveStateStatusSelector: React.FC<FiveStateStatusSelectorProps> = (
             const selectedKey = Array.from(keys)[0] as string;
             handleSelectionChange(selectedKey);
           }}
+          getTextValue={(item) => item.textValue || item.label}
         >
           <Select.Input 
             placeholder="选择状态..." 

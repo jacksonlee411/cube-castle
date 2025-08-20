@@ -8,6 +8,14 @@ import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { FormField } from '@workday/canvas-kit-react/form-field';
+import { Select } from '@workday/canvas-kit-react/select';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { 
+  checkCircleIcon,    // 可用于公司（成功/重要）
+  clockIcon,          // 可用于计划/项目团队
+  timelineAllIcon,    // 可用于部门（历史/层级）
+  trashIcon           // 可用于成本中心（管理/控制）
+} from '@workday/canvas-system-icons-web';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
@@ -55,11 +63,115 @@ export interface InlineNewVersionFormProps {
 }
 
 const unitTypeOptions = [
-  { label: '公司', value: 'COMPANY' },
-  { label: '部门', value: 'DEPARTMENT' },
-  { label: '成本中心', value: 'COST_CENTER' },
-  { label: '项目团队', value: 'PROJECT_TEAM' },
+  { 
+    label: '公司', 
+    value: 'COMPANY',
+    description: '企业的顶级组织单位，负责整体战略和治理',
+    color: colors.greenApple600,
+    icon: checkCircleIcon    // 表示重要/核心地位
+  },
+  { 
+    label: '部门', 
+    value: 'DEPARTMENT',
+    description: '企业内部的功能性组织单位，执行特定业务职能',
+    color: colors.blueberry600,
+    icon: timelineAllIcon    // 表示层级/结构
+  },
+  { 
+    label: '成本中心', 
+    value: 'COST_CENTER',
+    description: '独立核算的组织单位，用于成本管理和财务控制',
+    color: colors.cantaloupe600,
+    icon: trashIcon          // 表示管理/控制（暂时用这个）
+  },
+  { 
+    label: '项目团队', 
+    value: 'PROJECT_TEAM',
+    description: '临时性组织单位，专注于特定项目或任务的执行',
+    color: colors.plum600,
+    icon: clockIcon          // 表示时间性/计划性
+  },
 ];
+
+// Canvas Kit Select组件需要的getTextValue函数
+const getUnitTypeTextValue = (option: { label: string; value: string }) => option.label;
+
+// 组织类型选择器组件（完全匹配FiveStateStatusSelector的样式）
+const UnitTypeSelector: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  label?: string;
+  required?: boolean;
+}> = ({
+  value,
+  onChange,
+  disabled = false,
+  label = '组织类型',
+  required = false
+}) => {
+  const selectedOption = unitTypeOptions.find(opt => opt.value === value);
+
+  return (
+    <FormField>
+      <FormField.Label required={required}>
+        {label} *
+      </FormField.Label>
+      <FormField.Field>
+        <Select 
+          items={unitTypeOptions.map(opt => ({ id: opt.value, textValue: opt.label, ...opt }))}
+          onSelectionChange={(keys) => {
+            const selectedKey = Array.from(keys)[0] as string;
+            onChange(selectedKey);
+          }}
+          getTextValue={(item) => item.textValue || item.label}
+        >
+          <Select.Input 
+            placeholder="选择组织类型..." 
+            value={selectedOption?.label || ''}
+          />
+          <Select.Popper>
+            <Select.Card>
+              <Select.List>
+                {(option) => (
+                  <Select.Item key={option.id}>
+                    <Flex alignItems="center" gap="s">
+                      <SystemIcon 
+                        icon={option.icon} 
+                        size={16} 
+                        color={option.color}
+                      />
+                      <Box>
+                        <Text 
+                          typeLevel="body.medium" 
+                          fontWeight="medium"
+                          color={option.color}
+                        >
+                          {option.label}
+                        </Text>
+                        <Text 
+                          typeLevel="subtext.small" 
+                          color="hint"
+                        >
+                          {option.description}
+                        </Text>
+                      </Box>
+                    </Flex>
+                  </Select.Item>
+                )}
+              </Select.List>
+            </Select.Card>
+          </Select.Popper>
+        </Select>
+      </FormField.Field>
+      {selectedOption && (
+        <FormField.Hint>
+          {selectedOption.description}
+        </FormField.Hint>
+      )}
+    </FormField>
+  );
+};
 
 // 获取当月1日的日期字符串 (避免时区问题)
 const getCurrentMonthFirstDay = () => {
@@ -427,30 +539,15 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 </FormField.Field>
               </FormField>
 
-              <FormField>
-                <FormField.Label>组织类型 *</FormField.Label>
-                <FormField.Field>
-                  <select
-                    value={formData.unit_type}
-                    onChange={handleInputChange('unit_type')}
-                    disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: `1px solid ${colors.soap400}`,
-                      borderRadius: borderRadius.m,
-                      fontSize: '14px',
-                      backgroundColor: (isSubmitting || (mode === 'edit-history' && !isEditingHistory)) ? '#f5f5f5' : 'white'
-                    }}
-                  >
-                    {unitTypeOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </FormField.Field>
-              </FormField>
+              <UnitTypeSelector
+                value={formData.unit_type}
+                onChange={(newValue) => {
+                  setFormData(prev => ({ ...prev, unit_type: newValue }));
+                }}
+                disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
+                label="组织类型"
+                required={true}
+              />
 
               <FiveStateStatusSelector
                 value={formData.lifecycle_status}
