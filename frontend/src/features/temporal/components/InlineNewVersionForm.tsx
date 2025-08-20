@@ -43,6 +43,13 @@ export interface InlineNewVersionFormProps {
     description?: string;
     parent_code?: string;
   } | null;
+  // 新增：传递所有版本数据用于日期范围验证
+  allVersions?: Array<{
+    record_id: string;
+    effective_date: string;
+    end_date?: string | null;
+    is_current: boolean;
+  }> | null;
   onEditHistory?: (versionData: any) => Promise<void>;
   onDeactivate?: (version: any) => Promise<void>; // 新增作废功能
 }
@@ -72,6 +79,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   mode = 'create',
   initialData,
   selectedVersion,
+  allVersions = null,
   onEditHistory,
   onDeactivate
 }) => {
@@ -154,6 +162,49 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     }
   };
 
+  // 计算历史记录编辑模式下的日期范围限制
+  const getHistoryDateRange = (): { minDate: string | null; maxDate: string | null } => {
+    // 只在历史记录编辑模式下才计算范围
+    if (mode !== 'edit-history' || !selectedVersion || !allVersions || allVersions.length === 0) {
+      return { minDate: null, maxDate: null };
+    }
+
+    // 按生效日期排序所有版本
+    const sortedVersions = [...allVersions].sort((a, b) => 
+      new Date(a.effective_date).getTime() - new Date(b.effective_date).getTime()
+    );
+
+    // 找到当前编辑版本的索引
+    const currentIndex = sortedVersions.findIndex(v => v.record_id === selectedVersion.record_id);
+    if (currentIndex === -1) {
+      return { minDate: null, maxDate: null };
+    }
+
+    // 获取前一条记录
+    const previousVersion = currentIndex > 0 ? sortedVersions[currentIndex - 1] : null;
+    
+    // 获取后一条记录
+    const nextVersion = currentIndex < sortedVersions.length - 1 ? sortedVersions[currentIndex + 1] : null;
+
+    // 计算最小日期：前一条记录的生效日期的次日
+    let minDate: string | null = null;
+    if (previousVersion) {
+      const prevDate = new Date(previousVersion.effective_date);
+      prevDate.setDate(prevDate.getDate() + 1);
+      minDate = prevDate.toISOString().split('T')[0];
+    }
+
+    // 计算最大日期：后一条记录的生效日期的前一日
+    let maxDate: string | null = null;
+    if (nextVersion) {
+      const nextDate = new Date(nextVersion.effective_date);
+      nextDate.setDate(nextDate.getDate() - 1);
+      maxDate = nextDate.toISOString().split('T')[0];
+    }
+
+    return { minDate, maxDate };
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
@@ -164,9 +215,31 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     if (!formData.effective_date) {
       newErrors.effective_date = '生效日期是必填项';
     } else {
-      // 对于完全新建组织单元（mode === 'create'），取消生效日期限制
-      // 对于编辑现有组织或历史记录，仍然保持日期限制以维护数据完整性
-      if (mode !== 'create') {
+      if (mode === 'create') {
+        // 对于完全新建组织单元，取消生效日期限制
+        // 无任何限制
+      } else if (mode === 'edit-history') {
+        // 历史记录编辑模式：放宽限制，只要在前后两条记录的生效日期之间即可
+        const { minDate, maxDate } = getHistoryDateRange();
+        const effectiveDate = new Date(formData.effective_date);
+        
+        if (minDate) {
+          const minDateTime = new Date(minDate);
+          if (effectiveDate < minDateTime) {
+            const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('zh-CN');
+            newErrors.effective_date = `生效日期不能早于 ${formatDate(minDate)}（前一版本生效日期之后）`;
+          }
+        }
+        
+        if (maxDate && !newErrors.effective_date) {
+          const maxDateTime = new Date(maxDate);
+          if (effectiveDate > maxDateTime) {
+            const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('zh-CN');
+            newErrors.effective_date = `生效日期不能晚于 ${formatDate(maxDate)}（下一版本生效日期之前）`;
+          }
+        }
+      } else {
+        // 对于编辑现有组织的其他模式，仍然保持原有的今日限制以维护数据完整性
         const effectiveDate = new Date(formData.effective_date);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -312,6 +385,9 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     onChange={handleInputChange('effective_date')}
                     disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                   />
+                  {errors.effective_date && (
+                    <FormField.Hint>{errors.effective_date}</FormField.Hint>
+                  )}
                 </FormField.Field>
               </FormField>
             </Box>
@@ -333,6 +409,9 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     placeholder="请输入组织名称"
                     disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                   />
+                  {errors.name && (
+                    <FormField.Hint>{errors.name}</FormField.Hint>
+                  )}
                 </FormField.Field>
               </FormField>
 

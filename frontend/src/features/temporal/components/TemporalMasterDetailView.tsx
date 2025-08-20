@@ -813,6 +813,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               mode="create"
               initialData={null}
               selectedVersion={null}
+              allVersions={null} // 创建模式不需要版本数据
             />
           ) : (
             <>
@@ -844,6 +845,12 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   mode="edit-history"
                   initialData={formInitialData}
                   selectedVersion={selectedVersion}
+                  allVersions={versions.map(v => ({ // 传递版本数据用于日期范围验证
+                    record_id: v.record_id,
+                    effective_date: v.effective_date,
+                    end_date: v.end_date,
+                    is_current: v.is_current
+                  }))}
                   onEditHistory={handleHistoryEditSubmit}
                   onDeactivate={handleDeleteVersion} // 传递作废功能
                 />
@@ -857,6 +864,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   mode={formMode}
                   initialData={formInitialData}
                   selectedVersion={selectedVersion}
+                  allVersions={null} // 非历史编辑模式不需要版本数据
                   onEditHistory={handleEditHistory}
                 />
               )}
