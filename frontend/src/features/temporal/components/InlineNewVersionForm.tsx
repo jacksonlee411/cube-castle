@@ -111,7 +111,7 @@ const unitTypeOptions = [
 // Canvas Kit Select组件需要的getTextValue函数
 const getUnitTypeTextValue = (option: { label: string; value: string }) => option.label;
 
-// 组织类型选择器组件（完全匹配FiveStateStatusSelector的样式）
+// 组织类型选择器组件（使用原生select暂时替代Canvas Kit Select）
 const UnitTypeSelector: React.FC<{
   value: string;
   onChange: (value: string) => void;
@@ -133,51 +133,27 @@ const UnitTypeSelector: React.FC<{
         {label} *
       </FormField.Label>
       <FormField.Field>
-        <Select 
-          items={unitTypeOptions.map(opt => ({ id: opt.value, textValue: opt.label, ...opt }))}
-          onSelectionChange={(keys) => {
-            const selectedKey = Array.from(keys)[0] as string;
-            onChange(selectedKey);
+        <select
+          value={value}
+          onChange={(e) => {
+            console.log('[UnitTypeSelector] 原生select变更:', value, '->', e.target.value);
+            onChange(e.target.value);
           }}
-          getTextValue={(item) => item.textValue || item.label}
+          disabled={disabled}
+          style={{ 
+            width: '100%', 
+            padding: '8px', 
+            border: '1px solid #ddd', 
+            borderRadius: '4px',
+            fontSize: '14px'
+          }}
         >
-          <Select.Input 
-            placeholder="选择组织类型..." 
-            value={selectedOption?.label || ''}
-          />
-          <Select.Popper>
-            <Select.Card>
-              <Select.List>
-                {(option) => (
-                  <Select.Item key={option.id}>
-                    <Flex alignItems="center" gap="s">
-                      <SystemIcon 
-                        icon={option.icon} 
-                        size={16} 
-                        color={option.color}
-                      />
-                      <Box>
-                        <Text 
-                          typeLevel="body.medium" 
-                          fontWeight="medium"
-                          color={option.color}
-                        >
-                          {option.label}
-                        </Text>
-                        <Text 
-                          typeLevel="subtext.small" 
-                          color="hint"
-                        >
-                          {option.description}
-                        </Text>
-                      </Box>
-                    </Flex>
-                  </Select.Item>
-                )}
-              </Select.List>
-            </Select.Card>
-          </Select.Popper>
-        </Select>
+          {unitTypeOptions.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </FormField.Field>
       {selectedOption && (
         <FormField.Hint>
@@ -250,7 +226,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setFormData({
         name: initialData.name,
         unit_type: initialData.unit_type,
-        lifecycle_status: initialData.lifecycle_status || 'PLANNED',
+        lifecycle_status: initialData.status || 'PLANNED', // 修复：使用 status 字段而不是 lifecycle_status
         description: initialData.description || '',
         effective_date: initialData.effective_date 
           ? new Date(initialData.effective_date).toISOString().split('T')[0] 
@@ -456,6 +432,8 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
+    console.log('[InlineNewVersionForm] 提交表单前的formData:', formData);
+    
     if (!validateForm()) {
       return;
     }
@@ -557,7 +535,12 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
               <UnitTypeSelector
                 value={formData.unit_type}
                 onChange={(newValue) => {
+                  console.log('[InlineNewVersionForm] 组织类型选择变更:', formData.unit_type, '->', newValue);
                   setFormData(prev => ({ ...prev, unit_type: newValue }));
+                  // 清除相关错误
+                  if (errors.unit_type) {
+                    setErrors(prev => ({ ...prev, unit_type: '' }));
+                  }
                 }}
                 disabled={isSubmitting || (mode === 'edit-history' && !isEditingHistory)}
                 label="组织类型"
