@@ -506,11 +506,13 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setIsDeactivating(true);
       await onDeactivate(selectedVersion);
       setShowDeactivateConfirm(false);
-      // 作废成功后关闭页面
-      onCancel();
+      // 作废成功后保持在当前页面，用户可以观察操作结果
+      // 显示成功提示，让用户知道操作已完成
+      alert(`版本删除成功！生效日期：${new Date(selectedVersion.effective_date).toLocaleDateString('zh-CN')}`);
+      // 移除 onCancel() 调用，让用户自己决定是否离开页面
     } catch (error) {
-      console.error('作废失败:', error);
-      alert('作废失败，请重试');
+      console.error('删除失败:', error);
+      alert('删除失败，请重试');
     } finally {
       setIsDeactivating(false);
     }
@@ -723,7 +725,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                       onClick={handleDeactivateClick}
                       disabled={isSubmitting || isDeactivating}
                     >
-                      作废此版本
+                      删除此版本
                     </TertiaryButton>
                   )}
                 </Box>
@@ -794,20 +796,20 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
           <Modal.Overlay>
             <Modal.Card>
               <Modal.CloseIcon onClick={handleDeactivateCancel} />
-              <Modal.Heading>确认作废版本</Modal.Heading>
+              <Modal.Heading>确认删除版本</Modal.Heading>
               <Modal.Body>
                 <Box padding="l">
                   <Flex alignItems="flex-start" gap="m" marginBottom="l">
                     <Box fontSize="24px" color={colors.cinnamon600}>⚠️</Box>
                     <Box>
                       <Text typeLevel="body.medium" marginBottom="s">
-                        确定要作废生效日期为 <strong>{new Date(selectedVersion.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
+                        确定要删除生效日期为 <strong>{new Date(selectedVersion.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
                       </Text>
                       <Text typeLevel="subtext.small" color="hint" marginBottom="s">
                         版本名称: {selectedVersion.name}
                       </Text>
                       <Text typeLevel="subtext.small" color={colors.cinnamon600}>
-                        ⚠️ 作废后将自动填补时间空洞，此操作不可撤销
+                        ⚠️ 删除后记录将标记为已删除状态，此操作不可撤销
                       </Text>
                     </Box>
                   </Flex>
@@ -823,7 +825,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                       onClick={handleDeactivateConfirm}
                       disabled={isDeactivating}
                     >
-                      {isDeactivating ? '作废中...' : '确认作废'}
+                      {isDeactivating ? '删除中...' : '确认删除'}
                     </PrimaryButton>
                   </Flex>
                 </Box>

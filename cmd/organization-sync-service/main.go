@@ -142,6 +142,11 @@ type CDCOrganizationData struct {
 	IsTemporal    *bool         `json:"is_temporal"`
 	ChangeReason  *string       `json:"change_reason"`
 	IsCurrent     *bool         `json:"is_current"`
+	// 五状态生命周期管理字段
+	DataStatus       *string    `json:"data_status"`
+	DeletedAt        *time.Time `json:"deleted_at"`
+	BusinessStatus   *string    `json:"business_status"`
+	LifecycleStatus  *string    `json:"lifecycle_status"`
 }
 
 type CDCSource struct {
@@ -436,6 +441,12 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 			org.is_current = COALESCE($is_current, true),
 			org.change_reason = COALESCE($change_reason, ''),
 			
+			// 五状态生命周期管理字段
+			org.data_status = COALESCE($data_status, 'NORMAL'),
+			org.deleted_at = CASE WHEN $deleted_at IS NOT NULL THEN datetime($deleted_at) ELSE NULL END,
+			org.business_status = COALESCE($business_status, 'ACTIVE'),
+			org.lifecycle_status = COALESCE($lifecycle_status, 'CURRENT'),
+			
 			// 审计字段
 			org.created_at = datetime($created_at),
 			org.updated_at = datetime($updated_at)
@@ -549,6 +560,31 @@ func (s *Neo4jSyncService) handleCDCCreate(ctx context.Context, data *CDCOrganiz
 		params["is_current"] = true
 	}
 
+	// 五状态生命周期管理字段映射
+	if data.DataStatus != nil {
+		params["data_status"] = *data.DataStatus
+	} else {
+		params["data_status"] = "NORMAL"
+	}
+
+	if data.DeletedAt != nil {
+		params["deleted_at"] = data.DeletedAt.Format(time.RFC3339)
+	} else {
+		params["deleted_at"] = nil
+	}
+
+	if data.BusinessStatus != nil {
+		params["business_status"] = *data.BusinessStatus
+	} else {
+		params["business_status"] = "ACTIVE"
+	}
+
+	if data.LifecycleStatus != nil {
+		params["lifecycle_status"] = *data.LifecycleStatus
+	} else {
+		params["lifecycle_status"] = "CURRENT"
+	}
+
 	_, err := s.session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		result, err := tx.Run(ctx, query, params)
 		if err != nil {
@@ -624,6 +660,12 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 			org.is_temporal = COALESCE($is_temporal, org.is_temporal, true),
 			org.is_current = COALESCE($is_current, org.is_current),
 			org.change_reason = COALESCE($change_reason, '数据更新'),
+			
+			// 五状态生命周期管理字段
+			org.data_status = COALESCE($data_status, org.data_status, 'NORMAL'),
+			org.deleted_at = CASE WHEN $deleted_at IS NOT NULL THEN datetime($deleted_at) ELSE org.deleted_at END,
+			org.business_status = COALESCE($business_status, org.business_status, 'ACTIVE'),
+			org.lifecycle_status = COALESCE($lifecycle_status, org.lifecycle_status, 'CURRENT'),
 			
 			// 审计字段
 			org.created_at = CASE WHEN org.created_at IS NULL THEN datetime($created_at) ELSE org.created_at END,
@@ -712,6 +754,31 @@ func (s *Neo4jSyncService) handleCDCUpdate(ctx context.Context, data *CDCOrganiz
 		params["is_current"] = *data.IsCurrent
 	} else {
 		params["is_current"] = nil
+	}
+
+	// 五状态生命周期管理字段映射 (更新版本)
+	if data.DataStatus != nil {
+		params["data_status"] = *data.DataStatus
+	} else {
+		params["data_status"] = nil
+	}
+
+	if data.DeletedAt != nil {
+		params["deleted_at"] = data.DeletedAt.Format(time.RFC3339)
+	} else {
+		params["deleted_at"] = nil
+	}
+
+	if data.BusinessStatus != nil {
+		params["business_status"] = *data.BusinessStatus
+	} else {
+		params["business_status"] = nil
+	}
+
+	if data.LifecycleStatus != nil {
+		params["lifecycle_status"] = *data.LifecycleStatus
+	} else {
+		params["lifecycle_status"] = nil
 	}
 
 	_, err := s.session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
@@ -936,6 +1003,24 @@ func (c *KafkaEventConsumer) processCDCEvent(ctx context.Context, msg *sarama.Co
 	// 提取payload中的CDC事件
 	cdcEvent := debeziumMsg.Payload
 	c.logger.Printf("CDC操作类型: %s", cdcEvent.Op)
+	
+	// 调试：输出CDC事件的完整内容
+	if cdcEvent.After != nil {
+		c.logger.Printf("DEBUG CDC After字段: DataStatus=%v, DeletedAt=%v, BusinessStatus=%v, LifecycleStatus=%v", 
+			cdcEvent.After.DataStatus, cdcEvent.After.DeletedAt, cdcEvent.After.BusinessStatus, cdcEvent.After.LifecycleStatus)
+		
+		// 输出字段的实际值
+		if cdcEvent.After.DataStatus != nil {
+			c.logger.Printf("DEBUG DataStatus值: %s", *cdcEvent.After.DataStatus)
+		}
+		if cdcEvent.After.BusinessStatus != nil {
+			c.logger.Printf("DEBUG BusinessStatus值: %s", *cdcEvent.After.BusinessStatus)
+		}
+		if cdcEvent.After.LifecycleStatus != nil {
+			c.logger.Printf("DEBUG LifecycleStatus值: %s", *cdcEvent.After.LifecycleStatus)
+		}
+	}
+	
 	return c.syncSvc.HandleCDCEvent(ctx, cdcEvent)
 }
 
@@ -964,7 +1049,7 @@ func main() {
 	// 创建Kafka消费者
 	consumer, err := NewKafkaEventConsumer(
 		[]string{"localhost:9092"},
-		"neo4j-sync-from-start", // 新的消费者组，从头开始处理消息
+		"neo4j-sync-debug-" + fmt.Sprintf("%d", time.Now().Unix()), // 新的消费者组，从头开始处理消息
 		syncSvc,
 		logger,
 	)

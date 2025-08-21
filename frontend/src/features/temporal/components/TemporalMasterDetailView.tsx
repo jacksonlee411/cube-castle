@@ -416,6 +416,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 is_current
                 created_at
                 updated_at
+                data_status
+                deleted_at
               }
             }
           `,
@@ -436,7 +438,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           // 添加五状态生命周期字段映射
           lifecycle_status: mapBackendStatusToLifecycleStatus(version.status, version.is_current),
           business_status: version.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
-          data_status: 'NORMAL' // 默认为正常状态，除非后端明确标记为删除
+          data_status: version.data_status || 'NORMAL' // 使用后端返回的实际数据状态
         }));
         
         const sortedVersions = mappedVersions.sort((a: TemporalVersion, b: TemporalVersion) => 

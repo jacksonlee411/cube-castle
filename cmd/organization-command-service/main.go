@@ -1372,11 +1372,11 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		json.NewEncoder(w).Encode(response)
 		
 	case "DEACTIVATE":
-		// 作废特定版本记录
-		h.logger.Printf("DEBUG: 开始作废处理 - 组织: %s, 记录ID: %s, 生效日期: %s", 
+		// 删除特定版本记录
+		h.logger.Printf("DEBUG: 开始删除处理 - 组织: %s, 记录ID: %s, 生效日期: %s", 
 			code, req.RecordID, dateOnly.String())
 		
-		// 作废操作：将指定UUID的记录设置为删除状态
+		// 删除操作：将指定UUID的记录设置为删除状态
 		tx, err := h.repo.db.Begin()
 		if err != nil {
 			monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
@@ -1389,8 +1389,8 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		deactivateQuery := `
 			UPDATE organization_units 
 			SET 
-				status = 'INACTIVE',
-				end_date = effective_date,  -- 将结束日期设为生效日期，表示该版本立即失效
+				data_status = 'DELETED',
+				deleted_at = NOW(),
 				updated_at = NOW()
 			WHERE tenant_id = $1 AND code = $2 AND record_id = $3
 			RETURNING record_id, tenant_id, code, name, effective_date
