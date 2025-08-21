@@ -332,6 +332,14 @@ type ReactivateOrganizationRequest struct {
 	Reason string `json:"reason" validate:"required"`
 }
 
+// 组织事件请求类型 (用于时态版本管理)
+type OrganizationEventRequest struct {
+	EventType     string                 `json:"event_type" validate:"required"`
+	EffectiveDate string                 `json:"effective_date" validate:"required"`
+	ChangeData    map[string]interface{} `json:"change_data" validate:"required"`
+	ChangeReason  string                 `json:"change_reason" validate:"required"`
+}
+
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Code    string `json:"code,omitempty"`
@@ -1196,6 +1204,143 @@ func (h *OrganizationHandler) ReactivateOrganization(w http.ResponseWriter, r *h
 	json.NewEncoder(w).Encode(response)
 }
 
+// CreateOrganizationEvent 创建组织事件 (用于时态版本管理)
+func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *http.Request) {
+	code := chi.URLParam(r, "code")
+	if code == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
+		return
+	}
+	
+	var req OrganizationEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
+		return
+	}
+	
+	h.logger.Printf("DEBUG: 收到事件请求 - 组织: %s, 事件类型: %s, 生效日期: %s", 
+		code, req.EventType, req.EffectiveDate)
+	
+	// 验证必填字段
+	if req.EventType == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "事件类型不能为空", nil)
+		return
+	}
+	if req.EffectiveDate == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "生效日期不能为空", nil)
+		return
+	}
+	if req.ChangeReason == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "变更原因不能为空", nil)
+		return
+	}
+	
+	// 解析生效日期
+	effectiveDate, err := time.Parse(time.RFC3339, req.EffectiveDate)
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "生效日期格式无效", err)
+		return
+	}
+	
+	// 转换为Date类型
+	dateOnly := NewDate(effectiveDate.Year(), effectiveDate.Month(), effectiveDate.Day())
+	
+	tenantID := h.getTenantID(r)
+	
+	// 根据事件类型处理
+	switch req.EventType {
+	case "UPDATE":
+		// 创建新的时态版本
+		org := &Organization{
+			TenantID:     tenantID.String(),
+			Code:         code,
+			IsTemporal:   true,
+			EffectiveDate: dateOnly,
+			ChangeReason: &req.ChangeReason,
+		}
+		
+		// 从change_data中提取字段
+		if name, ok := req.ChangeData["name"].(string); ok {
+			org.Name = name
+		}
+		if unitType, ok := req.ChangeData["unit_type"].(string); ok {
+			org.UnitType = unitType
+		}
+		if status, ok := req.ChangeData["status"].(string); ok {
+			org.Status = status
+		}
+		if description, ok := req.ChangeData["description"].(string); ok {
+			org.Description = description
+		}
+		if parentCode, ok := req.ChangeData["parent_code"].(string); ok && parentCode != "" {
+			org.ParentCode = &parentCode
+		}
+		
+		// 设置默认值
+		if org.Name == "" {
+			h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "组织名称不能为空", nil)
+			return
+		}
+		if org.UnitType == "" {
+			org.UnitType = "DEPARTMENT"
+		}
+		if org.Status == "" {
+			org.Status = "ACTIVE"
+		}
+		
+		// 计算路径和级别
+		path, level, err := h.repo.CalculatePath(r.Context(), tenantID, org.ParentCode, code)
+		if err != nil {
+			monitoring.RecordOrganizationOperation("event_create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusBadRequest, "PARENT_ERROR", "父组织处理失败", err)
+			return
+		}
+		
+		org.Path = path
+		org.Level = level
+		org.SortOrder = 0 // 默认排序
+		
+		// 使用事务确保数据一致性
+		tx, err := h.repo.db.Begin()
+		if err != nil {
+			monitoring.RecordOrganizationOperation("event_create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "TRANSACTION_ERROR", "开始事务失败", err)
+			return
+		}
+		defer tx.Rollback()
+		
+		// 调用时态插入逻辑
+		createdOrg, err := h.repo.CreateWithTemporalManagement(r.Context(), tx, org)
+		if err != nil {
+			monitoring.RecordOrganizationOperation("event_create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "TEMPORAL_CREATE_ERROR", "时态记录创建失败", err)
+			return
+		}
+		
+		// 提交事务
+		if err = tx.Commit(); err != nil {
+			monitoring.RecordOrganizationOperation("event_create", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "COMMIT_ERROR", "提交事务失败", err)
+			return
+		}
+		
+		// 构建响应
+		response := h.toOrganizationResponse(createdOrg)
+		monitoring.RecordOrganizationOperation("event_create", "success", "command-service")
+		h.logger.Printf("时态事件创建成功: %s - %s (生效日期: %s)", 
+			response.Code, response.Name, dateOnly.String())
+		
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(response)
+		
+	default:
+		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_EVENT_TYPE", 
+			fmt.Sprintf("不支持的事件类型: %s", req.EventType), nil)
+		return
+	}
+}
+
 // ❌ 已移除 GetOrganization - 违反CQRS原则
 // 所有查询操作必须使用GraphQL服务 (端口8090)
 // 查询接口: http://localhost:8090/graphql
@@ -1350,6 +1495,9 @@ func main() {
 			r.Post("/{code}/suspend", handler.SuspendOrganization)       // 停用组织
 			r.Post("/{code}/reactivate", handler.ReactivateOrganization) // 重新启用组织
 
+			// 时态事件管理端点 (插入新版本记录)
+			r.Post("/{code}/events", handler.CreateOrganizationEvent) // 创建时态事件
+
 			// ❌ 已移除时态管理专用端点 - 简化API设计
 			// r.Post("/planned", handler.CreatePlannedOrganization)        // 已移除：创建计划组织
 			// r.Put("/{code}/temporal-state", handler.TemporalStateChange) // 已移除：时态状态变更
@@ -1383,6 +1531,7 @@ func main() {
 				// ❌ 移除GET - 查询请使用GraphQL服务(8090)
 				"update":         "PUT /api/v1/organization-units/{code}",
 				"delete":         "DELETE /api/v1/organization-units/{code}",
+				"events":         "POST /api/v1/organization-units/{code}/events", // 新增：时态事件管理
 				// ❌ 已移除时态端点 - 简化API设计
 				// "create_planned": "POST /api/v1/organization-units/planned", // 已移除
 				// "temporal_state": "PUT /api/v1/organization-units/{code}/temporal-state", // 已移除
