@@ -75,6 +75,9 @@ export interface InlineNewVersionFormProps {
   }> | null;
   onEditHistory?: (versionData: any) => Promise<void>;
   onDeactivate?: (version: any) => Promise<void>; // 新增作废功能
+  onInsertRecord?: (data: TemporalEditFormData) => Promise<void>; // 新增插入记录功能
+  activeTab?: 'edit-history' | 'new-version'; // 当前选项卡状态
+  onTabChange?: (tab: 'edit-history' | 'new-version') => void; // 选项卡切换
 }
 
 const unitTypeOptions = [
@@ -184,7 +187,10 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   selectedVersion,
   allVersions = null,
   onEditHistory,
-  onDeactivate
+  onDeactivate,
+  onInsertRecord,
+  activeTab = 'edit-history',
+  onTabChange
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
@@ -204,6 +210,9 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   // 作废功能相关状态
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  
+  // 动态模式判断 - 根据activeTab确定当前模式
+  const currentMode = activeTab === 'new-version' ? 'insert' : mode;
   
   // Modal管理
   const deactivateModalModel = useModalModel();
@@ -379,10 +388,10 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     if (!formData.effective_date) {
       newErrors.effective_date = '生效日期是必填项';
     } else {
-      if (mode === 'create') {
+      if (currentMode === 'create') {
         // 对于完全新建组织单元，取消生效日期限制
         // 无任何限制
-      } else if (mode === 'edit') {
+      } else if (currentMode === 'edit') {
         // 编辑记录模式：只要在前后两条记录的生效日期之间即可
         const { minDate, maxDate } = getEditDateRange();
         const effectiveDate = new Date(formData.effective_date);
@@ -402,7 +411,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             newErrors.effective_date = `生效日期不能晚于 ${formatDate(maxDate)}（下一版本生效日期之前）`;
           }
         }
-      } else if (mode === 'insert') {
+      } else if (currentMode === 'insert') {
         // 编辑组织信息模式 - 插入新记录模式
         const effectiveDate = new Date(formData.effective_date);
         
@@ -532,7 +541,12 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     }
     
     try {
-      await onSubmit(formData);
+      // 根据当前模式调用不同的处理函数
+      if (currentMode === 'insert' && onInsertRecord) {
+        await onInsertRecord(formData);
+      } else {
+        await onSubmit(formData);
+      }
     } catch (error) {
       console.error('提交表单失败:', error);
     }
@@ -545,18 +559,18 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
         <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
           <Box>
             <Heading size="medium" marginBottom="s">
-              {mode === 'create' 
+              {currentMode === 'create' 
                 ? '新建组织信息'
-                : mode === 'edit' 
+                : currentMode === 'edit' 
                   ? (isEditingHistory ? '编辑记录' : '查看记录')
                   : '插入新版本记录'}
             </Heading>
             <Text typeLevel="subtext.medium" color="hint">
-              {mode === 'create'
+              {currentMode === 'create'
                 ? '填写新组织的基本信息，系统将自动分配组织编码'
-                : mode === 'edit' 
+                : currentMode === 'edit' 
                   ? `${isEditingHistory ? '修改' : '查看'}组织 ${organizationCode} 的记录信息`
-                  : mode === 'insert' 
+                  : currentMode === 'insert' 
                     ? `为组织 ${organizationCode} 插入新版本记录，将创建新的记录` 
                     : `为组织 ${organizationCode} 插入新版本记录`}
             </Text>
@@ -581,7 +595,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     type="date"
                     value={formData.effective_date}
                     onChange={handleInputChange('effective_date')}
-                    disabled={isSubmitting || (mode === 'edit' && !isEditingHistory)}
+                    disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
                   />
                   {errors.effective_date && (
                     <FormField.Hint>{errors.effective_date}</FormField.Hint>
@@ -605,7 +619,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     value={formData.name}
                     onChange={handleInputChange('name')}
                     placeholder="请输入组织名称"
-                    disabled={isSubmitting || (mode === 'edit' && !isEditingHistory)}
+                    disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
                   />
                   {errors.name && (
                     <FormField.Hint>{errors.name}</FormField.Hint>
@@ -620,7 +634,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     value={formData.parent_code || ''}
                     onChange={handleInputChange('parent_code')}
                     placeholder="请输入上级组织编码（可选）"
-                    disabled={isSubmitting || (mode === 'edit' && !isEditingHistory)}
+                    disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
                   />
                 </FormField.Field>
               </FormField>
@@ -635,7 +649,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     setErrors(prev => ({ ...prev, unit_type: '' }));
                   }
                 }}
-                disabled={isSubmitting || (mode === 'edit' && !isEditingHistory)}
+                disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
                 label="组织类型"
                 required={true}
               />
@@ -660,7 +674,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     value={formData.description}
                     onChange={handleInputChange('description')}
                     placeholder="请输入组织描述信息"
-                    disabled={isSubmitting || (mode === 'edit' && !isEditingHistory)}
+                    disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
                     rows={3}
                   />
                 </FormField.Field>
@@ -715,7 +729,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             paddingTop="l"
             borderTop={`1px solid ${colors.soap300}`}
           >
-            {mode === 'edit' ? (
+            {currentMode === 'edit' ? (
               // 记录编辑模式的按钮
               <Flex gap="s" justifyContent="space-between">
                 {/* 左侧作废按钮 */}
@@ -725,7 +739,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                       onClick={handleDeactivateClick}
                       disabled={isSubmitting || isDeactivating}
                     >
-                      删除此版本
+                      删除此记录
                     </TertiaryButton>
                   )}
                 </Box>
@@ -733,19 +747,29 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 {/* 右侧主要操作按钮 */}
                 <Flex gap="s">
                   {!isEditingHistory ? (
-                    // 只读模式的按钮
+                    // 只读模式的按钮 - 调整顺序和样式：插入新记录、修改记录、关闭
                     <>
                       <SecondaryButton 
-                        onClick={onCancel}
+                        onClick={() => {
+                          if (onTabChange) {
+                            onTabChange('new-version');
+                          }
+                        }}
                         disabled={isSubmitting}
                       >
-                        关闭
+                        插入新记录
                       </SecondaryButton>
-                      <PrimaryButton 
+                      <SecondaryButton 
                         onClick={handleEditHistoryToggle}
                         disabled={isSubmitting}
                       >
                         修改记录
+                      </SecondaryButton>
+                      <PrimaryButton 
+                        onClick={onCancel}
+                        disabled={isSubmitting}
+                      >
+                        关闭
                       </PrimaryButton>
                     </>
                   ) : (

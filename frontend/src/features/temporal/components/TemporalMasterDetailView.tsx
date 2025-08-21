@@ -831,64 +831,27 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               allVersions={null} // 创建模式不需要版本数据
             />
           ) : (
-            <>
-              {/* 选项卡头部 */}
-              <Flex marginBottom="m" gap="s">
-                <PrimaryButton
-                  size="small"
-                  onClick={() => setActiveTab('edit-history')}
-                >
-                  编辑记录
-                </PrimaryButton>
-                <SecondaryButton
-                  size="small"
-                  onClick={() => setActiveTab('new-version')}
-                  icon={plusIcon}
-                >
-                  插入新记录
-                </SecondaryButton>
-              </Flex>
-
-              {/* 选项卡内容 */}
-              {activeTab === 'edit-history' ? (
-                // 记录编辑模式
-                <InlineNewVersionForm
-                  organizationCode={organizationCode}
-                  onSubmit={handleFormSubmit} // 先使用现有的函数，稍后更新
-                  onCancel={handleHistoryEditClose}
-                  isSubmitting={isSubmitting}
-                  mode="edit"
-                  initialData={formInitialData}
-                  selectedVersion={selectedVersion}
-                  allVersions={versions.map(v => ({ // 传递版本数据用于日期范围验证
-                    record_id: v.record_id,
-                    effective_date: v.effective_date,
-                    end_date: v.end_date,
-                    is_current: v.is_current
-                  }))}
-                  onEditHistory={handleHistoryEditSubmit}
-                  onDeactivate={handleDeleteVersion} // 传递作废功能
-                />
-              ) : (
-                // 插入新记录模式
-                <InlineNewVersionForm
-                  organizationCode={organizationCode}
-                  onSubmit={handleFormSubmit}
-                  onCancel={handleFormClose}
-                  isSubmitting={isSubmitting}
-                  mode="insert"
-                  initialData={formInitialData}
-                  selectedVersion={selectedVersion}
-                  allVersions={versions.map(v => ({ // 传递版本数据用于插入位置验证
-                    record_id: v.record_id,
-                    effective_date: v.effective_date,
-                    end_date: v.end_date,
-                    is_current: v.is_current
-                  }))}
-                  onEditHistory={handleEditHistory}
-                />
-              )}
-            </>
+            // 统一的记录管理表单
+            <InlineNewVersionForm
+              organizationCode={organizationCode}
+              onSubmit={handleFormSubmit}
+              onCancel={handleHistoryEditClose}
+              isSubmitting={isSubmitting}
+              mode="edit"
+              initialData={formInitialData}
+              selectedVersion={selectedVersion}
+              allVersions={versions.map(v => ({ // 传递版本数据用于日期范围验证
+                record_id: v.record_id,
+                effective_date: v.effective_date,
+                end_date: v.end_date,
+                is_current: v.is_current
+              }))}
+              onEditHistory={handleHistoryEditSubmit}
+              onDeactivate={handleDeleteVersion} // 传递作废功能
+              onInsertRecord={handleFormSubmit} // 传递插入记录功能
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
           )}
         </Box>
       </Flex>
