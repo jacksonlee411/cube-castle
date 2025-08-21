@@ -487,7 +487,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             event_type: 'DEACTIVATE',
-            effective_date: version.effective_date,
+            record_id: version.record_id,  // 使用UUID精确定位记录
+            effective_date: version.effective_date,  // 保留用于日志和验证
             change_reason: '通过组织详情页面作废版本'
           })
         }

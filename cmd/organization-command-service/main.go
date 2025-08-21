@@ -335,8 +335,9 @@ type ReactivateOrganizationRequest struct {
 // 组织事件请求类型 (用于时态版本管理)
 type OrganizationEventRequest struct {
 	EventType     string                 `json:"event_type" validate:"required"`
+	RecordID      string                 `json:"record_id,omitempty"`       // 用于精确定位记录（作废时必需）
 	EffectiveDate string                 `json:"effective_date" validate:"required"`
-	ChangeData    map[string]interface{} `json:"change_data" validate:"required"`
+	ChangeData    map[string]interface{} `json:"change_data,omitempty"`     // UPDATE时必需
 	ChangeReason  string                 `json:"change_reason" validate:"required"`
 }
 
@@ -1230,15 +1231,51 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "生效日期不能为空", nil)
 		return
 	}
+	// 基于事件类型的验证
+	switch req.EventType {
+	case "UPDATE":
+		if req.ChangeData == nil || len(req.ChangeData) == 0 {
+			h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "UPDATE事件必须提供change_data", nil)
+			return
+		}
+	case "DEACTIVATE":
+		if req.RecordID == "" {
+			h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "DEACTIVATE事件必须提供record_id", nil)
+			return
+		}
+	default:
+		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_EVENT_TYPE", 
+			fmt.Sprintf("不支持的事件类型: %s", req.EventType), nil)
+		return
+	}
+	
 	if req.ChangeReason == "" {
 		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "变更原因不能为空", nil)
 		return
 	}
 	
-	// 解析生效日期
-	effectiveDate, err := time.Parse(time.RFC3339, req.EffectiveDate)
+	// 解析生效日期 - 支持多种格式
+	var effectiveDate time.Time
+	var err error
+	
+	// 尝试多种日期格式
+	dateFormats := []string{
+		time.RFC3339,                // "2006-01-02T15:04:05Z07:00"
+		"2006-01-02T15:04:05.000Z",  // "2006-01-02T15:04:05.000Z"
+		"2006-01-02T15:04:05Z",      // "2006-01-02T15:04:05Z"
+		"2006-01-02",                // "2006-01-02" (仅日期)
+	}
+	
+	for _, format := range dateFormats {
+		effectiveDate, err = time.Parse(format, req.EffectiveDate)
+		if err == nil {
+			break
+		}
+	}
+	
 	if err != nil {
-		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "生效日期格式无效", err)
+		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", 
+			fmt.Sprintf("生效日期格式无效，支持的格式: YYYY-MM-DD 或 ISO8601格式，收到: %s", req.EffectiveDate), err)
 		return
 	}
 	
@@ -1333,6 +1370,82 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(response)
+		
+	case "DEACTIVATE":
+		// 作废特定版本记录
+		h.logger.Printf("DEBUG: 开始作废处理 - 组织: %s, 记录ID: %s, 生效日期: %s", 
+			code, req.RecordID, dateOnly.String())
+		
+		// 作废操作：将指定UUID的记录设置为删除状态
+		tx, err := h.repo.db.Begin()
+		if err != nil {
+			monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "TRANSACTION_ERROR", "开始事务失败", err)
+			return
+		}
+		defer tx.Rollback()
+		
+		// 使用UUID精确定位并更新记录
+		deactivateQuery := `
+			UPDATE organization_units 
+			SET 
+				status = 'INACTIVE',
+				end_date = effective_date,  -- 将结束日期设为生效日期，表示该版本立即失效
+				updated_at = NOW()
+			WHERE tenant_id = $1 AND code = $2 AND record_id = $3
+			RETURNING record_id, tenant_id, code, name, effective_date
+		`
+		
+		var deactivatedRecord struct {
+			RecordID      string
+			TenantID      string
+			Code          string
+			Name          string
+			EffectiveDate time.Time
+		}
+		
+		err = tx.QueryRowContext(r.Context(), deactivateQuery, 
+			tenantID.String(), code, req.RecordID).Scan(
+			&deactivatedRecord.RecordID,
+			&deactivatedRecord.TenantID,
+			&deactivatedRecord.Code,
+			&deactivatedRecord.Name,
+			&deactivatedRecord.EffectiveDate,
+		)
+		
+		if err != nil {
+			if err == sql.ErrNoRows {
+				h.writeErrorResponse(w, http.StatusNotFound, "RECORD_NOT_FOUND", 
+					fmt.Sprintf("未找到记录ID为 %s 的记录", req.RecordID), nil)
+				return
+			}
+			monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "DEACTIVATE_ERROR", "作废记录失败", err)
+			return
+		}
+		
+		// 提交事务
+		if err = tx.Commit(); err != nil {
+			monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "COMMIT_ERROR", "提交事务失败", err)
+			return
+		}
+		
+		monitoring.RecordOrganizationOperation("event_deactivate", "success", "command-service")
+		h.logger.Printf("记录作废成功: %s - %s (记录ID: %s, 生效日期: %s)", 
+			deactivatedRecord.Code, deactivatedRecord.Name, deactivatedRecord.RecordID, 
+			deactivatedRecord.EffectiveDate.Format("2006-01-02"))
+		
+		// 返回成功响应
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message":        "记录作废成功",
+			"record_id":      deactivatedRecord.RecordID,
+			"code":           deactivatedRecord.Code,
+			"name":           deactivatedRecord.Name,
+			"effective_date": deactivatedRecord.EffectiveDate.Format("2006-01-02"),
+		})
 		
 	default:
 		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_EVENT_TYPE", 
