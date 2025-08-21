@@ -441,14 +441,20 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
           </Table.Head>
 
           <Table.Body>
-            {organizations.map((organization) => (
-              <Table.Row
-                key={organization.code}
-                style={{
-                  cursor: onRowClick ? 'pointer' : 'default'
-                }}
-                onClick={() => onRowClick?.(organization)}
-              >
+            {organizations.map((organization, index) => {
+              // 使用多层级唯一性保证：record_id > code+created_at > code+index
+              const uniqueKey = organization.record_id || 
+                               `${organization.code}-${organization.created_at}` || 
+                               `${organization.code}-${index}`;
+              
+              return (
+                <Table.Row
+                  key={uniqueKey}
+                  style={{
+                    cursor: onRowClick ? 'pointer' : 'default'
+                  }}
+                  onClick={() => onRowClick?.(organization)}
+                >
                 {/* 选择列 */}
                 {showSelection && (
                   <Table.Cell>
@@ -551,7 +557,8 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
                   </Table.Cell>
                 )}
               </Table.Row>
-            ))}
+              );
+            })}
           </Table.Body>
         </Table>
 

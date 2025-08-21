@@ -48,9 +48,14 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
           </Table.Row>
         ) : (
           organizations.map((org, index) => {
+            // 使用多层级唯一性保证：record_id > code+created_at > code+index
+            const uniqueKey = org.record_id || 
+                             `${org.code}-${org.created_at}` || 
+                             `${org.code}-${index}`;
+            
             return (
               <TableRow
-                key={org.code || `org-${index}`}
+                key={uniqueKey}
                 organization={org}
                 onTemporalManage={onTemporalManage}
                 isAnyToggling={false} // 移除状态切换功能，始终为false

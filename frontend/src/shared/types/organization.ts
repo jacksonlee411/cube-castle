@@ -91,7 +91,7 @@ export interface OrganizationListAPIResponse {
 }
 
 export interface OrganizationStatsAPIResponse {
-  organizationStats: GraphQLStatsResponse;
+  organization_unit_stats: GraphQLStatsResponse;
 }
 
 // 命令API响应类型 - 用于创建和更新操作

@@ -354,7 +354,7 @@ export const organizationAPI = {
     try {
       const graphqlQuery = `
         query GetOrganizationStats {
-          organizationStats {
+          organization_unit_stats {
             totalCount
             byType {
               unitType
@@ -373,10 +373,10 @@ export const organizationAPI = {
       `;
 
       const data = await graphqlClient.request<{
-        organizationStats: GraphQLStatsResponse;
+        organization_unit_stats: GraphQLStatsResponse;
       }>(graphqlQuery);
 
-      const stats = data.organizationStats;
+      const stats = data.organization_unit_stats;
       if (!stats) {
         throw new Error('No statistics data returned');
       }

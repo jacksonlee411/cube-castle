@@ -108,6 +108,12 @@ type OrganizationDeletedEvent struct {
 
 // ===== CDC事件模型 =====
 
+// Debezium消息包装结构
+type DebeziumMessage struct {
+	Schema  interface{}          `json:"schema"`
+	Payload CDCOrganizationEvent `json:"payload"`
+}
+
 type CDCOrganizationEvent struct {
 	Before *CDCOrganizationData `json:"before"`
 	After  *CDCOrganizationData `json:"after"`
@@ -921,12 +927,14 @@ func (c *KafkaEventConsumer) processDomainEvent(ctx context.Context, msg *sarama
 func (c *KafkaEventConsumer) processCDCEvent(ctx context.Context, msg *sarama.ConsumerMessage) error {
 	c.logger.Printf("处理CDC事件")
 
-	// 直接解析Debezium消息格式(无payload包装)
-	var cdcEvent CDCOrganizationEvent
-	if err := json.Unmarshal(msg.Value, &cdcEvent); err != nil {
-		return fmt.Errorf("反序列化CDC消息失败: %w", err)
+	// 正确解析Debezium消息格式（包含schema + payload）
+	var debeziumMsg DebeziumMessage
+	if err := json.Unmarshal(msg.Value, &debeziumMsg); err != nil {
+		return fmt.Errorf("反序列化Debezium消息失败: %w", err)
 	}
 
+	// 提取payload中的CDC事件
+	cdcEvent := debeziumMsg.Payload
 	c.logger.Printf("CDC操作类型: %s", cdcEvent.Op)
 	return c.syncSvc.HandleCDCEvent(ctx, cdcEvent)
 }
@@ -956,7 +964,7 @@ func main() {
 	// 创建Kafka消费者
 	consumer, err := NewKafkaEventConsumer(
 		[]string{"localhost:9092"},
-		"neo4j-sync-latest", // 只处理最新消息，避免重复处理历史消息
+		"neo4j-sync-from-start", // 新的消费者组，从头开始处理消息
 		syncSvc,
 		logger,
 	)

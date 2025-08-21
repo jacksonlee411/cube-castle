@@ -481,7 +481,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       
       // 使用DEACTIVATE事件而不是DELETE请求
       const response = await fetch(
-        `http://localhost:9091/api/v1/organization-units/${organizationCode}/events`,
+        `http://localhost:9090/api/v1/organization-units/${organizationCode}/events`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -604,7 +604,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       } else {
         // 更新现有组织的时态版本
         const response = await fetch(
-          `http://localhost:9091/api/v1/organization-units/${organizationCode}/events`,
+          `http://localhost:9090/api/v1/organization-units/${organizationCode}/events`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -685,7 +685,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     try {
       // 使用record_id UUID作为唯一标识符
       const response = await fetch(
-        `http://localhost:9091/api/v1/organization-units/history/${updateData.record_id}`,
+        `http://localhost:9090/api/v1/organization-units/history/${updateData.record_id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
