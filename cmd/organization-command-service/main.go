@@ -771,6 +771,105 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	return &org, nil
 }
 
+// UpdateByRecordId 通过UUID更新历史记录
+func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID uuid.UUID, recordId string, req *UpdateOrganizationRequest) (*Organization, error) {
+	// 构建动态更新查询
+	setParts := []string{}
+	args := []interface{}{tenantID.String(), recordId}
+	argIndex := 3
+
+	if req.Name != nil {
+		setParts = append(setParts, fmt.Sprintf("name = $%d", argIndex))
+		args = append(args, *req.Name)
+		argIndex++
+	}
+
+	if req.UnitType != nil {
+		setParts = append(setParts, fmt.Sprintf("unit_type = $%d", argIndex))
+		args = append(args, *req.UnitType)
+		argIndex++
+	}
+
+	if req.SortOrder != nil {
+		setParts = append(setParts, fmt.Sprintf("sort_order = $%d", argIndex))
+		args = append(args, *req.SortOrder)
+		argIndex++
+	}
+
+	if req.Description != nil {
+		setParts = append(setParts, fmt.Sprintf("description = $%d", argIndex))
+		args = append(args, *req.Description)
+		argIndex++
+	}
+
+	if req.ParentCode != nil {
+		setParts = append(setParts, fmt.Sprintf("parent_code = $%d", argIndex))
+		args = append(args, *req.ParentCode)
+		argIndex++
+	}
+
+	// 时态管理字段更新
+	if req.EffectiveDate != nil {
+		setParts = append(setParts, fmt.Sprintf("effective_date = $%d", argIndex))
+		args = append(args, *req.EffectiveDate)
+		argIndex++
+	}
+
+	if req.EndDate != nil {
+		setParts = append(setParts, fmt.Sprintf("end_date = $%d", argIndex))
+		args = append(args, *req.EndDate)
+		argIndex++
+	}
+
+	if req.IsTemporal != nil {
+		setParts = append(setParts, fmt.Sprintf("is_temporal = $%d", argIndex))
+		args = append(args, *req.IsTemporal)
+		argIndex++
+	}
+
+	if req.ChangeReason != nil {
+		setParts = append(setParts, fmt.Sprintf("change_reason = $%d", argIndex))
+		args = append(args, *req.ChangeReason)
+		argIndex++
+	}
+
+	if len(setParts) == 0 {
+		// 无字段需要更新
+		return nil, fmt.Errorf("无字段需要更新，操作被忽略")
+	}
+
+	// 添加updated_at
+	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", argIndex))
+	args = append(args, time.Now())
+
+	query := fmt.Sprintf(`
+		UPDATE organization_units 
+		SET %s
+		WHERE tenant_id = $1 AND record_id = $2
+		RETURNING tenant_id, code, parent_code, name, unit_type, status,
+		          level, path, sort_order, description, created_at, updated_at,
+		          effective_date, end_date, is_temporal, change_reason
+	`, strings.Join(setParts, ", "))
+
+	var org Organization
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+		&org.Description, &org.CreatedAt, &org.UpdatedAt,
+		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("记录不存在: %s", recordId)
+		}
+		return nil, fmt.Errorf("更新历史记录失败: %w", err)
+	}
+
+	r.logger.Printf("历史记录更新成功: %s - %s (记录ID: %s)", org.Code, org.Name, recordId)
+	return &org, nil
+}
+
 func (r *OrganizationRepository) Delete(ctx context.Context, tenantID uuid.UUID, code string) error {
 	// 软删除 - 设置状态为INACTIVE
 	query := `
@@ -1454,6 +1553,55 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 	}
 }
 
+// UpdateHistoryRecord 通过UUID修改历史记录 (用于edit模式)
+func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http.Request) {
+	recordId := chi.URLParam(r, "recordId")
+	if recordId == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_RECORD_ID", "缺少记录ID", nil)
+		return
+	}
+
+	// 验证UUID格式
+	if _, err := uuid.Parse(recordId); err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_RECORD_ID", "无效的记录ID格式", err)
+		return
+	}
+
+	var req UpdateOrganizationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
+		return
+	}
+
+	h.logger.Printf("DEBUG: 收到历史记录更新请求 - 记录ID: %s", recordId)
+
+	// 业务验证
+	if err := ValidateUpdateOrganization(&req); err != nil {
+		monitoring.RecordOrganizationOperation("update_history", "failed", "command-service")
+		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "输入验证失败", err)
+		return
+	}
+
+	tenantID := h.getTenantID(r)
+
+	// 通过UUID更新历史记录
+	updatedOrg, err := h.repo.UpdateByRecordId(r.Context(), tenantID, recordId, &req)
+	if err != nil {
+		monitoring.RecordOrganizationOperation("update_history", "failed", "command-service")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "UPDATE_ERROR", "更新历史记录失败", err)
+		return
+	}
+
+	// 构建响应
+	response := h.toOrganizationResponse(updatedOrg)
+
+	monitoring.RecordOrganizationOperation("update_history", "success", "command-service")
+	h.logger.Printf("历史记录更新成功: %s - %s (记录ID: %s)", response.Code, response.Name, recordId)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // ❌ 已移除 GetOrganization - 违反CQRS原则
 // 所有查询操作必须使用GraphQL服务 (端口8090)
 // 查询接口: http://localhost:8090/graphql
@@ -1611,6 +1759,9 @@ func main() {
 			// 时态事件管理端点 (插入新版本记录)
 			r.Post("/{code}/events", handler.CreateOrganizationEvent) // 创建时态事件
 
+			// 历史记录修改端点 (通过UUID精确定位)
+			r.Put("/history/{recordId}", handler.UpdateHistoryRecord) // 修改历史记录
+
 			// ❌ 已移除时态管理专用端点 - 简化API设计
 			// r.Post("/planned", handler.CreatePlannedOrganization)        // 已移除：创建计划组织
 			// r.Put("/{code}/temporal-state", handler.TemporalStateChange) // 已移除：时态状态变更
@@ -1645,6 +1796,7 @@ func main() {
 				"update":         "PUT /api/v1/organization-units/{code}",
 				"delete":         "DELETE /api/v1/organization-units/{code}",
 				"events":         "POST /api/v1/organization-units/{code}/events", // 新增：时态事件管理
+				"history":        "PUT /api/v1/organization-units/history/{recordId}", // 新增：历史记录修改
 				// ❌ 已移除时态端点 - 简化API设计
 				// "create_planned": "POST /api/v1/organization-units/planned", // 已移除
 				// "temporal_state": "PUT /api/v1/organization-units/{code}/temporal-state", // 已移除
