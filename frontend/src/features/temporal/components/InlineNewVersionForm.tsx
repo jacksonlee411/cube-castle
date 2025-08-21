@@ -553,7 +553,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   };
 
   return (
-    <Box flex="1" padding="m">
+    <Box flex="1">
       <Card padding="l">
         {/* 表单标题 */}
         <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
