@@ -779,7 +779,7 @@ type KafkaEventConsumer struct {
 func NewKafkaEventConsumer(brokers []string, groupID string, syncSvc *Neo4jSyncService, logger *log.Logger) (*KafkaEventConsumer, error) {
 	config := sarama.NewConfig()
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
-	config.Consumer.Offsets.Initial = sarama.OffsetNewest
+	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	config.Consumer.Return.Errors = true
 	config.Consumer.Group.Session.Timeout = 30 * time.Second
 	config.Consumer.Group.Heartbeat.Interval = 10 * time.Second
@@ -1057,11 +1057,11 @@ func startHealthServer(logger *log.Logger) {
 	})
 
 	server := &http.Server{
-		Addr:    ":8085", // 修改为8085避免与其他服务冲突
+		Addr:    ":8087", // 修改为8087避免与其他服务冲突
 		Handler: mux,
 	}
 
-	logger.Printf("🔍 健康检查服务器启动 - 端口 8085")
+	logger.Printf("🔍 健康检查服务器启动 - 端口 8087")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Printf("❌ 健康检查服务器错误: %v", err)
 	}
