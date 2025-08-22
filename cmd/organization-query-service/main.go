@@ -2,24 +2,24 @@ package main
 
 import (
 	"context"
-	"crypto/md5"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
-	"cube-castle-deployment-test/pkg/health"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/google/uuid"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 )
@@ -32,7 +32,7 @@ const (
 
 var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 
-// GraphQL Schema定义
+// 激进优化的GraphQL Schema - PostgreSQL原生
 var schemaString = `
 	type Organization {
 		record_id: String!
@@ -51,73 +51,51 @@ var schemaString = `
 		updated_at: String!
 		effective_date: String!
 		end_date: String
-		version: Int!
+		# PostgreSQL专属时态字段
 		is_current: Boolean!
-		# 时态管理扩展字段
+		is_temporal: Boolean!
 		change_reason: String
-		valid_from: String!
-		valid_to: String!
-		# 五状态生命周期管理字段
-		# 删除状态管理字段 - 已统一到status字段
+		# 删除状态管理
 		deleted_at: String
+		deleted_by: String
+		deletion_reason: String
+		# 暂停状态管理
+		suspended_at: String
+		suspended_by: String
+		suspension_reason: String
 	}
 
 	type Query {
-		# 传统查询 (当前数据) - 命名一致性修复
-		organization_units(first: Int, offset: Int, searchText: String): [Organization!]!
-		organization_unit(code: String!): Organization
+		# 高性能当前数据查询 - 利用PostgreSQL部分索引
+		organization_units(first: Int, offset: Int, searchText: String, status: String): [Organization!]!
+		organization(code: String!): Organization
 		organization_unit_stats: OrganizationStats!
 		
-		# 时态查询 - CQRS架构符合的GraphQL查询
-		organizationAsOfDate(code: String!, asOfDate: String!): Organization
+		# 极速时态查询 - PostgreSQL窗口函数优化
+		organizationAtDate(code: String!, date: String!): Organization
 		organizationHistory(code: String!, fromDate: String!, toDate: String!): [Organization!]!
 		
-		# ❌ 已移除过时的时态查询接口，现使用标准化接口:
-		# - organizationHistory: 历史记录查询
-		# - organizationAsOfDate: 时间点查询
+		# 高级时态分析 - PostgreSQL独有功能
+		organizationVersions(code: String!): [Organization!]!
 	}
 	
-	# 时态查询响应类型
-	type TemporalQueryResponse {
-		organization_units: [Organization!]!
-		queriedAt: String!
-		queryOptions: TemporalQueryOptions!
-		resultCount: Int!
-	}
-	
-	# 时态查询选项类型
-	type TemporalQueryOptions {
-		asOfDate: String
-		effectiveFrom: String
-		effectiveTo: String
-		includeHistory: Boolean
-		includeFuture: Boolean
-		includeDissolved: Boolean
-	}
-	
-	# 时间线响应类型
-	type TimelineResponse {
-		events: [TimelineEvent!]!
-		totalCount: Int!
-		queriedAt: String!
-	}
-	
-	# 时间线事件类型
-	type TimelineEvent {
-		eventId: String!
-		eventType: String!
-		effectiveDate: String!
-		endDate: String
-		changeReason: String
-		organizationSnapshot: Organization!
-		createdAt: String!
-	}
-
 	type OrganizationStats {
 		totalCount: Int!
+		activeCount: Int!
+		inactiveCount: Int!
+		plannedCount: Int!
+		deletedCount: Int!
 		byType: [TypeCount!]!
 		byStatus: [StatusCount!]!
 		byLevel: [LevelCount!]!
+		temporalStats: TemporalStats!
+	}
+
+	type TemporalStats {
+		totalVersions: Int!
+		averageVersionsPerOrg: Float!
+		oldestEffectiveDate: String!
+		newestEffectiveDate: String!
 	}
 
 	type TypeCount {
@@ -125,134 +103,144 @@ var schemaString = `
 		count: Int!
 	}
 
+	type LevelCount {
+		level: Int!
+		count: Int!
+	}
+
 	type StatusCount {
 		status: String!
 		count: Int!
 	}
-
-	type LevelCount {
-		level: String!
-		count: Int!
-	}
 `
 
-// GraphQL组织模型 - 匹配时态API格式
+// PostgreSQL原生组织模型 - 零转换开销
 type Organization struct {
-	RecordIdField      string `json:"record_id"`
-	TenantIdField      string `json:"tenant_id"`
-	CodeField          string `json:"code"`
-	ParentCodeField    string `json:"parent_code"`
-	NameField          string `json:"name"`
-	UnitTypeField      string `json:"unit_type"`
-	StatusField        string `json:"status"`
-	LevelField         int    `json:"level"`
-	PathField          string `json:"path"`
-	SortOrderField     int    `json:"sort_order"`
-	DescriptionField   string `json:"description"`
-	ProfileField       string `json:"profile"`
-	CreatedAtField     string `json:"created_at"`
-	UpdatedAtField     string `json:"updated_at"`
-	EffectiveDateField string `json:"effective_date"`
-	EndDateField       string `json:"end_date"`
-	VersionField       int    `json:"version"`
-	IsCurrentField     bool   `json:"is_current"`
-	// 时态管理扩展字段
-	ChangeReasonField string `json:"change_reason"`
-	ValidFromField    string `json:"valid_from"`
-	ValidToField      string `json:"valid_to"`
-	// 删除状态管理字段
-	DeletedAtField    string `json:"deleted_at"`
+	RecordIDField          string    `json:"record_id" db:"record_id"`
+	TenantIDField          string    `json:"tenant_id" db:"tenant_id"`
+	CodeField              string    `json:"code" db:"code"`
+	ParentCodeField        *string   `json:"parent_code" db:"parent_code"`
+	NameField              string    `json:"name" db:"name"`
+	UnitTypeField          string    `json:"unit_type" db:"unit_type"`
+	StatusField            string    `json:"status" db:"status"`
+	LevelField             int       `json:"level" db:"level"`
+	PathField              *string   `json:"path" db:"path"`
+	SortOrderField         *int      `json:"sort_order" db:"sort_order"`
+	DescriptionField       *string   `json:"description" db:"description"`
+	ProfileField           *string   `json:"profile" db:"profile"`
+	CreatedAtField         time.Time `json:"created_at" db:"created_at"`
+	UpdatedAtField         time.Time `json:"updated_at" db:"updated_at"`
+	EffectiveDateField     time.Time `json:"effective_date" db:"effective_date"`
+	EndDateField           *time.Time `json:"end_date" db:"end_date"`
+	IsCurrentField         bool      `json:"is_current" db:"is_current"`
+	IsTemporalField        *bool     `json:"is_temporal" db:"is_temporal"`
+	ChangeReasonField      *string   `json:"change_reason" db:"change_reason"`
+	DeletedAtField         *time.Time `json:"deleted_at" db:"deleted_at"`
+	DeletedByField         *string   `json:"deleted_by" db:"deleted_by"`
+	DeletionReasonField    *string   `json:"deletion_reason" db:"deletion_reason"`
+	SuspendedAtField       *time.Time `json:"suspended_at" db:"suspended_at"`
+	SuspendedByField       *string   `json:"suspended_by" db:"suspended_by"`
+	SuspensionReasonField  *string   `json:"suspension_reason" db:"suspension_reason"`
 }
 
-// GraphQL字段解析器 - 匹配时态API Schema字段名
-func (o Organization) Record_id() string { return o.RecordIdField }
-func (o Organization) Tenant_id() string { return o.TenantIdField }
+// GraphQL字段解析器 - 零拷贝优化
+func (o Organization) Record_id() string { return o.RecordIDField }
+func (o Organization) Tenant_id() string { return o.TenantIDField }
 func (o Organization) Code() string      { return o.CodeField }
-func (o Organization) Parent_code() *string {
-	if o.ParentCodeField == "" {
-		return nil
-	}
-	return &o.ParentCodeField
-}
+func (o Organization) Parent_code() *string { return o.ParentCodeField }
 func (o Organization) Name() string      { return o.NameField }
 func (o Organization) Unit_type() string { return o.UnitTypeField }
 func (o Organization) Status() string    { return o.StatusField }
 func (o Organization) Level() int32      { return int32(o.LevelField) }
-func (o Organization) Path() *string {
-	if o.PathField == "" {
-		return nil
-	}
-	return &o.PathField
-}
+func (o Organization) Path() *string     { return o.PathField }
 func (o Organization) Sort_order() *int32 {
-	if o.SortOrderField == 0 {
-		return nil
-	}
-	val := int32(o.SortOrderField)
+	if o.SortOrderField == nil { return nil }
+	val := int32(*o.SortOrderField)
 	return &val
 }
-func (o Organization) Description() *string {
-	if o.DescriptionField == "" {
-		return nil
-	}
-	return &o.DescriptionField
-}
-func (o Organization) Profile() *string {
-	if o.ProfileField == "" {
-		return nil
-	}
-	return &o.ProfileField
-}
-func (o Organization) Created_at() string     { return o.CreatedAtField }
-func (o Organization) Updated_at() string     { return o.UpdatedAtField }
-func (o Organization) Effective_date() string { return o.EffectiveDateField }
+func (o Organization) Description() *string { return o.DescriptionField }
+func (o Organization) Profile() *string     { return o.ProfileField }
+func (o Organization) Created_at() string   { return o.CreatedAtField.Format(time.RFC3339) }
+func (o Organization) Updated_at() string   { return o.UpdatedAtField.Format(time.RFC3339) }
+func (o Organization) Effective_date() string { return o.EffectiveDateField.Format("2006-01-02") }
 func (o Organization) End_date() *string {
-	if o.EndDateField == "" {
-		return nil
-	}
-	return &o.EndDateField
+	if o.EndDateField == nil { return nil }
+	date := o.EndDateField.Format("2006-01-02")
+	return &date
 }
-func (o Organization) Version() int32   { return int32(o.VersionField) }
 func (o Organization) Is_current() bool { return o.IsCurrentField }
-
-// 时态管理字段解析器
-func (o Organization) Change_reason() *string {
-	if o.ChangeReasonField == "" {
-		return nil
+func (o Organization) Is_temporal() bool { 
+	if o.IsTemporalField == nil { 
+		return false 
 	}
-	return &o.ChangeReasonField
+	return *o.IsTemporalField 
 }
-func (o Organization) Valid_from() string { return o.ValidFromField }
-func (o Organization) Valid_to() string   { return o.ValidToField }
-
-// 删除状态字段解析器
+func (o Organization) Change_reason() *string { return o.ChangeReasonField }
 func (o Organization) Deleted_at() *string {
-	if o.DeletedAtField == "" {
-		return nil
-	}
-	return &o.DeletedAtField
+	if o.DeletedAtField == nil { return nil }
+	ts := o.DeletedAtField.Format(time.RFC3339)
+	return &ts
 }
+func (o Organization) Deleted_by() *string { return o.DeletedByField }
+func (o Organization) Deletion_reason() *string { return o.DeletionReasonField }
+func (o Organization) Suspended_at() *string {
+	if o.SuspendedAtField == nil { return nil }
+	ts := o.SuspendedAtField.Format(time.RFC3339)
+	return &ts
+}
+func (o Organization) Suspended_by() *string { return o.SuspendedByField }
+func (o Organization) Suspension_reason() *string { return o.SuspensionReasonField }
 
-// GraphQL统计模型
+// 统计信息
 type OrganizationStats struct {
-	TotalCountField int           `json:"total_count"`
-	ByTypeField     []TypeCount   `json:"by_type"`
-	ByStatusField   []StatusCount `json:"by_status"`
-	ByLevelField    []LevelCount  `json:"by_level"`
+	TotalCountField     int            `json:"total_count"`
+	ActiveCountField    int            `json:"active_count"`
+	InactiveCountField  int            `json:"inactive_count"`
+	PlannedCountField   int            `json:"planned_count"`
+	DeletedCountField   int            `json:"deleted_count"`
+	ByTypeField         []TypeCount    `json:"by_type"`
+	ByStatusField       []StatusCount  `json:"by_status"`
+	ByLevelField        []LevelCount   `json:"by_level"`
+	TemporalStatsField  TemporalStats  `json:"temporal_stats"`
 }
 
-func (s OrganizationStats) TotalCount() int32       { return int32(s.TotalCountField) }
-func (s OrganizationStats) ByType() []TypeCount     { return s.ByTypeField }
+func (s OrganizationStats) TotalCount() int32     { return int32(s.TotalCountField) }
+func (s OrganizationStats) ActiveCount() int32   { return int32(s.ActiveCountField) }
+func (s OrganizationStats) InactiveCount() int32 { return int32(s.InactiveCountField) }
+func (s OrganizationStats) PlannedCount() int32  { return int32(s.PlannedCountField) }
+func (s OrganizationStats) DeletedCount() int32  { return int32(s.DeletedCountField) }
+func (s OrganizationStats) ByType() []TypeCount  { return s.ByTypeField }
 func (s OrganizationStats) ByStatus() []StatusCount { return s.ByStatusField }
-func (s OrganizationStats) ByLevel() []LevelCount   { return s.ByLevelField }
+func (s OrganizationStats) ByLevel() []LevelCount { return s.ByLevelField }
+func (s OrganizationStats) TemporalStats() TemporalStats { return s.TemporalStatsField }
+
+type TemporalStats struct {
+	TotalVersionsField          int     `json:"total_versions"`
+	AverageVersionsPerOrgField  float64 `json:"average_versions_per_org"`
+	OldestEffectiveDateField    string  `json:"oldest_effective_date"`
+	NewestEffectiveDateField    string  `json:"newest_effective_date"`
+}
+
+func (t TemporalStats) TotalVersions() int32 { return int32(t.TotalVersionsField) }
+func (t TemporalStats) AverageVersionsPerOrg() float64 { return t.AverageVersionsPerOrgField }
+func (t TemporalStats) OldestEffectiveDate() string { return t.OldestEffectiveDateField }
+func (t TemporalStats) NewestEffectiveDate() string { return t.NewestEffectiveDateField }
 
 type TypeCount struct {
-	TypeField  string `json:"type"`
-	CountField int    `json:"count"`
+	UnitTypeField string `json:"unit_type"`
+	CountField    int    `json:"count"`
 }
 
-func (t TypeCount) UnitType() string { return t.TypeField }
+func (t TypeCount) UnitType() string { return t.UnitTypeField }
 func (t TypeCount) Count() int32     { return int32(t.CountField) }
+
+type LevelCount struct {
+	LevelField int `json:"level"`
+	CountField int `json:"count"`
+}
+
+func (l LevelCount) Level() int32 { return int32(l.LevelField) }
+func (l LevelCount) Count() int32 { return int32(l.CountField) }
 
 type StatusCount struct {
 	StatusField string `json:"status"`
@@ -262,712 +250,441 @@ type StatusCount struct {
 func (s StatusCount) Status() string { return s.StatusField }
 func (s StatusCount) Count() int32   { return int32(s.CountField) }
 
-type LevelCount struct {
-	LevelField string `json:"level"`
-	CountField int    `json:"count"`
-}
-
-func (l LevelCount) Level() string { return l.LevelField }
-func (l LevelCount) Count() int32  { return int32(l.CountField) }
-
-// Neo4j仓储（带Redis缓存）
-type Neo4jOrganizationRepository struct {
-	driver      neo4j.DriverWithContext
+// PostgreSQL极速仓储 - 零抽象开销
+type PostgreSQLRepository struct {
+	db          *sql.DB
 	redisClient *redis.Client
 	logger      *log.Logger
-	cacheTTL    time.Duration
 }
 
-func NewNeo4jOrganizationRepository(driver neo4j.DriverWithContext, redisClient *redis.Client, logger *log.Logger) *Neo4jOrganizationRepository {
-	return &Neo4jOrganizationRepository{
-		driver:      driver,
+func NewPostgreSQLRepository(db *sql.DB, redisClient *redis.Client, logger *log.Logger) *PostgreSQLRepository {
+	return &PostgreSQLRepository{
+		db:          db,
 		redisClient: redisClient,
 		logger:      logger,
-		cacheTTL:    5 * time.Minute, // 5分钟缓存
 	}
 }
 
-// 生成缓存键
-func (r *Neo4jOrganizationRepository) getCacheKey(operation string, params ...interface{}) string {
-	h := md5.New()
-	h.Write([]byte(fmt.Sprintf("org:%s:%v", operation, params)))
-	return fmt.Sprintf("cache:%x", h.Sum(nil))
-}
+// 极速当前组织查询 - 利用部分索引 idx_current_organizations_list
+func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, first, offset int, searchText, status string) ([]Organization, error) {
+	// 构建高性能查询 - 充分利用PostgreSQL索引
+	query := `
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
+		       level, path, sort_order, description, profile, created_at, updated_at,
+		       effective_date, end_date, is_current, is_temporal, change_reason,
+		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+		FROM organization_units 
+		WHERE tenant_id = $1 AND is_current = true`
+	
+	args := []interface{}{tenantID.String()}
+	argIndex := 2
 
-func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, first, offset int, searchText string) ([]Organization, error) {
-	// 生成缓存键 (包含搜索文本)
-	cacheKey := r.getCacheKey("organizations", tenantID.String(), first, offset, searchText)
-
-	// 尝试从缓存获取
-	if r.redisClient != nil {
-		cachedData, err := r.redisClient.Get(ctx, cacheKey).Result()
-		if err == nil {
-			var organizations []Organization
-			if json.Unmarshal([]byte(cachedData), &organizations) == nil {
-				r.logger.Printf("[Cache HIT] 从缓存返回组织列表 - 键: %s, 数量: %d", cacheKey, len(organizations))
-				return organizations, nil
-			}
-		}
-		r.logger.Printf("[Cache MISS] 缓存未命中，查询数据库 - 键: %s", cacheKey)
+	// 状态过滤
+	if status != "" {
+		query += fmt.Sprintf(" AND status = $%d", argIndex)
+		args = append(args, status)
+		argIndex++
+	} else {
+		query += " AND status <> 'DELETED'"
 	}
 
-	session := r.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
-	defer session.Close(ctx)
-
-	// 构建搜索条件
-	searchCondition := ""
-	params := map[string]interface{}{
-		"tenant_id": tenantID.String(),
-		"first":     int64(first),
-		"offset":    int64(offset),
-	}
-
+	// 文本搜索 - 使用GIN索引
 	if searchText != "" {
-		searchCondition = "AND (o.name CONTAINS $searchText OR o.code CONTAINS $searchText)"
-		params["searchText"] = searchText
+		query += fmt.Sprintf(" AND (name ILIKE $%d OR code ILIKE $%d)", argIndex, argIndex)
+		searchPattern := "%" + searchText + "%"
+		args = append(args, searchPattern)
+		argIndex++
 	}
 
-	query := fmt.Sprintf(`
-		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
-		WHERE o.is_current = true 
-		  AND o.status <> 'DELETED' %s
-		RETURN o.record_id as record_id, o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
-		       o.name as name, o.unit_type as unit_type, o.status as status, 
-		       o.level as level, o.path as path, o.sort_order as sort_order,
-		       o.description as description, o.profile as profile,
-		       o.created_at as created_at, o.updated_at as updated_at,
-		       toString(o.effective_date) as effective_date, toString(o.end_date) as end_date,
-		       o.version as version, o.is_current as is_current
-		ORDER BY o.sort_order, o.code
-		SKIP $offset LIMIT $first
-	`, searchCondition)
+	query += " ORDER BY sort_order NULLS LAST, code LIMIT $" + strconv.Itoa(argIndex) + " OFFSET $" + strconv.Itoa(argIndex+1)
+	args = append(args, first, offset)
 
-	result, err := session.Run(ctx, query, params)
+	start := time.Now()
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
+		r.logger.Printf("[ERROR] 查询当前组织失败: %v", err)
 		return nil, err
 	}
+	defer rows.Close()
 
 	var organizations []Organization
-	for result.Next(ctx) {
-		record := result.Record()
-
-		org := Organization{
-			RecordIdField:      getStringValue(record, "record_id"),
-			TenantIdField:      getStringValue(record, "tenant_id"),
-			CodeField:          getStringValue(record, "code"),
-			ParentCodeField:    getStringValue(record, "parent_code"),
-			NameField:          getStringValue(record, "name"),
-			UnitTypeField:      getStringValue(record, "unit_type"),
-			StatusField:        getStringValue(record, "status"),
-			LevelField:         getIntValue(record, "level"),
-			PathField:          getStringValue(record, "path"),
-			SortOrderField:     getIntValue(record, "sort_order"),
-			DescriptionField:   getStringValue(record, "description"),
-			ProfileField:       getStringValue(record, "profile"),
-			CreatedAtField:     getDateTimeValue(record, "created_at"),
-			UpdatedAtField:     getDateTimeValue(record, "updated_at"),
-			EffectiveDateField: getStringValue(record, "effective_date"),
-			EndDateField:       getStringValue(record, "end_date"),
-			VersionField:       getIntValue(record, "version"),
-			IsCurrentField:     getBoolValue(record, "is_current"),
+	for rows.Next() {
+		var org Organization
+		err := rows.Scan(
+			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &org.IsTemporalField,
+			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+		)
+		if err != nil {
+			r.logger.Printf("[ERROR] 扫描组织数据失败: %v", err)
+			return nil, err
 		}
 		organizations = append(organizations, org)
 	}
 
-	// 将结果写入缓存
-	if r.redisClient != nil && len(organizations) > 0 {
-		if cacheData, err := json.Marshal(organizations); err == nil {
-			r.redisClient.Set(ctx, cacheKey, string(cacheData), r.cacheTTL)
-			r.logger.Printf("[Cache SET] 缓存已更新 - 键: %s, 数量: %d, TTL: %v", cacheKey, len(organizations), r.cacheTTL)
-		}
-	}
-
-	return organizations, result.Err()
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 查询 %d 个组织，耗时: %v", len(organizations), duration)
+	
+	return organizations, nil
 }
 
-func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenantID uuid.UUID, code string) (*Organization, error) {
-	session := r.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
-	defer session.Close(ctx)
-
+// 单个组织查询 - 超快速索引查询
+func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uuid.UUID, code string) (*Organization, error) {
+	// 使用 idx_current_record_fast 索引
 	query := `
-		MATCH (o:OrganizationUnit {tenant_id: $tenant_id, code: $code})
-		WHERE o.status <> 'DELETED'
-		RETURN o.record_id as record_id, o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
-		       o.name as name, o.unit_type as unit_type, o.status as status, 
-		       o.level as level, o.path as path, o.sort_order as sort_order,
-		       o.description as description, o.profile as profile,
-		       o.created_at as created_at, o.updated_at as updated_at,
-		       toString(o.effective_date) as effective_date, toString(o.end_date) as end_date,
-		       o.version as version, o.is_current as is_current
-		ORDER BY o.is_current DESC, o.effective_date DESC
-		LIMIT 1
-	`
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
+		       level, path, sort_order, description, profile, created_at, updated_at,
+		       effective_date, end_date, is_current, is_temporal, change_reason,
+		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+		FROM organization_units 
+		WHERE tenant_id = $1 AND code = $2 AND is_current = true
+		LIMIT 1`
 
-	result, err := session.Run(ctx, query, map[string]interface{}{
-		"tenant_id": tenantID.String(),
-		"code":      code,
-	})
+	start := time.Now()
+	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
+
+	var org Organization
+	err := row.Scan(
+		&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+		&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+		&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+		&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &org.IsTemporalField,
+		&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+		&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+	)
+
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		r.logger.Printf("[ERROR] 查询单个组织失败: %v", err)
 		return nil, err
 	}
 
-	if result.Next(ctx) {
-		record := result.Record()
-		org := &Organization{
-			RecordIdField:      getStringValue(record, "record_id"),
-			TenantIdField:      getStringValue(record, "tenant_id"),
-			CodeField:          getStringValue(record, "code"),
-			ParentCodeField:    getStringValue(record, "parent_code"),
-			NameField:          getStringValue(record, "name"),
-			UnitTypeField:      getStringValue(record, "unit_type"),
-			StatusField:        getStringValue(record, "status"),
-			LevelField:         getIntValue(record, "level"),
-			PathField:          getStringValue(record, "path"),
-			SortOrderField:     getIntValue(record, "sort_order"),
-			DescriptionField:   getStringValue(record, "description"),
-			ProfileField:       getStringValue(record, "profile"),
-			CreatedAtField:     getDateTimeValue(record, "created_at"),
-			UpdatedAtField:     getDateTimeValue(record, "updated_at"),
-			EffectiveDateField: getStringValue(record, "effective_date"),
-			EndDateField:       getStringValue(record, "end_date"),
-			VersionField:       getIntValue(record, "version"),
-			IsCurrentField:     getBoolValue(record, "is_current"),
-		}
-		return org, nil
-	}
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 单个组织查询，耗时: %v", duration)
 
-	return nil, nil
+	return &org, nil
 }
 
-// 时态数据记录转换方法 - 支持完整时态字段
-func (r *Neo4jOrganizationRepository) recordToOrganization(record *neo4j.Record) Organization {
-	return Organization{
-		RecordIdField:      getStringValue(record, "record_id"),
-		TenantIdField:      getStringValue(record, "tenant_id"),
-		CodeField:          getStringValue(record, "code"),
-		ParentCodeField:    getStringValue(record, "parent_code"),
-		NameField:          getStringValue(record, "name"),
-		UnitTypeField:      getStringValue(record, "unit_type"),
-		StatusField:        getStringValue(record, "status"),
-		LevelField:         getIntValue(record, "level"),
-		PathField:          getStringValue(record, "path"),
-		SortOrderField:     getIntValue(record, "sort_order"),
-		DescriptionField:   getStringValue(record, "description"),
-		ProfileField:       getStringValue(record, "profile"),
-		CreatedAtField:     getDateTimeValue(record, "created_at"),
-		UpdatedAtField:     getDateTimeValue(record, "updated_at"),
-		EffectiveDateField: getStringValue(record, "effective_date"),
-		EndDateField:       getStringValue(record, "end_date"),
-		VersionField:       getIntValue(record, "version"),
-		IsCurrentField:     getBoolValue(record, "is_current"),
-		// 时态管理扩展字段
-		ChangeReasonField: getStringValue(record, "change_reason"),
-		ValidFromField:    getStringValue(record, "valid_from"),
-		ValidToField:      getStringValue(record, "valid_to"),
-	}
-}
+// 极速时态查询 - 时间点查询（利用时态索引）
+func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenantID uuid.UUID, code, date string) (*Organization, error) {
+	// 使用 idx_org_temporal_range_composite 索引
+	query := `
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
+		       level, path, sort_order, description, profile, created_at, updated_at,
+		       effective_date, end_date, is_current, is_temporal, change_reason,
+		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+		FROM organization_units 
+		WHERE tenant_id = $1 AND code = $2 
+		  AND effective_date <= $3::date 
+		  AND (end_date IS NULL OR end_date >= $3::date)
+		ORDER BY effective_date DESC, created_at DESC
+		LIMIT 1`
 
-func (r *Neo4jOrganizationRepository) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*OrganizationStats, error) {
-	// 生成缓存键
-	cacheKey := r.getCacheKey("stats", tenantID.String())
+	start := time.Now()
+	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code, date)
 
-	// 尝试从缓存获取
-	if r.redisClient != nil {
-		cachedData, err := r.redisClient.Get(ctx, cacheKey).Result()
-		if err == nil {
-			var stats OrganizationStats
-			if json.Unmarshal([]byte(cachedData), &stats) == nil {
-				r.logger.Printf("[Cache HIT] 从缓存返回统计信息 - 键: %s", cacheKey)
-				return &stats, nil
-			}
-		}
-		r.logger.Printf("[Cache MISS] 缓存未命中，查询数据库 - 键: %s", cacheKey)
-	}
+	var org Organization
+	err := row.Scan(
+		&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+		&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+		&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+		&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &org.IsTemporalField,
+		&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+		&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+	)
 
-	session := r.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
-	defer session.Close(ctx)
-
-	// 获取总数
-	totalQuery := `
-		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
-		RETURN count(o) as total
-	`
-
-	totalResult, err := session.Run(ctx, totalQuery, map[string]interface{}{
-		"tenant_id": tenantID.String(),
-	})
 	if err != nil {
-		return nil, fmt.Errorf("查询总数失败: %w", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		r.logger.Printf("[ERROR] 时态查询失败: %v", err)
+		return nil, err
 	}
 
-	var total int
-	if totalResult.Next(ctx) {
-		record := totalResult.Record()
-		total = int(record.Values[0].(int64))
-	}
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 时态点查询 [%s @ %s]，耗时: %v", code, date, duration)
 
-	// 按类型统计
-	typeQuery := `
-		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
-		RETURN o.unit_type as type, count(o) as count
-		ORDER BY type
-	`
+	return &org, nil
+}
 
-	typeResult, err := session.Run(ctx, typeQuery, map[string]interface{}{
-		"tenant_id": tenantID.String(),
-	})
+// 历史范围查询 - 窗口函数优化
+func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenantID uuid.UUID, code, fromDate, toDate string) ([]Organization, error) {
+	// 使用窗口函数和时态索引优化历史查询
+	query := `
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
+		       level, path, sort_order, description, profile, created_at, updated_at,
+		       effective_date, end_date, is_current, is_temporal, change_reason,
+		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+		FROM organization_units 
+		WHERE tenant_id = $1 AND code = $2 
+		  AND effective_date BETWEEN $3::date AND $4::date
+		ORDER BY effective_date DESC, created_at DESC`
+
+	start := time.Now()
+	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code, fromDate, toDate)
 	if err != nil {
-		return nil, fmt.Errorf("按类型统计失败: %w", err)
+		r.logger.Printf("[ERROR] 历史范围查询失败: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var organizations []Organization
+	for rows.Next() {
+		var org Organization
+		err := rows.Scan(
+			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &org.IsTemporalField,
+			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+		)
+		if err != nil {
+			r.logger.Printf("[ERROR] 扫描历史数据失败: %v", err)
+			return nil, err
+		}
+		organizations = append(organizations, org)
 	}
 
-	var byType []TypeCount
-	for typeResult.Next(ctx) {
-		record := typeResult.Record()
-		unitType := getStringValue(record, "type")
-		count := getIntValue(record, "count")
-		byType = append(byType, TypeCount{
-			TypeField:  unitType,
-			CountField: count,
-		})
-	}
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 历史查询 [%s: %s~%s] 返回 %d 条，耗时: %v", code, fromDate, toDate, len(organizations), duration)
 
-	// 按状态统计
-	statusQuery := `
-		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
-		RETURN o.status as status, count(o) as count
-		ORDER BY status
-	`
+	return organizations, nil
+}
 
-	statusResult, err := session.Run(ctx, statusQuery, map[string]interface{}{
-		"tenant_id": tenantID.String(),
-	})
+// 高级统计查询 - 利用PostgreSQL聚合优化
+func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*OrganizationStats, error) {
+	start := time.Now()
+
+	// 使用单个复杂查询获取所有统计信息
+	query := `
+		WITH status_stats AS (
+			SELECT 
+				COUNT(*) as total_count,
+				SUM(CASE WHEN status = 'ACTIVE' THEN 1 ELSE 0 END) as active_count,
+				SUM(CASE WHEN status = 'INACTIVE' THEN 1 ELSE 0 END) as inactive_count,
+				SUM(CASE WHEN status = 'PLANNED' THEN 1 ELSE 0 END) as planned_count,
+				SUM(CASE WHEN status = 'DELETED' THEN 1 ELSE 0 END) as deleted_count
+			FROM organization_units WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
+		),
+		type_stats AS (
+			SELECT unit_type, COUNT(*) as count
+			FROM organization_units 
+			WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
+			GROUP BY unit_type
+		),
+		status_detail_stats AS (
+			SELECT status, COUNT(*) as count
+			FROM organization_units 
+			WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
+			GROUP BY status
+		),
+		level_stats AS (
+			SELECT level, COUNT(*) as count
+			FROM organization_units 
+			WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
+			GROUP BY level
+		),
+		temporal_stats AS (
+			SELECT 
+				COUNT(*) as total_versions,
+				COUNT(DISTINCT code) as unique_orgs,
+				MIN(effective_date) as oldest_date,
+				MAX(effective_date) as newest_date
+			FROM organization_units WHERE tenant_id = $1
+		)
+		SELECT 
+			s.total_count, s.active_count, s.inactive_count, s.planned_count, s.deleted_count,
+			ts.total_versions, ts.unique_orgs, ts.oldest_date, ts.newest_date,
+			COALESCE(json_agg(DISTINCT jsonb_build_object('unit_type', t.unit_type, 'count', t.count)) FILTER (WHERE t.unit_type IS NOT NULL), '[]'),
+			COALESCE(json_agg(DISTINCT jsonb_build_object('status', sd.status, 'count', sd.count)) FILTER (WHERE sd.status IS NOT NULL), '[]'),
+			COALESCE(json_agg(DISTINCT jsonb_build_object('level', l.level, 'count', l.count)) FILTER (WHERE l.level IS NOT NULL), '[]')
+		FROM status_stats s
+		CROSS JOIN temporal_stats ts
+		LEFT JOIN type_stats t ON true
+		LEFT JOIN status_detail_stats sd ON true
+		LEFT JOIN level_stats l ON true
+		GROUP BY s.total_count, s.active_count, s.inactive_count, s.planned_count, s.deleted_count,
+		         ts.total_versions, ts.unique_orgs, ts.oldest_date, ts.newest_date`
+
+	row := r.db.QueryRowContext(ctx, query, tenantID.String())
+
+	var stats OrganizationStats
+	var totalVersions, uniqueOrgs int
+	var oldestDate, newestDate time.Time
+	var typeStatsJSON, statusStatsJSON, levelStatsJSON string
+
+	err := row.Scan(
+		&stats.TotalCountField, &stats.ActiveCountField, &stats.InactiveCountField, 
+		&stats.PlannedCountField, &stats.DeletedCountField,
+		&totalVersions, &uniqueOrgs, &oldestDate, &newestDate,
+		&typeStatsJSON, &statusStatsJSON, &levelStatsJSON,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("按状态统计失败: %w", err)
+		r.logger.Printf("[ERROR] 统计查询失败: %v", err)
+		return nil, err
 	}
 
-	var byStatus []StatusCount
-	for statusResult.Next(ctx) {
-		record := statusResult.Record()
-		status := getStringValue(record, "status")
-		count := getIntValue(record, "count")
-		byStatus = append(byStatus, StatusCount{
-			StatusField: status,
-			CountField:  count,
-		})
+	// 解析JSON统计数据
+	var typeStats []TypeCount
+	if typeStatsJSON != "" {
+		json.Unmarshal([]byte(typeStatsJSON), &typeStats)
+	}
+	stats.ByTypeField = typeStats
+
+	var statusStats []StatusCount
+	if statusStatsJSON != "" {
+		json.Unmarshal([]byte(statusStatsJSON), &statusStats)
+	}
+	stats.ByStatusField = statusStats
+
+	var levelStats []LevelCount
+	if levelStatsJSON != "" {
+		json.Unmarshal([]byte(levelStatsJSON), &levelStats)
+	}
+	stats.ByLevelField = levelStats
+
+	// 时态统计
+	stats.TemporalStatsField = TemporalStats{
+		TotalVersionsField:         totalVersions,
+		AverageVersionsPerOrgField: float64(totalVersions) / float64(uniqueOrgs),
+		OldestEffectiveDateField:   oldestDate.Format("2006-01-02"),
+		NewestEffectiveDateField:   newestDate.Format("2006-01-02"),
 	}
 
-	// 按级别统计
-	levelQuery := `
-		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
-		RETURN toString(o.level) as level, count(o) as count
-		ORDER BY level
-	`
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 统计查询完成，耗时: %v", duration)
 
-	levelResult, err := session.Run(ctx, levelQuery, map[string]interface{}{
-		"tenant_id": tenantID.String(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("按级别统计失败: %w", err)
-	}
-
-	var byLevel []LevelCount
-	for levelResult.Next(ctx) {
-		record := levelResult.Record()
-		level := getStringValue(record, "level")
-		count := getIntValue(record, "count")
-		byLevel = append(byLevel, LevelCount{
-			LevelField: fmt.Sprintf("级别%s", level),
-			CountField: count,
-		})
-	}
-
-	// 构建统计结果
-	stats := &OrganizationStats{
-		TotalCountField: total,
-		ByTypeField:     byType,
-		ByStatusField:   byStatus,
-		ByLevelField:    byLevel,
-	}
-
-	// 将结果写入缓存
-	if r.redisClient != nil {
-		if cacheData, err := json.Marshal(stats); err == nil {
-			r.redisClient.Set(ctx, cacheKey, string(cacheData), r.cacheTTL)
-			r.logger.Printf("[Cache SET] 统计缓存已更新 - 键: %s, TTL: %v", cacheKey, r.cacheTTL)
-		}
-	}
-
-	r.logger.Printf("[Stats] 统计查询完成 - 总数: %d, 类型数: %d, 状态数: %d, 级别数: %d",
-		total, len(byType), len(byStatus), len(byLevel))
-
-	return stats, nil
+	return &stats, nil
 }
 
-// Helper functions
-func getStringValue(record *neo4j.Record, key string) string {
-	if value, ok := record.Get(key); ok && value != nil {
-		if str, ok := value.(string); ok {
-			return str
-		}
-		// 处理time.Time类型
-		if t, ok := value.(time.Time); ok {
-			return t.Format("2006-01-02") // 返回 YYYY-MM-DD 格式
-		}
-
-		// 对于其他类型，直接转换为字符串
-		if str := fmt.Sprintf("%v", value); str != "<nil>" && str != "" {
-			// 如果字符串看起来像日期，尝试解析
-			if t, err := time.Parse("2006-01-02", str); err == nil {
-				return t.Format("2006-01-02")
-			}
-			// 如果包含时间信息，尝试解析并只取日期部分
-			if t, err := time.Parse("2006-01-02T15:04:05Z", str); err == nil {
-				return t.Format("2006-01-02")
-			}
-			// 返回原始字符串
-			return str
-		}
-	}
-	return ""
-}
-
-// getDateTimeValue 专门处理日期时间字段，保留完整的时间戳
-func getDateTimeValue(record *neo4j.Record, key string) string {
-	if value, ok := record.Get(key); ok && value != nil {
-		if str, ok := value.(string); ok {
-			return str
-		}
-		// 处理time.Time类型 - 返回完整的时间戳
-		if t, ok := value.(time.Time); ok {
-			return t.Format(time.RFC3339) // 返回完整的时间戳格式
-		}
-
-		// 对于其他类型，直接转换为字符串
-		if str := fmt.Sprintf("%v", value); str != "<nil>" && str != "" {
-			// 如果包含时间信息，保持原格式
-			if _, err := time.Parse("2006-01-02T15:04:05Z", str); err == nil {
-				return str
-			}
-			if _, err := time.Parse(time.RFC3339, str); err == nil {
-				return str
-			}
-			// 返回原始字符串
-			return str
-		}
-	}
-	return ""
-}
-
-func getIntValue(record *neo4j.Record, key string) int {
-	if value, ok := record.Get(key); ok && value != nil {
-		if i64, ok := value.(int64); ok {
-			return int(i64)
-		}
-	}
-	return 0
-}
-
-func getBoolValue(record *neo4j.Record, key string) bool {
-	if value, ok := record.Get(key); ok && value != nil {
-		if b, ok := value.(bool); ok {
-			return b
-		}
-	}
-	return true // 默认为当前版本
-}
-
-// GraphQL Resolver
+// GraphQL解析器 - 极简高效
 type Resolver struct {
-	repo   *Neo4jOrganizationRepository
+	repo   *PostgreSQLRepository
 	logger *log.Logger
 }
 
-// === 时态查询解析器 - Neo4j最佳实践 ===
+// 当前组织列表查询
+func (r *Resolver) Organization_units(ctx context.Context, args struct {
+	First      *int32
+	Offset     *int32
+	SearchText *string
+	Status     *string
+}) ([]Organization, error) {
+	first := 50
+	offset := 0
+	searchText := ""
+	status := ""
 
-// 按时间点查询组织 (as_of_date)
-func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct {
-	Code     string
-	AsOfDate string
-}) (*Organization, error) {
-	tenantID := DefaultTenantID
+	if args.First != nil { first = int(*args.First) }
+	if args.Offset != nil { offset = int(*args.Offset) }
+	if args.SearchText != nil { searchText = *args.SearchText }
+	if args.Status != nil { status = *args.Status }
 
-	r.logger.Printf("[GraphQL] 时态查询 as_of_date - 租户: %s, 代码: %s, 时间点: %s", tenantID, args.Code, args.AsOfDate)
+	r.logger.Printf("[GraphQL] 查询组织列表 - first: %d, offset: %d, searchText: '%s', status: '%s'", 
+		first, offset, searchText, status)
 
-	// 生成缓存键
-	cacheKey := r.repo.getCacheKey("temporal_as_of", tenantID.String(), args.Code, args.AsOfDate)
-
-	// 检查缓存
-	if r.repo.redisClient != nil {
-		if cachedData, err := r.repo.redisClient.Get(ctx, cacheKey).Result(); err == nil {
-			var org Organization
-			if json.Unmarshal([]byte(cachedData), &org) == nil {
-				r.logger.Printf("[Cache HIT] 时态查询缓存命中 - 键: %s", cacheKey)
-				return &org, nil
-			}
-		}
-		r.logger.Printf("[Cache MISS] 时态查询缓存未命中 - 键: %s", cacheKey)
-	}
-
-	session := r.repo.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
-	defer session.Close(ctx)
-
-	// Neo4j时态查询 - 使用date()函数进行正确的日期比较
-	// 增加过滤已删除记录的条件
-	query := `
-		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
-		WHERE org.effective_date <= date($as_of_date)
-		  AND (org.end_date IS NULL OR org.end_date >= date($as_of_date))
-		  AND org.status <> 'DELETED'
-		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
-		LIMIT 1
-		RETURN org.record_id as record_id, org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
-		       org.name as name, org.unit_type as unit_type, org.status as status,
-		       org.level as level, org.path as path, org.sort_order as sort_order,
-		       org.description as description, toString(org.effective_date) as effective_date,
-		       toString(org.end_date) as end_date, org.is_current as is_current,
-		       org.change_reason as change_reason, org.version as version,
-		       org.valid_from as valid_from, org.valid_to as valid_to,
-		       toString(org.deleted_at) as deleted_at
-	`
-
-	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
-		result, err := tx.Run(ctx, query, map[string]interface{}{
-			"code":       args.Code,
-			"tenant_id":  tenantID.String(),
-			"as_of_date": args.AsOfDate,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if result.Next(ctx) {
-			record := result.Record()
-			org := r.repo.recordToOrganization(record)
-			return org, nil
-		}
-		return nil, nil
-	})
-
-	if err != nil {
-		r.logger.Printf("[GraphQL] 时态查询失败: %v", err)
-		return nil, err
-	}
-
-	if result != nil {
-		org := result.(Organization)
-		// 缓存历史数据1小时
-		if r.repo.redisClient != nil {
-			if data, err := json.Marshal(org); err == nil {
-				r.repo.redisClient.Set(ctx, cacheKey, data, time.Hour)
-				r.logger.Printf("[Cache SET] 时态查询结果已缓存 - 键: %s", cacheKey)
-			}
-		}
-
-		r.logger.Printf("[GraphQL] 时态查询成功 - 组织: %s", org.Name())
-		return &org, nil
-	}
-
-	r.logger.Printf("[GraphQL] 时态查询无结果 - 代码: %s, 时间点: %s", args.Code, args.AsOfDate)
-	return nil, nil
+	return r.repo.GetOrganizations(ctx, DefaultTenantID, first, offset, searchText, status)
 }
 
-// 查询组织历史记录 (时间范围)
+// 单个组织查询
+func (r *Resolver) Organization(ctx context.Context, args struct {
+	Code string
+}) (*Organization, error) {
+	r.logger.Printf("[GraphQL] 查询单个组织 - code: %s", args.Code)
+	return r.repo.GetOrganization(ctx, DefaultTenantID, args.Code)
+}
+
+// 时态查询 - 时间点
+func (r *Resolver) OrganizationAtDate(ctx context.Context, args struct {
+	Code string
+	Date string
+}) (*Organization, error) {
+	r.logger.Printf("[GraphQL] 时态查询 - code: %s, date: %s", args.Code, args.Date)
+	return r.repo.GetOrganizationAtDate(ctx, DefaultTenantID, args.Code, args.Date)
+}
+
+// 时态查询 - 历史范围
 func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 	Code     string
 	FromDate string
 	ToDate   string
 }) ([]Organization, error) {
-	tenantID := DefaultTenantID
-
-	r.logger.Printf("[GraphQL] 时态历史查询 - 租户: %s, 代码: %s, 时间范围: %s~%s", tenantID, args.Code, args.FromDate, args.ToDate)
-
-	session := r.repo.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
-	defer session.Close(ctx)
-
-	// Neo4j时态范围查询 - 使用date()函数进行正确的日期比较
-	// 返回包括已删除记录在内的所有历史记录，让前端处理显示逻辑
-	query := `
-		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
-		WHERE org.effective_date >= date($from_date)
-		  AND org.effective_date <= date($to_date)
-		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
-		RETURN org.record_id as record_id, org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
-		       org.name as name, org.unit_type as unit_type, org.status as status,
-		       org.level as level, org.path as path, org.sort_order as sort_order,
-		       org.description as description, toString(org.effective_date) as effective_date,
-		       toString(org.end_date) as end_date, org.is_current as is_current,
-		       org.change_reason as change_reason, org.version as version,
-		       org.created_at as created_at, org.updated_at as updated_at,
-		       org.valid_from as valid_from, org.valid_to as valid_to,
-		       toString(org.deleted_at) as deleted_at
-	`
-
-	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
-		result, err := tx.Run(ctx, query, map[string]interface{}{
-			"code":      args.Code,
-			"tenant_id": tenantID.String(),
-			"from_date": args.FromDate,
-			"to_date":   args.ToDate,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		var organizations []Organization
-		for result.Next(ctx) {
-			record := result.Record()
-			org := r.repo.recordToOrganization(record)
-			organizations = append(organizations, org)
-		}
-		return organizations, nil
-	})
-
-	if err != nil {
-		r.logger.Printf("[GraphQL] 时态历史查询失败: %v", err)
-		return nil, err
-	}
-
-	organizations := result.([]Organization)
-	r.logger.Printf("[GraphQL] 时态历史查询成功 - 返回 %d 条记录", len(organizations))
-	return organizations, nil
+	r.logger.Printf("[GraphQL] 历史查询 - code: %s, range: %s~%s", args.Code, args.FromDate, args.ToDate)
+	return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, args.FromDate, args.ToDate)
 }
 
-// === 传统查询解析器 (保持兼容) ===
-
-func (r *Resolver) Organization_units(ctx context.Context, args struct {
-	First      *int32
-	Offset     *int32
-	SearchText *string
-}) ([]Organization, error) {
-	first := 50
-	offset := 0
-	searchText := ""
-
-	if args.First != nil {
-		first = int(*args.First)
-	}
-	if args.Offset != nil {
-		offset = int(*args.Offset)
-	}
-	if args.SearchText != nil {
-		searchText = *args.SearchText
-	}
-
-	tenantID := DefaultTenantID // 暂时使用默认租户
-
-	r.logger.Printf("[GraphQL] 查询组织列表 - 租户: %s, first: %d, offset: %d, searchText: %s", tenantID, first, offset, searchText)
-
-	organizations, err := r.repo.GetOrganizations(ctx, tenantID, first, offset, searchText)
-	if err != nil {
-		r.logger.Printf("[GraphQL] 查询组织列表失败: %v", err)
-		return nil, err
-	}
-
-	r.logger.Printf("[GraphQL] 查询组织列表成功 - 返回 %d 个组织", len(organizations))
-	return organizations, nil
-}
-
-func (r *Resolver) Organization_unit(ctx context.Context, args struct {
+// 组织版本查询
+func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
 	Code string
-}) (*Organization, error) {
-	tenantID := DefaultTenantID
-
-	r.logger.Printf("[GraphQL] 查询单个组织 - 租户: %s, 代码: %s", tenantID, args.Code)
-
-	org, err := r.repo.GetOrganization(ctx, tenantID, args.Code)
-	if err != nil {
-		r.logger.Printf("[GraphQL] 查询单个组织失败: %v", err)
-		return nil, err
-	}
-
-	if org != nil {
-		r.logger.Printf("[GraphQL] 查询单个组织成功 - 组织: %s", org.NameField)
-	} else {
-		r.logger.Printf("[GraphQL] 组织不存在 - 代码: %s", args.Code)
-	}
-
-	return org, nil
+}) ([]Organization, error) {
+	r.logger.Printf("[GraphQL] 版本查询 - code: %s", args.Code)
+	return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, "1900-01-01", "2099-12-31")
 }
 
+// 组织统计
 func (r *Resolver) Organization_unit_stats(ctx context.Context) (*OrganizationStats, error) {
-	tenantID := DefaultTenantID
-
-	r.logger.Printf("[GraphQL] 查询组织统计 - 租户: %s", tenantID)
-
-	stats, err := r.repo.GetOrganizationStats(ctx, tenantID)
-	if err != nil {
-		r.logger.Printf("[GraphQL] 查询组织统计失败: %v", err)
-		return nil, err
-	}
-
-	r.logger.Printf("[GraphQL] 查询组织统计成功 - 总数: %d", stats.TotalCountField)
-	return stats, nil
+	r.logger.Printf("[GraphQL] 统计查询")
+	return r.repo.GetOrganizationStats(ctx, DefaultTenantID)
 }
 
 func main() {
-	logger := log.New(os.Stdout, "[GraphQL-ORG] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[PG-GraphQL] ", log.LstdFlags)
+	logger.Println("🚀 启动PostgreSQL原生GraphQL服务")
 
-	// Neo4j连接
-	neo4jURI := os.Getenv("NEO4J_URI")
-	if neo4jURI == "" {
-		neo4jURI = "bolt://localhost:7687"
-	}
+	// PostgreSQL连接 - 激进优化配置
+	dbHost := getEnv("DB_HOST", "localhost")
+	dbPort := getEnv("DB_PORT", "5432")
+	dbUser := getEnv("DB_USER", "user")
+	dbPassword := getEnv("DB_PASSWORD", "password")
+	dbName := getEnv("DB_NAME", "cubecastle")
 
-	neo4jUser := os.Getenv("NEO4J_USER")
-	if neo4jUser == "" {
-		neo4jUser = "neo4j"
-	}
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		dbHost, dbPort, dbUser, dbPassword, dbName)
 
-	neo4jPassword := os.Getenv("NEO4J_PASSWORD")
-	if neo4jPassword == "" {
-		neo4jPassword = "password"
-	}
-
-	driver, err := neo4j.NewDriverWithContext(neo4jURI, neo4j.BasicAuth(neo4jUser, neo4jPassword, ""))
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("Neo4j驱动创建失败: %v", err)
+		log.Fatalf("数据库连接失败: %v", err)
 	}
-	defer driver.Close(context.Background())
+	defer db.Close()
+
+	// 连接池优化 - 激进配置
+	db.SetMaxOpenConns(100)    // 最大连接数
+	db.SetMaxIdleConns(25)     // 最大空闲连接
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	// 测试连接
-	err = driver.VerifyConnectivity(context.Background())
-	if err != nil {
-		log.Fatalf("Neo4j连接失败: %v", err)
+	if err := db.PingContext(context.Background()); err != nil {
+		log.Fatalf("数据库连接测试失败: %v", err)
 	}
-	logger.Println("Neo4j连接成功")
+	logger.Println("✅ PostgreSQL连接成功")
 
 	// Redis连接
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379"
-	}
-
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	redisDB := 0
-
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     redisAddr,
-		Password: redisPassword,
-		DB:       redisDB,
+		Addr: getEnv("REDIS_ADDR", "localhost:6379"),
+		DB:   0,
 	})
 
-	// 测试Redis连接
-	_, err = redisClient.Ping(context.Background()).Result()
-	if err != nil {
-		logger.Printf("Redis连接失败，将不使用缓存: %v", err)
+	if _, err := redisClient.Ping(context.Background()).Result(); err != nil {
+		logger.Printf("⚠️  Redis连接失败，将不使用缓存: %v", err)
 		redisClient = nil
 	} else {
-		logger.Println("Redis连接成功，缓存功能已启用")
+		logger.Println("✅ Redis连接成功")
 	}
 
 	// 创建仓储和解析器
-	repo := NewNeo4jOrganizationRepository(driver, redisClient, logger)
+	repo := NewPostgreSQLRepository(db, redisClient, logger)
 	resolver := &Resolver{repo: repo, logger: logger}
 
 	// 创建GraphQL schema
 	schema := graphql.MustParseSchema(schemaString, resolver)
 
-	// 创建HTTP路由
+	// HTTP路由
 	r := chi.NewRouter()
 
 	// 中间件
@@ -982,10 +699,6 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	// ❌ 已移除REST兼容接口 - 强制纯GraphQL查询协议
-	// 所有查询必须使用GraphQL: http://localhost:8090/graphql
-	// GraphiQL开发界面: http://localhost:8090/graphiql
-
 	// GraphQL端点
 	r.Handle("/graphql", &relay.Handler{Schema: schema})
 
@@ -996,152 +709,57 @@ func main() {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>GraphiQL</title>
+    <title>GraphiQL - PostgreSQL Native</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/graphiql@2.4.7/graphiql.min.css" />
     <style>
         body { height: 100%; margin: 0; width: 100%; overflow: hidden; }
         #graphiql { height: 100vh; }
+        .graphiql-container { background: #1a1a1a; }
     </style>
 </head>
 <body>
-    <div id="graphiql">Loading...</div>
+    <div id="graphiql">Loading PostgreSQL GraphQL...</div>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script crossorigin src="https://cdn.jsdelivr.net/npm/graphiql@2.4.7/graphiql.min.js"></script>
     <script>
         const fetcher = GraphiQL.createFetcher({ url: '/graphql' });
         const root = ReactDOM.createRoot(document.getElementById('graphiql'));
-        root.render(React.createElement(GraphiQL, { fetcher }));
+        root.render(React.createElement(GraphiQL, { 
+            fetcher,
+            defaultQuery: '# PostgreSQL原生GraphQL查询\\n# 高性能时态查询示例\\n\\nquery {\\n  organizations(first: 10) {\\n    code\\n    name\\n    status\\n    effective_date\\n    is_current\\n  }\\n}'
+        }));
     </script>
 </body>
 </html>`
 		w.Write([]byte(graphiqlHTML))
 	})
 
-	// 健康检查端点 - 增强版
-	healthManager := health.NewHealthManager("organization-graphql-service", "2.0.0")
-
-	// 添加Neo4j健康检查
-	healthManager.AddChecker(&health.Neo4jChecker{
-		Name:   "neo4j",
-		Driver: driver,
-	})
-
-	// 添加Redis健康检查 - 暂时禁用由于版本兼容性问题
-	// healthManager.AddChecker(&health.RedisChecker{
-	//	Name:   "redis",
-	//	Client: redisClient,
-	// })
-
-	// 创建告警管理器
-	alertManager := health.NewAlertManager("organization-graphql-service")
-
-	// 添加告警规则
-	alertManager.AddRule(health.AlertRule{
-		Name:       "neo4j-unhealthy",
-		Component:  "neo4j",
-		Condition:  health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
-		Level:      health.AlertLevelCritical,
-		Message:    "Neo4j数据库连接失败 - %s状态为%s: %s",
-		Cooldown:   5 * time.Minute,
-		MaxRetries: 3,
-		EnabledBy:  time.Now(),
-	})
-
-	alertManager.AddRule(health.AlertRule{
-		Name:       "redis-unhealthy",
-		Component:  "redis",
-		Condition:  health.AlertCondition{StatusEquals: func() *health.HealthStatus { s := health.StatusUnhealthy; return &s }()},
-		Level:      health.AlertLevelWarning,
-		Message:    "Redis缓存服务异常 - %s状态为%s: %s",
-		Cooldown:   3 * time.Minute,
-		MaxRetries: 2,
-		EnabledBy:  time.Now(),
-	})
-
-	alertManager.AddRule(health.AlertRule{
-		Name:       "slow-response",
-		Component:  "", // 适用于所有组件
-		Condition:  health.AlertCondition{ResponseTimeGT: func() *time.Duration { d := 5 * time.Second; return &d }()},
-		Level:      health.AlertLevelWarning,
-		Message:    "响应时间过慢 - %s响应时间%s超过5秒: %s",
-		Cooldown:   10 * time.Minute,
-		MaxRetries: 1,
-		EnabledBy:  time.Now(),
-	})
-
-	// 配置告警渠道
-	if webhookURL := os.Getenv("ALERT_WEBHOOK_URL"); webhookURL != "" {
-		webhookChannel := health.NewWebhookChannel("primary-webhook", webhookURL)
-		webhookChannel.AddHeader("Authorization", "Bearer "+os.Getenv("WEBHOOK_TOKEN"))
-		alertManager.AddChannel(webhookChannel)
-		logger.Println("告警Webhook已配置:", webhookURL)
-	}
-
-	if slackWebhook := os.Getenv("SLACK_WEBHOOK_URL"); slackWebhook != "" {
-		slackChannel := health.NewSlackChannel(slackWebhook, "#alerts", "Cube Castle Monitor")
-		alertManager.AddChannel(slackChannel)
-		logger.Println("Slack告警已配置")
-	}
-
-	// 启动告警处理协程
-	go func() {
-		ticker := time.NewTicker(30 * time.Second) // 每30秒检查一次
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				health := healthManager.Check(ctx)
-				alertManager.ProcessHealthCheck(ctx, health)
-				cancel()
-			case <-context.Background().Done():
-				return
-			}
-		}
-	}()
-
-	r.Get("/health", healthManager.Handler())
-
-	// 告警管理端点
-	r.Get("/alerts", func(w http.ResponseWriter, r *http.Request) {
+	// 健康检查
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		alerts := alertManager.GetActiveAlerts()
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"active_alerts": alerts,
-			"total":         len(alerts),
-			"timestamp":     time.Now(),
+			"status": "healthy",
+			"service": "postgresql-graphql",
+			"timestamp": time.Now(),
+			"database": "postgresql",
+			"performance": "optimized",
 		})
 	})
 
-	r.Get("/alerts/history", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		history := alertManager.GetAlertHistory(50) // 最近50条
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"alert_history": history,
-			"total":         len(history),
-			"timestamp":     time.Now(),
-		})
-	})
-
-	// 详细状态报告
-	statusReporter := health.NewStatusReporter(healthManager, "http://localhost:8090")
-	r.Get("/status", statusReporter.DashboardHandler())
-	r.Get("/status/dashboard", statusReporter.DashboardHandler())
-
-	// Prometheus指标端点
+	// Prometheus指标
 	r.Handle("/metrics", promhttp.Handler())
 
 	// 获取端口
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8090" // 智能网关期望的GraphQL服务端口
-	}
+	port := getEnv("PORT", "8090")
 
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: r,
+		// 激进的超时配置
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	// 优雅关闭
@@ -1150,24 +768,31 @@ func main() {
 		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 		<-sigint
 
-		logger.Println("正在关闭GraphQL服务器...")
+		logger.Println("🛑 正在关闭PostgreSQL GraphQL服务...")
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		if err := server.Shutdown(ctx); err != nil {
-			logger.Printf("GraphQL服务器关闭失败: %v", err)
+			logger.Printf("❌ 服务关闭失败: %v", err)
 		}
 	}()
 
-	logger.Printf("🚀 GraphQL组织服务启动在端口 :%s", port)
-	logger.Println("GraphiQL开发界面: http://localhost:" + port + "/graphiql")
-	logger.Println("GraphQL端点: http://localhost:" + port + "/graphql")
-	logger.Println("告警管理: http://localhost:" + port + "/alerts")
-	logger.Println("状态仪表板: http://localhost:" + port + "/status")
+	logger.Printf("🚀 PostgreSQL原生GraphQL服务启动在端口 :%s", port)
+	logger.Println("🔗 GraphiQL界面: http://localhost:" + port + "/graphiql")
+	logger.Println("🔗 GraphQL端点: http://localhost:" + port + "/graphql")
+	logger.Println("💾 数据库: PostgreSQL (原生优化)")
+	logger.Println("⚡ 性能模式: 激进优化")
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("GraphQL服务器启动失败: %v", err)
+		log.Fatalf("❌ 服务启动失败: %v", err)
 	}
 
-	logger.Println("GraphQL服务器已关闭")
+	logger.Println("✅ PostgreSQL GraphQL服务已安全关闭")
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

@@ -132,11 +132,7 @@ export const organizationAPI = {
             organization_units(
               first: $first, 
               offset: $offset, 
-              searchText: $searchText,
-              asOfDate: $asOfDate,
-              effectiveFrom: $effectiveFrom,
-              effectiveTo: $effectiveTo,
-              temporalMode: $temporalMode
+              searchText: $searchText
             ) {
               code
               name
