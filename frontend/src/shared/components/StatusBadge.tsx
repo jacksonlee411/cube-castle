@@ -5,12 +5,13 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { 
   checkCircleIcon, 
   clockPauseIcon, 
-  clockIcon 
+  clockIcon,
+  minusCircleIcon
 } from '@workday/canvas-system-icons-web';
 import { colors } from '@workday/canvas-kit-react/tokens';
 
-// 简化的组织状态类型（3个状态）
-export type OrganizationStatus = 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
+// 扩展的组织状态类型（4个状态）
+export type OrganizationStatus = 'ACTIVE' | 'SUSPENDED' | 'PLANNED' | 'DELETED';
 
 // 状态配置
 const STATUS_CONFIG = {
@@ -34,6 +35,13 @@ const STATUS_CONFIG = {
     icon: clockIcon,
     backgroundColor: colors.blueberry100,
     borderColor: colors.blueberry300
+  },
+  DELETED: {
+    label: '已删除',
+    color: colors.cinnamon600,
+    icon: minusCircleIcon,
+    backgroundColor: colors.cinnamon100,
+    borderColor: colors.cinnamon300
   }
 } as const;
 

@@ -384,6 +384,8 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *Organization) 
 		RETURNING created_at, updated_at
 	`
 
+	// 注意: is_current字段由数据库触发器自动维护，不需要手动设置
+
 	var createdAt, updatedAt time.Time
 
 	// 确保effective_date始终有值（数据库约束要求）
@@ -490,8 +492,9 @@ func (r *OrganizationRepository) CreateWithTemporalManagement(ctx context.Contex
 	r.logger.Printf("DEBUG: 找到 %d 条现有记录，新记录生效日期: %v", len(existingRecords), newEffectiveDate)
 	
 	if len(existingRecords) == 0 {
-		// 没有现有记录，直接创建
-		r.logger.Printf("DEBUG: 没有现有记录，直接创建")
+		// 没有现有记录，直接创建 - 第一条记录必须是当前记录
+		r.logger.Printf("DEBUG: 没有现有记录，直接创建第一条记录为当前记录")
+		org.IsCurrent = true // 第一条记录必须是当前记录
 		return r.CreateInTransaction(ctx, tx, org)
 	}
 	
@@ -511,10 +514,25 @@ func (r *OrganizationRepository) CreateWithTemporalManagement(ctx context.Contex
 	
 	r.logger.Printf("DEBUG: 插入位置: %d (总共 %d 条记录)", insertPosition, len(existingRecords))
 	
-	// 第三步：更新相关记录的end_date和is_current状态
+	// 第三步：先将所有现有的is_current记录设置为false以避免约束冲突
+	r.logger.Printf("DEBUG: 清除现有is_current标记以避免唯一性约束冲突")
+	clearCurrentQuery := `
+		UPDATE organization_units 
+		SET is_current = false, updated_at = NOW()
+		WHERE tenant_id = $1 AND code = $2 AND is_current = true
+	`
+	clearResult, err := tx.ExecContext(ctx, clearCurrentQuery, org.TenantID, org.Code)
+	if err != nil {
+		return nil, fmt.Errorf("清除is_current标记失败: %w", err)
+	}
+	clearCount, _ := clearResult.RowsAffected()
+	r.logger.Printf("DEBUG: 已清除 %d 条记录的is_current标记", clearCount)
+
+	// 第四步：分析插入位置和设置正确的is_current值
 	if insertPosition == 0 {
-		// 插入到最前面 - 新记录成为最早的记录
+		// 插入到最前面 - 新记录成为最早的记录（历史记录）
 		r.logger.Printf("DEBUG: 插入到最前面，新记录成为历史记录")
+		org.IsCurrent = false
 		
 		// 计算新记录的结束日期：下一条记录生效日期的前一天
 		if len(existingRecords) > 0 {
@@ -523,36 +541,49 @@ func (r *OrganizationRepository) CreateWithTemporalManagement(ctx context.Contex
 			org.EndDate = &Date{endDate}
 		}
 		
-		// 新插入的历史记录不是当前记录
-		org.IsCurrent = false
+		// 恢复最后一条记录的is_current状态（如果它没有结束日期）
+		if len(existingRecords) > 0 {
+			lastRecord := existingRecords[len(existingRecords)-1]
+			if lastRecord.EndDate == nil {
+				restoreCurrentQuery := `
+					UPDATE organization_units 
+					SET is_current = true, updated_at = NOW()
+					WHERE record_id = $1 AND tenant_id = $2
+				`
+				_, err = tx.ExecContext(ctx, restoreCurrentQuery, lastRecord.RecordID, org.TenantID)
+				if err != nil {
+					return nil, fmt.Errorf("恢复is_current状态失败: %w", err)
+				}
+				r.logger.Printf("DEBUG: 恢复记录 %s 的is_current状态", lastRecord.RecordID)
+			}
+		}
 		
 	} else if insertPosition == len(existingRecords) {
 		// 插入到最后面 - 新记录成为当前记录
 		r.logger.Printf("DEBUG: 插入到最后面，新记录成为当前记录")
+		org.IsCurrent = true
 		
-		// 更新之前的当前记录：设置结束日期并取消is_current状态
+		// 更新之前的当前记录：设置结束日期
 		lastRecord := existingRecords[len(existingRecords)-1]
-		if lastRecord.IsCurrent {
-			endDate := newEffectiveDate.Time.AddDate(0, 0, -1)
-			updateQuery := `
-				UPDATE organization_units 
-				SET end_date = $1, is_current = false, updated_at = NOW()
-				WHERE record_id = $2 AND tenant_id = $3
-			`
-			_, err = tx.ExecContext(ctx, updateQuery, endDate, lastRecord.RecordID, org.TenantID)
-			if err != nil {
-				return nil, fmt.Errorf("更新前一条记录的结束日期失败: %w", err)
-			}
-			r.logger.Printf("DEBUG: 更新记录 %s 的结束日期为: %v", lastRecord.RecordID, endDate.Format("2006-01-02"))
+		endDate := newEffectiveDate.Time.AddDate(0, 0, -1)
+		updateQuery := `
+			UPDATE organization_units 
+			SET end_date = $1, updated_at = NOW()
+			WHERE record_id = $2 AND tenant_id = $3
+		`
+		_, err = tx.ExecContext(ctx, updateQuery, endDate, lastRecord.RecordID, org.TenantID)
+		if err != nil {
+			return nil, fmt.Errorf("更新前一条记录的结束日期失败: %w", err)
 		}
+		r.logger.Printf("DEBUG: 更新记录 %s 的结束日期为: %v", lastRecord.RecordID, endDate.Format("2006-01-02"))
 		
 		// 新记录成为当前记录，无结束日期
 		org.EndDate = nil
-		org.IsCurrent = true
 		
 	} else {
 		// 插入到中间 - 新记录成为历史记录
 		r.logger.Printf("DEBUG: 插入到中间位置 %d，新记录成为历史记录", insertPosition)
+		org.IsCurrent = false
 		
 		// 更新前一条记录的结束日期
 		if insertPosition > 0 {
@@ -576,15 +607,26 @@ func (r *OrganizationRepository) CreateWithTemporalManagement(ctx context.Contex
 		endDate := nextDate.AddDate(0, 0, -1)
 		org.EndDate = &Date{endDate}
 		
-		// 中间插入的记录不是当前记录
-		org.IsCurrent = false
+		// 恢复最后一条记录的is_current状态（如果它没有结束日期）
+		lastRecord := existingRecords[len(existingRecords)-1]
+		if lastRecord.EndDate == nil {
+			restoreCurrentQuery := `
+				UPDATE organization_units 
+				SET is_current = true, updated_at = NOW()
+				WHERE record_id = $1 AND tenant_id = $2
+			`
+			_, err = tx.ExecContext(ctx, restoreCurrentQuery, lastRecord.RecordID, org.TenantID)
+			if err != nil {
+				return nil, fmt.Errorf("恢复is_current状态失败: %w", err)
+			}
+			r.logger.Printf("DEBUG: 恢复记录 %s 的is_current状态", lastRecord.RecordID)
+		}
 		
 		r.logger.Printf("DEBUG: 新记录结束日期设为: %v", org.EndDate.Format("2006-01-02"))
 	}
 	
 	// 第四步：插入新记录
-	r.logger.Printf("DEBUG: 插入新记录 - is_current: %v, end_date: %v", 
-		org.IsCurrent, 
+	r.logger.Printf("DEBUG: 插入新记录 - end_date: %v", 
 		func() string {
 			if org.EndDate != nil {
 				return org.EndDate.Format("2006-01-02")
@@ -636,7 +678,7 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 		org.EndDate,   // 允许为nil
 		org.IsTemporal,
 		org.ChangeReason,
-		org.IsCurrent, // 添加is_current字段
+		org.IsCurrent, // 显式设置is_current
 	).Scan(&createdAt, &updatedAt)
 
 	if err != nil {
@@ -871,11 +913,11 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 }
 
 func (r *OrganizationRepository) Delete(ctx context.Context, tenantID uuid.UUID, code string) error {
-	// 软删除 - 设置状态为INACTIVE
+	// 软删除 - 设置状态为DELETED
 	query := `
 		UPDATE organization_units 
-		SET status = 'INACTIVE', updated_at = $3
-		WHERE tenant_id = $1 AND code = $2 AND status != 'INACTIVE'
+		SET status = 'DELETED', updated_at = $3
+		WHERE tenant_id = $1 AND code = $2 AND status != 'DELETED'
 	`
 
 	result, err := r.db.ExecContext(ctx, query, tenantID.String(), code, time.Now())
@@ -1471,11 +1513,11 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		json.NewEncoder(w).Encode(response)
 		
 	case "DEACTIVATE":
-		// 删除特定版本记录
-		h.logger.Printf("DEBUG: 开始删除处理 - 组织: %s, 记录ID: %s, 生效日期: %s", 
+		// 两阶段删除特定版本记录 - 触发时间连续性机制
+		h.logger.Printf("DEBUG: 开始两阶段删除处理 - 组织: %s, 记录ID: %s, 生效日期: %s", 
 			code, req.RecordID, dateOnly.String())
 		
-		// 删除操作：将指定UUID的记录设置为删除状态
+		// 删除操作：两阶段状态转换以触发时间连续性触发器
 		tx, err := h.repo.db.Begin()
 		if err != nil {
 			monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
@@ -1484,14 +1526,51 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		}
 		defer tx.Rollback()
 		
-		// 使用UUID精确定位并更新记录
+		// 阶段1：先将状态设置为INACTIVE，触发 temporal_gap_auto_fill_trigger
+		inactiveQuery := `
+			UPDATE organization_units 
+			SET 
+				status = 'INACTIVE',
+				updated_at = NOW()
+			WHERE tenant_id = $1 AND code = $2 AND record_id = $3 AND status != 'DELETED'
+			RETURNING record_id, tenant_id, code, name, effective_date, status
+		`
+		
+		var tempRecord struct {
+			RecordID      string
+			TenantID      string
+			Code          string
+			Name          string
+			EffectiveDate time.Time
+			Status        string
+		}
+		
+		err = tx.QueryRow(inactiveQuery, DefaultTenantID.String(), code, req.RecordID).Scan(
+			&tempRecord.RecordID, &tempRecord.TenantID, &tempRecord.Code, 
+			&tempRecord.Name, &tempRecord.EffectiveDate, &tempRecord.Status)
+		
+		if err != nil {
+			if err == sql.ErrNoRows {
+				monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
+				h.writeErrorResponse(w, http.StatusNotFound, "RECORD_NOT_FOUND", 
+					fmt.Sprintf("未找到记录ID为 %s 的有效记录", req.RecordID), nil)
+				return
+			}
+			monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
+			h.writeErrorResponse(w, http.StatusInternalServerError, "INACTIVE_UPDATE_ERROR", "设置INACTIVE状态失败", err)
+			return
+		}
+		
+		h.logger.Printf("DEBUG: 阶段1完成 - 记录已设置为INACTIVE: %s", tempRecord.RecordID)
+		
+		// 阶段2：将状态从INACTIVE设置为DELETED，触发 auto_manage_end_dates
 		deactivateQuery := `
 			UPDATE organization_units 
 			SET 
-				data_status = 'DELETED',
+				status = 'DELETED',
 				deleted_at = NOW(),
 				updated_at = NOW()
-			WHERE tenant_id = $1 AND code = $2 AND record_id = $3
+			WHERE tenant_id = $1 AND code = $2 AND record_id = $3 AND status = 'INACTIVE'
 			RETURNING record_id, tenant_id, code, name, effective_date
 		`
 		
@@ -1504,7 +1583,7 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		}
 		
 		err = tx.QueryRowContext(r.Context(), deactivateQuery, 
-			tenantID.String(), code, req.RecordID).Scan(
+			DefaultTenantID.String(), code, req.RecordID).Scan(
 			&deactivatedRecord.RecordID,
 			&deactivatedRecord.TenantID,
 			&deactivatedRecord.Code,
@@ -1514,36 +1593,41 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		
 		if err != nil {
 			if err == sql.ErrNoRows {
-				h.writeErrorResponse(w, http.StatusNotFound, "RECORD_NOT_FOUND", 
-					fmt.Sprintf("未找到记录ID为 %s 的记录", req.RecordID), nil)
+				monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
+				h.writeErrorResponse(w, http.StatusInternalServerError, "PHASE2_ERROR", 
+					fmt.Sprintf("阶段2失败：记录ID %s 在INACTIVE状态下未找到", req.RecordID), nil)
 				return
 			}
 			monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
-			h.writeErrorResponse(w, http.StatusInternalServerError, "DEACTIVATE_ERROR", "作废记录失败", err)
+			h.writeErrorResponse(w, http.StatusInternalServerError, "DEACTIVATE_ERROR", "阶段2删除操作失败", err)
 			return
 		}
+		
+		h.logger.Printf("DEBUG: 阶段2完成 - 记录已设置为DELETED: %s", deactivatedRecord.RecordID)
 		
 		// 提交事务
 		if err = tx.Commit(); err != nil {
 			monitoring.RecordOrganizationOperation("event_deactivate", "failed", "command-service")
-			h.writeErrorResponse(w, http.StatusInternalServerError, "COMMIT_ERROR", "提交事务失败", err)
+			h.writeErrorResponse(w, http.StatusInternalServerError, "COMMIT_ERROR", "提交两阶段删除事务失败", err)
 			return
 		}
 		
 		monitoring.RecordOrganizationOperation("event_deactivate", "success", "command-service")
-		h.logger.Printf("记录作废成功: %s - %s (记录ID: %s, 生效日期: %s)", 
+		h.logger.Printf("两阶段删除成功完成: %s - %s (记录ID: %s, 生效日期: %s)", 
 			deactivatedRecord.Code, deactivatedRecord.Name, deactivatedRecord.RecordID, 
 			deactivatedRecord.EffectiveDate.Format("2006-01-02"))
+		h.logger.Printf("DEBUG: 时间连续性触发器应已执行，请检查temporal_gap_audit表获取详细执行日志")
 		
 		// 返回成功响应
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message":        "记录作废成功",
+			"message":        "两阶段删除成功完成，时间连续性已保证",
 			"record_id":      deactivatedRecord.RecordID,
 			"code":           deactivatedRecord.Code,
 			"name":           deactivatedRecord.Name,
 			"effective_date": deactivatedRecord.EffectiveDate.Format("2006-01-02"),
+			"phases":         "INACTIVE -> DELETED",
 		})
 		
 	default:

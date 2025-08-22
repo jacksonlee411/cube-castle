@@ -21,8 +21,8 @@ export const OrganizationTemporalPage: React.FC = () => {
   // 检测创建模式
   const isCreateMode = code === 'new';
   
-  // 路由参数验证 - 对于创建模式，允许code为'new'
-  if (!code || (code !== 'new' && !code.match(/^\d+$/))) {
+  // 路由参数验证 - 对于创建模式，允许code为'new'，对于组织编码，支持7位数字或T+6位数字格式
+  if (!code || (code !== 'new' && !code.match(/^(\d{7}|T\d{6})$/))) {
     return (
       <Box padding="xl" textAlign="center">
         <Heading size="medium" marginBottom="m">

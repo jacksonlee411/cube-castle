@@ -21,9 +21,9 @@ import { plusIcon } from '@workday/canvas-system-icons-web';
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
 
-// 状态映射函数：将后端状态映射到新的三状态系统
+// 状态映射函数：将后端状态映射到新的四状态系统
 const mapBackendStatusToOrganizationStatus = (backendStatus: string): OrganizationStatus => {
-  // 映射到新的三状态系统：ACTIVE, SUSPENDED, PLANNED
+  // 映射到新的四状态系统：ACTIVE, SUSPENDED, PLANNED, DELETED
   switch (backendStatus) {
     case 'ACTIVE':
       return 'ACTIVE';
@@ -32,6 +32,8 @@ const mapBackendStatusToOrganizationStatus = (backendStatus: string): Organizati
       return 'SUSPENDED';
     case 'PLANNED':
       return 'PLANNED';
+    case 'DELETED':
+      return 'DELETED';
     default:
       return 'ACTIVE'; // 默认状态
   }
@@ -175,15 +177,21 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
   const formatDateRange = (version: TemporalVersion, allVersions: TemporalVersion[]) => {
     const start = formatDate(version.effective_date);
     
+    // 优先检查删除状态
+    if (version.data_status === 'DELETED' || version.status === 'DELETED') {
+      return `${start} ~ 已删除`;
+    }
+    
     // 根据时态管理规则计算结束日期
     if (version.end_date) {
       // 如果有明确的结束日期，使用它
       return `${start} ~ ${formatDate(version.end_date)}`;
     }
     
-    // 找到下一个生效日期更晚的版本
+    // 找到下一个生效日期更晚的版本（排除已删除的版本）
     const nextVersion = allVersions
       .filter(v => new Date(v.effective_date) > new Date(version.effective_date))
+      .filter(v => v.data_status !== 'DELETED' && v.status !== 'DELETED')
       .sort((a, b) => new Date(a.effective_date).getTime() - new Date(b.effective_date).getTime())[0];
     
     if (nextVersion) {
@@ -416,7 +424,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 is_current
                 created_at
                 updated_at
-                data_status
                 deleted_at
               }
             }
@@ -438,7 +445,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           // 添加五状态生命周期字段映射
           lifecycle_status: mapBackendStatusToLifecycleStatus(version.status, version.is_current),
           business_status: version.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
-          data_status: version.data_status || 'NORMAL' // 使用后端返回的实际数据状态
+          data_status: version.status === 'DELETED' ? 'DELETED' : 'NORMAL' // 根据status字段判断数据状态
         }));
         
         const sortedVersions = mappedVersions.sort((a: TemporalVersion, b: TemporalVersion) => 

@@ -5,7 +5,7 @@ interface OrganizationUnit {
   code: string;
   name: string;
   unit_type: 'COMPANY' | 'DEPARTMENT' | 'PROJECT_TEAM' | 'COST_CENTER';
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
   level: number;
   path: string;
   sort_order: number;

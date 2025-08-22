@@ -58,7 +58,7 @@ var schemaString = `
 		valid_from: String!
 		valid_to: String!
 		# 五状态生命周期管理字段
-		data_status: String
+		# 删除状态管理字段 - 已统一到status字段
 		deleted_at: String
 	}
 
@@ -160,8 +160,7 @@ type Organization struct {
 	ChangeReasonField string `json:"change_reason"`
 	ValidFromField    string `json:"valid_from"`
 	ValidToField      string `json:"valid_to"`
-	// 五状态生命周期管理字段
-	DataStatusField   string `json:"data_status"`
+	// 删除状态管理字段
 	DeletedAtField    string `json:"deleted_at"`
 }
 
@@ -226,14 +225,7 @@ func (o Organization) Change_reason() *string {
 func (o Organization) Valid_from() string { return o.ValidFromField }
 func (o Organization) Valid_to() string   { return o.ValidToField }
 
-// 五状态生命周期管理字段解析器
-func (o Organization) Data_status() *string {
-	if o.DataStatusField == "" {
-		return nil
-	}
-	return &o.DataStatusField
-}
-
+// 删除状态字段解析器
 func (o Organization) Deleted_at() *string {
 	if o.DeletedAtField == "" {
 		return nil
@@ -338,7 +330,7 @@ func (r *Neo4jOrganizationRepository) GetOrganizations(ctx context.Context, tena
 	query := fmt.Sprintf(`
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id})
 		WHERE o.is_current = true 
-		  AND (o.data_status IS NULL OR o.data_status <> 'DELETED') %s
+		  AND o.status <> 'DELETED' %s
 		RETURN o.record_id as record_id, o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
 		       o.name as name, o.unit_type as unit_type, o.status as status, 
 		       o.level as level, o.path as path, o.sort_order as sort_order,
@@ -399,7 +391,7 @@ func (r *Neo4jOrganizationRepository) GetOrganization(ctx context.Context, tenan
 
 	query := `
 		MATCH (o:OrganizationUnit {tenant_id: $tenant_id, code: $code})
-		WHERE (o.data_status IS NULL OR o.data_status <> 'DELETED')
+		WHERE o.status <> 'DELETED'
 		RETURN o.record_id as record_id, o.tenant_id as tenant_id, o.code as code, o.parent_code as parent_code,
 		       o.name as name, o.unit_type as unit_type, o.status as status, 
 		       o.level as level, o.path as path, o.sort_order as sort_order,
@@ -725,7 +717,7 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct {
 		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
 		WHERE org.effective_date <= date($as_of_date)
 		  AND (org.end_date IS NULL OR org.end_date >= date($as_of_date))
-		  AND (org.data_status IS NULL OR org.data_status <> 'DELETED')
+		  AND org.status <> 'DELETED'
 		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
 		LIMIT 1
 		RETURN org.record_id as record_id, org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
@@ -735,7 +727,7 @@ func (r *Resolver) OrganizationAsOfDate(ctx context.Context, args struct {
 		       toString(org.end_date) as end_date, org.is_current as is_current,
 		       org.change_reason as change_reason, org.version as version,
 		       org.valid_from as valid_from, org.valid_to as valid_to,
-		       org.data_status as data_status, toString(org.deleted_at) as deleted_at
+		       toString(org.deleted_at) as deleted_at
 	`
 
 	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
@@ -793,12 +785,11 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 	defer session.Close(ctx)
 
 	// Neo4j时态范围查询 - 使用date()函数进行正确的日期比较
-	// 增加过滤已删除记录的条件
+	// 返回包括已删除记录在内的所有历史记录，让前端处理显示逻辑
 	query := `
 		MATCH (org:OrganizationUnit {code: $code, tenant_id: $tenant_id})
 		WHERE org.effective_date >= date($from_date)
 		  AND org.effective_date <= date($to_date)
-		  AND (org.data_status IS NULL OR org.data_status <> 'DELETED')
 		ORDER BY org.effective_date DESC, COALESCE(org.version, 1) DESC
 		RETURN org.record_id as record_id, org.tenant_id as tenant_id, org.code as code, org.parent_code as parent_code,
 		       org.name as name, org.unit_type as unit_type, org.status as status,
@@ -808,7 +799,7 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 		       org.change_reason as change_reason, org.version as version,
 		       org.created_at as created_at, org.updated_at as updated_at,
 		       org.valid_from as valid_from, org.valid_to as valid_to,
-		       org.data_status as data_status, toString(org.deleted_at) as deleted_at
+		       toString(org.deleted_at) as deleted_at
 	`
 
 	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {

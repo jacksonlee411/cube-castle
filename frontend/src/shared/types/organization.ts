@@ -4,7 +4,7 @@ export interface OrganizationUnit {
   parent_code?: string;
   name: string;
   unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
-  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
+  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED' | 'DELETED';
   level: number;
   path: string;
   sort_order: number;
