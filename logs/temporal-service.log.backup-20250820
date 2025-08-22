@@ -1,2 +1,0 @@
-main.go:22:2: no required module provides package github.com/redis/go-redis/v9; to add it:
-	go get github.com/redis/go-redis/v9
