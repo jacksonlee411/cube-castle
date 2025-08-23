@@ -4,8 +4,7 @@ import { PrimaryButton } from '@workday/canvas-kit-react/button'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   dashboardIcon,
-  homeIcon,
-  chartIcon
+  homeIcon
 } from '@workday/canvas-system-icons-web';
 
 const navigationItems = [
@@ -18,11 +17,6 @@ const navigationItems = [
     label: '组织架构',
     path: '/organizations',
     icon: homeIcon
-  },
-  {
-    label: '系统监控',
-    path: '/monitoring',
-    icon: chartIcon
   }
 ];
 

@@ -17,7 +17,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	_ "github.com/lib/pq"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -71,8 +70,6 @@ func main() {
 		fmt.Fprintf(w, `{"status": "healthy", "service": "organization-command-service", "timestamp": "%s"}`, time.Now().Format(time.RFC3339))
 	})
 
-	// Prometheus指标
-	r.Handle("/metrics", promhttp.Handler())
 
 	// 设置组织相关路由
 	orgHandler.SetupRoutes(r)

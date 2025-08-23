@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { OrganizationDashboard } from './features/organizations/OrganizationDashboard'
 import { OrganizationTemporalPage } from './features/organizations/OrganizationTemporalPage'
-import { MonitoringDashboard } from './features/monitoring/MonitoringDashboard'
 
 function App() {
   return (
@@ -17,9 +16,6 @@ function App() {
         {/* 组织相关页面 - 统一使用参数化路由 */}
         <Route path="/organizations/:code" element={<OrganizationTemporalPage />} />
         <Route path="/organizations/:code/temporal" element={<OrganizationTemporalPage />} />
-        
-        {/* 系统监控模块 */}
-        <Route path="/monitoring" element={<MonitoringDashboard />} />
         
         {/* 其他功能模块占位 */}
         <Route path="/dashboard" element={<div>仪表板 - 开发中</div>} />

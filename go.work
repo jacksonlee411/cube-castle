@@ -8,8 +8,6 @@ use ./cmd/organization-query-service
 use (
 	.
 	./cmd/organization-cache-invalidator
-	./monitoring
 	./pkg/health
-	./pkg/monitoring
 	./shared
 )

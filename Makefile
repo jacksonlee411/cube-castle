@@ -15,7 +15,6 @@ help:
 	@echo "  phoenix-status- 查看Phoenix服务状态"
 	@echo "  phoenix-reset - 完全重置Phoenix环境"
 	@echo "  test-cdc      - 测试CDC数据流"
-	@echo "  monitor       - 打开监控面板"
 	@echo "  connectors    - 查看Debezium连接器状态"
 	@echo ""
 	@echo "📦 构建相关:"
@@ -90,16 +89,6 @@ test-cdc: ## 测试CDC数据流
 	@echo "检查Kafka主题..."
 	@docker exec cube_castle_kafka kafka-topics --list --bootstrap-server localhost:9092 | grep organization || echo "❌ 未找到organization相关主题"
 
-monitor: ## 打开监控面板
-	@echo "📊 打开监控面板..."
-	@echo "Kafka UI: http://localhost:8081"
-	@if command -v open >/dev/null 2>&1; then \
-		open http://localhost:8081; \
-	elif command -v xdg-open >/dev/null 2>&1; then \
-		xdg-open http://localhost:8081; \
-	else \
-		echo "请手动访问 http://localhost:8081"; \
-	fi
 
 connectors: ## 查看Debezium连接器状态
 	@echo "🔌 Debezium连接器状态:"

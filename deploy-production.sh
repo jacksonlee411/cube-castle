@@ -180,7 +180,6 @@ if [ "$services_healthy" = true ]; then
     echo "   • 命令API: http://localhost:9090"
     echo "   • 查询API (GraphQL): http://localhost:8090/graphql"
     echo "   • 前端应用: http://localhost:3000"
-    echo "   • 监控面板: http://localhost:3000/monitoring"
     echo ""
     echo "🔧 管理命令:"
     echo "   • 停止服务: ./stop-production.sh"
