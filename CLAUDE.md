@@ -215,6 +215,25 @@
 ## 项目概述
 Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端React应用和Go后端API服务。项目专注于组织架构管理和系统监控功能，正在实施现代化简洁CQRS架构和PostgreSQL原生优化。
 
+## 📂 核心文档位置 ⭐ **重要更新 (2025-08-23)**
+
+**开发计划文档目录**: `/home/shangmeilin/cube-castle/docs/development-plans/` ⭐ **统一管理 + 序号排序**
+- `00-README.md` - 开发计划文档目录使用指南
+- `01-organization-units-api-specification.md` - 组织单元API规范 v4.2 (企业级标准) 
+- `02-technical-architecture-design.md` - 技术架构设计文档
+- `03-implementation-plan.md` - 项目总体实施方案(已更新至85%完成状态)
+- `04-early-stage-implementation-strategy.md` - 早期实施策略
+- `05-core-features-development-plan.md` - 阶段2核心功能开发详细计划
+
+**文档集中管理优势**:
+- ✅ 避免文档分散在多个目录中造成混淆
+- ✅ 统一的开发计划文档入口，便于团队协作
+- ✅ 序号排序系统，明确的阅读顺序和重要程度
+- ✅ 完整的项目规划文档链，从API规范到具体实施
+- ✅ 包含8大核心模块完整开发指南，涵盖CRUD系统、GraphQL查询、时态管理、层级管理等全部功能
+
+**推荐阅读顺序**: API规范 → 技术架构 → 项目规划 → 早期策略 → 核心功能开发
+
 ## 📅 项目开发阶段 ⭐ **重要说明 (2025-08-23)**
 
 **当前阶段**: **开发早期** - 核心架构搭建和API设计阶段
