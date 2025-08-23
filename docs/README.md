@@ -5,71 +5,52 @@
 ## 🔥 常用文档 (一键直达)
 
 ### 🚀 立即开始
-- [生产部署指南](setup/deployment-guide.md) - 完整的生产环境部署流程
 - [API快速参考](api/README.md) - 所有API接口总览
-- [故障排除手册](guides/troubleshooting.md) - 常见问题快速解决
+- **大规模清理完成**: 95%文档已归档 → archive/ ⭐ **极简状态**
 
-### 🎯 核心功能
-- [时态管理快速开始](guides/temporal-management-quickstart.md) - 时态功能使用指南
-- [时态管理用户手册](guides/temporal-management-user-guide.md) - 详细使用说明
-- [GraphQL API文档](api/graphql-api.md) - GraphQL接口完整参考
-- [REST API文档](api/temporal-management-api.md) - REST接口参考
+### 🎯 核心功能  
+- [**组织单元API规范**](api/organization-units-api-specification.md) - **主要API文档** ⭐ 完整的GraphQL/REST规范  
+- [CLAUDE.md项目记忆](../CLAUDE.md) - 项目指导原则和架构设计 ⭐ 必读
+- [设计开发标准](guides/DESIGN_DEVELOPMENT_STANDARDS.md) - 代码规范和开发标准
 
 ### 🏗️ 架构文档
 - [元合约v6.0规范](architecture/metacontract-v6.0-specification.md) - 核心设计合约
 - [城堡蓝图](architecture/castle-blueprint.md) - 系统架构蓝图
-- [CQRS统一实施指南](architecture/cqrs-unified-implementation-guide-v3.md) - CQRS架构指南
+- **已归档**: CQRS实施指南等其他架构文档 → archive/
 
 ## 📂 目录结构
 
 ```
 docs/
-├── 🚀 setup/          # 环境配置与部署
-├── 📖 guides/         # 使用指南与最佳实践  
-├── 🔌 api/            # API文档与示例
-├── 🏗️ architecture/   # 架构设计文档
-├── 📝 notes/          # 个人笔记与临时文档
-└── 📁 archive/        # 不常用的历史文档
+├── 📖 guides/         # 精简开发指南(仅2份: 1规范+1README)
+├── 🔌 api/            # 核心API文档(仅2份: 1规范+1README) 
+├── 🏗️ architecture/   # 核心架构文档(仅2份: 蓝图+合约)
+└── 📁 archive/        # 史诗级归档 ⭐ 26份文档归档，97%清理率
+    ├── deprecated-neo4j-era/     # Neo4j时代文档(7份)
+    ├── deprecated-api-specs/     # 过时API规范(2份)  
+    ├── deprecated-api-design/    # 废弃API设计文档(5份)
+    ├── deprecated-guides/        # 废弃开发指南(8份)
+    ├── deprecated-notes/         # 废弃笔记文档(7份) ⭐ 新增
+    ├── deprecated-setup/         # 废弃安装指南(1份) ⭐ 新增
+    ├── project-reports/          # 项目报告归档(1份)
+    └── frontend-ux-optimization-deprecated/ # 前端优化归档
 ```
 
-### 🚀 setup/ - 环境配置
-快速配置开发和生产环境的所有指南
-- 开发环境配置
-- 生产部署指南  
-- Docker配置
-- 依赖管理
+### 📖 guides/ - 精简开发指南
+仅保留核心开发标准文档，其他已全部归档
+- **DESIGN_DEVELOPMENT_STANDARDS.md** - 唯一保留的开发规范
+- **已全部归档**: 其他8份开发指南 → archive/deprecated-guides/
 
-### 📖 guides/ - 使用指南
-日常使用的操作指南和最佳实践
-- 用户使用指南
-- 故障排除手册
-- 最佳实践总结
-- 维护操作指南
-- **设计开发规范** ⭐ **新增位置**
+### 🔌 api/ - 核心API文档
+精简到唯一权威API文档，其他已全部归档
+- **organization-units-api-specification.md** - 唯一权威API规范
+- **已全部归档**: 其他5份API文档 → archive/deprecated-api-design/
 
-### 🔌 api/ - API文档
-完整的API参考文档和使用示例
-- REST API参考
-- GraphQL API参考
-- API使用示例
-- 集成指南
-- **OpenAPI规范** ⭐ **新增位置**
-
-### 🏗️ architecture/ - 架构设计
-系统核心架构文档和设计规范
-- 元合约v6.0规范
-- 城堡蓝图架构
-- CQRS实施指南
-- 设计决策记录
-
-### 📝 notes/ - 个人工作区
-开发过程中的笔记、想法和临时文档
-- `todo.md` - 待办事项
-- `ideas.md` - 想法记录  
-- `debugging.md` - 调试记录
-- `temp/` - 临时文件夹
-- **Canvas Kit迁移记录** ⭐ **新增位置**
-- **[🔍 CQRS架构符合性分析](notes/CQRS_COMPLIANCE_SUMMARY.md)** ⭐ **新增** - 文档vs实现对比分析
+### 🏗️ architecture/ - 核心架构文档
+保留2份核心架构设计文档
+- **metacontract-v6.0-specification.md** - 核心设计合约
+- **castle-blueprint.md** - 系统架构蓝图
+- **已归档**: CQRS实施指南等其他架构文档 → archive/deprecated-neo4j-era/
 
 ## 🔍 快速搜索技巧
 
@@ -95,11 +76,11 @@ find docs/ -name "*.md" | grep "关键词"
 3. **临时内容** → 放到`notes/temp/`，定期清理
 4. **更新文档** → 就地编辑，无需复杂流程
 
-### 简单维护规则
-- ✅ **常用内容** → 放在对应的功能目录
-- ✅ **临时内容** → 放在`notes/`
-- ✅ **过时内容** → 移到`archive/`  
-- ✅ **每月清理** → 整理`notes/temp/`
+### 极简维护规则
+- ✅ **核心文档** → 已精简到仅7份文档(包含README)
+- ✅ **过时内容** → 已全部移到`archive/` ⭐ 97%史诗级清理完成
+- ✅ **新增文档** → 严格控制，避免文档膨胀
+- ✅ **归档原则** → 保持极简状态，定期清理
 
 ## 🎯 文档哲学
 
@@ -112,6 +93,6 @@ find docs/ -name "*.md" | grep "关键词"
 
 ---
 
-*最后更新: 2025-08-17*  
+*最后更新: 2025-08-23*  
 *维护者: 单人团队，极简高效* 🚀  
-*新增: CQRS架构符合性分析报告 + 文档结构重新整理* ⭐
+*史诗级更新: 97%文档大规模归档清理 - 从约30份文档精简到7份核心文档* ⭐⭐⭐
