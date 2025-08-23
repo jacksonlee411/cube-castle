@@ -116,115 +116,123 @@ var schemaString = `
 
 // PostgreSQL原生组织模型 - 零转换开销
 type Organization struct {
-	RecordIDField          string    `json:"record_id" db:"record_id"`
-	TenantIDField          string    `json:"tenant_id" db:"tenant_id"`
-	CodeField              string    `json:"code" db:"code"`
-	ParentCodeField        *string   `json:"parent_code" db:"parent_code"`
-	NameField              string    `json:"name" db:"name"`
-	UnitTypeField          string    `json:"unit_type" db:"unit_type"`
-	StatusField            string    `json:"status" db:"status"`
-	LevelField             int       `json:"level" db:"level"`
-	PathField              *string   `json:"path" db:"path"`
-	SortOrderField         *int      `json:"sort_order" db:"sort_order"`
-	DescriptionField       *string   `json:"description" db:"description"`
-	ProfileField           *string   `json:"profile" db:"profile"`
-	CreatedAtField         time.Time `json:"created_at" db:"created_at"`
-	UpdatedAtField         time.Time `json:"updated_at" db:"updated_at"`
-	EffectiveDateField     time.Time `json:"effective_date" db:"effective_date"`
-	EndDateField           *time.Time `json:"end_date" db:"end_date"`
-	IsCurrentField         bool      `json:"is_current" db:"is_current"`
-	IsTemporalField        *bool     `json:"is_temporal" db:"is_temporal"`
-	ChangeReasonField      *string   `json:"change_reason" db:"change_reason"`
-	DeletedAtField         *time.Time `json:"deleted_at" db:"deleted_at"`
-	DeletedByField         *string   `json:"deleted_by" db:"deleted_by"`
-	DeletionReasonField    *string   `json:"deletion_reason" db:"deletion_reason"`
-	SuspendedAtField       *time.Time `json:"suspended_at" db:"suspended_at"`
-	SuspendedByField       *string   `json:"suspended_by" db:"suspended_by"`
-	SuspensionReasonField  *string   `json:"suspension_reason" db:"suspension_reason"`
+	RecordIDField         string     `json:"record_id" db:"record_id"`
+	TenantIDField         string     `json:"tenant_id" db:"tenant_id"`
+	CodeField             string     `json:"code" db:"code"`
+	ParentCodeField       *string    `json:"parent_code" db:"parent_code"`
+	NameField             string     `json:"name" db:"name"`
+	UnitTypeField         string     `json:"unit_type" db:"unit_type"`
+	StatusField           string     `json:"status" db:"status"`
+	LevelField            int        `json:"level" db:"level"`
+	PathField             *string    `json:"path" db:"path"`
+	SortOrderField        *int       `json:"sort_order" db:"sort_order"`
+	DescriptionField      *string    `json:"description" db:"description"`
+	ProfileField          *string    `json:"profile" db:"profile"`
+	CreatedAtField        time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAtField        time.Time  `json:"updated_at" db:"updated_at"`
+	EffectiveDateField    time.Time  `json:"effective_date" db:"effective_date"`
+	EndDateField          *time.Time `json:"end_date" db:"end_date"`
+	IsCurrentField        bool       `json:"is_current" db:"is_current"`
+	IsTemporalField       *bool      `json:"is_temporal" db:"is_temporal"`
+	ChangeReasonField     *string    `json:"change_reason" db:"change_reason"`
+	DeletedAtField        *time.Time `json:"deleted_at" db:"deleted_at"`
+	DeletedByField        *string    `json:"deleted_by" db:"deleted_by"`
+	DeletionReasonField   *string    `json:"deletion_reason" db:"deletion_reason"`
+	SuspendedAtField      *time.Time `json:"suspended_at" db:"suspended_at"`
+	SuspendedByField      *string    `json:"suspended_by" db:"suspended_by"`
+	SuspensionReasonField *string    `json:"suspension_reason" db:"suspension_reason"`
 }
 
 // GraphQL字段解析器 - 零拷贝优化
-func (o Organization) Record_id() string { return o.RecordIDField }
-func (o Organization) Tenant_id() string { return o.TenantIDField }
-func (o Organization) Code() string      { return o.CodeField }
+func (o Organization) Record_id() string    { return o.RecordIDField }
+func (o Organization) Tenant_id() string    { return o.TenantIDField }
+func (o Organization) Code() string         { return o.CodeField }
 func (o Organization) Parent_code() *string { return o.ParentCodeField }
-func (o Organization) Name() string      { return o.NameField }
-func (o Organization) Unit_type() string { return o.UnitTypeField }
-func (o Organization) Status() string    { return o.StatusField }
-func (o Organization) Level() int32      { return int32(o.LevelField) }
-func (o Organization) Path() *string     { return o.PathField }
+func (o Organization) Name() string         { return o.NameField }
+func (o Organization) Unit_type() string    { return o.UnitTypeField }
+func (o Organization) Status() string       { return o.StatusField }
+func (o Organization) Level() int32         { return int32(o.LevelField) }
+func (o Organization) Path() *string        { return o.PathField }
 func (o Organization) Sort_order() *int32 {
-	if o.SortOrderField == nil { return nil }
+	if o.SortOrderField == nil {
+		return nil
+	}
 	val := int32(*o.SortOrderField)
 	return &val
 }
-func (o Organization) Description() *string { return o.DescriptionField }
-func (o Organization) Profile() *string     { return o.ProfileField }
-func (o Organization) Created_at() string   { return o.CreatedAtField.Format(time.RFC3339) }
-func (o Organization) Updated_at() string   { return o.UpdatedAtField.Format(time.RFC3339) }
+func (o Organization) Description() *string   { return o.DescriptionField }
+func (o Organization) Profile() *string       { return o.ProfileField }
+func (o Organization) Created_at() string     { return o.CreatedAtField.Format(time.RFC3339) }
+func (o Organization) Updated_at() string     { return o.UpdatedAtField.Format(time.RFC3339) }
 func (o Organization) Effective_date() string { return o.EffectiveDateField.Format("2006-01-02") }
 func (o Organization) End_date() *string {
-	if o.EndDateField == nil { return nil }
+	if o.EndDateField == nil {
+		return nil
+	}
 	date := o.EndDateField.Format("2006-01-02")
 	return &date
 }
 func (o Organization) Is_current() bool { return o.IsCurrentField }
-func (o Organization) Is_temporal() bool { 
-	if o.IsTemporalField == nil { 
-		return false 
+func (o Organization) Is_temporal() bool {
+	if o.IsTemporalField == nil {
+		return false
 	}
-	return *o.IsTemporalField 
+	return *o.IsTemporalField
 }
 func (o Organization) Change_reason() *string { return o.ChangeReasonField }
 func (o Organization) Deleted_at() *string {
-	if o.DeletedAtField == nil { return nil }
+	if o.DeletedAtField == nil {
+		return nil
+	}
 	ts := o.DeletedAtField.Format(time.RFC3339)
 	return &ts
 }
-func (o Organization) Deleted_by() *string { return o.DeletedByField }
+func (o Organization) Deleted_by() *string      { return o.DeletedByField }
 func (o Organization) Deletion_reason() *string { return o.DeletionReasonField }
 func (o Organization) Suspended_at() *string {
-	if o.SuspendedAtField == nil { return nil }
+	if o.SuspendedAtField == nil {
+		return nil
+	}
 	ts := o.SuspendedAtField.Format(time.RFC3339)
 	return &ts
 }
-func (o Organization) Suspended_by() *string { return o.SuspendedByField }
+func (o Organization) Suspended_by() *string      { return o.SuspendedByField }
 func (o Organization) Suspension_reason() *string { return o.SuspensionReasonField }
 
 // 统计信息
 type OrganizationStats struct {
-	TotalCountField     int            `json:"total_count"`
-	ActiveCountField    int            `json:"active_count"`
-	InactiveCountField  int            `json:"inactive_count"`
-	PlannedCountField   int            `json:"planned_count"`
-	DeletedCountField   int            `json:"deleted_count"`
-	ByTypeField         []TypeCount    `json:"by_type"`
-	ByStatusField       []StatusCount  `json:"by_status"`
-	ByLevelField        []LevelCount   `json:"by_level"`
-	TemporalStatsField  TemporalStats  `json:"temporal_stats"`
+	TotalCountField    int           `json:"total_count"`
+	ActiveCountField   int           `json:"active_count"`
+	InactiveCountField int           `json:"inactive_count"`
+	PlannedCountField  int           `json:"planned_count"`
+	DeletedCountField  int           `json:"deleted_count"`
+	ByTypeField        []TypeCount   `json:"by_type"`
+	ByStatusField      []StatusCount `json:"by_status"`
+	ByLevelField       []LevelCount  `json:"by_level"`
+	TemporalStatsField TemporalStats `json:"temporal_stats"`
 }
 
-func (s OrganizationStats) TotalCount() int32     { return int32(s.TotalCountField) }
-func (s OrganizationStats) ActiveCount() int32   { return int32(s.ActiveCountField) }
-func (s OrganizationStats) InactiveCount() int32 { return int32(s.InactiveCountField) }
-func (s OrganizationStats) PlannedCount() int32  { return int32(s.PlannedCountField) }
-func (s OrganizationStats) DeletedCount() int32  { return int32(s.DeletedCountField) }
-func (s OrganizationStats) ByType() []TypeCount  { return s.ByTypeField }
-func (s OrganizationStats) ByStatus() []StatusCount { return s.ByStatusField }
-func (s OrganizationStats) ByLevel() []LevelCount { return s.ByLevelField }
+func (s OrganizationStats) TotalCount() int32            { return int32(s.TotalCountField) }
+func (s OrganizationStats) ActiveCount() int32           { return int32(s.ActiveCountField) }
+func (s OrganizationStats) InactiveCount() int32         { return int32(s.InactiveCountField) }
+func (s OrganizationStats) PlannedCount() int32          { return int32(s.PlannedCountField) }
+func (s OrganizationStats) DeletedCount() int32          { return int32(s.DeletedCountField) }
+func (s OrganizationStats) ByType() []TypeCount          { return s.ByTypeField }
+func (s OrganizationStats) ByStatus() []StatusCount      { return s.ByStatusField }
+func (s OrganizationStats) ByLevel() []LevelCount        { return s.ByLevelField }
 func (s OrganizationStats) TemporalStats() TemporalStats { return s.TemporalStatsField }
 
 type TemporalStats struct {
-	TotalVersionsField          int     `json:"total_versions"`
-	AverageVersionsPerOrgField  float64 `json:"average_versions_per_org"`
-	OldestEffectiveDateField    string  `json:"oldest_effective_date"`
-	NewestEffectiveDateField    string  `json:"newest_effective_date"`
+	TotalVersionsField         int     `json:"total_versions"`
+	AverageVersionsPerOrgField float64 `json:"average_versions_per_org"`
+	OldestEffectiveDateField   string  `json:"oldest_effective_date"`
+	NewestEffectiveDateField   string  `json:"newest_effective_date"`
 }
 
-func (t TemporalStats) TotalVersions() int32 { return int32(t.TotalVersionsField) }
+func (t TemporalStats) TotalVersions() int32           { return int32(t.TotalVersionsField) }
 func (t TemporalStats) AverageVersionsPerOrg() float64 { return t.AverageVersionsPerOrgField }
-func (t TemporalStats) OldestEffectiveDate() string { return t.OldestEffectiveDateField }
-func (t TemporalStats) NewestEffectiveDate() string { return t.NewestEffectiveDateField }
+func (t TemporalStats) OldestEffectiveDate() string    { return t.OldestEffectiveDateField }
+func (t TemporalStats) NewestEffectiveDate() string    { return t.NewestEffectiveDateField }
 
 type TypeCount struct {
 	UnitTypeField string `json:"unit_type"`
@@ -275,7 +283,7 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
 		FROM organization_units 
 		WHERE tenant_id = $1 AND is_current = true`
-	
+
 	args := []interface{}{tenantID.String()}
 	argIndex := 2
 
@@ -327,7 +335,7 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 
 	duration := time.Since(start)
 	r.logger.Printf("[PERF] 查询 %d 个组织，耗时: %v", len(organizations), duration)
-	
+
 	return organizations, nil
 }
 
@@ -520,7 +528,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	var typeStatsJSON, statusStatsJSON, levelStatsJSON string
 
 	err := row.Scan(
-		&stats.TotalCountField, &stats.ActiveCountField, &stats.InactiveCountField, 
+		&stats.TotalCountField, &stats.ActiveCountField, &stats.InactiveCountField,
 		&stats.PlannedCountField, &stats.DeletedCountField,
 		&totalVersions, &uniqueOrgs, &oldestDate, &newestDate,
 		&typeStatsJSON, &statusStatsJSON, &levelStatsJSON,
@@ -581,12 +589,20 @@ func (r *Resolver) Organization_units(ctx context.Context, args struct {
 	searchText := ""
 	status := ""
 
-	if args.First != nil { first = int(*args.First) }
-	if args.Offset != nil { offset = int(*args.Offset) }
-	if args.SearchText != nil { searchText = *args.SearchText }
-	if args.Status != nil { status = *args.Status }
+	if args.First != nil {
+		first = int(*args.First)
+	}
+	if args.Offset != nil {
+		offset = int(*args.Offset)
+	}
+	if args.SearchText != nil {
+		searchText = *args.SearchText
+	}
+	if args.Status != nil {
+		status = *args.Status
+	}
 
-	r.logger.Printf("[GraphQL] 查询组织列表 - first: %d, offset: %d, searchText: '%s', status: '%s'", 
+	r.logger.Printf("[GraphQL] 查询组织列表 - first: %d, offset: %d, searchText: '%s', status: '%s'",
 		first, offset, searchText, status)
 
 	return r.repo.GetOrganizations(ctx, DefaultTenantID, first, offset, searchText, status)
@@ -654,8 +670,8 @@ func main() {
 	defer db.Close()
 
 	// 连接池优化 - 激进配置
-	db.SetMaxOpenConns(100)    // 最大连接数
-	db.SetMaxIdleConns(25)     // 最大空闲连接
+	db.SetMaxOpenConns(100) // 最大连接数
+	db.SetMaxIdleConns(25)  // 最大空闲连接
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	// 测试连接
@@ -739,10 +755,10 @@ func main() {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status": "healthy",
-			"service": "postgresql-graphql",
-			"timestamp": time.Now(),
-			"database": "postgresql",
+			"status":      "healthy",
+			"service":     "postgresql-graphql",
+			"timestamp":   time.Now(),
+			"database":    "postgresql",
 			"performance": "optimized",
 		})
 	})

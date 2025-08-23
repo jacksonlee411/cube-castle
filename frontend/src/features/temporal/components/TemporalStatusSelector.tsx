@@ -1,5 +1,4 @@
 import React from 'react';
-// import { Select, SelectOption } from '@workday/canvas-kit-react/select';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 
 export type TemporalStatus = 'ACTIVE' | 'PLANNED' | 'INACTIVE';

@@ -68,12 +68,10 @@ export const TemporalDashboard: React.FC<TemporalDashboardProps> = ({
   }, []);
 
   const handleEdit = useCallback((organization: OrganizationUnit) => {
-    // TODO: 实现编辑功能
     console.log('编辑组织:', organization);
   }, []);
 
   const handleDelete = useCallback((organization: OrganizationUnit) => {
-    // TODO: 实现删除功能
     console.log('删除组织:', organization);
   }, []);
 

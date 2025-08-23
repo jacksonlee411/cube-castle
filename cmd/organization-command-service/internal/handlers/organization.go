@@ -29,13 +29,11 @@ func NewOrganizationHandler(repo *repository.OrganizationRepository, logger *log
 }
 
 func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
-	h.logger.Printf("DEBUG: CreateOrganization called")
 	var req types.CreateOrganizationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
-	h.logger.Printf("DEBUG: Request decoded: %+v", req)
 
 	// 业务验证
 	if err := utils.ValidateCreateOrganization(&req); err != nil {
@@ -50,7 +48,6 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	if req.Code != nil && strings.TrimSpace(*req.Code) != "" {
 		// 使用指定的代码（通常用于创建时态记录）
 		code = strings.TrimSpace(*req.Code)
-		h.logger.Printf("DEBUG: 使用指定的组织代码: %s", code)
 	} else {
 		// 生成新的组织代码
 		var err error
@@ -59,7 +56,6 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 			h.writeErrorResponse(w, http.StatusInternalServerError, "CODE_GENERATION_ERROR", "生成组织代码失败", err)
 			return
 		}
-		h.logger.Printf("DEBUG: 生成新的组织代码: %s", code)
 	}
 
 	// 计算路径和级别
@@ -114,7 +110,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
-	
+
 	h.logger.Printf("✅ 组织创建成功: %s - %s", createdOrg.Code, createdOrg.Name)
 }
 
@@ -150,7 +146,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	response := h.toOrganizationResponse(updatedOrg)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-	
+
 	h.logger.Printf("✅ 组织更新成功: %s - %s", updatedOrg.Code, updatedOrg.Name)
 }
 
@@ -180,31 +176,31 @@ func (h *OrganizationHandler) SuspendOrganization(w http.ResponseWriter, r *http
 		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
 		return
 	}
-	
+
 	var req types.SuspendOrganizationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
-	
+
 	if req.Reason == "" {
 		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "停用原因不能为空", nil)
 		return
 	}
-	
+
 	tenantID := h.getTenantID(r)
-	
+
 	// 停用组织
 	org, err := h.repo.Suspend(r.Context(), tenantID, code, req.Reason)
 	if err != nil {
 		h.writeErrorResponse(w, http.StatusInternalServerError, "SUSPEND_ERROR", "停用组织失败", err)
 		return
 	}
-	
+
 	// 构建响应
 	response := h.toOrganizationResponse(org)
 	h.logger.Printf("✅ 组织停用成功: %s - %s", response.Code, response.Name)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
@@ -216,31 +212,31 @@ func (h *OrganizationHandler) ReactivateOrganization(w http.ResponseWriter, r *h
 		h.writeErrorResponse(w, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
 		return
 	}
-	
+
 	var req types.ReactivateOrganizationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
-	
+
 	if req.Reason == "" {
 		h.writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "重启原因不能为空", nil)
 		return
 	}
-	
+
 	tenantID := h.getTenantID(r)
-	
+
 	// 重新启用组织
 	org, err := h.repo.Reactivate(r.Context(), tenantID, code, req.Reason)
 	if err != nil {
 		h.writeErrorResponse(w, http.StatusInternalServerError, "REACTIVATE_ERROR", "重新启用组织失败", err)
 		return
 	}
-	
+
 	// 构建响应
 	response := h.toOrganizationResponse(org)
 	h.logger.Printf("✅ 组织重新启用成功: %s - %s", response.Code, response.Name)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
@@ -264,8 +260,6 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
-
-	h.logger.Printf("DEBUG: 收到组织事件请求 - 代码: %s, 事件类型: %s, 记录ID: %s", code, req.EventType, req.RecordID)
 
 	tenantID := h.getTenantID(r)
 
@@ -311,8 +305,6 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 		h.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
-
-	h.logger.Printf("DEBUG: 收到历史记录更新请求 - 记录ID: %s", recordId)
 
 	// 业务验证
 	if err := utils.ValidateUpdateOrganization(&req); err != nil {
@@ -372,19 +364,19 @@ func (h *OrganizationHandler) toOrganizationResponse(org *types.Organization) *t
 func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, statusCode int, code, message string, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	
+
 	errorMsg := message
 	if err != nil && statusCode >= 500 {
 		h.logger.Printf("Server error: %v", err)
 		errorMsg = "Internal server error"
 	}
-	
+
 	response := types.ErrorResponse{
 		Error:   errorMsg,
 		Code:    code,
 		Message: message,
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 

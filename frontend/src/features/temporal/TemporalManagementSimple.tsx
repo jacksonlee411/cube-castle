@@ -97,9 +97,6 @@ export const TemporalManagementSimple: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [, setSelectedOrgCode] = useState<string | null>(null);
 
-  // 时态服务健康检查
-  // 移除时态服务健康检查，因为现在使用GraphQL服务
-  // const { data: healthData, isLoading: isHealthLoading } = useTemporalHealth();
 
   // 过滤组织列表
   const filteredOrganizations = mockOrganizations.filter(org =>

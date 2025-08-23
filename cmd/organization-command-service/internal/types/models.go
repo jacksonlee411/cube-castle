@@ -38,7 +38,7 @@ type Organization struct {
 
 // CreateOrganizationRequest 创建组织请求
 type CreateOrganizationRequest struct {
-	Code        *string `json:"code,omitempty"`          // 可选：指定组织代码（用于时态记录）
+	Code        *string `json:"code,omitempty"` // 可选：指定组织代码（用于时态记录）
 	Name        string  `json:"name" validate:"required,max=100"`
 	UnitType    string  `json:"unit_type" validate:"required"`
 	ParentCode  *string `json:"parent_code,omitempty"`
@@ -55,7 +55,7 @@ type CreateOrganizationRequest struct {
 type UpdateOrganizationRequest struct {
 	Name        *string `json:"name,omitempty"`
 	UnitType    *string `json:"unit_type,omitempty"`
-	Status      *string `json:"status,omitempty"`      // 添加状态字段
+	Status      *string `json:"status,omitempty"` // 添加状态字段
 	SortOrder   *int    `json:"sort_order,omitempty"`
 	Description *string `json:"description,omitempty"`
 	ParentCode  *string `json:"parent_code,omitempty"` // 通过修改parent_code来改变层级
@@ -140,9 +140,9 @@ type ReactivateOrganizationRequest struct {
 // 组织事件请求类型 (用于时态版本管理)
 type OrganizationEventRequest struct {
 	EventType     string                 `json:"event_type" validate:"required"`
-	RecordID      string                 `json:"record_id,omitempty"`       // 用于精确定位记录（作废时必需）
+	RecordID      string                 `json:"record_id,omitempty"` // 用于精确定位记录（作废时必需）
 	EffectiveDate string                 `json:"effective_date" validate:"required"`
-	ChangeData    map[string]interface{} `json:"change_data,omitempty"`     // UPDATE时必需
+	ChangeData    map[string]interface{} `json:"change_data,omitempty"` // UPDATE时必需
 	ChangeReason  string                 `json:"change_reason" validate:"required"`
 }
 

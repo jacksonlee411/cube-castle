@@ -1,6 +1,5 @@
 import React from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
-// import { Badge } from '../../../shared/components/Badge';
 import { Text } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
 import { 

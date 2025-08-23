@@ -48,12 +48,12 @@ func main() {
 
 	// 设置路由
 	r := chi.NewRouter()
-	
+
 	// 中间件
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
-	
+
 	// CORS设置
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001"},
@@ -69,7 +69,6 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status": "healthy", "service": "organization-command-service", "timestamp": "%s"}`, time.Now().Format(time.RFC3339))
 	})
-
 
 	// 设置组织相关路由
 	orgHandler.SetupRoutes(r)

@@ -54,11 +54,9 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 	var effectiveDate *types.Date
 	if org.EffectiveDate != nil {
 		effectiveDate = org.EffectiveDate
-		r.logger.Printf("DEBUG: 使用提供的effective_date: %v", effectiveDate.String())
 	} else {
 		now := time.Now()
 		effectiveDate = types.NewDate(now.Year(), now.Month(), now.Day())
-		r.logger.Printf("DEBUG: 使用默认effective_date: %v", effectiveDate.String())
 	}
 
 	err := r.db.QueryRowContext(ctx, query,
@@ -116,11 +114,9 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 	var effectiveDate *types.Date
 	if org.EffectiveDate != nil {
 		effectiveDate = org.EffectiveDate
-		r.logger.Printf("DEBUG: 使用提供的effective_date: %v", effectiveDate.String())
 	} else {
 		now := time.Now()
 		effectiveDate = types.NewDate(now.Year(), now.Month(), now.Day())
-		r.logger.Printf("DEBUG: 使用默认effective_date: %v", effectiveDate.String())
 	}
 
 	err := tx.QueryRowContext(ctx, query,
@@ -159,8 +155,8 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 	org.UpdatedAt = updatedAt
 	org.EffectiveDate = effectiveDate // 确保返回的组织有effective_date值
 
-	r.logger.Printf("时态组织创建成功: %s - %s (生效日期: %v, 当前: %v)", 
-		org.Code, org.Name, 
+	r.logger.Printf("时态组织创建成功: %s - %s (生效日期: %v, 当前: %v)",
+		org.Code, org.Name,
 		org.EffectiveDate.String(),
 		org.IsCurrent)
 	return org, nil
@@ -299,25 +295,25 @@ func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID
 		         level, path, sort_order, description, created_at, updated_at,
 		         effective_date, end_date, is_temporal, change_reason
 	`
-	
+
 	var org types.Organization
 	var parentCode sql.NullString
 	var effectiveDate, endDate sql.NullTime
 	var changeReason sql.NullString
-	
+
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
 		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
 		&org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&effectiveDate, &endDate, &org.IsTemporal, &changeReason,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("组织不存在或状态不是ACTIVE: %s", code)
 		}
 		return nil, fmt.Errorf("停用组织失败: %w", err)
 	}
-	
+
 	// 处理可空字段
 	if parentCode.Valid {
 		org.ParentCode = &parentCode.String
@@ -333,7 +329,7 @@ func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID
 	if changeReason.Valid {
 		org.ChangeReason = &changeReason.String
 	}
-	
+
 	r.logger.Printf("组织停用成功: %s - %s", org.Code, org.Name)
 	return &org, nil
 }
@@ -347,25 +343,25 @@ func (r *OrganizationRepository) Reactivate(ctx context.Context, tenantID uuid.U
 		         level, path, sort_order, description, created_at, updated_at,
 		         effective_date, end_date, is_temporal, change_reason
 	`
-	
+
 	var org types.Organization
 	var parentCode sql.NullString
 	var effectiveDate, endDate sql.NullTime
 	var changeReason sql.NullString
-	
+
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
 		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
 		&org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&effectiveDate, &endDate, &org.IsTemporal, &changeReason,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("组织不存在或状态不是INACTIVE: %s", code)
 		}
 		return nil, fmt.Errorf("重新启用组织失败: %w", err)
 	}
-	
+
 	// 处理可空字段
 	if parentCode.Valid {
 		org.ParentCode = &parentCode.String
@@ -381,7 +377,7 @@ func (r *OrganizationRepository) Reactivate(ctx context.Context, tenantID uuid.U
 	if changeReason.Valid {
 		org.ChangeReason = &changeReason.String
 	}
-	
+
 	r.logger.Printf("组织重新启用成功: %s - %s", org.Code, org.Name)
 	return &org, nil
 }

@@ -7,7 +7,6 @@ import {
   TemporalInfoDisplay, 
   TemporalDateRange 
 } from '../../../temporal/components/TemporalInfoDisplay';
-// import { TemporalStatus, temporalStatusUtils } from '../../../temporal/components/TemporalStatusSelector';
 
 type TemporalStatus = 'ACTIVE' | 'PLANNED' | 'INACTIVE';
 

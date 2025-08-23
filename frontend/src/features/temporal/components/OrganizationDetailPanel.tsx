@@ -197,7 +197,6 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
       setHasUnsavedChanges(false);
       
       // 刷新时间轴数据
-      // TODO: 这里应该触发数据重新获取
     } catch (error) {
       console.error('保存失败:', error);
       alert('保存失败，请重试');
