@@ -102,28 +102,69 @@
   - 创建资源时不考虑清理计划
   - 让二义性资源影响系统维护和理解
 
-### 11. 命名一致性原则 (Naming Consistency Principle) ⭐ **新增 (2025-08-20)**
-- **跨栈统一命名**: 前端、后端、双数据库必须使用统一的实体命名和字段命名
-- **实体命名标准**: 
-  - 统一使用 `organization` 或 `organization_units`，禁止混用
-  - API端点、数据库表名、前端组件名称保持一致
-  - GraphQL Schema与数据库表结构字段名称对应
-- **字段命名规范**:
-  - 时间字段：`created_at`, `updated_at`, `effective_date`, `end_date`
-  - ID字段：`record_id`, `tenant_id`, `code`, `parent_code`
-  - 状态字段：`status`, `lifecycle_status`, `business_status`, `data_status`
-- **跨层一致性要求**:
-  - 前端TypeScript接口与后端Go结构体字段名称对应
-  - PostgreSQL表结构与Neo4j节点属性名称保持一致
-  - REST API参数与GraphQL查询参数使用相同命名
-- **禁止不一致命名**:
-  - 同一实体在不同层使用不同名称（如前端organization vs 后端organization_units）
-  - 同一概念使用不同词汇（如user vs member, create vs add）
-  - 数据库间字段名称不匹配（PostgreSQL: code vs Neo4j: org_code）
-- **强制验证机制**:
-  - 代码审查必须检查命名一致性
-  - 自动化测试验证跨层数据结构对应关系
-  - 文档明确规定标准命名词汇表
+### 11. API一致性设计规范 (API Consistency Standards) ⭐ **重大修订 (2025-08-23)**
+
+#### 一致性是API设计质量的关键标准，确保API行为可预测，极大降低开发者学习成本
+
+#### 11.1 命名风格一致性 🚨 **强制执行**
+- **JSON字段命名标准**: 
+  - ✅ **统一使用camelCase**: `parentCode`, `unitType`, `isDeleted`, `createdAt`, `operationType`
+  - ❌ **禁止snake_case**: `parent_unit_id`, `unit_type`, `is_deleted`, `created_at`, `operation_type`
+
+- **路径参数命名标准**:
+  - ✅ **统一使用{code}**: `/api/v1/organization-units/{code}`
+  - ❌ **禁止{id}**: `/api/v1/organization-units/{id}`
+
+- **查询参数命名标准**:
+  - ✅ **统一使用camelCase**: `?unitType=DEPARTMENT&asOfDate=2025-08-23`
+  - ❌ **禁止snake_case**: `?unit_type=DEPARTMENT&as_of_date=2025-08-23`
+
+#### 11.2 标准字段命名词汇表 📖 **项目标准**
+```yaml
+# 核心业务字段 (camelCase)
+标识符: code, parentCode, tenantId, recordId
+时间字段: createdAt, updatedAt, effectiveDate, endDate
+状态字段: status, isDeleted, isCurrent, isFuture  
+操作字段: operationType, operatedBy, operationReason
+层级字段: level, codePath, namePath, hierarchyDepth
+配置字段: unitType, sortOrder, description, profile
+
+# 禁止使用的旧字段名 (已废弃)
+❌ parent_unit_id, unit_type, is_deleted, operation_type
+❌ created_at, updated_at, effective_date, end_date
+❌ record_id, tenant_id, parent_code, is_current
+```
+
+#### 11.3 协议术语一致性 🔧 **协议内统一**
+- **REST API**: `organization-units` (避免与其他资源冲突)
+- **GraphQL**: `organizations`, `organization` (简洁性优先)
+- **设计原则**: 跨协议术语差异可接受，关键是协议内保持一致
+
+#### 11.4 跨层一致性要求 🚨 **强制执行**
+- **前后端字段映射**: 前端TypeScript接口与后端Go结构体字段名称必须对应
+- **API参数统一**: REST API参数与GraphQL查询参数使用相同camelCase命名
+- **数据库映射**: 虽然数据库使用snake_case，但API层必须统一转换为camelCase
+
+#### 11.5 一致性检查清单 ✅ **开发必备**
+**新增API端点检查**:
+- □ JSON字段全部使用camelCase命名
+- □ 路径参数使用{code}而非{id}
+- □ 查询参数使用camelCase格式
+- □ 响应结构符合企业级标准格式
+- □ 协议选择正确(查询用GraphQL，命令用REST)
+
+**代码审查检查**:
+- □ 无snake_case字段出现在API响应中
+- □ 标识符引用统一使用code/parentCode
+- □ 操作相关字段使用operationType/operatedBy/operationReason
+- □ 时态字段使用effectiveDate/endDate/isCurrent/isFuture
+- □ 审计字段使用recordId/tenantId/createdAt/updatedAt
+
+#### 11.6 兼容性迁移策略 🔄 **渐进式升级**
+- **文档清理**: 立即清理所有snake_case字段示例
+- **服务端支持**: 暂时支持两种格式（新/旧），响应优先返回新格式
+- **客户端迁移**: 明确标注废弃时间表，提供迁移指南
+- **工具支持**: 配置IDE检查camelCase命名，设置CI/CD验证规范合规性
 
 ### 12. 持续批判和质疑原则 (Continuous Critical Thinking Principle) ⭐ **新增 (2025-08-20)**
 - **拒绝自我沉醉**: 不得沉醉在自己的幻觉中，必须保持清醒的自我认知
@@ -133,6 +174,34 @@
 - **接受不确定性**: 承认知识和判断的局限性，接受不确定性和变化
 - **寻求外部验证**: 主动寻求外部反馈和验证，而非依赖自我评价
 - **挑战权威观点**: 敢于质疑权威和既定观点，包括质疑自己的专业判断
+
+### 13. 深层次API一致性原则 (Deep API Consistency Principles) ⭐ **重大新增 (2025-08-23)**
+
+#### 13.1 响应结构一致性 🚨 **企业级信封标准**
+- **统一信封模式**: 所有API响应必须使用相同的顶层结构
+- **成功响应格式**: `{success: true, data: {...}, message: "string", timestamp: "ISO8601", requestId: "string"}`
+- **错误响应格式**: `{success: false, error: {code, message, details}, timestamp: "ISO8601", requestId: "string"}`
+- **一致性收益**: 客户端使用统一解析逻辑，提升开发者体验，支持端到端链路追踪
+
+#### 13.2 数据模型一致性 🚨 **跨端点标准化**  
+- **操作人统一结构**: 所有`operatedBy`字段必须使用对象格式 `{id: "uuid", name: "English Name"}`
+- **时态数据统一**: `effectiveDate/endDate/isCurrent/isFuture/createdAt/updatedAt`字段命名标准化
+- **审计数据统一**: `auditId/recordId/operationReason/businessEntityId/changesSummary`统一结构
+
+#### 13.3 协议使用一致性 🚨 **CQRS架构强制执行**
+- **查询操作专用**: 只能使用GraphQL (http://localhost:8090/graphql)，绝对禁止REST GET
+- **命令操作专用**: 只能使用REST API (http://localhost:9090/api/v1)，绝对禁止GraphQL Mutation  
+- **唯一实现原则**: 每种业务操作只能有一个API端点实现
+
+#### 13.4 语言术语一致性 🚨 **国际化标准**
+- **响应消息统一**: API响应消息统一使用英文，错误消息使用英文+标准错误代码
+- **术语标准化**: REST使用`organization-units`，GraphQL使用`organizations/organization`
+- **字段命名词汇表**: 标准词汇跨所有端点保持一致 (`code/parentCode`, `operationType/operatedBy/operationReason`)
+
+#### 13.5 一致性维护机制 📖 **开发团队规范**
+- **代码审查必检**: JSON字段camelCase命名、响应结构统一信封、操作人标准对象、API消息英文
+- **自动化验证**: 响应结构格式验证、字段命名风格检查、跨端点数据模型一致性测试
+- **向后兼容策略**: 服务端临时支持新旧格式、明确废弃时间表、渐进式迁移工具
 
 ### 📋 架构演进成功案例 (2025-08-22)
 **革命性改进**: PostgreSQL原生GraphQL服务替代Neo4j图数据库
@@ -144,96 +213,111 @@
 - **成功关键**: 基于数据验证的技术决策，而非基于既有架构的保守维护
 
 ## 项目概述
-Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端React应用和Go后端API服务。项目专注于组织架构管理和系统监控功能，已完成现代化简洁CQRS架构实施和务实CDC重构。
+Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端React应用和Go后端API服务。项目专注于组织架构管理和系统监控功能，正在实施现代化简洁CQRS架构和PostgreSQL原生优化。
+
+## 📅 项目开发阶段 ⭐ **重要说明 (2025-08-23)**
+
+**当前阶段**: **开发早期** - 核心架构搭建和API设计阶段
+
+**关键特征**:
+- 🔧 **架构迭代期**: 正在优化CQRS架构设计，API规范持续完善中
+- 🎯 **功能聚焦**: 专注于组织架构管理核心功能，暂未投入生产使用
+- 📋 **设计优先**: 重点完善API一致性、命名规范、数据模型设计
+- 🧪 **实验验证**: 通过原型验证技术选型和架构决策的合理性
+
+**开发决策影响**:
+- ✅ **灵活调整**: 可以直接修正API端点命名，无需考虑向后兼容性
+- ✅ **架构重构**: 支持较大的架构调整(如Neo4j→PostgreSQL转换)
+- ✅ **规范统一**: 能够建立和实施统一的开发规范，避免历史包袱
+- ⚠️ **避免过早优化**: 不应过分强调"生产就绪"或"稳定运行"等成熟状态
 
 **注意：** 基于项目聚焦原则，已移除以下模块以确保代码库的简洁性和维护性：
-- AI智能网关模块（70%完成度）
-- 业务智能分析模块（40%完成度）  
-- 员工管理系统（30%完成度 - API设计阶段）
-- 职位管理系统（25%完成度 - 数据模型阶段）
+- AI智能网关模块（设计阶段）
+- 业务智能分析模块（规划阶段）  
+- 员工管理系统（概念设计）
+- 职位管理系统（需求分析）
 
-## ✅ 当前实际状态 (PostgreSQL原生架构完成)
+## 🏗️ 当前开发状态 (架构搭建阶段)
 
-### 🎉 前端系统状态 (稳定运行)
-- **Canvas Kit v13兼容性**: ✅ **已完全解决** - API完全兼容，图标系统统一完成
-- **TypeScript构建**: ✅ **零错误状态** - 类型系统完全统一，构建稳定
-- **用户界面**: ✅ **生产可用** - 所有主要功能正常，用户体验优化
-- **时态管理**: ✅ **完全统一** - Date/string类型冲突彻底解决
-- **开发体验**: ✅ **已优化** - IDE支持完善，开发效率高
+### 🔧 前端系统状态 (开发进行中)
+- **Canvas Kit v13兼容性**: 🔄 **迁移中** - 正在解决API兼容性问题，图标系统统一进行中
+- **TypeScript构建**: 🔄 **优化中** - 减少类型错误，完善类型系统
+- **用户界面**: 🔄 **原型阶段** - 核心功能界面开发中，交互体验持续改进
+- **时态管理**: 🔄 **设计完善中** - Date/string类型统一，时态逻辑实现中
+- **开发体验**: 🔧 **配置中** - IDE配置和开发工具链搭建
 
-### 🚀 后端系统状态 (PostgreSQL原生高性能)
-- **PostgreSQL GraphQL服务**: ✅ **生产就绪** - 1.5-8ms极致响应性能
-- **时态查询能力**: ✅ **完全实现** - 支持历史查询、时间点查询、版本管理
-- **索引优化**: ✅ **26个专用索引** - 时态查询性能达到极致
-- **缓存集成**: ✅ **Redis高性能缓存** - 多层缓存策略优化
-- **连接池优化**: ✅ **激进配置** - 100最大连接，25空闲连接
-- **数据一致性**: ✅ **单一数据源** - 消除同步延迟，保证强一致性
+### 🏗️ 后端系统状态 (架构搭建阶段)
+- **PostgreSQL GraphQL服务**: 🔄 **开发中** - 基础查询能力实现，性能优化进行中
+- **时态查询能力**: 🔧 **设计实现中** - 历史查询、时间点查询逻辑开发
+- **索引优化**: 📋 **规划中** - 时态查询专用索引设计和实施
+- **缓存集成**: 📅 **待实施** - Redis缓存策略设计阶段
+- **连接池优化**: 📅 **待配置** - 数据库连接池参数调优
+- **数据一致性**: ✅ **架构确定** - 单一PostgreSQL数据源架构已确定
 
-### ✅ 架构革新收益 (实测数据)
-- ✅ **性能提升70-90%**: GraphQL查询从15-58ms降至1.5-8ms
-- ✅ **架构简化60%**: 从双数据库+CDC同步简化为单PostgreSQL
-- ✅ **维护成本降低**: 无需管理Neo4j服务和数据同步
-- ✅ **数据一致性保证**: 单一数据源，零同步延迟
-- ✅ **技术债务清理**: 移除134条Neo4j冗余数据和复杂同步逻辑
+### 📊 架构设计决策 (设计验证阶段)
+- 🎯 **PostgreSQL单一数据源**: 选择PostgreSQL作为唯一数据源，简化架构复杂性
+- 🏗️ **CQRS架构模式**: 查询使用GraphQL，命令使用REST API，实现读写分离
+- 📋 **时态数据设计**: 支持历史版本管理、时间点查询的数据模型设计
+- 🔧 **API一致性规范**: 建立统一的命名规范和响应格式标准
+- 📚 **开发规范制定**: 制定代码规范、测试标准、文档规范
 
-## 🚀 核心技术成果总结
+## 🔧 核心开发进展 (开发阶段成果)
 
-### ✅ Canvas Kit v13专家级迁移
-- **API兼容性问题**: 解决主要破坏性变更
-- **图标系统统一**: 移除135+处emoji，统一使用Canvas Kit SystemIcon
-- **组件现代化**: FormField、Modal、Button等核心组件升级
-- **设计系统**: 符合Workday Canvas设计规范
+### 🔄 Canvas Kit v13迁移 (进行中)
+- **API兼容性研究**: 识别和分析主要破坏性变更
+- **图标系统设计**: 规划emoji到Canvas Kit SystemIcon的迁移策略
+- **组件升级规划**: FormField、Modal、Button等核心组件升级方案
+- **设计系统对齐**: 制定符合Workday Canvas设计规范的标准
 
-### ✅ TypeScript低错误构建
-- **错误解决**: 从150+错误大幅减少  
-- **类型安全**: 统一的时态类型系统，消除Date/string冲突
-- **工具支持**: TemporalConverter工具类提供强大的类型转换能力
-- **IDE体验**: 良好的类型提示、自动补全、错误检查
+### 🔄 TypeScript类型系统 (优化中)
+- **类型错误清理**: 逐步减少TypeScript构建错误  
+- **时态类型设计**: 设计统一的时态类型系统，解决Date/string类型冲突
+- **工具类开发**: 开发TemporalConverter等类型转换工具
+- **IDE体验改进**: 配置类型提示、自动补全、错误检查
 
-### ✅ PostgreSQL原生CQRS架构
-- **协议分离**: 查询操作统一使用GraphQL，命令操作统一使用REST API
-- **数据源统一**: PostgreSQL单一数据源，消除同步复杂性
-- **服务架构**: 2核心服务(PostgreSQL命令服务+PostgreSQL查询服务)
-- **性能验证**: 查询响应1.5-8ms，命令响应<50ms，零同步延迟
+### 🏗️ PostgreSQL CQRS架构 (架构搭建)
+- **协议分离设计**: 确定查询使用GraphQL，命令使用REST API的架构
+- **数据源统一**: 确立PostgreSQL单一数据源架构，消除数据同步复杂性
+- **服务架构规划**: 设计PostgreSQL命令服务+PostgreSQL查询服务
+- **API规范制定**: 建立统一的API命名规范和响应格式
 
-### ✅ 企业级质量保证
-- **E2E测试覆盖率**: 92% (超过90%目标要求)
-- **跨浏览器支持**: Chrome + Firefox 验证
-- **性能基准**: 页面响应<1秒，API响应<1秒
-- **生产就绪**: 主要企业级特性验证通过
+### 📋 开发规范建立 (制定中)
+- **API一致性规范**: 制定专用端点命名规范，统一camelCase字段命名
+- **数据模型标准**: 建立时态数据、审计数据的统一结构标准
+- **测试框架规划**: 设计单元测试、集成测试、E2E测试的覆盖策略
+- **文档规范**: 建立API文档、代码注释、架构决策记录的标准
 
-### ✅ CRUD功能集成验证 (2025-08-23)
-- **创建功能**: 表单验证→API调用→数据持久化→页面跳转全流程验证通过
-- **编辑功能**: 历史记录加载→表单预填充→UpdateByRecordId API→数据刷新正常工作
-- **删除功能**: 确认对话框→DEACTIVATE事件→状态更新→UI反馈机制验证正常
-- **状态管理**: Suspend/Reactivate API→ACTIVE/INACTIVE转换→前端显示更新验证通过
-- **数据一致性**: 前端统计数据与数据库状态实时同步验证正常
-- **错误处理**: 成功/失败情况的用户提示机制工作正常
+### 🧪 功能原型验证 (实验阶段)
+- **基础CRUD逻辑**: 验证创建、编辑、删除的基础数据流程
+- **时态数据模型**: 验证历史版本管理、时间点查询的数据结构
+- **状态管理机制**: 验证ACTIVE/INACTIVE状态转换逻辑
+- **API端点设计**: 验证专用业务操作端点(suspend/activate)的合理性
+- **数据一致性**: 验证单一数据源架构的数据一致性保证
 
 ## 开发环境配置
-- **前端开发服务器**: http://localhost:3000 
-- **命令服务** (REST API): http://localhost:9090 - CUD操作
-- **查询服务** (PostgreSQL GraphQL): http://localhost:8090 - 极速查询操作
-- **GraphiQL开发界面**: http://localhost:8090/graphiql - PostgreSQL原生GraphQL调试
-- **基础设施**: PostgreSQL:5432, Redis:6379, Kafka:9092
-- **已移除服务**: ❌ Neo4j:7474 (已彻底移除)
+- **前端开发服务器**: http://localhost:3000 (开发中)
+- **命令服务** (REST API): http://localhost:9090 - CRUD操作开发中
+- **查询服务** (PostgreSQL GraphQL): http://localhost:8090 - GraphQL查询开发中
+- **GraphiQL开发界面**: http://localhost:8090/graphiql - GraphQL调试工具
+- **基础设施规划**: PostgreSQL:5432, Redis:6379 (待配置), Kafka:9092 (待配置)
+- **架构决策**: ❌ 不使用Neo4j图数据库，采用PostgreSQL单一数据源
 
-## 已知问题与解决方案
+## 开发挑战与解决方案
 
-### ✅ 彻底解决的核心问题
-1. **Canvas Kit v13兼容性**: ✅ 专家级API迁移完成
-2. **TypeScript类型冲突**: ✅ 零错误构建状态，类型系统统一
-3. **PostgreSQL查询性能**: ✅ 响应时间提升70-90%，达到1.5-8ms性能水平
-4. **数据一致性问题**: ✅ 单一PostgreSQL数据源，消除同步延迟和不一致性
-5. **架构复杂性**: ✅ 移除Neo4j依赖，架构简化60%，维护成本降低
-6. **技术债务**: ✅ 清理134条冗余Neo4j数据和复杂CDC同步逻辑
-7. **CRUD功能集成**: ✅ 创建、编辑、删除、状态管理功能前后端集成验证通过
+### 🔧 正在解决的核心挑战
+1. **Canvas Kit v13兼容性**: 🔄 API迁移策略制定中，兼容性问题分析进行中
+2. **TypeScript类型统一**: 🔄 时态类型系统设计中，逐步减少类型错误
+3. **PostgreSQL查询优化**: 📋 时态查询索引设计中，性能基准待建立
+4. **数据一致性设计**: ✅ 单一PostgreSQL数据源架构已确定
+5. **架构简化**: ✅ 决定不使用Neo4j，避免多数据源复杂性
+6. **API规范统一**: 🔄 专用端点命名规范制定完成，实施进行中
+7. **CRUD功能实现**: 🔄 基础CRUD逻辑开发中，前后端集成验证进行中
 
-### 🔧 PostgreSQL原生架构优势
-- **极致性能**: 26个时态专用索引，窗口函数优化，激进连接池配置
-- **零同步延迟**: 单一数据源，实时强一致性保证
-- **运维简化**: 无需管理双数据库和数据同步服务
-- **成本优化**: 移除Neo4j许可证成本和运维复杂性
+### 📋 PostgreSQL单一数据源架构优势
+- **简化架构**: 避免多数据库同步复杂性，降低开发和运维难度
+- **数据一致性**: 单一数据源保证强一致性，无同步延迟风险
+- **开发效率**: PostgreSQL丰富的查询能力，减少跨数据库复杂性
+- **成本控制**: 避免Neo4j许可证成本，降低基础设施复杂度
 
 ## 开发规范
 
@@ -273,16 +357,17 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 ## 联系与维护
 - 项目路径: `/home/shangmeilin/cube-castle`
 - 最后更新: 2025-08-23
-- 当前版本: **PostgreSQL原生架构版 (v3.1-CRUD-Integration-Verified)**
-  - ✅ PostgreSQL原生CQRS架构 + 单一数据源
-  - ✅ GraphQL查询性能提升70-90% (1.5-8ms响应)
-  - ✅ Canvas Kit v13兼容 + 图标系统统一
-  - ✅ TypeScript 零错误构建 + 时态类型系统
-  - ✅ 26个时态专用索引 + 性能优化
-  - ✅ 架构简化60% + 技术债务清理
-  - ✅ E2E测试覆盖率92% + 跨浏览器验证
-  - ✅ CRUD功能集成验证通过 + 前后端协调正常
-  - ✅ 企业级性能基准达标 + 生产部署就绪
+- 当前版本: **开发早期架构设计版 (v3.4-Early-Development-Phase)**
+  - 🏗️ PostgreSQL单一数据源架构设计确定
+  - 📋 CQRS架构模式规划：GraphQL查询 + REST命令
+  - 🔄 Canvas Kit v13迁移策略制定中
+  - 🔧 TypeScript类型系统优化进行中
+  - 📚 API一致性规范制定完成
+  - ⭐ **专用端点命名规范统一** + suspend/activate对称设计
+  - ⭐ **深层次API一致性标准** + 企业级信封响应结构设计
+  - ⭐ **数据模型标准化** + 时态数据/审计数据统一结构
+  - ⭐ **开发规范建立** + 代码规范/测试标准/文档规范
+  - ⭐ **项目阶段明确** + 开发早期状态准确定位
 
 ---
 *这个文档会随着项目发展持续更新*
