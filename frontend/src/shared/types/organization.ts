@@ -1,50 +1,50 @@
 export interface OrganizationUnit {
   code: string;
-  record_id?: string;  // UUID唯一标识符
-  parent_code?: string;
+  recordId?: string;  // UUID唯一标识符 (camelCase)
+  parentCode?: string;  // camelCase
   name: string;
-  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
+  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
   status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED' | 'DELETED';
   level: number;
   path: string;
-  sort_order: number;
+  sortOrder: number;  // camelCase
   description?: string;
-  created_at: string;
-  updated_at: string;
-  // 组织详情字段 (统一命名)
-  effective_date?: string;
-  end_date?: string;
-  is_temporal?: boolean;
+  createdAt: string;  // camelCase
+  updatedAt: string;  // camelCase
+  // 组织详情字段 (camelCase 统一命名)
+  effectiveDate?: string;  // camelCase
+  endDate?: string;  // camelCase
+  isTemporal?: boolean;  // camelCase
   version?: number;
-  change_reason?: string;
-  is_current?: boolean;
+  changeReason?: string;  // camelCase
+  isCurrent?: boolean;  // camelCase
 }
 
 export interface OrganizationListResponse {
   organizations: OrganizationUnit[];
-  total_count: number;
+  totalCount: number;  // camelCase
   page: number;
-  page_size: number;
-  total_pages: number;
+  pageSize: number;  // camelCase
+  totalPages: number;  // camelCase
 }
 
 export interface OrganizationStats {
-  total_count: number;
-  by_type: Record<string, number>;
-  by_status: Record<string, number>;
+  totalCount: number;  // camelCase
+  byType: Record<string, number>;  // camelCase
+  byStatus: Record<string, number>;  // camelCase
 }
 
-// 组织查询参数
+// 组织查询参数 (camelCase)
 export interface OrganizationQueryParams {
   name?: string;
-  unit_type?: string;
+  unitType?: string;  // camelCase
   status?: string;
-  parent_code?: string;
+  parentCode?: string;  // camelCase
   level?: number;
   page?: number;
-  page_size?: number;
-  sort_by?: string;
-  sort_order?: 'ASC' | 'DESC';
+  pageSize?: number;  // camelCase
+  sortBy?: string;  // camelCase
+  sortOrder?: 'ASC' | 'DESC';  // camelCase
 }
 
 // GraphQL API响应类型定义
@@ -91,40 +91,40 @@ export interface OrganizationListAPIResponse {
 }
 
 export interface OrganizationStatsAPIResponse {
-  organization_unit_stats: GraphQLStatsResponse;
+  organizationStats: GraphQLStatsResponse;  // camelCase
 }
 
-// 命令API响应类型 - 用于创建和更新操作
+// 命令API响应类型 - 用于创建和更新操作 (camelCase)
 export interface CreateOrganizationResponse {
   code: string;
   name: string;
-  unit_type: string;
+  unitType: string;  // camelCase
   status: string;
-  created_at: string;
+  createdAt: string;  // camelCase
   level?: number;
-  parent_code?: string;
-  sort_order?: number;
+  parentCode?: string;  // camelCase
+  sortOrder?: number;  // camelCase
   description?: string;
   path?: string;
-  updated_at?: string;
-  // 组织详情字段 (统一命名)
-  effective_date?: string;
-  end_date?: string;
-  is_temporal?: boolean;
+  updatedAt?: string;  // camelCase
+  // 组织详情字段 (camelCase 统一命名)
+  effectiveDate?: string;  // camelCase
+  endDate?: string;  // camelCase
+  isTemporal?: boolean;  // camelCase
   version?: number;
-  change_reason?: string;
-  is_current?: boolean;
+  changeReason?: string;  // camelCase
+  isCurrent?: boolean;  // camelCase
 }
 
 export interface UpdateOrganizationResponse {
   code: string;
-  updated_at: string;
+  updatedAt: string;  // camelCase
   changes: Record<string, unknown>;
-  // 组织详情字段 (统一命名)
-  effective_date?: string;
-  end_date?: string;
+  // 组织详情字段 (camelCase 统一命名)
+  effectiveDate?: string;  // camelCase
+  endDate?: string;  // camelCase
   version?: number;
-  change_reason?: string;
+  changeReason?: string;  // camelCase
 }
 
 // 组织操作请求和响应类型 (操作驱动状态管理)
@@ -140,7 +140,7 @@ export interface SuspendOrganizationResponse {
   code: string;
   name: string;
   status: 'SUSPENDED';
-  suspended_at: string;
+  suspendedAt: string;  // camelCase
   reason: string;
 }
 
@@ -148,6 +148,6 @@ export interface ReactivateOrganizationResponse {
   code: string;
   name: string;
   status: 'ACTIVE';
-  reactivated_at: string;
+  reactivatedAt: string;  // camelCase
   reason: string;
 }

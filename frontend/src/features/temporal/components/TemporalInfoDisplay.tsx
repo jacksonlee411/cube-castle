@@ -9,11 +9,11 @@ import type { TemporalStatus } from './TemporalStatusSelector';
 import { validateTemporalDate } from './TemporalDatePicker';
 
 export interface TemporalInfo {
-  effective_date?: string;
-  end_date?: string;
+  effectiveDate?: string;
+  endDate?: string;
   status?: TemporalStatus;
-  is_temporal?: boolean;
-  change_reason?: string;
+  isTemporal?: boolean;
+  changeReason?: string;
   version?: number;
 }
 
@@ -54,16 +54,16 @@ export const TemporalInfoDisplay: React.FC<TemporalInfoDisplayProps> = ({
   showVersion = false,
 }) => {
   const {
-    effective_date,
-    end_date,
+    effectiveDate,
+    endDate,
     status,
-    is_temporal,
-    change_reason,
+    isTemporal,
+    changeReason,
     version,
   } = temporalInfo;
 
   // 如果不是时态组织，显示简单状态
-  if (!is_temporal && !effective_date && !end_date) {
+  if (!isTemporal && !effectiveDate && !endDate) {
     return (
       <SimpleBadge style={{ backgroundColor: '#999999' }}>
         标准组织
@@ -72,7 +72,7 @@ export const TemporalInfoDisplay: React.FC<TemporalInfoDisplayProps> = ({
   }
 
   // 计算实际状态
-  const actualStatus = status || temporalStatusUtils.calculateStatus(effective_date, end_date);
+  const actualStatus = status || temporalStatusUtils.calculateStatus(effectiveDate, endDate);
   const statusColor = temporalStatusUtils.getStatusColor(actualStatus);
   const statusIcon = temporalStatusUtils.getStatusIcon(actualStatus);
   const statusLabel = temporalStatusUtils.getStatusLabel(actualStatus);
@@ -84,9 +84,9 @@ export const TemporalInfoDisplay: React.FC<TemporalInfoDisplayProps> = ({
         <SimpleBadge style={{ backgroundColor: statusColor }}>
           {statusIcon} {statusLabel}
         </SimpleBadge>
-        {effective_date && (
+        {effectiveDate && (
           <Text as="span" typeLevel="subtext.large" color="licorice300">
-            {validateTemporalDate.formatDateDisplay(effective_date)}
+            {validateTemporalDate.formatDateDisplay(effectiveDate)}
           </Text>
         )}
       </Flex>
@@ -110,22 +110,22 @@ export const TemporalInfoDisplay: React.FC<TemporalInfoDisplayProps> = ({
           </Flex>
 
           <Flex flexDirection="column" gap="xxs">
-            {effective_date && (
+            {effectiveDate && (
               <Text as="div" typeLevel="subtext.large">
                 <strong>生效日期：</strong>
-                {validateTemporalDate.formatDateDisplay(effective_date)}
+                {validateTemporalDate.formatDateDisplay(effectiveDate)}
               </Text>
             )}
-            {end_date && (
+            {endDate && (
               <Text as="div" typeLevel="subtext.large">
                 <strong>结束日期：</strong>
-                {validateTemporalDate.formatDateDisplay(end_date)}
+                {validateTemporalDate.formatDateDisplay(endDate)}
               </Text>
             )}
-            {change_reason && showChangeReason && (
+            {changeReason && showChangeReason && (
               <Text as="div" typeLevel="subtext.large" color="licorice300">
                 <strong>变更原因：</strong>
-                {change_reason}
+                {changeReason}
               </Text>
             )}
           </Flex>
@@ -148,14 +148,14 @@ export const TemporalInfoDisplay: React.FC<TemporalInfoDisplayProps> = ({
       </SimpleBadge>
       
       <Flex flexDirection="column" gap="xxs">
-        {effective_date && (
+        {effectiveDate && (
           <Text as="span" typeLevel="subtext.large" color="licorice500">
-            生效: {validateTemporalDate.formatDateDisplay(effective_date)}
+            生效: {validateTemporalDate.formatDateDisplay(effectiveDate)}
           </Text>
         )}
-        {end_date && (
+        {endDate && (
           <Text as="span" typeLevel="subtext.large" color="licorice500">
-            结束: {validateTemporalDate.formatDateDisplay(end_date)}
+            结束: {validateTemporalDate.formatDateDisplay(endDate)}
           </Text>
         )}
       </Flex>

@@ -29,17 +29,17 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   const [formData, setFormData] = useState<FormData>({
     code: organization?.code || '',
     name: organization?.name || '',
-    unit_type: organization?.unit_type || 'DEPARTMENT',
+    unitType: organization?.unitType || 'DEPARTMENT',
     status: organization?.status || 'ACTIVE',
     description: organization?.description || '',
-    parent_code: organization?.parent_code || '',
+    parentCode: organization?.parentCode || '',
     level: organization?.level || 1,
-    sort_order: organization?.sort_order || 0,
+    sortOrder: organization?.sortOrder || 0,
     // 时态字段
-    is_temporal: false,
-    effective_from: '',
-    effective_to: '',
-    change_reason: '',
+    isTemporal: false,
+    effectiveFrom: '',
+    effectiveTo: '',
+    changeReason: '',
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -58,17 +58,17 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     setFormData({
       code: organization?.code || '',
       name: organization?.name || '',
-      unit_type: organization?.unit_type || 'DEPARTMENT',
+      unitType: organization?.unitType || 'DEPARTMENT',
       status: organization?.status || 'ACTIVE',
       description: organization?.description || '',
-      parent_code: organization?.parent_code || '',
+      parentCode: organization?.parentCode || '',
       level: organization?.level || 1,
-      sort_order: organization?.sort_order || 0,
+      sortOrder: organization?.sortOrder || 0,
       // 时态字段重置
-      is_temporal: false,
-      effective_from: '',
-      effective_to: '',
-      change_reason: '',
+      isTemporal: false,
+      effectiveFrom: '',
+      effectiveTo: '',
+      changeReason: '',
     });
     setFormErrors({});
   }, [organization]);
@@ -96,21 +96,21 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         const updateData: UpdateOrganizationInput = {
           code: organization!.code,
           name: formData.name,
-          unit_type: formData.unit_type as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
+          unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
           status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
           description: formData.description,
-          sort_order: formData.sort_order,
+          sortOrder: formData.sortOrder,
           level: formData.level,
-          parent_code: formData.parent_code || undefined,
+          parentCode: formData.parentCode || undefined,
         };
         
         // 时态更新 (统一字符串类型处理)
-        if (formData.is_temporal) {
+        if (formData.isTemporal) {
           const temporalUpdateData = {
             ...updateData,
-            effectiveFrom: TemporalConverter.dateToIso(formData.effective_from),
-            effectiveTo: formData.effective_to ? TemporalConverter.dateToIso(formData.effective_to) : undefined,
-            changeReason: formData.change_reason
+            effectiveFrom: TemporalConverter.dateToIso(formData.effectiveFrom),
+            effectiveTo: formData.effectiveTo ? TemporalConverter.dateToIso(formData.effectiveTo) : undefined,
+            changeReason: formData.changeReason
           };
           await organizationAPI.updateTemporal(organization!.code, temporalUpdateData);
         } else {
@@ -120,21 +120,21 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         const createData: CreateOrganizationInput = {
           code: formData.code && formData.code.trim() ? formData.code.trim() : undefined,
           name: formData.name,
-          unit_type: formData.unit_type as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM',
+          unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
           status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
           level: formData.level,
-          sort_order: formData.sort_order,
+          sortOrder: formData.sortOrder,
           description: formData.description,
-          parent_code: formData.parent_code || undefined,
+          parentCode: formData.parentCode || undefined,
         };
         
         // 时态创建 (统一字符串类型处理)
-        if (formData.is_temporal) {
+        if (formData.isTemporal) {
           const temporalCreateData = {
             ...createData,
-            effectiveFrom: TemporalConverter.dateToIso(formData.effective_from!),
-            effectiveTo: formData.effective_to ? TemporalConverter.dateToIso(formData.effective_to) : undefined,
-            changeReason: formData.change_reason
+            effectiveFrom: TemporalConverter.dateToIso(formData.effectiveFrom!),
+            effectiveTo: formData.effectiveTo ? TemporalConverter.dateToIso(formData.effectiveTo) : undefined,
+            changeReason: formData.changeReason
           };
           await organizationAPI.createTemporal(temporalCreateData);
         } else {
@@ -147,17 +147,17 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         setFormData({
           code: '',
           name: '',
-          unit_type: 'DEPARTMENT',
+          unitType: 'DEPARTMENT',
           status: 'ACTIVE',
           description: '',
-          parent_code: '',
+          parentCode: '',
           level: 1,
-          sort_order: 0,
+          sortOrder: 0,
           // 重置时态字段
-          is_temporal: false,
-          effective_from: '',
-          effective_to: '',
-          change_reason: '',
+          isTemporal: false,
+          effectiveFrom: '',
+          effectiveTo: '',
+          changeReason: '',
         });
       }
       
@@ -206,7 +206,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           <Modal.CloseIcon aria-label="关闭" onClick={handleClose} />
           <Modal.Heading>
             {isEditing ? '编辑组织单元' : '新增组织单元'}
-            {formData.is_temporal && (
+            {formData.isTemporal && (
               <span style={{ 
                 marginLeft: '8px', 
                 fontSize: '14px', 
@@ -257,7 +257,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
                   data-testid="form-submit-button"
                 >
                   {isSubmitting ? '处理中...' : 
-                   formData.is_temporal ? 
+                   formData.isTemporal ? 
                      (isEditing ? '更新时态组织' : '创建计划组织') : 
                      (isEditing ? '更新' : '创建')
                   }

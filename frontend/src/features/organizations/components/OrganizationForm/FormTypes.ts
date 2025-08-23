@@ -17,17 +17,17 @@ export interface FormData {
   [key: string]: unknown;
   code?: string | undefined;
   name: string;
-  unit_type: string;
+  unitType: string;  // camelCase
   status: string;
   description: string;
-  parent_code: string;
+  parentCode: string;  // camelCase
   level: number;
-  sort_order: number;
-  // 时态字段
-  is_temporal?: boolean;
-  effective_from?: string;
-  effective_to?: string;
-  change_reason?: string;
+  sortOrder: number;  // camelCase
+  // 时态字段 (camelCase)
+  isTemporal?: boolean;  // camelCase
+  effectiveFrom?: string;  // camelCase
+  effectiveTo?: string;  // camelCase
+  changeReason?: string;  // camelCase
 }
 
 export interface FormFieldsProps {
@@ -43,9 +43,9 @@ export interface ValidationRules {
   name: (value: string) => string | null;
   code: (value: string) => string | null;
   level: (value: number) => string | null;
-  unit_type: (value: string) => string | null;
-  // 时态验证规则
-  effective_from: (value: string, isTemporal: boolean) => string | null;
-  effective_to: (value: string, effectiveFrom: string, isTemporal: boolean) => string | null;
-  change_reason: (value: string, isTemporal: boolean) => string | null;
+  unitType: (value: string) => string | null;  // camelCase
+  // 时态验证规则 (camelCase)
+  effectiveFrom: (value: string, isTemporal: boolean) => string | null;  // camelCase
+  effectiveTo: (value: string, effectiveFrom: string, isTemporal: boolean) => string | null;  // camelCase
+  changeReason: (value: string, isTemporal: boolean) => string | null;  // camelCase
 }

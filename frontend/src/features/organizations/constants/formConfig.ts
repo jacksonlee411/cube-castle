@@ -1,7 +1,6 @@
 export const ORGANIZATION_UNIT_TYPES = {
   DEPARTMENT: '部门',
-  COST_CENTER: '成本中心', 
-  COMPANY: '公司',
+  ORGANIZATION_UNIT: '组织单位',
   PROJECT_TEAM: '项目团队'
 } as const;
 

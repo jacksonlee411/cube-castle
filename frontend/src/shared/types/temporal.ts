@@ -40,7 +40,7 @@ export interface TemporalOrganizationUnit {
   code: string;
   parent_code?: string;
   name: string;
-  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
+  unit_type: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
   status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
   level: number;
   path: string;

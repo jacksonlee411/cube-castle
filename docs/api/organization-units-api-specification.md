@@ -259,7 +259,7 @@ API使用频率预期 (基于企业级系统经验):
   "parentCode": "string (optional, 父级组织编码)",
   "tenantId": "uuid (租户ID)",
   "name": "string (组织名称, 最大255字符)",
-  "unitType": "DEPARTMENT | COST_CENTER | COMPANY | PROJECT_TEAM",
+  "unitType": "DEPARTMENT | ORGANIZATION_UNIT | PROJECT_TEAM",
   "status": "ACTIVE | INACTIVE (纯业务状态, 默认ACTIVE)",
   "isDeleted": "boolean (删除标记, 默认false)",
   "level": "number (层级, 1-17级, 默认1)",
@@ -475,7 +475,7 @@ delete: updatedAt = 删除时间, operatedBy = 删除人, isDeleted = true, oper
 ### 单元类型枚举
 ```yaml
 DEPARTMENT: 部门（常规业务部门）
-COST_CENTER: 成本中心（财务管理单元）
+ORGANIZATION_UNIT: 组织单位（通用组织架构单元）
 COMPANY: 公司（法人实体）
 PROJECT_TEAM: 项目团队（临时性组织）
 ```
@@ -2093,7 +2093,7 @@ query GetCoreHRStats {
       "total": 25,
       "byType": [
         {"type": "DEPARTMENT", "count": 15},
-        {"type": "COST_CENTER", "count": 5},
+        {"type": "ORGANIZATION_UNIT", "count": 5},
         {"type": "COMPANY", "count": 2},
         {"type": "PROJECT_TEAM", "count": 3}
       ],
@@ -2220,7 +2220,7 @@ PATCH操作后:
 }
 ```
 
-### COST_CENTER（成本中心）配置
+### ORGANIZATION_UNIT（组织单位）配置
 ```json
 {
   "costCenterCode": "string (成本中心代码)",

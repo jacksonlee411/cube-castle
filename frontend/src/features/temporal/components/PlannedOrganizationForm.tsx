@@ -8,7 +8,7 @@ import { Flex } from '@workday/canvas-kit-react/layout';
 import { TemporalDatePicker, validateTemporalDate } from './TemporalDatePicker';
 
 // 定义组织类型 - 从FormFields中复制过来
-export type UnitType = 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
+export type UnitType = 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
 
 export interface PlannedOrganizationData {
   name: string;
@@ -221,8 +221,7 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
                   style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                 >
                   <option value="DEPARTMENT">部门</option>
-                  <option value="COST_CENTER">成本中心</option>
-                  <option value="COMPANY">公司</option>
+                  <option value="ORGANIZATION_UNIT">组织单位</option>
                   <option value="PROJECT_TEAM">项目团队</option>
                 </select>
               </FormField.Field>

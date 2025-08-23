@@ -22,7 +22,7 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 	}
 
 	validTypes := map[string]bool{
-		"COMPANY": true, "DEPARTMENT": true, "COST_CENTER": true, "PROJECT_TEAM": true,
+		"ORGANIZATION_UNIT": true, "DEPARTMENT": true, "PROJECT_TEAM": true,
 	}
 	if !validTypes[req.UnitType] {
 		return fmt.Errorf("无效的组织类型: %s", req.UnitType)
@@ -61,7 +61,7 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 
 	if req.UnitType != nil {
 		validTypes := map[string]bool{
-			"COMPANY": true, "DEPARTMENT": true, "COST_CENTER": true, "PROJECT_TEAM": true,
+			"ORGANIZATION_UNIT": true, "DEPARTMENT": true, "PROJECT_TEAM": true,
 		}
 		if !validTypes[*req.UnitType] {
 			return fmt.Errorf("无效的组织类型: %s", *req.UnitType)

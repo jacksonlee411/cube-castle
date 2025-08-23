@@ -109,5 +109,5 @@ export interface RequestConfig {
 }
 
 // Organization-specific API types
-export type OrganizationUnitType = 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
+export type OrganizationUnitType = 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
 export type OrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED';

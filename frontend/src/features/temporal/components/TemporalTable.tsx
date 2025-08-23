@@ -179,10 +179,9 @@ const TemporalField: React.FC<TemporalFieldProps> = ({
 
   if (field === 'unit_type') {
     const typeLabels = {
-      'COMPANY': '公司',
+      'ORGANIZATION_UNIT': '组织单位',
       'DEPARTMENT': '部门',
-      'COST_CENTER': '成本中心',
-      'PROJECT_TEAM': '项目组'
+      'PROJECT_TEAM': '项目团队'
     };
     return <Text>{typeLabels[value as keyof typeof typeLabels] || value}</Text>;
   }

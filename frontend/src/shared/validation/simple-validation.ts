@@ -121,7 +121,7 @@ export function validateOrganizationResponse(data: Record<string, unknown>): Val
   }
 
   // 验证类型枚举  
-  if (data['unit_type'] && typeof data['unit_type'] === 'string' && !['DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM'].includes(data['unit_type'])) {
+  if (data['unit_type'] && typeof data['unit_type'] === 'string' && !['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM'].includes(data['unit_type'])) {
     errors.push({ field: 'unit_type', message: '组织类型无效' });
   }
 

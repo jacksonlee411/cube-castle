@@ -33,9 +33,8 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
 }) => {
   // 组织类型选项
   const unitTypeOptions = [
-    { value: 'COMPANY', label: '公司' },
+    { value: 'ORGANIZATION_UNIT', label: '组织单位' },
     { value: 'DEPARTMENT', label: '部门' },
-    { value: 'COST_CENTER', label: '成本中心' },
     { value: 'PROJECT_TEAM', label: '项目团队' },
   ];
 
@@ -59,10 +58,9 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
   // 获取组织类型对应的颜色和样式
   const getUnitTypeBadgeVariant = (unitType: string) => {
     switch (unitType) {
-      case 'COMPANY': return 'positive';      // 公司 - 绿色（重要）
-      case 'DEPARTMENT': return 'caution';    // 部门 - 黄色（常见）
-      case 'COST_CENTER': return 'outline';   // 成本中心 - 灰色边框（功能性）
-      case 'PROJECT_TEAM': return 'neutral';  // 项目团队 - 灰色（临时性）
+      case 'ORGANIZATION_UNIT': return 'positive';  // 组织单位 - 绿色（重要）
+      case 'DEPARTMENT': return 'caution';          // 部门 - 黄色（常见）
+      case 'PROJECT_TEAM': return 'neutral';        // 项目团队 - 灰色（临时性）
       default: return 'neutral';
     }
   };

@@ -187,7 +187,7 @@ function transformToTemporalOrganization(data: GraphQLOrganizationData): Tempora
     code: data.code || '',
     parent_code: data.parent_code || '',
     name: data.name || '',
-    unit_type: (data.unit_type as 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM') || 'DEPARTMENT',
+    unit_type: (data.unit_type as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM') || 'DEPARTMENT',
     status: (data.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED') || 'ACTIVE',
     level: data.level || 1,
     path: data.path || '',

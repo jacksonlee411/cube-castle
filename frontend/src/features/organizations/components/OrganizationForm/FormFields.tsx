@@ -25,18 +25,18 @@ export const FormFields: React.FC<FormFieldsProps> = ({
     setFormData({ ...formData, [field]: value });
   }, [formData, setFormData]);
 
-  const isTemporal = formData.is_temporal as boolean;
+  const isTemporal = formData.isTemporal as boolean;
   const isPlannedStatus = formData.status === 'PLANNED';
 
   // 如果状态是计划中，自动启用时态功能
   React.useEffect(() => {
     if (isPlannedStatus && !isTemporal) {
-      updateField('is_temporal', true);
+      updateField('isTemporal', true);
       // 使用TemporalConverter设置默认生效时间为明天上午9点
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(9, 0, 0, 0);
-      updateField('effective_from', TemporalConverter.dateToIso(tomorrow));
+      updateField('effectiveFrom', TemporalConverter.dateToIso(tomorrow));
     }
   }, [isPlannedStatus, isTemporal, updateField]);
 
@@ -114,15 +114,14 @@ export const FormFields: React.FC<FormFieldsProps> = ({
           组织类型 *
         </label>
         <select
-          name="unit_type"
-          value={formData.unit_type}
-          onChange={(e) => updateField('unit_type', e.target.value)}
+          name="unitType"
+          value={formData.unitType}
+          onChange={(e) => updateField('unitType', e.target.value)}
           style={inputStyle}
           data-testid="form-field-unit-type"
         >
           <option value="DEPARTMENT">部门</option>
-          <option value="COST_CENTER">成本中心</option>
-          <option value="COMPANY">公司</option>
+          <option value="ORGANIZATION_UNIT">组织单位</option>
           <option value="PROJECT_TEAM">项目团队</option>
         </select>
       </div>
@@ -133,8 +132,8 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         </label>
         <input
           type="text"
-          value={formData.parent_code}
-          onChange={(e) => updateField('parent_code', e.target.value)}
+          value={formData.parentCode}
+          onChange={(e) => updateField('parentCode', e.target.value)}
           placeholder="请输入上级组织编码"
           style={inputStyle}
           data-testid="form-field-parent-code"
@@ -184,8 +183,8 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         </label>
         <input
           type="number"
-          value={formData.sort_order}
-          onChange={(e) => updateField('sort_order', parseInt(e.target.value) || 0)}
+          value={formData.sortOrder}
+          onChange={(e) => updateField('sortOrder', parseInt(e.target.value) || 0)}
           min="0"
           style={inputStyle}
           data-testid="form-field-sort-order"
@@ -224,7 +223,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
               <input
                 type="checkbox"
                 checked={isTemporal}
-                onChange={(e) => updateField('is_temporal', e.target.checked)}
+                onChange={(e) => updateField('isTemporal', e.target.checked)}
                 disabled={isPlannedStatus}
                 data-testid="form-field-is-temporal"
                 style={{ marginRight: '8px' }}
@@ -246,8 +245,8 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                 </label>
                 <input
                   type="date"
-                  value={formatDateForInput(formData.effective_from as string)}
-                  onChange={(e) => updateField('effective_from', e.target.value)}
+                  value={formatDateForInput(formData.effectiveFrom as string)}
+                  onChange={(e) => updateField('effectiveFrom', e.target.value)}
                   style={inputStyle}
                   data-testid="form-field-effective-from"
                 />
@@ -262,8 +261,8 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                 </label>
                 <input
                   type="date"
-                  value={formatDateForInput(formData.effective_to as string)}
-                  onChange={(e) => updateField('effective_to', e.target.value)}
+                  value={formatDateForInput(formData.effectiveTo as string)}
+                  onChange={(e) => updateField('effectiveTo', e.target.value)}
                   style={inputStyle}
                   data-testid="form-field-effective-to"
                 />
@@ -277,8 +276,8 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                   变更原因 *
                 </label>
                 <textarea
-                  value={formData.change_reason as string || ''}
-                  onChange={(e) => updateField('change_reason', e.target.value)}
+                  value={formData.changeReason as string || ''}
+                  onChange={(e) => updateField('changeReason', e.target.value)}
                   placeholder="请输入此次变更的原因和背景..."
                   rows={2}
                   style={inputStyle}

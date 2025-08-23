@@ -60,9 +60,8 @@ export interface TemporalEditFormProps {
 }
 
 const unitTypeOptions = [
-  { label: '公司', value: 'COMPANY' },
+  { label: '组织单位', value: 'ORGANIZATION_UNIT' },
   { label: '部门', value: 'DEPARTMENT' },
-  { label: '成本中心', value: 'COST_CENTER' },
   { label: '项目团队', value: 'PROJECT_TEAM' },
 ];
 

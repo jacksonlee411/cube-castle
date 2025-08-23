@@ -40,8 +40,7 @@ interface SelectOption {
 const UNIT_TYPE_OPTIONS: SelectOption[] = [
   { label: '全部类型', value: '' },
   { label: '部门', value: 'DEPARTMENT' },
-  { label: '成本中心', value: 'COST_CENTER' },
-  { label: '公司', value: 'COMPANY' },
+  { label: '组织单位', value: 'ORGANIZATION_UNIT' },
   { label: '项目团队', value: 'PROJECT_TEAM' },
 ];
 

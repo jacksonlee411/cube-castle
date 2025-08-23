@@ -218,7 +218,7 @@ CREATE TABLE organization_units (
   UNIQUE (record_id),
   
   -- 检查约束
-  CONSTRAINT valid_unit_type CHECK (unit_type IN ('DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM')),
+  CONSTRAINT valid_unit_type CHECK (unit_type IN ('DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM')),
   CONSTRAINT valid_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
   CONSTRAINT valid_operation_type CHECK (operation_type IN ('CREATE', 'UPDATE', 'SUSPEND', 'REACTIVATE', 'DELETE')),
   CONSTRAINT valid_level CHECK (level >= 1 AND level <= 17),

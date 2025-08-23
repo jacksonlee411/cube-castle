@@ -27,8 +27,8 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
   // 计算时态状态
   const temporalStatus = organization.status as TemporalStatus;
   const isTemporal = temporalStatusUtils.isTemporal(
-    organization.effective_date, 
-    organization.end_date
+    organization.effectiveDate, 
+    organization.endDate
   );
   
   // 时态模式下的样式调整
@@ -89,7 +89,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
         )}
       </Table.Cell>
       
-      <Table.Cell>{organization.unit_type}</Table.Cell>
+      <Table.Cell>{organization.unitType}</Table.Cell>
       
       <Table.Cell>
         <span 
@@ -117,8 +117,8 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
         <Table.Cell>
           {isTemporal ? (
             <TemporalDateRange 
-              effectiveDate={organization.effective_date}
-              endDate={organization.end_date}
+              effectiveDate={organization.effectiveDate}
+              endDate={organization.endDate}
               format="short"
             />
           ) : (
@@ -132,11 +132,11 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
         <Table.Cell>
           <TemporalInfoDisplay 
             temporalInfo={{
-              effective_date: organization.effective_date,
-              end_date: organization.end_date,
+              effectiveDate: organization.effectiveDate,
+              endDate: organization.endDate,
               status: temporalStatus,
-              is_temporal: isTemporal,
-              change_reason: organization.change_reason,
+              isTemporal: isTemporal,
+              changeReason: organization.changeReason,
               version: organization.version
             }}
             variant="compact"

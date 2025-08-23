@@ -11,10 +11,10 @@ import { FormField } from '@workday/canvas-kit-react/form-field';
 import { Select } from '@workday/canvas-kit-react/select';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { 
-  checkCircleIcon,    // 可用于公司（成功/重要）
+  checkCircleIcon,    // 可用于组织单位（成功/重要）
   clockIcon,          // 可用于计划/项目团队
   timelineAllIcon,    // 可用于部门（历史/层级）
-  trashIcon           // 可用于成本中心（管理/控制）
+  trashIcon           // 备用图标（管理/控制）
 } from '@workday/canvas-system-icons-web';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
@@ -82,9 +82,9 @@ export interface InlineNewVersionFormProps {
 
 const unitTypeOptions = [
   { 
-    label: '公司', 
-    value: 'COMPANY',
-    description: '企业的顶级组织单位，负责整体战略和治理',
+    label: '组织单位', 
+    value: 'ORGANIZATION_UNIT',
+    description: '企业的重要组织单位，负责特定职能和管理',
     color: colors.greenApple600,
     icon: checkCircleIcon    // 表示重要/核心地位
   },
@@ -94,13 +94,6 @@ const unitTypeOptions = [
     description: '企业内部的功能性组织单位，执行特定业务职能',
     color: colors.blueberry600,
     icon: timelineAllIcon    // 表示层级/结构
-  },
-  { 
-    label: '成本中心', 
-    value: 'COST_CENTER',
-    description: '独立核算的组织单位，用于成本管理和财务控制',
-    color: colors.cantaloupe600,
-    icon: trashIcon          // 表示管理/控制（暂时用这个）
   },
   { 
     label: '项目团队', 

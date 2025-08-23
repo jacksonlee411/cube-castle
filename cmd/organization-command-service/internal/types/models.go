@@ -16,103 +16,103 @@ var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 
 // Organization 组织业务实体
 type Organization struct {
-	TenantID    string    `json:"tenant_id" db:"tenant_id"`
+	TenantID    string    `json:"tenantId" db:"tenant_id"`
 	Code        string    `json:"code" db:"code"`
-	ParentCode  *string   `json:"parent_code,omitempty" db:"parent_code"`
+	ParentCode  *string   `json:"parentCode,omitempty" db:"parent_code"`
 	Name        string    `json:"name" db:"name"`
-	UnitType    string    `json:"unit_type" db:"unit_type"`
+	UnitType    string    `json:"unitType" db:"unit_type"`
 	Status      string    `json:"status" db:"status"`
 	Level       int       `json:"level" db:"level"`
 	Path        string    `json:"path" db:"path"`
-	SortOrder   int       `json:"sort_order" db:"sort_order"`
+	SortOrder   int       `json:"sortOrder" db:"sort_order"`
 	Description string    `json:"description" db:"description"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt   time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt   time.Time `json:"updatedAt" db:"updated_at"`
 	// 时态管理字段 (使用Date类型)
-	EffectiveDate *Date   `json:"effective_date,omitempty" db:"effective_date"`
-	EndDate       *Date   `json:"end_date,omitempty" db:"end_date"`
-	IsTemporal    bool    `json:"is_temporal" db:"is_temporal"`
-	ChangeReason  *string `json:"change_reason,omitempty" db:"change_reason"`
-	IsCurrent     bool    `json:"is_current" db:"is_current"`
+	EffectiveDate *Date   `json:"effectiveDate,omitempty" db:"effective_date"`
+	EndDate       *Date   `json:"endDate,omitempty" db:"end_date"`
+	IsTemporal    bool    `json:"isTemporal" db:"is_temporal"`
+	ChangeReason  *string `json:"changeReason,omitempty" db:"change_reason"`
+	IsCurrent     bool    `json:"isCurrent" db:"is_current"`
 }
 
 // CreateOrganizationRequest 创建组织请求
 type CreateOrganizationRequest struct {
 	Code        *string `json:"code,omitempty"` // 可选：指定组织代码（用于时态记录）
 	Name        string  `json:"name" validate:"required,max=100"`
-	UnitType    string  `json:"unit_type" validate:"required"`
-	ParentCode  *string `json:"parent_code,omitempty"`
-	SortOrder   int     `json:"sort_order"`
+	UnitType    string  `json:"unitType" validate:"required"`
+	ParentCode  *string `json:"parentCode,omitempty"`
+	SortOrder   int     `json:"sortOrder"`
 	Description string  `json:"description"`
 	// 时态管理字段 (使用Date类型)
-	EffectiveDate *Date  `json:"effective_date,omitempty"`
-	EndDate       *Date  `json:"end_date,omitempty"`
-	IsTemporal    bool   `json:"is_temporal"`
-	ChangeReason  string `json:"change_reason,omitempty"`
+	EffectiveDate *Date  `json:"effectiveDate,omitempty"`
+	EndDate       *Date  `json:"endDate,omitempty"`
+	IsTemporal    bool   `json:"isTemporal"`
+	ChangeReason  string `json:"changeReason,omitempty"`
 }
 
 // UpdateOrganizationRequest 更新组织请求
 type UpdateOrganizationRequest struct {
 	Name        *string `json:"name,omitempty"`
-	UnitType    *string `json:"unit_type,omitempty"`
+	UnitType    *string `json:"unitType,omitempty"`
 	Status      *string `json:"status,omitempty"` // 添加状态字段
-	SortOrder   *int    `json:"sort_order,omitempty"`
+	SortOrder   *int    `json:"sortOrder,omitempty"`
 	Description *string `json:"description,omitempty"`
-	ParentCode  *string `json:"parent_code,omitempty"` // 通过修改parent_code来改变层级
+	ParentCode  *string `json:"parentCode,omitempty"` // 通过修改parent_code来改变层级
 	// 时态管理字段 (使用Date类型)
-	EffectiveDate *Date   `json:"effective_date,omitempty"`
-	EndDate       *Date   `json:"end_date,omitempty"`
-	IsTemporal    *bool   `json:"is_temporal,omitempty"`
-	ChangeReason  *string `json:"change_reason,omitempty"`
+	EffectiveDate *Date   `json:"effectiveDate,omitempty"`
+	EndDate       *Date   `json:"endDate,omitempty"`
+	IsTemporal    *bool   `json:"isTemporal,omitempty"`
+	ChangeReason  *string `json:"changeReason,omitempty"`
 }
 
 // OrganizationResponse 组织响应
 type OrganizationResponse struct {
 	Code        string    `json:"code"`
 	Name        string    `json:"name"`
-	UnitType    string    `json:"unit_type"`
+	UnitType    string    `json:"unitType"`
 	Status      string    `json:"status"`
 	Level       int       `json:"level"`
 	Path        string    `json:"path"`
-	SortOrder   int       `json:"sort_order"`
+	SortOrder   int       `json:"sortOrder"`
 	Description string    `json:"description"`
-	ParentCode  *string   `json:"parent_code,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ParentCode  *string   `json:"parentCode,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 	// 时态管理字段 (使用Date类型)
-	EffectiveDate *Date   `json:"effective_date,omitempty"`
-	EndDate       *Date   `json:"end_date,omitempty"`
-	IsTemporal    bool    `json:"is_temporal"`
-	ChangeReason  *string `json:"change_reason,omitempty"`
+	EffectiveDate *Date   `json:"effectiveDate,omitempty"`
+	EndDate       *Date   `json:"endDate,omitempty"`
+	IsTemporal    bool    `json:"isTemporal"`
+	ChangeReason  *string `json:"changeReason,omitempty"`
 }
 
 // 组织历史版本请求
 type CreateOrganizationVersionRequest struct {
-	BasedOnVersion int     `json:"based_on_version"`
+	BasedOnVersion int     `json:"basedOnVersion"`
 	Name           *string `json:"name,omitempty"`
-	UnitType       *string `json:"unit_type,omitempty"`
+	UnitType       *string `json:"unitType,omitempty"`
 	Status         *string `json:"status,omitempty"`
-	SortOrder      *int    `json:"sort_order,omitempty"`
+	SortOrder      *int    `json:"sortOrder,omitempty"`
 	Description    *string `json:"description,omitempty"`
-	ParentCode     *string `json:"parent_code,omitempty"`
-	EffectiveDate  Date    `json:"effective_date" validate:"required"`
-	EndDate        *Date   `json:"end_date,omitempty"`
-	ChangeReason   string  `json:"change_reason" validate:"required"`
+	ParentCode     *string `json:"parentCode,omitempty"`
+	EffectiveDate  Date    `json:"effectiveDate" validate:"required"`
+	EndDate        *Date   `json:"endDate,omitempty"`
+	ChangeReason   string  `json:"changeReason" validate:"required"`
 }
 
 // 时态查询响应（包含时间线信息）
 type TemporalOrganizationResponse struct {
 	*OrganizationResponse
-	TemporalStatus string                    `json:"temporal_status"`
+	TemporalStatus string                    `json:"temporalStatus"`
 	Timeline       []TemporalTimelineEvent   `json:"timeline,omitempty"`
 	Versions       []OrganizationVersionInfo `json:"versions,omitempty"`
 }
 
 // 时间线事件
 type TemporalTimelineEvent struct {
-	EventType     string                 `json:"event_type"`
-	EventDate     time.Time              `json:"event_date"`
-	EffectiveDate *Date                  `json:"effective_date,omitempty"`
+	EventType     string                 `json:"eventType"`
+	EventDate     time.Time              `json:"eventDate"`
+	EffectiveDate *Date                  `json:"effectiveDate,omitempty"`
 	Status        string                 `json:"status"`
 	Title         string                 `json:"title"`
 	Description   string                 `json:"description,omitempty"`
@@ -122,10 +122,10 @@ type TemporalTimelineEvent struct {
 // 版本信息
 type OrganizationVersionInfo struct {
 	Version       int       `json:"version"`
-	EffectiveFrom Date      `json:"effective_from"`
-	EffectiveTo   *Date     `json:"effective_to,omitempty"`
-	ChangeReason  string    `json:"change_reason"`
-	CreatedAt     time.Time `json:"created_at"`
+	EffectiveFrom Date      `json:"effectiveFrom"`
+	EffectiveTo   *Date     `json:"effectiveTo,omitempty"`
+	ChangeReason  string    `json:"changeReason"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 // 组织操作请求类型
@@ -139,11 +139,11 @@ type ReactivateOrganizationRequest struct {
 
 // 组织事件请求类型 (用于时态版本管理)
 type OrganizationEventRequest struct {
-	EventType     string                 `json:"event_type" validate:"required"`
-	RecordID      string                 `json:"record_id,omitempty"` // 用于精确定位记录（作废时必需）
-	EffectiveDate string                 `json:"effective_date" validate:"required"`
-	ChangeData    map[string]interface{} `json:"change_data,omitempty"` // UPDATE时必需
-	ChangeReason  string                 `json:"change_reason" validate:"required"`
+	EventType     string                 `json:"eventType" validate:"required"`
+	RecordID      string                 `json:"recordId,omitempty"` // 用于精确定位记录（作废时必需）
+	EffectiveDate string                 `json:"effectiveDate" validate:"required"`
+	ChangeData    map[string]interface{} `json:"changeData,omitempty"` // UPDATE时必需
+	ChangeReason  string                 `json:"changeReason" validate:"required"`
 }
 
 type ErrorResponse struct {

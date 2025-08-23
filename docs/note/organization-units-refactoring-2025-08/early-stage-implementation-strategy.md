@@ -173,7 +173,7 @@ export const apolloClient = new ApolloClient({
 export interface Organization {
   code: string;
   name: string;
-  unitType: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
+  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
   status: 'ACTIVE' | 'INACTIVE';
   parentCode?: string;
   level: number;

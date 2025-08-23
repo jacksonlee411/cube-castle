@@ -133,9 +133,8 @@ export const TemporalManagementSimple: React.FC = () => {
   // 获取类型标签
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'COMPANY': return '公司';
+      case 'ORGANIZATION_UNIT': return '组织单位';
       case 'DEPARTMENT': return '部门';
-      case 'COST_CENTER': return '成本中心';
       case 'PROJECT_TEAM': return '项目团队';
       default: return type;
     }

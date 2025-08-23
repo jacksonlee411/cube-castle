@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const OrganizationUnitSchema = z.object({
   code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'),
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  unit_type: z.enum(['DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM']),
+  unit_type: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']),
   level: z.number().int().min(1).max(10),
   parent_code: z.string().regex(/^\d{7}$/).optional().or(z.literal('')),
@@ -19,7 +19,7 @@ export const OrganizationUnitSchema = z.object({
 export const CreateOrganizationInputSchema = z.object({
   code: z.string().regex(/^\d{7}$/).optional(), // 可选，由系统生成
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  unit_type: z.enum(['DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM']),
+  unit_type: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']).default('ACTIVE'),
   level: z.number().int().min(1).max(10),
   parent_code: z.string().regex(/^\d{7}$/).optional().or(z.literal('')),
@@ -31,7 +31,7 @@ export const CreateOrganizationInputSchema = z.object({
 export const CreateOrganizationResponseSchema = z.object({
   code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'),
   name: z.string(),
-  unit_type: z.enum(['DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM']),
+  unit_type: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']),
   created_at: z.string().datetime(),
   // 注意：后端创建响应不包含这些字段：level, parent_code, sort_order, description, updated_at, path
@@ -45,7 +45,7 @@ export const UpdateOrganizationInputSchema = CreateOrganizationInputSchema.parti
 // GraphQL查询变量验证模式
 export const GraphQLVariablesSchema = z.object({
   searchText: z.string().optional(),
-  unitType: z.enum(['DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM']).optional(),
+  unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']).optional(),
   level: z.number().int().min(1).max(10).optional(),
   page: z.number().int().min(1).optional(),

@@ -5,12 +5,12 @@ import type { OrganizationUnit } from '../types';
 // 新增组织单元的输入类型
 export interface CreateOrganizationInput {
   code?: string; // 修改为可选，支持自动生成
-  parent_code?: string;
+  parentCode?: string;
   name: string;
-  unit_type: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
+  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
   status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
   level: number;
-  sort_order: number;
+  sortOrder: number;
   description?: string;
   [key: string]: unknown; // 添加索引签名以兼容Record<string, unknown>
 }
@@ -19,12 +19,12 @@ export interface CreateOrganizationInput {
 export interface UpdateOrganizationInput {
   code: string;
   name?: string;
-  unit_type?: 'DEPARTMENT' | 'COST_CENTER' | 'COMPANY' | 'PROJECT_TEAM';
+  unitType?: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
   status?: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
   description?: string;
-  sort_order?: number;
+  sortOrder?: number;
   level?: number;
-  parent_code?: string;
+  parentCode?: string;
   [key: string]: unknown; // 添加索引签名以兼容Record<string, unknown>
 }
 

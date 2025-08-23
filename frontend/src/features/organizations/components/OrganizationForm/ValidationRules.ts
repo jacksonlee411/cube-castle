@@ -18,15 +18,15 @@ export const validationRules: ValidationRules = {
     return null;
   },
   
-  unit_type: (value: string) => {
+  unitType: (value: string) => {
     if (!value || !value.trim()) return '请选择组织类型';
-    const validTypes = ['DEPARTMENT', 'COST_CENTER', 'COMPANY', 'PROJECT_TEAM'];
+    const validTypes = ['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM'];
     if (!validTypes.includes(value)) return '无效的组织类型';
     return null;
   },
 
   // 时态字段验证规则
-  effective_from: (value: string, isTemporal: boolean) => {
+  effectiveFrom: (value: string, isTemporal: boolean) => {
     if (!isTemporal) return null;
     if (!value) return '请选择生效时间';
     
@@ -45,7 +45,7 @@ export const validationRules: ValidationRules = {
     return null;
   },
 
-  effective_to: (value: string, effectiveFrom: string, isTemporal: boolean) => {
+  effectiveTo: (value: string, effectiveFrom: string, isTemporal: boolean) => {
     if (!isTemporal || !value) return null; // 失效时间可以为空
     
     const effectiveToDate = new Date(value);
@@ -61,7 +61,7 @@ export const validationRules: ValidationRules = {
     return null;
   },
 
-  change_reason: (value: string, isTemporal: boolean) => {
+  changeReason: (value: string, isTemporal: boolean) => {
     if (!isTemporal) return null;
     if (!value || !value.trim()) return '请输入变更原因';
     if (value.trim().length > 200) return '变更原因不能超过200个字符';
@@ -84,25 +84,25 @@ export const validateForm = (formData: Record<string, unknown>, isEditing = fals
   const levelError = validationRules.level(formData['level'] as number);
   if (levelError) errors['level'] = levelError;
   
-  // 编辑模式下也需要验证unit_type
-  const unitTypeError = validationRules.unit_type(formData['unit_type'] as string);
-  if (unitTypeError) errors['unit_type'] = unitTypeError;
+  // 编辑模式下也需要验证unitType
+  const unitTypeError = validationRules.unitType(formData['unitType'] as string);
+  if (unitTypeError) errors['unitType'] = unitTypeError;
   
   // 时态字段验证
-  const isTemporal = formData['is_temporal'] as boolean;
+  const isTemporal = formData['isTemporal'] as boolean;
   if (isTemporal) {
-    const effectiveFromError = validationRules.effective_from(formData['effective_from'] as string, isTemporal);
-    if (effectiveFromError) errors['effective_from'] = effectiveFromError;
+    const effectiveFromError = validationRules.effectiveFrom(formData['effectiveFrom'] as string, isTemporal);
+    if (effectiveFromError) errors['effectiveFrom'] = effectiveFromError;
     
-    const effectiveToError = validationRules.effective_to(
-      formData['effective_to'] as string, 
-      formData['effective_from'] as string, 
+    const effectiveToError = validationRules.effectiveTo(
+      formData['effectiveTo'] as string, 
+      formData['effectiveFrom'] as string, 
       isTemporal
     );
-    if (effectiveToError) errors['effective_to'] = effectiveToError;
+    if (effectiveToError) errors['effectiveTo'] = effectiveToError;
     
-    const changeReasonError = validationRules.change_reason(formData['change_reason'] as string, isTemporal);
-    if (changeReasonError) errors['change_reason'] = changeReasonError;
+    const changeReasonError = validationRules.changeReason(formData['changeReason'] as string, isTemporal);
+    if (changeReasonError) errors['changeReason'] = changeReasonError;
   }
   
   return errors;

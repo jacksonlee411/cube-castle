@@ -231,17 +231,17 @@ export class TemporalConverter {
    * 验证时态记录的有效性
    */
   static validateTemporalRecord(record: {
-    effective_date: string;
-    end_date?: string;
+    effectiveDate: string;
+    endDate?: string;
   }): boolean {
     try {
-      const effectiveDate = new Date(record.effective_date);
+      const effectiveDate = new Date(record.effectiveDate);
       if (isNaN(effectiveDate.getTime())) {
         return false;
       }
 
-      if (record.end_date) {
-        const endDate = new Date(record.end_date);
+      if (record.endDate) {
+        const endDate = new Date(record.endDate);
         if (isNaN(endDate.getTime())) {
           return false;
         }

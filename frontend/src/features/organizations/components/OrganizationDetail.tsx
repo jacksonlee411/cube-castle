@@ -63,9 +63,8 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
 
   const getUnitTypeName = (unitType: string) => {
     const typeNames = {
-      'COMPANY': '公司',
+      'ORGANIZATION_UNIT': '组织单位',
       'DEPARTMENT': '部门',
-      'COST_CENTER': '成本中心',
       'PROJECT_TEAM': '项目团队'
     };
     return typeNames[unitType as keyof typeof typeNames] || unitType;
@@ -73,14 +72,13 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
 
   const getUnitTypeBadge = (unitType: string) => {
     const typeConfig = {
-      'COMPANY': { label: '公司', color: 'greenFresca600' },      // 公司 - 绿色（重要）
-      'DEPARTMENT': { label: '部门', color: 'blueberry600' },    // 部门 - 蓝色（常见）
-      'COST_CENTER': { label: '成本中心', color: 'licorice400' },  // 成本中心 - 灰色（功能性）
-      'PROJECT_TEAM': { label: '项目团队', color: 'cantaloupe600' } // 项目团队 - 橙色（临时性）
+      'ORGANIZATION_UNIT': { label: '组织单位', color: 'greenFresca600' },    // 组织单位 - 绿色（重要）
+      'DEPARTMENT': { label: '部门', color: 'blueberry600' },              // 部门 - 蓝色（常见）
+      'PROJECT_TEAM': { label: '项目团队', color: 'cantaloupe600' }         // 项目团队 - 橙色（临时性）
     };
     
     const config = typeConfig[unitType as keyof typeof typeConfig] || { label: unitType, color: 'licorice400' };
-    return <Badge color={config.color as 'greenFresca600' | 'blueberry600' | 'licorice400' | 'cantaloupe600'}>{config.label}</Badge>;
+    return <Badge color={config.color as 'greenFresca600' | 'blueberry600' | 'cantaloupe600' | 'licorice400'}>{config.label}</Badge>;
   };
 
   return (
