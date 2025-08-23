@@ -55,26 +55,26 @@ const TEMPORAL_QUERIES = {
   ORGANIZATION_AS_OF_DATE: `
     query OrganizationAsOfDate($code: String!, $asOfDate: String!) {
       organizationAsOfDate(code: $code, asOfDate: $asOfDate) {
-        tenant_id
+        tenantId
         code
-        parent_code
+        parentCode
         name
-        unit_type
+        unitType
         status
         level
         path
-        sort_order
+        sortOrder
         description
         profile
-        created_at
-        updated_at
-        effective_date
-        end_date
+        createdAt
+        updatedAt
+        effectiveDate
+        endDate
         version
-        is_current
-        change_reason
-        valid_from
-        valid_to
+        isCurrent
+        changeReason
+        validFrom
+        validTo
       }
     }
   `,
@@ -83,26 +83,26 @@ const TEMPORAL_QUERIES = {
   ORGANIZATION_HISTORY: `
     query OrganizationHistory($code: String!, $fromDate: String!, $toDate: String!) {
       organizationHistory(code: $code, fromDate: $fromDate, toDate: $toDate) {
-        tenant_id
+        tenantId
         code
-        parent_code
+        parentCode
         name
-        unit_type
+        unitType
         status
         level
         path
-        sort_order
+        sortOrder
         description
         profile
-        created_at
-        updated_at
-        effective_date
-        end_date
+        createdAt
+        updatedAt
+        effectiveDate
+        endDate
         version
-        is_current
-        change_reason
-        valid_from
-        valid_to
+        isCurrent
+        changeReason
+        validFrom
+        validTo
       }
     }
   `,
@@ -111,23 +111,23 @@ const TEMPORAL_QUERIES = {
   ORGANIZATIONS_CURRENT: `
     query OrganizationsCurrent($first: Int, $offset: Int, $searchText: String) {
       organizations(first: $first, offset: $offset, searchText: $searchText) {
-        tenant_id
+        tenantId
         code
-        parent_code
+        parentCode
         name
-        unit_type
+        unitType
         status
         level
         path
-        sort_order
+        sortOrder
         description
         profile
-        created_at
-        updated_at
-        effective_date
-        end_date
+        createdAt
+        updatedAt
+        effectiveDate
+        endDate
         version
-        is_current
+        isCurrent
       }
     }
   `,
@@ -136,23 +136,23 @@ const TEMPORAL_QUERIES = {
   ORGANIZATION_CURRENT: `
     query OrganizationCurrent($code: String!) {
       organization(code: $code) {
-        tenant_id
+        tenantId
         code
-        parent_code
+        parentCode
         name
-        unit_type
+        unitType
         status
         level
         path
-        sort_order
+        sortOrder
         description
         profile
-        created_at
-        updated_at
-        effective_date
-        end_date
+        createdAt
+        updatedAt
+        effectiveDate
+        endDate
         version
-        is_current
+        isCurrent
       }
     }
   `
@@ -160,45 +160,45 @@ const TEMPORAL_QUERIES = {
 
 // GraphQL响应数据的类型（部分字段可能缺失）
 interface GraphQLOrganizationData {
-  tenant_id?: string;
+  tenantId?: string;
   code?: string;
-  parent_code?: string;
+  parentCode?: string;
   name?: string;
-  unit_type?: string;
+  unitType?: string;
   status?: string;
   level?: number;
   path?: string;
-  sort_order?: number;
+  sortOrder?: number;
   description?: string;
   profile?: string;
-  created_at?: string;
-  updated_at?: string;
-  effective_date?: string;
-  end_date?: string;
-  is_temporal?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  effectiveDate?: string;
+  endDate?: string;
+  isTemporal?: boolean;
   version?: number;
-  change_reason?: string;
-  is_current?: boolean;
+  changeReason?: string;
+  isCurrent?: boolean;
 }
 
 // 时态数据转换器
 function transformToTemporalOrganization(data: GraphQLOrganizationData): TemporalOrganizationUnit {
   return {
     code: data.code || '',
-    parent_code: data.parent_code || '',
+    parent_code: data.parentCode || '',
     name: data.name || '',
-    unit_type: (data.unit_type as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM') || 'DEPARTMENT',
+    unit_type: (data.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM') || 'DEPARTMENT',
     status: (data.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED') || 'ACTIVE',
     level: data.level || 1,
     path: data.path || '',
-    sort_order: data.sort_order || 0,
+    sort_order: data.sortOrder || 0,
     description: data.description || '',
-    created_at: data.created_at || '',
-    updated_at: data.updated_at || '',
-    effective_date: data.effective_date || '',
-    end_date: data.end_date || undefined,
-    is_current: data.is_current ?? true,
-    change_reason: data.change_reason || undefined,
+    created_at: data.createdAt || '',
+    updated_at: data.updatedAt || '',
+    effective_date: data.effectiveDate || '',
+    end_date: data.endDate || undefined,
+    is_current: data.isCurrent ?? true,
+    change_reason: data.changeReason || undefined,
     approved_by: undefined, // GraphQL中暂无此字段
     approved_at: undefined  // GraphQL中暂无此字段
   };

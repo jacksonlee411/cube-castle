@@ -11,6 +11,8 @@ import { Select } from '@workday/canvas-kit-react/select';
 import { Checkbox } from '@workday/canvas-kit-react/checkbox';
 import { Badge } from '../../../shared/components/Badge';
 import { Card } from '@workday/canvas-kit-react/card';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { searchIcon } from '@workday/canvas-system-icons-web';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
 import type { TemporalOrganizationUnit } from '../../../shared/types/temporal';
 
@@ -333,9 +335,12 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
 
       {/* 系统信息卡片 */}
       <Card marginBottom={space.l} padding={space.m}>
-        <Text fontSize="medium" fontWeight="bold" marginBottom={space.m}>
-          🔍 系统信息
-        </Text>
+        <Flex alignItems="center" gap="xs" marginBottom={space.m}>
+          <SystemIcon icon={searchIcon} size={16} color={colors.blackPepper400} />
+          <Text fontSize="medium" fontWeight="bold">
+            系统信息
+          </Text>
+        </Flex>
 
         <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
           {/* 创建时间 */}

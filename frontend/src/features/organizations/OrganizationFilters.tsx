@@ -12,7 +12,7 @@ import { TemporalDatePicker, validateTemporalDate } from '../temporal/components
 
 export interface FilterState {
   searchText: string;
-  unit_type: string | undefined;
+  unitType: string | undefined;
   status: string | undefined;
   level: number | undefined;
   page: number;
@@ -113,7 +113,7 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
   const handleReset = useCallback(() => {
     const resetFilters: FilterState = {
       searchText: '',
-      unit_type: '',
+      unitType: '',
       status: '',
       level: undefined,
       page: 1,
@@ -135,7 +135,7 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
   const hasActiveFilters = useMemo(() => {
     return !!(
       filters.searchText ||
-      filters.unit_type ||
+      filters.unitType ||
       filters.status ||
       filters.level ||
       (showTemporalFilters && (
@@ -148,7 +148,7 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
       ))
     );
   }, [
-    filters.searchText, filters.unit_type, filters.status, filters.level,
+    filters.searchText, filters.unitType, filters.status, filters.level,
     filters.showOnlyTemporal, filters.temporalStatus, filters.effectiveDateFrom,
     filters.effectiveDateTo, filters.pointInTime, filters.temporalMode,
     showTemporalFilters
@@ -181,8 +181,8 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
                 <FormField.Label>组织类型</FormField.Label>
                 <FormField.Field>
                   <select
-                    value={filters.unit_type || ''}
-                    onChange={(e) => handleFilterChange('unit_type', e.target.value || undefined)}
+                    value={filters.unitType || ''}
+                    onChange={(e) => handleFilterChange('unitType', e.target.value || undefined)}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
                   >
                     {UNIT_TYPE_OPTIONS.map(option => (
@@ -363,7 +363,7 @@ export const OrganizationFilters: React.FC<OrganizationFiltersProps> = ({
               <div style={{ fontSize: '12px', color: '#666' }}>
                 已激活筛选条件:
                 {filters.searchText && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>名称: {filters.searchText}</span>}
-                {filters.unit_type && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>类型: {UNIT_TYPE_OPTIONS.find(o => o.value === filters.unit_type)?.label}</span>}
+                {filters.unitType && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>类型: {UNIT_TYPE_OPTIONS.find(o => o.value === filters.unitType)?.label}</span>}
                 {filters.status && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>状态: {STATUS_OPTIONS.find(o => o.value === filters.status)?.label}</span>}
                 {filters.level && <span style={{ marginLeft: '8px', padding: '2px 6px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>层级: {filters.level}级</span>}
                 {showTemporalFilters && filters.temporalMode && filters.temporalMode !== 'current' && (

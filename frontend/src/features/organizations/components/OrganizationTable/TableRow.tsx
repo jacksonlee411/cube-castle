@@ -1,6 +1,8 @@
 import React from 'react';
 import { Table } from '@workday/canvas-kit-react/table';
 import { Text } from '@workday/canvas-kit-react/text';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { bookOpenIcon } from '@workday/canvas-system-icons-web';
 import { TableActions } from './TableActions';
 import type { OrganizationTableRowProps } from './TableTypes';
 import { 
@@ -77,9 +79,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
       <Table.Cell>
         {organization.name}
         {isHistorical && (
-          <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="xs">
-            📖
-          </Text>
+          <SystemIcon icon={bookOpenIcon} size={12} color="hint" marginLeft="xs" />
         )}
         {/* 计划组织标识 */}
         {temporalStatus === 'PLANNED' && (

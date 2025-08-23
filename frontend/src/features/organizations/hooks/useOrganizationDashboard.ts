@@ -7,7 +7,7 @@ import type { FilterState } from '../OrganizationFilters';
 
 const initialFilters: FilterState = {
   searchText: '',
-  unit_type: undefined,
+  unitType: undefined,
   status: undefined,
   level: undefined,
   page: 1,
@@ -24,7 +24,7 @@ export const useOrganizationDashboard = () => {
   // Convert filters to query parameters
   const queryParams: OrganizationQueryParams = useMemo(() => ({
     searchText: filters.searchText || undefined,
-    unit_type: (filters.unit_type as OrganizationUnitType) || undefined,
+    unitType: (filters.unitType as OrganizationUnitType) || undefined,
     status: (filters.status as OrganizationStatus) || undefined,
     level: filters.level || undefined,
     page: filters.page,
@@ -54,7 +54,7 @@ export const useOrganizationDashboard = () => {
 
   // 统一数据输出 - 只使用传统数据
   const organizations = organizationData?.organizations || [];
-  const totalCount = organizationData?.total_count || 0;
+  const totalCount = organizationData?.totalCount || 0;
   const isLoading = traditionalLoading;
   const isFetching = traditionalFetching;
   const error = traditionalError;
@@ -74,7 +74,7 @@ export const useOrganizationDashboard = () => {
   };
 
   const isFiltered = useMemo(() => {
-    return !!(filters.searchText || filters.unit_type || filters.status || filters.level);
+    return !!(filters.searchText || filters.unitType || filters.status || filters.level);
   }, [filters]);
 
   return {

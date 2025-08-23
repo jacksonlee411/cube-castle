@@ -129,27 +129,27 @@ export const organizationAPI = {
             $effectiveTo: String,
             $temporalMode: String
           ) {
-            organization_units(
+            organizations(
               first: $first, 
               offset: $offset, 
               searchText: $searchText
             ) {
               code
               name
-              unit_type
+              unitType
               status
               level
               path
-              sort_order
+              sortOrder
               description
-              parent_code
-              created_at
-              updated_at
-              effective_date
-              end_date
-              is_temporal
+              parentCode
+              createdAt
+              updatedAt
+              effectiveDate
+              endDate
+              isTemporal
             }
-            organization_unit_stats {
+            organizationStats {
               totalCount
             }
           }
@@ -171,24 +171,24 @@ export const organizationAPI = {
             $offset: Int, 
             $searchText: String
           ) {
-            organization_units(
+            organizations(
               first: $first, 
               offset: $offset, 
               searchText: $searchText
             ) {
               code
               name
-              unit_type
+              unitType
               status
               level
               path
-              sort_order
+              sortOrder
               description
-              parent_code
-              created_at
-              updated_at
+              parentCode
+              createdAt
+              updatedAt
             }
-            organization_unit_stats {
+            organizationStats {
               totalCount
             }
           }
@@ -201,12 +201,12 @@ export const organizationAPI = {
       }
 
       const data = await graphqlClient.request<{
-        organization_units: Partial<OrganizationUnit>[];
-        organization_unit_stats: { totalCount: number };
+        organizations: Partial<OrganizationUnit>[];
+        organizationStats: { totalCount: number };
       }>(graphqlQuery, variables);
 
       // 简化的数据转换 - 无需复杂的Zod验证
-      const organizations = data.organization_units.map((org: Partial<OrganizationUnit>) => {
+      const organizations = data.organizations.map((org: Partial<OrganizationUnit>) => {
         try {
           return safeTransform.graphqlToOrganization ? 
             safeTransform.graphqlToOrganization(org) : 
@@ -218,8 +218,8 @@ export const organizationAPI = {
       }).filter(Boolean);
 
       // 🔧 修复: 区分全局总数和筛选结果总数
-      const isFiltered = !!(params?.searchText || params?.unit_type || params?.status || params?.level || params?.temporalParams);
-      const filteredTotalCount = isFiltered ? organizations.length : data.organization_unit_stats.totalCount;
+      const isFiltered = !!(params?.searchText || params?.unitType || params?.status || params?.level || params?.temporalParams);
+      const filteredTotalCount = isFiltered ? organizations.length : data.organizationStats.totalCount;
       
       return {
         organizations: organizations.filter((org): org is OrganizationUnit => org !== null),
@@ -268,20 +268,20 @@ export const organizationAPI = {
               temporalMode: $temporalMode
             ) {
               code
-              record_id
+              recordId
               name
-              unit_type
+              unitType
               status
               level
               path
-              sort_order
+              sortOrder
               description
-              parent_code
-              created_at
-              updated_at
-              effective_date
-              end_date
-              is_temporal
+              parentCode
+              createdAt
+              updatedAt
+              effectiveDate
+              endDate
+              isTemporal
             }
           }
         `;
@@ -294,19 +294,19 @@ export const organizationAPI = {
         // 基础查询版本（不含时态参数）
         graphqlQuery = `
           query GetOrganization($code: String!) {
-            organization_unit(code: $code) {
+            organization(code: $code) {
               code
-              record_id
+              recordId
               name
-              unit_type
+              unitType
               status
               level
               path
-              sort_order
+              sortOrder
               description
-              parent_code
-              created_at
-              updated_at
+              parentCode
+              createdAt
+              updatedAt
             }
           }
         `;
@@ -314,10 +314,10 @@ export const organizationAPI = {
       }
 
       const data = await graphqlClient.request<{
-        organization_unit: Partial<OrganizationUnit>;
+        organization: Partial<OrganizationUnit>;
       }>(graphqlQuery, variables);
 
-      const organization = data.organization_unit;
+      const organization = data.organization;
       if (!organization) {
         throw new Error(`组织 ${code} 不存在`);
       }
@@ -350,7 +350,7 @@ export const organizationAPI = {
     try {
       const graphqlQuery = `
         query GetOrganizationStats {
-          organization_unit_stats {
+          organizationStats {
             totalCount
             byType {
               unitType
@@ -369,10 +369,10 @@ export const organizationAPI = {
       `;
 
       const data = await graphqlClient.request<{
-        organization_unit_stats: GraphQLStatsResponse;
+        organizationStats: GraphQLStatsResponse;
       }>(graphqlQuery);
 
-      const stats = data.organization_unit_stats;
+      const stats = data.organizationStats;
       if (!stats) {
         throw new Error('No statistics data returned');
       }

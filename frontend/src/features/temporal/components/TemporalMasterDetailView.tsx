@@ -576,10 +576,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         
         const requestBody = {
           name: formData.name,
-          unit_type: formData.unit_type,
+          unitType: formData.unit_type,
           description: formData.description || '',
-          parent_code: formData.parent_code || null,
-          effective_date: formData.effective_date
+          parentCode: formData.parent_code || null,
+          effectiveDate: formData.effective_date
         };
         
         console.log('提交创建组织请求:', requestBody);

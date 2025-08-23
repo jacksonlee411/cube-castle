@@ -22,7 +22,8 @@ import {
   xIcon,
   clockIcon,
   shareIcon,
-  textEditIcon
+  textEditIcon,
+  exclamationCircleIcon // 错误图标
 } from '@workday/canvas-system-icons-web';
 import { useOrganizationTimeline } from '../../../shared/hooks/useTemporalQuery';
 import type { 
@@ -317,9 +318,12 @@ export const Timeline: React.FC<TimelineProps> = ({
   if (isError) {
     return (
       <Card padding={space.m}>
-        <Text color={colors.cinnamon600}>
-          ❌ 加载时间线失败: {error?.message || '未知错误'}
-        </Text>
+        <Flex alignItems="center" gap="xs">
+          <SystemIcon icon={exclamationCircleIcon} size={16} color={colors.cinnamon600} />
+          <Text color={colors.cinnamon600}>
+            加载时间线失败: {error?.message || '未知错误'}
+          </Text>
+        </Flex>
       </Card>
     );
   }

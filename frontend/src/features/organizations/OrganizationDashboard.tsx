@@ -61,7 +61,7 @@ const DashboardHeader: React.FC<{
       </TertiaryButton>
       {isHistorical && (
         <Text typeLevel="subtext.small" color="hint" marginLeft="m">
-          📖 当前查看历史数据，部分操作已禁用
+          当前查看历史数据，部分操作已禁用
         </Text>
       )}
     </Box>
@@ -125,8 +125,6 @@ export const OrganizationDashboard: React.FC = () => {
   const {
     selectedOrg,
     isFormOpen,
-    handleCreate,
-    handleEdit,
     handleFormClose,
     handleFormSubmit,
   } = useOrganizationActions();

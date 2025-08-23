@@ -6,13 +6,13 @@ export const useOrganizationFilters = (
   onFiltersChange: (filters: FilterState) => void
 ) => {
   const hasActiveFilters = useMemo(() => {
-    return !!(filters.searchText || filters.unit_type || filters.status || filters.level);
+    return !!(filters.searchText || filters.unitType || filters.status || filters.level);
   }, [filters]);
 
   const clearFilters = () => {
     onFiltersChange({
       searchText: '',
-      unit_type: undefined,
+      unitType: undefined,
       status: undefined,
       level: undefined,
       page: 1,

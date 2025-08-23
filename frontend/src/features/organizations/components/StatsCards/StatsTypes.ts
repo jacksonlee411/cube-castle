@@ -6,8 +6,8 @@ export interface StatCardProps {
 
 export interface StatsCardsProps {
   stats: {
-    by_type: Record<string, number>;
-    by_status: Record<string, number>;
-    total_count: number;
+    byType: Record<string, number>;
+    byStatus: Record<string, number>;
+    totalCount: number;
   };
 }

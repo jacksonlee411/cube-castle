@@ -19,13 +19,13 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
       <Box flex={1}>
         <StatCard 
           title="按类型统计" 
-          stats={stats.by_type} 
+          stats={stats.byType} 
         />
       </Box>
       <Box flex={1}>
         <StatCard 
           title="按状态统计" 
-          stats={stats.by_status} 
+          stats={stats.byStatus} 
         />
       </Box>
       <Box flex={1}>
@@ -42,7 +42,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
               }}
             >
               <Text fontWeight="bold" style={{ fontSize: '2rem' }}>
-                {stats.total_count}
+                {stats.totalCount}
               </Text>
               <Text>组织单元总数</Text>
             </div>

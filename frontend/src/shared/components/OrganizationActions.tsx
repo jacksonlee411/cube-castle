@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
-import { Button } from '@workday/canvas-kit-react/button';
+import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { 
   editIcon, 
   clockPauseIcon, 
   checkCircleIcon 
 } from '@workday/canvas-system-icons-web';
-import { OrganizationStatus, statusUtils } from '../components/StatusBadge';
+import { statusUtils } from '../components/StatusBadge';
+import type { OrganizationStatus } from '../components/StatusBadge';
 
 export interface Organization {
   code: string;
@@ -121,10 +122,11 @@ export const OrganizationActions: React.FC<OrganizationActionsProps> = ({
         const config = getActionConfig(action);
         const isLoading = loading === action;
         
+        const ButtonComponent = config.variant === 'primary' ? PrimaryButton : SecondaryButton;
+        
         return (
-          <Button
+          <ButtonComponent
             key={action}
-            variant={config.variant}
             size="small"
             onClick={() => handleAction(action)}
             disabled={disabled || !!loading}
@@ -137,7 +139,7 @@ export const OrganizationActions: React.FC<OrganizationActionsProps> = ({
               />
               <span>{isLoading ? '处理中...' : config.label}</span>
             </Flex>
-          </Button>
+          </ButtonComponent>
         );
       })}
     </Flex>

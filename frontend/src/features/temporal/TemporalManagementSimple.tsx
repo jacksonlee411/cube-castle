@@ -254,7 +254,7 @@ export const TemporalManagementSimple: React.FC = () => {
       {/* 功能说明 */}
       <Card marginTop={space.l} padding={space.m} backgroundColor={colors.frenchVanilla100}>
         <Text fontSize="medium" fontWeight="bold" marginBottom={space.m}>
-          📖 功能说明
+          功能说明
         </Text>
         
         <Box as="ul" marginLeft={space.m}>

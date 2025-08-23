@@ -1,7 +1,8 @@
 import React from 'react';
 import { TertiaryButton } from '@workday/canvas-kit-react/button';
-import { Text } from '@workday/canvas-kit-react/text';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { bookOpenIcon } from '@workday/canvas-system-icons-web';
 import type { TableActionsProps } from './TableTypes';
 
 export const TableActions: React.FC<TableActionsProps> = ({
@@ -28,9 +29,7 @@ export const TableActions: React.FC<TableActionsProps> = ({
         </Tooltip>
       )}
       {isHistorical && (
-        <Text typeLevel="subtext.small" color="hint">
-          📖
-        </Text>
+        <SystemIcon icon={bookOpenIcon} size={12} color="hint" />
       )}
     </div>
   );

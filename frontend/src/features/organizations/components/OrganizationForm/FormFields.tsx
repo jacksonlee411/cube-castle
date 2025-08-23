@@ -331,9 +331,9 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                       display: 'inline-block',
                       fontSize: '12px'
                     }}>
-                      {temporalMode === 'current' ? '刷新 当前模式' : 
-                       temporalMode === 'historical' ? '📖 历史模式' : 
-                       '计划 规划模式'}
+                      {temporalMode === 'current' ? '当前模式' : 
+                       temporalMode === 'historical' ? '历史模式' : 
+                       '规划模式'}
                     </div>
                     <div style={hintStyle}>
                       当前的时态查询模式，影响数据的显示和编辑行为

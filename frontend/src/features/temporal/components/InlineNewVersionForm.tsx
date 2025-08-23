@@ -8,18 +8,17 @@ import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { FormField } from '@workday/canvas-kit-react/form-field';
-import { Select } from '@workday/canvas-kit-react/select';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { 
   checkCircleIcon,    // 可用于组织单位（成功/重要）
   clockIcon,          // 可用于计划/项目团队
   timelineAllIcon,    // 可用于部门（历史/层级）
-  trashIcon           // 备用图标（管理/控制）
+  exclamationCircleIcon // 警告图标
 } from '@workday/canvas-system-icons-web';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
-import { colors, borderRadius } from '@workday/canvas-kit-react/tokens';
+import { colors } from '@workday/canvas-kit-react/tokens';
 import { type TemporalEditFormData } from './TemporalEditForm';
 import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
 
@@ -104,8 +103,6 @@ const unitTypeOptions = [
   },
 ];
 
-// Canvas Kit Select组件需要的getTextValue函数
-const getUnitTypeTextValue = (option: { label: string; value: string }) => option.label;
 
 // 组织类型选择器组件（使用原生select暂时替代Canvas Kit Select）
 const UnitTypeSelector: React.FC<{
@@ -124,8 +121,8 @@ const UnitTypeSelector: React.FC<{
   const selectedOption = unitTypeOptions.find(opt => opt.value === value);
 
   return (
-    <FormField>
-      <FormField.Label required={required}>
+    <FormField isRequired={required}>
+      <FormField.Label>
         {label} *
       </FormField.Label>
       <FormField.Field>
@@ -581,7 +578,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             </Heading>
             
             <Box marginLeft="m">
-              <FormField error={errors.effective_date ? "error" : undefined}>
+              <FormField isRequired error={errors.effective_date ? "error" : undefined}>
                 <FormField.Label>生效日期 *</FormField.Label>
                 <FormField.Field>
                   <TextInput
@@ -605,7 +602,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             </Heading>
             
             <Box marginLeft="m">
-              <FormField error={errors.name ? "error" : undefined}>
+              <FormField isRequired error={errors.name ? "error" : undefined}>
                 <FormField.Label>组织名称 *</FormField.Label>
                 <FormField.Field>
                   <TextInput
@@ -817,7 +814,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
               <Modal.Body>
                 <Box padding="l">
                   <Flex alignItems="flex-start" gap="m" marginBottom="l">
-                    <Box fontSize="24px" color={colors.cinnamon600}>⚠️</Box>
+                    <SystemIcon icon={exclamationCircleIcon} size={24} color={colors.cinnamon600} />
                     <Box>
                       <Text typeLevel="body.medium" marginBottom="s">
                         确定要删除生效日期为 <strong>{new Date(selectedVersion.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
@@ -826,7 +823,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                         版本名称: {selectedVersion.name}
                       </Text>
                       <Text typeLevel="subtext.small" color={colors.cinnamon600}>
-                        ⚠️ 删除后记录将标记为已删除状态，此操作不可撤销
+                        删除后记录将标记为已删除状态，此操作不可撤销
                       </Text>
                     </Box>
                   </Flex>

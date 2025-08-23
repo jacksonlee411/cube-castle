@@ -23,6 +23,7 @@ import {
   timelineAllIcon,
   infoIcon,
   shareIcon, // 用于比较功能
+  exclamationCircleIcon, // 错误图标
   filterIcon
 } from '@workday/canvas-system-icons-web';
 import { useTemporalOrganizations } from '../../../shared/hooks/useTemporalQuery';
@@ -347,9 +348,12 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
   if (isError) {
     return (
       <Box padding={space.m}>
-        <Text color={colors.cinnamon600}>
-          ❌ 加载数据失败: {error?.message || '未知错误'}
-        </Text>
+        <Flex alignItems="center" gap="xs">
+          <SystemIcon icon={exclamationCircleIcon} size={16} color={colors.cinnamon600} />
+          <Text color={colors.cinnamon600}>
+            加载数据失败: {error?.message || '未知错误'}
+          </Text>
+        </Flex>
       </Box>
     );
   }

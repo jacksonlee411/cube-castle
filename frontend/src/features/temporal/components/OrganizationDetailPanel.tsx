@@ -10,6 +10,8 @@ import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-
 import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
 import { colors, space, borderRadius } from '@workday/canvas-kit-react/tokens';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { xIcon, plusIcon } from '@workday/canvas-system-icons-web';
 import { 
   useOrganizationHistory,
   useOrganizationAsOfDate,
@@ -486,9 +488,9 @@ const TimelineNodeComponent: React.FC<TimelineNodeComponentProps> = ({
 
   const getChangeTypeIcon = (changeType?: TimelineNode['changeType']) => {
     switch (changeType) {
-      case 'created': return '🆕';
+      case 'created': return <SystemIcon icon={plusIcon} size={12} color={colors.blueberry400} />;
       case 'activated': return '启用';
-      case 'deactivated': return '❌';
+      case 'deactivated': return <SystemIcon icon={xIcon} size={12} color={colors.cinnamon600} />;
       case 'planned': return '计划';
       default: return '编辑';
     }

@@ -10,6 +10,8 @@ import { Card } from '@workday/canvas-kit-react/card';
 import { Badge } from '../../../shared/components/Badge';
 import { Tabs, useTabsModel } from '@workday/canvas-kit-react/tabs';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { timelineAllIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web';
 
 // 组织管理和时态功能导入
 import { OrganizationForm } from './OrganizationForm';
@@ -88,18 +90,18 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
           <Flex alignItems="center" gap="s" marginBottom="s">
             <Heading size="medium">{organization.name}</Heading>
             {getStatusBadge(organization.status)}
-            {getUnitTypeBadge(organization.unit_type)}
+            {getUnitTypeBadge(organization.unitType)}
             {isHistorical && (
               <Badge color="blueberry600">历史视图</Badge>
             )}
           </Flex>
           
           <Text typeLevel="subtext.medium" color="hint" marginBottom="s">
-            编码: {organization.code} • 类型: {getUnitTypeName(organization.unit_type)} • 层级: {organization.level}
-            {organization.record_id && (
+            编码: {organization.code} • 类型: {getUnitTypeName(organization.unitType)} • 层级: {organization.level}
+            {organization.recordId && (
               <>
                 <br />
-                UUID: {organization.record_id}
+                UUID: {organization.recordId}
               </>
             )}
           </Text>
@@ -111,13 +113,13 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
           )}
           
           <Flex gap="m" marginBottom="s">
-            {organization.parent_code && (
+            {organization.parentCode && (
               <Text typeLevel="subtext.small">
-                上级组织: {organization.parent_code}
+                上级组织: {organization.parentCode}
               </Text>
             )}
             <Text typeLevel="subtext.small">
-              排序: {organization.sort_order}
+              排序: {organization.sortOrder}
             </Text>
           </Flex>
         </Box>
@@ -148,11 +150,11 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
       
       <Flex gap="m" justifyContent="space-between" alignItems="center">
         <Text typeLevel="subtext.small" color="hint">
-          创建时间: {organization.created_at ? new Date(organization.created_at).toLocaleString('zh-CN') : '未知'}
+          创建时间: {organization.createdAt ? new Date(organization.createdAt).toLocaleString('zh-CN') : '未知'}
         </Text>
-        {organization.updated_at && (
+        {organization.updatedAt && (
           <Text typeLevel="subtext.small" color="hint">
-            更新时间: {new Date(organization.updated_at).toLocaleString('zh-CN')}
+            更新时间: {new Date(organization.updatedAt).toLocaleString('zh-CN')}
           </Text>
         )}
       </Flex>
@@ -257,9 +259,12 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
     return (
       <Box padding="l">
         <Card padding="l">
-          <Text color="cinnamon600" typeLevel="heading.medium" marginBottom="m">
-            ❌ 加载组织详情失败
-          </Text>
+          <Flex alignItems="center" gap="xs" marginBottom="m">
+            <SystemIcon icon={exclamationCircleIcon} size={20} color="cinnamon600" />
+            <Text color="cinnamon600" typeLevel="heading.medium">
+              加载组织详情失败
+            </Text>
+          </Flex>
           <Text marginBottom="m">
             {orgErrorMessage?.message || '无法加载组织信息，请检查组织编码或网络连接'}
           </Text>
@@ -357,25 +362,25 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
                 <Box>
                   <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s">基本信息</Text>
                   <Text typeLevel="body.small">编码: {organization.code}</Text>
-                  {organization.record_id && (
-                    <Text typeLevel="body.small">UUID: {organization.record_id}</Text>
+                  {organization.recordId && (
+                    <Text typeLevel="body.small">UUID: {organization.recordId}</Text>
                   )}
                   <Text typeLevel="body.small">名称: {organization.name}</Text>
                   <Text typeLevel="body.small">状态: {organization.status}</Text>
-                  <Text typeLevel="body.small">类型: {organization.unit_type}</Text>
+                  <Text typeLevel="body.small">类型: {organization.unitType}</Text>
                 </Box>
                 
                 <Box>
                   <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s">层级结构</Text>
                   <Text typeLevel="body.small">层级: {organization.level}</Text>
-                  <Text typeLevel="body.small">上级: {organization.parent_code || '无'}</Text>
-                  <Text typeLevel="body.small">排序: {organization.sort_order}</Text>
+                  <Text typeLevel="body.small">上级: {organization.parentCode || '无'}</Text>
+                  <Text typeLevel="body.small">排序: {organization.sortOrder}</Text>
                 </Box>
                 
                 <Box>
                   <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s">时间信息</Text>
-                  <Text typeLevel="body.small">创建: {organization.created_at ? new Date(organization.created_at).toLocaleDateString('zh-CN') : '未知'}</Text>
-                  <Text typeLevel="body.small">更新: {organization.updated_at ? new Date(organization.updated_at).toLocaleDateString('zh-CN') : '未知'}</Text>
+                  <Text typeLevel="body.small">创建: {organization.createdAt ? new Date(organization.createdAt).toLocaleDateString('zh-CN') : '未知'}</Text>
+                  <Text typeLevel="body.small">更新: {organization.updatedAt ? new Date(organization.updatedAt).toLocaleDateString('zh-CN') : '未知'}</Text>
                 </Box>
                 
                 {hasTimelineEvents && (
@@ -396,9 +401,12 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
         <Tabs.Panel>
           <Box marginTop="l">
             <Card padding="m">
-              <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
-                📈 时间线
-              </Text>
+              <Flex alignItems="center" gap="xs" marginBottom="m">
+                <SystemIcon icon={timelineAllIcon} size={16} />
+                <Text as="h3" typeLevel="subtext.large" fontWeight="bold">
+                  时间线
+                </Text>
+              </Flex>
               <Text typeLevel="body.medium">
                 时间线功能开发中...
               </Text>

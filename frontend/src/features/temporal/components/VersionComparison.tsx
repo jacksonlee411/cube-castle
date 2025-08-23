@@ -22,6 +22,8 @@ import {
   HistoryIcon,
   InfoIcon
 } from '@workday/canvas-kit-react/icon';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { exclamationCircleIcon } from '@workday/canvas-system-icons-web';
 import { useOrganizationHistory } from '../../shared/hooks/useTemporalQuery';
 import type { 
   TemporalOrganizationUnit,
@@ -354,9 +356,12 @@ export const VersionComparison: React.FC<VersionComparisonProps> = ({
   if (isError) {
     return (
       <Card padding={space.m}>
-        <Text color={colors.cinnamon600}>
-          ❌ 加载版本历史失败: {error?.message || '未知错误'}
-        </Text>
+        <Flex alignItems="center" gap="xs">
+          <SystemIcon icon={exclamationCircleIcon} size={16} color={colors.cinnamon600} />
+          <Text color={colors.cinnamon600}>
+            加载版本历史失败: {error?.message || '未知错误'}
+          </Text>
+        </Flex>
       </Card>
     );
   }

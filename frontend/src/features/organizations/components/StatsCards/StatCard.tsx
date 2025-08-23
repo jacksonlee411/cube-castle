@@ -9,6 +9,30 @@ export const StatCard: React.FC<StatCardProps> = ({
   stats, 
   variant = 'default' 
 }) => {
+  // 防护检查：确保 stats 是一个对象且不为空
+  if (!stats || typeof stats !== 'object') {
+    return (
+      <Card height="100%" data-testid={`stat-card-${title.replace(/\s+/g, '-').toLowerCase()}`}>
+        <Card.Heading>{title}</Card.Heading>
+        <Card.Body>
+          <div 
+            className={`stat-card-content ${variant}`}
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'center', 
+              height: '100%' 
+            }}
+          >
+            <Box paddingY="xs">
+              <Text>暂无数据</Text>
+            </Box>
+          </div>
+        </Card.Body>
+      </Card>
+    );
+  }
+
   return (
     <Card height="100%" data-testid={`stat-card-${title.replace(/\s+/g, '-').toLowerCase()}`}>
       <Card.Heading>{title}</Card.Heading>

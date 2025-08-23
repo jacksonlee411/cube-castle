@@ -49,8 +49,8 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
         ) : (
           organizations.map((org, index) => {
             // 使用多层级唯一性保证：record_id > code+created_at > code+index
-            const uniqueKey = org.record_id || 
-                             `${org.code}-${org.created_at}` || 
+            const uniqueKey = org.recordId || 
+                             `${org.code}-${org.createdAt}` || 
                              `${org.code}-${index}`;
             
             return (
