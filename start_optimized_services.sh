@@ -49,7 +49,6 @@ pkill -f "organization-graphql-service" 2>/dev/null || true
 pkill -f "organization-api-gateway" 2>/dev/null || true
 pkill -f "organization-api-server" 2>/dev/null || true
 pkill -f "organization-query" 2>/dev/null || true
-pkill -f "organization-sync-service" 2>/dev/null || true
 
 sleep 2
 

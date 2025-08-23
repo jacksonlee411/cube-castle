@@ -120,7 +120,6 @@ QUERY_PID=$!
 echo "✅ 查询服务已启动 (PID: $QUERY_PID)"
 
 # 3. 启动同步服务
-cd ../organization-sync-service
 echo "启动数据同步服务..."
 go run main.go > /tmp/sync-service.log 2>&1 &
 SYNC_PID=$!

@@ -85,7 +85,6 @@ run_check_with_output "命令服务 (端口9090)" "curl -s http://localhost:9090
 run_check_with_output "查询服务 (端口8090)" "curl -s http://localhost:8090/health" "healthy"
 
 # 同步服务和缓存失效服务（可能没有HTTP健康检查端点）
-run_check "同步服务进程" "pgrep -f 'organization-sync-service.*main.go'"
 run_check "缓存失效服务进程" "pgrep -f 'organization-cache-invalidator.*main.go'"
 
 # 或者检查HTTP健康端点（如果可用）

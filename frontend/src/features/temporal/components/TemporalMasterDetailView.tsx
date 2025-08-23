@@ -695,7 +695,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     try {
       // 使用record_id UUID作为唯一标识符
       const response = await fetch(
-        `http://localhost:9090/api/v1/organization-units/history/${updateData.record_id}`,
+        `http://localhost:9090/api/v1/organization-units/${organizationCode}/history/${updateData.record_id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
