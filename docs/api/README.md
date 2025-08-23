@@ -1,32 +1,62 @@
-# Cube Castle API 文档中心
+# 📚 Cube Castle API规范文档
 
-## 📚 文档概览
+**版本**: v4.2.1  
+**架构**: 严格CQRS + PostgreSQL单一数据源 + OAuth 2.0企业级安全  
+**状态**: ✅ Single Source of Truth (唯一权威来源)  
 
-欢迎使用 Cube Castle API 文档中心！这里包含了完整的API文档、集成示例和最佳实践指南。
+## 🚀 概述
 
-### 🚀 快速访问
+本目录包含Cube Castle组织架构管理系统的**完整API规范文档**，采用行业标准格式提供权威的API接口定义。这些文件是API设计、开发、测试和文档生成的**唯一真实来源**。
 
-- **🏠 [API文档中心](./index.html)** - 交互式API文档界面
-- **🔍 [GraphQL API文档](./graphql-api.md)** - GraphQL查询服务完整文档  
-- **⏰ [时态API规范](./temporal-api.yaml)** - OpenAPI/Swagger规范文档
-- **⚡ [缓存策略指南](./cache-strategy-guide.md)** - Redis缓存使用指南
-- **🛠️ [集成示例](./integration-examples.md)** - 多语言客户端实现
+### 🏗️ 架构特点
 
-## 📋 文档结构
+- **严格CQRS架构**: 查询使用GraphQL (端口8090)，命令使用REST API (端口9090)
+- **PostgreSQL原生**: 单一数据源架构，查询响应时间1.5-8ms
+- **企业级安全**: OAuth 2.0 Client Credentials Flow + PBAC权限模型
+- **时态数据支持**: 完整的历史版本管理和未来生效计划
+- **17级层级管理**: 智能级联更新 + 双路径系统
 
-```
-docs/api/
-├── index.html                    # 🏠 交互式文档中心
-├── README.md                     # 📚 本文档
-├── temporal-api.yaml             # ⏰ 时态API OpenAPI规范
-├── graphql-api.md               # 🔍 GraphQL API文档  
-├── cache-strategy-guide.md      # ⚡ 缓存策略指南
-├── integration-examples.md      # 🛠️ 集成示例
-└── examples/                    # 📁 代码示例目录
-    ├── javascript/              # JavaScript/TypeScript示例
-    ├── python/                  # Python客户端示例
-    └── go/                      # Go客户端示例
-```
+## 📋 文件清单
+
+### 🔧 核心规范文件
+
+| 文件 | 格式 | 作用域 | 描述 |
+|------|------|--------|------|
+| **`openapi.yaml`** | OpenAPI 3.0.3 | REST API命令操作 | 11个REST端点的完整规范 |
+| **`schema.graphql`** | GraphQL SDL | GraphQL查询操作 | 10个GraphQL查询的完整Schema |
+
+### 📖 支持文档
+
+| 文件 | 描述 |
+|------|------|
+| `README.md` | 本文件 - API文档使用指南 |
+| `CHANGELOG.md` | API版本变更历史记录 |
+
+## 🎯 Single Source of Truth 原则
+
+### ✅ 权威性保证
+
+这些规范文件是API开发的**唯一权威来源**，所有相关工作必须基于这些文件：
+
+- **API开发**: 后端实现必须严格遵循规范
+- **前端集成**: 客户端开发基于规范进行集成
+- **测试验证**: 所有API测试基于规范执行
+- **文档生成**: 自动化文档生成从规范文件提取
+
+### 🔄 变更管理流程
+
+**重要**: 任何API变更都必须遵循以下严格流程：
+
+1. **规范先行**: 先修改 `openapi.yaml` 或 `schema.graphql`
+2. **版本更新**: 更新版本号并记录到 `CHANGELOG.md`
+3. **代码实现**: 基于更新后的规范修改代码实现
+4. **测试验证**: 验证实现与规范的一致性
+5. **文档同步**: 自动化更新相关文档
+
+❌ **禁止行为**:
+- 先改代码再更新规范
+- 规范与实现不一致
+- 绕过版本管理直接修改API
 
 ## 🌟 核心特性
 

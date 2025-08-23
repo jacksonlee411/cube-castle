@@ -1,0 +1,1697 @@
+openapi: 3.0.3
+info:
+  title: Organization Units Management API
+  description: |
+    Enterprise-grade organization units management API with strict CQRS architecture.
+    
+    **Architecture Features:**
+    - **Command Operations**: REST API (Port 9090) - All data modifications
+    - **Query Operations**: GraphQL (Port 8090) - All data retrieval
+    - **Single Data Source**: PostgreSQL with temporal data support
+    - **Authentication**: OAuth 2.0 Client Credentials Flow
+    - **Authorization**: Permission-Based Access Control (PBAC)
+    
+    **Key Capabilities:**
+    - 17-level hierarchy depth support
+    - Temporal data management with effective/end dates
+    - Intelligent cascade updates for hierarchy changes
+    - Comprehensive audit trail with operation history
+    - Multi-tenant isolation and security
+    
+    **Response Format**: All endpoints use unified enterprise envelope structure
+    with `success`, `data`, `message`, `timestamp`, and `requestId` fields.
+  version: 4.2.1
+  contact:
+    name: System Architecture Team
+    email: api-support@yourcompany.com
+  license:
+    name: Proprietary
+    url: https://yourcompany.com/license
+
+servers:
+  - url: http://localhost:9090
+    description: Development - Command Service (REST API)
+  - url: https://api.yourcompany.com
+    description: Production - Command Service (REST API)
+
+security:
+  - OAuth2ClientCredentials: []
+
+tags:
+  - name: organization-units
+    description: Standard CRUD operations for organization units
+  - name: business-operations
+    description: Specialized business operations (suspend/activate)
+  - name: data-validation
+    description: Data validation and business rule checking
+  - name: maintenance
+    description: System maintenance and hierarchy management tools
+  - name: corehr-compatibility
+    description: CoreHR system compatibility endpoints
+
+paths:
+  /api/v1/organization-units:
+    post:
+      tags:
+        - organization-units
+      summary: Create new organization unit
+      description: |
+        Creates a new organization unit with automatic code generation and hierarchy setup.
+        
+        **Business Rules:**
+        - Automatically generates 7-digit code (1000000-9999999)
+        - Sets operationType=CREATE and status=ACTIVE by default
+        - Triggers intelligent cascade update for hierarchy paths
+        - Validates parent unit exists and is active
+        
+        **Required Permissions:** `org:create`
+      security:
+        - OAuth2ClientCredentials: ['org:create']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationUnitRequest'
+            examples:
+              basic_department:
+                summary: Basic Department Creation
+                value:
+                  name: "技术部"
+                  unitType: "DEPARTMENT"
+                  parentCode: "1000000"
+                  description: "负责产品研发和技术创新"
+                  effectiveDate: "2025-08-23"
+                  operationReason: "业务扩展需要"
+              future_effective:
+                summary: Future Effective Organization
+                value:
+                  name: "AI研发中心"
+                  unitType: "DEPARTMENT"
+                  parentCode: "1000001"
+                  description: "人工智能技术研发中心"
+                  effectiveDate: "2025-12-01"
+                  profile:
+                    budget: 10000000
+                    headCountLimit: 50
+                  operationReason: "战略业务扩展"
+      responses:
+        '201':
+          description: Organization unit created successfully
+          headers:
+            Location:
+              description: URL of the created organization unit
+              schema:
+                type: string
+                example: "/api/v1/organization-units/1000008"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                success_creation:
+                  summary: Successful Creation
+                  value:
+                    success: true
+                    message: "Organization unit created successfully"
+                    data:
+                      code: "1000008"
+                      parentCode: "1000000"
+                      tenantId: "987fcdeb-51a2-43d7-8f9e-123456789012"
+                      name: "技术部"
+                      unitType: "DEPARTMENT"
+                      status: "ACTIVE"
+                      isDeleted: false
+                      level: 2
+                      codePath: "/1000000/1000008"
+                      namePath: "/高谷集团/技术部"
+                      sortOrder: 0
+                      description: "负责产品研发和技术创新"
+                      profile: {}
+                      createdAt: "2025-08-23T15:00:00Z"
+                      updatedAt: "2025-08-23T15:00:00Z"
+                      operationType: "CREATE"
+                      operatedBy:
+                        id: "789e0123-e89b-12d3-a456-426614174003"
+                        name: "Zhang San"
+                      operationReason: "业务扩展需要"
+                      effectiveDate: "2025-08-23"
+                      endDate: null
+                      isCurrent: true
+                      isFuture: false
+                      recordId: "456e7890-e89b-12d3-a456-426614174008"
+                    timestamp: "2025-08-23T15:00:00Z"
+                    requestId: "req_create_1000008"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/organization-units/{code}:
+    put:
+      tags:
+        - organization-units
+      summary: Complete replacement of organization unit
+      description: |
+        Completely replaces an organization unit with new data. Follows HTTP PUT semantics
+        where all fields must be provided and missing fields are reset to defaults.
+        
+        **Important Notes:**
+        - **Complete Resource Replacement**: Must provide all required and optional fields
+        - **Missing Fields**: Will be reset to default values or null
+        - **Idempotent**: Multiple calls with same data produce same result
+        - **Use Cases**: Complete resource rebuild, bulk standardization
+        
+        **Required Permissions:** `org:update`
+      security:
+        - OAuth2ClientCredentials: ['org:update']
+      parameters:
+        - $ref: '#/components/parameters/CodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceOrganizationUnitRequest'
+            examples:
+              complete_replacement:
+                summary: Complete Resource Replacement
+                value:
+                  name: "技术研发部"
+                  unitType: "DEPARTMENT"
+                  parentCode: "1000000"
+                  description: "负责产品研发、技术创新和系统架构设计"
+                  status: "ACTIVE"
+                  sortOrder: 0
+                  profile:
+                    budget: 6000000
+                    managerPositionCode: "POS-789e0123"
+                    costCenterCode: "CC001"
+                    headCountLimit: 60
+                    establishedDate: "2024-01-01"
+                  effectiveDate: "2025-08-23"
+                  endDate: null
+                  operationReason: "组织架构全面重构"
+      responses:
+        '200':
+          description: Organization unit replaced successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      tags:
+        - organization-units
+      summary: Partial update of organization unit
+      description: |
+        Partially updates an organization unit. Only provided fields are modified,
+        other fields remain unchanged. **Cannot be used for status changes**.
+        
+        **Important Notes:**
+        - **Partial Update**: Only updates provided fields
+        - **Field Preservation**: Unspecified fields keep existing values
+        - **Status Limitation**: Cannot change status field - use dedicated endpoints
+        - **Use Cases**: Single field updates, incremental modifications
+        
+        **Required Permissions:** `org:update`
+      security:
+        - OAuth2ClientCredentials: ['org:update']
+      parameters:
+        - $ref: '#/components/parameters/CodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationUnitRequest'
+            examples:
+              partial_update:
+                summary: Partial Field Update
+                value:
+                  name: "技术研发部"
+                  description: "负责产品研发、技术创新和系统架构设计"
+                  profile:
+                    budget: 6000000
+                    headCountLimit: 60
+                  operationReason: "预算调整和人员编制优化"
+      responses:
+        '200':
+          description: Organization unit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - organization-units
+      summary: Delete organization unit
+      description: |
+        Soft deletes an organization unit by setting isDeleted=true and operationType=DELETE.
+        
+        **Deletion Constraints:**
+        - Cannot delete units with active child units
+        - Cannot delete units with associated positions
+        - Must clean up all dependencies before deletion
+        
+        **Required Permissions:** `org:delete`
+      security:
+        - OAuth2ClientCredentials: ['org:delete']
+      parameters:
+        - $ref: '#/components/parameters/CodePathParam'
+        - name: operationReason
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 500
+          description: Reason for deletion
+          example: "合并到其他部门"
+      responses:
+        '204':
+          description: Organization unit deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: |
+            Cannot delete due to constraints:
+            - Has child units
+            - Has associated positions
+            - Dependencies must be resolved first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                has_children:
+                  summary: Has Child Units
+                  value:
+                    success: false
+                    error:
+                      code: "HAS_CHILD_UNITS"
+                      message: "Cannot delete organization unit with child units"
+                      details:
+                        childUnits: ["1000011", "1000012"]
+                        affectedCount: 2
+                    timestamp: "2025-08-23T10:30:00Z"
+                    requestId: "req_delete_error_001"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/organization-units/{code}/suspend:
+    post:
+      tags:
+        - business-operations
+      summary: Suspend organization unit
+      description: |
+        Suspends an organization unit by setting status=INACTIVE and operationType=SUSPEND.
+        This is a specialized business operation with dedicated endpoint to ensure clear intent.
+        
+        **Business Logic:**
+        - Forces status=INACTIVE regardless of request body
+        - Sets operationType=SUSPEND automatically
+        - Supports future-effective suspension planning
+        - Records complete audit trail
+        
+        **Required Permissions:** `org:suspend`
+      security:
+        - OAuth2ClientCredentials: ['org:suspend']
+      parameters:
+        - $ref: '#/components/parameters/CodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspendOrganizationRequest'
+            examples:
+              immediate_suspension:
+                summary: Immediate Suspension
+                value:
+                  operationReason: "业务调整需要"
+                  effectiveDate: "2025-08-23"
+                  endDate: null
+              planned_suspension:
+                summary: Future Planned Suspension
+                value:
+                  operationReason: "业务重组，部门合并"
+                  effectiveDate: "2025-09-01"
+                  endDate: "2026-03-31"
+      responses:
+        '200':
+          description: Organization unit suspended successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                suspension_success:
+                  summary: Successful Suspension
+                  value:
+                    success: true
+                    message: "Organization unit suspended successfully"
+                    data:
+                      code: "1000001"
+                      status: "INACTIVE"
+                      operationType: "SUSPEND"
+                      operatedBy:
+                        id: "user-uuid"
+                        name: "Wang Wu"
+                      operationReason: "业务调整需要"
+                      effectiveDate: "2025-08-23"
+                      updatedAt: "2025-08-23T10:30:00Z"
+                      isCurrent: true
+                      isFuture: false
+                    timestamp: "2025-08-23T10:30:00Z"
+                    requestId: "req_suspend_1000001"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/organization-units/{code}/activate:
+    post:
+      tags:
+        - business-operations
+      summary: Activate organization unit
+      description: |
+        Activates an organization unit by setting status=ACTIVE and operationType=REACTIVATE.
+        This is the symmetric operation to suspend, ensuring clear business intent.
+        
+        **Business Logic:**
+        - Forces status=ACTIVE regardless of request body
+        - Sets operationType=REACTIVATE automatically
+        - Supports future-effective activation planning
+        - Can cancel planned suspension operations
+        
+        **Required Permissions:** `org:reactivate`
+      security:
+        - OAuth2ClientCredentials: ['org:reactivate']
+      parameters:
+        - $ref: '#/components/parameters/CodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateOrganizationRequest'
+            examples:
+              immediate_activation:
+                summary: Immediate Activation
+                value:
+                  operationReason: "恢复业务运营"
+                  effectiveDate: "2025-08-23"
+                  endDate: null
+              cancel_planned_suspension:
+                summary: Cancel Planned Suspension
+                value:
+                  operationReason: "计划变更，继续运营"
+                  effectiveDate: "2025-09-01"
+      responses:
+        '200':
+          description: Organization unit activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/organization-units/validate:
+    post:
+      tags:
+        - data-validation
+      summary: Validate organization unit data
+      description: |
+        Validates organization unit data without actually creating or modifying records.
+        Uses the same validation logic as actual operations to ensure consistency.
+        
+        **Validation Layers:**
+        1. **Database Constraints**: Time logic, immutable fields
+        2. **Business Rules**: Parent-child relationships, operation sequences
+        3. **Configurable Rules**: Temporal constraints, hierarchy limits
+        
+        **Required Permissions:** `org:validate`
+      security:
+        - OAuth2ClientCredentials: ['org:validate']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateOrganizationRequest'
+            examples:
+              create_validation:
+                summary: Validate New Organization
+                value:
+                  operation: "create"
+                  data:
+                    name: "测试部门"
+                    unitType: "DEPARTMENT"
+                    parentCode: "1000000"
+                    effectiveDate: "2025-08-23"
+                  dryRun: true
+              suspend_validation:
+                summary: Validate Suspension Operation
+                value:
+                  operation: "suspend"
+                  data:
+                    code: "1000001"
+                    status: "INACTIVE"
+                    effectiveDate: "2025-09-01"
+                  dryRun: true
+      responses:
+        '200':
+          description: Validation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+              examples:
+                validation_success:
+                  summary: Validation Passed
+                  value:
+                    success: true
+                    message: "Validation completed successfully"
+                    data:
+                      valid: true
+                      warnings: ["父组织将在6个月后过期"]
+                      errors: []
+                      suggestions: ["建议设置结束日期以明确停用期限"]
+                      validationDetails:
+                        temporalCheck: "PASS"
+                        parentChildCheck: "PASS"
+                        operationSequenceCheck: "PASS"
+                    timestamp: "2025-08-23T10:30:00Z"
+                    requestId: "req_validate_001"
+                validation_failure:
+                  summary: Validation Failed
+                  value:
+                    success: true
+                    message: "Validation completed with errors"
+                    data:
+                      valid: false
+                      warnings: []
+                      errors: 
+                        - "Parent organization unit does not exist"
+                        - "Effective date cannot be more than 365 days in future"
+                      suggestions: 
+                        - "Verify parent code '1000999' exists"
+                        - "Adjust effective date to within policy limits"
+                      validationDetails:
+                        temporalCheck: "FAIL"
+                        parentChildCheck: "FAIL"
+                        operationSequenceCheck: "PASS"
+                    timestamp: "2025-08-23T10:30:00Z"
+                    requestId: "req_validate_002"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/organization-units/{code}/refresh-hierarchy:
+    post:
+      tags:
+        - maintenance
+      summary: Manual hierarchy refresh for single organization
+      description: |
+        Manually refreshes hierarchy data (paths, levels, depths) for a specific organization
+        and its subtree. This is a maintenance tool for data repair scenarios.
+        
+        **Use Cases:**
+        - Data migration recovery
+        - Database direct modification repair
+        - System exception recovery
+        - Performance optimization
+        
+        **⚠️ Important:** This is NOT for normal business operations. Use business
+        endpoints (POST/PUT/PATCH) for regular operations which trigger automatic cascade updates.
+        
+        **Required Permissions:** `org:maintenance`
+      security:
+        - OAuth2ClientCredentials: ['org:maintenance']
+      parameters:
+        - $ref: '#/components/parameters/CodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshHierarchyRequest'
+            examples:
+              single_refresh:
+                summary: Single Organization Refresh
+                value:
+                  reason: "数据迁移后的路径修复"
+                  force: false
+                  dryRun: false
+              dry_run_check:
+                summary: Dry Run Preview
+                value:
+                  reason: "检查修复范围"
+                  force: false
+                  dryRun: true
+      responses:
+        '200':
+          description: Hierarchy refresh completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                refresh_success:
+                  summary: Successful Refresh
+                  value:
+                    success: true
+                    message: "Hierarchy refresh completed successfully"
+                    data:
+                      processedUnits: 12
+                      updatedPaths: 12
+                      updatedLevels: 12
+                      executionTimeMs: 245
+                      affectedCodes: ["1000001", "1000011", "1000012"]
+                    timestamp: "2025-08-23T10:30:00Z"
+                    requestId: "req_refresh_1000001"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/organization-units/batch-refresh-hierarchy:
+    post:
+      tags:
+        - maintenance
+      summary: Batch hierarchy refresh for multiple organizations
+      description: |
+        Batch refreshes hierarchy data for multiple organizations or entire tenant.
+        This is a powerful maintenance tool requiring special permissions and careful use.
+        
+        **⚠️ Critical Operation:** This operation can affect large amounts of data and impact
+        system performance. Always test with dryRun=true first.
+        
+        **Required Permissions:** `org:batch-operations`
+      security:
+        - OAuth2ClientCredentials: ['org:batch-operations']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRefreshHierarchyRequest'
+            examples:
+              tenant_refresh:
+                summary: Full Tenant Refresh
+                value:
+                  tenantFilter: "987fcdeb-51a2-43d7-8f9e-123456789012"
+                  reason: "系统迁移后的全量路径重建"
+                  dryRun: true
+                  maxUnits: 1000
+              selective_refresh:
+                summary: Selective Units Refresh
+                value:
+                  targetCodes: ["1000000", "2000000"]
+                  reason: "特定组织的层级修复"
+                  dryRun: false
+                  maxUnits: 100
+      responses:
+        '200':
+          description: Batch hierarchy refresh completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/corehr/organizations:
+    post:
+      tags:
+        - corehr-compatibility
+      summary: Create organization (CoreHR compatible)
+      description: |
+        CoreHR-compatible organization creation endpoint that maps to OrganizationUnit entity.
+        Provides compatibility layer for existing CoreHR frontend modules.
+        
+        **Note:** Query operations for CoreHR compatibility now use GraphQL endpoints
+        as per strict CQRS compliance. Use GraphQL queries for data retrieval.
+        
+        **Required Permissions:** `org:create`
+      security:
+        - OAuth2ClientCredentials: ['org:create']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationUnitRequest'
+      responses:
+        '201':
+          description: Organization created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    OAuth2ClientCredentials:
+      type: oauth2
+      description: |
+        OAuth 2.0 Client Credentials Flow for machine-to-machine authentication.
+        
+        **Token Endpoint:** `POST /oauth/token`
+        **Grant Type:** `client_credentials`
+        **Token Type:** Bearer JWT
+        **Expiration:** 1-4 hours (configurable)
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth/token
+          scopes:
+            'org:read': Read organization unit information
+            'org:create': Create organization units
+            'org:update': Update organization unit basic information
+            'org:delete': Delete organization units
+            'org:suspend': Suspend organization units
+            'org:reactivate': Reactivate organization units
+            'org:read:hierarchy': Read organization hierarchy structure
+            'org:read:audit': Read audit history records
+            'org:stats': Get organization statistics
+            'org:validate': Data validity validation
+            'org:maintenance': Hierarchy consistency check and repair
+            'org:batch-operations': Batch operations permission
+
+  parameters:
+    CodePathParam:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]{6}$'
+        example: "1000001"
+      description: |
+        7-digit organization unit code (1000000-9999999).
+        This is the primary business identifier for organization units.
+
+  schemas:
+    OrganizationUnit:
+      type: object
+      description: Complete organization unit model with temporal and audit data
+      required:
+        - code
+        - tenantId
+        - name
+        - unitType
+        - status
+        - isDeleted
+        - level
+        - hierarchyDepth
+        - codePath
+        - namePath
+        - sortOrder
+        - createdAt
+        - updatedAt
+        - operationType
+        - operatedBy
+        - effectiveDate
+        - isCurrent
+        - isFuture
+        - recordId
+      properties:
+        code:
+          type: string
+          pattern: '^[1-9][0-9]{6}$'
+          description: 7-digit organization code (primary business identifier)
+          example: "1000001"
+        parentCode:
+          type: string
+          pattern: '^[1-9][0-9]{6}$'
+          nullable: true
+          description: Parent organization code (null for root units)
+          example: "1000000"
+        tenantId:
+          type: string
+          format: uuid
+          description: Tenant isolation identifier
+          example: "987fcdeb-51a2-43d7-8f9e-123456789012"
+        name:
+          type: string
+          maxLength: 255
+          description: Organization unit name
+          example: "技术部"
+        unitType:
+          $ref: '#/components/schemas/UnitType'
+        status:
+          $ref: '#/components/schemas/Status'
+        isDeleted:
+          type: boolean
+          description: Soft deletion flag (independent from business status)
+          example: false
+        level:
+          type: integer
+          minimum: 1
+          maximum: 17
+          description: Hierarchy level (1-17)
+          example: 2
+        hierarchyDepth:
+          type: integer
+          minimum: 1
+          maximum: 17
+          description: Hierarchy depth cache (synchronized with level)
+          example: 2
+        codePath:
+          type: string
+          maxLength: 2000
+          description: Hierarchy path using codes (/1000000/1000001)
+          example: "/1000000/1000001"
+        namePath:
+          type: string
+          maxLength: 4000
+          description: Human-readable hierarchy path (/Company/Department)
+          example: "/高谷集团/技术部"
+        sortOrder:
+          type: integer
+          description: Sorting order within same level
+          default: 0
+          example: 0
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Organization unit description
+          example: "技术研发部门"
+        profile:
+          type: object
+          description: |
+            Type-specific configuration (JSONB). Structure varies by unitType:
+            
+            **DEPARTMENT Profile:**
+            - budget: number - Annual budget allocation
+            - managerPositionCode: string - Department manager position
+            - costCenterCode: string - Cost center identifier
+            - headCountLimit: number - Maximum employee count
+            - establishedDate: date - Department establishment date
+            
+            **COMPANY Profile:**
+            - legalName: string - Legal company name
+            - registrationNumber: string - Business registration number
+            - taxId: string - Tax identification number
+            - industry: string - Industry classification
+            - incorporationDate: date - Company incorporation date
+            
+            **PROJECT_TEAM Profile:**
+            - projectCode: string - Project identifier
+            - projectManager: string - Project manager identifier
+            - startDate: date - Project start date
+            - endDate: date - Project planned end date
+            - budget: number - Project budget allocation
+            
+            **ORGANIZATION_UNIT Profile:**
+            - function: string - Organizational function type
+            - region: string - Geographic region
+            - parentType: string - Parent organization type
+          default: {}
+          examples:
+            department_profile:
+              summary: Department Configuration
+              value:
+                budget: 5000000
+                managerPositionCode: "POS-MGR-001"
+                costCenterCode: "CC001"
+                headCountLimit: 50
+                establishedDate: "2024-01-01"
+            company_profile:
+              summary: Company Configuration
+              value:
+                legalName: "高谷科技有限公司"
+                registrationNumber: "91110000123456789X"
+                taxId: "110000123456789"
+                industry: "软件开发"
+                incorporationDate: "2020-03-15"
+            project_team_profile:
+              summary: Project Team Configuration
+              value:
+                projectCode: "PROJ-2025-001"
+                projectManager: "EMP-001"
+                startDate: "2025-08-01"
+                endDate: "2026-02-28"
+                budget: 2000000
+        createdAt:
+          type: string
+          format: date-time
+          description: Record creation timestamp
+          example: "2025-08-05T11:23:01.426455Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last operation timestamp (meaning defined by operationType)
+          example: "2025-08-23T06:13:47.072807Z"
+        operationType:
+          $ref: '#/components/schemas/OperationType'
+        operatedBy:
+          $ref: '#/components/schemas/OperatedBy'
+        operationReason:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Reason for the operation
+          example: "预算调整和人员编制优化"
+        effectiveDate:
+          type: string
+          format: date
+          description: Record effective date (supports future operations)
+          example: "2025-08-05"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Record end date (null for open-ended)
+          example: null
+        isCurrent:
+          type: boolean
+          description: Dynamic field - whether record is effective on specified date
+          example: true
+        isFuture:
+          type: boolean
+          description: Dynamic field - whether record is future effective
+          example: false
+        recordId:
+          type: string
+          format: uuid
+          description: Global unique record identifier for audit
+          example: "123e4567-e89b-12d3-a456-426614174000"
+
+    UnitType:
+      type: string
+      enum:
+        - DEPARTMENT
+        - ORGANIZATION_UNIT
+        - COMPANY
+        - PROJECT_TEAM
+      description: |
+        Organization unit types:
+        - **DEPARTMENT**: Regular business department
+        - **ORGANIZATION_UNIT**: Generic organizational unit
+        - **COMPANY**: Legal entity company
+        - **PROJECT_TEAM**: Temporary project team
+      example: "DEPARTMENT"
+
+    Status:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+      description: |
+        Business status of organization unit:
+        - **ACTIVE**: Actively operating unit
+        - **INACTIVE**: Non-active but existing unit
+      default: "ACTIVE"
+      example: "ACTIVE"
+
+    OperationType:
+      type: string
+      enum:
+        - CREATE
+        - UPDATE
+        - SUSPEND
+        - REACTIVATE
+        - DELETE
+      description: |
+        Operation types (automatically set by API endpoints):
+        - **CREATE**: New organization creation
+        - **UPDATE**: Data modification (PUT/PATCH)
+        - **SUSPEND**: Suspension operation (/suspend endpoint)
+        - **REACTIVATE**: Reactivation operation (/activate endpoint)
+        - **DELETE**: Deletion operation (DELETE endpoint)
+      readOnly: true
+      example: "UPDATE"
+
+    OperatedBy:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Operator user ID
+          example: "456e7890-e89b-12d3-a456-426614174002"
+        name:
+          type: string
+          description: Operator display name (English)
+          example: "Li Si"
+      description: |
+        Standard operator information structure used across all endpoints.
+        Provides both machine-readable ID and human-readable name for audit trails.
+
+    AnalysisType:
+      type: string
+      enum:
+        - SUMMARY
+        - DETAILED
+      description: |
+        Analysis depth for change analysis queries:
+        - **SUMMARY**: High-level summary analysis
+        - **DETAILED**: Detailed field-by-field analysis with impact assessment
+      default: "SUMMARY"
+      example: "DETAILED"
+
+    ConsistencyCheckMode:
+      type: string
+      enum:
+        - FAST
+        - DEEP
+        - TARGETED
+      description: |
+        Consistency check modes with different performance characteristics:
+        - **FAST**: Cache field consistency only (< 5s)
+        - **DEEP**: Full recursive validation (30s-5min data dependent)
+        - **TARGETED**: Specific area focus validation (< 30s)
+      default: "FAST"
+      example: "DEEP"
+
+    SearchField:
+      type: string
+      enum:
+        - NAME
+        - DESCRIPTION
+        - CODE_PATH
+        - NAME_PATH
+      description: |
+        Search fields for text-based filtering:
+        - **NAME**: Search in organization name
+        - **DESCRIPTION**: Search in description field
+        - **CODE_PATH**: Search in hierarchy code path
+        - **NAME_PATH**: Search in hierarchy name path
+      example: "NAME"
+
+    SortField:
+      type: string
+      enum:
+        - CODE
+        - NAME
+        - CREATED_AT
+        - UPDATED_AT
+        - EFFECTIVE_DATE
+        - LEVEL
+        - SORT_ORDER
+      description: |
+        Sorting field options:
+        - **CODE**: Sort by organization code
+        - **NAME**: Sort by organization name
+        - **CREATED_AT**: Sort by creation timestamp
+        - **UPDATED_AT**: Sort by last update timestamp
+        - **EFFECTIVE_DATE**: Sort by effective date
+        - **LEVEL**: Sort by hierarchy level
+        - **SORT_ORDER**: Sort by sort order value
+      example: "NAME"
+
+    SortOrder:
+      type: string
+      enum:
+        - ASC
+        - DESC
+      description: |
+        Sorting order options:
+        - **ASC**: Ascending order (A-Z, 0-9, oldest first)
+        - **DESC**: Descending order (Z-A, 9-0, newest first)
+      default: "ASC"
+      example: "DESC"
+
+    CreateOrganizationUnitRequest:
+      type: object
+      required:
+        - name
+        - unitType
+        - effectiveDate
+        - operationReason
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Organization unit name
+          example: "新部门"
+        unitType:
+          $ref: '#/components/schemas/UnitType'
+        parentCode:
+          type: string
+          pattern: '^[1-9][0-9]{6}$'
+          nullable: true
+          description: Parent organization code (null for root level)
+          example: "1000000"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Organization description
+          example: "新创建的部门"
+        sortOrder:
+          type: integer
+          default: 0
+          description: Sorting order within same level
+        profile:
+          type: object
+          default: {}
+          description: Type-specific configuration
+          example:
+            budget: 5000000
+            costCenterCode: "CC001"
+        effectiveDate:
+          type: string
+          format: date
+          description: Record effective date
+          example: "2025-08-23"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Record end date (optional)
+        operationReason:
+          type: string
+          maxLength: 500
+          description: Reason for creation
+          example: "业务扩展需要"
+
+    ReplaceOrganizationUnitRequest:
+      type: object
+      description: |
+        Complete resource replacement request. All fields must be provided as
+        missing fields will be reset to defaults (HTTP PUT semantics).
+      required:
+        - name
+        - unitType
+        - parentCode
+        - status
+        - sortOrder
+        - profile
+        - effectiveDate
+        - operationReason
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: "技术研发部"
+        unitType:
+          $ref: '#/components/schemas/UnitType'
+        parentCode:
+          type: string
+          pattern: '^[1-9][0-9]{6}$'
+          nullable: true
+          example: "1000000"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          example: "负责产品研发、技术创新和系统架构设计"
+        status:
+          $ref: '#/components/schemas/Status'
+        sortOrder:
+          type: integer
+          example: 0
+        profile:
+          type: object
+          description: Complete profile configuration
+          example:
+            budget: 6000000
+            managerPositionCode: "POS-789e0123"
+            costCenterCode: "CC001"
+            headCountLimit: 60
+            establishedDate: "2024-01-01"
+        effectiveDate:
+          type: string
+          format: date
+          example: "2025-08-23"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        operationReason:
+          type: string
+          maxLength: 500
+          example: "组织架构全面重构"
+
+    UpdateOrganizationUnitRequest:
+      type: object
+      description: |
+        Partial update request. Only provided fields are modified, others remain unchanged.
+        **Cannot be used to change status** - use dedicated suspend/activate endpoints.
+      required:
+        - operationReason
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: "技术研发部"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          example: "负责产品研发、技术创新和系统架构设计"
+        sortOrder:
+          type: integer
+          example: 0
+        profile:
+          type: object
+          description: Partial profile updates (merged with existing)
+          example:
+            budget: 6000000
+            headCountLimit: 60
+        effectiveDate:
+          type: string
+          format: date
+          description: Update effective date
+          example: "2025-08-23"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Update end date
+        operationReason:
+          type: string
+          maxLength: 500
+          description: Reason for update (required)
+          example: "预算调整和人员编制优化"
+
+    SuspendOrganizationRequest:
+      type: object
+      required:
+        - operationReason
+        - effectiveDate
+      properties:
+        operationReason:
+          type: string
+          maxLength: 500
+          description: Reason for suspension
+          example: "业务调整需要"
+        effectiveDate:
+          type: string
+          format: date
+          description: Suspension effective date (supports future dates)
+          example: "2025-08-23"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Optional end date for planned reactivation
+          example: null
+
+    ActivateOrganizationRequest:
+      type: object
+      required:
+        - operationReason
+        - effectiveDate
+      properties:
+        operationReason:
+          type: string
+          maxLength: 500
+          description: Reason for activation
+          example: "恢复业务运营"
+        effectiveDate:
+          type: string
+          format: date
+          description: Activation effective date
+          example: "2025-08-23"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Optional end date
+          example: null
+
+    ValidateOrganizationRequest:
+      type: object
+      required:
+        - operation
+        - data
+      properties:
+        operation:
+          type: string
+          enum: [create, update, suspend, activate, delete]
+          description: Type of operation to validate
+          example: "create"
+        data:
+          type: object
+          description: Data to validate (varies by operation)
+          example:
+            code: "1000001"
+            name: "测试部门"
+            unitType: "DEPARTMENT"
+            parentCode: "1000000"
+            effectiveDate: "2025-08-23"
+        dryRun:
+          type: boolean
+          default: true
+          description: Whether this is a dry run validation
+          example: true
+
+    RefreshHierarchyRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          description: Reason for manual refresh
+          example: "数据迁移后的路径修复"
+        force:
+          type: boolean
+          default: false
+          description: Force refresh even if operations are in progress
+          example: false
+        dryRun:
+          type: boolean
+          default: false
+          description: Preview mode - don't actually execute changes
+          example: false
+
+    BatchRefreshHierarchyRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        tenantFilter:
+          type: string
+          format: uuid
+          nullable: true
+          description: Limit refresh to specific tenant
+          example: "987fcdeb-51a2-43d7-8f9e-123456789012"
+        targetCodes:
+          type: array
+          items:
+            type: string
+            pattern: '^[1-9][0-9]{6}$'
+          nullable: true
+          description: Specific organization codes to refresh
+          example: ["1000000", "2000000"]
+        reason:
+          type: string
+          maxLength: 500
+          description: Reason for batch refresh
+          example: "系统迁移后的全量路径重建"
+        dryRun:
+          type: boolean
+          default: true
+          description: Preview mode (always recommended first)
+          example: true
+        maxUnits:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          default: 1000
+          description: Maximum units to process (safety limit)
+          example: 1000
+
+    ValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: Whether validation passed overall
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Non-blocking warnings
+        errors:
+          type: array
+          items:
+            type: string
+          description: Validation errors that must be fixed
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Recommended improvements
+        validationDetails:
+          type: object
+          properties:
+            temporalCheck:
+              type: string
+              enum: [PASS, FAIL]
+            parentChildCheck:
+              type: string
+              enum: [PASS, FAIL]
+            operationSequenceCheck:
+              type: string
+              enum: [PASS, FAIL]
+
+    SuccessResponse:
+      type: object
+      description: |
+        Unified enterprise envelope for successful responses.
+        All successful API responses use this consistent structure.
+      required:
+        - success
+        - data
+        - message
+        - timestamp
+        - requestId
+      properties:
+        success:
+          type: boolean
+          description: Always true for successful responses
+          example: true
+        data:
+          type: object
+          description: Actual business data (varies by endpoint)
+        message:
+          type: string
+          description: Human-readable success message (English)
+          example: "Organization unit created successfully"
+        timestamp:
+          type: string
+          format: date-time
+          description: Response timestamp (ISO 8601)
+          example: "2025-08-23T15:00:00Z"
+        requestId:
+          type: string
+          description: Unique request identifier for tracing
+          example: "req_create_1000008"
+
+    ErrorResponse:
+      type: object
+      description: |
+        Unified enterprise envelope for error responses.
+        All error responses use this consistent structure for easier client handling.
+      required:
+        - success
+        - error
+        - timestamp
+        - requestId
+      properties:
+        success:
+          type: boolean
+          description: Always false for error responses
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: "ORG_UNIT_NOT_FOUND"
+            message:
+              type: string
+              description: Human-readable error message (English)
+              example: "Organization unit not found"
+            details:
+              type: object
+              nullable: true
+              description: Additional error context (varies by error type)
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp (ISO 8601)
+          example: "2025-08-23T10:30:00Z"
+        requestId:
+          type: string
+          description: Unique request identifier for debugging
+          example: "req_error_12345678"
+
+  responses:
+    BadRequest:
+      description: |
+        Bad Request - Invalid input data, validation errors, or malformed requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            validation_error:
+              summary: Validation Error
+              value:
+                success: false
+                error:
+                  code: "VALIDATION_ERROR"
+                  message: "Request validation failed"
+                  details:
+                    field: "effectiveDate"
+                    reason: "Date cannot be more than 365 days in future"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_validation_error_001"
+            incomplete_resource:
+              summary: Incomplete Resource (PUT)
+              value:
+                success: false
+                error:
+                  code: "INCOMPLETE_RESOURCE"
+                  message: "PUT request missing required fields"
+                  details:
+                    missingFields: ["name", "unitType", "status"]
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_incomplete_001"
+            readonly_field:
+              summary: Read-only Field Update (PATCH)
+              value:
+                success: false
+                error:
+                  code: "READONLY_FIELD"
+                  message: "Cannot modify read-only field"
+                  details:
+                    field: "operationType"
+                    reason: "operationType is automatically set by API endpoints"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_readonly_001"
+
+    Unauthorized:
+      description: |
+        Unauthorized - Authentication required or invalid access token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_token:
+              summary: Invalid Access Token
+              value:
+                success: false
+                error:
+                  code: "INVALID_TOKEN"
+                  message: "Invalid or expired access token"
+                  details:
+                    errorDescription: "The access token provided is invalid, expired, or malformed"
+                    errorUri: "https://docs.api.yourcompany.com/errors/invalid-token"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_auth_error_001"
+            token_expired:
+              summary: Token Expired
+              value:
+                success: false
+                error:
+                  code: "TOKEN_EXPIRED"
+                  message: "Access token has expired"
+                  details:
+                    expiredAt: "2025-08-23T09:30:00Z"
+                    errorDescription: "Please obtain a new access token using your client credentials"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_auth_error_002"
+
+    Forbidden:
+      description: |
+        Forbidden - Insufficient permissions or access denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            insufficient_permissions:
+              summary: Insufficient Permissions
+              value:
+                success: false
+                error:
+                  code: "INSUFFICIENT_PERMISSIONS"
+                  message: "Insufficient permissions to access this resource"
+                  details:
+                    requiredPermissions: ["org:delete"]
+                    currentPermissions: ["org:read", "org:update"]
+                    resource: "/api/v1/organization-units/1000001"
+                    action: "DELETE"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_auth_error_003"
+            tenant_access_denied:
+              summary: Tenant Access Denied
+              value:
+                success: false
+                error:
+                  code: "TENANT_ACCESS_DENIED"
+                  message: "Access denied to specified tenant resources"
+                  details:
+                    requestedTenant: "tenant-uuid-456"
+                    authorizedTenants: ["tenant-uuid-123"]
+                    errorDescription: "Your credentials do not have access to the requested tenant"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_auth_error_004"
+
+    NotFound:
+      description: |
+        Not Found - Organization unit or related resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            org_unit_not_found:
+              summary: Organization Unit Not Found
+              value:
+                success: false
+                error:
+                  code: "ORG_UNIT_NOT_FOUND"
+                  message: "Organization unit not found"
+                  details:
+                    code: "1000999"
+                    searchContext: "current active units"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_not_found_001"
+
+    Conflict:
+      description: |
+        Conflict - Business rule violation, constraint conflicts, or resource conflicts
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            circular_reference:
+              summary: Circular Reference Error
+              value:
+                success: false
+                error:
+                  code: "CIRCULAR_REFERENCE"
+                  message: "Operation would create circular reference"
+                  details:
+                    conflictPath: ["1000001", "1000002", "1000001"]
+                    resolution: "Verify parent-child relationships"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_circular_ref_001"
+            has_child_units:
+              summary: Cannot Delete - Has Children
+              value:
+                success: false
+                error:
+                  code: "HAS_CHILD_UNITS"
+                  message: "Cannot delete organization unit with child units"
+                  details:
+                    childUnits: ["1000011", "1000012"]
+                    affectedCount: 2
+                    resolution: "Delete or reassign child units first"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_delete_conflict_001"
+
+    InternalError:
+      description: |
+        Internal Server Error - System errors, database issues, or unexpected failures
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            database_error:
+              summary: Database Connection Error
+              value:
+                success: false
+                error:
+                  code: "DATABASE_ERROR"
+                  message: "Database connection failed"
+                  details:
+                    errorType: "CONNECTION_TIMEOUT"
+                    retryable: true
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_db_error_001"
+            internal_error:
+              summary: Generic Internal Error
+              value:
+                success: false
+                error:
+                  code: "INTERNAL_ERROR"
+                  message: "An unexpected error occurred"
+                  details:
+                    errorId: "ERR_20250823_103000_001"
+                    supportContact: "api-support@yourcompany.com"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_internal_error_001"

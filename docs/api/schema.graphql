@@ -1,0 +1,786 @@
+# Organization Units Management GraphQL Schema
+# Version: 4.2.1
+# Architecture: CQRS Query Layer (Read Operations Only)
+# Data Source: PostgreSQL with temporal data support
+# Authentication: OAuth 2.0 Bearer Token required
+#
+# Features:
+# - Temporal data queries with asOfDate parameter
+# - 17-level hierarchy depth support with intelligent caching
+# - Comprehensive audit trail and change analysis
+# - Multi-tenant isolation and security
+# - Performance-optimized with 26 specialized indexes
+
+"""
+Root Query type providing all organization management query operations.
+All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+"""
+type Query {
+  # Basic Organization Queries
+  
+  """
+  Get paginated list of organization units with advanced filtering and temporal support.
+  
+  Permissions Required: org:read
+  Performance: Optimized with specialized indexes, typical response < 50ms
+  """
+  organizations(
+    filter: OrganizationFilter
+    pagination: PaginationInput
+  ): OrganizationConnection!
+  
+  """
+  Get single organization unit by business code with temporal support.
+  
+  Permissions Required: org:read
+  Performance: Index-optimized single record retrieval < 10ms
+  """
+  organization(
+    code: String!
+    asOfDate: Date
+  ): Organization
+  
+  """
+  Get comprehensive organization statistics with temporal breakdown.
+  
+  Permissions Required: org:stats
+  Performance: Cached aggregation queries < 100ms
+  """
+  organizationStats(
+    asOfDate: Date
+    includeHistorical: Boolean = false
+  ): OrganizationStats!
+  
+  # Advanced Hierarchy Queries
+  
+  """
+  Get complete hierarchy information for an organization including paths and relationships.
+  
+  Permissions Required: org:read:hierarchy
+  Performance: Path-optimized queries with hierarchy cache < 30ms
+  """
+  organizationHierarchy(
+    code: String!
+    tenantId: UUID!
+  ): OrganizationHierarchy
+  
+  """
+  Get organization subtree with configurable depth limits and relationship details.
+  Use this for multi-level hierarchy display (depth >= 2).
+  For direct children only, use organizations(filter: {parentCode: "code"}) instead.
+  
+  Permissions Required: org:read:hierarchy
+  Performance: Recursive CTE queries, optimized for display < 200ms
+  """
+  organizationSubtree(
+    code: String!
+    tenantId: UUID!
+    maxDepth: Int = 10
+    includeInactive: Boolean = false
+  ): [OrganizationHierarchy!]!
+  
+  """
+  Get hierarchy distribution statistics and integrity analysis.
+  
+  Permissions Required: org:read:hierarchy
+  Performance: Aggregation with hierarchy statistics < 150ms
+  """
+  hierarchyStatistics(
+    tenantId: UUID!
+    includeIntegrityCheck: Boolean = false
+  ): HierarchyStatistics!
+  
+  # Audit and Analysis Queries
+  
+  """
+  Get complete audit history for an organization with cross-version change tracking.
+  
+  Permissions Required: org:read:audit
+  Performance: Audit log queries with temporal indexing < 100ms
+  """
+  organizationAuditHistory(
+    code: String!
+    startDate: Date
+    endDate: Date
+    operation: OperationType
+    userId: UUID
+    limit: Int = 50
+  ): OrganizationAuditHistory!
+  
+  """
+  Get detailed audit record with before/after data snapshots and field-level changes.
+  
+  Permissions Required: org:read:audit
+  Performance: Single audit record retrieval < 20ms
+  """
+  auditLog(
+    auditId: String!
+  ): AuditLogDetail
+  
+  """
+  Analyze organization changes across version ranges with impact assessment.
+  
+  Permissions Required: org:read:audit
+  Performance: Cross-version analysis queries < 300ms
+  """
+  organizationChangeAnalysis(
+    code: String!
+    fromVersion: Int = 1
+    toVersion: Int
+    analysisType: AnalysisType = SUMMARY
+  ): OrganizationChangeAnalysis!
+  
+  # System Maintenance and Monitoring
+  
+  """
+  Perform hierarchy consistency check with detailed reporting and repair suggestions.
+  This is a maintenance query for system health monitoring.
+  
+  Permissions Required: org:maintenance
+  Performance: Fast mode < 5s, Deep mode 30s-5min (data dependent)
+  """
+  hierarchyConsistencyCheck(
+    tenantId: UUID!
+    checkMode: ConsistencyCheckMode = FAST
+    targetCodes: [String!]
+    includeRepairSuggestions: Boolean = true
+    maxDepth: Int = 17
+  ): HierarchyConsistencyReport!
+}
+
+# Core Data Types
+
+"""
+Organization unit entity with complete temporal and audit information.
+Represents the current state based on asOfDate parameter or latest effective record.
+"""
+type Organization {
+  # Business Identifiers
+  code: String!
+  parentCode: String
+  tenantId: UUID!
+  
+  # Basic Information
+  name: String!
+  unitType: UnitType!
+  status: Status!
+  isDeleted: Boolean!
+  
+  # Hierarchy Information
+  level: Int!
+  hierarchyDepth: Int!
+  codePath: String!
+  namePath: String!
+  sortOrder: Int!
+  
+  # Configuration
+  description: String
+  profile: JSON!
+  
+  # Temporal Information
+  effectiveDate: Date!
+  endDate: Date
+  isCurrent: Boolean!
+  isFuture: Boolean!
+  
+  # Audit Information
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  operationType: OperationType!
+  operatedBy: OperatedBy!
+  operationReason: String
+  recordId: UUID!
+}
+
+"""
+Connection type for paginated organization results with metadata.
+"""
+type OrganizationConnection {
+  data: [Organization!]!
+  pagination: PaginationInfo!
+  temporal: TemporalInfo!
+}
+
+"""
+Hierarchy-specific organization information with relationship context.
+"""
+type OrganizationHierarchy {
+  code: String!
+  name: String!
+  level: Int!
+  hierarchyDepth: Int!
+  codePath: String!
+  namePath: String!
+  parentChain: [String!]!
+  childrenCount: Int!
+  isRoot: Boolean!
+  isLeaf: Boolean!
+  children: [OrganizationHierarchy!]!
+}
+
+"""
+Comprehensive organization statistics with temporal breakdown.
+"""
+type OrganizationStats {
+  total: Int!
+  byType: [TypeStatistic!]!
+  byStatus: [StatusStatistic!]!
+  byLevel: [LevelStatistic!]!
+  temporal: TemporalStatistics!
+  lastUpdated: DateTime!
+}
+
+"""
+Hierarchy distribution statistics and integrity analysis.
+"""
+type HierarchyStatistics {
+  tenantId: UUID!
+  totalOrganizations: Int!
+  maxDepth: Int!
+  avgDepth: Float!
+  depthDistribution: [DepthDistribution!]!
+  rootOrganizations: Int!
+  leafOrganizations: Int!
+  integrityIssues: [IntegrityIssue!]!
+  lastAnalyzed: DateTime!
+}
+
+"""
+Complete audit history for an organization with timeline and metadata.
+"""
+type OrganizationAuditHistory {
+  businessEntityId: String!
+  entityName: String!
+  totalVersions: Int!
+  auditTimeline: [AuditTimelineEntry!]!
+  meta: AuditHistoryMeta!
+}
+
+"""
+Detailed audit log entry with complete before/after data and change analysis.
+"""
+type AuditLogDetail {
+  auditId: String!
+  businessEntityId: String!
+  recordId: UUID!
+  versionSequence: Int!
+  operation: String!
+  timestamp: DateTime!
+  userInfo: UserInfo!
+  operationContext: OperationContext!
+  dataChanges: DataChanges!
+  impactAnalysis: ImpactAnalysis!
+}
+
+"""
+Cross-version change analysis with trend and impact assessment.
+"""
+type OrganizationChangeAnalysis {
+  businessEntityId: String!
+  analysisRange: VersionRange!
+  changesSummary: ChangesSummary!
+  trendAnalysis: TrendAnalysis!
+  impactAssessment: ImpactAssessment!
+  recommendations: [String!]!
+  generatedAt: DateTime!
+}
+
+"""
+Hierarchy consistency check report with detailed findings and repair suggestions.
+"""
+type HierarchyConsistencyReport {
+  checkId: String!
+  tenantId: UUID!
+  executedAt: DateTime!
+  executionTimeMs: Int!
+  totalChecked: Int!
+  issuesFound: Int!
+  checkMode: ConsistencyCheckMode!
+  consistencyReport: ConsistencyFindings!
+  repairSuggestions: [RepairSuggestion!]!
+  healthScore: Float!
+  recommendedActions: [String!]!
+}
+
+# Supporting Types
+
+"""
+Standard operator information with ID and display name.
+"""
+type OperatedBy {
+  id: UUID!
+  name: String!
+}
+
+"""
+Pagination information for connection types.
+"""
+type PaginationInfo {
+  total: Int!
+  page: Int!
+  pageSize: Int!
+  hasNext: Boolean!
+  hasPrevious: Boolean!
+}
+
+"""
+Temporal context information for queries.
+"""
+type TemporalInfo {
+  asOfDate: Date!
+  currentCount: Int!
+  futureCount: Int!
+  historicalCount: Int!
+}
+
+"""
+Statistics by organization unit type.
+"""
+type TypeStatistic {
+  type: UnitType!
+  count: Int!
+  percentage: Float!
+}
+
+"""
+Statistics by organization status.
+"""
+type StatusStatistic {
+  status: Status!
+  count: Int!
+  percentage: Float!
+}
+
+"""
+Statistics by hierarchy level.
+"""
+type LevelStatistic {
+  level: Int!
+  count: Int!
+  percentage: Float!
+}
+
+"""
+Temporal statistics breakdown.
+"""
+type TemporalStatistics {
+  current: Int!
+  future: Int!
+  historical: Int!
+}
+
+"""
+Hierarchy depth distribution analysis.
+"""
+type DepthDistribution {
+  depth: Int!
+  count: Int!
+  percentage: Float!
+}
+
+"""
+Hierarchy integrity issue detection.
+"""
+type IntegrityIssue {
+  type: String!
+  count: Int!
+  affectedCodes: [String!]!
+}
+
+"""
+Audit timeline entry with operation summary.
+"""
+type AuditTimelineEntry {
+  auditId: String!
+  versionSequence: Int!
+  operation: String!
+  timestamp: DateTime!
+  userName: String!
+  operationReason: String
+  changesSummary: ChangesSummary!
+  riskLevel: String!
+}
+
+"""
+Audit history metadata and summary.
+"""
+type AuditHistoryMeta {
+  totalAuditRecords: Int!
+  dateRange: DateRange!
+  operationsSummary: OperationsSummary!
+}
+
+"""
+User information for audit trails.
+"""
+type UserInfo {
+  userId: UUID!
+  userName: String!
+  role: String
+}
+
+"""
+Operation context for audit records.
+"""
+type OperationContext {
+  operationReason: String
+  ipAddress: String
+  apiEndpoint: String
+  userAgent: String
+}
+
+"""
+Data changes with before/after comparison.
+"""
+type DataChanges {
+  beforeData: JSON
+  afterData: JSON
+  fieldChanges: FieldChanges!
+}
+
+"""
+Field-level change analysis.
+"""
+type FieldChanges {
+  totalChanges: Int!
+  modifiedFields: [String!]!
+  fieldDetails: JSON!
+}
+
+"""
+Impact analysis for changes.
+"""
+type ImpactAnalysis {
+  businessImpact: String!
+  affectedUsersCount: Int!
+  riskLevel: String!
+}
+
+"""
+Version range for change analysis.
+"""
+type VersionRange {
+  fromVersion: Int!
+  toVersion: Int!
+  totalVersions: Int!
+}
+
+"""
+Changes summary with key metrics.
+"""
+type ChangesSummary {
+  operationSummary: String!
+  totalChanges: Int!
+  keyChanges: [String!]!
+}
+
+"""
+Trend analysis over time.
+"""
+type TrendAnalysis {
+  changeFrequency: Float!
+  stabilityScore: Float!
+  riskTrend: String!
+}
+
+"""
+Impact assessment results.
+"""
+type ImpactAssessment {
+  overallImpact: String!
+  affectedSystems: [String!]!
+  mitigationRequired: Boolean!
+}
+
+"""
+Date range specification.
+"""
+type DateRange {
+  earliest: DateTime!
+  latest: DateTime!
+}
+
+"""
+Operations summary statistics.
+"""
+type OperationsSummary {
+  create: Int!
+  update: Int!
+  suspend: Int!
+  reactivate: Int!
+  delete: Int!
+}
+
+"""
+Consistency check findings with detailed issues.
+"""
+type ConsistencyFindings {
+  pathMismatches: [PathMismatch!]!
+  levelInconsistencies: [LevelInconsistency!]!
+  orphanedNodes: [OrphanedNode!]!
+  circularReferences: [CircularReference!]!
+  depthViolations: [DepthViolation!]!
+  cacheInconsistencies: [CacheInconsistency!]!
+}
+
+"""
+Path mismatch detection result.
+"""
+type PathMismatch {
+  code: String!
+  expectedCodePath: String!
+  actualCodePath: String!
+  expectedNamePath: String!
+  actualNamePath: String!
+  severity: String!
+}
+
+"""
+Level inconsistency detection result.
+"""
+type LevelInconsistency {
+  code: String!
+  expectedLevel: Int!
+  actualLevel: Int!
+  parentCode: String!
+  reason: String!
+}
+
+"""
+Orphaned node detection result.
+"""
+type OrphanedNode {
+  code: String!
+  name: String!
+  parentCode: String!
+  reason: String!
+}
+
+"""
+Circular reference detection result.
+"""
+type CircularReference {
+  affectedCodes: [String!]!
+  circularPath: [String!]!
+  severity: String!
+}
+
+"""
+Depth violation detection result.
+"""
+type DepthViolation {
+  code: String!
+  currentDepth: Int!
+  maxAllowedDepth: Int!
+  parentChain: [String!]!
+}
+
+"""
+Cache inconsistency detection result.
+"""
+type CacheInconsistency {
+  code: String!
+  fieldName: String!
+  cachedValue: String!
+  calculatedValue: String!
+  impactLevel: String!
+}
+
+"""
+Repair suggestion with automation capability.
+"""
+type RepairSuggestion {
+  issueType: String!
+  affectedCodes: [String!]!
+  suggestedAction: String!
+  automatable: Boolean!
+  riskLevel: String!
+}
+
+# Input Types
+
+"""
+Comprehensive filter for organization queries with temporal support.
+"""
+input OrganizationFilter {
+  # Temporal Filtering
+  asOfDate: Date
+  includeFuture: Boolean = false
+  onlyFuture: Boolean = false
+  
+  # Business Filtering
+  unitType: UnitType
+  status: Status
+  parentCode: String
+  codes: [String!]
+  
+  # Hierarchy Filtering
+  level: Int
+  minLevel: Int
+  maxLevel: Int
+  rootsOnly: Boolean = false
+  leavesOnly: Boolean = false
+  
+  # Text Search
+  searchText: String
+  searchFields: [SearchField!] = [NAME, DESCRIPTION]
+  
+  # Advanced Filtering
+  hasChildren: Boolean
+  hasProfile: Boolean
+  profileContains: JSON
+  
+  # Audit Filtering
+  operationType: OperationType
+  operatedBy: UUID
+  operationDateRange: DateRangeInput
+}
+
+"""
+Pagination configuration for result sets.
+"""
+input PaginationInput {
+  page: Int = 1
+  pageSize: Int = 50  # Max 1000
+  sortBy: SortField = CODE
+  sortOrder: SortOrder = ASC
+}
+
+"""
+Date range input for filtering.
+"""
+input DateRangeInput {
+  from: Date
+  to: Date
+}
+
+# Enums
+
+"""
+Organization unit types with specific business semantics.
+"""
+enum UnitType {
+  DEPARTMENT      # Regular business department
+  ORGANIZATION_UNIT  # Generic organizational unit
+  COMPANY        # Legal entity company
+  PROJECT_TEAM   # Temporary project team
+}
+
+"""
+Organization business status.
+"""
+enum Status {
+  ACTIVE         # Actively operating unit
+  INACTIVE       # Non-active but existing unit
+}
+
+"""
+Operation types for audit and temporal tracking.
+"""
+enum OperationType {
+  CREATE         # New organization creation
+  UPDATE         # Data modification (PUT/PATCH)
+  SUSPEND        # Suspension operation
+  REACTIVATE     # Reactivation operation
+  DELETE         # Deletion operation
+}
+
+"""
+Analysis depth for change analysis queries.
+"""
+enum AnalysisType {
+  SUMMARY        # High-level summary
+  DETAILED       # Detailed field-by-field analysis
+}
+
+"""
+Consistency check modes with different performance characteristics.
+"""
+enum ConsistencyCheckMode {
+  FAST          # Cache field consistency only (< 5s)
+  DEEP          # Full recursive validation (30s-5min)
+  TARGETED      # Specific area focus (< 30s)
+}
+
+"""
+Search fields for text-based filtering.
+"""
+enum SearchField {
+  NAME
+  DESCRIPTION
+  CODE_PATH
+  NAME_PATH
+}
+
+"""
+Sorting field options.
+"""
+enum SortField {
+  CODE
+  NAME
+  CREATED_AT
+  UPDATED_AT
+  EFFECTIVE_DATE
+  LEVEL
+  SORT_ORDER
+}
+
+"""
+Sorting order options.
+"""
+enum SortOrder {
+  ASC
+  DESC
+}
+
+# Scalar Types
+
+"""
+Date scalar for date-only values (YYYY-MM-DD format).
+"""
+scalar Date
+
+"""
+DateTime scalar for timestamp values (ISO 8601 format).
+"""
+scalar DateTime
+
+"""
+UUID scalar for universally unique identifiers.
+"""
+scalar UUID
+
+"""
+JSON scalar for arbitrary JSON data structures.
+"""
+scalar JSON
+
+# Schema Directives and Documentation
+
+"""
+This schema represents the complete query interface for the Organization Units Management system.
+It follows GraphQL best practices and provides comprehensive temporal data access with
+performance optimization through specialized PostgreSQL indexes.
+
+Key Features:
+- Temporal queries with asOfDate parameter for historical data access
+- Comprehensive hierarchy management with 17-level depth support
+- Complete audit trail with cross-version change analysis
+- Performance-optimized with response times < 200ms for most queries
+- Multi-tenant security with permission-based access control
+
+Authentication:
+All queries require OAuth 2.0 Bearer token with appropriate permissions.
+Refer to the API documentation for detailed permission requirements.
+
+Performance Guidelines:
+- Use pagination for large result sets (default pageSize: 50, max: 1000)
+- Leverage temporal filtering to reduce query scope
+- Use specific field selection to minimize response payload
+- Consider using organizationSubtree only for multi-level hierarchies (depth >= 2)
+"""
+
+# Schema Metadata
+schema {
+  query: Query
+}
