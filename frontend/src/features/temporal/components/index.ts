@@ -33,13 +33,13 @@ export {
   useTemporalQueryState,
   useTemporalPreloader,
   useTemporalUtils
-} from '../../shared/hooks/useTemporalQuery';
+} from '../../../shared/hooks/useTemporalQuery';
 
 export {
   useTemporalStore,
   useTemporalActions,
   temporalSelectors
-} from '../../shared/stores/temporalStore';
+} from '../../../shared/stores/temporalStore';
 
 // 重新导出类型定义
 export type {
@@ -52,4 +52,4 @@ export type {
   EventStatus,
   TemporalContext,
   TimelineViewConfig
-} from '../../shared/types/temporal';
+} from '../../../shared/types/temporal';

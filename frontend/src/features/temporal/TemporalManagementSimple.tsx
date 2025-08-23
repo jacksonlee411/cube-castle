@@ -301,7 +301,6 @@ export const TemporalManagementSimple: React.FC = () => {
             <Text fontSize="small">• 更新时间: {new Date().toLocaleString('zh-CN')}</Text>
           </Box>
         </Box>
-        </Box>
       </Card>
     </Box>
   );
