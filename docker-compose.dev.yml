@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库 - 唯一数据源
+  postgres:
+    image: postgres:15-alpine
+    container_name: cubecastle-postgres
+    environment:
+      POSTGRES_DB: cubecastle
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d cubecastle"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: cubecastle-redis
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # GraphQL查询服务 (端口8090)
+  graphql-service:
+    build:
+      context: .
+      dockerfile: cmd/organization-query-service-unified/Dockerfile
+    container_name: cubecastle-graphql
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/cubecastle?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=""
+      - PORT=8090
+      - GIN_MODE=debug
+    ports:
+      - "8090:8090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles: ["services"]
+
+  # REST命令服务 (端口9090)
+  rest-service:
+    build:
+      context: .
+      dockerfile: cmd/organization-command-service/Dockerfile
+    container_name: cubecastle-rest
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/cubecastle?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=""
+      - PORT=9090
+      - GIN_MODE=debug
+    ports:
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles: ["services"]
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: cubecastle-network

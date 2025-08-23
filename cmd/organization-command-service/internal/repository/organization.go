@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cube-castle/cmd/organization-command-service-simplified/internal/types"
+	"organization-command-service/internal/types"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )

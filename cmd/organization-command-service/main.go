@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cube-castle/cmd/organization-command-service-simplified/internal/handlers"
-	"github.com/cube-castle/cmd/organization-command-service-simplified/internal/repository"
+	"organization-command-service/internal/handlers"
+	"organization-command-service/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"

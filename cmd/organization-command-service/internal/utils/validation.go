@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cube-castle/cmd/organization-command-service-simplified/internal/types"
+	"organization-command-service/internal/types"
 )
 
 // ValidateCreateOrganization 验证创建组织请求

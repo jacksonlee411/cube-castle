@@ -1,4 +1,4 @@
-module github.com/cube-castle/cmd/organization-command-service-simplified
+module organization-command-service
 
 go 1.23.12
 

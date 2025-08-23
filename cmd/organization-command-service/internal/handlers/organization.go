@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cube-castle/cmd/organization-command-service-simplified/internal/repository"
-	"github.com/cube-castle/cmd/organization-command-service-simplified/internal/types"
-	"github.com/cube-castle/cmd/organization-command-service-simplified/internal/utils"
+	"organization-command-service/internal/repository"
+	"organization-command-service/internal/types"
+	"organization-command-service/internal/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
