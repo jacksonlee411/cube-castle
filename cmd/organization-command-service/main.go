@@ -11,10 +11,15 @@ import (
 	"syscall"
 	"time"
 
+	"organization-command-service/internal/audit"
 	"organization-command-service/internal/handlers"
+	"organization-command-service/internal/metrics"
+	"organization-command-service/internal/middleware"
 	"organization-command-service/internal/repository"
+	"organization-command-service/internal/services"
+	"organization-command-service/internal/validators"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	_ "github.com/lib/pq"
 )
@@ -42,17 +47,34 @@ func main() {
 
 	logger.Println("✅ 数据库连接成功")
 
-	// 初始化仓储和处理器
+	// 初始化仓储层
 	orgRepo := repository.NewOrganizationRepository(db, logger)
-	orgHandler := handlers.NewOrganizationHandler(orgRepo, logger)
+	hierarchyRepo := repository.NewHierarchyRepository(db, logger)
+
+	// 初始化业务服务层
+	cascadeService := services.NewCascadeUpdateService(hierarchyRepo, 4, logger)
+	_ = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger) // 业务规则验证器 - 后续版本使用
+	auditLogger := audit.NewAuditLogger(db, logger)
+	metricsCollector := metrics.NewMetricsCollector(logger)
+
+	// 启动级联更新服务
+	cascadeService.Start()
+	logger.Println("✅ 级联更新服务已启动")
+	logger.Println("✅ 结构化审计日志系统已初始化")
+	logger.Println("✅ Prometheus指标收集系统已初始化")
+
+	// 初始化处理器
+	orgHandler := handlers.NewOrganizationHandler(orgRepo, auditLogger, logger)
 
 	// 设置路由
 	r := chi.NewRouter()
 
 	// 中间件
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(middleware.RequestIDMiddleware)  // 请求追踪中间件 
+	r.Use(metricsCollector.GetMetricsMiddleware()) // Prometheus指标中间件
+	r.Use(chi_middleware.Logger)
+	r.Use(chi_middleware.Recoverer)
+	r.Use(chi_middleware.Timeout(30 * time.Second))
 
 	// CORS设置
 	r.Use(cors.Handler(cors.Options{
@@ -69,6 +91,10 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status": "healthy", "service": "organization-command-service", "timestamp": "%s"}`, time.Now().Format(time.RFC3339))
 	})
+
+	// Prometheus指标端点
+	r.Handle("/metrics", metricsCollector.GetHandler())
+	logger.Println("📊 Prometheus指标端点: http://localhost:9090/metrics")
 
 	// 设置组织相关路由
 	orgHandler.SetupRoutes(r)
@@ -98,6 +124,10 @@ func main() {
 	<-quit
 
 	logger.Println("🛑 正在关闭服务...")
+
+	// 停止级联更新服务
+	cascadeService.Stop()
+	logger.Println("✅ 级联更新服务已停止")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

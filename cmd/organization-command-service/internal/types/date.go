@@ -87,3 +87,8 @@ func (d *Date) String() string {
 	}
 	return d.Format("2006-01-02")
 }
+
+// NewDateFromTime 从time.Time创建Date
+func NewDateFromTime(t time.Time) *Date {
+	return &Date{t}
+}

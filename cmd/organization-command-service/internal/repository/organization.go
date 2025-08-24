@@ -339,7 +339,7 @@ func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID
 	return &org, nil
 }
 
-func (r *OrganizationRepository) Reactivate(ctx context.Context, tenantID uuid.UUID, code string, reason string) (*types.Organization, error) {
+func (r *OrganizationRepository) Activate(ctx context.Context, tenantID uuid.UUID, code string, reason string) (*types.Organization, error) {
 	query := `
 		UPDATE organization_units 
 		SET status = 'ACTIVE', updated_at = $3
