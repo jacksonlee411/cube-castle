@@ -1,4 +1,5 @@
 import { APIError } from '../types/api';
+import { authManager } from './auth';
 
 const API_BASE_URL = 'http://localhost:9090/api/v1';
 
@@ -23,9 +24,13 @@ export class ApiClient {
     try {
       console.log(`[API] ${options.method || 'GET'} ${url}`, options.body ? JSON.parse(options.body as string) : '');
       
+      // 获取OAuth访问令牌
+      const accessToken = await authManager.getAccessToken();
+      
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
           'X-Tenant-ID': this.tenantID,
           ...options.headers,
         },

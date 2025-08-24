@@ -23,27 +23,14 @@ func NewOrganizationRepository(db *sql.DB, logger *log.Logger) *OrganizationRepo
 }
 
 func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid.UUID) (string, error) {
-	// 获取当前最大的数字代码
-	query := `
-		SELECT COALESCE(MAX(CAST(code AS INTEGER)), 1000000) as max_code
-		FROM organization_units 
-		WHERE tenant_id = $1 AND code ~ '^[0-9]{7}$'
-	`
-
-	var maxCode int
-	err := r.db.QueryRowContext(ctx, query, tenantID.String()).Scan(&maxCode)
-	if err != nil {
-		return "", fmt.Errorf("获取最大组织代码失败: %w", err)
-	}
-
-	// 从最大值+1开始，寻找可用的代码
-	for nextCode := maxCode + 1; nextCode <= maxCode + 100; nextCode++ {
+	// 从1000000开始寻找第一个可用的7位数代码 - 修复：直接搜索而非依赖MAX
+	for nextCode := 1000000; nextCode <= 9999999; nextCode++ {
 		candidateCode := fmt.Sprintf("%07d", nextCode)
 		
 		// 检查代码是否已存在
 		var exists bool
 		checkQuery := `SELECT EXISTS(SELECT 1 FROM organization_units WHERE tenant_id = $1 AND code = $2)`
-		err = r.db.QueryRowContext(ctx, checkQuery, tenantID.String(), candidateCode).Scan(&exists)
+		err := r.db.QueryRowContext(ctx, checkQuery, tenantID.String(), candidateCode).Scan(&exists)
 		if err != nil {
 			return "", fmt.Errorf("检查代码唯一性失败: %w", err)
 		}
@@ -53,7 +40,7 @@ func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid
 		}
 	}
 	
-	return "", fmt.Errorf("生成唯一组织代码失败：尝试100次后仍未找到可用代码")
+	return "", fmt.Errorf("生成唯一组织代码失败：7位数编码已用尽")
 }
 
 func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organization) (*types.Organization, error) {

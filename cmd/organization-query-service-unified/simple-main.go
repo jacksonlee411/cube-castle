@@ -274,35 +274,98 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 
 // handleGraphQLQuery 处理GraphQL查询
 func handleGraphQLQuery(query string, variables map[string]interface{}) map[string]interface{} {
-	// 更精确的查询路由
-	switch {
-	case strings.Contains(query, "organizationStats"):
-		return handleOrganizationStatsQuery()
-	case strings.Contains(query, "organizationHierarchy"):
+	// 构建响应数据映射
+	response := map[string]interface{}{
+		"data": map[string]interface{}{},
+	}
+	
+	// 检查查询包含的字段并相应处理
+	hasOrganizations := strings.Contains(query, "organizations(")
+	hasOrganizationStats := strings.Contains(query, "organizationStats")
+	hasSingleOrg := strings.Contains(query, "organization(") && !strings.Contains(query, "organizations(")
+	hasHierarchy := strings.Contains(query, "organizationHierarchy")
+	hasSubtree := strings.Contains(query, "organizationSubtree")
+	hasAuditHistory := strings.Contains(query, "organizationAuditHistory")
+	hasChangeAnalysis := strings.Contains(query, "organizationChangeAnalysis")
+	hasHierarchyStats := strings.Contains(query, "hierarchyStatistics")
+	hasConsistencyCheck := strings.Contains(query, "hierarchyConsistencyCheck")
+	hasAuditLog := strings.Contains(query, "auditLog")
+	
+	// 处理组织列表查询
+	if hasOrganizations {
+		orgResponse := handleOrganizationsQuery(variables)
+		if orgData, ok := orgResponse["data"].(map[string]interface{}); ok {
+			if orgField, ok := orgData["organizations"]; ok {
+				response["data"].(map[string]interface{})["organizations"] = orgField
+			}
+		}
+		if errors, ok := orgResponse["errors"]; ok {
+			response["errors"] = errors
+			return response
+		}
+	}
+	
+	// 处理组织统计查询
+	if hasOrganizationStats {
+		statsResponse := handleOrganizationStatsQuery()
+		if statsData, ok := statsResponse["data"].(map[string]interface{}); ok {
+			if statsField, ok := statsData["organizationStats"]; ok {
+				response["data"].(map[string]interface{})["organizationStats"] = statsField
+			}
+		}
+		if errors, ok := statsResponse["errors"]; ok {
+			response["errors"] = errors
+			return response
+		}
+	}
+	
+	// 处理单个组织查询
+	if hasSingleOrg {
+		orgResponse := handleOrganizationQuery(variables)
+		if orgData, ok := orgResponse["data"].(map[string]interface{}); ok {
+			if orgField, ok := orgData["organization"]; ok {
+				response["data"].(map[string]interface{})["organization"] = orgField
+			}
+		}
+		if errors, ok := orgResponse["errors"]; ok {
+			response["errors"] = errors
+			return response
+		}
+	}
+	
+	// 处理其他查询类型
+	if hasHierarchy {
 		return handleOrganizationHierarchyQuery(variables)
-	case strings.Contains(query, "organizationSubtree"):
+	}
+	if hasSubtree {
 		return handleOrganizationSubtreeQuery(variables)
-	case strings.Contains(query, "organizationAuditHistory"):
+	}
+	if hasAuditHistory {
 		return handleAuditHistoryQuery(variables)
-	case strings.Contains(query, "organizationChangeAnalysis"):
+	}
+	if hasChangeAnalysis {
 		return handleChangeAnalysisQuery(variables)
-	case strings.Contains(query, "hierarchyStatistics"):
+	}
+	if hasHierarchyStats {
 		return handleHierarchyStatisticsQuery()
-	case strings.Contains(query, "hierarchyConsistencyCheck"):
+	}
+	if hasConsistencyCheck {
 		return handleConsistencyCheckQuery()
-	case strings.Contains(query, "auditLog"):
+	}
+	if hasAuditLog {
 		return handleAuditLogQuery(variables)
-	case strings.Contains(query, "organization(") && !strings.Contains(query, "organizations("):
-		return handleOrganizationQuery(variables)
-	case strings.Contains(query, "organizations"):
-		return handleOrganizationsQuery(variables)
-	default:
+	}
+	
+	// 如果没有匹配的查询字段，返回错误
+	if len(response["data"].(map[string]interface{})) == 0 {
 		return map[string]interface{}{
 			"errors": []map[string]interface{}{{
 				"message": fmt.Sprintf("Unsupported GraphQL query: %s", query),
 			}},
 		}
 	}
+	
+	return response
 }
 
 // handleOrganizationsQuery 处理组织列表查询
@@ -615,30 +678,29 @@ func main() {
 			return
 		}
 
-		// 简化的GraphQL响应，支持认证后查询
-		response := map[string]interface{}{
-			"data": map[string]interface{}{
-				"organizations": map[string]interface{}{
-					"data": []*Organization{{
-						Code:     "1000000",
-						Name:     "高谷集团",
-						UnitType: "COMPANY",
-						Status:   "ACTIVE",
-						Level:    1,
-					}},
-					"totalCount": 1,
-					"hasMore":    false,
-				},
-				"organizationStats": &OrganizationStats{
-					TotalCount:      1,
-					ActiveCount:     1,
-					InactiveCount:   0,
-					DepartmentCount: 0,
-					CompanyCount:    1,
-					ProjectCount:    0,
-				},
-			},
+		// 解析GraphQL查询
+		if r.Method != "POST" {
+			http.Error(w, "GraphQL只支持POST请求", http.StatusMethodNotAllowed)
+			return
 		}
+
+		var req struct {
+			Query     string                 `json:"query"`
+			Variables map[string]interface{} `json:"variables"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"errors": []map[string]interface{}{{
+					"message": fmt.Sprintf("Invalid JSON body: %v", err),
+				}},
+			})
+			return
+		}
+
+		// 处理GraphQL查询
+		response := handleGraphQLQuery(req.Query, req.Variables)
 		json.NewEncoder(w).Encode(response)
 	})
 

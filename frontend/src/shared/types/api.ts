@@ -1,17 +1,26 @@
+// 企业级信封响应结构 - 符合API一致性规范11.1
 export interface APIResponse<T> {
-  data: T;
-  status: 'success' | 'error';
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
   message?: string;
-  trace_id?: string;
+  timestamp: string;
+  requestId?: string;
 }
 
+// 分页响应结构 - 使用camelCase命名
 export interface PaginatedResponse<T> {
   items: T[];
-  total_count: number;
+  totalCount: number;
   page: number;
-  page_size: number;
-  has_next: boolean;
-  has_prev: boolean;
+  pageSize: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 }
 
 // GraphQL specific types with strict typing

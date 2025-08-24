@@ -6,14 +6,6 @@ import type {
   OrganizationQueryParams
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
-
-// GraphQL统计响应接口
-interface GraphQLStatsResponse {
-  totalCount: number;
-  byType?: Array<{ unitType: string; count: number }>;
-  byStatus?: Array<{ status: string; count: number }>;
-  byLevel?: Array<{ level: number; count: number }>;
-}
 import type { 
   TemporalQueryParams,
   TemporalOrganizationUnit,
@@ -27,16 +19,29 @@ import {
   SimpleValidationError,
   formatValidationErrors
 } from '../validation/simple-validation';
+import { authManager } from './auth';
+
+// GraphQL统计响应接口
+interface GraphQLStatsResponse {
+  totalCount: number;
+  byType?: Array<{ unitType: string; count: number }>;
+  byStatus?: Array<{ status: string; count: number }>;
+  byLevel?: Array<{ level: number; count: number }>;
+}
 
 // GraphQL客户端 - 使用正确的端口8090
-const GRAPHQL_ENDPOINT = '/graphql';
+const GRAPHQL_ENDPOINT = 'http://localhost:8090/graphql';
 
 const graphqlClient = {
   async request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+    // 获取OAuth访问令牌
+    const accessToken = await authManager.getAccessToken();
+    
     const response = await fetch(GRAPHQL_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         query,
@@ -63,15 +68,19 @@ const graphqlClient = {
 };
 
 // REST API客户端 - 使用命令服务端口9090
-const REST_ENDPOINT = '/api/v1';
+const REST_ENDPOINT = 'http://localhost:9090/api/v1';
 
 const restClient = {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    // 获取OAuth访问令牌
+    const accessToken = await authManager.getAccessToken();
+    
     const url = `${REST_ENDPOINT}${endpoint}`;
     
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
         'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
         ...options.headers,
       },
@@ -201,12 +210,18 @@ export const organizationAPI = {
       }
 
       const data = await graphqlClient.request<{
-        organizations: Partial<OrganizationUnit>[];
-        organizationStats: { totalCount: number };
+        organizations: {
+          data: Partial<OrganizationUnit>[];
+          totalCount: number;
+          hasMore: boolean;
+        };
+        organizationStats?: {
+          totalCount: number;
+        };
       }>(graphqlQuery, variables);
 
-      // 简化的数据转换 - 无需复杂的Zod验证
-      const organizations = data.organizations.map((org: Partial<OrganizationUnit>) => {
+      // 简化的数据转换 - 使用正确的响应结构
+      const organizations = data.organizations.data.map((org: Partial<OrganizationUnit>) => {
         try {
           return safeTransform.graphqlToOrganization ? 
             safeTransform.graphqlToOrganization(org) : 
@@ -217,16 +232,15 @@ export const organizationAPI = {
         }
       }).filter(Boolean);
 
-      // 🔧 修复: 区分全局总数和筛选结果总数
-      const isFiltered = !!(params?.searchText || params?.unitType || params?.status || params?.level || params?.temporalParams);
-      const filteredTotalCount = isFiltered ? organizations.length : data.organizationStats.totalCount;
+      // 🔧 修复: 使用正确的总数来源
+      const totalCount = data.organizations.totalCount;
       
       return {
         organizations: organizations.filter((org): org is OrganizationUnit => org !== null),
-        total_count: filteredTotalCount,
+        totalCount: totalCount,
         page: params?.page || 1,
-        page_size: organizations.length,
-        total_pages: Math.ceil(filteredTotalCount / (params?.pageSize || 50))
+        pageSize: organizations.length,
+        totalPages: Math.ceil(totalCount / (params?.pageSize || 50))
       };
 
     } catch (error) {
@@ -350,44 +364,41 @@ export const organizationAPI = {
     try {
       const graphqlQuery = `
         query GetOrganizationStats {
-          organizationStats {
+          organizations(first: 1000) {
             totalCount
-            byType {
+            data {
               unitType
-              count
-            }
-            byStatus {
               status
-              count
-            }
-            byLevel {
-              level
-              count
             }
           }
         }
       `;
 
       const data = await graphqlClient.request<{
-        organizationStats: GraphQLStatsResponse;
+        organizations: {
+          totalCount: number;
+          data: Array<{ unitType: string; status: string }>;
+        };
       }>(graphqlQuery);
 
-      const stats = data.organizationStats;
-      if (!stats) {
+      const organizations = data.organizations;
+      if (!organizations) {
         throw new Error('No statistics data returned');
       }
 
-      // 简化的数据转换
+      // 计算统计信息
+      const byType: Record<string, number> = {};
+      const byStatus: Record<string, number> = {};
+      
+      organizations.data.forEach(org => {
+        byType[org.unitType] = (byType[org.unitType] || 0) + 1;
+        byStatus[org.status] = (byStatus[org.status] || 0) + 1;
+      });
+
       return {
-        total_count: stats.totalCount || 0,
-        by_type: stats.byType?.reduce((acc: Record<string, number>, item: { unitType: string; count: number }) => {
-          acc[item.unitType] = item.count;
-          return acc;
-        }, {}) || {},
-        by_status: stats.byStatus?.reduce((acc: Record<string, number>, item: { status: string; count: number }) => {
-          acc[item.status] = item.count;
-          return acc;
-        }, {}) || {}
+        totalCount: organizations.totalCount,
+        byType,
+        byStatus
       };
 
     } catch (error) {

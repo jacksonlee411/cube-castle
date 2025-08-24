@@ -10,9 +10,16 @@ import type {
   TemporalOrganizationUnit,
   TimelineEvent
 } from '../types/temporal';
+import { 
+  convertGraphQLToTemporalOrganizationUnit,
+  type GraphQLOrganizationData,
+  logTypeSyncReport,
+  TEMPORAL_ORGANIZATION_UNIT_FIELDS
+} from '../types/converters';
+import { authManager } from './auth';
 
-// GraphQL端点 - 直接路由到标准GraphQL服务（8090端口）
-const TEMPORAL_GRAPHQL_ENDPOINT = '/graphql';
+// GraphQL端点 - CQRS查询服务（8090端口）
+const TEMPORAL_GRAPHQL_ENDPOINT = 'http://localhost:8090/graphql';
 
 interface TemporalGraphQLClient {
   request<T>(query: string, variables?: Record<string, unknown>): Promise<T>;
@@ -20,10 +27,14 @@ interface TemporalGraphQLClient {
 
 const temporalGraphQLClient: TemporalGraphQLClient = {
   async request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+    // 获取OAuth访问令牌
+    const accessToken = await authManager.getAccessToken();
+    
     const response = await fetch(TEMPORAL_GRAPHQL_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         query,
@@ -158,51 +169,8 @@ const TEMPORAL_QUERIES = {
   `
 };
 
-// GraphQL响应数据的类型（部分字段可能缺失）
-interface GraphQLOrganizationData {
-  tenantId?: string;
-  code?: string;
-  parentCode?: string;
-  name?: string;
-  unitType?: string;
-  status?: string;
-  level?: number;
-  path?: string;
-  sortOrder?: number;
-  description?: string;
-  profile?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  effectiveDate?: string;
-  endDate?: string;
-  isTemporal?: boolean;
-  version?: number;
-  changeReason?: string;
-  isCurrent?: boolean;
-}
-
-// 时态数据转换器
-function transformToTemporalOrganization(data: GraphQLOrganizationData): TemporalOrganizationUnit {
-  return {
-    code: data.code || '',
-    parent_code: data.parentCode || '',
-    name: data.name || '',
-    unit_type: (data.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM') || 'DEPARTMENT',
-    status: (data.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED') || 'ACTIVE',
-    level: data.level || 1,
-    path: data.path || '',
-    sort_order: data.sortOrder || 0,
-    description: data.description || '',
-    created_at: data.createdAt || '',
-    updated_at: data.updatedAt || '',
-    effective_date: data.effectiveDate || '',
-    end_date: data.endDate || undefined,
-    is_current: data.isCurrent ?? true,
-    change_reason: data.changeReason || undefined,
-    approved_by: undefined, // GraphQL中暂无此字段
-    approved_at: undefined  // GraphQL中暂无此字段
-  };
-}
+// 使用统一的类型转换器 - 已移动到converters.ts
+// 时态数据转换器现在使用标准化的convertGraphQLToTemporalOrganizationUnit函数
 
 // 时态API客户端
 export const temporalAPI = {
@@ -228,7 +196,16 @@ export const temporalAPI = {
         return null;
       }
 
-      return transformToTemporalOrganization(data.organizationAsOfDate);
+      // 开发期间类型同步检查
+      if (process.env.NODE_ENV === 'development') {
+        logTypeSyncReport(
+          'organizationAsOfDate',
+          data.organizationAsOfDate,
+          TEMPORAL_ORGANIZATION_UNIT_FIELDS
+        );
+      }
+
+      return convertGraphQLToTemporalOrganizationUnit(data.organizationAsOfDate);
     } catch (error) {
       console.error(`时间点查询失败 [code=${code}, asOfDate=${asOfDate}]:`, error);
       throw new Error(`无法查询指定时间点的组织数据: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -260,7 +237,16 @@ export const temporalAPI = {
         { code, fromDate, toDate }
       );
 
-      return data.organizationHistory.map(transformToTemporalOrganization);
+      // 开发期间类型同步检查（仅检查第一个记录）
+      if (process.env.NODE_ENV === 'development' && data.organizationHistory.length > 0) {
+        logTypeSyncReport(
+          'organizationHistory[0]',
+          data.organizationHistory[0],
+          TEMPORAL_ORGANIZATION_UNIT_FIELDS
+        );
+      }
+
+      return data.organizationHistory.map(convertGraphQLToTemporalOrganizationUnit);
     } catch (error) {
       console.error(`历史查询失败 [code=${code}]:`, error);
       throw new Error(`无法查询组织历史数据: ${error instanceof Error ? error.message : '未知错误'}`);

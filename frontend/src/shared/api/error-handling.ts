@@ -1,5 +1,6 @@
 import React from 'react';
 import { isValidationError, isAPIError, isNetworkError } from './type-guards';
+import { authManager } from './auth';
 
 // API错误接口
 interface APIErrorResponse {
@@ -11,6 +12,19 @@ export interface APIError extends Error {
   status: number;
   statusText: string;
   response?: APIErrorResponse;
+}
+
+// OAuth认证错误类
+export class OAuthError extends Error {
+  public readonly code: string;
+  public readonly status?: number;
+  
+  constructor(message: string, code: string = 'OAUTH_ERROR', status?: number) {
+    super(message);
+    this.name = 'OAuthError';
+    this.code = code;
+    this.status = status;
+  }
 }
 
 // 统一错误处理器
@@ -37,6 +51,11 @@ export class ErrorHandler {
   private static createUserMessage(error: unknown): string {
     if (isValidationError(error)) {
       return '数据验证失败，请检查输入的信息格式是否正确';
+    } else if (isOAuthError(error)) {
+      if (error.status === 401) {
+        return 'OAuth认证失败，正在重新获取访问令牌...';
+      }
+      return 'OAuth认证错误，请联系系统管理员';
     } else if (isAPIError(error)) {
       if (error.status >= 500) {
         return '服务器内部错误，请稍后重试';
@@ -56,8 +75,8 @@ export class ErrorHandler {
     return '发生未知错误，请稍后重试';
   }
   
-  // API调用错误处理
-  static handleAPIError(context: string, error: unknown): never {
+  // API调用错误处理 - 增强OAuth认证错误处理
+  static async handleAPIError(context: string, error: unknown): Promise<never> {
     this.logError(context, error);
     
     if (isValidationError(error)) {
@@ -66,7 +85,31 @@ export class ErrorHandler {
         'VALIDATION_ERROR',
         error
       );
+    } else if (isOAuthError(error)) {
+      // 尝试清除无效的认证状态
+      if (error.status === 401) {
+        console.log('[OAuth] Clearing invalid authentication state...');
+        authManager.clearAuth();
+      }
+      
+      throw new UserFriendlyError(
+        this.createUserMessage(error),
+        'OAUTH_ERROR',
+        error
+      );
     } else if (isAPIError(error)) {
+      // 检查是否是OAuth相关的401错误
+      if (error.status === 401) {
+        console.log('[Auth] API returned 401, clearing auth state...');
+        authManager.clearAuth();
+        
+        throw new UserFriendlyError(
+          'OAuth认证已过期，请刷新页面重新认证',
+          'AUTH_EXPIRED',
+          error
+        );
+      }
+      
       throw new UserFriendlyError(
         this.createUserMessage(error),
         'API_ERROR',
@@ -143,7 +186,12 @@ export const isUserFriendlyError = (error: unknown): error is UserFriendlyError 
   return error instanceof UserFriendlyError;
 };
 
-// 异步操作错误包装器
+// OAuth错误类型守卫
+export const isOAuthError = (error: unknown): error is OAuthError => {
+  return error instanceof OAuthError;
+};
+
+// 异步操作错误包装器 - 更新为支持异步错误处理
 export const withErrorHandling = <T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
   context: string
@@ -152,15 +200,16 @@ export const withErrorHandling = <T extends unknown[], R>(
     try {
       return await fn(...args);
     } catch (error) {
-      ErrorHandler.handleAPIError(context, error);
+      await ErrorHandler.handleAPIError(context, error);
+      throw error; // 这行永远不会执行，但TypeScript需要它
     }
   };
 };
 
-// React Hook 错误处理
+// React Hook 错误处理 - 更新为支持异步
 export const useErrorHandler = () => {
-  const handleError = (context: string) => (error: unknown) => {
-    ErrorHandler.handleAPIError(context, error);
+  const handleError = (context: string) => async (error: unknown) => {
+    await ErrorHandler.handleAPIError(context, error);
   };
   
   const handleFormError = (error: unknown): FormValidationErrors => {
@@ -197,5 +246,56 @@ export const withRetry = <T extends unknown[], R>(
     }
     
     throw lastError;
+  };
+};
+
+// OAuth感知的重试机制 - 专门处理认证过期
+export const withOAuthRetry = <T extends unknown[], R>(
+  fn: (...args: T) => Promise<R>,
+  maxRetries: number = 1
+) => {
+  return async (...args: T): Promise<R> => {
+    let lastError: unknown;
+    
+    for (let i = 0; i <= maxRetries; i++) {
+      try {
+        return await fn(...args);
+      } catch (error) {
+        lastError = error;
+        
+        // 只对401错误重试，并清除认证状态
+        if (isAPIError(error) && error.status === 401 && i < maxRetries) {
+          console.log('[OAuth] API returned 401, clearing auth and retrying...');
+          authManager.clearAuth();
+          
+          // 等待一短暂时间让用户界面更新
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+        
+        // 其他错误或已达到最大重试次数，直接抛出
+        throw error;
+      }
+    }
+    
+    throw lastError;
+  };
+};
+
+// 统一的API客户端包装器 - 结合错误处理和OAuth重试
+export const withOAuthAwareErrorHandling = <T extends unknown[], R>(
+  fn: (...args: T) => Promise<R>,
+  context: string,
+  enableRetry: boolean = true
+) => {
+  const wrappedFn = enableRetry ? withOAuthRetry(fn) : fn;
+  
+  return async (...args: T): Promise<R> => {
+    try {
+      return await wrappedFn(...args);
+    } catch (error) {
+      await ErrorHandler.handleAPIError(context, error);
+      throw error; // 这行永远不会执行，但TypeScript需要它
+    }
   };
 };

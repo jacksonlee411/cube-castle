@@ -34,28 +34,28 @@ export interface ChangeInfo {
   changes?: Record<string, { old: unknown; new: unknown }>;
 }
 
-// 时态组织单元 - 扩展原有OrganizationUnit
+// 时态组织单元 - 扩展原有OrganizationUnit (符合camelCase规范)
 export interface TemporalOrganizationUnit {
   // 基础字段 (继承自OrganizationUnit)
   code: string;
-  parent_code?: string;
+  parentCode?: string;        // camelCase
   name: string;
-  unit_type: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
+  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
   status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
   level: number;
   path: string;
-  sort_order: number;
+  sortOrder: number;          // camelCase
   description?: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;          // camelCase
+  updatedAt: string;          // camelCase
 
   // 时态扩展字段 (纯日期生效模型)
-  effective_date: string;     // 生效日期
-  end_date?: string;          // 结束日期 (可选，undefined表示当前有效)
-  is_current: boolean;        // 是否为当前有效记录
-  change_reason?: string;     // 变更原因
-  approved_by?: string;       // 批准人
-  approved_at?: string;       // 批准时间
+  effectiveDate: string;      // 生效日期 camelCase
+  endDate?: string;           // 结束日期 (可选，undefined表示当前有效) camelCase
+  isCurrent: boolean;         // 是否为当前有效记录 camelCase
+  changeReason?: string;      // 变更原因 camelCase
+  approvedBy?: string;        // 批准人 camelCase
+  approvedAt?: string;        // 批准时间 camelCase
 }
 
 // 组织历史记录列表 (纯日期生效模型)
