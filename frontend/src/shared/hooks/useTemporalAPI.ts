@@ -222,7 +222,7 @@ export function useTemporalQueryStats() {
       totalQueries: temporalQueries.length,
       cachedQueries: temporalQueries.filter(q => q.state.data).length,
       failedQueries: temporalQueries.filter(q => q.state.error).length,
-      loadingQueries: temporalQueries.filter(q => q.state.isLoading).length,
+      loadingQueries: temporalQueries.filter(q => q.state.status === 'pending').length,
     };
   }, [queryClient]);
   

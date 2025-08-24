@@ -13,12 +13,12 @@ import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { timelineAllIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web';
 
-// 组织管理和时态功能导入
+// 组织管理功能导入
 import { OrganizationForm } from './OrganizationForm';
-import { TemporalNavbar } from '../../temporal/components/TemporalNavbar';
+// import { TemporalNavbar } from '../../temporal/components/TemporalNavbar'; // 已删除
 
-// Hooks导入
-import { useTemporalOrganization, useOrganizationHistory, useOrganizationTimeline, useTemporalMode } from '../../../shared/hooks/useTemporalQuery';
+// Hooks导入 - 移除已删除的时态钩子
+// import { useTemporalOrganization, useOrganizationHistory, useOrganizationTimeline, useTemporalMode } from '../../../shared/hooks/useTemporalQuery';
 import { useOrganizationActions } from '../hooks/useOrganizationActions';
 
 // Types导入
@@ -178,32 +178,30 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
     initialTab: activeTab
   });
 
-  // 时态模式管理
-  const { mode: temporalMode, isHistorical } = useTemporalMode();
+  // 临时状态管理 - 替代已删除的时态钩子
+  const [temporalMode] = useState<TemporalMode>('current');
+  const [organization] = useState<OrganizationUnit | null>(null);
+  const [orgLoading] = useState(false);
+  const [orgError] = useState(false);
+  const [orgErrorMessage] = useState<string>('');
+  const isHistorical = temporalMode === 'historical';
+  
+  // 模拟refetch函数
+  const refetchOrganization = useCallback(() => {
+    console.log('Refetch organization - placeholder');
+  }, []);
+  
+  const refetchTimeline = useCallback(() => {
+    console.log('Refetch timeline - placeholder');
+  }, []);
 
-  // 组织数据查询
-  const {
-    data: organization,
-    isLoading: orgLoading,
-    isError: orgError,
-    error: orgErrorMessage,
-    refetch: refetchOrganization
-  } = useTemporalOrganization(organizationCode);
-
-  // 历史版本查询
-  const {
-    data: historyVersions = [],
-    hasHistory
-  } = useOrganizationHistory(organizationCode, { limit: 20 });
-
-  // 时间线事件查询
-  const {
-    isLoading: timelineLoading,
-    hasEvents: hasTimelineEvents,
-    eventCount,
-    latestEvent,
-    refetch: refetchTimeline
-  } = useOrganizationTimeline(organizationCode, { limit: 50 });
+  // 临时历史版本和时间线状态 - 替代已删除的钩子
+  const [historyVersions] = useState<any[]>([]);
+  const [hasHistory] = useState(false);
+  const [timelineLoading] = useState(false);
+  const [hasTimelineEvents] = useState(false);
+  const [eventCount] = useState(0);
+  const [latestEvent] = useState<any>(null);
 
   // 组织操作钩子
   const {
@@ -215,10 +213,10 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
   } = useOrganizationActions();
 
   // 时态模式变更处理
-  const handleTemporalModeChange = useCallback((newMode: TemporalMode) => {
-    console.log(`时态模式切换到: ${newMode}，重新加载组织数据`);
-    refetchOrganization();
-  }, [refetchOrganization]);
+  // const handleTemporalModeChange = useCallback((newMode: TemporalMode) => {
+  //   console.log(`时态模式切换到: ${newMode}，重新加载组织数据`);
+  //   refetchOrganization();
+  // }, [refetchOrganization]);
 
   // 编辑组织处理
   const handleEditOrganization = useCallback(() => {
@@ -264,7 +262,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
             </Text>
           </Flex>
           <Text marginBottom="m">
-            {orgErrorMessage?.message || '无法加载组织信息，请检查组织编码或网络连接'}
+            {orgErrorMessage || '无法加载组织信息，请检查组织编码或网络连接'}
           </Text>
           <Box>
             <PrimaryButton onClick={() => refetchOrganization()} marginRight="s">
@@ -285,10 +283,11 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
     <Box padding="l" data-testid="organization-detail">
       {/* 时态导航栏 */}
       <Box marginBottom="l">
-        <TemporalNavbar
+        {/* <TemporalNavbar
           onModeChange={handleTemporalModeChange}
           showAdvancedSettings={true}
-        />
+        /> */}
+        <Text>时态导航栏组件已移除 - 正在重构中</Text>
       </Box>
 
       {/* 页面头部 */}

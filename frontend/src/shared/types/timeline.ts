@@ -25,7 +25,7 @@ export type TimelineDisplayMode = 'compact' | 'detailed' | 'gantt' | 'calendar';
 export type TimelineZoomLevel = 'year' | 'quarter' | 'month' | 'week' | 'day';
 
 // 时间线分组方式
-export type TimelineGrouping = 'none' | 'event_type' | 'organization' | 'author' | 'status';
+export type TimelineGrouping = 'none' | 'eventType' | 'organization' | 'author' | 'status';
 
 // 时间线筛选器
 export interface TimelineFilter {
@@ -153,7 +153,7 @@ export interface TimelineCorrection {
   previousState: TimelineEvent;
 }
 
-export type CorrectionType = 'timestamp' | 'event_type' | 'rollback' | 'merge' | 'split';
+export type CorrectionType = 'timestamp' | 'eventType' | 'rollback' | 'merge' | 'split';
 
 // 时间线状态管理
 export interface TimelineState {

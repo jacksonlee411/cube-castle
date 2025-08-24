@@ -174,10 +174,10 @@ export const safeTransformCreateInputToAPI = (
   
   const apiPayload: Record<string, unknown> = {
     name: validated.name,
-    unit_type: validated.unit_type,
+    unitType: validated.unitType,
     status: validated.status,
     level: validated.level,
-    sort_order: validated.sort_order,
+    sortOrder: validated.sortOrder,
     description: validated.description,
   };
 
@@ -185,8 +185,8 @@ export const safeTransformCreateInputToAPI = (
   if (validated['code'] !== undefined) {
     apiPayload.code = validated['code'];
   }
-  if (validated['parent_code'] !== undefined && validated['parent_code'] !== '') {
-    apiPayload.parent_code = validated['parent_code'];
+  if (validated['parentCode'] !== undefined && validated['parentCode'] !== '') {
+    apiPayload.parentCode = validated['parentCode'];
   }
 
   return apiPayload;

@@ -50,7 +50,7 @@ export interface OrganizationQueryParams {
 // GraphQL API响应类型定义
 export interface GraphQLOrganizationResponse {
   code: string;
-  record_id?: string;  // UUID唯一标识符
+  recordId?: string;  // UUID唯一标识符
   parentCode?: string;
   name: string;
   unitType: string;

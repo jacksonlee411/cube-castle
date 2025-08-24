@@ -8,6 +8,7 @@ import { Text } from '@workday/canvas-kit-react/text'
 // 懒加载关键页面组件以优化初始加载性能
 const OrganizationDashboard = React.lazy(() => import('./features/organizations/OrganizationDashboard').then(module => ({ default: module.OrganizationDashboard })))
 const OrganizationTemporalPage = React.lazy(() => import('./features/organizations/OrganizationTemporalPage').then(module => ({ default: module.OrganizationTemporalPage })))
+const ContractTestingDashboard = React.lazy(() => import('./features/contract-testing/ContractTestingDashboard').then(module => ({ default: module.ContractTestingDashboard })))
 
 // 优化的加载组件
 const SuspenseLoader: React.FC = () => (
@@ -63,6 +64,16 @@ function App() {
         
         {/* 其他功能模块占位 */}
         <Route path="/dashboard" element={<div>仪表板 - 开发中</div>} />
+        
+        {/* 契约测试监控页面 - 位于组织架构之后 */}
+        <Route 
+          path="/contract-testing" 
+          element={
+            <Suspense fallback={<SuspenseLoader />}>
+              <ContractTestingDashboard />
+            </Suspense>
+          } 
+        />
       </Route>
     </Routes>
   )

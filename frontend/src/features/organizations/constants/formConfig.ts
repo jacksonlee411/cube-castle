@@ -16,10 +16,10 @@ export const ORGANIZATION_LEVELS = {
 } as const;
 
 export const FORM_DEFAULTS = {
-  unit_type: 'DEPARTMENT' as const,
+  unitType: 'DEPARTMENT' as const,
   status: 'ACTIVE' as const,
   level: 1,
-  sort_order: 0,
+  sortOrder: 0,
 } as const;
 
 export const PAGINATION_DEFAULTS = {

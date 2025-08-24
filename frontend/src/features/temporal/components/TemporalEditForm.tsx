@@ -29,24 +29,24 @@ const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): Organi
 
 export interface TemporalEditFormData {
   name: string;
-  unit_type: string;
-  lifecycle_status: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
+  unitType: string;
+  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
   description?: string;
-  effective_date: string;
-  parent_code?: string;
-  change_reason?: string;
-  event_type?: string;
+  effectiveDate: string;
+  parentCode?: string;
+  changeReason?: string;
+  eventType?: string;
 }
 
 export interface TemporalVersion {
   code: string;
   name: string;
-  unit_type: string;
-  lifecycle_status: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
+  unitType: string;
+  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
   description?: string;
-  effective_date: string;
-  parent_code?: string;  // 修复：添加上级组织编码字段
-  change_reason?: string;
+  effectiveDate: string;
+  parentCode?: string;  // 修复：添加上级组织编码字段
+  changeReason?: string;
 }
 
 export interface TemporalEditFormProps {
@@ -82,13 +82,13 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
-    unit_type: 'DEPARTMENT',
-    lifecycle_status: 'PLANNED',
+    unitType: 'DEPARTMENT',
+    lifecycleStatus: 'PLANNED',
     description: '',
-    effective_date: new Date().toISOString().split('T')[0], // 默认今天
-    parent_code: '', // 修复：添加上级组织编码字段
-    change_reason: '',
-    event_type: 'UPDATE'
+    effectiveDate: new Date().toISOString().split('T')[0], // 默认今天
+    parentCode: '', // 修复：添加上级组织编码字段
+    changeReason: '',
+    eventType: 'UPDATE'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -111,13 +111,13 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
       if (mode === 'edit' && initialData) {
         setFormData({
           name: initialData.name,
-          unit_type: initialData.unit_type,
-          lifecycle_status: initialData.lifecycle_status,
+          unitType: initialData.unitType,
+          lifecycleStatus: initialData.lifecycleStatus,
           description: initialData.description || '',
-          effective_date: new Date(initialData.effective_date).toISOString().split('T')[0],
-          parent_code: initialData.parent_code || '', // 修复：添加上级组织编码初始化
-          change_reason: initialData.change_reason || '',
-          event_type: 'UPDATE'
+          effectiveDate: new Date(initialData.effectiveDate).toISOString().split('T')[0],
+          parentCode: initialData.parentCode || '', // 修复：添加上级组织编码初始化
+          changeReason: initialData.changeReason || '',
+          eventType: 'UPDATE'
         });
       } else {
         // 创建模式 - 使用默认值
@@ -125,13 +125,13 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
         tomorrow.setDate(tomorrow.getDate() + 1);
         setFormData({
           name: '',
-          unit_type: 'DEPARTMENT',
-          lifecycle_status: 'PLANNED',
+          unitType: 'DEPARTMENT',
+          lifecycleStatus: 'PLANNED',
           description: '',
-          effective_date: tomorrow.toISOString().split('T')[0], // 默认明天生效
-          parent_code: '', // 修复：添加上级组织编码默认值
-          change_reason: '',
-          event_type: 'RESTRUCTURE'
+          effectiveDate: tomorrow.toISOString().split('T')[0], // 默认明天生效
+          parentCode: '', // 修复：添加上级组织编码默认值
+          changeReason: '',
+          eventType: 'RESTRUCTURE'
         });
       }
       setErrors({});
@@ -157,20 +157,20 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
       newErrors.name = '组织名称是必填项';
     }
     
-    if (!formData.effective_date) {
-      newErrors.effective_date = '生效日期是必填项';
+    if (!formData.effectiveDate) {
+      newErrors.effectiveDate = '生效日期是必填项';
     } else {
-      const effectiveDate = new Date(formData.effective_date);
+      const effectiveDate = new Date(formData.effectiveDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       if (effectiveDate < today) {
-        newErrors.effective_date = '生效日期不能早于今天';
+        newErrors.effectiveDate = '生效日期不能早于今天';
       }
     }
     
-    if (!formData.change_reason?.trim()) {
-      newErrors.change_reason = '变更原因是必填项';
+    if (!formData.changeReason?.trim()) {
+      newErrors.changeReason = '变更原因是必填项';
     }
     
     setErrors(newErrors);
@@ -245,8 +245,8 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
               <FormField.Label>组织类型</FormField.Label>
               <FormField.Field>
                 <select
-                  value={formData.unit_type}
-                  onChange={handleInputChange('unit_type')}
+                  value={formData.unitType}
+                  onChange={handleInputChange('unitType')}
                   disabled={isSubmitting}
                   style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                 >
@@ -263,7 +263,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
               <FormField.Label>组织状态 *</FormField.Label>
               <FormField.Field>
                 <StatusBadge 
-                  status={mapLifecycleStatusToOrganizationStatus(formData.lifecycle_status)} 
+                  status={mapLifecycleStatusToOrganizationStatus(formData.lifecycleStatus)} 
                   size="medium"
                 />
                 <Text typeLevel="subtext.small" color="hint" marginTop="xs">
@@ -293,19 +293,19 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
 
             <FormField
               isRequired
-              error={errors.effective_date ? "error" : undefined}
+              error={errors.effectiveDate ? "error" : undefined}
             >
               <FormField.Label>生效日期</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextInput}
                   type="date"
-                  value={formData.effective_date}
-                  onChange={handleInputChange('effective_date')}
+                  value={formData.effectiveDate}
+                  onChange={handleInputChange('effectiveDate')}
                   disabled={isSubmitting}
                 />
-                {errors.effective_date && (
-                  <FormField.Hint>{errors.effective_date}</FormField.Hint>
+                {errors.effectiveDate && (
+                  <FormField.Hint>{errors.effectiveDate}</FormField.Hint>
                 )}
               </FormField.Field>
             </FormField>
@@ -314,8 +314,8 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
               <FormField.Label>事件类型</FormField.Label>
               <FormField.Field>
                 <select
-                  value={formData.event_type}
-                  onChange={handleInputChange('event_type')}
+                  value={formData.eventType}
+                  onChange={handleInputChange('eventType')}
                   disabled={isSubmitting}
                   style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                 >
@@ -330,20 +330,20 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
 
             <FormField
               isRequired
-              error={errors.change_reason ? "error" : undefined}
+              error={errors.changeReason ? "error" : undefined}
             >
               <FormField.Label>变更原因</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextArea}
-                  value={formData.change_reason}
-                  onChange={handleInputChange('change_reason')}
+                  value={formData.changeReason}
+                  onChange={handleInputChange('changeReason')}
                   placeholder="请说明此次变更的原因"
                   disabled={isSubmitting}
                   rows={2}
                 />
-                {errors.change_reason && (
-                  <FormField.Hint>{errors.change_reason}</FormField.Hint>
+                {errors.changeReason && (
+                  <FormField.Hint>{errors.changeReason}</FormField.Hint>
                 )}
               </FormField.Field>
             </FormField>

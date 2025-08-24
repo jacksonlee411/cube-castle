@@ -4,14 +4,14 @@ import { z } from 'zod';
 export const OrganizationUnitSchema = z.object({
   code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'),
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  unit_type: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
+  unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']),
   level: z.number().int().min(1).max(10),
-  parent_code: z.string().regex(/^\d{7}$/).optional().or(z.literal('')),
-  sort_order: z.number().int().min(0).default(0),
+  parentCode: z.string().regex(/^\d{7}$/).optional().or(z.literal('')),
+  sortOrder: z.number().int().min(0).default(0),
   description: z.string().optional().or(z.literal('')),
-  created_at: z.string().datetime().optional().or(z.literal('')),
-  updated_at: z.string().datetime().optional().or(z.literal('')),
+  createdAt: z.string().datetime().optional().or(z.literal('')),
+  updatedAt: z.string().datetime().optional().or(z.literal('')),
   path: z.string().optional().or(z.literal('')),
 });
 
@@ -19,11 +19,11 @@ export const OrganizationUnitSchema = z.object({
 export const CreateOrganizationInputSchema = z.object({
   code: z.string().regex(/^\d{7}$/).optional(), // 可选，由系统生成
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  unit_type: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
+  unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']).default('ACTIVE'),
   level: z.number().int().min(1).max(10),
-  parent_code: z.string().regex(/^\d{7}$/).optional().or(z.literal('')),
-  sort_order: z.number().int().min(0).default(0),
+  parentCode: z.string().regex(/^\d{7}$/).optional().or(z.literal('')),
+  sortOrder: z.number().int().min(0).default(0),
   description: z.string().optional().or(z.literal('')),
 });
 
@@ -31,10 +31,10 @@ export const CreateOrganizationInputSchema = z.object({
 export const CreateOrganizationResponseSchema = z.object({
   code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'),
   name: z.string(),
-  unit_type: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
+  unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']),
-  created_at: z.string().datetime(),
-  // 注意：后端创建响应不包含这些字段：level, parent_code, sort_order, description, updated_at, path
+  createdAt: z.string().datetime(),
+  // 注意：后端创建响应不包含这些字段：level, parentCode, sortOrder, description, updatedAt, path
 });
 
 // 更新组织单元输入验证模式

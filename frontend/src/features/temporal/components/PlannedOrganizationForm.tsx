@@ -12,11 +12,11 @@ export type UnitType = 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
 
 export interface PlannedOrganizationData {
   name: string;
-  unit_type: UnitType;
+  unitType: UnitType;
   description?: string;
-  effective_date: string;
-  end_date?: string;
-  change_reason: string;
+  effectiveDate: string;
+  endDate?: string;
+  changeReason: string;
   parent_code?: string;
 }
 
@@ -33,10 +33,10 @@ export interface PlannedOrganizationFormProps {
 
 interface FormErrors {
   name?: string;
-  unit_type?: string;
-  effective_date?: string;
-  end_date?: string;
-  change_reason?: string;
+  unitType?: string;
+  effectiveDate?: string;
+  endDate?: string;
+  changeReason?: string;
   general?: string;
 }
 
@@ -49,11 +49,11 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
 }) => {
   const [formData, setFormData] = useState<PlannedOrganizationData>({
     name: '',
-    unit_type: 'DEPARTMENT',
+    unitType: 'DEPARTMENT',
     description: '',
-    effective_date: '',
-    end_date: '',
-    change_reason: '',
+    effectiveDate: '',
+    endDate: '',
+    changeReason: '',
     parent_code: parentOrganization?.code,
   });
 
@@ -75,11 +75,11 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
   const resetForm = useCallback(() => {
     setFormData({
       name: '',
-      unit_type: 'DEPARTMENT',
+      unitType: 'DEPARTMENT',
       description: '',
-      effective_date: '',
-      end_date: '',
-      change_reason: '',
+      effectiveDate: '',
+      endDate: '',
+      changeReason: '',
       parent_code: parentOrganization?.code,
     });
     setErrors({});
@@ -99,35 +99,35 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
     }
 
     // 组织类型验证
-    if (!formData.unit_type) {
-      newErrors.unit_type = '请选择组织类型';
+    if (!formData.unitType) {
+      newErrors.unitType = '请选择组织类型';
     }
 
     // 生效日期验证
-    if (!formData.effective_date) {
-      newErrors.effective_date = '生效日期不能为空';
-    } else if (!validateTemporalDate.isValidDate(formData.effective_date)) {
-      newErrors.effective_date = '请输入有效的日期格式';
-    } else if (!validateTemporalDate.isFutureDate(formData.effective_date)) {
-      newErrors.effective_date = '计划组织的生效日期必须在当前日期之后';
+    if (!formData.effectiveDate) {
+      newErrors.effectiveDate = '生效日期不能为空';
+    } else if (!validateTemporalDate.isValidDate(formData.effectiveDate)) {
+      newErrors.effectiveDate = '请输入有效的日期格式';
+    } else if (!validateTemporalDate.isFutureDate(formData.effectiveDate)) {
+      newErrors.effectiveDate = '计划组织的生效日期必须在当前日期之后';
     }
 
     // 结束日期验证
-    if (formData.end_date) {
-      if (!validateTemporalDate.isValidDate(formData.end_date)) {
-        newErrors.end_date = '请输入有效的日期格式';
-      } else if (formData.effective_date && !validateTemporalDate.isEndDateAfterStartDate(formData.effective_date, formData.end_date)) {
-        newErrors.end_date = '结束日期必须在生效日期之后';
+    if (formData.endDate) {
+      if (!validateTemporalDate.isValidDate(formData.endDate)) {
+        newErrors.endDate = '请输入有效的日期格式';
+      } else if (formData.effectiveDate && !validateTemporalDate.isEndDateAfterStartDate(formData.effectiveDate, formData.endDate)) {
+        newErrors.endDate = '结束日期必须在生效日期之后';
       }
     }
 
     // 变更原因验证
-    if (!formData.change_reason.trim()) {
-      newErrors.change_reason = '变更原因不能为空';
-    } else if (formData.change_reason.length < 5) {
-      newErrors.change_reason = '变更原因至少需要5个字符';
-    } else if (formData.change_reason.length > 500) {
-      newErrors.change_reason = '变更原因不能超过500个字符';
+    if (!formData.changeReason.trim()) {
+      newErrors.changeReason = '变更原因不能为空';
+    } else if (formData.changeReason.length < 5) {
+      newErrors.changeReason = '变更原因至少需要5个字符';
+    } else if (formData.changeReason.length > 500) {
+      newErrors.changeReason = '变更原因不能超过500个字符';
     }
 
     setErrors(newErrors);
@@ -216,8 +216,8 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
               <FormField.Label>组织类型 *</FormField.Label>
               <FormField.Field>
                 <select
-                  value={formData.unit_type}
-                  onChange={(e) => handleFieldChange('unit_type', e.target.value as UnitType)}
+                  value={formData.unitType}
+                  onChange={(e) => handleFieldChange('unitType', e.target.value as UnitType)}
                   style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                 >
                   <option value="DEPARTMENT">部门</option>
@@ -243,9 +243,9 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
 
             <TemporalDatePicker
               label="生效日期"
-              value={formData.effective_date}
-              onChange={(value) => handleFieldChange('effective_date', value)}
-              error={errors.effective_date}
+              value={formData.effectiveDate}
+              onChange={(value) => handleFieldChange('effectiveDate', value)}
+              error={errors.effectiveDate}
               required
               minDate={minDate}
               helperText="计划组织必须设置未来的生效日期"
@@ -253,28 +253,28 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
 
             <TemporalDatePicker
               label="结束日期"
-              value={formData.end_date}
-              onChange={(value) => handleFieldChange('end_date', value)}
-              error={errors.end_date}
-              minDate={formData.effective_date || minDate}
+              value={formData.endDate}
+              onChange={(value) => handleFieldChange('endDate', value)}
+              error={errors.endDate}
+              minDate={formData.effectiveDate || minDate}
               helperText="可选，设置组织的计划结束时间"
             />
 
             <FormField
               isRequired
-              error={errors.change_reason ? "error" : undefined}
+              error={errors.changeReason ? "error" : undefined}
             >
               <FormField.Label>变更原因</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextArea}
-                  value={formData.change_reason}
-                  onChange={(e) => handleFieldChange('change_reason', e.target.value)}
+                  value={formData.changeReason}
+                  onChange={(e) => handleFieldChange('changeReason', e.target.value)}
                   placeholder="例如：业务扩展需要、组织架构调整、新项目启动等"
                   rows={3}
                 />
                 <FormField.Hint>
-                  {errors.change_reason || '请说明创建此计划组织的原因'}
+                  {errors.changeReason || '请说明创建此计划组织的原因'}
                 </FormField.Hint>
               </FormField.Field>
             </FormField>

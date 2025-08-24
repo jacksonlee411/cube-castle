@@ -2,9 +2,9 @@
  * 时态功能模块入口文件
  */
 
-// 主要组件
-export { default as TemporalDashboard } from './TemporalDashboard';
-export type { TemporalDashboardProps } from './TemporalDashboard';
+// 主要组件 - 移除已删除的组件
+// export { default as TemporalDashboard } from './TemporalDashboard'; // 已删除
+// export type { TemporalDashboardProps } from './TemporalDashboard'; // 已删除
 
 // 组织详情组件
 export { TemporalDatePicker, validateTemporalDate } from './components/TemporalDatePicker';

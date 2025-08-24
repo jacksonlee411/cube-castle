@@ -2,14 +2,12 @@ import type {
   OrganizationUnit, 
   OrganizationListResponse, 
   OrganizationStats,
-  GraphQLResponse,
   OrganizationQueryParams
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
 import type { 
   TemporalQueryParams,
-  TemporalOrganizationUnit,
-  TimelineEvent
+  TemporalOrganizationUnit
 } from '../types/temporal';
 import { 
   validateOrganizationBasic,
@@ -19,81 +17,7 @@ import {
   SimpleValidationError,
   formatValidationErrors
 } from '../validation/simple-validation';
-import { authManager } from './auth';
-
-// GraphQL统计响应接口
-interface GraphQLStatsResponse {
-  totalCount: number;
-  byType?: Array<{ unitType: string; count: number }>;
-  byStatus?: Array<{ status: string; count: number }>;
-  byLevel?: Array<{ level: number; count: number }>;
-}
-
-// GraphQL客户端 - 使用正确的端口8090
-const GRAPHQL_ENDPOINT = 'http://localhost:8090/graphql';
-
-const graphqlClient = {
-  async request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
-    // 获取OAuth访问令牌
-    const accessToken = await authManager.getAccessToken();
-    
-    const response = await fetch(GRAPHQL_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        query,
-        variables
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`GraphQL Error: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json() as GraphQLResponse<T>;
-    
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(`GraphQL Error: ${result.errors[0].message}`);
-    }
-
-    if (!result.data) {
-      throw new Error('No data returned from GraphQL');
-    }
-
-    return result.data;
-  }
-};
-
-// REST API客户端 - 使用命令服务端口9090
-const REST_ENDPOINT = 'http://localhost:9090/api/v1';
-
-const restClient = {
-  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    // 获取OAuth访问令牌
-    const accessToken = await authManager.getAccessToken();
-    
-    const url = `${REST_ENDPOINT}${endpoint}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-        'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
-        ...options.headers,
-      },
-      ...options,
-    });
-
-    if (!response.ok) {
-      throw new Error(`REST Error: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-};
+import { unifiedGraphQLClient, unifiedRESTClient } from './unified-client';
 
 // 扩展查询参数以支持时态查询
 interface ExtendedOrganizationQueryParams extends OrganizationQueryParams {
@@ -127,50 +51,67 @@ export const organizationAPI = {
       let graphqlQuery, variables;
       
       if (useTemporalQuery) {
-        // 时态查询版本
+        // 时态查询版本 - 使用真实的organizations查询
         graphqlQuery = `
           query GetOrganizations(
-            $first: Int, 
-            $offset: Int, 
-            $searchText: String,
-            $asOfDate: String,
-            $effectiveFrom: String,
-            $effectiveTo: String,
-            $temporalMode: String
+            $filter: OrganizationFilter,
+            $pagination: PaginationInput
           ) {
-            organizations(
-              first: $first, 
-              offset: $offset, 
-              searchText: $searchText
-            ) {
-              code
-              name
-              unitType
-              status
-              level
-              path
-              sortOrder
-              description
-              parentCode
-              createdAt
-              updatedAt
-              effectiveDate
-              endDate
-              isTemporal
-            }
-            organizationStats {
-              totalCount
+            organizations(filter: $filter, pagination: $pagination) {
+              data {
+                code
+                parentCode
+                tenantId
+                name
+                unitType
+                status
+                isDeleted
+                level
+                hierarchyDepth
+                codePath
+                namePath
+                sortOrder
+                description
+                profile
+                effectiveDate
+                endDate
+                isCurrent
+                isFuture
+                createdAt
+                updatedAt
+                operationType
+                operatedBy {
+                  id
+                  name
+                }
+                operationReason
+                recordId
+              }
+              pagination {
+                total
+                page
+                pageSize
+                hasNext
+                hasPrevious
+              }
+              temporal {
+                asOfDate
+                currentCount
+                futureCount
+                historicalCount
+              }
             }
           }
         `;
         variables = {
-          first: params?.pageSize || 50,
-          offset: ((params?.page || 1) - 1) * (params?.pageSize || 50),
-          searchText: params?.searchText || null,
-          asOfDate: params?.temporalParams?.asOfDate || null,
-          effectiveFrom: params?.temporalParams?.dateRange?.start || null,
-          effectiveTo: params?.temporalParams?.dateRange?.end || null,
-          temporalMode: params?.temporalParams?.mode || 'current'
+          filter: {
+            asOfDate: params?.temporalParams?.asOfDate || null,
+            searchText: params?.searchText || null
+          },
+          pagination: {
+            page: params?.page || 1,
+            pageSize: params?.pageSize || 50
+          }
         };
       } else {
         // 基础查询版本（不含时态参数）- 使用正确的OrganizationConnection结构
@@ -201,7 +142,7 @@ export const organizationAPI = {
         variables = {};
       }
 
-      const data = await graphqlClient.request<{
+      const data = await unifiedGraphQLClient.request<{
         organizations: {
           data: Partial<OrganizationUnit>[];
           pagination: {
@@ -263,40 +204,46 @@ export const organizationAPI = {
       let graphqlQuery, variables;
       
       if (useTemporalQuery) {
-        // 时态查询版本
+        // 时态查询版本 - 使用真实的organization查询
         graphqlQuery = `
           query GetOrganization(
-            $code: String!, 
-            $asOfDate: String,
-            $temporalMode: String
+            $code: String!,
+            $asOfDate: Date
           ) {
-            organization(
-              code: $code, 
-              asOfDate: $asOfDate,
-              temporalMode: $temporalMode
-            ) {
+            organization(code: $code, asOfDate: $asOfDate) {
               code
+              parentCode
+              tenantId
               recordId
               name
               unitType
               status
+              isDeleted
               level
-              path
+              hierarchyDepth
+              codePath
+              namePath
               sortOrder
               description
-              parentCode
-              createdAt
-              updatedAt
+              profile
               effectiveDate
               endDate
-              isTemporal
+              isCurrent
+              isFuture
+              createdAt
+              updatedAt
+              operationType
+              operatedBy {
+                id
+                name
+              }
+              operationReason
             }
           }
         `;
         variables = {
           code,
-          asOfDate: temporalParams?.asOfDate || null,
-          temporalMode: temporalParams?.mode || 'current'
+          asOfDate: temporalParams?.asOfDate || null
         };
       } else {
         // 基础查询版本（不含时态参数）
@@ -321,7 +268,7 @@ export const organizationAPI = {
         variables = { code };
       }
 
-      const data = await graphqlClient.request<{
+      const data = await unifiedGraphQLClient.request<{
         organization: Partial<OrganizationUnit>;
       }>(graphqlQuery, variables);
 
@@ -358,45 +305,73 @@ export const organizationAPI = {
     try {
       const graphqlQuery = `
         query GetOrganizationStats {
-          organizations {
-            data {
+          organizationStats {
+            totalCount
+            activeCount
+            inactiveCount
+            plannedCount
+            deletedCount
+            byType {
               unitType
-              status
+              count
             }
-            pagination {
-              total
+            byStatus {
+              status
+              count
+            }
+            byLevel {
+              level
+              count
+            }
+            temporalStats {
+              totalVersions
+              averageVersionsPerOrg
+              oldestEffectiveDate
+              newestEffectiveDate
             }
           }
         }
       `;
 
-      const data = await graphqlClient.request<{
-        organizations: {
-          data: Array<{ unitType: string; status: string }>;
-          pagination: {
-            total: number;
+      const data = await unifiedGraphQLClient.request<{
+        organizationStats: {
+          totalCount: number;
+          activeCount: number;
+          inactiveCount: number;
+          plannedCount: number;
+          deletedCount: number;
+          byType: Array<{ unitType: string; count: number }>;
+          byStatus: Array<{ status: string; count: number }>;
+          byLevel: Array<{ level: number; count: number }>;
+          temporalStats: {
+            totalVersions: number;
+            averageVersionsPerOrg: number;
+            oldestEffectiveDate: string;
+            newestEffectiveDate: string;
           };
         };
       }>(graphqlQuery);
 
-      const organizations = data.organizations?.data || [];
-      const pagination = data.organizations?.pagination;
+      const stats = data.organizationStats;
       
-      if (!pagination) {
+      if (!stats) {
         throw new Error('No statistics data returned');
       }
 
-      // 计算分类统计信息
+      // 转换为前端期望的格式
       const byType: Record<string, number> = {};
       const byStatus: Record<string, number> = {};
       
-      organizations.forEach(org => {
-        byType[org.unitType] = (byType[org.unitType] || 0) + 1;
-        byStatus[org.status] = (byStatus[org.status] || 0) + 1;
+      stats.byType.forEach(item => {
+        byType[item.unitType] = item.count;
+      });
+      
+      stats.byStatus.forEach(item => {
+        byStatus[item.status] = item.count;
       });
 
       return {
-        totalCount: pagination.total,
+        totalCount: stats.totalCount,
         byType,
         byStatus
       };
@@ -422,7 +397,7 @@ export const organizationAPI = {
       // 转换为API格式
       const apiData = safeTransform.cleanCreateInput(input);
 
-      const response = await restClient.request<OrganizationUnit>('/organization-units', {
+      const response = await unifiedRESTClient.request<OrganizationUnit>('/organization-units', {
         method: 'POST',
         body: JSON.stringify(apiData),
       });
@@ -470,7 +445,7 @@ export const organizationAPI = {
         console.log('[API] Status-only update detected, using validateStatusUpdate');
         validationResult = validateStatusUpdate(input);
       } else {
-        // 完整更新，使用更新专用验证（不验证unit_type）
+        // 完整更新，使用更新专用验证（不验证unitType）
         console.log('[API] Full update detected, using validateOrganizationUpdate');
         validationResult = validateOrganizationUpdate(input);
       }
@@ -485,7 +460,7 @@ export const organizationAPI = {
       // 转换为API格式
       const apiData = safeTransform.cleanUpdateInput(input);
 
-      const response = await restClient.request<OrganizationUnit>(`/organization-units/${code}`, {
+      const response = await unifiedRESTClient.request<OrganizationUnit>(`/organization-units/${code}`, {
         method: 'PUT',
         body: JSON.stringify(apiData),
       });
@@ -520,7 +495,7 @@ export const organizationAPI = {
         ]);
       }
 
-      await restClient.request<void>(`/organization-units/${code}`, {
+      await unifiedRESTClient.request<void>(`/organization-units/${code}`, {
         method: 'DELETE'
       });
 
@@ -538,8 +513,8 @@ export const organizationAPI = {
 
   // ====== 组织详情API方法 ======
 
-  // 获取组织的历史版本
-  getHistory: async (code: string, params?: TemporalQueryParams): Promise<TemporalOrganizationUnit[]> => {
+  // 获取组织的审计历史记录 - 使用真实的organizationAuditHistory查询
+  getAuditHistory: async (code: string, params?: TemporalQueryParams): Promise<any[]> => {
     try {
       if (!code || typeof code !== 'string') {
         throw new SimpleValidationError('Invalid organization code', [
@@ -548,118 +523,73 @@ export const organizationAPI = {
       }
 
       const graphqlQuery = `
-        query GetOrganizationHistory(
+        query GetOrganizationAuditHistory(
           $code: String!,
-          $dateFrom: String,
-          $dateTo: String,
+          $startDate: Date,
+          $endDate: Date,
           $limit: Int
         ) {
-          organizationHistory(
+          organizationAuditHistory(
             code: $code,
-            dateFrom: $dateFrom,
-            dateTo: $dateTo,
+            startDate: $startDate,
+            endDate: $endDate,
             limit: $limit
           ) {
-            code
-            name
-            unitType
-            status
-            level
-            path
-            sortOrder
-            description
-            parentCode
-            effectiveFrom
-            effectiveTo
-            isTemporal
-            changeReason
-            changedBy
-            createdAt
-            updatedAt
+            businessEntityId
+            entityName
+            totalVersions
+            auditTimeline {
+              auditId
+              versionSequence
+              operation
+              timestamp
+              userName
+              operationReason
+              changesSummary {
+                operationSummary
+                totalChanges
+                keyChanges
+              }
+              riskLevel
+            }
+            meta {
+              totalAuditRecords
+              dateRange {
+                earliest
+                latest
+              }
+              operationsSummary {
+                create
+                update
+                suspend
+                reactivate
+                delete
+              }
+            }
           }
         }
       `;
 
       const variables = {
         code,
-        dateFrom: params?.dateRange?.start || null,
-        dateTo: params?.dateRange?.end || null,
+        startDate: params?.dateRange?.start || null,
+        endDate: params?.dateRange?.end || null,
         limit: params?.limit || 50
       };
 
-      const data = await graphqlClient.request<{
-        organizationHistory: TemporalOrganizationUnit[];
+      const data = await unifiedGraphQLClient.request<{
+        organizationAuditHistory: any;
       }>(graphqlQuery, variables);
 
-      return data.organizationHistory || [];
+      return data.organizationAuditHistory?.auditTimeline || [];
 
     } catch (error) {
-      console.error('Error fetching organization history:', code, error);
-      throw new Error(`获取组织 ${code} 历史记录失败，请重试`);
+      console.error('Error fetching organization audit history:', code, error);
+      throw new Error(`获取组织 ${code} 审计历史失败，请重试`);
     }
   },
 
-  // 获取组织的时间线事件
-  getTimeline: async (code: string, params?: TemporalQueryParams): Promise<TimelineEvent[]> => {
-    try {
-      if (!code || typeof code !== 'string') {
-        throw new SimpleValidationError('Invalid organization code', [
-          { field: 'code', message: 'Code is required' }
-        ]);
-      }
-
-      const graphqlQuery = `
-        query GetOrganizationTimeline(
-          $code: String!,
-          $dateFrom: String,
-          $dateTo: String,
-          $eventTypes: [String],
-          $limit: Int
-        ) {
-          organizationTimeline(
-            code: $code,
-            dateFrom: $dateFrom,
-            dateTo: $dateTo,
-            eventTypes: $eventTypes,
-            limit: $limit
-          ) {
-            id
-            organizationCode
-            eventType
-            eventDate
-            effectiveDate
-            status
-            title
-            description
-            metadata
-            previousValue
-            newValue
-            triggeredBy
-            approvedBy
-            createdAt
-          }
-        }
-      `;
-
-      const variables = {
-        code,
-        dateFrom: params?.dateRange?.start || null,
-        dateTo: params?.dateRange?.end || null,
-        eventTypes: params?.eventTypes || null,
-        limit: params?.limit || 100
-      };
-
-      const data = await graphqlClient.request<{
-        organizationTimeline: TimelineEvent[];
-      }>(graphqlQuery, variables);
-
-      return data.organizationTimeline || [];
-
-    } catch (error) {
-      console.error('Error fetching organization timeline:', code, error);
-      throw new Error(`获取组织 ${code} 时间线失败，请重试`);
-    }
-  },
+  // 获取组织的时间线事件 - 已移除，使用temporal-graphql-client.ts中的实现
 
   // 创建时态组织记录
   createTemporal: async (input: CreateOrganizationInput & { 
@@ -677,16 +607,16 @@ export const organizationAPI = {
         );
       }
 
-      // 转换为API格式
-      const apiData = {
-        ...safeTransform.cleanCreateInput(input),
-        effective_date: input.effectiveFrom, // 修正：字段名映射
-        end_date: input.effectiveTo,      // 修正：字段名映射
-        change_reason: input.changeReason,
-        is_temporal: true
-      };
+        // 转换为API格式 - 修正字段命名为camelCase
+        const apiData = {
+          ...safeTransform.cleanCreateInput(input),
+          effectiveDate: input.effectiveFrom, // 修正：使用camelCase
+          endDate: input.effectiveTo,      // 修正：使用camelCase
+          operationReason: input.changeReason, // 修正：使用camelCase
+          isTemporal: true
+        };
 
-      const response = await restClient.request<TemporalOrganizationUnit>('/organization-units/temporal', {
+      const response = await unifiedRESTClient.request<TemporalOrganizationUnit>('/organization-units/temporal', {
         method: 'POST',
         body: JSON.stringify(apiData),
       });
@@ -730,17 +660,17 @@ export const organizationAPI = {
         );
       }
 
-      // 转换为事件驱动API格式 - 修复日期格式
+      // 转换为事件驱动API格式 - 修正为camelCase命名
       const eventData = {
-        event_type: "UPDATE",
-        effective_date: input.effectiveDate ? new Date(input.effectiveDate + 'T00:00:00Z').toISOString() : new Date().toISOString(),
-        end_date: input.endDate ? new Date(input.endDate + 'T00:00:00Z').toISOString() : null,
-        change_data: safeTransform.cleanUpdateInput(input),
-        change_reason: input.changeReason || "组织信息更新"
+        eventType: "UPDATE", // 修正：使用camelCase
+        effectiveDate: input.effectiveDate ? new Date(input.effectiveDate + 'T00:00:00Z').toISOString() : new Date().toISOString(),
+        endDate: input.endDate ? new Date(input.endDate + 'T00:00:00Z').toISOString() : null,
+        changeData: safeTransform.cleanUpdateInput(input), // 修正：使用camelCase
+        operationReason: input.changeReason || "组织信息更新" // 修正：使用camelCase
       };
 
       // 使用事件驱动端点
-      const response = await restClient.request<TemporalOrganizationUnit>(`/organization-units/${code}/events`, {
+      const response = await unifiedRESTClient.request<TemporalOrganizationUnit>(`/organization-units/${code}/events`, {
         method: 'POST',
         body: JSON.stringify(eventData),
       });
@@ -780,7 +710,7 @@ export const organizationAPI = {
         ]);
       }
 
-      const response = await restClient.request<OrganizationUnit>(`/organization-units/${code}/suspend`, {
+      const response = await unifiedRESTClient.request<OrganizationUnit>(`/organization-units/${code}/suspend`, {
         method: 'POST',
         body: JSON.stringify({ reason: reason.trim() }),
       });
@@ -817,7 +747,7 @@ export const organizationAPI = {
         ]);
       }
 
-      const response = await restClient.request<OrganizationUnit>(`/organization-units/${code}/reactivate`, {
+      const response = await unifiedRESTClient.request<OrganizationUnit>(`/organization-units/${code}/reactivate`, {
         method: 'POST',
         body: JSON.stringify({ reason: reason.trim() }),
       });

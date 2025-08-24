@@ -1,0 +1,23 @@
+overwrite: true
+schema: ../docs/api/schema.graphql
+documents: "src/**/*.{ts,tsx}"
+generates:
+  src/generated/graphql-types.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+    config:
+      scalars:
+        Date: string
+        UUID: string
+      namingConvention:
+        typeNames: pascal-case#pascalCase
+        fieldNames: camelCase
+        enumValues: keep
+      strictScalars: true
+      skipTypename: false
+      extractAllFieldsToTypes: false
+      nonOptionalTypename: true
+hooks:
+  afterOneFileWrite:
+    - prettier --write

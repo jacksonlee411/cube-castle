@@ -13,27 +13,27 @@ vi.mock('../../shared/hooks/useOrganizations', () => ({
         {
           code: 'TECH001',
           name: '技术部',
-          unit_type: 'DEPARTMENT',
+          unitType: 'DEPARTMENT',
           status: 'ACTIVE',
           level: 1,
           path: '/TECH001',
-          sort_order: 1,
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z'
+          sortOrder: 1,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z'
         }
       ],
-      total_count: 1,
+      totalCount: 1,
       page: 1,
-      page_size: 10
+      pageSize: 10
     },
     isLoading: false,
     error: null
   }),
   useOrganizationStats: () => ({
     data: {
-      total_count: 1,
-      by_type: { DEPARTMENT: 1 },
-      by_status: { ACTIVE: 1 }
+      totalCount: 1,
+      byType: { DEPARTMENT: 1 },
+      byStatus: { ACTIVE: 1 }
     }
   })
 }));

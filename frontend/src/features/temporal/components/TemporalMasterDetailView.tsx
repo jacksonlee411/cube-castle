@@ -39,37 +39,29 @@ const mapBackendStatusToOrganizationStatus = (backendStatus: string): Organizati
 };
 
 // 状态映射函数：将后端状态映射到生命周期状态
-const mapBackendStatusToLifecycleStatus = (status: string, isCurrent: boolean): 'CURRENT' | 'HISTORICAL' | 'PLANNED' => {
-  if (status === 'PLANNED') {
-    return 'PLANNED';
-  }
-  if (isCurrent) {
-    return 'CURRENT';
-  }
-  return 'HISTORICAL';
-};
+// 移除：未使用的状态映射函数
 
 // Types - 五状态生命周期管理系统
 export interface TemporalVersion {
-  record_id: string; // UUID唯一标识符
+  recordId: string; // UUID唯一标识符
   code: string;
   name: string;
-  unit_type: string;
+  unitType: string;
   status: string; // 组织状态：ACTIVE, INACTIVE, PLANNED
-  effective_date: string;
-  end_date?: string | null;
-  change_reason?: string;
-  is_current: boolean;
-  created_at: string;
-  updated_at: string;
+  effectiveDate: string;
+  endDate?: string | null;
+  changeReason?: string;
+  isCurrent: boolean;
+  createdAt: string;
+  updatedAt: string;
   description?: string;
   level: number;
   path: string;
-  parent_code?: string;
-  sort_order: number;
+  parentCode?: string;
+  sortOrder: number;
   
   // 五状态生命周期管理字段
-  lifecycle_status: 'CURRENT' | 'HISTORICAL' | 'PLANNED'; // 生命周期状态
+  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED'; // 生命周期状态
   business_status: 'ACTIVE' | 'SUSPENDED'; // 业务状态
   data_status: 'NORMAL' | 'DELETED'; // 数据状态
   suspended_at?: string | null; // 停用时间
@@ -133,7 +125,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
     }
     
     // 3. 生命周期状态
-    switch (version.lifecycle_status) {
+    switch (version.lifecycleStatus) {
       case 'CURRENT':
         return { 
           color: colors.greenApple500, 
@@ -174,7 +166,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
   };
 
   const formatDateRange = (version: TemporalVersion, allVersions: TemporalVersion[]) => {
-    const start = formatDate(version.effective_date);
+    const start = formatDate(version.effectiveDate);
     
     // 优先检查删除状态
     if (version.data_status === 'DELETED' || version.status === 'DELETED') {
@@ -182,26 +174,26 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
     }
     
     // 根据时态管理规则计算结束日期
-    if (version.end_date) {
+    if (version.endDate) {
       // 如果有明确的结束日期，使用它
-      return `${start} ~ ${formatDate(version.end_date)}`;
+      return `${start} ~ ${formatDate(version.endDate)}`;
     }
     
     // 找到下一个生效日期更晚的版本（排除已删除的版本）
     const nextVersion = allVersions
-      .filter(v => new Date(v.effective_date) > new Date(version.effective_date))
+      .filter(v => new Date(v.effectiveDate) > new Date(version.effectiveDate))
       .filter(v => v.data_status !== 'DELETED' && v.status !== 'DELETED')
-      .sort((a, b) => new Date(a.effective_date).getTime() - new Date(b.effective_date).getTime())[0];
+      .sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime())[0];
     
     if (nextVersion) {
       // 如果有下一个版本，当前版本的结束日期是下一个版本生效日期的前一天
-      const nextDate = new Date(nextVersion.effective_date);
+      const nextDate = new Date(nextVersion.effectiveDate);
       nextDate.setDate(nextDate.getDate() - 1);
       return `${start} ~ ${formatDate(nextDate.toISOString().split('T')[0])}`;
     }
     
     // 如果没有下一个版本，根据生命周期状态决定显示内容
-    if (version.lifecycle_status === 'PLANNED') {
+    if (version.lifecycleStatus === 'PLANNED') {
       // 计划中的记录显示"未来"
       return `${start} ~ 未来`;
     } else {
@@ -252,11 +244,11 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
           {/* 版本节点 */}
           {versions.map((version) => {
             const statusInfo = getVersionStatusIndicator(version);
-            const isSelected = selectedVersion?.effective_date === version.effective_date;
+            const isSelected = selectedVersion?.effectiveDate === version.effectiveDate;
             
             return (
               <Box
-                key={`${version.code}-${version.effective_date}`}
+                key={`${version.code}-${version.effectiveDate}`}
                 position="relative"
                 marginBottom="m"
                 zIndex={1}
@@ -297,7 +289,7 @@ const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
                             textDecoration: statusInfo.isDeactivated ? 'line-through' : 'none'
                           }}
                         >
-                          {formatDate(version.effective_date)}
+                          {formatDate(version.effectiveDate)}
                         </Text>
                         
                         {/* 状态标识 - 使用新的简化状态系统 */}
@@ -378,11 +370,11 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [/* formMode */, setFormMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
   const [formInitialData, setFormInitialData] = useState<{
     name: string;
-    unit_type: string;
+    unitType: string;
     status: string;
     description?: string;
-    parent_code?: string;
-    effective_date?: string; // 添加生效日期
+    parentCode?: string;
+    effectiveDate?: string; // 添加生效日期
   } | null>(null);
 
   // Modal model for delete confirmation
@@ -401,90 +393,86 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const loadVersions = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // 使用organizationVersions查询获取完整的版本历史
       const response = await fetch('http://localhost:8090/graphql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: `
-            query GetOrganizationHistory($code: String!, $fromDate: String!, $toDate: String!) {
-              organizationHistory(code: $code, fromDate: $fromDate, toDate: $toDate) {
+            query GetOrganizationVersions($code: String!) {
+              organizationVersions(code: $code) {
                 code
-                recordId
                 name
                 unitType
                 status
                 level
-                path
-                description
-                parentCode
                 effectiveDate
                 endDate
-                changeReason
                 isCurrent
                 createdAt
                 updatedAt
-                deletedAt
+                recordId
+                parentCode
+                description
               }
             }
           `,
           variables: {
-            code: organizationCode,
-            fromDate: '1900-01-01',  // 扩展到1900年以包含所有历史数据
-            toDate: '2030-12-31'
+            code: organizationCode
           }
         })
       });
       
       if (response.ok) {
         const data = await response.json();
+        const versions = data.data.organizationVersions || [];
         
-        // 映射GraphQL数据到前端五状态生命周期管理系统
-        const mappedVersions = data.data.organizationHistory.map((version: any) => ({
-          // 将camelCase字段映射为snake_case以保持内部一致性
-          record_id: version.recordId,
+        // 映射到组件需要的数据格式
+        const mappedVersions = versions.map((version: any) => ({
+          recordId: version.recordId,
           code: version.code,
           name: version.name,
-          unit_type: version.unitType,
+          unitType: version.unitType,
           status: version.status,
           level: version.level,
-          path: version.path,
+          effectiveDate: version.effectiveDate,
+          endDate: version.endDate,
+          isCurrent: version.isCurrent,
+          createdAt: version.createdAt,
+          updatedAt: version.updatedAt,
+          parentCode: version.parentCode,
           description: version.description,
-          parent_code: version.parentCode,
-          effective_date: version.effectiveDate,
-          end_date: version.endDate,
-          change_reason: version.changeReason,
-          is_current: version.isCurrent,
-          created_at: version.createdAt,
-          updated_at: version.updatedAt,
-          deleted_at: version.deletedAt,
-          sort_order: 0, // 默认值
-          // 添加五状态生命周期字段映射
-          lifecycle_status: mapBackendStatusToLifecycleStatus(version.status, version.isCurrent),
-          business_status: version.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
-          data_status: version.status === 'DELETED' ? 'DELETED' : 'NORMAL' // 根据status字段判断数据状态
+          // 添加组件需要的字段
+          lifecycleStatus: version.isCurrent ? 'CURRENT' : 'HISTORICAL',
+          business_status: version.status === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
+          data_status: 'NORMAL',
+          path: '', // 临时字段，组件中需要
+          sortOrder: 1, // 临时字段，组件中需要
+          changeReason: '', // 临时字段，组件中需要
         }));
         
-        const sortedVersions = mappedVersions.sort((a: TemporalVersion, b: TemporalVersion) => 
-          new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()
+        const sortedVersions = mappedVersions.sort((a: any, b: any) => 
+          new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
         );
         setVersions(sortedVersions);
         
         // 默认选中当前版本
-        const currentVersion = sortedVersions.find((v: TemporalVersion) => v.is_current);
+        const currentVersion = sortedVersions.find((v: any) => v.isCurrent);
         const defaultVersion = currentVersion || sortedVersions[0];
         
         if (defaultVersion) {
           setSelectedVersion(defaultVersion);
           
-          // 由于默认显示编辑历史记录页面，需要预设表单数据
+          // 预设表单数据（保持与现有表单字段格式兼容）
           setFormMode('edit');
           setFormInitialData({
             name: defaultVersion.name,
-            unit_type: defaultVersion.unit_type,
+            unitType: defaultVersion.unitType,
             status: defaultVersion.status,
             description: defaultVersion.description || '',
-            parent_code: defaultVersion.parent_code || '',
-            effective_date: defaultVersion.effective_date
+            parentCode: defaultVersion.parentCode || '',
+            effectiveDate: defaultVersion.effectiveDate
           });
         }
       } else {
@@ -511,10 +499,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            event_type: 'DEACTIVATE',
-            record_id: version.record_id,  // 使用UUID精确定位记录
-            effective_date: version.effective_date,  // 保留用于日志和验证
-            change_reason: '通过组织详情页面作废版本'
+            eventType: 'DEACTIVATE',
+            recordId: version.recordId,  // 使用UUID精确定位记录
+            effectiveDate: version.effectiveDate,  // 保留用于日志和验证
+            changeReason: '通过组织详情页面作废版本'
           })
         }
       );
@@ -525,7 +513,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         setShowDeleteConfirm(null);
         
         // 如果作废的是选中的版本，重新选择
-        if (selectedVersion?.effective_date === version.effective_date) {
+        if (selectedVersion?.effectiveDate === version.effectiveDate) {
           setSelectedVersion(null);
         }
       } else {
@@ -549,11 +537,11 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       setFormMode('edit');
       setFormInitialData({
         name: version.name,
-        unit_type: version.unit_type,
+        unitType: version.unitType,
         status: version.status,
         description: version.description || '',
-        parent_code: version.parent_code || '',
-        effective_date: version.effective_date // 添加生效日期绑定
+        parentCode: version.parentCode || '',
+        effectiveDate: version.effectiveDate // 添加生效日期绑定
       });
     }
     
@@ -562,11 +550,11 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       setFormMode('edit');
       setFormInitialData({
         name: version.name,
-        unit_type: version.unit_type,
+        unitType: version.unitType,
         status: version.status,
         description: version.description || '',
-        parent_code: version.parent_code || '',
-        effective_date: version.effective_date
+        parentCode: version.parentCode || '',
+        effectiveDate: version.effectiveDate
       });
     }
   }, [activeTab]);
@@ -592,10 +580,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         
         const requestBody = {
           name: formData.name,
-          unitType: formData.unit_type,
+          unitType: formData.unitType,
           description: formData.description || '',
-          parentCode: formData.parent_code || null,
-          effectiveDate: formData.effective_date
+          parentCode: formData.parentCode || null,
+          effectiveDate: formData.effectiveDate
         };
         
         console.log('提交创建组织请求:', requestBody);
@@ -635,16 +623,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              event_type: 'UPDATE',
-              effective_date: new Date(formData.effective_date + 'T00:00:00Z').toISOString(),
-              change_data: {
+              eventType: 'UPDATE',
+              effectiveDate: new Date(formData.effectiveDate + 'T00:00:00Z').toISOString(),
+              changeData: {
                 name: formData.name,
-                unit_type: formData.unit_type,
-                status: formData.lifecycle_status,
+                unitType: formData.unitType,
+                status: formData.lifecycleStatus,
                 description: formData.description,
-                parent_code: formData.parent_code
+                parentCode: formData.parentCode
               },
-              change_reason: '通过组织信息详情页面更新组织信息'
+              changeReason: '通过组织信息详情页面更新组织信息'
             })
           }
         );
@@ -682,11 +670,11 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   //   setFormMode('edit');
   //   setFormInitialData({
   //     name: version.name,
-  //     unit_type: version.unit_type,
+  //     unitType: version.unitType,
   //     status: version.status,
   //     description: version.description || '',
   //     parent_code: version.parent_code || '',
-  //     effective_date: version.effective_date
+  //     effectiveDate: version.effectiveDate
   //   });
   //   setSelectedVersion(version);
   //   setActiveTab('edit-history'); // 切换到历史记录编辑选项卡
@@ -709,20 +697,20 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const handleHistoryEditSubmit = useCallback(async (updateData: any) => {
     setIsSubmitting(true);
     try {
-      // 使用record_id UUID作为唯一标识符
+      // 使用recordId UUID作为唯一标识符
       const response = await fetch(
-        `http://localhost:9090/api/v1/organization-units/${organizationCode}/history/${updateData.record_id}`,
+        `http://localhost:9090/api/v1/organization-units/${organizationCode}/history/${updateData.recordId}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: updateData.name,
-            unit_type: updateData.unit_type,
+            unitType: updateData.unitType,
             status: updateData.status,
             description: updateData.description,
-            effective_date: updateData.effective_date,
-            parent_code: updateData.parent_code,
-            change_reason: '通过组织详情页面修改历史记录'
+            effectiveDate: updateData.effectiveDate,
+            parentCode: updateData.parentCode,
+            changeReason: '通过组织详情页面修改历史记录'
           })
         }
       );
@@ -754,7 +742,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
   // 获取当前版本的组织名称用于页面标题
   const getCurrentOrganizationName = () => {
-    const currentVersion = versions.find(v => v.is_current);
+    const currentVersion = versions.find(v => v.isCurrent);
     return currentVersion?.name || '';
   };
 
@@ -868,10 +856,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               initialData={formInitialData}
               selectedVersion={selectedVersion}
               allVersions={versions.map(v => ({ // 传递版本数据用于日期范围验证
-                record_id: v.record_id,
-                effective_date: v.effective_date,
-                end_date: v.end_date,
-                is_current: v.is_current
+                recordId: v.recordId,
+                effectiveDate: v.effectiveDate,
+                endDate: v.endDate,
+                isCurrent: v.isCurrent
               }))}
               onEditHistory={handleHistoryEditSubmit}
               onDeactivate={handleDeleteVersion} // 传递作废功能
@@ -896,7 +884,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               <Box fontSize="24px" color={baseColors.cinnamon[600]}>警告</Box>
               <Box>
                 <Text typeLevel="body.medium" marginBottom="s">
-                  确定要作废生效日期为 <strong>{new Date(showDeleteConfirm.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
+                  确定要作废生效日期为 <strong>{new Date(showDeleteConfirm.effectiveDate).toLocaleDateString('zh-CN')}</strong> 的版本吗？
                 </Text>
                 <Text typeLevel="subtext.small" color="hint" marginBottom="s">
                   版本名称: {showDeleteConfirm.name}

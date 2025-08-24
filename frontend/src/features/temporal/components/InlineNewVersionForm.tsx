@@ -45,32 +45,32 @@ export interface InlineNewVersionFormProps {
   mode?: 'create' | 'edit' | 'insert'; // create: 新组织编码, edit: 编辑记录, insert: 插入新记录
   initialData?: {
     name: string;
-    unit_type: string;
+    unitType: string;
     status: string;
-    lifecycle_status?: string;
+    lifecycleStatus?: string;
     description?: string;
-    parent_code?: string;
-    effective_date?: string;
+    parentCode?: string;
+    effectiveDate?: string;
   } | null; // 允许null
   // 新增历史记录编辑相关props
   selectedVersion?: {
-    record_id: string; // UUID唯一标识符
-    created_at: string;
-    updated_at: string;
+    recordId: string; // UUID唯一标识符
+    createdAt: string;
+    updatedAt: string;
     code: string;
     name: string;
-    unit_type: string;
+    unitType: string;
     status: string;
-    effective_date: string;
+    effectiveDate: string;
     description?: string;
-    parent_code?: string;
+    parentCode?: string;
   } | null;
   // 新增：传递所有版本数据用于日期范围验证
   allVersions?: Array<{
-    record_id: string;
-    effective_date: string;
-    end_date?: string | null;
-    is_current: boolean;
+    recordId: string;
+    effectiveDate: string;
+    endDate?: string | null;
+    isCurrent: boolean;
   }> | null;
   onEditHistory?: (versionData: any) => Promise<void>;
   onDeactivate?: (version: any) => Promise<void>; // 新增作废功能
@@ -184,11 +184,11 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
-    unit_type: 'DEPARTMENT',
-    lifecycle_status: 'PLANNED',
+    unitType: 'DEPARTMENT',
+    lifecycleStatus: 'PLANNED',
     description: '',
-    effective_date: getCurrentMonthFirstDay(), // 默认当月1日
-    parent_code: ''
+    effectiveDate: getCurrentMonthFirstDay(), // 默认当月1日
+    parentCode: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -224,13 +224,13 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       // 编辑模式 - 使用传入的初始数据预填充表单，包括原始生效日期
       setFormData({
         name: initialData.name,
-        unit_type: initialData.unit_type,
-        lifecycle_status: initialData.status as 'SUSPENDED' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL' || 'PLANNED', // 修复：使用 status 字段而不是 lifecycle_status
+        unitType: initialData.unitType,
+        lifecycleStatus: initialData.status as 'SUSPENDED' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL' || 'PLANNED', // 修复：使用 status 字段而不是 lifecycleStatus
         description: initialData.description || '',
-        effective_date: initialData.effective_date 
-          ? new Date(initialData.effective_date).toISOString().split('T')[0] 
+        effectiveDate: initialData.effectiveDate 
+          ? new Date(initialData.effectiveDate).toISOString().split('T')[0] 
           : firstDayOfMonth, // 如果没有提供生效日期，使用当月1日
-        parent_code: initialData.parent_code || ''
+        parentCode: initialData.parentCode || ''
       });
       
       // 如果是编辑UUID记录模式，保存原始数据
@@ -242,11 +242,11 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       // 新增模式 - 使用默认值
       setFormData({
         name: '',
-        unit_type: 'DEPARTMENT',
-        lifecycle_status: 'PLANNED',
+        unitType: 'DEPARTMENT',
+        lifecycleStatus: 'PLANNED',
         description: '',
-        effective_date: firstDayOfMonth, // 默认当月1日生效
-        parent_code: ''
+        effectiveDate: firstDayOfMonth, // 默认当月1日生效
+        parentCode: ''
       });
     }
     setErrors({});
@@ -273,11 +273,11 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
 
     // 按生效日期排序所有版本
     const sortedVersions = [...allVersions].sort((a, b) => 
-      new Date(a.effective_date).getTime() - new Date(b.effective_date).getTime()
+      new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime()
     );
 
     // 找到当前编辑版本的索引
-    const currentIndex = sortedVersions.findIndex(v => v.record_id === selectedVersion.record_id);
+    const currentIndex = sortedVersions.findIndex(v => v.recordId === selectedVersion.recordId);
     if (currentIndex === -1) {
       return { minDate: null, maxDate: null };
     }
@@ -291,7 +291,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     // 计算最小日期：前一条记录的生效日期的次日
     let minDate: string | null = null;
     if (previousVersion) {
-      const prevDate = new Date(previousVersion.effective_date);
+      const prevDate = new Date(previousVersion.effectiveDate);
       prevDate.setDate(prevDate.getDate() + 1);
       minDate = prevDate.toISOString().split('T')[0];
     }
@@ -299,7 +299,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     // 计算最大日期：后一条记录的生效日期的前一日
     let maxDate: string | null = null;
     if (nextVersion) {
-      const nextDate = new Date(nextVersion.effective_date);
+      const nextDate = new Date(nextVersion.effectiveDate);
       nextDate.setDate(nextDate.getDate() - 1);
       maxDate = nextDate.toISOString().split('T')[0];
     }
@@ -315,22 +315,22 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
 
     // 按生效日期排序所有版本
     const sortedVersions = [...allVersions].sort((a, b) => 
-      new Date(a.effective_date).getTime() - new Date(b.effective_date).getTime()
+      new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime()
     );
 
-    const inputDate = new Date(formData.effective_date);
-    const earliestDate = new Date(sortedVersions[0].effective_date);
-    const latestDate = new Date(sortedVersions[sortedVersions.length - 1].effective_date);
+    const inputDate = new Date(formData.effectiveDate);
+    const earliestDate = new Date(sortedVersions[0].effectiveDate);
+    const latestDate = new Date(sortedVersions[sortedVersions.length - 1].effectiveDate);
 
     // 规则1: 不能插入早于最小生效日期的记录
-    const minDate = sortedVersions[0].effective_date; // 最早的生效日期
+    const minDate = sortedVersions[0].effectiveDate; // 最早的生效日期
 
     // 规则2: 如果是插入在两条记录之间
     if (inputDate > earliestDate && inputDate < latestDate) {
       // 找到应该插入的位置
       for (let i = 0; i < sortedVersions.length - 1; i++) {
-        const currentDate = new Date(sortedVersions[i].effective_date);
-        const nextDate = new Date(sortedVersions[i + 1].effective_date);
+        const currentDate = new Date(sortedVersions[i].effectiveDate);
+        const nextDate = new Date(sortedVersions[i + 1].effectiveDate);
         
         if (inputDate > currentDate && inputDate < nextDate) {
           // 在这两个版本之间插入
@@ -375,8 +375,8 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       newErrors.name = '组织名称是必填项';
     }
     
-    if (!formData.effective_date) {
-      newErrors.effective_date = '生效日期是必填项';
+    if (!formData.effectiveDate) {
+      newErrors.effectiveDate = '生效日期是必填项';
     } else {
       if (currentMode === 'create') {
         // 对于完全新建组织单元，取消生效日期限制
@@ -384,26 +384,26 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       } else if (currentMode === 'edit') {
         // 编辑记录模式：只要在前后两条记录的生效日期之间即可
         const { minDate, maxDate } = getEditDateRange();
-        const effectiveDate = new Date(formData.effective_date);
+        const effectiveDate = new Date(formData.effectiveDate);
         
         if (minDate) {
           const minDateTime = new Date(minDate);
           if (effectiveDate < minDateTime) {
             const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('zh-CN');
-            newErrors.effective_date = `生效日期不能早于 ${formatDate(minDate)}（前一版本生效日期之后）`;
+            newErrors.effectiveDate = `生效日期不能早于 ${formatDate(minDate)}（前一版本生效日期之后）`;
           }
         }
         
-        if (maxDate && !newErrors.effective_date) {
+        if (maxDate && !newErrors.effectiveDate) {
           const maxDateTime = new Date(maxDate);
           if (effectiveDate > maxDateTime) {
             const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('zh-CN');
-            newErrors.effective_date = `生效日期不能晚于 ${formatDate(maxDate)}（下一版本生效日期之前）`;
+            newErrors.effectiveDate = `生效日期不能晚于 ${formatDate(maxDate)}（下一版本生效日期之前）`;
           }
         }
       } else if (currentMode === 'insert') {
         // 编辑组织信息模式 - 插入新记录模式
-        const effectiveDate = new Date(formData.effective_date);
+        const effectiveDate = new Date(formData.effectiveDate);
         
         if (!allVersions || allVersions.length === 0) {
           // 如果没有现有版本，无限制（相当于create模式）
@@ -417,27 +417,27 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             const minDateTime = new Date(minDate);
             if (effectiveDate < minDateTime) {
               if (insertType === 'history') {
-                newErrors.effective_date = `生效日期不能早于 ${formatDate(minDate)}（最早版本生效日期）`;
+                newErrors.effectiveDate = `生效日期不能早于 ${formatDate(minDate)}（最早版本生效日期）`;
               } else if (insertType === 'between') {
-                newErrors.effective_date = `生效日期必须在 ${formatDate(minDate)} 之后（前一版本生效日期之后）`;
+                newErrors.effectiveDate = `生效日期必须在 ${formatDate(minDate)} 之后（前一版本生效日期之后）`;
               } else if (insertType === 'future') {
-                newErrors.effective_date = `生效日期必须在 ${formatDate(minDate)} 之后（最新版本生效日期之后）`;
+                newErrors.effectiveDate = `生效日期必须在 ${formatDate(minDate)} 之后（最新版本生效日期之后）`;
               }
             }
           }
           
           // 规则2: 在两条记录之间插入时的最大日期限制
-          if (maxDate && !newErrors.effective_date && insertType === 'between') {
+          if (maxDate && !newErrors.effectiveDate && insertType === 'between') {
             const maxDateTime = new Date(maxDate);
             if (effectiveDate > maxDateTime) {
-              newErrors.effective_date = `生效日期必须在 ${formatDate(maxDate)} 之前（下一版本生效日期之前）`;
+              newErrors.effectiveDate = `生效日期必须在 ${formatDate(maxDate)} 之前（下一版本生效日期之前）`;
             }
           }
           
           // 规则3: 未来记录无最大日期限制，但提供友好提示
-          if (insertType === 'future' && !newErrors.effective_date) {
+          if (insertType === 'future' && !newErrors.effectiveDate) {
             // 可以添加提示信息但不报错
-            console.log(`插入未来记录：${formData.effective_date}`);
+            console.log(`插入未来记录：${formData.effectiveDate}`);
           }
         }
       }
@@ -462,12 +462,12 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       const updateData = {
         ...originalHistoryData,
         name: formData.name,
-        unit_type: formData.unit_type,
-        status: formData.lifecycle_status,
+        unitType: formData.unitType,
+        status: formData.lifecycleStatus,
         description: formData.description,
-        effective_date: formData.effective_date,
-        parent_code: formData.parent_code,
-        updated_at: new Date().toISOString()
+        effectiveDate: formData.effectiveDate,
+        parentCode: formData.parentCode,
+        updatedAt: new Date().toISOString()
       };
       
       await onEditHistory(updateData);
@@ -482,11 +482,11 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     if (originalHistoryData) {
       setFormData({
         name: originalHistoryData.name,
-        unit_type: originalHistoryData.unit_type,
-        lifecycle_status: originalHistoryData.status || 'PLANNED',
+        unitType: originalHistoryData.unitType,
+        lifecycleStatus: originalHistoryData.status || 'PLANNED',
         description: originalHistoryData.description || '',
-        effective_date: new Date(originalHistoryData.effective_date).toISOString().split('T')[0],
-        parent_code: originalHistoryData.parent_code || ''
+        effectiveDate: new Date(originalHistoryData.effectiveDate).toISOString().split('T')[0],
+        parentCode: originalHistoryData.parentCode || ''
       });
     }
     setIsEditingHistory(false);
@@ -507,7 +507,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setShowDeactivateConfirm(false);
       // 作废成功后保持在当前页面，用户可以观察操作结果
       // 显示成功提示，让用户知道操作已完成
-      alert(`版本删除成功！生效日期：${new Date(selectedVersion.effective_date).toLocaleDateString('zh-CN')}`);
+      alert(`版本删除成功！生效日期：${new Date(selectedVersion.effectiveDate).toLocaleDateString('zh-CN')}`);
       // 移除 onCancel() 调用，让用户自己决定是否离开页面
     } catch (error) {
       console.error('删除失败:', error);
@@ -578,17 +578,17 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             </Heading>
             
             <Box marginLeft="m">
-              <FormField isRequired error={errors.effective_date ? "error" : undefined}>
+              <FormField isRequired error={errors.effectiveDate ? "error" : undefined}>
                 <FormField.Label>生效日期 *</FormField.Label>
                 <FormField.Field>
                   <TextInput
                     type="date"
-                    value={formData.effective_date}
-                    onChange={handleInputChange('effective_date')}
+                    value={formData.effectiveDate}
+                    onChange={handleInputChange('effectiveDate')}
                     disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
                   />
-                  {errors.effective_date && (
-                    <FormField.Hint>{errors.effective_date}</FormField.Hint>
+                  {errors.effectiveDate && (
+                    <FormField.Hint>{errors.effectiveDate}</FormField.Hint>
                   )}
                 </FormField.Field>
               </FormField>
@@ -621,8 +621,8 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 <FormField.Label>上级组织编码</FormField.Label>
                 <FormField.Field>
                   <TextInput
-                    value={formData.parent_code || ''}
-                    onChange={handleInputChange('parent_code')}
+                    value={formData.parentCode || ''}
+                    onChange={handleInputChange('parentCode')}
                     placeholder="请输入上级组织编码（可选）"
                     disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
                   />
@@ -630,13 +630,13 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
               </FormField>
 
               <UnitTypeSelector
-                value={formData.unit_type}
+                value={formData.unitType}
                 onChange={(newValue) => {
-                  console.log('[InlineNewVersionForm] 组织类型选择变更:', formData.unit_type, '->', newValue);
-                  setFormData(prev => ({ ...prev, unit_type: newValue }));
+                  console.log('[InlineNewVersionForm] 组织类型选择变更:', formData.unitType, '->', newValue);
+                  setFormData(prev => ({ ...prev, unitType: newValue }));
                   // 清除相关错误
-                  if (errors.unit_type) {
-                    setErrors(prev => ({ ...prev, unit_type: '' }));
+                  if (errors.unitType) {
+                    setErrors(prev => ({ ...prev, unitType: '' }));
                   }
                 }}
                 disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
@@ -648,7 +648,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 <FormField.Label>组织状态 *</FormField.Label>
                 <FormField.Field>
                   <StatusBadge 
-                    status={mapLifecycleStatusToOrganizationStatus(formData.lifecycle_status)} 
+                    status={mapLifecycleStatusToOrganizationStatus(formData.lifecycleStatus)} 
                     size="medium"
                   />
                   <Text typeLevel="subtext.small" color="hint" marginTop="xs">
@@ -690,7 +690,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     记录UUID:
                   </Text>
                   <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700} style={{fontFamily: 'monospace'}}>
-                    {originalHistoryData.record_id}
+                    {originalHistoryData.recordId}
                   </Text>
                 </Box>
                 <Box>
@@ -698,7 +698,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     创建时间:
                   </Text>
                   <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
-                    {new Date(originalHistoryData.created_at).toLocaleString('zh-CN')}
+                    {new Date(originalHistoryData.createdAt).toLocaleString('zh-CN')}
                   </Text>
                 </Box>
                 <Box>
@@ -706,7 +706,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     最后更新:
                   </Text>
                   <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
-                    {new Date(originalHistoryData.updated_at).toLocaleString('zh-CN')}
+                    {new Date(originalHistoryData.updatedAt).toLocaleString('zh-CN')}
                   </Text>
                 </Box>
               </Box>
@@ -817,7 +817,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     <SystemIcon icon={exclamationCircleIcon} size={24} color={colors.cinnamon600} />
                     <Box>
                       <Text typeLevel="body.medium" marginBottom="s">
-                        确定要删除生效日期为 <strong>{new Date(selectedVersion.effective_date).toLocaleDateString('zh-CN')}</strong> 的版本吗？
+                        确定要删除生效日期为 <strong>{new Date(selectedVersion.effectiveDate).toLocaleDateString('zh-CN')}</strong> 的版本吗？
                       </Text>
                       <Text typeLevel="subtext.small" color="hint" marginBottom="s">
                         版本名称: {selectedVersion.name}
