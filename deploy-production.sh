@@ -126,17 +126,15 @@ SYNC_PID=$!
 echo "✅ 同步服务已启动 (PID: $SYNC_PID)"
 
 # 4. 启动缓存失效服务
-cd ../organization-cache-invalidator
-echo "启动缓存失效服务..."
-go run main.go > /tmp/cache-invalidator.log 2>&1 &
-CACHE_PID=$!
-echo "✅ 缓存失效服务已启动 (PID: $CACHE_PID)"
+# 缓存失效服务已删除 - 不再启动
+echo "ℹ️  缓存失效服务已移除（架构简化）"
+# CACHE_PID已不存在
 
 # 保存PID文件
 echo "$COMMAND_PID" > /tmp/cube-castle-command.pid
 echo "$QUERY_PID" > /tmp/cube-castle-query.pid
 echo "$SYNC_PID" > /tmp/cube-castle-sync.pid
-echo "$CACHE_PID" > /tmp/cube-castle-cache.pid
+# 缓存失效服务PID文件已不需要
 
 # 5. 启动前端 (可选)
 cd ../../frontend
@@ -191,7 +189,7 @@ else
     echo "   • /tmp/command-service.log"
     echo "   • /tmp/query-service.log"
     echo "   • /tmp/sync-service.log"
-    echo "   • /tmp/cache-invalidator.log"
+    echo "   • 缓存失效服务已移除"
     exit 1
 fi
 EOF

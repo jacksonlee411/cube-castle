@@ -148,9 +148,7 @@ echo "--------------------------------"
 start_and_verify_service "cmd/organization-command-service" "命令服务 (端口9090)" "http://localhost:9090/health" || exit 1
 start_and_verify_service "cmd/organization-query-service-unified" "查询服务 (端口8090)" "http://localhost:8090/health" || exit 1
 start_and_verify_service "cmd/organization-sync-service" "同步服务" "http://localhost:8084/health" || exit 1
-start_and_verify_service "cmd/organization-cache-invalidator" "缓存失效服务" "http://localhost:8086/health" || { 
-    print_warning "缓存失效服务健康检查失败，但服务可能正在运行"
-}
+# 缓存失效服务已删除 - 不再需要启动
 
 echo ""
 echo "📋 第3步: 验证CDC数据管道"

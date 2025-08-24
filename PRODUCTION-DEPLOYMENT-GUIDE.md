@@ -77,7 +77,7 @@ cd cmd/organization-query-service-unified && go run main.go &
 cd cmd/organization-sync-service && go run main.go &
 
 # 缓存失效服务
-cd cmd/organization-cache-invalidator && go run main.go &
+# 缓存失效服务已删除 - 不再需要启动
 ```
 
 #### 3. 启动前端 (可选)
