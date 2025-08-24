@@ -96,7 +96,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               租户ID
             </Text>
             <TextInput
-              value={record.tenant_id || ''}
+              value={record.tenantId || ''}
               disabled={true}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
@@ -132,8 +132,8 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             {isEditing ? (
               <Select items={unitTypeOptions}>
                 <Select.Input 
-                  value={record.unit_type}
-                  onChange={(e) => onFieldChange('unit_type', e.target.value)}
+                  value={record.unitType}
+                  onChange={(e) => onFieldChange('unitType', e.target.value)}
                 />
                 <Select.Popper>
                   <Select.Card>
@@ -149,8 +149,8 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               </Select>
             ) : (
               <Box paddingTop={space.xs}>
-                <Badge variant={getUnitTypeBadgeVariant(record.unit_type)}>
-                  {unitTypeOptions.find(opt => opt.value === record.unit_type)?.label || record.unit_type}
+                <Badge variant={getUnitTypeBadgeVariant(record.unitType)}>
+                  {unitTypeOptions.find(opt => opt.value === record.unitType)?.label || record.unitType}
                 </Badge>
               </Box>
             )}
@@ -212,9 +212,9 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             </Text>
             <TextInput
               type="number"
-              value={record.sort_order.toString()}
+              value={record.sortOrder.toString()}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('sort_order', parseInt(e.target.value) || 0)}
+              onChange={(e) => isEditing && onFieldChange('sortOrder', parseInt(e.target.value) || 0)}
               min="0"
             />
           </Box>
@@ -268,9 +268,9 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             </Text>
             <TextInput
               type="date"
-              value={record.effective_date?.slice(0, 10) || ''}
+              value={record.effectiveDate?.slice(0, 10) || ''}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('effective_date', e.target.value + 'T00:00:00Z')}
+              onChange={(e) => isEditing && onFieldChange('effectiveDate', e.target.value + 'T00:00:00Z')}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
               该记录开始生效的日期
@@ -284,9 +284,9 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             </Text>
             <TextInput
               type="date"
-              value={record.end_date?.slice(0, 10) || ''}
+              value={record.endDate?.slice(0, 10) || ''}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('end_date', e.target.value ? e.target.value + 'T00:00:00Z' : '')}
+              onChange={(e) => isEditing && onFieldChange('endDate', e.target.value ? e.target.value + 'T00:00:00Z' : '')}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
               可选，留空表示持续有效
@@ -298,13 +298,13 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
         <Box marginBottom={space.m}>
           <Flex alignItems="center" gap={space.s}>
             <Checkbox
-              checked={record.is_current}
+              checked={record.isCurrent}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('is_current', e.target.checked)}
+              onChange={(e) => isEditing && onFieldChange('isCurrent', e.target.checked)}
               label="当前有效记录"
             />
             
-            {record.is_current && (
+            {record.isCurrent && (
               <Badge variant="positive" size="small">
                 当前生效
               </Badge>
@@ -321,9 +321,9 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             变更原因
           </Text>
           <TextArea
-            value={record.change_reason || ''}
+            value={record.changeReason || ''}
             disabled={!isEditing}
-            onChange={(e) => isEditing && onFieldChange('change_reason', e.target.value)}
+            onChange={(e) => isEditing && onFieldChange('changeReason', e.target.value)}
             rows={2}
             placeholder="请输入变更原因..."
           />
@@ -349,7 +349,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               创建时间
             </Text>
             <TextInput
-              value={record.created_at ? new Date(record.created_at).toLocaleString('zh-CN') : ''}
+              value={record.createdAt ? new Date(record.createdAt).toLocaleString('zh-CN') : ''}
               disabled={true}
             />
           </Box>
@@ -360,7 +360,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               最后更新时间
             </Text>
             <TextInput
-              value={record.updated_at ? new Date(record.updated_at).toLocaleString('zh-CN') : ''}
+              value={record.updatedAt ? new Date(record.updatedAt).toLocaleString('zh-CN') : ''}
               disabled={true}
             />
           </Box>
@@ -373,9 +373,9 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
               批准人
             </Text>
             <TextInput
-              value={record.approved_by || '暂无'}
+              value={record.approvedBy || '暂无'}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('approved_by', e.target.value)}
+              onChange={(e) => isEditing && onFieldChange('approvedBy', e.target.value)}
               placeholder="请输入批准人"
             />
           </Box>
@@ -387,9 +387,9 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             </Text>
             <TextInput
               type="datetime-local"
-              value={record.approved_at ? new Date(record.approved_at).toISOString().slice(0, 16) : ''}
+              value={record.approvedAt ? new Date(record.approvedAt).toISOString().slice(0, 16) : ''}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('approved_at', e.target.value ? new Date(e.target.value).toISOString() : '')}
+              onChange={(e) => isEditing && onFieldChange('approvedAt', e.target.value ? new Date(e.target.value).toISOString() : '')}
             />
           </Box>
         </Flex>

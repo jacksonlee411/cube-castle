@@ -179,12 +179,12 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
           
           return (
             <Card
-              key={`${record.code}-${record.effective_date}`}
+              key={`${record.code}-${record.effectiveDate}`}
               padding={space.s}
               marginBottom={space.xs}
               border={`1px solid ${colors.soap400}`}
               borderRadius={borderRadius.m}
-              backgroundColor={record.is_current ? colors.blueberry100 : colors.frenchVanilla100}
+              backgroundColor={record.isCurrent ? colors.blueberry100 : colors.frenchVanilla100}
               cursor="pointer"
               onClick={() => handleRecordSelect(record)}
             >
@@ -198,7 +198,7 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
                     >
                       {record.name}
                     </Text>
-                    {record.is_current && (
+                    {record.isCurrent && (
                       <Box marginLeft={space.xs}>
                         <Box
                           backgroundColor={colors.greenApple400}
@@ -213,7 +213,7 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
                         </Box>
                       </Box>
                     )}
-                    {isFirst && !record.is_current && (
+                    {isFirst && !record.isCurrent && (
                       <Box marginLeft={space.xs}>
                         <Box
                           backgroundColor={colors.cinnamon400}
@@ -240,13 +240,13 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
                     </Text>
                   </Box>
 
-                  {record.change_reason && (
+                  {record.changeReason && (
                     <Text 
                       fontSize={fontSizes.body.small} 
                       color={colors.licorice400}
                       fontStyle="italic"
                     >
-                      变更原因: {record.change_reason}
+                      变更原因: {record.changeReason}
                     </Text>
                   )}
 
@@ -294,7 +294,7 @@ export const TemporalHistoryViewer: React.FC<TemporalHistoryViewerProps> = ({
                     color={colors.licorice300}
                     textAlign="right"
                   >
-                    {record.effective_date}
+                    {record.effectiveDate}
                   </Text>
                 </Box>
               </Flex>

@@ -2,7 +2,7 @@
  * 组织详情React钩子 - 基于GraphQL时态查询 (统一字符串类型版本)
  * 提供organizationAsOfDate和organizationHistory的React集成
  */
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import temporalAPI from '../api/temporal-graphql-client';
@@ -60,7 +60,7 @@ export function useOrganizationAsOfDate(
 
   const hasData = !!query.data;
   const isEmpty = !query.isLoading && !query.data;
-  const isHistoricalRecord = hasData ? !query.data!.is_current : false;
+  const isHistoricalRecord = hasData ? !query.data!.isCurrent : false;
 
   return {
     ...query,
@@ -99,8 +99,8 @@ export function useOrganizationHistory(
   const historyCount = query.data?.length || 0;
   const hasHistory = historyCount > 0;
   const latestRecord = query.data?.[0]; // 按时间倒序，第一个是最新的
-  const currentRecord = query.data?.find(record => record.is_current);
-  const historicalRecords = query.data?.filter(record => !record.is_current) || [];
+  const currentRecord = query.data?.find(record => record.isCurrent);
+  const historicalRecords = query.data?.filter(record => !record.isCurrent) || [];
 
   return {
     ...query,
@@ -305,12 +305,12 @@ export function useTemporalQueryUtils() {
     (record: TemporalOrganizationUnit) => {
       return {
         displayName: record.name,
-        effectivePeriod: record.end_date 
-          ? `${record.effective_date} 至 ${record.end_date}`
-          : `${record.effective_date} 起生效`,
-        status: record.is_current ? '当前有效' : '历史记录',
-        changeReason: record.change_reason || '无变更说明',
-        organizationType: record.unit_type,
+        effectivePeriod: record.endDate 
+          ? `${record.effectiveDate} 至 ${record.endDate}`
+          : `${record.effectiveDate} 起生效`,
+        status: record.isCurrent ? '当前有效' : '历史记录',
+        changeReason: record.changeReason || '无变更说明',
+        organizationType: record.unitType,
         organizationStatus: record.status
       };
     },
@@ -367,3 +367,6 @@ export {
   TEMPORAL_QUERY_KEYS,
   TEMPORAL_CACHE_CONFIG
 };
+
+// 导出类型
+export type { TemporalOrganizationUnit };

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"postgresql-graphql-service/internal/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -65,9 +66,30 @@ var schemaString = `
 		suspensionReason: String
 	}
 
+	type OrganizationConnection {
+		data: [Organization!]!
+		pagination: PaginationInfo!
+		temporal: TemporalInfo!
+	}
+
+	type PaginationInfo {
+		total: Int!
+		page: Int!
+		pageSize: Int!
+		hasNext: Boolean!
+		hasPrevious: Boolean!
+	}
+
+	type TemporalInfo {
+		asOfDate: String!
+		currentCount: Int!
+		futureCount: Int!
+		historicalCount: Int!
+	}
+
 	type Query {
-		# 高性能当前数据查询 - 利用PostgreSQL部分索引
-		organizations(first: Int, offset: Int, searchText: String, status: String): [Organization!]!
+		# 高性能当前数据查询 - 符合官方API契约 v4.2.1
+		organizations(filter: OrganizationFilter, pagination: PaginationInput): OrganizationConnection!
 		organization(code: String!): Organization
 		organizationStats: OrganizationStats!
 		
@@ -77,6 +99,20 @@ var schemaString = `
 		
 		# 高级时态分析 - PostgreSQL独有功能
 		organizationVersions(code: String!): [Organization!]!
+	}
+
+	# 输入类型 - 按官方契约定义
+	input OrganizationFilter {
+		unitType: String
+		status: String
+		parentCode: String
+		searchText: String
+		asOfDate: String
+	}
+
+	input PaginationInput {
+		page: Int
+		pageSize: Int
 	}
 	
 	type OrganizationStats {
@@ -258,6 +294,57 @@ type StatusCount struct {
 func (s StatusCount) Status() string { return s.StatusField }
 func (s StatusCount) Count() int32   { return int32(s.CountField) }
 
+// API契约标准响应类型 - 符合官方schema.graphql v4.2.1
+type OrganizationConnection struct {
+	DataField       []Organization `json:"data"`
+	PaginationField PaginationInfo `json:"pagination"`
+	TemporalField   TemporalInfo   `json:"temporal"`
+}
+
+func (c OrganizationConnection) Data() []Organization { return c.DataField }
+func (c OrganizationConnection) Pagination() PaginationInfo { return c.PaginationField }
+func (c OrganizationConnection) Temporal() TemporalInfo { return c.TemporalField }
+
+type PaginationInfo struct {
+	TotalField       int  `json:"total"`
+	PageField        int  `json:"page"`
+	PageSizeField    int  `json:"pageSize"`
+	HasNextField     bool `json:"hasNext"`
+	HasPreviousField bool `json:"hasPrevious"`
+}
+
+func (p PaginationInfo) Total() int32       { return int32(p.TotalField) }
+func (p PaginationInfo) Page() int32        { return int32(p.PageField) }
+func (p PaginationInfo) PageSize() int32    { return int32(p.PageSizeField) }
+func (p PaginationInfo) HasNext() bool      { return p.HasNextField }
+func (p PaginationInfo) HasPrevious() bool  { return p.HasPreviousField }
+
+type TemporalInfo struct {
+	AsOfDateField        string `json:"asOfDate"`
+	CurrentCountField    int    `json:"currentCount"`
+	FutureCountField     int    `json:"futureCount"`
+	HistoricalCountField int    `json:"historicalCount"`
+}
+
+func (t TemporalInfo) AsOfDate() string     { return t.AsOfDateField }
+func (t TemporalInfo) CurrentCount() int32  { return int32(t.CurrentCountField) }
+func (t TemporalInfo) FutureCount() int32   { return int32(t.FutureCountField) }
+func (t TemporalInfo) HistoricalCount() int32 { return int32(t.HistoricalCountField) }
+
+// 输入类型 - 符合官方API契约
+type OrganizationFilter struct {
+	UnitType   *string `json:"unitType"`
+	Status     *string `json:"status"`
+	ParentCode *string `json:"parentCode"`
+	SearchText *string `json:"searchText"`
+	AsOfDate   *string `json:"asOfDate"`
+}
+
+type PaginationInput struct {
+	Page     *int32 `json:"page"`
+	PageSize *int32 `json:"pageSize"`
+}
+
 // PostgreSQL极速仓储 - 零抽象开销
 type PostgreSQLRepository struct {
 	db          *sql.DB
@@ -273,10 +360,44 @@ func NewPostgreSQLRepository(db *sql.DB, redisClient *redis.Client, logger *log.
 	}
 }
 
-// 极速当前组织查询 - 利用部分索引 idx_current_organizations_list
-func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, first, offset int, searchText, status string) ([]Organization, error) {
+// 极速当前组织查询 - 利用部分索引 idx_current_organizations_list (API契约v4.2.1)
+func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, filter *OrganizationFilter, pagination *PaginationInput) (*OrganizationConnection, error) {
+	start := time.Now()
+	
+	// 解析分页参数 - 使用契约默认值
+	page := int32(1)
+	pageSize := int32(50)
+	if pagination != nil {
+		if pagination.Page != nil && *pagination.Page > 0 {
+			page = *pagination.Page
+		}
+		if pagination.PageSize != nil && *pagination.PageSize > 0 {
+			pageSize = *pagination.PageSize
+		}
+	}
+	
+	offset := (page - 1) * pageSize
+	limit := pageSize
+
+	// 解析过滤参数
+	var status, searchText, unitType, parentCode string
+	if filter != nil {
+		if filter.Status != nil {
+			status = *filter.Status
+		}
+		if filter.SearchText != nil {
+			searchText = *filter.SearchText
+		}
+		if filter.UnitType != nil {
+			unitType = *filter.UnitType
+		}
+		if filter.ParentCode != nil {
+			parentCode = *filter.ParentCode
+		}
+	}
+
 	// 构建高性能查询 - 充分利用PostgreSQL索引
-	query := `
+	baseQuery := `
 		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
 		       level, path, sort_order, description, profile, created_at, updated_at,
 		       effective_date, end_date, is_current, is_temporal, change_reason,
@@ -284,31 +405,61 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 		FROM organization_units 
 		WHERE tenant_id = $1 AND is_current = true`
 
+	countQuery := `
+		SELECT COUNT(*) 
+		FROM organization_units 
+		WHERE tenant_id = $1 AND is_current = true`
+
 	args := []interface{}{tenantID.String()}
 	argIndex := 2
+	whereConditions := ""
 
 	// 状态过滤
 	if status != "" {
-		query += fmt.Sprintf(" AND status = $%d", argIndex)
+		whereConditions += fmt.Sprintf(" AND status = $%d", argIndex)
 		args = append(args, status)
 		argIndex++
 	} else {
-		query += " AND status <> 'DELETED'"
+		whereConditions += " AND status <> 'DELETED'"
+	}
+
+	// 单位类型过滤
+	if unitType != "" {
+		whereConditions += fmt.Sprintf(" AND unit_type = $%d", argIndex)
+		args = append(args, unitType)
+		argIndex++
+	}
+
+	// 父组织过滤
+	if parentCode != "" {
+		whereConditions += fmt.Sprintf(" AND parent_code = $%d", argIndex)
+		args = append(args, parentCode)
+		argIndex++
 	}
 
 	// 文本搜索 - 使用GIN索引
 	if searchText != "" {
-		query += fmt.Sprintf(" AND (name ILIKE $%d OR code ILIKE $%d)", argIndex, argIndex)
+		whereConditions += fmt.Sprintf(" AND (name ILIKE $%d OR code ILIKE $%d)", argIndex, argIndex)
 		searchPattern := "%" + searchText + "%"
 		args = append(args, searchPattern)
 		argIndex++
 	}
 
-	query += " ORDER BY sort_order NULLS LAST, code LIMIT $" + strconv.Itoa(argIndex) + " OFFSET $" + strconv.Itoa(argIndex+1)
-	args = append(args, first, offset)
+	// 完整查询
+	dataQuery := baseQuery + whereConditions + " ORDER BY sort_order NULLS LAST, code LIMIT $" + strconv.Itoa(argIndex) + " OFFSET $" + strconv.Itoa(argIndex+1)
+	totalQuery := countQuery + whereConditions
+	
+	// 执行总数查询
+	var total int
+	err := r.db.QueryRowContext(ctx, totalQuery, args...).Scan(&total)
+	if err != nil {
+		r.logger.Printf("[ERROR] 查询组织总数失败: %v", err)
+		return nil, err
+	}
 
-	start := time.Now()
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	// 执行数据查询
+	args = append(args, limit, offset)
+	rows, err := r.db.QueryContext(ctx, dataQuery, args...)
 	if err != nil {
 		r.logger.Printf("[ERROR] 查询当前组织失败: %v", err)
 		return nil, err
@@ -334,9 +485,28 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	}
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 查询 %d 个组织，耗时: %v", len(organizations), duration)
+	r.logger.Printf("[PERF] 查询 %d/%d 组织 (页面: %d/%d)，耗时: %v", len(organizations), total, page, (total+int(pageSize)-1)/int(pageSize), duration)
 
-	return organizations, nil
+	// 构建符合契约的响应结构
+	totalPages := (total + int(pageSize) - 1) / int(pageSize)
+	response := &OrganizationConnection{
+		DataField: organizations,
+		PaginationField: PaginationInfo{
+			TotalField:       total,
+			PageField:        int(page),
+			PageSizeField:    int(pageSize),
+			HasNextField:     int(page) < totalPages,
+			HasPreviousField: page > 1,
+		},
+		TemporalField: TemporalInfo{
+			AsOfDateField:     time.Now().Format("2006-01-02"),
+			CurrentCountField: len(organizations),
+			FutureCountField:  0,  // TODO: 基于时态数据计算
+			HistoricalCountField: 0, // TODO: 基于历史数据计算
+		},
+	}
+
+	return response, nil
 }
 
 // 单个组织查询 - 超快速索引查询
@@ -577,35 +747,22 @@ type Resolver struct {
 	logger *log.Logger
 }
 
-// 当前组织列表查询 (camelCase方法名)
+// 当前组织列表查询 - 符合API契约v4.2.1 (camelCase方法名)
 func (r *Resolver) Organizations(ctx context.Context, args struct {
-	First      *int32
-	Offset     *int32
-	SearchText *string
-	Status     *string
-}) ([]Organization, error) {
-	first := 50
-	offset := 0
-	searchText := ""
-	status := ""
+	Filter     *OrganizationFilter
+	Pagination *PaginationInput
+}) (*OrganizationConnection, error) {
+	r.logger.Printf("[GraphQL] 查询组织列表 - API契约v4.2.1")
 
-	if args.First != nil {
-		first = int(*args.First)
+	// 记录查询参数用于调试
+	if args.Filter != nil {
+		r.logger.Printf("[GraphQL] 过滤条件: %+v", *args.Filter)
 	}
-	if args.Offset != nil {
-		offset = int(*args.Offset)
-	}
-	if args.SearchText != nil {
-		searchText = *args.SearchText
-	}
-	if args.Status != nil {
-		status = *args.Status
+	if args.Pagination != nil {
+		r.logger.Printf("[GraphQL] 分页参数: %+v", *args.Pagination)
 	}
 
-	r.logger.Printf("[GraphQL] 查询组织列表 - first: %d, offset: %d, searchText: '%s', status: '%s'",
-		first, offset, searchText, status)
-
-	return r.repo.GetOrganizations(ctx, DefaultTenantID, first, offset, searchText, status)
+	return r.repo.GetOrganizations(ctx, DefaultTenantID, args.Filter, args.Pagination)
 }
 
 // 单个组织查询
@@ -700,10 +857,27 @@ func main() {
 	// 创建GraphQL schema
 	schema := graphql.MustParseSchema(schemaString, resolver)
 
+	// 初始化JWT中间件
+	jwtSecret := getEnv("JWT_SECRET", "cube-castle-development-secret-key-2025")
+	jwtIssuer := getEnv("JWT_ISSUER", "cube-castle")
+	jwtAudience := getEnv("JWT_AUDIENCE", "cube-castle-api")
+	devMode := getEnv("DEV_MODE", "true") == "true"
+
+	jwtMiddleware := auth.NewJWTMiddleware(jwtSecret, jwtIssuer, jwtAudience)
+	permissionChecker := auth.NewPBACPermissionChecker(db, logger)
+	graphqlMiddleware := auth.NewGraphQLPermissionMiddleware(
+		jwtMiddleware,
+		permissionChecker,
+		logger,
+		devMode,
+	)
+
+	logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v)", devMode)
+
 	// HTTP路由
 	r := chi.NewRouter()
 
-	// 中间件
+	// 基础中间件
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
@@ -715,8 +889,8 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	// GraphQL端点
-	r.Handle("/graphql", &relay.Handler{Schema: schema})
+	// GraphQL端点 - 带JWT认证保护
+	r.Handle("/graphql", graphqlMiddleware.Middleware()(&relay.Handler{Schema: schema}))
 
 	// GraphiQL开发界面
 	r.Get("/graphiql", func(w http.ResponseWriter, r *http.Request) {

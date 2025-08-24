@@ -10,7 +10,7 @@ import type {
   DateRange,
   TemporalOrganizationUnit,
   TimelineEvent,
-  TimelineViewConfig,
+  TemporalTimelineViewConfig,
   TemporalContext
 } from '../types/temporal';
 import { TemporalConverter } from '../utils/temporal-converter';
@@ -24,7 +24,7 @@ export interface TemporalState {
   queryParams: TemporalQueryParams;
   
   // 时间线视图配置
-  viewConfig: TimelineViewConfig;
+  viewConfig: TemporalTimelineViewConfig;
   
   // 缓存的时态数据
   cache: {
@@ -59,7 +59,7 @@ export interface TemporalActions {
   setQueryParams: (params: Partial<TemporalQueryParams>) => void;
   
   // 设置时间线视图配置
-  setViewConfig: (config: Partial<TimelineViewConfig>) => void;
+  setViewConfig: (config: Partial<TemporalTimelineViewConfig>) => void;
   
   // 缓存操作
   cacheOrganizations: (key: string, data: TemporalOrganizationUnit[]) => void;
@@ -193,7 +193,7 @@ export const useTemporalStore = create<TemporalState & TemporalActions>()(
     },
 
     // 设置时间线视图配置
-    setViewConfig: (config: Partial<TimelineViewConfig>) => {
+    setViewConfig: (config: Partial<TemporalTimelineViewConfig>) => {
       set((state) => ({
         viewConfig: { ...state.viewConfig, ...config },
         error: null

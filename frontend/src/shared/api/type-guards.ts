@@ -104,7 +104,7 @@ export const isGraphQLError = (response: unknown): response is { errors: GraphQL
     response !== null && 
     'errors' in response &&
     Array.isArray((response as Record<string, unknown>).errors) &&
-    (response as Record<string, unknown>).errors.length > 0
+    ((response as Record<string, unknown>).errors as unknown[]).length > 0
   );
 };
 
@@ -153,16 +153,16 @@ export const safeTransformGraphQLToOrganizationUnit = (
 ): OrganizationUnit => {
   return {
     code: graphqlOrg.code,
-    parent_code: graphqlOrg.parentCode || '',
+    parentCode: graphqlOrg.parentCode || '',
     name: graphqlOrg.name,
-    unit_type: graphqlOrg.unitType as OrganizationUnit['unit_type'],
+    unitType: graphqlOrg.unitType as OrganizationUnit['unitType'],
     status: graphqlOrg.status as OrganizationUnit['status'],
     level: graphqlOrg.level,
     path: graphqlOrg.path || '',
-    sort_order: graphqlOrg.sortOrder || 0,
+    sortOrder: graphqlOrg.sortOrder || 0,
     description: graphqlOrg.description || '',
-    created_at: graphqlOrg.createdAt || '',
-    updated_at: graphqlOrg.updatedAt || '',
+    createdAt: graphqlOrg.createdAt || '',
+    updatedAt: graphqlOrg.updatedAt || '',
   };
 };
 

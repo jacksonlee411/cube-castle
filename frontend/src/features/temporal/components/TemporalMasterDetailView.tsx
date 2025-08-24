@@ -17,7 +17,6 @@ import {
   colors, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
-import { plusIcon } from '@workday/canvas-system-icons-web';
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
 
@@ -368,15 +367,15 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [isDeleting, setIsDeleting] = useState(false);
   
   // 编辑表单状态
-  const [showEditForm, setShowEditForm] = useState(isCreateMode); // 创建模式默认显示编辑表单
-  const [editMode, setEditMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
+  const [showEditForm] = useState(isCreateMode); // 创建模式默认显示编辑表单
+  const [editMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 视图选项卡状态 - 默认显示编辑历史记录页面
   const [activeTab, setActiveTab] = useState<'new-version' | 'edit-history'>('edit-history');
   
-  // 表单模式状态 - 新增功能
-  const [formMode, setFormMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
+  // 表单模式状态 - 新增功能 (TODO: 当前未读取formMode值)
+  const [/* formMode */, setFormMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
   const [formInitialData, setFormInitialData] = useState<{
     name: string;
     unit_type: string;
@@ -402,7 +401,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const loadVersions = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/graphql', {
+      const response = await fetch('http://localhost:8090/graphql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -410,21 +409,21 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             query GetOrganizationHistory($code: String!, $fromDate: String!, $toDate: String!) {
               organizationHistory(code: $code, fromDate: $fromDate, toDate: $toDate) {
                 code
-                record_id
+                recordId
                 name
-                unit_type
+                unitType
                 status
                 level
                 path
                 description
-                parent_code
-                effective_date
-                end_date
-                change_reason
-                is_current
-                created_at
-                updated_at
-                deleted_at
+                parentCode
+                effectiveDate
+                endDate
+                changeReason
+                isCurrent
+                createdAt
+                updatedAt
+                deletedAt
               }
             }
           `,
@@ -441,9 +440,26 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         
         // 映射GraphQL数据到前端五状态生命周期管理系统
         const mappedVersions = data.data.organizationHistory.map((version: any) => ({
-          ...version,
+          // 将camelCase字段映射为snake_case以保持内部一致性
+          record_id: version.recordId,
+          code: version.code,
+          name: version.name,
+          unit_type: version.unitType,
+          status: version.status,
+          level: version.level,
+          path: version.path,
+          description: version.description,
+          parent_code: version.parentCode,
+          effective_date: version.effectiveDate,
+          end_date: version.endDate,
+          change_reason: version.changeReason,
+          is_current: version.isCurrent,
+          created_at: version.createdAt,
+          updated_at: version.updatedAt,
+          deleted_at: version.deletedAt,
+          sort_order: 0, // 默认值
           // 添加五状态生命周期字段映射
-          lifecycle_status: mapBackendStatusToLifecycleStatus(version.status, version.is_current),
+          lifecycle_status: mapBackendStatusToLifecycleStatus(version.status, version.isCurrent),
           business_status: version.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
           data_status: version.status === 'DELETED' ? 'DELETED' : 'NORMAL' // 根据status字段判断数据状态
         }));
@@ -561,18 +577,18 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       if (isCreateMode) {
         // 创建新组织
         // 状态映射：lifecycle_status -> API status
-        const mapLifecycleStatusToApiStatus = (lifecycleStatus: string) => {
-          switch (lifecycleStatus) {
-            case 'CURRENT': return 'ACTIVE';
-            case 'PLANNED': return 'PLANNED';
-            case 'HISTORICAL':
-            case 'SUSPENDED':
-            case 'DELETED': 
-              return 'INACTIVE';
-            default: 
-              return 'ACTIVE';
-          }
-        };
+        // const mapLifecycleStatusToApiStatus = (lifecycleStatus: string) => { // TODO: 暂时未使用
+        //   switch (lifecycleStatus) {
+        //     case 'CURRENT': return 'ACTIVE';
+        //     case 'PLANNED': return 'PLANNED';
+        //     case 'HISTORICAL':
+        //     case 'SUSPENDED':
+        //     case 'DELETED': 
+        //       return 'INACTIVE';
+        //     default: 
+        //       return 'ACTIVE';
+        //   }
+        // };
         
         const requestBody = {
           name: formData.name,
@@ -624,7 +640,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               change_data: {
                 name: formData.name,
                 unit_type: formData.unit_type,
-                status: formData.lifecycle_status || formData.status,
+                status: formData.lifecycle_status,
                 description: formData.description,
                 parent_code: formData.parent_code
               },
@@ -662,19 +678,19 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   }, [isSubmitting]);
 
   // 历史记录编辑相关函数
-  const handleEditHistory = useCallback((version: TemporalVersion) => {
-    setFormMode('edit');
-    setFormInitialData({
-      name: version.name,
-      unit_type: version.unit_type,
-      status: version.status,
-      description: version.description || '',
-      parent_code: version.parent_code || '',
-      effective_date: version.effective_date
-    });
-    setSelectedVersion(version);
-    setActiveTab('edit-history'); // 切换到历史记录编辑选项卡
-  }, []);
+  // const handleEditHistory = useCallback((version: TemporalVersion) => { // TODO: 暂时未使用
+  //   setFormMode('edit');
+  //   setFormInitialData({
+  //     name: version.name,
+  //     unit_type: version.unit_type,
+  //     status: version.status,
+  //     description: version.description || '',
+  //     parent_code: version.parent_code || '',
+  //     effective_date: version.effective_date
+  //   });
+  //   setSelectedVersion(version);
+  //   setActiveTab('edit-history'); // 切换到历史记录编辑选项卡
+  // }, []);
 
   const handleHistoryEditClose = useCallback(() => {
     if (!isSubmitting) {
@@ -789,10 +805,12 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             borderRadius={borderRadius.m}
             border="1px solid #E9ECEF"
             padding="m"
-            display="flex"
-            flexDirection="column"
-            justifyContent="center"
-            alignItems="center"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
           >
             <Box textAlign="center">
               <Text typeLevel="heading.small" marginBottom="m">
@@ -806,10 +824,12 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 height="60px"
                 borderRadius="50%"
                 backgroundColor={colors.blueberry600}
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
                 margin="auto"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
               >
                 <Text color="white" typeLevel="heading.medium">
                   +
@@ -909,7 +929,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       )}
 
       {/* 编辑表单 - 保留用于编辑现有版本 */}
-      {editMode === 'edit' && (
+      {editMode === 'edit' && organizationCode && (
         <TemporalEditForm
           isOpen={showEditForm}
           onClose={handleFormClose}

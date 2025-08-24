@@ -227,11 +227,11 @@ export const TimePointQuery: React.FC<TimePointQueryProps> = ({
               </Box>
             </Flex>
 
-            {asOfDateRecord.change_reason && (
+            {asOfDateRecord.changeReason && (
               <Box marginTop={space.s}>
                 <Text fontSize={fontSizes.body.small} color={colors.licorice400}>变更原因</Text>
                 <Text fontSize={fontSizes.body.medium} fontStyle="italic">
-                  {asOfDateRecord.change_reason}
+                  {asOfDateRecord.changeReason}
                 </Text>
               </Box>
             )}

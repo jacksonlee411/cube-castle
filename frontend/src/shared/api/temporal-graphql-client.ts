@@ -268,20 +268,20 @@ export const temporalAPI = {
       
       // 将历史记录转换为时间线事件
       const timeline: TimelineEvent[] = history.map((record, index) => ({
-        id: `${record.code}-${record.effective_date}`,
+        id: `${record.code}-${record.effectiveDate}`,
         organizationCode: record.code,
-        timestamp: new Date(record.effective_date), // 修正：使用timestamp而非eventDate
+        timestamp: record.effectiveDate, // 使用字符串类型的timestamp
         type: index === 0 ? 'organization_created' : 'organization_updated', // 修正：使用定义的EventType
-        title: `${record.name} - ${record.change_reason || '组织变更'}`, // 修正：使用title而非description
-        description: record.change_reason || '组织变更',
+        title: `${record.name} - ${record.changeReason || '组织变更'}`, // 修正：使用title而非description
+        description: record.changeReason || '组织变更',
         changes: [], // 可以根据需要计算变更字段
-        status: record.is_current ? 'active' : 'completed', // 修正：添加status字段
+        status: record.isCurrent ? 'active' : 'completed', // 修正：添加status字段
         metadata: {
           status: record.status,
-          unit_type: record.unit_type,
-          effective_date: record.effective_date,
-          end_date: record.end_date,
-          is_current: record.is_current
+          unitType: record.unitType,
+          effectiveDate: record.effectiveDate,
+          endDate: record.endDate,
+          isCurrent: record.isCurrent
         }
       }));
 
@@ -362,12 +362,12 @@ export const temporalAPI = {
       const changesByType: Record<string, number> = {};
       
       changes.forEach(change => {
-        const reason = change.change_reason || 'UNKNOWN';
+        const reason = change.changeReason || 'UNKNOWN';
         changesByType[reason] = (changesByType[reason] || 0) + 1;
       });
 
       // 计算平均变更间隔
-      const dates = history.map(h => new Date(h.effective_date)).sort((a, b) => a.getTime() - b.getTime());
+      const dates = history.map(h => new Date(h.effectiveDate)).sort((a, b) => a.getTime() - b.getTime());
       const intervals = dates.slice(1).map((date, index) => 
         (date.getTime() - dates[index].getTime()) / (1000 * 60 * 60 * 24) // 转换为天数
       );

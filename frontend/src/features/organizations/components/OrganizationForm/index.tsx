@@ -97,7 +97,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           code: organization!.code,
           name: formData.name,
           unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
-          status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
+          status: formData.status as 'ACTIVE' | 'SUSPENDED' | 'PLANNED',
           description: formData.description,
           sortOrder: formData.sortOrder,
           level: formData.level,
@@ -108,7 +108,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         if (formData.isTemporal) {
           const temporalUpdateData = {
             ...updateData,
-            effectiveFrom: TemporalConverter.dateToIso(formData.effectiveFrom),
+            effectiveFrom: formData.effectiveFrom ? TemporalConverter.dateToIso(formData.effectiveFrom) : TemporalConverter.getCurrentISOString(),
             effectiveTo: formData.effectiveTo ? TemporalConverter.dateToIso(formData.effectiveTo) : undefined,
             changeReason: formData.changeReason
           };
@@ -121,7 +121,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           code: formData.code && formData.code.trim() ? formData.code.trim() : undefined,
           name: formData.name,
           unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
-          status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
+          status: formData.status as 'ACTIVE' | 'SUSPENDED' | 'PLANNED',
           level: formData.level,
           sortOrder: formData.sortOrder,
           description: formData.description,

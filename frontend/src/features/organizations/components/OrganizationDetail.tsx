@@ -209,9 +209,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
   const {
     selectedOrg,
     isFormOpen,
-    isToggling,
     handleEdit,
-    handleToggleStatus,
     handleFormClose,
     handleFormSubmit,
   } = useOrganizationActions();
@@ -229,12 +227,12 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
     }
   }, [organization, handleEdit]);
 
-  // 切换状态处理
+  // 切换状态处理 - 临时禁用直到实现状态管理
   const handleToggleOrganizationStatus = useCallback(() => {
     if (organization) {
-      handleToggleStatus(organization.code, organization.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
+      console.log('Toggle status not implemented yet');
     }
-  }, [organization, handleToggleStatus]);
+  }, [organization]);
 
   // 刷新所有数据
   const handleRefreshAll = useCallback(() => {
@@ -330,7 +328,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
           isHistorical={isHistorical}
           onEdit={readonly ? undefined : handleEditOrganization}
           onToggleStatus={readonly ? undefined : handleToggleOrganizationStatus}
-          isLoading={isToggling}
+          isLoading={false}
         />
       </Box>
 

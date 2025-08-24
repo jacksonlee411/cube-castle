@@ -51,5 +51,5 @@ export type {
   EventType,
   EventStatus,
   TemporalContext,
-  TimelineViewConfig
+  TemporalTimelineViewConfig
 } from '../../../shared/types/temporal';

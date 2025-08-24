@@ -13,22 +13,16 @@ import { Tabs } from '@workday/canvas-kit-react/tabs';
 import { 
   colors, 
   space, 
-  borderRadius,
-  fontSizes 
+  borderRadius 
 } from '@workday/canvas-kit-react/tokens';
-import {
-  ArrowRightIcon,
-  CompareIcon,
-  HistoryIcon,
-  InfoIcon
-} from '@workday/canvas-kit-react/icon';
+// import { ArrowRightIcon } from '@workday/canvas-kit-react/icon'; // TODO: Canvas Kit v13图标导入方式需要更新
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
-import { exclamationCircleIcon } from '@workday/canvas-system-icons-web';
-import { useOrganizationHistory } from '../../shared/hooks/useTemporalQuery';
+import { exclamationCircleIcon, arrowRightIcon } from '@workday/canvas-system-icons-web';
+import { useOrganizationHistory } from '../../../shared/hooks/useTemporalQuery';
 import type { 
   TemporalOrganizationUnit,
   TemporalQueryParams
-} from '../../shared/types/temporal';
+} from '../../../shared/types/temporal';
 
 export interface VersionComparisonProps {
   /** 组织代码 */

@@ -169,7 +169,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
       }
     }
     
-    if (!formData.change_reason.trim()) {
+    if (!formData.change_reason?.trim()) {
       newErrors.change_reason = '变更原因是必填项';
     }
     

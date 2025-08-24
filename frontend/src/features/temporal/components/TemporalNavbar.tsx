@@ -12,7 +12,7 @@ import {
   clockIcon,
   documentIcon,
   calendarIcon,
-  syncIcon,
+  loopIcon,
   gearIcon,
   exclamationIcon
 } from '@workday/canvas-system-icons-web';
@@ -224,7 +224,7 @@ export const TemporalNavbar: React.FC<TemporalNavbarProps> = ({
               onClick={handleRefreshCache}
               disabled={loading.organizations || loading.timeline}
             >
-              <SystemIcon icon={syncIcon} size={16} />
+              <SystemIcon icon={loopIcon} size={16} />
             </SecondaryButton>
           </Tooltip>
 

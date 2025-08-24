@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
-import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
+import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { 
   editIcon, 

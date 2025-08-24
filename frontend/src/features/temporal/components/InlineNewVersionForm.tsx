@@ -225,7 +225,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setFormData({
         name: initialData.name,
         unit_type: initialData.unit_type,
-        lifecycle_status: initialData.status || 'PLANNED', // 修复：使用 status 字段而不是 lifecycle_status
+        lifecycle_status: initialData.status as 'SUSPENDED' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL' || 'PLANNED', // 修复：使用 status 字段而不是 lifecycle_status
         description: initialData.description || '',
         effective_date: initialData.effective_date 
           ? new Date(initialData.effective_date).toISOString().split('T')[0] 

@@ -9,7 +9,7 @@ import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { Badge } from '../../../shared/components/Badge';
 import { Tooltip } from '@workday/canvas-kit-react/tooltip';
-import { Menu } from '@workday/canvas-kit-react/menu';
+// import { Menu } from '@workday/canvas-kit-react/menu'; // TODO: Canvas Kit v13 Menu组件使用方式需要更新
 import { 
   colors, 
   space
@@ -23,7 +23,12 @@ import {
   clockIcon,
   shareIcon,
   textEditIcon,
-  exclamationCircleIcon // 错误图标
+  exclamationCircleIcon, // 错误图标
+  menuGroupIcon,
+  plusIcon,
+  filterIcon,
+  chevronDownIcon,
+  chevronUpIcon
 } from '@workday/canvas-system-icons-web';
 import { useOrganizationTimeline } from '../../../shared/hooks/useTemporalQuery';
 import type { 
@@ -102,7 +107,7 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
     return styles[status] || styles.pending;
   };
 
-  const eventTypeStyle = getEventTypeStyle(event.event_type || 'update');
+  const eventTypeStyle = getEventTypeStyle(event.type || 'update');
   const statusStyle = getStatusStyle(event.status || 'pending');
 
   // 格式化时间
@@ -123,7 +128,14 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
   return (
     <Flex alignItems="flex-start" gap={space.s}>
       {/* 时间线连接线 */}
-      <Box position="relative" display="flex" flexDirection="column" alignItems="center">
+      <Box 
+        position="relative" 
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
+        }}
+      >
         {/* 事件图标 */}
         <Box
           width="32px"
@@ -131,10 +143,12 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
           borderRadius="50%"
           backgroundColor={eventTypeStyle.bgColor}
           border={`2px solid ${eventTypeStyle.color}`}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          fontSize={compact ? fontSizes.small : fontSizes.medium}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: compact ? '12px' : '14px'
+          }}
         >
           {eventTypeStyle.icon}
         </Box>
@@ -152,14 +166,15 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
 
       {/* 事件内容 */}
       <Card
-        flex="1"
-        padding={compact ? space.s : space.m}
-        marginBottom={space.s}
-        cursor={onEventClick ? 'pointer' : 'default'}
+        style={{
+          flex: '1',
+          marginBottom: space.s,
+          cursor: onEventClick ? 'pointer' : 'default'
+        }}
         onClick={() => onEventClick?.(event)}
-        _hover={onEventClick ? { backgroundColor: colors.soap100 } : {}}
       >
-        <Flex justifyContent="space-between" alignItems="flex-start" marginBottom={space.xs}>
+        <Card.Body padding={compact ? space.s : space.m}>
+          <Flex justifyContent="space-between" alignItems="flex-start" marginBottom={space.xs}>
           <Box flex="1">
             <Flex alignItems="center" gap={space.s} marginBottom={space.xs}>
               <Text fontWeight="medium" fontSize={compact ? 'small' : 'medium'}>
@@ -171,10 +186,8 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
             </Flex>
 
             <Text fontSize="small" color={colors.licorice600} marginBottom={space.xs}>
-              {formatEventTime(event.eventDate)}
-              {event.effectiveDate && event.effectiveDate !== event.eventDate && (
-                <> • 生效时间: {formatEventTime(event.effectiveDate)}</>
-              )}
+              {formatEventTime(event.timestamp)}
+              {/* TimelineEvent不包含effectiveDate字段，这里注释掉 */}
             </Text>
 
             {event.description && !compact && (
@@ -194,21 +207,25 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
                   setShowMenu(!showMenu);
                 }}
               >
-                <MoreVerticalIcon />
+                <SystemIcon icon={menuGroupIcon} />
               </TertiaryButton>
 
+              {/* TODO: 修复Menu组件实现 - 当前Canvas Kit v13的Menu组件需要不同的使用方式 */}
               {showMenu && (
-                <Menu onClose={() => setShowMenu(false)}>
-                  <Menu.Item onClick={() => console.log('查看详情', event.id)}>
-                    查看详情
-                  </Menu.Item>
-                  <Menu.Item onClick={() => console.log('编辑事件', event.id)}>
-                    编辑事件
-                  </Menu.Item>
-                  <Menu.Item onClick={() => console.log('删除事件', event.id)}>
-                    删除事件
-                  </Menu.Item>
-                </Menu>
+                <Box 
+                  position="absolute" 
+                  top="100%" 
+                  right="0" 
+                  backgroundColor="white" 
+                  border="1px solid #E5E5E5" 
+                  borderRadius="4px"
+                  boxShadow="0 2px 8px rgba(0,0,0,0.1)"
+                  padding="xs"
+                  minWidth="120px"
+                  zIndex="10"
+                >
+                  <Text cursor="pointer" onClick={() => console.log('查看详情', event.id)}>查看详情</Text>
+                </Box>
               )}
             </Box>
           )}
@@ -227,20 +244,14 @@ const TimelineEventItem: React.FC<TimelineEventItemProps> = ({
         )}
 
         {/* 操作者信息 */}
-        {(event.triggeredBy || event.approvedBy) && !compact && (
+        {event.author && !compact && (
           <Flex gap={space.m} marginTop={space.xs}>
-            {event.triggeredBy && (
-              <Text fontSize="small" color={colors.licorice400}>
-                触发者: {event.triggeredBy}
-              </Text>
-            )}
-            {event.approvedBy && (
-              <Text fontSize="small" color={colors.licorice400}>
-                批准者: {event.approvedBy}
-              </Text>
-            )}
+            <Text fontSize="small" color={colors.licorice400}>
+              操作者: {event.author}
+            </Text>
           </Flex>
         )}
+        </Card.Body>
       </Card>
     </Flex>
   );
@@ -279,7 +290,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     let filtered = events;
 
     if (eventFilter.length > 0) {
-      filtered = filtered.filter(event => eventFilter.includes(event.eventType));
+      filtered = filtered.filter(event => eventFilter.includes(event.type));
     }
 
     if (statusFilter.length > 0) {
@@ -293,7 +304,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   const eventTypeStats = useMemo(() => {
     const stats: Record<EventType, number> = {} as Record<EventType, number>;
     events.forEach(event => {
-      stats[event.eventType] = (stats[event.eventType] || 0) + 1;
+      stats[event.type] = (stats[event.type] || 0) + 1;
     });
     return stats;
   }, [events]);
@@ -335,7 +346,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           <Text color={colors.licorice500}>📭 暂无时间线事件</Text>
           {onAddEvent && (
             <SecondaryButton size="small" onClick={onAddEvent}>
-              <AddIcon /> 添加事件
+              <SystemIcon icon={plusIcon} /> 添加事件
             </SecondaryButton>
           )}
         </Flex>
@@ -361,7 +372,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           {showFilters && (
             <Tooltip title="筛选事件">
               <TertiaryButton size="small">
-                <FilterIcon />
+                <SystemIcon icon={filterIcon} />
               </TertiaryButton>
             </Tooltip>
           )}
@@ -372,7 +383,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               size="small"
               onClick={() => setExpanded(!expanded)}
             >
-              {expanded ? <CollapseIcon /> : <ExpandIcon />}
+              {expanded ? <SystemIcon icon={chevronUpIcon} /> : <SystemIcon icon={chevronDownIcon} />}
             </TertiaryButton>
           </Tooltip>
 
@@ -380,7 +391,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           {onAddEvent && (
             <Tooltip title="添加新事件">
               <SecondaryButton size="small" onClick={onAddEvent}>
-                <AddIcon />
+                <SystemIcon icon={plusIcon} />
                 {!compact && '添加事件'}
               </SecondaryButton>
             </Tooltip>
@@ -461,7 +472,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               最新: {latestEvent.title}
             </Text>
             <Badge variant="outline" size="small">
-              {new Date(latestEvent.eventDate).toLocaleDateString('zh-CN')}
+              {new Date(latestEvent.timestamp).toLocaleDateString('zh-CN')}
             </Badge>
           </Flex>
         </Card>

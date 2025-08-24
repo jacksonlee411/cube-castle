@@ -16,34 +16,34 @@ const mockOrganizations = [
   {
     code: '1000056',
     name: '测试更新缓存_同步修复',
-    unit_type: 'DEPARTMENT',
+    unitType: 'DEPARTMENT',
     status: 'ACTIVE',
     level: 1,
-    effective_date: '2025-08-10'
+    effectiveDate: '2025-08-10'
   },
   {
     code: '1000057',
     name: '人力资源部',
-    unit_type: 'DEPARTMENT',
+    unitType: 'DEPARTMENT',
     status: 'ACTIVE',
     level: 2,
-    effective_date: '2025-01-01'
+    effectiveDate: '2025-01-01'
   },
   {
     code: '1000058',
     name: '财务部',
-    unit_type: 'DEPARTMENT',
+    unitType: 'DEPARTMENT',
     status: 'ACTIVE',
     level: 2,
-    effective_date: '2025-01-01'
+    effectiveDate: '2025-01-01'
   },
   {
     code: '1000059',
     name: '计划项目组',
-    unit_type: 'PROJECT_TEAM',
+    unitType: 'PROJECT_TEAM',
     status: 'PLANNED',
     level: 3,
-    effective_date: '2025-09-01'
+    effectiveDate: '2025-09-01'
   }
 ];
 
@@ -222,7 +222,7 @@ export const TemporalManagementSimple: React.FC = () => {
                       {org.name}
                     </td>
                     <td style={{ padding: '8px' }}>
-                      {getTypeLabel(org.unit_type)}
+                      {getTypeLabel(org.unitType)}
                     </td>
                     <td style={{ padding: '8px' }}>
                       <SimpleBadge variant={getStatusVariant(org.status)} size="small">
@@ -233,7 +233,7 @@ export const TemporalManagementSimple: React.FC = () => {
                       L{org.level}
                     </td>
                     <td style={{ padding: '8px' }}>
-                      {new Date(org.effective_date).toLocaleDateString('zh-CN')}
+                      {new Date(org.effectiveDate).toLocaleDateString('zh-CN')}
                     </td>
                     <td style={{ padding: '8px' }}>
                       <SecondaryButton

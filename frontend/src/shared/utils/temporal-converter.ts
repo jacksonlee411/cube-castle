@@ -85,7 +85,7 @@ export class TemporalConverter {
     
     temporalFields.forEach(field => {
       const value = normalized[field];
-      if (value instanceof Date) {
+      if (value && Object.prototype.toString.call(value) === '[object Date]') {
         normalized[field] = value.toISOString() as T[keyof T];
       } else if (typeof value === 'string' && value) {
         // 验证字符串格式

@@ -3,7 +3,7 @@
 **版本**: v1.0  
 **原始创建时间**: 2025年7月  
 **迁移时间**: 2025年8月5日  
-**迁移自**: docs/architecture/castle_blueprint.md  
+**迁移自**: docs/architecture/castleBlueprint.md  
 **文档状态**: 高级指导文档 - 战略架构蓝图  
 **重要性**: 最高级别 - 系统哲学和技术方法定义  
 **维护团队**: 项目架构委员会  
@@ -191,7 +191,7 @@ IntelligenceGateway 塔楼内集中实现。这个模块是平台所有智能交
 2. **灵活理解阶段**：IntelligenceGateway 模块接收到请求，其中包含用户的自然语言文本和来自前端的 UIState 上下文对象。它调用外部的 LLM 服务进行意图识别和实体提取，并利用 UIState 对结果进行消歧和增强，最终确定一个明确的、结构化的用户意图（例如，{ intent: 'ApproveTimeOffRequest', entity: { requestId: '123' } }）。  
 3. **治理检查**：在执行任何操作之前，IntelligenceGateway 会调用**嵌入式 OPA 库**，传入当前的用户信息、识别出的意图和实体等上下文，进行策略检查。例如，检查当前用户是否有权限执行 ApproveTimeOffRequest 这个意图。  
 4. **刚性创建阶段**：如果策略检查通过，IntelligenceGateway 将进行关键的"模式切换"。它**不会**自己执行业务逻辑，而是根据元合约中定义的"意图到API的映射关系"，将结构化的意图转换为对另一个业务模块（如 CoreHR）的公共 API 的一次标准调用，例如 coreHrApi.approveTimeOff('123')。  
-5. **事件生成与审计**：CoreHR 模块在接收到 API 调用并成功执行业务逻辑后，会生成一个结构化的、不可变的"业务流程事件"（BUSINESS_PROCESS_EVENT），并将其持久化到PostgreSQL中。这完美地实现了"交互即审计事件"的原则 1，确保了所有源于 AI 交互的系统状态变更都有可追溯的数字足迹。
+5. **事件生成与审计**：CoreHR 模块在接收到 API 调用并成功执行业务逻辑后，会生成一个结构化的、不可变的"业务流程事件"（businessProcessEvent），并将其持久化到PostgreSQL中。这完美地实现了"交互即审计事件"的原则 1，确保了所有源于 AI 交互的系统状态变更都有可追溯的数字足迹。
 
 这种设计严格地将 AI/LLM 的角色限定在"理解和翻译"上，而将真正的"创建和执行"权交还给经过严格定义和验证的、可信的业务模块，构成了抵御 AI 幻觉风险的核心架构保障。
 
@@ -228,10 +228,10 @@ v4.0 蓝图中的混合多租户模型是一个深刻的商业与技术结合的
 * 共享池（逻辑隔离）  
   这是面向中小企业客户的标准模式。多个租户的数据存储在同一个 PostgreSQL 数据库中，但由一个单一部署的单体应用实例提供服务。数据的隔离完全依赖于数据库层的行级安全（Row-Level Security, RLS）。  
   其实现机制如下 1：  
-  1. **上下文注入**：当一个请求进入单体应用时，应用代码首先会从 JWT 或其他凭证中解析出 tenant_id。  
-  2. **会话变量设置**：在执行任何数据库查询之前，应用必须在数据库连接上执行 SET LOCAL app.current_tenant_id = '...'。使用 SET LOCAL 至关重要，它能确保该变量的生命周期仅限于当前事务，避免在连接池中发生租户上下文泄露的风险。  
-  3. **RLS 策略**：在数据库中，为所有需要隔离的表创建 RLS 策略。例如，对于 employees 表，策略可以定义为 CREATE POLICY tenant_isolation_policy ON employees FOR ALL USING (tenant_id = current_setting('app.current_tenant_id'));。  
-  4. **强制隔离**：一旦启用 RLS，数据库本身会成为数据隔离的最终保障。任何查询，无论其 SQL 写法如何，都将被数据库强制附加 WHERE tenant_id =... 的条件，从而杜绝跨租户数据访问。  
+  1. **上下文注入**：当一个请求进入单体应用时，应用代码首先会从 JWT 或其他凭证中解析出 tenantId。  
+  2. **会话变量设置**：在执行任何数据库查询之前，应用必须在数据库连接上执行 SET LOCAL app.currentTenantId = '...'。使用 SET LOCAL 至关重要，它能确保该变量的生命周期仅限于当前事务，避免在连接池中发生租户上下文泄露的风险。  
+  3. **RLS 策略**：在数据库中，为所有需要隔离的表创建 RLS 策略。例如，对于 employees 表，策略可以定义为 CREATE POLICY tenantIsolationPolicy ON employees FOR ALL USING (tenantId = current_setting('app.currentTenantId'));。  
+  4. **强制隔离**：一旦启用 RLS，数据库本身会成为数据隔离的最终保障。任何查询，无论其 SQL 写法如何，都将被数据库强制附加 WHERE tenantId =... 的条件，从而杜绝跨租户数据访问。  
 * 专属筒仓（物理隔离）  
   这是面向对安全、性能和合规有最高要求的大型企业客户的模式。在这种模式下，我们将为每个客户部署一个完全独立的单体应用容器实例和一个专有的数据库实例。  
   这种模式的上线过程必须通过基础设施即代码（Infrastructure-as-Code, IaC），特别是 Terraform，进行完全自动化 1。Terraform 脚本将负责：  

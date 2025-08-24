@@ -173,55 +173,49 @@ export const organizationAPI = {
           temporalMode: params?.temporalParams?.mode || 'current'
         };
       } else {
-        // 基础查询版本（不含时态参数）
+        // 基础查询版本（不含时态参数）- 使用正确的OrganizationConnection结构
         graphqlQuery = `
-          query GetOrganizations(
-            $first: Int, 
-            $offset: Int, 
-            $searchText: String
-          ) {
-            organizations(
-              first: $first, 
-              offset: $offset, 
-              searchText: $searchText
-            ) {
-              code
-              name
-              unitType
-              status
-              level
-              path
-              sortOrder
-              description
-              parentCode
-              createdAt
-              updatedAt
-            }
-            organizationStats {
-              totalCount
+          query GetOrganizations {
+            organizations {
+              data {
+                code
+                name
+                unitType
+                status
+                level
+                path
+                sortOrder
+                description
+                parentCode
+                createdAt
+                updatedAt
+              }
+              pagination {
+                total
+                page
+                pageSize
+              }
             }
           }
         `;
-        variables = {
-          first: params?.pageSize || 50,
-          offset: ((params?.page || 1) - 1) * (params?.pageSize || 50),
-          searchText: params?.searchText || null
-        };
+        variables = {};
       }
 
       const data = await graphqlClient.request<{
         organizations: {
           data: Partial<OrganizationUnit>[];
-          totalCount: number;
-          hasMore: boolean;
-        };
-        organizationStats?: {
-          totalCount: number;
+          pagination: {
+            total: number;
+            page: number;
+            pageSize: number;
+          };
         };
       }>(graphqlQuery, variables);
 
-      // 简化的数据转换 - 使用正确的响应结构
-      const organizations = data.organizations.data.map((org: Partial<OrganizationUnit>) => {
+      // 🔧 修复P0级数据契约问题: 使用OrganizationConnection结构
+      // 后端返回: organizations: {data: [...], pagination: {total, page, pageSize}}
+      // 前端期望: organizations: [...], totalCount: number
+      const organizations = (data.organizations?.data || []).map((org: Partial<OrganizationUnit>) => {
         try {
           return safeTransform.graphqlToOrganization ? 
             safeTransform.graphqlToOrganization(org) : 
@@ -232,8 +226,8 @@ export const organizationAPI = {
         }
       }).filter(Boolean);
 
-      // 🔧 修复: 使用正确的总数来源
-      const totalCount = data.organizations.totalCount;
+      // 🔧 修复: 从organizations.pagination.total获取总数，符合OrganizationConnection结构
+      const totalCount = data.organizations?.pagination?.total || 0;
       
       return {
         organizations: organizations.filter((org): org is OrganizationUnit => org !== null),
@@ -359,16 +353,18 @@ export const organizationAPI = {
     }
   },
 
-  // 获取组织统计信息 - 使用GraphQL
+  // 获取组织统计信息 - 使用organizations查询获取统计数据
   getStats: async (): Promise<OrganizationStats> => {
     try {
       const graphqlQuery = `
         query GetOrganizationStats {
-          organizations(first: 1000) {
-            totalCount
+          organizations {
             data {
               unitType
               status
+            }
+            pagination {
+              total
             }
           }
         }
@@ -376,27 +372,31 @@ export const organizationAPI = {
 
       const data = await graphqlClient.request<{
         organizations: {
-          totalCount: number;
           data: Array<{ unitType: string; status: string }>;
+          pagination: {
+            total: number;
+          };
         };
       }>(graphqlQuery);
 
-      const organizations = data.organizations;
-      if (!organizations) {
+      const organizations = data.organizations?.data || [];
+      const pagination = data.organizations?.pagination;
+      
+      if (!pagination) {
         throw new Error('No statistics data returned');
       }
 
-      // 计算统计信息
+      // 计算分类统计信息
       const byType: Record<string, number> = {};
       const byStatus: Record<string, number> = {};
       
-      organizations.data.forEach(org => {
+      organizations.forEach(org => {
         byType[org.unitType] = (byType[org.unitType] || 0) + 1;
         byStatus[org.status] = (byStatus[org.status] || 0) + 1;
       });
 
       return {
-        totalCount: organizations.totalCount,
+        totalCount: pagination.total,
         byType,
         byStatus
       };

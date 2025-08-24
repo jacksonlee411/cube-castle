@@ -19,14 +19,14 @@ describe('Type Guards and Validators', () => {
       const validData = {
         code: '1000001',
         name: 'Test Department',
-        unit_type: 'DEPARTMENT',
+        unitType: 'DEPARTMENT',
         status: 'ACTIVE',
         level: 2,
-        parent_code: '1000000',
-        sort_order: 1,
+        parentCode: '1000000',
+        sortOrder: 1,
         description: 'Test description',
-        created_at: '2025-08-08T12:00:00Z',
-        updated_at: '2025-08-08T12:00:00Z',
+        createdAt: '2025-08-08T12:00:00Z',
+        updatedAt: '2025-08-08T12:00:00Z',
         path: '/1000000/1000001'
       };
 
@@ -38,7 +38,7 @@ describe('Type Guards and Validators', () => {
       const invalidData = {
         code: '123', // Invalid code
         name: 'Test Department',
-        unit_type: 'DEPARTMENT',
+        unitType: 'DEPARTMENT',
         status: 'ACTIVE',
         level: 2
       };
@@ -51,11 +51,11 @@ describe('Type Guards and Validators', () => {
     it('should validate and return valid create input', () => {
       const validInput = {
         name: 'New Department',
-        unit_type: 'DEPARTMENT',
+        unitType: 'DEPARTMENT',
         status: 'ACTIVE',
         level: 3,
-        parent_code: '1000001',
-        sort_order: 5,
+        parentCode: '1000001',
+        sortOrder: 5,
         description: 'New department description'
       };
 
@@ -67,13 +67,13 @@ describe('Type Guards and Validators', () => {
     it('should apply default values', () => {
       const minimalInput = {
         name: 'New Department',
-        unit_type: 'DEPARTMENT',
+        unitType: 'DEPARTMENT',
         level: 3
       };
 
       const result = validateCreateOrganizationInput(minimalInput);
       expect(result.status).toBe('ACTIVE');
-      expect(result.sort_order).toBe(0);
+      expect(result.sortOrder).toBe(0);
     });
   });
 
@@ -250,16 +250,16 @@ describe('Type Guards and Validators', () => {
 
         expect(result).toEqual({
           code: '1000001',
-          parent_code: '1000000',
+          parentCode: '1000000',
           name: 'Test Department',
-          unit_type: 'DEPARTMENT',
+          unitType: 'DEPARTMENT',
           status: 'ACTIVE',
           level: 2,
           path: '/1000000/1000001',
-          sort_order: 1,
+          sortOrder: 1,
           description: 'Test description',
-          created_at: '2025-08-08T12:00:00Z',
-          updated_at: '2025-08-08T12:00:00Z'
+          createdAt: '2025-08-08T12:00:00Z',
+          updatedAt: '2025-08-08T12:00:00Z'
         });
       });
 
@@ -279,11 +279,11 @@ describe('Type Guards and Validators', () => {
 
         const result = safeTransformGraphQLToOrganizationUnit(graphqlResponse);
 
-        expect(result.parent_code).toBe('');
-        expect(result.sort_order).toBe(0);
+        expect(result.parentCode).toBe('');
+        expect(result.sortOrder).toBe(0);
         expect(result.description).toBe('');
-        expect(result.created_at).toBe('');
-        expect(result.updated_at).toBe('');
+        expect(result.createdAt).toBe('');
+        expect(result.updatedAt).toBe('');
       });
     });
 
@@ -292,11 +292,11 @@ describe('Type Guards and Validators', () => {
         const createInput = {
           code: '1000001',
           name: 'New Department',
-          unit_type: 'DEPARTMENT' as const,
+          unitType: 'DEPARTMENT' as const,
           status: 'ACTIVE' as const,
           level: 3,
-          parent_code: '1000000',
-          sort_order: 5,
+          parentCode: '1000000',
+          sortOrder: 5,
           description: 'New department description'
         };
 
@@ -304,23 +304,23 @@ describe('Type Guards and Validators', () => {
 
         expect(result).toEqual({
           name: 'New Department',
-          unit_type: 'DEPARTMENT',
+          unitType: 'DEPARTMENT',
           status: 'ACTIVE',
           level: 3,
-          sort_order: 5,
+          sortOrder: 5,
           description: 'New department description',
           code: '1000001',
-          parent_code: '1000000'
+          parentCode: '1000000'
         });
       });
 
       it('should omit undefined optional fields', () => {
         const minimalInput = {
           name: 'New Department',
-          unit_type: 'DEPARTMENT' as const,
+          unitType: 'DEPARTMENT' as const,
           status: 'ACTIVE' as const,
           level: 3,
-          sort_order: 0,
+          sortOrder: 0,
           description: ''
         };
 
@@ -328,30 +328,30 @@ describe('Type Guards and Validators', () => {
 
         expect(result).toEqual({
           name: 'New Department',
-          unit_type: 'DEPARTMENT',
+          unitType: 'DEPARTMENT',
           status: 'ACTIVE',
           level: 3,
-          sort_order: 0,
+          sortOrder: 0,
           description: ''
         });
         expect(result).not.toHaveProperty('code');
-        expect(result).not.toHaveProperty('parent_code');
+        expect(result).not.toHaveProperty('parentCode');
       });
 
-      it('should not include empty string parent_code', () => {
+      it('should not include empty string parentCode', () => {
         const inputWithEmptyParent = {
           name: 'New Department',
-          unit_type: 'DEPARTMENT' as const,
+          unitType: 'DEPARTMENT' as const,
           status: 'ACTIVE' as const,
           level: 3,
-          parent_code: '',
-          sort_order: 0,
+          parentCode: '',
+          sortOrder: 0,
           description: ''
         };
 
         const result = safeTransformCreateInputToAPI(inputWithEmptyParent);
 
-        expect(result).not.toHaveProperty('parent_code');
+        expect(result).not.toHaveProperty('parentCode');
       });
     });
   });

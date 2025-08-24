@@ -11,38 +11,38 @@ const TEMPORAL_API_BASE = 'http://localhost:9091/api/v1';
 
 // 查询参数接口 (纯日期生效模型)
 export interface TemporalQueryParams {
-  as_of_date?: string;      // 时间点查询 YYYY-MM-DD
-  effective_from?: string;  // 时间范围开始 YYYY-MM-DD  
-  effective_to?: string;    // 时间范围结束 YYYY-MM-DD
+  asOfDate?: string;      // 时间点查询 YYYY-MM-DD
+  effectiveFrom?: string;  // 时间范围开始 YYYY-MM-DD  
+  effectiveTo?: string;    // 时间范围结束 YYYY-MM-DD
 }
 
 // 时态组织记录 (纯日期生效模型)
 export interface TemporalOrganizationRecord {
-  tenant_id: string;
+  tenantId: string;
   code: string;
   name: string;
-  unit_type: string;
+  unitType: string;
   status: string;
   level: number;
   path: string;
-  sort_order: number;
+  sortOrder: number;
   description?: string;
-  created_at: string;
-  updated_at: string;
-  effective_date: string;   // 生效日期
-  end_date?: string;        // 结束日期 (可选)
-  is_current: boolean;      // 是否当前有效
-  change_reason?: string;   // 变更原因
-  approved_by?: string;     // 批准人
-  approved_at?: string;     // 批准时间
+  createdAt: string;
+  updatedAt: string;
+  effectiveDate: string;   // 生效日期
+  endDate?: string;        // 结束日期 (可选)
+  isCurrent: boolean;      // 是否当前有效
+  changeReason?: string;   // 变更原因
+  approvedBy?: string;     // 批准人
+  approvedAt?: string;     // 批准时间
 }
 
 // 时态查询响应
 export interface TemporalQueryResponse {
   organizations: TemporalOrganizationRecord[];
-  queried_at: string;
-  query_options: TemporalQueryParams;
-  result_count: number;
+  queriedAt: string;
+  queryOptions: TemporalQueryParams;
+  resultCount: number;
 }
 
 // 健康检查响应
@@ -139,11 +139,11 @@ export function useTemporalQueryUtils() {
     organizationCode: string,
     params: TemporalQueryParams
   ) => {
-    if (params.as_of_date) {
+    if (params.asOfDate) {
       await queryClient.prefetchQuery({
-        queryKey: ['temporal', 'asOfDate', organizationCode, params.as_of_date],
+        queryKey: ['temporal', 'asOfDate', organizationCode, params.asOfDate],
         queryFn: async () => {
-          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?as_of_date=${params.as_of_date}`;
+          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?as_of_date=${params.asOfDate}`;
           const response = await fetch(url);
           return response.json();
         },
@@ -151,11 +151,11 @@ export function useTemporalQueryUtils() {
       });
     }
     
-    if (params.effective_from && params.effective_to) {
+    if (params.effectiveFrom && params.effectiveTo) {
       await queryClient.prefetchQuery({
-        queryKey: ['temporal', 'dateRange', organizationCode, params.effective_from, params.effective_to],
+        queryKey: ['temporal', 'dateRange', organizationCode, params.effectiveFrom, params.effectiveTo],
         queryFn: async () => {
-          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?effective_from=${params.effective_from}&effective_to=${params.effective_to}`;
+          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?effective_from=${params.effectiveFrom}&effective_to=${params.effectiveTo}`;
           const response = await fetch(url);
           return response.json();
         },
@@ -176,16 +176,16 @@ export function useTemporalQueryUtils() {
 
   // 检查记录是否在指定时间点有效
   const isRecordValidAt = useCallback((record: TemporalOrganizationRecord, date: Date): boolean => {
-    const effectiveDate = new Date(record.effective_date);
-    const endDate = record.end_date ? new Date(record.end_date) : null;
+    const effectiveDate = new Date(record.effectiveDate);
+    const endDate = record.endDate ? new Date(record.endDate) : null;
     
     return effectiveDate <= date && (!endDate || date < endDate);
   }, []);
 
   // 获取记录的有效期描述
   const getRecordValidityDescription = useCallback((record: TemporalOrganizationRecord): string => {
-    const effectiveDate = new Date(record.effective_date);
-    const endDate = record.end_date ? new Date(record.end_date) : null;
+    const effectiveDate = new Date(record.effectiveDate);
+    const endDate = record.endDate ? new Date(record.endDate) : null;
     
     const effectiveDateStr = effectiveDate.toLocaleDateString('zh-CN');
     
@@ -222,7 +222,7 @@ export function useTemporalQueryStats() {
       totalQueries: temporalQueries.length,
       cachedQueries: temporalQueries.filter(q => q.state.data).length,
       failedQueries: temporalQueries.filter(q => q.state.error).length,
-      loadingQueries: temporalQueries.filter(q => q.state.isFetching).length,
+      loadingQueries: temporalQueries.filter(q => q.state.isLoading).length,
     };
   }, [queryClient]);
   

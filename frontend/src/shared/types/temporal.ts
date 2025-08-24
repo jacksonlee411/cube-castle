@@ -41,13 +41,14 @@ export interface TemporalOrganizationUnit {
   parentCode?: string;        // camelCase
   name: string;
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
-  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
+  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED' | 'DELETED';
   level: number;
   path: string;
   sortOrder: number;          // camelCase
   description?: string;
   createdAt: string;          // camelCase
   updatedAt: string;          // camelCase
+  tenantId?: string;          // 租户ID
 
   // 时态扩展字段 (纯日期生效模型)
   effectiveDate: string;      // 生效日期 camelCase
@@ -153,8 +154,8 @@ export interface TemporalPermissions {
   maxHistoryViewDays?: number;
 }
 
-// 时间线视图配置 (纯日期生效模型)
-export interface TimelineViewConfig {
+// 时间线视图配置 (纯日期生效模型) - 重命名为TemporalTimelineViewConfig避免与timeline.ts冲突
+export interface TemporalTimelineViewConfig {
   showEvents: boolean;          // 显示事件
   showRecords: boolean;         // 显示历史记录 (替换showVersions)
   dateFormat: string;           // 日期格式
@@ -166,7 +167,7 @@ export interface TimelineViewConfig {
 export interface TemporalContext {
   mode: TemporalMode;
   currentDate: string;  // 统一为字符串
-  viewConfig: TimelineViewConfig;
+  viewConfig: TemporalTimelineViewConfig;
   permissions: TemporalPermissions;
   cacheConfig: TemporalCacheConfig;
 }

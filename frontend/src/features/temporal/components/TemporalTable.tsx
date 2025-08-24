@@ -138,13 +138,13 @@ const TemporalField: React.FC<TemporalFieldProps> = ({
   mode
 }) => {
   const value = organization[field];
-  const isTemporalField = field === 'effective_date' || field === 'end_date';
+  const isTemporalField = field === 'effectiveDate' || field === 'endDate';
   
   // 格式化显示值
   const formatValue = (val: unknown) => {
     if (val === null || val === undefined) return '-';
     if (typeof val === 'boolean') return val ? '是' : '否';
-    if (field === 'created_at' || field === 'updated_at' || isTemporalField) {
+    if (field === 'createdAt' || field === 'updatedAt' || isTemporalField) {
       try {
         return new Date(val as string).toLocaleDateString('zh-CN');
       } catch {
@@ -178,7 +178,7 @@ const TemporalField: React.FC<TemporalFieldProps> = ({
     );
   }
 
-  if (field === 'unit_type') {
+  if (field === 'unitType') {
     const typeLabels = {
       'ORGANIZATION_UNIT': '组织单位',
       'DEPARTMENT': '部门',
@@ -234,7 +234,7 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
   } = useTemporalOrganizations({
     ...queryParams,
     page: currentPage,
-    page_size: pageSize  // 修正：使用正确的参数名
+    pageSize: pageSize  // 修正：使用正确的参数名
   });
 
   // 表格列定义
@@ -253,7 +253,7 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
         sortable: true
       },
       {
-        key: 'unit_type' as keyof OrganizationUnit,
+        key: 'unitType' as keyof OrganizationUnit,
         label: '类型',
         width: '100px',
         sortable: true
@@ -445,9 +445,9 @@ export const TemporalTable: React.FC<TemporalTableProps> = ({
 
           <Table.Body>
             {organizations.map((organization, index) => {
-              // 使用多层级唯一性保证：record_id > code+created_at > code+index
-              const uniqueKey = organization.record_id || 
-                               `${organization.code}-${organization.created_at}` || 
+              // 使用多层级唯一性保证：recordId > code+createdAt > code+index
+              const uniqueKey = organization.recordId || 
+                               `${organization.code}-${organization.createdAt}` || 
                                `${organization.code}-${index}`;
               
               return (

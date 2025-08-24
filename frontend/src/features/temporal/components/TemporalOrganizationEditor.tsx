@@ -80,13 +80,13 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
     if (historyData && historyData.length > 0) {
       // 为每个记录创建时间轴节点
       historyData.forEach(record => {
-        const effectiveDate = TemporalConverter.isoToDate(record.effective_date);
-        const dateStr = TemporalConverter.dateToDateString(record.effective_date);
+        const effectiveDate = TemporalConverter.isoToDate(record.effectiveDate);
+        const dateStr = TemporalConverter.dateToDateString(record.effectiveDate);
         
         let type: 'current' | 'historical' | 'planned';
         if (effectiveDate > today) {
           type = 'planned';
-        } else if (record.is_current) {
+        } else if (record.isCurrent) {
           type = 'current';
         } else {
           type = 'historical';
@@ -100,7 +100,7 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
             day: '2-digit'
           }),
           type,
-          label: record.change_reason || getDefaultLabel(type),
+          label: record.changeReason || getDefaultLabel(type),
           record
         });
       });
@@ -268,7 +268,7 @@ export const TemporalOrganizationEditor: React.FC<TemporalOrganizationEditorProp
                       {isEditing ? '编辑模式' : '查看模式'}
                     </Text>
                     <Text fontSize="small" color={colors.licorice600}>
-                      生效日期: {new Date(selectedRecord.effective_date).toLocaleDateString('zh-CN')}
+                      生效日期: {new Date(selectedRecord.effectiveDate).toLocaleDateString('zh-CN')}
                     </Text>
                   </Box>
                   <Box>
@@ -474,9 +474,9 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
           <Box>
             <Text fontSize="small" marginBottom={space.xs}>组织类型</Text>
             <select
-              value={record.unit_type}
+              value={record.unitType}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('unit_type', e.target.value)}
+              onChange={(e) => isEditing && onFieldChange('unitType', e.target.value)}
               style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
             >
               <option value="ORGANIZATION_UNIT">组织单位</option>
@@ -529,11 +529,11 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             <Text fontSize="small" marginBottom={space.xs}>生效日期</Text>
             <TextInput
               type="date"
-              value={record.effective_date?.slice(0, 10) || ''}
+              value={record.effectiveDate?.slice(0, 10) || ''}
               disabled={!isEditing}
               onChange={(e) => {
                 if (isEditing && e.target.value) {
-                  onFieldChange('effective_date', e.target.value + 'T00:00:00Z');
+                  onFieldChange('effectiveDate', e.target.value + 'T00:00:00Z');
                 }
               }}
             />
@@ -543,9 +543,9 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             <Text fontSize="small" marginBottom={space.xs}>结束日期</Text>
             <TextInput
               type="date"
-              value={record.end_date?.slice(0, 10) || ''}
+              value={record.endDate?.slice(0, 10) || ''}
               disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('end_date', e.target.value ? e.target.value + 'T00:00:00Z' : '')}
+              onChange={(e) => isEditing && onFieldChange('endDate', e.target.value ? e.target.value + 'T00:00:00Z' : '')}
             />
           </Box>
         </Box>
@@ -553,9 +553,9 @@ const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
         <Box>
           <Text fontSize="small" marginBottom={space.xs}>变更原因</Text>
           <TextArea
-            value={record.change_reason || ''}
+            value={record.changeReason || ''}
             disabled={!isEditing}
-            onChange={(e) => isEditing && onFieldChange('change_reason', e.target.value)}
+            onChange={(e) => isEditing && onFieldChange('changeReason', e.target.value)}
             rows={2}
           />
         </Box>

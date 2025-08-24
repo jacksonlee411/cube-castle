@@ -94,8 +94,8 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
     if (historyData && historyData.length > 0) {
       // 为每个记录创建时间轴节点
       historyData.forEach(record => {
-        const effectiveDate = TemporalConverter.isoToDate(record.effective_date);
-        const dateStr = TemporalConverter.dateToDateString(record.effective_date);
+        const effectiveDate = TemporalConverter.isoToDate(record.effectiveDate);
+        const dateStr = TemporalConverter.dateToDateString(record.effectiveDate);
         
         let type: 'current' | 'historical' | 'planned';
         let changeType: TimelineNode['changeType'] = 'modified';
@@ -103,16 +103,16 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
         if (effectiveDate > today) {
           type = 'planned';
           changeType = 'planned';
-        } else if (record.is_current) {
+        } else if (record.isCurrent) {
           type = 'current';
           changeType = record.status === 'ACTIVE' ? 'activated' : 'modified';
         } else {
           type = 'historical';
-          changeType = record.status === 'INACTIVE' ? 'deactivated' : 'modified';
+          changeType = record.status === 'SUSPENDED' ? 'deactivated' : 'modified';
         }
 
         // 判断是否是创建记录
-        if (!record.change_reason && record.created_at === record.effective_date) {
+        if (!record.changeReason && record.createdAt === record.effectiveDate) {
           changeType = 'created';
         }
 
@@ -120,7 +120,7 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
           date: dateStr,
           displayDate: formatTimelineDate(effectiveDate, today),
           type,
-          label: record.change_reason || getDefaultLabel(changeType),
+          label: record.changeReason || getDefaultLabel(changeType),
           record,
           changeType
         });
@@ -376,20 +376,20 @@ export const OrganizationDetailPanel: React.FC<OrganizationDetailPanelProps> = (
                     </Text>
                     <Flex alignItems="center" gap={space.s} marginTop={space.xs}>
                       <Text fontSize="small" color={colors.licorice600}>
-                        生效日期: {new Date(selectedRecord.effective_date).toLocaleDateString('zh-CN')}
+                        生效日期: {new Date(selectedRecord.effectiveDate).toLocaleDateString('zh-CN')}
                       </Text>
                       
-                      {selectedRecord.end_date && (
+                      {selectedRecord.endDate && (
                         <Text fontSize="small" color={colors.licorice600}>
-                          结束日期: {new Date(selectedRecord.end_date).toLocaleDateString('zh-CN')}
+                          结束日期: {new Date(selectedRecord.endDate).toLocaleDateString('zh-CN')}
                         </Text>
                       )}
 
                       <Badge
-                        variant={selectedRecord.is_current ? 'positive' : 'neutral'}
+                        variant={selectedRecord.isCurrent ? 'positive' : 'neutral'}
                         size="small"
                       >
-                        {selectedRecord.is_current ? '当前有效' : '历史记录'}
+                        {selectedRecord.isCurrent ? '当前有效' : '历史记录'}
                       </Badge>
                     </Flex>
                   </Box>
@@ -572,7 +572,7 @@ const TimelineNodeComponent: React.FC<TimelineNodeComponentProps> = ({
                   </Badge>
                   
                   <Text fontSize="small" color={colors.licorice500}>
-                    {node.record.unit_type}
+                    {node.record.unitType}
                   </Text>
                 </Flex>
               </>
