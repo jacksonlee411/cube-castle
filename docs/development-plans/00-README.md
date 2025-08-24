@@ -16,23 +16,23 @@
 ### **02 - 技术架构**  
 - `02-technical-architecture-design.md` - 技术架构设计文档
 
-### **03 - 项目总体规划**
-- `03-implementation-plan.md` - 项目总体实施方案 (11-12周完整计划)
+### **03 - API符合度重构**
+- `03-api-compliance-intensive-refactoring-plan.md` - API规范符合度集中重构计划
 
 ### **04 - 早期实施策略**
 - `04-early-stage-implementation-strategy.md` - 早期实施策略
 
 ### **05 - 核心功能开发**
-- ~~`05-core-features-development-plan.md`~~ - **已删除** (错误实施计划)
+- `05-core-features-development-plan.md` - 阶段2核心功能开发详细计划
 
 ## 📊 文档关系
 
 ```
 阅读流程建议:
-01-API规范 → 02-技术架构 → 03-项目规划 → 04-早期策略
+01-API规范 → 02-技术架构 → 03-API重构计划 → 04-早期策略 → 05-核心功能开发
 
 项目层级关系:
-03-implementation-plan.md (总体方案)
+03-api-compliance-intensive-refactoring-plan.md (当前重构方案)
 ├── 阶段1: 基础架构搭建 (90%完成) ✅ Main文件冲突已解决
 ├── 阶段2: 核心功能实现 ⏳ 进行中  
 ├── 阶段3: 高级功能和优化
@@ -58,11 +58,12 @@
 4. `04-early-stage-implementation-strategy.md` - 了解早期实施策略
 
 ### **当前开发重点 (2025-08-24)**  
-**当前阶段**: 阶段1-阶段2过渡期 - 基础架构完善 + 核心功能启动  
-**重要里程碑**: ✅ Main文件冲突已解决，PostgreSQL GraphQL服务已启动  
-**基础规范**: `01-organization-units-api-specification.md` + `02-technical-architecture-design.md`  
-**即将完成**: 基础架构搭建（90% → 100%）  
-**下一步**: 启动命令服务，完善CQRS架构
+**当前阶段**: API符合度提升 - 集中重构期  
+**符合度现状**: 70%符合API规范，需要集中重构提升至95%  
+**重构方案**: 采用"方式2: 集中重构"，1-2周完成质量提升  
+**主要文档**: `03-api-compliance-intensive-refactoring-plan.md`  
+**重构重点**: REST命令服务完善 + OAuth权限集成 + 企业级功能补全  
+**风险控制**: Git分支保护 + 每日备份 + 功能开关机制
 
 ## 📋 文档维护
 
