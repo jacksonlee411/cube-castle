@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"postgresql-graphql-service/internal/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -23,6 +22,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"postgresql-graphql-service/internal/auth"
 )
 
 // 默认租户配置
@@ -182,13 +182,13 @@ type Organization struct {
 // GraphQL字段解析器 - 零拷贝优化 (camelCase方法名)
 func (o Organization) RecordId() string    { return o.RecordIDField }
 func (o Organization) TenantId() string    { return o.TenantIDField }
-func (o Organization) Code() string         { return o.CodeField }
+func (o Organization) Code() string        { return o.CodeField }
 func (o Organization) ParentCode() *string { return o.ParentCodeField }
-func (o Organization) Name() string         { return o.NameField }
+func (o Organization) Name() string        { return o.NameField }
 func (o Organization) UnitType() string    { return o.UnitTypeField }
-func (o Organization) Status() string       { return o.StatusField }
-func (o Organization) Level() int32         { return int32(o.LevelField) }
-func (o Organization) Path() *string        { return o.PathField }
+func (o Organization) Status() string      { return o.StatusField }
+func (o Organization) Level() int32        { return int32(o.LevelField) }
+func (o Organization) Path() *string       { return o.PathField }
 func (o Organization) SortOrder() *int32 {
 	if o.SortOrderField == nil {
 		return nil
@@ -196,8 +196,8 @@ func (o Organization) SortOrder() *int32 {
 	val := int32(*o.SortOrderField)
 	return &val
 }
-func (o Organization) Description() *string   { return o.DescriptionField }
-func (o Organization) Profile() *string       { return o.ProfileField }
+func (o Organization) Description() *string  { return o.DescriptionField }
+func (o Organization) Profile() *string      { return o.ProfileField }
 func (o Organization) CreatedAt() string     { return o.CreatedAtField.Format(time.RFC3339) }
 func (o Organization) UpdatedAt() string     { return o.UpdatedAtField.Format(time.RFC3339) }
 func (o Organization) EffectiveDate() string { return o.EffectiveDateField.Format("2006-01-02") }
@@ -301,9 +301,9 @@ type OrganizationConnection struct {
 	TemporalField   TemporalInfo   `json:"temporal"`
 }
 
-func (c OrganizationConnection) Data() []Organization { return c.DataField }
+func (c OrganizationConnection) Data() []Organization       { return c.DataField }
 func (c OrganizationConnection) Pagination() PaginationInfo { return c.PaginationField }
-func (c OrganizationConnection) Temporal() TemporalInfo { return c.TemporalField }
+func (c OrganizationConnection) Temporal() TemporalInfo     { return c.TemporalField }
 
 type PaginationInfo struct {
 	TotalField       int  `json:"total"`
@@ -313,11 +313,11 @@ type PaginationInfo struct {
 	HasPreviousField bool `json:"hasPrevious"`
 }
 
-func (p PaginationInfo) Total() int32       { return int32(p.TotalField) }
-func (p PaginationInfo) Page() int32        { return int32(p.PageField) }
-func (p PaginationInfo) PageSize() int32    { return int32(p.PageSizeField) }
-func (p PaginationInfo) HasNext() bool      { return p.HasNextField }
-func (p PaginationInfo) HasPrevious() bool  { return p.HasPreviousField }
+func (p PaginationInfo) Total() int32      { return int32(p.TotalField) }
+func (p PaginationInfo) Page() int32       { return int32(p.PageField) }
+func (p PaginationInfo) PageSize() int32   { return int32(p.PageSizeField) }
+func (p PaginationInfo) HasNext() bool     { return p.HasNextField }
+func (p PaginationInfo) HasPrevious() bool { return p.HasPreviousField }
 
 type TemporalInfo struct {
 	AsOfDateField        string `json:"asOfDate"`
@@ -326,9 +326,9 @@ type TemporalInfo struct {
 	HistoricalCountField int    `json:"historicalCount"`
 }
 
-func (t TemporalInfo) AsOfDate() string     { return t.AsOfDateField }
-func (t TemporalInfo) CurrentCount() int32  { return int32(t.CurrentCountField) }
-func (t TemporalInfo) FutureCount() int32   { return int32(t.FutureCountField) }
+func (t TemporalInfo) AsOfDate() string       { return t.AsOfDateField }
+func (t TemporalInfo) CurrentCount() int32    { return int32(t.CurrentCountField) }
+func (t TemporalInfo) FutureCount() int32     { return int32(t.FutureCountField) }
 func (t TemporalInfo) HistoricalCount() int32 { return int32(t.HistoricalCountField) }
 
 // 输入类型 - 符合官方API契约
@@ -363,7 +363,7 @@ func NewPostgreSQLRepository(db *sql.DB, redisClient *redis.Client, logger *log.
 // 极速当前组织查询 - 利用部分索引 idx_current_organizations_list (API契约v4.2.1)
 func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, filter *OrganizationFilter, pagination *PaginationInput) (*OrganizationConnection, error) {
 	start := time.Now()
-	
+
 	// 解析分页参数 - 使用契约默认值
 	page := int32(1)
 	pageSize := int32(50)
@@ -375,7 +375,7 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 			pageSize = *pagination.PageSize
 		}
 	}
-	
+
 	offset := (page - 1) * pageSize
 	limit := pageSize
 
@@ -448,7 +448,7 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	// 完整查询
 	dataQuery := baseQuery + whereConditions + " ORDER BY sort_order NULLS LAST, code LIMIT $" + strconv.Itoa(argIndex) + " OFFSET $" + strconv.Itoa(argIndex+1)
 	totalQuery := countQuery + whereConditions
-	
+
 	// 执行总数查询
 	var total int
 	err := r.db.QueryRowContext(ctx, totalQuery, args...).Scan(&total)
@@ -499,9 +499,9 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 			HasPreviousField: page > 1,
 		},
 		TemporalField: TemporalInfo{
-			AsOfDateField:     time.Now().Format("2006-01-02"),
-			CurrentCountField: len(organizations),
-			FutureCountField:  0,  // TODO: 基于时态数据计算
+			AsOfDateField:        time.Now().Format("2006-01-02"),
+			CurrentCountField:    len(organizations),
+			FutureCountField:     0, // TODO: 基于时态数据计算
 			HistoricalCountField: 0, // TODO: 基于历史数据计算
 		},
 	}

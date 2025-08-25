@@ -18,15 +18,15 @@ type CacheEventBus struct {
 
 // CDC事件定义
 type CDCEvent struct {
-	EventID     string                 `json:"event_id"`
-	Operation   string                 `json:"operation"`   // CREATE, UPDATE, DELETE
-	EntityType  string                 `json:"entity_type"` // organization
-	EntityID    string                 `json:"entity_id"`   // 组织代码
-	TenantID    string                 `json:"tenant_id"`
-	Before      map[string]interface{} `json:"before,omitempty"`
-	After       map[string]interface{} `json:"after,omitempty"`
-	Timestamp   int64                  `json:"timestamp"`
-	Source      string                 `json:"source"`      // debezium, domain_event
+	EventID    string                 `json:"event_id"`
+	Operation  string                 `json:"operation"`   // CREATE, UPDATE, DELETE
+	EntityType string                 `json:"entity_type"` // organization
+	EntityID   string                 `json:"entity_id"`   // 组织代码
+	TenantID   string                 `json:"tenant_id"`
+	Before     map[string]interface{} `json:"before,omitempty"`
+	After      map[string]interface{} `json:"after,omitempty"`
+	Timestamp  int64                  `json:"timestamp"`
+	Source     string                 `json:"source"` // debezium, domain_event
 }
 
 // 组织模型
@@ -47,8 +47,8 @@ type Organization struct {
 
 // 组织统计模型
 type OrganizationStats struct {
-	TotalCount int          `json:"total_count"`
-	ByType     []TypeCount  `json:"by_type"`
+	TotalCount int           `json:"total_count"`
+	ByType     []TypeCount   `json:"by_type"`
 	ByStatus   []StatusCount `json:"by_status"`
 	ByLevel    []LevelCount  `json:"by_level"`
 }
@@ -94,13 +94,13 @@ func NewCacheEventBus() *CacheEventBus {
 func (bus *CacheEventBus) Subscribe() <-chan CDCEvent {
 	bus.mu.Lock()
 	defer bus.mu.Unlock()
-	
+
 	if bus.closed {
 		ch := make(chan CDCEvent)
 		close(ch)
 		return ch
 	}
-	
+
 	ch := make(chan CDCEvent, 100) // 带缓冲的通道
 	bus.subscribers = append(bus.subscribers, ch)
 	return ch
@@ -110,11 +110,11 @@ func (bus *CacheEventBus) Subscribe() <-chan CDCEvent {
 func (bus *CacheEventBus) Publish(event CDCEvent) {
 	bus.mu.RLock()
 	defer bus.mu.RUnlock()
-	
+
 	if bus.closed {
 		return
 	}
-	
+
 	for _, ch := range bus.subscribers {
 		select {
 		case ch <- event:
@@ -129,11 +129,11 @@ func (bus *CacheEventBus) Publish(event CDCEvent) {
 func (bus *CacheEventBus) Close() {
 	bus.mu.Lock()
 	defer bus.mu.Unlock()
-	
+
 	if bus.closed {
 		return
 	}
-	
+
 	bus.closed = true
 	for _, ch := range bus.subscribers {
 		close(ch)
@@ -144,7 +144,7 @@ func (bus *CacheEventBus) Close() {
 // 将CDC事件转换为组织对象
 func (event CDCEvent) ToOrganization() Organization {
 	var org Organization
-	
+
 	// 根据操作类型选择数据源
 	var data map[string]interface{}
 	if event.After != nil {
@@ -152,11 +152,11 @@ func (event CDCEvent) ToOrganization() Organization {
 	} else if event.Before != nil {
 		data = event.Before
 	}
-	
+
 	if data == nil {
 		return org
 	}
-	
+
 	// 安全地提取字段
 	org.Code = getStringFromMap(data, "code")
 	org.TenantID = event.TenantID
@@ -168,20 +168,20 @@ func (event CDCEvent) ToOrganization() Organization {
 	org.SortOrder = getIntFromMap(data, "sort_order")
 	org.Description = getStringFromMap(data, "description")
 	org.ParentCode = getStringFromMap(data, "parent_code")
-	
+
 	// 时间字段处理
 	if createdAt := getStringFromMap(data, "created_at"); createdAt != "" {
 		if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
 			org.CreatedAt = t
 		}
 	}
-	
+
 	if updatedAt := getStringFromMap(data, "updated_at"); updatedAt != "" {
 		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
 			org.UpdatedAt = t
 		}
 	}
-	
+
 	return org
 }
 
@@ -228,7 +228,7 @@ func (updater *SmartCacheUpdater) UpdateListCache(
 	operation string,
 	queryParams QueryParams,
 ) ([]Organization, bool) {
-	
+
 	switch operation {
 	case "CREATE":
 		return updater.handleCreate(existingList, updatedOrg, queryParams)
@@ -237,7 +237,7 @@ func (updater *SmartCacheUpdater) UpdateListCache(
 	case "DELETE":
 		return updater.handleDelete(existingList, updatedOrg, queryParams)
 	}
-	
+
 	return existingList, false
 }
 
@@ -247,17 +247,17 @@ func (updater *SmartCacheUpdater) handleCreate(
 	newOrg *Organization,
 	queryParams QueryParams,
 ) ([]Organization, bool) {
-	
+
 	// 检查新组织是否符合查询条件
 	if !updater.matchesQueryParams(newOrg, queryParams) {
 		return existingList, false
 	}
-	
+
 	// 添加到列表并排序
 	updatedList := make([]Organization, len(existingList)+1)
 	copy(updatedList, existingList)
 	updatedList[len(existingList)] = *newOrg
-	
+
 	updater.sortOrganizations(updatedList)
 	return updatedList, true
 }
@@ -268,10 +268,10 @@ func (updater *SmartCacheUpdater) handleUpdate(
 	updatedOrg *Organization,
 	queryParams QueryParams,
 ) ([]Organization, bool) {
-	
+
 	updated := false
 	updatedList := make([]Organization, 0, len(existingList))
-	
+
 	for _, org := range existingList {
 		if org.Code == updatedOrg.Code {
 			// 检查更新后的组织是否仍符合查询条件
@@ -283,17 +283,17 @@ func (updater *SmartCacheUpdater) handleUpdate(
 			updatedList = append(updatedList, org)
 		}
 	}
-	
+
 	// 如果原来不在列表中，但现在符合条件，则添加
 	if !updated && updater.matchesQueryParams(updatedOrg, queryParams) {
 		updatedList = append(updatedList, *updatedOrg)
 		updated = true
 	}
-	
+
 	if updated {
 		updater.sortOrganizations(updatedList)
 	}
-	
+
 	return updatedList, updated
 }
 
@@ -303,10 +303,10 @@ func (updater *SmartCacheUpdater) handleDelete(
 	deletedOrg *Organization,
 	queryParams QueryParams,
 ) ([]Organization, bool) {
-	
+
 	updatedList := make([]Organization, 0, len(existingList))
 	found := false
-	
+
 	for _, org := range existingList {
 		if org.Code != deletedOrg.Code {
 			updatedList = append(updatedList, org)
@@ -314,7 +314,7 @@ func (updater *SmartCacheUpdater) handleDelete(
 			found = true
 		}
 	}
-	
+
 	return updatedList, found
 }
 
@@ -323,7 +323,7 @@ func (updater *SmartCacheUpdater) matchesQueryParams(org *Organization, params Q
 	if params.SearchText == "" {
 		return true
 	}
-	
+
 	searchText := params.SearchText
 	return contains(org.Name, searchText) || contains(org.Code, searchText)
 }
@@ -351,8 +351,8 @@ func shouldSwap(a, b Organization) bool {
 
 // 字符串包含检查（忽略大小写）
 func contains(str, substr string) bool {
-	return len(str) >= len(substr) && 
-		   findInString(str, substr) >= 0
+	return len(str) >= len(substr) &&
+		findInString(str, substr) >= 0
 }
 
 // 简化的字符串查找
@@ -385,15 +385,15 @@ func (checker *ConsistencyChecker) CheckConsistency(ctx context.Context, sampleK
 	report := ConsistencyReport{
 		TotalChecked:    len(sampleKeys),
 		Inconsistencies: []InconsistencyRecord{},
-		CheckedAt:      time.Now(),
+		CheckedAt:       time.Now(),
 	}
-	
+
 	for _, key := range sampleKeys {
 		if inconsistency := checker.checkSingleKey(ctx, key); inconsistency != nil {
 			report.Inconsistencies = append(report.Inconsistencies, *inconsistency)
 		}
 	}
-	
+
 	return report
 }
 
@@ -401,28 +401,28 @@ func (checker *ConsistencyChecker) CheckConsistency(ctx context.Context, sampleK
 func (checker *ConsistencyChecker) checkSingleKey(ctx context.Context, key string) *InconsistencyRecord {
 	// L1缓存获取
 	l1Entry, l1Exists := checker.l1Cache.Get(key)
-	
+
 	// L2缓存获取（这里需要根据实际Redis客户端实现）
 	// 简化实现，实际需要根据具体的Redis客户端调用
 	l2Data, l2Err := checker.getFromL2(ctx, key)
 	l2Exists := l2Err == nil && l2Data != ""
-	
+
 	// 比较结果
 	if l1Exists != l2Exists {
 		return &InconsistencyRecord{
-			Key:         key,
-			Issue:       "存在性不一致",
-			L1Exists:    l1Exists,
-			L2Exists:    l2Exists,
-			DetectedAt:  time.Now(),
+			Key:        key,
+			Issue:      "存在性不一致",
+			L1Exists:   l1Exists,
+			L2Exists:   l2Exists,
+			DetectedAt: time.Now(),
 		}
 	}
-	
+
 	if l1Exists && l2Exists {
 		// 比较数据内容
 		l1Hash := checker.hashContent(l1Entry.Data)
 		l2Hash := checker.hashContent(l2Data)
-		
+
 		if l1Hash != l2Hash {
 			return &InconsistencyRecord{
 				Key:        key,
@@ -433,7 +433,7 @@ func (checker *ConsistencyChecker) checkSingleKey(ctx context.Context, key strin
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -453,9 +453,9 @@ func (checker *ConsistencyChecker) hashContent(data interface{}) string {
 
 // 一致性检查报告
 type ConsistencyReport struct {
-	TotalChecked    int                    `json:"total_checked"`
-	Inconsistencies []InconsistencyRecord  `json:"inconsistencies"`
-	CheckedAt      time.Time               `json:"checked_at"`
+	TotalChecked    int                   `json:"total_checked"`
+	Inconsistencies []InconsistencyRecord `json:"inconsistencies"`
+	CheckedAt       time.Time             `json:"checked_at"`
 }
 
 // 不一致记录

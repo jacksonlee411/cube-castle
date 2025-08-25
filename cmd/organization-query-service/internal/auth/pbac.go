@@ -22,23 +22,23 @@ func NewPBACPermissionChecker(db *sql.DB, logger *log.Logger) *PBACPermissionChe
 
 // GraphQL查询权限映射表
 var GraphQLQueryPermissions = map[string]string{
-	"organizations":             "READ_ORGANIZATION",
-	"organization":              "READ_ORGANIZATION", 
-	"organizationHistory":       "READ_ORGANIZATION_HISTORY",
-	"organizationHierarchy":     "READ_ORGANIZATION_HIERARCHY",
-	"organizationStatistics":    "READ_ORGANIZATION_STATISTICS",
-	"organizationVersions":      "READ_ORGANIZATION_HISTORY",
-	"organizationsByDateRange":  "READ_ORGANIZATION_HISTORY",
-	"organizationsByParent":     "READ_ORGANIZATION",
-	"organizationsByType":       "READ_ORGANIZATION",
-	"organizationsByStatus":     "READ_ORGANIZATION",
+	"organizations":            "READ_ORGANIZATION",
+	"organization":             "READ_ORGANIZATION",
+	"organizationHistory":      "READ_ORGANIZATION_HISTORY",
+	"organizationHierarchy":    "READ_ORGANIZATION_HIERARCHY",
+	"organizationStatistics":   "READ_ORGANIZATION_STATISTICS",
+	"organizationVersions":     "READ_ORGANIZATION_HISTORY",
+	"organizationsByDateRange": "READ_ORGANIZATION_HISTORY",
+	"organizationsByParent":    "READ_ORGANIZATION",
+	"organizationsByType":      "READ_ORGANIZATION",
+	"organizationsByStatus":    "READ_ORGANIZATION",
 }
 
 // 角色权限预设映射
 var RolePermissions = map[string][]string{
 	"ADMIN": {
 		"READ_ORGANIZATION",
-		"READ_ORGANIZATION_HISTORY", 
+		"READ_ORGANIZATION_HISTORY",
 		"READ_ORGANIZATION_HIERARCHY",
 		"READ_ORGANIZATION_STATISTICS",
 		"WRITE_ORGANIZATION",
@@ -132,24 +132,24 @@ func (p *PBACPermissionChecker) CheckGraphQLQuery(ctx context.Context, queryName
 func (p *PBACPermissionChecker) MockPermissionCheck(ctx context.Context, queryName string) error {
 	roles := GetUserRoles(ctx)
 	userID := GetUserID(ctx)
-	
+
 	// 开发模式：管理员用户直接通过
 	if userID == "admin" || contains(roles, "ADMIN") {
 		return nil
 	}
-	
+
 	// 检查角色权限
 	requiredPermission, exists := GraphQLQueryPermissions[queryName]
 	if !exists {
 		return fmt.Errorf("unknown query: %s", queryName)
 	}
-	
+
 	for _, role := range roles {
 		if p.checkRolePermission(role, requiredPermission) {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("access denied for query: %s", queryName)
 }
 

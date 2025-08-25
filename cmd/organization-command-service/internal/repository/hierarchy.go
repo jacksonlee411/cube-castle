@@ -7,8 +7,8 @@ import (
 	"log"
 	"time"
 
-	"organization-command-service/internal/types"
 	"github.com/google/uuid"
+	"organization-command-service/internal/types"
 )
 
 // HierarchyRepository 层级管理仓储
@@ -19,18 +19,18 @@ type HierarchyRepository struct {
 
 // OrganizationNode 组织层级节点
 type OrganizationNode struct {
-	Code        string  `json:"code"`
-	ParentCode  *string `json:"parentCode"`
-	Name        string  `json:"name"`
-	Level       int     `json:"level"`
-	CodePath    string  `json:"codePath"`
-	NamePath    string  `json:"namePath"`
+	Code          string      `json:"code"`
+	ParentCode    *string     `json:"parentCode"`
+	Name          string      `json:"name"`
+	Level         int         `json:"level"`
+	CodePath      string      `json:"codePath"`
+	NamePath      string      `json:"namePath"`
 	EffectiveDate *types.Date `json:"effectiveDate"`
-	EndDate     *types.Date `json:"endDate"`
-	IsCurrent   bool    `json:"isCurrent"`
-	Depth       int     `json:"depth"`
-	Status      string  `json:"status"`
-	UnitType    string  `json:"unitType"`
+	EndDate       *types.Date `json:"endDate"`
+	IsCurrent     bool        `json:"isCurrent"`
+	Depth         int         `json:"depth"`
+	Status        string      `json:"status"`
+	UnitType      string      `json:"unitType"`
 }
 
 func NewHierarchyRepository(db *sql.DB, logger *log.Logger) *HierarchyRepository {
@@ -93,7 +93,7 @@ func (h *HierarchyRepository) GetOrganizationHierarchy(ctx context.Context, root
 	for rows.Next() {
 		var node OrganizationNode
 		var effectiveDate, endDate sql.NullTime
-		
+
 		err := rows.Scan(
 			&node.Code, &node.ParentCode, &node.Name, &node.Level,
 			&node.CodePath, &node.NamePath, &effectiveDate, &endDate,
@@ -116,7 +116,7 @@ func (h *HierarchyRepository) GetOrganizationHierarchy(ctx context.Context, root
 	}
 
 	duration := time.Since(start)
-	h.logger.Printf("🔥 递归CTE查询完成: 根节点=%s, 深度=%d, 节点数=%d, 耗时=%v", 
+	h.logger.Printf("🔥 递归CTE查询完成: 根节点=%s, 深度=%d, 节点数=%d, 耗时=%v",
 		rootCode, maxDepth, len(nodes), duration)
 
 	return nodes, nil

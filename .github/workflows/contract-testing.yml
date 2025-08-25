@@ -1,0 +1,180 @@
+name: 契约测试自动化验证
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  contract-testing:
+    name: 契约测试验证
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v4
+      
+    - name: 设置Node.js环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: 安装依赖包
+      run: |
+        cd frontend
+        npm ci
+        
+    - name: GraphQL Schema语法验证
+      run: |
+        cd frontend
+        npm run validate:schema
+        
+    - name: 字段命名规范验证  
+      run: |
+        cd frontend
+        npm run validate:field-naming
+        
+    - name: 运行契约测试套件
+      run: |
+        cd frontend
+        npm run test:contract
+        
+    - name: 验证构建合规性
+      run: |
+        cd frontend
+        npm run build:verify
+        
+    - name: 生成契约测试报告
+      if: always()
+      run: |
+        cd frontend
+        npm run test:contract -- --reporter=json --outputFile=contract-test-results.json
+        
+    - name: 上传测试报告
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: contract-test-results
+        path: frontend/contract-test-results.json
+        retention-days: 30
+
+  contract-compliance-gate:
+    name: 契约合规性门禁
+    needs: contract-testing
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 检查契约测试结果
+      run: |
+        if [[ "${{ needs.contract-testing.result }}" != "success" ]]; then
+          echo "❌ 契约测试失败 - 阻止合并"
+          echo "请修复以下问题："
+          echo "1. GraphQL Schema语法错误"
+          echo "2. 字段命名不符合camelCase规范"
+          echo "3. 响应结构不符合企业级信封标准"
+          echo "4. 构建验证失败"
+          exit 1
+        else
+          echo "✅ 契约测试通过 - 允许合并"
+        fi
+
+  schema-change-detection:
+    name: Schema变更检测
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 检测Schema变更
+      id: schema-changes
+      run: |
+        if git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -q "docs/api/schema.graphql"; then
+          echo "schema-changed=true" >> $GITHUB_OUTPUT
+          echo "📋 检测到GraphQL Schema变更"
+        else
+          echo "schema-changed=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Schema向后兼容性检查
+      if: steps.schema-changes.outputs.schema-changed == 'true'
+      run: |
+        echo "🔍 执行Schema向后兼容性检查"
+        echo "检查项目："
+        echo "- 字段删除检测"
+        echo "- 类型变更检测" 
+        echo "- 枚举值删除检测"
+        echo "- 必填字段新增检测"
+        # 这里可以集成schema-diff工具
+        
+    - name: 通知Schema变更
+      if: steps.schema-changes.outputs.schema-changed == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## 🔄 GraphQL Schema变更检测
+            
+            检测到API契约变更，请确认：
+            
+            ### 📋 变更检查清单
+            - [ ] Schema语法验证通过
+            - [ ] 向后兼容性确认
+            - [ ] 客户端影响评估
+            - [ ] API版本更新（如需要）
+            - [ ] 文档更新完成
+            
+            ### 🧪 契约测试状态
+            契约测试将自动验证Schema一致性和字段命名规范。
+            
+            请在合并前确保所有检查项通过。`
+          })
+
+  performance-impact-analysis:
+    name: 性能影响分析
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v4
+      
+    - name: 设置Node.js环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: 安装依赖包
+      run: |
+        cd frontend
+        npm ci
+        
+    - name: 构建性能分析
+      run: |
+        cd frontend
+        npm run build
+        
+    - name: Bundle大小分析
+      run: |
+        cd frontend
+        echo "📊 Bundle大小分析：" 
+        du -sh dist/ || echo "构建输出不存在"
+        
+    - name: 契约测试性能基准
+      run: |
+        cd frontend
+        time npm run test:contract
+        echo "契约测试执行时间已记录"

@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"organization-command-service/internal/audit"
 	"organization-command-service/internal/middleware"
 	"organization-command-service/internal/repository"
 	"organization-command-service/internal/types"
 	"organization-command-service/internal/utils"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type OrganizationHandler struct {
@@ -110,15 +110,15 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		actorID := h.getActorID(r)
 		ipAddress := h.getIPAddress(r)
 		requestData := map[string]interface{}{
-			"code": code,
-			"name": req.Name,
-			"unitType": req.UnitType,
+			"code":       code,
+			"name":       req.Name,
+			"unitType":   req.UnitType,
 			"parentCode": req.ParentCode,
 		}
-		
-		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code, 
+
+		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code,
 			"CreateOrganization", actorID, requestID, ipAddress, "CREATE_ERROR", err.Error(), requestData)
-		
+
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, "CREATE_ERROR", "创建组织失败", err)
 		return
 	}
@@ -127,7 +127,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
 	ipAddress := h.getIPAddress(r)
-	
+
 	err = h.auditLogger.LogOrganizationCreate(r.Context(), &req, createdOrg, actorID, requestID, ipAddress)
 	if err != nil {
 		h.logger.Printf("⚠️ 审计日志记录失败: %v", err)
@@ -137,7 +137,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	// 返回企业级成功响应
 	response := h.toOrganizationResponse(createdOrg)
 	successResponse := types.WriteSuccessResponse(response, "Organization created successfully", requestID)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(successResponse)
@@ -177,7 +177,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	response := h.toOrganizationResponse(updatedOrg)
 	requestID := middleware.GetRequestID(r.Context())
 	successResponse := types.WriteSuccessResponse(response, "Organization updated successfully", requestID)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(successResponse)
 
@@ -203,10 +203,10 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 	// 返回企业级成功响应
 	requestID := middleware.GetRequestID(r.Context())
 	successResponse := types.WriteSuccessResponse(nil, "Organization deleted successfully", requestID)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(successResponse)
-	
+
 	h.logger.Printf("✅ 组织删除成功: %s (RequestID: %s)", code, requestID)
 }
 
@@ -241,11 +241,11 @@ func (h *OrganizationHandler) SuspendOrganization(w http.ResponseWriter, r *http
 	response := h.toOrganizationResponse(org)
 	requestID := middleware.GetRequestID(r.Context())
 	successResponse := types.WriteSuccessResponse(response, "Organization suspended successfully", requestID)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(successResponse)
-	
+
 	h.logger.Printf("✅ 组织停用成功: %s - %s (RequestID: %s)", response.Code, response.Name, requestID)
 }
 
@@ -280,11 +280,11 @@ func (h *OrganizationHandler) ActivateOrganization(w http.ResponseWriter, r *htt
 	response := h.toOrganizationResponse(org)
 	requestID := middleware.GetRequestID(r.Context())
 	successResponse := types.WriteSuccessResponse(response, "Organization activated successfully", requestID)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(successResponse)
-	
+
 	h.logger.Printf("✅ 组织激活成功: %s - %s (RequestID: %s)", response.Code, response.Name, requestID)
 }
 
@@ -371,10 +371,10 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 	response := h.toOrganizationResponse(updatedOrg)
 	requestID := middleware.GetRequestID(r.Context())
 	successResponse := types.WriteSuccessResponse(response, "History record updated successfully", requestID)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(successResponse)
-	
+
 	h.logger.Printf("✅ 历史记录更新成功: %s - %s (记录ID: %s, RequestID: %s)", response.Code, response.Name, recordId, requestID)
 }
 
@@ -471,14 +471,14 @@ func (h *OrganizationHandler) getActorID(r *http.Request) string {
 	if userID := r.Header.Get("X-Mock-User"); userID != "" {
 		return userID
 	}
-	
+
 	// 从JWT上下文获取
 	if userID := r.Context().Value("user_id"); userID != nil {
 		if uid, ok := userID.(string); ok {
 			return uid
 		}
 	}
-	
+
 	// 如果无法获取用户ID，返回默认值
 	return "system"
 }
@@ -493,12 +493,12 @@ func (h *OrganizationHandler) getIPAddress(r *http.Request) string {
 		}
 		return strings.TrimSpace(forwarded)
 	}
-	
+
 	// 检查X-Real-IP头部
 	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
 		return realIP
 	}
-	
+
 	// 使用RemoteAddr - 处理IPv6地址
 	if ip := r.RemoteAddr; ip != "" {
 		// 处理IPv6地址格式 [::1]:port
@@ -514,6 +514,6 @@ func (h *OrganizationHandler) getIPAddress(r *http.Request) string {
 		}
 		return ip
 	}
-	
+
 	return "127.0.0.1" // 默认本地地址
 }

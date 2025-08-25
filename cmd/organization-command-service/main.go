@@ -11,6 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	_ "github.com/lib/pq"
 	"organization-command-service/internal/audit"
 	"organization-command-service/internal/handlers"
 	"organization-command-service/internal/metrics"
@@ -18,10 +22,6 @@ import (
 	"organization-command-service/internal/repository"
 	"organization-command-service/internal/services"
 	"organization-command-service/internal/validators"
-	"github.com/go-chi/chi/v5"
-	chi_middleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
-	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -70,7 +70,7 @@ func main() {
 	r := chi.NewRouter()
 
 	// 中间件
-	r.Use(middleware.RequestIDMiddleware)  // 请求追踪中间件 
+	r.Use(middleware.RequestIDMiddleware)          // 请求追踪中间件
 	r.Use(metricsCollector.GetMetricsMiddleware()) // Prometheus指标中间件
 	r.Use(chi_middleware.Logger)
 	r.Use(chi_middleware.Recoverer)

@@ -22,28 +22,28 @@ const (
 
 // Alert 告警信息
 type Alert struct {
-	ID          string                 `json:"id"`
-	Service     string                 `json:"service"`
-	Component   string                 `json:"component"`
-	Level       AlertLevel             `json:"level"`
-	Status      HealthStatus           `json:"status"`
-	Message     string                 `json:"message"`
-	Details     map[string]interface{} `json:"details,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Resolved    bool                   `json:"resolved"`
-	ResolvedAt  *time.Time             `json:"resolved_at,omitempty"`
+	ID         string                 `json:"id"`
+	Service    string                 `json:"service"`
+	Component  string                 `json:"component"`
+	Level      AlertLevel             `json:"level"`
+	Status     HealthStatus           `json:"status"`
+	Message    string                 `json:"message"`
+	Details    map[string]interface{} `json:"details,omitempty"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Resolved   bool                   `json:"resolved"`
+	ResolvedAt *time.Time             `json:"resolved_at,omitempty"`
 }
 
 // AlertRule 告警规则
 type AlertRule struct {
-	Name          string        `json:"name"`
-	Component     string        `json:"component"`
+	Name          string         `json:"name"`
+	Component     string         `json:"component"`
 	Condition     AlertCondition `json:"condition"`
-	Level         AlertLevel    `json:"level"`
-	Message       string        `json:"message"`
-	Cooldown      time.Duration `json:"cooldown"`
-	MaxRetries    int           `json:"max_retries"`
-	EnabledBy     time.Time     `json:"enabled_by"`
+	Level         AlertLevel     `json:"level"`
+	Message       string         `json:"message"`
+	Cooldown      time.Duration  `json:"cooldown"`
+	MaxRetries    int            `json:"max_retries"`
+	EnabledBy     time.Time      `json:"enabled_by"`
 	lastTriggered time.Time
 	retryCount    int
 }
@@ -93,38 +93,38 @@ func (w *WebhookChannel) Send(ctx context.Context, alert Alert) error {
 		"timestamp": time.Now(),
 		"source":    "cube-castle-health-monitor",
 	}
-	
+
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal alert: %w", err)
 	}
-	
+
 	ctx, cancel := context.WithTimeout(ctx, w.timeout)
 	defer cancel()
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", w.url, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "cube-castle-health-monitor/1.0")
-	
+
 	for key, value := range w.headers {
 		req.Header.Set(key, value)
 	}
-	
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send webhook: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
 	}
-	
+
 	return nil
 }
 
@@ -162,7 +162,7 @@ func (s *SlackChannel) Send(ctx context.Context, alert Alert) error {
 		color = "#0000FF"
 		emoji = "ℹ️"
 	}
-	
+
 	statusEmoji := ""
 	switch alert.Status {
 	case StatusHealthy:
@@ -172,15 +172,15 @@ func (s *SlackChannel) Send(ctx context.Context, alert Alert) error {
 	case StatusUnhealthy:
 		statusEmoji = "❌"
 	}
-	
+
 	payload := map[string]interface{}{
 		"channel":  s.channel,
 		"username": s.username,
 		"attachments": []map[string]interface{}{
 			{
-				"color":      color,
-				"title":      fmt.Sprintf("%s Cube Castle 健康告警", emoji),
-				"text":       alert.Message,
+				"color": color,
+				"title": fmt.Sprintf("%s Cube Castle 健康告警", emoji),
+				"text":  alert.Message,
 				"fields": []map[string]interface{}{
 					{
 						"title": "服务",
@@ -213,33 +213,33 @@ func (s *SlackChannel) Send(ctx context.Context, alert Alert) error {
 			},
 		},
 	}
-	
+
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal slack payload: %w", err)
 	}
-	
+
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", s.webhookURL, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to create slack request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send slack webhook: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("slack webhook returned status %d", resp.StatusCode)
 	}
-	
+
 	return nil
 }
 
@@ -260,21 +260,21 @@ func (e *EmailChannel) Name() string {
 func (e *EmailChannel) Send(ctx context.Context, alert Alert) error {
 	// 这里应该实现SMTP邮件发送
 	// 为了简化，这里只是记录日志
-	log.Printf("EMAIL ALERT: [%s] %s - %s: %s", 
+	log.Printf("EMAIL ALERT: [%s] %s - %s: %s",
 		alert.Level, alert.Service, alert.Component, alert.Message)
 	return nil
 }
 
 // AlertManager 告警管理器
 type AlertManager struct {
-	serviceName     string
-	rules           []AlertRule
-	channels        []AlertChannel
-	activeAlerts    map[string]*Alert
-	alertHistory    []Alert
-	mu              sync.RWMutex
-	maxHistorySize  int
-	healthStates    map[string]HealthStatus
+	serviceName      string
+	rules            []AlertRule
+	channels         []AlertChannel
+	activeAlerts     map[string]*Alert
+	alertHistory     []Alert
+	mu               sync.RWMutex
+	maxHistorySize   int
+	healthStates     map[string]HealthStatus
 	consecutiveFails map[string]int
 }
 
@@ -282,12 +282,12 @@ type AlertManager struct {
 func NewAlertManager(serviceName string) *AlertManager {
 	return &AlertManager{
 		serviceName:      serviceName,
-		rules:           make([]AlertRule, 0),
-		channels:        make([]AlertChannel, 0),
-		activeAlerts:    make(map[string]*Alert),
-		alertHistory:    make([]Alert, 0),
-		maxHistorySize:  1000,
-		healthStates:    make(map[string]HealthStatus),
+		rules:            make([]AlertRule, 0),
+		channels:         make([]AlertChannel, 0),
+		activeAlerts:     make(map[string]*Alert),
+		alertHistory:     make([]Alert, 0),
+		maxHistorySize:   1000,
+		healthStates:     make(map[string]HealthStatus),
 		consecutiveFails: make(map[string]int),
 	}
 }
@@ -310,25 +310,25 @@ func (am *AlertManager) AddChannel(channel AlertChannel) {
 func (am *AlertManager) ProcessHealthCheck(ctx context.Context, health ServiceHealth) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	// 更新健康状态历史
 	for _, check := range health.Checks {
 		componentKey := fmt.Sprintf("%s:%s", health.Service, check.Name)
-		
+
 		// 记录连续失败次数
 		if check.Status == StatusUnhealthy {
 			am.consecutiveFails[componentKey]++
 		} else {
 			am.consecutiveFails[componentKey] = 0
 		}
-		
+
 		// 检查是否需要触发告警
 		am.evaluateRules(ctx, health.Service, check)
-		
+
 		// 更新健康状态
 		am.healthStates[componentKey] = check.Status
 	}
-	
+
 	// 检查是否有告警需要解决
 	am.checkResolvedAlerts(ctx, health)
 }
@@ -339,12 +339,12 @@ func (am *AlertManager) evaluateRules(ctx context.Context, serviceName string, c
 		if rule.Component != "" && rule.Component != check.Name {
 			continue
 		}
-		
+
 		// 检查冷却时间
 		if time.Since(rule.lastTriggered) < rule.Cooldown {
 			continue
 		}
-		
+
 		// 评估条件
 		if am.evaluateCondition(rule.Condition, serviceName, check) {
 			rule.lastTriggered = time.Now()
@@ -359,12 +359,12 @@ func (am *AlertManager) evaluateCondition(condition AlertCondition, serviceName 
 	if condition.StatusEquals != nil && check.Status == *condition.StatusEquals {
 		return true
 	}
-	
+
 	// 检查响应时间条件
 	if condition.ResponseTimeGT != nil && check.Duration > *condition.ResponseTimeGT {
 		return true
 	}
-	
+
 	// 检查连续失败次数
 	if condition.ConsecutiveFails != nil {
 		componentKey := fmt.Sprintf("%s:%s", serviceName, check.Name)
@@ -372,14 +372,14 @@ func (am *AlertManager) evaluateCondition(condition AlertCondition, serviceName 
 			return true
 		}
 	}
-	
+
 	return false
 }
 
 // triggerAlert 触发告警
 func (am *AlertManager) triggerAlert(ctx context.Context, rule AlertRule, serviceName string, check HealthCheck) {
 	alertID := fmt.Sprintf("%s-%s-%d", serviceName, check.Name, time.Now().Unix())
-	
+
 	alert := Alert{
 		ID:        alertID,
 		Service:   serviceName,
@@ -391,13 +391,13 @@ func (am *AlertManager) triggerAlert(ctx context.Context, rule AlertRule, servic
 		Timestamp: time.Now(),
 		Resolved:  false,
 	}
-	
+
 	// 保存活跃告警
 	am.activeAlerts[alertID] = &alert
-	
+
 	// 添加到历史记录
 	am.addToHistory(alert)
-	
+
 	// 发送告警到所有渠道
 	for _, channel := range am.channels {
 		go func(ch AlertChannel) {
@@ -406,7 +406,7 @@ func (am *AlertManager) triggerAlert(ctx context.Context, rule AlertRule, servic
 			}
 		}(channel)
 	}
-	
+
 	log.Printf("ALERT TRIGGERED: [%s] %s - %s", alert.Level, alert.Service, alert.Message)
 }
 
@@ -416,7 +416,7 @@ func (am *AlertManager) checkResolvedAlerts(ctx context.Context, health ServiceH
 		if alert.Resolved {
 			continue
 		}
-		
+
 		// 查找对应的健康检查
 		for _, check := range health.Checks {
 			if check.Name == alert.Component && check.Status == StatusHealthy {
@@ -424,12 +424,12 @@ func (am *AlertManager) checkResolvedAlerts(ctx context.Context, health ServiceH
 				alert.Resolved = true
 				now := time.Now()
 				alert.ResolvedAt = &now
-				
+
 				// 发送解决通知
 				resolvedAlert := *alert
 				resolvedAlert.Message = fmt.Sprintf("✅ 告警已解决: %s 组件 %s 恢复正常", alert.Service, alert.Component)
 				resolvedAlert.Level = AlertLevelInfo
-				
+
 				for _, channel := range am.channels {
 					go func(ch AlertChannel) {
 						if err := ch.Send(ctx, resolvedAlert); err != nil {
@@ -437,7 +437,7 @@ func (am *AlertManager) checkResolvedAlerts(ctx context.Context, health ServiceH
 						}
 					}(channel)
 				}
-				
+
 				log.Printf("ALERT RESOLVED: [%s] %s - %s", alert.ID, alert.Service, alert.Component)
 				delete(am.activeAlerts, alertID)
 				break
@@ -449,7 +449,7 @@ func (am *AlertManager) checkResolvedAlerts(ctx context.Context, health ServiceH
 // addToHistory 添加到历史记录
 func (am *AlertManager) addToHistory(alert Alert) {
 	am.alertHistory = append(am.alertHistory, alert)
-	
+
 	// 保持历史记录大小限制
 	if len(am.alertHistory) > am.maxHistorySize {
 		am.alertHistory = am.alertHistory[1:]
@@ -460,12 +460,12 @@ func (am *AlertManager) addToHistory(alert Alert) {
 func (am *AlertManager) GetActiveAlerts() []Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
-	
+
 	alerts := make([]Alert, 0, len(am.activeAlerts))
 	for _, alert := range am.activeAlerts {
 		alerts = append(alerts, *alert)
 	}
-	
+
 	return alerts
 }
 
@@ -473,11 +473,11 @@ func (am *AlertManager) GetActiveAlerts() []Alert {
 func (am *AlertManager) GetAlertHistory(limit int) []Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
-	
+
 	if limit <= 0 || limit > len(am.alertHistory) {
 		limit = len(am.alertHistory)
 	}
-	
+
 	start := len(am.alertHistory) - limit
 	return am.alertHistory[start:]
 }

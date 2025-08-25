@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"organization-command-service/internal/repository"
 	"github.com/google/uuid"
+	"organization-command-service/internal/repository"
 )
 
 // CascadeUpdateService 异步级联更新服务
@@ -122,7 +122,7 @@ func (c *CascadeUpdateService) worker(workerID int) {
 // processTask 处理任务
 func (c *CascadeUpdateService) processTask(workerID int, task CascadeTask) {
 	start := time.Now()
-	c.logger.Printf("⚡ 工作协程 %d 开始处理任务: %s (组织: %s, 优先级: %d)", 
+	c.logger.Printf("⚡ 工作协程 %d 开始处理任务: %s (组织: %s, 优先级: %d)",
 		workerID, task.Type, task.Code, task.Priority)
 
 	var err error
@@ -142,10 +142,10 @@ func (c *CascadeUpdateService) processTask(workerID int, task CascadeTask) {
 
 	duration := time.Since(start)
 	if err != nil {
-		c.logger.Printf("❌ 工作协程 %d 任务处理失败: %s (组织: %s, 耗时: %v, 错误: %v)", 
+		c.logger.Printf("❌ 工作协程 %d 任务处理失败: %s (组织: %s, 耗时: %v, 错误: %v)",
 			workerID, task.Type, task.Code, duration, err)
 	} else {
-		c.logger.Printf("✅ 工作协程 %d 任务处理成功: %s (组织: %s, 耗时: %v)", 
+		c.logger.Printf("✅ 工作协程 %d 任务处理成功: %s (组织: %s, 耗时: %v)",
 			workerID, task.Type, task.Code, duration)
 	}
 }
@@ -248,7 +248,7 @@ func (c *CascadeUpdateService) processStatusUpdate(task CascadeTask) error {
 			return fmt.Errorf("获取子组织失败: %w", err)
 		}
 
-		c.logger.Printf("📊 状态级联检查: 组织 %s 状态为 %s, 影响 %d 个子组织", 
+		c.logger.Printf("📊 状态级联检查: 组织 %s 状态为 %s, 影响 %d 个子组织",
 			task.Code, org.Status, len(children))
 
 		// 这里可以实现具体的状态级联逻辑
@@ -298,7 +298,7 @@ func (c *CascadeUpdateService) processValidateRules(task CascadeTask) error {
 		c.logger.Printf("⚠️ 可能的循环引用: 组织 %s 祖先链长度 %d", task.Code, len(ancestors))
 	}
 
-	c.logger.Printf("✅ 业务规则验证完成: 组织 %s, 层级深度 %d, 祖先链长度 %d", 
+	c.logger.Printf("✅ 业务规则验证完成: 组织 %s, 层级深度 %d, 祖先链长度 %d",
 		task.Code, maxDepth, len(ancestors))
 
 	return nil

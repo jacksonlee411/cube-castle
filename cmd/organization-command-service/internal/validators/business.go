@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/google/uuid"
 	"organization-command-service/internal/repository"
 	"organization-command-service/internal/types"
-	"github.com/google/uuid"
 )
 
 // BusinessRuleValidator 业务规则验证器
@@ -27,11 +27,11 @@ type ValidationResult struct {
 
 // ValidationError 验证错误
 type ValidationError struct {
-	Code        string      `json:"code"`
-	Message     string      `json:"message"`
-	Field       string      `json:"field,omitempty"`
-	Value       interface{} `json:"value,omitempty"`
-	Severity    string      `json:"severity"` // CRITICAL, HIGH, MEDIUM, LOW
+	Code     string      `json:"code"`
+	Message  string      `json:"message"`
+	Field    string      `json:"field,omitempty"`
+	Value    interface{} `json:"value,omitempty"`
+	Severity string      `json:"severity"` // CRITICAL, HIGH, MEDIUM, LOW
 }
 
 // ValidationWarning 验证警告
@@ -45,21 +45,21 @@ type ValidationWarning struct {
 // 业务规则错误代码
 const (
 	// 层级结构规则
-	ErrorCodeDepthExceeded        = "DEPTH_EXCEEDED"
-	ErrorCodeCircularReference    = "CIRCULAR_REFERENCE"
-	ErrorCodeOrphanOrganization   = "ORPHAN_ORGANIZATION"
-	ErrorCodeInvalidParent        = "INVALID_PARENT"
-	
+	ErrorCodeDepthExceeded      = "DEPTH_EXCEEDED"
+	ErrorCodeCircularReference  = "CIRCULAR_REFERENCE"
+	ErrorCodeOrphanOrganization = "ORPHAN_ORGANIZATION"
+	ErrorCodeInvalidParent      = "INVALID_PARENT"
+
 	// 数据一致性规则
-	ErrorCodePathInconsistency    = "PATH_INCONSISTENCY"
-	ErrorCodeLevelInconsistency   = "LEVEL_INCONSISTENCY"
-	ErrorCodeDuplicateCode        = "DUPLICATE_CODE"
-	
+	ErrorCodePathInconsistency  = "PATH_INCONSISTENCY"
+	ErrorCodeLevelInconsistency = "LEVEL_INCONSISTENCY"
+	ErrorCodeDuplicateCode      = "DUPLICATE_CODE"
+
 	// 业务逻辑规则
-	ErrorCodeInvalidStatus        = "INVALID_STATUS"
-	ErrorCodeStatusConflict       = "STATUS_CONFLICT"
-	ErrorCodeTemporalConflict     = "TEMPORAL_CONFLICT"
-	ErrorCodePermissionDenied     = "PERMISSION_DENIED"
+	ErrorCodeInvalidStatus    = "INVALID_STATUS"
+	ErrorCodeStatusConflict   = "STATUS_CONFLICT"
+	ErrorCodeTemporalConflict = "TEMPORAL_CONFLICT"
+	ErrorCodePermissionDenied = "PERMISSION_DENIED"
 )
 
 func NewBusinessRuleValidator(hierarchyRepo *repository.HierarchyRepository, orgRepo *repository.OrganizationRepository, logger *log.Logger) *BusinessRuleValidator {
@@ -111,7 +111,7 @@ func (v *BusinessRuleValidator) ValidateOrganizationCreation(ctx context.Context
 	}
 
 	result.Valid = len(result.Errors) == 0
-	v.logger.Printf("组织创建验证完成: 有效=%t, 错误数=%d, 警告数=%d", 
+	v.logger.Printf("组织创建验证完成: 有效=%t, 错误数=%d, 警告数=%d",
 		result.Valid, len(result.Errors), len(result.Warnings))
 
 	return result

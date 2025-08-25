@@ -18,17 +18,17 @@ type MetricsCollector struct {
 	httpRequestsInFlight prometheus.Gauge
 
 	// 业务指标
-	organizationsTotal       prometheus.Gauge
-	organizationOperations   *prometheus.CounterVec
-	auditEventsTotal         *prometheus.CounterVec
-	cascadeTasksTotal        *prometheus.CounterVec
-	validationErrorsTotal    *prometheus.CounterVec
+	organizationsTotal     prometheus.Gauge
+	organizationOperations *prometheus.CounterVec
+	auditEventsTotal       *prometheus.CounterVec
+	cascadeTasksTotal      *prometheus.CounterVec
+	validationErrorsTotal  *prometheus.CounterVec
 
 	// 系统指标
-	dbConnectionsActive      prometheus.Gauge
-	dbConnectionsIdle        prometheus.Gauge
-	dbQueriesTotal          *prometheus.CounterVec
-	dbQueryDuration         *prometheus.HistogramVec
+	dbConnectionsActive prometheus.Gauge
+	dbConnectionsIdle   prometheus.Gauge
+	dbQueriesTotal      *prometheus.CounterVec
+	dbQueryDuration     *prometheus.HistogramVec
 
 	logger *log.Logger
 }
@@ -174,7 +174,7 @@ func NewMetricsCollector(logger *log.Logger) *MetricsCollector {
 func (m *MetricsCollector) HTTPMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// 增加并发请求计数
 		m.httpRequestsInFlight.Inc()
 		defer m.httpRequestsInFlight.Dec()
@@ -188,11 +188,11 @@ func (m *MetricsCollector) HTTPMiddleware(next http.Handler) http.Handler {
 		// 记录指标
 		duration := time.Since(start).Seconds()
 		status := strconv.Itoa(wrw.statusCode)
-		
+
 		m.httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, status).Inc()
 		m.httpRequestDuration.WithLabelValues(r.Method, r.URL.Path, status).Observe(duration)
 
-		m.logger.Printf("📊 HTTP指标: %s %s -> %s (%.3fs)", 
+		m.logger.Printf("📊 HTTP指标: %s %s -> %s (%.3fs)",
 			r.Method, r.URL.Path, status, duration)
 	})
 }
@@ -246,8 +246,8 @@ func (m *MetricsCollector) RecordDBQuery(queryType string, duration time.Duratio
 	}
 	m.dbQueriesTotal.WithLabelValues(queryType, successStr).Inc()
 	m.dbQueryDuration.WithLabelValues(queryType).Observe(duration.Seconds())
-	
-	m.logger.Printf("📊 数据库查询指标: %s -> %s (%.3fs)", 
+
+	m.logger.Printf("📊 数据库查询指标: %s -> %s (%.3fs)",
 		queryType, successStr, duration.Seconds())
 }
 

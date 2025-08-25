@@ -8,8 +8,8 @@ import (
 	"log"
 	"time"
 
-	"organization-command-service/internal/types"
 	"github.com/google/uuid"
+	"organization-command-service/internal/types"
 )
 
 // AuditLogger 结构化审计日志记录器
@@ -20,24 +20,24 @@ type AuditLogger struct {
 
 // AuditEvent 审计事件
 type AuditEvent struct {
-	ID            uuid.UUID              `json:"id"`
-	TenantID      uuid.UUID              `json:"tenantId"`
-	EventType     string                 `json:"eventType"`
-	ResourceType  string                 `json:"resourceType"`
-	ResourceID    string                 `json:"resourceId"`
-	ActorID       string                 `json:"actorId"`
-	ActorType     string                 `json:"actorType"`
-	ActionName    string                 `json:"actionName"`
-	RequestID     string                 `json:"requestId"`
-	IPAddress     string                 `json:"ipAddress"`
-	UserAgent     string                 `json:"userAgent"`
-	Timestamp     time.Time              `json:"timestamp"`
-	Success       bool                   `json:"success"`
-	ErrorCode     string                 `json:"errorCode,omitempty"`
-	ErrorMessage  string                 `json:"errorMessage,omitempty"`
-	RequestData   map[string]interface{} `json:"requestData,omitempty"`
-	ResponseData  map[string]interface{} `json:"responseData,omitempty"`
-	Changes       []FieldChange          `json:"changes,omitempty"`
+	ID              uuid.UUID              `json:"id"`
+	TenantID        uuid.UUID              `json:"tenantId"`
+	EventType       string                 `json:"eventType"`
+	ResourceType    string                 `json:"resourceType"`
+	ResourceID      string                 `json:"resourceId"`
+	ActorID         string                 `json:"actorId"`
+	ActorType       string                 `json:"actorType"`
+	ActionName      string                 `json:"actionName"`
+	RequestID       string                 `json:"requestId"`
+	IPAddress       string                 `json:"ipAddress"`
+	UserAgent       string                 `json:"userAgent"`
+	Timestamp       time.Time              `json:"timestamp"`
+	Success         bool                   `json:"success"`
+	ErrorCode       string                 `json:"errorCode,omitempty"`
+	ErrorMessage    string                 `json:"errorMessage,omitempty"`
+	RequestData     map[string]interface{} `json:"requestData,omitempty"`
+	ResponseData    map[string]interface{} `json:"responseData,omitempty"`
+	Changes         []FieldChange          `json:"changes,omitempty"`
 	BusinessContext map[string]interface{} `json:"businessContext,omitempty"`
 }
 
@@ -52,7 +52,7 @@ type FieldChange struct {
 // 审计事件类型常量
 const (
 	EventTypeCreate     = "CREATE"
-	EventTypeUpdate     = "UPDATE" 
+	EventTypeUpdate     = "UPDATE"
 	EventTypeDelete     = "DELETE"
 	EventTypeSuspend    = "SUSPEND"
 	EventTypeActivate   = "ACTIVATE"
@@ -89,7 +89,7 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 	if event.ID == (uuid.UUID{}) {
 		event.ID = uuid.New()
 	}
-	
+
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now()
 	}
@@ -124,7 +124,7 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 		return fmt.Errorf("failed to log audit event: %w", err)
 	}
 
-	a.logger.Printf("✅ 审计事件已记录: %s/%s/%s (ID: %s)", 
+	a.logger.Printf("✅ 审计事件已记录: %s/%s/%s (ID: %s)",
 		event.EventType, event.ResourceType, event.ActionName, event.ID.String())
 
 	return nil
@@ -152,13 +152,13 @@ func (a *AuditLogger) LogOrganizationCreate(ctx context.Context, req *types.Crea
 		},
 		ResponseData: map[string]interface{}{
 			"organizationId": result.Code,
-			"createdAt":     result.CreatedAt,
+			"createdAt":      result.CreatedAt,
 		},
 		BusinessContext: map[string]interface{}{
-			"operation":   "organization_creation",
-			"level":       result.Level,
-			"path":        result.Path,
-			"sortOrder":   result.SortOrder,
+			"operation": "organization_creation",
+			"level":     result.Level,
+			"path":      result.Path,
+			"sortOrder": result.SortOrder,
 		},
 	}
 
@@ -169,7 +169,7 @@ func (a *AuditLogger) LogOrganizationCreate(ctx context.Context, req *types.Crea
 func (a *AuditLogger) LogOrganizationUpdate(ctx context.Context, code string, req *types.UpdateOrganizationRequest, oldOrg, newOrg *types.Organization, actorID, requestID, ipAddress string) error {
 	changes := a.calculateFieldChanges(oldOrg, newOrg)
 	tenantID, _ := uuid.Parse(newOrg.TenantID)
-	
+
 	event := &AuditEvent{
 		TenantID:     tenantID,
 		EventType:    EventTypeUpdate,
@@ -184,14 +184,14 @@ func (a *AuditLogger) LogOrganizationUpdate(ctx context.Context, code string, re
 		RequestData:  structToMap(req),
 		ResponseData: map[string]interface{}{
 			"organizationId": newOrg.Code,
-			"updatedAt":     newOrg.UpdatedAt,
+			"updatedAt":      newOrg.UpdatedAt,
 		},
 		Changes: changes,
 		BusinessContext: map[string]interface{}{
-			"operation":     "organization_update",
-			"changesCount":  len(changes),
-			"oldLevel":      oldOrg.Level,
-			"newLevel":      newOrg.Level,
+			"operation":    "organization_update",
+			"changesCount": len(changes),
+			"oldLevel":     oldOrg.Level,
+			"newLevel":     newOrg.Level,
 		},
 	}
 
@@ -214,14 +214,14 @@ func (a *AuditLogger) LogOrganizationSuspend(ctx context.Context, code string, o
 		Success:      true,
 		ResponseData: map[string]interface{}{
 			"organizationId": org.Code,
-			"status":        "INACTIVE",
-			"suspendedAt":   time.Now(),
+			"status":         "INACTIVE",
+			"suspendedAt":    time.Now(),
 		},
 		BusinessContext: map[string]interface{}{
-			"operation":    "organization_suspension",
+			"operation":      "organization_suspension",
 			"previousStatus": "ACTIVE",
-			"level":        org.Level,
-			"hasChildren":  org.ParentCode != nil,
+			"level":          org.Level,
+			"hasChildren":    org.ParentCode != nil,
 		},
 	}
 
@@ -244,13 +244,13 @@ func (a *AuditLogger) LogOrganizationActivate(ctx context.Context, code string, 
 		Success:      true,
 		ResponseData: map[string]interface{}{
 			"organizationId": org.Code,
-			"status":        "ACTIVE",
-			"activatedAt":   time.Now(),
+			"status":         "ACTIVE",
+			"activatedAt":    time.Now(),
 		},
 		BusinessContext: map[string]interface{}{
-			"operation":    "organization_activation",
+			"operation":      "organization_activation",
 			"previousStatus": "INACTIVE",
-			"level":        org.Level,
+			"level":          org.Level,
 		},
 	}
 
@@ -272,10 +272,10 @@ func (a *AuditLogger) LogOrganizationDelete(ctx context.Context, code string, or
 		IPAddress:    ipAddress,
 		Success:      true,
 		BusinessContext: map[string]interface{}{
-			"operation":    "organization_deletion",
-			"deletedName":  org.Name,
-			"level":        org.Level,
-			"path":         org.Path,
+			"operation":   "organization_deletion",
+			"deletedName": org.Name,
+			"level":       org.Level,
+			"path":        org.Path,
 		},
 	}
 

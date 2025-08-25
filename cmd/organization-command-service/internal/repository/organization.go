@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"organization-command-service/internal/types"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"organization-command-service/internal/types"
 )
 
 type OrganizationRepository struct {
@@ -26,7 +26,7 @@ func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid
 	// 从1000000开始寻找第一个可用的7位数代码 - 修复：直接搜索而非依赖MAX
 	for nextCode := 1000000; nextCode <= 9999999; nextCode++ {
 		candidateCode := fmt.Sprintf("%07d", nextCode)
-		
+
 		// 检查代码是否已存在
 		var exists bool
 		checkQuery := `SELECT EXISTS(SELECT 1 FROM organization_units WHERE tenant_id = $1 AND code = $2)`
@@ -34,12 +34,12 @@ func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid
 		if err != nil {
 			return "", fmt.Errorf("检查代码唯一性失败: %w", err)
 		}
-		
+
 		if !exists {
 			return candidateCode, nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("生成唯一组织代码失败：7位数编码已用尽")
 }
 

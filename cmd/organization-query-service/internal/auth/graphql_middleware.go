@@ -55,7 +55,7 @@ func (g *GraphQLPermissionMiddleware) Middleware() func(http.Handler) http.Handl
 func (g *GraphQLPermissionMiddleware) handleDevMode(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	// 检查Authorization头
 	authHeader := r.Header.Get("Authorization")
-	
+
 	var claims *Claims
 	if authHeader != "" {
 		// 如果有JWT令牌，尝试验证
@@ -103,24 +103,24 @@ func (g *GraphQLPermissionMiddleware) createMockClaims(r *http.Request) *Claims 
 	// 检查是否有特殊的开发头部
 	mockUser := r.Header.Get("X-Mock-User")
 	mockRoles := r.Header.Get("X-Mock-Roles")
-	
+
 	claims := &Claims{
 		UserID:   "dev-user",
 		TenantID: "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9", // 默认租户
-		Roles:    []string{"ADMIN"},                         // 默认管理员权限
+		Roles:    []string{"ADMIN"},                      // 默认管理员权限
 	}
-	
+
 	if mockUser != "" {
 		claims.UserID = mockUser
 	}
-	
+
 	if mockRoles != "" {
 		claims.Roles = strings.Split(mockRoles, ",")
 		for i, role := range claims.Roles {
 			claims.Roles[i] = strings.TrimSpace(role)
 		}
 	}
-	
+
 	return claims
 }
 

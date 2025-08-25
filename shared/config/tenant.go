@@ -6,10 +6,10 @@ import "github.com/google/uuid"
 const (
 	// DefaultTenantIDString 默认租户ID字符串
 	DefaultTenantIDString = "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"
-	
+
 	// DefaultTenantName 默认租户名称
 	DefaultTenantName = "高谷集团"
-	
+
 	// DefaultTenantCode 默认租户代码
 	DefaultTenantCode = "GAOYAGU"
 )

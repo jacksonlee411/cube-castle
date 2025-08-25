@@ -35,7 +35,7 @@ type Claims struct {
 func (j *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 	// 移除Bearer前缀
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
-	
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// 验证签名方法
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -54,7 +54,7 @@ func (j *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 			return nil, fmt.Errorf("invalid issuer")
 		}
 		if aud, ok := claims["aud"].(string); !ok || aud != j.audience {
-			return nil, fmt.Errorf("invalid audience")  
+			return nil, fmt.Errorf("invalid audience")
 		}
 
 		// 提取claims
@@ -75,7 +75,7 @@ func (j *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 		// 提取过期时间
 		if exp, ok := claims["exp"].(float64); ok {
 			userClaims.ExpiresAt = int64(exp)
-			
+
 			// 检查是否过期
 			if time.Now().Unix() > userClaims.ExpiresAt {
 				return nil, fmt.Errorf("token expired")

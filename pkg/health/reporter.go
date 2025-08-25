@@ -25,27 +25,27 @@ func NewStatusReporter(hm *HealthManager, baseURL string) *StatusReporter {
 
 // ServiceDashboard 服务仪表板数据
 type ServiceDashboard struct {
-	Service     string               `json:"service"`
-	Version     string               `json:"version"`
-	Status      HealthStatus         `json:"status"`
-	Timestamp   time.Time            `json:"timestamp"`
-	Uptime      time.Duration        `json:"uptime"`
-	Summary     Summary              `json:"summary"`
-	Checks      []HealthCheck        `json:"checks"`
-	Metrics     ServiceMetrics       `json:"metrics"`
-	Environment EnvironmentInfo      `json:"environment"`
-	Dependencies []DependencyStatus  `json:"dependencies"`
+	Service      string             `json:"service"`
+	Version      string             `json:"version"`
+	Status       HealthStatus       `json:"status"`
+	Timestamp    time.Time          `json:"timestamp"`
+	Uptime       time.Duration      `json:"uptime"`
+	Summary      Summary            `json:"summary"`
+	Checks       []HealthCheck      `json:"checks"`
+	Metrics      ServiceMetrics     `json:"metrics"`
+	Environment  EnvironmentInfo    `json:"environment"`
+	Dependencies []DependencyStatus `json:"dependencies"`
 }
 
 // ServiceMetrics 服务指标
 type ServiceMetrics struct {
-	ResponseTime    time.Duration `json:"response_time"`
-	RequestCount    int64         `json:"request_count"`
-	ErrorRate       float64       `json:"error_rate"`
-	MemoryUsage     string        `json:"memory_usage"`
-	CPUUsage        string        `json:"cpu_usage"`
-	DatabaseConns   int           `json:"database_connections"`
-	CacheHitRate    float64       `json:"cache_hit_rate"`
+	ResponseTime  time.Duration `json:"response_time"`
+	RequestCount  int64         `json:"request_count"`
+	ErrorRate     float64       `json:"error_rate"`
+	MemoryUsage   string        `json:"memory_usage"`
+	CPUUsage      string        `json:"cpu_usage"`
+	DatabaseConns int           `json:"database_connections"`
+	CacheHitRate  float64       `json:"cache_hit_rate"`
 }
 
 // EnvironmentInfo 环境信息
@@ -70,12 +70,12 @@ type DependencyStatus struct {
 
 // StatusPage 状态页面模板数据
 type StatusPage struct {
-	Title        string           `json:"title"`
-	LastUpdated  time.Time        `json:"last_updated"`
-	OverallStatus HealthStatus    `json:"overall_status"`
-	Services     []ServiceSummary `json:"services"`
-	Incidents    []Incident       `json:"incidents"`
-	Metrics      SystemMetrics    `json:"metrics"`
+	Title         string           `json:"title"`
+	LastUpdated   time.Time        `json:"last_updated"`
+	OverallStatus HealthStatus     `json:"overall_status"`
+	Services      []ServiceSummary `json:"services"`
+	Incidents     []Incident       `json:"incidents"`
+	Metrics       SystemMetrics    `json:"metrics"`
 }
 
 // ServiceSummary 服务摘要
@@ -89,39 +89,39 @@ type ServiceSummary struct {
 
 // Incident 事件记录
 type Incident struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Status      string    `json:"status"` // investigating, monitoring, resolved
-	StartTime   time.Time `json:"start_time"`
+	ID          string     `json:"id"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Status      string     `json:"status"` // investigating, monitoring, resolved
+	StartTime   time.Time  `json:"start_time"`
 	EndTime     *time.Time `json:"end_time,omitempty"`
-	Severity    string    `json:"severity"` // low, medium, high, critical
-	Services    []string  `json:"affected_services"`
+	Severity    string     `json:"severity"` // low, medium, high, critical
+	Services    []string   `json:"affected_services"`
 }
 
 // SystemMetrics 系统指标
 type SystemMetrics struct {
-	TotalServices    int     `json:"total_services"`
-	HealthyServices  int     `json:"healthy_services"`
-	DegradedServices int     `json:"degraded_services"`
-	FailedServices   int     `json:"failed_services"`
-	OverallUptime    string  `json:"overall_uptime"`
-	AvgResponseTime  string  `json:"avg_response_time"`
+	TotalServices    int    `json:"total_services"`
+	HealthyServices  int    `json:"healthy_services"`
+	DegradedServices int    `json:"degraded_services"`
+	FailedServices   int    `json:"failed_services"`
+	OverallUptime    string `json:"overall_uptime"`
+	AvgResponseTime  string `json:"avg_response_time"`
 }
 
 // GenerateDashboard 生成服务仪表板
 func (sr *StatusReporter) GenerateDashboard(ctx context.Context) ServiceDashboard {
 	health := sr.healthManager.Check(ctx)
-	
+
 	// 计算指标
 	metrics := sr.calculateMetrics(health)
-	
+
 	// 获取环境信息
 	env := sr.getEnvironmentInfo()
-	
+
 	// 获取依赖状态
 	deps := sr.getDependencyStatus(health)
-	
+
 	return ServiceDashboard{
 		Service:      health.Service,
 		Version:      health.Version,
@@ -143,18 +143,18 @@ func (sr *StatusReporter) calculateMetrics(health ServiceHealth) ServiceMetrics 
 	for _, check := range health.Checks {
 		totalDuration += check.Duration
 	}
-	
+
 	avgResponseTime := time.Duration(0)
 	if len(health.Checks) > 0 {
 		avgResponseTime = totalDuration / time.Duration(len(health.Checks))
 	}
-	
+
 	// 计算错误率
 	errorRate := 0.0
 	if health.Summary.Total > 0 {
 		errorRate = float64(health.Summary.Failed) / float64(health.Summary.Total) * 100
 	}
-	
+
 	return ServiceMetrics{
 		ResponseTime:  avgResponseTime,
 		RequestCount:  0, // 需要从实际指标系统获取
@@ -184,7 +184,7 @@ func (sr *StatusReporter) getEnvironmentInfo() EnvironmentInfo {
 // getDependencyStatus 获取依赖状态
 func (sr *StatusReporter) getDependencyStatus(health ServiceHealth) []DependencyStatus {
 	var deps []DependencyStatus
-	
+
 	for _, check := range health.Checks {
 		if strings.Contains(check.Name, "service") || strings.Contains(check.Name, "dependency") {
 			deps = append(deps, DependencyStatus{
@@ -195,7 +195,7 @@ func (sr *StatusReporter) getDependencyStatus(health ServiceHealth) []Dependency
 			})
 		}
 	}
-	
+
 	return deps
 }
 
@@ -204,7 +204,7 @@ func (sr *StatusReporter) DashboardHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		dashboard := sr.GenerateDashboard(ctx)
-		
+
 		// 检查请求的格式
 		accept := r.Header.Get("Accept")
 		if strings.Contains(accept, "application/json") || r.URL.Query().Get("format") == "json" {
@@ -213,7 +213,7 @@ func (sr *StatusReporter) DashboardHandler() http.HandlerFunc {
 			json.NewEncoder(w).Encode(dashboard)
 			return
 		}
-		
+
 		// 返回HTML格式
 		w.Header().Set("Content-Type", "text/html")
 		sr.renderHTMLDashboard(w, dashboard)
@@ -367,13 +367,13 @@ func (sr *StatusReporter) renderHTMLDashboard(w http.ResponseWriter, dashboard S
 </body>
 </html>
 `
-	
+
 	t, err := template.New("dashboard").Parse(tmpl)
 	if err != nil {
 		http.Error(w, "Template error", http.StatusInternalServerError)
 		return
 	}
-	
+
 	err = t.Execute(w, dashboard)
 	if err != nil {
 		http.Error(w, "Render error", http.StatusInternalServerError)
@@ -388,7 +388,7 @@ func (sr *StatusReporter) StatusPageHandler() http.HandlerFunc {
 		// 显示所有服务的整体状态
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message": "Status page coming soon",
+			"message":   "Status page coming soon",
 			"timestamp": time.Now(),
 		})
 	}

@@ -1,8 +1,9 @@
 # 📚 Cube Castle API规范文档
 
-**版本**: v4.2.1  
+**版本**: v4.2.2 ⭐ **OAuth特例修复版**  
 **架构**: 严格CQRS + PostgreSQL单一数据源 + OAuth 2.0企业级安全  
 **状态**: ✅ Single Source of Truth (唯一权威来源)  
+**重要更新**: 修复OAuth认证字段名特例，解决组织列表获取失败问题  
 
 ## 🚀 概述
 
@@ -292,6 +293,56 @@ curl -f http://localhost:8090/health || echo "GraphQL服务异常"
 curl -f http://localhost:9091/health || echo "时态API服务异常"
 ```
 
+## 🚨 已知特例和注意事项 ⭐ **新增 (2025-08-24)**
+
+### OAuth认证字段名特例
+
+⚠️ **重要**: 前端OAuth认证实现使用了非标准字段名，这是一个已知的技术债务。
+
+#### 问题描述
+- **标准OAuth 2.0字段名**: `client_id`, `client_secret` (snake_case)
+- **项目实际使用**: `clientId`, `clientSecret` (camelCase) 
+- **修复位置**: `/home/shangmeilin/cube-castle/frontend/src/shared/api/auth.ts:66-68`
+
+#### 影响和症状
+- **错误症状**: "Failed to fetch organizations. Please try again."
+- **根本原因**: OAuth服务器拒绝非标准字段名的token请求
+- **影响范围**: 所有前端API调用因认证失败而无法执行
+
+#### 解决方案
+```typescript
+// ❌ 错误的实现 (曾经的问题代码)
+body: JSON.stringify({
+  grant_type: this.config.grantType,
+  clientId: this.config.clientId,      // 非标准字段名
+  clientSecret: this.config.clientSecret, // 非标准字段名
+}),
+
+// ✅ 正确的实现 (已修复)
+body: JSON.stringify({
+  grant_type: this.config.grantType,
+  client_id: this.config.clientId,     // 标准OAuth 2.0字段名
+  client_secret: this.config.clientSecret, // 标准OAuth 2.0字段名
+}),
+```
+
+#### 防范措施
+1. **开发规范**: OAuth实现必须严格遵循RFC 6749标准字段名
+2. **测试要求**: API集成测试必须包含OAuth认证流程测试
+3. **文档标注**: 此类协议标准例外必须在API文档中明确标注
+
+### GraphQL Schema字段映射特例
+
+#### 已修复的字段映射问题
+- **OrganizationStats**: `total` → `totalCount`, `temporal` → `temporalStats`
+- **TypeCount**: `type` → `unitType`  
+- **TemporalStats**: 完全重新设计字段结构
+
+#### 预防措施
+- 开发前必须使用GraphQL Introspection查询确认Schema
+- CI/CD管道集成Schema一致性验证
+- 前端TypeScript类型与后端Schema自动同步检查
+
 ## 📞 支持与贡献
 
 ### 获取帮助
@@ -312,7 +363,7 @@ curl -f http://localhost:9091/health || echo "时态API服务异常"
 
 - **项目地址**: `/home/shangmeilin/cube-castle`
 - **文档路径**: `/home/shangmeilin/cube-castle/docs/api/`
-- **最后更新**: 2025-08-10
+- **最后更新**: 2025-08-24
 
 ---
 

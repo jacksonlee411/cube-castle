@@ -217,6 +217,7 @@ API使用频率预期 (基于企业级系统经验):
 | Query | `organizations(filter: OrgFilter)` | 获取组织单元列表(时态查询优化) | Bearer Token |
 | Query | `organization(code: String!)` | 获取单个组织单元 | Bearer Token |
 | Query | `organizationStats` | 获取组织统计信息 | Bearer Token |
+| Query | `organizationVersions(code: String!)` | 组织时态版本历史 | Bearer Token |
 | Query | `organizationAuditHistory(code: String!)` | 组织完整审计历史 | Bearer Token |
 | Query | `auditLog(auditId: String!)` | 详细审计记录查询 | Bearer Token |
 | Query | `organizationChangeAnalysis(code: String!)` | 跨版本变更分析 | Bearer Token |
@@ -1710,9 +1711,76 @@ PATCH错误:
 - **404 Not Found**: 组织单元不存在
 - **409 Conflict**: 存在子单元或关联职位，无法删除
 
-### 7. 操作审计接口 ⭐ **新增 v7**
+### 7. 时态数据与审计接口 ⭐ **新增 v7**
 
-#### 7.1 获取组织完整审计历史 (GraphQL查询)
+#### 7.1 获取组织时态版本历史 (GraphQL查询)
+使用 `organizationVersions` GraphQL查询获取组织的时态版本历史，支持查看组织的所有历史版本和当前版本。
+
+#### 查询参数
+```yaml
+code: 组织编码 (String!, 必填)
+```
+
+#### GraphQL查询示例
+```graphql
+query GetOrganizationVersions($code: String!) {
+  organizationVersions(code: $code) {
+    code
+    name
+    unitType
+    status
+    level
+    effectiveDate
+    endDate
+    isCurrent
+    createdAt
+    updatedAt
+    recordId
+    parentCode
+    description
+  }
+}
+```
+
+#### 响应示例
+```json
+{
+  "data": {
+    "organizationVersions": [
+      {
+        "code": "1000001",
+        "name": "爱治理办公室",
+        "unitType": "DEPARTMENT",
+        "status": "ACTIVE",
+        "effectiveDate": "2026-01-01",
+        "endDate": null,
+        "isCurrent": true,
+        "createdAt": "2025-08-22T12:55:29Z",
+        "updatedAt": "2025-08-23T11:37:39Z",
+        "recordId": "6b327691-8ba7-4c99-8112-e456cdbbcd8b",
+        "parentCode": null,
+        "description": "时态测试更新"
+      },
+      {
+        "code": "1000001",
+        "name": "爱治理办公室", 
+        "unitType": "DEPARTMENT",
+        "status": "ACTIVE",
+        "effectiveDate": "2025-06-01",
+        "endDate": "2025-12-31",
+        "isCurrent": false,
+        "createdAt": "2025-08-22T12:51:09Z",
+        "updatedAt": "2025-08-23T11:37:39Z",
+        "recordId": "e4657244-60ae-41a0-b3c7-fbd22a785a59",
+        "parentCode": null,
+        "description": null
+      }
+    ]
+  }
+}
+```
+
+#### 7.2 获取组织完整审计历史 (GraphQL查询)
 使用 `organizationAuditHistory` GraphQL查询获取组织的完整操作审计历史，支持跨版本的变更追踪。
 
 #### 查询参数 ⭐ **已统一camelCase命名**
@@ -1748,13 +1816,13 @@ limit: 返回记录数 (默认50, 最大200)
       },
       {
         "auditId": "aud_002",
-        "versionSequence": 2, 
+        "versionSequence": 2,
         "operation": "update",
         "timestamp": "2025-06-01T14:30:00Z",
         "userName": "李四",
         "operationReason": "Department name standardization",
         "changesSummary": {
-          "operationSummary": "UPDATE", 
+          "operationSummary": "UPDATE",
           "totalChanges": 2,
           "keyChanges": [
             "name: '技术部' → '技术研发部'",
@@ -1779,7 +1847,7 @@ limit: 返回记录数 (默认50, 最大200)
 }
 ```
 
-#### 7.2 获取详细审计记录 (GraphQL查询)
+#### 7.3 获取详细审计记录 (GraphQL查询)
 使用 `auditLog` GraphQL查询获取单条审计记录的完整详细信息，包括操作前后数据快照和字段级变更分析。
 
 #### 响应示例
@@ -2438,6 +2506,7 @@ organizationSubtree(code: String!): org:read:hierarchy
 hierarchyStatistics: org:read:hierarchy
 
 # 审计查询
+organizationVersions(code: String!): org:read:history
 organizationAuditHistory(code: String!): org:read:audit
 auditLog(auditId: String!): org:read:audit
 organizationChangeAnalysis(code: String!): org:read:audit
@@ -2794,6 +2863,7 @@ const PERMISSION_REGISTRY = {
   'graphql:organization': ['org:read'],
   'graphql:organizationStats': ['org:stats'],
   'graphql:organizationHierarchy': ['org:read:hierarchy'],
+  'graphql:organizationVersions': ['org:read:history'],
   'graphql:organizationAuditHistory': ['org:read:audit'],
   'graphql:hierarchyConsistencyCheck': ['org:maintenance'],
 

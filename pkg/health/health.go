@@ -32,13 +32,13 @@ type HealthCheck struct {
 
 // ServiceHealth 表示整个服务的健康状态
 type ServiceHealth struct {
-	Service    string        `json:"service"`
-	Version    string        `json:"version,omitempty"`
-	Status     HealthStatus  `json:"status"`
-	Timestamp  time.Time     `json:"timestamp"`
-	Uptime     time.Duration `json:"uptime"`
-	Checks     []HealthCheck `json:"checks"`
-	Summary    Summary       `json:"summary"`
+	Service   string        `json:"service"`
+	Version   string        `json:"version,omitempty"`
+	Status    HealthStatus  `json:"status"`
+	Timestamp time.Time     `json:"timestamp"`
+	Uptime    time.Duration `json:"uptime"`
+	Checks    []HealthCheck `json:"checks"`
+	Summary   Summary       `json:"summary"`
 }
 
 // Summary 提供健康检查的汇总信息
@@ -73,9 +73,9 @@ func (c *PostgreSQLChecker) Check(ctx context.Context) HealthCheck {
 	// 执行健康检查查询
 	var result int
 	err := c.DB.QueryRowContext(ctx, "SELECT 1").Scan(&result)
-	
+
 	check.Duration = time.Since(start)
-	
+
 	if err != nil {
 		check.Status = StatusUnhealthy
 		check.Message = fmt.Sprintf("Database query failed: %v", err)
@@ -88,9 +88,9 @@ func (c *PostgreSQLChecker) Check(ctx context.Context) HealthCheck {
 	check.Message = "Database connection healthy"
 	check.Details = map[string]interface{}{
 		"open_connections": stats.OpenConnections,
-		"in_use":          stats.InUse,
-		"idle":            stats.Idle,
-		"max_open":        stats.MaxOpenConnections,
+		"in_use":           stats.InUse,
+		"idle":             stats.Idle,
+		"max_open":         stats.MaxOpenConnections,
 	}
 
 	// 如果连接使用率过高，标记为降级
@@ -141,7 +141,7 @@ func (c *RedisChecker) Check(ctx context.Context) HealthCheck {
 	check.Status = StatusHealthy
 	check.Message = "Redis connection healthy"
 	check.Details = map[string]interface{}{
-		"ping_response": pong,
+		"ping_response":  pong,
 		"info_available": len(info) > 0,
 	}
 
@@ -196,11 +196,11 @@ func (c *Neo4jChecker) Check(ctx context.Context) HealthCheck {
 
 // DependencyChecker 服务依赖检查器
 type DependencyChecker struct {
-	Name           string
-	URL            string
-	Required       bool
-	CheckInterval  time.Duration
-	MaxRetries     int
+	Name          string
+	URL           string
+	Required      bool
+	CheckInterval time.Duration
+	MaxRetries    int
 }
 
 func (c *DependencyChecker) Check(ctx context.Context) HealthCheck {
@@ -238,10 +238,10 @@ func (c *DependencyChecker) Check(ctx context.Context) HealthCheck {
 			check.Status = StatusHealthy
 			check.Message = fmt.Sprintf("Dependency %s is healthy", c.Name)
 			check.Details = map[string]interface{}{
-				"url":          c.URL,
-				"status_code":  resp.StatusCode,
-				"required":     c.Required,
-				"retry_count":  i,
+				"url":         c.URL,
+				"status_code": resp.StatusCode,
+				"required":    c.Required,
+				"retry_count": i,
 			}
 			return check
 		}
@@ -250,7 +250,7 @@ func (c *DependencyChecker) Check(ctx context.Context) HealthCheck {
 	}
 
 	check.Duration = time.Since(start)
-	
+
 	if c.Required {
 		check.Status = StatusUnhealthy
 		check.Message = fmt.Sprintf("Required dependency %s is unavailable: %v", c.Name, lastErr)
@@ -260,10 +260,10 @@ func (c *DependencyChecker) Check(ctx context.Context) HealthCheck {
 	}
 
 	check.Details = map[string]interface{}{
-		"url":        c.URL,
-		"required":   c.Required,
+		"url":         c.URL,
+		"required":    c.Required,
 		"max_retries": c.MaxRetries,
-		"error":      lastErr.Error(),
+		"error":       lastErr.Error(),
 	}
 
 	return check
@@ -271,9 +271,9 @@ func (c *DependencyChecker) Check(ctx context.Context) HealthCheck {
 
 // StartupChecker 启动时依赖检查器
 type StartupChecker struct {
-	Name           string
-	CheckFunction  func(ctx context.Context) error
-	Description    string
+	Name          string
+	CheckFunction func(ctx context.Context) error
+	Description   string
 }
 
 func (c *StartupChecker) Check(ctx context.Context) HealthCheck {
@@ -336,7 +336,7 @@ func (hm *HealthManager) Check(ctx context.Context) ServiceHealth {
 
 	// 并发执行所有健康检查
 	checkChan := make(chan HealthCheck, len(hm.checkers))
-	
+
 	for _, checker := range hm.checkers {
 		go func(c Checker) {
 			checkChan <- c.Check(ctx)

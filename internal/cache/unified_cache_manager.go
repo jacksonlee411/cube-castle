@@ -15,13 +15,13 @@ import (
 
 // 统一缓存管理器 - 企业级三层缓存架构
 type UnifiedCacheManager struct {
-	l1Cache     *L1Cache          // 进程内缓存
-	l2Cache     *redis.Client     // Redis分布式缓存
-	l3Query     L3QueryInterface  // 数据查询接口
-	eventBus    *CacheEventBus    // 缓存事件总线
-	logger      *log.Logger
-	config      *CacheConfig
-	mu          sync.RWMutex
+	l1Cache  *L1Cache         // 进程内缓存
+	l2Cache  *redis.Client    // Redis分布式缓存
+	l3Query  L3QueryInterface // 数据查询接口
+	eventBus *CacheEventBus   // 缓存事件总线
+	logger   *log.Logger
+	config   *CacheConfig
+	mu       sync.RWMutex
 }
 
 // 缓存配置
@@ -50,22 +50,22 @@ type QueryParams struct {
 
 // 缓存条目定义
 type CacheEntry struct {
-	Key       string                 `json:"key"`
-	Data      interface{}           `json:"data"`
-	Metadata  CacheMetadata         `json:"metadata"`
-	Tags      []string              `json:"tags"`
-	CreatedAt time.Time             `json:"created_at"`
-	ExpiresAt time.Time             `json:"expires_at"`
+	Key       string        `json:"key"`
+	Data      interface{}   `json:"data"`
+	Metadata  CacheMetadata `json:"metadata"`
+	Tags      []string      `json:"tags"`
+	CreatedAt time.Time     `json:"created_at"`
+	ExpiresAt time.Time     `json:"expires_at"`
 }
 
 // 缓存元数据
 type CacheMetadata struct {
 	TenantID     string    `json:"tenant_id"`
-	EntityType   string    `json:"entity_type"`   // organization, stats, list
-	EntityID     string    `json:"entity_id"`     // 具体实体ID
-	Version      int64     `json:"version"`       // 数据版本号
+	EntityType   string    `json:"entity_type"` // organization, stats, list
+	EntityID     string    `json:"entity_id"`   // 具体实体ID
+	Version      int64     `json:"version"`     // 数据版本号
 	LastModified time.Time `json:"last_modified"`
-	Source       string    `json:"source"`        // 数据来源层级
+	Source       string    `json:"source"` // 数据来源层级
 }
 
 // 缓存键管理器
@@ -172,7 +172,7 @@ func (ucm *UnifiedCacheManager) GetOrganizations(ctx context.Context, tenantID u
 
 	// 同时写入L1和L2
 	ucm.l1Cache.Set(cacheKey, entry)
-	
+
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, cacheKey, string(cacheData), ucm.config.L2TTL)
 		ucm.logger.Printf("[CACHE SET] 多层缓存已更新: %s, 数据量: %d", cacheKey, len(orgs))
@@ -232,7 +232,7 @@ func (ucm *UnifiedCacheManager) GetOrganizationStats(ctx context.Context, tenant
 	}
 
 	ucm.l1Cache.Set(cacheKey, entry)
-	
+
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, cacheKey, string(cacheData), ucm.config.L2TTL)
 		ucm.logger.Printf("[CACHE SET] 统计缓存已更新: %s", cacheKey)
@@ -294,7 +294,7 @@ func (ucm *UnifiedCacheManager) GetOrganization(ctx context.Context, tenantID uu
 	}
 
 	ucm.l1Cache.Set(cacheKey, entry)
-	
+
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, cacheKey, string(cacheData), ucm.config.L2TTL)
 		ucm.logger.Printf("[CACHE SET] 单个组织缓存已更新: %s", code)
@@ -328,17 +328,17 @@ func (ucm *UnifiedCacheManager) HandleCDCEvent(ctx context.Context, event CDCEve
 func (ucm *UnifiedCacheManager) handleCreateEvent(ctx context.Context, event CDCEvent) error {
 	org := event.ToOrganization()
 	tenantID := uuid.MustParse(org.TenantID)
-	
+
 	// 1. 添加单个组织到缓存
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
 	orgKey := keyMgr.GenerateKey("organization", org.TenantID, org.Code)
-	
+
 	entry := CacheEntry{
 		Key:  orgKey,
 		Data: &org,
 		Metadata: CacheMetadata{
 			TenantID:     org.TenantID,
-			EntityType:   "organization", 
+			EntityType:   "organization",
 			EntityID:     org.Code,
 			Version:      event.Timestamp,
 			LastModified: time.Now(),
@@ -350,7 +350,7 @@ func (ucm *UnifiedCacheManager) handleCreateEvent(ctx context.Context, event CDC
 	}
 
 	ucm.l1Cache.Set(orgKey, entry)
-	
+
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, orgKey, string(cacheData), ucm.config.L2TTL)
 	}
@@ -363,18 +363,18 @@ func (ucm *UnifiedCacheManager) handleCreateEvent(ctx context.Context, event CDC
 func (ucm *UnifiedCacheManager) handleUpdateEvent(ctx context.Context, event CDCEvent) error {
 	org := event.ToOrganization()
 	tenantID := uuid.MustParse(org.TenantID)
-	
+
 	// 1. 更新单个组织缓存
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
 	orgKey := keyMgr.GenerateKey("organization", org.TenantID, org.Code)
-	
+
 	entry := CacheEntry{
 		Key:  orgKey,
 		Data: &org,
 		Metadata: CacheMetadata{
 			TenantID:     org.TenantID,
 			EntityType:   "organization",
-			EntityID:     org.Code, 
+			EntityID:     org.Code,
 			Version:      event.Timestamp,
 			LastModified: time.Now(),
 			Source:       "CDC",
@@ -385,7 +385,7 @@ func (ucm *UnifiedCacheManager) handleUpdateEvent(ctx context.Context, event CDC
 	}
 
 	ucm.l1Cache.Set(orgKey, entry)
-	
+
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, orgKey, string(cacheData), ucm.config.L2TTL)
 	}
@@ -398,11 +398,11 @@ func (ucm *UnifiedCacheManager) handleUpdateEvent(ctx context.Context, event CDC
 func (ucm *UnifiedCacheManager) handleDeleteEvent(ctx context.Context, event CDCEvent) error {
 	org := event.ToOrganization()
 	tenantID := uuid.MustParse(org.TenantID)
-	
+
 	// 1. 删除单个组织缓存
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
 	orgKey := keyMgr.GenerateKey("organization", org.TenantID, org.Code)
-	
+
 	ucm.l1Cache.Delete(orgKey)
 	ucm.l2Cache.Del(ctx, orgKey)
 
@@ -413,15 +413,15 @@ func (ucm *UnifiedCacheManager) handleDeleteEvent(ctx context.Context, event CDC
 // 智能更新列表缓存 - 使用失效策略确保一致性
 func (ucm *UnifiedCacheManager) smartUpdateListCaches(ctx context.Context, tenantID uuid.UUID, org *Organization, operation string) error {
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
-	
+
 	// 由于使用MD5哈希键，无法直接pattern匹配，采用失效策略确保健壮性
 	// 失效所有可能的列表缓存键 (覆盖常见的分页和搜索组合)
 	keysToInvalidate := []string{}
-	
+
 	// 1. 常见分页大小的缓存
 	pageSizes := []int{50, 100}
 	maxPages := 10 // 假设最多10页
-	
+
 	for _, pageSize := range pageSizes {
 		for page := 0; page < maxPages; page++ {
 			offset := page * pageSize
@@ -430,22 +430,22 @@ func (ucm *UnifiedCacheManager) smartUpdateListCaches(ctx context.Context, tenan
 			keysToInvalidate = append(keysToInvalidate, key)
 		}
 	}
-	
+
 	// 2. 统计缓存
 	statsKey := keyMgr.GenerateKey("stats", tenantID.String())
 	keysToInvalidate = append(keysToInvalidate, statsKey)
-	
+
 	// 3. 单个组织缓存
 	orgKey := keyMgr.GenerateKey("organization", tenantID.String(), org.Code)
 	keysToInvalidate = append(keysToInvalidate, orgKey)
-	
+
 	// 执行缓存失效
 	invalidatedCount := 0
 	for _, key := range keysToInvalidate {
 		// 从L1缓存删除
 		ucm.l1Cache.Delete(key)
 		invalidatedCount++
-		
+
 		// 从L2缓存删除
 		deleted, err := ucm.l2Cache.Del(ctx, key).Result()
 		if err == nil && deleted > 0 {
@@ -508,7 +508,7 @@ func (ucm *UnifiedCacheManager) updateSingleListCache(ctx context.Context, cache
 
 	// 写回缓存
 	ucm.l1Cache.Set(cacheKey, entry)
-	
+
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, cacheKey, string(cacheData), ucm.config.L2TTL)
 	}
@@ -535,7 +535,7 @@ func (ucm *UnifiedCacheManager) sortOrganizations(orgs []Organization) {
 // 获取缓存统计信息
 func (ucm *UnifiedCacheManager) GetCacheStats(ctx context.Context) CacheStats {
 	l1Stats := ucm.l1Cache.GetStats()
-	
+
 	return CacheStats{
 		L1Stats: L1Stats{
 			HitCount:  l1Stats.HitCount,
@@ -543,8 +543,8 @@ func (ucm *UnifiedCacheManager) GetCacheStats(ctx context.Context) CacheStats {
 			Size:      l1Stats.Size,
 			HitRate:   l1Stats.HitRate,
 		},
-		L2Connected: ucm.l2Cache.Ping(ctx).Err() == nil,
-		WriteThrough: ucm.config.WriteThrough,
+		L2Connected:     ucm.l2Cache.Ping(ctx).Err() == nil,
+		WriteThrough:    ucm.config.WriteThrough,
 		ConsistencyMode: ucm.config.ConsistencyMode,
 	}
 }
@@ -553,7 +553,7 @@ func (ucm *UnifiedCacheManager) GetCacheStats(ctx context.Context) CacheStats {
 func (ucm *UnifiedCacheManager) RefreshCache(ctx context.Context, tenantID uuid.UUID, entityType string, entityID string) error {
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
 	var cacheKey string
-	
+
 	switch entityType {
 	case "organization":
 		cacheKey = keyMgr.GenerateKey("organization", tenantID.String(), entityID)
@@ -574,7 +574,7 @@ func (ucm *UnifiedCacheManager) RefreshCache(ctx context.Context, tenantID uuid.
 			ucm.l2Cache.Del(ctx, keys...)
 		}
 	}
-	
+
 	ucm.logger.Printf("缓存刷新完成: %s:%s", entityType, entityID)
 	return nil
 }
@@ -592,20 +592,20 @@ func (ucm *UnifiedCacheManager) startEventListener() {
 func (ucm *UnifiedCacheManager) handleTraditionalInvalidation(ctx context.Context, event CDCEvent) error {
 	org := event.ToOrganization()
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
-	
+
 	// 精确失效相关缓存
 	patterns := []string{
 		keyMgr.GenerateKey("organization", org.TenantID, org.Code),
 		fmt.Sprintf("%s:organizations:%s:*", ucm.config.Namespace, org.TenantID),
 		keyMgr.GenerateKey("stats", org.TenantID),
 	}
-	
+
 	for _, pattern := range patterns {
 		keys, err := ucm.l2Cache.Keys(ctx, pattern).Result()
 		if err != nil {
 			continue
 		}
-		
+
 		for _, key := range keys {
 			ucm.l1Cache.Delete(key)
 		}
@@ -613,7 +613,7 @@ func (ucm *UnifiedCacheManager) handleTraditionalInvalidation(ctx context.Contex
 			ucm.l2Cache.Del(ctx, keys...)
 		}
 	}
-	
+
 	return nil
 }
 
