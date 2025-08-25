@@ -21,6 +21,7 @@ import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { colors } from '@workday/canvas-kit-react/tokens';
 import { type TemporalEditFormData } from './TemporalEditForm';
 import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+// 移除违反原则13的EnhancedTemporalDataTable组件导入
 
 // 添加映射函数
 const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): OrganizationStatus => {
@@ -77,6 +78,7 @@ export interface InlineNewVersionFormProps {
   onInsertRecord?: (data: TemporalEditFormData) => Promise<void>; // 新增插入记录功能
   activeTab?: 'edit-history' | 'new-version'; // 当前选项卡状态
   onTabChange?: (tab: 'edit-history' | 'new-version') => void; // 选项卡切换
+  // 版本数据相关props已移除 - 违反原则13
 }
 
 const unitTypeOptions = [
@@ -180,7 +182,8 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   onDeactivate,
   onInsertRecord,
   activeTab = 'edit-history',
-  onTabChange
+  onTabChange,
+  // versions, onVersionSelect, onVersionEdit参数已移除 - 违反原则13
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
@@ -201,6 +204,13 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   
+  // 移除表格视图切换功能（违反原则13）
+  
+  // Phase 7.3 - 用户体验改进状态
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
   // 动态模式判断 - 根据activeTab确定当前模式
   const currentMode = activeTab === 'new-version' ? 'insert' : mode;
   
@@ -215,6 +225,23 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       deactivateModalModel.events.hide();
     }
   }, [showDeactivateConfirm, deactivateModalModel]);
+
+  // Phase 7.3 - 自动清理成功消息和错误消息
+  React.useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [successMessage]);
+
+  React.useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [error]);
 
   // 初始化表单数据 - 支持预填充模式和历史记录编辑
   useEffect(() => {
@@ -454,8 +481,14 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
 
   const handleEditHistorySubmit = async () => {
     if (!validateForm() || !onEditHistory || !originalHistoryData) {
+      setError('表单验证失败或缺少必要数据，请重试');
       return;
     }
+
+    // Phase 7.3 - 清理之前的消息
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
 
     try {
       // 构建更新数据，包含ID和更新时间戳
@@ -472,8 +505,19 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       
       await onEditHistory(updateData);
       setIsEditingHistory(false); // 提交后回到只读模式
+      
+      // Phase 7.3 - 显示成功消息
+      setSuccessMessage('历史记录修改成功！');
+      
     } catch (error) {
       console.error('修改历史记录失败:', error);
+      
+      // Phase 7.3 - 增强错误处理
+      const errorMessage = error instanceof Error ? error.message : '修改失败，请重试';
+      setError(`修改历史记录失败: ${errorMessage}`);
+    } finally {
+      // Phase 7.3 - 清理加载状态
+      setLoading(false);
     }
   };
 
@@ -524,11 +568,19 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
+    // Phase 7.3 - 清理之前的错误和成功消息
+    setError(null);
+    setSuccessMessage(null);
+    
     console.log('[InlineNewVersionForm] 提交表单前的formData:', formData);
     
     if (!validateForm()) {
+      setError('请检查表单中的错误项并重新提交');
       return;
     }
+    
+    // Phase 7.3 - 设置加载状态
+    setLoading(true);
     
     try {
       // 根据当前模式调用不同的处理函数
@@ -537,8 +589,25 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       } else {
         await onSubmit(formData);
       }
+      
+      // Phase 7.3 - 显示成功消息
+      setSuccessMessage(
+        currentMode === 'create' ? '组织创建成功！' :
+        currentMode === 'insert' ? '新版本记录插入成功！' :
+        '记录修改成功！'
+      );
+      
     } catch (error) {
       console.error('提交表单失败:', error);
+      
+      // Phase 7.3 - 增强错误处理
+      const errorMessage = error instanceof Error ? error.message : '操作失败，请重试';
+      setError(`${currentMode === 'create' ? '创建组织失败' : 
+                currentMode === 'insert' ? '插入记录失败' : 
+                '修改记录失败'}: ${errorMessage}`);
+    } finally {
+      // Phase 7.3 - 清理加载状态
+      setLoading(false);
     }
   };
 
@@ -559,17 +628,60 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
               {currentMode === 'create'
                 ? '填写新组织的基本信息，系统将自动分配组织编码'
                 : currentMode === 'edit' 
-                  ? `${isEditingHistory ? '修改' : '查看'}组织 ${organizationCode} 的记录信息`
+                  ? (isEditingHistory ? `修改组织 ${organizationCode} 的记录信息` : 
+                     `查看组织 ${organizationCode} 的记录信息`)
                   : currentMode === 'insert' 
                     ? `为组织 ${organizationCode} 插入新版本记录，将创建新的记录` 
                     : `为组织 ${organizationCode} 插入新版本记录`}
             </Text>
           </Box>
           
+          {/* 移除视图切换器（违反原则13） */}
+          
         </Flex>
+
+        {/* Phase 7.3 - 错误和成功消息显示 */}
+        {(error || successMessage) && (
+          <Box marginBottom="l">
+            {error && (
+              <Box
+                padding="m"
+                backgroundColor={colors.cinnamon100}
+                border={`1px solid ${colors.cinnamon600}`}
+                borderRadius="4px"
+                marginBottom="s"
+              >
+                <Flex alignItems="center" gap="s">
+                  <SystemIcon icon={exclamationCircleIcon} color={colors.cinnamon600} size={20} />
+                  <Text color={colors.cinnamon600} typeLevel="body.small" fontWeight="medium">
+                    {error}
+                  </Text>
+                </Flex>
+              </Box>
+            )}
+            
+            {successMessage && (
+              <Box
+                padding="m"
+                backgroundColor={colors.greenApple100}
+                border={`1px solid ${colors.greenApple600}`}
+                borderRadius="4px"
+                marginBottom="s"
+              >
+                <Flex alignItems="center" gap="s">
+                  <SystemIcon icon={checkCircleIcon} color={colors.greenApple600} size={20} />
+                  <Text color={colors.greenApple600} typeLevel="body.small" fontWeight="medium">
+                    {successMessage}
+                  </Text>
+                </Flex>
+              </Box>
+            )}
+          </Box>
+        )}
 
         {/* 历史记录元数据显示 - 移到最下方 */}
 
+        {/* 表单视图 */}
         <form onSubmit={handleSubmit}>
           {/* 生效日期 - 最重要的信息放在最上方 */}
           <Box marginBottom="l">
@@ -745,13 +857,13 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                             onTabChange('new-version');
                           }
                         }}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || loading}
                       >
                         插入新记录
                       </SecondaryButton>
                       <SecondaryButton 
                         onClick={handleEditHistoryToggle}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || loading}
                       >
                         修改记录
                       </SecondaryButton>
@@ -767,15 +879,16 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     <>
                       <SecondaryButton 
                         onClick={handleCancelEditHistory}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || loading}
                       >
                         取消编辑
                       </SecondaryButton>
                       <PrimaryButton 
                         onClick={handleEditHistorySubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || loading}
                       >
-                        {isSubmitting ? '提交中...' : '提交修改'}
+                        {/* Phase 7.3 - 增强加载状态显示 */}
+                        {(isSubmitting || loading) ? '提交中...' : '提交修改'}
                       </PrimaryButton>
                     </>
                   )}
@@ -786,17 +899,18 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
               <Flex gap="s" justifyContent="flex-end">
                 <SecondaryButton 
                   onClick={onCancel}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || loading}
                 >
                   取消
                 </SecondaryButton>
                 <PrimaryButton 
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || loading}
                 >
-                  {isSubmitting 
-                    ? (mode === 'create' ? '创建中...' : mode === 'insert' ? '插入中...' : '修改中...')
-                    : (mode === 'create' ? '创建组织' : mode === 'insert' ? '插入新记录' : '提交修改')}
+                  {/* Phase 7.3 - 增强加载状态显示 */}
+                  {(isSubmitting || loading) 
+                    ? (currentMode === 'create' ? '创建中...' : currentMode === 'insert' ? '插入中...' : '修改中...')
+                    : (currentMode === 'create' ? '创建组织' : currentMode === 'insert' ? '插入新记录' : '提交修改')}
                 </PrimaryButton>
               </Flex>
             )}

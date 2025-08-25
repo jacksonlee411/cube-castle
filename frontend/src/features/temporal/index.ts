@@ -53,14 +53,14 @@ export const temporalUtils = {
     }
   },
 
-  isTemporalOrganization: (org: { effective_from?: string; effective_to?: string; is_temporal?: boolean }): boolean => {
-    return !!(org.effective_from || org.effective_to || org.is_temporal);
+  isTemporalOrganization: (org: { effectiveFrom?: string; effectiveTo?: string; isTemporal?: boolean }): boolean => {
+    return !!(org.effectiveFrom || org.effectiveTo || org.isTemporal);
   },
 
-  getTemporalStatus: (org: { effective_from?: string; effective_to?: string }, asOfDate?: string) => {
+  getTemporalStatus: (org: { effectiveFrom?: string; effectiveTo?: string }, asOfDate?: string) => {
     const now = asOfDate ? new Date(asOfDate) : new Date();
-    const effectiveFrom = org.effective_from ? new Date(org.effective_from) : null;
-    const effectiveTo = org.effective_to ? new Date(org.effective_to) : null;
+    const effectiveFrom = org.effectiveFrom ? new Date(org.effectiveFrom) : null;
+    const effectiveTo = org.effectiveTo ? new Date(org.effectiveTo) : null;
 
     if (effectiveFrom && now < effectiveFrom) {
       return 'future'; // 未来生效
