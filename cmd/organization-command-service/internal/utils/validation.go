@@ -23,8 +23,8 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 		return fmt.Errorf("组织名称不能超过100个字符")
 	}
 
-	// 名称格式验证（不能包含特殊字符）
-	namePattern := regexp.MustCompile(`^[\w\s\u4e00-\u9fff-]+$`)
+	// 名称格式验证（不能包含特殊字符）- 修复Unicode转义问题
+	namePattern := regexp.MustCompile(`^[\p{L}\p{N}\s\-]+$`)
 	if !namePattern.MatchString(req.Name) {
 		return fmt.Errorf("组织名称包含无效字符，只允许字母、数字、中文、空格和连字符")
 	}
@@ -109,8 +109,8 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 		if len(*req.Name) > 100 {
 			return fmt.Errorf("组织名称不能超过100个字符")
 		}
-		// 名称格式验证
-		namePattern := regexp.MustCompile(`^[\w\s\u4e00-\u9fff-]+$`)
+		// 名称格式验证 - 修复正则表达式Unicode转义
+		namePattern := regexp.MustCompile(`^[\p{L}\p{N}\s\-]+$`)
 		if !namePattern.MatchString(*req.Name) {
 			return fmt.Errorf("组织名称包含无效字符，只允许字母、数字、中文、空格和连字符")
 		}

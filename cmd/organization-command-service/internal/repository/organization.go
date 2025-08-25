@@ -496,14 +496,14 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 		UPDATE organization_units 
 		SET %s
 		WHERE tenant_id = $1 AND record_id = $2
-		RETURNING tenant_id, code, parent_code, name, unit_type, status,
+		RETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,
 		          level, path, sort_order, description, created_at, updated_at,
 		          effective_date, end_date, is_temporal, change_reason
 	`, strings.Join(setParts, ", "))
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
-		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
 		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,

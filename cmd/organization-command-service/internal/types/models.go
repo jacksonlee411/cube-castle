@@ -16,6 +16,7 @@ var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 
 // Organization 组织业务实体
 type Organization struct {
+	RecordID    string    `json:"recordId" db:"record_id"`
 	TenantID    string    `json:"tenantId" db:"tenant_id"`
 	Code        string    `json:"code" db:"code"`
 	ParentCode  *string   `json:"parentCode,omitempty" db:"parent_code"`

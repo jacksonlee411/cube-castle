@@ -367,10 +367,10 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 	}
 
 	var req struct {
-		EventType     string `json:"event_type"`
-		RecordID      string `json:"record_id"`
-		EffectiveDate string `json:"effective_date"`
-		ChangeReason  string `json:"change_reason"`
+		EventType     string `json:"eventType"`
+		RecordID      string `json:"recordId"`
+		EffectiveDate string `json:"effectiveDate"`
+		ChangeReason  string `json:"changeReason"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
