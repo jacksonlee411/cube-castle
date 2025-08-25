@@ -1,0 +1,316 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-08-25T12:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_cube_castle",
+      "_type": "workspace", 
+      "created": 1692969600000,
+      "description": "Cube Castle API开发测试工具",
+      "modified": 1692969600000,
+      "name": "Cube Castle API",
+      "parentId": null,
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "created": 1692969600000,
+      "data": {
+        "command_service_url": "http://localhost:9090",
+        "query_service_url": "http://localhost:8090",
+        "jwt_token": "",
+        "jwt_expiry": "",
+        "test_org_code": "",
+        "tenant_id": "dev-tenant"
+      },
+      "dataPropertyOrder": {
+        "&": ["command_service_url", "query_service_url", "jwt_token", "jwt_expiry", "test_org_code", "tenant_id"]
+      },
+      "isPrivate": false,
+      "metaSortKey": 1692969600000,
+      "modified": 1692969600000,
+      "name": "Base Environment",
+      "parentId": "wrk_cube_castle"
+    },
+    {
+      "_id": "fld_dev_tools",
+      "_type": "request_group",
+      "created": 1692969600000,
+      "description": "开发工具和JWT令牌管理",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1692969600000,
+      "modified": 1692969600000,
+      "name": "开发工具",
+      "parentId": "wrk_cube_castle"
+    },
+    {
+      "_id": "req_generate_jwt",
+      "_type": "request",
+      "authentication": {},
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"userId\": \"dev-user\",\n  \"tenantId\": \"{{ _.tenant_id }}\",\n  \"roles\": [\"ADMIN\", \"USER\"],\n  \"duration\": \"8h\"\n}"
+      },
+      "created": 1692969600000,
+      "description": "生成开发环境JWT测试令牌",
+      "headers": [
+        {
+          "id": "pair_content_type",
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "isPrivate": false,
+      "metaSortKey": -1692969600000,
+      "method": "POST",
+      "modified": 1692969600000,
+      "name": "生成JWT令牌",
+      "parameters": [],
+      "parentId": "fld_dev_tools",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingRebuildPath": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "url": "{{ _.command_service_url }}/auth/dev-token"
+    },
+    {
+      "_id": "req_token_info",
+      "_type": "request", 
+      "authentication": {
+        "token": "{{ _.jwt_token }}",
+        "type": "bearer"
+      },
+      "body": {},
+      "created": 1692969600000,
+      "description": "获取当前JWT令牌详细信息",
+      "headers": [],
+      "isPrivate": false,
+      "metaSortKey": -1692969550000,
+      "method": "GET",
+      "modified": 1692969600000,
+      "name": "令牌信息",
+      "parameters": [],
+      "parentId": "fld_dev_tools",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingRebuildPath": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "url": "{{ _.command_service_url }}/auth/dev-token/info"
+    },
+    {
+      "_id": "req_dev_status",
+      "_type": "request",
+      "authentication": {},
+      "body": {},
+      "created": 1692969600000,
+      "description": "检查开发环境状态",
+      "headers": [],
+      "isPrivate": false,
+      "metaSortKey": -1692969500000,
+      "method": "GET",
+      "modified": 1692969600000,
+      "name": "开发状态",
+      "parameters": [],
+      "parentId": "fld_dev_tools",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingRebuildPath": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "url": "{{ _.command_service_url }}/dev/status"
+    },
+    {
+      "_id": "fld_rest_api", 
+      "_type": "request_group",
+      "created": 1692969600000,
+      "description": "组织单元管理REST API",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1692969500000,
+      "modified": 1692969600000,
+      "name": "组织单元管理 (REST)",
+      "parentId": "wrk_cube_castle"
+    },
+    {
+      "_id": "req_create_org",
+      "_type": "request",
+      "authentication": {
+        "token": "{{ _.jwt_token }}",
+        "type": "bearer"
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"测试部门\",\n  \"unitType\": \"DEPARTMENT\",\n  \"parentCode\": null,\n  \"description\": \"这是一个测试部门\",\n  \"sortOrder\": 1,\n  \"effectiveDate\": \"2025-08-25\",\n  \"isTemporal\": false\n}"
+      },
+      "created": 1692969600000,
+      "description": "创建新的组织单元",
+      "headers": [
+        {
+          "id": "pair_content_type",
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "id": "pair_tenant_id",
+          "name": "X-Tenant-ID",
+          "value": "{{ _.tenant_id }}"
+        }
+      ],
+      "isPrivate": false,
+      "metaSortKey": -1692969500000,
+      "method": "POST",
+      "modified": 1692969600000,
+      "name": "创建组织单元",
+      "parameters": [],
+      "parentId": "fld_rest_api",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingRebuildPath": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "url": "{{ _.command_service_url }}/api/v1/organization-units"
+    },
+    {
+      "_id": "req_update_org",
+      "_type": "request",
+      "authentication": {
+        "token": "{{ _.jwt_token }}",
+        "type": "bearer"
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"更新后的测试部门\",\n  \"description\": \"这是更新后的描述\",\n  \"sortOrder\": 2\n}"
+      },
+      "created": 1692969600000,
+      "description": "更新组织单元信息",
+      "headers": [
+        {
+          "id": "pair_content_type",
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "id": "pair_tenant_id",
+          "name": "X-Tenant-ID",
+          "value": "{{ _.tenant_id }}"
+        }
+      ],
+      "isPrivate": false,
+      "metaSortKey": -1692969450000,
+      "method": "PUT",
+      "modified": 1692969600000,
+      "name": "更新组织单元",
+      "parameters": [],
+      "parentId": "fld_rest_api",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingRebuildPath": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "url": "{{ _.command_service_url }}/api/v1/organization-units/{{ _.test_org_code }}"
+    },
+    {
+      "_id": "fld_graphql",
+      "_type": "request_group",
+      "created": 1692969600000,
+      "description": "GraphQL查询操作",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1692969400000,
+      "modified": 1692969600000,
+      "name": "组织查询 (GraphQL)",
+      "parentId": "wrk_cube_castle"
+    },
+    {
+      "_id": "req_org_stats",
+      "_type": "request",
+      "authentication": {
+        "token": "{{ _.jwt_token }}",
+        "type": "bearer"
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"query\": \"query OrganizationStats { organizationStats { totalCount temporalStats { totalVersions averageVersionsPerOrg oldestEffectiveDate newestEffectiveDate } byType { unitType count percentage } } }\"\n}"
+      },
+      "created": 1692969600000,
+      "description": "获取组织统计信息",
+      "headers": [
+        {
+          "id": "pair_content_type",
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "id": "pair_tenant_id",
+          "name": "X-Tenant-ID", 
+          "value": "{{ _.tenant_id }}"
+        }
+      ],
+      "isPrivate": false,
+      "metaSortKey": -1692969400000,
+      "method": "POST",
+      "modified": 1692969600000,
+      "name": "组织统计",
+      "parameters": [],
+      "parentId": "fld_graphql",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingRebuildPath": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "url": "{{ _.query_service_url }}/graphql"
+    },
+    {
+      "_id": "req_org_list",
+      "_type": "request",
+      "authentication": {
+        "token": "{{ _.jwt_token }}",
+        "type": "bearer"
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"query\": \"query Organizations($filter: OrganizationFilter, $pagination: PaginationInput) { organizations(filter: $filter, pagination: $pagination) { nodes { code name unitType status level effectiveDate isCurrent } pagination { total hasNext hasPrevious } } }\",\n  \"variables\": {\n    \"filter\": {\n      \"status\": \"ACTIVE\"\n    },\n    \"pagination\": {\n      \"limit\": 10,\n      \"offset\": 0\n    }\n  }\n}"
+      },
+      "created": 1692969600000,
+      "description": "分页查询组织列表",
+      "headers": [
+        {
+          "id": "pair_content_type",
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "id": "pair_tenant_id",
+          "name": "X-Tenant-ID",
+          "value": "{{ _.tenant_id }}"
+        }
+      ],
+      "isPrivate": false,
+      "metaSortKey": -1692969350000,
+      "method": "POST",
+      "modified": 1692969600000,
+      "name": "组织列表",
+      "parameters": [],
+      "parentId": "fld_graphql",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingRebuildPath": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "url": "{{ _.query_service_url }}/graphql"
+    }
+  ]
+}
