@@ -81,3 +81,7 @@ data/
 postgres-data/
 neo4j-data/
 redis-data/
+
+# Backup and archive files
+backup/
+archive/
