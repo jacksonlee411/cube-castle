@@ -2,8 +2,8 @@
 const crypto = require('crypto');
 
 // 模拟JWT密钥 (生产环境中应使用RS256公钥)
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-for-cube-castle-oauth-2024';
-const ISSUER = process.env.JWT_ISSUER || 'cube-castle-oauth-service';
+const JWT_SECRET = process.env.JWT_SECRET || 'cube-castle-development-secret-key-2025';
+const ISSUER = process.env.JWT_ISSUER || 'cube-castle';
 
 // 默认租户配置
 const DEFAULT_TENANT_ID = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
@@ -141,6 +141,8 @@ const tokenEndpoint = async (req, res) => {
         const payload = {
             client_id: client_id,
             tenant_id: DEFAULT_TENANT_ID,
+            sub: 'dev-user-id',
+            roles: ['ADMIN', 'HR_STAFF'], // 🔧 修复: 添加用户角色以支持PBAC权限检查
             permissions: [
                 'org:read',
                 'org:write', 

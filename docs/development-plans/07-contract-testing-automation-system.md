@@ -587,6 +587,77 @@ describe('端到端API集成验证', () => {
 - **通知扩展**: 从简单alert扩展为Slack/Email通知系统
 - **性能优化**: 根据使用情况进一步优化测试执行时间
 
+### 🔧 **关键违规问题修复指南** ⭐ **基于代码库分析 (2025-08-25)**
+
+#### **1. OAuth认证实现修复** 🚨 **P1级 - 影响系统功能**
+**位置**: `frontend/src/shared/api/auth.ts:66-68`
+**问题**: OAuth请求体使用了错误的字段名格式
+
+```javascript
+// ❌ 当前错误实现
+body: JSON.stringify({
+  grant_type: this.config.grantType,
+  client_id: this.config.clientId,     // 前端错误地使用了camelCase
+  client_secret: this.config.clientSecret,
+}),
+
+// ✅ 正确的OAuth 2.0 RFC 6749标准实现
+body: new URLSearchParams({
+  grant_type: 'client_credentials',
+  client_id: this.config.clientId,      // OAuth标准要求snake_case
+  client_secret: this.config.clientSecret,
+}),
+```
+
+**影响**: 导致所有API调用返回"Failed to fetch organizations"错误
+**验证方法**: 修复后测试OAuth token获取和组织列表查询
+
+#### **2. 前端组件命名规范统一** 🚨 **P1级 - API一致性违规**
+**位置**: `frontend/OrganizationComponents.tsx:7,40,46,116,192`
+**问题**: 使用了已禁止的snake_case字段名
+
+```typescript
+// ❌ 违规用法
+unit_type: 'COMPANY' | 'DEPARTMENT' | 'PROJECT_TEAM';
+if (params?.unit_type) searchParams.set('unit_type', params.unit_type);
+
+// ✅ 正确的camelCase格式
+unitType: 'COMPANY' | 'DEPARTMENT' | 'PROJECT_TEAM';
+if (params?.unitType) searchParams.set('unitType', params.unitType);
+```
+
+**批量修复命令**:
+```bash
+# 在frontend目录执行
+sed -i 's/unit_type/unitType/g' OrganizationComponents.tsx
+sed -i 's/parent_unit_id/parentCode/g' src/**/*.ts src/**/*.tsx
+```
+
+#### **3. 契约测试验证脚本完善** ⚠️ **P2级 - 提升代码质量**
+**位置**: `frontend/tests/contract/field-naming-validation.test.ts:34`
+**问题**: 测试中检测的禁止字段与实际代码不同步
+
+```javascript
+// 更新禁止字段列表，与当前代码实际情况一致
+const PROHIBITED_SNAKE_CASE_FIELDS = [
+  'unit_type', 'parent_unit_id', 'is_deleted', 'operation_type',
+  'created_at', 'updated_at', 'effective_date', 'end_date'
+  // 注意: client_id/client_secret为OAuth标准例外
+];
+```
+
+**验证脚本改进**:
+```javascript
+// 在 frontend/scripts/validate-field-naming-simple.js 中改进OAuth例外处理
+if ((match === 'client_id' || match === 'client_secret') && 
+    filePath.includes('/auth.ts') && 
+    content.includes('OAuth') && 
+    content.includes('URLSearchParams')) {
+  // OAuth标准要求的合法使用
+  return false;
+}
+```
+
 **🚀 即时可用价值**:
 - 开发团队可立即使用监控仪表板了解项目契约健康度
 - Pre-commit hooks已保护代码库免受新的违规提交

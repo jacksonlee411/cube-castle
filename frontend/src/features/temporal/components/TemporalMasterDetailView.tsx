@@ -9,6 +9,8 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
+import { checkCircleIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web';
+import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
 import { InlineNewVersionForm } from './InlineNewVersionForm';
 import { TimelineComponent, type TimelineVersion } from './TimelineComponent';
@@ -17,7 +19,7 @@ import {
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
 import { baseColors } from '../../../shared/utils/colorTokens';
-import { unifiedGraphQLClient } from '../../../shared/api/unified-client';
+import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/unified-client';
 
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
@@ -54,6 +56,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   // 增强用户体验状态
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   
   // 编辑表单状态
@@ -77,6 +80,21 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
   // Modal model for delete confirmation
   const deleteModalModel = useModalModel();
+  
+  // 统一的消息处理函数
+  const showSuccess = useCallback((message: string) => {
+    setError(null);
+    setSuccessMessage(message);
+    // 3秒后自动清除成功消息
+    setTimeout(() => setSuccessMessage(null), 3000);
+  }, []);
+  
+  const showError = useCallback((message: string) => {
+    setSuccessMessage(null);
+    setError(message);
+    // 5秒后自动清除错误消息
+    setTimeout(() => setError(null), 5000);
+  }, []);
 
   // 同步Modal状态
   React.useEffect(() => {
@@ -140,7 +158,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       const versions = data.organizationVersions || [];
         
         // 映射到组件需要的数据格式
-        const mappedVersions = versions.map((version: any) => ({
+        const mappedVersions: TimelineVersion[] = versions.map((version: any) => ({
           recordId: version.recordId,
           code: version.code,
           name: version.name,
@@ -155,7 +173,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           parentCode: version.parentCode,
           description: version.description,
           // 添加组件需要的字段
-          lifecycleStatus: version.isCurrent ? 'CURRENT' : 'HISTORICAL',
+          lifecycleStatus: version.isCurrent ? 'CURRENT' as const : 'HISTORICAL' as const,
           business_status: version.status === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
           data_status: 'NORMAL',
           path: '', // 临时字段，组件中需要
@@ -212,12 +230,11 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     try {
       setIsDeleting(true);
       
-      // 使用DEACTIVATE事件而不是DELETE请求
-      const response = await fetch(
-        `http://localhost:9090/api/v1/organization-units/${organizationCode}/events`,
+      // 使用DEACTIVATE事件而不是DELETE请求 - 修复：使用统一认证客户端
+      await unifiedRESTClient.request(
+        `/organization-units/${organizationCode}/events`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             eventType: 'DEACTIVATE',
             recordId: version.recordId,  // 使用UUID精确定位记录
@@ -227,22 +244,18 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         }
       );
       
-      if (response.ok) {
-        // 刷新数据
-        await loadVersions();
-        setShowDeleteConfirm(null);
-        
-        // 如果作废的是选中的版本，重新选择
-        if (selectedVersion?.effectiveDate === version.effectiveDate) {
-          setSelectedVersion(null);
-        }
-      } else {
-        console.error('Failed to deactivate version:', response.statusText);
-        alert('作废失败，请稍后重试');
+      // unifiedRESTClient成功时直接返回数据，失败时抛出异常
+      // 刷新数据
+      await loadVersions();
+      setShowDeleteConfirm(null);
+      
+      // 如果作废的是选中的版本，重新选择
+      if (selectedVersion?.effectiveDate === version.effectiveDate) {
+        setSelectedVersion(null);
       }
     } catch (error) {
       console.error('Error deactivating version:', error);
-      alert('作废失败，请检查网络连接');
+      showError('作废失败，请检查网络连接');
     } finally {
       setIsDeleting(false);
     }
@@ -308,40 +321,30 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         
         console.log('提交创建组织请求:', requestBody);
         
-        const response = await fetch('http://localhost:9090/api/v1/organization-units', {
+        // 修复：使用统一认证客户端替代直接fetch调用
+        const result: any = await unifiedRESTClient.request('/organization-units', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)
         });
         
-        console.log('API响应状态:', response.status, response.statusText);
+        console.log('创建成功响应:', result);
+        const newOrganizationCode = result.code || result.organization?.code;
         
-        if (response.ok) {
-          const result = await response.json();
-          console.log('创建成功响应:', result);
-          const newOrganizationCode = result.code || result.organization?.code;
-          
-          if (newOrganizationCode && onCreateSuccess) {
-            console.log('跳转到新组织:', newOrganizationCode);
-            // 触发创建成功回调，跳转到新创建的组织详情页面
-            onCreateSuccess(newOrganizationCode);
-            return; // 创建模式下不需要后续的刷新逻辑
-          } else {
-            console.error('创建成功但未返回组织编码:', result);
-            alert('创建成功，但未能获取新组织编码，请手动刷新页面');
-          }
+        if (newOrganizationCode && onCreateSuccess) {
+          console.log('跳转到新组织:', newOrganizationCode);
+          // 触发创建成功回调，跳转到新创建的组织详情页面
+          onCreateSuccess(newOrganizationCode);
+          return; // 创建模式下不需要后续的刷新逻辑
         } else {
-          const errorData = await response.json().catch(() => ({ message: response.statusText }));
-          console.error('创建组织失败:', errorData);
-          alert(`创建失败: ${errorData.message || response.statusText}`);
+          console.error('创建成功但未返回组织编码:', result);
+          showError('创建成功，但未能获取新组织编码，请手动刷新页面');
         }
       } else {
-        // 更新现有组织的时态版本
-        const response = await fetch(
-          `http://localhost:9090/api/v1/organization-units/${organizationCode}/events`,
+        // 更新现有组织的时态版本 - 修复：使用统一认证客户端
+        await unifiedRESTClient.request(
+          `/organization-units/${organizationCode}/events`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               eventType: 'UPDATE',
               effectiveDate: new Date(formData.effectiveDate + 'T00:00:00Z').toISOString(),
@@ -357,20 +360,15 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           }
         );
         
-        if (response.ok) {
-          // 刷新数据
-          await loadVersions();
-          setActiveTab('edit-history'); // 创建成功后切换回历史记录选项卡
-          alert('时态版本创建成功！');
-        } else {
-          const errorData = await response.json();
-          console.error('创建失败:', errorData);
-          alert(`创建失败: ${errorData.message}`);
-        }
+        // unifiedRESTClient成功时直接返回数据，失败时抛出异常
+        // 刷新数据
+        await loadVersions();
+        setActiveTab('edit-history'); // 创建成功后切换回历史记录选项卡
+        showSuccess('时态版本创建成功！');
       }
     } catch (error) {
       console.error(isCreateMode ? '创建组织失败:' : '创建时态版本失败:', error);
-      alert(isCreateMode ? '创建失败，请检查网络连接' : '创建失败，请检查网络连接');
+      showError(isCreateMode ? '创建失败，请检查网络连接' : '创建失败，请检查网络连接');
     } finally {
       setIsSubmitting(false);
     }
@@ -417,12 +415,11 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const handleHistoryEditSubmit = useCallback(async (updateData: any) => {
     setIsSubmitting(true);
     try {
-      // 使用recordId UUID作为唯一标识符
-      const response = await fetch(
-        `http://localhost:9090/api/v1/organization-units/${organizationCode}/history/${updateData.recordId}`,
+      // 使用recordId UUID作为唯一标识符 - 修复：使用统一认证客户端
+      await unifiedRESTClient.request(
+        `/organization-units/${organizationCode}/history/${updateData.recordId}`,
         {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: updateData.name,
             unitType: updateData.unitType,
@@ -435,19 +432,14 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         }
       );
       
-      if (response.ok) {
-        // 刷新数据
-        await loadVersions();
-        setActiveTab('edit-history'); // 提交成功后切换回历史记录选项卡
-        alert('历史记录修改成功！');
-      } else {
-        const errorData = await response.json();
-        console.error('修改失败:', errorData);
-        alert(`修改失败: ${errorData.message || response.statusText}`);
-      }
+      // unifiedRESTClient成功时直接返回数据，失败时抛出异常
+      // 刷新数据
+      await loadVersions();
+      setActiveTab('edit-history'); // 提交成功后切换回历史记录选项卡
+      showSuccess('历史记录修改成功！');
     } catch (error) {
       console.error('修改历史记录失败:', error);
-      alert('修改失败，请检查网络连接');
+      showError('修改失败，请检查网络连接');
     } finally {
       setIsSubmitting(false);
     }
@@ -494,9 +486,9 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       </Flex>
 
       {/* 状态消息区域 */}
-      {(loadingError || successMessage) && (
+      {(loadingError || error || successMessage) && (
         <Box marginBottom="l">
-          {loadingError && (
+          {(loadingError || error) && (
             <Box
               padding="m"
               backgroundColor={colors.cinnamon100}
@@ -505,16 +497,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               marginBottom="s"
             >
               <Flex alignItems="center" gap="s">
-                <Text color={colors.cinnamon600}>⚠️</Text>
+                <SystemIcon icon={exclamationCircleIcon} color={colors.cinnamon600} size="small" />
                 <Box flex="1">
                   <Text color={colors.cinnamon600} typeLevel="body.small" fontWeight="medium">
-                    加载失败
+                    {loadingError ? '加载失败' : '操作失败'}
                   </Text>
                   <Text color={colors.cinnamon600} typeLevel="subtext.small">
-                    {loadingError}
+                    {loadingError || error}
                   </Text>
                 </Box>
-                {retryCount < 3 && (
+                {loadingError && retryCount < 3 && (
                   <SecondaryButton
                     size="small"
                     onClick={() => loadVersions(true)}
@@ -536,7 +528,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               marginBottom="s"
             >
               <Flex alignItems="center" gap="s">
-                <Text color={colors.greenApple600}>✅</Text>
+                <SystemIcon icon={checkCircleIcon} color={colors.greenApple600} size="small" />
                 <Text color={colors.greenApple600} typeLevel="body.small" fontWeight="medium">
                   {successMessage}
                 </Text>

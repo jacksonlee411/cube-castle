@@ -29,7 +29,7 @@ app.post('/oauth/token', tokenEndpoint);
 // OAuth 2.0服务信息
 app.get('/oauth/.well-known', (req, res) => {
     res.json({
-        issuer: process.env.JWT_ISSUER || 'cube-castle-oauth-service',
+        issuer: process.env.JWT_ISSUER || 'cube-castle',
         token_endpoint: `http://localhost:${PORT}/oauth/token`,
         supported_grant_types: ['client_credentials'],
         supported_token_endpoint_auth_methods: ['client_secret_post'],

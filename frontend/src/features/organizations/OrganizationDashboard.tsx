@@ -98,12 +98,6 @@ const LoadingState: React.FC = () => (
   </Box>
 );
 
-const ErrorState: React.FC<{ error: Error }> = ({ error }) => (
-  <Box padding="l">
-    <Text>加载失败: {error.message}</Text>
-  </Box>
-);
-
 export const OrganizationDashboard: React.FC = () => {
   const navigate = useNavigate();
 
@@ -150,9 +144,7 @@ export const OrganizationDashboard: React.FC = () => {
     return <LoadingState />;
   }
 
-  if (error) {
-    return <ErrorState error={error} />;
-  }
+  // 🔧 修复: 保持界面结构完整性，不因错误而隐藏所有UI组件
 
   const hasOrganizations = organizations && organizations.length > 0;
 
@@ -204,7 +196,21 @@ export const OrganizationDashboard: React.FC = () => {
           </div>
         </Card.Heading>
         <Card.Body>
-          {hasOrganizations ? (
+          {error ? (
+            <Box padding="l" style={{ textAlign: 'center' }}>
+              <Text color="cinnamon600" fontWeight="medium" marginBottom="m">
+                ⚠️ 数据加载失败
+              </Text>
+              <Text color="frenchVanilla500" marginBottom="m">
+                {error.message}
+              </Text>
+              <SecondaryButton 
+                onClick={() => window.location.reload()}
+              >
+                重新加载
+              </SecondaryButton>
+            </Box>
+          ) : hasOrganizations ? (
             <>
               <OrganizationTable
                 organizations={organizations}

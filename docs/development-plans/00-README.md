@@ -31,14 +31,20 @@
 ### **07 - 契约测试自动化**
 - `07-contract-testing-automation-system.md` - 契约测试自动化验证体系
 
-### **08 - 代码库清理维护**
-- `08-codebase-cleanup-maintenance-plan.md` - 冗余文件和技术债务清理计划
+### **08 - 前端API标准规范**
+- `08-frontend-api-standards.md` - 前端API调用规范文档和开发标准
+
+### **09 - 代码审查规范**
+- `09-code-review-checklist.md` - 前端代码审查检查清单和质量标准
+
+### **10 - 代码库清理维护**
+- `10-codebase-cleanup-maintenance-plan.md` - 冗余文件和技术债务清理计划
 
 ## 📊 文档关系
 
 ```
 阅读流程建议:
-01-API规范 → 02-技术架构 → 03-API重构计划 → 04-后端实施 → 05-前端团队 → 06-团队协作 → 07-契约测试 → 08-代码清理
+01-API规范 → 02-技术架构 → 03-API重构计划 → 04-后端实施 → 05-前端团队 → 06-团队协作 → 07-契约测试 → 08-前端API标准 → 09-代码审查规范 → 10-代码清理
 
 项目层级关系:
 03-api-compliance-intensive-refactoring-plan.md (当前重构方案)
