@@ -79,7 +79,7 @@ export function useTemporalAsOfDateQuery(organizationCode: string, asOfDate: str
   return useQuery({
     queryKey: ['temporal', 'asOfDate', organizationCode, asOfDate],
     queryFn: async (): Promise<TemporalQueryResponse> => {
-      const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?as_of_date=${asOfDate}`;
+      const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?asOfDate=${asOfDate}`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -107,7 +107,7 @@ export function useTemporalDateRangeQuery(
   return useQuery({
     queryKey: ['temporal', 'dateRange', organizationCode, effectiveFrom, effectiveTo],
     queryFn: async (): Promise<TemporalQueryResponse> => {
-      const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?effective_from=${effectiveFrom}&effective_to=${effectiveTo}`;
+      const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?effectiveFrom=${effectiveFrom}&effectiveTo=${effectiveTo}`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -143,7 +143,7 @@ export function useTemporalQueryUtils() {
       await queryClient.prefetchQuery({
         queryKey: ['temporal', 'asOfDate', organizationCode, params.asOfDate],
         queryFn: async () => {
-          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?as_of_date=${params.asOfDate}`;
+          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?asOfDate=${params.asOfDate}`;
           const response = await fetch(url);
           return response.json();
         },
@@ -155,7 +155,7 @@ export function useTemporalQueryUtils() {
       await queryClient.prefetchQuery({
         queryKey: ['temporal', 'dateRange', organizationCode, params.effectiveFrom, params.effectiveTo],
         queryFn: async () => {
-          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?effective_from=${params.effectiveFrom}&effective_to=${params.effectiveTo}`;
+          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?effectiveFrom=${params.effectiveFrom}&effectiveTo=${params.effectiveTo}`;
           const response = await fetch(url);
           return response.json();
         },

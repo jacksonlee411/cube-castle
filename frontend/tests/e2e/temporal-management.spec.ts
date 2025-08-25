@@ -153,7 +153,7 @@ test.describe('时态API集成测试', () => {
   
   test('历史记录查询应该正常工作', async ({ request }) => {
     const historyResponse = await request.get(
-      `${TEMPORAL_API_URL}/api/v1/organization-units/${TEST_ORG_CODE}?include_history=true&max_records=5`,
+      `${TEMPORAL_API_URL}/api/v1/organization-units/${TEST_ORG_CODE}?includeHistory=true&maxRecords=5`,
       {
         headers: {
           'X-Tenant-ID': TEST_TENANT_ID
@@ -172,7 +172,7 @@ test.describe('时态API集成测试', () => {
   
   test('未来记录查询应该正常工作', async ({ request }) => {
     const futureResponse = await request.get(
-      `${TEMPORAL_API_URL}/api/v1/organization-units/${TEST_ORG_CODE}?include_future=true`,
+      `${TEMPORAL_API_URL}/api/v1/organization-units/${TEST_ORG_CODE}?includeFuture=true`,
       {
         headers: {
           'X-Tenant-ID': TEST_TENANT_ID
@@ -192,7 +192,7 @@ test.describe('时态API集成测试', () => {
   
   test('范围查询应该正常工作', async ({ request }) => {
     const rangeResponse = await request.get(
-      `${TEMPORAL_API_URL}/api/v1/organization-units/${TEST_ORG_CODE}?effective_from=2025-01-01&effective_to=2025-12-31`,
+      `${TEMPORAL_API_URL}/api/v1/organization-units/${TEST_ORG_CODE}?effectiveFrom=2025-01-01&effectiveTo=2025-12-31`,
       {
         headers: {
           'X-Tenant-ID': TEST_TENANT_ID

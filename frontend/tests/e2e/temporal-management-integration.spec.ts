@@ -116,8 +116,8 @@ test.describe('时态管理系统集成测试', () => {
     // 测试各种时态查询的响应时间
     const queries = [
       `${TEMPORAL_SERVICE_URL}/health`,
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?as_of_date=2025-08-12`,
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?include_history=true&include_future=true`
+      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?asOfDate=2025-08-12`,
+      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?includeHistory=true&includeFuture=true`
     ];
     
     for (const query of queries) {
@@ -136,7 +136,7 @@ test.describe('时态管理系统集成测试', () => {
   test('时态数据一致性验证', async ({ page }) => {
     // 获取组织的完整时态数据
     const response = await page.request.get(
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?include_history=true&include_future=true`
+      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?includeHistory=true&includeFuture=true`
     );
     
     expect(response.ok()).toBeTruthy();
@@ -169,7 +169,7 @@ test.describe('时态管理系统集成测试', () => {
   });
 
   test('缓存机制验证', async ({ page }) => {
-    const testUrl = `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?as_of_date=2025-08-12`;
+    const testUrl = `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?asOfDate=2025-08-12`;
     
     // 第一次请求（缓存未命中）
     const startTime1 = Date.now();
@@ -205,7 +205,7 @@ test.describe('时态管理系统集成测试', () => {
     
     // 测试无效日期格式
     const invalidDateResponse = await page.request.get(
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?as_of_date=invalid-date`
+      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?asOfDate=invalid-date`
     );
     // 可能返回400或默认处理，取决于实现
     expect([200, 400, 422]).toContain(invalidDateResponse.status());
@@ -294,8 +294,8 @@ test.describe('时态管理性能测试', () => {
   test('API响应时间基准测试', async ({ page }) => {
     const testCases = [
       { name: '健康检查', url: `${TEMPORAL_SERVICE_URL}/health`, maxTime: 100 },
-      { name: '当前记录查询', url: `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?as_of_date=2025-08-12`, maxTime: 500 },
-      { name: '完整历史查询', url: `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?include_history=true&include_future=true`, maxTime: 1000 }
+      { name: '当前记录查询', url: `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?asOfDate=2025-08-12`, maxTime: 500 },
+      { name: '完整历史查询', url: `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?includeHistory=true&includeFuture=true`, maxTime: 1000 }
     ];
     
     for (const testCase of testCases) {
