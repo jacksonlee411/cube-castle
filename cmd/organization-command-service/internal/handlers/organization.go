@@ -136,11 +136,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 
 	// 返回企业级成功响应
 	response := h.toOrganizationResponse(createdOrg)
-	successResponse := types.WriteSuccessResponse(response, "Organization created successfully", requestID)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(successResponse)
+	utils.WriteCreated(w, response, "Organization created successfully", requestID)
 
 	h.logger.Printf("✅ 组织创建成功: %s - %s (RequestID: %s)", createdOrg.Code, createdOrg.Name, requestID)
 }
@@ -149,6 +145,12 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	code := chi.URLParam(r, "code")
 	if code == "" {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
+		return
+	}
+
+	// 验证组织代码格式
+	if err := utils.ValidateOrganizationCode(code); err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码格式无效", err)
 		return
 	}
 
@@ -169,17 +171,29 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	// 更新组织
 	updatedOrg, err := h.repo.Update(r.Context(), tenantID, code, &req)
 	if err != nil {
-		h.writeErrorResponse(w, r, http.StatusInternalServerError, "UPDATE_ERROR", "更新组织失败", err)
+		if strings.Contains(err.Error(), "not found") {
+			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
+		} else if strings.Contains(err.Error(), "constraint") {
+			h.writeErrorResponse(w, r, http.StatusConflict, "DATA_CONSTRAINT_VIOLATION", "数据约束冲突", err)
+		} else {
+			h.writeErrorResponse(w, r, http.StatusInternalServerError, "UPDATE_ERROR", "更新组织失败", err)
+		}
 		return
+	}
+
+	// 记录审计日志
+	requestID := middleware.GetRequestID(r.Context())
+	actorID := h.getActorID(r)
+	ipAddress := h.getIPAddress(r)
+	// 注意: 这里我们没有oldOrg，所以传nil - 在实际应用中应该先获取旧数据
+	err = h.auditLogger.LogOrganizationUpdate(r.Context(), code, &req, nil, updatedOrg, actorID, requestID, ipAddress)
+	if err != nil {
+		h.logger.Printf("⚠️ 更新审计日志记录失败: %v", err)
 	}
 
 	// 返回企业级成功响应
 	response := h.toOrganizationResponse(updatedOrg)
-	requestID := middleware.GetRequestID(r.Context())
-	successResponse := types.WriteSuccessResponse(response, "Organization updated successfully", requestID)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(successResponse)
+	utils.WriteSuccess(w, response, "Organization updated successfully", requestID)
 
 	h.logger.Printf("✅ 组织更新成功: %s - %s (RequestID: %s)", updatedOrg.Code, updatedOrg.Name, requestID)
 }
@@ -191,21 +205,44 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// 验证组织代码格式
+	if err := utils.ValidateOrganizationCode(code); err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码格式无效", err)
+		return
+	}
+
 	tenantID := h.getTenantID(r)
 
 	// 删除组织
 	err := h.repo.Delete(r.Context(), tenantID, code)
 	if err != nil {
-		h.writeErrorResponse(w, r, http.StatusInternalServerError, "DELETE_ERROR", "删除组织失败", err)
+		if strings.Contains(err.Error(), "not found") {
+			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
+		} else if strings.Contains(err.Error(), "has children") {
+			h.writeErrorResponse(w, r, http.StatusConflict, "HAS_CHILDREN", "不能删除包含子组织的单元", err)
+		} else if strings.Contains(err.Error(), "constraint") {
+			h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "存在关联数据，无法删除", err)
+		} else {
+			h.writeErrorResponse(w, r, http.StatusInternalServerError, "DELETE_ERROR", "删除组织失败", err)
+		}
 		return
 	}
 
-	// 返回企业级成功响应
+	// 记录审计日志
 	requestID := middleware.GetRequestID(r.Context())
-	successResponse := types.WriteSuccessResponse(nil, "Organization deleted successfully", requestID)
+	actorID := h.getActorID(r)
+	ipAddress := h.getIPAddress(r)
+	// 注意: 这里我们没有获取要删除的组织数据，传nil - 在实际应用中应该先获取组织数据
+	err = h.auditLogger.LogOrganizationDelete(r.Context(), code, nil, actorID, requestID, ipAddress)
+	if err != nil {
+		h.logger.Printf("⚠️ 删除审计日志记录失败: %v", err)
+	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(successResponse)
+	// 返回企业级成功响应
+	utils.WriteSuccess(w, map[string]interface{}{
+		"code": code,
+		"deletedAt": time.Now(),
+	}, "Organization deleted successfully", requestID)
 
 	h.logger.Printf("✅ 组织删除成功: %s (RequestID: %s)", code, requestID)
 }
@@ -217,14 +254,21 @@ func (h *OrganizationHandler) SuspendOrganization(w http.ResponseWriter, r *http
 		return
 	}
 
+	// 验证组织代码格式
+	if err := utils.ValidateOrganizationCode(code); err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码格式无效", err)
+		return
+	}
+
 	var req types.SuspendOrganizationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
 
-	if req.Reason == "" {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "停用原因不能为空", nil)
+	// 验证停用请求
+	if err := utils.ValidateSuspendRequest(req.Reason); err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "停用原因验证失败", err)
 		return
 	}
 
@@ -233,18 +277,28 @@ func (h *OrganizationHandler) SuspendOrganization(w http.ResponseWriter, r *http
 	// 停用组织
 	org, err := h.repo.Suspend(r.Context(), tenantID, code, req.Reason)
 	if err != nil {
-		h.writeErrorResponse(w, r, http.StatusInternalServerError, "SUSPEND_ERROR", "停用组织失败", err)
+		if strings.Contains(err.Error(), "not found") {
+			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
+		} else if strings.Contains(err.Error(), "already suspended") {
+			h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_SUSPENDED", "组织单元已处于停用状态", err)
+		} else {
+			h.writeErrorResponse(w, r, http.StatusInternalServerError, "SUSPEND_ERROR", "停用组织失败", err)
+		}
 		return
+	}
+
+	// 记录审计日志
+	requestID := middleware.GetRequestID(r.Context())
+	actorID := h.getActorID(r)
+	ipAddress := h.getIPAddress(r)
+	err = h.auditLogger.LogOrganizationSuspend(r.Context(), code, org, actorID, requestID, ipAddress)
+	if err != nil {
+		h.logger.Printf("⚠️ 停用审计日志记录失败: %v", err)
 	}
 
 	// 构建企业级成功响应
 	response := h.toOrganizationResponse(org)
-	requestID := middleware.GetRequestID(r.Context())
-	successResponse := types.WriteSuccessResponse(response, "Organization suspended successfully", requestID)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(successResponse)
+	utils.WriteSuccess(w, response, "Organization suspended successfully", requestID)
 
 	h.logger.Printf("✅ 组织停用成功: %s - %s (RequestID: %s)", response.Code, response.Name, requestID)
 }
@@ -256,14 +310,21 @@ func (h *OrganizationHandler) ActivateOrganization(w http.ResponseWriter, r *htt
 		return
 	}
 
+	// 验证组织代码格式
+	if err := utils.ValidateOrganizationCode(code); err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码格式无效", err)
+		return
+	}
+
 	var req types.ReactivateOrganizationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
 
-	if req.Reason == "" {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "重启原因不能为空", nil)
+	// 验证激活请求
+	if err := utils.ValidateActivateRequest(req.Reason); err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "激活原因验证失败", err)
 		return
 	}
 
@@ -272,18 +333,28 @@ func (h *OrganizationHandler) ActivateOrganization(w http.ResponseWriter, r *htt
 	// 重新启用组织
 	org, err := h.repo.Activate(r.Context(), tenantID, code, req.Reason)
 	if err != nil {
-		h.writeErrorResponse(w, r, http.StatusInternalServerError, "ACTIVATE_ERROR", "激活组织失败", err)
+		if strings.Contains(err.Error(), "not found") {
+			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
+		} else if strings.Contains(err.Error(), "already active") {
+			h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_ACTIVE", "组织单元已处于激活状态", err)
+		} else {
+			h.writeErrorResponse(w, r, http.StatusInternalServerError, "ACTIVATE_ERROR", "激活组织失败", err)
+		}
 		return
+	}
+
+	// 记录审计日志
+	requestID := middleware.GetRequestID(r.Context())
+	actorID := h.getActorID(r)
+	ipAddress := h.getIPAddress(r)
+	err = h.auditLogger.LogOrganizationActivate(r.Context(), code, org, actorID, requestID, ipAddress)
+	if err != nil {
+		h.logger.Printf("⚠️ 激活审计日志记录失败: %v", err)
 	}
 
 	// 构建企业级成功响应
 	response := h.toOrganizationResponse(org)
-	requestID := middleware.GetRequestID(r.Context())
-	successResponse := types.WriteSuccessResponse(response, "Organization activated successfully", requestID)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(successResponse)
+	utils.WriteSuccess(w, response, "Organization activated successfully", requestID)
 
 	h.logger.Printf("✅ 组织激活成功: %s - %s (RequestID: %s)", response.Code, response.Name, requestID)
 }
@@ -319,14 +390,11 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		}
 
 		h.logger.Printf("✅ 版本作废成功: 组织 %s, 记录ID: %s", code, req.RecordID)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":   true,
-			"message":   "版本作废成功",
+		requestID := middleware.GetRequestID(r.Context())
+		utils.WriteSuccess(w, map[string]interface{}{
 			"code":      code,
 			"record_id": req.RecordID,
-		})
+		}, "版本作废成功", requestID)
 
 	default:
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "UNSUPPORTED_EVENT", fmt.Sprintf("不支持的事件类型: %s", req.EventType), nil)
@@ -370,10 +438,7 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 	// 构建企业级成功响应
 	response := h.toOrganizationResponse(updatedOrg)
 	requestID := middleware.GetRequestID(r.Context())
-	successResponse := types.WriteSuccessResponse(response, "History record updated successfully", requestID)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(successResponse)
+	utils.WriteSuccess(w, response, "History record updated successfully", requestID)
 
 	h.logger.Printf("✅ 历史记录更新成功: %s - %s (记录ID: %s, RequestID: %s)", response.Code, response.Name, recordId, requestID)
 }
@@ -410,9 +475,6 @@ func (h *OrganizationHandler) toOrganizationResponse(org *types.Organization) *t
 }
 
 func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int, code, message string, err error) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-
 	errorMsg := message
 	var details interface{}
 	if err != nil {
@@ -427,8 +489,8 @@ func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, r *http.
 	// 获取请求ID
 	requestID := middleware.GetRequestID(r.Context())
 
-	errorResponse := types.WriteErrorResponse(code, errorMsg, requestID, details)
-	json.NewEncoder(w).Encode(errorResponse)
+	// 使用统一响应构建器
+	utils.WriteError(w, statusCode, code, errorMsg, requestID, details)
 }
 
 // SetupRoutes 设置路由

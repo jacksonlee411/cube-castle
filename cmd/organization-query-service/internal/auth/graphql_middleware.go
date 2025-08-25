@@ -6,6 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	
+	"postgresql-graphql-service/internal/middleware"
+	"postgresql-graphql-service/internal/types"
 )
 
 type GraphQLPermissionMiddleware struct {
@@ -51,25 +54,26 @@ func (g *GraphQLPermissionMiddleware) Middleware() func(http.Handler) http.Handl
 	}
 }
 
-// handleDevMode 开发模式处理
+// handleDevMode 开发模式处理 - 生产就绪版本：严格JWT认证
 func (g *GraphQLPermissionMiddleware) handleDevMode(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	// 检查Authorization头
 	authHeader := r.Header.Get("Authorization")
-
-	var claims *Claims
-	if authHeader != "" {
-		// 如果有JWT令牌，尝试验证
-		var err error
-		claims, err = g.jwtMiddleware.ValidateToken(authHeader)
-		if err != nil {
-			g.logger.Printf("JWT validation failed in dev mode (continuing with mock): %v", err)
-			claims = g.createMockClaims(r)
-		}
-	} else {
-		// 没有JWT令牌，使用模拟用户
-		g.logger.Printf("No JWT token provided in dev mode, using mock claims")
-		claims = g.createMockClaims(r)
+	if authHeader == "" {
+		// 开发模式也必须提供JWT令牌
+		g.logger.Printf("Dev mode: Authorization header required")
+		g.writeErrorResponse(w, r, "DEV_UNAUTHORIZED", "Authorization header required even in development mode", 401)
+		return
 	}
+
+	// 验证JWT令牌
+	claims, err := g.jwtMiddleware.ValidateToken(authHeader)
+	if err != nil {
+		g.logger.Printf("Dev mode: JWT validation failed: %v", err)
+		g.writeErrorResponse(w, r, "DEV_INVALID_TOKEN", "Invalid JWT token in development mode: "+err.Error(), 401)
+		return
+	}
+
+	g.logger.Printf("Dev mode: Valid JWT token provided for user: %s", claims.UserID)
 
 	// 设置用户上下文
 	ctx := SetUserContext(r.Context(), claims)
@@ -81,7 +85,7 @@ func (g *GraphQLPermissionMiddleware) handleProductionMode(w http.ResponseWriter
 	// 提取Authorization头
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		g.writeErrorResponse(w, "UNAUTHORIZED", "Authorization header required", 401)
+		g.writeErrorResponse(w, r, "UNAUTHORIZED", "Authorization header required", 401)
 		return
 	}
 
@@ -89,7 +93,7 @@ func (g *GraphQLPermissionMiddleware) handleProductionMode(w http.ResponseWriter
 	claims, err := g.jwtMiddleware.ValidateToken(authHeader)
 	if err != nil {
 		g.logger.Printf("JWT validation failed: %v", err)
-		g.writeErrorResponse(w, "INVALID_TOKEN", err.Error(), 401)
+		g.writeErrorResponse(w, r, "INVALID_TOKEN", err.Error(), 401)
 		return
 	}
 
@@ -133,43 +137,27 @@ func (g *GraphQLPermissionMiddleware) CheckQueryPermission(ctx context.Context, 
 }
 
 // writeErrorResponse 写入错误响应
-func (g *GraphQLPermissionMiddleware) writeErrorResponse(w http.ResponseWriter, code, message string, statusCode int) {
+func (g *GraphQLPermissionMiddleware) writeErrorResponse(w http.ResponseWriter, r *http.Request, code, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	response := map[string]interface{}{
-		"success": false,
-		"error": map[string]string{
-			"code":    code,
-			"message": message,
-		},
-		"timestamp": "2025-08-24T02:00:00Z", // 使用固定时间戳或实际时间
-	}
+	// 获取请求ID
+	requestID := middleware.GetRequestID(r.Context())
 
-	json.NewEncoder(w).Encode(response)
-}
-
-// 企业级响应格式
-type EnterpriseErrorResponse struct {
-	Success   bool                   `json:"success"`
-	Error     map[string]interface{} `json:"error"`
-	Timestamp string                 `json:"timestamp"`
-	RequestID string                 `json:"requestId,omitempty"`
+	// 使用统一的企业级错误响应格式
+	errorResponse := types.WriteErrorResponse(code, message, requestID, nil)
+	json.NewEncoder(w).Encode(errorResponse)
 }
 
 // WriteEnterpriseErrorResponse 写入企业级错误响应
-func (g *GraphQLPermissionMiddleware) WriteEnterpriseErrorResponse(w http.ResponseWriter, code, message string, statusCode int) {
+func (g *GraphQLPermissionMiddleware) WriteEnterpriseErrorResponse(w http.ResponseWriter, r *http.Request, code, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	response := EnterpriseErrorResponse{
-		Success: false,
-		Error: map[string]interface{}{
-			"code":    code,
-			"message": message,
-		},
-		Timestamp: "2025-08-24T02:00:00Z",
-	}
+	// 获取请求ID
+	requestID := middleware.GetRequestID(r.Context())
 
-	json.NewEncoder(w).Encode(response)
+	// 使用统一的企业级错误响应格式
+	errorResponse := types.WriteErrorResponse(code, message, requestID, nil)
+	json.NewEncoder(w).Encode(errorResponse)
 }

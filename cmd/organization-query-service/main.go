@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"postgresql-graphql-service/internal/auth"
+	requestMiddleware "postgresql-graphql-service/internal/middleware"
 )
 
 // 默认租户配置
@@ -87,6 +89,70 @@ var schemaString = `
 		historicalCount: Int!
 	}
 
+	# 层级结构类型 - 严格遵循API规范v4.2.1
+	type OrganizationHierarchy {
+		code: String!
+		name: String!
+		level: Int!
+		hierarchyDepth: Int!
+		codePath: String!
+		namePath: String!
+		parentChain: [String!]!
+		childrenCount: Int!
+		isRoot: Boolean!
+		isLeaf: Boolean!
+	}
+
+	type OrganizationSubtree {
+		code: String!
+		name: String!
+		level: Int!
+		hierarchyDepth: Int!
+		codePath: String!
+		namePath: String!
+		children: [OrganizationSubtree!]!
+	}
+
+	# 审计历史类型
+	type AuditRecord {
+		auditId: String!
+		recordId: String!
+		operationType: String!
+		operatedBy: OperatedBy!
+		businessEntityId: String!
+		changesSummary: String!
+		operationReason: String
+		tenantId: String!
+		timestamp: String!
+		requestId: String!
+		beforeData: String
+		afterData: String
+		riskLevel: String!
+	}
+
+	type OperatedBy {
+		id: String!
+		name: String!
+	}
+
+	type AuditHistoryConnection {
+		data: [AuditRecord!]!
+		pagination: PaginationInfo!
+		summary: AuditSummary!
+	}
+
+	type AuditSummary {
+		totalOperations: Int!
+		operationTypes: [String!]!
+		operatorCount: Int!
+		riskDistribution: [RiskCount!]!
+	}
+
+	type RiskCount {
+		riskLevel: String!
+		count: Int!
+	}
+
 	type Query {
 		# 高性能当前数据查询 - 符合官方API契约 v4.2.1
 		organizations(filter: OrganizationFilter, pagination: PaginationInput): OrganizationConnection!
@@ -99,6 +165,13 @@ var schemaString = `
 		
 		# 高级时态分析 - PostgreSQL独有功能
 		organizationVersions(code: String!): [Organization!]!
+		
+		# 高级层级结构查询 - 严格遵循API规范v4.2.1
+		organizationHierarchy(code: String!, tenantId: String!): OrganizationHierarchy!
+		organizationSubtree(code: String!, tenantId: String!, maxDepth: Int): OrganizationSubtree!
+		
+		# 高级审计和历史查询 - 严格遵循API规范v4.2.1
+		organizationAuditHistory(code: String!, startDate: String, endDate: String, operation: String, userId: String, limit: Int): [AuditRecord!]!
 	}
 
 	# 输入类型 - 按官方契约定义
@@ -330,6 +403,88 @@ func (t TemporalInfo) AsOfDate() string       { return t.AsOfDateField }
 func (t TemporalInfo) CurrentCount() int32    { return int32(t.CurrentCountField) }
 func (t TemporalInfo) FutureCount() int32     { return int32(t.FutureCountField) }
 func (t TemporalInfo) HistoricalCount() int32 { return int32(t.HistoricalCountField) }
+
+// 层级结构类型 - 严格遵循API规范v4.2.1
+type OrganizationHierarchyData struct {
+	CodeField           string   `json:"code"`
+	NameField           string   `json:"name"`
+	LevelField          int      `json:"level"`
+	HierarchyDepthField int      `json:"hierarchyDepth"`
+	CodePathField       string   `json:"codePath"`
+	NamePathField       string   `json:"namePath"`
+	ParentChainField    []string `json:"parentChain"`
+	ChildrenCountField  int      `json:"childrenCount"`
+	IsRootField         bool     `json:"isRoot"`
+	IsLeafField         bool     `json:"isLeaf"`
+}
+
+func (h OrganizationHierarchyData) Code() string           { return h.CodeField }
+func (h OrganizationHierarchyData) Name() string           { return h.NameField }
+func (h OrganizationHierarchyData) Level() int32           { return int32(h.LevelField) }
+func (h OrganizationHierarchyData) HierarchyDepth() int32  { return int32(h.HierarchyDepthField) }
+func (h OrganizationHierarchyData) CodePath() string       { return h.CodePathField }
+func (h OrganizationHierarchyData) NamePath() string       { return h.NamePathField }
+func (h OrganizationHierarchyData) ParentChain() []string  { return h.ParentChainField }
+func (h OrganizationHierarchyData) ChildrenCount() int32   { return int32(h.ChildrenCountField) }
+func (h OrganizationHierarchyData) IsRoot() bool           { return h.IsRootField }
+func (h OrganizationHierarchyData) IsLeaf() bool           { return h.IsLeafField }
+
+type OrganizationSubtreeData struct {
+	CodeField           string                    `json:"code"`
+	NameField           string                    `json:"name"`
+	LevelField          int                       `json:"level"`
+	HierarchyDepthField int                       `json:"hierarchyDepth"`
+	CodePathField       string                    `json:"codePath"`
+	NamePathField       string                    `json:"namePath"`
+	ChildrenField       []OrganizationSubtreeData `json:"children"`
+}
+
+func (s OrganizationSubtreeData) Code() string                        { return s.CodeField }
+func (s OrganizationSubtreeData) Name() string                        { return s.NameField }
+func (s OrganizationSubtreeData) Level() int32                        { return int32(s.LevelField) }
+func (s OrganizationSubtreeData) HierarchyDepth() int32               { return int32(s.HierarchyDepthField) }
+func (s OrganizationSubtreeData) CodePath() string                    { return s.CodePathField }
+func (s OrganizationSubtreeData) NamePath() string                    { return s.NamePathField }
+func (s OrganizationSubtreeData) Children() []OrganizationSubtreeData { return s.ChildrenField }
+
+// 审计记录类型 - 严格遵循API规范v4.2.1
+type AuditRecordData struct {
+	AuditIDField          string           `json:"auditId"`
+	RecordIDField         string           `json:"recordId"`
+	OperationTypeField    string           `json:"operationType"`
+	OperatedByField       OperatedByData   `json:"operatedBy"`
+	BusinessEntityIDField string           `json:"businessEntityId"`
+	ChangesSummaryField   string           `json:"changesSummary"`
+	OperationReasonField  *string          `json:"operationReason"`
+	TenantIDField         string           `json:"tenantId"`
+	TimestampField        string           `json:"timestamp"`
+	RequestIDField        string           `json:"requestId"`
+	BeforeDataField       *string          `json:"beforeData"`
+	AfterDataField        *string          `json:"afterData"`
+	RiskLevelField        string           `json:"riskLevel"`
+}
+
+func (a AuditRecordData) AuditId() string            { return a.AuditIDField }
+func (a AuditRecordData) RecordId() string           { return a.RecordIDField }
+func (a AuditRecordData) OperationType() string      { return a.OperationTypeField }
+func (a AuditRecordData) OperatedBy() OperatedByData { return a.OperatedByField }
+func (a AuditRecordData) BusinessEntityId() string   { return a.BusinessEntityIDField }
+func (a AuditRecordData) ChangesSummary() string     { return a.ChangesSummaryField }
+func (a AuditRecordData) OperationReason() *string   { return a.OperationReasonField }
+func (a AuditRecordData) TenantId() string           { return a.TenantIDField }
+func (a AuditRecordData) Timestamp() string          { return a.TimestampField }
+func (a AuditRecordData) RequestId() string          { return a.RequestIDField }
+func (a AuditRecordData) BeforeData() *string        { return a.BeforeDataField }
+func (a AuditRecordData) AfterData() *string         { return a.AfterDataField }
+func (a AuditRecordData) RiskLevel() string          { return a.RiskLevelField }
+
+type OperatedByData struct {
+	IDField   string `json:"id"`
+	NameField string `json:"name"`
+}
+
+func (o OperatedByData) Id() string   { return o.IDField }
+func (o OperatedByData) Name() string { return o.NameField }
 
 // 输入类型 - 符合官方API契约
 type OrganizationFilter struct {
@@ -741,6 +896,265 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	return &stats, nil
 }
 
+// 高级层级结构查询 - 严格遵循API规范v4.2.1
+func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, tenantID uuid.UUID, code string) (*OrganizationHierarchyData, error) {
+	start := time.Now()
+	
+	// 使用PostgreSQL递归CTE查询完整层级信息
+	query := `
+		WITH RECURSIVE hierarchy_info AS (
+			-- 获取目标组织
+			SELECT 
+				code, name, level, 
+				COALESCE(code_path, '/' || code) as code_path,
+				COALESCE(name_path, '/' || name) as name_path,
+				parent_code,
+				1 as hierarchy_depth
+			FROM organization_units 
+			WHERE tenant_id = $1 AND code = $2 AND is_current = true
+			
+			UNION ALL
+			
+			-- 递归获取父级信息
+			SELECT 
+				o.code, o.name, o.level,
+				o.code_path, o.name_path, o.parent_code,
+				h.hierarchy_depth + 1
+			FROM organization_units o
+			INNER JOIN hierarchy_info h ON o.code = h.parent_code
+			WHERE o.tenant_id = $1 AND o.is_current = true
+		),
+		children_count AS (
+			SELECT COUNT(*) as count
+			FROM organization_units
+			WHERE tenant_id = $1 AND parent_code = $2 AND is_current = true
+		)
+		SELECT 
+			h.code, h.name, h.level, h.hierarchy_depth,
+			h.code_path, h.name_path,
+			CASE WHEN h.parent_code IS NULL THEN '{}' 
+				 ELSE json_build_array(h.parent_code)::text END as parent_chain,
+			c.count as children_count,
+			(h.parent_code IS NULL) as is_root,
+			(c.count = 0) as is_leaf
+		FROM hierarchy_info h
+		CROSS JOIN children_count c
+		WHERE h.code = $2
+		LIMIT 1`
+	
+	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
+	
+	var hierarchy OrganizationHierarchyData
+	var parentChainJSON string
+	
+	err := row.Scan(
+		&hierarchy.CodeField, &hierarchy.NameField, &hierarchy.LevelField, &hierarchy.HierarchyDepthField,
+		&hierarchy.CodePathField, &hierarchy.NamePathField, &parentChainJSON,
+		&hierarchy.ChildrenCountField, &hierarchy.IsRootField, &hierarchy.IsLeafField,
+	)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		r.logger.Printf("[ERROR] 层级结构查询失败: %v", err)
+		return nil, err
+	}
+	
+	// 解析父级链
+	if parentChainJSON != "{}" {
+		json.Unmarshal([]byte(parentChainJSON), &hierarchy.ParentChainField)
+	} else {
+		hierarchy.ParentChainField = []string{}
+	}
+	
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 层级结构查询完成，耗时: %v", duration)
+	
+	return &hierarchy, nil
+}
+
+// 组织子树查询 - 严格遵循API规范v4.2.1
+func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenantID uuid.UUID, code string, maxDepth int) (*OrganizationSubtreeData, error) {
+	start := time.Now()
+	
+	// 使用PostgreSQL递归CTE查询子树结构，限制深度
+	query := `
+		WITH RECURSIVE subtree AS (
+			-- 根节点
+			SELECT 
+				code, name, level, 
+				COALESCE(hierarchy_depth, level) as hierarchy_depth,
+				COALESCE(code_path, '/' || code) as code_path,
+				COALESCE(name_path, '/' || name) as name_path,
+				parent_code,
+				0 as depth_from_root
+			FROM organization_units 
+			WHERE tenant_id = $1 AND code = $2 AND is_current = true
+			
+			UNION ALL
+			
+			-- 递归查询子节点
+			SELECT 
+				o.code, o.name, o.level,
+				o.hierarchy_depth, o.code_path, o.name_path, o.parent_code,
+				s.depth_from_root + 1
+			FROM organization_units o
+			INNER JOIN subtree s ON o.parent_code = s.code
+			WHERE o.tenant_id = $1 AND o.is_current = true 
+			  AND s.depth_from_root < $3
+		)
+		SELECT code, name, level, hierarchy_depth, code_path, name_path, parent_code
+		FROM subtree 
+		ORDER BY level, code`
+	
+	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code, maxDepth)
+	if err != nil {
+		r.logger.Printf("[ERROR] 子树查询失败: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+	
+	// 构建树形结构
+	nodeMap := make(map[string]*OrganizationSubtreeData)
+	var root *OrganizationSubtreeData
+	
+	for rows.Next() {
+		var node OrganizationSubtreeData
+		var parentCode *string
+		
+		err := rows.Scan(
+			&node.CodeField, &node.NameField, &node.LevelField, &node.HierarchyDepthField,
+			&node.CodePathField, &node.NamePathField, &parentCode,
+		)
+		if err != nil {
+			r.logger.Printf("[ERROR] 扫描子树数据失败: %v", err)
+			return nil, err
+		}
+		
+		node.ChildrenField = []OrganizationSubtreeData{}
+		nodeMap[node.CodeField] = &node
+		
+		if node.CodeField == code {
+			root = &node
+		}
+	}
+	
+	// 构建父子关系
+	for _, node := range nodeMap {
+		if root != nil && node.CodeField != code {
+			// 寻找父节点并添加到其children中
+			for _, parent := range nodeMap {
+				if node.CodeField != parent.CodeField {
+					// 检查是否为直接子节点（通过codePath判断）
+					if strings.HasPrefix(node.CodePathField, parent.CodePathField+"/") {
+						// 计算层级差，确保是直接子节点
+						parentDepth := strings.Count(parent.CodePathField, "/")
+						nodeDepth := strings.Count(node.CodePathField, "/")
+						if nodeDepth == parentDepth+1 {
+							parent.ChildrenField = append(parent.ChildrenField, *node)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 子树查询完成，返回 %d 节点，耗时: %v", len(nodeMap), duration)
+	
+	return root, nil
+}
+
+// 组织审计历史查询 - 严格遵循API规范v4.2.1
+func (r *PostgreSQLRepository) GetOrganizationAuditHistory(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate, operation, userId *string, limit int) ([]AuditRecordData, error) {
+	start := time.Now()
+	
+	// 构建查询条件
+	baseQuery := `
+		SELECT 
+			audit_id, record_id, operation_type,
+			operated_by_id, operated_by_name,
+			business_entity_id, changes_summary,
+			operation_reason, tenant_id, timestamp,
+			request_id, before_data, after_data, risk_level
+		FROM audit_log 
+		WHERE tenant_id = $1 AND business_entity_id = $2`
+	
+	args := []interface{}{tenantID.String(), code}
+	argIndex := 3
+	
+	// 日期范围过滤
+	if startDate != nil {
+		baseQuery += fmt.Sprintf(" AND timestamp >= $%d::timestamp", argIndex)
+		args = append(args, *startDate)
+		argIndex++
+	}
+	
+	if endDate != nil {
+		baseQuery += fmt.Sprintf(" AND timestamp <= $%d::timestamp", argIndex)
+		args = append(args, *endDate)
+		argIndex++
+	}
+	
+	// 操作类型过滤
+	if operation != nil {
+		baseQuery += fmt.Sprintf(" AND operation_type = $%d", argIndex)
+		args = append(args, strings.ToUpper(*operation))
+		argIndex++
+	}
+	
+	// 操作人过滤
+	if userId != nil {
+		baseQuery += fmt.Sprintf(" AND operated_by_id = $%d", argIndex)
+		args = append(args, *userId)
+		argIndex++
+	}
+	
+	// 排序和限制
+	finalQuery := baseQuery + fmt.Sprintf(" ORDER BY timestamp DESC LIMIT $%d", argIndex)
+	args = append(args, limit)
+	
+	rows, err := r.db.QueryContext(ctx, finalQuery, args...)
+	if err != nil {
+		r.logger.Printf("[ERROR] 审计历史查询失败: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var auditRecords []AuditRecordData
+	for rows.Next() {
+		var record AuditRecordData
+		var operatedById, operatedByName string
+		
+		err := rows.Scan(
+			&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
+			&operatedById, &operatedByName,
+			&record.BusinessEntityIDField, &record.ChangesSummaryField,
+			&record.OperationReasonField, &record.TenantIDField, &record.TimestampField,
+			&record.RequestIDField, &record.BeforeDataField, &record.AfterDataField, &record.RiskLevelField,
+		)
+		if err != nil {
+			r.logger.Printf("[ERROR] 扫描审计记录失败: %v", err)
+			return nil, err
+		}
+		
+		// 构建操作人信息
+		record.OperatedByField = OperatedByData{
+			IDField:   operatedById,
+			NameField: operatedByName,
+		}
+		
+		auditRecords = append(auditRecords, record)
+	}
+	
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 审计历史查询完成，返回 %d 条记录，耗时: %v", len(auditRecords), duration)
+	
+	return auditRecords, nil
+}
+
 // GraphQL解析器 - 极简高效
 type Resolver struct {
 	repo   *PostgreSQLRepository
@@ -804,6 +1218,62 @@ func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
 func (r *Resolver) OrganizationStats(ctx context.Context) (*OrganizationStats, error) {
 	r.logger.Printf("[GraphQL] 统计查询")
 	return r.repo.GetOrganizationStats(ctx, DefaultTenantID)
+}
+
+// 高级层级结构查询 - 严格遵循API规范v4.2.1
+func (r *Resolver) OrganizationHierarchy(ctx context.Context, args struct {
+	Code     string
+	TenantId string
+}) (*OrganizationHierarchyData, error) {
+	r.logger.Printf("[GraphQL] 层级结构查询 - code: %s, tenantId: %s", args.Code, args.TenantId)
+	
+	tenantID, err := uuid.Parse(args.TenantId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid tenant ID: %w", err)
+	}
+	
+	return r.repo.GetOrganizationHierarchy(ctx, tenantID, args.Code)
+}
+
+func (r *Resolver) OrganizationSubtree(ctx context.Context, args struct {
+	Code     string
+	TenantId string
+	MaxDepth *int32
+}) (*OrganizationSubtreeData, error) {
+	r.logger.Printf("[GraphQL] 子树查询 - code: %s, tenantId: %s, maxDepth: %v", args.Code, args.TenantId, args.MaxDepth)
+	
+	tenantID, err := uuid.Parse(args.TenantId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid tenant ID: %w", err)
+	}
+	
+	maxDepth := 10 // 默认深度
+	if args.MaxDepth != nil {
+		maxDepth = int(*args.MaxDepth)
+	}
+	
+	return r.repo.GetOrganizationSubtree(ctx, tenantID, args.Code, maxDepth)
+}
+
+func (r *Resolver) OrganizationAuditHistory(ctx context.Context, args struct {
+	Code      string
+	StartDate *string
+	EndDate   *string
+	Operation *string
+	UserId    *string
+	Limit     *int32
+}) ([]AuditRecordData, error) {
+	r.logger.Printf("[GraphQL] 审计历史查询 - code: %s", args.Code)
+	
+	limit := int32(50) // 默认限制
+	if args.Limit != nil && *args.Limit > 0 {
+		limit = *args.Limit
+		if limit > 200 { // API规范限制最大200
+			limit = 200
+		}
+	}
+	
+	return r.repo.GetOrganizationAuditHistory(ctx, DefaultTenantID, args.Code, args.StartDate, args.EndDate, args.Operation, args.UserId, int(limit))
 }
 
 func main() {
@@ -878,6 +1348,7 @@ func main() {
 	r := chi.NewRouter()
 
 	// 基础中间件
+	r.Use(requestMiddleware.RequestIDMiddleware) // 请求追踪中间件
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
@@ -889,8 +1360,12 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	// GraphQL端点 - 带JWT认证保护
-	r.Handle("/graphql", graphqlMiddleware.Middleware()(&relay.Handler{Schema: schema}))
+	// 创建企业级响应信封中间件
+	envelopeMiddleware := requestMiddleware.NewGraphQLEnvelopeMiddleware()
+
+	// GraphQL端点 - 带JWT认证保护和企业级响应信封
+	graphqlHandler := envelopeMiddleware.Middleware()(graphqlMiddleware.Middleware()(&relay.Handler{Schema: schema}))
+	r.Handle("/graphql", graphqlHandler)
 
 	// GraphiQL开发界面
 	r.Get("/graphiql", func(w http.ResponseWriter, r *http.Request) {

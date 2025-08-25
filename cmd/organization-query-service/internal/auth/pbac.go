@@ -20,18 +20,24 @@ func NewPBACPermissionChecker(db *sql.DB, logger *log.Logger) *PBACPermissionChe
 	}
 }
 
-// GraphQL查询权限映射表
+// GraphQL查询权限映射表 - 严格遵循API规范v4.2.1
 var GraphQLQueryPermissions = map[string]string{
-	"organizations":            "READ_ORGANIZATION",
-	"organization":             "READ_ORGANIZATION",
-	"organizationHistory":      "READ_ORGANIZATION_HISTORY",
-	"organizationHierarchy":    "READ_ORGANIZATION_HIERARCHY",
-	"organizationStatistics":   "READ_ORGANIZATION_STATISTICS",
-	"organizationVersions":     "READ_ORGANIZATION_HISTORY",
-	"organizationsByDateRange": "READ_ORGANIZATION_HISTORY",
-	"organizationsByParent":    "READ_ORGANIZATION",
-	"organizationsByType":      "READ_ORGANIZATION",
-	"organizationsByStatus":    "READ_ORGANIZATION",
+	// 基础查询
+	"organizations":     "READ_ORGANIZATION",
+	"organization":      "READ_ORGANIZATION",
+	"organizationStats": "READ_ORGANIZATION_STATISTICS",
+	
+	// 时态查询
+	"organizationAtDate":    "READ_ORGANIZATION_HISTORY",
+	"organizationHistory":   "READ_ORGANIZATION_HISTORY",
+	"organizationVersions":  "READ_ORGANIZATION_HISTORY",
+	
+	// 高级层级查询 - API规范v4.2.1
+	"organizationHierarchy": "READ_ORGANIZATION_HIERARCHY",
+	"organizationSubtree":   "READ_ORGANIZATION_HIERARCHY",
+	
+	// 审计历史查询 - API规范v4.2.1
+	"organizationAuditHistory": "READ_ORGANIZATION_AUDIT",
 }
 
 // 角色权限预设映射
@@ -41,6 +47,7 @@ var RolePermissions = map[string][]string{
 		"READ_ORGANIZATION_HISTORY",
 		"READ_ORGANIZATION_HIERARCHY",
 		"READ_ORGANIZATION_STATISTICS",
+		"READ_ORGANIZATION_AUDIT",
 		"WRITE_ORGANIZATION",
 	},
 	"MANAGER": {

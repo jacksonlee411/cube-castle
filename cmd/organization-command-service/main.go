@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/cors"
 	_ "github.com/lib/pq"
 	"organization-command-service/internal/audit"
+	"organization-command-service/internal/auth"
 	"organization-command-service/internal/handlers"
 	"organization-command-service/internal/metrics"
 	"organization-command-service/internal/middleware"
@@ -63,18 +64,55 @@ func main() {
 	logger.Println("✅ 结构化审计日志系统已初始化")
 	logger.Println("✅ Prometheus指标收集系统已初始化")
 
+	// 初始化JWT中间件
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "cube-castle-development-secret-key-2025"
+	}
+	jwtIssuer := os.Getenv("JWT_ISSUER")
+	if jwtIssuer == "" {
+		jwtIssuer = "cube-castle"
+	}
+	jwtAudience := os.Getenv("JWT_AUDIENCE")
+	if jwtAudience == "" {
+		jwtAudience = "cube-castle-api"
+	}
+	devMode := os.Getenv("DEV_MODE") == "true"
+	if os.Getenv("DEV_MODE") == "" {
+		devMode = true // 默认开发模式
+	}
+
+	jwtMiddleware := auth.NewJWTMiddleware(jwtSecret, jwtIssuer, jwtAudience)
+	permissionChecker := auth.NewPBACPermissionChecker(db, logger)
+	restAuthMiddleware := auth.NewRESTPermissionMiddleware(
+		jwtMiddleware,
+		permissionChecker,
+		logger,
+		devMode,
+	)
+
+	logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v)", devMode)
+
+	// 初始化中间件
+	performanceMiddleware := middleware.NewPerformanceMiddleware(logger)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(middleware.DefaultRateLimitConfig, logger)
+	
 	// 初始化处理器
 	orgHandler := handlers.NewOrganizationHandler(orgRepo, auditLogger, logger)
+	devToolsHandler := handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode)
 
 	// 设置路由
 	r := chi.NewRouter()
 
-	// 中间件
+	// 中间件链 (按执行顺序)
 	r.Use(middleware.RequestIDMiddleware)          // 请求追踪中间件
+	r.Use(rateLimitMiddleware.Middleware())        // 限流中间件 - 最先执行
+	r.Use(performanceMiddleware.Middleware())      // 性能监控中间件
 	r.Use(metricsCollector.GetMetricsMiddleware()) // Prometheus指标中间件
 	r.Use(chi_middleware.Logger)
 	r.Use(chi_middleware.Recoverer)
 	r.Use(chi_middleware.Timeout(30 * time.Second))
+	r.Use(restAuthMiddleware.Middleware())         // JWT认证和权限验证中间件
 
 	// CORS设置
 	r.Use(cors.Handler(cors.Options{
@@ -95,9 +133,36 @@ func main() {
 	// Prometheus指标端点
 	r.Handle("/metrics", metricsCollector.GetHandler())
 	logger.Println("📊 Prometheus指标端点: http://localhost:9090/metrics")
+	
+	// 限流状态监控端点
+	r.Get("/debug/rate-limit/stats", func(w http.ResponseWriter, r *http.Request) {
+		stats := rateLimitMiddleware.GetStats()
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{
+			"totalRequests": %d,
+			"blockedRequests": %d,
+			"activeClients": %d,
+			"lastReset": "%s",
+			"blockRate": "%.2f%%"
+		}`, stats.TotalRequests, stats.BlockedRequests, stats.ActiveClients, 
+			stats.LastReset.Format(time.RFC3339),
+			float64(stats.BlockedRequests)/float64(stats.TotalRequests)*100)
+	})
+	
+	r.Get("/debug/rate-limit/clients", func(w http.ResponseWriter, r *http.Request) {
+		clients := rateLimitMiddleware.GetActiveClients()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{"activeClients": %d, "timestamp": "%s"}`, len(clients), time.Now().Format(time.RFC3339))
+	})
+	
+	logger.Println("🚦 限流监控端点: http://localhost:9090/debug/rate-limit/stats")
 
 	// 设置组织相关路由
 	orgHandler.SetupRoutes(r)
+	
+	// 设置开发工具路由 (仅开发模式)
+	devToolsHandler.SetupRoutes(r)
 
 	// 服务启动
 	port := os.Getenv("PORT")
