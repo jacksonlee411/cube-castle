@@ -1,7 +1,7 @@
 -- =============================================
--- Unit Type 枚举更新迁移
+-- Unit Type 枚举更新迁移 (修正版)
 -- 移除 COST_CENTER，COMPANY 改为 ORGANIZATION_UNIT
--- 版本: v1.0
+-- 版本: v1.1
 -- 日期: 2025-08-23
 -- =============================================
 
@@ -12,7 +12,14 @@ DROP TABLE IF EXISTS organization_units_unittype_backup;
 CREATE TABLE organization_units_unittype_backup AS
 SELECT * FROM organization_units;
 
--- 2. 更新现有数据中的单位类型
+-- 2. 先删除现有的CHECK约束
+ALTER TABLE organization_units 
+DROP CONSTRAINT IF EXISTS organization_units_unit_type_check;
+
+ALTER TABLE organization_units 
+DROP CONSTRAINT IF EXISTS valid_unit_type;
+
+-- 3. 更新现有数据中的单位类型
 UPDATE organization_units 
 SET unit_type = 'ORGANIZATION_UNIT' 
 WHERE unit_type = 'COMPANY';
@@ -22,20 +29,17 @@ WHERE unit_type = 'COMPANY';
 DELETE FROM organization_units 
 WHERE unit_type = 'COST_CENTER';
 
--- 3. 更新CHECK约束以支持新的枚举值
-ALTER TABLE organization_units 
-DROP CONSTRAINT IF EXISTS valid_unit_type;
-
+-- 4. 添加新的CHECK约束以支持新的枚举值
 ALTER TABLE organization_units 
 ADD CONSTRAINT valid_unit_type 
 CHECK (unit_type IN ('DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM'));
 
--- 4. 创建新的索引以优化按类型查询
+-- 5. 创建新的索引以优化按类型查询
 CREATE INDEX IF NOT EXISTS idx_org_unit_type_optimized
 ON organization_units(tenant_id, unit_type, is_current)
 WHERE is_current = true;
 
--- 5. 更新组织统计视图（如果存在）
+-- 6. 更新组织统计视图（如果存在）
 DROP VIEW IF EXISTS organization_stats_view;
 CREATE OR REPLACE VIEW organization_stats_view AS
 SELECT 
@@ -47,10 +51,6 @@ SELECT
 FROM organization_units 
 WHERE is_deleted = false
 GROUP BY tenant_id, unit_type;
-
--- 6. 更新触发器函数（如果依赖unit_type枚举）
--- 确保层级管理触发器支持新的枚举值
--- 这里假设触发器函数需要知道有效的unit_type值
 
 COMMIT;
 
