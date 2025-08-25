@@ -7,70 +7,20 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
-import { Card } from '@workday/canvas-kit-react/card';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
 import { InlineNewVersionForm } from './InlineNewVersionForm';
-import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
+import { TimelineComponent, type TimelineVersion } from './TimelineComponent';
 import { 
   colors, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
 import { baseColors } from '../../../shared/utils/colorTokens';
-import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+import { unifiedGraphQLClient } from '../../../shared/api/unified-client';
 
-// 状态映射函数：将后端状态映射到新的四状态系统
-const mapBackendStatusToOrganizationStatus = (backendStatus: string): OrganizationStatus => {
-  // 映射到新的四状态系统：ACTIVE, SUSPENDED, PLANNED, DELETED
-  switch (backendStatus) {
-    case 'ACTIVE':
-      return 'ACTIVE';
-    case 'INACTIVE':
-    case 'SUSPENDED':
-      return 'SUSPENDED';
-    case 'PLANNED':
-      return 'PLANNED';
-    case 'DELETED':
-      return 'DELETED';
-    default:
-      return 'ACTIVE'; // 默认状态
-  }
-};
-
-// 状态映射函数：将后端状态映射到生命周期状态
-// 移除：未使用的状态映射函数
-
-// Types - 五状态生命周期管理系统
-export interface TemporalVersion {
-  recordId: string; // UUID唯一标识符
-  code: string;
-  name: string;
-  unitType: string;
-  status: string; // 组织状态：ACTIVE, INACTIVE, PLANNED
-  effectiveDate: string;
-  endDate?: string | null;
-  changeReason?: string;
-  isCurrent: boolean;
-  createdAt: string;
-  updatedAt: string;
-  description?: string;
-  level: number;
-  path: string;
-  parentCode?: string;
-  sortOrder: number;
-  
-  // 五状态生命周期管理字段
-  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED'; // 生命周期状态
-  business_status: 'ACTIVE' | 'SUSPENDED'; // 业务状态
-  data_status: 'NORMAL' | 'DELETED'; // 数据状态
-  suspended_at?: string | null; // 停用时间
-  suspended_by?: string | null; // 停用者
-  suspension_reason?: string | null; // 停用原因
-  deleted_at?: string | null; // 删除时间
-  deleted_by?: string | null; // 删除者
-  deletion_reason?: string | null; // 删除原因
-}
+// 使用来自TimelineComponent的TimelineVersion类型
+// export interface TemporalVersion 已移动到 TimelineComponent.tsx
 
 export interface TemporalMasterDetailViewProps {
   organizationCode: string | null; // 允许null用于创建模式
@@ -80,266 +30,9 @@ export interface TemporalMasterDetailViewProps {
   isCreateMode?: boolean; // 是否为创建模式
 }
 
-/**
- * 左侧垂直时间轴导航区
- */
-interface TimelineNavigationProps {
-  versions: TemporalVersion[];
-  selectedVersion: TemporalVersion | null;
-  onVersionSelect: (version: TemporalVersion) => void;
-  onDeleteVersion?: (version: TemporalVersion) => void;
-  isLoading: boolean;
-  readonly?: boolean;
-}
+// TimelineNavigationProps 已移动到 TimelineComponent.tsx 作为 TimelineComponentProps
 
-const TimelineNavigation: React.FC<TimelineNavigationProps> = ({
-  versions,
-  selectedVersion,
-  onVersionSelect,
-  onDeleteVersion,
-  isLoading,
-  readonly = false
-}) => {
-  // 获取版本状态指示器 - 基于五状态生命周期管理系统
-  const getVersionStatusIndicator = (version: TemporalVersion) => {
-    // 1. 软删除状态（优先级最高）
-    if (version.data_status === 'DELETED') {
-      return { 
-        color: colors.cinnamon600, 
-        dotColor: colors.cinnamon600, 
-        label: '已删除',
-        isDeactivated: true,
-        badge: 'DELETED' as const
-      };
-    }
-    
-    // 2. 业务停用状态
-    if (version.business_status === 'SUSPENDED') {
-      return { 
-        color: colors.cantaloupe600, 
-        dotColor: colors.cantaloupe600, 
-        label: '已停用',
-        isDeactivated: false,
-        badge: 'SUSPENDED' as const
-      };
-    }
-    
-    // 3. 生命周期状态
-    switch (version.lifecycleStatus) {
-      case 'CURRENT':
-        return { 
-          color: colors.greenApple500, 
-          dotColor: colors.greenApple500, 
-          label: '生效中',
-          isDeactivated: false,
-          badge: 'CURRENT' as const
-        };
-      case 'PLANNED':
-        return { 
-          color: colors.blueberry600, 
-          dotColor: 'white', 
-          label: '计划中',
-          isDeactivated: false,
-          badge: 'PLANNED' as const
-        };
-      case 'HISTORICAL':
-        return { 
-          color: colors.licorice400, 
-          dotColor: colors.licorice400, 
-          label: '历史记录',
-          isDeactivated: false,
-          badge: 'HISTORICAL' as const
-        };
-      default:
-        return { 
-          color: colors.licorice400, 
-          dotColor: colors.licorice400, 
-          label: '未知状态',
-          isDeactivated: false,
-          badge: 'HISTORICAL' as const
-        };
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('zh-CN');
-  };
-
-  const formatDateRange = (version: TemporalVersion, allVersions: TemporalVersion[]) => {
-    const start = formatDate(version.effectiveDate);
-    
-    // 优先检查删除状态
-    if (version.data_status === 'DELETED' || version.status === 'DELETED') {
-      return `${start} ~ 已删除`;
-    }
-    
-    // 根据时态管理规则计算结束日期
-    if (version.endDate) {
-      // 如果有明确的结束日期，使用它
-      return `${start} ~ ${formatDate(version.endDate)}`;
-    }
-    
-    // 找到下一个生效日期更晚的版本（排除已删除的版本）
-    const nextVersion = allVersions
-      .filter(v => new Date(v.effectiveDate) > new Date(version.effectiveDate))
-      .filter(v => v.data_status !== 'DELETED' && v.status !== 'DELETED')
-      .sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime())[0];
-    
-    if (nextVersion) {
-      // 如果有下一个版本，当前版本的结束日期是下一个版本生效日期的前一天
-      const nextDate = new Date(nextVersion.effectiveDate);
-      nextDate.setDate(nextDate.getDate() - 1);
-      return `${start} ~ ${formatDate(nextDate.toISOString().split('T')[0])}`;
-    }
-    
-    // 如果没有下一个版本，根据生命周期状态决定显示内容
-    if (version.lifecycleStatus === 'PLANNED') {
-      // 计划中的记录显示"未来"
-      return `${start} ~ 未来`;
-    } else {
-      // 当前记录或历史记录显示"至今"
-      return `${start} ~ 至今`;
-    }
-  };
-
-  return (
-    <Box
-      width="350px"
-      height="calc(100vh - 200px)"
-      backgroundColor="#F8F9FA"
-      borderRadius={borderRadius.m}
-      border="1px solid #E9ECEF"
-      padding="m"
-      overflowY="auto"
-    >
-      {/* 操作区域 */}
-      <Box marginBottom="m">
-        <Flex justifyContent="space-between" alignItems="center" marginBottom="s">
-          <Heading size="small">时间轴导航</Heading>
-        </Flex>
-        <Text typeLevel="subtext.small" color="hint">
-          点击版本节点查看详情
-        </Text>
-      </Box>
-
-      {/* 时间轴节点列表 */}
-      {isLoading ? (
-        <Box textAlign="center" padding="l">
-          <LoadingDots />
-          <Text marginTop="s" typeLevel="subtext.small">加载中...</Text>
-        </Box>
-      ) : (
-        <Box position="relative">
-          {/* 时间线连接线 */}
-          <Box
-            position="absolute"
-            left="15px"
-            top="20px"
-            bottom="20px"
-            width="2px"
-            backgroundColor="#DEE2E6"
-            zIndex={0}
-          />
-
-          {/* 版本节点 */}
-          {versions.map((version) => {
-            const statusInfo = getVersionStatusIndicator(version);
-            const isSelected = selectedVersion?.effectiveDate === version.effectiveDate;
-            
-            return (
-              <Box
-                key={`${version.code}-${version.effectiveDate}`}
-                position="relative"
-                marginBottom="m"
-                zIndex={1}
-              >
-                {/* 节点圆点 */}
-                <Box
-                  position="absolute"
-                  left="-4px"
-                  top="8px"
-                  width="12px"
-                  height="12px"
-                  borderRadius="50%"
-                  backgroundColor={statusInfo.dotColor}
-                  border="2px solid white"
-                  boxShadow="0 2px 4px rgba(0,0,0,0.1)"
-                />
-
-                {/* 节点内容卡片 */}
-                <Box marginLeft="32px">
-                  <Card
-                    padding="s"
-                    style={{
-                      backgroundColor: isSelected ? '#E3F2FD' : 'white',
-                      border: isSelected ? '2px solid #2196F3' : '1px solid #E9ECEF',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onClick={() => onVersionSelect(version)}
-                  >
-                    {/* 节点头部 - 日期与状态同行 */}
-                    <Box marginBottom="xs">
-                      <Flex alignItems="center" justifyContent="space-between">
-                        {/* 生效日期 */}
-                        <Text 
-                          typeLevel="body.medium" 
-                          fontWeight="bold"
-                          style={{
-                            textDecoration: statusInfo.isDeactivated ? 'line-through' : 'none'
-                          }}
-                        >
-                          {formatDate(version.effectiveDate)}
-                        </Text>
-                        
-                        {/* 状态标识 - 使用新的简化状态系统 */}
-                        <StatusBadge 
-                          status={mapBackendStatusToOrganizationStatus(version.status)} 
-                          size="small"
-                        />
-                      </Flex>
-                    </Box>
-                    
-                    {/* 组织名称 */}
-                    <Box marginBottom="xs">
-                      <Text 
-                        typeLevel="body.small" 
-                        fontWeight="medium"
-                        style={{
-                          textDecoration: statusInfo.isDeactivated ? 'line-through' : 'none'
-                        }}
-                      >
-                        {version.name}
-                      </Text>
-                    </Box>
-
-
-
-                    {/* 时间范围 */}
-                    <Box>
-                      <Text typeLevel="subtext.small" color="hint">
-                        有效期间：
-                      </Text>
-                      <Text typeLevel="subtext.small" color="hint" marginLeft="xs">
-                        {formatDateRange(version, versions)}
-                      </Text>
-                    </Box>
-                  </Card>
-                </Box>
-              </Box>
-            );
-          })}
-
-          {versions.length === 0 && (
-            <Box textAlign="center" padding="l">
-              <Text color="hint">暂无版本记录</Text>
-            </Box>
-          )}
-        </Box>
-      )}
-    </Box>
-  );
-};
+// TimelineNavigation组件已提取为独立的TimelineComponent.tsx
 
 /**
  * 组织详情主从视图主组件
@@ -352,11 +45,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   isCreateMode = false
 }) => {
   // 状态管理
-  const [versions, setVersions] = useState<TemporalVersion[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState<TemporalVersion | null>(null);
+  const [versions, setVersions] = useState<TimelineVersion[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<TimelineVersion | null>(null);
   const [isLoading, setIsLoading] = useState(!isCreateMode); // 创建模式不需要加载数据
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<TemporalVersion | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<TimelineVersion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // 增强用户体验状态
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   // 编辑表单状态
   const [showEditForm] = useState(isCreateMode); // 创建模式默认显示编辑表单
@@ -389,44 +87,57 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [showDeleteConfirm, deleteModalModel]);
 
-  // 加载时态版本数据 - 使用GraphQL查询符合CQRS架构
-  const loadVersions = useCallback(async () => {
+  // 加载时态版本数据 - 增强版本，包含错误处理和重试机制
+  const loadVersions = useCallback(async (isRetry = false) => {
     try {
       setIsLoading(true);
+      setLoadingError(null);
+      if (!isRetry) {
+        setRetryCount(0);
+      }
       
-      // 使用organizationVersions查询获取完整的版本历史
-      const response = await fetch('http://localhost:8090/graphql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `
-            query GetOrganizationVersions($code: String!) {
-              organizationVersions(code: $code) {
-                code
-                name
-                unitType
-                status
-                level
-                effectiveDate
-                endDate
-                isCurrent
-                createdAt
-                updatedAt
-                recordId
-                parentCode
-                description
-              }
+      // 使用organizationVersions查询获取完整的版本历史 - 修复认证问题，保留健壮错误处理
+      let data;
+      try {
+        data = await unifiedGraphQLClient.request<{
+          organizationVersions: any[];
+        }>(`
+          query GetOrganizationVersions($code: String!) {
+            organizationVersions(code: $code) {
+              code
+              name
+              unitType
+              status
+              level
+              effectiveDate
+              endDate
+              isCurrent
+              createdAt
+              updatedAt
+              recordId
+              parentCode
+              description
             }
-          `,
-          variables: {
-            code: organizationCode
           }
-        })
-      });
+        `, {
+          code: organizationCode
+        });
+      } catch (graphqlError: any) {
+        // 保留GraphQL层面错误处理 - 符合健壮方案原则
+        if (graphqlError?.response?.status) {
+          const statusCode = graphqlError.response.status;
+          const statusText = graphqlError.response.statusText || 'Unknown Error';
+          throw new Error(`服务器响应错误 (${statusCode}): ${statusText}`);
+        }
+        throw new Error(`GraphQL调用失败: ${graphqlError.message || '未知错误'}`);
+      }
+        
+      // 保留数据验证 - 防御性编程
+      if (!data) {
+        throw new Error('GraphQL响应为空');
+      }
       
-      if (response.ok) {
-        const data = await response.json();
-        const versions = data.data.organizationVersions || [];
+      const versions = data.organizationVersions || [];
         
         // 映射到组件需要的数据格式
         const mappedVersions = versions.map((version: any) => ({
@@ -457,6 +168,12 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         );
         setVersions(sortedVersions);
         
+        // 显示成功消息
+        if (isRetry) {
+          setSuccessMessage('数据加载成功！');
+          setTimeout(() => setSuccessMessage(null), 3000);
+        }
+        
         // 默认选中当前版本
         const currentVersion = sortedVersions.find((v: any) => v.isCurrent);
         const defaultVersion = currentVersion || sortedVersions[0];
@@ -475,18 +192,21 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             effectiveDate: defaultVersion.effectiveDate
           });
         }
-      } else {
-        console.error('Failed to load temporal versions:', response.statusText);
-      }
+      
     } catch (error) {
       console.error('Error loading temporal versions:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '加载版本数据时发生未知错误';
+      setLoadingError(errorMessage);
+      setRetryCount(prev => prev + 1);
     } finally {
       setIsLoading(false);
     }
   }, [organizationCode]);
 
   // 作废版本处理
-  const handleDeleteVersion = useCallback(async (version: TemporalVersion) => {
+  const handleDeleteVersion = useCallback(async (version: TimelineVersion) => {
     if (!version || isDeleting) return;
     
     try {
@@ -529,7 +249,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   }, [organizationCode, selectedVersion, isDeleting, loadVersions]);
 
   // 时间轴版本选择处理 - 增强功能，支持编辑历史记录页面联动
-  const handleVersionSelect = useCallback((version: TemporalVersion) => {
+  const handleVersionSelect = useCallback((version: TimelineVersion) => {
     setSelectedVersion(version);
     
     // 如果当前在新增版本选项卡，自动预填充选中版本的数据
@@ -666,7 +386,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   }, [isSubmitting]);
 
   // 历史记录编辑相关函数
-  // const handleEditHistory = useCallback((version: TemporalVersion) => { // TODO: 暂时未使用
+  // const handleEditHistory = useCallback((version: TimelineVersion) => { // TODO: 暂时未使用
   //   setFormMode('edit');
   //   setFormInitialData({
   //     name: version.name,
@@ -764,17 +484,73 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         </Box>
         
         <Flex gap="s">
-          <SecondaryButton onClick={loadVersions} disabled={isLoading}>
-            刷新
+          <SecondaryButton 
+            onClick={() => loadVersions()} 
+            disabled={isLoading}
+          >
+            {isLoading ? '刷新中...' : '刷新'}
           </SecondaryButton>
         </Flex>
       </Flex>
+
+      {/* 状态消息区域 */}
+      {(loadingError || successMessage) && (
+        <Box marginBottom="l">
+          {loadingError && (
+            <Box
+              padding="m"
+              backgroundColor={colors.cinnamon100}
+              border={`1px solid ${colors.cinnamon600}`}
+              borderRadius={borderRadius.m}
+              marginBottom="s"
+            >
+              <Flex alignItems="center" gap="s">
+                <Text color={colors.cinnamon600}>⚠️</Text>
+                <Box flex="1">
+                  <Text color={colors.cinnamon600} typeLevel="body.small" fontWeight="medium">
+                    加载失败
+                  </Text>
+                  <Text color={colors.cinnamon600} typeLevel="subtext.small">
+                    {loadingError}
+                  </Text>
+                </Box>
+                {retryCount < 3 && (
+                  <SecondaryButton
+                    size="small"
+                    onClick={() => loadVersions(true)}
+                    disabled={isLoading}
+                  >
+                    重试 ({retryCount}/3)
+                  </SecondaryButton>
+                )}
+              </Flex>
+            </Box>
+          )}
+          
+          {successMessage && (
+            <Box
+              padding="m"
+              backgroundColor={colors.greenApple100}
+              border={`1px solid ${colors.greenApple600}`}
+              borderRadius={borderRadius.m}
+              marginBottom="s"
+            >
+              <Flex alignItems="center" gap="s">
+                <Text color={colors.greenApple600}>✅</Text>
+                <Text color={colors.greenApple600} typeLevel="body.small" fontWeight="medium">
+                  {successMessage}
+                </Text>
+              </Flex>
+            </Box>
+          )}
+        </Box>
+      )}
 
       {/* 主从视图布局 */}
       <Flex gap="l" height="calc(100vh - 220px)">
         {/* 左侧：垂直交互式时间轴导航 */}
         {!isCreateMode && (
-          <TimelineNavigation
+          <TimelineComponent
             versions={versions}
             selectedVersion={selectedVersion}
             onVersionSelect={handleVersionSelect}
@@ -866,6 +642,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               onInsertRecord={handleFormSubmit} // 传递插入记录功能
               activeTab={activeTab}
               onTabChange={setActiveTab}
+              // versions相关props已移除 - 违反原则13
             />
           )}
         </Box>
