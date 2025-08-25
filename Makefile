@@ -182,8 +182,8 @@ install-deps:
 # 生成代码
 generate:
 	@echo "🔧 生成代码..."
-	# 生成 OpenAPI 代码
-	cd go-app && oapi-codegen -package openapi ../contracts/openapi.yaml > generated/openapi/server.go
+	# 生成 OpenAPI 代码 (AI网关API已移除)
+	# cd go-app && oapi-codegen -package openapi ../contracts/openapi.yaml > generated/openapi/server.go
 	# 生成 gRPC 代码
 	protoc --go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \

@@ -45,7 +45,7 @@ secondary_responsibility:
   - "go-app/internal/workflow/*.go"
   - "go-app/internal/neo4j/*.go"
   - "go-app/scripts/*.sql"
-  - "contracts/openapi.yaml"
+  - "docs/api/openapi.yaml"
 ```
 
 ## Agent Capabilities

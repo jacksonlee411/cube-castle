@@ -98,7 +98,7 @@ Specialized agent framework for Cube Castle HR System management and development
 
 **Tools**: OpenAPI, GraphQL schemas, Architecture diagrams
 **Responsibilities**:
-- API specifications (`contracts/openapi.yaml`)
+- API specifications (`docs/api/openapi.yaml` - Organization API)
 - Architecture documentation (`docs/architecture/`)
 - ADR management (`DOCS2/architecture-decisions/`)
 - Integration patterns and best practices
