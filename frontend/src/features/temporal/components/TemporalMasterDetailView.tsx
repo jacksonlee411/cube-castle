@@ -24,6 +24,24 @@ import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/uni
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
 
+// Organization Version interface
+interface OrganizationVersion {
+  code: string;
+  name: string;
+  unitType: string;
+  status: string;
+  level: number;
+  parentCode?: string;
+  description?: string;
+  sortOrder: number;
+  effectiveDate: string;
+  endDate?: string | null;
+  isCurrent: boolean;
+  recordId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TemporalMasterDetailViewProps {
   organizationCode: string | null; // 允许null用于创建模式
   readonly?: boolean;
@@ -118,7 +136,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       let data;
       try {
         data = await unifiedGraphQLClient.request<{
-          organizationVersions: any[];
+          organizationVersions: OrganizationVersion[];
         }>(`
           query GetOrganizationVersions($code: String!) {
             organizationVersions(code: $code) {
@@ -140,7 +158,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         `, {
           code: organizationCode
         });
-      } catch (graphqlError: any) {
+      } catch (graphqlError: unknown) {
         // 保留GraphQL层面错误处理 - 符合健壮方案原则
         if (graphqlError?.response?.status) {
           const statusCode = graphqlError.response.status;
@@ -155,10 +173,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         throw new Error('GraphQL响应为空');
       }
       
-      const versions = data.organizationVersions || [];
+      const versions: OrganizationVersion[] = data.organizationVersions || [];
         
         // 映射到组件需要的数据格式
-        const mappedVersions: TimelineVersion[] = versions.map((version: any) => ({
+        const mappedVersions: TimelineVersion[] = versions.map((version: OrganizationVersion) => ({
           recordId: version.recordId,
           code: version.code,
           name: version.name,
@@ -181,7 +199,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           changeReason: '', // 临时字段，组件中需要
         }));
         
-        const sortedVersions = mappedVersions.sort((a: any, b: any) => 
+        const sortedVersions = mappedVersions.sort((a: TimelineVersion, b: TimelineVersion) => 
           new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
         );
         setVersions(sortedVersions);
@@ -193,7 +211,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         }
         
         // 默认选中当前版本
-        const currentVersion = sortedVersions.find((v: any) => v.isCurrent);
+        const currentVersion = sortedVersions.find((v: TimelineVersion) => v.isCurrent);
         const defaultVersion = currentVersion || sortedVersions[0];
         
         if (defaultVersion) {
@@ -259,7 +277,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     } finally {
       setIsDeleting(false);
     }
-  }, [organizationCode, selectedVersion, isDeleting, loadVersions]);
+  }, [organizationCode, selectedVersion, isDeleting, loadVersions, showError]);
 
   // 时间轴版本选择处理 - 增强功能，支持编辑历史记录页面联动
   const handleVersionSelect = useCallback((version: TimelineVersion) => {
@@ -322,7 +340,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         console.log('提交创建组织请求:', requestBody);
         
         // 修复：使用统一认证客户端替代直接fetch调用
-        const result: any = await unifiedRESTClient.request('/organization-units', {
+        const result: Record<string, unknown> = await unifiedRESTClient.request('/organization-units', {
           method: 'POST',
           body: JSON.stringify(requestBody)
         });
@@ -372,7 +390,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     } finally {
       setIsSubmitting(false);
     }
-  }, [organizationCode, loadVersions, isCreateMode, onCreateSuccess]);
+  }, [organizationCode, loadVersions, isCreateMode, onCreateSuccess, showError, showSuccess]);
 
   const handleFormClose = useCallback(() => {
     if (!isSubmitting) {
@@ -412,7 +430,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [isSubmitting, onBack]);
 
-  const handleHistoryEditSubmit = useCallback(async (updateData: any) => {
+  const handleHistoryEditSubmit = useCallback(async (updateData: Record<string, unknown>) => {
     setIsSubmitting(true);
     try {
       // 使用recordId UUID作为唯一标识符 - 修复：使用统一认证客户端
@@ -443,7 +461,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     } finally {
       setIsSubmitting(false);
     }
-  }, [organizationCode, loadVersions]);
+  }, [organizationCode, loadVersions, showError, showSuccess]);
 
   // 组件挂载时加载数据 - 创建模式跳过加载
   useEffect(() => {

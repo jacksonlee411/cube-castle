@@ -14,6 +14,7 @@ import {
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
 import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+import { unifiedGraphQLClient } from '../../../shared/api/unified-client';
 
 // 层级节点数据接口
 export interface OrganizationTreeNode {
@@ -212,7 +213,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       
       // 如果没有指定根节点，则查询顶级节点
       let graphqlQuery: string;
-      let variables: any;
+      let variables: Record<string, unknown>;
       
       if (code) {
         // 查询指定节点的子树
@@ -276,27 +277,13 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         };
       }
       
-      const response = await fetch('http://localhost:8090/graphql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: graphqlQuery,
-          variables
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.errors) {
-          throw new Error(`GraphQL错误: ${data.errors.map((e: any) => e.message).join(', ')}`);
-        }
+      const data = await unifiedGraphQLClient.request(graphqlQuery, variables);
         
         let treeNodes: OrganizationTreeNode[];
         
         if (code) {
           // 处理子树响应
-          const subtree = data.data.organizationSubtree;
+          const subtree = (data as { organizationSubtree?: OrganizationTreeNode }).organizationSubtree;
           if (subtree) {
             treeNodes = showRoot ? [subtree] : subtree.children || [];
           } else {
@@ -304,15 +291,15 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           }
         } else {
           // 处理根节点响应
-          const organizations = data.data.organizations?.data || [];
-          treeNodes = organizations.map((org: any) => ({
-            code: org.code,
-            name: org.name,
-            unitType: org.unitType,
-            status: org.status,
-            level: org.level || 1,
-            parentCode: org.parentCode,
-            parentChain: org.codePath ? org.codePath.split('/').filter(Boolean) : [],
+          const organizations = (data as { organizations?: { data: Record<string, unknown>[] } }).organizations?.data || [];
+          treeNodes = organizations.map((org: Record<string, unknown>) => ({
+            code: org.code as string,
+            name: org.name as string,
+            unitType: org.unitType as string,
+            status: org.status as string,
+            level: (org.level as number) || 1,
+            parentCode: org.parentCode as string | undefined,
+            parentChain: org.codePath ? (org.codePath as string).split('/').filter(Boolean) : [],
             childrenCount: 0, // 需要后续查询获取
             children: [],
             isExpanded: false
@@ -320,9 +307,6 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         }
         
         setTreeData(treeNodes);
-      } else {
-        throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`);
-      }
     } catch (error) {
       console.error('Error loading tree data:', error);
       const errorMessage = error instanceof Error 

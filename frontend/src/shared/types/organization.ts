@@ -32,6 +32,12 @@ export interface OrganizationStats {
   totalCount: number;  // camelCase
   byType: Record<string, number>;  // camelCase
   byStatus: Record<string, number>;  // camelCase
+  temporal?: {
+    current: number;
+    future: number;
+    historical: number;
+  };
+  lastUpdated?: string;
 }
 
 // 组织查询参数 (camelCase)

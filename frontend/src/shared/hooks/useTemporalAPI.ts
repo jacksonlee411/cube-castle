@@ -5,6 +5,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { TemporalConverter } from '../utils/temporal-converter';
+import { unifiedRESTClient } from '../api/unified-client';
 
 // 组织详情API基础URL
 const TEMPORAL_API_BASE = 'http://localhost:9091/api/v1';
@@ -60,11 +61,7 @@ export function useTemporalHealth() {
   return useQuery({
     queryKey: ['temporal', 'health'],
     queryFn: async (): Promise<TemporalHealthResponse> => {
-      const response = await fetch(`${TEMPORAL_API_BASE.replace('/api/v1', '')}/health`);
-      if (!response.ok) {
-        throw new Error('组织详情服务不可用');
-      }
-      return response.json();
+      return await unifiedRESTClient.request('/health');
     },
     staleTime: 30 * 1000, // 30秒内认为数据新鲜
     gcTime: 60 * 1000, // 缓存1分钟
@@ -79,15 +76,7 @@ export function useTemporalAsOfDateQuery(organizationCode: string, asOfDate: str
   return useQuery({
     queryKey: ['temporal', 'asOfDate', organizationCode, asOfDate],
     queryFn: async (): Promise<TemporalQueryResponse> => {
-      const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?asOfDate=${asOfDate}`;
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '时态查询失败');
-      }
-      
-      return response.json();
+      return await unifiedRESTClient.request(`/organization-units/${organizationCode}/temporal?asOfDate=${asOfDate}`);
     },
     enabled: enabled && !!organizationCode && !!asOfDate,
     staleTime: 5 * 60 * 1000, // 5分钟内认为数据新鲜
@@ -107,15 +96,7 @@ export function useTemporalDateRangeQuery(
   return useQuery({
     queryKey: ['temporal', 'dateRange', organizationCode, effectiveFrom, effectiveTo],
     queryFn: async (): Promise<TemporalQueryResponse> => {
-      const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?effectiveFrom=${effectiveFrom}&effectiveTo=${effectiveTo}`;
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '时态范围查询失败');
-      }
-      
-      return response.json();
+      return await unifiedRESTClient.request(`/organization-units/${organizationCode}/temporal?effectiveFrom=${effectiveFrom}&effectiveTo=${effectiveTo}`);
     },
     enabled: enabled && !!organizationCode && !!effectiveFrom && !!effectiveTo,
     staleTime: 5 * 60 * 1000,
@@ -143,9 +124,7 @@ export function useTemporalQueryUtils() {
       await queryClient.prefetchQuery({
         queryKey: ['temporal', 'asOfDate', organizationCode, params.asOfDate],
         queryFn: async () => {
-          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?asOfDate=${params.asOfDate}`;
-          const response = await fetch(url);
-          return response.json();
+          return await unifiedRESTClient.request(`/organization-units/${organizationCode}/temporal?asOfDate=${params.asOfDate}`);
         },
         staleTime: 5 * 60 * 1000,
       });
@@ -155,9 +134,7 @@ export function useTemporalQueryUtils() {
       await queryClient.prefetchQuery({
         queryKey: ['temporal', 'dateRange', organizationCode, params.effectiveFrom, params.effectiveTo],
         queryFn: async () => {
-          const url = `${TEMPORAL_API_BASE}/organization-units/${organizationCode}/temporal?effectiveFrom=${params.effectiveFrom}&effectiveTo=${params.effectiveTo}`;
-          const response = await fetch(url);
-          return response.json();
+          return await unifiedRESTClient.request(`/organization-units/${organizationCode}/temporal?effectiveFrom=${params.effectiveFrom}&effectiveTo=${params.effectiveTo}`);
         },
         staleTime: 5 * 60 * 1000,
       });

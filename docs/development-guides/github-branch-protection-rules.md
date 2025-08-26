@@ -1,8 +1,121 @@
 # GitHub分支保护规则配置指南
 
-**文档编号**: CI/CD-002  
+**文档编号**: CI/CD-002-Enhanced  
 **创建日期**: 2025-08-24  
-**适用项目**: Cube Castle契约测试自动化体系  
+**更新日期**: 2025-08-26 ⭐ **质量门禁强制执行**  
+**适用项目**: Cube Castle契约测试自动化体系 + 前端质量门禁  
+
+## 📋 概述
+本文档指导如何为Cube Castle项目配置GitHub分支保护规则，确保前端质量门禁强制执行，阻止架构违规代码合并。
+
+## ⚙️ 分支保护配置
+
+### 主分支保护 (master/main)
+
+**配置路径**: GitHub Repository → Settings → Branches → Add rule
+
+**规则配置**:
+```yaml
+分支名称模式: master (或 main)
+
+必需状态检查:
+  ✅ Require status checks to pass before merging
+  ✅ Require branches to be up to date before merging
+  
+必需状态检查项:
+  - "🔒 前端架构治理和质量验证"
+  - "✅ 质量门禁结果" 
+  - "契约测试自动化验证"
+
+其他保护规则:
+  ✅ Require a pull request before merging
+  ✅ Require approvals: 1
+  ✅ Dismiss stale reviews when new commits are pushed
+  ✅ Require review from code owners (如果有CODEOWNERS文件)
+  ✅ Restrict who can dismiss pull request reviews
+  ✅ Allow force pushes: ❌ 禁用
+  ✅ Allow deletions: ❌ 禁用
+  ✅ Include administrators: ✅ 启用 (重要!)
+```
+
+### 开发分支保护 (develop)
+
+**配置**:
+```yaml
+分支名称模式: develop
+
+必需状态检查:
+  ✅ Require status checks to pass before merging
+  ✅ Require branches to be up to date before merging
+  
+必需状态检查项:
+  - "🔒 前端架构治理和质量验证"
+  - "✅ 质量门禁结果"
+
+Pull Request要求:
+  ✅ Require a pull request before merging
+  ✅ Require approvals: 1
+  ❌ Dismiss stale reviews: 关闭 (开发分支允许快速迭代)
+  
+其他保护:
+  ✅ Include administrators: ✅ 启用
+```
+
+## 🚀 配置步骤
+
+### 第一步: 启用分支保护
+1. 进入GitHub仓库页面
+2. 点击 `Settings` 选项卡  
+3. 点击左侧 `Branches` 菜单
+4. 点击 `Add rule` 按钮
+
+### 第二步: 配置主分支规则
+```bash
+# 分支名称模式
+master
+
+# 勾选必需的保护选项
+☑ Require a pull request before merging
+☑ Require status checks to pass before merging  
+☑ Require branches to be up to date before merging
+☑ Include administrators
+
+# 添加必需状态检查
+在 "Status checks found in the last week for this repository" 中选择:
+- 🔒 前端架构治理和质量验证
+- ✅ 质量门禁结果
+- 契约测试自动化验证
+```
+
+### 第三步: 验证配置生效
+1. 创建测试分支修改前端代码
+2. 提交包含ESLint错误的代码
+3. 创建Pull Request
+4. 确认CI/CD检查失败并阻止合并
+
+## 🔒 强制执行效果
+
+配置完成后：
+- **本地提交**: Pre-commit Hook阻止ESLint错误
+- **远程推送**: CI/CD工作流检测并报告违规
+- **代码合并**: 分支保护阻止质量不合格的PR合并
+- **管理员约束**: 即使管理员也不能绕过质量检查
+
+## ⚡ 紧急绕过机制
+
+**仅在生产紧急修复时使用**:
+1. 临时禁用分支保护 (仅管理员)
+2. 完成紧急修复
+3. 立即重新启用分支保护
+4. 后续PR修复技术债务
+
+## 📊 监控和度量
+
+**质量指标**:
+- PR合并成功率应>90%  
+- ESLint错误数量应为0
+- 契约测试通过率应为100%
+- 代码审查时间应<2小时
 **配置目标**: 建立合并阻塞门禁，确保代码质量  
 
 ---

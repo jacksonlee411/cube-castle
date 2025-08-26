@@ -9,6 +9,7 @@ import { validateForm } from './ValidationRules';
 import type { OrganizationFormProps, FormData } from './FormTypes';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../../../shared/hooks/useOrganizationMutations';
 import { TemporalConverter } from '../../../../shared/utils/temporal-converter';
+import { useMessages } from '../../../../shared/hooks/useMessages';
 
 export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   organization,
@@ -21,6 +22,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   const createMutation = useCreateOrganization();
   const updateMutation = useUpdateOrganization();
   // const { isCurrent, isPlanning } = useTemporalMode();
+  const { showError } = useMessages();
   
   const isEditing = !!organization;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,11 +188,11 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         errorMessage = error.message;
       }
       
-      alert(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
-  }, [isEditing, formData, createMutation, updateMutation, isSubmitting, model, onClose, organization]);
+  }, [isEditing, formData, createMutation, updateMutation, isSubmitting, model, onClose, organization, showError]);
 
   const handleClose = () => {
     setIsSubmitting(false);

@@ -11,6 +11,7 @@ import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { Checkbox } from '@workday/canvas-kit-react/checkbox';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
 import { useTemporalActions } from '../../../shared/stores/temporalStore';
+import { useMessages } from '../../../shared/hooks/useMessages';
 import type { TemporalQueryParams, EventType } from '../../../shared/types/temporal';
 
 export interface TemporalSettingsProps {
@@ -48,6 +49,7 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
 
   // 时态操作
   const { setQueryParams, clearCache } = useTemporalActions();
+  const { showSuccess, showError } = useMessages();
 
   // 事件类型选项
   const eventTypeOptions: { value: EventType; label: string }[] = [
@@ -121,12 +123,12 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
   const handleClearCache = useCallback(async () => {
     try {
       await clearCache();
-      alert('缓存已清除');
+      showSuccess('缓存已清除');
     } catch (error) {
       console.error('Failed to clear cache:', error);
-      alert('清除缓存失败');
+      showError('清除缓存失败');
     }
-  }, [clearCache]);
+  }, [clearCache, showSuccess, showError]);
 
   if (!isOpen) {
     return null;

@@ -6,6 +6,8 @@ import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button
 import { colors } from '@workday/canvas-kit-react/tokens'
 import { Flex } from '@workday/canvas-kit-react/layout'
 import { contractTestingAPI } from '../../shared/api/contract-testing'
+import { useMessages } from '../../shared/hooks/useMessages'
+import { MessageDisplay } from '../../shared/components/MessageDisplay'
 
 interface ContractMetrics {
   contractTestPass: number
@@ -100,6 +102,8 @@ export const ContractTestingDashboard: React.FC = () => {
     schemaValidationMessage: 'spawnSync /bin/sh ENOENT',
     timestamp: new Date().toLocaleString('zh-CN')
   })
+  
+  const { successMessage, error, showSuccess, showError } = useMessages()
 
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -131,10 +135,10 @@ export const ContractTestingDashboard: React.FC = () => {
         contractTestTotal: result.totalTests,
         timestamp: new Date().toLocaleString('zh-CN')
       }))
-      alert(`✅ 契约测试完成！通过 ${result.passedTests}/${result.totalTests} 个测试`)
+      showSuccess(`契约测试完成！通过 ${result.passedTests}/${result.totalTests} 个测试`)
     } catch (error) {
       console.error('Contract test failed:', error)
-      alert('❌ 契约测试执行失败：' + (error as Error).message)
+      showError('契约测试执行失败：' + (error as Error).message)
     } finally {
       setIsRefreshing(false)
     }
@@ -150,10 +154,10 @@ export const ContractTestingDashboard: React.FC = () => {
         fieldNamingCompliance: result.complianceRate,
         timestamp: new Date().toLocaleString('zh-CN')
       }))
-      alert(`✅ 字段命名验证完成！合规率 ${result.complianceRate}%，违规项 ${result.violations} 个`)
+      showSuccess(`字段命名验证完成！合规率 ${result.complianceRate}%，违规项 ${result.violations} 个`)
     } catch (error) {
       console.error('Field naming validation failed:', error)
-      alert('❌ 字段命名验证失败：' + (error as Error).message)
+      showError('字段命名验证失败：' + (error as Error).message)
     } finally {
       setIsRefreshing(false)
     }
@@ -169,10 +173,10 @@ export const ContractTestingDashboard: React.FC = () => {
         schemaValidationMessage: result.message,
         timestamp: new Date().toLocaleString('zh-CN')
       }))
-      alert(`✅ Schema验证完成！状态：${result.message}`)
+      showSuccess(`Schema验证完成！状态：${result.message}`)
     } catch (error) {
       console.error('Schema validation failed:', error)
-      alert('❌ Schema验证失败：' + (error as Error).message)
+      showError('Schema验证失败：' + (error as Error).message)
     } finally {
       setIsRefreshing(false)
     }
@@ -184,6 +188,12 @@ export const ContractTestingDashboard: React.FC = () => {
 
   return (
     <Box>
+      {/* 消息显示区域 */}
+      <MessageDisplay 
+        successMessage={successMessage}
+        errorMessage={error}
+      />
+      
       {/* 页面标题 */}
       <Flex alignItems="center" marginBottom="l">
         <Text typeLevel="heading.large" marginRight="m">

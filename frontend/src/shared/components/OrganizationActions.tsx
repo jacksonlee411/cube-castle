@@ -8,13 +8,14 @@ import {
   checkCircleIcon 
 } from '@workday/canvas-system-icons-web';
 import { statusUtils } from '../components/StatusBadge';
+import { useMessages } from '../hooks/useMessages';
 import type { OrganizationStatus } from '../components/StatusBadge';
 
 export interface Organization {
   code: string;
   name: string;
   status: OrganizationStatus;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface OrganizationActionsProps {
@@ -37,6 +38,7 @@ export const OrganizationActions: React.FC<OrganizationActionsProps> = ({
   disabled = false
 }) => {
   const [loading, setLoading] = useState<string | null>(null);
+  const { showError } = useMessages();
   const availableActions = statusUtils.getAvailableActions(organization.status);
 
   const handleAction = async (action: string) => {
@@ -73,7 +75,7 @@ export const OrganizationActions: React.FC<OrganizationActionsProps> = ({
       }
     } catch (error) {
       console.error(`操作失败 [${action}]:`, error);
-      alert(`操作失败: ${error}`);
+      showError(`操作失败: ${String(error)}`);
     } finally {
       setLoading(null);
     }

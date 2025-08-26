@@ -11,7 +11,7 @@
 - `00-README.md` - 本文档，开发计划目录使用指南
 
 ### **01 - API规范基础**
-- `01-organization-units-api-specification.md` - 组织单元API规范 v4.2 (企业级标准)
+- `../architecture/01-organization-units-api-specification.md` - 组织单元API规范 v4.2 (企业级标准)
 
 ### **02 - 技术架构**  
 - `02-technical-architecture-design.md` - 技术架构设计文档
@@ -82,6 +82,16 @@
 **主要文档**: `03-api-compliance-intensive-refactoring-plan.md`  
 **重构重点**: REST命令服务完善 + OAuth权限集成 + 企业级功能补全  
 **风险控制**: Git分支保护 + 每日备份 + 功能开关机制
+
+## 📋 API契约文档快速访问
+
+### **契约优先开发 - Single Source of Truth**
+- 🔧 **REST API规范**: [../api/openapi.yaml](../api/openapi.yaml) - 命令操作完整规范
+- 🚀 **GraphQL Schema**: [../api/schema.graphql](../api/schema.graphql) - 查询操作完整Schema  
+- 📚 **API文档入口**: [../api/README.md](../api/README.md) - API规范使用指南
+- 📋 **版本变更历史**: [../api/CHANGELOG.md](../api/CHANGELOG.md) - API演进记录
+
+> **契约驱动开发原则**: "先改契约，再写代码" - 所有API变更必须先更新`../api/`目录下的契约文件，后修改实现代码
 
 ## 📋 文档维护
 

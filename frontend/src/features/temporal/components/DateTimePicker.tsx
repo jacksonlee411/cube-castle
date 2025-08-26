@@ -194,7 +194,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
       onSelect(dateTime);
     } catch (error) {
-      alert(error instanceof Error ? error.message : '日期时间选择错误');
+      console.error('DateTime selection error:', error);
     }
   }, [customInput, selectedDate, selectedTime, showTime, minDate, maxDate, onSelect]);
 

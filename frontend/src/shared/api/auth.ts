@@ -60,9 +60,9 @@ export class AuthManager {
     const response = await fetch(this.config.tokenEndpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
+      body: new URLSearchParams({
         grant_type: this.config.grantType,
         client_id: this.config.clientId,
         client_secret: this.config.clientSecret,

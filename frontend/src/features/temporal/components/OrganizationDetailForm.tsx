@@ -138,7 +138,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
                 <Select.Popper>
                   <Select.Card>
                     <Select.List>
-                      {(option: any) => (
+                      {(option: {value: string; label: string}) => (
                         <Select.Item key={option.value}>
                           {option.label}
                         </Select.Item>
@@ -170,7 +170,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
                 <Select.Popper>
                   <Select.Card>
                     <Select.List>
-                      {(option: any) => (
+                      {(option: {value: string; label: string}) => (
                         <Select.Item key={option.value}>
                           {option.label}
                         </Select.Item>

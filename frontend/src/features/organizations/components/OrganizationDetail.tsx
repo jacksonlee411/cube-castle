@@ -166,7 +166,7 @@ const OrganizationInfoCard: React.FC<OrganizationInfoCardProps> = ({
  * 组织详情页面主组件
  */
 export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
-  organizationCode,
+  organizationCode: _organizationCode,
   readonly = false,
   onBack
 }) => {
@@ -196,12 +196,12 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
   }, []);
 
   // 临时历史版本和时间线状态 - 替代已删除的钩子
-  const [historyVersions] = useState<any[]>([]);
+  const [historyVersions] = useState<Record<string, unknown>[]>([]);
   const [hasHistory] = useState(false);
   const [timelineLoading] = useState(false);
   const [hasTimelineEvents] = useState(false);
   const [eventCount] = useState(0);
-  const [latestEvent] = useState<any>(null);
+  const [latestEvent] = useState<Record<string, unknown> | null>(null);
 
   // 组织操作钩子
   const {

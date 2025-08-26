@@ -306,49 +306,44 @@ export const organizationAPI = {
       const graphqlQuery = `
         query GetOrganizationStats {
           organizationStats {
-            totalCount
-            activeCount
-            inactiveCount
-            plannedCount
-            deletedCount
+            total
             byType {
-              unitType
+              type
               count
+              percentage
             }
             byStatus {
               status
               count
+              percentage
             }
             byLevel {
               level
               count
+              percentage
             }
-            temporalStats {
-              totalVersions
-              averageVersionsPerOrg
-              oldestEffectiveDate
-              newestEffectiveDate
+            temporal {
+              current
+              future
+              historical
             }
+            lastUpdated
           }
         }
       `;
 
       const data = await unifiedGraphQLClient.request<{
         organizationStats: {
-          totalCount: number;
-          activeCount: number;
-          inactiveCount: number;
-          plannedCount: number;
-          deletedCount: number;
-          byType: Array<{ unitType: string; count: number }>;
-          byStatus: Array<{ status: string; count: number }>;
-          byLevel: Array<{ level: number; count: number }>;
-          temporalStats: {
-            totalVersions: number;
-            averageVersionsPerOrg: number;
-            oldestEffectiveDate: string;
-            newestEffectiveDate: string;
+          total: number;
+          byType: Array<{ type: string; count: number; percentage: number }>;
+          byStatus: Array<{ status: string; count: number; percentage: number }>;
+          byLevel: Array<{ level: number; count: number; percentage: number }>;
+          temporal: {
+            current: number;
+            future: number;
+            historical: number;
           };
+          lastUpdated: string;
         };
       }>(graphqlQuery);
 
@@ -363,7 +358,7 @@ export const organizationAPI = {
       const byStatus: Record<string, number> = {};
       
       stats.byType.forEach(item => {
-        byType[item.unitType] = item.count;
+        byType[item.type] = item.count;
       });
       
       stats.byStatus.forEach(item => {
@@ -371,9 +366,11 @@ export const organizationAPI = {
       });
 
       return {
-        totalCount: stats.totalCount,
+        totalCount: stats.total,
         byType,
-        byStatus
+        byStatus,
+        temporal: stats.temporal,
+        lastUpdated: stats.lastUpdated
       };
 
     } catch (error) {

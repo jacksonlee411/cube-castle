@@ -73,8 +73,8 @@ export interface InlineNewVersionFormProps {
     endDate?: string | null;
     isCurrent: boolean;
   }> | null;
-  onEditHistory?: (versionData: any) => Promise<void>;
-  onDeactivate?: (version: any) => Promise<void>; // 新增作废功能
+  onEditHistory?: (versionData: Record<string, unknown>) => Promise<void>;
+  onDeactivate?: (version: Record<string, unknown>) => Promise<void>; // 新增作废功能
   onInsertRecord?: (data: TemporalEditFormData) => Promise<void>; // 新增插入记录功能
   activeTab?: 'edit-history' | 'new-version'; // 当前选项卡状态
   onTabChange?: (tab: 'edit-history' | 'new-version') => void; // 选项卡切换
@@ -198,7 +198,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   
   // 历史记录编辑相关状态
   const [isEditingHistory, setIsEditingHistory] = useState(false);
-  const [originalHistoryData, setOriginalHistoryData] = useState<any>(null);
+  const [originalHistoryData, setOriginalHistoryData] = useState<Record<string, unknown> | null>(null);
   
   // 作废功能相关状态
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
@@ -551,11 +551,11 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setShowDeactivateConfirm(false);
       // 作废成功后保持在当前页面，用户可以观察操作结果
       // 显示成功提示，让用户知道操作已完成
-      alert(`版本删除成功！生效日期：${new Date(selectedVersion.effectiveDate).toLocaleDateString('zh-CN')}`);
+      setSuccessMessage(`版本删除成功！生效日期：${new Date(selectedVersion.effectiveDate).toLocaleDateString('zh-CN')}`);
       // 移除 onCancel() 调用，让用户自己决定是否离开页面
     } catch (error) {
       console.error('删除失败:', error);
-      alert('删除失败，请重试');
+      setError('删除失败，请重试');
     } finally {
       setIsDeactivating(false);
     }
