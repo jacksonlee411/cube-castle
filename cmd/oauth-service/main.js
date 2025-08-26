@@ -8,6 +8,7 @@ const PORT = process.env.OAUTH_PORT || 8080;
 
 // 中间件配置
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // 🔧 修复: 添加URL编码解析支持
 app.use(cors({
     origin: ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true
