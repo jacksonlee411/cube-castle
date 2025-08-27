@@ -386,7 +386,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
                     <Text typeLevel="body.small">时间线事件: {eventCount} 个</Text>
                     <Text typeLevel="body.small">历史版本: {historyVersions.length} 个</Text>
                     {latestEvent && (
-                      <Text typeLevel="body.small">最新事件: {latestEvent.title}</Text>
+                      <Text typeLevel="body.small">最新事件: {(latestEvent.title as string) || '未知事件'}</Text>
                     )}
                   </Box>
                 )}

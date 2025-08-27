@@ -160,12 +160,21 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         });
       } catch (graphqlError: unknown) {
         // 保留GraphQL层面错误处理 - 符合健壮方案原则
-        if (graphqlError?.response?.status) {
-          const statusCode = graphqlError.response.status;
-          const statusText = graphqlError.response.statusText || 'Unknown Error';
+        interface GraphQLErrorWithResponse {
+          response?: {
+            status: number;
+            statusText?: string;
+          };
+          message?: string;
+        }
+        
+        const typedError = graphqlError as GraphQLErrorWithResponse;
+        if (typedError?.response?.status) {
+          const statusCode = typedError.response.status;
+          const statusText = typedError.response.statusText || 'Unknown Error';
           throw new Error(`服务器响应错误 (${statusCode}): ${statusText}`);
         }
-        throw new Error(`GraphQL调用失败: ${graphqlError.message || '未知错误'}`);
+        throw new Error(`GraphQL调用失败: ${typedError?.message || '未知错误'}`);
       }
         
       // 保留数据验证 - 防御性编程
@@ -346,7 +355,15 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         });
         
         console.log('创建成功响应:', result);
-        const newOrganizationCode = result.code || result.organization?.code;
+        interface CreateResult {
+          code?: string;
+          organization?: {
+            code?: string;
+          };
+        }
+        
+        const typedResult = result as CreateResult;
+        const newOrganizationCode = typedResult.code || typedResult.organization?.code;
         
         if (newOrganizationCode && onCreateSuccess) {
           console.log('跳转到新组织:', newOrganizationCode);
@@ -648,7 +665,11 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 isCurrent: v.isCurrent
               }))}
               onEditHistory={handleHistoryEditSubmit}
-              onDeactivate={handleDeleteVersion} // 传递作废功能
+              onDeactivate={async (version: Record<string, unknown>) => {
+                // 类型安全转换
+                const typedVersion = version as unknown as TimelineVersion;
+                await handleDeleteVersion(typedVersion);
+              }} // 传递作废功能
               onInsertRecord={handleFormSubmit} // 传递插入记录功能
               activeTab={activeTab}
               onTabChange={setActiveTab}

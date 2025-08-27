@@ -198,7 +198,22 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   
   // 历史记录编辑相关状态
   const [isEditingHistory, setIsEditingHistory] = useState(false);
-  const [originalHistoryData, setOriginalHistoryData] = useState<Record<string, unknown> | null>(null);
+  
+  // 定义历史记录数据的接口类型
+  interface OriginalHistoryData {
+    recordId: string;
+    createdAt: string;
+    updatedAt: string;
+    code: string;
+    name: string;
+    unitType: string;
+    status: string;
+    effectiveDate: string;
+    description?: string;
+    parentCode?: string;
+  }
+  
+  const [originalHistoryData, setOriginalHistoryData] = useState<OriginalHistoryData | null>(null);
   
   // 作废功能相关状态
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
@@ -525,12 +540,12 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     // 恢复原始数据
     if (originalHistoryData) {
       setFormData({
-        name: originalHistoryData.name,
-        unitType: originalHistoryData.unitType,
-        lifecycleStatus: originalHistoryData.status || 'PLANNED',
-        description: originalHistoryData.description || '',
-        effectiveDate: new Date(originalHistoryData.effectiveDate).toISOString().split('T')[0],
-        parentCode: originalHistoryData.parentCode || ''
+        name: originalHistoryData.name as string,
+        unitType: originalHistoryData.unitType as string,
+        lifecycleStatus: (originalHistoryData.status as 'SUSPENDED' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL') || 'PLANNED',
+        description: (originalHistoryData.description as string) || '',
+        effectiveDate: new Date(originalHistoryData.effectiveDate as string).toISOString().split('T')[0],
+        parentCode: (originalHistoryData.parentCode as string) || ''
       });
     }
     setIsEditingHistory(false);
@@ -802,7 +817,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     记录UUID:
                   </Text>
                   <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700} style={{fontFamily: 'monospace'}}>
-                    {originalHistoryData.recordId}
+                    {originalHistoryData.recordId as string}
                   </Text>
                 </Box>
                 <Box>
@@ -810,7 +825,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     创建时间:
                   </Text>
                   <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
-                    {new Date(originalHistoryData.createdAt).toLocaleString('zh-CN')}
+                    {new Date(originalHistoryData.createdAt as string).toLocaleString('zh-CN')}
                   </Text>
                 </Box>
                 <Box>
@@ -818,7 +833,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     最后更新:
                   </Text>
                   <Text typeLevel="subtext.small" marginTop="xs" color={colors.licorice700}>
-                    {new Date(originalHistoryData.updatedAt).toLocaleString('zh-CN')}
+                    {new Date(originalHistoryData.updatedAt as string).toLocaleString('zh-CN')}
                   </Text>
                 </Box>
               </Box>

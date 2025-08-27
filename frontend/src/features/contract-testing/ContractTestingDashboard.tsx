@@ -5,6 +5,15 @@ import { Card } from '@workday/canvas-kit-react/card'
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button'
 import { colors } from '@workday/canvas-kit-react/tokens'
 import { Flex } from '@workday/canvas-kit-react/layout'
+import { SystemIcon } from '@workday/canvas-kit-react/icon'
+import { 
+  dashboardIcon, 
+  documentIcon, 
+  clockIcon,
+  checkCircleIcon,
+  exclamationCircleIcon,
+  xIcon
+} from '@workday/canvas-system-icons-web'
 import { contractTestingAPI } from '../../shared/api/contract-testing'
 import { useMessages } from '../../shared/hooks/useMessages'
 import { MessageDisplay } from '../../shared/components/MessageDisplay'
@@ -21,11 +30,12 @@ interface ContractMetrics {
 
 const MetricCard: React.FC<{
   title: string
-  value: string | number
+  value: string | number | React.ReactNode
   status: 'good' | 'warning' | 'error'
   subtitle?: string
   violationDetails?: string[]
-}> = ({ title, value, status, subtitle, violationDetails }) => {
+  icon?: React.ReactNode
+}> = ({ title, value, status, subtitle, violationDetails, icon }) => {
   const getStatusColor = () => {
     switch (status) {
       case 'good': return colors.greenApple500
@@ -37,7 +47,10 @@ const MetricCard: React.FC<{
 
   return (
     <Card padding="l">
-      <Text typeLevel="heading.small" marginBottom="s">{title}</Text>
+      <Flex alignItems="center" gap="s" marginBottom="s">
+        {icon}
+        <Text typeLevel="heading.small">{title}</Text>
+      </Flex>
       <Text 
         typeLevel="heading.large" 
         color={getStatusColor()}
@@ -222,14 +235,16 @@ export const ContractTestingDashboard: React.FC = () => {
         marginBottom="xl"
       >
         <MetricCard
-          title="📊 契约测试通过率"
+          icon={<SystemIcon icon={dashboardIcon} size={20} />}
+          title="契约测试通过率"
           value={`${contractPassRate}%`}
           status={contractPassRate > 90 ? 'good' : contractPassRate > 70 ? 'warning' : 'error'}
           subtitle={`通过: ${metrics.contractTestPass} / 总数: ${metrics.contractTestTotal}`}
         />
 
         <MetricCard
-          title="📝 字段命名合规率"
+          icon={<SystemIcon icon={documentIcon} size={20} />}
+          title="字段命名合规率"
           value={`${metrics.fieldNamingCompliance}%`}
           status={metrics.fieldNamingCompliance > 95 ? 'good' : metrics.fieldNamingCompliance > 80 ? 'warning' : 'error'}
           subtitle={`违规项: ${metrics.fieldNamingViolations}`}
@@ -240,9 +255,24 @@ export const ContractTestingDashboard: React.FC = () => {
         />
 
         <MetricCard
-          title="🔧 GraphQL Schema状态"
-          value={metrics.schemaValidationStatus === 'success' ? '✅ 正常' : 
-                 metrics.schemaValidationStatus === 'warning' ? '⚠️ 警告' : '❌ 错误'}
+          icon={<SystemIcon icon={clockIcon} size={20} />}
+          title="GraphQL Schema状态"
+          value={metrics.schemaValidationStatus === 'success' ? (
+            <Flex alignItems="center" gap="xs">
+              <SystemIcon icon={checkCircleIcon} size={16} color="greenApple600" />
+              <Text>正常</Text>
+            </Flex>
+          ) : metrics.schemaValidationStatus === 'warning' ? (
+            <Flex alignItems="center" gap="xs">
+              <SystemIcon icon={exclamationCircleIcon} size={16} color="cantaloupe600" />
+              <Text>警告</Text>
+            </Flex>
+          ) : (
+            <Flex alignItems="center" gap="xs">
+              <SystemIcon icon={xIcon} size={16} color="cinnamon600" />
+              <Text>错误</Text>
+            </Flex>
+          )}
           status={metrics.schemaValidationStatus === 'success' ? 'good' : 
                  metrics.schemaValidationStatus === 'warning' ? 'warning' : 'error'}
           subtitle="Schema v4.2.1 验证"
@@ -306,9 +336,10 @@ export const ContractTestingDashboard: React.FC = () => {
           
           <Box>
             <Text fontWeight="bold" marginBottom="s">建议操作:</Text>
-            <Text color="cinnamon600">
-              🔧 优先修复字段命名问题，这会阻止代码合并
-            </Text>
+            <Flex alignItems="center" gap="xs" color="cinnamon600">
+              <SystemIcon icon={clockIcon} size={16} color="cinnamon600" />
+              <Text>优先修复字段命名问题，这会阻止代码合并</Text>
+            </Flex>
           </Box>
         </Card>
       </Box>

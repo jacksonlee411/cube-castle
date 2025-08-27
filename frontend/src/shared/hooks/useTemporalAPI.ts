@@ -7,8 +7,7 @@ import { useCallback } from 'react';
 import { TemporalConverter } from '../utils/temporal-converter';
 import { unifiedRESTClient } from '../api/unified-client';
 
-// 组织详情API基础URL
-const TEMPORAL_API_BASE = 'http://localhost:9091/api/v1';
+// 组织详情API基础URL (通过unifiedRESTClient统一处理)
 
 // 查询参数接口 (纯日期生效模型)
 export interface TemporalQueryParams {

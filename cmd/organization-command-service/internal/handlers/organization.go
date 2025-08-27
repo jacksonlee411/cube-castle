@@ -119,7 +119,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code,
 			"CreateOrganization", actorID, requestID, ipAddress, "CREATE_ERROR", err.Error(), requestData)
 
-		h.writeErrorResponse(w, r, http.StatusInternalServerError, "CREATE_ERROR", "创建组织失败", err)
+		h.handleRepositoryError(w, r, "CREATE", err)
 		return
 	}
 
@@ -171,13 +171,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	// 更新组织
 	updatedOrg, err := h.repo.Update(r.Context(), tenantID, code, &req)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
-		} else if strings.Contains(err.Error(), "constraint") {
-			h.writeErrorResponse(w, r, http.StatusConflict, "DATA_CONSTRAINT_VIOLATION", "数据约束冲突", err)
-		} else {
-			h.writeErrorResponse(w, r, http.StatusInternalServerError, "UPDATE_ERROR", "更新组织失败", err)
-		}
+		h.handleRepositoryError(w, r, "UPDATE", err)
 		return
 	}
 
@@ -216,15 +210,7 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 	// 删除组织
 	err := h.repo.Delete(r.Context(), tenantID, code)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
-		} else if strings.Contains(err.Error(), "has children") {
-			h.writeErrorResponse(w, r, http.StatusConflict, "HAS_CHILDREN", "不能删除包含子组织的单元", err)
-		} else if strings.Contains(err.Error(), "constraint") {
-			h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "存在关联数据，无法删除", err)
-		} else {
-			h.writeErrorResponse(w, r, http.StatusInternalServerError, "DELETE_ERROR", "删除组织失败", err)
-		}
+		h.handleRepositoryError(w, r, "DELETE", err)
 		return
 	}
 
@@ -277,13 +263,7 @@ func (h *OrganizationHandler) SuspendOrganization(w http.ResponseWriter, r *http
 	// 停用组织
 	org, err := h.repo.Suspend(r.Context(), tenantID, code, req.Reason)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
-		} else if strings.Contains(err.Error(), "already suspended") {
-			h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_SUSPENDED", "组织单元已处于停用状态", err)
-		} else {
-			h.writeErrorResponse(w, r, http.StatusInternalServerError, "SUSPEND_ERROR", "停用组织失败", err)
-		}
+		h.handleRepositoryError(w, r, "SUSPEND", err)
 		return
 	}
 
@@ -333,13 +313,7 @@ func (h *OrganizationHandler) ActivateOrganization(w http.ResponseWriter, r *htt
 	// 重新启用组织
 	org, err := h.repo.Activate(r.Context(), tenantID, code, req.Reason)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
-		} else if strings.Contains(err.Error(), "already active") {
-			h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_ACTIVE", "组织单元已处于激活状态", err)
-		} else {
-			h.writeErrorResponse(w, r, http.StatusInternalServerError, "ACTIVATE_ERROR", "激活组织失败", err)
-		}
+		h.handleRepositoryError(w, r, "ACTIVATE", err)
 		return
 	}
 
@@ -474,13 +448,15 @@ func (h *OrganizationHandler) toOrganizationResponse(org *types.Organization) *t
 	}
 }
 
-func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int, code, message string, err error) {
+func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int, code, message string, details interface{}) {
 	errorMsg := message
-	var details interface{}
-	if err != nil {
+	
+	// 如果details是error类型，处理错误信息
+	if err, ok := details.(error); ok && err != nil {
 		if statusCode >= 500 {
 			h.logger.Printf("Server error: %v", err)
 			errorMsg = "Internal server error"
+			details = nil // 不向客户端暴露内部错误详情
 		} else {
 			details = err.Error()
 		}
@@ -578,4 +554,116 @@ func (h *OrganizationHandler) getIPAddress(r *http.Request) string {
 	}
 
 	return "127.0.0.1" // 默认本地地址
+}
+
+// handleRepositoryError 统一处理Repository层错误
+func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *http.Request, operation string, err error) {
+	if err == nil {
+		return
+	}
+
+	errorStr := err.Error()
+	
+	// PostgreSQL错误代码映射
+	switch {
+	// 数据不存在错误 - 包括应用层和数据库层错误
+	case strings.Contains(errorStr, "not found") || strings.Contains(errorStr, "no rows") || 
+		 strings.Contains(errorStr, "组织不存在") || strings.Contains(errorStr, "组织代码已存在"):
+		
+		// 区分不同的错误类型
+		if strings.Contains(errorStr, "组织代码已存在") {
+			h.writeErrorResponse(w, r, http.StatusConflict, "DUPLICATE_CODE", "组织代码已存在", map[string]interface{}{
+				"constraint": "unique_code_per_tenant",
+				"operation": operation,
+			})
+		} else {
+			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
+		}
+		
+	// 唯一约束违反 - 代码重复
+	case strings.Contains(errorStr, "duplicate key value") && strings.Contains(errorStr, "organization_units_code_tenant_id_key"):
+		h.writeErrorResponse(w, r, http.StatusConflict, "DUPLICATE_CODE", "组织代码已存在", map[string]interface{}{
+			"constraint": "unique_code_per_tenant",
+			"operation": operation,
+		})
+		
+	// 单位类型约束违反
+	case strings.Contains(errorStr, "organization_units_unit_type_check"):
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_UNIT_TYPE", "无效的组织类型", map[string]interface{}{
+			"allowedTypes": []string{"DEPARTMENT", "ORGANIZATION_UNIT", "PROJECT_TEAM"},
+			"constraint": "unit_type_check",
+		})
+		
+	// 字段长度限制
+	case strings.Contains(errorStr, "value too long for type"):
+		fieldName := "unknown"
+		if strings.Contains(errorStr, "character varying(10)") {
+			fieldName = "code"
+		} else if strings.Contains(errorStr, "character varying(100)") {
+			fieldName = "name"
+		}
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "FIELD_TOO_LONG", fmt.Sprintf("字段 %s 超出长度限制", fieldName), map[string]interface{}{
+			"field": fieldName,
+			"constraint": "field_length_limit",
+		})
+		
+	// 外键约束违反 - 父组织不存在
+	case strings.Contains(errorStr, "foreign key constraint") && strings.Contains(errorStr, "parent_code"):
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_PARENT", "父组织不存在或无效", map[string]interface{}{
+			"constraint": "parent_organization_exists",
+		})
+		
+	// 业务逻辑错误
+	case strings.Contains(errorStr, "already suspended"):
+		h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_SUSPENDED", "组织单元已处于停用状态", nil)
+		
+	case strings.Contains(errorStr, "already active"):
+		h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_ACTIVE", "组织单元已处于激活状态", nil)
+		
+	case strings.Contains(errorStr, "has children"):
+		h.writeErrorResponse(w, r, http.StatusConflict, "HAS_CHILDREN", "不能删除包含子组织的单元", map[string]interface{}{
+			"operation": operation,
+			"suggestion": "请先删除所有子组织单元",
+		})
+		
+	// 数据库连接错误
+	case strings.Contains(errorStr, "connection refused") || strings.Contains(errorStr, "timeout"):
+		h.logger.Printf("Database connection error in %s operation: %v", operation, err)
+		h.writeErrorResponse(w, r, http.StatusServiceUnavailable, "DATABASE_UNAVAILABLE", "数据库服务暂时不可用", map[string]interface{}{
+			"operation": operation,
+			"retryable": true,
+		})
+		
+	// 其他数据库约束错误
+	case strings.Contains(errorStr, "constraint"):
+		h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "数据约束违反", map[string]interface{}{
+			"operation": operation,
+			"type": "database_constraint",
+		})
+		
+	// 默认内部服务器错误
+	default:
+		h.logger.Printf("Unhandled repository error in %s operation: %v", operation, err)
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, fmt.Sprintf("%s_ERROR", operation), fmt.Sprintf("%s操作失败", getOperationName(operation)), map[string]interface{}{
+			"operation": operation,
+			"retryable": false,
+		})
+	}
+}
+
+// getOperationName 获取操作的中文名称
+func getOperationName(operation string) string {
+	operationNames := map[string]string{
+		"CREATE":   "创建",
+		"UPDATE":   "更新", 
+		"DELETE":   "删除",
+		"SUSPEND":  "停用",
+		"ACTIVATE": "激活",
+		"QUERY":    "查询",
+	}
+	
+	if name, exists := operationNames[operation]; exists {
+		return name
+	}
+	return operation
 }

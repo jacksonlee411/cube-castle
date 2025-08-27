@@ -1,11 +1,9 @@
 -- ===============================================
--- 高级层级管理系统实现
+-- 高级层级管理系统实现 (修正版)
 -- 功能：17级深度限制 + 级联路径更新 + 双路径系统
 -- 作者：Claude Code Assistant
 -- 创建时间：2025-08-23
 -- ===============================================
-
-BEGIN;
 
 -- 1. 数据库表结构扩展 - 支持双路径系统
 -- ===============================================
@@ -17,33 +15,44 @@ ADD COLUMN IF NOT EXISTS name_path VARCHAR(4000),        -- 名称路径: /高�
 ADD COLUMN IF NOT EXISTS hierarchy_depth INTEGER DEFAULT 1; -- 层级深度缓存，便于查询优化
 
 -- 1.2 添加层级深度约束 (最大17级)
-ALTER TABLE organization_units 
-ADD CONSTRAINT hierarchy_depth_limit 
-CHECK (hierarchy_depth > 0 AND hierarchy_depth <= 17);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'hierarchy_depth_limit') THEN
+        ALTER TABLE organization_units 
+        ADD CONSTRAINT hierarchy_depth_limit 
+        CHECK (hierarchy_depth > 0 AND hierarchy_depth <= 17);
+    END IF;
+END $$;
 
--- 1.3 更新现有path字段为code_path的别名
+-- 1.3 添加字段注释
 COMMENT ON COLUMN organization_units.path IS '编码路径别名，与code_path保持同步';
 COMMENT ON COLUMN organization_units.code_path IS '编码路径：/1000000/1000001/1000002';
 COMMENT ON COLUMN organization_units.name_path IS '名称路径：/高谷集团/爱治理办公室/技术部';
 COMMENT ON COLUMN organization_units.hierarchy_depth IS '层级深度：1-17级，与level字段同步';
 
--- 2. 高性能索引系统
+-- 2. 高性能索引系统 (非并发创建)
 -- ===============================================
 
 -- 2.1 层级查询优化索引
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_org_hierarchy_depth 
+DROP INDEX IF EXISTS idx_org_hierarchy_depth;
+CREATE INDEX idx_org_hierarchy_depth 
     ON organization_units(tenant_id, hierarchy_depth, status, is_current) 
     WHERE is_current = true;
 
--- 2.2 路径搜索优化索引 (GIN索引支持模糊搜索)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_org_code_path_gin 
+-- 2.2 路径搜索优化索引 (需要pg_trgm扩展)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+DROP INDEX IF EXISTS idx_org_code_path_gin;
+CREATE INDEX idx_org_code_path_gin 
     ON organization_units USING gin(code_path gin_trgm_ops);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_org_name_path_gin 
+DROP INDEX IF EXISTS idx_org_name_path_gin;
+CREATE INDEX idx_org_name_path_gin 
     ON organization_units USING gin(name_path gin_trgm_ops);
 
 -- 2.3 父子关系优化索引
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_org_parent_current 
+DROP INDEX IF EXISTS idx_org_parent_current;
+CREATE INDEX idx_org_parent_current 
     ON organization_units(parent_code, tenant_id, is_current) 
     WHERE is_current = true;
 
@@ -181,7 +190,6 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION smart_hierarchy_trigger() RETURNS TRIGGER AS $$
 DECLARE
     hierarchy_info RECORD;
-    cascade_count INTEGER;
 BEGIN
     -- INSERT操作：计算新组织的层级信息
     IF TG_OP = 'INSERT' THEN
@@ -212,29 +220,6 @@ BEGIN
             NEW.code_path := hierarchy_info.calculated_code_path;
             NEW.name_path := hierarchy_info.calculated_name_path;
             NEW.path := hierarchy_info.calculated_code_path;
-            
-            -- 如果parent_code发生变化，需要级联更新所有子组织
-            IF OLD.parent_code IS DISTINCT FROM NEW.parent_code THEN
-                -- 在事务提交后异步执行级联更新
-                PERFORM pg_notify('hierarchy_cascade_update', 
-                    json_build_object(
-                        'parent_code', NEW.code,
-                        'tenant_id', NEW.tenant_id,
-                        'operation', 'parent_change'
-                    )::text
-                );
-            END IF;
-            
-            -- 如果name发生变化，也需要更新路径
-            IF OLD.name IS DISTINCT FROM NEW.name THEN
-                PERFORM pg_notify('hierarchy_cascade_update',
-                    json_build_object(
-                        'parent_code', NEW.code,
-                        'tenant_id', NEW.tenant_id,
-                        'operation', 'name_change'
-                    )::text
-                );
-            END IF;
         END IF;
         
         RETURN NEW;
@@ -506,23 +491,3 @@ BEGIN
         RAISE NOTICE '✅ 所有组织层级信息完整性验证通过';
     END IF;
 END $$;
-
-COMMIT;
-
--- 10. 使用示例和测试脚本
--- ===============================================
-
--- 查看层级统计分布
--- SELECT * FROM v_hierarchy_statistics;
-
--- 查看完整性检查结果
--- SELECT * FROM v_path_integrity_check WHERE integrity_status != 'ok';
-
--- 获取特定组织的完整路径信息
--- SELECT * FROM get_org_full_path('1000001', '987fcdeb-51a2-43d7-8f9e-123456789012');
-
--- 获取组织子树
--- SELECT * FROM get_org_subtree('1000000', '987fcdeb-51a2-43d7-8f9e-123456789012');
-
--- 手动触发级联更新测试
--- SELECT recalculate_hierarchy_cascade('1000000', '987fcdeb-51a2-43d7-8f9e-123456789012');

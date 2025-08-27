@@ -17,11 +17,6 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/metrics/, '/metrics')
       },
-      '/api/debezium': {
-        target: 'http://localhost:8083',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/debezium/, '')
-      },
       // 时态管理API路由 - 符合严格CQRS架构
       // 事件驱动端点 (命令操作) 路由到9091端口
       '^/api/v1/organization-units/[^/]+/events': {

@@ -99,12 +99,12 @@ func main() {
 	
 	// 初始化处理器
 	orgHandler := handlers.NewOrganizationHandler(orgRepo, auditLogger, logger)
-	devToolsHandler := handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode)
+	devToolsHandler := handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode, db)
 
 	// 设置路由
 	r := chi.NewRouter()
 
-	// 中间件链 (按执行顺序)
+	// 基础中间件链 (无认证要求的中间件)
 	r.Use(middleware.RequestIDMiddleware)          // 请求追踪中间件
 	r.Use(rateLimitMiddleware.Middleware())        // 限流中间件 - 最先执行
 	r.Use(performanceMiddleware.Middleware())      // 性能监控中间件
@@ -112,7 +112,6 @@ func main() {
 	r.Use(chi_middleware.Logger)
 	r.Use(chi_middleware.Recoverer)
 	r.Use(chi_middleware.Timeout(30 * time.Second))
-	r.Use(restAuthMiddleware.Middleware())         // JWT认证和权限验证中间件
 
 	// CORS设置
 	r.Use(cors.Handler(cors.Options{
@@ -158,11 +157,15 @@ func main() {
 	
 	logger.Println("🚦 限流监控端点: http://localhost:9090/debug/rate-limit/stats")
 
-	// 设置组织相关路由
-	orgHandler.SetupRoutes(r)
-	
-	// 设置开发工具路由 (仅开发模式)
+	// 设置开发工具路由 (仅开发模式，无认证要求)
 	devToolsHandler.SetupRoutes(r)
+
+	// 为需要认证的API路由创建子路由器
+	r.Group(func(r chi.Router) {
+		r.Use(restAuthMiddleware.Middleware())         // JWT认证和权限验证中间件
+		// 设置组织相关路由 (需要认证)
+		orgHandler.SetupRoutes(r)
+	})
 
 	// 服务启动
 	port := os.Getenv("PORT")

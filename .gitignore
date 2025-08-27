@@ -38,6 +38,9 @@ startup.log
 *.temp
 *.cache
 .cache/
+.vite/
+.turbo/
+.parcel-cache/
 
 # Python cache
 __pycache__/
@@ -70,6 +73,8 @@ frontend/test-results/
 frontend/playwright-report/
 *.test-results/
 test-results/
+coverage/
+.nyc_output/
 
 # Database files
 *.db
@@ -79,7 +84,6 @@ test-results/
 # Docker volumes
 data/
 postgres-data/
-neo4j-data/
 redis-data/
 
 # Backup and archive files

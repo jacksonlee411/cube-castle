@@ -1211,10 +1211,340 @@ GraphQLEnterpriseAdapter 升级:
 
 ---
 
+## 🔄 **第9阶段: P1级审计日志查看功能** (2025-08-27 新增) ⭐ **重要新增**
+
+### **阶段目标**: 基于现有后端审计API的企业级前端集成
+
+**实施优先级**: 🚨 **P1级高优先级** - 基于已有后端API能力的合规功能需求
+
+#### **9.1 Phase 1: 基础审计历史查看功能** (Day 1-2)
+
+```yaml
+核心任务清单:
+  📋 审计历史时间线组件 (AuditHistoryTimeline.tsx):
+    ✅ 集成organizationAuditHistory GraphQL查询
+    ✅ 实现时间线可视化展示
+    ✅ 支持基础过滤功能 (时间范围、操作类型)
+    ✅ Canvas Kit v13设计系统完全兼容
+    
+  📋 审计记录卡片组件 (AuditEntryCard.tsx):
+    ✅ 展示单个审计记录详情
+    ✅ 操作类型图标系统 (CREATE/UPDATE/SUSPEND等)
+    ✅ 变更摘要信息展示
+    ✅ 用户友好的时间格式化
+
+  📋 审计过滤器组件 (AuditFilters.tsx):
+    ✅ 时间范围选择器 (开始日期/结束日期)
+    ✅ 操作类型下拉选择
+    ✅ 用户过滤功能
+    ✅ 清晰的过滤器重置功能
+
+实际代码修改范围:
+  📂 src/features/audit/:
+    🆕 AuditHistoryTimeline.tsx - 主审计时间线组件
+    🆕 AuditEntryCard.tsx - 审计记录卡片
+    🆕 AuditFilters.tsx - 查询过滤器
+    🆕 hooks/useAuditHistory.ts - 审计数据获取Hook
+    🆕 hooks/useAuditFilters.ts - 过滤器状态Hook
+    🆕 index.ts - 审计模块导出
+
+  📂 src/shared/api/:
+    🆕 audit.ts - 审计日志API客户端
+    🔄 organizations.ts - 扩展组织API，添加审计功能集成
+
+技术实现标准:
+  ✅ 严格基于后端organizationAuditHistory API
+  ✅ 支持查询参数: startDate, endDate, operation, userId, limit
+  ✅ 企业级响应信封格式处理
+  ✅ 完整的GraphQL错误处理机制
+  ✅ Canvas Kit v13 SystemIcon图标系统
+```
+
+#### **9.2 Phase 2: 用户体验优化** (Day 3)
+
+```yaml
+核心任务清单:
+  🎨 智能加载和分页:
+    ✅ 实现无限滚动加载更多功能
+    ✅ 优化大数据量审计记录渲染性能
+    ✅ 添加加载状态和骨架屏效果
+    ✅ 实现错误边界和重试机制
+    
+  🎨 交互体验增强:
+    ✅ 审计记录悬停效果和选中状态
+    ✅ 操作类型颜色编码系统
+    ✅ 变更内容的可读性优化
+    ✅ 响应式设计支持
+
+  🎨 数据可视化改进:
+    ✅ 审计活动统计概览
+    ✅ 操作类型分布显示
+    ✅ 时间范围快速选择器
+    ✅ 审计记录密度指示器
+
+实际代码修改范围:
+  📂 src/features/audit/:
+    🆕 AuditMetaSummary.tsx - 审计统计摘要
+    🔄 AuditHistoryTimeline.tsx - 添加无限滚动
+    🔄 AuditEntryCard.tsx - 增强交互效果
+    🔄 hooks/useAuditHistory.ts - 优化数据获取逻辑
+
+  📂 src/shared/components/:
+    🆕 InfiniteScrollContainer.tsx - 通用无限滚动容器
+    🆕 LoadingSkeleton.tsx - 审计记录骨架屏
+```
+
+#### **9.3 Phase 3: 模块集成** (Day 4)
+
+```yaml
+核心任务清单:
+  🔗 组织详情页集成:
+    ✅ 在TemporalMasterDetailView中添加"审计历史"选项卡
+    ✅ 基于当前组织code自动加载审计记录
+    ✅ 与现有时态管理功能协调展示
+    ✅ 保持现有页面架构和导航逻辑
+    
+  🔗 路由和导航:
+    ✅ 添加审计历史路由配置
+    ✅ 面包屑导航更新
+    ✅ 深度链接支持 (直接访问特定审计记录)
+    ✅ 页面标题和元数据更新
+
+实际代码修改范围:
+  📂 src/features/temporal/components/:
+    🔄 TemporalMasterDetailView.tsx - 添加审计历史选项卡
+    
+  📂 src/shared/routing/:
+    🔄 routes.tsx - 添加审计相关路由
+    
+  📂 src/layout/:
+    🔄 Breadcrumbs.tsx - 更新面包屑逻辑
+```
+
+### **9.4 技术实现规范** 📋
+
+#### **TypeScript接口定义**
+```typescript
+// 审计查询参数
+interface AuditQueryParams {
+  startDate?: string;        // YYYY-MM-DD格式
+  endDate?: string;         // YYYY-MM-DD格式  
+  operation?: OperationType; // CREATE/UPDATE/SUSPEND等
+  userId?: string;          // 操作人UUID
+  limit?: number;           // 记录数量限制 (默认50)
+}
+
+// 审计时间线条目
+interface AuditTimelineEntry {
+  auditId: string;
+  versionSequence: number;
+  operation: OperationType;
+  timestamp: string;
+  userName: string;
+  operationReason?: string;
+  changesSummary: {
+    operationSummary: string;
+    totalChanges: number;
+    keyChanges: string[];
+  };
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+}
+
+// 审计历史响应
+interface OrganizationAuditHistory {
+  businessEntityId: string;
+  entityName: string;
+  totalVersions: number;
+  auditTimeline: AuditTimelineEntry[];
+  meta: {
+    totalAuditRecords: number;
+    dateRange: {
+      earliest: string;
+      latest: string;
+    };
+    operationsSummary: {
+      create: number;
+      update: number;
+      suspend: number;
+      reactivate: number;
+      delete: number;
+    };
+  };
+}
+```
+
+#### **API客户端实现**
+```typescript
+// /src/shared/api/audit.ts
+export class AuditAPI {
+  static async getOrganizationAuditHistory(
+    code: string, 
+    params: AuditQueryParams
+  ): Promise<OrganizationAuditHistory> {
+    const query = `
+      query GetOrganizationAuditHistory(
+        $code: String!
+        $startDate: Date
+        $endDate: Date
+        $operation: OperationType
+        $userId: UUID
+        $limit: Int
+      ) {
+        organizationAuditHistory(
+          code: $code
+          startDate: $startDate
+          endDate: $endDate
+          operation: $operation
+          userId: $userId
+          limit: $limit
+        ) {
+          businessEntityId
+          entityName
+          totalVersions
+          auditTimeline {
+            auditId
+            versionSequence
+            operation
+            timestamp
+            userName
+            operationReason
+            changesSummary {
+              operationSummary
+              totalChanges
+              keyChanges
+            }
+            riskLevel
+          }
+          meta {
+            totalAuditRecords
+            dateRange { earliest, latest }
+            operationsSummary { 
+              create, update, suspend, reactivate, delete 
+            }
+          }
+        }
+      }
+    `;
+
+    return unifiedGraphQLClient.request(query, {
+      code,
+      ...params
+    });
+  }
+}
+```
+
+### **9.5 Canvas Kit v13组件使用规范** 🎨
+
+```yaml
+核心组件选择:
+  ✅ Card: 审计记录卡片容器
+  ✅ Timeline: 时间线布局 (如果可用)
+  ✅ SystemIcon: 操作类型图标 (addIcon, editIcon, pauseIcon等)
+  ✅ Badge/StatusBadge: 风险等级和状态指示
+  ✅ FormField + Select: 过滤器选择
+  ✅ DateInput: 时间范围选择
+  ✅ Button (Primary/Secondary): 操作按钮
+  ✅ Text + Heading: 文本层级系统
+  ✅ Flex + Box: 布局系统
+
+设计token使用:
+  ✅ colors.greenApple600: 创建操作
+  ✅ colors.blueberry600: 更新操作
+  ✅ colors.cantaloupe600: 停用操作
+  ✅ colors.cinnamon600: 删除操作
+  ✅ borderRadius.m: 卡片圆角
+  ✅ space.l: 标准间距
+```
+
+### **9.6 实施时间表与风险控制** ⏰
+
+```yaml
+实施时间表:
+  Phase 9.1 - 基础审计查看: 2天 (Day 1-2)
+    - AuditHistoryTimeline核心组件
+    - AuditFilters过滤功能
+    - useAuditHistory数据Hook
+    
+  Phase 9.2 - 体验优化: 1天 (Day 3)  
+    - 无限滚动和性能优化
+    - 交互效果和可视化增强
+    
+  Phase 9.3 - 模块集成: 1天 (Day 4)
+    - 组织详情页集成
+    - 路由导航配置
+  
+  总计: 4天 (快速交付)
+
+风险控制策略:
+  ✅ API契约驱动: 严格基于后端organizationAuditHistory
+  ✅ 渐进式实施: 先实现基础功能，再优化体验
+  ✅ Canvas Kit标准: 100%使用v13企业级组件
+  ✅ 向后兼容: 不影响现有TemporalMasterDetailView功能
+
+成功标准:
+  ✅ 功能完整性: 成功展示组织审计历史
+  ✅ 查询性能: 审计查询响应时间 < 200ms
+  ✅ 用户体验: 直观易用的过滤和导航
+  ✅ 视觉一致: 完全符合Canvas Kit设计规范
+```
+
+### **9.7 质量保证清单** ✅
+
+```yaml
+技术质量:
+  📋 TypeScript类型安全: 100%类型定义完整
+  📋 GraphQL契约遵循: 严格基于Schema v4.2.1
+  📋 企业级错误处理: 统一错误边界和重试机制
+  📋 Canvas Kit兼容性: 100%使用v13标准组件
+
+功能质量:
+  📋 查询功能完整: 支持所有后端API查询参数
+  📋 数据展示准确: 审计信息完整正确展示
+  📋 过滤功能可用: 时间/操作类型/用户过滤正常
+  📋 性能表现良好: 大数据量下流畅渲染
+
+用户体验:
+  📋 界面直观易懂: 审计历史信息清晰展示
+  📋 交互反馈及时: 加载状态和错误提示完善
+  📋 响应式适配: 移动端和小屏幕适配良好
+  📋 无障碍访问: 符合a11y标准
+
+集成质量:
+  📋 模块集成无缝: 与现有组织管理功能协调
+  📋 路由导航正确: 深度链接和面包屑正常
+  📋 数据流一致: 与TemporalMasterDetailView数据协调
+  📋 架构合规: 严格遵循CQRS和API优先原则
+```
+
+### **9.8 交付文档** 📚
+
+```yaml
+开发文档:
+  📋 审计组件API文档: 组件Props和使用示例
+  📋 Hook使用指南: useAuditHistory等Hook文档
+  📋 审计API集成: GraphQL查询使用说明
+  📋 Canvas Kit集成: 设计系统使用规范
+
+用户文档:
+  📋 审计查看指南: 用户操作说明
+  📋 过滤功能说明: 查询参数使用指南
+  📋 数据解读说明: 审计记录信息含义
+  📋 常见问题解答: FAQ和故障排除
+
+技术文档:
+  📋 架构设计说明: 审计模块技术架构
+  📋 性能优化记录: 大数据量处理策略
+  📋 测试用例清单: 单元测试和集成测试
+  📋 部署注意事项: 审计功能部署清单
+```
+
+---
+
 **制定者**: 前端技术负责人  
 **审核者**: 前端开发团队  
 **协作方**: 后端开发团队  
 **执行时间**: 2025-08-24 开始  
-**实际完成**: 2025-08-25 ⭐ **提前完成** (原计划2025-09-22)  
-**最后更新**: 2025-08-25 - ✅ **Phase 8: 企业级API适配阶段100%完成**  
-**项目状态**: 🏆 **前端开发全面完成，达到企业级生产就绪标准**
+**实际完成**: 2025-08-25 ⭐ **Phase 1-8提前完成**  
+**最后更新**: 2025-08-27 - 🆕 **Phase 9: P1级审计日志查看功能计划新增**  
+**项目状态**: 🔄 **Phase 9规划完成，等待实施确认**

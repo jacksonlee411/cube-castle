@@ -308,12 +308,20 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 
 **开发计划文档目录**: `/home/shangmeilin/cube-castle/docs/development-plans/` ⭐ **统一管理 + 序号排序**
 - `00-README.md` - 开发计划文档目录使用指南
+
+**架构设计文档目录**: `/home/shangmeilin/cube-castle/docs/architecture/`
 - `01-organization-units-api-specification.md` - 组织单元API规范 v4.2 (企业级标准) 
+
+**开发计划文档目录**:
 - `02-technical-architecture-design.md` - 技术架构设计文档
-- `03-implementation-plan.md` - 项目总体实施方案(已更新至100%完成状态)
-- `04-early-stage-implementation-strategy.md` - 早期实施策略
-- `05-core-features-development-plan.md` - 阶段2核心功能开发详细计划
+- `03-api-compliance-intensive-refactoring-plan.md` - API合规性强化重构计划
+- `04-backend-implementation-plan-phases1-3.md` - 后端实施计划(阶段1-3)
+- `05-frontend-team-implementation-plan.md` - 前端团队实施计划
+- `06-integrated-teams-progress-log.md` - 集成团队进度日志
 - `07-contract-testing-automation-system.md` - ⭐ **契约测试自动化验证体系** (S级成功完成)
+- `08-frontend-api-standards.md` - 前端API标准
+- `09-code-review-checklist.md` - 代码审查清单
+- `10-codebase-cleanup-maintenance-plan.md` - 代码库清理维护计划
 
 **契约测试质量门禁文档** ⭐ **新增 (2025-08-24)**:
 - `docs/github-branch-protection-rules.md` - GitHub分支保护规则配置指南
@@ -329,7 +337,12 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 - ✅ 包含8大核心模块完整开发指南，涵盖CRUD系统、GraphQL查询、时态管理、层级管理等全部功能
 - ✅ **契约测试自动化体系完整文档**，企业级质量保证实施指南
 
-**推荐阅读顺序**: API规范 → 技术架构 → 项目规划 → 早期策略 → 核心功能开发 → **契约测试自动化**
+**推荐阅读顺序**: 
+1. **API规范** (docs/architecture/01-organization-units-api-specification.md)
+2. **技术架构** (docs/development-plans/02-technical-architecture-design.md) 
+3. **契约测试自动化** (docs/development-plans/07-contract-testing-automation-system.md)
+4. **代码审查清单** (docs/development-plans/09-code-review-checklist.md)
+5. **清理维护计划** (docs/development-plans/10-codebase-cleanup-maintenance-plan.md)
 
 ## 📅 项目开发阶段 ⭐ **项目状态升级 (2025-08-24)**
 

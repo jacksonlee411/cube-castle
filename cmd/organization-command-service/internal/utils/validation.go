@@ -35,31 +35,33 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 	}
 
 	validTypes := map[string]bool{
-		"COMPANY": true, "DEPARTMENT": true, "TEAM": true, "POSITION": true,
+		"DEPARTMENT": true, "ORGANIZATION_UNIT": true, "PROJECT_TEAM": true,
 	}
 	if !validTypes[req.UnitType] {
-		return fmt.Errorf("无效的组织类型: %s，允许的类型: COMPANY, DEPARTMENT, TEAM, POSITION", req.UnitType)
+		return fmt.Errorf("无效的组织类型: %s，允许的类型: DEPARTMENT, ORGANIZATION_UNIT, PROJECT_TEAM", req.UnitType)
 	}
 
 	// 3. 代码验证（如果提供）
 	if req.Code != nil && *req.Code != "" {
-		if len(*req.Code) < 3 || len(*req.Code) > 20 {
-			return fmt.Errorf("组织代码长度必须在3-20个字符之间")
+		if len(*req.Code) < 3 || len(*req.Code) > 10 {
+			return fmt.Errorf("组织代码长度必须在3-10个字符之间")
 		}
-		codePattern := regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+		// 修复：支持数字开头的代码格式，兼容现有数据
+		codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
 		if !codePattern.MatchString(*req.Code) {
-			return fmt.Errorf("组织代码格式无效，必须以大写字母开头，只能包含大写字母、数字和下划线")
+			return fmt.Errorf("组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
 		}
 	}
 
 	// 4. 父组织代码验证（如果提供）
 	if req.ParentCode != nil && *req.ParentCode != "" {
-		if len(*req.ParentCode) < 3 || len(*req.ParentCode) > 20 {
-			return fmt.Errorf("父组织代码格式无效，长度必须在3-20个字符之间")
+		if len(*req.ParentCode) < 3 || len(*req.ParentCode) > 10 {
+			return fmt.Errorf("父组织代码格式无效，长度必须在3-10个字符之间")
 		}
-		codePattern := regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+		// 修复：支持数字开头的父组织代码格式，兼容现有数据
+		codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
 		if !codePattern.MatchString(*req.ParentCode) {
-			return fmt.Errorf("父组织代码格式无效，必须以大写字母开头，只能包含大写字母、数字和下划线")
+			return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
 		}
 	}
 
@@ -119,21 +121,22 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 	// 2. 组织类型验证
 	if req.UnitType != nil {
 		validTypes := map[string]bool{
-			"COMPANY": true, "DEPARTMENT": true, "TEAM": true, "POSITION": true,
+			"DEPARTMENT": true, "ORGANIZATION_UNIT": true, "PROJECT_TEAM": true,
 		}
 		if !validTypes[*req.UnitType] {
-			return fmt.Errorf("无效的组织类型: %s，允许的类型: COMPANY, DEPARTMENT, TEAM, POSITION", *req.UnitType)
+			return fmt.Errorf("无效的组织类型: %s，允许的类型: DEPARTMENT, ORGANIZATION_UNIT, PROJECT_TEAM", *req.UnitType)
 		}
 	}
 
 	// 3. 父组织代码验证
 	if req.ParentCode != nil && *req.ParentCode != "" {
-		if len(*req.ParentCode) < 3 || len(*req.ParentCode) > 20 {
-			return fmt.Errorf("父组织代码格式无效，长度必须在3-20个字符之间")
+		if len(*req.ParentCode) < 3 || len(*req.ParentCode) > 10 {
+			return fmt.Errorf("父组织代码格式无效，长度必须在3-10个字符之间")
 		}
-		codePattern := regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+		// 修复：支持数字开头的父组织代码格式，兼容现有数据
+		codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
 		if !codePattern.MatchString(*req.ParentCode) {
-			return fmt.Errorf("父组织代码格式无效，必须以大写字母开头，只能包含大写字母、数字和下划线")
+			return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
 		}
 	}
 
@@ -187,13 +190,14 @@ func ValidateOrganizationCode(code string) error {
 		return fmt.Errorf("组织代码不能为空")
 	}
 	
-	if len(code) < 3 || len(code) > 20 {
-		return fmt.Errorf("组织代码长度必须在3-20个字符之间")
+	if len(code) < 3 || len(code) > 10 {
+		return fmt.Errorf("组织代码长度必须在3-10个字符之间")
 	}
 	
-	codePattern := regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+	// 修复：支持数字开头的组织代码格式，兼容现有数据
+	codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
 	if !codePattern.MatchString(code) {
-		return fmt.Errorf("组织代码格式无效，必须以大写字母开头，只能包含大写字母、数字和下划线")
+		return fmt.Errorf("组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
 	}
 	
 	return nil

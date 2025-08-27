@@ -48,6 +48,13 @@ func (r *RESTPermissionMiddleware) Middleware() func(http.Handler) http.Handler 
 				return
 			}
 
+			// 跳过开发工具端点（仅在开发模式下）
+			if r.devMode && (strings.HasPrefix(req.URL.Path, "/auth/dev") || strings.HasPrefix(req.URL.Path, "/dev/")) {
+				r.logger.Printf("Dev mode: Skipping authentication for %s %s", req.Method, req.URL.Path)
+				next.ServeHTTP(w, req)
+				return
+			}
+
 			// 开发模式下的宽松认证
 			if r.devMode {
 				r.handleDevMode(w, req, next)
