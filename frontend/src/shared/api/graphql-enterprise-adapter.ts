@@ -127,66 +127,26 @@ export class GraphQLEnterpriseAdapter {
     variables?: Record<string, unknown>
   ): Promise<APIResponse<T>> {
     try {
-      // 使用UnifiedGraphQLClient的完整功能，包括认证
-      // 但需要处理其可能抛出的异常并转换为企业级格式
-      try {
-        // 先尝试使用客户端的原生请求方法
-        const result = await this.client.request<T>(query, variables);
-        
-        // 如果成功，将结果包装为企业级格式
-        return {
-          success: true,
-          data: result,
-          message: 'GraphQL查询成功',
-          timestamp: new Date().toISOString(),
-          requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        };
-      } catch (clientError) {
-        // UnifiedGraphQLClient 抛出了异常，可能是因为响应格式已经是企业级
-        // 尝试直接发送请求并检查响应格式
-        const rawResponse = await fetch(this.client['endpoint'] || 'http://localhost:8090/graphql', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${await this.getAccessToken()}`,
-          },
-          body: JSON.stringify({ query, variables })
-        });
-
-        if (!rawResponse.ok) {
-          throw new Error(`HTTP Error: ${rawResponse.status} ${rawResponse.statusText}`);
-        }
-
-        const responseData = await rawResponse.json();
-
-        // 检查响应格式并适配
-        if (this.isEnterpriseFormat<T>(responseData)) {
-          // 已经是企业级格式，直接返回
-          return responseData;
-        } else if (this.isStandardFormat<T>(responseData)) {
-          // 标准GraphQL格式，需要转换
-          return this.transformToEnterpriseFormat<T>(responseData);
-        } else {
-          // 未知格式，返回错误
-          return {
-            success: false,
-            error: {
-              code: 'UNKNOWN_RESPONSE_FORMAT',
-              message: '未知的GraphQL响应格式',
-              details: responseData
-            },
-            timestamp: new Date().toISOString(),
-            requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          };
-        }
-      }
+      // 先尝试使用客户端的原生请求方法
+      const result = await this.client.request<T>(query, variables);
+      
+      // 如果成功，将结果包装为企业级格式
+      return {
+        success: true,
+        data: result,
+        message: 'GraphQL查询成功',
+        timestamp: new Date().toISOString(),
+        requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      };
     } catch (error) {
-      // 网络或其他错误
+      // UnifiedGraphQLClient 抛出了异常，将错误转换为企业级格式
+      console.warn('GraphQL客户端异常，转换为企业级错误格式:', error);
+      
       return {
         success: false,
         error: {
-          code: 'NETWORK_ERROR',
-          message: error instanceof Error ? error.message : '网络请求失败',
+          code: 'GRAPHQL_CLIENT_ERROR',
+          message: error instanceof Error ? error.message : 'GraphQL客户端请求失败',
           details: error
         },
         timestamp: new Date().toISOString(),

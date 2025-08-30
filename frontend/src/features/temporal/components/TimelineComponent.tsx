@@ -86,13 +86,13 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
   versions,
   selectedVersion,
   onVersionSelect,
-  onDeleteVersion,
+  onDeleteVersion: _onDeleteVersion,
   isLoading,
-  readonly = false,
+  readonly: _readonly = false,
   width = "350px",
   height = "calc(100vh - 200px)",
   title = "时间轴导航",
-  showActions = true
+  showActions: _showActions = true
 }) => {
   
   // 获取版本状态指示器 - 基于五状态生命周期管理系统

@@ -57,15 +57,17 @@ export class AuthManager {
   private async obtainNewToken(): Promise<OAuthToken> {
     console.log('[OAuth] 正在获取新的访问令牌...');
     
+    // 修复：使用开发令牌端点的JSON格式请求
     const response = await fetch(this.config.tokenEndpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
-        grant_type: this.config.grantType,
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
+      body: JSON.stringify({
+        userID: 'frontend-user',
+        tenantID: 'frontend-tenant', 
+        roles: ['ADMIN', 'USER'],
+        duration: '1h'
       }),
     });
 
@@ -76,10 +78,11 @@ export class AuthManager {
 
     const tokenResponse = await response.json();
     
+    // 修复：适配开发令牌响应格式
     const token: OAuthToken = {
-      accessToken: tokenResponse.accessToken,
-      tokenType: tokenResponse.tokenType || 'Bearer',
-      expiresIn: tokenResponse.expiresIn,
+      accessToken: tokenResponse.data?.token || tokenResponse.token,
+      tokenType: 'Bearer',
+      expiresIn: 3600, // 开发令牌默认1小时
       scope: tokenResponse.scope,
       issuedAt: Date.now(),
     };
@@ -147,11 +150,11 @@ export class AuthManager {
   }
 }
 
-// 默认OAuth配置
+// 默认OAuth配置 - 修复为开发模式端点
 export const defaultOAuthConfig: OAuthConfig = {
   clientId: 'cube-castle-api-client',
-  clientSecret: 'cube-castle-secret-2024',
-  tokenEndpoint: 'http://localhost:8080/oauth/token',
+  clientSecret: 'cube-castle-secret-2024', 
+  tokenEndpoint: 'http://localhost:9090/auth/dev-token',
   grantType: 'client_credentials',
 };
 

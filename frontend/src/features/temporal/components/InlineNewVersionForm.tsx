@@ -76,8 +76,8 @@ export interface InlineNewVersionFormProps {
   onEditHistory?: (versionData: Record<string, unknown>) => Promise<void>;
   onDeactivate?: (version: Record<string, unknown>) => Promise<void>; // 新增作废功能
   onInsertRecord?: (data: TemporalEditFormData) => Promise<void>; // 新增插入记录功能
-  activeTab?: 'edit-history' | 'new-version'; // 当前选项卡状态
-  onTabChange?: (tab: 'edit-history' | 'new-version') => void; // 选项卡切换
+  activeTab?: 'edit-history' | 'new-version' | 'audit-history'; // 当前选项卡状态
+  onTabChange?: (tab: 'edit-history' | 'new-version' | 'audit-history') => void; // 选项卡切换
   // 版本数据相关props已移除 - 违反原则13
 }
 

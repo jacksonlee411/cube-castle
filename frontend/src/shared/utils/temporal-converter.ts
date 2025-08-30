@@ -77,7 +77,7 @@ export class TemporalConverter {
   /**
    * 标准化时态字段 - 确保所有时态字段使用统一的字符串格式
    */
-  static normalizeTemporalFields<T extends Record<string, any>>(
+  static normalizeTemporalFields<T extends Record<string, unknown>>(
     obj: T,
     temporalFields: (keyof T)[]
   ): T {
@@ -120,7 +120,7 @@ export class TemporalConverter {
     effectiveFrom?: string;
     effectiveTo?: string;
   } {
-    const normalized: any = {};
+    const normalized: Record<string, unknown> = {};
 
     if (params.asOfDate) {
       normalized.asOfDate = this.dateToIso(params.asOfDate);

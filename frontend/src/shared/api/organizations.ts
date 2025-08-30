@@ -62,30 +62,21 @@ export const organizationAPI = {
                 code
                 parentCode
                 tenantId
+                recordId
                 name
                 unitType
                 status
-                isDeleted
                 level
-                hierarchyDepth
-                codePath
-                namePath
+                path
                 sortOrder
                 description
                 profile
                 effectiveDate
                 endDate
                 isCurrent
-                isFuture
+                isTemporal
                 createdAt
                 updatedAt
-                operationType
-                operatedBy {
-                  id
-                  name
-                }
-                operationReason
-                recordId
               }
               pagination {
                 total
@@ -218,26 +209,17 @@ export const organizationAPI = {
               name
               unitType
               status
-              isDeleted
               level
-              hierarchyDepth
-              codePath
-              namePath
+              path
               sortOrder
               description
               profile
               effectiveDate
               endDate
               isCurrent
-              isFuture
+              isTemporal
               createdAt
               updatedAt
-              operationType
-              operatedBy {
-                id
-                name
-              }
-              operationReason
             }
           }
         `;
@@ -306,44 +288,49 @@ export const organizationAPI = {
       const graphqlQuery = `
         query GetOrganizationStats {
           organizationStats {
-            total
+            totalCount
+            activeCount
+            inactiveCount
+            plannedCount
+            deletedCount
             byType {
-              type
+              unitType
               count
-              percentage
             }
             byStatus {
               status
               count
-              percentage
             }
             byLevel {
               level
               count
-              percentage
             }
-            temporal {
-              current
-              future
-              historical
+            temporalStats {
+              totalVersions
+              averageVersionsPerOrg
+              oldestEffectiveDate
+              newestEffectiveDate
             }
-            lastUpdated
           }
         }
       `;
 
       const data = await unifiedGraphQLClient.request<{
         organizationStats: {
-          total: number;
-          byType: Array<{ type: string; count: number; percentage: number }>;
-          byStatus: Array<{ status: string; count: number; percentage: number }>;
-          byLevel: Array<{ level: number; count: number; percentage: number }>;
-          temporal: {
-            current: number;
-            future: number;
-            historical: number;
+          totalCount: number;
+          activeCount: number;
+          inactiveCount: number;
+          plannedCount: number;
+          deletedCount: number;
+          byType: Array<{ unitType: string; count: number }>;
+          byStatus: Array<{ status: string; count: number }>;
+          byLevel: Array<{ level: number; count: number }>;
+          temporalStats: {
+            totalVersions: number;
+            averageVersionsPerOrg: number;
+            oldestEffectiveDate: string;
+            newestEffectiveDate: string;
           };
-          lastUpdated: string;
         };
       }>(graphqlQuery);
 
@@ -358,7 +345,7 @@ export const organizationAPI = {
       const byStatus: Record<string, number> = {};
       
       stats.byType.forEach(item => {
-        byType[item.type] = item.count;
+        byType[item.unitType] = item.count;
       });
       
       stats.byStatus.forEach(item => {
@@ -366,11 +353,15 @@ export const organizationAPI = {
       });
 
       return {
-        totalCount: stats.total,
+        totalCount: stats.totalCount,
         byType,
         byStatus,
-        temporal: stats.temporal,
-        lastUpdated: stats.lastUpdated
+        temporal: {
+          current: stats.activeCount,
+          future: stats.plannedCount,
+          historical: stats.temporalStats.totalVersions
+        },
+        lastUpdated: new Date().toISOString()
       };
 
     } catch (error) {
@@ -406,7 +397,7 @@ export const organizationAPI = {
 
       return response;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating organization:', error);
       
       if (error instanceof SimpleValidationError) {
@@ -468,7 +459,7 @@ export const organizationAPI = {
 
       return response;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating organization:', code, error);
       
       if (error instanceof SimpleValidationError) {
@@ -510,75 +501,21 @@ export const organizationAPI = {
 
   // ====== 组织详情API方法 ======
 
-  // 获取组织的审计历史记录 - 使用真实的organizationAuditHistory查询
+  // 获取组织的审计历史记录 - 集成新的审计API模块
   getAuditHistory: async (code: string, params?: TemporalQueryParams): Promise<any[]> => {
     try {
-      if (!code || typeof code !== 'string') {
-        throw new SimpleValidationError('Invalid organization code', [
-          { field: 'code', message: 'Code is required' }
-        ]);
-      }
-
-      const graphqlQuery = `
-        query GetOrganizationAuditHistory(
-          $code: String!,
-          $startDate: Date,
-          $endDate: Date,
-          $limit: Int
-        ) {
-          organizationAuditHistory(
-            code: $code,
-            startDate: $startDate,
-            endDate: $endDate,
-            limit: $limit
-          ) {
-            businessEntityId
-            entityName
-            totalVersions
-            auditTimeline {
-              auditId
-              versionSequence
-              operation
-              timestamp
-              userName
-              operationReason
-              changesSummary {
-                operationSummary
-                totalChanges
-                keyChanges
-              }
-              riskLevel
-            }
-            meta {
-              totalAuditRecords
-              dateRange {
-                earliest
-                latest
-              }
-              operationsSummary {
-                create
-                update
-                suspend
-                reactivate
-                delete
-              }
-            }
-          }
-        }
-      `;
-
-      const variables = {
-        code,
-        startDate: params?.dateRange?.start || null,
-        endDate: params?.dateRange?.end || null,
+      // 导入审计API (动态导入以避免循环依赖)
+      const { AuditAPI } = await import('./audit');
+      
+      // 将TemporalQueryParams转换为AuditQueryParams
+      const auditParams = {
+        startDate: params?.dateRange?.start,
+        endDate: params?.dateRange?.end,
         limit: params?.limit || 50
       };
 
-      const data = await unifiedGraphQLClient.request<{
-        organizationAuditHistory: any;
-      }>(graphqlQuery, variables);
-
-      return data.organizationAuditHistory?.auditTimeline || [];
+      const auditHistory = await AuditAPI.getOrganizationAuditHistory(code, auditParams);
+      return auditHistory.auditTimeline || [];
 
     } catch (error) {
       console.error('Error fetching organization audit history:', code, error);
@@ -718,7 +655,7 @@ export const organizationAPI = {
 
       return response;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error suspending organization:', code, error);
       
       if (error instanceof SimpleValidationError) {
@@ -755,7 +692,7 @@ export const organizationAPI = {
 
       return response;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error reactivating organization:', code, error);
       
       if (error instanceof SimpleValidationError) {

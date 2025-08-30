@@ -28,8 +28,8 @@ describe('GraphQLEnterpriseAdapter', () => {
         requestId: 'req_123'
       };
 
-      // 使用私有方法测试 - 通过 any 绕过类型检查
-      const result = (adapter as any).isEnterpriseFormat(enterpriseResponse);
+      // 使用私有方法测试 - 类型安全的访问方式
+      const result = (adapter as unknown as { isEnterpriseFormat: (response: unknown) => boolean }).isEnterpriseFormat(enterpriseResponse);
       expect(result).toBe(true);
     });
 
@@ -38,7 +38,7 @@ describe('GraphQLEnterpriseAdapter', () => {
         data: { test: 'data' }
       };
 
-      const result = (adapter as any).isStandardFormat(standardResponse);
+      const result = (adapter as unknown as { isStandardFormat: (response: unknown) => boolean }).isStandardFormat(standardResponse);
       expect(result).toBe(true);
     });
 
@@ -53,7 +53,7 @@ describe('GraphQLEnterpriseAdapter', () => {
         ]
       };
 
-      const result = (adapter as any).isStandardFormat(errorResponse);
+      const result = (adapter as unknown as { isStandardFormat: (response: unknown) => boolean }).isStandardFormat(errorResponse);
       expect(result).toBe(true);
     });
   });
@@ -64,7 +64,7 @@ describe('GraphQLEnterpriseAdapter', () => {
         data: { organizations: [{ code: 'TEST001', name: 'Test Org' }] }
       };
 
-      const result = (adapter as any).transformToEnterpriseFormat(standardResponse);
+      const result = (adapter as unknown as { transformToEnterpriseFormat: (response: unknown) => unknown }).transformToEnterpriseFormat(standardResponse);
       
       expect(result).toMatchObject({
         success: true,
@@ -87,7 +87,7 @@ describe('GraphQLEnterpriseAdapter', () => {
         ]
       };
 
-      const result = (adapter as any).transformToEnterpriseFormat(errorResponse);
+      const result = (adapter as unknown as { transformToEnterpriseFormat: (response: unknown) => unknown }).transformToEnterpriseFormat(errorResponse);
       
       expect(result).toMatchObject({
         success: false,

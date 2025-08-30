@@ -7,11 +7,11 @@
 
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
-import { parse, validate, buildSchema, GraphQLError } from 'graphql'
+import { parse, validate, buildSchema } from 'graphql'
 import { join } from 'path'
 
 describe('GraphQL Schema 契约验证', () => {
-  let schema: any
+  let schema: ReturnType<typeof buildSchema>
 
   beforeAll(() => {
     // 读取Schema文件
@@ -30,7 +30,7 @@ describe('GraphQL Schema 契约验证', () => {
       const queryType = schema.getQueryType()
       const fields = queryType.getFields()
       
-      // 验证9个核心查询端点
+      // 验证9个核心查询端点 (v4.6.0)
       const expectedQueries = [
         'organizations',
         'organization', 
@@ -38,7 +38,7 @@ describe('GraphQL Schema 契约验证', () => {
         'organizationHierarchy',
         'organizationSubtree',
         'hierarchyStatistics',
-        'organizationAuditHistory',
+        'auditHistory',
         'auditLog',
         'hierarchyConsistencyCheck'
       ]
@@ -139,18 +139,20 @@ describe('GraphQL Schema 契约验证', () => {
     })
 
     it('audit相关字段应该完整', () => {
-      const auditHistoryType = schema.getType('OrganizationAuditHistory')
-      const auditFields = auditHistoryType.getFields()
+      const auditLogType = schema.getType('AuditLogDetail')
+      const auditFields = auditLogType.getFields()
       
-      expect(auditFields.businessEntityId).toBeDefined()
-      expect(auditFields.totalVersions).toBeDefined()
-      expect(auditFields.auditTimeline).toBeDefined()
+      expect(auditFields.auditId).toBeDefined()
+      expect(auditFields.recordId).toBeDefined()
+      expect(auditFields.operation).toBeDefined()
+      expect(auditFields.timestamp).toBeDefined()
+      expect(auditFields.userInfo).toBeDefined()
     })
   })
 })
 
 describe('实际查询验证', () => {
-  let schema: any
+  let schema: ReturnType<typeof buildSchema>
 
   beforeAll(() => {
     const schemaPath = join(process.cwd(), '../docs/api/schema.graphql')
@@ -226,22 +228,21 @@ describe('实际查询验证', () => {
 
   it('审计查询应该有效', () => {
     const query = `
-      query GetAuditHistory($code: String!) {
-        organizationAuditHistory(code: $code) {
-          businessEntityId
-          entityName
-          totalVersions
-          auditTimeline {
-            auditId
-            operation
-            timestamp
+      query GetAuditHistory($recordId: UUID!) {
+        auditHistory(recordId: $recordId) {
+          auditId
+          recordId
+          operation
+          timestamp
+          userInfo {
+            userId
             userName
-            operationReason
-            changesSummary {
-              operationSummary
-              totalChanges
-              keyChanges
-            }
+          }
+          operationReason
+          dataChanges {
+            beforeData
+            afterData
+            modifiedFields
           }
         }
       }

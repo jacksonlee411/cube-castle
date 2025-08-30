@@ -14,12 +14,15 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
 import { InlineNewVersionForm } from './InlineNewVersionForm';
 import { TimelineComponent, type TimelineVersion } from './TimelineComponent';
+import { TabNavigation, type TabType } from './TabNavigation';
 import { 
   colors, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/unified-client';
+// 动态导入审计组件避免循环依赖
+import { AuditHistoryTimeline } from '../../audit/components/AuditHistoryTimeline';
 
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
@@ -82,8 +85,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [editMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // 视图选项卡状态 - 默认显示编辑历史记录页面
-  const [activeTab, setActiveTab] = useState<'new-version' | 'edit-history'>('edit-history');
+  // 视图选项卡状态 - 默认显示编辑历史记录页面，现在支持审计信息
+  const [activeTab, setActiveTab] = useState<TabType>('edit-history');
   
   // 表单模式状态 - 新增功能 (TODO: 当前未读取formMode值)
   const [/* formMode */, setFormMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
@@ -649,32 +652,81 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               allVersions={null} // 创建模式不需要版本数据
             />
           ) : (
-            // 统一的记录管理表单
-            <InlineNewVersionForm
-              organizationCode={organizationCode}
-              onSubmit={handleFormSubmit}
-              onCancel={handleHistoryEditClose}
-              isSubmitting={isSubmitting}
-              mode="edit"
-              initialData={formInitialData}
-              selectedVersion={selectedVersion}
-              allVersions={versions.map(v => ({ // 传递版本数据用于日期范围验证
-                recordId: v.recordId,
-                effectiveDate: v.effectiveDate,
-                endDate: v.endDate,
-                isCurrent: v.isCurrent
-              }))}
-              onEditHistory={handleHistoryEditSubmit}
-              onDeactivate={async (version: Record<string, unknown>) => {
-                // 类型安全转换
-                const typedVersion = version as unknown as TimelineVersion;
-                await handleDeleteVersion(typedVersion);
-              }} // 传递作废功能
-              onInsertRecord={handleFormSubmit} // 传递插入记录功能
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              // versions相关props已移除 - 违反原则13
-            />
+            // 正常模式：带选项卡的多功能视图
+            <>
+              {/* 选项卡导航 */}
+              <TabNavigation
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                disabled={isSubmitting || isLoading}
+                tabs={[
+                  { key: 'edit-history', label: '版本管理' },
+                  { key: 'new-version', label: '新增版本' },
+                  { key: 'audit-history', label: '审计信息', disabled: !organizationCode }
+                ]}
+              />
+
+              {/* 选项卡内容 */}
+              {activeTab === 'edit-history' && (
+                <InlineNewVersionForm
+                  organizationCode={organizationCode}
+                  onSubmit={handleFormSubmit}
+                  onCancel={handleHistoryEditClose}
+                  isSubmitting={isSubmitting}
+                  mode="edit"
+                  initialData={formInitialData}
+                  selectedVersion={selectedVersion}
+                  allVersions={versions.map(v => ({ // 传递版本数据用于日期范围验证
+                    recordId: v.recordId,
+                    effectiveDate: v.effectiveDate,
+                    endDate: v.endDate,
+                    isCurrent: v.isCurrent
+                  }))}
+                  onEditHistory={handleHistoryEditSubmit}
+                  onDeactivate={async (version: Record<string, unknown>) => {
+                    // 类型安全转换
+                    const typedVersion = version as unknown as TimelineVersion;
+                    await handleDeleteVersion(typedVersion);
+                  }} // 传递作废功能
+                  onInsertRecord={handleFormSubmit} // 传递插入记录功能
+                  activeTab="edit-history"
+                  onTabChange={setActiveTab}
+                />
+              )}
+
+              {activeTab === 'new-version' && (
+                <InlineNewVersionForm
+                  organizationCode={organizationCode}
+                  onSubmit={handleFormSubmit}
+                  onCancel={() => setActiveTab('edit-history')} // 取消时返回版本管理
+                  isSubmitting={isSubmitting}
+                  mode="insert"
+                  initialData={formInitialData}
+                  selectedVersion={selectedVersion}
+                  allVersions={versions.map(v => ({ 
+                    recordId: v.recordId,
+                    effectiveDate: v.effectiveDate,
+                    endDate: v.endDate,
+                    isCurrent: v.isCurrent
+                  }))}
+                  onEditHistory={handleHistoryEditSubmit}
+                  onDeactivate={async (version: Record<string, unknown>) => {
+                    const typedVersion = version as unknown as TimelineVersion;
+                    await handleDeleteVersion(typedVersion);
+                  }}
+                  onInsertRecord={handleFormSubmit}
+                  activeTab="new-version"
+                  onTabChange={setActiveTab}
+                />
+              )}
+
+              {activeTab === 'audit-history' && organizationCode && (
+                <AuditHistoryTimeline
+                  organizationCode={organizationCode}
+                  showFilters={true}
+                />
+              )}
+            </>
           )}
         </Box>
       </Flex>

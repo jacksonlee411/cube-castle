@@ -19,7 +19,7 @@ export interface MessageDisplayProps {
 export const MessageDisplay: React.FC<MessageDisplayProps> = ({
   successMessage,
   errorMessage,
-  onClear
+  onClear: _onClear
 }) => {
   if (!successMessage && !errorMessage) {
     return null;
