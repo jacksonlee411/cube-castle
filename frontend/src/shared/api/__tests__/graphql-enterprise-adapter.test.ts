@@ -134,6 +134,7 @@ describe('GraphQLEnterpriseAdapter', () => {
       const result = await adapter.request('{ organizations(first: 5) { code name } }');
       
       expect(result).toEqual(enterpriseResponse);
+      // eslint-disable-next-line no-restricted-globals
       expect(fetch).toHaveBeenCalledWith(
         undefined, // endpoint will be undefined in test
         {

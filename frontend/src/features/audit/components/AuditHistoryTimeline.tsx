@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Flex,
@@ -74,7 +74,7 @@ export const AuditHistoryTimeline: React.FC<AuditHistoryTimelineProps> = ({
   };
 
   // 处理加载更多
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore || loading) return;
     
     setIsLoadingMore(true);
@@ -83,7 +83,7 @@ export const AuditHistoryTimeline: React.FC<AuditHistoryTimelineProps> = ({
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [isLoadingMore, hasMore, loading, loadMore]);
 
   // 处理下载审计报告（占位功能）
   const handleDownloadReport = () => {
