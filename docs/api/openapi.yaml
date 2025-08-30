@@ -20,7 +20,7 @@ info:
     
     **Response Format**: All endpoints use unified enterprise envelope structure
     with `success`, `data`, `message`, `timestamp`, and `requestId` fields.
-  version: 4.2.1
+  version: 4.3.0
   contact:
     name: System Architecture Team
     email: api-support@yourcompany.com
@@ -864,59 +864,18 @@ components:
         profile:
           type: object
           description: |
-            Type-specific configuration (JSONB). Structure varies by unitType:
+            Flexible JSON configuration for organization-specific data.
+            Structure is defined by business requirements rather than predefined schemas.
             
-            **DEPARTMENT Profile:**
-            - budget: number - Annual budget allocation
-            - managerPositionCode: string - Department manager position
-            - costCenterCode: string - Cost center identifier
-            - headCountLimit: number - Maximum employee count
-            - establishedDate: date - Department establishment date
-            
-            **COMPANY Profile:**
-            - legalName: string - Legal company name
-            - registrationNumber: string - Business registration number
-            - taxId: string - Tax identification number
-            - industry: string - Industry classification
-            - incorporationDate: date - Company incorporation date
-            
-            **PROJECT_TEAM Profile:**
-            - projectCode: string - Project identifier
-            - projectManager: string - Project manager identifier
-            - startDate: date - Project start date
-            - endDate: date - Project planned end date
-            - budget: number - Project budget allocation
-            
-            **ORGANIZATION_UNIT Profile:**
-            - function: string - Organizational function type
-            - region: string - Geographic region
-            - parentType: string - Parent organization type
+            **Common usage:**
+            - Custom business attributes
+            - Integration identifiers  
+            - Type-specific metadata
           default: {}
-          examples:
-            department_profile:
-              summary: Department Configuration
-              value:
-                budget: 5000000
-                managerPositionCode: "POS-MGR-001"
-                costCenterCode: "CC001"
-                headCountLimit: 50
-                establishedDate: "2024-01-01"
-            company_profile:
-              summary: Company Configuration
-              value:
-                legalName: "高谷科技有限公司"
-                registrationNumber: "91110000123456789X"
-                taxId: "110000123456789"
-                industry: "软件开发"
-                incorporationDate: "2020-03-15"
-            project_team_profile:
-              summary: Project Team Configuration
-              value:
-                projectCode: "PROJ-2025-001"
-                projectManager: "EMP-001"
-                startDate: "2025-08-01"
-                endDate: "2026-02-28"
-                budget: 2000000
+          example:
+            budget: 5000000
+            costCenter: "CC001"
+            customField1: "value1"
         createdAt:
           type: string
           format: date-time
@@ -1303,19 +1262,12 @@ components:
     ValidateOrganizationRequest:
       type: object
       required:
-        - operation
         - data
       properties:
-        operation:
-          type: string
-          enum: [create, update, suspend, activate, delete]
-          description: Type of operation to validate
-          example: "create"
         data:
           type: object
-          description: Data to validate (varies by operation)
+          description: Organization data to validate (basic format validation)
           example:
-            code: "1000001"
             name: "测试部门"
             unitType: "DEPARTMENT"
             parentCode: "1000000"

@@ -30,7 +30,7 @@ describe('GraphQL Schema 契约验证', () => {
       const queryType = schema.getQueryType()
       const fields = queryType.getFields()
       
-      // 验证10个核心查询端点
+      // 验证9个核心查询端点
       const expectedQueries = [
         'organizations',
         'organization', 
@@ -40,7 +40,6 @@ describe('GraphQL Schema 契约验证', () => {
         'hierarchyStatistics',
         'organizationAuditHistory',
         'auditLog',
-        'organizationChangeAnalysis',
         'hierarchyConsistencyCheck'
       ]
       
@@ -234,7 +233,6 @@ describe('实际查询验证', () => {
           totalVersions
           auditTimeline {
             auditId
-            versionSequence
             operation
             timestamp
             userName

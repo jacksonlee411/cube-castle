@@ -1,5 +1,5 @@
 # Organization Units Management GraphQL Schema
-# Version: 4.2.1
+# Version: 4.6.0
 # Architecture: CQRS Query Layer (Read Operations Only)
 # Data Source: PostgreSQL with temporal data support
 # Authentication: OAuth 2.0 Bearer Token required
@@ -7,9 +7,17 @@
 # Features:
 # - Temporal data queries with asOfDate parameter
 # - 17-level hierarchy depth support with intelligent caching
-# - Comprehensive audit trail and change analysis
+# - Precise audit trail tracking individual temporal versions (record_id)
 # - Multi-tenant isolation and security
 # - Performance-optimized with 26 specialized indexes
+#
+# Recent Changes (v4.6.0):
+# - BREAKING: Audit system redesigned for precise record_id tracking
+# - Removed organizationAuditHistory query (replaced with auditHistory)
+# - AuditLogDetail now tracks specific temporal versions via recordId field only
+# - Simplified audit queries: single auditHistory(recordId) for precise tracking
+# - Removed businessEntityId field from AuditLogDetail (replaced by recordId)
+# - Enhanced audit precision: each temporal version has independent audit lifecycle
 
 """
 Root Query type providing all organization management query operations.
@@ -93,19 +101,21 @@ type Query {
   # Audit and Analysis Queries
   
   """
-  Get complete audit history for an organization with cross-version change tracking.
+  Get complete audit history for a specific organization record (temporal version).
+  This query returns audit records for a specific record_id, allowing precise tracking
+  of individual temporal version lifecycle changes.
   
   Permissions Required: org:read:audit
-  Performance: Audit log queries with temporal indexing < 100ms
+  Performance: Record-specific audit queries with optimized indexing < 50ms
   """
-  organizationAuditHistory(
-    code: String!
+  auditHistory(
+    recordId: UUID!
     startDate: Date
     endDate: Date
     operation: OperationType
     userId: UUID
     limit: Int = 50
-  ): OrganizationAuditHistory!
+  ): [AuditLogDetail!]!
   
   """
   Get detailed audit record with before/after data snapshots and field-level changes.
@@ -117,18 +127,6 @@ type Query {
     auditId: String!
   ): AuditLogDetail
   
-  """
-  Analyze organization changes across version ranges with impact assessment.
-  
-  Permissions Required: org:read:audit
-  Performance: Cross-version analysis queries < 300ms
-  """
-  organizationChangeAnalysis(
-    code: String!
-    fromVersion: Int = 1
-    toVersion: Int
-    analysisType: AnalysisType = SUMMARY
-  ): OrganizationChangeAnalysis!
   
   # System Maintenance and Monitoring
   
@@ -245,45 +243,21 @@ type HierarchyStatistics {
   lastAnalyzed: DateTime!
 }
 
-"""
-Complete audit history for an organization with timeline and metadata.
-"""
-type OrganizationAuditHistory {
-  businessEntityId: String!
-  entityName: String!
-  totalVersions: Int!
-  auditTimeline: [AuditTimelineEntry!]!
-  meta: AuditHistoryMeta!
-}
 
 """
-Detailed audit log entry with complete before/after data and change analysis.
+Simplified audit log entry with essential information only.
+Each audit record tracks changes to a specific organization temporal version (record_id).
 """
 type AuditLogDetail {
   auditId: String!
-  businessEntityId: String!
-  recordId: UUID!
-  versionSequence: Int!
+  recordId: UUID!                  # Specific organization temporal version being audited
   operation: String!
   timestamp: DateTime!
   userInfo: UserInfo!
-  operationContext: OperationContext!
+  operationReason: String
   dataChanges: DataChanges!
-  impactAnalysis: ImpactAnalysis!
 }
 
-"""
-Cross-version change analysis with trend and impact assessment.
-"""
-type OrganizationChangeAnalysis {
-  businessEntityId: String!
-  analysisRange: VersionRange!
-  changesSummary: ChangesSummary!
-  trendAnalysis: TrendAnalysis!
-  impactAssessment: ImpactAssessment!
-  recommendations: [String!]!
-  generatedAt: DateTime!
-}
 
 """
 Hierarchy consistency check report with detailed findings and repair suggestions.
@@ -387,28 +361,6 @@ type IntegrityIssue {
   affectedCodes: [String!]!
 }
 
-"""
-Audit timeline entry with operation summary.
-"""
-type AuditTimelineEntry {
-  auditId: String!
-  versionSequence: Int!
-  operation: String!
-  timestamp: DateTime!
-  userName: String!
-  operationReason: String
-  changesSummary: ChangesSummary!
-  riskLevel: String!
-}
-
-"""
-Audit history metadata and summary.
-"""
-type AuditHistoryMeta {
-  totalAuditRecords: Int!
-  dateRange: DateRange!
-  operationsSummary: OperationsSummary!
-}
 
 """
 User information for audit trails.
@@ -419,78 +371,21 @@ type UserInfo {
   role: String
 }
 
-"""
-Operation context for audit records.
-"""
-type OperationContext {
-  operationReason: String
-  ipAddress: String
-  apiEndpoint: String
-  userAgent: String
-}
 
 """
-Data changes with before/after comparison.
+Simplified data changes with before/after comparison.
 """
 type DataChanges {
   beforeData: JSON
   afterData: JSON
-  fieldChanges: FieldChanges!
-}
-
-"""
-Field-level change analysis.
-"""
-type FieldChanges {
-  totalChanges: Int!
   modifiedFields: [String!]!
-  fieldDetails: JSON!
 }
 
-"""
-Impact analysis for changes.
-"""
-type ImpactAnalysis {
-  businessImpact: String!
-  affectedUsersCount: Int!
-  riskLevel: String!
-}
 
-"""
-Version range for change analysis.
-"""
-type VersionRange {
-  fromVersion: Int!
-  toVersion: Int!
-  totalVersions: Int!
-}
 
-"""
-Changes summary with key metrics.
-"""
-type ChangesSummary {
-  operationSummary: String!
-  totalChanges: Int!
-  keyChanges: [String!]!
-}
 
-"""
-Trend analysis over time.
-"""
-type TrendAnalysis {
-  changeFrequency: Float!
-  stabilityScore: Float!
-  riskTrend: String!
-}
 
-"""
-Impact assessment results.
-"""
-type ImpactAssessment {
-  overallImpact: String!
-  affectedSystems: [String!]!
-  mitigationRequired: Boolean!
-}
+
 
 """
 Date range specification.
@@ -685,13 +580,6 @@ enum OperationType {
   DELETE         # Deletion operation
 }
 
-"""
-Analysis depth for change analysis queries.
-"""
-enum AnalysisType {
-  SUMMARY        # High-level summary
-  DETAILED       # Detailed field-by-field analysis
-}
 
 """
 Consistency check modes with different performance characteristics.
@@ -765,9 +653,14 @@ performance optimization through specialized PostgreSQL indexes.
 Key Features:
 - Temporal queries with asOfDate parameter for historical data access
 - Comprehensive hierarchy management with 17-level depth support
-- Complete audit trail with cross-version change analysis
+- Complete audit trail with essential change analysis (v4.3.0 simplified)
 - Performance-optimized with response times < 200ms for most queries
 - Multi-tenant security with permission-based access control
+
+Design Principles (v4.4.0):
+- API-first development: remove unused/over-engineered endpoints
+- Focus on essential audit information for practical decision-making
+- Maintain small, focused API surface area for better maintainability
 
 Authentication:
 All queries require OAuth 2.0 Bearer token with appropriate permissions.
