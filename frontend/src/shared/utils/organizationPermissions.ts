@@ -25,7 +25,7 @@ export const getOperationPermissions = (
   
   const permissions: OrganizationOperationContext = {
     canEdit: isManager,
-    canDelete: isAdmin && organization.status === 'INACTIVE',
+    canDelete: isAdmin && (organization.status === 'SUSPENDED' || organization.status === 'DELETED'),
     canActivate: isManager && organization.status !== 'ACTIVE',
     canDeactivate: isManager && organization.status === 'ACTIVE',
     canViewHistory: true,
@@ -34,11 +34,12 @@ export const getOperationPermissions = (
     canViewTimeline: true
   };
   
-  // 如果组织有子组织，不允许删除
-  if (organization.childCount && organization.childCount > 0) {
-    permissions.canDelete = false;
-    permissions.reason = '存在子组织，无法删除';
-  }
+  // TODO: 添加子组织检查逻辑 - 需要从API获取子组织数量
+  // 暂时禁用子组织删除限制，等待API支持
+  // if (organization.childCount && organization.childCount > 0) {
+  //   permissions.canDelete = false;
+  //   permissions.reason = '存在子组织，无法删除';
+  // }
   
   return permissions;
 };

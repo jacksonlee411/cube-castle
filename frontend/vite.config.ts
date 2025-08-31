@@ -32,6 +32,12 @@ export default defineConfig({
       },
       // ❌ 已移除时态查询端点 - 现在使用GraphQL查询
       // '^/api/v1/organization-units/[^/]+/temporal': 现统一使用 /graphql 端点
+      // 认证端点代理
+      '/auth': {
+        target: 'http://localhost:9090',
+        changeOrigin: true,
+        secure: false
+      },
       // 其他API路由到9090端口
       '/api/v1': {
         target: 'http://localhost:9090',
