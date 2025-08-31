@@ -41,6 +41,19 @@ export class UnifiedGraphQLClient {
       });
 
       if (!response.ok) {
+        // JWT token过期或无效时，清除认证状态并提供友好错误信息
+        if (response.status === 401) {
+          console.warn('[GraphQL Client] 认证失败，清除token状态');
+          authManager.clearAuth();
+          throw new Error('认证已过期，请刷新页面重新登录');
+        }
+        
+        // 服务器内部错误时提供更友好的错误信息
+        if (response.status === 500) {
+          console.error('[GraphQL Client] 服务器内部错误:', { query, variables, status: response.status });
+          throw new Error('服务器内部错误，请稍后重试或联系管理员');
+        }
+        
         throw new Error(`GraphQL Error: ${response.status} ${response.statusText}`);
       }
 
@@ -96,9 +109,28 @@ export class UnifiedRESTClient {
 
       // 检查是否有响应体（DELETE请求可能没有响应体）
       const text = await response.text();
-      const result = text ? JSON.parse(text) : ({} as T);
+      let result: T;
+      try {
+        result = text ? JSON.parse(text) : ({} as T);
+      } catch (parseError) {
+        console.error('[REST Client] JSON解析失败:', { endpoint, text, parseError });
+        throw new Error(`响应解析失败: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`);
+      }
 
       if (!response.ok) {
+        // JWT token过期或无效时，清除认证状态并提供友好错误信息
+        if (response.status === 401) {
+          console.warn('[REST Client] 认证失败，清除token状态');
+          authManager.clearAuth();
+          throw new Error('认证已过期，请刷新页面重新登录');
+        }
+        
+        // 服务器内部错误时提供更友好的错误信息
+        if (response.status === 500) {
+          console.error('[REST Client] 服务器内部错误:', { endpoint, status: response.status, result });
+          throw new Error('服务器内部错误，请稍后重试或联系管理员');
+        }
+        
         // 尝试解析服务器返回的错误信息
         if (result && typeof result === 'object' && 'error' in result) {
           const errorInfo = result.error as { message?: string };

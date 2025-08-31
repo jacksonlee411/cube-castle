@@ -276,22 +276,30 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         }
       );
       
-      // unifiedRESTClient成功时直接返回数据，失败时抛出异常
-      // 刷新数据
-      await loadVersions();
+      // 删除API调用成功后，处理UI状态
       setShowDeleteConfirm(null);
       
       // 如果作废的是选中的版本，重新选择
       if (selectedVersion?.effectiveDate === version.effectiveDate) {
         setSelectedVersion(null);
       }
+      
+      // 刷新数据 - 使用try-catch防止刷新失败影响删除成功状态
+      try {
+        await loadVersions();
+      } catch (refreshError) {
+        console.warn('数据刷新失败，但删除操作已成功:', refreshError);
+        // 数据刷新失败不应该影响删除操作的成功状态
+      }
     } catch (error) {
       console.error('Error deactivating version:', error);
-      showError('作废失败，请检查网络连接');
+      // 不再在这里显示错误消息，让错误向上传播到调用者
+      // 这样可以避免双重错误消息显示
+      throw error; // 重新抛出错误，让上层组件处理
     } finally {
       setIsDeleting(false);
     }
-  }, [organizationCode, selectedVersion, isDeleting, loadVersions, showError]);
+  }, [organizationCode, selectedVersion, isDeleting, loadVersions]);
 
   // 时间轴版本选择处理 - 增强功能，支持编辑历史记录页面联动
   const handleVersionSelect = useCallback((version: TimelineVersion) => {
@@ -674,9 +682,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   }))}
                   onEditHistory={handleHistoryEditSubmit}
                   onDeactivate={async (version: Record<string, unknown>) => {
-                    // 类型安全转换
-                    const typedVersion = version as unknown as TimelineVersion;
-                    await handleDeleteVersion(typedVersion);
+                    try {
+                      // 类型安全转换
+                      const typedVersion = version as unknown as TimelineVersion;
+                      await handleDeleteVersion(typedVersion);
+                      // 成功时的处理由handleDeleteVersion内部完成
+                    } catch (error) {
+                      // 显示错误消息
+                      const errorMessage = error instanceof Error ? error.message : '作废失败，请重试';
+                      showError(errorMessage);
+                    }
                   }} // 传递作废功能
                   onInsertRecord={handleFormSubmit} // 传递插入记录功能
                   activeTab="edit-history"
@@ -754,7 +769,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 取消
               </SecondaryButton>
               <PrimaryButton 
-                onClick={() => handleDeleteVersion(showDeleteConfirm)}
+                onClick={async () => {
+                  try {
+                    await handleDeleteVersion(showDeleteConfirm);
+                    // 成功时的处理由handleDeleteVersion内部完成
+                  } catch (error) {
+                    // 显示错误消息
+                    const errorMessage = error instanceof Error ? error.message : '作废失败，请重试';
+                    showError(errorMessage);
+                  }
+                }}
                 disabled={isDeleting}
               >
                 {isDeleting ? '作废中...' : '确认作废'}

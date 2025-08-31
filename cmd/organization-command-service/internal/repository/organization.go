@@ -205,13 +205,13 @@ func (r *OrganizationRepository) CreateTemporalVersion(ctx context.Context, org 
 	r.logger.Printf("🔄 开始创建时态版本: %s, 生效日期: %s", org.Code, effectiveDate.String())
 
 	// 第一步：将该组织的所有记录设为非当前状态 (解决uk_current_organization约束)
+	// 修复：移除status != 'DELETED'条件，确保所有is_current=true的记录都被清除
 	clearCurrentQuery := `
 		UPDATE organization_units 
 		SET is_current = false,
 			updated_at = NOW()
 		WHERE code = $1 
 		  AND tenant_id = $2
-		  AND status != 'DELETED'
 		  AND is_current = true
 	`
 	

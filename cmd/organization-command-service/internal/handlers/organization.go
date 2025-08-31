@@ -539,14 +539,16 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 	switch req.EventType {
 	case "DEACTIVATE":
 		// 处理版本作废事件
-		err := h.handleDeactivateEvent(r.Context(), tenantID, code, req.RecordID, req.ChangeReason)
+		actorID := h.getActorID(r)
+		requestID := middleware.GetRequestID(r.Context())
+		
+		err := h.handleDeactivateEvent(r.Context(), tenantID, code, req.RecordID, req.ChangeReason, actorID, requestID)
 		if err != nil {
 			h.writeErrorResponse(w, r, http.StatusInternalServerError, "DEACTIVATE_ERROR", "作废版本失败", err)
 			return
 		}
 
 		h.logger.Printf("✅ 版本作废成功: 组织 %s, 记录ID: %s", code, req.RecordID)
-		requestID := middleware.GetRequestID(r.Context())
 		utils.WriteSuccess(w, map[string]interface{}{
 			"code":      code,
 			"record_id": req.RecordID,
@@ -681,10 +683,16 @@ func (h *OrganizationHandler) SetupRoutes(r chi.Router) {
 }
 
 // handleDeactivateEvent 处理版本作废事件
-func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantID uuid.UUID, code string, recordID string, changeReason string) error {
+func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantID uuid.UUID, code string, recordID string, changeReason string, actorID string, requestID string) error {
 	// 验证UUID格式
 	if _, err := uuid.Parse(recordID); err != nil {
 		return fmt.Errorf("无效的记录ID格式: %w", err)
+	}
+
+	// 获取删除前的组织数据用于审计日志
+	oldOrg, err := h.repo.GetByRecordId(ctx, tenantID, recordID)
+	if err != nil {
+		return fmt.Errorf("获取记录失败: %w", err)
 	}
 
 	// 更新指定记录的状态为DELETED
@@ -693,11 +701,20 @@ func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantI
 		ChangeReason: func(s string) *string { return &s }(changeReason),
 	}
 
-	_, err := h.repo.UpdateByRecordId(ctx, tenantID, recordID, updateReq)
+	_, err = h.repo.UpdateByRecordId(ctx, tenantID, recordID, updateReq)
 	if err != nil {
 		return fmt.Errorf("作废记录失败: %w", err)
 	}
 
+	// 记录审计日志 - 使用删除日志方法
+	err = h.auditLogger.LogOrganizationDelete(ctx, tenantID, code, oldOrg, actorID, requestID, changeReason)
+	if err != nil {
+		h.logger.Printf("⚠️ 审计日志记录失败 (但操作成功): %v", err)
+		// 审计日志失败不应该导致业务操作失败，只记录警告
+	}
+
+	h.logger.Printf("📋 审计日志已记录: 作废组织版本 %s (记录ID: %s)", code, recordID)
+	
 	return nil
 }
 

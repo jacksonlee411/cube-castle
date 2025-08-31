@@ -442,6 +442,104 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/organization-units/{code}/events:
+    post:
+      tags:
+        - temporal-operations
+      summary: Process organization events
+      description: |
+        Processes events for organization units such as DEACTIVATE operations.
+        This endpoint supports temporal version management operations.
+        
+        **Event Types:**
+        - DEACTIVATE: Soft delete a specific version by setting status to DELETED
+        
+        **Required Permissions:** `org:delete`
+      security:
+        - OAuth2ClientCredentials: ['org:delete']
+      parameters:
+        - $ref: '#/components/parameters/CodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventType
+                - recordId
+                - changeReason
+              properties:
+                eventType:
+                  type: string
+                  enum: [DEACTIVATE]
+                  description: Type of event to process
+                  example: "DEACTIVATE"
+                recordId:
+                  type: string
+                  format: uuid
+                  description: UUID of the specific record to deactivate
+                  example: "07f91c91-82ee-4bba-afde-9c3d7500f2cd"
+                effectiveDate:
+                  type: string
+                  format: date
+                  description: Effective date for logging purposes (optional)
+                  example: "2026-01-01"
+                changeReason:
+                  type: string
+                  maxLength: 500
+                  description: Reason for the operation
+                  example: "通过组织详情页面作废版本"
+      responses:
+        '200':
+          description: Event processed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                            example: "1000028"
+                          record_id:
+                            type: string
+                            format: uuid
+                            example: "07f91c91-82ee-4bba-afde-9c3d7500f2cd"
+              example:
+                success: true
+                data:
+                  code: "1000028"
+                  record_id: "07f91c91-82ee-4bba-afde-9c3d7500f2cd"
+                message: "版本作废成功"
+                timestamp: "2025-08-31T09:17:43Z"
+                requestId: "3f975f9b-6cf9-4e14-956b-2435d1a802bd"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Organization unit or record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "ORGANIZATION_NOT_FOUND"
+                  message: "Organization unit not found"
+                timestamp: "2025-08-31T09:17:43Z"
+                requestId: "req-123456"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/organization-units/{code}/suspend:
     post:
       tags:

@@ -475,15 +475,21 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     
     try {
       setIsDeactivating(true);
+      setError(null); // 清除之前的错误消息
+      setSuccessMessage(null); // 清除之前的成功消息
+      
       await onDeactivate(selectedVersion);
+      
+      // onDeactivate成功完成，关闭确认对话框
       setShowDeactivateConfirm(false);
-      // 作废成功后保持在当前页面，用户可以观察操作结果
-      // 显示成功提示，让用户知道操作已完成
-      setSuccessMessage(`版本删除成功！生效日期：${new Date(selectedVersion.effectiveDate).toLocaleDateString('zh-CN')}`);
-      // 移除 onCancel() 调用，让用户自己决定是否离开页面
+      // 不在这里显示成功消息，让父组件处理成功状态
     } catch (error) {
       console.error('删除失败:', error);
-      setError('删除失败，请重试');
+      setShowDeactivateConfirm(false); // 关闭确认对话框
+      
+      // 提供更友好的错误消息
+      const errorMessage = error instanceof Error ? error.message : '删除失败，请重试';
+      setError(errorMessage);
     } finally {
       setIsDeactivating(false);
     }

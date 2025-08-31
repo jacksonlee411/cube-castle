@@ -18,15 +18,15 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/metrics/, '/metrics')
       },
       // 时态管理API路由 - 符合严格CQRS架构
-      // 事件驱动端点 (命令操作) 路由到9091端口
+      // 事件驱动端点 (命令操作) 路由到9090端口 - 修复代理配置错误
       '^/api/v1/organization-units/[^/]+/events': {
-        target: 'http://localhost:9091',
+        target: 'http://localhost:9090',
         changeOrigin: true,
         secure: false
       },
-      // 历史记录更新端点 (命令操作) 路由到9091端口  
+      // 历史记录更新端点 (命令操作) 路由到9090端口  
       '^/api/v1/organization-units/history/[^/]+': {
-        target: 'http://localhost:9091',
+        target: 'http://localhost:9090',
         changeOrigin: true,
         secure: false
       },
