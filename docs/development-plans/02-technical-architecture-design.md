@@ -35,212 +35,71 @@
 4. **开发简化**: 单一数据模型，统一CRUD逻辑
 
 ### 时态数据模型设计
-```sql
-CREATE TABLE organization_units (
-    -- 复合主键支持多版本
-    code VARCHAR(7),
-    effective_date DATE NOT NULL,
-    PRIMARY KEY (code, effective_date),
-    
-    -- 时态管理字段
-    end_date DATE,
-    is_current BOOLEAN NOT NULL DEFAULT true,
-    is_future BOOLEAN NOT NULL DEFAULT false,
-    record_id UUID NOT NULL DEFAULT gen_random_uuid(),
-    
-    -- 时态约束
-    UNIQUE (code, effective_date, record_id),
-    CHECK (end_date IS NULL OR end_date > effective_date),
-    CHECK (NOT (is_current AND is_future))
-);
-```
+- **复合主键**: `(code, effective_date)` 支持多版本共存
+- **时态管理字段**: `effective_date`, `end_date`, `is_current`, `is_future`
+- **审计字段**: `record_id` 提供版本唯一标识
+- **时态约束**: 确保日期逻辑一致性和状态互斥性
+
+*具体表结构定义请参考API契约文档中的数据模型规范*
 
 ## 📡 API设计
 
 ### GraphQL查询 (8090) - 时态查询能力
-```graphql
-type Query {
-  # 基础查询 - 支持时态过滤
-  organizations(
-    filter: OrgFilter
-    asOfDate: Date              # 时间点查询支持
-  ): OrganizationConnection
-  
-  organization(
-    code: String!
-    asOfDate: Date              # 历史版本查询
-  ): Organization
-  
-  # 时态专用查询
-  organizationVersions(
-    code: String!
-    dateRange: DateRange        # 版本演进查询
-  ): [Organization!]!
-  
-  organizationHierarchy(rootCode: String, maxDepth: Int): [OrganizationNode]
-  organizationAuditHistory(code: String!): [AuditRecord]
-  organizationStats: OrganizationStats
-}
+- **基础查询**: 支持组织单元列表和单个查询，带时态过滤 `asOfDate` 参数
+- **层级查询**: 组织架构层级查询和子树查询，支持深度控制
+- **统计查询**: 组织统计信息，包含时态分布统计
+- **审计查询**: 基于 `recordId` 的精确审计历史查询
+- **时态过滤**: 支持历史版本、未来版本、日期范围等时态查询
 
-# 单表时态数据模型
-type Organization {
-  code: String!               # 业务标识 (不变)
-  name: String!
-  unitType: UnitType!
-  status: OrganizationStatus!
-  parentCode: String
-  level: Int!
-  
-  # 时态管理字段 - 核心特性
-  effectiveDate: String!      # 生效日期 (复合主键组成部分)
-  endDate: String             # 结束日期 (可为空)
-  isCurrent: Boolean!         # 当前版本标识
-  isFuture: Boolean!          # 未来版本标识
-  recordId: UUID!             # 版本唯一标识
-  
-  # 审计字段
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
+*具体GraphQL Schema定义请参考 `/docs/api/schema.graphql` 文件*
 
-# 时态查询过滤器
-input OrgFilter {
-  # 标准过滤
-  unitType: UnitType
-  status: OrganizationStatus
-  parentCode: String
-  
-  # 时态过滤 - 单表架构优势
-  asOfDate: Date              # 指定时间点的有效版本
-  includeFuture: Boolean      # 是否包含未来版本
-  onlyFuture: Boolean         # 仅未来版本
-  versionRange: DateRange     # 版本生效日期范围
-}
-```
+### REST命令 (9090) 
+- **CRUD操作**: 创建、完整替换、部分更新、删除组织单元
+- **业务操作**: 专用的停用/激活端点，确保业务逻辑清晰
+- **数据验证**: 专用验证端点，支持干运行模式
+- **系统维护**: 层级修复和批量操作端点
+- **企业级响应**: 统一的信封格式，包含成功/错误状态、数据、消息、时间戳、请求ID
 
-### REST命令 (9090)
-```yaml
-端点:
-  POST   /api/v1/organization-units          # 创建
-  PUT    /api/v1/organization-units/{code}   # 替换
-  PATCH  /api/v1/organization-units/{code}   # 更新
-  DELETE /api/v1/organization-units/{code}   # 删除
-  POST   /api/v1/organization-units/{code}/suspend    # 停用
-  POST   /api/v1/organization-units/{code}/activate   # 激活
-
-响应:
-  成功: {success: true, data: {...}, message, timestamp, requestId}
-  错误: {success: false, error: {code, message, details}, timestamp, requestId}
-```
+*具体REST API端点定义请参考 `/docs/api/openapi.yaml` 文件*
 
 ## 🔧 技术栈选型
 
 ### 后端技术栈 (Go语言生态)
-```yaml
-核心选型:
-  Runtime: Go 1.21+ (编译型单一二进制部署)
-  Language: Go + Generics支持 (静态类型系统)
-  
-GraphQL服务:
-  框架: graph-gophers/graphql-go (Schema-first开发)
-  特性: 原生Go实现，Schema定义驱动代码生成
-  
-REST服务:  
-  框架: Gin 1.9+ (轻量级高性能Web框架)
-  验证: validator/v10 + gin-binding
-  文档: Swagger/OpenAPI 3.0自动生成
-  
-数据访问:
-  驱动: jackc/pgx v5 (纯Go高性能PostgreSQL驱动)
-  ORM: GORM v2 (关系映射) + SQLx (原生SQL)
-  连接池: pgxpool，最大100连接，超时30秒
-  
-认证授权:
-  协议: OAuth 2.0 Client Credentials Flow
-  Token: JWT RS256签名，1小时有效期
-  权限: PBAC模型，github.com/open-policy-agent/opa
-  中间件: jwt-go + 自定义权限中间件
-  
-监控日志:
-  指标: prometheus/client_golang
-  日志: logrus/zap结构化JSON
-  测试: Go内置testing + testify断言库
-```
+- **运行环境**: Go 1.21+ 编译型单一二进制部署，支持泛型
+- **GraphQL服务**: graph-gophers/graphql-go，Schema定义驱动开发
+- **REST服务**: Gin 1.9+，高性能Web框架，集成validator和OpenAPI
+- **数据访问**: pgx v5驱动 + GORM v2/SQLx，连接池优化
+- **认证授权**: OAuth 2.0 + JWT RS256 + PBAC权限模型
+- **监控日志**: Prometheus指标 + 结构化JSON日志
 
 ### 前端技术栈 (React生态)
-```yaml
-核心框架:
-  UI: React 18+ + Canvas Kit v13 (Workday设计系统)
-  语言: TypeScript 5+ (严格模式)
-  路由: React Router v6
-  
-状态管理:
-  数据: React Query (服务端状态) + Zustand (客户端状态)
-  GraphQL: Apollo Client 3.x
-  HTTP: Axios + 统一错误处理
-  
-开发工具:
-  构建: Vite + TypeScript
-  代码质量: ESLint + Prettier + Husky
-  类型生成: GraphQL Schema → TypeScript Types
-  
-集成特性:
-  API集成: GraphQL查询 + REST命令分离
-  认证: JWT Token管理 + 权限检查
-  错误处理: 统一企业级错误处理
-  类型安全: 前后端TypeScript类型共享
-```
+- **核心框架**: React 18+ + Canvas Kit v13 (Workday设计系统) + TypeScript 5+
+- **状态管理**: React Query (服务端) + Zustand (客户端) + Apollo Client (GraphQL)
+- **开发工具**: Vite构建 + ESLint/Prettier + GraphQL类型生成
+- **集成特性**: GraphQL查询/REST命令分离 + JWT认证 + 统一错误处理
 
 ### 技术选型原则
-```yaml
-选型优势:
-  Go语言优势:
-    - 单一二进制部署，无运行时依赖
-    - 出色的并发性能和内存管理
-    - 静态类型系统，编译时错误检查
-    - 丰富的标准库和企业级库支持
-    
-  PostgreSQL优势:
-    - 优秀的JSON/JSONB支持
-    - 强大的递归CTE查询能力
-    - 丰富的索引类型(GIN、GiST、BRIN)
-    - 时态数据原生支持
-    
-  React生态优势:
-    - Canvas Kit v13提供完整企业级组件
-    - TypeScript提供类型安全保障
-    - Apollo Client提供强大的GraphQL集成
-    - 成熟的开发工具链和调试体验
-
-技术债务预防:
-  - 统一camelCase命名规范，无snake_case兼容负担
-  - 严格CQRS架构，无协议混用历史问题
-  - PostgreSQL单一数据源，无多数据库同步复杂性
-  - 企业级响应结构从第一个端点开始统一
-```
+- **Go语言优势**: 单一二进制部署、并发性能优秀、静态类型安全、企业级库支持
+- **PostgreSQL优势**: JSON/JSONB支持、递归CTE查询、丰富索引类型、时态数据原生支持  
+- **React生态优势**: Canvas Kit企业级组件、TypeScript类型安全、成熟工具链
+- **技术债务预防**: 统一命名规范、严格CQRS架构、单一数据源、企业级响应结构
 
 ## 🔐 安全架构
-```yaml
-认证: OAuth 2.0 Client Credentials Flow
-Token: JWT RS256签名，1小时有效期
-权限: PBAC模型，17个细粒度权限，4种角色
-审计: 完整操作日志，租户隔离
-```
+- **认证**: OAuth 2.0 Client Credentials Flow
+- **Token**: JWT RS256签名，1小时有效期  
+- **权限**: PBAC模型，17个细粒度权限，4种角色
+- **审计**: 完整操作日志，租户隔离
 
 ## 📊 监控
-```yaml
-指标: HTTP延迟、数据库连接、业务变更、系统资源
-可视化: Grafana Dashboard + Prometheus
-告警: Alertmanager + Slack/Email
-日志: 结构化JSON，按日分割，30天保留
-```
+- **指标**: HTTP延迟、数据库连接、业务变更、系统资源
+- **可视化**: Grafana Dashboard + Prometheus
+- **告警**: Alertmanager + Slack/Email  
+- **日志**: 结构化JSON，按日分割，30天保留
 
 ## 🚀 部署
-```yaml
-容器化: Docker + Kubernetes
-环境: 开发(Docker Compose) + 测试(K8s) + 生产(K8s+Helm)
-健康检查: /health端点，数据库连接验证
-```
+- **容器化**: Docker + Kubernetes
+- **环境**: 开发(Docker Compose) + 测试(K8s) + 生产(K8s+Helm)
+- **健康检查**: /health端点，数据库连接验证
 
 ---
 **更新**: 2025-08-23
