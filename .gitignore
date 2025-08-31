@@ -89,3 +89,9 @@ redis-data/
 # Backup and archive files
 backup/
 archive/
+# 编译后的二进制文件
+**/organization-command-service
+**/organization-query-service
+cmd/*/organization-command-service*
+cmd/*/organization-query-service*
+
