@@ -8,12 +8,10 @@ set -e
 echo "🚀 启动优化后的组织架构服务 (2个核心服务)"
 echo "==============================================="
 
-# 设置环境变量
-export NEO4J_URI="bolt://localhost:7687"
-export NEO4J_USER="neo4j"
-export NEO4J_PASSWORD="password"
+# 设置环境变量 - PostgreSQL原生架构
 export REDIS_ADDR="localhost:6379"
 export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+export GRAPHQL_DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
 
 # 检查必要的服务
 echo "📋 检查基础服务状态..."
@@ -25,12 +23,8 @@ if ! pg_isready -h localhost -p 5432 -U user -d cubecastle > /dev/null 2>&1; the
 fi
 echo "✅ PostgreSQL连接正常"
 
-# 检查Neo4j
-if ! curl -s http://localhost:7474/db/data/ > /dev/null 2>&1; then
-    echo "❌ Neo4j未启动，请先启动图数据库"
-    exit 1
-fi
-echo "✅ Neo4j连接正常"
+# PostgreSQL原生架构 - 无需Neo4j
+echo "✅ PostgreSQL原生架构 - 已移除Neo4j依赖"
 
 # 检查Redis (可选)
 if ! redis-cli -h localhost -p 6379 ping > /dev/null 2>&1; then
@@ -113,13 +107,12 @@ echo "   功能: 所有写操作 + 统一业务验证"
 echo "   数据库: PostgreSQL"
 echo "   API: http://localhost:9090/api/v1/organization-units"
 echo ""
-echo "📍 核心服务2: 统一查询服务" 
+echo "📍 核心服务2: PostgreSQL原生查询服务" 
 echo "   端口: 8090"
-echo "   功能: GraphQL + REST查询 + 缓存"
-echo "   数据库: Neo4j + Redis缓存"
+echo "   功能: GraphQL查询 + 时态查询 + 缓存"
+echo "   数据库: PostgreSQL原生 + Redis缓存"
 echo "   GraphQL: http://localhost:8090/graphql"
 echo "   GraphiQL: http://localhost:8090/graphiql"
-echo "   REST API: http://localhost:8090/api/v1/organization-units"
 echo ""
 echo ""
 echo "📋 健康检查:"

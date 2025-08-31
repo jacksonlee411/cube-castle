@@ -86,7 +86,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [editMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // 视图选项卡状态 - 默认显示编辑历史记录页面，现在支持审计信息
+  // 视图选项卡状态 - 默认显示版本历史页面，支持审计信息
   const [activeTab, setActiveTab] = useState<TabType>('edit-history');
   
   // 表单模式状态 - 新增功能 (TODO: 当前未读取formMode值)
@@ -296,20 +296,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const handleVersionSelect = useCallback((version: TimelineVersion) => {
     setSelectedVersion(version);
     
-    // 如果当前在新增版本选项卡，自动预填充选中版本的数据
-    if (activeTab === 'new-version') {
-      setFormMode('edit');
-      setFormInitialData({
-        name: version.name,
-        unitType: version.unitType,
-        status: version.status,
-        description: version.description || '',
-        parentCode: version.parentCode || '',
-        effectiveDate: version.effectiveDate // 添加生效日期绑定
-      });
-    }
-    
-    // 如果当前在编辑历史记录选项卡，更新表单数据显示选中版本的信息
+    // 如果当前在版本历史选项卡，更新表单数据显示选中版本的信息
     if (activeTab === 'edit-history') {
       setFormMode('edit');
       setFormInitialData({
@@ -661,8 +648,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 onTabChange={setActiveTab}
                 disabled={isSubmitting || isLoading}
                 tabs={[
-                  { key: 'edit-history', label: '版本管理' },
-                  { key: 'new-version', label: '新增版本' },
+                  { key: 'edit-history', label: '版本历史' },
                   { key: 'audit-history', label: '审计历史' }
                 ]}
               />
@@ -695,41 +681,24 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 />
               )}
 
-              {activeTab === 'new-version' && (
-                <InlineNewVersionForm
-                  organizationCode={organizationCode}
-                  onSubmit={handleFormSubmit}
-                  onCancel={() => setActiveTab('edit-history')} // 取消时返回版本管理
-                  isSubmitting={isSubmitting}
-                  mode="insert"
-                  initialData={formInitialData}
-                  selectedVersion={selectedVersion}
-                  allVersions={versions.map(v => ({ 
-                    recordId: v.recordId,
-                    effectiveDate: v.effectiveDate,
-                    endDate: v.endDate,
-                    isCurrent: v.isCurrent
-                  }))}
-                  onEditHistory={handleHistoryEditSubmit}
-                  onDeactivate={async (version: Record<string, unknown>) => {
-                    const typedVersion = version as unknown as TimelineVersion;
-                    await handleDeleteVersion(typedVersion);
-                  }}
-                  onInsertRecord={handleFormSubmit}
-                  activeTab="new-version"
-                  onTabChange={setActiveTab}
-                />
-              )}
 
               {/* 审计历史标签页 */}
               {activeTab === 'audit-history' && selectedVersion?.recordId && (
-                <AuditHistorySection
-                  recordId={selectedVersion.recordId}
-                  params={{
-                    limit: 50,
-                    mode: 'current'
-                  }}
-                />
+                <>
+                  {/* 调试信息 */}
+                  <Box marginBottom="s" padding="s" backgroundColor="#f5f5f5" borderRadius="4px">
+                    <Text typeLevel="subtext.small" color="hint">
+                      🔍 调试信息: recordId = {selectedVersion.recordId}
+                    </Text>
+                  </Box>
+                  <AuditHistorySection
+                    recordId={selectedVersion.recordId}
+                    params={{
+                      limit: 50,
+                      mode: 'current'
+                    }}
+                  />
+                </>
               )}
               
               {activeTab === 'audit-history' && !selectedVersion?.recordId && (

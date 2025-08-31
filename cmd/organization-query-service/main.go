@@ -464,8 +464,20 @@ func (a AuditRecordData) OperatedBy() OperatedByData { return a.OperatedByField 
 func (a AuditRecordData) ChangesSummary() string     { return a.ChangesSummaryField }
 func (a AuditRecordData) OperationReason() *string   { return a.OperationReasonField }
 func (a AuditRecordData) Timestamp() string          { return a.TimestampField }
-func (a AuditRecordData) BeforeData() *string        { return a.BeforeDataField }
-func (a AuditRecordData) AfterData() *string         { return a.AfterDataField }
+func (a AuditRecordData) BeforeData() *string {
+	if a.BeforeDataField == nil {
+		return nil
+	}
+	// 确保空对象也返回，不要过滤为null
+	return a.BeforeDataField
+}
+func (a AuditRecordData) AfterData() *string {
+	if a.AfterDataField == nil {
+		return nil
+	}
+	// 确保空对象也返回，不要过滤为null
+	return a.AfterDataField
+}
 
 type OperatedByData struct {
 	IDField   string `json:"id"`
@@ -1077,8 +1089,8 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId str
 			END as changes_summary,
 			business_context->>'operation_reason' as operation_reason,
 			timestamp,
-			request_data::text as before_data, 
-			response_data::text as after_data
+			before_data::text as before_data, 
+			after_data::text as after_data
 		FROM audit_logs 
 		WHERE resource_id = $1::uuid AND resource_type = 'ORGANIZATION'`
 	
@@ -1127,16 +1139,25 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId str
 	for rows.Next() {
 		var record AuditRecordData
 		var operatedById, operatedByName string
+		var beforeData, afterData sql.NullString
 		
 		err := rows.Scan(
 			&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
 			&operatedById, &operatedByName,
 			&record.ChangesSummaryField, &record.OperationReasonField, &record.TimestampField,
-			&record.BeforeDataField, &record.AfterDataField,
+			&beforeData, &afterData,
 		)
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描审计记录失败: %v", err)
 			return nil, err
+		}
+		
+		// 正确处理JSONB字段
+		if beforeData.Valid {
+			record.BeforeDataField = &beforeData.String
+		}
+		if afterData.Valid {
+			record.AfterDataField = &afterData.String
 		}
 		
 		// 构建操作人信息
@@ -1174,8 +1195,8 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
 			END as changes_summary,
 			business_context->>'operation_reason' as operation_reason,
 			timestamp,
-			request_data::text as before_data, 
-			response_data::text as after_data
+			before_data::text as before_data, 
+			after_data::text as after_data
 		FROM audit_logs 
 		WHERE id = $1::uuid AND resource_type = 'ORGANIZATION'
 		LIMIT 1`
@@ -1184,12 +1205,13 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
 	
 	var record AuditRecordData
 	var operatedById, operatedByName string
+	var beforeData, afterData sql.NullString
 	
 	err := row.Scan(
 		&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
 		&operatedById, &operatedByName,
 		&record.ChangesSummaryField, &record.OperationReasonField, &record.TimestampField,
-		&record.BeforeDataField, &record.AfterDataField,
+		&beforeData, &afterData,
 	)
 	
 	if err != nil {
@@ -1198,6 +1220,14 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
 		}
 		r.logger.Printf("[ERROR] 单条审计记录查询失败: %v", err)
 		return nil, err
+	}
+	
+	// 正确处理JSONB字段
+	if beforeData.Valid {
+		record.BeforeDataField = &beforeData.String
+	}
+	if afterData.Valid {
+		record.AfterDataField = &afterData.String
 	}
 	
 	// 构建操作人信息

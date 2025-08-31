@@ -42,11 +42,16 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
     refetch
   } = useQuery({
     queryKey: ['auditHistory', recordId, params],
-    queryFn: () => organizationAPI.getAuditHistory(recordId, params),
+    queryFn: () => {
+      console.log('🚀 AuditHistorySection: Calling getAuditHistory with recordId:', recordId, 'params:', params);
+      return organizationAPI.getAuditHistory(recordId, params);
+    },
     enabled: !!recordId,
     staleTime: 30000, // 30秒内数据视为新鲜
     gcTime: 300000,   // 5分钟垃圾回收
   });
+
+  console.log('📊 AuditHistorySection state:', { recordId, isLoading, error, auditHistoryLength: auditHistory?.length });
 
   // 处理展开/收起
   const handleToggleExpand = (auditId: string) => {
@@ -63,16 +68,85 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
 
   // 数据适配器：GraphQL → UI格式
   const transformAuditData = (audit: Record<string, unknown>) => {
+    const operatedBy = audit.operatedBy as { id: string; name: string } | null;
     return {
       auditId: audit.auditId as string,
-      operation: audit.operation as string,
+      operation: audit.operationType as string,
       timestamp: audit.timestamp as string,
-      userName: (audit.userInfo as { userName: string })?.userName || '未知用户',
+      userName: operatedBy?.name || '系统用户',
       operationReason: audit.operationReason as string,
-      dataChanges: audit.dataChanges as {
-        beforeData?: Record<string, unknown>;
-        afterData?: Record<string, unknown>;
-        modifiedFields: string[];
+      dataChanges: {
+        beforeData: (() => {
+          try {
+            // 先尝试解析原始的beforeData
+            if (audit.beforeData && audit.beforeData !== 'null' && audit.beforeData !== '{}') {
+              const parsed = JSON.parse(audit.beforeData as string);
+              if (Object.keys(parsed).length > 0) return parsed;
+            }
+            
+            // 如果beforeData为空，但有changesSummary，尝试从中重建
+            if (audit.changesSummary && audit.changesSummary !== 'null' && audit.changesSummary !== '[]') {
+              const changes = JSON.parse(audit.changesSummary as string);
+              if (Array.isArray(changes) && changes.length > 0 && changes[0].oldValue !== undefined) {
+                const reconstructed: Record<string, any> = {};
+                changes.forEach((change: any) => {
+                  if (change.field && change.oldValue !== undefined) {
+                    reconstructed[change.field] = change.oldValue;
+                  }
+                });
+                return Object.keys(reconstructed).length > 0 ? reconstructed : undefined;
+              }
+            }
+            return undefined;
+          } catch (error) {
+            console.warn('Failed to parse beforeData:', error);
+            return undefined;
+          }
+        })(),
+        afterData: (() => {
+          try {
+            // 先尝试解析原始的afterData  
+            if (audit.afterData && audit.afterData !== 'null' && audit.afterData !== '{}') {
+              const parsed = JSON.parse(audit.afterData as string);
+              if (Object.keys(parsed).length > 0) return parsed;
+            }
+            
+            // 如果afterData为空，但有changesSummary，尝试从中重建
+            if (audit.changesSummary && audit.changesSummary !== 'null' && audit.changesSummary !== '[]') {
+              const changes = JSON.parse(audit.changesSummary as string);
+              if (Array.isArray(changes) && changes.length > 0 && changes[0].newValue !== undefined) {
+                const reconstructed: Record<string, any> = {};
+                changes.forEach((change: any) => {
+                  if (change.field && change.newValue !== undefined) {
+                    reconstructed[change.field] = change.newValue;
+                  }
+                });
+                return Object.keys(reconstructed).length > 0 ? reconstructed : undefined;
+              }
+            }
+            return undefined;
+          } catch (error) {
+            console.warn('Failed to parse afterData:', error);
+            return undefined;
+          }
+        })(),
+        modifiedFields: audit.changesSummary && audit.changesSummary !== 'null' ? 
+          (() => {
+            try {
+              const changes = JSON.parse(audit.changesSummary as string);
+              // 如果是变更对象数组，提取字段名
+              if (Array.isArray(changes) && changes.length > 0 && changes[0].field) {
+                return changes.map((change: any) => change.field);
+              }
+              // 如果是字段名数组，直接返回
+              if (Array.isArray(changes)) {
+                return changes;
+              }
+              return [audit.changesSummary as string];
+            } catch {
+              return [audit.changesSummary as string];
+            }
+          })() : []
       }
     };
   };

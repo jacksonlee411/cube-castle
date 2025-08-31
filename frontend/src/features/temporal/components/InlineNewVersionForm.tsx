@@ -43,7 +43,7 @@ export interface InlineNewVersionFormProps {
   onSubmit: (data: TemporalEditFormData) => Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
-  mode?: 'create' | 'edit' | 'insert'; // create: 新组织编码, edit: 编辑记录, insert: 插入新记录
+  mode?: 'create' | 'edit'; // create: 新组织编码, edit: 编辑记录
   initialData?: {
     name: string;
     unitType: string;
@@ -227,7 +227,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // 动态模式判断 - 根据activeTab确定当前模式
-  const currentMode = activeTab === 'new-version' ? 'insert' : mode;
+  const currentMode = mode;
   
   // Modal管理
   const deactivateModalModel = useModalModel();
@@ -262,7 +262,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   useEffect(() => {
     const firstDayOfMonth = getCurrentMonthFirstDay();
     
-    if ((mode === 'edit' || mode === 'insert') && initialData) {
+    if (mode === 'edit' && initialData) {
       // 编辑模式 - 使用传入的初始数据预填充表单，包括原始生效日期
       setFormData({
         name: initialData.name,
@@ -349,66 +349,6 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     return { minDate, maxDate };
   };
 
-  // 计算插入新记录的日期范围限制
-  const getInsertDateRange = (): { minDate: string | null; maxDate: string | null; insertType: 'history' | 'between' | 'future' } => {
-    if (!allVersions || allVersions.length === 0) {
-      return { minDate: null, maxDate: null, insertType: 'history' };
-    }
-
-    // 按生效日期排序所有版本
-    const sortedVersions = [...allVersions].sort((a, b) => 
-      new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime()
-    );
-
-    const inputDate = new Date(formData.effectiveDate);
-    const earliestDate = new Date(sortedVersions[0].effectiveDate);
-    const latestDate = new Date(sortedVersions[sortedVersions.length - 1].effectiveDate);
-
-    // 规则1: 不能插入早于最小生效日期的记录
-    const minDate = sortedVersions[0].effectiveDate; // 最早的生效日期
-
-    // 规则2: 如果是插入在两条记录之间
-    if (inputDate > earliestDate && inputDate < latestDate) {
-      // 找到应该插入的位置
-      for (let i = 0; i < sortedVersions.length - 1; i++) {
-        const currentDate = new Date(sortedVersions[i].effectiveDate);
-        const nextDate = new Date(sortedVersions[i + 1].effectiveDate);
-        
-        if (inputDate > currentDate && inputDate < nextDate) {
-          // 在这两个版本之间插入
-          const minInsertDate = new Date(currentDate);
-          minInsertDate.setDate(minInsertDate.getDate() + 1);
-          
-          const maxInsertDate = new Date(nextDate);
-          maxInsertDate.setDate(maxInsertDate.getDate() - 1);
-          
-          return {
-            minDate: minInsertDate.toISOString().split('T')[0],
-            maxDate: maxInsertDate.toISOString().split('T')[0],
-            insertType: 'between'
-          };
-        }
-      }
-    }
-
-    // 规则3: 如果是插入未来日期的记录
-    if (inputDate >= latestDate) {
-      const futureMinDate = new Date(latestDate);
-      futureMinDate.setDate(futureMinDate.getDate() + 1);
-      return {
-        minDate: futureMinDate.toISOString().split('T')[0],
-        maxDate: null, // 未来记录没有最大日期限制
-        insertType: 'future'
-      };
-    }
-
-    // 如果是插入历史记录（在最早记录之前）
-    return {
-      minDate: minDate,
-      maxDate: null,
-      insertType: 'history'
-    };
-  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -443,45 +383,6 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
             newErrors.effectiveDate = `生效日期不能晚于 ${formatDate(maxDate)}（下一版本生效日期之前）`;
           }
         }
-      } else if (currentMode === 'insert') {
-        // 编辑组织信息模式 - 插入新记录模式
-        const effectiveDate = new Date(formData.effectiveDate);
-        
-        if (!allVersions || allVersions.length === 0) {
-          // 如果没有现有版本，无限制（相当于create模式）
-        } else {
-          // 使用新的插入规则
-          const { minDate, maxDate, insertType } = getInsertDateRange();
-          const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('zh-CN');
-          
-          // 规则1: 不能插入早于最小生效日期的记录
-          if (minDate) {
-            const minDateTime = new Date(minDate);
-            if (effectiveDate < minDateTime) {
-              if (insertType === 'history') {
-                newErrors.effectiveDate = `生效日期不能早于 ${formatDate(minDate)}（最早版本生效日期）`;
-              } else if (insertType === 'between') {
-                newErrors.effectiveDate = `生效日期必须在 ${formatDate(minDate)} 之后（前一版本生效日期之后）`;
-              } else if (insertType === 'future') {
-                newErrors.effectiveDate = `生效日期必须在 ${formatDate(minDate)} 之后（最新版本生效日期之后）`;
-              }
-            }
-          }
-          
-          // 规则2: 在两条记录之间插入时的最大日期限制
-          if (maxDate && !newErrors.effectiveDate && insertType === 'between') {
-            const maxDateTime = new Date(maxDate);
-            if (effectiveDate > maxDateTime) {
-              newErrors.effectiveDate = `生效日期必须在 ${formatDate(maxDate)} 之前（下一版本生效日期之前）`;
-            }
-          }
-          
-          // 规则3: 未来记录无最大日期限制，但提供友好提示
-          if (insertType === 'future' && !newErrors.effectiveDate) {
-            // 可以添加提示信息但不报错
-            console.log(`插入未来记录：${formData.effectiveDate}`);
-          }
-        }
       }
     }
     
@@ -491,6 +392,18 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
 
   // 历史记录编辑相关处理函数
   const handleEditHistoryToggle = () => {
+    if (!isEditingHistory && selectedVersion) {
+      // 进入修改模式：设置原始数据用于修改
+      setOriginalHistoryData(selectedVersion);
+      setFormData({
+        name: selectedVersion.name,
+        unitType: selectedVersion.unitType,
+        lifecycleStatus: (selectedVersion.status as 'SUSPENDED' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL') || 'CURRENT',
+        description: selectedVersion.description || '',
+        effectiveDate: new Date(selectedVersion.effectiveDate).toISOString().split('T')[0],
+        parentCode: selectedVersion.parentCode || ''
+      });
+    }
     setIsEditingHistory(!isEditingHistory);
   };
 
@@ -598,18 +511,12 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     setLoading(true);
     
     try {
-      // 根据当前模式调用不同的处理函数
-      if (currentMode === 'insert' && onInsertRecord) {
-        await onInsertRecord(formData);
-      } else {
-        await onSubmit(formData);
-      }
+      // 统一使用onSubmit处理
+      await onSubmit(formData);
       
       // Phase 7.3 - 显示成功消息
       setSuccessMessage(
-        currentMode === 'create' ? '组织创建成功！' :
-        currentMode === 'insert' ? '新版本记录插入成功！' :
-        '记录修改成功！'
+        currentMode === 'create' ? '组织创建成功！' : '版本记录保存成功！'
       );
       
     } catch (error) {
@@ -617,9 +524,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       
       // Phase 7.3 - 增强错误处理
       const errorMessage = error instanceof Error ? error.message : '操作失败，请重试';
-      setError(`${currentMode === 'create' ? '创建组织失败' : 
-                currentMode === 'insert' ? '插入记录失败' : 
-                '修改记录失败'}: ${errorMessage}`);
+      setError(`${currentMode === 'create' ? '创建组织失败' : '保存记录失败'}: ${errorMessage}`);
     } finally {
       // Phase 7.3 - 清理加载状态
       setLoading(false);
@@ -636,18 +541,21 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
               {currentMode === 'create' 
                 ? '新建组织信息'
                 : currentMode === 'edit' 
-                  ? (isEditingHistory ? '编辑记录' : '查看记录')
-                  : '插入新版本记录'}
+                  ? (isEditingHistory ? 
+                     (originalHistoryData ? '修改版本记录' : '插入新版本记录') : 
+                     '查看版本记录')
+                  : '版本记录管理'}
             </Heading>
             <Text typeLevel="subtext.medium" color="hint">
               {currentMode === 'create'
                 ? '填写新组织的基本信息，系统将自动分配组织编码'
                 : currentMode === 'edit' 
-                  ? (isEditingHistory ? `修改组织 ${organizationCode} 的记录信息` : 
-                     `查看组织 ${organizationCode} 的记录信息`)
-                  : currentMode === 'insert' 
-                    ? `为组织 ${organizationCode} 插入新版本记录，将创建新的记录` 
-                    : `为组织 ${organizationCode} 插入新版本记录`}
+                  ? (isEditingHistory ? 
+                     (originalHistoryData ? 
+                      `修改组织 ${organizationCode} 的现有版本记录` : 
+                      `为组织 ${organizationCode} 插入新的版本记录`) :
+                     `查看组织 ${organizationCode} 的版本记录信息`)
+                    : `为组织 ${organizationCode} 管理版本记录`}
             </Text>
           </Box>
           
@@ -868,13 +776,22 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                     <>
                       <SecondaryButton 
                         onClick={() => {
-                          if (onTabChange) {
-                            onTabChange('new-version');
-                          }
+                          // 重置表单为插入新版本模式
+                          setFormData({
+                            name: selectedVersion?.name || '',
+                            unitType: selectedVersion?.unitType || 'ORGANIZATION_UNIT',
+                            lifecycleStatus: 'CURRENT',
+                            description: selectedVersion?.description || '',
+                            parentCode: selectedVersion?.parentCode || '',
+                            effectiveDate: getCurrentMonthFirstDay()
+                          });
+                          setErrors({});
+                          setOriginalHistoryData(null); // 清空原始数据，标记为插入模式
+                          setIsEditingHistory(true); // 进入编辑模式以显示表单
                         }}
                         disabled={isSubmitting || loading}
                       >
-                        插入新记录
+                        插入新版本
                       </SecondaryButton>
                       <SecondaryButton 
                         onClick={handleEditHistoryToggle}
@@ -899,11 +816,11 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                         取消编辑
                       </SecondaryButton>
                       <PrimaryButton 
-                        onClick={handleEditHistorySubmit}
+                        onClick={originalHistoryData ? handleEditHistorySubmit : handleSubmit}
                         disabled={isSubmitting || loading}
                       >
-                        {/* Phase 7.3 - 增强加载状态显示 */}
-                        {(isSubmitting || loading) ? '提交中...' : '提交修改'}
+                        {(isSubmitting || loading) ? '提交中...' : 
+                         originalHistoryData ? '提交修改' : '插入新版本'}
                       </PrimaryButton>
                     </>
                   )}
@@ -924,8 +841,8 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 >
                   {/* Phase 7.3 - 增强加载状态显示 */}
                   {(isSubmitting || loading) 
-                    ? (currentMode === 'create' ? '创建中...' : currentMode === 'insert' ? '插入中...' : '修改中...')
-                    : (currentMode === 'create' ? '创建组织' : currentMode === 'insert' ? '插入新记录' : '提交修改')}
+                    ? (currentMode === 'create' ? '创建中...' : '保存中...')
+                    : (currentMode === 'create' ? '创建组织' : isEditingHistory ? '保存修改' : '保存新版本')}
                 </PrimaryButton>
               </Flex>
             )}

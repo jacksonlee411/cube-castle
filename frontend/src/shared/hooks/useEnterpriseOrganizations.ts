@@ -247,43 +247,5 @@ export const useOrganizationList = (
   };
 };
 
-// 单个组织Hook
-export const useOrganizationDetail = (code: string, temporalParams?: TemporalQueryParams) => {
-  const [organization, setOrganization] = useState<OrganizationUnit | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastRequestId, setLastRequestId] = useState<string>();
-
-  const fetchDetail = useCallback(async () => {
-    if (!code) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    const response = await enterpriseOrganizationAPI.getByCode(code, temporalParams);
-    
-    if (response.success && response.data) {
-      setOrganization(response.data);
-    } else {
-      setError(response.error?.message || '获取组织详情失败');
-    }
-    
-    setLoading(false);
-    setLastRequestId(response.requestId);
-  }, [code, temporalParams]);
-
-  useEffect(() => {
-    fetchDetail();
-  }, [fetchDetail]);
-
-  return {
-    organization,
-    loading,
-    error,
-    lastRequestId,
-    refresh: fetchDetail,
-    clearError: () => setError(null)
-  };
-};
 
 export default useEnterpriseOrganizations;

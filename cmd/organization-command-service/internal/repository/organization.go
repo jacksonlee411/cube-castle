@@ -528,3 +528,61 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 	r.logger.Printf("历史记录更新成功: %s - %s (记录ID: %s)", org.Code, org.Name, recordId)
 	return &org, nil
 }
+
+// GetByCode 通过组织代码获取当前有效的组织记录（用于审计日志）
+func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
+	query := `
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
+		       level, path, sort_order, description, created_at, updated_at,
+		       effective_date, end_date, is_temporal, change_reason
+		FROM organization_units 
+		WHERE tenant_id = $1 AND code = $2 AND is_current = true
+		LIMIT 1
+	`
+
+	var org types.Organization
+	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
+		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+		&org.Description, &org.CreatedAt, &org.UpdatedAt,
+		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("组织不存在: %s", code)
+		}
+		return nil, fmt.Errorf("获取组织失败: %w", err)
+	}
+
+	return &org, nil
+}
+
+// GetByRecordId 通过记录ID获取组织记录（用于审计日志）
+func (r *OrganizationRepository) GetByRecordId(ctx context.Context, tenantID uuid.UUID, recordId string) (*types.Organization, error) {
+	query := `
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
+		       level, path, sort_order, description, created_at, updated_at,
+		       effective_date, end_date, is_temporal, change_reason
+		FROM organization_units 
+		WHERE tenant_id = $1 AND record_id = $2
+		LIMIT 1
+	`
+
+	var org types.Organization
+	err := r.db.QueryRowContext(ctx, query, tenantID.String(), recordId).Scan(
+		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+		&org.Description, &org.CreatedAt, &org.UpdatedAt,
+		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("记录不存在: %s", recordId)
+		}
+		return nil, fmt.Errorf("获取记录失败: %w", err)
+	}
+
+	return &org, nil
+}

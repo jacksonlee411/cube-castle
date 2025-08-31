@@ -6,10 +6,10 @@
 import { authManager } from './auth';
 import type { GraphQLResponse } from '../types';
 
-// 🔧 CQRS架构端点配置
+// 🔧 CQRS架构端点配置 - 使用代理避免CORS问题
 const API_ENDPOINTS = {
-  GRAPHQL_QUERY: 'http://localhost:8090/graphql',  // 查询服务 (PostgreSQL GraphQL)
-  REST_COMMAND: 'http://localhost:9090/api/v1'     // 命令服务 (REST API)
+  GRAPHQL_QUERY: '/graphql',     // 查询服务 (PostgreSQL GraphQL) - 通过Vite代理
+  REST_COMMAND: '/api/v1'        // 命令服务 (REST API) - 通过Vite代理
 } as const;
 
 /**

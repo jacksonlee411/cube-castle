@@ -64,10 +64,8 @@ export class AuthManager {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        userID: 'frontend-user',
-        tenantID: 'frontend-tenant', 
-        roles: ['ADMIN', 'USER'],
-        duration: '1h'
+        client_id: this.config.clientId,
+        client_secret: this.config.clientSecret
       }),
     });
 
@@ -150,11 +148,11 @@ export class AuthManager {
   }
 }
 
-// 默认OAuth配置 - 修复为开发模式端点
+// 默认OAuth配置 - 使用代理端点避免CORS问题
 export const defaultOAuthConfig: OAuthConfig = {
-  clientId: 'cube-castle-api-client',
-  clientSecret: 'cube-castle-secret-2024', 
-  tokenEndpoint: 'http://localhost:9090/auth/dev-token',
+  clientId: 'dev-client',
+  clientSecret: 'dev-secret', 
+  tokenEndpoint: '/auth/dev-token',  // 使用代理路径，避免CORS
   grantType: 'client_credentials',
 };
 

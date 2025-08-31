@@ -27,7 +27,7 @@ pkill -f "go run.*main.go" 2>/dev/null || true
 
 # 启动Docker基础设施
 echo "🐳 启动Docker基础设施..."
-docker-compose up -d postgres neo4j redis kafka zookeeper
+docker-compose up -d postgres redis
 
 # 等待基础设施就绪
 echo "⏳ 等待基础设施启动..."
@@ -45,14 +45,8 @@ else
     exit 1
 fi
 
-# Neo4j
-if curl -f -s -u neo4j:password "http://localhost:7474/db/neo4j/tx/commit" \
-   -H "Content-Type: application/json" \
-   -d '{"statements":[{"statement":"RETURN 1"}]}' >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ Neo4j - 连接正常${NC}"
-else
-    echo -e "${RED}❌ Neo4j - 连接失败${NC}"
-fi
+# PostgreSQL原生架构 - Neo4j已移除
+echo -e "${GREEN}✅ PostgreSQL原生架构 - 已移除Neo4j依赖${NC}"
 
 # Redis
 if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q "PONG"; then
@@ -128,12 +122,10 @@ echo -e "  ${GREEN}• 前端应用:${NC} http://localhost:3001"
 echo -e "  ${GREEN}• 命令API:${NC} http://localhost:9090 (REST API)"
 echo -e "  ${GREEN}• 查询API:${NC} http://localhost:8090 (GraphQL)"
 echo -e "  ${GREEN}• GraphiQL:${NC} http://localhost:8090/graphiql"
-echo -e "  ${GREEN}• Neo4j浏览器:${NC} http://localhost:7474 (neo4j/password)"
 echo -e "  ${GREEN}• PgAdmin:${NC} http://localhost:5050 (admin@admin.com/admin)"
 echo ""
 echo -e "${BLUE}📊 服务状态：${NC}"
 echo -e "  ${GREEN}• PostgreSQL:${NC} ✅ 端口 5432"
-echo -e "  ${GREEN}• Neo4j:${NC} ✅ 端口 7474"
 echo -e "  ${GREEN}• Redis:${NC} ✅ 端口 6379"
 echo -e "  ${GREEN}• 命令服务:${NC} ✅ 端口 9090 (简化版)"
 echo -e "  ${GREEN}• 查询服务:${NC} ✅ 端口 8090 (简化版)"

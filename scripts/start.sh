@@ -25,7 +25,7 @@ fi
 
 # 启动基础设施
 echo "🚀 启动基础设施服务..."
-docker-compose up -d postgres neo4j
+docker-compose up -d postgres redis
 
 # 等待服务启动
 echo "⏳ 等待服务启动..."
@@ -79,7 +79,7 @@ echo "🔗 服务地址："
 echo "  - Go 主服务: http://localhost:8080"
 echo "  - Python AI 服务: localhost:50051 (gRPC)"
 echo "  - PostgreSQL: localhost:5432"
-echo "  - Neo4j: http://localhost:7474"
+echo "  - Redis: localhost:6379"
 echo ""
 echo "📋 健康检查："
 echo "  curl http://localhost:8080/health"

@@ -4,5 +4,4 @@
  */
 
 // 主要组件
-export { default as OrganizationDetail } from './OrganizationDetail';
 export { OrganizationTree, type OrganizationTreeProps, type OrganizationTreeNode } from './OrganizationTree';

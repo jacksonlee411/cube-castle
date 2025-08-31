@@ -508,9 +508,9 @@ export const organizationAPI = {
       // 基于Schema v4.6.0 auditHistory查询
       const graphqlQuery = `
         query GetAuditHistory(
-          $recordId: UUID!,
-          $startDate: Date,
-          $endDate: Date,
+          $recordId: String!,
+          $startDate: String,
+          $endDate: String,
           $limit: Int
         ) {
           auditHistory(
@@ -521,19 +521,16 @@ export const organizationAPI = {
           ) {
             auditId
             recordId
-            operation
+            operationType
             timestamp
-            userInfo {
-              userId
-              userName
-              role
+            operatedBy {
+              id
+              name
             }
             operationReason
-            dataChanges {
-              beforeData
-              afterData
-              modifiedFields
-            }
+            changesSummary
+            beforeData
+            afterData
           }
         }
       `;
@@ -545,27 +542,30 @@ export const organizationAPI = {
         limit: params?.limit || 50
       };
 
+      console.log('🔍 Fetching audit history for recordId:', recordId, 'with variables:', variables);
+      
       const data = await unifiedGraphQLClient.request<{
         auditHistory: Array<{
           auditId: string;
           recordId: string;
-          operation: string;
+          operationType: string;
           timestamp: string;
-          userInfo: {
-            userId: string;
-            userName: string;
-            role?: string;
+          operatedBy: {
+            id: string;
+            name: string;
           };
           operationReason?: string;
-          dataChanges: {
-            beforeData?: Record<string, unknown>;
-            afterData?: Record<string, unknown>;
-            modifiedFields: string[];
-          };
+          changesSummary?: string;
+          beforeData?: Record<string, unknown>;
+          afterData?: Record<string, unknown>;
         }>;
       }>(graphqlQuery, variables);
 
-      return data.auditHistory || [];
+      console.log('📊 Audit history response:', data);
+      const auditEntries = data.auditHistory || [];
+      console.log(`📋 Found ${auditEntries.length} audit entries for recordId:`, recordId);
+
+      return auditEntries;
 
     } catch (error) {
       console.error('Error fetching audit history for recordId:', recordId, error);

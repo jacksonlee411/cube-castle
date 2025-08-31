@@ -167,6 +167,13 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 
 	tenantID := h.getTenantID(r)
 
+	// 先获取当前组织数据用于审计日志
+	oldOrg, err := h.repo.GetByCode(r.Context(), tenantID, code)
+	if err != nil {
+		h.handleRepositoryError(w, r, "GET_OLD_DATA", err)
+		return
+	}
+
 	// 更新组织
 	updatedOrg, err := h.repo.Update(r.Context(), tenantID, code, &req)
 	if err != nil {
@@ -174,12 +181,11 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// 记录审计日志
+	// 记录完整审计日志（包含变更前数据）
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
 	ipAddress := h.getIPAddress(r)
-	// 注意: 这里我们没有oldOrg，所以传nil - 在实际应用中应该先获取旧数据
-	err = h.auditLogger.LogOrganizationUpdate(r.Context(), code, &req, nil, updatedOrg, actorID, requestID, ipAddress)
+	err = h.auditLogger.LogOrganizationUpdate(r.Context(), code, &req, oldOrg, updatedOrg, actorID, requestID, ipAddress)
 	if err != nil {
 		h.logger.Printf("⚠️ 更新审计日志记录失败: %v", err)
 	}
@@ -401,16 +407,31 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 
 	tenantID := h.getTenantID(r)
 
-	// 通过UUID更新历史记录
+	// 先获取当前记录数据用于审计日志
+	oldOrg, err := h.repo.GetByRecordId(r.Context(), tenantID, recordId)
+	if err != nil {
+		h.handleRepositoryError(w, r, "GET_OLD_RECORD", err)
+		return
+	}
+
+	// 通过UUID更新历史记录  
 	updatedOrg, err := h.repo.UpdateByRecordId(r.Context(), tenantID, recordId, &req)
 	if err != nil {
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, "UPDATE_ERROR", "更新历史记录失败", err)
 		return
 	}
 
+	// 记录完整审计日志（包含变更前数据）
+	requestID := middleware.GetRequestID(r.Context())
+	actorID := h.getActorID(r)
+	ipAddress := h.getIPAddress(r)
+	err = h.auditLogger.LogOrganizationUpdate(r.Context(), updatedOrg.Code, &req, oldOrg, updatedOrg, actorID, requestID, ipAddress)
+	if err != nil {
+		h.logger.Printf("⚠️ 历史记录更新审计日志记录失败: %v", err)
+	}
+
 	// 构建企业级成功响应
 	response := h.toOrganizationResponse(updatedOrg)
-	requestID := middleware.GetRequestID(r.Context())
 	utils.WriteSuccess(w, response, "History record updated successfully", requestID)
 
 	h.logger.Printf("✅ 历史记录更新成功: %s - %s (记录ID: %s, RequestID: %s)", response.Code, response.Name, recordId, requestID)
