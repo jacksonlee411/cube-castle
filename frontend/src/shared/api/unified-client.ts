@@ -94,13 +94,24 @@ export class UnifiedRESTClient {
         ...options,
       });
 
+      // 检查是否有响应体（DELETE请求可能没有响应体）
+      const text = await response.text();
+      const result = text ? JSON.parse(text) : ({} as T);
+
       if (!response.ok) {
+        // 尝试解析服务器返回的错误信息
+        if (result && typeof result === 'object' && 'error' in result) {
+          const errorInfo = result.error as { message?: string };
+          if (errorInfo && errorInfo.message) {
+            throw new Error(errorInfo.message);
+          }
+        }
+        
+        // 如果没有具体错误信息，使用HTTP状态信息
         throw new Error(`REST Error: ${response.status} ${response.statusText}`);
       }
 
-      // 检查是否有响应体（DELETE请求可能没有响应体）
-      const text = await response.text();
-      return text ? JSON.parse(text) : ({} as T);
+      return result;
     } catch (error) {
       console.error('REST request failed:', { endpoint, options, error });
       throw error;

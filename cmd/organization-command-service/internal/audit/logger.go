@@ -373,6 +373,69 @@ func (a *AuditLogger) calculateFieldChanges(oldOrg, newOrg *types.Organization) 
 		})
 	}
 
+	// 检查生效日期变更
+	if (oldOrg.EffectiveDate == nil) != (newOrg.EffectiveDate == nil) {
+		// 一个为nil，一个不为nil
+		changes = append(changes, FieldChange{
+			Field:    "effectiveDate",
+			OldValue: oldOrg.EffectiveDate,
+			NewValue: newOrg.EffectiveDate,
+			DataType: "date",
+		})
+	} else if oldOrg.EffectiveDate != nil && newOrg.EffectiveDate != nil {
+		// 都不为nil，比较日期值
+		if !oldOrg.EffectiveDate.Time.Equal(newOrg.EffectiveDate.Time) {
+			changes = append(changes, FieldChange{
+				Field:    "effectiveDate",
+				OldValue: oldOrg.EffectiveDate,
+				NewValue: newOrg.EffectiveDate,
+				DataType: "date",
+			})
+		}
+	}
+
+	// 检查结束日期变更
+	if (oldOrg.EndDate == nil) != (newOrg.EndDate == nil) {
+		// 一个为nil，一个不为nil
+		changes = append(changes, FieldChange{
+			Field:    "endDate",
+			OldValue: oldOrg.EndDate,
+			NewValue: newOrg.EndDate,
+			DataType: "date",
+		})
+	} else if oldOrg.EndDate != nil && newOrg.EndDate != nil {
+		// 都不为nil，比较日期值
+		if !oldOrg.EndDate.Time.Equal(newOrg.EndDate.Time) {
+			changes = append(changes, FieldChange{
+				Field:    "endDate",
+				OldValue: oldOrg.EndDate,
+				NewValue: newOrg.EndDate,
+				DataType: "date",
+			})
+		}
+	}
+
+	// 检查变更原因
+	if (oldOrg.ChangeReason == nil) != (newOrg.ChangeReason == nil) {
+		// 一个为nil，一个不为nil
+		changes = append(changes, FieldChange{
+			Field:    "changeReason",
+			OldValue: oldOrg.ChangeReason,
+			NewValue: newOrg.ChangeReason,
+			DataType: "string",
+		})
+	} else if oldOrg.ChangeReason != nil && newOrg.ChangeReason != nil {
+		// 都不为nil，比较字符串值
+		if *oldOrg.ChangeReason != *newOrg.ChangeReason {
+			changes = append(changes, FieldChange{
+				Field:    "changeReason",
+				OldValue: *oldOrg.ChangeReason,
+				NewValue: *newOrg.ChangeReason,
+				DataType: "string",
+			})
+		}
+	}
+
 	return changes
 }
 

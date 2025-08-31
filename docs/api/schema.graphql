@@ -11,6 +11,13 @@
 # - Multi-tenant isolation and security
 # - Performance-optimized with 26 specialized indexes
 #
+# Permission Requirements:
+# - organizations, organization: org:read
+# - organizationAtDate, organizationHistory, organizationVersions: org:read:history  
+# - organizationHierarchy, organizationSubtree: org:read:hierarchy
+# - organizationStats: org:read:stats
+# - auditHistory: org:read:audit
+#
 # Recent Changes (v4.6.0):
 # - BREAKING: Audit system redesigned for precise record_id tracking
 # - Removed organizationAuditHistory query (replaced with auditHistory)

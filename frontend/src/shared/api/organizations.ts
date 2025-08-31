@@ -677,6 +677,112 @@ export const organizationAPI = {
     }
   },
 
+  // 为现有组织创建新的时态版本 - 使用新的/versions端点 (API v4.4.0)
+  createVersion: async (code: string, input: {
+    name: string;
+    unitType: string;
+    parentCode?: string | null;
+    description?: string | null;
+    sortOrder?: number | null;
+    profile?: string | null;
+    effectiveDate: string; // YYYY-MM-DD格式
+    endDate?: string | null; // YYYY-MM-DD格式
+    operationReason: string;
+  }): Promise<TemporalOrganizationUnit> => {
+    try {
+      if (!code) {
+        throw new SimpleValidationError('Organization code is required', [
+          { field: 'code', message: 'Code is required' }
+        ]);
+      }
+
+      // 基础验证
+      if (!input.name || !input.name.trim()) {
+        throw new SimpleValidationError('Organization name is required', [
+          { field: 'name', message: 'Name is required' }
+        ]);
+      }
+
+      if (!input.unitType) {
+        throw new SimpleValidationError('Unit type is required', [
+          { field: 'unitType', message: 'Unit type is required' }
+        ]);
+      }
+
+      if (!input.effectiveDate) {
+        throw new SimpleValidationError('Effective date is required', [
+          { field: 'effectiveDate', message: 'Effective date is required' }
+        ]);
+      }
+
+      if (!input.operationReason || !input.operationReason.trim()) {
+        throw new SimpleValidationError('Operation reason is required', [
+          { field: 'operationReason', message: 'Operation reason is required' }
+        ]);
+      }
+
+      // 构建请求数据，完全匹配OpenAPI规范v4.4.0
+      const requestData = {
+        name: input.name.trim(),
+        unitType: input.unitType,
+        parentCode: input.parentCode || null,
+        description: input.description || null,
+        sortOrder: input.sortOrder || null,
+        profile: input.profile || null,
+        effectiveDate: input.effectiveDate, // 保持YYYY-MM-DD格式
+        endDate: input.endDate || null,
+        operationReason: input.operationReason.trim()
+      };
+
+      console.log('🚀 Creating new version for organization:', code, requestData);
+
+      // 调用新的/versions端点
+      const response = await unifiedRESTClient.request<TemporalOrganizationUnit>(
+        `/organization-units/${code}/versions`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestData),
+        }
+      );
+      
+      // 验证响应是否有效
+      if (!response.code) {
+        throw new Error('Invalid response from server');
+      }
+
+      console.log('✅ Version created successfully:', response);
+      return response;
+
+    } catch (error: unknown) {
+      console.error('❌ Error creating organization version:', code, error);
+      
+      if (error instanceof SimpleValidationError) {
+        throw error;
+      }
+      
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+        if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+          throw new Error('该生效日期的版本已存在，请选择其他日期');
+        } else if (error.message.includes('validation')) {
+          throw new Error('输入数据验证失败，请检查表单内容');
+        } else if (error.message.includes('not found')) {
+          throw new Error('组织不存在，请刷新页面重试');
+        } else if (error.message.includes('组织代码必须是7位数字')) {
+          throw new Error('组织代码格式错误：必须是7位数字');
+        } else if (error.message.includes('INVALID_CODE_FORMAT')) {
+          throw new Error('组织代码格式错误，请检查代码格式');
+        } else if (error.message.includes('DATABASE_ERROR') || error.message.includes('Internal server error')) {
+          throw new Error('服务器内部错误，请稍后重试或联系管理员');
+        }
+        
+        // 显示服务器返回的实际错误信息
+        throw new Error(`操作失败：${error.message}`);
+      }
+      
+      throw new Error('创建版本失败，请稍后重试');
+    }
+  },
+
   // === 新增：操作驱动状态管理API ===
 
   // 停用组织

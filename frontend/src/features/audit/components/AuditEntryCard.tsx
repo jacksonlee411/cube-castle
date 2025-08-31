@@ -15,6 +15,8 @@ import {
   mediaPlayIcon
 } from '@workday/canvas-system-icons-web';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
+import { FieldChangeTable } from './FieldChangeTable';
+
 // ✅ P2修复: 移除缺失的audit.ts类型依赖，定义本地类型
 export interface AuditTimelineEntry {
   auditId: string;
@@ -26,11 +28,16 @@ export interface AuditTimelineEntry {
     beforeData?: Record<string, unknown>;
     afterData?: Record<string, unknown>;
     modifiedFields: string[];
+    changes?: Array<{
+      field: string;
+      oldValue: unknown;
+      newValue: unknown;
+      dataType: string;
+    }>;
   };
 }
 
 export type OperationType = 'CREATE' | 'UPDATE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE';
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
 // 组件Props接口
 interface AuditEntryCardProps {
@@ -80,28 +87,6 @@ const operationConfig: Record<OperationType, {
   }
 };
 
-// 风险级别配置映射
-const riskConfig: Record<RiskLevel, {
-  color: string;
-  bgColor: string;
-  label: string;
-}> = {
-  LOW: {
-    color: colors.greenApple600,
-    bgColor: colors.greenApple100,
-    label: '低风险'
-  },
-  MEDIUM: {
-    color: colors.cantaloupe600,
-    bgColor: colors.cantaloupe100,
-    label: '中风险'
-  },
-  HIGH: {
-    color: colors.cinnamon600,
-    bgColor: colors.cinnamon100,
-    label: '高风险'
-  }
-};
 
 /**
  * 审计记录卡片组件
@@ -115,16 +100,6 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
   className
 }) => {
   const opConfig = operationConfig[entry.operation as OperationType] || operationConfig.UPDATE;
-  
-  // 简单风险评估：基于修改字段数量
-  const calculateRiskLevel = (modifiedFields: string[]): RiskLevel => {
-    if (modifiedFields.length >= 5) return 'HIGH';
-    if (modifiedFields.length >= 3) return 'MEDIUM';
-    return 'LOW';
-  };
-  
-  const riskLevel = calculateRiskLevel(entry.dataChanges.modifiedFields);
-  const riskConf = riskConfig[riskLevel];
 
   // 格式化时间戳
   const formatTimestamp = (timestamp: string): string => {
@@ -219,19 +194,6 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
           </Box>
         </Flex>
 
-        {/* 风险级别标签 */}
-        <Box
-          padding="xs"
-          style={{
-            backgroundColor: riskConf.bgColor,
-            color: riskConf.color,
-            borderRadius: '4px',
-            border: `1px solid ${riskConf.color}`,
-            fontSize: '12px'
-          }}
-        >
-          <Text typeLevel="subtext.small">{riskConf.label}</Text>
-        </Box>
       </Flex>
 
       {/* 变更摘要 */}
@@ -299,52 +261,21 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
         </Box>
       )}
 
-      {/* 展开详情：显示before/after数据 */}
-      {isExpanded && (entry.dataChanges.beforeData || entry.dataChanges.afterData) && (
+      {/* 展开详情：显示字段变更表格 */}
+      {isExpanded && (
         <Box marginTop={space.m} padding={space.m} style={{
           backgroundColor: colors.soap100,
           borderRadius: '8px',
           border: `1px solid ${colors.soap300}`
         }}>
-          <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom={space.s}>
-            数据变更详情:
-          </Text>
-          
-          {entry.dataChanges.beforeData && (
-            <Box marginBottom={space.s}>
-              <Text typeLevel="subtext.small" color={colors.cinnamon600} marginBottom={space.xs}>
-                变更前:
-              </Text>
-              <Box style={{
-                backgroundColor: colors.frenchVanilla100,
-                padding: space.xs,
-                borderRadius: '4px',
-                fontSize: '12px',
-                maxHeight: '100px',
-                overflow: 'auto'
-              }}>
-                <pre>{JSON.stringify(entry.dataChanges.beforeData, null, 2)}</pre>
-              </Box>
-            </Box>
-          )}
-          
-          {entry.dataChanges.afterData && (
-            <Box>
-              <Text typeLevel="subtext.small" color={colors.greenApple600} marginBottom={space.xs}>
-                变更后:
-              </Text>
-              <Box style={{
-                backgroundColor: colors.frenchVanilla100,
-                padding: space.xs,
-                borderRadius: '4px',
-                fontSize: '12px',
-                maxHeight: '100px',
-                overflow: 'auto'
-              }}>
-                <pre>{JSON.stringify(entry.dataChanges.afterData, null, 2)}</pre>
-              </Box>
-            </Box>
-          )}
+          <FieldChangeTable
+            operationType={entry.operation as OperationType}
+            changes={entry.dataChanges.changes}
+            afterData={entry.dataChanges.afterData}
+            beforeData={entry.dataChanges.beforeData}
+            collapsible={false}
+            defaultExpanded={true}
+          />
         </Box>
       )}
 

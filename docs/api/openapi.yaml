@@ -9,7 +9,7 @@ info:
     - **Query Operations**: GraphQL (Port 8090) - All data retrieval
     - **Single Data Source**: PostgreSQL with temporal data support
     - **Authentication**: OAuth 2.0 Client Credentials Flow
-    - **Authorization**: Permission-Based Access Control (PBAC)
+    - **Authorization**: Permission-Based Access Control (PBAC) with 19 fine-grained permissions
     
     **Key Capabilities:**
     - 17-level hierarchy depth support
@@ -18,9 +18,17 @@ info:
     - Comprehensive audit trail with operation history
     - Multi-tenant isolation and security
     
+    **Permission System:**
+    - **Basic CRUD**: org:read, org:create, org:update, org:delete
+    - **State Management**: org:suspend, org:reactivate
+    - **Hierarchy Operations**: org:read:hierarchy, org:move, org:create:child
+    - **Temporal Data**: org:read:history, org:read:future, org:create:planned, org:modify:history, org:cancel:planned
+    - **Audit & Analytics**: org:read:audit, org:read:stats, org:read:timeline
+    - **System Management**: org:validate, org:maintenance, org:batch-operations
+    
     **Response Format**: All endpoints use unified enterprise envelope structure
     with `success`, `data`, `message`, `timestamp`, and `requestId` fields.
-  version: 4.3.0
+  version: 4.5.0
   contact:
     name: System Architecture Team
     email: api-support@yourcompany.com
@@ -332,6 +340,105 @@ paths:
                         affectedCount: 2
                     timestamp: "2025-08-23T10:30:00Z"
                     requestId: "req_delete_error_001"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/organization-units/{code}/versions:
+    post:
+      tags:
+        - organization-units
+      summary: Create new temporal version for existing organization
+      description: |
+        Creates a new temporal version for an existing organization unit.
+        Extends standard CRUD operations with temporal data management.
+        
+        **Business Rules:**
+        - Organization must exist with the specified code
+        - New effectiveDate must not conflict with existing versions
+        - Automatically manages is_current and end_date transitions
+        - Previous current version gets end_date = new effectiveDate - 1 day
+        - Supports both historical and future-effective versions
+        
+        **Required Permissions:** `org:create:planned`
+      security:
+        - OAuth2ClientCredentials: ['org:create:planned']
+      parameters:
+        - $ref: '#/components/parameters/CodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVersionRequest'
+            examples:
+              future_version:
+                summary: Future Effective Version
+                value:
+                  name: "技术研发部"
+                  unitType: "DEPARTMENT" 
+                  description: "重组后的技术部门"
+                  parentCode: "1000001"
+                  effectiveDate: "2024-04-01"
+                  operationReason: "组织架构调整"
+              historical_correction:
+                summary: Historical Version Correction
+                value:
+                  name: "原始技术部"
+                  unitType: "DEPARTMENT"
+                  description: "历史记录补正"
+                  parentCode: "1000001"
+                  effectiveDate: "2023-01-01"
+                  endDate: "2023-12-31"
+                  operationReason: "历史数据补正"
+      responses:
+        '201':
+          description: Temporal version created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                data:
+                  recordId: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "1000028"
+                  name: "技术研发部"
+                  effectiveDate: "2024-04-01"
+                  isCurrent: false
+                message: "Temporal version created successfully"
+                timestamp: "2025-08-31T06:30:00Z"
+                requestId: "req-123456"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "ORGANIZATION_NOT_FOUND"
+                  message: "Organization unit not found"
+                timestamp: "2025-08-31T06:30:00Z"
+                requestId: "req-123456"
+        '409':
+          description: Version conflict or date overlap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "VERSION_CONFLICT"
+                  message: "Effective date conflicts with existing version"
+                  details:
+                    conflictingVersion: "2024-03-01 to 2024-06-30"
+                    requestedDate: "2024-04-01"
+                timestamp: "2025-08-31T06:30:00Z"
+                requestId: "req-123456"
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -748,15 +855,34 @@ components:
         clientCredentials:
           tokenUrl: /oauth/token
           scopes:
+            # 基础CRUD权限
             'org:read': Read organization unit information
             'org:create': Create organization units
             'org:update': Update organization unit basic information
             'org:delete': Delete organization units
+            
+            # 状态管理权限
             'org:suspend': Suspend organization units
             'org:reactivate': Reactivate organization units
+            
+            # 层级结构权限
             'org:read:hierarchy': Read organization hierarchy structure
+            'org:move': Move organization units in hierarchy
+            'org:create:child': Create child organization units
+            
+            # 时态数据权限 (Temporal Data Permissions)
+            'org:read:history': Read organization historical data
+            'org:read:future': Read organization future-effective data
+            'org:create:planned': Create planned/future-effective changes
+            'org:modify:history': Modify historical data (temporal correction)
+            'org:cancel:planned': Cancel planned/future-effective changes
+            
+            # 审计和统计权限
             'org:read:audit': Read audit history records
-            'org:stats': Get organization statistics
+            'org:read:stats': Get organization statistics
+            'org:read:timeline': View organization operation timeline
+            
+            # 系统管理权限
             'org:validate': Data validity validation
             'org:maintenance': Hierarchy consistency check and repair
             'org:batch-operations': Batch operations permission
@@ -1112,6 +1238,65 @@ components:
           maxLength: 500
           description: Reason for creation
           example: "业务扩展需要"
+
+    CreateVersionRequest:
+      type: object
+      description: |
+        Request to create a new temporal version for an existing organization unit.
+        Supports both historical corrections and future-effective versions.
+      required:
+        - name
+        - unitType
+        - effectiveDate
+        - operationReason
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Organization unit name for this version
+          example: "技术研发部"
+        unitType:
+          $ref: '#/components/schemas/UnitType'
+        parentCode:
+          type: string
+          pattern: '^[1-9][0-9]{6}$'
+          nullable: true
+          description: Parent organization code (null for root level)
+          example: "1000001"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Version-specific description
+          example: "重组后的技术部门，专注人工智能研发"
+        sortOrder:
+          type: integer
+          default: 0
+          description: Sorting order within same level
+        profile:
+          type: object
+          default: {}
+          description: Version-specific configuration
+          example:
+            budget: 8000000
+            headCountLimit: 45
+            costCenterCode: "CC-TECH-2024"
+        effectiveDate:
+          type: string
+          format: date
+          description: When this version becomes effective
+          example: "2024-04-01"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: When this version ends (optional, auto-calculated if not provided)
+          example: "2024-12-31"
+        operationReason:
+          type: string
+          maxLength: 500
+          description: Reason for creating this version
+          example: "组织架构调整，加强技术研发能力"
 
     ReplaceOrganizationUnitRequest:
       type: object

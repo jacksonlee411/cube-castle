@@ -22,6 +22,7 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/unified-client';
+import { organizationAPI } from '../../../shared/api/organizations';
 // 审计历史组件导入
 import { AuditHistorySection } from '../../audit/components/AuditHistorySection';
 
@@ -366,25 +367,18 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           showError('创建成功，但未能获取新组织编码，请手动刷新页面');
         }
       } else {
-        // 更新现有组织的时态版本 - 修复：使用统一认证客户端
-        await unifiedRESTClient.request(
-          `/organization-units/${organizationCode}/events`,
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              eventType: 'UPDATE',
-              effectiveDate: new Date(formData.effectiveDate + 'T00:00:00Z').toISOString(),
-              changeData: {
-                name: formData.name,
-                unitType: formData.unitType,
-                status: formData.lifecycleStatus,
-                description: formData.description,
-                parentCode: formData.parentCode
-              },
-              changeReason: '通过组织信息详情页面更新组织信息'
-            })
-          }
-        );
+        // 为现有组织创建新的时态版本 - 使用organizationAPI.createVersion (API v4.4.0)
+        await organizationAPI.createVersion(organizationCode!, {
+          name: formData.name,
+          unitType: formData.unitType,
+          parentCode: formData.parentCode || null,
+          description: formData.description || null,
+          sortOrder: null, // 使用默认排序
+          profile: null,   // 暂不支持
+          effectiveDate: formData.effectiveDate, // 使用YYYY-MM-DD格式
+          endDate: null,   // 暂不设置结束日期
+          operationReason: formData.changeReason || '通过组织详情页面创建新版本'
+        });
         
         // unifiedRESTClient成功时直接返回数据，失败时抛出异常
         // 刷新数据
@@ -394,7 +388,16 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       }
     } catch (error) {
       console.error(isCreateMode ? '创建组织失败:' : '创建时态版本失败:', error);
-      showError(isCreateMode ? '创建失败，请检查网络连接' : '创建失败，请检查网络连接');
+      
+      // 提取实际的错误信息
+      let errorMessage = isCreateMode ? '创建组织失败' : '创建时态版本失败';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      showError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

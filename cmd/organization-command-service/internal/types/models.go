@@ -87,7 +87,20 @@ type OrganizationResponse struct {
 	ChangeReason  *string `json:"changeReason,omitempty"`
 }
 
-// 组织历史版本请求
+// CreateVersionRequest 为现有组织创建新时态版本的请求 (基于OpenAPI契约v4.4.0)
+type CreateVersionRequest struct {
+	Name           string  `json:"name" validate:"required,max=255"`
+	UnitType       string  `json:"unitType" validate:"required"`
+	ParentCode     *string `json:"parentCode,omitempty" validate:"omitempty,len=7"`
+	Description    *string `json:"description,omitempty" validate:"omitempty,max=1000"`
+	SortOrder      *int    `json:"sortOrder,omitempty"`
+	Profile        *string `json:"profile,omitempty"` // JSON string
+	EffectiveDate  string  `json:"effectiveDate" validate:"required,datetime=2006-01-02"`
+	EndDate        *string `json:"endDate,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	OperationReason string `json:"operationReason" validate:"required,max=500"`
+}
+
+// 组织历史版本请求 (旧版本，保持兼容性)
 type CreateOrganizationVersionRequest struct {
 	BasedOnVersion int     `json:"basedOnVersion"`
 	Name           *string `json:"name,omitempty"`

@@ -140,6 +140,183 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	h.logger.Printf("✅ 组织创建成功: %s - %s (RequestID: %s)", createdOrg.Code, createdOrg.Name, requestID)
 }
 
+func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r *http.Request) {
+	code := chi.URLParam(r, "code")
+	if code == "" {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
+		return
+	}
+
+	// 验证组织代码格式
+	if len(code) != 7 {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码必须是7位数字", nil)
+		return
+	}
+
+	var req types.CreateVersionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
+		return
+	}
+
+	// 业务验证
+	if err := utils.ValidateCreateVersionRequest(&req); err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "输入验证失败", err)
+		return
+	}
+
+	tenantID := h.getTenantID(r)
+
+	// 验证组织是否存在
+	existingOrg, err := h.repo.GetByCode(r.Context(), tenantID, code)
+	if err != nil {
+		if err.Error() == "organization not found" {
+			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织不存在", nil)
+			return
+		}
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "DATABASE_ERROR", "查询组织失败", err)
+		return
+	}
+
+	// 解析生效日期
+	effectiveDate, err := time.Parse("2006-01-02", req.EffectiveDate)
+	if err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_DATE_FORMAT", "生效日期格式无效", err)
+		return
+	}
+
+	var endDate *time.Time
+	if req.EndDate != nil {
+		parsed, err := time.Parse("2006-01-02", *req.EndDate)
+		if err != nil {
+			h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_END_DATE_FORMAT", "结束日期格式无效", err)
+			return
+		}
+		endDate = &parsed
+	}
+
+	// 计算路径和级别（继承或重新计算）
+	path, level, err := h.repo.CalculatePath(r.Context(), tenantID, req.ParentCode, code)
+	if err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "PARENT_ERROR", "父组织处理失败", err)
+		return
+	}
+
+	// 创建新的时态版本
+	now := time.Now()
+	newVersion := &types.Organization{
+		TenantID:    tenantID.String(),
+		Code:        code,
+		ParentCode:  req.ParentCode,
+		Name:        req.Name,
+		UnitType:    req.UnitType,
+		Status:      "ACTIVE", // 新版本默认激活
+		Level:       level,
+		Path:        path,
+		SortOrder:   func() int {
+			if req.SortOrder != nil {
+				return *req.SortOrder
+			}
+			return existingOrg.SortOrder // 继承原有排序
+		}(),
+		Description: func() string {
+			if req.Description != nil {
+				return *req.Description
+			}
+			return existingOrg.Description // 继承原有描述
+		}(),
+		// 时态管理字段
+		EffectiveDate: types.NewDateFromTime(effectiveDate),
+		EndDate:       func() *types.Date {
+			if endDate != nil {
+				return types.NewDateFromTime(*endDate)
+			}
+			return nil
+		}(),
+		IsTemporal: true,
+		ChangeReason: func() *string {
+			return &req.OperationReason
+		}(),
+		IsCurrent: effectiveDate.Before(now) || effectiveDate.Equal(now.Truncate(24*time.Hour)),
+	}
+
+	// 调用Repository创建版本
+	createdVersion, err := h.repo.Create(r.Context(), newVersion)
+	if err != nil {
+		// 检查是否是版本冲突错误
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "already exists") {
+			h.writeErrorResponse(w, r, http.StatusConflict, "VERSION_CONFLICT", "生效日期与现有版本冲突", err)
+			return
+		}
+		
+		// 记录创建失败的审计日志
+		requestID := middleware.GetRequestID(r.Context())
+		actorID := h.getActorID(r)
+		requestData := map[string]interface{}{
+			"code":          code,
+			"name":          req.Name,
+			"unitType":      req.UnitType,
+			"effectiveDate": req.EffectiveDate,
+		}
+
+		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code,
+			"CreateOrganizationVersion", actorID, requestID, "VERSION_CREATE_ERROR", err.Error(), requestData)
+
+		h.handleRepositoryError(w, r, "CREATE_VERSION", err)
+		return
+	}
+
+	// 记录版本创建成功的审计日志
+	requestID := middleware.GetRequestID(r.Context())
+	actorID := h.getActorID(r)
+
+	// 记录审计日志 - 创建版本事件
+	event := &audit.AuditEvent{
+		TenantID:        tenantID,
+		EventType:       audit.EventTypeCreate,
+		ResourceType:    audit.ResourceTypeOrganization,
+		ResourceID:      createdVersion.RecordID,
+		ActorID:         actorID,
+		ActorType:       audit.ActorTypeUser,
+		ActionName:      "CREATE_VERSION",
+		RequestID:       requestID,
+		OperationReason: req.OperationReason,
+		Success:         true,
+		AfterData: map[string]interface{}{
+			"code":           createdVersion.Code,
+			"name":           createdVersion.Name,
+			"unitType":       createdVersion.UnitType,
+			"parentCode":     createdVersion.ParentCode,
+			"description":    createdVersion.Description,
+			"effectiveDate":  req.EffectiveDate,
+			"endDate":        req.EndDate,
+			"isTemporal":     createdVersion.IsTemporal,
+			"isCurrent":      createdVersion.IsCurrent,
+		},
+	}
+	
+	err = h.auditLogger.LogEvent(r.Context(), event)
+	if err != nil {
+		h.logger.Printf("⚠️ 审计日志记录失败: %v", err)
+		// 审计日志失败不影响业务操作，仅记录警告
+	}
+
+	// 构建响应数据
+	responseData := map[string]interface{}{
+		"recordId":      createdVersion.RecordID,
+		"code":          createdVersion.Code,
+		"name":          createdVersion.Name,
+		"effectiveDate": req.EffectiveDate,
+		"isCurrent":     createdVersion.IsCurrent,
+	}
+
+	// 返回企业级成功响应
+	utils.WriteCreated(w, responseData, "Temporal version created successfully", requestID)
+
+	h.logger.Printf("✅ 时态版本创建成功: %s - %s (生效日期: %s, RequestID: %s)", 
+		createdVersion.Code, createdVersion.Name, req.EffectiveDate, requestID)
+}
+
 func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
 	code := chi.URLParam(r, "code")
 	if code == "" {
@@ -497,6 +674,7 @@ func (h *OrganizationHandler) SetupRoutes(r chi.Router) {
 		r.Delete("/{code}", h.DeleteOrganization)
 		r.Post("/{code}/suspend", h.SuspendOrganization)
 		r.Post("/{code}/activate", h.ActivateOrganization)
+		r.Post("/{code}/versions", h.CreateOrganizationVersion)
 		r.Post("/{code}/events", h.CreateOrganizationEvent)
 		r.Put("/{code}/history/{record_id}", h.UpdateHistoryRecord)
 	})

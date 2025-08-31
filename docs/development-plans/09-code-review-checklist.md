@@ -22,6 +22,13 @@
   - 无认证绕过代码
   - 检查点：搜索 `Authorization:`、`Bearer`
 
+- [ ] **API优先授权合规性**: 🚨 **新增强制检查项 (2025-08-31)**
+  - 权限检查必须基于API契约中定义的权限
+  - 禁止硬编码权限逻辑，必须引用API规范
+  - 检查点：搜索权限相关硬编码字符串
+  - 违规示例：`if (userRole === 'admin')` 
+  - 正确示例：`if (hasPermission('org:delete'))`
+
 ### 导入和依赖合规性
 - [ ] **Canvas Kit v13标准**: 
   - 导入路径正确：`@workday/canvas-kit-react/`

@@ -116,7 +116,7 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
               const changes = JSON.parse(audit.changesSummary as string);
               if (Array.isArray(changes) && changes.length > 0 && changes[0].newValue !== undefined) {
                 const reconstructed: Record<string, unknown> = {};
-                changes.forEach((change: { field?: string; oldValue?: unknown }) => {
+                changes.forEach((change: { field?: string; oldValue?: unknown; newValue?: unknown }) => {
                   if (change.field && change.newValue !== undefined) {
                     reconstructed[change.field] = change.newValue;
                   }
@@ -145,6 +145,26 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
               return [audit.changesSummary as string];
             } catch {
               return [audit.changesSummary as string];
+            }
+          })() : [],
+        // 新增: 结构化的字段变更信息
+        changes: audit.changesSummary && audit.changesSummary !== 'null' ? 
+          (() => {
+            try {
+              const changes = JSON.parse(audit.changesSummary as string);
+              // 如果是变更对象数组且有完整的变更信息，直接使用
+              if (Array.isArray(changes) && changes.length > 0 && changes[0].field && 
+                  (changes[0].oldValue !== undefined || changes[0].newValue !== undefined)) {
+                return changes.map((change: { field?: string; oldValue?: unknown; newValue?: unknown; dataType?: string }) => ({
+                  field: change.field || '',
+                  oldValue: change.oldValue,
+                  newValue: change.newValue,
+                  dataType: change.dataType || 'string'
+                }));
+              }
+              return [];
+            } catch {
+              return [];
             }
           })() : []
       }

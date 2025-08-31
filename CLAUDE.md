@@ -232,30 +232,75 @@
   - 在功能未稳定时就考虑安全加固和性能优化
   - 为了"生产就绪"而牺牲开发迭代速度
 
-### 15. 深层次API一致性原则 (Deep API Consistency Principles) ⭐ **重大新增 (2025-08-23)**
+### 15. API优先授权管理原则 (API-First Authorization Principle) ⭐ **重大新增 (2025-08-31)**
 
-#### 15.1 响应结构一致性 🚨 **企业级信封标准**
+#### 15.1 授权定义权威来源 🚨 **强制执行**
+- **权威规范**: 所有授权要求必须在API契约文档中优先定义
+- **Single Source of Truth**: `/home/shangmeilin/cube-castle/docs/api/openapi.yaml` 第850-862行为权限体系权威来源
+- **契约优先**: 先在API规范中定义权限，后在代码中实现权限验证
+- **统一标准**: 前后端权限实现必须严格遵循API契约中的权限定义
+
+#### 15.2 权限定义标准化 📖 **统一格式**
+- **REST API权限**: 在每个端点的description中明确标注 `**Required Permissions:** org:action`
+- **OAuth2作用域**: 在securitySchemes中定义完整的权限作用域列表
+- **权限命名规范**: 统一使用 `org:action` 格式（如 `org:create`, `org:update`, `org:delete`）
+- **文档同步**: API文档变更后必须同步更新权限实现代码
+
+#### 15.3 权限实现层级管理 🔧 **严格执行顺序**
+```yaml
+权限定义流程 (按顺序执行):
+  第一步: API契约权限定义
+    - 在 openapi.yaml 中定义端点所需权限
+    - 在 OAuth2 scopes 中注册权限作用域
+    - 设置权限描述和业务含义
+  
+  第二步: 后端权限验证实现
+    - 基于API契约实现OAuth2权限验证
+    - 在路由层添加权限检查中间件
+    - 确保权限验证与API规范100%一致
+  
+  第三步: 前端权限控制实现
+    - 基于API契约实现UI权限控制
+    - 根据用户权限显示/隐藏操作按钮
+    - 确保前端权限判断与后端API一致
+```
+
+#### 15.4 权限体系维护规范 📋 **持续同步**
+- **权限变更流程**: 任何权限变更必须先修改API契约，后修改实现代码
+- **权限测试验证**: 新增权限必须包含完整的契约测试用例
+- **文档更新要求**: 权限变更必须同步更新用户文档和开发文档
+- **版本兼容性**: 权限变更必须考虑向后兼容性和迁移计划
+
+#### 15.5 禁止事项 ❌ **零容忍**
+- **绕过API契约**: 不得在代码中定义未在API契约中声明的权限
+- **权限硬编码**: 不得在前后端代码中硬编码权限逻辑而不基于API规范
+- **权限不一致**: 前后端权限实现不得偏离API契约定义
+- **私有权限**: 不得创建仅在实现层存在而API契约中未定义的权限
+
+### 16. 深层次API一致性原则 (Deep API Consistency Principles) ⭐ **重大新增 (2025-08-23)**
+
+#### 16.1 响应结构一致性 🚨 **企业级信封标准**
 - **统一信封模式**: 所有API响应必须使用相同的顶层结构
 - **成功响应格式**: `{success: true, data: {...}, message: "string", timestamp: "ISO8601", requestId: "string"}`
 - **错误响应格式**: `{success: false, error: {code, message, details}, timestamp: "ISO8601", requestId: "string"}`
 - **一致性收益**: 客户端使用统一解析逻辑，提升开发者体验，支持端到端链路追踪
 
-#### 15.2 数据模型一致性 🚨 **跨端点标准化**  
+#### 16.2 数据模型一致性 🚨 **跨端点标准化**  
 - **操作人统一结构**: 所有`operatedBy`字段必须使用对象格式 `{id: "uuid", name: "English Name"}`
 - **时态数据统一**: `effectiveDate/endDate/isCurrent/isFuture/createdAt/updatedAt`字段命名标准化
 - **审计数据统一**: `auditId/recordId/operationReason/businessEntityId/changesSummary`统一结构
 
-#### 15.3 协议使用一致性 🚨 **CQRS架构强制执行**
+#### 16.3 协议使用一致性 🚨 **CQRS架构强制执行**
 - **查询操作专用**: 只能使用GraphQL (http://localhost:8090/graphql)，绝对禁止REST GET
 - **命令操作专用**: 只能使用REST API (http://localhost:9090/api/v1)，绝对禁止GraphQL Mutation  
 - **唯一实现原则**: 每种业务操作只能有一个API端点实现
 
-#### 15.4 语言术语一致性 🚨 **国际化标准**
+#### 16.4 语言术语一致性 🚨 **国际化标准**
 - **响应消息统一**: API响应消息统一使用英文，错误消息使用英文+标准错误代码
 - **术语标准化**: REST使用`organization-units`，GraphQL使用`organizations/organization`
 - **字段命名词汇表**: 标准词汇跨所有端点保持一致 (`code/parentCode`, `operationType/operatedBy/operationReason`)
 
-#### 15.5 一致性维护机制 📖 **开发团队规范**
+#### 16.5 一致性维护机制 📖 **开发团队规范**
 - **代码审查必检**: JSON字段camelCase命名、响应结构统一信封、操作人标准对象、API消息英文
 - **自动化验证**: 响应结构格式验证、字段命名风格检查、跨端点数据模型一致性测试
 - **向后兼容策略**: 服务端临时支持新旧格式、明确废弃时间表、渐进式迁移工具
@@ -667,7 +712,7 @@ CI/CD集成:
 
 ## 联系与维护
 - 项目路径: `/home/shangmeilin/cube-castle`
-- 最后更新: 2025-08-24
+- 最后更新: 2025-08-31
 - 当前版本: **企业级生产就绪版 (v4.1-Critical-Fixes-Complete)** ⭐ **重大版本升级**
   - 🔧 修复OAuth认证字段名特例，解决"Failed to fetch organizations"问题
   - 🔧 修复GraphQL Schema字段映射不匹配问题
