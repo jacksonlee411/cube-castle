@@ -11,7 +11,10 @@ import { Badge } from '../../../shared/components/Badge';
 import { Tabs, useTabsModel } from '@workday/canvas-kit-react/tabs';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
-import { timelineAllIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web';
+import { exclamationCircleIcon, activityStreamIcon } from '@workday/canvas-system-icons-web';
+
+// 审计历史组件导入
+import { AuditHistorySection } from '../../audit/components/AuditHistorySection';
 
 // 组织管理功能导入
 import { OrganizationForm } from './OrganizationForm';
@@ -20,6 +23,7 @@ import { OrganizationForm } from './OrganizationForm';
 // Hooks导入 - 移除已删除的时态钩子
 // import { useTemporalOrganization, useOrganizationHistory, useOrganizationTimeline, useTemporalMode } from '../../../shared/hooks/useTemporalQuery';
 import { useOrganizationActions } from '../hooks/useOrganizationActions';
+
 
 // Types导入
 import type { OrganizationUnit } from '../../../shared/types/organization';
@@ -180,7 +184,19 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
 
   // 临时状态管理 - 替代已删除的时态钩子
   const [temporalMode] = useState<TemporalMode>('current');
-  const [organization] = useState<OrganizationUnit | null>(null);
+  const [organization] = useState<OrganizationUnit | null>({
+    code: 'DEMO-001',
+    name: '演示部门',
+    unitType: 'DEPARTMENT',
+    status: 'ACTIVE',
+    level: 1,
+    path: '/DEMO-001',
+    sortOrder: 1,
+    description: '用于演示审计历史功能',
+    createdAt: '2025-08-31T10:00:00Z',
+    updatedAt: '2025-08-31T10:30:00Z',
+    recordId: '134d58aa-ce9e-4631-8002-a1e2a01872c1' // 关键：有审计记录的ID
+  });
   const [orgLoading] = useState(false);
   const [orgError] = useState(false);
   const [orgErrorMessage] = useState<string>('');
@@ -337,8 +353,8 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
           <Tabs.Item name="overview">
             概览信息
           </Tabs.Item>
-          <Tabs.Item name="timeline">
-            时间线 {hasTimelineEvents && <Badge color="blueberry600">{eventCount}</Badge>}
+          <Tabs.Item name="audit">
+            审计历史 {hasTimelineEvents && <Badge color="blueberry600">{eventCount}</Badge>}
           </Tabs.Item>
           <Tabs.Item name="history">
             历史版本 {hasHistory && <Badge color="greenFresca600">{historyVersions.length}</Badge>}
@@ -397,17 +413,27 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
 
         <Tabs.Panel>
           <Box marginTop="l">
-            <Card padding="m">
-              <Flex alignItems="center" gap="xs" marginBottom="m">
-                <SystemIcon icon={timelineAllIcon} size={16} />
-                <Text as="h3" typeLevel="subtext.large" fontWeight="bold">
-                  时间线
+            {organization?.recordId ? (
+              <AuditHistorySection
+                recordId={organization.recordId}
+                params={{
+                  limit: 50,
+                  mode: temporalMode
+                }}
+              />
+            ) : (
+              <Card padding="m">
+                <Flex alignItems="center" gap="xs" marginBottom="m">
+                  <SystemIcon icon={activityStreamIcon} size={16} />
+                  <Text as="h3" typeLevel="subtext.large" fontWeight="bold">
+                    审计历史
+                  </Text>
+                </Flex>
+                <Text typeLevel="body.medium" color="hint">
+                  需要组织记录ID才能查看审计历史
                 </Text>
-              </Flex>
-              <Text typeLevel="body.medium">
-                时间线功能开发中...
-              </Text>
-            </Card>
+              </Card>
+            )}
           </Box>
         </Tabs.Panel>
 
