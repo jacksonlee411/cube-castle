@@ -71,8 +71,8 @@ describe('GraphQLEnterpriseAdapter', () => {
         data: { organizations: [{ code: 'TEST001', name: 'Test Org' }] },
         message: 'GraphQL查询成功'
       });
-      expect(result.timestamp).toBeDefined();
-      expect(result.requestId).toMatch(/^req_/);
+      expect((result as any).timestamp).toBeDefined();
+      expect((result as any).requestId).toMatch(/^req_/);
     });
 
     it('应该正确转换带错误的标准响应', () => {
@@ -102,8 +102,8 @@ describe('GraphQLEnterpriseAdapter', () => {
         },
         message: 'GraphQL查询失败: Field "invalid" not found'
       });
-      expect(result.timestamp).toBeDefined();
-      expect(result.requestId).toMatch(/^req_/);
+      expect((result as any).timestamp).toBeDefined();
+      expect((result as any).requestId).toMatch(/^req_/);
     });
   });
 
@@ -162,8 +162,8 @@ describe('GraphQLEnterpriseAdapter', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ organizations: { data: [{ code: 'TEST001' }] } });
       expect(result.message).toBe('GraphQL查询成功');
-      expect(result.timestamp).toBeDefined();
-      expect(result.requestId).toMatch(/^req_/);
+      expect((result as any).timestamp).toBeDefined();
+      expect((result as any).requestId).toMatch(/^req_/);
     });
 
     it('应该处理HTTP错误', async () => {
@@ -182,8 +182,8 @@ describe('GraphQLEnterpriseAdapter', () => {
           message: 'HTTP Error: 500 Internal Server Error'
         }
       });
-      expect(result.timestamp).toBeDefined();
-      expect(result.requestId).toMatch(/^req_/);
+      expect((result as any).timestamp).toBeDefined();
+      expect((result as any).requestId).toMatch(/^req_/);
     });
 
     it('应该处理网络异常', async () => {
@@ -198,8 +198,8 @@ describe('GraphQLEnterpriseAdapter', () => {
           message: 'Network timeout'
         }
       });
-      expect(result.timestamp).toBeDefined();
-      expect(result.requestId).toMatch(/^req_/);
+      expect((result as any).timestamp).toBeDefined();
+      expect((result as any).requestId).toMatch(/^req_/);
     });
   });
 

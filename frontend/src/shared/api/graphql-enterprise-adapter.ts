@@ -6,32 +6,20 @@
 
 import type { APIResponse } from '../types/api';
 import { UnifiedGraphQLClient } from './unified-client';
-import { authManager } from './auth';
+// import { authManager } from './auth'; // 暂时移除未使用的import
 
-// 企业级GraphQL响应信封接口
-interface EnterpriseGraphQLResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: unknown;
-  };
-  message?: string;
-  timestamp: string;
-  requestId?: string;
-}
-
-// 传统GraphQL响应接口（当前格式）
-interface StandardGraphQLResponse<T> {
-  data?: T;
-  errors?: Array<{
-    message: string;
-    locations?: Array<{ line: number; column: number }>;
-    path?: Array<string | number>;
-    extensions?: Record<string, unknown>;
-  }>;
-}
+/*
+ * 企业级GraphQL响应接口定义 - 预留用于未来后端实施
+ * interface EnterpriseGraphQLResponse<T> {
+ *   success: boolean; data?: T; error?: {...}; message?: string;
+ *   timestamp: string; requestId?: string;
+ * }
+ * 
+ * 传统GraphQL响应接口 - 预留用于格式转换
+ * interface StandardGraphQLResponse<T> {
+ *   data?: T; errors?: Array<{...}>; 
+ * }
+ */
 
 /**
  * GraphQL企业级响应适配器类
@@ -44,80 +32,13 @@ export class GraphQLEnterpriseAdapter {
     this.client = client;
   }
 
-  /**
-   * 获取访问令牌
-   */
-  private async getAccessToken(): Promise<string> {
-    try {
-      return await authManager.getAccessToken();
-    } catch (error) {
-      console.warn('Failed to get access token, using empty token:', error);
-      return '';
-    }
-  }
+  // 获取访问令牌方法已移动到UnifiedGraphQLClient
 
-  /**
-   * 检测响应格式类型
-   */
-  private isEnterpriseFormat<T>(response: unknown): response is EnterpriseGraphQLResponse<T> {
-    return (
-      typeof response === 'object' &&
-      response !== null &&
-      'success' in response &&
-      'timestamp' in response
-    );
-  }
+  // 响应格式检测方法 - 预留用于未来企业级格式支持
 
-  /**
-   * 检测标准GraphQL格式
-   */
-  private isStandardFormat<T>(response: unknown): response is StandardGraphQLResponse<T> {
-    return (
-      typeof response === 'object' &&
-      response !== null &&
-      ('data' in response || 'errors' in response) &&
-      !('success' in response)
-    );
-  }
+  // 标准GraphQL格式检测方法 - 预留用于格式适配
 
-  /**
-   * 将标准GraphQL响应转换为企业级信封格式
-   */
-  private transformToEnterpriseFormat<T>(
-    standardResponse: StandardGraphQLResponse<T>
-  ): EnterpriseGraphQLResponse<T> {
-    const timestamp = new Date().toISOString();
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // 如果有错误，返回错误格式
-    if (standardResponse.errors && standardResponse.errors.length > 0) {
-      const firstError = standardResponse.errors[0];
-      return {
-        success: false,
-        error: {
-          code: 'GRAPHQL_ERROR',
-          message: firstError.message,
-          details: {
-            locations: firstError.locations,
-            path: firstError.path,
-            extensions: firstError.extensions
-          }
-        },
-        message: `GraphQL查询失败: ${firstError.message}`,
-        timestamp,
-        requestId
-      };
-    }
-
-    // 成功响应
-    return {
-      success: true,
-      data: standardResponse.data,
-      message: 'GraphQL查询成功',
-      timestamp,
-      requestId
-    };
-  }
+  // 企业级格式转换方法 - 预留用于未来后端企业级信封实施
 
   /**
    * 统一的GraphQL请求方法，自动适配响应格式

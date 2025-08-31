@@ -99,9 +99,8 @@ export class ApiClient {
     }
   }
 
-  public get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' });
-  }
+  // GET方法已移除 - 查询操作请使用GraphQL (端口8090)
+  // CQRS架构要求：命令操作使用REST，查询操作使用GraphQL
 
   public post<T>(endpoint: string, data: Record<string, unknown>): Promise<T> {
     return this.request<T>(endpoint, {
