@@ -8,8 +8,9 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
+import { Card } from '@workday/canvas-kit-react/card';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
-import { checkCircleIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web';
+import { checkCircleIcon, exclamationCircleIcon, activityStreamIcon } from '@workday/canvas-system-icons-web';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
 import { InlineNewVersionForm } from './InlineNewVersionForm';
@@ -21,8 +22,8 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/unified-client';
-// 动态导入审计组件避免循环依赖
-// import { AuditHistoryTimeline } from '../../audit/components/AuditHistoryTimeline'; // 已移除：违反API契约
+// 审计历史组件导入
+import { AuditHistorySection } from '../../audit/components/AuditHistorySection';
 
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
@@ -661,8 +662,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 disabled={isSubmitting || isLoading}
                 tabs={[
                   { key: 'edit-history', label: '版本管理' },
-                  { key: 'new-version', label: '新增版本' }
-                  // { key: 'audit-history', label: '审计信息', disabled: !organizationCode } // 已移除：违反API契约
+                  { key: 'new-version', label: '新增版本' },
+                  { key: 'audit-history', label: '审计历史' }
                 ]}
               />
 
@@ -720,14 +721,30 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 />
               )}
 
-              {/* 审计信息标签页已移除：违反API契约优先原则
-                  {activeTab === 'audit-history' && organizationCode && (
-                    <AuditHistoryTimeline
-                      organizationCode={organizationCode}
-                      showFilters={true}
-                    />
-                  )}
-              */}
+              {/* 审计历史标签页 */}
+              {activeTab === 'audit-history' && selectedVersion?.recordId && (
+                <AuditHistorySection
+                  recordId={selectedVersion.recordId}
+                  params={{
+                    limit: 50,
+                    mode: 'current'
+                  }}
+                />
+              )}
+              
+              {activeTab === 'audit-history' && !selectedVersion?.recordId && (
+                <Card padding="m">
+                  <Flex alignItems="center" gap="xs" marginBottom="m">
+                    <SystemIcon icon={activityStreamIcon} size={16} />
+                    <Text as="h3" typeLevel="subtext.large" fontWeight="bold">
+                      审计历史
+                    </Text>
+                  </Flex>
+                  <Text typeLevel="body.medium" color="hint">
+                    请选择一个版本查看对应的审计历史记录
+                  </Text>
+                </Card>
+              )}
             </>
           )}
         </Box>

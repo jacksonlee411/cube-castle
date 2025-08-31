@@ -1,6 +1,6 @@
 /**
- * 组织详情页面 - 集成时间线功能
- * 展示组织的详细信息、历史版本和时间线事件
+ * 组织详情页面 - 基础信息和审计历史
+ * 展示组织的详细信息和审计历史记录
  */
 import React, { useState, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
@@ -211,13 +211,10 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
     console.log('Refetch timeline - placeholder');
   }, []);
 
-  // 临时历史版本和时间线状态 - 替代已删除的钩子
-  const [historyVersions] = useState<Record<string, unknown>[]>([]);
-  const [hasHistory] = useState(false);
+  // 时间线状态 - 仅保留审计历史相关
   const [timelineLoading] = useState(false);
   const [hasTimelineEvents] = useState(false);
   const [eventCount] = useState(0);
-  const [latestEvent] = useState<Record<string, unknown> | null>(null);
 
   // 组织操作钩子
   const {
@@ -350,21 +347,15 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
       {/* 详情标签页 */}
       <Tabs model={tabsModel}>
         <Tabs.List>
-          <Tabs.Item name="overview">
+          <Tabs.Item data-id="overview">
             概览信息
           </Tabs.Item>
-          <Tabs.Item name="audit">
+          <Tabs.Item data-id="audit">
             审计历史 {hasTimelineEvents && <Badge color="blueberry600">{eventCount}</Badge>}
-          </Tabs.Item>
-          <Tabs.Item name="history">
-            历史版本 {hasHistory && <Badge color="greenFresca600">{historyVersions.length}</Badge>}
-          </Tabs.Item>
-          <Tabs.Item name="comparison">
-            版本对比
           </Tabs.Item>
         </Tabs.List>
 
-        <Tabs.Panel>
+        <Tabs.Panel data-id="overview">
           <Box marginTop="l">
             <Card padding="m">
               <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
@@ -399,11 +390,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
                 {hasTimelineEvents && (
                   <Box>
                     <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom="s">活动统计</Text>
-                    <Text typeLevel="body.small">时间线事件: {eventCount} 个</Text>
-                    <Text typeLevel="body.small">历史版本: {historyVersions.length} 个</Text>
-                    {latestEvent && (
-                      <Text typeLevel="body.small">最新事件: {(latestEvent.title as string) || '未知事件'}</Text>
-                    )}
+                    <Text typeLevel="body.small">审计事件: {eventCount} 个</Text>
                   </Box>
                 )}
               </Flex>
@@ -411,7 +398,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
           </Box>
         </Tabs.Panel>
 
-        <Tabs.Panel>
+        <Tabs.Panel data-id="audit">
           <Box marginTop="l">
             {organization?.recordId ? (
               <AuditHistorySection
@@ -437,31 +424,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
           </Box>
         </Tabs.Panel>
 
-        <Tabs.Panel>
-          <Box marginTop="l">
-            <Card padding="m">
-              <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
-                📚 历史版本
-              </Text>
-              <Text typeLevel="body.medium">
-                历史版本功能开发中...
-              </Text>
-            </Card>
-          </Box>
-        </Tabs.Panel>
 
-        <Tabs.Panel>
-          <Box marginTop="l">
-            <Card padding="m">
-              <Text as="h3" typeLevel="subtext.large" fontWeight="bold" marginBottom="m">
-                刷新 版本对比
-              </Text>
-              <Text typeLevel="body.medium">
-                版本对比功能开发中...
-              </Text>
-            </Card>
-          </Box>
-        </Tabs.Panel>
 
       </Tabs>
 
