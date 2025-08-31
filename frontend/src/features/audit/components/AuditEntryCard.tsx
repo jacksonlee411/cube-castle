@@ -15,13 +15,29 @@ import {
   mediaPlayIcon
 } from '@workday/canvas-system-icons-web';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
-import type { AuditTimelineEntry, OperationType, RiskLevel } from '../../../shared/api/audit';
+// ✅ P2修复: 移除缺失的audit.ts类型依赖，定义本地类型
+export interface AuditTimelineEntry {
+  auditId: string;
+  operation: string;
+  timestamp: string;
+  userName: string;
+  operationReason?: string;
+  dataChanges: {
+    beforeData?: Record<string, unknown>;
+    afterData?: Record<string, unknown>;
+    modifiedFields: string[];
+  };
+}
+
+export type OperationType = 'CREATE' | 'UPDATE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE';
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
 // 组件Props接口
 interface AuditEntryCardProps {
   entry: AuditTimelineEntry;
-  onExpand?: (entry: AuditTimelineEntry) => void;
+  onExpand?: () => void;
   isExpanded?: boolean;
+  isHighlighted?: boolean;
   className?: string;
 }
 
@@ -95,10 +111,20 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
   entry,
   onExpand,
   isExpanded = false,
+  isHighlighted = false,
   className
 }) => {
-  const opConfig = operationConfig[entry.operation];
-  const riskConf = riskConfig[entry.riskLevel];
+  const opConfig = operationConfig[entry.operation as OperationType] || operationConfig.UPDATE;
+  
+  // 简单风险评估：基于修改字段数量
+  const calculateRiskLevel = (modifiedFields: string[]): RiskLevel => {
+    if (modifiedFields.length >= 5) return 'HIGH';
+    if (modifiedFields.length >= 3) return 'MEDIUM';
+    return 'LOW';
+  };
+  
+  const riskLevel = calculateRiskLevel(entry.dataChanges.modifiedFields);
+  const riskConf = riskConfig[riskLevel];
 
   // 格式化时间戳
   const formatTimestamp = (timestamp: string): string => {
@@ -121,7 +147,7 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
   // 处理卡片点击
   const handleCardClick = () => {
     if (onExpand) {
-      onExpand(entry);
+      onExpand();
     }
   };
 
@@ -140,7 +166,8 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
         cursor: onExpand ? 'pointer' : 'default',
         transition: 'all 0.2s ease-in-out',
         borderLeft: `4px solid ${opConfig.color}`,
-        marginBottom: space.m
+        marginBottom: space.m,
+        backgroundColor: isHighlighted ? colors.blueberry100 : undefined
       }}
       onMouseEnter={(e) => {
         if (onExpand) {
@@ -210,36 +237,27 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
       {/* 变更摘要 */}
       <Box marginBottom={space.m}>
         <Text typeLevel="body.medium" color={colors.licorice600}>
-          {entry.changesSummary.operationSummary}
+          {entry.operationReason || `执行了${opConfig.label}操作`}
         </Text>
         
-        {entry.changesSummary.totalChanges > 0 && (
+        {entry.dataChanges.modifiedFields.length > 0 && (
           <Text typeLevel="subtext.small" color={colors.licorice400} marginTop={space.xs}>
-            共 {entry.changesSummary.totalChanges} 项变更
+            共 {entry.dataChanges.modifiedFields.length} 项变更
           </Text>
         )}
       </Box>
 
-      {/* 操作原因 */}
-      {entry.operationReason && (
+      {/* 修改字段列表 */}
+      {entry.dataChanges.modifiedFields.length > 0 && (
         <Box marginBottom={space.m}>
-          <Text typeLevel="subtext.small" color={colors.licorice400}>
-            原因: {entry.operationReason}
-          </Text>
-        </Box>
-      )}
-
-      {/* 关键变更标签 */}
-      {entry.changesSummary.keyChanges && entry.changesSummary.keyChanges.length > 0 && (
-        <Box>
           <Text typeLevel="subtext.small" color={colors.licorice400} marginBottom={space.xs}>
-            关键变更:
+            变更字段:
           </Text>
           <Flex gap={space.xs} flexWrap="wrap">
-            {entry.changesSummary.keyChanges.slice(0, 5).map((change, index) => (
+            {entry.dataChanges.modifiedFields.slice(0, 5).map((field, index) => (
               <Box
                 key={index}
-                onClick={(e) => handleKeyChangeClick(e, change)}
+                onClick={(e) => handleKeyChangeClick(e, field)}
                 padding="xs"
                 style={{
                   backgroundColor: colors.soap200,
@@ -260,10 +278,10 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
                   e.currentTarget.style.backgroundColor = colors.soap200;
                 }}
               >
-                <Text typeLevel="subtext.small">{change}</Text>
+                <Text typeLevel="subtext.small">{field}</Text>
               </Box>
             ))}
-            {entry.changesSummary.keyChanges.length > 5 && (
+            {entry.dataChanges.modifiedFields.length > 5 && (
               <Box
                 padding="xs"
                 style={{
@@ -274,10 +292,59 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
                   border: '1px solid ' + colors.soap200
                 }}
               >
-                <Text typeLevel="subtext.small">+{entry.changesSummary.keyChanges.length - 5} 更多</Text>
+                <Text typeLevel="subtext.small">+{entry.dataChanges.modifiedFields.length - 5} 更多</Text>
               </Box>
             )}
           </Flex>
+        </Box>
+      )}
+
+      {/* 展开详情：显示before/after数据 */}
+      {isExpanded && (entry.dataChanges.beforeData || entry.dataChanges.afterData) && (
+        <Box marginTop={space.m} padding={space.m} style={{
+          backgroundColor: colors.soap100,
+          borderRadius: '8px',
+          border: `1px solid ${colors.soap300}`
+        }}>
+          <Text typeLevel="subtext.medium" fontWeight="bold" marginBottom={space.s}>
+            数据变更详情:
+          </Text>
+          
+          {entry.dataChanges.beforeData && (
+            <Box marginBottom={space.s}>
+              <Text typeLevel="subtext.small" color={colors.cinnamon600} marginBottom={space.xs}>
+                变更前:
+              </Text>
+              <Box style={{
+                backgroundColor: colors.frenchVanilla100,
+                padding: space.xs,
+                borderRadius: '4px',
+                fontSize: '12px',
+                maxHeight: '100px',
+                overflow: 'auto'
+              }}>
+                <pre>{JSON.stringify(entry.dataChanges.beforeData, null, 2)}</pre>
+              </Box>
+            </Box>
+          )}
+          
+          {entry.dataChanges.afterData && (
+            <Box>
+              <Text typeLevel="subtext.small" color={colors.greenApple600} marginBottom={space.xs}>
+                变更后:
+              </Text>
+              <Box style={{
+                backgroundColor: colors.frenchVanilla100,
+                padding: space.xs,
+                borderRadius: '4px',
+                fontSize: '12px',
+                maxHeight: '100px',
+                overflow: 'auto'
+              }}>
+                <pre>{JSON.stringify(entry.dataChanges.afterData, null, 2)}</pre>
+              </Box>
+            </Box>
+          )}
         </Box>
       )}
 
