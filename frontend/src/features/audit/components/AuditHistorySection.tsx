@@ -88,8 +88,8 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
             if (audit.changesSummary && audit.changesSummary !== 'null' && audit.changesSummary !== '[]') {
               const changes = JSON.parse(audit.changesSummary as string);
               if (Array.isArray(changes) && changes.length > 0 && changes[0].oldValue !== undefined) {
-                const reconstructed: Record<string, any> = {};
-                changes.forEach((change: any) => {
+                const reconstructed: Record<string, unknown> = {};
+                changes.forEach((change: { field?: string; oldValue?: unknown }) => {
                   if (change.field && change.oldValue !== undefined) {
                     reconstructed[change.field] = change.oldValue;
                   }
@@ -115,8 +115,8 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
             if (audit.changesSummary && audit.changesSummary !== 'null' && audit.changesSummary !== '[]') {
               const changes = JSON.parse(audit.changesSummary as string);
               if (Array.isArray(changes) && changes.length > 0 && changes[0].newValue !== undefined) {
-                const reconstructed: Record<string, any> = {};
-                changes.forEach((change: any) => {
+                const reconstructed: Record<string, unknown> = {};
+                changes.forEach((change: { field?: string; oldValue?: unknown }) => {
                   if (change.field && change.newValue !== undefined) {
                     reconstructed[change.field] = change.newValue;
                   }
@@ -136,7 +136,7 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
               const changes = JSON.parse(audit.changesSummary as string);
               // 如果是变更对象数组，提取字段名
               if (Array.isArray(changes) && changes.length > 0 && changes[0].field) {
-                return changes.map((change: any) => change.field);
+                return changes.map((change: { field?: string }) => change.field);
               }
               // 如果是字段名数组，直接返回
               if (Array.isArray(changes)) {

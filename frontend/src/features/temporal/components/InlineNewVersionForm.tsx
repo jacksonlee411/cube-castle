@@ -180,9 +180,9 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   allVersions = null,
   onEditHistory,
   onDeactivate,
-  onInsertRecord,
-  activeTab = 'edit-history',
-  onTabChange,
+  onInsertRecord: _onInsertRecord,
+  activeTab: _activeTab = 'edit-history',
+  onTabChange: _onTabChange,
   // versions, onVersionSelect, onVersionEdit参数已移除 - 违反原则13
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
