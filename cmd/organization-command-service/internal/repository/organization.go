@@ -50,7 +50,7 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 			level, path, sort_order, description, created_at, updated_at,
 			effective_date, end_date, is_temporal, change_reason, is_current
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-		RETURNING created_at, updated_at
+		RETURNING record_id, created_at, updated_at
 	`
 
 	var createdAt, updatedAt time.Time
@@ -90,7 +90,7 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 		org.IsTemporal,
 		org.ChangeReason,
 		isCurrent, // 根据effective_date计算的is_current值
-	).Scan(&createdAt, &updatedAt)
+	).Scan(&org.RecordID, &createdAt, &updatedAt)
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -119,7 +119,7 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 			level, path, sort_order, description, created_at, updated_at,
 			effective_date, end_date, is_temporal, change_reason, is_current
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-		RETURNING created_at, updated_at
+		RETURNING record_id, created_at, updated_at
 	`
 
 	var createdAt, updatedAt time.Time
@@ -151,7 +151,7 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 		org.IsTemporal,
 		org.ChangeReason,
 		org.IsCurrent, // 显式设置is_current
-	).Scan(&createdAt, &updatedAt)
+	).Scan(&org.RecordID, &createdAt, &updatedAt)
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
