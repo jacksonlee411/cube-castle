@@ -6,6 +6,18 @@
 // 时态查询模式
 export type TemporalMode = 'current' | 'historical' | 'planning';
 
+// 事件类型定义 (扩展支持具体业务事件类型)
+export type EventType = 
+  | 'CREATE' | 'UPDATE' | 'DELETE' | 'SUSPEND' | 'ACTIVATE' | 'QUERY' | 'VALIDATION' | 'AUTHENTICATION' | 'ERROR'
+  | 'organization_created' | 'organization_updated' | 'organization_deleted'
+  | 'status_changed' | 'hierarchy_changed' | 'metadata_updated' 
+  | 'planned_change' | 'change_cancelled';
+
+// 事件状态定义  
+export type EventStatus = 'SUCCESS' | 'FAILED' | 'PENDING' | 'CANCELLED';
+
+// 时间线事件功能已移除 - 违反API契约
+
 // 时间范围定义
 export interface DateRange {
   start: string;
@@ -64,45 +76,30 @@ export interface OrganizationHistory {
   organizationCode: string;
   records: TemporalOrganizationUnit[];  // 改名为records，去掉版本概念
   totalRecords: number;                 // 改名为totalRecords
-  timelineEvents: TimelineEvent[];
 }
 
-// 时间线事件
+// 时间线事件 (已移除核心实现但保留类型定义以兼容现有代码)
 export interface TimelineEvent {
   id: string;
-  organizationCode: string;
   timestamp: string;
   type: EventType;
-  title: string;
-  description?: string;
-  changes?: FieldChange[];
-  metadata?: Record<string, unknown>;
-  author?: string;
   status: EventStatus;
+  description: string;
+  recordId: string;
+  changes?: Record<string, { old: unknown; new: unknown }>;
+  author?: string;
 }
 
-// 事件类型
-export type EventType = 
-  | 'organization_created'
-  | 'organization_updated' 
-  | 'organization_deleted'
-  | 'status_changed'
-  | 'hierarchy_changed'
-  | 'metadata_updated'
-  | 'planned_change'
-  | 'change_cancelled';
-
-// 事件状态
-export type EventStatus = 'planned' | 'active' | 'completed' | 'cancelled';
-
-// 字段变更详情
-export interface FieldChange {
-  field: string;
-  fieldLabel: string;
-  oldValue: unknown;
-  newValue: unknown;
-  changeType: 'added' | 'modified' | 'removed';
+// 时间线视图配置 (保留类型定义以兼容现有代码) 
+export interface TemporalTimelineViewConfig {
+  showEventTypes: EventType[];
+  dateRange: DateRange;
+  maxEvents: number;
+  groupByDate: boolean;
+  showDetails: boolean;
 }
+
+// 时间线功能已移除 - 违反API契约
 
 // 时态查询选项
 export interface TemporalQueryOptions {
@@ -154,20 +151,10 @@ export interface TemporalPermissions {
   maxHistoryViewDays?: number;
 }
 
-// 时间线视图配置 (纯日期生效模型) - 重命名为TemporalTimelineViewConfig避免与timeline.ts冲突
-export interface TemporalTimelineViewConfig {
-  showEvents: boolean;          // 显示事件
-  showRecords: boolean;         // 显示历史记录 (替换showVersions)
-  dateFormat: string;           // 日期格式
-  timeRange: DateRange;         // 时间范围
-  eventTypes: EventType[];      // 事件类型
-}
-
-// 时态上下文 (统一字符串类型)
+// 时态上下文 (统一字符串类型) - 时间线功能已移除
 export interface TemporalContext {
   mode: TemporalMode;
   currentDate: string;  // 统一为字符串
-  viewConfig: TemporalTimelineViewConfig;
   permissions: TemporalPermissions;
   cacheConfig: TemporalCacheConfig;
 }

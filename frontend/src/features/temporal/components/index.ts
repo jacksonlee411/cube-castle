@@ -29,11 +29,12 @@ export type { TemporalSettingsProps } from './TemporalSettings';
 //   useTemporalUtils
 // } from '../../../shared/hooks/useTemporalQuery';
 
-export {
-  useTemporalStore,
-  useTemporalActions,
-  temporalSelectors
-} from '../../../shared/stores/temporalStore';
+// temporalStore已移除 - 时间线功能违反API契约
+// export {
+//   useTemporalStore,
+//   useTemporalActions,
+//   temporalSelectors
+// } from '../../../shared/stores/temporalStore';
 
 // 重新导出类型定义
 export type {

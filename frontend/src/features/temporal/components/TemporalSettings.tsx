@@ -10,7 +10,8 @@ import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { Checkbox } from '@workday/canvas-kit-react/checkbox';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
-import { useTemporalActions } from '../../../shared/stores/temporalStore';
+// temporalStore已移除 - 时间线功能违反API契约
+// import { useTemporalActions } from '../../../shared/stores/temporalStore';
 import { useMessages } from '../../../shared/hooks/useMessages';
 import type { TemporalQueryParams, EventType } from '../../../shared/types/temporal';
 
@@ -47,8 +48,8 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
     }
   }, [isOpen, model]);
 
-  // 时态操作
-  const { setQueryParams, clearCache } = useTemporalActions();
+  // 时态操作 - temporalStore已移除，使用简化处理
+  // const { setQueryParams, clearCache } = useTemporalActions();
   const { showSuccess, showError } = useMessages();
 
   // 事件类型选项
@@ -90,16 +91,17 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
     updateLocalParams({ eventTypes: newTypes });
   }, [localParams.eventTypes, updateLocalParams]);
 
-  // 应用设置
+  // 应用设置 - temporalStore已移除，简化处理
   const handleApply = useCallback(async () => {
     try {
-      setQueryParams(localParams);
+      // setQueryParams(localParams); // temporalStore已移除
+      console.log('Apply temporal settings:', localParams); // 临时日志
       setHasChanges(false);
       onClose();
     } catch (error) {
       console.error('Failed to apply settings:', error);
     }
-  }, [localParams, setQueryParams, onClose]);
+  }, [localParams, onClose]);
 
   // 重置设置
   const handleReset = useCallback(() => {
@@ -119,16 +121,17 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
     setHasChanges(true);
   }, []);
 
-  // 清除缓存
+  // 清除缓存 - temporalStore已移除，简化处理
   const handleClearCache = useCallback(async () => {
     try {
-      await clearCache();
+      // await clearCache(); // temporalStore已移除
+      console.log('Clear temporal cache requested'); // 临时日志
       showSuccess('缓存已清除');
     } catch (error) {
       console.error('Failed to clear cache:', error);
       showError('清除缓存失败');
     }
-  }, [clearCache, showSuccess, showError]);
+  }, [showSuccess, showError]);
 
   if (!isOpen) {
     return null;

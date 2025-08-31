@@ -403,7 +403,7 @@ export const organizationAPI = {
       if (error instanceof SimpleValidationError) {
         throw error;
       }
-      if (error?.message?.includes('REST Error:')) {
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('REST Error:')) {
         // 服务器端验证错误
         const serverMessage = error.message;
         throw new Error(serverMessage || 'Failed to create organization');
@@ -465,7 +465,7 @@ export const organizationAPI = {
       if (error instanceof SimpleValidationError) {
         throw error;
       }
-      if (error?.message?.includes('REST Error:')) {
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('REST Error:')) {
         const serverMessage = error.message;
         throw new Error(serverMessage || 'Failed to update organization');
       }
@@ -501,25 +501,75 @@ export const organizationAPI = {
 
   // ====== 组织详情API方法 ======
 
-  // 获取组织的审计历史记录 - 集成新的审计API模块
-  getAuditHistory: async (code: string, params?: TemporalQueryParams): Promise<Record<string, unknown>[]> => {
+  // 获取组织的审计历史记录 - 直接使用auditHistory GraphQL查询
+  getAuditHistory: async (recordId: string, params?: TemporalQueryParams): Promise<Record<string, unknown>[]> => {
     try {
-      // 导入审计API (动态导入以避免循环依赖)
-      const { AuditAPI } = await import('./audit');
+      // ✅ P1修复: 移除audit.ts依赖，直接使用GraphQL auditHistory查询
+      // 基于Schema v4.6.0 auditHistory查询
+      const graphqlQuery = `
+        query GetAuditHistory(
+          $recordId: UUID!,
+          $startDate: Date,
+          $endDate: Date,
+          $limit: Int
+        ) {
+          auditHistory(
+            recordId: $recordId,
+            startDate: $startDate,
+            endDate: $endDate,
+            limit: $limit
+          ) {
+            auditId
+            recordId
+            operation
+            timestamp
+            userInfo {
+              userId
+              userName
+              role
+            }
+            operationReason
+            dataChanges {
+              beforeData
+              afterData
+              modifiedFields
+            }
+          }
+        }
+      `;
       
-      // 将TemporalQueryParams转换为AuditQueryParams
-      const auditParams = {
-        startDate: params?.dateRange?.start,
-        endDate: params?.dateRange?.end,
+      const variables = {
+        recordId,
+        startDate: params?.dateRange?.start || null,
+        endDate: params?.dateRange?.end || null,
         limit: params?.limit || 50
       };
 
-      const auditHistory = await AuditAPI.getOrganizationAuditHistory(code, auditParams);
-      return auditHistory.auditTimeline || [];
+      const data = await unifiedGraphQLClient.request<{
+        auditHistory: Array<{
+          auditId: string;
+          recordId: string;
+          operation: string;
+          timestamp: string;
+          userInfo: {
+            userId: string;
+            userName: string;
+            role?: string;
+          };
+          operationReason?: string;
+          dataChanges: {
+            beforeData?: Record<string, unknown>;
+            afterData?: Record<string, unknown>;
+            modifiedFields: string[];
+          };
+        }>;
+      }>(graphqlQuery, variables);
+
+      return data.auditHistory || [];
 
     } catch (error) {
-      console.error('Error fetching organization audit history:', code, error);
-      throw new Error(`获取组织 ${code} 审计历史失败，请重试`);
+      console.error('Error fetching audit history for recordId:', recordId, error);
+      throw new Error(`获取审计历史失败，请重试`);
     }
   },
 
