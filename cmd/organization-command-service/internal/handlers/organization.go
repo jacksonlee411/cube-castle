@@ -240,8 +240,8 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		IsCurrent: effectiveDate.Before(now) || effectiveDate.Equal(now.Truncate(24*time.Hour)),
 	}
 
-	// 调用Repository创建版本
-	createdVersion, err := h.repo.Create(r.Context(), newVersion)
+	// 调用专门的时态版本创建方法
+	createdVersion, err := h.repo.CreateTemporalVersion(r.Context(), newVersion)
 	if err != nil {
 		// 检查是否是版本冲突错误
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "already exists") {
@@ -259,7 +259,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 			"effectiveDate": req.EffectiveDate,
 		}
 
-		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code,
+		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, existingOrg.RecordID,
 			"CreateOrganizationVersion", actorID, requestID, "VERSION_CREATE_ERROR", err.Error(), requestData)
 
 		h.handleRepositoryError(w, r, "CREATE_VERSION", err)

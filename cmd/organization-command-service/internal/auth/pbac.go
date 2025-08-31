@@ -30,6 +30,7 @@ var RESTAPIPermissions = map[string]map[string]string{
 	"POST /api/v1/organization-units/*/suspend":          {"method": "POST", "permission": "SUSPEND_ORGANIZATION"},
 	"POST /api/v1/organization-units/*/activate":         {"method": "POST", "permission": "ACTIVATE_ORGANIZATION"},
 	"POST /api/v1/organization-units/*/events":           {"method": "POST", "permission": "MANAGE_ORGANIZATION_EVENTS"},
+	"POST /api/v1/organization-units/*/versions":         {"method": "POST", "permission": "CREATE_TEMPORAL_VERSION"},
 	"PUT /api/v1/organization-units/*/history/*":         {"method": "PUT", "permission": "UPDATE_ORGANIZATION_HISTORY"},
 }
 
@@ -42,6 +43,7 @@ var RolePermissions = map[string][]string{
 		"SUSPEND_ORGANIZATION",
 		"ACTIVATE_ORGANIZATION",
 		"MANAGE_ORGANIZATION_EVENTS",
+		"CREATE_TEMPORAL_VERSION",
 		"UPDATE_ORGANIZATION_HISTORY",
 	},
 	"MANAGER": {

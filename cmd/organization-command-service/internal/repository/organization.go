@@ -176,6 +176,150 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 	return org, nil
 }
 
+// CreateTemporalVersion 创建时态版本 - 专门处理版本插入和日期调整
+func (r *OrganizationRepository) CreateTemporalVersion(ctx context.Context, org *types.Organization) (*types.Organization, error) {
+	// 开始数据库事务
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("开始事务失败: %w", err)
+	}
+	defer tx.Rollback()
+
+	// 确保effective_date始终有值
+	var effectiveDate *types.Date
+	if org.EffectiveDate != nil {
+		effectiveDate = org.EffectiveDate
+	} else {
+		now := time.Now()
+		effectiveDate = types.NewDate(now.Year(), now.Month(), now.Day())
+	}
+
+	// 计算is_current: 只有当effective_date <= 今天时才是current
+	today := time.Now().Truncate(24 * time.Hour)
+	effectiveDateTime := time.Date(
+		effectiveDate.Year(), effectiveDate.Month(), effectiveDate.Day(),
+		0, 0, 0, 0, time.UTC,
+	)
+	isCurrent := !effectiveDateTime.After(today)
+
+	r.logger.Printf("🔄 开始创建时态版本: %s, 生效日期: %s", org.Code, effectiveDate.String())
+
+	// 第一步：将该组织的所有记录设为非当前状态 (解决uk_current_organization约束)
+	clearCurrentQuery := `
+		UPDATE organization_units 
+		SET is_current = false,
+			updated_at = NOW()
+		WHERE code = $1 
+		  AND tenant_id = $2
+		  AND status != 'DELETED'
+		  AND is_current = true
+	`
+	
+	_, err = tx.ExecContext(ctx, clearCurrentQuery, org.Code, org.TenantID)
+	if err != nil {
+		return nil, fmt.Errorf("清除当前状态标记失败: %w", err)
+	}
+	
+	// 第二步：调整与新版本时间重叠的现有记录的结束日期
+	// 查找与新版本时间重叠的现有记录，将其end_date调整为新版本生效日期的前一天
+	updateQuery := `
+		UPDATE organization_units 
+		SET end_date = ($3::date - INTERVAL '1 day')::date,
+			updated_at = NOW()
+		WHERE code = $1 
+		  AND tenant_id = $2
+		  AND status != 'DELETED'
+		  AND effective_date < $3::date
+		  AND (end_date IS NULL OR end_date >= $3::date)
+	`
+	
+	result, err := tx.ExecContext(ctx, updateQuery,
+		org.Code,
+		org.TenantID,
+		effectiveDate,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("调整现有版本结束日期失败: %w", err)
+	}
+	
+	rowsAffected, _ := result.RowsAffected()
+	r.logger.Printf("📅 调整了 %d 条现有记录的结束日期", rowsAffected)
+
+	// 第三步：插入新的时态版本
+	insertQuery := `
+		INSERT INTO organization_units (
+			tenant_id, code, parent_code, name, unit_type, status, 
+			level, path, sort_order, description, created_at, updated_at,
+			effective_date, end_date, is_temporal, change_reason, is_current
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		RETURNING record_id, created_at, updated_at
+	`
+
+	var createdAt, updatedAt time.Time
+	err = tx.QueryRowContext(ctx, insertQuery,
+		org.TenantID,
+		org.Code,
+		org.ParentCode,
+		org.Name,
+		org.UnitType,
+		org.Status,
+		org.Level,
+		org.Path,
+		org.SortOrder,
+		org.Description,
+		time.Now(),
+		time.Now(),
+		effectiveDate,
+		org.EndDate,
+		org.IsTemporal,
+		org.ChangeReason,
+		isCurrent,
+	).Scan(&org.RecordID, &createdAt, &updatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("插入时态版本失败: %w", err)
+	}
+
+	// 第三步：如果有后续版本，为新版本设置正确的结束日期
+	updateNewVersionQuery := `
+		UPDATE organization_units 
+		SET end_date = (
+			SELECT MIN(effective_date - INTERVAL '1 day')::date 
+			FROM organization_units future 
+			WHERE future.code = $1 
+			  AND future.tenant_id = $2
+			  AND future.status != 'DELETED'
+			  AND future.effective_date > $3::date
+			  AND future.record_id != $4
+		)
+		WHERE record_id = $4
+	`
+	
+	_, err = tx.ExecContext(ctx, updateNewVersionQuery,
+		org.Code,
+		org.TenantID,
+		effectiveDate,
+		org.RecordID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("设置新版本结束日期失败: %w", err)
+	}
+
+	// 提交事务
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("提交事务失败: %w", err)
+	}
+
+	org.CreatedAt = createdAt
+	org.UpdatedAt = updatedAt
+	org.EffectiveDate = effectiveDate
+
+	r.logger.Printf("✅ 时态版本创建成功: %s - %s (生效日期: %s, 记录ID: %s)",
+		org.Code, org.Name, effectiveDate.String(), org.RecordID)
+	
+	return org, nil
+}
+
 func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID, code string, req *types.UpdateOrganizationRequest) (*types.Organization, error) {
 	// 构建动态更新查询
 	setParts := []string{}
