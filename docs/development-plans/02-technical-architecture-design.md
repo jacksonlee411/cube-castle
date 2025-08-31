@@ -17,38 +17,104 @@
 监控: Prometheus + Grafana + logrus
 ```
 
-## 🗄️ 数据库架构
+## 🗄️ 数据库架构 ⭐ **单表时态架构**
 
 ### 数据存储选型
 - **主数据库**: PostgreSQL 14.9+ 
 - **缓存**: Redis (可选)
-- **设计模式**: 时态数据模型，复合主键(code, effective_date)
-- **索引策略**: GIN索引层级路径，复合索引时态查询
+- **架构模式**: **单表多版本时态架构** (Single Table Temporal Database)
+- **主键设计**: 复合主键 `(code, effective_date)` 支持多版本共存
+- **时态字段**: `effective_date`, `end_date`, `is_current`, `is_future` 实现完整时态管理
+- **索引策略**: 26个专用时态索引覆盖所有查询场景
 - **审计模式**: 独立审计表，JSONB字段变更追踪
+
+### 单表时态架构优势 🏆
+1. **ACID事务一致性**: 版本切换原子操作，无同步问题
+2. **查询性能优化**: 时态查询通过单表索引直接实现，避免复杂JOIN
+3. **存储经济性**: 共享索引结构，消除重复存储
+4. **开发简化**: 单一数据模型，统一CRUD逻辑
+
+### 时态数据模型设计
+```sql
+CREATE TABLE organization_units (
+    -- 复合主键支持多版本
+    code VARCHAR(7),
+    effective_date DATE NOT NULL,
+    PRIMARY KEY (code, effective_date),
+    
+    -- 时态管理字段
+    end_date DATE,
+    is_current BOOLEAN NOT NULL DEFAULT true,
+    is_future BOOLEAN NOT NULL DEFAULT false,
+    record_id UUID NOT NULL DEFAULT gen_random_uuid(),
+    
+    -- 时态约束
+    UNIQUE (code, effective_date, record_id),
+    CHECK (end_date IS NULL OR end_date > effective_date),
+    CHECK (NOT (is_current AND is_future))
+);
+```
 
 ## 📡 API设计
 
-### GraphQL查询 (8090)
+### GraphQL查询 (8090) - 时态查询能力
 ```graphql
 type Query {
-  organizations(filter: OrgFilter): OrganizationConnection
-  organization(code: String!): Organization
+  # 基础查询 - 支持时态过滤
+  organizations(
+    filter: OrgFilter
+    asOfDate: Date              # 时间点查询支持
+  ): OrganizationConnection
+  
+  organization(
+    code: String!
+    asOfDate: Date              # 历史版本查询
+  ): Organization
+  
+  # 时态专用查询
+  organizationVersions(
+    code: String!
+    dateRange: DateRange        # 版本演进查询
+  ): [Organization!]!
+  
   organizationHierarchy(rootCode: String, maxDepth: Int): [OrganizationNode]
   organizationAuditHistory(code: String!): [AuditRecord]
   organizationStats: OrganizationStats
 }
 
+# 单表时态数据模型
 type Organization {
-  code: String!
+  code: String!               # 业务标识 (不变)
   name: String!
   unitType: UnitType!
   status: OrganizationStatus!
   parentCode: String
   level: Int!
-  effectiveDate: String!
-  endDate: String
-  isCurrent: Boolean!
-  isFuture: Boolean!
+  
+  # 时态管理字段 - 核心特性
+  effectiveDate: String!      # 生效日期 (复合主键组成部分)
+  endDate: String             # 结束日期 (可为空)
+  isCurrent: Boolean!         # 当前版本标识
+  isFuture: Boolean!          # 未来版本标识
+  recordId: UUID!             # 版本唯一标识
+  
+  # 审计字段
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# 时态查询过滤器
+input OrgFilter {
+  # 标准过滤
+  unitType: UnitType
+  status: OrganizationStatus
+  parentCode: String
+  
+  # 时态过滤 - 单表架构优势
+  asOfDate: Date              # 指定时间点的有效版本
+  includeFuture: Boolean      # 是否包含未来版本
+  onlyFuture: Boolean         # 仅未来版本
+  versionRange: DateRange     # 版本生效日期范围
 }
 ```
 

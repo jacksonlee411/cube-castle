@@ -410,7 +410,7 @@ cube-castle/
 docker-compose up -d postgresql redis  # 仅需PostgreSQL + Redis
 
 # 服务验证
-./scripts/validate-postgresql-native-deployment.sh
+./start-postgresql-native.sh  # PostgreSQL原生架构启动验证
 ```
 
 #### 高可用配置

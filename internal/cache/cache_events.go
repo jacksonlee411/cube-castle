@@ -9,52 +9,51 @@ import (
 	"time"
 )
 
-// 缓存事件总线 - 用于处理CDC事件和缓存更新
+// 缓存事件总线 - PostgreSQL原生架构的缓存更新事件
 type CacheEventBus struct {
-	subscribers []chan CDCEvent
+	subscribers []chan CacheEvent
 	mu          sync.RWMutex
 	closed      bool
 }
 
-// CDC事件定义
-type CDCEvent struct {
-	EventID    string                 `json:"event_id"`
-	Operation  string                 `json:"operation"`   // CREATE, UPDATE, DELETE
-	EntityType string                 `json:"entity_type"` // organization
-	EntityID   string                 `json:"entity_id"`   // 组织代码
-	TenantID   string                 `json:"tenant_id"`
-	Before     map[string]interface{} `json:"before,omitempty"`
-	After      map[string]interface{} `json:"after,omitempty"`
-	Timestamp  int64                  `json:"timestamp"`
-	Source     string                 `json:"source"` // debezium, domain_event
+// 缓存事件定义 - PostgreSQL原生架构
+type CacheEvent struct {
+	EventID    string      `json:"event_id"`
+	Operation  string      `json:"operation"`   // CREATE, UPDATE, DELETE
+	EntityType string      `json:"entity_type"` // organization
+	EntityID   string      `json:"entity_id"`   // 组织代码
+	TenantID   string      `json:"tenant_id"`
+	Data       interface{} `json:"data"`        // 实体数据
+	Timestamp  int64       `json:"timestamp"`
+	Source     string      `json:"source"` // domain_event, cache_invalidation
 }
 
-// 组织模型
+// 组织模型 - PostgreSQL原生架构，统一camelCase命名
 type Organization struct {
 	Code        string    `json:"code"`
-	TenantID    string    `json:"tenant_id"`
+	TenantID    string    `json:"tenantId"`    // camelCase统一
 	Name        string    `json:"name"`
-	UnitType    string    `json:"unit_type"`
+	UnitType    string    `json:"unitType"`    // camelCase统一
 	Status      string    `json:"status"`
 	Level       int       `json:"level"`
 	Path        string    `json:"path"`
-	SortOrder   int       `json:"sort_order"`
+	SortOrder   int       `json:"sortOrder"`   // camelCase统一
 	Description string    `json:"description"`
-	ParentCode  string    `json:"parent_code"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ParentCode  string    `json:"parentCode"`  // camelCase统一
+	CreatedAt   time.Time `json:"createdAt"`   // camelCase统一
+	UpdatedAt   time.Time `json:"updatedAt"`   // camelCase统一
 }
 
-// 组织统计模型
+// 组织统计模型 - camelCase命名规范统一
 type OrganizationStats struct {
-	TotalCount int           `json:"total_count"`
-	ByType     []TypeCount   `json:"by_type"`
-	ByStatus   []StatusCount `json:"by_status"`
-	ByLevel    []LevelCount  `json:"by_level"`
+	TotalCount int           `json:"totalCount"`  // camelCase统一
+	ByType     []TypeCount   `json:"byType"`     // camelCase统一
+	ByStatus   []StatusCount `json:"byStatus"`   // camelCase统一
+	ByLevel    []LevelCount  `json:"byLevel"`    // camelCase统一
 }
 
 type TypeCount struct {
-	UnitType string `json:"unit_type"`
+	UnitType string `json:"unitType"` // camelCase统一
 	Count    int    `json:"count"`
 }
 
@@ -68,46 +67,46 @@ type LevelCount struct {
 	Count int    `json:"count"`
 }
 
-// 缓存统计
+// 缓存统计 - camelCase命名规范统一
 type CacheStats struct {
-	L1Stats         L1Stats `json:"l1_stats"`
-	L2Connected     bool    `json:"l2_connected"`
-	WriteThrough    bool    `json:"write_through"`
-	ConsistencyMode string  `json:"consistency_mode"`
+	L1Stats         L1Stats `json:"l1Stats"`          // camelCase统一
+	L2Connected     bool    `json:"l2Connected"`      // camelCase统一
+	WriteThrough    bool    `json:"writeThrough"`     // camelCase统一
+	ConsistencyMode string  `json:"consistencyMode"`  // camelCase统一
 }
 
 type L1Stats struct {
-	HitCount  int64   `json:"hit_count"`
-	MissCount int64   `json:"miss_count"`
+	HitCount  int64   `json:"hitCount"`   // camelCase统一
+	MissCount int64   `json:"missCount"`  // camelCase统一
 	Size      int     `json:"size"`
-	HitRate   float64 `json:"hit_rate"`
+	HitRate   float64 `json:"hitRate"`    // camelCase统一
 }
 
 // 创建事件总线
 func NewCacheEventBus() *CacheEventBus {
 	return &CacheEventBus{
-		subscribers: make([]chan CDCEvent, 0),
+		subscribers: make([]chan CacheEvent, 0),
 	}
 }
 
 // 订阅事件
-func (bus *CacheEventBus) Subscribe() <-chan CDCEvent {
+func (bus *CacheEventBus) Subscribe() <-chan CacheEvent {
 	bus.mu.Lock()
 	defer bus.mu.Unlock()
 
 	if bus.closed {
-		ch := make(chan CDCEvent)
+		ch := make(chan CacheEvent)
 		close(ch)
 		return ch
 	}
 
-	ch := make(chan CDCEvent, 100) // 带缓冲的通道
+	ch := make(chan CacheEvent, 100) // 带缓冲的通道
 	bus.subscribers = append(bus.subscribers, ch)
 	return ch
 }
 
 // 发布事件
-func (bus *CacheEventBus) Publish(event CDCEvent) {
+func (bus *CacheEventBus) Publish(event CacheEvent) {
 	bus.mu.RLock()
 	defer bus.mu.RUnlock()
 
@@ -141,44 +140,44 @@ func (bus *CacheEventBus) Close() {
 	bus.subscribers = nil
 }
 
-// 将CDC事件转换为组织对象
-func (event CDCEvent) ToOrganization() Organization {
+// 将缓存事件转换为组织对象 - PostgreSQL原生架构
+func (event CacheEvent) ToOrganization() Organization {
 	var org Organization
 
-	// 根据操作类型选择数据源
-	var data map[string]interface{}
-	if event.After != nil {
-		data = event.After
-	} else if event.Before != nil {
-		data = event.Before
-	}
-
-	if data == nil {
+	// 直接从事件数据中提取组织信息
+	if event.Data == nil {
 		return org
 	}
 
-	// 安全地提取字段
-	org.Code = getStringFromMap(data, "code")
-	org.TenantID = event.TenantID
-	org.Name = getStringFromMap(data, "name")
-	org.UnitType = getStringFromMap(data, "unit_type")
-	org.Status = getStringFromMap(data, "status")
-	org.Level = getIntFromMap(data, "level")
-	org.Path = getStringFromMap(data, "path")
-	org.SortOrder = getIntFromMap(data, "sort_order")
-	org.Description = getStringFromMap(data, "description")
-	org.ParentCode = getStringFromMap(data, "parent_code")
-
-	// 时间字段处理
-	if createdAt := getStringFromMap(data, "created_at"); createdAt != "" {
-		if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
-			org.CreatedAt = t
-		}
+	// 尝试将数据转换为Organization结构体
+	if orgData, ok := event.Data.(Organization); ok {
+		return orgData
 	}
 
-	if updatedAt := getStringFromMap(data, "updated_at"); updatedAt != "" {
-		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
-			org.UpdatedAt = t
+	// 如果数据是map格式，进行转换
+	if dataMap, ok := event.Data.(map[string]interface{}); ok {
+		org.Code = getStringFromMap(dataMap, "code")
+		org.TenantID = event.TenantID
+		org.Name = getStringFromMap(dataMap, "name")
+		org.UnitType = getStringFromMap(dataMap, "unitType")
+		org.Status = getStringFromMap(dataMap, "status")
+		org.Level = getIntFromMap(dataMap, "level")
+		org.Path = getStringFromMap(dataMap, "path")
+		org.SortOrder = getIntFromMap(dataMap, "sortOrder")
+		org.Description = getStringFromMap(dataMap, "description")
+		org.ParentCode = getStringFromMap(dataMap, "parentCode")
+
+		// 时间字段处理
+		if createdAt := getStringFromMap(dataMap, "createdAt"); createdAt != "" {
+			if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
+				org.CreatedAt = t
+			}
+		}
+
+		if updatedAt := getStringFromMap(dataMap, "updatedAt"); updatedAt != "" {
+			if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
+				org.UpdatedAt = t
+			}
 		}
 	}
 

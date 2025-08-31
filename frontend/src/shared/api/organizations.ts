@@ -502,7 +502,7 @@ export const organizationAPI = {
   // ====== 组织详情API方法 ======
 
   // 获取组织的审计历史记录 - 集成新的审计API模块
-  getAuditHistory: async (code: string, params?: TemporalQueryParams): Promise<any[]> => {
+  getAuditHistory: async (code: string, params?: TemporalQueryParams): Promise<Record<string, unknown>[]> => {
     try {
       // 导入审计API (动态导入以避免循环依赖)
       const { AuditAPI } = await import('./audit');

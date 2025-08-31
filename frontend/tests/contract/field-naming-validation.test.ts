@@ -120,7 +120,7 @@ describe('字段命名规范验证', () => {
       }
 
       // 验证所有字段都是camelCase
-      const validateFieldNaming = (obj: any, path = '') => {
+      const validateFieldNaming = (obj: Record<string, unknown>, path = '') => {
         Object.keys(obj).forEach(key => {
           expect(key).toMatch(/^[a-z][a-zA-Z0-9]*$/)
           expect(key).not.toMatch(/_/)

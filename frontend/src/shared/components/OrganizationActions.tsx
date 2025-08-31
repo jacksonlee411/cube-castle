@@ -7,7 +7,7 @@ import {
   clockPauseIcon, 
   checkCircleIcon 
 } from '@workday/canvas-system-icons-web';
-import { statusUtils } from '../components/StatusBadge';
+import { statusUtils } from '../utils/statusUtils';
 import { useMessages } from '../hooks/useMessages';
 import type { OrganizationStatus } from '../components/StatusBadge';
 
@@ -158,23 +158,5 @@ export interface OrganizationOperationContext {
   canDelete: boolean;
 }
 
-/**
- * 获取操作权限的辅助函数
- */
-export const getOperationPermissions = (
-  organization: Organization,
-  userRole?: string
-): OrganizationOperationContext => {
-  // 这里可以根据用户角色和组织状态计算权限
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'manager' || isAdmin;
-  
-  return {
-    canUpdate: isManager,
-    canSuspend: isManager && organization.status === 'ACTIVE',
-    canReactivate: isManager && organization.status === 'SUSPENDED',
-    canDelete: isAdmin && organization.status !== 'ACTIVE'
-  };
-};
 
 export default OrganizationActions;

@@ -48,8 +48,8 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 		INSERT INTO organization_units (
 			tenant_id, code, parent_code, name, unit_type, status, 
 			level, path, sort_order, description, created_at, updated_at,
-			effective_date, end_date, is_temporal, change_reason
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+			effective_date, end_date, is_temporal, change_reason, is_current
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 		RETURNING created_at, updated_at
 	`
 
@@ -63,6 +63,14 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 		now := time.Now()
 		effectiveDate = types.NewDate(now.Year(), now.Month(), now.Day())
 	}
+
+	// 计算is_current: 只有当effective_date <= 今天时才是current
+	today := time.Now().Truncate(24 * time.Hour)
+	effectiveDateTime := time.Date(
+		effectiveDate.Year(), effectiveDate.Month(), effectiveDate.Day(),
+		0, 0, 0, 0, time.UTC,
+	)
+	isCurrent := !effectiveDateTime.After(today)
 
 	err := r.db.QueryRowContext(ctx, query,
 		org.TenantID,
@@ -81,6 +89,7 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 		org.EndDate,   // 允许为nil
 		org.IsTemporal,
 		org.ChangeReason,
+		isCurrent, // 根据effective_date计算的is_current值
 	).Scan(&createdAt, &updatedAt)
 
 	if err != nil {

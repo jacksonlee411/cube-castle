@@ -218,9 +218,8 @@ API使用频率预期 (基于企业级系统经验):
 | Query | `organization(code: String!)` | 获取单个组织单元 | Bearer Token |
 | Query | `organizationStats` | 获取组织统计信息 | Bearer Token |
 | Query | `organizationVersions(code: String!)` | 组织时态版本历史 | Bearer Token |
-| Query | `organizationAuditHistory(code: String!)` | 组织完整审计历史 | Bearer Token |
+| Query | `organizationAuditHistory(code: String!)` | 组织完整审计信息 | Bearer Token |
 | Query | `auditLog(auditId: String!)` | 详细审计记录查询 | Bearer Token |
-| Query | `organizationChangeAnalysis(code: String!)` | 跨版本变更分析 | Bearer Token |
 | **Query** | **`organizationHierarchy(code: String!)`** | **获取组织完整层级路径信息** | Bearer Token |
 | **Query** | **`organizationSubtree(code: String!)`** | **获取组织子树结构** | Bearer Token |
 | **Query** | **`hierarchyStatistics`** | **层级分布统计信息** | Bearer Token |
@@ -1780,8 +1779,8 @@ query GetOrganizationVersions($code: String!) {
 }
 ```
 
-#### 7.2 获取组织完整审计历史 (GraphQL查询)
-使用 `organizationAuditHistory` GraphQL查询获取组织的完整操作审计历史，支持跨版本的变更追踪。
+#### 7.2 获取组织完整审计信息 (GraphQL查询)
+使用 `organizationAuditHistory` GraphQL查询获取组织的完整操作审计信息，支持跨版本的变更追踪。
 
 #### 查询参数 ⭐ **已统一camelCase命名**
 ```yaml
@@ -1903,16 +1902,6 @@ limit: 返回记录数 (默认50, 最大200)
     }
   }
 }
-```
-
-#### 7.3 跨版本变更分析 (GraphQL查询)
-使用 `organizationChangeAnalysis` GraphQL查询分析组织在指定版本范围内的所有变更，提供完整的变化轨迹。
-
-#### 查询参数
-```yaml
-fromVersion: 起始版本序号 (integer, 可选, 默认1)
-toVersion: 结束版本序号 (integer, 可选, 默认最新版本)
-analysisType: 分析类型 (summary|detailed, 默认summary)
 ```
 
 ### 8. 层级一致性检查接口 ⭐ **GraphQL查询专用 - CQRS合规**
@@ -2443,7 +2432,7 @@ org:read:hierarchy: 读取组织层级结构
 org:recalculate: 手动触发层级重计算
 
 # 审计查询权限
-org:read:audit: 读取审计历史记录
+org:read:audit: 读取审计信息记录
 org:stats: 获取组织统计信息
 
 # 数据验证权限
@@ -2509,7 +2498,6 @@ hierarchyStatistics: org:read:hierarchy
 organizationVersions(code: String!): org:read:history
 organizationAuditHistory(code: String!): org:read:audit
 auditLog(auditId: String!): org:read:audit
-organizationChangeAnalysis(code: String!): org:read:audit
 
 # 一致性检查
 hierarchyConsistencyCheck: org:maintenance

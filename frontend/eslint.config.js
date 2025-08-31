@@ -66,4 +66,36 @@ export default tseslint.config([
       ]
     }
   },
+  
+  // 🧪 测试文件特殊规则配置 - 允许fetch用于E2E测试和契约测试
+  {
+    files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
+    rules: {
+      // 测试文件允许使用fetch进行API测试
+      'no-restricted-globals': 'off',
+      // 测试文件允许使用any类型进行模拟数据
+      '@typescript-eslint/no-explicit-any': 'warn'
+    }
+  },
+  
+  // 🔧 统一客户端文件特殊规则 - 底层实现允许使用fetch
+  {
+    files: ['src/shared/api/unified-client.ts', 'src/shared/api/auth.ts', 'src/shared/api/client.ts'],
+    rules: {
+      // 统一客户端实现层允许使用fetch
+      'no-restricted-globals': 'off'
+    }
+  },
+  
+  // 🔧 组件文件兼容性规则 - 临时允许重新导出以保持向后兼容
+  {
+    files: [
+      'src/features/temporal/components/TemporalDatePicker.tsx',
+      'src/features/temporal/components/TemporalStatusSelector.tsx'
+    ],
+    rules: {
+      // 允许重新导出工具函数和常量以保持向后兼容
+      'react-refresh/only-export-components': 'warn'
+    }
+  }
 ])

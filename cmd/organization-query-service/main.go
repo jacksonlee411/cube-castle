@@ -113,21 +113,17 @@ var schemaString = `
 		children: [OrganizationSubtree!]!
 	}
 
-	# 审计历史类型
+	# 审计历史类型 - v4.6.0 精确到record_id
 	type AuditRecord {
 		auditId: String!
 		recordId: String!
 		operationType: String!
 		operatedBy: OperatedBy!
-		businessEntityId: String!
 		changesSummary: String!
 		operationReason: String
-		tenantId: String!
 		timestamp: String!
-		requestId: String!
 		beforeData: String
 		afterData: String
-		riskLevel: String!
 	}
 
 	type OperatedBy {
@@ -170,8 +166,9 @@ var schemaString = `
 		organizationHierarchy(code: String!, tenantId: String!): OrganizationHierarchy!
 		organizationSubtree(code: String!, tenantId: String!, maxDepth: Int): OrganizationSubtree!
 		
-		# 高级审计和历史查询 - 严格遵循API规范v4.2.1
-		organizationAuditHistory(code: String!, startDate: String, endDate: String, operation: String, userId: String, limit: Int): [AuditRecord!]!
+		# 精确审计历史查询 - 基于record_id追踪 (v4.6.0)
+		auditHistory(recordId: String!, startDate: String, endDate: String, operation: String, userId: String, limit: Int): [AuditRecord!]!
+		auditLog(auditId: String!): AuditRecord
 	}
 
 	# 输入类型 - 按官方契约定义
@@ -447,36 +444,28 @@ func (s OrganizationSubtreeData) CodePath() string                    { return s
 func (s OrganizationSubtreeData) NamePath() string                    { return s.NamePathField }
 func (s OrganizationSubtreeData) Children() []OrganizationSubtreeData { return s.ChildrenField }
 
-// 审计记录类型 - 严格遵循API规范v4.2.1
+// 审计记录类型 - v4.6.0 精确到record_id
 type AuditRecordData struct {
-	AuditIDField          string           `json:"auditId"`
-	RecordIDField         string           `json:"recordId"`
-	OperationTypeField    string           `json:"operationType"`
-	OperatedByField       OperatedByData   `json:"operatedBy"`
-	BusinessEntityIDField string           `json:"businessEntityId"`
-	ChangesSummaryField   string           `json:"changesSummary"`
-	OperationReasonField  *string          `json:"operationReason"`
-	TenantIDField         string           `json:"tenantId"`
-	TimestampField        string           `json:"timestamp"`
-	RequestIDField        string           `json:"requestId"`
-	BeforeDataField       *string          `json:"beforeData"`
-	AfterDataField        *string          `json:"afterData"`
-	RiskLevelField        string           `json:"riskLevel"`
+	AuditIDField         string         `json:"auditId"`
+	RecordIDField        string         `json:"recordId"`
+	OperationTypeField   string         `json:"operationType"`
+	OperatedByField      OperatedByData `json:"operatedBy"`
+	ChangesSummaryField  string         `json:"changesSummary"`
+	OperationReasonField *string        `json:"operationReason"`
+	TimestampField       string         `json:"timestamp"`
+	BeforeDataField      *string        `json:"beforeData"`
+	AfterDataField       *string        `json:"afterData"`
 }
 
 func (a AuditRecordData) AuditId() string            { return a.AuditIDField }
 func (a AuditRecordData) RecordId() string           { return a.RecordIDField }
 func (a AuditRecordData) OperationType() string      { return a.OperationTypeField }
 func (a AuditRecordData) OperatedBy() OperatedByData { return a.OperatedByField }
-func (a AuditRecordData) BusinessEntityId() string   { return a.BusinessEntityIDField }
 func (a AuditRecordData) ChangesSummary() string     { return a.ChangesSummaryField }
 func (a AuditRecordData) OperationReason() *string   { return a.OperationReasonField }
-func (a AuditRecordData) TenantId() string           { return a.TenantIDField }
 func (a AuditRecordData) Timestamp() string          { return a.TimestampField }
-func (a AuditRecordData) RequestId() string          { return a.RequestIDField }
 func (a AuditRecordData) BeforeData() *string        { return a.BeforeDataField }
 func (a AuditRecordData) AfterData() *string         { return a.AfterDataField }
-func (a AuditRecordData) RiskLevel() string          { return a.RiskLevelField }
 
 type OperatedByData struct {
 	IDField   string `json:"id"`
@@ -1067,23 +1056,34 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 	return root, nil
 }
 
-// 组织审计历史查询 - 严格遵循API规范v4.2.1
-func (r *PostgreSQLRepository) GetOrganizationAuditHistory(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate, operation, userId *string, limit int) ([]AuditRecordData, error) {
+// 审计历史查询 - v4.6.0 基于record_id精确查询
+func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId string, startDate, endDate, operation, userId *string, limit int) ([]AuditRecordData, error) {
 	start := time.Now()
 	
-	// 构建查询条件
+	// 构建查询条件 - 基于record_id查询
 	baseQuery := `
 		SELECT 
-			audit_id, record_id, operation_type,
-			operated_by_id, operated_by_name,
-			business_entity_id, changes_summary,
-			operation_reason, tenant_id, timestamp,
-			request_id, before_data, after_data, risk_level
-		FROM audit_log 
-		WHERE tenant_id = $1 AND business_entity_id = $2`
+			id as audit_id, 
+			resource_id as record_id, 
+			event_type as operation_type,
+			actor_id as operated_by_id, 
+			CASE WHEN business_context->>'actor_name' IS NOT NULL 
+				THEN business_context->>'actor_name' 
+				ELSE actor_id 
+			END as operated_by_name,
+			CASE WHEN changes IS NOT NULL 
+				THEN changes::text 
+				ELSE '{"operationSummary":"' || action_name || '","totalChanges":0,"keyChanges":[]}' 
+			END as changes_summary,
+			business_context->>'operation_reason' as operation_reason,
+			timestamp,
+			request_data::text as before_data, 
+			response_data::text as after_data
+		FROM audit_logs 
+		WHERE resource_id = $1::uuid AND resource_type = 'ORGANIZATION'`
 	
-	args := []interface{}{tenantID.String(), code}
-	argIndex := 3
+	args := []interface{}{recordId}
+	argIndex := 2
 	
 	// 日期范围过滤
 	if startDate != nil {
@@ -1100,14 +1100,14 @@ func (r *PostgreSQLRepository) GetOrganizationAuditHistory(ctx context.Context, 
 	
 	// 操作类型过滤
 	if operation != nil {
-		baseQuery += fmt.Sprintf(" AND operation_type = $%d", argIndex)
+		baseQuery += fmt.Sprintf(" AND event_type = $%d", argIndex)
 		args = append(args, strings.ToUpper(*operation))
 		argIndex++
 	}
 	
 	// 操作人过滤
 	if userId != nil {
-		baseQuery += fmt.Sprintf(" AND operated_by_id = $%d", argIndex)
+		baseQuery += fmt.Sprintf(" AND actor_id = $%d", argIndex)
 		args = append(args, *userId)
 		argIndex++
 	}
@@ -1131,9 +1131,8 @@ func (r *PostgreSQLRepository) GetOrganizationAuditHistory(ctx context.Context, 
 		err := rows.Scan(
 			&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
 			&operatedById, &operatedByName,
-			&record.BusinessEntityIDField, &record.ChangesSummaryField,
-			&record.OperationReasonField, &record.TenantIDField, &record.TimestampField,
-			&record.RequestIDField, &record.BeforeDataField, &record.AfterDataField, &record.RiskLevelField,
+			&record.ChangesSummaryField, &record.OperationReasonField, &record.TimestampField,
+			&record.BeforeDataField, &record.AfterDataField,
 		)
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描审计记录失败: %v", err)
@@ -1150,9 +1149,67 @@ func (r *PostgreSQLRepository) GetOrganizationAuditHistory(ctx context.Context, 
 	}
 	
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 审计历史查询完成，返回 %d 条记录，耗时: %v", len(auditRecords), duration)
+	r.logger.Printf("[PERF] record_id审计查询完成，返回 %d 条记录，耗时: %v", len(auditRecords), duration)
 	
 	return auditRecords, nil
+}
+
+// 单条审计记录查询 - v4.6.0
+func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) (*AuditRecordData, error) {
+	start := time.Now()
+	
+	query := `
+		SELECT 
+			id as audit_id, 
+			resource_id as record_id, 
+			event_type as operation_type,
+			actor_id as operated_by_id, 
+			CASE WHEN business_context->>'actor_name' IS NOT NULL 
+				THEN business_context->>'actor_name' 
+				ELSE actor_id 
+			END as operated_by_name,
+			CASE WHEN changes IS NOT NULL 
+				THEN changes::text 
+				ELSE '{"operationSummary":"' || action_name || '","totalChanges":0,"keyChanges":[]}' 
+			END as changes_summary,
+			business_context->>'operation_reason' as operation_reason,
+			timestamp,
+			request_data::text as before_data, 
+			response_data::text as after_data
+		FROM audit_logs 
+		WHERE id = $1::uuid AND resource_type = 'ORGANIZATION'
+		LIMIT 1`
+	
+	row := r.db.QueryRowContext(ctx, query, auditId)
+	
+	var record AuditRecordData
+	var operatedById, operatedByName string
+	
+	err := row.Scan(
+		&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
+		&operatedById, &operatedByName,
+		&record.ChangesSummaryField, &record.OperationReasonField, &record.TimestampField,
+		&record.BeforeDataField, &record.AfterDataField,
+	)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		r.logger.Printf("[ERROR] 单条审计记录查询失败: %v", err)
+		return nil, err
+	}
+	
+	// 构建操作人信息
+	record.OperatedByField = OperatedByData{
+		IDField:   operatedById,
+		NameField: operatedByName,
+	}
+	
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 单条审计记录查询完成，耗时: %v", duration)
+	
+	return &record, nil
 }
 
 // GraphQL解析器 - 极简高效
@@ -1255,15 +1312,16 @@ func (r *Resolver) OrganizationSubtree(ctx context.Context, args struct {
 	return r.repo.GetOrganizationSubtree(ctx, tenantID, args.Code, maxDepth)
 }
 
-func (r *Resolver) OrganizationAuditHistory(ctx context.Context, args struct {
-	Code      string
+// 审计历史查询 - v4.6.0 基于record_id
+func (r *Resolver) AuditHistory(ctx context.Context, args struct {
+	RecordId  string
 	StartDate *string
 	EndDate   *string
 	Operation *string
 	UserId    *string
 	Limit     *int32
 }) ([]AuditRecordData, error) {
-	r.logger.Printf("[GraphQL] 审计历史查询 - code: %s", args.Code)
+	r.logger.Printf("[GraphQL] 审计历史查询 - recordId: %s", args.RecordId)
 	
 	limit := int32(50) // 默认限制
 	if args.Limit != nil && *args.Limit > 0 {
@@ -1273,7 +1331,15 @@ func (r *Resolver) OrganizationAuditHistory(ctx context.Context, args struct {
 		}
 	}
 	
-	return r.repo.GetOrganizationAuditHistory(ctx, DefaultTenantID, args.Code, args.StartDate, args.EndDate, args.Operation, args.UserId, int(limit))
+	return r.repo.GetAuditHistory(ctx, args.RecordId, args.StartDate, args.EndDate, args.Operation, args.UserId, int(limit))
+}
+
+// 单条审计记录查询 - v4.6.0
+func (r *Resolver) AuditLog(ctx context.Context, args struct {
+	AuditId string
+}) (*AuditRecordData, error) {
+	r.logger.Printf("[GraphQL] 单条审计记录查询 - auditId: %s", args.AuditId)
+	return r.repo.GetAuditLog(ctx, args.AuditId)
 }
 
 func main() {

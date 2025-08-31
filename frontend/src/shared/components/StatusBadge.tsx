@@ -2,48 +2,10 @@ import React from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
-import { 
-  checkCircleIcon, 
-  clockPauseIcon, 
-  clockIcon,
-  minusCircleIcon
-} from '@workday/canvas-system-icons-web';
-import { colors } from '@workday/canvas-kit-react/tokens';
+import { STATUS_CONFIG, type OrganizationStatus } from '../utils/statusUtils';
 
-// 扩展的组织状态类型（4个状态）
-export type OrganizationStatus = 'ACTIVE' | 'SUSPENDED' | 'PLANNED' | 'DELETED';
-
-// 状态配置
-const STATUS_CONFIG = {
-  ACTIVE: {
-    label: '启用',
-    color: colors.greenApple600,
-    icon: checkCircleIcon,
-    backgroundColor: colors.greenApple100,
-    borderColor: colors.greenApple300
-  },
-  SUSPENDED: {
-    label: '停用',
-    color: colors.cantaloupe600,
-    icon: clockPauseIcon,
-    backgroundColor: colors.cantaloupe100,
-    borderColor: colors.cantaloupe300
-  },
-  PLANNED: {
-    label: '计划中',
-    color: colors.blueberry600,
-    icon: clockIcon,
-    backgroundColor: colors.blueberry100,
-    borderColor: colors.blueberry300
-  },
-  DELETED: {
-    label: '已删除',
-    color: colors.cinnamon600,
-    icon: minusCircleIcon,
-    backgroundColor: colors.cinnamon100,
-    borderColor: colors.cinnamon300
-  }
-} as const;
+// 重新导出类型以保持向后兼容
+export type { OrganizationStatus };
 
 export interface StatusBadgeProps {
   status: OrganizationStatus;
@@ -127,38 +89,5 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   );
 };
 
-/**
- * 状态工具函数
- */
-export const statusUtils = {
-  // 获取状态标签
-  getStatusLabel: (status: OrganizationStatus): string => {
-    return STATUS_CONFIG[status]?.label || status;
-  },
-
-  // 获取状态颜色
-  getStatusColor: (status: OrganizationStatus): string => {
-    return STATUS_CONFIG[status]?.color || colors.licorice400;
-  },
-
-  // 验证状态有效性
-  isValidStatus: (status: string): status is OrganizationStatus => {
-    return ['ACTIVE', 'SUSPENDED', 'PLANNED'].includes(status);
-  },
-
-  // 获取可用操作
-  getAvailableActions: (status: OrganizationStatus): string[] => {
-    switch (status) {
-      case 'ACTIVE':
-        return ['UPDATE', 'SUSPEND'];
-      case 'SUSPENDED':
-        return ['REACTIVATE'];
-      case 'PLANNED':
-        return ['UPDATE'];
-      default:
-        return [];
-    }
-  }
-};
 
 export default StatusBadge;

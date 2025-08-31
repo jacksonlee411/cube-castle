@@ -231,7 +231,7 @@ func (h *DevToolsHandler) DatabaseStatus(w http.ResponseWriter, r *http.Request)
 	status["connected"] = true
 
 	// 检查主要表的记录数
-	tables := []string{"organization_units", "organization_hierarchies", "audit_logs"}
+	tables := []string{"organization_units", "organization_units_history", "audit_logs"}
 	for _, table := range tables {
 		var count int
 		query := fmt.Sprintf("SELECT COUNT(*) FROM %s", table)

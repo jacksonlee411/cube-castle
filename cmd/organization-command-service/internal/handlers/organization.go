@@ -108,7 +108,6 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		// 记录创建失败的审计日志
 		requestID := middleware.GetRequestID(r.Context())
 		actorID := h.getActorID(r)
-		ipAddress := h.getIPAddress(r)
 		requestData := map[string]interface{}{
 			"code":       code,
 			"name":       req.Name,
@@ -117,7 +116,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		}
 
 		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code,
-			"CreateOrganization", actorID, requestID, ipAddress, "CREATE_ERROR", err.Error(), requestData)
+			"CreateOrganization", actorID, requestID, "CREATE_ERROR", err.Error(), requestData)
 
 		h.handleRepositoryError(w, r, "CREATE", err)
 		return
@@ -218,8 +217,8 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
 	ipAddress := h.getIPAddress(r)
-	// 注意: 这里我们没有获取要删除的组织数据，传nil - 在实际应用中应该先获取组织数据
-	err = h.auditLogger.LogOrganizationDelete(r.Context(), code, nil, actorID, requestID, ipAddress)
+	// 传入tenantID作为独立参数，组织数据设为nil（因为已删除）
+	err = h.auditLogger.LogOrganizationDelete(r.Context(), tenantID, code, nil, actorID, requestID, ipAddress)
 	if err != nil {
 		h.logger.Printf("⚠️ 删除审计日志记录失败: %v", err)
 	}

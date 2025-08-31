@@ -22,7 +22,7 @@ import {
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/unified-client';
 // 动态导入审计组件避免循环依赖
-import { AuditHistoryTimeline } from '../../audit/components/AuditHistoryTimeline';
+// import { AuditHistoryTimeline } from '../../audit/components/AuditHistoryTimeline'; // 已移除：违反API契约
 
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
@@ -661,8 +661,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 disabled={isSubmitting || isLoading}
                 tabs={[
                   { key: 'edit-history', label: '版本管理' },
-                  { key: 'new-version', label: '新增版本' },
-                  { key: 'audit-history', label: '审计信息', disabled: !organizationCode }
+                  { key: 'new-version', label: '新增版本' }
+                  // { key: 'audit-history', label: '审计信息', disabled: !organizationCode } // 已移除：违反API契约
                 ]}
               />
 
@@ -720,12 +720,14 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 />
               )}
 
-              {activeTab === 'audit-history' && organizationCode && (
-                <AuditHistoryTimeline
-                  organizationCode={organizationCode}
-                  showFilters={true}
-                />
-              )}
+              {/* 审计信息标签页已移除：违反API契约优先原则
+                  {activeTab === 'audit-history' && organizationCode && (
+                    <AuditHistoryTimeline
+                      organizationCode={organizationCode}
+                      showFilters={true}
+                    />
+                  )}
+              */}
             </>
           )}
         </Box>
