@@ -51,10 +51,6 @@ CREATE TABLE organization_units (
     CHECK (NOT (is_current AND is_future))
 );
 
--- 组织单元历史表 (时态数据)
-CREATE TABLE organization_units_history (
-    LIKE organization_units INCLUDING ALL
-);
 
 -- 审计日志表
 CREATE TABLE audit_logs (
@@ -100,7 +96,8 @@ CREATE INDEX CONCURRENTLY idx_org_units_subtree ON organization_units (tenant_id
 
 -- 时态查询专用索引
 CREATE INDEX CONCURRENTLY idx_org_units_temporal ON organization_units (code, effective_date, end_date, is_current);
-CREATE INDEX CONCURRENTLY idx_org_units_historical ON organization_units_history (code, effective_date, end_date);
+-- 历史表已移除：所有时态版本统一存储在 organization_units 单表中，
+-- 通过 effective_date/end_date + asOf 查询获取“当前/历史/计划”。
 
 -- 审计和统计专用索引
 CREATE INDEX CONCURRENTLY idx_audit_logs_entity_time ON audit_logs (entity_code, operation_timestamp);
@@ -159,22 +156,7 @@ CREATE TRIGGER update_hierarchy_paths_trigger
     FOR EACH ROW
     EXECUTE FUNCTION update_hierarchy_paths();
 
--- 历史数据归档触发器
-CREATE OR REPLACE FUNCTION archive_to_history()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- 将旧记录移动到历史表
-    IF OLD.is_current = true AND NEW.is_current = false THEN
-        INSERT INTO organization_units_history SELECT OLD.*;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER archive_history_trigger
-    AFTER UPDATE ON organization_units
-    FOR EACH ROW
-    EXECUTE FUNCTION archive_to_history();
+-- 历史归档触发器已移除：改用单表时态与审计日志/时间线事件追踪变更。
 
 -- 审计日志自动记录触发器
 CREATE OR REPLACE FUNCTION log_audit_changes()

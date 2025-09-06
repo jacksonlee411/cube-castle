@@ -1,0 +1,159 @@
+name: API合规性检查
+on: 
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main, develop]
+
+jobs:
+  api-compliance-check:
+    name: API一致性和规范合规检查
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 获取完整历史用于diff检查
+        
+      - name: 安装依赖工具
+        run: |
+          # 安装ripgrep用于高性能字符串搜索
+          curl -LO https://github.com/BurntSushi/ripgrep/releases/download/13.0.0/ripgrep_13.0.0_amd64.deb
+          sudo dpkg -i ripgrep_13.0.0_amd64.deb
+          
+          # 验证安装
+          rg --version
+
+      - name: 禁用端点模式扫描
+        run: |
+          echo "🔍 扫描禁用的API模式..."
+          
+          FORBIDDEN_PATTERNS=(
+            '\b/reactivate\b'
+            '\borg:reactivate\b'
+            'reactivate\s*:'
+            'PATCH.*status.*(ACTIVE|INACTIVE)'
+            '\.reactivate\s*\('
+          )
+          
+          VIOLATIONS_FOUND=0
+          
+          for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+            echo "检查模式: $pattern"
+            
+            if rg -nE "$pattern" \
+              --type typescript --type yaml --type json --type markdown \
+              frontend/src/ docs/ \
+              --ignore-case || [ $? -eq 1 ]; then
+              
+              if rg -qE "$pattern" \
+                --type typescript --type yaml --type json --type markdown \
+                frontend/src/ docs/ \
+                --ignore-case; then
+                echo "❌ 发现违规模式: $pattern"
+                VIOLATIONS_FOUND=1
+              fi
+            fi
+          done
+          
+          if [ $VIOLATIONS_FOUND -eq 1 ]; then
+            echo ""
+            echo "💥 API合规检查失败!"
+            echo "ADR-008要求："
+            echo "1. 使用 /activate 替代 /reactivate"
+            echo "2. 使用 org:activate 替代 org:reactivate"
+            echo "3. 使用 .activate() 替代 .reactivate()"
+            echo "4. 使用 POST /activate 替代 PATCH status=ACTIVE"
+            echo ""
+            echo "请修复后重新提交。"
+            exit 1
+          else
+            echo "✅ 未发现禁用API模式"
+          fi
+
+      - name: 验证权限-端点对齐
+        run: |
+          echo "🔍 验证权限-端点一致性..."
+          
+          # 检查activate端点权限配置
+          if grep -r "activate" docs/api/openapi.yaml | grep -v "org:activate"; then
+            echo "❌ activate端点必须使用org:activate权限"
+            exit 1
+          fi
+          
+          # 检查suspend端点权限配置  
+          if grep -r "suspend" docs/api/openapi.yaml | grep -v "org:suspend"; then
+            echo "❌ suspend端点必须使用org:suspend权限"
+            exit 1
+          fi
+          
+          echo "✅ 权限-端点对齐验证通过"
+
+      - name: 检查响应结构一致性
+        run: |
+          echo "🔍 检查API响应结构一致性..."
+          
+          # 检查是否使用了标准响应信封格式
+          RESPONSE_STRUCTURE_FILES=(
+            "frontend/src/shared/api/organizations.ts"
+            "tests/e2e/activate-suspend-workflow.test.ts"
+          )
+          
+          for file in "${RESPONSE_STRUCTURE_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "检查文件: $file"
+              
+              # 验证包含标准响应字段
+              if ! grep -q "success.*boolean" "$file" || \
+                 ! grep -q "timestamp.*string" "$file" || \
+                 ! grep -q "requestId.*string" "$file"; then
+                echo "❌ $file 未使用标准响应信封格式"
+                echo "   要求: success, timestamp, requestId字段"
+                exit 1
+              fi
+            fi
+          done
+          
+          echo "✅ 响应结构一致性检查通过"
+
+      - name: 生成合规性报告
+        run: |
+          echo "📊 生成API合规性检查报告..."
+          
+          REPORT_FILE="api-compliance-report.md"
+          
+          cat > $REPORT_FILE << EOF
+          # API合规性检查报告
+          
+          **检查时间**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **提交哈希**: $GITHUB_SHA
+          **分支**: $GITHUB_REF_NAME
+          
+          ## 检查结果
+          
+          ✅ **禁用端点扫描**: 未发现 /reactivate 或 org:reactivate 残留
+          ✅ **权限对齐验证**: activate/suspend 端点权限配置正确
+          ✅ **响应结构检查**: API响应使用标准信封格式
+          
+          ## ADR-008合规状态
+          
+          - [x] 端点统一: 仅使用 /activate 和 /suspend
+          - [x] 权限对齐: org:activate 和 org:suspend
+          - [x] 前端清理: 移除 .reactivate() 别名方法
+          - [x] CI阻断: 自动检测和阻止违规模式
+          
+          ## 建议
+          
+          继续监控生产环境410响应，确保客户端完全迁移到新端点。
+          EOF
+          
+          echo "✅ 合规性报告生成完成"
+          cat $REPORT_FILE
+
+      - name: 上传合规性报告
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-compliance-report
+          path: api-compliance-report.md
+          retention-days: 30

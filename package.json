@@ -1,0 +1,30 @@
+{
+  "name": "cube-castle-api-compliance",
+  "version": "1.0.0", 
+  "description": "API合规性检查工具配置 (ADR-008实施)",
+  "scripts": {
+    "lint:api": "spectral lint docs/api/openapi.yaml --fail-on-unmatched-globs",
+    "lint:api:watch": "spectral lint docs/api/openapi.yaml --watch",
+    "lint:frontend-api": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.js",
+    "compliance:check": "npm run lint:api && npm run lint:frontend-api",
+    "compliance:fix": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.js --fix",
+    "test:compliance": "npm run compliance:check && echo '✅ API合规性检查通过'"
+  },
+  "devDependencies": {
+    "@stoplight/spectral-cli": "^6.11.0",
+    "@stoplight/spectral-oasx": "^1.9.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "api-compliance", 
+    "openapi", 
+    "spectral",
+    "eslint",
+    "adr-008"
+  ]
+}

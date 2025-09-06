@@ -525,6 +525,15 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 - **基础设施规划**: PostgreSQL:5432, Redis:6379 (待配置), Kafka:9092 (待配置)
 - **架构决策**: ❌ 不使用Neo4j图数据库，采用PostgreSQL单一数据源
 
+## 🔍 监控系统配置 ⭐ **新增 (2025-09-06)**
+- **Prometheus监控**: http://localhost:9091 - 指标收集和存储
+- **Grafana仪表板**: http://localhost:3001 - 数据可视化 (admin/cube-castle-2025)
+- **AlertManager**: http://localhost:9093 - 告警管理
+- **Node Exporter**: http://localhost:9100 - 系统指标采集
+- **监控状态**: ✅ 4个服务正常运行，420个指标正在收集
+- **告警规则**: 3个规则组，8条SLO监控规则已加载
+- **数据持久化**: Docker卷持久化监控数据
+
 ## 开发挑战与解决方案
 
 ### 🔧 架构理解进展

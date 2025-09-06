@@ -360,10 +360,13 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           organization?: {
             code?: string;
           };
+          data?: {
+            code?: string;
+          };
         }
         
         const typedResult = result as CreateResult;
-        const newOrganizationCode = typedResult.code || typedResult.organization?.code;
+        const newOrganizationCode = typedResult.data?.code || typedResult.code || typedResult.organization?.code;
         
         if (newOrganizationCode && onCreateSuccess) {
           console.log('跳转到新组织:', newOrganizationCode);

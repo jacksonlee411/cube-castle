@@ -107,14 +107,25 @@ export class UnifiedRESTClient {
         ...options,
       });
 
-      // 检查是否有响应体（DELETE请求可能没有响应体）
+      // 读取文本与内容类型，按需解析JSON，避免非JSON错误体导致误导的解析错误
+      const contentType = response.headers.get('content-type') || '';
       const text = await response.text();
-      let result: T;
-      try {
-        result = text ? JSON.parse(text) : ({} as T);
-      } catch (parseError) {
-        console.error('[REST Client] JSON解析失败:', { endpoint, text, parseError });
-        throw new Error(`响应解析失败: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`);
+      let result: Record<string, unknown> = {};
+      if (text) {
+        const looksLikeJson = contentType.includes('application/json') || /^(\s*[[{])/.test(text);
+        if (looksLikeJson) {
+          try {
+            result = JSON.parse(text);
+          } catch (parseError) {
+            // 对于非OK状态，优先返回HTTP错误而不是解析错误，便于前端精确分流
+            if (!response.ok) {
+              console.error('[REST Client] 非JSON错误体，返回HTTP错误:', { endpoint, status: response.status, statusText: response.statusText });
+              throw new Error(`REST Error: ${response.status} ${response.statusText}`);
+            }
+            console.error('[REST Client] JSON解析失败:', { endpoint, text, parseError });
+            throw new Error(`响应解析失败: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`);
+          }
+        }
       }
 
       if (!response.ok) {
@@ -143,7 +154,8 @@ export class UnifiedRESTClient {
         throw new Error(`REST Error: ${response.status} ${response.statusText}`);
       }
 
-      return result;
+      // OK 情况下：有JSON返回即返回；无体则返回空对象
+      return (result || {}) as T;
     } catch (error) {
       console.error('REST request failed:', { endpoint, options, error });
       throw error;

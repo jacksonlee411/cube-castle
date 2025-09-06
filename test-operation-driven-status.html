@@ -84,7 +84,7 @@
             <h3>✅ 已完成的重构项目：</h3>
             <ul>
                 <li>✅ 后端API重构 - 移除手动status设置</li>
-                <li>✅ 后端API重构 - 新增suspend/reactivate端点</li>
+                <li>✅ 后端API重构 - 统一suspend/activate端点</li>
                 <li>✅ 删除复杂状态选择器 - 移除FiveStateStatusSelector.tsx</li>
                 <li>✅ 创建简化的StatusBadge组件</li>
                 <li>✅ 创建操作驱动的OrganizationActions组件</li>
@@ -138,7 +138,7 @@
             <ul>
                 <li><strong>状态管理方式</strong>: 手动设置状态 → 操作驱动状态自动变更</li>
                 <li><strong>状态定义</strong>: ACTIVE/INACTIVE/PLANNED → ACTIVE/SUSPENDED/PLANNED</li>
-                <li><strong>状态变更操作</strong>: 直接修改status字段 → 调用专门的suspend/reactivate端点</li>
+                <li><strong>状态变更操作</strong>: 直接修改status字段 → 调用专门的suspend/activate端点</li>
                 <li><strong>前端组件</strong>: 复杂的五状态选择器 → 简洁的状态徽章和操作按钮</li>
                 <li><strong>业务语义</strong>: 技术导向 → 业务导向 (停用类似员工离职，重启类似重新入职)</li>
             </ul>
@@ -202,7 +202,7 @@
         async function testReactivate() {
             try {
                 addTestResult('正在测试重新启用操作...', true);
-                const result = await apiRequest(`/organization-units/${TEST_ORG_CODE}/reactivate`, 'POST', {
+                const result = await apiRequest(`/organization-units/${TEST_ORG_CODE}/activate`, 'POST', {
                     reason: '测试页面 - 重新启用操作验证'
                 });
                 

@@ -18,9 +18,14 @@ info:
     - Comprehensive audit trail with operation history
     - Multi-tenant isolation and security
     
+    **Business Operation Types:**
+    - **DELETE**: 软删除误操作而意外增加的错误记录，用于数据纠错和质量管理
+    - **SUSPEND**: 因业务调整而暂时停用部门，支持后续重新启用，用于组织架构临时调整
+    - **ACTIVATE**: 重新启用已停用的组织，恢复业务运营，与停用操作形成完整业务循环
+    
     **Permission System:**
     - **Basic CRUD**: org:read, org:create, org:update, org:delete
-    - **State Management**: org:suspend, org:reactivate
+    - **State Management**: org:suspend, org:activate
     - **Hierarchy Operations**: org:read:hierarchy, org:move, org:create:child
     - **Temporal Data**: org:read:history, org:read:future, org:create:planned, org:modify:history, org:cancel:planned
     - **Audit & Analytics**: org:read:audit, org:read:stats, org:read:timeline
@@ -288,6 +293,9 @@ paths:
       description: |
         Soft deletes an organization unit by setting isDeleted=true and operationType=DELETE.
         
+        **Business Use Case:** 用于删除误操作而意外增加的错误记录，主要用于数据纠错和数据质量管理。
+        这是一个数据层面的操作，而非业务流程操作。
+        
         **Deletion Constraints:**
         - Cannot delete units with active child units
         - Cannot delete units with associated positions
@@ -549,6 +557,9 @@ paths:
         Suspends an organization unit by setting status=INACTIVE and operationType=SUSPEND.
         This is a specialized business operation with dedicated endpoint to ensure clear intent.
         
+        **Business Use Case:** 用于因业务调整而暂时停用部门，支持后续重新启用。
+        这是业务流程层面的操作，用于组织架构的临时调整，预期会在适当时机重新启用。
+        
         **Business Logic:**
         - Forces status=INACTIVE regardless of request body
         - Sets operationType=SUSPEND automatically
@@ -628,15 +639,18 @@ paths:
         Activates an organization unit by setting status=ACTIVE and operationType=REACTIVATE.
         This is the symmetric operation to suspend, ensuring clear business intent.
         
+        **Business Use Case:** 用于重新启用已停用的组织，恢复业务运营。
+        与停用操作形成完整的业务循环，是业务流程恢复操作，用于重新投入组织运营。
+        
         **Business Logic:**
         - Forces status=ACTIVE regardless of request body
         - Sets operationType=REACTIVATE automatically
         - Supports future-effective activation planning
         - Can cancel planned suspension operations
         
-        **Required Permissions:** `org:reactivate`
+        **Required Permissions:** `org:activate`
       security:
-        - OAuth2ClientCredentials: ['org:reactivate']
+        - OAuth2ClientCredentials: ['org:activate']
       parameters:
         - $ref: '#/components/parameters/CodePathParam'
       requestBody:
@@ -961,7 +975,7 @@ components:
             
             # 状态管理权限
             'org:suspend': Suspend organization units
-            'org:reactivate': Reactivate organization units
+            'org:activate': Activate organization units
             
             # 层级结构权限
             'org:read:hierarchy': Read organization hierarchy structure

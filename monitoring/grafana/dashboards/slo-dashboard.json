@@ -1,0 +1,314 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "组织启停API - SLO监控仪表板",
+    "tags": ["slo", "organization", "api", "adr-008"],
+    "timezone": "browser", 
+    "refresh": "30s",
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "time_window",
+          "type": "custom",
+          "options": [
+            {"text": "1小时", "value": "1h"},
+            {"text": "24小时", "value": "24h"}, 
+            {"text": "7天", "value": "7d"},
+            {"text": "28天", "value": "28d"}
+          ],
+          "current": {
+            "text": "7天",
+            "value": "7d"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🎯 SLO达成状态总览",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(activate_success_total[$time_window]) / rate(activate_requests_total[$time_window])",
+            "legendFormat": "Activate成功率",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(suspend_success_total[$time_window]) / rate(suspend_requests_total[$time_window])", 
+            "legendFormat": "Suspend成功率",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(activate_duration_seconds_bucket[$time_window])) * 1000",
+            "legendFormat": "Activate P95延迟 (ms)",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(rate(deprecated_endpoint_used_total[$time_window]))",
+            "legendFormat": "弃用端点访问",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.99},
+                {"color": "green", "value": 0.999}
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Activate延迟SLO (ms)"},
+              "properties": [
+                {"id": "unit", "value": "ms"},
+                {"id": "thresholds", "value": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 150}
+                  ]
+                }}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "弃用端点访问"},
+              "properties": [
+                {"id": "thresholds", "value": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "red", "value": 0.1}
+                  ]
+                }}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "📈 成功率SLO趋势 (目标: ≥99.9%)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(activate_success_total[$time_window]) / rate(activate_requests_total[$time_window])",
+            "legendFormat": "Activate成功率",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(suspend_success_total[$time_window]) / rate(suspend_requests_total[$time_window])",
+            "legendFormat": "Suspend成功率", 
+            "refId": "B"
+          },
+          {
+            "expr": "vector(0.999)",
+            "legendFormat": "SLO目标线 (99.9%)",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0.99,
+            "max": 1,
+            "custom": {
+              "axisLabel": "成功率",
+              "axisMin": 0.99
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "SLO目标线 (99.9%)"},
+              "properties": [
+                {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}},
+                {"id": "custom.lineStyle", "value": {"dash": [10, 10]}},
+                {"id": "custom.lineWidth", "value": 2}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 3,
+        "title": "⚡ 延迟SLO趋势 (目标: P95≤150ms)", 
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(activate_duration_seconds_bucket[$time_window])) * 1000",
+            "legendFormat": "Activate P95延迟",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(suspend_duration_seconds_bucket[$time_window])) * 1000",
+            "legendFormat": "Suspend P95延迟",
+            "refId": "B"
+          },
+          {
+            "expr": "vector(150)",
+            "legendFormat": "SLO目标线 (150ms)",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "min": 0,
+            "max": 300,
+            "custom": {
+              "axisLabel": "延迟 (毫秒)"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "SLO目标线 (150ms)"},
+              "properties": [
+                {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}},
+                {"id": "custom.lineStyle", "value": {"dash": [10, 10]}}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "🚫 ADR-008合规性监控",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(deprecated_endpoint_used_total[$time_window]))",
+            "legendFormat": "弃用端点访问频率",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(increase(deprecated_endpoint_used_total[$time_window]))",
+            "legendFormat": "弃用端点总访问次数",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(audit_write_success_total[$time_window]) / rate(audit_write_attempts_total[$time_window])",
+            "legendFormat": "审计写入成功率",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "red", "value": 0.001}
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "审计写入成功率"},
+              "properties": [
+                {"id": "unit", "value": "percentunit"},
+                {"id": "thresholds", "value": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.999},
+                    {"color": "green", "value": 1.0}
+                  ]
+                }}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "💹 成功率与审计健康（%）",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "rate(activate_success_total[$time_window]) / rate(activate_requests_total[$time_window]) * 100",
+            "legendFormat": "Activate成功率(%)",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(suspend_success_total[$time_window]) / rate(suspend_requests_total[$time_window]) * 100", 
+            "legendFormat": "Suspend成功率(%)",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(audit_write_success_total[$time_window]) / rate(audit_write_attempts_total[$time_window]) * 100",
+            "legendFormat": "审计写入成功率(%)",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99.9}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "🔍 SLO违规事件时间线",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{alertname=~\".*SLOViolation.*\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "showCommonLabels": true,
+          "wrapLogMessage": true,
+          "enableLogDetails": true,
+          "dedupStrategy": "exact",
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "SLO违规告警",
+          "datasource": "Prometheus",
+          "expr": "ALERTS{alertname=~\".*SLOViolation.*\"}",
+          "titleFormat": "{{ alertname }}",
+          "textFormat": "{{ description }}",
+          "iconColor": "red",
+          "enable": true
+        },
+        {
+          "name": "部署事件",
+          "datasource": "Prometheus", 
+          "expr": "deployment_events{service=\"organization-api\"}",
+          "titleFormat": "部署: {{ version }}",
+          "textFormat": "{{ description }}",
+          "iconColor": "blue"
+        }
+      ]
+    }
+  }
+}

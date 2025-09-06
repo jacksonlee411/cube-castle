@@ -12,7 +12,7 @@
 
 #### 状态管理权限 (2个)  
 - `org:suspend` - Suspend organization units
-- `org:reactivate` - Reactivate organization units
+- `org:activate` - Activate organization units
 
 #### 层级结构权限 (3个)
 - `org:read:hierarchy` - Read organization hierarchy structure
@@ -48,7 +48,7 @@
 |---------|------------|---------|
 | `canEdit` | `org:update` | ✅ 匹配 |
 | `canDelete` | `org:delete` | ✅ 匹配 |
-| `canActivate` | `org:reactivate` | ✅ 匹配 |  
+| `canActivate` | `org:activate` | ✅ 匹配 |  
 | `canDeactivate` | `org:suspend` | ✅ 匹配 |
 | `canCreateChild` | `org:create:child` | ✅ 匹配 |
 | `canMove` | `org:move` | ✅ 匹配 |

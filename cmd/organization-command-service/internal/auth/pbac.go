@@ -114,13 +114,22 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, method, pat
 
 // matchPattern 简单的模式匹配，支持*通配符
 func (p *PBACPermissionChecker) matchPattern(pattern, actual string) bool {
-	// 简单实现：替换*为任意匹配
-	if strings.Contains(pattern, "*") {
-		// 更精确的模式匹配可以使用正则表达式
-		prefix := strings.Split(pattern, "*")[0]
-		return strings.HasPrefix(actual, prefix)
+	if !strings.Contains(pattern, "*") {
+		return pattern == actual
 	}
-	return pattern == actual
+	
+	// 分割模式和实际路径
+	parts := strings.Split(pattern, "*")
+	if len(parts) != 2 {
+		// 只支持单个通配符
+		return false
+	}
+	
+	prefix := parts[0]
+	suffix := parts[1]
+	
+	// 检查前缀和后缀是否匹配
+	return strings.HasPrefix(actual, prefix) && strings.HasSuffix(actual, suffix) && len(actual) >= len(prefix)+len(suffix)
 }
 
 // checkUserPermission 检查用户直接权限

@@ -10,6 +10,12 @@ export const ORGANIZATION_STATUSES = {
   PLANNED: '计划中'
 } as const;
 
+// 一维业务状态（新）—— 仅用于启用/停用的业务语义
+export const BUSINESS_STATUSES = {
+  ACTIVE: '启用',
+  INACTIVE: '停用'
+} as const;
+
 export const ORGANIZATION_LEVELS = {
   MIN: 1,
   MAX: 10

@@ -1,0 +1,157 @@
+# OpenAPI规范合规性检查 (ADR-008实施)
+# 基于Spectral引擎的自动化规则验证
+
+extends: ["@stoplight/spectral-oasx"]
+
+rules:
+  # 禁止弃用端点定义
+  no-deprecated-endpoints:
+    given: "$.paths.*~"
+    message: "禁止定义弃用端点：{{path}} - 请使用/activate替代/reactivate"
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: ".*(reactivate|deactivate).*"
+
+  # 权限白名单检查  
+  org-permission-whitelist:
+    given: "$.paths..security[*].oauth2[*]"
+    message: "仅允许标准org权限，发现未授权权限：{{value}}"
+    severity: error
+    then:
+      function: enumeration
+      functionOptions:
+        values: 
+          - "org:read"
+          - "org:create" 
+          - "org:update"
+          - "org:activate"
+          - "org:suspend"
+          - "org:delete"
+          - "org:admin"
+          - "org:read:hierarchy"
+          - "org:read:stats"
+          - "org:read:audit"
+
+  # 强制activate端点权限检查
+  activate-endpoint-security:
+    given: "$.paths['/api/v1/organization-units/{code}/activate']['post'].security"
+    message: "/activate端点必须配置org:activate权限"
+    severity: error
+    then:
+      function: truthy
+
+  # 强制suspend端点权限检查
+  suspend-endpoint-security:
+    given: "$.paths['/api/v1/organization-units/{code}/suspend']['post'].security" 
+    message: "/suspend端点必须配置org:suspend权限"
+    severity: error
+    then:
+      function: truthy
+
+  # 响应结构标准化检查
+  standard-response-envelope:
+    given: "$.paths..responses.200.content.application/json.schema"
+    message: "API响应必须使用标准信封格式（success, data, message, timestamp, requestId）"
+    severity: warn
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: ["success", "data", "message", "timestamp", "requestId"]
+          properties:
+            success:
+              type: boolean
+            data:
+              type: object
+            message: 
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            requestId:
+              type: string
+
+  # 错误响应格式检查
+  standard-error-response:
+    given: "$.paths..responses.4[0-9][0-9].content.application/json.schema"
+    message: "错误响应必须使用标准格式（success, error, timestamp, requestId）"
+    severity: warn
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: ["success", "error", "timestamp", "requestId"]
+          properties:
+            success:
+              type: boolean
+              const: false
+            error:
+              type: object
+              required: ["code", "message"]
+              properties:
+                code: 
+                  type: string
+                message:
+                  type: string
+                details:
+                  type: object
+            timestamp:
+              type: string
+              format: date-time
+            requestId:
+              type: string
+
+  # camelCase字段命名检查
+  camelcase-field-names:
+    given: "$.paths..content.application/json.schema..properties.*~"
+    message: "字段名必须使用camelCase格式：{{property}} - 避免使用snake_case"
+    severity: error
+    then:
+      function: pattern  
+      functionOptions:
+        match: "^[a-z][a-zA-Z0-9]*$"
+
+  # 操作描述必须包含权限信息
+  operation-permission-documentation:
+    given: "$.paths['/api/v1/organization-units/{code}/activate','POST','suspend']['post'].description"
+    message: "操作描述必须明确标注Required Permissions信息"
+    severity: warn
+    then:
+      function: pattern
+      functionOptions:
+        match: ".*Required Permissions.*org:(activate|suspend).*"
+
+  # 禁止PATCH修改status字段的示例
+  no-patch-status-examples:
+    given: "$.paths..requestBody.content.application/json.examples..value"
+    message: "禁止通过PATCH直接修改status字段，请使用POST /activate或/suspend"
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: ".*status.*ACTIVE.*|.*status.*INACTIVE.*"
+
+  # 确保operationType枚举完整性
+  operation-type-enum-completeness:
+    given: "$.components.schemas.OperationType.enum"
+    message: "OperationType枚举必须包含所有标准操作类型"
+    severity: error
+    then:
+      function: enumeration
+      functionOptions:
+        values:
+          - "CREATE"
+          - "UPDATE"
+          - "SUSPEND"
+          - "REACTIVATE"
+          - "DELETE"
+
+# 跳过规则（如果某些规则不适用）
+except:
+  # 跳过Spectral内置的某些规则，如果它们与我们的标准冲突
+  - "info-contact"  # 我们有自己的联系信息规范
+  - "tag-description"  # 我们有自己的标签规范

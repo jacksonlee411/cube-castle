@@ -240,7 +240,7 @@
 ### 🔒 安全特性
 - **OAuth 2.0 Client Credentials Flow**: 企业级机器对机器认证
 - **JWT标准载荷**: 权限、租户、审计信息
-- **17个核心权限**: org:read, org:create, org:update, org:delete, org:suspend, org:reactivate, 等
+- **17个核心权限**: org:read, org:create, org:update, org:delete, org:suspend, org:activate, 等
 - **多租户隔离**: 严格的租户数据边界
 - **审计追踪**: 完整的操作记录和责任追溯
 

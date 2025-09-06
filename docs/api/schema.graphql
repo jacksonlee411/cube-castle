@@ -58,7 +58,7 @@ type Query {
   """
   Get comprehensive organization statistics with temporal breakdown.
   
-  Permissions Required: org:stats
+  Permissions Required: org:read:stats
   Performance: Cached aggregation queries < 100ms
   """
   organizationStats(
@@ -168,6 +168,10 @@ type Organization {
   # Basic Information
   name: String!
   unitType: UnitType!
+  # Business status (one-dimensional): ACTIVE | INACTIVE
+  # Note: No lifecycle status is exposed. "planned"/"historical" are derived via
+  # asOf-based computation: isCurrent/isFuture fields below.
+  # ADR-008: 一维业务状态模型，INACTIVE等价于停用/暂停语义
   status: Status!
   isDeleted: Boolean!
   
@@ -185,6 +189,7 @@ type Organization {
   # Temporal Information
   effectiveDate: Date!
   endDate: Date
+  # Computed temporal flags based on asOfDate parameter (query-time only)
   isCurrent: Boolean!
   isFuture: Boolean!
   
@@ -569,11 +574,11 @@ enum UnitType {
 }
 
 """
-Organization business status.
+Organization business status (ADR-008: 一维业务状态模型).
 """
 enum Status {
   ACTIVE         # Actively operating unit
-  INACTIVE       # Non-active but existing unit
+  INACTIVE       # Non-active but existing unit (等价于停用/暂停)
 }
 
 """
@@ -581,10 +586,13 @@ Operation types for audit and temporal tracking.
 """
 enum OperationType {
   CREATE         # New organization creation
-  UPDATE         # Data modification (PUT/PATCH)
-  SUSPEND        # Suspension operation
-  REACTIVATE     # Reactivation operation
+  UPDATE         # Data modification (PUT/PATCH)  
+  SUSPEND        # Suspension operation (endpoint: POST /suspend)
+  REACTIVATE     # Reactivation operation (endpoint: POST /activate)
   DELETE         # Deletion operation
+  
+  # ADR-008注释：REACTIVATE作为操作类型保持审计语义精确性
+  # 对应端点为/activate（用户友好），这是领域概念与HTTP路径的合理分离
 }
 
 

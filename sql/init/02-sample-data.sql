@@ -86,7 +86,6 @@ INSERT INTO organization_units (
 
 -- 更新统计信息
 ANALYZE organization_units;
-ANALYZE organization_units_history;
 ANALYZE audit_logs;
 
 -- 验证数据完整性

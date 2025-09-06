@@ -182,18 +182,18 @@ export const useSuspendOrganization = () => {
 };
 
 // 重新启用组织
-export const useReactivateOrganization = () => {
+export const useActivateOrganization = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async ({ code, reason }: { code: string; reason: string }): Promise<OrganizationUnit> => {
-      console.log('[Mutation] Reactivating organization:', code, reason);
-      const response = await organizationAPI.reactivate(code, reason);
-      console.log('[Mutation] Reactivate successful:', response);
+      console.log('[Mutation] Activating organization:', code, reason);
+      const response = await organizationAPI.activate(code, reason);
+      console.log('[Mutation] Activate successful:', response);
       return response;
     },
     onSettled: (data, error, variables) => {
-      console.log('[Mutation] Reactivate settled:', variables.code);
+      console.log('[Mutation] Activate settled:', variables.code);
       
       // 立即失效所有相关查询缓存
       queryClient.invalidateQueries({ 
@@ -227,7 +227,7 @@ export const useReactivateOrganization = () => {
         queryClient.setQueryData(['organization', variables.code], data);
       }
       
-      console.log('[Mutation] Reactivate cache invalidation and refetch completed');
+      console.log('[Mutation] Activate cache invalidation and refetch completed');
     },
   });
 };

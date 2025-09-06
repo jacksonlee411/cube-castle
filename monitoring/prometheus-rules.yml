@@ -1,0 +1,122 @@
+# 组织启停API监控告警规则
+# 用于Prometheus监控系统
+
+groups:
+  - name: organization_api_compliance
+    interval: 30s
+    rules:
+      # P2告警：弃用端点使用检测
+      - alert: DeprecatedEndpointUsed
+        expr: sum(rate(deprecated_endpoint_used_total[5m])) > 0
+        for: 1m
+        labels:
+          severity: P2
+          service: organization-api
+          category: compliance
+        annotations:
+          summary: "检测到弃用端点/reactivate访问"
+          description: "过去5分钟内有 {{ $value | printf \"%.2f\" }}次/秒 访问弃用的/reactivate端点，需要跟踪客户端迁移状态"
+          runbook_url: "https://wiki.company.com/runbooks/deprecated-endpoint-usage"
+          action_required: "检查访问来源，推进客户端迁移到/activate端点"
+
+      # P2告警：弃用端点高频使用（按1小时累计）
+      - alert: HighDeprecatedEndpointUsage
+        expr: sum(increase(deprecated_endpoint_used_total[1h])) > 5
+        for: 0s
+        labels:
+          severity: P2
+          service: organization-api
+          category: compliance
+        annotations:
+          summary: "弃用端点/reactivate访问次数过多"
+          description: "过去1小时内弃用端点访问累计: {{ $value }}，超过阈值(5)，可能有大量客户端尚未迁移"
+          action_required: "分析来源，加速迁移至/activate端点"
+
+  - name: organization_api_performance
+    interval: 30s
+    rules:
+      # P3告警：启用端点高延迟
+      - alert: HighActivateLatency
+        expr: histogram_quantile(0.95, rate(activate_duration_seconds_bucket[5m])) > 0.15
+        for: 2m
+        labels:
+          severity: P3
+          service: organization-api
+          endpoint: activate
+        annotations:
+          summary: "activate端点P95延迟过高"
+          description: "activate端点P95延迟: {{ $value | printf \"%.3f\" }}s，超过SLO阈值(150ms)"
+          slo_violation: "activate_latency_p95 ≤ 150ms"
+
+      # P3告警：停用端点高延迟  
+      - alert: HighSuspendLatency
+        expr: histogram_quantile(0.95, rate(suspend_duration_seconds_bucket[5m])) > 0.15
+        for: 2m
+        labels:
+          severity: P3
+          service: organization-api
+          endpoint: suspend
+        annotations:
+          summary: "suspend端点P95延迟过高"
+          description: "suspend端点P95延迟: {{ $value | printf \"%.3f\" }}s，超过SLO阈值(150ms)"
+          slo_violation: "suspend_latency_p95 ≤ 150ms"
+
+      # P1告警：成功率低于SLO
+      - alert: LowActivateSuccessRate
+        expr: rate(activate_success_total[5m]) / rate(activate_requests_total[5m]) < 0.999
+        for: 1m
+        labels:
+          severity: P1
+          service: organization-api
+          endpoint: activate
+          slo_violation: "true"
+        annotations:
+          summary: "activate端点成功率低于SLO"
+          description: "activate成功率: {{ $value | printf \"%.4f\" }} ({{ $value | humanizePercentage }}), 低于SLO目标(99.9%)"
+          slo_violation: "activate_success_rate ≥ 99.9%"
+          immediate_action: "立即检查activate端点健康状态，分析错误原因"
+
+      # P1告警：停用成功率低于SLO
+      - alert: LowSuspendSuccessRate  
+        expr: rate(suspend_success_total[5m]) / rate(suspend_requests_total[5m]) < 0.999
+        for: 1m
+        labels:
+          severity: P1
+          service: organization-api
+          endpoint: suspend
+          slo_violation: "true"
+        annotations:
+          summary: "suspend端点成功率低于SLO"
+          description: "suspend成功率: {{ $value | printf \"%.4f\" }} ({{ $value | humanizePercentage }}), 低于SLO目标(99.9%)"
+          slo_violation: "suspend_success_rate ≥ 99.9%"
+          immediate_action: "立即检查suspend端点健康状态，分析错误原因"
+
+  - name: organization_audit_compliance
+    interval: 60s
+    rules:
+      # P0告警：审计写入失败（绝对不允许）
+      - alert: AuditWriteFailure
+        expr: rate(audit_write_failures_total[5m]) > 0
+        for: 0s
+        labels:
+          severity: P0
+          service: audit-system
+          category: data_integrity
+        annotations:
+          summary: "审计日志写入失败 - 数据完整性威胁"
+          description: "过去5分钟审计写入失败 {{ $value | printf \"%.2f\" }}次/秒，审计数据完整性受威胁"
+          slo_violation: "audit_write_failure_rate = 0% (绝对要求)"
+          immediate_action: "立即检查审计系统，确保operatedBy等关键字段记录"
+
+      # P2告警：权限验证异常（基于请求计数派生403率）
+      - alert: HighPermissionDeniedRate
+        expr: sum(rate(api_requests_total{endpoint=~".*/(activate|suspend)$",status="403"}[5m]))
+              > sum(rate(api_requests_total{endpoint=~".*/(activate|suspend)$"}[5m])) * 0.1
+        for: 2m
+        labels:
+          severity: P2
+          service: authorization
+        annotations:
+          summary: "启停端点权限拒绝率异常"
+          description: "启停端点403占比异常，请核对org:activate/org:suspend权限配置"
+          check_required: "验证org:activate和org:suspend权限配置是否正确"

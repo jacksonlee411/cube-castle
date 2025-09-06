@@ -755,30 +755,74 @@ export const organizationAPI = {
 
     } catch (error: unknown) {
       console.error('❌ Error creating organization version:', code, error);
-      
+
+      // 前端校验错误原样抛出
       if (error instanceof SimpleValidationError) {
         throw error;
       }
-      
-      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-        if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+
+      // 统一提取 message 便于分支判断
+      const message = (error && typeof error === 'object' && 'message' in error && typeof (error as Record<string, unknown>).message === 'string')
+        ? (error as Record<string, unknown>).message as string
+        : '';
+
+      if (message) {
+        const msgLower = message.toLowerCase();
+
+        // 端点级 404（多为路由未部署/代理不通），优先于通用“not found”
+        if (
+          message.includes('REST Error: 404') ||
+          (message.includes('REST Error') && msgLower.includes('404')) ||
+          (message.includes('响应解析失败') && msgLower.includes('404'))
+        ) {
+          throw new Error('接口不可用或未部署（版本创建端点 404）。请联系管理员或稍后重试');
+        }
+
+        // 网络层错误
+        if (message.includes('Failed to fetch') || message.includes('NetworkError') || message.includes('TypeError: Failed to fetch')) {
+          throw new Error('网络异常：无法连接命令服务，请检查网络或稍后重试');
+        }
+
+        // 后端明确的组织不存在（结构化错误或清晰语义）
+        if (
+          message.includes('ORG_NOT_FOUND') ||
+          /组织.*不存在/.test(message) ||
+          /organization(.+)?not\s*found/i.test(message)
+        ) {
+          throw new Error('目标组织不存在或不可用，请刷新页面后重试');
+        }
+
+        // 业务冲突：指定生效日已存在版本
+        if (msgLower.includes('already exists') || msgLower.includes('duplicate')) {
           throw new Error('该生效日期的版本已存在，请选择其他日期');
-        } else if (error.message.includes('validation')) {
+        }
+
+        // 验证类错误
+        if (msgLower.includes('validation')) {
           throw new Error('输入数据验证失败，请检查表单内容');
-        } else if (error.message.includes('not found')) {
-          throw new Error('组织不存在，请刷新页面重试');
-        } else if (error.message.includes('组织代码必须是7位数字')) {
+        }
+
+        // 编码格式错误
+        if (message.includes('组织代码必须是7位数字')) {
           throw new Error('组织代码格式错误：必须是7位数字');
-        } else if (error.message.includes('INVALID_CODE_FORMAT')) {
+        }
+        if (message.includes('INVALID_CODE_FORMAT')) {
           throw new Error('组织代码格式错误，请检查代码格式');
-        } else if (error.message.includes('DATABASE_ERROR') || error.message.includes('Internal server error')) {
+        }
+
+        // 服务端内部错误
+        if (message.includes('DATABASE_ERROR') || message.includes('Internal server error')) {
           throw new Error('服务器内部错误，请稍后重试或联系管理员');
         }
-        
-        // 显示服务器返回的实际错误信息
-        throw new Error(`操作失败：${error.message}`);
+
+        // 其他未知错误，原样透出但带统一前缀（避免重复“操作失败”）
+        if (/^操作失败[:：]/.test(message)) {
+          throw new Error(message);
+        }
+        throw new Error(`操作失败：${message}`);
       }
-      
+
+      // 回退兜底
       throw new Error('创建版本失败，请稍后重试');
     }
   },
@@ -802,7 +846,7 @@ export const organizationAPI = {
 
       const response = await unifiedRESTClient.request<OrganizationUnit>(`/organization-units/${code}/suspend`, {
         method: 'POST',
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({ operationReason: reason.trim(), reason: reason.trim() }),
       });
       
       if (!response.code) {
@@ -822,8 +866,8 @@ export const organizationAPI = {
     }
   },
 
-  // 重新启用组织
-  reactivate: async (code: string, reason: string): Promise<OrganizationUnit> => {
+  // 启用组织（统一命名 activate）
+  activate: async (code: string, reason: string): Promise<OrganizationUnit> => {
     try {
       if (!code) {
         throw new SimpleValidationError('Organization code is required', [
@@ -837,9 +881,9 @@ export const organizationAPI = {
         ]);
       }
 
-      const response = await unifiedRESTClient.request<OrganizationUnit>(`/organization-units/${code}/reactivate`, {
+      const response = await unifiedRESTClient.request<OrganizationUnit>(`/organization-units/${code}/activate`, {
         method: 'POST',
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({ operationReason: reason.trim(), reason: reason.trim() }),
       });
       
       if (!response.code) {
@@ -849,16 +893,26 @@ export const organizationAPI = {
       return response;
 
     } catch (error: unknown) {
-      console.error('Error reactivating organization:', code, error);
+      console.error('Error activating organization:', code, error);
       
       if (error instanceof SimpleValidationError) {
         throw error;
       }
       
-      throw new Error('Failed to reactivate organization. Please try again.');
+      throw new Error('Failed to activate organization. Please try again.');
     }
   }
 };
 
-// 导出简化的API
+// 导出简化的标准API (ADR-008合规)
+// 仅暴露activate/suspend，移除所有别名和过时方法
 export default organizationAPI;
+
+// 类型导出
+export type { 
+  OrganizationUnit, 
+  CreateOrganizationRequest, 
+  UpdateOrganizationRequest,
+  OperationType,
+  ApiResponse
+};

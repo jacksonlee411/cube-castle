@@ -212,6 +212,9 @@ cd cmd/organization-query-service && go run main.go &
 # 3. 启动前端服务
 cd frontend && npm run dev &
 
+# 4. 启动监控系统 (可选) ⭐ 新增
+./scripts/start-monitoring.sh
+
 # 注意: 不再需要同步服务和Neo4j
 ```
 
@@ -232,6 +235,11 @@ open http://localhost:8090/graphiql
 
 # 访问前端应用
 open http://localhost:3000
+
+# 监控系统验证 ⭐ 新增
+./scripts/test-monitoring.sh         # 验证监控系统状态
+open http://localhost:9091           # Prometheus监控
+open http://localhost:3001           # Grafana仪表板 (admin/cube-castle-2025)
 ```
 
 ## 📁 项目结构 v3.0 (PostgreSQL原生)
@@ -378,11 +386,31 @@ cube-castle/
 - **数据一致性**: 100%保证 (单一数据源)
 - **系统可用性**: 99.9% (简化架构更稳定)
 
-### 企业级监控能力
-- **结构化日志**: PostgreSQL查询完整日志
-- **Prometheus指标**: 自动化指标收集
-- **健康检查**: 简化系统状态监控
-- **性能监控**: 实时查询响应时间监控
+### 企业级监控能力 ⭐ **已部署 (2025-09-06)**
+
+#### ✅ **完整监控栈已部署**
+- **Prometheus监控**: http://localhost:9091 - 420个指标正在收集
+- **Grafana仪表板**: http://localhost:3001 - 可视化监控 (admin/cube-castle-2025)
+- **AlertManager**: http://localhost:9093 - 自动告警管理
+- **Node Exporter**: http://localhost:9100 - 系统资源监控
+
+#### 📊 **SLO监控规则已生效**
+- **组织API合规监控**: 2条规则 (弃用端点检测、审计跟踪验证)
+- **性能监控**: 4条规则 (响应时间、错误率、可用性、吞吐量)
+- **审计合规监控**: 2条规则 (操作审计、数据完整性)
+- **监控目标**: 6个服务监控，4个正常运行
+
+#### 🔧 **监控系统管理**
+```bash
+# 启动完整监控栈
+./scripts/start-monitoring.sh
+
+# 验证监控系统状态
+./scripts/test-monitoring.sh
+
+# 查看监控容器状态
+docker ps --filter "name=cube-castle"
+```
 
 ## 🛡️ 安全与可靠性
 

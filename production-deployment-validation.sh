@@ -140,7 +140,7 @@ echo "📋 第5步: 监控指标验证"
 echo "------------------"
 
 # 检查命令服务指标
-if curl -s http://localhost:9090/metrics | grep -q "http_requests_total" >/dev/null 2>&1; then
+if curl -s http://localhost:9090/metrics | grep -q "api_requests_total" >/dev/null 2>&1; then
     print_success "命令服务Prometheus指标正常"
     ((CHECKS_PASSED++))
 else
