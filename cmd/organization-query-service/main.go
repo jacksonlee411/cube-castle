@@ -706,17 +706,36 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
 
 // 极速时态查询 - 时间点查询（利用时态索引）
 func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenantID uuid.UUID, code, date string) (*Organization, error) {
-	// 使用 idx_org_temporal_range_composite 索引
+    // 使用计算的区间终点（computed_end_date），避免依赖物理 end_date 的准确性
     query := `
-        SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
-               level, path, sort_order, description, profile, created_at, updated_at,
-               effective_date, end_date, is_current, is_temporal, change_reason,
-               deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
-        FROM organization_units 
-        WHERE tenant_id = $1 AND code = $2 
-          AND effective_date <= $3::date 
-          AND (end_date IS NULL OR end_date >= $3::date)
-          AND status <> 'DELETED' AND deleted_at IS NULL
+        WITH hist AS (
+            SELECT 
+                record_id, tenant_id, code, parent_code, name, unit_type, status,
+                level, path, sort_order, description, profile, created_at, updated_at,
+                effective_date, end_date, is_current, is_temporal, change_reason,
+                deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
+                LEAD(effective_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS next_effective
+            FROM organization_units 
+            WHERE tenant_id = $1 AND code = $2 
+              AND status <> 'DELETED' AND deleted_at IS NULL
+        ), proj AS (
+            SELECT 
+                record_id, tenant_id, code, parent_code, name, unit_type, status,
+                level, path, sort_order, description, profile, created_at, updated_at,
+                effective_date,
+                COALESCE(end_date, (next_effective - INTERVAL '1 day')::date) AS computed_end_date,
+                is_current, is_temporal, change_reason,
+                deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+            FROM hist
+        )
+        SELECT 
+            record_id, tenant_id, code, parent_code, name, unit_type, status,
+            level, path, sort_order, description, profile, created_at, updated_at,
+            effective_date, computed_end_date AS end_date, is_current, is_temporal, change_reason,
+            deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+        FROM proj
+        WHERE effective_date <= $3::date 
+          AND (computed_end_date IS NULL OR computed_end_date >= $3::date)
         ORDER BY effective_date DESC, created_at DESC
         LIMIT 1`
 
@@ -749,16 +768,36 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
 
 // 历史范围查询 - 窗口函数优化
 func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenantID uuid.UUID, code, fromDate, toDate string) ([]Organization, error) {
-	// 使用窗口函数和时态索引优化历史查询
+    // 历史范围查询：使用计算的区间终点（computed_end_date）并基于区间重叠选择
     query := `
-        SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
-               level, path, sort_order, description, profile, created_at, updated_at,
-               effective_date, end_date, is_current, is_temporal, change_reason,
-               deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
-        FROM organization_units 
-        WHERE tenant_id = $1 AND code = $2 
-          AND effective_date BETWEEN $3::date AND $4::date
-          AND status <> 'DELETED' AND deleted_at IS NULL
+        WITH hist AS (
+            SELECT 
+                record_id, tenant_id, code, parent_code, name, unit_type, status,
+                level, path, sort_order, description, profile, created_at, updated_at,
+                effective_date, end_date, is_current, is_temporal, change_reason,
+                deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
+                LEAD(effective_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS next_effective
+            FROM organization_units 
+            WHERE tenant_id = $1 AND code = $2 
+              AND status <> 'DELETED' AND deleted_at IS NULL
+        ), proj AS (
+            SELECT 
+                record_id, tenant_id, code, parent_code, name, unit_type, status,
+                level, path, sort_order, description, profile, created_at, updated_at,
+                effective_date,
+                COALESCE(end_date, (next_effective - INTERVAL '1 day')::date) AS computed_end_date,
+                is_current, is_temporal, change_reason,
+                deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+            FROM hist
+        )
+        SELECT 
+            record_id, tenant_id, code, parent_code, name, unit_type, status,
+            level, path, sort_order, description, profile, created_at, updated_at,
+            effective_date, computed_end_date AS end_date, is_current, is_temporal, change_reason,
+            deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+        FROM proj
+        WHERE effective_date <= $4::date
+          AND (computed_end_date IS NULL OR computed_end_date >= $3::date)
         ORDER BY effective_date DESC, created_at DESC`
 
 	start := time.Now()

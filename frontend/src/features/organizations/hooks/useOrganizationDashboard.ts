@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useOrganizations, useOrganizationStats } from '../../../shared/hooks/useOrganizations';
+import { useOrganizations } from '../../../shared/hooks/useOrganizations';
 // import { useTemporalOrganizations, useTemporalMode, useTemporalQueryState } from '../../../shared/hooks/useTemporalQuery';
 import type { OrganizationQueryParams } from '../../../shared/types/organization';
 import type { OrganizationUnitType, OrganizationStatus } from '../../../shared/types/api';
@@ -59,7 +59,6 @@ export const useOrganizationDashboard = () => {
   const isFetching = traditionalFetching;
   const error = traditionalError;
 
-  const { data: stats } = useOrganizationStats(); // 移除不支持的enabled选项
 
   const resetFilters = () => {
     setFilters(initialFilters);
@@ -81,7 +80,6 @@ export const useOrganizationDashboard = () => {
     // Data
     organizations: organizations || [],
     totalCount,
-    stats: useTemporalData ? null : stats, // 时态模式下不显示统计
     
     // Loading states
     isLoading: isLoading && !isFetching,

@@ -28,17 +28,6 @@ export interface OrganizationListResponse {
   totalPages: number;  // camelCase
 }
 
-export interface OrganizationStats {
-  totalCount: number;  // camelCase
-  byType: Record<string, number>;  // camelCase
-  byStatus: Record<string, number>;  // camelCase
-  temporal?: {
-    current: number;
-    future: number;
-    historical: number;
-  };
-  lastUpdated?: string;
-}
 
 // 组织查询参数 (camelCase)
 export interface OrganizationQueryParams {
@@ -76,29 +65,11 @@ export interface GraphQLOrganizationResponse {
   isCurrent?: boolean;
 }
 
-export interface GraphQLStatsTypeItem {
-  type: string;
-  count: number;
-}
-
-export interface GraphQLStatsStatusItem {
-  status: string;
-  count: number;
-}
-
-export interface GraphQLStatsResponse {
-  totalCount: number;
-  byType?: GraphQLStatsTypeItem[];
-  byStatus?: GraphQLStatsStatusItem[];
-}
 
 export interface OrganizationListAPIResponse {
   organizations: GraphQLOrganizationResponse[];
 }
 
-export interface OrganizationStatsAPIResponse {
-  organizationStats: GraphQLStatsResponse;  // camelCase
-}
 
 // 命令API响应类型 - 用于创建和更新操作 (camelCase)
 export interface CreateOrganizationResponse {

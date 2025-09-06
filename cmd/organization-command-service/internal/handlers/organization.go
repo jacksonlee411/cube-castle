@@ -545,17 +545,44 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		actorID := h.getActorID(r)
 		requestID := middleware.GetRequestID(r.Context())
 		
-		err := h.handleDeactivateEvent(r.Context(), tenantID, code, req.RecordID, req.ChangeReason, actorID, requestID)
-		if err != nil {
-			h.writeErrorResponse(w, r, http.StatusInternalServerError, "DEACTIVATE_ERROR", "作废版本失败", err)
-			return
-		}
+    err := h.handleDeactivateEvent(r.Context(), tenantID, code, req.RecordID, req.ChangeReason, actorID, requestID)
+    if err != nil {
+        h.writeErrorResponse(w, r, http.StatusInternalServerError, "DEACTIVATE_ERROR", "作废版本失败", err)
+        return
+    }
 
-		h.logger.Printf("✅ 版本作废成功: 组织 %s, 记录ID: %s", code, req.RecordID)
-		utils.WriteSuccess(w, map[string]interface{}{
-			"code":      code,
-			"record_id": req.RecordID,
-		}, "版本作废成功", requestID)
+    // 获取最新时间线（非删除记录），用于前端立即刷新，避免读缓存延迟
+    versions, listErr := h.repo.ListVersionsByCode(r.Context(), tenantID, code)
+    if listErr != nil {
+        h.logger.Printf("⚠️ 获取最新时间线失败（不影响作废结果）: %v", listErr)
+    }
+
+    // 构建轻量时间线返回
+    timeline := make([]map[string]interface{}, 0, len(versions))
+    for _, v := range versions {
+        timeline = append(timeline, map[string]interface{}{
+            "recordId":      v.RecordID,
+            "code":          v.Code,
+            "name":          v.Name,
+            "unitType":      v.UnitType,
+            "status":        v.Status,
+            "level":         v.Level,
+            "effectiveDate": func() string { if v.EffectiveDate != nil { return v.EffectiveDate.String() } ; return "" }(),
+            "endDate":       func() *string { if v.EndDate != nil { s:=v.EndDate.String(); return &s } ; return nil }(),
+            "isCurrent":     v.IsCurrent,
+            "createdAt":     v.CreatedAt,
+            "updatedAt":     v.UpdatedAt,
+            "parentCode":    v.ParentCode,
+            "description":   v.Description,
+        })
+    }
+
+    h.logger.Printf("✅ 版本作废成功: 组织 %s, 记录ID: %s (返回最新时间线%d条)", code, req.RecordID, len(timeline))
+    utils.WriteSuccess(w, map[string]interface{}{
+        "code":      code,
+        "record_id": req.RecordID,
+        "timeline":  timeline,
+    }, "版本作废成功", requestID)
 
 	default:
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "UNSUPPORTED_EVENT", fmt.Sprintf("不支持的事件类型: %s", req.EventType), nil)
@@ -698,19 +725,25 @@ func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantI
 		return fmt.Errorf("获取记录失败: %w", err)
 	}
 
-	// 更新指定记录的状态为DELETED
-	updateReq := &types.UpdateOrganizationRequest{
-		Status:       func(s string) *string { return &s }("DELETED"),
-		ChangeReason: func(s string) *string { return &s }(changeReason),
-	}
+    // 更新指定记录的状态为DELETED（软删除，不直接物理删除）
+    updateReq := &types.UpdateOrganizationRequest{
+        Status:       func(s string) *string { return &s }("DELETED"),
+        ChangeReason: func(s string) *string { return &s }(changeReason),
+    }
 
-	_, err = h.repo.UpdateByRecordId(ctx, tenantID, recordID, updateReq)
-	if err != nil {
-		return fmt.Errorf("作废记录失败: %w", err)
-	}
+    _, err = h.repo.UpdateByRecordId(ctx, tenantID, recordID, updateReq)
+    if err != nil {
+        return fmt.Errorf("作废记录失败: %w", err)
+    }
 
-	// 记录审计日志 - 使用删除日志方法
-	err = h.auditLogger.LogOrganizationDelete(ctx, tenantID, code, oldOrg, actorID, requestID, changeReason)
+    // 软删除后：统一执行完整时间线重算，确保相邻桥接与末尾回写
+    if err := h.temporalService.RecomputeTimelineForCode(ctx, tenantID, code); err != nil {
+        // 记录警告但不阻断业务成功（保持幂等与可用性）
+        h.logger.Printf("⚠️ 作废后时间线重算失败（不影响作废结果）: code=%s recordID=%s err=%v", code, recordID, err)
+    }
+
+    // 记录审计日志 - 使用删除日志方法
+    err = h.auditLogger.LogOrganizationDelete(ctx, tenantID, code, oldOrg, actorID, requestID, changeReason)
 	if err != nil {
 		h.logger.Printf("⚠️ 审计日志记录失败 (但操作成功): %v", err)
 		// 审计日志失败不应该导致业务操作失败，只记录警告

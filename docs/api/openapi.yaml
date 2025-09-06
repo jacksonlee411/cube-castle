@@ -33,7 +33,7 @@ info:
     
     **Response Format**: All endpoints use unified enterprise envelope structure
     with `success`, `data`, `message`, `timestamp`, and `requestId` fields.
-  version: 4.5.1
+  version: 4.6.0
   contact:
     name: System Architecture Team
     email: api-support@yourcompany.com
@@ -76,6 +76,12 @@ paths:
         - Sets operationType=CREATE and status=ACTIVE by default
         - Triggers intelligent cascade update for hierarchy paths
         - Validates parent unit exists and is active
+        
+        **Temporal Note:**
+        - This endpoint creates the initial record for a new organization code.
+        - It does not perform temporal backfilling across versions.
+        - For temporal version management (adjacent boundary updates, backfilling), use
+          `POST /api/v1/organization-units/{code}/versions` or temporal event endpoints.
         
         **Required Permissions:** `org:create`
       security:
@@ -200,6 +206,12 @@ paths:
         - **Idempotent**: Multiple calls with same data produce same result
         - **Use Cases**: Complete resource rebuild, bulk standardization
         
+        **Temporal Behavior:**
+        - **Field Restrictions**: Cannot modify temporal fields (effectiveDate, endDate, isCurrent)
+        - **Version Immutability**: PUT updates the current version in-place, does not create new versions
+        - **Temporal Integration**: For temporal modifications, use dedicated temporal endpoints
+        - **Constraint Validation**: Validates that changes don't violate existing temporal sequences
+        
         **Required Permissions:** `org:update`
       security:
         - OAuth2ClientCredentials: ['org:update']
@@ -264,6 +276,14 @@ paths:
         - **Status Limitation**: Cannot change status field - use dedicated endpoints
         - **Use Cases**: Single field updates, incremental modifications
         
+        **Temporal Note:**
+        - PATCH does not update temporal sequencing. Do not use this endpoint to modify
+          temporal fields (`effectiveDate`, `endDate`) or status transitions.
+        - For temporal corrections, use:
+          - Create new version: `POST /api/v1/organization-units/{code}/versions`
+          - Update a historical record by recordId: `PUT /api/v1/organization-units/{code}/history/{record_id}`
+          - Deactivate (soft-delete) a specific version: `POST /api/v1/organization-units/{code}/events` (DEACTIVATE)
+        
         **Required Permissions:** `org:update`
       security:
         - OAuth2ClientCredentials: ['org:update']
@@ -319,6 +339,15 @@ paths:
         - Cannot delete units with active child units
         - Cannot delete units with associated positions
         - Must clean up all dependencies before deletion
+        
+        **Temporal Note:**
+        - This endpoint soft-deletes the entire organization unit (all versions become `DELETED`)
+        - **Triggers temporal recomputation**: Adjacent organizations' time boundaries are recalculated
+        - **Gap handling**: If deleted organization creates time gaps in parent-child relationships, 
+          triggers intelligent boundary extension for related organizations
+        - **Transaction scope**: All temporal boundary updates occur within a single transaction
+        - To delete (deactivate) a single version and trigger timeline recomputation, use
+          `POST /api/v1/organization-units/{code}/events` with `eventType=DEACTIVATE` and `recordId`
         
         **Required Permissions:** `org:delete`
       security:
@@ -385,6 +414,14 @@ paths:
         - Application transaction manages is_current and end_date transitions
         - Previous current version gets end_date = new effectiveDate - 1 day
         - Supports both historical and future-effective versions
+        
+        **End Date Automatic Update Rules (Temporal Versions):**
+        - **INSERT (new version)**: Previous record end_date = new effective_date - 1; new record end_date = next effective_date - 1 (if any)
+        - **UPDATE (change effectiveDate)**: Recalculate adjacent boundaries to maintain continuity
+        - **DELETE (remove a version)**: Bridge adjacent records by setting previous end_date = next effective_date - 1
+        - **TAIL BEHAVIOR**: Last record has open end (`end_date = null`) and current flag recomputed when applicable
+        - **SCOPE**: Only non-deleted records (status ≠ 'DELETED') participate in sequencing
+        - **ORDERING/CONSTRAINTS**: Chronological by `effective_date`; prevents overlaps and gaps
         
         **Required Permissions:** `org:create:planned`
       security:
@@ -486,7 +523,13 @@ paths:
         This endpoint supports temporal version management operations.
         
         **Event Types:**
-        - DEACTIVATE: Soft delete a specific version by setting status to DELETED
+        - DEACTIVATE: Soft delete a specific version by setting status to DELETED (by `recordId`)
+        
+        **Temporal Behavior:**
+        - Runs full timeline recomputation in a single transaction after event application
+          (bridges adjacent records, opens tail end, recomputes `is_current`)
+        - Deleted versions do not participate in temporal continuity checks
+        - Returns the latest non-deleted timeline in response to avoid read-cache delays
         
         **Required Permissions:** `org:delete`
       security:
@@ -544,11 +587,75 @@ paths:
                             type: string
                             format: uuid
                             example: "07f91c91-82ee-4bba-afde-9c3d7500f2cd"
+                          timeline:
+                            type: array
+                            description: Latest non-deleted timeline after recomputation
+                            items:
+                              type: object
+                              properties:
+                                recordId:
+                                  type: string
+                                  format: uuid
+                                code:
+                                  type: string
+                                name:
+                                  type: string
+                                unitType:
+                                  type: string
+                                status:
+                                  type: string
+                                  description: ACTIVE/INACTIVE/PLANNED (non-DELETED)
+                                level:
+                                  type: integer
+                                effectiveDate:
+                                  type: string
+                                  format: date
+                                endDate:
+                                  type: string
+                                  format: date
+                                  nullable: true
+                                isCurrent:
+                                  type: boolean
+                                createdAt:
+                                  type: string
+                                  format: date-time
+                                updatedAt:
+                                  type: string
+                                  format: date-time
+                                parentCode:
+                                  type: string
+                                  nullable: true
+                                description:
+                                  type: string
+                                  nullable: true
               example:
                 success: true
                 data:
                   code: "1000028"
                   record_id: "07f91c91-82ee-4bba-afde-9c3d7500f2cd"
+                  timeline:
+                    - recordId: "11111111-1111-1111-1111-111111111111"
+                      code: "1000028"
+                      name: "AI治理办公室"
+                      unitType: "DEPARTMENT"
+                      status: "ACTIVE"
+                      level: 2
+                      effectiveDate: "2024-11-01"
+                      endDate: "2025-07-31"
+                      isCurrent: false
+                      createdAt: "2025-08-31T09:00:00Z"
+                      updatedAt: "2025-09-06T06:00:00Z"
+                    - recordId: "22222222-2222-2222-2222-222222222222"
+                      code: "1000028"
+                      name: "AI治理办公室"
+                      unitType: "DEPARTMENT"
+                      status: "ACTIVE"
+                      level: 2
+                      effectiveDate: "2025-08-01"
+                      endDate: null
+                      isCurrent: true
+                      createdAt: "2025-09-01T09:00:00Z"
+                      updatedAt: "2025-09-06T06:05:00Z"
                 message: "版本作废成功"
                 timestamp: "2025-08-31T09:17:43Z"
                 requestId: "3f975f9b-6cf9-4e14-956b-2435d1a802bd"
@@ -610,13 +717,11 @@ paths:
                 value:
                   operationReason: "业务调整需要"
                   effectiveDate: "2025-08-23"
-                  endDate: null
               planned_suspension:
                 summary: Future Planned Suspension
                 value:
                   operationReason: "业务重组，部门合并"
                   effectiveDate: "2025-09-01"
-                  endDate: "2026-03-31"
       responses:
         '200':
           description: Organization unit suspended successfully
@@ -693,7 +798,6 @@ paths:
                 value:
                   operationReason: "恢复业务运营"
                   effectiveDate: "2025-08-23"
-                  endDate: null
               cancel_planned_suspension:
                 summary: Cancel Planned Suspension
                 value:
@@ -1179,12 +1283,6 @@ components:
           format: date
           description: Record effective date (supports future operations)
           example: "2025-08-05"
-        endDate:
-          type: string
-          format: date
-          nullable: true
-          description: Record end date (null for open-ended)
-          example: null
         isCurrent:
           type: boolean
           description: Dynamic field - whether record is effective on specified date
@@ -1380,11 +1478,6 @@ components:
           format: date
           description: Record effective date
           example: "2025-08-23"
-        endDate:
-          type: string
-          format: date
-          nullable: true
-          description: Record end date (optional)
         operationReason:
           type: string
           maxLength: 500
@@ -1438,12 +1531,6 @@ components:
           format: date
           description: When this version becomes effective
           example: "2024-04-01"
-        endDate:
-          type: string
-          format: date
-          nullable: true
-          description: When this version ends (optional, auto-calculated if not provided)
-          example: "2024-12-31"
         operationReason:
           type: string
           maxLength: 500
@@ -1539,11 +1626,6 @@ components:
           format: date
           description: Update effective date
           example: "2025-08-23"
-        endDate:
-          type: string
-          format: date
-          nullable: true
-          description: Update end date
         operationReason:
           type: string
           maxLength: 500
@@ -1566,12 +1648,6 @@ components:
           format: date
           description: Suspension effective date (supports future dates)
           example: "2025-08-23"
-        endDate:
-          type: string
-          format: date
-          nullable: true
-          description: Optional end date for planned reactivation
-          example: null
 
     ActivateOrganizationRequest:
       type: object
@@ -1589,12 +1665,6 @@ components:
           format: date
           description: Activation effective date
           example: "2025-08-23"
-        endDate:
-          type: string
-          format: date
-          nullable: true
-          description: Optional end date
-          example: null
 
     ValidateOrganizationRequest:
       type: object
@@ -1924,6 +1994,10 @@ components:
         Typical temporal conflicts include:
         - TEMPORAL_POINT_CONFLICT: unique (tenant_id, code, effective_date) violation
         - CURRENT_CONFLICT: partial unique (tenant_id, code) WHERE is_current=true violation
+        - TEMPORAL_GAP_VIOLATION: Time gap detected in temporal sequence
+        - TEMPORAL_OVERLAP_VIOLATION: Time overlap detected between versions
+        - TEMPORAL_BOUNDARY_CONFLICT: Boundary calculation conflict during concurrent updates
+        - TEMPORAL_TRANSACTION_FAILED: Temporal recomputation transaction failed
       content:
         application/json:
           schema:
@@ -1979,6 +2053,65 @@ components:
                     resolution: "Delete or reassign child units first"
                 timestamp: "2025-08-23T10:30:00Z"
                 requestId: "req_delete_conflict_001"
+            temporal_gap_violation:
+              summary: Temporal Gap Violation
+              value:
+                success: false
+                error:
+                  code: "TEMPORAL_GAP_VIOLATION"
+                  message: "Time gap detected in temporal sequence"
+                  details:
+                    code: "1000001"
+                    gapPeriod: "2024-01-01 to 2024-12-31"
+                    previousEndDate: "2023-12-31"
+                    nextEffectiveDate: "2025-01-01"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_temporal_gap_001"
+            temporal_overlap_violation:
+              summary: Temporal Overlap Violation
+              value:
+                success: false
+                error:
+                  code: "TEMPORAL_OVERLAP_VIOLATION"
+                  message: "Time overlap detected between versions"
+                  details:
+                    code: "1000001"
+                    conflictingVersions: [
+                      { "recordId": "uuid1", "period": "2025-06-01 to 2025-08-31" },
+                      { "recordId": "uuid2", "period": "2025-07-01 to 2025-09-30" }
+                    ]
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_temporal_overlap_001"
+            temporal_boundary_conflict:
+              summary: Temporal Boundary Calculation Conflict
+              value:
+                success: false
+                error:
+                  code: "TEMPORAL_BOUNDARY_CONFLICT"
+                  message: "Boundary calculation conflict during concurrent updates"
+                  details:
+                    code: "1000001"
+                    conflictType: "CONCURRENT_MODIFICATION"
+                    expectedVersion: 5
+                    actualVersion: 7
+                    resolution: "Retry with latest version"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_boundary_conflict_001"
+            temporal_transaction_failed:
+              summary: Temporal Transaction Rollback
+              value:
+                success: false
+                error:
+                  code: "TEMPORAL_TRANSACTION_FAILED"
+                  message: "Temporal recomputation transaction failed and was rolled back"
+                  details:
+                    code: "1000001"
+                    operationType: "DELETE_VERSION"
+                    affectedRecords: 3
+                    rollbackReason: "Constraint violation during boundary update"
+                    retryable: true
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_temporal_tx_failed_001"
 
     InternalError:
       description: |

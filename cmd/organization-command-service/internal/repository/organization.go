@@ -421,14 +421,65 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 }
 
 func (r *OrganizationRepository) Delete(ctx context.Context, tenantID uuid.UUID, code string) error {
-	// 软删除 - 设置状态为DELETED
-	query := `
+	// 开始事务，确保时态边界重计算的原子性
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("开始删除事务失败: %w", err)
+	}
+	defer tx.Rollback()
+
+	// 第一步：获取待删除的版本信息，用于后续时态边界调整
+	getDeletedVersionsQuery := `
+		SELECT effective_date, end_date, is_current 
+		FROM organization_units 
+		WHERE tenant_id = $1 AND code = $2 AND status != 'DELETED'
+		ORDER BY effective_date
+	`
+
+	rows, err := tx.QueryContext(ctx, getDeletedVersionsQuery, tenantID.String(), code)
+	if err != nil {
+		return fmt.Errorf("查询待删除版本失败: %w", err)
+	}
+	defer rows.Close()
+
+	type versionInfo struct {
+		effectiveDate time.Time
+		endDate       *time.Time
+		isCurrent     bool
+	}
+	var deletedVersions []versionInfo
+
+	for rows.Next() {
+		var v versionInfo
+		var effectiveDate time.Time
+		var endDate sql.NullTime
+		var isCurrent bool
+
+		err = rows.Scan(&effectiveDate, &endDate, &isCurrent)
+		if err != nil {
+			return fmt.Errorf("扫描待删除版本失败: %w", err)
+		}
+
+		v.effectiveDate = effectiveDate
+		v.isCurrent = isCurrent
+		if endDate.Valid {
+			v.endDate = &endDate.Time
+		}
+		deletedVersions = append(deletedVersions, v)
+	}
+
+	if len(deletedVersions) == 0 {
+		return fmt.Errorf("组织不存在或已删除: %s", code)
+	}
+
+	// 第二步：软删除 - 设置状态为DELETED
+	deleteQuery := `
 		UPDATE organization_units 
 		SET status = 'DELETED', updated_at = $3
 		WHERE tenant_id = $1 AND code = $2 AND status != 'DELETED'
 	`
 
-	result, err := r.db.ExecContext(ctx, query, tenantID.String(), code, time.Now())
+	result, err := tx.ExecContext(ctx, deleteQuery, tenantID.String(), code, time.Now())
 	if err != nil {
 		return fmt.Errorf("删除组织失败: %w", err)
 	}
@@ -442,7 +493,87 @@ func (r *OrganizationRepository) Delete(ctx context.Context, tenantID uuid.UUID,
 		return fmt.Errorf("组织不存在或已删除: %s", code)
 	}
 
-	r.logger.Printf("组织删除成功: %s", code)
+	// 第三步：时态边界重计算 - 填补删除版本造成的时间间隔
+	// API文档要求："删除组织创建时间间隔时，触发相关组织的智能边界扩展"
+	for i, deleted := range deletedVersions {
+		// 找到被删除版本的前一个版本
+		var prevEndDate *time.Time
+		if i > 0 {
+			// 如果有前一个被删除的版本，使用其生效日期-1天作为前一个有效版本的结束日期
+			prevDate := deleted.effectiveDate.AddDate(0, 0, -1)
+			prevEndDate = &prevDate
+		} else {
+			// 如果是第一个版本，找相同code的前一个有效版本
+			findPrevQuery := `
+				SELECT MAX(effective_date)
+				FROM organization_units 
+				WHERE tenant_id = $1 AND code = $2 AND status != 'DELETED'
+				  AND effective_date < $3
+			`
+			var prevEffective sql.NullTime
+			err = tx.QueryRowContext(ctx, findPrevQuery, tenantID.String(), code, deleted.effectiveDate).Scan(&prevEffective)
+			if err == nil && prevEffective.Valid {
+				endDate := deleted.effectiveDate.AddDate(0, 0, -1)
+				prevEndDate = &endDate
+			}
+		}
+
+		// 找到被删除版本的后一个版本
+		var nextEffectiveDate *time.Time
+		if i < len(deletedVersions)-1 {
+			// 如果有后一个被删除的版本，使用其生效日期
+			nextEffectiveDate = &deletedVersions[i+1].effectiveDate
+		} else {
+			// 如果是最后一个版本，找相同code的下一个有效版本
+			findNextQuery := `
+				SELECT MIN(effective_date)
+				FROM organization_units 
+				WHERE tenant_id = $1 AND code = $2 AND status != 'DELETED'
+				  AND effective_date > $3
+			`
+			var nextEffective sql.NullTime
+			err = tx.QueryRowContext(ctx, findNextQuery, tenantID.String(), code, deleted.effectiveDate).Scan(&nextEffective)
+			if err == nil && nextEffective.Valid {
+				nextEffectiveDate = &nextEffective.Time
+			}
+		}
+
+		// 更新前一个版本的结束日期，实现智能边界扩展
+		if prevEndDate != nil {
+			updatePrevQuery := `
+				UPDATE organization_units 
+				SET end_date = $4, updated_at = NOW()
+				WHERE tenant_id = $1 AND code = $2 AND status != 'DELETED'
+				  AND effective_date < $3
+				  AND effective_date = (
+					SELECT MAX(effective_date) 
+					FROM organization_units 
+					WHERE tenant_id = $1 AND code = $2 AND status != 'DELETED'
+					  AND effective_date < $3
+				  )
+			`
+			
+			var newEndDate *time.Time
+			if nextEffectiveDate != nil {
+				// 如果有后续版本，设置end_date为后续版本生效日期-1天
+				endDate := nextEffectiveDate.AddDate(0, 0, -1)
+				newEndDate = &endDate
+			}
+			// 如果没有后续版本，end_date保持为NULL（开放式结束）
+
+			_, err = tx.ExecContext(ctx, updatePrevQuery, tenantID.String(), code, deleted.effectiveDate, newEndDate)
+			if err != nil {
+				return fmt.Errorf("更新前一版本结束日期失败: %w", err)
+			}
+		}
+	}
+
+	// 提交事务
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("提交删除事务失败: %w", err)
+	}
+
+	r.logger.Printf("组织删除成功，时态边界已重计算: %s (删除了%d个版本)", code, len(deletedVersions))
 	return nil
 }
 
@@ -732,4 +863,61 @@ func (r *OrganizationRepository) GetByRecordId(ctx context.Context, tenantID uui
 	}
 
 	return &org, nil
+}
+
+// ListVersionsByCode 列出某组织代码的所有非删除版本，按生效日期倒序
+func (r *OrganizationRepository) ListVersionsByCode(ctx context.Context, tenantID uuid.UUID, code string) ([]types.Organization, error) {
+    query := `
+        SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
+               level, path, sort_order, description, created_at, updated_at,
+               effective_date, end_date, is_temporal, change_reason
+        FROM organization_units
+        WHERE tenant_id = $1 AND code = $2
+          AND status <> 'DELETED' AND deleted_at IS NULL
+        ORDER BY effective_date DESC
+    `
+
+    rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code)
+    if err != nil {
+        return nil, fmt.Errorf("查询组织版本失败: %w", err)
+    }
+    defer rows.Close()
+
+    versions := make([]types.Organization, 0, 8)
+    for rows.Next() {
+        var org types.Organization
+        var parentCode sql.NullString
+        var effectiveDate, endDate sql.NullTime
+        var changeReason sql.NullString
+
+        if err := rows.Scan(
+            &org.RecordID, &org.TenantID, &org.Code, &parentCode, &org.Name,
+            &org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+            &org.Description, &org.CreatedAt, &org.UpdatedAt,
+            &effectiveDate, &endDate, &org.IsTemporal, &changeReason,
+        ); err != nil {
+            return nil, fmt.Errorf("扫描组织版本失败: %w", err)
+        }
+
+        if parentCode.Valid {
+            org.ParentCode = &parentCode.String
+        }
+        if effectiveDate.Valid {
+            org.EffectiveDate = types.NewDateFromTime(effectiveDate.Time)
+        }
+        if endDate.Valid {
+            org.EndDate = types.NewDateFromTime(endDate.Time)
+        }
+        if changeReason.Valid {
+            org.ChangeReason = &changeReason.String
+        }
+
+        versions = append(versions, org)
+    }
+
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("遍历组织版本失败: %w", err)
+    }
+
+    return versions, nil
 }

@@ -5,7 +5,6 @@ import { Heading, Text } from '@workday/canvas-kit-react/text';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { Card } from '@workday/canvas-kit-react/card';
 
-import { StatsCards } from './components/StatsCards';
 import { OrganizationTable } from './components/OrganizationTable';
 import { OrganizationForm } from './components/OrganizationForm';
 import { OrganizationFilters } from './OrganizationFilters';
@@ -165,7 +164,6 @@ export const OrganizationDashboard: React.FC = () => {
         isHistorical={isHistorical}
       />
       
-      {stats && <StatsCards stats={stats} />}
       
       <OrganizationFilters 
         filters={filters}

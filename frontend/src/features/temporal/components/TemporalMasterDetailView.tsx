@@ -263,7 +263,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       setIsDeleting(true);
       
       // 使用DEACTIVATE事件而不是DELETE请求 - 修复：使用统一认证客户端
-      await unifiedRESTClient.request(
+      const resp = await unifiedRESTClient.request(
         `/organization-units/${organizationCode}/events`,
         {
           method: 'POST',
@@ -274,22 +274,50 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             changeReason: '通过组织详情页面作废版本'
           })
         }
-      );
-      
+      ) as { data?: { timeline?: any[] } };
+
+      // 删除API调用成功后，优先使用后端返回的新时间线，避免读缓存延迟
+      const timeline = resp?.data?.timeline;
+      if (Array.isArray(timeline)) {
+        const mappedVersions: TimelineVersion[] = timeline.map((v: any) => ({
+          recordId: v.recordId,
+          code: v.code,
+          name: v.name,
+          unitType: v.unitType,
+          status: v.status,
+          level: v.level,
+          effectiveDate: v.effectiveDate,
+          endDate: v.endDate || null,
+          isCurrent: !!v.isCurrent,
+          createdAt: v.createdAt,
+          updatedAt: v.updatedAt,
+          parentCode: v.parentCode || undefined,
+          description: v.description || undefined,
+          lifecycleStatus: v.isCurrent ? 'CURRENT' : 'HISTORICAL',
+          business_status: v.status === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
+          data_status: 'NORMAL',
+          path: '',
+          sortOrder: 1,
+          changeReason: '',
+        }));
+        const sorted = mappedVersions.sort((a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime());
+        setVersions(sorted);
+        const current = sorted.find(v => v.isCurrent) || sorted[0] || null;
+        setSelectedVersion(current);
+      } else {
+        // 回退：如果后端未返回时间线，执行原有刷新逻辑
+        try {
+          await loadVersions();
+        } catch (refreshError) {
+          console.warn('数据刷新失败，但删除操作已成功:', refreshError);
+        }
+      }
+
       // 删除API调用成功后，处理UI状态
       setShowDeleteConfirm(null);
-      
-      // 如果作废的是选中的版本，重新选择
-      if (selectedVersion?.effectiveDate === version.effectiveDate) {
+      // 如果作废的是选中的版本，重新选择（已在返回时间线路径中处理）
+      if (!timeline && selectedVersion?.effectiveDate === version.effectiveDate) {
         setSelectedVersion(null);
-      }
-      
-      // 刷新数据 - 使用try-catch防止刷新失败影响删除成功状态
-      try {
-        await loadVersions();
-      } catch (refreshError) {
-        console.warn('数据刷新失败，但删除操作已成功:', refreshError);
-        // 数据刷新失败不应该影响删除操作的成功状态
       }
     } catch (error) {
       console.error('Error deactivating version:', error);

@@ -28,13 +28,6 @@ vi.mock('../../shared/hooks/useOrganizations', () => ({
     },
     isLoading: false,
     error: null
-  }),
-  useOrganizationStats: () => ({
-    data: {
-      totalCount: 1,
-      byType: { DEPARTMENT: 1 },
-      byStatus: { ACTIVE: 1 }
-    }
   })
 }));
 

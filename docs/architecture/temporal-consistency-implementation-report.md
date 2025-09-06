@@ -44,6 +44,7 @@ CREATE INDEX ix_org_tce ON organization_units(tenant_id, code, effective_date DE
 **实施内容:**
 - ✅ 实现`TemporalService`核心服务类
 - ✅ 4个关键方法：插入中间版本、删除版本、变更生效日期、暂停激活
+- ✅ 新增“时间线重算”能力：删除（软/物理）后统一重算全链，包含末尾回写与当前标记
 - ✅ 事务控制：所有操作包装在数据库事务中
 - ✅ 错误处理：完整的错误处理和日志记录
 
@@ -56,6 +57,7 @@ type TemporalService struct {
 // 4个核心方法
 func (s *TemporalService) InsertIntermediateVersion(ctx context.Context, req *InsertVersionRequest) (*VersionResponse, error)
 func (s *TemporalService) DeleteIntermediateVersion(ctx context.Context, req *DeleteVersionRequest) error
+func (s *TemporalService) RecomputeTimelineForCode(ctx context.Context, tenantID uuid.UUID, code string) error
 func (s *TemporalService) ChangeEffectiveDate(ctx context.Context, req *ChangeEffectiveDateRequest) (*VersionResponse, error)
 func (s *TemporalService) SuspendActivate(ctx context.Context, req *SuspendActivateRequest) (*VersionResponse, error)
 ```
@@ -64,6 +66,7 @@ func (s *TemporalService) SuspendActivate(ctx context.Context, req *SuspendActiv
 
 **实施内容:**
 - ✅ 将`TemporalService`集成到`OrganizationHandler`
+- ✅ 删除事件（DEACTIVATE）后自动触发“全链重算”，保证末尾回写
 - ✅ 更新依赖注入：修改构造函数和主程序
 - ✅ 错误处理优化：修复导入路径和编译错误
 - ✅ 服务生命周期管理：集成到应用启动和关闭流程

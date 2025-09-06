@@ -28,19 +28,3 @@ export const useOrganization = (code: string) => {
   });
 };
 
-// 组织统计信息查询 - 修复无限循环问题
-export const useOrganizationStats = () => {
-  return useQuery({
-    queryKey: ['organization-stats'],
-    queryFn: () => organizationAPI.getStats(),
-    // 合理的缓存时间设置
-    staleTime: 60 * 1000, // 60秒内认为数据是新鲜的
-    gcTime: 5 * 60 * 1000, // 5分钟后清理缓存
-    refetchOnWindowFocus: false, // 避免过度刷新
-    refetchOnMount: true, // 组件挂载时获取数据
-    refetchOnReconnect: true, // 网络重连时重新获取
-    // 移除自动轮询，避免无限循环
-    refetchInterval: false,
-    refetchIntervalInBackground: false,
-  });
-};

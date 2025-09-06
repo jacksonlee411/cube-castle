@@ -110,7 +110,7 @@ func main() {
 	// 初始化处理器
 	orgHandler := handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger)
 	devToolsHandler := handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode, db)
-	operationalHandler := handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, logger)
+    operationalHandler := handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, logger)
 
 	// 设置路由
 	r := chi.NewRouter()

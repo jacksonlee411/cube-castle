@@ -25,13 +25,20 @@ export class UnifiedGraphQLClient {
 
   async request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
     const doRequest = async (): Promise<Response> => {
+      // 🔧 开发和生产环境都需要JWT认证
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // 所有环境都需要JWT认证
       const accessToken = await authManager.getAccessToken();
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+      
       return fetch(this.endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
+        headers,
         body: JSON.stringify({
           query,
           variables

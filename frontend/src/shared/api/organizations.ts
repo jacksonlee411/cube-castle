@@ -1,7 +1,6 @@
 import type { 
   OrganizationUnit, 
   OrganizationListResponse, 
-  OrganizationStats,
   OrganizationQueryParams
 } from '../types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../hooks/useOrganizationMutations';
@@ -105,7 +104,7 @@ export const organizationAPI = {
           }
         };
       } else {
-        // 基础查询版本（不含时态参数）- 使用正确的OrganizationConnection结构
+        // 基础查询版本（不含时态参数）- 使用正确的字段名
         graphqlQuery = `
           query GetOrganizations {
             organizations {
@@ -115,7 +114,6 @@ export const organizationAPI = {
                 unitType
                 status
                 level
-                path
                 sortOrder
                 description
                 parentCode
@@ -134,7 +132,7 @@ export const organizationAPI = {
       }
 
       const data = await unifiedGraphQLClient.request<{
-        organizations: {
+        organizations?: {
           data: Partial<OrganizationUnit>[];
           pagination: {
             total: number;
@@ -144,22 +142,42 @@ export const organizationAPI = {
         };
       }>(graphqlQuery, variables);
 
-      // 🔧 修复P0级数据契约问题: 使用OrganizationConnection结构
-      // 后端返回: organizations: {data: [...], pagination: {total, page, pageSize}}
-      // 前端期望: organizations: [...], totalCount: number
-      const organizations = (data.organizations?.data || []).map((org: Partial<OrganizationUnit>) => {
+      // 🔧 修复P0级数据契约问题: 使用正确的Connection结构
+      // organizations 返回Connection结构，数据在data字段中
+      const rawOrganizations = data.organizations?.data || [];
+      const organizations = rawOrganizations.map((org: Partial<OrganizationUnit>) => {
         try {
-          return safeTransform.graphqlToOrganization ? 
-            safeTransform.graphqlToOrganization(org) : 
-            org; // 直接返回原始数据，依赖后端格式
+          // 转换snake_case字段为camelCase
+          const transformed = {
+            code: org.code,
+            name: org.name,
+            unitType: (org as any).unit_type,
+            status: org.status,
+            level: org.level,
+            sortOrder: (org as any).sort_order,
+            description: org.description,
+            parentCode: (org as any).parent_code,
+            createdAt: (org as any).created_at,
+            updatedAt: (org as any).updated_at,
+            // 设置默认值
+            tenantId: (org as any).tenant_id || '',
+            recordId: (org as any).record_id || '',
+            path: (org as any).path || '',
+            profile: (org as any).profile || {},
+            effectiveDate: (org as any).effective_date,
+            endDate: (org as any).end_date,
+            isCurrent: (org as any).is_current !== false,
+            isTemporal: false
+          };
+          return transformed;
         } catch (error) {
           console.warn('Failed to transform organization:', org, error);
           return null;
         }
       }).filter(Boolean);
 
-      // 🔧 修复: 从organizations.pagination.total获取总数，符合OrganizationConnection结构
-      const totalCount = data.organizations?.pagination?.total || 0;
+      // 🔧 修复: 处理不同响应格式的总数
+      const totalCount = data.organizations?.pagination?.total || rawOrganizations.length;
       
       return {
         organizations: organizations.filter((org): org is OrganizationUnit => org !== null),
@@ -282,93 +300,6 @@ export const organizationAPI = {
     }
   },
 
-  // 获取组织统计信息 - 使用organizations查询获取统计数据
-  getStats: async (): Promise<OrganizationStats> => {
-    try {
-      const graphqlQuery = `
-        query GetOrganizationStats {
-          organizationStats {
-            totalCount
-            activeCount
-            inactiveCount
-            plannedCount
-            deletedCount
-            byType {
-              unitType
-              count
-            }
-            byStatus {
-              status
-              count
-            }
-            byLevel {
-              level
-              count
-            }
-            temporalStats {
-              totalVersions
-              averageVersionsPerOrg
-              oldestEffectiveDate
-              newestEffectiveDate
-            }
-          }
-        }
-      `;
-
-      const data = await unifiedGraphQLClient.request<{
-        organizationStats: {
-          totalCount: number;
-          activeCount: number;
-          inactiveCount: number;
-          plannedCount: number;
-          deletedCount: number;
-          byType: Array<{ unitType: string; count: number }>;
-          byStatus: Array<{ status: string; count: number }>;
-          byLevel: Array<{ level: number; count: number }>;
-          temporalStats: {
-            totalVersions: number;
-            averageVersionsPerOrg: number;
-            oldestEffectiveDate: string;
-            newestEffectiveDate: string;
-          };
-        };
-      }>(graphqlQuery);
-
-      const stats = data.organizationStats;
-      
-      if (!stats) {
-        throw new Error('No statistics data returned');
-      }
-
-      // 转换为前端期望的格式
-      const byType: Record<string, number> = {};
-      const byStatus: Record<string, number> = {};
-      
-      stats.byType.forEach(item => {
-        byType[item.unitType] = item.count;
-      });
-      
-      stats.byStatus.forEach(item => {
-        byStatus[item.status] = item.count;
-      });
-
-      return {
-        totalCount: stats.totalCount,
-        byType,
-        byStatus,
-        temporal: {
-          current: stats.activeCount,
-          future: stats.plannedCount,
-          historical: stats.temporalStats.totalVersions
-        },
-        lastUpdated: new Date().toISOString()
-      };
-
-    } catch (error) {
-      console.error('Error fetching organization stats:', error);
-      throw new Error('Failed to fetch organization statistics. Please try again.');
-    }
-  },
 
   // 创建组织 - 依赖后端统一验证
   create: async (input: CreateOrganizationInput): Promise<OrganizationUnit> => {
@@ -737,7 +668,7 @@ export const organizationAPI = {
       console.log('🚀 Creating new version for organization:', code, requestData);
 
       // 调用新的/versions端点
-      const response = await unifiedRESTClient.request<TemporalOrganizationUnit>(
+      const response = await unifiedRESTClient.request<{data: TemporalOrganizationUnit}>(
         `/organization-units/${code}/versions`,
         {
           method: 'POST',
@@ -745,13 +676,13 @@ export const organizationAPI = {
         }
       );
       
-      // 验证响应是否有效
-      if (!response.code) {
+      // 验证响应是否有效 - 检查企业级信封格式
+      if (!response.data || !response.data.code) {
         throw new Error('Invalid response from server');
       }
 
       console.log('✅ Version created successfully:', response);
-      return response;
+      return response.data;
 
     } catch (error: unknown) {
       console.error('❌ Error creating organization version:', code, error);
@@ -844,16 +775,16 @@ export const organizationAPI = {
         ]);
       }
 
-      const response = await unifiedRESTClient.request<OrganizationUnit>(`/organization-units/${code}/suspend`, {
+      const response = await unifiedRESTClient.request<{data: OrganizationUnit}>(`/organization-units/${code}/suspend`, {
         method: 'POST',
         body: JSON.stringify({ operationReason: reason.trim(), reason: reason.trim() }),
       });
       
-      if (!response.code) {
+      if (!response.data || !response.data.code) {
         throw new Error('Invalid response from server');
       }
 
-      return response;
+      return response.data;
 
     } catch (error: unknown) {
       console.error('Error suspending organization:', code, error);
@@ -881,16 +812,16 @@ export const organizationAPI = {
         ]);
       }
 
-      const response = await unifiedRESTClient.request<OrganizationUnit>(`/organization-units/${code}/activate`, {
+      const response = await unifiedRESTClient.request<{data: OrganizationUnit}>(`/organization-units/${code}/activate`, {
         method: 'POST',
         body: JSON.stringify({ operationReason: reason.trim(), reason: reason.trim() }),
       });
       
-      if (!response.code) {
+      if (!response.data || !response.data.code) {
         throw new Error('Invalid response from server');
       }
 
-      return response;
+      return response.data;
 
     } catch (error: unknown) {
       console.error('Error activating organization:', code, error);
