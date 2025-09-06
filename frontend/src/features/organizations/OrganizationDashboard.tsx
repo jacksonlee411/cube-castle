@@ -104,7 +104,7 @@ export const OrganizationDashboard: React.FC = () => {
   const {
     organizations,
     totalCount,
-    stats,
+    stats: _stats,
     isLoading,
     isFetching,
     error,

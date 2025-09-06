@@ -274,12 +274,12 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             changeReason: '通过组织详情页面作废版本'
           })
         }
-      ) as { data?: { timeline?: any[] } };
+      ) as { data?: { timeline?: Record<string, unknown>[] } };
 
       // 删除API调用成功后，优先使用后端返回的新时间线，避免读缓存延迟
       const timeline = resp?.data?.timeline;
       if (Array.isArray(timeline)) {
-        const mappedVersions: TimelineVersion[] = timeline.map((v: any) => ({
+        const mappedVersions: TimelineVersion[] = timeline.map((v: Record<string, unknown>) => ({
           recordId: v.recordId,
           code: v.code,
           name: v.name,

@@ -32,7 +32,7 @@ export const useOrganizationDashboard = () => {
   }), [filters]);
 
   // 根据时态模式选择使用不同的数据获取策略 - 暂时只使用传统数据
-  const useTemporalData = false; // isHistorical || isPlanning;
+  const _useTemporalData = false; // isHistorical || isPlanning;
   
   // 传统数据获取（当前模式）
   const { 
