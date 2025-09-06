@@ -6,9 +6,11 @@ import (
 	"log"
 	"net/http"
 	"strings"
+    "time"
 	
 	"postgresql-graphql-service/internal/middleware"
 	"postgresql-graphql-service/internal/types"
+    gqlmetrics "postgresql-graphql-service/internal/metrics"
 )
 
 type GraphQLPermissionMiddleware struct {
@@ -130,10 +132,15 @@ func (g *GraphQLPermissionMiddleware) createMockClaims(r *http.Request) *Claims 
 
 // CheckQueryPermission GraphQL查询级权限检查
 func (g *GraphQLPermissionMiddleware) CheckQueryPermission(ctx context.Context, queryName string) error {
-	if g.devMode {
-		return g.permissionChecker.MockPermissionCheck(ctx, queryName)
-	}
-	return g.permissionChecker.CheckGraphQLQuery(ctx, queryName)
+    start := time.Now()
+    var err error
+    if g.devMode {
+        err = g.permissionChecker.MockPermissionCheck(ctx, queryName)
+    } else {
+        err = g.permissionChecker.CheckGraphQLQuery(ctx, queryName)
+    }
+    gqlmetrics.RecordPermissionCheck(queryName, err == nil, time.Since(start))
+    return err
 }
 
 // writeErrorResponse 写入错误响应

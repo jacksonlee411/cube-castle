@@ -43,11 +43,14 @@
 ### **11 - API权限映射验证**
 - `11-api-permissions-mapping.md` - API权限映射完整性验证指南和权限体系文档
 
+### **12 - 时态一致性实施计划**
+- `12-temporal-consistency-implementation-plan.md` - 时态时间轴连贯性简化方案具体实施计划
+
 ## 📊 文档关系
 
 ```
 阅读流程建议:
-01-API规范 → 02-技术架构 → 03-API重构计划 → 04-后端实施 → 05-前端团队 → 06-团队协作 → 07-契约测试 → 08-前端API标准 → 09-代码审查规范 → 10-代码清理 → 11-权限映射验证
+01-API规范 → 02-技术架构 → 03-API重构计划 → 04-后端实施 → 05-前端团队 → 06-团队协作 → 07-契约测试 → 08-前端API标准 → 09-代码审查规范 → 10-代码清理 → 11-权限映射验证 → 12-时态一致性实施
 
 项目层级关系:
 03-api-compliance-intensive-refactoring-plan.md (当前重构方案)
@@ -75,17 +78,18 @@
 1. `01-organization-units-api-specification.md` - 了解API规范和业务需求
 2. `02-technical-architecture-design.md` - 理解技术架构和设计决策  
 3. `11-api-permissions-mapping.md` - 掌握API权限体系和映射关系
-4. `03-api-compliance-intensive-refactoring-plan.md` - 掌握项目整体规划和进度
-5. `04-backend-implementation-plan-phases1-3.md` - 了解后端实施策略
-6. `05-frontend-team-implementation-plan.md` - 了解前端开发计划
+4. `12-temporal-consistency-implementation-plan.md` - 理解时态数据管理方案
+5. `03-api-compliance-intensive-refactoring-plan.md` - 掌握项目整体规划和进度
+6. `04-backend-implementation-plan-phases1-3.md` - 了解后端实施策略
+7. `05-frontend-team-implementation-plan.md` - 了解前端开发计划
 
-### **当前开发重点 (2025-08-24)**  
-**当前阶段**: API符合度提升 - 集中重构期  
-**符合度现状**: 70%符合API规范，需要集中重构提升至95%  
-**重构方案**: 采用"方式2: 集中重构"，1-2周完成质量提升  
-**主要文档**: `03-api-compliance-intensive-refactoring-plan.md`  
-**重构重点**: REST命令服务完善 + OAuth权限集成 + 企业级功能补全  
-**风险控制**: Git分支保护 + 每日备份 + 功能开关机制
+### **当前开发重点 (2025-09-06)**  
+**当前阶段**: 时态一致性架构优化期  
+**重点任务**: 时态时间轴连贯性简化方案实施  
+**实施方案**: 5阶段渐进式实施，预计2周完成  
+**主要文档**: `12-temporal-consistency-implementation-plan.md`  
+**技术重点**: PostgreSQL原生时态查询 + 应用层事务控制 + 性能优化  
+**风险控制**: 分阶段实施 + 完整回滚方案 + 数据一致性验证
 
 ## 📋 API契约文档快速访问
 

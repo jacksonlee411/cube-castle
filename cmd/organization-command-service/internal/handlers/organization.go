@@ -14,21 +14,24 @@ import (
 	"organization-command-service/internal/audit"
 	"organization-command-service/internal/middleware"
 	"organization-command-service/internal/repository"
+	"organization-command-service/internal/services"
 	"organization-command-service/internal/types"
 	"organization-command-service/internal/utils"
 )
 
 type OrganizationHandler struct {
-	repo        *repository.OrganizationRepository
-	auditLogger *audit.AuditLogger
-	logger      *log.Logger
+	repo            *repository.OrganizationRepository
+	temporalService *services.TemporalService
+	auditLogger     *audit.AuditLogger
+	logger          *log.Logger
 }
 
-func NewOrganizationHandler(repo *repository.OrganizationRepository, auditLogger *audit.AuditLogger, logger *log.Logger) *OrganizationHandler {
+func NewOrganizationHandler(repo *repository.OrganizationRepository, temporalService *services.TemporalService, auditLogger *audit.AuditLogger, logger *log.Logger) *OrganizationHandler {
 	return &OrganizationHandler{
-		repo:        repo,
-		auditLogger: auditLogger,
-		logger:      logger,
+		repo:            repo,
+		temporalService: temporalService,
+		auditLogger:     auditLogger,
+		logger:          logger,
 	}
 }
 
@@ -795,12 +798,25 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
 		}
 		
-	// 唯一约束违反 - 代码重复
-	case strings.Contains(errorStr, "duplicate key value") && strings.Contains(errorStr, "organization_units_code_tenant_id_key"):
-		h.writeErrorResponse(w, r, http.StatusConflict, "DUPLICATE_CODE", "组织代码已存在", map[string]interface{}{
-			"constraint": "unique_code_per_tenant",
-			"operation": operation,
-		})
+    // 唯一约束违反 - 代码/时间点/当前冲突
+    case strings.Contains(errorStr, "duplicate key value"):
+        // 细分约束名称
+        switch {
+        case strings.Contains(errorStr, "uk_org_ver_active_only"):
+            h.writeErrorResponse(w, r, http.StatusConflict, "TEMPORAL_POINT_CONFLICT", "(tenant_id, code, effective_date) must be unique for non-deleted versions", nil)
+        case strings.Contains(errorStr, "uk_org_current_active_only"):
+            h.writeErrorResponse(w, r, http.StatusConflict, "CURRENT_CONFLICT", "Only one current non-deleted version per (tenant_id, code) is allowed", nil)
+        case strings.Contains(errorStr, "organization_units_code_tenant_id_key"):
+            h.writeErrorResponse(w, r, http.StatusConflict, "DUPLICATE_CODE", "组织代码已存在", map[string]interface{}{
+                "constraint": "unique_code_per_tenant",
+                "operation": operation,
+            })
+        default:
+            h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "数据约束违反", map[string]interface{}{
+                "operation": operation,
+                "type": "database_constraint",
+            })
+        }
 		
 	// 单位类型约束违反
 	case strings.Contains(errorStr, "organization_units_unit_type_check"):
@@ -828,9 +844,9 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 			"constraint": "parent_organization_exists",
 		})
 		
-	// 业务逻辑错误
-	case strings.Contains(errorStr, "already suspended"):
-		h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_SUSPENDED", "组织单元已处于停用状态", nil)
+    // 业务逻辑错误
+    case strings.Contains(errorStr, "already suspended"):
+        h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_SUSPENDED", "组织单元已处于停用状态", nil)
 		
 	case strings.Contains(errorStr, "already active"):
 		h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_ACTIVE", "组织单元已处于激活状态", nil)
@@ -849,12 +865,16 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 			"retryable": true,
 		})
 		
-	// 其他数据库约束错误
-	case strings.Contains(errorStr, "constraint"):
-		h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "数据约束违反", map[string]interface{}{
-			"operation": operation,
-			"type": "database_constraint",
-		})
+    // 已删除记录只读
+    case strings.Contains(errorStr, "READ_ONLY_DELETED") || strings.Contains(errorStr, "cannot modify deleted record"):
+        h.writeErrorResponse(w, r, http.StatusConflict, "DELETED_RECORD_READ_ONLY", "已删除记录为只读，禁止修改", nil)
+
+    // 其他数据库约束错误
+    case strings.Contains(errorStr, "constraint"):
+        h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "数据约束违反", map[string]interface{}{
+            "operation": operation,
+            "type": "database_constraint",
+        })
 		
 	// 默认内部服务器错误
 	default:

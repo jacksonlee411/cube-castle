@@ -1,0 +1,91 @@
+name: Ops Scripts Quality Gate
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    paths:
+      - 'scripts/**'
+      - 'sql/init/**'
+      - 'database/migrations/**'
+      - '.github/workflows/ops-scripts-quality.yml'
+  pull_request:
+    branches: [ master, main, develop ]
+    paths:
+      - 'scripts/**'
+      - 'sql/init/**'
+      - 'database/migrations/**'
+      - '.github/workflows/ops-scripts-quality.yml'
+
+jobs:
+  scripts-quality:
+    name: Validate Ops Scripts (Bash + SQL)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: cubecastle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGUSER: user
+      PGPASSWORD: password
+      PGDATABASE: cubecastle
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tools (psql client, shellcheck)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client shellcheck
+
+      - name: Verify expected scripts exist
+        run: |
+          test -f scripts/daily-cutover.sql
+          test -f scripts/data-consistency-check.sql
+          test -f scripts/setup-cron.sh
+
+      - name: Bash syntax check
+        run: |
+          bash -n scripts/setup-cron.sh
+
+      - name: ShellCheck static analysis
+        run: |
+          shellcheck -S warning scripts/setup-cron.sh
+
+      - name: Wait for Postgres
+        run: |
+          timeout 60 bash -c 'until pg_isready -h "$PGHOST" -U "$PGUSER"; do sleep 1; done'
+
+      - name: Initialize database schema
+        run: |
+          psql -v ON_ERROR_STOP=1 -f sql/init/01-schema.sql
+
+      - name: Apply database migrations (ordered)
+        run: |
+          set -e
+          for f in $(ls -1 database/migrations/*.sql | sort); do
+            echo "Applying migration: $f"
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: SQL smoke test - daily cutover
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/daily-cutover.sql
+
+      - name: SQL smoke test - consistency check
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/data-consistency-check.sql
+

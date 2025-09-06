@@ -90,7 +90,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   // 视图选项卡状态 - 默认显示版本历史页面，支持审计信息
   const [activeTab, setActiveTab] = useState<TabType>('edit-history');
   
-  // 表单模式状态 - 新增功能 (TODO: 当前未读取formMode值)
+  // TODO-TEMPORARY: FormMode state is not used; integrate form mode logic in v4.3 by 2025-09-20.
   const [/* formMode */, setFormMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
   const [formInitialData, setFormInitialData] = useState<{
     name: string;
@@ -325,7 +325,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       if (isCreateMode) {
         // 创建新组织
         // 状态映射：lifecycle_status -> API status
-        // const mapLifecycleStatusToApiStatus = (lifecycleStatus: string) => { // TODO: 暂时未使用
+        // TODO-TEMPORARY: mapLifecycleStatusToApiStatus not implemented; add status mapping in v4.3 by 2025-09-20.
+        // const mapLifecycleStatusToApiStatus = (lifecycleStatus: string) => {
         //   switch (lifecycleStatus) {
         //     case 'CURRENT': return 'ACTIVE';
         //     case 'PLANNED': return 'PLANNED';
@@ -424,7 +425,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   }, [isSubmitting]);
 
   // 历史记录编辑相关函数
-  // const handleEditHistory = useCallback((version: TimelineVersion) => { // TODO: 暂时未使用
+  // TODO-TEMPORARY: handleEditHistory not implemented; add history editing functionality in v4.3 by 2025-09-20.
+  // const handleEditHistory = useCallback((version: TimelineVersion) => {
   //   setFormMode('edit');
   //   setFormInitialData({
   //     name: version.name,

@@ -13,6 +13,31 @@
 
 ---
 
+## [v4.5.1] - 2025-09-06 ✅ API契约与简化实现对齐
+
+### 变更 - 幂等与冲突语义
+- OpenAPI (`openapi.yaml`) 版本从 4.5.0 → 4.5.1：
+  - 新增可选请求头 `Idempotency-Key`（components.parameters.IdempotencyKeyHeader）
+  - 为以下端点加入幂等键支持与 200 重放示例：
+    - `POST /api/v1/organization-units`
+    - `POST /api/v1/organization-units/{code}/versions`
+    - `POST /api/v1/organization-units/{code}/suspend`
+    - `POST /api/v1/organization-units/{code}/activate`
+  - 在 `components.responses.Conflict` 中明确两类时态冲突：
+    - `TEMPORAL_POINT_CONFLICT`：唯一 `(tenant_id, code, effective_date)` 冲突
+    - `CURRENT_CONFLICT`：部分唯一 `(tenant_id, code) WHERE is_current=true` 冲突
+  - `/versions` 端点描述更新：由“自动维护”改为“应用事务维护 is_current/end_date 转换”
+
+### 变更 - 文档措辞与实现对齐
+- GraphQL (`schema.graphql`) 注释：移除“26个专用索引”表述
+- 架构规范 (`docs/architecture/01-organization-units-api-specification.md`)：
+  - REST 端点清单补齐 `/activate`
+  - “数据库设计”改为最小约束与索引，强调应用层事务维护与日切
+
+### 兼容性
+- 无破坏性变更；为客户端增加了可选的 `Idempotency-Key` 支持。
+
+---
 ## [v4.4.0] - 2025-08-31 🚀 **时态版本创建功能新增**
 
 ### ✨ 新增 - 时态版本管理API端点

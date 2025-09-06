@@ -27,6 +27,7 @@ REST命令端点:
   - PUT /api/v1/organization-units/{code} (完全替换)
   - PATCH /api/v1/organization-units/{code} (部分更新)
   - POST /api/v1/organization-units/{code}/suspend (停用)
+  - POST /api/v1/organization-units/{code}/activate (启用)
   - DELETE /api/v1/organization-units/{code} (删除)
 ```
 
@@ -236,11 +237,18 @@ Content-Type: application/json
 - 批量操作最多处理100个项目
 - API请求频率限制: 1000次/分钟
 
-## 数据库设计
+## 数据库设计（实现约束对齐）
 
-**主键**: `(code, effective_date)`  
-**时态索引**: 26个专用索引优化时态查询  
-**触发器**: 自动维护层级路径和版本状态
+**最小约束**:
+- 唯一键: `(tenant_id, code, effective_date)` — 防止同一时点重复版本
+- 部分唯一索引: `(tenant_id, code) WHERE is_current=true` — 保证“单当前”并加速点查
+
+**索引**:
+- B-tree: `(tenant_id, code, effective_date DESC)` — 相邻版本预检与按日期倒序读取
+
+**实现说明**:
+- 边界回填与 is_current 翻转由应用层事务维护（非数据库触发器）
+- 自然日边界需要轻量“日切”任务做少量行的 is_current 翻转（可重试、可观测）
 
 ## 开发示例
 

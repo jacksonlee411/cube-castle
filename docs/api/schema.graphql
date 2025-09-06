@@ -9,7 +9,7 @@
 # - 17-level hierarchy depth support with intelligent caching
 # - Precise audit trail tracking individual temporal versions (record_id)
 # - Multi-tenant isolation and security
-# - Performance-optimized with 26 specialized indexes
+# - Index-optimized for common filters and access patterns
 #
 # Permission Requirements:
 # - organizations, organization: org:read

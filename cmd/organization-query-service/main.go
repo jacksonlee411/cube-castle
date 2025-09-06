@@ -668,14 +668,14 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 // 单个组织查询 - 超快速索引查询
 func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uuid.UUID, code string) (*Organization, error) {
 	// 使用 idx_current_record_fast 索引
-	query := `
-		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
-		       level, path, sort_order, description, profile, created_at, updated_at,
-		       effective_date, end_date, is_current, is_temporal, change_reason,
-		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
-		FROM organization_units 
-		WHERE tenant_id = $1 AND code = $2 AND is_current = true
-		LIMIT 1`
+    query := `
+        SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
+               level, path, sort_order, description, profile, created_at, updated_at,
+               effective_date, end_date, is_current, is_temporal, change_reason,
+               deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+        FROM organization_units 
+        WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+        LIMIT 1`
 
 	start := time.Now()
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
@@ -707,17 +707,18 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
 // 极速时态查询 - 时间点查询（利用时态索引）
 func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenantID uuid.UUID, code, date string) (*Organization, error) {
 	// 使用 idx_org_temporal_range_composite 索引
-	query := `
-		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
-		       level, path, sort_order, description, profile, created_at, updated_at,
-		       effective_date, end_date, is_current, is_temporal, change_reason,
-		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
-		FROM organization_units 
-		WHERE tenant_id = $1 AND code = $2 
-		  AND effective_date <= $3::date 
-		  AND (end_date IS NULL OR end_date >= $3::date)
-		ORDER BY effective_date DESC, created_at DESC
-		LIMIT 1`
+    query := `
+        SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
+               level, path, sort_order, description, profile, created_at, updated_at,
+               effective_date, end_date, is_current, is_temporal, change_reason,
+               deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+        FROM organization_units 
+        WHERE tenant_id = $1 AND code = $2 
+          AND effective_date <= $3::date 
+          AND (end_date IS NULL OR end_date >= $3::date)
+          AND status <> 'DELETED' AND deleted_at IS NULL
+        ORDER BY effective_date DESC, created_at DESC
+        LIMIT 1`
 
 	start := time.Now()
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code, date)
@@ -749,15 +750,16 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
 // 历史范围查询 - 窗口函数优化
 func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenantID uuid.UUID, code, fromDate, toDate string) ([]Organization, error) {
 	// 使用窗口函数和时态索引优化历史查询
-	query := `
-		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
-		       level, path, sort_order, description, profile, created_at, updated_at,
-		       effective_date, end_date, is_current, is_temporal, change_reason,
-		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
-		FROM organization_units 
-		WHERE tenant_id = $1 AND code = $2 
-		  AND effective_date BETWEEN $3::date AND $4::date
-		ORDER BY effective_date DESC, created_at DESC`
+    query := `
+        SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
+               level, path, sort_order, description, profile, created_at, updated_at,
+               effective_date, end_date, is_current, is_temporal, change_reason,
+               deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
+        FROM organization_units 
+        WHERE tenant_id = $1 AND code = $2 
+          AND effective_date BETWEEN $3::date AND $4::date
+          AND status <> 'DELETED' AND deleted_at IS NULL
+        ORDER BY effective_date DESC, created_at DESC`
 
 	start := time.Now()
 	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code, fromDate, toDate)
@@ -797,41 +799,41 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 
 	// 使用单个复杂查询获取所有统计信息
 	query := `
-		WITH status_stats AS (
-			SELECT 
-				COUNT(*) as total_count,
-				SUM(CASE WHEN status = 'ACTIVE' THEN 1 ELSE 0 END) as active_count,
-				SUM(CASE WHEN status = 'INACTIVE' THEN 1 ELSE 0 END) as inactive_count,
-				SUM(CASE WHEN status = 'PLANNED' THEN 1 ELSE 0 END) as planned_count,
-				SUM(CASE WHEN status = 'DELETED' THEN 1 ELSE 0 END) as deleted_count
-			FROM organization_units WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
-		),
-		type_stats AS (
-			SELECT unit_type, COUNT(*) as count
-			FROM organization_units 
-			WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
-			GROUP BY unit_type
-		),
-		status_detail_stats AS (
-			SELECT status, COUNT(*) as count
-			FROM organization_units 
-			WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
-			GROUP BY status
-		),
-		level_stats AS (
-			SELECT level, COUNT(*) as count
-			FROM organization_units 
-			WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
-			GROUP BY level
-		),
-		temporal_stats AS (
-			SELECT 
-				COUNT(*) as total_versions,
-				COUNT(DISTINCT code) as unique_orgs,
-				MIN(effective_date) as oldest_date,
-				MAX(effective_date) as newest_date
-			FROM organization_units WHERE tenant_id = $1
-		)
+        WITH status_stats AS (
+            SELECT 
+                COUNT(*) as total_count,
+                SUM(CASE WHEN status = 'ACTIVE' THEN 1 ELSE 0 END) as active_count,
+                SUM(CASE WHEN status = 'INACTIVE' THEN 1 ELSE 0 END) as inactive_count,
+                SUM(CASE WHEN status = 'PLANNED' THEN 1 ELSE 0 END) as planned_count,
+                SUM(CASE WHEN status = 'DELETED' THEN 1 ELSE 0 END) as deleted_count
+            FROM organization_units WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+        ),
+        type_stats AS (
+            SELECT unit_type, COUNT(*) as count
+            FROM organization_units 
+            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            GROUP BY unit_type
+        ),
+        status_detail_stats AS (
+            SELECT status, COUNT(*) as count
+            FROM organization_units 
+            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            GROUP BY status
+        ),
+        level_stats AS (
+            SELECT level, COUNT(*) as count
+            FROM organization_units 
+            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            GROUP BY level
+        ),
+        temporal_stats AS (
+            SELECT 
+                COUNT(*) as total_versions,
+                COUNT(DISTINCT code) as unique_orgs,
+                MIN(effective_date) as oldest_date,
+                MAX(effective_date) as newest_date
+            FROM organization_units WHERE tenant_id = $1 AND (status <> 'DELETED' AND deleted_at IS NULL)
+        )
 		SELECT 
 			s.total_count, s.active_count, s.inactive_count, s.planned_count, s.deleted_count,
 			ts.total_versions, ts.unique_orgs, ts.oldest_date, ts.newest_date,
@@ -902,34 +904,34 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 	start := time.Now()
 	
 	// 使用PostgreSQL递归CTE查询完整层级信息
-	query := `
-		WITH RECURSIVE hierarchy_info AS (
-			-- 获取目标组织
-			SELECT 
-				code, name, level, 
-				COALESCE(code_path, '/' || code) as code_path,
-				COALESCE(name_path, '/' || name) as name_path,
-				parent_code,
-				1 as hierarchy_depth
-			FROM organization_units 
-			WHERE tenant_id = $1 AND code = $2 AND is_current = true
-			
-			UNION ALL
-			
-			-- 递归获取父级信息
-			SELECT 
-				o.code, o.name, o.level,
-				o.code_path, o.name_path, o.parent_code,
-				h.hierarchy_depth + 1
-			FROM organization_units o
-			INNER JOIN hierarchy_info h ON o.code = h.parent_code
-			WHERE o.tenant_id = $1 AND o.is_current = true
-		),
-		children_count AS (
-			SELECT COUNT(*) as count
-			FROM organization_units
-			WHERE tenant_id = $1 AND parent_code = $2 AND is_current = true
-		)
+    query := `
+        WITH RECURSIVE hierarchy_info AS (
+            -- 获取目标组织
+            SELECT 
+                code, name, level, 
+                COALESCE(code_path, '/' || code) as code_path,
+                COALESCE(name_path, '/' || name) as name_path,
+                parent_code,
+                1 as hierarchy_depth
+            FROM organization_units 
+            WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            
+            UNION ALL
+            
+            -- 递归获取父级信息
+            SELECT 
+                o.code, o.name, o.level,
+                o.code_path, o.name_path, o.parent_code,
+                h.hierarchy_depth + 1
+            FROM organization_units o
+            INNER JOIN hierarchy_info h ON o.code = h.parent_code
+            WHERE o.tenant_id = $1 AND o.is_current = true AND o.status <> 'DELETED' AND o.deleted_at IS NULL
+        ),
+        children_count AS (
+            SELECT COUNT(*) as count
+            FROM organization_units
+            WHERE tenant_id = $1 AND parent_code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+        )
 		SELECT 
 			h.code, h.name, h.level, h.hierarchy_depth,
 			h.code_path, h.name_path,
@@ -980,31 +982,31 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 	start := time.Now()
 	
 	// 使用PostgreSQL递归CTE查询子树结构，限制深度
-	query := `
-		WITH RECURSIVE subtree AS (
-			-- 根节点
-			SELECT 
-				code, name, level, 
-				COALESCE(hierarchy_depth, level) as hierarchy_depth,
-				COALESCE(code_path, '/' || code) as code_path,
-				COALESCE(name_path, '/' || name) as name_path,
-				parent_code,
-				0 as depth_from_root
-			FROM organization_units 
-			WHERE tenant_id = $1 AND code = $2 AND is_current = true
-			
-			UNION ALL
-			
-			-- 递归查询子节点
-			SELECT 
-				o.code, o.name, o.level,
-				o.hierarchy_depth, o.code_path, o.name_path, o.parent_code,
-				s.depth_from_root + 1
-			FROM organization_units o
-			INNER JOIN subtree s ON o.parent_code = s.code
-			WHERE o.tenant_id = $1 AND o.is_current = true 
-			  AND s.depth_from_root < $3
-		)
+    query := `
+        WITH RECURSIVE subtree AS (
+            -- 根节点
+            SELECT 
+                code, name, level, 
+                COALESCE(hierarchy_depth, level) as hierarchy_depth,
+                COALESCE(code_path, '/' || code) as code_path,
+                COALESCE(name_path, '/' || name) as name_path,
+                parent_code,
+                0 as depth_from_root
+            FROM organization_units 
+            WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            
+            UNION ALL
+            
+            -- 递归查询子节点
+            SELECT 
+                o.code, o.name, o.level,
+                o.hierarchy_depth, o.code_path, o.name_path, o.parent_code,
+                s.depth_from_root + 1
+            FROM organization_units o
+            INNER JOIN subtree s ON o.parent_code = s.code
+            WHERE o.tenant_id = $1 AND o.is_current = true AND o.status <> 'DELETED' AND o.deleted_at IS NULL
+              AND s.depth_from_root < $3
+        )
 		SELECT code, name, level, hierarchy_depth, code_path, name_path, parent_code
 		FROM subtree 
 		ORDER BY level, code`
@@ -1244,16 +1246,21 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
 
 // GraphQL解析器 - 极简高效
 type Resolver struct {
-	repo   *PostgreSQLRepository
-	logger *log.Logger
+    repo   *PostgreSQLRepository
+    logger *log.Logger
+    authMW *auth.GraphQLPermissionMiddleware
 }
 
 // 当前组织列表查询 - 符合API契约v4.2.1 (camelCase方法名)
 func (r *Resolver) Organizations(ctx context.Context, args struct {
-	Filter     *OrganizationFilter
-	Pagination *PaginationInput
+    Filter     *OrganizationFilter
+    Pagination *PaginationInput
 }) (*OrganizationConnection, error) {
-	r.logger.Printf("[GraphQL] 查询组织列表 - API契约v4.2.1")
+    if err := r.authMW.CheckQueryPermission(ctx, "organizations"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: organizations: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 查询组织列表 - API契约v4.2.1")
 
 	// 记录查询参数用于调试
 	if args.Filter != nil {
@@ -1268,51 +1275,75 @@ func (r *Resolver) Organizations(ctx context.Context, args struct {
 
 // 单个组织查询
 func (r *Resolver) Organization(ctx context.Context, args struct {
-	Code string
+    Code string
 }) (*Organization, error) {
-	r.logger.Printf("[GraphQL] 查询单个组织 - code: %s", args.Code)
-	return r.repo.GetOrganization(ctx, DefaultTenantID, args.Code)
+    if err := r.authMW.CheckQueryPermission(ctx, "organization"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: organization: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 查询单个组织 - code: %s", args.Code)
+    return r.repo.GetOrganization(ctx, DefaultTenantID, args.Code)
 }
 
 // 时态查询 - 时间点
 func (r *Resolver) OrganizationAtDate(ctx context.Context, args struct {
-	Code string
-	Date string
+    Code string
+    Date string
 }) (*Organization, error) {
-	r.logger.Printf("[GraphQL] 时态查询 - code: %s, date: %s", args.Code, args.Date)
-	return r.repo.GetOrganizationAtDate(ctx, DefaultTenantID, args.Code, args.Date)
+    if err := r.authMW.CheckQueryPermission(ctx, "organizationAtDate"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: organizationAtDate: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 时态查询 - code: %s, date: %s", args.Code, args.Date)
+    return r.repo.GetOrganizationAtDate(ctx, DefaultTenantID, args.Code, args.Date)
 }
 
 // 时态查询 - 历史范围
 func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
-	Code     string
-	FromDate string
-	ToDate   string
+    Code     string
+    FromDate string
+    ToDate   string
 }) ([]Organization, error) {
-	r.logger.Printf("[GraphQL] 历史查询 - code: %s, range: %s~%s", args.Code, args.FromDate, args.ToDate)
-	return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, args.FromDate, args.ToDate)
+    if err := r.authMW.CheckQueryPermission(ctx, "organizationHistory"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: organizationHistory: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 历史查询 - code: %s, range: %s~%s", args.Code, args.FromDate, args.ToDate)
+    return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, args.FromDate, args.ToDate)
 }
 
 // 组织版本查询
 func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
-	Code string
+    Code string
 }) ([]Organization, error) {
-	r.logger.Printf("[GraphQL] 版本查询 - code: %s", args.Code)
-	return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, "1900-01-01", "2099-12-31")
+    if err := r.authMW.CheckQueryPermission(ctx, "organizationVersions"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: organizationVersions: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 版本查询 - code: %s", args.Code)
+    return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, "1900-01-01", "2099-12-31")
 }
 
 // 组织统计 (camelCase方法名)
 func (r *Resolver) OrganizationStats(ctx context.Context) (*OrganizationStats, error) {
-	r.logger.Printf("[GraphQL] 统计查询")
-	return r.repo.GetOrganizationStats(ctx, DefaultTenantID)
+    if err := r.authMW.CheckQueryPermission(ctx, "organizationStats"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: organizationStats: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 统计查询")
+    return r.repo.GetOrganizationStats(ctx, DefaultTenantID)
 }
 
 // 高级层级结构查询 - 严格遵循API规范v4.2.1
 func (r *Resolver) OrganizationHierarchy(ctx context.Context, args struct {
-	Code     string
-	TenantId string
+    Code     string
+    TenantId string
 }) (*OrganizationHierarchyData, error) {
-	r.logger.Printf("[GraphQL] 层级结构查询 - code: %s, tenantId: %s", args.Code, args.TenantId)
+    if err := r.authMW.CheckQueryPermission(ctx, "organizationHierarchy"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: organizationHierarchy: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 层级结构查询 - code: %s, tenantId: %s", args.Code, args.TenantId)
 	
 	tenantID, err := uuid.Parse(args.TenantId)
 	if err != nil {
@@ -1323,11 +1354,15 @@ func (r *Resolver) OrganizationHierarchy(ctx context.Context, args struct {
 }
 
 func (r *Resolver) OrganizationSubtree(ctx context.Context, args struct {
-	Code     string
-	TenantId string
-	MaxDepth *int32
+    Code     string
+    TenantId string
+    MaxDepth *int32
 }) (*OrganizationSubtreeData, error) {
-	r.logger.Printf("[GraphQL] 子树查询 - code: %s, tenantId: %s, maxDepth: %v", args.Code, args.TenantId, args.MaxDepth)
+    if err := r.authMW.CheckQueryPermission(ctx, "organizationSubtree"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: organizationSubtree: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 子树查询 - code: %s, tenantId: %s, maxDepth: %v", args.Code, args.TenantId, args.MaxDepth)
 	
 	tenantID, err := uuid.Parse(args.TenantId)
 	if err != nil {
@@ -1344,14 +1379,18 @@ func (r *Resolver) OrganizationSubtree(ctx context.Context, args struct {
 
 // 审计历史查询 - v4.6.0 基于record_id
 func (r *Resolver) AuditHistory(ctx context.Context, args struct {
-	RecordId  string
-	StartDate *string
-	EndDate   *string
-	Operation *string
-	UserId    *string
-	Limit     *int32
+    RecordId  string
+    StartDate *string
+    EndDate   *string
+    Operation *string
+    UserId    *string
+    Limit     *int32
 }) ([]AuditRecordData, error) {
-	r.logger.Printf("[GraphQL] 审计历史查询 - recordId: %s", args.RecordId)
+    if err := r.authMW.CheckQueryPermission(ctx, "auditHistory"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: auditHistory: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 审计历史查询 - recordId: %s", args.RecordId)
 	
 	limit := int32(50) // 默认限制
 	if args.Limit != nil && *args.Limit > 0 {
@@ -1366,10 +1405,14 @@ func (r *Resolver) AuditHistory(ctx context.Context, args struct {
 
 // 单条审计记录查询 - v4.6.0
 func (r *Resolver) AuditLog(ctx context.Context, args struct {
-	AuditId string
+    AuditId string
 }) (*AuditRecordData, error) {
-	r.logger.Printf("[GraphQL] 单条审计记录查询 - auditId: %s", args.AuditId)
-	return r.repo.GetAuditLog(ctx, args.AuditId)
+    if err := r.authMW.CheckQueryPermission(ctx, "auditLog"); err != nil {
+        r.logger.Printf("[AUTH] 权限拒绝: auditLog: %v", err)
+        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+    }
+    r.logger.Printf("[GraphQL] 单条审计记录查询 - auditId: %s", args.AuditId)
+    return r.repo.GetAuditLog(ctx, args.AuditId)
 }
 
 func main() {
@@ -1416,12 +1459,8 @@ func main() {
 		logger.Println("✅ Redis连接成功")
 	}
 
-	// 创建仓储和解析器
+	// 创建仓储
 	repo := NewPostgreSQLRepository(db, redisClient, logger)
-	resolver := &Resolver{repo: repo, logger: logger}
-
-	// 创建GraphQL schema
-	schema := graphql.MustParseSchema(schemaString, resolver)
 
 	// 初始化JWT中间件
 	jwtSecret := getEnv("JWT_SECRET", "cube-castle-development-secret-key-2025")
@@ -1439,6 +1478,12 @@ func main() {
 	)
 
 	logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v)", devMode)
+
+	// 创建解析器（注入权限中间件）
+	resolver := &Resolver{repo: repo, logger: logger, authMW: graphqlMiddleware}
+
+	// 创建GraphQL schema
+	schema := graphql.MustParseSchema(schemaString, resolver)
 
 	// HTTP路由
 	r := chi.NewRouter()

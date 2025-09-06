@@ -264,7 +264,7 @@ func (a *AuditLogger) LogOrganizationDelete(ctx context.Context, tenantID uuid.U
 	} else {
 		// 如果没有组织数据，这种情况需要从数据库查询RecordID
 		// 为了简化，这里使用code，但这会导致UUID类型错误
-		// TODO: 应该在调用方传递正确的RecordID
+		// TODO-TEMPORARY: Should pass correct RecordID from caller; refactor deletion audit in v4.3 by 2025-09-20.
 		resourceID = code
 	}
 	

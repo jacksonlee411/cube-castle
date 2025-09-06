@@ -39,9 +39,9 @@ func (m *GraphQLEnvelopeMiddleware) Middleware() func(http.Handler) http.Handler
 
 // responseInterceptor 响应拦截器，将GraphQL标准响应包装为企业级信封
 type responseInterceptor struct {
-	http.ResponseWriter
-	requestID string
-	written   bool
+    http.ResponseWriter
+    requestID string
+    written   bool
 }
 
 func (ri *responseInterceptor) Write(data []byte) (int, error) {
@@ -50,44 +50,56 @@ func (ri *responseInterceptor) Write(data []byte) (int, error) {
 	}
 	ri.written = true
 
-	// 解析GraphQL响应
-	var graphqlResponse map[string]interface{}
-	if err := json.Unmarshal(data, &graphqlResponse); err != nil {
-		// 如果解析失败，返回原始响应
-		return ri.ResponseWriter.Write(data)
-	}
+    // 解析GraphQL响应
+    var graphqlResponse map[string]interface{}
+    if err := json.Unmarshal(data, &graphqlResponse); err != nil {
+        // 如果解析失败，返回原始响应
+        return ri.ResponseWriter.Write(data)
+    }
 
-	// 检查是否为GraphQL查询响应（包含data字段）
-	if _, hasData := graphqlResponse["data"]; hasData {
-		// 检查是否有错误
-		hasErrors := false
-		errorMessage := "Query executed successfully"
+    // 检查是否为GraphQL查询响应（包含data字段）
+    if _, hasData := graphqlResponse["data"]; hasData {
+        // 检查是否有错误
+        errorMessage := "Query executed successfully"
 		
-		if errors, hasErr := graphqlResponse["errors"]; hasErr {
-			hasErrors = true
-			errorMessage = "Query completed with errors"
-			
-			// 构建企业级错误响应
-			if hasErrors {
-				errorResponse := types.WriteErrorResponse(
-					"GRAPHQL_EXECUTION_ERROR",
-					errorMessage,
-					ri.requestID,
-					errors,
-				)
-				
-				ri.ResponseWriter.Header().Set("Content-Type", "application/json")
-				responseData, _ := json.Marshal(errorResponse)
-				return ri.ResponseWriter.Write(responseData)
-			}
-		}
+        if errorsVal, hasErr := graphqlResponse["errors"]; hasErr {
+            errorMessage = "Query completed with errors"
 
-		// 构建企业级成功响应信封
-		successResponse := types.WriteSuccessResponse(
-			graphqlResponse["data"],
-			errorMessage,
-			ri.requestID,
-		)
+            // 权限错误识别：若任一错误message包含"INSUFFICIENT_PERMISSIONS"，映射企业错误码
+            code := "GRAPHQL_EXECUTION_ERROR"
+            if arr, ok := errorsVal.([]interface{}); ok {
+                for _, e := range arr {
+                    if m, ok := e.(map[string]interface{}); ok {
+                        if msg, ok := m["message"].(string); ok {
+                            if msg == "INSUFFICIENT_PERMISSIONS" ||
+                               containsIgnoreCase(msg, "INSUFFICIENT_PERMISSIONS") {
+                                code = "INSUFFICIENT_PERMISSIONS"
+                                errorMessage = "权限不足，无法执行该查询"
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+
+            errorResponse := types.WriteErrorResponse(
+                code,
+                errorMessage,
+                ri.requestID,
+                errorsVal,
+            )
+
+            ri.ResponseWriter.Header().Set("Content-Type", "application/json")
+            responseData, _ := json.Marshal(errorResponse)
+            return ri.ResponseWriter.Write(responseData)
+        }
+
+        // 构建企业级成功响应信封
+        successResponse := types.WriteSuccessResponse(
+            graphqlResponse["data"],
+            errorMessage,
+            ri.requestID,
+        )
 
 		// 设置响应头
 		ri.ResponseWriter.Header().Set("Content-Type", "application/json")
@@ -107,5 +119,34 @@ func (ri *responseInterceptor) Write(data []byte) (int, error) {
 }
 
 func (ri *responseInterceptor) WriteHeader(statusCode int) {
-	ri.ResponseWriter.WriteHeader(statusCode)
+    ri.ResponseWriter.WriteHeader(statusCode)
+}
+
+// containsIgnoreCase 判断子串（不区分大小写）
+func containsIgnoreCase(s, substr string) bool {
+    if len(substr) == 0 {
+        return true
+    }
+    // 简单小写比较
+    bs := []rune(s)
+    bsub := []rune(substr)
+    ls := make([]rune, len(bs))
+    lsub := make([]rune, len(bsub))
+    for i, r := range bs { if r >= 'A' && r <= 'Z' { ls[i] = r + 32 } else { ls[i] = r } }
+    for i, r := range bsub { if r >= 'A' && r <= 'Z' { lsub[i] = r + 32 } else { lsub[i] = r } }
+    return stringContains(string(ls), string(lsub))
+}
+
+// stringContains 使用标准库子串搜索
+func stringContains(s, sub string) bool { return len(sub) == 0 || (len(s) >= len(sub) && (indexOf(s, sub) >= 0)) }
+
+// indexOf 朴素查找（避免引入strings包以保持低依赖）：返回首次位置或-1
+func indexOf(s, sub string) int {
+    n, m := len(s), len(sub)
+    if m == 0 { return 0 }
+    if m > n { return -1 }
+    for i := 0; i <= n-m; i++ {
+        if s[i:i+m] == sub { return i }
+    }
+    return -1
 }

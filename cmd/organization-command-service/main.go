@@ -54,7 +54,8 @@ func main() {
 
 	// 初始化业务服务层
 	cascadeService := services.NewCascadeUpdateService(hierarchyRepo, 4, logger)
-	_ = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger) // 业务规则验证器 - 后续版本使用
+	// TODO-TEMPORARY: BusinessRuleValidator is initialized but not wired; integrate rule checks in v4.3 by 2025-09-20.
+	_ = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)
 	auditLogger := audit.NewAuditLogger(db, logger)
 	metricsCollector := metrics.NewMetricsCollector(logger)
 
@@ -97,9 +98,19 @@ func main() {
 	performanceMiddleware := middleware.NewPerformanceMiddleware(logger)
 	rateLimitMiddleware := middleware.NewRateLimitMiddleware(middleware.DefaultRateLimitConfig, logger)
 	
+	// 初始化时态服务
+	temporalService := services.NewTemporalService(db)
+	
+	// 初始化监控服务
+	temporalMonitor := services.NewTemporalMonitor(db, logger)
+	
+	// 初始化运维调度器
+	operationalScheduler := services.NewOperationalScheduler(db, logger, temporalMonitor)
+	
 	// 初始化处理器
-	orgHandler := handlers.NewOrganizationHandler(orgRepo, auditLogger, logger)
+	orgHandler := handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger)
 	devToolsHandler := handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode, db)
+	operationalHandler := handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, logger)
 
 	// 设置路由
 	r := chi.NewRouter()
@@ -165,6 +176,8 @@ func main() {
 		r.Use(restAuthMiddleware.Middleware())         // JWT认证和权限验证中间件
 		// 设置组织相关路由 (需要认证)
 		orgHandler.SetupRoutes(r)
+		// 设置运维管理路由 (需要认证)
+		operationalHandler.SetupRoutes(r)
 	})
 
 	// 服务启动
@@ -177,6 +190,12 @@ func main() {
 		Addr:    ":" + port,
 		Handler: r,
 	}
+
+	// 启动运维调度器
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	operationalScheduler.Start(ctx)
+	logger.Println("✅ 运维任务调度器已启动")
 
 	// 优雅关闭
 	go func() {
@@ -197,10 +216,14 @@ func main() {
 	cascadeService.Stop()
 	logger.Println("✅ 级联更新服务已停止")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	// 停止运维调度器
+	operationalScheduler.Stop()
+	logger.Println("✅ 运维任务调度器已停止")
 
-	if err := server.Shutdown(ctx); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		logger.Printf("服务关闭错误: %v", err)
 	} else {
 		logger.Println("✅ 服务已安全关闭")

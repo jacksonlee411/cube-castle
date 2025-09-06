@@ -24,11 +24,9 @@ export class UnifiedGraphQLClient {
   }
 
   async request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
-    try {
-      // 获取OAuth访问令牌
+    const doRequest = async (): Promise<Response> => {
       const accessToken = await authManager.getAccessToken();
-      
-      const response = await fetch(this.endpoint, {
+      return fetch(this.endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -39,13 +37,27 @@ export class UnifiedGraphQLClient {
           variables
         }),
       });
+    };
+
+    let retried = false;
+    try {
+      // 获取OAuth访问令牌
+      let response = await doRequest();
 
       if (!response.ok) {
         // JWT token过期或无效时，清除认证状态并提供友好错误信息
         if (response.status === 401) {
-          console.warn('[GraphQL Client] 认证失败，清除token状态');
+          console.warn('[GraphQL Client] 401 未认证，尝试刷新令牌并重试一次');
           authManager.clearAuth();
-          throw new Error('认证已过期，请刷新页面重新登录');
+          if (!retried) {
+            retried = true;
+            response = await doRequest();
+            if (!response.ok) {
+              throw new Error('认证已过期，请刷新页面重新登录');
+            }
+          } else {
+            throw new Error('认证已过期，请刷新页面重新登录');
+          }
         }
         
         // 服务器内部错误时提供更友好的错误信息
@@ -92,13 +104,10 @@ export class UnifiedRESTClient {
   }
 
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    try {
-      // 获取OAuth访问令牌
+    const url = `${this.baseURL}${endpoint}`;
+    const doRequest = async (): Promise<Response> => {
       const accessToken = await authManager.getAccessToken();
-      
-      const url = `${this.baseURL}${endpoint}`;
-      
-      const response = await fetch(url, {
+      return fetch(url, {
         headers: {
           ...this.defaultHeaders,
           'Authorization': `Bearer ${accessToken}`,
@@ -106,6 +115,11 @@ export class UnifiedRESTClient {
         },
         ...options,
       });
+    };
+
+    let retried = false;
+    try {
+      let response = await doRequest();
 
       // 读取文本与内容类型，按需解析JSON，避免非JSON错误体导致误导的解析错误
       const contentType = response.headers.get('content-type') || '';
@@ -131,9 +145,32 @@ export class UnifiedRESTClient {
       if (!response.ok) {
         // JWT token过期或无效时，清除认证状态并提供友好错误信息
         if (response.status === 401) {
-          console.warn('[REST Client] 认证失败，清除token状态');
+          console.warn('[REST Client] 401 未认证，尝试刷新令牌并重试一次');
           authManager.clearAuth();
-          throw new Error('认证已过期，请刷新页面重新登录');
+          if (!retried) {
+            retried = true;
+            response = await doRequest();
+          } else {
+            throw new Error('认证已过期，请刷新页面重新登录');
+          }
+          // 重新读取响应体
+          const contentTypeRetry = response.headers.get('content-type') || '';
+          const textRetry = await response.text();
+          let resultRetry: Record<string, unknown> = {};
+          if (textRetry) {
+            const looksLikeJsonRetry = contentTypeRetry.includes('application/json') || /^(\s*[[{])/.test(textRetry);
+            if (looksLikeJsonRetry) {
+              try { 
+                resultRetry = JSON.parse(textRetry); 
+              } catch (error) {
+                console.warn('[REST Client] Failed to parse retry response as JSON:', error);
+              }
+            }
+          }
+          if (!response.ok) {
+            throw new Error('认证已过期，请刷新页面重新登录');
+          }
+          return (resultRetry || {}) as T;
         }
         
         // 服务器内部错误时提供更友好的错误信息

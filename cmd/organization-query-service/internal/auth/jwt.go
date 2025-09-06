@@ -25,10 +25,13 @@ func NewJWTMiddleware(secretKey, issuer, audience string) *JWTMiddleware {
 
 // Claims JWT声明结构
 type Claims struct {
-	UserID    string   `json:"sub"`
-	TenantID  string   `json:"tenant_id"`
-	Roles     []string `json:"roles"`
-	ExpiresAt int64    `json:"exp"`
+    UserID    string   `json:"sub"`
+    TenantID  string   `json:"tenant_id"`
+    Roles     []string `json:"roles"`
+    ExpiresAt int64    `json:"exp"`
+    // PBAC scopes
+    Scope       string   `json:"scope"`
+    Permissions []string `json:"permissions"`
 }
 
 // ValidateToken 验证JWT令牌
@@ -57,11 +60,11 @@ func (j *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 			return nil, fmt.Errorf("invalid audience")
 		}
 
-		// 提取claims
-		userClaims := &Claims{
-			UserID:   getClaimString(claims, "sub"),
-			TenantID: getClaimString(claims, "tenant_id"),
-		}
+        // 提取claims
+        userClaims := &Claims{
+            UserID:   getClaimString(claims, "sub"),
+            TenantID: getClaimString(claims, "tenant_id"),
+        }
 
 		// 提取角色数组
 		if rolesClaim, ok := claims["roles"].([]interface{}); ok {
@@ -72,9 +75,21 @@ func (j *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 			}
 		}
 
-		// 提取过期时间
-		if exp, ok := claims["exp"].(float64); ok {
-			userClaims.ExpiresAt = int64(exp)
+        // 提取 scopes（支持空格分隔的scope与permissions数组）
+        if scopeStr, ok := claims["scope"].(string); ok {
+            userClaims.Scope = scopeStr
+        }
+        if perms, ok := claims["permissions"].([]interface{}); ok {
+            for _, p := range perms {
+                if ps, ok := p.(string); ok {
+                    userClaims.Permissions = append(userClaims.Permissions, ps)
+                }
+            }
+        }
+
+        // 提取过期时间
+        if exp, ok := claims["exp"].(float64); ok {
+            userClaims.ExpiresAt = int64(exp)
 
 			// 检查是否过期
 			if time.Now().Unix() > userClaims.ExpiresAt {
@@ -98,10 +113,23 @@ func getClaimString(claims jwt.MapClaims, key string) string {
 
 // SetUserContext 将用户信息设置到上下文中
 func SetUserContext(ctx context.Context, claims *Claims) context.Context {
-	ctx = context.WithValue(ctx, "user_id", claims.UserID)
-	ctx = context.WithValue(ctx, "tenant_id", claims.TenantID)
-	ctx = context.WithValue(ctx, "user_roles", claims.Roles)
-	return ctx
+    ctx = context.WithValue(ctx, "user_id", claims.UserID)
+    ctx = context.WithValue(ctx, "tenant_id", claims.TenantID)
+    ctx = context.WithValue(ctx, "user_roles", claims.Roles)
+    // 合并 scopes: scope 空格串 + permissions 数组
+    scopeSet := map[string]struct{}{}
+    for _, s := range strings.Fields(claims.Scope) {
+        scopeSet[s] = struct{}{}
+    }
+    for _, s := range claims.Permissions {
+        scopeSet[s] = struct{}{}
+    }
+    var scopes []string
+    for s := range scopeSet {
+        scopes = append(scopes, s)
+    }
+    ctx = context.WithValue(ctx, "user_scopes", scopes)
+    return ctx
 }
 
 // GetUserID 从上下文获取用户ID
@@ -122,8 +150,16 @@ func GetTenantID(ctx context.Context) string {
 
 // GetUserRoles 从上下文获取用户角色
 func GetUserRoles(ctx context.Context) []string {
-	if roles, ok := ctx.Value("user_roles").([]string); ok {
-		return roles
-	}
-	return []string{}
+    if roles, ok := ctx.Value("user_roles").([]string); ok {
+        return roles
+    }
+    return []string{}
+}
+
+// GetUserScopes 从上下文获取PBAC scopes
+func GetUserScopes(ctx context.Context) []string {
+    if scopes, ok := ctx.Value("user_scopes").([]string); ok {
+        return scopes
+    }
+    return []string{}
 }

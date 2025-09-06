@@ -48,7 +48,8 @@ CREATE TABLE organization_units (
     -- 约束
     UNIQUE (code, effective_date, record_id),
     CHECK (end_date IS NULL OR end_date > effective_date),
-    CHECK (NOT (is_current AND is_future))
+    CHECK (NOT (is_current AND is_future)),
+    CHECK (NOT (is_deleted AND is_current))
 );
 
 
@@ -112,6 +113,10 @@ CREATE INDEX CONCURRENTLY idx_org_units_complex_3 ON organization_units (tenant_
 -- 性能监控索引
 CREATE INDEX CONCURRENTLY idx_org_units_monitoring ON organization_units (tenant_id, created_at, operation_type);
 
+-- 加速父节点有效性与当前未删除节点查找
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_org_units_code_current_active 
+    ON organization_units (code) WHERE is_current = true AND is_deleted = false;
+
 -- 更新时间戳触发器
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -136,14 +141,25 @@ BEGIN
         NEW.name_path := '/' || NEW.name;
         NEW.level := 1;
     ELSE
+        -- 仅允许未删除且当前的父节点参与层级计算
         SELECT 
             parent.code_path || '/' || NEW.code,
             parent.name_path || '/' || NEW.name,
             parent.level + 1
         INTO NEW.code_path, NEW.name_path, NEW.level
         FROM organization_units parent
-        WHERE parent.code = NEW.parent_code AND parent.is_current = true
+        WHERE parent.code = NEW.parent_code 
+          AND parent.is_current = true
+          AND parent.is_deleted = false
         LIMIT 1;
+
+        -- 未找到有效父节点时，降级为根节点（防御性处理）
+        IF NOT FOUND THEN
+            NEW.parent_code := NULL;
+            NEW.code_path := '/' || NEW.code;
+            NEW.name_path := '/' || NEW.name;
+            NEW.level := 1;
+        END IF;
     END IF;
     
     NEW.hierarchy_depth := NEW.level;
@@ -157,6 +173,63 @@ CREATE TRIGGER update_hierarchy_paths_trigger
     EXECUTE FUNCTION update_hierarchy_paths();
 
 -- 历史归档触发器已移除：改用单表时态与审计日志/时间线事件追踪变更。
+
+-- 父节点有效性校验触发器（仅在插入时阻止引用已删除或非当前的父节点）
+CREATE OR REPLACE FUNCTION validate_parent_available()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.parent_code IS NOT NULL THEN
+        PERFORM 1 FROM organization_units p
+         WHERE p.code = NEW.parent_code
+           AND p.is_current = true
+           AND p.is_deleted = false
+         LIMIT 1;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'PARENT_NOT_AVAILABLE: parent % is not current or has been deleted', NEW.parent_code
+                USING ERRCODE = 'foreign_key_violation';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS validate_parent_available_trigger ON organization_units;
+CREATE TRIGGER validate_parent_available_trigger
+    BEFORE INSERT ON organization_units
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_parent_available();
+
+-- 时态标志自动规范化（与软删除联动）
+CREATE OR REPLACE FUNCTION enforce_temporal_flags()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- 软删除必须非当前且非未来
+    IF NEW.is_deleted IS TRUE THEN
+        NEW.is_current := FALSE;
+        NEW.is_future := FALSE;
+        RETURN NEW;
+    END IF;
+
+    -- 根据effective/end日期自动推导is_current/is_future
+    IF NEW.effective_date > CURRENT_DATE THEN
+        NEW.is_current := FALSE;
+        NEW.is_future := TRUE;
+    ELSIF NEW.end_date IS NOT NULL AND NEW.end_date <= CURRENT_DATE THEN
+        NEW.is_current := FALSE;
+        NEW.is_future := FALSE;
+    ELSE
+        NEW.is_current := TRUE;
+        NEW.is_future := FALSE;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS enforce_temporal_flags_trigger ON organization_units;
+CREATE TRIGGER enforce_temporal_flags_trigger
+    BEFORE INSERT OR UPDATE ON organization_units
+    FOR EACH ROW
+    EXECUTE FUNCTION enforce_temporal_flags();
 
 -- 审计日志自动记录触发器
 CREATE OR REPLACE FUNCTION log_audit_changes()

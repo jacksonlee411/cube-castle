@@ -206,14 +206,15 @@ func (r *OrganizationRepository) CreateTemporalVersion(ctx context.Context, org 
 
 	// 第一步：将该组织的所有记录设为非当前状态 (解决uk_current_organization约束)
 	// 修复：移除status != 'DELETED'条件，确保所有is_current=true的记录都被清除
-	clearCurrentQuery := `
-		UPDATE organization_units 
-		SET is_current = false,
-			updated_at = NOW()
-		WHERE code = $1 
-		  AND tenant_id = $2
-		  AND is_current = true
-	`
+    clearCurrentQuery := `
+        UPDATE organization_units 
+        SET is_current = false,
+            updated_at = NOW()
+        WHERE code = $1 
+          AND tenant_id = $2
+          AND is_current = true
+          AND status != 'DELETED' AND deleted_at IS NULL
+    `
 	
 	_, err = tx.ExecContext(ctx, clearCurrentQuery, org.Code, org.TenantID)
 	if err != nil {
@@ -390,14 +391,15 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", argIndex))
 	args = append(args, time.Now())
 
-	query := fmt.Sprintf(`
-		UPDATE organization_units 
-		SET %s
-		WHERE tenant_id = $1 AND code = $2
-		RETURNING tenant_id, code, parent_code, name, unit_type, status,
-		          level, path, sort_order, description, created_at, updated_at,
-		          effective_date, end_date, is_temporal, change_reason
-	`, strings.Join(setParts, ", "))
+    query := fmt.Sprintf(`
+        UPDATE organization_units 
+        SET %s
+        WHERE tenant_id = $1 AND code = $2
+          AND status <> 'DELETED' AND deleted_at IS NULL
+        RETURNING tenant_id, code, parent_code, name, unit_type, status,
+                  level, path, sort_order, description, created_at, updated_at,
+                  effective_date, end_date, is_temporal, change_reason
+    `, strings.Join(setParts, ", "))
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
@@ -407,12 +409,12 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
 	)
 
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("组织不存在: %s", code)
-		}
-		return nil, fmt.Errorf("更新组织失败: %w", err)
-	}
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return nil, fmt.Errorf("组织不存在或已删除不可修改: %s", code)
+        }
+        return nil, fmt.Errorf("更新组织失败: %w", err)
+    }
 
 	r.logger.Printf("组织更新成功: %s - %s (时态: %v)", org.Code, org.Name, org.IsTemporal)
 	return &org, nil
@@ -645,14 +647,15 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", argIndex))
 	args = append(args, time.Now())
 
-	query := fmt.Sprintf(`
-		UPDATE organization_units 
-		SET %s
-		WHERE tenant_id = $1 AND record_id = $2
-		RETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,
-		          level, path, sort_order, description, created_at, updated_at,
-		          effective_date, end_date, is_temporal, change_reason
-	`, strings.Join(setParts, ", "))
+    query := fmt.Sprintf(`
+        UPDATE organization_units 
+        SET %s
+        WHERE tenant_id = $1 AND record_id = $2
+          AND status <> 'DELETED' AND deleted_at IS NULL
+        RETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,
+                  level, path, sort_order, description, created_at, updated_at,
+                  effective_date, end_date, is_temporal, change_reason
+    `, strings.Join(setParts, ", "))
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
@@ -662,12 +665,12 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
 	)
 
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("记录不存在: %s", recordId)
-		}
-		return nil, fmt.Errorf("更新历史记录失败: %w", err)
-	}
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return nil, fmt.Errorf("记录不存在或已删除记录为只读: %s", recordId)
+        }
+        return nil, fmt.Errorf("更新历史记录失败: %w", err)
+    }
 
 	r.logger.Printf("历史记录更新成功: %s - %s (记录ID: %s)", org.Code, org.Name, recordId)
 	return &org, nil

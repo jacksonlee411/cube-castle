@@ -8,7 +8,7 @@ export type TemporalMode = 'current' | 'historical' | 'planning';
 
 // 事件类型定义 (扩展支持具体业务事件类型)
 export type EventType = 
-  | 'CREATE' | 'UPDATE' | 'DELETE' | 'SUSPEND' | 'ACTIVATE' | 'QUERY' | 'VALIDATION' | 'AUTHENTICATION' | 'ERROR'
+  | 'CREATE' | 'UPDATE' | 'DELETE' | 'SUSPEND' | 'REACTIVATE' | 'QUERY' | 'VALIDATION' | 'AUTHENTICATION' | 'ERROR'
   | 'organization_created' | 'organization_updated' | 'organization_deleted'
   | 'status_changed' | 'hierarchy_changed' | 'metadata_updated' 
   | 'planned_change' | 'change_cancelled';

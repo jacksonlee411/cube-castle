@@ -21,7 +21,7 @@ info:
     **Business Operation Types:**
     - **DELETE**: 软删除误操作而意外增加的错误记录，用于数据纠错和质量管理
     - **SUSPEND**: 因业务调整而暂时停用部门，支持后续重新启用，用于组织架构临时调整
-    - **ACTIVATE**: 重新启用已停用的组织，恢复业务运营，与停用操作形成完整业务循环
+    - **REACTIVATE**: 重新启用已停用的组织（对应端点 POST /api/v1/organization-units/{code}/activate）
     
     **Permission System:**
     - **Basic CRUD**: org:read, org:create, org:update, org:delete
@@ -33,7 +33,7 @@ info:
     
     **Response Format**: All endpoints use unified enterprise envelope structure
     with `success`, `data`, `message`, `timestamp`, and `requestId` fields.
-  version: 4.5.0
+  version: 4.5.1
   contact:
     name: System Architecture Team
     email: api-support@yourcompany.com
@@ -80,6 +80,8 @@ paths:
         **Required Permissions:** `org:create`
       security:
         - OAuth2ClientCredentials: ['org:create']
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -155,6 +157,23 @@ paths:
                       recordId: "456e7890-e89b-12d3-a456-426614174008"
                     timestamp: "2025-08-23T15:00:00Z"
                     requestId: "req_create_1000008"
+        '200':
+          description: Idempotent replay - resource already created for the same Idempotency-Key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                idempotent_replay:
+                  summary: Idempotent Replay
+                  value:
+                    success: true
+                    message: "Idempotent replay"
+                    data:
+                      code: "1000008"
+                      isCurrent: true
+                    timestamp: "2025-08-23T15:00:10Z"
+                    requestId: "req_replay_1000008"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -363,7 +382,7 @@ paths:
         **Business Rules:**
         - Organization must exist with the specified code
         - New effectiveDate must not conflict with existing versions
-        - Automatically manages is_current and end_date transitions
+        - Application transaction manages is_current and end_date transitions
         - Previous current version gets end_date = new effectiveDate - 1 day
         - Supports both historical and future-effective versions
         
@@ -372,6 +391,7 @@ paths:
         - OAuth2ClientCredentials: ['org:create:planned']
       parameters:
         - $ref: '#/components/parameters/CodePathParam'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -416,6 +436,12 @@ paths:
                 message: "Temporal version created successfully"
                 timestamp: "2025-08-31T06:30:00Z"
                 requestId: "req-123456"
+        '200':
+          description: Idempotent replay - version already exists for the same Idempotency-Key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -571,6 +597,7 @@ paths:
         - OAuth2ClientCredentials: ['org:suspend']
       parameters:
         - $ref: '#/components/parameters/CodePathParam'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -653,6 +680,7 @@ paths:
         - OAuth2ClientCredentials: ['org:activate']
       parameters:
         - $ref: '#/components/parameters/CodePathParam'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -1011,6 +1039,18 @@ components:
       description: |
         7-digit organization unit code (1000000-9999999).
         This is the primary business identifier for organization units.
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._:-]{8,128}$'
+        example: 'org-activate-1000001-20250823-abc123'
+      description: |
+        Optional idempotency key to make POST operations idempotent within a 24h window.
+        When provided, repeated requests with the same key return 200 with the original result.
 
   schemas:
     OrganizationUnit:
@@ -1880,12 +1920,40 @@ components:
 
     Conflict:
       description: |
-        Conflict - Business rule violation, constraint conflicts, or resource conflicts
+        Conflict - Business rule violation, constraint conflicts, or resource conflicts.
+        Typical temporal conflicts include:
+        - TEMPORAL_POINT_CONFLICT: unique (tenant_id, code, effective_date) violation
+        - CURRENT_CONFLICT: partial unique (tenant_id, code) WHERE is_current=true violation
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
+            temporal_point_conflict:
+              summary: Temporal Point Unique Conflict
+              value:
+                success: false
+                error:
+                  code: "TEMPORAL_POINT_CONFLICT"
+                  message: "(tenant_id, code, effective_date) must be unique"
+                  details:
+                    code: "1000001"
+                    effectiveDate: "2025-08-23"
+                    tenantId: "987fcdeb-51a2-43d7-8f9e-123456789012"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_conflict_temporal_point_001"
+            current_conflict:
+              summary: Single Current Constraint Conflict
+              value:
+                success: false
+                error:
+                  code: "CURRENT_CONFLICT"
+                  message: "Only one current record per (tenant_id, code) is allowed"
+                  details:
+                    code: "1000001"
+                    tenantId: "987fcdeb-51a2-43d7-8f9e-123456789012"
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_conflict_current_001"
             circular_reference:
               summary: Circular Reference Error
               value:
