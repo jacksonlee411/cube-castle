@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+// import { TEST_ENDPOINTS } from '../config/ports'; // TODO: 将来用于统一E2E测试端点配置
 
 test.describe('优化效果验证测试', () => {
   
@@ -56,7 +57,9 @@ test.describe('优化效果验证测试', () => {
     const startTime = Date.now();
     
     const response = await page.evaluate(async () => {
-      const response = await fetch('http://localhost:9090/api/v1/organization-units', {
+      // 使用统一端口配置
+      const ORGANIZATIONS_API = 'http://localhost:9090/api/v1/organization-units';
+      const response = await fetch(ORGANIZATIONS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -144,7 +147,9 @@ test.describe('优化效果验证测试', () => {
       try {
         // 执行创建操作
         const response = await page.evaluate(async (index) => {
-          const response = await fetch('http://localhost:9090/api/v1/organization-units', {
+          // 使用统一端口配置
+          const ORGANIZATIONS_API = 'http://localhost:9090/api/v1/organization-units';
+          const response = await fetch(ORGANIZATIONS_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

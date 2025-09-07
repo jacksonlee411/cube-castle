@@ -18,6 +18,7 @@
     "validate:schema": "echo 'Schema validation: GraphQL Schema syntax OK' && npx graphql-codegen --config codegen.yml --silent || echo 'Schema validation completed with warnings'",
     "typecheck": "tsc --noEmit",
     "validate:field-naming": "node scripts/validate-field-naming-simple.js",
+    "validate:ports": "tsx scripts/validate-port-config.ts",
     "lint:graphql": "graphql-codegen --check",
     "build:verify": "tsc --noEmit && vite build",
     "contract:generate": "graphql-codegen --config codegen.yml",
