@@ -19,12 +19,12 @@ info:
     - Multi-tenant isolation and security
     
     **Business Operation Types:**
-    - **DELETE**: 软删除误操作而意外增加的错误记录，用于数据纠错和质量管理
     - **SUSPEND**: 因业务调整而暂时停用部门，支持后续重新启用，用于组织架构临时调整
     - **REACTIVATE**: 重新启用已停用的组织（对应端点 POST /api/v1/organization-units/{code}/activate）
+    - **DEACTIVATE**: 停用特定版本记录，用于时态数据纠错（通过 /events 端点）
     
     **Permission System:**
-    - **Basic CRUD**: org:read, org:create, org:update, org:delete
+    - **Basic CRUD**: org:read, org:create, org:update
     - **State Management**: org:suspend, org:activate
     - **Hierarchy Operations**: org:read:hierarchy, org:move, org:create:child
     - **Temporal Data**: org:read:history, org:read:future, org:create:planned, org:modify:history, org:cancel:planned
@@ -325,79 +325,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-    delete:
-      tags:
-        - organization-units
-      summary: Delete organization unit
-      description: |
-        Soft deletes an organization unit by setting isDeleted=true and operationType=DELETE.
-        
-        **Business Use Case:** 用于删除误操作而意外增加的错误记录，主要用于数据纠错和数据质量管理。
-        这是一个数据层面的操作，而非业务流程操作。
-        
-        **Deletion Constraints:**
-        - Cannot delete units with active child units
-        - Cannot delete units with associated positions
-        - Must clean up all dependencies before deletion
-        
-        **Temporal Note:**
-        - This endpoint soft-deletes the entire organization unit (all versions become `DELETED`)
-        - **Triggers temporal recomputation**: Adjacent organizations' time boundaries are recalculated
-        - **Gap handling**: If deleted organization creates time gaps in parent-child relationships, 
-          triggers intelligent boundary extension for related organizations
-        - **Transaction scope**: All temporal boundary updates occur within a single transaction
-        - To delete (deactivate) a single version and trigger timeline recomputation, use
-          `POST /api/v1/organization-units/{code}/events` with `eventType=DEACTIVATE` and `recordId`
-        
-        **Required Permissions:** `org:delete`
-      security:
-        - OAuth2ClientCredentials: ['org:delete']
-      parameters:
-        - $ref: '#/components/parameters/CodePathParam'
-        - name: operationReason
-          in: query
-          required: true
-          schema:
-            type: string
-            maxLength: 500
-          description: Reason for deletion
-          example: "合并到其他部门"
-      responses:
-        '204':
-          description: Organization unit deleted successfully
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          description: |
-            Cannot delete due to constraints:
-            - Has child units
-            - Has associated positions
-            - Dependencies must be resolved first
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                has_children:
-                  summary: Has Child Units
-                  value:
-                    success: false
-                    error:
-                      code: "HAS_CHILD_UNITS"
-                      message: "Cannot delete organization unit with child units"
-                      details:
-                        childUnits: ["1000011", "1000012"]
-                        affectedCount: 2
-                    timestamp: "2025-08-23T10:30:00Z"
-                    requestId: "req_delete_error_001"
-        '500':
-          $ref: '#/components/responses/InternalError'
 
   /api/v1/organization-units/{code}/versions:
     post:
@@ -531,9 +458,9 @@ paths:
         - Deleted versions do not participate in temporal continuity checks
         - Returns the latest non-deleted timeline in response to avoid read-cache delays
         
-        **Required Permissions:** `org:delete`
+        **Required Permissions:** `org:modify:history`
       security:
-        - OAuth2ClientCredentials: ['org:delete']
+        - OAuth2ClientCredentials: ['org:modify:history']
       parameters:
         - $ref: '#/components/parameters/CodePathParam'
       requestBody:
@@ -699,6 +626,12 @@ paths:
         - Supports future-effective suspension planning
         - Records complete audit trail
         
+        **Temporal Behavior:**
+        - Inserts a temporal version with status=INACTIVE at the specified effectiveDate
+        - Recomputes adjacent boundaries in a single transaction (prev.end_date = new.effective_date - 1; tail open)
+        - Recomputes `is_current` according to the latest effectiveDate ≤ today
+        - Returns latest non-deleted timeline in response to avoid read-cache delays
+        
         **Required Permissions:** `org:suspend`
       security:
         - OAuth2ClientCredentials: ['org:suspend']
@@ -728,10 +661,60 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                          status:
+                            type: string
+                          operationType:
+                            type: string
+                          operationReason:
+                            type: string
+                          effectiveDate:
+                            type: string
+                            format: date
+                          updatedAt:
+                            type: string
+                            format: date-time
+                          isCurrent:
+                            type: boolean
+                          isFuture:
+                            type: boolean
+                          timeline:
+                            type: array
+                            description: Latest non-deleted timeline after recomputation
+                            items:
+                              type: object
+                              properties:
+                                recordId:
+                                  type: string
+                                  format: uuid
+                                code:
+                                  type: string
+                                name:
+                                  type: string
+                                unitType:
+                                  type: string
+                                status:
+                                  type: string
+                                effectiveDate:
+                                  type: string
+                                  format: date
+                                endDate:
+                                  type: string
+                                  format: date
+                                  nullable: true
+                                isCurrent:
+                                  type: boolean
               examples:
                 suspension_success:
-                  summary: Successful Suspension
+                  summary: Successful Suspension (with timeline)
                   value:
                     success: true
                     message: "Organization unit suspended successfully"
@@ -739,14 +722,20 @@ paths:
                       code: "1000001"
                       status: "INACTIVE"
                       operationType: "SUSPEND"
-                      operatedBy:
-                        id: "user-uuid"
-                        name: "Wang Wu"
                       operationReason: "业务调整需要"
                       effectiveDate: "2025-08-23"
                       updatedAt: "2025-08-23T10:30:00Z"
                       isCurrent: true
                       isFuture: false
+                      timeline:
+                        - recordId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+                          code: "1000001"
+                          name: "某组织"
+                          unitType: "DEPARTMENT"
+                          status: "INACTIVE"
+                          effectiveDate: "2025-08-23"
+                          endDate: null
+                          isCurrent: true
                     timestamp: "2025-08-23T10:30:00Z"
                     requestId: "req_suspend_1000001"
         '400':
@@ -780,6 +769,11 @@ paths:
         - Supports future-effective activation planning
         - Can cancel planned suspension operations
         
+        **Temporal Behavior:**
+        - Inserts a temporal version with status=ACTIVE at the specified effectiveDate
+        - Recomputes adjacent boundaries in a single transaction; tail remains open
+        - Recomputes `is_current` and returns latest non-deleted timeline
+        
         **Required Permissions:** `org:activate`
       security:
         - OAuth2ClientCredentials: ['org:activate']
@@ -809,7 +803,57 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                          status:
+                            type: string
+                          operationType:
+                            type: string
+                          operationReason:
+                            type: string
+                          effectiveDate:
+                            type: string
+                            format: date
+                          updatedAt:
+                            type: string
+                            format: date-time
+                          isCurrent:
+                            type: boolean
+                          isFuture:
+                            type: boolean
+                          timeline:
+                            type: array
+                            description: Latest non-deleted timeline after recomputation
+                            items:
+                              type: object
+                              properties:
+                                recordId:
+                                  type: string
+                                  format: uuid
+                                code:
+                                  type: string
+                                name:
+                                  type: string
+                                unitType:
+                                  type: string
+                                status:
+                                  type: string
+                                effectiveDate:
+                                  type: string
+                                  format: date
+                                endDate:
+                                  type: string
+                                  format: date
+                                  nullable: true
+                                isCurrent:
+                                  type: boolean
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1103,7 +1147,6 @@ components:
             'org:read': Read organization unit information
             'org:create': Create organization units
             'org:update': Update organization unit basic information
-            'org:delete': Delete organization units
             
             # 状态管理权限
             'org:suspend': Suspend organization units
@@ -1331,14 +1374,14 @@ components:
         - UPDATE
         - SUSPEND
         - REACTIVATE
-        - DELETE
+        - DEACTIVATE
       description: |
         Operation types (automatically set by API endpoints):
         - **CREATE**: New organization creation
         - **UPDATE**: Data modification (PUT/PATCH)
         - **SUSPEND**: Suspension operation (/suspend endpoint)
         - **REACTIVATE**: Reactivation operation (/activate endpoint)
-        - **DELETE**: Deletion operation (DELETE endpoint)
+        - **DEACTIVATE**: Version deactivation operation (/events endpoint)
       readOnly: true
       example: "UPDATE"
 
@@ -1947,10 +1990,10 @@ components:
                   code: "INSUFFICIENT_PERMISSIONS"
                   message: "Insufficient permissions to access this resource"
                   details:
-                    requiredPermissions: ["org:delete"]
+                    requiredPermissions: ["org:modify:history"]
                     currentPermissions: ["org:read", "org:update"]
                     resource: "/api/v1/organization-units/1000001"
-                    action: "DELETE"
+                    action: "DEACTIVATE"
                 timestamp: "2025-08-23T10:30:00Z"
                 requestId: "req_auth_error_003"
             tenant_access_denied:

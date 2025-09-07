@@ -7,6 +7,22 @@
 - 单表实现，不新增物理表。
 - 不使用数据库触发器、EXCLUDE 排它约束、热路径 advisory lock；以应用层事务与最小约束达成一致性。
 
+API 优先对齐（按最新 API 文档）
+- Create 组织（POST /api/v1/organization-units）
+  - 仅用于新 code 的首条记录；不做跨版本回填/重算。
+- 版本操作（POST /api/v1/organization-units/{code}/versions）
+  - INSERT：prev.end_date = new.effective_date - 1；new.end_date = next.effective_date - 1（若存在）。
+  - UPDATE effectiveDate：按“删旧+插新”原子重算相邻边界，保持连续。
+  - DELETE one version：桥接相邻；若为尾部，prev.end_date = NULL。
+  - 仅非删除版本参与时间线；按 effective_date 升序，禁止重叠与断档。
+- 事件端点（POST /api/v1/organization-units/{code}/events）
+  - DEACTIVATE：按 recordId 作废该版本（status=DELETED），同一事务执行“全链重算”。
+  - 响应返回最新“非删除时间线”（timeline），供前端即时刷新，避免读缓存延迟。
+- PATCH /{code}
+  - 不处理 effectiveDate/endDate 与状态流转，仅限非时态字段更新。
+- DELETE /{code}
+  - 整单位软删除（所有版本 DELETED），不做时间线回填。
+
 背景与模型
 - 一维业务状态：business_status/status ∈ {ACTIVE, INACTIVE}（INACTIVE 即停用）。停用/启用语义通过 operation_type=SUSPEND/REACTIVATE 表达，而非引入第三状态。
 - 有效期表达时态：effective_date（生效，date），end_date（结束，date，可空）。按“日”的闭区间语义管理，上一版本在应用事务中回填为 new.effective_date - 1 天。
@@ -43,6 +59,8 @@
   5. 提交事务；由部分唯一索引兜底“单当前”。
   6. 可选：新增前先调用验证端点（docs/api/openapi.yaml:694-717）或后端校验服务。
 
+端点对应：POST /api/v1/organization-units/{code}/versions（INSERT）。
+
 2) 删除“中间版本”（历史数据修复）
 - 首选策略：避免硬删除历史版本，采用“更正版本”覆盖（插入修正版本并回填边界），保留审计链。
 - 如必须删除（数据修复场景），单事务执行：
@@ -50,6 +68,11 @@
   2. DELETE tX。
   3. 将 `prev.end_date = next.effective_date - 1`（若 next 存在），桥接区间。
   4. 写入时间线事件/审计。
+  5. 若删除的是尾部：`prev.end_date = NULL`，并基于 `prev.effective_date ≤ 今天` 重算 is_current。
+
+端点对应：
+- 推荐：POST /api/v1/organization-units/{code}/events（DEACTIVATE，返回最新 timeline）。
+- 管理：POST /api/v1/organization-units/{code}/versions（DELETE one version）。
 - 风险控制：
   - 核对“单当前唯一”“时点唯一”“区间不重叠”。
   - 批量修复：建议串行处理同一 (tenant_id, code) 的变更，或外层应用级互斥；不将 advisory lock 引入热路径。
@@ -61,6 +84,10 @@
   2. DELETE 旧版本（或标记作废）。
   3. INSERT 新版本（使用新 effective_date），并回填相邻边界、维护 is_current。
   4. 写入时间线事件（operation_type=UPDATE）。
+
+端点对应：
+- 推荐：POST /api/v1/organization-units/{code}/versions（UPDATE effectiveDate）。
+- 历史修正（非日期字段）：PUT /api/v1/organization-units/{code}/history/{record_id}。
 
 4) 停用与重新启用（即时/计划）
 - 停用：/suspend → 强制 business_status=INACTIVE，写入 SUSPEND 版本。
@@ -78,6 +105,19 @@
 - 读侧路径：
   - 当前态高频查询：`WHERE tenant_id=$1 AND code=$2 AND is_current=true`。
   - asOfDate 低频查询：`effective_date <= :asOf AND (end_date IS NULL OR end_date > :asOf)`。
+
+全链重算（统一算法）
+- 触发：版本删除（DELETE one version / DEACTIVATE）后必须执行；也可用于批量修复。
+- 输入：同一 (tenant_id, code) 的“非删除版本”，按 effective_date 升序。
+- 步骤：
+  1. 对序列中每条 i：`end_date[i] = next.effective_date - 1`（若存在），最后一条 `end_date=NULL`。
+  2. 清空该 code 所有 `is_current` 标记（不区分删除与否，避免残留冲突）。
+  3. 若存在 `effective_date ≤ 今天` 的版本，选择其中生效日最大的一条设为 `is_current=true`；否则无当前态。
+- 输出：无断档、无重叠、尾部开放、单当前。
+
+错误模型与返回
+- 冲突：`TEMPORAL_POINT_CONFLICT`（时点唯一）、`TEMPORAL_OVERLAP_CONFLICT`（区间重叠）。
+- 事件响应：`data.timeline[]` 返回最新“非删除时间线”（recordId, code, effectiveDate, endDate, isCurrent, status …）。
 
 运行与维护
 - 约束与索引（PostgreSQL 示例）：
@@ -104,4 +144,3 @@
 - 在“写入少、当前态读多”的前提下，单表 + 应用事务回填 + 部分唯一索引 + 日切的小而稳组合即可满足正确性与性能要求。
 - 不引入触发器、EXCLUDE、advisory lock 至热路径，降低复杂度与维护成本。
 - 若未来出现事故频发或规模化性能瓶颈，可在不改变读路径的前提下，按需评估引入更强约束（例如只在导入/修复窗口临时开启更严格校验）。
-

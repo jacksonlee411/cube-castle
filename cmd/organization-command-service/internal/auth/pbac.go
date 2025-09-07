@@ -26,7 +26,6 @@ func NewPBACPermissionChecker(db *sql.DB, logger *log.Logger) *PBACPermissionChe
 var RESTAPIPermissions = map[string]map[string]string{
 	"POST /api/v1/organization-units":                    {"method": "POST", "permission": "WRITE_ORGANIZATION"},
 	"PUT /api/v1/organization-units/*":                   {"method": "PUT", "permission": "UPDATE_ORGANIZATION"},
-	"DELETE /api/v1/organization-units/*":                {"method": "DELETE", "permission": "DELETE_ORGANIZATION"},
 	"POST /api/v1/organization-units/*/suspend":          {"method": "POST", "permission": "SUSPEND_ORGANIZATION"},
 	"POST /api/v1/organization-units/*/activate":         {"method": "POST", "permission": "ACTIVATE_ORGANIZATION"},
 	"POST /api/v1/organization-units/*/events":           {"method": "POST", "permission": "MANAGE_ORGANIZATION_EVENTS"},
@@ -39,7 +38,6 @@ var RolePermissions = map[string][]string{
 	"ADMIN": {
 		"WRITE_ORGANIZATION",
 		"UPDATE_ORGANIZATION",
-		"DELETE_ORGANIZATION",
 		"SUSPEND_ORGANIZATION",
 		"ACTIVATE_ORGANIZATION",
 		"MANAGE_ORGANIZATION_EVENTS",

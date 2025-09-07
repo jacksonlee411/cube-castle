@@ -107,8 +107,11 @@ func main() {
 	// 初始化运维调度器
 	operationalScheduler := services.NewOperationalScheduler(db, logger, temporalMonitor)
 	
+	// 初始化时态时间轴管理器
+	timelineManager := repository.NewTemporalTimelineManager(db, logger)
+	
 	// 初始化处理器
-	orgHandler := handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger)
+	orgHandler := handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager)
 	devToolsHandler := handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode, db)
     operationalHandler := handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, logger)
 

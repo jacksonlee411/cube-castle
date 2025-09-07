@@ -179,7 +179,6 @@ func (h *DevToolsHandler) ListTestEndpoints(w http.ResponseWriter, r *http.Reque
 		"api": []map[string]string{
 			{"method": "POST", "path": "/api/v1/organization-units", "description": "Create organization unit"},
 			{"method": "PUT", "path": "/api/v1/organization-units/{code}", "description": "Update organization unit"},
-			{"method": "DELETE", "path": "/api/v1/organization-units/{code}", "description": "Delete organization unit"},
 			{"method": "POST", "path": "/api/v1/organization-units/{code}/suspend", "description": "Suspend organization unit"},
 			{"method": "POST", "path": "/api/v1/organization-units/{code}/activate", "description": "Activate organization unit"},
 		},

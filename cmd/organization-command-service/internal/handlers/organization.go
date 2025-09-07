@@ -24,14 +24,16 @@ type OrganizationHandler struct {
 	temporalService *services.TemporalService
 	auditLogger     *audit.AuditLogger
 	logger          *log.Logger
+	timelineManager *repository.TemporalTimelineManager
 }
 
-func NewOrganizationHandler(repo *repository.OrganizationRepository, temporalService *services.TemporalService, auditLogger *audit.AuditLogger, logger *log.Logger) *OrganizationHandler {
+func NewOrganizationHandler(repo *repository.OrganizationRepository, temporalService *services.TemporalService, auditLogger *audit.AuditLogger, logger *log.Logger, timelineManager *repository.TemporalTimelineManager) *OrganizationHandler {
 	return &OrganizationHandler{
 		repo:            repo,
 		temporalService: temporalService,
 		auditLogger:     auditLogger,
 		logger:          logger,
+		timelineManager: timelineManager,
 	}
 }
 
@@ -377,98 +379,21 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	h.logger.Printf("✅ 组织更新成功: %s - %s (RequestID: %s)", updatedOrg.Code, updatedOrg.Name, requestID)
 }
 
-func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
-	code := chi.URLParam(r, "code")
-	if code == "" {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
-		return
-	}
 
-	// 验证组织代码格式
-	if err := utils.ValidateOrganizationCode(code); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码格式无效", err)
-		return
-	}
-
-	tenantID := h.getTenantID(r)
-
-	// 删除组织
-	err := h.repo.Delete(r.Context(), tenantID, code)
-	if err != nil {
-		h.handleRepositoryError(w, r, "DELETE", err)
-		return
-	}
-
-	// 记录审计日志
-	requestID := middleware.GetRequestID(r.Context())
-	actorID := h.getActorID(r)
-	ipAddress := h.getIPAddress(r)
-	// 传入tenantID作为独立参数，组织数据设为nil（因为已删除）
-	err = h.auditLogger.LogOrganizationDelete(r.Context(), tenantID, code, nil, actorID, requestID, ipAddress)
-	if err != nil {
-		h.logger.Printf("⚠️ 删除审计日志记录失败: %v", err)
-	}
-
-	// 返回企业级成功响应
-	utils.WriteSuccess(w, map[string]interface{}{
-		"code": code,
-		"deletedAt": time.Now(),
-	}, "Organization deleted successfully", requestID)
-
-	h.logger.Printf("✅ 组织删除成功: %s (RequestID: %s)", code, requestID)
-}
-
+// SuspendOrganization 暂停组织 - 实现第四大核心场景之暂停
+// 使用时态时间轴管理器实现状态变更
 func (h *OrganizationHandler) SuspendOrganization(w http.ResponseWriter, r *http.Request) {
-	code := chi.URLParam(r, "code")
-	if code == "" {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
-		return
-	}
-
-	// 验证组织代码格式
-	if err := utils.ValidateOrganizationCode(code); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码格式无效", err)
-		return
-	}
-
-	var req types.SuspendOrganizationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
-		return
-	}
-
-	// 验证停用请求
-	if err := utils.ValidateSuspendRequest(req.Reason); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "停用原因验证失败", err)
-		return
-	}
-
-	tenantID := h.getTenantID(r)
-
-	// 停用组织
-	org, err := h.repo.Suspend(r.Context(), tenantID, code, req.Reason)
-	if err != nil {
-		h.handleRepositoryError(w, r, "SUSPEND", err)
-		return
-	}
-
-	// 记录审计日志
-	requestID := middleware.GetRequestID(r.Context())
-	actorID := h.getActorID(r)
-	ipAddress := h.getIPAddress(r)
-	err = h.auditLogger.LogOrganizationSuspend(r.Context(), code, org, actorID, requestID, ipAddress)
-	if err != nil {
-		h.logger.Printf("⚠️ 停用审计日志记录失败: %v", err)
-	}
-
-	// 构建企业级成功响应
-	response := h.toOrganizationResponse(org)
-	utils.WriteSuccess(w, response, "Organization suspended successfully", requestID)
-
-	h.logger.Printf("✅ 组织停用成功: %s - %s (RequestID: %s)", response.Code, response.Name, requestID)
+	h.changeOrganizationStatusWithTimeline(w, r, "INACTIVE", "SUSPEND", "暂停组织")
 }
 
+// ActivateOrganization 激活组织 - 实现第四大核心场景之激活
+// 使用时态时间轴管理器实现状态变更
 func (h *OrganizationHandler) ActivateOrganization(w http.ResponseWriter, r *http.Request) {
+	h.changeOrganizationStatusWithTimeline(w, r, "ACTIVE", "REACTIVATE", "激活组织")
+}
+
+// changeOrganizationStatusWithTimeline 通用的组织状态变更handler - 使用时态时间轴管理器
+func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.ResponseWriter, r *http.Request, newStatus, operationType, actionName string) {
 	code := chi.URLParam(r, "code")
 	if code == "" {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
@@ -476,46 +401,136 @@ func (h *OrganizationHandler) ActivateOrganization(w http.ResponseWriter, r *htt
 	}
 
 	// 验证组织代码格式
-	if err := utils.ValidateOrganizationCode(code); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码格式无效", err)
+	if len(code) != 7 {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_CODE_FORMAT", "组织代码必须是7位数字", nil)
 		return
 	}
 
-	var req types.ReactivateOrganizationRequest
+	var req struct {
+		EffectiveDate   string  `json:"effectiveDate"`   // 生效日期，格式：2006-01-02
+		OperationReason *string `json:"operationReason"` // 操作原因
+	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
 
-	// 验证激活请求
-	if err := utils.ValidateActivateRequest(req.Reason); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "激活原因验证失败", err)
+	// 解析生效日期
+	effectiveDate, err := time.Parse("2006-01-02", req.EffectiveDate)
+	if err != nil {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_DATE_FORMAT", "生效日期格式无效", err)
 		return
 	}
 
 	tenantID := h.getTenantID(r)
+	requestID := middleware.GetRequestID(r.Context())
+	actorID := h.getActorID(r)
 
-	// 重新启用组织
-	org, err := h.repo.Activate(r.Context(), tenantID, code, req.Reason)
+	// 操作原因处理
+	operationReason := actionName
+	if req.OperationReason != nil {
+		operationReason = *req.OperationReason
+	}
+
+	// 🚀 使用时态时间轴管理器变更组织状态
+	var timeline *[]repository.TimelineVersion
+	if operationType == "SUSPEND" {
+		timeline, err = h.timelineManager.SuspendOrganization(r.Context(), tenantID, code, effectiveDate, operationReason)
+	} else {
+		timeline, err = h.timelineManager.ActivateOrganization(r.Context(), tenantID, code, effectiveDate, operationReason)
+	}
+
 	if err != nil {
-		h.handleRepositoryError(w, r, "ACTIVATE", err)
+		// 记录操作失败的审计日志
+		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code,
+			operationType, actorID, requestID, operationType+"_ERROR", err.Error(), map[string]interface{}{
+				"code":               code,
+				"targetStatus":       newStatus,
+				"effectiveDate":      req.EffectiveDate,
+				"operationReason":    operationReason,
+			})
+
+		// 检查是否是冲突错误
+		if strings.Contains(err.Error(), "TEMPORAL_POINT_CONFLICT") {
+			h.writeErrorResponse(w, r, http.StatusConflict, "TEMPORAL_CONFLICT", "生效日期与现有版本冲突", err)
+			return
+		}
+
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, operationType+"_FAILED", actionName+"失败", err)
 		return
 	}
 
-	// 记录审计日志
-	requestID := middleware.GetRequestID(r.Context())
-	actorID := h.getActorID(r)
-	ipAddress := h.getIPAddress(r)
-	err = h.auditLogger.LogOrganizationActivate(r.Context(), code, org, actorID, requestID, ipAddress)
-	if err != nil {
-		h.logger.Printf("⚠️ 激活审计日志记录失败: %v", err)
+	// 记录成功的审计日志
+	event := &audit.AuditEvent{
+		ID:              uuid.New(),
+		TenantID:        tenantID,
+		EventType:       audit.EventTypeUpdate,
+		ResourceType:    audit.ResourceTypeOrganization,
+		ResourceID:      code,
+		ActorID:         actorID,
+		ActorType:       audit.ActorTypeUser,
+		ActionName:      operationType,
+		RequestID:       requestID,
+		OperationReason: operationReason,
+		Timestamp:       time.Now(),
+		Success:         true,
+		BeforeData: map[string]interface{}{
+			"code": code,
+		},
+		AfterData: map[string]interface{}{
+			"targetStatus":       newStatus,
+			"effectiveDate":      req.EffectiveDate,
+			"timelineVersions":   len(*timeline),
+			"operationReason":    operationReason,
+		},
 	}
 
-	// 构建企业级成功响应
-	response := h.toOrganizationResponse(org)
-	utils.WriteSuccess(w, response, "Organization activated successfully", requestID)
+	if err := h.auditLogger.LogEvent(r.Context(), event); err != nil {
+		h.logger.Printf("⚠️ 记录审计日志失败: %v", err)
+	}
 
-	h.logger.Printf("✅ 组织激活成功: %s - %s (RequestID: %s)", response.Code, response.Name, requestID)
+	// 构造响应 - 返回更新后的时间轴
+	timelineResponse := make([]map[string]interface{}, len(*timeline))
+	for i, version := range *timeline {
+		timelineResponse[i] = map[string]interface{}{
+			"recordId":      version.RecordID,
+			"code":          version.Code,
+			"name":          version.Name,
+			"effectiveDate": version.EffectiveDate.Format("2006-01-02"),
+			"endDate": func() *string {
+				if version.EndDate != nil {
+					endDateStr := version.EndDate.Format("2006-01-02")
+					return &endDateStr
+				}
+				return nil
+			}(),
+			"isCurrent": version.IsCurrent,
+			"status":    version.Status,
+		}
+	}
+
+	isImmediate := effectiveDate.Before(time.Now().Add(24 * time.Hour))
+	message := fmt.Sprintf("%s成功（%s生效），时间轴已自动调整", actionName, 
+		func() string {
+			if isImmediate {
+				return "即时"
+			}
+			return "计划"
+		}())
+
+	response := map[string]interface{}{
+		"message":           message,
+		"operationType":     operationType,
+		"targetStatus":      newStatus,
+		"effectiveDate":     req.EffectiveDate,
+		"operationReason":   operationReason,
+		"isImmediate":       isImmediate,
+		"timeline":          timelineResponse,
+	}
+
+	utils.WriteSuccess(w, response, actionName+"成功", requestID)
+	h.logger.Printf("✅ %s成功: %s → %s, 生效日期=%s (RequestID: %s)", actionName, code, newStatus, req.EffectiveDate, requestID)
 }
 
 func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *http.Request) {
@@ -703,10 +718,13 @@ func (h *OrganizationHandler) SetupRoutes(r chi.Router) {
 	r.Route("/api/v1/organization-units", func(r chi.Router) {
 		r.Post("/", h.CreateOrganization)
 		r.Put("/{code}", h.UpdateOrganization)
-		r.Delete("/{code}", h.DeleteOrganization)
 		r.Post("/{code}/suspend", h.SuspendOrganization)
 		r.Post("/{code}/activate", h.ActivateOrganization)
+		// 🚀 新的时态版本管理端点 - 实现时态时间轴连续性
 		r.Post("/{code}/versions", h.CreateOrganizationVersion)
+		r.Delete("/versions/{recordId}", h.DeleteOrganizationVersion)
+		r.Put("/versions/{recordId}/effective-date", h.UpdateVersionEffectiveDate)
+		// 事件处理和历史记录
 		r.Post("/{code}/events", h.CreateOrganizationEvent)
 		r.Put("/{code}/history/{record_id}", h.UpdateHistoryRecord)
 	})
