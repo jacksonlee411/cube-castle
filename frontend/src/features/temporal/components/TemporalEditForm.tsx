@@ -18,8 +18,8 @@ const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): Organi
     case 'CURRENT':
     case 'ACTIVE':
       return 'ACTIVE';
-    case 'SUSPENDED':
-      return 'SUSPENDED';
+    case 'INACTIVE':
+      return 'INACTIVE';
     case 'PLANNED':
       return 'PLANNED';
     default:
@@ -30,7 +30,7 @@ const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): Organi
 export interface TemporalEditFormData {
   name: string;
   unitType: string;
-  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
+  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'INACTIVE' | 'DELETED';
   description?: string;
   effectiveDate: string;
   parentCode?: string;
@@ -42,7 +42,7 @@ export interface TemporalVersion {
   code: string;
   name: string;
   unitType: string;
-  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'SUSPENDED' | 'DELETED';
+  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'INACTIVE' | 'DELETED';
   description?: string;
   effectiveDate: string;
   parentCode?: string;  // 修复：添加上级组织编码字段

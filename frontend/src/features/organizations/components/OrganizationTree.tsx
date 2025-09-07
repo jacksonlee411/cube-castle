@@ -52,14 +52,12 @@ export interface OrganizationTreeProps {
   showRoot?: boolean;
 }
 
-// 状态映射函数
+// 状态映射函数 - 符合API契约的3个业务状态
 const mapStatusToOrganizationStatus = (status: string): OrganizationStatus => {
   switch (status) {
     case 'ACTIVE': return 'ACTIVE';
-    case 'INACTIVE':
-    case 'SUSPENDED': return 'SUSPENDED';
+    case 'INACTIVE': return 'INACTIVE';
     case 'PLANNED': return 'PLANNED';
-    case 'DELETED': return 'DELETED';
     default: return 'ACTIVE';
   }
 };

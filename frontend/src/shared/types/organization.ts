@@ -4,7 +4,7 @@ export interface OrganizationUnit {
   parentCode: string;  // camelCase - 必填字段，根组织使用"0"
   name: string;
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
-  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED' | 'DELETED';
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
   level: number;
   path: string;
   sortOrder: number;  // camelCase
@@ -116,7 +116,7 @@ export interface ReactivateOrganizationRequest {
 export interface SuspendOrganizationResponse {
   code: string;
   name: string;
-  status: 'SUSPENDED';
+  status: 'INACTIVE';
   suspendedAt: string;  // camelCase
   reason: string;
 }

@@ -36,7 +36,7 @@ export interface TimelineVersion {
   
   // 五状态生命周期管理字段
   lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED'; // 生命周期状态
-  business_status: 'ACTIVE' | 'SUSPENDED'; // 业务状态
+  business_status: 'ACTIVE' | 'INACTIVE'; // 业务状态
   data_status: 'NORMAL' | 'DELETED'; // 数据状态
   suspended_at?: string | null; // 停用时间
   suspended_by?: string | null; // 停用者
@@ -62,17 +62,14 @@ export interface TimelineComponentProps {
 
 // 状态映射函数：将后端状态映射到组织状态系统
 const mapBackendStatusToOrganizationStatus = (backendStatus: string): OrganizationStatus => {
-  // 映射到四状态系统：ACTIVE, SUSPENDED, PLANNED, DELETED
+  // 映射到API契约的3个业务状态：ACTIVE, INACTIVE, PLANNED
   switch (backendStatus) {
     case 'ACTIVE':
       return 'ACTIVE';
     case 'INACTIVE':
-    case 'SUSPENDED':
-      return 'SUSPENDED';
+      return 'INACTIVE';
     case 'PLANNED':
       return 'PLANNED';
-    case 'DELETED':
-      return 'DELETED';
     default:
       return 'ACTIVE'; // 默认状态
   }
@@ -109,13 +106,13 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
     }
     
     // 2. 业务停用状态
-    if (version.business_status === 'SUSPENDED') {
+    if (version.business_status === 'INACTIVE') {
       return { 
         color: colors.cantaloupe600, 
         dotColor: colors.cantaloupe600, 
         label: '已停用',
         isDeactivated: false,
-        badge: 'SUSPENDED' as const
+        badge: 'INACTIVE' as const
       };
     }
     
@@ -165,8 +162,8 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
   const formatDateRange = (version: TimelineVersion, allVersions: TimelineVersion[]) => {
     const start = formatDate(version.effectiveDate);
     
-    // 优先检查删除状态
-    if (version.data_status === 'DELETED' || version.status === 'DELETED') {
+    // 优先检查删除状态（通过data_status字段）
+    if (version.data_status === 'DELETED') {
       return `${start} ~ 已删除`;
     }
     
@@ -179,7 +176,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
     // 找到下一个生效日期更晚的版本（排除已删除的版本）
     const nextVersion = allVersions
       .filter(v => new Date(v.effectiveDate) > new Date(version.effectiveDate))
-      .filter(v => v.data_status !== 'DELETED' && v.status !== 'DELETED')
+      .filter(v => v.data_status !== 'DELETED')
       .sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime())[0];
     
     if (nextVersion) {

@@ -8,7 +8,7 @@ export interface CreateOrganizationInput {
   parentCode?: string;
   name: string;
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
-  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
   level: number;
   sortOrder: number;
   description?: string;
@@ -20,7 +20,7 @@ export interface UpdateOrganizationInput {
   code: string;
   name?: string;
   unitType?: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
-  status?: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
+  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
   description?: string;
   sortOrder?: number;
   level?: number;

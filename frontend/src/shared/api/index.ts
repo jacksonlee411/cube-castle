@@ -1,21 +1,16 @@
 /**
- * 统一API客户端导出 - Phase 1 API客户端统一化
+ * 统一API客户端导出 - Phase 1 彻底迁移完成
  * 
- * 🔥 重要变更：API客户端统一策略 
- * - 主要实现：unified-client (推荐使用)
- * - 兼容导出：保持向后兼容性
- * - 废弃清理：逐步移除重复客户端实现
+ * 🎉 重复代码彻底消除：
+ * - ✅ 统一客户端：unified-client (唯一实现)
+ * - ❌ 废弃客户端：已彻底删除
+ * - 🏗️ CQRS架构：严格查询-命令分离
  */
 
-// 🎯 主要实现：统一API客户端 (强烈推荐)
+// 🎯 唯一API客户端实现
 export * from './unified-client';
 
-// 🔄 兼容导出：保持向后兼容，但将逐步废弃
-export * from './organizations';
-export * from './organizations-enterprise';
-export * from './client';
-
-// 🔧 适配器和工具
+// 🔧 支持工具和适配器
 export * from './graphql-enterprise-adapter';
 export * from './auth';
 export * from './error-handling';
@@ -24,18 +19,17 @@ export * from './error-handling';
 export type { OrganizationQueryParams } from '../types/organization';
 
 /**
- * 📋 迁移指南:
+ * 🚀 统一API使用指南:
  * 
- * 推荐使用：
- * - UnifiedGraphQLClient (查询操作)
- * - UnifiedRESTClient (命令操作)
+ * 查询操作 (GraphQL):
+ * import { unifiedGraphQLClient } from '@/shared/api';
+ * const data = await unifiedGraphQLClient.request(QUERY, variables);
  * 
- * 兼容模式：
- * - organizationAPI (将被废弃)
- * - enterpriseOrganizationAPI (将被废弃)
- * - ApiClient (将被废弃)
+ * 命令操作 (REST):
+ * import { unifiedRESTClient } from '@/shared/api';
+ * const result = await unifiedRESTClient.request('/endpoint', options);
  * 
  * CQRS原则：
- * - 查询 → GraphQL客户端
- * - 命令 → REST客户端
+ * - 所有查询 → unifiedGraphQLClient (端口8090)
+ * - 所有命令 → unifiedRESTClient (端口9090)
  */
