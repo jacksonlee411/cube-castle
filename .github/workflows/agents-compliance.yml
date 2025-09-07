@@ -22,3 +22,7 @@ jobs:
         run: |
           bash scripts/check-api-naming.sh
 
+      - name: Check trigger definitions live only in init/migrations
+        shell: bash
+        run: |
+          bash scripts/check-trigger-sources.sh

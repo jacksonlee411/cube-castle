@@ -1,0 +1,11 @@
+# 允许在 scripts 目录中暂存但不纳入迁移链的历史/演示脚本（包含触发器定义）
+# 注意：不要在生产库执行。若必须运行，请先复制到 database/migrations 并经评审。
+
+cube-castle/scripts/migrate_to_temporal_v1_1.sql
+cube-castle/scripts/create_7digit_org_structure.sql
+cube-castle/scripts/migration_to_7digit_codes.sql
+cube-castle/scripts/temporal-management-upgrade.sql
+cube-castle/scripts/fix-temporal-trigger.sql
+cube-castle/scripts/operation-type-migration.sql
+cube-castle/scripts/advanced-hierarchy-management.sql
+
