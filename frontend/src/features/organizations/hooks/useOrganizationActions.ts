@@ -1,7 +1,22 @@
+/**
+ * ⚠️  DEPRECATED - Phase 1 Hook统一化
+ * 
+ * 此Hook将在Phase 1完成后被移除。
+ * 功能已整合到useEnterpriseOrganizations中。
+ * 
+ * 迁移指南:
+ * import { useEnterpriseOrganizations } from '@/shared/hooks';
+ */
+
 import { useState, useCallback } from 'react';
 import { useCreateOrganization, useUpdateOrganization } from '../../../shared/hooks/useOrganizationMutations';
 import type { OrganizationUnit } from '../../../shared/types';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../../shared/hooks/useOrganizationMutations';
+
+// 运行时废弃警告
+if (typeof console !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.warn('⚠️  useOrganizationActions is deprecated. Please migrate to useEnterpriseOrganizations');
+}
 
 export const useOrganizationActions = () => {
   const [selectedOrg, setSelectedOrg] = useState<OrganizationUnit | undefined>();

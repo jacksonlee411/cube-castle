@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"postgresql-graphql-service/internal/auth"
+	schemaLoader "postgresql-graphql-service/internal/graphql"
 	requestMiddleware "postgresql-graphql-service/internal/middleware"
 )
 
@@ -35,190 +36,15 @@ const (
 
 var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 
-// 激进优化的GraphQL Schema - PostgreSQL原生 (camelCase字段命名)
-var schemaString = `
-	type Organization {
-		recordId: String!
-		tenantId: String!
-		code: String!
-		parentCode: String
-		name: String!
-		unitType: String!
-		status: String!
-		level: Int!
-		path: String
-		sortOrder: Int
-		description: String
-		profile: String
-		createdAt: String!
-		updatedAt: String!
-		effectiveDate: String!
-		endDate: String
-		# PostgreSQL专属时态字段
-		isCurrent: Boolean!
-		isTemporal: Boolean!
-		changeReason: String
-		# 删除状态管理
-		deletedAt: String
-		deletedBy: String
-		deletionReason: String
-		# 暂停状态管理
-		suspendedAt: String
-		suspendedBy: String
-		suspensionReason: String
-	}
-
-	type OrganizationConnection {
-		data: [Organization!]!
-		pagination: PaginationInfo!
-		temporal: TemporalInfo!
-	}
-
-	type PaginationInfo {
-		total: Int!
-		page: Int!
-		pageSize: Int!
-		hasNext: Boolean!
-		hasPrevious: Boolean!
-	}
-
-	type TemporalInfo {
-		asOfDate: String!
-		currentCount: Int!
-		futureCount: Int!
-		historicalCount: Int!
-	}
-
-	# 层级结构类型 - 严格遵循API规范v4.2.1
-	type OrganizationHierarchy {
-		code: String!
-		name: String!
-		level: Int!
-		hierarchyDepth: Int!
-		codePath: String!
-		namePath: String!
-		parentChain: [String!]!
-		childrenCount: Int!
-		isRoot: Boolean!
-		isLeaf: Boolean!
-	}
-
-	type OrganizationSubtree {
-		code: String!
-		name: String!
-		level: Int!
-		hierarchyDepth: Int!
-		codePath: String!
-		namePath: String!
-		children: [OrganizationSubtree!]!
-	}
-
-	# 审计历史类型 - v4.6.0 精确到record_id
-	type AuditRecord {
-		auditId: String!
-		recordId: String!
-		operationType: String!
-		operatedBy: OperatedBy!
-		changesSummary: String!
-		operationReason: String
-		timestamp: String!
-		beforeData: String
-		afterData: String
-	}
-
-	type OperatedBy {
-		id: String!
-		name: String!
-	}
-
-	type AuditHistoryConnection {
-		data: [AuditRecord!]!
-		pagination: PaginationInfo!
-		summary: AuditSummary!
-	}
-
-	type AuditSummary {
-		totalOperations: Int!
-		operationTypes: [String!]!
-		operatorCount: Int!
-		riskDistribution: [RiskCount!]!
-	}
-
-	type RiskCount {
-		riskLevel: String!
-		count: Int!
-	}
-
-	type Query {
-		# 高性能当前数据查询 - 符合官方API契约 v4.2.1
-		organizations(filter: OrganizationFilter, pagination: PaginationInput): OrganizationConnection!
-		organization(code: String!): Organization
-		organizationStats: OrganizationStats!
-		
-		# 极速时态查询 - PostgreSQL窗口函数优化
-		organizationAtDate(code: String!, date: String!): Organization
-		organizationHistory(code: String!, fromDate: String!, toDate: String!): [Organization!]!
-		
-		# 高级时态分析 - PostgreSQL独有功能
-		organizationVersions(code: String!): [Organization!]!
-		
-		# 高级层级结构查询 - 严格遵循API规范v4.2.1
-		organizationHierarchy(code: String!, tenantId: String!): OrganizationHierarchy!
-		organizationSubtree(code: String!, tenantId: String!, maxDepth: Int): OrganizationSubtree!
-		
-		# 精确审计历史查询 - 基于record_id追踪 (v4.6.0)
-		auditHistory(recordId: String!, startDate: String, endDate: String, operation: String, userId: String, limit: Int): [AuditRecord!]!
-		auditLog(auditId: String!): AuditRecord
-	}
-
-	# 输入类型 - 按官方契约定义
-	input OrganizationFilter {
-		unitType: String
-		status: String
-		parentCode: String
-		searchText: String
-		asOfDate: String
-	}
-
-	input PaginationInput {
-		page: Int
-		pageSize: Int
-	}
-	
-	type OrganizationStats {
-		totalCount: Int!
-		activeCount: Int!
-		inactiveCount: Int!
-		plannedCount: Int!
-		deletedCount: Int!
-		byType: [TypeCount!]!
-		byStatus: [StatusCount!]!
-		byLevel: [LevelCount!]!
-		temporalStats: TemporalStats!
-	}
-
-	type TemporalStats {
-		totalVersions: Int!
-		averageVersionsPerOrg: Float!
-		oldestEffectiveDate: String!
-		newestEffectiveDate: String!
-	}
-
-	type TypeCount {
-		unitType: String!
-		count: Int!
-	}
-
-	type LevelCount {
-		level: Int!
-		count: Int!
-	}
-
-	type StatusCount {
-		status: String!
-		count: Int!
-	}
-`
+/**
+ * GraphQL Schema单一真源 - Phase 1实施
+ * 
+ * ⚠️  移除硬编码schemaString，改用docs/api/schema.graphql作为单一真源
+ * 消除双源维护漂移风险，确保文档与运行时schema一致性
+ * 
+ * Schema来源：docs/api/schema.graphql
+ * 加载器：internal/graphql/schema_loader.go
+ */
 
 // PostgreSQL原生组织模型 - 零转换开销 (camelCase JSON标签)
 type Organization struct {
@@ -1534,8 +1360,13 @@ func main() {
 	// 创建解析器（注入权限中间件）
 	resolver := &Resolver{repo: repo, logger: logger, authMW: graphqlMiddleware}
 
-	// 创建GraphQL schema
+	// 🎯 Phase 1: 创建GraphQL schema - 单一真源加载
+	// 从docs/api/schema.graphql加载schema，消除双源维护漂移
+	schemaPath := schemaLoader.GetDefaultSchemaPath()
+	schemaString := schemaLoader.MustLoadSchema(schemaPath)
 	schema := graphql.MustParseSchema(schemaString, resolver)
+	
+	logger.Printf("✅ GraphQL Schema loaded from single source: %s", schemaPath)
 
 	// HTTP路由
 	r := chi.NewRouter()

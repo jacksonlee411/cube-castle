@@ -1,9 +1,24 @@
+/**
+ * ⚠️  DEPRECATED - Phase 1 Hook统一化
+ * 
+ * 此Hook将在Phase 1完成后被移除。
+ * 请迁移到统一Hook: useEnterpriseOrganizations
+ * 
+ * 迁移指南:
+ * import { useEnterpriseOrganizations } from '@/shared/hooks';
+ */
+
 import { useState, useMemo } from 'react';
 import { useOrganizations } from '../../../shared/hooks/useOrganizations';
 // import { useTemporalOrganizations, useTemporalMode, useTemporalQueryState } from '../../../shared/hooks/useTemporalQuery';
 import type { OrganizationQueryParams } from '../../../shared/types/organization';
 import type { OrganizationUnitType, OrganizationStatus } from '../../../shared/types/api';
 import type { FilterState } from '../OrganizationFilters';
+
+// 运行时废弃警告
+if (typeof console !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.warn('⚠️  useOrganizationDashboard is deprecated. Please migrate to useEnterpriseOrganizations');
+}
 
 const initialFilters: FilterState = {
   searchText: '',
