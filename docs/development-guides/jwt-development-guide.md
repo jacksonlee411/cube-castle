@@ -1,5 +1,16 @@
 # JWT开发工具使用指南
 
+> 快速开始（建议）
+> 
+> 1) 启动后端：`make run-dev`
+> 2) 生成令牌：`make jwt-dev-mint`（可选参数：`USER_ID`、`TENANT_ID`、`ROLES`、`DURATION`）
+> 3) 导出令牌：`eval $(make jwt-dev-export)`（将 `JWT_TOKEN` 导入当前 shell）
+> 4) 调用 API：
+>    - REST：`curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: <tenantId>" http://localhost:9090/health`
+>    - GraphQL：`curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: <tenantId>" http://localhost:8090/graphiql`
+> 
+> 说明：`X-Tenant-ID` 必填，且必须与 JWT 中的 `tenantId/tenant_id` 一致，否则返回 401/403。
+
 ## 概述
 
 Cube Castle项目提供了完整的JWT开发工具，帮助开发者在开发环境中快速生成和管理JWT令牌，提升开发效率。
@@ -18,6 +29,21 @@ Cube Castle项目提供了完整的JWT开发工具，帮助开发者在开发环
 - **生产环境保护**: 生产环境自动禁用开发工具端点
 - **令牌验证**: 完整的JWT签名验证和过期检查
 - **权限控制**: 基于角色的API访问控制
+- **租户一致性**: 强制 `X-Tenant-ID` 头与令牌声明 `tenantId/tenant_id` 一致
+
+## ⚙️ 配置参考
+
+`.env.example` 已提供推荐配置段，关键变量：
+
+```
+AUTH_MODE=dev              # dev|prod
+JWT_ALG=HS256              # 开发默认 HS256；生产建议 RS256 + JWKS
+JWT_SECRET=...             # HS256 共享密钥
+JWT_ISSUER=cube-castle
+JWT_AUDIENCE=cube-castle-api
+JWT_ALLOWED_CLOCK_SKEW=60  # 秒
+# JWT_JWKS_URL=...         # 生产：IdP 的 JWKS 地址
+```
 
 ## 🚀 快速开始
 

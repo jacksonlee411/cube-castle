@@ -67,7 +67,7 @@ func (r *RESTPermissionMiddleware) Middleware() func(http.Handler) http.Handler 
 	}
 }
 
-// handleDevMode 开发模式处理 - 生产就绪版本：严格JWT认证
+	// handleDevMode 开发模式处理 - 生产就绪版本：严格JWT认证
 func (r *RESTPermissionMiddleware) handleDevMode(w http.ResponseWriter, req *http.Request, next http.Handler) {
 	// 检查Authorization头
 	authHeader := req.Header.Get("Authorization")
@@ -86,6 +86,19 @@ func (r *RESTPermissionMiddleware) handleDevMode(w http.ResponseWriter, req *htt
 		return
 	}
 
+	// 校验租户头并与JWT一致
+	tenantHeader := strings.TrimSpace(req.Header.Get("X-Tenant-ID"))
+	if tenantHeader == "" {
+		r.writeErrorResponse(w, req, "TENANT_HEADER_REQUIRED", "X-Tenant-ID header required", 401)
+		return
+	}
+	if claims.TenantID != "" && tenantHeader != claims.TenantID {
+		r.writeErrorResponse(w, req, "TENANT_MISMATCH", "X-Tenant-ID does not match tenant in token", 403)
+		return
+	}
+
+	// 使用Header中的租户覆盖上下文（显式且可追踪）
+	claims.TenantID = tenantHeader
 	r.logger.Printf("Dev mode: Valid JWT token provided for user: %s", claims.UserID)
 
 	// 设置用户上下文
@@ -117,6 +130,18 @@ func (r *RESTPermissionMiddleware) handleProductionMode(w http.ResponseWriter, r
 		r.writeErrorResponse(w, req, "INVALID_TOKEN", err.Error(), 401)
 		return
 	}
+
+	// 校验租户头并与JWT一致（强制）
+	tenantHeader := strings.TrimSpace(req.Header.Get("X-Tenant-ID"))
+	if tenantHeader == "" {
+		r.writeErrorResponse(w, req, "TENANT_HEADER_REQUIRED", "X-Tenant-ID header required", 401)
+		return
+	}
+	if claims.TenantID != "" && tenantHeader != claims.TenantID {
+		r.writeErrorResponse(w, req, "TENANT_MISMATCH", "X-Tenant-ID does not match tenant in token", 403)
+		return
+	}
+	claims.TenantID = tenantHeader
 
 	// 设置用户上下文
 	ctx := SetUserContext(req.Context(), claims)

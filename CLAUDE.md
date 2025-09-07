@@ -11,6 +11,18 @@
   - 状态查看：`make status`
 - 文档内若出现 Neo4j/Kafka/CDC 或旧路径 `go-app/...` 的历史描述，以本通告与 README/AGENTS.md 的最新规范为准。
 
+### 🔐 JWT 认证体系升级（2025-09-07）
+- 算法与校验：新增 RS256 + JWKS 支持（生产推荐），保留 HS256（开发默认）；支持 `kid` 命中与轮换；支持 `JWT_ALLOWED_CLOCK_SKEW`（时钟偏差容忍）。
+- 租户一致性：两服务强制要求 `X-Tenant-ID`，且与令牌中的 `tenantId/tenant_id` 一致，否则 401/403；后端兼容读取 snake_case 与 camelCase，逐步演进到 `tenantId`。
+- 配置统一：`.env.example` 增补 `AUTH_MODE/JWT_ALG/JWT_SECRET/JWT_JWKS_URL/JWT_PUBLIC_KEY_PATH/JWT_ISSUER/JWT_AUDIENCE/JWT_ALLOWED_CLOCK_SKEW`；两服务读取一致。
+- 开发工具：Makefile 新增 `jwt-dev-mint`、`jwt-dev-info`、`jwt-dev-export`、`jwt-dev-setup`，一键生成/查看/导出开发令牌；对应端点 `/auth/dev-token`、`/auth/dev-token/info`（仅 DEV）。
+- 文档更新：`docs/development-guides/jwt-development-guide.md` 新增“一页式快速上手”，示例命令与常见错误码说明。
+
+使用示例：
+- 生成令牌：`make jwt-dev-mint USER_ID=dev TENANT_ID=3b...9 ROLES=ADMIN,USER DURATION=8h`
+- 导出令牌：`eval $(make jwt-dev-export)`
+- 请求示例：`curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: 3b...9" http://localhost:9090/health`
+
 ### 1. 诚实原则 (Honesty First)
 - **绝对诚实评估**: 项目状态评估必须基于实际可验证的结果，不夸大成果
 - **问题优先暴露**: 主动识别和报告问题，不隐藏技术债务和风险

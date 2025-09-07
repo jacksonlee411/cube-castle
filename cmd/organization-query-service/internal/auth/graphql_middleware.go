@@ -75,11 +75,23 @@ func (g *GraphQLPermissionMiddleware) handleDevMode(w http.ResponseWriter, r *ht
 		return
 	}
 
-	g.logger.Printf("Dev mode: Valid JWT token provided for user: %s", claims.UserID)
+    // 校验租户头并与JWT一致
+    tenantHeader := strings.TrimSpace(r.Header.Get("X-Tenant-ID"))
+    if tenantHeader == "" {
+        g.writeErrorResponse(w, r, "TENANT_HEADER_REQUIRED", "X-Tenant-ID header required", 401)
+        return
+    }
+    if claims.TenantID != "" && tenantHeader != claims.TenantID {
+        g.writeErrorResponse(w, r, "TENANT_MISMATCH", "X-Tenant-ID does not match tenant in token", 403)
+        return
+    }
+    claims.TenantID = tenantHeader
 
-	// 设置用户上下文
-	ctx := SetUserContext(r.Context(), claims)
-	next.ServeHTTP(w, r.WithContext(ctx))
+    g.logger.Printf("Dev mode: Valid JWT token provided for user: %s", claims.UserID)
+
+    // 设置用户上下文
+    ctx := SetUserContext(r.Context(), claims)
+    next.ServeHTTP(w, r.WithContext(ctx))
 }
 
 // handleProductionMode 生产模式处理
@@ -99,9 +111,21 @@ func (g *GraphQLPermissionMiddleware) handleProductionMode(w http.ResponseWriter
 		return
 	}
 
-	// 设置用户上下文
-	ctx := SetUserContext(r.Context(), claims)
-	next.ServeHTTP(w, r.WithContext(ctx))
+    // 校验租户头并与JWT一致（强制）
+    tenantHeader := strings.TrimSpace(r.Header.Get("X-Tenant-ID"))
+    if tenantHeader == "" {
+        g.writeErrorResponse(w, r, "TENANT_HEADER_REQUIRED", "X-Tenant-ID header required", 401)
+        return
+    }
+    if claims.TenantID != "" && tenantHeader != claims.TenantID {
+        g.writeErrorResponse(w, r, "TENANT_MISMATCH", "X-Tenant-ID does not match tenant in token", 403)
+        return
+    }
+    claims.TenantID = tenantHeader
+
+    // 设置用户上下文
+    ctx := SetUserContext(r.Context(), claims)
+    next.ServeHTTP(w, r.WithContext(ctx))
 }
 
 // createMockClaims 创建模拟用户声明（开发模式）

@@ -1501,13 +1501,26 @@ func main() {
 	// 创建仓储
 	repo := NewPostgreSQLRepository(db, redisClient, logger)
 
-	// 初始化JWT中间件
-	jwtSecret := getEnv("JWT_SECRET", "cube-castle-development-secret-key-2025")
-	jwtIssuer := getEnv("JWT_ISSUER", "cube-castle")
-	jwtAudience := getEnv("JWT_AUDIENCE", "cube-castle-api")
-	devMode := getEnv("DEV_MODE", "true") == "true"
+    // 初始化JWT中间件
+    jwtSecret := getEnv("JWT_SECRET", "cube-castle-development-secret-key-2025")
+    jwtIssuer := getEnv("JWT_ISSUER", "cube-castle")
+    jwtAudience := getEnv("JWT_AUDIENCE", "cube-castle-api")
+    jwtAlg := getEnv("JWT_ALG", "HS256")
+    devMode := getEnv("DEV_MODE", "true") == "true"
+    var clockSkew time.Duration
+    if v := getEnv("JWT_ALLOWED_CLOCK_SKEW", ""); v != "" { if d, err := time.ParseDuration(v+"s"); err == nil { clockSkew = d } }
+    jwksURL := getEnv("JWT_JWKS_URL", "")
+    var pubPEM []byte
+    if p := getEnv("JWT_PUBLIC_KEY_PATH", ""); p != "" {
+        if b, err := os.ReadFile(p); err == nil { pubPEM = b }
+    }
 
-	jwtMiddleware := auth.NewJWTMiddleware(jwtSecret, jwtIssuer, jwtAudience)
+    jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtSecret, jwtIssuer, jwtAudience, auth.Options{
+        Alg:          jwtAlg,
+        JWKSURL:      jwksURL,
+        PublicKeyPEM: pubPEM,
+        ClockSkew:    clockSkew,
+    })
 	permissionChecker := auth.NewPBACPermissionChecker(db, logger)
 	graphqlMiddleware := auth.NewGraphQLPermissionMiddleware(
 		jwtMiddleware,

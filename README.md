@@ -215,6 +215,19 @@ make frontend-dev
 # 注意: 不再需要任何同步服务与 Neo4j
 ```
 
+### 2.1 认证快速开始（开发）
+
+```bash
+# 生成开发令牌（保存到 ./.cache/dev.jwt）
+make jwt-dev-mint USER_ID=dev-user TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 ROLES=ADMIN,USER DURATION=8h
+
+# 导出令牌到当前shell
+eval $(make jwt-dev-export)
+
+# 带租户头访问（X-Tenant-ID 必填，并与令牌中租户一致）
+curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" http://localhost:9090/health
+```
+
 ### 3. 验证系统状态
 
 ```bash

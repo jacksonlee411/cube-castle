@@ -66,24 +66,40 @@ func main() {
 	logger.Println("✅ Prometheus指标收集系统已初始化")
 
 	// 初始化JWT中间件
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		jwtSecret = "cube-castle-development-secret-key-2025"
-	}
-	jwtIssuer := os.Getenv("JWT_ISSUER")
+    jwtSecret := os.Getenv("JWT_SECRET")
+    if jwtSecret == "" {
+        jwtSecret = "cube-castle-development-secret-key-2025"
+    }
+    jwtIssuer := os.Getenv("JWT_ISSUER")
 	if jwtIssuer == "" {
 		jwtIssuer = "cube-castle"
 	}
-	jwtAudience := os.Getenv("JWT_AUDIENCE")
-	if jwtAudience == "" {
-		jwtAudience = "cube-castle-api"
-	}
+    jwtAudience := os.Getenv("JWT_AUDIENCE")
+    if jwtAudience == "" {
+        jwtAudience = "cube-castle-api"
+    }
+    jwtAlg := os.Getenv("JWT_ALG")
+    if jwtAlg == "" { jwtAlg = "HS256" }
+    clockSkew := time.Duration(0)
+    if v := os.Getenv("JWT_ALLOWED_CLOCK_SKEW"); v != "" {
+        if secs, err := time.ParseDuration(v+"s"); err == nil { clockSkew = secs }
+    }
+    jwksURL := os.Getenv("JWT_JWKS_URL")
+    var pubPEM []byte
+    if p := os.Getenv("JWT_PUBLIC_KEY_PATH"); p != "" {
+        if b, err := os.ReadFile(p); err == nil { pubPEM = b }
+    }
 	devMode := os.Getenv("DEV_MODE") == "true"
 	if os.Getenv("DEV_MODE") == "" {
 		devMode = true // 默认开发模式
 	}
 
-	jwtMiddleware := auth.NewJWTMiddleware(jwtSecret, jwtIssuer, jwtAudience)
+    jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtSecret, jwtIssuer, jwtAudience, auth.Options{
+        Alg:          jwtAlg,
+        JWKSURL:      jwksURL,
+        PublicKeyPEM: pubPEM,
+        ClockSkew:    clockSkew,
+    })
 	permissionChecker := auth.NewPBACPermissionChecker(db, logger)
 	restAuthMiddleware := auth.NewRESTPermissionMiddleware(
 		jwtMiddleware,

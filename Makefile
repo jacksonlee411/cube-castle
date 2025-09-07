@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset monitoring-up monitoring-down monitoring-test
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset monitoring-up monitoring-down monitoring-test jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup
 
 # 默认目标
 help:
@@ -23,6 +23,12 @@ help:
 	@echo "  monitoring-up    - 启动监控栈 (Prometheus/Grafana/AlertManager)"
 	@echo "  monitoring-test  - 验证监控栈运行状况与指标"
 	@echo "  monitoring-down  - 停止监控栈"
+	@echo ""
+	@echo "🔑 开发JWT:"
+	@echo "  jwt-dev-mint    - 生成开发用JWT并保存到 ./.cache/dev.jwt"
+	@echo "  jwt-dev-info    - 查询当前开发JWT信息"
+	@echo "  jwt-dev-export  - 导出环境变量 JWT_TOKEN（从 ./.cache/dev.jwt）"
+	@echo "  jwt-dev-setup   - 生成本地RS256密钥对（可选）"
 	@echo ""
 	@echo "🧪 质量:"
 	@echo "  test             - 运行 Go 单元测试"
@@ -168,3 +174,41 @@ monitoring-down:
 	@echo "🛑 停止监控栈..."
 	@command -v docker >/dev/null 2>&1 || { echo "❌ 需要 docker"; exit 1; }
 	docker compose -f monitoring/docker-compose.monitoring.yml down
+
+# 开发JWT工具
+jwt-dev-mint:
+	@echo "🔑 生成开发JWT..."
+	@mkdir -p .cache
+	@USER_ID=$${USER_ID:-dev-user} ; \
+	TENANT_ID=$${TENANT_ID:-3b99930c-4dc6-4cc9-8e4d-7d960a931cb9} ; \
+	ROLES=$${ROLES:-ADMIN,USER} ; \
+	DURATION=$${DURATION:-8h} ; \
+	BODY=$$(printf '{"userId":"%s","tenantId":"%s","roles":[%s],"duration":"%s"}' "$$USER_ID" "$$TENANT_ID" "$$(echo $$ROLES | sed 's/,/","/g' | sed 's/^/"/;s/$$/"/')" "$$DURATION") ; \
+	RESP=$$(curl -s -X POST http://localhost:9090/auth/dev-token -H 'Content-Type: application/json' -d "$$BODY") ; \
+	if command -v jq >/dev/null 2>&1; then \
+		echo "$$RESP" | jq -r '.data.token' > ./.cache/dev.jwt ; \
+	else \
+		echo "⚠️  未安装 jq，尝试简易解析..." ; \
+		echo "$$RESP" | sed -n 's/.*"token"\s*:\s*"\([^"]*\)".*/\1/p' | head -n1 > ./.cache/dev.jwt ; \
+	fi ; \
+	TOKEN=$$(cat ./.cache/dev.jwt) ; \
+	if [ -z "$$TOKEN" ]; then echo "❌ 生成失败: 无法解析令牌"; exit 2; fi ; \
+	echo "✅ 已保存到 ./.cache/dev.jwt"
+
+jwt-dev-info:
+	@echo "🔎 查询开发JWT信息..."
+	@test -f ./.cache/dev.jwt || { echo "❌ 未找到 ./.cache/dev.jwt，请先执行: make jwt-dev-mint"; exit 2; }
+	@TOKEN=$$(cat ./.cache/dev.jwt) ; \
+	curl -s -H "Authorization: Bearer $$TOKEN" http://localhost:9090/auth/dev-token/info | (command -v jq >/dev/null 2>&1 && jq . || cat)
+
+jwt-dev-export:
+	@echo "🌱 导出 JWT_TOKEN 环境变量 (当前进程无效，供 shell 评估)"
+	@test -f ./.cache/dev.jwt || { echo "❌ 未找到 ./.cache/dev.jwt，请先执行: make jwt-dev-mint"; exit 2; }
+	@echo "export JWT_TOKEN=$$(cat ./.cache/dev.jwt)"
+
+jwt-dev-setup:
+	@echo "🔐 生成本地RS256开发密钥对（可选）..."
+	@mkdir -p secrets
+	@openssl genrsa -out secrets/dev-jwt-private.pem 2048 2>/dev/null && \
+	openssl rsa -in secrets/dev-jwt-private.pem -pubout -out secrets/dev-jwt-public.pem 2>/dev/null && \
+	echo "✅ 已生成 secrets/dev-jwt-private.pem 与 secrets/dev-jwt-public.pem"
