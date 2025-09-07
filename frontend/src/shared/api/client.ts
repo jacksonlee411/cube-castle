@@ -1,8 +1,23 @@
+/**
+ * ⚠️  DEPRECATED - Phase 1 API客户端统一化
+ * 
+ * ApiClient类将在Phase 1完成后被移除。
+ * 请迁移到统一API客户端: UnifiedRESTClient
+ * 
+ * 迁移指南:
+ * import { unifiedRESTClient } from '@/shared/api';
+ */
+
 import { APIError } from '../types/api';
 import { authManager } from './auth';
 import { getCurrentTenantId } from '../config/tenant';
 
 const API_BASE_URL = 'http://localhost:9090/api/v1';
+
+// 运行时废弃警告
+if (typeof console !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.warn('⚠️  ApiClient is deprecated. Please migrate to UnifiedRESTClient');
+}
 
 export class ApiClient {
   private baseURL: string;

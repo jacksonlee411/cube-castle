@@ -1,7 +1,13 @@
 /**
- * 企业级组织单元API客户端
- * 集成GraphQL企业级响应信封适配器
- * 支持后端P0级响应格式统一修复
+ * ⚠️  DEPRECATED - Phase 1 API客户端统一化
+ * 
+ * 企业级组织单元API客户端将在Phase 1完成后被移除。
+ * 企业级功能已整合到统一API客户端中。
+ * 
+ * 迁移指南:
+ * import { unifiedGraphQLClient, unifiedRESTClient } from '@/shared/api';
+ * 
+ * 原企业级功能现在直接内置在统一客户端中。
  */
 
 import type { 

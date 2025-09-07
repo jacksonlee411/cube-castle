@@ -1,3 +1,13 @@
+/**
+ * ⚠️  DEPRECATED - Phase 1 API客户端统一化
+ * 
+ * 此API客户端将在Phase 1完成后被移除。
+ * 请迁移到统一API客户端: UnifiedGraphQLClient + UnifiedRESTClient
+ * 
+ * 迁移指南:
+ * import { unifiedGraphQLClient, unifiedRESTClient } from '@/shared/api';
+ */
+
 import type { 
   OrganizationUnit, 
   OrganizationListResponse, 
@@ -17,6 +27,11 @@ import {
   formatValidationErrors
 } from '../validation/simple-validation';
 import { unifiedGraphQLClient, unifiedRESTClient } from './unified-client';
+
+// 运行时废弃警告
+if (typeof console !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.warn('⚠️  organizationAPI is deprecated. Please migrate to UnifiedGraphQLClient + UnifiedRESTClient');
+}
 
 // 扩展查询参数以支持时态查询
 interface ExtendedOrganizationQueryParams extends OrganizationQueryParams {
