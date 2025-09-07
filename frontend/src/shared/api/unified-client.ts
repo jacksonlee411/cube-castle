@@ -4,6 +4,7 @@
  * 基于CQRS架构：查询使用GraphQL，命令使用REST API
  */
 import { authManager } from './auth';
+import { getCurrentTenantId } from '../config/tenant';
 import type { GraphQLResponse } from '../types';
 
 // 🔧 CQRS架构端点配置 - 使用代理避免CORS问题
@@ -106,7 +107,7 @@ export class UnifiedRESTClient {
     this.baseURL = baseURL;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
-      'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9', // 默认租户ID
+      'X-Tenant-ID': getCurrentTenantId(), // 从统一租户配置获取
     };
   }
 

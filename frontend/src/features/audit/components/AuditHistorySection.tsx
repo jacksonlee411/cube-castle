@@ -3,6 +3,7 @@
  * 基于auditHistory GraphQL查询展示组织的完整审计记录
  */
 import React, { useState } from 'react';
+import { getCurrentTenantId } from '../../../shared/config/tenant';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
@@ -69,7 +70,7 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
   // 数据适配器：GraphQL → UI格式
   const transformAuditData = (audit: Record<string, unknown>) => {
     const operatedBy = audit.operatedBy as { id?: string; name?: string } | null;
-    const SYSTEM_USER_ID = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
+    const SYSTEM_USER_ID = getCurrentTenantId(); // 使用统一租户配置
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const rawName = (operatedBy?.name ?? '').toString().trim();
     const rawId = (operatedBy?.id ?? '').toString().trim();

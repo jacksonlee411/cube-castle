@@ -1,16 +1,14 @@
 import { APIError } from '../types/api';
 import { authManager } from './auth';
+import { getCurrentTenantId } from '../config/tenant';
 
 const API_BASE_URL = 'http://localhost:9090/api/v1';
-
-// 项目默认租户ID - 高谷集团
-const DEFAULT_TENANT_ID = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
 
 export class ApiClient {
   private baseURL: string;
   private tenantID: string;
 
-  constructor(baseURL: string = API_BASE_URL, tenantID: string = DEFAULT_TENANT_ID) {
+  constructor(baseURL: string = API_BASE_URL, tenantID: string = getCurrentTenantId()) {
     this.baseURL = baseURL;
     this.tenantID = tenantID;
   }

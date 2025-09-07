@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"../shared/config" // 使用统一配置
 )
 
 func main() {
@@ -16,7 +17,7 @@ func main() {
 	// 创建claims
 	claims := jwt.MapClaims{
 		"sub":       "dev-user-001",
-		"tenant_id": "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9",
+		"tenant_id": config.GetDefaultTenantIDString(), // 使用统一租户配置
 		"roles":     []string{"ADMIN", "MANAGER"},
 		"iss":       issuer,
 		"aud":       audience,
