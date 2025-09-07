@@ -71,7 +71,7 @@ func (h *DevToolsHandler) GenerateDevToken(w http.ResponseWriter, r *http.Reques
 		req.UserID = "dev-user"
 	}
 	if req.TenantID == "" {
-		req.TenantID = "dev-tenant"
+		req.TenantID = "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"
 	}
 	if len(req.Roles) == 0 {
 		req.Roles = []string{"ADMIN", "USER"}

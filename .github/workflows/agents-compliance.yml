@@ -1,0 +1,24 @@
+name: Agents Compliance
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check TODO-TEMPORARY annotations
+        shell: bash
+        run: |
+          bash scripts/check-temporary-tags.sh
+
+      - name: Check API naming consistency
+        shell: bash
+        run: |
+          bash scripts/check-api-naming.sh
+

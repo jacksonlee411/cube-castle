@@ -25,6 +25,7 @@ import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/uni
 import { organizationAPI } from '../../../shared/api/organizations';
 // 审计历史组件导入
 import { AuditHistorySection } from '../../audit/components/AuditHistorySection';
+import { normalizeParentCode } from '../../../shared/utils/organization-helpers';
 
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
@@ -238,7 +239,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             unitType: defaultVersion.unitType,
             status: defaultVersion.status,
             description: defaultVersion.description || '',
-            parentCode: defaultVersion.parentCode || '',
+            parentCode: normalizeParentCode.forForm(defaultVersion.parentCode),
             effectiveDate: defaultVersion.effectiveDate
           });
         }
@@ -341,7 +342,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         unitType: version.unitType,
         status: version.status,
         description: version.description || '',
-        parentCode: version.parentCode || '',
+        parentCode: normalizeParentCode.forForm(version.parentCode),
         effectiveDate: version.effectiveDate
       });
     }
@@ -371,7 +372,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           name: formData.name,
           unitType: formData.unitType,
           description: formData.description || '',
-          parentCode: formData.parentCode || null,
+          parentCode: normalizeParentCode.forAPI(formData.parentCode),
           effectiveDate: formData.effectiveDate
         };
         
@@ -411,7 +412,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         await organizationAPI.createVersion(organizationCode!, {
           name: formData.name,
           unitType: formData.unitType,
-          parentCode: formData.parentCode || null,
+          parentCode: normalizeParentCode.forAPI(formData.parentCode),
           description: formData.description || null,
           sortOrder: null, // 使用默认排序
           profile: null,   // 暂不支持
@@ -496,7 +497,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             status: updateData.status,
             description: updateData.description,
             effectiveDate: updateData.effectiveDate,
-            parentCode: updateData.parentCode,
+            parentCode: normalizeParentCode.forAPI(updateData.parentCode),
             changeReason: '通过组织详情页面修改历史记录'
           })
         }

@@ -10,6 +10,7 @@ import type { OrganizationFormProps, FormData } from './FormTypes';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../../../shared/hooks/useOrganizationMutations';
 import { TemporalConverter } from '../../../../shared/utils/temporal-converter';
 import { useMessages } from '../../../../shared/hooks/useMessages';
+import { normalizeParentCode } from '../../../../shared/utils/organization-helpers';
 
 export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   organization,
@@ -34,7 +35,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     unitType: organization?.unitType || 'DEPARTMENT',
     status: organization?.status || 'ACTIVE',
     description: organization?.description || '',
-    parentCode: organization?.parentCode || '',
+    parentCode: normalizeParentCode.forForm(organization?.parentCode),
     level: organization?.level || 1,
     sortOrder: organization?.sortOrder || 0,
     // 时态字段
@@ -63,7 +64,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
       unitType: organization?.unitType || 'DEPARTMENT',
       status: organization?.status || 'ACTIVE',
       description: organization?.description || '',
-      parentCode: organization?.parentCode || '',
+      parentCode: normalizeParentCode.forForm(organization?.parentCode),
       level: organization?.level || 1,
       sortOrder: organization?.sortOrder || 0,
       // 时态字段重置
@@ -103,7 +104,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           description: formData.description,
           sortOrder: formData.sortOrder,
           level: formData.level,
-          parentCode: formData.parentCode || undefined,
+          parentCode: normalizeParentCode.forAPI(formData.parentCode),
         };
         
         // 时态更新 (统一字符串类型处理)
@@ -127,7 +128,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           level: formData.level,
           sortOrder: formData.sortOrder,
           description: formData.description,
-          parentCode: formData.parentCode || undefined,
+          parentCode: normalizeParentCode.forAPI(formData.parentCode),
         };
         
         // 时态创建 (统一字符串类型处理)

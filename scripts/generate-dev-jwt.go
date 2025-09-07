@@ -16,7 +16,7 @@ func main() {
 	// 创建claims
 	claims := jwt.MapClaims{
 		"sub":       "dev-user-001",
-		"tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+		"tenant_id": "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9",
 		"roles":     []string{"ADMIN", "MANAGER"},
 		"iss":       issuer,
 		"aud":       audience,

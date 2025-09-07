@@ -69,7 +69,7 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
   // 数据适配器：GraphQL → UI格式
   const transformAuditData = (audit: Record<string, unknown>) => {
     const operatedBy = audit.operatedBy as { id?: string; name?: string } | null;
-    const SYSTEM_USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+    const SYSTEM_USER_ID = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const rawName = (operatedBy?.name ?? '').toString().trim();
     const rawId = (operatedBy?.id ?? '').toString().trim();
