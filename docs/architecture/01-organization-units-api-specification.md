@@ -24,8 +24,7 @@ GraphQL查询端点:
 
 REST命令端点:
   - POST /api/v1/organization-units (创建)
-  - PUT /api/v1/organization-units/{code} (完全替换)
-  - PATCH /api/v1/organization-units/{code} (部分更新)
+  - PUT /api/v1/organization-units/{code} (更新/完全替换)
   - POST /api/v1/organization-units/{code}/suspend (停用)
   - POST /api/v1/organization-units/{code}/activate (启用)
   - DELETE /api/v1/organization-units/{code} (删除)
@@ -122,16 +121,21 @@ Content-Type: application/json
 
 ### 3. 更新组织单元 (REST)
 ```http
-PATCH /api/v1/organization-units/1000002
+PUT /api/v1/organization-units/1000002
 Content-Type: application/json
 
 {
   "name": "高级开发组",
+  "unitType": "ORGANIZATION_UNIT",
+  "parentCode": "1000001",
+  "status": "ACTIVE",
   "profile": {
     "description": "高级软件开发团队"
   }
 }
 ```
+
+说明：`PATCH /{code}` 已移除。请使用 `PUT /{code}` 进行更新；涉及时态或状态变更请使用专用端点（`/{code}/versions`, `/{code}/history/{record_id}`, `/{code}/events`, `/{code}/suspend`, `/{code}/activate`）。
 
 ### 4. 停用组织单元 (REST)
 ```http

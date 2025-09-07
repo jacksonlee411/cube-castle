@@ -10,6 +10,7 @@ info:
     - **Single Data Source**: PostgreSQL with temporal data support
     - **Authentication**: OAuth 2.0 Client Credentials Flow
     - **Authorization**: Permission-Based Access Control (PBAC) with 19 fine-grained permissions
+    - **Multi-Tenant Security**: Mandatory X-Tenant-ID header for data isolation
     
     **Key Capabilities:**
     - 17-level hierarchy depth support
@@ -17,6 +18,13 @@ info:
     - Intelligent cascade updates for hierarchy changes
     - Comprehensive audit trail with operation history
     - Multi-tenant isolation and security
+    
+    **Multi-Tenant Usage Guide:**
+    - **MANDATORY Header**: All API requests MUST include `X-Tenant-ID` header
+    - **UUID Format**: Tenant ID must be a valid UUID v4 format
+    - **Data Isolation**: Each tenant's data is completely isolated from others
+    - **Security Risk**: Missing tenant header may result in default tenant access
+    - **Example**: `X-Tenant-ID: 987fcdeb-51a2-43d7-8f9e-123456789012`
     
     **Business Operation Types:**
     - **SUSPEND**: 因业务调整而暂时停用部门，支持后续重新启用，用于组织架构临时调整
@@ -87,6 +95,7 @@ paths:
       security:
         - OAuth2ClientCredentials: ['org:create']
       parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
@@ -216,6 +225,7 @@ paths:
       security:
         - OAuth2ClientCredentials: ['org:update']
       parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/CodePathParam'
       requestBody:
         required: true
@@ -262,68 +272,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-    patch:
-      tags:
-        - organization-units
-      summary: Partial update of organization unit
-      description: |
-        Partially updates an organization unit. Only provided fields are modified,
-        other fields remain unchanged. **Cannot be used for status changes**.
-        
-        **Important Notes:**
-        - **Partial Update**: Only updates provided fields
-        - **Field Preservation**: Unspecified fields keep existing values
-        - **Status Limitation**: Cannot change status field - use dedicated endpoints
-        - **Use Cases**: Single field updates, incremental modifications
-        
-        **Temporal Note:**
-        - PATCH does not update temporal sequencing. Do not use this endpoint to modify
-          temporal fields (`effectiveDate`, `endDate`) or status transitions.
-        - For temporal corrections, use:
-          - Create new version: `POST /api/v1/organization-units/{code}/versions`
-          - Update a historical record by recordId: `PUT /api/v1/organization-units/{code}/history/{record_id}`
-          - Deactivate (soft-delete) a specific version: `POST /api/v1/organization-units/{code}/events` (DEACTIVATE)
-        
-        **Required Permissions:** `org:update`
-      security:
-        - OAuth2ClientCredentials: ['org:update']
-      parameters:
-        - $ref: '#/components/parameters/CodePathParam'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateOrganizationUnitRequest'
-            examples:
-              partial_update:
-                summary: Partial Field Update
-                value:
-                  name: "技术研发部"
-                  description: "负责产品研发、技术创新和系统架构设计"
-                  profile:
-                    budget: 6000000
-                    headCountLimit: 60
-                  operationReason: "预算调整和人员编制优化"
-      responses:
-        '200':
-          description: Organization unit updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalError'
+    # PATCH removed in v4.6.x contract alignment – use PUT and specialized endpoints instead.
 
 
   /api/v1/organization-units/{code}/versions:
@@ -354,6 +303,7 @@ paths:
       security:
         - OAuth2ClientCredentials: ['org:create:planned']
       parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/CodePathParam'
         - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
@@ -462,6 +412,7 @@ paths:
       security:
         - OAuth2ClientCredentials: ['org:modify:history']
       parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/CodePathParam'
       requestBody:
         required: true
@@ -636,6 +587,7 @@ paths:
       security:
         - OAuth2ClientCredentials: ['org:suspend']
       parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/CodePathParam'
         - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
@@ -778,6 +730,7 @@ paths:
       security:
         - OAuth2ClientCredentials: ['org:activate']
       parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/CodePathParam'
         - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
@@ -985,6 +938,7 @@ paths:
       security:
         - OAuth2ClientCredentials: ['org:maintenance']
       parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/CodePathParam'
       requestBody:
         required: true
@@ -1186,6 +1140,23 @@ components:
       description: |
         7-digit organization unit code (1000000-9999999).
         This is the primary business identifier for organization units.
+    TenantIdHeader:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: "987fcdeb-51a2-43d7-8f9e-123456789012"
+      description: |
+        **REQUIRED** Tenant isolation identifier for multi-tenant data security.
+        
+        **Security Warning**: This header is MANDATORY for all API operations. 
+        Missing this header may result in data access issues or operations 
+        being performed against the default tenant.
+        
+        **Format**: Must be a valid UUID v4 format.
+        **Usage**: Include in all API requests to ensure proper data isolation.
     IdempotencyKeyHeader:
       name: Idempotency-Key
       in: header

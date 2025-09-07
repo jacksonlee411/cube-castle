@@ -56,15 +56,15 @@ POST /api/v1/organization-units/{code}/reactivate
 ```
 **正确做法**: 使用 `POST /activate`
 
-### ❌ 直接修改状态
+### ❌ 直接修改状态（PATCH 已移除）
 ```http
-# 错误 - 违反唯一实现原则
+# 错误 - 端点已移除且违反唯一实现原则
 PATCH /api/v1/organization-units/{code}
 {
   "status": "ACTIVE"
 }
 ```
-**正确做法**: 使用 `POST /activate` 或 `POST /suspend`
+**正确做法**: 使用 `POST /activate` 或 `POST /suspend`。当前契约已不提供 PATCH，客户端若仍调用将收到 404/405。
 
 ### ❌ 过时权限
 ```yaml

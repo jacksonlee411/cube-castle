@@ -251,7 +251,8 @@
 ### 📋 端点总览
 
 #### REST API端点 (11个)
-- **标准CRUD** (4个): POST, PUT, PATCH, DELETE `/api/v1/organization-units`
+- **标准CRUD** (3个): POST, PUT, DELETE `/api/v1/organization-units`
+  - 变更：自 v4.6.x 起，`PATCH /api/v1/organization-units/{code}` 已从契约中移除，请使用 `PUT` 或专用端点（versions/history/events/suspend/activate）。
 - **业务操作** (3个): suspend, activate, validate
 - **运维工具** (2个): refresh-hierarchy, batch-refresh-hierarchy  
 - **CoreHR兼容** (2个): 兼容性创建端点

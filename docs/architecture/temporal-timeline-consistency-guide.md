@@ -18,8 +18,8 @@ API 优先对齐（按最新 API 文档）
 - 事件端点（POST /api/v1/organization-units/{code}/events）
   - DEACTIVATE：按 recordId 作废该版本（status=DELETED），同一事务执行“全链重算”。
   - 响应返回最新“非删除时间线”（timeline），供前端即时刷新，避免读缓存延迟。
-- PATCH /{code}
-  - 不处理 effectiveDate/endDate 与状态流转，仅限非时态字段更新。
+- 更新 `/api/v1/organization-units/{code}`
+  - 仅支持 `PUT`；`PATCH` 已弃用，不处理 effectiveDate/endDate 与状态流转。
 - DELETE /{code}
   - 整单位软删除（所有版本 DELETED），不做时间线回填。
 

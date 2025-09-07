@@ -55,7 +55,7 @@
   3) 白名单：/health 与 /metrics 无需鉴权。
 - 路由绑定：在关键路由上声明所需 scope（与 OpenAPI 对齐）。例如：
   - POST /api/v1/organization-units → org:create
-  - PUT/PATCH /api/v1/organization-units/:code → org:update
+  - PUT /api/v1/organization-units/:code → org:update
   - DELETE /api/v1/organization-units/:code → org:delete
   - POST /api/v1/organization-units/:code/activate → org:activate
   - POST /api/v1/organization-units/:code/suspend → org:suspend

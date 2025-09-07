@@ -18,6 +18,25 @@
 - 实现：另外暴露了 `DELETE /organization-units/versions/{recordId}` 与 `PUT /organization-units/versions/{recordId}/effective-date`（无 `{code}` 段）。
 - 影响：路径风格不统一（部分有 code、部分仅 recordId），客户端难以把握最佳实践。
 
+结论（建议修改 API 文档）
+- 建议将“组织更新”端点统一为 `PUT`，并在文档中明确不支持 `PATCH`（或将 `PATCH` 标记为 Deprecated/兼容期）。
+- 理由：当前实现仅提供 `PUT` 路由；保持契约与实现一致，避免客户端命中 405/404。
+
+修改要点（文档与 OpenAPI）
+- 方法统一：将所有出现的 `PATCH /api/v1/organization-units/{code}` 改为 `PUT /api/v1/organization-units/{code}`。
+- 语义声明：在 `PUT /{code}` 描述中明确“该端点不处理时态字段（`effectiveDate`/`endDate`）与状态流转（`ACTIVE`/`INACTIVE`/`DELETED`）”，这些须走专用端点：
+  - 新增版本：`POST /api/v1/organization-units/{code}/versions`
+  - 删除单条版本：`POST /api/v1/organization-units/{code}/events`（`DEACTIVATE`）
+  - 历史修正：`PUT /api/v1/organization-units/{code}/history/{record_id}`
+  - 停用/启用：`POST /api/v1/organization-units/{code}/suspend` / `activate`
+- 幂等性：在 `PUT` 端点下保留“整体更新”的语义说明（明确提供完整资源表示；如采取“未提供字段不清空”的策略需在说明和示例中指明）。
+- 迁移说明：如文档任一位置仍提及 `PATCH`，统一标注 `Deprecated`，并在迁移指南中说明改用 `PUT` 或上述专用端点。
+- Header 补充：在组织域全部端点统一声明 `X-Tenant-ID` 头部参数（多租户隔离）。
+- 错误模型：在 `PUT /{code}` 端点下明确不会返回时态冲突类错误（如 `TEMPORAL_POINT_CONFLICT`/`TEMPORAL_OVERLAP_CONFLICT`），这些仅在版本/事件端点出现。
+
+可选折中（兼容期）
+- 如担心既有客户端仍用 `PATCH`：短期在服务端同时支持 `PATCH` 与 `PUT`，文档主推 `PUT`，并将 `PATCH` 标记为“兼容期，后续移除”；中期统一删除 `PATCH` 路由。
+
 3) 租户隔离头未在文档统一声明（高优先级）
 - 实现：所有 handler 通过 `X-Tenant-ID` 获取租户（organization.go:666）。
 - 文档：多数端点未声明该 Header。
@@ -46,10 +65,11 @@
 二、对齐策略（两条路线，择一或混合）
 
 方案 A（文档收敛到实现，低风险）
-- 将文档的 `PATCH` 改为 `PUT`，声明“整体更新”（保留将来增加 PATCH 的余地）。
+- 将文档的 `PATCH` 改为 `PUT`，声明“整体更新”，并标注 `PATCH` 为 Deprecated（如仍在其他章节出现）。
 - 在 OpenAPI 补充：
   - `DELETE /organization-units/versions/{recordId}`（删除版本）
   - `PUT /organization-units/versions/{recordId}/effective-date`（修改生效日）
+- 在 `PUT /{code}` 描述中明确：不处理时态字段与状态流转；该端点不返回 `TEMPORAL_*` 冲突错误，相关错误在版本/事件端点。
 - 在 OpenAPI 的 `components.parameters` 增加 `X-Tenant-ID` Header，并在相关端点引用。
 
 方案 B（实现收敛到文档，中风险）
@@ -65,9 +85,11 @@
 三、实施计划（任务清单）
 
 P0（立即）
-- [ ] 统一文档中的 `X-Tenant-ID` 头（components.parameters.TenantIdHeader，并在各端点引用）。
-- [ ] 确认文档中的 `PUT /{code}` 用语（去除 PATCH）并标注“禁止修改时态与状态字段”。
-- [ ] 在版本章节补充基于 recordId 的删除/改生效日端点说明与示例。
+- [ ] 统一文档中的 `X-Tenant-ID` 头（`components.parameters.TenantIdHeader`，并在所有组织域端点引用）。
+- [x] 将所有 `PATCH /api/v1/organization-units/{code}` 改为 `PUT /api/v1/organization-units/{code}`，并在出现 `PATCH` 的章节标注 `Deprecated` 与迁移指引。（已完成）
+- [x] 彻底移除 OpenAPI 中 `PATCH /api/v1/organization-units/{code}`（契约不再暴露）。
+- [x] 在 `PUT /{code}` 描述中加入：不处理时态字段与状态流转；不返回 `TEMPORAL_*` 冲突错误。（OpenAPI已明确）
+- [ ] 在版本章节补充基于 `recordId` 的删除/改生效日端点说明与示例，并对齐路径风格建议。
 
 P1（短期）
 - [ ] 统一返回体字段名，写清最小稳定子集（recordId/code/effectiveDate/endDate/isCurrent/status）。
@@ -98,4 +120,3 @@ P2（中期）
   - 参数与权限：`docs/api/openapi.yaml:1170+`
 
 —— 以上
-
