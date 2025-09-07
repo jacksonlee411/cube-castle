@@ -146,6 +146,23 @@ cd frontend && npm run test && npm run test:e2e
 go test ./... && ./test_all_routes.sh
 ```
 
+## 🔁 CI/CD 守护与触发
+
+- 工作流: `.github/workflows/consistency-guard.yml`
+- 触发条件:
+  - push: 任意分支（branches: "**"），含 tag（tags: "*")
+  - pull_request: 任意目标分支（branches: "**"）
+  - workflow_dispatch: 手动触发
+  - release: published/created/edited/prereleased
+- 强制守护（Enforce=ON）:
+  - 前端 REST 查询守护（禁止以 REST 读取，GraphQL-only）
+  - cmd/* 配置守护（CORS 硬编码/端口/内联 JWT 配置）
+- 本地自检:
+  - `bash scripts/ci/check-permissions.sh`（权限命名）
+  - `bash scripts/ci/check-rest-queries.sh`（前端 REST 查询）
+  - `bash scripts/ci/check-hardcoded-configs.sh`（CORS/端口/JWT）
+  - 设定 `ENFORCE=1` 可模拟 CI 强制模式；`SCAN_SCOPE=cmd|frontend` 可限定范围
+
 ## 📂 项目结构
 
 ```
