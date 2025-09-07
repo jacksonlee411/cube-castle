@@ -1,0 +1,305 @@
+name: 📝 文档自动同步验证
+
+on:
+  push:
+    branches: [ main, master, develop, "feature/*" ]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'CLAUDE.md'
+      - 'frontend/package.json'
+      - 'frontend/src/shared/config/**'
+      - 'frontend/vite.config.ts'
+      - 'frontend/playwright.config.ts'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'CLAUDE.md'
+      - 'frontend/package.json'
+      - 'frontend/src/shared/config/**'
+  schedule:
+    # 每天早上9点检查文档一致性
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      auto_sync:
+        description: '启用自动同步'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      dry_run:
+        description: 'Dry Run模式'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+
+env:
+  AUTO_SYNC: ${{ github.event.inputs.auto_sync || 'false' }}
+  DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+  VERBOSE: 'true'
+
+jobs:
+  document-sync-validation:
+    name: 📄 文档同步一致性验证
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+
+    steps:
+    - name: 📥 检出代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整历史用于比较分析
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 📦 设置Node.js环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
+
+    - name: 🔍 检测文档变更
+      id: detect_changes
+      run: |
+        # 获取变更文件列表
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..HEAD)
+        elif [[ "${{ github.event_name }}" == "push" ]]; then
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..HEAD)
+        else
+          # 定时任务或手动触发，检查所有文档
+          CHANGED_FILES="docs/ README.md CLAUDE.md frontend/package.json frontend/src/shared/config/"
+        fi
+        
+        echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+        echo "🔍 检测到变更文件:"
+        echo "$CHANGED_FILES" | tr ' ' '\n'
+
+    - name: 📊 文档同步一致性检查
+      id: sync_check
+      run: |
+        echo "🔄 执行文档同步检查..."
+        echo "自动同步: $AUTO_SYNC"
+        echo "Dry Run: $DRY_RUN"
+        
+        # 创建报告目录
+        mkdir -p reports/document-sync
+        
+        # 执行文档同步检查
+        node scripts/quality/document-sync.js || exit_code=$?
+        
+        echo "📊 同步检查完成，退出码: ${exit_code:-0}"
+        
+        # 设置输出变量
+        if [ -f "reports/document-sync/document-sync-report.json" ]; then
+          SYNC_SUCCESS=$(node -e "
+            const report = JSON.parse(require('fs').readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
+            console.log(report.summary.conflicts === 0 && report.summary.errors === 0 ? 'true' : 'false');
+          ")
+          echo "sync_success=$SYNC_SUCCESS" >> $GITHUB_OUTPUT
+          
+          # 提取统计信息
+          TOTAL_PAIRS=$(node -e "
+            const report = JSON.parse(require('fs').readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
+            console.log(report.summary.totalPairs);
+          ")
+          
+          SYNCED_PAIRS=$(node -e "
+            const report = JSON.parse(require('fs').readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
+            console.log(report.summary.syncedPairs);
+          ")
+          
+          CONFLICTS=$(node -e "
+            const report = JSON.parse(require('fs').readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
+            console.log(report.summary.conflicts);
+          ")
+          
+          echo "total_pairs=$TOTAL_PAIRS" >> $GITHUB_OUTPUT
+          echo "synced_pairs=$SYNCED_PAIRS" >> $GITHUB_OUTPUT
+          echo "conflicts=$CONFLICTS" >> $GITHUB_OUTPUT
+        else
+          echo "sync_success=false" >> $GITHUB_OUTPUT
+          echo "total_pairs=0" >> $GITHUB_OUTPUT
+          echo "synced_pairs=0" >> $GITHUB_OUTPUT
+          echo "conflicts=1" >> $GITHUB_OUTPUT
+        fi
+        
+        # 如果有冲突且不是自动同步模式，则失败
+        if [[ "${exit_code:-0}" -ne 0 && "$AUTO_SYNC" != "true" ]]; then
+          echo "💥 文档同步检查失败，发现不一致性问题"
+          exit 1
+        else
+          echo "✅ 文档同步检查完成"
+        fi
+
+    - name: 📤 上传同步报告
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: document-sync-report-${{ github.run_number }}
+        path: |
+          reports/document-sync/
+          !reports/document-sync/**/*.tmp
+        retention-days: 30
+
+    - name: 📊 生成同步摘要
+      if: always()
+      run: |
+        echo "## 📝 文档同步检查摘要" > sync_summary.md
+        echo "" >> sync_summary.md
+        
+        if [ -f "reports/document-sync/document-sync-report.json" ]; then
+          node -e "
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
+            
+            console.log('| 指标 | 数值 |');
+            console.log('|------|------|');
+            console.log(\`| 📝 同步对总数 | \${report.summary.totalPairs} |\`);
+            console.log(\`| ✅ 同步成功 | \${report.summary.syncedPairs} |\`);
+            console.log(\`| ⚠️ 发现冲突 | \${report.summary.conflicts} |\`);
+            console.log(\`| 🔧 自动修复 | \${report.summary.autoFixed} |\`);
+            console.log(\`| ❌ 处理错误 | \${report.summary.errors} |\`);
+            console.log(\`| 📊 成功率 | \${report.summary.successRate}% |\`);
+            console.log('');
+            
+            if (report.summary.conflicts > 0) {
+              console.log('### ⚠️ 发现的同步问题');
+              console.log('');
+              console.log('以下文档间存在不一致性，需要手动检查：');
+              console.log('');
+              
+              report.syncPairs.forEach(pair => {
+                if (pair.conflicts && pair.conflicts > 0) {
+                  console.log(\`- **\${pair.name}**: \${pair.description}\`);
+                  console.log(\`  - 源文件: \${pair.source}\`);
+                  console.log(\`  - 目标文件: \${pair.targets.join(', ')}\`);
+                  console.log('');
+                }
+              });
+              
+              console.log('### 🔧 修复建议');
+              console.log('');
+              console.log('1. 手动检查上述文件的差异');
+              console.log('2. 运行 \`node scripts/quality/document-sync.js --auto-sync --dry-run\` 预览自动修复');
+              console.log('3. 运行 \`node scripts/quality/document-sync.js --auto-sync\` 执行自动同步');
+            } else {
+              console.log('🎉 **所有文档保持同步一致性！**');
+            }
+          " >> sync_summary.md
+        else
+          echo "❌ 无法生成同步报告" >> sync_summary.md
+        fi
+        
+        cat sync_summary.md
+
+    - name: 💬 PR评论同步结果
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let commentBody = '## 📝 文档同步验证结果\n\n';
+          
+          if (fs.existsSync('reports/document-sync/document-sync-report.json')) {
+            const report = JSON.parse(fs.readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
+            
+            commentBody += '| 指标 | 数值 |\n';
+            commentBody += '|------|------|\n';
+            commentBody += `| 📝 同步对数量 | ${report.summary.totalPairs} |\n`;
+            commentBody += `| ✅ 同步成功 | ${report.summary.syncedPairs} |\n`;
+            commentBody += `| ⚠️ 发现冲突 | ${report.summary.conflicts} |\n`;
+            commentBody += `| 📊 成功率 | ${report.summary.successRate}% |\n`;
+            
+            if (report.summary.conflicts === 0) {
+              commentBody += '\n🎉 **文档同步验证通过！** 所有关键文档保持一致性。\n';
+            } else {
+              commentBody += '\n⚠️ **发现文档不一致性** - 请检查以下同步对：\n\n';
+              
+              report.syncPairs.forEach(pair => {
+                commentBody += `- **${pair.name}**: ${pair.description}\n`;
+              });
+              
+              commentBody += '\n💡 **修复建议**：\n';
+              commentBody += '- 本地运行 `node scripts/quality/document-sync.js --auto-sync` 自动修复\n';
+              commentBody += '- 手动检查并更新不一致的文档内容\n';
+            }
+            
+            commentBody += `\n📊 [查看详细报告](../actions/runs/${{ github.run_id }})`;
+            
+          } else {
+            commentBody += '❌ 文档同步检查失败，无法生成报告。\n';
+          }
+          
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+          });
+
+    - name: 🔄 自动同步提交 (如果启用)
+      if: env.AUTO_SYNC == 'true' && env.DRY_RUN == 'false' && steps.sync_check.outputs.conflicts > 0
+      run: |
+        # 配置Git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # 检查是否有文件被修改
+        if [[ -n $(git status --porcelain) ]]; then
+          echo "📝 发现自动同步的文件变更"
+          git status --short
+          
+          # 添加并提交变更
+          git add -A
+          git commit -m "📝 自动同步文档一致性
+
+由GitHub Actions自动执行的文档同步，确保关键文档间的一致性。
+
+- 同步对象: ${{ steps.sync_check.outputs.total_pairs }} 个
+- 修复冲突: ${{ steps.sync_check.outputs.conflicts }} 个
+- 自动化系统: P3.3文档同步系统
+
+🤖 Generated by GitHub Actions Document Sync"
+          
+          # 推送变更
+          git push
+          
+          echo "✅ 自动同步提交完成"
+        else
+          echo "📝 无需提交，文档已同步"
+        fi
+
+    - name: ⚠️ 质量门禁检查
+      if: always()
+      run: |
+        SYNC_SUCCESS="${{ steps.sync_check.outputs.sync_success }}"
+        CONFLICTS="${{ steps.sync_check.outputs.conflicts }}"
+        
+        echo "同步状态: $SYNC_SUCCESS"
+        echo "冲突数量: $CONFLICTS"
+        
+        if [[ "$SYNC_SUCCESS" != "true" ]]; then
+          if [[ "$AUTO_SYNC" == "true" ]]; then
+            echo "⚠️ 自动同步模式：存在文档不一致性，但已尝试自动修复"
+            exit 0
+          else
+            echo "💥 质量门禁失败：文档同步检查未通过"
+            echo "🔧 请运行本地同步命令或启用自动同步模式"
+            exit 1
+          fi
+        else
+          echo "✅ 质量门禁通过：文档同步一致性验证成功"
+        fi

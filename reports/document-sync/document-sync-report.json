@@ -1,0 +1,97 @@
+{
+  "timestamp": "2025-09-07T16:16:30.637Z",
+  "summary": {
+    "totalPairs": 5,
+    "syncedPairs": 1,
+    "conflicts": 8,
+    "errors": 0,
+    "autoFixed": 0,
+    "checksPerformed": 5,
+    "successRate": "20.0"
+  },
+  "syncPairs": [
+    {
+      "name": "API规范版本同步",
+      "description": "OpenAPI版本号同步到前端类型和技术文档",
+      "source": "docs/api/openapi.yaml",
+      "targets": [
+        "frontend/src/shared/api/types.ts",
+        "docs/development-plans/02-technical-architecture-design.md"
+      ],
+      "syncType": "version"
+    },
+    {
+      "name": "端口配置同步",
+      "description": "端口配置在Vite、Playwright、文档中保持一致",
+      "source": "frontend/src/shared/config/ports.ts",
+      "targets": [
+        "frontend/vite.config.ts",
+        "frontend/playwright.config.ts",
+        "README.md",
+        "frontend/README.md"
+      ],
+      "syncType": "config"
+    },
+    {
+      "name": "项目状态同步",
+      "description": "项目状态在主要文档中保持一致",
+      "source": "CLAUDE.md",
+      "targets": [
+        "README.md",
+        "docs/development-plans/18-duplicate-code-elimination-plan.md"
+      ],
+      "syncType": "status"
+    },
+    {
+      "name": "依赖版本同步",
+      "description": "关键依赖版本在文档中保持同步",
+      "source": "frontend/package.json",
+      "targets": [
+        "README.md",
+        "frontend/README.md",
+        "docs/development-plans/02-technical-architecture-design.md"
+      ],
+      "syncType": "dependencies"
+    },
+    {
+      "name": "架构成果同步",
+      "description": "重复代码消除成果在文档间同步",
+      "source": "docs/development-plans/18-duplicate-code-elimination-plan.md",
+      "targets": [
+        "README.md",
+        "CLAUDE.md"
+      ],
+      "syncType": "achievements"
+    }
+  ],
+  "history": [
+    {
+      "timestamp": "2025-09-07T16:16:30.633Z",
+      "syncPairName": "API规范版本同步",
+      "sourceHash": "8f3e93585720a90a7af90eaaefef98f4",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-07T16:16:30.634Z",
+      "syncPairName": "端口配置同步",
+      "sourceHash": "8611e8264fe8237c15845c36ac2e8abf",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-07T16:16:30.635Z",
+      "syncPairName": "依赖版本同步",
+      "sourceHash": "12a05fe04afc494e10b4900fff0b69cb",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-07T16:16:30.637Z",
+      "syncPairName": "架构成果同步",
+      "sourceHash": "2b19a47187ce9138ce6b77385315e636",
+      "success": true,
+      "autoFixed": false
+    }
+  ]
+}
