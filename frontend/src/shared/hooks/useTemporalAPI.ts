@@ -16,30 +16,12 @@ export interface TemporalQueryParams {
   effectiveTo?: string;    // 时间范围结束 YYYY-MM-DD
 }
 
-// 时态组织记录 (纯日期生效模型)
-export interface TemporalOrganizationRecord {
-  tenantId: string;
-  code: string;
-  name: string;
-  unitType: string;
-  status: string;
-  level: number;
-  path: string;
-  sortOrder: number;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-  effectiveDate: string;   // 生效日期
-  endDate?: string;        // 结束日期 (可选)
-  isCurrent: boolean;      // 是否当前有效
-  changeReason?: string;   // 变更原因
-  approvedBy?: string;     // 批准人
-  approvedAt?: string;     // 批准时间
-}
+// 使用统一的时态组织单元接口
+import type { TemporalOrganizationUnit } from '../types/temporal';
 
 // 时态查询响应
 export interface TemporalQueryResponse {
-  organizations: TemporalOrganizationRecord[];
+  organizations: TemporalOrganizationUnit[];
   queriedAt: string;
   queryOptions: TemporalQueryParams;
   resultCount: number;
@@ -151,7 +133,7 @@ export function useTemporalQueryUtils() {
   }, []);
 
   // 检查记录是否在指定时间点有效
-  const isRecordValidAt = useCallback((record: TemporalOrganizationRecord, date: Date): boolean => {
+  const isRecordValidAt = useCallback((record: TemporalOrganizationUnit, date: Date): boolean => {
     const effectiveDate = new Date(record.effectiveDate);
     const endDate = record.endDate ? new Date(record.endDate) : null;
     
@@ -159,7 +141,7 @@ export function useTemporalQueryUtils() {
   }, []);
 
   // 获取记录的有效期描述
-  const getRecordValidityDescription = useCallback((record: TemporalOrganizationRecord): string => {
+  const getRecordValidityDescription = useCallback((record: TemporalOrganizationUnit): string => {
     const effectiveDate = new Date(record.effectiveDate);
     const endDate = record.endDate ? new Date(record.endDate) : null;
     

@@ -116,22 +116,14 @@ export function convertGraphQLToTemporalOrganizationUnit(
 // 前端 ↔ REST API 转换器 (camelCase ↔ camelCase)
 // ============================================================================
 
+// 使用统一的OrganizationRequest接口，无需重复定义
+import type { OrganizationRequest } from './organization';
+
 /**
  * REST API请求数据接口
- * 根据API一致性规范，REST API也使用camelCase
+ * 使用统一的OrganizationRequest类型
  */
-export interface RESTOrganizationRequest {
-  name: string;
-  unitType: string;
-  parentCode?: string;
-  description?: string;
-  level?: number;
-  sortOrder?: number;
-  status?: string;
-  effectiveDate?: string;
-  endDate?: string;
-  changeReason?: string;
-}
+export type RESTOrganizationRequest = OrganizationRequest;
 
 /**
  * 将前端创建输入转换为REST API请求格式
@@ -139,8 +131,8 @@ export interface RESTOrganizationRequest {
  */
 export function convertCreateInputToREST(
   input: Partial<OrganizationUnit>
-): RESTOrganizationRequest {
-  const request: RESTOrganizationRequest = {
+): OrganizationRequest {
+  const request: OrganizationRequest = {
     name: input.name || '',
     unitType: input.unitType || 'DEPARTMENT',
     description: input.description || '',
@@ -171,8 +163,8 @@ export function convertCreateInputToREST(
  */
 export function convertUpdateInputToREST(
   input: Partial<OrganizationUnit>
-): Partial<RESTOrganizationRequest> {
-  const request: Partial<RESTOrganizationRequest> = {};
+): Partial<OrganizationRequest> {
+  const request: Partial<OrganizationRequest> = {};
 
   // 只包含需要更新的字段
   if (input.name !== undefined) request.name = input.name;
