@@ -1,4 +1,6 @@
 #!/bin/bash
+# [已废弃 - 2025-09-07] 本脚本涉及 CDC/多数据库历史流程，PostgreSQL 原生架构已取消 Neo4j/Kafka/CDC。
+# 仅作历史参考，请改用 Makefile 入口：make docker-up / make run-dev / make status。
 # 🚀 CQRS完整架构启动脚本 - 务实版本
 # 确保所有必需服务正确启动，避免组织更名等问题
 

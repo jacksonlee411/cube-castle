@@ -2,6 +2,15 @@
 
 ## 🎯 核心开发指导原则
 
+## 📢 变更通告（2025-09-07）
+- Makefile 已完成“PostgreSQL 原生化”清理：彻底移除 Phoenix/CDC/Neo4j/Kafka 相关目标与文案。
+- 本地开发与启动请统一使用 Makefile：
+  - 最小依赖：`make docker-up`（仅 PostgreSQL + Redis）
+  - 后端启动：`make run-dev`（命令 9090 + GraphQL 8090）
+  - 前端启动：`make frontend-dev`
+  - 状态查看：`make status`
+- 文档内若出现 Neo4j/Kafka/CDC 或旧路径 `go-app/...` 的历史描述，以本通告与 README/AGENTS.md 的最新规范为准。
+
 ### 1. 诚实原则 (Honesty First)
 - **绝对诚实评估**: 项目状态评估必须基于实际可验证的结果，不夸大成果
 - **问题优先暴露**: 主动识别和报告问题，不隐藏技术债务和风险
@@ -532,7 +541,7 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 - **命令服务** (REST API): http://localhost:9090 - CRUD操作开发中
 - **查询服务** (PostgreSQL GraphQL): http://localhost:8090 - GraphQL查询开发中
 - **GraphiQL开发界面**: http://localhost:8090/graphiql - GraphQL调试工具
-- **基础设施规划**: PostgreSQL:5432, Redis:6379 (待配置), Kafka:9092 (待配置)
+- **基础设施规划**: PostgreSQL:5432, Redis:6379（最小依赖；Kafka/Neo4j 已移除，不再规划）
 - **架构决策**: ❌ 不使用Neo4j图数据库，采用PostgreSQL单一数据源
 
 ## 🔍 监控系统配置 ⭐ **新增 (2025-09-06)**

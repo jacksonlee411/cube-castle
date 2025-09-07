@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-数据一致性对比验证脚本 - CQRS双数据库一致性检查
+[已废弃 - 2025-09-07]
+本脚本用于 CQRS 双数据库一致性检查（PostgreSQL ↔ Neo4j）。
+现行架构为 PostgreSQL 单一数据源，已取消 Neo4j/CDC；仅作历史参考。
 """
 
 import psycopg2

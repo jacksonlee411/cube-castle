@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-修复后的PostgreSQL vs Neo4j层级计算性能对比测试
-包含数据同步修复后的完整验证
+[已废弃 - 2025-09-07]
+PostgreSQL vs Neo4j 层级计算性能对比历史脚本；现已单一数据源（PostgreSQL）。
 """
 
 import psycopg2

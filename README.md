@@ -197,30 +197,30 @@ git clone <repository-url>
 cd cube-castle
 
 # 启动简化基础设施 (仅PostgreSQL + Redis)
-docker-compose up -d postgresql redis
+make docker-up
 ```
 
 ### 2. 服务启动 (简化流程)
 
 ```bash
-# 1. 启动命令服务 (REST API - 端口9090)
-cd cmd/organization-command-service && go run main.go &
+# 一键启动后端（命令服务 9090 + PostgreSQL 原生 GraphQL 8090）
+make run-dev
 
-# 2. 启动PostgreSQL原生查询服务 (GraphQL - 端口8090)  
-cd cmd/organization-query-service && go run main.go &
+# 启动前端（可选）
+make frontend-dev
 
-# 3. 启动前端服务
-cd frontend && npm run dev &
-
-# 4. 启动监控系统 (可选) ⭐ 新增
+# 启动监控系统（可选） ⭐ 新增
 ./scripts/start-monitoring.sh
 
-# 注意: 不再需要同步服务和Neo4j
+# 注意: 不再需要任何同步服务与 Neo4j
 ```
 
 ### 3. 验证系统状态
 
 ```bash
+# 查看服务状态与常用地址
+make status
+
 # 健康检查
 curl http://localhost:9090/health  # 命令服务
 curl http://localhost:8090/health  # PostgreSQL GraphQL查询服务
@@ -434,8 +434,8 @@ docker ps --filter "name=cube-castle"
 
 #### 简化容器化部署
 ```bash
-# PostgreSQL原生生产环境启动
-docker-compose up -d postgresql redis  # 仅需PostgreSQL + Redis
+# PostgreSQL 原生生产环境启动
+make docker-up  # 仅需PostgreSQL + Redis
 
 # 服务验证
 ./start-postgresql-native.sh  # PostgreSQL原生架构启动验证

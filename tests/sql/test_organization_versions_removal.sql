@@ -1,3 +1,4 @@
+-- [已废弃 - 2025-09-07] 历史测试脚本；现行为 PostgreSQL 单一数据源与新时态实现。
 -- 数据库级单元测试：验证organization_versions表删除后的系统完整性
 -- 文件: tests/sql/test_organization_versions_removal.sql
 

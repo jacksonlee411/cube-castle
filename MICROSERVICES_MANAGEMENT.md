@@ -1,90 +1,54 @@
 # Cube Castle 微服务管理指南
 
+> 重要变更公告（2025-09-07）
+>
+> - 项目已完成“PostgreSQL 原生化”，现行核心后端仅包含两个服务：
+>   - `organization-command-service`（REST：9090）
+>   - `organization-query-service`（GraphQL：8090，直接查询 PostgreSQL）
+> - 旧的多微服务拓扑（API Gateway、Neo4j、Kafka、Sync Service 等）已废弃，仅保留历史参考。
+> - 本地开发与启动统一使用 Makefile：`make docker-up`、`make run-dev`、`make frontend-dev`、`make status`。
+
 ## 概述
 
 Cube Castle项目采用CQRS微服务架构，包含多个独立的服务组件。本指南介绍如何使用统一的管理脚本来管理这些微服务。
 
-## 当前架构
+## 当前架构（PostgreSQL 原生）
 
-### 核心组织管理服务
-- **organization-api-gateway** (端口8000): 统一API网关，路由请求到不同的后端服务
-- **organization-api-server** (端口8080): CQRS查询端，提供REST API查询接口
-- **organization-graphql-service** (端口8090): GraphQL查询服务，支持复杂查询
-- **organization-command-server** (端口9090): CQRS命令端，处理写操作（增删改）
+### 核心后端服务
+- `organization-command-service`（端口 9090）：命令端（REST），写入 PostgreSQL
+- `organization-query-service`（端口 8090）：查询端（GraphQL），直接从 PostgreSQL 读取
 
-### 其他业务服务
-- **employee-server** (端口8081): 员工管理服务
-- **position-server** (端口8082): 岗位管理服务
+### 基础设施（最小依赖）
+- PostgreSQL（5432）
+- Redis（6379）
 
-### 基础设施（Docker容器）
-- PostgreSQL (端口5432): 主数据库
-- Neo4j (端口7474/7687): 图数据库，用于复杂关系查询
-- Redis (端口6379): 缓存层
-- Kafka生态系统: 事件驱动和数据同步
-- Temporal: 工作流引擎
-
-## 微服务管理脚本
-
-使用 `scripts/microservices-manager.sh` 脚本来管理所有微服务：
-
-### 基本命令
+## 开发与启动（统一入口）
 
 ```bash
-# 显示所有服务状态
-./scripts/microservices-manager.sh status
+# 启动基础设施（PostgreSQL + Redis）
+make docker-up
 
-# 启动所有服务
-./scripts/microservices-manager.sh start
+# 启动后端（命令 9090 + GraphQL 8090）
+make run-dev
 
-# 停止所有服务
-./scripts/microservices-manager.sh stop
+# 启动前端
+make frontend-dev
 
-# 重启所有服务
-./scripts/microservices-manager.sh restart
-
-# 编译所有服务
-./scripts/microservices-manager.sh build
-
-# 清理过期PID文件
-./scripts/microservices-manager.sh cleanup
+# 查看状态
+make status
 ```
 
-### 单个服务管理
+## API 调用路径（现行）
 
-```bash
-# 启动特定服务
-./scripts/microservices-manager.sh start organization-api-gateway
+- GraphQL 查询：`http://localhost:8090/graphql`（GraphiQL：`/graphiql`）
+- 命令操作（REST）：`http://localhost:9090/api/v1/organization-units`
 
-# 停止特定服务
-./scripts/microservices-manager.sh stop organization-api-server
+## 服务启动顺序（建议）
 
-# 重启特定服务
-./scripts/microservices-manager.sh restart organization-graphql-service
-```
-
-## API调用路径
-
-### 前端应用调用路径
-前端应用应该通过API网关统一访问：
-- **基础URL**: `http://localhost:8000/api/v1`
-- **查询操作**: 网关自动路由到8080端口（REST API）或8090端口（GraphQL）
-- **命令操作**: 网关自动路由到9090端口（命令服务器）
-
-### 直接服务调用（开发调试用）
-- 查询操作: `http://localhost:8080/api/v1/organization-units`
-- GraphQL查询: `http://localhost:8090/graphql`
-- 命令操作: `http://localhost:9090/api/v1/organization-units`
-
-## 服务启动顺序
-
-建议的启动顺序（脚本会自动按此顺序启动）：
-
-1. **organization-command-server** - 命令端服务
-2. **organization-api-server** - 查询端服务 
-3. **organization-graphql-service** - GraphQL服务
-4. **organization-api-gateway** - API网关
-5. **employee-server** - 员工服务
-6. **position-server** - 岗位服务
+1. 基础设施（PostgreSQL、Redis）→ `make docker-up`
+2. 命令服务 → `make run-dev`（命令服务随命令同时启动）
+3. 查询服务 → `make run-dev`（查询服务随命令同时启动）
+4. 前端（可选）→ `make frontend-dev`
 
 ## 健康检查
 
@@ -164,19 +128,15 @@ curl http://localhost:9090/health
 
 ## 监控和运维
 
-- 使用管理脚本定期检查服务状态
-- 监控日志文件中的错误信息
-- 定期清理过期的PID文件
-- 确保基础设施服务正常运行
+- 可选启用监控脚本：`./scripts/start-monitoring.sh`、`./scripts/test-monitoring.sh`
+- 确保基础设施服务正常运行（`make status` 查看）
 
-## 架构优势
+## 架构优势（现行）
 
-1. **服务分离**: 查询和命令操作分离，支持独立扩展
-2. **多协议支持**: 同时支持REST API和GraphQL
-3. **统一网关**: 前端只需要知道一个API入口
-4. **事件驱动**: 通过Kafka实现服务间异步通信
-5. **缓存优化**: Redis缓存提升查询性能
-6. **可观测性**: 统一的日志和健康检查机制
+1. 查询与命令分离（GraphQL/REST），但统一 PostgreSQL 单一数据源
+2. 无 CDC/双数据库，同步复杂性归零，数据一致性更强
+3. Redis 作为精确失效缓存，性能可控
+4. 监控脚本完备，可选接入 Prometheus/Grafana
 
 ## 待优化项
 

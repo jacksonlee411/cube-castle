@@ -245,8 +245,8 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		IsCurrent: effectiveDate.Before(now) || effectiveDate.Equal(now.Truncate(24*time.Hour)),
 	}
 
-	// 调用专门的时态版本创建方法
-	createdVersion, err := h.repo.CreateTemporalVersion(r.Context(), newVersion)
+	// 🚀 使用新的时态时间轴管理器 - 实现完整的时态一致性保证
+	createdVersion, err := h.timelineManager.InsertVersion(r.Context(), newVersion)
 	if err != nil {
 		// 检查是否是版本冲突错误
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "already exists") {
@@ -280,7 +280,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		TenantID:        tenantID,
 		EventType:       audit.EventTypeCreate,
 		ResourceType:    audit.ResourceTypeOrganization,
-		ResourceID:      createdVersion.RecordID,
+		ResourceID:      createdVersion.RecordID.String(),
 		ActorID:         actorID,
 		ActorType:       audit.ActorTypeUser,
 		ActionName:      "CREATE_VERSION",
@@ -290,13 +290,14 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		AfterData: map[string]interface{}{
 			"code":           createdVersion.Code,
 			"name":           createdVersion.Name,
-			"unitType":       createdVersion.UnitType,
-			"parentCode":     createdVersion.ParentCode,
-			"description":    createdVersion.Description,
+			"unitType":       req.UnitType,
+			"parentCode":     req.ParentCode,
+			"description":    req.Description,
 			"effectiveDate":  req.EffectiveDate,
 			"endDate":        req.EndDate,
-			"isTemporal":     createdVersion.IsTemporal,
+			"isTemporal":     true,
 			"isCurrent":      createdVersion.IsCurrent,
+			"status":         createdVersion.Status,
 		},
 	}
 	
@@ -308,11 +309,12 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 
 	// 构建响应数据
 	responseData := map[string]interface{}{
-		"recordId":      createdVersion.RecordID,
+		"recordId":      createdVersion.RecordID.String(),
 		"code":          createdVersion.Code,
 		"name":          createdVersion.Name,
 		"effectiveDate": req.EffectiveDate,
 		"isCurrent":     createdVersion.IsCurrent,
+		"status":        createdVersion.Status,
 	}
 
 	// 返回企业级成功响应

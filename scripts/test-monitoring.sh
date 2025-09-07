@@ -167,7 +167,7 @@ if curl -s http://localhost:9090/health >/dev/null 2>&1; then
     fi
 else
     warning "API服务未运行，跳过测试流量生成"
-    echo "  启动API服务: cd go-app && go run cmd/server/main.go"
+    echo "  启动API服务: make run-dev"
 fi
 
 echo ""

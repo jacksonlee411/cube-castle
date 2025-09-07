@@ -1,251 +1,170 @@
-# Cube Castle Makefile
-# 用于简化项目的构建、测试和部署流程
-# 🚀 包含 Operation Phoenix - CQRS+CDC 架构支持
+# Cube Castle Makefile (PostgreSQL 原生)
+## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build test clean docker-build docker-up docker-down init-db seed-data run-dev
-.PHONY: phoenix-start phoenix-stop phoenix-status phoenix-reset test-cdc monitor connectors
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset monitoring-up monitoring-down monitoring-test
 
 # 默认目标
 help:
-	@echo "🏰 Cube Castle - 可用命令:"
+	@echo "🏰 Cube Castle - PostgreSQL 原生命令:"
 	@echo ""
-	@echo "🚀 Operation Phoenix (CQRS+CDC架构):"
-	@echo "  phoenix-start - 启动完整CQRS+CDC架构"
-	@echo "  phoenix-stop  - 停止所有Phoenix服务"
-	@echo "  phoenix-status- 查看Phoenix服务状态"
-	@echo "  phoenix-reset - 完全重置Phoenix环境"
-	@echo "  test-cdc      - 测试CDC数据流"
-	@echo "  connectors    - 查看Debezium连接器状态"
+	@echo "📦 构建:"
+	@echo "  build            - 构建 command/query 两个 Go 服务二进制到 bin/"
+	@echo "  clean            - 清理构建产物与临时文件"
+	@echo "  docker-build     - 构建通用 Docker 镜像（如需要）"
 	@echo ""
-	@echo "📦 构建相关:"
-	@echo "  build         - 构建 Go 应用"
-	@echo "  clean         - 清理构建产物"
-	@echo "  docker-build  - 构建 Docker 镜像"
+	@echo "🐳 基础设施:"
+	@echo "  docker-up        - 启动最小依赖 (postgres, redis)"
+	@echo "  docker-down      - 停止最小依赖 (postgres, redis)"
+	@echo "  docker-logs      - 查看最小依赖日志"
 	@echo ""
-	@echo "🐳 Docker 相关:"
-	@echo "  docker-up     - 启动所有 Docker 服务"
-	@echo "  docker-down   - 停止所有 Docker 服务"
-	@echo "  docker-logs   - 查看 Docker 服务日志"
+	@echo "🚀 开发运行:"
+	@echo "  run-dev          - 启动最小依赖并本地运行两个 Go 服务"
+	@echo "  frontend-dev     - 启动前端开发服务器 (vite)"
+	@echo "  monitoring-up    - 启动监控栈 (Prometheus/Grafana/AlertManager)"
+	@echo "  monitoring-test  - 验证监控栈运行状况与指标"
+	@echo "  monitoring-down  - 停止监控栈"
 	@echo ""
-	@echo "🗄️ 数据库相关:"
-	@echo "  init-db       - 初始化数据库"
-	@echo "  seed-data     - 插入种子数据"
+	@echo "🧪 质量:"
+	@echo "  test             - 运行 Go 单元测试"
+	@echo "  test-integration - 运行 Go 集成测试 (-tags=integration)"
+	@echo "  fmt              - Go 代码格式化"
+	@echo "  lint             - golangci-lint 检查"
+	@echo "  security         - gosec 安全扫描"
+	@echo "  bench            - Go 基准测试"
+	@echo "  coverage         - 生成覆盖率报告 (coverage.html)"
 	@echo ""
-	@echo "🧪 测试相关:"
-	@echo "  test          - 运行单元测试"
-	@echo "  test-integration - 运行集成测试"
+	@echo "🗄️ 数据库维护:"
+	@echo "  backup           - 备份 PostgreSQL 数据到文件"
+	@echo "  restore          - 从备份文件恢复 (需 BACKUP_FILE)"
 	@echo ""
-	@echo "🚀 开发相关:"
-	@echo "  run-dev       - 启动开发环境"
-	@echo "  install-deps  - 安装依赖"
-	@echo "  generate      - 生成代码"
+	@echo "📊 运行状态:"
+	@echo "  status           - docker-compose 服务状态 + 关键地址"
+	@echo "  reset            - 清理并重新拉起最小依赖（不删除卷）"
 
-# =============================================================================
-# 🚀 Operation Phoenix - CQRS+CDC Architecture Commands
-# =============================================================================
-
-phoenix-start: ## 启动Operation Phoenix (完整CQRS+CDC架构)
-	@echo "🚀 启动Operation Phoenix..."
-	@command -v docker >/dev/null 2>&1 || { echo "❌ Docker未安装"; exit 1; }
-	@command -v docker-compose >/dev/null 2>&1 || { echo "❌ Docker Compose未安装"; exit 1; }
-	@./scripts/setup-cdc-pipeline.sh
-
-phoenix-stop: ## 停止所有Phoenix服务
-	@echo "🛑 停止Operation Phoenix服务..."
-	@docker-compose down
-
-phoenix-status: ## 查看Phoenix服务状态
-	@echo "📊 Operation Phoenix 服务状态:"
-	@echo "================================"
-	@docker-compose ps
-	@echo ""
-	@echo "🔍 关键服务健康检查:"
-	@echo "PostgreSQL: $$(docker exec cube_castle_postgres pg_isready -U user -d cubecastle 2>/dev/null && echo '✅ 正常' || echo '❌ 异常')"
-	@echo "Neo4j: $$(curl -f http://localhost:7474 >/dev/null 2>&1 && echo '✅ 正常' || echo '❌ 异常')"
-	@echo "Kafka Connect: $$(curl -f http://localhost:8083/ >/dev/null 2>&1 && echo '✅ 正常' || echo '❌ 异常')"
-	@echo ""
-	@echo "🌐 访问地址:"
-	@echo "  Kafka UI: http://localhost:8081"
-	@echo "  Neo4j Browser: http://localhost:7474"
-	@echo "  PgAdmin: http://localhost:5050"
-
-phoenix-reset: ## 完全重置Phoenix环境 (删除所有数据)
-	@echo "⚠️  这将删除所有数据！按Ctrl+C取消，或按Enter继续..."
-	@read
-	@echo "🔄 重置Operation Phoenix环境..."
-	@docker-compose down -v
-	@docker system prune -f --volumes
-	@echo "✅ 环境重置完成"
-
-test-cdc: ## 测试CDC数据流
-	@echo "🧪 测试CDC数据流..."
-	@echo "插入测试数据..."
-	@docker exec cube_castle_postgres psql -U user -d cubecastle -c "\
-		INSERT INTO employees (id, tenant_id, employee_type, first_name, last_name, email, hire_date, employment_status) \
-		VALUES (gen_random_uuid(), gen_random_uuid(), 'FULL_TIME', 'CDC', 'Test$$(date +%S)', 'cdc.test$$(date +%s)@cubecastle.com', NOW(), 'ACTIVE'); \
-		SELECT 'CDC测试数据已插入，Employee: ' || first_name || ' ' || last_name FROM employees WHERE first_name = 'CDC' ORDER BY created_at DESC LIMIT 1;"
-	@echo "等待数据同步..."
-	@sleep 3
-	@echo "检查Kafka主题..."
-	@docker exec cube_castle_kafka kafka-topics --list --bootstrap-server localhost:9092 | grep organization || echo "❌ 未找到organization相关主题"
-
-
-connectors: ## 查看Debezium连接器状态
-	@echo "🔌 Debezium连接器状态:"
-	@echo "========================"
-	@curl -s http://localhost:8083/connectors 2>/dev/null | jq . || echo "❌ 无法连接到Kafka Connect"
-	@echo ""
-	@echo "连接器详细状态:"
-	@curl -s http://localhost:8083/connectors/organization-postgres-connector/status 2>/dev/null | jq . || echo "❌ 连接器未配置"
-
-# =============================================================================
-# 原有命令保持不变
-# =============================================================================
-
-# 构建 Go 应用
+# 构建 Go 应用（PostgreSQL 原生：两个服务）
 build:
 	@echo "🔨 构建 Go 应用..."
-	cd go-app && go build -o bin/server cmd/server/main.go
+	mkdir -p bin
+	go build -o bin/organization-command-service ./cmd/organization-command-service
+	go build -o bin/organization-query-service   ./cmd/organization-query-service
 
 # 清理构建产物
 clean:
 	@echo "🧹 清理构建产物..."
-	rm -rf go-app/bin
-	rm -rf go-app/generated
+	rm -rf bin
 	find . -name "*.exe" -delete
 	find . -name "*.test" -delete
+	rm -f coverage.out coverage.html
 
-# 构建 Docker 镜像
+# 构建 Docker 镜像（如需将当前仓库打成通用镜像）
 docker-build:
 	@echo "🐳 构建 Docker 镜像..."
 	docker build -t cube-castle:latest .
 
-# 启动 Docker 服务
+# 最小依赖（PostgreSQL + Redis）
 docker-up:
-	@echo "🚀 启动 Docker 服务..."
-	docker-compose up -d
+	@echo "🚀 启动最小依赖 (postgres, redis)..."
+	@command -v docker-compose >/dev/null 2>&1 || { echo "❌ 需要 docker-compose"; exit 1; }
+	docker-compose up -d postgres redis
 
-# 停止 Docker 服务
 docker-down:
-	@echo "🛑 停止 Docker 服务..."
-	docker-compose down
+	@echo "🛑 停止最小依赖 (postgres, redis)..."
+	@command -v docker-compose >/dev/null 2>&1 || { echo "❌ 需要 docker-compose"; exit 1; }
+	docker-compose stop postgres redis
 
-# 查看 Docker 日志
 docker-logs:
-	@echo "📋 查看 Docker 日志..."
-	docker-compose logs -f
+	@echo "📋 查看最小依赖日志... (Ctrl+C 退出)"
+	@command -v docker-compose >/dev/null 2>&1 || { echo "❌ 需要 docker-compose"; exit 1; }
+	docker-compose logs -f postgres redis
 
-# 初始化数据库
-init-db:
-	@echo "🗄️ 初始化数据库..."
-	cd go-app && go run cmd/server/main.go init-db
-
-# 插入种子数据
-seed-data:
-	@echo "🌱 插入种子数据..."
-	cd go-app && go run cmd/server/main.go seed-data
-
-# 运行单元测试
-test:
-	@echo "🧪 运行单元测试..."
-	cd go-app && go test -v ./...
-
-# 运行集成测试
-test-integration:
-	@echo "🔗 运行集成测试..."
-	cd go-app && go test -v -tags=integration ./...
-
-# 启动开发环境
+# 启动本地开发（两个 Go 服务 + 最小依赖）
 run-dev:
-	@echo "🚀 启动开发环境..."
-	@echo "1. 启动基础设施..."
-	docker-compose up -d postgres neo4j
-	@echo "2. 等待服务启动..."
-	sleep 10
-	@echo "3. 初始化数据库..."
-	$(MAKE) init-db
-	@echo "4. 插入种子数据..."
-	$(MAKE) seed-data
-	@echo "5. 启动 Python AI 服务..."
-	cd python-ai && python main.py &
-	@echo "6. 启动 Go 主服务..."
-	cd go-app && go run cmd/server/main.go
+	@echo "🚀 启动本地开发环境 (PostgreSQL 原生)..."
+	$(MAKE) docker-up
+	@echo "⏳ 等待依赖健康..."
+	@sleep 5
+	@echo "▶ 启动命令服务 (9090)..."
+	cd cmd/organization-command-service && go run main.go &
+	@echo "▶ 启动查询服务 (8090)..."
+	cd cmd/organization-query-service && go run main.go &
+	@echo "🩺 健康检查 (若服务已实现 /health)："
+	-@curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" || echo "  ⚠️  command-service 未响应"
+	-@curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" || echo "  ⚠️  query-service 未响应"
 
-# 安装依赖
-install-deps:
-	@echo "📦 安装依赖..."
-	# 安装 Go 依赖
-	cd go-app && go mod download
-	# 安装 Python 依赖
-	cd python-ai && pip install -r requirements.txt
+# 前端开发
+frontend-dev:
+	@echo "🎨 启动前端开发服务器..."
+	cd frontend && npm run dev
 
-# 生成代码
-generate:
-	@echo "🔧 生成代码..."
-	# 生成 OpenAPI 代码 (AI网关API已移除)
-	# cd go-app && oapi-codegen -package openapi ../contracts/openapi.yaml > generated/openapi/server.go
-	# 生成 gRPC 代码
-	protoc --go_out=. --go_opt=paths=source_relative \
-		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		contracts/proto/intelligence.proto
+# 质量相关
+test:
+	@echo "🧪 运行 Go 单元测试..."
+	go test -v ./...
 
-# 格式化代码
+test-integration:
+	@echo "🔗 运行 Go 集成测试..."
+	go test -v -tags=integration ./...
+
 fmt:
-	@echo "🎨 格式化代码..."
-	cd go-app && go fmt ./...
-	cd python-ai && black .
+	@echo "🎨 Go 代码格式化..."
+	go fmt ./...
 
-# 代码检查
 lint:
-	@echo "🔍 代码检查..."
-	cd go-app && golangci-lint run
-	cd python-ai && flake8 .
+	@echo "🔍 golangci-lint 检查..."
+	golangci-lint run
 
-# 安全扫描
 security:
-	@echo "🔒 安全扫描..."
-	cd go-app && gosec ./...
-	cd python-ai && bandit -r .
+	@echo "🔒 gosec 安全扫描..."
+	gosec ./...
 
-# 性能测试
 bench:
-	@echo "⚡ 性能测试..."
-	cd go-app && go test -bench=. ./...
+	@echo "⚡ Go 基准测试..."
+	go test -bench=. ./...
 
-# 覆盖率测试
 coverage:
 	@echo "📊 覆盖率测试..."
-	cd go-app && go test -coverprofile=coverage.out ./...
-	cd go-app && go tool cover -html=coverage.out -o coverage.html
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "📄 生成 coverage.html"
 
-# 备份数据库
+# 数据库维护
 backup:
 	@echo "💾 备份数据库..."
-	docker exec cube_castle_postgres pg_dump -U user cubecastle > backup_$(shell date +%Y%m%d_%H%M%S).sql
+	@command -v docker >/dev/null 2>&1 || { echo "❌ 需要 docker"; exit 1; }
+	docker exec cube_castle_postgres pg_dump -U $${POSTGRES_USER:-user} $${POSTGRES_DB:-cubecastle} > backup_$$(date +%Y%m%d_%H%M%S).sql
 
-# 恢复数据库
 restore:
 	@echo "📥 恢复数据库..."
-	docker exec -i cube_castle_postgres psql -U user cubecastle < $(BACKUP_FILE)
+	@test -n "$(BACKUP_FILE)" || (echo "❌ 需要指定 BACKUP_FILE=/path/to/file.sql" && exit 2)
+	@command -v docker >/dev/null 2>&1 || { echo "❌ 需要 docker"; exit 1; }
+	docker exec -i cube_castle_postgres psql -U $${POSTGRES_USER:-user} $${POSTGRES_DB:-cubecastle} < $(BACKUP_FILE)
 
-# 查看服务状态
+# 状态与重置
 status:
-	@echo "📊 服务状态:"
+	@echo "📊 docker-compose 服务状态:"
 	docker-compose ps
 	@echo ""
-	@echo "🔗 服务地址:"
-	@echo "  - Go 主服务: http://localhost:8080"
-	@echo "  - Python AI 服务: localhost:50051 (gRPC)"
-	@echo "  - PostgreSQL: localhost:5432"
-	@echo "  - Neo4j: http://localhost:7474"
+	@echo "🔗 关键地址:"
+	@echo "  - Command Service:   http://localhost:9090"
+	@echo "  - Query (GraphQL):   http://localhost:8090  (GraphiQL: /graphiql)"
+	@echo "  - PostgreSQL:        localhost:5432"
+	@echo "  - Redis:             localhost:6379"
 
-# 完整重置
 reset:
-	@echo "🔄 完整重置..."
+	@echo "🔄 重置最小依赖 (不删除卷)..."
 	$(MAKE) docker-down
-	$(MAKE) clean
-	docker volume rm cube-castle_postgres_data cube-castle_neo4j_data 2>/dev/null || true
 	$(MAKE) docker-up
-	sleep 15
-	$(MAKE) init-db
-	$(MAKE) seed-data 
+
+# 监控栈
+monitoring-up:
+	@echo "📈 启动监控栈..."
+	./scripts/start-monitoring.sh
+
+monitoring-test:
+	@echo "🧪 验证监控栈运行状况..."
+	./scripts/test-monitoring.sh
+
+monitoring-down:
+	@echo "🛑 停止监控栈..."
+	@command -v docker >/dev/null 2>&1 || { echo "❌ 需要 docker"; exit 1; }
+	docker compose -f monitoring/docker-compose.monitoring.yml down

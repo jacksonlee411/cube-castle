@@ -1,4 +1,6 @@
 #!/bin/bash
+# [已废弃 - 2025-09-07] 本脚本可能包含 CDC/多数据库验证步骤，仅作历史参考。
+# 建议使用 README/CLAUDE.md 约定的契约测试与现行端到端路径。
 # 完整测试套件执行脚本 - 诚实测试原则
 # 文件: tests/run_comprehensive_tests.sh
 

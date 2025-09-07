@@ -1,5 +1,8 @@
 # 🎉 第一周完整E2E验证报告 - Day 4-5
 
+> 已废弃（2025-09-07）：本报告包含 Neo4j/CDC 相关的历史内容，仅作参考。
+> 现行规范以 README/CLAUDE.md/AGENTS.md 与 Makefile 入口为准（PostgreSQL 原生、单一数据源）。
+
 **验证日期**: 2025-08-13  
 **验证范围**: 时态GraphQL功能完整端到端测试  
 **验证结果**: 🏆 **ALL TESTS PASSED - 所有测试100%通过**

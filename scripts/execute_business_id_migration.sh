@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# [已废弃 - 2025-09-07] 本脚本包含 Neo4j 迁移流程，仅作历史参考；现行架构不再使用 Neo4j/CDC。
+
 # 业务ID系统数据库迁移执行脚本
 # 文件: execute_business_id_migration.sh
 # 日期: 2025-08-04

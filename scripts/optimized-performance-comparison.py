@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-优化后的PostgreSQL vs Neo4j性能对比测试
-基于清理后的干净数据进行客观性能评估
+[已废弃 - 2025-09-07]
+PostgreSQL vs Neo4j 性能对比历史脚本。现行为 PostgreSQL 单一数据源，不再比较 Neo4j。
 """
 
 import psycopg2

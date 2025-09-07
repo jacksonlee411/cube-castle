@@ -1,4 +1,6 @@
 #!/bin/bash
+# [已废弃 - 2025-09-07] 本脚本依赖历史 API 端口/拓扑（含旧 8080 网关），仅作参考。
+# 请按 README/CLAUDE.md 使用现行 9090/8090 端口与契约测试。
 # P2/P3功能验证API测试脚本
 
 BASE_URL="http://localhost:8080"
