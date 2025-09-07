@@ -7,7 +7,7 @@ export const OrganizationUnitSchema = z.object({
   unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']),
   level: z.number().int().min(1).max(10),
-  parentCode: z.string().regex(/^\d{7}$/).optional().or(z.literal('')),
+  parentCode: z.string().regex(/^(0|\d{7})$/, 'Parent code must be "0" for root organizations or 7 digits for child organizations'),
   sortOrder: z.number().int().min(0).default(0),
   description: z.string().optional().or(z.literal('')),
   createdAt: z.string().datetime().optional().or(z.literal('')),
@@ -22,7 +22,7 @@ export const CreateOrganizationInputSchema = z.object({
   unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']).default('ACTIVE'),
   level: z.number().int().min(1).max(10),
-  parentCode: z.string().regex(/^\d{7}$/).optional().or(z.literal('')),
+  parentCode: z.string().regex(/^(0|\d{7})$/, 'Parent code must be "0" for root organizations or 7 digits for child organizations'),
   sortOrder: z.number().int().min(0).default(0),
   description: z.string().optional().or(z.literal('')),
 });
@@ -59,7 +59,7 @@ export const GraphQLOrganizationResponseSchema = z.object({
   unitType: z.string(),
   status: z.string(),
   level: z.number(),
-  parentCode: z.string().nullable().optional(),
+  parentCode: z.string(), // 必填字段，根组织使用"0"
   path: z.string().optional(),
   sortOrder: z.number().nullable().optional(),
   description: z.string().nullable().optional(),

@@ -1179,6 +1179,7 @@ components:
         - tenantId
         - name
         - unitType
+        - parentCode
         - status
         - isDeleted
         - level
@@ -1202,9 +1203,8 @@ components:
           example: "1000001"
         parentCode:
           type: string
-          pattern: '^[1-9][0-9]{6}$'
-          nullable: true
-          description: Parent organization code (null for root units)
+          pattern: '^(0|[1-9][0-9]{6})$'
+          description: "Parent organization code. Use '0' for root organizations, or valid 7-digit code for child organizations"
           example: "1000000"
         tenantId:
           type: string
@@ -1454,6 +1454,7 @@ components:
       required:
         - name
         - unitType
+        - parentCode
         - effectiveDate
         - operationReason
       properties:
@@ -1466,9 +1467,8 @@ components:
           $ref: '#/components/schemas/UnitType'
         parentCode:
           type: string
-          pattern: '^[1-9][0-9]{6}$'
-          nullable: true
-          description: Parent organization code (null for root level)
+          pattern: '^(0|[1-9][0-9]{6})$'
+          description: "Parent organization code. Use '0' for root organizations, or valid 7-digit code for child organizations"
           example: "1000000"
         description:
           type: string
@@ -1506,6 +1506,7 @@ components:
       required:
         - name
         - unitType
+        - parentCode
         - effectiveDate
         - operationReason
       properties:
@@ -1518,9 +1519,8 @@ components:
           $ref: '#/components/schemas/UnitType'
         parentCode:
           type: string
-          pattern: '^[1-9][0-9]{6}$'
-          nullable: true
-          description: Parent organization code (null for root level)
+          pattern: '^(0|[1-9][0-9]{6})$'
+          description: "Parent organization code. Use '0' for root organizations, or valid 7-digit code for child organizations"
           example: "1000001"
         description:
           type: string
@@ -1574,8 +1574,8 @@ components:
           $ref: '#/components/schemas/UnitType'
         parentCode:
           type: string
-          pattern: '^[1-9][0-9]{6}$'
-          nullable: true
+          pattern: '^(0|[1-9][0-9]{6})$'
+          description: "Parent organization code. Use '0' for root organizations, or valid 7-digit code for child organizations"
           example: "1000000"
         description:
           type: string

@@ -202,6 +202,8 @@ CREATE TRIGGER validate_parent_available_trigger
 -- 时态标志自动规范化（与软删除联动）
 CREATE OR REPLACE FUNCTION enforce_temporal_flags()
 RETURNS TRIGGER AS $$
+DECLARE
+    utc_date DATE := (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date;
 BEGIN
     -- 软删除必须非当前且非未来
     IF NEW.is_deleted IS TRUE THEN
@@ -210,11 +212,11 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- 根据effective/end日期自动推导is_current/is_future
-    IF NEW.effective_date > CURRENT_DATE THEN
+    -- 根据effective/end日期自动推导is_current/is_future（以UTC自然日为准）
+    IF NEW.effective_date > utc_date THEN
         NEW.is_current := FALSE;
         NEW.is_future := TRUE;
-    ELSIF NEW.end_date IS NOT NULL AND NEW.end_date <= CURRENT_DATE THEN
+    ELSIF NEW.end_date IS NOT NULL AND NEW.end_date <= utc_date THEN
         NEW.is_current := FALSE;
         NEW.is_future := FALSE;
     ELSE

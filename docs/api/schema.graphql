@@ -162,7 +162,7 @@ Represents the current state based on asOfDate parameter or latest effective rec
 type Organization {
   # Business Identifiers
   code: String!
-  parentCode: String
+  parentCode: String!  # Parent organization code. Use "0" for root organizations, or valid 7-digit code for child organizations
   tenantId: UUID!
   
   # Basic Information

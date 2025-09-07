@@ -128,16 +128,21 @@ export const FormFields: React.FC<FormFieldsProps> = ({
 
       <div style={fieldStyle}>
         <label style={labelStyle}>
-          上级组织编码
+          上级组织编码 *
         </label>
         <input
           type="text"
+          name="parentCode"
           value={formData.parentCode}
           onChange={(e) => updateField('parentCode', e.target.value)}
-          placeholder="请输入上级组织编码"
+          placeholder="请输入上级组织编码（根组织请填写 0）"
+          required
           style={inputStyle}
           data-testid="form-field-parent-code"
         />
+        <div style={hintStyle}>
+          根组织请填写 "0"，子组织请填写上级组织的7位编码
+        </div>
       </div>
 
       <div style={fieldStyle}>

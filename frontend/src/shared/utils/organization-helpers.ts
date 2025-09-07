@@ -5,29 +5,32 @@
 
 /**
  * 安全地处理parentCode字段
- * API要求：根级组织应发送null，而不是空字符串
+ * API要求：根级组织使用字符串"0"，子组织使用7位数字编码
  * 
  * @param parentCode - 可能是null、undefined或字符串
- * @returns 用于表单显示的字符串，或用于API的null值
+ * @returns 用于表单显示的字符串，或用于API的字符串值
  */
 export const normalizeParentCode = {
   /**
-   * 用于表单显示：将null/undefined转为空字符串
+   * 用于表单显示：将null/undefined/"0"转为合适的表单值
    * @param value - API返回的parentCode值
    * @returns 用于表单输入的字符串
    */
   forForm: (value: string | null | undefined): string => {
-    return value || '';
+    if (!value || value === '0') {
+      return '0'; // 根组织在表单中显示为"0"
+    }
+    return value;
   },
 
   /**
-   * 用于API发送：将空字符串转为null
+   * 用于API发送：确保根组织使用"0"
    * @param value - 表单输入的parentCode值
-   * @returns 符合API规范的值（null或有效代码）
+   * @returns 符合API规范的值（"0"或有效的7位代码）
    */
-  forAPI: (value: string | null | undefined): string | null => {
-    if (!value || value.trim() === '') {
-      return null; // 根级组织使用null
+  forAPI: (value: string | null | undefined): string => {
+    if (!value || value.trim() === '' || value.trim() === '0') {
+      return '0'; // 根级组织使用"0"
     }
     return value.trim();
   }
@@ -39,7 +42,7 @@ export const normalizeParentCode = {
  * @returns 是否为根级组织
  */
 export const isRootOrganization = (parentCode: string | null | undefined): boolean => {
-  return !parentCode || parentCode.trim() === '';
+  return !parentCode || parentCode.trim() === '' || parentCode.trim() === '0';
 };
 
 /**

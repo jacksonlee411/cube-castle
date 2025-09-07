@@ -1,7 +1,7 @@
 export interface OrganizationUnit {
   code: string;
   recordId?: string;  // UUID唯一标识符 (camelCase)
-  parentCode?: string;  // camelCase
+  parentCode: string;  // camelCase - 必填字段，根组织使用"0"
   name: string;
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
   status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED' | 'DELETED';
@@ -34,7 +34,7 @@ export interface OrganizationQueryParams {
   name?: string;
   unitType?: string;  // camelCase
   status?: string;
-  parentCode?: string;  // camelCase
+  parentCode?: string;  // camelCase - 查询参数保持可选
   level?: number;
   page?: number;
   pageSize?: number;  // camelCase
@@ -46,7 +46,7 @@ export interface OrganizationQueryParams {
 export interface GraphQLOrganizationResponse {
   code: string;
   recordId?: string;  // UUID唯一标识符
-  parentCode?: string;
+  parentCode: string;  // 必填字段，根组织使用"0"
   name: string;
   unitType: string;
   status: string;
@@ -79,7 +79,7 @@ export interface CreateOrganizationResponse {
   status: string;
   createdAt: string;  // camelCase
   level?: number;
-  parentCode?: string;  // camelCase
+  parentCode: string;  // camelCase - 必填字段
   sortOrder?: number;  // camelCase
   description?: string;
   path?: string;

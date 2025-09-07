@@ -46,11 +46,20 @@
 ### **12 - 时态一致性实施计划**
 - `12-temporal-consistency-implementation-plan.md` - 时态时间轴连贯性简化方案具体实施计划
 
+### **13 - 权限系统实施计划**
+- `13-permission-system-implementation-plan.md` - 权限系统实施计划
+
+### **14 - API实现对齐计划**
+- `14-api-implementation-alignment-plan.md` - API实现对齐计划文档
+
+### **15 - 数据库触发器诊断**
+- `15-database-triggers-diagnostic-report.md` - 数据库触发器混乱问题诊断分析和优化方案
+
 ## 📊 文档关系
 
 ```
 阅读流程建议:
-01-API规范 → 02-技术架构 → 03-API重构计划 → 04-后端实施 → 05-前端团队 → 06-团队协作 → 07-契约测试 → 08-前端API标准 → 09-代码审查规范 → 10-代码清理 → 11-权限映射验证 → 12-时态一致性实施
+01-API规范 → 02-技术架构 → 03-API重构计划 → 04-后端实施 → 05-前端团队 → 06-团队协作 → 07-契约测试 → 08-前端API标准 → 09-代码审查规范 → 10-代码清理 → 11-权限映射验证 → 12-时态一致性实施 → 13-权限系统实施 → 14-API实现对齐 → 15-数据库触发器诊断
 
 项目层级关系:
 03-api-compliance-intensive-refactoring-plan.md (当前重构方案)

@@ -293,7 +293,49 @@ curl -f http://localhost:8090/health || echo "GraphQL服务异常"
 curl -f http://localhost:9091/health || echo "时态API服务异常"
 ```
 
-## 🚨 已知特例和注意事项 ⭐ **新增 (2025-08-24)**
+## 🚨 已知特例和注意事项 ⭐ **更新 (2025-09-07)**
+
+### parentCode字段必填要求 ⭐ **重要变更 (2025-09-07)**
+
+#### 变更说明
+从本版本开始，**所有组织的上级组织编码（parentCode）字段变更为必填字段**。
+
+#### 字段规范
+- **根组织**: `parentCode = "0"` (字符串"0"，表示无上级组织)
+- **子组织**: `parentCode = "1000xxx"` (7位数字组织编码，表示上级组织)
+- **字段类型**: 从 `String`(可选) 变更为 `String!`(必填)
+
+#### 影响范围
+- **OpenAPI规范**: 所有Schema中的parentCode字段标记为必填
+- **GraphQL Schema**: Organization类型中的parentCode字段标记为必填
+- **数据库**: 现有数据已完成迁移，1000000组织的parentCode设置为"0"
+
+#### API调用变更
+```json
+// ✅ 新的API请求格式 - parentCode必须提供
+{
+  "name": "新部门",
+  "unitType": "DEPARTMENT", 
+  "parentCode": "1000000",     // 必填字段
+  "effectiveDate": "2025-09-07",
+  "operationReason": "业务扩展"
+}
+
+// ❌ 旧的API请求格式 - parentCode可选，现在将报错
+{
+  "name": "新部门",
+  "unitType": "DEPARTMENT", 
+  // parentCode: null,         // 现在不允许为空
+  "effectiveDate": "2025-09-07", 
+  "operationReason": "业务扩展"
+}
+```
+
+#### 迁移指南
+1. **前端应用**: 确保所有组织创建/更新表单包含parentCode字段选择
+2. **API客户端**: 更新API调用，为所有组织操作提供有效的parentCode值
+3. **数据导入**: 批量数据导入时必须为每个组织指定parentCode
+4. **测试用例**: 更新所有测试用例，确保包含parentCode字段验证
 
 ### OAuth认证字段名特例
 

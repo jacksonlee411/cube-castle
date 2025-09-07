@@ -16,7 +16,7 @@ UPDATE organization_units
    SET is_current = FALSE,
        is_future  = TRUE
  WHERE is_deleted = FALSE
-   AND effective_date > CURRENT_DATE
+   AND effective_date > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
    AND (is_current = TRUE OR is_future = FALSE);
 
 -- 3) 为每个 code 选择当前应生效的版本（最新且有效期覆盖今天）并规范 is_current
@@ -24,16 +24,16 @@ WITH latest AS (
   SELECT code, MAX(effective_date) AS eff
     FROM organization_units
    WHERE is_deleted = FALSE
-     AND effective_date <= CURRENT_DATE
-     AND (end_date IS NULL OR end_date > CURRENT_DATE)
+     AND effective_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
+     AND (end_date IS NULL OR end_date > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date)
    GROUP BY code
 )
 UPDATE organization_units u
-   SET is_current = (u.effective_date = l.eff AND (u.end_date IS NULL OR u.end_date > CURRENT_DATE)),
+   SET is_current = (u.effective_date = l.eff AND (u.end_date IS NULL OR u.end_date > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date)),
        is_future  = FALSE
   FROM latest l
  WHERE u.code = l.code
-   AND (u.is_current IS DISTINCT FROM (u.effective_date = l.eff AND (u.end_date IS NULL OR u.end_date > CURRENT_DATE))
+   AND (u.is_current IS DISTINCT FROM (u.effective_date = l.eff AND (u.end_date IS NULL OR u.end_date > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date))
         OR u.is_future = TRUE);
 
 -- 4) 记录一次系统审计日志（使用统一契约列）
@@ -64,4 +64,3 @@ INSERT INTO audit_logs (
 );
 
 COMMIT;
-
