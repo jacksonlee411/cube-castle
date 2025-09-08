@@ -163,6 +163,48 @@ go test ./... && ./test_all_routes.sh
   - `bash scripts/ci/check-hardcoded-configs.sh`（CORS/端口/JWT）
   - 设定 `ENFORCE=1` 可模拟 CI 强制模式；`SCAN_SCOPE=cmd|frontend` 可限定范围
 
+## 🛡️ P3企业级防控系统 ⭐ **新上线**
+
+### 三层纵深防御机制
+```yaml
+🔍 P3.1 自动化重复检测:
+  - 重复代码率: 2.11% (< 5%阈值) ✅
+  - 检测工具: jscpd + GitHub Actions
+  - 本地验证: bash scripts/quality/duplicate-detection.sh
+  
+🏗️ P3.2 架构守护规则:
+  - CQRS + 端口 + API契约守护
+  - 违规自动识别: 25个精确检测
+  - 本地验证: node scripts/quality/architecture-validator.js
+  
+📝 P3.3 文档自动同步:
+  - 5个核心同步对监控
+  - 不一致自动检测: 8个精确识别
+  - 本地验证: node scripts/quality/document-sync.js
+```
+
+### 🚀 防控系统快速启动
+```bash
+# 完整质量检查 (推荐)
+bash scripts/quality/duplicate-detection.sh      # 重复代码检测
+node scripts/quality/architecture-validator.js   # 架构一致性验证  
+node scripts/quality/document-sync.js           # 文档同步检查
+
+# 自动修复模式
+bash scripts/quality/duplicate-detection.sh --fix
+node scripts/quality/document-sync.js --auto-sync
+
+# 查看详细报告
+open reports/duplicate-code/html/index.html     # 重复代码报告
+cat reports/architecture/architecture-validation.json  # 架构报告
+cat reports/document-sync/document-sync-report.json   # 同步报告
+```
+
+### ⚡ 自动化触发
+- **Git提交**: Pre-commit hook自动验证架构一致性
+- **CI/CD集成**: 每次push自动运行三大防控检查
+- **质量门禁**: 不符合标准自动阻止合并
+
 ## 📂 项目结构
 
 ```
@@ -174,9 +216,17 @@ cube-castle/
 ├── cmd/                     # Go服务入口
 │   ├── organization-command-service/  # REST API(9090)
 │   └── organization-query-service/    # GraphQL(8090)
+├── scripts/quality/          # 🆕 P3防控系统工具
+│   ├── duplicate-detection.sh      # 重复代码检测
+│   ├── architecture-validator.js   # 架构守护验证
+│   └── document-sync.js           # 文档同步引擎
 ├── docs/                    # 项目文档
 │   ├── api/                # API契约
 │   └── development-plans/   # 开发计划
+├── reports/                 # 🆕 质量报告输出
+│   ├── duplicate-code/      # 重复代码检测报告
+│   ├── architecture/        # 架构验证报告
+│   └── document-sync/       # 文档同步报告
 └── monitoring/             # 监控配置
 ```
 

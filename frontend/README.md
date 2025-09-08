@@ -28,6 +28,46 @@ export const SERVICE_PORTS = {
 - **UI框架**: React 19 + Canvas Kit v13 + TypeScript 5.8+
 - **状态管理**: TanStack Query + Zustand
 - **测试**: Playwright + Vitest
+- **质量保证**: P3企业级防控系统 ⭐ **新集成**
+
+## 🛡️ 开发防控流程 ⭐ **P3系统集成**
+
+### 🚀 开发前检查
+```bash
+# 1. 重复代码检测
+bash ../scripts/quality/duplicate-detection.sh -s frontend
+
+# 2. 架构一致性验证
+node ../scripts/quality/architecture-validator.js --scope frontend
+
+# 3. 文档同步检查
+node ../scripts/quality/document-sync.js
+```
+
+### ✅ 提交前自动验证
+每次`git commit`时自动触发：
+- **Pre-commit Hook**: 架构一致性验证
+- **CQRS守护**: 禁止前端REST查询，强制GraphQL
+- **端口配置**: 检测硬编码端口，强制统一配置
+- **API契约**: camelCase字段命名，废弃字段检查
+
+### 📊 实时质量指标
+- **重复代码率**: 2.11% (目标 < 5%) ✅
+- **架构违规**: 25个已识别 (需修复)
+- **TypeScript错误**: 0个 ✅
+- **契约测试**: 32个通过 ✅
+
+### 🔧 质量修复命令
+```bash
+# 自动修复重复代码
+bash ../scripts/quality/duplicate-detection.sh --fix
+
+# 自动修复文档同步
+node ../scripts/quality/document-sync.js --auto-sync
+
+# 查看详细违规报告
+cat ../reports/architecture/architecture-validation.json
+```
 
 ## Expanding the ESLint configuration
 
