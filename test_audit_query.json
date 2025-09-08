@@ -1,7 +1,0 @@
-{
-  "query": "query TestTypes($recordId: String!, $limit: Int) { auditHistory(recordId: $recordId, limit: $limit) { auditId recordId operationType timestamp operatedBy { id name } operationReason changesSummary beforeData afterData } }",
-  "variables": {
-    "recordId": "593c3855-9c66-4ec9-b53b-564e3b37cb19",
-    "limit": 10
-  }
-}

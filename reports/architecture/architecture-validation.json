@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-07T16:12:39.075Z",
+  "timestamp": "2025-09-08T02:23:50.362Z",
   "summary": {
-    "totalFiles": 91,
-    "passedFiles": 78,
+    "totalFiles": 92,
+    "passedFiles": 79,
     "failedFiles": 13,
     "totalViolations": 63,
     "violationsByType": {
@@ -522,7 +522,7 @@
       "violations": [
         {
           "type": "ports",
-          "line": 83,
+          "line": 84,
           "column": 15,
           "message": "硬编码端口 3600，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
           "code": "no-hardcoded-ports",
@@ -537,7 +537,7 @@
         },
         {
           "type": "contracts",
-          "line": 16,
+          "line": 17,
           "column": 13,
           "message": "使用camelCase字段名 \"clientCredentials\" 替代 snake_case \"client_credentials\"",
           "code": "snake-case-field",
@@ -552,7 +552,7 @@
         },
         {
           "type": "contracts",
-          "line": 111,
+          "line": 112,
           "column": 42,
           "message": "使用camelCase字段名 \"cubeCastleOauthToken\" 替代 snake_case \"cube_castle_oauth_token\"",
           "code": "snake-case-field",
@@ -567,7 +567,7 @@
         },
         {
           "type": "contracts",
-          "line": 127,
+          "line": 128,
           "column": 29,
           "message": "使用camelCase字段名 \"cubeCastleOauthToken\" 替代 snake_case \"cube_castle_oauth_token\"",
           "code": "snake-case-field",
@@ -582,7 +582,7 @@
         },
         {
           "type": "contracts",
-          "line": 139,
+          "line": 140,
           "column": 28,
           "message": "使用camelCase字段名 \"cubeCastleOauthToken\" 替代 snake_case \"cube_castle_oauth_token\"",
           "code": "snake-case-field",
@@ -597,7 +597,7 @@
         },
         {
           "type": "contracts",
-          "line": 156,
+          "line": 157,
           "column": 13,
           "message": "使用camelCase字段名 \"clientCredentials\" 替代 snake_case \"client_credentials\"",
           "code": "snake-case-field",
@@ -617,7 +617,7 @@
       "violations": [
         {
           "type": "cqrs",
-          "line": 134,
+          "line": 135,
           "column": 42,
           "message": "禁止使用REST GET请求进行查询，请使用GraphQL客户端",
           "code": "no-rest-queries",
@@ -625,7 +625,7 @@
         },
         {
           "type": "cqrs",
-          "line": 166,
+          "line": 167,
           "column": 51,
           "message": "禁止使用REST GET请求进行查询，请使用GraphQL客户端",
           "code": "no-rest-queries",

@@ -1,6 +1,0 @@
-{
-  "query": "query DebugAuditHistory($recordId: String!) { auditHistory(recordId: $recordId) { auditId operationType beforeData afterData changesSummary } }",
-  "variables": {
-    "recordId": "34953db5-154b-4af9-a108-c14d4697bab6"
-  }
-}
