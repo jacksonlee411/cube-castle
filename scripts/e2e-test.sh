@@ -14,10 +14,10 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 服务端点配置
-OAUTH_SERVICE="http://localhost:8080"
-GRAPHQL_SERVICE="http://localhost:8090"
-REST_SERVICE="http://localhost:9090"
+# 服务端点配置 - 使用环境变量
+OAUTH_SERVICE="${E2E_OAUTH_SERVICE_URL:-http://localhost:8080}"
+GRAPHQL_SERVICE="${E2E_GRAPHQL_API_URL:-http://localhost:8090}"
+REST_SERVICE="${E2E_COMMAND_API_URL:-http://localhost:9090}"
 
 # 测试步骤计数器
 STEP=1

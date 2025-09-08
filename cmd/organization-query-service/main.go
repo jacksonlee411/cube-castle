@@ -23,9 +23,10 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
-	"postgresql-graphql-service/internal/auth"
-	schemaLoader "postgresql-graphql-service/internal/graphql"
-	requestMiddleware "postgresql-graphql-service/internal/middleware"
+	"cube-castle-deployment-test/internal/auth"
+	"cube-castle-deployment-test/internal/config"
+	schemaLoader "cube-castle-deployment-test/internal/graphql"
+	requestMiddleware "cube-castle-deployment-test/internal/middleware"
 )
 
 // 默认租户配置
@@ -313,13 +314,39 @@ type OperatedByData struct {
 func (o OperatedByData) Id() string   { return o.IDField }
 func (o OperatedByData) Name() string { return o.NameField }
 
-// 输入类型 - 符合官方API契约
+// 输入类型 - 符合官方API契约 (P0阶段最小实现)
 type OrganizationFilter struct {
-	UnitType   *string `json:"unitType"`
-	Status     *string `json:"status"`
-	ParentCode *string `json:"parentCode"`
-	SearchText *string `json:"searchText"`
-	AsOfDate   *string `json:"asOfDate"`
+	// Temporal Filtering
+	AsOfDate      *string `json:"asOfDate"`
+	IncludeFuture *bool   `json:"includeFuture"`
+	OnlyFuture    *bool   `json:"onlyFuture"`
+	
+	// Business Filtering
+	UnitType   *string   `json:"unitType"`
+	Status     *string   `json:"status"`
+	ParentCode *string   `json:"parentCode"`
+	Codes      *[]string `json:"codes"`
+	
+	// Hierarchy Filtering
+	Level      *int32 `json:"level"`
+	MinLevel   *int32 `json:"minLevel"`
+	MaxLevel   *int32 `json:"maxLevel"`
+	RootsOnly  *bool  `json:"rootsOnly"`
+	LeavesOnly *bool  `json:"leavesOnly"`
+	
+	// Text Search
+	SearchText   *string   `json:"searchText"`
+	SearchFields []string `json:"searchFields"`
+	
+	// Advanced Filtering
+	HasChildren     *bool   `json:"hasChildren"`
+	HasProfile      *bool   `json:"hasProfile"`
+	ProfileContains *string `json:"profileContains"`
+	
+	// Audit Filtering - P0阶段简化实现
+	OperationType       *string `json:"operationType"`
+	OperatedBy          *string `json:"operatedBy"`
+	OperationDateRange  *string `json:"operationDateRange"`
 }
 
 type PaginationInput struct {
@@ -1327,25 +1354,22 @@ func main() {
 	// 创建仓储
 	repo := NewPostgreSQLRepository(db, redisClient, logger)
 
-    // 初始化JWT中间件
-    jwtSecret := getEnv("JWT_SECRET", "cube-castle-development-secret-key-2025")
-    jwtIssuer := getEnv("JWT_ISSUER", "cube-castle")
-    jwtAudience := getEnv("JWT_AUDIENCE", "cube-castle-api")
-    jwtAlg := getEnv("JWT_ALG", "HS256")
+    // 初始化JWT中间件 - 使用统一配置
+    jwtConfig := config.GetJWTConfig()
     devMode := getEnv("DEV_MODE", "true") == "true"
-    var clockSkew time.Duration
-    if v := getEnv("JWT_ALLOWED_CLOCK_SKEW", ""); v != "" { if d, err := time.ParseDuration(v+"s"); err == nil { clockSkew = d } }
-    jwksURL := getEnv("JWT_JWKS_URL", "")
+    
     var pubPEM []byte
-    if p := getEnv("JWT_PUBLIC_KEY_PATH", ""); p != "" {
-        if b, err := os.ReadFile(p); err == nil { pubPEM = b }
+    if jwtConfig.HasPublicKey() {
+        if b, err := os.ReadFile(jwtConfig.PublicKeyPath); err == nil { 
+            pubPEM = b 
+        }
     }
 
-    jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtSecret, jwtIssuer, jwtAudience, auth.Options{
-        Alg:          jwtAlg,
-        JWKSURL:      jwksURL,
+    jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, auth.Options{
+        Alg:          jwtConfig.Algorithm,
+        JWKSURL:      jwtConfig.JWKSUrl,
         PublicKeyPEM: pubPEM,
-        ClockSkew:    clockSkew,
+        ClockSkew:    jwtConfig.AllowedClockSkew,
     })
 	permissionChecker := auth.NewPBACPermissionChecker(db, logger)
 	graphqlMiddleware := auth.NewGraphQLPermissionMiddleware(

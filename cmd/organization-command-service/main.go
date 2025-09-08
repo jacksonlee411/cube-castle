@@ -17,6 +17,7 @@ import (
 	_ "github.com/lib/pq"
 	"organization-command-service/internal/audit"
 	"organization-command-service/internal/auth"
+	"organization-command-service/internal/config"
 	"organization-command-service/internal/handlers"
 	"organization-command-service/internal/metrics"
 	"organization-command-service/internal/middleware"
@@ -65,40 +66,25 @@ func main() {
 	logger.Println("✅ 结构化审计日志系统已初始化")
 	logger.Println("✅ Prometheus指标收集系统已初始化")
 
-	// 初始化JWT中间件
-    jwtSecret := os.Getenv("JWT_SECRET")
-    if jwtSecret == "" {
-        jwtSecret = "cube-castle-development-secret-key-2025"
-    }
-    jwtIssuer := os.Getenv("JWT_ISSUER")
-	if jwtIssuer == "" {
-		jwtIssuer = "cube-castle"
-	}
-    jwtAudience := os.Getenv("JWT_AUDIENCE")
-    if jwtAudience == "" {
-        jwtAudience = "cube-castle-api"
-    }
-    jwtAlg := os.Getenv("JWT_ALG")
-    if jwtAlg == "" { jwtAlg = "HS256" }
-    clockSkew := time.Duration(0)
-    if v := os.Getenv("JWT_ALLOWED_CLOCK_SKEW"); v != "" {
-        if secs, err := time.ParseDuration(v+"s"); err == nil { clockSkew = secs }
-    }
-    jwksURL := os.Getenv("JWT_JWKS_URL")
-    var pubPEM []byte
-    if p := os.Getenv("JWT_PUBLIC_KEY_PATH"); p != "" {
-        if b, err := os.ReadFile(p); err == nil { pubPEM = b }
-    }
+	// 初始化JWT中间件 - 使用统一配置
+	jwtConfig := config.GetJWTConfig()
 	devMode := os.Getenv("DEV_MODE") == "true"
 	if os.Getenv("DEV_MODE") == "" {
 		devMode = true // 默认开发模式
 	}
 
-    jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtSecret, jwtIssuer, jwtAudience, auth.Options{
-        Alg:          jwtAlg,
-        JWKSURL:      jwksURL,
+	var pubPEM []byte
+	if jwtConfig.HasPublicKey() {
+		if b, err := os.ReadFile(jwtConfig.PublicKeyPath); err == nil { 
+			pubPEM = b 
+		}
+	}
+
+    jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, auth.Options{
+        Alg:          jwtConfig.Algorithm,
+        JWKSURL:      jwtConfig.JWKSUrl,
         PublicKeyPEM: pubPEM,
-        ClockSkew:    clockSkew,
+        ClockSkew:    jwtConfig.AllowedClockSkew,
     })
 	permissionChecker := auth.NewPBACPermissionChecker(db, logger)
 	restAuthMiddleware := auth.NewRESTPermissionMiddleware(

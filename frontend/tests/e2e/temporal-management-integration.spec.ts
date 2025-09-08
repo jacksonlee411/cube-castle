@@ -1,15 +1,27 @@
 /**
  * 时态管理组件集成测试
  * 测试时态管理主从视图组件的完整功能
+ * 🎯 使用动态环境配置替代硬编码端口
  */
 
 import { test, expect } from '@playwright/test';
+import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 
-const TEMPORAL_SERVICE_URL = 'http://localhost:9091';
-const FRONTEND_URL = 'http://localhost:3000';
+let FRONTEND_URL: string;
+const TEMPORAL_SERVICE_URL = E2E_CONFIG.COMMAND_API_URL; // 使用命令服务端点
 const TEST_ORG_CODE = '1000056';
 
 test.describe('时态管理系统集成测试', () => {
+  
+  test.beforeAll(async () => {
+    const envValidation = await validateTestEnvironment();
+    if (!envValidation.isValid) {
+      console.error('🚨 测试环境验证失败:', envValidation.errors);
+      throw new Error('测试环境不可用');
+    }
+    FRONTEND_URL = envValidation.frontendUrl;
+    console.log(`✅ 使用前端基址: ${FRONTEND_URL}`);
+  });
   
   test.beforeEach(async ({ page }) => {
     // 确保时态服务正常运行

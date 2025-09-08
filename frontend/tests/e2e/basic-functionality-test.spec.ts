@@ -1,12 +1,28 @@
 /**
  * 简化的时态管理功能验证测试
  * 验证系统基本功能是否正常工作
+ * 🎯 使用动态环境配置替代硬编码端口
  */
 import { test, expect } from '@playwright/test';
+import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 
-const BASE_URL = 'http://localhost:3000';
+let BASE_URL: string;
 
 test.describe('时态管理系统基础功能验证', () => {
+  
+  // 🎯 测试前环境验证和动态端口配置
+  test.beforeAll(async () => {
+    const envValidation = await validateTestEnvironment();
+    
+    if (!envValidation.isValid) {
+      console.error('🚨 测试环境验证失败:');
+      envValidation.errors.forEach(error => console.error(`  - ${error}`));
+      throw new Error('测试环境不可用');
+    }
+    
+    BASE_URL = envValidation.frontendUrl;
+    console.log(`✅ 使用前端基址: ${BASE_URL}`);
+  });
   
   test('应用基础加载测试', async ({ page }) => {
     // 导航到应用

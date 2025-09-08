@@ -30,16 +30,22 @@ ALERT_WEBHOOK=""
 # 创建日志目录
 mkdir -p "$LOG_DIR"
 
-# 服务配置
+# 服务配置 - 使用环境变量支持动态端口配置
+# 🎯 根据06号文档P1任务要求消除硬编码端口
+FRONTEND_PORT=${E2E_BASE_URL:-http://localhost:3000}
+COMMAND_PORT=${COMMAND_API_PORT:-9090}
+QUERY_PORT=${GRAPHQL_QUERY_PORT:-8090}
+TEMPORAL_PORT=${TEMPORAL_API_PORT:-9091}
+
 declare -A SERVICES=(
     ["基础设施-PostgreSQL"]="http://localhost:5432"
     ["基础设施-Neo4j"]="http://localhost:7474"
     ["基础设施-Redis"]="http://localhost:6379"
     ["基础设施-Kafka"]="http://localhost:9092"
-    ["应用-命令服务"]="http://localhost:9090/health"
-    ["应用-查询服务"]="http://localhost:8090/health"
-    ["应用-时态服务"]="http://localhost:9091/health"
-    ["前端-开发服务"]="http://localhost:3000"
+    ["应用-命令服务"]="http://localhost:${COMMAND_PORT}/health"
+    ["应用-查询服务"]="http://localhost:${QUERY_PORT}/health"
+    ["应用-时态服务"]="http://localhost:${TEMPORAL_PORT}/health"
+    ["前端-开发服务"]="${FRONTEND_PORT}"
 )
 
 declare -A DOCKER_SERVICES=(
@@ -302,8 +308,14 @@ generate_system_overview() {
         print_info "运行中的容器: $running_containers"
     fi
     
-    # 网络端口
-    local listening_ports=$(netstat -tlnp 2>/dev/null | grep -E ":9090|:8090|:9091|:3000|:5432|:7474|:6379" | wc -l)
+    # 网络端口 - 使用环境变量配置
+    local port_pattern=""
+    port_pattern+=":$(echo "$COMMAND_PORT" | cut -d: -f3)"
+    port_pattern+="|:$(echo "$QUERY_PORT" | cut -d: -f3)"
+    port_pattern+="|:$(echo "$FRONTEND_PORT" | cut -d: -f3)"
+    port_pattern+="|:5432|:6379"  # PostgreSQL 和 Redis 使用标准端口
+    
+    local listening_ports=$(netstat -tlnp 2>/dev/null | grep -E "$port_pattern" | wc -l)
     print_info "监听的关键端口: $listening_ports"
 }
 

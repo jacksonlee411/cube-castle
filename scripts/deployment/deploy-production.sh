@@ -69,7 +69,7 @@ LOG_LEVEL=info
 LOG_FORMAT=json
 
 # === 安全配置 ===
-CORS_ALLOWED_ORIGINS=http://localhost:3000
+CORS_ALLOWED_ORIGINS=${FRONTEND_BASE_URL:-http://localhost:3000}
 API_RATE_LIMIT=1000
 SESSION_TIMEOUT=3600
 
@@ -155,7 +155,7 @@ echo "🔍 执行健康检查..."
 services_healthy=true
 
 # 检查命令服务
-if curl -f -s "http://localhost:9090/health" > /dev/null; then
+if curl -f -s "${COMMAND_API_URL:-http://localhost:9090}/health" > /dev/null; then
     echo "✅ 命令服务健康检查通过"
 else
     echo "❌ 命令服务健康检查失败"
@@ -163,7 +163,7 @@ else
 fi
 
 # 检查查询服务
-if curl -f -s "http://localhost:8090/health" > /dev/null; then
+if curl -f -s "${GRAPHQL_API_URL:-http://localhost:8090}/health" > /dev/null; then
     echo "✅ 查询服务健康检查通过"
 else
     echo "❌ 查询服务健康检查失败"
@@ -175,9 +175,9 @@ if [ "$services_healthy" = true ]; then
     echo "🎉 === Cube Castle生产环境启动成功！ ==="
     echo ""
     echo "📊 服务访问地址:"
-    echo "   • 命令API: http://localhost:9090"
-    echo "   • 查询API (GraphQL): http://localhost:8090/graphql"
-    echo "   • 前端应用: http://localhost:3000"
+    echo "   • 命令API: ${COMMAND_API_URL:-http://localhost:9090}"
+    echo "   • 查询API (GraphQL): ${GRAPHQL_API_URL:-http://localhost:8090}/graphql"
+    echo "   • 前端应用: ${FRONTEND_BASE_URL:-http://localhost:3000}"
     echo ""
     echo "🔧 管理命令:"
     echo "   • 停止服务: ./stop-production.sh"
@@ -244,7 +244,7 @@ services_ok=0
 total_services=4
 
 # 检查命令服务
-if curl -f -s "http://localhost:9090/health" > /dev/null; then
+if curl -f -s "${COMMAND_API_URL:-http://localhost:9090}/health" > /dev/null; then
     echo "✅ 命令服务 (9090) - 健康"
     services_ok=$((services_ok + 1))
 else
@@ -252,7 +252,7 @@ else
 fi
 
 # 检查查询服务
-if curl -f -s "http://localhost:8090/health" > /dev/null; then
+if curl -f -s "${GRAPHQL_API_URL:-http://localhost:8090}/health" > /dev/null; then
     echo "✅ 查询服务 (8090) - 健康"
     services_ok=$((services_ok + 1))
 else
@@ -260,7 +260,7 @@ else
 fi
 
 # 检查前端服务
-if curl -f -s "http://localhost:3000" > /dev/null; then
+if curl -f -s "${FRONTEND_BASE_URL:-http://localhost:3000}" > /dev/null; then
     echo "✅ 前端应用 (3000) - 健康"
     services_ok=$((services_ok + 1))
 else

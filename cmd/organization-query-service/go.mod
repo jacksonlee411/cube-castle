@@ -1,4 +1,4 @@
-module postgresql-graphql-service
+module cube-castle-deployment-test/cmd/organization-query-service
 
 go 1.23.0
 

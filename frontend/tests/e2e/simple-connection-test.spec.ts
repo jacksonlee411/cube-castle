@@ -1,10 +1,22 @@
 import { test, expect } from '@playwright/test';
+import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
+
+let BASE_URL: string;
 
 test('简单的服务器连接测试', async ({ page }) => {
   console.log('开始测试服务器连接...');
   
+  // 环境验证和动态端口配置
+  const envValidation = await validateTestEnvironment();
+  if (!envValidation.isValid) {
+    console.error('🚨 环境验证失败:', envValidation.errors);
+    throw new Error('测试环境不可用');
+  }
+  BASE_URL = envValidation.frontendUrl;
+  console.log(`✅ 使用前端基址: ${BASE_URL}`);
+  
   try {
-    await page.goto('http://localhost:3000/', { 
+    await page.goto(BASE_URL + '/', { 
       waitUntil: 'load',
       timeout: 30000 
     });
@@ -22,8 +34,8 @@ test('简单的服务器连接测试', async ({ page }) => {
       fullPage: true 
     });
     
-    // 基本断言
-    expect(page.url()).toContain('localhost:3000');
+    // 基本断言 - 使用动态端口
+    expect(page.url()).toContain(BASE_URL.replace('http://', ''));
     
     console.log('测试完成成功');
     

@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/cube-castle/internal/config"
+	"github.com/golang-jwt/jwt/v5"
+	"cube-castle-deployment-test/internal/config"
 )
 
 // ValidateJWT 统一JWT验证逻辑

@@ -4,11 +4,21 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
+
+let BASE_URL: string;
 
 test.describe('前端CQRS协议遵循验证', () => {
 
   test.beforeAll(async () => {
     console.log('🚀 开始前端CQRS协议遵循测试');
+    const envValidation = await validateTestEnvironment();
+    if (!envValidation.isValid) {
+      console.error('🚨 测试环境验证失败:', envValidation.errors);
+      throw new Error('测试环境不可用');
+    }
+    BASE_URL = envValidation.frontendUrl;
+    console.log(`✅ 使用前端基址: ${BASE_URL}`);
   });
 
   test('✅ 前端应使用GraphQL进行查询', async ({ page }) => {
@@ -32,7 +42,7 @@ test.describe('前端CQRS协议遵循验证', () => {
     });
 
     // 访问组织管理页面
-    await page.goto('http://localhost:3000/organizations');
+    await page.goto(`${BASE_URL}/organizations`);
     
     // 等待页面加载和数据获取
     await page.waitForTimeout(3000);
@@ -73,7 +83,7 @@ test.describe('前端CQRS协议遵循验证', () => {
       }
     });
 
-    await page.goto('http://localhost:3000/organizations');
+    await page.goto(`${BASE_URL}/organizations`);
     await page.waitForTimeout(2000);
 
     // 尝试创建新组织 (如果页面有创建按钮)
@@ -154,7 +164,7 @@ test.describe('前端CQRS协议遵循验证', () => {
       }
     });
 
-    await page.goto('http://localhost:3000/organizations');
+    await page.goto(`${BASE_URL}/organizations`);
     await page.waitForTimeout(5000);
 
     // 分析网络请求模式
@@ -192,7 +202,7 @@ test.describe('前端CQRS协议遵循验证', () => {
       }
     });
 
-    await page.goto('http://localhost:3000/organizations');
+    await page.goto(`${BASE_URL}/organizations`);
     await page.waitForTimeout(3000);
 
     // 检查页面是否正常显示 (即使有网络错误)

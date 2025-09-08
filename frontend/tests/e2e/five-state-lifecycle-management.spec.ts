@@ -6,13 +6,14 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
+import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 
-// 测试数据配置
-const TEST_CONFIG = {
-  baseUrl: 'http://localhost:3000',
-  apiUrl: 'http://localhost:9090',
-  graphqlUrl: 'http://localhost:8090/graphql',
-  temporalApiUrl: 'http://localhost:9091',
+// 测试数据配置 - 使用动态环境配置
+let TEST_CONFIG = {
+  baseUrl: '',  // 将在beforeAll中初始化
+  apiUrl: E2E_CONFIG.COMMAND_API_URL,
+  graphqlUrl: E2E_CONFIG.GRAPHQL_API_URL,
+  temporalApiUrl: E2E_CONFIG.COMMAND_API_URL,
   testCode: '1000004', // 使用现有的测试组织
   timeout: 30000
 };
@@ -20,6 +21,16 @@ const TEST_CONFIG = {
 // 测试用例: 五状态生命周期管理系统完整功能验证
 test.describe('五状态生命周期管理系统 E2E 测试', () => {
   let page: Page;
+
+  test.beforeAll(async () => {
+    const envValidation = await validateTestEnvironment();
+    if (!envValidation.isValid) {
+      console.error('🚨 测试环境验证失败:', envValidation.errors);
+      throw new Error('测试环境不可用');
+    }
+    TEST_CONFIG.baseUrl = envValidation.frontendUrl;
+    console.log(`✅ 使用前端基址: ${TEST_CONFIG.baseUrl}`);
+  });
 
   test.beforeEach(async ({ page: testPage }) => {
     page = testPage;

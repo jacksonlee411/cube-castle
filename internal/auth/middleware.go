@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/cube-castle/internal/config"
+	"cube-castle-deployment-test/internal/config"
 )
 
-// JWTMiddleware 统一JWT中间件
+// GinJWTMiddleware 统一JWT中间件（Gin版本）
 // 替换6个文件中重复的JWT验证逻辑
-func JWTMiddleware() gin.HandlerFunc {
+func GinJWTMiddleware() gin.HandlerFunc {
 	jwtConfig := config.GetJWTConfig()
 
 	return gin.HandlerFunc(func(c *gin.Context) {
