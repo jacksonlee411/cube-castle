@@ -1,5 +1,6 @@
 // OAuth 2.0客户端认证管理器
 // 实现Client Credentials Flow和JWT Token管理
+import { env } from '../config/environment';
 
 export interface OAuthToken {
   accessToken: string;
@@ -148,11 +149,11 @@ export class AuthManager {
   }
 }
 
-// 默认OAuth配置 - 使用代理端点避免CORS问题
+// 默认OAuth配置 - 使用环境配置避免硬编码
 export const defaultOAuthConfig: OAuthConfig = {
-  clientId: 'dev-client',
-  clientSecret: 'dev-secret', 
-  tokenEndpoint: '/auth/dev-token',  // 使用代理路径，避免CORS
+  clientId: env.authConfig.clientId,
+  clientSecret: env.authConfig.clientSecret, 
+  tokenEndpoint: env.authConfig.tokenEndpoint,  // 使用环境配置的端点
   grantType: 'client_credentials',
 };
 

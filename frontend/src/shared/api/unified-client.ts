@@ -4,6 +4,7 @@
  * 基于CQRS架构：查询使用GraphQL，命令使用REST API
  */
 import { authManager } from './auth';
+import { env } from '../config/environment';
 import type { GraphQLResponse } from '../types';
 
 // 🔧 CQRS架构端点配置 - 使用代理避免CORS问题
@@ -28,7 +29,7 @@ export class UnifiedGraphQLClient {
       // 🔧 开发和生产环境都需要JWT认证
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9', // 添加必需的租户ID头部
+        'X-Tenant-ID': env.defaultTenantId, // 使用环境配置的租户ID
       };
       
       // 所有环境都需要JWT认证
@@ -107,7 +108,7 @@ export class UnifiedRESTClient {
     this.baseURL = baseURL;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
-      'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9', // 默认租户ID
+      'X-Tenant-ID': env.defaultTenantId, // 使用环境配置的租户ID
     };
   }
 
