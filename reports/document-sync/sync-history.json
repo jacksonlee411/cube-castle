@@ -1,0 +1,34 @@
+{
+  "lastSync": "2025-09-07T16:16:30.637Z",
+  "syncRecords": [
+    {
+      "timestamp": "2025-09-07T16:16:30.633Z",
+      "syncPairName": "API规范版本同步",
+      "sourceHash": "8f3e93585720a90a7af90eaaefef98f4",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-07T16:16:30.634Z",
+      "syncPairName": "端口配置同步",
+      "sourceHash": "8611e8264fe8237c15845c36ac2e8abf",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-07T16:16:30.635Z",
+      "syncPairName": "依赖版本同步",
+      "sourceHash": "12a05fe04afc494e10b4900fff0b69cb",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-07T16:16:30.637Z",
+      "syncPairName": "架构成果同步",
+      "sourceHash": "2b19a47187ce9138ce6b77385315e636",
+      "success": true,
+      "autoFixed": false
+    }
+  ],
+  "conflicts": []
+}

@@ -2,6 +2,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'node:path'
+import { SERVICE_PORTS, CQRS_ENDPOINTS } from './src/shared/config/ports'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,24 +10,24 @@ export default defineConfig({
   
   // 开发性能优化
   server: {
-    port: 3000,
+    port: SERVICE_PORTS.FRONTEND_DEV,
     hmr: { overlay: false },
     proxy: {
       '/api/metrics': {
-        target: 'http://localhost:8090',
+        target: CQRS_ENDPOINTS.QUERY_BASE,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/metrics/, '/metrics')
       },
       // 时态管理API路由 - 符合严格CQRS架构
-      // 事件驱动端点 (命令操作) 路由到9090端口 - 修复代理配置错误
+      // 事件驱动端点 (命令操作) 路由到REST命令服务
       '^/api/v1/organization-units/[^/]+/events': {
-        target: 'http://localhost:9090',
+        target: CQRS_ENDPOINTS.COMMAND_BASE,
         changeOrigin: true,
         secure: false
       },
-      // 历史记录更新端点 (命令操作) 路由到9090端口  
+      // 历史记录更新端点 (命令操作) 路由到REST命令服务
       '^/api/v1/organization-units/history/[^/]+': {
-        target: 'http://localhost:9090',
+        target: CQRS_ENDPOINTS.COMMAND_BASE,
         changeOrigin: true,
         secure: false
       },
@@ -34,18 +35,18 @@ export default defineConfig({
       // '^/api/v1/organization-units/[^/]+/temporal': 现统一使用 /graphql 端点
       // 认证端点代理
       '/auth': {
-        target: 'http://localhost:9090',
+        target: CQRS_ENDPOINTS.COMMAND_BASE,
         changeOrigin: true,
         secure: false
       },
-      // 其他API路由到9090端口
+      // 其他API路由到REST命令服务
       '/api/v1': {
-        target: 'http://localhost:9090',
+        target: CQRS_ENDPOINTS.COMMAND_BASE,
         changeOrigin: true,
         secure: false
       },
       '/graphql': {
-        target: 'http://localhost:8090',
+        target: CQRS_ENDPOINTS.QUERY_BASE,
         changeOrigin: true,
         secure: false
       }

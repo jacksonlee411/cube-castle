@@ -115,7 +115,7 @@ export function validateOrganizationResponse(data: Record<string, unknown>): Val
   }
 
   // 验证状态枚举
-  if (data['status'] && typeof data['status'] === 'string' && !['ACTIVE', 'SUSPENDED', 'PLANNED'].includes(data['status'])) {
+  if (data['status'] && typeof data['status'] === 'string' && !['ACTIVE', 'INACTIVE', 'PLANNED'].includes(data['status'])) {
     errors.push({ field: 'status', message: '状态值无效' });
   }
 
@@ -215,7 +215,7 @@ export function validateStatusUpdate(data: Record<string, unknown>): ValidationR
     errors.push({ field: 'status', message: '状态不能为空' });
   }
 
-  if (data['status'] && typeof data['status'] === 'string' && !['ACTIVE', 'SUSPENDED', 'PLANNED'].includes(data['status'])) {
+  if (data['status'] && typeof data['status'] === 'string' && !['ACTIVE', 'INACTIVE', 'PLANNED'].includes(data['status'])) {
     errors.push({ field: 'status', message: '状态值无效，必须是 ACTIVE、SUSPENDED 或 PLANNED' });
   }
 

@@ -1,0 +1,853 @@
+{
+  "statistics": {
+    "detectionDate": "2025-09-07T16:02:12.978Z",
+    "formats": {
+      "typescript": {
+        "sources": {
+          "frontend/src/features/organizations/components/OrganizationTable/TableTypes.ts": {
+            "lines": 27,
+            "tokens": 267,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/organizations/components/OrganizationForm/ValidationRules.ts": {
+            "lines": 108,
+            "tokens": 1264,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/organizations/components/OrganizationForm/FormTypes.ts": {
+            "lines": 33,
+            "tokens": 419,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/__tests__/type-guards.test.ts": {
+            "lines": 377,
+            "tokens": 3186,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/__tests__/graphql-enterprise-adapter.test.ts": {
+            "lines": 262,
+            "tokens": 2855,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 18,
+            "duplicatedTokens": 274,
+            "percentage": 6.87,
+            "percentageTokens": 9.6,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/temporal/utils/temporalValidation.ts": {
+            "lines": 48,
+            "tokens": 544,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/temporal/constants/temporalStatus.ts": {
+            "lines": 95,
+            "tokens": 854,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/temporal/components/index.ts": {
+            "lines": 49,
+            "tokens": 270,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/organizations/constants/tableConfig.ts": {
+            "lines": 20,
+            "tokens": 255,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/organizations/constants/formConfig.ts": {
+            "lines": 33,
+            "tokens": 245,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/organizations/components/index.ts": {
+            "lines": 6,
+            "tokens": 29,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/validation/simple-validation.ts": {
+            "lines": 229,
+            "tokens": 2762,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 42,
+            "duplicatedTokens": 466,
+            "percentage": 18.34,
+            "percentageTokens": 16.87,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/validation/schemas.ts": {
+            "lines": 75,
+            "tokens": 1191,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 204,
+            "percentage": 13.33,
+            "percentageTokens": 17.13,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/utils/temporal-converter.ts": {
+            "lines": 273,
+            "tokens": 2418,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/utils/statusUtils.ts": {
+            "lines": 90,
+            "tokens": 730,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/utils/organizationPermissions.ts": {
+            "lines": 83,
+            "tokens": 643,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/utils/organization-helpers.ts": {
+            "lines": 54,
+            "tokens": 321,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/utils/colorTokens.ts": {
+            "lines": 152,
+            "tokens": 989,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/types/temporal.ts": {
+            "lines": 159,
+            "tokens": 1265,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/types/organization.ts": {
+            "lines": 166,
+            "tokens": 1302,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/types/index.ts": {
+            "lines": 9,
+            "tokens": 51,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/types/converters.ts": {
+            "lines": 377,
+            "tokens": 3389,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/types/api.ts": {
+            "lines": 121,
+            "tokens": 1113,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/hooks/useTemporalAPI.ts": {
+            "lines": 226,
+            "tokens": 2144,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/hooks/useOrganizations.ts": {
+            "lines": 28,
+            "tokens": 298,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/hooks/useOrganizationMutations.ts": {
+            "lines": 206,
+            "tokens": 1685,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 104,
+            "duplicatedTokens": 714,
+            "percentage": 50.49,
+            "percentageTokens": 42.37,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/hooks/useMessages.ts": {
+            "lines": 59,
+            "tokens": 466,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/hooks/useEnterpriseOrganizations.ts": {
+            "lines": 223,
+            "tokens": 1794,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 34,
+            "duplicatedTokens": 324,
+            "percentage": 15.25,
+            "percentageTokens": 18.06,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/hooks/useDebounce.ts": {
+            "lines": 22,
+            "tokens": 167,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/hooks/index.ts": {
+            "lines": 44,
+            "tokens": 115,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/config/tenant.ts": {
+            "lines": 149,
+            "tokens": 901,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/config/ports.ts": {
+            "lines": 147,
+            "tokens": 1304,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/unified-client.ts": {
+            "lines": 235,
+            "tokens": 2286,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/type-guards.ts": {
+            "lines": 192,
+            "tokens": 1933,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/index.ts": {
+            "lines": 34,
+            "tokens": 76,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/graphql-enterprise-adapter.ts": {
+            "lines": 145,
+            "tokens": 1133,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/error-messages.ts": {
+            "lines": 160,
+            "tokens": 991,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/error-handling.ts": {
+            "lines": 300,
+            "tokens": 2809,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 20,
+            "duplicatedTokens": 226,
+            "percentage": 6.67,
+            "percentageTokens": 8.05,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/contract-testing.ts": {
+            "lines": 60,
+            "tokens": 482,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/shared/api/auth.ts": {
+            "lines": 159,
+            "tokens": 1233,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/temporal/index.ts": {
+            "lines": 76,
+            "tokens": 707,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/features/audit/index.ts": {
+            "lines": 11,
+            "tokens": 39,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/design-system/tokens/brand.ts": {
+            "lines": 23,
+            "tokens": 159,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "frontend/src/setupTests.ts": {
+            "lines": 68,
+            "tokens": 1188,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 5413,
+          "tokens": 48272,
+          "sources": 44,
+          "clones": 8,
+          "duplicatedLines": 114,
+          "duplicatedTokens": 1104,
+          "percentage": 2.11,
+          "percentageTokens": 2.29,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      }
+    },
+    "total": {
+      "lines": 5413,
+      "tokens": 48272,
+      "sources": 44,
+      "clones": 8,
+      "duplicatedLines": 114,
+      "duplicatedTokens": 1104,
+      "percentage": 2.11,
+      "percentageTokens": 2.29,
+      "newDuplicatedLines": 0,
+      "newClones": 0
+    }
+  },
+  "duplicates": [
+    {
+      "format": "typescript",
+      "lines": 10,
+      "fragment": "}, timestamp: '2025-08-25T12:00:01Z', requestId: 'req_2' }\r\n      ];\r\n\r\n      (global.fetch as jest.Mock)\r\n        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(responses[0]) })\r\n        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(responses[1]) });\r\n\r\n      const requests = [\r\n        { query: '{ organization(code: \"TEST001\") { code } }' },\r\n        { query: '{ organization(code: \"NONEXISTENT\") { code } }'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "frontend/src/shared/api/__tests__/graphql-enterprise-adapter.test.ts",
+        "start": 243,
+        "end": 252,
+        "startLoc": {
+          "line": 243,
+          "column": 2,
+          "position": 2598
+        },
+        "endLoc": {
+          "line": 252,
+          "column": 49,
+          "position": 2735
+        }
+      },
+      "secondFile": {
+        "name": "frontend/src/shared/api/__tests__/graphql-enterprise-adapter.test.ts",
+        "start": 218,
+        "end": 227,
+        "startLoc": {
+          "line": 218,
+          "column": 2,
+          "position": 2240
+        },
+        "endLoc": {
+          "line": 227,
+          "column": 45,
+          "position": 2377
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 9,
+      "fragment": "!basicValidation.required(data['name'])) {\r\n    errors.push({ field: 'name', message: '组织名称不能为空' });\r\n  }\r\n\r\n  if (data['name'] && typeof data['name'] === 'string' && !basicValidation.maxLength(data['name'], 100)) {\r\n    errors.push({ field: 'name', message: '组织名称不能超过100个字符' });\r\n  }\r\n\r\n  // 编辑模式下也需要验证unitType",
+      "tokens": 0,
+      "firstFile": {
+        "name": "frontend/src/shared/validation/simple-validation.ts",
+        "start": 73,
+        "end": 81,
+        "startLoc": {
+          "line": 73,
+          "column": 2,
+          "position": 750
+        },
+        "endLoc": {
+          "line": 81,
+          "column": 22,
+          "position": 866
+        }
+      },
+      "secondFile": {
+        "name": "frontend/src/shared/validation/simple-validation.ts",
+        "start": 46,
+        "end": 54,
+        "startLoc": {
+          "line": 46,
+          "column": 2,
+          "position": 420
+        },
+        "endLoc": {
+          "line": 54,
+          "column": 3,
+          "position": 536
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 14,
+      "fragment": "});\r\n  }\r\n\r\n  if (data['sortOrder'] !== undefined && typeof data['sortOrder'] === 'number' && !basicValidation.positiveNumber(data['sortOrder'])) {\r\n    errors.push({ field: 'sortOrder', message: '排序顺序必须为非负数' });\r\n  }\r\n\r\n  return {\r\n    isValid: errors.length === 0,\r\n    errors\r\n  };\r\n}\r\n\r\n// 验证API响应格式 - 确保是完整的组织单元对象",
+      "tokens": 0,
+      "firstFile": {
+        "name": "frontend/src/shared/validation/simple-validation.ts",
+        "start": 92,
+        "end": 105,
+        "startLoc": {
+          "line": 92,
+          "column": 2,
+          "position": 1068
+        },
+        "endLoc": {
+          "line": 105,
+          "column": 28,
+          "position": 1185
+        }
+      },
+      "secondFile": {
+        "name": "frontend/src/shared/validation/simple-validation.ts",
+        "start": 55,
+        "end": 68,
+        "startLoc": {
+          "line": 55,
+          "column": 2,
+          "position": 572
+        },
+        "endLoc": {
+          "line": 68,
+          "column": 38,
+          "position": 689
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 6,
+      "fragment": "),\r\n  level: z.number().int().min(1).max(10),\r\n  parentCode: z.string().regex(/^(0|\\d{7})$/, 'Parent code must be \"0\" for root organizations or 7 digits for child organizations'),\r\n  sortOrder: z.number().int().min(0).default(0),\r\n  description: z.string().optional().or(z.literal('')),\r\n}",
+      "tokens": 0,
+      "firstFile": {
+        "name": "frontend/src/shared/validation/schemas.ts",
+        "start": 23,
+        "end": 28,
+        "startLoc": {
+          "line": 23,
+          "column": 9,
+          "position": 427
+        },
+        "endLoc": {
+          "line": 28,
+          "column": 2,
+          "position": 529
+        }
+      },
+      "secondFile": {
+        "name": "frontend/src/shared/validation/schemas.ts",
+        "start": 8,
+        "end": 13,
+        "startLoc": {
+          "line": 8,
+          "column": 2,
+          "position": 120
+        },
+        "endLoc": {
+          "line": 13,
+          "column": 10,
+          "position": 223
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 19,
+      "fragment": ", variables.code);\r\n      \r\n      // 立即失效所有相关查询缓存\r\n      queryClient.invalidateQueries({ \r\n        queryKey: ['organizations'],\r\n        exact: false\r\n      });\r\n      \r\n      queryClient.invalidateQueries({ \r\n        queryKey: ['organization', variables.code!],\r\n        exact: false\r\n      });\r\n      \r\n      queryClient.invalidateQueries({ \r\n        queryKey: ['organization-stats'],\r\n        exact: false\r\n      });\r\n      \r\n      // 强制重新获取数据以确保立即显示状态变更",
+      "tokens": 0,
+      "firstFile": {
+        "name": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+        "start": 119,
+        "end": 137,
+        "startLoc": {
+          "line": 119,
+          "column": 30,
+          "position": 1001
+        },
+        "endLoc": {
+          "line": 137,
+          "column": 23,
+          "position": 1122
+        }
+      },
+      "secondFile": {
+        "name": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+        "start": 59,
+        "end": 77,
+        "startLoc": {
+          "line": 59,
+          "column": 29,
+          "position": 520
+        },
+        "endLoc": {
+          "line": 77,
+          "column": 24,
+          "position": 641
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 35,
+      "fragment": ", variables.code);\r\n      \r\n      // 立即失效所有相关查询缓存\r\n      queryClient.invalidateQueries({ \r\n        queryKey: ['organizations'],\r\n        exact: false\r\n      });\r\n      \r\n      queryClient.invalidateQueries({ \r\n        queryKey: ['organization', variables.code!],\r\n        exact: false\r\n      });\r\n      \r\n      queryClient.invalidateQueries({ \r\n        queryKey: ['organization-stats'],\r\n        exact: false\r\n      });\r\n      \r\n      // 强制重新获取数据以确保立即显示状态变更\r\n      queryClient.refetchQueries({ \r\n        queryKey: ['organizations'],\r\n        type: 'active'\r\n      });\r\n      \r\n      queryClient.refetchQueries({ \r\n        queryKey: ['organization-stats'],\r\n        type: 'active'\r\n      });\r\n      \r\n      // 直接设置缓存数据以提供即时反馈\r\n      if (data) {\r\n        queryClient.setQueryData(['organization', variables.code!], data);\r\n      }\r\n      \r\n      console.log('[Mutation] Activate cache invalidation and refetch completed'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+        "start": 170,
+        "end": 204,
+        "startLoc": {
+          "line": 170,
+          "column": 31,
+          "position": 1432
+        },
+        "endLoc": {
+          "line": 204,
+          "column": 63,
+          "position": 1668
+        }
+      },
+      "secondFile": {
+        "name": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+        "start": 59,
+        "end": 153,
+        "startLoc": {
+          "line": 59,
+          "column": 29,
+          "position": 520
+        },
+        "endLoc": {
+          "line": 153,
+          "column": 62,
+          "position": 1237
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 18,
+      "fragment": "return response;\r\n    } catch (error) {\r\n      const errorMessage = error instanceof Error ? error.message : '网络请求失败';\r\n      setState(prev => ({ ...prev, loading: false, error: errorMessage }));\r\n      \r\n      return {\r\n        success: false,\r\n        error: {\r\n          code: 'HOOK_ERROR',\r\n          message: errorMessage,\r\n          details: error\r\n        },\r\n        timestamp: new Date().toISOString()\r\n      };\r\n    }\r\n  }, []);\r\n\r\n  // 获取统计信息",
+      "tokens": 0,
+      "firstFile": {
+        "name": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+        "start": 107,
+        "end": 124,
+        "startLoc": {
+          "line": 107,
+          "column": 7,
+          "position": 920
+        },
+        "endLoc": {
+          "line": 124,
+          "column": 10,
+          "position": 1082
+        }
+      },
+      "secondFile": {
+        "name": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+        "start": 72,
+        "end": 89,
+        "startLoc": {
+          "line": 72,
+          "column": 7,
+          "position": 564
+        },
+        "endLoc": {
+          "line": 89,
+          "column": 14,
+          "position": 726
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 11,
+      "fragment": ") => {\r\n  return async (...args: T): Promise<R> => {\r\n    let lastError: unknown;\r\n    \r\n    for (let i = 0; i <= maxRetries; i++) {\r\n      try {\r\n        return await fn(...args);\r\n      } catch (error) {\r\n        lastError = error;\r\n        \r\n        // 只对401错误重试，并清除认证状态",
+      "tokens": 0,
+      "firstFile": {
+        "name": "frontend/src/shared/api/error-handling.ts",
+        "start": 256,
+        "end": 266,
+        "startLoc": {
+          "line": 256,
+          "column": 1,
+          "position": 2379
+        },
+        "endLoc": {
+          "line": 266,
+          "column": 21,
+          "position": 2492
+        }
+      },
+      "secondFile": {
+        "name": "frontend/src/shared/api/error-handling.ts",
+        "start": 227,
+        "end": 237,
+        "startLoc": {
+          "line": 227,
+          "column": 1,
+          "position": 2080
+        },
+        "endLoc": {
+          "line": 237,
+          "column": 17,
+          "position": 2193
+        }
+      }
+    }
+  ]
+}

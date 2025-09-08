@@ -1,0 +1,43 @@
+{
+  "rules": {
+    "no-new-organization-interfaces": {
+      "severity": "error",
+      "message": "🚨 INTERFACE FREEZE: 禁止新增组织相关接口定义！当前已有55个接口，必须复用现有接口。如确需新增，请先获得架构师批准并更新此规则。",
+      "patterns": [
+        "**/types/**/*organization*.ts",
+        "**/types/**/*Organization*.ts", 
+        "**/shared/types/organization.ts",
+        "**/shared/types/api.ts",
+        "**/*organization*types*.ts"
+      ],
+      "allowedPaths": [
+        "shared/types/organization.ts",
+        "shared/types/api.ts",
+        "shared/types/temporal.ts"
+      ]
+    },
+    "no-duplicate-hooks": {
+      "severity": "error",
+      "message": "🚨 HOOK FREEZE: 禁止新增重复的Hook实现！当前组织域Hook只允许: useEnterpriseOrganizations, useOrganizationList",
+      "patterns": [
+        "**/hooks/**/*organization*.ts",
+        "**/hooks/**/*Organization*.ts"
+      ],
+      "allowedHooks": [
+        "useEnterpriseOrganizations",
+        "useOrganizationList"
+      ]
+    },
+    "no-duplicate-api-clients": {
+      "severity": "error", 
+      "message": "🚨 CLIENT FREEZE: 禁止新增重复的API客户端！必须使用 unified-client.ts",
+      "patterns": [
+        "**/api/**/*organization*.ts",
+        "**/api/**/*client*.ts"
+      ],
+      "allowedClients": [
+        "unified-client.ts"
+      ]
+    }
+  }
+}

@@ -1,34 +1,17 @@
-import type { OrganizationUnit } from '../../../../shared/types';
-import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../../../shared/hooks/useOrganizationMutations';
+import type { OrganizationComponentProps, OrganizationRequest } from '../../../../shared/types';
 import type { TemporalMode } from '../../../../shared/types/temporal';
 
-export interface OrganizationFormProps {
-  organization?: OrganizationUnit | undefined;
+export interface OrganizationFormProps extends Pick<OrganizationComponentProps, 'organization' | 'mode' | 'onSubmit' | 'onCancel' | 'initialData' | 'temporalMode'> {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateOrganizationInput | UpdateOrganizationInput) => void;
+  onSubmit: (data: OrganizationRequest) => void;
   // 时态相关属性
-  temporalMode?: TemporalMode;
   isHistorical?: boolean;
   enableTemporalFeatures?: boolean;
 }
 
-export interface FormData {
-  [key: string]: unknown;
-  code?: string | undefined;
-  name: string;
-  unitType: string;  // camelCase
-  status: string;
-  description: string;
-  parentCode: string;  // camelCase
-  level: number;
-  sortOrder: number;  // camelCase
-  // 时态字段 (camelCase)
-  isTemporal?: boolean;  // camelCase
-  effectiveFrom?: string;  // camelCase
-  effectiveTo?: string;  // camelCase
-  changeReason?: string;  // camelCase
-}
+// 表单数据接口使用统一的OrganizationRequest
+export type FormData = OrganizationRequest;
 
 export interface FormFieldsProps {
   formData: FormData;

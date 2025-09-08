@@ -29,8 +29,8 @@ const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): Organi
     case 'CURRENT':
     case 'ACTIVE':
       return 'ACTIVE';
-    case 'SUSPENDED':
-      return 'SUSPENDED';
+    case 'INACTIVE':
+      return 'INACTIVE';
     case 'PLANNED':
       return 'PLANNED';
     default:
@@ -267,7 +267,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setFormData({
         name: initialData.name,
         unitType: initialData.unitType,
-        lifecycleStatus: initialData.status as 'SUSPENDED' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL' || 'PLANNED', // 修复：使用 status 字段而不是 lifecycleStatus
+        lifecycleStatus: initialData.status as 'INACTIVE' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL' || 'PLANNED', // 修复：使用 status 字段而不是 lifecycleStatus
         description: initialData.description || '',
         effectiveDate: initialData.effectiveDate 
           ? new Date(initialData.effectiveDate).toISOString().split('T')[0] 
@@ -398,7 +398,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setFormData({
         name: selectedVersion.name,
         unitType: selectedVersion.unitType,
-        lifecycleStatus: (selectedVersion.status as 'SUSPENDED' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL') || 'CURRENT',
+        lifecycleStatus: (selectedVersion.status as 'INACTIVE' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL') || 'CURRENT',
         description: selectedVersion.description || '',
         effectiveDate: new Date(selectedVersion.effectiveDate).toISOString().split('T')[0],
         parentCode: selectedVersion.parentCode || ''
@@ -455,7 +455,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       setFormData({
         name: originalHistoryData.name as string,
         unitType: originalHistoryData.unitType as string,
-        lifecycleStatus: (originalHistoryData.status as 'SUSPENDED' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL') || 'PLANNED',
+        lifecycleStatus: (originalHistoryData.status as 'INACTIVE' | 'PLANNED' | 'DELETED' | 'CURRENT' | 'HISTORICAL') || 'PLANNED',
         description: (originalHistoryData.description as string) || '',
         effectiveDate: new Date(originalHistoryData.effectiveDate as string).toISOString().split('T')[0],
         parentCode: (originalHistoryData.parentCode as string) || ''

@@ -6,6 +6,7 @@
 import { authManager } from './auth';
 import { env } from '../config/environment';
 import type { GraphQLResponse } from '../types';
+// import { CQRS_ENDPOINTS } from '../config/ports'; // TODO: 将来可能用于直接端点配置
 
 // 🔧 CQRS架构端点配置 - 使用代理避免CORS问题
 const API_ENDPOINTS = {

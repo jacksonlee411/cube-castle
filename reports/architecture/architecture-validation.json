@@ -1,0 +1,1012 @@
+{
+  "timestamp": "2025-09-07T16:12:39.075Z",
+  "summary": {
+    "totalFiles": 91,
+    "passedFiles": 78,
+    "failedFiles": 13,
+    "totalViolations": 63,
+    "violationsByType": {
+      "cqrs": 2,
+      "ports": 23,
+      "contracts": 38
+    }
+  },
+  "violations": [
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/audit/components/AuditHistorySection.tsx",
+      "violations": [
+        {
+          "type": "ports",
+          "line": 51,
+          "column": 13,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 52,
+          "column": 10,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              10,
+              17
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/monitoring/MonitoringDashboard.tsx",
+      "violations": [
+        {
+          "type": "ports",
+          "line": 29,
+          "column": 26,
+          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              26,
+              31
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 36,
+          "column": 26,
+          "message": "硬编码端口 3001，建议使用 SERVICE_PORTS.FRONTEND_PREVIEW",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              26,
+              31
+            ],
+            "newText": "SERVICE_PORTS.FRONTEND_PREVIEW"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 47,
+          "column": 26,
+          "message": "硬编码端口 9093，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              26,
+              31
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 54,
+          "column": 26,
+          "message": "硬编码端口 9100，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              26,
+              31
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 213,
+          "column": 33,
+          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              33,
+              38
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 214,
+          "column": 33,
+          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              33,
+              38
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 215,
+          "column": 33,
+          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              33,
+              38
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 226,
+          "column": 43,
+          "message": "硬编码端口 3001，建议使用 SERVICE_PORTS.FRONTEND_PREVIEW",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              43,
+              48
+            ],
+            "newText": "SERVICE_PORTS.FRONTEND_PREVIEW"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/organizations/components/OrganizationForm/index.tsx",
+      "violations": [
+        {
+          "type": "contracts",
+          "line": 178,
+          "column": 40,
+          "message": "使用camelCase字段名 \"ukTenantName\" 替代 snake_case \"uk_tenant_name\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              40,
+              56
+            ],
+            "newText": "'ukTenantName'"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/temporal/components/DateTimePicker.tsx",
+      "violations": [
+        {
+          "type": "ports",
+          "line": 234,
+          "column": 14,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              14,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/temporal/components/PlannedOrganizationForm.tsx",
+      "violations": [
+        {
+          "type": "contracts",
+          "line": 20,
+          "column": 2,
+          "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
+          "code": "deprecated-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              2,
+              13
+            ],
+            "newText": "parentCode"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 57,
+          "column": 4,
+          "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
+          "code": "deprecated-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              4,
+              15
+            ],
+            "newText": "parentCode"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 83,
+          "column": 6,
+          "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
+          "code": "deprecated-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              6,
+              17
+            ],
+            "newText": "parentCode"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/temporal/components/TemporalMasterDetailView.tsx",
+      "violations": [
+        {
+          "type": "contracts",
+          "line": 465,
+          "column": 9,
+          "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
+          "code": "deprecated-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              9,
+              20
+            ],
+            "newText": "parentCode"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 465,
+          "column": 30,
+          "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
+          "code": "deprecated-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              30,
+              41
+            ],
+            "newText": "parentCode"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 210,
+          "column": 10,
+          "message": "使用camelCase字段名 \"businessStatus\" 替代 snake_case \"business_status\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              10,
+              26
+            ],
+            "newText": "businessStatus:"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 211,
+          "column": 10,
+          "message": "使用camelCase字段名 \"dataStatus\" 替代 snake_case \"data_status\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              10,
+              22
+            ],
+            "newText": "dataStatus:"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 298,
+          "column": 10,
+          "message": "使用camelCase字段名 \"businessStatus\" 替代 snake_case \"business_status\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              10,
+              26
+            ],
+            "newText": "businessStatus:"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 299,
+          "column": 10,
+          "message": "使用camelCase字段名 \"dataStatus\" 替代 snake_case \"data_status\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              10,
+              22
+            ],
+            "newText": "dataStatus:"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/temporal/components/TemporalSettings.tsx",
+      "violations": [
+        {
+          "type": "contracts",
+          "line": 57,
+          "column": 13,
+          "message": "使用camelCase字段名 \"organizationCreated\" 替代 snake_case \"organization_created\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              35
+            ],
+            "newText": "'organizationCreated'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 58,
+          "column": 13,
+          "message": "使用camelCase字段名 \"organizationUpdated\" 替代 snake_case \"organization_updated\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              35
+            ],
+            "newText": "'organizationUpdated'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 59,
+          "column": 13,
+          "message": "使用camelCase字段名 \"organizationDeleted\" 替代 snake_case \"organization_deleted\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              35
+            ],
+            "newText": "'organizationDeleted'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 60,
+          "column": 13,
+          "message": "使用camelCase字段名 \"statusChanged\" 替代 snake_case \"status_changed\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              29
+            ],
+            "newText": "'statusChanged'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 61,
+          "column": 13,
+          "message": "使用camelCase字段名 \"hierarchyChanged\" 替代 snake_case \"hierarchy_changed\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              32
+            ],
+            "newText": "'hierarchyChanged'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 62,
+          "column": 13,
+          "message": "使用camelCase字段名 \"metadataUpdated\" 替代 snake_case \"metadata_updated\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              31
+            ],
+            "newText": "'metadataUpdated'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 63,
+          "column": 13,
+          "message": "使用camelCase字段名 \"plannedChange\" 替代 snake_case \"planned_change\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              29
+            ],
+            "newText": "'plannedChange'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 64,
+          "column": 13,
+          "message": "使用camelCase字段名 \"changeCancelled\" 替代 snake_case \"change_cancelled\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              31
+            ],
+            "newText": "'changeCancelled'"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/temporal/components/TimelineComponent.tsx",
+      "violations": [
+        {
+          "type": "contracts",
+          "line": 39,
+          "column": 2,
+          "message": "使用camelCase字段名 \"businessStatus\" 替代 snake_case \"business_status\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              2,
+              18
+            ],
+            "newText": "businessStatus:"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 40,
+          "column": 2,
+          "message": "使用camelCase字段名 \"dataStatus\" 替代 snake_case \"data_status\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              2,
+              14
+            ],
+            "newText": "dataStatus:"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/shared/api/auth.ts",
+      "violations": [
+        {
+          "type": "ports",
+          "line": 83,
+          "column": 15,
+          "message": "硬编码端口 3600，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              15,
+              21
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 16,
+          "column": 13,
+          "message": "使用camelCase字段名 \"clientCredentials\" 替代 snake_case \"client_credentials\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              33
+            ],
+            "newText": "'clientCredentials'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 111,
+          "column": 42,
+          "message": "使用camelCase字段名 \"cubeCastleOauthToken\" 替代 snake_case \"cube_castle_oauth_token\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              42,
+              67
+            ],
+            "newText": "'cubeCastleOauthToken'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 127,
+          "column": 29,
+          "message": "使用camelCase字段名 \"cubeCastleOauthToken\" 替代 snake_case \"cube_castle_oauth_token\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              29,
+              54
+            ],
+            "newText": "'cubeCastleOauthToken'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 139,
+          "column": 28,
+          "message": "使用camelCase字段名 \"cubeCastleOauthToken\" 替代 snake_case \"cube_castle_oauth_token\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              28,
+              53
+            ],
+            "newText": "'cubeCastleOauthToken'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 156,
+          "column": 13,
+          "message": "使用camelCase字段名 \"clientCredentials\" 替代 snake_case \"client_credentials\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              33
+            ],
+            "newText": "'clientCredentials'"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/shared/api/unified-client.ts",
+      "violations": [
+        {
+          "type": "cqrs",
+          "line": 134,
+          "column": 42,
+          "message": "禁止使用REST GET请求进行查询，请使用GraphQL客户端",
+          "code": "no-rest-queries",
+          "severity": "error"
+        },
+        {
+          "type": "cqrs",
+          "line": 166,
+          "column": 51,
+          "message": "禁止使用REST GET请求进行查询，请使用GraphQL客户端",
+          "code": "no-rest-queries",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/shared/config/ports.ts",
+      "violations": [
+        {
+          "type": "ports",
+          "line": 10,
+          "column": 14,
+          "message": "硬编码端口 3000，建议使用 SERVICE_PORTS.FRONTEND_DEV",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              14,
+              20
+            ],
+            "newText": "SERVICE_PORTS.FRONTEND_DEV"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 11,
+          "column": 18,
+          "message": "硬编码端口 3001，建议使用 SERVICE_PORTS.FRONTEND_PREVIEW",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              18,
+              24
+            ],
+            "newText": "SERVICE_PORTS.FRONTEND_PREVIEW"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 14,
+          "column": 22,
+          "message": "硬编码端口 9090，建议使用 SERVICE_PORTS.REST_COMMAND_SERVICE",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              22,
+              28
+            ],
+            "newText": "SERVICE_PORTS.REST_COMMAND_SERVICE"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 15,
+          "column": 23,
+          "message": "硬编码端口 8090，建议使用 SERVICE_PORTS.GRAPHQL_QUERY_SERVICE",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              23,
+              29
+            ],
+            "newText": "SERVICE_PORTS.GRAPHQL_QUERY_SERVICE"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 18,
+          "column": 12,
+          "message": "硬编码端口 5432，建议使用 SERVICE_PORTS.POSTGRESQL",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              12,
+              18
+            ],
+            "newText": "SERVICE_PORTS.POSTGRESQL"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 19,
+          "column": 7,
+          "message": "硬编码端口 6379，建议使用 SERVICE_PORTS.REDIS",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              7,
+              13
+            ],
+            "newText": "SERVICE_PORTS.REDIS"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 22,
+          "column": 12,
+          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              12,
+              18
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 23,
+          "column": 9,
+          "message": "硬编码端口 3002，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              9,
+              15
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 24,
+          "column": 15,
+          "message": "硬编码端口 9093，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              15,
+              21
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 25,
+          "column": 15,
+          "message": "硬编码端口 9100，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              15,
+              21
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 99,
+          "column": 57,
+          "message": "硬编码端口 1024，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              57,
+              63
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/shared/types/temporal.ts",
+      "violations": [
+        {
+          "type": "contracts",
+          "line": 12,
+          "column": 4,
+          "message": "使用camelCase字段名 \"organizationCreated\" 替代 snake_case \"organization_created\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              4,
+              26
+            ],
+            "newText": "'organizationCreated'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 12,
+          "column": 29,
+          "message": "使用camelCase字段名 \"organizationUpdated\" 替代 snake_case \"organization_updated\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              29,
+              51
+            ],
+            "newText": "'organizationUpdated'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 12,
+          "column": 54,
+          "message": "使用camelCase字段名 \"organizationDeleted\" 替代 snake_case \"organization_deleted\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              54,
+              76
+            ],
+            "newText": "'organizationDeleted'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 13,
+          "column": 4,
+          "message": "使用camelCase字段名 \"statusChanged\" 替代 snake_case \"status_changed\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              4,
+              20
+            ],
+            "newText": "'statusChanged'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 13,
+          "column": 23,
+          "message": "使用camelCase字段名 \"hierarchyChanged\" 替代 snake_case \"hierarchy_changed\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              23,
+              42
+            ],
+            "newText": "'hierarchyChanged'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 13,
+          "column": 45,
+          "message": "使用camelCase字段名 \"metadataUpdated\" 替代 snake_case \"metadata_updated\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              45,
+              63
+            ],
+            "newText": "'metadataUpdated'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 14,
+          "column": 4,
+          "message": "使用camelCase字段名 \"plannedChange\" 替代 snake_case \"planned_change\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              4,
+              20
+            ],
+            "newText": "'plannedChange'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 14,
+          "column": 23,
+          "message": "使用camelCase字段名 \"changeCancelled\" 替代 snake_case \"change_cancelled\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              23,
+              41
+            ],
+            "newText": "'changeCancelled'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 43,
+          "column": 51,
+          "message": "使用camelCase字段名 \"statusChange\" 替代 snake_case \"status_change\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              51,
+              66
+            ],
+            "newText": "'statusChange'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 127,
+          "column": 8,
+          "message": "使用camelCase字段名 \"bulkUpdate\" 替代 snake_case \"bulk_update\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              8,
+              21
+            ],
+            "newText": "'bulkUpdate'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 127,
+          "column": 24,
+          "message": "使用camelCase字段名 \"bulkDelete\" 替代 snake_case \"bulk_delete\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              24,
+              37
+            ],
+            "newText": "'bulkDelete'"
+          }
+        },
+        {
+          "type": "contracts",
+          "line": 127,
+          "column": 40,
+          "message": "使用camelCase字段名 \"bulkPlan\" 替代 snake_case \"bulk_plan\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              40,
+              51
+            ],
+            "newText": "'bulkPlan'"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/shared/validation/simple-validation.ts",
+      "violations": [
+        {
+          "type": "contracts",
+          "line": 185,
+          "column": 6,
+          "message": "使用camelCase字段名 \"isTemporal\" 替代 snake_case \"is_temporal\"",
+          "code": "snake-case-field",
+          "severity": "error",
+          "fix": {
+            "range": [
+              6,
+              18
+            ],
+            "newText": "isTemporal:"
+          }
+        }
+      ]
+    }
+  ]
+}

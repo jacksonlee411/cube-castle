@@ -1,12 +1,10 @@
-import type { OrganizationUnit } from '../../../../shared/types';
+import type { OrganizationUnit, OrganizationComponentProps } from '../../../../shared/types';
 import type { TemporalMode } from '../../../../shared/types/temporal';
 
-export interface OrganizationTableProps {
-  organizations: OrganizationUnit[];
+// 表格组件Props使用统一的组件Props接口
+export interface OrganizationTableProps extends Pick<OrganizationComponentProps, 'organizations' | 'loading' | 'onSelect' | 'onEdit' | 'onDelete' | 'temporalMode' | 'className'> {
   onTemporalManage?: (code: string) => void | undefined;
-  loading?: boolean;
   // 时态相关属性
-  temporalMode?: TemporalMode;
   isHistorical?: boolean;
   showTemporalInfo?: boolean;
 }

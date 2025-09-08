@@ -1,32 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { organizationAPI } from '../api/organizations';
-import type { OrganizationUnit } from '../types';
-
-// 新增组织单元的输入类型
-export interface CreateOrganizationInput {
-  code?: string; // 修改为可选，支持自动生成
-  parentCode?: string;
-  name: string;
-  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
-  status: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
-  level: number;
-  sortOrder: number;
-  description?: string;
-  [key: string]: unknown; // 添加索引签名以兼容Record<string, unknown>
-}
-
-// 更新组织单元的输入类型
-export interface UpdateOrganizationInput {
-  code: string;
-  name?: string;
-  unitType?: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
-  status?: 'ACTIVE' | 'SUSPENDED' | 'PLANNED';
-  description?: string;
-  sortOrder?: number;
-  level?: number;
-  parentCode?: string;
-  [key: string]: unknown; // 添加索引签名以兼容Record<string, unknown>
-}
+import type { OrganizationUnit, OrganizationRequest } from '../types';
 
 
 // 新增组织单元
@@ -34,7 +8,7 @@ export const useCreateOrganization = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: CreateOrganizationInput): Promise<OrganizationUnit> => {
+    mutationFn: async (data: OrganizationRequest): Promise<OrganizationUnit> => {
       console.log('[Mutation] Creating organization:', data);
       const response = await organizationAPI.create(data);
       console.log('[Mutation] Create successful:', response);
@@ -75,9 +49,9 @@ export const useUpdateOrganization = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: UpdateOrganizationInput): Promise<OrganizationUnit> => {
+    mutationFn: async (data: OrganizationRequest): Promise<OrganizationUnit> => {
       console.log('[Mutation] Updating organization:', data);
-      const response = await organizationAPI.update(data.code, data);
+      const response = await organizationAPI.update(data.code!, data);
       console.log('[Mutation] Update successful:', response);
       return response;
     },
@@ -91,7 +65,7 @@ export const useUpdateOrganization = () => {
       });
       
       queryClient.invalidateQueries({ 
-        queryKey: ['organization', variables.code],
+        queryKey: ['organization', variables.code!],
         exact: false
       });
       
@@ -113,7 +87,7 @@ export const useUpdateOrganization = () => {
       
       // 新增：直接设置缓存数据以提供即时反馈
       if (data) {
-        queryClient.setQueryData(['organization', variables.code], data);
+        queryClient.setQueryData(['organization', variables.code!], data);
       }
       
       // 新增：移除过时的缓存数据
@@ -151,7 +125,7 @@ export const useSuspendOrganization = () => {
       });
       
       queryClient.invalidateQueries({ 
-        queryKey: ['organization', variables.code],
+        queryKey: ['organization', variables.code!],
         exact: false
       });
       
@@ -173,7 +147,7 @@ export const useSuspendOrganization = () => {
       
       // 直接设置缓存数据以提供即时反馈
       if (data) {
-        queryClient.setQueryData(['organization', variables.code], data);
+        queryClient.setQueryData(['organization', variables.code!], data);
       }
       
       console.log('[Mutation] Suspend cache invalidation and refetch completed');
@@ -202,7 +176,7 @@ export const useActivateOrganization = () => {
       });
       
       queryClient.invalidateQueries({ 
-        queryKey: ['organization', variables.code],
+        queryKey: ['organization', variables.code!],
         exact: false
       });
       
@@ -224,7 +198,7 @@ export const useActivateOrganization = () => {
       
       // 直接设置缓存数据以提供即时反馈
       if (data) {
-        queryClient.setQueryData(['organization', variables.code], data);
+        queryClient.setQueryData(['organization', variables.code!], data);
       }
       
       console.log('[Mutation] Activate cache invalidation and refetch completed');

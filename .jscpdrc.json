@@ -1,0 +1,48 @@
+{
+  "threshold": 5,
+  "minTokens": 50,
+  "minLines": 10,
+  "maxLines": 1000,
+  "maxSize": "150kb",
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**", 
+    "**/coverage/**",
+    "**/*.min.js",
+    "**/*.min.css",
+    "**/.git/**",
+    "**/vendor/**",
+    "**/third_party/**",
+    "**/*.generated.*",
+    "**/proto/**",
+    "**/mocks/**",
+    "**/fixtures/**",
+    "**/__snapshots__/**",
+    "**/reports/**",
+    "**/.vscode/**",
+    "**/.idea/**",
+    "**/tmp/**",
+    "**/temp/**"
+  ],
+  "reporters": ["html", "console", "json"],
+  "output": "./reports/duplicate-code",
+  "format": ["typescript", "javascript", "go", "markdown"],
+  "blame": true,
+  "silent": false,
+  "absolute": false,
+  "gitignore": true,
+  "config": {
+    "html": {
+      "title": "Cube Castle - 重复代码检测报告",
+      "theme": "default"
+    },
+    "console": {
+      "colors": true
+    },
+    "json": {
+      "pretty": true
+    }
+  },
+  "executionId": "cube-castle-duplicate-detection"
+}

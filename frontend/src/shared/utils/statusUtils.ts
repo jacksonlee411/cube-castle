@@ -2,14 +2,14 @@ import { colors } from '@workday/canvas-kit-react/tokens';
 import { 
   checkCircleIcon, 
   clockPauseIcon, 
-  clockIcon,
-  minusCircleIcon
+  clockIcon
 } from '@workday/canvas-system-icons-web';
 
-// 扩展的组织状态类型（4个状态）
-export type OrganizationStatus = 'ACTIVE' | 'SUSPENDED' | 'PLANNED' | 'DELETED';
+// 标准组织状态类型 - 符合API契约规范 (3个业务状态)
+// 删除状态通过isDeleted字段单独处理，不在业务状态枚举中
+export type OrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED';
 
-// 状态配置
+// 状态配置 - 符合API契约规范
 export const STATUS_CONFIG = {
   ACTIVE: {
     label: '启用',
@@ -19,13 +19,13 @@ export const STATUS_CONFIG = {
     borderColor: colors.greenApple300,
     description: '正常运行状态'
   },
-  SUSPENDED: {
+  INACTIVE: {
     label: '停用',
     color: colors.cantaloupe600,
     icon: clockPauseIcon,
     backgroundColor: colors.cantaloupe100,
     borderColor: colors.cantaloupe300,
-    description: '临时暂停状态'
+    description: '非活跃状态（等价于停用/暂停）'
   },
   PLANNED: {
     label: '计划中',
@@ -34,14 +34,6 @@ export const STATUS_CONFIG = {
     backgroundColor: colors.blueberry100,
     borderColor: colors.blueberry300,
     description: '计划启用状态'
-  },
-  DELETED: {
-    label: '已删除',
-    color: colors.cinnamon600,
-    icon: minusCircleIcon,
-    backgroundColor: colors.cinnamon100,
-    borderColor: colors.cinnamon300,
-    description: '已删除状态'
   }
 } as const;
 
@@ -80,7 +72,7 @@ export const statusUtils = {
 
   // 判断是否可以操作
   canOperate: (status: OrganizationStatus): boolean => {
-    return status === 'ACTIVE' || status === 'SUSPENDED';
+    return status === 'ACTIVE' || status === 'INACTIVE';
   },
 
   // 获取可用操作
@@ -88,7 +80,7 @@ export const statusUtils = {
     switch (status) {
       case 'ACTIVE':
         return ['UPDATE', 'SUSPEND'];
-      case 'SUSPENDED':
+      case 'INACTIVE':
         return ['REACTIVATE'];
       case 'PLANNED':
         return ['UPDATE'];

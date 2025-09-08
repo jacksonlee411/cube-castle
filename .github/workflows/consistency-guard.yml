@@ -1,0 +1,59 @@
+name: Consistency Guard
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ "**" ]
+    tags: [ "*" ]
+  pull_request:
+    branches: [ "**" ]
+  release:
+    types: [ published, created, edited, prereleased ]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node (for frontend tooling if needed)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Report deprecated permissions
+        run: |
+          bash scripts/ci/check-permissions.sh
+        working-directory: ./cube-castle
+        env:
+          ENFORCE: "0"  # report-only; set to 1 to enforce failures
+
+      - name: Report REST read queries (CQRS guard)
+        run: |
+          bash scripts/ci/check-rest-queries.sh
+        working-directory: ./cube-castle
+        env:
+          ENFORCE: "0"
+
+      - name: Report hardcoded configs (CORS/ports/tenant)
+        run: |
+          bash scripts/ci/check-hardcoded-configs.sh
+        working-directory: ./cube-castle
+        env:
+          ENFORCE: "0"
+
+      - name: Enforce frontend REST query guard (CQRS)
+        run: |
+          bash scripts/ci/check-rest-queries.sh
+        working-directory: ./cube-castle
+        env:
+          ENFORCE: "1"
+
+      - name: Enforce cmd config guard (CORS/JWT inline/ports)
+        run: |
+          bash scripts/ci/check-hardcoded-configs.sh
+        working-directory: ./cube-castle
+        env:
+          ENFORCE: "1"
+          SCAN_SCOPE: "cmd"

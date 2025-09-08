@@ -74,6 +74,22 @@ cd /home/shangmeilin/cube-castle
 make docker-up   # 仅 PostgreSQL + Redis
 ```
 
+## 🔁 CI/CD 流程（概览）
+
+- 工作流: `.github/workflows/consistency-guard.yml`
+- 触发条件:
+  - push: 任意分支（branches: "**"），含 tag（tags: "*")
+  - pull_request: 任意目标分支（branches: "**"）
+  - workflow_dispatch: 手动触发
+  - release: published/created/edited/prereleased
+- 强制守护（Enforce=ON）:
+  - 前端 REST 查询守护（GraphQL-only 查询约束）
+  - cmd/* 配置守护（CORS 硬编码/端口/内联 JWT 配置）
+- 本地自检命令:
+  - `bash scripts/ci/check-permissions.sh`
+  - `bash scripts/ci/check-rest-queries.sh`
+  - `bash scripts/ci/check-hardcoded-configs.sh` （`ENFORCE=1` 可模拟强制）
+
 #### 2. 启动核心服务
 ```bash
 # 一键后端启动（命令 9090 + PostgreSQL 原生 GraphQL 8090）

@@ -15,45 +15,18 @@ import type { APIResponse } from '../types/api';
 import type { TemporalQueryParams } from '../types/temporal';
 import { enterpriseOrganizationAPI } from '../api/organizations-enterprise';
 
-// 扩展查询参数
-interface ExtendedOrganizationQueryParams extends OrganizationQueryParams {
-  searchText?: string;
-  pageSize?: number;
-  temporalParams?: TemporalQueryParams;
-}
-
-// Hook状态接口
-interface OrganizationState {
-  organizations: OrganizationUnit[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  loading: boolean;
-  error: string | null;
-  stats: OrganizationStats | null;
-  lastRequestId?: string;
-  lastUpdate?: string;
-}
-
-// Hook操作接口
-interface OrganizationOperations {
-  fetchOrganizations: (params?: ExtendedOrganizationQueryParams) => Promise<APIResponse<OrganizationListResponse>>;
-  fetchOrganizationByCode: (code: string, temporalParams?: TemporalQueryParams) => Promise<APIResponse<OrganizationUnit>>;
-  fetchStats: () => Promise<APIResponse<OrganizationStats>>;
-  refreshData: () => void;
-  clearError: () => void;
-}
+// 使用统一的组织查询参数接口，无需重复定义
+// OrganizationQueryParams 已包含所有必要字段
 
 /**
  * 企业级组织单元管理Hook
  * 自动处理企业级响应信封格式
  */
 export const useEnterpriseOrganizations = (
-  initialParams?: ExtendedOrganizationQueryParams
-): OrganizationState & OrganizationOperations => {
+  initialParams?: OrganizationQueryParams
+) => {
   // 状态管理
-  const [state, setState] = useState<OrganizationState>({
+  const [state, setState] = useState({
     organizations: [],
     totalCount: 0,
     page: 1,
@@ -66,7 +39,7 @@ export const useEnterpriseOrganizations = (
 
   // 获取组织列表
   const fetchOrganizations = useCallback(async (
-    params?: ExtendedOrganizationQueryParams
+    params?: OrganizationQueryParams
   ): Promise<APIResponse<OrganizationListResponse>> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
@@ -214,7 +187,7 @@ export const useEnterpriseOrganizations = (
 
 // 简化版Hook，只获取组织列表
 export const useOrganizationList = (
-  params?: ExtendedOrganizationQueryParams
+  params?: OrganizationQueryParams
 ) => {
   const {
     organizations,

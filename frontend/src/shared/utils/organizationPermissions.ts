@@ -25,7 +25,7 @@ export const getOperationPermissions = (
   
   const permissions: OrganizationOperationContext = {
     canEdit: isManager,
-    canDelete: isAdmin && (organization.status === 'SUSPENDED' || organization.status === 'DELETED'),
+    canDelete: isAdmin && organization.status === 'INACTIVE',
     canActivate: isManager && organization.status !== 'ACTIVE',
     canDeactivate: isManager && organization.status === 'ACTIVE',
     canViewHistory: true,
@@ -57,7 +57,7 @@ export function getOperationPermissionsByScopes(
   const has = (s: string) => scopes.has(s);
 
   const canEdit = has('org:update');
-  const canDelete = has('org:delete') && (organization.status === 'SUSPENDED' || organization.status === 'DELETED');
+  const canDelete = has('org:delete') && organization.status === 'INACTIVE';
   const canActivate = has('org:activate') && organization.status !== 'ACTIVE';
   const canDeactivate = has('org:suspend') && organization.status === 'ACTIVE';
   const canViewHistory = has('org:read:history') || has('org:read');
