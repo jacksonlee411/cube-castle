@@ -28,6 +28,7 @@ export class UnifiedGraphQLClient {
       // 🔧 开发和生产环境都需要JWT认证
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'X-Tenant-ID': '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9', // 添加必需的租户ID头部
       };
       
       // 所有环境都需要JWT认证
