@@ -1,0 +1,111 @@
+# Scripts Directory - 标准化脚本管理
+
+## 🚨 CLAUDE.md 第10条资源唯一性合规
+
+经过P1级别清理，脚本数量已从87个降至**5个核心脚本**，完全符合CLAUDE.md资源唯一性原则。
+
+## 📋 核心脚本列表 (仅5个)
+
+### 1. 基础设施启动 
+- **`start-infrastructure.sh`** - 启动数据库等基础设施
+- 用途: Docker基础设施管理
+- 使用: `./start-infrastructure.sh`
+
+### 2. 开发环境启动
+- **`dev-start-simple.sh`** - 简化版开发环境启动  
+- 用途: 简化开发环境快速启动
+- 使用: `./dev-start-simple.sh`
+- 补充: Makefile `make run-dev` 的简化版本
+
+### 3. 监控栈管理
+- **`start-monitoring.sh`** - 启动Prometheus/Grafana/AlertManager
+- 用途: 启动完整监控栈
+- 使用: `./start-monitoring.sh` 或 `make monitoring-up`
+
+### 4. 监控验证
+- **`test-monitoring.sh`** - 验证监控栈运行状况
+- 用途: 监控系统健康检查
+- 使用: `./test-monitoring.sh` 或 `make monitoring-test`
+
+### 5. 测试执行
+- **`run-tests.sh`** - 综合测试执行
+- 用途: 扩展Makefile测试功能的综合测试
+- 使用: `./run-tests.sh`
+
+## 📂 目录结构
+
+```
+scripts/
+├── README.md                     # 本文档
+├── start-infrastructure.sh       # 基础设施启动
+├── dev-start-simple.sh          # 开发环境启动
+├── start-monitoring.sh          # 监控栈启动
+├── test-monitoring.sh           # 监控验证  
+├── run-tests.sh                 # 测试执行
+├── tests/                       # 所有测试脚本统一管理
+├── ci/                          # CI/CD相关脚本
+├── quality/                     # 代码质量相关脚本
+└── codebase-maintenance/        # 代码库维护脚本
+```
+
+## 🎯 优先使用 Makefile
+
+**强烈建议优先使用 Makefile** 而不是直接调用脚本：
+
+```bash
+# 推荐使用 Makefile
+make run-dev          # 启动开发环境
+make frontend-dev     # 启动前端开发  
+make monitoring-up    # 启动监控栈
+make test            # 运行测试
+
+# 仅在Makefile不支持时使用脚本
+./scripts/dev-start-simple.sh
+```
+
+## 🚨 脚本使用原则
+
+### 资源唯一性原则
+- **绝对禁止**: 创建功能重复的启动脚本
+- **严格控制**: 核心脚本数量保持在3-5个
+- **定期清理**: 每月审查并清理过时脚本
+
+### 命名规范
+- **启动脚本**: `start-{purpose}.sh` 
+- **测试脚本**: `test-{purpose}.sh`
+- **工具脚本**: `{action}-{target}.sh`
+- **禁止后缀**: `-final`, `-v2`, `-fix`, `-uuid` 等二义性后缀
+
+### 维护要求
+- **生命周期**: 临时脚本必须设定删除时间
+- **文档要求**: 新脚本必须更新此README
+- **审批要求**: 新增脚本需要明确业务场景和用户审批
+
+## 📊 清理成果统计
+
+- **清理前**: 87个脚本文件 (违规率1740%)
+- **清理后**: 5个核心脚本 (完全合规)
+- **清理内容**:
+  - ✅ 删除 deprecated-scripts 目录 (14个过时脚本)
+  - ✅ 删除重复启动脚本 (start.sh, quick_start.sh等)
+  - ✅ 整理测试脚本到 tests/ 子目录
+  - ✅ 删除功能重复的管理脚本
+  - ✅ 备份所有原始脚本到 backup/script-cleanup-{timestamp}/
+
+## 🔧 维护机制
+
+### 自动化检查
+- **每月执行**: `find . -name "*.sh" | wc -l` 检查脚本数量
+- **违规警告**: 超过10个脚本时自动警告
+- **强制清理**: 超过20个脚本时阻止新增
+
+### 长期防护
+- **代码审查**: 新增脚本必须通过严格代码审查
+- **生命周期管理**: 临时脚本必须标注删除时间
+- **定期审计**: 每季度全面审计脚本必要性
+
+---
+
+**维护负责人**: 开发团队  
+**最后更新**: 2025-09-08  
+**下次审查**: 2025-10-08
