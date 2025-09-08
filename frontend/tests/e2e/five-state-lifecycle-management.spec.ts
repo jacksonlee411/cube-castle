@@ -9,7 +9,7 @@ import { test, expect, Page } from '@playwright/test';
 import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 
 // 测试数据配置 - 使用动态环境配置
-let TEST_CONFIG = {
+const TEST_CONFIG = {
   baseUrl: '',  // 将在beforeAll中初始化
   apiUrl: E2E_CONFIG.COMMAND_API_URL,
   graphqlUrl: E2E_CONFIG.GRAPHQL_API_URL,
