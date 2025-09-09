@@ -13,7 +13,7 @@ import type {
 } from '../types';
 import type { APIResponse } from '../types/api';
 import type { TemporalQueryParams } from '../types/temporal';
-import { enterpriseOrganizationAPI } from '../api/organizations-enterprise';
+import { organizationAPI } from '../api';
 
 // 使用统一的组织查询参数接口，无需重复定义
 // OrganizationQueryParams 已包含所有必要字段

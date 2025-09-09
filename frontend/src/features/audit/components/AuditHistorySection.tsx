@@ -13,7 +13,7 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { activityStreamIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web';
 
 import { AuditEntryCard } from './AuditEntryCard';
-import organizationAPI from '../../../shared/api/organizations';
+import organizationAPI from '../../../shared/api';
 import type { TemporalQueryParams } from '../../../shared/types/temporal';
 
 export interface AuditHistorySectionProps {

@@ -3,7 +3,7 @@ import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { useCreateOrganization, useUpdateOrganization } from '../../../../shared/hooks/useOrganizationMutations';
 // import { useTemporalMode } from '../../../../shared/hooks/useTemporalQuery';
-import organizationAPI from '../../../../shared/api/organizations';
+import { organizationAPI } from '../../../../shared/api';
 import { FormFields } from './FormFields';
 import { validateForm } from './ValidationRules';
 import type { OrganizationFormProps, FormData } from './FormTypes';

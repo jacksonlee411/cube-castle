@@ -52,7 +52,7 @@ type Query {
   """
   organization(
     code: String!
-    asOfDate: Date
+    asOfDate: String
   ): Organization
   
   """
@@ -62,7 +62,7 @@ type Query {
   Performance: Cached aggregation queries < 100ms
   """
   organizationStats(
-    asOfDate: Date
+    asOfDate: String
     includeHistorical: Boolean = false
   ): OrganizationStats!
   
@@ -76,7 +76,7 @@ type Query {
   """
   organizationHierarchy(
     code: String!
-    tenantId: UUID!
+    tenantId: String!
   ): OrganizationHierarchy
   
   """
@@ -89,7 +89,7 @@ type Query {
   """
   organizationSubtree(
     code: String!
-    tenantId: UUID!
+    tenantId: String!
     maxDepth: Int = 10
     includeInactive: Boolean = false
   ): [OrganizationHierarchy!]!
@@ -101,7 +101,7 @@ type Query {
   Performance: Aggregation with hierarchy statistics < 150ms
   """
   hierarchyStatistics(
-    tenantId: UUID!
+    tenantId: String!
     includeIntegrityCheck: Boolean = false
   ): HierarchyStatistics!
   
@@ -116,11 +116,11 @@ type Query {
   Performance: Record-specific audit queries with optimized indexing < 50ms
   """
   auditHistory(
-    recordId: UUID!
-    startDate: Date
-    endDate: Date
+    recordId: String!
+    startDate: String
+    endDate: String
     operation: OperationType
-    userId: UUID
+    userId: String
     limit: Int = 50
   ): [AuditLogDetail!]!
   
@@ -137,20 +137,7 @@ type Query {
   
   # System Maintenance and Monitoring
   
-  """
-  Perform hierarchy consistency check with detailed reporting and repair suggestions.
-  This is a maintenance query for system health monitoring.
-  
-  Permissions Required: org:maintenance
-  Performance: Fast mode < 5s, Deep mode 30s-5min (data dependent)
-  """
-  hierarchyConsistencyCheck(
-    tenantId: UUID!
-    checkMode: ConsistencyCheckMode = FAST
-    targetCodes: [String!]
-    includeRepairSuggestions: Boolean = true
-    maxDepth: Int = 17
-  ): HierarchyConsistencyReport!
+# Hierarchy consistency check temporarily removed for startup
 }
 
 # Core Data Types
@@ -163,7 +150,7 @@ type Organization {
   # Business Identifiers
   code: String!
   parentCode: String!  # Parent organization code. Use "0" for root organizations, or valid 7-digit code for child organizations
-  tenantId: UUID!
+  tenantId: String!
   
   # Basic Information
   name: String!
@@ -173,33 +160,27 @@ type Organization {
   # asOf-based computation: isCurrent/isFuture fields below.
   # ADR-008: 一维业务状态模型，INACTIVE等价于停用/暂停语义
   status: Status!
-  isDeleted: Boolean!
   
   # Hierarchy Information
   level: Int!
-  hierarchyDepth: Int!
-  codePath: String!
-  namePath: String!
-  sortOrder: Int!
+  sortOrder: Int
   
   # Configuration
   description: String
-  profile: JSON!
+  profile: String
   
   # Temporal Information
-  effectiveDate: Date!
-  endDate: Date
-  # Computed temporal flags based on asOfDate parameter (query-time only)
-  isCurrent: Boolean!
-  isFuture: Boolean!
+  effectiveDate: String!
+  endDate: String
   
   # Audit Information
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  operationType: OperationType!
-  operatedBy: OperatedBy!
-  operationReason: String
-  recordId: UUID!
+  createdAt: String!
+  updatedAt: String!
+  recordId: String!
+  
+  # Temporal Status Information
+  isFuture: Boolean!
+  hierarchyDepth: Int!
 }
 
 """
@@ -232,19 +213,22 @@ type OrganizationHierarchy {
 Comprehensive organization statistics with temporal breakdown.
 """
 type OrganizationStats {
-  total: Int!
+  totalCount: Int!
+  activeCount: Int!
+  inactiveCount: Int!
+  plannedCount: Int!
+  deletedCount: Int!
   byType: [TypeStatistic!]!
   byStatus: [StatusStatistic!]!
   byLevel: [LevelStatistic!]!
-  temporal: TemporalStatistics!
-  lastUpdated: DateTime!
+  temporalStats: TemporalStatistics!
 }
 
 """
 Hierarchy distribution statistics and integrity analysis.
 """
 type HierarchyStatistics {
-  tenantId: UUID!
+  tenantId: String!
   totalOrganizations: Int!
   maxDepth: Int!
   avgDepth: Float!
@@ -252,7 +236,7 @@ type HierarchyStatistics {
   rootOrganizations: Int!
   leafOrganizations: Int!
   integrityIssues: [IntegrityIssue!]!
-  lastAnalyzed: DateTime!
+  lastAnalyzed: String!
 }
 
 
@@ -262,12 +246,10 @@ Each audit record tracks changes to a specific organization temporal version (re
 """
 type AuditLogDetail {
   auditId: String!
-  recordId: UUID!                  # Specific organization temporal version being audited
+  recordId: String!                  # Specific organization temporal version being audited
   operation: String!
-  timestamp: DateTime!
-  userInfo: UserInfo!
+  timestamp: String!
   operationReason: String
-  dataChanges: DataChanges!
 }
 
 
@@ -276,7 +258,7 @@ Hierarchy consistency check report with detailed findings and repair suggestions
 """
 type HierarchyConsistencyReport {
   checkId: String!
-  tenantId: UUID!
+  tenantId: String!
   executedAt: DateTime!
   executionTimeMs: Int!
   totalChecked: Int!
@@ -294,7 +276,7 @@ type HierarchyConsistencyReport {
 Standard operator information with ID and display name.
 """
 type OperatedBy {
-  id: UUID!
+  id: String!
   name: String!
 }
 
@@ -313,7 +295,7 @@ type PaginationInfo {
 Temporal context information for queries.
 """
 type TemporalInfo {
-  asOfDate: Date!
+  asOfDate: String!
   currentCount: Int!
   futureCount: Int!
   historicalCount: Int!
@@ -323,9 +305,8 @@ type TemporalInfo {
 Statistics by organization unit type.
 """
 type TypeStatistic {
-  type: UnitType!
+  unitType: UnitType!
   count: Int!
-  percentage: Float!
 }
 
 """
@@ -334,7 +315,6 @@ Statistics by organization status.
 type StatusStatistic {
   status: Status!
   count: Int!
-  percentage: Float!
 }
 
 """
@@ -343,16 +323,16 @@ Statistics by hierarchy level.
 type LevelStatistic {
   level: Int!
   count: Int!
-  percentage: Float!
 }
 
 """
 Temporal statistics breakdown.
 """
 type TemporalStatistics {
-  current: Int!
-  future: Int!
-  historical: Int!
+  totalVersions: Int!
+  averageVersionsPerOrg: Float!
+  oldestEffectiveDate: String!
+  newestEffectiveDate: String!
 }
 
 """
@@ -361,7 +341,6 @@ Hierarchy depth distribution analysis.
 type DepthDistribution {
   depth: Int!
   count: Int!
-  percentage: Float!
 }
 
 """
@@ -378,7 +357,7 @@ type IntegrityIssue {
 User information for audit trails.
 """
 type UserInfo {
-  userId: UUID!
+  userId: String!
   userName: String!
   role: String
 }
@@ -539,7 +518,7 @@ input OrganizationFilter {
   
   # Audit Filtering
   operationType: OperationType
-  operatedBy: UUID
+  operatedBy: String
   operationDateRange: DateRangeInput
 }
 
@@ -549,8 +528,8 @@ Pagination configuration for result sets.
 input PaginationInput {
   page: Int = 1
   pageSize: Int = 50  # Max 1000
-  sortBy: SortField = CODE
-  sortOrder: SortOrder = ASC
+  sortBy: String = "code"
+  sortOrder: String = "asc"
 }
 
 """

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { organizationAPI } from '../api/organizations';
+import { organizationAPI } from '../api';
 import type { OrganizationUnit, OrganizationRequest } from '../types';
 
 

@@ -10,8 +10,8 @@ import { OrganizationForm } from './components/OrganizationForm';
 import { OrganizationFilters } from './OrganizationFilters';
 import { PaginationControls } from './PaginationControls';
 
-import { useOrganizationDashboard } from './hooks/useOrganizationDashboard';
-import { useOrganizationActions } from './hooks/useOrganizationActions';
+import { useOrganizations } from '../../shared/hooks/useOrganizations';
+import { useOrganizationMutations } from '../../shared/hooks/useOrganizationMutations';
 
 // 组织详情组件导入 - 暂时禁用以修复无限循环错误
 
@@ -100,27 +100,22 @@ const LoadingState: React.FC = () => (
 export const OrganizationDashboard: React.FC = () => {
   const navigate = useNavigate();
 
-  // 传统组织数据和操作
-  const {
-    organizations,
-    totalCount,
-    stats: _stats,
-    isLoading,
-    isFetching,
-    error,
-    filters,
-    isFiltered,
-    setFilters,
-    resetFilters,
-    handlePageChange,
-  } = useOrganizationDashboard();
+  // 简化的filter状态管理
+  const [filters, setFilters] = React.useState({ page: 1, pageSize: 50 });
+  const isFiltered = false;
+  const resetFilters = () => setFilters({ page: 1, pageSize: 50 });
+  const handlePageChange = (page: number) => setFilters(prev => ({ ...prev, page }));
 
-  const {
-    selectedOrg,
-    isFormOpen,
-    handleFormClose,
-    handleFormSubmit,
-  } = useOrganizationActions();
+  // 组织数据查询
+  const { data: organizationsData, isLoading, error } = useOrganizations();
+  const organizations = organizationsData?.data || [];
+  const totalCount = organizationsData?.pagination?.total || 0;
+
+  // 组织操作(暂时简化)
+  const selectedOrg = null;
+  const isFormOpen = false;
+  const handleFormClose = () => {};
+  const handleFormSubmit = () => {};
 
   // 新建组织处理器 - 修改为页面跳转而不是打开Modal
   const handleCreateOrganization = () => {

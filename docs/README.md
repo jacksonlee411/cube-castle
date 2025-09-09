@@ -6,6 +6,7 @@
 
 ### 🚀 立即开始
 - [API快速参考](api/README.md) - 所有API接口总览
+- [实现清单（Implementation Inventory）](reference/IMPLEMENTATION-INVENTORY.md) - 已实现的API/函数/接口索引（中英）
 - **大规模清理完成**: 95%文档已归档 → archive/ ⭐ **极简状态**
 
 ### 🎯 核心功能  

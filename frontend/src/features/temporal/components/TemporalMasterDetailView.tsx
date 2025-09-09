@@ -22,7 +22,7 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/unified-client';
-import { organizationAPI } from '../../../shared/api/organizations';
+import { organizationAPI } from '../../../shared/api';
 // 审计历史组件导入
 import { AuditHistorySection } from '../../audit/components/AuditHistorySection';
 import { normalizeParentCode } from '../../../shared/utils/organization-helpers';

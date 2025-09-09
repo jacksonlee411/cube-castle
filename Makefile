@@ -90,9 +90,9 @@ run-dev:
 	@echo "⏳ 等待依赖健康..."
 	@sleep 5
 	@echo "▶ 启动命令服务 (9090)..."
-	cd cmd/organization-command-service && go run main.go &
+	go run ./cmd/organization-command-service/main.go &
 	@echo "▶ 启动查询服务 (8090)..."
-	cd cmd/organization-query-service && go run main.go &
+	go run ./cmd/organization-query-service/main.go &
 	@echo "🩺 健康检查 (若服务已实现 /health)："
 	-@curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" || echo "  ⚠️  command-service 未响应"
 	-@curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" || echo "  ⚠️  query-service 未响应"
