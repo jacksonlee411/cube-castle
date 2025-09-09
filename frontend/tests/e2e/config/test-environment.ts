@@ -54,7 +54,7 @@ export const discoverActivePort = async (basePorts: number[] = [3000, 3001, 3002
         console.log(`✅ 发现活跃前端服务：http://localhost:${port}`);
         return `http://localhost:${port}`;
       }
-    } catch (error) {
+    } catch (_error) {
       // 继续尝试下一个端口
     }
   }
@@ -89,7 +89,7 @@ export const validateTestEnvironment = async (): Promise<{
     if (!frontendAvailable) {
       errors.push(`前端服务不可用: ${frontendUrl}`);
     }
-  } catch (error) {
+  } catch (_error) {
     errors.push(`前端服务检查失败: ${frontendUrl}`);
   }
   

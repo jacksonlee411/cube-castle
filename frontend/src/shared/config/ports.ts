@@ -20,7 +20,7 @@ export const SERVICE_PORTS = {
   
   // 监控服务 (可选)
   PROMETHEUS: 9091,
-  GRAFANA: 3002,
+  GRAFANA: 3001,
   ALERT_MANAGER: 9093,
   NODE_EXPORTER: 9100
 } as const;

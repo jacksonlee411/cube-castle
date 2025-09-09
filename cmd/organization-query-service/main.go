@@ -314,6 +314,12 @@ type OperatedByData struct {
 func (o OperatedByData) Id() string   { return o.IDField }
 func (o OperatedByData) Name() string { return o.NameField }
 
+// DateRangeInput GraphQL输入类型
+type DateRangeInput struct {
+	From *string `json:"from"`
+	To   *string `json:"to"`
+}
+
 // 输入类型 - 符合官方API契约 (P0阶段最小实现)
 type OrganizationFilter struct {
 	// Temporal Filtering
@@ -343,15 +349,17 @@ type OrganizationFilter struct {
 	HasProfile      *bool   `json:"hasProfile"`
 	ProfileContains *string `json:"profileContains"`
 	
-	// Audit Filtering - P0阶段简化实现
-	OperationType       *string `json:"operationType"`
-	OperatedBy          *string `json:"operatedBy"`
-	OperationDateRange  *string `json:"operationDateRange"`
+	// Audit Filtering - 修复类型匹配问题
+	OperationType       *string          `json:"operationType"`
+	OperatedBy          *string          `json:"operatedBy"`
+	OperationDateRange  *DateRangeInput  `json:"operationDateRange"`
 }
 
 type PaginationInput struct {
-	Page     *int32 `json:"page"`
-	PageSize *int32 `json:"pageSize"`
+	Page      *int32  `json:"page"`
+	PageSize  *int32  `json:"pageSize"`
+	SortBy    *string `json:"sortBy"`
+	SortOrder *string `json:"sortOrder"`
 }
 
 // PostgreSQL极速仓储 - 零抽象开销

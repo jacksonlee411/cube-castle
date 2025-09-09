@@ -10,6 +10,7 @@ import {
   notificationsIcon, 
   homeIcon 
 } from '@workday/canvas-system-icons-web'
+import { MONITORING_ENDPOINTS } from '../../shared/config/ports'
 
 interface MonitoringService {
   name: string
@@ -26,14 +27,14 @@ interface MonitoringService {
 const monitoringServices: MonitoringService[] = [
   {
     name: 'Prometheus',
-    url: 'http://localhost:9091',
+    url: MONITORING_ENDPOINTS.PROMETHEUS,
     description: '指标收集和存储 - 420个指标正在收集',
     icon: dashboardIcon,
     status: 'healthy'
   },
   {
     name: 'Grafana',
-    url: 'http://localhost:3001',
+    url: MONITORING_ENDPOINTS.GRAFANA,
     description: '数据可视化仪表板 - 实时监控面板',
     icon: activityStreamIcon,
     status: 'healthy',
@@ -44,14 +45,14 @@ const monitoringServices: MonitoringService[] = [
   },
   {
     name: 'AlertManager',
-    url: 'http://localhost:9093',
+    url: MONITORING_ENDPOINTS.ALERTS,
     description: '告警管理 - 8条SLO监控规则已加载',
     icon: notificationsIcon,
     status: 'healthy'
   },
   {
     name: 'Node Exporter',
-    url: 'http://localhost:9100',
+    url: MONITORING_ENDPOINTS.NODE_METRICS,
     description: '系统指标采集 - 服务器资源监控',
     icon: homeIcon,
     status: 'healthy'
@@ -210,9 +211,9 @@ export const MonitoringDashboard: React.FC = () => {
             variant="inverse"
             onClick={() => {
               const urls = [
-                'http://localhost:9091/targets',
-                'http://localhost:9091/rules', 
-                'http://localhost:9091/alerts'
+                `${MONITORING_ENDPOINTS.PROMETHEUS}/targets`,
+                `${MONITORING_ENDPOINTS.PROMETHEUS}/rules`, 
+                `${MONITORING_ENDPOINTS.PROMETHEUS}/alerts`
               ]
               urls.forEach(url => window.open(url, '_blank'))
             }}
@@ -223,7 +224,7 @@ export const MonitoringDashboard: React.FC = () => {
           <PrimaryButton
             variant="inverse" 
             onClick={() => {
-              window.open('http://localhost:3001/dashboards', '_blank')
+              window.open(`${MONITORING_ENDPOINTS.GRAFANA}/dashboards`, '_blank')
             }}
           >
             浏览Grafana仪表板

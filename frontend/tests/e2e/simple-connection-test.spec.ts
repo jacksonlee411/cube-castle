@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
+import { validateTestEnvironment } from './config/test-environment';
 
 let BASE_URL: string;
 

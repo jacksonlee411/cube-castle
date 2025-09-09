@@ -161,7 +161,28 @@ class ContentExtractor {
     return statusMatch ? statusMatch[1].trim() : null;
   }
   
-  static extractDependencyVersions(content) {
+  static extractDependencyVersions(content, filePath = '') {
+    // 只对package.json文件尝试JSON解析
+    if (!filePath.endsWith('package.json')) {
+      // 对于非package.json文件，尝试从文本中提取版本信息
+      const versionPatterns = [
+        /React\s+(\d+\.\d+\.\d+)/i,
+        /Vite\s+(\d+\.\d+\.\d+)/i,
+        /TypeScript\s+(\d+\.\d+\.\d+)/i
+      ];
+      
+      const keyDependencies = {};
+      versionPatterns.forEach((pattern, index) => {
+        const match = content.match(pattern);
+        if (match) {
+          const depName = ['react', 'vite', 'typescript'][index];
+          keyDependencies[depName] = match[1];
+        }
+      });
+      
+      return keyDependencies;
+    }
+    
     try {
       const packageData = JSON.parse(content);
       const deps = { ...packageData.dependencies, ...packageData.devDependencies };
@@ -240,7 +261,7 @@ class DocumentSynchronizer {
       const sourceHash = crypto.createHash('md5').update(sourceContent).digest('hex');
       
       // 提取源数据
-      const sourceData = this.extractSourceData(syncPair, sourceContent);
+      const sourceData = this.extractSourceData(syncPair, sourceContent, syncPair.source);
       if (!sourceData) {
         log.warning(`无法从源文件提取数据: ${syncPair.source}`);
         return false;
@@ -260,7 +281,7 @@ class DocumentSynchronizer {
         }
         
         const targetContent = fs.readFileSync(fullTargetPath, 'utf8');
-        const targetData = this.extractSourceData(syncPair, targetContent);
+        const targetData = this.extractSourceData(syncPair, targetContent, targetPath);
         
         const isSynced = this.compareData(syncPair.syncType, sourceData, targetData);
         
@@ -300,7 +321,7 @@ class DocumentSynchronizer {
     }
   }
   
-  extractSourceData(syncPair, content) {
+  extractSourceData(syncPair, content, filePath = '') {
     switch (syncPair.syncType) {
       case 'version':
         return ContentExtractor.extractVersion(content);
@@ -312,7 +333,7 @@ class DocumentSynchronizer {
         return ContentExtractor.extractProjectStatus(content);
       
       case 'dependencies':
-        return ContentExtractor.extractDependencyVersions(content);
+        return ContentExtractor.extractDependencyVersions(content, filePath);
       
       case 'achievements':
         return ContentExtractor.extractAchievements(content);

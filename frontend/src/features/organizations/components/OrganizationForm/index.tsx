@@ -175,7 +175,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         const apiError = error as { message: string };
         
         if (apiError.message.includes('duplicate key value violates unique constraint')) {
-          if (apiError.message.includes('uk_tenant_name')) {
+          if (apiError.message.includes('ukTenantName')) {
             errorMessage = '组织名称已存在，请使用不同的名称';
           } else {
             errorMessage = '数据重复，请检查输入信息';

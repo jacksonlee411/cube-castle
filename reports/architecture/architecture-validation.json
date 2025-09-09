@@ -1,14 +1,14 @@
 {
-  "timestamp": "2025-09-08T02:23:50.362Z",
+  "timestamp": "2025-09-08T10:18:04.242Z",
   "summary": {
     "totalFiles": 92,
-    "passedFiles": 79,
-    "failedFiles": 13,
-    "totalViolations": 63,
+    "passedFiles": 81,
+    "failedFiles": 11,
+    "totalViolations": 54,
     "violationsByType": {
       "cqrs": 2,
-      "ports": 23,
-      "contracts": 38
+      "ports": 15,
+      "contracts": 37
     }
   },
   "violations": [
@@ -43,151 +43,6 @@
               17
             ],
             "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        }
-      ]
-    },
-    {
-      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/monitoring/MonitoringDashboard.tsx",
-      "violations": [
-        {
-          "type": "ports",
-          "line": 29,
-          "column": 26,
-          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              26,
-              31
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 36,
-          "column": 26,
-          "message": "硬编码端口 3001，建议使用 SERVICE_PORTS.FRONTEND_PREVIEW",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              26,
-              31
-            ],
-            "newText": "SERVICE_PORTS.FRONTEND_PREVIEW"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 47,
-          "column": 26,
-          "message": "硬编码端口 9093，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              26,
-              31
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 54,
-          "column": 26,
-          "message": "硬编码端口 9100，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              26,
-              31
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 213,
-          "column": 33,
-          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              33,
-              38
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 214,
-          "column": 33,
-          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              33,
-              38
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 215,
-          "column": 33,
-          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              33,
-              38
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 226,
-          "column": 43,
-          "message": "硬编码端口 3001，建议使用 SERVICE_PORTS.FRONTEND_PREVIEW",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              43,
-              48
-            ],
-            "newText": "SERVICE_PORTS.FRONTEND_PREVIEW"
-          }
-        }
-      ]
-    },
-    {
-      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/organizations/components/OrganizationForm/index.tsx",
-      "violations": [
-        {
-          "type": "contracts",
-          "line": 178,
-          "column": 40,
-          "message": "使用camelCase字段名 \"ukTenantName\" 替代 snake_case \"uk_tenant_name\"",
-          "code": "snake-case-field",
-          "severity": "error",
-          "fix": {
-            "range": [
-              40,
-              56
-            ],
-            "newText": "'ukTenantName'"
           }
         }
       ]
@@ -745,7 +600,7 @@
           "type": "ports",
           "line": 23,
           "column": 9,
-          "message": "硬编码端口 3002，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "message": "硬编码端口 3001，建议使用 SERVICE_PORTS.FRONTEND_PREVIEW",
           "code": "no-hardcoded-ports",
           "severity": "error",
           "fix": {
@@ -753,7 +608,7 @@
               9,
               15
             ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+            "newText": "SERVICE_PORTS.FRONTEND_PREVIEW"
           }
         },
         {
