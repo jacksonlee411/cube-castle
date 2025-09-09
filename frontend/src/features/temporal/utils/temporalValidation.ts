@@ -1,12 +1,32 @@
-// 时态日期验证工具函数
+/**
+ * DEPRECATED: 该文件功能已迁移到 shared/utils/temporal-converter.ts
+ * 
+ * 请使用：
+ * import { TemporalConverter, TemporalUtils } from '@/shared/utils/temporal-converter';
+ * 
+ * 新的统一API映射：
+ * - isValidDate -> TemporalConverter.validateTemporalRecord
+ * - isFutureDate -> 自定义逻辑使用 TemporalUtils
+ * - isDateInRange -> TemporalUtils.isInRange 
+ * - isEndDateAfterStartDate -> TemporalConverter.validateTemporalRecord
+ * - getTodayString -> TemporalUtils.today
+ * - formatDateDisplay -> TemporalUtils.formatDate
+ */
+
+// 临时兼容封装，在所有引用替换完成后删除
+import { TemporalConverter, TemporalUtils } from '../../../shared/utils/temporal-converter';
+
 export const validateTemporalDate = {
-  // 验证日期格式
+  // DEPRECATED: 使用 TemporalConverter.validateTemporalRecord
   isValidDate: (dateString: string): boolean => {
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date.getTime()) && dateString === date.toISOString().split('T')[0];
+    try {
+      return TemporalConverter.validateTemporalRecord({ effectiveDate: dateString });
+    } catch {
+      return false;
+    }
   },
 
-  // 验证未来日期 (用于计划组织)
+  // DEPRECATED: 自定义逻辑，使用 TemporalUtils
   isFutureDate: (dateString: string): boolean => {
     const date = new Date(dateString);
     const today = new Date();
@@ -14,36 +34,29 @@ export const validateTemporalDate = {
     return date > today;
   },
 
-  // 验证日期范围
+  // DEPRECATED: 使用 TemporalUtils.isInRange
   isDateInRange: (dateString: string, startDate?: string, endDate?: string): boolean => {
     if (!startDate && !endDate) return true;
-    
-    const date = new Date(dateString);
-    
-    if (startDate && date < new Date(startDate)) return false;
-    if (endDate && date > new Date(endDate)) return false;
-    
-    return true;
+    if (!startDate || !endDate) return true;
+    return TemporalUtils.isInRange(dateString, startDate, endDate);
   },
 
-  // 验证结束日期在开始日期之后
+  // DEPRECATED: 使用 TemporalConverter.validateTemporalRecord
   isEndDateAfterStartDate: (startDate: string, endDate: string): boolean => {
-    return new Date(endDate) > new Date(startDate);
+    return TemporalConverter.validateTemporalRecord({ effectiveDate: startDate, endDate });
   },
 
-  // 获取今天的日期字符串
+  // DEPRECATED: 使用 TemporalUtils.today
   getTodayString: (): string => {
-    return new Date().toISOString().split('T')[0];
+    return TemporalUtils.today();
   },
 
-  // 格式化日期显示
+  // DEPRECATED: 使用 TemporalUtils.formatDate
   formatDateDisplay: (dateString: string): string => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    });
+    return TemporalUtils.formatDate(dateString);
   }
 };
+
+// TODO-TEMPORARY: 该文件将在 2025-09-16 后完全删除
+// 所有引用都应替换为 shared/utils/temporal-converter.ts

@@ -38,109 +38,17 @@ export const basicValidation = {
   }
 };
 
-// 组织单元基础验证 - 依赖后端统一验证
-export function validateOrganizationBasic(data: Record<string, unknown>): ValidationResult {
-  const errors: ValidationError[] = [];
+// DEPRECATED: 使用 shared/api/type-guards.ts 的 validateCreateOrganizationInput
+// 该函数已被 Zod 验证系统替代
 
-  // 仅保留关键的用户体验验证
-  if (!basicValidation.required(data['name'])) {
-    errors.push({ field: 'name', message: '组织名称不能为空' });
-  }
+// DEPRECATED: 使用 shared/api/type-guards.ts 的 validateUpdateOrganizationInput
+// 该函数已被 Zod 验证系统替代
 
-  if (data['name'] && typeof data['name'] === 'string' && !basicValidation.maxLength(data['name'], 100)) {
-    errors.push({ field: 'name', message: '组织名称不能超过100个字符' });
-  }
+// DEPRECATED: 使用 shared/api/type-guards.ts 的 validateOrganizationUnit
+// 该函数已被 Zod 验证系统替代
 
-  if (!basicValidation.required(data['unitType'])) {
-    errors.push({ field: 'unitType', message: '请选择组织类型' });
-  }
-
-  if (data['sortOrder'] !== undefined && typeof data['sortOrder'] === 'number' && !basicValidation.positiveNumber(data['sortOrder'])) {
-    errors.push({ field: 'sortOrder', message: '排序顺序必须为非负数' });
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
-
-// 组织单元更新验证 - 用于编辑模式（支持所有字段编辑，除了组织编码）
-export function validateOrganizationUpdate(data: Record<string, unknown>): ValidationResult {
-  const errors: ValidationError[] = [];
-
-  // 仅保留关键的用户体验验证
-  if (data['name'] && !basicValidation.required(data['name'])) {
-    errors.push({ field: 'name', message: '组织名称不能为空' });
-  }
-
-  if (data['name'] && typeof data['name'] === 'string' && !basicValidation.maxLength(data['name'], 100)) {
-    errors.push({ field: 'name', message: '组织名称不能超过100个字符' });
-  }
-
-  // 编辑模式下也需要验证unitType
-  if (data['unitType'] && !basicValidation.required(data['unitType'])) {
-    errors.push({ field: 'unitType', message: '请选择组织类型' });
-  }
-
-  // 验证level字段
-  if (data['level'] !== undefined && typeof data['level'] === 'number' && !basicValidation.positiveNumber(data['level'])) {
-    errors.push({ field: 'level', message: '组织层级必须为正数' });
-  }
-
-  if (data['level'] && typeof data['level'] === 'number' && (data['level'] < 1 || data['level'] > 10)) {
-    errors.push({ field: 'level', message: '组织层级必须在1-10之间' });
-  }
-
-  if (data['sortOrder'] !== undefined && typeof data['sortOrder'] === 'number' && !basicValidation.positiveNumber(data['sortOrder'])) {
-    errors.push({ field: 'sortOrder', message: '排序顺序必须为非负数' });
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
-
-// 验证API响应格式 - 确保是完整的组织单元对象
-export function validateOrganizationResponse(data: Record<string, unknown>): ValidationResult {
-  const errors: ValidationError[] = [];
-
-  // 验证必需字段
-  const requiredFields = ['code', 'name', 'unitType', 'status', 'level'];
-  for (const field of requiredFields) {
-    if (!basicValidation.required(data[field])) {
-      errors.push({ field, message: `${field} 字段不能为空` });
-    }
-  }
-
-  // 验证状态枚举
-  if (data['status'] && typeof data['status'] === 'string' && !['ACTIVE', 'INACTIVE', 'PLANNED'].includes(data['status'])) {
-    errors.push({ field: 'status', message: '状态值无效' });
-  }
-
-  // 验证类型枚举  
-  if (data['unitType'] && typeof data['unitType'] === 'string' && !['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM'].includes(data['unitType'])) {
-    errors.push({ field: 'unitType', message: '组织类型无效' });
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
-
-// TODO-TEMPORARY: 此错误类将被弃用，请使用 shared/api/error-handling.ts 的 UnifiedErrorHandler
-// 迁移期限: 2025-09-16 (1周后)
-export class SimpleValidationError extends Error {
-  public readonly fieldErrors: ValidationError[];
-  
-  constructor(message: string, errors: ValidationError[] = []) {
-    super(message);
-    this.name = 'SimpleValidationError';
-    this.fieldErrors = errors;
-  }
-}
+// DEPRECATED: 使用 shared/api/type-guards.ts 的 ValidationError
+// 该类已被 Zod 验证系统替代
 
 // 格式化错误消息
 export function formatValidationErrors(errors: ValidationError[]): string {
@@ -159,11 +67,8 @@ export const safeTransform = {
   graphqlToOrganization: (orgData: Record<string, unknown>) => {
     // 兼容处理: REST API响应直接返回OrganizationUnit格式
     if (orgData.unitType && orgData.createdAt) {
-      // 这是REST API响应格式，直接验证并返回
-      const basicValidation = validateOrganizationResponse(orgData);
-      if (basicValidation.isValid) {
-        return orgData;
-      }
+      // 注意：原验证逻辑已迁移到 type-guards.ts
+      return orgData;
     }
     
     // GraphQL格式转换 (支持下划线命名约定)
@@ -207,25 +112,8 @@ export const safeTransform = {
   }
 };
 
-// 状态更新验证 - 仅验证状态相关字段
-export function validateStatusUpdate(data: Record<string, unknown>): ValidationResult {
-  const errors: ValidationError[] = [];
+// DEPRECATED: 使用 shared/api/type-guards.ts 的统一验证
+// 状态验证已整合到 Zod Schema 中
 
-  // 仅验证状态字段
-  if (!basicValidation.required(data['status'])) {
-    errors.push({ field: 'status', message: '状态不能为空' });
-  }
-
-  if (data['status'] && typeof data['status'] === 'string' && !['ACTIVE', 'INACTIVE', 'PLANNED'].includes(data['status'])) {
-    errors.push({ field: 'status', message: '状态值无效，必须是 ACTIVE、SUSPENDED 或 PLANNED' });
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
-
-// 向后兼容的导出 (用于逐步迁移)
-export const validateCreateOrganizationInput = validateOrganizationBasic;
-export const validateUpdateOrganizationInput = validateOrganizationBasic;
+// DEPRECATED: 使用 shared/api/type-guards.ts 的统一验证函数
+// 所有验证功能已迁移到 Zod 验证系统

@@ -1,34 +1,38 @@
-// TODO-TEMPORARY: 此Hook将逐步迁移到useEnterpriseOrganizations，当前作为简化版本包装器
-// 迁移期限: 2025-09-23 (2周后)
-import { useQuery } from '@tanstack/react-query';
-import { organizationAPI } from '../api';
+/**
+ * DEPRECATED: 该文件已被 useEnterpriseOrganizations 替代
+ * 
+ * 请使用：
+ * import { useEnterpriseOrganizations, useOrganizationDetails } from '@/shared/hooks';
+ * 
+ * 迁移映射：
+ * - useOrganizations -> useEnterpriseOrganizations
+ * - useOrganization -> useOrganizationDetails (来自 useEnterpriseOrganizations 文件)
+ */
+
+// 临时兼容封装，在所有引用替换完成后删除
 import { useEnterpriseOrganizations } from './useEnterpriseOrganizations';
 import type { OrganizationQueryParams } from '../types/organization';
 
-// 简化版组织查询Hook - 包装useEnterpriseOrganizations
+// DEPRECATED: 使用 useEnterpriseOrganizations 替代
 export const useOrganizations = (params?: OrganizationQueryParams) => {
-  // 使用企业级Hook但只返回基础字段，保持接口兼容性
-  const {
-    organizations,
-    loading,
-    error,
-    refetch
-  } = useEnterpriseOrganizations(params);
-
+  const result = useEnterpriseOrganizations(params);
   return {
-    data: organizations,
-    isLoading: loading,
-    error,
-    refetch
+    data: result.organizations,
+    isLoading: result.loading,
+    error: result.error,
+    refetch: result.refetch
   };
 };
 
-// 单个组织单元查询
+// DEPRECATED: 使用 useEnterpriseOrganizations 的 fetchOrganizationByCode 替代
 export const useOrganization = (code: string) => {
-  return useQuery({
-    queryKey: ['organization', code],
-    queryFn: () => organizationAPI.getByCode(code),
-    enabled: !!code,
-  });
+  const { fetchOrganizationByCode, loading, error } = useEnterpriseOrganizations();
+  
+  return {
+    data: null, // DEPRECATED: 使用 fetchOrganizationByCode 方法
+    isLoading: loading,
+    error,
+    refetch: () => fetchOrganizationByCode(code)
+  };
 };
 

@@ -320,9 +320,11 @@ export const UnifiedErrorHandler = {
     const apiError = new APIError(status, statusText, response);
     if (errorCode) {
       const errorInfo = getErrorMessage(errorCode);
-      (apiError as any).errorCode = errorCode;
-      (apiError as any).userMessage = errorInfo.userMessage;
-      (apiError as any).recoveryAction = errorInfo.recoveryAction;
+      Object.assign(apiError, {
+        errorCode,
+        userMessage: errorInfo.userMessage,
+        recoveryAction: errorInfo.recoveryAction
+      });
     }
     return apiError;
   },

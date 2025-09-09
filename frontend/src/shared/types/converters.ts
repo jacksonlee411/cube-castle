@@ -186,59 +186,18 @@ export function convertUpdateInputToREST(
 // ============================================================================
 
 /**
- * 清理和验证组织单元数据
- * 确保数据符合前端类型要求
+ * DEPRECATED: 使用 shared/api/type-guards.ts 的 validateOrganizationUnit
+ * 该函数已被 Zod 验证系统替代，提供更强的类型安全和验证
  */
-export function validateOrganizationUnit(data: unknown): OrganizationUnit | null {
-  if (!data || typeof data !== 'object') {
-    return null;
-  }
-
-  const obj = data as Record<string, unknown>;
-
-  // 验证必需字段
-  if (!obj.code || typeof obj.code !== 'string') {
-    return null;
-  }
-  if (!obj.name || typeof obj.name !== 'string') {
-    return null;
-  }
-
-  // 构建验证后的对象
-  try {
-    return {
-      code: String(obj.code),
-      recordId: obj.recordId ? String(obj.recordId) : undefined,
-      parentCode: obj.parentCode ? String(obj.parentCode) : undefined,
-      name: String(obj.name),
-      unitType: (obj.unitType as OrganizationUnit['unitType']) || 'DEPARTMENT',
-      status: (obj.status as OrganizationUnit['status']) || 'ACTIVE',
-      level: typeof obj.level === 'number' ? obj.level : 1,
-      path: obj.path ? String(obj.path) : '',
-      sortOrder: typeof obj.sortOrder === 'number' ? obj.sortOrder : 0,
-      description: obj.description ? String(obj.description) : '',
-      createdAt: obj.createdAt ? String(obj.createdAt) : '',
-      updatedAt: obj.updatedAt ? String(obj.updatedAt) : '',
-      effectiveDate: obj.effectiveDate ? String(obj.effectiveDate) : undefined,
-      endDate: obj.endDate ? String(obj.endDate) : undefined,
-      isTemporal: typeof obj.isTemporal === 'boolean' ? obj.isTemporal : undefined,
-      version: typeof obj.version === 'number' ? obj.version : undefined,
-      changeReason: obj.changeReason ? String(obj.changeReason) : undefined,
-      isCurrent: typeof obj.isCurrent === 'boolean' ? obj.isCurrent : undefined,
-    };
-  } catch {
-    return null;
-  }
-}
+// import { validateOrganizationUnit } from '../api/type-guards';
+// 用于验证和转换未知数据为组织单元类型
 
 /**
- * 批量验证组织单元列表
+ * DEPRECATED: 使用 shared/api/type-guards.ts 的批量验证函数
+ * 该函数已被 Zod 验证系统替代
  */
-export function validateOrganizationUnitList(data: unknown[]): OrganizationUnit[] {
-  return data
-    .map(validateOrganizationUnit)
-    .filter((unit): unit is OrganizationUnit => unit !== null);
-}
+// import { validateGraphQLOrganizationList } from '../api/type-guards';
+// 用于批量验证组织单元数据
 
 // ============================================================================
 // 类型同步检查工具

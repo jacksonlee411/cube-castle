@@ -50,31 +50,23 @@ export interface GraphQLVariables {
 }
 
 // API Error types
-export class APIError extends Error {
-  public readonly status: number;
-  public readonly statusText: string;
-  public readonly response?: unknown;
+/**
+ * DEPRECATED: 使用 shared/api/error-handling.ts 的统一错误类
+ * 
+ * 新的导入方式：
+ * import { APIError, ValidationError } from '../api/error-handling';
+ * import type { APIError, FormValidationErrors } from '../api/error-handling';
+ */
 
-  constructor(status: number, statusText: string, response?: unknown) {
-    super(`API Error: ${status} ${statusText}`);
-    this.name = 'APIError';
-    this.status = status;
-    this.statusText = statusText;
-    this.response = response;
-  }
-}
+// 临时兼容导出，避免破坏现有引用
+import { APIError as _APIError } from '../api/error-handling';
+import { ValidationError as _ValidationError } from '../api/type-guards';
 
-// Validation Error
-export class ValidationError extends Error {
-  public readonly errors: ValidationIssue[];
+// TODO-TEMPORARY: 该导出将在 2025-09-16 后删除
+export const APIError = _APIError;
+export const ValidationError = _ValidationError;
 
-  constructor(message: string, errors: ValidationIssue[]) {
-    super(message);
-    this.name = 'ValidationError';
-    this.errors = errors;
-  }
-}
-
+// 新的统一类型定义在 error-handling.ts 中
 export interface ValidationIssue {
   field: string;
   message: string;
@@ -94,13 +86,12 @@ export const hasGraphQLErrors = <T>(response: GraphQLResponse<T>): response is G
   return Array.isArray(response.errors) && response.errors.length > 0;
 };
 
-export const isAPIError = (error: unknown): error is APIError => {
-  return error instanceof APIError;
-};
+// DEPRECATED: 使用 shared/api/type-guards.ts 的统一类型守卫
+import { isAPIError as _isAPIError, isValidationError as _isValidationError } from '../api/type-guards';
 
-export const isValidationError = (error: unknown): error is ValidationError => {
-  return error instanceof ValidationError;
-};
+// TODO-TEMPORARY: 该导出将在 2025-09-16 后删除
+export const isAPIError = _isAPIError;
+export const isValidationError = _isValidationError;
 
 // Utility types for API operations
 export type APIResult<T> = Promise<T>;

@@ -532,11 +532,12 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	var organizations []Organization
 	for rows.Next() {
 		var org Organization
+		var isTemporal bool
 		err := rows.Scan(
 			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
 			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
 			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
 			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
 		)
@@ -588,11 +589,12 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
 
 	var org Organization
+	var isTemporal bool
 	err := row.Scan(
 		&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
 		&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
 		&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-		&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+		&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
 		&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 		&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
 	)
@@ -650,11 +652,12 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code, date)
 
 	var org Organization
+	var isTemporal bool
 	err := row.Scan(
 		&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
 		&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
 		&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-		&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+		&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
 		&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 		&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
 	)
@@ -718,11 +721,12 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
 	var organizations []Organization
 	for rows.Next() {
 		var org Organization
+		var isTemporal bool
 		err := rows.Scan(
 			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
 			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
 			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
 			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
 		)

@@ -140,15 +140,12 @@ export function useTemporalQueryUtils() {
     return effectiveDate <= date && (!endDate || date < endDate);
   }, []);
 
-  // 获取记录的有效期描述
+  // 获取记录的有效期描述 - 使用统一的TemporalConverter
   const getRecordValidityDescription = useCallback((record: TemporalOrganizationUnit): string => {
-    const effectiveDate = new Date(record.effectiveDate);
-    const endDate = record.endDate ? new Date(record.endDate) : null;
+    const effectiveDateStr = TemporalConverter.formatForDisplay(record.effectiveDate, 'date');
     
-    const effectiveDateStr = effectiveDate.toLocaleDateString('zh-CN');
-    
-    if (endDate) {
-      const endDateStr = endDate.toLocaleDateString('zh-CN');
+    if (record.endDate) {
+      const endDateStr = TemporalConverter.formatForDisplay(record.endDate, 'date');
       return `${effectiveDateStr} - ${endDateStr}`;
     } else {
       return `${effectiveDateStr} 起生效`;
@@ -189,17 +186,9 @@ export function useTemporalQueryStats() {
   };
 }
 
-// 错误类型
-export class TemporalAPIError extends Error {
-  constructor(
-    message: string,
-    public errorCode?: string,
-    public details?: string
-  ) {
-    super(message);
-    this.name = 'TemporalAPIError';
-  }
-}
+// DEPRECATED: 使用统一的 APIError 替代专用错误类
+// import { APIError } from '../api/error-handling';
+// 时态API错误现在使用通用的APIError类，errorCode作为额外属性
 
 // 导出常用日期格式化函数 (统一使用TemporalConverter)
 export const TemporalDateUtils = {

@@ -200,10 +200,12 @@ export const ValidationUtils = {
       return new Date(endDate) > new Date(startDate);
     },
     
+    // DEPRECATED: 使用 TemporalConverter.getCurrentDateString()
     getTodayString: (): string => {
       return new Date().toISOString().split('T')[0];
     },
     
+    // DEPRECATED: 使用 TemporalConverter.formatForDisplay()
     formatDateDisplay: (dateString: string): string => {
       if (!dateString) return '';
       const date = new Date(dateString);

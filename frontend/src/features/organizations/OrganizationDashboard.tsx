@@ -11,7 +11,7 @@ import { OrganizationFilters } from './OrganizationFilters';
 import { PaginationControls } from './PaginationControls';
 
 import { useOrganizations } from '../../shared/hooks/useOrganizations';
-import { useOrganizationMutations } from '../../shared/hooks/useOrganizationMutations';
+// import { useOrganizationMutations } from '../../shared/hooks/useOrganizationMutations'; // TODO: Implement mutations
 
 // 组织详情组件导入 - 暂时禁用以修复无限循环错误
 

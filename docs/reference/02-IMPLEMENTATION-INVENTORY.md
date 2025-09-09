@@ -167,6 +167,14 @@
 - `CreateOrganizationEvent` - 创建组织事件
 - `UpdateHistoryRecord` - 更新历史记录
 
+#### GraphQL查询处理器 (`cmd/organization-query-service/main.go`)
+- `GetOrganizations` - 组织分页列表查询 (包含过滤、分页、时态支持)
+- `GetOrganization` - 单个组织查询 (按code查询，支持asOfDate)
+- `GetOrganizationAtDate` - 时态点查询 (指定时间点的组织状态)
+- `GetOrganizationHistory` - 历史范围查询 (时间范围内的版本历史)
+- `GetOrganizationStats` - 组织统计查询 (总数、按类型、按状态统计)
+- `GetOrganizationHierarchy` - 层级信息查询 (完整层级路径和关系)
+
 #### 运维管理处理器 (`operational.go`)
 - `SetupRoutes` - 运维路由设置
 - `GetHealth` - 系统健康检查
@@ -188,16 +196,16 @@
 - `PerformanceMetrics` - 性能指标监控
 - `TestAPI` - API测试工具
 
-### 服务层（Services） - 14个导出类型
-#### 级联更新服务 (`cascade.go`)
+### 服务层（Services） - 20个导出类型
+#### 级联更新服务 (`internal/services/cascade.go`)
 - `CascadeUpdateService` - 层级变更级联处理
 - `CascadeTask` - 级联任务定义
 
-#### 运维调度服务 (`operational_scheduler.go`)
+#### 运维调度服务 (`internal/services/operational_scheduler.go`)
 - `OperationalScheduler` - 后台任务调度器
 - `ScheduledTask` - 调度任务结构
 
-#### 时态数据服务 (`temporal.go`)
+#### 时态数据服务 (`internal/services/temporal.go`)
 - `TemporalService` - 时态版本管理核心服务
 - `InsertVersionRequest` - 插入版本请求
 - `OrganizationData` - 组织数据结构
@@ -206,10 +214,47 @@
 - `SuspendActivateRequest` - 暂停/激活请求
 - `VersionResponse` - 版本操作响应
 
-#### 时态监控服务 (`temporal_monitor.go`)
+#### 时态监控服务 (`internal/services/temporal_monitor.go`)
 - `TemporalMonitor` - 时态数据质量监控
 - `MonitoringMetrics` - 监控指标收集
 - `AlertRule` - 告警规则定义
+
+#### 查询优化服务 (`internal/services/query_optimizer.go`)
+- `QueryOptimizer` - 数据库查询优化器
+
+#### 组织缓存服务 (`internal/services/organization_cache.go`)
+- `OrganizationCache` - 组织数据缓存管理
+
+### 中间件层（Middleware） - 8个导出类型
+#### REST中间件 (`internal/middleware/`)
+- `PerformanceMiddleware` - 性能监控中间件 (`performance.go`)
+- `RequestMiddleware` - 请求处理中间件 (`request.go`)
+- `RateLimitMiddleware` - 速率限制中间件 (`ratelimit.go`)
+
+#### GraphQL中间件 (`internal/middleware/`)
+- `GraphQLEnvelopeMiddleware` - GraphQL响应封装中间件 (`graphql_envelope.go`)
+- `RequestIDMiddleware` - 请求ID生成中间件 (`request_id.go`)
+
+#### 认证中间件
+- `JWTMiddleware` - JWT认证中间件 (REST: `auth/rest_middleware.go`)
+- `GraphQLAuthMiddleware` - GraphQL认证中间件 (`auth/graphql_middleware.go`)
+
+### 工具层（Utils） - 6个导出类型
+#### 验证工具 (`internal/utils/validation.go`)
+- `ValidationUtils` - 通用验证工具
+
+#### 响应工具 (`internal/utils/response.go`)
+- `ResponseBuilder` - 统一响应构建器
+
+#### 业务验证器 (`internal/validators/business.go`)
+- `BusinessValidator` - 业务规则验证器
+
+### 审计与监控 - 4个导出类型
+#### 审计日志 (`internal/audit/logger.go`)
+- `AuditLogger` - 结构化审计日志记录器
+
+#### 指标收集 (`internal/metrics/collector.go`)
+- `MetricsCollector` - Prometheus指标收集器
 
 ### 架构特点
 - **CQRS分离**: 命令服务(9090端口)与查询服务(8090端口)完全分离
@@ -497,8 +542,10 @@
 
 ### **实现规模统计**
 - **REST API端点**: 10个核心业务 + 8个系统管理 + 7个开发工具 = **25个端点**
-- **GraphQL查询**: 12个查询字段 + 完整Schema支持
-- **Go后端导出**: 26个处理器方法 + 14个服务类型 = **40个关键组件**
+- **GraphQL查询**: 6个核心查询处理器 + 12个查询字段 + 完整Schema支持
+- **Go后端导出**: 32个处理器方法 + 38个服务/中间件/工具类型 = **70个关键组件**
+  - 处理器: 8个业务 + 6个GraphQL + 8个运维 + 7个开发工具 + 3个路由设置 = 32个
+  - 服务/中间件: 20个服务 + 8个中间件 + 6个工具 + 4个审计监控 = 38个
 - **前端导出**: 120+个导出项，涵盖API、Hooks、工具、配置、验证等
 - **脚本工具**: 20+个开发、质量保证、CI/CD脚本
 
@@ -508,14 +555,18 @@
 - ✅ **企业级监控**: 健康检查、指标收集、告警系统
 - ✅ **质量门禁**: 契约测试、重复代码检测、架构验证
 - ✅ **开发工具**: JWT管理、API测试、性能监控
+- ✅ **系统可用性**: GraphQL查询服务和REST命令服务正常运行
 
 ---
 
 ## 变更记录（Changelog）
+- **v1.2 完整登记版（2025-09-09）**: 基于实际代码扫描的完整实现登记
+  - 完善: GraphQL查询处理器完整功能描述和实现路径
+  - 更新: 架构成熟度和系统可用性状态
+  - 优化: 移除冗余的修复过程记录，专注于当前实现状态
 - **v1.0 生产就绪版（2025-09-09）**: 基于实际代码扫描的完整清单
   - 新增: 120+个前端导出项详细分类
   - 新增: 26个Go处理器和14个服务类型
   - 新增: 重复造轮子风险分析和防范指导
   - 新增: 统计摘要和架构成熟度评估
-- v0.1 初稿（2025-09-09）: 建立单文件清单框架
 
