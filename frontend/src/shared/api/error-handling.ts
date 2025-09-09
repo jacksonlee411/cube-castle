@@ -1,6 +1,7 @@
 import React from 'react';
 import { isValidationError, isAPIError, isNetworkError } from './type-guards';
 import { authManager } from './auth';
+import { ORGANIZATION_API_ERRORS, getErrorMessage, formatErrorForUser, SUCCESS_MESSAGES } from './error-messages';
 
 // API错误接口
 interface APIErrorResponse {
@@ -299,3 +300,65 @@ export const withOAuthAwareErrorHandling = <T extends unknown[], R>(
     }
   };
 };
+
+// 统一错误处理工具 - 整合error-messages.ts和simple-validation.ts
+export const UnifiedErrorHandler = {
+  // 替代formatErrorForUser
+  formatForUser: formatErrorForUser,
+  
+  // 替代getErrorMessage
+  getErrorInfo: getErrorMessage,
+  
+  // 获取标准错误码映射
+  getErrorCodes: () => ORGANIZATION_API_ERRORS,
+  
+  // 获取成功消息
+  getSuccessMessage: (key: keyof typeof SUCCESS_MESSAGES) => SUCCESS_MESSAGES[key],
+  
+  // 创建标准化的API错误
+  createAPIError: (status: number, statusText: string, response?: unknown, errorCode?: string) => {
+    const apiError = new APIError(status, statusText, response);
+    if (errorCode) {
+      const errorInfo = getErrorMessage(errorCode);
+      (apiError as any).errorCode = errorCode;
+      (apiError as any).userMessage = errorInfo.userMessage;
+      (apiError as any).recoveryAction = errorInfo.recoveryAction;
+    }
+    return apiError;
+  },
+  
+  // 创建标准化的验证错误  
+  createValidationError: (message: string, fieldErrors: Array<{field: string, message: string}> = []) => {
+    return new UserFriendlyError(message, 'VALIDATION_ERROR', { fieldErrors });
+  },
+  
+  // 快速错误类型判断
+  isAPIError: (error: unknown): error is APIError => error instanceof APIError,
+  isUserFriendlyError: (error: unknown): error is UserFriendlyError => error instanceof UserFriendlyError,
+  isOAuthError: (error: unknown): error is OAuthError => error instanceof OAuthError,
+  
+  // 统一的错误日志记录
+  logError: (context: string, error: unknown, additionalInfo?: Record<string, unknown>) => {
+    const timestamp = new Date().toISOString();
+    console.group(`[${timestamp}] Error in ${context}`);
+    console.error('Error details:', error);
+    
+    if (additionalInfo) {
+      console.error('Additional info:', additionalInfo);
+    }
+    
+    if (isUserFriendlyError(error)) {
+      console.error('User message:', error.message);
+      console.error('Error code:', error.code);
+      console.error('Original error:', error.originalError);
+    }
+    
+    console.groupEnd();
+  }
+};
+
+// 向后兼容导出 - 用于逐步迁移
+export { formatErrorForUser, getErrorMessage, SUCCESS_MESSAGES } from './error-messages';
+
+// 重新导出其他错误处理系统的类型 - 统一接口
+export type { ApiErrorCode, SuccessMessageKey } from './error-messages';

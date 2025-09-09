@@ -130,7 +130,8 @@ export function validateOrganizationResponse(data: Record<string, unknown>): Val
   };
 }
 
-// 企业级错误处理 - 前后端协同验证
+// TODO-TEMPORARY: 此错误类将被弃用，请使用 shared/api/error-handling.ts 的 UnifiedErrorHandler
+// 迁移期限: 2025-09-16 (1周后)
 export class SimpleValidationError extends Error {
   public readonly fieldErrors: ValidationError[];
   

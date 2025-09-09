@@ -1,5 +1,9 @@
+// TODO-TEMPORARY: 这个文件将被弃用，请使用 shared/validation/schemas.ts 的 ValidationUtils
+// 迁移期限: 2025-09-16 (1周后)
+import { ValidationUtils } from '@/shared/validation/schemas';
 import type { ValidationRules } from './FormTypes';
 
+// 兼容性包装器 - 逐步迁移到统一验证系统
 export const validationRules: ValidationRules = {
   name: (value: string) => {
     if (!value.trim()) return '组织名称不能为空';
@@ -69,41 +73,7 @@ export const validationRules: ValidationRules = {
   }
 };
 
+// 使用统一验证系统替代本地验证逻辑
 export const validateForm = (formData: Record<string, unknown>, isEditing = false): Record<string, string> => {
-  const errors: Record<string, string> = {};
-  
-  const nameError = validationRules.name(formData['name'] as string);
-  if (nameError) errors['name'] = nameError;
-  
-  // 编辑模式下不验证code，因为code字段被禁用
-  if (!isEditing) {
-    const codeError = validationRules.code(formData['code'] as string);
-    if (codeError) errors['code'] = codeError;
-  }
-  
-  const levelError = validationRules.level(formData['level'] as number);
-  if (levelError) errors['level'] = levelError;
-  
-  // 编辑模式下也需要验证unitType
-  const unitTypeError = validationRules.unitType(formData['unitType'] as string);
-  if (unitTypeError) errors['unitType'] = unitTypeError;
-  
-  // 时态字段验证
-  const isTemporal = formData['isTemporal'] as boolean;
-  if (isTemporal) {
-    const effectiveFromError = validationRules.effectiveFrom(formData['effectiveFrom'] as string, isTemporal);
-    if (effectiveFromError) errors['effectiveFrom'] = effectiveFromError;
-    
-    const effectiveToError = validationRules.effectiveTo(
-      formData['effectiveTo'] as string, 
-      formData['effectiveFrom'] as string, 
-      isTemporal
-    );
-    if (effectiveToError) errors['effectiveTo'] = effectiveToError;
-    
-    const changeReasonError = validationRules.changeReason(formData['changeReason'] as string, isTemporal);
-    if (changeReasonError) errors['changeReason'] = changeReasonError;
-  }
-  
-  return errors;
+  return ValidationUtils.validateForm(formData, isEditing);
 };
