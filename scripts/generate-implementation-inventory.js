@@ -116,6 +116,24 @@ function main() {
     ]
   );
 
+  // Prepare JSON report (deduped and relative paths)
+  const rel = (p) => path.relative(repoRoot, p);
+  const jsonReport = {
+    timestamp: new Date().toISOString(),
+    summary: {
+      openapiPaths: openapiPaths.length,
+      graphqlQueries: gqlQueries.length,
+      goHandlers: 0,
+      goServices: 0,
+      tsExports: 0
+    },
+    openapiPaths,
+    graphqlQueries: gqlQueries,
+    goHandlers: [],
+    goServices: [],
+    tsExports: []
+  };
+
   const out = [];
   out.push('## Draft – Command API (from OpenAPI)');
   if (openapiPaths.length) {
@@ -134,25 +152,40 @@ function main() {
   out.push('\n## Draft – Go Handlers (exported methods)');
   const dedupGoHandlers = dedupeBy(goHandlers, (x) => `${x.name}@${x.file}`);
   if (dedupGoHandlers.length) {
-    dedupGoHandlers.forEach((h) => out.push(`- ${h.name} — ${path.relative(repoRoot, h.file)}`));
+    dedupGoHandlers.forEach((h) => out.push(`- ${h.name} — ${rel(h.file)}`));
   } else {
     out.push('- (no handlers found)');
   }
+  jsonReport.goHandlers = dedupGoHandlers.map((h) => ({ name: h.name, file: rel(h.file), kind: h.kind }));
+  jsonReport.summary.goHandlers = jsonReport.goHandlers.length;
 
   out.push('\n## Draft – Go Services (exported types)');
   const dedupGoServices = dedupeBy(goServices, (x) => `${x.name}@${x.file}`);
   if (dedupGoServices.length) {
-    dedupGoServices.forEach((s) => out.push(`- ${s.name} — ${path.relative(repoRoot, s.file)}`));
+    dedupGoServices.forEach((s) => out.push(`- ${s.name} — ${rel(s.file)}`));
   } else {
     out.push('- (no services found)');
   }
+  jsonReport.goServices = dedupGoServices.map((s) => ({ name: s.name, file: rel(s.file), kind: s.kind }));
+  jsonReport.summary.goServices = jsonReport.goServices.length;
 
   out.push('\n## Draft – Frontend Exports (classes/functions/const)');
   const dedupTs = dedupeBy(tsExports, (x) => `${x.name}@${x.file}`);
   if (dedupTs.length) {
-    dedupTs.forEach((e) => out.push(`- [${e.kind}] ${e.name} — ${path.relative(repoRoot, e.file)}`));
+    dedupTs.forEach((e) => out.push(`- [${e.kind}] ${e.name} — ${rel(e.file)}`));
   } else {
     out.push('- (no TS exports found)');
+  }
+  jsonReport.tsExports = dedupTs.map((e) => ({ name: e.name, file: rel(e.file), kind: e.kind }));
+  jsonReport.summary.tsExports = jsonReport.tsExports.length;
+
+  // write JSON report
+  try {
+    const reportsDir = path.join(repoRoot, 'reports');
+    if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
+    fs.writeFileSync(path.join(reportsDir, 'implementation-inventory.json'), JSON.stringify(jsonReport, null, 2));
+  } catch (err) {
+    // non-fatal; continue output markdown
   }
 
   console.log(out.join('\n'));

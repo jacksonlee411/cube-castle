@@ -41,7 +41,6 @@ interface OrganizationVersion {
   sortOrder: number;
   effectiveDate: string;
   endDate?: string | null;
-  isCurrent: boolean;
   recordId: string;
   createdAt: string;
   updatedAt: string;
@@ -137,15 +136,15 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         setRetryCount(0);
       }
       
-      // 使用organization查询获取组织基本信息 - 修复认证问题，保留健壮错误处理
-      // 注意：v4.6.0 架构简化后，时态版本查询已合并到auditHistory中
+      // 使用新的organizationVersions查询获取全部版本（按生效日排序）
       let data;
       try {
         data = await unifiedGraphQLClient.request<{
-          organization: OrganizationVersion | null;
+          organizationVersions: OrganizationVersion[];
         }>(`
-          query GetOrganization($code: String!) {
-            organization(code: $code) {
+          query OrganizationVersions($code: String!) {
+            organizationVersions(code: $code) {
+              recordId
               code
               name
               unitType
@@ -155,33 +154,70 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               endDate
               createdAt
               updatedAt
-              recordId
               parentCode
               description
-              hierarchyDepth
-              isFuture
             }
           }
         `, {
           code: organizationCode
         });
       } catch (graphqlError: unknown) {
-        // 保留GraphQL层面错误处理 - 符合健壮方案原则
-        interface GraphQLErrorWithResponse {
-          response?: {
-            status: number;
-            statusText?: string;
-          };
-          message?: string;
+        // 回退策略：新查询不可用时，回退到现有"单体快照"逻辑
+        console.warn('organizationVersions查询失败，回退到单体快照逻辑:', graphqlError);
+        try {
+          data = await unifiedGraphQLClient.request<{
+            organization: OrganizationVersion | null;
+          }>(`
+            query GetOrganization($code: String!) {
+              organization(code: $code) {
+                code
+                name
+                unitType
+                status
+                level
+                effectiveDate
+                endDate
+                createdAt
+                updatedAt
+                recordId
+                parentCode
+                description
+                hierarchyDepth
+              }
+            }
+          `, {
+            code: organizationCode
+          });
+
+          // 将单个组织转换为数组格式用于后续处理
+          if (data?.organization) {
+            data = {
+              organizationVersions: [data.organization]
+            };
+          } else {
+            data = { organizationVersions: [] };
+          }
+
+          // 显示回退提示
+          setLoadingError('历史列表不可用，展示当前快照');
+          setTimeout(() => setLoadingError(null), 3000);
+        } catch (fallbackError) {
+          interface GraphQLErrorWithResponse {
+            response?: {
+              status: number;
+              statusText?: string;
+            };
+            message?: string;
+          }
+
+          const typedError = fallbackError as GraphQLErrorWithResponse;
+          if (typedError?.response?.status) {
+            const statusCode = typedError.response.status;
+            const statusText = typedError.response.statusText || 'Unknown Error';
+            throw new Error(`服务器响应错误 (${statusCode}): ${statusText}`);
+          }
+          throw new Error(`GraphQL调用失败: ${typedError?.message || '未知错误'}`);
         }
-        
-        const typedError = graphqlError as GraphQLErrorWithResponse;
-        if (typedError?.response?.status) {
-          const statusCode = typedError.response.status;
-          const statusText = typedError.response.statusText || 'Unknown Error';
-          throw new Error(`服务器响应错误 (${statusCode}): ${statusText}`);
-        }
-        throw new Error(`GraphQL调用失败: ${typedError?.message || '未知错误'}`);
       }
         
       // 保留数据验证 - 防御性编程
@@ -189,65 +225,65 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         throw new Error('GraphQL响应为空');
       }
       
-      // 处理单个组织信息（v4.6.0架构简化后的查询方式）
-      const organization = data.organization;
-      if (!organization) {
-        throw new Error('组织不存在或无权限访问');
+      // 处理版本数组数据
+      const organizations = data.organizationVersions;
+      if (!Array.isArray(organizations)) {
+        throw new Error('版本数据格式错误');
       }
-        
-        // 将单个组织映射为时间线版本格式（为了兼容现有组件结构）
-        const mappedVersions: TimelineVersion[] = [{
-          recordId: organization.recordId,
-          code: organization.code,
-          name: organization.name,
-          unitType: organization.unitType,
-          status: organization.status,
-          level: organization.level,
-          effectiveDate: organization.effectiveDate,
-          endDate: organization.endDate,
-          isCurrent: !organization.isFuture, // isCurrent与isFuture相反
-          createdAt: organization.createdAt,
-          updatedAt: organization.updatedAt,
-          parentCode: organization.parentCode,
-          description: organization.description,
-          // 添加组件需要的字段
-          lifecycleStatus: !organization.isFuture ? 'CURRENT' as const : 'HISTORICAL' as const,
-          businessStatus: organization.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-          dataStatus: 'NORMAL' as const,
-          path: '', // 临时字段，组件中需要
-          sortOrder: 1, // 临时字段，组件中需要
-          changeReason: '' // 临时字段，组件中需要
-        }];
-        
-        const sortedVersions = mappedVersions.sort((a: TimelineVersion, b: TimelineVersion) => 
-          new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
-        );
-        setVersions(sortedVersions);
-        
-        // 显示成功消息
-        if (isRetry) {
-          setSuccessMessage('数据加载成功！');
-          setTimeout(() => setSuccessMessage(null), 3000);
-        }
-        
-        // 默认选中当前版本
-        const currentVersion = sortedVersions.find((v: TimelineVersion) => v.isCurrent);
-        const defaultVersion = currentVersion || sortedVersions[0];
-        
-        if (defaultVersion) {
-          setSelectedVersion(defaultVersion);
-          
-          // 预设表单数据（保持与现有表单字段格式兼容）
-          setFormMode('edit');
-          setFormInitialData({
-            name: defaultVersion.name,
-            unitType: defaultVersion.unitType,
-            status: defaultVersion.status,
-            description: defaultVersion.description || '',
-            parentCode: normalizeParentCode.forForm(defaultVersion.parentCode),
-            effectiveDate: defaultVersion.effectiveDate
-          });
-        }
+
+      // 将版本数组直接 map 为 TimelineVersion[]，按 effectiveDate ASC（服务端已排序）
+      const mappedVersions: TimelineVersion[] = organizations.map((org: OrganizationVersion) => ({
+        recordId: org.recordId,
+        code: org.code,
+        name: org.name,
+        unitType: org.unitType,
+        status: org.status,
+        level: org.level,
+        effectiveDate: org.effectiveDate,
+        endDate: org.endDate,
+        isCurrent: org.endDate === null, // 当前版本: endDate为null
+        createdAt: org.createdAt,
+        updatedAt: org.updatedAt,
+        parentCode: org.parentCode,
+        description: org.description,
+        // 添加组件需要的字段
+        lifecycleStatus: org.endDate === null ? 'CURRENT' as const : 'HISTORICAL' as const,
+        businessStatus: org.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+        dataStatus: 'NORMAL' as const,
+        path: '', // 临时字段，组件中需要
+        sortOrder: 1, // 临时字段，组件中需要
+        changeReason: '' // 临时字段，组件中需要
+      }));
+
+      // 按 effectiveDate 降序排序（最新版本在上方）
+      const sortedVersions = mappedVersions.sort((a: TimelineVersion, b: TimelineVersion) =>
+        new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
+      );
+      setVersions(sortedVersions);
+
+      // 显示成功消息
+      if (isRetry) {
+        setSuccessMessage('数据加载成功！');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
+
+      // 选中当前版本 = "生效日 ≤ 今日"的最大者
+      const currentVersion = sortedVersions.find((v: TimelineVersion) => v.isCurrent) || sortedVersions.at(-1) || null;
+
+      if (currentVersion) {
+        setSelectedVersion(currentVersion);
+
+        // 预设表单数据（保持与现有表单字段格式兼容）
+        setFormMode('edit');
+        setFormInitialData({
+          name: currentVersion.name,
+          unitType: currentVersion.unitType,
+          status: currentVersion.status,
+          description: currentVersion.description || '',
+          parentCode: normalizeParentCode.forForm(currentVersion.parentCode),
+          effectiveDate: currentVersion.effectiveDate
+        });
+      }
       
     } catch (error) {
       console.error('Error loading temporal versions:', error);
@@ -285,27 +321,30 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       // 删除API调用成功后，优先使用后端返回的新时间线，避免读缓存延迟
       const timeline = resp?.data?.timeline;
       if (Array.isArray(timeline)) {
-        const mappedVersions: TimelineVersion[] = timeline.map((v: Record<string, unknown>) => ({
-          recordId: v.recordId as string,
-          code: v.code as string,
-          name: v.name as string,
-          unitType: v.unitType as string,
-          status: v.status as string,
-          level: v.level as number,
-          effectiveDate: v.effectiveDate as string,
-          endDate: (v.endDate as string) || null,
-          isCurrent: !!v.isCurrent,
-          createdAt: v.createdAt as string,
-          updatedAt: v.updatedAt as string,
-          parentCode: (v.parentCode as string) || undefined,
-          description: (v.description as string) || undefined,
-          lifecycleStatus: v.isCurrent ? 'CURRENT' : 'HISTORICAL',
-          businessStatus: v.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-          dataStatus: 'NORMAL',
-          path: '',
-          sortOrder: 1,
-          changeReason: '',
-        }));
+        const mappedVersions: TimelineVersion[] = timeline.map((v: Record<string, unknown>) => {
+          const isCurrent = (v.endDate as string) === null || v.endDate === undefined;
+          return {
+            recordId: v.recordId as string,
+            code: v.code as string,
+            name: v.name as string,
+            unitType: v.unitType as string,
+            status: v.status as string,
+            level: v.level as number,
+            effectiveDate: v.effectiveDate as string,
+            endDate: (v.endDate as string) || null,
+            isCurrent: isCurrent,
+            createdAt: v.createdAt as string,
+            updatedAt: v.updatedAt as string,
+            parentCode: (v.parentCode as string) || undefined,
+            description: (v.description as string) || undefined,
+            lifecycleStatus: isCurrent ? 'CURRENT' : 'HISTORICAL',
+            businessStatus: v.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+            dataStatus: 'NORMAL',
+            path: '',
+            sortOrder: 1,
+            changeReason: '',
+          };
+        });
         const sorted = mappedVersions.sort((a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime());
         setVersions(sorted);
         const current = sorted.find(v => v.isCurrent) || sorted[0] || null;

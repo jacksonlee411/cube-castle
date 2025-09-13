@@ -1,339 +1,251 @@
-# Cube Castle 集成团队进展日志
+# 06 — 恢复“显示所有版本”的实现方案（GraphQL 推荐）
 
-**文档编号**: 06
-**最后更新**: 2025-09-13
-**维护团队**: 架构团队 + IIG护卫系统
-**文档状态**: 生产就绪 + 持续监控
-
----
-
-## 🎯 **当前项目状态概览**
-
-### **项目成熟度**: ✅ **企业级生产就绪**
-- **架构完成度**: PostgreSQL原生CQRS架构，性能提升70-90%
-- **质量保证**: 契约测试自动化，32个测试100%通过
-- **防控体系**: P3三层纵深防御 + IIG四层护卫系统
-- **重复控制**: 代码重复率从85%+降至2.11%
-
-### **IIG护卫系统状态**: 🛡️ **活跃监控中**
-- **实现清单覆盖**: 100% (25个REST端点 + 12个GraphQL查询 + 70个后端组件)
-- **架构一致性**: CQRS协议分离100%执行
-- **重复防护率**: 93%+ (120+分散组件 → 4个统一系统)
-- **质量门禁**: 与P3系统100%集成
+最后更新：2025-09-13  
+维护团队：架构组 + 前端组 + 查询服务组  
+文档状态：方案评审通过后执行（不新增自动化脚本）
 
 ---
 
-## 🚨 **IIG重复造轮子深度分析结果** ⭐ **2025-09-13最新**
+## 1. 目标（Outcome）
+- 为前端提供“按业务编码 code 返回组织全部版本（按生效日排序）”的查询能力，恢复时间轴多版本展示。
+- 保持 CQRS：查询走 GraphQL；命令走 REST。命名一致（camelCase），多租户隔离（X-Tenant-ID）。
 
-### **总体评估**: B+ 级别
+---
 
-#### **✅ 优秀表现**
-- **重复代码率**: 2.11% (远低于5%警戒线)
-- **Hook统一架构**: `useEnterpriseOrganizations` 主导，废弃Hook仅作兼容封装
-- **验证系统标准化**: 从分散验证整合为统一验证系统
-- **API客户端统一**: CQRS严格分离，统一客户端架构
-- **配置管理集中**: 端口配置单一真源，85+个常量集中管理
+## 2. GraphQL 契约（新增查询，推荐）
 
-#### **🚨 需要立即关注的问题**
-
-> 本次核验时间: 2025-09-13（基于本仓库当前代码与验证脚本输出）
-
-##### **1. 架构违规数量增长** - P1优先级
-- **问题**: 架构违规从25个增长到可能更多项
-- **核验结论**: 存在（数量显著高于25）
-- **证据**:
-  - 命令: `node scripts/quality/architecture-validator.js`
-  - 摘要: 验证文件 93，失败文件 13，问题总数 88；类型分布：端口违规 49、契约命名违规 37、CQRS 违规 2
-  - 报告: `reports/architecture/architecture-validation.json`
-  - 示例: `frontend/src/features/organizations/components/OrganizationForm/ValidationRules.ts`（snake_case 与端口硬编码）
-- **影响**: 架构一致性受威胁，可能导致系统稳定性问题
-- **行动**:
-  - 优先修复端口硬编码（统一替换为 `frontend/src/shared/config/ports.ts` 常量）
-  - 修正 snake_case → camelCase（如 parent_code → parentCode）
-  - 分批执行并验证: `node scripts/quality/architecture-validator.js --fix`
-
-##### **2. 废弃Hook的持续引用** - P1优先级
-- **问题**: `useOrganizations` 和 `useOrganization` 标记为DEPRECATED但可能仍有引用
-- **核验结论**: 存在（仍有业务代码引用 `useOrganizations`）
-- **证据**:
-  - 文件: `frontend/src/features/organizations/OrganizationDashboard.tsx` 存在 `import { useOrganizations } from '../../shared/hooks/useOrganizations'`
-  - 搜索: `rg -n --pcre2 "\buseOrganizations\b|\buseOrganization(?!s)\b" frontend/src`
-  - 废弃声明: `frontend/src/shared/hooks/useOrganizations.ts` 明确 DEPRECATED 替代为 `useEnterpriseOrganizations`
-- **风险**: 开发者误用废弃Hook，造成代码分裂和维护困难
-- **行动**:
-```bash
-# 检查废弃Hook引用
-grep -r "useOrganizations" frontend/src/
-grep -r "useOrganization[^s]" frontend/src/
-# 替换所有引用为 useEnterpriseOrganizations
+### 2.1 Query 定义（最小可用）
+- 名称：`organizationVersions`
+- 签名：
 ```
-
-##### **3. 验证系统双重实现** - P2优先级
-- **问题**: 新旧验证系统并存 (`validation/index.ts` vs `simple-validation.ts`)
-- **核验结论**: 旧文件仍在但当前无业务导入（仅注释/说明命中），属可清理遗留
-- **证据**:
-  - 新系统入口: `frontend/src/shared/validation/index.ts`（包含“不要使用 simple-validation.ts”警示）
-  - 旧文件存在: `frontend/src/shared/validation/simple-validation.ts`
-  - 搜索: `rg -n "simple-validation\.ts" frontend/src`（无业务导入命中）
-- **风险**: 长期保留可能被误用，导致验证不一致
-- **行动**:
-```bash
-# 检查simple-validation.ts的引用
-grep -r "simple-validation" frontend/src/
-# 迁移所有引用到统一验证系统
+organizationVersions(
+  code: String!,
+  includeDeleted: Boolean = false
+): [Organization!]!
 ```
+- 语义：返回指定 `code` 的全部版本（不分页），按 `effectiveDate` 升序；默认过滤 `status='DELETED'` 与 `deleted_at IS NULL`。
+- 权限：`org:read:history`
+
+### 2.2 字段与命名
+- 复用既有 `Organization` 类型（camelCase：`effectiveDate/endDate/isCurrent/...`）。
+- 仅在 Query 层组合，避免重复类型定义。
 
 ---
 
-## 📋 **立即行动计划** (本周内执行)
+## 3. 查询服务实现（后端）
 
-### **P1紧急修复项** 🚨
-1. **架构违规修复**
-   - 执行: 先手工修复高频问题（端口硬编码、snake_case），再运行 `node scripts/quality/architecture-validator.js --fix`
-   - 验证: 确认统计降至可接受范围（端口违规、契约命名、CQRS 三类均需归零）
-   - 监控: 建立架构违规自动检查
+### 3.1 位置
+- 查询侧（GraphQL Read）：`cmd/organization-query-service`
 
-2. **废弃代码清理**
-   - 搜索所有废弃Hook引用：`rg -n --pcre2 "\buseOrganizations\b|\buseOrganization(?!s)\b" frontend/src`
-   - 替换为 `useEnterpriseOrganizations`/`useOrganizationDetails`
-   - 测试确保功能正常
+### 3.2 数据访问（示意）
+- 过滤：`tenant_id = $tenant AND code = $code`
+  - `includeDeleted=false`：`status != 'DELETED' AND deleted_at IS NULL`
+  - `includeDeleted=true`：放开上述条件
+- 排序：`ORDER BY effective_date ASC`
+- 映射：DB snake_case → API camelCase（例如 `effective_date → effectiveDate`）。
 
-3. **验证系统统一**
-   - 确认无业务导入 `simple-validation.ts`
-   - 删除废弃验证文件并通过 CI
-   - 如需保留，增加 ESLint 规则禁止导入该文件（防回归）
-
-### **P2优化项** ⚠️ (2周内)
-1. **错误处理系统简化**
-   - 评估错误处理装饰器的功能重叠
-   - 简化装饰器链条，避免功能重复
-   - 统一错误处理策略
-
-2. **自动化检查建立**
-   - 添加废弃代码引用检查到CI/CD
-   - 建立重复功能自动检测
-   - 强化架构一致性验证
-
-### **P3持续维护项** 🟢 (持续)
-1. **持续监控机制**
-   - 定期运行 `generate-implementation-inventory.js`
-   - 建立重复代码趋势监控
-   - 维护IIG护卫系统效果指标
-
-2. **团队培训强化**
-   - 加强"现有资源优先"原则培训
-   - 建立新功能开发前强制检查流程
-   - 定期分享重复造轮子防范案例
+### 3.3 权限与隔离
+- 从 JWT/Header 解析 tenantId；
+- 校验 PBAC：`org:read:history`。
 
 ---
 
-## ✅ 本次修复进展 (2025-09-13)
+## 4. 前端改造（时间轴数据源切换）
 
-### 已完成（落实到代码）
-- 架构违规修复（第一轮，聚焦关键门禁项）
-  - 架构验证器优化：
-    - 端口检查仅在 URL/port 键值对场景触发，跳过注释/样式，消除误报（如 zIndex/日期）。
-    - CQRS 检查移除通用 `.get(` 误报，保留 `fetch()/axios.get()` 精确检测。
-    - 契约检查跳过注释行，避免注释中的 snake_case 被计入违规。
-  - 业务代码修复：
-    - PlannedOrganizationForm.tsx：`parent_code` → `parentCode`（类型、初始化、重置）。
-    - TimelineComponent.tsx：`business_status/data_status` → `businessStatus/dataStatus`（含所有引用与注释）。
-    - TemporalMasterDetailView.tsx：两处版本映射中的 `business_status/data_status` → `businessStatus/dataStatus`；提交/更新接口保持 `parentCode`。
-- 废弃 Hook 替换（第一处业务引用）
-  - OrganizationDashboard.tsx：`useOrganizations` → `useEnterpriseOrganizations`，并适配返回结构（`organizations/loading/error`）。
-- 验证系统统一（清理遗留）
-  - 删除未被业务导入的 `frontend/src/shared/validation/simple-validation.ts`。
+### 4.1 修改点
+- 文件：`frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`
+- `loadVersions` 由“单体快照 `organization(code)`”改为“列表查询 `organizationVersions(code)`”。
+- 将返回数组直接 map 为 `TimelineVersion[]`，按 `effectiveDate` ASC/或服务端已排序；选中当前版本 = “生效日 ≤ 今日”的最大者。
 
-### 复检结果（脚本：node scripts/quality/architecture-validator.js）
-- 最新结果：验证文件 92，全通过；问题总数 0；质量门禁通过。
-- 关键门禁：CQRS 0、端口 0、契约命名 0。
-- 报告路径：`reports/architecture/architecture-validation.json`。
+### 4.2 回退策略
+- 新查询不可用/返回空时，回退到现有“单体快照”逻辑，避免页面空白；但在 UI 上提示“历史列表不可用，展示当前快照”。
+
+### 4.3 交互与错误提示
+- 插入中间时点后调用 `loadVersions()`，应显示多条（旧版 endDate=新版本前一日；新版本；后续版本）。
+- 409 `TEMPORAL_POINT_CONFLICT`：提示“存在同一生效日记录，请选择非重复日期”。
+- 400 `INVALID_DATE_FORMAT`：提示“日期格式为 YYYY-MM-DD（如 2025-08-01）”。
 
 ---
 
-## 🎯 后续计划与里程碑（建议）
+## 5. 文档与治理（reference 对齐）
 
-### 里程碑 M-1：契约命名归零（已完成）
-- 结果：contracts=0，质量门禁通过；已修正 temporal 相关组件与类型（TimelineComponent、TemporalMasterDetailView、TemporalSettings、temporal.ts）。
-- 验收：本地脚本验证为零，变更已入库。
+### 5.1 实现清单（reference/02）
+- GraphQL 查询章节新增：`organizationVersions(code, includeDeleted)`（权限：`org:read:history`）。
+- 维护类 REST 端点（`refresh-hierarchy/batch-refresh-hierarchy/corehr/organizations`）标注“契约存在/未实现”，避免误导。
 
-### 里程碑 M-2：废弃 Hook 全量替换（1 工作日内）
-- 范围：全仓业务侧不再引用 `useOrganizations/useOrganization`。
-- 行动：
-  - 搜索并替换：`rg -n --pcre2 "\buseOrganizations\b|\buseOrganization(?!s)\b" frontend/src`。
-  - 测试/演示页如仍依赖临时封装，统一迁移到 `useEnterpriseOrganizations/useOrganizationDetails`。
-- 验收标准：
-  - 业务侧 0 引用；如需保留兼容封装，标注 `// TODO-TEMPORARY:` 并给出到期日。
-
-### 里程碑 M-3：文档/规则加固（0.5 工作日）
-- 行动：
-  - 在 ESLint/脚本中加入“禁止导入 simple-validation.ts”的规则（防回归）。
-  - 在 PR 模板“文档治理与目录边界”区补充“契约命名”自查项（前端改动必勾选）。
-- 验收标准：
-  - CI 在出现被禁导入时阻断；PR 模板新增项生效。
-
-### 统筹说明
-- 所有变更均遵循 CLAUDE.md 与 API 一致性规范（camelCase / `{code}`）。
-- 优先顺序：M-1 → M-2 → M-3；每个里程碑以独立 PR 合并，降低回归风险。
+### 5.2 API 使用指南（reference/03）
+- 新增“时态最佳实践与常见错误”：
+  - 中间时点插入：201 成功并重算；
+  - 重复时点：409 `TEMPORAL_POINT_CONFLICT`；
+  - 日期格式：强制 `YYYY-MM-DD`；
+  - 父组织：7 位且需存在（若提供）。
 
 ---
 
-## 🗂️ 本次提交清单与完成时间（2025-09-13）
+## 6. 验证与验收（手动，不新增脚本）
 
-### 代码变更清单（关键文件）
-- 契约命名归零（M-1）
-  - `frontend/src/features/temporal/components/PlannedOrganizationForm.tsx`（`parent_code` → `parentCode`）
-  - `frontend/src/features/temporal/components/TimelineComponent.tsx`（`business_status/data_status` → `businessStatus/dataStatus`）
-  - `frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`（映射字段同步 camelCase）
-  - `frontend/src/features/temporal/components/TemporalSettings.tsx`（事件枚举值改为 camelCase）
-  - `frontend/src/shared/types/temporal.ts`（EventType、ChangeInfo、BatchTemporalOperation 等类型字段改为 camelCase）
-
-- 废弃 Hook 替换（M-2）
-  - `frontend/src/features/organizations/OrganizationDashboard.tsx`（useOrganizations → useEnterpriseOrganizations）
-  - `frontend/src/components/__tests__/OrganizationDashboard.test.tsx`（mock 改为 useEnterpriseOrganizations）
-
-- 文档/规则加固（M-3）
-  - `frontend/eslint.config.js`（no-restricted-imports：禁止导入 `shared/hooks/useOrganizations`）
-  - `.github/pull_request_template.md`（新增“契约命名自查”项）
-
-- 架构验证器降误报（配合门禁）
-  - `scripts/quality/architecture-validator.js`（端口/CQRS/契约三处规则精修与白名单）
-
-- 清理遗留
-  - `frontend/src/shared/validation/simple-validation.ts`（已删除；业务侧无导入）
-
-### 完成时间
-- 2025-09-13 16:30-17:30（UTC+8）分两批提交完成，复检为 0 违规。
-
-
-## 🔍 **重复风险详细分析**
-
-### **高风险区域** 🔴
-#### **废弃Hook引用风险**
-```typescript
-// 🚨 高风险：这些Hook标记为废弃但可能仍有调用者
-useOrganizations  ← DEPRECATED，需彻底清理引用
-useOrganization   ← DEPRECATED，需彻底清理引用
-
-// ✅ 权威实现
-useEnterpriseOrganizations ← 唯一正确的Hook
+### 6.1 GraphQL 验收
+- 在 GraphQL Playground 执行：
 ```
-
-#### **验证系统分裂风险**
-```typescript
-// 🚨 高风险：双重验证系统并存
-validation/index.ts        ← 新统一系统 (正确)
-simple-validation.ts       ← 旧系统 (需要清理)
+query {
+  organizationVersions(code: "1000002") {
+    recordId code name status effectiveDate endDate isCurrent
+  }
+}
 ```
+- 期待：按生效日升序的多条版本；仅一条 `isCurrent=true`。
 
-### **中等风险区域** 🟡
-#### **错误处理复杂度**
-```typescript
-// ⚠️ 中风险：错误处理链条复杂，可能重复
-OAuthError, UserFriendlyError, ValidationError
-withErrorHandling, withOAuthRetry, withOAuthAwareErrorHandling
-```
+### 6.2 插入后验证
+- 执行 REST：POST `/api/v1/organization-units/{code}/versions` 插入 `2025-08-01`；
+- 再执行 `organizationVersions` 查询：出现 5/1、8/1、9/1 … 等多条，边界正确（旧版 endDate=新版本前一日）。
 
-### **低风险区域** 🟢
-#### **配置分散但合理**
-```typescript
-// ℹ️ 低风险：配置分散但用途明确
-ORGANIZATION_STATUSES     ← 表单配置
-STATUS_COLORS            ← 表格显示
-TEMPORAL_STATUS_COLORS   ← 时态状态
+### 6.3 错误场景
+- 重复时点：期望 409 `TEMPORAL_POINT_CONFLICT`；
+- 错误日期格式（如 2025/8/1）：期望 400 `INVALID_DATE_FORMAT`。
+
+---
+
+## 7. 迭代计划（渐进增强）
+
+### 7.1 第 1 步（最小）
+- GraphQL 新增 `organizationVersions`，查询服务实现 resolver；
+- 前端 `loadVersions` 切换至新查询（保留回退）。
+
+### 7.2 第 2 步（可选优化）
+- 新增 `organizationHistory(code, startDate, endDate, includeDeleted, pagination)`；
+- 前端支持按时间范围筛选/分页（当版本量较大时）。
+
+---
+
+## 8. 风险与回退
+- Schema 变更带来的前端类型不一致：避免新增复杂类型，直接复用 `Organization`；
+- 若查询临时不可用，维持现有“单体快照 + 提示”的回退，不影响核心操作。
+
+---
+
+## 9. 附：字段与错误速查
+- 字段约束：
+  - name：2–255；unitType：`DEPARTMENT|ORGANIZATION_UNIT|PROJECT_TEAM`；
+  - effectiveDate：`YYYY-MM-DD`；operationReason：5–500；
+  - parentCode（可选）：7 位且存在于当前租户。
+- 典型错误：
+```json
+// 400
+{ "code": "INVALID_DATE_FORMAT", "message": "生效日期格式无效" }
+// 409
+{ "code": "TEMPORAL_POINT_CONFLICT", "message": "生效日期与现有版本冲突" }
 ```
 
 ---
 
-## 📊 **IIG护卫系统成效统计**
+## 10. 附录（蓝图）：Schema 片段 + Resolver 伪代码 + 前端 loadVersions 伪代码
 
-### **重复防控成果** ✅
-- **代码重复率**: 2.11% ← 85%+ (96%改善)
-- **架构统一度**: 4个核心系统 ← 120+分散组件
-- **API一致性**: 100%契约遵循
-- **Hook统一**: 1个主Hook + 2个兼容封装 ← 7个分散Hook
+### 10.1 GraphQL Schema 片段（新增 Query）
+```graphql
+extend type Query {
+  """
+  Return all temporal versions for an organization code (ascending by effectiveDate).
+  Requires scope: org:read:history
+  """
+  organizationVersions(
+    code: String!
+    includeDeleted: Boolean = false
+  ): [Organization!]!
+}
+```
 
-### **质量门禁集成** ✅
-- **P3.1重复检测**: 自动化检测，2.11%重复率
-- **P3.2架构验证**: 25个违规已识别并追踪
-- **P3.3文档同步**: 每日09:00自动检查
-- **CI/CD集成**: 100%质量门禁自动化
+### 10.2 Resolver 伪代码（查询服务 / Go）
+```go
+// Resolver: organizationVersions
+func (r *queryResolver) OrganizationVersions(ctx context.Context, code string, includeDeleted *bool) ([]*model.Organization, error) {
+  tenantID := auth.FromContext(ctx).TenantID // 从上下文解析多租户
+  incDel := false
+  if includeDeleted != nil { incDel = *includeDeleted }
 
----
+  // 构建 SQL
+  qb := sqlBuilder.Select(
+    "record_id", "code", "name", "unit_type", "status", "level", "path",
+    "sort_order", "description", "effective_date", "end_date",
+    "created_at", "updated_at", "parent_code", "tenant_id", "is_current",
+  ).From("organization_units").
+    Where("tenant_id = ? AND code = ?", tenantID, code)
 
-## 🛡️ **IIG护卫原则重申**
+  if !incDel {
+    qb = qb.Where("status != 'DELETED' AND deleted_at IS NULL")
+  }
 
-### **强制禁止事项** ❌
-- **跳过清单检查**: 不运行 `generate-implementation-inventory.js` 就开始开发
-- **忽视现有实现**: 发现可用资源仍重复创建相同功能
-- **功能未登记**: 新增API/Hook/组件后不更新实现清单
-- **违反护卫原则**: 忽视"现有资源优先"和"实现唯一性"原则
+  qb = qb.OrderBy("effective_date ASC")
 
-### **必须执行事项** ✅
-- **开发前强制检查**: 每次新功能开发前运行实现清单生成器
-- **现有资源优先**: 优先使用已有API/Hook/组件，禁止重复创建
-- **功能强制登记**: 新增功能后必须重新运行清单生成器验证
-- **质量门禁遵守**: 通过P3系统全套检查才能合并代码
+  rows, err := db.QueryContext(ctx, qb.SQL(), qb.Args()...)
+  if err != nil { return nil, err }
+  defer rows.Close()
 
----
+  var out []*model.Organization
+  for rows.Next() {
+    var rec dbOrg // 承载 snake_case 列
+    if err := rows.Scan(&rec.RecordID, &rec.Code, &rec.Name, &rec.UnitType, &rec.Status,
+      &rec.Level, &rec.Path, &rec.SortOrder, &rec.Description,
+      &rec.EffectiveDate, &rec.EndDate, &rec.CreatedAt, &rec.UpdatedAt,
+      &rec.ParentCode, &rec.TenantID, &rec.IsCurrent); err != nil {
+      return nil, err
+    }
+    out = append(out, mapToAPI(rec)) // 映射为 camelCase 的 GraphQL 类型
+  }
+  return out, nil
+}
+```
 
-## 🎯 **下一步重点工作**
+### 10.3 前端 loadVersions 伪代码（TypeScript/React）
+```ts
+// GraphQL 查询
+const QUERY = gql`
+  query OrganizationVersions($code: String!) {
+    organizationVersions(code: $code) {
+      recordId code name unitType status level
+      effectiveDate endDate isCurrent createdAt updatedAt parentCode description
+    }
+  }
+`;
 
-### **本周目标** (2025-09-13 ~ 2025-09-20)
-1. ✅ 完成IIG重复造轮子深度分析
-2. 🔄 修复架构违规问题 (P1)
-3. 🔄 清理废弃Hook引用 (P1)
-4. 🔄 统一验证系统 (P1)
-5. 📋 建立自动化架构检查 (P2)
+async function loadVersions(isRetry = false) {
+  try {
+    setIsLoading(true);
+    setLoadingError(null);
+    if (!isRetry) setRetryCount(0);
 
-### **近期目标** (2周内)
-1. 错误处理系统优化
-2. 重复功能自动检测增强
-3. 团队培训和规范强化
-4. IIG护卫系统效果评估
+    const data = await unifiedGraphQLClient.request<{ organizationVersions: Org[] }>(QUERY, { code: organizationCode });
+    const list = data?.organizationVersions ?? [];
+    const mapped: TimelineVersion[] = list.map(o => ({
+      recordId: o.recordId,
+      code: o.code,
+      name: o.name,
+      unitType: o.unitType,
+      status: o.status,
+      level: o.level,
+      effectiveDate: o.effectiveDate,
+      endDate: o.endDate ?? null,
+      isCurrent: o.isCurrent,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
+      parentCode: o.parentCode ?? undefined,
+      description: o.description ?? undefined,
+      lifecycleStatus: o.isCurrent ? 'CURRENT' : 'HISTORICAL',
+      businessStatus: o.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+      dataStatus: 'NORMAL',
+      path: '',
+      sortOrder: 1,
+      changeReason: '',
+    }));
+    const sorted = mapped.sort((a,b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+    setVersions(sorted);
+    setSelectedVersion(sorted.find(v => v.isCurrent) ?? sorted.at(-1) ?? null);
+  } catch (e) {
+    setLoadingError(e instanceof Error ? e.message : String(e));
+    // 回退：旧的单体快照逻辑（可选）
+    await loadSingleSnapshotFallback();
+  } finally {
+    setIsLoading(false);
+  }
+}
+```
 
-### **长期目标** (持续)
-1. 维护重复代码率<2%
-2. 架构一致性100%保持
-3. 新功能开发标准化流程
-4. 质量门禁持续优化
-
----
-
-## 🔗 **相关文档链接**
-
-### **IIG护卫系统**
-- **实现清单**: [docs/reference/02-IMPLEMENTATION-INVENTORY.md](../reference/02-IMPLEMENTATION-INVENTORY.md)
-- **IIG使用指南**: [docs/reference/05-iig-guardian-usage-guide.md](../reference/05-iig-guardian-usage-guide.md)
-- **P3防控系统**: [docs/reference/04-p3-defense-system-manual.md](../reference/04-p3-defense-system-manual.md)
-
-### **开发规范**
-- **项目指导原则**: [CLAUDE.md](../../CLAUDE.md)
-- **开发者快速参考**: [docs/reference/01-DEVELOPER-QUICK-REFERENCE.md](../reference/01-DEVELOPER-QUICK-REFERENCE.md)
-- **API使用指南**: [docs/reference/03-API-USAGE-GUIDE.md](../reference/03-API-USAGE-GUIDE.md)
-
-### **质量工具**
-- **清单生成器**: `node scripts/generate-implementation-inventory.js`
-- **架构验证器**: `node scripts/quality/architecture-validator.js`
-- **重复检测**: `bash scripts/quality/duplicate-detection.sh`
-
----
-
-## 📝 **变更记录**
-
-### **v2.0 IIG深度分析版 (2025-09-13)**
-- ✅ **重大更新**: 完成IIG重复造轮子深度分析
-- ✅ **问题识别**: 发现3个P1级问题需立即处理
-- ✅ **行动计划**: 制定详细的修复和优化计划
-- ✅ **监控加强**: IIG护卫系统持续监控机制
-
-### **v1.0 项目状态记录版 (历史)**
-- ✅ 项目基本状态记录
-- ✅ 团队协作进展跟踪
-
----
-
-**文档维护者**: IIG护卫系统 + 架构团队
-**护卫状态**: 🛡️ **活跃监控中**
-**下次检查**: 新功能开发前强制执行
-**质量承诺**: 零重复造轮子，架构一致性100%

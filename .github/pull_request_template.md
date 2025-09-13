@@ -15,6 +15,7 @@
 - [ ] 权限契约：相关端点权限已在 `docs/api/openapi.yaml` 定义并与实现一致
 - [ ] 测试与验证：包含必要单测/集成/契约测试或最小验证
 - [ ] 文档更新：READMEs/规范/变更日志已同步
+- [ ] 实现清单：已运行 `node scripts/generate-implementation-inventory.js`（报告：`reports/implementation-inventory.json`），并用其校对本次导出/端点变更
 
 ## 文档治理与目录边界（Reference vs Plans）
 

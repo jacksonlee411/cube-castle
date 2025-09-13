@@ -783,6 +783,63 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
 	return organizations, nil
 }
 
+// 组织版本查询 - 按计划规范实现，返回指定code的全部版本
+func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]Organization, error) {
+	start := time.Now()
+
+	// 构建查询 - 过滤条件：tenant_id = $tenant AND code = $code
+	baseQuery := `
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
+		       level, path, sort_order, description, profile, created_at, updated_at,
+		       effective_date, end_date, is_current, is_temporal, change_reason,
+		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
+		       hierarchy_depth, is_future
+		FROM organization_units
+		WHERE tenant_id = $1 AND code = $2`
+
+	args := []interface{}{tenantID.String(), code}
+
+	// includeDeleted=false: status != 'DELETED' AND deleted_at IS NULL
+	if !includeDeleted {
+		baseQuery += " AND status != 'DELETED' AND deleted_at IS NULL"
+	}
+
+	// 排序：ORDER BY effective_date ASC (按计划要求)
+	finalQuery := baseQuery + " ORDER BY effective_date ASC"
+
+	rows, err := r.db.QueryContext(ctx, finalQuery, args...)
+	if err != nil {
+		r.logger.Printf("[ERROR] 组织版本查询失败: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var organizations []Organization
+	for rows.Next() {
+		var org Organization
+		var isTemporal bool
+		err := rows.Scan(
+			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
+			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+			&org.HierarchyDepthField, &org.IsFutureField,
+		)
+		if err != nil {
+			r.logger.Printf("[ERROR] 扫描组织版本数据失败: %v", err)
+			return nil, err
+		}
+		organizations = append(organizations, org)
+	}
+
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] 组织版本查询 [%s] 返回 %d 条版本，耗时: %v", code, len(organizations), duration)
+
+	return organizations, nil
+}
+
 // 高级统计查询 - 利用PostgreSQL聚合优化
 func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*OrganizationStats, error) {
 	start := time.Now()
@@ -1335,16 +1392,23 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
     return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, args.FromDate, args.ToDate)
 }
 
-// 组织版本查询
+// 组织版本查询 - 按计划实现，支持includeDeleted参数
 func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
-    Code string
+    Code           string
+    IncludeDeleted *bool
 }) ([]Organization, error) {
     if err := r.authMW.CheckQueryPermission(ctx, "organizationVersions"); err != nil {
         r.logger.Printf("[AUTH] 权限拒绝: organizationVersions: %v", err)
         return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
     }
-    r.logger.Printf("[GraphQL] 版本查询 - code: %s", args.Code)
-    return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, "1900-01-01", "2099-12-31")
+
+    includeDeleted := false
+    if args.IncludeDeleted != nil {
+        includeDeleted = *args.IncludeDeleted
+    }
+
+    r.logger.Printf("[GraphQL] 版本查询 - code: %s, includeDeleted: %v", args.Code, includeDeleted)
+    return r.repo.GetOrganizationVersions(ctx, DefaultTenantID, args.Code, includeDeleted)
 }
 
 // 组织统计 (camelCase方法名)

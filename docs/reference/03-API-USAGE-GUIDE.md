@@ -251,6 +251,23 @@ query GetHistoricalOrganization {
 }
 ```
 
+#### 组织版本列表查询（建议新增）
+```graphql
+query OrganizationVersions($code: String!) {
+  organizationVersions(code: $code) {
+    recordId
+    code
+    name
+    unitType
+    status
+    effectiveDate
+    endDate
+    isCurrent
+  }
+}
+```
+说明：按生效日升序返回全部版本；仅一条 `isCurrent=true`；权限 `org:read:history`。
+
 ### 统计查询
 ```graphql
 query GetOrganizationStats($asOfDate: String, $includeHistorical: Boolean) {
@@ -509,6 +526,12 @@ const historicalOrg = await useOrganization({
 // ✅ 时态统计查询
 const stats = await useTemporalQueryStats({ includeHistorical: true });
 ```
+
+### 2.1 时态最佳实践与常见错误（重要）
+- 中间时点插入（REST）：POST `/api/v1/organization-units/{code}/versions` → 201 成功；链路自动重算。
+- 重复时点：409 `TEMPORAL_POINT_CONFLICT`（已存在相同 effectiveDate）。
+- 日期格式：强制 `YYYY-MM-DD`；`2025/8/1` 会触发 400 `INVALID_DATE_FORMAT`。
+- 版本列表（GraphQL）：使用 `organizationVersions(code)` 获取全部版本用于时间轴展示；只读。
 
 ### 3. 错误处理最佳实践
 ```typescript

@@ -133,10 +133,19 @@ type Query {
   auditLog(
     auditId: String!
   ): AuditLogDetail
-  
-  
+
+  """
+  Return all temporal versions for an organization code (ascending by effectiveDate).
+  Requires scope: org:read:history
+  """
+  organizationVersions(
+    code: String!
+    includeDeleted: Boolean
+  ): [Organization!]!
+
+
   # System Maintenance and Monitoring
-  
+
 # Hierarchy consistency check temporarily removed for startup
 }
 

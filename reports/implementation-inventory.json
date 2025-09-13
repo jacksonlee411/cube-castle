@@ -1,0 +1,942 @@
+{
+  "timestamp": "2025-09-13T10:58:41.599Z",
+  "summary": {
+    "openapiPaths": 10,
+    "graphqlQueries": 12,
+    "goHandlers": 25,
+    "goServices": 14,
+    "tsExports": 141
+  },
+  "openapiPaths": [
+    "/api/v1/organization-units",
+    "/api/v1/organization-units/{code}",
+    "/api/v1/organization-units/{code}/versions",
+    "/api/v1/organization-units/{code}/events",
+    "/api/v1/organization-units/{code}/suspend",
+    "/api/v1/organization-units/{code}/activate",
+    "/api/v1/organization-units/validate",
+    "/api/v1/organization-units/{code}/refresh-hierarchy",
+    "/api/v1/organization-units/batch-refresh-hierarchy",
+    "/api/v1/corehr/organizations"
+  ],
+  "graphqlQueries": [
+    "organizations",
+    "filter",
+    "pagination",
+    "organization",
+    "code",
+    "asOfDate",
+    "organizationStats",
+    "asOfDate",
+    "includeHistorical",
+    "organizationHierarchy",
+    "code",
+    "tenantId"
+  ],
+  "goHandlers": [
+    {
+      "name": "SetupRoutes",
+      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "GenerateDevToken",
+      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetTokenInfo",
+      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "DevStatus",
+      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "ListTestEndpoints",
+      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "DatabaseStatus",
+      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "PerformanceMetrics",
+      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "TestAPI",
+      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "SetupRoutes",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetHealth",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetMetrics",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetAlerts",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetTasks",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetTaskStatus",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "TriggerTask",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "TriggerCutover",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "TriggerConsistencyCheck",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateOrganization",
+      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateOrganizationVersion",
+      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateOrganization",
+      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "kind": "method"
+    },
+    {
+      "name": "SuspendOrganization",
+      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "kind": "method"
+    },
+    {
+      "name": "ActivateOrganization",
+      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateOrganizationEvent",
+      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateHistoryRecord",
+      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "kind": "method"
+    },
+    {
+      "name": "SetupRoutes",
+      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "kind": "method"
+    }
+  ],
+  "goServices": [
+    {
+      "name": "CascadeUpdateService",
+      "file": "cmd/organization-command-service/internal/services/cascade.go",
+      "kind": "type"
+    },
+    {
+      "name": "CascadeTask",
+      "file": "cmd/organization-command-service/internal/services/cascade.go",
+      "kind": "type"
+    },
+    {
+      "name": "OperationalScheduler",
+      "file": "cmd/organization-command-service/internal/services/operational_scheduler.go",
+      "kind": "type"
+    },
+    {
+      "name": "ScheduledTask",
+      "file": "cmd/organization-command-service/internal/services/operational_scheduler.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalService",
+      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "kind": "type"
+    },
+    {
+      "name": "InsertVersionRequest",
+      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "kind": "type"
+    },
+    {
+      "name": "OrganizationData",
+      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "kind": "type"
+    },
+    {
+      "name": "DeleteVersionRequest",
+      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "kind": "type"
+    },
+    {
+      "name": "ChangeEffectiveDateRequest",
+      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "kind": "type"
+    },
+    {
+      "name": "SuspendActivateRequest",
+      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "kind": "type"
+    },
+    {
+      "name": "VersionResponse",
+      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalMonitor",
+      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
+      "kind": "type"
+    },
+    {
+      "name": "MonitoringMetrics",
+      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
+      "kind": "type"
+    },
+    {
+      "name": "AlertRule",
+      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
+      "kind": "type"
+    }
+  ],
+  "tsExports": [
+    {
+      "name": "cubecastleBrandTokens",
+      "file": "frontend/src/design-system/tokens/brand.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateForm",
+      "file": "frontend/src/features/organizations/components/OrganizationForm/ValidationRules.ts",
+      "kind": "const"
+    },
+    {
+      "name": "ORGANIZATION_UNIT_TYPES",
+      "file": "frontend/src/features/organizations/constants/formConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "ORGANIZATION_STATUSES",
+      "file": "frontend/src/features/organizations/constants/formConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "BUSINESS_STATUSES",
+      "file": "frontend/src/features/organizations/constants/formConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "ORGANIZATION_LEVELS",
+      "file": "frontend/src/features/organizations/constants/formConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "FORM_DEFAULTS",
+      "file": "frontend/src/features/organizations/constants/formConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "PAGINATION_DEFAULTS",
+      "file": "frontend/src/features/organizations/constants/formConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TABLE_COLUMNS",
+      "file": "frontend/src/features/organizations/constants/tableConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "STATUS_COLORS",
+      "file": "frontend/src/features/organizations/constants/tableConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "LOADING_STATES",
+      "file": "frontend/src/features/organizations/constants/tableConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TEMPORAL_STATUS_COLORS",
+      "file": "frontend/src/features/temporal/constants/temporalStatus.ts",
+      "kind": "const"
+    },
+    {
+      "name": "temporalStatusUtils",
+      "file": "frontend/src/features/temporal/constants/temporalStatus.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TEMPORAL_CONSTANTS",
+      "file": "frontend/src/features/temporal/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "temporalUtils",
+      "file": "frontend/src/features/temporal/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateTemporalDate",
+      "file": "frontend/src/features/temporal/utils/temporalValidation.ts",
+      "kind": "const"
+    },
+    {
+      "name": "AuthManager",
+      "file": "frontend/src/shared/api/auth.ts",
+      "kind": "class"
+    },
+    {
+      "name": "authManager",
+      "file": "frontend/src/shared/api/auth.ts",
+      "kind": "const"
+    },
+    {
+      "name": "contractTestingAPI",
+      "file": "frontend/src/shared/api/contract-testing.ts",
+      "kind": "const"
+    },
+    {
+      "name": "APIErrorImpl",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "class"
+    },
+    {
+      "name": "OAuthError",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "class"
+    },
+    {
+      "name": "ErrorHandler",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "class"
+    },
+    {
+      "name": "UserFriendlyError",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "class"
+    },
+    {
+      "name": "isUserFriendlyError",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isOAuthError",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "const"
+    },
+    {
+      "name": "withErrorHandling",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useErrorHandler",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "const"
+    },
+    {
+      "name": "withRetry",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "const"
+    },
+    {
+      "name": "withOAuthRetry",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "const"
+    },
+    {
+      "name": "withOAuthAwareErrorHandling",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "const"
+    },
+    {
+      "name": "UnifiedErrorHandler",
+      "file": "frontend/src/shared/api/error-handling.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getErrorMessage",
+      "file": "frontend/src/shared/api/error-messages.ts",
+      "kind": "func"
+    },
+    {
+      "name": "formatErrorForUser",
+      "file": "frontend/src/shared/api/error-messages.ts",
+      "kind": "func"
+    },
+    {
+      "name": "SUCCESS_MESSAGES",
+      "file": "frontend/src/shared/api/error-messages.ts",
+      "kind": "const"
+    },
+    {
+      "name": "GraphQLEnterpriseAdapter",
+      "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts",
+      "kind": "class"
+    },
+    {
+      "name": "graphqlEnterpriseAdapter",
+      "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useEnterpriseGraphQL",
+      "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "ValidationError",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "class"
+    },
+    {
+      "name": "validateOrganizationUnit",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateCreateOrganizationInput",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateUpdateOrganizationInput",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateCreateOrganizationResponse",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateGraphQLVariables",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateGraphQLOrganizationResponse",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateGraphQLOrganizationList",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isGraphQLError",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isGraphQLSuccessResponse",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isAPIError",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isValidationError",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isNetworkError",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "safeTransformGraphQLToOrganizationUnit",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "safeTransformCreateInputToAPI",
+      "file": "frontend/src/shared/api/type-guards.ts",
+      "kind": "const"
+    },
+    {
+      "name": "UnifiedGraphQLClient",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "class"
+    },
+    {
+      "name": "UnifiedRESTClient",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "class"
+    },
+    {
+      "name": "unifiedGraphQLClient",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "const"
+    },
+    {
+      "name": "unifiedRESTClient",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createGraphQLClient",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createRESTClient",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateCQRSUsage",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TIMEOUTS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "LIMITS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "BUSINESS_CONSTANTS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "UI_CONSTANTS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "API_CONSTANTS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TEST_CONSTANTS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "RETRY_CONSTANTS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "VALIDATION_CONSTANTS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "FEATURE_FLAGS",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "generateConstantsReport",
+      "file": "frontend/src/shared/config/constants.ts",
+      "kind": "const"
+    },
+    {
+      "name": "env",
+      "file": "frontend/src/shared/config/environment.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateEnvironmentConfig",
+      "file": "frontend/src/shared/config/environment.ts",
+      "kind": "const"
+    },
+    {
+      "name": "Config",
+      "file": "frontend/src/shared/config/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "CONFIG_MANAGEMENT_STATS",
+      "file": "frontend/src/shared/config/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "SERVICE_PORTS",
+      "file": "frontend/src/shared/config/ports.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getServicePort",
+      "file": "frontend/src/shared/config/ports.ts",
+      "kind": "const"
+    },
+    {
+      "name": "buildServiceURL",
+      "file": "frontend/src/shared/config/ports.ts",
+      "kind": "const"
+    },
+    {
+      "name": "CQRS_ENDPOINTS",
+      "file": "frontend/src/shared/config/ports.ts",
+      "kind": "const"
+    },
+    {
+      "name": "FRONTEND_ENDPOINTS",
+      "file": "frontend/src/shared/config/ports.ts",
+      "kind": "const"
+    },
+    {
+      "name": "INFRASTRUCTURE_ENDPOINTS",
+      "file": "frontend/src/shared/config/ports.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validatePortConfiguration",
+      "file": "frontend/src/shared/config/ports.ts",
+      "kind": "const"
+    },
+    {
+      "name": "generatePortConfigReport",
+      "file": "frontend/src/shared/config/ports.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TenantManager",
+      "file": "frontend/src/shared/config/tenant.ts",
+      "kind": "class"
+    },
+    {
+      "name": "DEFAULT_TENANT_CONFIG",
+      "file": "frontend/src/shared/config/tenant.ts",
+      "kind": "const"
+    },
+    {
+      "name": "tenantManager",
+      "file": "frontend/src/shared/config/tenant.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getCurrentTenantId",
+      "file": "frontend/src/shared/config/tenant.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isDefaultTenant",
+      "file": "frontend/src/shared/config/tenant.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getTenantConfig",
+      "file": "frontend/src/shared/config/tenant.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useEnterpriseOrganizations",
+      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useMessages",
+      "file": "frontend/src/shared/hooks/useMessages.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreateOrganization",
+      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useUpdateOrganization",
+      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useSuspendOrganization",
+      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useActivateOrganization",
+      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useOrganizations",
+      "file": "frontend/src/shared/hooks/useOrganizations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useOrganization",
+      "file": "frontend/src/shared/hooks/useOrganizations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useTemporalHealth",
+      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
+      "kind": "func"
+    },
+    {
+      "name": "useTemporalAsOfDateQuery",
+      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
+      "kind": "func"
+    },
+    {
+      "name": "useTemporalDateRangeQuery",
+      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
+      "kind": "func"
+    },
+    {
+      "name": "useTemporalQueryUtils",
+      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
+      "kind": "func"
+    },
+    {
+      "name": "useTemporalQueryStats",
+      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
+      "kind": "func"
+    },
+    {
+      "name": "TemporalDateUtils",
+      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
+      "kind": "const"
+    },
+    {
+      "name": "ValidationError",
+      "file": "frontend/src/shared/types/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isGraphQLResponse",
+      "file": "frontend/src/shared/types/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "hasGraphQLErrors",
+      "file": "frontend/src/shared/types/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isAPIError",
+      "file": "frontend/src/shared/types/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isValidationError",
+      "file": "frontend/src/shared/types/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "convertGraphQLToOrganizationUnit",
+      "file": "frontend/src/shared/types/converters.ts",
+      "kind": "func"
+    },
+    {
+      "name": "convertGraphQLToTemporalOrganizationUnit",
+      "file": "frontend/src/shared/types/converters.ts",
+      "kind": "func"
+    },
+    {
+      "name": "convertCreateInputToREST",
+      "file": "frontend/src/shared/types/converters.ts",
+      "kind": "func"
+    },
+    {
+      "name": "convertUpdateInputToREST",
+      "file": "frontend/src/shared/types/converters.ts",
+      "kind": "func"
+    },
+    {
+      "name": "checkTypeConsistency",
+      "file": "frontend/src/shared/types/converters.ts",
+      "kind": "func"
+    },
+    {
+      "name": "generateTypeDefinition",
+      "file": "frontend/src/shared/types/converters.ts",
+      "kind": "func"
+    },
+    {
+      "name": "logTypeSyncReport",
+      "file": "frontend/src/shared/types/converters.ts",
+      "kind": "func"
+    },
+    {
+      "name": "TYPE_USAGE_GUIDE",
+      "file": "frontend/src/shared/types/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "baseColors",
+      "file": "frontend/src/shared/utils/colorTokens.ts",
+      "kind": "const"
+    },
+    {
+      "name": "statusColors",
+      "file": "frontend/src/shared/utils/colorTokens.ts",
+      "kind": "const"
+    },
+    {
+      "name": "legacyColors",
+      "file": "frontend/src/shared/utils/colorTokens.ts",
+      "kind": "const"
+    },
+    {
+      "name": "DateUtils",
+      "file": "frontend/src/shared/utils/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TEMPORAL_UTILS_INFO",
+      "file": "frontend/src/shared/utils/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "normalizeParentCode",
+      "file": "frontend/src/shared/utils/organization-helpers.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isRootOrganization",
+      "file": "frontend/src/shared/utils/organization-helpers.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getOrganizationLevelText",
+      "file": "frontend/src/shared/utils/organization-helpers.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getOperationPermissionsByScopes",
+      "file": "frontend/src/shared/utils/organizationPermissions.ts",
+      "kind": "func"
+    },
+    {
+      "name": "getOperationPermissions",
+      "file": "frontend/src/shared/utils/organizationPermissions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "STATUS_CONFIG",
+      "file": "frontend/src/shared/utils/statusUtils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "statusUtils",
+      "file": "frontend/src/shared/utils/statusUtils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TemporalConverter",
+      "file": "frontend/src/shared/utils/temporal-converter.ts",
+      "kind": "class"
+    },
+    {
+      "name": "TemporalUtils",
+      "file": "frontend/src/shared/utils/temporal-converter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "VALIDATION_SYSTEM_INFO",
+      "file": "frontend/src/shared/validation/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "OrganizationUnitSchema",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "TemporalFormSchema",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "CreateOrganizationInputSchema",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "CreateOrganizationResponseSchema",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "UpdateOrganizationInputSchema",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "GraphQLVariablesSchema",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "GraphQLOrganizationResponseSchema",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "ValidationUtils",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateCreateOrganizationInput",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateUpdateOrganizationInput",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateOrganizationResponse",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateForm",
+      "file": "frontend/src/shared/validation/schemas.ts",
+      "kind": "const"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Cube Castle 实现清单（Implementation Inventory）
 
-版本: v1.6 组织列表数据显示修复版  
+版本: v1.6.1 文档一致性修订版  
 维护人: 架构组（与各子域模块共同维护）  
 范围: 本仓库已实现的 API/函数/接口（按 CQRS 与目录分区）  
 最后更新: 2025-09-13 (修复useEnterpriseOrganizations初始化逻辑和TemporalMasterDetailView查询问题)
@@ -15,14 +15,14 @@
 
 **用途**: 自动扫描项目实现状态，生成最新清单，防止重复造轮子
 
-#### 🚀 **使用方法**
+#### 🚀 **使用方法（本页需以脚本输出为准进行校对）**
 ```bash
 # 查看当前实现清单（强制开发前检查）
 node scripts/generate-implementation-inventory.js
 
-# 生成最新清单并更新文档
+# 生成最新清单（校对用）
 node scripts/generate-implementation-inventory.js > temp-inventory.md
-# 手动复制更新内容到本文档相应章节
+# 对比后再更新本文档；禁止凭记忆填写规模/路径/行号
 ```
 
 #### 📊 **扫描能力覆盖**
@@ -67,6 +67,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - **API优先验证**: 新增端点前必须先更新API契约，通过契约测试后再实现代码
 - **粒度控制**: 收录"对外可复用/可调用"的导出符号（exported/public）；内部私有函数不在本表（Public symbols only）
 - **更新时机**: 每次合并涉及新端点/导出函数，需同步更新本清单（Update on merge）
+ - **诚实与唯一性**: 规模/性能数据与路径引用必须可复现（脚本/报告为证）；同一能力只在一个权威位置登记，避免重复与冲突。
 
 ---
 
@@ -91,44 +92,44 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `/api/v1/organization-units` ⭐ **API优先设计典范**
   - 中文: 创建组织单元（自动生成代码，级联路径初始化）
   - EN: Create organization unit (auto code, initialize hierarchy)
-  - API规范: `docs/api/openapi.yaml` 第85-120行定义
-  - 实现: `cmd/organization-command-service/internal/handlers/organization.go: CreateOrganization`
+  - 契约: `docs/api/openapi.yaml`（operationId: CreateOrganizationUnit）
+  - 实现: 以契约为准；实现路径随模块演进变更，参考后端服务目录或生成器报告
   - **API优先流程**: 规范定义 → 契约测试 → 代码实现 → 集成验证
 
 - `/api/v1/organization-units/{code}`
   - 中文: 完全替换组织单元（PUT 语义，字段全量）
   - EN: Replace organization unit (full PUT semantics)
-  - 实现: `handlers/organization.go: UpdateOrganization`
+  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
 
 - `/api/v1/organization-units/{code}/versions`
   - 中文: 为既有组织创建新的时态版本（自动相邻边界调整）
   - EN: Create temporal version for existing org (adjacent boundary updates)
-  - 实现: `handlers/organization.go: CreateOrganizationVersion`
+  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
 
 - `/api/v1/organization-units/{code}/events`
   - 中文: 时态事件处理（如按 recordId 作废版本）
   - EN: Temporal event processing (e.g., deactivate by recordId)
-  - 实现: `handlers/organization.go: CreateOrganizationEvent`
+  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
 
 - `/api/v1/organization-units/{code}/suspend`
   - 中文: 业务停用（强制 status=INACTIVE，记录原因）
   - EN: Suspend organization (force status=INACTIVE)
-  - 实现: `handlers/organization.go: SuspendOrganization`
+  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
 
 - `/api/v1/organization-units/{code}/activate`
   - 中文: 业务启用（反向操作，恢复为 ACTIVE）
   - EN: Activate organization (reactivate back to ACTIVE)
-  - 实现: `handlers/organization.go: ActivateOrganization`
+  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
 
 - `/api/v1/organization-units/validate`
   - 中文: 操作前校验（规则检查/建议/告警）
   - EN: Pre-operation validation (rules, suggestions, warnings)
-  - 实现: `handlers/organization.go` 校验逻辑
+  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
 
 - `/api/v1/organization-units/{code}/refresh-hierarchy`
   - 中文: 单个组织层级修复（维护用途，非业务路径）
   - EN: Manual hierarchy refresh for one org (maintenance)
-  - 实现: `internal/services/cascade.go` + `handlers/organization.go`
+  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
 
 - `/api/v1/organization-units/batch-refresh-hierarchy`
   - 中文: 批量层级修复（迁移/修复场景）
@@ -138,7 +139,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `/api/v1/corehr/organizations`
   - 中文: CoreHR 兼容层端点（受控暴露）
   - EN: CoreHR compatibility endpoint (controlled exposure)
-  - 实现: `handlers/organization.go`
+  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
 
 ### 系统管理端点
 - `/health` - 健康检查 → `internal/handlers/operational.go: GetHealth`
@@ -175,7 +176,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `organization(code, asOfDate): Organization`
   - 中文: 按业务编码查询单个组织（支持 asOfDate）
   - EN: Fetch organization by business code (with asOfDate)
-  - 实现: 时态点查询，复合主键 (code, effective_date) 优化
+  - 实现: 时态点查询（DB层字段如 effective_date 为数据库列名，API 层一律使用 camelCase: effectiveDate）
 
 - `organizationStats(asOfDate, includeHistorical): OrganizationStats!`
   - 中文: 组织统计（时态维度统计）
@@ -185,7 +186,14 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `organizationHierarchy(code, tenantId): OrganizationHierarchy`
   - 中文: 完整层级信息（路径、关系、属性）
   - EN: Complete hierarchy info with paths and relations
-  - 实现: 层级路径查询，利用 `code_path` 索引
+  - 实现: 层级路径查询（DB层可能涉及 code_path 等列名；API 层保持 camelCase: codePath）
+
+### 建议新增查询（用于版本列表展示）
+- `organizationVersions(code: String!, includeDeleted: Boolean = false): [Organization!]!`
+  - 中文: 按组织编码返回全部时态版本（按生效日升序；默认过滤已删除）
+  - EN: Return all temporal versions for a code, ascending by effectiveDate
+  - 权限: `org:read:history`
+  - 说明: 复用 Organization 类型；仅 Query 层组合
 
 ### GraphQL Schema实际字段扫描
 基于 `docs/api/schema.graphql` 文件识别的查询字段：
@@ -202,16 +210,28 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ### 实现架构说明
 - **PostgreSQL原生**: 直接查询PostgreSQL，无中间数据同步层
-- **时态优化**: 26个专用时态索引，查询响应时间1.5-8ms
+- **时态优化**: 基于专用时态索引（数量以数据库实际为准），查询响应时间以最新性能报告为准
 - **CQRS严格分离**: 查询专用GraphQL端点，与REST命令端点完全分离
 - **统一认证**: JWT/OAuth校验，tenant-aware查询
 
 ---
 
+## 🔎 验证命令与报告路径
+
+- 生成实现清单（校对用）
+  - `node scripts/generate-implementation-inventory.js > temp-inventory.md`
+- 架构一致性校验
+  - `node scripts/quality/architecture-validator.js`（报告：`reports/architecture/architecture-validation.json`）
+- 契约文件权威位置
+  - REST OpenAPI: `docs/api/openapi.yaml`
+  - GraphQL Schema: `docs/api/schema.graphql`
+
+---
+
 ## 后端（Go）关键导出（Key Exported Items）
 
-### 处理器（Handlers） - 26个导出方法
-基于实际代码扫描结果：
+### 处理器（Handlers）
+注：以下为能力职责映射，当前仓库以契约为准；若本仓库未包含对应 Go 文件，请以 API 契约与生成器报告为准。
 
 #### 组织业务处理器 (`organization.go`)
 - `SetupRoutes` - 路由设置
@@ -798,4 +818,3 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
   - 新增: 26个Go处理器和14个服务类型
   - 新增: 重复造轮子风险分析和防范指导
   - 新增: 统计摘要和架构成熟度评估
-
