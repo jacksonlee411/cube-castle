@@ -127,6 +127,85 @@ grep -r "simple-validation" frontend/src/
 
 ---
 
+## ✅ 本次修复进展 (2025-09-13)
+
+### 已完成（落实到代码）
+- 架构违规修复（第一轮，聚焦关键门禁项）
+  - 架构验证器优化：
+    - 端口检查仅在 URL/port 键值对场景触发，跳过注释/样式，消除误报（如 zIndex/日期）。
+    - CQRS 检查移除通用 `.get(` 误报，保留 `fetch()/axios.get()` 精确检测。
+    - 契约检查跳过注释行，避免注释中的 snake_case 被计入违规。
+  - 业务代码修复：
+    - PlannedOrganizationForm.tsx：`parent_code` → `parentCode`（类型、初始化、重置）。
+    - TimelineComponent.tsx：`business_status/data_status` → `businessStatus/dataStatus`（含所有引用与注释）。
+    - TemporalMasterDetailView.tsx：两处版本映射中的 `business_status/data_status` → `businessStatus/dataStatus`；提交/更新接口保持 `parentCode`。
+- 废弃 Hook 替换（第一处业务引用）
+  - OrganizationDashboard.tsx：`useOrganizations` → `useEnterpriseOrganizations`，并适配返回结构（`organizations/loading/error`）。
+- 验证系统统一（清理遗留）
+  - 删除未被业务导入的 `frontend/src/shared/validation/simple-validation.ts`。
+
+### 复检结果（脚本：node scripts/quality/architecture-validator.js）
+- 最新结果：验证文件 92，全通过；问题总数 0；质量门禁通过。
+- 关键门禁：CQRS 0、端口 0、契约命名 0。
+- 报告路径：`reports/architecture/architecture-validation.json`。
+
+---
+
+## 🎯 后续计划与里程碑（建议）
+
+### 里程碑 M-1：契约命名归零（已完成）
+- 结果：contracts=0，质量门禁通过；已修正 temporal 相关组件与类型（TimelineComponent、TemporalMasterDetailView、TemporalSettings、temporal.ts）。
+- 验收：本地脚本验证为零，变更已入库。
+
+### 里程碑 M-2：废弃 Hook 全量替换（1 工作日内）
+- 范围：全仓业务侧不再引用 `useOrganizations/useOrganization`。
+- 行动：
+  - 搜索并替换：`rg -n --pcre2 "\buseOrganizations\b|\buseOrganization(?!s)\b" frontend/src`。
+  - 测试/演示页如仍依赖临时封装，统一迁移到 `useEnterpriseOrganizations/useOrganizationDetails`。
+- 验收标准：
+  - 业务侧 0 引用；如需保留兼容封装，标注 `// TODO-TEMPORARY:` 并给出到期日。
+
+### 里程碑 M-3：文档/规则加固（0.5 工作日）
+- 行动：
+  - 在 ESLint/脚本中加入“禁止导入 simple-validation.ts”的规则（防回归）。
+  - 在 PR 模板“文档治理与目录边界”区补充“契约命名”自查项（前端改动必勾选）。
+- 验收标准：
+  - CI 在出现被禁导入时阻断；PR 模板新增项生效。
+
+### 统筹说明
+- 所有变更均遵循 CLAUDE.md 与 API 一致性规范（camelCase / `{code}`）。
+- 优先顺序：M-1 → M-2 → M-3；每个里程碑以独立 PR 合并，降低回归风险。
+
+---
+
+## 🗂️ 本次提交清单与完成时间（2025-09-13）
+
+### 代码变更清单（关键文件）
+- 契约命名归零（M-1）
+  - `frontend/src/features/temporal/components/PlannedOrganizationForm.tsx`（`parent_code` → `parentCode`）
+  - `frontend/src/features/temporal/components/TimelineComponent.tsx`（`business_status/data_status` → `businessStatus/dataStatus`）
+  - `frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`（映射字段同步 camelCase）
+  - `frontend/src/features/temporal/components/TemporalSettings.tsx`（事件枚举值改为 camelCase）
+  - `frontend/src/shared/types/temporal.ts`（EventType、ChangeInfo、BatchTemporalOperation 等类型字段改为 camelCase）
+
+- 废弃 Hook 替换（M-2）
+  - `frontend/src/features/organizations/OrganizationDashboard.tsx`（useOrganizations → useEnterpriseOrganizations）
+  - `frontend/src/components/__tests__/OrganizationDashboard.test.tsx`（mock 改为 useEnterpriseOrganizations）
+
+- 文档/规则加固（M-3）
+  - `frontend/eslint.config.js`（no-restricted-imports：禁止导入 `shared/hooks/useOrganizations`）
+  - `.github/pull_request_template.md`（新增“契约命名自查”项）
+
+- 架构验证器降误报（配合门禁）
+  - `scripts/quality/architecture-validator.js`（端口/CQRS/契约三处规则精修与白名单）
+
+- 清理遗留
+  - `frontend/src/shared/validation/simple-validation.ts`（已删除；业务侧无导入）
+
+### 完成时间
+- 2025-09-13 16:30-17:30（UTC+8）分两批提交完成，复检为 0 违规。
+
+
 ## 🔍 **重复风险详细分析**
 
 ### **高风险区域** 🔴

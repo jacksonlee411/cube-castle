@@ -212,8 +212,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           description: organization.description,
           // 添加组件需要的字段
           lifecycleStatus: !organization.isFuture ? 'CURRENT' as const : 'HISTORICAL' as const,
-          business_status: organization.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-          data_status: 'NORMAL' as const,
+          businessStatus: organization.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+          dataStatus: 'NORMAL' as const,
           path: '', // 临时字段，组件中需要
           sortOrder: 1, // 临时字段，组件中需要
           changeReason: '' // 临时字段，组件中需要
@@ -300,8 +300,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           parentCode: (v.parentCode as string) || undefined,
           description: (v.description as string) || undefined,
           lifecycleStatus: v.isCurrent ? 'CURRENT' : 'HISTORICAL',
-          business_status: v.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-          data_status: 'NORMAL',
+          businessStatus: v.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+          dataStatus: 'NORMAL',
           path: '',
           sortOrder: 1,
           changeReason: '',

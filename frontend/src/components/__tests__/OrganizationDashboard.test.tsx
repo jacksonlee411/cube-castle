@@ -6,27 +6,22 @@ import { CanvasProvider } from '@workday/canvas-kit-react/common';
 import { vi } from 'vitest';
 
 // Mock the API hooks first
-vi.mock('../../shared/hooks/useOrganizations', () => ({
-  useOrganizations: () => ({
-    data: {
-      organizations: [
-        {
-          code: 'TECH001',
-          name: '技术部',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
-          level: 1,
-          path: '/TECH001',
-          sortOrder: 1,
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z'
-        }
-      ],
-      totalCount: 1,
-      page: 1,
-      pageSize: 10
-    },
-    isLoading: false,
+vi.mock('../../shared/hooks/useEnterpriseOrganizations', () => ({
+  useEnterpriseOrganizations: () => ({
+    organizations: [
+      {
+        code: 'TECH001',
+        name: '技术部',
+        unitType: 'DEPARTMENT',
+        status: 'ACTIVE',
+        level: 1,
+        path: '/TECH001',
+        sortOrder: 1,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z'
+      }
+    ],
+    loading: false,
     error: null
   })
 }));

@@ -52,6 +52,12 @@ export default tseslint.config([
               name: 'axios',
               message: '🚨 架构违规：禁止直接使用axios调用内部API。请使用unifiedRESTClient或unifiedGraphQLClient。'
             }
+          ],
+          patterns: [
+            {
+              group: ['**/shared/hooks/useOrganizations', '**/shared/hooks/useOrganizations.ts'],
+              message: '🚨 兼容封装已废弃：请使用 useEnterpriseOrganizations / useOrganizationDetails。'
+            }
           ]
         }
       ],

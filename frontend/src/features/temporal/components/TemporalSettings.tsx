@@ -54,14 +54,14 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
 
   // 事件类型选项
   const eventTypeOptions: { value: EventType; label: string }[] = [
-    { value: 'organization_created', label: '创建' },
-    { value: 'organization_updated', label: '更新' },
-    { value: 'organization_deleted', label: '删除' },
-    { value: 'status_changed', label: '状态变更' },
-    { value: 'hierarchy_changed', label: '层级变更' },
-    { value: 'metadata_updated', label: '元数据更新' },
-    { value: 'planned_change', label: '计划变更' },
-    { value: 'change_cancelled', label: '取消变更' }
+    { value: 'organizationCreated', label: '创建' },
+    { value: 'organizationUpdated', label: '更新' },
+    { value: 'organizationDeleted', label: '删除' },
+    { value: 'statusChanged', label: '状态变更' },
+    { value: 'hierarchyChanged', label: '层级变更' },
+    { value: 'metadataUpdated', label: '元数据更新' },
+    { value: 'plannedChange', label: '计划变更' },
+    { value: 'changeCancelled', label: '取消变更' }
   ];
 
   // 更新本地参数

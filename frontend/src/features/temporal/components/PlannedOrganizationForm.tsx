@@ -17,7 +17,7 @@ export interface PlannedOrganizationData {
   effectiveDate: string;
   endDate?: string;
   changeReason: string;
-  parent_code?: string;
+  parentCode?: string;
 }
 
 export interface PlannedOrganizationFormProps {
@@ -54,7 +54,7 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
     effectiveDate: '',
     endDate: '',
     changeReason: '',
-    parent_code: parentOrganization?.code,
+    parentCode: parentOrganization?.code,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -80,7 +80,7 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
       effectiveDate: '',
       endDate: '',
       changeReason: '',
-      parent_code: parentOrganization?.code,
+      parentCode: parentOrganization?.code,
     });
     setErrors({});
   }, [parentOrganization?.code]);

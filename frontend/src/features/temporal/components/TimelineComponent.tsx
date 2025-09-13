@@ -36,8 +36,8 @@ export interface TimelineVersion {
   
   // 五状态生命周期管理字段
   lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED'; // 生命周期状态
-  business_status: 'ACTIVE' | 'INACTIVE'; // 业务状态
-  data_status: 'NORMAL' | 'DELETED'; // 数据状态
+  businessStatus: 'ACTIVE' | 'INACTIVE'; // 业务状态
+  dataStatus: 'NORMAL' | 'DELETED'; // 数据状态
   suspended_at?: string | null; // 停用时间
   suspended_by?: string | null; // 停用者
   suspension_reason?: string | null; // 停用原因
@@ -95,7 +95,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
   // 获取版本状态指示器 - 基于五状态生命周期管理系统
   const getVersionStatusIndicator = (version: TimelineVersion) => {
     // 1. 软删除状态（优先级最高）
-    if (version.data_status === 'DELETED') {
+    if (version.dataStatus === 'DELETED') {
       return { 
         color: colors.cinnamon600, 
         dotColor: colors.cinnamon600, 
@@ -106,7 +106,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
     }
     
     // 2. 业务停用状态
-    if (version.business_status === 'INACTIVE') {
+    if (version.businessStatus === 'INACTIVE') {
       return { 
         color: colors.cantaloupe600, 
         dotColor: colors.cantaloupe600, 
@@ -162,8 +162,8 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
   const formatDateRange = (version: TimelineVersion, allVersions: TimelineVersion[]) => {
     const start = formatDate(version.effectiveDate);
     
-    // 优先检查删除状态（通过data_status字段）
-    if (version.data_status === 'DELETED') {
+    // 优先检查删除状态（通过dataStatus字段）
+    if (version.dataStatus === 'DELETED') {
       return `${start} ~ 已删除`;
     }
     
@@ -176,7 +176,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
     // 找到下一个生效日期更晚的版本（排除已删除的版本）
     const nextVersion = allVersions
       .filter(v => new Date(v.effectiveDate) > new Date(version.effectiveDate))
-      .filter(v => v.data_status !== 'DELETED')
+      .filter(v => v.dataStatus !== 'DELETED')
       .sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime())[0];
     
     if (nextVersion) {

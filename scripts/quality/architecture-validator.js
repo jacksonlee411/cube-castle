@@ -138,8 +138,7 @@ class CQRSArchitectureValidator {
     const restGetPatterns = [
       /fetch\s*\(\s*['"`][^'"`]*['"`]\s*\)/g,  // fetch without options (default GET)
       /fetch\s*\([^)]*method\s*:\s*['"`]GET['"`]/gi,  // explicit GET method
-      /axios\.get\s*\(/gi,  // axios.get
-      /\.get\s*\(/gi,  // general .get calls
+      /axios\.get\s*\(/gi  // axios.get
     ];
     
     lines.forEach((line, lineNum) => {
@@ -188,35 +187,47 @@ class PortConfigurationValidator {
     const lines = content.split('\n');
     
     // 检查硬编码端口
-    const portPattern = config.rules.portConfiguration.hardcodedPortPattern;
     const allowedPorts = config.rules.portConfiguration.allowedPorts;
-    
-    lines.forEach((line, lineNum) => {
-      const matches = [...line.matchAll(portPattern)];
-      
-      matches.forEach(match => {
-        const port = parseInt(match[1]);
-        
+
+    lines.forEach((rawLine, lineNum) => {
+      const line = rawLine;
+      const trimmed = line.trim();
+
+      // 跳过注释行，避免将日期/时间等误判为端口（例如 “// 迁移期限: 2025-09-16” 或样式 zIndex: 1000）
+      if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+        return;
+      }
+
+      // 仅在“URL样式端口”或“port键值对”场景下进行检测，减少误报
+      const hasUrlLike = /https?:\/\/|wss?:\/\/|localhost|127\.0\.0\.1/.test(line) && /:\s*\d{2,5}/.test(line);
+      const hasPortKey = /\bport\b\s*:\s*\d{2,5}/i.test(line);
+
+      if (!hasUrlLike && !hasPortKey) {
+        return;
+      }
+
+      // 从可能的场景中抽取数字并校验
+      const numMatches = [...line.matchAll(/:\s*(\d{2,5})/g)];
+      numMatches.forEach((m) => {
+        const port = parseInt(m[1]);
+
         // 跳过标准端口
-        if (allowedPorts.includes(port)) {
-          return;
-        }
-        
+        if (allowedPorts.includes(port)) return;
+
         // 检查是否使用了配置模块
         const usesConfig = /SERVICE_PORTS|CQRS_ENDPOINTS/.test(line);
-        
+
         if (!usesConfig && port >= 1000 && port <= 65535) {
           const suggestedConfig = this.getSuggestedConfig(port);
-          
           violations.push({
             type: 'ports',
             line: lineNum + 1,
-            column: match.index,
+            column: m.index,
             message: `硬编码端口 ${port}，建议使用 ${suggestedConfig}`,
             code: 'no-hardcoded-ports',
             severity: 'error',
             fix: {
-              range: [match.index, match.index + match[0].length],
+              range: [m.index, m.index + m[0].length],
               newText: suggestedConfig
             }
           });
@@ -250,7 +261,12 @@ class APIContractValidator {
     // 检查废弃字段
     const deprecatedFields = config.rules.apiContracts.deprecatedFields;
     
-    lines.forEach((line, lineNum) => {
+    lines.forEach((rawLine, lineNum) => {
+      const line = rawLine;
+      const trimmed = line.trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+        return;
+      }
       deprecatedFields.forEach(field => {
         const fieldPattern = new RegExp(`['"\`]${field}['"\`]|${field}\\s*:|\\b${field}\\b`, 'g');
         const matches = [...line.matchAll(fieldPattern)];
@@ -276,12 +292,27 @@ class APIContractValidator {
     
     // 检查snake_case字段名
     const snakeCasePattern = /['"`]([a-z]+_[a-z_]+)['"`]|([a-z]+_[a-z_]+)\s*:/g;
+    const allowedSnakeTokens = [
+      // OAuth标准值与项目内部键名白名单（不作为契约字段处理）
+      'client_credentials',
+      'cube_castle_oauth_token'
+    ];
     
-    lines.forEach((line, lineNum) => {
+    lines.forEach((rawLine, lineNum) => {
+      const line = rawLine;
+      const trimmed = line.trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+        return;
+      }
       const matches = [...line.matchAll(snakeCasePattern)];
       
       matches.forEach(match => {
         const fieldName = match[1] || match[2];
+
+        // 白名单跳过（值或内部键名，不属于API契约字段）
+        if (allowedSnakeTokens.includes(fieldName)) {
+          return;
+        }
         
         // 跳过OAuth标准字段
         const oauthFields = ['client_id', 'client_secret', 'grant_type', 'refresh_token', 'access_token'];

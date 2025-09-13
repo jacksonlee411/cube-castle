@@ -9,9 +9,9 @@ export type TemporalMode = 'current' | 'historical' | 'planning';
 // 事件类型定义 (扩展支持具体业务事件类型)
 export type EventType = 
   | 'CREATE' | 'UPDATE' | 'DELETE' | 'SUSPEND' | 'REACTIVATE' | 'QUERY' | 'VALIDATION' | 'AUTHENTICATION' | 'ERROR'
-  | 'organization_created' | 'organization_updated' | 'organization_deleted'
-  | 'status_changed' | 'hierarchy_changed' | 'metadata_updated' 
-  | 'planned_change' | 'change_cancelled';
+  | 'organizationCreated' | 'organizationUpdated' | 'organizationDeleted'
+  | 'statusChanged' | 'hierarchyChanged' | 'metadataUpdated' 
+  | 'plannedChange' | 'changeCancelled';
 
 // 事件状态定义  
 export type EventStatus = 'SUCCESS' | 'FAILED' | 'PENDING' | 'CANCELLED';
@@ -45,7 +45,7 @@ export interface TemporalQueryParams {
 export interface ChangeInfo {
   id: string;
   timestamp: string;  // 统一为字符串类型
-  type: 'creation' | 'modification' | 'deletion' | 'status_change';
+  type: 'creation' | 'modification' | 'deletion' | 'statusChange';
   description: string;
   author?: string;
   changes?: Record<string, { old: unknown; new: unknown }>;
@@ -129,7 +129,7 @@ export interface TemporalStats {
 // 批量时态操作 (统一字符串类型)
 export interface BatchTemporalOperation {
   operationId: string;
-  type: 'bulk_update' | 'bulk_delete' | 'bulk_plan';
+  type: 'bulkUpdate' | 'bulkDelete' | 'bulkPlan';
   organizationCodes: string[];
   effectiveDate: string;  // 统一为字符串
   endDate?: string;       // 统一为字符串

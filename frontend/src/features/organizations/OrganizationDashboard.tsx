@@ -10,7 +10,7 @@ import { OrganizationForm } from './components/OrganizationForm';
 import { OrganizationFilters } from './OrganizationFilters';
 import { PaginationControls } from './PaginationControls';
 
-import { useOrganizations } from '../../shared/hooks/useOrganizations';
+import { useEnterpriseOrganizations } from '../../shared/hooks/useEnterpriseOrganizations';
 import type { OrganizationUnit } from '../../shared/types/organization';
 // import { useOrganizationMutations } from '../../shared/hooks/useOrganizationMutations'; // TODO: Implement mutations
 
@@ -122,8 +122,8 @@ export const OrganizationDashboard: React.FC = () => {
   const handlePageChange = (page: number) => setFilters(prev => ({ ...prev, page }));
 
   // 组织数据查询
-  const { data: organizationsData, isLoading, error } = useOrganizations();
-  const organizations = organizationsData || []; // useOrganizations返回的data就是organizations数组
+  const { organizations, loading: isLoading, error } = useEnterpriseOrganizations();
+  // useEnterpriseOrganizations 已返回 organizations 数组
   const totalCount = organizations.length; // 使用数组长度作为总数
 
   // 组织操作(暂时简化)
