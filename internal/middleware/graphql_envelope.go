@@ -3,6 +3,7 @@ package middleware
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"cube-castle-deployment-test/internal/types"
 )
@@ -72,7 +73,7 @@ func (ri *responseInterceptor) Write(data []byte) (int, error) {
                     if m, ok := e.(map[string]interface{}); ok {
                         if msg, ok := m["message"].(string); ok {
                             if msg == "INSUFFICIENT_PERMISSIONS" ||
-                               containsIgnoreCase(msg, "INSUFFICIENT_PERMISSIONS") {
+                               strings.Contains(strings.ToLower(msg), strings.ToLower("INSUFFICIENT_PERMISSIONS")) {
                                 code = "INSUFFICIENT_PERMISSIONS"
                                 errorMessage = "权限不足，无法执行该查询"
                                 break
@@ -122,31 +123,3 @@ func (ri *responseInterceptor) WriteHeader(statusCode int) {
     ri.ResponseWriter.WriteHeader(statusCode)
 }
 
-// containsIgnoreCase 判断子串（不区分大小写）
-func containsIgnoreCase(s, substr string) bool {
-    if len(substr) == 0 {
-        return true
-    }
-    // 简单小写比较
-    bs := []rune(s)
-    bsub := []rune(substr)
-    ls := make([]rune, len(bs))
-    lsub := make([]rune, len(bsub))
-    for i, r := range bs { if r >= 'A' && r <= 'Z' { ls[i] = r + 32 } else { ls[i] = r } }
-    for i, r := range bsub { if r >= 'A' && r <= 'Z' { lsub[i] = r + 32 } else { lsub[i] = r } }
-    return stringContains(string(ls), string(lsub))
-}
-
-// stringContains 使用标准库子串搜索
-func stringContains(s, sub string) bool { return len(sub) == 0 || (len(s) >= len(sub) && (indexOf(s, sub) >= 0)) }
-
-// indexOf 朴素查找（避免引入strings包以保持低依赖）：返回首次位置或-1
-func indexOf(s, sub string) int {
-    n, m := len(s), len(sub)
-    if m == 0 { return 0 }
-    if m > n { return -1 }
-    for i := 0; i <= n-m; i++ {
-        if s[i:i+m] == sub { return i }
-    }
-    return -1
-}

@@ -50,12 +50,12 @@ type QueryParams struct {
 
 // 缓存条目定义
 type CacheEntry struct {
-	Key       string        `json:"key"`
-	Data      interface{}   `json:"data"`
-	Metadata  CacheMetadata `json:"metadata"`
-	Tags      []string      `json:"tags"`
-	CreatedAt time.Time     `json:"created_at"`
-	ExpiresAt time.Time     `json:"expires_at"`
+	Key       string          `json:"key"`
+	Data      json.RawMessage `json:"data"`
+	Metadata  CacheMetadata   `json:"metadata"`
+	Tags      []string        `json:"tags"`
+	CreatedAt time.Time       `json:"created_at"`
+	ExpiresAt time.Time       `json:"expires_at"`
 }
 
 // 缓存元数据
@@ -126,7 +126,8 @@ func (ucm *UnifiedCacheManager) GetOrganizations(ctx context.Context, tenantID u
 
 	// L1 缓存查询
 	if entry, ok := ucm.l1Cache.Get(cacheKey); ok {
-		if orgs, ok := entry.Data.([]Organization); ok {
+		var orgs []Organization
+		if err := json.Unmarshal(entry.Data, &orgs); err == nil {
 			ucm.logger.Printf("[L1 HIT] 组织列表缓存命中: %s", cacheKey)
 			return orgs, nil
 		}
@@ -137,7 +138,8 @@ func (ucm *UnifiedCacheManager) GetOrganizations(ctx context.Context, tenantID u
 	if err == nil {
 		var entry CacheEntry
 		if json.Unmarshal([]byte(cachedData), &entry) == nil {
-			if orgs, ok := entry.Data.([]Organization); ok {
+			var orgs []Organization
+			if json.Unmarshal(entry.Data, &orgs) == nil {
 				// 回填L1缓存
 				ucm.l1Cache.Set(cacheKey, entry)
 				ucm.logger.Printf("[L2 HIT] 组织列表缓存命中，回填L1: %s", cacheKey)
@@ -153,10 +155,16 @@ func (ucm *UnifiedCacheManager) GetOrganizations(ctx context.Context, tenantID u
 		return nil, fmt.Errorf("L3查询失败: %w", err)
 	}
 
+	// 序列化数据用于缓存存储
+	dataBytes, err := json.Marshal(orgs)
+	if err != nil {
+		return nil, fmt.Errorf("缓存数据序列化失败: %w", err)
+	}
+
 	// 写入多层缓存
 	entry := CacheEntry{
 		Key:  cacheKey,
-		Data: orgs,
+		Data: dataBytes,
 		Metadata: CacheMetadata{
 			TenantID:     tenantID.String(),
 			EntityType:   "organizations",
@@ -188,9 +196,10 @@ func (ucm *UnifiedCacheManager) GetOrganizationStats(ctx context.Context, tenant
 
 	// L1缓存查询
 	if entry, ok := ucm.l1Cache.Get(cacheKey); ok {
-		if stats, ok := entry.Data.(*OrganizationStats); ok {
+		var stats OrganizationStats
+		if err := json.Unmarshal(entry.Data, &stats); err == nil {
 			ucm.logger.Printf("[L1 HIT] 统计缓存命中: %s", cacheKey)
-			return stats, nil
+			return &stats, nil
 		}
 	}
 
@@ -199,10 +208,11 @@ func (ucm *UnifiedCacheManager) GetOrganizationStats(ctx context.Context, tenant
 	if err == nil {
 		var entry CacheEntry
 		if json.Unmarshal([]byte(cachedData), &entry) == nil {
-			if stats, ok := entry.Data.(*OrganizationStats); ok {
+			var stats OrganizationStats
+			if json.Unmarshal(entry.Data, &stats) == nil {
 				ucm.l1Cache.Set(cacheKey, entry)
 				ucm.logger.Printf("[L2 HIT] 统计缓存命中，回填L1: %s", cacheKey)
-				return stats, nil
+				return &stats, nil
 			}
 		}
 	}
@@ -214,10 +224,16 @@ func (ucm *UnifiedCacheManager) GetOrganizationStats(ctx context.Context, tenant
 		return nil, fmt.Errorf("L3统计查询失败: %w", err)
 	}
 
+	// 序列化统计数据用于缓存存储
+	dataBytes, err := json.Marshal(stats)
+	if err != nil {
+		return nil, fmt.Errorf("统计数据序列化失败: %w", err)
+	}
+
 	// 写入多层缓存
 	entry := CacheEntry{
 		Key:  cacheKey,
-		Data: stats,
+		Data: dataBytes,
 		Metadata: CacheMetadata{
 			TenantID:     tenantID.String(),
 			EntityType:   "stats",
@@ -248,9 +264,10 @@ func (ucm *UnifiedCacheManager) GetOrganization(ctx context.Context, tenantID uu
 
 	// L1缓存查询
 	if entry, ok := ucm.l1Cache.Get(cacheKey); ok {
-		if org, ok := entry.Data.(*Organization); ok {
+		var org Organization
+		if err := json.Unmarshal(entry.Data, &org); err == nil {
 			ucm.logger.Printf("[L1 HIT] 单个组织缓存命中: %s", code)
-			return org, nil
+			return &org, nil
 		}
 	}
 
@@ -259,10 +276,11 @@ func (ucm *UnifiedCacheManager) GetOrganization(ctx context.Context, tenantID uu
 	if err == nil {
 		var entry CacheEntry
 		if json.Unmarshal([]byte(cachedData), &entry) == nil {
-			if org, ok := entry.Data.(*Organization); ok {
+			var org Organization
+			if json.Unmarshal(entry.Data, &org) == nil {
 				ucm.l1Cache.Set(cacheKey, entry)
 				ucm.logger.Printf("[L2 HIT] 单个组织缓存命中，回填L1: %s", code)
-				return org, nil
+				return &org, nil
 			}
 		}
 	}
@@ -276,10 +294,16 @@ func (ucm *UnifiedCacheManager) GetOrganization(ctx context.Context, tenantID uu
 		return nil, nil
 	}
 
+	// 序列化组织数据用于缓存存储
+	dataBytes, err := json.Marshal(org)
+	if err != nil {
+		return nil, fmt.Errorf("组织数据序列化失败: %w", err)
+	}
+
 	// 写入多层缓存
 	entry := CacheEntry{
 		Key:  cacheKey,
-		Data: org,
+		Data: dataBytes,
 		Metadata: CacheMetadata{
 			TenantID:     tenantID.String(),
 			EntityType:   "organization",
@@ -333,9 +357,15 @@ func (ucm *UnifiedCacheManager) handleCreateEvent(ctx context.Context, event CDC
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
 	orgKey := keyMgr.GenerateKey("organization", org.TenantID, org.Code)
 
+	// 序列化组织数据
+	dataBytes, err := json.Marshal(&org)
+	if err != nil {
+		return fmt.Errorf("CDC组织数据序列化失败: %w", err)
+	}
+
 	entry := CacheEntry{
 		Key:  orgKey,
-		Data: &org,
+		Data: dataBytes,
 		Metadata: CacheMetadata{
 			TenantID:     org.TenantID,
 			EntityType:   "organization",
@@ -368,9 +398,15 @@ func (ucm *UnifiedCacheManager) handleUpdateEvent(ctx context.Context, event CDC
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
 	orgKey := keyMgr.GenerateKey("organization", org.TenantID, org.Code)
 
+	// 序列化组织数据
+	dataBytes, err := json.Marshal(&org)
+	if err != nil {
+		return fmt.Errorf("CDC更新组织数据序列化失败: %w", err)
+	}
+
 	entry := CacheEntry{
 		Key:  orgKey,
-		Data: &org,
+		Data: dataBytes,
 		Metadata: CacheMetadata{
 			TenantID:     org.TenantID,
 			EntityType:   "organization",
@@ -470,9 +506,9 @@ func (ucm *UnifiedCacheManager) updateSingleListCache(ctx context.Context, cache
 		return err
 	}
 
-	orgs, ok := entry.Data.([]Organization)
-	if !ok {
-		return fmt.Errorf("缓存数据格式错误")
+	var orgs []Organization
+	if err := json.Unmarshal(entry.Data, &orgs); err != nil {
+		return fmt.Errorf("缓存数据反序列化失败: %w", err)
 	}
 
 	// 根据操作类型更新列表
@@ -500,8 +536,14 @@ func (ucm *UnifiedCacheManager) updateSingleListCache(ctx context.Context, cache
 		}
 	}
 
+	// 序列化更新后的列表数据
+	updatedDataBytes, err := json.Marshal(orgs)
+	if err != nil {
+		return fmt.Errorf("更新列表数据序列化失败: %w", err)
+	}
+
 	// 更新缓存条目
-	entry.Data = orgs
+	entry.Data = updatedDataBytes
 	entry.Metadata.LastModified = time.Now()
 	entry.Metadata.Version = time.Now().Unix()
 	entry.Metadata.Source = "CDC_SMART_UPDATE"

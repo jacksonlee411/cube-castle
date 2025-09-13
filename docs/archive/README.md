@@ -8,6 +8,7 @@
 docs/archive/
 ├── development-plans/              # 开发计划归档（已完成/历史）
 ├── deprecated-neo4j-era/          # 旧架构（Neo4j/CDC 等）废弃资料
+├── verify-cqrs-data-consistency.py # 历史CQRS双数据库验证脚本（Neo4j时代遗留）
 ├── deprecated-api-specs/          # 废弃的 API 契约/规范
 ├── deprecated-api-design/         # 废弃的 API 设计草案/方案
 ├── deprecated-guides/             # 废弃的开发指南/说明
@@ -34,6 +35,9 @@ docs/archive/
 ## 🛠️ 维护约定
 - 归档内容默认只读：仅允许修复链接/明显错字；内容更新应在活跃目录创建新文档。
 - 月度审计：确认需要归档的计划/报告是否已移动；清理滞留的临时文件。
+
+## 📝 迁移记录
+- 2025-09-13：`verify-cqrs-data-consistency.py` 由 `scripts/` 迁移至此，原因：包含已废弃的Neo4j/CDC架构逻辑，与当前PostgreSQL原生CQRS架构相悖，仅保留历史学习价值。
 
 —— 最后更新：2025-09-13 | 维护：Cube Castle 文档维护团队
 

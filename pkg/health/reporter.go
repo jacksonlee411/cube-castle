@@ -39,20 +39,20 @@ type ServiceDashboard struct {
 
 // ServiceMetrics 服务指标
 type ServiceMetrics struct {
-	ResponseTime  time.Duration `json:"response_time"`
-	RequestCount  int64         `json:"request_count"`
-	ErrorRate     float64       `json:"error_rate"`
-	MemoryUsage   string        `json:"memory_usage"`
-	CPUUsage      string        `json:"cpu_usage"`
-	DatabaseConns int           `json:"database_connections"`
-	CacheHitRate  float64       `json:"cache_hit_rate"`
+	ResponseTime  time.Duration `json:"responseTime"`
+	RequestCount  int64         `json:"requestCount"`
+	ErrorRate     float64       `json:"errorRate"`
+	MemoryUsage   string        `json:"memoryUsage"`
+	CPUUsage      string        `json:"cpuUsage"`
+	DatabaseConns int           `json:"databaseConnections"`
+	CacheHitRate  float64       `json:"cacheHitRate"`
 }
 
 // EnvironmentInfo 环境信息
 type EnvironmentInfo struct {
 	Hostname    string            `json:"hostname"`
 	Platform    string            `json:"platform"`
-	GoVersion   string            `json:"go_version"`
+	GoVersion   string            `json:"goVersion"`
 	Environment string            `json:"environment"`
 	Region      string            `json:"region"`
 	Config      map[string]string `json:"config"`
@@ -62,8 +62,8 @@ type EnvironmentInfo struct {
 type DependencyStatus struct {
 	Name         string        `json:"name"`
 	Status       HealthStatus  `json:"status"`
-	LastChecked  time.Time     `json:"last_checked"`
-	ResponseTime time.Duration `json:"response_time"`
+	LastChecked  time.Time     `json:"lastChecked"`
+	ResponseTime time.Duration `json:"responseTime"`
 	Version      string        `json:"version,omitempty"`
 	URL          string        `json:"url,omitempty"`
 }
@@ -71,8 +71,8 @@ type DependencyStatus struct {
 // StatusPage 状态页面模板数据
 type StatusPage struct {
 	Title         string           `json:"title"`
-	LastUpdated   time.Time        `json:"last_updated"`
-	OverallStatus HealthStatus     `json:"overall_status"`
+	LastUpdated   time.Time        `json:"lastUpdated"`
+	OverallStatus HealthStatus     `json:"overallStatus"`
 	Services      []ServiceSummary `json:"services"`
 	Incidents     []Incident       `json:"incidents"`
 	Metrics       SystemMetrics    `json:"metrics"`
@@ -83,8 +83,8 @@ type ServiceSummary struct {
 	Name         string        `json:"name"`
 	Status       HealthStatus  `json:"status"`
 	Uptime       string        `json:"uptime"`
-	ResponseTime time.Duration `json:"response_time"`
-	LastIncident *time.Time    `json:"last_incident,omitempty"`
+	ResponseTime time.Duration `json:"responseTime"`
+	LastIncident *time.Time    `json:"lastIncident,omitempty"`
 }
 
 // Incident 事件记录
@@ -93,20 +93,20 @@ type Incident struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	Status      string     `json:"status"` // investigating, monitoring, resolved
-	StartTime   time.Time  `json:"start_time"`
-	EndTime     *time.Time `json:"end_time,omitempty"`
+	StartTime   time.Time  `json:"startTime"`
+	EndTime     *time.Time `json:"endTime,omitempty"`
 	Severity    string     `json:"severity"` // low, medium, high, critical
-	Services    []string   `json:"affected_services"`
+	Services    []string   `json:"affectedServices"`
 }
 
 // SystemMetrics 系统指标
 type SystemMetrics struct {
-	TotalServices    int    `json:"total_services"`
-	HealthyServices  int    `json:"healthy_services"`
-	DegradedServices int    `json:"degraded_services"`
-	FailedServices   int    `json:"failed_services"`
-	OverallUptime    string `json:"overall_uptime"`
-	AvgResponseTime  string `json:"avg_response_time"`
+	TotalServices    int    `json:"totalServices"`
+	HealthyServices  int    `json:"healthyServices"`
+	DegradedServices int    `json:"degradedServices"`
+	FailedServices   int    `json:"failedServices"`
+	OverallUptime    string `json:"overallUptime"`
+	AvgResponseTime  string `json:"avgResponseTime"`
 }
 
 // GenerateDashboard 生成服务仪表板
