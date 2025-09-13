@@ -10,7 +10,7 @@
 - 本目录仅承载“计划/路线/进展/阶段报告”等时效性内容；完成项请移入 `../archive/development-plans/`。
 - 规范性、长期稳定的参考资料（快速参考、实现清单、API 使用与质量手册）放在 `../reference/`，避免混淆权威参考与计划。
 - 建议流程：
-  - 开始新功能前 → 先查 [实现清单](../reference/02-IMPLEMENTATION-INVENTORY.md) 与 [API 使用指南](../reference/03-API-USAGE-GUIDE.md)
+  - 开始新功能前 → 先查 [实现清单](../reference/02-IMPLEMENTATION-INVENTORY.md) 与 [API与质量工具指南](../reference/03-API-AND-TOOLS-GUIDE.md)
   - 确认需要新增能力 → 在本目录新增/更新对应计划，并按阶段完成后归档到 `../archive/development-plans/`。
 
 ## 📁 文档结构

@@ -1,5 +1,24 @@
 # Cube Castle 项目变更日志
 
+## v1.5.2 - 精简CLAUDE与跨文档导航完善 (2025-09-13)
+
+### 📄 文档结构
+- 精简 `CLAUDE.md` 为“核心原则 + 单一事实来源索引”，移除易变细节（变更通告、流程清单、脚本说明）。
+- 易变内容迁移路径：
+  - 变更通告/进展 → `docs/development-plans/` 与本 `CHANGELOG.md`
+  - 开发前必检/禁止事项/操作清单 → `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`
+  - API 一致性细则与工具 → `docs/reference/03-API-AND-TOOLS-GUIDE.md`
+  - 文档治理与目录边界 → `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`、`docs/README.md`
+
+### 🔗 跨文档导航
+- 在以下文档中补充/统一指向权威链接：
+  - `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` → 增补指向 `CLAUDE.md`、`AGENTS.md`、`docs/api/*`、文档治理。
+  - `docs/reference/03-API-AND-TOOLS-GUIDE.md` → 增补同类“进一步阅读与治理”链接。
+  - `docs/development-plans/06-integrated-teams-progress-log.md` → 增补相关规范与参考链接。
+
+### ✅ 影响范围
+- 不涉及代码行为变更，仅文档组织与导航优化；CI 目录边界与文档同步检查不受影响。
+
 ## v1.5.1 - 文档与规则加固 (2025-09-13)
 
 ### 🔧 规则与门禁

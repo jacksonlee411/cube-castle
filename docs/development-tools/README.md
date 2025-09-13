@@ -192,8 +192,8 @@ ab -n 100 -c 10 -H "Authorization: Bearer YOUR_TOKEN" \
 
 ## 📖 相关文档
 
-- [API规范文档](../development-plans/01-organization-units-api-specification.md)
-- [后端实施计划](../development-plans/04-backend-implementation-plan-phases1-3.md)
+- [API规范文档](../architecture/01-organization-units-api-specification.md)
+- [JWT开发工具指南](../development-guides/jwt-development-guide.md)
 - [项目开发指南](../../CLAUDE.md)
 
 ## 🤝 贡献指南

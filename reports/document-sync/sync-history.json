@@ -1,5 +1,5 @@
 {
-  "lastSync": "2025-09-13T03:20:06.443Z",
+  "lastSync": "2025-09-13T13:42:21.235Z",
   "syncRecords": [
     {
       "timestamp": "2025-09-07T16:16:30.633Z",
@@ -213,6 +213,27 @@
     },
     {
       "timestamp": "2025-09-13T03:20:06.443Z",
+      "syncPairName": "依赖版本同步",
+      "sourceHash": "12a05fe04afc494e10b4900fff0b69cb",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-13T13:42:21.232Z",
+      "syncPairName": "API规范版本同步",
+      "sourceHash": "8f3e93585720a90a7af90eaaefef98f4",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-13T13:42:21.233Z",
+      "syncPairName": "端口配置同步",
+      "sourceHash": "0118f848ea301bddf09936844a0b09ee",
+      "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-09-13T13:42:21.235Z",
       "syncPairName": "依赖版本同步",
       "sourceHash": "12a05fe04afc494e10b4900fff0b69cb",
       "success": false,

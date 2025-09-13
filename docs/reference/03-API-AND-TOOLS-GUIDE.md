@@ -1,0 +1,336 @@
+# Cube Castle API与质量工具使用指南
+
+版本: v2.0 | 最后更新: 2025-09-13 | 用途: API使用与质量工具统一指南
+
+---
+
+## 🚀 快速开始
+
+### 环境启动
+```bash
+make docker-up          # 启动基础设施 (PostgreSQL + Redis)
+make run-dev            # 启动后端服务 (命令9090 + 查询8090)
+make frontend-dev       # 启动前端开发服务器 (3000)
+```
+
+### JWT认证设置
+```bash
+make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h
+eval $(make jwt-dev-export)     # 导出令牌到环境变量
+```
+
+### 服务端点
+- **REST命令API**: http://localhost:9090/api/v1
+- **GraphQL查询API**: http://localhost:8090/graphql
+- **GraphiQL调试界面**: http://localhost:8090/graphiql
+- **前端应用**: http://localhost:3000
+
+---
+
+## 🏗️ CQRS架构使用
+
+### 核心原则
+```yaml
+查询操作 (Query):
+  协议: GraphQL (端口8090)
+  用途: 数据查询、统计、报表
+
+命令操作 (Command):
+  协议: REST API (端口9090)
+  用途: 创建、更新、删除
+
+严格禁止:
+  ❌ REST API进行查询
+  ❌ GraphQL进行数据修改
+```
+
+### API认证头部
+```bash
+Authorization: Bearer <JWT_TOKEN>
+X-Tenant-ID: <TENANT_ID>
+Content-Type: application/json
+```
+
+---
+
+## 🔄 REST命令API
+
+### 核心操作
+```bash
+# 创建组织
+curl -X POST http://localhost:9090/api/v1/organization-units \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "X-Tenant-ID: $TENANT_ID" \
+  -d '{
+    "name": "研发部门",
+    "unitType": "DEPARTMENT",
+    "parentCode": "CORP001",
+    "effectiveDate": "2025-01-01"
+  }'
+
+# 更新组织
+curl -X PUT http://localhost:9090/api/v1/organization-units/DEPT001 \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "X-Tenant-ID: $TENANT_ID" \
+  -d '{"name": "技术研发部"}'
+
+# 暂停/激活组织
+curl -X POST http://localhost:9090/api/v1/organization-units/DEPT001/suspend
+curl -X POST http://localhost:9090/api/v1/organization-units/DEPT001/activate
+```
+
+### 前端REST使用
+```typescript
+import { unifiedRESTClient } from '@/shared/api/unified-client';
+import { useCreateOrganization } from '@/shared/hooks/useOrganizationMutations';
+
+// Hook方式 (推荐)
+const { mutate: createOrg, isLoading } = useCreateOrganization();
+createOrg({ name: "新部门", unitType: "DEPARTMENT" });
+
+// 直接调用
+const response = await unifiedRESTClient.post('/organization-units', data);
+```
+
+---
+
+## 📊 GraphQL查询API
+
+### 基本查询
+```graphql
+# 组织列表
+query GetOrganizations($filter: OrganizationFilter) {
+  organizations(filter: $filter) {
+    edges {
+      node {
+        code
+        name
+        unitType
+        status
+        effectiveDate
+        isCurrent
+        parentCode
+      }
+    }
+    pageInfo {
+      totalCount
+      hasNextPage
+    }
+  }
+}
+
+# 单个组织
+query GetOrganization($code: String!, $asOfDate: String) {
+  organization(code: $code, asOfDate: $asOfDate) {
+    code
+    name
+    unitType
+    description
+    effectiveDate
+    endDate
+  }
+}
+
+# 组织统计
+query GetStats {
+  organizationStats {
+    totalCount
+    temporalStats {
+      totalVersions
+      averageVersionsPerOrg
+    }
+    byType {
+      unitType
+      count
+    }
+  }
+}
+```
+
+### 前端GraphQL使用
+```typescript
+import { useOrganizations, useOrganization } from '@/shared/hooks';
+
+// Hook方式 (推荐)
+const { data, loading, error } = useOrganizations({
+  filter: { status: 'ACTIVE' },
+  pagination: { first: 20 }
+});
+
+// 时态查询
+const { data: historical } = useOrganization({
+  code: 'DEPT001',
+  asOfDate: '2024-12-31'
+});
+```
+
+---
+
+## 🛡️ 质量工具使用
+
+### 开发前必检
+```bash
+# 检查现有实现 (强制)
+node scripts/generate-implementation-inventory.js
+
+# IIG护卫检查 (防重复开发)
+node scripts/quality/iig-guardian.js "新功能描述" --guard
+
+# P3质量检查套件
+bash scripts/quality/duplicate-detection.sh      # 重复代码检测
+node scripts/quality/architecture-validator.js   # 架构一致性
+node scripts/quality/document-sync.js           # 文档同步
+```
+
+### 质量指标监控
+```bash
+# 当前质量状态
+重复代码率: 2.11% (目标 <5%) ✅
+架构违规数: 25个已识别 ⚠️
+文档同步率: 20% (目标 >80%) ⚠️
+```
+
+### CI/CD集成
+- **自动触发**: push到分支，PR合并
+- **质量门禁**: 重复代码>5%阻止合并
+- **报告位置**: `reports/` 目录下各子系统报告
+
+---
+
+## ⚠️ 错误处理
+
+---
+
+## 🔗 进一步阅读与治理
+- 项目原则与单一事实来源索引：`../../CLAUDE.md`
+- 代理/实现强制规范：`../../AGENTS.md`
+- API 契约（唯一事实来源）：`../api/openapi.yaml`、`../api/schema.graphql`
+- 文档治理与目录边界：`../DOCUMENT-MANAGEMENT-GUIDELINES.md`、`../README.md`
+
+### 常见错误码
+```yaml
+401 UNAUTHORIZED: JWT令牌无效 → make jwt-dev-mint
+403 FORBIDDEN: 权限不足 → 检查X-Tenant-ID和角色
+404 NOT_FOUND: 资源不存在 → 检查组织编码
+409 CONFLICT: 编码冲突 → 使用唯一编码
+500 INTERNAL_SERVER_ERROR: 服务错误 → 查看日志
+```
+
+### 调试工具
+```bash
+curl http://localhost:9090/health       # 服务健康检查
+curl http://localhost:8090/health
+open http://localhost:8090/graphiql     # GraphiQL调试界面
+```
+
+---
+
+## 💡 最佳实践
+
+### CQRS使用规范
+```typescript
+// ✅ 正确：查询使用GraphQL
+const orgs = await useOrganizations({ status: 'ACTIVE' });
+
+// ✅ 正确：命令使用REST
+await useCreateOrganization().mutate(data);
+
+// ❌ 错误：混用协议
+// const orgs = await fetch('/api/v1/organization-units'); // 应用GraphQL
+```
+
+### 开发工作流
+```yaml
+1. 运行实现清单检查: node scripts/generate-implementation-inventory.js
+2. 检查API契约: docs/api/openapi.yaml 和 schema.graphql
+3. IIG护卫检查: node scripts/quality/iig-guardian.js "功能" --guard
+4. 优先使用现有API/Hook/组件
+5. 开发实现: 遵循CQRS和camelCase命名
+6. 质量检查: 运行P3检测套件
+7. 提交代码: Pre-commit Hook自动验证
+```
+
+### 时态数据处理
+```typescript
+// 当前数据
+const current = await useOrganization({ code: 'DEPT001' });
+
+// 历史数据
+const historical = await useOrganization({
+  code: 'DEPT001',
+  asOfDate: '2025-01-01'
+});
+
+// 版本管理
+POST /api/v1/organization-units/DEPT001/versions
+{
+  "name": "新名称",
+  "effectiveDate": "2025-06-01"
+}
+```
+
+---
+
+## 🔧 故障排除
+
+### 质量工具问题
+```bash
+# jscpd未找到
+npm install -g jscpd
+
+# 脚本权限问题
+chmod +x scripts/quality/*.sh
+
+# Pre-commit Hook未安装
+cp scripts/git-hooks/pre-commit-architecture.sh .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+
+# GitHub Actions失败
+查看Actions页面 → 点击失败workflow → 查看详细日志
+```
+
+### API调试
+```bash
+# JWT令牌问题
+make jwt-dev-mint
+eval $(make jwt-dev-export)
+
+# 服务连接问题
+curl http://localhost:9090/health
+curl http://localhost:8090/health
+
+# 数据库连接
+curl http://localhost:9090/dev/database-status
+```
+
+---
+
+## 📚 相关资源
+
+- [实现清单](./02-IMPLEMENTATION-INVENTORY.md) - 查看现有API和组件
+- [开发者快速参考](./01-DEVELOPER-QUICK-REFERENCE.md) - 核心命令速查
+- [OpenAPI规范](../api/openapi.yaml) - REST API详细定义
+- [GraphQL Schema](../api/schema.graphql) - 查询Schema定义
+- [项目指导原则](../../CLAUDE.md) - 开发规范和原则
+
+---
+
+## 🎯 核心提醒
+
+### 绝对禁止
+- ❌ 跳过实现清单检查就开发
+- ❌ 重复创建已有功能
+- ❌ 混用CQRS协议
+- ❌ 硬编码端口配置
+- ❌ 使用snake_case字段命名
+
+### 必须遵守
+- ✅ 开发前运行IIG护卫检查
+- ✅ 优先复用现有资源
+- ✅ 查询用GraphQL (8090)，命令用REST (9090)
+- ✅ 统一使用camelCase字段命名
+- ✅ 所有API调用包含认证头和租户ID
+
+---
+
+*Cube Castle API与质量工具统一指南 - 一站式开发参考*

@@ -524,9 +524,9 @@ curl -s -X GET "http://localhost:9090/auth/dev-token/info" \
 
 ## 📚 相关资源
 
-- [API规范文档](../development-plans/01-organization-units-api-specification.md)
+- [API规范文档](../architecture/01-organization-units-api-specification.md)
 - [API测试工具集](../development-tools/README.md)
-- [后端开发指南](../development-plans/04-backend-implementation-plan-phases1-3.md)
+- [开发者快速参考](../reference/01-DEVELOPER-QUICK-REFERENCE.md)
 - [项目安全规范](../../CLAUDE.md#安全最佳实践)
 
 ---

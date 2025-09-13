@@ -24,6 +24,16 @@
 - [ ] 如新增参考类文档，已确认其长期稳定性并与 plans 分离
 - [ ] `docs/README.md` 与各目录 `00-README.md` 的导航与边界说明保持一致
 
+## CLAUDE 索引一致性检查（精简版原则落实）
+
+- [ ] 未在 `CLAUDE.md` 增添易变内容（变更通告/流程清单/命令示例等）
+- [ ] 易变内容按类型落位：
+  - 变更通告/进展 → `CHANGELOG.md` 或 `docs/development-plans/`
+  - 开发前必检/禁止事项/操作清单 → `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`
+  - API 一致性与工具细则 → `docs/reference/03-API-AND-TOOLS-GUIDE.md`
+  - 文档治理与目录边界 → `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`、`docs/README.md`
+- [ ] 如新增/调整 Reference 或 Plans 文档，已补充“权威链接”引用（`CLAUDE.md` / `AGENTS.md` / `docs/api/*` / 文档治理）
+
 ## 风险与回滚
 
 - 风险点：

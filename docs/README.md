@@ -6,7 +6,7 @@
 
 ## 🧭 重要导航（Reference vs Plans）
 - Reference（长期稳定参考）：`docs/reference/` — 开发者快速参考、实现清单、API 使用与质量手册
-  - [开发者快速参考](reference/01-DEVELOPER-QUICK-REFERENCE.md) · [实现清单](reference/02-IMPLEMENTATION-INVENTORY.md) · [API 使用指南](reference/03-API-USAGE-GUIDE.md)
+  - [开发者快速参考](reference/01-DEVELOPER-QUICK-REFERENCE.md) · [实现清单](reference/02-IMPLEMENTATION-INVENTORY.md) · [API与质量工具指南](reference/03-API-AND-TOOLS-GUIDE.md)
 - Development Plans（阶段性计划与进展）：`docs/development-plans/`
   - [使用指南](development-plans/00-README.md) · [技术架构设计](development-plans/02-technical-architecture-design.md) · [团队进展日志](development-plans/06-integrated-teams-progress-log.md)
 
@@ -22,7 +22,7 @@
 ### 🎯 核心功能  
 - [**组织单元API规范**](architecture/01-organization-units-api-specification.md) - **主要API文档** ⭐ 完整的GraphQL/REST规范  
 - [CLAUDE.md项目记忆](../CLAUDE.md) - 项目指导原则和架构设计 ⭐ 必读
-- [设计开发标准](development-guides/design-development-standards.md) - 前端 UI/组件规范补充
+- [JWT开发工具指南](development-guides/jwt-development-guide.md) - 开发环境JWT认证工具
 
 ### 🏗️ 架构文档
 - [元合约v6.0规范](architecture/metacontract-v6.0-specification.md) - 核心设计合约
@@ -52,7 +52,7 @@ docs/
 ```
 
 ### 📖 development-guides/ - 开发指南
-- **design-development-standards.md** - 前端 UI/组件规范补充（以 CLAUDE.md 为准）
+- **jwt-development-guide.md** - JWT开发工具使用指南（开发环境专用）
 - 历史 guides 已归档：`archive/deprecated-guides/`
 
 ### 🔌 api/ - 核心API文档

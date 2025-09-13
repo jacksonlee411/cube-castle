@@ -54,7 +54,7 @@ make status             # 查看所有服务状态
   2) `make run-dev`（命令 9090 + 查询 8090）
   3) `make frontend-dev`（可选）
 
-前端 UI/组件规范补充（Canvas Kit v13 图标与用法）：`docs/development-guides/design-development-standards.md`（权威以 `CLAUDE.md` 为准）。
+前端 UI/组件规范详见项目指导原则文档 `CLAUDE.md`（Canvas Kit v13 图标与用法规范）。
 
 ### JWT认证管理
 ```bash
@@ -218,8 +218,14 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 
 ## 📚 更多资源
 
+### 权威链接与治理
+- 项目原则与黑名单（长期稳定）：`../../CLAUDE.md`
+- 代理/实现强制规范：`../../AGENTS.md`
+- API 契约（唯一事实来源）：`../api/openapi.yaml`、`../api/schema.graphql`
+- 文档治理与目录边界：`../DOCUMENT-MANAGEMENT-GUIDELINES.md`、`../README.md`
+
 - [实现清单](./02-IMPLEMENTATION-INVENTORY.md) - 查看所有现有功能
-- [API使用指南](./03-API-USAGE-GUIDE.md) - 详细API使用说明
+- [API与质量工具指南](./03-API-AND-TOOLS-GUIDE.md) - API使用与质量工具指导
 - [项目指导原则](../../CLAUDE.md) - 开发规范和原则
 - [REST API规范](../api/openapi.yaml) - OpenAPI 3.0规范
 - [GraphQL Schema](../api/schema.graphql) - 查询Schema定义

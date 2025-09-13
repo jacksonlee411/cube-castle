@@ -36,20 +36,19 @@
 - ✅ 了解项目现有能力和架构
 - ✅ 寻找可复用的组件和工具
 
-### 📖 [03. API使用指南](./03-API-USAGE-GUIDE.md)
-**用途**: 详细的API使用指导文档  
+### 📖 [03. API与质量工具指南](./03-API-AND-TOOLS-GUIDE.md)
+**用途**: API使用与质量工具统一指南
 **包含内容**:
-- CQRS架构说明和最佳实践
-- JWT认证和授权配置
-- REST命令API详细使用方法
-- GraphQL查询API完整示例
-- 前端集成指南和Hook使用
-- 错误处理和调试技巧
+- CQRS架构使用和核心原则
+- REST命令API和GraphQL查询API使用
+- 质量工具操作 (IIG护卫、P3防控系统)
+- 开发前检查和最佳实践
+- 错误处理和故障排除
 
 **使用场景**:
-- ✅ 前端开发者集成API
-- ✅ 后端开发者理解API设计
-- ✅ 学习CQRS架构最佳实践
+- ✅ 日常API开发和使用
+- ✅ 质量工具操作和问题排查
+- ✅ 新功能开发前的完整指导
 
 ---
 
@@ -58,7 +57,7 @@
 ### 新开发者上手顺序
 1. **先读** [01. 开发者快速参考](./01-DEVELOPER-QUICK-REFERENCE.md) - 了解基本开发流程
 2. **再看** [02. 实现清单](./02-IMPLEMENTATION-INVENTORY.md) - 了解项目现有功能
-3. **最后** [03. API使用指南](./03-API-USAGE-GUIDE.md) - 深入学习API使用
+3. **最后** [03. API与质量工具指南](./03-API-AND-TOOLS-GUIDE.md) - API使用与质量工具
 
 ### 开发前必做事项
 ```bash
@@ -89,32 +88,6 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 - ✅ 优先使用现有资源，避免重复造轮子
 - ✅ 所有API调用包含认证头和租户ID
 
-### 🛡️ [04. P3企业级防控系统手册](./04-p3-defense-system-manual.md)
-**用途**: P3防控系统完整使用手册和操作指南
-**包含内容**:
-- P3三大防控系统使用指南(重复检测/架构验证/文档同步)
-- 开发者日常质量检查流程
-- CI/CD质量门禁配置和操作
-- 故障排除和问题解决方案
-
-**使用场景**:
-- ✅ 代码提交前质量检查和验证
-- ✅ 质量工具配置、使用和维护
-- ✅ 质量问题排查和系统故障解决
-
----
-
-### 🛡️ [05. IIG护卫使用指南](./05-iig-guardian-usage-guide.md)
-**用途**: Implementation Inventory Guardian（实现清单护卫）的使用与集成
-**包含内容**:
-- 预开发强制检查流程与执行方法
-- 重复检测与架构一致性的联动说明
-- 与 CI/CD 的集成与本地开发流程
-
-**使用场景**:
-- ✅ 新功能开始前的能力检索与登记
-- ✅ 代码评审前的功能登记核验
-- ✅ 契约与实现同步校验
 
 ## 📊 项目统计摘要
 
@@ -151,7 +124,7 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 - 本目录仅包含“长期稳定、对外可依赖”的参考资料（快速参考、实现清单、API 使用与质量手册）。
 - 计划/路线/进展/阶段报告类文档不在本目录，统一放置于 `../development-plans/`。
 - 建议流程：
-  - 开始新功能前 → 先查 [实现清单](./02-IMPLEMENTATION-INVENTORY.md) 与 [API 使用指南](./03-API-USAGE-GUIDE.md)
+  - 开始新功能前 → 先查 [实现清单](./02-IMPLEMENTATION-INVENTORY.md) 与 [API与质量工具指南](./03-API-AND-TOOLS-GUIDE.md)
   - 确认需要新增能力 → 前往 [开发计划目录使用指南](../development-plans/00-README.md) 建立/更新计划与进展，并按规范归档。
 
 ---
