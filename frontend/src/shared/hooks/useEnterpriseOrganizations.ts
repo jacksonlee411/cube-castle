@@ -54,25 +54,109 @@ export const useEnterpriseOrganizations = (
 
   // 获取组织列表
   const fetchOrganizations = useCallback(async (
-    _params?: OrganizationQueryParams
+    params?: OrganizationQueryParams
   ): Promise<APIResponse<OrganizationListResponse>> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      // TODO: Implement proper API call
-      const response: APIResponse<OrganizationListResponse> = {
-        success: true,
-        data: {
-          organizations: [],
-          totalCount: 0,
-          page: 1,
-          pageSize: 50,
-          totalPages: 0
-        },
-        timestamp: new Date().toISOString()
-      };
+      // 构建GraphQL查询
+      const query = `
+        query GetOrganizations($filter: OrganizationFilter, $pagination: PaginationInput) {
+          organizations(filter: $filter, pagination: $pagination) {
+            data {
+              code
+              parentCode
+              tenantId
+              name
+              unitType
+              status
+              level
+              sortOrder
+              description
+              profile
+              effectiveDate
+              endDate
+              createdAt
+              updatedAt
+              recordId
+              isFuture
+              hierarchyDepth
+            }
+            pagination {
+              total
+              page
+              pageSize
+              hasNext
+              hasPrevious
+            }
+            temporal {
+              asOfDate
+              currentCount
+              futureCount
+              historicalCount
+            }
+          }
+        }
+      `;
+
+      // 构建查询变量
+      const variables: any = {};
       
-      if (response.success && response.data) {
+      if (params) {
+        variables.filter = {};
+        variables.pagination = {};
+        
+        // 映射查询参数
+        if (params.unitType) variables.filter.unitType = params.unitType;
+        if (params.status) variables.filter.status = params.status;
+        if (params.parentCode) variables.filter.parentCode = params.parentCode;
+        if (params.level) variables.filter.level = params.level;
+        if (params.searchText) variables.filter.searchText = params.searchText;
+        if (params.asOfDate) variables.filter.asOfDate = params.asOfDate;
+        
+        // 分页参数
+        if (params.page) variables.pagination.page = params.page;
+        if (params.pageSize) variables.pagination.pageSize = params.pageSize;
+        if (params.sortBy) variables.pagination.sortBy = params.sortBy;
+        if (params.sortOrder) variables.pagination.sortOrder = params.sortOrder;
+      }
+
+      // 使用统一的GraphQL客户端
+      const { unifiedGraphQLClient } = await import('../api/unified-client');
+      const graphqlData = await unifiedGraphQLClient.request<{
+        organizations: {
+          data: OrganizationUnit[];
+          pagination: {
+            total: number;
+            page: number;
+            pageSize: number;
+            hasNext: boolean;
+            hasPrevious: boolean;
+          };
+          temporal: {
+            asOfDate: string;
+            currentCount: number;
+            futureCount: number;
+            historicalCount: number;
+          };
+        };
+      }>(query, variables);
+      
+      if (graphqlData?.organizations) {
+        const orgData = graphqlData.organizations;
+        
+        const response: APIResponse<OrganizationListResponse> = {
+          success: true,
+          data: {
+            organizations: orgData.data || [],
+            totalCount: orgData.pagination?.total || 0,
+            page: orgData.pagination?.page || 1,
+            pageSize: orgData.pagination?.pageSize || 50,
+            totalPages: Math.ceil((orgData.pagination?.total || 0) / (orgData.pagination?.pageSize || 50))
+          },
+          timestamp: new Date().toISOString()
+        };
+
         setState(prev => ({
           ...prev,
           organizations: response.data!.organizations,
@@ -82,20 +166,27 @@ export const useEnterpriseOrganizations = (
           totalPages: response.data!.totalPages,
           loading: false,
           error: null,
-          lastRequestId: response.requestId,
           lastUpdate: response.timestamp
         }));
+        
+        return response;
       } else {
-        const errorMessage = response.error?.message || '获取组织列表失败';
+        const errorMessage = '获取组织列表失败：无数据返回';
         setState(prev => ({ 
           ...prev, 
           loading: false, 
-          error: errorMessage,
-          lastRequestId: response.requestId
+          error: errorMessage
         }));
+        
+        return {
+          success: false,
+          error: {
+            code: 'GRAPHQL_ERROR',
+            message: errorMessage
+          },
+          timestamp: new Date().toISOString()
+        };
       }
-      
-      return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '网络请求失败';
       setState(prev => ({ ...prev, loading: false, error: errorMessage }));
@@ -114,28 +205,81 @@ export const useEnterpriseOrganizations = (
 
   // 根据代码获取单个组织
   const fetchOrganizationByCode = useCallback(async (
-    _code: string, 
-    _temporalParams?: TemporalQueryParams
+    code: string, 
+    temporalParams?: TemporalQueryParams
   ): Promise<APIResponse<OrganizationUnit>> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      // TODO: Implement proper API call
-      const response: APIResponse<OrganizationUnit> = {
-        success: true,
-        data: undefined,
-        timestamp: new Date().toISOString()
-      };
+      // 构建GraphQL查询
+      const query = `
+        query GetOrganization($code: String!, $asOfDate: String) {
+          organization(code: $code, asOfDate: $asOfDate) {
+            code
+            parentCode
+            tenantId
+            name
+            unitType
+            status
+            level
+            sortOrder
+            description
+            profile
+            effectiveDate
+            endDate
+            createdAt
+            updatedAt
+            recordId
+            isFuture
+            hierarchyDepth
+          }
+        }
+      `;
+
+      // 构建查询变量
+      const variables: any = { code };
+      if (temporalParams?.asOfDate) {
+        variables.asOfDate = temporalParams.asOfDate;
+      }
+
+      // 使用统一的GraphQL客户端
+      const { unifiedGraphQLClient } = await import('../api/unified-client');
+      const graphqlData = await unifiedGraphQLClient.request<{
+        organization: OrganizationUnit | null;
+      }>(query, variables);
       
-      setState(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: response.success ? null : (response.error?.message || '获取组织失败'),
-        lastRequestId: response.requestId,
-        lastUpdate: response.timestamp
-      }));
-      
-      return response;
+      if (graphqlData?.organization) {
+        const response: APIResponse<OrganizationUnit> = {
+          success: true,
+          data: graphqlData.organization,
+          timestamp: new Date().toISOString()
+        };
+
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: null,
+          lastUpdate: response.timestamp
+        }));
+        
+        return response;
+      } else {
+        const errorMessage = '获取组织失败：组织不存在或无权限访问';
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: errorMessage
+        }));
+        
+        return {
+          success: false,
+          error: {
+            code: 'GRAPHQL_ERROR',
+            message: errorMessage
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '网络请求失败';
       setState(prev => ({ ...prev, loading: false, error: errorMessage }));
@@ -153,25 +297,103 @@ export const useEnterpriseOrganizations = (
   }, []);
 
   // 获取统计信息
-  const fetchStats = useCallback(async (): Promise<APIResponse<OrganizationStats>> => {
+  const fetchStats = useCallback(async (asOfDate?: string): Promise<APIResponse<OrganizationStats>> => {
     try {
-      // TODO: Implement proper API call
-      const response: APIResponse<OrganizationStats> = {
-        success: true,
-        data: undefined,
-        timestamp: new Date().toISOString()
+      // 构建GraphQL查询
+      const query = `
+        query GetOrganizationStats($asOfDate: String, $includeHistorical: Boolean) {
+          organizationStats(asOfDate: $asOfDate, includeHistorical: $includeHistorical) {
+            totalCount
+            activeCount
+            inactiveCount
+            plannedCount
+            deletedCount
+            byType {
+              unitType
+              count
+            }
+            byStatus {
+              status
+              count
+            }
+            byLevel {
+              level
+              count
+            }
+            temporalStats {
+              totalVersions
+              averageVersionsPerOrg
+              oldestEffectiveDate
+              newestEffectiveDate
+            }
+          }
+        }
+      `;
+
+      // 构建查询变量
+      const variables: any = { 
+        includeHistorical: false 
       };
+      if (asOfDate) {
+        variables.asOfDate = asOfDate;
+      }
+
+      // 使用统一的GraphQL客户端
+      const { unifiedGraphQLClient } = await import('../api/unified-client');
+      const graphqlData = await unifiedGraphQLClient.request<{
+        organizationStats: {
+          totalCount: number;
+          activeCount: number;
+          inactiveCount: number;
+          plannedCount: number;
+          deletedCount: number;
+          byType: Array<{ unitType: string; count: number; }>;
+          byStatus: Array<{ status: string; count: number; }>;
+          byLevel: Array<{ level: number; count: number; }>;
+          temporalStats: {
+            totalVersions: number;
+            averageVersionsPerOrg: number;
+            oldestEffectiveDate: string;
+            newestEffectiveDate: string;
+          };
+        };
+      }>(query, variables);
       
-      if (response.success && response.data) {
+      if (graphqlData?.organizationStats) {
+        const statsData = graphqlData.organizationStats;
+        
+        // 映射到本地类型
+        const mappedStats: OrganizationStats = {
+          total: statsData.totalCount || 0,
+          active: statsData.activeCount || 0,
+          inactive: statsData.inactiveCount || 0
+        };
+
+        const response: APIResponse<OrganizationStats> = {
+          success: true,
+          data: mappedStats,
+          timestamp: new Date().toISOString()
+        };
+
         setState(prev => ({
           ...prev,
           stats: response.data!,
-          lastRequestId: response.requestId,
           lastUpdate: response.timestamp
         }));
+        
+        return response;
+      } else {
+        const errorMessage = '获取统计信息失败：无数据返回';
+        
+        return {
+          success: false,
+          error: {
+            code: 'GRAPHQL_ERROR',
+            message: errorMessage
+          },
+          timestamp: new Date().toISOString()
+        };
       }
-      
-      return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '获取统计信息失败';
       
@@ -202,9 +424,8 @@ export const useEnterpriseOrganizations = (
 
   // 初始化加载
   useEffect(() => {
-    if (initialParams) {
-      fetchOrganizations(initialParams);
-    }
+    // 总是调用fetchOrganizations获取组织列表，如果没有参数则使用默认参数
+    fetchOrganizations(initialParams);
     fetchStats();
   }, [initialParams, fetchOrganizations, fetchStats]);
 

@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset monitoring-up monitoring-down monitoring-test jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup
 
 # 默认目标
 help:
@@ -20,9 +20,6 @@ help:
 	@echo "🚀 开发运行:"
 	@echo "  run-dev          - 启动最小依赖并本地运行两个 Go 服务"
 	@echo "  frontend-dev     - 启动前端开发服务器 (vite)"
-	@echo "  monitoring-up    - 启动监控栈 (Prometheus/Grafana/AlertManager)"
-	@echo "  monitoring-test  - 验证监控栈运行状况与指标"
-	@echo "  monitoring-down  - 停止监控栈"
 	@echo ""
 	@echo "🔑 开发JWT:"
 	@echo "  jwt-dev-mint    - 生成开发用JWT并保存到 ./.cache/dev.jwt"
@@ -161,19 +158,6 @@ reset:
 	$(MAKE) docker-down
 	$(MAKE) docker-up
 
-# 监控栈
-monitoring-up:
-	@echo "📈 启动监控栈..."
-	./scripts/start-monitoring.sh
-
-monitoring-test:
-	@echo "🧪 验证监控栈运行状况..."
-	./scripts/test-monitoring.sh
-
-monitoring-down:
-	@echo "🛑 停止监控栈..."
-	@command -v docker >/dev/null 2>&1 || { echo "❌ 需要 docker"; exit 1; }
-	docker compose -f monitoring/docker-compose.monitoring.yml down
 
 # 开发JWT工具
 jwt-dev-mint:

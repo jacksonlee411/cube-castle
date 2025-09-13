@@ -79,17 +79,35 @@ export class UnifiedGraphQLClient {
         throw new Error(`GraphQL Error: ${response.status} ${response.statusText}`);
       }
 
-      const result = await response.json() as GraphQLResponse<T>;
+      const responseBody = await response.json();
       
-      if (result.errors && result.errors.length > 0) {
-        throw new Error(`GraphQL Error: ${result.errors[0].message}`);
-      }
+      // 检查是否为企业级API响应信封格式
+      if (responseBody.success !== undefined) {
+        // 企业级信封格式: {success: true, data: {...}, message: "...", timestamp: "..."}
+        if (!responseBody.success) {
+          const errorMsg = responseBody.error?.message || responseBody.message || 'API调用失败';
+          throw new Error(`API Error: ${errorMsg}`);
+        }
+        
+        if (!responseBody.data) {
+          throw new Error('API Error: No data returned');
+        }
+        
+        return responseBody.data as T;
+      } else {
+        // 标准GraphQL格式: {data: {...}, errors: [...]}
+        const result = responseBody as GraphQLResponse<T>;
+        
+        if (result.errors && result.errors.length > 0) {
+          throw new Error(`GraphQL Error: ${result.errors[0].message}`);
+        }
 
-      if (!result.data) {
-        throw new Error('GraphQL Error: No data returned');
-      }
+        if (!result.data) {
+          throw new Error('GraphQL Error: No data returned');
+        }
 
-      return result.data;
+        return result.data;
+      }
     } catch (error) {
       console.error('GraphQL request failed:', { query, variables, error });
       throw error;

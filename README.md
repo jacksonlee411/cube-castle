@@ -32,7 +32,6 @@
 查询: PostgreSQL GraphQL (8090) - 1.5-8ms响应
 命令: Go REST API (9090) - CQRS架构
 数据: PostgreSQL 16+ + Redis 7.x
-监控: Prometheus + Grafana
 ```
 
 ### 统一配置管理
@@ -130,12 +129,7 @@ curl -X POST http://localhost:9090/api/v1/organization-units \
 http://localhost:9090/swagger-ui/
 ```
 
-## 📊 监控 & 测试
-
-### 监控访问
-- **Grafana**: http://localhost:3001 (admin/cube-castle-2025)
-- **Prometheus**: http://localhost:9091
-- **核心指标**: API响应时间<10ms, 数据库健康状态
+## 📊 测试
 
 ### 测试命令
 ```bash
@@ -223,11 +217,10 @@ cube-castle/
 ├── docs/                    # 项目文档
 │   ├── api/                # API契约
 │   └── development-plans/   # 开发计划
-├── reports/                 # 🆕 质量报告输出
-│   ├── duplicate-code/      # 重复代码检测报告
-│   ├── architecture/        # 架构验证报告
-│   └── document-sync/       # 文档同步报告
-└── monitoring/             # 监控配置
+└── reports/                 # 🆕 质量报告输出
+    ├── duplicate-code/      # 重复代码检测报告
+    ├── architecture/        # 架构验证报告
+    └── document-sync/       # 文档同步报告
 ```
 
 ## 📋 核心文档

@@ -5,8 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   dashboardIcon,
   homeIcon,
-  checkIcon,
-  activityStreamIcon
+  checkIcon
 } from '@workday/canvas-system-icons-web';
 
 const navigationItems = [
@@ -19,11 +18,6 @@ const navigationItems = [
     label: '组织架构',
     path: '/organizations',
     icon: homeIcon
-  },
-  {
-    label: '系统监控',
-    path: '/monitoring',
-    icon: activityStreamIcon
   },
   {
     label: '契约测试',

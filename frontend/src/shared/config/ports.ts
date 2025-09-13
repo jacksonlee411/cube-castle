@@ -16,13 +16,7 @@ export const SERVICE_PORTS = {
   
   // 基础设施服务
   POSTGRESQL: 5432,
-  REDIS: 6379,
-  
-  // 监控服务 (可选)
-  PROMETHEUS: 9091,
-  GRAFANA: 3001,
-  ALERT_MANAGER: 9093,
-  NODE_EXPORTER: 9100
+  REDIS: 6379
 } as const;
 
 // 🎯 环境相关端口映射
@@ -73,13 +67,6 @@ export const INFRASTRUCTURE_ENDPOINTS = {
   CACHE: buildServiceURL('REDIS')
 } as const;
 
-// 🎯 监控端点 (可选)
-export const MONITORING_ENDPOINTS = {
-  PROMETHEUS: buildServiceURL('PROMETHEUS'),
-  GRAFANA: buildServiceURL('GRAFANA'),
-  ALERTS: buildServiceURL('ALERT_MANAGER'),
-  NODE_METRICS: buildServiceURL('NODE_EXPORTER')
-} as const;
 
 // 🎯 端口配置验证
 export const validatePortConfiguration = (): { isValid: boolean; errors: string[] } => {
@@ -121,10 +108,6 @@ export const generatePortConfigReport = (): string => {
     '🛠️ 基础设施:',
     `  PostgreSQL: ${SERVICE_PORTS.POSTGRESQL}`,
     `  Redis: ${SERVICE_PORTS.REDIS}`,
-    '',
-    '📊 监控服务:',
-    `  Prometheus: ${SERVICE_PORTS.PROMETHEUS}`,
-    `  Grafana: ${SERVICE_PORTS.GRAFANA}`,
     '',
     '🔍 配置验证:',
     `  状态: ${validation.isValid ? '✅ 通过' : '❌ 失败'}`,

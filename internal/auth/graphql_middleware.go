@@ -6,11 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strings"
-    "time"
 	
 	"cube-castle-deployment-test/internal/middleware"
 	"cube-castle-deployment-test/internal/types"
-    gqlmetrics "cube-castle-deployment-test/internal/metrics"
 )
 
 type GraphQLPermissionMiddleware struct {
@@ -156,14 +154,12 @@ func (g *GraphQLPermissionMiddleware) createMockClaims(r *http.Request) *Claims 
 
 // CheckQueryPermission GraphQL查询级权限检查
 func (g *GraphQLPermissionMiddleware) CheckQueryPermission(ctx context.Context, queryName string) error {
-    start := time.Now()
     var err error
     if g.devMode {
         err = g.permissionChecker.MockPermissionCheck(ctx, queryName)
     } else {
         err = g.permissionChecker.CheckGraphQLQuery(ctx, queryName)
     }
-    gqlmetrics.RecordPermissionCheck(queryName, err == nil, time.Since(start))
     return err
 }
 

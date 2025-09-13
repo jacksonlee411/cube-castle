@@ -490,7 +490,7 @@ Comprehensive filter for organization queries with temporal support.
 """
 input OrganizationFilter {
   # Temporal Filtering
-  asOfDate: Date
+  asOfDate: String
   includeFuture: Boolean = false
   onlyFuture: Boolean = false
   
@@ -536,8 +536,8 @@ input PaginationInput {
 Date range input for filtering.
 """
 input DateRangeInput {
-  from: Date
-  to: Date
+  from: String
+  to: String
 }
 
 # Enums

@@ -19,7 +19,6 @@ import (
 	"organization-command-service/internal/auth"
 	"organization-command-service/internal/config"
 	"organization-command-service/internal/handlers"
-	"organization-command-service/internal/metrics"
 	"organization-command-service/internal/middleware"
 	"organization-command-service/internal/repository"
 	"organization-command-service/internal/services"
@@ -58,7 +57,6 @@ func main() {
 	// TODO-TEMPORARY: BusinessRuleValidator is initialized but not wired; integrate rule checks in v4.3 by 2025-09-20.
 	_ = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)
 	auditLogger := audit.NewAuditLogger(db, logger)
-	metricsCollector := metrics.NewMetricsCollector(logger)
 
 	// 启动级联更新服务
 	cascadeService.Start()
@@ -124,7 +122,6 @@ func main() {
 	r.Use(middleware.RequestIDMiddleware)          // 请求追踪中间件
 	r.Use(rateLimitMiddleware.Middleware())        // 限流中间件 - 最先执行
 	r.Use(performanceMiddleware.Middleware())      // 性能监控中间件
-	r.Use(metricsCollector.GetMetricsMiddleware()) // Prometheus指标中间件
 	r.Use(chi_middleware.Logger)
 	r.Use(chi_middleware.Recoverer)
 	r.Use(chi_middleware.Timeout(30 * time.Second))
@@ -145,9 +142,6 @@ func main() {
 		fmt.Fprintf(w, `{"status": "healthy", "service": "organization-command-service", "timestamp": "%s"}`, time.Now().Format(time.RFC3339))
 	})
 
-	// Prometheus指标端点
-	r.Handle("/metrics", metricsCollector.GetHandler())
-	logger.Println("📊 Prometheus指标端点: http://localhost:9090/metrics")
 	
 	// 限流状态监控端点
 	r.Get("/debug/rate-limit/stats", func(w http.ResponseWriter, r *http.Request) {

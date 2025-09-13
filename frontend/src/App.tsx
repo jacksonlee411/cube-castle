@@ -9,7 +9,6 @@ import { Text } from '@workday/canvas-kit-react/text'
 const OrganizationDashboard = React.lazy(() => import('./features/organizations/OrganizationDashboard').then(module => ({ default: module.OrganizationDashboard })))
 const OrganizationTemporalPage = React.lazy(() => import('./features/organizations/OrganizationTemporalPage').then(module => ({ default: module.OrganizationTemporalPage })))
 const ContractTestingDashboard = React.lazy(() => import('./features/contract-testing/ContractTestingDashboard').then(module => ({ default: module.ContractTestingDashboard })))
-const MonitoringDashboard = React.lazy(() => import('./features/monitoring/MonitoringDashboard').then(module => ({ default: module.MonitoringDashboard })))
 
 // 优化的加载组件
 const SuspenseLoader: React.FC = () => (
@@ -65,16 +64,6 @@ function App() {
         
         {/* 其他功能模块占位 */}
         <Route path="/dashboard" element={<div>仪表板 - 开发中</div>} />
-        
-        {/* 系统监控页面 - Prometheus/Grafana监控中心 */}
-        <Route 
-          path="/monitoring" 
-          element={
-            <Suspense fallback={<SuspenseLoader />}>
-              <MonitoringDashboard />
-            </Suspense>
-          } 
-        />
         
         {/* 契约测试监控页面 - 位于组织架构之后 */}
         <Route 

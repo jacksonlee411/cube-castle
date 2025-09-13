@@ -21,7 +21,6 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
 	_ "github.com/lib/pq"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"cube-castle-deployment-test/internal/auth"
 	"cube-castle-deployment-test/internal/config"
@@ -1572,8 +1571,6 @@ func main() {
 		})
 	})
 
-	// Prometheus指标
-	r.Handle("/metrics", promhttp.Handler())
 
 	// 获取端口
 	port := getEnv("PORT", "8090")
