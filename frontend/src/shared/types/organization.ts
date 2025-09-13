@@ -78,9 +78,11 @@ export interface OrganizationRequest {
   parentCode?: string;
   description?: string;
   sortOrder?: number;
+  level?: number;  // 添加缺少的level字段
   
   // 时态字段
   effectiveDate?: string;
+  endDate?: string;  // 添加缺少的endDate字段
   changeReason?: string;
   
   // 操作相关

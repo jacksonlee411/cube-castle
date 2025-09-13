@@ -270,7 +270,7 @@ describe('Type Guards and Validators', () => {
           unitType: 'DEPARTMENT',
           status: 'ACTIVE',
           level: 2,
-          parentCode: null,
+          parentCode: '0', // 根据API v4.3规范，parentCode为必填，根组织使用"0"
           sortOrder: null,
           description: null,
           createdAt: null,
@@ -279,7 +279,7 @@ describe('Type Guards and Validators', () => {
 
         const result = safeTransformGraphQLToOrganizationUnit(graphqlResponse);
 
-        expect(result.parentCode).toBe('');
+        expect(result.parentCode).toBe('0'); // parentCode现在是必填，应该保持原值
         expect(result.sortOrder).toBe(0);
         expect(result.description).toBe('');
         expect(result.createdAt).toBe('');

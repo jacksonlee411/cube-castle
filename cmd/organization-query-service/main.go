@@ -787,7 +787,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 		SELECT 
 			s.total_count, s.active_count, s.inactive_count, s.planned_count, s.deleted_count,
 			ts.total_versions, ts.unique_orgs, ts.oldest_date, ts.newest_date,
-			COALESCE(json_agg(DISTINCT jsonb_build_object('unit_type', t.unit_type, 'count', t.count)) FILTER (WHERE t.unit_type IS NOT NULL), '[]'),
+			COALESCE(json_agg(DISTINCT jsonb_build_object('unitType', t.unit_type, 'count', t.count)) FILTER (WHERE t.unit_type IS NOT NULL), '[]'),
 			COALESCE(json_agg(DISTINCT jsonb_build_object('status', sd.status, 'count', sd.count)) FILTER (WHERE sd.status IS NOT NULL), '[]'),
 			COALESCE(json_agg(DISTINCT jsonb_build_object('level', l.level, 'count', l.count)) FILTER (WHERE l.level IS NOT NULL), '[]')
 		FROM status_stats s

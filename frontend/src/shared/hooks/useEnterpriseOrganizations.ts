@@ -8,9 +8,15 @@ import { useState, useEffect, useCallback } from 'react';
 import type { 
   OrganizationUnit, 
   OrganizationListResponse, 
-  OrganizationStats,
   OrganizationQueryParams
 } from '../types';
+
+// 临时类型定义，待完善
+interface OrganizationStats {
+  total: number;
+  active: number;
+  inactive: number;
+}
 import type { APIResponse } from '../types/api';
 import type { TemporalQueryParams } from '../types/temporal';
 // TODO: Replace with proper API implementation
@@ -26,7 +32,16 @@ export const useEnterpriseOrganizations = (
   initialParams?: OrganizationQueryParams
 ) => {
   // 状态管理
-  const [state, setState] = useState({
+  const [state, setState] = useState<{
+    organizations: OrganizationUnit[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    loading: boolean;
+    error: string | null;
+    stats: OrganizationStats | null;
+  }>({
     organizations: [],
     totalCount: 0,
     page: 1,

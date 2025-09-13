@@ -66,7 +66,7 @@ export function convertGraphQLToOrganizationUnit(
   return {
     code: data.code || '',
     recordId: data.tenantId,
-    parentCode: data.parentCode,
+    parentCode: data.parentCode || '0', // 根据API规范，parentCode必填，默认使用根组织"0"
     name: data.name || '',
     unitType: (data.unitType as OrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as OrganizationUnit['status']) || 'ACTIVE',

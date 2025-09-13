@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-09-08T10:18:04.242Z",
+  "timestamp": "2025-09-13T02:22:30.669Z",
   "summary": {
-    "totalFiles": 92,
-    "passedFiles": 81,
-    "failedFiles": 11,
-    "totalViolations": 54,
+    "totalFiles": 95,
+    "passedFiles": 82,
+    "failedFiles": 13,
+    "totalViolations": 92,
     "violationsByType": {
       "cqrs": 2,
-      "ports": 15,
+      "ports": 53,
       "contracts": 37
     }
   },
@@ -17,7 +17,7 @@
       "violations": [
         {
           "type": "ports",
-          "line": 51,
+          "line": 85,
           "column": 13,
           "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
           "code": "no-hardcoded-ports",
@@ -32,7 +32,7 @@
         },
         {
           "type": "ports",
-          "line": 52,
+          "line": 86,
           "column": 10,
           "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
           "code": "no-hardcoded-ports",
@@ -41,6 +41,26 @@
             "range": [
               10,
               17
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/features/organizations/components/OrganizationForm/ValidationRules.ts",
+      "violations": [
+        {
+          "type": "ports",
+          "line": 2,
+          "column": 7,
+          "message": "硬编码端口 2025，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              7,
+              13
             ],
             "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
           }
@@ -122,7 +142,7 @@
       "violations": [
         {
           "type": "contracts",
-          "line": 465,
+          "line": 464,
           "column": 9,
           "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
           "code": "deprecated-field",
@@ -137,7 +157,7 @@
         },
         {
           "type": "contracts",
-          "line": 465,
+          "line": 464,
           "column": 30,
           "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
           "code": "deprecated-field",
@@ -152,7 +172,7 @@
         },
         {
           "type": "contracts",
-          "line": 210,
+          "line": 209,
           "column": 10,
           "message": "使用camelCase字段名 \"businessStatus\" 替代 snake_case \"business_status\"",
           "code": "snake-case-field",
@@ -167,7 +187,7 @@
         },
         {
           "type": "contracts",
-          "line": 211,
+          "line": 210,
           "column": 10,
           "message": "使用camelCase字段名 \"dataStatus\" 替代 snake_case \"data_status\"",
           "code": "snake-case-field",
@@ -182,7 +202,7 @@
         },
         {
           "type": "contracts",
-          "line": 298,
+          "line": 297,
           "column": 10,
           "message": "使用camelCase字段名 \"businessStatus\" 替代 snake_case \"business_status\"",
           "code": "snake-case-field",
@@ -197,7 +217,7 @@
         },
         {
           "type": "contracts",
-          "line": 299,
+          "line": 298,
           "column": 10,
           "message": "使用camelCase字段名 \"dataStatus\" 替代 snake_case \"data_status\"",
           "code": "snake-case-field",
@@ -485,6 +505,566 @@
           "message": "禁止使用REST GET请求进行查询，请使用GraphQL客户端",
           "code": "no-rest-queries",
           "severity": "error"
+        }
+      ]
+    },
+    {
+      "filePath": "/home/shangmeilin/cube-castle/frontend/src/shared/config/constants.ts",
+      "violations": [
+        {
+          "type": "ports",
+          "line": 15,
+          "column": 13,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 16,
+          "column": 19,
+          "message": "硬编码端口 5000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              19,
+              25
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 17,
+          "column": 18,
+          "message": "硬编码端口 12000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              18,
+              25
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 20,
+          "column": 11,
+          "message": "硬编码端口 10000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              11,
+              18
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 21,
+          "column": 18,
+          "message": "硬编码端口 5000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              18,
+              24
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 24,
+          "column": 16,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              16,
+              23
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 25,
+          "column": 22,
+          "message": "硬编码端口 10000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              22,
+              29
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 26,
+          "column": 18,
+          "message": "硬编码端口 5000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              18,
+              24
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 29,
+          "column": 17,
+          "message": "硬编码端口 1500，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              17,
+              23
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 30,
+          "column": 15,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              15,
+              21
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 34,
+          "column": 18,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              18,
+              25
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 35,
+          "column": 18,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              18,
+              25
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 54,
+          "column": 25,
+          "message": "硬编码端口 5000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              25,
+              31
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 57,
+          "column": 20,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              20,
+              26
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 100,
+          "column": 6,
+          "message": "硬编码端口 1024，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              6,
+              12
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 101,
+          "column": 6,
+          "message": "硬编码端口 1280，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              6,
+              12
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 102,
+          "column": 6,
+          "message": "硬编码端口 1440，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              6,
+              12
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 107,
+          "column": 12,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              12,
+              18
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 108,
+          "column": 9,
+          "message": "硬编码端口 1050，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              9,
+              15
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 109,
+          "column": 11,
+          "message": "硬编码端口 1100，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              11,
+              17
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 110,
+          "column": 9,
+          "message": "硬编码端口 1200，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              9,
+              15
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 111,
+          "column": 11,
+          "message": "硬编码端口 1300，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              11,
+              17
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 119,
+          "column": 14,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              14,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 156,
+          "column": 14,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              14,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 158,
+          "column": 13,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 169,
+          "column": 9,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              9,
+              16
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 170,
+          "column": 14,
+          "message": "硬编码端口 10000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              14,
+              21
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 171,
+          "column": 12,
+          "message": "硬编码端口 5000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              12,
+              18
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 172,
+          "column": 16,
+          "message": "硬编码端口 5000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              16,
+              22
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 173,
+          "column": 13,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              19
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 178,
+          "column": 17,
+          "message": "硬编码端口 3000，建议使用 SERVICE_PORTS.FRONTEND_DEV",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              17,
+              23
+            ],
+            "newText": "SERVICE_PORTS.FRONTEND_DEV"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 179,
+          "column": 20,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              20,
+              26
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 181,
+          "column": 23,
+          "message": "硬编码端口 2000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              23,
+              29
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 202,
+          "column": 14,
+          "message": "硬编码端口 1000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              14,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 203,
+          "column": 13,
+          "message": "硬编码端口 10000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 217,
+          "column": 17,
+          "message": "硬编码端口 2000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              17,
+              23
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
+        },
+        {
+          "type": "ports",
+          "line": 218,
+          "column": 13,
+          "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
+          "code": "no-hardcoded-ports",
+          "severity": "error",
+          "fix": {
+            "range": [
+              13,
+              20
+            ],
+            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
+          }
         }
       ]
     },
@@ -848,7 +1428,7 @@
       "violations": [
         {
           "type": "contracts",
-          "line": 185,
+          "line": 91,
           "column": 6,
           "message": "使用camelCase字段名 \"isTemporal\" 替代 snake_case \"is_temporal\"",
           "code": "snake-case-field",

@@ -10,8 +10,15 @@ export interface OrganizationFormProps extends Pick<OrganizationComponentProps, 
   enableTemporalFeatures?: boolean;
 }
 
-// 表单数据接口使用统一的OrganizationRequest
-export type FormData = OrganizationRequest;
+// 表单数据接口扩展OrganizationRequest，添加时态和表单特定字段
+export interface FormData extends OrganizationRequest {
+  level?: number; // 表单显示需要
+  // 时态字段
+  isTemporal?: boolean;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  changeReason?: string;
+}
 
 export interface FormFieldsProps {
   formData: FormData;

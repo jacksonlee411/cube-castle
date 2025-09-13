@@ -30,10 +30,10 @@ export const OrganizationUnitSchema = z.object({
   code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'),
   name: z.string().min(1, '组织名称不能为空').max(100, '组织名称不能超过100个字符'),
   unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM'], { 
-    errorMap: () => ({ message: '请选择有效的组织类型' }) 
+    message: '请选择有效的组织类型'
   }),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED'], {
-    errorMap: () => ({ message: '状态必须是 ACTIVE、INACTIVE 或 PLANNED' })
+    message: '状态必须是 ACTIVE、INACTIVE 或 PLANNED'
   }),
   level: z.number().int().min(1, '组织层级必须大于0').max(10, '组织层级不能超过10'),
   parentCode: z.string().regex(/^(0|\d{7})$/, 'Parent code must be "0" for root organizations or 7 digits for child organizations'),
@@ -82,10 +82,10 @@ export const CreateOrganizationInputSchema = z.object({
   code: z.string().regex(/^\d{7}$/, '组织编码必须为7位数字').optional(), // 可选，由系统生成
   name: z.string().min(1, '组织名称不能为空').max(100, '组织名称不能超过100个字符'),
   unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM'], { 
-    errorMap: () => ({ message: '请选择有效的组织类型' }) 
+    message: '请选择有效的组织类型'
   }),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED'], {
-    errorMap: () => ({ message: '状态必须是 ACTIVE、INACTIVE 或 PLANNED' })
+    message: '状态必须是 ACTIVE、INACTIVE 或 PLANNED'
   }).default('ACTIVE'),
   level: z.number().int().min(1, '组织层级必须大于0').max(10, '组织层级不能超过10'),
   parentCode: z.string().regex(/^(0|\d{7})$/, 'Parent code must be "0" for root organizations or 7 digits for child organizations'),
@@ -140,7 +140,7 @@ export const ValidationUtils = {
     const result = CreateOrganizationInputSchema.safeParse(data);
     return {
       isValid: result.success,
-      errors: result.success ? [] : result.error.errors.map(e => ({
+      errors: result.success ? [] : result.error.issues.map(e => ({
         field: e.path.join('.'),
         message: e.message
       }))
@@ -152,7 +152,7 @@ export const ValidationUtils = {
     const result = UpdateOrganizationInputSchema.safeParse(data);
     return {
       isValid: result.success,
-      errors: result.success ? [] : result.error.errors.map(e => ({
+      errors: result.success ? [] : result.error.issues.map(e => ({
         field: e.path.join('.'),
         message: e.message
       }))
@@ -164,7 +164,7 @@ export const ValidationUtils = {
     const result = GraphQLOrganizationResponseSchema.safeParse(data);
     return {
       isValid: result.success,
-      errors: result.success ? [] : result.error.errors.map(e => ({
+      errors: result.success ? [] : result.error.issues.map(e => ({
         field: e.path.join('.'),
         message: e.message
       }))
@@ -179,7 +179,7 @@ export const ValidationUtils = {
     if (result.success) return {};
     
     const errors: Record<string, string> = {};
-    result.error.errors.forEach(e => {
+    result.error.issues.forEach(e => {
       const field = e.path.join('.');
       errors[field] = e.message;
     });

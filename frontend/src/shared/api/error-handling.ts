@@ -15,6 +15,21 @@ export interface APIError extends Error {
   response?: APIErrorResponse;
 }
 
+// API错误类实现
+export class APIErrorImpl extends Error implements APIError {
+  public status: number;
+  public statusText: string;
+  public response?: APIErrorResponse;
+
+  constructor(status: number, statusText: string, response?: unknown) {
+    super(`API Error: ${status} ${statusText}`);
+    this.name = 'APIError';
+    this.status = status;
+    this.statusText = statusText;
+    this.response = response as APIErrorResponse;
+  }
+}
+
 // OAuth认证错误类
 export class OAuthError extends Error {
   public readonly code: string;
@@ -317,7 +332,7 @@ export const UnifiedErrorHandler = {
   
   // 创建标准化的API错误
   createAPIError: (status: number, statusText: string, response?: unknown, errorCode?: string) => {
-    const apiError = new APIError(status, statusText, response);
+    const apiError = new APIErrorImpl(status, statusText, response);
     if (errorCode) {
       const errorInfo = getErrorMessage(errorCode);
       Object.assign(apiError, {
@@ -335,7 +350,7 @@ export const UnifiedErrorHandler = {
   },
   
   // 快速错误类型判断
-  isAPIError: (error: unknown): error is APIError => error instanceof APIError,
+  isAPIError: (error: unknown): error is APIError => error instanceof APIErrorImpl,
   isUserFriendlyError: (error: unknown): error is UserFriendlyError => error instanceof UserFriendlyError,
   isOAuthError: (error: unknown): error is OAuthError => error instanceof OAuthError,
   

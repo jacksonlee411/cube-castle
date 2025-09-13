@@ -13,7 +13,7 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { activityStreamIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web';
 
 import { AuditEntryCard } from './AuditEntryCard';
-import organizationAPI from '../../../shared/api';
+import { unifiedGraphQLClient } from '../../../shared/api';
 import type { TemporalQueryParams } from '../../../shared/types/temporal';
 
 export interface AuditHistorySectionProps {
@@ -43,9 +43,43 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
     refetch
   } = useQuery({
     queryKey: ['auditHistory', recordId, params],
-    queryFn: () => {
-      console.log('🚀 AuditHistorySection: Calling getAuditHistory with recordId:', recordId, 'params:', params);
-      return organizationAPI.getAuditHistory(recordId, params);
+    queryFn: async () => {
+      console.log('🚀 AuditHistorySection: Calling auditHistory GraphQL query with recordId:', recordId, 'params:', params);
+      
+      const result = await unifiedGraphQLClient.request<{
+        auditHistory: Array<{
+          auditId: string;
+          operationType: string;
+          timestamp: string;
+          operatedBy: { id?: string; name?: string } | null;
+          operationReason: string;
+          beforeData: string;
+          afterData: string;
+          changesSummary: string;
+        }>;
+      }>(`
+        query GetAuditHistory($recordId: String!, $limit: Int, $mode: String) {
+          auditHistory(recordId: $recordId, limit: $limit, mode: $mode) {
+            auditId
+            operationType
+            timestamp
+            operatedBy {
+              id
+              name
+            }
+            operationReason
+            beforeData
+            afterData
+            changesSummary
+          }
+        }
+      `, {
+        recordId,
+        limit: params?.limit || 50,
+        mode: params?.mode || 'current'
+      });
+      
+      return result.auditHistory;
     },
     enabled: !!recordId,
     staleTime: 30000, // 30秒内数据视为新鲜

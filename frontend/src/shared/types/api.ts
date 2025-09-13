@@ -59,11 +59,11 @@ export interface GraphQLVariables {
  */
 
 // 临时兼容导出，避免破坏现有引用
-import { APIError as _APIError } from '../api/error-handling';
+import type { APIError as _APIError } from '../api/error-handling';
 import { ValidationError as _ValidationError } from '../api/type-guards';
 
 // TODO-TEMPORARY: 该导出将在 2025-09-16 后删除
-export const APIError = _APIError;
+export type APIError = _APIError;
 export const ValidationError = _ValidationError;
 
 // 新的统一类型定义在 error-handling.ts 中

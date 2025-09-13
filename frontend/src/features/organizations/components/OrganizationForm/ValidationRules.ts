@@ -1,6 +1,6 @@
 // TODO-TEMPORARY: 这个文件将被弃用，请使用 shared/validation/schemas.ts 的 ValidationUtils
 // 迁移期限: 2025-09-16 (1周后)
-import { ValidationUtils } from '@/shared/validation/schemas';
+import { ValidationUtils } from '../../../../shared/validation/schemas';
 import type { ValidationRules } from './FormTypes';
 
 // 兼容性包装器 - 逐步迁移到统一验证系统

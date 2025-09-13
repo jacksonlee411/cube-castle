@@ -1,0 +1,860 @@
+{
+  "timestamp": "2025-09-13T02:22:30.702Z",
+  "version": "1.0.0",
+  "guardian": {
+    "status": "ACTIVE",
+    "mode": "PRE_DEVELOPMENT_CHECK"
+  },
+  "statistics": {
+    "scannedFiles": 1,
+    "analysedImplementations": 207,
+    "detectedDuplicates": 0,
+    "preventedDuplicates": 0,
+    "riskAssessments": {
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "p3Integration": {
+      "duplicateCodeRate": 2.11,
+      "architectureViolations": 0,
+      "documentSyncRate": 0
+    }
+  },
+  "checkResults": {
+    "inventory": {
+      "restAPIs": [
+        "/api/v1/organization-units",
+        "/api/v1/organization-units/{code}",
+        "/api/v1/organization-units/{code}/versions",
+        "/api/v1/organization-units/{code}/events",
+        "/api/v1/organization-units/{code}/suspend",
+        "/api/v1/organization-units/{code}/activate",
+        "/api/v1/organization-units/validate",
+        "/api/v1/organization-units/{code}/refresh-hierarchy",
+        "/api/v1/organization-units/batch-refresh-hierarchy",
+        "/api/v1/corehr/organizations"
+      ],
+      "graphqlQueries": [
+        "organizations",
+        "filter",
+        "pagination",
+        "organization",
+        "code",
+        "asOfDate",
+        "organizationStats",
+        "asOfDate",
+        "includeHistorical",
+        "organizationHierarchy",
+        "code",
+        "tenantId"
+      ],
+      "goHandlers": [
+        "SetupRoutes",
+        "GenerateDevToken",
+        "GetTokenInfo",
+        "DevStatus",
+        "ListTestEndpoints",
+        "DatabaseStatus",
+        "PerformanceMetrics",
+        "TestAPI",
+        "SetupRoutes",
+        "GetHealth",
+        "GetMetrics",
+        "GetAlerts",
+        "GetTasks",
+        "GetTaskStatus",
+        "TriggerTask",
+        "TriggerCutover",
+        "TriggerConsistencyCheck",
+        "CreateOrganization",
+        "CreateOrganizationVersion",
+        "UpdateOrganization",
+        "SuspendOrganization",
+        "ActivateOrganization",
+        "CreateOrganizationEvent",
+        "UpdateHistoryRecord",
+        "SetupRoutes",
+        "CascadeUpdateService",
+        "CascadeTask",
+        "OperationalScheduler",
+        "ScheduledTask",
+        "TemporalService",
+        "InsertVersionRequest",
+        "OrganizationData",
+        "DeleteVersionRequest",
+        "ChangeEffectiveDateRequest",
+        "SuspendActivateRequest",
+        "VersionResponse",
+        "TemporalMonitor",
+        "MonitoringMetrics",
+        "AlertRule"
+      ],
+      "goServices": [],
+      "frontendExports": [
+        {
+          "name": "cubecastleBrandTokens",
+          "type": "const",
+          "file": "frontend/src/design-system/tokens/brand.ts"
+        },
+        {
+          "name": "validateForm",
+          "type": "const",
+          "file": "frontend/src/features/organizations/components/OrganizationForm/ValidationRules.ts"
+        },
+        {
+          "name": "ORGANIZATION_UNIT_TYPES",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/formConfig.ts"
+        },
+        {
+          "name": "ORGANIZATION_STATUSES",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/formConfig.ts"
+        },
+        {
+          "name": "BUSINESS_STATUSES",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/formConfig.ts"
+        },
+        {
+          "name": "ORGANIZATION_LEVELS",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/formConfig.ts"
+        },
+        {
+          "name": "FORM_DEFAULTS",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/formConfig.ts"
+        },
+        {
+          "name": "PAGINATION_DEFAULTS",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/formConfig.ts"
+        },
+        {
+          "name": "TABLE_COLUMNS",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/tableConfig.ts"
+        },
+        {
+          "name": "STATUS_COLORS",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/tableConfig.ts"
+        },
+        {
+          "name": "LOADING_STATES",
+          "type": "const",
+          "file": "frontend/src/features/organizations/constants/tableConfig.ts"
+        },
+        {
+          "name": "TEMPORAL_STATUS_COLORS",
+          "type": "const",
+          "file": "frontend/src/features/temporal/constants/temporalStatus.ts"
+        },
+        {
+          "name": "temporalStatusUtils",
+          "type": "const",
+          "file": "frontend/src/features/temporal/constants/temporalStatus.ts"
+        },
+        {
+          "name": "TEMPORAL_CONSTANTS",
+          "type": "const",
+          "file": "frontend/src/features/temporal/index.ts"
+        },
+        {
+          "name": "temporalUtils",
+          "type": "const",
+          "file": "frontend/src/features/temporal/index.ts"
+        },
+        {
+          "name": "validateTemporalDate",
+          "type": "const",
+          "file": "frontend/src/features/temporal/utils/temporalValidation.ts"
+        },
+        {
+          "name": "AuthManager",
+          "type": "class",
+          "file": "frontend/src/shared/api/auth.ts"
+        },
+        {
+          "name": "authManager",
+          "type": "const",
+          "file": "frontend/src/shared/api/auth.ts"
+        },
+        {
+          "name": "contractTestingAPI",
+          "type": "const",
+          "file": "frontend/src/shared/api/contract-testing.ts"
+        },
+        {
+          "name": "APIErrorImpl",
+          "type": "class",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "OAuthError",
+          "type": "class",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "ErrorHandler",
+          "type": "class",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "UserFriendlyError",
+          "type": "class",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "isUserFriendlyError",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "isOAuthError",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "withErrorHandling",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "useErrorHandler",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "withRetry",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "withOAuthRetry",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "withOAuthAwareErrorHandling",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "UnifiedErrorHandler",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-handling.ts"
+        },
+        {
+          "name": "getErrorMessage",
+          "type": "func",
+          "file": "frontend/src/shared/api/error-messages.ts"
+        },
+        {
+          "name": "formatErrorForUser",
+          "type": "func",
+          "file": "frontend/src/shared/api/error-messages.ts"
+        },
+        {
+          "name": "SUCCESS_MESSAGES",
+          "type": "const",
+          "file": "frontend/src/shared/api/error-messages.ts"
+        },
+        {
+          "name": "GraphQLEnterpriseAdapter",
+          "type": "class",
+          "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts"
+        },
+        {
+          "name": "graphqlEnterpriseAdapter",
+          "type": "const",
+          "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts"
+        },
+        {
+          "name": "useEnterpriseGraphQL",
+          "type": "const",
+          "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts"
+        },
+        {
+          "name": "ValidationError",
+          "type": "class",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "validateOrganizationUnit",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "validateCreateOrganizationInput",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "validateUpdateOrganizationInput",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "validateCreateOrganizationResponse",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "validateGraphQLVariables",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "validateGraphQLOrganizationResponse",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "validateGraphQLOrganizationList",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "isGraphQLError",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "isGraphQLSuccessResponse",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "isAPIError",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "isValidationError",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "isNetworkError",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "safeTransformGraphQLToOrganizationUnit",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "safeTransformCreateInputToAPI",
+          "type": "const",
+          "file": "frontend/src/shared/api/type-guards.ts"
+        },
+        {
+          "name": "UnifiedGraphQLClient",
+          "type": "class",
+          "file": "frontend/src/shared/api/unified-client.ts"
+        },
+        {
+          "name": "UnifiedRESTClient",
+          "type": "class",
+          "file": "frontend/src/shared/api/unified-client.ts"
+        },
+        {
+          "name": "unifiedGraphQLClient",
+          "type": "const",
+          "file": "frontend/src/shared/api/unified-client.ts"
+        },
+        {
+          "name": "unifiedRESTClient",
+          "type": "const",
+          "file": "frontend/src/shared/api/unified-client.ts"
+        },
+        {
+          "name": "createGraphQLClient",
+          "type": "const",
+          "file": "frontend/src/shared/api/unified-client.ts"
+        },
+        {
+          "name": "createRESTClient",
+          "type": "const",
+          "file": "frontend/src/shared/api/unified-client.ts"
+        },
+        {
+          "name": "validateCQRSUsage",
+          "type": "const",
+          "file": "frontend/src/shared/api/unified-client.ts"
+        },
+        {
+          "name": "TIMEOUTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "LIMITS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "BUSINESS_CONSTANTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "UI_CONSTANTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "API_CONSTANTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "TEST_CONSTANTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "RETRY_CONSTANTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "VALIDATION_CONSTANTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "FEATURE_FLAGS",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "generateConstantsReport",
+          "type": "const",
+          "file": "frontend/src/shared/config/constants.ts"
+        },
+        {
+          "name": "env",
+          "type": "const",
+          "file": "frontend/src/shared/config/environment.ts"
+        },
+        {
+          "name": "validateEnvironmentConfig",
+          "type": "const",
+          "file": "frontend/src/shared/config/environment.ts"
+        },
+        {
+          "name": "Config",
+          "type": "const",
+          "file": "frontend/src/shared/config/index.ts"
+        },
+        {
+          "name": "CONFIG_MANAGEMENT_STATS",
+          "type": "const",
+          "file": "frontend/src/shared/config/index.ts"
+        },
+        {
+          "name": "SERVICE_PORTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "getServicePort",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "buildServiceURL",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "CQRS_ENDPOINTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "FRONTEND_ENDPOINTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "INFRASTRUCTURE_ENDPOINTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "MONITORING_ENDPOINTS",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "validatePortConfiguration",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "generatePortConfigReport",
+          "type": "const",
+          "file": "frontend/src/shared/config/ports.ts"
+        },
+        {
+          "name": "TenantManager",
+          "type": "class",
+          "file": "frontend/src/shared/config/tenant.ts"
+        },
+        {
+          "name": "DEFAULT_TENANT_CONFIG",
+          "type": "const",
+          "file": "frontend/src/shared/config/tenant.ts"
+        },
+        {
+          "name": "tenantManager",
+          "type": "const",
+          "file": "frontend/src/shared/config/tenant.ts"
+        },
+        {
+          "name": "getCurrentTenantId",
+          "type": "const",
+          "file": "frontend/src/shared/config/tenant.ts"
+        },
+        {
+          "name": "isDefaultTenant",
+          "type": "const",
+          "file": "frontend/src/shared/config/tenant.ts"
+        },
+        {
+          "name": "getTenantConfig",
+          "type": "const",
+          "file": "frontend/src/shared/config/tenant.ts"
+        },
+        {
+          "name": "useEnterpriseOrganizations",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts"
+        },
+        {
+          "name": "useMessages",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useMessages.ts"
+        },
+        {
+          "name": "useCreateOrganization",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useOrganizationMutations.ts"
+        },
+        {
+          "name": "useUpdateOrganization",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useOrganizationMutations.ts"
+        },
+        {
+          "name": "useSuspendOrganization",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useOrganizationMutations.ts"
+        },
+        {
+          "name": "useActivateOrganization",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useOrganizationMutations.ts"
+        },
+        {
+          "name": "useOrganizations",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useOrganizations.ts"
+        },
+        {
+          "name": "useOrganization",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useOrganizations.ts"
+        },
+        {
+          "name": "useTemporalHealth",
+          "type": "func",
+          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
+        },
+        {
+          "name": "useTemporalAsOfDateQuery",
+          "type": "func",
+          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
+        },
+        {
+          "name": "useTemporalDateRangeQuery",
+          "type": "func",
+          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
+        },
+        {
+          "name": "useTemporalQueryUtils",
+          "type": "func",
+          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
+        },
+        {
+          "name": "useTemporalQueryStats",
+          "type": "func",
+          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
+        },
+        {
+          "name": "TemporalDateUtils",
+          "type": "const",
+          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
+        },
+        {
+          "name": "ValidationError",
+          "type": "const",
+          "file": "frontend/src/shared/types/api.ts"
+        },
+        {
+          "name": "isGraphQLResponse",
+          "type": "const",
+          "file": "frontend/src/shared/types/api.ts"
+        },
+        {
+          "name": "hasGraphQLErrors",
+          "type": "const",
+          "file": "frontend/src/shared/types/api.ts"
+        },
+        {
+          "name": "isAPIError",
+          "type": "const",
+          "file": "frontend/src/shared/types/api.ts"
+        },
+        {
+          "name": "isValidationError",
+          "type": "const",
+          "file": "frontend/src/shared/types/api.ts"
+        },
+        {
+          "name": "convertGraphQLToOrganizationUnit",
+          "type": "func",
+          "file": "frontend/src/shared/types/converters.ts"
+        },
+        {
+          "name": "convertGraphQLToTemporalOrganizationUnit",
+          "type": "func",
+          "file": "frontend/src/shared/types/converters.ts"
+        },
+        {
+          "name": "convertCreateInputToREST",
+          "type": "func",
+          "file": "frontend/src/shared/types/converters.ts"
+        },
+        {
+          "name": "convertUpdateInputToREST",
+          "type": "func",
+          "file": "frontend/src/shared/types/converters.ts"
+        },
+        {
+          "name": "checkTypeConsistency",
+          "type": "func",
+          "file": "frontend/src/shared/types/converters.ts"
+        },
+        {
+          "name": "generateTypeDefinition",
+          "type": "func",
+          "file": "frontend/src/shared/types/converters.ts"
+        },
+        {
+          "name": "logTypeSyncReport",
+          "type": "func",
+          "file": "frontend/src/shared/types/converters.ts"
+        },
+        {
+          "name": "TYPE_USAGE_GUIDE",
+          "type": "const",
+          "file": "frontend/src/shared/types/index.ts"
+        },
+        {
+          "name": "baseColors",
+          "type": "const",
+          "file": "frontend/src/shared/utils/colorTokens.ts"
+        },
+        {
+          "name": "statusColors",
+          "type": "const",
+          "file": "frontend/src/shared/utils/colorTokens.ts"
+        },
+        {
+          "name": "legacyColors",
+          "type": "const",
+          "file": "frontend/src/shared/utils/colorTokens.ts"
+        },
+        {
+          "name": "DateUtils",
+          "type": "const",
+          "file": "frontend/src/shared/utils/index.ts"
+        },
+        {
+          "name": "TEMPORAL_UTILS_INFO",
+          "type": "const",
+          "file": "frontend/src/shared/utils/index.ts"
+        },
+        {
+          "name": "normalizeParentCode",
+          "type": "const",
+          "file": "frontend/src/shared/utils/organization-helpers.ts"
+        },
+        {
+          "name": "isRootOrganization",
+          "type": "const",
+          "file": "frontend/src/shared/utils/organization-helpers.ts"
+        },
+        {
+          "name": "getOrganizationLevelText",
+          "type": "const",
+          "file": "frontend/src/shared/utils/organization-helpers.ts"
+        },
+        {
+          "name": "getOperationPermissionsByScopes",
+          "type": "func",
+          "file": "frontend/src/shared/utils/organizationPermissions.ts"
+        },
+        {
+          "name": "getOperationPermissions",
+          "type": "const",
+          "file": "frontend/src/shared/utils/organizationPermissions.ts"
+        },
+        {
+          "name": "STATUS_CONFIG",
+          "type": "const",
+          "file": "frontend/src/shared/utils/statusUtils.ts"
+        },
+        {
+          "name": "statusUtils",
+          "type": "const",
+          "file": "frontend/src/shared/utils/statusUtils.ts"
+        },
+        {
+          "name": "TemporalConverter",
+          "type": "class",
+          "file": "frontend/src/shared/utils/temporal-converter.ts"
+        },
+        {
+          "name": "TemporalUtils",
+          "type": "const",
+          "file": "frontend/src/shared/utils/temporal-converter.ts"
+        },
+        {
+          "name": "VALIDATION_SYSTEM_INFO",
+          "type": "const",
+          "file": "frontend/src/shared/validation/index.ts"
+        },
+        {
+          "name": "OrganizationUnitSchema",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "TemporalFormSchema",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "CreateOrganizationInputSchema",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "CreateOrganizationResponseSchema",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "UpdateOrganizationInputSchema",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "GraphQLVariablesSchema",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "GraphQLOrganizationResponseSchema",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "ValidationUtils",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "validateCreateOrganizationInput",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "validateUpdateOrganizationInput",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "validateOrganizationResponse",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "validateForm",
+          "type": "const",
+          "file": "frontend/src/shared/validation/schemas.ts"
+        },
+        {
+          "name": "formatValidationErrors",
+          "type": "func",
+          "file": "frontend/src/shared/validation/simple-validation.ts"
+        },
+        {
+          "name": "getFieldError",
+          "type": "func",
+          "file": "frontend/src/shared/validation/simple-validation.ts"
+        },
+        {
+          "name": "basicValidation",
+          "type": "const",
+          "file": "frontend/src/shared/validation/simple-validation.ts"
+        },
+        {
+          "name": "safeTransform",
+          "type": "const",
+          "file": "frontend/src/shared/validation/simple-validation.ts"
+        }
+      ],
+      "scripts": []
+    },
+    "duplicates": {
+      "apis": [],
+      "components": [],
+      "handlers": []
+    },
+    "p3Results": {
+      "duplicateDetection": "\u001b[0;34mℹ️  开始Cube Castle重复代码检测...\u001b[0m\n\u001b[0;34mℹ️  配置: 阈值=5%, 范围=full, 格式=console\u001b[0m\n\u001b[0;34mℹ️  扫描范围: 完整项目\u001b[0m\n\u001b[0;34mℹ️  开始检测重复代码...\u001b[0m\n\u001b[0;34mℹ️  执行命令: jscpd --threshold=5 --reporters=console --output=/home/shangmeilin/cube-castle/reports/duplicate-code --format=typescript,javascript,go,markdown --config=/home/shangmeilin/cube-castle/.jscpdrc.json .\u001b[0m\nClone found (typescript):\n - \u001b[1m\u001b[32mfrontend/src/shared/validation/schemas.ts\u001b[39m\u001b[22m [152:30 - 162:34] (10 lines, 98 tokens)\n   \u001b[1m\u001b[32mfrontend/src/shared/validation/schemas.ts\u001b[39m\u001b[22m [140:30 - 150:34]\n\nClone found (typescript):\n - \u001b[1m\u001b[32mfrontend/src/shared/validation/schemas.ts\u001b[39m\u001b[22m [164:34 - 174:41] (10 lines, 98 tokens)\n   \u001b[1m\u001b[32mfrontend/src/shared/validation/schemas.ts\u001b[39m\u001b[22m [140:30 - 150:34]\n\nClone found (typescript):\n - \u001b[1m\u001b[32mfrontend/src/shared/hooks/useOrganizationMutations.ts\u001b[39m\u001b[22m [131:30 - 149:23] (18 lines, 121 tokens)\n   \u001b[1m\u001b[32mfrontend/src/shared/hooks/useOrganizationMutations.ts\u001b[39m\u001b[22m [67:29 - 85:24]\n\nClone found (typescript):\n - \u001b[1m\u001b[32mfrontend/src/shared/hooks/useOrganizationMutations.ts\u001b[39m\u001b[22m [186:31 - 220:63] (34 lines, 236 tokens)\n   \u001b[1m\u001b[32mfrontend/src/shared/hooks/useOrganizationMutations.ts\u001b[39m\u001b[22m [67:29 - 165:62]\n\nClone found (typescript):\n - \u001b[1m\u001b[32mfrontend/src/shared/hooks/useEnterpriseOrganizations.ts\u001b[39m\u001b[22m [138:7 - 155:10] (17 lines, 162 tokens)\n   \u001b[1m\u001b[32mfrontend/src/shared/hooks/useEnterpriseOrganizations.ts\u001b[39m\u001b[22m [98:7 - 115:14]\n\nClone found (typescript):\n - \u001b[1m\u001b[32mfrontend/src/shared/api/error-handling.ts\u001b[39m\u001b[22m [272:1 - 282:21] (10 lines, 113 tokens)\n   \u001b[1m\u001b[32mfrontend/src/shared/api/error-handling.ts\u001b[39m\u001b[22m [243:1 - 253:17]\n\nClone found (typescript):\n - \u001b[1m\u001b[32mtests/e2e/activate-suspend-workflow.test.ts\u001b[39m\u001b[22m [183:7 - 194:2] (11 lines, 90 tokens)\n   \u001b[1m\u001b[32mtests/e2e/activate-suspend-workflow.test.ts\u001b[39m\u001b[22m [71:9 - 82:2]\n\nClone found (typescript):\n - \u001b[1m\u001b[32mtests/e2e/activate-suspend-workflow.test.ts\u001b[39m\u001b[22m [235:10 - 252:12] (17 lines, 143 tokens)\n   \u001b[1m\u001b[32mtests/e2e/activate-suspend-workflow.test.ts\u001b[39m\u001b[22m [149:11 - 166:9]\n\nClone found (javascript):\n - \u001b[1m\u001b[32mscripts/eslint-rules/enforce-api-contracts.js\u001b[39m\u001b[22m [94:2 - 109:15] (15 lines, 108 tokens)\n   \u001b[1m\u001b[32mscripts/quality/architecture-validator.js\u001b[39m\u001b[22m [318:2 - 333:7]\n\nClone found (go):\n - \u001b[1m\u001b[32minternal/cache/unified_cache_manager.go\u001b[39m\u001b[22m [368:2 - 394:9] (26 lines, 286 tokens)\n   \u001b[1m\u001b[32minternal/cache/unified_cache_manager.go\u001b[39m\u001b[22m [333:2 - 359:9]\n\nClone found (go):\n - \u001b[1m\u001b[32minternal/auth/graphql_middleware.go\u001b[39m\u001b[22m [115:5 - 126:11] (11 lines, 115 tokens)\n   \u001b[1m\u001b[32minternal/auth/graphql_middleware.go\u001b[39m\u001b[22m [79:5 - 90:2]\n\nClone found (go):\n - \u001b[1m\u001b[32minternal/auth/graphql_middleware.go\u001b[39m\u001b[22m [184:29 - 194:2] (10 lines, 112 tokens)\n   \u001b[1m\u001b[32minternal/auth/graphql_middleware.go\u001b[39m\u001b[22m [171:19 - 181:2]\n\nClone found (javascript):\n - \u001b[1m\u001b[32mfrontend/scripts/validate-field-naming.js\u001b[39m\u001b[22m [14:2 - 24:19] (10 lines, 122 tokens)\n   \u001b[1m\u001b[32mscripts/eslint-rules/enforce-api-contracts.js\u001b[39m\u001b[22m [34:2 - 43:2]\n\nClone found (markdown):\n - \u001b[1m\u001b[32mdocs/api/CHANGELOG.md\u001b[39m\u001b[22m [114:1 - 133:2] (19 lines, 135 tokens)\n   \u001b[1m\u001b[32mdocs/api/CHANGELOG.md\u001b[39m\u001b[22m [96:1 - 114:4]\n\nClone found (go):\n - \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [167:16 - 178:5] (11 lines, 131 tokens)\n   \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [149:13 - 160:3]\n\nClone found (go):\n - \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [200:4 - 211:11] (11 lines, 131 tokens)\n   \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [150:2 - 161:14]\n\nClone found (go):\n - \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [218:30 - 229:10] (11 lines, 115 tokens)\n   \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [199:30 - 160:12]\n\nClone found (go):\n - \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [243:9 - 253:7] (10 lines, 96 tokens)\n   \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [150:2 - 160:12]\n\nClone found (go):\n - \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [264:32 - 275:26] (11 lines, 140 tokens)\n   \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [199:30 - 229:12]\n\nClone found (go):\n - \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [283:8 - 295:13] (12 lines, 144 tokens)\n   \u001b[1m\u001b[32mscripts/temporal_test_runner.go\u001b[39m\u001b[22m [199:8 - 230:16]\n\nClone found (go):\n - \u001b[1m\u001b[32mscripts/cqrs_integration_runner.go\u001b[39m\u001b[22m [131:2 - 144:5] (13 lines, 88 tokens)\n   \u001b[1m\u001b[32mscripts/cqrs_integration_runner.go\u001b[39m\u001b[22m [116:4 - 129:20]\n\n\u001b[90m┌────────────\u001b[39m\u001b[90m┬────────────────\u001b[39m\u001b[90m┬─────────────\u001b[39m\u001b[90m┬──────────────\u001b[39m\u001b[90m┬──────────────\u001b[39m\u001b[90m┬──────────────────\u001b[39m\u001b[90m┬───────────────────┐\u001b[39m\n\u001b[90m│\u001b[39m\u001b[31m Format     \u001b[39m\u001b[90m│\u001b[39m\u001b[31m Files analyzed \u001b[39m\u001b[90m│\u001b[39m\u001b[31m Total lines \u001b[39m\u001b[90m│\u001b[39m\u001b[31m Total tokens \u001b[39m\u001b[90m│\u001b[39m\u001b[31m Clones found \u001b[39m\u001b[90m│\u001b[39m\u001b[31m Duplicated lines \u001b[39m\u001b[90m│\u001b[39m\u001b[31m Duplicated tokens \u001b[39m\u001b[90m│\u001b[39m\n\u001b[90m├────────────\u001b[39m\u001b[90m┼────────────────\u001b[39m\u001b[90m┼─────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────────\u001b[39m\u001b[90m┼───────────────────┤\u001b[39m\n\u001b[90m│\u001b[39m typescript \u001b[90m│\u001b[39m 70             \u001b[90m│\u001b[39m 10958       \u001b[90m│\u001b[39m 95218        \u001b[90m│\u001b[39m 8            \u001b[90m│\u001b[39m 127 (1.16%)      \u001b[90m│\u001b[39m 1061 (1.11%)      \u001b[90m│\u001b[39m\n\u001b[90m├────────────\u001b[39m\u001b[90m┼────────────────\u001b[39m\u001b[90m┼─────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────────\u001b[39m\u001b[90m┼───────────────────┤\u001b[39m\n\u001b[90m│\u001b[39m markdown   \u001b[90m│\u001b[39m 67             \u001b[90m│\u001b[39m 16382       \u001b[90m│\u001b[39m 101031       \u001b[90m│\u001b[39m 1            \u001b[90m│\u001b[39m 19 (0.12%)       \u001b[90m│\u001b[39m 135 (0.13%)       \u001b[90m│\u001b[39m\n\u001b[90m├────────────\u001b[39m\u001b[90m┼────────────────\u001b[39m\u001b[90m┼─────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────────\u001b[39m\u001b[90m┼───────────────────┤\u001b[39m\n\u001b[90m│\u001b[39m go         \u001b[90m│\u001b[39m 24             \u001b[90m│\u001b[39m 5517        \u001b[90m│\u001b[39m 44783        \u001b[90m│\u001b[39m 10           \u001b[90m│\u001b[39m 126 (2.28%)      \u001b[90m│\u001b[39m 1358 (3.03%)      \u001b[90m│\u001b[39m\n\u001b[90m├────────────\u001b[39m\u001b[90m┼────────────────\u001b[39m\u001b[90m┼─────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────────\u001b[39m\u001b[90m┼───────────────────┤\u001b[39m\n\u001b[90m│\u001b[39m javascript \u001b[90m│\u001b[39m 16             \u001b[90m│\u001b[39m 4175        \u001b[90m│\u001b[39m 34731        \u001b[90m│\u001b[39m 2            \u001b[90m│\u001b[39m 25 (0.6%)        \u001b[90m│\u001b[39m 230 (0.66%)       \u001b[90m│\u001b[39m\n\u001b[90m├────────────\u001b[39m\u001b[90m┼────────────────\u001b[39m\u001b[90m┼─────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────\u001b[39m\u001b[90m┼──────────────────\u001b[39m\u001b[90m┼───────────────────┤\u001b[39m\n\u001b[90m│\u001b[39m \u001b[1mTotal:\u001b[22m     \u001b[90m│\u001b[39m 177            \u001b[90m│\u001b[39m 37032       \u001b[90m│\u001b[39m 275763       \u001b[90m│\u001b[39m 21           \u001b[90m│\u001b[39m 297 (0.8%)       \u001b[90m│\u001b[39m 2784 (1.01%)      \u001b[90m│\u001b[39m\n\u001b[90m└────────────\u001b[39m\u001b[90m┴────────────────\u001b[39m\u001b[90m┴─────────────\u001b[39m\u001b[90m┴──────────────\u001b[39m\u001b[90m┴──────────────\u001b[39m\u001b[90m┴──────────────────\u001b[39m\u001b[90m┴───────────────────┘\u001b[39m\n\u001b[90mFound 21 clones.\u001b[39m\n\u001b[3m\u001b[90mDetection time:\u001b[39m\u001b[23m: 2.457s\n\u001b[0;34mℹ️  生成检测统计报告...\u001b[0m\n\u001b[0;34mℹ️  📊 检测结果统计:\u001b[0m\n📁 扫描文件数: 44\n📋 代码总行数: 5,413\n🔍 重复行数: 114\n📊 重复率: 2.11%\n⚠️ 重复片段: 8\n🎯 阈值标准: 5%\n✅ 质量状态: 通过\n\u001b[0;32m✅ 质量门禁通过: 重复率 2.11% 符合标准\u001b[0m\n\u001b[0;32m✅ 重复代码检测完成，质量标准通过！\u001b[0m\n\u001b[0;34mℹ️  可以安全提交代码\u001b[0m\n"
+    },
+    "assessment": {
+      "overallRisk": "LOW",
+      "factors": [
+        "文档同步率不足: 0%"
+      ],
+      "scores": {
+        "duplication": 0,
+        "codeQuality": 0,
+        "architecture": 0,
+        "documentation": 60
+      }
+    },
+    "recommendations": []
+  },
+  "summary": {
+    "totalImplementations": 207,
+    "duplicatesDetected": 0,
+    "riskLevel": "LOW",
+    "p3Integration": {
+      "duplicateCodeRate": 2.11,
+      "architectureViolations": 0,
+      "documentSyncRate": 0
+    }
+  }
+}

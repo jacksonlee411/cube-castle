@@ -35,7 +35,7 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
     <Table data-testid="organization-table">
       <TableHeader showTemporalInfo={showTemporalInfo || isHistorical} />
       <Table.Body>
-        {organizations.length === 0 ? (
+        {!organizations || organizations.length === 0 ? (
           <Table.Row>
             <Table.Cell colSpan={showTemporalInfo || isHistorical ? 9 : 6}>
               <Text textAlign="center" color="hint">
@@ -47,7 +47,7 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
             </Table.Cell>
           </Table.Row>
         ) : (
-          organizations.map((org, index) => {
+          organizations?.map((org, index) => {
             // 使用多层级唯一性保证：recordId > code+createdAt > code+index
             const uniqueKey = org.recordId || 
                              `${org.code}-${org.createdAt}` || 

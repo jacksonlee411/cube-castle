@@ -20,7 +20,7 @@ export const useOrganizations = (params?: OrganizationQueryParams) => {
     data: result.organizations,
     isLoading: result.loading,
     error: result.error,
-    refetch: result.refetch
+    refetch: result.fetchOrganizations // 使用fetchOrganizations作为refetch
   };
 };
 

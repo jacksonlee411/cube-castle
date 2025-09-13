@@ -22,7 +22,6 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/unified-client';
-import { organizationAPI } from '../../../shared/api';
 // 审计历史组件导入
 import { AuditHistorySection } from '../../audit/components/AuditHistorySection';
 import { normalizeParentCode } from '../../../shared/utils/organization-helpers';
@@ -281,19 +280,19 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       const timeline = resp?.data?.timeline;
       if (Array.isArray(timeline)) {
         const mappedVersions: TimelineVersion[] = timeline.map((v: Record<string, unknown>) => ({
-          recordId: v.recordId,
-          code: v.code,
-          name: v.name,
-          unitType: v.unitType,
-          status: v.status,
-          level: v.level,
-          effectiveDate: v.effectiveDate,
-          endDate: v.endDate || null,
+          recordId: v.recordId as string,
+          code: v.code as string,
+          name: v.name as string,
+          unitType: v.unitType as string,
+          status: v.status as string,
+          level: v.level as number,
+          effectiveDate: v.effectiveDate as string,
+          endDate: (v.endDate as string) || null,
           isCurrent: !!v.isCurrent,
-          createdAt: v.createdAt,
-          updatedAt: v.updatedAt,
-          parentCode: v.parentCode || undefined,
-          description: v.description || undefined,
+          createdAt: v.createdAt as string,
+          updatedAt: v.updatedAt as string,
+          parentCode: (v.parentCode as string) || undefined,
+          description: (v.description as string) || undefined,
           lifecycleStatus: v.isCurrent ? 'CURRENT' : 'HISTORICAL',
           business_status: v.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
           data_status: 'NORMAL',
@@ -408,17 +407,17 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           showError('创建成功，但未能获取新组织编码，请手动刷新页面');
         }
       } else {
-        // 为现有组织创建新的时态版本 - 使用organizationAPI.createVersion (API v4.4.0)
-        await organizationAPI.createVersion(organizationCode!, {
-          name: formData.name,
-          unitType: formData.unitType,
-          parentCode: normalizeParentCode.forAPI(formData.parentCode),
-          description: formData.description || null,
-          sortOrder: null, // 使用默认排序
-          profile: null,   // 暂不支持
-          effectiveDate: formData.effectiveDate, // 使用YYYY-MM-DD格式
-          endDate: null,   // 暂不设置结束日期
-          operationReason: formData.changeReason || '通过组织详情页面创建新版本'
+        // 为现有组织创建新的时态版本 - 使用REST API (命令操作)
+        await unifiedRESTClient.request(`/organization-units/${organizationCode}/versions`, {
+          method: 'POST',
+          body: JSON.stringify({
+            name: formData.name,
+            unitType: formData.unitType,
+            parentCode: normalizeParentCode.forAPI(formData.parentCode),
+            description: formData.description || null,
+            effectiveDate: formData.effectiveDate, // 使用YYYY-MM-DD格式
+            operationReason: formData.changeReason || '通过组织详情页面创建新版本'
+          })
         });
         
         // unifiedRESTClient成功时直接返回数据，失败时抛出异常
@@ -497,7 +496,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             status: updateData.status,
             description: updateData.description,
             effectiveDate: updateData.effectiveDate,
-            parentCode: normalizeParentCode.forAPI(updateData.parentCode),
+            parentCode: normalizeParentCode.forAPI(updateData.parentCode as string),
             changeReason: '通过组织详情页面修改历史记录'
           })
         }

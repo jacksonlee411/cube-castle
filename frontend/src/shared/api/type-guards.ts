@@ -7,7 +7,7 @@ import {
   GraphQLVariablesSchema,
   GraphQLOrganizationResponseSchema
 } from '../validation/schemas';
-import type { CreateOrganizationInput } from '../hooks/useOrganizationMutations';
+import type { OrganizationRequest as CreateOrganizationInput } from '../types/organization';
 import type { 
   ValidatedOrganizationUnit,
   ValidatedCreateOrganizationInput,

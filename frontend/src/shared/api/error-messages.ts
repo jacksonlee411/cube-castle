@@ -131,15 +131,17 @@ export function getErrorMessage(errorCode: string): ApiErrorCode {
  */
 export function formatErrorForUser(error: unknown): string {
   if (error && typeof error === 'object') {
+    const errorObj = error as Record<string, unknown>;
+    
     // API响应错误
-    if (error.error && error.error.code) {
-      const errorInfo = getErrorMessage(error.error.code);
+    if (errorObj.error && errorObj.error.code) {
+      const errorInfo = getErrorMessage(errorObj.error.code);
       return errorInfo.userMessage;
     }
     
     // 简单错误消息
-    if (error.message) {
-      return error.message;
+    if (errorObj.message) {
+      return errorObj.message;
     }
   }
   

@@ -3,14 +3,14 @@ import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
 import { useCreateOrganization, useUpdateOrganization } from '../../../../shared/hooks/useOrganizationMutations';
 // import { useTemporalMode } from '../../../../shared/hooks/useTemporalQuery';
-import { organizationAPI } from '../../../../shared/api';
 import { FormFields } from './FormFields';
 import { validateForm } from './ValidationRules';
 import type { OrganizationFormProps, FormData } from './FormTypes';
-import type { CreateOrganizationInput, UpdateOrganizationInput } from '../../../../shared/hooks/useOrganizationMutations';
 import { TemporalConverter } from '../../../../shared/utils/temporal-converter';
 import { useMessages } from '../../../../shared/hooks/useMessages';
 import { normalizeParentCode } from '../../../../shared/utils/organization-helpers';
+import { unifiedRESTClient } from '../../../../shared/api';
+import type { OrganizationRequest } from '../../../../shared/types';
 
 export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   organization,
@@ -86,7 +86,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     }
     
     // Validate form
-    const errors = validateForm(formData, isEditing);
+    const errors = validateForm(formData as Record<string, unknown>, isEditing);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -96,14 +96,13 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     
     try {
       if (isEditing) {
-        const updateData: UpdateOrganizationInput = {
+        const updateData: OrganizationRequest = {
           code: organization!.code,
           name: formData.name,
           unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
           status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
           description: formData.description,
           sortOrder: formData.sortOrder,
-          level: formData.level,
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
         };
         
@@ -111,22 +110,23 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         if (formData.isTemporal) {
           const temporalUpdateData = {
             ...updateData,
-            effectiveFrom: formData.effectiveFrom ? TemporalConverter.dateToIso(formData.effectiveFrom) : TemporalConverter.getCurrentISOString(),
-            effectiveTo: formData.effectiveTo ? TemporalConverter.dateToIso(formData.effectiveTo) : undefined,
+            effectiveDate: formData.effectiveFrom ? TemporalConverter.dateToIso(formData.effectiveFrom) : TemporalConverter.getCurrentISOString(),
             changeReason: formData.changeReason
           };
-          await organizationAPI.updateTemporal(organization!.code, temporalUpdateData);
+          // 使用REST API进行时态更新（命令操作）
+          await unifiedRESTClient.request(`/organization-units/${organization!.code}/temporal`, {
+            method: 'PUT',
+            body: JSON.stringify(temporalUpdateData)
+          });
         } else {
           await updateMutation.mutateAsync(updateData);
         }
       } else {
-        const createData: CreateOrganizationInput = {
+        const createData: OrganizationRequest = {
           code: formData.code && formData.code.trim() ? formData.code.trim() : undefined,
           name: formData.name,
           unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
           status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
-          level: formData.level,
-          sortOrder: formData.sortOrder,
           description: formData.description,
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
         };
@@ -135,11 +135,14 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         if (formData.isTemporal) {
           const temporalCreateData = {
             ...createData,
-            effectiveFrom: TemporalConverter.dateToIso(formData.effectiveFrom!),
-            effectiveTo: formData.effectiveTo ? TemporalConverter.dateToIso(formData.effectiveTo) : undefined,
+            effectiveDate: TemporalConverter.dateToIso(formData.effectiveFrom!),
             changeReason: formData.changeReason
           };
-          await organizationAPI.createTemporal(temporalCreateData);
+          // 使用REST API进行时态创建（命令操作）
+          await unifiedRESTClient.request('/organization-units/temporal', {
+            method: 'POST',
+            body: JSON.stringify(temporalCreateData)
+          });
         } else {
           await createMutation.mutateAsync(createData);
         }

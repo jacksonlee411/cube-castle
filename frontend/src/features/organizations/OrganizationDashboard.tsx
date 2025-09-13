@@ -11,6 +11,7 @@ import { OrganizationFilters } from './OrganizationFilters';
 import { PaginationControls } from './PaginationControls';
 
 import { useOrganizations } from '../../shared/hooks/useOrganizations';
+import type { OrganizationUnit } from '../../shared/types/organization';
 // import { useOrganizationMutations } from '../../shared/hooks/useOrganizationMutations'; // TODO: Implement mutations
 
 // 组织详情组件导入 - 暂时禁用以修复无限循环错误
@@ -101,18 +102,32 @@ export const OrganizationDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   // 简化的filter状态管理
-  const [filters, setFilters] = React.useState({ page: 1, pageSize: 50 });
+  const [filters, setFilters] = React.useState({ 
+    searchText: '',
+    unitType: undefined as string | undefined,
+    status: undefined as string | undefined,
+    level: undefined as number | undefined,
+    page: 1, 
+    pageSize: 50 
+  });
   const isFiltered = false;
-  const resetFilters = () => setFilters({ page: 1, pageSize: 50 });
+  const resetFilters = () => setFilters({ 
+    searchText: '',
+    unitType: undefined,
+    status: undefined,
+    level: undefined,
+    page: 1, 
+    pageSize: 50 
+  });
   const handlePageChange = (page: number) => setFilters(prev => ({ ...prev, page }));
 
   // 组织数据查询
   const { data: organizationsData, isLoading, error } = useOrganizations();
-  const organizations = organizationsData?.data || [];
-  const totalCount = organizationsData?.pagination?.total || 0;
+  const organizations = organizationsData || []; // useOrganizations返回的data就是organizations数组
+  const totalCount = organizations.length; // 使用数组长度作为总数
 
   // 组织操作(暂时简化)
-  const selectedOrg = null;
+  const selectedOrg: OrganizationUnit | undefined = undefined;
   const isFormOpen = false;
   const handleFormClose = () => {};
   const handleFormSubmit = () => {};
@@ -132,6 +147,7 @@ export const OrganizationDashboard: React.FC = () => {
   const isHistorical = false;
   const isPlanning = false;
   const temporalLoading = { organizations: false };
+  const isFetching = isLoading; // 使用isLoading作为isFetching
 
 
   if (isLoading || temporalLoading.organizations) {
@@ -195,7 +211,7 @@ export const OrganizationDashboard: React.FC = () => {
                 ⚠️ 数据加载失败
               </Text>
               <Text color="frenchVanilla500" marginBottom="m">
-                {error.message}
+                {typeof error === 'string' ? error : (error as Error)?.message || '未知错误'}
               </Text>
               <SecondaryButton 
                 onClick={() => window.location.reload()}
