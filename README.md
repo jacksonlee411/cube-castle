@@ -1,6 +1,10 @@
 # 🏰 Cube Castle - 企业级CoreHR SaaS平台
 
-> **版本**: v4.0-Unified-Architecture | **更新日期**: 2025年9月7日 | **架构**: PostgreSQL原生CQRS + 统一配置管理
+> **版本**: v4.1-Documentation-Governance | **更新日期**: 2025年9月13日 | **架构**: PostgreSQL原生CQRS + 统一配置管理
+> 
+> 快速入口：
+> - 参考文档（Reference）: `docs/reference/00-README.md`
+> - 文档导航中心: `docs/README.md`
 
 基于**PostgreSQL原生架构**和**Canvas Kit v13设计系统**的企业级HR SaaS平台，采用React 19 + Vite 7构建，实现了**95%重复代码消除**和**企业级架构统一**。
 
@@ -83,6 +87,15 @@ cd cmd/organization-query-service && go run .
 cd frontend && npm install && npm run dev
 ```
 
+## 📚 文档导航（Reference vs Plans）
+
+- 参考文档（长期稳定）: `docs/reference/`
+  - 开发者快速参考 · 实现清单 · API 使用指南
+- 开发计划（活跃/阶段性）: `docs/development-plans/`
+  - 完成项归档 → `docs/archive/development-plans/`
+-
+导航入口：`docs/README.md`，归档说明：`docs/archive/README.md`
+
 ## 🔐 开发认证
 
 ### JWT令牌管理
@@ -112,7 +125,7 @@ query {
     code
     name
     status
-    effective_date
+    effectiveDate
   }
 }
 ```
@@ -142,7 +155,7 @@ go test ./... && ./test_all_routes.sh
 
 ## 🔁 CI/CD 守护与触发
 
-- 工作流: `.github/workflows/consistency-guard.yml`
+- 工作流: `.github/workflows/consistency-guard.yml`、`.github/workflows/document-sync.yml`、`.github/workflows/contract-testing.yml`
 - 触发条件:
   - push: 任意分支（branches: "**"），含 tag（tags: "*")
   - pull_request: 任意目标分支（branches: "**"）
@@ -151,6 +164,7 @@ go test ./... && ./test_all_routes.sh
 - 强制守护（Enforce=ON）:
   - 前端 REST 查询守护（禁止以 REST 读取，GraphQL-only）
   - cmd/* 配置守护（CORS 硬编码/端口/内联 JWT 配置）
+  - 文档目录边界守护（Reference vs Plans 边界检查 + 文档同步检查）
 - 本地自检:
   - `bash scripts/ci/check-permissions.sh`（权限命名）
   - `bash scripts/ci/check-rest-queries.sh`（前端 REST 查询）
@@ -182,7 +196,7 @@ go test ./... && ./test_all_routes.sh
 # 完整质量检查 (推荐)
 bash scripts/quality/duplicate-detection.sh      # 重复代码检测
 node scripts/quality/architecture-validator.js   # 架构一致性验证  
-node scripts/quality/document-sync.js           # 文档同步检查
+node scripts/quality/document-sync.js           # 文档同步与目录边界检查
 
 # 自动修复模式
 bash scripts/quality/duplicate-detection.sh --fix
@@ -215,8 +229,11 @@ cube-castle/
 │   ├── architecture-validator.js   # 架构守护验证
 │   └── document-sync.js           # 文档同步引擎
 ├── docs/                    # 项目文档
-│   ├── api/                # API契约
-│   └── development-plans/   # 开发计划
+│   ├── reference/           # 长期稳定参考（快速参考、实现清单、API使用指南）
+│   ├── development-plans/   # 开发计划（活跃）
+│   ├── api/                 # API契约（OpenAPI/GraphQL）
+│   └── archive/
+│       └── development-plans/  # 开发计划归档（已完成/历史）
 └── reports/                 # 🆕 质量报告输出
     ├── duplicate-code/      # 重复代码检测报告
     ├── architecture/        # 架构验证报告
@@ -226,8 +243,12 @@ cube-castle/
 ## 📋 核心文档
 
 - **API规范**: `docs/api/openapi.yaml` & `docs/api/schema.graphql`
-- **技术架构**: `docs/development-plans/02-technical-architecture-design.md`
-- **重复代码消除**: `docs/development-plans/18-duplicate-code-elimination-plan.md`
+- **技术架构（活跃）**: `docs/development-plans/02-technical-architecture-design.md`
+- **参考文档入口**: `docs/reference/00-README.md`
+- **开发者快速参考**: `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`
+- **实现清单**: `docs/reference/02-IMPLEMENTATION-INVENTORY.md`
+- **API 使用指南**: `docs/reference/03-API-USAGE-GUIDE.md`
+- **计划归档目录**: `docs/archive/development-plans/`
 - **项目记忆**: `CLAUDE.md`
 
 ## 🔧 故障排除 & 开发规范
@@ -243,6 +264,7 @@ make status                               # 服务状态
 - 查询用GraphQL，命令用REST
 - 禁止硬编码端口，使用`unified-client`
 - ESLint + TypeScript严格模式
+ - 文档治理：Reference 仅放长期稳定参考；Plans 仅放计划/进展；完成项归档至 `docs/archive/development-plans/`
 
 ---
 

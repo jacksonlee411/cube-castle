@@ -22,19 +22,18 @@
 ### docs/ 目录结构（现行）
 ```
 docs/
-├── architecture/          # 架构设计文档（非契约，说明为主）
-│   ├── 01-organization-units-api-specification.md
-│   └── [其他架构文档]
-├── development-plans/     # 开发计划文档（序号排序）
+├── reference/           # 长期稳定的权威参考（查询、指南、清单）
+├── development-plans/   # 开发计划文档（序号排序，含 archived/）
 │   ├── 00-README.md
 │   ├── 02-technical-architecture-design.md
 │   └── [其他计划文档]
-├── development-guides/    # 开发指南（前端 UI/组件规范等）
-├── development-tools/     # 开发工具文档
-├── api/                  # API 契约（OpenAPI/GraphQL）
-└── archive/              # 历史文档归档
-    ├── deprecated-*/     # 废弃的不同类型文档
-    └── project-reports/  # 项目报告归档
+├── architecture/        # 架构设计文档（非契约，说明为主）
+├── development-guides/  # 开发指南（前端 UI/组件规范等）
+├── development-tools/   # 开发工具文档
+├── api/                 # API 契约（OpenAPI/GraphQL）
+└── archive/             # 历史文档归档
+    ├── deprecated-*/    # 废弃的不同类型文档
+    └── project-reports/ # 项目报告归档
 ```
 
 ## 🚨 文档创建和维护规范
@@ -48,6 +47,11 @@ docs/
   - 禁止使用：`-final`、`-fix`、`-v2`、`-temp` 等二义性后缀；避免 `UPPER_SNAKE_CASE.md` 命名（除上述例外）。
   - API 字段命名在文档示例中一律采用 camelCase（与实现保持一致）。
 - **版本管理**: 重要文档需要版本号和维护记录
+
+### 目录边界（强制）
+- `docs/reference/` 仅存放“长期稳定、对外可依赖”的参考资料（快速参考、实现清单、API 使用与质量手册）。
+- `docs/development-plans/` 仅存放“计划/路线/进展/阶段报告”，完成后移入 `archived/`；不得承载规范性参考。
+- 契约以 `docs/api/` 为唯一事实来源；架构说明在 `docs/architecture/`。
 
 ### 2. 文档更新规范
 - **及时更新**: 项目状态变更时必须同步更新相关文档
@@ -98,6 +102,8 @@ docs/
 - [ ] 清理测试和临时文件
 - [ ] 抽样检查命名规范（kebab-case/数字前缀/例外白名单），无 `-final/-temp` 等后缀，无不当 `UPPER_SNAKE_CASE.md`
 - [ ] 抽样检查 API 示例字段命名为 camelCase，路径参数为 `{code}`，与 CLAUDE.md 一致
+- [ ] 校验目录边界：`reference/` 不含计划/进展类文档；`development-plans/` 不含规范性参考文档
+- [ ] 校验导航一致性：`docs/README.md` 与各目录 `00-README.md` 的边界说明存在且一致
 
 ### 季度深度清理（每季度最后一周执行）
 - [ ] 全面审查文档内容的时效性

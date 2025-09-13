@@ -27,6 +27,14 @@ cat docs/api/schema.graphql
 严禁混用！
 ```
 
+### 第四步: 建立/更新开发计划 (强制)
+```md
+在开始实现前，在 `docs/development-plans/` 建立或更新对应计划条目：
+- 填写目标/范围/依赖/验收标准/权限契约（基于 docs/api/）
+- 执行完成后将计划文档移动到 `docs/archive/development-plans/`
+- 入口: docs/development-plans/00-README.md
+```
+
 ---
 
 ## ⚡ 常用命令速查
@@ -182,9 +190,10 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 1. 运行实现清单检查: node scripts/generate-implementation-inventory.js
 2. 检查API契约: 查阅 docs/api/openapi.yaml 和 schema.graphql
 3. 优先使用现有资源: 搜索现有API、Hook、组件
-4. 开发实现: 遵循CQRS架构和命名规范
-5. 测试验证: 运行契约测试和质量检查
-6. 更新文档: 重新运行实现清单生成器
+4. 建立/更新计划文档: 在 docs/development-plans/ 添加/更新本次工作计划（完成后归档至 archived/）
+5. 开发实现: 遵循CQRS架构和命名规范
+6. 测试验证: 运行契约测试和质量检查
+7. 更新文档: 重新运行实现清单生成器
 ```
 
 ---
@@ -209,11 +218,12 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 
 ## 📚 更多资源
 
-- [实现清单](./IMPLEMENTATION-INVENTORY.md) - 查看所有现有功能
-- [API使用指南](./API-USAGE-GUIDE.md) - 详细API使用说明
+- [实现清单](./02-IMPLEMENTATION-INVENTORY.md) - 查看所有现有功能
+- [API使用指南](./03-API-USAGE-GUIDE.md) - 详细API使用说明
 - [项目指导原则](../../CLAUDE.md) - 开发规范和原则
 - [REST API规范](../api/openapi.yaml) - OpenAPI 3.0规范
 - [GraphQL Schema](../api/schema.graphql) - 查询Schema定义
+- [开发计划目录使用指南](../development-plans/00-README.md) - 建立/更新计划与归档流程
 
 ---
 

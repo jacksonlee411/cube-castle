@@ -1,324 +1,239 @@
-# Cube Castle 监控系统彻底卸载清理方案
+# Cube Castle 集成团队进展日志
 
-**文档编号**: 06  
-**最后更新**: 2025-09-13 21:20  
-**维护团队**: 架构团队 + 开发团队  
-
-## 🎯 **监控系统彻底卸载清理方案**
-
-基于对项目监控系统的完整评估，提供以下彻底卸载和清理方案，确保移除所有监控相关组件。
-
-## 📋 **监控系统组件清单**
-
-### 🐳 **Docker基础设施组件**
-- **监控容器**: cube-castle-prometheus, cube-castle-grafana, cube-castle-alertmanager, cube-castle-node-exporter
-- **Docker卷**: prometheus-data, grafana-data, alertmanager-data
-- **Docker网络**: monitoring network
-- **配置文件**: docker-compose.monitoring.yml
-
-### 📁 **文件系统组件**
-```
-monitoring/                          # 主监控目录
-├── docker-compose.monitoring.yml    # Docker Compose配置
-├── prometheus.yml                   # Prometheus配置
-├── prometheus-rules.yml             # 告警规则
-├── alertmanager.yml                 # 告警管理配置  
-├── slo-config.yml                   # SLO配置
-├── grafana/                         # Grafana配置目录
-│   ├── provisioning/
-│   │   ├── datasources/prometheus.yml
-│   │   └── dashboards/
-│   └── dashboards/
-└── data/                           # 持久化数据目录
-    ├── prometheus/
-    ├── grafana/
-    └── alertmanager/
-```
-
-### 🎯 **前端集成组件**
-- **监控页面**: `frontend/src/features/monitoring/MonitoringDashboard.tsx`
-- **路由配置**: App.tsx中的 `/monitoring` 路由
-- **侧边栏导航**: Sidebar.tsx中的"系统监控"菜单项
-- **端口配置**: `frontend/src/shared/config/ports.ts` 中的 MONITORING_ENDPOINTS
-
-### ⚙️ **后端集成组件**
-- **Prometheus客户端**: 两个服务都集成了prometheus Go客户端
-- **Metrics端点**: `/metrics` 端点在两个服务中都存在
-- **指标收集器**: 
-  - `cmd/organization-command-service/internal/metrics/collector.go`
-  - `cmd/organization-query-service/internal/metrics/metrics.go`
-
-### 🛠️ **开发工具组件**
-- **启动脚本**: `scripts/start-monitoring.sh`
-- **测试脚本**: `scripts/test-monitoring.sh`, `scripts/tests/test-monitoring-integration.sh`
-- **Makefile目标**: `monitoring-up`, `monitoring-down`, `monitoring-test`
-
-## 🗑️ **彻底卸载清理方案**
-
-### **阶段1: 停止并清理Docker组件**
-```bash
-# 停止监控服务
-make monitoring-down
-# 或
-docker compose -f monitoring/docker-compose.monitoring.yml down -v
-
-# 删除监控容器（如果存在）
-docker rm -f cube-castle-prometheus cube-castle-grafana cube-castle-alertmanager cube-castle-node-exporter 2>/dev/null || true
-
-# 删除监控数据卷
-docker volume rm monitoring_prometheus-data monitoring_grafana-data monitoring_alertmanager-data 2>/dev/null || true
-
-# 删除监控网络
-docker network rm monitoring_monitoring 2>/dev/null || true
-
-# 清理无用镜像（可选）
-docker image rm prom/prometheus:v2.40.0 grafana/grafana:9.5.0 prom/alertmanager:v0.25.0 prom/node-exporter:v1.5.0 2>/dev/null || true
-```
-
-### **阶段2: 删除监控文件系统**
-```bash
-# 删除整个监控目录
-rm -rf monitoring/
-
-# 删除监控相关脚本
-rm -f scripts/start-monitoring.sh
-rm -f scripts/test-monitoring.sh
-rm -f scripts/tests/test-monitoring-integration.sh
-
-# 删除归档文档
-rm -f docs/archive/project-reports/16-monitoring-infrastructure-report.md
-rm -rf docs/monitoring/
-```
-
-### **阶段3: 清理前端监控集成**
-```bash
-# 删除监控功能模块
-rm -rf frontend/src/features/monitoring/
-
-# 从App.tsx中移除监控路由
-# 需要编辑删除：
-# - MonitoringDashboard import
-# - /monitoring 路由定义
-
-# 从Sidebar.tsx中移除监控菜单
-# 需要编辑删除侧边栏中的"系统监控"菜单项
-
-# 从端口配置中清理监控端点
-# 编辑 frontend/src/shared/config/ports.ts：
-# - 删除监控相关端口配置
-# - 删除 MONITORING_ENDPOINTS 导出
-```
-
-### **阶段4: 清理后端监控集成**
-```bash
-# 保留/metrics端点（Prometheus标准），但可移除自定义指标
-# 如需完全清理：
-
-# 1. 移除Prometheus依赖包
-# 编辑 go.mod 文件，移除 prometheus 相关依赖
-
-# 2. 清理指标收集器
-rm -f cmd/organization-command-service/internal/metrics/collector.go
-rm -f cmd/organization-query-service/internal/metrics/metrics.go
-
-# 3. 从main.go中移除指标初始化代码
-# 4. 从处理器中移除指标记录调用
-```
-
-### **阶段5: 清理开发工具集成**
-```bash
-# 从Makefile中移除监控目标
-# 编辑Makefile，删除：
-# - monitoring-up 目标
-# - monitoring-down 目标  
-# - monitoring-test 目标
-# - help中的监控相关说明
-```
-
-### **阶段6: 更新项目文档**
-```bash
-# 清理CLAUDE.md中的监控相关内容
-# 删除以下章节：
-# - 🔍 监控系统配置章节
-# - 监控端点配置相关内容
-# - 开发环境配置中的监控端口
-
-# 更新README.md
-# 移除监控系统相关的使用说明
-```
-
-## ⚠️ **清理注意事项**
-
-### **🔒 需要保留的组件**
-- **基础/metrics端点**: 这是Go服务的标准做法，建议保留基础健康检查
-- **端口配置框架**: 保留统一端口配置系统，仅删除监控相关端口
-- **日志记录**: 保留应用日志，仅移除监控指标收集
-
-### **🎯 推荐清理策略**
-1. **渐进式清理**: 先停止Docker服务，再逐步清理代码集成
-2. **备份重要数据**: 如果监控数据有价值，先导出Grafana仪表板配置
-3. **测试验证**: 清理后运行完整测试确保核心功能不受影响
-4. **文档更新**: 及时更新项目文档，避免误导后续开发
-
-### **💾 清理后的项目状态**
-- ✅ **核心功能完整**: 组织管理API功能完全不受影响
-- ✅ **端口配置简化**: 移除监控相关端口，配置更简洁
-- ✅ **前端界面清理**: 移除监控入口，界面更聚焦业务功能
-- ✅ **部署简化**: 无需维护复杂的监控基础设施
-- ✅ **资源优化**: 减少Docker容器和持久化存储占用
-
-## 📁 **具体清理文件列表**
-
-### **需要删除的文件和目录**
-```
-monitoring/                                              # 整个监控目录
-scripts/start-monitoring.sh                             # 监控启动脚本
-scripts/test-monitoring.sh                              # 监控测试脚本
-scripts/tests/test-monitoring-integration.sh           # 监控集成测试
-frontend/src/features/monitoring/                       # 前端监控功能
-docs/archive/project-reports/16-monitoring-infrastructure-report.md
-docs/monitoring/
-cmd/organization-command-service/internal/metrics/collector.go
-cmd/organization-query-service/internal/metrics/metrics.go
-```
-
-### **需要编辑的文件**
-```
-frontend/src/App.tsx                                   # 移除监控路由
-frontend/src/layout/Sidebar.tsx                        # 移除监控菜单
-frontend/src/shared/config/ports.ts                    # 移除监控端点配置
-Makefile                                               # 移除监控目标
-CLAUDE.md                                              # 移除监控相关配置说明
-README.md                                              # 移除监控使用说明
-cmd/organization-command-service/main.go              # 移除监控初始化
-cmd/organization-query-service/main.go                # 移除监控初始化
-go.mod (两个服务)                                      # 移除prometheus依赖
-```
-
-## 🎯 **清理验证检查清单**
-
-### **Docker环境验证**
-- [ ] 确认所有监控容器已停止和删除
-- [ ] 确认监控数据卷已删除
-- [ ] 确认监控网络已删除
-- [ ] 确认监控镜像已清理（可选）
-
-### **文件系统验证**
-- [ ] 确认monitoring/目录已完全删除
-- [ ] 确认监控脚本已删除
-- [ ] 确认监控文档已删除
-- [ ] 确认后端监控代码已删除
-
-### **前端集成验证**
-- [ ] 确认监控功能目录已删除
-- [ ] 确认App.tsx中监控路由已移除
-- [ ] 确认Sidebar.tsx中监控菜单已移除
-- [ ] 确认端口配置中监控端点已移除
-- [ ] 确认前端应用正常启动无错误
-
-### **后端集成验证**
-- [ ] 确认监控指标收集器已删除
-- [ ] 确认main.go中监控初始化已移除
-- [ ] 确认go.mod中prometheus依赖已移除
-- [ ] 确认后端服务正常启动无错误
-
-### **开发工具验证**
-- [ ] 确认Makefile中监控目标已移除
-- [ ] 确认make help不显示监控相关命令
-- [ ] 确认项目文档已更新
-
-## ✅ **清理完成标准**
-
-清理完成后，项目应达到以下状态：
-
-1. **Docker环境**: 无任何监控相关容器、卷或网络
-2. **文件系统**: 无监控相关文件或目录
-3. **前端应用**: 正常启动，无监控页面或菜单，无相关错误
-4. **后端服务**: 正常启动，仅保留基础/metrics端点（可选）
-5. **开发工具**: make命令不包含监控相关目标
-6. **项目文档**: 已更新，无监控相关说明
-
-这个方案确保监控系统的彻底清理，同时保持项目核心功能完整性和开发环境的简洁性。
+**文档编号**: 06
+**最后更新**: 2025-09-13
+**维护团队**: 架构团队 + IIG护卫系统
+**文档状态**: 生产就绪 + 持续监控
 
 ---
 
-**方案制定者**: Claude Code架构分析专家  
-**分析时间**: 2025-09-13 21:20  
-**分析范围**: 完整监控系统组件评估  
-**清理目标**: 彻底移除所有监控相关组件
+## 🎯 **当前项目状态概览**
 
+### **项目成熟度**: ✅ **企业级生产就绪**
+- **架构完成度**: PostgreSQL原生CQRS架构，性能提升70-90%
+- **质量保证**: 契约测试自动化，32个测试100%通过
+- **防控体系**: P3三层纵深防御 + IIG四层护卫系统
+- **重复控制**: 代码重复率从85%+降至2.11%
 
-## 🔎 可行性评估与补充执行要点（追加）
+### **IIG护卫系统状态**: 🛡️ **活跃监控中**
+- **实现清单覆盖**: 100% (25个REST端点 + 12个GraphQL查询 + 70个后端组件)
+- **架构一致性**: CQRS协议分离100%执行
+- **重复防护率**: 93%+ (120+分散组件 → 4个统一系统)
+- **质量门禁**: 与P3系统100%集成
 
-基于当前仓库实际结构与依赖关系复核，本方案可行且基本全面。但如需“完全移除 Prometheus 监控”，仍需补充以下精确变更以避免编译失败与文档残留。
+---
 
-### ✅ 评估结论
-- 可行性：可行。文档中列举的路径、容器名、脚本与前后端集成点均与仓库一致，按既定阶段执行可达成彻底卸载。
-- 全面性：基本全面。仍有少量代码引用与文档/脚本提及需一并清理，以下列出补充项。
+## 🚨 **IIG重复造轮子深度分析结果** ⭐ **2025-09-13最新**
 
-### 🧩 必要补充（避免编译失败）
-1) 后端 Query Service（GraphQL）
-- 文件：`cmd/organization-query-service/internal/auth/graphql_middleware.go`
-  - 移除对 `internal/metrics` 的导入：`gqlmetrics ".../internal/metrics"`
-  - 删除调用：`gqlmetrics.RecordPermissionCheck(...)`
-- 文件：`cmd/organization-query-service/main.go`
-  - 移除 `/metrics` 路由注册与 `promhttp` 相关 import。
-- 文件：`cmd/organization-query-service/internal/metrics/metrics.go`
-  - 删除该文件（若完全移除 Prometheus）。
-- 依赖整理：在 `cmd/organization-query-service/` 目录执行：
-  - `go mod tidy`
+### **总体评估**: B+ 级别
 
-2) 后端 Command Service（REST）
-- 文件：`cmd/organization-command-service/main.go`
-  - 移除中间件：`r.Use(metricsCollector.GetMetricsMiddleware())`
-  - 移除 `/metrics` 路由与相关日志输出。
-  - 移除 `internal/metrics` 包的 import 与初始化。
-- 文件：`cmd/organization-command-service/internal/metrics/collector.go`
-  - 删除该文件（若完全移除 Prometheus）。
-- 根模块依赖整理：在仓库根目录执行：
-  - `go mod tidy`
+#### **✅ 优秀表现**
+- **重复代码率**: 2.11% (远低于5%警戒线)
+- **Hook统一架构**: `useEnterpriseOrganizations` 主导，废弃Hook仅作兼容封装
+- **验证系统标准化**: 从分散验证整合为统一验证系统
+- **API客户端统一**: CQRS严格分离，统一客户端架构
+- **配置管理集中**: 端口配置单一真源，85+个常量集中管理
 
-3) `/metrics` 端点保留策略说明（可选）
-- 如需“保留基础 /metrics 端点”但移除自定义指标：保留 promhttp 处理器与最小依赖，删除自定义 `internal/metrics` 中间件与业务指标的注册/调用即可。此模式需同步调整文档声明为“最小指标保留”。
+#### **🚨 需要立即关注的问题**
 
-### 🎨 前端改动补充（保持 TS 编译通过）
-- 删除：`frontend/src/features/monitoring/` 目录。
-- App 路由：`frontend/src/App.tsx` 移除监控懒加载 import 与 `/monitoring` 路由。
-- 侧边栏：`frontend/src/layout/Sidebar.tsx` 移除“系统监控”菜单项。
-- 端口配置：`frontend/src/shared/config/ports.ts`
-  - 删除 `SERVICE_PORTS` 中的监控端口项：`PROMETHEUS/GRAFANA/ALERT_MANAGER/NODE_EXPORTER`（如完全移除）。
-  - 删除 `MONITORING_ENDPOINTS` 导出。
-  - 在 `generatePortConfigReport()` 中删除“📊 监控服务”段落打印，避免引用被删的常量。
-  - 类型导出保持一致（移除与监控相关的键名）。
+##### **1. 架构违规数量增长** - P1优先级
+- **问题**: 架构违规从25个增长到可能更多项
+- **影响**: 架构一致性受威胁，可能导致系统稳定性问题
+- **行动**: 立即运行 `node scripts/quality/architecture-validator.js --fix`
 
-### 📚 文档与脚本清理扩展范围（避免残留引用）
-除已在方案中列出的 `README.md`、`CLAUDE.md`、`docs/monitoring/`、归档报告外，建议补充清理以下引用：
-- `docs/archive/deprecated-guides/PRODUCTION-DEPLOYMENT-GUIDE.md`：包含前端 `/monitoring` 页面与 compose 操作指引（已归档）。
-- `docs/archive/deprecated-guides/MICROSERVICES_MANAGEMENT.md`：历史微服务管理脚本指引（已归档）。
-- `docs/reference/02-IMPLEMENTATION-INVENTORY.md`：涉及监控端点、`MONITORING_ENDPOINTS` 说明与 compose 文件。
-- `scripts/README.md`：包含监控脚本使用说明。
+##### **2. 废弃Hook的持续引用** - P1优先级
+- **问题**: `useOrganizations` 和 `useOrganization` 标记为DEPRECATED但可能仍有引用
+- **风险**: 开发者误用废弃Hook，造成代码分裂和维护困难
+- **行动**:
+```bash
+# 检查废弃Hook引用
+grep -r "useOrganizations" frontend/src/
+grep -r "useOrganization[^s]" frontend/src/
+# 替换所有引用为 useEnterpriseOrganizations
+```
 
-如仅“停用而非删除”监控能力，上述文档应改为“可选/默认关闭”的措辞，并保留最少可复原步骤。
+##### **3. 验证系统双重实现** - P2优先级
+- **问题**: 新旧验证系统并存 (`validation/index.ts` vs `simple-validation.ts`)
+- **风险**: 验证不一致，可能导致数据完整性问题
+- **行动**:
+```bash
+# 检查simple-validation.ts的引用
+grep -r "simple-validation" frontend/src/
+# 迁移所有引用到统一验证系统
+```
 
-### 🔍 扫描与验证（推荐命令）
-- 代码/文档残留扫描：
-  - `rg -n "prometheus|promhttp|/metrics|MONITORING_ENDPOINTS|/monitoring" cube-castle`
-- 后端构建与测试：
-  - 仓库根：`go mod tidy && make build && make test`
-  - Query Service 子模块：`(cd cmd/organization-query-service && go mod tidy && go build ./...)`
-- 前端构建：
-  - `cd frontend && npm run build`
+---
 
-### 🧭 执行顺序（精简版）
-1. 停止与清理 Docker 监控栈（按原“阶段1”）。
-2. 删除监控目录与脚本（按原“阶段2/5”）。
-3. 前端移除监控模块、路由与端口配置（“前端改动补充”）。
-4. 后端两服务按“必要补充”章节进行代码修改与 `go mod tidy`。
-5. 清理并更新文档（含扩展范围）。
-6. 运行“扫描与验证”命令，直到无残留与编译错误。
+## 📋 **立即行动计划** (本周内执行)
 
-### 🧯 回滚与保留建议
-- 若未来可能恢复监控：建议将 `monitoring/` 与相关前端模块压缩归档到 `docs/archive/`，并在 `README.md` “扩展能力”中保留一段“如何恢复监控”的简述（链接到归档）。
-- 若仅精简：保留 `/metrics` 最小端点与 `SERVICE_PORTS` 框架，但将监控端口设为注释或以配置开关禁用。
+### **P1紧急修复项** 🚨
+1. **架构违规修复**
+   - 执行: `node scripts/quality/architecture-validator.js --fix`
+   - 验证: 确认违规数量降到可接受范围
+   - 监控: 建立架构违规自动检查
 
-以上补充确保彻底移除监控组件后，代码与文档保持一致，避免构建失败与使用误导。
+2. **废弃代码清理**
+   - 搜索所有废弃Hook引用
+   - 替换为 `useEnterpriseOrganizations` 调用
+   - 测试确保功能正常
+
+3. **验证系统统一**
+   - 检查 `simple-validation.ts` 的所有引用
+   - 迁移到统一验证系统
+   - 删除废弃验证文件
+
+### **P2优化项** ⚠️ (2周内)
+1. **错误处理系统简化**
+   - 评估错误处理装饰器的功能重叠
+   - 简化装饰器链条，避免功能重复
+   - 统一错误处理策略
+
+2. **自动化检查建立**
+   - 添加废弃代码引用检查到CI/CD
+   - 建立重复功能自动检测
+   - 强化架构一致性验证
+
+### **P3持续维护项** 🟢 (持续)
+1. **持续监控机制**
+   - 定期运行 `generate-implementation-inventory.js`
+   - 建立重复代码趋势监控
+   - 维护IIG护卫系统效果指标
+
+2. **团队培训强化**
+   - 加强"现有资源优先"原则培训
+   - 建立新功能开发前强制检查流程
+   - 定期分享重复造轮子防范案例
+
+---
+
+## 🔍 **重复风险详细分析**
+
+### **高风险区域** 🔴
+#### **废弃Hook引用风险**
+```typescript
+// 🚨 高风险：这些Hook标记为废弃但可能仍有调用者
+useOrganizations  ← DEPRECATED，需彻底清理引用
+useOrganization   ← DEPRECATED，需彻底清理引用
+
+// ✅ 权威实现
+useEnterpriseOrganizations ← 唯一正确的Hook
+```
+
+#### **验证系统分裂风险**
+```typescript
+// 🚨 高风险：双重验证系统并存
+validation/index.ts        ← 新统一系统 (正确)
+simple-validation.ts       ← 旧系统 (需要清理)
+```
+
+### **中等风险区域** 🟡
+#### **错误处理复杂度**
+```typescript
+// ⚠️ 中风险：错误处理链条复杂，可能重复
+OAuthError, UserFriendlyError, ValidationError
+withErrorHandling, withOAuthRetry, withOAuthAwareErrorHandling
+```
+
+### **低风险区域** 🟢
+#### **配置分散但合理**
+```typescript
+// ℹ️ 低风险：配置分散但用途明确
+ORGANIZATION_STATUSES     ← 表单配置
+STATUS_COLORS            ← 表格显示
+TEMPORAL_STATUS_COLORS   ← 时态状态
+```
+
+---
+
+## 📊 **IIG护卫系统成效统计**
+
+### **重复防控成果** ✅
+- **代码重复率**: 2.11% ← 85%+ (96%改善)
+- **架构统一度**: 4个核心系统 ← 120+分散组件
+- **API一致性**: 100%契约遵循
+- **Hook统一**: 1个主Hook + 2个兼容封装 ← 7个分散Hook
+
+### **质量门禁集成** ✅
+- **P3.1重复检测**: 自动化检测，2.11%重复率
+- **P3.2架构验证**: 25个违规已识别并追踪
+- **P3.3文档同步**: 每日09:00自动检查
+- **CI/CD集成**: 100%质量门禁自动化
+
+---
+
+## 🛡️ **IIG护卫原则重申**
+
+### **强制禁止事项** ❌
+- **跳过清单检查**: 不运行 `generate-implementation-inventory.js` 就开始开发
+- **忽视现有实现**: 发现可用资源仍重复创建相同功能
+- **功能未登记**: 新增API/Hook/组件后不更新实现清单
+- **违反护卫原则**: 忽视"现有资源优先"和"实现唯一性"原则
+
+### **必须执行事项** ✅
+- **开发前强制检查**: 每次新功能开发前运行实现清单生成器
+- **现有资源优先**: 优先使用已有API/Hook/组件，禁止重复创建
+- **功能强制登记**: 新增功能后必须重新运行清单生成器验证
+- **质量门禁遵守**: 通过P3系统全套检查才能合并代码
+
+---
+
+## 🎯 **下一步重点工作**
+
+### **本周目标** (2025-09-13 ~ 2025-09-20)
+1. ✅ 完成IIG重复造轮子深度分析
+2. 🔄 修复架构违规问题 (P1)
+3. 🔄 清理废弃Hook引用 (P1)
+4. 🔄 统一验证系统 (P1)
+5. 📋 建立自动化架构检查 (P2)
+
+### **近期目标** (2周内)
+1. 错误处理系统优化
+2. 重复功能自动检测增强
+3. 团队培训和规范强化
+4. IIG护卫系统效果评估
+
+### **长期目标** (持续)
+1. 维护重复代码率<2%
+2. 架构一致性100%保持
+3. 新功能开发标准化流程
+4. 质量门禁持续优化
+
+---
+
+## 🔗 **相关文档链接**
+
+### **IIG护卫系统**
+- **实现清单**: [docs/reference/02-IMPLEMENTATION-INVENTORY.md](../reference/02-IMPLEMENTATION-INVENTORY.md)
+- **IIG使用指南**: [docs/reference/05-iig-guardian-usage-guide.md](../reference/05-iig-guardian-usage-guide.md)
+- **P3防控系统**: [docs/reference/04-p3-defense-system-manual.md](../reference/04-p3-defense-system-manual.md)
+
+### **开发规范**
+- **项目指导原则**: [CLAUDE.md](../../CLAUDE.md)
+- **开发者快速参考**: [docs/reference/01-DEVELOPER-QUICK-REFERENCE.md](../reference/01-DEVELOPER-QUICK-REFERENCE.md)
+- **API使用指南**: [docs/reference/03-API-USAGE-GUIDE.md](../reference/03-API-USAGE-GUIDE.md)
+
+### **质量工具**
+- **清单生成器**: `node scripts/generate-implementation-inventory.js`
+- **架构验证器**: `node scripts/quality/architecture-validator.js`
+- **重复检测**: `bash scripts/quality/duplicate-detection.sh`
+
+---
+
+## 📝 **变更记录**
+
+### **v2.0 IIG深度分析版 (2025-09-13)**
+- ✅ **重大更新**: 完成IIG重复造轮子深度分析
+- ✅ **问题识别**: 发现3个P1级问题需立即处理
+- ✅ **行动计划**: 制定详细的修复和优化计划
+- ✅ **监控加强**: IIG护卫系统持续监控机制
+
+### **v1.0 项目状态记录版 (历史)**
+- ✅ 项目基本状态记录
+- ✅ 团队协作进展跟踪
+
+---
+
+**文档维护者**: IIG护卫系统 + 架构团队
+**护卫状态**: 🛡️ **活跃监控中**
+**下次检查**: 新功能开发前强制执行
+**质量承诺**: 零重复造轮子，架构一致性100%

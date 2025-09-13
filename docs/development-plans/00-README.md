@@ -5,6 +5,14 @@
 **状态**: 活跃使用中  
 **文档排序**: 按阅读顺序和重要程度排序
 
+## 📌 目录边界声明与交叉链接
+
+- 本目录仅承载“计划/路线/进展/阶段报告”等时效性内容；完成项请移入 `../archive/development-plans/`。
+- 规范性、长期稳定的参考资料（快速参考、实现清单、API 使用与质量手册）放在 `../reference/`，避免混淆权威参考与计划。
+- 建议流程：
+  - 开始新功能前 → 先查 [实现清单](../reference/02-IMPLEMENTATION-INVENTORY.md) 与 [API 使用指南](../reference/03-API-USAGE-GUIDE.md)
+  - 确认需要新增能力 → 在本目录新增/更新对应计划，并按阶段完成后归档到 `../archive/development-plans/`。
+
 ## 📁 文档结构
 
 ### **活跃文档**
@@ -21,27 +29,27 @@
 #### **06 - 团队协作进展**
 - `06-integrated-teams-progress-log.md` - 集成团队协作进展日志
 
-### **归档文档** (archived/)
+### **归档文档** (docs/archive/development-plans/)
 
 > **文档归档时间**: 2025-09-13  
 > **归档原因**: 项目完成企业级生产就绪状态，部分计划文档已执行完成  
-> **访问方式**: `archived/` 子目录中可继续访问所有归档文档
+> **访问方式**: `../archive/development-plans/` 子目录中可继续访问所有归档文档
 
 #### **07-20 - 已完成计划和指南**
-- `archived/07-contract-testing-automation-system.md` - ⭐ **契约测试自动化验证体系** (S级成功完成)
-- `archived/08-frontend-api-standards.md` - 前端API调用规范文档和开发标准
-- `archived/09-code-review-checklist.md` - 前端代码审查检查清单和质量标准
-- `archived/10-codebase-cleanup-maintenance-plan.md` - 代码库清理维护计划
-- `archived/11-api-permissions-mapping.md` - API权限映射完整性验证指南和权限体系文档
-- `archived/12-organization-1000001-temporal-analysis-report.md` - 组织1000001时态分析报告
-- `archived/13-permission-system-implementation-plan.md` - 权限系统实施计划
-- `archived/14-api-implementation-alignment-plan.md` - API实现对齐计划文档
-- `archived/15-database-triggers-diagnostic-report.md` - 数据库触发器混乱问题诊断分析和优化方案
-- `archived/16-trigger-optimization-action-plan.md` - 触发器优化行动计划
-- `archived/17-index-audit-and-optimization-plan.md` - 索引审计与优化计划
-- `archived/18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)
-- `archived/19-code-smells-and-remediation-plan.md` - 代码异味和修复计划
-- `archived/20-existing-resource-analysis-guide.md` - 现有资源分析开发指南
+- `../archive/development-plans/07-contract-testing-automation-system.md` - ⭐ **契约测试自动化验证体系** (S级成功完成)
+- `../archive/development-plans/08-frontend-api-standards.md` - 前端API调用规范文档和开发标准
+- `../archive/development-plans/09-code-review-checklist.md` - 前端代码审查检查清单和质量标准
+- `../archive/development-plans/10-codebase-cleanup-maintenance-plan.md` - 代码库清理维护计划
+- `../archive/development-plans/11-api-permissions-mapping.md` - API权限映射完整性验证指南和权限体系文档
+- `../archive/development-plans/12-organization-1000001-temporal-analysis-report.md` - 组织1000001时态分析报告
+- `../archive/development-plans/13-permission-system-implementation-plan.md` - 权限系统实施计划
+- `../archive/development-plans/14-api-implementation-alignment-plan.md` - API实现对齐计划文档
+- `../archive/development-plans/15-database-triggers-diagnostic-report.md` - 数据库触发器混乱问题诊断分析和优化方案
+- `../archive/development-plans/16-trigger-optimization-action-plan.md` - 触发器优化行动计划
+- `../archive/development-plans/17-index-audit-and-optimization-plan.md` - 索引审计与优化计划
+- `../archive/development-plans/18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)
+- `../archive/development-plans/19-code-smells-and-remediation-plan.md` - 代码异味和修复计划
+- `../archive/development-plans/20-existing-resource-analysis-guide.md` - 现有资源分析开发指南
 
 ## 📊 文档关系
 
@@ -77,9 +85,9 @@
 3. `06-integrated-teams-progress-log.md` - 了解项目当前状态和进展
 
 ### **归档文档参考** (仅作历史参考)
-4. `archived/20-existing-resource-analysis-guide.md` - **历史参考** - 现有资源分析原则和开发指导
-5. `archived/07-contract-testing-automation-system.md` - 契约测试自动化验证体系 (已完成)
-6. `archived/18-duplicate-code-elimination-plan.md` - 重复代码消除计划 (已完成)
+4. `../archive/development-plans/20-existing-resource-analysis-guide.md` - **历史参考** - 现有资源分析原则和开发指导
+5. `../archive/development-plans/07-contract-testing-automation-system.md` - 契约测试自动化验证体系 (已完成)
+6. `../archive/development-plans/18-duplicate-code-elimination-plan.md` - 重复代码消除计划 (已完成)
 
 ### **当前项目状态 (2025-09-13)**  
 **当前阶段**: ✅ **企业级生产就绪** - 核心功能完成，质量门禁生效，架构成熟  

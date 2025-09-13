@@ -34,6 +34,11 @@ export interface TemporalQueryParams {
   mode?: TemporalMode;       // 查询模式
   limit?: number;           // 查询数量限制
   eventTypes?: EventType[]; // 事件类型过滤
+  // 审计历史查询参数
+  startDate?: string;       // 审计记录开始时间
+  endDate?: string;         // 审计记录结束时间
+  operation?: string;       // 操作类型过滤
+  userId?: string;          // 用户ID过滤
 }
 
 // 变更信息 (纯日期生效模型 - 统一字符串类型)

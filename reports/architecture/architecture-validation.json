@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-13T03:42:02.048Z",
+  "timestamp": "2025-09-13T09:10:40.264Z",
   "summary": {
     "totalFiles": 93,
     "passedFiles": 80,
@@ -17,7 +17,7 @@
       "violations": [
         {
           "type": "ports",
-          "line": 85,
+          "line": 97,
           "column": 13,
           "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
           "code": "no-hardcoded-ports",
@@ -32,7 +32,7 @@
         },
         {
           "type": "ports",
-          "line": 86,
+          "line": 98,
           "column": 10,
           "message": "硬编码端口 30000，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
           "code": "no-hardcoded-ports",
@@ -1303,7 +1303,7 @@
         },
         {
           "type": "contracts",
-          "line": 43,
+          "line": 48,
           "column": 51,
           "message": "使用camelCase字段名 \"statusChange\" 替代 snake_case \"status_change\"",
           "code": "snake-case-field",
@@ -1318,7 +1318,7 @@
         },
         {
           "type": "contracts",
-          "line": 127,
+          "line": 132,
           "column": 8,
           "message": "使用camelCase字段名 \"bulkUpdate\" 替代 snake_case \"bulk_update\"",
           "code": "snake-case-field",
@@ -1333,7 +1333,7 @@
         },
         {
           "type": "contracts",
-          "line": 127,
+          "line": 132,
           "column": 24,
           "message": "使用camelCase字段名 \"bulkDelete\" 替代 snake_case \"bulk_delete\"",
           "code": "snake-case-field",
@@ -1348,7 +1348,7 @@
         },
         {
           "type": "contracts",
-          "line": 127,
+          "line": 132,
           "column": 40,
           "message": "使用camelCase字段名 \"bulkPlan\" 替代 snake_case \"bulk_plan\"",
           "code": "snake-case-field",

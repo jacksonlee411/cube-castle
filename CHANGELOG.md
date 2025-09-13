@@ -1,5 +1,23 @@
 # Cube Castle 项目变更日志
 
+## v1.5.0 - 文档治理与目录边界 (2025-09-13)
+
+### 🗂️ 文档结构与治理强化
+- 新增 `docs/reference/` 目录：承载长期稳定的参考文档（开发者快速参考、实现清单、API 使用指南、质量手册）。
+- 开发计划归档迁移：`docs/development-plans/archived/` → `docs/archive/development-plans/`，统一归档入口新增 `docs/archive/README.md`。
+- 文档导航更新：`docs/README.md` 提供 Reference vs Plans 分区导航与边界说明。
+- 目录边界规则加入规范：更新 `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`，新增“目录边界（强制）”与“月度审计”检查项。
+
+### 🔧 审查与CI门禁
+- PR 模板（.github/pull_request_template.md）：新增“文档治理与目录边界（Reference vs Plans）”检查清单。
+- CI（.github/workflows/document-sync.yml）：新增“目录边界检查”与“文档同步检查”，违规将自动评论并阻断；质量门禁输出纳入总判定。
+
+### 🗺️ 文档链接修正
+- 全面修正指向旧的 `docs/development-plans/archived/` 的链接为 `docs/archive/development-plans/`。
+- 更新 `CLAUDE.md`、`AGENTS.md`、根 `README.md`，同步目录结构与最新规范。
+
+---
+
 ## v1.4.0 - 企业级生产就绪版本 (2025-08-25)
 
 ### 🏆 重大架构革命

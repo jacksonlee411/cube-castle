@@ -21,7 +21,17 @@
 使用示例：
 - 生成令牌：`make jwt-dev-mint USER_ID=dev TENANT_ID=3b...9 ROLES=ADMIN,USER DURATION=8h`
 - 导出令牌：`eval $(make jwt-dev-export)`
-- 请求示例：`curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: 3b...9" http://localhost:9090/health`
+  - 请求示例：`curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: 3b...9" http://localhost:9090/health`
+
+## 📢 变更通告（2025-09-13）
+- 文档治理更新：引入 Reference vs Plans 目录边界，保持“参考稳定、计划快变”。
+  - 新增参考目录：`docs/reference/`（开发者快速参考、实现清单、API 使用指南、质量手册）。
+  - 计划归档迁移：`docs/development-plans/archived/` → `docs/archive/development-plans/`。
+  - 主导航更新：`docs/README.md` 提供 Reference/Plans 分区导航与边界说明。
+  - 归档导航：新增 `docs/archive/README.md` 说明归档目录用途与结构。
+- 审查与CI门禁：
+  - PR 模板新增“文档治理与目录边界（Reference vs Plans）”检查清单。
+  - CI `document-sync.yml` 新增“目录边界检查”，对 Reference/Plans 混放进行阻断并自动评论。
 
 ### 1. 诚实原则 (Honesty First)
 - **绝对诚实评估**: 项目状态评估必须基于实际可验证的结果，不夸大成果
@@ -451,7 +461,7 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 - **Hook & API统一**: ✅ **彻底完成** - 7→2个Hook，6→1个API客户端，83%+重复消除
 - **类型系统重构**: ✅ **彻底完成** - 90+→8个核心接口，80%+接口重复消除
 
-## 📂 核心文档位置 ⭐ **重要更新 (2025-08-23)**
+## 📂 核心文档位置 ⭐ **重要更新 (2025-09-13)**
 
 **开发计划文档目录**: `/home/shangmeilin/cube-castle/docs/development-plans/` ⭐ **统一管理 + 序号排序**
 - `00-README.md` - 开发计划文档目录使用指南
@@ -459,31 +469,41 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 **架构设计文档目录**: `/home/shangmeilin/cube-castle/docs/architecture/`
 - `01-organization-units-api-specification.md` - 组织单元API规范 v4.2 (企业级标准) 
 
-**开发计划文档目录**:
+**开发计划活跃文档**:
 - `02-technical-architecture-design.md` - 技术架构设计文档
 - `06-integrated-teams-progress-log.md` - 集成团队进度日志
 
-**已归档文档** (archived/):
-- `07-contract-testing-automation-system.md` - ⭐ **契约测试自动化验证体系** (S级成功完成)
-- `08-frontend-api-standards.md` - 前端API标准
-- `09-code-review-checklist.md` - 代码审查清单
-- `10-codebase-cleanup-maintenance-plan.md` - 代码库清理维护计划
-- `11-api-permissions-mapping.md` - API权限映射
-- `12-organization-1000001-temporal-analysis-report.md` - 组织1000001时态分析报告
-- `13-permission-system-implementation-plan.md` - 权限系统实施计划
-- `14-api-implementation-alignment-plan.md` - API实现对齐计划
-- `15-database-triggers-diagnostic-report.md` - 数据库触发器诊断报告
-- `16-trigger-optimization-action-plan.md` - 触发器优化行动计划
-- `17-index-audit-and-optimization-plan.md` - 索引审计与优化计划
-- `18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)
-- `19-code-smells-and-remediation-plan.md` - 代码异味和修复计划
-- `20-existing-resource-analysis-guide.md` - 现有资源分析指南
+**参考文档目录（长期稳定）**: `/home/shangmeilin/cube-castle/docs/reference/`
+- `00-README.md` - 参考文档目录索引与使用说明
+- `01-DEVELOPER-QUICK-REFERENCE.md` - 开发者快速参考
+- `02-IMPLEMENTATION-INVENTORY.md` - 实现清单（Implementation Inventory）
+- `03-API-USAGE-GUIDE.md` - API 使用指南
+
+**已归档文档** (docs/archive/development-plans/):
+- `docs/archive/development-plans/07-contract-testing-automation-system.md` - ⭐ **契约测试自动化验证体系** (S级成功完成)
+- `docs/archive/development-plans/08-frontend-api-standards.md` - 前端API标准
+- `docs/archive/development-plans/09-code-review-checklist.md` - 代码审查清单
+- `docs/archive/development-plans/10-codebase-cleanup-maintenance-plan.md` - 代码库清理维护计划
+- `docs/archive/development-plans/11-api-permissions-mapping.md` - API权限映射
+- `docs/archive/development-plans/12-organization-1000001-temporal-analysis-report.md` - 组织1000001时态分析报告
+- `docs/archive/development-plans/13-permission-system-implementation-plan.md` - 权限系统实施计划
+- `docs/archive/development-plans/14-api-implementation-alignment-plan.md` - API实现对齐计划
+- `docs/archive/development-plans/15-database-triggers-diagnostic-report.md` - 数据库触发器诊断报告
+- `docs/archive/development-plans/16-trigger-optimization-action-plan.md` - 触发器优化行动计划
+- `docs/archive/development-plans/17-index-audit-and-optimization-plan.md` - 索引审计与优化计划
+- `docs/archive/development-plans/18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)
+- `docs/archive/development-plans/19-code-smells-and-remediation-plan.md` - 代码异味和修复计划
+- `docs/archive/development-plans/20-existing-resource-analysis-guide.md` - 现有资源分析指南
 
 **契约测试质量门禁文档** ⭐ **新增 (2025-08-24)**:
 - `docs/github-branch-protection-rules.md` - GitHub分支保护规则配置指南
 - `frontend/tests/contract/` - 完整契约测试套件 (32个测试)
 - `.github/workflows/contract-testing.yml` - CI/CD自动化验证工作流
 - `.git/hooks/pre-commit` - 提交前质量检查Hook
+
+**主导航与归档说明**:
+- `docs/README.md` - 文档导航中心（Reference vs Plans 导航与边界）
+- `docs/archive/README.md` - 归档目录用途、结构与归档标准
 
 **文档集中管理优势**:
 - ✅ 避免文档分散在多个目录中造成混淆
@@ -498,10 +518,10 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 2. **技术架构** (docs/development-plans/02-technical-architecture-design.md) 
 3. **集成团队进度日志** (docs/development-plans/06-integrated-teams-progress-log.md)
 
-**归档文档参考** (archived/):
-4. **契约测试自动化** (archived/07-contract-testing-automation-system.md)
-5. **代码审查清单** (archived/09-code-review-checklist.md)
-6. **重复代码消除计划** (archived/18-duplicate-code-elimination-plan.md)
+**归档文档参考** (docs/archive/development-plans/):
+4. **契约测试自动化** (docs/archive/development-plans/07-contract-testing-automation-system.md)
+5. **代码审查清单** (docs/archive/development-plans/09-code-review-checklist.md)
+6. **重复代码消除计划** (docs/archive/development-plans/18-duplicate-code-elimination-plan.md)
 
 ## 📅 项目开发阶段 ⭐ **项目状态升级 (2025-08-24)**
 
@@ -518,6 +538,36 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 - ✅ **质量门禁**: 自动化CI/CD门禁生效，代码质量企业级保证
 - ✅ **性能优化**: 查询响应时间1.5-8ms，相比原架构提升70-90%
 - ✅ **监控完备**: 契约测试监控仪表板集成，实时质量状态可见
+
+## 📑 文档治理与审计清单 ⭐ 新增 (2025-09-13)
+
+权威规范与入口：
+- 目录与命名规范：`docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`
+- 文档导航与边界说明：`docs/README.md`
+- PR 审查清单（含目录边界）：`.github/pull_request_template.md`
+- 目录边界与同步校验（CI）：`.github/workflows/document-sync.yml`
+
+目录边界（强制）：
+- `docs/reference/`：仅长期稳定、对外可依赖的参考（快速参考、实现清单、API 使用/质量手册）。
+- `docs/development-plans/`：仅计划/路线/进展/阶段报告（完成项移至 `docs/archive/development-plans/`）。
+- 契约以 `docs/api/` 为唯一事实来源；架构说明在 `docs/architecture/`。
+
+PR 必查清单（文档相关）：
+- 已在 `docs/development-plans/` 建立/更新计划并在完成后归档至 `docs/archive/development-plans/`。
+- 未将计划/进展类文档置于 `docs/reference/`；新增参考类文档确认其长期稳定性。
+- `docs/README.md` 与各目录 `00-README.md` 的导航与边界说明保持一致。
+
+月度审计（执行者：文档维护团队）：
+- 根目录仅保留 4 个核心文档（CLAUDE.md/AGENTS.md/README.md/CHANGELOG.md）。
+- 验证 docs/ 目录结构符合规范；清理临时与过时内容并归档。
+- 命名规范抽查：kebab-case/数字前缀/白名单例外，无 `-final/-temp/-v2` 等；避免不当 UPPER_SNAKE_CASE。
+- API 示例字段命名为 camelCase，路径参数为 `{code}`，与 CQRS 规则一致。
+- 目录边界合规：reference 不含计划/进展；plans 不含参考/手册；导航与边界说明一致。
+
+质量门禁（CI 集成）：
+- 文档同步与目录边界校验：`.github/workflows/document-sync.yml`（PR 自动评论与阻断）。
+- 契约测试门禁：`.github/workflows/contract-testing.yml`（OpenAPI/GraphQL 一致性）。
+- 架构/实现守护与重复检测：`.github/workflows/iig-guardian.yml`、`duplicate-code-detection.yml`、`ops-scripts-quality.yml` 等。
 
 **项目里程碑达成**:
 - Phase 1: ✅ 契约测试框架搭建 (100%完成)

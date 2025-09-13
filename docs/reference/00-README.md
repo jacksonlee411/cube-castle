@@ -146,6 +146,16 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 
 ---
 
+## 📌 目录边界声明与交叉链接
+
+- 本目录仅包含“长期稳定、对外可依赖”的参考资料（快速参考、实现清单、API 使用与质量手册）。
+- 计划/路线/进展/阶段报告类文档不在本目录，统一放置于 `../development-plans/`。
+- 建议流程：
+  - 开始新功能前 → 先查 [实现清单](./02-IMPLEMENTATION-INVENTORY.md) 与 [API 使用指南](./03-API-USAGE-GUIDE.md)
+  - 确认需要新增能力 → 前往 [开发计划目录使用指南](../development-plans/00-README.md) 建立/更新计划与进展，并按规范归档。
+
+---
+
 ## 📝 文档维护
 
 ### 更新频率

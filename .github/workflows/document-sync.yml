@@ -86,6 +86,63 @@ jobs:
         echo "🔍 检测到变更文件:"
         echo "$CHANGED_FILES" | tr ' ' '\n'
 
+    - name: 🔒 目录边界检查（Reference vs Plans）
+      id: boundary_check
+      run: |
+        echo "🔒 执行 Reference vs Plans 目录边界检查..."
+        mkdir -p reports/document-sync
+        CHANGED_FILES="${{ steps.detect_changes.outputs.changed_files }}"
+        echo "$CHANGED_FILES" | tr ' ' '\n' > reports/document-sync/changed_files.txt || true
+
+        VIOLATIONS=0
+        REPORT=reports/document-sync/boundary-check.md
+        echo "## 📁 目录边界检查结果 (Reference vs Plans)" > "$REPORT"
+        echo "" >> "$REPORT"
+
+        # 扫描文件名与内容关键字（轻量规则，避免误报）
+        for f in $CHANGED_FILES; do
+          # 仅检查文档相关
+          case "$f" in
+            docs/reference/*|docs/development-plans/*) :;;
+            *) continue;;
+          esac
+
+          if [ -f "$f" ]; then
+            if [[ "$f" == docs/reference/* ]]; then
+              if echo "$f" | grep -Ei '(plan|progress|roadmap|archiv|路线|进展|计划|阶段|log)'; then
+                echo "- ❌ Reference 目录包含计划/进展语义的文件名: $f" >> "$REPORT"
+                VIOLATIONS=$((VIOLATIONS+1))
+              fi
+              if grep -E -m1 -n '进展|阶段|计划|归档|路线图|路线|Roadmap|Progress|Plan' "$f" >/dev/null 2>&1; then
+                echo "- ❌ Reference 文档包含计划/进展类内容: $f" >> "$REPORT"
+                VIOLATIONS=$((VIOLATIONS+1))
+              fi
+            fi
+
+            if [[ "$f" == docs/development-plans/* ]]; then
+              # 允许的特殊文件不检查内容语义
+              case "$f" in
+                */00-README.md|docs/development-plans/02-technical-architecture-design.md|docs/development-plans/06-integrated-teams-progress-log.md) :;;
+                *)
+                  if grep -E -m1 -n '快速参考|使用指南|手册|Implementation Inventory|API使用指南|Quick Reference' "$f" >/dev/null 2>&1; then
+                    echo "- ❌ Plans 文档包含参考/手册类内容: $f" >> "$REPORT"
+                    VIOLATIONS=$((VIOLATIONS+1))
+                  fi
+                ;;
+              esac
+            fi
+          fi
+        done
+
+        if [ "$VIOLATIONS" -eq 0 ]; then
+          echo "✅ 目录边界检查通过" >> "$REPORT"
+          echo "boundary_ok=true" >> $GITHUB_OUTPUT
+        else
+          echo "\n共发现 $VIOLATIONS 处目录边界违规。" >> "$REPORT"
+          echo "boundary_ok=false" >> $GITHUB_OUTPUT
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+        fi
+
     - name: 📊 文档同步一致性检查
       id: sync_check
       run: |
@@ -152,6 +209,26 @@ jobs:
           reports/document-sync/
           !reports/document-sync/**/*.tmp
         retention-days: 30
+
+    - name: 💬 PR评论目录边界检查结果
+      if: github.event_name == 'pull_request' && steps.boundary_check.outputs.boundary_ok == 'false'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let commentBody = '## 🔒 文档目录边界检查失败 (Reference vs Plans)\n\n';
+          if (fs.existsSync('reports/document-sync/boundary-check.md')) {
+            commentBody += fs.readFileSync('reports/document-sync/boundary-check.md', 'utf8');
+            commentBody += '\n\n请根据 docs/README.md 与 DOCUMENT-MANAGEMENT-GUIDELINES.md 的边界规则进行修正。';
+          } else {
+            commentBody += '发现目录边界违规，但未能生成详细报告。';
+          }
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+          });
 
     - name: 📊 生成同步摘要
       if: always()
@@ -287,17 +364,19 @@ jobs:
       run: |
         SYNC_SUCCESS="${{ steps.sync_check.outputs.sync_success }}"
         CONFLICTS="${{ steps.sync_check.outputs.conflicts }}"
+        BOUNDARY_OK="${{ steps.boundary_check.outputs.boundary_ok || 'true' }}"
         
         echo "同步状态: $SYNC_SUCCESS"
         echo "冲突数量: $CONFLICTS"
+        echo "目录边界: $BOUNDARY_OK"
         
-        if [[ "$SYNC_SUCCESS" != "true" ]]; then
+        if [[ "$SYNC_SUCCESS" != "true" || "$BOUNDARY_OK" != "true" ]]; then
           if [[ "$AUTO_SYNC" == "true" ]]; then
-            echo "⚠️ 自动同步模式：存在文档不一致性，但已尝试自动修复"
+            echo "⚠️ 自动同步模式：存在文档不一致性或目录边界问题，但已尝试自动修复/提示"
             exit 0
           else
-            echo "💥 质量门禁失败：文档同步检查未通过"
-            echo "🔧 请运行本地同步命令或启用自动同步模式"
+            echo "💥 质量门禁失败：文档同步或目录边界检查未通过"
+            echo "🔧 请运行本地同步命令、修正目录边界，或启用自动同步模式"
             exit 1
           fi
         else

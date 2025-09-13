@@ -241,7 +241,7 @@ type HierarchyStatistics {
 
 
 """
-Simplified audit log entry with essential information only.
+Comprehensive audit log entry with complete change tracking information.
 Each audit record tracks changes to a specific organization temporal version (record_id).
 """
 type AuditLogDetail {
@@ -250,6 +250,22 @@ type AuditLogDetail {
   operation: String!
   timestamp: String!
   operationReason: String
+
+  # Change tracking data
+  beforeData: String                 # Organization state before the change (JSON string)
+  afterData: String                  # Organization state after the change (JSON string)
+  modifiedFields: [String!]!         # List of field names that were modified
+  changes: [FieldChange!]!           # Detailed field-level changes
+}
+
+"""
+Detailed field-level change information for audit tracking.
+"""
+type FieldChange {
+  field: String!                     # Name of the changed field
+  oldValue: String                   # Previous value as string (null for CREATE operations)
+  newValue: String                   # New value as string (null for DELETE operations)
+  dataType: String!                  # Data type of the field (string, int, date, boolean, etc.)
 }
 
 

@@ -315,17 +315,56 @@ func (i IntegrityIssue) Type() string         { return i.TypeField }
 func (i IntegrityIssue) Count() int32         { return int32(i.CountField) }
 func (i IntegrityIssue) AffectedCodes() []string { return i.AffectedCodesField }
 
-// 审计记录类型 - v4.6.0 精确到record_id
+// 字段变更详细信息
+type FieldChangeData struct {
+	FieldField    string      `json:"field"`
+	OldValueField interface{} `json:"oldValue"`
+	NewValueField interface{} `json:"newValue"`
+	DataTypeField string      `json:"dataType"`
+}
+
+func (f FieldChangeData) Field() string      { return f.FieldField }
+func (f FieldChangeData) OldValue() *string {
+	if f.OldValueField == nil {
+		return nil
+	}
+	// 将interface{}转换为字符串
+	if str, ok := f.OldValueField.(string); ok {
+		return &str
+	}
+	// 对于其他类型，序列化为JSON字符串
+	jsonBytes, _ := json.Marshal(f.OldValueField)
+	jsonStr := string(jsonBytes)
+	return &jsonStr
+}
+func (f FieldChangeData) NewValue() *string {
+	if f.NewValueField == nil {
+		return nil
+	}
+	// 将interface{}转换为字符串
+	if str, ok := f.NewValueField.(string); ok {
+		return &str
+	}
+	// 对于其他类型，序列化为JSON字符串
+	jsonBytes, _ := json.Marshal(f.NewValueField)
+	jsonStr := string(jsonBytes)
+	return &jsonStr
+}
+func (f FieldChangeData) DataType() string   { return f.DataTypeField }
+
+// 审计记录类型 - v4.6.0 精确到record_id，包含完整变更信息
 type AuditRecordData struct {
-	AuditIDField         string         `json:"auditId"`
-	RecordIDField        string         `json:"recordId"`
-	OperationTypeField   string         `json:"operationType"`
-	OperatedByField      OperatedByData `json:"operatedBy"`
-	ChangesSummaryField  string         `json:"changesSummary"`
-	OperationReasonField *string        `json:"operationReason"`
-	TimestampField       string         `json:"timestamp"`
-	BeforeDataField      *string        `json:"beforeData"`
-	AfterDataField       *string        `json:"afterData"`
+	AuditIDField         string             `json:"auditId"`
+	RecordIDField        string             `json:"recordId"`
+	OperationTypeField   string             `json:"operationType"`
+	OperatedByField      OperatedByData     `json:"operatedBy"`
+	ChangesSummaryField  string             `json:"changesSummary"`
+	OperationReasonField *string            `json:"operationReason"`
+	TimestampField       string             `json:"timestamp"`
+	BeforeDataField      *string            `json:"beforeData"`
+	AfterDataField       *string            `json:"afterData"`
+	ModifiedFieldsField  []string           `json:"modifiedFields"`
+	ChangesField         []FieldChangeData  `json:"changes"`
 }
 
 func (a AuditRecordData) AuditId() string            { return a.AuditIDField }
@@ -350,6 +389,8 @@ func (a AuditRecordData) AfterData() *string {
 	// 确保空对象也返回，不要过滤为null
 	return a.AfterDataField
 }
+func (a AuditRecordData) ModifiedFields() []string      { return a.ModifiedFieldsField }
+func (a AuditRecordData) Changes() []FieldChangeData    { return a.ChangesField }
 
 type OperatedByData struct {
 	IDField   string `json:"id"`
@@ -1023,26 +1064,34 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId string, startDate, endDate, operation, userId *string, limit int) ([]AuditRecordData, error) {
 	start := time.Now()
 	
-	// 构建查询条件 - 基于record_id查询
+	// 构建查询条件 - 基于record_id查询，包含完整变更信息
 	baseQuery := `
-		SELECT 
-			id as audit_id, 
-			resource_id as record_id, 
+		SELECT
+			id as audit_id,
+			resource_id as record_id,
 			event_type as operation_type,
-			actor_id as operated_by_id, 
-			CASE WHEN business_context->>'actor_name' IS NOT NULL 
-				THEN business_context->>'actor_name' 
-				ELSE actor_id 
+			actor_id as operated_by_id,
+			CASE WHEN business_context->>'actor_name' IS NOT NULL
+				THEN business_context->>'actor_name'
+				ELSE actor_id
 			END as operated_by_name,
-			CASE WHEN changes IS NOT NULL 
-				THEN changes::text 
-				ELSE '{"operationSummary":"' || action_name || '","totalChanges":0,"keyChanges":[]}' 
+			CASE WHEN changes IS NOT NULL
+				THEN changes::text
+				ELSE '{"operationSummary":"' || action_name || '","totalChanges":0,"keyChanges":[]}'
 			END as changes_summary,
 			business_context->>'operation_reason' as operation_reason,
 			timestamp,
-			before_data::text as before_data, 
-			after_data::text as after_data
-		FROM audit_logs 
+			before_data::text as before_data,
+			after_data::text as after_data,
+			CASE WHEN modified_fields IS NOT NULL
+				THEN modified_fields::text
+				ELSE '[]'
+			END as modified_fields,
+			CASE WHEN changes IS NOT NULL
+				THEN changes::text
+				ELSE '[]'
+			END as detailed_changes
+		FROM audit_logs
 		WHERE resource_id = $1::uuid AND resource_type = 'ORGANIZATION'`
 	
 	args := []interface{}{recordId}
@@ -1090,19 +1139,19 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId str
 	for rows.Next() {
 		var record AuditRecordData
 		var operatedById, operatedByName string
-		var beforeData, afterData sql.NullString
-		
+		var beforeData, afterData, modifiedFieldsJson, detailedChangesJson sql.NullString
+
 		err := rows.Scan(
 			&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
 			&operatedById, &operatedByName,
 			&record.ChangesSummaryField, &record.OperationReasonField, &record.TimestampField,
-			&beforeData, &afterData,
+			&beforeData, &afterData, &modifiedFieldsJson, &detailedChangesJson,
 		)
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描审计记录失败: %v", err)
 			return nil, err
 		}
-		
+
 		// 正确处理JSONB字段
 		if beforeData.Valid {
 			record.BeforeDataField = &beforeData.String
@@ -1110,7 +1159,31 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId str
 		if afterData.Valid {
 			record.AfterDataField = &afterData.String
 		}
-		
+
+		// 解析 modified_fields 字段
+		if modifiedFieldsJson.Valid && modifiedFieldsJson.String != "[]" {
+			var modifiedFields []string
+			if err := json.Unmarshal([]byte(modifiedFieldsJson.String), &modifiedFields); err == nil {
+				record.ModifiedFieldsField = modifiedFields
+			}
+		}
+
+		// 解析 changes 字段为详细变更信息
+		if detailedChangesJson.Valid && detailedChangesJson.String != "[]" {
+			var changesArray []map[string]interface{}
+			if err := json.Unmarshal([]byte(detailedChangesJson.String), &changesArray); err == nil {
+				for _, changeMap := range changesArray {
+					fieldChange := FieldChangeData{
+						FieldField:    fmt.Sprintf("%v", changeMap["field"]),
+						OldValueField: changeMap["oldValue"],
+						NewValueField: changeMap["newValue"],
+						DataTypeField: fmt.Sprintf("%v", changeMap["dataType"]),
+					}
+					record.ChangesField = append(record.ChangesField, fieldChange)
+				}
+			}
+		}
+
 		// 构建操作人信息
 		record.OperatedByField = OperatedByData{
 			IDField:   operatedById,

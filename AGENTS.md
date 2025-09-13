@@ -7,21 +7,21 @@ Specialized agent framework for Cube Castle HR System management and development
 ### Core Agent Types
 
 #### 1. **Backend Agent** (`backend-agent`)
-**Domain**: Go backend services, database operations, CQRS architecture
+**Domain**: Go backend services, PostgreSQL-native CQRS
 **Specializations**:
 - API endpoint development and maintenance
 - Database schema and migration management
 - CQRS event handling and command processing
-- Neo4j graph database operations
 - PostgreSQL relational operations
+- Redis-based caching coordination
 - Business ID standardization and validation
 
-**Tools**: Go, Ent ORM, PostgreSQL, Neo4j, Kafka, Temporal
+**Tools**: Go, PostgreSQL, Redis, Ent ORM
 **Responsibilities**:
-- Employee management API (`go-app/internal/handler/employee_handler.go`)
-- Organization unit management (`go-app/internal/handler/organization_unit_handler.go`)
-- Position management with CQRS (`go-app/internal/cqrs/`)
-- Event sourcing and CDC pipeline (`go-app/internal/events/`)
+- Command service entry (`cmd/organization-command-service`)
+- Query service entry (`cmd/organization-query-service`)
+- GraphQL schema loader与解析（`internal/graphql/`；契约源于 `docs/api/schema.graphql`）
+- 认证/权限（`internal/auth/`；PBAC 与契约对齐）
 
 #### 2. **Frontend Agent** (`frontend-agent`)
 **Domain**: Next.js frontend, UI/UX, component development
@@ -35,10 +35,10 @@ Specialized agent framework for Cube Castle HR System management and development
 
 **Tools**: Next.js, React, TypeScript, Ant Design, Apollo GraphQL, SWR
 **Responsibilities**:
-- Employee management pages (`nextjs-app/src/pages/employees/`)
-- Organization chart visualization (`nextjs-app/src/components/business/organization-tree.tsx`)
-- Form handling and validation (`nextjs-app/src/components/business/employee-create-dialog.tsx`)
-- API integration layers (`nextjs-app/src/lib/api-client.ts`)
+- Enterprise UI development (`frontend/src/features/`)
+- Shared API and clients (`frontend/src/shared/api/`)
+- Form handling and validation (`frontend/src/shared/components/` 或各 feature 内部)
+- GraphQL + REST 集成（统一客户端 `frontend/src/shared/api/unified-client.ts`）
 
 #### 3. **AI Agent** (`ai-agent`)
 **Domain**: Python AI services, intelligent features
@@ -64,12 +64,12 @@ Specialized agent framework for Cube Castle HR System management and development
 - Performance monitoring and logging
 - CI/CD pipeline optimization
 
-**Tools**: Docker, Docker Compose, PostgreSQL, Neo4j, Kafka, Temporal
+**Tools**: Docker, Docker Compose, PostgreSQL, Redis, GitHub Actions
 **Responsibilities**:
 - Service orchestration (`docker-compose.yml`)
-- Database migrations (`go-app/deployments/migrations/`)
-- Deployment scripts (`scripts/`)
+- Deployment and ops scripts (`scripts/`)
 - Health monitoring and service status
+- CI quality gates（document-sync/contract-testing/consistency-guard）
 
 #### 5. **QA Agent** (`qa-agent`)
 **Domain**: Testing, quality assurance, validation
@@ -82,8 +82,8 @@ Specialized agent framework for Cube Castle HR System management and development
 
 **Tools**: Playwright, Go testing, Jest, Test automation frameworks
 **Responsibilities**:
-- E2E test suites (`nextjs-app/tests/e2e/`)
-- Integration tests (`go-app/tests/`)
+- E2E test suites (`frontend/tests/`)
+- Integration tests（Go 后端测试入口 `go test ./...`）
 - UAT test plans (`docs/testing/`)
 - Performance benchmarks
 
@@ -102,6 +102,18 @@ Specialized agent framework for Cube Castle HR System management and development
 - Architecture documentation (`docs/architecture/`)
 - ADR management (架构决策记录已整合至主要文档系统)
 - Integration patterns and best practices
+
+### Documentation Sources & Boundaries (2025-09-13)
+- Reference（长期稳定参考）: `docs/reference/`
+  - 开发者快速参考、实现清单、API 使用/质量手册
+- Development Plans（计划/进展/阶段报告）: `docs/development-plans/`
+  - 完成项归档至 `docs/archive/development-plans/`
+- 契约唯一事实来源: `docs/api/`（OpenAPI/GraphQL）
+- 导航入口: `docs/README.md`；归档说明: `docs/archive/README.md`
+
+CI 与审核要求：
+- PR 模板新增“文档治理与目录边界（Reference vs Plans）”检查项
+- CI `document-sync.yml` 启用“目录边界检查”与“文档同步检查”，违规将自动评论并阻断
 
 ## Agent Communication Protocol
 
@@ -193,7 +205,7 @@ orchestration:
 
 | Agent Type | Primary Domain | Secondary Skills | Tools & Frameworks |
 |------------|----------------|------------------|-------------------|
-| Backend | Go services, databases | API design, event sourcing | Go, PostgreSQL, Neo4j, Kafka |
+| Backend | Go services, databases | API design, event sourcing | Go, PostgreSQL, Redis |
 | Frontend | React/Next.js, UI/UX | State management, performance | TypeScript, Ant Design, Apollo |
 | AI | Python services, ML | NLP, gRPC services | Python, gRPC, FastAPI |
 | DevOps | Infrastructure, deployment | Monitoring, automation | Docker, CI/CD, monitoring tools |

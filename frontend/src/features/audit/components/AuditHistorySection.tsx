@@ -49,34 +49,46 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
       const result = await unifiedGraphQLClient.request<{
         auditHistory: Array<{
           auditId: string;
-          operationType: string;
+          recordId: string;
+          operation: string;
           timestamp: string;
-          operatedBy: { id?: string; name?: string } | null;
-          operationReason: string;
-          beforeData: string;
-          afterData: string;
-          changesSummary: string;
+          operationReason?: string;
+          beforeData?: string;
+          afterData?: string;
+          modifiedFields: string[];
+          changes: Array<{
+            field: string;
+            oldValue: any;
+            newValue: any;
+            dataType: string;
+          }>;
         }>;
       }>(`
-        query GetAuditHistory($recordId: String!, $limit: Int, $mode: String) {
-          auditHistory(recordId: $recordId, limit: $limit, mode: $mode) {
+        query GetAuditHistory($recordId: String!, $limit: Int, $startDate: String, $endDate: String, $operation: OperationType, $userId: String) {
+          auditHistory(recordId: $recordId, limit: $limit, startDate: $startDate, endDate: $endDate, operation: $operation, userId: $userId) {
             auditId
-            operationType
+            recordId
+            operation
             timestamp
-            operatedBy {
-              id
-              name
-            }
             operationReason
             beforeData
             afterData
-            changesSummary
+            modifiedFields
+            changes {
+              field
+              oldValue
+              newValue
+              dataType
+            }
           }
         }
       `, {
         recordId,
         limit: params?.limit || 50,
-        mode: params?.mode || 'current'
+        startDate: params?.startDate || null,
+        endDate: params?.endDate || null,
+        operation: params?.operation || null,
+        userId: params?.userId || null
       });
       
       return result.auditHistory;
@@ -101,119 +113,44 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
     });
   };
 
-  // 数据适配器：GraphQL → UI格式
+  // 数据适配器：GraphQL → UI格式 (完整版本，包含变更详情)
   const transformAuditData = (audit: Record<string, unknown>) => {
-    const operatedBy = audit.operatedBy as { id?: string; name?: string } | null;
-    const SYSTEM_USER_ID = getCurrentTenantId(); // 使用统一租户配置
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    const rawName = (operatedBy?.name ?? '').toString().trim();
-    const rawId = (operatedBy?.id ?? '').toString().trim();
-    let displayName = '系统用户';
-    if (rawName && !uuidRegex.test(rawName)) {
-      displayName = rawName;
-    } else if (rawId === SYSTEM_USER_ID) {
-      displayName = '系统';
-    } else if (rawId && !uuidRegex.test(rawId)) {
-      displayName = rawId;
+    // 解析beforeData和afterData
+    let beforeData: Record<string, unknown> | undefined = undefined;
+    let afterData: Record<string, unknown> | undefined = undefined;
+
+    try {
+      if (audit.beforeData && typeof audit.beforeData === 'string') {
+        beforeData = JSON.parse(audit.beforeData as string);
+      }
+    } catch (e) {
+      console.warn('Failed to parse beforeData:', e);
     }
+
+    try {
+      if (audit.afterData && typeof audit.afterData === 'string') {
+        afterData = JSON.parse(audit.afterData as string);
+      }
+    } catch (e) {
+      console.warn('Failed to parse afterData:', e);
+    }
+
     return {
       auditId: audit.auditId as string,
-      operation: audit.operationType as string,
+      operation: audit.operation as string,
       timestamp: audit.timestamp as string,
-      userName: displayName,
-      operationReason: audit.operationReason as string,
+      userName: '系统用户', // 简化版本暂时使用默认值
+      operationReason: audit.operationReason as string || '',
       dataChanges: {
-        beforeData: (() => {
-          try {
-            // 先尝试解析原始的beforeData
-            if (audit.beforeData && audit.beforeData !== 'null' && audit.beforeData !== '{}') {
-              const parsed = JSON.parse(audit.beforeData as string);
-              if (Object.keys(parsed).length > 0) return parsed;
-            }
-            
-            // 如果beforeData为空，但有changesSummary，尝试从中重建
-            if (audit.changesSummary && audit.changesSummary !== 'null' && audit.changesSummary !== '[]') {
-              const changes = JSON.parse(audit.changesSummary as string);
-              if (Array.isArray(changes) && changes.length > 0 && changes[0].oldValue !== undefined) {
-                const reconstructed: Record<string, unknown> = {};
-                changes.forEach((change: { field?: string; oldValue?: unknown }) => {
-                  if (change.field && change.oldValue !== undefined) {
-                    reconstructed[change.field] = change.oldValue;
-                  }
-                });
-                return Object.keys(reconstructed).length > 0 ? reconstructed : undefined;
-              }
-            }
-            return undefined;
-          } catch (error) {
-            console.warn('Failed to parse beforeData:', error);
-            return undefined;
-          }
-        })(),
-        afterData: (() => {
-          try {
-            // 先尝试解析原始的afterData  
-            if (audit.afterData && audit.afterData !== 'null' && audit.afterData !== '{}') {
-              const parsed = JSON.parse(audit.afterData as string);
-              if (Object.keys(parsed).length > 0) return parsed;
-            }
-            
-            // 如果afterData为空，但有changesSummary，尝试从中重建
-            if (audit.changesSummary && audit.changesSummary !== 'null' && audit.changesSummary !== '[]') {
-              const changes = JSON.parse(audit.changesSummary as string);
-              if (Array.isArray(changes) && changes.length > 0 && changes[0].newValue !== undefined) {
-                const reconstructed: Record<string, unknown> = {};
-                changes.forEach((change: { field?: string; oldValue?: unknown; newValue?: unknown }) => {
-                  if (change.field && change.newValue !== undefined) {
-                    reconstructed[change.field] = change.newValue;
-                  }
-                });
-                return Object.keys(reconstructed).length > 0 ? reconstructed : undefined;
-              }
-            }
-            return undefined;
-          } catch (error) {
-            console.warn('Failed to parse afterData:', error);
-            return undefined;
-          }
-        })(),
-        modifiedFields: audit.changesSummary && audit.changesSummary !== 'null' ? 
-          (() => {
-            try {
-              const changes = JSON.parse(audit.changesSummary as string);
-              // 如果是变更对象数组，提取字段名
-              if (Array.isArray(changes) && changes.length > 0 && changes[0].field) {
-                return changes.map((change: { field?: string }) => change.field);
-              }
-              // 如果是字段名数组，直接返回
-              if (Array.isArray(changes)) {
-                return changes;
-              }
-              return [audit.changesSummary as string];
-            } catch {
-              return [audit.changesSummary as string];
-            }
-          })() : [],
-        // 新增: 结构化的字段变更信息
-        changes: audit.changesSummary && audit.changesSummary !== 'null' ? 
-          (() => {
-            try {
-              const changes = JSON.parse(audit.changesSummary as string);
-              // 如果是变更对象数组且有完整的变更信息，直接使用
-              if (Array.isArray(changes) && changes.length > 0 && changes[0].field && 
-                  (changes[0].oldValue !== undefined || changes[0].newValue !== undefined)) {
-                return changes.map((change: { field?: string; oldValue?: unknown; newValue?: unknown; dataType?: string }) => ({
-                  field: change.field || '',
-                  oldValue: change.oldValue,
-                  newValue: change.newValue,
-                  dataType: change.dataType || 'string'
-                }));
-              }
-              return [];
-            } catch {
-              return [];
-            }
-          })() : []
+        beforeData: beforeData,
+        afterData: afterData,
+        modifiedFields: audit.modifiedFields as string[] || [],
+        changes: audit.changes as Array<{
+          field: string;
+          oldValue: any;
+          newValue: any;
+          dataType: string;
+        }> || []
       }
     };
   };

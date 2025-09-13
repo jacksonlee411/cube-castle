@@ -1,6 +1,16 @@
 # 📚 我的文档导航中心
 
+返回根 README: [../README.md](../README.md)
+
 > **极简设计原则**: 一个目录，一个导航，够用就好！
+
+## 🧭 重要导航（Reference vs Plans）
+- Reference（长期稳定参考）：`docs/reference/` — 开发者快速参考、实现清单、API 使用与质量手册
+  - [开发者快速参考](reference/01-DEVELOPER-QUICK-REFERENCE.md) · [实现清单](reference/02-IMPLEMENTATION-INVENTORY.md) · [API 使用指南](reference/03-API-USAGE-GUIDE.md)
+- Development Plans（阶段性计划与进展）：`docs/development-plans/`
+  - [使用指南](development-plans/00-README.md) · [技术架构设计](development-plans/02-technical-architecture-design.md) · [团队进展日志](development-plans/06-integrated-teams-progress-log.md)
+
+边界约定：参考只收“长期稳定、可依赖”的材料；计划目录只收“计划/路线/进展/阶段报告（含 archived/）”。
 
 ## 🔥 常用文档 (一键直达)
 
@@ -23,10 +33,14 @@
 
 ```
 docs/
-├── 📖 development-guides/ # 开发指南（前端 UI/组件规范等）
-├── 🔌 api/                # API 契约（OpenAPI/GraphQL）
-├── 🏗️ architecture/       # 架构设计与说明
-└── 📁 archive/            # 历史文档归档区
+├── reference/           # 长期稳定的权威参考（查询、指南、清单）
+├── development-plans/   # 开发计划、路线与进展（活跃）
+├── architecture/        # 架构设计与说明（非契约）
+├── development-guides/  # 开发指南（前端 UI/组件规范等）
+├── development-tools/   # 开发工具文档
+├── api/                 # API 契约（OpenAPI/GraphQL）
+└── archive/             # 历史文档归档区
+    ├── development-plans/            # 开发计划归档（已完成/历史）
     ├── deprecated-neo4j-era/
     ├── deprecated-api-specs/
     ├── deprecated-api-design/
