@@ -293,8 +293,8 @@ go.mod (两个服务)                                      # 移除prometheus依
 
 ### 📚 文档与脚本清理扩展范围（避免残留引用）
 除已在方案中列出的 `README.md`、`CLAUDE.md`、`docs/monitoring/`、归档报告外，建议补充清理以下引用：
-- `docs/guides/PRODUCTION-DEPLOYMENT-GUIDE.md`：包含前端 `/monitoring` 页面与 compose 操作指引。
-- `docs/guides/MICROSERVICES_MANAGEMENT.md`：提到 `./scripts/start-monitoring.sh` 与 `./scripts/test-monitoring.sh`。
+- `docs/archive/deprecated-guides/PRODUCTION-DEPLOYMENT-GUIDE.md`：包含前端 `/monitoring` 页面与 compose 操作指引（已归档）。
+- `docs/archive/deprecated-guides/MICROSERVICES_MANAGEMENT.md`：历史微服务管理脚本指引（已归档）。
 - `docs/reference/02-IMPLEMENTATION-INVENTORY.md`：涉及监控端点、`MONITORING_ENDPOINTS` 说明与 compose 文件。
 - `scripts/README.md`：包含监控脚本使用说明。
 

@@ -1,5 +1,7 @@
 # 组织单元管理API规范
 
+> 重要说明：本文件为“架构与设计说明”，不作为对外契约的唯一权威来源；实际对外 API 契约以 `docs/api/openapi.yaml`（REST 命令）与 `docs/api/schema.graphql`（GraphQL 查询）为准。
+
 **版本**: v4.2  
 **架构**: CQRS + PostgreSQL + OAuth 2.0  
 **状态**: 生产就绪

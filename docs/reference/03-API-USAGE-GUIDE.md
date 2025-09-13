@@ -64,6 +64,11 @@ Cube Castle采用严格的CQRS（Command Query Responsibility Segregation）架�
 - ❌ 使用GraphQL进行数据修改
 - ❌ 混用两种协议
 
+### 命名与路径一致性（来自 CLAUDE.md）
+- JSON 字段一律使用 camelCase（如 `parentCode`, `effectiveDate`, `recordId`）。
+- 组织单元路径参数统一为 `{code}`（禁止 `{id}`）。
+- API 契约唯一来源：`docs/api/openapi.yaml`（REST）与 `docs/api/schema.graphql`（GraphQL）。
+
 ---
 
 ## 🔐 认证与授权

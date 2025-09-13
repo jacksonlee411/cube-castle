@@ -6,13 +6,13 @@
 
 ### 🚀 立即开始
 - [API快速参考](api/README.md) - 所有API接口总览
-- [实现清单（Implementation Inventory）](reference/IMPLEMENTATION-INVENTORY.md) - 已实现的API/函数/接口索引（中英）
+- [实现清单（Implementation Inventory）](reference/02-IMPLEMENTATION-INVENTORY.md) - 已实现的API/函数/接口索引（中英）
 - **大规模清理完成**: 95%文档已归档 → archive/ ⭐ **极简状态**
 
 ### 🎯 核心功能  
-- [**组织单元API规范**](api/organization-units-api-specification.md) - **主要API文档** ⭐ 完整的GraphQL/REST规范  
+- [**组织单元API规范**](architecture/01-organization-units-api-specification.md) - **主要API文档** ⭐ 完整的GraphQL/REST规范  
 - [CLAUDE.md项目记忆](../CLAUDE.md) - 项目指导原则和架构设计 ⭐ 必读
-- [设计开发标准](guides/DESIGN_DEVELOPMENT_STANDARDS.md) - 代码规范和开发标准
+- [设计开发标准](development-guides/design-development-standards.md) - 前端 UI/组件规范补充
 
 ### 🏗️ 架构文档
 - [元合约v6.0规范](architecture/metacontract-v6.0-specification.md) - 核心设计合约
@@ -23,24 +23,23 @@
 
 ```
 docs/
-├── 📖 guides/         # 精简开发指南(仅2份: 1规范+1README)
-├── 🔌 api/            # 核心API文档(仅2份: 1规范+1README) 
-├── 🏗️ architecture/   # 核心架构文档(仅2份: 蓝图+合约)
-└── 📁 archive/        # 史诗级归档 ⭐ 26份文档归档，97%清理率
-    ├── deprecated-neo4j-era/     # Neo4j时代文档(7份)
-    ├── deprecated-api-specs/     # 过时API规范(2份)  
-    ├── deprecated-api-design/    # 废弃API设计文档(5份)
-    ├── deprecated-guides/        # 废弃开发指南(8份)
-    ├── deprecated-notes/         # 废弃笔记文档(7份) ⭐ 新增
-    ├── deprecated-setup/         # 废弃安装指南(1份) ⭐ 新增
-    ├── project-reports/          # 项目报告归档(1份)
-    └── frontend-ux-optimization-deprecated/ # 前端优化归档
+├── 📖 development-guides/ # 开发指南（前端 UI/组件规范等）
+├── 🔌 api/                # API 契约（OpenAPI/GraphQL）
+├── 🏗️ architecture/       # 架构设计与说明
+└── 📁 archive/            # 历史文档归档区
+    ├── deprecated-neo4j-era/
+    ├── deprecated-api-specs/
+    ├── deprecated-api-design/
+    ├── deprecated-guides/
+    ├── deprecated-notes/
+    ├── deprecated-setup/
+    ├── project-reports/
+    └── frontend-ux-optimization-deprecated/
 ```
 
-### 📖 guides/ - 精简开发指南
-仅保留核心开发标准文档，其他已全部归档
-- **DESIGN_DEVELOPMENT_STANDARDS.md** - 唯一保留的开发规范
-- **已全部归档**: 其他8份开发指南 → archive/deprecated-guides/
+### 📖 development-guides/ - 开发指南
+- **design-development-standards.md** - 前端 UI/组件规范补充（以 CLAUDE.md 为准）
+- 历史 guides 已归档：`archive/deprecated-guides/`
 
 ### 🔌 api/ - 核心API文档
 精简到唯一权威API文档，其他已全部归档
@@ -62,8 +61,8 @@ grep -r "关键词" docs/
 # 只搜索API文档
 grep -r "关键词" docs/api/
 
-# 搜索指南文档
-grep -r "关键词" docs/guides/
+# 搜索开发指南文档
+grep -r "关键词" docs/development-guides/
 
 # 查找特定文件类型
 find docs/ -name "*.md" | grep "关键词"

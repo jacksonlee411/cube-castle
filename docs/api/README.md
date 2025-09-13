@@ -63,11 +63,10 @@
 
 ### API服务架构
 
-| 服务 | 端点 | 协议 | 用途 | 缓存性能 |
-|------|------|------|------|----------|
-| **GraphQL查询** | `localhost:8090/graphql` | GraphQL | 灵活查询、统计 | 65%↗️ |
-| **时态API** | `localhost:9091/api/v1` | REST | 历史版本、事件 | 94%↗️ |
-| **命令API** | `localhost:9090/api/v1` | REST | 创建、更新、删除 | CQRS |
+| 服务 | 端点 | 协议 | 用途 |
+|------|------|------|------|
+| **GraphQL查询** | `localhost:8090/graphql` | GraphQL | 灵活查询、统计 |
+| **命令API** | `localhost:9090/api/v1` | REST | 创建、更新、删除 |
 
 ### 性能指标
 
@@ -81,42 +80,30 @@
 ### 1. 启动服务
 
 ```bash
-# 启动所有API服务
-cd /home/shangmeilin/cube-castle
-./scripts/start-cqrs-complete.sh
+# 启动基础设施与核心服务（PostgreSQL 原生）
+make docker-up
+make run-dev
 
 # 验证服务状态
 curl http://localhost:8090/health  # GraphQL服务
-curl http://localhost:9091/health  # 时态API服务  
 curl http://localhost:9090/health  # 命令API服务
 ```
 
-### 2. 访问文档
+### 2. 查看契约
 
-打开浏览器访问交互式文档中心：
-```bash
-# 如果在本地运行，直接打开
-open docs/api/index.html
-
-# 或通过HTTP服务器
-python -m http.server 8000 -d docs/api
-# 然后访问 http://localhost:8000
-```
+- REST 契约文件：`docs/api/openapi.yaml`
+- GraphQL Schema：`docs/api/schema.graphql`
 
 ### 3. 测试API
 
 ```bash
-# GraphQL查询示例
+# GraphQL查询示例（字段为 camelCase）
 curl -X POST http://localhost:8090/graphql \
   -H "Content-Type: application/json" \
-  -d '{"query":"query { organizations(first: 5) { code name unit_type status } }"}'
-
-# 时态API查询示例  
-curl "http://localhost:9091/api/v1/organization-units/1000001/temporal?as_of_date=2025-08-09"
+  -d '{"query":"query { organizations(first: 5) { code name unitType status } }"}'
 
 # 健康检查
 curl http://localhost:8090/health && echo ""
-curl http://localhost:9091/health && echo ""
 curl http://localhost:9090/health && echo ""
 ```
 
@@ -124,55 +111,14 @@ curl http://localhost:9090/health && echo ""
 
 ### GraphQL API
 
-- **文档**: [graphql-api.md](./graphql-api.md)
 - **交互界面**: http://localhost:8090/graphiql
-- **特点**: 灵活查询、字段选择、实时缓存
-- **性能**: 65%响应时间改善
-
-### 时态管理API
-
-- **规范文档**: [temporal-api.yaml](./temporal-api.yaml) (OpenAPI 3.0)
-- **特点**: 时间点查询、版本历史、事件驱动
-- **性能**: 94%响应时间改善
-- **查询类型**:
-  - 时间点查询 (`as_of_date`)
-  - 时间范围查询 (`effective_from`, `effective_to`)
-  - 版本查询 (`version`, `include_history`)
-  - 事件创建 (`POST /events`)
-
-### 缓存策略
-
-- **指南**: [cache-strategy-guide.md](./cache-strategy-guide.md)
-- **缓存层**: Redis (512MB内存限制)
-- **策略**: 智能键生成 + 分层TTL + 精确失效
-- **监控**: Prometheus指标 + 91.7%命中率
-
-### 集成示例
-
-- **完整指南**: [integration-examples.md](./integration-examples.md)  
-- **支持语言**: JavaScript/TypeScript, Python, Go
-- **客户端**: Apollo Client, requests, machinebox/graphql
-- **特性**: 连接池、重试机制、错误处理
+- **契约文件**: `docs/api/schema.graphql`
 
 ## 🛠️ 开发工具
 
 ### 交互式工具
 
-- **GraphiQL**: http://localhost:8090/graphiql - GraphQL查询界面
-- **Swagger UI**: 内置在[文档中心](./index.html) - 时态API测试界面  
-- **API文档中心**: [index.html](./index.html) - 统一文档入口
-
-### 监控工具
-
-```bash
-# Prometheus指标
-curl http://localhost:8090/metrics  # GraphQL服务指标
-curl http://localhost:9091/metrics  # 时态API指标
-
-# Redis缓存统计
-redis-cli info | grep keyspace_
-redis-cli --scan --pattern "cache:*" | wc -l
-```
+- **GraphiQL**: http://localhost:8090/graphiql - GraphQL 查询界面
 
 ## 🔧 配置说明
 
@@ -185,7 +131,6 @@ export CUBE_CASTLE_TENANT_ID="3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"
 
 # 服务端点
 export CUBE_CASTLE_GRAPHQL_ENDPOINT="http://localhost:8090/graphql"  
-export CUBE_CASTLE_TEMPORAL_URL="http://localhost:9091"
 export CUBE_CASTLE_COMMAND_URL="http://localhost:9090"
 
 # 缓存配置
@@ -196,29 +141,7 @@ export CACHE_DEFAULT_TTL="300s"
 
 ### Docker配置
 
-```yaml
-# docker-compose.yml 片段
-services:
-  redis:
-    image: redis:7-alpine
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
-    ports:
-      - "6379:6379"
-      
-  graphql-service:
-    build: ./cmd/organization-query-service-unified
-    ports:
-      - "8090:8090"
-    environment:
-      - REDIS_ADDR=redis:6379
-      
-  temporal-api:
-    build: ./cmd/organization-temporal-command-service  
-    ports:
-      - "9091:9091"
-    environment:
-      - REDIS_ADDR=redis:6379
-```
+Docker 配置以仓库根目录的 `docker-compose.yml` 为准；如需调整请先更新契约并通过契约测试。
 
 ## 📊 性能优化
 
@@ -282,7 +205,6 @@ const client = new ApolloClient({
 ```bash
 # 检查服务日志
 docker-compose logs graphql-service
-docker-compose logs temporal-api
 
 # 检查缓存状态  
 redis-cli info memory
@@ -290,7 +212,6 @@ redis-cli keys "cache:*" | head -5
 
 # 测试API连通性
 curl -f http://localhost:8090/health || echo "GraphQL服务异常"
-curl -f http://localhost:9091/health || echo "时态API服务异常"
 ```
 
 ## 🚨 已知特例和注意事项 ⭐ **更新 (2025-09-07)**

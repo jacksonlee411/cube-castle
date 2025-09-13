@@ -39,6 +39,15 @@ make frontend-dev       # 启动前端开发服务器 (端口3000)
 make status             # 查看所有服务状态
 ```
 
+### 最小依赖与启动顺序（现行 PostgreSQL 原生架构）
+- 依赖：PostgreSQL 16+，Redis 7.x
+- 顺序：
+  1) `make docker-up`（基础设施）
+  2) `make run-dev`（命令 9090 + 查询 8090）
+  3) `make frontend-dev`（可选）
+
+前端 UI/组件规范补充（Canvas Kit v13 图标与用法）：`docs/development-guides/design-development-standards.md`（权威以 `CLAUDE.md` 为准）。
+
 ### JWT认证管理
 ```bash
 make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h

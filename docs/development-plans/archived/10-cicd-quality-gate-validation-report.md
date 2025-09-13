@@ -81,7 +81,7 @@
   scripts/quality/architecture-guard.sh (13.2KB): 架构守护执行
 
 防控系统手册:
-  docs/P3-Defense-System-Manual.md (14.5KB): 完整防控系统手册
+  docs/reference/04-P3-DEFENSE-SYSTEM-MANUAL.md (14.5KB): 完整防控系统手册
   
 配置文件:
   .jscpdrc.json (1KB): 重复代码检测配置

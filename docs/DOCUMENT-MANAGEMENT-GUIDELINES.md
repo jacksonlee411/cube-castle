@@ -19,20 +19,19 @@
 └── CHANGELOG.md           # 版本变更历史
 ```
 
-### docs/ 目录结构
+### docs/ 目录结构（现行）
 ```
 docs/
-├── architecture/          # 架构设计文档
+├── architecture/          # 架构设计文档（非契约，说明为主）
 │   ├── 01-organization-units-api-specification.md
 │   └── [其他架构文档]
 ├── development-plans/     # 开发计划文档（序号排序）
 │   ├── 00-README.md
 │   ├── 02-technical-architecture-design.md
 │   └── [其他计划文档]
-├── development-guides/    # 开发指南
+├── development-guides/    # 开发指南（前端 UI/组件规范等）
 ├── development-tools/     # 开发工具文档
-├── guides/               # 使用指南
-├── monitoring/           # 监控相关文档
+├── api/                  # API 契约（OpenAPI/GraphQL）
 └── archive/              # 历史文档归档
     ├── deprecated-*/     # 废弃的不同类型文档
     └── project-reports/  # 项目报告归档
@@ -43,7 +42,11 @@ docs/
 ### 1. 新文档创建规范
 - **强制检查**: 创建前必须检查是否已存在相似内容的文档
 - **路径规范**: 必须按照标准目录结构放置
-- **命名规范**: 使用清晰、描述性的文件名，避免二义性后缀
+- **命名规范（强制）**:
+  - 文件名一律使用 kebab-case（例如：`production-deployment-guide.md`），可选数字前缀用于排序（例如：`02-technical-architecture-design.md`）。
+  - 允许的例外：`README.md`、`CHANGELOG.md`、`ADR-###-*.md`、`00-README.md`/`01-*.md` 这类索引性文件。
+  - 禁止使用：`-final`、`-fix`、`-v2`、`-temp` 等二义性后缀；避免 `UPPER_SNAKE_CASE.md` 命名（除上述例外）。
+  - API 字段命名在文档示例中一律采用 camelCase（与实现保持一致）。
 - **版本管理**: 重要文档需要版本号和维护记录
 
 ### 2. 文档更新规范
@@ -93,6 +96,8 @@ docs/
 - [ ] 验证docs/目录结构是否符合规范
 - [ ] 识别需要归档的过时文档
 - [ ] 清理测试和临时文件
+- [ ] 抽样检查命名规范（kebab-case/数字前缀/例外白名单），无 `-final/-temp` 等后缀，无不当 `UPPER_SNAKE_CASE.md`
+- [ ] 抽样检查 API 示例字段命名为 camelCase，路径参数为 `{code}`，与 CLAUDE.md 一致
 
 ### 季度深度清理（每季度最后一周执行）
 - [ ] 全面审查文档内容的时效性
