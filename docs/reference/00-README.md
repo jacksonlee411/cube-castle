@@ -89,7 +89,7 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 - ✅ 优先使用现有资源，避免重复造轮子
 - ✅ 所有API调用包含认证头和租户ID
 
-### 🛡️ [04. P3企业级防控系统手册](./04-P3-DEFENSE-SYSTEM-MANUAL.md)
+### 🛡️ [04. P3企业级防控系统手册](./04-p3-defense-system-manual.md)
 **用途**: P3防控系统完整使用手册和操作指南
 **包含内容**:
 - P3三大防控系统使用指南(重复检测/架构验证/文档同步)
@@ -103,6 +103,18 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 - ✅ 质量问题排查和系统故障解决
 
 ---
+
+### 🛡️ [05. IIG护卫使用指南](./05-iig-guardian-usage-guide.md)
+**用途**: Implementation Inventory Guardian（实现清单护卫）的使用与集成
+**包含内容**:
+- 预开发强制检查流程与执行方法
+- 重复检测与架构一致性的联动说明
+- 与 CI/CD 的集成与本地开发流程
+
+**使用场景**:
+- ✅ 新功能开始前的能力检索与登记
+- ✅ 代码评审前的功能登记核验
+- ✅ 契约与实现同步校验
 
 ## 📊 项目统计摘要
 

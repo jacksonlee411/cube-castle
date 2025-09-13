@@ -208,7 +208,7 @@ node scripts/quality/document-sync.js --pair ports
    ```
 
 ### 获取帮助
-- 查看详细文档: `docs/reference/04-P3-DEFENSE-SYSTEM-MANUAL.md`
+- 查看详细文档: `docs/reference/04-p3-defense-system-manual.md`
 - 检查CI/CD状态: GitHub Actions页面
 - 查看质量报告: `reports/` 目录下的各类报告文件
 
