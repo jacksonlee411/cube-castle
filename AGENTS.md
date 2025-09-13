@@ -100,7 +100,7 @@ Specialized agent framework for Cube Castle HR System management and development
 **Responsibilities**:
 - API specifications (`docs/api/openapi.yaml` - Organization API)
 - Architecture documentation (`docs/architecture/`)
-- ADR management (`DOCS2/architecture-decisions/`)
+- ADR management (架构决策记录已整合至主要文档系统)
 - Integration patterns and best practices
 
 ## Agent Communication Protocol

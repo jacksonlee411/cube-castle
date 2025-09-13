@@ -144,7 +144,7 @@ Sunset: 2026-01-01T00:00:00Z
 
 - **技术规范**: `docs/api/openapi.yaml` - REST API完整规范
 - **查询Schema**: `docs/api/schema.graphql` - GraphQL查询规范  
-- **架构决策**: `docs/architecture-decisions/ADR-008-status-model-and-endpoint-unification.md`
+- **架构文档**: `docs/architecture/` - 系统架构设计和决策记录
 - **测试用例**: `tests/e2e/activate-suspend-workflow.test.ts`
 
 ---
