@@ -36,13 +36,29 @@
 
 #### **🚨 需要立即关注的问题**
 
+> 本次核验时间: 2025-09-13（基于本仓库当前代码与验证脚本输出）
+
 ##### **1. 架构违规数量增长** - P1优先级
 - **问题**: 架构违规从25个增长到可能更多项
+- **核验结论**: 存在（数量显著高于25）
+- **证据**:
+  - 命令: `node scripts/quality/architecture-validator.js`
+  - 摘要: 验证文件 93，失败文件 13，问题总数 88；类型分布：端口违规 49、契约命名违规 37、CQRS 违规 2
+  - 报告: `reports/architecture/architecture-validation.json`
+  - 示例: `frontend/src/features/organizations/components/OrganizationForm/ValidationRules.ts`（snake_case 与端口硬编码）
 - **影响**: 架构一致性受威胁，可能导致系统稳定性问题
-- **行动**: 立即运行 `node scripts/quality/architecture-validator.js --fix`
+- **行动**:
+  - 优先修复端口硬编码（统一替换为 `frontend/src/shared/config/ports.ts` 常量）
+  - 修正 snake_case → camelCase（如 parent_code → parentCode）
+  - 分批执行并验证: `node scripts/quality/architecture-validator.js --fix`
 
 ##### **2. 废弃Hook的持续引用** - P1优先级
 - **问题**: `useOrganizations` 和 `useOrganization` 标记为DEPRECATED但可能仍有引用
+- **核验结论**: 存在（仍有业务代码引用 `useOrganizations`）
+- **证据**:
+  - 文件: `frontend/src/features/organizations/OrganizationDashboard.tsx` 存在 `import { useOrganizations } from '../../shared/hooks/useOrganizations'`
+  - 搜索: `rg -n --pcre2 "\buseOrganizations\b|\buseOrganization(?!s)\b" frontend/src`
+  - 废弃声明: `frontend/src/shared/hooks/useOrganizations.ts` 明确 DEPRECATED 替代为 `useEnterpriseOrganizations`
 - **风险**: 开发者误用废弃Hook，造成代码分裂和维护困难
 - **行动**:
 ```bash
@@ -54,7 +70,12 @@ grep -r "useOrganization[^s]" frontend/src/
 
 ##### **3. 验证系统双重实现** - P2优先级
 - **问题**: 新旧验证系统并存 (`validation/index.ts` vs `simple-validation.ts`)
-- **风险**: 验证不一致，可能导致数据完整性问题
+- **核验结论**: 旧文件仍在但当前无业务导入（仅注释/说明命中），属可清理遗留
+- **证据**:
+  - 新系统入口: `frontend/src/shared/validation/index.ts`（包含“不要使用 simple-validation.ts”警示）
+  - 旧文件存在: `frontend/src/shared/validation/simple-validation.ts`
+  - 搜索: `rg -n "simple-validation\.ts" frontend/src`（无业务导入命中）
+- **风险**: 长期保留可能被误用，导致验证不一致
 - **行动**:
 ```bash
 # 检查simple-validation.ts的引用
@@ -68,19 +89,19 @@ grep -r "simple-validation" frontend/src/
 
 ### **P1紧急修复项** 🚨
 1. **架构违规修复**
-   - 执行: `node scripts/quality/architecture-validator.js --fix`
-   - 验证: 确认违规数量降到可接受范围
+   - 执行: 先手工修复高频问题（端口硬编码、snake_case），再运行 `node scripts/quality/architecture-validator.js --fix`
+   - 验证: 确认统计降至可接受范围（端口违规、契约命名、CQRS 三类均需归零）
    - 监控: 建立架构违规自动检查
 
 2. **废弃代码清理**
-   - 搜索所有废弃Hook引用
-   - 替换为 `useEnterpriseOrganizations` 调用
+   - 搜索所有废弃Hook引用：`rg -n --pcre2 "\buseOrganizations\b|\buseOrganization(?!s)\b" frontend/src`
+   - 替换为 `useEnterpriseOrganizations`/`useOrganizationDetails`
    - 测试确保功能正常
 
 3. **验证系统统一**
-   - 检查 `simple-validation.ts` 的所有引用
-   - 迁移到统一验证系统
-   - 删除废弃验证文件
+   - 确认无业务导入 `simple-validation.ts`
+   - 删除废弃验证文件并通过 CI
+   - 如需保留，增加 ESLint 规则禁止导入该文件（防回归）
 
 ### **P2优化项** ⚠️ (2周内)
 1. **错误处理系统简化**

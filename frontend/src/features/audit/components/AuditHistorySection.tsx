@@ -3,7 +3,6 @@
  * 基于auditHistory GraphQL查询展示组织的完整审计记录
  */
 import React, { useState } from 'react';
-import { getCurrentTenantId } from '../../../shared/config/tenant';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
@@ -58,8 +57,8 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
           modifiedFields: string[];
           changes: Array<{
             field: string;
-            oldValue: any;
-            newValue: any;
+            oldValue: unknown;
+            newValue: unknown;
             dataType: string;
           }>;
         }>;
@@ -147,8 +146,8 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
         modifiedFields: audit.modifiedFields as string[] || [],
         changes: audit.changes as Array<{
           field: string;
-          oldValue: any;
-          newValue: any;
+          oldValue: unknown;
+          newValue: unknown;
           dataType: string;
         }> || []
       }
