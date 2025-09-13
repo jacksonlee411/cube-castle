@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-09-13T02:22:30.669Z",
+  "timestamp": "2025-09-13T03:20:06.415Z",
   "summary": {
-    "totalFiles": 95,
-    "passedFiles": 82,
+    "totalFiles": 93,
+    "passedFiles": 80,
     "failedFiles": 13,
-    "totalViolations": 92,
+    "totalViolations": 88,
     "violationsByType": {
       "cqrs": 2,
-      "ports": 53,
+      "ports": 49,
       "contracts": 37
     }
   },
@@ -142,7 +142,7 @@
       "violations": [
         {
           "type": "contracts",
-          "line": 464,
+          "line": 470,
           "column": 9,
           "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
           "code": "deprecated-field",
@@ -157,7 +157,7 @@
         },
         {
           "type": "contracts",
-          "line": 464,
+          "line": 470,
           "column": 30,
           "message": "废弃字段 \"parent_code\"，请使用 \"parentCode\"",
           "code": "deprecated-field",
@@ -172,7 +172,7 @@
         },
         {
           "type": "contracts",
-          "line": 209,
+          "line": 215,
           "column": 10,
           "message": "使用camelCase字段名 \"businessStatus\" 替代 snake_case \"business_status\"",
           "code": "snake-case-field",
@@ -187,7 +187,7 @@
         },
         {
           "type": "contracts",
-          "line": 210,
+          "line": 216,
           "column": 10,
           "message": "使用camelCase字段名 \"dataStatus\" 替代 snake_case \"data_status\"",
           "code": "snake-case-field",
@@ -202,7 +202,7 @@
         },
         {
           "type": "contracts",
-          "line": 297,
+          "line": 303,
           "column": 10,
           "message": "使用camelCase字段名 \"businessStatus\" 替代 snake_case \"business_status\"",
           "code": "snake-case-field",
@@ -217,7 +217,7 @@
         },
         {
           "type": "contracts",
-          "line": 298,
+          "line": 304,
           "column": 10,
           "message": "使用camelCase字段名 \"dataStatus\" 替代 snake_case \"data_status\"",
           "code": "snake-case-field",
@@ -492,7 +492,7 @@
       "violations": [
         {
           "type": "cqrs",
-          "line": 135,
+          "line": 153,
           "column": 42,
           "message": "禁止使用REST GET请求进行查询，请使用GraphQL客户端",
           "code": "no-rest-queries",
@@ -500,7 +500,7 @@
         },
         {
           "type": "cqrs",
-          "line": 167,
+          "line": 185,
           "column": 51,
           "message": "禁止使用REST GET请求进行查询，请使用GraphQL客户端",
           "code": "no-rest-queries",
@@ -1163,67 +1163,7 @@
         },
         {
           "type": "ports",
-          "line": 22,
-          "column": 12,
-          "message": "硬编码端口 9091，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              12,
-              18
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 23,
-          "column": 9,
-          "message": "硬编码端口 3001，建议使用 SERVICE_PORTS.FRONTEND_PREVIEW",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              9,
-              15
-            ],
-            "newText": "SERVICE_PORTS.FRONTEND_PREVIEW"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 24,
-          "column": 15,
-          "message": "硬编码端口 9093，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              15,
-              21
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 25,
-          "column": 15,
-          "message": "硬编码端口 9100，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
-          "code": "no-hardcoded-ports",
-          "severity": "error",
-          "fix": {
-            "range": [
-              15,
-              21
-            ],
-            "newText": "SERVICE_PORTS.APPROPRIATE_PORT"
-          }
-        },
-        {
-          "type": "ports",
-          "line": 99,
+          "line": 86,
           "column": 57,
           "message": "硬编码端口 1024，建议使用 SERVICE_PORTS.APPROPRIATE_PORT",
           "code": "no-hardcoded-ports",

@@ -1,8 +1,9 @@
 # Cube Castle 实现清单（Implementation Inventory）
 
-版本: v1.5 API优先原则强化版  
+版本: v1.6 组织列表数据显示修复版  
 维护人: 架构组（与各子域模块共同维护）  
-范围: 本仓库已实现的 API/函数/接口（按 CQRS 与目录分区）
+范围: 本仓库已实现的 API/函数/接口（按 CQRS 与目录分区）  
+最后更新: 2025-09-13 (修复useEnterpriseOrganizations初始化逻辑和TemporalMasterDetailView查询问题)
 
 > 目的（Purpose）
 > - 中文: 统一登记当前已实现的 API、导出函数与接口，以及所属文件与简要说明，避免重复造轮子，便于新成员快速定位能力与复用。
@@ -25,10 +26,10 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ```
 
 #### 📊 **扫描能力覆盖**
-- ✅ **REST API端点**: 从 `docs/api/openapi.yaml` 提取 (25个命令端点)
+- ✅ **REST API端点**: 从 `docs/api/openapi.yaml` 提取 (10个命令端点)
 - ✅ **GraphQL查询**: 从 `docs/api/schema.graphql` 提取 (12个查询字段)  
-- ✅ **Go后端组件**: 扫描handlers和services (70个关键组件)
-- ✅ **前端TypeScript导出**: 扫描classes/functions/const (4个统一系统)
+- ✅ **Go后端组件**: 扫描handlers和services (40个关键组件)
+- ✅ **前端TypeScript导出**: 扫描classes/functions/const (152个组件)
 
 #### 🔍 **IIG护卫集成** (Implementation Inventory Guardian)
 - **预开发强制检查**: 每次新功能开发前必须运行此脚本
@@ -351,12 +352,11 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `withOAuthAwareErrorHandling` - OAuth感知错误处理
 
 ### 数据管理层
-#### 状态管理Hooks
-- `useOrganizations` - 组织列表管理 (`useOrganizations.ts`)
-- `useOrganization` - 单个组织管理
-- `useEnterpriseOrganizations` - 企业级组织管理 (`useEnterpriseOrganizations.ts`)
-- `useOrganizationList` - 组织列表复用Hook
-- `useMessages` - 用户消息管理 (`useMessages.ts`)
+#### 状态管理Hooks ⭐ **已修复稳定版**
+- `useEnterpriseOrganizations` - 企业级组织管理 (`useEnterpriseOrganizations.ts`) ✅ **主要Hook - 已修复初始化逻辑**
+- `useOrganizations` - 组织列表管理 (`useOrganizations.ts`) ⚠️ **已废弃** - 兼容封装，调用useEnterpriseOrganizations
+- `useOrganization` - 单个组织管理 ⚠️ **已废弃** - 兼容封装，调用useEnterpriseOrganizations
+- `useMessages` - 用户消息管理 (`useMessages.ts`) ✅ **稳定**
 
 #### 组织变更操作 (`useOrganizationMutations.ts`)
 - `useCreateOrganization` - 创建组织Hook
@@ -625,6 +625,30 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 2) **避免重复造轮子**: 优先使用现有的API/函数/组件，禁止重复创建相同功能
 3) **契约优先**: 新增端点前先更新契约文件 (OpenAPI/GraphQL)，通过评审后再实现
 4) **强制登记**: 新增功能后必须重新运行清单生成器，验证功能已正确登记
+
+### 🔧 **最近修复状态更新 (2025-09-13)**
+
+#### ✅ **组织列表数据显示问题修复**
+- **问题**: 前端页面显示"暂无组织数据"，但后端实际有3个组织
+- **根本原因**: `useEnterpriseOrganizations` Hook的初始化逻辑有缺陷
+- **修复文件**: `frontend/src/shared/hooks/useEnterpriseOrganizations.ts:426-430`
+- **修复内容**: 移除`if (initialParams)`条件，确保无参数时也调用`fetchOrganizations()`
+
+#### ✅ **组织详情页面GraphQL查询错误修复**
+- **问题**: 点击"详情管理"报错`Cannot query field "organizationVersions" on type "Query"`
+- **根本原因**: `TemporalMasterDetailView`使用了不存在的GraphQL查询字段
+- **修复文件**: `frontend/src/features/temporal/components/TemporalMasterDetailView.tsx:140-220`
+- **修复内容**: 
+  - 将`organizationVersions`查询替换为`organization`查询
+  - 修复数据映射逻辑，从数组处理改为单对象处理
+  - 修正语法错误：`}));` → `}];`
+
+#### 📊 **修复效果验证**
+- ✅ 组织列表正常显示3个组织单元
+- ✅ 组织详情页面成功加载
+- ✅ 时间轴导航功能正常
+- ✅ 后端GraphQL服务性能良好（4-8ms响应时间）
+- ✅ JWT认证正常工作
 
 ### 📋 **更新维护**
 1) **自动更新**: 使用 `scripts/generate-implementation-inventory.js` 自动生成最新清单

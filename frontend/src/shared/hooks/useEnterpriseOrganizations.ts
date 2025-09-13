@@ -100,7 +100,10 @@ export const useEnterpriseOrganizations = (
       `;
 
       // 构建查询变量
-      const variables: any = {};
+      const variables: {
+        filter?: Partial<OrganizationQueryParams>;
+        pagination?: Partial<OrganizationQueryParams>;
+      } = {};
       
       if (params) {
         variables.filter = {};
@@ -237,7 +240,10 @@ export const useEnterpriseOrganizations = (
       `;
 
       // 构建查询变量
-      const variables: any = { code };
+      const variables: {
+        code: string;
+        asOfDate?: string;
+      } = { code };
       if (temporalParams?.asOfDate) {
         variables.asOfDate = temporalParams.asOfDate;
       }
@@ -331,7 +337,10 @@ export const useEnterpriseOrganizations = (
       `;
 
       // 构建查询变量
-      const variables: any = { 
+      const variables: {
+        includeHistorical: boolean;
+        asOfDate?: string;
+      } = { 
         includeHistorical: false 
       };
       if (asOfDate) {

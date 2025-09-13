@@ -461,15 +461,23 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 
 **开发计划文档目录**:
 - `02-technical-architecture-design.md` - 技术架构设计文档
-- `03-api-compliance-intensive-refactoring-plan.md` - API合规性强化重构计划
-- `04-backend-implementation-plan-phases1-3.md` - 后端实施计划(阶段1-3)
-- `05-frontend-team-implementation-plan.md` - 前端团队实施计划
 - `06-integrated-teams-progress-log.md` - 集成团队进度日志
+
+**已归档文档** (archived/):
 - `07-contract-testing-automation-system.md` - ⭐ **契约测试自动化验证体系** (S级成功完成)
 - `08-frontend-api-standards.md` - 前端API标准
 - `09-code-review-checklist.md` - 代码审查清单
 - `10-codebase-cleanup-maintenance-plan.md` - 代码库清理维护计划
+- `11-api-permissions-mapping.md` - API权限映射
+- `12-organization-1000001-temporal-analysis-report.md` - 组织1000001时态分析报告
+- `13-permission-system-implementation-plan.md` - 权限系统实施计划
+- `14-api-implementation-alignment-plan.md` - API实现对齐计划
+- `15-database-triggers-diagnostic-report.md` - 数据库触发器诊断报告
+- `16-trigger-optimization-action-plan.md` - 触发器优化行动计划
+- `17-index-audit-and-optimization-plan.md` - 索引审计与优化计划
 - `18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)
+- `19-code-smells-and-remediation-plan.md` - 代码异味和修复计划
+- `20-existing-resource-analysis-guide.md` - 现有资源分析指南
 
 **契约测试质量门禁文档** ⭐ **新增 (2025-08-24)**:
 - `docs/github-branch-protection-rules.md` - GitHub分支保护规则配置指南
@@ -488,9 +496,12 @@ Cube Castle是一个基于CQRS架构的组织架构管理系统，包含前端Re
 **推荐阅读顺序**: 
 1. **API规范** (docs/architecture/01-organization-units-api-specification.md)
 2. **技术架构** (docs/development-plans/02-technical-architecture-design.md) 
-3. **契约测试自动化** (docs/development-plans/07-contract-testing-automation-system.md)
-4. **代码审查清单** (docs/development-plans/09-code-review-checklist.md)
-5. **清理维护计划** (docs/development-plans/10-codebase-cleanup-maintenance-plan.md)
+3. **集成团队进度日志** (docs/development-plans/06-integrated-teams-progress-log.md)
+
+**归档文档参考** (archived/):
+4. **契约测试自动化** (archived/07-contract-testing-automation-system.md)
+5. **代码审查清单** (archived/09-code-review-checklist.md)
+6. **重复代码消除计划** (archived/18-duplicate-code-elimination-plan.md)
 
 ## 📅 项目开发阶段 ⭐ **项目状态升级 (2025-08-24)**
 

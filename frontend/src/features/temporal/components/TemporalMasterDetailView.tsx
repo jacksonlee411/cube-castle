@@ -137,14 +137,15 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         setRetryCount(0);
       }
       
-      // 使用organizationVersions查询获取完整的版本历史 - 修复认证问题，保留健壮错误处理
+      // 使用organization查询获取组织基本信息 - 修复认证问题，保留健壮错误处理
+      // 注意：v4.6.0 架构简化后，时态版本查询已合并到auditHistory中
       let data;
       try {
         data = await unifiedGraphQLClient.request<{
-          organizationVersions: OrganizationVersion[];
+          organization: OrganizationVersion | null;
         }>(`
-          query GetOrganizationVersions($code: String!) {
-            organizationVersions(code: $code) {
+          query GetOrganization($code: String!) {
+            organization(code: $code) {
               code
               name
               unitType
@@ -152,12 +153,13 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               level
               effectiveDate
               endDate
-              isCurrent
               createdAt
               updatedAt
               recordId
               parentCode
               description
+              hierarchyDepth
+              isFuture
             }
           }
         `, {
@@ -187,31 +189,35 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         throw new Error('GraphQL响应为空');
       }
       
-      const versions: OrganizationVersion[] = data.organizationVersions || [];
+      // 处理单个组织信息（v4.6.0架构简化后的查询方式）
+      const organization = data.organization;
+      if (!organization) {
+        throw new Error('组织不存在或无权限访问');
+      }
         
-        // 映射到组件需要的数据格式
-        const mappedVersions: TimelineVersion[] = versions.map((version: OrganizationVersion) => ({
-          recordId: version.recordId,
-          code: version.code,
-          name: version.name,
-          unitType: version.unitType,
-          status: version.status,
-          level: version.level,
-          effectiveDate: version.effectiveDate,
-          endDate: version.endDate,
-          isCurrent: version.isCurrent,
-          createdAt: version.createdAt,
-          updatedAt: version.updatedAt,
-          parentCode: version.parentCode,
-          description: version.description,
+        // 将单个组织映射为时间线版本格式（为了兼容现有组件结构）
+        const mappedVersions: TimelineVersion[] = [{
+          recordId: organization.recordId,
+          code: organization.code,
+          name: organization.name,
+          unitType: organization.unitType,
+          status: organization.status,
+          level: organization.level,
+          effectiveDate: organization.effectiveDate,
+          endDate: organization.endDate,
+          isCurrent: !organization.isFuture, // isCurrent与isFuture相反
+          createdAt: organization.createdAt,
+          updatedAt: organization.updatedAt,
+          parentCode: organization.parentCode,
+          description: organization.description,
           // 添加组件需要的字段
-          lifecycleStatus: version.isCurrent ? 'CURRENT' as const : 'HISTORICAL' as const,
-          business_status: version.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-          data_status: 'NORMAL',
+          lifecycleStatus: !organization.isFuture ? 'CURRENT' as const : 'HISTORICAL' as const,
+          business_status: organization.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+          data_status: 'NORMAL' as const,
           path: '', // 临时字段，组件中需要
           sortOrder: 1, // 临时字段，组件中需要
-          changeReason: '', // 临时字段，组件中需要
-        }));
+          changeReason: '' // 临时字段，组件中需要
+        }];
         
         const sortedVersions = mappedVersions.sort((a: TimelineVersion, b: TimelineVersion) => 
           new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
