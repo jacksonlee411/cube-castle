@@ -1117,11 +1117,11 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 	return root, nil
 }
 
-// 审计历史查询 - v4.6.0 基于record_id精确查询
-func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId string, startDate, endDate, operation, userId *string, limit int) ([]AuditRecordData, error) {
+// 审计历史查询 - v4.6.0 基于record_id精确查询 + 租户隔离
+func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uuid.UUID, recordId string, startDate, endDate, operation, userId *string, limit int) ([]AuditRecordData, error) {
 	start := time.Now()
-	
-	// 构建查询条件 - 基于record_id查询，包含完整变更信息
+
+	// 构建查询条件 - 基于record_id查询，包含完整变更信息，强制租户隔离
 	baseQuery := `
 		SELECT
 			id as audit_id,
@@ -1149,10 +1149,10 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId str
 				ELSE '[]'
 			END as detailed_changes
 		FROM audit_logs
-		WHERE resource_id = $1::uuid AND resource_type = 'ORGANIZATION'`
-	
-	args := []interface{}{recordId}
-	argIndex := 2
+		WHERE tenant_id = $1::uuid AND resource_id = $2::uuid AND resource_type = 'ORGANIZATION'`
+
+	args := []interface{}{tenantId, recordId}
+	argIndex := 3
 	
 	// 日期范围过滤
 	if startDate != nil {
@@ -1260,29 +1260,35 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, recordId str
 func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) (*AuditRecordData, error) {
 	start := time.Now()
 	
-	query := `
-		SELECT 
-			id as audit_id, 
-			resource_id as record_id, 
-			event_type as operation_type,
-			actor_id as operated_by_id, 
-			CASE WHEN business_context->>'actor_name' IS NOT NULL 
-				THEN business_context->>'actor_name' 
-				ELSE actor_id 
-			END as operated_by_name,
-			CASE WHEN changes IS NOT NULL 
-				THEN changes::text 
-				ELSE '{"operationSummary":"' || action_name || '","totalChanges":0,"keyChanges":[]}' 
-			END as changes_summary,
-			business_context->>'operation_reason' as operation_reason,
-			timestamp,
-			before_data::text as before_data, 
-			after_data::text as after_data
-		FROM audit_logs 
-		WHERE id = $1::uuid AND resource_type = 'ORGANIZATION'
-		LIMIT 1`
-	
-	row := r.db.QueryRowContext(ctx, query, auditId)
+    query := `
+        SELECT 
+            id as audit_id, 
+            resource_id as record_id, 
+            event_type as operation_type,
+            actor_id as operated_by_id, 
+            CASE WHEN business_context->>'actor_name' IS NOT NULL 
+                THEN business_context->>'actor_name' 
+                ELSE actor_id 
+            END as operated_by_name,
+            CASE WHEN changes IS NOT NULL 
+                THEN changes::text 
+                ELSE '{"operationSummary":"' || action_name || '","totalChanges":0,"keyChanges":[]}' 
+            END as changes_summary,
+            business_context->>'operation_reason' as operation_reason,
+            timestamp,
+            before_data::text as before_data, 
+            after_data::text as after_data
+        FROM audit_logs 
+        WHERE id = $1::uuid AND resource_type = 'ORGANIZATION' AND tenant_id = $2::uuid
+        LIMIT 1`
+
+    tenantID := auth.GetTenantID(ctx)
+    if tenantID == "" {
+        r.logger.Printf("[AUTH] 缺少租户ID，拒绝单条审计记录查询")
+        return nil, fmt.Errorf("TENANT_REQUIRED")
+    }
+
+    row := r.db.QueryRowContext(ctx, query, auditId, tenantID)
 	
 	var record AuditRecordData
 	var operatedById, operatedByName string
@@ -1540,7 +1546,19 @@ func (r *Resolver) AuditHistory(ctx context.Context, args struct {
 		}
 	}
 	
-	return r.repo.GetAuditHistory(ctx, args.RecordId, args.StartDate, args.EndDate, args.Operation, args.UserId, int(limit))
+    // 从上下文获取租户ID，强制租户隔离
+    tenantStr := auth.GetTenantID(ctx)
+    if tenantStr == "" {
+        r.logger.Printf("[AUTH] 缺少租户ID，拒绝审计历史查询")
+        return nil, fmt.Errorf("TENANT_REQUIRED")
+    }
+    tenantUUID, err := uuid.Parse(tenantStr)
+    if err != nil {
+        r.logger.Printf("[AUTH] 无效租户ID: %s", tenantStr)
+        return nil, fmt.Errorf("INVALID_TENANT")
+    }
+
+    return r.repo.GetAuditHistory(ctx, tenantUUID, args.RecordId, args.StartDate, args.EndDate, args.Operation, args.UserId, int(limit))
 }
 
 // 单条审计记录查询 - v4.6.0

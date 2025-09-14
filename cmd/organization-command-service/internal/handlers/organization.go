@@ -745,21 +745,10 @@ func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantI
 		return fmt.Errorf("获取记录失败: %w", err)
 	}
 
-    // 更新指定记录的状态为DELETED（软删除，不直接物理删除）
-    updateReq := &types.UpdateOrganizationRequest{
-        Status:       func(s string) *string { return &s }("DELETED"),
-        ChangeReason: func(s string) *string { return &s }(changeReason),
-    }
-
-    _, err = h.repo.UpdateByRecordId(ctx, tenantID, recordID, updateReq)
-    if err != nil {
+    // 使用时间线管理器执行“单事务 软删 + 全链重算”
+    rid, _ := uuid.Parse(recordID)
+    if _, err := h.timelineManager.DeleteVersion(ctx, tenantID, rid); err != nil {
         return fmt.Errorf("作废记录失败: %w", err)
-    }
-
-    // 软删除后：统一执行完整时间线重算，确保相邻桥接与末尾回写
-    if err := h.temporalService.RecomputeTimelineForCode(ctx, tenantID, code); err != nil {
-        // 记录警告但不阻断业务成功（保持幂等与可用性）
-        h.logger.Printf("⚠️ 作废后时间线重算失败（不影响作废结果）: code=%s recordID=%s err=%v", code, recordID, err)
     }
 
     // 记录审计日志 - 使用删除日志方法

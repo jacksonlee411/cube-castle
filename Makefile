@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all
 
 # 默认目标
 help:
@@ -39,6 +39,7 @@ help:
 	@echo "🗄️ 数据库维护:"
 	@echo "  backup           - 备份 PostgreSQL 数据到文件"
 	@echo "  restore          - 从备份文件恢复 (需 BACKUP_FILE)"
+	@echo "  db-migrate-all   - 按序执行数据库迁移（迁移即真源）"
 	@echo ""
 	@echo "📊 运行状态:"
 	@echo "  status           - docker-compose 服务状态 + 关键地址"
@@ -157,6 +158,22 @@ reset:
 	@echo "🔄 重置最小依赖 (不删除卷)..."
 	$(MAKE) docker-down
 	$(MAKE) docker-up
+
+# 迁移即真源：按序执行 database/migrations/*.sql
+db-migrate-all:
+	@echo "🧭 执行数据库迁移（迁移即真源）..."
+	@command -v psql >/dev/null 2>&1 || { echo "❌ 需要安装 psql (PostgreSQL 客户端)"; exit 1; }
+	@DB_URL="$$DATABASE_URL" ; \
+	if [ -z "$$DB_URL" ]; then \
+	  DB_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable" ; \
+	  echo "ℹ️  未设置 DATABASE_URL，使用默认: $$DB_URL" ; \
+	fi ; \
+	set -e ; \
+	for f in $$(ls -1 database/migrations/*.sql | sort); do \
+	  echo "▶ 迁移: $$f" ; \
+	  psql "$$DB_URL" -v ON_ERROR_STOP=1 -f "$$f" ; \
+	done ; \
+	echo "✅ 迁移完成"
 
 
 # 开发JWT工具

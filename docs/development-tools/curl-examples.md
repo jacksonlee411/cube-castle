@@ -1,12 +1,12 @@
-# Cube Castle API cURL测试示例
+# Cube Castle API cURL 测试示例（开发环境）
 
 ## 环境配置
 
 ```bash
 # 设置基础URL变量
 export COMMAND_SERVICE="http://localhost:9090"
-export QUERY_SERVICE="http://localhost:8090" 
-export TENANT_ID="dev-tenant"
+export QUERY_SERVICE="http://localhost:8090"
+export TENANT_ID="3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"  # 默认租户（与后端一致）
 ```
 
 ## JWT令牌管理
@@ -14,12 +14,12 @@ export TENANT_ID="dev-tenant"
 ### 1. 生成开发JWT令牌
 
 ```bash
-# 生成8小时有效期的JWT令牌
+# 生成8小时有效期的JWT令牌（开发模式需开启 DEV_MODE=true）
 curl -X POST "${COMMAND_SERVICE}/auth/dev-token" \
   -H "Content-Type: application/json" \
   -d '{
     "userId": "dev-user",
-    "tenantId": "dev-tenant",
+    "tenantId": "'${TENANT_ID}'",
     "roles": ["ADMIN", "USER"],
     "duration": "8h"
   }'
@@ -28,8 +28,8 @@ curl -X POST "${COMMAND_SERVICE}/auth/dev-token" \
 export JWT_TOKEN=$(curl -s -X POST "${COMMAND_SERVICE}/auth/dev-token" \
   -H "Content-Type: application/json" \
   -d '{
-    "userId": "dev-user", 
-    "tenantId": "dev-tenant",
+    "userId": "dev-user",
+    "tenantId": "'${TENANT_ID}'",
     "roles": ["ADMIN", "USER"],
     "duration": "8h"
   }' | jq -r '.data.token')
@@ -63,21 +63,21 @@ curl -X GET "${COMMAND_SERVICE}/dev/test-endpoints"
 # 命令服务健康检查
 curl -X GET "${COMMAND_SERVICE}/health"
 
-# 查询服务健康检查
+# 查询服务健康检查（如可用）
 curl -X GET "${QUERY_SERVICE}/health"
 ```
 
 ### 2. 创建组织单元
 
 ```bash
-# 创建根级部门
+# 创建根级部门（unitType: DEPARTMENT|ORGANIZATION_UNIT|PROJECT_TEAM）
 curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${JWT_TOKEN}" \
   -H "X-Tenant-ID: ${TENANT_ID}" \
   -d '{
     "name": "技术部",
-    "unitType": "DEPARTMENT", 
+    "unitType": "DEPARTMENT",
     "parentCode": null,
     "description": "负责技术研发工作",
     "sortOrder": 1,
@@ -86,14 +86,14 @@ curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units" \
   }'
 
 # 创建子部门 (需要先获取父部门code)
-export PARENT_CODE="TECH001"  # 从上面响应中获取
+export PARENT_CODE="1000000"  # 根据你的环境替换为实际父code（如根节点）
 curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${JWT_TOKEN}" \
   -H "X-Tenant-ID: ${TENANT_ID}" \
   -d '{
     "name": "前端开发组",
-    "unitType": "TEAM",
+    "unitType": "DEPARTMENT",
     "parentCode": "'${PARENT_CODE}'",
     "description": "负责前端应用开发",
     "sortOrder": 1,
@@ -105,8 +105,8 @@ curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units" \
 ### 3. 更新组织单元
 
 ```bash
-# 更新组织信息
-export ORG_CODE="TECH001"  # 替换为实际code
+# 更新组织信息（PUT 语义为完整替换，时态字段不可改）
+export ORG_CODE="1000006"  # 替换为实际code（从创建响应中获取）
 curl -X PUT "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${JWT_TOKEN}" \
@@ -121,28 +121,59 @@ curl -X PUT "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}" \
 ### 4. 组织状态管理
 
 ```bash
-# 停用组织单元
+# 停用组织单元（业务操作，插入一个INACTIVE版本）
 curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}/suspend" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${JWT_TOKEN}" \
   -H "X-Tenant-ID: ${TENANT_ID}" \
   -d '{
-    "reason": "部门重组"
+    "operationReason": "部门重组-计划暂停",
+    "effectiveDate": "2025-12-01"
   }'
 
-# 重新激活组织单元
+# 重新激活组织单元（业务操作，插入一个ACTIVE版本）
 curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}/activate" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${JWT_TOKEN}" \
   -H "X-Tenant-ID: ${TENANT_ID}" \
   -d '{
-    "reason": "恢复业务运营"
+    "operationReason": "恢复业务运营",
+    "effectiveDate": "2026-01-10"
   }'
 
-# 删除组织单元
-curl -X DELETE "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}" \
+## 时态版本管理（推荐）
+
+### 1) 新增版本（插入中间版本并自动桥接前后边界）
+
+```bash
+curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}/versions" \
+  -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${JWT_TOKEN}" \
-  -H "X-Tenant-ID: ${TENANT_ID}"
+  -H "X-Tenant-ID: ${TENANT_ID}" \
+  -d '{
+    "name": "技术部-历史更名",
+    "unitType": "DEPARTMENT",
+    "effectiveDate": "2025-09-01",
+    "operationReason": "历史更名-数据补正"
+  }'
+```
+
+### 2) 作废版本（推荐删除姿势，单事务“软删+全链重算”）
+
+```bash
+# 先查询要作废版本的recordId（可通过API响应或数据库查询获得）
+export RECORD_ID="<uuid>"
+
+curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}/events" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${JWT_TOKEN}" \
+  -H "X-Tenant-ID: ${TENANT_ID}" \
+  -d '{
+    "eventType": "DEACTIVATE",
+    "recordId": "'${RECORD_ID}'",
+    "changeReason": "版本作废-数据纠正"
+  }'
+```
 ```
 
 ## GraphQL 查询操作
@@ -227,7 +258,7 @@ echo "🚀 开始Cube Castle API测试流程"
 # 1. 环境设置
 export COMMAND_SERVICE="http://localhost:9090" 
 export QUERY_SERVICE="http://localhost:8090"
-export TENANT_ID="dev-tenant"
+export TENANT_ID="3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"
 
 # 2. 生成JWT令牌
 echo "📝 生成JWT令牌..."
@@ -235,7 +266,7 @@ export JWT_TOKEN=$(curl -s -X POST "${COMMAND_SERVICE}/auth/dev-token" \
   -H "Content-Type: application/json" \
   -d '{
     "userId": "dev-user",
-    "tenantId": "dev-tenant", 
+    "tenantId": "'${TENANT_ID}'", 
     "roles": ["ADMIN", "USER"],
     "duration": "8h"
   }' | jq -r '.data.token')

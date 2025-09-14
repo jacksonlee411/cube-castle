@@ -87,6 +87,26 @@ cd cmd/organization-query-service && go run .
 cd frontend && npm install && npm run dev
 ```
 
+### 数据库初始化（迁移优先，禁止使用初始脚本）
+- 规范：使用 `database/migrations/` 按序执行迁移脚本作为唯一初始化来源（幂等，可重复执行）。
+- 禁止：`sql/init/01-schema.sql` 已归档为过时快照，切勿用于初始化，详见 `docs/archive/deprecated-setup/01-schema.sql` 头部说明。
+
+示例（PostgreSQL，本地空库初始化）：
+```bash
+export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+
+# 依次执行关键迁移（示例，实际请执行整个 migrations 目录）
+psql "$DATABASE_URL" -f database/migrations/011_audit_record_id_fix.sql
+psql "$DATABASE_URL" -f database/migrations/013_enhanced_audit_changes_tracking.sql
+psql "$DATABASE_URL" -f database/migrations/014_normalize_audit_logs.sql
+psql "$DATABASE_URL" -f database/migrations/020_align_audit_logs_schema.sql
+
+# 可选：加载示例数据
+psql "$DATABASE_URL" -f sql/init/02-sample-data.sql
+```
+
+注意：审计历史查询依赖迁移后的 `audit_logs` 列（before_data/after_data/modified_fields/changes/business_context/record_id）。未执行迁移将导致前端显示“加载审计历史失败”。
+
 ## 📚 文档导航（Reference vs Plans）
 
 - 参考文档（长期稳定）: `docs/reference/`

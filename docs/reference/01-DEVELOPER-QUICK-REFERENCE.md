@@ -45,6 +45,7 @@ make docker-up          # 启动基础设施 (PostgreSQL + Redis)
 make run-dev            # 启动后端服务 (命令9090 + 查询8090)
 make frontend-dev       # 启动前端开发服务器 (端口3000)
 make status             # 查看所有服务状态
+make db-migrate-all     # 一键执行数据库迁移（迁移即真源）
 ```
 
 ### 最小依赖与启动顺序（现行 PostgreSQL 原生架构）
@@ -55,6 +56,17 @@ make status             # 查看所有服务状态
   3) `make frontend-dev`（可选）
 
 前端 UI/组件规范详见项目指导原则文档 `CLAUDE.md`（Canvas Kit v13 图标与用法规范）。
+
+### 数据库初始化（迁移优先）
+- 规范：严禁使用过时的初始建表脚本；仅通过 `database/migrations/` 按序迁移来初始化/升级数据库。
+- 一键迁移：
+```bash
+# 如未设置，将使用默认: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+make db-migrate-all
+```
+- 说明：审计历史依赖迁移后的 `audit_logs` 列（before_data/after_data/modified_fields/changes/business_context/record_id）。
+- 注意：`sql/init/01-schema.sql` 已归档为历史快照，禁止用于初始化；参阅 `docs/archive/deprecated-setup/01-schema.sql`。
 
 ### JWT认证管理
 ```bash

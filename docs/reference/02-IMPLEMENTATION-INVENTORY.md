@@ -3,7 +3,7 @@
 版本: v1.6.1 文档一致性修订版  
 维护人: 架构组（与各子域模块共同维护）  
 范围: 本仓库已实现的 API/函数/接口（按 CQRS 与目录分区）  
-最后更新: 2025-09-13 (修复useEnterpriseOrganizations初始化逻辑和TemporalMasterDetailView查询问题)
+最后更新: 2025-09-14（事务化版本删除对齐：作废版本走 TimelineManager.DeleteVersion 单事务“软删+全链重算”）
 
 > 目的（Purpose）
 > - 中文: 统一登记当前已实现的 API、导出函数与接口，以及所属文件与简要说明，避免重复造轮子，便于新成员快速定位能力与复用。

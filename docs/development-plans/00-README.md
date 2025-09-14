@@ -29,6 +29,9 @@
 #### **06 - 团队协作进展**
 - `06-integrated-teams-progress-log.md` - 集成团队协作进展日志
 
+#### **07 - 待修复问题**
+- `07-audit-history-load-failure-fix-plan.md` - 审计历史页签“加载审计历史失败”分析与修复计划（P0）
+
 ### **归档文档** (docs/archive/development-plans/)
 
 > **文档归档时间**: 2025-09-13  
