@@ -52,4 +52,4 @@ SELECT 'DELETED_BUT_CURRENT' AS issue,
 SELECT 'AUDIT_RECENT' AS info,
        COUNT(*)       AS records_last_7d
   FROM audit_logs
- WHERE operation_timestamp >= NOW() - INTERVAL '7 days';
+ WHERE timestamp >= NOW() - INTERVAL '7 days';

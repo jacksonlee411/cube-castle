@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS organization_unit_versions (
     
     -- 业务字段快照
     name VARCHAR(255) NOT NULL,
-    unit_type organization_unit_type NOT NULL,
-    status organization_status NOT NULL,
+    unit_type VARCHAR(50) NOT NULL CHECK (unit_type IN ('DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM')),
+    status VARCHAR(20) NOT NULL CHECK (status IN ('ACTIVE', 'INACTIVE', 'PLANNED', 'DELETED')),
     level INTEGER NOT NULL,
     path TEXT NOT NULL,
     sort_order INTEGER DEFAULT 0,
@@ -139,8 +139,8 @@ CREATE OR REPLACE FUNCTION get_organization_as_of_date(
 ) RETURNS TABLE (
     code VARCHAR(7),
     name VARCHAR(255),
-    unit_type organization_unit_type,
-    status organization_status,
+    unit_type VARCHAR(50),
+    status VARCHAR(20),
     level INTEGER,
     path TEXT,
     sort_order INTEGER,
@@ -191,8 +191,8 @@ CREATE OR REPLACE FUNCTION get_organizations_as_of_date(
 ) RETURNS TABLE (
     code VARCHAR(7),
     name VARCHAR(255),
-    unit_type organization_unit_type,
-    status organization_status,
+    unit_type VARCHAR(50),
+    status VARCHAR(20),
     level INTEGER,
     path TEXT,
     sort_order INTEGER,

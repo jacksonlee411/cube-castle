@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-09-14T06:00:03.768Z",
+  "timestamp": "2025-09-14T09:23:07.409Z",
   "summary": {
     "openapiPaths": 17,
     "graphqlQueries": 12,
     "goHandlers": 25,
-    "goServices": 14,
+    "goServices": 19,
     "tsExports": 144
   },
   "openapiPaths": [
@@ -186,6 +186,31 @@
     {
       "name": "ScheduledTask",
       "file": "cmd/organization-command-service/internal/services/operational_scheduler.go",
+      "kind": "type"
+    },
+    {
+      "name": "OrganizationTemporalService",
+      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalCreateVersionRequest",
+      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalUpdateVersionRequest",
+      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalDeleteVersionRequest",
+      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalStatusChangeRequest",
+      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
       "kind": "type"
     },
     {
@@ -536,11 +561,6 @@
       "kind": "const"
     },
     {
-      "name": "useAuth",
-      "file": "frontend/src/shared/auth/AuthProvider.tsx",
-      "kind": "const"
-    },
-    {
       "name": "AUTH_UNAUTHORIZED",
       "file": "frontend/src/shared/auth/events.ts",
       "kind": "const"
@@ -548,6 +568,11 @@
     {
       "name": "authEvents",
       "file": "frontend/src/shared/auth/events.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useAuth",
+      "file": "frontend/src/shared/auth/hooks.ts",
       "kind": "const"
     },
     {
