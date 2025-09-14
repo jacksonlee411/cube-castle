@@ -36,16 +36,15 @@ SELECT 'INVALID_PARENT' AS issue,
   LEFT JOIN organization_units p
     ON p.code = c.parent_code
    AND p.is_current = TRUE
-   AND p.is_deleted = FALSE
  WHERE c.parent_code IS NOT NULL
    AND (p.code IS NULL)
- LIMIT 100;
+  LIMIT 100;
 
 -- 4) 软删除记录不应为当前
 SELECT 'DELETED_BUT_CURRENT' AS issue,
        code
   FROM organization_units
- WHERE is_deleted = TRUE
+ WHERE status = 'DELETED'
    AND is_current = TRUE
  LIMIT 100;
 
@@ -54,4 +53,3 @@ SELECT 'AUDIT_RECENT' AS info,
        COUNT(*)       AS records_last_7d
   FROM audit_logs
  WHERE operation_timestamp >= NOW() - INTERVAL '7 days';
-

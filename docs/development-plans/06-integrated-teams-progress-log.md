@@ -77,3 +77,46 @@
 
 - 自检脚本：`scripts/tests/test-auth-integration.sh`
 - 环境变量：`.env`
+
+—
+
+## 后端接管时态与审计（跨团队改造任务）
+- 背景：依据 07 文档与已执行迁移，数据库侧已移除自动回填 endDate 与审计触发器（021 统一审计/仅值变更更新，022 全量移除触发器与相关函数）。写路径需由命令服务全面接管。
+- 目标：
+  - 单事务维护时间轴与标志位：插入/软删/硬删/变更生效日均在一个事务中完成邻接修补、标志重算、审计写入。
+  - 并发互斥：对同一 `tenantId+code` 使用 `pg_advisory_xact_lock(hashtext(tenant||code))`。
+  - 邻接修补：
+    - 插入中间版本(E)：`prev.endDate = E-1d`；`curr.endDate = min(next.effectiveDate-1d)` 或 `NULL`；
+    - 删除中间版本(R)：桥接 `prev.endDate = min(next.effectiveDate-1d)` 或 `NULL`；
+    - 生效日变更：等价“旧位置删除 + 新位置插入”或单条 UPDATE 并同时修补 P/N；
+    - 仅值变更才 UPDATE：所有 UPDATE 使用 `IS DISTINCT FROM` 避免空 UPDATE。
+  - 标志位：重算 `lifecycle_status` 与 `is_current`（仅非删除行且每个 code 唯一 true）。
+  - 审计：每次 CREATE/UPDATE/DELETE 写 `audit_logs`（按 021 契约字段；UPDATE 无变更跳过；写入 `business_context` 支持 `requestId/context`）。
+- 已完成的数据侧改造：
+  - `database/migrations/021_audit_and_temporal_sane_updates.sql:1`（统一审计写入、上下文、仅值变更）。
+  - `database/migrations/022_remove_db_triggers_and_functions.sql:1`（移除审计/时态/标志触发器与函数）。
+  - 巡检与修复：
+    - `scripts/data-consistency-check.sql`（软删巡检改为 `status='DELETED'`）。
+    - `scripts/fix-temporal-overlap-and-current.sql`（重算 endDate、唯一当前；按现结构跳过删除）。
+- 团队分工：
+  - Backend（主责）：实现 `repository + service + handlers` 写路径；补齐契约/集成测试。
+  - QA：新增/回归 E2E 用例：插入中间版本/软删/生效日变更/无空UPDATE/无多个当前/无重叠。
+  - DevOps：迁移执行、备份与回滚预案、将巡检纳入定时任务。
+  - Frontend：若保留临时过滤，使用 `// TODO-TEMPORARY` 标注并在一个迭代内移除。
+- 验收标准：
+  - 写路径操作后：时间轴连贯、空 UPDATE=0、每个 code 至多一条当前、审计归属与 recordId 一致。
+  - 巡检通过：`data-consistency-check.sql` 无“多个当前/重叠/删除为当前”；空 UPDATE=0。
+  - 前端审计历史按 `recordId` 查询不混杂（邻接审计不混入当前记录）。
+
+—
+
+## 落地实现参考（供 Backend 团队）
+- 代码结构建议：
+  - `cmd/organization-command-service/internal/repository/temporal_timeline.go`（事务/锁/邻接/修补）。
+  - `cmd/organization-command-service/internal/repository/audit_writer.go`（审计写入）。
+  - `cmd/organization-command-service/internal/services/organization_temporal_service.go`（聚合服务）。
+  - `cmd/organization-command-service/internal/handlers/temporal_handlers.go`（REST 命令端点：POST 创建版本、DELETE 软删、PATCH 生效日）。
+- SQL 要点：
+  - 锁：`SELECT pg_advisory_xact_lock(hashtext($1||':'||$2));`；邻接 `FOR UPDATE`；
+  - 修补：`UPDATE ... SET end_date=$new WHERE end_date IS DISTINCT FROM $new`；
+  - 当前重算：清零非删除后挑选最近一条设为当前（有效区间包含今天）。
