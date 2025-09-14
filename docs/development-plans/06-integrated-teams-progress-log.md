@@ -44,6 +44,7 @@
 4) 扩展 E2E/契约测试
 - 增补 403 两类与 501 发现端点的用例；前端交互提示与重定向路径验证。
 - 校验 CSRF 头在 `/auth/refresh`、`/auth/logout` 的强制性（OpenAPI `CSRFToken`）。
+ - 增加“重复实现守卫”用例：后端禁止 `jwt.Parse` 直调（仅允许在 `internal/auth/jwt.go`），前端禁止新增除 `shared/api/auth.ts` 之外的 token 管理实现。
 
 —
 
@@ -53,6 +54,7 @@
 - 发现与 JWKS：`/.well-known/oidc` 与 `/.well-known/jwks.json` 可用；未配置 IdP 时 501。
 - 前端策略：401 自动刷新一次；403 正确分流并给出用户可理解提示。
 - 文档治理：临时项以 `// TODO-TEMPORARY` 标注并在时限内回收；参考/计划目录边界满足 CI 检查。
+ - 唯一性：全库仅一处 JWT 校验入口（后端）、一处 token 管理入口（前端）；新增变更通过 IIG/CI 检查。
 
 —
 
@@ -68,6 +70,10 @@
 - BFF 发现端点：`cmd/organization-command-service/internal/authbff/handler.go`
 - 多租户/权限错误码：`internal/auth/middleware.go`、`cmd/organization-command-service/internal/auth/rest_middleware.go`
 - 前端分流：`frontend/src/shared/api/unified-client.ts`
+- IIG 去重整改（2025-09-14）
+  - 后端：统一以 `internal/auth/jwt.go` 为权威实现；`internal/auth/middleware.go` 已改为调用 `JWTMiddleware.ValidateToken`，移除重复校验器 `internal/auth/validator.go`；RS256 支持通过 `JWKS_URL`/`JWT_PUBLIC_KEY_PATH` 注入（映射 `internal/config/jwt.go`）。
+  - 前端：唯一权威实现 `frontend/src/shared/api/auth.ts`；统一客户端 `frontend/src/shared/api/unified-client.ts`、`AuthProvider` 与错误处理均复用，不再额外解析/持久化 token。
+  - 治理：README 已含“硬编码 JWT 配置检查”脚本；后续在 CI `document-sync.yml` 中启用“重复实现守卫”规则（扫描禁用 JWT 解析散落实现）。
+
 - 自检脚本：`scripts/tests/test-auth-integration.sh`
 - 环境变量：`.env`
-

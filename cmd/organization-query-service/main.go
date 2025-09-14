@@ -51,7 +51,7 @@ type Organization struct {
 	RecordIDField         string     `json:"recordId" db:"record_id"`
 	TenantIDField         string     `json:"tenantId" db:"tenant_id"`
 	CodeField             string     `json:"code" db:"code"`
-	ParentCodeField       string     `json:"parentCode" db:"parent_code"`
+	ParentCodeField       *string    `json:"parentCode" db:"parent_code"`
 	NameField             string     `json:"name" db:"name"`
 	UnitTypeField         string     `json:"unitType" db:"unit_type"`
 	StatusField           string     `json:"status" db:"status"`
@@ -82,7 +82,12 @@ type Organization struct {
 func (o Organization) RecordId() string    { return o.RecordIDField }
 func (o Organization) TenantId() string    { return o.TenantIDField }
 func (o Organization) Code() string        { return o.CodeField }
-func (o Organization) ParentCode() string { return o.ParentCodeField }
+func (o Organization) ParentCode() string {
+	if o.ParentCodeField == nil {
+		return "0"  // 根组织使用 "0" 作为 parentCode
+	}
+	return *o.ParentCodeField
+}
 func (o Organization) Name() string        { return o.NameField }
 func (o Organization) UnitType() string    { return o.UnitTypeField }
 func (o Organization) Status() string      { return o.StatusField }
