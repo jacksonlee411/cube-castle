@@ -33,7 +33,7 @@ export const LoginPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, redirect]);
+  }, [redirect]);
 
   const handleEnterpriseLogin = useCallback(() => {
     const target = `/auth/login?redirect=${encodeURIComponent(redirect)}`;

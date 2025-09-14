@@ -235,7 +235,7 @@ export class UnifiedRESTClient {
         
         // 403：区分租户访问与权限不足
         if (response.status === 403) {
-          const code = (result?.error as any)?.code as string | undefined;
+          const code = (result?.error as Record<string, unknown>)?.code as string | undefined;
           if (code === 'TENANT_ACCESS_DENIED' || code === 'TENANT_MISMATCH' || code === 'TENANT_ID_MISMATCH') {
             throw new Error('无权访问所选租户，请切换到有权限的租户');
           }

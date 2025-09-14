@@ -189,7 +189,9 @@ export class AuthManager {
    */
   clearAuth(): void {
     this.token = null;
-    try { localStorage.removeItem('cube_castle_oauth_token'); } catch {}
+    try { localStorage.removeItem('cube_castle_oauth_token'); } catch (error) {
+      console.warn('[OAuth] Failed to clear localStorage:', error);
+    }
     console.log('[OAuth] 认证状态已清除');
   }
 
@@ -234,7 +236,7 @@ export class AuthManager {
 
   private getCookie(name: string): string | null {
     if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()\[\]\\/\+^])/g, '\\$1') + '=([^;]*)'));
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]/+^])/g, '\\$1') + '=([^;]*)'));
     return match ? decodeURIComponent(match[1]) : null;
   }
 

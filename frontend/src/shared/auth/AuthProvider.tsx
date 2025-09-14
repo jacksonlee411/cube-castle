@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authManager } from '../api/auth';
 import { authEvents, AUTH_UNAUTHORIZED } from './events';
@@ -16,7 +16,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const handler = () => {
-      try { authManager.clearAuth(); } catch {}
+      try { authManager.clearAuth(); } catch (error) {
+        console.warn('Failed to clear auth:', error);
+      }
       const redirect = encodeURIComponent(location.pathname + location.search);
       navigate(`/login?redirect=${redirect}`, { replace: true });
     };
@@ -40,9 +42,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
-};
+// Export hook in separate file to avoid react-refresh issues
+// This component only exports AuthProvider
 
