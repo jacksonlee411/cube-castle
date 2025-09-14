@@ -110,6 +110,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
   - 中文: 时态事件处理（如按 recordId 作废版本）
   - EN: Temporal event processing (e.g., deactivate by recordId)
   - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
+  - 注意: 不提供 `DELETE /api/v1/organization-units/{code}` 物理删除；版本删除统一走事件端点，内部使用事务化时间线管理器完成“软删+重算”。
 
 - `/api/v1/organization-units/{code}/suspend`
   - 中文: 业务停用（强制 status=INACTIVE，记录原因）
@@ -240,7 +241,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `UpdateOrganization` - 更新组织信息
 - `SuspendOrganization` - 暂停组织
 - `ActivateOrganization` - 激活组织
-- `CreateOrganizationEvent` - 创建组织事件
+- `CreateOrganizationEvent` - 创建组织事件（包含 DEACTIVATE 作废版本 → 调用 TimelineManager.DeleteVersion，单事务“软删+全链重算”）
 - `UpdateHistoryRecord` - 更新历史记录
 
 #### GraphQL查询处理器 (`cmd/organization-query-service/main.go`)
@@ -289,6 +290,12 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `ChangeEffectiveDateRequest` - 变更生效日期请求
 - `SuspendActivateRequest` - 暂停/激活请求
 - `VersionResponse` - 版本操作响应
+
+#### 时态时间轴管理（事务化） (`cmd/organization-command-service/internal/repository/temporal_timeline.go`)
+- `TemporalTimelineManager` - 时态时间轴管理器
+- `InsertVersion(ctx, org)` - 事务化插入版本，自动相邻边界调整
+- `DeleteVersion(ctx, tenantID, recordID)` - 事务化作废（软删）版本 + 全链重算（无断档、无重叠、尾部开放、唯一当前）
+- `RecalculateTimeline(ctx, tenantID, code)`/`RecalculateTimelineInTx` - 全链重算（窗口函数+FOR UPDATE）
 
 #### 时态监控服务 (`internal/services/temporal_monitor.go`)
 - `TemporalMonitor` - 时态数据质量监控

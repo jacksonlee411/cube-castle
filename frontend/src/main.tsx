@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { CanvasProvider } from '@workday/canvas-kit-react/common'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
+import { AuthProvider } from './shared/auth/AuthProvider'
 import { fonts } from '@workday/canvas-kit-react-fonts'
 import { system } from '@workday/canvas-tokens-web'
 import { injectGlobal } from '@emotion/css'
@@ -45,7 +46,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <CanvasProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </CanvasProvider>

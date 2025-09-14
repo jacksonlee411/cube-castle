@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"encoding/json"
-	"net/http"
+    "encoding/json"
+    "net/http"
 
-	"postgresql-graphql-service/internal/types"
+    "cube-castle-deployment-test/internal/types"
 )
 
 // GraphQLEnvelopeMiddleware 企业级GraphQL响应信封中间件

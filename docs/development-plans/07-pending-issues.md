@@ -126,3 +126,22 @@
   - `POST /api/v1/organization-units/{code}/events`，body: `{ "eventType": "DEACTIVATE", "recordId": "<UUID>", "changeReason": "…" }`
 - 批量治理（可选）：扫描所有 code 的时间线一致性，发现断档/重叠时调用统一重算
 - 监控与守护：加入“物理删除/直改时态字段”检测与审计告警；在 DBA 脚本侧添加保护
+
+—
+
+附：前端会话过期体验改进（已实施 2025-09-14）
+- 背景：组织单元列表页面出现“数据加载失败 认证已过期，请刷新页面重新登录”，刷新仍未修复。
+- 措施：
+  - 新增登录页 `/login`（开发态）：提供“重新获取开发令牌并继续”按钮，成功后重定向回来源页面。
+  - 路由守卫 `RequireAuth`：组织模块受保护，未认证跳转 `/login?redirect=...`。
+  - 全局 401/403 处理：统一客户端在强制刷新失败或租户不一致时派发 `auth:unauthorized` 事件，`AuthProvider` 监听并重定向到登录页。
+  - 令牌获取修复：`grant_type=client_credentials` 与多格式响应解析（`accessToken|token|data.token`）。
+- 文件：
+  - `frontend/src/pages/Login.tsx`
+  - `frontend/src/shared/auth/AuthProvider.tsx`
+  - `frontend/src/shared/auth/RequireAuth.tsx`
+  - `frontend/src/shared/auth/events.ts`
+  - `frontend/src/shared/api/auth.ts`
+  - `frontend/src/shared/api/unified-client.ts`
+  - `frontend/src/App.tsx`, `frontend/src/main.tsx`
+ - 影响范围：仅前端；后端契约未改动。

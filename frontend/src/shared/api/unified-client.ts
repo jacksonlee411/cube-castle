@@ -5,6 +5,7 @@
  */
 import { authManager } from './auth';
 import { env } from '../config/environment';
+import { authEvents } from '../auth/events';
 import type { GraphQLResponse } from '../types';
 // import { CQRS_ENDPOINTS } from '../config/ports'; // TODO: 将来可能用于直接端点配置
 
@@ -30,7 +31,8 @@ export class UnifiedGraphQLClient {
       // 🔧 开发和生产环境都需要JWT认证
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'X-Tenant-ID': env.defaultTenantId, // 使用环境配置的租户ID
+        // 租户头：优先使用会话返回的 tenantId，回退到环境默认
+        'X-Tenant-ID': authManager.getTenantId() || env.defaultTenantId,
       };
       
       // 所有环境都需要JWT认证
@@ -55,18 +57,43 @@ export class UnifiedGraphQLClient {
       let response = await doRequest();
 
       if (!response.ok) {
-        // JWT token过期或无效时，清除认证状态并提供友好错误信息
+        // 401：强制刷新令牌并重试一次
         if (response.status === 401) {
-          console.warn('[GraphQL Client] 401 未认证，尝试刷新令牌并重试一次');
-          authManager.clearAuth();
+          console.warn('[GraphQL Client] 401 未认证，尝试强制刷新令牌并重试一次');
           if (!retried) {
             retried = true;
+            await authManager.forceRefresh();
             response = await doRequest();
             if (!response.ok) {
+              authEvents.emitUnauthorized();
               throw new Error('认证已过期，请刷新页面重新登录');
             }
           } else {
+            authEvents.emitUnauthorized();
             throw new Error('认证已过期，请刷新页面重新登录');
+          }
+        }
+
+        // 403：区分租户访问与权限不足
+        if (response.status === 403) {
+          try {
+            const text = await response.text();
+            const maybeJson = text ? JSON.parse(text) : undefined;
+            const code = maybeJson?.error?.code as string | undefined;
+            if (code === 'TENANT_ACCESS_DENIED' || code === 'TENANT_MISMATCH' || code === 'TENANT_ID_MISMATCH') {
+              throw new Error('无权访问所选租户，请切换到有权限的租户');
+            }
+            if (code === 'INSUFFICIENT_PERMISSIONS') {
+              throw new Error('权限不足，无法访问该资源，请联系管理员');
+            }
+            // 无法解析具体码时的兜底
+            throw new Error('访问被禁止：请检查权限或租户设置');
+          } catch (e) {
+            if (e instanceof SyntaxError) {
+              // 非JSON错误体
+              throw new Error('访问被禁止：请检查权限或租户设置');
+            }
+            throw e;
           }
         }
         
@@ -127,7 +154,8 @@ export class UnifiedRESTClient {
     this.baseURL = baseURL;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
-      'X-Tenant-ID': env.defaultTenantId, // 使用环境配置的租户ID
+      // 注意：实际请求时会覆盖为 authManager.getTenantId() || env.defaultTenantId
+      'X-Tenant-ID': env.defaultTenantId,
     };
   }
 
@@ -138,6 +166,8 @@ export class UnifiedRESTClient {
       return fetch(url, {
         headers: {
           ...this.defaultHeaders,
+          // 租户头：优先使用会话返回的 tenantId，回退到环境默认
+          'X-Tenant-ID': authManager.getTenantId() || env.defaultTenantId,
           'Authorization': `Bearer ${accessToken}`,
           ...options.headers,
         },
@@ -171,14 +201,15 @@ export class UnifiedRESTClient {
       }
 
       if (!response.ok) {
-        // JWT token过期或无效时，清除认证状态并提供友好错误信息
+        // 401：强制刷新令牌并重试一次
         if (response.status === 401) {
-          console.warn('[REST Client] 401 未认证，尝试刷新令牌并重试一次');
-          authManager.clearAuth();
+          console.warn('[REST Client] 401 未认证，尝试强制刷新令牌并重试一次');
           if (!retried) {
             retried = true;
+            await authManager.forceRefresh();
             response = await doRequest();
           } else {
+            authEvents.emitUnauthorized();
             throw new Error('认证已过期，请刷新页面重新登录');
           }
           // 重新读取响应体
@@ -196,9 +227,22 @@ export class UnifiedRESTClient {
             }
           }
           if (!response.ok) {
+            authEvents.emitUnauthorized();
             throw new Error('认证已过期，请刷新页面重新登录');
           }
           return (resultRetry || {}) as T;
+        }
+        
+        // 403：区分租户访问与权限不足
+        if (response.status === 403) {
+          const code = (result?.error as any)?.code as string | undefined;
+          if (code === 'TENANT_ACCESS_DENIED' || code === 'TENANT_MISMATCH' || code === 'TENANT_ID_MISMATCH') {
+            throw new Error('无权访问所选租户，请切换到有权限的租户');
+          }
+          if (code === 'INSUFFICIENT_PERMISSIONS') {
+            throw new Error('权限不足，无法执行此操作，请联系管理员');
+          }
+          throw new Error('访问被禁止：请检查权限或租户设置');
         }
         
         // 服务器内部错误时提供更友好的错误信息

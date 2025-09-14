@@ -17,6 +17,7 @@ export interface EnvironmentConfig {
     clientId: string;
     clientSecret: string;
     tokenEndpoint: string;
+    mode: 'dev' | 'oidc';
   };
   
   // 开发配置
@@ -44,6 +45,7 @@ function getEnvironmentConfig(): EnvironmentConfig {
       clientId: import.meta.env.VITE_AUTH_CLIENT_ID || 'dev-client',
       clientSecret: import.meta.env.VITE_AUTH_CLIENT_SECRET || 'dev-secret',
       tokenEndpoint: isDevelopment ? '/auth/dev-token' : (import.meta.env.VITE_AUTH_TOKEN_ENDPOINT || '/auth/dev-token'),
+      mode: (import.meta.env.VITE_AUTH_MODE as 'dev' | 'oidc') || (isDevelopment ? 'dev' : 'oidc'),
     },
     
     // 环境标识

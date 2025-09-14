@@ -4,6 +4,8 @@ import { AppShell } from './layout/AppShell'
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots'
 import { Box } from '@workday/canvas-kit-react/layout'
 import { Text } from '@workday/canvas-kit-react/text'
+import { RequireAuth } from './shared/auth/RequireAuth'
+import LoginPage from './pages/Login'
 
 // 懒加载关键页面组件以优化初始加载性能
 const OrganizationDashboard = React.lazy(() => import('./features/organizations/OrganizationDashboard').then(module => ({ default: module.OrganizationDashboard })))
@@ -38,9 +40,11 @@ function App() {
         <Route 
           path="/organizations" 
           element={
-            <Suspense fallback={<SuspenseLoader />}>
-              <OrganizationDashboard />
-            </Suspense>
+            <RequireAuth>
+              <Suspense fallback={<SuspenseLoader />}>
+                <OrganizationDashboard />
+              </Suspense>
+            </RequireAuth>
           } 
         />
         
@@ -48,17 +52,21 @@ function App() {
         <Route 
           path="/organizations/:code" 
           element={
-            <Suspense fallback={<SuspenseLoader />}>
-              <OrganizationTemporalPage />
-            </Suspense>
+            <RequireAuth>
+              <Suspense fallback={<SuspenseLoader />}>
+                <OrganizationTemporalPage />
+              </Suspense>
+            </RequireAuth>
           } 
         />
         <Route 
           path="/organizations/:code/temporal" 
           element={
-            <Suspense fallback={<SuspenseLoader />}>
-              <OrganizationTemporalPage />
-            </Suspense>
+            <RequireAuth>
+              <Suspense fallback={<SuspenseLoader />}>
+                <OrganizationTemporalPage />
+              </Suspense>
+            </RequireAuth>
           } 
         />
         
@@ -75,6 +83,8 @@ function App() {
           } 
         />
       </Route>
+      {/* 登录页（开发态） */}
+      <Route path="/login" element={<LoginPage />} />
     </Routes>
   )
 }

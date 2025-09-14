@@ -69,8 +69,204 @@ tags:
     description: System maintenance and hierarchy management tools
   - name: corehr-compatibility
     description: CoreHR system compatibility endpoints
+  - name: auth
+    description: Authentication and session management (BFF for frontend)
 
 paths:
+  /auth/login:
+    get:
+      tags: [auth]
+      summary: Start OIDC login (redirect)
+      description: Redirects to the IdP authorization endpoint with PKCE.
+      parameters:
+        - in: query
+          name: redirect
+          schema:
+            type: string
+          description: Client return path after successful login
+      responses:
+        '302':
+          description: Redirect to IdP authorization endpoint
+
+  /auth/callback:
+    get:
+      tags: [auth]
+      summary: OIDC callback endpoint
+      description: Handles IdP callback, exchanges code for tokens, creates server-side session.
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema: { type: string }
+        - in: query
+          name: state
+          required: true
+          schema: { type: string }
+      responses:
+        '302':
+          description: Redirect to client redirect url with HttpOnly session cookie set
+
+  /auth/session:
+    get:
+      tags: [auth]
+      summary: Get current session & short-lived access token
+      description: Returns a fresh short-lived access token and session info bound to HttpOnly cookie.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                session:
+                  summary: Session detail
+                  value:
+                    success: true
+                    message: "Session active"
+                    data:
+                      accessToken: "eyJhbGciOi..."
+                      expiresIn: 600
+                      tenantId: "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"
+                      user:
+                        id: "user-123"
+                        name: "张三"
+                        email: "zhangsan@example.com"
+                      scopes: ["org:read", "org:update"]
+                    timestamp: "2025-09-14T10:00:00Z"
+                    requestId: "req_auth_session_001"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh access token via server-side refresh token
+      description: Rotates refresh token and returns a new short-lived access token.
+      security:
+        - CSRFToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                refreshed:
+                  summary: Refreshed access token
+                  value:
+                    success: true
+                    message: "Access token refreshed"
+                    data:
+                      accessToken: "eyJhbGciOi...new"
+                      expiresIn: 600
+                    timestamp: "2025-09-14T10:05:00Z"
+                    requestId: "req_auth_refresh_001"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Logout & revoke session
+      description: Destroys server-side session and clears cookies. Optionally triggers IdP logout.
+      security:
+        - CSRFToken: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      tags: [auth]
+      summary: RP-initiated logout (redirect)
+      description: Clears local session and redirects user agent to IdP end_session_endpoint.
+      parameters:
+        - in: query
+          name: redirect
+          schema: { type: string }
+          description: Client return URL after successful IdP logout (overrides configured POST_LOGOUT_REDIRECT_URI)
+      responses:
+        '302':
+          description: Redirect to IdP end_session_endpoint
+        '200':
+          description: OK (fallback when IdP not configured)
+  /.well-known/oidc:
+    get:
+      tags: [auth]
+      summary: OIDC discovery (BFF subset)
+      description: |
+        Returns OIDC discovery information required by the frontend to start the login flow.
+        This endpoint exposes a subset of standard OIDC discovery in camelCase to comply with
+        API naming rules. Values are derived from configured IdP and BFF settings.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [issuer, authorizationEndpoint, tokenEndpoint]
+                properties:
+                  issuer:
+                    type: string
+                    example: "https://idp.example.com"
+                  authorizationEndpoint:
+                    type: string
+                    example: "https://idp.example.com/oauth2/v1/authorize"
+                  tokenEndpoint:
+                    type: string
+                    example: "https://idp.example.com/oauth2/v1/token"
+                  endSessionEndpoint:
+                    type: string
+                    example: "https://idp.example.com/oauth2/v1/logout"
+                  jwksUri:
+                    type: string
+                    description: BFF JWKS for verifying RS256-minted access tokens
+                    example: "http://localhost:9090/.well-known/jwks.json"
+                additionalProperties: false
+              examples:
+                basic:
+                  summary: Minimal discovery
+                  value:
+                    issuer: "https://idp.example.com"
+                    authorizationEndpoint: "https://idp.example.com/oauth2/v1/authorize"
+                    tokenEndpoint: "https://idp.example.com/oauth2/v1/token"
+                    endSessionEndpoint: "https://idp.example.com/oauth2/v1/logout"
+                    jwksUri: "http://localhost:9090/.well-known/jwks.json"
+        '501':
+          description: Not Implemented (OIDC not configured)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_configured:
+                  summary: OIDC not configured
+                  value:
+                    success: false
+                    error:
+                      code: "OIDC_NOT_CONFIGURED"
+                      message: "OIDC未配置"
+                    timestamp: "2025-09-14T10:30:00Z"
+                    requestId: "req_oidc_not_configured_001"
+  /.well-known/jwks.json:
+    get:
+      tags: [auth]
+      summary: BFF JWKS (when RS256 is enabled)
+      description: Returns the JSON Web Key Set (JWKS) for verifying BFF-minted access tokens when RS256 is enabled.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not available
   /api/v1/organization-units:
     post:
       tags:
@@ -2159,3 +2355,8 @@ components:
                     supportContact: "api-support@yourcompany.com"
                 timestamp: "2025-08-23T10:30:00Z"
                 requestId: "req_internal_error_001"
+    CSRFToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Anti-CSRF token required for state-changing auth routes

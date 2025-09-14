@@ -63,35 +63,35 @@ func GinJWTMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// 租户ID一致性检查
-		tenantIDHeader := c.GetHeader("X-Tenant-ID")
-		if tenantIDHeader == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error": gin.H{
-					"code":    "MISSING_TENANT_ID",
-					"message": "X-Tenant-ID header is required",
-				},
-				"timestamp": getCurrentTimestamp(),
-			})
-			c.Abort()
-			return
-		}
+        // 租户ID一致性检查（契约：缺失→401，不匹配→403）
+        tenantIDHeader := c.GetHeader("X-Tenant-ID")
+        if tenantIDHeader == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{
+                "success": false,
+                "error": gin.H{
+                    "code":    "TENANT_HEADER_REQUIRED",
+                    "message": "X-Tenant-ID header required",
+                },
+                "timestamp": getCurrentTimestamp(),
+            })
+            c.Abort()
+            return
+        }
 
 		// 验证token中的租户ID与header中的一致性
 		tokenTenantID := getTokenTenantID(claims)
 		if tokenTenantID != tenantIDHeader {
-			c.JSON(http.StatusForbidden, gin.H{
-				"success": false,
-				"error": gin.H{
-					"code":    "TENANT_ID_MISMATCH",
-					"message": "Token tenant ID does not match X-Tenant-ID header",
-				},
-				"timestamp": getCurrentTimestamp(),
-			})
-			c.Abort()
-			return
-		}
+            c.JSON(http.StatusForbidden, gin.H{
+                "success": false,
+                "error": gin.H{
+                    "code":    "TENANT_MISMATCH",
+                    "message": "X-Tenant-ID does not match tenant in token",
+                },
+                "timestamp": getCurrentTimestamp(),
+            })
+            c.Abort()
+            return
+        }
 
 		// 将用户信息存储在context中供后续使用
 		c.Set("user_id", claims["sub"])

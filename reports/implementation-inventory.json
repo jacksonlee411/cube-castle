@@ -1,13 +1,20 @@
 {
-  "timestamp": "2025-09-13T13:42:18.545Z",
+  "timestamp": "2025-09-14T06:00:03.768Z",
   "summary": {
-    "openapiPaths": 10,
+    "openapiPaths": 17,
     "graphqlQueries": 12,
     "goHandlers": 25,
     "goServices": 14,
-    "tsExports": 141
+    "tsExports": 144
   },
   "openapiPaths": [
+    "/auth/login",
+    "/auth/callback",
+    "/auth/session",
+    "/auth/refresh",
+    "/auth/logout",
+    "/.well-known/oidc",
+    "/.well-known/jwks.json",
     "/api/v1/organization-units",
     "/api/v1/organization-units/{code}",
     "/api/v1/organization-units/{code}/versions",
@@ -526,6 +533,21 @@
     {
       "name": "validateCQRSUsage",
       "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useAuth",
+      "file": "frontend/src/shared/auth/AuthProvider.tsx",
+      "kind": "const"
+    },
+    {
+      "name": "AUTH_UNAUTHORIZED",
+      "file": "frontend/src/shared/auth/events.ts",
+      "kind": "const"
+    },
+    {
+      "name": "authEvents",
+      "file": "frontend/src/shared/auth/events.ts",
       "kind": "const"
     },
     {

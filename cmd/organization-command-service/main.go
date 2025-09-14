@@ -17,6 +17,7 @@ import (
 	_ "github.com/lib/pq"
 	"organization-command-service/internal/audit"
 	"organization-command-service/internal/auth"
+	"organization-command-service/internal/authbff"
 	"organization-command-service/internal/config"
 	"organization-command-service/internal/handlers"
 	"organization-command-service/internal/middleware"
@@ -26,43 +27,58 @@ import (
 )
 
 func main() {
-	logger := log.New(os.Stdout, "[COMMAND-SERVICE] ", log.LstdFlags|log.Lshortfile)
-	logger.Println("🚀 启动组织命令服务...")
+    logger := log.New(os.Stdout, "[COMMAND-SERVICE] ", log.LstdFlags|log.Lshortfile)
+    logger.Println("🚀 启动组织命令服务...")
+    authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
 
-	// 数据库连接
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = "postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
-	}
+    var db *sql.DB
+    if !authOnlyMode {
+        // 数据库连接
+        dbURL := os.Getenv("DATABASE_URL")
+        if dbURL == "" {
+            dbURL = "postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+        }
 
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		logger.Fatalf("数据库连接失败: %v", err)
-	}
-	defer db.Close()
+        var err error
+        db, err = sql.Open("postgres", dbURL)
+        if err != nil {
+            logger.Fatalf("数据库连接失败: %v", err)
+        }
+        defer db.Close()
 
-	// 验证数据库连接
-	if err := db.Ping(); err != nil {
-		logger.Fatalf("数据库连接验证失败: %v", err)
-	}
+        // 验证数据库连接
+        if err := db.Ping(); err != nil {
+            logger.Fatalf("数据库连接验证失败: %v", err)
+        }
 
-	logger.Println("✅ 数据库连接成功")
+        logger.Println("✅ 数据库连接成功")
+    } else {
+        logger.Println("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
+    }
 
-	// 初始化仓储层
-	orgRepo := repository.NewOrganizationRepository(db, logger)
-	hierarchyRepo := repository.NewHierarchyRepository(db, logger)
+    var (
+        orgRepo        *repository.OrganizationRepository
+        hierarchyRepo  *repository.HierarchyRepository
+        cascadeService *services.CascadeUpdateService
+        auditLogger    *audit.AuditLogger
+    )
+    if !authOnlyMode {
+        // 初始化仓储层
+        orgRepo = repository.NewOrganizationRepository(db, logger)
+        hierarchyRepo = repository.NewHierarchyRepository(db, logger)
 
-	// 初始化业务服务层
-	cascadeService := services.NewCascadeUpdateService(hierarchyRepo, 4, logger)
-	// TODO-TEMPORARY: BusinessRuleValidator is initialized but not wired; integrate rule checks in v4.3 by 2025-09-20.
-	_ = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)
-	auditLogger := audit.NewAuditLogger(db, logger)
+        // 初始化业务服务层
+        cascadeService = services.NewCascadeUpdateService(hierarchyRepo, 4, logger)
+        // TODO-TEMPORARY: BusinessRuleValidator is initialized but not wired; integrate rule checks in v4.3 by 2025-09-20.
+        _ = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)
+        auditLogger = audit.NewAuditLogger(db, logger)
 
-	// 启动级联更新服务
-	cascadeService.Start()
-	logger.Println("✅ 级联更新服务已启动")
-	logger.Println("✅ 结构化审计日志系统已初始化")
-	logger.Println("✅ Prometheus指标收集系统已初始化")
+        // 启动级联更新服务
+        cascadeService.Start()
+        logger.Println("✅ 级联更新服务已启动")
+        logger.Println("✅ 结构化审计日志系统已初始化")
+        logger.Println("✅ Prometheus指标收集系统已初始化")
+    }
 
 	// 初始化JWT中间件 - 使用统一配置
 	jwtConfig := config.GetJWTConfig()
@@ -84,36 +100,59 @@ func main() {
         PublicKeyPEM: pubPEM,
         ClockSkew:    jwtConfig.AllowedClockSkew,
     })
-	permissionChecker := auth.NewPBACPermissionChecker(db, logger)
-	restAuthMiddleware := auth.NewRESTPermissionMiddleware(
-		jwtMiddleware,
-		permissionChecker,
-		logger,
-		devMode,
-	)
+    var restAuthMiddleware *auth.RESTPermissionMiddleware
+    if !authOnlyMode {
+        permissionChecker := auth.NewPBACPermissionChecker(db, logger)
+        restAuthMiddleware = auth.NewRESTPermissionMiddleware(
+            jwtMiddleware,
+            permissionChecker,
+            logger,
+            devMode,
+        )
+    }
 
-	logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v)", devMode)
+	logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
 
 	// 初始化中间件
 	performanceMiddleware := middleware.NewPerformanceMiddleware(logger)
 	rateLimitMiddleware := middleware.NewRateLimitMiddleware(middleware.DefaultRateLimitConfig, logger)
 	
 	// 初始化时态服务
-	temporalService := services.NewTemporalService(db)
+    var temporalService *services.TemporalService
+    if !authOnlyMode {
+        temporalService = services.NewTemporalService(db)
+    }
 	
 	// 初始化监控服务
-	temporalMonitor := services.NewTemporalMonitor(db, logger)
+    var temporalMonitor *services.TemporalMonitor
+    if !authOnlyMode {
+        temporalMonitor = services.NewTemporalMonitor(db, logger)
+    }
 	
 	// 初始化运维调度器
-	operationalScheduler := services.NewOperationalScheduler(db, logger, temporalMonitor)
+    var operationalScheduler *services.OperationalScheduler
+    if !authOnlyMode {
+        operationalScheduler = services.NewOperationalScheduler(db, logger, temporalMonitor)
+    }
 	
 	// 初始化时态时间轴管理器
-	timelineManager := repository.NewTemporalTimelineManager(db, logger)
+    var timelineManager *repository.TemporalTimelineManager
+    if !authOnlyMode {
+        timelineManager = repository.NewTemporalTimelineManager(db, logger)
+    }
 	
 	// 初始化处理器
-	orgHandler := handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager)
-	devToolsHandler := handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode, db)
-    operationalHandler := handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, logger)
+    var (
+        orgHandler         *handlers.OrganizationHandler
+        devToolsHandler    *handlers.DevToolsHandler
+        operationalHandler *handlers.OperationalHandler
+    )
+    if !authOnlyMode {
+        orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager)
+        operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, logger)
+    }
+    // 开发工具路由即使在 authOnly 模式下也允许初始化（内部会根据 devMode 控制）
+    devToolsHandler = handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode, db)
 
 	// 设置路由
 	r := chi.NewRouter()
@@ -168,16 +207,24 @@ func main() {
 	logger.Println("🚦 限流监控端点: http://localhost:9090/debug/rate-limit/stats")
 
 	// 设置开发工具路由 (仅开发模式，无认证要求)
-	devToolsHandler.SetupRoutes(r)
+    if !authOnlyMode {
+        devToolsHandler.SetupRoutes(r)
+    }
 
-	// 为需要认证的API路由创建子路由器
-	r.Group(func(r chi.Router) {
-		r.Use(restAuthMiddleware.Middleware())         // JWT认证和权限验证中间件
-		// 设置组织相关路由 (需要认证)
-		orgHandler.SetupRoutes(r)
-		// 设置运维管理路由 (需要认证)
-		operationalHandler.SetupRoutes(r)
-	})
+	// 📎 BFF 认证路由（生产态登录/会话管理） - 不要求已有Authorization
+    bffHandler := authbff.NewBFFHandler(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, logger, devMode, auditLogger)
+    bffHandler.SetupRoutes(r)
+
+    if !authOnlyMode {
+        // 为需要认证的API路由创建子路由器
+        r.Group(func(r chi.Router) {
+            r.Use(restAuthMiddleware.Middleware())         // JWT认证和权限验证中间件
+            // 设置组织相关路由 (需要认证)
+            orgHandler.SetupRoutes(r)
+            // 设置运维管理路由 (需要认证)
+            operationalHandler.SetupRoutes(r)
+        })
+    }
 
 	// 服务启动
 	port := os.Getenv("PORT")
@@ -193,8 +240,10 @@ func main() {
 	// 启动运维调度器
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	operationalScheduler.Start(ctx)
-	logger.Println("✅ 运维任务调度器已启动")
+    if !authOnlyMode {
+        operationalScheduler.Start(ctx)
+        logger.Println("✅ 运维任务调度器已启动")
+    }
 
 	// 优雅关闭
 	go func() {
@@ -211,13 +260,15 @@ func main() {
 
 	logger.Println("🛑 正在关闭服务...")
 
-	// 停止级联更新服务
-	cascadeService.Stop()
-	logger.Println("✅ 级联更新服务已停止")
+    if !authOnlyMode {
+        // 停止级联更新服务
+        cascadeService.Stop()
+        logger.Println("✅ 级联更新服务已停止")
 
-	// 停止运维调度器
-	operationalScheduler.Stop()
-	logger.Println("✅ 运维任务调度器已停止")
+        // 停止运维调度器
+        operationalScheduler.Stop()
+        logger.Println("✅ 运维任务调度器已停止")
+    }
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()

@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit
 
 # 默认目标
 help:
@@ -19,6 +19,7 @@ help:
 	@echo ""
 	@echo "🚀 开发运行:"
 	@echo "  run-dev          - 启动最小依赖并本地运行两个 Go 服务"
+	@echo "  dev-kill         - 结束占用 9090/8090 的本地服务进程"
 	@echo "  frontend-dev     - 启动前端开发服务器 (vite)"
 	@echo ""
 	@echo "🔑 开发JWT:"
@@ -30,6 +31,8 @@ help:
 	@echo "🧪 质量:"
 	@echo "  test             - 运行 Go 单元测试"
 	@echo "  test-integration - 运行 Go 集成测试 (-tags=integration)"
+	@echo "  test-auth-unit   - 运行 RS256+JWKS 认证单元测试（查询服务中间件）"
+	@echo "  test-e2e-auth    - 运行 认证端到端测试（需要 Postgres/Redis 运行中）"
 	@echo "  fmt              - Go 代码格式化"
 	@echo "  lint             - golangci-lint 检查"
 	@echo "  security         - gosec 安全扫描"
@@ -84,6 +87,19 @@ docker-logs:
 # 启动本地开发（两个 Go 服务 + 最小依赖）
 run-dev:
 	@echo "🚀 启动本地开发环境 (PostgreSQL 原生)..."
+	@echo "🧹 清理端口占用 (9090/8090)..."
+	-@PIDS=$$(lsof -t -i :9090 -sTCP:LISTEN 2>/dev/null || true); \
+	if [ -n "$$PIDS" ]; then \
+	  echo "  🔪 kill $$PIDS (9090)"; kill $$PIDS || true; sleep 1; \
+	  PIDS2=$$(lsof -t -i :9090 -sTCP:LISTEN 2>/dev/null || true); \
+	  if [ -n "$$PIDS2" ]; then echo "  🔪 kill -9 $$PIDS2 (9090)"; kill -9 $$PIDS2 || true; sleep 1; fi; \
+	fi
+	-@PIDS=$$(lsof -t -i :8090 -sTCP:LISTEN 2>/dev/null || true); \
+	if [ -n "$$PIDS" ]; then \
+	  echo "  🔪 kill $$PIDS (8090)"; kill $$PIDS || true; sleep 1; \
+	  PIDS2=$$(lsof -t -i :8090 -sTCP:LISTEN 2>/dev/null || true); \
+	  if [ -n "$$PIDS2" ]; then echo "  🔪 kill -9 $$PIDS2 (8090)"; kill -9 $$PIDS2 || true; sleep 1; fi; \
+	fi
 	$(MAKE) docker-up
 	@echo "⏳ 等待依赖健康..."
 	@sleep 5
@@ -92,8 +108,51 @@ run-dev:
 	@echo "▶ 启动查询服务 (8090)..."
 	go run ./cmd/organization-query-service/main.go &
 	@echo "🩺 健康检查 (若服务已实现 /health)："
-	-@curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" || echo "  ⚠️  command-service 未响应"
-	-@curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" || echo "  ⚠️  query-service 未响应"
+	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" && break || (echo "  ⏳ 等待 command-service..." && sleep 1); done || true
+	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" && break || (echo "  ⏳ 等待 query-service..." && sleep 1); done || true
+
+# 启动 RS256+JWKS 本地联调（命令服务 RS256 mint + OIDC 模拟；查询服务用 JWKS 验签）
+run-auth-rs256-sim:
+	@echo "🚀 启动 RS256+JWKS 本地联调（含 OIDC 模拟）..."
+	$(MAKE) dev-kill >/dev/null 2>&1 || true
+	$(MAKE) docker-up
+	@mkdir -p secrets
+	@if [ ! -f secrets/dev-jwt-private.pem ]; then \
+	  echo "🔐 生成RS256开发私钥..."; \
+	  openssl genrsa -out secrets/dev-jwt-private.pem 2048 >/dev/null 2>&1 && \
+	  openssl rsa -in secrets/dev-jwt-private.pem -pubout -out secrets/dev-jwt-public.pem >/dev/null 2>&1 && \
+	  echo "✅ 已生成 secrets/dev-jwt-*.pem"; \
+	fi
+	@echo "▶ 启动命令服务 (RS256 mint + OIDC_SIMULATE) ..."
+	JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=secrets/dev-jwt-private.pem JWT_KEY_ID=bff-key-1 OIDC_SIMULATE=true \
+		go run ./cmd/organization-command-service/main.go &
+	@sleep 1
+	@echo "▶ 启动查询服务 (RS256 验签 via JWKS) ..."
+	JWT_ALG=RS256 JWT_JWKS_URL=http://localhost:9090/.well-known/jwks.json \
+		go run ./cmd/organization-query-service/main.go &
+	@echo "⏳ 健康检查..."
+	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" && break || (echo "  ⏳ 等待 command-service..." && sleep 1); done || true
+	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" && break || (echo "  ⏳ 等待 query-service..." && sleep 1); done || true
+	@echo "🔗 JWKS: http://localhost:9090/.well-known/jwks.json"
+	@echo "🧪 运行认证联调脚本: make auth-flow-test"
+
+# 认证联调脚本（自动执行登录→会话→GraphQL 调用）
+auth-flow-test:
+	@bash scripts/auth_flow_test.sh
+
+# 认证相关测试
+test-auth-unit:
+	@echo "🧪 运行 RS256+JWKS 认证单元测试（查询服务中间件）..."
+	cd cmd/organization-query-service && go test ./internal/auth -run TestRS256JWTValidationWithJWKS -v
+
+test-e2e-auth:
+	@echo "🧪 运行 认证端到端测试...（需要 Postgres/Redis 已运行）"
+	E2E_RUN=1 go test ./tests/e2e -v
+
+dev-kill:
+	@echo "🧹 结束本地开发服务进程 (9090/8090) ..."
+	-@PIDS=$$(lsof -t -i :9090 -sTCP:LISTEN 2>/dev/null || true); if [ -n "$$PIDS" ]; then echo "  🔪 kill $$PIDS (9090)"; kill $$PIDS || true; else echo "  ✅ 9090 空闲"; fi
+	-@PIDS=$$(lsof -t -i :8090 -sTCP:LISTEN 2>/dev/null || true); if [ -n "$$PIDS" ]; then echo "  🔪 kill $$PIDS (8090)"; kill $$PIDS || true; else echo "  ✅ 8090 空闲"; fi
 
 # 前端开发
 frontend-dev:

@@ -105,11 +105,11 @@ func (r *RESTPermissionMiddleware) handleDevMode(w http.ResponseWriter, req *htt
 	ctx := SetUserContext(req.Context(), claims)
 
 	// 开发模式下的权限检查（相对宽松）
-	if err := r.permissionChecker.MockPermissionCheck(ctx, req.Method, req.URL.Path); err != nil {
-		r.logger.Printf("Permission denied in dev mode: %v", err)
-		r.writeErrorResponse(w, req, "PERMISSION_DENIED", err.Error(), 403)
-		return
-	}
+    if err := r.permissionChecker.MockPermissionCheck(ctx, req.Method, req.URL.Path); err != nil {
+        r.logger.Printf("Permission denied in dev mode: %v", err)
+        r.writeErrorResponse(w, req, "INSUFFICIENT_PERMISSIONS", err.Error(), 403)
+        return
+    }
 
 	next.ServeHTTP(w, req.WithContext(ctx))
 }
@@ -147,11 +147,11 @@ func (r *RESTPermissionMiddleware) handleProductionMode(w http.ResponseWriter, r
 	ctx := SetUserContext(req.Context(), claims)
 
 	// 严格的权限检查
-	if err := r.permissionChecker.CheckRESTAPI(req.WithContext(ctx)); err != nil {
-		r.logger.Printf("Permission denied: %v", err)
-		r.writeErrorResponse(w, req, "PERMISSION_DENIED", err.Error(), 403)
-		return
-	}
+    if err := r.permissionChecker.CheckRESTAPI(req.WithContext(ctx)); err != nil {
+        r.logger.Printf("Permission denied: %v", err)
+        r.writeErrorResponse(w, req, "INSUFFICIENT_PERMISSIONS", err.Error(), 403)
+        return
+    }
 
 	next.ServeHTTP(w, req.WithContext(ctx))
 }

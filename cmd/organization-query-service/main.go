@@ -1645,7 +1645,7 @@ func main() {
 		devMode,
 	)
 
-	logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v)", devMode)
+    logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
 
 	// 创建解析器（注入权限中间件）
 	resolver := &Resolver{repo: repo, logger: logger, authMW: graphqlMiddleware}
