@@ -28,22 +28,36 @@ var RESTAPIPermissions = map[string]map[string]string{
 	"PUT /api/v1/organization-units/*":                   {"method": "PUT", "permission": "UPDATE_ORGANIZATION"},
 	"POST /api/v1/organization-units/*/suspend":          {"method": "POST", "permission": "SUSPEND_ORGANIZATION"},
 	"POST /api/v1/organization-units/*/activate":         {"method": "POST", "permission": "ACTIVATE_ORGANIZATION"},
-	"POST /api/v1/organization-units/*/events":           {"method": "POST", "permission": "MANAGE_ORGANIZATION_EVENTS"},
-	"POST /api/v1/organization-units/*/versions":         {"method": "POST", "permission": "CREATE_TEMPORAL_VERSION"},
-	"PUT /api/v1/organization-units/*/history/*":         {"method": "PUT", "permission": "UPDATE_ORGANIZATION_HISTORY"},
+    "POST /api/v1/organization-units/*/events":           {"method": "POST", "permission": "MANAGE_ORGANIZATION_EVENTS"},
+    "POST /api/v1/organization-units/*/versions":         {"method": "POST", "permission": "CREATE_TEMPORAL_VERSION"},
+    "PUT /api/v1/organization-units/*/history/*":         {"method": "PUT", "permission": "UPDATE_ORGANIZATION_HISTORY"},
+    // 系统运维与监控
+    "GET /api/v1/operational/health":                     {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
+    "GET /api/v1/operational/metrics":                    {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
+    "GET /api/v1/operational/alerts":                     {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
+    "GET /api/v1/operational/rate-limit/stats":           {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
+    "GET /api/v1/operational/tasks":                      {"method": "GET", "permission": "SYSTEM_OPS_READ"},
+    "GET /api/v1/operational/tasks/status":               {"method": "GET", "permission": "SYSTEM_OPS_READ"},
+    "POST /api/v1/operational/tasks/*/trigger":           {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
+    "POST /api/v1/operational/cutover":                   {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
+    "POST /api/v1/operational/consistency-check":         {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
 }
 
 // 角色权限预设映射
 var RolePermissions = map[string][]string{
-	"ADMIN": {
-		"WRITE_ORGANIZATION",
-		"UPDATE_ORGANIZATION",
-		"SUSPEND_ORGANIZATION",
-		"ACTIVATE_ORGANIZATION",
-		"MANAGE_ORGANIZATION_EVENTS",
-		"CREATE_TEMPORAL_VERSION",
-		"UPDATE_ORGANIZATION_HISTORY",
-	},
+    "ADMIN": {
+        "WRITE_ORGANIZATION",
+        "UPDATE_ORGANIZATION",
+        "SUSPEND_ORGANIZATION",
+        "ACTIVATE_ORGANIZATION",
+        "MANAGE_ORGANIZATION_EVENTS",
+        "CREATE_TEMPORAL_VERSION",
+        "UPDATE_ORGANIZATION_HISTORY",
+        // 系统运维与监控
+        "SYSTEM_MONITOR_READ",
+        "SYSTEM_OPS_READ",
+        "SYSTEM_OPS_WRITE",
+    },
 	"MANAGER": {
 		"WRITE_ORGANIZATION",
 		"UPDATE_ORGANIZATION",

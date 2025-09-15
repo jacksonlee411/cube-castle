@@ -52,26 +52,14 @@ export const OrganizationTemporalPage: React.FC = () => {
 
   return (
     <Box>
-      {/* 面包屑导航 */}
+      {/* 顶部操作条：仅保留返回入口，具体层级面包屑由详情组件自绘 */}
       <Box padding="m" borderBottom="solid" borderColor="soap300" marginBottom="m">
         <Flex alignItems="center" gap="s">
-          <SecondaryButton
-            size="small"
-            onClick={handleBackToList}
-          >
+          <SecondaryButton size="small" onClick={handleBackToList}>
             ← 组织列表
           </SecondaryButton>
           <Text typeLevel="subtext.medium" color="hint">
-            /
-          </Text>
-          <Text typeLevel="subtext.medium" fontWeight="medium">
-            {isCreateMode ? '新建组织' : code}
-          </Text>
-          <Text typeLevel="subtext.medium" color="hint">
-            /
-          </Text>
-          <Text typeLevel="subtext.medium" fontWeight="medium">
-            {isCreateMode ? '编辑组织信息' : '组织详情'}
+            {isCreateMode ? ' / 新建组织 / 编辑组织信息' : ' / 组织详情'}
           </Text>
         </Flex>
       </Box>

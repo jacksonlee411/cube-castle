@@ -45,7 +45,7 @@ export const OrganizationUnitSchema = z.object({
   // 时态字段支持
   effectiveDate: TemporalDateSchema.optional(),
   endDate: TemporalDateSchema.optional(),
-  isTemporal: z.boolean().default(false),
+  isTemporal: z.boolean().optional(),
 });
 
 // 时态表单验证Schema - 整合ValidationRules.ts的时态验证逻辑
@@ -88,7 +88,7 @@ export const CreateOrganizationInputSchema = z.object({
     message: '状态必须是 ACTIVE、INACTIVE 或 PLANNED'
   }).default('ACTIVE'),
   level: z.number().int().min(1, '组织层级必须大于0').max(10, '组织层级不能超过10'),
-  parentCode: z.string().regex(/^(0|\d{7})$/, 'Parent code must be "0" for root organizations or 7 digits for child organizations'),
+  parentCode: z.string().regex(/^(0|\d{7})$/, 'Parent code must be "0" for root organizations or 7 digits for child organizations').optional(),
   sortOrder: z.number().int().min(0, '排序顺序必须为非负数').default(0),
   description: z.string().max(500, '描述不能超过500个字符').optional().or(z.literal('')),
 }).merge(TemporalFormSchema); // 合并时态验证
@@ -125,7 +125,7 @@ export const GraphQLOrganizationResponseSchema = z.object({
   unitType: z.string(),
   status: z.string(),
   level: z.number(),
-  parentCode: z.string(), // 必填字段，根组织使用"0"
+  parentCode: z.string().optional(), // GraphQL未选择该字段时可能缺失
   path: z.string().optional(),
   sortOrder: z.number().nullable().optional(),
   description: z.string().nullable().optional(),

@@ -26,19 +26,7 @@ export const FormFields: React.FC<FormFieldsProps> = ({
   }, [formData, setFormData]);
 
   const isTemporal = formData.isTemporal as boolean;
-  const isPlannedStatus = formData.status === 'PLANNED';
-
-  // 如果状态是计划中，自动启用时态功能
-  React.useEffect(() => {
-    if (isPlannedStatus && !isTemporal) {
-      updateField('isTemporal', true);
-      // 使用TemporalConverter设置默认生效时间为明天上午9点
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(9, 0, 0, 0);
-      updateField('effectiveFrom', TemporalConverter.dateToIso(tomorrow));
-    }
-  }, [isPlannedStatus, isTemporal, updateField]);
+  // 规划态不再作为业务状态，由有效期与 asOfDate 推导
 
   const inputStyle = {
     width: '100%',
@@ -173,13 +161,10 @@ export const FormFields: React.FC<FormFieldsProps> = ({
         >
           <option value="ACTIVE">激活</option>
           <option value="INACTIVE">停用</option>
-          <option value="PLANNED">计划中</option>
         </select>
-        {isPlannedStatus && (
-          <div style={hintStyle}>
-            计划 计划中的组织将自动启用组织详情功能
-          </div>
-        )}
+        <div style={hintStyle}>
+          “计划中”由生效日期晚于查询时点自动推导，无需直接选择
+        </div>
       </div>
 
       <div style={fieldStyle}>
@@ -229,17 +214,12 @@ export const FormFields: React.FC<FormFieldsProps> = ({
                 type="checkbox"
                 checked={isTemporal}
                 onChange={(e) => updateField('isTemporal', e.target.checked)}
-                disabled={isPlannedStatus}
                 data-testid="form-field-is-temporal"
                 style={{ marginRight: '8px' }}
               />
               启用组织详情
             </label>
-            {isPlannedStatus && (
-              <div style={hintStyle}>
-                计划中的组织必须启用组织详情
-              </div>
-            )}
+            <div style={hintStyle}>根据需要配置生效/失效时间</div>
           </div>
 
           {isTemporal && (

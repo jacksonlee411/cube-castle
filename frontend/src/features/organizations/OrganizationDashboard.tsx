@@ -11,7 +11,9 @@ import { OrganizationFilters } from './OrganizationFilters';
 import { PaginationControls } from './PaginationControls';
 
 import { useEnterpriseOrganizations } from '../../shared/hooks/useEnterpriseOrganizations';
+import { copyText } from '../../shared/utils/clipboard';
 import type { OrganizationUnit } from '../../shared/types/organization';
+import { OrganizationBreadcrumb } from '../../shared/components/OrganizationBreadcrumb';
 // import { useOrganizationMutations } from '../../shared/hooks/useOrganizationMutations'; // TODO: Implement mutations
 
 // 组织详情组件导入 - 暂时禁用以修复无限循环错误
@@ -22,6 +24,9 @@ const DashboardHeader: React.FC<{
   isHistorical?: boolean;
 }> = ({ onCreateClick, isHistorical = false }) => (
   <Box marginBottom="l">
+    <Box marginBottom="s">
+      <OrganizationBreadcrumb namePath="/组织列表" />
+    </Box>
     <Heading size="large">
       组织架构管理
       {isHistorical && (
@@ -58,6 +63,15 @@ const DashboardHeader: React.FC<{
       </SecondaryButton>
       <TertiaryButton disabled={isHistorical}>
         导出报告
+      </TertiaryButton>
+      <TertiaryButton
+        onClick={async () => {
+          const deepLink = `${window.location.origin}/organizations`;
+          await copyText(deepLink);
+        }}
+        marginLeft="s"
+      >
+        复制列表链接
       </TertiaryButton>
       {isHistorical && (
         <Text typeLevel="subtext.small" color="hint" marginLeft="m">

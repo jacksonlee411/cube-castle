@@ -15,6 +15,7 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { searchIcon } from '@workday/canvas-system-icons-web';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
 import type { TemporalOrganizationUnit } from '../../../shared/types/temporal';
+import ParentOrganizationSelector from './ParentOrganizationSelector';
 
 export interface OrganizationDetailFormProps {
   /** 组织记录 */
@@ -23,6 +24,9 @@ export interface OrganizationDetailFormProps {
   isEditing: boolean;
   /** 字段变更回调 */
   onFieldChange: (field: keyof TemporalOrganizationUnit, value: string | number | boolean) => void;
+  /** 可选：用于展示的路径（来自GraphQL层次查询） */
+  codePath?: string | null;
+  namePath?: string | null;
 }
 
 /**
@@ -31,7 +35,9 @@ export interface OrganizationDetailFormProps {
 export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
   record,
   isEditing,
-  onFieldChange
+  onFieldChange,
+  codePath,
+  namePath
 }) => {
   // 组织类型选项
   const unitTypeOptions = [
@@ -44,7 +50,6 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
   const statusOptions = [
     { value: 'ACTIVE', label: '启用' },
     { value: 'INACTIVE', label: '停用' },
-    { value: 'PLANNED', label: '计划中' },
   ];
 
   // 获取状态对应的颜色
@@ -156,7 +161,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             )}
           </Box>
 
-          {/* 状态 */}
+          {/* 状态（GraphQL 一维业务状态：ACTIVE/INACTIVE） */}
           <Box>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
               状态 *
@@ -190,6 +195,33 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
         </Flex>
 
         <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
+          {/* 上级组织 */}
+          <Box flex={1}>
+            <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
+              上级组织
+            </Text>
+            {isEditing ? (
+              <ParentOrganizationSelector
+                currentCode={record.code}
+                effectiveDate={record.effectiveDate}
+                currentParentCode={record.parentCode}
+                required={false}
+                onChange={(parentCode) => onFieldChange('parentCode', parentCode || '')}
+                onValidationError={(err) => {
+                  // 暂时仅展示辅助提示，不改变表单状态
+                  console.warn('[ParentOrganizationSelector] 验证提示:', err)
+                }}
+              />
+            ) : (
+              <TextInput value={record.parentCode || ''} disabled={true} />
+            )}
+            <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
+              仅允许选择在生效日期有效且状态为 ACTIVE 的组织
+            </Text>
+          </Box>
+        </Flex>
+
+        <Flex gap={space.m} marginBottom={space.m} flexDirection="row">
           {/* 层级 */}
           <Box>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
@@ -198,11 +230,13 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             <TextInput
               type="number"
               value={record.level.toString()}
-              disabled={!isEditing}
-              onChange={(e) => isEditing && onFieldChange('level', parseInt(e.target.value) || 0)}
+              disabled={true}
               min="0"
               max="10"
             />
+            <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
+              派生字段，仅展示。层级由后端计算并校验。
+            </Text>
           </Box>
 
           {/* 排序顺序 */}
@@ -219,17 +253,31 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
             />
           </Box>
 
-          {/* 组织路径 */}
+          {/* 组织路径（编码） */}
           <Box>
             <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
-              组织路径
+              组织路径（编码）
             </Text>
             <TextInput
-              value={record.path}
+              value={codePath || ''}
               disabled={true}
             />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
-              系统自动维护的层级路径
+              系统自动维护的层级路径（来自层级查询 codePath）
+            </Text>
+          </Box>
+
+          {/* 组织路径（名称） */}
+          <Box>
+            <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
+              组织路径（名称）
+            </Text>
+            <TextInput
+              value={namePath || ''}
+              disabled={true}
+            />
+            <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
+              提升可读性的名称路径（来自 GraphQL namePath）
             </Text>
           </Box>
         </Flex>

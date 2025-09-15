@@ -6,7 +6,20 @@ import { SERVICE_PORTS, CQRS_ENDPOINTS } from './src/shared/config/ports'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Dev-only health endpoint for E2E env validation
+    {
+      name: 'vite-health-endpoint',
+      configureServer(server) {
+        server.middlewares.use('/health', (_req, res) => {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ status: 'ok', service: 'frontend-dev', ts: Date.now() }));
+        });
+      }
+    }
+  ],
   
   // 开发性能优化
   server: {
@@ -14,11 +27,6 @@ export default defineConfig({
     strictPort: true,
     hmr: { overlay: false },
     proxy: {
-      '/api/metrics': {
-        target: CQRS_ENDPOINTS.QUERY_BASE,
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/metrics/, '/metrics')
-      },
       // 时态管理API路由 - 符合严格CQRS架构
       // 事件驱动端点 (命令操作) 路由到REST命令服务
       '^/api/v1/organization-units/[^/]+/events': {

@@ -170,7 +170,12 @@ export const safeTransformGraphQLToOrganizationUnit = (
 export const safeTransformCreateInputToAPI = (
   input: CreateOrganizationInput
 ): Record<string, unknown> => {
-  const validated = validateCreateOrganizationInput(input);
+  // 预清洗：空字符串的 parentCode 视为未提供
+  const sanitized: CreateOrganizationInput = {
+    ...input,
+    parentCode: input.parentCode === '' ? undefined : input.parentCode,
+  };
+  const validated = validateCreateOrganizationInput(sanitized);
   
   const apiPayload: Record<string, unknown> = {
     name: validated.name,

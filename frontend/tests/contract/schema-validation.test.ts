@@ -245,4 +245,35 @@ describe('实际查询验证', () => {
     const errors = validate(schema, document)
     expect(errors).toHaveLength(0)
   })
+
+  it('父级候选查询（asOfDate + ACTIVE + 分页）应该有效', () => {
+    const query = `
+      query GetValidParentOrganizations($asOfDate: String!, $pageSize: Int = 500) {
+        organizations(
+          filter: { status: ACTIVE, asOfDate: $asOfDate }
+          pagination: { page: 1, pageSize: $pageSize, sortBy: "code", sortOrder: "asc" }
+        ) {
+          data {
+            code
+            name
+            unitType
+            parentCode
+            level
+            effectiveDate
+            endDate
+            isFuture
+          }
+          pagination {
+            total
+            page
+            pageSize
+          }
+        }
+      }
+    `
+
+    const document = parse(query)
+    const errors = validate(schema, document)
+    expect(errors).toHaveLength(0)
+  })
 })

@@ -95,12 +95,53 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     setIsSubmitting(true);
     
     try {
+      // 提交前服务器端数据校验（/api/v1/organization-units/validate）
+      try {
+        const operation = isEditing ? 'update' : 'create';
+        const payload = {
+          operation,
+          data: {
+            code: isEditing ? organization!.code : formData.code || undefined,
+            name: formData.name,
+            unitType: formData.unitType,
+            status: (formData.status as 'ACTIVE' | 'INACTIVE'),
+            parentCode: normalizeParentCode.forAPI(formData.parentCode),
+            effectiveDate: formData.isTemporal && formData.effectiveFrom
+              ? TemporalConverter.dateToIso(formData.effectiveFrom as string)
+              : undefined
+          },
+          dryRun: true
+        };
+        const validateResp = await unifiedRESTClient.request('/organization-units/validate', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        }) as unknown as { success?: boolean; data?: { valid?: boolean; errors?: string[]; warnings?: string[] } };
+
+        if (validateResp && (validateResp as any).success === true && validateResp.data && validateResp.data.valid === false) {
+          const errs = validateResp.data.errors || ['服务器校验未通过'];
+          const errorsMap: Record<string, string> = {};
+          // 仅将第一条错误映射到通用字段；详细错误通过消息提示
+          errorsMap['name'] = errs[0];
+          setFormErrors(errorsMap);
+          showError(errs.join('\n'));
+          return; // 阻止后续提交
+        }
+      } catch (precheckError) {
+        // 无权限或校验端点不可用时，不阻塞提交（后端最终裁决）
+        const msg = precheckError instanceof Error ? precheckError.message : String(precheckError);
+        if (/权限不足|禁止|Unauthorized|Forbidden/i.test(msg)) {
+          console.warn('[Validate] 跳过服务器校验（权限不足）：', msg);
+        } else {
+          console.warn('[Validate] 校验端点不可用或失败，继续提交：', msg);
+        }
+      }
+
       if (isEditing) {
         const updateData: OrganizationRequest = {
           code: organization!.code,
           name: formData.name,
           unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
-          status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
+          status: formData.status as 'ACTIVE' | 'INACTIVE',
           description: formData.description,
           sortOrder: formData.sortOrder,
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
@@ -126,7 +167,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           code: formData.code && formData.code.trim() ? formData.code.trim() : undefined,
           name: formData.name,
           unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
-          status: formData.status as 'ACTIVE' | 'INACTIVE' | 'PLANNED',
+          status: formData.status as 'ACTIVE' | 'INACTIVE',
           description: formData.description,
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
         };

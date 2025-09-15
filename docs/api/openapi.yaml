@@ -71,8 +71,204 @@ tags:
     description: CoreHR system compatibility endpoints
   - name: auth
     description: Authentication and session management (BFF for frontend)
+  - name: operational
+    description: System operational monitoring and scheduler management
 
 paths:
+  /api/v1/operational/health:
+    get:
+      tags: [operational]
+      summary: Get system health overview (per-tenant by default)
+      description: |
+        Returns health score, status, summary counts and issue counters for the current tenant.
+        Platform admin with proper scopes may request global scope via future extension.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+      security:
+        - OAuth2ClientCredentials: ['system:monitor:read']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                health:
+                  value:
+                    success: true
+                    timestamp: '2025-09-15T10:00:00Z'
+                    requestId: 'req_operational_health_001'
+                    data:
+                      status: 'HEALTHY'
+                      healthScore: 96.5
+                      summary:
+                        totalOrganizations: 125
+                        currentRecords: 125
+                        futureRecords: 4
+                        historicalRecords: 39
+                      issues:
+                        duplicateCurrentCount: 0
+                        missingCurrentCount: 0
+                        timelineOverlapCount: 0
+                        inconsistentFlagCount: 1
+                        orphanRecordCount: 0
+                      lastCheckTime: '2025-09-15T09:59:30Z'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/operational/metrics:
+    get:
+      tags: [operational]
+      summary: Get detailed monitoring metrics (per-tenant)
+      description: Returns full MonitoringMetrics fields in data.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+      security:
+        - OAuth2ClientCredentials: ['system:monitor:read']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/operational/alerts:
+    get:
+      tags: [operational]
+      summary: Get current alerts
+      description: Returns current alert list and count based on thresholds.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+      security:
+        - OAuth2ClientCredentials: ['system:monitor:read']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/operational/rate-limit/stats:
+    get:
+      tags: [operational]
+      summary: Get rate limit statistics
+      description: Returns total/blocked requests, active clients and block rate.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+      security:
+        - OAuth2ClientCredentials: ['system:monitor:read']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/operational/tasks:
+    get:
+      tags: [operational]
+      summary: List scheduled operational tasks
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+      security:
+        - OAuth2ClientCredentials: ['system:ops:read']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/operational/tasks/status:
+    get:
+      tags: [operational]
+      summary: Get scheduler status and task summary
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+      security:
+        - OAuth2ClientCredentials: ['system:ops:read']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/operational/tasks/{taskName}/trigger:
+    post:
+      tags: [operational]
+      summary: Trigger an operational task by name
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: taskName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Task name to trigger
+      security:
+        - OAuth2ClientCredentials: ['system:ops:write']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/operational/cutover:
+    post:
+      tags: [operational]
+      summary: Trigger daily cutover immediately
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+      security:
+        - OAuth2ClientCredentials: ['system:ops:write']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/operational/consistency-check:
+    post:
+      tags: [operational]
+      summary: Trigger data consistency check
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+      security:
+        - OAuth2ClientCredentials: ['system:ops:write']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /auth/login:
     get:
       tags: [auth]
@@ -1289,10 +1485,10 @@ components:
         **Grant Type:** `client_credentials`
         **Token Type:** Bearer JWT
         **Expiration:** 1-4 hours (configurable)
-      flows:
-        clientCredentials:
-          tokenUrl: /oauth/token
-          scopes:
+          flows:
+            clientCredentials:
+              tokenUrl: /oauth/token
+              scopes:
             # 基础CRUD权限
             'org:read': Read organization unit information
             'org:create': Create organization units
@@ -1318,11 +1514,15 @@ components:
             'org:read:audit': Read audit history records
             'org:read:stats': Get organization statistics
             'org:read:timeline': View organization operation timeline
-            
+
             # 系统管理权限
             'org:validate': Data validity validation
             'org:maintenance': Hierarchy consistency check and repair
             'org:batch-operations': Batch operations permission
+            # Operational monitoring & ops
+            'system:monitor:read': Read operational health/metrics/alerts
+            'system:ops:read': Read scheduler and tasks status
+            'system:ops:write': Trigger operational tasks and actions
 
   parameters:
     CodePathParam:

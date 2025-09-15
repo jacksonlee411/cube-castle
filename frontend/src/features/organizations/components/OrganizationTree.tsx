@@ -15,6 +15,10 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
 import { unifiedGraphQLClient } from '../../../shared/api/unified-client';
+import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
+import { useNavigate } from 'react-router-dom';
+// SecondaryButton 已在上方导入
+import { copyText } from '../../../shared/utils/clipboard';
 
 // 层级节点数据接口
 export interface OrganizationTreeNode {
@@ -25,6 +29,8 @@ export interface OrganizationTreeNode {
   level: number;
   parentCode?: string | null;
   parentChain: string[];
+  codePath?: string;
+  namePath?: string;
   childrenCount: number;
   children: OrganizationTreeNode[];
   // 展示增强字段
@@ -197,11 +203,51 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   height = "calc(100vh - 200px)",
   showRoot = true
 }) => {
+  const navigate = useNavigate();
   // 状态管理
   const [treeData, setTreeData] = useState<OrganizationTreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<OrganizationTreeNode | null>(null);
+
+  // 拉取指定节点的一层子节点
+  const fetchChildren = useCallback(async (code: string): Promise<OrganizationTreeNode[]> => {
+    const graphqlQuery = `
+      query GetChildren($code: String!, $maxDepth: Int) {
+        organizationSubtree(code: $code, maxDepth: $maxDepth) {
+          children {
+            code
+            name
+            unitType
+            status
+            level
+            parentCode
+            codePath
+            namePath
+            parentChain
+            childrenCount
+          }
+        }
+      }
+    `;
+    const variables = { code, maxDepth };
+    const data = await unifiedGraphQLClient.request<{ organizationSubtree?: { children?: Record<string, unknown>[] } }>(graphqlQuery, variables);
+    const children = data?.organizationSubtree?.children || [];
+    return (children as Record<string, unknown>[]).map((org) => ({
+      code: org.code as string,
+      name: org.name as string,
+      unitType: org.unitType as string,
+      status: org.status as string,
+      level: (org.level as number) || 1,
+      parentCode: org.parentCode as string | undefined,
+      parentChain: (org.parentChain as string[]) || (org.codePath ? (org.codePath as string).split('/').filter(Boolean) : []),
+      codePath: (org.codePath as string) || undefined,
+      namePath: (org.namePath as string) || undefined,
+      childrenCount: (org.childrenCount as number) || 0,
+      children: [],
+      isExpanded: false
+    }));
+  }, [maxDepth]);
   
   // 加载树形数据
   const loadTreeData = useCallback(async (code?: string) => {
@@ -224,6 +270,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
               status
               level
               parentCode
+              codePath
+              namePath
               parentChain
               childrenCount
               children {
@@ -233,6 +281,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                 status
                 level
                 parentCode
+                codePath
+                namePath
                 parentChain
                 childrenCount
                 children {
@@ -242,6 +292,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                   status
                   level
                   parentCode
+                  codePath
+                  namePath
                   parentChain
                   childrenCount
                 }
@@ -275,7 +327,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         };
       }
       
-      const data = await unifiedGraphQLClient.request(graphqlQuery, variables);
+        const data = await unifiedGraphQLClient.request(graphqlQuery, variables);
         
         let treeNodes: OrganizationTreeNode[];
         
@@ -298,10 +350,48 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
             level: (org.level as number) || 1,
             parentCode: org.parentCode as string | undefined,
             parentChain: org.codePath ? (org.codePath as string).split('/').filter(Boolean) : [],
-            childrenCount: 0, // 需要后续查询获取
+            codePath: (org.codePath as string) || undefined,
+            namePath: (org.namePath as string) || undefined,
+            childrenCount: 0, // 后续并发查询获取
             children: [],
             isExpanded: false
           }));
+
+          // 为根节点并发查询 childrenCount（使用 organizationSubtree maxDepth: 1）
+          try {
+            const limit = 6; // 限制并发
+            const queue = [...treeNodes];
+            const updateMap: Record<string, number> = {};
+
+            const runBatch = async (batch: OrganizationTreeNode[]) => {
+              await Promise.all(batch.map(async (n) => {
+                try {
+                  const resp = await unifiedGraphQLClient.request<{ organizationSubtree?: { childrenCount: number } }>(
+                    `query GetRootChildrenCount($code: String!, $maxDepth: Int) {
+                      organizationSubtree(code: $code, maxDepth: $maxDepth) {
+                        childrenCount
+                      }
+                    }`,
+                    { code: n.code, maxDepth }
+                  );
+                  const cnt = resp?.organizationSubtree?.childrenCount ?? 0;
+                  updateMap[n.code] = cnt;
+                } catch (e) {
+                  // 静默失败，保持0
+                }
+              }));
+            };
+
+            while (queue.length > 0) {
+              const batch = queue.splice(0, limit);
+              // eslint-disable-next-line no-await-in-loop
+              await runBatch(batch);
+            }
+
+            treeNodes = treeNodes.map(n => ({ ...n, childrenCount: updateMap[n.code] ?? n.childrenCount }));
+          } catch (e) {
+            // 静默：无法获取childrenCount不影响展示
+          }
         }
         
         setTreeData(treeNodes);
@@ -319,8 +409,12 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   // 处理节点选择
   const handleNodeSelect = useCallback((node: OrganizationTreeNode) => {
     setSelectedNode(node);
-    onNodeSelect?.(node);
-  }, [onNodeSelect]);
+    if (onNodeSelect) {
+      onNodeSelect(node);
+    } else {
+      navigate(`/organizations/${node.code}/temporal`);
+    }
+  }, [onNodeSelect, navigate]);
   
   // 处理节点展开/折叠
   const handleNodeToggle = useCallback(async (node: OrganizationTreeNode) => {
@@ -336,13 +430,27 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       });
     };
     
-    // 如果节点还没有加载子节点，则先加载
+    // 如果节点还没有加载子节点，则先从服务拉取一层子节点
     if (!node.isExpanded && node.children.length === 0 && node.childrenCount > 0) {
       try {
         setIsLoading(true);
-        // 这里应该加载子节点数据
-        // 暂时使用模拟数据
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const children = await fetchChildren(node.code);
+        setTreeData(prev => {
+          const attachChildren = (nodes: OrganizationTreeNode[]): OrganizationTreeNode[] =>
+            nodes.map(n => {
+              if (n.code === node.code) {
+                return { ...n, children };
+              }
+              if (n.children.length > 0) {
+                return { ...n, children: attachChildren(n.children) };
+              }
+              return n;
+            });
+          return attachChildren(Array.isArray(prev) ? prev : []);
+        });
+      } catch (e) {
+        console.error('加载子节点失败:', e);
+        setError(e instanceof Error ? e.message : '加载子节点失败');
       } finally {
         setIsLoading(false);
       }
@@ -391,9 +499,46 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
             backgroundColor={colors.blueberry100}
             borderRadius={borderRadius.s}
           >
-            <Text typeLevel="subtext.small" fontWeight="medium">
+            <Text typeLevel="subtext.small" fontWeight="medium" marginBottom="xs">
               已选中：{selectedNode.name} ({selectedNode.code})
             </Text>
+            <OrganizationBreadcrumb
+              codePath={selectedNode.codePath}
+              namePath={selectedNode.namePath}
+              onNavigate={(code) => {
+                if (code) navigate(`/organizations/${code}/temporal`);
+              }}
+            />
+            <Flex gap="s" marginTop="s">
+              <SecondaryButton
+                size="small"
+                onClick={async () => {
+                  const code = selectedNode.code;
+                  const deepLink = `${window.location.origin}/organizations/${code}/temporal`;
+                  await copyText(deepLink);
+                }}
+              >
+                复制链接
+              </SecondaryButton>
+              <SecondaryButton
+                size="small"
+                onClick={async () => {
+                  const text = selectedNode.namePath || '';
+                  await copyText(text);
+                }}
+              >
+                复制名称路径
+              </SecondaryButton>
+              <SecondaryButton
+                size="small"
+                onClick={async () => {
+                  const text = selectedNode.codePath || '';
+                  await copyText(text);
+                }}
+              >
+                复制编码路径
+              </SecondaryButton>
+            </Flex>
           </Box>
         )}
       </Box>

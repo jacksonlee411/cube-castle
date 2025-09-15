@@ -22,9 +22,13 @@ import {
 } from '@workday/canvas-kit-react/tokens';
 import { baseColors } from '../../../shared/utils/colorTokens';
 import { unifiedGraphQLClient, unifiedRESTClient } from '../../../shared/api/unified-client';
+import { env } from '../../../shared/config/environment';
+import { useNavigate } from 'react-router-dom';
 // 审计历史组件导入
 import { AuditHistorySection } from '../../audit/components/AuditHistorySection';
 import { normalizeParentCode } from '../../../shared/utils/organization-helpers';
+import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
+import { copyText } from '../../../shared/utils/clipboard';
 
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
@@ -68,6 +72,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   onCreateSuccess,
   isCreateMode = false
 }) => {
+  const navigate = useNavigate();
   // 状态管理
   const [versions, setVersions] = useState<TimelineVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<TimelineVersion | null>(null);
@@ -99,6 +104,9 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     parentCode?: string;
     effectiveDate?: string; // 添加生效日期
   } | null>(null);
+
+  // 展示路径（来自层级查询）
+  const [displayPaths, setDisplayPaths] = useState<{ codePath: string; namePath: string } | null>(null);
 
   // Modal model for delete confirmation
   const deleteModalModel = useModalModel();
@@ -283,6 +291,28 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           parentCode: normalizeParentCode.forForm(currentVersion.parentCode),
           effectiveDate: currentVersion.effectiveDate
         });
+
+        // 加载层级路径信息（codePath/namePath）
+        try {
+          const pathData = await unifiedGraphQLClient.request<{ organizationHierarchy: { codePath: string; namePath: string } | null }>(
+            `query GetHierarchyPaths($code: String!, $tenantId: String!) {
+               organizationHierarchy(code: $code, tenantId: $tenantId) {
+                 codePath
+                 namePath
+               }
+             }`,
+            { code: currentVersion.code, tenantId: env.defaultTenantId }
+          );
+          const hierarchy = pathData?.organizationHierarchy;
+          if (hierarchy) {
+            setDisplayPaths({ codePath: hierarchy.codePath, namePath: hierarchy.namePath });
+          } else {
+            setDisplayPaths(null);
+          }
+        } catch (e) {
+          console.warn('加载组织层级路径失败（忽略，不阻塞详情展示）:', e);
+          setDisplayPaths(null);
+        }
       }
       
     } catch (error) {
@@ -319,8 +349,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       ) as { data?: { timeline?: Record<string, unknown>[] } };
 
       // 删除API调用成功后，优先使用后端返回的新时间线，避免读缓存延迟
-      const timeline = resp?.data?.timeline;
-      if (Array.isArray(timeline)) {
+          const timeline = resp?.data?.timeline;
+          if (Array.isArray(timeline)) {
         const mappedVersions: TimelineVersion[] = timeline.map((v: Record<string, unknown>) => {
           const isCurrent = (v.endDate as string) === null || v.endDate === undefined;
           return {
@@ -340,6 +370,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             lifecycleStatus: isCurrent ? 'CURRENT' : 'HISTORICAL',
             businessStatus: v.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
             dataStatus: 'NORMAL',
+            // TODO-TEMPORARY: 占位字段（下游仍有引用），将在v4.3统一改为使用 GraphQL 的 codePath/namePath 显示。截止：2025-09-30
             path: '',
             sortOrder: 1,
             changeReason: '',
@@ -588,6 +619,49 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           <Text typeLevel="subtext.medium" color="hint">
             {isCreateMode ? '填写组织基本信息，系统将自动分配组织代码' : '强制时间连续性的组织架构管理'}
           </Text>
+          {/* 路径面包屑（名称优先） */}
+          {!isCreateMode && displayPaths && (
+            <Box marginTop="s">
+              <OrganizationBreadcrumb
+                codePath={displayPaths.codePath}
+                namePath={displayPaths.namePath}
+                separator="/"
+                onNavigate={(code) => {
+                  if (code) {
+                    navigate(`/organizations/${code}/temporal`);
+                  }
+                }}
+              />
+              <Flex gap="s" marginTop="s">
+                <SecondaryButton
+                  size="small"
+                  onClick={async () => {
+                    const lastCode = displayPaths.codePath.split('/').filter(Boolean).at(-1);
+                    const deepLink = `${window.location.origin}/organizations/${lastCode}/temporal`;
+                    await copyText(deepLink);
+                  }}
+                >
+                  复制链接
+                </SecondaryButton>
+                <SecondaryButton
+                  size="small"
+                  onClick={async () => {
+                    await copyText(displayPaths.namePath);
+                  }}
+                >
+                  复制名称路径
+                </SecondaryButton>
+                <SecondaryButton
+                  size="small"
+                  onClick={async () => {
+                    await copyText(displayPaths.codePath);
+                  }}
+                >
+                  复制编码路径
+                </SecondaryButton>
+              </Flex>
+            </Box>
+          )}
         </Box>
         
         <Flex gap="s">

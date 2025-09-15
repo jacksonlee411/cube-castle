@@ -1,150 +1,264 @@
-# 07 — 组织时态与审计分工报告（替换原 Pending Issues）
+# 07 — 组织层级与路径展示分析报告
 
-最后更新：2025-09-15  
-维护团队：后端组（主责）+ 架构组 + QA组  
-状态：报告定稿（分工确定、迁移与门禁已接入；按本报告执行与验证）
+最后更新：2025-09-15
+维护团队：前端组（主责）+ 架构组
+状态：分析完成（已识别现有实现与待优化项）
 
 —
 
 ## 执行摘要
-- 背景：历史上由数据库触发器承担“邻接修补、endDate 计算、审计写入”等业务，INSERT 会连锁触发多次 UPDATE，并为每次 UPDATE 产生日志，导致同一 recordId 的审计条目偏多、显示“混杂”。
-- 分工决策：查询统一 GraphQL；命令统一 REST。时间轴修补、当前/未来判定、审计写入统一由“应用层（命令服务）”接管；数据库仅负责结构性约束、索引与最小技术性触发（非业务）。
-- 当前成果：
-  - 空 UPDATE（严格口径）= 0；recordId 归属一致；历史条目偏多属历史累积。
-  - 迁移 021/022 与 CI 审计门禁已接入，确保“仅值变更才更新、移除目标触发器、审计一致性”。
-- 验收：新写入应收敛至“1 CREATE + ≤1 有效 UPDATE（有未来版本时）”；PR 必须通过审计一致性门禁。
+- 背景：调查组织详情页面中组织层级、组织路径、组织路径描述的展示实现
+- 现状：基础层级和路径信息已实现，但缺少可读的名称路径展示
+- 发现：前端存在两套路径处理机制，但未充分利用GraphQL Schema中的namePath字段
+- 建议：增强路径展示的用户体验，实现面包屑导航功能
 
 —
 
-## 1. 分工原则（CQRS 与单一数据源）
-- 查询（GraphQL, 8090）：只读，承载时态查询、层级与统计。  
-- 命令（REST, 9090）：写入，承载“邻接修补 + 标志重算 + 审计写入”完整业务事务。  
-- 数据源：PostgreSQL 单一事实来源；禁止引入 CDC/额外数据源。
-- 命名与契约：API 对外 camelCase；先契约（OpenAPI/GraphQL），后实现；权限以 OpenAPI 为准。
+## 1. 组织层级展示分析
+
+### 1.1 详情页面层级展示
+**文件位置：** `frontend/src/features/temporal/components/OrganizationDetailForm.tsx:193-206`
+
+**实现特点：**
+- 显示标签：**"组织层级"**
+- 字段值：直接显示 `record.level` 数字
+- 编辑限制：可编辑时限制范围 0-10
+- 数据来源：从 `TemporalOrganizationUnit.level` 获取
+
+**代码实现：**
+```tsx
+<Box>
+  <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
+    组织层级
+  </Text>
+  <TextInput
+    type="number"
+    value={record.level.toString()}
+    disabled={!isEditing}
+    onChange={(e) => isEditing && onFieldChange('level', parseInt(e.target.value) || 0)}
+    min="0"
+    max="10"
+  />
+</Box>
+```
+
+### 1.2 树状图层级展示
+**文件位置：** `frontend/src/features/organizations/components/OrganizationTree.tsx:149-151`
+
+**层级信息格式：**
+- 显示格式：`{组织代码} • 第{层级数字}级 • {组织类型}`
+- 示例：`1000001 • 第2级 • DEPARTMENT`
+
+**代码实现：**
+```tsx
+<Text typeLevel="subtext.small" color="hint">
+  {node.code} • 第{node.level}级 • {node.unitType}
+</Text>
+```
 
 —
 
-## 2. 时态判定与业务规则
-- 当前记录（current）：`effective_date <= asOf < COALESCE(end_date, +∞)`（asOf 缺省为“今天”）。
-- 未来记录（future）：`effective_date > asOf`。
-- 历史记录（historical）：`COALESCE(end_date, -∞) < asOf`。
-- 相邻与区间：
-  - 后一版本生效日为 `E`，则前一版本 `end_date = E - 1 day`。
-  - 单一当前：任一日每个 `{tenantId, code}` 至多 1 条当前。
-  - 禁止重叠：同一 `{tenantId, code}` 的 `[effective_date, end_date]` 闭区间不重叠（端点可相接）。
+## 2. 组织路径展示分析
+
+### 2.1 详情页面路径展示
+**文件位置：** `frontend/src/features/temporal/components/OrganizationDetailForm.tsx:222-235`
+
+**实现特点：**
+- 显示标签：**"组织路径"**
+- 字段值：直接显示 `record.path` 原始字符串（如：`/1000000/1000001/1000002`）
+- 编辑状态：**始终只读**，标注"系统自动维护的层级路径"
+ - 数据来源：前端内部字段（`TemporalOrganizationUnit.path`），当前未从后端获取，实际展示为空；应改为消费 GraphQL 的 `codePath/namePath`
+
+**代码实现：**
+```tsx
+<Box>
+  <Text fontSize="small" marginBottom={space.xs} fontWeight="medium">
+    组织路径
+  </Text>
+  <TextInput
+    value={record.path}
+    disabled={true}
+  />
+  <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
+    系统自动维护的层级路径
+  </Text>
+</Box>
+```
+
+### 2.2 树状图路径处理
+**文件位置：** `frontend/src/features/organizations/components/OrganizationTree.tsx:300`
+
+**路径解析逻辑：**
+```tsx
+parentChain: org.codePath ? (org.codePath as string).split('/').filter(Boolean) : [],
+```
+
+**解析特点：**
+- 使用 `codePath` 字段（来自GraphQL）
+- 通过 `split('/')` 拆分路径
+- 使用 `filter(Boolean)` 过滤掉空字符串
+- 生成 `parentChain` 数组用于层级导航
 
 —
 
-## 3. 应用层职责（写路径接管）
-- 事务与并发：
-  - 单事务完成邻接修补、endDate 计算、`is_current` 重算与审计写入。
-  - 对同一 `{tenantId, code}` 使用 `pg_advisory_xact_lock(hashtext(tenant||code))` 并发互斥。
-- 典型流程：
-  - 插入中间版本（生效 E）：修补 `prev.end_date = E-1d`；计算 `curr.end_date = min(next.effectiveDate-1d)` 或 NULL。
-  - 生效日变更：等价“旧位置删除 + 新位置插入”或 UPDATE，同时修补前/后邻与重算 `is_current`。
-  - 软删/恢复：维护业务状态与时间轴，并保持“当前唯一、无重叠”。
-  - 仅值变更才 UPDATE：所有 UPDATE 使用 `IS DISTINCT FROM`；无实质变化直接跳过（避免空 UPDATE）。
-- 审计写入：
-  - 审计表 `audit_logs`：`event_type`、`before_data/after_data`、`changes`、`modified_fields`、`record_id`、`business_context`。
-  - UPDATE 无字段变化不记审计；邻接修补的 UPDATE 归属“邻接记录的 record_id”。
-  - 可设置 `SET LOCAL app.request_id`、`SET LOCAL app.context`（如 `system-auto-enddate`）。
+## 3. 路径描述格式化现状
+
+### 3.1 当前路径展示形式
+
+**1. 原始路径（详情页面）：**
+- 格式：`/1000000/1000001/1000002`
+- 展示：直接显示完整的斜杠分隔的代码路径
+- 用途：系统内部标识和存储
+
+**2. 解析后的链条（树状图）：**
+- 格式：`['1000000', '1000001', '1000002']`
+- 展示：用于生成层级导航链
+- 用途：前端交互和层级关系展示
+
+### 3.2 数据类型定义
+**文件位置：** `frontend/src/shared/types/temporal.ts:55-77`
+
+**层级相关字段：**
+```typescript
+export interface TemporalOrganizationUnit {
+  level: number;              // 层级数字
+  path: string;               // 代码路径：/1000000/1000001/1000002
+  parentCode?: string;        // 父级代码
+  // ...其他字段
+}
+```
 
 —
 
-## 4. 数据库职责（去触发器化）
-- 结构与约束：
-  - 主键：`record_id UUID`；分区键/隔离：`tenant_id`。
-  - 时态列：`effective_date DATE`、`end_date DATE`、（可选）`is_current BOOLEAN`（由应用维护/导出用）。
-  - 约束与索引：唯一/部分唯一（当前唯一）、父子层级有效性、时态检索索引、路径/层级索引等。
-- 触发器策略：
-  - 移除业务触发器（审计/自动 endDate/生命周期/软删标志等）；避免连锁副作用。
-  - 可保留非业务的技术性触发（如维护更新时间戳），不参与时间轴与审计业务。
-- 审计表结构治理：统一字段，历史数据的回填/修复仅以一次性脚本完成，不常驻触发。
+## 4. GraphQL Schema支持分析
+
+### 4.1 已定义但未使用的字段
+**文件位置：** `docs/api/schema.graphql:210-223`
+
+**OrganizationHierarchy类型中的路径字段：**
+```graphql
+type OrganizationHierarchy {
+  code: String!
+  name: String!
+  level: Int!
+  hierarchyDepth: Int!
+  codePath: String!          # 代码路径
+  namePath: String!          # 名称路径 - 未在前端使用
+  parentChain: [String!]!    # 父级链条
+  childrenCount: Int!
+  # ...
+}
+```
+
+### 4.2 未充分利用的功能
+- **namePath字段**：GraphQL 契约已定义，但前端组件中未使用；需确认后端已按契约返回该字段
+- **hierarchyDepth字段**：可用于更精确的层级深度展示
+- **parentChain字段**：可用于生成面包屑导航
 
 —
 
-## 5. 历史问题与根因（结论）
-- 现象：插入中间版本时，由 BEFORE/AFTER 多级触发器造成 1 次 INSERT → 多次 UPDATE；每次 UPDATE 触发审计 → 条目倍增；聚合口径正确但被放大为“条数偏多/混杂”。
-- 根因：数据库触发链承担业务流程，产生连锁更新与多次审计写入。
+## 5. 识别的问题与改进机会
+
+### 5.1 缺少的功能
+1. **可读的名称路径展示**
+   - 当前只显示代码路径（`/1000000/1000001/1000002`）
+   - 缺少名称路径（`公司 > 技术部 > 研发组`）
+
+2. **面包屑导航功能**
+   - 未实现类似 "公司 > 技术部 > 研发组" 的导航链
+   - 用户难以直观理解组织层级关系
+
+3. **路径展示不一致**
+   - 详情页面显示原始路径字符串
+   - 树状图使用解析后的数组
+   - 缺少统一的路径展示组件
+
+### 5.2 数据利用不充分
+1. **GraphQL字段未使用**
+   - `namePath` 字段为契约已定义但前端未使用（后端返回需确认）
+   - `hierarchyDepth` 字段可提供更精确的深度信息
+
+2. **路径解析逻辑分散**
+   - 路径解析逻辑在多个组件中重复实现
+   - 缺少统一的路径处理工具函数
 
 —
 
-## 6. 修复方案与迁移
-- 数据清理（一次性）：
-  - 删除“空 UPDATE 审计”：`event_type='UPDATE' AND before_data=after_data AND jsonb_array_length(coalesce(changes,'[]'))=0`。
-- 迁移步骤：
-  - `021_audit_and_temporal_sane_updates.sql`：仅值变更才 UPDATE；UPDATE 无变化跳过审计；上下文字段规范化。
-  - `022_remove_db_triggers_and_functions.sql`：移除审计/时态/标志触发器与相关函数；应用层完全接管写路径。
-- 目标：新写入在 022 生效 + 应用接管后，应收敛至“1 CREATE + ≤1 有效 UPDATE（存在未来版本时）”。
+## 6. 建议改进方案
+
+### 6.1 短期改进
+1. **增强详情页面路径展示**
+   - 在原始路径下方增加可读的名称路径
+   - 利用 GraphQL 的 namePath 字段（以契约为准；若后端暂未返回，则容错展示空值或提示）
+
+2. **统一路径处理逻辑**
+   - 创建统一的路径格式化工具函数
+   - 避免在多个组件中重复路径解析逻辑
+
+### 6.2 中期规划
+1. **实现面包屑导航组件**
+   - 支持点击导航到上级组织
+   - 提供清晰的层级关系展示
+
+2. **增强树状图路径展示**
+   - 在节点信息中显示完整路径
+   - 支持路径的可视化展示
+
+### 6.3 长期优化
+1. **路径展示组件化**
+   - 开发专用的组织路径展示组件
+   - 支持多种显示模式（代码/名称/混合）
+
+2. **交互体验优化**
+   - 路径悬停显示详细信息
+   - 支持路径的复制和分享功能
 
 —
 
-## 7. 工具与门禁（CI 强制）
-- 脚本：
-  - 报告版 SQL：`scripts/validate-audit-recordid-consistency.sql`
-  - 断言版 SQL：`scripts/validate-audit-recordid-consistency-assert.sql`
-  - 一键脚本：`scripts/apply-audit-fixes.sh`（`ENFORCE=1` 启用断言；`APPLY_FIXES=0` 仅校验，`APPLY_FIXES=1` 修复+校验）
-- 工作流：
-  - `.github/workflows/audit-consistency.yml`：Postgres16 → 应用 021/022 → `ENFORCE=1 APPLY_FIXES=0` 强制校验。
-  - `.github/workflows/consistency-guard.yml`（job: audit）：同样流程并列执行。
-- 断言口径：
-  - 空 UPDATE=0；recordId 与载荷一致；目标触发器不存在：`audit_changes_trigger`、`auto_end_date_trigger`、`auto_lifecycle_status_trigger`、`enforce_soft_delete_temporal_flags_trigger`。
+## 7. 技术实现要点
+
+### 7.1 前端数据流
+```
+GraphQL Query → OrganizationHierarchy → {codePath, namePath} → 路径展示组件
+```
+
+### 7.2 关键文件清单
+- **详情表单：** `frontend/src/features/temporal/components/OrganizationDetailForm.tsx`
+- **树状图：** `frontend/src/features/organizations/components/OrganizationTree.tsx`
+- **类型定义：** `frontend/src/shared/types/temporal.ts`
+- **GraphQL Schema：** `docs/api/schema.graphql`
+
+### 7.3 数据源映射
+| 显示内容 | 数据源字段 | 当前使用状态 |
+|---------|-----------|-------------|
+| 组织层级 | `level` | ✅ 已使用 |
+| 代码路径 | `path` / `codePath` | ✅ 已使用 |
+| 名称路径 | `namePath` | ❌ 未使用（契约已定义，需确认后端返回） |
+| 层级深度 | `hierarchyDepth` | ❌ 未使用 |
+| 父级链条 | `parentChain` | ⚠️ 部分使用 |
 
 —
 
-## 8. 测试与验收（DoD）
-- GraphQL 契约/集成：
-  - `organizationVersions(code)` 获取 recordId 列表；对每个 recordId 执行 `auditHistory(recordId)`。
-  - 断言：recordId mismatch=0；空 UPDATE（严格口径）=0；新写入条数符合“1 CREATE + ≤1 UPDATE（有未来版本时）”。
-- SQL 巡检：
-  - 无重叠区间；每 code 当前唯一；删除态不为当前。
-  - 审计一致性：空 UPDATE=0；recordId 与载荷一致；目标触发器=0。
-- CI 门禁：PR 必须通过“Audit Consistency Gate / Consistency Guard（audit）”。
+## 8. 验收标准
 
-—
+### 8.1 功能验收
+- [ ] 详情页面显示可读的名称路径
+- [ ] 实现面包屑导航组件
+- [ ] 统一路径处理逻辑
 
-## 9. 运维与监控
-- 例行巡检：发布前后与每日定时执行报告版 SQL；ENFORCE=1 模式用于 PR/主干。
-- 告警：若发现空 UPDATE>0、recordId 错配>0、目标触发器>0 任一，则标红并阻断合并。
-- 观测：新写入的审计条数分布、时态区间重叠率、当前唯一性违规。
+### 8.2 用户体验验收
+- [ ] 用户能直观理解组织层级关系
+- [ ] 路径展示清晰且一致
+- [ ] 支持便捷的层级导航
 
-—
-
-## 10. 风险与回滚
-- 风险：在应用接管完成前移除触发器，可能导致时间轴与审计缺失或不一致。
-- 回滚：蓝绿或开关控制；在 `022` 执行前确认应用接管与测试通过；迁移/清理前执行全量备份。
-
-—
-
-## 11. 关键文件与命令
-- 迁移：
-  - `database/migrations/021_audit_and_temporal_sane_updates.sql`
-  - `database/migrations/022_remove_db_triggers_and_functions.sql`
-- 脚本：
-  - `scripts/validate-audit-recordid-consistency.sql`
-  - `scripts/validate-audit-recordid-consistency-assert.sql`
-  - `scripts/apply-audit-fixes.sh`
-- 工作流：
-  - `.github/workflows/audit-consistency.yml`
-  - `.github/workflows/consistency-guard.yml`
-- 本地仅校验（不改动数据）：
-  - `ENFORCE=1 APPLY_FIXES=0 bash scripts/apply-audit-fixes.sh`
-- 本地修复+校验（建议先执行 021→022）：
-  - `ENFORCE=1 APPLY_FIXES=1 bash scripts/apply-audit-fixes.sh`
-
-—
-
-## 附：现场巡检要点（2025-09-15）
-- 环境健康：8090/9090 healthy；Postgres/Redis healthy。
-- 样本（tenantId: 3b99930c-...；code=1000002）：
-  - 版本：`2025-04-01 (a42811c1-...)`、`2025-08-01 (1a0a5ad9-...)`、`2025-09-06 (2f8d7380-...)`。
-  - 审计（recordId=2f8d...）：总 11 条（CREATE=2，UPDATE=9）；mismatch=0；空 UPDATE（严格口径）=0。
-  - 审计（recordId=a428...）：总 10 条；mismatch=0；空 UPDATE（AND 条件）=0；但存在 changes 为空的 UPDATE 若干（多为被过滤的元字段差异）。
-- 一致性（库级）：空 UPDATE=0；recordId 归属一致。
-- 说明：历史条目偏多源于过往触发链；在 `022` 生效与应用接管后，新写入应按本报告的 DoD 收敛。
+### 8.3 技术验收
+- [ ] 充分利用 GraphQL Schema 中的字段
+- [ ] 代码复用性和可维护性良好
+- [ ] 性能影响最小化
+- [ ] 权限一致性：路径/面包屑展示遵循 PBAC（仅显示有权限可见层级）
+- [ ] i18n/可访问性：分隔符本地化、ARIA 面包屑语义、键盘可达性
 
 —
 
 ## 变更记录
-- 2025-09-15：报告定稿。明确“应用层接管写路径、数据库去触发器化”的分工；沉淀 021/022 迁移、SQL 校验与 CI 门禁；给出 DoD 与运维/回滚方案。替换原 Pending Issues 文档。
-
+- 2025-09-15：完成组织层级与路径展示分析，识别现有实现与改进机会。明确前端路径展示的现状、问题和建议改进方案。
