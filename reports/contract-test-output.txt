@@ -1,0 +1,12 @@
+
+ RUN  v3.2.4 /home/shangmeilin/cube-castle/frontend
+
+ ✓ tests/contract/field-naming-validation.test.ts (9 tests) 12ms
+ ✓ tests/contract/envelope-format-validation.test.ts (11 tests) 5ms
+ ✓ tests/contract/schema-validation.test.ts (13 tests | 1 skipped) 35ms
+
+ Test Files  3 passed (3)
+      Tests  32 passed | 1 skipped (33)
+   Start at  07:28:23
+   Duration  933ms (transform 108ms, setup 330ms, collect 185ms, tests 52ms, environment 1.17s, prepare 252ms)
+
