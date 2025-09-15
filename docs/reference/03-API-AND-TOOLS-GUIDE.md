@@ -195,6 +195,28 @@ node scripts/quality/document-sync.js           # 文档同步
 - **质量门禁**: 重复代码>5%阻止合并
 - **报告位置**: `reports/` 目录下各子系统报告
 
+### 审计一致性门禁（新增）
+- 目标：保障“空UPDATE=0 / recordId载荷一致 / 目标触发器不存在（022生效）”。
+- 脚本：
+  - 报告版 SQL：`scripts/validate-audit-recordid-consistency.sql`
+  - 断言版 SQL：`scripts/validate-audit-recordid-consistency-assert.sql`
+  - 一键执行：`scripts/apply-audit-fixes.sh`
+- CI 工作流：
+  - `.github/workflows/audit-consistency.yml`
+  - `.github/workflows/consistency-guard.yml`（job: audit）
+- 本地等效（仅校验，不改数据）：
+```bash
+export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+ENFORCE=1 APPLY_FIXES=0 bash scripts/apply-audit-fixes.sh
+```
+- 本地修复后校验（建议先执行 021→022）：
+```bash
+export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/021_audit_and_temporal_sane_updates.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/022_remove_db_triggers_and_functions.sql
+ENFORCE=1 APPLY_FIXES=1 bash scripts/apply-audit-fixes.sh
+```
+
 ---
 
 ## ⚠️ 错误处理

@@ -57,3 +57,52 @@ jobs:
         env:
           ENFORCE: "1"
           SCAN_SCOPE: "cmd"
+
+  audit:
+    name: Audit DB Consistency (021→022 + Assertions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: cubecastle
+        options: >-
+          --health-cmd "pg_isready -U user -d cubecastle" \
+          --health-interval 5s \
+          --health-timeout 5s \
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tooling (psql, jq)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U user -d cubecastle && exit 0 || sleep 2;
+          done
+          echo "Postgres not ready" >&2
+          exit 1
+
+      - name: Apply required migrations only (021 → 022)
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/021_audit_and_temporal_sane_updates.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/022_remove_db_triggers_and_functions.sql
+
+      - name: Enforce audit consistency
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+          ENFORCE: "1"
+          APPLY_FIXES: "0"
+        run: |
+          bash scripts/apply-audit-fixes.sh

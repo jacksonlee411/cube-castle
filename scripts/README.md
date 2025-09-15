@@ -107,5 +107,47 @@ make test            # 运行测试
 ---
 
 **维护负责人**: 开发团队  
-**最后更新**: 2025-09-08  
+**最后更新**: 2025-09-15  
 **下次审查**: 2025-10-08
+
+## 🛡️ 审计一致性门禁与本地校验（新增）
+
+为解决“审计记录倍增/错配/触发器连锁”问题，新增标准化校验与门禁脚本，已接入 CI。
+
+### 关键脚本
+- `scripts/validate-audit-recordid-consistency.sql`（报告版）：
+  - 输出汇总：`EMPTY_UPDATES`、`MISMATCHED_RECORD_ID`、`OU_TRIGGERS_PRESENT`
+  - 列出错配样本与“changes 为空但 before!=after”的 UPDATE 样本
+- `scripts/validate-audit-recordid-consistency-assert.sql`（断言版）：
+  - 断言：空 UPDATE=0、recordId 与载荷一致；目标触发器不存在（审计/时态/软删标志四项）
+- `scripts/apply-audit-fixes.sh`（一键执行）：
+  - 报告版校验：默认执行
+  - 断言版校验：设置 `ENFORCE=1` 启用
+  - 修复/回填可选：`APPLY_FIXES=1` 先修复再校验；CI 默认 `APPLY_FIXES=0` 仅校验
+
+### 本地等效命令
+
+1) 仅校验（不改动数据）
+```bash
+export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+ENFORCE=1 APPLY_FIXES=0 bash scripts/apply-audit-fixes.sh
+```
+
+2) 修复+校验（本地修复流程）
+```bash
+export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+# 建议先应用关键迁移（仅值变更更新 + 移除目标触发器）
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/021_audit_and_temporal_sane_updates.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/022_remove_db_triggers_and_functions.sql
+
+ENFORCE=1 APPLY_FIXES=1 bash scripts/apply-audit-fixes.sh
+```
+
+### CI 工作流
+- `.github/workflows/audit-consistency.yml`：
+  - 应用 021→022 后，`ENFORCE=1 APPLY_FIXES=0` 执行强制校验
+- `.github/workflows/consistency-guard.yml`：
+  - 新增 `audit` 任务，流程同上
+
+### 备注
+- 可通过 `APP_ASSERT_TRIGGERS_ZERO=0` 暂时跳过“目标触发器为 0”的断言（例如执行 022 之前），仅用于过渡开发场景。
