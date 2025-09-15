@@ -207,6 +207,11 @@ cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
   - 步骤：Compose Up → 健康等待 → 前端契约测试 → 简化E2E → 上传产物
   - 产出：`e2e-smoke-outputs`（包含 E2E 输出与 reports/* 摘要）
 
+### 前端浏览器版 E2E（Playwright）
+- CI 工作流：`.github/workflows/frontend-e2e.yml`
+- JWT 注入：使用 `PW_JWT` 与 `PW_TENANT_ID` 作为全局认证环境变量
+- 执行命令：`npm --prefix frontend run test:e2e`
+
 ### 审计一致性门禁（新增）
 - 目标：保障“空UPDATE=0 / recordId载荷一致 / 目标触发器不存在（022生效）”。
 - 脚本：

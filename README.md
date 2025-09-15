@@ -175,7 +175,7 @@ go test ./... && ./test_all_routes.sh
 
 ## 🔁 CI/CD 守护与触发
 
-- 工作流: `.github/workflows/consistency-guard.yml`、`.github/workflows/document-sync.yml`、`.github/workflows/contract-testing.yml`、`.github/workflows/e2e-smoke.yml`
+- 工作流: `.github/workflows/consistency-guard.yml`、`.github/workflows/document-sync.yml`、`.github/workflows/contract-testing.yml`、`.github/workflows/e2e-smoke.yml`、`.github/workflows/frontend-e2e.yml`
 - 触发条件:
   - push: 任意分支（branches: "**"），含 tag（tags: "*")
   - pull_request: 任意目标分支（branches: "**"）
@@ -208,10 +208,14 @@ chmod +x ./simplified-e2e-test.sh && ./simplified-e2e-test.sh
 cat reports/QUALITY_GATE_TEST_REPORT.md
 ```
 
-### CI 冒烟门禁
+### CI 冒烟门禁（无浏览器）
 - 工作流：`.github/workflows/e2e-smoke.yml`
 - 行为：拉起 E2E 栈 → 健康等待 → 前端契约测试 → 简化E2E → 失败即阻断
 - 产出：GitHub Actions Artifacts（`e2e-smoke-outputs`）与仓库 `reports/` 快照
+
+### CI 浏览器版前端 E2E（Playwright）
+- 工作流：`.github/workflows/frontend-e2e.yml`
+- 行为：Compose Up → 健康等待 → 生成开发JWT（PW_JWT/PW_TENANT_ID）→ 运行 Playwright → 上传报告
 
 ## 🛡️ P3企业级防控系统 ⭐ **新上线**
 

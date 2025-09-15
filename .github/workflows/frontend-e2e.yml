@@ -1,65 +1,78 @@
-name: Frontend E2E (Dev Auth)
+name: Frontend E2E (Playwright)
 
 on:
   push:
-    branches: ["**"]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: ["**"]
+    branches: [ main, master, develop ]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch: {}
 
 jobs:
-  e2e:
+  frontend-e2e:
+    name: Frontend E2E (browsers)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    continue-on-error: true  # 暂行：存在已知待修复用例
-
-    services:
-      postgres:
-        image: postgres:16
-        ports: ["5432:5432"]
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: cubecastle
-        options: >-
-          --health-cmd "pg_isready -U user -d cubecastle" \
-          --health-interval 5s \
-          --health-timeout 5s \
-          --health-retries 20
-      redis:
-        image: redis:7-alpine
-        ports: ["6379:6379"]
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-
-      - name: Install frontend deps
-        working-directory: frontend
+      - name: Install Playwright Browsers
+        working-directory: ./frontend
         run: |
-          npm ci --no-audit --no-fund
+          npm ci
           npx playwright install --with-deps
 
-      - name: Start backend (run-dev)
-        env:
-          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+      - name: Compose Up (E2E stack)
         run: |
-          make run-dev &
-          sleep 8
-          curl -fsS http://localhost:9090/health
-          curl -fsS http://localhost:8090/health
+          docker compose -f docker-compose.e2e.yml build
+          docker compose -f docker-compose.e2e.yml up -d
 
-      - name: Run E2E with Dev Auth
-        working-directory: frontend
+      - name: Wait for services
         run: |
-          npm run e2e:auth:dev
+          set -e
+          for i in {1..60}; do
+            ok=0
+            curl -fsS http://localhost:9090/health >/dev/null && ok=$((ok+1)) || true
+            curl -fsS http://localhost:8090/health >/dev/null && ok=$((ok+1)) || true
+            curl -fsS http://localhost:3000/ >/dev/null && ok=$((ok+1)) || true
+            if [ "$ok" = "3" ]; then echo "All services healthy"; break; fi
+            sleep 5
+          done
+          [ "$ok" = "3" ] || (echo 'Services did not become healthy in time' && docker compose -f docker-compose.e2e.yml logs --no-color && exit 1)
+
+      - name: Mint dev JWT for E2E
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq curl
+          make jwt-dev-mint
+          echo "PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" >> $GITHUB_ENV
+          echo "PW_JWT=$(cat .cache/dev.jwt)" >> $GITHUB_ENV
+
+      - name: Run Playwright E2E
+        working-directory: ./frontend
+        env:
+          PW_TENANT_ID: ${{ env.PW_TENANT_ID }}
+          PW_JWT: ${{ env.PW_JWT }}
+        run: |
+          npm run -s test:e2e || (echo 'Playwright tests failed' && exit 1)
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 14
+
+      - name: Compose Down
+        if: always()
+        run: docker compose -f docker-compose.e2e.yml down -v --remove-orphans
 
