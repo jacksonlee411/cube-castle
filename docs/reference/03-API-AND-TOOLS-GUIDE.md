@@ -195,6 +195,18 @@ node scripts/quality/document-sync.js           # 文档同步
 - **质量门禁**: 重复代码>5%阻止合并
 - **报告位置**: `reports/` 目录下各子系统报告
 
+### E2E冒烟与门禁（新增）
+- 本地运行：
+```bash
+docker compose -f docker-compose.e2e.yml up -d --build   # 拉起完整栈
+npm --prefix frontend ci && npm --prefix frontend run -s test:contract
+./simplified-e2e-test.sh                                  # 简化E2E（curl）
+cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
+```
+- CI 工作流：`.github/workflows/e2e-smoke.yml`
+  - 步骤：Compose Up → 健康等待 → 前端契约测试 → 简化E2E → 上传产物
+  - 产出：`e2e-smoke-outputs`（包含 E2E 输出与 reports/* 摘要）
+
 ### 审计一致性门禁（新增）
 - 目标：保障“空UPDATE=0 / recordId载荷一致 / 目标触发器不存在（022生效）”。
 - 脚本：

@@ -19,6 +19,7 @@
 - [实现清单（Implementation Inventory）](reference/02-IMPLEMENTATION-INVENTORY.md) - 已实现的API/函数/接口索引（中英）
 - **大规模清理完成**: 95%文档已归档 → archive/ ⭐ **极简状态**
  - 审计一致性门禁与校验：参考 [reference/03-API-AND-TOOLS-GUIDE.md](reference/03-API-AND-TOOLS-GUIDE.md) “审计一致性门禁”小节与 [scripts/README.md](../scripts/README.md)
+ - E2E 本地与 CI 冒烟：参考 [reference/03-API-AND-TOOLS-GUIDE.md](reference/03-API-AND-TOOLS-GUIDE.md) “E2E冒烟与门禁（新增）”小节
 
 ### 🎯 核心功能  
 - [**组织单元API规范**](architecture/01-organization-units-api-specification.md) - **主要API文档** ⭐ 完整的GraphQL/REST规范  

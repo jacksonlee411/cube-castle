@@ -175,7 +175,7 @@ go test ./... && ./test_all_routes.sh
 
 ## 🔁 CI/CD 守护与触发
 
-- 工作流: `.github/workflows/consistency-guard.yml`、`.github/workflows/document-sync.yml`、`.github/workflows/contract-testing.yml`
+- 工作流: `.github/workflows/consistency-guard.yml`、`.github/workflows/document-sync.yml`、`.github/workflows/contract-testing.yml`、`.github/workflows/e2e-smoke.yml`
 - 触发条件:
   - push: 任意分支（branches: "**"），含 tag（tags: "*")
   - pull_request: 任意目标分支（branches: "**"）
@@ -190,6 +190,28 @@ go test ./... && ./test_all_routes.sh
   - `bash scripts/ci/check-rest-queries.sh`（前端 REST 查询）
   - `bash scripts/ci/check-hardcoded-configs.sh`（CORS/端口/JWT）
   - 设定 `ENFORCE=1` 可模拟 CI 强制模式；`SCAN_SCOPE=cmd|frontend` 可限定范围
+
+## 🧪 E2E（本地与CI）
+
+### 本地快速冒烟
+```bash
+# 1) 一键拉起完整栈（DB/Redis + 查询8090 + 命令9090 + 前端3000）
+docker compose -f docker-compose.e2e.yml up -d --build
+
+# 2) 运行契约测试
+npm --prefix frontend ci && npm --prefix frontend run -s test:contract
+
+# 3) 运行简化E2E（无需浏览器）
+chmod +x ./simplified-e2e-test.sh && ./simplified-e2e-test.sh
+
+# 4) 报告
+cat reports/QUALITY_GATE_TEST_REPORT.md
+```
+
+### CI 冒烟门禁
+- 工作流：`.github/workflows/e2e-smoke.yml`
+- 行为：拉起 E2E 栈 → 健康等待 → 前端契约测试 → 简化E2E → 失败即阻断
+- 产出：GitHub Actions Artifacts（`e2e-smoke-outputs`）与仓库 `reports/` 快照
 
 ## 🛡️ P3企业级防控系统 ⭐ **新上线**
 
