@@ -1,122 +1,113 @@
-# 06 — 生产态登录方案推进记录（取代旧版内容）
+# 06 — 集成团队进展与复核报告（2025-09-15）
 
-最后更新：2025-09-14
-牵头：Architecture / Backend / Frontend / DevOps / QA
-状态：阶段小结 + 下一步计划（对齐 CLAUDE.md 治理）
-
-—
-
-## 当前进展（已落实）
-- 契约公开与对齐
-  - 在 `docs/api/openapi.yaml` 公开 `/.well-known/oidc`（camelCase：issuer、authorizationEndpoint、tokenEndpoint、endSessionEndpoint、jwksUri）。
-  - 补充 `501 OIDC_NOT_CONFIGURED` 示例；去重并保留唯一 `/.well-known/jwks.json` 定义。
-- 后端 BFF（命令服务内集成）
-  - 实现 `/.well-known/oidc` 并改为直接 JSON 返回（非统一信封）。
-  - 统一租户错误：缺少租户头→`401 TENANT_HEADER_REQUIRED`；租户不匹配→`403 TENANT_MISMATCH`。
-  - 权限不足错误统一→`403 INSUFFICIENT_PERMISSIONS`。
-  - 新增 `AUTH_ONLY_MODE=true` 快速联调模式（仅启用 `/auth/*` 与 `/.well-known/*`）。
-- 前端统一客户端
-  - 401 自动一次刷新；403 细分提示（租户访问 vs 权限不足）。
-- 环境修正
-  - `.env` 更正：`DEFAULT_TENANT_ID=3b99930c-4dc6-4cc9-8f9e-123456789012`。
-- 集成自检与代运行结果
-  - 新增脚本：`scripts/tests/test-auth-integration.sh`（健康检查/发现/模拟登录/会话/多租户校验）。
-  - 代运行：`/auth/session` 返回的 `tenantId` 正确；发现端点在未配置 IdP 时返回 501。`AUTH_ONLY_MODE` 下业务路由未启用，相关用例标记为跳过；启业务路由后因迁移未成功，命中 404（待迁移后复测）。
+最后更新：2025-09-15  
+牵头：QA / Backend / Frontend / DevOps  
+状态：已完成复核与部分修复；本地E2E验证已跑通环境与认证注入；仍有一项服务端验证待修复
 
 —
 
-## 下一步计划（完整业务路由验证）
-1) 启动依赖并迁移
-- `docker compose up -d postgres redis`
-- `make db-migrate-all`（或修复 `/tmp/migrate.log` 提示的迁移错误）
-
-2) 启动命令服务（开启业务路由）
-- 环境：`OIDC_SIMULATE=true`（开发态模拟），关闭 `AUTH_ONLY_MODE`
-- 启动：`go run ./cmd/organization-command-service/main.go`
-
-3) 运行集成自检脚本（应命中业务路由校验）
-- `scripts/tests/test-auth-integration.sh`
-- 预期：
-  - 缺少租户头 → 401 `TENANT_HEADER_REQUIRED`
-  - 租户不匹配 → 403 `TENANT_MISMATCH`
-  - 正确租户 + 最小载荷 → 201/400（取决于字段校验）
-
-4) 扩展 E2E/契约测试
-- 增补 403 两类与 501 发现端点的用例；前端交互提示与重定向路径验证。
-- 校验 CSRF 头在 `/auth/refresh`、`/auth/logout` 的强制性（OpenAPI `CSRFToken`）。
- - 增加“重复实现守卫”用例：后端禁止 `jwt.Parse` 直调（仅允许在 `internal/auth/jwt.go`），前端禁止新增除 `shared/api/auth.ts` 之外的 token 管理实现。
+## 执行摘要
+- 已复核 06 文档列出的问题，完成文档与前端配置修复、E2E 全局认证注入与 CI 集成；本地 E2E 回归用例运行后发现“组织名称含括号的更新”仍被命令端以 400 拒绝，判断为后端名称验证或更新契约限制导致。
+- 已将“前端 E2E（Dev Auth）”纳入 CI；当前暂以 continue-on-error 跑通流程，待后端修复后转为强制门禁。
+- 下一步请求：由后端放宽名称字符校验并更新 OpenAPI 描述、补充单元测试；完成后我将去除 CI 容错并回归验证。
 
 —
 
-## 验收标准（质量门槛）
-- 契约一致：OpenAPI 与实现一致；错误码出现在 `error.code`，字段命名 camelCase。
-- 多租户强校验：401/403 行为稳定；前后端提示一致。
-- 发现与 JWKS：`/.well-known/oidc` 与 `/.well-known/jwks.json` 可用；未配置 IdP 时 501。
-- 前端策略：401 自动刷新一次；403 正确分流并给出用户可理解提示。
-- 文档治理：临时项以 `// TODO-TEMPORARY` 标注并在时限内回收；参考/计划目录边界满足 CI 检查。
- - 唯一性：全库仅一处 JWT 校验入口（后端）、一处 token 管理入口（前端）；新增变更通过 IIG/CI 检查。
+## 已复核问题与结论
+1) GraphQL 查询示例与契约不匹配  
+- 结论：确有不一致（旧示例使用 `first/hasMore`）。  
+- 处置：已更新 docs/api/README.md 与开发者快速参考中的示例为最新分页包装结构（`data + pagination{ total page pageSize hasNext }`）。
+
+2) 认证头一致性与文档化  
+- 结论：实现已一致（统一客户端自动注入 Authorization、X-Tenant-ID；后端强制校验；OpenAPI 声明必填）。  
+- 处置：在 docs/api/README.md、docs/reference/01-DEVELOPER-QUICK-REFERENCE.md 与 jwt-development-guide.md 补充“必填头部”与 curl 用法。
+
+3) 组织名称验证过严（括号）  
+- 结论：前端验证已放宽，但命令端仍返回 400，说明服务端验证或更新契约仍在限制。  
+- 处置：新增 E2E 回归用例（含括号名称），用于锁定修复；见“本地 E2E 验证结果”。
+
+4) 前端端口显示与实际不一致  
+- 结论：Vite 默认自增端口导致与 Playwright 配置不一致风险。  
+- 处置：开启 Vite `server.strictPort=true`，确保与 Playwright `baseURL`（3000）一致。
+
+5) E2E 测试未注入认证  
+- 结论：Playwright 缺少全局 JWT/Tenant 注入。  
+- 处置：在 `playwright.config.ts` 注入 `extraHTTPHeaders`（从环境变量 `PW_JWT`、`PW_TENANT_ID` 读取）；新增 npm 脚本一键 mint+运行；补充开发/测试指南。
 
 —
 
-## 风险与待解事项
-- 数据库迁移：当前脚本提示“迁移跳过或失败”，需修复后再做业务路由验证。
-- AUTH_ONLY_MODE：仅为临时联调模式，需在 2025-09-30 前去除或改为可配置子服务。// TODO-TEMPORARY
-- OIDC 配置：生产接入需要 IdP 配置与重定向 URI 白名单。
+## 已落实修复与提交
+- 文档与示例：
+  - docs/api/README.md：GraphQL 新契约示例（分页包装）与必填头部说明。
+  - docs/reference/01-DEVELOPER-QUICK-REFERENCE.md：补充认证头必填、GraphQL 新示例、E2E 认证注入与名称验证说明。
+  - docs/development-guides/jwt-development-guide.md：新增 Playwright E2E 认证注入说明。
+- 前端配置：
+  - frontend/vite.config.ts：`server.strictPort=true`。
+  - frontend/playwright.config.ts：全局 `extraHTTPHeaders` 注入 `Authorization`、`X-Tenant-ID`（来自 `PW_JWT`、`PW_TENANT_ID`）。
+  - frontend/package.json：新增 `e2e:auth:dev`（mint dev token → 注入 PW_* → 跑测试）。
+- 回归用例：
+  - frontend/tests/e2e/name-validation-parentheses.spec.ts：验证“组织名称允许括号”；已升级为“GraphQL 读取实体 → 全量 PUT 更新（仅改 name）”。
+- CI 集成：
+  - .github/workflows/frontend-e2e.yml：新增“Frontend E2E (Dev Auth)”工作流，启动 Postgres/Redis、run-dev 后执行 `npm run e2e:auth:dev`（当前 continue-on-error: true）。
 
 —
 
-## 附：关键改动索引
-- 契约：`docs/api/openapi.yaml`
-- BFF 发现端点：`cmd/organization-command-service/internal/authbff/handler.go`
-- 多租户/权限错误码：`internal/auth/middleware.go`、`cmd/organization-command-service/internal/auth/rest_middleware.go`
-- 前端分流：`frontend/src/shared/api/unified-client.ts`
-- IIG 去重整改（2025-09-14）
-  - 后端：统一以 `internal/auth/jwt.go` 为权威实现；`internal/auth/middleware.go` 已改为调用 `JWTMiddleware.ValidateToken`，移除重复校验器 `internal/auth/validator.go`；RS256 支持通过 `JWKS_URL`/`JWT_PUBLIC_KEY_PATH` 注入（映射 `internal/config/jwt.go`）。
-  - 前端：唯一权威实现 `frontend/src/shared/api/auth.ts`；统一客户端 `frontend/src/shared/api/unified-client.ts`、`AuthProvider` 与错误处理均复用，不再额外解析/持久化 token。
-  - 治理：README 已含“硬编码 JWT 配置检查”脚本；后续在 CI `document-sync.yml` 中启用“重复实现守卫”规则（扫描禁用 JWT 解析散落实现）。
-
-- 自检脚本：`scripts/tests/test-auth-integration.sh`
-- 环境变量：`.env`
+## 本地 E2E 验证结果（2025-09-15）
+- 环境健康：命令(9090)/查询(8090) healthy；依赖安装与浏览器就绪。
+- 执行用例：`tests/e2e/name-validation-parentheses.spec.ts` 2/2 失败（chromium、firefox）。
+- 失败详情：PUT /api/v1/organization-units/{code} 返回 400（已采用全量载荷，仅改 name）。
+- 结论：命令端名称验证或更新契约（字段/模式）对括号仍有限制，需后端修复。
 
 —
 
-## 后端接管时态与审计（跨团队改造任务）
-- 背景：依据 07 文档与已执行迁移，数据库侧已移除自动回填 endDate 与审计触发器（021 统一审计/仅值变更更新，022 全量移除触发器与相关函数）。写路径需由命令服务全面接管。
-- 目标：
-  - 单事务维护时间轴与标志位：插入/软删/硬删/变更生效日均在一个事务中完成邻接修补、标志重算、审计写入。
-  - 并发互斥：对同一 `tenantId+code` 使用 `pg_advisory_xact_lock(hashtext(tenant||code))`。
-  - 邻接修补：
-    - 插入中间版本(E)：`prev.endDate = E-1d`；`curr.endDate = min(next.effectiveDate-1d)` 或 `NULL`；
-    - 删除中间版本(R)：桥接 `prev.endDate = min(next.effectiveDate-1d)` 或 `NULL`；
-    - 生效日变更：等价“旧位置删除 + 新位置插入”或单条 UPDATE 并同时修补 P/N；
-    - 仅值变更才 UPDATE：所有 UPDATE 使用 `IS DISTINCT FROM` 避免空 UPDATE。
-  - 标志位：重算 `lifecycle_status` 与 `is_current`（仅非删除行且每个 code 唯一 true）。
-  - 审计：每次 CREATE/UPDATE/DELETE 写 `audit_logs`（按 021 契约字段；UPDATE 无变更跳过；写入 `business_context` 支持 `requestId/context`）。
-- 已完成的数据侧改造：
-  - `database/migrations/021_audit_and_temporal_sane_updates.sql:1`（统一审计写入、上下文、仅值变更）。
-  - `database/migrations/022_remove_db_triggers_and_functions.sql:1`（移除审计/时态/标志触发器与函数）。
-  - 巡检与修复：
-    - `scripts/data-consistency-check.sql`（软删巡检改为 `status='DELETED'`）。
-    - `scripts/fix-temporal-overlap-and-current.sql`（重算 endDate、唯一当前；按现结构跳过删除）。
-- 团队分工：
-  - Backend（主责）：实现 `repository + service + handlers` 写路径；补齐契约/集成测试。
-  - QA：新增/回归 E2E 用例：插入中间版本/软删/生效日变更/无空UPDATE/无多个当前/无重叠。
-  - DevOps：迁移执行、备份与回滚预案、将巡检纳入定时任务。
-  - Frontend：若保留临时过滤，使用 `// TODO-TEMPORARY` 标注并在一个迭代内移除。
-- 验收标准：
-  - 写路径操作后：时间轴连贯、空 UPDATE=0、每个 code 至多一条当前、审计归属与 recordId 一致。
-  - 巡检通过：`data-consistency-check.sql` 无“多个当前/重叠/删除为当前”；空 UPDATE=0。
-  - 前端审计历史按 `recordId` 查询不混杂（邻接审计不混入当前记录）。
+## 下一步请求（需要后端与架构批准并实施）
+1) 放宽后端组织名称验证（缺陷修复）  
+- 允许常见企业命名字符：中文/英文/数字/空格、连字符（-/_）、圆括号 ()、全角括号 （）、中点 · 等；长度 ≤100/或与现有最大值一致（OpenAPI 当前示例为 ≤255，可按统一标准收敛）。
+- 实现建议：优先使用 Unicode 类别（L/N/Zs）+ 小型白名单符号，避免复杂正则边界问题；集中到单一 validator，被 REST/GraphQL 复用。
+- 同步更新：
+  - OpenAPI name 字段描述（允许字符集合与长度），示例包含括号。
+  - 后端单元测试：创建/更新包含括号的名称通过；非法字符用例拒绝。
+
+2) 更新接口契约说明与测试  
+- 明确 PUT 为“替换式更新”（必须传完整载荷）；未来若要支持部分更新，另行评审新增 PATCH。
+- 扩展合约/集成测试覆盖“名称含括号”的创建与更新。
+
+3) CI 门禁调整（修复完成后）  
+- 移除 frontend-e2e.yml 的 `continue-on-error: true`，使“Frontend E2E (Dev Auth)”成为强制门禁。
 
 —
 
-## 落地实现参考（供 Backend 团队）
-- 代码结构建议：
-  - `cmd/organization-command-service/internal/repository/temporal_timeline.go`（事务/锁/邻接/修补）。
-  - `cmd/organization-command-service/internal/repository/audit_writer.go`（审计写入）。
-  - `cmd/organization-command-service/internal/services/organization_temporal_service.go`（聚合服务）。
-  - `cmd/organization-command-service/internal/handlers/temporal_handlers.go`（REST 命令端点：POST 创建版本、DELETE 软删、PATCH 生效日）。
-- SQL 要点：
-  - 锁：`SELECT pg_advisory_xact_lock(hashtext($1||':'||$2));`；邻接 `FOR UPDATE`；
-  - 修补：`UPDATE ... SET end_date=$new WHERE end_date IS DISTINCT FROM $new`；
-  - 当前重算：清零非删除后挑选最近一条设为当前（有效区间包含今天）。
+## 风险与影响
+- 风险：
+  - 放宽字符集后需关注 SQL 注入、XSS 等风控（本系统以参数化与后端编码为全局策略，同时 E2E/单测覆盖回归）。
+  - 开启 strictPort 后，如 3000 被占用将导致 dev 启动失败（文档已提示；CI 固定端口无风险）。
+- 影响面：
+  - 前端表单与后端接口对齐后，含括号名称创建/更新的链路将稳定；E2E 用例可持续守护。
+
+—
+
+## 验收标准（DoD）
+- 后端：
+  - 名称验证放宽并有单元测试；OpenAPI 描述与示例更新。
+  - PUT 更新含括号名称返回 200；非法字符按规则拒绝。
+- 前端：
+  - 回归用例 `name-validation-parentheses.spec.ts` 稳定通过。
+- CI：
+  - Frontend E2E (Dev Auth) 无容错运行通过；成为强制门禁。
+
+—
+
+## 附：运行与验证速查
+- 本地 mint 并跑 E2E：
+```bash
+make jwt-dev-mint && eval $(make jwt-dev-export)
+cd frontend && npm run e2e:auth:dev
+```
+- Playwright 全局认证变量：`PW_JWT=$JWT_TOKEN`，`PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`
+- GraphQL 示例（分页包装 + 必填头部）：见 `docs/api/README.md`
+
+—
+
+## 变更记录
+- 2025-09-15：重写本报告为“进展与复核”版本；记录文档修复、前端配置与 E2E 认证注入、CI 集成、新增回归用例与本地执行结果；提出后端修复请求与门禁调整计划。
+

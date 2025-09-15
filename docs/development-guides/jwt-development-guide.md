@@ -11,6 +11,12 @@
 > 
 > 说明：`X-Tenant-ID` 必填，且必须与 JWT 中的 `tenantId/tenant_id` 一致，否则返回 401/403。
 
+> Playwright E2E：
+> 
+> - 生成令牌并导出：`make jwt-dev-mint && eval $(make jwt-dev-export)`
+> - 设置 E2E 认证环境变量：`export PW_JWT=$JWT_TOKEN && export PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`
+> - 运行测试：`npx playwright test`
+
 ## 概述
 
 Cube Castle项目提供了完整的JWT开发工具，帮助开发者在开发环境中快速生成和管理JWT令牌，提升开发效率。

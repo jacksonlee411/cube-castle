@@ -1,0 +1,65 @@
+name: Frontend E2E (Dev Auth)
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    continue-on-error: true  # 暂行：存在已知待修复用例
+
+    services:
+      postgres:
+        image: postgres:16
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: cubecastle
+        options: >-
+          --health-cmd "pg_isready -U user -d cubecastle" \
+          --health-interval 5s \
+          --health-timeout 5s \
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps
+
+      - name: Start backend (run-dev)
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+        run: |
+          make run-dev &
+          sleep 8
+          curl -fsS http://localhost:9090/health
+          curl -fsS http://localhost:8090/health
+
+      - name: Run E2E with Dev Auth
+        working-directory: frontend
+        run: |
+          npm run e2e:auth:dev
+

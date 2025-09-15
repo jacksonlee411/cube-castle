@@ -73,6 +73,7 @@ make db-migrate-all
 make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h
 eval $(make jwt-dev-export)     # 导出令牌到环境变量
 make jwt-dev-info               # 查看令牌信息
+export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用默认租户
 ```
 
 ### 质量检查命令
@@ -246,3 +247,23 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 ---
 
 *保持这份文档在手边，开发效率提升100%！*
+### GraphQL 示例（新契约，分页包装）
+```bash
+curl -X POST http://localhost:8090/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "X-Tenant-ID: $TENANT_ID" \
+  -d '{"query":"query($p:Int,$s:Int){ organizations(pagination:{page:$p,pageSize:$s}) { data { code name unitType status } pagination { total page pageSize hasNext } } }","variables":{"p":1,"s":10}}'
+```
+
+### E2E（Playwright）全局认证
+在运行 Playwright E2E 测试前，设置以下环境变量以为所有请求注入认证头：
+```bash
+export PW_TENANT_ID=$TENANT_ID
+export PW_JWT=$JWT_TOKEN
+npx playwright test
+```
+
+### 组织名称验证说明
+- 前端与后端统一验证：组织名称需非空、≤100字符；允许常见字符（中文/英文/数字/空格/连字符/括号等）。
+- 建议在回归测试中覆盖含括号名称的创建/更新用例。

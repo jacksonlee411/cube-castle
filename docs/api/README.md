@@ -94,18 +94,27 @@ curl http://localhost:9090/health  # 命令API服务
 - REST 契约文件：`docs/api/openapi.yaml`
 - GraphQL Schema：`docs/api/schema.graphql`
 
-### 3. 测试API
+### 3. 测试API（含必需头部）
 
 ```bash
-# GraphQL查询示例（字段为 camelCase）
+# GraphQL 查询示例（遵循最新契约，使用分页与包装结构）
 curl -X POST http://localhost:8090/graphql \
   -H "Content-Type: application/json" \
-  -d '{"query":"query { organizations(first: 5) { code name unitType status } }"}'
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "X-Tenant-ID: $TENANT_ID" \
+  -d '{
+    "query": "query($page:Int,$pageSize:Int){ organizations(pagination:{page:$page,pageSize:$pageSize}) { data { code name unitType status } pagination { total page pageSize hasNext } } }",
+    "variables": {"page":1, "pageSize":10}
+  }'
 
-# 健康检查
-curl http://localhost:8090/health && echo ""
-curl http://localhost:9090/health && echo ""
+# 健康检查（REST/GraphQL）
+curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: $TENANT_ID" http://localhost:8090/health && echo ""
+curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: $TENANT_ID" http://localhost:9090/health && echo ""
 ```
+
+必需头部（所有 API 请求）：
+- `Authorization: Bearer <JWT_TOKEN>`
+- `X-Tenant-ID: <TENANT_ID>`
 
 ## 📖 详细文档
 

@@ -11,6 +11,7 @@ export default defineConfig({
   // 开发性能优化
   server: {
     port: SERVICE_PORTS.FRONTEND_DEV,
+    strictPort: true,
     hmr: { overlay: false },
     proxy: {
       '/api/metrics': {

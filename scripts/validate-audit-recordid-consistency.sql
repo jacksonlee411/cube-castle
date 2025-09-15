@@ -38,7 +38,7 @@ SELECT * FROM (
 ORDER BY check_item;
 
 \echo '== DETAILS: TOP 50 RECORD_ID PAYLOAD MISMATCHES =='
-SELECT audit_id,
+SELECT id,
        record_id                               AS audit_record_id,
        (before_data->>'record_id')             AS before_record_id,
        (after_data->>'record_id')              AS after_record_id,
@@ -51,7 +51,7 @@ ORDER BY timestamp DESC
 LIMIT 50;
 
 \echo '== DETAILS: UPDATE WITH EMPTY CHANGES BUT BEFORE!=AFTER (TOP 50) =='
-SELECT audit_id,
+SELECT id,
        event_type,
        timestamp
 FROM audit_logs
