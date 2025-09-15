@@ -44,14 +44,14 @@ func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid
 }
 
 func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organization) (*types.Organization, error) {
-	query := `
-		INSERT INTO organization_units (
-			tenant_id, code, parent_code, name, unit_type, status, 
-			level, path, sort_order, description, created_at, updated_at,
-			effective_date, end_date, is_temporal, change_reason, is_current
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-		RETURNING record_id, created_at, updated_at
-	`
+    query := `
+        INSERT INTO organization_units (
+            tenant_id, code, parent_code, name, unit_type, status, 
+            level, path, sort_order, description, created_at, updated_at,
+            effective_date, end_date, change_reason, is_current
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        RETURNING record_id, created_at, updated_at
+    `
 
 	var createdAt, updatedAt time.Time
 
@@ -72,25 +72,24 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 	)
 	isCurrent := !effectiveDateTime.After(today)
 
-	err := r.db.QueryRowContext(ctx, query,
-		org.TenantID,
-		org.Code,
-		org.ParentCode,
-		org.Name,
-		org.UnitType,
-		org.Status,
-		org.Level,
-		org.Path,
-		org.SortOrder,
-		org.Description,
-		time.Now(),
-		time.Now(),
-		effectiveDate, // Date类型
-		org.EndDate,   // 允许为nil
-		org.IsTemporal,
-		org.ChangeReason,
-		isCurrent, // 根据effective_date计算的is_current值
-	).Scan(&org.RecordID, &createdAt, &updatedAt)
+    err := r.db.QueryRowContext(ctx, query,
+        org.TenantID,
+        org.Code,
+        org.ParentCode,
+        org.Name,
+        org.UnitType,
+        org.Status,
+        org.Level,
+        org.Path,
+        org.SortOrder,
+        org.Description,
+        time.Now(),
+        time.Now(),
+        effectiveDate, // Date类型
+        org.EndDate,   // 允许为nil
+        org.ChangeReason,
+        isCurrent, // 根据effective_date计算的is_current值
+    ).Scan(&org.RecordID, &createdAt, &updatedAt)
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -108,19 +107,19 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 	org.UpdatedAt = updatedAt
 	org.EffectiveDate = effectiveDate // 确保返回的组织有effective_date值
 
-	r.logger.Printf("组织创建成功: %s - %s (时态: %v)", org.Code, org.Name, org.IsTemporal)
+    r.logger.Printf("组织创建成功: %s - %s", org.Code, org.Name)
 	return org, nil
 }
 
 func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sql.Tx, org *types.Organization) (*types.Organization, error) {
-	query := `
-		INSERT INTO organization_units (
-			tenant_id, code, parent_code, name, unit_type, status, 
-			level, path, sort_order, description, created_at, updated_at,
-			effective_date, end_date, is_temporal, change_reason, is_current
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-		RETURNING record_id, created_at, updated_at
-	`
+    query := `
+        INSERT INTO organization_units (
+            tenant_id, code, parent_code, name, unit_type, status, 
+            level, path, sort_order, description, created_at, updated_at,
+            effective_date, end_date, change_reason, is_current
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        RETURNING record_id, created_at, updated_at
+    `
 
 	var createdAt, updatedAt time.Time
 
@@ -133,25 +132,24 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 		effectiveDate = types.NewDate(now.Year(), now.Month(), now.Day())
 	}
 
-	err := tx.QueryRowContext(ctx, query,
-		org.TenantID,
-		org.Code,
-		org.ParentCode,
-		org.Name,
-		org.UnitType,
-		org.Status,
-		org.Level,
-		org.Path,
-		org.SortOrder,
-		org.Description,
-		time.Now(),
-		time.Now(),
-		effectiveDate, // Date类型
-		org.EndDate,   // 允许为nil
-		org.IsTemporal,
-		org.ChangeReason,
-		org.IsCurrent, // 显式设置is_current
-	).Scan(&org.RecordID, &createdAt, &updatedAt)
+    err := tx.QueryRowContext(ctx, query,
+        org.TenantID,
+        org.Code,
+        org.ParentCode,
+        org.Name,
+        org.UnitType,
+        org.Status,
+        org.Level,
+        org.Path,
+        org.SortOrder,
+        org.Description,
+        time.Now(),
+        time.Now(),
+        effectiveDate, // Date类型
+        org.EndDate,   // 允许为nil
+        org.ChangeReason,
+        org.IsCurrent, // 显式设置is_current
+    ).Scan(&org.RecordID, &createdAt, &updatedAt)
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -225,11 +223,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		argIndex++
 	}
 
-	if req.IsTemporal != nil {
-		setParts = append(setParts, fmt.Sprintf("is_temporal = $%d", argIndex))
-		args = append(args, *req.IsTemporal)
-		argIndex++
-	}
+	// is_temporal 已移除：由 end_date 是否为空派生，不提供独立更新
 
 	if req.ChangeReason != nil {
 		setParts = append(setParts, fmt.Sprintf("change_reason = $%d", argIndex))
@@ -253,16 +247,16 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
           AND status <> 'DELETED' AND deleted_at IS NULL
         RETURNING tenant_id, code, parent_code, name, unit_type, status,
                   level, path, sort_order, description, created_at, updated_at,
-                  effective_date, end_date, is_temporal, change_reason
+                  effective_date, end_date, change_reason
     `, strings.Join(setParts, ", "))
 
 	var org types.Organization
-	err := r.db.QueryRowContext(ctx, query, args...).Scan(
-		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
-		&org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
-	)
+    err := r.db.QueryRowContext(ctx, query, args...).Scan(
+        &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+        &org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+        &org.Description, &org.CreatedAt, &org.UpdatedAt,
+        &org.EffectiveDate, &org.EndDate, &org.ChangeReason,
+    )
 
     if err != nil {
         if err == sql.ErrNoRows {
@@ -271,31 +265,31 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
         return nil, fmt.Errorf("更新组织失败: %w", err)
     }
 
-	r.logger.Printf("组织更新成功: %s - %s (时态: %v)", org.Code, org.Name, org.IsTemporal)
+    r.logger.Printf("组织更新成功: %s - %s", org.Code, org.Name)
 	return &org, nil
 }
 
 
 func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID, code string, reason string) (*types.Organization, error) {
-	query := `
-		UPDATE organization_units 
-		SET status = 'INACTIVE', updated_at = $3
-		WHERE tenant_id = $1 AND code = $2 AND status = 'ACTIVE'
-		RETURNING tenant_id, code, parent_code, name, unit_type, status, 
-		         level, path, sort_order, description, created_at, updated_at,
-		         effective_date, end_date, is_temporal, change_reason
-	`
+    query := `
+        UPDATE organization_units 
+        SET status = 'INACTIVE', updated_at = $3
+        WHERE tenant_id = $1 AND code = $2 AND status = 'ACTIVE'
+        RETURNING tenant_id, code, parent_code, name, unit_type, status, 
+                 level, path, sort_order, description, created_at, updated_at,
+                 effective_date, end_date, change_reason
+    `
 
 	var org types.Organization
 	var parentCode sql.NullString
 	var effectiveDate, endDate sql.NullTime
 	var changeReason sql.NullString
 
-	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
-		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
-		&org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&effectiveDate, &endDate, &org.IsTemporal, &changeReason,
-	)
+    err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
+        &org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
+        &org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
+        &effectiveDate, &endDate, &changeReason,
+    )
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -329,9 +323,9 @@ func (r *OrganizationRepository) Activate(ctx context.Context, tenantID uuid.UUI
 		UPDATE organization_units 
 		SET status = 'ACTIVE', updated_at = $3
 		WHERE tenant_id = $1 AND code = $2 AND status = 'INACTIVE'
-		RETURNING tenant_id, code, parent_code, name, unit_type, status, 
-		         level, path, sort_order, description, created_at, updated_at,
-		         effective_date, end_date, is_temporal, change_reason
+         RETURNING tenant_id, code, parent_code, name, unit_type, status, 
+                  level, path, sort_order, description, created_at, updated_at,
+                  effective_date, end_date, change_reason
 	`
 
 	var org types.Organization
@@ -339,11 +333,11 @@ func (r *OrganizationRepository) Activate(ctx context.Context, tenantID uuid.UUI
 	var effectiveDate, endDate sql.NullTime
 	var changeReason sql.NullString
 
-	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
-		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
-		&org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&effectiveDate, &endDate, &org.IsTemporal, &changeReason,
-	)
+    err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
+        &org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
+        &org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
+        &effectiveDate, &endDate, &changeReason,
+    )
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -456,11 +450,7 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 		argIndex++
 	}
 
-	if req.IsTemporal != nil {
-		setParts = append(setParts, fmt.Sprintf("is_temporal = $%d", argIndex))
-		args = append(args, *req.IsTemporal)
-		argIndex++
-	}
+    // is_temporal 已移除：由 end_date 是否为空派生，不提供独立更新
 
 	if req.ChangeReason != nil {
 		setParts = append(setParts, fmt.Sprintf("change_reason = $%d", argIndex))
@@ -484,16 +474,16 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
           AND status <> 'DELETED' AND deleted_at IS NULL
         RETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,
                   level, path, sort_order, description, created_at, updated_at,
-                  effective_date, end_date, is_temporal, change_reason
+                  effective_date, end_date, change_reason
     `, strings.Join(setParts, ", "))
 
 	var org types.Organization
-	err := r.db.QueryRowContext(ctx, query, args...).Scan(
-		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
-		&org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
-	)
+    err := r.db.QueryRowContext(ctx, query, args...).Scan(
+        &org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+        &org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+        &org.Description, &org.CreatedAt, &org.UpdatedAt,
+        &org.EffectiveDate, &org.EndDate, &org.ChangeReason,
+    )
 
     if err != nil {
         if err == sql.ErrNoRows {
@@ -508,22 +498,22 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 
 // GetByCode 通过组织代码获取当前有效的组织记录（用于审计日志）
 func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
-	query := `
-		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
-		       level, path, sort_order, description, created_at, updated_at,
-		       effective_date, end_date, is_temporal, change_reason
-		FROM organization_units 
-		WHERE tenant_id = $1 AND code = $2 AND is_current = true
-		LIMIT 1
-	`
+    query := `
+        SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
+               level, path, sort_order, description, created_at, updated_at,
+               effective_date, end_date, change_reason
+        FROM organization_units 
+        WHERE tenant_id = $1 AND code = $2 AND is_current = true
+        LIMIT 1
+    `
 
 	var org types.Organization
-	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
-		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
-		&org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
-	)
+    err := r.db.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
+        &org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+        &org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+        &org.Description, &org.CreatedAt, &org.UpdatedAt,
+        &org.EffectiveDate, &org.EndDate, &org.ChangeReason,
+    )
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -537,22 +527,22 @@ func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UU
 
 // GetByRecordId 通过记录ID获取组织记录（用于审计日志）
 func (r *OrganizationRepository) GetByRecordId(ctx context.Context, tenantID uuid.UUID, recordId string) (*types.Organization, error) {
-	query := `
-		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
-		       level, path, sort_order, description, created_at, updated_at,
-		       effective_date, end_date, is_temporal, change_reason
-		FROM organization_units 
-		WHERE tenant_id = $1 AND record_id = $2
-		LIMIT 1
-	`
+    query := `
+        SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
+               level, path, sort_order, description, created_at, updated_at,
+               effective_date, end_date, change_reason
+        FROM organization_units 
+        WHERE tenant_id = $1 AND record_id = $2
+        LIMIT 1
+    `
 
 	var org types.Organization
-	err := r.db.QueryRowContext(ctx, query, tenantID.String(), recordId).Scan(
-		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
-		&org.Description, &org.CreatedAt, &org.UpdatedAt,
-		&org.EffectiveDate, &org.EndDate, &org.IsTemporal, &org.ChangeReason,
-	)
+    err := r.db.QueryRowContext(ctx, query, tenantID.String(), recordId).Scan(
+        &org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+        &org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+        &org.Description, &org.CreatedAt, &org.UpdatedAt,
+        &org.EffectiveDate, &org.EndDate, &org.ChangeReason,
+    )
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -569,7 +559,7 @@ func (r *OrganizationRepository) ListVersionsByCode(ctx context.Context, tenantI
     query := `
         SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
                level, path, sort_order, description, created_at, updated_at,
-               effective_date, end_date, is_temporal, change_reason
+               effective_date, end_date, change_reason
         FROM organization_units
         WHERE tenant_id = $1 AND code = $2
           AND status <> 'DELETED' AND deleted_at IS NULL
@@ -593,7 +583,7 @@ func (r *OrganizationRepository) ListVersionsByCode(ctx context.Context, tenantI
             &org.RecordID, &org.TenantID, &org.Code, &parentCode, &org.Name,
             &org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
             &org.Description, &org.CreatedAt, &org.UpdatedAt,
-            &effectiveDate, &endDate, &org.IsTemporal, &changeReason,
+            &effectiveDate, &endDate, &changeReason,
         ); err != nil {
             return nil, fmt.Errorf("扫描组织版本失败: %w", err)
         }

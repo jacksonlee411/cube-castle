@@ -80,21 +80,10 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 		return fmt.Errorf("描述长度不能超过500个字符")
 	}
 
-	// 7. 时态管理验证
-	if req.IsTemporal {
-		if req.EffectiveDate == nil {
-			return fmt.Errorf("时态组织必须设置生效日期")
-		}
-		if req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
-			return fmt.Errorf("生效日期不能晚于失效日期")
-		}
-		if req.ChangeReason == "" {
-			return fmt.Errorf("时态组织必须提供变更原因")
-		}
-		if len(req.ChangeReason) > 200 {
-			return fmt.Errorf("变更原因不能超过200个字符")
-		}
-	}
+    // 7. 时态字段基本验证（不引入 isTemporal）
+    if req.EffectiveDate != nil && req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
+        return fmt.Errorf("生效日期不能晚于失效日期")
+    }
 
 	return nil
 }
@@ -166,21 +155,10 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 		return fmt.Errorf("描述长度不能超过500个字符")
 	}
 
-	// 7. 时态管理验证
-	if req.IsTemporal != nil && *req.IsTemporal {
-		if req.EffectiveDate == nil {
-			return fmt.Errorf("启用时态管理时必须设置生效日期")
-		}
-		if req.EndDate != nil && req.EffectiveDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
-			return fmt.Errorf("生效日期不能晚于失效日期")
-		}
-		if req.ChangeReason == nil || *req.ChangeReason == "" {
-			return fmt.Errorf("时态更新必须提供变更原因")
-		}
-		if req.ChangeReason != nil && len(*req.ChangeReason) > 200 {
-			return fmt.Errorf("变更原因不能超过200个字符")
-		}
-	}
+    // 7. 时态字段基本验证（不引入 isTemporal）
+    if req.EffectiveDate != nil && req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
+        return fmt.Errorf("生效日期不能晚于失效日期")
+    }
 
 	return nil
 }

@@ -67,12 +67,12 @@ INSERT INTO organization_units (
 -- 插入未来生效的组织 (演示时态功能)
 INSERT INTO organization_units (
     code, parent_code, tenant_id, name, unit_type, status, description, profile,
-    effective_date, is_current, is_future, operated_by_id, operated_by_name, operation_reason
+    effective_date, is_current, operated_by_id, operated_by_name, operation_reason
 ) VALUES 
 ('1000004', '1000000', '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9', '国际业务部', 'DEPARTMENT', 'ACTIVE',
- '负责国际市场拓展',
- '{"budget": 4000000, "managerPositionCode": "POS-MGR-004", "costCenterCode": "CC004", "headCountLimit": 40, "establishedDate": "2025-06-01"}',
- '2025-06-01', false, true, '789e0123-e89b-12d3-a456-426614174008', 'Zheng Shi', '国际化战略布局');
+'负责国际市场拓展',
+'{"budget": 4000000, "managerPositionCode": "POS-MGR-004", "costCenterCode": "CC004", "headCountLimit": 40, "establishedDate": "2025-06-01"}',
+'2025-06-01', false, '789e0123-e89b-12d3-a456-426614174008', 'Zheng Shi', '国际化战略布局');
 
 -- 插入已暂停的组织 (演示状态管理)
 INSERT INTO organization_units (

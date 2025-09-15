@@ -63,8 +63,8 @@ type Organization struct {
 	CreatedAtField        time.Time  `json:"createdAt" db:"created_at"`
 	UpdatedAtField        time.Time  `json:"updatedAt" db:"updated_at"`
 	EffectiveDateField    time.Time  `json:"effectiveDate" db:"effective_date"`
-	EndDateField          *time.Time `json:"endDate" db:"end_date"`
-	IsCurrentField        bool       `json:"isCurrent" db:"is_current"`
+    EndDateField          *time.Time `json:"endDate" db:"end_date"`
+    IsCurrentField        bool       `json:"isCurrent" db:"is_current"`
 	ChangeReasonField     *string    `json:"changeReason" db:"change_reason"`
 	DeletedAtField        *time.Time `json:"deletedAt" db:"deleted_at"`
 	DeletedByField        *string    `json:"deletedBy" db:"deleted_by"`
@@ -74,8 +74,7 @@ type Organization struct {
 	SuspensionReasonField *string    `json:"suspensionReason" db:"suspension_reason"`
 	
 	// 新增缺失的字段
-	HierarchyDepthField   int      `json:"hierarchyDepth" db:"hierarchy_depth"`
-	IsFutureField         bool     `json:"isFuture" db:"is_future"`
+    HierarchyDepthField   int      `json:"hierarchyDepth" db:"hierarchy_depth"`
 }
 
 // GraphQL字段解析器 - 零拷贝优化 (camelCase方法名)
@@ -114,11 +113,26 @@ func (o Organization) EndDate() *string {
 }
 func (o Organization) IsCurrent() bool { return o.IsCurrentField }
 func (o Organization) IsTemporal() bool {
-	return true // 默认为时态数据
+    // 派生：有结束日期即为历史时态
+    return o.EndDateField != nil
 }
 func (o Organization) ChangeReason() *string { return o.ChangeReasonField }
 func (o Organization) HierarchyDepth() int32    { return int32(o.HierarchyDepthField) }
-func (o Organization) IsFuture() bool           { return o.IsFutureField }
+func cnTodayDate() time.Time {
+    loc, err := time.LoadLocation("Asia/Shanghai")
+    if err != nil {
+        // 回退到 UTC，但这在部署环境应始终可用
+        return time.Now().UTC().Truncate(24 * time.Hour)
+    }
+    nowCN := time.Now().In(loc)
+    return time.Date(nowCN.Year(), nowCN.Month(), nowCN.Day(), 0, 0, 0, 0, loc)
+}
+func (o Organization) IsFuture() bool {
+    // 派生：effectiveDate > 今日（北京时间）
+    todayCN := cnTodayDate()
+    eff := time.Date(o.EffectiveDateField.Year(), o.EffectiveDateField.Month(), o.EffectiveDateField.Day(), 0, 0, 0, 0, todayCN.Location())
+    return eff.After(todayCN)
+}
 func (o Organization) DeletedAt() *string {
 	if o.DeletedAtField == nil {
 		return nil
@@ -508,7 +522,7 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	baseQuery := `
 		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
 		       level, path, sort_order, description, profile, created_at, updated_at,
-		       effective_date, end_date, is_current, is_temporal, change_reason,
+               effective_date, end_date, is_current, change_reason,
 		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
 		FROM organization_units 
 		WHERE tenant_id = $1 AND is_current = true`
@@ -574,18 +588,17 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	}
 	defer rows.Close()
 
-	var organizations []Organization
-	for rows.Next() {
-		var org Organization
-		var isTemporal bool
-		err := rows.Scan(
-			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
-			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
-			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
-			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
-			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
-		)
+    var organizations []Organization
+    for rows.Next() {
+        var org Organization
+        err := rows.Scan(
+            &org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+            &org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+            &org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+            &org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+            &org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+            &org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+        )
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描组织数据失败: %v", err)
 			return nil, err
@@ -624,7 +637,7 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
     query := `
         SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
                level, path, sort_order, description, profile, created_at, updated_at,
-               effective_date, end_date, is_current, is_temporal, change_reason,
+               effective_date, end_date, is_current, change_reason,
                deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
         FROM organization_units 
         WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
@@ -633,14 +646,13 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
 	start := time.Now()
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
 
-	var org Organization
-	var isTemporal bool
-	err := row.Scan(
+    var org Organization
+    err := row.Scan(
 		&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
 		&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
 		&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-		&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
-		&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+        &org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+        &org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 		&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
 	)
 
@@ -666,7 +678,7 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
             SELECT 
                 record_id, tenant_id, code, parent_code, name, unit_type, status,
                 level, path, sort_order, description, profile, created_at, updated_at,
-                effective_date, end_date, is_current, is_temporal, change_reason,
+                effective_date, end_date, is_current, change_reason,
                 deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
                 LEAD(effective_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS next_effective
             FROM organization_units 
@@ -678,14 +690,14 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
                 level, path, sort_order, description, profile, created_at, updated_at,
                 effective_date,
                 COALESCE(end_date, (next_effective - INTERVAL '1 day')::date) AS computed_end_date,
-                is_current, is_temporal, change_reason,
+                is_current, change_reason,
                 deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
             FROM hist
         )
         SELECT 
             record_id, tenant_id, code, parent_code, name, unit_type, status,
             level, path, sort_order, description, profile, created_at, updated_at,
-            effective_date, computed_end_date AS end_date, is_current, is_temporal, change_reason,
+               effective_date, computed_end_date AS end_date, is_current, change_reason,
             deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
         FROM proj
         WHERE effective_date <= $3::date 
@@ -763,18 +775,17 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
 	}
 	defer rows.Close()
 
-	var organizations []Organization
-	for rows.Next() {
-		var org Organization
-		var isTemporal bool
-		err := rows.Scan(
-			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
-			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
-			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
-			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
-			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
-		)
+    var organizations []Organization
+    for rows.Next() {
+        var org Organization
+        err := rows.Scan(
+            &org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+            &org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+            &org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+            &org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+            &org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+            &org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+        )
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描历史数据失败: %v", err)
 			return nil, err
@@ -796,9 +807,9 @@ func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tena
 	baseQuery := `
 		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
 		       level, path, sort_order, description, profile, created_at, updated_at,
-		       effective_date, end_date, is_current, is_temporal, change_reason,
-		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
-		       hierarchy_depth, is_future
+               effective_date, end_date, is_current, change_reason,
+               deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
+               hierarchy_depth
 		FROM organization_units
 		WHERE tenant_id = $1 AND code = $2`
 
@@ -819,19 +830,18 @@ func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tena
 	}
 	defer rows.Close()
 
-	var organizations []Organization
-	for rows.Next() {
-		var org Organization
-		var isTemporal bool
-		err := rows.Scan(
-			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
-			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
-			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField, &isTemporal,
-			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
-			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
-			&org.HierarchyDepthField, &org.IsFutureField,
-		)
+    var organizations []Organization
+    for rows.Next() {
+        var org Organization
+        err := rows.Scan(
+            &org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+            &org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+            &org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+            &org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+            &org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+            &org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+            &org.HierarchyDepthField,
+        )
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描组织版本数据失败: %v", err)
 			return nil, err

@@ -1,113 +1,95 @@
-# 06 — 集成团队进展与复核报告（2025-09-15）
+# 06 — 集成团队进展日志（Integrated Teams Progress Log）
 
-最后更新：2025-09-15  
-牵头：QA / Backend / Frontend / DevOps  
-状态：已完成复核与部分修复；本地E2E验证已跑通环境与认证注入；仍有一项服务端验证待修复
+最后更新：2025-09-15
 
 —
 
-## 执行摘要
-- 已复核 06 文档列出的问题，完成文档与前端配置修复、E2E 全局认证注入与 CI 集成；本地 E2E 回归用例运行后发现“组织名称含括号的更新”仍被命令端以 400 拒绝，判断为后端名称验证或更新契约限制导致。
-- 已将“前端 E2E（Dev Auth）”纳入 CI；当前暂以 continue-on-error 跑通流程，待后端修复后转为强制门禁。
-- 下一步请求：由后端放宽名称字符校验并更新 OpenAPI 描述、补充单元测试；完成后我将去除 CI 容错并回归验证。
+## 🎯 本次目标
+- 修复时态标记错误与一致性问题，按“API 优先、PG 原生 CQRS、读时派生”的原则，完成列级精简与查询层派生。
 
 —
 
-## 已复核问题与结论
-1) GraphQL 查询示例与契约不匹配  
-- 结论：确有不一致（旧示例使用 `first/hasMore`）。  
-- 处置：已更新 docs/api/README.md 与开发者快速参考中的示例为最新分页包装结构（`data + pagination{ total page pageSize hasNext }`）。
+## ✅ 已完成的变更（Changes）
 
-2) 认证头一致性与文档化  
-- 结论：实现已一致（统一客户端自动注入 Authorization、X-Tenant-ID；后端强制校验；OpenAPI 声明必填）。  
-- 处置：在 docs/api/README.md、docs/reference/01-DEVELOPER-QUICK-REFERENCE.md 与 jwt-development-guide.md 补充“必填头部”与 curl 用法。
+后端（命令服务：organization-command-service）
+- 移除 is_temporal 物理列使用：
+  - 删除所有 is_temporal 的读/写/扫描；重算仅维护 end_date、is_current。
+  - 文件：
+    - repository/temporal_timeline.go：去除 is_temporal 更新与列位；重算仅更新 end_date + is_current。
+    - repository/organization.go：所有 INSERT/UPDATE/SELECT 去掉 is_temporal 列位与扫描。
+    - types/models.go：移除 IsTemporal 字段（请求/响应/模型）。
+    - utils/validation.go：移除 isTemporal 校验分支，保留有效期基本校验。
+    - handlers/organization.go：审计 AfterData 不再包含 isTemporal/isCurrent（动态字段统一剔除）；响应不含 isTemporal。
 
-3) 组织名称验证过严（括号）  
-- 结论：前端验证已放宽，但命令端仍返回 400，说明服务端验证或更新契约仍在限制。  
-- 处置：新增 E2E 回归用例（含括号名称），用于锁定修复；见“本地 E2E 验证结果”。
+后端（查询服务：organization-query-service）
+- 统一派生：
+  - isTemporal = (endDate != null)；不读取任何存储列。
+  - isFuture = (effectiveDate > 今日北京时区自然日)。
+  - 文件：cmd/organization-query-service/main.go（新增 IsFuture/IsTemporal 派生、删除 db:is_future 与任何 is_temporal 扫描）。
 
-4) 前端端口显示与实际不一致  
-- 结论：Vite 默认自增端口导致与 Playwright 配置不一致风险。  
-- 处置：开启 Vite `server.strictPort=true`，确保与 Playwright `baseURL`（3000）一致。
+数据库（PostgreSQL）
+- 新增/执行迁移：
+  - 023_audit_exclude_dynamic_temporal_flags.sql：审计触发函数过滤 is_current/is_temporal/is_future（动态字段不入审计）。
+  - 024_remove_is_temporal_column.sql：删除 is_temporal 列，清理依赖索引/视图并重建简化视图 organization_temporal_current（仅 is_current=true）。
+  - 025_remove_is_future_column.sql：删除 is_future 列与相关触发器/索引，重建视图。
+- 日切脚本调整：scripts/daily-cutover.sql 去除 is_future 逻辑，保留 is_current 翻转（isFuture 改为读时派生）。
+- 运行维护脚本：
+  - sql/inspection/check_temporal_consistency.sql：移除 is_temporal 一致性检查；保留“当前态不应结束”“区间重叠/间隙”。
+  - sql/maintenance/fix_temporal_timeline_continuity.sql：仅重算 end_date 连续性。
+  - scripts/maintenance/run_temporal_consistency.sh：自动跳过无 is_temporal 时的对齐修复；支持 fix-timeline/fix-all。
 
-5) E2E 测试未注入认证  
-- 结论：Playwright 缺少全局 JWT/Tenant 注入。  
-- 处置：在 `playwright.config.ts` 注入 `extraHTTPHeaders`（从环境变量 `PW_JWT`、`PW_TENANT_ID` 读取）；新增 npm 脚本一键 mint+运行；补充开发/测试指南。
-
-—
-
-## 已落实修复与提交
-- 文档与示例：
-  - docs/api/README.md：GraphQL 新契约示例（分页包装）与必填头部说明。
-  - docs/reference/01-DEVELOPER-QUICK-REFERENCE.md：补充认证头必填、GraphQL 新示例、E2E 认证注入与名称验证说明。
-  - docs/development-guides/jwt-development-guide.md：新增 Playwright E2E 认证注入说明。
-- 前端配置：
-  - frontend/vite.config.ts：`server.strictPort=true`。
-  - frontend/playwright.config.ts：全局 `extraHTTPHeaders` 注入 `Authorization`、`X-Tenant-ID`（来自 `PW_JWT`、`PW_TENANT_ID`）。
-  - frontend/package.json：新增 `e2e:auth:dev`（mint dev token → 注入 PW_* → 跑测试）。
-- 回归用例：
-  - frontend/tests/e2e/name-validation-parentheses.spec.ts：验证“组织名称允许括号”；已升级为“GraphQL 读取实体 → 全量 PUT 更新（仅改 name）”。
-- CI 集成：
-  - .github/workflows/frontend-e2e.yml：新增“Frontend E2E (Dev Auth)”工作流，启动 Postgres/Redis、run-dev 后执行 `npm run e2e:auth:dev`（当前 continue-on-error: true）。
-
-—
-
-## 本地 E2E 验证结果（2025-09-15）
-- 环境健康：命令(9090)/查询(8090) healthy；依赖安装与浏览器就绪。
-- 执行用例：`tests/e2e/name-validation-parentheses.spec.ts` 2/2 失败（chromium、firefox）。
-- 失败详情：PUT /api/v1/organization-units/{code} 返回 400（已采用全量载荷，仅改 name）。
-- 结论：命令端名称验证或更新契约（字段/模式）对括号仍有限制，需后端修复。
+契约与文档
+- GraphQL 契约说明更新：docs/api/schema.graphql
+  - 指明 isTemporal 为派生（endDate!=null），isFuture 以北京时间（UTC+8）派生。
+- 架构文档更新：docs/development-plans/02-technical-architecture-design.md
+  - 时态字段为 effective_date、end_date、is_current；is_temporal/is_future 已移除并由查询层派生。
+- 本进展文档重写并归档此前结论。
 
 —
 
-## 下一步请求（需要后端与架构批准并实施）
-1) 放宽后端组织名称验证（缺陷修复）  
-- 允许常见企业命名字符：中文/英文/数字/空格、连字符（-/_）、圆括号 ()、全角括号 （）、中点 · 等；长度 ≤100/或与现有最大值一致（OpenAPI 当前示例为 ≤255，可按统一标准收敛）。
-- 实现建议：优先使用 Unicode 类别（L/N/Zs）+ 小型白名单符号，避免复杂正则边界问题；集中到单一 validator，被 REST/GraphQL 复用。
-- 同步更新：
-  - OpenAPI name 字段描述（允许字符集合与长度），示例包含括号。
-  - 后端单元测试：创建/更新包含括号的名称通过；非法字符用例拒绝。
-
-2) 更新接口契约说明与测试  
-- 明确 PUT 为“替换式更新”（必须传完整载荷）；未来若要支持部分更新，另行评审新增 PATCH。
-- 扩展合约/集成测试覆盖“名称含括号”的创建与更新。
-
-3) CI 门禁调整（修复完成后）  
-- 移除 frontend-e2e.yml 的 `continue-on-error: true`，使“Frontend E2E (Dev Auth)”成为强制门禁。
+## 📈 当前进展与验证（Progress）
+- 迁移 023/024/025 已在本地数据库成功执行；organization_units 不含 is_temporal/is_future。
+- 两个服务可构建通过：
+  - go build ./cmd/organization-command-service
+  - go build ./cmd/organization-query-service
+- 一键巡检（check-and-fix）通过：
+  - 区间重叠/间隙/“当前态结束”检查均为 0。
+- 典型数据点（code=1000002）：
+  - 当前态（2025-09-09）尾部开放；历史均 end_date 非空；isTemporal 派生与 endDate 一致。
 
 —
 
-## 风险与影响
-- 风险：
-  - 放宽字符集后需关注 SQL 注入、XSS 等风控（本系统以参数化与后端编码为全局策略，同时 E2E/单测覆盖回归）。
-  - 开启 strictPort 后，如 3000 被占用将导致 dev 启动失败（文档已提示；CI 固定端口无风险）。
-- 影响面：
-  - 前端表单与后端接口对齐后，含括号名称创建/更新的链路将稳定；E2E 用例可持续守护。
+## 🔜 后续任务（Next Tasks）
+- GraphQL 契约细化（可选）：
+  - 如产品需要对外暴露 isTemporal 字段，按派生语义补充分发并更新 schema 描述；当前已提供 isFuture 的派生说明。
+- API 迁移指南与变更记录：
+  - docs/api/migration-guide.md 与 docs/api/CHANGELOG.md 增补“移除 is_temporal/is_future 物理列，改为派生”的说明及影响面（前端、报表 SQL）。
+- CI 质量门禁：
+  - 将“时态连续性巡检”结果汇总至报告，必要时设为告警阈值（可集成 iig-guardian 汇总）。
+- 前端对齐：
+  - 使用返回的 endDate/isCurrent 动态派生 UI 显示的 isTemporal/isFuture；移除任何对物理列的假设。
+- 脚本与样例清理：
+  - 已更新示例数据（去 is_future 列位）；检查并移除遗留 SQL/脚本中的 is_future/is_temporal 引用（备份/历史脚本可保留但不在 CI 路径执行）。
 
 —
 
-## 验收标准（DoD）
-- 后端：
-  - 名称验证放宽并有单元测试；OpenAPI 描述与示例更新。
-  - PUT 更新含括号名称返回 200；非法字符按规则拒绝。
-- 前端：
-  - 回归用例 `name-validation-parentheses.spec.ts` 稳定通过。
-- CI：
-  - Frontend E2E (Dev Auth) 无容错运行通过；成为强制门禁。
+## ⚖️ 原则与对齐（Alignment）
+- API 优先与 CQRS 分工：查询统一 GraphQL（读时派生），命令统一 REST（写侧维护 end_date/is_current）。
+- 不引入触发器至热路径：列移除+读时派生降低热路径复杂度与风险。
+- 命名一致性：API camelCase；DB snake_case；跨层字段对齐。
 
 —
 
-## 附：运行与验证速查
-- 本地 mint 并跑 E2E：
-```bash
-make jwt-dev-mint && eval $(make jwt-dev-export)
-cd frontend && npm run e2e:auth:dev
-```
-- Playwright 全局认证变量：`PW_JWT=$JWT_TOKEN`，`PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`
-- GraphQL 示例（分页包装 + 必填头部）：见 `docs/api/README.md`
+## 📎 参考路径（References）
+- 命令服务：cmd/organization-command-service/internal/{repository,handlers,types,utils}
+- 查询服务：cmd/organization-query-service/main.go
+- 迁移脚本：database/migrations/023、024、025
+- 运维脚本：scripts/maintenance/run_temporal_consistency.sh
+- 巡检/修复 SQL：sql/inspection/check_temporal_consistency.sql，sql/maintenance/fix_temporal_timeline_continuity.sql
 
 —
 
-## 变更记录
-- 2025-09-15：重写本报告为“进展与复核”版本；记录文档修复、前端配置与 E2E 认证注入、CI 集成、新增回归用例与本地执行结果；提出后端修复请求与门禁调整计划。
+## 变更记录（Changelog）
+- 2025-09-15：执行阶段B（早期直切）：移除 is_temporal 物理列；查询层改为派生 isTemporal。
+- 2025-09-15：清理 is_future 物理列；查询层改为派生 isFuture（北京时间）；同步更新脚本、契约与文档。
 

@@ -51,7 +51,10 @@
 ### PostgreSQL单表时态设计
 - **架构模式**: 单表多版本时态架构 (Temporal Database)
 - **主键设计**: 复合主键 `(code, effective_date)` 支持版本共存
-- **时态字段**: `effective_date`, `end_date`, `is_current`, `is_future`
+- **时态字段**: `effective_date`, `end_date`, `is_current`
+  - 说明：`is_temporal` 与 `is_future` 物理列已移除；
+    - isTemporal = (end_date != null) 派生
+    - isFuture = (effective_date > 今日[北京时区]) 派生
 - **索引策略**: 26个专用时态索引，覆盖所有查询场景
 - **审计模式**: 独立审计表 + JSONB变更追踪
 
@@ -72,7 +75,7 @@ record_id UUID NOT NULL DEFAULT gen_random_uuid(), -- 版本唯一标识
 effective_date DATE NOT NULL,        -- 生效日期
 end_date DATE,                      -- 结束日期
 is_current BOOLEAN DEFAULT false,   -- 当前版本标记
-is_future BOOLEAN DEFAULT false,    -- 未来版本标记
+-- is_future 已移除；读时派生（北京时间业务日）
 
 -- 业务字段
 name VARCHAR(200) NOT NULL,         -- 组织名称

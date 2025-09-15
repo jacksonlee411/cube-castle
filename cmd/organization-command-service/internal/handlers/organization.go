@@ -76,7 +76,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 
 	// 创建组织实体
 	now := time.Now()
-	org := &types.Organization{
+    org := &types.Organization{
 		TenantID:    tenantID.String(),
 		Code:        code,
 		ParentCode:  req.ParentCode,
@@ -90,7 +90,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		// 时态管理字段 - 使用Date类型
 		EffectiveDate: req.EffectiveDate,
 		EndDate:       req.EndDate,
-		IsTemporal:    req.IsTemporal,
+        // isTemporal 移除：由 endDate 是否为空派生
 		ChangeReason: func() *string {
 			if req.ChangeReason == "" {
 				return nil
@@ -98,8 +98,8 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 				return &req.ChangeReason
 			}
 		}(),
-		IsCurrent: true, // 新创建的记录默认为当前记录
-	}
+        IsCurrent: true, // 新创建的记录默认为当前记录
+    }
 
 	// 确保effective_date字段始终有值（数据库约束要求）
 	if org.EffectiveDate == nil {
@@ -238,7 +238,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 			}
 			return nil
 		}(),
-		IsTemporal: true,
+        // isTemporal 移除：由 endDate 是否为空派生
 		ChangeReason: func() *string {
 			return &req.OperationReason
 		}(),
@@ -271,7 +271,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		return
 	}
 
-	// 记录版本创建成功的审计日志
+    // 记录版本创建成功的审计日志（排除 isCurrent/isTemporal 等动态字段）
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
 
@@ -287,18 +287,16 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		RequestID:       requestID,
 		OperationReason: req.OperationReason,
 		Success:         true,
-		AfterData: map[string]interface{}{
-			"code":           createdVersion.Code,
-			"name":           createdVersion.Name,
-			"unitType":       req.UnitType,
-			"parentCode":     req.ParentCode,
-			"description":    req.Description,
-			"effectiveDate":  req.EffectiveDate,
-			"endDate":        req.EndDate,
-			"isTemporal":     true,
-			"isCurrent":      createdVersion.IsCurrent,
-			"status":         createdVersion.Status,
-		},
+        AfterData: map[string]interface{}{
+            "code":           createdVersion.Code,
+            "name":           createdVersion.Name,
+            "unitType":       req.UnitType,
+            "parentCode":     req.ParentCode,
+            "description":    req.Description,
+            "effectiveDate":  req.EffectiveDate,
+            "endDate":        req.EndDate,
+            "status":         createdVersion.Status,
+        },
 	}
 	
 	err = h.auditLogger.LogEvent(r.Context(), event)
@@ -313,7 +311,6 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		"code":          createdVersion.Code,
 		"name":          createdVersion.Name,
 		"effectiveDate": req.EffectiveDate,
-		"isCurrent":     createdVersion.IsCurrent,
 		"status":        createdVersion.Status,
 	}
 
@@ -688,9 +685,8 @@ func (h *OrganizationHandler) toOrganizationResponse(org *types.Organization) *t
 		CreatedAt:     org.CreatedAt,
 		UpdatedAt:     org.UpdatedAt,
 		EffectiveDate: org.EffectiveDate,
-		EndDate:       org.EndDate,
-		IsTemporal:    org.IsTemporal,
-		ChangeReason:  org.ChangeReason,
+        EndDate:       org.EndDate,
+        ChangeReason:  org.ChangeReason,
 	}
 }
 

@@ -1,9 +1,9 @@
 # Cube Castle 实现清单（Implementation Inventory）
 
-版本: v1.7.0 IIG护卫系统集成完成版
+版本: v1.8.0 IIG护卫系统实时监控版
 维护人: 架构组（与IIG护卫系统协同维护）
 范围: 基于最新IIG扫描的完整实现清单（API优先+CQRS架构）
-最后更新: 2025-09-14（IIG护卫系统集成完成：17个API端点 + 12个GraphQL字段 + 146个前端组件）
+最后更新: 2025-09-15（IIG护卫系统实时监控：17个API端点 + 12个GraphQL字段 + 162个前端组件）
 
 > 目的（Purpose）
 > - 中文: 统一登记当前已实现的 API、导出函数与接口，以及所属文件与简要说明，避免重复造轮子，便于新成员快速定位能力与复用。
@@ -28,8 +28,8 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 #### 📊 **扫描能力覆盖** ⭐ **基于最新IIG扫描结果**
 - ✅ **REST API端点**: 从 `docs/api/openapi.yaml` 提取 (17个端点：10个业务 + 7个认证)
 - ✅ **GraphQL查询**: 从 `docs/api/schema.graphql` 提取 (12个查询字段)
-- ✅ **Go后端组件**: 扫描handlers和services (26个处理器 + 19个服务类型)
-- ✅ **前端TypeScript导出**: 扫描classes/functions/const (146个组件)
+- ✅ **Go后端组件**: 扫描handlers和services (28个处理器 + 19个服务类型)
+- ✅ **前端TypeScript导出**: 扫描classes/functions/const (162个组件)
 
 #### 🔍 **IIG护卫集成** (Implementation Inventory Guardian)
 - **预开发强制检查**: 每次新功能开发前必须运行此脚本
@@ -242,7 +242,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ## 后端（Go）关键导出（Key Exported Items）
 
-### 处理器（Handlers） - 26个导出方法
+### 处理器（Handlers） - 28个导出方法
 基于最新IIG扫描结果，以下为实际存在的处理器方法：
 
 #### 组织业务处理器 (`organization.go`)
@@ -346,6 +346,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ### 审计与监控 - 4个导出类型
 #### 审计日志 (`internal/audit/logger.go`)
 - `AuditLogger` - 结构化审计日志记录器
+  - 审计生产对齐 API 优先：before_data/after_data 中排除动态时态标记字段（is_current、is_temporal、is_future），以数据库触发器 `log_audit_changes()` 统一实现（见 `database/migrations/023_audit_exclude_dynamic_temporal_flags.sql`）。
 
 #### 指标收集 (`internal/metrics/collector.go`)
 - `MetricsCollector` - Prometheus指标收集器
@@ -361,7 +362,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ## 前端（TypeScript/React）关键导出（Key Exported Items）
 
-基于最新IIG扫描的146个导出项完整清单：
+基于最新IIG扫描的162个导出项完整清单：
 
 ### API客户端架构
 #### 统一客户端 (`unified-client.ts`)
@@ -736,12 +737,12 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
   - 类型验证: 100%强类型检查和契约一致性
 
 #### **🏗️ 实现层统计** (Implementation Layer) ⭐ **IIG护卫验证完成**
-- **Go后端组件**: 26个处理器方法 + 19个服务类型 = **45个关键组件**
+- **Go后端组件**: 28个处理器方法 + 19个服务类型 = **47个关键组件**
   - 开发工具处理器: 8个方法（JWT令牌、状态检查、性能监控）
   - 运维管理处理器: 9个方法（健康检查、指标收集、任务管理）
-  - 业务逻辑处理器: 9个方法（组织CRUD、时态版本、事件处理）
+  - 业务逻辑处理器: 11个方法（组织CRUD、时态版本、事件处理）
   - 核心服务层: 19个服务类型（级联更新、时态管理、监控告警）
-- **前端统一架构**: 146个导出组件 ⭐ **IIG护卫扫描完整**
+- **前端统一架构**: 162个导出组件 ⭐ **IIG护卫扫描完整**
   - API客户端架构: 统一GraphQL/REST客户端，OAuth认证管理
   - 数据管理层: 企业级组织管理Hook，时态数据API
   - 类型系统: 完整类型守卫和转换器，Zod Schema验证
@@ -753,6 +754,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - **P3系统集成**: 重复代码率2.11%，架构违规0个，质量门禁通过
 - **API一致性**: camelCase命名100%合规，Schema验证通过
 - **架构合规**: CQRS协议分离100%执行，PostgreSQL原生架构
+- **实时监控**: IIG护卫系统与P3防控深度集成，自动化检测运行良好
 
 #### **🔧 工具链统计** (Toolchain)
 - **质量保证脚本**: 12个企业级扫描和验证工具
@@ -812,6 +814,13 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ---
 
 ## 变更记录（Changelog）
+- **v1.8.0 IIG护卫系统实时监控版（2025-09-15）**: ⭐ **IIG护卫系统实时监控完成**
+  - **扫描**: 前端组件从146个增至162个（新增16个导出项）
+  - **更新**: Go后端处理器从26个增至28个（新增2个处理器方法）
+  - **监控**: IIG护卫系统实时监控运行良好，检测210个组件，0重复
+  - **集成**: P3系统完全集成，代码重复率2.11%，架构违规0个
+  - **验证**: 97个前端文件架构验证100%通过，质量门禁达标
+  - **成果**: IIG护卫系统进入实时监控模式，为持续集成提供保障
 - **v1.7.0 IIG护卫系统集成完成版（2025-09-14）**: ⭐ **IIG护卫系统正式上线**
   - **新增**: 基于最新IIG扫描的17个REST API端点（新增7个OAuth2/OIDC认证端点）
   - **更新**: Go后端组件从39个增至45个（26个处理器 + 19个服务类型）

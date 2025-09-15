@@ -32,9 +32,8 @@ type Organization struct {
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date   `json:"effectiveDate,omitempty" db:"effective_date"`
 	EndDate       *Date   `json:"endDate,omitempty" db:"end_date"`
-	IsTemporal    bool    `json:"isTemporal" db:"is_temporal"`
-	ChangeReason  *string `json:"changeReason,omitempty" db:"change_reason"`
-	IsCurrent     bool    `json:"isCurrent" db:"is_current"`
+    ChangeReason  *string `json:"changeReason,omitempty" db:"change_reason"`
+    IsCurrent     bool    `json:"isCurrent" db:"is_current"`
 }
 
 // CreateOrganizationRequest 创建组织请求
@@ -48,8 +47,7 @@ type CreateOrganizationRequest struct {
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date  `json:"effectiveDate,omitempty"`
 	EndDate       *Date  `json:"endDate,omitempty"`
-	IsTemporal    bool   `json:"isTemporal"`
-	ChangeReason  string `json:"changeReason,omitempty"`
+    ChangeReason  string `json:"changeReason,omitempty"`
 }
 
 // UpdateOrganizationRequest 更新组织请求
@@ -63,8 +61,7 @@ type UpdateOrganizationRequest struct {
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date   `json:"effectiveDate,omitempty"`
 	EndDate       *Date   `json:"endDate,omitempty"`
-	IsTemporal    *bool   `json:"isTemporal,omitempty"`
-	ChangeReason  *string `json:"changeReason,omitempty"`
+    ChangeReason  *string `json:"changeReason,omitempty"`
 }
 
 // OrganizationResponse 组织响应
@@ -83,8 +80,7 @@ type OrganizationResponse struct {
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date   `json:"effectiveDate,omitempty"`
 	EndDate       *Date   `json:"endDate,omitempty"`
-	IsTemporal    bool    `json:"isTemporal"`
-	ChangeReason  *string `json:"changeReason,omitempty"`
+    ChangeReason  *string `json:"changeReason,omitempty"`
 }
 
 // CreateVersionRequest 为现有组织创建新时态版本的请求 (基于OpenAPI契约v4.4.0)

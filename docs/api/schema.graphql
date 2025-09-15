@@ -179,6 +179,9 @@ type Organization {
   profile: String
   
   # Temporal Information
+  # Notes:
+  # - isTemporal is a derived concept (NOT a stored column): endDate != null
+  # - isFuture is derived using Beijing business day (UTC+8): effectiveDate > today(CN)
   effectiveDate: String!
   endDate: String
   
@@ -187,7 +190,8 @@ type Organization {
   updatedAt: String!
   recordId: String!
   
-  # Temporal Status Information
+  # Temporal Status Information (derived)
+  # Derived using Beijing time (UTC+8): effectiveDate > today(CN)
   isFuture: Boolean!
   hierarchyDepth: Int!
 }
