@@ -100,22 +100,55 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 	modifiedFieldsJSON, _ := json.Marshal(event.ModifiedFields)
 	changesJSON, _ := json.Marshal(event.Changes)
 
-	query := `
-	INSERT INTO audit_logs (
-		id, tenant_id, event_type, resource_type, resource_id,
-		actor_id, actor_type, action_name, request_id, operation_reason,
-		timestamp, success, error_code, error_message,
-		before_data, after_data, modified_fields, changes
-	) VALUES (
-		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
-	)`
+    query := `
+    INSERT INTO audit_logs (
+        id, tenant_id, event_type, resource_type, resource_id,
+        actor_id, actor_type, action_name, request_id, operation_reason,
+        timestamp, success, error_code, error_message,
+        before_data, after_data, modified_fields, changes
+    ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+    )`
 
-	_, err := a.db.ExecContext(ctx, query,
-		event.ID, event.TenantID, event.EventType, event.ResourceType, event.ResourceID,
-		event.ActorID, event.ActorType, event.ActionName, event.RequestID, event.OperationReason,
-		event.Timestamp, event.Success, event.ErrorCode, event.ErrorMessage,
-		beforeDataJSON, afterDataJSON, modifiedFieldsJSON, changesJSON,
-	)
+    // resource_id 列为 UUID，可为 NULL。允许将非UUID字符串视为 NULL，避免外键/类型错误。
+    var resIDParam interface{}
+    if event.ResourceID != "" {
+        if rid, err := uuid.Parse(event.ResourceID); err == nil {
+            resIDParam = rid
+        }
+    }
+    // 兜底：对 ORGANIZATION 资源，若未提供有效 UUID，则根据 (tenant_id, code, current) 推导 record_id
+    if resIDParam == nil && event.ResourceType == ResourceTypeOrganization {
+        // 优先从 AfterData/BeforeData 取业务 code
+        var codeCandidate string
+        if event.AfterData != nil {
+            if v, ok := event.AfterData["code"].(string); ok && v != "" {
+                codeCandidate = v
+            }
+        }
+        if codeCandidate == "" && event.BeforeData != nil {
+            if v, ok := event.BeforeData["code"].(string); ok && v != "" {
+                codeCandidate = v
+            }
+        }
+        if codeCandidate != "" {
+            var rid uuid.UUID
+            err := a.db.QueryRowContext(ctx,
+                `SELECT record_id FROM organization_units WHERE tenant_id = $1 AND code = $2 AND is_current = true LIMIT 1`,
+                event.TenantID.String(), codeCandidate,
+            ).Scan(&rid)
+            if err == nil {
+                resIDParam = rid
+            }
+        }
+    }
+
+    _, err := a.db.ExecContext(ctx, query,
+        event.ID, event.TenantID, event.EventType, event.ResourceType, resIDParam,
+        event.ActorID, event.ActorType, event.ActionName, event.RequestID, event.OperationReason,
+        event.Timestamp, event.Success, event.ErrorCode, event.ErrorMessage,
+        beforeDataJSON, afterDataJSON, modifiedFieldsJSON, changesJSON,
+    )
 
 	if err != nil {
 		a.logger.Printf("审计日志记录失败: %v", err)

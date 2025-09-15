@@ -77,12 +77,12 @@ INSERT INTO organization_units (
 -- 插入已暂停的组织 (演示状态管理)
 INSERT INTO organization_units (
     code, parent_code, tenant_id, name, unit_type, status, description, profile,
-    effective_date, operation_type, operated_by_id, operated_by_name, operation_reason
+    effective_date, operated_by_id, operated_by_name, operation_reason
 ) VALUES 
 ('1000099', '1000000', '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9', '临时项目部', 'DEPARTMENT', 'INACTIVE',
  '已完成的临时项目部门',
  '{"budget": 0, "managerPositionCode": "", "costCenterCode": "CC099", "headCountLimit": 0, "establishedDate": "2024-01-01"}',
- '2024-01-01', 'SUSPEND', '789e0123-e89b-12d3-a456-426614174009', 'Admin User', '项目结束');
+ '2024-01-01', '789e0123-e89b-12d3-a456-426614174009', 'Admin User', '项目结束');
 
 -- 更新统计信息
 ANALYZE organization_units;

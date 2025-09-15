@@ -460,30 +460,54 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 		return
 	}
 
-	// 记录成功的审计日志
-	event := &audit.AuditEvent{
-		ID:              uuid.New(),
-		TenantID:        tenantID,
-		EventType:       audit.EventTypeUpdate,
-		ResourceType:    audit.ResourceTypeOrganization,
-		ResourceID:      code,
-		ActorID:         actorID,
-		ActorType:       audit.ActorTypeUser,
-		ActionName:      operationType,
-		RequestID:       requestID,
-		OperationReason: operationReason,
-		Timestamp:       time.Now(),
-		Success:         true,
-		BeforeData: map[string]interface{}{
-			"code": code,
-		},
-		AfterData: map[string]interface{}{
-			"targetStatus":       newStatus,
-			"effectiveDate":      req.EffectiveDate,
-			"timelineVersions":   len(*timeline),
-			"operationReason":    operationReason,
-		},
-	}
+    // 记录成功的审计日志（使用具体版本的 recordId 作为资源ID）
+    var resourceRecordID string
+    if timeline != nil {
+        for _, v := range *timeline {
+            if v.EffectiveDate.Equal(effectiveDate) && v.Status == newStatus {
+                resourceRecordID = v.RecordID.String()
+                break
+            }
+        }
+        if resourceRecordID == "" {
+            for _, v := range *timeline {
+                if v.IsCurrent {
+                    resourceRecordID = v.RecordID.String()
+                    break
+                }
+            }
+        }
+    }
+    if resourceRecordID == "" {
+        // 最后兜底：查询当前版本的 RecordID
+        if cur, err := h.repo.GetByCode(r.Context(), tenantID, code); err == nil && cur != nil {
+            resourceRecordID = cur.RecordID
+        }
+    }
+
+    event := &audit.AuditEvent{
+        ID:              uuid.New(),
+        TenantID:        tenantID,
+        EventType:       audit.EventTypeUpdate,
+        ResourceType:    audit.ResourceTypeOrganization,
+        ResourceID:      resourceRecordID,
+        ActorID:         actorID,
+        ActorType:       audit.ActorTypeUser,
+        ActionName:      operationType,
+        RequestID:       requestID,
+        OperationReason: operationReason,
+        Timestamp:       time.Now(),
+        Success:         true,
+        BeforeData: map[string]interface{}{
+            "code": code,
+        },
+        AfterData: map[string]interface{}{
+            "targetStatus":       newStatus,
+            "effectiveDate":      req.EffectiveDate,
+            "timelineVersions":   len(*timeline),
+            "operationReason":    operationReason,
+        },
+    }
 
 	if err := h.auditLogger.LogEvent(r.Context(), event); err != nil {
 		h.logger.Printf("⚠️ 记录审计日志失败: %v", err)
