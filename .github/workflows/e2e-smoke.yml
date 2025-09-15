@@ -1,0 +1,74 @@
+name: E2E Smoke (CQRS End-to-End)
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch: {}
+
+jobs:
+  e2e-smoke:
+    name: E2E Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node (Frontend tooling)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compose Up (E2E stack)
+        run: |
+          docker compose -f docker-compose.e2e.yml build
+          docker compose -f docker-compose.e2e.yml up -d
+
+      - name: Wait for services
+        run: |
+          set -e
+          for i in {1..60}; do
+            ok=0
+            curl -fsS http://localhost:9090/health >/dev/null && ok=$((ok+1)) || true
+            curl -fsS http://localhost:8090/health >/dev/null && ok=$((ok+1)) || true
+            curl -fsS http://localhost:3000/ >/dev/null && ok=$((ok+1)) || true
+            if [ "$ok" = "3" ]; then echo "All services healthy"; break; fi
+            sleep 5
+          done
+          [ "$ok" = "3" ] || (echo 'Services did not become healthy in time' && docker compose -f docker-compose.e2e.yml logs --no-color && exit 1)
+
+      - name: Run contract tests (frontend)
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend run -s test:contract
+
+      - name: Run simplified E2E smoke
+        run: |
+          chmod +x simplified-e2e-test.sh
+          ./simplified-e2e-test.sh | tee e2e-test-output.txt
+          # Fail if any ❌
+          fails=$(grep -o "❌" -n e2e-test-output.txt | wc -l | tr -d ' ')
+          [ "$fails" = "0" ] || (echo "E2E had $fails failures" && exit 1)
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-outputs
+          path: |
+            e2e-test-output.txt
+            reports/*.md
+            reports/*.txt
+          retention-days: 14
+
+      - name: Compose Down
+        if: always()
+        run: docker compose -f docker-compose.e2e.yml down -v --remove-orphans
+
