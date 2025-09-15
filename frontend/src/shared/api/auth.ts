@@ -1,6 +1,7 @@
 // OAuth 2.0客户端认证管理器
 // 实现Client Credentials Flow和JWT Token管理
 import { env } from '../config/environment';
+import { unauthenticatedRESTClient } from './unified-client';
 
 export interface OAuthToken {
   accessToken: string;
@@ -63,12 +64,11 @@ export class AuthManager {
     console.log('[OAuth] 正在获取新的访问令牌...');
     
     // 修复：使用开发令牌端点的JSON格式请求
-    const response = await fetch(this.config.tokenEndpoint, {
+    const tokenResponse = await unauthenticatedRESTClient.request<Record<string, unknown>>(this.config.tokenEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      // 标准 client_credentials 请求体（开发/生产均适用）
       body: JSON.stringify({
         grant_type: this.config.grantType,
         client_id: this.config.clientId,
@@ -76,21 +76,19 @@ export class AuthManager {
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OAuth token request failed: ${response.status} - ${errorText}`);
-    }
-
-    const tokenResponse = await response.json();
-
     // 兼容多种开发/生产返回格式：
     // - { accessToken, tokenType, expiresIn }
     // - { token, tokenType, expiresIn }
     // - { data: { token } }
-    const accessToken =
-      tokenResponse.accessToken ||
-      tokenResponse.token ||
-      tokenResponse.data?.token;
+    const tr = tokenResponse as {
+      accessToken?: string;
+      token?: string;
+      data?: { token?: string };
+      tokenType?: string;
+      expiresIn?: unknown;
+      scope?: string;
+    };
+    const accessToken = tr.accessToken || tr.token || tr.data?.token;
 
     if (!accessToken) {
       throw new Error(
@@ -99,13 +97,13 @@ export class AuthManager {
     }
 
     // 计算过期时间：优先后端expiresIn，否则默认1小时
-    const expiresIn: number = Number(tokenResponse.expiresIn) || 3600;
+    const expiresIn: number = Number(tr.expiresIn) || 3600;
 
     const token: OAuthToken = {
       accessToken,
-      tokenType: tokenResponse.tokenType || 'Bearer',
+      tokenType: tr.tokenType || 'Bearer',
       expiresIn,
-      scope: tokenResponse.scope,
+      scope: tr.scope,
       issuedAt: Date.now(),
     };
 
@@ -120,12 +118,7 @@ export class AuthManager {
    * 从BFF会话获取短期访问令牌（生产态）
    */
   private async obtainFromSession(): Promise<OAuthToken> {
-    const resp = await fetch('/auth/session', { credentials: 'include' });
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`Session fetch failed: ${resp.status} - ${text}`);
-    }
-    const body = await resp.json();
+    const body = await unauthenticatedRESTClient.request<Record<string, unknown>>('/auth/session', { credentials: 'include' });
     const data = body.data || body; // 兼容直接数据
     const accessToken = data.accessToken;
     const expiresIn = Number(data.expiresIn) || 600;
@@ -149,7 +142,6 @@ export class AuthManager {
    * 检查token是否有效（考虑5分钟缓冲时间）
    */
   private isTokenValid(token: OAuthToken): boolean {
-    const now = Date.now();
     const expirationTime = token.issuedAt + (token.expiresIn * 1000);
     const bufferTime = 5 * 60 * 1000; // 5分钟缓冲
     
@@ -208,15 +200,11 @@ export class AuthManager {
   async forceRefresh(): Promise<OAuthToken> {
     if (env.authConfig.mode === 'oidc') {
       const csrf = this.getCookie('csrf');
-      const resp = await fetch('/auth/refresh', {
+      const body = await unauthenticatedRESTClient.request<Record<string, unknown>>('/auth/refresh', {
         method: 'POST',
         headers: { 'X-CSRF-Token': csrf || '' },
         credentials: 'include'
       });
-      if (!resp.ok) {
-        throw new Error(`Refresh failed: ${resp.status}`);
-      }
-      const body = await resp.json();
       const data = body.data || body;
       const accessToken = data.accessToken;
       const expiresIn = Number(data.expiresIn) || 600;

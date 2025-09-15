@@ -2,16 +2,18 @@ import React from 'react'
 
 function readScopesFromEnv(): string[] {
   // 优先从 window.__SCOPES__ 读取（测试/开发可注入）
-  if (typeof window !== 'undefined' && (window as any).__SCOPES__) {
-    const v = (window as any).__SCOPES__
-    if (Array.isArray(v)) return v.filter(Boolean)
-    if (typeof v === 'string') return v.split(/\s+/).filter(Boolean)
+  const injected = typeof window !== 'undefined'
+    ? (window as unknown as { __SCOPES__?: unknown }).__SCOPES__
+    : undefined
+  if (injected !== undefined) {
+    if (Array.isArray(injected)) return (injected as unknown[]).filter(Boolean).map(String)
+    if (typeof injected === 'string') return injected.split(/\s+/).filter(Boolean)
   }
   // 兼容测试环境：支持 globalThis.__SCOPES__
-  if ((globalThis as any).__SCOPES__) {
-    const v = (globalThis as any).__SCOPES__
-    if (Array.isArray(v)) return v.filter(Boolean)
-    if (typeof v === 'string') return v.split(/\s+/).filter(Boolean)
+  const gInjected = (globalThis as { __SCOPES__?: unknown }).__SCOPES__
+  if (gInjected !== undefined) {
+    if (Array.isArray(gInjected)) return (gInjected as unknown[]).filter(Boolean).map(String)
+    if (typeof gInjected === 'string') return gInjected.split(/\s+/).filter(Boolean)
   }
   // 其次从本地存储中的 OAuth token 读取（开发态）
   try {

@@ -272,9 +272,55 @@ export class UnifiedRESTClient {
   }
 }
 
+/**
+ * 未认证REST客户端（用于OAuth/会话端点）
+ * - 不自动附加 Authorization 头
+ * - 允许传入 credentials、headers 等原样透传
+ */
+export class UnauthenticatedRESTClient {
+  private baseURL: string;
+
+  constructor(baseURL: string = '') {
+    this.baseURL = baseURL;
+  }
+
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+    try {
+      const response = await fetch(url, options);
+      const contentType = response.headers.get('content-type') || '';
+      const text = await response.text();
+      let json: unknown = undefined;
+      if (text) {
+        const looksLikeJson = contentType.includes('application/json') || /^(\s*[[{])/.test(text);
+        if (looksLikeJson) {
+          try { json = JSON.parse(text); } catch { /* ignore parse errors for non-JSON bodies */ }
+        }
+      }
+      if (!response.ok) {
+        let message = `${response.status} ${response.statusText}`;
+        if (json && typeof json === 'object' && 'error' in (json as Record<string, unknown>)) {
+          const errVal = (json as Record<string, unknown>).error;
+          if (errVal && typeof errVal === 'object' && 'message' in (errVal as Record<string, unknown>)) {
+            const m = (errVal as Record<string, unknown>).message;
+            if (typeof m === 'string' && m.trim()) {
+              message = m;
+            }
+          }
+        }
+        throw new Error(message);
+      }
+      return (json ?? ({} as unknown)) as T;
+    } catch (error) {
+      console.error('[UnauthREST] request failed:', { endpoint, options, error });
+      throw error;
+    }
+  }
+}
 // 🔧 单例实例 - 全局使用统一客户端
 export const unifiedGraphQLClient = new UnifiedGraphQLClient();
 export const unifiedRESTClient = new UnifiedRESTClient();
+export const unauthenticatedRESTClient = new UnauthenticatedRESTClient();
 
 // 📋 客户端工厂方法 - 支持自定义配置
 export const createGraphQLClient = (endpoint?: string) => new UnifiedGraphQLClient(endpoint);
@@ -295,5 +341,6 @@ export const validateCQRSUsage = (operation: 'query' | 'command', method: string
 export default {
   graphql: unifiedGraphQLClient,
   rest: unifiedRESTClient,
+  unauth: unauthenticatedRESTClient,
   validateCQRSUsage
 };

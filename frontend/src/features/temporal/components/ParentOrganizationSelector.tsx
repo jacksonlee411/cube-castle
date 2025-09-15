@@ -90,7 +90,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
   currentCode,
   effectiveDate,
   onChange,
-  currentParentCode,
+  currentParentCode: _currentParentCode,
   disabled,
   required,
   onValidationError,

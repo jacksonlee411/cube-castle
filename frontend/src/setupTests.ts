@@ -75,12 +75,14 @@ vi.mock('@workday/canvas-kit-react/common', () => ({
 // Combobox 简易可交互 mock：渲染输入框与按钮项
 vi.mock('@workday/canvas-kit-react/combobox', () => {
   const ReactLocal = React
+  type ComboProps = { items?: string[]; onChange?: (val: string) => void; disabled?: boolean; children?: React.ReactNode }
+  type InputProps = { value?: string; onChange?: React.ChangeEventHandler<HTMLInputElement>; placeholder?: string; disabled?: boolean }
   return {
     Combobox: Object.assign(
-      ({ items = [], onChange, disabled, children }: any) => {
-        const safeChildren = ReactLocal.Children.toArray(children).filter((c: any) => typeof c !== 'function')
+      ({ items = [], onChange, disabled, children }: ComboProps) => {
+        const safeChildren: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
         return ReactLocal.createElement('div', { 'data-testid': 'combobox' },
-          ...safeChildren as any,
+          ...safeChildren,
           ReactLocal.createElement('div', { 'data-testid': 'combobox-items' },
             items.map((it: string) => ReactLocal.createElement('button', {
               key: it,
@@ -92,16 +94,16 @@ vi.mock('@workday/canvas-kit-react/combobox', () => {
         )
       },
       {
-        Input: ({ value, onChange, placeholder, disabled }: any) => ReactLocal.createElement('input', {
+        Input: ({ value, onChange, placeholder, disabled }: InputProps) => ReactLocal.createElement('input', {
           'data-testid': 'combobox-input', value: value || '', onChange, placeholder, disabled
         }),
         Menu: ({ children }: MockComponentProps) => {
-          const safe = ReactLocal.Children.toArray(children).filter((c: any) => typeof c !== 'function')
-          return ReactLocal.createElement('div', { 'data-testid': 'combobox-menu' }, ...safe as any)
+          const safe: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
+          return ReactLocal.createElement('div', { 'data-testid': 'combobox-menu' }, ...safe)
         },
         MenuList: ({ children }: MockComponentProps) => {
-          const safe = ReactLocal.Children.toArray(children).filter((c: any) => typeof c !== 'function')
-          return ReactLocal.createElement('div', { 'data-testid': 'combobox-menulist' }, ...safe as any)
+          const safe: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
+          return ReactLocal.createElement('div', { 'data-testid': 'combobox-menulist' }, ...safe)
         },
         Item: ({ children }: MockComponentProps) => ReactLocal.createElement('div', { 'data-testid': 'combobox-item' }, children)
       }

@@ -117,7 +117,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           body: JSON.stringify(payload)
         }) as unknown as { success?: boolean; data?: { valid?: boolean; errors?: string[]; warnings?: string[] } };
 
-        if (validateResp && (validateResp as any).success === true && validateResp.data && validateResp.data.valid === false) {
+        if (validateResp && validateResp.success === true && validateResp.data && validateResp.data.valid === false) {
           const errs = validateResp.data.errors || ['服务器校验未通过'];
           const errorsMap: Record<string, string> = {};
           // 仅将第一条错误映射到通用字段；详细错误通过消息提示

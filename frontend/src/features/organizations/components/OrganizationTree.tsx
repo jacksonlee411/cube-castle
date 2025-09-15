@@ -376,7 +376,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                   );
                   const cnt = resp?.organizationSubtree?.childrenCount ?? 0;
                   updateMap[n.code] = cnt;
-                } catch (e) {
+                } catch (_e) {
                   // 静默失败，保持0
                 }
               }));
@@ -389,7 +389,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
             }
 
             treeNodes = treeNodes.map(n => ({ ...n, childrenCount: updateMap[n.code] ?? n.childrenCount }));
-          } catch (e) {
+          } catch (_e) {
             // 静默：无法获取childrenCount不影响展示
           }
         }
