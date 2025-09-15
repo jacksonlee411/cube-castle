@@ -94,11 +94,15 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 		event.Timestamp = time.Now()
 	}
 
-	// 序列化JSON字段
-	beforeDataJSON, _ := json.Marshal(event.BeforeData)
-	afterDataJSON, _ := json.Marshal(event.AfterData)
-	modifiedFieldsJSON, _ := json.Marshal(event.ModifiedFields)
-	changesJSON, _ := json.Marshal(event.Changes)
+    // 序列化JSON字段（以字符串形式传递，并在SQL中显式::jsonb转换，避免驱动类型歧义）
+    bd, _ := json.Marshal(event.BeforeData)
+    ad, _ := json.Marshal(event.AfterData)
+    mf, _ := json.Marshal(event.ModifiedFields)
+    ch, _ := json.Marshal(event.Changes)
+    beforeDataJSON := string(bd)
+    afterDataJSON := string(ad)
+    modifiedFieldsJSON := string(mf)
+    changesJSON := string(ch)
 
     query := `
     INSERT INTO audit_logs (
@@ -107,7 +111,7 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
         timestamp, success, error_code, error_message,
         before_data, after_data, modified_fields, changes
     ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb
     )`
 
     // resource_id 列为 UUID，可为 NULL。允许将非UUID字符串视为 NULL，避免外键/类型错误。
@@ -164,26 +168,43 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 // LogOrganizationCreate 记录组织创建事件 (v4.3.0 - 简化审计信息)
 func (a *AuditLogger) LogOrganizationCreate(ctx context.Context, req *types.CreateOrganizationRequest, result *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(result.TenantID)
-	event := &AuditEvent{
-		TenantID:        tenantID,
-		EventType:       EventTypeCreate,
-		ResourceType:    ResourceTypeOrganization,
-		ResourceID:      result.RecordID,
-		ActorID:         actorID,
-		ActorType:       ActorTypeUser,
-		ActionName:      "CreateOrganization",
-		RequestID:       requestID,
-		OperationReason: operationReason,
-		Success:         true,
-		AfterData: map[string]interface{}{
-			"code":       result.Code,
-			"name":       result.Name,
-			"unitType":   result.UnitType,
-			"parentCode": result.ParentCode,
-			"status":     result.Status,
-			"level":      result.Level,
-		},
-	}
+    // 计算创建时的“新增字段”列表（无beforeData，oldValue为null）
+    createdFields := []FieldChange{}
+    modifiedFields := []string{}
+    // 基本字段
+    for _, fc := range []struct{ field, dtype string }{
+        {"code", "string"}, {"name", "string"}, {"unitType", "string"}, {"parentCode", "string"},
+        {"status", "string"}, {"level", "int"},
+    } {
+        createdFields = append(createdFields, FieldChange{Field: fc.field, OldValue: nil, NewValue: nil, DataType: fc.dtype})
+        modifiedFields = append(modifiedFields, fc.field)
+    }
+    // 时态相关（若存在）
+    if result.EffectiveDate != nil { modifiedFields = append(modifiedFields, "effectiveDate") }
+    if result.EndDate != nil { modifiedFields = append(modifiedFields, "endDate") }
+
+    event := &AuditEvent{
+        TenantID:        tenantID,
+        EventType:       EventTypeCreate,
+        ResourceType:    ResourceTypeOrganization,
+        ResourceID:      result.RecordID,
+        ActorID:         actorID,
+        ActorType:       ActorTypeUser,
+        ActionName:      "CreateOrganization",
+        RequestID:       requestID,
+        OperationReason: operationReason,
+        Success:         true,
+        ModifiedFields:  modifiedFields,
+        Changes:         createdFields,
+        AfterData: map[string]interface{}{
+            "code":       result.Code,
+            "name":       result.Name,
+            "unitType":   result.UnitType,
+            "parentCode": result.ParentCode,
+            "status":     result.Status,
+            "level":      result.Level,
+        },
+    }
 
 	return a.LogEvent(ctx, event)
 }
@@ -235,23 +256,28 @@ func (a *AuditLogger) LogOrganizationUpdate(ctx context.Context, code string, re
 // LogOrganizationSuspend 记录组织停用事件 (v4.3.0 - 简化参数)
 func (a *AuditLogger) LogOrganizationSuspend(ctx context.Context, code string, org *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(org.TenantID)
-	event := &AuditEvent{
-		TenantID:        tenantID,
-		EventType:       EventTypeSuspend,
-		ResourceType:    ResourceTypeOrganization,
-		ResourceID:      org.RecordID,
-		ActorID:         actorID,
-		ActorType:       ActorTypeUser,
-		ActionName:      "SuspendOrganization",
-		RequestID:       requestID,
-		OperationReason: operationReason,
-		Success:         true,
-		AfterData: map[string]interface{}{
-			"code":   org.Code,
-			"status": "INACTIVE",
-			"level":  org.Level,
-		},
-	}
+    // 停用：记录状态字段变更
+    changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "INACTIVE", DataType: "string"}}
+    modified := []string{"status"}
+    event := &AuditEvent{
+        TenantID:        tenantID,
+        EventType:       EventTypeSuspend,
+        ResourceType:    ResourceTypeOrganization,
+        ResourceID:      org.RecordID,
+        ActorID:         actorID,
+        ActorType:       ActorTypeUser,
+        ActionName:      "SuspendOrganization",
+        RequestID:       requestID,
+        OperationReason: operationReason,
+        Success:         true,
+        ModifiedFields:  modified,
+        Changes:         changes,
+        AfterData: map[string]interface{}{
+            "code":   org.Code,
+            "status": "INACTIVE",
+            "level":  org.Level,
+        },
+    }
 
 	return a.LogEvent(ctx, event)
 }
@@ -259,23 +285,28 @@ func (a *AuditLogger) LogOrganizationSuspend(ctx context.Context, code string, o
 // LogOrganizationActivate 记录组织激活事件 (v4.3.0 - 简化参数)
 func (a *AuditLogger) LogOrganizationActivate(ctx context.Context, code string, org *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(org.TenantID)
-	event := &AuditEvent{
-		TenantID:        tenantID,
-		EventType:       EventTypeActivate,
-		ResourceType:    ResourceTypeOrganization,
-		ResourceID:      org.RecordID,
-		ActorID:         actorID,
-		ActorType:       ActorTypeUser,
-		ActionName:      "ActivateOrganization",
-		RequestID:       requestID,
-		OperationReason: operationReason,
-		Success:         true,
-		AfterData: map[string]interface{}{
-			"code":   org.Code,
-			"status": "ACTIVE",
-			"level":  org.Level,
-		},
-	}
+    // 激活：记录状态字段变更
+    changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "ACTIVE", DataType: "string"}}
+    modified := []string{"status"}
+    event := &AuditEvent{
+        TenantID:        tenantID,
+        EventType:       EventTypeActivate,
+        ResourceType:    ResourceTypeOrganization,
+        ResourceID:      org.RecordID,
+        ActorID:         actorID,
+        ActorType:       ActorTypeUser,
+        ActionName:      "ActivateOrganization",
+        RequestID:       requestID,
+        OperationReason: operationReason,
+        Success:         true,
+        ModifiedFields:  modified,
+        Changes:         changes,
+        AfterData: map[string]interface{}{
+            "code":   org.Code,
+            "status": "ACTIVE",
+            "level":  org.Level,
+        },
+    }
 
 	return a.LogEvent(ctx, event)
 }
@@ -301,19 +332,28 @@ func (a *AuditLogger) LogOrganizationDelete(ctx context.Context, tenantID uuid.U
 		resourceID = code
 	}
 	
-	event := &AuditEvent{
-		TenantID:        tenantID,
-		EventType:       EventTypeDelete,
-		ResourceType:    ResourceTypeOrganization,
-		ResourceID:      resourceID,
-		ActorID:         actorID,
-		ActorType:       ActorTypeUser,
-		ActionName:      "DeleteOrganization",
-		RequestID:       requestID,
-		OperationReason: operationReason,
-		Success:         true,
-		BeforeData:      beforeData,
-	}
+    // 删除：记录状态字段变更为 DELETED（若可用）
+    var changes []FieldChange
+    var modified []string
+    if org != nil {
+        changes = []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "DELETED", DataType: "string"}}
+        modified = []string{"status"}
+    }
+    event := &AuditEvent{
+        TenantID:        tenantID,
+        EventType:       EventTypeDelete,
+        ResourceType:    ResourceTypeOrganization,
+        ResourceID:      resourceID,
+        ActorID:         actorID,
+        ActorType:       ActorTypeUser,
+        ActionName:      "DeleteOrganization",
+        RequestID:       requestID,
+        OperationReason: operationReason,
+        Success:         true,
+        ModifiedFields:  modified,
+        Changes:         changes,
+        BeforeData:      beforeData,
+    }
 
 	return a.LogEvent(ctx, event)
 }

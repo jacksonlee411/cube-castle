@@ -275,18 +275,29 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
 
-	// 记录审计日志 - 创建版本事件
-	event := &audit.AuditEvent{
-		TenantID:        tenantID,
-		EventType:       audit.EventTypeCreate,
-		ResourceType:    audit.ResourceTypeOrganization,
-		ResourceID:      createdVersion.RecordID.String(),
-		ActorID:         actorID,
-		ActorType:       audit.ActorTypeUser,
-		ActionName:      "CREATE_VERSION",
-		RequestID:       requestID,
-		OperationReason: req.OperationReason,
-		Success:         true,
+    // 记录审计日志 - 创建版本事件（填充变更字段）
+    createdFields := []audit.FieldChange{
+        {Field: "name", OldValue: nil, NewValue: req.Name, DataType: "string"},
+        {Field: "unitType", OldValue: nil, NewValue: req.UnitType, DataType: "string"},
+        {Field: "parentCode", OldValue: nil, NewValue: req.ParentCode, DataType: "string"},
+        {Field: "description", OldValue: nil, NewValue: req.Description, DataType: "string"},
+        {Field: "effectiveDate", OldValue: nil, NewValue: req.EffectiveDate, DataType: "date"},
+    }
+    modifiedFields := []string{"name","unitType","parentCode","description","effectiveDate"}
+
+    event := &audit.AuditEvent{
+        TenantID:        tenantID,
+        EventType:       audit.EventTypeCreate,
+        ResourceType:    audit.ResourceTypeOrganization,
+        ResourceID:      createdVersion.RecordID.String(),
+        ActorID:         actorID,
+        ActorType:       audit.ActorTypeUser,
+        ActionName:      "CREATE_VERSION",
+        RequestID:       requestID,
+        OperationReason: req.OperationReason,
+        Success:         true,
+        ModifiedFields:  modifiedFields,
+        Changes:         createdFields,
         AfterData: map[string]interface{}{
             "code":           createdVersion.Code,
             "name":           createdVersion.Name,
@@ -297,7 +308,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
             "endDate":        req.EndDate,
             "status":         createdVersion.Status,
         },
-	}
+    }
 	
 	err = h.auditLogger.LogEvent(r.Context(), event)
 	if err != nil {

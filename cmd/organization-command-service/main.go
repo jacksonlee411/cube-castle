@@ -149,7 +149,7 @@ func main() {
     )
     if !authOnlyMode {
         orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager)
-        operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, logger)
+        operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, rateLimitMiddleware, logger)
     }
     // 开发工具路由即使在 authOnly 模式下也允许初始化（内部会根据 devMode 控制）
     devToolsHandler = handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode, db)
@@ -182,29 +182,31 @@ func main() {
 	})
 
 	
-	// 限流状态监控端点
-	r.Get("/debug/rate-limit/stats", func(w http.ResponseWriter, r *http.Request) {
-		stats := rateLimitMiddleware.GetStats()
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{
-			"totalRequests": %d,
-			"blockedRequests": %d,
-			"activeClients": %d,
-			"lastReset": "%s",
-			"blockRate": "%.2f%%"
-		}`, stats.TotalRequests, stats.BlockedRequests, stats.ActiveClients, 
-			stats.LastReset.Format(time.RFC3339),
-			float64(stats.BlockedRequests)/float64(stats.TotalRequests)*100)
-	})
-	
-	r.Get("/debug/rate-limit/clients", func(w http.ResponseWriter, r *http.Request) {
-		clients := rateLimitMiddleware.GetActiveClients()
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"activeClients": %d, "timestamp": "%s"}`, len(clients), time.Now().Format(time.RFC3339))
-	})
-	
-	logger.Println("🚦 限流监控端点: http://localhost:9090/debug/rate-limit/stats")
+    // 限流状态监控端点（Dev-only）
+    if devMode {
+        r.Get("/debug/rate-limit/stats", func(w http.ResponseWriter, r *http.Request) {
+            stats := rateLimitMiddleware.GetStats()
+            w.Header().Set("Content-Type", "application/json")
+            fmt.Fprintf(w, `{
+                "totalRequests": %d,
+                "blockedRequests": %d,
+                "activeClients": %d,
+                "lastReset": "%s",
+                "blockRate": "%.2f%%"
+            }`, stats.TotalRequests, stats.BlockedRequests, stats.ActiveClients, 
+                stats.LastReset.Format(time.RFC3339),
+                float64(stats.BlockedRequests)/float64(stats.TotalRequests)*100)
+        })
+        
+        r.Get("/debug/rate-limit/clients", func(w http.ResponseWriter, r *http.Request) {
+            clients := rateLimitMiddleware.GetActiveClients()
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(http.StatusOK)
+            fmt.Fprintf(w, `{"activeClients": %d, "timestamp": "%s"}`, len(clients), time.Now().Format(time.RFC3339))
+        })
+        
+        logger.Println("🚦 限流监控端点(Dev): http://localhost:9090/debug/rate-limit/stats")
+    }
 
 	// 设置开发工具路由 (仅开发模式，无认证要求)
     if !authOnlyMode {

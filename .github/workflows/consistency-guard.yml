@@ -22,26 +22,26 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Report deprecated permissions
+      - name: Enforce deprecated permissions
         run: |
           bash scripts/ci/check-permissions.sh
         working-directory: ./cube-castle
         env:
-          ENFORCE: "0"  # report-only; set to 1 to enforce failures
+          ENFORCE: "1"
 
-      - name: Report REST read queries (CQRS guard)
+      - name: Enforce REST read queries (CQRS guard)
         run: |
           bash scripts/ci/check-rest-queries.sh
         working-directory: ./cube-castle
         env:
-          ENFORCE: "0"
+          ENFORCE: "1"
 
-      - name: Report hardcoded configs (CORS/ports/tenant)
+      - name: Enforce hardcoded configs (CORS/ports/tenant)
         run: |
           bash scripts/ci/check-hardcoded-configs.sh
         working-directory: ./cube-castle
         env:
-          ENFORCE: "0"
+          ENFORCE: "1"
 
       - name: Enforce frontend REST query guard (CQRS)
         run: |

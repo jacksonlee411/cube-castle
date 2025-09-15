@@ -1,6 +1,6 @@
 # 06 — 集成团队进展日志（Integrated Teams Progress Log）
 
-最后更新：2025-09-15
+最后更新：2025-09-15（晚间增补）
 
 —
 
@@ -59,6 +59,58 @@
 
 —
 
+## 🧩 增补（2025-09-15 晚间）— 审计统一与监控修复
+
+问题与处置（根因 → 措施 → 状态）
+- 创建版本 500（INSERT 触发器读取 NEW.operation_type）
+  - 移除/替换行级审计触发器（迁移 027/028），统一改为应用层审计；状态：已修复
+- 监控报错引用 is_future 列
+  - TemporalMonitor 查询改为派生表达式（未来/历史）；状态：已修复
+- 暂停/激活失败（INSERT 列数不匹配）
+  - 纠正 INSERT 列位数量，时间轴重算 OK；状态：已修复
+- 审计页签“变动信息”不显示
+  - 应用层审计补齐 modifiedFields/changes 写入（创建版本/暂停/激活/删除），并显式 ::jsonb 入库；状态：新生成记录已显示
+
+验证要点
+- POST /api/v1/organization-units/{code}/versions：201，时间轴闭合前一条，is_current 重算正确
+- /suspend 与 /activate：200，插入新版本并全链重算；审计记录包含 status 变更
+- GraphQL auditHistory(recordId)：返回 modifiedFields 与 changes，前端显示“变更字段/字段变更表”
+
+交付物与路径
+- 迁移
+  - database/migrations/027_fix_audit_trigger_op_type_from_tg_op.sql（op_type 由 TG_OP 推导）
+  - database/migrations/028_drop_legacy_row_audit_trigger.sql（彻底移除 log_audit_changes()/audit_changes_trigger）
+- 监控
+  - cmd/organization-command-service/internal/services/temporal_monitor.go（派生查询）
+- 审计（应用层）
+  - cmd/organization-command-service/internal/audit/logger.go（::jsonb、resourceId 兜底、变更明细写入）
+  - cmd/organization-command-service/internal/handlers/organization.go（CREATE_VERSION 变更明细）
+  - cmd/organization-command-service/internal/repository/temporal_timeline.go（列位修复）
+- 维护脚本
+  - database/maintenance/2025-09-15_backfill_audit_modified_fields.sql（历史记录回填 modified_fields/changes）
+- 回归脚本
+  - scripts/tests/test-temporal-regression.sh（创建版本/调整生效日/作废中间版本/暂停/激活 + 时间线校验）
+
+运维建议（上线步骤）
+1) 执行迁移 027/028（先修触发器，再移除）
+2) 重启命令服务/查询服务
+3) 视业务需要，在环境中执行历史回填脚本（仅补 NULL 的 modified_fields/changes）
+4) 运行回归脚本验证核心路径（或在 CI 以手动任务方式触发）
+
+—
+
+## 🔜 后续任务（Next Tasks）— 晚间增补
+- 文档
+  - docs/api/CHANGELOG.md 已补充 v4.6.2；在运维手册增加“触发器退场/应用层审计上线与回滚”说明
+- CI/质量门禁
+  - 将 scripts/tests/test-temporal-regression.sh 加为可选 E2E 回归任务（手动触发），并汇总输出报告
+- 历史数据治理（可选）
+  - 评估并在各环境执行审计回填脚本；确认前端“变更字段/变更表”显示完整
+- 监控
+  - 增加 Prometheus 指标/健康端点用于观测审计与时态一致性（重复当前/缺失当前/重叠计数）
+
+—
+
 ## 🔜 后续任务（Next Tasks）
 - GraphQL 契约细化（可选）：
   - 如产品需要对外暴露 isTemporal 字段，按派生语义补充分发并更新 schema 描述；当前已提供 isFuture 的派生说明。
@@ -92,4 +144,3 @@
 ## 变更记录（Changelog）
 - 2025-09-15：执行阶段B（早期直切）：移除 is_temporal 物理列；查询层改为派生 isTemporal。
 - 2025-09-15：清理 is_future 物理列；查询层改为派生 isFuture（北京时间）；同步更新脚本、契约与文档。
-
