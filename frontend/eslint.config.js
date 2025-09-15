@@ -80,7 +80,7 @@ export default tseslint.config([
       // 测试文件允许使用fetch进行API测试
       'no-restricted-globals': 'off',
       // 测试文件允许使用any类型进行模拟数据
-      '@typescript-eslint/no-explicit-any': 'warn'
+      '@typescript-eslint/no-explicit-any': 'off'
     }
   },
   

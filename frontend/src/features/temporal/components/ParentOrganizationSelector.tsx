@@ -141,7 +141,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     return () => {
       mounted = false
     }
-  }, [cacheKey, currentCode, effectiveDate, onValidationError, canRead])
+  }, [cacheKey, currentCode, effectiveDate, onValidationError, canRead, cacheTtlMs])
 
   const filtered = React.useMemo(() => {
     if (!search) return items

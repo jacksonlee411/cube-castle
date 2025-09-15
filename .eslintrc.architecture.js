@@ -174,7 +174,8 @@ module.exports = {
       rules: {
         'architecture/no-rest-queries': 'warn', // 测试中允许但警告
         'architecture/enforce-api-contracts': 'off', // 测试数据可以使用任意字段名
-        'no-console': 'off' // 测试中允许console
+        'no-console': 'off', // 测试中允许console
+        '@typescript-eslint/no-explicit-any': 'off' // 测试中允许 any 以简化 Mock
       }
     },
 

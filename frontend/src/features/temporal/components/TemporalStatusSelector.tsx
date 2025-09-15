@@ -1,8 +1,8 @@
 import React from 'react';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TEMPORAL_STATUS_OPTIONS, temporalStatusUtils, type TemporalStatus } from '../constants/temporalStatus';
-
-// 重新导出以保持向后兼容
+// 重新导出以保持向后兼容（仅禁用该行规则以配合 Fast Refresh）
+// eslint-disable-next-line react-refresh/only-export-components
 export { TEMPORAL_STATUS_OPTIONS, temporalStatusUtils, type TemporalStatus };
 
 export interface TemporalStatusSelectorProps {

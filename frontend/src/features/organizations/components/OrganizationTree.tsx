@@ -384,7 +384,6 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
             while (queue.length > 0) {
               const batch = queue.splice(0, limit);
-              // eslint-disable-next-line no-await-in-loop
               await runBatch(batch);
             }
 
@@ -458,7 +457,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     
     setTreeData(updateNodeExpansion);
     onNodeExpand?.(node);
-  }, [onNodeExpand]);
+  }, [onNodeExpand, fetchChildren]);
   
   // 初始化加载
   useEffect(() => {
