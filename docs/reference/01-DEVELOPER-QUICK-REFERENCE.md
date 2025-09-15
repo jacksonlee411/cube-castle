@@ -84,6 +84,18 @@ npm test:contract              # 运行契约测试
 npm run quality:docs           # 检查文档同步状态
 ```
 
+### E2E 快速入口（本地/CI 对齐）
+```bash
+# 本地一键冒烟：拉起完整栈 + 运行契约 + 简化E2E
+docker compose -f docker-compose.e2e.yml up -d --build
+npm --prefix frontend ci && npm --prefix frontend run -s test:contract
+chmod +x ./simplified-e2e-test.sh && ./simplified-e2e-test.sh
+cat reports/QUALITY_GATE_TEST_REPORT.md
+
+# CI 工作流：.github/workflows/e2e-smoke.yml（push/PR 自动触发）
+# 行为：Compose Up → 健康等待 → 契约测试 → 简化E2E → 产物上传
+```
+
 ---
 
 ## 🔗 端口配置参考
