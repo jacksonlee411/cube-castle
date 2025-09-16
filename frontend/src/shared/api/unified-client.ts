@@ -287,9 +287,21 @@ export class UnauthenticatedRESTClient {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     try {
-      const response = await fetch(url, options);
-      const contentType = response.headers.get('content-type') || '';
-      const text = await response.text();
+      const response: Response = await fetch(url, options);
+      // 兼容测试环境的最小 fetch mock：headers/文本体可能不存在
+      const contentType = response?.headers?.get?.('content-type') || '';
+      let text = '';
+      if (typeof response?.text === 'function') {
+        text = await response.text();
+      } else if (typeof response?.json === 'function') {
+        // 某些测试仅提供 json()，则直接读取
+        try {
+          const j = await response.json();
+          return (j ?? ({} as unknown)) as T;
+        } catch {
+          // ignore, fallback to empty text
+        }
+      }
       let json: unknown = undefined;
       if (text) {
         const looksLikeJson = contentType.includes('application/json') || /^(\s*[[{])/.test(text);
@@ -297,7 +309,7 @@ export class UnauthenticatedRESTClient {
           try { json = JSON.parse(text); } catch { /* ignore parse errors for non-JSON bodies */ }
         }
       }
-      if (!response.ok) {
+      if (!response?.ok) {
         let message = `${response.status} ${response.statusText}`;
         if (json && typeof json === 'object' && 'error' in (json as Record<string, unknown>)) {
           const errVal = (json as Record<string, unknown>).error;

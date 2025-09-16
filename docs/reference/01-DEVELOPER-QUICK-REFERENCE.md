@@ -76,6 +76,31 @@ make jwt-dev-info               # 查看令牌信息
 export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用默认租户
 ```
 
+#### RS256 首选流程（建议）
+- 统一链路：命令服务以 RS256 铸造访问令牌并暴露 JWKS，查询服务用 JWKS 验签。
+- 获取令牌（BFF 会话）：
+  - 登录建立会话并获取 RS256 短期访问令牌（无需本地存储私钥）：
+  - 示例：
+    ```bash
+    # 建立会话（DEV 或 OIDC_SIMULATE 环境下可用）
+    curl -s -c ./.cache/bff.cookies -L "http://localhost:9090/auth/login?redirect=/" >/dev/null
+    # 拉取会话，获取 RS256 访问令牌
+    curl -s -b ./.cache/bff.cookies http://localhost:9090/auth/session | jq .
+    # 使用 accessToken 调用 GraphQL（务必携带 X-Tenant-ID）
+    ACCESS_TOKEN="..."; TENANT_ID="3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"
+    curl -sS -X POST http://localhost:8090/graphql \
+      -H "Authorization: Bearer $ACCESS_TOKEN" \
+      -H "X-Tenant-ID: $TENANT_ID" \
+      -H "Content-Type: application/json" \
+      -d '{"query":"query($page:Int,$pageSize:Int){ organizations(pagination:{page:$page,pageSize:$pageSize}) { pagination { total page pageSize hasNext } } }","variables":{"page":1,"pageSize":1}}'
+    ```
+- JWKS 预览：`curl http://localhost:9090/.well-known/jwks.json`（应返回 RSA 公钥，kid 一般为 `bff-key-1`）。
+
+#### 关于 dev-token（回退路径）
+- `make jwt-dev-mint` 调用 `/auth/dev-token` 生成开发令牌，签名算法与 `JWT_ALG` 保持一致（默认 HS256，启用 RS256 时需配置 `JWT_PRIVATE_KEY_PATH`/`JWT_KEY_ID`）。
+- 若未正确配置 RS256 私钥，接口会返回错误；请执行 `make run-auth-rs256-sim` 或按照《JWT 开发指南》补齐密钥文件。
+- 当查询服务使用 RS256+JWKS 验签时，请确保命令服务也以 RS256 发放 dev-token；若需临时回退至 HS256，必须同步调整查询服务算法。
+
 ### 质量检查命令
 ```bash
 npm run quality:duplicates      # 运行重复代码检测

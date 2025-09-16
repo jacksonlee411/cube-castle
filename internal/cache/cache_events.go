@@ -23,7 +23,7 @@ type CacheEvent struct {
 	EntityType string      `json:"entity_type"` // organization
 	EntityID   string      `json:"entity_id"`   // 组织代码
 	TenantID   string      `json:"tenant_id"`
-	Data       interface{} `json:"data"`        // 实体数据
+	Data       interface{} `json:"data"` // 实体数据
 	Timestamp  int64       `json:"timestamp"`
 	Source     string      `json:"source"` // domain_event, cache_invalidation
 }
@@ -31,22 +31,22 @@ type CacheEvent struct {
 // 组织模型 - PostgreSQL原生架构，统一camelCase命名
 type Organization struct {
 	Code        string    `json:"code"`
-	TenantID    string    `json:"tenantId"`    // camelCase统一
+	TenantID    string    `json:"tenantId"` // camelCase统一
 	Name        string    `json:"name"`
-	UnitType    string    `json:"unitType"`    // camelCase统一
+	UnitType    string    `json:"unitType"` // camelCase统一
 	Status      string    `json:"status"`
 	Level       int       `json:"level"`
 	Path        string    `json:"path"`
-	SortOrder   int       `json:"sortOrder"`   // camelCase统一
+	SortOrder   int       `json:"sortOrder"` // camelCase统一
 	Description string    `json:"description"`
-	ParentCode  string    `json:"parentCode"`  // camelCase统一
-	CreatedAt   time.Time `json:"createdAt"`   // camelCase统一
-	UpdatedAt   time.Time `json:"updatedAt"`   // camelCase统一
+	ParentCode  string    `json:"parentCode"` // camelCase统一
+	CreatedAt   time.Time `json:"createdAt"`  // camelCase统一
+	UpdatedAt   time.Time `json:"updatedAt"`  // camelCase统一
 }
 
 // 组织统计模型 - camelCase命名规范统一
 type OrganizationStats struct {
-	TotalCount int           `json:"totalCount"`  // camelCase统一
+	TotalCount int           `json:"totalCount"` // camelCase统一
 	ByType     []TypeCount   `json:"byType"`     // camelCase统一
 	ByStatus   []StatusCount `json:"byStatus"`   // camelCase统一
 	ByLevel    []LevelCount  `json:"byLevel"`    // camelCase统一
@@ -69,17 +69,17 @@ type LevelCount struct {
 
 // 缓存统计 - camelCase命名规范统一
 type CacheStats struct {
-	L1Stats         L1Stats `json:"l1Stats"`          // camelCase统一
-	L2Connected     bool    `json:"l2Connected"`      // camelCase统一
-	WriteThrough    bool    `json:"writeThrough"`     // camelCase统一
-	ConsistencyMode string  `json:"consistencyMode"`  // camelCase统一
+	L1Stats         L1Stats `json:"l1Stats"`         // camelCase统一
+	L2Connected     bool    `json:"l2Connected"`     // camelCase统一
+	WriteThrough    bool    `json:"writeThrough"`    // camelCase统一
+	ConsistencyMode string  `json:"consistencyMode"` // camelCase统一
 }
 
 type L1Stats struct {
-	HitCount  int64   `json:"hitCount"`   // camelCase统一
-	MissCount int64   `json:"missCount"`  // camelCase统一
+	HitCount  int64   `json:"hitCount"`  // camelCase统一
+	MissCount int64   `json:"missCount"` // camelCase统一
 	Size      int     `json:"size"`
-	HitRate   float64 `json:"hitRate"`    // camelCase统一
+	HitRate   float64 `json:"hitRate"` // camelCase统一
 }
 
 // 创建事件总线

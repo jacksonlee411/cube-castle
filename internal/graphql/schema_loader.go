@@ -42,7 +42,7 @@ func (sl *SchemaLoader) LoadSchema() (string, error) {
 
 	// 缓存Schema内容
 	sl.cache = string(content)
-	
+
 	return sl.cache, nil
 }
 

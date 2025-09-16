@@ -144,7 +144,7 @@ export class AuthManager {
   private isTokenValid(token: OAuthToken): boolean {
     const expirationTime = token.issuedAt + (token.expiresIn * 1000);
     const bufferTime = 5 * 60 * 1000; // 5分钟缓冲
-    
+    const now = Date.now();
     return now < (expirationTime - bufferTime);
   }
 

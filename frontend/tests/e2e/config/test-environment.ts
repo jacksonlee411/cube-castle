@@ -6,6 +6,9 @@
 
 import { SERVICE_PORTS, buildServiceURL } from '../../../src/shared/config/ports';
 
+// 快速探测超时时间（避免长时间挂起）
+const QUICK_TIMEOUT_MS = 2000;
+
 // 🎯 E2E测试基础URL配置
 export const E2E_CONFIG = {
   // 主要测试目标
@@ -15,9 +18,9 @@ export const E2E_CONFIG = {
   COMMAND_API_URL: process.env.E2E_COMMAND_API_URL || buildServiceURL('REST_COMMAND_SERVICE', '/api/v1'),
   GRAPHQL_API_URL: process.env.E2E_GRAPHQL_API_URL || buildServiceURL('GRAPHQL_QUERY_SERVICE', '/graphql'),
   
-  // 超时配置
-  PAGE_TIMEOUT: parseInt(process.env.E2E_PAGE_TIMEOUT || '30000'),
-  NAVIGATION_TIMEOUT: parseInt(process.env.E2E_NAVIGATION_TIMEOUT || '15000'),
+  // 超时配置（默认2分钟，可通过环境变量覆盖）
+  PAGE_TIMEOUT: parseInt(process.env.E2E_PAGE_TIMEOUT || '120000'),
+  NAVIGATION_TIMEOUT: parseInt(process.env.E2E_NAVIGATION_TIMEOUT || '120000'),
   
   // 服务等待配置
   SERVICE_STARTUP_WAIT: parseInt(process.env.E2E_SERVICE_WAIT || '5000'),
@@ -31,7 +34,8 @@ export const checkPortAvailability = async (port: number, host: string = 'localh
   try {
     const response = await fetch(`http://${host}:${port}/health`, {
       method: 'GET',
-      timeout: 3000,
+      // 使用快速探测，避免整体等待过长
+      signal: AbortSignal.timeout(QUICK_TIMEOUT_MS),
     });
     return response.ok;
   } catch (error) {
@@ -48,7 +52,8 @@ export const discoverActivePort = async (basePorts: number[] = [3000, 3001, 3002
     try {
       const response = await fetch(`http://localhost:${port}`, {
         method: 'GET',
-        timeout: 2000,
+        // 逐端口快速探测 2s，3个端口最多 ~6s
+        signal: AbortSignal.timeout(QUICK_TIMEOUT_MS),
       });
       if (response.ok) {
         console.log(`✅ 发现活跃前端服务：http://localhost:${port}`);

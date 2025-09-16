@@ -45,6 +45,8 @@ Cube Castle项目提供了完整的JWT开发工具，帮助开发者在开发环
 AUTH_MODE=dev              # dev|prod
 JWT_ALG=HS256              # 开发默认 HS256；生产建议 RS256 + JWKS
 JWT_SECRET=...             # HS256 共享密钥
+# JWT_PRIVATE_KEY_PATH=... # RS256：命令服务用于签名的私钥 (PEM)
+# JWT_KEY_ID=bff-key-1     # RS256：对外暴露的 JWKS kid，默认 bff-key-1
 JWT_ISSUER=cube-castle
 JWT_AUDIENCE=cube-castle-api
 JWT_ALLOWED_CLOCK_SKEW=60  # 秒

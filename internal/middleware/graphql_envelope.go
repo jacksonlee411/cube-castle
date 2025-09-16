@@ -40,9 +40,9 @@ func (m *GraphQLEnvelopeMiddleware) Middleware() func(http.Handler) http.Handler
 
 // responseInterceptor 响应拦截器，将GraphQL标准响应包装为企业级信封
 type responseInterceptor struct {
-    http.ResponseWriter
-    requestID string
-    written   bool
+	http.ResponseWriter
+	requestID string
+	written   bool
 }
 
 func (ri *responseInterceptor) Write(data []byte) (int, error) {
@@ -51,67 +51,67 @@ func (ri *responseInterceptor) Write(data []byte) (int, error) {
 	}
 	ri.written = true
 
-    // 解析GraphQL响应
-    var graphqlResponse map[string]interface{}
-    if err := json.Unmarshal(data, &graphqlResponse); err != nil {
-        // 如果解析失败，返回原始响应
-        return ri.ResponseWriter.Write(data)
-    }
+	// 解析GraphQL响应
+	var graphqlResponse map[string]interface{}
+	if err := json.Unmarshal(data, &graphqlResponse); err != nil {
+		// 如果解析失败，返回原始响应
+		return ri.ResponseWriter.Write(data)
+	}
 
-    // 检查是否为GraphQL查询响应（包含data字段）
-    if _, hasData := graphqlResponse["data"]; hasData {
-        // 检查是否有错误
-        errorMessage := "Query executed successfully"
-		
-        if errorsVal, hasErr := graphqlResponse["errors"]; hasErr {
-            errorMessage = "Query completed with errors"
+	// 检查是否为GraphQL查询响应（包含data字段）
+	if _, hasData := graphqlResponse["data"]; hasData {
+		// 检查是否有错误
+		errorMessage := "Query executed successfully"
 
-            // 权限错误识别：若任一错误message包含"INSUFFICIENT_PERMISSIONS"，映射企业错误码
-            code := "GRAPHQL_EXECUTION_ERROR"
-            if arr, ok := errorsVal.([]interface{}); ok {
-                for _, e := range arr {
-                    if m, ok := e.(map[string]interface{}); ok {
-                        if msg, ok := m["message"].(string); ok {
-                            if msg == "INSUFFICIENT_PERMISSIONS" ||
-                               strings.Contains(strings.ToLower(msg), strings.ToLower("INSUFFICIENT_PERMISSIONS")) {
-                                code = "INSUFFICIENT_PERMISSIONS"
-                                errorMessage = "权限不足，无法执行该查询"
-                                break
-                            }
-                        }
-                    }
-                }
-            }
+		if errorsVal, hasErr := graphqlResponse["errors"]; hasErr {
+			errorMessage = "Query completed with errors"
 
-            errorResponse := types.WriteErrorResponse(
-                code,
-                errorMessage,
-                ri.requestID,
-                errorsVal,
-            )
+			// 权限错误识别：若任一错误message包含"INSUFFICIENT_PERMISSIONS"，映射企业错误码
+			code := "GRAPHQL_EXECUTION_ERROR"
+			if arr, ok := errorsVal.([]interface{}); ok {
+				for _, e := range arr {
+					if m, ok := e.(map[string]interface{}); ok {
+						if msg, ok := m["message"].(string); ok {
+							if msg == "INSUFFICIENT_PERMISSIONS" ||
+								strings.Contains(strings.ToLower(msg), strings.ToLower("INSUFFICIENT_PERMISSIONS")) {
+								code = "INSUFFICIENT_PERMISSIONS"
+								errorMessage = "权限不足，无法执行该查询"
+								break
+							}
+						}
+					}
+				}
+			}
 
-            ri.ResponseWriter.Header().Set("Content-Type", "application/json")
-            responseData, _ := json.Marshal(errorResponse)
-            return ri.ResponseWriter.Write(responseData)
-        }
+			errorResponse := types.WriteErrorResponse(
+				code,
+				errorMessage,
+				ri.requestID,
+				errorsVal,
+			)
 
-        // 构建企业级成功响应信封
-        successResponse := types.WriteSuccessResponse(
-            graphqlResponse["data"],
-            errorMessage,
-            ri.requestID,
-        )
+			ri.ResponseWriter.Header().Set("Content-Type", "application/json")
+			responseData, _ := json.Marshal(errorResponse)
+			return ri.ResponseWriter.Write(responseData)
+		}
+
+		// 构建企业级成功响应信封
+		successResponse := types.WriteSuccessResponse(
+			graphqlResponse["data"],
+			errorMessage,
+			ri.requestID,
+		)
 
 		// 设置响应头
 		ri.ResponseWriter.Header().Set("Content-Type", "application/json")
-		
+
 		// 序列化并返回企业级信封响应
 		responseData, err := json.Marshal(successResponse)
 		if err != nil {
 			// 如果序列化失败，返回原始响应
 			return ri.ResponseWriter.Write(data)
 		}
-		
+
 		return ri.ResponseWriter.Write(responseData)
 	}
 
@@ -120,6 +120,5 @@ func (ri *responseInterceptor) Write(data []byte) (int, error) {
 }
 
 func (ri *responseInterceptor) WriteHeader(statusCode int) {
-    ri.ResponseWriter.WriteHeader(statusCode)
+	ri.ResponseWriter.WriteHeader(statusCode)
 }
-

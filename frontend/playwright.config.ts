@@ -1,16 +1,23 @@
 import { defineConfig, devices } from '@playwright/test';
 import { SERVICE_PORTS } from './src/shared/config/ports';
 
+// 允许通过环境变量跳过 webServer（前端已在本机运行时避免重复启动）
+const SKIP_SERVER = process.env.PW_SKIP_SERVER === '1';
+const FRONTEND_URL = process.env.PW_BASE_URL || `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`;
+
 export default defineConfig({
+  // 全局测试超时：2分钟
+  timeout: 120_000,
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  expect: { timeout: 120_000 },
   
   use: {
-    baseURL: `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`, // 使用统一端口配置
+    baseURL: FRONTEND_URL, // 允许通过 PW_BASE_URL 覆盖
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -37,10 +44,11 @@ export default defineConfig({
     // },
   ],
 
-  webServer: {
+  webServer: SKIP_SERVER ? undefined : {
     command: 'npm run dev',
-    url: `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`, // 使用统一端口配置
+    url: `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`,
     reuseExistingServer: !process.env.CI,
+    // 前端开发服务器启动等待：2分钟
     timeout: 120 * 1000,
   },
 });

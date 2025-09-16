@@ -13,7 +13,7 @@ type SuccessResponse struct {
 	RequestID string      `json:"requestId"`
 }
 
-// 企业级错误响应结构  
+// 企业级错误响应结构
 type EnterpriseErrorResponse struct {
 	Success   bool      `json:"success"`
 	Error     ErrorInfo `json:"error"`

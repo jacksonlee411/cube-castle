@@ -2,18 +2,21 @@ package config
 
 import (
 	"os"
+	"strings"
 	"time"
 )
 
 // JWTConfig 统一JWT配置结构
 type JWTConfig struct {
-	Secret            string
-	Issuer            string
-	Audience          string
-	Algorithm         string
-	PublicKeyPath     string
-	JWKSUrl           string
-	AllowedClockSkew  time.Duration
+	Secret           string
+	Issuer           string
+	Audience         string
+	Algorithm        string
+	PublicKeyPath    string
+	PrivateKeyPath   string
+	JWKSUrl          string
+	KeyID            string
+	AllowedClockSkew time.Duration
 }
 
 // GetJWTConfig 获取统一JWT配置
@@ -48,8 +51,10 @@ func GetJWTConfig() *JWTConfig {
 	// RS256公钥路径配置
 	config.PublicKeyPath = os.Getenv("JWT_PUBLIC_KEY_PATH")
 
-	// JWKS URL配置
+	// 私钥路径与 JWKS 配置
+	config.PrivateKeyPath = os.Getenv("JWT_PRIVATE_KEY_PATH")
 	config.JWKSUrl = os.Getenv("JWT_JWKS_URL")
+	config.KeyID = os.Getenv("JWT_KEY_ID")
 
 	// 时钟偏差容忍配置
 	clockSkewStr := os.Getenv("JWT_ALLOWED_CLOCK_SKEW")
@@ -61,6 +66,10 @@ func GetJWTConfig() *JWTConfig {
 	// 默认5分钟时钟偏差容忍
 	if config.AllowedClockSkew == 0 {
 		config.AllowedClockSkew = 5 * time.Minute
+	}
+
+	if config.KeyID == "" && strings.EqualFold(config.Algorithm, "RS256") {
+		config.KeyID = "bff-key-1"
 	}
 
 	return config
@@ -84,4 +93,9 @@ func (c *JWTConfig) HasJWKS() bool {
 // HasPublicKey 检查是否配置了公钥文件
 func (c *JWTConfig) HasPublicKey() bool {
 	return c.PublicKeyPath != ""
+}
+
+// HasPrivateKey 检查是否配置了私钥文件
+func (c *JWTConfig) HasPrivateKey() bool {
+	return c.PrivateKeyPath != ""
 }

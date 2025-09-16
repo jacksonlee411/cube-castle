@@ -330,7 +330,7 @@ func (ucm *UnifiedCacheManager) GetOrganization(ctx context.Context, tenantID uu
 // ==================== 写时更新接口 ====================
 
 // CDC事件处理 - 写时更新策略
-func (ucm *UnifiedCacheManager) HandleCDCEvent(ctx context.Context, event CDCEvent) error {
+func (ucm *UnifiedCacheManager) HandleCDCEvent(ctx context.Context, event CacheEvent) error {
 	if !ucm.config.WriteThrough {
 		return ucm.handleTraditionalInvalidation(ctx, event)
 	}
@@ -349,7 +349,7 @@ func (ucm *UnifiedCacheManager) HandleCDCEvent(ctx context.Context, event CDCEve
 }
 
 // 处理创建事件 - 新增到缓存
-func (ucm *UnifiedCacheManager) handleCreateEvent(ctx context.Context, event CDCEvent) error {
+func (ucm *UnifiedCacheManager) handleCreateEvent(ctx context.Context, event CacheEvent) error {
 	org := event.ToOrganization()
 	tenantID := uuid.MustParse(org.TenantID)
 
@@ -390,7 +390,7 @@ func (ucm *UnifiedCacheManager) handleCreateEvent(ctx context.Context, event CDC
 }
 
 // 处理更新事件 - 更新缓存中的数据
-func (ucm *UnifiedCacheManager) handleUpdateEvent(ctx context.Context, event CDCEvent) error {
+func (ucm *UnifiedCacheManager) handleUpdateEvent(ctx context.Context, event CacheEvent) error {
 	org := event.ToOrganization()
 	tenantID := uuid.MustParse(org.TenantID)
 
@@ -431,7 +431,7 @@ func (ucm *UnifiedCacheManager) handleUpdateEvent(ctx context.Context, event CDC
 }
 
 // 处理删除事件 - 从缓存中移除
-func (ucm *UnifiedCacheManager) handleDeleteEvent(ctx context.Context, event CDCEvent) error {
+func (ucm *UnifiedCacheManager) handleDeleteEvent(ctx context.Context, event CacheEvent) error {
 	org := event.ToOrganization()
 	tenantID := uuid.MustParse(org.TenantID)
 
@@ -631,7 +631,7 @@ func (ucm *UnifiedCacheManager) startEventListener() {
 }
 
 // 传统失效模式处理
-func (ucm *UnifiedCacheManager) handleTraditionalInvalidation(ctx context.Context, event CDCEvent) error {
+func (ucm *UnifiedCacheManager) handleTraditionalInvalidation(ctx context.Context, event CacheEvent) error {
 	org := event.ToOrganization()
 	keyMgr := &CacheKeyManager{namespace: ucm.config.Namespace}
 
