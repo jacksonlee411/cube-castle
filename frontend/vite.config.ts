@@ -48,6 +48,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
+      // JWKS端点代理
+      '/.well-known/jwks.json': {
+        target: CQRS_ENDPOINTS.COMMAND_BASE,
+        changeOrigin: true,
+        secure: false
+      },
       // 其他API路由到REST命令服务
       '/api/v1': {
         target: CQRS_ENDPOINTS.COMMAND_BASE,

@@ -24,6 +24,7 @@ export class AuthManager {
   private refreshPromise: Promise<OAuthToken> | null = null;
   // 生产态：来自 /auth/session 的会话信息（仅内存保存，不落盘）
   private sessionTenantId: string | null = null;
+  private jwksVerified = false;
 
   constructor(config: OAuthConfig) {
     this.config = config;
@@ -34,9 +35,18 @@ export class AuthManager {
    * 获取有效的访问令牌
    */
   async getAccessToken(): Promise<string> {
-    // 检查现有token是否有效
-    if (this.token && this.isTokenValid(this.token)) {
-      return this.token.accessToken;
+    await this.ensureRS256();
+
+    // 检查缓存token是否有效，且必须为RS256
+    if (this.token) {
+      if (!this.isTokenValid(this.token)) {
+        this.clearAuth();
+      } else if (!this.isRS256Token(this.token)) {
+        console.warn('[OAuth] 检测到历史 HS256 令牌，已强制清除，请重新获取');
+        this.clearAuth();
+      } else {
+        return this.token.accessToken;
+      }
     }
 
     // 如果已经有刷新请求在进行中，等待它完成
@@ -61,6 +71,7 @@ export class AuthManager {
    * 获取新的OAuth令牌
    */
   private async obtainNewToken(): Promise<OAuthToken> {
+    await this.ensureRS256();
     console.log('[OAuth] 正在获取新的访问令牌...');
     
     // 修复：使用开发令牌端点的JSON格式请求
@@ -107,6 +118,8 @@ export class AuthManager {
       issuedAt: Date.now(),
     };
 
+    this.assertRS256(token);
+
     this.token = token;
     this.saveTokenToStorage();
     
@@ -118,6 +131,7 @@ export class AuthManager {
    * 从BFF会话获取短期访问令牌（生产态）
    */
   private async obtainFromSession(): Promise<OAuthToken> {
+    await this.ensureRS256();
     const body = await unauthenticatedRESTClient.request<Record<string, unknown>>('/auth/session', { credentials: 'include' });
     const data = body.data || body; // 兼容直接数据
     const accessToken = data.accessToken;
@@ -131,6 +145,9 @@ export class AuthManager {
       scope: Array.isArray(data.scopes) ? data.scopes.join(' ') : data.scope,
       issuedAt: Date.now(),
     };
+
+    this.assertRS256(token);
+
     this.token = token;
     // 生产态不持久化到localStorage
     return token;
@@ -148,18 +165,118 @@ export class AuthManager {
     return now < (expirationTime - bufferTime);
   }
 
+  private async ensureRS256(): Promise<void> {
+    if (this.jwksVerified) {
+      return;
+    }
+    try {
+      const response = await fetch('/.well-known/jwks.json', { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error(`JWKS 请求失败，HTTP ${response.status}`);
+      }
+      const jwks = await response.json();
+      if (!jwks || !Array.isArray(jwks.keys) || jwks.keys.length === 0) {
+        throw new Error('JWKS 未返回任何公钥，无法确认 RS256 配置');
+      }
+      this.jwksVerified = true;
+    } catch (error) {
+      throw new Error(`[OAuth] 检测JWKS失败：${(error as Error).message}。请确认命令服务已使用 RS256 并暴露 /.well-known/jwks.json。`);
+    }
+  }
+
+  private assertRS256(token: OAuthToken): void {
+    if (!this.isRS256Token(token)) {
+      this.clearAuth();
+      throw new Error('检测到非 RS256 签名的令牌，已强制清除。请重新生成 RS256 令牌。');
+    }
+  }
+
+  private isRS256Token(token: OAuthToken): boolean {
+    const alg = this.extractTokenAlgorithm(token.accessToken);
+    return alg ? alg.toUpperCase() === 'RS256' : false;
+  }
+
+  private extractTokenAlgorithm(rawToken: string | undefined): string | undefined {
+    if (!rawToken) {
+      return undefined;
+    }
+    const parts = rawToken.split('.');
+    if (parts.length < 2) {
+      return undefined;
+    }
+    try {
+      const decoded = this.decodeBase64Url(parts[0]);
+      const header = JSON.parse(decoded) as { alg?: string };
+      return header.alg;
+    } catch (error) {
+      console.warn('[OAuth] 无法解析JWT头部:', error);
+      return undefined;
+    }
+  }
+
+  private decodeBase64Url(value: string): string {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padLength = (4 - (normalized.length % 4)) % 4;
+    const padded = normalized + '='.repeat(padLength);
+    if (typeof atob === 'function') {
+      return atob(padded);
+    }
+    const globalBuffer = typeof globalThis !== 'undefined' ? (globalThis as unknown as { Buffer?: { from: (input: string, encoding: string) => { toString: (encoding: string) => string } } }).Buffer : undefined;
+    if (globalBuffer) {
+      return globalBuffer.from(padded, 'base64').toString('binary');
+    }
+    throw new Error('当前运行环境不支持 Base64 解码');
+  }
+
   /**
    * 从localStorage加载token
    */
   private loadTokenFromStorage(): void {
     try {
+      const legacyKeys = [
+        'cube_castle_token',
+        'cubeCastleToken',
+        'cube-castle-token',
+        'cube_castle_oauth_token_raw',
+      ];
+      legacyKeys.forEach((key) => {
+        try { localStorage.removeItem(key); } catch (legacyError) {
+          console.warn('[OAuth] 无法清理历史令牌字段:', key, legacyError);
+        }
+      });
       const stored = localStorage.getItem('cube_castle_oauth_token');
-      if (stored) {
-        this.token = JSON.parse(stored);
+      if (!stored) {
+        this.token = null;
+        return;
+      }
+
+      if (stored.trim().startsWith('eyJ')) {
+        // 旧版本直接存储原始JWT字符串
+        console.warn('[OAuth] 检测到历史原始JWT存储，已清理');
+        localStorage.removeItem('cube_castle_oauth_token');
+        this.token = null;
+        return;
+      }
+
+      const parsed = JSON.parse(stored) as OAuthToken;
+      this.token = parsed;
+
+      // 迁移：清除 HS256 或已过期令牌，避免后续请求失败
+      if (!this.isRS256Token(parsed)) {
+        console.warn('[OAuth] 检测到历史 HS256 令牌，已清理');
+        this.clearAuth();
+        return;
+      }
+      if (!this.isTokenValid(parsed)) {
+        console.warn('[OAuth] 检测到过期令牌，已清理');
+        this.clearAuth();
       }
     } catch (error) {
       console.warn('[OAuth] 无法从存储中加载token:', error);
       this.token = null;
+      try { localStorage.removeItem('cube_castle_oauth_token'); } catch (clearError) {
+        console.warn('[OAuth] 清理损坏的token失败:', clearError);
+      }
     }
   }
 
@@ -184,6 +301,11 @@ export class AuthManager {
     try { localStorage.removeItem('cube_castle_oauth_token'); } catch (error) {
       console.warn('[OAuth] Failed to clear localStorage:', error);
     }
+    ['cube_castle_token', 'cubeCastleToken', 'cube-castle-token'].forEach((key) => {
+      try { localStorage.removeItem(key); } catch (legacyError) {
+        console.warn('[OAuth] Failed to clear legacy token key:', key, legacyError);
+      }
+    });
     console.log('[OAuth] 认证状态已清除');
   }
 
@@ -199,6 +321,7 @@ export class AuthManager {
    */
   async forceRefresh(): Promise<OAuthToken> {
     if (env.authConfig.mode === 'oidc') {
+      await this.ensureRS256();
       const csrf = this.getCookie('csrf');
       const body = await unauthenticatedRESTClient.request<Record<string, unknown>>('/auth/refresh', {
         method: 'POST',
@@ -214,6 +337,7 @@ export class AuthManager {
         expiresIn,
         issuedAt: Date.now(),
       };
+      this.assertRS256(token);
       this.token = token;
       return token;
     }

@@ -587,6 +587,8 @@ Organization business status (ADR-008: 一维业务状态模型).
 enum Status {
   ACTIVE         # Actively operating unit
   INACTIVE       # Non-active but existing unit (等价于停用/暂停)
+  PLANNED        # Planned unit (未来计划单位)
+  DELETED        # Deleted unit (已删除单位)
 }
 
 """

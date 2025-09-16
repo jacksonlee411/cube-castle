@@ -14,6 +14,10 @@ import (
 	"syscall"
 	"time"
 
+	"cube-castle-deployment-test/internal/auth"
+	"cube-castle-deployment-test/internal/config"
+	schemaLoader "cube-castle-deployment-test/internal/graphql"
+	requestMiddleware "cube-castle-deployment-test/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -22,10 +26,6 @@ import (
 	"github.com/graph-gophers/graphql-go/relay"
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
-	"cube-castle-deployment-test/internal/auth"
-	"cube-castle-deployment-test/internal/config"
-	schemaLoader "cube-castle-deployment-test/internal/graphql"
-	requestMiddleware "cube-castle-deployment-test/internal/middleware"
 )
 
 // 默认租户配置
@@ -38,10 +38,10 @@ var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 
 /**
  * GraphQL Schema单一真源 - Phase 1实施
- * 
+ *
  * ⚠️  移除硬编码schemaString，改用docs/api/schema.graphql作为单一真源
  * 消除双源维护漂移风险，确保文档与运行时schema一致性
- * 
+ *
  * Schema来源：docs/api/schema.graphql
  * 加载器：internal/graphql/schema_loader.go
  */
@@ -63,8 +63,8 @@ type Organization struct {
 	CreatedAtField        time.Time  `json:"createdAt" db:"created_at"`
 	UpdatedAtField        time.Time  `json:"updatedAt" db:"updated_at"`
 	EffectiveDateField    time.Time  `json:"effectiveDate" db:"effective_date"`
-    EndDateField          *time.Time `json:"endDate" db:"end_date"`
-    IsCurrentField        bool       `json:"isCurrent" db:"is_current"`
+	EndDateField          *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField        bool       `json:"isCurrent" db:"is_current"`
 	ChangeReasonField     *string    `json:"changeReason" db:"change_reason"`
 	DeletedAtField        *time.Time `json:"deletedAt" db:"deleted_at"`
 	DeletedByField        *string    `json:"deletedBy" db:"deleted_by"`
@@ -72,26 +72,26 @@ type Organization struct {
 	SuspendedAtField      *time.Time `json:"suspendedAt" db:"suspended_at"`
 	SuspendedByField      *string    `json:"suspendedBy" db:"suspended_by"`
 	SuspensionReasonField *string    `json:"suspensionReason" db:"suspension_reason"`
-	
+
 	// 新增缺失的字段
-    HierarchyDepthField   int      `json:"hierarchyDepth" db:"hierarchy_depth"`
+	HierarchyDepthField int `json:"hierarchyDepth" db:"hierarchy_depth"`
 }
 
 // GraphQL字段解析器 - 零拷贝优化 (camelCase方法名)
-func (o Organization) RecordId() string    { return o.RecordIDField }
-func (o Organization) TenantId() string    { return o.TenantIDField }
-func (o Organization) Code() string        { return o.CodeField }
+func (o Organization) RecordId() string { return o.RecordIDField }
+func (o Organization) TenantId() string { return o.TenantIDField }
+func (o Organization) Code() string     { return o.CodeField }
 func (o Organization) ParentCode() string {
 	if o.ParentCodeField == nil {
-		return "0"  // 根组织使用 "0" 作为 parentCode
+		return "0" // 根组织使用 "0" 作为 parentCode
 	}
 	return *o.ParentCodeField
 }
-func (o Organization) Name() string        { return o.NameField }
-func (o Organization) UnitType() string    { return o.UnitTypeField }
-func (o Organization) Status() string      { return o.StatusField }
-func (o Organization) Level() int32        { return int32(o.LevelField) }
-func (o Organization) Path() *string       { return o.PathField }
+func (o Organization) Name() string     { return o.NameField }
+func (o Organization) UnitType() string { return o.UnitTypeField }
+func (o Organization) Status() string   { return o.StatusField }
+func (o Organization) Level() int32     { return int32(o.LevelField) }
+func (o Organization) Path() *string    { return o.PathField }
 func (o Organization) SortOrder() *int32 {
 	if o.SortOrderField == nil {
 		return nil
@@ -101,8 +101,8 @@ func (o Organization) SortOrder() *int32 {
 }
 func (o Organization) Description() *string  { return o.DescriptionField }
 func (o Organization) Profile() *string      { return o.ProfileField }
-func (o Organization) CreatedAt() string { return o.CreatedAtField.Format(time.RFC3339) }
-func (o Organization) UpdatedAt() string { return o.UpdatedAtField.Format(time.RFC3339) }
+func (o Organization) CreatedAt() string     { return o.CreatedAtField.Format(time.RFC3339) }
+func (o Organization) UpdatedAt() string     { return o.UpdatedAtField.Format(time.RFC3339) }
 func (o Organization) EffectiveDate() string { return o.EffectiveDateField.Format("2006-01-02") }
 func (o Organization) EndDate() *string {
 	if o.EndDateField == nil {
@@ -113,25 +113,25 @@ func (o Organization) EndDate() *string {
 }
 func (o Organization) IsCurrent() bool { return o.IsCurrentField }
 func (o Organization) IsTemporal() bool {
-    // 派生：有结束日期即为历史时态
-    return o.EndDateField != nil
+	// 派生：有结束日期即为历史时态
+	return o.EndDateField != nil
 }
 func (o Organization) ChangeReason() *string { return o.ChangeReasonField }
-func (o Organization) HierarchyDepth() int32    { return int32(o.HierarchyDepthField) }
+func (o Organization) HierarchyDepth() int32 { return int32(o.HierarchyDepthField) }
 func cnTodayDate() time.Time {
-    loc, err := time.LoadLocation("Asia/Shanghai")
-    if err != nil {
-        // 回退到 UTC，但这在部署环境应始终可用
-        return time.Now().UTC().Truncate(24 * time.Hour)
-    }
-    nowCN := time.Now().In(loc)
-    return time.Date(nowCN.Year(), nowCN.Month(), nowCN.Day(), 0, 0, 0, 0, loc)
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		// 回退到 UTC，但这在部署环境应始终可用
+		return time.Now().UTC().Truncate(24 * time.Hour)
+	}
+	nowCN := time.Now().In(loc)
+	return time.Date(nowCN.Year(), nowCN.Month(), nowCN.Day(), 0, 0, 0, 0, loc)
 }
 func (o Organization) IsFuture() bool {
-    // 派生：effectiveDate > 今日（北京时间）
-    todayCN := cnTodayDate()
-    eff := time.Date(o.EffectiveDateField.Year(), o.EffectiveDateField.Month(), o.EffectiveDateField.Day(), 0, 0, 0, 0, todayCN.Location())
-    return eff.After(todayCN)
+	// 派生：effectiveDate > 今日（北京时间）
+	todayCN := cnTodayDate()
+	eff := time.Date(o.EffectiveDateField.Year(), o.EffectiveDateField.Month(), o.EffectiveDateField.Day(), 0, 0, 0, 0, todayCN.Location())
+	return eff.After(todayCN)
 }
 func (o Organization) DeletedAt() *string {
 	if o.DeletedAtField == nil {
@@ -250,29 +250,29 @@ func (t TemporalInfo) HistoricalCount() int32 { return int32(t.HistoricalCountFi
 
 // 层级结构类型 - 严格遵循API规范v4.2.1
 type OrganizationHierarchyData struct {
-	CodeField           string   `json:"code"`
-	NameField           string   `json:"name"`
-	LevelField          int      `json:"level"`
-	HierarchyDepthField int      `json:"hierarchyDepth"`
-	CodePathField       string   `json:"codePath"`
-	NamePathField       string   `json:"namePath"`
-	ParentChainField    []string `json:"parentChain"`
-	ChildrenCountField  int                           `json:"childrenCount"`
-	IsRootField         bool                          `json:"isRoot"`
-	IsLeafField         bool                          `json:"isLeaf"`
-	ChildrenField       []OrganizationHierarchyData   `json:"children"`
+	CodeField           string                      `json:"code"`
+	NameField           string                      `json:"name"`
+	LevelField          int                         `json:"level"`
+	HierarchyDepthField int                         `json:"hierarchyDepth"`
+	CodePathField       string                      `json:"codePath"`
+	NamePathField       string                      `json:"namePath"`
+	ParentChainField    []string                    `json:"parentChain"`
+	ChildrenCountField  int                         `json:"childrenCount"`
+	IsRootField         bool                        `json:"isRoot"`
+	IsLeafField         bool                        `json:"isLeaf"`
+	ChildrenField       []OrganizationHierarchyData `json:"children"`
 }
 
-func (h OrganizationHierarchyData) Code() string           { return h.CodeField }
-func (h OrganizationHierarchyData) Name() string           { return h.NameField }
-func (h OrganizationHierarchyData) Level() int32           { return int32(h.LevelField) }
-func (h OrganizationHierarchyData) HierarchyDepth() int32  { return int32(h.HierarchyDepthField) }
-func (h OrganizationHierarchyData) CodePath() string       { return h.CodePathField }
-func (h OrganizationHierarchyData) NamePath() string       { return h.NamePathField }
-func (h OrganizationHierarchyData) ParentChain() []string  { return h.ParentChainField }
-func (h OrganizationHierarchyData) ChildrenCount() int32   { return int32(h.ChildrenCountField) }
-func (h OrganizationHierarchyData) IsRoot() bool           { return h.IsRootField }
-func (h OrganizationHierarchyData) IsLeaf() bool           { return h.IsLeafField }
+func (h OrganizationHierarchyData) Code() string                          { return h.CodeField }
+func (h OrganizationHierarchyData) Name() string                          { return h.NameField }
+func (h OrganizationHierarchyData) Level() int32                          { return int32(h.LevelField) }
+func (h OrganizationHierarchyData) HierarchyDepth() int32                 { return int32(h.HierarchyDepthField) }
+func (h OrganizationHierarchyData) CodePath() string                      { return h.CodePathField }
+func (h OrganizationHierarchyData) NamePath() string                      { return h.NamePathField }
+func (h OrganizationHierarchyData) ParentChain() []string                 { return h.ParentChainField }
+func (h OrganizationHierarchyData) ChildrenCount() int32                  { return int32(h.ChildrenCountField) }
+func (h OrganizationHierarchyData) IsRoot() bool                          { return h.IsRootField }
+func (h OrganizationHierarchyData) IsLeaf() bool                          { return h.IsLeafField }
 func (h OrganizationHierarchyData) Children() []OrganizationHierarchyData { return h.ChildrenField }
 
 type OrganizationSubtreeData struct {
@@ -295,26 +295,26 @@ func (s OrganizationSubtreeData) Children() []OrganizationSubtreeData { return s
 
 // 层级统计类型
 type HierarchyStatistics struct {
-	TenantIdField           string                `json:"tenantId"`
-	TotalOrganizationsField int                   `json:"totalOrganizations"`
-	MaxDepthField           int                   `json:"maxDepth"`
-	AvgDepthField           float64               `json:"avgDepth"`
-	DepthDistributionField  []DepthDistribution   `json:"depthDistribution"`
-	RootOrganizationsField  int                   `json:"rootOrganizations"`
-	LeafOrganizationsField  int                   `json:"leafOrganizations"`
-	IntegrityIssuesField    []IntegrityIssue      `json:"integrityIssues"`
-	LastAnalyzedField       string                `json:"lastAnalyzed"`
+	TenantIdField           string              `json:"tenantId"`
+	TotalOrganizationsField int                 `json:"totalOrganizations"`
+	MaxDepthField           int                 `json:"maxDepth"`
+	AvgDepthField           float64             `json:"avgDepth"`
+	DepthDistributionField  []DepthDistribution `json:"depthDistribution"`
+	RootOrganizationsField  int                 `json:"rootOrganizations"`
+	LeafOrganizationsField  int                 `json:"leafOrganizations"`
+	IntegrityIssuesField    []IntegrityIssue    `json:"integrityIssues"`
+	LastAnalyzedField       string              `json:"lastAnalyzed"`
 }
 
-func (h HierarchyStatistics) TenantId() string              { return h.TenantIdField }
-func (h HierarchyStatistics) TotalOrganizations() int32     { return int32(h.TotalOrganizationsField) }
-func (h HierarchyStatistics) MaxDepth() int32               { return int32(h.MaxDepthField) }
-func (h HierarchyStatistics) AvgDepth() float64             { return h.AvgDepthField }
+func (h HierarchyStatistics) TenantId() string                       { return h.TenantIdField }
+func (h HierarchyStatistics) TotalOrganizations() int32              { return int32(h.TotalOrganizationsField) }
+func (h HierarchyStatistics) MaxDepth() int32                        { return int32(h.MaxDepthField) }
+func (h HierarchyStatistics) AvgDepth() float64                      { return h.AvgDepthField }
 func (h HierarchyStatistics) DepthDistribution() []DepthDistribution { return h.DepthDistributionField }
-func (h HierarchyStatistics) RootOrganizations() int32      { return int32(h.RootOrganizationsField) }
-func (h HierarchyStatistics) LeafOrganizations() int32      { return int32(h.LeafOrganizationsField) }
-func (h HierarchyStatistics) IntegrityIssues() []IntegrityIssue { return h.IntegrityIssuesField }
-func (h HierarchyStatistics) LastAnalyzed() string          { return h.LastAnalyzedField }
+func (h HierarchyStatistics) RootOrganizations() int32               { return int32(h.RootOrganizationsField) }
+func (h HierarchyStatistics) LeafOrganizations() int32               { return int32(h.LeafOrganizationsField) }
+func (h HierarchyStatistics) IntegrityIssues() []IntegrityIssue      { return h.IntegrityIssuesField }
+func (h HierarchyStatistics) LastAnalyzed() string                   { return h.LastAnalyzedField }
 
 type DepthDistribution struct {
 	DepthField int `json:"depth"`
@@ -330,8 +330,8 @@ type IntegrityIssue struct {
 	AffectedCodesField []string `json:"affectedCodes"`
 }
 
-func (i IntegrityIssue) Type() string         { return i.TypeField }
-func (i IntegrityIssue) Count() int32         { return int32(i.CountField) }
+func (i IntegrityIssue) Type() string            { return i.TypeField }
+func (i IntegrityIssue) Count() int32            { return int32(i.CountField) }
 func (i IntegrityIssue) AffectedCodes() []string { return i.AffectedCodesField }
 
 // 字段变更详细信息
@@ -342,7 +342,7 @@ type FieldChangeData struct {
 	DataTypeField string      `json:"dataType"`
 }
 
-func (f FieldChangeData) Field() string      { return f.FieldField }
+func (f FieldChangeData) Field() string { return f.FieldField }
 func (f FieldChangeData) OldValue() *string {
 	if f.OldValueField == nil {
 		return nil
@@ -369,21 +369,21 @@ func (f FieldChangeData) NewValue() *string {
 	jsonStr := string(jsonBytes)
 	return &jsonStr
 }
-func (f FieldChangeData) DataType() string   { return f.DataTypeField }
+func (f FieldChangeData) DataType() string { return f.DataTypeField }
 
 // 审计记录类型 - v4.6.0 精确到record_id，包含完整变更信息
 type AuditRecordData struct {
-	AuditIDField         string             `json:"auditId"`
-	RecordIDField        string             `json:"recordId"`
-	OperationTypeField   string             `json:"operationType"`
-	OperatedByField      OperatedByData     `json:"operatedBy"`
-	ChangesSummaryField  string             `json:"changesSummary"`
-	OperationReasonField *string            `json:"operationReason"`
-	TimestampField       string             `json:"timestamp"`
-	BeforeDataField      *string            `json:"beforeData"`
-	AfterDataField       *string            `json:"afterData"`
-	ModifiedFieldsField  []string           `json:"modifiedFields"`
-	ChangesField         []FieldChangeData  `json:"changes"`
+	AuditIDField         string            `json:"auditId"`
+	RecordIDField        string            `json:"recordId"`
+	OperationTypeField   string            `json:"operationType"`
+	OperatedByField      OperatedByData    `json:"operatedBy"`
+	ChangesSummaryField  string            `json:"changesSummary"`
+	OperationReasonField *string           `json:"operationReason"`
+	TimestampField       string            `json:"timestamp"`
+	BeforeDataField      *string           `json:"beforeData"`
+	AfterDataField       *string           `json:"afterData"`
+	ModifiedFieldsField  []string          `json:"modifiedFields"`
+	ChangesField         []FieldChangeData `json:"changes"`
 }
 
 func (a AuditRecordData) AuditId() string            { return a.AuditIDField }
@@ -408,8 +408,8 @@ func (a AuditRecordData) AfterData() *string {
 	// 确保空对象也返回，不要过滤为null
 	return a.AfterDataField
 }
-func (a AuditRecordData) ModifiedFields() []string      { return a.ModifiedFieldsField }
-func (a AuditRecordData) Changes() []FieldChangeData    { return a.ChangesField }
+func (a AuditRecordData) ModifiedFields() []string   { return a.ModifiedFieldsField }
+func (a AuditRecordData) Changes() []FieldChangeData { return a.ChangesField }
 
 type OperatedByData struct {
 	IDField   string `json:"id"`
@@ -431,33 +431,33 @@ type OrganizationFilter struct {
 	AsOfDate      *string `json:"asOfDate"`
 	IncludeFuture bool    `json:"includeFuture"`
 	OnlyFuture    bool    `json:"onlyFuture"`
-	
+
 	// Business Filtering
 	UnitType   *string   `json:"unitType"`
 	Status     *string   `json:"status"`
 	ParentCode *string   `json:"parentCode"`
 	Codes      *[]string `json:"codes"`
-	
+
 	// Hierarchy Filtering
 	Level      *int32 `json:"level"`
 	MinLevel   *int32 `json:"minLevel"`
 	MaxLevel   *int32 `json:"maxLevel"`
 	RootsOnly  bool   `json:"rootsOnly"`
-	LeavesOnly bool   `json:"leavesOnly"` 
-	
+	LeavesOnly bool   `json:"leavesOnly"`
+
 	// Text Search
-	SearchText   *string   `json:"searchText"`
+	SearchText   *string  `json:"searchText"`
 	SearchFields []string `json:"searchFields"`
-	
+
 	// Advanced Filtering
 	HasChildren     *bool   `json:"hasChildren"`
 	HasProfile      *bool   `json:"hasProfile"`
 	ProfileContains *string `json:"profileContains"`
-	
+
 	// Audit Filtering - 修复类型匹配问题
-	OperationType       *string          `json:"operationType"`
-	OperatedBy          *string          `json:"operatedBy"`
-	OperationDateRange  *DateRangeInput  `json:"operationDateRange"`
+	OperationType      *string         `json:"operationType"`
+	OperatedBy         *string         `json:"operatedBy"`
+	OperationDateRange *DateRangeInput `json:"operationDateRange"`
 }
 
 type PaginationInput struct {
@@ -588,17 +588,17 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	}
 	defer rows.Close()
 
-    var organizations []Organization
-    for rows.Next() {
-        var org Organization
-        err := rows.Scan(
-            &org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
-            &org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
-            &org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-            &org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
-            &org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
-            &org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
-        )
+	var organizations []Organization
+	for rows.Next() {
+		var org Organization
+		err := rows.Scan(
+			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+		)
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描组织数据失败: %v", err)
 			return nil, err
@@ -634,7 +634,7 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 // 单个组织查询 - 超快速索引查询
 func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uuid.UUID, code string) (*Organization, error) {
 	// 使用 idx_current_record_fast 索引
-    query := `
+	query := `
         SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
                level, path, sort_order, description, profile, created_at, updated_at,
                effective_date, end_date, is_current, change_reason,
@@ -646,13 +646,13 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
 	start := time.Now()
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
 
-    var org Organization
-    err := row.Scan(
+	var org Organization
+	err := row.Scan(
 		&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
 		&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
 		&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-        &org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
-        &org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+		&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+		&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 		&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
 	)
 
@@ -672,8 +672,8 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
 
 // 极速时态查询 - 时间点查询（利用时态索引）
 func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenantID uuid.UUID, code, date string) (*Organization, error) {
-    // 使用计算的区间终点（computed_end_date），避免依赖物理 end_date 的准确性
-    query := `
+	// 使用计算的区间终点（computed_end_date），避免依赖物理 end_date 的准确性
+	query := `
         WITH hist AS (
             SELECT 
                 record_id, tenant_id, code, parent_code, name, unit_type, status,
@@ -735,8 +735,8 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
 
 // 历史范围查询 - 窗口函数优化
 func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenantID uuid.UUID, code, fromDate, toDate string) ([]Organization, error) {
-    // 历史范围查询：使用计算的区间终点（computed_end_date）并基于区间重叠选择
-    query := `
+	// 历史范围查询：使用计算的区间终点（computed_end_date）并基于区间重叠选择
+	query := `
         WITH hist AS (
             SELECT 
                 record_id, tenant_id, code, parent_code, name, unit_type, status,
@@ -775,17 +775,17 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
 	}
 	defer rows.Close()
 
-    var organizations []Organization
-    for rows.Next() {
-        var org Organization
-        err := rows.Scan(
-            &org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
-            &org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
-            &org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-            &org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
-            &org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
-            &org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
-        )
+	var organizations []Organization
+	for rows.Next() {
+		var org Organization
+		err := rows.Scan(
+			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+		)
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描历史数据失败: %v", err)
 			return nil, err
@@ -830,18 +830,18 @@ func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tena
 	}
 	defer rows.Close()
 
-    var organizations []Organization
-    for rows.Next() {
-        var org Organization
-        err := rows.Scan(
-            &org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
-            &org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
-            &org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
-            &org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
-            &org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
-            &org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
-            &org.HierarchyDepthField,
-        )
+	var organizations []Organization
+	for rows.Next() {
+		var org Organization
+		err := rows.Scan(
+			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
+			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
+			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
+			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
+			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
+			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+			&org.HierarchyDepthField,
+		)
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描组织版本数据失败: %v", err)
 			return nil, err
@@ -964,9 +964,9 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 // 高级层级结构查询 - 严格遵循API规范v4.2.1
 func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, tenantID uuid.UUID, code string) (*OrganizationHierarchyData, error) {
 	start := time.Now()
-	
+
 	// 使用PostgreSQL递归CTE查询完整层级信息
-    query := `
+	query := `
         WITH RECURSIVE hierarchy_info AS (
             -- 获取目标组织
             SELECT 
@@ -1006,18 +1006,18 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 		CROSS JOIN children_count c
 		WHERE h.code = $2
 		LIMIT 1`
-	
+
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
-	
+
 	var hierarchy OrganizationHierarchyData
 	var parentChainJSON string
-	
+
 	err := row.Scan(
 		&hierarchy.CodeField, &hierarchy.NameField, &hierarchy.LevelField, &hierarchy.HierarchyDepthField,
 		&hierarchy.CodePathField, &hierarchy.NamePathField, &parentChainJSON,
 		&hierarchy.ChildrenCountField, &hierarchy.IsRootField, &hierarchy.IsLeafField,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -1025,26 +1025,26 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 		r.logger.Printf("[ERROR] 层级结构查询失败: %v", err)
 		return nil, err
 	}
-	
+
 	// 解析父级链
 	if parentChainJSON != "{}" {
 		json.Unmarshal([]byte(parentChainJSON), &hierarchy.ParentChainField)
 	} else {
 		hierarchy.ParentChainField = []string{}
 	}
-	
+
 	duration := time.Since(start)
 	r.logger.Printf("[PERF] 层级结构查询完成，耗时: %v", duration)
-	
+
 	return &hierarchy, nil
 }
 
 // 组织子树查询 - 严格遵循API规范v4.2.1
 func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenantID uuid.UUID, code string, maxDepth int) (*OrganizationSubtreeData, error) {
 	start := time.Now()
-	
+
 	// 使用PostgreSQL递归CTE查询子树结构，限制深度
-    query := `
+	query := `
         WITH RECURSIVE subtree AS (
             -- 根节点
             SELECT 
@@ -1072,22 +1072,22 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 		SELECT code, name, level, hierarchy_depth, code_path, name_path, parent_code
 		FROM subtree 
 		ORDER BY level, code`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code, maxDepth)
 	if err != nil {
 		r.logger.Printf("[ERROR] 子树查询失败: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	// 构建树形结构
 	nodeMap := make(map[string]*OrganizationSubtreeData)
 	var root *OrganizationSubtreeData
-	
+
 	for rows.Next() {
 		var node OrganizationSubtreeData
 		var parentCode *string
-		
+
 		err := rows.Scan(
 			&node.CodeField, &node.NameField, &node.LevelField, &node.HierarchyDepthField,
 			&node.CodePathField, &node.NamePathField, &parentCode,
@@ -1096,15 +1096,15 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 			r.logger.Printf("[ERROR] 扫描子树数据失败: %v", err)
 			return nil, err
 		}
-		
+
 		node.ChildrenField = []OrganizationSubtreeData{}
 		nodeMap[node.CodeField] = &node
-		
+
 		if node.CodeField == code {
 			root = &node
 		}
 	}
-	
+
 	// 构建父子关系
 	for _, node := range nodeMap {
 		if root != nil && node.CodeField != code {
@@ -1125,10 +1125,10 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 			}
 		}
 	}
-	
+
 	duration := time.Since(start)
 	r.logger.Printf("[PERF] 子树查询完成，返回 %d 节点，耗时: %v", len(nodeMap), duration)
-	
+
 	return root, nil
 }
 
@@ -1168,45 +1168,45 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 
 	args := []interface{}{tenantId, recordId}
 	argIndex := 3
-	
+
 	// 日期范围过滤
 	if startDate != nil {
 		baseQuery += fmt.Sprintf(" AND timestamp >= $%d::timestamp", argIndex)
 		args = append(args, *startDate)
 		argIndex++
 	}
-	
+
 	if endDate != nil {
 		baseQuery += fmt.Sprintf(" AND timestamp <= $%d::timestamp", argIndex)
 		args = append(args, *endDate)
 		argIndex++
 	}
-	
+
 	// 操作类型过滤
 	if operation != nil {
 		baseQuery += fmt.Sprintf(" AND event_type = $%d", argIndex)
 		args = append(args, strings.ToUpper(*operation))
 		argIndex++
 	}
-	
+
 	// 操作人过滤
 	if userId != nil {
 		baseQuery += fmt.Sprintf(" AND actor_id = $%d", argIndex)
 		args = append(args, *userId)
 		argIndex++
 	}
-	
+
 	// 排序和限制
 	finalQuery := baseQuery + fmt.Sprintf(" ORDER BY timestamp DESC LIMIT $%d", argIndex)
 	args = append(args, limit)
-	
+
 	rows, err := r.db.QueryContext(ctx, finalQuery, args...)
 	if err != nil {
 		r.logger.Printf("[ERROR] 审计历史查询失败: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var auditRecords []AuditRecordData
 	for rows.Next() {
 		var record AuditRecordData
@@ -1261,21 +1261,21 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 			IDField:   operatedById,
 			NameField: operatedByName,
 		}
-		
+
 		auditRecords = append(auditRecords, record)
 	}
-	
+
 	duration := time.Since(start)
 	r.logger.Printf("[PERF] record_id审计查询完成，返回 %d 条记录，耗时: %v", len(auditRecords), duration)
-	
+
 	return auditRecords, nil
 }
 
 // 单条审计记录查询 - v4.6.0
 func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) (*AuditRecordData, error) {
 	start := time.Now()
-	
-    query := `
+
+	query := `
         SELECT 
             id as audit_id, 
             resource_id as record_id, 
@@ -1297,25 +1297,25 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
         WHERE id = $1::uuid AND resource_type = 'ORGANIZATION' AND tenant_id = $2::uuid
         LIMIT 1`
 
-    tenantID := auth.GetTenantID(ctx)
-    if tenantID == "" {
-        r.logger.Printf("[AUTH] 缺少租户ID，拒绝单条审计记录查询")
-        return nil, fmt.Errorf("TENANT_REQUIRED")
-    }
+	tenantID := auth.GetTenantID(ctx)
+	if tenantID == "" {
+		r.logger.Printf("[AUTH] 缺少租户ID，拒绝单条审计记录查询")
+		return nil, fmt.Errorf("TENANT_REQUIRED")
+	}
 
-    row := r.db.QueryRowContext(ctx, query, auditId, tenantID)
-	
+	row := r.db.QueryRowContext(ctx, query, auditId, tenantID)
+
 	var record AuditRecordData
 	var operatedById, operatedByName string
 	var beforeData, afterData sql.NullString
-	
+
 	err := row.Scan(
 		&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
 		&operatedById, &operatedByName,
 		&record.ChangesSummaryField, &record.OperationReasonField, &record.TimestampField,
 		&beforeData, &afterData,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -1323,7 +1323,7 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
 		r.logger.Printf("[ERROR] 单条审计记录查询失败: %v", err)
 		return nil, err
 	}
-	
+
 	// 正确处理JSONB字段
 	if beforeData.Valid {
 		record.BeforeDataField = &beforeData.String
@@ -1331,36 +1331,36 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
 	if afterData.Valid {
 		record.AfterDataField = &afterData.String
 	}
-	
+
 	// 构建操作人信息
 	record.OperatedByField = OperatedByData{
 		IDField:   operatedById,
 		NameField: operatedByName,
 	}
-	
+
 	duration := time.Since(start)
 	r.logger.Printf("[PERF] 单条审计记录查询完成，耗时: %v", duration)
-	
+
 	return &record, nil
 }
 
 // GraphQL解析器 - 极简高效
 type Resolver struct {
-    repo   *PostgreSQLRepository
-    logger *log.Logger
-    authMW *auth.GraphQLPermissionMiddleware
+	repo   *PostgreSQLRepository
+	logger *log.Logger
+	authMW *auth.GraphQLPermissionMiddleware
 }
 
 // 当前组织列表查询 - 符合API契约v4.2.1 (camelCase方法名)
 func (r *Resolver) Organizations(ctx context.Context, args struct {
-    Filter     *OrganizationFilter
-    Pagination *PaginationInput
+	Filter     *OrganizationFilter
+	Pagination *PaginationInput
 }) (*OrganizationConnection, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "organizations"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: organizations: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 查询组织列表 - API契约v4.2.1")
+	if err := r.authMW.CheckQueryPermission(ctx, "organizations"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: organizations: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 查询组织列表 - API契约v4.2.1")
 
 	// 记录查询参数用于调试
 	if args.Filter != nil {
@@ -1375,127 +1375,127 @@ func (r *Resolver) Organizations(ctx context.Context, args struct {
 
 // 单个组织查询
 func (r *Resolver) Organization(ctx context.Context, args struct {
-    Code     string
-    AsOfDate *string
+	Code     string
+	AsOfDate *string
 }) (*Organization, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "organization"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: organization: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 查询单个组织 - code: %s", args.Code)
-    return r.repo.GetOrganization(ctx, DefaultTenantID, args.Code)
+	if err := r.authMW.CheckQueryPermission(ctx, "organization"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: organization: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 查询单个组织 - code: %s", args.Code)
+	return r.repo.GetOrganization(ctx, DefaultTenantID, args.Code)
 }
 
 // 时态查询 - 时间点
 func (r *Resolver) OrganizationAtDate(ctx context.Context, args struct {
-    Code string
-    Date string
+	Code string
+	Date string
 }) (*Organization, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "organizationAtDate"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: organizationAtDate: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 时态查询 - code: %s, date: %s", args.Code, args.Date)
-    return r.repo.GetOrganizationAtDate(ctx, DefaultTenantID, args.Code, args.Date)
+	if err := r.authMW.CheckQueryPermission(ctx, "organizationAtDate"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: organizationAtDate: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 时态查询 - code: %s, date: %s", args.Code, args.Date)
+	return r.repo.GetOrganizationAtDate(ctx, DefaultTenantID, args.Code, args.Date)
 }
 
 // 时态查询 - 历史范围
 func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
-    Code     string
-    FromDate string
-    ToDate   string
+	Code     string
+	FromDate string
+	ToDate   string
 }) ([]Organization, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "organizationHistory"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: organizationHistory: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 历史查询 - code: %s, range: %s~%s", args.Code, args.FromDate, args.ToDate)
-    return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, args.FromDate, args.ToDate)
+	if err := r.authMW.CheckQueryPermission(ctx, "organizationHistory"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: organizationHistory: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 历史查询 - code: %s, range: %s~%s", args.Code, args.FromDate, args.ToDate)
+	return r.repo.GetOrganizationHistory(ctx, DefaultTenantID, args.Code, args.FromDate, args.ToDate)
 }
 
 // 组织版本查询 - 按计划实现，支持includeDeleted参数
 func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
-    Code           string
-    IncludeDeleted *bool
+	Code           string
+	IncludeDeleted *bool
 }) ([]Organization, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "organizationVersions"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: organizationVersions: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
+	if err := r.authMW.CheckQueryPermission(ctx, "organizationVersions"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: organizationVersions: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
 
-    includeDeleted := false
-    if args.IncludeDeleted != nil {
-        includeDeleted = *args.IncludeDeleted
-    }
+	includeDeleted := false
+	if args.IncludeDeleted != nil {
+		includeDeleted = *args.IncludeDeleted
+	}
 
-    r.logger.Printf("[GraphQL] 版本查询 - code: %s, includeDeleted: %v", args.Code, includeDeleted)
-    return r.repo.GetOrganizationVersions(ctx, DefaultTenantID, args.Code, includeDeleted)
+	r.logger.Printf("[GraphQL] 版本查询 - code: %s, includeDeleted: %v", args.Code, includeDeleted)
+	return r.repo.GetOrganizationVersions(ctx, DefaultTenantID, args.Code, includeDeleted)
 }
 
 // 组织统计 (camelCase方法名)
 func (r *Resolver) OrganizationStats(ctx context.Context, args struct {
-    AsOfDate          *string
-    IncludeHistorical bool
+	AsOfDate          *string
+	IncludeHistorical bool
 }) (*OrganizationStats, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "organizationStats"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: organizationStats: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 统计查询")
-    return r.repo.GetOrganizationStats(ctx, DefaultTenantID)
+	if err := r.authMW.CheckQueryPermission(ctx, "organizationStats"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: organizationStats: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 统计查询")
+	return r.repo.GetOrganizationStats(ctx, DefaultTenantID)
 }
 
 // 高级层级结构查询 - 严格遵循API规范v4.2.1
 func (r *Resolver) OrganizationHierarchy(ctx context.Context, args struct {
-    Code     string
-    TenantId string
+	Code     string
+	TenantId string
 }) (*OrganizationHierarchyData, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "organizationHierarchy"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: organizationHierarchy: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 层级结构查询 - code: %s, tenantId: %s", args.Code, args.TenantId)
-	
+	if err := r.authMW.CheckQueryPermission(ctx, "organizationHierarchy"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: organizationHierarchy: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 层级结构查询 - code: %s, tenantId: %s", args.Code, args.TenantId)
+
 	tenantID, err := uuid.Parse(args.TenantId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid tenant ID: %w", err)
 	}
-	
+
 	return r.repo.GetOrganizationHierarchy(ctx, tenantID, args.Code)
 }
 
 func (r *Resolver) OrganizationSubtree(ctx context.Context, args struct {
-    Code            string
-    TenantId        string
-    MaxDepth        int32
-    IncludeInactive bool
+	Code            string
+	TenantId        string
+	MaxDepth        int32
+	IncludeInactive bool
 }) ([]OrganizationHierarchyData, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "organizationSubtree"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: organizationSubtree: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 子树查询 - code: %s, tenantId: %s, maxDepth: %v", args.Code, args.TenantId, args.MaxDepth)
-	
+	if err := r.authMW.CheckQueryPermission(ctx, "organizationSubtree"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: organizationSubtree: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 子树查询 - code: %s, tenantId: %s, maxDepth: %v", args.Code, args.TenantId, args.MaxDepth)
+
 	tenantID, err := uuid.Parse(args.TenantId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid tenant ID: %w", err)
 	}
-	
+
 	maxDepth := 10 // 默认深度
 	if args.MaxDepth > 0 {
 		maxDepth = int(args.MaxDepth)
 	}
-	
+
 	subtree, err := r.repo.GetOrganizationSubtree(ctx, tenantID, args.Code, maxDepth)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 将单个子树转换为数组（Schema期望数组返回）
 	if subtree == nil {
 		return []OrganizationHierarchyData{}, nil
 	}
-	
+
 	// 先转换根节点
 	root := OrganizationHierarchyData{
 		CodeField:           subtree.CodeField,
@@ -1510,49 +1510,49 @@ func (r *Resolver) OrganizationSubtree(ctx context.Context, args struct {
 		IsLeafField:         len(subtree.ChildrenField) == 0,
 		ChildrenField:       []OrganizationHierarchyData{}, // 简化实现，先不递归转换
 	}
-	
+
 	return []OrganizationHierarchyData{root}, nil
 }
 
 // 层级统计查询
 func (r *Resolver) HierarchyStatistics(ctx context.Context, args struct {
-    TenantId                string
-    IncludeIntegrityCheck   bool
+	TenantId              string
+	IncludeIntegrityCheck bool
 }) (*HierarchyStatistics, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "hierarchyStatistics"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: hierarchyStatistics: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    
-    // TODO: 实现实际的层级统计逻辑
-    return &HierarchyStatistics{
-        TenantIdField:           args.TenantId,
-        TotalOrganizationsField: 0,
-        MaxDepthField:           0,
-        AvgDepthField:           0.0,
-        DepthDistributionField:  []DepthDistribution{},
-        RootOrganizationsField:  0,
-        LeafOrganizationsField:  0,
-        IntegrityIssuesField:    []IntegrityIssue{},
-        LastAnalyzedField:       "",
-    }, nil
+	if err := r.authMW.CheckQueryPermission(ctx, "hierarchyStatistics"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: hierarchyStatistics: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+
+	// TODO: 实现实际的层级统计逻辑
+	return &HierarchyStatistics{
+		TenantIdField:           args.TenantId,
+		TotalOrganizationsField: 0,
+		MaxDepthField:           0,
+		AvgDepthField:           0.0,
+		DepthDistributionField:  []DepthDistribution{},
+		RootOrganizationsField:  0,
+		LeafOrganizationsField:  0,
+		IntegrityIssuesField:    []IntegrityIssue{},
+		LastAnalyzedField:       "",
+	}, nil
 }
 
 // 审计历史查询 - v4.6.0 基于record_id
 func (r *Resolver) AuditHistory(ctx context.Context, args struct {
-    RecordId  string
-    StartDate *string
-    EndDate   *string
-    Operation *string
-    UserId    *string
-    Limit     int32
+	RecordId  string
+	StartDate *string
+	EndDate   *string
+	Operation *string
+	UserId    *string
+	Limit     int32
 }) ([]AuditRecordData, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "auditHistory"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: auditHistory: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 审计历史查询 - recordId: %s", args.RecordId)
-	
+	if err := r.authMW.CheckQueryPermission(ctx, "auditHistory"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: auditHistory: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 审计历史查询 - recordId: %s", args.RecordId)
+
 	limit := int32(50) // 默认限制
 	if args.Limit > 0 {
 		limit = args.Limit
@@ -1560,32 +1560,32 @@ func (r *Resolver) AuditHistory(ctx context.Context, args struct {
 			limit = 200
 		}
 	}
-	
-    // 从上下文获取租户ID，强制租户隔离
-    tenantStr := auth.GetTenantID(ctx)
-    if tenantStr == "" {
-        r.logger.Printf("[AUTH] 缺少租户ID，拒绝审计历史查询")
-        return nil, fmt.Errorf("TENANT_REQUIRED")
-    }
-    tenantUUID, err := uuid.Parse(tenantStr)
-    if err != nil {
-        r.logger.Printf("[AUTH] 无效租户ID: %s", tenantStr)
-        return nil, fmt.Errorf("INVALID_TENANT")
-    }
 
-    return r.repo.GetAuditHistory(ctx, tenantUUID, args.RecordId, args.StartDate, args.EndDate, args.Operation, args.UserId, int(limit))
+	// 从上下文获取租户ID，强制租户隔离
+	tenantStr := auth.GetTenantID(ctx)
+	if tenantStr == "" {
+		r.logger.Printf("[AUTH] 缺少租户ID，拒绝审计历史查询")
+		return nil, fmt.Errorf("TENANT_REQUIRED")
+	}
+	tenantUUID, err := uuid.Parse(tenantStr)
+	if err != nil {
+		r.logger.Printf("[AUTH] 无效租户ID: %s", tenantStr)
+		return nil, fmt.Errorf("INVALID_TENANT")
+	}
+
+	return r.repo.GetAuditHistory(ctx, tenantUUID, args.RecordId, args.StartDate, args.EndDate, args.Operation, args.UserId, int(limit))
 }
 
 // 单条审计记录查询 - v4.6.0
 func (r *Resolver) AuditLog(ctx context.Context, args struct {
-    AuditId string
+	AuditId string
 }) (*AuditRecordData, error) {
-    if err := r.authMW.CheckQueryPermission(ctx, "auditLog"); err != nil {
-        r.logger.Printf("[AUTH] 权限拒绝: auditLog: %v", err)
-        return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-    }
-    r.logger.Printf("[GraphQL] 单条审计记录查询 - auditId: %s", args.AuditId)
-    return r.repo.GetAuditLog(ctx, args.AuditId)
+	if err := r.authMW.CheckQueryPermission(ctx, "auditLog"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: auditLog: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 单条审计记录查询 - auditId: %s", args.AuditId)
+	return r.repo.GetAuditLog(ctx, args.AuditId)
 }
 
 func main() {
@@ -1635,23 +1635,28 @@ func main() {
 	// 创建仓储
 	repo := NewPostgreSQLRepository(db, redisClient, logger)
 
-    // 初始化JWT中间件 - 使用统一配置
-    jwtConfig := config.GetJWTConfig()
-    devMode := getEnv("DEV_MODE", "true") == "true"
-    
-    var pubPEM []byte
-    if jwtConfig.HasPublicKey() {
-        if b, err := os.ReadFile(jwtConfig.PublicKeyPath); err == nil { 
-            pubPEM = b 
-        }
-    }
+	// 初始化JWT中间件 - 使用统一配置
+	jwtConfig := config.GetJWTConfig()
+	devMode := getEnv("DEV_MODE", "true") == "true"
 
-    jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, auth.Options{
-        Alg:          jwtConfig.Algorithm,
-        JWKSURL:      jwtConfig.JWKSUrl,
-        PublicKeyPEM: pubPEM,
-        ClockSkew:    jwtConfig.AllowedClockSkew,
-    })
+	var pubPEM []byte
+	if jwtConfig.HasPublicKey() {
+		if b, err := os.ReadFile(jwtConfig.PublicKeyPath); err == nil {
+			pubPEM = b
+		} else {
+			logger.Fatalf("[FATAL] 无法读取查询服务公钥 (%s): %v", jwtConfig.PublicKeyPath, err)
+		}
+	}
+	if jwtConfig.JWKSUrl == "" && pubPEM == nil {
+		logger.Fatalf("[FATAL] 查询服务启用RS256必须配置 JWT_JWKS_URL 或 JWT_PUBLIC_KEY_PATH")
+	}
+
+	jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, auth.Options{
+		Alg:          jwtConfig.Algorithm,
+		JWKSURL:      jwtConfig.JWKSUrl,
+		PublicKeyPEM: pubPEM,
+		ClockSkew:    jwtConfig.AllowedClockSkew,
+	})
 	permissionChecker := auth.NewPBACPermissionChecker(db, logger)
 	graphqlMiddleware := auth.NewGraphQLPermissionMiddleware(
 		jwtMiddleware,
@@ -1660,7 +1665,7 @@ func main() {
 		devMode,
 	)
 
-    logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
+	logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
 
 	// 创建解析器（注入权限中间件）
 	resolver := &Resolver{repo: repo, logger: logger, authMW: graphqlMiddleware}
@@ -1670,7 +1675,7 @@ func main() {
 	schemaPath := schemaLoader.GetDefaultSchemaPath()
 	schemaString := schemaLoader.MustLoadSchema(schemaPath)
 	schema := graphql.MustParseSchema(schemaString, resolver)
-	
+
 	logger.Printf("✅ GraphQL Schema loaded from single source: %s", schemaPath)
 
 	// HTTP路由
@@ -1740,7 +1745,6 @@ func main() {
 			"performance": "optimized",
 		})
 	})
-
 
 	// 获取端口
 	port := getEnv("PORT", "8090")

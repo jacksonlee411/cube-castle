@@ -42,10 +42,13 @@ func GetJWTConfig() *JWTConfig {
 		config.Audience = "cube-castle-users"
 	}
 
-	// JWT算法配置（支持HS256和RS256）
-	config.Algorithm = os.Getenv("JWT_ALG")
+	// JWT算法配置（强制 RS256）
+	config.Algorithm = strings.ToUpper(strings.TrimSpace(os.Getenv("JWT_ALG")))
 	if config.Algorithm == "" {
-		config.Algorithm = "HS256" // 开发环境默认
+		config.Algorithm = "RS256"
+	}
+	if config.Algorithm != "RS256" {
+		panic("JWT_ALG 只能配置为 RS256，已禁止 HS256 混用。请更新环境配置。")
 	}
 
 	// RS256公钥路径配置

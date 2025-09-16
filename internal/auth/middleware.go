@@ -26,11 +26,17 @@ func GinJWTMiddleware() gin.HandlerFunc {
 		} else if jwtConfig.PublicKeyPath != "" {
 			if pemBytes, err := os.ReadFile(jwtConfig.PublicKeyPath); err == nil {
 				opt.PublicKeyPEM = pemBytes
+			} else {
+				panic(fmt.Sprintf("读取JWT公钥失败(%s): %v", jwtConfig.PublicKeyPath, err))
 			}
+		} else {
+			panic("RS256 模式必须配置 JWT_JWKS_URL 或 JWT_PUBLIC_KEY_PATH")
 		}
 		if jwtConfig.PrivateKeyPath != "" {
 			if pemBytes, err := os.ReadFile(jwtConfig.PrivateKeyPath); err == nil {
 				opt.PrivateKeyPEM = pemBytes
+			} else {
+				panic(fmt.Sprintf("读取JWT私钥失败(%s): %v", jwtConfig.PrivateKeyPath, err))
 			}
 		}
 	}

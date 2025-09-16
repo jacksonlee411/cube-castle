@@ -101,13 +101,16 @@ run-dev:
 	  PIDS2=$$(lsof -t -i :8090 -sTCP:LISTEN 2>/dev/null || true); \
 	  if [ -n "$$PIDS2" ]; then echo "  🔪 kill -9 $$PIDS2 (8090)"; kill -9 $$PIDS2 || true; sleep 1; fi; \
 	fi
+	$(MAKE) jwt-dev-setup
 	$(MAKE) docker-up
 	@echo "⏳ 等待依赖健康..."
 	@sleep 5
 	@echo "▶ 启动命令服务 (9090)..."
-	go run ./cmd/organization-command-service/main.go &
+	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=secrets/dev-jwt-private.pem JWT_PUBLIC_KEY_PATH=secrets/dev-jwt-public.pem JWT_KEY_ID=bff-key-1 \
+		go run ./cmd/organization-command-service/main.go &
 	@echo "▶ 启动查询服务 (8090)..."
-	go run ./cmd/organization-query-service/main.go &
+	JWT_ALG=RS256 JWT_JWKS_URL=http://localhost:9090/.well-known/jwks.json \
+		go run ./cmd/organization-query-service/main.go &
 	@echo "🩺 健康检查 (若服务已实现 /health)："
 	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" && break || (echo "  ⏳ 等待 command-service..." && sleep 1); done || true
 	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" && break || (echo "  ⏳ 等待 query-service..." && sleep 1); done || true
@@ -125,7 +128,7 @@ run-auth-rs256-sim:
 	  echo "✅ 已生成 secrets/dev-jwt-*.pem"; \
 	fi
 	@echo "▶ 启动命令服务 (RS256 mint + OIDC_SIMULATE) ..."
-	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=secrets/dev-jwt-private.pem JWT_KEY_ID=bff-key-1 OIDC_SIMULATE=true \
+	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=secrets/dev-jwt-private.pem JWT_PUBLIC_KEY_PATH=secrets/dev-jwt-public.pem JWT_KEY_ID=bff-key-1 OIDC_SIMULATE=true \
 		go run ./cmd/organization-command-service/main.go &
 	@sleep 1
 	@echo "▶ 启动查询服务 (RS256 验签 via JWKS) ..."
@@ -244,21 +247,53 @@ db-migrate-all:
 jwt-dev-mint:
 	@echo "🔑 生成开发JWT..."
 	@mkdir -p .cache
+	@if [ ! -f secrets/dev-jwt-private.pem ] || [ ! -f secrets/dev-jwt-public.pem ]; then \
+	  echo "🔐 未检测到本地RS256密钥对，自动执行 make jwt-dev-setup"; \
+	  $(MAKE) -s jwt-dev-setup; \
+	fi
 	@USER_ID=$${USER_ID:-dev-user} ; \
 	TENANT_ID=$${TENANT_ID:-3b99930c-4dc6-4cc9-8e4d-7d960a931cb9} ; \
 	ROLES=$${ROLES:-ADMIN,USER} ; \
 	DURATION=$${DURATION:-8h} ; \
 	BODY=$$(printf '{"userId":"%s","tenantId":"%s","roles":[%s],"duration":"%s"}' "$$USER_ID" "$$TENANT_ID" "$$(echo $$ROLES | sed 's/,/","/g' | sed 's/^/"/;s/$$/"/')" "$$DURATION") ; \
-	RESP=$$(curl -s -X POST http://localhost:9090/auth/dev-token -H 'Content-Type: application/json' -d "$$BODY") ; \
-	if command -v jq >/dev/null 2>&1; then \
-		echo "$$RESP" | jq -r '.data.token' > ./.cache/dev.jwt ; \
-	else \
-		echo "⚠️  未安装 jq，尝试简易解析..." ; \
-		echo "$$RESP" | sed -n 's/.*"token"\s*:\s*"\([^"]*\)".*/\1/p' | head -n1 > ./.cache/dev.jwt ; \
-	fi ; \
-	TOKEN=$$(cat ./.cache/dev.jwt) ; \
-	if [ -z "$$TOKEN" ]; then echo "❌ 生成失败: 无法解析令牌"; exit 2; fi ; \
-	echo "✅ 已保存到 ./.cache/dev.jwt"
+	RESP=$$(curl -sf -X POST http://localhost:9090/auth/dev-token -H 'Content-Type: application/json' -d "$$BODY") || { echo "❌ 无法访问命令服务，请确认 make run-dev 已启动"; exit 2; } ; \
+	echo "$$RESP" | python3 - <<-'PY' || exit $$? 
+	import base64
+	import json
+	import sys
+
+	resp = sys.stdin.read()
+	try:
+	    data = json.loads(resp)
+	except json.JSONDecodeError as exc:
+	    print(f"❌ 生成失败: 无法解析响应: {exc}")
+	    sys.exit(2)
+
+	if not data.get("success"):
+	    error = data.get("error") or {}
+	    message = error.get("message") or data.get("message") or "未知错误"
+	    print(f"❌ 生成失败: {message}")
+	    sys.exit(2)
+
+	token = ((data.get("data") or {}).get("token")) or ""
+	if not token:
+	    print("❌ 生成失败: 响应中缺少token字段")
+	    sys.exit(2)
+
+	header_b64 = token.split('.')[:1][0]
+	padding = '=' * (-len(header_b64) % 4)
+	header_json = base64.urlsafe_b64decode(header_b64 + padding).decode('utf-8')
+	header = json.loads(header_json)
+	alg = header.get("alg")
+	if alg != "RS256":
+	    print(f"❌ 令牌签名算法不匹配: 期望 RS256, 实际 {alg}")
+	    sys.exit(2)
+
+	with open(".cache/dev.jwt", "w", encoding="utf-8") as fp:
+	    fp.write(token)
+
+	print("✅ 已保存到 ./.cache/dev.jwt (alg=RS256)")
+	PY
 
 jwt-dev-info:
 	@echo "🔎 查询开发JWT信息..."
@@ -272,8 +307,12 @@ jwt-dev-export:
 	@echo "export JWT_TOKEN=$$(cat ./.cache/dev.jwt)"
 
 jwt-dev-setup:
-	@echo "🔐 生成本地RS256开发密钥对（可选）..."
 	@mkdir -p secrets
-	@openssl genrsa -out secrets/dev-jwt-private.pem 2048 2>/dev/null && \
-	openssl rsa -in secrets/dev-jwt-private.pem -pubout -out secrets/dev-jwt-public.pem 2>/dev/null && \
-	echo "✅ 已生成 secrets/dev-jwt-private.pem 与 secrets/dev-jwt-public.pem"
+	@if [ -f secrets/dev-jwt-private.pem ] && [ -f secrets/dev-jwt-public.pem ]; then \
+	  echo "🔐 检测到已存在的 RS256 密钥对，跳过生成 (secrets/dev-jwt-*.pem)"; \
+	else \
+	  echo "🔐 生成本地RS256开发密钥对..."; \
+	  openssl genrsa -out secrets/dev-jwt-private.pem 2048 2>/dev/null && \
+	  openssl rsa -in secrets/dev-jwt-private.pem -pubout -out secrets/dev-jwt-public.pem 2>/dev/null && \
+	  echo "✅ 已生成 secrets/dev-jwt-private.pem 与 secrets/dev-jwt-public.pem"; \
+	fi

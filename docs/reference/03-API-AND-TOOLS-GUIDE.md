@@ -13,11 +13,19 @@ make run-dev            # 启动后端服务 (命令9090 + 查询8090)
 make frontend-dev       # 启动前端开发服务器 (3000)
 ```
 
-### JWT认证设置
+### JWT认证设置（全环境统一 RS256）
 ```bash
+# 第一次启动或密钥丢失时生成 RS256 密钥对（secrets/dev-jwt-*.pem）
+make jwt-dev-setup
+
+# 启动后端服务（命令9090/查询8090），内部自动加载 RS256 配置并暴露 /.well-known/jwks.json
+make run-dev
+
+# 生成 RS256 开发令牌（命令服务 /auth/dev-token）
 make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h
 eval $(make jwt-dev-export)     # 导出令牌到环境变量
 ```
+> ⚠️ **禁止使用 HS256**：命令/查询/前端已经移除 HS256 兜底，若缺少 RS256 私钥或 JWKS 配置，服务将直接失败启动。请务必保证 `.well-known/jwks.json` 可访问，否则前端与测试用例会提示“未启用 RS256”。
 
 ### 服务端点
 - **REST命令API**: http://localhost:9090/api/v1

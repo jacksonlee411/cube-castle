@@ -70,6 +70,7 @@ make db-migrate-all
 
 ### JWT认证管理
 ```bash
+make jwt-dev-setup              # 首次运行时生成 RS256 密钥对 (secrets/dev-jwt-*.pem)
 make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h
 eval $(make jwt-dev-export)     # 导出令牌到环境变量
 make jwt-dev-info               # 查看令牌信息
@@ -96,10 +97,10 @@ export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用�
     ```
 - JWKS 预览：`curl http://localhost:9090/.well-known/jwks.json`（应返回 RSA 公钥，kid 一般为 `bff-key-1`）。
 
-#### 关于 dev-token（回退路径）
-- `make jwt-dev-mint` 调用 `/auth/dev-token` 生成开发令牌，签名算法与 `JWT_ALG` 保持一致（默认 HS256，启用 RS256 时需配置 `JWT_PRIVATE_KEY_PATH`/`JWT_KEY_ID`）。
-- 若未正确配置 RS256 私钥，接口会返回错误；请执行 `make run-auth-rs256-sim` 或按照《JWT 开发指南》补齐密钥文件。
-- 当查询服务使用 RS256+JWKS 验签时，请确保命令服务也以 RS256 发放 dev-token；若需临时回退至 HS256，必须同步调整查询服务算法。
+#### 关于 dev-token（开发专用）
+- `make jwt-dev-mint` 调用 `/auth/dev-token` 生成开发令牌，签名算法固定为 RS256。
+- 缺少私钥或 JWKS 配置时，命令/查询服务会拒绝启动；请执行 `make jwt-dev-setup` 或使用运维提供的正式密钥。
+- `.well-known/jwks.json` 为唯一公钥来源，前端与自动化测试会检测该端点以确认 RS256 已启用。
 
 ### 质量检查命令
 ```bash

@@ -95,15 +95,16 @@ func main() {
 		if b, err := os.ReadFile(jwtConfig.PublicKeyPath); err == nil {
 			pubPEM = b
 		} else {
-			logger.Printf("[WARN] 读取JWT公钥失败 (%s): %v", jwtConfig.PublicKeyPath, err)
+			logger.Fatalf("[FATAL] 无法读取JWT公钥 (%s): %v", jwtConfig.PublicKeyPath, err)
 		}
 	}
-	if jwtConfig.HasPrivateKey() {
-		if b, err := os.ReadFile(jwtConfig.PrivateKeyPath); err == nil {
-			privPEM = b
-		} else {
-			logger.Printf("[WARN] 读取JWT私钥失败 (%s): %v", jwtConfig.PrivateKeyPath, err)
-		}
+	if !jwtConfig.HasPrivateKey() {
+		logger.Fatalf("[FATAL] 启用了RS256但未配置JWT_PRIVATE_KEY_PATH。请运行 make jwt-dev-setup 或提供正式私钥文件。")
+	}
+	if b, err := os.ReadFile(jwtConfig.PrivateKeyPath); err == nil {
+		privPEM = b
+	} else {
+		logger.Fatalf("[FATAL] 无法读取JWT私钥 (%s): %v", jwtConfig.PrivateKeyPath, err)
 	}
 
 	jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, auth.Options{
