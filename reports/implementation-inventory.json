@@ -1,13 +1,22 @@
 {
-  "timestamp": "2025-09-15T09:26:38.002Z",
+  "timestamp": "2025-09-17T02:20:15.868Z",
   "summary": {
-    "openapiPaths": 17,
+    "openapiPaths": 26,
     "graphqlQueries": 12,
-    "goHandlers": 25,
+    "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 144
+    "tsExports": 152
   },
   "openapiPaths": [
+    "/api/v1/operational/health",
+    "/api/v1/operational/metrics",
+    "/api/v1/operational/alerts",
+    "/api/v1/operational/rate-limit/stats",
+    "/api/v1/operational/tasks",
+    "/api/v1/operational/tasks/status",
+    "/api/v1/operational/tasks/{taskName}/trigger",
+    "/api/v1/operational/cutover",
+    "/api/v1/operational/consistency-check",
     "/auth/login",
     "/auth/callback",
     "/auth/session",
@@ -83,6 +92,11 @@
     },
     {
       "name": "SetupRoutes",
+      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetRateLimitStats",
       "file": "cmd/organization-command-service/internal/handlers/operational.go",
       "kind": "method"
     },
@@ -451,6 +465,11 @@
       "kind": "const"
     },
     {
+      "name": "monitoringAPI",
+      "file": "frontend/src/shared/api/monitoring.ts",
+      "kind": "const"
+    },
+    {
       "name": "ValidationError",
       "file": "frontend/src/shared/api/type-guards.ts",
       "kind": "class"
@@ -536,12 +555,22 @@
       "kind": "class"
     },
     {
+      "name": "UnauthenticatedRESTClient",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "class"
+    },
+    {
       "name": "unifiedGraphQLClient",
       "file": "frontend/src/shared/api/unified-client.ts",
       "kind": "const"
     },
     {
       "name": "unifiedRESTClient",
+      "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "const"
+    },
+    {
+      "name": "unauthenticatedRESTClient",
       "file": "frontend/src/shared/api/unified-client.ts",
       "kind": "const"
     },
@@ -756,6 +785,16 @@
       "kind": "const"
     },
     {
+      "name": "useScopes",
+      "file": "frontend/src/shared/hooks/useScopes.ts",
+      "kind": "func"
+    },
+    {
+      "name": "useOrgPBAC",
+      "file": "frontend/src/shared/hooks/useScopes.ts",
+      "kind": "func"
+    },
+    {
       "name": "useTemporalHealth",
       "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
       "kind": "func"
@@ -889,6 +928,21 @@
       "name": "getOrganizationLevelText",
       "file": "frontend/src/shared/utils/organization-helpers.ts",
       "kind": "const"
+    },
+    {
+      "name": "splitPath",
+      "file": "frontend/src/shared/utils/organizationPath.ts",
+      "kind": "func"
+    },
+    {
+      "name": "toBreadcrumbItems",
+      "file": "frontend/src/shared/utils/organizationPath.ts",
+      "kind": "func"
+    },
+    {
+      "name": "toParentChainFromCodePath",
+      "file": "frontend/src/shared/utils/organizationPath.ts",
+      "kind": "func"
     },
     {
       "name": "getOperationPermissionsByScopes",

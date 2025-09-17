@@ -67,25 +67,24 @@ func (r *TemporalOrganizationRepository) GetByCodeTemporal(ctx context.Context, 
 
 	clauses := []string{"tenant_id = $1", "code = $2"}
 	args := []interface{}{tenantID.String(), code}
-	idx := 3
 
 	if opts.AsOfDate != nil {
-		clauses = append(clauses, "(effective_date IS NULL OR effective_date <= $"+strconv.Itoa(idx)+")")
-		clauses = append(clauses, "(end_date IS NULL OR end_date > $"+strconv.Itoa(idx)+")")
+		placeholder := strconv.Itoa(len(args) + 1)
+		clauses = append(clauses, "(effective_date IS NULL OR effective_date <= $"+placeholder+")")
+		clauses = append(clauses, "(end_date IS NULL OR end_date > $"+placeholder+")")
 		args = append(args, *opts.AsOfDate)
-		idx++
 	}
 
 	if opts.EffectiveFrom != nil {
-		clauses = append(clauses, "(effective_date IS NULL OR effective_date >= $"+strconv.Itoa(idx)+")")
+		placeholder := strconv.Itoa(len(args) + 1)
+		clauses = append(clauses, "(effective_date IS NULL OR effective_date >= $"+placeholder+")")
 		args = append(args, *opts.EffectiveFrom)
-		idx++
 	}
 
 	if opts.EffectiveTo != nil {
-		clauses = append(clauses, "(effective_date IS NULL OR effective_date <= $"+strconv.Itoa(idx)+")")
+		placeholder := strconv.Itoa(len(args) + 1)
+		clauses = append(clauses, "(effective_date IS NULL OR effective_date <= $"+placeholder+")")
 		args = append(args, *opts.EffectiveTo)
-		idx++
 	}
 
 	if !opts.IncludeHistory && opts.AsOfDate == nil && opts.EffectiveFrom == nil && opts.EffectiveTo == nil {
@@ -100,10 +99,18 @@ func (r *TemporalOrganizationRepository) GetByCodeTemporal(ctx context.Context, 
 		clauses = append(clauses, "(status NOT IN ('DISSOLVED','DELETED'))")
 	}
 
-	query := `SELECT tenant_id, code, parent_code, name, unit_type, status, level, path, sort_order, description, created_at, updated_at, effective_date, end_date, change_reason, is_current
-FROM organization_units
-WHERE ` + strings.Join(clauses, " AND ") + `
-ORDER BY effective_date NULLS LAST, updated_at DESC`
+	var builder strings.Builder
+	builder.WriteString("SELECT tenant_id, code, parent_code, name, unit_type, status, level, path, sort_order, description, created_at, updated_at, effective_date, end_date, change_reason, is_current\n")
+	builder.WriteString("FROM organization_units\nWHERE ")
+	for i, clause := range clauses {
+		if i > 0 {
+			builder.WriteString(" AND ")
+		}
+		builder.WriteString(clause)
+	}
+	builder.WriteString("\nORDER BY effective_date NULLS LAST, updated_at DESC")
+
+	query := builder.String()
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -266,7 +273,9 @@ func (h *TemporalOrganizationHandler) GetOrganizationTemporal(w http.ResponseWri
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("failed to encode temporal response: %v", err)
+	}
 }
 
 func parseQueryOptions(r *http.Request) (*TemporalQueryOptions, error) {
@@ -358,11 +367,13 @@ func writeTemporalError(w http.ResponseWriter, status int, code, msg string) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"error_code": code,
 		"message":    msg,
 		"status":     status,
-	})
+	}); err != nil {
+		log.Printf("[temporal] failed to encode error response: %v", err)
+	}
 }
 
 func ensureTemporalSetup(db *sql.DB) error {

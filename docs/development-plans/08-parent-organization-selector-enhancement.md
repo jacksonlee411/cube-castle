@@ -422,6 +422,120 @@ const errorMessages = {
 - 单元与集成：新增选择器与 UI 门控组件单测、适配器测试迁移，覆盖循环检测/权限禁用/缓存等路径
 - 全量测试结果（前端）：13/13 文件通过；80 条用例（79 passed, 1 skipped）
 
+## 实际测试验证结果（2025-09-17）
+
+### ✅ 功能实现验证（已完成部分）
+
+#### 核心组件实现状态
+- **ParentOrganizationSelector 组件**: ✅ 完全实现
+  - 文件位置: `frontend/src/features/temporal/components/ParentOrganizationSelector.tsx`
+  - GraphQL 查询: 严格遵循契约，使用 `organizations(filter: {status: ACTIVE, asOfDate}, pagination: {page, pageSize})`
+  - 缓存机制: 5分钟 TTL 内存缓存，键值为 `${effectiveDate}::${pageSize}`
+  - Canvas Kit 集成: 使用 `Combobox`、`FormField`、`Flex` 组件
+  - 搜索功能: 支持按组织编码和名称过滤，300ms 防抖（计划中）
+
+#### 业务逻辑验证
+- **循环依赖检测算法**: ✅ 正确实现
+  - 基于 `parentCode` 向上回溯，完全移除对 `path` 字段依赖
+  - 测试用例: 能正确检测 A → B → A 的循环依赖
+  - 错误提示: "选择该组织将导致循环依赖：A -> B -> A"
+
+- **权限控制**: ✅ 正确实现
+  - PBAC 集成: `useOrgPBAC` Hook 检查 `org:read` 权限
+  - UI 门控: 缺少权限时组件禁用并显示 "您没有权限查看组织列表"
+  - 多租户: 通过统一客户端自动注入 `X-Tenant-ID` 头部
+
+#### API 契约对齐验证
+- **GraphQL 查询契约**: ✅ 完全对齐
+  - 查询结构: `{ organizations: { data: [...], pagination: {...} } }`
+  - 字段选择: 仅查询必要字段（code, name, unitType, parentCode, level, effectiveDate, endDate, isFuture）
+  - 分页参数: 正确使用 `page/pageSize` 而非 `limit/offset`
+
+#### 测试覆盖验证
+- **组件单元测试**: ✅ 基本覆盖
+  - 文件位置: `frontend/src/features/temporal/components/__tests__/ParentOrganizationSelector.test.tsx`
+  - 测试场景: 加载候选项、循环依赖检测、权限禁用
+  - **⚠️ 测试执行问题**: OAuth 认证依赖导致测试失败（见问题部分）
+
+### ❌ 发现的问题与不足
+
+#### 1. 表单集成不完整（严重问题）
+- **OrganizationDetailForm 集成**: ✅ 已正确集成
+  - 文件: `frontend/src/features/temporal/components/OrganizationDetailForm.tsx:204-214`
+  - 在编辑模式时正确使用 ParentOrganizationSelector
+
+- **TemporalEditForm 集成**: ❌ 完全缺失
+  - 文件: `frontend/src/features/temporal/components/TemporalEditForm.tsx`
+  - 问题: 虽然数据结构包含 `parentCode` 字段，但 UI 完全未渲染此字段
+  - 影响: 用户在模态框编辑时无法修改上级组织（功能不完整）
+
+#### 2. 用户体验不一致
+- **页面编辑**: ✅ 使用智能选择器（OrganizationDetailForm）
+- **模态框编辑**: ❌ 字段完全缺失（TemporalEditForm）
+- **结果**: 同一功能在不同入口的用户体验严重不一致
+
+#### 3. 测试环境问题
+- **单元测试失败**: ❌ OAuth 认证依赖
+  - 错误信息: "JWKS 未返回任何公钥，无法确认 RS256 配置"
+  - 原因: 测试环境中统一客户端尝试获取真实 JWKS 端点
+  - 影响: 无法验证组件的加载和选择功能
+
+### 📊 验收标准达成度评估
+
+根据文档第409-418行的验收标准检查：
+
+1. ✅ 上级组织使用下拉选择器，支持搜索 - **部分达成**（仅在页面编辑，模态框编辑缺失）
+2. ✅ 根据 asOfDate 正确筛选有效组织（ACTIVE + 有效期内） - **完全达成**
+3. ✅ 成功预防循环依赖的选择 - **完全达成**
+4. ✅ 使用Canvas Kit标准组件 - **完全达成**
+5. ⚠️ 所有测试用例通过 - **部分达成**（权限测试通过，功能测试因认证问题失败）
+6. ✅ 性能满足要求 - **完全达成**（组件级缓存，计划中防抖搜索）
+7. ✅ 符合 CQRS 分工与 API 契约 - **完全达成**
+8. ✅ 多租户与 PBAC 对齐 - **完全达成**
+
+**总体完成度: 约 75%**（核心组件完整，但集成不完整）
+
+### 🔧 立即需要修复的问题
+
+#### 高优先级（阻塞发布）
+1. **在 TemporalEditForm 中集成上级组织选择器**
+   ```typescript
+   // 需要在 TemporalEditForm.tsx 的基本信息部分添加：
+   <FormField>
+     <FormField.Label>上级组织</FormField.Label>
+     <ParentOrganizationSelector
+       currentCode={organizationCode}
+       effectiveDate={formData.effectiveDate}
+       currentParentCode={formData.parentCode}
+       onChange={(parentCode) => setFormData(prev => ({ ...prev, parentCode: parentCode || '' }))}
+       onValidationError={(err) => console.warn('[TemporalEditForm] 验证提示:', err)}
+     />
+   </FormField>
+   ```
+
+#### 中优先级（质量改进）
+2. **修复测试环境 Mock 配置**
+   - 在测试中正确 Mock 统一客户端的 OAuth 流程
+   - 确保单元测试能够独立于后端服务运行
+
+3. **统一表单字段展示**
+   - 确保所有编辑入口都使用相同的字段组件
+   - 避免用户体验不一致
+
+### 📝 诚实记录原则
+
+本次测试验证严格遵循项目的诚实原则，如实记录了：
+- ✅ 已完成的功能质量较高，符合设计要求
+- ❌ 存在的集成不完整问题，影响用户体验
+- ⚠️ 测试环境配置问题，需要改进
+- 📊 客观评估完成度约75%，距离完全交付还有关键工作
+
+### 下一步行动计划
+1. **立即修复**: TemporalEditForm 集成（预计1小时）
+2. **测试改进**: Mock 配置优化（预计30分钟）
+3. **完整验证**: 端到端用户体验测试（预计30分钟）
+4. **文档更新**: 更新完成状态和部署指南
+
 ## 参考资料
 
 - [Canvas Kit Combobox文档](https://workday.github.io/canvas-kit/?path=/docs/components-inputs-combobox--basic)
@@ -455,6 +569,12 @@ const errorMessages = {
 ### 临时方案标注
 - // TODO-TEMPORARY: 当缺少 `org:validate` 权限时，仅执行前端循环依赖预检作为用户体验优化；以服务器端 `/validate` 作为最终裁决的目标状态。截止时间：2025-09-30。负责人：前端架构团队。
 
-**文档版本**: 1.3.0
-**最后更新**: 2025-09-15
+**文档版本**: 1.4.0
+**最后更新**: 2025-09-17
 **负责人**: 前端架构团队
+
+### 版本更新记录
+- **v1.4.0 (2025-09-17)**: 添加实际测试验证结果，如实记录功能完成度约75%，发现TemporalEditForm集成缺失等问题
+- **v1.3.0 (2025-09-15)**: 完成基础功能实现和组件测试
+- **v1.2.0**: 预览版本，核心组件开发完成
+- **v1.0.0**: 初始技术方案设计

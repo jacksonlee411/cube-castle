@@ -76,7 +76,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 
 	// 创建组织实体
 	now := time.Now()
-    org := &types.Organization{
+	org := &types.Organization{
 		TenantID:    tenantID.String(),
 		Code:        code,
 		ParentCode:  req.ParentCode,
@@ -90,7 +90,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		// 时态管理字段 - 使用Date类型
 		EffectiveDate: req.EffectiveDate,
 		EndDate:       req.EndDate,
-        // isTemporal 移除：由 endDate 是否为空派生
+		// isTemporal 移除：由 endDate 是否为空派生
 		ChangeReason: func() *string {
 			if req.ChangeReason == "" {
 				return nil
@@ -98,8 +98,8 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 				return &req.ChangeReason
 			}
 		}(),
-        IsCurrent: true, // 新创建的记录默认为当前记录
-    }
+		IsCurrent: true, // 新创建的记录默认为当前记录
+	}
 
 	// 确保effective_date字段始终有值（数据库约束要求）
 	if org.EffectiveDate == nil {
@@ -120,8 +120,12 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 			"parentCode": req.ParentCode,
 		}
 
-		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code,
-			"CreateOrganization", actorID, requestID, "CREATE_ERROR", err.Error(), requestData)
+		if logErr := h.auditLogger.LogError(
+			r.Context(), tenantID, audit.ResourceTypeOrganization, code,
+			"CreateOrganization", actorID, requestID, "CREATE_ERROR", err.Error(), requestData,
+		); logErr != nil {
+			h.logger.Printf("记录创建失败审计日志出错: %v", logErr)
+		}
 
 		h.handleRepositoryError(w, r, "CREATE", err)
 		return
@@ -140,7 +144,9 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 
 	// 返回企业级成功响应
 	response := h.toOrganizationResponse(createdOrg)
-	utils.WriteCreated(w, response, "Organization created successfully", requestID)
+	if err := utils.WriteCreated(w, response, "Organization created successfully", requestID); err != nil {
+		h.logger.Printf("写入创建成功响应失败: %v", err)
+	}
 
 	h.logger.Printf("✅ 组织创建成功: %s - %s (RequestID: %s)", createdOrg.Code, createdOrg.Name, requestID)
 }
@@ -210,15 +216,15 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	// 创建新的时态版本
 	now := time.Now()
 	newVersion := &types.Organization{
-		TenantID:    tenantID.String(),
-		Code:        code,
-		ParentCode:  req.ParentCode,
-		Name:        req.Name,
-		UnitType:    req.UnitType,
-		Status:      "ACTIVE", // 新版本默认激活
-		Level:       level,
-		Path:        path,
-		SortOrder:   func() int {
+		TenantID:   tenantID.String(),
+		Code:       code,
+		ParentCode: req.ParentCode,
+		Name:       req.Name,
+		UnitType:   req.UnitType,
+		Status:     "ACTIVE", // 新版本默认激活
+		Level:      level,
+		Path:       path,
+		SortOrder: func() int {
 			if req.SortOrder != nil {
 				return *req.SortOrder
 			}
@@ -232,13 +238,13 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		}(),
 		// 时态管理字段
 		EffectiveDate: types.NewDateFromTime(effectiveDate),
-		EndDate:       func() *types.Date {
+		EndDate: func() *types.Date {
 			if endDate != nil {
 				return types.NewDateFromTime(*endDate)
 			}
 			return nil
 		}(),
-        // isTemporal 移除：由 endDate 是否为空派生
+		// isTemporal 移除：由 endDate 是否为空派生
 		ChangeReason: func() *string {
 			return &req.OperationReason
 		}(),
@@ -253,7 +259,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 			h.writeErrorResponse(w, r, http.StatusConflict, "VERSION_CONFLICT", "生效日期与现有版本冲突", err)
 			return
 		}
-		
+
 		// 记录创建失败的审计日志
 		requestID := middleware.GetRequestID(r.Context())
 		actorID := h.getActorID(r)
@@ -264,52 +270,56 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 			"effectiveDate": req.EffectiveDate,
 		}
 
-		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, existingOrg.RecordID,
-			"CreateOrganizationVersion", actorID, requestID, "VERSION_CREATE_ERROR", err.Error(), requestData)
+		if logErr := h.auditLogger.LogError(
+			r.Context(), tenantID, audit.ResourceTypeOrganization, existingOrg.RecordID,
+			"CreateOrganizationVersion", actorID, requestID, "VERSION_CREATE_ERROR", err.Error(), requestData,
+		); logErr != nil {
+			h.logger.Printf("记录版本创建失败审计日志出错: %v", logErr)
+		}
 
 		h.handleRepositoryError(w, r, "CREATE_VERSION", err)
 		return
 	}
 
-    // 记录版本创建成功的审计日志（排除 isCurrent/isTemporal 等动态字段）
+	// 记录版本创建成功的审计日志（排除 isCurrent/isTemporal 等动态字段）
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
 
-    // 记录审计日志 - 创建版本事件（填充变更字段）
-    createdFields := []audit.FieldChange{
-        {Field: "name", OldValue: nil, NewValue: req.Name, DataType: "string"},
-        {Field: "unitType", OldValue: nil, NewValue: req.UnitType, DataType: "string"},
-        {Field: "parentCode", OldValue: nil, NewValue: req.ParentCode, DataType: "string"},
-        {Field: "description", OldValue: nil, NewValue: req.Description, DataType: "string"},
-        {Field: "effectiveDate", OldValue: nil, NewValue: req.EffectiveDate, DataType: "date"},
-    }
-    modifiedFields := []string{"name","unitType","parentCode","description","effectiveDate"}
+	// 记录审计日志 - 创建版本事件（填充变更字段）
+	createdFields := []audit.FieldChange{
+		{Field: "name", OldValue: nil, NewValue: req.Name, DataType: "string"},
+		{Field: "unitType", OldValue: nil, NewValue: req.UnitType, DataType: "string"},
+		{Field: "parentCode", OldValue: nil, NewValue: req.ParentCode, DataType: "string"},
+		{Field: "description", OldValue: nil, NewValue: req.Description, DataType: "string"},
+		{Field: "effectiveDate", OldValue: nil, NewValue: req.EffectiveDate, DataType: "date"},
+	}
+	modifiedFields := []string{"name", "unitType", "parentCode", "description", "effectiveDate"}
 
-    event := &audit.AuditEvent{
-        TenantID:        tenantID,
-        EventType:       audit.EventTypeCreate,
-        ResourceType:    audit.ResourceTypeOrganization,
-        ResourceID:      createdVersion.RecordID.String(),
-        ActorID:         actorID,
-        ActorType:       audit.ActorTypeUser,
-        ActionName:      "CREATE_VERSION",
-        RequestID:       requestID,
-        OperationReason: req.OperationReason,
-        Success:         true,
-        ModifiedFields:  modifiedFields,
-        Changes:         createdFields,
-        AfterData: map[string]interface{}{
-            "code":           createdVersion.Code,
-            "name":           createdVersion.Name,
-            "unitType":       req.UnitType,
-            "parentCode":     req.ParentCode,
-            "description":    req.Description,
-            "effectiveDate":  req.EffectiveDate,
-            "endDate":        req.EndDate,
-            "status":         createdVersion.Status,
-        },
-    }
-	
+	event := &audit.AuditEvent{
+		TenantID:        tenantID,
+		EventType:       audit.EventTypeCreate,
+		ResourceType:    audit.ResourceTypeOrganization,
+		ResourceID:      createdVersion.RecordID.String(),
+		ActorID:         actorID,
+		ActorType:       audit.ActorTypeUser,
+		ActionName:      "CREATE_VERSION",
+		RequestID:       requestID,
+		OperationReason: req.OperationReason,
+		Success:         true,
+		ModifiedFields:  modifiedFields,
+		Changes:         createdFields,
+		AfterData: map[string]interface{}{
+			"code":          createdVersion.Code,
+			"name":          createdVersion.Name,
+			"unitType":      req.UnitType,
+			"parentCode":    req.ParentCode,
+			"description":   req.Description,
+			"effectiveDate": req.EffectiveDate,
+			"endDate":       req.EndDate,
+			"status":        createdVersion.Status,
+		},
+	}
+
 	err = h.auditLogger.LogEvent(r.Context(), event)
 	if err != nil {
 		h.logger.Printf("⚠️ 审计日志记录失败: %v", err)
@@ -326,9 +336,11 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	}
 
 	// 返回企业级成功响应
-	utils.WriteCreated(w, responseData, "Temporal version created successfully", requestID)
+	if err := utils.WriteCreated(w, responseData, "Temporal version created successfully", requestID); err != nil {
+		h.logger.Printf("写入版本创建响应失败: %v", err)
+	}
 
-	h.logger.Printf("✅ 时态版本创建成功: %s - %s (生效日期: %s, RequestID: %s)", 
+	h.logger.Printf("✅ 时态版本创建成功: %s - %s (生效日期: %s, RequestID: %s)",
 		createdVersion.Code, createdVersion.Name, req.EffectiveDate, requestID)
 }
 
@@ -384,11 +396,12 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 
 	// 返回企业级成功响应
 	response := h.toOrganizationResponse(updatedOrg)
-	utils.WriteSuccess(w, response, "Organization updated successfully", requestID)
+	if err := utils.WriteSuccess(w, response, "Organization updated successfully", requestID); err != nil {
+		h.logger.Printf("写入组织更新响应失败: %v", err)
+	}
 
 	h.logger.Printf("✅ 组织更新成功: %s - %s (RequestID: %s)", updatedOrg.Code, updatedOrg.Name, requestID)
 }
-
 
 // SuspendOrganization 暂停组织 - 实现第四大核心场景之暂停
 // 使用时态时间轴管理器实现状态变更
@@ -453,13 +466,17 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 
 	if err != nil {
 		// 记录操作失败的审计日志
-		h.auditLogger.LogError(r.Context(), tenantID, audit.ResourceTypeOrganization, code,
+		if logErr := h.auditLogger.LogError(
+			r.Context(), tenantID, audit.ResourceTypeOrganization, code,
 			operationType, actorID, requestID, operationType+"_ERROR", err.Error(), map[string]interface{}{
-				"code":               code,
-				"targetStatus":       newStatus,
-				"effectiveDate":      req.EffectiveDate,
-				"operationReason":    operationReason,
-			})
+				"code":            code,
+				"targetStatus":    newStatus,
+				"effectiveDate":   req.EffectiveDate,
+				"operationReason": operationReason,
+			},
+		); logErr != nil {
+			h.logger.Printf("记录%s失败审计日志出错: %v", operationType, logErr)
+		}
 
 		// 检查是否是冲突错误
 		if strings.Contains(err.Error(), "TEMPORAL_POINT_CONFLICT") {
@@ -471,54 +488,54 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 		return
 	}
 
-    // 记录成功的审计日志（使用具体版本的 recordId 作为资源ID）
-    var resourceRecordID string
-    if timeline != nil {
-        for _, v := range *timeline {
-            if v.EffectiveDate.Equal(effectiveDate) && v.Status == newStatus {
-                resourceRecordID = v.RecordID.String()
-                break
-            }
-        }
-        if resourceRecordID == "" {
-            for _, v := range *timeline {
-                if v.IsCurrent {
-                    resourceRecordID = v.RecordID.String()
-                    break
-                }
-            }
-        }
-    }
-    if resourceRecordID == "" {
-        // 最后兜底：查询当前版本的 RecordID
-        if cur, err := h.repo.GetByCode(r.Context(), tenantID, code); err == nil && cur != nil {
-            resourceRecordID = cur.RecordID
-        }
-    }
+	// 记录成功的审计日志（使用具体版本的 recordId 作为资源ID）
+	var resourceRecordID string
+	if timeline != nil {
+		for _, v := range *timeline {
+			if v.EffectiveDate.Equal(effectiveDate) && v.Status == newStatus {
+				resourceRecordID = v.RecordID.String()
+				break
+			}
+		}
+		if resourceRecordID == "" {
+			for _, v := range *timeline {
+				if v.IsCurrent {
+					resourceRecordID = v.RecordID.String()
+					break
+				}
+			}
+		}
+	}
+	if resourceRecordID == "" {
+		// 最后兜底：查询当前版本的 RecordID
+		if cur, err := h.repo.GetByCode(r.Context(), tenantID, code); err == nil && cur != nil {
+			resourceRecordID = cur.RecordID
+		}
+	}
 
-    event := &audit.AuditEvent{
-        ID:              uuid.New(),
-        TenantID:        tenantID,
-        EventType:       audit.EventTypeUpdate,
-        ResourceType:    audit.ResourceTypeOrganization,
-        ResourceID:      resourceRecordID,
-        ActorID:         actorID,
-        ActorType:       audit.ActorTypeUser,
-        ActionName:      operationType,
-        RequestID:       requestID,
-        OperationReason: operationReason,
-        Timestamp:       time.Now(),
-        Success:         true,
-        BeforeData: map[string]interface{}{
-            "code": code,
-        },
-        AfterData: map[string]interface{}{
-            "targetStatus":       newStatus,
-            "effectiveDate":      req.EffectiveDate,
-            "timelineVersions":   len(*timeline),
-            "operationReason":    operationReason,
-        },
-    }
+	event := &audit.AuditEvent{
+		ID:              uuid.New(),
+		TenantID:        tenantID,
+		EventType:       audit.EventTypeUpdate,
+		ResourceType:    audit.ResourceTypeOrganization,
+		ResourceID:      resourceRecordID,
+		ActorID:         actorID,
+		ActorType:       audit.ActorTypeUser,
+		ActionName:      operationType,
+		RequestID:       requestID,
+		OperationReason: operationReason,
+		Timestamp:       time.Now(),
+		Success:         true,
+		BeforeData: map[string]interface{}{
+			"code": code,
+		},
+		AfterData: map[string]interface{}{
+			"targetStatus":     newStatus,
+			"effectiveDate":    req.EffectiveDate,
+			"timelineVersions": len(*timeline),
+			"operationReason":  operationReason,
+		},
+	}
 
 	if err := h.auditLogger.LogEvent(r.Context(), event); err != nil {
 		h.logger.Printf("⚠️ 记录审计日志失败: %v", err)
@@ -545,7 +562,7 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 	}
 
 	isImmediate := effectiveDate.Before(time.Now().Add(24 * time.Hour))
-	message := fmt.Sprintf("%s成功（%s生效），时间轴已自动调整", actionName, 
+	message := fmt.Sprintf("%s成功（%s生效），时间轴已自动调整", actionName,
 		func() string {
 			if isImmediate {
 				return "即时"
@@ -554,16 +571,18 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 		}())
 
 	response := map[string]interface{}{
-		"message":           message,
-		"operationType":     operationType,
-		"targetStatus":      newStatus,
-		"effectiveDate":     req.EffectiveDate,
-		"operationReason":   operationReason,
-		"isImmediate":       isImmediate,
-		"timeline":          timelineResponse,
+		"message":         message,
+		"operationType":   operationType,
+		"targetStatus":    newStatus,
+		"effectiveDate":   req.EffectiveDate,
+		"operationReason": operationReason,
+		"isImmediate":     isImmediate,
+		"timeline":        timelineResponse,
 	}
 
-	utils.WriteSuccess(w, response, actionName+"成功", requestID)
+	if err := utils.WriteSuccess(w, response, actionName+"成功", requestID); err != nil {
+		h.logger.Printf("写入%s响应失败: %v", actionName, err)
+	}
 	h.logger.Printf("✅ %s成功: %s → %s, 生效日期=%s (RequestID: %s)", actionName, code, newStatus, req.EffectiveDate, requestID)
 }
 
@@ -593,45 +612,58 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		// 处理版本作废事件
 		actorID := h.getActorID(r)
 		requestID := middleware.GetRequestID(r.Context())
-		
-    err := h.handleDeactivateEvent(r.Context(), tenantID, code, req.RecordID, req.ChangeReason, actorID, requestID)
-    if err != nil {
-        h.writeErrorResponse(w, r, http.StatusInternalServerError, "DEACTIVATE_ERROR", "作废版本失败", err)
-        return
-    }
 
-    // 获取最新时间线（非删除记录），用于前端立即刷新，避免读缓存延迟
-    versions, listErr := h.repo.ListVersionsByCode(r.Context(), tenantID, code)
-    if listErr != nil {
-        h.logger.Printf("⚠️ 获取最新时间线失败（不影响作废结果）: %v", listErr)
-    }
+		err := h.handleDeactivateEvent(r.Context(), tenantID, code, req.RecordID, req.ChangeReason, actorID, requestID)
+		if err != nil {
+			h.writeErrorResponse(w, r, http.StatusInternalServerError, "DEACTIVATE_ERROR", "作废版本失败", err)
+			return
+		}
 
-    // 构建轻量时间线返回
-    timeline := make([]map[string]interface{}, 0, len(versions))
-    for _, v := range versions {
-        timeline = append(timeline, map[string]interface{}{
-            "recordId":      v.RecordID,
-            "code":          v.Code,
-            "name":          v.Name,
-            "unitType":      v.UnitType,
-            "status":        v.Status,
-            "level":         v.Level,
-            "effectiveDate": func() string { if v.EffectiveDate != nil { return v.EffectiveDate.String() } ; return "" }(),
-            "endDate":       func() *string { if v.EndDate != nil { s:=v.EndDate.String(); return &s } ; return nil }(),
-            "isCurrent":     v.IsCurrent,
-            "createdAt":     v.CreatedAt,
-            "updatedAt":     v.UpdatedAt,
-            "parentCode":    v.ParentCode,
-            "description":   v.Description,
-        })
-    }
+		// 获取最新时间线（非删除记录），用于前端立即刷新，避免读缓存延迟
+		versions, listErr := h.repo.ListVersionsByCode(r.Context(), tenantID, code)
+		if listErr != nil {
+			h.logger.Printf("⚠️ 获取最新时间线失败（不影响作废结果）: %v", listErr)
+		}
 
-    h.logger.Printf("✅ 版本作废成功: 组织 %s, 记录ID: %s (返回最新时间线%d条)", code, req.RecordID, len(timeline))
-    utils.WriteSuccess(w, map[string]interface{}{
-        "code":      code,
-        "record_id": req.RecordID,
-        "timeline":  timeline,
-    }, "版本作废成功", requestID)
+		// 构建轻量时间线返回
+		timeline := make([]map[string]interface{}, 0, len(versions))
+		for _, v := range versions {
+			timeline = append(timeline, map[string]interface{}{
+				"recordId": v.RecordID,
+				"code":     v.Code,
+				"name":     v.Name,
+				"unitType": v.UnitType,
+				"status":   v.Status,
+				"level":    v.Level,
+				"effectiveDate": func() string {
+					if v.EffectiveDate != nil {
+						return v.EffectiveDate.String()
+					}
+					return ""
+				}(),
+				"endDate": func() *string {
+					if v.EndDate != nil {
+						s := v.EndDate.String()
+						return &s
+					}
+					return nil
+				}(),
+				"isCurrent":   v.IsCurrent,
+				"createdAt":   v.CreatedAt,
+				"updatedAt":   v.UpdatedAt,
+				"parentCode":  v.ParentCode,
+				"description": v.Description,
+			})
+		}
+
+		h.logger.Printf("✅ 版本作废成功: 组织 %s, 记录ID: %s (返回最新时间线%d条)", code, req.RecordID, len(timeline))
+		if err := utils.WriteSuccess(w, map[string]interface{}{
+			"code":      code,
+			"record_id": req.RecordID,
+			"timeline":  timeline,
+		}, "版本作废成功", requestID); err != nil {
+			h.logger.Printf("写入版本作废响应失败: %v", err)
+		}
 
 	default:
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "UNSUPPORTED_EVENT", fmt.Sprintf("不支持的事件类型: %s", req.EventType), nil)
@@ -672,7 +704,7 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 		return
 	}
 
-	// 通过UUID更新历史记录  
+	// 通过UUID更新历史记录
 	updatedOrg, err := h.repo.UpdateByRecordId(r.Context(), tenantID, recordId, &req)
 	if err != nil {
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, "UPDATE_ERROR", "更新历史记录失败", err)
@@ -690,7 +722,9 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 
 	// 构建企业级成功响应
 	response := h.toOrganizationResponse(updatedOrg)
-	utils.WriteSuccess(w, response, "History record updated successfully", requestID)
+	if err := utils.WriteSuccess(w, response, "History record updated successfully", requestID); err != nil {
+		h.logger.Printf("写入历史记录更新响应失败: %v", err)
+	}
 
 	h.logger.Printf("✅ 历史记录更新成功: %s - %s (记录ID: %s, RequestID: %s)", response.Code, response.Name, recordId, requestID)
 }
@@ -720,14 +754,14 @@ func (h *OrganizationHandler) toOrganizationResponse(org *types.Organization) *t
 		CreatedAt:     org.CreatedAt,
 		UpdatedAt:     org.UpdatedAt,
 		EffectiveDate: org.EffectiveDate,
-        EndDate:       org.EndDate,
-        ChangeReason:  org.ChangeReason,
+		EndDate:       org.EndDate,
+		ChangeReason:  org.ChangeReason,
 	}
 }
 
 func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int, code, message string, details interface{}) {
 	errorMsg := message
-	
+
 	// 如果details是error类型，处理错误信息
 	if err, ok := details.(error); ok && err != nil {
 		if statusCode >= 500 {
@@ -743,7 +777,9 @@ func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, r *http.
 	requestID := middleware.GetRequestID(r.Context())
 
 	// 使用统一响应构建器
-	utils.WriteError(w, statusCode, code, errorMsg, requestID, details)
+	if err := utils.WriteError(w, statusCode, code, errorMsg, requestID, details); err != nil {
+		h.logger.Printf("写入错误响应失败: %v", err)
+	}
 }
 
 // SetupRoutes 设置路由
@@ -776,21 +812,21 @@ func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantI
 		return fmt.Errorf("获取记录失败: %w", err)
 	}
 
-    // 使用时间线管理器执行“单事务 软删 + 全链重算”
-    rid, _ := uuid.Parse(recordID)
-    if _, err := h.timelineManager.DeleteVersion(ctx, tenantID, rid); err != nil {
-        return fmt.Errorf("作废记录失败: %w", err)
-    }
+	// 使用时间线管理器执行“单事务 软删 + 全链重算”
+	rid, _ := uuid.Parse(recordID)
+	if _, err := h.timelineManager.DeleteVersion(ctx, tenantID, rid); err != nil {
+		return fmt.Errorf("作废记录失败: %w", err)
+	}
 
-    // 记录审计日志 - 使用删除日志方法
-    err = h.auditLogger.LogOrganizationDelete(ctx, tenantID, code, oldOrg, actorID, requestID, changeReason)
+	// 记录审计日志 - 使用删除日志方法
+	err = h.auditLogger.LogOrganizationDelete(ctx, tenantID, code, oldOrg, actorID, requestID, changeReason)
 	if err != nil {
 		h.logger.Printf("⚠️ 审计日志记录失败 (但操作成功): %v", err)
 		// 审计日志失败不应该导致业务操作失败，只记录警告
 	}
 
 	h.logger.Printf("📋 审计日志已记录: 作废组织版本 %s (记录ID: %s)", code, recordID)
-	
+
 	return nil
 }
 
@@ -854,50 +890,50 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 	}
 
 	errorStr := err.Error()
-	
+
 	// PostgreSQL错误代码映射
 	switch {
 	// 数据不存在错误 - 包括应用层和数据库层错误
-	case strings.Contains(errorStr, "not found") || strings.Contains(errorStr, "no rows") || 
-		 strings.Contains(errorStr, "组织不存在") || strings.Contains(errorStr, "组织代码已存在"):
-		
+	case strings.Contains(errorStr, "not found") || strings.Contains(errorStr, "no rows") ||
+		strings.Contains(errorStr, "组织不存在") || strings.Contains(errorStr, "组织代码已存在"):
+
 		// 区分不同的错误类型
 		if strings.Contains(errorStr, "组织代码已存在") {
 			h.writeErrorResponse(w, r, http.StatusConflict, "DUPLICATE_CODE", "组织代码已存在", map[string]interface{}{
 				"constraint": "unique_code_per_tenant",
-				"operation": operation,
+				"operation":  operation,
 			})
 		} else {
 			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
 		}
-		
-    // 唯一约束违反 - 代码/时间点/当前冲突
-    case strings.Contains(errorStr, "duplicate key value"):
-        // 细分约束名称
-        switch {
-        case strings.Contains(errorStr, "uk_org_ver_active_only"):
-            h.writeErrorResponse(w, r, http.StatusConflict, "TEMPORAL_POINT_CONFLICT", "(tenant_id, code, effective_date) must be unique for non-deleted versions", nil)
-        case strings.Contains(errorStr, "uk_org_current_active_only"):
-            h.writeErrorResponse(w, r, http.StatusConflict, "CURRENT_CONFLICT", "Only one current non-deleted version per (tenant_id, code) is allowed", nil)
-        case strings.Contains(errorStr, "organization_units_code_tenant_id_key"):
-            h.writeErrorResponse(w, r, http.StatusConflict, "DUPLICATE_CODE", "组织代码已存在", map[string]interface{}{
-                "constraint": "unique_code_per_tenant",
-                "operation": operation,
-            })
-        default:
-            h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "数据约束违反", map[string]interface{}{
-                "operation": operation,
-                "type": "database_constraint",
-            })
-        }
-		
+
+	// 唯一约束违反 - 代码/时间点/当前冲突
+	case strings.Contains(errorStr, "duplicate key value"):
+		// 细分约束名称
+		switch {
+		case strings.Contains(errorStr, "uk_org_ver_active_only"):
+			h.writeErrorResponse(w, r, http.StatusConflict, "TEMPORAL_POINT_CONFLICT", "(tenant_id, code, effective_date) must be unique for non-deleted versions", nil)
+		case strings.Contains(errorStr, "uk_org_current_active_only"):
+			h.writeErrorResponse(w, r, http.StatusConflict, "CURRENT_CONFLICT", "Only one current non-deleted version per (tenant_id, code) is allowed", nil)
+		case strings.Contains(errorStr, "organization_units_code_tenant_id_key"):
+			h.writeErrorResponse(w, r, http.StatusConflict, "DUPLICATE_CODE", "组织代码已存在", map[string]interface{}{
+				"constraint": "unique_code_per_tenant",
+				"operation":  operation,
+			})
+		default:
+			h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "数据约束违反", map[string]interface{}{
+				"operation": operation,
+				"type":      "database_constraint",
+			})
+		}
+
 	// 单位类型约束违反
 	case strings.Contains(errorStr, "organization_units_unit_type_check"):
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_UNIT_TYPE", "无效的组织类型", map[string]interface{}{
 			"allowedTypes": []string{"DEPARTMENT", "ORGANIZATION_UNIT", "PROJECT_TEAM"},
-			"constraint": "unit_type_check",
+			"constraint":   "unit_type_check",
 		})
-		
+
 	// 字段长度限制
 	case strings.Contains(errorStr, "value too long for type"):
 		fieldName := "unknown"
@@ -907,29 +943,29 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 			fieldName = "name"
 		}
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "FIELD_TOO_LONG", fmt.Sprintf("字段 %s 超出长度限制", fieldName), map[string]interface{}{
-			"field": fieldName,
+			"field":      fieldName,
 			"constraint": "field_length_limit",
 		})
-		
+
 	// 外键约束违反 - 父组织不存在
 	case strings.Contains(errorStr, "foreign key constraint") && strings.Contains(errorStr, "parent_code"):
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_PARENT", "父组织不存在或无效", map[string]interface{}{
 			"constraint": "parent_organization_exists",
 		})
-		
-    // 业务逻辑错误
-    case strings.Contains(errorStr, "already suspended"):
-        h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_SUSPENDED", "组织单元已处于停用状态", nil)
-		
+
+	// 业务逻辑错误
+	case strings.Contains(errorStr, "already suspended"):
+		h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_SUSPENDED", "组织单元已处于停用状态", nil)
+
 	case strings.Contains(errorStr, "already active"):
 		h.writeErrorResponse(w, r, http.StatusConflict, "ALREADY_ACTIVE", "组织单元已处于激活状态", nil)
-		
+
 	case strings.Contains(errorStr, "has children"):
 		h.writeErrorResponse(w, r, http.StatusConflict, "HAS_CHILDREN", "不能删除包含子组织的单元", map[string]interface{}{
-			"operation": operation,
+			"operation":  operation,
 			"suggestion": "请先删除所有子组织单元",
 		})
-		
+
 	// 数据库连接错误
 	case strings.Contains(errorStr, "connection refused") || strings.Contains(errorStr, "timeout"):
 		h.logger.Printf("Database connection error in %s operation: %v", operation, err)
@@ -937,18 +973,18 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 			"operation": operation,
 			"retryable": true,
 		})
-		
-    // 已删除记录只读
-    case strings.Contains(errorStr, "READ_ONLY_DELETED") || strings.Contains(errorStr, "cannot modify deleted record"):
-        h.writeErrorResponse(w, r, http.StatusConflict, "DELETED_RECORD_READ_ONLY", "已删除记录为只读，禁止修改", nil)
 
-    // 其他数据库约束错误
-    case strings.Contains(errorStr, "constraint"):
-        h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "数据约束违反", map[string]interface{}{
-            "operation": operation,
-            "type": "database_constraint",
-        })
-		
+	// 已删除记录只读
+	case strings.Contains(errorStr, "READ_ONLY_DELETED") || strings.Contains(errorStr, "cannot modify deleted record"):
+		h.writeErrorResponse(w, r, http.StatusConflict, "DELETED_RECORD_READ_ONLY", "已删除记录为只读，禁止修改", nil)
+
+	// 其他数据库约束错误
+	case strings.Contains(errorStr, "constraint"):
+		h.writeErrorResponse(w, r, http.StatusConflict, "CONSTRAINT_VIOLATION", "数据约束违反", map[string]interface{}{
+			"operation": operation,
+			"type":      "database_constraint",
+		})
+
 	// 默认内部服务器错误
 	default:
 		h.logger.Printf("Unhandled repository error in %s operation: %v", operation, err)
@@ -959,18 +995,17 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 	}
 }
 
-
 // getOperationName 获取操作的中文名称
 func getOperationName(operation string) string {
 	operationNames := map[string]string{
 		"CREATE":   "创建",
-		"UPDATE":   "更新", 
+		"UPDATE":   "更新",
 		"DELETE":   "删除",
 		"SUSPEND":  "停用",
 		"ACTIVATE": "激活",
 		"QUERY":    "查询",
 	}
-	
+
 	if name, exists := operationNames[operation]; exists {
 		return name
 	}

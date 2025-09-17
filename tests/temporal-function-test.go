@@ -322,7 +322,9 @@ func temporalQueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func temporalEventHandler(w http.ResponseWriter, r *http.Request) {
@@ -360,7 +362,9 @@ func temporalEventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -372,13 +376,16 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func main() {
 	initTestData()
 
-	http.HandleFunc("/api/v1/organization-units/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/organization-units/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/temporal") {
 			temporalQueryHandler(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/events") {
@@ -388,7 +395,7 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/health", healthHandler)
 
 	log.Println("🚀 时态功能测试服务启动在端口 9091")
 	log.Println("📋 测试数据已初始化:")
@@ -401,7 +408,16 @@ func main() {
 	log.Println("  - GET /api/v1/organization-units/{code}/temporal")
 	log.Println("  - POST /api/v1/organization-units/{code}/events")
 
-	if err := http.ListenAndServe(":9091", nil); err != nil {
+	server := &http.Server{
+		Addr:              ":9091",
+		Handler:           mux,
+		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal("服务启动失败:", err)
 	}
 }

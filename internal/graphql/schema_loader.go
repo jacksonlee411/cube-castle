@@ -2,7 +2,6 @@ package graphql
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -35,7 +34,7 @@ func (sl *SchemaLoader) LoadSchema() (string, error) {
 	}
 
 	// 读取Schema文件
-	content, err := ioutil.ReadFile(sl.schemaPath)
+	content, err := os.ReadFile(sl.schemaPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read GraphQL schema: %w", err)
 	}

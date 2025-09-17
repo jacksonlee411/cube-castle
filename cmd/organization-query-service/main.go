@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -77,6 +78,24 @@ type Organization struct {
 	HierarchyDepthField int `json:"hierarchyDepth" db:"hierarchy_depth"`
 }
 
+func clampToInt32(value int) int32 {
+	if value > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if value < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(value)
+}
+
+func clampToInt32Ptr(src *int) *int32 {
+	if src == nil {
+		return nil
+	}
+	val := clampToInt32(*src)
+	return &val
+}
+
 // GraphQL字段解析器 - 零拷贝优化 (camelCase方法名)
 func (o Organization) RecordId() string { return o.RecordIDField }
 func (o Organization) TenantId() string { return o.TenantIDField }
@@ -90,14 +109,10 @@ func (o Organization) ParentCode() string {
 func (o Organization) Name() string     { return o.NameField }
 func (o Organization) UnitType() string { return o.UnitTypeField }
 func (o Organization) Status() string   { return o.StatusField }
-func (o Organization) Level() int32     { return int32(o.LevelField) }
+func (o Organization) Level() int32     { return clampToInt32(o.LevelField) }
 func (o Organization) Path() *string    { return o.PathField }
 func (o Organization) SortOrder() *int32 {
-	if o.SortOrderField == nil {
-		return nil
-	}
-	val := int32(*o.SortOrderField)
-	return &val
+	return clampToInt32Ptr(o.SortOrderField)
 }
 func (o Organization) Description() *string  { return o.DescriptionField }
 func (o Organization) Profile() *string      { return o.ProfileField }
@@ -117,7 +132,7 @@ func (o Organization) IsTemporal() bool {
 	return o.EndDateField != nil
 }
 func (o Organization) ChangeReason() *string { return o.ChangeReasonField }
-func (o Organization) HierarchyDepth() int32 { return int32(o.HierarchyDepthField) }
+func (o Organization) HierarchyDepth() int32 { return clampToInt32(o.HierarchyDepthField) }
 func cnTodayDate() time.Time {
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
@@ -165,11 +180,11 @@ type OrganizationStats struct {
 	TemporalStatsField TemporalStats `json:"temporalStats"`
 }
 
-func (s OrganizationStats) TotalCount() int32            { return int32(s.TotalCountField) }
-func (s OrganizationStats) ActiveCount() int32           { return int32(s.ActiveCountField) }
-func (s OrganizationStats) InactiveCount() int32         { return int32(s.InactiveCountField) }
-func (s OrganizationStats) PlannedCount() int32          { return int32(s.PlannedCountField) }
-func (s OrganizationStats) DeletedCount() int32          { return int32(s.DeletedCountField) }
+func (s OrganizationStats) TotalCount() int32            { return clampToInt32(s.TotalCountField) }
+func (s OrganizationStats) ActiveCount() int32           { return clampToInt32(s.ActiveCountField) }
+func (s OrganizationStats) InactiveCount() int32         { return clampToInt32(s.InactiveCountField) }
+func (s OrganizationStats) PlannedCount() int32          { return clampToInt32(s.PlannedCountField) }
+func (s OrganizationStats) DeletedCount() int32          { return clampToInt32(s.DeletedCountField) }
 func (s OrganizationStats) ByType() []TypeCount          { return s.ByTypeField }
 func (s OrganizationStats) ByStatus() []StatusCount      { return s.ByStatusField }
 func (s OrganizationStats) ByLevel() []LevelCount        { return s.ByLevelField }
@@ -182,7 +197,7 @@ type TemporalStats struct {
 	NewestEffectiveDateField   string  `json:"newestEffectiveDate"`
 }
 
-func (t TemporalStats) TotalVersions() int32           { return int32(t.TotalVersionsField) }
+func (t TemporalStats) TotalVersions() int32           { return clampToInt32(t.TotalVersionsField) }
 func (t TemporalStats) AverageVersionsPerOrg() float64 { return t.AverageVersionsPerOrgField }
 func (t TemporalStats) OldestEffectiveDate() string    { return t.OldestEffectiveDateField }
 func (t TemporalStats) NewestEffectiveDate() string    { return t.NewestEffectiveDateField }
@@ -193,15 +208,15 @@ type TypeCount struct {
 }
 
 func (t TypeCount) UnitType() string { return t.UnitTypeField }
-func (t TypeCount) Count() int32     { return int32(t.CountField) }
+func (t TypeCount) Count() int32     { return clampToInt32(t.CountField) }
 
 type LevelCount struct {
 	LevelField int `json:"level"`
 	CountField int `json:"count"`
 }
 
-func (l LevelCount) Level() int32 { return int32(l.LevelField) }
-func (l LevelCount) Count() int32 { return int32(l.CountField) }
+func (l LevelCount) Level() int32 { return clampToInt32(l.LevelField) }
+func (l LevelCount) Count() int32 { return clampToInt32(l.CountField) }
 
 type StatusCount struct {
 	StatusField string `json:"status"`
@@ -209,7 +224,7 @@ type StatusCount struct {
 }
 
 func (s StatusCount) Status() string { return s.StatusField }
-func (s StatusCount) Count() int32   { return int32(s.CountField) }
+func (s StatusCount) Count() int32   { return clampToInt32(s.CountField) }
 
 // API契约标准响应类型 - 符合官方schema.graphql v4.2.1
 type OrganizationConnection struct {
@@ -230,9 +245,9 @@ type PaginationInfo struct {
 	HasPreviousField bool `json:"hasPrevious"`
 }
 
-func (p PaginationInfo) Total() int32      { return int32(p.TotalField) }
-func (p PaginationInfo) Page() int32       { return int32(p.PageField) }
-func (p PaginationInfo) PageSize() int32   { return int32(p.PageSizeField) }
+func (p PaginationInfo) Total() int32      { return clampToInt32(p.TotalField) }
+func (p PaginationInfo) Page() int32       { return clampToInt32(p.PageField) }
+func (p PaginationInfo) PageSize() int32   { return clampToInt32(p.PageSizeField) }
 func (p PaginationInfo) HasNext() bool     { return p.HasNextField }
 func (p PaginationInfo) HasPrevious() bool { return p.HasPreviousField }
 
@@ -244,9 +259,9 @@ type TemporalInfo struct {
 }
 
 func (t TemporalInfo) AsOfDate() string       { return t.AsOfDateField }
-func (t TemporalInfo) CurrentCount() int32    { return int32(t.CurrentCountField) }
-func (t TemporalInfo) FutureCount() int32     { return int32(t.FutureCountField) }
-func (t TemporalInfo) HistoricalCount() int32 { return int32(t.HistoricalCountField) }
+func (t TemporalInfo) CurrentCount() int32    { return clampToInt32(t.CurrentCountField) }
+func (t TemporalInfo) FutureCount() int32     { return clampToInt32(t.FutureCountField) }
+func (t TemporalInfo) HistoricalCount() int32 { return clampToInt32(t.HistoricalCountField) }
 
 // 层级结构类型 - 严格遵循API规范v4.2.1
 type OrganizationHierarchyData struct {
@@ -265,12 +280,12 @@ type OrganizationHierarchyData struct {
 
 func (h OrganizationHierarchyData) Code() string                          { return h.CodeField }
 func (h OrganizationHierarchyData) Name() string                          { return h.NameField }
-func (h OrganizationHierarchyData) Level() int32                          { return int32(h.LevelField) }
-func (h OrganizationHierarchyData) HierarchyDepth() int32                 { return int32(h.HierarchyDepthField) }
+func (h OrganizationHierarchyData) Level() int32                          { return clampToInt32(h.LevelField) }
+func (h OrganizationHierarchyData) HierarchyDepth() int32                 { return clampToInt32(h.HierarchyDepthField) }
 func (h OrganizationHierarchyData) CodePath() string                      { return h.CodePathField }
 func (h OrganizationHierarchyData) NamePath() string                      { return h.NamePathField }
 func (h OrganizationHierarchyData) ParentChain() []string                 { return h.ParentChainField }
-func (h OrganizationHierarchyData) ChildrenCount() int32                  { return int32(h.ChildrenCountField) }
+func (h OrganizationHierarchyData) ChildrenCount() int32                  { return clampToInt32(h.ChildrenCountField) }
 func (h OrganizationHierarchyData) IsRoot() bool                          { return h.IsRootField }
 func (h OrganizationHierarchyData) IsLeaf() bool                          { return h.IsLeafField }
 func (h OrganizationHierarchyData) Children() []OrganizationHierarchyData { return h.ChildrenField }
@@ -287,8 +302,8 @@ type OrganizationSubtreeData struct {
 
 func (s OrganizationSubtreeData) Code() string                        { return s.CodeField }
 func (s OrganizationSubtreeData) Name() string                        { return s.NameField }
-func (s OrganizationSubtreeData) Level() int32                        { return int32(s.LevelField) }
-func (s OrganizationSubtreeData) HierarchyDepth() int32               { return int32(s.HierarchyDepthField) }
+func (s OrganizationSubtreeData) Level() int32                        { return clampToInt32(s.LevelField) }
+func (s OrganizationSubtreeData) HierarchyDepth() int32               { return clampToInt32(s.HierarchyDepthField) }
 func (s OrganizationSubtreeData) CodePath() string                    { return s.CodePathField }
 func (s OrganizationSubtreeData) NamePath() string                    { return s.NamePathField }
 func (s OrganizationSubtreeData) Children() []OrganizationSubtreeData { return s.ChildrenField }
@@ -306,13 +321,15 @@ type HierarchyStatistics struct {
 	LastAnalyzedField       string              `json:"lastAnalyzed"`
 }
 
-func (h HierarchyStatistics) TenantId() string                       { return h.TenantIdField }
-func (h HierarchyStatistics) TotalOrganizations() int32              { return int32(h.TotalOrganizationsField) }
-func (h HierarchyStatistics) MaxDepth() int32                        { return int32(h.MaxDepthField) }
+func (h HierarchyStatistics) TenantId() string { return h.TenantIdField }
+func (h HierarchyStatistics) TotalOrganizations() int32 {
+	return clampToInt32(h.TotalOrganizationsField)
+}
+func (h HierarchyStatistics) MaxDepth() int32                        { return clampToInt32(h.MaxDepthField) }
 func (h HierarchyStatistics) AvgDepth() float64                      { return h.AvgDepthField }
 func (h HierarchyStatistics) DepthDistribution() []DepthDistribution { return h.DepthDistributionField }
-func (h HierarchyStatistics) RootOrganizations() int32               { return int32(h.RootOrganizationsField) }
-func (h HierarchyStatistics) LeafOrganizations() int32               { return int32(h.LeafOrganizationsField) }
+func (h HierarchyStatistics) RootOrganizations() int32               { return clampToInt32(h.RootOrganizationsField) }
+func (h HierarchyStatistics) LeafOrganizations() int32               { return clampToInt32(h.LeafOrganizationsField) }
 func (h HierarchyStatistics) IntegrityIssues() []IntegrityIssue      { return h.IntegrityIssuesField }
 func (h HierarchyStatistics) LastAnalyzed() string                   { return h.LastAnalyzedField }
 
@@ -321,8 +338,8 @@ type DepthDistribution struct {
 	CountField int `json:"count"`
 }
 
-func (d DepthDistribution) Depth() int32 { return int32(d.DepthField) }
-func (d DepthDistribution) Count() int32 { return int32(d.CountField) }
+func (d DepthDistribution) Depth() int32 { return clampToInt32(d.DepthField) }
+func (d DepthDistribution) Count() int32 { return clampToInt32(d.CountField) }
 
 type IntegrityIssue struct {
 	TypeField          string   `json:"type"`
@@ -331,7 +348,7 @@ type IntegrityIssue struct {
 }
 
 func (i IntegrityIssue) Type() string            { return i.TypeField }
-func (i IntegrityIssue) Count() int32            { return int32(i.CountField) }
+func (i IntegrityIssue) Count() int32            { return clampToInt32(i.CountField) }
 func (i IntegrityIssue) AffectedCodes() []string { return i.AffectedCodesField }
 
 // 字段变更详细信息
@@ -931,19 +948,25 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	// 解析JSON统计数据
 	var typeStats []TypeCount
 	if typeStatsJSON != "" {
-		json.Unmarshal([]byte(typeStatsJSON), &typeStats)
+		if err := json.Unmarshal([]byte(typeStatsJSON), &typeStats); err != nil {
+			r.logger.Printf("解析typeStats失败: %v", err)
+		}
 	}
 	stats.ByTypeField = typeStats
 
 	var statusStats []StatusCount
 	if statusStatsJSON != "" {
-		json.Unmarshal([]byte(statusStatsJSON), &statusStats)
+		if err := json.Unmarshal([]byte(statusStatsJSON), &statusStats); err != nil {
+			r.logger.Printf("解析statusStats失败: %v", err)
+		}
 	}
 	stats.ByStatusField = statusStats
 
 	var levelStats []LevelCount
 	if levelStatsJSON != "" {
-		json.Unmarshal([]byte(levelStatsJSON), &levelStats)
+		if err := json.Unmarshal([]byte(levelStatsJSON), &levelStats); err != nil {
+			r.logger.Printf("解析levelStats失败: %v", err)
+		}
 	}
 	stats.ByLevelField = levelStats
 
@@ -1028,7 +1051,9 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 
 	// 解析父级链
 	if parentChainJSON != "{}" {
-		json.Unmarshal([]byte(parentChainJSON), &hierarchy.ParentChainField)
+		if err := json.Unmarshal([]byte(parentChainJSON), &hierarchy.ParentChainField); err != nil {
+			r.logger.Printf("解析parentChain失败: %v", err)
+		}
 	} else {
 		hierarchy.ParentChainField = []string{}
 	}
@@ -1731,19 +1756,23 @@ func main() {
     </script>
 </body>
 </html>`
-		w.Write([]byte(graphiqlHTML))
+		if _, err := w.Write([]byte(graphiqlHTML)); err != nil {
+			http.Error(w, "failed to write GraphiQL page", http.StatusInternalServerError)
+		}
 	})
 
 	// 健康检查
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":      "healthy",
 			"service":     "postgresql-graphql",
 			"timestamp":   time.Now(),
 			"database":    "postgresql",
 			"performance": "optimized",
-		})
+		}); err != nil {
+			http.Error(w, "failed to encode health response", http.StatusInternalServerError)
+		}
 	})
 
 	// 获取端口

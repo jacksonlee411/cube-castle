@@ -48,7 +48,6 @@ type FieldChange struct {
 	DataType string      `json:"dataType"`
 }
 
-
 // 审计事件类型常量
 const (
 	EventTypeCreate     = "CREATE"
@@ -94,17 +93,17 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 		event.Timestamp = time.Now()
 	}
 
-    // 序列化JSON字段（以字符串形式传递，并在SQL中显式::jsonb转换，避免驱动类型歧义）
-    bd, _ := json.Marshal(event.BeforeData)
-    ad, _ := json.Marshal(event.AfterData)
-    mf, _ := json.Marshal(event.ModifiedFields)
-    ch, _ := json.Marshal(event.Changes)
-    beforeDataJSON := string(bd)
-    afterDataJSON := string(ad)
-    modifiedFieldsJSON := string(mf)
-    changesJSON := string(ch)
+	// 序列化JSON字段（以字符串形式传递，并在SQL中显式::jsonb转换，避免驱动类型歧义）
+	bd, _ := json.Marshal(event.BeforeData)
+	ad, _ := json.Marshal(event.AfterData)
+	mf, _ := json.Marshal(event.ModifiedFields)
+	ch, _ := json.Marshal(event.Changes)
+	beforeDataJSON := string(bd)
+	afterDataJSON := string(ad)
+	modifiedFieldsJSON := string(mf)
+	changesJSON := string(ch)
 
-    query := `
+	query := `
     INSERT INTO audit_logs (
         id, tenant_id, event_type, resource_type, resource_id,
         actor_id, actor_type, action_name, request_id, operation_reason,
@@ -114,45 +113,45 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb
     )`
 
-    // resource_id 列为 UUID，可为 NULL。允许将非UUID字符串视为 NULL，避免外键/类型错误。
-    var resIDParam interface{}
-    if event.ResourceID != "" {
-        if rid, err := uuid.Parse(event.ResourceID); err == nil {
-            resIDParam = rid
-        }
-    }
-    // 兜底：对 ORGANIZATION 资源，若未提供有效 UUID，则根据 (tenant_id, code, current) 推导 record_id
-    if resIDParam == nil && event.ResourceType == ResourceTypeOrganization {
-        // 优先从 AfterData/BeforeData 取业务 code
-        var codeCandidate string
-        if event.AfterData != nil {
-            if v, ok := event.AfterData["code"].(string); ok && v != "" {
-                codeCandidate = v
-            }
-        }
-        if codeCandidate == "" && event.BeforeData != nil {
-            if v, ok := event.BeforeData["code"].(string); ok && v != "" {
-                codeCandidate = v
-            }
-        }
-        if codeCandidate != "" {
-            var rid uuid.UUID
-            err := a.db.QueryRowContext(ctx,
-                `SELECT record_id FROM organization_units WHERE tenant_id = $1 AND code = $2 AND is_current = true LIMIT 1`,
-                event.TenantID.String(), codeCandidate,
-            ).Scan(&rid)
-            if err == nil {
-                resIDParam = rid
-            }
-        }
-    }
+	// resource_id 列为 UUID，可为 NULL。允许将非UUID字符串视为 NULL，避免外键/类型错误。
+	var resIDParam interface{}
+	if event.ResourceID != "" {
+		if rid, err := uuid.Parse(event.ResourceID); err == nil {
+			resIDParam = rid
+		}
+	}
+	// 兜底：对 ORGANIZATION 资源，若未提供有效 UUID，则根据 (tenant_id, code, current) 推导 record_id
+	if resIDParam == nil && event.ResourceType == ResourceTypeOrganization {
+		// 优先从 AfterData/BeforeData 取业务 code
+		var codeCandidate string
+		if event.AfterData != nil {
+			if v, ok := event.AfterData["code"].(string); ok && v != "" {
+				codeCandidate = v
+			}
+		}
+		if codeCandidate == "" && event.BeforeData != nil {
+			if v, ok := event.BeforeData["code"].(string); ok && v != "" {
+				codeCandidate = v
+			}
+		}
+		if codeCandidate != "" {
+			var rid uuid.UUID
+			err := a.db.QueryRowContext(ctx,
+				`SELECT record_id FROM organization_units WHERE tenant_id = $1 AND code = $2 AND is_current = true LIMIT 1`,
+				event.TenantID.String(), codeCandidate,
+			).Scan(&rid)
+			if err == nil {
+				resIDParam = rid
+			}
+		}
+	}
 
-    _, err := a.db.ExecContext(ctx, query,
-        event.ID, event.TenantID, event.EventType, event.ResourceType, resIDParam,
-        event.ActorID, event.ActorType, event.ActionName, event.RequestID, event.OperationReason,
-        event.Timestamp, event.Success, event.ErrorCode, event.ErrorMessage,
-        beforeDataJSON, afterDataJSON, modifiedFieldsJSON, changesJSON,
-    )
+	_, err := a.db.ExecContext(ctx, query,
+		event.ID, event.TenantID, event.EventType, event.ResourceType, resIDParam,
+		event.ActorID, event.ActorType, event.ActionName, event.RequestID, event.OperationReason,
+		event.Timestamp, event.Success, event.ErrorCode, event.ErrorMessage,
+		beforeDataJSON, afterDataJSON, modifiedFieldsJSON, changesJSON,
+	)
 
 	if err != nil {
 		a.logger.Printf("审计日志记录失败: %v", err)
@@ -168,43 +167,47 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 // LogOrganizationCreate 记录组织创建事件 (v4.3.0 - 简化审计信息)
 func (a *AuditLogger) LogOrganizationCreate(ctx context.Context, req *types.CreateOrganizationRequest, result *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(result.TenantID)
-    // 计算创建时的“新增字段”列表（无beforeData，oldValue为null）
-    createdFields := []FieldChange{}
-    modifiedFields := []string{}
-    // 基本字段
-    for _, fc := range []struct{ field, dtype string }{
-        {"code", "string"}, {"name", "string"}, {"unitType", "string"}, {"parentCode", "string"},
-        {"status", "string"}, {"level", "int"},
-    } {
-        createdFields = append(createdFields, FieldChange{Field: fc.field, OldValue: nil, NewValue: nil, DataType: fc.dtype})
-        modifiedFields = append(modifiedFields, fc.field)
-    }
-    // 时态相关（若存在）
-    if result.EffectiveDate != nil { modifiedFields = append(modifiedFields, "effectiveDate") }
-    if result.EndDate != nil { modifiedFields = append(modifiedFields, "endDate") }
+	// 计算创建时的“新增字段”列表（无beforeData，oldValue为null）
+	createdFields := []FieldChange{}
+	modifiedFields := []string{}
+	// 基本字段
+	for _, fc := range []struct{ field, dtype string }{
+		{"code", "string"}, {"name", "string"}, {"unitType", "string"}, {"parentCode", "string"},
+		{"status", "string"}, {"level", "int"},
+	} {
+		createdFields = append(createdFields, FieldChange{Field: fc.field, OldValue: nil, NewValue: nil, DataType: fc.dtype})
+		modifiedFields = append(modifiedFields, fc.field)
+	}
+	// 时态相关（若存在）
+	if result.EffectiveDate != nil {
+		modifiedFields = append(modifiedFields, "effectiveDate")
+	}
+	if result.EndDate != nil {
+		modifiedFields = append(modifiedFields, "endDate")
+	}
 
-    event := &AuditEvent{
-        TenantID:        tenantID,
-        EventType:       EventTypeCreate,
-        ResourceType:    ResourceTypeOrganization,
-        ResourceID:      result.RecordID,
-        ActorID:         actorID,
-        ActorType:       ActorTypeUser,
-        ActionName:      "CreateOrganization",
-        RequestID:       requestID,
-        OperationReason: operationReason,
-        Success:         true,
-        ModifiedFields:  modifiedFields,
-        Changes:         createdFields,
-        AfterData: map[string]interface{}{
-            "code":       result.Code,
-            "name":       result.Name,
-            "unitType":   result.UnitType,
-            "parentCode": result.ParentCode,
-            "status":     result.Status,
-            "level":      result.Level,
-        },
-    }
+	event := &AuditEvent{
+		TenantID:        tenantID,
+		EventType:       EventTypeCreate,
+		ResourceType:    ResourceTypeOrganization,
+		ResourceID:      result.RecordID,
+		ActorID:         actorID,
+		ActorType:       ActorTypeUser,
+		ActionName:      "CreateOrganization",
+		RequestID:       requestID,
+		OperationReason: operationReason,
+		Success:         true,
+		ModifiedFields:  modifiedFields,
+		Changes:         createdFields,
+		AfterData: map[string]interface{}{
+			"code":       result.Code,
+			"name":       result.Name,
+			"unitType":   result.UnitType,
+			"parentCode": result.ParentCode,
+			"status":     result.Status,
+			"level":      result.Level,
+		},
+	}
 
 	return a.LogEvent(ctx, event)
 }
@@ -216,7 +219,7 @@ func (a *AuditLogger) LogOrganizationUpdate(ctx context.Context, code string, re
 	for i, change := range changes {
 		modifiedFields[i] = change.Field
 	}
-	
+
 	tenantID, _ := uuid.Parse(newOrg.TenantID)
 
 	var beforeData, afterData map[string]interface{}
@@ -256,28 +259,28 @@ func (a *AuditLogger) LogOrganizationUpdate(ctx context.Context, code string, re
 // LogOrganizationSuspend 记录组织停用事件 (v4.3.0 - 简化参数)
 func (a *AuditLogger) LogOrganizationSuspend(ctx context.Context, code string, org *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(org.TenantID)
-    // 停用：记录状态字段变更
-    changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "INACTIVE", DataType: "string"}}
-    modified := []string{"status"}
-    event := &AuditEvent{
-        TenantID:        tenantID,
-        EventType:       EventTypeSuspend,
-        ResourceType:    ResourceTypeOrganization,
-        ResourceID:      org.RecordID,
-        ActorID:         actorID,
-        ActorType:       ActorTypeUser,
-        ActionName:      "SuspendOrganization",
-        RequestID:       requestID,
-        OperationReason: operationReason,
-        Success:         true,
-        ModifiedFields:  modified,
-        Changes:         changes,
-        AfterData: map[string]interface{}{
-            "code":   org.Code,
-            "status": "INACTIVE",
-            "level":  org.Level,
-        },
-    }
+	// 停用：记录状态字段变更
+	changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "INACTIVE", DataType: "string"}}
+	modified := []string{"status"}
+	event := &AuditEvent{
+		TenantID:        tenantID,
+		EventType:       EventTypeSuspend,
+		ResourceType:    ResourceTypeOrganization,
+		ResourceID:      org.RecordID,
+		ActorID:         actorID,
+		ActorType:       ActorTypeUser,
+		ActionName:      "SuspendOrganization",
+		RequestID:       requestID,
+		OperationReason: operationReason,
+		Success:         true,
+		ModifiedFields:  modified,
+		Changes:         changes,
+		AfterData: map[string]interface{}{
+			"code":   org.Code,
+			"status": "INACTIVE",
+			"level":  org.Level,
+		},
+	}
 
 	return a.LogEvent(ctx, event)
 }
@@ -285,28 +288,28 @@ func (a *AuditLogger) LogOrganizationSuspend(ctx context.Context, code string, o
 // LogOrganizationActivate 记录组织激活事件 (v4.3.0 - 简化参数)
 func (a *AuditLogger) LogOrganizationActivate(ctx context.Context, code string, org *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(org.TenantID)
-    // 激活：记录状态字段变更
-    changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "ACTIVE", DataType: "string"}}
-    modified := []string{"status"}
-    event := &AuditEvent{
-        TenantID:        tenantID,
-        EventType:       EventTypeActivate,
-        ResourceType:    ResourceTypeOrganization,
-        ResourceID:      org.RecordID,
-        ActorID:         actorID,
-        ActorType:       ActorTypeUser,
-        ActionName:      "ActivateOrganization",
-        RequestID:       requestID,
-        OperationReason: operationReason,
-        Success:         true,
-        ModifiedFields:  modified,
-        Changes:         changes,
-        AfterData: map[string]interface{}{
-            "code":   org.Code,
-            "status": "ACTIVE",
-            "level":  org.Level,
-        },
-    }
+	// 激活：记录状态字段变更
+	changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "ACTIVE", DataType: "string"}}
+	modified := []string{"status"}
+	event := &AuditEvent{
+		TenantID:        tenantID,
+		EventType:       EventTypeActivate,
+		ResourceType:    ResourceTypeOrganization,
+		ResourceID:      org.RecordID,
+		ActorID:         actorID,
+		ActorType:       ActorTypeUser,
+		ActionName:      "ActivateOrganization",
+		RequestID:       requestID,
+		OperationReason: operationReason,
+		Success:         true,
+		ModifiedFields:  modified,
+		Changes:         changes,
+		AfterData: map[string]interface{}{
+			"code":   org.Code,
+			"status": "ACTIVE",
+			"level":  org.Level,
+		},
+	}
 
 	return a.LogEvent(ctx, event)
 }
@@ -315,7 +318,7 @@ func (a *AuditLogger) LogOrganizationActivate(ctx context.Context, code string, 
 func (a *AuditLogger) LogOrganizationDelete(ctx context.Context, tenantID uuid.UUID, code string, org *types.Organization, actorID, requestID, operationReason string) error {
 	var beforeData map[string]interface{}
 	var resourceID string
-	
+
 	// 如果有组织数据，记录删除前状态和使用正确的RecordID
 	if org != nil {
 		beforeData = map[string]interface{}{
@@ -331,29 +334,29 @@ func (a *AuditLogger) LogOrganizationDelete(ctx context.Context, tenantID uuid.U
 		// TODO-TEMPORARY: Should pass correct RecordID from caller; refactor deletion audit in v4.3 by 2025-09-20.
 		resourceID = code
 	}
-	
-    // 删除：记录状态字段变更为 DELETED（若可用）
-    var changes []FieldChange
-    var modified []string
-    if org != nil {
-        changes = []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "DELETED", DataType: "string"}}
-        modified = []string{"status"}
-    }
-    event := &AuditEvent{
-        TenantID:        tenantID,
-        EventType:       EventTypeDelete,
-        ResourceType:    ResourceTypeOrganization,
-        ResourceID:      resourceID,
-        ActorID:         actorID,
-        ActorType:       ActorTypeUser,
-        ActionName:      "DeleteOrganization",
-        RequestID:       requestID,
-        OperationReason: operationReason,
-        Success:         true,
-        ModifiedFields:  modified,
-        Changes:         changes,
-        BeforeData:      beforeData,
-    }
+
+	// 删除：记录状态字段变更为 DELETED（若可用）
+	var changes []FieldChange
+	var modified []string
+	if org != nil {
+		changes = []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "DELETED", DataType: "string"}}
+		modified = []string{"status"}
+	}
+	event := &AuditEvent{
+		TenantID:        tenantID,
+		EventType:       EventTypeDelete,
+		ResourceType:    ResourceTypeOrganization,
+		ResourceID:      resourceID,
+		ActorID:         actorID,
+		ActorType:       ActorTypeUser,
+		ActionName:      "DeleteOrganization",
+		RequestID:       requestID,
+		OperationReason: operationReason,
+		Success:         true,
+		ModifiedFields:  modified,
+		Changes:         changes,
+		BeforeData:      beforeData,
+	}
 
 	return a.LogEvent(ctx, event)
 }
@@ -377,7 +380,6 @@ func (a *AuditLogger) LogError(ctx context.Context, tenantID uuid.UUID, resource
 
 	return a.LogEvent(ctx, event)
 }
-
 
 // calculateFieldChanges 计算字段变更
 func (a *AuditLogger) calculateFieldChanges(oldOrg, newOrg *types.Organization) []FieldChange {
@@ -515,8 +517,13 @@ func (a *AuditLogger) calculateFieldChanges(oldOrg, newOrg *types.Organization) 
 // structToMap 将结构体转换为map
 func structToMap(obj interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
-	data, _ := json.Marshal(obj)
-	json.Unmarshal(data, &result)
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return result
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return result
+	}
 	return result
 }
 
@@ -567,10 +574,18 @@ func (a *AuditLogger) GetAuditHistory(ctx context.Context, resourceType, resourc
 		}
 
 		// 反序列化JSON字段
-		json.Unmarshal([]byte(beforeDataJSON), &event.BeforeData)
-		json.Unmarshal([]byte(afterDataJSON), &event.AfterData)
-		json.Unmarshal([]byte(modifiedFieldsJSON), &event.ModifiedFields)
-		json.Unmarshal([]byte(changesJSON), &event.Changes)
+		if err := json.Unmarshal([]byte(beforeDataJSON), &event.BeforeData); err != nil {
+			a.logger.Printf("解析before_data失败: %v", err)
+		}
+		if err := json.Unmarshal([]byte(afterDataJSON), &event.AfterData); err != nil {
+			a.logger.Printf("解析after_data失败: %v", err)
+		}
+		if err := json.Unmarshal([]byte(modifiedFieldsJSON), &event.ModifiedFields); err != nil {
+			a.logger.Printf("解析modified_fields失败: %v", err)
+		}
+		if err := json.Unmarshal([]byte(changesJSON), &event.Changes); err != nil {
+			a.logger.Printf("解析changes失败: %v", err)
+		}
 
 		events = append(events, event)
 	}

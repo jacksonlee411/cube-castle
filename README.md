@@ -239,9 +239,13 @@ cat reports/QUALITY_GATE_TEST_REPORT.md
 
 ### 🚀 防控系统快速启动
 ```bash
-# 完整质量检查 (推荐)
+# Go代码质量门禁 (需要 golangci-lint v1.61.0+ 支持 Go 1.23)
+make lint                                       # Go 代码质量检查
+make security                                   # Go 安全扫描 (gosec)
+
+# 前端完整质量检查 (推荐)
 bash scripts/quality/duplicate-detection.sh      # 重复代码检测
-node scripts/quality/architecture-validator.js   # 架构一致性验证  
+node scripts/quality/architecture-validator.js   # 架构一致性验证
 node scripts/quality/document-sync.js           # 文档同步与目录边界检查
 
 # 自动修复模式
@@ -253,6 +257,11 @@ open reports/duplicate-code/html/index.html     # 重复代码报告
 cat reports/architecture/architecture-validation.json  # 架构报告
 cat reports/document-sync/document-sync-report.json   # 同步报告
 ```
+
+### 📋 质量门禁工具要求
+- **golangci-lint**: v1.61.0+ (支持 Go 1.23 新语法特性)
+- **gosec**: v2.22.8+ (安全扫描)
+- **工具安装**: 参考 `docs/development-plans/06-integrated-teams-progress-log.md`
 
 ### ⚡ 自动化触发
 - **Git提交**: Pre-commit hook自动验证架构一致性

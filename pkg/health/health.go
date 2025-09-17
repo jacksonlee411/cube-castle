@@ -396,6 +396,8 @@ func (hm *HealthManager) Handler() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
 
-		json.NewEncoder(w).Encode(health)
+		if err := json.NewEncoder(w).Encode(health); err != nil {
+			http.Error(w, "failed to encode health response", http.StatusInternalServerError)
+		}
 	}
 }

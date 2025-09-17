@@ -126,32 +126,6 @@ func (g *GraphQLPermissionMiddleware) handleProductionMode(w http.ResponseWriter
 	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// createMockClaims 创建模拟用户声明（开发模式）
-func (g *GraphQLPermissionMiddleware) createMockClaims(r *http.Request) *Claims {
-	// 检查是否有特殊的开发头部
-	mockUser := r.Header.Get("X-Mock-User")
-	mockRoles := r.Header.Get("X-Mock-Roles")
-
-	claims := &Claims{
-		UserID:   "dev-user",
-		TenantID: "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9", // 默认租户
-		Roles:    []string{"ADMIN"},                      // 默认管理员权限
-	}
-
-	if mockUser != "" {
-		claims.UserID = mockUser
-	}
-
-	if mockRoles != "" {
-		claims.Roles = strings.Split(mockRoles, ",")
-		for i, role := range claims.Roles {
-			claims.Roles[i] = strings.TrimSpace(role)
-		}
-	}
-
-	return claims
-}
-
 // CheckQueryPermission GraphQL查询级权限检查
 func (g *GraphQLPermissionMiddleware) CheckQueryPermission(ctx context.Context, queryName string) error {
 	var err error
@@ -173,7 +147,9 @@ func (g *GraphQLPermissionMiddleware) writeErrorResponse(w http.ResponseWriter, 
 
 	// 使用统一的企业级错误响应格式
 	errorResponse := types.WriteErrorResponse(code, message, requestID, nil)
-	json.NewEncoder(w).Encode(errorResponse)
+	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+		g.logger.Printf("failed to encode error response: %v", err)
+	}
 }
 
 // WriteEnterpriseErrorResponse 写入企业级错误响应
@@ -186,5 +162,7 @@ func (g *GraphQLPermissionMiddleware) WriteEnterpriseErrorResponse(w http.Respon
 
 	// 使用统一的企业级错误响应格式
 	errorResponse := types.WriteErrorResponse(code, message, requestID, nil)
-	json.NewEncoder(w).Encode(errorResponse)
+	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+		g.logger.Printf("failed to encode error response: %v", err)
+	}
 }

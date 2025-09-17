@@ -111,10 +111,7 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, resource st
 func (p *PBACPermissionChecker) checkUserPermission(ctx context.Context, tenantID, userID, permission string) bool {
 	// 这里可以查询用户权限表
 	// 简化实现：现在只检查是否为系统管理员
-	if userID == "admin" {
-		return true
-	}
-	return false
+	return userID == "admin"
 }
 
 // checkRolePermission 检查角色权限

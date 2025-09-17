@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -87,32 +85,13 @@ func (ts *TestSuite) PrintSummary() {
 
 // HTTP客户端辅助函数
 func httpGet(url string) ([]byte, error) {
+	// #nosec G107: 测试工具仅访问受控本地URL，源自受信配置
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	return io.ReadAll(resp.Body)
-}
-
-func httpPost(url string, jsonData string) ([]byte, error) {
-	resp, err := http.Post(url, "application/json", strings.NewReader(jsonData))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
-}
-
-// 数据库查询辅助函数
-func execPSQL(query string) (string, error) {
-	cmd := exec.Command("psql", "-h", "localhost", "-U", "user", "-d", "cubecastle", "-t", "-c", query)
-	cmd.Env = append(cmd.Env, "PGPASSWORD=password")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
 }
 
 func main() {
@@ -235,4 +214,3 @@ func main() {
 
 	ts.PrintSummary()
 }
-

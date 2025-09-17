@@ -149,10 +149,10 @@ func (h *DevToolsHandler) DevStatus(w http.ResponseWriter, r *http.Request) {
 		"service":     "organization-command-service",
 		"environment": "development",
 		"features": map[string]bool{
-			"jwtDevTools":     true,
-			"testEndpoints":   true,
-			"debugEndpoints":  true,
-			"mockData":        true,
+			"jwtDevTools":    true,
+			"testEndpoints":  true,
+			"debugEndpoints": true,
+			"mockData":       true,
 		},
 	}
 
@@ -194,7 +194,7 @@ func (h *DevToolsHandler) ListTestEndpoints(w http.ResponseWriter, r *http.Reque
 // writeSuccessResponse 写入成功响应
 func (h *DevToolsHandler) writeSuccessResponse(w http.ResponseWriter, data interface{}, message string, r *http.Request) {
 	requestID := middleware.GetRequestID(r.Context())
-	
+
 	response := map[string]interface{}{
 		"success":   true,
 		"data":      data,
@@ -202,11 +202,13 @@ func (h *DevToolsHandler) writeSuccessResponse(w http.ResponseWriter, data inter
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 		"requestId": requestID,
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Request-ID", requestID)
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Printf("encode devtools success response failed: %v", err)
+	}
 }
 
 // DatabaseStatus 数据库状态检查
@@ -229,21 +231,26 @@ func (h *DevToolsHandler) DatabaseStatus(w http.ResponseWriter, r *http.Request)
 	}
 	status["connected"] = true
 
-	// 检查主要表的记录数
-	tables := []string{"organization_units", "organization_units_history", "audit_logs"}
-	for _, table := range tables {
+	// 检查主要表的记录数（固定白名单，避免动态拼接）
+	tableQueries := map[string]string{
+		"organization_units":         "SELECT COUNT(*) FROM organization_units",
+		"organization_units_history": "SELECT COUNT(*) FROM organization_units_history",
+		"audit_logs":                 "SELECT COUNT(*) FROM audit_logs",
+	}
+	tableOrder := []string{"organization_units", "organization_units_history", "audit_logs"}
+	for _, table := range tableOrder {
+		query := tableQueries[table]
 		var count int
-		query := fmt.Sprintf("SELECT COUNT(*) FROM %s", table)
 		if err := h.db.QueryRow(query).Scan(&count); err != nil {
 			status["tables"].(map[string]interface{})[table] = map[string]interface{}{
 				"error": err.Error(),
 				"count": -1,
 			}
-		} else {
-			status["tables"].(map[string]interface{})[table] = map[string]interface{}{
-				"count":  count,
-				"status": "healthy",
-			}
+			continue
+		}
+		status["tables"].(map[string]interface{})[table] = map[string]interface{}{
+			"count":  count,
+			"status": "healthy",
 		}
 	}
 
@@ -268,8 +275,8 @@ func (h *DevToolsHandler) PerformanceMetrics(w http.ResponseWriter, r *http.Requ
 
 	metrics := map[string]interface{}{
 		"memory": map[string]interface{}{
-			"allocated_mb":     fmt.Sprintf("%.2f", float64(memStats.Alloc)/1024/1024),
-			"total_allocated":  fmt.Sprintf("%.2f", float64(memStats.TotalAlloc)/1024/1024),
+			"allocated_mb":    fmt.Sprintf("%.2f", float64(memStats.Alloc)/1024/1024),
+			"total_allocated": fmt.Sprintf("%.2f", float64(memStats.TotalAlloc)/1024/1024),
 			"sys_mb":          fmt.Sprintf("%.2f", float64(memStats.Sys)/1024/1024),
 			"gc_cycles":       memStats.NumGC,
 		},
@@ -281,7 +288,7 @@ func (h *DevToolsHandler) PerformanceMetrics(w http.ResponseWriter, r *http.Requ
 	if h.db != nil {
 		dbStats := h.db.Stats()
 		metrics["database"] = map[string]interface{}{
-			"open_connections":     dbStats.OpenConnections,
+			"open_connections":    dbStats.OpenConnections,
 			"in_use":              dbStats.InUse,
 			"idle":                dbStats.Idle,
 			"wait_count":          dbStats.WaitCount,
@@ -326,7 +333,7 @@ func (h *DevToolsHandler) TestAPI(w http.ResponseWriter, r *http.Request) {
 
 	// 构建目标URL
 	targetURL := fmt.Sprintf("http://localhost:9090%s", req.Path)
-	
+
 	// 创建请求
 	testReq, err := http.NewRequest(req.Method, targetURL, bodyReader)
 	if err != nil {
@@ -372,11 +379,11 @@ func (h *DevToolsHandler) TestAPI(w http.ResponseWriter, r *http.Request) {
 			"body":    req.Body,
 		},
 		"response": map[string]interface{}{
-			"status_code":   resp.StatusCode,
-			"status":        resp.Status,
-			"headers":       resp.Header,
-			"body":          string(respBody),
-			"content_type":  resp.Header.Get("Content-Type"),
+			"status_code":  resp.StatusCode,
+			"status":       resp.Status,
+			"headers":      resp.Header,
+			"body":         string(respBody),
+			"content_type": resp.Header.Get("Content-Type"),
 		},
 		"timing": map[string]interface{}{
 			"duration_ms": duration.Milliseconds(),
@@ -394,7 +401,7 @@ func (h *DevToolsHandler) TestAPI(w http.ResponseWriter, r *http.Request) {
 // writeErrorResponse 写入错误响应
 func (h *DevToolsHandler) writeErrorResponse(w http.ResponseWriter, code, message string, statusCode int, r *http.Request) {
 	requestID := middleware.GetRequestID(r.Context())
-	
+
 	response := map[string]interface{}{
 		"success": false,
 		"error": map[string]interface{}{
@@ -404,9 +411,11 @@ func (h *DevToolsHandler) writeErrorResponse(w http.ResponseWriter, code, messag
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 		"requestId": requestID,
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Request-ID", requestID)
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Printf("encode devtools error response failed: %v", err)
+	}
 }

@@ -1,5 +1,34 @@
 # Cube Castle 项目变更日志
 
+## v1.5.3 - 质量门禁工具链升级与Go 1.23支持 (2025-09-17)
+
+### 🔧 开发工具升级
+- **golangci-lint 升级**：v1.55.2 → v1.61.0
+  - 解决 Go 1.23 兼容性问题（之前版本构建于 go1.21.3，无法识别新语法特性）
+  - 支持 Go 1.23 新特性：`for range` 常量语法、`slices` 扩展等
+  - 安装路径：`~/.local/bin/golangci-lint`
+- **gosec 配置优化**：v2.22.8
+  - 创建符号链接至 `~/.local/bin/gosec` 便于访问
+  - PATH 环境变量配置完善
+
+### ✅ 质量门禁验证
+- **make lint**：✅ 执行成功，发现并记录代码质量问题
+  - errcheck: JSON encoder 错误未检查
+  - unused: 未使用函数和字段清理
+  - gosimple、staticcheck: 代码简化建议
+- **make security**：✅ 执行成功，gosec 安全扫描正常运行
+- **工具可执行性**：✅ `golangci-lint` 与 `gosec` 均可直接执行
+
+### 📄 文档更新
+- 更新 `docs/development-plans/06-integrated-teams-progress-log.md`：
+  - 记录工具升级过程和版本信息
+  - 更新质量门禁检查清单状态
+  - 添加执行进度记录和验证结果
+
+### 🎯 下一步
+- 代码质量问题修复（基于 lint 结果）
+- RS256 认证依赖配置验证
+
 ## v1.5.2 - 精简CLAUDE与跨文档导航完善 (2025-09-13)
 
 ### 📄 文档结构

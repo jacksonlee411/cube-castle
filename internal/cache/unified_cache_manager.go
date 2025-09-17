@@ -2,11 +2,10 @@ package cache
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,7 +20,6 @@ type UnifiedCacheManager struct {
 	eventBus *CacheEventBus   // 缓存事件总线
 	logger   *log.Logger
 	config   *CacheConfig
-	mu       sync.RWMutex
 }
 
 // 缓存配置
@@ -74,7 +72,7 @@ type CacheKeyManager struct {
 }
 
 func (km *CacheKeyManager) GenerateKey(entityType string, identifiers ...string) string {
-	h := md5.New()
+	h := sha256.New()
 	// 使用与查询服务一致的格式：org:entityType:identifiers
 	keyBase := fmt.Sprintf("org:%s:%v", entityType, identifiers)
 	h.Write([]byte(keyBase))
@@ -483,93 +481,13 @@ func (ucm *UnifiedCacheManager) smartUpdateListCaches(ctx context.Context, tenan
 		invalidatedCount++
 
 		// 从L2缓存删除
-		deleted, err := ucm.l2Cache.Del(ctx, key).Result()
-		if err == nil && deleted > 0 {
-			// 如果L2也删除了，计数加1 (L1已经计数了)
+		if _, err := ucm.l2Cache.Del(ctx, key).Result(); err != nil {
+			ucm.logger.Printf("[CACHE INVALIDATE] 删除L2缓存失败: %s, err=%v", key, err)
 		}
 	}
 
 	ucm.logger.Printf("智能列表缓存更新完成: %s %s, 影响缓存: %d个", operation, org.Code, invalidatedCount)
 	return nil
-}
-
-// 更新单个列表缓存
-func (ucm *UnifiedCacheManager) updateSingleListCache(ctx context.Context, cacheKey string, org *Organization, operation string) error {
-	// 从L2缓存获取现有列表
-	cachedData, err := ucm.l2Cache.Get(ctx, cacheKey).Result()
-	if err != nil {
-		return err // 缓存不存在，跳过更新
-	}
-
-	var entry CacheEntry
-	if err := json.Unmarshal([]byte(cachedData), &entry); err != nil {
-		return err
-	}
-
-	var orgs []Organization
-	if err := json.Unmarshal(entry.Data, &orgs); err != nil {
-		return fmt.Errorf("缓存数据反序列化失败: %w", err)
-	}
-
-	// 根据操作类型更新列表
-	switch operation {
-	case "CREATE":
-		// 检查是否符合列表的筛选条件
-		if ucm.shouldIncludeInList(cacheKey, org) {
-			orgs = append(orgs, *org)
-			ucm.sortOrganizations(orgs) // 保持排序
-		}
-	case "UPDATE":
-		for i, existingOrg := range orgs {
-			if existingOrg.Code == org.Code {
-				orgs[i] = *org
-				break
-			}
-		}
-		ucm.sortOrganizations(orgs)
-	case "DELETE":
-		for i, existingOrg := range orgs {
-			if existingOrg.Code == org.Code {
-				orgs = append(orgs[:i], orgs[i+1:]...)
-				break
-			}
-		}
-	}
-
-	// 序列化更新后的列表数据
-	updatedDataBytes, err := json.Marshal(orgs)
-	if err != nil {
-		return fmt.Errorf("更新列表数据序列化失败: %w", err)
-	}
-
-	// 更新缓存条目
-	entry.Data = updatedDataBytes
-	entry.Metadata.LastModified = time.Now()
-	entry.Metadata.Version = time.Now().Unix()
-	entry.Metadata.Source = "CDC_SMART_UPDATE"
-
-	// 写回缓存
-	ucm.l1Cache.Set(cacheKey, entry)
-
-	if cacheData, err := json.Marshal(entry); err == nil {
-		ucm.l2Cache.Set(ctx, cacheKey, string(cacheData), ucm.config.L2TTL)
-	}
-
-	return nil
-}
-
-// 判断组织是否应该包含在特定列表中
-func (ucm *UnifiedCacheManager) shouldIncludeInList(cacheKey string, org *Organization) bool {
-	// 从缓存键解析查询参数
-	// 这里需要根据实际的缓存键格式来解析
-	// 简化版本：假设所有组织都应该包含
-	return true
-}
-
-// 组织列表排序
-func (ucm *UnifiedCacheManager) sortOrganizations(orgs []Organization) {
-	// 实现排序逻辑，按sort_order和code排序
-	// 这里简化处理
 }
 
 // ==================== 缓存管理接口 ====================

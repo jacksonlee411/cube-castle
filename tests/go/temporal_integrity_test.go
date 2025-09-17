@@ -292,10 +292,12 @@ func setupRoutes(handler *TemporalOrganizationHandler) http.Handler {
 	mux.HandleFunc("/api/v1/organization-units/", handler.GetOrganizationTemporal)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "healthy",
 			"service": "organization-temporal-command-service-test",
-		})
+		}); err != nil {
+			http.Error(w, "failed to encode health response", http.StatusInternalServerError)
+		}
 	})
 	return mux
 }

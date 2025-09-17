@@ -104,10 +104,27 @@ export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用�
 
 ### 质量检查命令
 ```bash
+# 代码质量门禁（需要 golangci-lint v1.61.0+ 支持 Go 1.23）
+make lint                      # Go 代码质量检查
+make security                  # Go 安全扫描 (gosec)
+
+# 前端质量检查
 npm run quality:duplicates      # 运行重复代码检测
 npm run quality:architecture    # 运行架构一致性验证
 npm test:contract              # 运行契约测试
 npm run quality:docs           # 检查文档同步状态
+```
+
+### 质量门禁工具要求
+```bash
+# 确认工具版本（必需）
+golangci-lint --version       # 要求 v1.61.0+ (支持 Go 1.23)
+gosec --version              # 要求 v2.22.8+
+which golangci-lint          # 应在 PATH 中可访问
+which gosec                  # 应在 PATH 中可访问
+
+# 工具安装参考
+# 详见: docs/development-plans/06-integrated-teams-progress-log.md
 ```
 
 ### E2E 快速入口（本地/CI 对齐）

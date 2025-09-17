@@ -67,7 +67,7 @@ func (r *RESTPermissionMiddleware) Middleware() func(http.Handler) http.Handler 
 	}
 }
 
-	// handleDevMode 开发模式处理 - 生产就绪版本：严格JWT认证
+// handleDevMode 开发模式处理 - 生产就绪版本：严格JWT认证
 func (r *RESTPermissionMiddleware) handleDevMode(w http.ResponseWriter, req *http.Request, next http.Handler) {
 	// 检查Authorization头
 	authHeader := req.Header.Get("Authorization")
@@ -105,11 +105,11 @@ func (r *RESTPermissionMiddleware) handleDevMode(w http.ResponseWriter, req *htt
 	ctx := SetUserContext(req.Context(), claims)
 
 	// 开发模式下的权限检查（相对宽松）
-    if err := r.permissionChecker.MockPermissionCheck(ctx, req.Method, req.URL.Path); err != nil {
-        r.logger.Printf("Permission denied in dev mode: %v", err)
-        r.writeErrorResponse(w, req, "INSUFFICIENT_PERMISSIONS", err.Error(), 403)
-        return
-    }
+	if err := r.permissionChecker.MockPermissionCheck(ctx, req.Method, req.URL.Path); err != nil {
+		r.logger.Printf("Permission denied in dev mode: %v", err)
+		r.writeErrorResponse(w, req, "INSUFFICIENT_PERMISSIONS", err.Error(), 403)
+		return
+	}
 
 	next.ServeHTTP(w, req.WithContext(ctx))
 }
@@ -147,11 +147,11 @@ func (r *RESTPermissionMiddleware) handleProductionMode(w http.ResponseWriter, r
 	ctx := SetUserContext(req.Context(), claims)
 
 	// 严格的权限检查
-    if err := r.permissionChecker.CheckRESTAPI(req.WithContext(ctx)); err != nil {
-        r.logger.Printf("Permission denied: %v", err)
-        r.writeErrorResponse(w, req, "INSUFFICIENT_PERMISSIONS", err.Error(), 403)
-        return
-    }
+	if err := r.permissionChecker.CheckRESTAPI(req.WithContext(ctx)); err != nil {
+		r.logger.Printf("Permission denied: %v", err)
+		r.writeErrorResponse(w, req, "INSUFFICIENT_PERMISSIONS", err.Error(), 403)
+		return
+	}
 
 	next.ServeHTTP(w, req.WithContext(ctx))
 }
@@ -192,7 +192,9 @@ func (r *RESTPermissionMiddleware) writeErrorResponse(w http.ResponseWriter, req
 
 	// 使用统一的企业级错误响应格式
 	errorResponse := types.WriteErrorResponse(code, message, requestID, nil)
-	json.NewEncoder(w).Encode(errorResponse)
+	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+		r.logger.Printf("failed to encode REST error response: %v", err)
+	}
 }
 
 // CheckAPIPermission REST API级权限检查

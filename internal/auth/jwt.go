@@ -19,6 +19,15 @@ type JWTMiddleware struct {
 	clockSkew time.Duration
 }
 
+type contextKey string
+
+const (
+	userIDKey     contextKey = "user_id"
+	tenantIDKey   contextKey = "tenant_id"
+	userRolesKey  contextKey = "user_roles"
+	userScopesKey contextKey = "user_scopes"
+)
+
 func NewJWTMiddleware(secretKey, issuer, audience string) *JWTMiddleware {
 	return &JWTMiddleware{secretKey: []byte(secretKey), issuer: issuer, audience: audience, alg: "HS256"}
 }
@@ -174,9 +183,9 @@ func getTenantIDClaim(claims jwt.MapClaims) string {
 
 // SetUserContext 将用户信息设置到上下文中
 func SetUserContext(ctx context.Context, claims *Claims) context.Context {
-	ctx = context.WithValue(ctx, "user_id", claims.UserID)
-	ctx = context.WithValue(ctx, "tenant_id", claims.TenantID)
-	ctx = context.WithValue(ctx, "user_roles", claims.Roles)
+	ctx = context.WithValue(ctx, userIDKey, claims.UserID)
+	ctx = context.WithValue(ctx, tenantIDKey, claims.TenantID)
+	ctx = context.WithValue(ctx, userRolesKey, claims.Roles)
 	scopeSet := map[string]struct{}{}
 	for _, s := range strings.Fields(claims.Scope) {
 		scopeSet[s] = struct{}{}
@@ -188,30 +197,30 @@ func SetUserContext(ctx context.Context, claims *Claims) context.Context {
 	for s := range scopeSet {
 		scopes = append(scopes, s)
 	}
-	ctx = context.WithValue(ctx, "user_scopes", scopes)
+	ctx = context.WithValue(ctx, userScopesKey, scopes)
 	return ctx
 }
 
 func GetUserID(ctx context.Context) string {
-	if v, ok := ctx.Value("user_id").(string); ok {
+	if v, ok := ctx.Value(userIDKey).(string); ok {
 		return v
 	}
 	return ""
 }
 func GetTenantID(ctx context.Context) string {
-	if v, ok := ctx.Value("tenant_id").(string); ok {
+	if v, ok := ctx.Value(tenantIDKey).(string); ok {
 		return v
 	}
 	return ""
 }
 func GetUserRoles(ctx context.Context) []string {
-	if v, ok := ctx.Value("user_roles").([]string); ok {
+	if v, ok := ctx.Value(userRolesKey).([]string); ok {
 		return v
 	}
 	return []string{}
 }
 func GetUserScopes(ctx context.Context) []string {
-	if v, ok := ctx.Value("user_scopes").([]string); ok {
+	if v, ok := ctx.Value(userScopesKey).([]string); ok {
 		return v
 	}
 	return []string{}

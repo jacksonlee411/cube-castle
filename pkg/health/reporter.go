@@ -210,7 +210,9 @@ func (sr *StatusReporter) DashboardHandler() http.HandlerFunc {
 		if strings.Contains(accept, "application/json") || r.URL.Query().Get("format") == "json" {
 			// 返回JSON格式
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(dashboard)
+			if err := json.NewEncoder(w).Encode(dashboard); err != nil {
+				http.Error(w, "failed to encode dashboard", http.StatusInternalServerError)
+			}
 			return
 		}
 
@@ -387,9 +389,11 @@ func (sr *StatusReporter) StatusPageHandler() http.HandlerFunc {
 		// 这里可以实现一个公共状态页面
 		// 显示所有服务的整体状态
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"message":   "Status page coming soon",
 			"timestamp": time.Now(),
-		})
+		}); err != nil {
+			http.Error(w, "failed to encode status page", http.StatusInternalServerError)
+		}
 	}
 }

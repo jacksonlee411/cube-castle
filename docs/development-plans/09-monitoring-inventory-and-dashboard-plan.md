@@ -231,13 +231,134 @@
     - 覆盖 health/metrics/alerts/rate-limit 四端点；
   - 本地执行通过（chromium/firefox）。
 
+## 实际验证结果与问题发现（2025-09-17 深度测试）
+
+### ✅ 验证成功的功能
+
+#### 1. 后端API端点 - 完全正常
+- **健康检查端点**: `GET /api/v1/operational/health` ✅
+  - 响应时间: ~50ms
+  - 实际数据: 健康分96分，状态HEALTHY，13个组织单元
+  - 多租户隔离: 正常工作，租户ID验证严格
+- **监控指标端点**: `GET /api/v1/operational/metrics` ✅
+  - 数据完整性: 包含所有计划字段（totalOrganizations, currentRecords等）
+  - 一致性检查: 检测到2个inconsistentFlagCount问题
+- **告警端点**: `GET /api/v1/operational/alerts` ✅
+  - 当前告警数: 0
+  - 响应格式: 符合统一信封标准
+- **限流统计端点**: `GET /api/v1/operational/rate-limit/stats` ✅
+  - 实际数据: 24个请求，0%拦截率
+  - 字段格式: blockRate正确为字符串百分比
+
+#### 2. OAuth认证流程 - 完全正常
+- **登录端点**: `GET /auth/login?redirect=/` ✅
+  - 返回302重定向，设置会话cookies
+- **会话验证**: `GET /auth/session` ✅
+  - 返回完整用户信息和RS256 AccessToken
+  - 权限scopes: ["org:read", "org:update", "org:read:history"]
+- **JWT生成**: `POST /auth/dev-token` ✅
+  - RS256签名验证通过
+  - 租户隔离正确工作
+
+#### 3. 前端路由保护 - 完全正常
+- **认证重定向**: 访问`/dashboard` → 自动重定向到`/login?redirect=%2Fdashboard` ✅
+- **登录页面**: 显示完整登录界面，包含"重新获取开发令牌"按钮 ✅
+- **登录成功跳转**: 点击登录按钮后成功跳转到`/dashboard` ✅
+
+### ⚠️ 发现的问题
+
+#### 1. 前端页面内容显示问题
+**现象**:
+- URL正确跳转到`http://localhost:3000/dashboard` ✅
+- 但页面内容未正确渲染监控数据 ❌
+- E2E测试显示："监控内容未加载，可能需要认证"
+
+**根本原因分析**:
+```typescript
+// 问题可能出现在以下几个环节：
+1. AuthManager与页面组件的认证状态同步
+2. MonitoringDashboard组件的API调用认证头配置
+3. 前端token存储与读取机制
+4. React组件的认证状态响应
+```
+
+**具体表现**:
+- 后端API验证: ✅ 手动API调用完全正常
+- 前端路由: ✅ 页面跳转正确
+- 前端认证: ⚠️ 页面级认证状态可能未正确同步
+- 数据渲染: ❌ 监控卡片内容未显示
+
+#### 2. 用户体验问题
+**当前状态**: 用户需要复杂的手动认证流程才能看到监控页面
+**期望状态**: 一键登录后直接看到完整监控数据
+
+### 🔧 待修复的具体问题
+
+#### P1 - 前端认证状态同步
+```typescript
+// 问题位置: frontend/src/features/monitoring/MonitoringDashboard.tsx
+// 问题: API调用可能缺少正确的认证头或token获取失败
+// 需要检查: monitoringAPI的调用是否正确使用unifiedRESTClient
+```
+
+#### P2 - 认证流程用户体验
+```bash
+# 当前流程:
+1. 访问 /dashboard → 重定向到 /login ✅
+2. 点击"重新获取开发令牌" → 跳转到 /dashboard ✅
+3. 页面空白，需要手动刷新或重新认证 ❌
+
+# 期望流程:
+1. 访问 /dashboard → 重定向到 /login ✅
+2. 点击登录 → 直接显示完整监控数据 ✅
+```
+
+#### P3 - 页面级E2E测试缺失
+当前E2E测试仅覆盖API层面，缺少页面渲染验证：
+- 缺少监控卡片渲染验证
+- 缺少数据轮询功能验证
+- 缺少认证后页面状态验证
+
+### 📊 实际性能数据
+
+#### API响应性能 (实测数据)
+- health端点: ~50ms
+- metrics端点: ~100ms
+- alerts端点: ~30ms
+- rate-limit端点: ~20ms
+
+#### 监控数据实况 (2025-09-17)
+- 系统健康分: 96/100
+- 状态: HEALTHY
+- 总组织数: 13
+- 当前记录: 13
+- 未来记录: 6
+- 历史记录: 18
+- 一致性问题: 2个标志不一致
+- 限流统计: 24个请求，0%拦截率
+
 ## 后续计划（Next Steps）
 
 短期（下个迭代内）：
+
+**🚨 P1级修复（基于实际测试发现）：**
+- [ ] **前端认证状态同步问题**：
+  - 修复 `MonitoringDashboard` 组件的API调用认证头配置
+  - 检查 `authManager.getAccessToken()` 在页面组件中的调用时机
+  - 确保认证状态变更后组件能正确响应和重新渲染
+- [ ] **认证流程用户体验优化**：
+  - 修复登录成功后页面内容空白问题
+  - 添加登录状态加载指示器
+  - 优化认证状态同步机制，避免需要手动刷新
+
+**原计划项目：**
 - [ ] TODO-TEMPORARY：`/api/metrics` 代理与查询服务 `/metrics` 收敛（择一）：
   - A) 维持移除代理（当前方案，已完成）；
   - B) 恢复查询服务 Dev-only `/metrics`（`promhttp`），并在文档说明仅开发可用；
-- [ ] 页面级 E2E：补充 `/dashboard` 页面渲染与轮询用例（校验卡片渲染与数据随时间刷新）；
+- [ ] **页面级 E2E 增强**：补充 `/dashboard` 页面渲染与轮询用例（校验卡片渲染与数据随时间刷新）；
+  - 添加监控卡片渲染验证
+  - 添加30秒轮询功能验证
+  - 添加认证后页面状态完整性验证
 - [ ] 非管理员角色 E2E：校验 `system:monitor:read` 权限不足时的 403 与前端权限提示；
 - [ ] 指标负载评估：记录 10 分钟轮询 P95/CPU/连接池影响，必要时调整轮询或加 ETag；
 
@@ -251,20 +372,124 @@
 - [ ] 平台管理员全局视角机制完善（claim/role 设计与审计）与前端租户切换控件。
 
 
-## 运行验证步骤（最小）
+## 运行验证步骤（基于实际测试修正）
 
-1) 契约检查：`npm run lint:api`（OpenAPI 校验无误）  
-2) 后端本地启动后：
-   - `curl -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: <uuid>" http://localhost:9090/api/v1/operational/health`
-   - `curl -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: <uuid>" http://localhost:9090/api/v1/operational/metrics`
-   - `curl -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: <uuid>" http://localhost:9090/api/v1/operational/alerts`
-   - `curl http://localhost:9090/debug/rate-limit/stats`
-3) 前端 Dev：访问 `http://localhost:3000/dashboard`，观察卡片与轮询刷新；
-4) QA：切换为非管理员账号，验证无权限提醒；模拟告警数据验证展示。
+### 1) 后端API验证（已验证通过 ✅）
+```bash
+# 生成测试token
+TOKEN=$(curl -s -X POST http://localhost:9090/auth/dev-token \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "test", "tenantId": "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9", "roles": ["ADMIN", "USER"], "duration": "2h"}' | \
+  jq -r '.data.token')
+
+# 验证各监控端点
+curl -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" \
+  http://localhost:9090/api/v1/operational/health
+
+curl -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" \
+  http://localhost:9090/api/v1/operational/metrics
+
+curl -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" \
+  http://localhost:9090/api/v1/operational/alerts
+
+curl -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" \
+  http://localhost:9090/api/v1/operational/rate-limit/stats
+```
+
+### 2) OAuth认证流程验证（已验证通过 ✅）
+```bash
+# 测试OAuth登录端点
+curl -s "http://localhost:9090/auth/login?redirect=/" -X GET -I
+# 预期：返回302重定向，设置会话cookies
+
+# 验证会话状态（需要cookies）
+curl -s "http://localhost:9090/auth/session" \
+  -H "Cookie: sid=<session_id>; csrf=<csrf_token>"
+# 预期：返回包含accessToken的完整会话信息
+```
+
+### 3) 前端完整登录流程验证（⚠️ 部分问题）
+```bash
+# 方法A：手动浏览器验证（推荐）
+1. 访问 http://localhost:3000/dashboard
+   预期：自动重定向到 /login?redirect=%2Fdashboard ✅
+2. 点击"重新获取开发令牌并继续"按钮
+   预期：跳转到 /dashboard ✅
+3. 观察页面内容
+   当前：页面空白，监控数据未显示 ❌
+   期望：显示健康分96、13个组织等监控数据
+
+# 方法B：E2E测试验证
+npx playwright test login-flow-demo.spec.ts --headed
+# 已验证：路由正常，API正常，但页面渲染有问题
+```
+
+### 4) 临时解决方案（开发调试用）
+```bash
+# 如果遇到前端认证问题，可以通过以下方式手动设置：
+# 1. 在浏览器开发者工具Console中执行：
+localStorage.setItem('auth_token', 'YOUR_JWT_TOKEN_HERE')
+
+# 2. 或者直接访问OAuth端点获取会话：
+curl "http://localhost:9090/auth/login?redirect=/dashboard"
+# 然后在浏览器中访问 /dashboard
+```
+
+### 5) 契约与权限验证
+```bash
+# OpenAPI契约检查
+npm run lint:api  # 已通过 ✅
+
+# E2E API权限测试
+npx playwright test operational-monitoring-e2e.spec.ts
+# 已通过：401/403/200各种权限场景 ✅
+```
+
+## 实施完成度总结（修正版 - 2025-09-17）
+
+### 📊 完成度评估
+**总体完成度：85%** （从之前评估的95%下调）
+
+### ✅ 完全实现的模块
+1. **后端监控API系统**：100% ✅
+   - 7个监控端点完全实现且测试通过
+   - OAuth认证体系完整工作
+   - 多租户隔离正确执行
+   - 实时监控数据正常（健康分96，13个组织）
+
+2. **API契约与权限系统**：100% ✅
+   - OpenAPI文档完整更新
+   - PBAC权限映射正确
+   - 3个新权限scope已定义和实施
+
+3. **前端基础架构**：100% ✅
+   - 路由保护机制完全正常
+   - 登录页面功能完整
+   - 监控组件代码架构正确
+
+### ⚠️ 部分实现的模块
+4. **前端用户体验**：70% ⚠️
+   - ✅ 路由跳转正常
+   - ✅ 认证流程正常
+   - ❌ 监控数据渲染问题
+   - ❌ 认证状态同步问题
+
+### 🚨 关键发现
+**技术债务**：前端认证状态与页面组件间的同步机制存在缺陷，导致虽然认证成功，但监控数据无法正常显示。
+
+**用户影响**：当前用户需要额外的手动操作才能看到监控内容，影响整体用户体验。
+
+**修复优先级**：P1级，影响核心功能的可用性。
+
+### 🎯 下一步行动计划
+1. **立即修复**：前端认证状态同步问题
+2. **验证增强**：添加页面级E2E测试
+3. **体验优化**：改善登录后的用户反馈
 
 ## 变更记录与对齐
 
 - 不涉及数据库变更；
-- OpenAPI 与 PBAC 映射为“契约与权限对齐”工作；
-- 前端新增页面为新增功能，遵循“新功能审批”流程；
+- OpenAPI 与 PBAC 映射为"契约与权限对齐"工作；
+- 前端新增页面为新增功能，遵循"新功能审批"流程；
+- **新增**：基于深度测试的问题发现和修复计划；
 - 文档治理：本文件仅为计划，完成项迁移至 `docs/archive/development-plans/`，在 Reference 中补充稳定入口与使用说明。
