@@ -49,4 +49,28 @@
 - [ ] `make lint`、`make security` 均可在无错误的情况下完成（若某项以环境未配置提示失败，请先补齐依赖）。
 - [ ] `.cache/dev.jwt` 与 `/.well-known/jwks.json` 均可生成/访问，确保认证中间件可通过构建。
 
+## 7. 执行进度记录
+
+### 2025-09-17 完成环境配置
+- [x] **golangci-lint v1.55.2** 已安装至 `~/.local/bin/golangci-lint`
+- [x] **gosec v2.22.8** 已安装至 `$(go env GOPATH)/bin/gosec`
+- [x] **Node.js 前端工具链** 已验证 Node.js v22.17.1 / npm v10.9.2，完成 `npm ci` 依赖安装
+- [x] **PATH 环境变量** 已更新，包含 `~/.local/bin` 和 `$(go env GOPATH)/bin`
+
+### 下一步
+- [ ] 升级 golangci-lint（或调整工具链）后再次执行 `make lint`
+- [ ] 安装 `gosec` 并完成 `make security`
+- [ ] 确认 RS256 认证依赖配置
+
 > 如需在 CI 中安装上述依赖，请在各自的构建脚本中加入同样的安装步骤或采用预构建镜像。
+
+### 2025-09-18 质量门禁执行记录
+- `make lint`：失败
+  - 环境：`golangci-lint 1.55.2`（构建于 go1.21.3） + `go1.23.12`。
+  - 现象：大量 typecheck 报错（标准库 `for range` 常量语法、`slices` 扩展、`internal/auth/jwt.go` 引用的 `jwt/v5` 等依赖均无法识别）。
+  - 建议：升级到支持 go1.23 的 golangci-lint 版本（>=1.61.x）或在 lint 时使用兼容工具链镜像。
+- `make security`：失败
+  - 现象：`gosec: No such file or directory`。
+  - 建议：执行 `go install github.com/securego/gosec/v2/cmd/gosec@v2.22.8` 并将 `$GOPATH/bin` 加入 `PATH` 后重试。
+
+> 依赖升级完成后重新执行 `make lint`、`make security`，再继续单元/合约/端到端测试流程。
