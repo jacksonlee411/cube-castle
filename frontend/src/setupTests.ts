@@ -75,21 +75,73 @@ vi.mock('@workday/canvas-kit-react/common', () => ({
 // Combobox 简易可交互 mock：渲染输入框与按钮项
 vi.mock('@workday/canvas-kit-react/combobox', () => {
   const ReactLocal = React
-  type ComboProps = { items?: string[]; onChange?: (val: string) => void; disabled?: boolean; children?: React.ReactNode }
-  type InputProps = { value?: string; onChange?: React.ChangeEventHandler<HTMLInputElement>; placeholder?: string; disabled?: boolean }
+
+  type ComboboxOption = string | { code: string; name: string }
+
+  interface ComboboxModelConfig {
+    items?: ComboboxOption[]
+    getId?: (item: ComboboxOption) => string
+    getTextValue?: (item: ComboboxOption) => string
+  }
+
+  interface ComboboxModel {
+    items: ComboboxOption[]
+    events: {
+      hide: ReturnType<typeof vi.fn>
+      show: ReturnType<typeof vi.fn>
+      select: ReturnType<typeof vi.fn>
+      setSelectedIds: ReturnType<typeof vi.fn>
+      unselectAll: ReturnType<typeof vi.fn>
+      setWidth: ReturnType<typeof vi.fn>
+    }
+    state: {
+      items: ComboboxOption[]
+      selectedIds: string[]
+      value: string
+      visibility: 'hidden' | 'visible'
+    }
+    navigation: { getItem: () => undefined }
+    getId: (item: ComboboxOption) => string
+    getTextValue: (item: ComboboxOption) => string
+  }
+
+  type ComboProps = {
+    items?: ComboboxOption[]
+    onChange?: (val: string) => void
+    disabled?: boolean
+    children?: React.ReactNode
+    model?: ComboboxModel
+  }
+
+  type InputProps = {
+    value?: string
+    onChange?: React.ChangeEventHandler<HTMLInputElement>
+    placeholder?: string
+    disabled?: boolean
+  }
+
+  const defaultGetId = (item: ComboboxOption) => (typeof item === 'string' ? item : item.code || 'item')
+  const defaultGetTextValue = (item: ComboboxOption) =>
+    typeof item === 'string' ? item : `${item.code} - ${item.name}`
+
   return {
     Combobox: Object.assign(
-      ({ items = [], onChange, disabled, children }: ComboProps) => {
+      ({ items = [], onChange, disabled, children, model }: ComboProps) => {
         const safeChildren: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
         return ReactLocal.createElement('div', { 'data-testid': 'combobox' },
           ...safeChildren,
           ReactLocal.createElement('div', { 'data-testid': 'combobox-items' },
-            items.map((it: string) => ReactLocal.createElement('button', {
-              key: it,
-              'data-testid': `combobox-item-${it}`,
-              disabled,
-              onClick: () => onChange && onChange(it)
-            }, it))
+            (model?.items || items).map((option) => {
+              const key = defaultGetId(option)
+              const label = defaultGetTextValue(option)
+              const code = typeof option === 'string' ? option : option.code
+              return ReactLocal.createElement('button', {
+                key,
+                'data-testid': `combobox-item-${key}`,
+                disabled,
+                onClick: () => onChange?.(code)
+              }, label)
+            })
           )
         )
       },
@@ -97,28 +149,85 @@ vi.mock('@workday/canvas-kit-react/combobox', () => {
         Input: ({ value, onChange, placeholder, disabled }: InputProps) => ReactLocal.createElement('input', {
           'data-testid': 'combobox-input', value: value || '', onChange, placeholder, disabled
         }),
-        Menu: ({ children }: MockComponentProps) => {
-          const safe: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
-          return ReactLocal.createElement('div', { 'data-testid': 'combobox-menu' }, ...safe)
-        },
-        MenuList: ({ children }: MockComponentProps) => {
-          const safe: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
-          return ReactLocal.createElement('div', { 'data-testid': 'combobox-menulist' }, ...safe)
-        },
-        Item: ({ children }: MockComponentProps) => ReactLocal.createElement('div', { 'data-testid': 'combobox-item' }, children)
+        Menu: Object.assign(
+          ({ children }: MockComponentProps) => {
+            const safe: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
+            return ReactLocal.createElement('div', { 'data-testid': 'combobox-menu' }, ...safe)
+          },
+          {
+            Popper: ({ children }: MockComponentProps) => {
+              const safe: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
+              return ReactLocal.createElement('div', { 'data-testid': 'combobox-menu-popper' }, ...safe)
+            },
+            Card: ({ children }: MockComponentProps) => {
+              const safe: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
+              return ReactLocal.createElement('div', { 'data-testid': 'combobox-menu-card' }, ...safe)
+            },
+            List: ({ children }: MockComponentProps) => {
+              const safe: React.ReactNode[] = ReactLocal.Children.toArray(children).filter((c) => typeof c !== 'function')
+              return ReactLocal.createElement('div', { 'data-testid': 'combobox-menu-list' }, ...safe)
+            },
+            Item: ({ children }: MockComponentProps) => ReactLocal.createElement('div', { 'data-testid': 'combobox-menu-item' }, children)
+          }
+        )
       }
-    )
+    ),
+    useComboboxModel: ({ items = [], getId, getTextValue }: ComboboxModelConfig = {}): ComboboxModel => {
+      const state = {
+        items,
+        selectedIds: [] as string[],
+        value: '',
+        visibility: 'hidden' as 'hidden' | 'visible'
+      }
+      const events = {
+        hide: vi.fn(() => {
+          state.visibility = 'hidden'
+        }),
+        show: vi.fn(() => {
+          state.visibility = 'visible'
+        }),
+        select: vi.fn((data?: { id: string }) => {
+          if (data?.id) {
+            state.selectedIds = [data.id]
+          }
+        }),
+        setSelectedIds: vi.fn((ids: string[]) => {
+          state.selectedIds = ids
+        }),
+        unselectAll: vi.fn(() => {
+          state.selectedIds = []
+        }),
+        setWidth: vi.fn()
+      }
+
+      return {
+        items,
+        events,
+        state,
+        navigation: {
+          getItem: () => undefined
+        },
+        getId: getId ?? defaultGetId,
+        getTextValue: getTextValue ?? defaultGetTextValue
+      }
+    }
   }
 })
 
 // FormField 简易 mock
 vi.mock('@workday/canvas-kit-react/form-field', () => ({
   FormField: Object.assign(
-    ({ children, error }: MockComponentProps & { error?: string }) => React.createElement('div', { 'data-testid': 'form-field', 'data-error': error || '' }, children),
+    ({ children, error, model: _model }: MockComponentProps & { error?: string; model?: unknown }) => React.createElement('div', { 'data-testid': 'form-field', 'data-error': error || '' }, children),
     {
       Label: ({ children, required }: MockComponentProps & { required?: boolean }) => React.createElement('label', { 'data-testid': 'form-field-label', 'data-required': !!required }, children),
       Hint: ({ children }: MockComponentProps) => React.createElement('div', { 'data-testid': 'form-field-hint' }, children),
-      Error: ({ children }: MockComponentProps) => React.createElement('div', { role: 'alert', 'data-testid': 'form-field-error' }, children)
+      Error: ({ children }: MockComponentProps) => React.createElement('div', { role: 'alert', 'data-testid': 'form-field-error' }, children),
+      Field: ({ children }: MockComponentProps) => React.createElement('div', { 'data-testid': 'form-field-field' }, children)
     }
-  )
+  ),
+  useFormFieldModel: ({ isRequired, error }: { isRequired?: boolean; error?: string }) => ({
+    isRequired: !!isRequired,
+    error: error ?? undefined,
+    state: { error: error ?? undefined }
+  })
 }));

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Combobox } from '@workday/canvas-kit-react/combobox'
+import { Combobox, useComboboxModel } from '@workday/canvas-kit-react/combobox'
 import { FormField } from '@workday/canvas-kit-react/form-field'
 import { Flex } from '@workday/canvas-kit-react/layout'
 import { Text } from '@workday/canvas-kit-react/text'
@@ -99,6 +99,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | undefined>(undefined)
   const [search, setSearch] = React.useState('')
+  const [selectedCode, setSelectedCode] = React.useState<string | undefined>(_currentParentCode)
   const [items, setItems] = React.useState<OrgItem[]>([])
   const { canRead } = useOrgPBAC()
 
@@ -107,19 +108,53 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
 
   const orgMap = React.useMemo(() => new Map(items.map(o => [o.code, o])), [items])
 
+  const formatLabel = React.useCallback((item?: OrgItem | null) => {
+    if (!item) return ''
+    return `${item.code} - ${item.name}`
+  }, [])
+
+  const filtered = React.useMemo(() => {
+    if (!search) return items
+    const s = search.trim().toLowerCase()
+    return items.filter(it => it.code.toLowerCase().includes(s) || it.name.toLowerCase().includes(s))
+  }, [items, search])
+
+  const comboboxModel = useComboboxModel({
+    items: filtered,
+    getId: React.useCallback((item: OrgItem) => item.code, []),
+    getTextValue: React.useCallback((item: OrgItem) => `${item.code} - ${item.name}`, []),
+    shouldVirtualize: false,
+    value: search,
+  })
+
+  const comboboxEventsRef = React.useRef(comboboxModel.events)
+  comboboxEventsRef.current = comboboxModel.events
+
   React.useEffect(() => {
     let mounted = true
     if (!canRead) {
       setError('您没有权限查看组织列表')
       setItems([])
       setLoading(false)
+      setSelectedCode(undefined)
+      setSearch('')
+      comboboxEventsRef.current?.unselectAll?.()
+      comboboxEventsRef.current?.hide?.()
       return () => { mounted = false }
     }
     const cached = memoryCache.get(cacheKey)
     const now = Date.now()
     if (cached && cached.expiresAt > now) {
       setItems(cached.data)
-      return
+        if (_currentParentCode) {
+          const cachedItem = cached.data.find(item => item.code === _currentParentCode)
+          if (cachedItem) {
+            setSelectedCode(_currentParentCode)
+            setSearch(formatLabel(cachedItem))
+            comboboxEventsRef.current?.setSelectedIds?.([_currentParentCode])
+          }
+        }
+        return
     }
     setLoading(true)
     const client = new UnifiedGraphQLClient()
@@ -129,6 +164,15 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
         if (!mounted) return
         const list = (data.organizations?.data || []).filter(o => o.code !== currentCode)
         setItems(list)
+        setError(undefined)
+        if (_currentParentCode) {
+          const preselected = list.find(item => item.code === _currentParentCode)
+          if (preselected) {
+            setSelectedCode(_currentParentCode)
+            setSearch(formatLabel(preselected))
+            comboboxEventsRef.current?.setSelectedIds?.([_currentParentCode])
+          }
+        }
         memoryCache.set(cacheKey, { data: list, total: data.organizations?.pagination?.total || list.length, expiresAt: now + (cacheTtlMs ?? DEFAULT_TTL_MS) })
       })
       .catch((e: unknown) => {
@@ -141,81 +185,166 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     return () => {
       mounted = false
     }
-  }, [cacheKey, currentCode, effectiveDate, onValidationError, canRead, cacheTtlMs])
+  }, [cacheKey, cacheTtlMs, canRead, currentCode, effectiveDate, formatLabel, onValidationError, _currentParentCode])
 
-  const filtered = React.useMemo(() => {
-    if (!search) return items
-    const s = search.trim().toLowerCase()
-    return items.filter(it => it.code.toLowerCase().includes(s) || it.name.toLowerCase().includes(s))
-  }, [items, search])
-
-  const handleSelect = (value: string) => {
-    const [code] = (value || '').split('#')
-    const selected = code || undefined
-    if (!selected) {
-      onChange(undefined)
+  React.useEffect(() => {
+    if (!_currentParentCode) {
       return
     }
-    const { hasCycle, cyclePath } = detectCycle(currentCode, selected, orgMap)
+    if (_currentParentCode === selectedCode) {
+      return
+    }
+    const match = orgMap.get(_currentParentCode)
+    if (!match) {
+      return
+    }
+    setSelectedCode(_currentParentCode)
+    setSearch(formatLabel(match))
+    comboboxEventsRef.current?.setSelectedIds?.([_currentParentCode])
+  }, [_currentParentCode, formatLabel, orgMap, selectedCode])
+
+  const clearSelection = React.useCallback(() => {
+    comboboxEventsRef.current?.unselectAll?.()
+    setSelectedCode(undefined)
+    setSearch('')
+    setError(undefined)
+    onValidationError?.(undefined)
+    onChange(undefined)
+  }, [onChange, onValidationError])
+
+  const applySelection = React.useCallback((nextCode: string | undefined) => {
+    if (!nextCode) {
+      clearSelection()
+      return
+    }
+    const item = orgMap.get(nextCode)
+    if (!item) {
+      return
+    }
+    const { hasCycle, cyclePath } = detectCycle(currentCode, nextCode, orgMap)
     if (hasCycle) {
       const pathStr = cyclePath?.join(' -> ') || ''
       const msg = `选择该组织将导致循环依赖：${pathStr}`
       setError(msg)
       onValidationError?.(msg)
+      if (selectedCode) {
+        comboboxEventsRef.current?.setSelectedIds?.([selectedCode])
+        const existing = orgMap.get(selectedCode)
+        setSearch(formatLabel(existing))
+      } else {
+        comboboxEventsRef.current?.unselectAll?.()
+        setSearch('')
+      }
       return
     }
     setError(undefined)
-    onChange(selected)
-  }
+    onValidationError?.(undefined)
+    setSelectedCode(nextCode)
+    setSearch(formatLabel(item))
+    onChange(nextCode)
+    comboboxEventsRef.current?.hide?.()
+  }, [clearSelection, currentCode, formatLabel, onChange, onValidationError, orgMap, selectedCode])
+
+  const selectedIds = comboboxModel.state?.selectedIds
+
+  React.useEffect(() => {
+    if (!selectedIds || selectedIds === 'all') {
+      return
+    }
+    const [next] = selectedIds
+    if (!next && selectedCode) {
+      clearSelection()
+      return
+    }
+    if (next && next !== selectedCode) {
+      applySelection(next)
+    }
+  }, [applySelection, clearSelection, selectedCode, selectedIds])
+
+  const handleInputChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value
+      setSearch(value)
+      comboboxEventsRef.current?.show?.()
+      if (error) {
+        setError(undefined)
+        onValidationError?.(undefined)
+      }
+      if (!value) {
+        clearSelection()
+      } else {
+        comboboxEventsRef.current?.unselectAll?.()
+      }
+    },
+    [clearSelection, error, onValidationError]
+  )
+
+  const handleComboboxChange = React.useCallback(
+    (value: string) => {
+      const code = value?.split('#')[0] || value
+      if (!code) {
+        clearSelection()
+        return
+      }
+      comboboxEventsRef.current?.setSelectedIds?.([code])
+      applySelection(code)
+    },
+    [applySelection, clearSelection]
+  )
 
   return (
-    <FormField error={error} data-testid="form-field" data-error={error}>
-      <FormField.Label required={required} data-testid="form-field-label">上级组织</FormField.Label>
-
-      <Combobox
-        data-testid="combobox"
-        items={filtered.map(f => `${f.code}#${f.name}`)}
-        onChange={handleSelect}
-        disabled={disabled || loading || !canRead}
-      >
-        <Combobox.Input
-          data-testid="combobox-input"
-          placeholder={loading ? '加载中…' : '搜索并选择上级组织...'}
-          value={search}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-          disabled={disabled || loading || !canRead}
-        />
-        <Combobox.Menu data-testid="combobox-menu">
-          <div data-testid="combobox-items">
-          <Combobox.MenuList>
-            {(item: string) => {
-              const [code, name] = item.split('#')
-              const org = orgMap.get(code)
-              return (
-                <Combobox.Item
-                  key={code}
-                  data-testid={`combobox-item-${code}#${name}`}
-                  onClick={() => handleSelect(`${code}#${name}`)}
-                >
-                  <Flex
-                    direction="column"
-                    gap="xxs"
-                    onClick={() => onChange(code)}
-                    data-testid={`combobox-select-${code}`}
-                  >
-                    <Text weight="medium">{code} - {name}</Text>
-                    <Text typeLevel="subtext.small" variant="hint">
-                      层级: {org?.level ?? '-'} | 上级: {org?.parentCode || '-'}
-                    </Text>
+    <FormField error={error} required={required}>
+      <FormField.Label>上级组织</FormField.Label>
+      <FormField.Field>
+        <Combobox
+          model={comboboxModel}
+          onChange={handleComboboxChange}
+          items={filtered}
+        >
+          <Combobox.Input
+            data-testid="combobox-input"
+            placeholder={loading ? '加载中…' : '搜索并选择上级组织...'}
+            value={search}
+            onFocus={() => canRead && !disabled && comboboxEventsRef.current?.show?.()}
+            onChange={handleInputChange}
+            disabled={disabled || loading || !canRead}
+          />
+          <Combobox.Menu>
+            <Combobox.Menu.Popper>
+              <Combobox.Menu.Card>
+                {loading && canRead ? (
+                  <Flex padding="s" justifyContent="center">
+                    <Text size="small">加载中…</Text>
                   </Flex>
-                </Combobox.Item>
-              )
-            }}
-          </Combobox.MenuList>
-          </div>
-        </Combobox.Menu>
-      </Combobox>
-
+                ) : (
+                  <Combobox.Menu.List>
+                    {(item: OrgItem) => (
+                      <Combobox.Menu.Item key={item.code} data-id={item.code} data-testid={`combobox-item-${item.code}`}>
+                        <Flex direction="column" gap="xxs">
+                          <Text fontWeight="semibold">{item.code} - {item.name}</Text>
+                          <Text size="small" color="frenchVanilla100" as="span">
+                            层级: {item.level ?? '-'} ｜ 上级: {item.parentCode || '-'}
+                          </Text>
+                        </Flex>
+                      </Combobox.Menu.Item>
+                    )}
+                  </Combobox.Menu.List>
+                )}
+                {!loading && canRead && filtered.length === 0 && (
+                  <Flex padding="s">
+                    <Text size="small" data-testid="combobox-empty">未找到匹配的组织</Text>
+                  </Flex>
+                )}
+                {!canRead && (
+                  <Flex padding="s">
+                    <Text size="small">您没有权限查看组织列表</Text>
+                  </Flex>
+                )}
+              </Combobox.Menu.Card>
+            </Combobox.Menu.Popper>
+          </Combobox.Menu>
+        </Combobox>
+      </FormField.Field>
       <FormField.Hint>显示在所选生效日期有效且状态为 ACTIVE 的组织</FormField.Hint>
       {error && <FormField.Error>{error}</FormField.Error>}
     </FormField>

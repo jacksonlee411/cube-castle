@@ -1,23 +1,40 @@
-import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ParentOrganizationSelector } from '../ParentOrganizationSelector'
-
-const graphqlOk = (data: unknown) => ({ ok: true, json: () => Promise.resolve(data) })
+import { authManager } from '../../../../shared/api/auth'
 
 function mockFetchWithTokenAndGraphQL(graphqlData: unknown) {
   vi.spyOn(global, 'fetch').mockImplementation((input: any) => {
     const url = typeof input === 'string' ? input : (input?.url || '')
-    if (url.includes('/auth/dev-token')) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ accessToken: 'test-token', expiresIn: 3600 }) } as any)
+    if (url.includes('/.well-known/jwks.json')) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({ keys: [{ kty: 'RSA', kid: 'test', alg: 'RS256', n: 'test', e: 'AQAB' }] }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      )
     }
-    return Promise.resolve(graphqlOk({ data: graphqlData }) as any)
+    if (url.includes('/auth/dev-token')) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({ accessToken: 'test-token', expiresIn: 3600 }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      )
+    }
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({ data: graphqlData }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    )
   })
 }
 
 describe('ParentOrganizationSelector', () => {
   beforeEach(() => {
     (global as any).__SCOPES__ = ['org:read']
+    vi.spyOn(authManager, 'getAccessToken').mockResolvedValue('test-token')
   })
   afterEach(() => {
     vi.restoreAllMocks()
@@ -40,9 +57,9 @@ describe('ParentOrganizationSelector', () => {
     render(<ParentOrganizationSelector currentCode="1000001" effectiveDate="2025-09-15" onChange={onChange} />)
 
     // 等待加载结束并渲染候选项（自组织会被过滤）
-    const itemBtn = await screen.findByTestId('combobox-item-1000000#Root')
+    const itemBtn = await screen.findByTestId('combobox-item-1000000')
     fireEvent.click(itemBtn)
-    expect(onChange).toHaveBeenCalledWith('1000000')
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith('1000000'))
   })
 
   it('detects cycle and reports error via onValidationError', async () => {
@@ -60,12 +77,11 @@ describe('ParentOrganizationSelector', () => {
     const onChange = vi.fn()
     render(<ParentOrganizationSelector currentCode="A" effectiveDate="2025-09-16" onChange={onChange} onValidationError={onErr} />)
 
-    const itemBtn = await screen.findByTestId('combobox-item-B#B')
+    const itemBtn = await screen.findByTestId('combobox-item-B')
     fireEvent.click(itemBtn)
-    // 触发循环错误，不调用 onChange
-    expect(onChange).not.toHaveBeenCalled()
-    expect(onErr).toHaveBeenCalled()
-    expect(screen.getByTestId('form-field').getAttribute('data-error') || '').toMatch(/循环依赖/)
+    await waitFor(() => expect(onChange).not.toHaveBeenCalled())
+    await waitFor(() => expect(onErr).toHaveBeenCalled())
+    expect(screen.getByText(/循环依赖/)).toBeTruthy()
   })
 
   it('gates by PBAC: disabled when missing org:read', async () => {
@@ -74,7 +90,8 @@ describe('ParentOrganizationSelector', () => {
     mockFetchWithTokenAndGraphQL(organizations)
     render(<ParentOrganizationSelector currentCode="X" effectiveDate="2025-09-17" onChange={() => {}} />)
     // 组件应禁用并显示权限错误
-    await waitFor(() => expect(screen.getByTestId('form-field').getAttribute('data-error')).toContain('权限'))
+    const errors = await screen.findAllByText('您没有权限查看组织列表')
+    expect(errors.length).toBeGreaterThan(0)
     const input = screen.getByTestId('combobox-input') as HTMLInputElement
     expect(input.disabled).toBe(true)
   })
