@@ -1,6 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { unifiedRESTClient } from '../api';
-import type { OrganizationUnit, OrganizationRequest } from '../types';
+import type { OrganizationUnit, OrganizationRequest, APIResponse } from '../types';
+
+const ensureSuccess = (response: APIResponse<OrganizationUnit>, fallbackMessage: string): OrganizationUnit => {
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message ?? fallbackMessage);
+  }
+  return response.data;
+};
 
 
 // 新增组织单元
@@ -10,13 +17,13 @@ export const useCreateOrganization = () => {
   return useMutation({
     mutationFn: async (data: OrganizationRequest): Promise<OrganizationUnit> => {
       console.log('[Mutation] Creating organization:', data);
-      const response = await unifiedRESTClient.request('/organization-units', {
+      const response = await unifiedRESTClient.request<APIResponse<OrganizationUnit>>('/organization-units', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' }
       });
       console.log('[Mutation] Create successful:', response);
-      return response.data;
+      return ensureSuccess(response, '创建组织失败');
     },
     onSettled: () => {
       console.log('[Mutation] Create settled, invalidating queries');
@@ -55,13 +62,13 @@ export const useUpdateOrganization = () => {
   return useMutation({
     mutationFn: async (data: OrganizationRequest): Promise<OrganizationUnit> => {
       console.log('[Mutation] Updating organization:', data);
-      const response = await unifiedRESTClient.request(`/organization-units/${data.code}`, {
+      const response = await unifiedRESTClient.request<APIResponse<OrganizationUnit>>(`/organization-units/${data.code}`, {
         method: 'PUT',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' }
       });
       console.log('[Mutation] Update successful:', response);
-      return response.data;
+      return ensureSuccess(response, '更新组织失败');
     },
     onSettled: (data, error, variables) => {
       console.log('[Mutation] Update settled:', variables.code);
@@ -119,13 +126,13 @@ export const useSuspendOrganization = () => {
   return useMutation({
     mutationFn: async ({ code, reason }: { code: string; reason: string }): Promise<OrganizationUnit> => {
       console.log('[Mutation] Suspending organization:', code, reason);
-      const response = await unifiedRESTClient.request(`/organization-units/${code}/suspend`, {
+      const response = await unifiedRESTClient.request<APIResponse<OrganizationUnit>>(`/organization-units/${code}/suspend`, {
         method: 'POST',
         body: JSON.stringify({ reason }),
         headers: { 'Content-Type': 'application/json' }
       });
       console.log('[Mutation] Suspend successful:', response);
-      return response.data;
+      return ensureSuccess(response, '暂停组织失败');
     },
     onSettled: (data, error, variables) => {
       console.log('[Mutation] Suspend settled:', variables.code);
@@ -174,13 +181,13 @@ export const useActivateOrganization = () => {
   return useMutation({
     mutationFn: async ({ code, reason }: { code: string; reason: string }): Promise<OrganizationUnit> => {
       console.log('[Mutation] Activating organization:', code, reason);
-      const response = await unifiedRESTClient.request(`/organization-units/${code}/activate`, {
+      const response = await unifiedRESTClient.request<APIResponse<OrganizationUnit>>(`/organization-units/${code}/activate`, {
         method: 'POST',
         body: JSON.stringify({ reason }),
         headers: { 'Content-Type': 'application/json' }
       });
       console.log('[Mutation] Activate successful:', response);
-      return response.data;
+      return ensureSuccess(response, '重新启用组织失败');
     },
     onSettled: (data, error, variables) => {
       console.log('[Mutation] Activate settled:', variables.code);

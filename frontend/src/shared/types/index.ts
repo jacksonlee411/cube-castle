@@ -4,6 +4,8 @@
  * 🔒 避免重复：消除组件中的重复类型定义
  */
 
+import type { OrganizationUnit } from './organization';
+
 // 🎯 核心业务类型
 export * from './organization';
 export * from './temporal';

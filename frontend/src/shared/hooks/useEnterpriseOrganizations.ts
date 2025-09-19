@@ -41,6 +41,7 @@ export const useEnterpriseOrganizations = (
     loading: boolean;
     error: string | null;
     stats: OrganizationStats | null;
+    lastUpdate: string | null;
   }>({
     organizations: [],
     totalCount: 0,
@@ -49,7 +50,8 @@ export const useEnterpriseOrganizations = (
     totalPages: 0,
     loading: false,
     error: null,
-    stats: null
+    stats: null,
+    lastUpdate: null,
   });
 
   // 获取组织列表
