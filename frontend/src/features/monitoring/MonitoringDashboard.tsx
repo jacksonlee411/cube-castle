@@ -6,7 +6,8 @@ import { SecondaryButton } from '@workday/canvas-kit-react/button'
 import { colors } from '@workday/canvas-kit-react/tokens'
 import { SystemIcon } from '@workday/canvas-kit-react/icon'
 import { dashboardIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web'
-import monitoringAPI, { MonitoringHealthData, MonitoringMetrics, AlertList, RateLimitStats } from '../../shared/api/monitoring'
+import monitoringAPI from '../../shared/api/monitoring'
+import type { MonitoringHealthData, MonitoringMetrics, AlertList, RateLimitStats } from '../../shared/api/monitoring'
 
 const StatCard: React.FC<{
   title: string
@@ -116,10 +117,10 @@ export const MonitoringDashboard: React.FC = () => {
       <Section title="健康概览" icon={<SystemIcon icon={dashboardIcon} size={20} />}>
         <Box style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           <StatCard title="健康分" value={health?.healthScore?.toFixed?.(1) ?? '-'} color={statusColor(health?.status || 'HEALTHY')} subtitle={health?.status ?? '-'} />
-          <StatCard title="总组织数" value={health?.summary.totalOrganizations ?? '-'} />
-          <StatCard title="当前记录" value={health?.summary.currentRecords ?? '-'} />
-          <StatCard title="未来记录" value={health?.summary.futureRecords ?? '-'} />
-          <StatCard title="历史记录" value={health?.summary.historicalRecords ?? '-'} />
+          <StatCard title="总组织数" value={health?.summary?.totalOrganizations ?? '-'} />
+          <StatCard title="当前记录" value={health?.summary?.currentRecords ?? '-'} />
+          <StatCard title="未来记录" value={health?.summary?.futureRecords ?? '-'} />
+          <StatCard title="历史记录" value={health?.summary?.historicalRecords ?? '-'} />
         </Box>
       </Section>
 
