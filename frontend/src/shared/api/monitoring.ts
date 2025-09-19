@@ -43,36 +43,45 @@ export interface RateLimitStats {
   blockRate: string
 }
 
+function unwrapData<T>(res: unknown): T {
+  if (res && typeof res === 'object') {
+    const payload = res as { success?: boolean; data?: T; error?: { message?: string } }
+    if (typeof payload.success === 'boolean') {
+      if (!payload.success) {
+        throw new Error(payload.error?.message || '监控接口返回失败')
+      }
+      if (!payload.data) {
+        throw new Error('监控接口缺少数据返回')
+      }
+      return payload.data
+    }
+  }
+  return res as T
+}
+
 // 监控API客户端
 export const monitoringAPI = {
   async getHealth(): Promise<MonitoringHealthData> {
     const res = await unifiedRESTClient.request<{ success: boolean; data: MonitoringHealthData }>(
-      `operational/health`,
+      `/operational/health`,
       { method: 'GET' }
     )
-    // unifiedRESTClient unwraps enterprise envelope to data already when success=true
-    // but return type safety keeps the shape aligned
-    // Here res is the unwrapped data object
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (res as any) as MonitoringHealthData
+    return unwrapData<MonitoringHealthData>(res)
   },
 
   async getMetrics(): Promise<MonitoringMetrics> {
-    const res = await unifiedRESTClient.request(`operational/metrics`, { method: 'GET' })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (res as any) as MonitoringMetrics
+    const res = await unifiedRESTClient.request(`/operational/metrics`, { method: 'GET' })
+    return unwrapData<MonitoringMetrics>(res)
   },
 
   async getAlerts(): Promise<AlertList> {
-    const res = await unifiedRESTClient.request(`operational/alerts`, { method: 'GET' })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (res as any) as AlertList
+    const res = await unifiedRESTClient.request(`/operational/alerts`, { method: 'GET' })
+    return unwrapData<AlertList>(res)
   },
 
   async getRateLimitStats(): Promise<RateLimitStats> {
-    const res = await unifiedRESTClient.request(`operational/rate-limit/stats`, { method: 'GET' })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (res as any) as RateLimitStats
+    const res = await unifiedRESTClient.request(`/operational/rate-limit/stats`, { method: 'GET' })
+    return unwrapData<RateLimitStats>(res)
   },
 }
 
