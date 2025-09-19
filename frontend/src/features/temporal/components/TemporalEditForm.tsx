@@ -11,6 +11,7 @@ import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+import ParentOrganizationSelector from './ParentOrganizationSelector';
 
 // 添加映射函数
 const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): OrganizationStatus => {
@@ -92,6 +93,18 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [parentError, setParentError] = useState<string>('');
+
+  const handleParentOrganizationChange = (parentCode: string | undefined) => {
+    setFormData(prev => ({ ...prev, parentCode: parentCode ?? '' }));
+    if (parentError) {
+      setParentError('');
+    }
+  };
+
+  const handleParentOrganizationError = (message: string) => {
+    setParentError(message);
+  };
 
   // Modal model
   const model = useModalModel();
@@ -135,6 +148,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
         });
       }
       setErrors({});
+      setParentError('');
     }
   }, [isOpen, mode, initialData]);
 
@@ -180,6 +194,10 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
+    if (parentError) {
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -240,6 +258,22 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
                 )}
               </FormField.Field>
             </FormField>
+
+            <Box marginTop="m">
+              <ParentOrganizationSelector
+                currentCode={organizationCode}
+                effectiveDate={formData.effectiveDate}
+                currentParentCode={formData.parentCode}
+                onChange={handleParentOrganizationChange}
+                onValidationError={handleParentOrganizationError}
+                disabled={isSubmitting}
+              />
+              {parentError && (
+                <Text typeLevel="subtext.small" color="error" marginTop="xs">
+                  {parentError}
+                </Text>
+              )}
+            </Box>
 
             <FormField isRequired>
               <FormField.Label>组织类型</FormField.Label>

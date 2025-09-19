@@ -21,6 +21,7 @@ import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { colors } from '@workday/canvas-kit-react/tokens';
 import { type TemporalEditFormData } from './TemporalEditForm';
 import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+import ParentOrganizationSelector from './ParentOrganizationSelector';
 // 移除违反原则13的EnhancedTemporalDataTable组件导入
 
 // 添加映射函数
@@ -195,6 +196,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [parentError, setParentError] = useState<string>('');
   
   // 历史记录编辑相关状态
   const [isEditingHistory, setIsEditingHistory] = useState(false);
@@ -292,6 +294,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
       });
     }
     setErrors({});
+    setParentError('');
   }, [mode, initialData, selectedVersion]);
 
   const handleInputChange = (field: keyof TemporalEditFormData) => (
@@ -304,6 +307,17 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  const handleParentOrganizationChange = (parentCode: string | undefined) => {
+    setFormData(prev => ({ ...prev, parentCode: parentCode ?? '' }));
+    if (parentError) {
+      setParentError('');
+    }
+  };
+
+  const handleParentOrganizationError = (message: string) => {
+    setParentError(message);
   };
 
   // 计算编辑记录模式下的日期范围限制
@@ -403,11 +417,17 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
         effectiveDate: new Date(selectedVersion.effectiveDate).toISOString().split('T')[0],
         parentCode: selectedVersion.parentCode || ''
       });
+      setParentError('');
     }
     setIsEditingHistory(!isEditingHistory);
   };
 
   const handleEditHistorySubmit = async () => {
+    if (parentError) {
+      setError('请先修正上级组织选择');
+      return;
+    }
+
     if (!validateForm() || !onEditHistory || !originalHistoryData) {
       setError('表单验证失败或缺少必要数据，请重试');
       return;
@@ -507,7 +527,12 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     setSuccessMessage(null);
     
     console.log('[InlineNewVersionForm] 提交表单前的formData:', formData);
-    
+
+    if (parentError) {
+      setError('请先修正上级组织选择');
+      return;
+    }
+
     if (!validateForm()) {
       setError('请检查表单中的错误项并重新提交');
       return;
@@ -658,17 +683,24 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                 </FormField.Field>
               </FormField>
 
-              <FormField>
-                <FormField.Label>上级组织编码</FormField.Label>
-                <FormField.Field>
-                  <TextInput
-                    value={formData.parentCode || ''}
-                    onChange={handleInputChange('parentCode')}
-                    placeholder="请输入上级组织编码（可选）"
-                    disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
-                  />
-                </FormField.Field>
-              </FormField>
+              <Box marginTop="m">
+                <ParentOrganizationSelector
+                  currentCode={organizationCode ?? ''}
+                  effectiveDate={formData.effectiveDate}
+                  currentParentCode={formData.parentCode}
+                  onChange={handleParentOrganizationChange}
+                  onValidationError={handleParentOrganizationError}
+                  disabled={isSubmitting || (currentMode === 'edit' && !isEditingHistory)}
+                />
+                {parentError && (
+                  <Text typeLevel="subtext.small" color="error" marginTop="xs">
+                    {parentError}
+                  </Text>
+                )}
+                <Text typeLevel="subtext.small" color="hint" marginTop="xs">
+                  仅允许选择在生效日期有效且状态为 ACTIVE 的组织
+                </Text>
+              </Box>
 
               <UnitTypeSelector
                 value={formData.unitType}
