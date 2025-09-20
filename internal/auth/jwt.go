@@ -29,7 +29,7 @@ const (
 )
 
 func NewJWTMiddleware(secretKey, issuer, audience string) *JWTMiddleware {
-	return &JWTMiddleware{secretKey: []byte(secretKey), issuer: issuer, audience: audience, alg: "HS256"}
+	return &JWTMiddleware{secretKey: []byte(secretKey), issuer: issuer, audience: audience, alg: "RS256"}
 }
 
 type Options struct {
@@ -53,8 +53,9 @@ func NewJWTMiddlewareWithOptions(secretKey, issuer, audience string, opt Options
 		}
 	}
 	if mw.alg == "" {
-		mw.alg = "HS256"
+		mw.alg = "RS256"
 	}
+	mw.alg = strings.ToUpper(mw.alg)
 	return mw
 }
 

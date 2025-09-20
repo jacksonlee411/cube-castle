@@ -106,7 +106,7 @@ run-dev:
 	@echo "⏳ 等待依赖健康..."
 	@sleep 5
 	@echo "▶ 启动命令服务 (9090)..."
-	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=secrets/dev-jwt-private.pem JWT_PUBLIC_KEY_PATH=secrets/dev-jwt-public.pem JWT_KEY_ID=bff-key-1 \
+	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=$(CURDIR)/secrets/dev-jwt-private.pem JWT_PUBLIC_KEY_PATH=$(CURDIR)/secrets/dev-jwt-public.pem JWT_KEY_ID=bff-key-1 \
 		go run ./cmd/organization-command-service/main.go &
 	@echo "▶ 启动查询服务 (8090)..."
 	JWT_ALG=RS256 JWT_JWKS_URL=http://localhost:9090/.well-known/jwks.json \
@@ -128,7 +128,7 @@ run-auth-rs256-sim:
 	  echo "✅ 已生成 secrets/dev-jwt-*.pem"; \
 	fi
 	@echo "▶ 启动命令服务 (RS256 mint + OIDC_SIMULATE) ..."
-	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=secrets/dev-jwt-private.pem JWT_PUBLIC_KEY_PATH=secrets/dev-jwt-public.pem JWT_KEY_ID=bff-key-1 OIDC_SIMULATE=true \
+	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=$(CURDIR)/secrets/dev-jwt-private.pem JWT_PUBLIC_KEY_PATH=$(CURDIR)/secrets/dev-jwt-public.pem JWT_KEY_ID=bff-key-1 OIDC_SIMULATE=true \
 		go run ./cmd/organization-command-service/main.go &
 	@sleep 1
 	@echo "▶ 启动查询服务 (RS256 验签 via JWKS) ..."

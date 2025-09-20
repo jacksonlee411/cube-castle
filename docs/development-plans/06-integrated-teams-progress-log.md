@@ -1,104 +1,99 @@
-# 06 · 集成团队测试执行方案（Lint 依赖环境配置指引）
+# 06 — 集成团队推进记录（RS256 认证与 API 合规治理）
 
-> **目的**：记录激活质量门禁前需要准备的 lint / security 工具依赖，确保 `make lint`、`make security` 可在本地和 CI 环境稳定运行。
+最后更新：2025-09-20 01:25 UTC
+维护团队：认证小组（主责）+ 前端工具组
+状态：待测试
 
-## 1. Go 代码质量工具
-- **golangci-lint v1.55.2**
-  ```bash
-  # 推荐：使用官方安装脚本（需 curl 环境）
-  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-    | sh -s -- -b /usr/local/bin v1.55.2
+---
 
-  # 或使用预编译二进制
-  wget https://github.com/golangci/golangci-lint/releases/download/v1.55.2/golangci-lint-1.55.2-linux-amd64.tar.gz
-  tar -xzf golangci-lint-1.55.2-linux-amd64.tar.gz
-  sudo mv golangci-lint-1.55.2-linux-amd64/golangci-lint /usr/local/bin/
-  ```
-- **环境要求**：Go 1.23.x（已验证的兼容版本）。如需在旧版本 Go 上运行，请使用 Docker 包装或调整 lint 配置。
+## 1. 本次变更概览
+- **JWT 链路强制 RS256**：命令服务与 BFF 不再接受 HS256，缺省值及回退路径全部改为 RS256；没有私钥时立即失败，避免生成空 JWKS。
+- **JWKS 输出修复**：`/.well-known/jwks.json` 现确保携带 `bff-key-1` 公钥条目，查询服务可以稳定拉取并验签。
+- **API 合规 Lint CJS 化**：迁移配置为 `frontend/.eslintrc.api-compliance.cjs`，启用 `@typescript-eslint/parser` 与插件以解析所有 `.ts/.tsx` 文件。
+- **脚本更新**：根目录 `package.json` 的 `lint:frontend-api` / `compliance:*` 统一个指向新配置文件，后续 CI 可直接复用。
 
-## 2. Go 安全扫描
-- **gosec v2.22.8**
-  ```bash
-  go install github.com/securego/gosec/v2/cmd/gosec@v2.22.8
-  ```
-- 将 `$GOPATH/bin` 或安装目录加入 `PATH`，确保 `gosec` 命令可被 `make security` 直接调用。
+---
 
-## 3. Node.js 前端工具链
-- **Node.js 18.x / npm 9.x**（与前端 package.json 对齐）。
-- 首次安装：运行 `npm --prefix frontend ci` 下载 Playwright、Vitest 等依赖。
-- Playwright 浏览器下载（如需本地运行 E2E）：
-  ```bash
-  npm --prefix frontend run playwright install --with-deps
-  ```
+## 2. 影响范围
+- 命令服务：`cmd/organization-command-service/internal/auth/jwt.go`、`internal/config/jwt.go`、`internal/authbff/handler.go`、`internal/authbff/jwtmint.go` 等模块。
+- 查询服务：共享认证库 `internal/auth/jwt.go` 采用 RS256 默认值。
+- 开发工具 & 测试：`make jwt-dev-mint`、`make run-auth-rs256-sim`、Playwright E2E 认证依赖。
+- 前端工具链：`frontend/.eslintrc.api-compliance.cjs`、根 `package.json`。
 
-## 4. RS256 认证依赖
-- `make lint` 过程中需要构建命令/查询服务，建议提前准备 RS256 密钥：
-  ```bash
-  make jwt-dev-setup   # 生成 secrets/dev-jwt-private.pem & secrets/dev-jwt-public.pem
-  ```
+---
 
-## 5. 常见问题排查
-| 问题 | 现象 | 处理建议 |
-| ---- | ---- | -------- |
-| `golangci-lint` 未找到 | `make lint` 输出 `make: golangci-lint: No such file or directory` | 按第 1 节步骤安装，确认路径加入 `PATH` |
-| Go 版本不匹配 | lint 运行提示最低版本 | 确认 `go version` ≥ 1.23；必要时在 Docker 中执行 lint |
-| Playwright 缺少依赖 | E2E 运行失败，提示浏览器缺失 | 运行 `npm --prefix frontend run playwright install --with-deps` |
+## 3. 当前状态与已验证项
+- ✅ 手工执行 `make run-auth-rs256-sim` 后，命令/查询服务均可启动；JWKS 端点返回有效 RSA key。
+- ✅ `NODE_PATH=frontend/node_modules npx eslint@8.57.0 frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs` 可成功执行并给出告警列表。
+- ⚠️ 仍存在 3 项 `camelcase` 错误（`grant_type` 等外部协议字段）和多处 `no-console` 警告，未在本次改动内处理，需要评估是否保留豁免或做封装。
+- ⚠️ `npm install` 依赖 `@stoplight/spectral-oasx` 时继续触发 404/网络问题，待工具链仓库替换源或镜像。
 
-## 6. 质量门禁前检查清单
-- [x] `golangci-lint` 与 `gosec` 可直接执行（`which golangci-lint`、`which gosec`）。
-- [x] `make lint`、`make security` 均可在无错误的情况下完成（已验证：`go test ./...` + `gosec ./...` 全量通过）。
-- [x] `.cache/dev.jwt` 与 `/.well-known/jwks.json` 均可生成/访问（`go run ./scripts/cmd/generate-dev-jwt` 会自动写入并校验 RS256 产物）。
+---
 
-## 7. 执行进度记录
+## 4. 待测试事项（交付测试团队）
+1. **认证链路回归（RS256 + JWKS）**
+   - 步骤：
+     1. 执行 `make run-auth-rs256-sim`（或手动设置 `JWT_ALG=RS256`、`JWT_PRIVATE_KEY_PATH` 等环境变量）。
+     2. 调用 `curl http://localhost:9090/.well-known/jwks.json`，确认返回 `"keys"` 数组非空且 `kid=bff-key-1`。
+     3. `make jwt-dev-mint` 生成令牌，并以 `curl -H"Authorization: Bearer"` + `X-Tenant-ID` 请求 `http://localhost:8090/graphql` 的任意业务查询，验证响应 200。
+   - 预期：令牌签名算法为 RS256（可通过 JWT header 校验），查询服务不再报 `invalid signing method: HS256`。
 
-### 2025-09-17 完成环境配置
-- [x] **golangci-lint v1.55.2** 已安装至 `~/.local/bin/golangci-lint`（初版）
-- [x] **gosec v2.22.8** 已安装至 `$(go env GOPATH)/bin/gosec`
-- [x] **Node.js 前端工具链** 已验证 Node.js v22.17.1 / npm v10.9.2，完成 `npm ci` 依赖安装
-- [x] **PATH 环境变量** 已更新，包含 `~/.local/bin` 和 `$(go env GOPATH)/bin`
+2. **前端 API 合规 Lint 验证**
+   - 步骤：
+     1. `cd /home/shangmeilin/cube-castle`
+     2. `NODE_PATH=frontend/node_modules npx eslint@8.57.0 frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs`
+   - 预期：命令执行成功，仅剩 3 个 `camelcase` 错误（外部协议字段）及若干 `no-console` 警告；确认无额外解析错误。
 
-### 2025-09-17 工具升级与质量门禁验证
-- [x] **golangci-lint 升级**：从 v1.55.2 → v1.61.0（支持 Go 1.23）
-  - 版本信息：`golangci-lint has version 1.61.0 built with go1.23.1`
-  - 安装路径：`~/.local/bin/golangci-lint`
-- [x] **gosec PATH 配置**：创建符号链接至 `~/.local/bin/gosec` 便于访问
-- [x] **make lint 验证**：✅ 执行成功，发现代码质量问题
-  - errcheck: 3 个 JSON encoder 错误未检查
-  - unused: 多个未使用函数和字段
-  - gosimple、staticcheck: 代码简化建议
-- [x] **make security 验证**：✅ 执行成功，gosec 安全扫描正常运行
+3. **Playwright E2E 冒烟**
+   - 目的：验证 Playwright 在 RS256 环境下可以获得合法会话。
+   - 步骤：
+     1. 继承测试 1 准备好的后端环境。
+     2. `make jwt-dev-mint && eval $(make jwt-dev-export)` 设置 `PW_JWT`。
+     3. `cd frontend && PW_SKIP_SERVER=1 PW_JWT=$JWT_TOKEN PW_TENANT_ID=... npx playwright test --grep "temporal"`（挑选关键场景）。
+   - 预期：GraphQL 请求不再因 `invalid signing method` 失败。
 
-### 质量门禁状态
-- [x] `golangci-lint` 与 `gosec` 可直接执行
-- [x] `make lint` 通过（errcheck/unhandled 分支已整改）
-- [x] `make security` 通过（SQL 动态拼接、HTTP 超时、硬编码秘钥等高风险项已收敛）
-- [x] 代码质量问题修复（新增 `clampToInt32` 保护、Query/Command 层 SQL 参数化）
-- [x] RS256 认证依赖配置验证（新增 JWT/JWKS 生成工具并校验产物）
-- 运行验证：
-  - `GOCACHE=$(pwd)/.cache/go-build go test ./...`
-  - `GOCACHE=$(pwd)/.cache/go-build gosec ./...`
-  - `GOCACHE=$(pwd)/.cache/go-build go run ./scripts/cmd/generate-dev-jwt -key secrets/dev-jwt-private.pem`
+4. **风控回归（可选）**
+   - 需确认 `cmd/organization-command-service/internal/auth/jwt_test.go` 新增断言在 CI 中通过。
+   - 运行：`go test ./cmd/organization-command-service/internal/auth -run TestGenerateTestTokenRS256 -v`。
 
-> 如需在 CI 中安装上述依赖，请在各自的构建脚本中加入同样的安装步骤或采用预构建镜像。
+---
 
-### 2025-09-18 质量门禁执行记录（更新）
-- `make lint`：✅ 通过
-  - 处理项：统一 `json.NewEncoder` 错误处理、移除未使用字段/函数、替换 `io/ioutil`、引入 `contextKey` 类型等，现 lint 输出 clean。
-- `make security`：✅ 通过
-  - 关键整改：
-    - **SQL 注入防护**：命令侧仓库、查询优化器、临时测试脚本全部改用参数化占位符/白名单语句；
-    - **整型安全转换**：引入 `clampToInt32` 系列助手，覆盖 Query Service 所有 `int→int32` 场景；
-    - **RS256 工具链**：`scripts/cmd/generate-dev-jwt` 迁移到 RS256 并新增安全校验/输出 `.cache/dev.jwt`、`.well-known/jwks.json`；
-    - **HTTP Server 防慢连**：命令服务与测试服务器统一配置 `ReadHeaderTimeout/ReadTimeout/WriteTimeout/IdleTimeout`；
-    - **文件读写校验**：脚本/运维服务/BFF 私钥加载增加路径约束并以 `// #nosec` 注释说明。
+## 5. 后续跟进与风险
+- [ ] 决策是否保留 `grant_type` 等字段的 camelCase 告警：若需长期豁免，应在 lint 配置中加入例外，并在文档记录依据。
+- [ ] 评估全局移除调试用 `console`，或改写为约定日志工具（影响范围大，建议与前端团队同步节奏）。
+- [ ] `@stoplight/spectral-oasx` 拉取失败会阻塞完整 `npm install`，CI 需使用缓存或私有镜像；工具组负责与平台团队协作处理。
 
-> 后续：持续监控新告警，保持 `gosec ./...` 零缺陷为发布前强制门槛。
+---
 
-### 当前待完成实现
-- （无）——所有安全整改与验证流程已完成，继续留意后续代码变更产生的新告警。
+## 6. 测试完成后需回填的信息
+请测试团队在执行上述用例后，更新下表：
 
-### 临时方案管控处理记录
-**2025-09-17 验收整改**：
-- 修复了 `cmd/organization-command-service/internal/authbff/handler.go:144` 临时方案标注不规范问题
-- 补充了截止日期格式：2025-10-17（OIDC集成预期完成时间）
-- 符合CLAUDE.md临时方案管控原则要求
+| 日期 | 测试项 | 结果 | 备注 |
+| ---- | ------ | ---- | ---- |
+| 2025-09-20 | RS256 认证链路 | ✅ | JWKS端点正常，令牌验证成功，不再出现HS256错误 |
+| 2025-09-20 | API 合规 Lint | ✅ | 配置工作正常，检测到camelcase和no-console问题 |
+| 2025-09-20 | Playwright E2E 冒烟 | ⚠️ | JWT认证通过，但业务逻辑权限问题导致测试失败 |
+| 2025-09-20 | JWT单元测试 | ✅ | TestGenerateTestTokenRS256 测试通过 | 
+
+---
+
+## 7. 附录：关键命令速查
+```bash
+# 后端（RS256 + JWKS）一键启动
+make run-auth-rs256-sim
+
+# 生成开发令牌
+make jwt-dev-mint && cat .cache/dev.jwt
+
+# GraphQL 健康检查（替换 TOKEN/TENANT）
+curl -s -X POST http://localhost:8090/graphql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Tenant-ID: $TENANT" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ organizations(pagination:{page:1,pageSize:1}) { data { code name } } }"}'
+
+# 前端 API 合规 Lint（使用固定版本避免 Flat Config 冲突）
+NODE_PATH=frontend/node_modules npx eslint@8.57.0 \
+  frontend/src/**/*.{ts,tsx} \
+  --config frontend/.eslintrc.api-compliance.cjs
+```

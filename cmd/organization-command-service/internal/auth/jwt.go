@@ -29,7 +29,7 @@ func NewJWTMiddleware(secretKey, issuer, audience string) *JWTMiddleware {
 		hmacSecret: []byte(secretKey),
 		issuer:     issuer,
 		audience:   audience,
-		alg:        "HS256",
+		alg:        "RS256",
 		clockSkew:  0,
 	}
 }
@@ -72,8 +72,9 @@ func NewJWTMiddlewareWithOptions(secretKey, issuer, audience string, opt Options
 		}
 	}
 	if mw.alg == "" {
-		mw.alg = "HS256"
+		mw.alg = "RS256"
 	}
+	mw.alg = strings.ToUpper(mw.alg)
 	return mw
 }
 
@@ -254,12 +255,7 @@ func (j *JWTMiddleware) GenerateTestToken(userID, tenantID string, roles []strin
 		}
 		return tokenString, nil
 	default:
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString(j.hmacSecret)
-		if err != nil {
-			return "", fmt.Errorf("failed to generate token: %w", err)
-		}
-		return tokenString, nil
+		return "", fmt.Errorf("unsupported signing algorithm: %s", j.alg)
 	}
 }
 

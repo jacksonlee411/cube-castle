@@ -29,7 +29,7 @@
   - 特性: CRUD操作、业务命令、数据验证
 
 认证授权: JWT + OAuth 2.0
-  - 算法: HS256 (开发) / RS256 (生产)
+  - 算法: RS256（开发 / 生产统一）
   - 权限模型: 租户隔离 + 角色权限
   - 特性: JWKS支持、时钟偏差容忍
 
@@ -163,7 +163,7 @@ PRIMARY KEY (code, effective_date)
 
 ### 认证系统
 - **协议**: OAuth 2.0 Client Credentials Flow
-- **Token**: JWT (HS256开发 / RS256生产)
+- **Token**: JWT (RS256 全环境统一)
 - **特性**: JWKS支持、时钟偏差容忍、自动刷新
 
 ### 权限模型

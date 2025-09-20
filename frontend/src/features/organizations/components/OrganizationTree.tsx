@@ -19,6 +19,7 @@ import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationB
 import { useNavigate } from 'react-router-dom';
 // SecondaryButton 已在上方导入
 import { copyText } from '../../../shared/utils/clipboard';
+import { toParentChainFromCodePath } from '../../../shared/utils/organizationPath';
 
 // 层级节点数据接口
 export interface OrganizationTreeNode {
@@ -240,7 +241,9 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       status: org.status as string,
       level: (org.level as number) || 1,
       parentCode: org.parentCode as string | undefined,
-      parentChain: (org.parentChain as string[]) || (org.codePath ? (org.codePath as string).split('/').filter(Boolean) : []),
+      parentChain: Array.isArray(org.parentChain)
+        ? (org.parentChain as string[])
+        : toParentChainFromCodePath((org.codePath as string) ?? null),
       codePath: (org.codePath as string) || undefined,
       namePath: (org.namePath as string) || undefined,
       childrenCount: (org.childrenCount as number) || 0,
@@ -349,7 +352,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
             status: org.status as string,
             level: (org.level as number) || 1,
             parentCode: org.parentCode as string | undefined,
-            parentChain: org.codePath ? (org.codePath as string).split('/').filter(Boolean) : [],
+            parentChain: toParentChainFromCodePath((org.codePath as string) ?? null),
             codePath: (org.codePath as string) || undefined,
             namePath: (org.namePath as string) || undefined,
             childrenCount: 0, // 后续并发查询获取

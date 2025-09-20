@@ -25,7 +25,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
-	_ "github.com/lib/pq"
+	pq "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -992,53 +992,92 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 	query := `
         WITH RECURSIVE hierarchy_info AS (
             -- 获取目标组织
-            SELECT 
-                code, name, level, 
-                COALESCE(code_path, '/' || code) as code_path,
-                COALESCE(name_path, '/' || name) as name_path,
+            SELECT
+                code,
+                name,
+                level,
                 parent_code,
-                1 as hierarchy_depth
-            FROM organization_units 
-            WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
-            
+                1 AS hierarchy_depth
+            FROM organization_units
+            WHERE tenant_id = $1
+              AND code = $2
+              AND is_current = true
+              AND status <> 'DELETED'
+              AND deleted_at IS NULL
+
             UNION ALL
-            
+
             -- 递归获取父级信息
-            SELECT 
-                o.code, o.name, o.level,
-                o.code_path, o.name_path, o.parent_code,
+            SELECT
+                o.code,
+                o.name,
+                o.level,
+                o.parent_code,
                 h.hierarchy_depth + 1
             FROM organization_units o
             INNER JOIN hierarchy_info h ON o.code = h.parent_code
-            WHERE o.tenant_id = $1 AND o.is_current = true AND o.status <> 'DELETED' AND o.deleted_at IS NULL
+            WHERE o.tenant_id = $1
+              AND o.is_current = true
+              AND o.status <> 'DELETED'
+              AND o.deleted_at IS NULL
+        ),
+        aggregated_paths AS (
+            SELECT
+                '/' || string_agg(code, '/' ORDER BY hierarchy_depth DESC) AS full_code_path,
+                '/' || string_agg(name, '/' ORDER BY hierarchy_depth DESC) AS full_name_path,
+                COALESCE(
+                    array_agg(code ORDER BY hierarchy_depth DESC) FILTER (WHERE hierarchy_depth > 1),
+                    ARRAY[]::text[]
+                ) AS parent_chain
+            FROM hierarchy_info
+        ),
+        target_info AS (
+            SELECT *
+            FROM hierarchy_info
+            WHERE code = $2
+            LIMIT 1
         ),
         children_count AS (
-            SELECT COUNT(*) as count
+            SELECT COUNT(*) AS count
             FROM organization_units
-            WHERE tenant_id = $1 AND parent_code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            WHERE tenant_id = $1
+              AND parent_code = $2
+              AND is_current = true
+              AND status <> 'DELETED'
+              AND deleted_at IS NULL
         )
-		SELECT 
-			h.code, h.name, h.level, h.hierarchy_depth,
-			h.code_path, h.name_path,
-			CASE WHEN h.parent_code IS NULL THEN '{}' 
-				 ELSE json_build_array(h.parent_code)::text END as parent_chain,
-			c.count as children_count,
-			(h.parent_code IS NULL) as is_root,
-			(c.count = 0) as is_leaf
-		FROM hierarchy_info h
-		CROSS JOIN children_count c
-		WHERE h.code = $2
-		LIMIT 1`
+        SELECT
+            t.code,
+            t.name,
+            t.level,
+            t.hierarchy_depth,
+            ap.full_code_path,
+            ap.full_name_path,
+            ap.parent_chain,
+            c.count AS children_count,
+            (t.parent_code IS NULL) AS is_root,
+            (c.count = 0) AS is_leaf
+        FROM target_info t
+        CROSS JOIN aggregated_paths ap
+        CROSS JOIN children_count c
+        LIMIT 1`
 
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
 
 	var hierarchy OrganizationHierarchyData
-	var parentChainJSON string
+	var parentChain []string
 
 	err := row.Scan(
-		&hierarchy.CodeField, &hierarchy.NameField, &hierarchy.LevelField, &hierarchy.HierarchyDepthField,
-		&hierarchy.CodePathField, &hierarchy.NamePathField, &parentChainJSON,
-		&hierarchy.ChildrenCountField, &hierarchy.IsRootField, &hierarchy.IsLeafField,
+		&hierarchy.CodeField,
+		&hierarchy.NameField,
+		&hierarchy.LevelField,
+		&hierarchy.HierarchyDepthField,
+		&hierarchy.CodePathField,
+		&hierarchy.NamePathField,
+		pq.Array(&parentChain),
+		&hierarchy.ChildrenCountField,
+		&hierarchy.IsRootField,
+		&hierarchy.IsLeafField,
 	)
 
 	if err != nil {
@@ -1049,14 +1088,7 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 		return nil, err
 	}
 
-	// 解析父级链
-	if parentChainJSON != "{}" {
-		if err := json.Unmarshal([]byte(parentChainJSON), &hierarchy.ParentChainField); err != nil {
-			r.logger.Printf("解析parentChain失败: %v", err)
-		}
-	} else {
-		hierarchy.ParentChainField = []string{}
-	}
+	hierarchy.ParentChainField = parentChain
 
 	duration := time.Since(start)
 	r.logger.Printf("[PERF] 层级结构查询完成，耗时: %v", duration)

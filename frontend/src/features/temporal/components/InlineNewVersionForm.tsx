@@ -66,6 +66,8 @@ export interface InlineNewVersionFormProps {
     effectiveDate: string;
     description?: string;
     parentCode?: string;
+    level?: number;
+    path?: string | null;
   } | null;
   // 新增：传递所有版本数据用于日期范围验证
   allVersions?: Array<{
@@ -79,6 +81,7 @@ export interface InlineNewVersionFormProps {
   onInsertRecord?: (data: TemporalEditFormData) => Promise<void>; // 新增插入记录功能
   activeTab?: 'edit-history' | 'new-version' | 'audit-history'; // 当前选项卡状态
   onTabChange?: (tab: 'edit-history' | 'new-version' | 'audit-history') => void; // 选项卡切换
+  hierarchyPaths?: { codePath: string; namePath: string } | null;
   // 版本数据相关props已移除 - 违反原则13
 }
 
@@ -184,6 +187,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   onInsertRecord: _onInsertRecord,
   activeTab: _activeTab = 'edit-history',
   onTabChange: _onTabChange,
+  hierarchyPaths = null,
   // versions, onVersionSelect, onVersionEdit参数已移除 - 违反原则13
 }) => {
   const [formData, setFormData] = useState<TemporalEditFormData>({
@@ -230,6 +234,18 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
   
   // 动态模式判断 - 根据activeTab确定当前模式
   const currentMode = mode;
+
+  const levelDisplay = selectedVersion?.level;
+  const codePathDisplay = React.useMemo(() => {
+    if (hierarchyPaths?.codePath) return hierarchyPaths.codePath;
+    if (selectedVersion?.path) return selectedVersion.path;
+    return '';
+  }, [hierarchyPaths, selectedVersion]);
+
+  const namePathDisplay = React.useMemo(() => {
+    if (hierarchyPaths?.namePath) return hierarchyPaths.namePath;
+    return '';
+  }, [hierarchyPaths]);
   
   // Modal管理
   const deactivateModalModel = useModalModel();
@@ -744,6 +760,52 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
               </FormField>
             </Box>
           </Box>
+
+          {currentMode === 'edit' && selectedVersion && (
+            <Box marginBottom="l">
+              <Heading size="small" marginBottom="s" color={colors.blueberry600}>
+                层级与路径
+              </Heading>
+              <Box marginLeft="m">
+                <FormField>
+                  <FormField.Label>组织层级</FormField.Label>
+                  <FormField.Field>
+                    <TextInput
+                      value={levelDisplay !== undefined ? String(levelDisplay) : '—'}
+                      disabled
+                    />
+                  </FormField.Field>
+                  <FormField.Hint>层级由后端计算，不可编辑</FormField.Hint>
+                </FormField>
+
+                <Box marginTop="m">
+                  <FormField>
+                    <FormField.Label>组织路径（编码）</FormField.Label>
+                    <FormField.Field>
+                      <TextInput
+                        value={codePathDisplay.trim() || '路径数据暂不可用'}
+                        disabled
+                      />
+                    </FormField.Field>
+                    <FormField.Hint>统一 codePath，已与顶部复制按钮联动</FormField.Hint>
+                  </FormField>
+                </Box>
+
+                <Box marginTop="m">
+                  <FormField>
+                    <FormField.Label>组织路径（名称）</FormField.Label>
+                    <FormField.Field>
+                      <TextInput
+                        value={namePathDisplay.trim() || '路径数据暂不可用'}
+                        disabled
+                      />
+                    </FormField.Field>
+                    <FormField.Hint>读取 GraphQL namePath，提供可读的路径描述</FormField.Hint>
+                  </FormField>
+                </Box>
+              </Box>
+            </Box>
+          )}
 
           {/* 记录信息 - 总是显示（当有数据时） */}
           {originalHistoryData && (

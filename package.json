@@ -5,9 +5,9 @@
   "scripts": {
     "lint:api": "spectral lint docs/api/openapi.yaml --fail-on-unmatched-globs",
     "lint:api:watch": "spectral lint docs/api/openapi.yaml --watch",
-    "lint:frontend-api": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.js",
+    "lint:frontend-api": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs",
     "compliance:check": "npm run lint:api && npm run lint:frontend-api",
-    "compliance:fix": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.js --fix",
+    "compliance:fix": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs --fix",
     "test:compliance": "npm run compliance:check && echo '✅ API合规性检查通过'"
   },
   "devDependencies": {

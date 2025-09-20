@@ -55,7 +55,7 @@ else
 fi
 
 step "启动命令服务 (9090 · RS256 mint + OIDC_SIMULATE)"
-JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=secrets/dev-jwt-private.pem JWT_KEY_ID=bff-key-1 OIDC_SIMULATE=true \
+JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=$ROOT_DIR/secrets/dev-jwt-private.pem JWT_KEY_ID=bff-key-1 OIDC_SIMULATE=true \
   nohup bash -lc 'go run ./cmd/organization-command-service/main.go' > logs/command-service.log 2>&1 &
 
 step "启动查询服务 (8090 · RS256 via JWKS)"

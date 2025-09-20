@@ -29,6 +29,7 @@ import { AuditHistorySection } from '../../audit/components/AuditHistorySection'
 import { normalizeParentCode } from '../../../shared/utils/organization-helpers';
 import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
 import { copyText } from '../../../shared/utils/clipboard';
+import { splitPath } from '../../../shared/utils/organizationPath';
 
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
@@ -636,7 +637,12 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 <SecondaryButton
                   size="small"
                   onClick={async () => {
-                    const lastCode = displayPaths.codePath.split('/').filter(Boolean).at(-1);
+                    const segments = splitPath(displayPaths.codePath);
+                    const lastCode = segments.at(-1);
+                    if (!lastCode) {
+                      await copyText(`${window.location.origin}/organizations`);
+                      return;
+                    }
                     const deepLink = `${window.location.origin}/organizations/${lastCode}/temporal`;
                     await copyText(deepLink);
                   }}
@@ -801,6 +807,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               initialData={null}
               selectedVersion={null}
               allVersions={null} // 创建模式不需要版本数据
+              hierarchyPaths={displayPaths}
             />
           ) : (
             // 正常模式：带选项卡的多功能视图
@@ -848,6 +855,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   onInsertRecord={handleFormSubmit} // 传递插入记录功能
                   activeTab="edit-history"
                   onTabChange={setActiveTab}
+                  hierarchyPaths={displayPaths}
                 />
               )}
 
