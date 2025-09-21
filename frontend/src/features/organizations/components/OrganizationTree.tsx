@@ -18,7 +18,6 @@ import { unifiedGraphQLClient } from '../../../shared/api/unified-client';
 import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
 import { useNavigate } from 'react-router-dom';
 // SecondaryButton 已在上方导入
-import { copyText } from '../../../shared/utils/clipboard';
 import { toParentChainFromCodePath } from '../../../shared/utils/organizationPath';
 
 // 层级节点数据接口
@@ -511,36 +510,6 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                 if (code) navigate(`/organizations/${code}/temporal`);
               }}
             />
-            <Flex gap="s" marginTop="s">
-              <SecondaryButton
-                size="small"
-                onClick={async () => {
-                  const code = selectedNode.code;
-                  const deepLink = `${window.location.origin}/organizations/${code}/temporal`;
-                  await copyText(deepLink);
-                }}
-              >
-                复制链接
-              </SecondaryButton>
-              <SecondaryButton
-                size="small"
-                onClick={async () => {
-                  const text = selectedNode.namePath || '';
-                  await copyText(text);
-                }}
-              >
-                复制名称路径
-              </SecondaryButton>
-              <SecondaryButton
-                size="small"
-                onClick={async () => {
-                  const text = selectedNode.codePath || '';
-                  await copyText(text);
-                }}
-              >
-                复制编码路径
-              </SecondaryButton>
-            </Flex>
           </Box>
         )}
       </Box>

@@ -28,8 +28,6 @@ import { useNavigate } from 'react-router-dom';
 import { AuditHistorySection } from '../../audit/components/AuditHistorySection';
 import { normalizeParentCode } from '../../../shared/utils/organization-helpers';
 import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
-import { copyText } from '../../../shared/utils/clipboard';
-import { splitPath } from '../../../shared/utils/organizationPath';
 
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
@@ -633,39 +631,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   }
                 }}
               />
-              <Flex gap="s" marginTop="s">
-                <SecondaryButton
-                  size="small"
-                  onClick={async () => {
-                    const segments = splitPath(displayPaths.codePath);
-                    const lastCode = segments.at(-1);
-                    if (!lastCode) {
-                      await copyText(`${window.location.origin}/organizations`);
-                      return;
-                    }
-                    const deepLink = `${window.location.origin}/organizations/${lastCode}/temporal`;
-                    await copyText(deepLink);
-                  }}
-                >
-                  复制链接
-                </SecondaryButton>
-                <SecondaryButton
-                  size="small"
-                  onClick={async () => {
-                    await copyText(displayPaths.namePath);
-                  }}
-                >
-                  复制名称路径
-                </SecondaryButton>
-                <SecondaryButton
-                  size="small"
-                  onClick={async () => {
-                    await copyText(displayPaths.codePath);
-                  }}
-                >
-                  复制编码路径
-                </SecondaryButton>
-              </Flex>
             </Box>
           )}
         </Box>

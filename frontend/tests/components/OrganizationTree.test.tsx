@@ -88,41 +88,4 @@ describe('OrganizationTree', () => {
     fetchMock.mockRestore();
   });
 
-  it('copy buttons copy deep link and paths', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
-
-    // Same fetch mock as above
-    vi.spyOn(global, 'fetch' as any).mockImplementation(async (input: RequestInfo, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : (input as any)?.url || '';
-      if (url.includes('/auth/dev-token')) {
-        return { ok: true, json: async () => ({ accessToken: 'test-token', expiresIn: 3600 }) } as any;
-      }
-      const body = init?.body ? JSON.parse(init.body as string) : {};
-      const query: string = body.query || '';
-      if (query.includes('GetRootOrganizations')) {
-        return { ok: true, json: async () => ({ data: { organizations: { data: [
-          { code: '100', name: '集团', unitType: 'DEPARTMENT', status: 'ACTIVE', level: 1, parentCode: null, codePath: '/100', namePath: '/集团' }
-        ] } } }) } as any;
-      }
-      if (query.includes('GetRootChildrenCount')) {
-        return { ok: true, json: async () => ({ data: { organizationSubtree: { childrenCount: 0 } } }) } as any;
-      }
-      return { ok: true, json: async () => ({ data: {} }) } as any;
-    });
-
-    render(
-      <MemoryRouter>
-        <OrganizationTree />
-      </MemoryRouter>
-    );
-
-    // Select node to show selected area
-    const node = await screen.findByText('集团');
-    fireEvent.click(node);
-
-    const copyLinkBtn = await screen.findByText('复制链接');
-    fireEvent.click(copyLinkBtn);
-    expect(writeText).toHaveBeenCalled();
-  });
 });

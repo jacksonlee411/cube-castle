@@ -11,7 +11,6 @@ import { OrganizationFilters } from './OrganizationFilters';
 import { PaginationControls } from './PaginationControls';
 
 import { useEnterpriseOrganizations } from '../../shared/hooks/useEnterpriseOrganizations';
-import { copyText } from '../../shared/utils/clipboard';
 import type { OrganizationUnit } from '../../shared/types/organization';
 import { OrganizationBreadcrumb } from '../../shared/components/OrganizationBreadcrumb';
 // import { useOrganizationMutations } from '../../shared/hooks/useOrganizationMutations'; // TODO: Implement mutations
@@ -63,15 +62,6 @@ const DashboardHeader: React.FC<{
       </SecondaryButton>
       <TertiaryButton disabled={isHistorical}>
         导出报告
-      </TertiaryButton>
-      <TertiaryButton
-        onClick={async () => {
-          const deepLink = `${window.location.origin}/organizations`;
-          await copyText(deepLink);
-        }}
-        marginLeft="s"
-      >
-        复制列表链接
       </TertiaryButton>
       {isHistorical && (
         <Text typeLevel="subtext.small" color="hint" marginLeft="m">
