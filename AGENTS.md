@@ -17,6 +17,7 @@
 - Go code follows idiomatic camelCase for internals and PascalCase for exports; run `make fmt` before committing.
 - TypeScript uses ESLint, two-space indentation, and functional React components; share types through `frontend/src/shared/`.
 - Preserve camelCase for API payloads and keep service logic isolated inside `cmd/*/internal/` packages.
+- 沟通与文档产出优先使用专业、准确、清晰的中文；如需使用其他语言务必标注背景与范围。
 
 ## Testing Guidelines
 - Go tests end with `_test.go`; tag integration suites appropriately and ensure `make test` passes locally.

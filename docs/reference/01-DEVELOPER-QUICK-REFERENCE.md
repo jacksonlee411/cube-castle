@@ -4,6 +4,8 @@
 
 ---
 
+> 沟通规范：团队协作与提交物默认使用专业、准确、清晰的中文；如需使用其他语言，请在文档或记录中明确说明受众与范围。
+
 ## 🚨 开发前必检清单
 
 ### 第一步: 检查实现清单 (强制)
@@ -65,6 +67,11 @@ make db-migrate-all     # 一键执行数据库迁移（迁移即真源）
 export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
 make db-migrate-all
 ```
+- 适用场景：
+  - 首次在本地或新环境初始化数据库。
+  - 拉取上游变更后，发现 `database/migrations/` 存在新增或修改。
+  - 需要验证、评审或回归新的迁移脚本时。
+  - 部署/CI 环节中，确保数据库模式与当前代码一致。
 - 说明：审计历史依赖迁移后的 `audit_logs` 列（before_data/after_data/modified_fields/changes/business_context/record_id）。
 - 注意：`sql/init/01-schema.sql` 已归档为历史快照，禁止用于初始化；参阅 `docs/archive/deprecated-setup/01-schema.sql`。
 
