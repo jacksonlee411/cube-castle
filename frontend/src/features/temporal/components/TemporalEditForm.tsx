@@ -94,16 +94,48 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parentError, setParentError] = useState<string>('');
+  const [suggestedEffectiveDate, setSuggestedEffectiveDate] = useState<string | undefined>(undefined);
 
   const handleParentOrganizationChange = (parentCode: string | undefined) => {
     setFormData(prev => ({ ...prev, parentCode: parentCode ?? '' }));
     if (parentError) {
       setParentError('');
     }
+    setSuggestedEffectiveDate(undefined);
   };
 
-  const handleParentOrganizationError = (message: string) => {
+  const handleParentOrganizationError = (message?: string) => {
+    setParentError(message ?? '');
+    if (!message) {
+      setSuggestedEffectiveDate(undefined);
+    }
+  };
+
+  const handleParentTemporalError = (error: unknown): boolean => {
+    const apiError = error as { code?: string; message?: string; details?: unknown } | undefined;
+    if (apiError?.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
+      return false;
+    }
+
+    let message = typeof apiError.message === 'string' ? apiError.message : '上级组织在指定日期不可用';
+    let suggested: string | undefined;
+
+    if (Array.isArray(apiError.details)) {
+      const detail = apiError.details.find((item: any) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE') as
+        | { message?: string; context?: { suggestedDate?: string } }
+        | undefined;
+      if (detail?.message && typeof detail.message === 'string') {
+        message = detail.message;
+      }
+      const candidate = detail?.context?.suggestedDate;
+      if (typeof candidate === 'string' && candidate.trim().length > 0) {
+        suggested = candidate;
+      }
+    }
+
     setParentError(message);
+    setSuggestedEffectiveDate(suggested);
+    return true;
   };
 
   // Modal model
@@ -206,6 +238,14 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
       await onSubmit(formData);
     } catch (error) {
       console.error('提交表单失败:', error);
+      if (!handleParentTemporalError(error)) {
+        setSuggestedEffectiveDate(undefined);
+        if (error instanceof Error) {
+          setParentError(error.message);
+        } else {
+          setParentError('提交失败，请稍后重试');
+        }
+      }
     }
   };
 
@@ -272,6 +312,28 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
                 <Text typeLevel="subtext.small" color="error" marginTop="xs">
                   {parentError}
                 </Text>
+              )}
+              {suggestedEffectiveDate && (
+                <Flex gap="s" marginTop="xs">
+                  <SecondaryButton
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, effectiveDate: suggestedEffectiveDate }));
+                      setSuggestedEffectiveDate(undefined);
+                      setParentError('');
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    调整生效日期至 {suggestedEffectiveDate}
+                  </SecondaryButton>
+                  <SecondaryButton
+                    type="button"
+                    onClick={() => handleParentOrganizationChange(undefined)}
+                    disabled={isSubmitting}
+                  >
+                    重新选择上级组织
+                  </SecondaryButton>
+                </Flex>
               )}
             </Box>
 

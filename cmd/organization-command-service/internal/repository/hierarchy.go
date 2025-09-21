@@ -40,7 +40,6 @@ func NewHierarchyRepository(db *sql.DB, logger *log.Logger) *HierarchyRepository
 	}
 }
 
-
 // GetOrganizationHierarchy 获取组织层级结构 (递归CTE查询)
 func (h *HierarchyRepository) GetOrganizationHierarchy(ctx context.Context, rootCode string, tenantID uuid.UUID, maxDepth int) ([]OrganizationNode, error) {
 	if maxDepth <= 0 || maxDepth > 17 {
@@ -307,6 +306,73 @@ func (h *HierarchyRepository) GetOrganization(ctx context.Context, code string, 
 	}
 
 	return &org, nil
+}
+
+// GetOrganizationAtDate 获取指定日期的组织版本（若不存在返回nil）
+func (h *HierarchyRepository) GetOrganizationAtDate(ctx context.Context, code string, tenantID uuid.UUID, targetDate time.Time) (*OrganizationNode, error) {
+	query := `
+	SELECT 
+		code,
+		parent_code,
+		name,
+		level,
+		COALESCE(code_path, '/' || code) AS code_path,
+		COALESCE(name_path, '/' || name) AS name_path,
+		effective_date,
+		end_date,
+		is_current,
+		status,
+		unit_type
+	FROM organization_units
+	WHERE tenant_id = $1
+	  AND code = $2
+	  AND status <> 'DELETED'
+	  AND deleted_at IS NULL
+	  AND effective_date <= $3::date
+	  AND (end_date IS NULL OR end_date > $3::date)
+	ORDER BY effective_date DESC, created_at DESC
+	LIMIT 1`
+
+	row := h.db.QueryRowContext(ctx, query, tenantID.String(), code, targetDate.Format("2006-01-02"))
+
+	var node OrganizationNode
+	var parentCode sql.NullString
+	var effectiveDate sql.NullTime
+	var endDate sql.NullTime
+
+	if err := row.Scan(
+		&node.Code,
+		&parentCode,
+		&node.Name,
+		&node.Level,
+		&node.CodePath,
+		&node.NamePath,
+		&effectiveDate,
+		&endDate,
+		&node.IsCurrent,
+		&node.Status,
+		&node.UnitType,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get organization at date: %w", err)
+	}
+
+	if parentCode.Valid {
+		node.ParentCode = &parentCode.String
+	}
+	if effectiveDate.Valid {
+		node.EffectiveDate = types.NewDateFromTime(effectiveDate.Time)
+	}
+	if endDate.Valid {
+		node.EndDate = types.NewDateFromTime(endDate.Time)
+	}
+
+	// 针对单个节点查询，深度固定为0
+	node.Depth = 0
+
+	return &node, nil
 }
 
 // CalculateCodePath 计算组织代码路径

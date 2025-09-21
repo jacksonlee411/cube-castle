@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -450,10 +449,12 @@ type OrganizationFilter struct {
 	OnlyFuture    bool    `json:"onlyFuture"`
 
 	// Business Filtering
-	UnitType   *string   `json:"unitType"`
-	Status     *string   `json:"status"`
-	ParentCode *string   `json:"parentCode"`
-	Codes      *[]string `json:"codes"`
+	UnitType             *string   `json:"unitType"`
+	Status               *string   `json:"status"`
+	ParentCode           *string   `json:"parentCode"`
+	Codes                *[]string `json:"codes"`
+	ExcludeCodes         *[]string `json:"excludeCodes"`
+	ExcludeDescendantsOf *string   `json:"excludeDescendantsOf"`
 
 	// Hierarchy Filtering
 	Level      *int32 `json:"level"`
@@ -518,89 +519,172 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	offset := (page - 1) * pageSize
 	limit := pageSize
 
-	// 解析过滤参数
-	var status, searchText, unitType, parentCode string
+	var (
+		status, searchText, unitType, parentCode string
+		includeCodes, excludeCodes               []string
+		asOfDateParam                            sql.NullString
+		excludeDescendantsParam                  sql.NullString
+	)
+
 	if filter != nil {
 		if filter.Status != nil {
-			status = *filter.Status
+			status = strings.TrimSpace(*filter.Status)
 		}
 		if filter.SearchText != nil {
-			searchText = *filter.SearchText
+			searchText = strings.TrimSpace(*filter.SearchText)
 		}
 		if filter.UnitType != nil {
-			unitType = *filter.UnitType
+			unitType = strings.TrimSpace(*filter.UnitType)
 		}
 		if filter.ParentCode != nil {
-			parentCode = *filter.ParentCode
+			parentCode = strings.TrimSpace(*filter.ParentCode)
+		}
+		if filter.AsOfDate != nil {
+			if trimmed := strings.TrimSpace(*filter.AsOfDate); trimmed != "" {
+				asOfDateParam = sql.NullString{String: trimmed, Valid: true}
+			}
+		}
+		if filter.ExcludeDescendantsOf != nil {
+			if trimmed := strings.TrimSpace(*filter.ExcludeDescendantsOf); trimmed != "" {
+				excludeDescendantsParam = sql.NullString{String: trimmed, Valid: true}
+			}
+		}
+		if filter.ExcludeCodes != nil {
+			for _, code := range *filter.ExcludeCodes {
+				if trimmed := strings.TrimSpace(code); trimmed != "" {
+					excludeCodes = append(excludeCodes, trimmed)
+				}
+			}
+		}
+		if filter.Codes != nil {
+			for _, code := range *filter.Codes {
+				if trimmed := strings.TrimSpace(code); trimmed != "" {
+					includeCodes = append(includeCodes, trimmed)
+				}
+			}
 		}
 	}
 
-	// 构建高性能查询 - 充分利用PostgreSQL索引
-	baseQuery := `
-		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, 
-		       level, path, sort_order, description, profile, created_at, updated_at,
-               effective_date, end_date, is_current, change_reason,
-		       deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
-		FROM organization_units 
-		WHERE tenant_id = $1 AND is_current = true`
+	cte := `
+WITH parent_path AS (
+    SELECT DISTINCT ON (code)
+        code,
+        COALESCE(code_path, '/' || code) AS code_path
+    FROM organization_units
+    WHERE tenant_id = $1
+      AND $3::text IS NOT NULL
+      AND code = $3::text
+      AND status <> 'DELETED'
+      AND deleted_at IS NULL
+      AND (
+        $2::text IS NULL OR (
+          effective_date <= $2::date AND (end_date IS NULL OR end_date > $2::date)
+        )
+      )
+    ORDER BY code, effective_date DESC, created_at DESC
+),
+latest_versions AS (
+    SELECT DISTINCT ON (code)
+        record_id, tenant_id, code, parent_code, name, unit_type, status,
+        level, path, sort_order, description, profile, created_at, updated_at,
+        effective_date, end_date, is_current, change_reason,
+        deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
+        COALESCE(code_path, '/' || code) AS code_path
+    FROM organization_units
+    WHERE tenant_id = $1
+      AND status <> 'DELETED'
+      AND deleted_at IS NULL
+      AND (
+        $2::text IS NULL OR (
+          effective_date <= $2::date AND (end_date IS NULL OR end_date > $2::date)
+        )
+      )
+    ORDER BY code, effective_date DESC, created_at DESC
+)
+`
 
-	countQuery := `
-		SELECT COUNT(*) 
-		FROM organization_units 
-		WHERE tenant_id = $1 AND is_current = true`
+	baseSelect := `
+SELECT lv.record_id, lv.tenant_id, lv.code, lv.parent_code, lv.name, lv.unit_type, lv.status,
+       lv.level, lv.path, lv.sort_order, lv.description, lv.profile, lv.created_at, lv.updated_at,
+       lv.effective_date, lv.end_date, lv.is_current, lv.change_reason,
+       lv.deleted_at, lv.deleted_by, lv.deletion_reason, lv.suspended_at, lv.suspended_by, lv.suspension_reason
+FROM latest_versions lv
+LEFT JOIN parent_path pp ON TRUE
+WHERE 1=1`
 
-	args := []interface{}{tenantID.String()}
-	argIndex := 2
+	countSelect := `
+SELECT COUNT(*)
+FROM latest_versions lv
+LEFT JOIN parent_path pp ON TRUE
+WHERE 1=1`
+
+	args := []interface{}{tenantID.String(), asOfDateParam, excludeDescendantsParam}
+	argIndex := 4
 	whereConditions := ""
 
-	// 状态过滤
 	if status != "" {
-		whereConditions += fmt.Sprintf(" AND status = $%d", argIndex)
+		whereConditions += fmt.Sprintf(" AND lv.status = $%d", argIndex)
 		args = append(args, status)
 		argIndex++
 	} else {
-		whereConditions += " AND status <> 'DELETED'"
+		whereConditions += " AND lv.status <> 'DELETED'"
 	}
 
-	// 单位类型过滤
 	if unitType != "" {
-		whereConditions += fmt.Sprintf(" AND unit_type = $%d", argIndex)
+		whereConditions += fmt.Sprintf(" AND lv.unit_type = $%d", argIndex)
 		args = append(args, unitType)
 		argIndex++
 	}
 
-	// 父组织过滤
 	if parentCode != "" {
-		whereConditions += fmt.Sprintf(" AND parent_code = $%d", argIndex)
+		whereConditions += fmt.Sprintf(" AND lv.parent_code = $%d", argIndex)
 		args = append(args, parentCode)
 		argIndex++
 	}
 
-	// 文本搜索 - 使用GIN索引
-	if searchText != "" {
-		whereConditions += fmt.Sprintf(" AND (name ILIKE $%d OR code ILIKE $%d)", argIndex, argIndex)
-		searchPattern := "%" + searchText + "%"
-		args = append(args, searchPattern)
+	if len(includeCodes) > 0 {
+		whereConditions += fmt.Sprintf(" AND lv.code = ANY($%d)", argIndex)
+		args = append(args, pq.StringArray(includeCodes))
 		argIndex++
 	}
 
-	// 完整查询
-	dataQuery := baseQuery + whereConditions + " ORDER BY sort_order NULLS LAST, code LIMIT $" + strconv.Itoa(argIndex) + " OFFSET $" + strconv.Itoa(argIndex+1)
-	totalQuery := countQuery + whereConditions
+	if len(excludeCodes) > 0 {
+		whereConditions += fmt.Sprintf(" AND NOT (lv.code = ANY($%d))", argIndex)
+		args = append(args, pq.StringArray(excludeCodes))
+		argIndex++
+	}
 
-	// 执行总数查询
+	whereConditions += ` AND (
+    $3::text IS NULL OR (
+        lv.code <> $3::text AND (
+            pp.code_path IS NULL OR lv.code_path NOT LIKE pp.code_path || '/%'
+        )
+    )
+)`
+
+	if searchText != "" {
+		whereConditions += fmt.Sprintf(" AND (lv.name ILIKE $%d OR lv.code ILIKE $%d)", argIndex, argIndex)
+		pattern := "%" + searchText + "%"
+		args = append(args, pattern)
+		argIndex++
+	}
+
+	countQuery := cte + countSelect + whereConditions
+	countArgs := append([]interface{}{}, args...)
+
 	var total int
-	err := r.db.QueryRowContext(ctx, totalQuery, args...).Scan(&total)
-	if err != nil {
+	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		r.logger.Printf("[ERROR] 查询组织总数失败: %v", err)
 		return nil, err
 	}
 
-	// 执行数据查询
+	orderClause := fmt.Sprintf(" ORDER BY COALESCE(lv.sort_order, 0) NULLS LAST, lv.code LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+	dataQuery := cte + baseSelect + whereConditions + orderClause
 	args = append(args, limit, offset)
+
 	rows, err := r.db.QueryContext(ctx, dataQuery, args...)
 	if err != nil {
-		r.logger.Printf("[ERROR] 查询当前组织失败: %v", err)
+		r.logger.Printf("[ERROR] 查询组织列表失败: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -608,15 +692,14 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	var organizations []Organization
 	for rows.Next() {
 		var org Organization
-		err := rows.Scan(
+		if err := rows.Scan(
 			&org.RecordIDField, &org.TenantIDField, &org.CodeField, &org.ParentCodeField, &org.NameField,
 			&org.UnitTypeField, &org.StatusField, &org.LevelField, &org.PathField, &org.SortOrderField,
 			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
 			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
 			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
-		)
-		if err != nil {
+		); err != nil {
 			r.logger.Printf("[ERROR] 扫描组织数据失败: %v", err)
 			return nil, err
 		}
@@ -626,8 +709,12 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	duration := time.Since(start)
 	r.logger.Printf("[PERF] 查询 %d/%d 组织 (页面: %d/%d)，耗时: %v", len(organizations), total, page, (total+int(pageSize)-1)/int(pageSize), duration)
 
-	// 构建符合契约的响应结构
 	totalPages := (total + int(pageSize) - 1) / int(pageSize)
+	asOfDateValue := time.Now().Format("2006-01-02")
+	if asOfDateParam.Valid {
+		asOfDateValue = asOfDateParam.String
+	}
+
 	response := &OrganizationConnection{
 		DataField: organizations,
 		PaginationField: PaginationInfo{
@@ -638,10 +725,10 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 			HasPreviousField: page > 1,
 		},
 		TemporalField: TemporalInfo{
-			AsOfDateField:        time.Now().Format("2006-01-02"),
+			AsOfDateField:        asOfDateValue,
 			CurrentCountField:    len(organizations),
-			FutureCountField:     0, // TODO: 基于时态数据计算
-			HistoricalCountField: 0, // TODO: 基于历史数据计算
+			FutureCountField:     0,
+			HistoricalCountField: 0,
 		},
 	}
 

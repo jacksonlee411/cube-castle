@@ -42,6 +42,7 @@ type ValidationError struct {
 	Value   interface{} `json:"value,omitempty"`
 	Message string      `json:"message"`
 	Code    string      `json:"code,omitempty"`
+	Context interface{} `json:"context,omitempty"`
 }
 
 // PaginationMeta 分页元数据
@@ -144,14 +145,14 @@ func (rb *ResponseBuilder) WithPagination(pagination *PaginationMeta) *ResponseB
 	rb.response.Meta.Headers["X-Total-Count"] = fmt.Sprintf("%d", pagination.Total)
 	rb.response.Meta.Headers["X-Page"] = fmt.Sprintf("%d", pagination.Page)
 	rb.response.Meta.Headers["X-Limit"] = fmt.Sprintf("%d", pagination.Limit)
-	
+
 	// 将分页信息也添加到data中
 	if rb.response.Data != nil {
 		if dataMap, ok := rb.response.Data.(map[string]interface{}); ok {
 			dataMap["pagination"] = pagination
 		}
 	}
-	
+
 	return rb
 }
 
@@ -166,17 +167,17 @@ func (rb *ResponseBuilder) WriteJSON(w http.ResponseWriter, statusCode int) erro
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
-	
+
 	// 设置CORS头部
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Tenant-ID")
-	
+
 	// 添加请求ID到响应头
 	if rb.response.RequestID != "" {
 		w.Header().Set("X-Request-ID", rb.response.RequestID)
 	}
-	
+
 	w.WriteHeader(statusCode)
 	return json.NewEncoder(w).Encode(rb.response)
 }
@@ -270,18 +271,18 @@ func ConvertValidationErrors(errs map[string]string) []ValidationError {
 func WriteHealthCheck(w http.ResponseWriter, service string, healthy bool, details interface{}, requestID string) error {
 	status := "unhealthy"
 	statusCode := http.StatusServiceUnavailable
-	
+
 	if healthy {
 		status = "healthy"
 		statusCode = http.StatusOK
 	}
-	
+
 	data := map[string]interface{}{
 		"service": service,
 		"status":  status,
 		"details": details,
 	}
-	
+
 	return NewResponseBuilder().
 		Data(data).
 		Success(healthy).
@@ -295,11 +296,11 @@ func WriteList(w http.ResponseWriter, items interface{}, pagination *PaginationM
 	data := map[string]interface{}{
 		"items": items,
 	}
-	
+
 	if pagination != nil {
 		data["pagination"] = pagination
 	}
-	
+
 	return NewResponseBuilder().
 		Data(data).
 		Message(message).

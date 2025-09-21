@@ -1,0 +1,17 @@
+./argument.go
+./directive.go
+./doc.go
+./enum.go
+./extension.go
+./field.go
+./fragment.go
+./input.go
+./interface.go
+./object.go
+./query.go
+./scalar.go
+./schema.go
+./types.go
+./union.go
+./value.go
+./variable.go

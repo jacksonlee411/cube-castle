@@ -211,6 +211,14 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		endDate = &parsed
 	}
 
+	if h.validator != nil && req.ParentCode != nil && strings.TrimSpace(*req.ParentCode) != "" {
+		validation := h.validator.ValidateTemporalParentAvailability(r.Context(), tenantID, strings.TrimSpace(*req.ParentCode), effectiveDate)
+		if !validation.Valid {
+			h.writeValidationErrors(w, r, validation)
+			return
+		}
+	}
+
 	// 计算路径和级别（继承或重新计算）
 	path, level, err := h.repo.CalculatePath(r.Context(), tenantID, req.ParentCode, code)
 	if err != nil {
@@ -827,12 +835,27 @@ func (h *OrganizationHandler) getTenantID(r *http.Request) uuid.UUID {
 }
 
 func (h *OrganizationHandler) writeValidationErrors(w http.ResponseWriter, r *http.Request, result *validators.ValidationResult) {
+	requestID := middleware.GetRequestID(r.Context())
+
 	if len(result.Errors) == 0 {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", nil)
+		if err := utils.WriteError(w, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", requestID, map[string]interface{}{
+			"validationErrors": []validators.ValidationError{},
+			"errorCount":       0,
+		}); err != nil {
+			h.logger.Printf("写入验证错误响应失败: %v", err)
+		}
 		return
 	}
 
-	h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", result.Errors)
+	firstError := result.Errors[0]
+	details := map[string]interface{}{
+		"validationErrors": result.Errors,
+		"errorCount":       len(result.Errors),
+	}
+
+	if err := utils.WriteError(w, http.StatusBadRequest, firstError.Code, firstError.Message, requestID, details); err != nil {
+		h.logger.Printf("写入验证错误响应失败: %v", err)
+	}
 }
 
 func (h *OrganizationHandler) refreshHierarchyPaths(ctx context.Context, tenantID uuid.UUID, rootCode string) error {

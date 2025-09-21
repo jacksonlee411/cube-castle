@@ -277,8 +277,15 @@ ENFORCE=1 APPLY_FIXES=1 bash scripts/apply-audit-fixes.sh
 403 FORBIDDEN: 权限不足 → 检查X-Tenant-ID和角色
 404 NOT_FOUND: 资源不存在 → 检查组织编码
 409 CONFLICT: 编码冲突 → 使用唯一编码
+412 PRECONDITION_FAILED: If-Match ETag 不匹配 → 重新获取最新数据并重试
 500 INTERNAL_SERVER_ERROR: 服务错误 → 查看日志
 ```
+
+### 乐观锁（If-Match）
+- `/api/v1/organization-units/{code}/suspend` 与 `/activate` 响应头会返回最新 `ETag`。
+- 二次提交前端需携带 `If-Match: <ETag>`，以避免覆盖其他用户的最新修改。
+- 若返回 412，说明服务器版本已更新：提示用户刷新详情页以获取新的 `ETag` 后再重试。
+- 和 `Idempotency-Key` 配合使用，可同时解决重复提交与并发覆盖问题。
 
 ### 调试工具
 ```bash

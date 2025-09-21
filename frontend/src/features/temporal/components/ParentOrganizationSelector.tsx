@@ -16,7 +16,7 @@ export interface ParentOrganizationSelectorProps {
   disabled?: boolean
   required?: boolean
 
-  onValidationError?: (error: string) => void
+  onValidationError?: (error?: string) => void
 
   // 可选：缓存TTL（毫秒），默认5分钟
   cacheTtlMs?: number
@@ -51,9 +51,14 @@ const DEFAULT_TTL_MS = 5 * 60 * 1000
 const memoryCache = new Map<string, { expiresAt: number; data: OrgItem[]; total: number }>()
 
 const QUERY = /* GraphQL */ `
-  query GetValidParentOrganizations($asOfDate: String!, $pageSize: Int = 500) {
+  query GetValidParentOrganizations($asOfDate: String!, $currentCode: String!, $pageSize: Int = 500) {
     organizations(
-      filter: { status: ACTIVE, asOfDate: $asOfDate }
+      filter: {
+        status: ACTIVE
+        asOfDate: $asOfDate
+        excludeCodes: [$currentCode]
+        excludeDescendantsOf: $currentCode
+      }
       pagination: { page: 1, pageSize: $pageSize, sortBy: "code", sortOrder: "asc" }
     ) {
       data {
@@ -104,7 +109,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
   const { canRead } = useOrgPBAC()
 
   const pageSize = 500
-  const cacheKey = React.useMemo(() => `${effectiveDate}::${pageSize}`, [effectiveDate])
+  const cacheKey = React.useMemo(() => `${effectiveDate}::${currentCode}::${pageSize}`, [currentCode, effectiveDate])
 
   const orgMap = React.useMemo(() => new Map(items.map(o => [o.code, o])), [items])
 
@@ -159,7 +164,11 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     setLoading(true)
     const client = new UnifiedGraphQLClient()
     client
-      .request<QueryResult>(QUERY, { asOfDate: effectiveDate, pageSize })
+      .request<QueryResult>(QUERY, {
+        asOfDate: effectiveDate,
+        currentCode,
+        pageSize,
+      })
       .then((data) => {
         if (!mounted) return
         const list = (data.organizations?.data || []).filter(o => o.code !== currentCode)

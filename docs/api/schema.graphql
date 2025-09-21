@@ -528,6 +528,8 @@ input OrganizationFilter {
   status: Status
   parentCode: String
   codes: [String!]
+  excludeCodes: [String!]
+  excludeDescendantsOf: String
   
   # Hierarchy Filtering
   level: Int

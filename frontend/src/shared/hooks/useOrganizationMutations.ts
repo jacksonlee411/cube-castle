@@ -4,7 +4,17 @@ import type { OrganizationUnit, OrganizationRequest, APIResponse } from '../type
 
 const ensureSuccess = (response: APIResponse<OrganizationUnit>, fallbackMessage: string): OrganizationUnit => {
   if (!response.success || !response.data) {
-    throw new Error(response.error?.message ?? fallbackMessage);
+    const error = new Error(response.error?.message ?? fallbackMessage) as Error & {
+      code?: string
+      details?: unknown
+    }
+    if (response.error?.code) {
+      error.code = response.error.code
+    }
+    if (response.error?.details) {
+      error.details = response.error.details
+    }
+    throw error;
   }
   return response.data;
 };

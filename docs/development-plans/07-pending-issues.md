@@ -1,158 +1,389 @@
-# 07 — 组织层级同步修复记录
+# 07 — 时态组织架构用户体验优化
 
 最后更新：2025-09-21
-责任团队：架构组（主责）+ 测试组
-当前状态：修复已完成，发现新的认证问题
+责任团队：前端组（主责）+ 后端组
+当前状态：需求分析完成，待实施
 
 ---
 
-## 1. 已完成的技术调整
-- 新增 `recalculateSelfHierarchy`，在 `Update` / `UpdateByRecordId` 内同步写入 `level`、`path`、`code_path`、`name_path`，日志示例：`recalculateSelfHierarchy: code=..., oldLevel=..., newLevel=..., path=...`。
-- `UpdateByRecordId` 及常规更新均空值保护 `name`、`parentCode`，并触发上述重算逻辑。
-- 循环引用在 Handler 层前置拦截，输出 `⚠️ circular reference attempt` 日志并直接返回 400。
-- `refreshHierarchyPaths` 精简为只刷新子树，当前节点由重算逻辑负责写回。
+## 1. 问题定位与根因分析
 
-代码参考：
-- `cmd/organization-command-service/internal/repository/organization.go`
-- `cmd/organization-command-service/internal/handlers/organization.go`
+### 1.1 真正的问题
 
----
+通过深入测试和验证，发现组织层级修改失败的根本原因是**时态约束违反**：
 
-## 2. 待测试项目
-1. **父级切换后数据同步**  
-   - 接口：`PUT /organization-units/{code}/history/{record_id}`  
-   - 期望：响应及数据库中 `level`=新层级、`path`/`code_path`/`name_path` 正确写回；查看 `recalculateSelfHierarchy` 日志确认。
-2. **循环引用防护**  
-   - 请求 `parentCode = self` 或子孙节点  
-   - 期望：HTTP 400 + 错误码 `BUSINESS_RULE_VIOLATION`，日志出现 `circular reference attempt`；库中无残留更新。
-3. **前端展示一致性**  
-   - 页面：`/organizations/{code}/temporal`  
-   - 期望：层级显示与数据库字段一致；路径/面包屑正常。
-4. **数据一致性校验（可选）**  
-   - SQL 或 `TemporalService.RecomputeTimelineForCode`  
-   - 期望：抽样组织（例如 1000009）`level=2`、`code_path=/1000000/1000009`，无异常记录。
+**核心问题**：尝试在2025-01-01将组织单元1000057的上级设为1000006，但1000006的生效日期是2025-04-01，在指定的修改生效日期时该组织尚不存在，违反了时态数据的逻辑一致性。
 
----
+**问题验证过程**：
+1. 初步怀疑路径数据不一致 → 修复后仍然失败
+2. 检查时态数据结构 → 发现1000056存在多个历史版本（正常）
+3. 深入分析验证逻辑 → 发现时态约束验证正常工作
 
-## 3. 验收标准
-- 组织 `1000009` 从 `1000056` 迁至 `1000000` 后：
-  - `level` 由 3 降至 2；
-  - `code_path`/`name_path` 更新为 `/1000000/1000009` 对应值；
-  - 前端层级显示与数据库一致；
-  - 循环引用请求返回 400，数据库无变更。
-- 技术验证：
-  - `recalculateSelfHierarchy` 调用日志在复测中可见；
-  - 循环引用校验覆盖直接、间接、自引用场景；
-  - 级联刷新在目标规模（可先以现有数据验证）内表现正常。
+**结论**：这是一个**设计正确的业务规则验证**，防止了时态数据的逻辑错误。系统行为符合预期，但用户体验需要优化。
+
+### 1.2 相关数据结构
+
+```sql
+-- 组织1000006的时态信息
+code: 1000006, name: E2E一体化测试部
+effective_date: 2025-04-01, parent_code: 1000000
+
+-- 组织1000057的当前记录
+code: 1000057, name: 人力资源部
+effective_date: 2025-01-01, parent_code: 1000056
+
+-- 尝试的修改：在2025-01-01生效日期下，将1000057的上级改为1000006
+-- 失败原因：1000006在2025-01-01时不存在（2025-04-01才生效）
+```
 
 ---
 
-## 4. 新发现的问题（2025-09-21测试）
+## 2. 用户体验优化需求
 
-### 4.1 JWT认证失败导致组织修改操作退回登录页面
+### 2.1 优化点1：时态感知的上级组织筛选
 
-**问题描述**：
-在前端页面点击"修改记录"并提交修改后，请求返回401 Unauthorized错误，页面自动跳转到登录页面。
+**问题**：上级组织下拉框显示所有组织，不考虑指定生效日期的可用性。
 
-**复现步骤**：
-1. 访问 http://localhost:3000/organizations
-2. 点击任意组织的"详情管理"按钮
-3. 在组织详情页点击"修改记录"
-4. 修改任意字段（包括上级组织）
-5. 点击"提交修改"
-6. 观察到页面自动跳转到登录页
+**优化目标**：
+- 根据当前记录的生效日期，只显示在该日期有效且状态为ACTIVE的组织
+- 避免用户选择在时态上不合法的组织
 
-**错误详情**：
-- **API端点**：`PUT /api/v1/organization-units/{code}/history/{record_id}`
-- **HTTP状态**：401 Unauthorized
-- **服务器日志**：
-  ```
-  rest_middleware.go:84: Dev mode: JWT validation failed:
-  token parsing failed: token is unverifiable:
-  error while executing keyfunc: no public key available for RS256
-  ```
-- **前端日志**：
-  ```
-  [REST Client] 401 未认证，尝试强制刷新令牌并重试一次
-  [OAuth] 正在获取新的访问令牌...
-  [OAuth] 访问令牌获取成功，有效期: 3600 秒
-  Error: 认证已过期，请刷新页面重新登录
-  ```
+**实施策略**：坚持 CQRS 原则，不新增 REST 端点，通过扩展现有 `organizations` GraphQL 查询实现所有过滤能力，最大化契约复用。
 
-**网络请求分析**：
-1. `POST /auth/dev-token` => 200 OK（令牌获取成功）
-2. `PUT /api/v1/organization-units/{code}/history/{record_id}` => 401（第一次失败）
-3. `POST /auth/dev-token` => 200 OK（重新获取令牌）
-4. `PUT /api/v1/organization-units/{code}/history/{record_id}` => 401（重试仍失败）
+**技术实现方案**：
 
-**问题分析结果（2025-09-21）**：
-- 复核 `cmd/organization-command-service/internal/auth/jwt.go` 的校验逻辑可知，当RS256模式下既未配置JWKS也未成功解析本地公钥时，将直接返回 `no public key available for RS256` 错误。
-- 本地复测 `make run-dev` 启动后，通过 `POST /auth/dev-token` 取得的令牌头部携带 `kid=bff-key-1`，但命令服务运行日志持续输出 `Dev mode: JWT validation failed: token parsing failed: token is unverifiable: error while executing keyfunc: no public key available for RS256`。
-- 进一步检查进程环境变量，发现 `JWT_PUBLIC_KEY_PATH` 未被注入（或指向不存在的文件），导致 `ParseRSAPublicKeyFromPEM` 未能写入 `publicKey` 字段，从而在验证阶段报错。
+1. **GraphQL契约扩展**：
+   - 在 `docs/api/schema.graphql` 的 `OrganizationFilter` 中新增可选字段 `excludeCodes`、`excludeDescendantsOf`（数组/单值均可），以复用既有 `organizations(filter: ...)` 查询。
+   - 更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 相关条目，保持契约单一来源。
 
-**根因定位**：
-1. 命令服务在开发模式下强制 RS256，但 `JWT_PUBLIC_KEY_PATH`/`JWT_PRIVATE_KEY_PATH` 没有随启动脚本正确挂载，或对应 `secrets/dev-jwt-public.pem` 缺失。
-2. 由于 `kid` 存在且 JWKS 未开启，`ValidateToken` 只能依赖内置公钥；缺失后所有需要认证的 REST API 均返回 401。
-3. 前端刷新令牌仍复用相同签名算法，因后端无法加载公钥，重试无效，触发登录态清除。
+2. **查询服务复用实现**：
+   ```go
+   // cmd/organization-query-service/main.go
+   type OrganizationFilter struct {
+       // ...现有字段
+       ExcludeCodes          *[]string `json:"excludeCodes"`
+       ExcludeDescendantsOf  *string   `json:"excludeDescendantsOf"`
+   }
 
-**影响范围**：
-- 所有组织历史记录修改操作（`PUT /api/v1/organization-units/{code}/history/{record_id}`），及任何命令服务需要认证的 REST 接口。
-- 查询服务（GraphQL）在默认 `make run-dev` 下通过 JWKS 校验，不受该问题影响。
-
-**解决方案建议**：
-1. **修复环境变量**：在启动命令服务前执行 `make jwt-dev-setup`，确认生成 `secrets/dev-jwt-*.pem`，并通过 `echo $JWT_PUBLIC_KEY_PATH` 验证路径是否注入；必要时在 VSCode/IDE 运行配置中显式添加这两个变量。
-2. **启动自检**：为命令服务增加启动期检查日志（或失败即退出），确认 `JWT_PUBLIC_KEY_PATH` 文件存在且成功解析，避免在运行期才暴露认证错误。
-3. **提供兜底 JWKS**：启用 `make run-auth-rs256-sim` 或配置 `JWT_JWKS_URL=http://localhost:9090/.well-known/jwks.json`，让校验逻辑在公钥缺失时可回退到在线 JWKS。
-4. **前端容错**：在前端的 401 重试逻辑中，捕获 `DEV_INVALID_TOKEN`/`INVALID_TOKEN` 的特定错误提示，引导开发者检查本地密钥配置，减少误判为登录过期。
-
-**后续动作**：
-- 修复后需再次执行组织历史记录修改流程，确认 200 响应、页面不再跳转登录，并记录服务日志截图。
-- 建议补充脚本 `scripts/dev/check-jwt-env.sh`（或在现有启动脚本内嵌）用于 CI/本地预检查，结果回填至本档案。
-
-### 4.2 验证结果（2025-09-21 14:02）
-
-**验证步骤执行结果**：
-
-1. **获取开发令牌** ✅
-   ```bash
-   POST /auth/dev-token => 200 OK
-   Response: {"success":true, "data":{"token":"eyJ..."}}
+   func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, filter *OrganizationFilter, pagination *PaginationInput) (*OrganizationConnection, error) {
+       // 在生成 SQL 时追加 WHERE NOT (code = ANY(excludeCodes))
+       // 且基于 hierarchy_repo.GetAncestorChain/现有码路径缓存排除子孙节点
+   }
    ```
 
-2. **查询历史记录** ✅
-   ```sql
-   record_id: d06c8e73-e487-4fdc-abc0-1ecfd0129420
-   code: 1000009
-   name: TEST FINAL STATE
-   ```
-
-3. **调用历史记录更新接口** ✅
-   ```bash
-   PUT /api/v1/organization-units/1000009/history/d06c8e73-e487-4fdc-abc0-1ecfd0129420
-   Response: HTTP/1.1 200 OK
-   {
-     "success": true,
-     "data": {
-       "code": "1000009",
-       "description": "RS256 dev token validation OK",
-       "changeReason": "fix rs256 public key",
-       "updatedAt": "2025-09-21T06:02:04.427577Z"
+3. **客户端查询示例**：
+   ```graphql
+   query AvailableParents($asOfDate: String!, $excludeCode: String!) {
+     organizations(
+       filter: {
+         asOfDate: $asOfDate
+         status: ACTIVE
+         excludeCodes: [$excludeCode]
+         excludeDescendantsOf: $excludeCode
+       }
+       pagination: { page: 1, pageSize: 50 }
+     ) {
+       nodes { code name parentCode effectiveDate }
      }
    }
    ```
 
-4. **前端验证** ✅
-   - 页面成功跳转至 `/organizations/1000009/temporal`
-   - 描述字段显示："RS256 dev token validation OK"
-   - 最后更新时间："2025/9/21 14:02:04"
-   - 控制台日志："[OAuth] 访问令牌获取成功，有效期: 3600 秒"
+2. **前端组件优化**：
+   ```typescript
+   // 在 ParentOrganizationCombobox 组件中复用 GraphQL 查询
+   const effectiveDate = form.watch('effectiveDate');
 
-**验证结论**：
-- ✅ RS256令牌认证成功（使用正确的JWT_PUBLIC_KEY_PATH环境变量）
-- ✅ 历史记录修改API调用成功
-- ✅ 前端保持登录状态且数据更新正确显示
-- ✅ 验证了问题根因确实为JWT公钥配置缺失
+   const { data: availableParents, isFetching } = useQuery({
+     queryKey: ['availableParents', organizationCode, effectiveDate],
+     enabled: Boolean(effectiveDate),
+     queryFn: () => organizationGraphQL.fetchOrganizations({
+       filter: {
+         asOfDate: effectiveDate,
+         status: 'ACTIVE',
+         excludeCodes: [organizationCode],
+         excludeDescendantsOf: organizationCode,
+       },
+       pagination: { page: 1, pageSize: 50 },
+     }),
+   });
+
+   useEffect(() => {
+     setAvailableOrganizations(availableParents?.nodes ?? []);
+   }, [availableParents]);
+  ```
+
+3. **用户界面提示**：
+   ```tsx
+   <ComboboxInput
+       placeholder="搜索并选择上级组织..."
+       helperText={`显示在 ${effectiveDate} 有效且状态为 ACTIVE 的组织`}
+       emptyText="在指定日期没有可用的上级组织"
+       loading={isFetching}
+   />
+   ```
+
+### 2.2 优化点2：友好的错误提示
+
+**问题**：当前错误提示过于技术化，用户无法理解失败原因。
+
+**当前提示**：
+- "操作失败修改失败，请检查网络连接"
+- "业务规则校验失败"
+
+**优化目标**：
+- 提供具体、可操作的错误信息
+- 指导用户如何正确操作
+
+**技术实现方案**：
+
+1. **后端错误详细化**：
+   ```go
+   func (v *BusinessRuleValidator) validateTemporalParentChange(ctx context.Context, tenantID uuid.UUID, parentCode string, effectiveDate time.Time, result *ValidationResult) error {
+       parentAtDate, err := v.hierarchyRepo.GetOrganizationAtDate(ctx, parentCode, effectiveDate, tenantID)
+       if err != nil {
+           return fmt.Errorf("查询父组织时态失败: %w", err)
+       }
+
+       if parentAtDate == nil {
+           latestParent, _ := v.hierarchyRepo.GetOrganization(ctx, parentCode, tenantID)
+
+           message := fmt.Sprintf("上级组织 %s 在指定生效日期 %s 不存在或未激活。",
+               parentCode, effectiveDate.Format("2006-01-02"))
+           context := map[string]interface{}{}
+
+           if latestParent != nil && latestParent.EffectiveDate != nil {
+               nextDate := latestParent.EffectiveDate.String()
+               message += fmt.Sprintf(" 可选择在 %s 之后生效，或更换上级组织。", nextDate)
+               context["suggestedDate"] = nextDate
+               context["parentName"] = latestParent.Name
+           }
+
+           result.Errors = append(result.Errors, ValidationError{
+               Code:     "TEMPORAL_PARENT_UNAVAILABLE",
+               Message:  message,
+               Field:    "parentCode",
+               Value:    parentCode,
+               Severity: "HIGH",
+               Context:  context,
+           })
+
+           return nil
+       }
+
+       return nil
+   }
+   ```
+
+2. **前端错误处理优化**：
+   ```typescript
+   // 在 useOrganizationMutation 中
+   const getErrorMessage = (error: ApiError) => {
+       if (error.code === 'TEMPORAL_PARENT_UNAVAILABLE') {
+           const actions = [];
+           if (error.context?.suggestedDate) {
+               actions.push({
+                   label: `调整至 ${error.context.suggestedDate}`,
+                   onClick: () => form.setValue('effectiveDate', error.context.suggestedDate),
+               });
+           }
+           actions.push({
+               label: '重新选择上级组织',
+               onClick: () => form.setValue('parentCode', null),
+           });
+
+           return {
+               title: '上级组织不可用',
+               message: error.message,
+               type: 'warning',
+               actions,
+           };
+       }
+       // 处理其他错误类型...
+   };
+   ```
+
+3. **用户界面优化**：
+   ```tsx
+   <ErrorAlert
+       title={errorInfo.title}
+       message={errorInfo.message}
+       type={errorInfo.type}
+       actions={errorInfo.actions}
+       dismissible
+   />
+   ```
 
 ---
 
-复测完成后请将结果（含日志、请求/响应、数据库快照）同步回本页或对应 Issue，以便归档。
+## 3. 实施计划
+
+### 3.1 Phase 1: 后端API优化（预估2天）
+
+**负责团队**：后端组
+**优先级**：高
+
+**任务清单**：
+1. 在 `docs/api/schema.graphql` 中扩展 `OrganizationFilter`，并同步实现清单/契约文档
+2. 调整 `organization-query-service` 的 `OrganizationFilter` 及 SQL 生成逻辑，复用现有 `GetOrganizations`
+3. 优化 `BusinessRuleValidator` 时态父级校验，复用现有仓储并补充安全提示
+4. 编写/更新单测与集成测试覆盖过滤与错误信息
+
+**验收标准**：
+- `organizations(filter: { asOfDate: "2025-01-01", status: ACTIVE, excludeCodes: ["1000057"], excludeDescendantsOf: "1000057" })` 仅返回在指定日期有效且非自身/非子孙的组织
+- 时态约束验证失败时返回具体的错误信息和建议操作，GraphQL/REST 返回结构保持契约一致
+
+### 3.2 Phase 2: 前端体验优化（预估3天）
+
+**负责团队**：前端组
+**优先级**：高
+
+**任务清单**：
+1. 重构 ParentOrganizationCombobox 组件，复用 GraphQL organizations 查询实现时态感知筛选
+2. 实现智能错误处理和用户引导
+3. 添加加载状态和空状态处理
+4. 优化表单验证和用户反馈
+
+**验收标准**：
+- 上级组织下拉框只显示在指定生效日期可用的组织
+- 错误提示具体明确，说明失败原因和操作建议
+- 用户界面响应流畅，加载状态清晰
+
+### 3.3 Phase 3: 集成测试与优化（预估1天）
+
+**负责团队**：测试组 + 前后端组
+**优先级**：中
+
+**任务清单**：
+1. 端到端测试时态约束场景
+2. 用户体验走查和反馈收集
+3. 性能优化和缓存策略
+4. 文档更新和知识分享
+
+---
+
+## 4. 技术细节
+
+### 4.1 时态查询优化
+
+```sql
+-- 复用 organizations 查询的过滤模板，新增排除逻辑
+WITH latest_versions AS (
+    SELECT DISTINCT ON (code)
+        code,
+        parent_code,
+        name,
+        level,
+        COALESCE(code_path, code) AS code_path,
+        effective_date,
+        end_date,
+        status
+    FROM organization_units
+    WHERE tenant_id = $1
+      AND effective_date <= $2
+      AND (end_date IS NULL OR end_date > $2)
+    ORDER BY code, effective_date DESC
+)
+SELECT *
+FROM latest_versions
+WHERE status = 'ACTIVE'
+  AND ( $3 IS NULL OR code <> $3 )
+  AND ( $4 IS NULL OR code_path NOT LIKE $4 || '/%')
+ORDER BY name;
+```
+
+> 注：参数 `$4` 为待排除组织的 `code_path` 前缀，直接复用 `HierarchyRepository.GetCodePath` 的结果，可避免重复实现循环校验逻辑。
+
+### 4.2 错误分类与处理
+
+```typescript
+export enum TemporalValidationError {
+    PARENT_NOT_AVAILABLE = 'TEMPORAL_PARENT_UNAVAILABLE',
+    CIRCULAR_REFERENCE = 'CIRCULAR_REFERENCE',
+    DEPTH_EXCEEDED = 'DEPTH_EXCEEDED',
+    INVALID_EFFECTIVE_DATE = 'INVALID_EFFECTIVE_DATE'
+}
+
+export interface ValidationErrorContext {
+    suggestedDate?: string;
+    parentName?: string;
+    maxDepth?: number;
+    conflictingCodes?: string[];
+}
+```
+
+---
+
+## 5. 预期收益
+
+### 5.1 用户体验提升
+
+- **减少操作错误**：用户无法选择在时态上不合法的组织
+- **明确错误指导**：具体的错误信息和操作建议
+- **操作效率提升**：避免反复试错，直接定位到可行方案
+
+### 5.2 系统稳定性
+
+- **数据一致性保障**：从UI层面预防时态约束违反
+- **错误处理标准化**：统一的错误格式和处理流程
+- **调试效率提升**：清晰的错误日志和用户反馈
+
+### 5.3 维护成本降低
+
+- **支持工单减少**：用户能够自主解决常见的操作问题
+- **培训成本降低**：直观的界面减少用户学习成本
+- **代码质量提升**：统一的错误处理和验证逻辑
+
+---
+
+## 6. 风险评估与缓解
+
+### 6.1 技术风险
+
+**风险**：时态查询性能影响
+**缓解措施**：
+- 实施前先通过现有 APM 指标基线评估查询时间；若落地后 P95 > 200ms，再按需加索引 (effective_date, end_date, status)
+- 仅在真实瓶颈出现时启用缓存（记录触发条件及回滚方案）
+- 将关键查询纳入 `reports/performance/` 监控，版本上线后连续两周跟踪指标
+
+**风险**：错误信息国际化复杂性
+**缓解措施**：
+- 使用结构化的错误代码和模板
+- 分离错误逻辑和展示逻辑
+- 预留多语言支持的架构
+
+### 6.2 业务风险
+
+**风险**：现有工作流程改变
+**缓解措施**：
+- 保持向后兼容，渐进式部署
+- 提供用户培训和文档更新
+- 收集用户反馈并快速响应
+
+---
+
+## 7. 验收与交付
+
+### 7.1 验收场景
+
+1. **时态约束正确处理**：
+   - 在2025-01-01修改1000057时，上级组织列表不包含1000006
+   - 选择1000000等在该日期有效的组织可以成功保存
+
+2. **错误提示友好性**：
+   - 违反时态约束时显示具体的错误原因和操作建议
+   - 错误信息清晰易懂，指导用户如何修正
+
+3. **性能表现**：
+   - 上级组织查询响应时间 < 500ms
+   - 界面操作流畅，无明显卡顿
+
+### 7.2 交付物
+
+1. **代码实现**：前后端优化代码，包含完整的单元测试
+2. **API文档**：更新的接口文档和错误码说明
+3. **用户指南**：操作手册和常见问题解答
+4. **技术文档**：架构说明和维护指南
+
+---
+
+**下一步行动**：前端组和后端组协调排期，启动Phase 1的API优化开发工作。

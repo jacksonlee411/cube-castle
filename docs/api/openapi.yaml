@@ -982,6 +982,7 @@ paths:
         - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/CodePathParam'
         - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -1002,6 +1003,11 @@ paths:
       responses:
         '200':
           description: Organization unit suspended successfully
+          headers:
+            ETag:
+              description: Latest version identifier for optimistic concurrency control.
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -1092,6 +1098,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1125,6 +1133,7 @@ paths:
         - $ref: '#/components/parameters/TenantIdHeader'
         - $ref: '#/components/parameters/CodePathParam'
         - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -1145,6 +1154,11 @@ paths:
       responses:
         '200':
           description: Organization unit activated successfully
+          headers:
+            ETag:
+              description: Latest version identifier for optimistic concurrency control.
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -1209,6 +1223,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1553,6 +1569,19 @@ components:
         
         **Format**: Must be a valid UUID v4 format.
         **Usage**: Include in all API requests to ensure proper data isolation.
+    IfMatchHeader:
+      name: If-Match
+      in: header
+      required: false
+      schema:
+        type: string
+      example: 'W/"3b2a7d54"'
+      description: |
+        Optional optimistic concurrency control header.
+        Provide the latest ETag value returned by the API to ensure the
+        operation only proceeds if the resource has not been modified since
+        it was last fetched. If the ETag does not match, the API returns 412
+        PRECONDITION_FAILED.
     IdempotencyKeyHeader:
       name: Idempotency-Key
       in: header
@@ -2522,6 +2551,29 @@ components:
                     retryable: true
                 timestamp: "2025-08-23T10:30:00Z"
                 requestId: "req_temporal_tx_failed_001"
+
+    PreconditionFailed:
+      description: |
+        Precondition Failed - The provided If-Match ETag does not match the latest
+        resource version. Indicates the resource was modified after the client
+        retrieved its representation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            version_conflict:
+              summary: ETag Mismatch Conflict
+              value:
+                success: false
+                error:
+                  code: "VERSION_CONFLICT"
+                  message: "Resource was updated by another operation"
+                  details:
+                    providedEtag: 'W/"3b2a7d54"'
+                    currentEtag: 'W/"4c1f9b87"'
+                timestamp: "2025-08-23T10:30:00Z"
+                requestId: "req_precondition_failed_001"
 
     InternalError:
       description: |

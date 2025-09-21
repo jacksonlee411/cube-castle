@@ -201,6 +201,7 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parentError, setParentError] = useState<string>('');
+  const [suggestedEffectiveDate, setSuggestedEffectiveDate] = useState<string | undefined>(undefined);
   
   // 历史记录编辑相关状态
   const [isEditingHistory, setIsEditingHistory] = useState(false);
@@ -330,10 +331,14 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     if (parentError) {
       setParentError('');
     }
+    setSuggestedEffectiveDate(undefined);
   };
 
-  const handleParentOrganizationError = (message: string) => {
-    setParentError(message);
+  const handleParentOrganizationError = (message?: string) => {
+    setParentError(message ?? '');
+    if (!message) {
+      setSuggestedEffectiveDate(undefined);
+    }
   };
 
   // 计算编辑记录模式下的日期范围限制
@@ -535,6 +540,33 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     setShowDeactivateConfirm(false);
   };
 
+  const handleParentTemporalError = (error: unknown): boolean => {
+    const apiError = error as { code?: string; message?: string; details?: unknown } | undefined;
+    if (apiError?.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
+      return false;
+    }
+
+    let message = typeof apiError.message === 'string' ? apiError.message : '上级组织在指定日期不可用';
+    let suggested: string | undefined;
+
+    if (Array.isArray(apiError.details)) {
+      const detail = apiError.details.find((item: any) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE') as
+        | { message?: string; context?: { suggestedDate?: string } }
+        | undefined;
+      if (detail?.message && typeof detail.message === 'string') {
+        message = detail.message;
+      }
+      const candidate = detail?.context?.suggestedDate;
+      if (typeof candidate === 'string' && candidate.trim().length > 0) {
+        suggested = candidate;
+      }
+    }
+
+    setParentError(message);
+    setSuggestedEffectiveDate(suggested);
+    return true;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
@@ -560,18 +592,21 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
     try {
       // 统一使用onSubmit处理
       await onSubmit(formData);
-      
+
       // Phase 7.3 - 显示成功消息
       setSuccessMessage(
         currentMode === 'create' ? '组织创建成功！' : '版本记录保存成功！'
       );
-      
+
     } catch (error) {
       console.error('提交表单失败:', error);
-      
+
       // Phase 7.3 - 增强错误处理
-      const errorMessage = error instanceof Error ? error.message : '操作失败，请重试';
-      setError(`${currentMode === 'create' ? '创建组织失败' : '保存记录失败'}: ${errorMessage}`);
+      if (!handleParentTemporalError(error)) {
+        setSuggestedEffectiveDate(undefined);
+        const errorMessage = error instanceof Error ? error.message : '操作失败，请重试';
+        setError(`${currentMode === 'create' ? '创建组织失败' : '保存记录失败'}: ${errorMessage}`);
+      }
     } finally {
       // Phase 7.3 - 清理加载状态
       setLoading(false);
@@ -712,6 +747,28 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
                   <Text typeLevel="subtext.small" color="error" marginTop="xs">
                     {parentError}
                   </Text>
+                )}
+                {suggestedEffectiveDate && (
+                  <Flex gap="s" marginTop="xs">
+                    <SecondaryButton
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, effectiveDate: suggestedEffectiveDate }));
+                        setSuggestedEffectiveDate(undefined);
+                        setParentError('');
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      调整生效日期至 {suggestedEffectiveDate}
+                    </SecondaryButton>
+                    <SecondaryButton
+                      type="button"
+                      onClick={() => handleParentOrganizationChange(undefined)}
+                      disabled={isSubmitting}
+                    >
+                      重新选择上级组织
+                    </SecondaryButton>
+                  </Flex>
                 )}
                 <Text typeLevel="subtext.small" color="hint" marginTop="xs">
                   仅允许选择在生效日期有效且状态为 ACTIVE 的组织

@@ -211,6 +211,8 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 基于 `docs/api/schema.graphql` 文件识别的查询字段：
 - `organizations` - 组织列表查询
 - `filter` - 查询过滤器
+- `filter.excludeCodes` - 需要排除的组织编码列表（避免自选）
+- `filter.excludeDescendantsOf` - 排除指定组织及其子孙（利用 code_path 前缀）
 - `pagination` - 分页参数
 - `organization` - 单个组织查询
 - `code` - 组织编码参数

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"organization-command-service/internal/repository"
@@ -25,13 +27,24 @@ type ValidationResult struct {
 	Context  map[string]interface{} `json:"context"`
 }
 
+// NewValidationResult 创建默认有效的验证结果
+func NewValidationResult() *ValidationResult {
+	return &ValidationResult{
+		Valid:    true,
+		Errors:   []ValidationError{},
+		Warnings: []ValidationWarning{},
+		Context:  make(map[string]interface{}),
+	}
+}
+
 // ValidationError 验证错误
 type ValidationError struct {
-	Code     string      `json:"code"`
-	Message  string      `json:"message"`
-	Field    string      `json:"field,omitempty"`
-	Value    interface{} `json:"value,omitempty"`
-	Severity string      `json:"severity"` // CRITICAL, HIGH, MEDIUM, LOW
+	Code     string                 `json:"code"`
+	Message  string                 `json:"message"`
+	Field    string                 `json:"field,omitempty"`
+	Value    interface{}            `json:"value,omitempty"`
+	Severity string                 `json:"severity"` // CRITICAL, HIGH, MEDIUM, LOW
+	Context  map[string]interface{} `json:"context,omitempty"`
 }
 
 // ValidationWarning 验证警告
@@ -90,6 +103,12 @@ func (v *BusinessRuleValidator) ValidateOrganizationCreation(ctx context.Context
 	if req.ParentCode != nil {
 		if err := v.validateDepthLimit(ctx, req.ParentCode, tenantID, result); err != nil {
 			v.logger.Printf("深度限制验证失败: %v", err)
+		}
+	}
+
+	if req.ParentCode != nil && *req.ParentCode != "" && req.EffectiveDate != nil {
+		if err := v.validateTemporalParentAvailability(ctx, tenantID, *req.ParentCode, req.EffectiveDate.Time, result); err != nil {
+			v.logger.Printf("时态父级验证失败: %v", err)
 		}
 	}
 
@@ -162,6 +181,25 @@ func (v *BusinessRuleValidator) ValidateOrganizationUpdate(ctx context.Context, 
 		}
 	}
 
+	if req.ParentCode != nil && *req.ParentCode != "" {
+		var (
+			effectiveAt  time.Time
+			hasEffective bool
+		)
+		if req.EffectiveDate != nil {
+			effectiveAt = req.EffectiveDate.Time
+			hasEffective = true
+		} else if existingOrg != nil && existingOrg.EffectiveDate != nil {
+			effectiveAt = existingOrg.EffectiveDate.Time
+			hasEffective = true
+		}
+		if hasEffective {
+			if err := v.validateTemporalParentAvailability(ctx, tenantID, *req.ParentCode, effectiveAt, result); err != nil {
+				v.logger.Printf("时态父级可用性验证失败: %v", err)
+			}
+		}
+	}
+
 	result.Valid = len(result.Errors) == 0
 	return result
 }
@@ -229,6 +267,51 @@ func (v *BusinessRuleValidator) validateDepthLimit(ctx context.Context, parentCo
 	}
 
 	return nil
+}
+
+func (v *BusinessRuleValidator) validateTemporalParentAvailability(ctx context.Context, tenantID uuid.UUID, parentCode string, effectiveDate time.Time, result *ValidationResult) error {
+	parentAtDate, err := v.hierarchyRepo.GetOrganizationAtDate(ctx, parentCode, tenantID, effectiveDate)
+	if err != nil {
+		return fmt.Errorf("查询父组织时态失败: %w", err)
+	}
+
+	if parentAtDate == nil || strings.ToUpper(parentAtDate.Status) != "ACTIVE" {
+		context := map[string]interface{}{}
+		message := fmt.Sprintf("上级组织 %s 在指定生效日期 %s 不存在或未激活。", parentCode, effectiveDate.Format("2006-01-02"))
+
+		if latestParent, latestErr := v.hierarchyRepo.GetOrganization(ctx, parentCode, tenantID); latestErr == nil && latestParent != nil {
+			context["parentName"] = latestParent.Name
+			if latestParent.EffectiveDate != nil {
+				suggested := latestParent.EffectiveDate.String()
+				if suggested != "" {
+					context["suggestedDate"] = suggested
+					message += fmt.Sprintf(" 可选择在 %s 之后生效，或更换上级组织。", suggested)
+				}
+			}
+		}
+
+		result.Errors = append(result.Errors, ValidationError{
+			Code:     "TEMPORAL_PARENT_UNAVAILABLE",
+			Message:  message,
+			Field:    "parentCode",
+			Value:    parentCode,
+			Severity: "HIGH",
+			Context:  context,
+		})
+		result.Valid = false
+	}
+
+	return nil
+}
+
+// ValidateTemporalParentAvailability 导出校验结果，供Handler复用
+func (v *BusinessRuleValidator) ValidateTemporalParentAvailability(ctx context.Context, tenantID uuid.UUID, parentCode string, effectiveDate time.Time) *ValidationResult {
+	result := NewValidationResult()
+	if err := v.validateTemporalParentAvailability(ctx, tenantID, parentCode, effectiveDate, result); err != nil {
+		v.logger.Printf("时态父级可用性验证失败: %v", err)
+	}
+	result.Valid = len(result.Errors) == 0
+	return result
 }
 
 // validateCircularReference 检测循环引用
@@ -390,6 +473,11 @@ func (v *BusinessRuleValidator) validateStatusTransition(currentStatus, newStatu
 			Severity: "HIGH",
 		})
 		return fmt.Errorf("invalid current status: %s", currentStatus)
+	}
+
+	// 状态未发生变化时允许幂等更新
+	if currentStatus == newStatus {
+		return nil
 	}
 
 	// 检查目标状态是否合法
