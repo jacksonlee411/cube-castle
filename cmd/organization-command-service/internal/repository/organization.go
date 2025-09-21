@@ -23,6 +23,105 @@ func NewOrganizationRepository(db *sql.DB, logger *log.Logger) *OrganizationRepo
 	return &OrganizationRepository{db: db, logger: logger}
 }
 
+type hierarchyFields struct {
+	path     string
+	codePath string
+	namePath string
+	level    int
+	oldLevel int
+}
+
+func ensureJoinedPath(base, segment string) string {
+	base = strings.TrimSpace(base)
+	segment = strings.TrimSpace(segment)
+	base = strings.TrimRight(base, "/")
+	segment = strings.TrimLeft(segment, "/")
+	if base == "" {
+		return "/" + segment
+	}
+	return base + "/" + segment
+}
+
+func (r *OrganizationRepository) recalculateSelfHierarchy(ctx context.Context, tenantID uuid.UUID, code string, recordID *string, parentCode *string, overrideName *string) (*hierarchyFields, error) {
+	var (
+		resolvedCode string
+		currentName  string
+		currentLevel int
+	)
+
+	if recordID != nil {
+		err := r.db.QueryRowContext(ctx, `
+			SELECT code, name, level
+			FROM organization_units
+			WHERE tenant_id = $1 AND record_id = $2 AND status <> 'DELETED' AND deleted_at IS NULL
+			LIMIT 1
+		`, tenantID.String(), *recordID).Scan(&resolvedCode, &currentName, &currentLevel)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, fmt.Errorf("记录不存在: %s", *recordID)
+			}
+			return nil, fmt.Errorf("查询组织记录失败: %w", err)
+		}
+	} else {
+		resolvedCode = code
+		err := r.db.QueryRowContext(ctx, `
+			SELECT name, level
+			FROM organization_units
+			WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+			LIMIT 1
+		`, tenantID.String(), code).Scan(&currentName, &currentLevel)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, fmt.Errorf("组织不存在或已删除不可修改: %s", code)
+			}
+			return nil, fmt.Errorf("查询组织失败: %w", err)
+		}
+	}
+
+	finalName := currentName
+	if overrideName != nil {
+		finalName = strings.TrimSpace(*overrideName)
+	}
+
+	if resolvedCode == "" {
+		resolvedCode = code
+	}
+
+	fields := &hierarchyFields{oldLevel: currentLevel}
+
+	if parentCode == nil {
+		fields.level = 1
+		fields.path = ensureJoinedPath("", resolvedCode)
+		fields.codePath = ensureJoinedPath("", resolvedCode)
+		fields.namePath = ensureJoinedPath("", finalName)
+	} else {
+		var parentCodePath, parentNamePath string
+		var parentLevel int
+		err := r.db.QueryRowContext(ctx, `
+			SELECT COALESCE(NULLIF(code_path, ''), '/' || code),
+			       COALESCE(NULLIF(name_path, ''), '/' || name),
+			       level
+			FROM organization_units
+			WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+			LIMIT 1
+		`, tenantID.String(), *parentCode).Scan(&parentCodePath, &parentNamePath, &parentLevel)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, fmt.Errorf("父组织不存在: %s", *parentCode)
+			}
+			return nil, fmt.Errorf("查询父组织失败: %w", err)
+		}
+
+		fields.level = parentLevel + 1
+		fields.path = ensureJoinedPath(parentCodePath, resolvedCode)
+		fields.codePath = ensureJoinedPath(parentCodePath, resolvedCode)
+		fields.namePath = ensureJoinedPath(parentNamePath, finalName)
+	}
+
+	r.logger.Printf("recalculateSelfHierarchy: code=%s oldLevel=%d newLevel=%d path=%s", resolvedCode, fields.oldLevel, fields.level, fields.path)
+	return fields, nil
+}
+
 func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid.UUID) (string, error) {
 	// 从1000000开始寻找第一个可用的7位数代码 - 修复：直接搜索而非依赖MAX
 	for nextCode := 1000000; nextCode <= 9999999; nextCode++ {
@@ -187,8 +286,11 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		argIndex++
 	}
 
+	var nameOverride *string
 	if req.Name != nil {
-		addAssignment("name", *req.Name)
+		trimmedName := strings.TrimSpace(*req.Name)
+		addAssignment("name", trimmedName)
+		nameOverride = &trimmedName
 	}
 
 	if req.UnitType != nil {
@@ -204,7 +306,26 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	}
 
 	if req.ParentCode != nil {
-		addAssignment("parent_code", *req.ParentCode)
+		trimmed := strings.TrimSpace(*req.ParentCode)
+		var normalizedParent *string
+		if trimmed != "" {
+			normalizedParent = &trimmed
+		}
+
+		fields, err := r.recalculateSelfHierarchy(ctx, tenantID, code, nil, normalizedParent, nameOverride)
+		if err != nil {
+			return nil, err
+		}
+
+		if normalizedParent != nil {
+			addAssignment("parent_code", *normalizedParent)
+		} else {
+			addAssignment("parent_code", nil)
+		}
+		addAssignment("path", fields.path)
+		addAssignment("level", fields.level)
+		addAssignment("code_path", fields.codePath)
+		addAssignment("name_path", fields.namePath)
 	}
 
 	if req.EffectiveDate != nil {
@@ -388,8 +509,11 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 		argIndex++
 	}
 
+	var nameOverride *string
 	if req.Name != nil {
-		addAssignment("name", *req.Name)
+		trimmedName := strings.TrimSpace(*req.Name)
+		addAssignment("name", trimmedName)
+		nameOverride = &trimmedName
 	}
 
 	if req.UnitType != nil {
@@ -409,7 +533,26 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 	}
 
 	if req.ParentCode != nil {
-		addAssignment("parent_code", *req.ParentCode)
+		trimmed := strings.TrimSpace(*req.ParentCode)
+		var normalizedParent *string
+		if trimmed != "" {
+			normalizedParent = &trimmed
+		}
+
+		fields, err := r.recalculateSelfHierarchy(ctx, tenantID, "", &recordId, normalizedParent, nameOverride)
+		if err != nil {
+			return nil, err
+		}
+
+		if normalizedParent != nil {
+			addAssignment("parent_code", *normalizedParent)
+		} else {
+			addAssignment("parent_code", nil)
+		}
+		addAssignment("path", fields.path)
+		addAssignment("level", fields.level)
+		addAssignment("code_path", fields.codePath)
+		addAssignment("name_path", fields.namePath)
 	}
 
 	if req.EffectiveDate != nil {

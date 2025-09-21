@@ -57,10 +57,11 @@ func main() {
 	}
 
 	var (
-		orgRepo        *repository.OrganizationRepository
-		hierarchyRepo  *repository.HierarchyRepository
-		cascadeService *services.CascadeUpdateService
-		auditLogger    *audit.AuditLogger
+		orgRepo           *repository.OrganizationRepository
+		hierarchyRepo     *repository.HierarchyRepository
+		cascadeService    *services.CascadeUpdateService
+		auditLogger       *audit.AuditLogger
+		businessValidator *validators.BusinessRuleValidator
 	)
 	if !authOnlyMode {
 		// 初始化仓储层
@@ -69,8 +70,7 @@ func main() {
 
 		// 初始化业务服务层
 		cascadeService = services.NewCascadeUpdateService(hierarchyRepo, 4, logger)
-		// TODO-TEMPORARY: BusinessRuleValidator is initialized but not wired; integrate rule checks in v4.3 by 2025-09-20.
-		_ = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)
+		businessValidator = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)
 		auditLogger = audit.NewAuditLogger(db, logger)
 
 		// 启动级联更新服务
@@ -163,7 +163,7 @@ func main() {
 		operationalHandler *handlers.OperationalHandler
 	)
 	if !authOnlyMode {
-		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager)
+		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager, hierarchyRepo, businessValidator)
 		operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, rateLimitMiddleware, logger)
 	}
 	// 开发工具路由即使在 authOnly 模式下也允许初始化（内部会根据 devMode 控制）

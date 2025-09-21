@@ -40,6 +40,7 @@ func NewHierarchyRepository(db *sql.DB, logger *log.Logger) *HierarchyRepository
 	}
 }
 
+
 // GetOrganizationHierarchy 获取组织层级结构 (递归CTE查询)
 func (h *HierarchyRepository) GetOrganizationHierarchy(ctx context.Context, rootCode string, tenantID uuid.UUID, maxDepth int) ([]OrganizationNode, error) {
 	if maxDepth <= 0 || maxDepth > 17 {

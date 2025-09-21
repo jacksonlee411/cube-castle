@@ -17,6 +17,7 @@ import (
 	"organization-command-service/internal/services"
 	"organization-command-service/internal/types"
 	"organization-command-service/internal/utils"
+	"organization-command-service/internal/validators"
 )
 
 type OrganizationHandler struct {
@@ -25,15 +26,19 @@ type OrganizationHandler struct {
 	auditLogger     *audit.AuditLogger
 	logger          *log.Logger
 	timelineManager *repository.TemporalTimelineManager
+	hierarchyRepo   *repository.HierarchyRepository
+	validator       *validators.BusinessRuleValidator
 }
 
-func NewOrganizationHandler(repo *repository.OrganizationRepository, temporalService *services.TemporalService, auditLogger *audit.AuditLogger, logger *log.Logger, timelineManager *repository.TemporalTimelineManager) *OrganizationHandler {
+func NewOrganizationHandler(repo *repository.OrganizationRepository, temporalService *services.TemporalService, auditLogger *audit.AuditLogger, logger *log.Logger, timelineManager *repository.TemporalTimelineManager, hierarchyRepo *repository.HierarchyRepository, validator *validators.BusinessRuleValidator) *OrganizationHandler {
 	return &OrganizationHandler{
 		repo:            repo,
 		temporalService: temporalService,
 		auditLogger:     auditLogger,
 		logger:          logger,
 		timelineManager: timelineManager,
+		hierarchyRepo:   hierarchyRepo,
+		validator:       validator,
 	}
 }
 
@@ -370,6 +375,27 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	}
 
 	tenantID := h.getTenantID(r)
+	parentProvided := req.ParentCode != nil
+	if parentProvided {
+		trimmed := strings.TrimSpace(*req.ParentCode)
+		if trimmed == "" {
+			req.ParentCode = nil
+		} else {
+			req.ParentCode = &trimmed
+			if trimmed == code {
+				h.logger.Printf("⚠️ circular reference attempt: code=%s parentCode=%s", code, trimmed)
+				h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "父组织不能指向自身", nil)
+				return
+			}
+		}
+	}
+
+	if h.validator != nil {
+		if result := h.validator.ValidateOrganizationUpdate(r.Context(), code, &req, tenantID); !result.Valid {
+			h.writeValidationErrors(w, r, result)
+			return
+		}
+	}
 
 	// 先获取当前组织数据用于审计日志
 	oldOrg, err := h.repo.GetByCode(r.Context(), tenantID, code)
@@ -378,11 +404,30 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
+	parentChanged := false
+	if parentProvided {
+		switch {
+		case oldOrg.ParentCode == nil && req.ParentCode != nil:
+			parentChanged = true
+		case oldOrg.ParentCode != nil && req.ParentCode == nil:
+			parentChanged = true
+		case oldOrg.ParentCode != nil && req.ParentCode != nil && *oldOrg.ParentCode != *req.ParentCode:
+			parentChanged = true
+		}
+	}
+
 	// 更新组织
 	updatedOrg, err := h.repo.Update(r.Context(), tenantID, code, &req)
 	if err != nil {
 		h.handleRepositoryError(w, r, "UPDATE", err)
 		return
+	}
+
+	if parentChanged {
+		if err := h.refreshHierarchyPaths(r.Context(), tenantID, updatedOrg.Code); err != nil {
+			h.writeErrorResponse(w, r, http.StatusInternalServerError, "HIERARCHY_UPDATE_FAILED", "层级路径更新失败", err)
+			return
+		}
 	}
 
 	// 记录完整审计日志（包含变更前数据）
@@ -696,6 +741,15 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 	}
 
 	tenantID := h.getTenantID(r)
+	parentProvided := req.ParentCode != nil
+	if parentProvided {
+		trimmed := strings.TrimSpace(*req.ParentCode)
+		if trimmed == "" {
+			req.ParentCode = nil
+		} else {
+			req.ParentCode = &trimmed
+		}
+	}
 
 	// 先获取当前记录数据用于审计日志
 	oldOrg, err := h.repo.GetByRecordId(r.Context(), tenantID, recordId)
@@ -704,11 +758,43 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 		return
 	}
 
+	if h.validator != nil {
+		if result := h.validator.ValidateOrganizationUpdate(r.Context(), oldOrg.Code, &req, tenantID); !result.Valid {
+			h.writeValidationErrors(w, r, result)
+			return
+		}
+	}
+
+	if req.ParentCode != nil && *req.ParentCode == oldOrg.Code {
+		h.logger.Printf("⚠️ circular reference attempt: code=%s parentCode=%s", oldOrg.Code, *req.ParentCode)
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "父组织不能指向自身", nil)
+		return
+	}
+
+	parentChanged := false
+	if parentProvided {
+		switch {
+		case oldOrg.ParentCode == nil && req.ParentCode != nil:
+			parentChanged = true
+		case oldOrg.ParentCode != nil && req.ParentCode == nil:
+			parentChanged = true
+		case oldOrg.ParentCode != nil && req.ParentCode != nil && *oldOrg.ParentCode != *req.ParentCode:
+			parentChanged = true
+		}
+	}
+
 	// 通过UUID更新历史记录
 	updatedOrg, err := h.repo.UpdateByRecordId(r.Context(), tenantID, recordId, &req)
 	if err != nil {
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, "UPDATE_ERROR", "更新历史记录失败", err)
 		return
+	}
+
+	if parentChanged {
+		if err := h.refreshHierarchyPaths(r.Context(), tenantID, updatedOrg.Code); err != nil {
+			h.writeErrorResponse(w, r, http.StatusInternalServerError, "HIERARCHY_UPDATE_FAILED", "层级路径更新失败", err)
+			return
+		}
 	}
 
 	// 记录完整审计日志（包含变更前数据）
@@ -738,6 +824,49 @@ func (h *OrganizationHandler) getTenantID(r *http.Request) uuid.UUID {
 		}
 	}
 	return types.DefaultTenantID
+}
+
+func (h *OrganizationHandler) writeValidationErrors(w http.ResponseWriter, r *http.Request, result *validators.ValidationResult) {
+	if len(result.Errors) == 0 {
+		h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", nil)
+		return
+	}
+
+	h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", result.Errors)
+}
+
+func (h *OrganizationHandler) refreshHierarchyPaths(ctx context.Context, tenantID uuid.UUID, rootCode string) error {
+	if h.hierarchyRepo == nil {
+		return nil
+	}
+
+	visited := make(map[string]struct{})
+	queue := []string{rootCode}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		if _, seen := visited[current]; seen {
+			continue
+		}
+		visited[current] = struct{}{}
+
+		if err := h.hierarchyRepo.UpdateHierarchyPaths(ctx, current, tenantID); err != nil {
+			return err
+		}
+
+		children, err := h.hierarchyRepo.GetDirectChildren(ctx, current, tenantID)
+		if err != nil {
+			return err
+		}
+
+		for _, child := range children {
+			queue = append(queue, child.Code)
+		}
+	}
+
+	return nil
 }
 
 func (h *OrganizationHandler) toOrganizationResponse(org *types.Organization) *types.OrganizationResponse {
