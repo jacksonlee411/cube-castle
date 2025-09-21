@@ -1,6 +1,0 @@
-./graphql.go
-./id.go
-./introspection.go
-./nullable_types.go
-./subscriptions.go
-./time.go
