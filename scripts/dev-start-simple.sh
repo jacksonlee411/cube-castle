@@ -62,17 +62,23 @@ echo -e "${BLUE}🚀 启动简化Go服务...${NC}"
 export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
 export GO111MODULE=on
 
-# 启动简化命令服务 (端口9090)
+# 加载.env文件中的JWT配置
+if [ -f ".env" ]; then
+    echo "📄 加载.env文件中的环境变量..."
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
+# 启动命令服务 (端口9090)
 echo "🎯 启动命令服务 (端口9090)..."
-cd cmd/organization-command-service-simple
+cd cmd/organization-command-service
 go run main.go > ../../logs/command-service.log 2>&1 &
 COMMAND_PID=$!
 echo "Command Service PID: $COMMAND_PID" > ../../data/command-service.pid
 cd ../..
 
-# 启动简化查询服务 (端口8090) 
+# 启动查询服务 (端口8090)
 echo "🔍 启动查询服务 (端口8090)..."
-cd cmd/organization-query-service-simple
+cd cmd/organization-query-service
 go run main.go > ../../logs/query-service.log 2>&1 &
 QUERY_PID=$!
 echo "Query Service PID: $QUERY_PID" > ../../data/query-service.pid

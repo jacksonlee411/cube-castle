@@ -121,9 +121,18 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
     let suggested: string | undefined;
 
     if (Array.isArray(apiError.details)) {
-      const detail = apiError.details.find((item: any) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE') as
-        | { message?: string; context?: { suggestedDate?: string } }
-        | undefined;
+      type TemporalErrorDetail = {
+        code?: string;
+        message?: string;
+        context?: {
+          suggestedDate?: string;
+          [key: string]: unknown;
+        };
+      };
+
+      const detail = (apiError.details as TemporalErrorDetail[]).find(
+        (item) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE'
+      );
       if (detail?.message && typeof detail.message === 'string') {
         message = detail.message;
       }
