@@ -72,10 +72,16 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		}
 	}
 
-	// 计算路径和级别
-	path, level, err := h.repo.CalculatePath(r.Context(), tenantID, req.ParentCode, code)
+	fields, err := h.repo.ComputeHierarchyForNew(r.Context(), tenantID, code, req.ParentCode, req.Name)
 	if err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "PARENT_ERROR", "父组织处理失败", err)
+		errorMessage := err.Error()
+		if strings.Contains(errorMessage, "父组织不存在") {
+			h.writeErrorResponse(w, r, http.StatusBadRequest, "PARENT_ERROR", "父组织不存在或不可用", err)
+		} else if strings.Contains(errorMessage, "组织名称不能为空") {
+			h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "组织名称不能为空", err)
+		} else {
+			h.writeErrorResponse(w, r, http.StatusBadRequest, "HIERARCHY_CALCULATION_FAILED", "层级路径计算失败", err)
+		}
 		return
 	}
 
@@ -88,8 +94,10 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		Name:        req.Name,
 		UnitType:    req.UnitType,
 		Status:      "ACTIVE",
-		Level:       level,
-		Path:        path,
+		Level:       fields.Level,
+		Path:        fields.Path,
+		CodePath:    fields.CodePath,
+		NamePath:    fields.NamePath,
 		SortOrder:   req.SortOrder,
 		Description: req.Description,
 		// 时态管理字段 - 使用Date类型
@@ -211,18 +219,36 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		endDate = &parsed
 	}
 
-	if h.validator != nil && req.ParentCode != nil && strings.TrimSpace(*req.ParentCode) != "" {
-		validation := h.validator.ValidateTemporalParentAvailability(r.Context(), tenantID, strings.TrimSpace(*req.ParentCode), effectiveDate)
+	var targetParent *string
+	if req.ParentCode != nil {
+		trimmed := strings.TrimSpace(*req.ParentCode)
+		if trimmed != "" {
+			targetParent = &trimmed
+		} else {
+			targetParent = nil
+		}
+	} else {
+		targetParent = existingOrg.ParentCode
+	}
+
+	if h.validator != nil && targetParent != nil {
+		validation := h.validator.ValidateTemporalParentAvailability(r.Context(), tenantID, strings.TrimSpace(*targetParent), effectiveDate)
 		if !validation.Valid {
 			h.writeValidationErrors(w, r, validation)
 			return
 		}
 	}
 
-	// 计算路径和级别（继承或重新计算）
-	path, level, err := h.repo.CalculatePath(r.Context(), tenantID, req.ParentCode, code)
+	fields, err := h.repo.ComputeHierarchyForNew(r.Context(), tenantID, code, targetParent, req.Name)
 	if err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "PARENT_ERROR", "父组织处理失败", err)
+		errorMessage := err.Error()
+		if strings.Contains(errorMessage, "父组织不存在") {
+			h.writeErrorResponse(w, r, http.StatusBadRequest, "PARENT_ERROR", "父组织不存在或不可用", err)
+		} else if strings.Contains(errorMessage, "组织名称不能为空") {
+			h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "组织名称不能为空", err)
+		} else {
+			h.writeErrorResponse(w, r, http.StatusBadRequest, "HIERARCHY_CALCULATION_FAILED", "层级路径计算失败", err)
+		}
 		return
 	}
 
@@ -231,12 +257,14 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	newVersion := &types.Organization{
 		TenantID:   tenantID.String(),
 		Code:       code,
-		ParentCode: req.ParentCode,
+		ParentCode: targetParent,
 		Name:       req.Name,
 		UnitType:   req.UnitType,
 		Status:     "ACTIVE", // 新版本默认激活
-		Level:      level,
-		Path:       path,
+		Level:      fields.Level,
+		Path:       fields.Path,
+		CodePath:   fields.CodePath,
+		NamePath:   fields.NamePath,
 		SortOrder: func() int {
 			if req.SortOrder != nil {
 				return *req.SortOrder
@@ -281,6 +309,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 			"name":          req.Name,
 			"unitType":      req.UnitType,
 			"effectiveDate": req.EffectiveDate,
+			"parentCode":    targetParent,
 		}
 
 		if logErr := h.auditLogger.LogError(
@@ -302,7 +331,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	createdFields := []audit.FieldChange{
 		{Field: "name", OldValue: nil, NewValue: req.Name, DataType: "string"},
 		{Field: "unitType", OldValue: nil, NewValue: req.UnitType, DataType: "string"},
-		{Field: "parentCode", OldValue: nil, NewValue: req.ParentCode, DataType: "string"},
+		{Field: "parentCode", OldValue: nil, NewValue: targetParent, DataType: "string"},
 		{Field: "description", OldValue: nil, NewValue: req.Description, DataType: "string"},
 		{Field: "effectiveDate", OldValue: nil, NewValue: req.EffectiveDate, DataType: "date"},
 	}
@@ -325,7 +354,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 			"code":          createdVersion.Code,
 			"name":          createdVersion.Name,
 			"unitType":      req.UnitType,
-			"parentCode":    req.ParentCode,
+			"parentCode":    targetParent,
 			"description":   req.Description,
 			"effectiveDate": req.EffectiveDate,
 			"endDate":       req.EndDate,
@@ -900,6 +929,8 @@ func (h *OrganizationHandler) toOrganizationResponse(org *types.Organization) *t
 		Status:        org.Status,
 		Level:         org.Level,
 		Path:          org.Path,
+		CodePath:      org.CodePath,
+		NamePath:      org.NamePath,
 		SortOrder:     org.SortOrder,
 		Description:   org.Description,
 		ParentCode:    org.ParentCode,

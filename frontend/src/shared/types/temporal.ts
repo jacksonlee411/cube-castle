@@ -60,7 +60,7 @@ export interface TemporalOrganizationUnit {
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
   status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
   level: number;
-  path: string;
+  path?: string | null;
   sortOrder: number;          // camelCase
   description?: string;
   createdAt: string;          // camelCase

@@ -197,8 +197,9 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 - `organizationHierarchy(code, tenantId): OrganizationHierarchy`
   - 中文: 完整层级信息（路径、关系、属性）
-  - EN: Complete hierarchy info with paths and relations
-  - 实现: 层级路径查询（DB层可能涉及 code_path 等列名；API 层保持 camelCase: codePath）
+- EN: Complete hierarchy info with paths and relations
+- 实现: 层级路径查询（DB层可能涉及 code_path 等列名；API 层保持 camelCase: codePath）
+- 2025Q2更新: `Organization.path: String` 字段已改为可选（nullable），用于直接暴露标准化层级路径；当后台暂未回填时返回 `null`
 
 ### 建议新增查询（用于版本列表展示）
 - `organizationVersions(code: String!, includeDeleted: Boolean = false): [Organization!]!`

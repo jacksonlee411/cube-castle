@@ -239,9 +239,9 @@ func (tm *TemporalTimelineManager) InsertVersion(ctx context.Context, org *types
 	insertQuery := `
 		INSERT INTO organization_units (
 			tenant_id, code, parent_code, name, unit_type, status, 
-			level, path, sort_order, description, effective_date,
+			level, path, code_path, name_path, sort_order, description, effective_date,
 			is_current, change_reason, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false, $12, NOW(), NOW())
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, false, $14, NOW(), NOW())
 		RETURNING record_id, created_at
 	`
 
@@ -250,7 +250,7 @@ func (tm *TemporalTimelineManager) InsertVersion(ctx context.Context, org *types
 
 	err = tx.QueryRowContext(ctx, insertQuery,
 		tenantID, org.Code, org.ParentCode, org.Name, org.UnitType, "ACTIVE",
-		org.Level, org.Path, org.SortOrder, org.Description, effectiveDate,
+		org.Level, org.Path, org.CodePath, org.NamePath, org.SortOrder, org.Description, effectiveDate,
 		org.ChangeReason,
 	).Scan(&newRecordID, &createdAt)
 

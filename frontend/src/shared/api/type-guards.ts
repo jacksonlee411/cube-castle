@@ -158,7 +158,7 @@ export const safeTransformGraphQLToOrganizationUnit = (
     unitType: graphqlOrg.unitType as OrganizationUnit['unitType'],
     status: graphqlOrg.status as OrganizationUnit['status'],
     level: graphqlOrg.level,
-    path: graphqlOrg.path || '',
+    path: graphqlOrg.path ?? undefined,
     sortOrder: graphqlOrg.sortOrder || 0,
     description: graphqlOrg.description || '',
     createdAt: graphqlOrg.createdAt || '',

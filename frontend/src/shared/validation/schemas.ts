@@ -41,7 +41,7 @@ export const OrganizationUnitSchema = z.object({
   description: z.string().max(500, '描述不能超过500个字符').optional().or(z.literal('')),
   createdAt: z.string().datetime().optional().or(z.literal('')),
   updatedAt: z.string().datetime().optional().or(z.literal('')),
-  path: z.string().optional().or(z.literal('')),
+  path: z.string().optional().or(z.literal('')).or(z.null()),
   // 时态字段支持
   effectiveDate: TemporalDateSchema.optional(),
   endDate: TemporalDateSchema.optional(),
@@ -126,7 +126,7 @@ export const GraphQLOrganizationResponseSchema = z.object({
   status: z.string(),
   level: z.number(),
   parentCode: z.string().optional(), // GraphQL未选择该字段时可能缺失
-  path: z.string().optional(),
+  path: z.string().nullable().optional(),
   sortOrder: z.number().nullable().optional(),
   description: z.string().nullable().optional(),
   createdAt: z.string().nullable().optional(),

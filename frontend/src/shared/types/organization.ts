@@ -10,7 +10,7 @@ export interface OrganizationUnit {
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
   status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
   level: number;
-  path: string;
+  path?: string | null;
   sortOrder: number;  // camelCase
   description?: string;
   

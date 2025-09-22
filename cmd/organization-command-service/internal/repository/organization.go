@@ -24,10 +24,10 @@ func NewOrganizationRepository(db *sql.DB, logger *log.Logger) *OrganizationRepo
 }
 
 type hierarchyFields struct {
-	path     string
-	codePath string
-	namePath string
-	level    int
+	Path     string
+	CodePath string
+	NamePath string
+	Level    int
 	oldLevel int
 }
 
@@ -87,39 +87,70 @@ func (r *OrganizationRepository) recalculateSelfHierarchy(ctx context.Context, t
 		resolvedCode = code
 	}
 
-	fields := &hierarchyFields{oldLevel: currentLevel}
+	fields, err := r.calculateHierarchyFields(ctx, tenantID, resolvedCode, parentCode, finalName)
+	if err != nil {
+		return nil, err
+	}
+	fields.oldLevel = currentLevel
 
-	if parentCode == nil {
-		fields.level = 1
-		fields.path = ensureJoinedPath("", resolvedCode)
-		fields.codePath = ensureJoinedPath("", resolvedCode)
-		fields.namePath = ensureJoinedPath("", finalName)
-	} else {
-		var parentCodePath, parentNamePath string
-		var parentLevel int
-		err := r.db.QueryRowContext(ctx, `
-			SELECT COALESCE(NULLIF(code_path, ''), '/' || code),
-			       COALESCE(NULLIF(name_path, ''), '/' || name),
-			       level
-			FROM organization_units
-			WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
-			LIMIT 1
-		`, tenantID.String(), *parentCode).Scan(&parentCodePath, &parentNamePath, &parentLevel)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, fmt.Errorf("父组织不存在: %s", *parentCode)
-			}
-			return nil, fmt.Errorf("查询父组织失败: %w", err)
-		}
+	r.logger.Printf("recalculateSelfHierarchy: code=%s oldLevel=%d newLevel=%d path=%s", resolvedCode, fields.oldLevel, fields.Level, fields.Path)
+	return fields, nil
+}
 
-		fields.level = parentLevel + 1
-		fields.path = ensureJoinedPath(parentCodePath, resolvedCode)
-		fields.codePath = ensureJoinedPath(parentCodePath, resolvedCode)
-		fields.namePath = ensureJoinedPath(parentNamePath, finalName)
+func (r *OrganizationRepository) calculateHierarchyFields(ctx context.Context, tenantID uuid.UUID, code string, parentCode *string, finalName string) (*hierarchyFields, error) {
+	finalName = strings.TrimSpace(finalName)
+	if finalName == "" {
+		return nil, fmt.Errorf("组织名称不能为空")
 	}
 
-	r.logger.Printf("recalculateSelfHierarchy: code=%s oldLevel=%d newLevel=%d path=%s", resolvedCode, fields.oldLevel, fields.level, fields.path)
+	fields := &hierarchyFields{}
+
+	if parentCode == nil {
+		fields.Level = 1
+		fields.Path = ensureJoinedPath("", code)
+		fields.CodePath = fields.Path
+		fields.NamePath = ensureJoinedPath("", finalName)
+		return fields, nil
+	}
+
+	trimmedParent := strings.TrimSpace(*parentCode)
+	if trimmedParent == "" {
+		// treated as root if blank string provided
+		fields.Level = 1
+		fields.Path = ensureJoinedPath("", code)
+		fields.CodePath = fields.Path
+		fields.NamePath = ensureJoinedPath("", finalName)
+		return fields, nil
+	}
+
+	var parentCodePath, parentNamePath string
+	var parentLevel int
+	err := r.db.QueryRowContext(ctx, `
+		SELECT COALESCE(NULLIF(code_path, ''), '/' || code),
+		       COALESCE(NULLIF(name_path, ''), '/' || name),
+		       level
+		FROM organization_units
+		WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+		LIMIT 1
+	`, tenantID.String(), trimmedParent).Scan(&parentCodePath, &parentNamePath, &parentLevel)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("父组织不存在: %s", trimmedParent)
+		}
+		return nil, fmt.Errorf("查询父组织失败: %w", err)
+	}
+
+	fields.Level = parentLevel + 1
+	fields.Path = ensureJoinedPath(parentCodePath, code)
+	fields.CodePath = fields.Path
+	fields.NamePath = ensureJoinedPath(parentNamePath, finalName)
+
 	return fields, nil
+}
+
+// ComputeHierarchyForNew 计算新建或新版本的层级字段（path/codePath/namePath/level）
+func (r *OrganizationRepository) ComputeHierarchyForNew(ctx context.Context, tenantID uuid.UUID, code string, parentCode *string, name string) (*hierarchyFields, error) {
+	return r.calculateHierarchyFields(ctx, tenantID, strings.TrimSpace(code), parentCode, name)
 }
 
 func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid.UUID) (string, error) {
@@ -144,12 +175,27 @@ func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid
 }
 
 func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organization) (*types.Organization, error) {
+	tenantUUID, err := uuid.Parse(org.TenantID)
+	if err != nil {
+		return nil, fmt.Errorf("无效的租户ID: %w", err)
+	}
+
+	fields, err := r.ComputeHierarchyForNew(ctx, tenantUUID, org.Code, org.ParentCode, org.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	org.Level = fields.Level
+	org.Path = fields.Path
+	org.CodePath = fields.CodePath
+	org.NamePath = fields.NamePath
+
 	query := `
         INSERT INTO organization_units (
             tenant_id, code, parent_code, name, unit_type, status, 
-            level, path, sort_order, description, created_at, updated_at,
+            level, path, code_path, name_path, sort_order, description, created_at, updated_at,
             effective_date, end_date, change_reason, is_current
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         RETURNING record_id, created_at, updated_at
     `
 
@@ -172,7 +218,7 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 	)
 	isCurrent := !effectiveDateTime.After(today)
 
-	err := r.db.QueryRowContext(ctx, query,
+	err = r.db.QueryRowContext(ctx, query,
 		org.TenantID,
 		org.Code,
 		org.ParentCode,
@@ -181,6 +227,8 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 		org.Status,
 		org.Level,
 		org.Path,
+		org.CodePath,
+		org.NamePath,
 		org.SortOrder,
 		org.Description,
 		time.Now(),
@@ -322,10 +370,10 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		} else {
 			addAssignment("parent_code", nil)
 		}
-		addAssignment("path", fields.path)
-		addAssignment("level", fields.level)
-		addAssignment("code_path", fields.codePath)
-		addAssignment("name_path", fields.namePath)
+		addAssignment("path", fields.Path)
+		addAssignment("level", fields.Level)
+		addAssignment("code_path", fields.CodePath)
+		addAssignment("name_path", fields.NamePath)
 	}
 
 	if req.EffectiveDate != nil {
@@ -347,16 +395,12 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	addAssignment("updated_at", time.Now())
 
 	setClause := strings.Join(setParts, ", ")
-	var builder strings.Builder
-	builder.WriteString("UPDATE organization_units\nSET ")
-	builder.WriteString(setClause)
-	builder.WriteString("\nWHERE tenant_id = $1 AND code = $2\n  AND status <> 'DELETED' AND deleted_at IS NULL\nRETURNING tenant_id, code, parent_code, name, unit_type, status,\n          level, path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason")
-	query := builder.String()
+	query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND code = $2\n  AND status <> 'DELETED' AND deleted_at IS NULL\nRETURNING tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.ChangeReason,
 	)
@@ -378,7 +422,7 @@ func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID
         SET status = 'INACTIVE', updated_at = $3
         WHERE tenant_id = $1 AND code = $2 AND status = 'ACTIVE'
         RETURNING tenant_id, code, parent_code, name, unit_type, status, 
-                 level, path, sort_order, description, created_at, updated_at,
+                 level, path, code_path, name_path, sort_order, description, created_at, updated_at,
                  effective_date, end_date, change_reason
     `
 
@@ -389,7 +433,7 @@ func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID
 
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
 		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
-		&org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
+		&org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&effectiveDate, &endDate, &changeReason,
 	)
 
@@ -422,13 +466,13 @@ func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID
 
 func (r *OrganizationRepository) Activate(ctx context.Context, tenantID uuid.UUID, code string, reason string) (*types.Organization, error) {
 	query := `
-		UPDATE organization_units 
-		SET status = 'ACTIVE', updated_at = $3
-		WHERE tenant_id = $1 AND code = $2 AND status = 'INACTIVE'
-         RETURNING tenant_id, code, parent_code, name, unit_type, status, 
-                  level, path, sort_order, description, created_at, updated_at,
-                  effective_date, end_date, change_reason
-	`
+			UPDATE organization_units 
+			SET status = 'ACTIVE', updated_at = $3
+			WHERE tenant_id = $1 AND code = $2 AND status = 'INACTIVE'
+			RETURNING tenant_id, code, parent_code, name, unit_type, status, 
+			         level, path, code_path, name_path, sort_order, description, created_at, updated_at,
+			         effective_date, end_date, change_reason
+	    `
 
 	var org types.Organization
 	var parentCode sql.NullString
@@ -437,7 +481,7 @@ func (r *OrganizationRepository) Activate(ctx context.Context, tenantID uuid.UUI
 
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, time.Now()).Scan(
 		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
-		&org.Level, &org.Path, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
+		&org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder, &org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&effectiveDate, &endDate, &changeReason,
 	)
 
@@ -466,34 +510,6 @@ func (r *OrganizationRepository) Activate(ctx context.Context, tenantID uuid.UUI
 
 	r.logger.Printf("组织重新启用成功: %s - %s", org.Code, org.Name)
 	return &org, nil
-}
-
-func (r *OrganizationRepository) CalculatePath(ctx context.Context, tenantID uuid.UUID, parentCode *string, code string) (string, int, error) {
-	if parentCode == nil {
-		return "/" + code, 1, nil
-	}
-
-	query := `
-		SELECT path, level 
-		FROM organization_units 
-		WHERE tenant_id = $1 AND code = $2
-	`
-
-	var parentPath string
-	var parentLevel int
-
-	err := r.db.QueryRowContext(ctx, query, tenantID.String(), *parentCode).Scan(&parentPath, &parentLevel)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", 0, fmt.Errorf("父组织不存在: %s", *parentCode)
-		}
-		return "", 0, fmt.Errorf("查询父组织失败: %w", err)
-	}
-
-	path := parentPath + "/" + code
-	level := parentLevel + 1
-
-	return path, level, nil
 }
 
 // UpdateByRecordId 通过UUID更新历史记录
@@ -549,10 +565,10 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 		} else {
 			addAssignment("parent_code", nil)
 		}
-		addAssignment("path", fields.path)
-		addAssignment("level", fields.level)
-		addAssignment("code_path", fields.codePath)
-		addAssignment("name_path", fields.namePath)
+		addAssignment("path", fields.Path)
+		addAssignment("level", fields.Level)
+		addAssignment("code_path", fields.CodePath)
+		addAssignment("name_path", fields.NamePath)
 	}
 
 	if req.EffectiveDate != nil {
@@ -574,16 +590,12 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 	addAssignment("updated_at", time.Now())
 
 	setClause := strings.Join(setParts, ", ")
-	var builder strings.Builder
-	builder.WriteString("UPDATE organization_units\nSET ")
-	builder.WriteString(setClause)
-	builder.WriteString("\nWHERE tenant_id = $1 AND record_id = $2\n  AND status <> 'DELETED' AND deleted_at IS NULL\nRETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,\n          level, path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason")
-	query := builder.String()
+	query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND record_id = $2\n  AND status <> 'DELETED' AND deleted_at IS NULL\nRETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.ChangeReason,
 	)
@@ -603,7 +615,7 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
 	query := `
         SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
-               level, path, sort_order, description, created_at, updated_at,
+               level, path, code_path, name_path, sort_order, description, created_at, updated_at,
                effective_date, end_date, change_reason
         FROM organization_units 
         WHERE tenant_id = $1 AND code = $2 AND is_current = true
@@ -613,7 +625,7 @@ func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UU
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
 		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.ChangeReason,
 	)

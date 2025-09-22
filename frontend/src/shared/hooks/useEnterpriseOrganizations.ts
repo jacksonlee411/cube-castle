@@ -221,6 +221,7 @@ export const useEnterpriseOrganizations = (
         query GetOrganization($code: String!, $asOfDate: String) {
           organization(code: $code, asOfDate: $asOfDate) {
             code
+            path
             parentCode
             tenantId
             name

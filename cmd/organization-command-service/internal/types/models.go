@@ -25,6 +25,8 @@ type Organization struct {
 	Status      string    `json:"status" db:"status"`
 	Level       int       `json:"level" db:"level"`
 	Path        string    `json:"path" db:"path"`
+	CodePath    string    `json:"codePath" db:"code_path"`
+	NamePath    string    `json:"namePath" db:"name_path"`
 	SortOrder   int       `json:"sortOrder" db:"sort_order"`
 	Description string    `json:"description" db:"description"`
 	CreatedAt   time.Time `json:"createdAt" db:"created_at"`
@@ -32,8 +34,8 @@ type Organization struct {
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date   `json:"effectiveDate,omitempty" db:"effective_date"`
 	EndDate       *Date   `json:"endDate,omitempty" db:"end_date"`
-    ChangeReason  *string `json:"changeReason,omitempty" db:"change_reason"`
-    IsCurrent     bool    `json:"isCurrent" db:"is_current"`
+	ChangeReason  *string `json:"changeReason,omitempty" db:"change_reason"`
+	IsCurrent     bool    `json:"isCurrent" db:"is_current"`
 }
 
 // CreateOrganizationRequest 创建组织请求
@@ -47,7 +49,7 @@ type CreateOrganizationRequest struct {
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date  `json:"effectiveDate,omitempty"`
 	EndDate       *Date  `json:"endDate,omitempty"`
-    ChangeReason  string `json:"changeReason,omitempty"`
+	ChangeReason  string `json:"changeReason,omitempty"`
 }
 
 // UpdateOrganizationRequest 更新组织请求
@@ -61,7 +63,7 @@ type UpdateOrganizationRequest struct {
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date   `json:"effectiveDate,omitempty"`
 	EndDate       *Date   `json:"endDate,omitempty"`
-    ChangeReason  *string `json:"changeReason,omitempty"`
+	ChangeReason  *string `json:"changeReason,omitempty"`
 }
 
 // OrganizationResponse 组织响应
@@ -72,6 +74,8 @@ type OrganizationResponse struct {
 	Status      string    `json:"status"`
 	Level       int       `json:"level"`
 	Path        string    `json:"path"`
+	CodePath    string    `json:"codePath"`
+	NamePath    string    `json:"namePath"`
 	SortOrder   int       `json:"sortOrder"`
 	Description string    `json:"description"`
 	ParentCode  *string   `json:"parentCode,omitempty"`
@@ -80,20 +84,20 @@ type OrganizationResponse struct {
 	// 时态管理字段 (使用Date类型)
 	EffectiveDate *Date   `json:"effectiveDate,omitempty"`
 	EndDate       *Date   `json:"endDate,omitempty"`
-    ChangeReason  *string `json:"changeReason,omitempty"`
+	ChangeReason  *string `json:"changeReason,omitempty"`
 }
 
 // CreateVersionRequest 为现有组织创建新时态版本的请求 (基于OpenAPI契约v4.4.0)
 type CreateVersionRequest struct {
-	Name           string  `json:"name" validate:"required,max=255"`
-	UnitType       string  `json:"unitType" validate:"required"`
-	ParentCode     *string `json:"parentCode,omitempty" validate:"omitempty,len=7"`
-	Description    *string `json:"description,omitempty" validate:"omitempty,max=1000"`
-	SortOrder      *int    `json:"sortOrder,omitempty"`
-	Profile        *string `json:"profile,omitempty"` // JSON string
-	EffectiveDate  string  `json:"effectiveDate" validate:"required,datetime=2006-01-02"`
-	EndDate        *string `json:"endDate,omitempty" validate:"omitempty,datetime=2006-01-02"`
-	OperationReason string `json:"operationReason" validate:"required,max=500"`
+	Name            string  `json:"name" validate:"required,max=255"`
+	UnitType        string  `json:"unitType" validate:"required"`
+	ParentCode      *string `json:"parentCode,omitempty" validate:"omitempty,len=7"`
+	Description     *string `json:"description,omitempty" validate:"omitempty,max=1000"`
+	SortOrder       *int    `json:"sortOrder,omitempty"`
+	Profile         *string `json:"profile,omitempty"` // JSON string
+	EffectiveDate   string  `json:"effectiveDate" validate:"required,datetime=2006-01-02"`
+	EndDate         *string `json:"endDate,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	OperationReason string  `json:"operationReason" validate:"required,max=500"`
 }
 
 // 组织历史版本请求 (旧版本，保持兼容性)

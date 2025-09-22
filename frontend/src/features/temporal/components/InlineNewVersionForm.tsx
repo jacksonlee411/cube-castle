@@ -238,8 +238,8 @@ export const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = ({
 
   const levelDisplay = selectedVersion?.level;
   const codePathDisplay = React.useMemo(() => {
-    if (hierarchyPaths?.codePath) return hierarchyPaths.codePath;
     if (selectedVersion?.path) return selectedVersion.path;
+    if (hierarchyPaths?.codePath) return hierarchyPaths.codePath;
     return '';
   }, [hierarchyPaths, selectedVersion]);
 

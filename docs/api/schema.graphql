@@ -160,7 +160,7 @@ type Organization {
   code: String!
   parentCode: String!  # Parent organization code. Use "0" for root organizations, or valid 7-digit code for child organizations
   tenantId: String!
-  
+
   # Basic Information
   name: String!
   unitType: UnitType!
@@ -169,11 +169,12 @@ type Organization {
   # asOf-based computation: isCurrent/isFuture fields below.
   # ADR-008: 一维业务状态模型，INACTIVE等价于停用/暂停语义
   status: Status!
-  
+
   # Hierarchy Information
   level: Int!
   sortOrder: Int
-  
+  path: String
+
   # Configuration
   description: String
   profile: String

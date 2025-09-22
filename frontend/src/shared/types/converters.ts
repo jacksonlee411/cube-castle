@@ -71,7 +71,7 @@ export function convertGraphQLToOrganizationUnit(
     unitType: (data.unitType as OrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as OrganizationUnit['status']) || 'ACTIVE',
     level: data.level || 1,
-    path: data.codePath || data.path || '',  // 使用codePath字段
+    path: data.codePath ?? data.path ?? undefined,  // 使用codePath字段
     sortOrder: data.sortOrder || 0,
     description: data.description || '',
     createdAt: data.createdAt || '',
@@ -98,7 +98,7 @@ export function convertGraphQLToTemporalOrganizationUnit(
     unitType: (data.unitType as TemporalOrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as TemporalOrganizationUnit['status']) || 'ACTIVE',
     level: data.level || 1,
-    path: data.path || '',
+    path: data.path ?? undefined,
     sortOrder: data.sortOrder || 0,
     description: data.description || '',
     createdAt: data.createdAt || '',

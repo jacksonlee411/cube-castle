@@ -42,6 +42,7 @@ interface OrganizationVersion {
   parentCode?: string;
   description?: string;
   sortOrder: number;
+  path?: string | null;
   effectiveDate: string;
   endDate?: string | null;
   recordId: string;
@@ -157,6 +158,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
               unitType
               status
               level
+              path
               effectiveDate
               endDate
               createdAt
@@ -182,6 +184,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                 unitType
                 status
                 level
+                path
                 effectiveDate
                 endDate
                 createdAt
@@ -257,7 +260,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         lifecycleStatus: org.endDate === null ? 'CURRENT' as const : 'HISTORICAL' as const,
         businessStatus: org.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
         dataStatus: 'NORMAL' as const,
-        path: '', // 临时字段，组件中需要
+        path: org.path ?? undefined,
         sortOrder: 1, // 临时字段，组件中需要
         changeReason: '' // 临时字段，组件中需要
       }));
@@ -369,8 +372,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             lifecycleStatus: isCurrent ? 'CURRENT' : 'HISTORICAL',
             businessStatus: v.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
             dataStatus: 'NORMAL',
-            // TODO-TEMPORARY: 占位字段（下游仍有引用），将在v4.3统一改为使用 GraphQL 的 codePath/namePath 显示。截止：2025-09-30
-            path: '',
+            path: (v.path as string | undefined) ?? undefined,
             sortOrder: 1,
             changeReason: '',
           };

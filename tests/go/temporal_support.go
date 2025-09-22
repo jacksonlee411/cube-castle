@@ -506,10 +506,15 @@ func seedTemporalData(db *sql.DB) error {
 	}
 
 	insertStmt := `INSERT INTO organization_units (
-		tenant_id, code, parent_code, name, unit_type, status, level, path, sort_order, description, created_at, updated_at, effective_date, end_date, change_reason, is_current
+		tenant_id, code, parent_code, name, unit_type, status, level, path, code_path, name_path, sort_order, description, created_at, updated_at, effective_date, end_date, change_reason, is_current
 	) VALUES (
-		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
 	)`
+
+	codeToName := make(map[string]string)
+	for _, rec := range records {
+		codeToName[rec.code] = rec.name
+	}
 
 	for _, rec := range records {
 		var parent interface{}
@@ -529,6 +534,9 @@ func seedTemporalData(db *sql.DB) error {
 			return err
 		}
 
+		codePath := rec.path
+		namePath := buildNamePath(rec.path, codeToName)
+
 		if _, err := db.Exec(insertStmt,
 			tenant,
 			rec.code,
@@ -538,6 +546,8 @@ func seedTemporalData(db *sql.DB) error {
 			rec.status,
 			rec.level,
 			rec.path,
+			codePath,
+			namePath,
 			rec.sortOrder,
 			rec.description,
 			created,
@@ -556,6 +566,23 @@ func seedTemporalData(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+func buildNamePath(path string, codeToName map[string]string) string {
+	trimmed := strings.Trim(path, "/")
+	if trimmed == "" {
+		return "/"
+	}
+	parts := strings.Split(trimmed, "/")
+	names := make([]string, 0, len(parts))
+	for _, code := range parts {
+		name := code
+		if n, ok := codeToName[code]; ok && strings.TrimSpace(n) != "" {
+			name = strings.TrimSpace(n)
+		}
+		names = append(names, name)
+	}
+	return "/" + strings.Join(names, "/")
 }
 
 func ptrTime(t time.Time) *time.Time {

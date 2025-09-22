@@ -80,6 +80,7 @@
 **按钮样式**：
 - **停用按钮**：`SecondaryButton`，variant="inverse"，图标：`pauseIcon`（来自`@workday/canvas-system-icons-web`）
 - **启用按钮**：`PrimaryButton`，图标：`playIcon`（来自`@workday/canvas-system-icons-web`）
+- **兼容性确认**：已核实 Canvas Kit v13 `SecondaryButton` 原生支持 `variant="inverse"`，可直接应用。
 
 **尺寸**：与现有刷新按钮保持一致（默认尺寸）
 
@@ -184,7 +185,7 @@ const getButtonDisplay = (
 ### 3.3 交互流程设计
 
 #### 3.3.1 停用操作流程
-1. **点击停用按钮** → 显示确认对话框
+1. **点击停用按钮** → 弹出带表单的确认对话框（包含必填的停用原因与生效日期输入）
 2. **确认对话框内容**：
    ```
    确认停用组织？
@@ -193,14 +194,17 @@ const getButtonDisplay = (
    组织编码：[组织编码]
    当前状态：启用
 
+   停用原因（必填）：[输入框]
+   生效日期（必填）：[日期选择器，默认当天]
+
    停用后该组织将变为非活跃状态，可通过重新启用恢复。
 
    [取消] [确认停用]
    ```
-3. **确认操作** → 调用API → 刷新页面状态 → 显示成功提示
+3. **确认操作**（验证必填输入）→ 调用API → 刷新页面状态 → 显示成功提示
 
 #### 3.3.2 启用操作流程
-1. **点击启用按钮** → 显示确认对话框
+1. **点击启用按钮** → 弹出带表单的确认对话框（包含必填的启用原因与生效日期输入）
 2. **确认对话框内容**：
    ```
    确认重新启用组织？
@@ -209,11 +213,14 @@ const getButtonDisplay = (
    组织编码：[组织编码]
    当前状态：停用
 
+   启用原因（必填）：[输入框]
+   生效日期（必填）：[日期选择器，默认当天]
+
    启用后该组织将恢复正常运行状态。
 
    [取消] [确认启用]
    ```
-3. **确认操作** → 调用API → 刷新页面状态 → 显示成功提示
+3. **确认操作**（验证必填输入）→ 调用API → 刷新页面状态 → 显示成功提示
 
 ### 3.4 错误处理
 
@@ -245,9 +252,12 @@ interface SuspendActivateButtonsProps {
   currentStatus: OrganizationStatus;
   organizationCode: string;
   organizationName: string;
+  currentETag?: string;
   isReadonly?: boolean;
   permissions: string[];
+  defaultEffectiveDate?: string;
   onStatusChange: (newStatus: OrganizationStatus) => void;
+  onETagChange?: (etag: string | null) => void;
   onError: (error: string) => void;
   onSuccess: (message: string) => void;
 }
@@ -255,18 +265,21 @@ interface SuspendActivateButtonsProps {
 export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps>
 ```
 
+- 组件内部包含停用/启用原因输入框与生效日期选择器，提交前执行必填校验。
+- 成功后将最新状态与 `ETag` 通过 `onStatusChange`、`onETagChange` 回传，供页面容器刷新缓存并保存并发控制上下文。
+
 ### 4.2 API集成
 
 #### 4.2.1 契约对齐要求
-- **Idempotency-Key**：沿用现有契约，可通过唯一键避免重复提交。
-- **ETag / If-Match**：`docs/api/openapi.yaml` 已为 `/suspend`、`/activate` 暴露 `ETag` 响应头与 `If-Match` 请求头，后端返回 412（Precondition Failed）表明版本冲突。
-- **实施要求**：在触发命令前读取最新 `ETag`，再次提交时随请求附带 `If-Match`。若 412，向用户提示并刷新数据。
+- **请求体字段**：`operationReason`、`effectiveDate` 为后端契约必填字段（参见 `docs/api/openapi.yaml:2076`），前端需强制采集并按原字段名提交，禁止继续使用现有 Hook 中的临时 `reason` 字段。
+- **Idempotency-Key**：契约要求提供幂等键 Header。当前统一 REST 客户端与相关 Hook 均未自动生成/附加该 Header，需要在实现阶段补齐（建议基于现有 Idempotency 工具或新增 `generateIdempotencyKey()`）。
+- **ETag / If-Match**：契约要求响应返回最新 `ETag` 与请求端附带 `If-Match`。现有客户端会丢弃响应头，Hook 也未设置 `If-Match`；必须扩展统一 REST 客户端以暴露响应头，并在 Hook 中传入最新 ETag 实现乐观锁。
 
 #### 4.2.2 前端调用策略
-- **复用现有 Hook**：直接调用 `useSuspendOrganization`、`useActivateOrganization`（见 `docs/reference/02-IMPLEMENTATION-INVENTORY.md:400-404`）。
-- **参数规范**：按钮仅负责收集 `organizationCode`、可选 `operationReason` 与生效日期；保持请求体沿用既有格式。
-- **幂等控制**：沿用 Hook 内部的 Idempotency-Key 生成逻辑，无需在组件内重复实现；后续 PR 需在共享 Hook 中加入 `etag`/`ifMatch` 支持，组件只负责把最新 `ETag` 透传。
-- **错误分流**：复用共享的 `handleAPIError`，按成功/失败反馈给调用方，避免在组件内堆叠业务分支。
+- **Hook 调整**：扩展 `useSuspendOrganization`、`useActivateOrganization` 接口签名，要求提供 `operationReason`、`effectiveDate`，并在内部映射到契约字段。
+- **Header 支持**：在 Hook 中生成并传递 `Idempotency-Key`，同时接收上一笔操作返回的 `ETag` 并以 `If-Match` 头发送；更新统一 REST 客户端以返回 `{ data, headers }` 或类同结构供调用方读取。
+- **组件职责**：按钮组件负责管理输入表单及校验，将 `organizationCode`、`operationReason`、`effectiveDate`、`etag`（若存在）传给 Hook，禁止将 `operationReason` 标记为可选。
+- **错误分流**：继续复用 `handleAPIError`，并在收到 412 时透出“数据已更新，请刷新后重试”提示，同时触发 React Query 失效逻辑。
 
 ### 4.3 状态管理
 
@@ -276,10 +289,11 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps>
 
 - **缓存策略**：沿用 React Query 既有失效方案（`useSuspendOrganization` 内已处理列表与详情缓存刷新），组件只需在成功回调中触发 `onStatusChange` 以刷新局部状态。
 - **消息提示**：统一调用页面层的 `showSuccess` / `showError`。组件内部仅在 Promise 结果后根据成功/失败回调。
+- **ETag 管理**：Hook 成功后需将响应头中的最新 `ETag` 返回给调用方，以便后续操作携带 `If-Match`。
 - **并发冲突**：使用 `If-Match` 后，412 会由 Hook 捕获并转为“数据已被其他用户修改”消息；组件接收回调后执行刷新逻辑。
 
 #### 4.3.2 乐观更新策略
-1. **版本控制**：每次操作前获取当前版本 ETag
+1. **版本控制**：每次操作前从最近一次成功响应缓存中获取最新 `ETag`
 2. **并发检测**：调用 Hook 时传入 `If-Match`；若返回 412，统一提示用户刷新后重试
 3. **自动恢复**：冲突时自动刷新数据并提示用户
 4. **状态一致性**：确保 UI 状态与后端数据完全同步
@@ -427,7 +441,7 @@ const ConfirmationModal: React.FC<ConfirmModalProps> = ({
 ## 8. 风险评估
 
 ### 8.1 技术风险
-- **API兼容性**：使用现有统一客户端，完全兼容 - **风险程度：极低**
+- **API兼容性**：统一客户端缺乏 `Idempotency-Key` 与 `ETag` 支持，需新增能力后方可满足契约 - **风险程度：中**
 - **状态同步**：通过 React Query 缓存失效确保一致性 - **风险程度：低**
 - **Canvas Kit 兼容**：现版 `@workday/canvas-kit-react@13.2.15` 已覆盖所需组件 - **风险程度：极低**
 - **多租户安全**：统一客户端自动处理租户头 - **风险程度：极低**
@@ -467,12 +481,18 @@ const ConfirmationModal: React.FC<ConfirmModalProps> = ({
 
 ---
 
-*文档版本：v2.0*
+*文档版本：v2.1*
 *创建日期：2025-09-21*
 *更新日期：2025-09-21*
 *状态：已优化，可实施*
 
 ## 更新记录
+
+### v2.1 (2025-09-21)
+- 补充评审发现：明确前端必须采集并提交 `operationReason`、`effectiveDate`，并调整按钮交互流程展示。
+- 指出当前 Hook/客户端缺失 `Idempotency-Key`、`ETag`/`If-Match` 支持，要求在实施时扩展并返回响应头。
+- 更新组件接口说明，新增 `currentETag`、`onETagChange` 等属性，强调表单校验与并发控制职责。
+- 记录 Canvas Kit `variant="inverse"` 兼容性验证结果。
 
 ### v2.0 (2025-09-21)
 - 修正 Canvas Kit 图标引用（pauseIcon/playIcon 替代不存在的图标）
