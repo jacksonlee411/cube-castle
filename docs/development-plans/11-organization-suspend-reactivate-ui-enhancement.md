@@ -234,6 +234,20 @@ const getButtonDisplay = (
 - **自动刷新机制**：冲突时调用现有 Hook 内部的 `invalidateQueries`，确保状态与后端对齐。
 - **用户提示**：保持单一提示语，提示用户“数据已更新，请刷新后重试”。
 
+### 3.5 评审发现与优化建议
+
+**评审发现**
+- 停用/启用流程确认弹窗缺少对 `operationReason`、`effectiveDate` 两个契约必填字段的采集与校验，直接调用将导致接口校验失败。
+- `useSuspendOrganization`、`useActivateOrganization` 当前仍以临时字段 `reason` 调用 API，且统一 REST 客户端丢弃响应头，无法满足契约要求的 `Idempotency-Key` 及 `ETag`/`If-Match` 机制。
+- 乐观锁链路尚未回传最新 `ETag`，前端后续操作无法携带版本标识，实际并发冲突仍然存在风险。
+- Canvas Kit `SecondaryButton` 支持 `variant="inverse"` 已经过版本确认，可继续按计划使用。
+
+**优化建议**
+- 在停用/启用弹窗中新增必填的操作原因与生效日期输入控件，并在提交前完成校验，确保请求体与契约一致。
+- 重构 `useSuspendOrganization`、`useActivateOrganization` Hook，改用契约字段名提交，并在内部生成 `Idempotency-Key`，同时支持传入/传出 `If-Match` 所需的 `ETag`。
+- 扩展 `unifiedRESTClient` 暴露响应头信息，借此从响应中提取最新 `ETag`，通过新增的 `onETagChange` 回调反馈给页面容器，形成完整的乐观锁闭环。
+- 在捕获 412 冲突后结合 React Query 进行缓存失效与重新加载，同时向用户提示刷新数据，避免脏数据继续覆盖。
+
 ## 4. 技术实现方案
 
 ### 4.1 组件修改范围
