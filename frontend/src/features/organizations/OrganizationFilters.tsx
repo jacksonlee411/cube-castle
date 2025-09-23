@@ -8,7 +8,8 @@ import { Switch } from '@workday/canvas-kit-react/switch';
 import { useDebounce } from '../../shared/hooks/useDebounce';
 import { TemporalStatusSelector } from '../temporal/components/TemporalStatusSelector';
 import type { TemporalStatus } from '../temporal/components/TemporalStatusSelector';
-import { TemporalDatePicker, validateTemporalDate } from '../temporal/components/TemporalDatePicker';
+import { TemporalDatePicker } from '../temporal/components/TemporalDatePicker';
+import { validateTemporalDate } from '@/shared/utils/temporal-validation-adapter';
 
 export interface FilterState {
   searchText: string;

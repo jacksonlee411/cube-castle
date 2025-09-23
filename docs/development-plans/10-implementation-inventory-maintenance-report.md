@@ -19,10 +19,10 @@
 ## 关键发现
 
 ### 🚨 紧急处理项（截止日期已过）
-1. **temporalValidation.ts** — 截止 2025-09-16 已过期
-   - 文件：`frontend/src/features/temporal/utils/temporalValidation.ts`
-   - 现状：仍被 `TemporalDatePicker` 直接引用为核心校验工具。
-   - 行动：制定迁移脚本，将引用统一切换至 `shared/utils/temporal-converter.ts` 后删除；若需保留，请更新 `TODO-TEMPORARY` 截止信息并在清单备案。
+1. **temporalValidation.ts** — ✅ 2025-09-23 完成迁移回收
+   - 替换路径：`frontend/src/shared/utils/temporal-validation-adapter.ts`（统一包装向后兼容）。
+   - 清单同步：`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`reports/implementation-inventory.json`、`reports/iig-guardian/iig-guardian-report.json` 已更新；临时文件已删除。
+   - 补充产物：`frontend/scripts/migrations/20250921-replace-temporal-validation.ts` 支持 `--check`/自动替换，说明见 `frontend/scripts/README.md`。
 
 2. **OrganizationForm/ValidationRules.ts** — 截止 2025-09-16 已过期
    - 文件：`frontend/src/features/organizations/components/OrganizationForm/ValidationRules.ts`
@@ -85,7 +85,7 @@
 ## 行动计划
 
 ### P0 — 立即执行
-1. 对 `temporalValidation.ts`、`ValidationRules.ts`、`shared/types/api.ts` 完成迁移或延期说明，并更新 `TODO-TEMPORARY`。
+1. ✅ `temporalValidation.ts` 已迁移删除；继续跟进 `ValidationRules.ts`、`shared/types/api.ts` 的迁移或延期说明，并更新 `TODO-TEMPORARY`。
 2. 纠正 `useEnterpriseOrganizations` 标记，明确真实迁移目标与时间表。
 3. 恢复 `organizationPermissions.ts` 子组织校验或提供风险评估。
 4. 补齐 `TemporalMasterDetailView` 三个逾期功能点。

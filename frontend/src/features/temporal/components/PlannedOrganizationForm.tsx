@@ -5,7 +5,8 @@ import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { Flex } from '@workday/canvas-kit-react/layout';
-import { TemporalDatePicker, validateTemporalDate } from './TemporalDatePicker';
+import { TemporalDatePicker } from './TemporalDatePicker';
+import { validateTemporalDate } from '@/shared/utils/temporal-validation-adapter';
 
 // 定义组织类型 - 从FormFields中复制过来
 export type UnitType = 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';

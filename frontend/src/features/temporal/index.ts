@@ -7,7 +7,8 @@
 // export type { TemporalDashboardProps } from './TemporalDashboard'; // 已删除
 
 // 组织详情组件
-export { TemporalDatePicker, validateTemporalDate } from './components/TemporalDatePicker';
+export { TemporalDatePicker } from './components/TemporalDatePicker';
+export { validateTemporalDate } from '@/shared/utils/temporal-validation-adapter';
 export { 
   TemporalStatusSelector, 
   temporalStatusUtils,

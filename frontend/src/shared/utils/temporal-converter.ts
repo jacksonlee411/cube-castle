@@ -203,14 +203,26 @@ export class TemporalConverter {
    */
   static isDateInRange(
     date: Date | string,
-    start: Date | string,
-    end: Date | string
+    start?: Date | string,
+    end?: Date | string
   ): boolean {
-    const dateStr = this.dateToDateString(date);
-    const startStr = this.dateToDateString(start);
-    const endStr = this.dateToDateString(end);
-    
-    return dateStr >= startStr && dateStr <= endStr;
+    const dateStr = TemporalConverter.dateToDateString(date);
+
+    const startStr = typeof start !== 'undefined'
+      ? TemporalConverter.dateToDateString(start)
+      : undefined;
+    if (startStr && dateStr < startStr) {
+      return false;
+    }
+
+    const endStr = typeof end !== 'undefined'
+      ? TemporalConverter.dateToDateString(end)
+      : undefined;
+    if (endStr && dateStr > endStr) {
+      return false;
+    }
+
+    return true;
   }
 
   /**

@@ -175,7 +175,7 @@
         {
           "name": "validateTemporalDate",
           "type": "const",
-          "file": "frontend/src/features/temporal/utils/temporalValidation.ts"
+          "file": "frontend/src/shared/utils/temporal-validation-adapter.ts"
         },
         {
           "name": "AuthManager",

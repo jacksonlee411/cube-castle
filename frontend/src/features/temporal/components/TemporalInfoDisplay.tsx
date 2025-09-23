@@ -6,7 +6,7 @@ import {
   temporalStatusUtils 
 } from './TemporalStatusSelector';
 import type { TemporalStatus } from './TemporalStatusSelector';
-import { validateTemporalDate } from './TemporalDatePicker';
+import { validateTemporalDate } from '@/shared/utils/temporal-validation-adapter';
 
 export interface TemporalInfo {
   effectiveDate?: string;

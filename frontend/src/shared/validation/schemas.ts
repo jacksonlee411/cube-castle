@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { validateTemporalDate } from '../utils/temporal-validation-adapter';
 
 // 统一验证系统 - 整合所有验证逻辑到Zod Schema
 // 替代: simple-validation.ts, ValidationRules.ts, temporalValidation.ts
@@ -191,29 +192,23 @@ export const ValidationUtils = {
     isValidDate: (dateString: string): boolean => {
       return TemporalDateSchema.safeParse(dateString).success;
     },
-    
+
     isFutureDate: (dateString: string): boolean => {
       return FutureDateSchema.safeParse(dateString).success;
     },
-    
+
     isEndDateAfterStartDate: (startDate: string, endDate: string): boolean => {
-      return new Date(endDate) > new Date(startDate);
+      return validateTemporalDate.isEndDateAfterStartDate(startDate, endDate);
     },
-    
+
     // DEPRECATED: 使用 TemporalConverter.getCurrentDateString()
     getTodayString: (): string => {
-      return new Date().toISOString().split('T')[0];
+      return validateTemporalDate.getTodayString();
     },
-    
+
     // DEPRECATED: 使用 TemporalConverter.formatForDisplay()
     formatDateDisplay: (dateString: string): string => {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: 'long', 
-        day: 'numeric'
-      });
+      return validateTemporalDate.formatDateDisplay(dateString);
     }
   }
 };

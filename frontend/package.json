@@ -23,6 +23,7 @@
     "validate:ports": "tsx scripts/validate-port-config.ts",
     "lint:graphql": "graphql-codegen --check",
     "build:verify": "tsc --noEmit && vite build",
+    "migrate:temporal-validation": "tsx scripts/migrations/20250921-replace-temporal-validation.ts",
     "contract:generate": "graphql-codegen --config codegen.yml",
     "dashboard:generate": "node scripts/generate-dashboard.js"
   },
@@ -64,6 +65,8 @@
     "graphql-schema-linter": "^3.0.1",
     "jscpd": "^4.0.5",
     "jsdom": "^26.1.0",
+    "ts-morph": "^22.0.0",
+    "tsx": "^4.20.5",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
     "vite": "^7.0.4",

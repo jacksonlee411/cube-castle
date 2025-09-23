@@ -64,8 +64,8 @@
             "newDuplicatedLines": 0,
             "newClones": 0
           },
-          "frontend/src/features/temporal/utils/temporalValidation.ts": {
-            "lines": 48,
+          "frontend/src/shared/utils/temporal-validation-adapter.ts": {
+            "lines": 55,
             "tokens": 544,
             "sources": 1,
             "clones": 0,

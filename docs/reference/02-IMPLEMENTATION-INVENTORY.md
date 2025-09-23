@@ -620,8 +620,8 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ### 表单验证规则 (`ValidationRules.ts`)
 - `validateForm` - 表单验证函数
 
-### 时态验证工具 (`temporalValidation.ts`)
-- `validateTemporalDate` - 时态日期验证
+### 时态验证适配层 (`temporal-validation-adapter.ts`)
+- `validateTemporalDate` - 与遗留接口保持一致的时态日期验证包装
 
 ---
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { FormField } from '@workday/canvas-kit-react/form-field';
-import { validateTemporalDate } from '../utils/temporalValidation';
+import { validateTemporalDate } from '@/shared/utils/temporal-validation-adapter';
 // 重新导出以保持向后兼容（仅禁用该行规则以配合 Fast Refresh）
 // eslint-disable-next-line react-refresh/only-export-components
 export { validateTemporalDate };
