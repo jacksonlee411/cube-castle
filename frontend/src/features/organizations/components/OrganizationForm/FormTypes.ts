@@ -29,13 +29,3 @@ export interface FormFieldsProps {
   enableTemporalFeatures?: boolean;
 }
 
-export interface ValidationRules {
-  name: (value: string) => string | null;
-  code: (value: string) => string | null;
-  level: (value: number) => string | null;
-  unitType: (value: string) => string | null;  // camelCase
-  // 时态验证规则 (camelCase)
-  effectiveFrom: (value: string, isTemporal: boolean) => string | null;  // camelCase
-  effectiveTo: (value: string, effectiveFrom: string, isTemporal: boolean) => string | null;  // camelCase
-  changeReason: (value: string, isTemporal: boolean) => string | null;  // camelCase
-}

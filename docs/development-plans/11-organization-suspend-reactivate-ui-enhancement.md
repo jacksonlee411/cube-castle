@@ -237,13 +237,13 @@ const getButtonDisplay = (
 ### 3.5 评审发现与优化建议
 
 **评审发现**
-- 停用/启用流程确认弹窗缺少对 `operationReason`、`effectiveDate` 两个契约必填字段的采集与校验，直接调用将导致接口校验失败。
+- 停用/启用流程确认弹窗缺少对 `effectiveDate` 必填字段的采集与校验，`operationReason` 虽为可选但仍需在UI中提供输入入口以便记录审计文本。
 - `useSuspendOrganization`、`useActivateOrganization` 当前仍以临时字段 `reason` 调用 API，且统一 REST 客户端丢弃响应头，无法满足契约要求的 `Idempotency-Key` 及 `ETag`/`If-Match` 机制。
 - 乐观锁链路尚未回传最新 `ETag`，前端后续操作无法携带版本标识，实际并发冲突仍然存在风险。
 - Canvas Kit `SecondaryButton` 支持 `variant="inverse"` 已经过版本确认，可继续按计划使用。
 
 **优化建议**
-- 在停用/启用弹窗中新增必填的操作原因与生效日期输入控件，并在提交前完成校验，确保请求体与契约一致。
+- 在停用/启用弹窗中新增生效日期输入控件（必填）并提供可选的操作原因输入，提交前仅对填写的原因执行长度校验，确保请求体与最新契约一致。
 - 重构 `useSuspendOrganization`、`useActivateOrganization` Hook，改用契约字段名提交，并在内部生成 `Idempotency-Key`，同时支持传入/传出 `If-Match` 所需的 `ETag`。
 - 扩展 `unifiedRESTClient` 暴露响应头信息，借此从响应中提取最新 `ETag`，通过新增的 `onETagChange` 回调反馈给页面容器，形成完整的乐观锁闭环。
 - 在捕获 412 冲突后结合 React Query 进行缓存失效与重新加载，同时向用户提示刷新数据，避免脏数据继续覆盖。
@@ -279,20 +279,20 @@ interface SuspendActivateButtonsProps {
 export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps>
 ```
 
-- 组件内部包含停用/启用原因输入框与生效日期选择器，提交前执行必填校验。
+- 组件内部包含停用/启用原因输入框与生效日期选择器，操作原因支持留空，仅在用户填写时执行长度校验。
 - 成功后将最新状态与 `ETag` 通过 `onStatusChange`、`onETagChange` 回传，供页面容器刷新缓存并保存并发控制上下文。
 
 ### 4.2 API集成
 
 #### 4.2.1 契约对齐要求
-- **请求体字段**：`operationReason`、`effectiveDate` 为后端契约必填字段（参见 `docs/api/openapi.yaml:2076`），前端需强制采集并按原字段名提交，禁止继续使用现有 Hook 中的临时 `reason` 字段。
+- **请求体字段**：`effectiveDate` 为契约必填字段，`operationReason` 现已改为可选（参见 `docs/api/openapi.yaml:2070`），前端应保留输入项但允许留空，提交时若用户未填写可直接省略该字段。
 - **Idempotency-Key**：契约要求提供幂等键 Header。当前统一 REST 客户端与相关 Hook 均未自动生成/附加该 Header，需要在实现阶段补齐（建议基于现有 Idempotency 工具或新增 `generateIdempotencyKey()`）。
 - **ETag / If-Match**：契约要求响应返回最新 `ETag` 与请求端附带 `If-Match`。现有客户端会丢弃响应头，Hook 也未设置 `If-Match`；必须扩展统一 REST 客户端以暴露响应头，并在 Hook 中传入最新 ETag 实现乐观锁。
 
 #### 4.2.2 前端调用策略
-- **Hook 调整**：扩展 `useSuspendOrganization`、`useActivateOrganization` 接口签名，要求提供 `operationReason`、`effectiveDate`，并在内部映射到契约字段。
+- **Hook 调整**：扩展 `useSuspendOrganization`、`useActivateOrganization` 接口签名，要求提供 `effectiveDate`，`operationReason` 允许为可选参数，并在内部映射到契约字段。
 - **Header 支持**：在 Hook 中生成并传递 `Idempotency-Key`，同时接收上一笔操作返回的 `ETag` 并以 `If-Match` 头发送；更新统一 REST 客户端以返回 `{ data, headers }` 或类同结构供调用方读取。
-- **组件职责**：按钮组件负责管理输入表单及校验，将 `organizationCode`、`operationReason`、`effectiveDate`、`etag`（若存在）传给 Hook，禁止将 `operationReason` 标记为可选。
+- **组件职责**：按钮组件负责管理输入表单及校验，将 `organizationCode`、`effectiveDate`、`etag`（若存在）与用户填写的 `operationReason`（如有）传给 Hook，避免对空原因抛出错误。
 - **错误分流**：继续复用 `handleAPIError`，并在收到 412 时透出“数据已更新，请刷新后重试”提示，同时触发 React Query 失效逻辑。
 
 ### 4.3 状态管理
@@ -503,7 +503,7 @@ const ConfirmationModal: React.FC<ConfirmModalProps> = ({
 ## 更新记录
 
 ### v2.1 (2025-09-21)
-- 补充评审发现：明确前端必须采集并提交 `operationReason`、`effectiveDate`，并调整按钮交互流程展示。
+- 补充评审发现：明确前端必须采集并提交 `effectiveDate`；`operationReason` 为可选项，应允许用户留空且在交互流程中提示填写建议。
 - 指出当前 Hook/客户端缺失 `Idempotency-Key`、`ETag`/`If-Match` 支持，要求在实施时扩展并返回响应头。
 - 更新组件接口说明，新增 `currentETag`、`onETagChange` 等属性，强调表单校验与并发控制职责。
 - 记录 Canvas Kit `variant="inverse"` 兼容性验证结果。

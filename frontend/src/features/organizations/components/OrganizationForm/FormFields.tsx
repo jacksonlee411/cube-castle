@@ -258,18 +258,18 @@ export const FormFields: React.FC<FormFieldsProps> = ({
 
               <div style={fieldStyle}>
                 <label style={labelStyle}>
-                  变更原因 *
+                  变更原因（可选）
                 </label>
                 <textarea
                   value={formData.changeReason as string || ''}
                   onChange={(e) => updateField('changeReason', e.target.value)}
-                  placeholder="请输入此次变更的原因和背景..."
+                  placeholder="请输入此次变更的原因和背景（可留空）..."
                   rows={2}
                   style={inputStyle}
                   data-testid="form-field-change-reason"
                 />
                 <div style={hintStyle}>
-                  详细说明此次组织变更的原因，便于历史追溯
+                  详细说明此次组织变更的原因（可留空，填写时建议保留在5-500个字符）
                 </div>
               </div>
 

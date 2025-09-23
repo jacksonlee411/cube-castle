@@ -54,8 +54,18 @@ describe('OrganizationTree', () => {
     // Mock fetch for GraphQL client
     const fetchMock = vi.spyOn(global, 'fetch' as any).mockImplementation(async (input: RequestInfo, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : (input as any)?.url || '';
+      if (url.includes('/.well-known/jwks.json')) {
+        return { ok: true, json: async () => ({ keys: [{ kid: 'test', kty: 'RSA' }] }) } as any;
+      }
       if (url.includes('/auth/dev-token')) {
-        return { ok: true, json: async () => ({ accessToken: 'test-token', expiresIn: 3600 }) } as any;
+        return {
+          ok: true,
+          json: async () => ({
+            accessToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZXYifQ.signature',
+            tokenType: 'Bearer',
+            expiresIn: 3600
+          })
+        } as any;
       }
       const body = init?.body ? JSON.parse(init.body as string) : {};
       const query: string = body.query || '';

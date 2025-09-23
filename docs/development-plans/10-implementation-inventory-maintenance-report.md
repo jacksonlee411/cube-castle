@@ -29,15 +29,15 @@
    - 现状：文件顶部声明 2025-09-16 停用，但仍被表单逻辑导入。
    - 行动：确认表单已支持 `shared/validation/schemas.ts` 后移除该兼容层；或重新评估并调整日期。
 
-3. **API 类型临时导出** — 截止 2025-09-16 已过期
-   - 文件：`frontend/src/shared/types/api.ts`
-   - 现状：`APIError`、`ValidationError` 及守卫函数仍以临时别名导出，造成类型入口重复。
-   - 行动：完成到新错误处理体系的替换，删除临时导出并更新引用路径。
+3. **API 类型临时导出** — ✅ 2025-09-22 已完成回收
+  - 文件：`frontend/src/shared/types/api.ts`
+  - 处理：移除 `APIError`、`ValidationError` 及相关守卫的临时别名导出，新增指引注释，聚合出口提醒改用 `shared/api/*`。
+  - 后续：确保实现清单与 IIG 报告同步更新，继续监控聚合出口是否被误用。
 
-4. **useEnterpriseOrganizations Hook 标记冲突** — 截止 2025-09-16 已过期
+4. **useEnterpriseOrganizations Hook 标记冲突** — ✅ 2025-09-23 完成整改
    - 文件：`frontend/src/shared/hooks/useEnterpriseOrganizations.ts`
-   - 现状：文件底部 `// TODO-TEMPORARY` 标注“将在 2025-09-16 后删除”，但该 Hook 为组织列表页等核心依赖。
-   - 行动：立即更新注释与计划，明确真正需要删除的是旧 wrapper `useOrganizations`，或设定新的迁移目标与截止日期，避免误导后续清理。
+   - 处理：移除误导性的自删标记，同时下线兼容封装 `useOrganizations.ts`，仅保留正式 Hook。
+   - 产物：`docs/development-plans/15-use-enterprise-organizations-hook-remediation.md` 记录整改详情，`frontend/HOOK_MIGRATION_REPORT.md` 已更新统一入口状态。
 
 5. **organizationPermissions.ts 子组织校验禁用** — 截止 2025-09-20 已过期
    - 文件：`frontend/src/shared/utils/organizationPermissions.ts`
@@ -86,7 +86,7 @@
 
 ### P0 — 立即执行
 1. ✅ `temporalValidation.ts` 已迁移删除；继续跟进 `ValidationRules.ts`、`shared/types/api.ts` 的迁移或延期说明，并更新 `TODO-TEMPORARY`。
-2. 纠正 `useEnterpriseOrganizations` 标记，明确真实迁移目标与时间表。
+2. ✅ 2025-09-23 完成 `useEnterpriseOrganizations` 标记纠正与兼容层回收，详见第 4 项与整改记录。
 3. 恢复 `organizationPermissions.ts` 子组织校验或提供风险评估。
 4. 补齐 `TemporalMasterDetailView` 三个逾期功能点。
 

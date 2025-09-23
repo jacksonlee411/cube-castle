@@ -485,16 +485,22 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         }
       } else {
         // 为现有组织创建新的时态版本 - 使用REST API (命令操作)
+        const versionPayload: Record<string, unknown> = {
+          name: formData.name,
+          unitType: formData.unitType,
+          parentCode: normalizeParentCode.forAPI(formData.parentCode),
+          description: formData.description || null,
+          effectiveDate: formData.effectiveDate // 使用YYYY-MM-DD格式
+        };
+
+        const trimmedReason = formData.changeReason?.trim();
+        if (trimmedReason) {
+          versionPayload.operationReason = trimmedReason;
+        }
+
         await unifiedRESTClient.request(`/organization-units/${organizationCode}/versions`, {
           method: 'POST',
-          body: JSON.stringify({
-            name: formData.name,
-            unitType: formData.unitType,
-            parentCode: normalizeParentCode.forAPI(formData.parentCode),
-            description: formData.description || null,
-            effectiveDate: formData.effectiveDate, // 使用YYYY-MM-DD格式
-            operationReason: formData.changeReason || '通过组织详情页面创建新版本'
-          })
+          body: JSON.stringify(versionPayload)
         });
         
         // unifiedRESTClient成功时直接返回数据，失败时抛出异常

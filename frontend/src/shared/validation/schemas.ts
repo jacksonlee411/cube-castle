@@ -61,7 +61,10 @@ export const TemporalFormSchema = z.object({
     
     // 时态模式下的验证
     if (!data.effectiveFrom) return false;
-    if (!data.changeReason?.trim()) return false;
+    const trimmedReason = data.changeReason?.trim() ?? '';
+    if (trimmedReason && trimmedReason.length < 5) {
+      return false;
+    }
     
     // 验证日期范围
     if (data.effectiveFrom && data.effectiveTo) {
@@ -73,7 +76,7 @@ export const TemporalFormSchema = z.object({
     return true;
   },
   {
-    message: '时态模式下必须提供生效时间和变更原因，且失效时间必须晚于生效时间',
+    message: '时态模式下必须提供生效时间；如填写变更原因需满足长度要求，失效时间必须晚于生效时间',
     path: ['effectiveFrom']
   }
 );

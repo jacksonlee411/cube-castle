@@ -532,10 +532,13 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
 
-	// 操作原因处理
-	operationReason := actionName
+	// 操作原因处理（可选）
+	operationReason := ""
 	if req.OperationReason != nil {
-		operationReason = *req.OperationReason
+		trimmed := strings.TrimSpace(*req.OperationReason)
+		if trimmed != "" {
+			operationReason = trimmed
+		}
 	}
 
 	// 🚀 使用时态时间轴管理器变更组织状态

@@ -127,7 +127,7 @@ curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}/suspend" 
   -H "Authorization: Bearer ${JWT_TOKEN}" \
   -H "X-Tenant-ID: ${TENANT_ID}" \
   -d '{
-    "operationReason": "部门重组-计划暂停",
+    "operationReason": "部门重组-计划暂停", # 可选字段
     "effectiveDate": "2025-12-01"
   }'
 
@@ -137,7 +137,7 @@ curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}/activate"
   -H "Authorization: Bearer ${JWT_TOKEN}" \
   -H "X-Tenant-ID: ${TENANT_ID}" \
   -d '{
-    "operationReason": "恢复业务运营",
+    "operationReason": "恢复业务运营", # 可选字段
     "effectiveDate": "2026-01-10"
   }'
 
@@ -154,7 +154,7 @@ curl -X POST "${COMMAND_SERVICE}/api/v1/organization-units/${ORG_CODE}/versions"
     "name": "技术部-历史更名",
     "unitType": "DEPARTMENT",
     "effectiveDate": "2025-09-01",
-    "operationReason": "历史更名-数据补正"
+    "operationReason": "历史更名-数据补正" # 可选字段
   }'
 ```
 

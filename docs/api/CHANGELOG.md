@@ -24,6 +24,7 @@
     - 审计契约已统一至 `audit_logs` 新列（event_type/resource_type/resource_id/actor_id/...）。
     - 动态标志（is_current/is_temporal/is_future）不应持久化到审计快照，应用层已按契约过滤。
     - 避免触发器与业务表结构演进不一致导致写入失败。
+- `operationReason` 字段改为可选：更新了 `CreateOrganizationUnitRequest`、`CreateVersionRequest`、停用/启用等请求体的必填列表，并在响应说明中标注省略时记录为空值。
 
 ### 修复 - 监控模块兼容去列（is_future）
 - 监控统计改为派生表达式：

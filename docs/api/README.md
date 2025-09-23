@@ -248,7 +248,7 @@ curl -f http://localhost:8090/health || echo "GraphQL服务异常"
   "unitType": "DEPARTMENT", 
   "parentCode": "1000000",     // 必填字段
   "effectiveDate": "2025-09-07",
-  "operationReason": "业务扩展"
+  "operationReason": "业务扩展" // 可选字段，省略时服务器记录为空字符串
 }
 
 // ❌ 旧的API请求格式 - parentCode可选，现在将报错
@@ -256,10 +256,11 @@ curl -f http://localhost:8090/health || echo "GraphQL服务异常"
   "name": "新部门",
   "unitType": "DEPARTMENT", 
   // parentCode: null,         // 现在不允许为空
-  "effectiveDate": "2025-09-07", 
-  "operationReason": "业务扩展"
+  "effectiveDate": "2025-09-07"
 }
 ```
+
+> **提示**：自 v4.5 起 `operationReason` 字段改为可选，省略时审计记录会保存为空字符串。
 
 #### 迁移指南
 1. **前端应用**: 确保所有组织创建/更新表单包含parentCode字段选择

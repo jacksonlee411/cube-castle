@@ -4,8 +4,9 @@ import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button
 import { useCreateOrganization, useUpdateOrganization } from '../../../../shared/hooks/useOrganizationMutations';
 // import { useTemporalMode } from '../../../../shared/hooks/useTemporalQuery';
 import { FormFields } from './FormFields';
-import { validateForm } from './ValidationRules';
+import { validateForm } from '../../../../shared/validation/schemas';
 import type { OrganizationFormProps, FormData } from './FormTypes';
+import { prepareFormDataForValidation } from './validation';
 import { TemporalConverter } from '../../../../shared/utils/temporal-converter';
 import { useMessages } from '../../../../shared/hooks/useMessages';
 import { normalizeParentCode } from '../../../../shared/utils/organization-helpers';
@@ -86,7 +87,8 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     }
     
     // Validate form
-    const errors = validateForm(formData as Record<string, unknown>, isEditing);
+    const normalizedFormData = prepareFormDataForValidation(formData);
+    const errors = validateForm(normalizedFormData, isEditing);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;

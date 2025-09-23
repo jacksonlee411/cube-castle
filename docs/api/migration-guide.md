@@ -9,7 +9,7 @@ Authorization: Bearer {token}
 X-Scopes: org:activate
 
 {
-  "operationReason": "恢复组织运营",
+  "operationReason": "恢复组织运营", // 可选字段，省略时将记录为空
   "effectiveDate": "2025-09-06"
 }
 ```
@@ -38,7 +38,7 @@ Authorization: Bearer {token}
 X-Scopes: org:suspend
 
 {
-  "operationReason": "部门重组",
+  "operationReason": "部门重组", // 可选字段，省略时将记录为空
   "effectiveDate": "2025-09-06"
 }
 ```

@@ -80,10 +80,10 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 		return fmt.Errorf("描述长度不能超过500个字符")
 	}
 
-    // 7. 时态字段基本验证（不引入 isTemporal）
-    if req.EffectiveDate != nil && req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
-        return fmt.Errorf("生效日期不能晚于失效日期")
-    }
+	// 7. 时态字段基本验证（不引入 isTemporal）
+	if req.EffectiveDate != nil && req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
+		return fmt.Errorf("生效日期不能晚于失效日期")
+	}
 
 	return nil
 }
@@ -155,10 +155,10 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 		return fmt.Errorf("描述长度不能超过500个字符")
 	}
 
-    // 7. 时态字段基本验证（不引入 isTemporal）
-    if req.EffectiveDate != nil && req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
-        return fmt.Errorf("生效日期不能晚于失效日期")
-    }
+	// 7. 时态字段基本验证（不引入 isTemporal）
+	if req.EffectiveDate != nil && req.EndDate != nil && req.EffectiveDate.Time.After(req.EndDate.Time) {
+		return fmt.Errorf("生效日期不能晚于失效日期")
+	}
 
 	return nil
 }
@@ -168,51 +168,53 @@ func ValidateOrganizationCode(code string) error {
 	if code == "" {
 		return fmt.Errorf("组织代码不能为空")
 	}
-	
+
 	if len(code) < 3 || len(code) > 10 {
 		return fmt.Errorf("组织代码长度必须在3-10个字符之间")
 	}
-	
+
 	// 修复：支持数字开头的组织代码格式，兼容现有数据
 	codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
 	if !codePattern.MatchString(code) {
 		return fmt.Errorf("组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
 	}
-	
+
 	return nil
 }
 
 // ValidateSuspendRequest 验证停用请求
 func ValidateSuspendRequest(reason string) error {
-	if strings.TrimSpace(reason) == "" {
-		return fmt.Errorf("停用原因不能为空")
+	trimmed := strings.TrimSpace(reason)
+	if trimmed == "" {
+		return nil
 	}
-	
-	if len(reason) < 5 {
+
+	if len(trimmed) < 5 {
 		return fmt.Errorf("停用原因至少需要5个字符")
 	}
-	
-	if len(reason) > 200 {
+
+	if len(trimmed) > 200 {
 		return fmt.Errorf("停用原因不能超过200个字符")
 	}
-	
+
 	return nil
 }
 
 // ValidateActivateRequest 验证激活请求
 func ValidateActivateRequest(reason string) error {
-	if strings.TrimSpace(reason) == "" {
-		return fmt.Errorf("激活原因不能为空")
+	trimmed := strings.TrimSpace(reason)
+	if trimmed == "" {
+		return nil
 	}
-	
-	if len(reason) < 5 {
+
+	if len(trimmed) < 5 {
 		return fmt.Errorf("激活原因至少需要5个字符")
 	}
-	
-	if len(reason) > 200 {
+
+	if len(trimmed) > 200 {
 		return fmt.Errorf("激活原因不能超过200个字符")
 	}
-	
+
 	return nil
 }
 
@@ -222,33 +224,33 @@ func ValidateCreateVersionRequest(req *types.CreateVersionRequest) error {
 	if strings.TrimSpace(req.Name) == "" {
 		return fmt.Errorf("组织名称不能为空")
 	}
-	
+
 	if len(req.Name) < 2 {
 		return fmt.Errorf("组织名称长度不能少于2个字符")
 	}
-	
+
 	if len(req.Name) > 255 {
 		return fmt.Errorf("组织名称不能超过255个字符")
 	}
-	
+
 	// 名称格式验证 - 支持Unicode字符
 	namePattern := regexp.MustCompile(`^[\p{L}\p{N}\s\-]+$`)
 	if !namePattern.MatchString(req.Name) {
 		return fmt.Errorf("组织名称包含无效字符，只允许字母、数字、中文、空格和连字符")
 	}
-	
+
 	// 2. 组织类型验证
 	if req.UnitType == "" {
 		return fmt.Errorf("组织类型不能为空")
 	}
-	
+
 	validTypes := map[string]bool{
 		"DEPARTMENT": true, "ORGANIZATION_UNIT": true, "PROJECT_TEAM": true,
 	}
 	if !validTypes[req.UnitType] {
 		return fmt.Errorf("无效的组织类型: %s，允许的类型: DEPARTMENT, ORGANIZATION_UNIT, PROJECT_TEAM", req.UnitType)
 	}
-	
+
 	// 3. 父组织代码验证（如果提供）
 	if req.ParentCode != nil && *req.ParentCode != "" {
 		if len(*req.ParentCode) != 7 {
@@ -260,12 +262,12 @@ func ValidateCreateVersionRequest(req *types.CreateVersionRequest) error {
 			return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
 		}
 	}
-	
+
 	// 4. 描述验证（如果提供）
 	if req.Description != nil && len(*req.Description) > 1000 {
 		return fmt.Errorf("描述长度不能超过1000个字符")
 	}
-	
+
 	// 5. 排序顺序验证（如果提供）
 	if req.SortOrder != nil {
 		if *req.SortOrder < 0 {
@@ -275,41 +277,40 @@ func ValidateCreateVersionRequest(req *types.CreateVersionRequest) error {
 			return fmt.Errorf("排序顺序不能超过9999")
 		}
 	}
-	
+
 	// 6. 生效日期验证
 	if req.EffectiveDate == "" {
 		return fmt.Errorf("生效日期不能为空")
 	}
-	
+
 	effectiveDate, err := time.Parse("2006-01-02", req.EffectiveDate)
 	if err != nil {
 		return fmt.Errorf("生效日期格式无效，必须为YYYY-MM-DD格式: %v", err)
 	}
-	
+
 	// 7. 失效日期验证（如果提供）
 	if req.EndDate != nil && *req.EndDate != "" {
 		endDate, err := time.Parse("2006-01-02", *req.EndDate)
 		if err != nil {
 			return fmt.Errorf("失效日期格式无效，必须为YYYY-MM-DD格式: %v", err)
 		}
-		
+
 		if !endDate.After(effectiveDate) {
 			return fmt.Errorf("失效日期必须晚于生效日期")
 		}
 	}
-	
-	// 8. 操作原因验证
-	if strings.TrimSpace(req.OperationReason) == "" {
-		return fmt.Errorf("操作原因不能为空")
+
+	// 8. 操作原因验证（可选）
+	trimmedReason := strings.TrimSpace(req.OperationReason)
+	if trimmedReason != "" {
+		if len(trimmedReason) < 5 {
+			return fmt.Errorf("操作原因至少需要5个字符")
+		}
+
+		if len(trimmedReason) > 500 {
+			return fmt.Errorf("操作原因不能超过500个字符")
+		}
 	}
-	
-	if len(req.OperationReason) < 5 {
-		return fmt.Errorf("操作原因至少需要5个字符")
-	}
-	
-	if len(req.OperationReason) > 500 {
-		return fmt.Errorf("操作原因不能超过500个字符")
-	}
-	
+
 	return nil
 }

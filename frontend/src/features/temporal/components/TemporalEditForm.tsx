@@ -224,10 +224,13 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
       }
     }
     
-    if (!formData.changeReason?.trim()) {
-      newErrors.changeReason = '变更原因是必填项';
+    const trimmedReason = formData.changeReason?.trim() ?? '';
+    if (trimmedReason && trimmedReason.length < 5) {
+      newErrors.changeReason = '变更原因至少需要5个字符';
+    } else if (trimmedReason.length > 500) {
+      newErrors.changeReason = '变更原因不能超过500个字符';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -434,16 +437,15 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
             </FormField>
 
             <FormField
-              isRequired
               error={errors.changeReason ? "error" : undefined}
             >
-              <FormField.Label>变更原因</FormField.Label>
+              <FormField.Label>变更原因（可选）</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextArea}
                   value={formData.changeReason}
                   onChange={handleInputChange('changeReason')}
-                  placeholder="请说明此次变更的原因"
+                  placeholder="请说明此次变更的原因（可留空）"
                   disabled={isSubmitting}
                   rows={2}
                 />

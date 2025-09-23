@@ -1881,7 +1881,6 @@ components:
         - unitType
         - parentCode
         - effectiveDate
-        - operationReason
       properties:
         name:
           type: string
@@ -1920,7 +1919,7 @@ components:
         operationReason:
           type: string
           maxLength: 500
-          description: Reason for creation
+          description: Optional reason for creation; when omitted the service records an empty reason
           example: "业务扩展需要"
 
     CreateVersionRequest:
@@ -1933,7 +1932,6 @@ components:
         - unitType
         - parentCode
         - effectiveDate
-        - operationReason
       properties:
         name:
           type: string
@@ -1973,7 +1971,7 @@ components:
         operationReason:
           type: string
           maxLength: 500
-          description: Reason for creating this version
+          description: Optional reason for creating this version; when omitted the change is recorded without a textual reason
           example: "组织架构调整，加强技术研发能力"
 
     ReplaceOrganizationUnitRequest:
@@ -1989,7 +1987,6 @@ components:
         - sortOrder
         - profile
         - effectiveDate
-        - operationReason
       properties:
         name:
           type: string
@@ -2032,6 +2029,7 @@ components:
         operationReason:
           type: string
           maxLength: 500
+          description: Optional reason for the operation; omitted values are recorded as empty
           example: "组织架构全面重构"
 
     UpdateOrganizationUnitRequest:
@@ -2039,8 +2037,6 @@ components:
       description: |
         Partial update request. Only provided fields are modified, others remain unchanged.
         **Cannot be used to change status** - use dedicated suspend/activate endpoints.
-      required:
-        - operationReason
       properties:
         name:
           type: string
@@ -2068,19 +2064,18 @@ components:
         operationReason:
           type: string
           maxLength: 500
-          description: Reason for update (required)
+          description: Optional reason for update; when omitted no textual reason is stored
           example: "预算调整和人员编制优化"
 
     SuspendOrganizationRequest:
       type: object
       required:
-        - operationReason
         - effectiveDate
       properties:
         operationReason:
           type: string
           maxLength: 500
-          description: Reason for suspension
+          description: Optional reason for suspension
           example: "业务调整需要"
         effectiveDate:
           type: string
@@ -2091,13 +2086,12 @@ components:
     ActivateOrganizationRequest:
       type: object
       required:
-        - operationReason
         - effectiveDate
       properties:
         operationReason:
           type: string
           maxLength: 500
-          description: Reason for activation
+          description: Optional reason for activation
           example: "恢复业务运营"
         effectiveDate:
           type: string

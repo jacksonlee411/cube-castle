@@ -97,7 +97,7 @@ type CreateVersionRequest struct {
 	Profile         *string `json:"profile,omitempty"` // JSON string
 	EffectiveDate   string  `json:"effectiveDate" validate:"required,datetime=2006-01-02"`
 	EndDate         *string `json:"endDate,omitempty" validate:"omitempty,datetime=2006-01-02"`
-	OperationReason string  `json:"operationReason" validate:"required,max=500"`
+	OperationReason string  `json:"operationReason" validate:"omitempty,max=500"`
 }
 
 // 组织历史版本请求 (旧版本，保持兼容性)

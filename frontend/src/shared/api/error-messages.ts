@@ -74,9 +74,9 @@ export const ORGANIZATION_API_ERRORS: Record<string, ApiErrorCode> = {
 
   OPERATION_REASON_REQUIRED: {
     code: 'OPERATION_REASON_REQUIRED',
-    userMessage: '操作原因为必填项',
-    technicalMessage: 'operationReason field is required',
-    recoveryAction: '请输入操作原因说明'
+    userMessage: '操作原因已改为可选项',
+    technicalMessage: 'operationReason field is optional',
+    recoveryAction: '如需填写，请输入5-500个字符；否则可以留空'
   },
 
   // 弃用端点错误  

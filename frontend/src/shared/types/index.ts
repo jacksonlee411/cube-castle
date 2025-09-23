@@ -9,6 +9,7 @@ import type { OrganizationUnit } from './organization';
 // 🎯 核心业务类型
 export * from './organization';
 export * from './temporal';
+// ⚠️ 注意：'./api' 仅导出类型；错误处理类与守卫必须从 '../api/error-handling' 与 '../api/type-guards' 导入。
 export * from './api';
 
 // 🎯 类型转换工具

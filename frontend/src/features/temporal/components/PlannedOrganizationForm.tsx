@@ -123,12 +123,13 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
     }
 
     // 变更原因验证
-    if (!formData.changeReason.trim()) {
-      newErrors.changeReason = '变更原因不能为空';
-    } else if (formData.changeReason.length < 5) {
-      newErrors.changeReason = '变更原因至少需要5个字符';
-    } else if (formData.changeReason.length > 500) {
-      newErrors.changeReason = '变更原因不能超过500个字符';
+    const trimmedReason = formData.changeReason.trim();
+    if (trimmedReason) {
+      if (trimmedReason.length < 5) {
+        newErrors.changeReason = '变更原因至少需要5个字符';
+      } else if (trimmedReason.length > 500) {
+        newErrors.changeReason = '变更原因不能超过500个字符';
+      }
     }
 
     setErrors(newErrors);
@@ -262,10 +263,9 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
             />
 
             <FormField
-              isRequired
               error={errors.changeReason ? "error" : undefined}
             >
-              <FormField.Label>变更原因</FormField.Label>
+              <FormField.Label>变更原因（可选）</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextArea}
@@ -275,7 +275,7 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
                   rows={3}
                 />
                 <FormField.Hint>
-                  {errors.changeReason || '请说明创建此计划组织的原因'}
+                  {errors.changeReason || '请说明创建此计划组织的原因（可留空）'}
                 </FormField.Hint>
               </FormField.Field>
             </FormField>

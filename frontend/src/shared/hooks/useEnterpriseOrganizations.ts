@@ -458,7 +458,6 @@ export const useEnterpriseOrganizations = (
 // 直接使用 useEnterpriseOrganizations，它已经包含所有相同功能
 // 如需 refresh 方法，直接使用 result.fetchOrganizations(params)
 
-// TODO-TEMPORARY: 该Hook将在 2025-09-16 后删除，所有使用应替换为 useEnterpriseOrganizations
-
+// NOTE: useEnterpriseOrganizations 为正式实现，历史兼容封装 useOrganizations.ts 已在 2025-09-23 下线。
 
 export default useEnterpriseOrganizations;

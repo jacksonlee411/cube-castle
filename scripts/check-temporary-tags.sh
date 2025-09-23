@@ -25,12 +25,26 @@ if [[ -z "$matches" ]]; then
 fi
 
 violation=0
+critical_violation=0
 while IFS= read -r line; do
   # 解析 path:lineno:text
   path=${line%%:*}
   rest=${line#*:}
   lineno=${rest%%:*}
   text=${rest#*:}
+
+  # 针对 shared/types/api.ts 的强制阻断
+  if [[ "$path" == "./frontend/src/shared/types/api.ts" || "$path" == "frontend/src/shared/types/api.ts" ]]; then
+    cat <<EOF
+✖ 禁止在 frontend/src/shared/types/api.ts 保留 TODO-TEMPORARY：
+  - 请移除临时导出，改为从 shared/api/error-handling 或 shared/api/type-guards 导入错误类型与守卫。
+  - 若仍需兼容，请在迁移计划中登记并提供新的截止日期。
+问题位置：$path:$lineno
+EOF
+    ((violation++))
+    critical_violation=1
+    # 仍继续检查其他项，确保完整输出
+  fi
 
   # 1) 必须包含截止日期 YYYY-MM-DD
   if ! echo "$text" | grep -Eq '20[0-9]{2}-[01][0-9]-[0-3][0-9]'; then
@@ -50,6 +64,9 @@ done <<< "$matches"
 
 if [[ $violation -gt 0 ]]; then
   echo "\n总计违反项: $violation"
+  if [[ $critical_violation -gt 0 ]]; then
+    echo "⚠ 请优先处理 frontend/src/shared/types/api.ts 的临时导出回收，确保错误类型唯一入口。"
+  fi
   exit 1
 fi
 

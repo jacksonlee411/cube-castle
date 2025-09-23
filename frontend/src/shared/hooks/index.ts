@@ -4,7 +4,6 @@
  * 🏆 Hook重复代码彻底消除成果：
  * - ✅ 主要实现：useEnterpriseOrganizations (唯一组织查询Hook)
  * - ❌ 消除重复：useOrganizationList (不必要的包装器)
- * - ❌ 消除重复：useOrganizations (临时兼容包装器)
  * - ❌ 消除重复：useOrganization (功能重叠)
  * - 🎯 重复消除率：83% (6个Hook → 1个核心Hook)
  */
@@ -12,9 +11,6 @@
 // 🎯 唯一组织Hook实现
 export * from './useEnterpriseOrganizations';
 export { default as useEnterpriseOrganizations } from './useEnterpriseOrganizations';
-
-// 🔄 向后兼容：传统Hook保持可用
-export * from './useOrganizations';
 
 // 🔧 专用工具Hook
 export * from './useOrganizationMutations';
