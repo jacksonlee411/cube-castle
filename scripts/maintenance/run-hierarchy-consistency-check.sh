@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SQL_FILE="${ROOT_DIR}/sql/hierarchy-consistency-check.sql"
 OUTPUT_DIR="${ROOT_DIR}/reports/hierarchy-consistency"
+ENV_FILE="${ROOT_DIR}/.env"
 
 if ! command -v psql >/dev/null 2>&1; then
   echo "[hierarchy-check] 未找到 psql 命令，请确认已安装 PostgreSQL 客户端。" >&2
@@ -13,6 +14,20 @@ fi
 if [[ ! -f "${SQL_FILE}" ]]; then
   echo "[hierarchy-check] 未找到 SQL 文件: ${SQL_FILE}" >&2
   exit 1
+fi
+
+# 自动加载根目录下的 .env（若存在）
+if [[ -z "${DATABASE_URL:-}" && -z "${PGHOST:-}" && -f "${ENV_FILE}" ]]; then
+  echo "[hierarchy-check] 检测到 .env，尝试加载数据库配置…" >&2
+  set -a
+  # shellcheck disable=SC1090
+  source "${ENV_FILE}"
+  set +a
+fi
+
+# 若仅有 DATABASE_URL_HOST，则自动回填到 DATABASE_URL
+if [[ -z "${DATABASE_URL:-}" && -n "${DATABASE_URL_HOST:-}" ]]; then
+  export DATABASE_URL="${DATABASE_URL_HOST}"
 fi
 
 if [[ -z "${DATABASE_URL:-}" && -z "${PGHOST:-}" ]]; then

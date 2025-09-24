@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SQL_FILE="${ROOT_DIR}/sql/hierarchy-consistency-check.sql"
+ENV_FILE="${ROOT_DIR}/.env"
 
 if ! command -v psql >/dev/null 2>&1; then
   echo "[hierarchy-guard] ⚠️ 未安装 psql，跳过层级一致性检查。" >&2
   exit 0
+fi
+
+# 自动加载 .env（若尚未配置环境变量）
+if [[ -z "${DATABASE_URL:-}" && -z "${PGHOST:-}" && -f "${ENV_FILE}" ]]; then
+  echo "[hierarchy-guard] ℹ️  加载 .env 中的数据库配置…" >&2
+  set -a
+  # shellcheck disable=SC1090
+  source "${ENV_FILE}"
+  set +a
+fi
+
+if [[ -z "${DATABASE_URL:-}" && -n "${DATABASE_URL_HOST:-}" ]]; then
+  export DATABASE_URL="${DATABASE_URL_HOST}"
 fi
 
 if [[ -z "${DATABASE_URL:-}" && -z "${PGHOST:-}" ]]; then

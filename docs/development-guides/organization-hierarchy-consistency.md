@@ -10,7 +10,7 @@
 
 ### 执行步骤
 
-1. 设置数据库连接（任选其一）：
+1. 设置数据库连接（任选其一，脚本会自动读取根目录 `.env` 以填充 `DATABASE_URL`/`DATABASE_URL_HOST`）：
    ```bash
    export DATABASE_URL="postgres://user:password@host:5432/command_service"
    # 或者
