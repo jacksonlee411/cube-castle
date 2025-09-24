@@ -21,7 +21,7 @@ if [[ -z "${DATABASE_URL:-}" && -z "${PGHOST:-}" && -f "${ENV_FILE}" ]]; then
   echo "[hierarchy-check] 检测到 .env，尝试加载数据库配置…" >&2
   set -a
   # shellcheck disable=SC1090
-  source "${ENV_FILE}"
+  source <(sed $'s/\r$//' "${ENV_FILE}")
   set +a
 fi
 

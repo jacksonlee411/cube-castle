@@ -15,7 +15,7 @@ if [[ -z "${DATABASE_URL:-}" && -z "${PGHOST:-}" && -f "${ENV_FILE}" ]]; then
   echo "[hierarchy-guard] ℹ️  加载 .env 中的数据库配置…" >&2
   set -a
   # shellcheck disable=SC1090
-  source "${ENV_FILE}"
+  source <(sed $'s/\r$//' "${ENV_FILE}")
   set +a
 fi
 
