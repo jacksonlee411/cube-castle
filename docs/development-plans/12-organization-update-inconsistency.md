@@ -3,7 +3,7 @@
 生成日期：2025-09-21
 责任团队：架构组（主责）+ 后端组
 问题等级：严重（P1）- 数据一致性问题
-当前状态：核心代码路径已统一，待历史数据回收与监控上线
+当前状态：核心代码路径已统一，巡检脚本与 CI 守卫已就绪，待运营排期执行历史数据回收并纳入例行巡检
 
 ---
 
@@ -20,12 +20,12 @@
 ### 已完成
 - 统一组织写入路径：REST、历史记录、版本创建以及 `OrganizationTemporalService`、`TemporalService` 均改为调用仓储层的 `ComputeHierarchyForNew`，强制回写 `path/code_path/name_path/level`。
 - 补充集成校验：时态时间轴测试新增层级一致性检查，防止回归。
-- 参考脚本与测试数据同步更新，确保任何数据种子、工具脚本也写入完整层级字段。
+- 巡检与守卫落地：新增 `sql/hierarchy-consistency-check.sql`、`scripts/maintenance/run-hierarchy-consistency-check.sh`、`scripts/quality/hierarchy-consistency-guard.sh`，支持一次性巡检与 CI 阻断。
+- 文档同步：`docs/development-guides/organization-hierarchy-consistency.md` 收录巡检/回收操作手册，评审要求同步至团队。
 
 ### 待处理
-- 历史数据扫描与回收：运行 `scripts/advanced-hierarchy-management.sql` 中的数据巡检，生成待修复列表并执行批量重算。
-- 线上监控：补充 CI/守护作业，定期校验 `path/code_path/name_path` 一致性并阻断异常数据。
-- 文档同步与培训：将统一写入规范纳入《架构原则》与代码评审清单，并向前后端同步字段来源变更。
+- 历史数据回收执行：依据巡检脚本生成的异常列表，由运营窗口安排批量重算与复验，并记录修复结论。
+- 巡检排期固化：在运维日程或 CI 管道中增加定期调用 `scripts/maintenance/run-hierarchy-consistency-check.sh` 的任务，确保异常及时识别。
 
 ---
 

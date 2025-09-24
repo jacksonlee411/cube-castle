@@ -633,6 +633,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `scripts/quality/duplicate-detection.sh` - 重复代码检测工具
 - `scripts/quality/architecture-validator.js` - 架构一致性验证
 - `scripts/quality/document-sync.js` - 文档同步监控
+- `scripts/quality/hierarchy-consistency-guard.sh` - 组织层级一致性守卫 (需要数据库连接)
 
 ### 数据库修复脚本 ⭐ **P1级问题修复完成**
 - `scripts/fix-graphql-scan-issue.sql` - **GraphQL扫描问题修复脚本**
@@ -640,6 +641,8 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
   - 解决: audit_logs 表缺失 business_entity_type 字段
   - 操作: 添加字段并更新 141 条现有记录的默认值
   - 状态: ✅ 已执行，GraphQL查询服务正常运行
+- `scripts/maintenance/run-hierarchy-consistency-check.sh` - 组织层级巡检脚本，输出 CSV 汇总异常数据（需 `psql`）
+- `sql/hierarchy-consistency-check.sql` - 只读巡检 SQL，供脚本/CI 调用
 
 ### 开发环境脚本
 - **根目录 Makefile** - 统一开发命令入口
