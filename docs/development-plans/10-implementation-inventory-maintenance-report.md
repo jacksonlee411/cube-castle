@@ -29,10 +29,11 @@
    - 现状：文件顶部声明 2025-09-16 停用，但仍被表单逻辑导入。
    - 行动：确认表单已支持 `shared/validation/schemas.ts` 后移除该兼容层；或重新评估并调整日期。
 
-3. **API 类型临时导出** — ✅ 2025-09-22 已完成回收
+3. **API 类型临时导出** — ✅ 2025-09-24 关闭并归档
   - 文件：`frontend/src/shared/types/api.ts`
-  - 处理：移除 `APIError`、`ValidationError` 及相关守卫的临时别名导出，新增指引注释，聚合出口提醒改用 `shared/api/*`。
-  - 后续：确保实现清单与 IIG 报告同步更新，继续监控聚合出口是否被误用。
+  - 处理：临时别名导出彻底回收，聚合出口新增显式指引，相关引用已迁移至 `frontend/src/shared/api/*`。
+  - 同步：`reports/implementation-inventory.json`、`reports/iig-guardian/iig-guardian-report.json` 与 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 已在 2025-09-24 更新，CI 报表恢复绿色。
+  - 归档：整改计划移至 `docs/archive/14-api-type-temporary-export-remediation.md`，便于历史追踪。
 
 4. **useEnterpriseOrganizations Hook 标记冲突** — ✅ 2025-09-23 完成整改
    - 文件：`frontend/src/shared/hooks/useEnterpriseOrganizations.ts`
@@ -85,7 +86,7 @@
 ## 行动计划
 
 ### P0 — 立即执行
-1. ✅ `temporalValidation.ts` 已迁移删除；继续跟进 `ValidationRules.ts`、`shared/types/api.ts` 的迁移或延期说明，并更新 `TODO-TEMPORARY`。
+1. ✅ `temporalValidation.ts` 已迁移删除；继续跟进 `ValidationRules.ts` 的迁移或延期说明，并更新剩余 `TODO-TEMPORARY`。
 2. ✅ 2025-09-23 完成 `useEnterpriseOrganizations` 标记纠正与兼容层回收，详见第 4 项与整改记录。
 3. 恢复 `organizationPermissions.ts` 子组织校验或提供风险评估。
 4. 补齐 `TemporalMasterDetailView` 三个逾期功能点。
