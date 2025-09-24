@@ -8,6 +8,7 @@ import React from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
 import { Card } from '@workday/canvas-kit-react/card';
+import { TertiaryButton } from '@workday/canvas-kit-react/button';
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots';
 import { 
   colors, 
@@ -52,6 +53,7 @@ export interface TimelineComponentProps {
   selectedVersion: TimelineVersion | null;
   onVersionSelect: (version: TimelineVersion) => void;
   onDeleteVersion?: (version: TimelineVersion) => void;
+  onEditVersion?: (version: TimelineVersion) => void;
   isLoading: boolean;
   readonly?: boolean;
   width?: string; // 允许自定义宽度
@@ -84,6 +86,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
   selectedVersion,
   onVersionSelect,
   onDeleteVersion: _onDeleteVersion,
+  onEditVersion,
   isLoading,
   readonly: _readonly = false,
   width = "350px",
@@ -359,10 +362,23 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
                         </Text>
                         
                         {/* 状态标识 - 使用统一的状态系统 */}
-                        <StatusBadge 
-                          status={mapBackendStatusToOrganizationStatus(version.status)} 
-                          size="small"
-                        />
+                        <Flex alignItems="center" gap="xs">
+                          <StatusBadge 
+                            status={mapBackendStatusToOrganizationStatus(version.status)} 
+                            size="small"
+                          />
+                          {onEditVersion && !_readonly && (
+                            <TertiaryButton
+                              size="small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onEditVersion(version);
+                              }}
+                            >
+                              编辑
+                            </TertiaryButton>
+                          )}
+                        </Flex>
                       </Flex>
                     </Box>
                     

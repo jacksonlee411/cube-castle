@@ -12,7 +12,7 @@
 ### 📊 完成状态
 - ✅ 实现清单文档已更新至 v1.9.0
 - ✅ 架构合规性验证通过（109 个文件，0 违规）
-- ⚠️ 发现 6 项临时实现已过期仍在使用
+- ⚠️ 发现 5 项临时实现已过期仍在使用（TemporalMasterDetailView 已于 2025-09-26 整改）
 
 ---
 
@@ -45,13 +45,11 @@
    - 现状：`childCount` 防删逻辑仍被注释，权限计算缺乏真实数据约束。
    - 行动：恢复 API 集成或制定延期说明，并在 IIG 清单登记。
 
-6. **TemporalMasterDetailView 时态功能缺口** — 截止 2025-09-20 已过期
+6. **TemporalMasterDetailView 时态功能缺口** — ✅ 2025-09-26 完成整改
    - 文件：`frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`
-   - 现状：以下三处 `TODO-TEMPORARY` 均已逾期：
-     - 表单模式状态未使用（第 96 行）
-     - 状态映射 `mapLifecycleStatusToApiStatus` 未实现（第 431 行）
-     - 历史编辑操作 `handleEditHistory` 未补齐（第 531 行）
-   - 行动：补齐对应逻辑或正式删除临时占位，并同步更新验证与文档。
+   - 处理：补齐表单模式、状态映射与历史编辑入口，删除全部 `TODO-TEMPORARY`，详见 `docs/archive/development-plans/16-temporal-master-detail-view-remediation.md`。
+   - 测试：`npm --prefix frontend run test -- --run` 通过；实现清单与 IIG 报告同步更新。
+   - 后续：GraphQL `codePath/namePath` 扩展仍在计划内（2025-09-30 截止）。
 
 ### ⏱ 即将到期项
 - **TemporalMasterDetailView 路径占位** — 截止 2025-09-30
@@ -89,7 +87,7 @@
 1. ✅ `temporalValidation.ts` 已迁移删除；继续跟进 `ValidationRules.ts` 的迁移或延期说明，并更新剩余 `TODO-TEMPORARY`。
 2. ✅ 2025-09-23 完成 `useEnterpriseOrganizations` 标记纠正与兼容层回收，详见第 4 项与整改记录。
 3. 恢复 `organizationPermissions.ts` 子组织校验或提供风险评估。
-4. 补齐 `TemporalMasterDetailView` 三个逾期功能点。
+4. ✅ 2025-09-26 完成 `TemporalMasterDetailView` 整改，维持例行守卫。
 
 ### P1 — 短期内（下一个迭代）
 5. 完成 `TemporalMasterDetailView` 路径占位的 GraphQL 接入。

@@ -29,6 +29,24 @@ import { AuditHistorySection } from '../../audit/components/AuditHistorySection'
 import { normalizeParentCode } from '../../../shared/utils/organization-helpers';
 import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
 
+type ApiOrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+
+const mapLifecycleStatusToApiStatus = (
+  lifecycleStatus: TemporalEditFormData['lifecycleStatus']
+): ApiOrganizationStatus => {
+  switch (lifecycleStatus) {
+    case 'CURRENT':
+      return 'ACTIVE';
+    case 'PLANNED':
+      return 'PLANNED';
+    case 'HISTORICAL':
+    case 'INACTIVE':
+    case 'DELETED':
+    default:
+      return 'INACTIVE';
+  }
+};
+
 // 使用来自TimelineComponent的TimelineVersion类型
 // export interface TemporalVersion 已移动到 TimelineComponent.tsx
 
@@ -87,19 +105,18 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [retryCount, setRetryCount] = useState(0);
   
   // 编辑表单状态
-  const [showEditForm] = useState(isCreateMode); // 创建模式默认显示编辑表单
-  const [editMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
+  const [showEditForm, setShowEditForm] = useState(isCreateMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // 视图选项卡状态 - 默认显示版本历史页面，支持审计信息
   const [activeTab, setActiveTab] = useState<TabType>('edit-history');
-  
-  // TODO-TEMPORARY: FormMode state is not used; integrate form mode logic in v4.3 by 2025-09-20.
-  const [/* formMode */, setFormMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'edit');
+
+  const [formMode, setFormMode] = useState<'create' | 'edit'>(isCreateMode ? 'create' : 'create');
   const [formInitialData, setFormInitialData] = useState<{
     name: string;
     unitType: string;
     status: string;
+    lifecycleStatus?: TimelineVersion['lifecycleStatus'];
     description?: string;
     parentCode?: string;
     effectiveDate?: string; // 添加生效日期
@@ -136,7 +153,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   }, [showDeleteConfirm, deleteModalModel]);
 
   // 加载时态版本数据 - 增强版本，包含错误处理和重试机制
-  const loadVersions = useCallback(async (isRetry = false) => {
+  const loadVersions = useCallback(async (isRetry = false, focusRecordId?: string) => {
     try {
       setIsLoading(true);
       setLoadingError(null);
@@ -277,18 +294,27 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         setTimeout(() => setSuccessMessage(null), 3000);
       }
 
-      // 选中当前版本 = "生效日 ≤ 今日"的最大者
-      const currentVersion = sortedVersions.find((v: TimelineVersion) => v.isCurrent) || sortedVersions.at(-1) || null;
+      const preferredVersion = focusRecordId
+        ? sortedVersions.find((v: TimelineVersion) => v.recordId === focusRecordId) || null
+        : null;
+
+      // 选中目标版本优先，否则保持当前版本，最后兜底为最新一条
+      const currentVersion = preferredVersion
+        || sortedVersions.find((v: TimelineVersion) => v.isCurrent)
+        || sortedVersions.at(-1)
+        || null;
 
       if (currentVersion) {
         setSelectedVersion(currentVersion);
 
         // 预设表单数据（保持与现有表单字段格式兼容）
         setFormMode('edit');
+        setShowEditForm(false);
         setFormInitialData({
           name: currentVersion.name,
           unitType: currentVersion.unitType,
           status: currentVersion.status,
+          lifecycleStatus: currentVersion.lifecycleStatus,
           description: currentVersion.description || '',
           parentCode: normalizeParentCode.forForm(currentVersion.parentCode),
           effectiveDate: currentVersion.effectiveDate
@@ -406,52 +432,43 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [organizationCode, selectedVersion, isDeleting, loadVersions]);
 
+  const handleEditHistory = useCallback((version: TimelineVersion) => {
+    setSelectedVersion(version);
+    setFormMode('edit');
+    setShowEditForm(true);
+    setFormInitialData({
+      name: version.name,
+      unitType: version.unitType,
+      status: version.status,
+      lifecycleStatus: version.lifecycleStatus,
+      description: version.description || '',
+      parentCode: normalizeParentCode.forForm(version.parentCode),
+      effectiveDate: version.effectiveDate
+    });
+    setActiveTab('edit-history');
+  }, []);
+
   // 时间轴版本选择处理 - 增强功能，支持编辑历史记录页面联动
   const handleVersionSelect = useCallback((version: TimelineVersion) => {
-    setSelectedVersion(version);
-    
-    // 如果当前在版本历史选项卡，更新表单数据显示选中版本的信息
-    if (activeTab === 'edit-history') {
-      setFormMode('edit');
-      setFormInitialData({
-        name: version.name,
-        unitType: version.unitType,
-        status: version.status,
-        description: version.description || '',
-        parentCode: normalizeParentCode.forForm(version.parentCode),
-        effectiveDate: version.effectiveDate
-      });
-    }
-  }, [activeTab]);
+    handleEditHistory(version);
+  }, [handleEditHistory]);
 
   const handleFormSubmit = useCallback(async (formData: TemporalEditFormData) => {
     setIsSubmitting(true);
     try {
+      const mappedStatus = mapLifecycleStatusToApiStatus(formData.lifecycleStatus);
       if (isCreateMode) {
         // 创建新组织
-        // 状态映射：lifecycle_status -> API status
-        // TODO-TEMPORARY: mapLifecycleStatusToApiStatus not implemented; add status mapping in v4.3 by 2025-09-20.
-        // const mapLifecycleStatusToApiStatus = (lifecycleStatus: string) => {
-        //   switch (lifecycleStatus) {
-        //     case 'CURRENT': return 'ACTIVE';
-        //     case 'PLANNED': return 'PLANNED';
-        //     case 'HISTORICAL':
-        //     case 'INACTIVE':
-        //     case 'DELETED': 
-        //       return 'INACTIVE';
-        //     default: 
-        //       return 'ACTIVE';
-        //   }
-        // };
-        
         const requestBody = {
           name: formData.name,
           unitType: formData.unitType,
           description: formData.description || '',
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
-          effectiveDate: formData.effectiveDate
+          effectiveDate: formData.effectiveDate,
+          status: mappedStatus,
+          lifecycleStatus: formData.lifecycleStatus
         };
-        
+
         console.log('提交创建组织请求:', requestBody);
         
         // 修复：使用统一认证客户端替代直接fetch调用
@@ -490,7 +507,9 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           unitType: formData.unitType,
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
           description: formData.description || null,
-          effectiveDate: formData.effectiveDate // 使用YYYY-MM-DD格式
+          effectiveDate: formData.effectiveDate, // 使用YYYY-MM-DD格式
+          status: mappedStatus,
+          lifecycleStatus: formData.lifecycleStatus
         };
 
         const trimmedReason = formData.changeReason?.trim();
@@ -502,16 +521,19 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           method: 'POST',
           body: JSON.stringify(versionPayload)
         });
-        
+
         // unifiedRESTClient成功时直接返回数据，失败时抛出异常
         // 刷新数据
         await loadVersions();
         setActiveTab('edit-history'); // 创建成功后切换回历史记录选项卡
+        setFormMode('create');
+        setFormInitialData(null);
+        setShowEditForm(false);
         showSuccess('时态版本创建成功！');
       }
     } catch (error) {
       console.error(isCreateMode ? '创建组织失败:' : '创建时态版本失败:', error);
-      
+
       // 提取实际的错误信息
       let errorMessage = isCreateMode ? '创建组织失败' : '创建时态版本失败';
       if (error instanceof Error) {
@@ -531,25 +553,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       setActiveTab('edit-history'); // 取消时切换回历史记录选项卡
       setFormMode('create'); // 重置为新增模式
       setFormInitialData(null); // 清除预填充数据
+      setShowEditForm(false);
       setSelectedVersion(null);
     }
   }, [isSubmitting]);
-
-  // 历史记录编辑相关函数
-  // TODO-TEMPORARY: handleEditHistory not implemented; add history editing functionality in v4.3 by 2025-09-20.
-  // const handleEditHistory = useCallback((version: TimelineVersion) => {
-  //   setFormMode('edit');
-  //   setFormInitialData({
-  //     name: version.name,
-  //     unitType: version.unitType,
-  //     status: version.status,
-  //     description: version.description || '',
-  //     parent_code: version.parent_code || '',
-  //     effectiveDate: version.effectiveDate
-  //   });
-  //   setSelectedVersion(version);
-  //   setActiveTab('edit-history'); // 切换到历史记录编辑选项卡
-  // }, []);
 
   const handleHistoryEditClose = useCallback(() => {
     if (!isSubmitting) {
@@ -561,6 +568,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         setActiveTab('edit-history');
         setFormMode('create');
         setFormInitialData(null);
+        setShowEditForm(false);
+        setSelectedVersion(null);
       }
     }
   }, [isSubmitting, onBack]);
@@ -568,6 +577,9 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const handleHistoryEditSubmit = useCallback(async (updateData: Record<string, unknown>) => {
     setIsSubmitting(true);
     try {
+      const lifecycleStatus = (updateData.status as TemporalEditFormData['lifecycleStatus']) || 'CURRENT';
+      const mappedStatus = mapLifecycleStatusToApiStatus(lifecycleStatus);
+
       // 使用recordId UUID作为唯一标识符 - 修复：使用统一认证客户端
       await unifiedRESTClient.request(
         `/organization-units/${organizationCode}/history/${updateData.recordId}`,
@@ -576,7 +588,8 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           body: JSON.stringify({
             name: updateData.name,
             unitType: updateData.unitType,
-            status: updateData.status,
+            status: mappedStatus,
+            lifecycleStatus,
             description: updateData.description,
             effectiveDate: updateData.effectiveDate,
             parentCode: normalizeParentCode.forAPI(updateData.parentCode as string),
@@ -584,11 +597,37 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
           })
         }
       );
-      
+
       // unifiedRESTClient成功时直接返回数据，失败时抛出异常
       // 刷新数据
-      await loadVersions();
+      await loadVersions(false, updateData.recordId as string | undefined);
       setActiveTab('edit-history'); // 提交成功后切换回历史记录选项卡
+      setFormMode('edit');
+      setShowEditForm(true);
+      setFormInitialData({
+        name: updateData.name as string,
+        unitType: updateData.unitType as string,
+        status: mappedStatus,
+        lifecycleStatus,
+        description: (updateData.description as string) || '',
+        parentCode: normalizeParentCode.forForm(updateData.parentCode as string),
+        effectiveDate: updateData.effectiveDate as string
+      });
+      setSelectedVersion(prev => {
+        if (!prev || prev.recordId !== updateData.recordId) {
+          return prev;
+        }
+        return {
+          ...prev,
+          name: updateData.name as string,
+          unitType: updateData.unitType as string,
+          status: mappedStatus,
+          lifecycleStatus,
+          description: (updateData.description as string) || undefined,
+          parentCode: (updateData.parentCode as string) || undefined,
+          effectiveDate: updateData.effectiveDate as string
+        };
+      });
       showSuccess('历史记录修改成功！');
     } catch (error) {
       console.error('修改历史记录失败:', error);
@@ -714,6 +753,7 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             versions={versions}
             selectedVersion={selectedVersion}
             onVersionSelect={handleVersionSelect}
+            onEditVersion={handleEditHistory}
             onDeleteVersion={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
             isLoading={isLoading}
             readonly={readonly}
@@ -767,23 +807,23 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         <Box flex="1">
           {isCreateMode ? (
             // 创建模式：直接显示创建表单
-            <InlineNewVersionForm
-              organizationCode={null} // 创建模式下传入null
-              onSubmit={handleFormSubmit}
-              onCancel={() => {
-                if (onBack) {
-                  onBack(); // 创建模式下取消应该返回上一页
-                }
-              }}
-              isSubmitting={isSubmitting}
-              mode="create"
-              initialData={null}
-              selectedVersion={null}
-              allVersions={null} // 创建模式不需要版本数据
-              hierarchyPaths={displayPaths}
-            />
-          ) : (
-            // 正常模式：带选项卡的多功能视图
+          <InlineNewVersionForm
+            organizationCode={null} // 创建模式下传入null
+            onSubmit={handleFormSubmit}
+            onCancel={() => {
+              if (onBack) {
+                onBack(); // 创建模式下取消应该返回上一页
+              }
+            }}
+            isSubmitting={isSubmitting}
+            mode={formMode}
+            initialData={formMode === 'edit' ? formInitialData : null}
+            selectedVersion={formMode === 'edit' ? selectedVersion : null}
+            allVersions={null} // 创建模式不需要版本数据
+            hierarchyPaths={displayPaths}
+          />
+        ) : (
+          // 正常模式：带选项卡的多功能视图
             <>
               {/* 选项卡导航 */}
               <TabNavigation
@@ -803,9 +843,9 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
                   onSubmit={handleFormSubmit}
                   onCancel={handleHistoryEditClose}
                   isSubmitting={isSubmitting}
-                  mode="edit"
-                  initialData={formInitialData}
-                  selectedVersion={selectedVersion}
+                  mode={formMode}
+                  initialData={formMode === 'edit' ? formInitialData : null}
+                  selectedVersion={formMode === 'edit' ? selectedVersion : null}
                   allVersions={versions.map(v => ({ // 传递版本数据用于日期范围验证
                     recordId: v.recordId,
                     effectiveDate: v.effectiveDate,
@@ -925,14 +965,14 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       )}
 
       {/* 编辑表单 - 保留用于编辑现有版本 */}
-      {editMode === 'edit' && organizationCode && (
+      {formMode === 'edit' && organizationCode && (
         <TemporalEditForm
           isOpen={showEditForm}
           onClose={handleFormClose}
           onSubmit={handleFormSubmit}
           organizationCode={organizationCode}
           initialData={selectedVersion}
-          mode={editMode}
+          mode={formMode}
           isSubmitting={isSubmitting}
         />
       )}

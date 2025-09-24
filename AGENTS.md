@@ -1,29 +1,38 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- Backend Go services reside in `cmd/organization-command-service/` and `cmd/organization-query-service/`; shared middleware, auth, cache, and GraphQL helpers live under `internal/`.
-- Database migrations live in `database/migrations/`, and reusable SQL helpers are under `sql/`.
-- The React + Vite frontend sits in `frontend/`; feature slices are in `frontend/src/features/` with shared types in `frontend/src/shared/`.
-- Tests span Go suites in `tests/` and `cmd/*`, frontend specs in `frontend/src/**/__tests__` and `frontend/tests/`, and Playwright E2E specs under `tests/e2e/` with configuration in `frontend/`.
+## 项目结构与模块组织
+- 命令服务位于 `cmd/organization-command-service/`，查询服务位于 `cmd/organization-query-service/`，共享中间件、鉴权、缓存与 GraphQL 工具集中在 `internal/`，严格遵循 PostgreSQL 原生 CQRS（命令→REST、查询→GraphQL）。
+- 数据迁移统一保存在 `database/migrations/`，通用 SQL 助手位于 `sql/`；禁止回退至 `sql/init/01-schema.sql` 等历史脚本，数据真源始终由迁移驱动。
+- 前端代码在 `frontend/`，功能切片位于 `frontend/src/features/`，共用类型在 `frontend/src/shared/`；静态资源、脚本与测试说明遵循各目录 README。
+- 测试分布：Go 与集成测试在 `tests/` 和 `cmd/*`，前端 Vitest 规格在 `frontend/src/**/__tests__` 与 `frontend/tests/`，Playwright E2E 在 `tests/e2e/`，其配置归档于 `frontend/`。
 
-## Build, Test, and Development Commands
-- `make run-dev` starts Postgres, Redis, and both Go services on ports 9090/8090.
-- `make build` compiles binaries into `bin/`; `make clean` resets build artifacts.
-- `make test`, `make test-integration`, and `make coverage` run Go suites and produce coverage reports.
-- Frontend commands: `cd frontend && npm run dev | test | build`; Playwright E2E lives under `npm run test:e2e` and spins up its own server.
-- Auth utilities: `make run-auth-rs256-sim` serves JWKS; `make jwt-dev-mint` refreshes `.cache/dev.jwt`.
+## 开发前必检
+- 运行 `node scripts/generate-implementation-inventory.js` 对照 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`，避免重复造轮子。
+- 校验契约：查阅 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql`，确认字段保持 camelCase 与 `{code}` 路径参数，任何偏差需先更新契约。
+- 在 `docs/development-plans/` 建立或更新计划，完成后归档至 `docs/archive/development-plans/`，并记录验收标准。
+- 如需快速确认环境，可执行 `make status`、`curl http://localhost:9090/health` 与 `curl http://localhost:8090/health`（命令返回 200 表示核心服务就绪）。
 
-## Coding Style & Naming Conventions
-- Go code follows idiomatic camelCase for internals and PascalCase for exports; run `make fmt` before committing.
-- TypeScript uses ESLint, two-space indentation, and functional React components; share types through `frontend/src/shared/`.
-- Preserve camelCase for API payloads and keep service logic isolated inside `cmd/*/internal/` packages.
-- 沟通与文档产出优先使用专业、准确、清晰的中文；如需使用其他语言务必标注背景与范围。
+## 构建、测试与开发命令
+- 基础设施与服务：`make docker-up` → `make run-dev`（端口 9090/8090）→ `make frontend-dev`；必要时使用 `make run-auth-rs256-sim` 提供 JWKS。
+- 编译与清理：`make build`、`make clean`；数据库迁移使用 `make db-migrate-all`，日志追踪可查阅 `run-dev*.log`。
+- 测试：`make test`、`make test-integration`、`make coverage`，前端 `cd frontend && npm run test` 或 `npm run lint`，E2E 使用 `npm run test:e2e`。
+- 鉴权链路：`make jwt-dev-setup`、`make jwt-dev-mint`，令牌存放 `.cache/dev.jwt`；必要时通过 `curl http://localhost:9090/.well-known/jwks.json` 验证公钥。
 
-## Testing Guidelines
-- Go tests end with `_test.go`; tag integration suites appropriately and ensure `make test` passes locally.
-- Frontend testing uses Vitest and Playwright; keep specs close to features under `frontend/src/**/__tests__` or `frontend/tests/`.
-- Run `frontend/scripts/validate-field-naming*.js` and `node scripts/quality/architecture-validator.js` before pushing to match CI checks.
+## 编码风格与命名约定
+- Go 采用内部 camelCase、导出 PascalCase，提交前执行 `make fmt` 与 `make lint`；服务领域逻辑聚合在 `cmd/*/internal/` 并保持事务边界清晰。
+- TypeScript 固定两空格缩进、ESLint 与函数式组件；共享类型放入 `frontend/src/shared/`，API 客户端统一使用 `frontend/src/shared/api/`，组件命名遵循 PascalCase。
 
-## Commit & Pull Request Guidelines
-- Use Conventional Commits (e.g., `feat: add temporal validation`); keep each change focused.
-- Pull requests should reference related issues, outline behavior changes, and attach test artifacts (logs or screenshots). Update `docs/reference/` if behavior shifts and document any deviations from established conventions.
+## 测试与质量校验
+- Go 测试文件以 `_test.go` 结尾，必要时添加 `//go:build integration` 标签区分场景；前端单测紧邻功能模块并使用 Vitest。
+- 推送前执行 `frontend/scripts/validate-field-naming*.js`、`node scripts/quality/architecture-validator.js`、`make security` 与 `npm run lint`，确保与 CI 校验一致。
+- Playwright 规格按业务场景命名（如 `organization-create.spec.ts`），通过环境变量 `PW_TENANT_ID`、`PW_JWT` 注入租户与令牌。
+
+## 提交与拉取请求规范
+- 提交信息遵循 Conventional Commits（示例：`feat: add temporal validation`），单次提交聚焦单一主题并附带回归验证。
+- PR 必须关联 Issue，说明行为变化、测试证据、回滚路径；若契约或行为变更，请同步更新 `docs/reference/` 与相关计划文档，并引用 `CLAUDE.md` 作为原则依据。
+- 评论区需明确剩余风险、待办与迁移步骤，审阅者以 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 为核对清单。
+
+## 安全与配置提示
+- 所有环境初始化均通过迁移脚本完成；必要时使用 `make db-migrate-all` 或 `make db-rollback-last`（若可用）进行回滚，再同步更新计划文档。
+- 秘钥统一存放于 `secrets/`，严禁提交到版本库；调试时通过 `make jwt-dev-export` 导出会话令牌，并遵循 `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`。
+- 若出现异常，优先参考 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `CHANGELOG.md`，若与本指南冲突，以上述权威文档与 `CLAUDE.md` 为最终解释。
