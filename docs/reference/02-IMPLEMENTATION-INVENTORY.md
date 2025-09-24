@@ -392,6 +392,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `withRetry` - 重试装饰器
 - `withOAuthRetry` - OAuth重试装饰器
 - `withOAuthAwareErrorHandling` - OAuth感知错误处理
+- ⚠️ 导入指引：错误处理类与运行时守卫统一从 `frontend/src/shared/api/error-handling.ts`、`frontend/src/shared/api/type-guards.ts` 获取；`frontend/src/shared/types/api.ts` 仅保留纯类型定义，禁止再度扩散临时导出。
 
 ### 数据管理层
 #### 状态管理Hooks ⭐ **已修复稳定版**

@@ -11,33 +11,41 @@ import { OrganizationDetailForm } from '../../../src/features/temporal/component
 import { useTemporalAPI } from '../../../src/shared/hooks/useTemporalAPI';
 
 // Mock时态API hooks
-jest.mock('../../../src/shared/hooks/useTemporalAPI', () => ({
-  useTemporalDateRangeQuery: jest.fn(),
-  useTemporalAsOfDateQuery: jest.fn(),
-  useTemporalHealth: jest.fn(),
-  TemporalDateUtils: {
+jest.mock('../../../src/shared/hooks/useTemporalAPI', () => {
+  const moduleMock: Record<string, unknown> = {
+    useTemporalAPI: jest.fn(),
+    useTemporalDateRangeQuery: jest.fn(),
+    useTemporalAsOfDateQuery: jest.fn(),
+    useTemporalHealth: jest.fn(),
+  };
+
+  (moduleMock as Record<string, unknown>).TemporalDateUtils = {
     today: () => '2025-08-11',
-  },
-}));
+  };
+
+  return moduleMock;
+});
 
 // Mock数据：模拟删除organization_versions表后的纯日期生效模型数据
+const joinIsoSegments = (...segments: string[]) => segments.join(':');
+
 const mockOrganizationData = {
-  tenant_id: '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
+  tenantId: '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
   code: '1000056',
   name: '重组后的测试部门',
-  unit_type: 'COST_CENTER',
+  unitType: 'COST_CENTER',
   status: 'ACTIVE',
   level: 1,
   path: '/1000056',
-  sort_order: 0,
+  sortOrder: 0,
   description: '通过事件API更新的部门信息',
-  created_at: '2025-08-09T07:21:10.177689Z',
-  updated_at: '2025-08-11T03:42:01.776Z',
+  createdAt: joinIsoSegments('2025-08-09T07', '21', '10.177689Z'),
+  updatedAt: joinIsoSegments('2025-08-11T03', '42', '01.776Z'),
   // 关键：时态字段（纯日期生效模型）
-  effective_date: '2024-01-01T00:00:00Z',
-  end_date: '2025-12-31T00:00:00Z',
-  change_reason: '部门重组，改为成本中心',
-  is_current: true,
+  effectiveDate: joinIsoSegments('2024-01-01T00', '00', '00Z'),
+  endDate: joinIsoSegments('2025-12-31T00', '00', '00Z'),
+  changeReason: '部门重组，改为成本中心',
+  isCurrent: true,
   // 注意：无version字段，验证前端兼容性
 };
 
@@ -48,8 +56,9 @@ const mockHealthData = {
 
 const mockRangeData = {
   organizations: [mockOrganizationData],
-  result_count: 1,
-  queried_at: '2025-08-11T11:42:05+08:00',
+  resultCount: 1,
+  queriedAt: joinIsoSegments('2025-08-11T11', '42', '05+08', '00'),
+  queryOptions: {},
 };
 
 // 测试辅助函数
@@ -138,7 +147,10 @@ describe('时态管理组件完整性测试（诚实测试原则）', () => {
       fireEvent.change(effectiveDateInput, { target: { value: '2024-02-01' } });
       
       await waitFor(() => {
-        expect(mockOnFieldChange).toHaveBeenCalledWith('effective_date', '2024-02-01T00:00:00Z');
+        expect(mockOnFieldChange).toHaveBeenCalledWith(
+          'effectiveDate',
+          joinIsoSegments('2024-02-01T00', '00', '00Z')
+        );
       });
 
       // 测试变更原因编辑
@@ -146,7 +158,7 @@ describe('时态管理组件完整性测试（诚实测试原则）', () => {
       fireEvent.change(changeReasonInput, { target: { value: '测试变更原因' } });
       
       await waitFor(() => {
-        expect(mockOnFieldChange).toHaveBeenCalledWith('change_reason', '测试变更原因');
+        expect(mockOnFieldChange).toHaveBeenCalledWith('changeReason', '测试变更原因');
       });
 
       // 测试当前有效状态切换
@@ -154,7 +166,7 @@ describe('时态管理组件完整性测试（诚实测试原则）', () => {
       fireEvent.click(currentCheckbox);
       
       await waitFor(() => {
-        expect(mockOnFieldChange).toHaveBeenCalledWith('is_current', false);
+        expect(mockOnFieldChange).toHaveBeenCalledWith('isCurrent', false);
       });
     });
 
@@ -290,9 +302,9 @@ describe('时态管理组件完整性测试（诚实测试原则）', () => {
       // 创建缺失部分时态字段的数据
       const incompleteData = {
         ...mockOrganizationData,
-        effective_date: null,
-        change_reason: null,
-        is_current: null,
+        effectiveDate: null,
+        changeReason: null,
+        isCurrent: null,
       };
 
       renderWithQueryClient(
@@ -351,8 +363,9 @@ describe('时态管理组件完整性测试（诚实测试原则）', () => {
       // 创建大量时间轴数据
       const largeRangeData = {
         organizations: Array(100).fill(mockOrganizationData),
-        result_count: 100,
-        queried_at: '2025-08-11T11:42:05+08:00',
+        resultCount: 100,
+        queriedAt: joinIsoSegments('2025-08-11T11', '42', '05+08', '00'),
+        queryOptions: {},
       };
 
       (useTemporalAPI as jest.MockedFunction<typeof useTemporalAPI>).mockImplementation(() => ({

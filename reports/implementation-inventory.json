@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-09-21T07:31:57.636Z",
+  "timestamp": "2025-09-24T01:25:29.638Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 12,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 152
+    "tsExports": 147
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -285,8 +285,8 @@
       "kind": "const"
     },
     {
-      "name": "validateForm",
-      "file": "frontend/src/features/organizations/components/OrganizationForm/ValidationRules.ts",
+      "name": "prepareFormDataForValidation",
+      "file": "frontend/src/features/organizations/components/OrganizationForm/validation.ts",
       "kind": "const"
     },
     {
@@ -352,11 +352,6 @@
     {
       "name": "temporalUtils",
       "file": "frontend/src/features/temporal/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateTemporalDate",
-      "file": "frontend/src/shared/utils/temporal-validation-adapter.ts",
       "kind": "const"
     },
     {
@@ -775,16 +770,6 @@
       "kind": "const"
     },
     {
-      "name": "useOrganizations",
-      "file": "frontend/src/shared/hooks/useOrganizations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useOrganization",
-      "file": "frontend/src/shared/hooks/useOrganizations.ts",
-      "kind": "const"
-    },
-    {
       "name": "useScopes",
       "file": "frontend/src/shared/hooks/useScopes.ts",
       "kind": "func"
@@ -825,27 +810,12 @@
       "kind": "const"
     },
     {
-      "name": "ValidationError",
-      "file": "frontend/src/shared/types/api.ts",
-      "kind": "const"
-    },
-    {
       "name": "isGraphQLResponse",
       "file": "frontend/src/shared/types/api.ts",
       "kind": "const"
     },
     {
       "name": "hasGraphQLErrors",
-      "file": "frontend/src/shared/types/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isAPIError",
-      "file": "frontend/src/shared/types/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isValidationError",
       "file": "frontend/src/shared/types/api.ts",
       "kind": "const"
     },
@@ -972,6 +942,11 @@
     {
       "name": "TemporalUtils",
       "file": "frontend/src/shared/utils/temporal-converter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validateTemporalDate",
+      "file": "frontend/src/shared/utils/temporal-validation-adapter.ts",
       "kind": "const"
     },
     {

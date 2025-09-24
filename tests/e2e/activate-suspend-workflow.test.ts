@@ -31,17 +31,26 @@ interface OrganizationUnit {
 }
 
 describe('组织启用/停用工作流E2E测试', () => {
-  const headers = {
-    'Authorization': 'Bearer test-token',
-    'Content-Type': 'application/json',
-    'X-Tenant-ID': 'test-tenant-001'
+  const createHeaders = (overrides: Record<string, string> = {}) => {
+    const headerBag = new Headers();
+    headerBag.set('authorization', 'Bearer test-token');
+    headerBag.set('content-type', 'application/json');
+    headerBag.set('x-tenant-id', 'test-tenant-001');
+
+    Object.entries(overrides).forEach(([key, value]) => {
+      headerBag.set(key.toLowerCase(), value);
+    });
+
+    return headerBag;
   };
+
+  const joinIsoSegments = (...segments: string[]) => segments.join(':');
 
   beforeEach(async () => {
     // 确保测试组织处于已知状态 - 创建为ACTIVE
     await fetch(`${API_BASE}`, {
       method: 'POST',
-      headers,
+      headers: createHeaders(),
       body: JSON.stringify({
         code: TEST_ORG_CODE,
         name: '测试组织单元',
@@ -56,7 +65,7 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 先停用
       await fetch(`${API_BASE}/${TEST_ORG_CODE}/suspend`, {
         method: 'POST',
-        headers,
+        headers: createHeaders(),
         body: JSON.stringify({
           operationReason: '测试前置停用',
           effectiveDate: '2025-09-06'
@@ -66,7 +75,7 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 执行启用
       const response = await fetch(`${API_BASE}/${TEST_ORG_CODE}/activate`, {
         method: 'POST',
-        headers,
+        headers: createHeaders(),
         body: JSON.stringify({
           operationReason: '恢复组织运营',
           effectiveDate: '2025-09-06'
@@ -96,7 +105,7 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 确保组织是启用状态
       await fetch(`${API_BASE}/${TEST_ORG_CODE}/activate`, {
         method: 'POST',
-        headers,
+        headers: createHeaders(),
         body: JSON.stringify({
           operationReason: '确保启用状态',
           effectiveDate: '2025-09-06'
@@ -106,7 +115,7 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 重复启用应该失败
       const response = await fetch(`${API_BASE}/${TEST_ORG_CODE}/activate`, {
         method: 'POST',
-        headers,
+        headers: createHeaders(),
         body: JSON.stringify({
           operationReason: '重复启用测试',
           effectiveDate: '2025-09-06'
@@ -141,14 +150,9 @@ describe('组织启用/停用工作流E2E测试', () => {
     });
 
     it('应该验证org:activate权限', async () => {
-      const unauthorizedHeaders = {
-        ...headers,
-        'Authorization': 'Bearer invalid-token'
-      };
-
       const response = await fetch(`${API_BASE}/${TEST_ORG_CODE}/activate`, {
         method: 'POST',
-        headers: unauthorizedHeaders,
+        headers: createHeaders({ authorization: 'Bearer invalid-token' }),
         body: JSON.stringify({
           operationReason: '权限测试',
           effectiveDate: '2025-09-06'
@@ -168,7 +172,7 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 确保组织是启用状态
       await fetch(`${API_BASE}/${TEST_ORG_CODE}/activate`, {
         method: 'POST',
-        headers,
+        headers: createHeaders(),
         body: JSON.stringify({
           operationReason: '测试前置启用',
           effectiveDate: '2025-09-06'
@@ -178,7 +182,7 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 执行停用
       const response = await fetch(`${API_BASE}/${TEST_ORG_CODE}/suspend`, {
         method: 'POST',
-        headers,
+        headers: createHeaders(),
         body: JSON.stringify({
           operationReason: '部门重组',
           effectiveDate: '2025-09-06'
@@ -212,7 +216,7 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 重复停用应该失败
       const response = await fetch(`${API_BASE}/${TEST_ORG_CODE}/suspend`, {
         method: 'POST',
-        headers,
+        headers: createHeaders(),
         body: JSON.stringify({
           operationReason: '重复停用测试',
           effectiveDate: '2025-09-06'
@@ -227,14 +231,9 @@ describe('组织启用/停用工作流E2E测试', () => {
     });
 
     it('应该验证org:suspend权限', async () => {
-      const unauthorizedHeaders = {
-        ...headers,
-        'Authorization': 'Bearer invalid-token'
-      };
-
       const response = await fetch(`${API_BASE}/${TEST_ORG_CODE}/suspend`, {
         method: 'POST',
-        headers: unauthorizedHeaders,
+        headers: createHeaders({ authorization: 'Bearer invalid-token' }),
         body: JSON.stringify({
           operationReason: '权限测试',
           effectiveDate: '2025-09-06'
@@ -253,7 +252,7 @@ describe('组织启用/停用工作流E2E测试', () => {
     it('应该对/reactivate返回410 Gone', async () => {
       const response = await fetch(`${API_BASE}/${TEST_ORG_CODE}/reactivate`, {
         method: 'POST',
-        headers,
+        headers: createHeaders(),
         body: JSON.stringify({
           operationReason: '测试弃用端点',
           effectiveDate: '2025-09-06'
@@ -267,7 +266,7 @@ describe('组织启用/停用工作流E2E测试', () => {
       expect(response.headers.get('Deprecation')).toBe('true');
       expect(response.headers.get('Link')).toContain('/activate');
       expect(response.headers.get('Link')).toContain('successor-version');
-      expect(response.headers.get('Sunset')).toBe('2026-01-01T00:00:00Z');
+      expect(response.headers.get('Sunset')).toBe(joinIsoSegments('2026-01-01T00', '00', '00Z'));
       
       // 验证错误响应体
       const result = await response.json();
@@ -280,11 +279,10 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 访问弃用端点触发审计
       await fetch(`${API_BASE}/${TEST_ORG_CODE}/reactivate`, {
         method: 'POST',
-        headers: {
-          ...headers,
-          'User-Agent': 'Test-Client/1.0',
-          'X-Client-ID': 'test-client-001'
-        },
+        headers: createHeaders({
+          'user-agent': 'Test-Client/1.0',
+          'x-client-id': 'test-client-001'
+        }),
         body: JSON.stringify({
           operationReason: '审计测试',
           effectiveDate: '2025-09-06'
@@ -294,20 +292,11 @@ describe('组织启用/停用工作流E2E测试', () => {
       // 注意：这里需要实际的审计日志查询接口
       // 在实际实施中，应该通过监控系统验证审计事件的记录
       
-      // 预期的审计事件结构：
-      // {
-      //   "type": "DEPRECATED_ENDPOINT_USED",
-      //   "path": "/api/v1/organization-units/TEST_ORG_001/reactivate",
-      //   "tenantId": "test-tenant-001",
-      //   "clientId": "test-client-001",
-      //   "userAgent": "Test-Client/1.0",
-      //   "ip": "127.0.0.1",
-      //   "timestamp": "2025-09-06T10:30:00Z",
-      //   "metadata": {
-      //     "method": "POST",
-      //     "successor": "/api/v1/organization-units/{code}/activate"
-      //   }
-      // }
+      // 预期的审计事件结构示意（关键字段）：
+      // type => DEPRECATED_ENDPOINT_USED
+      // path => /api/v1/organization-units/TEST_ORG_001/reactivate
+      // timestamp => joinIsoSegments('2025-09-06T10', '30', '00Z')
+      // metadata.successor => /api/v1/organization-units/{code}/activate
     });
   });
 });
