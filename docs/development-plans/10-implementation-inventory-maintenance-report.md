@@ -10,8 +10,7 @@
 ## 执行概览
 
 ### 📊 完成状态
-- ✅ IIG 最新扫描（2025-09-24）已与当前代码一致：OpenAPI 26、GraphQL 12、Go Handlers 26、Go Services 19、TS 导出 147。
-- ✅ 前端表单与时态视图整改落地：统一校验链路、GraphQL codePath/namePath 已投入使用。
+- ✅ IIG 最新扫描（2025-09-24）已与当前代码一致：OpenAPI 26、GraphQL 12、Go Handlers 26、Go Services 19、TS 导出 148。
 - ⚠️ 契约仍缺失 `/organization-units/temporal` 系列端点，`organizationPermissions.ts` 的子组织权限校验仍为临时禁用。
 
 ---
@@ -30,24 +29,6 @@
    - 现状：`TODO-TEMPORARY` 截止 2025-09-20，仍注释 `childCount` 防删逻辑，权限计算缺乏真实数据约束。
    - 行动：重新接入 GraphQL `organizationHierarchy` 或 REST `/organization-units/{code}/refresh-hierarchy` 的子组织计数；若需延期必须更新截止日期与风险说明。
 
-### ✅ 已完成整改与现状确认
-1. **`temporalValidation.ts` 清理完成**
-   - 现状：统一迁移至 `frontend/src/shared/utils/temporal-validation-adapter.ts`，脚本 `frontend/scripts/migrations/20250921-replace-temporal-validation.ts` 可复核。
-
-2. **组织表单验证链路统一**
-   - `frontend/src/features/organizations/components/OrganizationForm/index.tsx:118` 使用 `validateForm`（共享 Schema），`validation.ts` 仅负责数据标准化。
-   - 同步接入 `/api/v1/organization-units/validate` 服务器校验，失败时阻断提交。
-
-3. **API 类型临时导出回收**
-   - `frontend/src/shared/types/api.ts` 保留纯类型定义且无 `TODO-TEMPORARY`，所有调用迁移至 `frontend/src/shared/api/*`。
-
-4. **`useEnterpriseOrganizations` Hook 规范化**
-   - `frontend/src/shared/hooks/useEnterpriseOrganizations.ts` 清除了自删标记与冗余封装，入口统一记录在 `frontend/HOOK_MIGRATION_REPORT.md`。
-
-5. **TemporalMasterDetailView 功能补齐**
-   - `frontend/src/features/temporal/components/TemporalMasterDetailView.tsx:330` 起，引入 GraphQL `organizationHierarchy`，成功加载 `codePath/namePath` 并回显。
-   - 所有时态操作改用统一的 `unifiedRESTClient`/`unifiedGraphQLClient`，测试记录见 `docs/archive/development-plans/16-temporal-master-detail-view-remediation.md`。
-
 ### ⏱ 即将到期项
 - `docs/reference/04-AUTH-ERROR-CODES-AND-FLOWS.md:56` 保留 `TODO-TEMPORARY`（419 状态码决策），截至 2025-09-30 需完成评审并同步实现。
 
@@ -64,7 +45,7 @@
 - REST 端点：26（新增 `/api/v1/organization-units/validate`、`/api/v1/organization-units/{code}/refresh-hierarchy`、`/batch-refresh-hierarchy`、`/api/v1/corehr/organizations` 已纳入契约，唯独 `/organization-units/temporal` 待补录）。
 - GraphQL 查询：12 个主要字段，`organizationHierarchy` 已对接 `codePath/namePath`。
 - Go 组件：Handlers 26、Services 19（匹配生成脚本输出）。
-- 前端导出：147（较 2025-09-15 再压缩 15 项，聚合入口更集中）。
+- 前端导出：148（较 2025-09-15 再压缩 14 项，聚合入口更集中）。
 
 ---
 
@@ -81,15 +62,14 @@
 ### P0 — 立即执行
 1. 补齐 `/organization-units/temporal` 系列契约与命令服务实现，或调整前端改用现有 `/api/v1/organization-units/{code}/versions` / `events` 路径；完成后更新 IIG 报告。
 2. 恢复 `organizationPermissions.ts` 子组织校验逻辑，使用实时子组织计数；若判定延期，必须在文件中更新 `TODO-TEMPORARY` 截止与责任人，并补登记风险。
-3. 将 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 与 `reports/implementation-inventory.json` 提升至 v1.9.x 数据（同步 147 TS 导出统计）。
 
 ### P1 — 下一个迭代
-4. 扩展 `scripts/check-temporary-tags.sh`，在 CI 中强制校验截止日期与契约缺口，避免出现未登记的端点。
-5. 对接 GraphQL `organizationSubtree` / REST `/batch-refresh-hierarchy` 的监控指标，纳入运营面板（参考 09 号计划）。
+3. 扩展 `scripts/check-temporary-tags.sh`，在 CI 中强制校验截止日期与契约缺口，避免出现未登记的端点。
+4. 对接 GraphQL `organizationSubtree` / REST `/batch-refresh-hierarchy` 的监控指标，纳入运营面板（参考 09 号计划）。
 
 ### P2 — 持续改进
-6. 建立 IIG 守护例行巡检（日历化 + PR 模板勾选），并与 `docs/archive` 档案同步。
-7. 将 `/organization-units/validate` 的调用结果纳入表单埋点，统计后端校验命中率，验证新流程效果。
+5. 建立 IIG 守护例行巡检（日历化 + PR 模板勾选），并与 `docs/archive` 档案同步。
+6. 将 `/organization-units/validate` 的调用结果纳入表单埋点，统计后端校验命中率，验证新流程效果。
 
 ---
 
@@ -108,7 +88,6 @@
 
 ## 总结
 - IIG 最新扫描覆盖率达 100%，但契约未覆盖的 `/organization-units/temporal` 仍是最大风险点。
-- 表单与时态相关遗留问题已完成整改，统一验证链路落地，Temporal 详情页可展示完整路径。
 - 当前仅剩 1 项代码层临时实现超期（权限校验），另有契约漂移与文档 TODO 需在下个迭代前关闭。
 - 建议本迭代内完成 P0 任务，并将契约校验、TODO 治理纳入 CI，避免再次出现超期项。
 
