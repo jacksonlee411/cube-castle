@@ -3,7 +3,7 @@
 生成日期：2025-09-21
 责任团队：架构组（主责）+ 后端组
 问题等级：严重（P1）- 数据一致性问题
-当前状态：核心代码路径已统一，巡检脚本与 CI 守卫已就绪，待运营排期执行历史数据回收并纳入例行巡检
+当前状态：核心代码路径已统一，2025-09-24 完成历史数据回收与巡检复验；待将巡检守卫纳入固定排期（CI/运维）
 
 ---
 
@@ -23,9 +23,15 @@
 - 巡检与守卫落地：新增 `sql/hierarchy-consistency-check.sql`、`scripts/maintenance/run-hierarchy-consistency-check.sh`、`scripts/quality/hierarchy-consistency-guard.sh`，支持一次性巡检与 CI 阻断。
 - 文档同步：`docs/development-guides/organization-hierarchy-consistency.md` 收录巡检/回收操作手册，评审要求同步至团队。
 
+### 最新更新（2025-09-24）
+- 历史数据回收：
+  - 使用 `scripts/maintenance/run-hierarchy-consistency-check.sh` 导出异常 CSV（初始检测 34 条）。
+  - 通过 `calculate_org_hierarchy` 与 `recalculate_hierarchy_cascade` 批量修复根节点 `1000000`、`1000056`、`AUD532` 及其子层级。
+  - 复验结果：再次执行巡检脚本（`PGHOST=localhost PGPORT=5432 PGUSER=user PGPASSWORD=password PGDATABASE=cubecastle scripts/maintenance/run-hierarchy-consistency-check.sh`）返回 0 条异常，临时 CSV 已清理。
+- 巡检守卫建议：已确认 `scripts/quality/hierarchy-consistency-guard.sh` 可用于无人工值守的阻断检查，建议纳入 CI 质量门禁或运维周检任务。
+
 ### 待处理
-- 历史数据回收执行：依据巡检脚本生成的异常列表，由运营窗口安排批量重算与复验，并记录修复结论。
-- 巡检排期固化：在运维日程或 CI 管道中增加定期调用 `scripts/maintenance/run-hierarchy-consistency-check.sh` 的任务，确保异常及时识别。
+- 巡检排期固化：与运维协同，将 `scripts/quality/hierarchy-consistency-guard.sh` 加入 CI 质量门禁或运维周检计划，并在排期确定后更新本报告。
 
 ---
 
