@@ -1,9 +1,9 @@
 # Cube Castle 实现清单（Implementation Inventory）
 
-版本: v1.8.0 IIG护卫系统实时监控版
+版本: v1.9.0 IIG护卫系统实时监控版
 维护人: 架构组（与IIG护卫系统协同维护）
 范围: 基于最新IIG扫描的完整实现清单（API优先+CQRS架构）
-最后更新: 2025-09-15（IIG护卫系统实时监控：17个API端点 + 12个GraphQL字段 + 162个前端组件）
+最后更新: 2025-09-24（IIG护卫系统实时监控：26个命令端点 + 12个GraphQL字段 + 26个Go处理器 + 19个Go服务类型 + 148个前端导出项）
 
 > 目的（Purpose）
 > - 中文: 统一登记当前已实现的 API、导出函数与接口，以及所属文件与简要说明，避免重复造轮子，便于新成员快速定位能力与复用。
@@ -26,10 +26,10 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ```
 
 #### 📊 **扫描能力覆盖** ⭐ **基于最新IIG扫描结果**
-- ✅ **REST API端点**: 从 `docs/api/openapi.yaml` 提取 (17个端点：10个业务 + 7个认证)
-- ✅ **GraphQL查询**: 从 `docs/api/schema.graphql` 提取 (12个查询字段)
-- ✅ **Go后端组件**: 扫描handlers和services (28个处理器 + 19个服务类型)
-- ✅ **前端TypeScript导出**: 扫描classes/functions/const (162个组件)
+- ✅ **REST API端点**: 从 `docs/api/openapi.yaml` 提取 (26个端点：运维/命令/认证完整登记)
+- ✅ **GraphQL查询**: 从 `docs/api/schema.graphql` 提取 (12个查询字段及参数)
+- ✅ **Go后端组件**: 扫描 handlers / services (26个导出处理器 + 19个服务类型)
+- ✅ **前端TypeScript导出**: 扫描 class/function/const (148 个导出符号)
 
 #### 🔍 **IIG护卫集成** (Implementation Inventory Guardian)
 - **预开发强制检查**: 每次新功能开发前必须运行此脚本
@@ -85,92 +85,43 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 > 说明: 基于实际代码扫描的端点清单，与 OpenAPI 规范保持一致
 
-### 🎯 **API优先设计端点** (17个端点：10个业务 + 7个认证)
+### 🎯 **API优先设计端点** (26个端点，按类别汇总)
 
-#### **认证服务端点** (OAuth2 + OIDC标准实现)
-- `/auth/login` - OAuth2认证登录入口
-- `/auth/callback` - OAuth2认证回调处理
-- `/auth/session` - 会话状态验证
-- `/auth/refresh` - JWT令牌刷新
-- `/auth/logout` - 注销登出处理
-- `/.well-known/oidc` - OIDC发现端点
-- `/.well-known/jwks.json` - JWKS公钥端点
+> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-09-24，详见 `reports/implementation-inventory.json.openapiPaths`
 
-#### **组织业务端点** (10个核心端点)
+#### 运维与可观测性（9）
+- `/api/v1/operational/health` — 健康检查 (GetHealth)
+- `/api/v1/operational/metrics` — Prometheus 指标 (GetMetrics)
+- `/api/v1/operational/alerts` — 系统告警列表 (GetAlerts)
+- `/api/v1/operational/rate-limit/stats` — 速率限制统计 (GetRateLimitStats)
+- `/api/v1/operational/tasks` — 运维任务列表 (GetTasks)
+- `/api/v1/operational/tasks/status` — 任务批量状态概览 (GetTaskStatus)
+- `/api/v1/operational/tasks/{taskName}/trigger` — 触发指定任务 (TriggerTask)
+- `/api/v1/operational/cutover` — 运维切换控制 (TriggerCutover)
+- `/api/v1/operational/consistency-check` — 数据一致性巡检 (TriggerConsistencyCheck)
 
-> **重要说明**: 所有端点均遵循API优先原则，先在OpenAPI规范中定义，后在代码中实现
+#### 认证与 OIDC（7）
+- `/auth/login` — OAuth2 登录授权
+- `/auth/callback` — OAuth2 回调处理
+- `/auth/session` — 会话状态查询
+- `/auth/refresh` — 刷新访问令牌
+- `/auth/logout` — 注销并清理会话
+- `/.well-known/oidc` — OIDC Discovery 文档
+- `/.well-known/jwks.json` — 公钥 JWKS 配置
 
-- `/api/v1/organization-units` ⭐ **API优先设计典范**
-  - 中文: 创建组织单元（自动生成代码，级联路径初始化）
-  - EN: Create organization unit (auto code, initialize hierarchy)
-  - 契约: `docs/api/openapi.yaml`（operationId: CreateOrganizationUnit）
-  - 实现: 以契约为准；实现路径随模块演进变更，参考后端服务目录或生成器报告
-  - **API优先流程**: 规范定义 → 契约测试 → 代码实现 → 集成验证
+#### 组织命令与互操作（10）
+- `/api/v1/organization-units` — 创建组织单元（命令入口）
+- `/api/v1/organization-units/{code}` — 更新/替换组织单元
+- `/api/v1/organization-units/{code}/versions` — 创建时态版本（CQRS 命令 → 版本管理）
+- `/api/v1/organization-units/{code}/events` — 时态事件（如 DEACTIVATE 对应版本作废）
+- `/api/v1/organization-units/{code}/suspend` — 暂停组织（业务停用）
+- `/api/v1/organization-units/{code}/activate` — 恢复组织（业务启用）
+- `/api/v1/organization-units/validate` — 提交前验证（规则/告警）
+- `/api/v1/organization-units/{code}/refresh-hierarchy` — 单组织层级重算（维护场景）
+- `/api/v1/organization-units/batch-refresh-hierarchy` — 批量层级重算（迁移/修复）
+- `/api/v1/corehr/organizations` — CoreHR 兼容输出（受控暴露）
 
-- `/api/v1/organization-units/{code}`
-  - 中文: 完全替换组织单元（PUT 语义，字段全量）
-  - EN: Replace organization unit (full PUT semantics)
-  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
-
-- `/api/v1/organization-units/{code}/versions`
-  - 中文: 为既有组织创建新的时态版本（自动相邻边界调整）
-  - EN: Create temporal version for existing org (adjacent boundary updates)
-  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
-
-- `/api/v1/organization-units/{code}/events`
-  - 中文: 时态事件处理（如按 recordId 作废版本）
-  - EN: Temporal event processing (e.g., deactivate by recordId)
-  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
-  - 注意: 不提供 `DELETE /api/v1/organization-units/{code}` 物理删除；版本删除统一走事件端点，内部使用事务化时间线管理器完成“软删+重算”。
-
-- `/api/v1/organization-units/{code}/suspend`
-  - 中文: 业务停用（强制 status=INACTIVE，记录原因）
-  - EN: Suspend organization (force status=INACTIVE)
-  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
-
-- `/api/v1/organization-units/{code}/activate`
-  - 中文: 业务启用（反向操作，恢复为 ACTIVE）
-  - EN: Activate organization (reactivate back to ACTIVE)
-  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
-
-- `/api/v1/organization-units/validate`
-  - 中文: 操作前校验（规则检查/建议/告警）
-  - EN: Pre-operation validation (rules, suggestions, warnings)
-  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
-
-- `/api/v1/organization-units/{code}/refresh-hierarchy`
-  - 中文: 单个组织层级修复（维护用途，非业务路径）
-  - EN: Manual hierarchy refresh for one org (maintenance)
-  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
-
-- `/api/v1/organization-units/batch-refresh-hierarchy`
-  - 中文: 批量层级修复（迁移/修复场景）
-  - EN: Batch hierarchy refresh (migration/repair)
-  - 实现: `internal/services/cascade.go`
-
-- `/api/v1/corehr/organizations`
-  - 中文: CoreHR 兼容层端点（受控暴露）
-  - EN: CoreHR compatibility endpoint (controlled exposure)
-  - 实现: 以契约为准；实现路径参考后端服务目录/生成器报告
-
-### 系统管理端点
-- `/health` - 健康检查 → `internal/handlers/operational.go: GetHealth`
-- `/metrics` - Prometheus指标 → `operational.go: GetMetrics`
-- `/alerts` - 系统告警 → `operational.go: GetAlerts`
-- `/tasks` - 任务状态 → `operational.go: GetTasks`
-- `/tasks/{id}/status` - 任务状态查询 → `operational.go: GetTaskStatus`
-- `/tasks/{id}/trigger` - 触发任务 → `operational.go: TriggerTask`
-- `/operational/cutover` - 触发切换 → `operational.go: TriggerCutover`
-- `/operational/consistency-check` - 一致性检查 → `operational.go: TriggerConsistencyCheck`
-
-### 开发工具端点 (仅DEV模式)
-- `/auth/dev-token` - 生成开发令牌 → `internal/handlers/devtools.go: GenerateDevToken`
-- `/auth/dev-token/info` - 令牌信息 → `devtools.go: GetTokenInfo`
-- `/dev/status` - 开发状态 → `devtools.go: DevStatus`
-- `/dev/test-endpoints` - 测试端点列表 → `devtools.go: ListTestEndpoints`
-- `/dev/database-status` - 数据库状态 → `devtools.go: DatabaseStatus`
-- `/dev/performance-metrics` - 性能指标 → `devtools.go: PerformanceMetrics`
-- `/dev/test-api` - API测试工具 → `devtools.go: TestAPI`
+> 🛈 DEV 专用工具端点（如 `/auth/dev-token`、`/dev/status` 等）保留在命令服务 `devtools` 路由，仅在开发模式启用，不计入 OpenAPI 对外契约。
 
 ---
 
@@ -245,82 +196,72 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ## 后端（Go）关键导出（Key Exported Items）
 
-### 处理器（Handlers） - 28个导出方法
-基于最新IIG扫描结果，以下为实际存在的处理器方法：
+### 处理器（Handlers） - 26个导出方法
+> **数据来源**: `reports/implementation-inventory.json.goHandlers`（自动扫描 `cmd/organization-command-service/internal/handlers`）
 
-#### 组织业务处理器 (`organization.go`)
-- `SetupRoutes` - 路由设置
-- `CreateOrganization` - 创建组织单元
-- `CreateOrganizationVersion` - 创建时态版本
-- `UpdateOrganization` - 更新组织信息
-- `SuspendOrganization` - 暂停组织
-- `ActivateOrganization` - 激活组织
-- `CreateOrganizationEvent` - 创建组织事件（包含 DEACTIVATE 作废版本 → 调用 TimelineManager.DeleteVersion，单事务“软删+全链重算”）
-- `UpdateHistoryRecord` - 更新历史记录
+#### 命令服务 · 开发工具 (`devtools.go`)
+- `SetupRoutes` — 开发工具路由注册
+- `GenerateDevToken` — 生成 Dev JWT 令牌
+- `GetTokenInfo` — 查询 Dev 令牌信息
+- `DevStatus` — DEV 环境运行状况
+- `ListTestEndpoints` — 列出测试端点清单
+- `DatabaseStatus` — 数据库状态页
+- `PerformanceMetrics` — 性能指标快照
+- `TestAPI` — 集成测试辅助端点
 
-#### GraphQL查询处理器 (`cmd/organization-query-service/main.go`)
-- `GetOrganizations` - 组织分页列表查询 (包含过滤、分页、时态支持)
-- `GetOrganization` - 单个组织查询 (按code查询，支持asOfDate)
-- `GetOrganizationAtDate` - 时态点查询 (指定时间点的组织状态)
-- `GetOrganizationHistory` - 历史范围查询 (时间范围内的版本历史)
-- `GetOrganizationStats` - 组织统计查询 (总数、按类型、按状态统计)
-- `GetOrganizationHierarchy` - 层级信息查询 (完整层级路径和关系)
+#### 命令服务 · 运维可观测 (`operational.go`)
+- `SetupRoutes` — 运维路由注册
+- `GetRateLimitStats` — 速率限制统计
+- `GetHealth` — 服务健康检查
+- `GetMetrics` — Prometheus 指标输出
+- `GetAlerts` — 告警汇总
+- `GetTasks` — 运维任务列表
+- `GetTaskStatus` — 任务运行状态
+- `TriggerTask` — 触发指定运维任务
+- `TriggerCutover` — 运维切换控制
+- `TriggerConsistencyCheck` — 数据一致性巡检
 
-#### 运维管理处理器 (`operational.go`)
-- `SetupRoutes` - 运维路由设置
-- `GetHealth` - 系统健康检查
-- `GetMetrics` - Prometheus指标收集
-- `GetAlerts` - 系统告警查询
-- `GetTasks` - 任务列表查询
-- `GetTaskStatus` - 任务状态查询
-- `TriggerTask` - 触发任务执行
-- `TriggerCutover` - 触发系统切换
-- `TriggerConsistencyCheck` - 触发一致性检查
-
-#### 开发工具处理器 (`devtools.go`) - 仅DEV模式
-- `SetupRoutes` - 开发工具路由
-- `GenerateDevToken` - 生成开发JWT令牌
-- `GetTokenInfo` - 获取令牌信息
-- `DevStatus` - 开发环境状态
-- `ListTestEndpoints` - 测试端点列表
-- `DatabaseStatus` - 数据库连接状态
-- `PerformanceMetrics` - 性能指标监控
-- `TestAPI` - API测试工具
+#### 命令服务 · 组织业务 (`organization.go`)
+- `SetupRoutes` — 组织业务路由注册
+- `CreateOrganization` — 创建组织单元
+- `CreateOrganizationVersion` — 创建时态版本
+- `UpdateOrganization` — 更新组织信息
+- `SuspendOrganization` — 暂停组织
+- `ActivateOrganization` — 激活组织
+- `CreateOrganizationEvent` — 处理组织事件（含 DEACTIVATE 作废流程）
+- `UpdateHistoryRecord` — 更新历史记录
 
 ### 服务层（Services） - 19个导出类型
-#### 级联更新服务 (`internal/services/cascade.go`)
-- `CascadeUpdateService` - 层级变更级联处理
-- `CascadeTask` - 级联任务定义
+> **数据来源**: `reports/implementation-inventory.json.goServices`
 
-#### 运维调度服务 (`internal/services/operational_scheduler.go`)
-- `OperationalScheduler` - 后台任务调度器
-- `ScheduledTask` - 调度任务结构
+#### 层级级联 (`internal/services/cascade.go`)
+- `CascadeUpdateService` — 层级变更级联处理
+- `CascadeTask` — 级联任务定义
 
-#### 时态数据服务 (`internal/services/temporal.go`)
-- `TemporalService` - 时态版本管理核心服务
-- `InsertVersionRequest` - 插入版本请求
-- `OrganizationData` - 组织数据结构
-- `DeleteVersionRequest` - 删除版本请求
-- `ChangeEffectiveDateRequest` - 变更生效日期请求
-- `SuspendActivateRequest` - 暂停/激活请求
-- `VersionResponse` - 版本操作响应
+#### 运维调度 (`internal/services/operational_scheduler.go`)
+- `OperationalScheduler` — 后台任务调度器
+- `ScheduledTask` — 调度任务结构
 
-#### 时态时间轴管理（事务化） (`cmd/organization-command-service/internal/repository/temporal_timeline.go`)
-- `TemporalTimelineManager` - 时态时间轴管理器
-- `InsertVersion(ctx, org)` - 事务化插入版本，自动相邻边界调整
-- `DeleteVersion(ctx, tenantID, recordID)` - 事务化作废（软删）版本 + 全链重算（无断档、无重叠、尾部开放、唯一当前）
-- `RecalculateTimeline(ctx, tenantID, code)`/`RecalculateTimelineInTx` - 全链重算（窗口函数+FOR UPDATE）
+#### 组织时态服务 (`internal/services/organization_temporal_service.go`)
+- `OrganizationTemporalService` — 时态领域协调服务
+- `TemporalCreateVersionRequest` — 创建版本请求模型
+- `TemporalUpdateVersionRequest` — 更新版本请求模型
+- `TemporalDeleteVersionRequest` — 删除版本请求模型
+- `TemporalStatusChangeRequest` — 状态变更请求模型
 
-#### 时态监控服务 (`internal/services/temporal_monitor.go`)
-- `TemporalMonitor` - 时态数据质量监控
-- `MonitoringMetrics` - 监控指标收集
-- `AlertRule` - 告警规则定义
+#### 时态核心服务 (`internal/services/temporal.go`)
+- `TemporalService` — 时态版本管理核心
+- `InsertVersionRequest` — 插入版本请求载体
+- `OrganizationData` — 组织数据快照
+- `DeleteVersionRequest` — 删除版本请求载体
+- `ChangeEffectiveDateRequest` — 生效日期调整请求
+- `SuspendActivateRequest` — 暂停/激活请求载体
+- `VersionResponse` — 版本操作响应模型
 
-#### 查询优化服务 (`internal/services/query_optimizer.go`)
-- `QueryOptimizer` - 数据库查询优化器
-
-#### 组织缓存服务 (`internal/services/organization_cache.go`)
-- `OrganizationCache` - 组织数据缓存管理
+#### 时态监控 (`internal/services/temporal_monitor.go`)
+- `TemporalMonitor` — 时态数据健康监控
+- `MonitoringMetrics` — 监控指标汇总
+- `AlertRule` — 告警规则定义
 
 ### 中间件层（Middleware） - 8个导出类型
 #### REST中间件 (`internal/middleware/`)
@@ -365,7 +306,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ## 前端（TypeScript/React）关键导出（Key Exported Items）
 
-基于最新IIG扫描的162个导出项完整清单：
+基于最新IIG扫描的148个导出项（详见 `reports/implementation-inventory.json.tsExports`），下列按领域归纳关键模块：
 
 ### API客户端架构
 #### 统一客户端 (`unified-client.ts`)
@@ -744,12 +685,12 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
   - 类型验证: 100%强类型检查和契约一致性
 
 #### **🏗️ 实现层统计** (Implementation Layer) ⭐ **IIG护卫验证完成**
-- **Go后端组件**: 28个处理器方法 + 19个服务类型 = **47个关键组件**
+- **Go后端组件**: 26个处理器方法 + 19个服务类型 = **45个关键组件**
   - 开发工具处理器: 8个方法（JWT令牌、状态检查、性能监控）
-  - 运维管理处理器: 9个方法（健康检查、指标收集、任务管理）
-  - 业务逻辑处理器: 11个方法（组织CRUD、时态版本、事件处理）
+  - 运维管理处理器: 10个方法（健康检查、指标收集、任务管理、切换控制）
+  - 组织业务处理器: 8个方法（组织CRUD、时态版本、事件处理）
   - 核心服务层: 19个服务类型（级联更新、时态管理、监控告警）
-- **前端统一架构**: 162个导出组件 ⭐ **IIG护卫扫描完整**
+- **前端统一架构**: 148个导出组件 ⭐ **IIG护卫扫描覆盖**
   - API客户端架构: 统一GraphQL/REST客户端，OAuth认证管理
   - 数据管理层: 企业级组织管理Hook，时态数据API
   - 类型系统: 完整类型守卫和转换器，Zod Schema验证
@@ -757,7 +698,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
   - 工具函数库: 业务工具、权限工具、状态工具、时态转换器
 
 #### **🛡️ 质量保证统计** (Quality Assurance) ⭐ **IIG护卫系统完成**
-- **IIG护卫保护**: 210个实现组件分析，0个重复检测，100%唯一性保证
+- **IIG护卫保护**: 223个实现组件分析，0个重复检测，100%唯一性保证（来源：`reports/iig-guardian/iig-guardian-report.json`）
 - **P3系统集成**: 重复代码率2.11%，架构违规0个，质量门禁通过
 - **API一致性**: camelCase命名100%合规，Schema验证通过
 - **架构合规**: CQRS协议分离100%执行，PostgreSQL原生架构
@@ -814,13 +755,19 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 #### 📊 **护卫效果统计**
 - **重复防护率**: 93%+ (120+个分散导出 → 4个统一系统)
-- **清单覆盖度**: 100% (25个REST端点 + 12个GraphQL查询 + 70个后端组件)
+- **清单覆盖度**: 100% (26个REST端点 + 12个GraphQL查询 + 45个后端组件 + 148个前端导出)
 - **质量门禁**: 与P3系统100%集成，自动化检测和报告
 - **团队效率**: 显著减少"重复造轮子"问题，提升代码复用率
 
 ---
 
 ## 变更记录（Changelog）
+- **v1.9.0 实现统计刷新版（2025-09-24）**: ⭐ **命令端点/实现清单全面同步**
+  - **同步**: OpenAPI 26、GraphQL 12、Go处理器 26、Go服务类型 19、前端导出 148（与 `reports/implementation-inventory.json` 对齐）
+  - **调整**: REST 命令端点重分组（运维 9 + 认证 7 + 组织命令 10），去除历史路径引用
+  - **校验**: Go 处理器/服务列表按脚本输出重新排列，确保与 IIG 报告一致
+  - **记录**: 文档顶部版本/统计更新至 v1.9.0，强化 JSON 作为单一事实来源
+  - **监控**: IIG 护卫报告 `analysedImplementations=223`、重复检测 0、duplicateCodeRate 2.11%
 - **v1.8.0 IIG护卫系统实时监控版（2025-09-15）**: ⭐ **IIG护卫系统实时监控完成**
   - **扫描**: 前端组件从146个增至162个（新增16个导出项）
   - **更新**: Go后端处理器从26个增至28个（新增2个处理器方法）

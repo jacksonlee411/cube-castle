@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-09-24T01:25:29.638Z",
+  "timestamp": "2025-09-24T14:17:15.667Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 12,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 147
+    "tsExports": 148
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -582,6 +582,11 @@
     {
       "name": "validateCQRSUsage",
       "file": "frontend/src/shared/api/unified-client.ts",
+      "kind": "const"
+    },
+    {
+      "name": "AuthContext",
+      "file": "frontend/src/shared/auth/AuthProvider.tsx",
       "kind": "const"
     },
     {
