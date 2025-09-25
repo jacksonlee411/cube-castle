@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+> ⚠️ 资源唯一性与跨层一致性为最高优先级约束：所有代理执行前需确保不引入第二事实来源或跨层不一致，一旦发现必须立即中止并回滚。
+
 ## 项目结构与模块组织
 - 命令服务位于 `cmd/organization-command-service/`，查询服务位于 `cmd/organization-query-service/`，共享中间件、鉴权、缓存与 GraphQL 工具集中在 `internal/`，严格遵循 PostgreSQL 原生 CQRS（命令→REST、查询→GraphQL）。
 - 数据迁移统一保存在 `database/migrations/`，通用 SQL 助手位于 `sql/`；禁止回退至 `sql/init/01-schema.sql` 等历史脚本，数据真源始终由迁移驱动。
@@ -9,7 +11,7 @@
 ## 开发前必检
 - 运行 `node scripts/generate-implementation-inventory.js` 对照 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`，避免重复造轮子。
 - 校验契约：查阅 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql`，确认字段保持 camelCase 与 `{code}` 路径参数，任何偏差需先更新契约。
-- 在 `docs/development-plans/` 建立或更新计划，完成后归档至 `docs/archive/development-plans/`，并记录验收标准。
+- 在 `docs/development-plans/` 建立或更新计划，完成后归档至 `docs/archive/development-plans/`，并记录验收标准；计划内容需引用唯一事实来源并说明一致性校验。
 - 如需快速确认环境，可执行 `make status`、`curl http://localhost:9090/health` 与 `curl http://localhost:8090/health`（命令返回 200 表示核心服务就绪）。
 
 ## 构建、测试与开发命令
@@ -19,7 +21,7 @@
 - 鉴权链路：`make jwt-dev-setup`、`make jwt-dev-mint`，令牌存放 `.cache/dev.jwt`；必要时通过 `curl http://localhost:9090/.well-known/jwks.json` 验证公钥。
 
 ## 编码风格与命名约定
-- Go 采用内部 camelCase、导出 PascalCase，提交前执行 `make fmt` 与 `make lint`；服务领域逻辑聚合在 `cmd/*/internal/` 并保持事务边界清晰。
+- Go 采用内部 camelCase、导出 PascalCase，提交前执行 `make fmt` 与 `make lint`；服务领域逻辑聚合在 `cmd/*/internal/` 并保持事务边界清晰，任何跨层命名偏差视为一致性违规。
 - TypeScript 固定两空格缩进、ESLint 与函数式组件；共享类型放入 `frontend/src/shared/`，API 客户端统一使用 `frontend/src/shared/api/`，组件命名遵循 PascalCase。
 
 ## 测试与质量校验

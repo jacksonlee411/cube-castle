@@ -1,14 +1,8 @@
-import React, { createContext, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authManager } from '../api/auth';
 import { authEvents, AUTH_UNAUTHORIZED } from './events';
-
-interface AuthContextValue {
-  isAuthenticated: () => boolean;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, AuthContextValue } from './context';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
@@ -44,4 +38,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 // Export hook in separate file to avoid react-refresh issues
 // This component only exports AuthProvider
-

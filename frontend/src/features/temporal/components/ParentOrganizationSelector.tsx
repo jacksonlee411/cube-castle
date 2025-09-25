@@ -1,8 +1,7 @@
 import React from 'react'
-import { Combobox, useComboboxModel } from '@workday/canvas-kit-react/combobox'
 import { FormField } from '@workday/canvas-kit-react/form-field'
-import { Flex } from '@workday/canvas-kit-react/layout'
 import { Text } from '@workday/canvas-kit-react/text'
+import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { UnifiedGraphQLClient } from '../../../shared/api/unified-client'
 import { useOrgPBAC } from '../../../shared/hooks/useScopes'
 
@@ -124,16 +123,8 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     return items.filter(it => it.code.toLowerCase().includes(s) || it.name.toLowerCase().includes(s))
   }, [items, search])
 
-  const comboboxModel = useComboboxModel({
-    items: filtered,
-    getId: React.useCallback((item: OrgItem) => item.code, []),
-    getTextValue: React.useCallback((item: OrgItem) => `${item.code} - ${item.name}`, []),
-    shouldVirtualize: false,
-    value: search,
-  })
-
-  const comboboxEventsRef = React.useRef(comboboxModel.events)
-  comboboxEventsRef.current = comboboxModel.events
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false)
+  const inputBlurTimeoutRef = React.useRef<number | null>(null)
 
   React.useEffect(() => {
     let mounted = true
@@ -143,20 +134,19 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
       setLoading(false)
       setSelectedCode(undefined)
       setSearch('')
-      comboboxEventsRef.current?.unselectAll?.()
-      comboboxEventsRef.current?.hide?.()
+      setIsMenuOpen(false)
       return () => { mounted = false }
     }
     const cached = memoryCache.get(cacheKey)
     const now = Date.now()
     if (cached && cached.expiresAt > now) {
       setItems(cached.data)
+      setIsMenuOpen(true)
         if (_currentParentCode) {
           const cachedItem = cached.data.find(item => item.code === _currentParentCode)
           if (cachedItem) {
             setSelectedCode(_currentParentCode)
             setSearch(formatLabel(cachedItem))
-            comboboxEventsRef.current?.setSelectedIds?.([_currentParentCode])
           }
         }
         return
@@ -174,12 +164,12 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
         const list = (data.organizations?.data || []).filter(o => o.code !== currentCode)
         setItems(list)
         setError(undefined)
+        setIsMenuOpen(true)
         if (_currentParentCode) {
           const preselected = list.find(item => item.code === _currentParentCode)
           if (preselected) {
             setSelectedCode(_currentParentCode)
             setSearch(formatLabel(preselected))
-            comboboxEventsRef.current?.setSelectedIds?.([_currentParentCode])
           }
         }
         memoryCache.set(cacheKey, { data: list, total: data.organizations?.pagination?.total || list.length, expiresAt: now + (cacheTtlMs ?? DEFAULT_TTL_MS) })
@@ -209,24 +199,23 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     }
     setSelectedCode(_currentParentCode)
     setSearch(formatLabel(match))
-    comboboxEventsRef.current?.setSelectedIds?.([_currentParentCode])
   }, [_currentParentCode, formatLabel, orgMap, selectedCode])
 
   const clearSelection = React.useCallback(() => {
-    comboboxEventsRef.current?.unselectAll?.()
     setSelectedCode(undefined)
     setSearch('')
     setError(undefined)
     onValidationError?.(undefined)
     onChange(undefined)
+    setIsMenuOpen(false)
   }, [onChange, onValidationError])
 
-  const applySelection = React.useCallback((nextCode: string | undefined) => {
+  const applySelection = React.useCallback((nextCode: string | undefined, source?: OrgItem | null) => {
     if (!nextCode) {
       clearSelection()
       return
     }
-    const item = orgMap.get(nextCode)
+    const item = source ?? orgMap.get(nextCode)
     if (!item) {
       return
     }
@@ -237,11 +226,9 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
       setError(msg)
       onValidationError?.(msg)
       if (selectedCode) {
-        comboboxEventsRef.current?.setSelectedIds?.([selectedCode])
         const existing = orgMap.get(selectedCode)
         setSearch(formatLabel(existing))
       } else {
-        comboboxEventsRef.current?.unselectAll?.()
         setSearch('')
       }
       return
@@ -251,111 +238,143 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     setSelectedCode(nextCode)
     setSearch(formatLabel(item))
     onChange(nextCode)
-    comboboxEventsRef.current?.hide?.()
+      setIsMenuOpen(false)
   }, [clearSelection, currentCode, formatLabel, onChange, onValidationError, orgMap, selectedCode])
 
-  const selectedIds = comboboxModel.state?.selectedIds
-
-  React.useEffect(() => {
-    if (!selectedIds || selectedIds === 'all') {
-      return
+  const handleInputFocus = React.useCallback(() => {
+    if (canRead && !disabled && !loading) {
+      setIsMenuOpen(true)
     }
-    const [next] = selectedIds
-    if (!next && selectedCode) {
+  }, [canRead, disabled, loading])
+
+  const handleInputBlur = React.useCallback(() => {
+    if (inputBlurTimeoutRef.current) {
+      window.clearTimeout(inputBlurTimeoutRef.current)
+    }
+    inputBlurTimeoutRef.current = window.setTimeout(() => {
+      setIsMenuOpen(false)
+    }, 100)
+  }, [])
+
+  const handleInputChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value
+    setSearch(value)
+    if (error) {
+      setError(undefined)
+      onValidationError?.(undefined)
+    }
+    if (!value) {
       clearSelection()
       return
     }
-    if (next && next !== selectedCode) {
-      applySelection(next)
+    if (canRead && !disabled) {
+      setIsMenuOpen(true)
     }
-  }, [applySelection, clearSelection, selectedCode, selectedIds])
+  }, [canRead, clearSelection, disabled, error, onValidationError])
 
-  const handleInputChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value
-      setSearch(value)
-      comboboxEventsRef.current?.show?.()
-      if (error) {
-        setError(undefined)
-        onValidationError?.(undefined)
-      }
-      if (!value) {
-        clearSelection()
-      } else {
-        comboboxEventsRef.current?.unselectAll?.()
-      }
-    },
-    [clearSelection, error, onValidationError]
-  )
+  const handleItemSelect = React.useCallback((item: OrgItem) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    if (inputBlurTimeoutRef.current) {
+      window.clearTimeout(inputBlurTimeoutRef.current)
+    }
+    applySelection(item.code, item)
+  }, [applySelection])
 
-  const handleComboboxChange = React.useCallback(
-    (value: string) => {
-      const code = value?.split('#')[0] || value
-      if (!code) {
-        clearSelection()
-        return
-      }
-      comboboxEventsRef.current?.setSelectedIds?.([code])
-      applySelection(code)
-    },
-    [applySelection, clearSelection]
-  )
+  React.useEffect(() => () => {
+    if (inputBlurTimeoutRef.current) {
+      window.clearTimeout(inputBlurTimeoutRef.current)
+    }
+  }, [])
 
   return (
-    <FormField error={error} required={required}>
+    <FormField error={error ? 'error' : undefined} isRequired={required}>
       <FormField.Label>上级组织</FormField.Label>
       <FormField.Field>
-        <Combobox
-          model={comboboxModel}
-          onChange={handleComboboxChange}
-          items={filtered}
-        >
-          <Combobox.Input
+        <div data-testid="combobox" style={{ position: 'relative' }}>
+          <TextInput
             data-testid="combobox-input"
             placeholder={loading ? '加载中…' : '搜索并选择上级组织...'}
             value={search}
-            onFocus={() => canRead && !disabled && comboboxEventsRef.current?.show?.()}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
             onChange={handleInputChange}
             disabled={disabled || loading || !canRead}
           />
-          <Combobox.Menu>
-            <Combobox.Menu.Popper>
-              <Combobox.Menu.Card>
-                {loading && canRead ? (
-                  <Flex padding="s" justifyContent="center">
-                    <Text size="small">加载中…</Text>
-                  </Flex>
-                ) : (
-                  <Combobox.Menu.List>
-                    {(item: OrgItem) => (
-                      <Combobox.Menu.Item key={item.code} data-id={item.code} data-testid={`combobox-item-${item.code}`}>
-                        <Flex direction="column" gap="xxs">
-                          <Text fontWeight="semibold">{item.code} - {item.name}</Text>
-                          <Text size="small" color="frenchVanilla100" as="span">
-                            层级: {item.level ?? '-'} ｜ 上级: {item.parentCode || '-'}
-                          </Text>
-                        </Flex>
-                      </Combobox.Menu.Item>
-                    )}
-                  </Combobox.Menu.List>
-                )}
-                {!loading && canRead && filtered.length === 0 && (
-                  <Flex padding="s">
-                    <Text size="small" data-testid="combobox-empty">未找到匹配的组织</Text>
-                  </Flex>
-                )}
-                {!canRead && (
-                  <Flex padding="s">
-                    <Text size="small">您没有权限查看组织列表</Text>
-                  </Flex>
-                )}
-              </Combobox.Menu.Card>
-            </Combobox.Menu.Popper>
-          </Combobox.Menu>
-        </Combobox>
+          {isMenuOpen && canRead && (
+            <div
+              data-testid="combobox-menu"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+                zIndex: 10,
+                background: '#ffffff',
+                border: '1px solid #d0d4d9',
+                borderRadius: '4px',
+                padding: '8px',
+                maxHeight: '240px',
+                overflowY: 'auto',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
+              }}
+            >
+              {loading ? (
+                <div style={{ padding: '8px', textAlign: 'center' }}>
+                  <Text typeLevel="body.small">加载中…</Text>
+                </div>
+              ) : (
+                <div data-testid="combobox-items">
+                  {filtered.map(item => (
+                    <button
+                      key={item.code}
+                      type="button"
+                      data-testid={`combobox-item-${item.code}`}
+                      onMouseDown={handleItemSelect(item)}
+                      onClick={handleItemSelect(item)}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        border: 'none',
+                        background: 'transparent',
+                        padding: '8px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <Text typeLevel="body.medium" fontWeight={600}>{item.code} - {item.name}</Text>
+                        <Text typeLevel="subtext.small" variant="hint" as="span">
+                          层级: {item.level ?? '-'} ｜ 上级: {item.parentCode || '-'}
+                        </Text>
+                      </div>
+                    </button>
+                  ))}
+                  {filtered.length === 0 && (
+                    <div style={{ padding: '8px', textAlign: 'center' }}>
+                      <Text typeLevel="body.small" data-testid="combobox-empty">未找到匹配的组织</Text>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {!canRead && (
+            <div style={{ padding: '8px' }}>
+              <Text typeLevel="body.small">您没有权限查看组织列表</Text>
+            </div>
+          )}
+        </div>
       </FormField.Field>
-      <FormField.Hint>显示在所选生效日期有效且状态为 ACTIVE 的组织</FormField.Hint>
-      {error && <FormField.Error>{error}</FormField.Error>}
+      <FormField.Hint>
+        显示在所选生效日期有效且状态为 ACTIVE 的组织
+        {error ? (
+          <>
+            <br />
+            <Text as="span" variant="error" typeLevel="subtext.small">
+              {error}
+            </Text>
+          </>
+        ) : null}
+      </FormField.Hint>
     </FormField>
   )
 }

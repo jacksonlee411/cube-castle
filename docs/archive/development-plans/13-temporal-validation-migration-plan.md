@@ -81,7 +81,7 @@
 - [ ] 负责人：Lina（质量保障）
   - 任务 D1：执行 `npm run lint && npm run test && npm run test:e2e` 验证无回归，并运行 `node scripts/generate-implementation-inventory.js` 更新实现清单 JSON。
   - 任务 D2：删除 `frontend/src/features/temporal/utils/temporalValidation.ts` 与相关 TODO 标记，更新实现清单 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 以及 `reports/implementation-inventory.json`、`reports/iig-guardian/iig-guardian-report.json` 的相关条目。
-  - 任务 D3：在 IIG 周报与 `docs/development-plans/07-pending-issues.md` 中标记任务关闭；如有延期改为记录新的截止信息。
+  - 任务 D3：在 IIG 周报与 `docs/archive/development-plans/07-pending-issues.md` 中标记任务关闭；如有延期改为记录新的截止信息。
 
 ---
 

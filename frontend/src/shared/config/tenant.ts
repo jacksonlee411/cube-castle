@@ -86,9 +86,10 @@ export class TenantManager {
    * 优先级: JWT token > 环境变量 > localStorage > 默认值
    */
   private loadTenantId(): string {
-    // TODO: 从JWT token中解析租户ID
-    // const tokenTenantId = this.getTenantIdFromToken();
-    // if (tokenTenantId) return tokenTenantId;
+    const tokenTenantId = this.getTenantIdFromToken();
+    if (tokenTenantId) {
+      return tokenTenantId;
+    }
 
     // 从环境变量读取
     const envTenantId = import.meta.env.VITE_DEFAULT_TENANT_ID;
@@ -115,10 +116,10 @@ export class TenantManager {
   }
 
   /**
-   * 从JWT token中获取租户ID（待实现）
+   * 从JWT token（或认证管理器）中获取租户ID。
+   * 当前实现返回 null，保留扩展点用于未来集成统一认证。
    */
   private getTenantIdFromToken(): string | null {
-    // TODO: 解析JWT token获取tenantId字段
     return null;
   }
 }

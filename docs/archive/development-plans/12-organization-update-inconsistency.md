@@ -398,7 +398,7 @@ Database层
 ## 12. 参考资料
 
 - **相关提交**：794b5c29 (fix: recalc organization hierarchy on parent change)
-- **相关文档**：`docs/development-plans/07-pending-issues.md`
+- **相关文档**：`docs/archive/development-plans/07-pending-issues.md`
 - **API契约**：`docs/api/openapi.yaml`
 - **代码文件**：
   - `cmd/organization-command-service/internal/repository/organization.go`

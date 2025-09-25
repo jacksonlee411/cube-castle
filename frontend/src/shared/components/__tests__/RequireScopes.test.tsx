@@ -1,4 +1,3 @@
-import React from 'react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { RequireScopes } from '../RequireScopes'
@@ -27,4 +26,3 @@ describe('RequireScopes', () => {
     expect(screen.getByTestId('content')).toBeInTheDocument()
   })
 })
-

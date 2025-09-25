@@ -36,7 +36,7 @@ export interface TimelineVersion {
   sortOrder: number;
   
   // 五状态生命周期管理字段
-  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED'; // 生命周期状态
+  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'INACTIVE' | 'DELETED'; // 生命周期状态
   businessStatus: 'ACTIVE' | 'INACTIVE'; // 业务状态
   dataStatus: 'NORMAL' | 'DELETED'; // 数据状态
   suspended_at?: string | null; // 停用时间

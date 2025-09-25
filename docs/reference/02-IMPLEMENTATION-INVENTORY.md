@@ -44,6 +44,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 4. **文档更新时**: 保持清单与实际代码同步
 
 #### ⚠️ **护卫原则**
+- **最高优先级**: 资源唯一性与端到端一致性任何时候都高于功能交付，发现冲突立即停工处理。
 - **现有资源优先**: 发现可用实现必须优先使用，禁止重复创建
 - **实现唯一性**: 每个功能只能有一种实现方式
 - **强制登记**: 新增功能后必须运行脚本验证登记成功
@@ -61,13 +62,13 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - **📝 文档即规范**: API文档不是后补，而是开发的起点和契约
 
 ### **🏗️ 维护与收录原则（Maintaining Rules）**
-- **单一来源**: API 端点与权限以 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql` 为唯一权威；此清单仅做导航索引（No divergence from spec）
+- **单一来源（最高优先级）**: API 端点与权限以 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql` 为唯一权威；此清单仅做导航索引（No divergence from spec）。
 - **CQRS架构**: 查询统一 GraphQL；命令统一 REST。清单按"Query/Command"分区（Follow CQRS split）
 - **命名一致**: API 层字段一律 camelCase；路径参数 `{code}`（Naming consistency per CLAUDE.md）
 - **API优先验证**: 新增端点前必须先更新API契约，通过契约测试后再实现代码
 - **粒度控制**: 收录"对外可复用/可调用"的导出符号（exported/public）；内部私有函数不在本表（Public symbols only）
 - **更新时机**: 每次合并涉及新端点/导出函数，需同步更新本清单（Update on merge）
- - **诚实与唯一性**: 规模/性能数据与路径引用必须可复现（脚本/报告为证）；同一能力只在一个权威位置登记，避免重复与冲突。
+- **诚实与唯一性**: 规模/性能数据与路径引用必须可复现（脚本/报告为证）；同一能力只在一个权威位置登记，避免重复与冲突。
 
 ---
 

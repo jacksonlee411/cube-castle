@@ -509,7 +509,23 @@ func seedTemporalData(db *sql.DB) error {
 		tenant_id, code, parent_code, name, unit_type, status, level, path, code_path, name_path, sort_order, description, created_at, updated_at, effective_date, end_date, change_reason, is_current
 	) VALUES (
 		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
-	)`
+)
+ON CONFLICT (tenant_id, code, effective_date) WHERE (organization_units.status <> 'DELETED' AND organization_units.deleted_at IS NULL) DO UPDATE SET
+		parent_code = EXCLUDED.parent_code,
+		name = EXCLUDED.name,
+		unit_type = EXCLUDED.unit_type,
+		status = EXCLUDED.status,
+		level = EXCLUDED.level,
+		path = EXCLUDED.path,
+		code_path = EXCLUDED.code_path,
+		name_path = EXCLUDED.name_path,
+		sort_order = EXCLUDED.sort_order,
+		description = EXCLUDED.description,
+		created_at = EXCLUDED.created_at,
+		updated_at = EXCLUDED.updated_at,
+		end_date = EXCLUDED.end_date,
+		change_reason = EXCLUDED.change_reason,
+		is_current = EXCLUDED.is_current` 
 
 	codeToName := make(map[string]string)
 	for _, rec := range records {
@@ -528,10 +544,6 @@ func seedTemporalData(db *sql.DB) error {
 		var reason interface{}
 		if rec.reason != nil {
 			reason = *rec.reason
-		}
-
-		if _, err := db.Exec(`DELETE FROM organization_units WHERE tenant_id = $1 AND code = $2 AND effective_date = $3`, tenant, rec.code, rec.effective); err != nil {
-			return err
 		}
 
 		codePath := rec.path

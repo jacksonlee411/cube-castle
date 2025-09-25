@@ -149,31 +149,53 @@ export const useEnterpriseOrganizations = (
       
       if (graphqlData?.organizations) {
         const orgData = graphqlData.organizations;
-        
+
+        const pagination = orgData.pagination ?? {
+          total: 0,
+          page: 1,
+          pageSize: 50,
+          hasNext: false,
+          hasPrevious: false
+        };
+        const totalCount = typeof pagination.total === 'number' ? pagination.total : 0;
+        const page = typeof pagination.page === 'number' ? pagination.page : 1;
+        const pageSize = typeof pagination.pageSize === 'number' ? pagination.pageSize : 50;
+        const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
+
+        const organizations = Array.isArray(orgData.data) ? orgData.data : [];
+        const stats: OrganizationStats | null = orgData.temporal
+          ? {
+              total: totalCount,
+              active: orgData.temporal.currentCount,
+              inactive: orgData.temporal.historicalCount + orgData.temporal.futureCount
+            }
+          : null;
+
         const response: APIResponse<OrganizationListResponse> = {
           success: true,
           data: {
-            organizations: orgData.data || [],
-            totalCount: orgData.pagination?.total || 0,
-            page: orgData.pagination?.page || 1,
-            pageSize: orgData.pagination?.pageSize || 50,
-            totalPages: Math.ceil((orgData.pagination?.total || 0) / (orgData.pagination?.pageSize || 50))
+            organizations,
+            totalCount,
+            page,
+            pageSize,
+            totalPages
           },
           timestamp: new Date().toISOString()
         };
 
         setState(prev => ({
           ...prev,
-          organizations: response.data!.organizations,
-          totalCount: response.data!.totalCount,
-          page: response.data!.page,
-          pageSize: response.data!.pageSize,
-          totalPages: response.data!.totalPages,
+          organizations,
+          totalCount,
+          page,
+          pageSize,
+          totalPages,
           loading: false,
           error: null,
+          stats,
           lastUpdate: response.timestamp
         }));
-        
+
         return response;
       } else {
         const errorMessage = '获取组织列表失败：无数据返回';

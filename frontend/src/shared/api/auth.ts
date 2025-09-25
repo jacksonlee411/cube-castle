@@ -18,6 +18,50 @@ export interface OAuthConfig {
   grantType: 'client_credentials';
 }
 
+type SessionPayload = {
+  accessToken: string;
+  expiresIn?: number;
+  tenantId?: string | null;
+  scopes?: string[];
+  scope?: string;
+};
+
+const parseSessionPayload = (payload: unknown): SessionPayload => {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('[OAuth] 会话响应格式不正确，缺少主体数据');
+  }
+
+  const record = payload as Record<string, unknown>;
+  const accessToken = record.accessToken;
+
+  if (typeof accessToken !== 'string' || accessToken.length === 0) {
+    throw new Error('[OAuth] 会话响应缺少 accessToken 字段');
+  }
+
+  const expiresRaw = record.expiresIn;
+  let expiresIn: number | undefined;
+  if (typeof expiresRaw === 'number' && Number.isFinite(expiresRaw)) {
+    expiresIn = expiresRaw;
+  } else if (typeof expiresRaw === 'string' && expiresRaw.trim().length > 0) {
+    const numericValue = Number(expiresRaw);
+    if (Number.isFinite(numericValue)) {
+      expiresIn = numericValue;
+    }
+  }
+
+  const scopes = Array.isArray(record.scopes)
+    ? record.scopes.filter((item): item is string => typeof item === 'string')
+    : undefined;
+
+  return {
+    accessToken,
+    expiresIn,
+    tenantId: typeof record.tenantId === 'string' && record.tenantId.length > 0 ? record.tenantId : null,
+    scopes,
+    scope: typeof record.scope === 'string' ? record.scope : undefined,
+  };
+};
+
 export class AuthManager {
   private token: OAuthToken | null = null;
   private config: OAuthConfig;
@@ -133,16 +177,16 @@ export class AuthManager {
   private async obtainFromSession(): Promise<OAuthToken> {
     await this.ensureRS256();
     const body = await unauthenticatedRESTClient.request<Record<string, unknown>>('/auth/session', { credentials: 'include' });
-    const data = body.data || body; // 兼容直接数据
-    const accessToken = data.accessToken;
-    const expiresIn = Number(data.expiresIn) || 600;
+    const rawPayload = (body as { data?: unknown }).data ?? body;
+    const session = parseSessionPayload(rawPayload);
+    const expiresIn = session.expiresIn ?? 600;
     // 记录会话租户，供统一客户端注入 X-Tenant-ID
-    this.sessionTenantId = typeof data.tenantId === 'string' && data.tenantId ? data.tenantId : null;
+    this.sessionTenantId = session.tenantId ?? null;
     const token: OAuthToken = {
-      accessToken,
+      accessToken: session.accessToken,
       tokenType: 'Bearer',
       expiresIn,
-      scope: Array.isArray(data.scopes) ? data.scopes.join(' ') : data.scope,
+      scope: session.scopes?.join(' ') ?? session.scope,
       issuedAt: Date.now(),
     };
 
@@ -328,15 +372,18 @@ export class AuthManager {
         headers: { 'X-CSRF-Token': csrf || '' },
         credentials: 'include'
       });
-      const data = body.data || body;
-      const accessToken = data.accessToken;
-      const expiresIn = Number(data.expiresIn) || 600;
+      const rawPayload = (body as { data?: unknown }).data ?? body;
+      const session = parseSessionPayload(rawPayload);
+      const accessToken = session.accessToken;
+      const expiresIn = session.expiresIn ?? 600;
       const token: OAuthToken = {
         accessToken,
         tokenType: 'Bearer',
         expiresIn,
+        scope: session.scopes?.join(' ') ?? session.scope,
         issuedAt: Date.now(),
       };
+      this.sessionTenantId = session.tenantId ?? this.sessionTenantId;
       this.assertRS256(token);
       this.token = token;
       return token;

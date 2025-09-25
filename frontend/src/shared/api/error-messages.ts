@@ -10,6 +10,10 @@ export interface ApiErrorCode {
   recoveryAction?: string;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null;
+};
+
 // 启用/停用操作标准错误码
 export const ORGANIZATION_API_ERRORS: Record<string, ApiErrorCode> = {
   // 启用相关错误
@@ -130,18 +134,27 @@ export function getErrorMessage(errorCode: string): ApiErrorCode {
  * @returns 标准化的用户提示消息
  */
 export function formatErrorForUser(error: unknown): string {
-  if (error && typeof error === 'object') {
-    const errorObj = error as Record<string, unknown>;
-    
-    // API响应错误
-    if (errorObj.error && errorObj.error.code) {
-      const errorInfo = getErrorMessage(errorObj.error.code);
-      return errorInfo.userMessage;
+  if (isRecord(error)) {
+    const apiErrorRaw = error['error'];
+    const apiError = isRecord(apiErrorRaw) ? apiErrorRaw : null;
+
+    if (apiError) {
+      const code = typeof apiError.code === 'string' ? apiError.code : undefined;
+      if (code) {
+        const errorInfo = getErrorMessage(code);
+        return errorInfo.userMessage;
+      }
+
+      const apiMessage = typeof apiError.message === 'string' ? apiError.message : undefined;
+      if (apiMessage) {
+        return apiMessage;
+      }
     }
-    
-    // 简单错误消息
-    if (errorObj.message) {
-      return errorObj.message;
+
+    const messageRaw = error['message'];
+    const message = typeof messageRaw === 'string' ? messageRaw : undefined;
+    if (message) {
+      return message;
     }
   }
   
