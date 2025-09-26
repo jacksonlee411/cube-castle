@@ -7,6 +7,8 @@
 ---
 
 ## 1. 本次变更概览
+- **2025-09-24**：完成 `/organization-units/temporal` 契约回正专项（计划12），前端回归契约端点 `/api/v1/organization-units/{code}/versions`，后端清理停用处理器并更新实现清单。
+- **2025-09-27**：清理仓库残留 `/temporal` 模拟服务、测试脚本和端口代理，Playwright/E2E 改用 GraphQL `organizationVersions`，部署健康检查更新为契约端点。
 - **JWT 链路强制 RS256**：命令服务与 BFF 不再接受 HS256，缺省值及回退路径全部改为 RS256；没有私钥时立即失败，避免生成空 JWKS。
 - **JWKS 输出修复**：`/.well-known/jwks.json` 现确保携带 `bff-key-1` 公钥条目，查询服务可以稳定拉取并验签。
 - **API 合规 Lint CJS 化**：迁移配置为 `frontend/.eslintrc.api-compliance.cjs`，启用 `@typescript-eslint/parser` 与插件以解析所有 `.ts/.tsx` 文件。

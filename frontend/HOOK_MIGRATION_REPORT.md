@@ -30,7 +30,7 @@
     - useOrganizationFilters.ts    # 过滤专用
   其他:
     - useOrganizationMutations.ts  # 变更操作
-    - useTemporalAPI.ts           # 时态查询
+    - (GraphQL) organizationVersions  # 时态查询（集中在组件内调用）
 ```
 
 ### 执行后状态 (1个主要实现)
@@ -41,7 +41,7 @@
   
   工具Hook (保留):
     - useOrganizationMutations   # 变更操作专用
-    - useTemporalAPI            # 时态查询专用
+    - GraphQL organizationVersions 查询 # 时态时间线
     - useDebounce               # 通用工具
 ```
 

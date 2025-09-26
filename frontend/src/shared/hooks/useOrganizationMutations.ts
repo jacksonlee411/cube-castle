@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { unifiedRESTClient } from '../api';
 import type { OrganizationUnit, OrganizationRequest, APIResponse } from '../types';
 
-const ensureSuccess = (response: APIResponse<OrganizationUnit>, fallbackMessage: string): OrganizationUnit => {
+const ensureSuccess = <T>(response: APIResponse<T>, fallbackMessage: string): T => {
   if (!response.success || !response.data) {
     const error = new Error(response.error?.message ?? fallbackMessage) as Error & {
       code?: string
@@ -18,6 +18,26 @@ const ensureSuccess = (response: APIResponse<OrganizationUnit>, fallbackMessage:
   }
   return response.data;
 };
+
+interface CreateOrganizationVersionPayload {
+  code: string;
+  name: string;
+  unitType: OrganizationUnit['unitType'];
+  parentCode: string;
+  description?: string;
+  sortOrder?: number;
+  effectiveDate: string;
+  endDate?: string;
+  operationReason?: string;
+}
+
+interface CreateOrganizationVersionResponse {
+  recordId: string;
+  code: string;
+  name: string;
+  effectiveDate: string;
+  status: string;
+}
 
 
 // 新增组织单元
@@ -235,6 +255,62 @@ export const useActivateOrganization = () => {
       }
       
       console.log('[Mutation] Activate cache invalidation and refetch completed');
+    },
+  });
+};
+
+export const useCreateOrganizationVersion = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CreateOrganizationVersionPayload): Promise<CreateOrganizationVersionResponse> => {
+      const { code, ...requestBody } = payload;
+      const response = await unifiedRESTClient.request<APIResponse<CreateOrganizationVersionResponse>>(`/organization-units/${code}/versions`, {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return ensureSuccess(response, '创建时态版本失败');
+    },
+    onSettled: (_data, _error, variables) => {
+      console.log('[Mutation] Temporal version create settled:', variables.code);
+
+      queryClient.invalidateQueries({
+        queryKey: ['organizations'],
+        exact: false
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['organization', variables.code],
+        exact: false
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['organization-history', variables.code],
+        exact: false
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['organization-stats'],
+        exact: false
+      });
+
+      queryClient.refetchQueries({
+        queryKey: ['organizations'],
+        type: 'active'
+      });
+
+      queryClient.refetchQueries({
+        queryKey: ['organization', variables.code],
+        type: 'active'
+      });
+
+      queryClient.refetchQueries({
+        queryKey: ['organization-stats'],
+        type: 'active'
+      });
+
+      console.log('[Mutation] Temporal version cache refresh completed');
     },
   });
 };

@@ -90,6 +90,18 @@
 - 更新后的 IIG 报表与实现清单条目，明确“时态命令契约回正”状态。  
 - QA 验证记录 & Playwright 报告归档至 `reports/`。
 
+## 11. 执行记录（2025-09-24）
+- [x] 前端 `OrganizationForm` 回退至契约端点：使用 `useCreateOrganizationVersion` 统一调度 `/api/v1/organization-units/{code}/versions`，并确保 `operationReason`/`effectiveDate` 字段符合 OpenAPI 定义。
+- [x] 共享 Hook 体系扩展：在 `useOrganizationMutations.ts` 新增 `useCreateOrganizationVersion`，同步记录至实现清单，禁止再度直连 `/temporal` 路径。
+- [x] 后端清理遗留处理器草稿：删除 `cmd/organization-command-service/internal/handlers/temporal_handlers.go.disabled`，恢复单一事实来源。
+- [x] 质量门禁执行：`npm run lint`、`npm --prefix frontend run test -- OrganizationForm`（Vitest 针对组织表单用例）均通过，确保契约回正后无回归。
+
+## 12. 遗留资产清理（2025-09-27）
+- [x] 移除历史 `/organization-units/{code}/temporal` 前端 Hook 与代理配置，统一以 GraphQL `organizationVersions` 查询为唯一事实来源。
+- [x] Playwright 与支撑脚本改用 GraphQL/REST 契约端点，删除 9091 临时服务依赖，生产验证脚本同步改写。
+- [x] 清理仓库内遗留的 `/temporal` 模拟服务、Shell/Go 测试及缓存脚本，避免再次生成第二事实来源。
+- [x] 更新实现清单与 IIG 报表记录，去除 `useTemporalAPI.ts` 及其衍生条目。
+
 ---
 
 **后续追踪**：计划关闭后，两周内在 `06-integrated-teams-progress-log.md` 回顾验证状态，确保没有团队重新引入 `/temporal`；若出现类似策略，必须在 PR 模板新增“唯一事实来源确认”段落。

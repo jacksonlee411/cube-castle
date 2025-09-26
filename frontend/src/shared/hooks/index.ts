@@ -14,7 +14,6 @@ export { default as useEnterpriseOrganizations } from './useEnterpriseOrganizati
 
 // 🔧 专用工具Hook
 export * from './useOrganizationMutations';
-export * from './useTemporalAPI';
 export * from './useDebounce';
 
 // ⚠️ DEPRECATED: 消除重复Hook别名
@@ -33,7 +32,6 @@ export * from './useDebounce';
  * 
  * 特定功能：
  * - useOrganizationMutations: 创建/更新/删除操作
- * - useTemporalAPI: 时态查询功能
  * 
  * ❌ 已删除的Hook：
  * - useOrganizationActions (功能已整合)

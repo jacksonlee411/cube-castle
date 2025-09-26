@@ -35,7 +35,6 @@ mkdir -p "$LOG_DIR"
 FRONTEND_PORT=${E2E_BASE_URL:-http://localhost:3000}
 COMMAND_PORT=${COMMAND_API_PORT:-9090}
 QUERY_PORT=${GRAPHQL_QUERY_PORT:-8090}
-TEMPORAL_PORT=${TEMPORAL_API_PORT:-9091}
 
 declare -A SERVICES=(
     ["基础设施-PostgreSQL"]="http://localhost:5432"
@@ -44,7 +43,6 @@ declare -A SERVICES=(
     ["基础设施-Kafka"]="http://localhost:9092"
     ["应用-命令服务"]="http://localhost:${COMMAND_PORT}/health"
     ["应用-查询服务"]="http://localhost:${QUERY_PORT}/health"
-    ["应用-时态服务"]="http://localhost:${TEMPORAL_PORT}/health"
     ["前端-开发服务"]="${FRONTEND_PORT}"
 )
 
@@ -54,7 +52,6 @@ declare -A DOCKER_SERVICES=(
     ["cube_castle_redis"]="Redis缓存"
     ["cube_castle_kafka"]="Kafka消息队列"
     ["cube_castle_zookeeper"]="Zookeeper协调服务"
-    ["cube_castle_temporal"]="Temporal工作流引擎"
 )
 
 # 输出格式化函数
@@ -337,8 +334,7 @@ generate_json_report() {
     },
     "applications": {
       "command-service": {"status": "healthy", "url": "localhost:9090"},
-      "query-service": {"status": "healthy", "url": "localhost:8090"},
-      "temporal-service": {"status": "unknown", "url": "localhost:9091"}
+      "query-service": {"status": "healthy", "url": "localhost:8090"}
     }
   },
   "metadata": {

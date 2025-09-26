@@ -40,7 +40,6 @@ check_service() {
     fi
 }
 
-check_service "时态API服务 (9091)" "http://localhost:9091/health"
 check_service "命令服务 (9090)" "http://localhost:9090/health"
 check_service "查询服务 (8090)" "http://localhost:8090/health"
 
@@ -93,13 +92,15 @@ else
     ((CHECKS_FAILED++))
 fi
 
-# 时态API查询测试
-if curl -s http://localhost:9091/api/v1/organization-units/1000001 \
-    | grep -q "organizations" >/dev/null 2>&1; then
-    print_success "时态API查询功能正常"
+# GraphQL 时态版本查询测试
+if curl -s -X POST http://localhost:8090/graphql \
+    -H "Content-Type: application/json" \
+    -d '{"query":"query($code:String!){ organizationVersions(code:$code) { code } }","variables":{"code":"1000001"}}' \
+    | grep -q "organizationVersions" >/dev/null 2>&1; then
+    print_success "GraphQL时态版本查询正常"
     ((CHECKS_PASSED++))
 else
-    print_error "时态API查询功能异常"
+    print_error "GraphQL时态版本查询异常"
     ((CHECKS_FAILED++))
 fi
 
@@ -122,17 +123,6 @@ else
     ((CHECKS_FAILED++))
 fi
 
-# 时态API响应时间
-temporal_response_time=$(curl -s -w "%{time_total}" -o /dev/null \
-    http://localhost:9091/api/v1/organization-units/1000001)
-
-if (( $(echo "$temporal_response_time < 1.0" | bc -l) )); then
-    print_success "时态API响应时间: ${temporal_response_time}s (< 1s)"
-    ((CHECKS_PASSED++))
-else
-    print_warning "时态API响应时间: ${temporal_response_time}s (>= 1s)"
-    ((CHECKS_FAILED++))
-fi
 
 # 5. 监控指标验证
 echo ""

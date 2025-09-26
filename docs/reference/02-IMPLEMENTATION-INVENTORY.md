@@ -348,15 +348,12 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `useUpdateOrganization` - 更新组织Hook
 - `useSuspendOrganization` - 暂停组织Hook
 - `useActivateOrganization` - 激活组织Hook
+- `useCreateOrganizationVersion` - 创建时态版本Hook（契约端点 `/api/v1/organization-units/{code}/versions`）
 
-#### 时态数据管理 (`useTemporalAPI.ts`)
-- `TemporalAPIError` - 时态API错误类
-- `useTemporalHealth` - 时态服务健康检查
-- `useTemporalAsOfDateQuery` - 时间点查询Hook
-- `useTemporalDateRangeQuery` - 时间范围查询Hook
-- `useTemporalQueryUtils` - 时态查询工具Hook
-- `useTemporalQueryStats` - 时态查询统计Hook
-- `TemporalDateUtils` - 时态日期工具类
+#### 时态数据管理（GraphQL `organizationVersions`）
+- `frontend/src/features/temporal/components/TemporalMasterDetailView.tsx:164` 使用 `unifiedGraphQLClient` 调用 GraphQL 查询 `organizationVersions(code: String!)` 获取时间线。
+- 查询失败时回退至 `organization(code: String!)` 单体快照逻辑，保证历史数据不可用时仍有兜底视图。
+- 版本操作（创建/作废）完成后通过 `useCreateOrganizationVersion`、`POST /{code}/events` 触发缓存刷新，保持前端视图与契约一致。
 
 ### 类型系统与验证
 #### 类型守卫 (`type-guards.ts`)

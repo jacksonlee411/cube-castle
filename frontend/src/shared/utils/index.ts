@@ -24,7 +24,6 @@ export {
  * ❌ 不要从以下地方导入时态工具：
  * - features/temporal/utils/temporalValidation.ts
  * - shared/validation/schemas.ts (时态工具部分)
- * - shared/hooks/useTemporalAPI.ts (时态工具部分)
  * 
  * ✅ 统一从此处导入：
  * 
@@ -80,8 +79,7 @@ export const TEMPORAL_UTILS_INFO = {
   ],
   deprecatedFiles: [
     'features/temporal/utils/temporalValidation.ts',
-    'shared/validation/schemas.ts (时态工具部分)',
-    'shared/hooks/useTemporalAPI.ts (时态工具部分)'
+    'shared/validation/schemas.ts (时态工具部分)'
   ],
   migrationStatus: 'P1-COMPLETED',
   duplicateCodeEliminated: true,

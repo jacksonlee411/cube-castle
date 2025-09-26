@@ -19,7 +19,7 @@
 
 ### 🚨 紧急处理项（契约 / 权限风险）
 1. **前端调用未入契约的 `/organization-units/temporal` 系列端点**
-   - 证据：`frontend/src/features/organizations/components/OrganizationForm/index.tsx:168` 与 `:189` 在创建/更新时使用 `POST /organization-units/temporal`、`PUT /organization-units/{code}/temporal`。
+   - 证据（已回正）：`frontend/src/features/organizations/components/OrganizationForm/index.tsx` 与 `shared/hooks/useOrganizationMutations.ts` 统一调用 `/api/v1/organization-units/{code}/versions`，不再出现 `/temporal` 端点。
    - 契约缺口：`docs/api/openapi.yaml` 中未声明相关路径，IIG 扫描与 `reports/implementation-inventory.json` 因此遗漏，违反“先契约后实现”。
    - 风险：CI 与监管工具无法检测到端点，部署环境会返回 404；同时破坏 `reports/implementation-inventory.json` 的准确性。
    - 行动：优先补充 OpenAPI 契约与命令服务路由，或在前端回退至 `/api/v1/organization-units/{code}/versions` 与历史事件端点。

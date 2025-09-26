@@ -608,36 +608,6 @@
           "file": "frontend/src/shared/hooks/useScopes.ts"
         },
         {
-          "name": "useTemporalHealth",
-          "type": "func",
-          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
-        },
-        {
-          "name": "useTemporalAsOfDateQuery",
-          "type": "func",
-          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
-        },
-        {
-          "name": "useTemporalDateRangeQuery",
-          "type": "func",
-          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
-        },
-        {
-          "name": "useTemporalQueryUtils",
-          "type": "func",
-          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
-        },
-        {
-          "name": "useTemporalQueryStats",
-          "type": "func",
-          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
-        },
-        {
-          "name": "TemporalDateUtils",
-          "type": "const",
-          "file": "frontend/src/shared/hooks/useTemporalAPI.ts"
-        },
-        {
           "name": "isGraphQLResponse",
           "type": "const",
           "file": "frontend/src/shared/types/api.ts"

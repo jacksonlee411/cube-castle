@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
-import { useCreateOrganization, useUpdateOrganization } from '../../../../shared/hooks/useOrganizationMutations';
+import { useCreateOrganization, useUpdateOrganization, useCreateOrganizationVersion } from '../../../../shared/hooks/useOrganizationMutations';
 // import { useTemporalMode } from '../../../../shared/hooks/useTemporalQuery';
 import { FormFields } from './FormFields';
 import { validateForm } from '../../../../shared/validation/schemas';
@@ -23,6 +23,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
 }) => {
   const createMutation = useCreateOrganization();
   const updateMutation = useUpdateOrganization();
+  const createVersionMutation = useCreateOrganizationVersion();
   // const { isCurrent, isPlanning } = useTemporalMode();
   const { showError } = useMessages();
   
@@ -82,7 +83,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     e.stopPropagation();
     
     // Prevent double submission
-    if (isSubmitting || createMutation.isPending || updateMutation.isPending) {
+    if (isSubmitting || createMutation.isPending || updateMutation.isPending || createVersionMutation.isPending) {
       return;
     }
     
@@ -100,17 +101,19 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
       // 提交前服务器端数据校验（/api/v1/organization-units/validate）
       try {
         const operation = isEditing ? 'update' : 'create';
-        const payload = {
-          operation,
-          data: {
-            code: isEditing ? organization!.code : formData.code || undefined,
-            name: formData.name,
-            unitType: formData.unitType,
-            status: (formData.status as 'ACTIVE' | 'INACTIVE'),
-            parentCode: normalizeParentCode.forAPI(formData.parentCode),
-            effectiveDate: formData.isTemporal && formData.effectiveFrom
-              ? TemporalConverter.dateToIso(formData.effectiveFrom as string)
-              : undefined
+          const temporalEffectiveDate = formData.isTemporal && formData.effectiveFrom
+            ? TemporalConverter.dateToDateString(formData.effectiveFrom as string)
+            : undefined;
+
+          const payload = {
+            operation,
+            data: {
+              code: isEditing ? organization!.code : formData.code || undefined,
+              name: formData.name,
+              unitType: formData.unitType,
+              status: (formData.status as 'ACTIVE' | 'INACTIVE'),
+              parentCode: normalizeParentCode.forAPI(formData.parentCode),
+            effectiveDate: temporalEffectiveDate
           },
           dryRun: true
         };
@@ -137,31 +140,38 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           console.warn('[Validate] 校验端点不可用或失败，继续提交：', msg);
         }
       }
+      const trimmedReason = formData.changeReason?.trim() ?? '';
+      const operationReason = trimmedReason.length > 0 ? trimmedReason : undefined;
 
       if (isEditing) {
-        const updateData: OrganizationRequest = {
-          code: organization!.code,
-          name: formData.name,
-          unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
-          status: formData.status as 'ACTIVE' | 'INACTIVE',
-          description: formData.description,
-          sortOrder: formData.sortOrder,
-          parentCode: normalizeParentCode.forAPI(formData.parentCode),
-        };
-        
-        // 时态更新 (统一字符串类型处理)
         if (formData.isTemporal) {
-          const temporalUpdateData = {
-            ...updateData,
-            effectiveDate: formData.effectiveFrom ? TemporalConverter.dateToIso(formData.effectiveFrom) : TemporalConverter.getCurrentISOString(),
-            changeReason: formData.changeReason
-          };
-          // 使用REST API进行时态更新（命令操作）
-          await unifiedRESTClient.request(`/organization-units/${organization!.code}/temporal`, {
-            method: 'PUT',
-            body: JSON.stringify(temporalUpdateData)
+          if (!formData.effectiveFrom) {
+            throw new Error('请填写时态版本的生效日期');
+          }
+
+          await createVersionMutation.mutateAsync({
+            code: organization!.code,
+            name: formData.name,
+            unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
+            parentCode: normalizeParentCode.forAPI(formData.parentCode),
+            description: formData.description || undefined,
+            sortOrder: formData.sortOrder,
+            effectiveDate: TemporalConverter.dateToDateString(formData.effectiveFrom as string),
+            ...(formData.effectiveTo ? { endDate: TemporalConverter.dateToDateString(formData.effectiveTo as string) } : {}),
+            ...(operationReason ? { operationReason } : {}),
           });
         } else {
+          const updateData: OrganizationRequest = {
+            code: organization!.code,
+            name: formData.name,
+            unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
+            status: formData.status as 'ACTIVE' | 'INACTIVE',
+            description: formData.description,
+            sortOrder: formData.sortOrder,
+            parentCode: normalizeParentCode.forAPI(formData.parentCode),
+            ...(operationReason ? { changeReason: operationReason, operationReason } : {}),
+          };
+
           await updateMutation.mutateAsync(updateData);
         }
       } else {
@@ -172,23 +182,16 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           status: formData.status as 'ACTIVE' | 'INACTIVE',
           description: formData.description,
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
+          ...(operationReason ? { changeReason: operationReason, operationReason } : {}),
+          ...(formData.isTemporal && formData.effectiveFrom
+            ? { effectiveDate: TemporalConverter.dateToDateString(formData.effectiveFrom as string) }
+            : {}),
+          ...(formData.isTemporal && formData.effectiveTo
+            ? { endDate: TemporalConverter.dateToDateString(formData.effectiveTo as string) }
+            : {}),
         };
-        
-        // 时态创建 (统一字符串类型处理)
-        if (formData.isTemporal) {
-          const temporalCreateData = {
-            ...createData,
-            effectiveDate: TemporalConverter.dateToIso(formData.effectiveFrom!),
-            changeReason: formData.changeReason
-          };
-          // 使用REST API进行时态创建（命令操作）
-          await unifiedRESTClient.request('/organization-units/temporal', {
-            method: 'POST',
-            body: JSON.stringify(temporalCreateData)
-          });
-        } else {
-          await createMutation.mutateAsync(createData);
-        }
+
+        await createMutation.mutateAsync(createData);
       }
       
       // Reset form if creating new
@@ -239,7 +242,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [isEditing, formData, createMutation, updateMutation, isSubmitting, model, onClose, organization, showError]);
+  }, [isEditing, formData, createMutation, updateMutation, createVersionMutation, isSubmitting, model, onClose, organization, showError]);
 
   const handleClose = () => {
     setIsSubmitting(false);
@@ -302,7 +305,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
                 </SecondaryButton>
                 <PrimaryButton 
                   type="submit" 
-                  disabled={isSubmitting || createMutation.isPending || updateMutation.isPending}
+                  disabled={isSubmitting || createMutation.isPending || updateMutation.isPending || createVersionMutation.isPending}
                   data-testid="form-submit-button"
                 >
                   {isSubmitting ? '处理中...' : 

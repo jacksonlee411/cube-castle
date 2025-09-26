@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-09-24T14:17:15.667Z",
+  "timestamp": "2025-09-25T01:26:03.404Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 12,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 148
+    "tsExports": 149
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -586,7 +586,7 @@
     },
     {
       "name": "AuthContext",
-      "file": "frontend/src/shared/auth/AuthProvider.tsx",
+      "file": "frontend/src/shared/auth/context.ts",
       "kind": "const"
     },
     {
@@ -775,6 +775,11 @@
       "kind": "const"
     },
     {
+      "name": "useCreateOrganizationVersion",
+      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
       "name": "useScopes",
       "file": "frontend/src/shared/hooks/useScopes.ts",
       "kind": "func"
@@ -783,36 +788,6 @@
       "name": "useOrgPBAC",
       "file": "frontend/src/shared/hooks/useScopes.ts",
       "kind": "func"
-    },
-    {
-      "name": "useTemporalHealth",
-      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
-      "kind": "func"
-    },
-    {
-      "name": "useTemporalAsOfDateQuery",
-      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
-      "kind": "func"
-    },
-    {
-      "name": "useTemporalDateRangeQuery",
-      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
-      "kind": "func"
-    },
-    {
-      "name": "useTemporalQueryUtils",
-      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
-      "kind": "func"
-    },
-    {
-      "name": "useTemporalQueryStats",
-      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
-      "kind": "func"
-    },
-    {
-      "name": "TemporalDateUtils",
-      "file": "frontend/src/shared/hooks/useTemporalAPI.ts",
-      "kind": "const"
     },
     {
       "name": "isGraphQLResponse",

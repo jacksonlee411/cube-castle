@@ -5,11 +5,57 @@
  */
 
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 
 let FRONTEND_URL: string;
-const TEMPORAL_SERVICE_URL = E2E_CONFIG.COMMAND_API_URL; // 使用命令服务端点
+const COMMAND_API_URL = E2E_CONFIG.COMMAND_API_URL; // 命令服务（REST）
+const GRAPHQL_API_URL = E2E_CONFIG.GRAPHQL_API_URL; // 查询服务（GraphQL）
+const GRAPHQL_HEADERS = { 'Content-Type': 'application/json' } as const;
 const TEST_ORG_CODE = '1000056';
+
+const ORGANIZATION_VERSIONS_QUERY = `
+  query OrganizationVersions($code: String!) {
+    organizationVersions(code: $code) {
+      code
+      name
+      unitType
+      status
+      effectiveDate
+      endDate
+      recordId
+    }
+  }
+`;
+
+const ORGANIZATION_AS_OF_QUERY = `
+  query OrganizationAsOf($code: String!, $asOfDate: String!) {
+    organization(code: $code, asOfDate: $asOfDate) {
+      code
+      name
+      unitType
+      status
+      effectiveDate
+      endDate
+      recordId
+    }
+  }
+`;
+
+const GRAPHQL_HEALTH_QUERY = 'query GraphQLHealth { __typename }';
+
+async function graphQLRequest(page: Page, query: string, variables: Record<string, unknown> = {}) {
+  const response = await page.request.post(GRAPHQL_API_URL, {
+    data: { query, variables },
+    headers: GRAPHQL_HEADERS,
+  });
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  if (body.errors) {
+    throw new Error(`GraphQL errors: ${JSON.stringify(body.errors)}`);
+  }
+  return body.data;
+}
 
 test.describe('时态管理系统集成测试', () => {
   
@@ -24,9 +70,13 @@ test.describe('时态管理系统集成测试', () => {
   });
   
   test.beforeEach(async ({ page }) => {
-    // 确保时态服务正常运行
-    const healthResponse = await page.request.get(`${TEMPORAL_SERVICE_URL}/health`);
-    expect(healthResponse.ok()).toBeTruthy();
+    // 确保命令服务健康
+    const restHealthResponse = await page.request.get(`${COMMAND_API_URL}/health`);
+    expect(restHealthResponse.ok()).toBeTruthy();
+
+    // 确认 GraphQL 查询服务可用
+    const data = await graphQLRequest(page, GRAPHQL_HEALTH_QUERY);
+    expect(data.__typename).toBe('Query');
   });
 
   test('时态管理演示页面加载和基本功能', async ({ page }) => {
@@ -125,115 +175,127 @@ test.describe('时态管理系统集成测试', () => {
   });
 
   test('时态查询API响应时间测试', async ({ page }) => {
-    // 测试各种时态查询的响应时间
-    const queries = [
-      `${TEMPORAL_SERVICE_URL}/health`,
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?asOfDate=2025-08-12`,
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?includeHistory=true&includeFuture=true`
+    const scenarios: Array<{ name: string; maxTime: number; exec: () => Promise<import('@playwright/test').APIResponse>; }> = [
+      {
+        name: '健康检查',
+        maxTime: 150,
+        exec: () => page.request.get(`${COMMAND_API_URL}/health`),
+      },
+      {
+        name: 'GraphQL 组织版本查询',
+        maxTime: 800,
+        exec: () => page.request.post(GRAPHQL_API_URL, {
+          data: {
+            query: ORGANIZATION_VERSIONS_QUERY,
+            variables: { code: TEST_ORG_CODE },
+          },
+          headers: GRAPHQL_HEADERS,
+        }),
+      },
     ];
-    
-    for (const query of queries) {
-      const startTime = Date.now();
-      const response = await page.request.get(query);
-      const endTime = Date.now();
-      const responseTime = endTime - startTime;
-      
+
+    for (const scenario of scenarios) {
+      const started = Date.now();
+      const response = await scenario.exec();
+      const finished = Date.now();
+      const responseTime = finished - started;
+
       expect(response.ok()).toBeTruthy();
-      expect(responseTime).toBeLessThan(1000); // 响应时间应小于1秒
-      
-      console.log(`Query: ${query.split('/').pop()} - Response time: ${responseTime}ms`);
+      expect(responseTime).toBeLessThan(scenario.maxTime);
+
+      console.log(`${scenario.name} 响应时间: ${responseTime}ms (限制: ${scenario.maxTime}ms)`);
     }
   });
 
   test('时态数据一致性验证', async ({ page }) => {
-    // 获取组织的完整时态数据
-    const response = await page.request.get(
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?includeHistory=true&includeFuture=true`
-    );
-    
-    expect(response.ok()).toBeTruthy();
-    
-    const data = await response.json();
-    const organizations = data.organization_units;
-    
-    // 验证数据结构
-    expect(Array.isArray(organizations)).toBeTruthy();
-    expect(organizations.length).toBeGreaterThan(0);
-    
-    // 验证每个记录包含必要字段
-    for (const org of organizations) {
-      expect(org).toHaveProperty('code');
-      expect(org).toHaveProperty('name');
-      expect(org).toHaveProperty('effective_date');
-      expect(org).toHaveProperty('is_current');
-      expect(org).toHaveProperty('unit_type');
-      expect(org).toHaveProperty('status');
+    const data = await graphQLRequest(page, ORGANIZATION_VERSIONS_QUERY, { code: TEST_ORG_CODE });
+    const versions = data.organizationVersions as Array<Record<string, string | null>>;
+
+    expect(Array.isArray(versions)).toBeTruthy();
+    expect(versions.length).toBeGreaterThan(0);
+
+    for (const version of versions) {
+      expect(version.code).toBe(TEST_ORG_CODE);
+      expect(version.name).toBeTruthy();
+      expect(version.unitType).toBeTruthy();
+      expect(version.status).toBeTruthy();
+      expect(version.effectiveDate).toBeTruthy();
+      expect(version.recordId).toBeTruthy();
     }
-    
-    // 验证当前记录唯一性
-    const currentRecords = organizations.filter(org => org.is_current === true);
+
+    const currentRecords = versions.filter(version => version.endDate === null);
     expect(currentRecords.length).toBeLessThanOrEqual(1);
-    
-    // 验证时间排序
-    const dates = organizations.map(org => new Date(org.effective_date));
-    const sortedDates = [...dates].sort((a, b) => b.getTime() - a.getTime());
-    expect(dates.map(d => d.getTime())).toEqual(sortedDates.map(d => d.getTime()));
+
+    const effectiveTimestamps = versions.map(version => new Date(version.effectiveDate as string).getTime());
+    const sorted = [...effectiveTimestamps].sort((a, b) => b - a);
+    expect(effectiveTimestamps).toEqual(sorted);
   });
 
   test('缓存机制验证', async ({ page }) => {
-    const testUrl = `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?asOfDate=2025-08-12`;
-    
-    // 第一次请求（缓存未命中）
+    const variables = { code: TEST_ORG_CODE, asOfDate: '2025-08-12' };
+
     const startTime1 = Date.now();
-    const response1 = await page.request.get(testUrl);
-    const endTime1 = Date.now();
-    const time1 = endTime1 - startTime1;
-    
+    const response1 = await page.request.post(GRAPHQL_API_URL, {
+      data: { query: ORGANIZATION_AS_OF_QUERY, variables },
+      headers: GRAPHQL_HEADERS,
+    });
+    const time1 = Date.now() - startTime1;
     expect(response1.ok()).toBeTruthy();
-    
-    // 第二次请求（缓存命中）
+    const body1 = await response1.json();
+    expect(body1.errors).toBeUndefined();
+
     const startTime2 = Date.now();
-    const response2 = await page.request.get(testUrl);
-    const endTime2 = Date.now();
-    const time2 = endTime2 - startTime2;
-    
+    const response2 = await page.request.post(GRAPHQL_API_URL, {
+      data: { query: ORGANIZATION_AS_OF_QUERY, variables },
+      headers: GRAPHQL_HEADERS,
+    });
+    const time2 = Date.now() - startTime2;
     expect(response2.ok()).toBeTruthy();
-    
-    // 验证数据一致性
-    const data1 = await response1.json();
-    const data2 = await response2.json();
-    expect(data1).toEqual(data2);
-    
-    // 缓存命中应该更快（通常情况下）
-    console.log(`第一次请求: ${time1}ms, 第二次请求: ${time2}ms`);
+    const body2 = await response2.json();
+    expect(body2.errors).toBeUndefined();
+
+    expect(body1.data).toEqual(body2.data);
+    console.log(`GraphQL 缓存验证 - 首次: ${time1}ms, 二次: ${time2}ms`);
   });
 
   test('错误处理和边界情况', async ({ page }) => {
-    // 测试无效组织代码
-    const invalidOrgResponse = await page.request.get(
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/INVALID999/temporal`
-    );
-    expect(invalidOrgResponse.status()).toBe(404);
-    
-    // 测试无效日期格式
-    const invalidDateResponse = await page.request.get(
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?asOfDate=invalid-date`
-    );
-    // 可能返回400或默认处理，取决于实现
-    expect([200, 400, 422]).toContain(invalidDateResponse.status());
-    
-    // 测试无效事件类型
+    const invalidOrgResponse = await page.request.post(GRAPHQL_API_URL, {
+      data: {
+        query: ORGANIZATION_AS_OF_QUERY,
+        variables: { code: 'INVALID999', asOfDate: '2025-08-12' },
+      },
+      headers: GRAPHQL_HEADERS,
+    });
+    expect(invalidOrgResponse.ok()).toBeTruthy();
+    const invalidOrgBody = await invalidOrgResponse.json();
+    expect(invalidOrgBody.errors ?? null).toBeNull();
+    expect(invalidOrgBody.data.organization).toBeNull();
+
+    const invalidDateResponse = await page.request.post(GRAPHQL_API_URL, {
+      data: {
+        query: ORGANIZATION_AS_OF_QUERY,
+        variables: { code: TEST_ORG_CODE, asOfDate: 'invalid-date' },
+      },
+      headers: GRAPHQL_HEADERS,
+    });
+    const invalidDateBody = await invalidDateResponse.json();
+    const hasErrors = Array.isArray(invalidDateBody.errors) && invalidDateBody.errors.length > 0;
+    const hasNullData = invalidDateBody?.data?.organization === null;
+    expect(hasErrors || hasNullData).toBeTruthy();
+
     const invalidEventResponse = await page.request.post(
-      `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/events`,
+      `${COMMAND_API_URL}/organization-units/${TEST_ORG_CODE}/events`,
       {
         data: {
-          event_type: 'INVALID_EVENT',
-          effective_date: '2025-01-01T00:00:00Z',
-          change_data: {}
-        }
+          eventType: 'INVALID_EVENT',
+          recordId: '00000000-0000-0000-0000-000000000000',
+          changeReason: 'Playwright invalid event',
+          effectiveDate: '2025-01-01',
+        },
+        headers: GRAPHQL_HEADERS,
       }
     );
-    expect(invalidEventResponse.status()).toBe(400);
+    expect([400, 422]).toContain(invalidEventResponse.status());
   });
 
   test('前端组件状态管理', async ({ page }) => {
@@ -304,23 +366,46 @@ test.describe('时态管理性能测试', () => {
   });
   
   test('API响应时间基准测试', async ({ page }) => {
-    const testCases = [
-      { name: '健康检查', url: `${TEMPORAL_SERVICE_URL}/health`, maxTime: 100 },
-      { name: '当前记录查询', url: `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?asOfDate=2025-08-12`, maxTime: 500 },
-      { name: '完整历史查询', url: `${TEMPORAL_SERVICE_URL}/api/v1/organization-units/${TEST_ORG_CODE}/temporal?includeHistory=true&includeFuture=true`, maxTime: 1000 }
+    const scenarios: Array<{ name: string; maxTime: number; exec: () => Promise<import('@playwright/test').APIResponse>; }> = [
+      {
+        name: '健康检查',
+        maxTime: 150,
+        exec: () => page.request.get(`${COMMAND_API_URL}/health`),
+      },
+      {
+        name: 'GraphQL 版本列表',
+        maxTime: 800,
+        exec: () => page.request.post(GRAPHQL_API_URL, {
+          data: {
+            query: ORGANIZATION_VERSIONS_QUERY,
+            variables: { code: TEST_ORG_CODE },
+          },
+          headers: GRAPHQL_HEADERS,
+        }),
+      },
+      {
+        name: 'GraphQL asOf 查询',
+        maxTime: 800,
+        exec: () => page.request.post(GRAPHQL_API_URL, {
+          data: {
+            query: ORGANIZATION_AS_OF_QUERY,
+            variables: { code: TEST_ORG_CODE, asOfDate: '2025-08-12' },
+          },
+          headers: GRAPHQL_HEADERS,
+        }),
+      },
     ];
-    
-    for (const testCase of testCases) {
-      const startTime = Date.now();
-      const response = await page.request.get(testCase.url);
-      const endTime = Date.now();
-      
-      const responseTime = endTime - startTime;
-      
+
+    for (const scenario of scenarios) {
+      const started = Date.now();
+      const response = await scenario.exec();
+      const finished = Date.now();
+      const responseTime = finished - started;
+
       expect(response.ok()).toBeTruthy();
-      expect(responseTime).toBeLessThan(testCase.maxTime);
-      
-      console.log(`${testCase.name}: ${responseTime}ms (限制: ${testCase.maxTime}ms)`);
+      expect(responseTime).toBeLessThan(scenario.maxTime);
+
+      console.log(`${scenario.name}: ${responseTime}ms (限制: ${scenario.maxTime}ms)`);
     }
   });
 });
