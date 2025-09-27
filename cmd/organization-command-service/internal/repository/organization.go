@@ -53,7 +53,7 @@ func (r *OrganizationRepository) recalculateSelfHierarchy(ctx context.Context, t
 		err := r.db.QueryRowContext(ctx, `
 			SELECT code, name, level
 			FROM organization_units
-			WHERE tenant_id = $1 AND record_id = $2 AND status <> 'DELETED' AND deleted_at IS NULL
+			WHERE tenant_id = $1 AND record_id = $2 AND status <> 'DELETED'
 			LIMIT 1
 		`, tenantID.String(), *recordID).Scan(&resolvedCode, &currentName, &currentLevel)
 		if err != nil {
@@ -67,7 +67,7 @@ func (r *OrganizationRepository) recalculateSelfHierarchy(ctx context.Context, t
 		err := r.db.QueryRowContext(ctx, `
 			SELECT name, level
 			FROM organization_units
-			WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+			WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
 			LIMIT 1
 		`, tenantID.String(), code).Scan(&currentName, &currentLevel)
 		if err != nil {
@@ -130,7 +130,7 @@ func (r *OrganizationRepository) calculateHierarchyFields(ctx context.Context, t
 		       COALESCE(NULLIF(name_path, ''), '/' || name),
 		       level
 		FROM organization_units
-		WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+		WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
 		LIMIT 1
 	`, tenantID.String(), trimmedParent).Scan(&parentCodePath, &parentNamePath, &parentLevel)
 	if err != nil {
@@ -395,7 +395,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	addAssignment("updated_at", time.Now())
 
 	setClause := strings.Join(setParts, ", ")
-	query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND code = $2\n  AND status <> 'DELETED' AND deleted_at IS NULL\nRETURNING tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
+query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND code = $2\n  AND status <> 'DELETED'\nRETURNING tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
@@ -590,7 +590,7 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 	addAssignment("updated_at", time.Now())
 
 	setClause := strings.Join(setParts, ", ")
-	query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND record_id = $2\n  AND status <> 'DELETED' AND deleted_at IS NULL\nRETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
+query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND record_id = $2\n  AND status <> 'DELETED'\nRETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
@@ -677,7 +677,7 @@ func (r *OrganizationRepository) ListVersionsByCode(ctx context.Context, tenantI
                effective_date, end_date, change_reason
         FROM organization_units
         WHERE tenant_id = $1 AND code = $2
-          AND status <> 'DELETED' AND deleted_at IS NULL
+          AND status <> 'DELETED'
         ORDER BY effective_date DESC
     `
 

@@ -31,19 +31,26 @@ export const E2E_CONFIG = {
 
 // 🎯 端口可用性检测
 export const checkPortAvailability = async (port: number, host: string = 'localhost'): Promise<boolean> => {
-  try {
-    const response = await fetch(`http://${host}:${port}/health`, {
-      method: 'GET',
-      // 使用快速探测，避免整体等待过长
-      signal: AbortSignal.timeout(QUICK_TIMEOUT_MS),
-    });
-    return response.ok;
-  } catch (error) {
-    if (E2E_CONFIG.DEBUG_MODE) {
-      console.log(`Port ${port} not available: ${error}`);
+  const endpoints = ['/health', '/'];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(`http://${host}:${port}${endpoint}`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(QUICK_TIMEOUT_MS),
+      });
+
+      if (response.ok) {
+        return true;
+      }
+    } catch (error) {
+      if (E2E_CONFIG.DEBUG_MODE) {
+        console.log(`Port ${port} (${endpoint}) not available: ${error}`);
+      }
     }
-    return false;
   }
+
+  return false;
 };
 
 // 🎯 动态端口发现
@@ -69,12 +76,20 @@ export const discoverActivePort = async (basePorts: number[] = [3000, 3001, 3002
 };
 
 // 🎯 测试环境验证
-export const validateTestEnvironment = async (): Promise<{
+export interface ValidateTestEnvironmentOptions {
+  allowUnreachableFrontend?: boolean;
+}
+
+export const validateTestEnvironment = async (
+  options: ValidateTestEnvironmentOptions = {}
+): Promise<{
   isValid: boolean;
   errors: string[];
+  warnings: string[];
   frontendUrl: string;
 }> => {
   const errors: string[] = [];
+  const warnings: string[] = [];
   let frontendUrl = E2E_CONFIG.FRONTEND_BASE_URL;
   
   // 动态端口发现
@@ -92,15 +107,26 @@ export const validateTestEnvironment = async (): Promise<{
       'localhost'
     );
     if (!frontendAvailable) {
-      errors.push(`前端服务不可用: ${frontendUrl}`);
+      const message = `前端服务不可用: ${frontendUrl}`;
+      if (options.allowUnreachableFrontend) {
+        warnings.push(message);
+      } else {
+        errors.push(message);
+      }
     }
   } catch (_error) {
-    errors.push(`前端服务检查失败: ${frontendUrl}`);
+    const message = `前端服务检查失败: ${frontendUrl}`;
+    if (options.allowUnreachableFrontend) {
+      warnings.push(message);
+    } else {
+      errors.push(message);
+    }
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
+    warnings,
     frontendUrl
   };
 };

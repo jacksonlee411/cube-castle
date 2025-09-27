@@ -543,7 +543,7 @@ paths:
                       name: "技术部"
                       unitType: "DEPARTMENT"
                       status: "ACTIVE"
-                      isDeleted: false
+                      deletedAt: null
                       level: 2
                       codePath: "/1000000/1000008"
                       namePath: "/高谷集团/技术部"
@@ -1606,7 +1606,6 @@ components:
         - unitType
         - parentCode
         - status
-        - isDeleted
         - level
         - hierarchyDepth
         - codePath
@@ -1645,10 +1644,12 @@ components:
           $ref: '#/components/schemas/UnitType'
         status:
           $ref: '#/components/schemas/Status'
-        isDeleted:
-          type: boolean
-          description: Soft deletion flag (independent from business status)
-          example: false
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+          description: "软删除时间（仅审计用途）；当 status=DELETED 时写入，其他情况下为空"
         level:
           type: integer
           minimum: 1
@@ -1756,10 +1757,12 @@ components:
       enum:
         - ACTIVE
         - INACTIVE
+        - DELETED
       description: |
         Business status of organization unit:
         - **ACTIVE**: Actively operating unit
-        - **INACTIVE**: Non-active but existing unit
+        - **INACTIVE**: Temporarily inactive (suspended) unit
+        - **DELETED**: Soft-deleted unit（所有业务判定以该状态为准）
       default: "ACTIVE"
       example: "ACTIVE"
 

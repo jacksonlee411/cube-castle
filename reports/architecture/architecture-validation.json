@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-24T02:10:15.585Z",
+  "timestamp": "2025-09-27T05:06:58.304Z",
   "summary": {
     "totalFiles": 109,
     "passedFiles": 108,
@@ -8,7 +8,8 @@
     "violationsByType": {
       "cqrs": 0,
       "ports": 0,
-      "contracts": 3
+      "contracts": 3,
+      "forbidden": 0
     }
   },
   "violations": [
@@ -17,7 +18,7 @@
       "violations": [
         {
           "type": "contracts",
-          "line": 237,
+          "line": 281,
           "column": 8,
           "message": "使用camelCase字段名 \"cubeCastleToken\" 替代 snake_case \"cube_castle_token\"",
           "code": "snake-case-field",
@@ -32,7 +33,7 @@
         },
         {
           "type": "contracts",
-          "line": 240,
+          "line": 284,
           "column": 8,
           "message": "使用camelCase字段名 \"cubeCastleOauthTokenRaw\" 替代 snake_case \"cube_castle_oauth_token_raw\"",
           "code": "snake-case-field",
@@ -47,7 +48,7 @@
         },
         {
           "type": "contracts",
-          "line": 304,
+          "line": 348,
           "column": 5,
           "message": "使用camelCase字段名 \"cubeCastleToken\" 替代 snake_case \"cube_castle_token\"",
           "code": "snake-case-field",

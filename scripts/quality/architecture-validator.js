@@ -41,6 +41,17 @@ const config = {
       allowedQueryEndpoints: ['/auth', '/health', '/metrics'],
       graphqlClientPattern: /graphql|gql/i
     },
+
+    // 禁止端点规则
+    forbiddenEndpoints: {
+      enabled: true,
+      patterns: [
+        {
+          regex: /\/organization-units\/temporal/gi,
+          description: '禁止使用未立项的 /organization-units/temporal REST 路径'
+        }
+      ]
+    },
     
     // 端口配置规则
     portConfiguration: {
@@ -63,7 +74,7 @@ const config = {
       standardFields: {
         identifiers: ['code', 'parentCode', 'tenantId', 'recordId'],
         timeFields: ['createdAt', 'updatedAt', 'effectiveDate', 'endDate'],
-        statusFields: ['status', 'isDeleted', 'isCurrent', 'isFuture'],
+        statusFields: ['status', 'isCurrent', 'isFuture', 'isTemporal'],
         operationFields: ['operationType', 'operatedBy', 'operationReason']
       }
     }
@@ -79,6 +90,7 @@ const stats = {
     cqrs: 0,
     ports: 0,
     contracts: 0,
+    forbidden: 0,
     total: 0
   },
   fixedIssues: 0
@@ -349,7 +361,7 @@ class APIContractValidator {
     const replacementMap = {
       'parent_unit_id': 'parentCode',
       'unit_type': 'unitType',
-      'is_deleted': 'isDeleted',
+      "is_deleted": "status",
       'operation_type': 'operationType',
       'created_at': 'createdAt',
       'updated_at': 'updatedAt',
@@ -366,6 +378,48 @@ class APIContractValidator {
   
   static toCamelCase(snakeStr) {
     return snakeStr.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+  }
+}
+
+// 🚫 禁止端点验证器
+class ForbiddenEndpointValidator {
+  static validate(filePath, content, options) {
+    const violations = [];
+    if (!options?.patterns || options.patterns.length === 0) {
+      return violations;
+    }
+
+    options.patterns.forEach(patternRule => {
+      const { regex, description } = patternRule;
+      if (!regex) {
+        return;
+      }
+
+      let match;
+      const pattern = new RegExp(regex.source, regex.flags);
+      while ((match = pattern.exec(content)) !== null) {
+        const index = match.index;
+        const snippet = content
+          .substring(Math.max(0, index - 40), Math.min(content.length, index + 80))
+          .replace(/\s+/g, ' ');
+
+        violations.push({
+          type: 'forbidden',
+          line: content.substring(0, index).split('\n').length,
+          column: index - content.lastIndexOf('\n', index - 1),
+          message: description || '检测到禁止使用的端点模式',
+          code: 'forbidden-endpoint',
+          severity: 'error',
+          context: snippet.trim()
+        });
+
+        if (!pattern.global) {
+          break;
+        }
+      }
+    });
+
+    return violations;
   }
 }
 
@@ -403,6 +457,17 @@ class ArchitectureValidator {
         const contractViolations = APIContractValidator.validate(filePath, content);
         fileViolations.push(...contractViolations);
         stats.violations.contracts += contractViolations.length;
+      }
+
+      // 禁止端点验证
+      if (this.options.rules.forbiddenEndpoints?.enabled) {
+        const forbiddenViolations = ForbiddenEndpointValidator.validate(
+          filePath,
+          content,
+          this.options.rules.forbiddenEndpoints
+        );
+        fileViolations.push(...forbiddenViolations);
+        stats.violations.forbidden += forbiddenViolations.length;
       }
       
       // 统计结果
@@ -452,7 +517,8 @@ class ArchitectureValidator {
         violationsByType: {
           cqrs: stats.violations.cqrs,
           ports: stats.violations.ports,
-          contracts: stats.violations.contracts
+          contracts: stats.violations.contracts,
+          forbidden: stats.violations.forbidden
         }
       },
       violations: this.violations
@@ -488,9 +554,12 @@ class ArchitectureValidator {
     if (stats.violations.contracts > 0) {
       log.warning(`   📋 契约违规: ${stats.violations.contracts} 个`);
     }
-    
+    if (stats.violations.forbidden > 0) {
+      log.error(`   🚫 禁止端点违规: ${stats.violations.forbidden} 个`);
+    }
+
     // 质量门禁判定
-    const criticalViolations = stats.violations.cqrs + stats.violations.ports;
+    const criticalViolations = stats.violations.cqrs + stats.violations.ports + stats.violations.forbidden;
     if (criticalViolations > 0) {
       log.error(`🚫 质量门禁失败: ${criticalViolations} 个关键违规`);
       return false;

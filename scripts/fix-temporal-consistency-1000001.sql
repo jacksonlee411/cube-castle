@@ -1,6 +1,6 @@
 -- 时态数据一致性修复脚本 - 组织1000001
 -- 目标: 清理重复记录、修复时间重叠、重新计算边界日期  
--- 重要: 只处理正常记录(status != 'DELETED' AND deleted_at IS NULL)
+-- 重要: 只处理正常记录(status != 'DELETED')
 -- 执行前请备份数据！
 
 -- =============================================
@@ -13,8 +13,8 @@ SELECT * FROM organization_units WHERE code = '1000001';
 SELECT 
     '备份完成' as message,
     COUNT(*) as total_records,
-    COUNT(CASE WHEN status != 'DELETED' AND deleted_at IS NULL THEN 1 END) as active_records,
-    COUNT(CASE WHEN status = 'DELETED' OR deleted_at IS NOT NULL THEN 1 END) as deleted_records
+    COUNT(CASE WHEN status != 'DELETED' THEN 1 END) as active_records,
+    COUNT(CASE WHEN status = 'DELETED' THEN 1 END) as deleted_records
 FROM backup_1000001;
 
 -- =============================================

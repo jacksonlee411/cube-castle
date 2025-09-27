@@ -59,7 +59,6 @@ func (tm *TemporalTimelineManager) RecalculateTimeline(ctx context.Context, tena
 		WHERE tenant_id = $1 
 		  AND code = $2 
 		  AND status != 'DELETED' 
-		  AND deleted_at IS NULL
 		ORDER BY effective_date ASC
 		FOR UPDATE
 	`
@@ -206,7 +205,6 @@ func (tm *TemporalTimelineManager) InsertVersion(ctx context.Context, org *types
 		WHERE tenant_id = $1 
 		  AND code = $2
 		  AND status != 'DELETED' 
-		  AND deleted_at IS NULL
 		ORDER BY effective_date
 		FOR UPDATE
 	`
@@ -344,7 +342,6 @@ func (tm *TemporalTimelineManager) RecalculateTimelineInTx(ctx context.Context, 
 		WHERE tenant_id = $1 
 		  AND code = $2 
 		  AND status != 'DELETED' 
-		  AND deleted_at IS NULL
 		ORDER BY effective_date ASC
 	`
 
@@ -373,7 +370,7 @@ func (tm *TemporalTimelineManager) RecalculateTimelineInTx(ctx context.Context, 
 		UPDATE organization_units 
 		SET is_current = false, updated_at = NOW()
 		WHERE tenant_id = $1 AND code = $2 
-		  AND status != 'DELETED' AND deleted_at IS NULL
+		  AND status != 'DELETED'
 	`
 	_, err = tx.ExecContext(ctx, clearCurrentQuery, tenantID, code)
 	if err != nil {
@@ -460,7 +457,7 @@ func (tm *TemporalTimelineManager) UpdateVersionEffectiveDate(ctx context.Contex
         SELECT tenant_id, code, parent_code, name, unit_type, status, level, path, sort_order, 
                description, effective_date, is_current, change_reason, created_at, updated_at
         FROM organization_units 
-        WHERE record_id = $1 AND status != 'DELETED' AND deleted_at IS NULL
+        WHERE record_id = $1 AND status != 'DELETED'
         FOR UPDATE
     `, recordID)
 
@@ -490,7 +487,7 @@ func (tm *TemporalTimelineManager) UpdateVersionEffectiveDate(ctx context.Contex
 		SELECT COUNT(*) 
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2 AND effective_date = $3 
-		  AND record_id != $4 AND status != 'DELETED' AND deleted_at IS NULL
+		  AND record_id != $4 AND status != 'DELETED'
 	`, tenantID, org.Code, newEffectiveDate, recordID).Scan(&conflictCount)
 	if err != nil {
 		return nil, fmt.Errorf("冲突校验查询失败: %w", err)
@@ -600,7 +597,7 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
                created_at, updated_at
         FROM organization_units 
         WHERE tenant_id = $1 AND code = $2 AND is_current = true 
-          AND status != 'DELETED' AND deleted_at IS NULL
+          AND status != 'DELETED'
         FOR UPDATE
     `, tenantID, code)
 
@@ -630,7 +627,7 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 		SELECT COUNT(*) 
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2 AND effective_date = $3 
-		  AND status != 'DELETED' AND deleted_at IS NULL
+		  AND status != 'DELETED'
 	`, tenantID, code, effectiveDate).Scan(&conflictCount)
 	if err != nil {
 		return nil, fmt.Errorf("冲突校验查询失败: %w", err)

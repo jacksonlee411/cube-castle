@@ -35,7 +35,7 @@ module.exports = {
               // 核心业务字段 (camelCase)
               identifiers: ['code', 'parentCode', 'tenantId', 'recordId'],
               timeFields: ['createdAt', 'updatedAt', 'effectiveDate', 'endDate'],
-              statusFields: ['status', 'isDeleted', 'isCurrent', 'isFuture'],
+              statusFields: ['status', 'isCurrent', 'isFuture', 'isTemporal'],
               operationFields: ['operationType', 'operatedBy', 'operationReason'],
               hierarchyFields: ['level', 'codePath', 'namePath', 'hierarchyDepth'],
               configFields: ['unitType', 'sortOrder', 'description', 'profile']
@@ -73,7 +73,7 @@ module.exports = {
     const standardFields = options.standardFields || {
       identifiers: ['code', 'parentCode', 'tenantId', 'recordId'],
       timeFields: ['createdAt', 'updatedAt', 'effectiveDate', 'endDate'],
-      statusFields: ['status', 'isDeleted', 'isCurrent', 'isFuture'],
+      statusFields: ['status', 'isCurrent', 'isFuture', 'isTemporal'],
       operationFields: ['operationType', 'operatedBy', 'operationReason'],
       hierarchyFields: ['level', 'codePath', 'namePath', 'hierarchyDepth'],
       configFields: ['unitType', 'sortOrder', 'description', 'profile']
@@ -94,7 +94,7 @@ module.exports = {
     const deprecatedFieldMap = {
       'parent_unit_id': 'parentCode',
       'unit_type': 'unitType', 
-      'is_deleted': 'isDeleted',
+      'is_deleted': 'status',
       'operation_type': 'operationType',
       'created_at': 'createdAt',
       'updated_at': 'updatedAt',

@@ -100,6 +100,11 @@ createOrg({ name: "新部门", unitType: "DEPARTMENT" });
 const response = await unifiedRESTClient.post('/organization-units', data);
 ```
 
+### 软删除语义（Status-only）
+- **唯一事实来源**: `status = 'DELETED'` 即代表记录已软删除；禁止再使用 `deleted_at` 条件过滤。
+- **审计字段**: `deletedAt` 仅用于审计/追踪，可为空，不参与业务判定。
+- **客户端逻辑**: 判断是否展示/过滤时统一使用 `status`，前端/脚本不得维护备用布尔字段。
+
 ---
 
 ## 📊 GraphQL查询API
@@ -171,6 +176,11 @@ const { data: historical } = useOrganization({
   asOfDate: '2024-12-31'
 });
 ```
+
+### 软删除语义（GraphQL）
+- 查询结果中的 `status` 可能返回 `DELETED`，该状态应视为软删除且默认从业务列表中过滤。
+- `deletedAt`、`deletedBy`、`deletionReason` 仅作为审计补充字段返回，可能为空。
+- `includeDeleted` 过滤参数（若存在）等价于允许返回 `status = 'DELETED'` 的记录，不再依赖 `deleted_at`。
 
 ---
 

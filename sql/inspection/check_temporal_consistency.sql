@@ -15,7 +15,7 @@ WITH ordered AS (
   SELECT record_id, tenant_id, code, effective_date, end_date,
          LAG(end_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS prev_end
   FROM organization_units
-  WHERE status != 'DELETED' AND deleted_at IS NULL
+  WHERE status != 'DELETED'
 )
 SELECT *
 FROM ordered
@@ -28,7 +28,7 @@ WITH ordered AS (
   SELECT record_id, tenant_id, code, effective_date,
          LAG(end_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS prev_end
   FROM organization_units
-  WHERE status != 'DELETED' AND deleted_at IS NULL
+  WHERE status != 'DELETED'
 )
 SELECT *,
        (effective_date - INTERVAL '1 day') AS expected_prev_end

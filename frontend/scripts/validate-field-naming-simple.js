@@ -130,7 +130,7 @@ class SimpleFieldValidator {
     console.log('\n💡 修复建议:')
     console.log('1. parent_unit_id → parentCode')
     console.log('2. unit_type → unitType')
-    console.log('3. is_deleted → isDeleted')
+    console.log("3. is_deleted → status (status='DELETED' 表示软删除)")
     console.log('4. created_at → createdAt')
     console.log('5. updated_at → updatedAt')
     console.log('6. effective_date → effectiveDate')

@@ -225,8 +225,7 @@ WHERE data_status = 'NORMAL';
 ALTER TABLE organization_units 
 ADD CONSTRAINT check_deleted_metadata 
 CHECK (
-    (data_status = 'DELETED' AND deleted_at IS NOT NULL) OR 
-    (data_status != 'DELETED' AND deleted_at IS NULL)
+    deleted_at IS NULL OR data_status = 'DELETED'
 );
 
 -- 停用约束

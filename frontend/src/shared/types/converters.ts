@@ -22,7 +22,6 @@ export interface GraphQLOrganizationData {
   name?: string;
   unitType?: string;
   status?: string;
-  isDeleted?: boolean;
   level?: number;
   
   // 路径和排序
@@ -47,6 +46,12 @@ export interface GraphQLOrganizationData {
   operationType?: string;
   operationReason?: string;
   recordId?: string;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  deletionReason?: string | null;
+  suspendedAt?: string | null;
+  suspendedBy?: string | null;
+  suspensionReason?: string | null;
   
   // 兼容字段
   isTemporal?: boolean;
@@ -82,6 +87,12 @@ export function convertGraphQLToOrganizationUnit(
     version: data.version,
     changeReason: data.changeReason || data.operationReason, // 支持operationReason字段
     isCurrent: data.isCurrent,
+    deletedAt: data.deletedAt ?? null,
+    deletedBy: data.deletedBy ?? null,
+    deletionReason: data.deletionReason ?? null,
+    suspendedAt: data.suspendedAt ?? null,
+    suspendedBy: data.suspendedBy ?? null,
+    suspensionReason: data.suspensionReason ?? null,
   };
 }
 

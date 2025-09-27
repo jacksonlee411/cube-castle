@@ -58,7 +58,7 @@ export interface TemporalOrganizationUnit {
   parentCode?: string;        // camelCase
   name: string;
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
   level: number;
   path?: string | null;
   sortOrder: number;          // camelCase

@@ -122,12 +122,12 @@ func (m *TemporalMonitor) collectBasicStats(ctx context.Context, metrics *Monito
     var err error
     if tenantID != "" {
         err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(DISTINCT code) FROM organization_units WHERE status <> 'DELETED' AND deleted_at IS NULL AND tenant_id = $1",
+            "SELECT COUNT(DISTINCT code) FROM organization_units WHERE status <> 'DELETED' AND tenant_id = $1",
             tenantID,
         ).Scan(&metrics.TotalOrganizations)
     } else {
         err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(DISTINCT code) FROM organization_units WHERE status <> 'DELETED' AND deleted_at IS NULL",
+            "SELECT COUNT(DISTINCT code) FROM organization_units WHERE status <> 'DELETED'",
         ).Scan(&metrics.TotalOrganizations)
     }
     if err != nil {
@@ -137,12 +137,12 @@ func (m *TemporalMonitor) collectBasicStats(ctx context.Context, metrics *Monito
     // 统计当前记录数
     if tenantID != "" {
         err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE is_current = true AND status <> 'DELETED' AND deleted_at IS NULL AND tenant_id = $1",
+            "SELECT COUNT(*) FROM organization_units WHERE is_current = true AND status <> 'DELETED' AND tenant_id = $1",
             tenantID,
         ).Scan(&metrics.CurrentRecords)
     } else {
         err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE is_current = true AND status <> 'DELETED' AND deleted_at IS NULL",
+            "SELECT COUNT(*) FROM organization_units WHERE is_current = true AND status <> 'DELETED'",
         ).Scan(&metrics.CurrentRecords)
     }
     if err != nil {
@@ -152,12 +152,12 @@ func (m *TemporalMonitor) collectBasicStats(ctx context.Context, metrics *Monito
     // 统计未来记录数（派生条件）
     if tenantID != "" {
         err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE effective_date > CURRENT_DATE AND status <> 'DELETED' AND deleted_at IS NULL AND tenant_id = $1",
+            "SELECT COUNT(*) FROM organization_units WHERE effective_date > CURRENT_DATE AND status <> 'DELETED' AND tenant_id = $1",
             tenantID,
         ).Scan(&metrics.FutureRecords)
     } else {
         err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE effective_date > CURRENT_DATE AND status <> 'DELETED' AND deleted_at IS NULL",
+            "SELECT COUNT(*) FROM organization_units WHERE effective_date > CURRENT_DATE AND status <> 'DELETED'",
         ).Scan(&metrics.FutureRecords)
     }
     if err != nil {
@@ -167,12 +167,12 @@ func (m *TemporalMonitor) collectBasicStats(ctx context.Context, metrics *Monito
     // 统计历史记录数（派生条件：已结束）
     if tenantID != "" {
         err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE AND status <> 'DELETED' AND deleted_at IS NULL AND tenant_id = $1",
+            "SELECT COUNT(*) FROM organization_units WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE AND status <> 'DELETED' AND tenant_id = $1",
             tenantID,
         ).Scan(&metrics.HistoricalRecords)
     } else {
         err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE AND status <> 'DELETED' AND deleted_at IS NULL",
+            "SELECT COUNT(*) FROM organization_units WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE AND status <> 'DELETED'",
         ).Scan(&metrics.HistoricalRecords)
     }
     if err != nil {
@@ -190,7 +190,7 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
         SELECT COUNT(*) FROM (
             SELECT tenant_id, code
             FROM organization_units 
-            WHERE is_current = true AND status <> 'DELETED' AND deleted_at IS NULL AND tenant_id = $1
+            WHERE is_current = true AND status <> 'DELETED' AND tenant_id = $1
             GROUP BY tenant_id, code
             HAVING COUNT(*) > 1
         ) duplicates
@@ -200,7 +200,7 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
         SELECT COUNT(*) FROM (
             SELECT tenant_id, code
             FROM organization_units 
-            WHERE is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            WHERE is_current = true AND status <> 'DELETED'
             GROUP BY tenant_id, code
             HAVING COUNT(*) > 1
         ) duplicates
@@ -220,20 +220,20 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
               AND (tenant_id, code) NOT IN (
                 SELECT tenant_id, code 
                 FROM organization_units 
-                WHERE is_current = true AND status <> 'DELETED' AND deleted_at IS NULL AND tenant_id = $1
+                WHERE is_current = true AND status <> 'DELETED' AND tenant_id = $1
               )
               AND (tenant_id, code) NOT IN (
                 SELECT tenant_id, code
                 FROM organization_units
                 WHERE tenant_id = $1
                 GROUP BY tenant_id, code
-                HAVING MIN(CASE WHEN status <> 'DELETED' AND deleted_at IS NULL THEN effective_date ELSE NULL END) > CURRENT_DATE
+                HAVING MIN(CASE WHEN status <> 'DELETED' THEN effective_date ELSE NULL END) > CURRENT_DATE
               )
               AND EXISTS (
                 SELECT 1 FROM organization_units u
                 WHERE u.tenant_id = organization_units.tenant_id
                   AND u.code = organization_units.code
-                  AND u.status <> 'DELETED' AND u.deleted_at IS NULL
+                  AND u.status <> 'DELETED'
               )
         ) missing
     `, tenantID).Scan(&metrics.MissingCurrentCount)
@@ -245,19 +245,19 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
             WHERE (tenant_id, code) NOT IN (
                 SELECT tenant_id, code 
                 FROM organization_units 
-                WHERE is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+                WHERE is_current = true AND status <> 'DELETED'
             )
             AND (tenant_id, code) NOT IN (
                 SELECT tenant_id, code
                 FROM organization_units
                 GROUP BY tenant_id, code
-                HAVING MIN(CASE WHEN status <> 'DELETED' AND deleted_at IS NULL THEN effective_date ELSE NULL END) > CURRENT_DATE
+                HAVING MIN(CASE WHEN status <> 'DELETED' THEN effective_date ELSE NULL END) > CURRENT_DATE
             )
             AND EXISTS (
                 SELECT 1 FROM organization_units u
                 WHERE u.tenant_id = organization_units.tenant_id
                   AND u.code = organization_units.code
-                  AND u.status <> 'DELETED' AND u.deleted_at IS NULL
+                  AND u.status <> 'DELETED'
             )
         ) missing
     `).Scan(&metrics.MissingCurrentCount)
@@ -278,8 +278,8 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
                 AND o1.record_id != o2.record_id
             )
             WHERE 
-                o1.status <> 'DELETED' AND o1.deleted_at IS NULL
-                AND o2.status <> 'DELETED' AND o2.deleted_at IS NULL
+                o1.status <> 'DELETED'
+                AND o2.status <> 'DELETED'
                 AND o1.tenant_id = $1
                 AND o1.effective_date < COALESCE(o2.end_date, '9999-12-31'::date)
                 AND o2.effective_date < COALESCE(o1.end_date, '9999-12-31'::date)
@@ -296,8 +296,8 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
                 AND o1.record_id != o2.record_id
             )
             WHERE 
-                o1.status <> 'DELETED' AND o1.deleted_at IS NULL
-                AND o2.status <> 'DELETED' AND o2.deleted_at IS NULL
+                o1.status <> 'DELETED'
+                AND o2.status <> 'DELETED'
                 AND o1.effective_date < COALESCE(o2.end_date, '9999-12-31'::date)
                 AND o2.effective_date < COALESCE(o1.end_date, '9999-12-31'::date)
         ) AS timeline_overlaps
@@ -315,7 +315,7 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
             effective_date <= CURRENT_DATE 
             AND (end_date IS NULL OR end_date > CURRENT_DATE)
         )
-        AND status <> 'DELETED' AND deleted_at IS NULL
+        AND status <> 'DELETED'
         AND tenant_id = $1
     `, tenantID).Scan(&metrics.InconsistentFlagCount)
     } else {
@@ -325,7 +325,7 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
             effective_date <= CURRENT_DATE 
             AND (end_date IS NULL OR end_date > CURRENT_DATE)
         )
-        AND status <> 'DELETED' AND deleted_at IS NULL
+        AND status <> 'DELETED'
     `).Scan(&metrics.InconsistentFlagCount)
     }
     if err != nil {
@@ -338,14 +338,14 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
         SELECT COUNT(*) FROM organization_units o1
         WHERE 
             parent_code IS NOT NULL
-            AND o1.status <> 'DELETED' AND o1.deleted_at IS NULL
+            AND o1.status <> 'DELETED'
             AND o1.tenant_id = $1
             AND NOT EXISTS (
                 SELECT 1 FROM organization_units o2 
                 WHERE o2.tenant_id = o1.tenant_id 
                     AND o2.code = o1.parent_code 
                     AND o2.is_current = true
-                    AND o2.status <> 'DELETED' AND o2.deleted_at IS NULL
+                    AND o2.status <> 'DELETED'
             )
     `, tenantID).Scan(&metrics.OrphanRecordCount)
     } else {
@@ -353,13 +353,13 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
         SELECT COUNT(*) FROM organization_units o1
         WHERE 
             parent_code IS NOT NULL
-            AND o1.status <> 'DELETED' AND o1.deleted_at IS NULL
+            AND o1.status <> 'DELETED'
             AND NOT EXISTS (
                 SELECT 1 FROM organization_units o2 
                 WHERE o2.tenant_id = o1.tenant_id 
                     AND o2.code = o1.parent_code 
                     AND o2.is_current = true
-                    AND o2.status <> 'DELETED' AND o2.deleted_at IS NULL
+                    AND o2.status <> 'DELETED'
             )
     `).Scan(&metrics.OrphanRecordCount)
     }

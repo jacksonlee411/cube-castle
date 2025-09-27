@@ -327,7 +327,6 @@ func (h *HierarchyRepository) GetOrganizationAtDate(ctx context.Context, code st
 	WHERE tenant_id = $1
 	  AND code = $2
 	  AND status <> 'DELETED'
-	  AND deleted_at IS NULL
 	  AND effective_date <= $3::date
 	  AND (end_date IS NULL OR end_date > $3::date)
 	ORDER BY effective_date DESC, created_at DESC

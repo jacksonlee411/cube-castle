@@ -26,3 +26,8 @@ jobs:
         shell: bash
         run: |
           bash scripts/check-trigger-sources.sh
+
+      - name: Enforce architecture validator (includes /temporal deny list)
+        shell: bash
+        run: |
+          node scripts/quality/architecture-validator.js --scope frontend

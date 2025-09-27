@@ -3,6 +3,14 @@
 import { env } from '../config/environment';
 import { unauthenticatedRESTClient } from './unified-client';
 
+const camelToSnakeCase = (value: string): string =>
+  value.replace(/([A-Z])/g, letter => `_${letter.toLowerCase()}`);
+
+const mapKeysToSnakeCase = (record: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [camelToSnakeCase(key), value])
+  );
+
 export interface OAuthToken {
   accessToken: string;
   tokenType: string;
@@ -124,11 +132,13 @@ export class AuthManager {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        grant_type: this.config.grantType,
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
-      }),
+      body: JSON.stringify(
+        mapKeysToSnakeCase({
+          grantType: this.config.grantType,
+          clientId: this.config.clientId,
+          clientSecret: this.config.clientSecret,
+        })
+      ),
     });
 
     // 兼容多种开发/生产返回格式：

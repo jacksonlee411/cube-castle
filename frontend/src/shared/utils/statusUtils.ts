@@ -5,9 +5,8 @@ import {
   clockIcon
 } from '@workday/canvas-system-icons-web';
 
-// 标准组织状态类型 - 符合API契约规范 (3个业务状态)
-// 删除状态通过isDeleted字段单独处理，不在业务状态枚举中
-export type OrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+// 标准组织状态类型 - 符合API契约规范 (status-only)
+export type OrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
 
 // 状态配置 - 符合API契约规范
 export const STATUS_CONFIG = {
@@ -34,6 +33,14 @@ export const STATUS_CONFIG = {
     backgroundColor: colors.blueberry100,
     borderColor: colors.blueberry300,
     description: '计划启用状态'
+  },
+  DELETED: {
+    label: '已删除',
+    color: colors.soap600,
+    icon: clockPauseIcon,
+    backgroundColor: colors.soap100,
+    borderColor: colors.soap300,
+    description: '软删除记录，仅用于审计展示'
   }
 } as const;
 
@@ -84,6 +91,8 @@ export const statusUtils = {
         return ['REACTIVATE'];
       case 'PLANNED':
         return ['UPDATE'];
+      case 'DELETED':
+        return [];
       default:
         return [];
     }

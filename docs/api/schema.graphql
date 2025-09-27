@@ -164,10 +164,9 @@ type Organization {
   # Basic Information
   name: String!
   unitType: UnitType!
-  # Business status (one-dimensional): ACTIVE | INACTIVE
-  # Note: No lifecycle status is exposed. "planned"/"historical" are derived via
-  # asOf-based computation: isCurrent/isFuture fields below.
-  # ADR-008: 一维业务状态模型，INACTIVE等价于停用/暂停语义
+  # Business status (one-dimensional): ACTIVE | INACTIVE | DELETED
+  # Soft-delete 判定完全依赖该字段，DELETED 表示记录不再对外展示
+  # ADR-008: 一维业务状态模型，INACTIVE 等价于停用/暂停语义
   status: Status!
 
   # Hierarchy Information
@@ -178,23 +177,33 @@ type Organization {
   # Configuration
   description: String
   profile: String
-  
+  changeReason: String
+
   # Temporal Information
   # Notes:
   # - isTemporal is a derived concept (NOT a stored column): endDate != null
   # - isFuture is derived using Beijing business day (UTC+8): effectiveDate > today(CN)
   effectiveDate: String!
   endDate: String
-  
+
   # Audit Information
   createdAt: String!
   updatedAt: String!
   recordId: String!
-  
+
   # Temporal Status Information (derived)
-  # Derived using Beijing time (UTC+8): effectiveDate > today(CN)
+  isCurrent: Boolean!
+  isTemporal: Boolean!
   isFuture: Boolean!
   hierarchyDepth: Int!
+
+  # Soft delete & suspension audit fields (optional)
+  deletedAt: String
+  deletedBy: String
+  deletionReason: String
+  suspendedAt: String
+  suspendedBy: String
+  suspensionReason: String
 }
 
 """

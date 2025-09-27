@@ -15,7 +15,7 @@ const STANDARD_FIELDS = {
   // 核心业务字段 (camelCase)
   identifiers: ['code', 'parentCode', 'tenantId', 'recordId'],
   timeFields: ['createdAt', 'updatedAt', 'effectiveDate', 'endDate'], 
-  statusFields: ['status', 'isDeleted', 'isCurrent', 'isFuture'],
+  statusFields: ['status', 'isCurrent', 'isFuture'],
   operationFields: ['operationType', 'operatedBy', 'operationReason'],
   hierarchyFields: ['level', 'codePath', 'namePath', 'hierarchyDepth'],
   configFields: ['unitType', 'sortOrder', 'description', 'profile']

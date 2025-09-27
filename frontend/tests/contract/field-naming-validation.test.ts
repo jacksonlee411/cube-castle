@@ -15,7 +15,7 @@ describe('字段命名规范验证', () => {
         // 核心业务字段
         identifiers: ['code', 'parentCode', 'tenantId', 'recordId'],
         timeFields: ['createdAt', 'updatedAt', 'effectiveDate', 'endDate'],
-        statusFields: ['status', 'isDeleted', 'isCurrent', 'isFuture'],
+        statusFields: ['status', 'isCurrent', 'isFuture', 'isTemporal'],
         operationFields: ['operationType', 'operatedBy', 'operationReason'],
         hierarchyFields: ['level', 'codePath', 'namePath', 'hierarchyDepth'],
         configFields: ['unitType', 'sortOrder', 'description', 'profile']
@@ -65,7 +65,8 @@ describe('字段命名规范验证', () => {
       const graphqlFields = [
         'organizationStats', 'unitType', 'parentCode', 'effectiveDate',
         'hierarchyDepth', 'operationType', 'operatedBy', 'createdAt',
-        'isCurrent', 'isFuture', 'isDeleted'
+        'isCurrent', 'isFuture', 'isTemporal', 'deletedAt', 'deletedBy',
+        'deletionReason', 'suspendedAt', 'suspendedBy', 'suspensionReason'
       ]
 
       graphqlFields.forEach(field => {
@@ -96,7 +97,12 @@ describe('字段命名规范验证', () => {
         name: 'Engineering Department',
         unitType: 'DEPARTMENT',
         status: 'ACTIVE',
-        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        deletionReason: null,
+        suspendedAt: null,
+        suspendedBy: null,
+        suspensionReason: null,
         level: 2,
         hierarchyDepth: 5,
         codePath: 'ROOT/ORG001',

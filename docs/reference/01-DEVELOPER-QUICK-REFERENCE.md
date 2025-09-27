@@ -246,7 +246,7 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 ### API命名规范
 ```yaml
 字段命名: 统一使用camelCase
-  ✅ parentCode, unitType, isDeleted, createdAt
+  ✅ parentCode, unitType, status, createdAt
   ❌ parent_code, unit_type, is_deleted, created_at
 
 路径参数: 统一使用{code}
@@ -290,6 +290,7 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 - ✅ 查询用GraphQL (8090)，命令用REST (9090)
 - ✅ 统一使用camelCase字段命名
 - ✅ 所有API调用包含认证头和租户ID
+- ✅ 软删除判定仅依赖 `status='DELETED'`；`deletedAt` 仅做审计输出
 
 ---
 

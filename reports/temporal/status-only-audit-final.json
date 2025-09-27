@@ -1,0 +1,18 @@
+Pager usage is off.
+Output format is unaligned.
+Field separator is "".
+{
+    "summary": {
+        "totalRecords": 13,
+        "consistentDeleted": 0,
+        "deletedWithoutTimestamp": 0,
+        "timestampWithoutDeleted": 0
+    },
+    "generatedAt": "2025-09-27T12:24:20.784Z",
+    "deletedWithoutTimestamp": [
+    ],
+    "timestampWithoutDeleted": [
+    ],
+    "conflictingDeletedAtValues": [
+    ]
+}

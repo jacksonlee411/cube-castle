@@ -90,7 +90,7 @@ check_continuity() {
   q="WITH v AS (\n\
        SELECT code,effective_date,end_date\n\
        FROM organization_units\n\
-       WHERE tenant_id = '$TENANT_ID' AND code = '$ORG_CODE' AND status <> 'DELETED' AND deleted_at IS NULL\n\
+       WHERE tenant_id = '$TENANT_ID' AND code = '$ORG_CODE' AND status <> 'DELETED'\n\
        ORDER BY effective_date\n\
      ), c AS (\n\
        SELECT code,effective_date AS this_start,end_date AS this_end,\n\
@@ -153,4 +153,3 @@ check_current
 
 title "全部校验完成（如上均为 ✅ 则通过）"
 exit 0
-

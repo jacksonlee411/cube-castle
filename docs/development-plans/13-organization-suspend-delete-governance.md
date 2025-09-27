@@ -31,7 +31,7 @@
 - **删除**：不新增独立 `DELETE` 端点，保持契约收敛在现有命令体系。扩展 `POST /api/v1/organization-units/{code}/events`：
   - 新增 `operation` 枚举值 `DELETE_ORGANIZATION`（或沿用 `DEACTIVATE` 并在文档说明“对当前版本执行业务删除”）；
   - 请求体包含 `effectiveDate`、`operationReason`、`If-Match`；
-  - 成功时返回时间线重算结果，并在响应示例中强调 `isDeleted=true`；
+  - 成功时返回时间线重算结果，并在响应示例中强调 `status='DELETED'`；
   - 失败示例增加 `HAS_CHILD_UNITS`；
   - 权限 scope：`org:delete`；
   - 契约更新后运行 `node scripts/generate-implementation-inventory.js` 并刷新 IIG。
@@ -43,14 +43,14 @@
   - 在 `SuspendOrganization` handler 增加“停用后重新刷新父级层级缓存”调用，避免 selector 缓存脏数据。
 - **删除防线**：
   - 在 `CreateOrganizationEvent` 流程内新增 `DELETE_ORGANIZATION` 分支：
-    1. 在 service 层先执行 `SELECT 1 FROM organization_units WHERE tenant_id=$tenant AND parent_code=$code AND status <> 'DELETED' AND deleted_at IS NULL LIMIT 1`，若存在则返回 `HAS_CHILD_UNITS`（409）。
+    1. 在 service 层先执行 `SELECT 1 FROM organization_units WHERE tenant_id=$tenant AND parent_code=$code AND status <> 'DELETED' LIMIT 1`，若存在则返回 `HAS_CHILD_UNITS`（409）。
     2. 无子组织时调用封装方法 `SoftDeleteOrganization(ctx, tenantID, code, effectiveDate, operationReason)`，内部复用 `timelineManager.DeleteVersion`/写入 `status='DELETED'` 并触发时间线重算，保持单事务。
     3. 通过已有 `LogOrganizationDelete` 写入审计；必要时扩展以支持 `DELETE_ORGANIZATION` 事件类型。
   - 增补事务级回滚保障、命名遵循 camelCase；新增 Go 单测/集成测试覆盖“存在子组织 → 409(HAS_CHILD_UNITS)”与“无子组织 → 成功软删 + 审计记录”。
 
 ### 4.3 查询服务（GraphQL）
 - `cmd/organization-query-service/main.go`：
-  - 维持当前默认行为（返回 ACTIVE + INACTIVE，排除 `isDeleted=true`），新增 `onlyActive` 过滤参数供组织选择器使用，避免破坏现有调用；
+  - 维持当前默认行为（返回 status != 'DELETED' 的记录），新增 `onlyActive` 过滤参数供组织选择器使用，避免破坏现有调用；
   - 新增可选字段 `includeDisabledAncestors`（默认 false），当父级被停用时仍可以按 `parentCode` 获取子级；
   - 为 `Organization` 节点增加 `childrenCount` 字段（JOIN 子表统计），契约更新 `docs/api/schema.graphql`。
 - `organizationHierarchy`/`organizationSubtree`：保留现有 `childrenCount`，并校验停用父级时仍能返回子节点。
@@ -75,7 +75,7 @@
   - 组织选择器中父级消失但子级可用。
 - 删除操作：
   - 有子级 → 返回 409 `HAS_CHILD_UNITS`；
-  - 无子级 → 软删除成功，`isDeleted=true` 且审计日志写入。
+  - 无子级 → 软删除成功，`status` 切换为 `DELETED` 且审计日志写入。
 - `organizationPermissions` 再次启用子组织校验，无 TODO 过期项。
 - 全量测试（`make test`, `make test-integration`, `npm run test`, `npm run lint`, Playwright 场景）通过。
 
@@ -84,7 +84,7 @@
 | --- | --- | --- |
 | 契约更新影响现有调用方 | 前后端需同步切换 | 发布前发布 Contract 变更公告，提供多环境验证窗口 |
 | 停用后缓存未刷新 | 选择器仍显示旧数据 | 停用/删除成功后触发层级缓存刷新 + 前端失效本地缓存 |
-| 子组织检测漏算历史数据 | 误删存在未来版本的组织 | SQL 检测条件包含 `status <> 'DELETED' AND deleted_at IS NULL`，并对 `effective_date` 不做限制确保捕获未来记录 |
+| 子组织检测漏算历史数据 | 误删存在未来版本的组织 | SQL 检测条件包含 `status <> 'DELETED'`，并对 `effective_date` 不做限制确保捕获未来记录 |
 
 ## 7. 里程碑
 1. **契约更新**（+1 天）：更新 OpenAPI/GraphQL 并产出审阅记录。
@@ -97,7 +97,7 @@
 1. `node scripts/generate-implementation-inventory.js` → 确认停用/删除端点一致。
 2. `curl -X POST http://localhost:9090/api/v1/organization-units/{code}/suspend` → 子组织 `status` 不变。
 3. `npm --prefix frontend run test -- ParentOrganizationSelector` → 确认过滤逻辑。
-4. `curl -X POST http://localhost:9090/api/v1/organization-units/{code}/events -H 'If-Match: <etag>' -d '{"operation":"DELETE_ORGANIZATION","effectiveDate":"2025-09-30","operationReason":"合规清理"}'` → 有子级返回 409 `HAS_CHILD_UNITS`，无子级成功并返回 `isDeleted=true`。
+4. `curl -X POST http://localhost:9090/api/v1/organization-units/{code}/events -H 'If-Match: <etag>' -d '{"operation":"DELETE_ORGANIZATION","effectiveDate":"2025-09-30","operationReason":"合规清理"}'` → 有子级返回 409 `HAS_CHILD_UNITS`，无子级成功并返回 `status='DELETED'`。
 5. `make test-integration` / Playwright `organization-create.spec.ts` → 验证端到端流程。
 
 ## 9. 开放问题建议

@@ -13,7 +13,7 @@ WITH ordered AS (
     effective_date,
     LEAD(effective_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS next_effective
   FROM organization_units
-  WHERE status != 'DELETED' AND deleted_at IS NULL
+  WHERE status != 'DELETED'
 ),
 updates AS (
   SELECT
@@ -29,7 +29,7 @@ SET end_date = up.new_end,
     updated_at = NOW()
 FROM updates up
 WHERE u.record_id = up.record_id
-  AND u.status != 'DELETED' AND u.deleted_at IS NULL
+  AND u.status != 'DELETED'
   AND (u.end_date IS DISTINCT FROM up.new_end);
 
 COMMIT;

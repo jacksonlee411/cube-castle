@@ -8,7 +8,7 @@ export interface OrganizationUnit {
   // 基本属性
   name: string;
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
   level: number;
   path?: string | null;
   sortOrder: number;  // camelCase
@@ -26,11 +26,14 @@ export interface OrganizationUnit {
   isCurrent?: boolean;  // camelCase
   version?: number;
   changeReason?: string;  // camelCase
+  deletedAt?: string | null;  // 审计字段
+  deletedBy?: string | null;
+  deletionReason?: string | null;
+  suspendedAt?: string | null;
+  suspendedBy?: string | null;
+  suspensionReason?: string | null;
   approvedBy?: string;  // camelCase
   approvedAt?: string;  // camelCase
-  
-  // 数据状态字段
-  isDeleted?: boolean;  // 软删除标记
 }
 
 // 🎯 核心接口2: 组织列表响应 (支持分页)
@@ -74,7 +77,7 @@ export interface OrganizationRequest {
   code?: string;  // 创建时可选（支持自动生成）
   name?: string;
   unitType?: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
-  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
   parentCode?: string;
   description?: string;
   sortOrder?: number;
@@ -96,7 +99,7 @@ export interface OrganizationResponse {
   // 必返字段
   code: string;
   name: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
   
   // 操作相关响应
   operationType?: 'CREATE' | 'UPDATE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE';
