@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -485,18 +487,29 @@ type PaginationInput struct {
 	SortOrder string `json:"sortOrder"`
 }
 
-// PostgreSQL极速仓储 - 零抽象开销
-type PostgreSQLRepository struct {
-	db          *sql.DB
-	redisClient *redis.Client
-	logger      *log.Logger
+// AuditHistoryConfig 控制审计历史查询的验证与回退策略
+type AuditHistoryConfig struct {
+	StrictValidation        bool
+	AllowFallback           bool
+	CircuitBreakerThreshold int32
+	LegacyMode              bool
 }
 
-func NewPostgreSQLRepository(db *sql.DB, redisClient *redis.Client, logger *log.Logger) *PostgreSQLRepository {
+// PostgreSQL极速仓储 - 零抽象开销
+type PostgreSQLRepository struct {
+	db                     *sql.DB
+	redisClient            *redis.Client
+	logger                 *log.Logger
+	auditConfig            AuditHistoryConfig
+	validationFailureCount int32
+}
+
+func NewPostgreSQLRepository(db *sql.DB, redisClient *redis.Client, logger *log.Logger, auditConfig AuditHistoryConfig) *PostgreSQLRepository {
 	return &PostgreSQLRepository{
 		db:          db,
 		redisClient: redisClient,
 		logger:      logger,
+		auditConfig: auditConfig,
 	}
 }
 
@@ -575,7 +588,6 @@ WITH parent_path AS (
       AND $3::text IS NOT NULL
       AND code = $3::text
       AND status <> 'DELETED'
-      AND deleted_at IS NULL
       AND (
         $2::text IS NULL OR (
           effective_date <= $2::date AND (end_date IS NULL OR end_date > $2::date)
@@ -593,7 +605,6 @@ latest_versions AS (
     FROM organization_units
     WHERE tenant_id = $1
       AND status <> 'DELETED'
-      AND deleted_at IS NULL
       AND (
         $2::text IS NULL OR (
           effective_date <= $2::date AND (end_date IS NULL OR end_date > $2::date)
@@ -744,7 +755,7 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
                effective_date, end_date, is_current, change_reason,
                deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
         FROM organization_units 
-        WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+        WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
         LIMIT 1`
 
 	start := time.Now()
@@ -787,7 +798,7 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
                 LEAD(effective_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS next_effective
             FROM organization_units 
             WHERE tenant_id = $1 AND code = $2 
-              AND status <> 'DELETED' AND deleted_at IS NULL
+              AND status <> 'DELETED'
         ), proj AS (
             SELECT 
                 record_id, tenant_id, code, parent_code, name, unit_type, status,
@@ -850,7 +861,7 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
                 LEAD(effective_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS next_effective
             FROM organization_units 
             WHERE tenant_id = $1 AND code = $2 
-              AND status <> 'DELETED' AND deleted_at IS NULL
+              AND status <> 'DELETED'
         ), proj AS (
             SELECT 
                 record_id, tenant_id, code, parent_code, name, unit_type, status,
@@ -919,9 +930,9 @@ func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tena
 
 	args := []interface{}{tenantID.String(), code}
 
-	// includeDeleted=false: status != 'DELETED' AND deleted_at IS NULL
+	// includeDeleted=false: status != 'DELETED'
 	if !includeDeleted {
-		baseQuery += " AND status != 'DELETED' AND deleted_at IS NULL"
+		baseQuery += " AND status != 'DELETED'"
 	}
 
 	// 排序：ORDER BY effective_date ASC (按计划要求)
@@ -972,24 +983,24 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
                 SUM(CASE WHEN status = 'INACTIVE' THEN 1 ELSE 0 END) as inactive_count,
                 SUM(CASE WHEN status = 'PLANNED' THEN 1 ELSE 0 END) as planned_count,
                 SUM(CASE WHEN status = 'DELETED' THEN 1 ELSE 0 END) as deleted_count
-            FROM organization_units WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            FROM organization_units WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
         ),
         type_stats AS (
             SELECT unit_type, COUNT(*) as count
             FROM organization_units 
-            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
             GROUP BY unit_type
         ),
         status_detail_stats AS (
             SELECT status, COUNT(*) as count
             FROM organization_units 
-            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
             GROUP BY status
         ),
         level_stats AS (
             SELECT level, COUNT(*) as count
             FROM organization_units 
-            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
             GROUP BY level
         ),
         temporal_stats AS (
@@ -998,7 +1009,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
                 COUNT(DISTINCT code) as unique_orgs,
                 MIN(effective_date) as oldest_date,
                 MAX(effective_date) as newest_date
-            FROM organization_units WHERE tenant_id = $1 AND (status <> 'DELETED' AND deleted_at IS NULL)
+            FROM organization_units WHERE tenant_id = $1 AND status <> 'DELETED'
         )
 		SELECT 
 			s.total_count, s.active_count, s.inactive_count, s.planned_count, s.deleted_count,
@@ -1090,7 +1101,6 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
               AND code = $2
               AND is_current = true
               AND status <> 'DELETED'
-              AND deleted_at IS NULL
 
             UNION ALL
 
@@ -1106,7 +1116,6 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
             WHERE o.tenant_id = $1
               AND o.is_current = true
               AND o.status <> 'DELETED'
-              AND o.deleted_at IS NULL
         ),
         aggregated_paths AS (
             SELECT
@@ -1131,7 +1140,6 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
               AND parent_code = $2
               AND is_current = true
               AND status <> 'DELETED'
-              AND deleted_at IS NULL
         )
         SELECT
             t.code,
@@ -1199,7 +1207,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
                 parent_code,
                 0 as depth_from_root
             FROM organization_units 
-            WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED' AND deleted_at IS NULL
+            WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
             
             UNION ALL
             
@@ -1210,7 +1218,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
                 s.depth_from_root + 1
             FROM organization_units o
             INNER JOIN subtree s ON o.parent_code = s.code
-            WHERE o.tenant_id = $1 AND o.is_current = true AND o.status <> 'DELETED' AND o.deleted_at IS NULL
+            WHERE o.tenant_id = $1 AND o.is_current = true AND o.status <> 'DELETED'
               AND s.depth_from_root < $3
         )
 		SELECT code, name, level, hierarchy_depth, code_path, name_path, parent_code
@@ -1297,18 +1305,15 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 			END as changes_summary,
 			business_context->>'operation_reason' as operation_reason,
 			timestamp,
-			before_data::text as before_data,
-			after_data::text as after_data,
-			CASE WHEN modified_fields IS NOT NULL
-				THEN modified_fields::text
-				ELSE '[]'
-			END as modified_fields,
+			request_data::text as before_data,
+			response_data::text as after_data,
+			'[]'::text as modified_fields,
 			CASE WHEN changes IS NOT NULL
 				THEN changes::text
 				ELSE '[]'
 			END as detailed_changes
 		FROM audit_logs
-		WHERE tenant_id = $1::uuid AND resource_id = $2::uuid AND resource_type = 'ORGANIZATION'`
+		WHERE tenant_id = $1::uuid AND resource_id = $2 AND resource_type = 'ORGANIZATION'`
 
 	args := []interface{}{tenantId, recordId}
 	argIndex := 3
@@ -1352,23 +1357,39 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 	defer rows.Close()
 
 	var auditRecords []AuditRecordData
+	if r.auditConfig.LegacyMode {
+		auditRecords, err = r.processAuditRowsLegacy(rows)
+	} else {
+		auditRecords, err = r.processAuditRowsStrict(rows)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	duration := time.Since(start)
+	r.logger.Printf("[PERF] record_id审计查询完成，返回 %d 条记录，耗时: %v", len(auditRecords), duration)
+
+	return auditRecords, nil
+}
+
+func (r *PostgreSQLRepository) processAuditRowsLegacy(rows *sql.Rows) ([]AuditRecordData, error) {
+	var auditRecords []AuditRecordData
 	for rows.Next() {
 		var record AuditRecordData
 		var operatedById, operatedByName string
-		var beforeData, afterData, modifiedFieldsJson, detailedChangesJson sql.NullString
+		var beforeData, afterData, modifiedFieldsJSON, detailedChangesJSON sql.NullString
 
 		err := rows.Scan(
 			&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
 			&operatedById, &operatedByName,
 			&record.ChangesSummaryField, &record.OperationReasonField, &record.TimestampField,
-			&beforeData, &afterData, &modifiedFieldsJson, &detailedChangesJson,
+			&beforeData, &afterData, &modifiedFieldsJSON, &detailedChangesJSON,
 		)
 		if err != nil {
 			r.logger.Printf("[ERROR] 扫描审计记录失败: %v", err)
 			return nil, err
 		}
 
-		// 正确处理JSONB字段
 		if beforeData.Valid {
 			record.BeforeDataField = &beforeData.String
 		}
@@ -1376,18 +1397,16 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 			record.AfterDataField = &afterData.String
 		}
 
-		// 解析 modified_fields 字段
-		if modifiedFieldsJson.Valid && modifiedFieldsJson.String != "[]" {
+		if modifiedFieldsJSON.Valid && modifiedFieldsJSON.String != "[]" {
 			var modifiedFields []string
-			if err := json.Unmarshal([]byte(modifiedFieldsJson.String), &modifiedFields); err == nil {
+			if err := json.Unmarshal([]byte(modifiedFieldsJSON.String), &modifiedFields); err == nil {
 				record.ModifiedFieldsField = modifiedFields
 			}
 		}
 
-		// 解析 changes 字段为详细变更信息
-		if detailedChangesJson.Valid && detailedChangesJson.String != "[]" {
+		if detailedChangesJSON.Valid && detailedChangesJSON.String != "[]" {
 			var changesArray []map[string]interface{}
-			if err := json.Unmarshal([]byte(detailedChangesJson.String), &changesArray); err == nil {
+			if err := json.Unmarshal([]byte(detailedChangesJSON.String), &changesArray); err == nil {
 				for _, changeMap := range changesArray {
 					fieldChange := FieldChangeData{
 						FieldField:    fmt.Sprintf("%v", changeMap["field"]),
@@ -1400,7 +1419,6 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 			}
 		}
 
-		// 构建操作人信息
 		record.OperatedByField = OperatedByData{
 			IDField:   operatedById,
 			NameField: operatedByName,
@@ -1409,10 +1427,229 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 		auditRecords = append(auditRecords, record)
 	}
 
-	duration := time.Since(start)
-	r.logger.Printf("[PERF] record_id审计查询完成，返回 %d 条记录，耗时: %v", len(auditRecords), duration)
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return auditRecords, nil
+}
+
+func (r *PostgreSQLRepository) processAuditRowsStrict(rows *sql.Rows) ([]AuditRecordData, error) {
+	var auditRecords []AuditRecordData
+	for rows.Next() {
+		var record AuditRecordData
+		var operatedById, operatedByName string
+		var beforeData, afterData, modifiedFieldsJSON, detailedChangesJSON sql.NullString
+
+		record.ModifiedFieldsField = make([]string, 0)
+		record.ChangesField = make([]FieldChangeData, 0)
+
+		err := rows.Scan(
+			&record.AuditIDField, &record.RecordIDField, &record.OperationTypeField,
+			&operatedById, &operatedByName,
+			&record.ChangesSummaryField, &record.OperationReasonField, &record.TimestampField,
+			&beforeData, &afterData, &modifiedFieldsJSON, &detailedChangesJSON,
+		)
+		if err != nil {
+			r.logger.Printf("[ERROR] 扫描审计记录失败: %v", err)
+			return nil, err
+		}
+
+		if beforeData.Valid {
+			record.BeforeDataField = &beforeData.String
+		}
+		if afterData.Valid {
+			record.AfterDataField = &afterData.String
+		}
+
+		rawModified := ""
+		if modifiedFieldsJSON.Valid {
+			rawModified = modifiedFieldsJSON.String
+		}
+		sanitizedModified, modifiedIssues, modErr := sanitizeModifiedFields(rawModified)
+		if modErr == nil {
+			record.ModifiedFieldsField = sanitizedModified
+		}
+
+		rawChanges := ""
+		if detailedChangesJSON.Valid {
+			rawChanges = detailedChangesJSON.String
+		}
+		sanitizedChanges, changeIssues, changeErr := sanitizeChanges(rawChanges)
+		if changeErr == nil {
+			record.ChangesField = sanitizedChanges
+		}
+
+		issues := make([]string, 0, len(modifiedIssues)+len(changeIssues))
+		issues = append(issues, modifiedIssues...)
+		issues = append(issues, changeIssues...)
+
+		hasHardError := false
+		if modErr != nil {
+			hasHardError = true
+			issues = append(issues, fmt.Sprintf("modified_fields JSON 无效: %v", modErr))
+		}
+		if changeErr != nil {
+			hasHardError = true
+			issues = append(issues, fmt.Sprintf("changes JSON 无效: %v", changeErr))
+		}
+
+		if len(issues) > 0 {
+			r.logger.Printf("[WARN] 审计记录数据异常 audit_id=%s: %s", record.AuditIDField, strings.Join(issues, "; "))
+			if r.auditConfig.StrictValidation {
+				if hasHardError && !r.auditConfig.AllowFallback {
+					return nil, fmt.Errorf("AUDIT_HISTORY_VALIDATION_FAILED")
+				}
+				if r.registerValidationFailure() {
+					return nil, fmt.Errorf("AUDIT_HISTORY_CIRCUIT_OPEN")
+				}
+			}
+		} else if r.auditConfig.StrictValidation {
+			r.registerValidationSuccess()
+		}
+
+		record.OperatedByField = OperatedByData{
+			IDField:   operatedById,
+			NameField: operatedByName,
+		}
+
+		auditRecords = append(auditRecords, record)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return auditRecords, nil
+}
+
+func sanitizeModifiedFields(raw string) ([]string, []string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return make([]string, 0), nil, nil
+	}
+	if trimmed == "null" {
+		return make([]string, 0), []string{"modified_fields 为 null，已替换为空数组"}, nil
+	}
+
+	var rawArray []interface{}
+	if err := json.Unmarshal([]byte(trimmed), &rawArray); err != nil {
+		return make([]string, 0), nil, err
+	}
+
+	sanitized := make([]string, 0, len(rawArray))
+	issues := make([]string, 0)
+	for idx, item := range rawArray {
+		if item == nil {
+			issues = append(issues, fmt.Sprintf("modified_fields[%d] 为 null，已忽略", idx))
+			continue
+		}
+		switch v := item.(type) {
+		case string:
+			sanitized = append(sanitized, v)
+		default:
+			sanitized = append(sanitized, fmt.Sprintf("%v", v))
+			issues = append(issues, fmt.Sprintf("modified_fields[%d] 非字符串，已转换", idx))
+		}
+	}
+
+	return sanitized, issues, nil
+}
+
+func sanitizeChanges(raw string) ([]FieldChangeData, []string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return make([]FieldChangeData, 0), nil, nil
+	}
+	if trimmed == "null" {
+		return make([]FieldChangeData, 0), []string{"changes 为 null，已替换为空数组"}, nil
+	}
+
+	var rawArray []map[string]interface{}
+	if err := json.Unmarshal([]byte(trimmed), &rawArray); err != nil {
+		return make([]FieldChangeData, 0), nil, err
+	}
+
+	sanitized := make([]FieldChangeData, 0, len(rawArray))
+	issues := make([]string, 0)
+	for idx, entry := range rawArray {
+		if entry == nil {
+			issues = append(issues, fmt.Sprintf("changes[%d] 为空对象，已跳过", idx))
+			continue
+		}
+
+		fieldVal, ok := entry["field"]
+		if !ok {
+			issues = append(issues, fmt.Sprintf("changes[%d] 缺少 field，已跳过", idx))
+			continue
+		}
+		field := strings.TrimSpace(fmt.Sprintf("%v", fieldVal))
+		if field == "" {
+			issues = append(issues, fmt.Sprintf("changes[%d] field 为空，已跳过", idx))
+			continue
+		}
+
+		dataType := "unknown"
+		if dtVal, ok := entry["dataType"]; ok {
+			if dtStr, ok := dtVal.(string); ok && strings.TrimSpace(dtStr) != "" {
+				dataType = dtStr
+			} else {
+				issues = append(issues, fmt.Sprintf("changes[%d] dataType 非字符串，使用 unknown", idx))
+			}
+		} else {
+			issues = append(issues, fmt.Sprintf("changes[%d] 缺少 dataType，使用 unknown", idx))
+		}
+
+		fieldChange := FieldChangeData{
+			FieldField:    field,
+			DataTypeField: dataType,
+			OldValueField: normalizeChangeValue(entry["oldValue"]),
+			NewValueField: normalizeChangeValue(entry["newValue"]),
+		}
+		sanitized = append(sanitized, fieldChange)
+	}
+
+	return sanitized, issues, nil
+}
+
+func normalizeChangeValue(val interface{}) interface{} {
+	if val == nil {
+		return nil
+	}
+	switch v := val.(type) {
+	case string:
+		return v
+	case bool:
+		if v {
+			return "true"
+		}
+		return "false"
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case json.Number:
+		return v.String()
+	default:
+		bytes, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return string(bytes)
+	}
+}
+
+func (r *PostgreSQLRepository) registerValidationFailure() bool {
+	count := atomic.AddInt32(&r.validationFailureCount, 1)
+	if r.auditConfig.CircuitBreakerThreshold > 0 && count >= r.auditConfig.CircuitBreakerThreshold {
+		r.logger.Printf("[ALERT] 审计历史验证失败次数达到阈值 (%d/%d)，触发熔断", count, r.auditConfig.CircuitBreakerThreshold)
+		return true
+	}
+	return false
+}
+
+func (r *PostgreSQLRepository) registerValidationSuccess() {
+	if atomic.LoadInt32(&r.validationFailureCount) != 0 {
+		atomic.StoreInt32(&r.validationFailureCount, 0)
+	}
 }
 
 // 单条审计记录查询 - v4.6.0
@@ -1777,7 +2014,10 @@ func main() {
 	}
 
 	// 创建仓储
-	repo := NewPostgreSQLRepository(db, redisClient, logger)
+	auditConfig := loadAuditHistoryConfig()
+	repo := NewPostgreSQLRepository(db, redisClient, logger, auditConfig)
+	logger.Printf("⚙️ 审计历史配置: strictValidation=%v, allowFallback=%v, circuitThreshold=%d, legacyMode=%v",
+		auditConfig.StrictValidation, auditConfig.AllowFallback, auditConfig.CircuitBreakerThreshold, auditConfig.LegacyMode)
 
 	// 初始化JWT中间件 - 使用统一配置
 	jwtConfig := config.GetJWTConfig()
@@ -1932,6 +2172,45 @@ func main() {
 	}
 
 	logger.Println("✅ PostgreSQL GraphQL服务已安全关闭")
+}
+
+func loadAuditHistoryConfig() AuditHistoryConfig {
+	threshold := getEnvAsInt("AUDIT_HISTORY_CIRCUIT_BREAKER_THRESHOLD", 25)
+	if threshold < 0 {
+		threshold = 0
+	}
+	return AuditHistoryConfig{
+		StrictValidation:        getEnvAsBool("AUDIT_HISTORY_STRICT_VALIDATION", true),
+		AllowFallback:           getEnvAsBool("AUDIT_HISTORY_ALLOW_FALLBACK", true),
+		CircuitBreakerThreshold: int32(threshold),
+		LegacyMode:              getEnvAsBool("AUDIT_HISTORY_LEGACY_MODE", false),
+	}
+}
+
+func getEnvAsBool(key string, defaultValue bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return defaultValue
+	}
+	switch strings.ToLower(value) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	case "0", "false", "no", "n", "off":
+		return false
+	default:
+		return defaultValue
+	}
+}
+
+func getEnvAsInt(key string, defaultValue int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return defaultValue
+	}
+	if v, err := strconv.Atoi(value); err == nil {
+		return v
+	}
+	return defaultValue
 }
 
 func getEnv(key, defaultValue string) string {
