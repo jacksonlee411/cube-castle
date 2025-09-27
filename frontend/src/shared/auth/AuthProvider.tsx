@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authManager } from '../api/auth';
 import { authEvents, AUTH_UNAUTHORIZED } from './events';
-import { AuthContext, AuthContextValue } from './context';
+import { AuthContext, type AuthContextValue } from './context';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();

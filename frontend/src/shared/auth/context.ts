@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-export interface AuthContextValue {
+export type AuthContextValue = {
   isAuthenticated: () => boolean;
   logout: () => void;
 }
