@@ -62,9 +62,11 @@
 | 阶段 | 任务 | Owner | 截止 |
 | --- | --- | --- | --- |
 | Phase 1 | 在 IIG 与架构周会上通报 `/temporal` 重复问题，冻结相关 PR；更新本计划至 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 变更日志 | IIG Guardian | 2025-09-25 |
+| Phase 1 | 执行实现清单与架构校验基线：运行 `node scripts/generate-implementation-inventory.js`、`node scripts/quality/architecture-validator.js`，并将输出保存到 `reports/architecture/temporal-contract-baseline-YYYYMMDD.log`，记录摘要与附件路径 | Architecture QA | 2025-09-25 |
 | Phase 1 | 删除前端 `/temporal` 调用：统一使用契约 Hook，修正请求 payload（`operationReason`、`effectiveDate` 为 `YYYY-MM-DD`），补充单测 | Frontend Org Team | 2025-09-27 |
-| Phase 1 | 清理后端遗留：移除 `temporal_handlers.go.disabled` 或归档至 `docs/archive/`，确认路由表仅包含契约端点 | Command Service Team | 2025-09-27 |
-| Phase 2 | 运行 `make test`、`make test-integration`、`npm --prefix frontend run test`、Playwright 时态场景，更新实现清单与 QA 记录 | 联合 QA | 2025-09-28 |
+| Phase 1 | 清理后端遗留：移除 `temporal_handlers.go.disabled` 并将背景说明归档到 `docs/archive/deprecated-api-design/temporal-handlers.md`（保留成因与回退记录），确认路由表仅包含契约端点 | Command Service Team | 2025-09-27 |
+| Phase 1 | 将 `/organization-units/temporal` 列入 CI deny list：在 `scripts/quality/architecture-validator.js` 增加阻断规则，并于 `.github/workflows/agents-compliance.yml` 中强制执行，验收标准为流水线检测到该路径即失败 | Architecture QA | 2025-09-27 |
+| Phase 2 | 运行 `make test`、`make test-integration`、`npm --prefix frontend run test`、Playwright 时态场景（详见下文最新剧本需求），更新实现清单与 QA 记录 | 联合 QA | 2025-09-28 |
 | Phase 2 | 在 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`06-integrated-teams-progress-log.md` 登记结果，关闭本计划 | IIG Guardian | 2025-09-29 |
 
 ## 8. 验证步骤
@@ -75,33 +77,73 @@
 4. Playwright `organization-create.spec.ts` / `temporal-management-integration.spec.ts` 通过。  
 5. 记录在 `reports/iig-guardian/` 中，作为唯一事实来源恢复的证据。
 
+### 8.1 最新实施说明（2025-09-27 更新）
+
+- `frontend/tests/e2e/temporal-management-integration.spec.ts` 已重写：
+  - UI 场景统一访问 `/organizations/{code}/temporal`，依赖命令服务返回 `/versions` 数据。
+  - 后端断言覆盖 `/api/v1/organization-units/{code}/versions` 正常与错误分支，并显式验证 `/organization-units/{code}/temporal` 返回 404。
+- 第一次复测命令：`npm --prefix frontend run test:e2e -- --grep temporal`
+  - 失败原因：`GET http://localhost:9090/health` 返回非 200，说明命令服务未启动；后续 GraphQL 校验因此未执行。
+  - 附件：Playwright 自动生成的 `test-results/temporal-management-integration-*.png/webm`（保留于仓库，用作失败证据）。
+- 第二次复测：同一命令在 2025-09-27 重新执行，命令服务仍未启动，`restHealth.ok()` 断言失败，导致 12 项中的 8 项在测试前置阶段终止；Playwright 报告已追加至 09-27 验证日志。
+
+### 8.2 待执行测试前置条件
+
+1. 启动基础服务：依次执行 `make docker-up`、`make run-dev`（或至少启动 `cmd/organization-command-service`），确保 `curl http://localhost:9090/health` 和 `curl http://localhost:8090/health` 均返回 200。
+2. 准备认证：运行 `make jwt-dev-setup`（首次）与 `make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER`，将 `.cache/dev.jwt` 内容分别注入：
+   - `export PW_JWT=$(cat .cache/dev.jwt)`
+   - `export PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`
+3. 若命令/查询服务提供自定义端点，请同步设置：
+   - `export E2E_COMMAND_API_URL=http://localhost:9090`
+   - `export E2E_GRAPHQL_API_URL=http://localhost:8090/graphql`
+   - `export E2E_BASE_URL=http://localhost:3000`
+
+满足以上条件后（务必确认服务已启动且健康检查返回 200），重新执行：
+
+```bash
+PW_SKIP_SERVER=1 \
+PW_JWT=$PW_JWT \
+PW_TENANT_ID=$PW_TENANT_ID \
+E2E_COMMAND_API_URL=${E2E_COMMAND_API_URL:-http://localhost:9090} \
+E2E_GRAPHQL_API_URL=${E2E_GRAPHQL_API_URL:-http://localhost:8090/graphql} \
+E2E_BASE_URL=${E2E_BASE_URL:-http://localhost:3000} \
+npm --prefix frontend run test:e2e -- --grep "temporal"
+```
+
+请将成功/失败结果追加到 `reports/iig-guardian/temporal-contract-rollback-20250926.md`，并在上述命令失败时保留 `test-results/` 目录作为唯一事实来源。
+
 ## 9. 风险与应对
 
 | 风险 | 影响 | 缓解措施 |
 | --- | --- | --- |
-| 前端移除 `/temporal` 后仍有隐藏调用 | 用户仍会触发 404 | 通过 `rg "temporal" frontend/` 全量扫描；在 CI 添加 deny list。 |
-| 删除草稿影响后续架构讨论 | 历史资料丢失 | 将原草稿存档到 `docs/archive/development-plans/` 或 `archive/deprecated-api-design/`，附带说明。 |
+| 前端移除 `/temporal` 后仍有隐藏调用 | 用户仍会触发 404 | 通过 `rg "temporal" frontend/` 全量扫描；CI deny list 由 `.github/workflows/agents-compliance.yml` + `scripts/quality/architecture-validator.js` 阻断，负责团队需在 PR 中附带更新记录。 |
+| 删除草稿影响后续架构讨论 | 历史资料丢失 | 将原草稿说明归档到 `docs/archive/deprecated-api-design/temporal-handlers.md`，保留成因、替代方案与回退指引。 |
 | Payload 格式未一次调整完成 | 契约测试失败 | 使用共享转换工具 + Vitest 覆盖，强制类型校验。 |
 
 ## 10. 交付物
 
 - 前端修复 PR（撤销 `/temporal`、统一契约字段、单元测试）。
 - 后端清理 PR（删除草稿处理器、确认路由表、更新审计文档）。
+- 归档文档：`docs/archive/deprecated-api-design/temporal-handlers.md` 记录草稿成因与退场理由。
+- 基线与复核日志：`reports/architecture/temporal-contract-baseline-20250926.log`、`reports/architecture/temporal-contract-verification-20250926.log`。
 - 更新后的 IIG 报表与实现清单条目，明确“时态命令契约回正”状态。  
-- QA 验证记录 & Playwright 报告归档至 `reports/`。
+- QA 验证记录：`reports/iig-guardian/temporal-contract-rollback-20250926.md`，后续复测结果在同一文件追加。
 
-## 11. 执行记录（2025-09-24）
-- [x] 前端 `OrganizationForm` 回退至契约端点：使用 `useCreateOrganizationVersion` 统一调度 `/api/v1/organization-units/{code}/versions`，并确保 `operationReason`/`effectiveDate` 字段符合 OpenAPI 定义。
-- [x] 共享 Hook 体系扩展：在 `useOrganizationMutations.ts` 新增 `useCreateOrganizationVersion`，同步记录至实现清单，禁止再度直连 `/temporal` 路径。
-- [x] 后端清理遗留处理器草稿：删除 `cmd/organization-command-service/internal/handlers/temporal_handlers.go.disabled`，恢复单一事实来源。
-- [x] 质量门禁执行：`npm run lint`、`npm --prefix frontend run test -- OrganizationForm`（Vitest 针对组织表单用例）均通过，确保契约回正后无回归。
+## 11. 评审结论（更新）
+- **评审状态**：核心整改已完成，剩余 Playwright 场景需在前端规格调整后再行关闭。
+- **关键证据**：
+  - `tests/go/temporal_support.go` 已删除，仓库搜索不再出现 `/organization-units/temporal` 路由实现。
+  - `scripts/quality/architecture-validator.js` 新增 Forbidden Endpoint 规则；`.github/workflows/agents-compliance.yml` 已强制执行该校验。
+  - 基线/复核日志 `reports/architecture/temporal-contract-{baseline,verification}-20250926.log` 显示违规计数为 0。
+  - QA 报告 `reports/iig-guardian/temporal-contract-rollback-20250926.md` 追加了 2025-09-26 本地重跑结果：命令/查询/前端服务与样例数据均就绪，REST/GraphQL 探针成功，但 24 个 Playwright 用例因访问不存在的 `/temporal-demo` 页面超时（详见 `test-results/temporal-management-integration-*.png/webm`）。
 
-## 12. 遗留资产清理（2025-09-27）
-- [x] 移除历史 `/organization-units/{code}/temporal` 前端 Hook 与代理配置，统一以 GraphQL `organizationVersions` 查询为唯一事实来源。
-- [x] Playwright 与支撑脚本改用 GraphQL/REST 契约端点，删除 9091 临时服务依赖，生产验证脚本同步改写。
-- [x] 清理仓库内遗留的 `/temporal` 模拟服务、Shell/Go 测试及缓存脚本，避免再次生成第二事实来源。
-- [x] 更新实现清单与 IIG 报表记录，去除 `useTemporalAPI.ts` 及其衍生条目。
+## 12. 待决事项
+- **Playwright 复测**：待前端团队确认演示页面路由（或补齐 `/temporal-demo` 页面）并更新测试脚本后，再次执行 `npm --prefix frontend run test:e2e -- --grep "temporal"`；通过结果需追加至 `reports/iig-guardian/temporal-contract-rollback-20250926.md`。
+- **Playwright 复测（更新）**：服务与认证就绪后，按 8.2 步骤重新执行 `npm --prefix frontend run test:e2e -- --grep "temporal"`；运行日志与报告需补录到 `reports/iig-guardian/temporal-contract-rollback-20250926.md`。
+- **生产端口验证（可选）**：落地环境可补充 `curl -X POST http://localhost:9090/api/v1/organization-units/{code}/versions` 实测截图，增强审计说明。
+- **计划归档**：待 Playwright 复测完成并附证据后，将本计划移至 `docs/archive/development-plans/` 并同步进度日志。
 
----
-
-**后续追踪**：计划关闭后，两周内在 `06-integrated-teams-progress-log.md` 回顾验证状态，确保没有团队重新引入 `/temporal`；若出现类似策略，必须在 PR 模板新增“唯一事实来源确认”段落。
+## 13. 建议与后续步骤
+- **统一回收策略**：持续以 `rg "temporal"` 覆盖 `tests/`、`scripts/`、`reports/` 等目录，防止二次引入。
+- **证据维护**：基线、复核与 QA 产物已统一存放，后续复测结果请在同一文件更新，保持单一事实来源。
+- **CI 监控**：首次触发 Forbidden Endpoint 违规时，应在 PR 说明中引用本计划并确认回滚路径；Playwright 场景修复后可在 CI 加入烟囱路由检查。
