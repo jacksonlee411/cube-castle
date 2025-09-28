@@ -27,26 +27,22 @@
 ## 4. 方案设计
 
 ### 4.1 契约与事实来源治理
-- **停用**：继续复用 `POST /api/v1/organization-units/{code}/suspend` 和 `POST /api/v1/organization-units/{code}/activate`，在 `docs/api/openapi.yaml` 中补充“停用不影响下级组织”的行为描述与成功示例，明确请求体需包含 `effectiveDate`、`operationReason`、`If-Match`（ETag）。
+- **停用**：继续复用 `POST /api/v1/organization-units/{code}/suspend` 与 `POST /api/v1/organization-units/{code}/activate`，在 `docs/api/openapi.yaml` 中明确“停用不影响下级组织”并记录成功示例；请求体强制携带 `effectiveDate`、`If-Match`（ETag），`operationReason` 允许可选用于审计。
 - **删除**：不新增独立 `DELETE` 端点，保持契约收敛在现有命令体系。扩展 `POST /api/v1/organization-units/{code}/events`：
-  - 新增 `operation` 枚举值 `DELETE_ORGANIZATION`（或沿用 `DEACTIVATE` 并在文档说明“对当前版本执行业务删除”）；
-  - 请求体包含 `effectiveDate`、`operationReason`、`If-Match`；
-  - 成功时返回时间线重算结果，并在响应示例中强调 `status='DELETED'`；
-  - 失败示例增加 `HAS_CHILD_UNITS`；
+  - 新增 `DELETE_ORGANIZATION` 事件枚举，沿用 `POST /events` 实现组织软删除；
+  - 请求体要求 `effectiveDate`、`If-Match`，`operationReason` 可选；
+  - 响应示例包含时间线重算结果并强调 `status='DELETED'`；
+  - 失败示例新增 `HAS_CHILD_UNITS` 冲突；
   - 权限 scope：`org:delete`；
-  - 契约更新后运行 `node scripts/generate-implementation-inventory.js` 并刷新 IIG。
+  - 契约更新后执行 `node scripts/generate-implementation-inventory.js` 校验实现登记。
 
 ### 4.2 命令服务（Go）
-- **停用校验**：
-  - 在 `cmd/organization-command-service/internal/services/organization_temporal_service.go` 增加单元测试，调用 `timelineManager.SuspendOrganization` 后读取子组织状态，确认未被更改。
-  - 新增集成测试：构造父子层级，停用父级后断言 `SELECT status FROM organization_units WHERE code = child` 仍为 `ACTIVE`。
-  - 在 `SuspendOrganization` handler 增加“停用后重新刷新父级层级缓存”调用，避免 selector 缓存脏数据。
+- **停用校验**：维持既有时态管理逻辑，同时保证 suspend/activate 响应统一携带最新 ETag 供前端乐观并发控制。
 - **删除防线**：
-  - 在 `CreateOrganizationEvent` 流程内新增 `DELETE_ORGANIZATION` 分支：
-    1. 在 service 层先执行 `SELECT 1 FROM organization_units WHERE tenant_id=$tenant AND parent_code=$code AND status <> 'DELETED' LIMIT 1`，若存在则返回 `HAS_CHILD_UNITS`（409）。
-    2. 无子组织时调用封装方法 `SoftDeleteOrganization(ctx, tenantID, code, effectiveDate, operationReason)`，内部复用 `timelineManager.DeleteVersion`/写入 `status='DELETED'` 并触发时间线重算，保持单事务。
-    3. 通过已有 `LogOrganizationDelete` 写入审计；必要时扩展以支持 `DELETE_ORGANIZATION` 事件类型。
-  - 增补事务级回滚保障、命名遵循 camelCase；新增 Go 单测/集成测试覆盖“存在子组织 → 409(HAS_CHILD_UNITS)”与“无子组织 → 成功软删 + 审计记录”。
+  - 在 `CreateOrganizationEvent` 内引入 `DELETE_ORGANIZATION` 分支：删除前调用 `CountNonDeletedChildren` 校验 `status <> 'DELETED'` 的子组织，命中时抛出 `HAS_CHILD_UNITS`（409）。
+  - 当校验通过时复用时间轴管理器 `DeleteOrganization` 写入 `status='DELETED'` 版本并重算时间线。
+  - 所有操作要求 `If-Match` 与当前记录一致后才执行，防止并发误删；失败流程统一记录审计事件。
+  - 新增 `organization_children_test.go` 覆盖子组织统计 SQL，`organization_internal_test.go` 验证 `If-Match` 解析。
 
 ### 4.3 查询服务（GraphQL）
 - `cmd/organization-query-service/main.go`：
@@ -62,10 +58,10 @@
 - 在停用后的组织详情页刷新父级路径缓存，避免 selector 缓存中残留旧状态。
 
 ### 4.5 测试与自动化
-- 命令服务：Go 单测 + 集成测试覆盖停用/删除路径及幂等行为。
-- 查询服务：新增针对停用父级/子级查询的 SQL golden test。
-- 前端：Vitest 单测覆盖 `organizationPermissions` 与 selector 过滤逻辑；E2E（Playwright）增加“停用父级后仍可选子级”场景。
-- CI 强制执行 `node scripts/quality/architecture-validator.js`、`node scripts/generate-implementation-inventory.js`，确保契约与实现一致。
+- 命令服务：`go test ./cmd/organization-command-service/internal/...`（含新增仓储 & If-Match 单测）。
+- 查询服务：`go test ./cmd/organization-query-service/...` 验证新过滤条件及 `childrenCount` 聚合。
+- 前端：`npm run lint` 通过（命令层与选择器改造待补充 Playwright 场景）。
+- 共通：`node scripts/generate-implementation-inventory.js` 更新实现清单，确认新增导出已登记。
 
 ## 5. 验收标准
 - OpenAPI 与 GraphQL 契约完成更新，含停用/删除行为说明及新字段。
@@ -97,14 +93,30 @@
 1. `node scripts/generate-implementation-inventory.js` → 确认停用/删除端点一致。
 2. `curl -X POST http://localhost:9090/api/v1/organization-units/{code}/suspend` → 子组织 `status` 不变。
 3. `npm --prefix frontend run test -- ParentOrganizationSelector` → 确认过滤逻辑。
-4. `curl -X POST http://localhost:9090/api/v1/organization-units/{code}/events -H 'If-Match: <etag>' -d '{"operation":"DELETE_ORGANIZATION","effectiveDate":"2025-09-30","operationReason":"合规清理"}'` → 有子级返回 409 `HAS_CHILD_UNITS`，无子级成功并返回 `status='DELETED'`。
+4. `curl -X POST http://localhost:9090/api/v1/organization-units/{code}/events -H 'If-Match: <etag>' -d '{"eventType":"DELETE_ORGANIZATION","effectiveDate":"2025-09-30","operationReason":"合规清理"}'` → 有子级返回 409 `HAS_CHILD_UNITS`，无子级成功并返回 `status='DELETED'`（示例带可选 `operationReason` 以便审计记录）。
 5. `make test-integration` / Playwright `organization-create.spec.ts` → 验证端到端流程。
 
 ## 9. 开放问题建议
-- **删除请求需要的字段**：沿用命令端现有模式，强制请求体携带 `effectiveDate`、`operationReason`，并通过 `If-Match` 传递最新版本的 ETag，保持幂等与并发控制。
+- **删除请求需要的字段**：沿用命令端现有模式，强制请求体携带 `effectiveDate`，可选提交 `operationReason`，并通过 `If-Match` 传递最新版本的 ETag，保持幂等与并发控制。
 - **复用既有逻辑**：新增的 `SoftDeleteOrganization` 应封装在 service 层，内部复用现有 `timelineManager.DeleteVersion` 与审计记录逻辑，避免在 handler 中散落 SQL，符合 Go“组合胜于继承”的可维护理念。
 - **客户端改造**：统一 REST 客户端新增 `deleteOrganization` 方法时沿用 `POST /events`，复用现有中间件传递 `X-Tenant-ID`、`If-Match`、`Idempotency-Key`，确保无重复事实来源。
 
 ---
 
 **完成后**：归档至 `docs/archive/development-plans/`，并在 `06-integrated-teams-progress-log.md` 记录验收结论与测试证据。
+
+## 10. 最新进展（2025-09-27）
+- **契约落地**：`docs/api/openapi.yaml`、`docs/api/schema.graphql` 已完成增量更新，替换示例与新增 `OrganizationEventRequest` 结构、`childrenCount` 字段、`onlyActive` / `includeDisabledAncestors` 过滤，并执行 `node scripts/generate-implementation-inventory.js` 验证清单同步。
+- **命令服务**：`CreateOrganizationEvent` 引入 `DELETE_ORGANIZATION` 分支、`CountNonDeletedChildren` 检查与 `If-Match` 并发防线；新增 `DeleteOrganization` 时间轴流程与审计记录复用；单测覆盖子组织统计与 ETag 解析。
+- **查询服务**：`GetOrganizations` 聚合 `childrenCount`、默认排除停用父节点并在开启 `includeDisabledAncestors` 时放宽；GraphQL schema 映射 `childrenCount` 字段；`go test ./cmd/organization-query-service/...` 通过。
+- **前端联动**：Parent Selector 启用 `onlyActive` + `includeDisabledAncestors` 查询，恢复删除权限对子组织的校验，新增 `useDeleteOrganization` 钩子并对 `HAS_CHILD_UNITS` 错误给出提示；`npm run lint` 已通过。
+- **验证命令**：
+  - `go test ./cmd/organization-command-service/internal/...`
+  - `go test ./cmd/organization-query-service/...`
+  - `npm run lint`
+  - `node scripts/generate-implementation-inventory.js`
+
+## 11. 后续工作
+- **测试补齐**：补充命令服务集成测试与查询服务 SQL golden test，新增 Parent Selector / 删除交互的 Vitest/Playwright 场景。
+- **缓存刷新**：评估停用/删除后层级缓存刷新策略（目前依赖前端刷新），补充自动化验证。
+- **文档归档准备**：待前述测试完备后整理验收报告并归档至 `docs/archive/development-plans/`，同步更新进展日志 `06-integrated-teams-progress-log.md`。

@@ -6,6 +6,7 @@
 
 import type { OrganizationUnit } from './organization';
 import type { TemporalOrganizationUnit } from './temporal';
+import { coerceOrganizationLevel } from '../utils/organization-helpers';
 
 // ============================================================================
 // 前端 ↔ GraphQL 转换器 (camelCase ↔ camelCase)
@@ -75,7 +76,7 @@ export function convertGraphQLToOrganizationUnit(
     name: data.name || '',
     unitType: (data.unitType as OrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as OrganizationUnit['status']) || 'ACTIVE',
-    level: data.level || 1,
+    level: coerceOrganizationLevel(data.level, (data as Record<string, unknown>).hierarchyDepth),
     path: data.codePath ?? data.path ?? undefined,  // 使用codePath字段
     sortOrder: data.sortOrder || 0,
     description: data.description || '',
@@ -108,7 +109,7 @@ export function convertGraphQLToTemporalOrganizationUnit(
     name: data.name || '',
     unitType: (data.unitType as TemporalOrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as TemporalOrganizationUnit['status']) || 'ACTIVE',
-    level: data.level || 1,
+    level: coerceOrganizationLevel(data.level, (data as Record<string, unknown>).hierarchyDepth),
     path: data.path ?? undefined,
     sortOrder: data.sortOrder || 0,
     description: data.description || '',
@@ -147,7 +148,7 @@ export function convertCreateInputToREST(
     name: input.name || '',
     unitType: input.unitType || 'DEPARTMENT',
     description: input.description || '',
-    level: input.level || 1,
+    level: coerceOrganizationLevel(input.level),
     sortOrder: input.sortOrder || 0,
     status: input.status || 'ACTIVE',
   };

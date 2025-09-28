@@ -5,11 +5,12 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { 
-  OrganizationUnit, 
-  OrganizationListResponse, 
+import type {
+  OrganizationUnit,
+  OrganizationListResponse,
   OrganizationQueryParams
 } from '../types';
+import { coerceOrganizationLevel } from '../utils/organization-helpers';
 
 // 临时类型定义，待完善
 interface OrganizationStats {
@@ -162,7 +163,12 @@ export const useEnterpriseOrganizations = (
         const pageSize = typeof pagination.pageSize === 'number' ? pagination.pageSize : 50;
         const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
 
-        const organizations = Array.isArray(orgData.data) ? orgData.data : [];
+        const organizations = Array.isArray(orgData.data)
+          ? orgData.data.map((org) => ({
+              ...org,
+              level: coerceOrganizationLevel(org.level, (org as Record<string, unknown>).hierarchyDepth)
+            }))
+          : [];
         const stats: OrganizationStats | null = orgData.temporal
           ? {
               total: totalCount,

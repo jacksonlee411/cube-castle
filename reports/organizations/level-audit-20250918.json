@@ -1,0 +1,16 @@
+[
+  {
+    "tenantId": "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9",
+    "code": "1000001",
+    "level": 0,
+    "hierarchyDepth": 1,
+    "dataSource": "organization_units"
+  },
+  {
+    "tenantId": "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9",
+    "code": "1000020",
+    "level": 0,
+    "hierarchyDepth": 2,
+    "dataSource": "organization_units"
+  }
+]

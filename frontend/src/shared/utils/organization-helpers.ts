@@ -53,3 +53,40 @@ export const isRootOrganization = (parentCode: string | null | undefined): boole
 export const getOrganizationLevelText = (parentCode: string | null | undefined): string => {
   return isRootOrganization(parentCode) ? '根级组织' : '子级组织';
 };
+
+/**
+ * 将层级字段安全转换为数值。
+ *
+ * - 支持传入 number / string / null / undefined
+ * - 非法值统一回退为 0
+ * - 可选地提供备用候选值（例如 hierarchyDepth）
+ */
+export const coerceOrganizationLevel = (
+  levelValue: unknown,
+  fallbackValue?: unknown
+): number => {
+  const candidates = [levelValue, fallbackValue];
+
+  for (const candidate of candidates) {
+    if (candidate === null || candidate === undefined) {
+      continue;
+    }
+
+    const parsed = typeof candidate === 'number' ? candidate : Number(candidate);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
+};
+
+/**
+ * 计算用于界面展示的层级。
+ *
+ * 默认将存储层级视为 0 起始，可通过 `offset` 调整为 1 起始显示。
+ */
+export const getDisplayLevel = (level: number, offset: number = 0): number => {
+  const parsed = Number.isFinite(level) ? level : 0;
+  return parsed + offset;
+};

@@ -19,6 +19,7 @@ import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationB
 import { useNavigate } from 'react-router-dom';
 // SecondaryButton 已在上方导入
 import { toParentChainFromCodePath } from '../../../shared/utils/organizationPath';
+import { coerceOrganizationLevel, getDisplayLevel } from '../../../shared/utils/organization-helpers';
 
 // 层级节点数据接口
 export interface OrganizationTreeNode {
@@ -153,7 +154,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                   {node.name}
                 </Text>
                 <Text typeLevel="subtext.small" color="hint">
-                  {node.code} • 第{node.level}级 • {node.unitType}
+                  {node.code} • 第{getDisplayLevel(node.level, 1)}级 • {node.unitType}
                 </Text>
               </Box>
               
@@ -238,7 +239,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       name: org.name as string,
       unitType: org.unitType as string,
       status: org.status as string,
-      level: (org.level as number) || 1,
+      level: coerceOrganizationLevel(org.level, (org as Record<string, unknown>).hierarchyDepth),
       parentCode: org.parentCode as string | undefined,
       parentChain: Array.isArray(org.parentChain)
         ? (org.parentChain as string[])
@@ -349,7 +350,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
             name: org.name as string,
             unitType: org.unitType as string,
             status: org.status as string,
-            level: (org.level as number) || 1,
+            level: coerceOrganizationLevel(org.level, org.hierarchyDepth),
             parentCode: org.parentCode as string | undefined,
             parentChain: toParentChainFromCodePath((org.codePath as string) ?? null),
             codePath: (org.codePath as string) || undefined,

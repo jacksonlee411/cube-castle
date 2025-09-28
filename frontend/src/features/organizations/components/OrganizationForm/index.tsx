@@ -9,7 +9,7 @@ import type { OrganizationFormProps, FormData } from './FormTypes';
 import { prepareFormDataForValidation } from './validation';
 import { TemporalConverter } from '../../../../shared/utils/temporal-converter';
 import { useMessages } from '../../../../shared/hooks/useMessages';
-import { normalizeParentCode } from '../../../../shared/utils/organization-helpers';
+import { normalizeParentCode, coerceOrganizationLevel } from '../../../../shared/utils/organization-helpers';
 import { unifiedRESTClient } from '../../../../shared/api';
 import type { OrganizationRequest } from '../../../../shared/types';
 
@@ -38,7 +38,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     status: organization?.status || 'ACTIVE',
     description: organization?.description || '',
     parentCode: normalizeParentCode.forForm(organization?.parentCode),
-    level: organization?.level || 1,
+    level: coerceOrganizationLevel(organization?.level),
     sortOrder: organization?.sortOrder || 0,
     // 时态字段
     isTemporal: false,
@@ -67,7 +67,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
       status: organization?.status || 'ACTIVE',
       description: organization?.description || '',
       parentCode: normalizeParentCode.forForm(organization?.parentCode),
-      level: organization?.level || 1,
+      level: coerceOrganizationLevel(organization?.level),
       sortOrder: organization?.sortOrder || 0,
       // 时态字段重置
       isTemporal: false,
