@@ -65,3 +65,4 @@
 | 实现清单/架构校验 | ✅ 无 `/temporal` 相关条目 | 契约回正完成 |
 | Plan 12 文档归档 | ✅ 已移至 archive 目录 | `docs/archive/development-plans/12-temporal-command-contract-gap-remediation.md` |
 | Plan 14 status-only 进度 | 🚧 Phase 1 生产复核待排期 / Phase 4 Mock 已通过 | `npm run test:contract`、`npm run test:e2e -- --grep "temporal"`（Mock 模式） |
+| Plan 15 时间轴导航复核 | ✅ 已完成并归档 | 提交: `0dbee418`, 验收: 时间轴专职导航、编辑唯一入口、所有测试通过 |
