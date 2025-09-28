@@ -5,10 +5,11 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { bookOpenIcon } from '@workday/canvas-system-icons-web';
 import { TableActions } from './TableActions';
 import type { OrganizationTableRowProps } from './TableTypes';
-import { 
-  TemporalInfoDisplay, 
-  TemporalDateRange 
+import {
+  TemporalInfoDisplay,
+  TemporalDateRange
 } from '../../../temporal/components/TemporalInfoDisplay';
+import { coerceOrganizationLevel, getDisplayLevel } from '../../../../shared/utils/organization-helpers';
 
 type TemporalStatus = 'ACTIVE' | 'PLANNED' | 'INACTIVE';
 
@@ -26,6 +27,9 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
   isHistorical = false,
   showTemporalInfo = false
 }) => {
+  const level = coerceOrganizationLevel(organization.level);
+  const displayLevel = getDisplayLevel(level, 1);
+
   // 计算时态状态
   const temporalStatus = organization.status as TemporalStatus;
   const isTemporal = temporalStatusUtils.isTemporal(
@@ -110,7 +114,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
         </span>
       </Table.Cell>
       
-      <Table.Cell>{organization.level}</Table.Cell>
+      <Table.Cell>{displayLevel}</Table.Cell>
       
       {/* 时态信息列 */}
       {(showTemporalInfo || isTemporal) && (
@@ -155,3 +159,4 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
     </Table.Row>
   );
 };
+

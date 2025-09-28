@@ -291,6 +291,7 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 - ✅ 统一使用camelCase字段命名
 - ✅ 所有API调用包含认证头和租户ID
 - ✅ 软删除判定仅依赖 `status='DELETED'`；`deletedAt` 仅做审计输出
+- ✅ 组织详情页时间轴仅承担导航职责；编辑请在“版本历史”页签内完成
 
 ---
 

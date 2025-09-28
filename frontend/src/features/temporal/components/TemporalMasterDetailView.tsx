@@ -12,7 +12,7 @@ import { Card } from '@workday/canvas-kit-react/card';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { checkCircleIcon, exclamationCircleIcon, activityStreamIcon } from '@workday/canvas-system-icons-web';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
-import TemporalEditForm, { type TemporalEditFormData } from './TemporalEditForm';
+import type { TemporalEditFormData } from './TemporalEditForm';
 import { InlineNewVersionForm } from './InlineNewVersionForm';
 import { TimelineComponent, type TimelineVersion } from './TimelineComponent';
 import { TabNavigation, type TabType } from './TabNavigation';
@@ -105,7 +105,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
   const [retryCount, setRetryCount] = useState(0);
   
   // 编辑表单状态
-  const [showEditForm, setShowEditForm] = useState(isCreateMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 视图选项卡状态 - 默认显示版本历史页面，支持审计信息
@@ -309,7 +308,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
 
         // 预设表单数据（保持与现有表单字段格式兼容）
         setFormMode('edit');
-        setShowEditForm(false);
         setFormInitialData({
           name: currentVersion.name,
           unitType: currentVersion.unitType,
@@ -432,10 +430,10 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [organizationCode, selectedVersion, isDeleting, loadVersions]);
 
-  const handleEditHistory = useCallback((version: TimelineVersion) => {
+  // 时间轴版本选择处理 - 仅负责导航与详情联动
+  const handleVersionSelect = (version: TimelineVersion) => {
     setSelectedVersion(version);
     setFormMode('edit');
-    setShowEditForm(true);
     setFormInitialData({
       name: version.name,
       unitType: version.unitType,
@@ -446,12 +444,32 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       effectiveDate: version.effectiveDate
     });
     setActiveTab('edit-history');
-  }, []);
 
-  // 时间轴版本选择处理 - 增强功能，支持编辑历史记录页面联动
-  const handleVersionSelect = useCallback((version: TimelineVersion) => {
-    handleEditHistory(version);
-  }, [handleEditHistory]);
+    (async () => {
+      try {
+        const pathData = await unifiedGraphQLClient.request<{
+          organizationHierarchy: { codePath: string; namePath: string } | null;
+        }>(
+          `query GetHierarchyPaths($code: String!, $tenantId: String!) {
+             organizationHierarchy(code: $code, tenantId: $tenantId) {
+               codePath
+               namePath
+             }
+           }`,
+          { code: version.code, tenantId: env.defaultTenantId }
+        );
+        const hierarchy = pathData?.organizationHierarchy;
+        if (hierarchy) {
+          setDisplayPaths({ codePath: hierarchy.codePath, namePath: hierarchy.namePath });
+        } else {
+          setDisplayPaths(null);
+        }
+      } catch (e) {
+        console.warn('加载组织层级路径失败（忽略，不阻塞详情展示）:', e);
+        setDisplayPaths(null);
+      }
+    })();
+  };
 
   const handleFormSubmit = useCallback(async (formData: TemporalEditFormData) => {
     setIsSubmitting(true);
@@ -528,7 +546,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         setActiveTab('edit-history'); // 创建成功后切换回历史记录选项卡
         setFormMode('create');
         setFormInitialData(null);
-        setShowEditForm(false);
         showSuccess('时态版本创建成功！');
       }
     } catch (error) {
@@ -548,16 +565,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
     }
   }, [organizationCode, loadVersions, isCreateMode, onCreateSuccess, showError, showSuccess]);
 
-  const handleFormClose = useCallback(() => {
-    if (!isSubmitting) {
-      setActiveTab('edit-history'); // 取消时切换回历史记录选项卡
-      setFormMode('create'); // 重置为新增模式
-      setFormInitialData(null); // 清除预填充数据
-      setShowEditForm(false);
-      setSelectedVersion(null);
-    }
-  }, [isSubmitting]);
-
   const handleHistoryEditClose = useCallback(() => {
     if (!isSubmitting) {
       // 历史记录编辑页面关闭时应该返回组织列表页面
@@ -568,7 +575,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         setActiveTab('edit-history');
         setFormMode('create');
         setFormInitialData(null);
-        setShowEditForm(false);
         setSelectedVersion(null);
       }
     }
@@ -603,7 +609,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
       await loadVersions(false, updateData.recordId as string | undefined);
       setActiveTab('edit-history'); // 提交成功后切换回历史记录选项卡
       setFormMode('edit');
-      setShowEditForm(true);
       setFormInitialData({
         name: updateData.name as string,
         unitType: updateData.unitType as string,
@@ -753,7 +758,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
             versions={versions}
             selectedVersion={selectedVersion}
             onVersionSelect={handleVersionSelect}
-            onEditVersion={handleEditHistory}
             onDeleteVersion={readonly ? undefined : (version) => setShowDeleteConfirm(version)}
             isLoading={isLoading}
             readonly={readonly}
@@ -964,18 +968,6 @@ export const TemporalMasterDetailView: React.FC<TemporalMasterDetailViewProps> =
         </Modal>
       )}
 
-      {/* 编辑表单 - 保留用于编辑现有版本 */}
-      {formMode === 'edit' && organizationCode && (
-        <TemporalEditForm
-          isOpen={showEditForm}
-          onClose={handleFormClose}
-          onSubmit={handleFormSubmit}
-          organizationCode={organizationCode}
-          initialData={selectedVersion}
-          mode={formMode}
-          isSubmitting={isSubmitting}
-        />
-      )}
     </Box>
   );
 };
