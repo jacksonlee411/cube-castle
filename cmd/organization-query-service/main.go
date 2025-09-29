@@ -1313,6 +1313,12 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uuid.UUID, recordId string, startDate, endDate, operation, userId *string, limit int) ([]AuditRecordData, error) {
 	start := time.Now()
 
+	recordUUID, err := uuid.Parse(recordId)
+	if err != nil {
+		r.logger.Printf("[ERROR] 无效的 recordId: %s", recordId)
+		return nil, fmt.Errorf("INVALID_RECORD_ID")
+	}
+
 	// 构建查询条件 - 基于record_id查询，包含完整变更信息，强制租户隔离
 	baseQuery := `
 		SELECT
@@ -1325,22 +1331,34 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 				ELSE actor_id
 			END as operated_by_name,
 			CASE WHEN changes IS NOT NULL
-				THEN changes::text
-				ELSE '{"operationSummary":"' || action_name || '","totalChanges":0,"keyChanges":[]}'
+				THEN jsonb_build_object(
+					'operationSummary', COALESCE(action_name, event_type, 'UNKNOWN'),
+					'totalChanges', jsonb_array_length(changes),
+					'keyChanges', changes
+				)::text
+				ELSE jsonb_build_object(
+					'operationSummary', COALESCE(action_name, event_type, 'UNKNOWN'),
+					'totalChanges', 0,
+					'keyChanges', jsonb_build_array()
+				)::text
 			END as changes_summary,
 			business_context->>'operation_reason' as operation_reason,
 			timestamp,
 			request_data::text as before_data,
 			response_data::text as after_data,
-			'[]'::text as modified_fields,
-			CASE WHEN changes IS NOT NULL
-				THEN changes::text
-				ELSE '[]'
-			END as detailed_changes
+			CASE WHEN changes IS NOT NULL AND jsonb_typeof(changes) = 'array'
+				THEN (
+					SELECT jsonb_agg(DISTINCT elem->>'field')
+					FROM jsonb_array_elements(changes) AS elem
+					WHERE elem->>'field' IS NOT NULL
+				)
+				ELSE '[]'::jsonb
+			END::text as modified_fields,
+			COALESCE(changes, '[]'::jsonb)::text as detailed_changes
 		FROM audit_logs
-		WHERE tenant_id = $1::uuid AND resource_id = $2 AND resource_type = 'ORGANIZATION'`
+		WHERE tenant_id = $1::uuid AND resource_id::uuid = $2::uuid AND resource_type = 'ORGANIZATION'`
 
-	args := []interface{}{tenantId, recordId}
+	args := []interface{}{tenantId, recordUUID}
 	argIndex := 3
 
 	// 日期范围过滤
