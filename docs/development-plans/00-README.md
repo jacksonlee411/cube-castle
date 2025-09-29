@@ -35,6 +35,8 @@
 #### **12 - 时态命令契约缺口**
 - `12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P0）
 
+
+
 ### **归档文档** (docs/archive/development-plans/)
 
 > **文档归档时间**: 2025-09-13  
@@ -53,6 +55,7 @@
 - `../archive/development-plans/15-database-triggers-diagnostic-report.md` - 数据库触发器混乱问题诊断分析和优化方案
 - `../archive/development-plans/16-trigger-optimization-action-plan.md` - 触发器优化行动计划
 - `../archive/development-plans/17-index-audit-and-optimization-plan.md` - 索引审计与优化计划
+- `../archive/development-plans/17-temporary-governance-enhancement-plan.md` - TODO-TEMPORARY 治理与 419 状态码决策计划
 - `../archive/development-plans/18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)
 - `../archive/development-plans/19-code-smells-and-remediation-plan.md` - 代码异味和修复计划
 - `../archive/development-plans/20-existing-resource-analysis-guide.md` - 现有资源分析开发指南

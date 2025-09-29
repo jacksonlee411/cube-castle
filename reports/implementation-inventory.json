@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-09-29T05:17:53.054Z",
+  "timestamp": "2025-09-29T12:49:01.501Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 12,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 145
+    "tsExports": 146
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -852,6 +852,11 @@
     {
       "name": "legacyColors",
       "file": "frontend/src/shared/utils/colorTokens.ts",
+      "kind": "const"
+    },
+    {
+      "name": "generateIdempotencyKey",
+      "file": "frontend/src/shared/utils/idempotency.ts",
       "kind": "const"
     },
     {

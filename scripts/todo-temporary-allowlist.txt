@@ -1,0 +1,6 @@
+# TODO-TEMPORARY 路径白名单
+# 使用 shell 通配符匹配需要忽略的路径（相对于仓库根目录）
+# 例如：docs/archive/*
+docs/archive/*
+CLAUDE.md
+.github/pull_request_template.md

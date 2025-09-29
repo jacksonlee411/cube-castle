@@ -8,6 +8,15 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
 # 搜索包含 TODO-TEMPORARY 的行（排除不相关目录）
+ALLOWLIST_FILE=${TODO_TEMPORARY_ALLOWLIST:-scripts/todo-temporary-allowlist.txt}
+declare -a allowlist=()
+if [[ -f "$ALLOWLIST_FILE" ]]; then
+  while IFS= read -r pattern; do
+    [[ -z "$pattern" || "$pattern" =~ ^# ]] && continue
+    allowlist+=("$pattern")
+  done < "$ALLOWLIST_FILE"
+fi
+
 matches=$(grep -RIn -E 'TODO-TEMPORARY:' . \
   --exclude-dir=.git \
   --exclude-dir=node_modules \
@@ -15,7 +24,7 @@ matches=$(grep -RIn -E 'TODO-TEMPORARY:' . \
   --exclude-dir=database \
   --exclude-dir=backup \
   --exclude-dir=archive \
-  --exclude='*.md' \
+  --exclude-dir=docs/archive \
   --exclude='*check-temporary-tags.sh' \
   || true)
 
@@ -32,11 +41,29 @@ while IFS= read -r line; do
   rest=${line#*:}
   lineno=${rest%%:*}
   text=${rest#*:}
+  path=${path#./}
+
+  skip=false
+  for pattern in "${allowlist[@]}"; do
+    if [[ "$path" == $pattern ]]; then
+      skip=true
+      break
+    fi
+  done
+
+  if [[ "$skip" == true ]]; then
+    continue
+  fi
+
+  label="[代码]"
+  if [[ $path == *.md || $path == README.md || $path == CHANGELOG.md || $path == docs/* || $path == .github/* ]]; then
+    label="[文档]"
+  fi
 
   # 针对 shared/types/api.ts 的强制阻断
-  if [[ "$path" == "./frontend/src/shared/types/api.ts" || "$path" == "frontend/src/shared/types/api.ts" ]]; then
+  if [[ "$path" == "frontend/src/shared/types/api.ts" ]]; then
     cat <<EOF
-✖ 禁止在 frontend/src/shared/types/api.ts 保留 TODO-TEMPORARY：
+✖ $label 禁止在 frontend/src/shared/types/api.ts 保留 TODO-TEMPORARY：
   - 请移除临时导出，改为从 shared/api/error-handling 或 shared/api/type-guards 导入错误类型与守卫。
   - 若仍需兼容，请在迁移计划中登记并提供新的截止日期。
 问题位置：$path:$lineno
@@ -48,7 +75,7 @@ EOF
 
   # 1) 必须包含截止日期 YYYY-MM-DD
   if ! echo "$text" | grep -Eq '20[0-9]{2}-[01][0-9]-[0-3][0-9]'; then
-    echo "✖ 缺少截止日期(YYYY-MM-DD): $path:$lineno"
+    echo "✖ $label 缺少截止日期(YYYY-MM-DD): $path:$lineno"
     ((violation++))
   fi
 
@@ -57,7 +84,7 @@ EOF
   # 去掉空白统计长度
   desc_len=$(echo -n "$desc" | tr -d ' \t' | wc -c | tr -d ' ')
   if [[ ${desc_len} -lt 20 ]]; then
-    echo "✖ 理由/计划描述过短(需≥20字符): $path:$lineno"
+    echo "✖ $label 理由/计划描述过短(需≥20字符): $path:$lineno"
     ((violation++))
   fi
 done <<< "$matches"

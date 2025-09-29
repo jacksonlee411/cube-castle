@@ -10,27 +10,20 @@
 ## 执行概览
 
 ### 📊 完成状态
-- ✅ IIG 最新扫描（2025-09-24）已与当前代码一致：OpenAPI 26、GraphQL 12、Go Handlers 26、Go Services 19、TS 导出 148。
-- ⚠️ 契约仍缺失 `/organization-units/temporal` 系列端点，`organizationPermissions.ts` 的子组织权限校验仍为临时禁用。
+- ✅ IIG 最新扫描（2025-09-24）已与当前代码一致：OpenAPI 26、GraphQL 12、Go Handlers 26、Go Services 19、TS 导出 146。
+- ✅ 2025-09-28 复核：`node scripts/generate-implementation-inventory.js` 输出与仓库匹配，未出现历史 `/organization-units/temporal` 端点。
 
 ---
 
 ## 关键发现
 
-### 🚨 紧急处理项（契约 / 权限风险）
-1. **前端调用未入契约的 `/organization-units/temporal` 系列端点**
-   - 证据（已回正）：`frontend/src/features/organizations/components/OrganizationForm/index.tsx` 与 `shared/hooks/useOrganizationMutations.ts` 统一调用 `/api/v1/organization-units/{code}/versions`，不再出现 `/temporal` 端点。
-   - 契约缺口：`docs/api/openapi.yaml` 中未声明相关路径，IIG 扫描与 `reports/implementation-inventory.json` 因此遗漏，违反“先契约后实现”。
-   - 风险：CI 与监管工具无法检测到端点，部署环境会返回 404；同时破坏 `reports/implementation-inventory.json` 的准确性。
-   - 行动：优先补充 OpenAPI 契约与命令服务路由，或在前端回退至 `/api/v1/organization-units/{code}/versions` 与历史事件端点。
-
-2. **`organizationPermissions.ts` 子组织校验继续禁用**
-   - 文件：`frontend/src/shared/utils/organizationPermissions.ts:37`。
-   - 现状：`TODO-TEMPORARY` 截止 2025-09-20，仍注释 `childCount` 防删逻辑，权限计算缺乏真实数据约束。
-   - 行动：重新接入 GraphQL `organizationHierarchy` 或 REST `/organization-units/{code}/refresh-hierarchy` 的子组织计数；若需延期必须更新截止日期与风险说明。
+### ✅ 处置结果（契约 / 权限）
+1. **子组织权限校验已回收临时实现**
+   - 证据：`frontend/src/shared/utils/organizationPermissions.ts` 在第 37 行重新启用 `childrenCount` 判定，并兼容旧字段 `childCount`，权限结果包含“存在子组织无法删除”理由。
+   - 结论：不再存在 `TODO-TEMPORARY` 注释；IIG 报表与实现一致，无需进一步回退。
 
 ### ⏱ 即将到期项
-- `docs/reference/04-AUTH-ERROR-CODES-AND-FLOWS.md:56` 保留 `TODO-TEMPORARY`（419 状态码决策），截至 2025-09-30 需完成评审并同步实现。
+- （无）文档级临时条目已在 2025-09-29 评审回收。
 
 ---
 
@@ -39,20 +32,20 @@
 ### ✅ 已修复问题
 - camelCase 命名规范违规 3 项已全部修复。
 - 架构验证器检查通过率 100%（109/109 文件）。
-- REST/OpenAPI 契约与实现基本一致，唯独缺少 `/organization-units/temporal` 声明需补齐。
+- REST/OpenAPI 契约与实现保持一致（时态端点统一回归 `/api/v1/organization-units/{code}/versions`）。
 
 ### 📈 统计更新
-- REST 端点：26（新增 `/api/v1/organization-units/validate`、`/api/v1/organization-units/{code}/refresh-hierarchy`、`/batch-refresh-hierarchy`、`/api/v1/corehr/organizations` 已纳入契约，唯独 `/organization-units/temporal` 待补录）。
+- REST 端点：26（含 `/api/v1/organization-units/validate`、`/api/v1/organization-units/{code}/refresh-hierarchy`、`/batch-refresh-hierarchy`、`/api/v1/corehr/organizations` 等最新补录项）。
 - GraphQL 查询：12 个主要字段，`organizationHierarchy` 已对接 `codePath/namePath`。
 - Go 组件：Handlers 26、Services 19（匹配生成脚本输出）。
-- 前端导出：148（较 2025-09-15 再压缩 14 项，聚合入口更集中）。
+- 前端导出：146（较 2025-09-15 再压缩 16 项，新增 `generateIdempotencyKey` 等聚合入口一致化）。
 
 ---
 
 ## 符合项目原则验证
-- **单一事实来源**：除 `/organization-units/temporal` 缺少 OpenAPI 声明外，其余契约、实现清单与代码一致。
+- **单一事实来源**：REST / GraphQL 契约、实现清单与代码完全对齐，无未登记端点。
 - **唯一性原则**：重复组件持续降低，无新增架构违规。
-- **API 优先**：大部分端点遵循先契约后实现，需修复 `/organization-units/temporal` 违例。
+- **API 优先**：所有端点均遵循先契约后实现流程。
 - **CQRS 架构**：命令/查询隔离，端口配置标准化。
 
 ---
@@ -60,36 +53,32 @@
 ## 行动计划
 
 ### P0 — 立即执行
-1. 补齐 `/organization-units/temporal` 系列契约与命令服务实现，或调整前端改用现有 `/api/v1/organization-units/{code}/versions` / `events` 路径；完成后更新 IIG 报告。
-2. 恢复 `organizationPermissions.ts` 子组织校验逻辑，使用实时子组织计数；若判定延期，必须在文件中更新 `TODO-TEMPORARY` 截止与责任人，并补登记风险。
+- （空缺）本周期 P0 项已完成，保持每日巡检提醒。
 
 ### P1 — 下一个迭代
-3. 扩展 `scripts/check-temporary-tags.sh`，在 CI 中强制校验截止日期与契约缺口，避免出现未登记的端点。
-4. 对接 GraphQL `organizationSubtree` / REST `/batch-refresh-hierarchy` 的监控指标，纳入运营面板（参考 09 号计划）。
+1. 扩展 `scripts/check-temporary-tags.sh`，在 CI 中强制校验截止日期与契约缺口，避免出现未登记的端点。
+2. 对接 GraphQL `organizationSubtree` / REST `/batch-refresh-hierarchy` 的监控指标，纳入运营面板（参考 09 号计划）。
 
 ### P2 — 持续改进
-5. 建立 IIG 守护例行巡检（日历化 + PR 模板勾选），并与 `docs/archive` 档案同步。
-6. 将 `/organization-units/validate` 的调用结果纳入表单埋点，统计后端校验命中率，验证新流程效果。
+1. 建立 IIG 守护例行巡检（日历化 + PR 模板勾选），并与 `docs/archive` 档案同步。
+2. 将 `/organization-units/validate` 的调用结果纳入表单埋点，统计后端校验命中率，验证新流程效果。
 
 ---
 
 ## 评审建议
 - 重点关注：
-  1. `/organization-units/temporal` 契约缺口的补救方案（补契约 vs. 回退前端）。
-  2. 权限校验恢复后的风险评估与测试覆盖度（含 Playwright/E2E）。
-  3. `docs/reference/02` 与脚本统计版本漂移的解决时间表。
-  4. `TODO-TEMPORARY` 自动治理范围是否扩展到文档（如 419 决策）。
+  1. 权限校验回归后的覆盖度（含 Playwright/E2E）。
+  2. `docs/reference/02` 与脚本统计版本漂移的解决时间表。
+  3. `TODO-TEMPORARY` 自动治理范围扩展后的巡检节奏与白名单维护。
 - 决策需求：
-  - [ ] 审批 P0 处理顺序与 Owner（建议：命令服务团队 + 前端权限组）。
-  - [ ] 确认 `/organization-units/temporal` 端点的最终归属与上线窗口。
   - [ ] 确定 IIG 周期巡检节奏与通知渠道（建议：每周一 + Slack #cqrs-guardian）。
 
 ---
 
 ## 总结
-- IIG 最新扫描覆盖率达 100%，但契约未覆盖的 `/organization-units/temporal` 仍是最大风险点。
-- 当前仅剩 1 项代码层临时实现超期（权限校验），另有契约漂移与文档 TODO 需在下个迭代前关闭。
-- 建议本迭代内完成 P0 任务，并将契约校验、TODO 治理纳入 CI，避免再次出现超期项。
+- IIG 最新扫描覆盖率达 100%，当前风险集中在文档级 TODO 的处理节奏。
+- 代码层临时实现已清空，仅剩文档 TODO 需在下个迭代前关闭。
+- 建议本迭代内完成 P1 任务，并将契约校验、TODO 治理纳入 CI，避免再次出现超期项。
 
 ---
 
