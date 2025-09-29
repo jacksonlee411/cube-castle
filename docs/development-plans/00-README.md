@@ -35,6 +35,9 @@
 #### **12 - 时态命令契约缺口**
 - `12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P0）
 
+#### **16 - 代码异味治理**
+- `16-code-smell-analysis-and-improvement-plan.md` - Go 工程实践为导向的代码异味分析与改进计划（P2）
+
 
 
 ### **归档文档** (docs/archive/development-plans/)
