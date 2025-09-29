@@ -62,6 +62,12 @@
 - `checkCircleIcon` - 用于确认状态
 - `exclamationCircleIcon` - 用于警告提示
 
+### 2.5 现有实现复用评估（2025-09-22）
+- **组件接入缺失**：`frontend/src/shared/components/OrganizationActions.tsx` 仅作为孤立组件存在，项目中无任何 import 站点，组织详情页未使用该实现。
+- **Hook 契约不兼容**：旧版 `useSuspendOrganization` / `useActivateOrganization` 仅发送 `{ reason }` 请求体，缺少契约必填 `effectiveDate` 字段及 `operationReason` 字段名，会导致后端日期解析失败。
+- **头部语义缺口**：统一 REST 客户端不会返回响应头，命令服务端点未写出 `ETag` 且不校验 `If-Match`，无法满足 OpenAPI 对幂等性与乐观锁的要求。
+- **结论**：现有资产无法直接复用，需按本方案的整改步骤补齐契约与头部支持后方可上线。
+
 ## 3. 设计方案
 
 ### 3.1 按钮布局设计
@@ -235,6 +241,11 @@ const getButtonDisplay = (
 - **用户提示**：保持单一提示语，提示用户“数据已更新，请刷新后重试”。
 
 ### 3.5 评审发现与优化建议
+
+#### 3.5.1 渐进式确认机制
+- **阶段一（契约对齐优先）**：完成头部/字段整改后，优先落地轻量确认流程（当前实现基于 `SuspendActivateButtons` + Modal 表单），确保 `effectiveDate`、`operationReason` 采集满足契约要求。
+- **阶段二（体验提升）**：功能稳定后，可按需增强交互与可访问性（焦点管理、键盘快捷键等），保持 Canvas Kit 规范一致。
+- **阶段三（场景扩展）**：评估将确认流程抽象为共享组件，为组织冻结、删除等命令型操作复用。
 
 **评审发现**
 - 停用/启用流程确认弹窗缺少对 `effectiveDate` 必填字段的采集与校验，`operationReason` 虽为可选但仍需在UI中提供输入入口以便记录审计文本。
@@ -455,7 +466,8 @@ const ConfirmationModal: React.FC<ConfirmModalProps> = ({
 ## 8. 风险评估
 
 ### 8.1 技术风险
-- **API兼容性**：统一客户端缺乏 `Idempotency-Key` 与 `ETag` 支持，需新增能力后方可满足契约 - **风险程度：中**
+- **重复建设**：旧组件/Hook 已停用且已替换为契约化实现，保留监控 - **风险程度：低**
+- **API兼容性**：统一客户端已补齐头部透传，但需在验收阶段持续关注契约回归 - **风险程度：中**
 - **状态同步**：通过 React Query 缓存失效确保一致性 - **风险程度：低**
 - **Canvas Kit 兼容**：现版 `@workday/canvas-kit-react@13.2.15` 已覆盖所需组件 - **风险程度：极低**
 - **多租户安全**：统一客户端自动处理租户头 - **风险程度：极低**
@@ -493,14 +505,37 @@ const ConfirmationModal: React.FC<ConfirmModalProps> = ({
 
 通过合理的权限控制、清晰的操作流程和完善的错误处理，该功能将为企业用户提供更加直观、高效的组织架构管理体验。
 
+## 11. 整改执行记录（2025-09-22）
+
+| 整改项 | 状态 | 说明 |
+|--------|------|------|
+| 统一 REST 客户端头部透传 | ✅ 已完成 | `frontend/src/shared/api/unified-client.ts` 支持 `includeRawResponse` 并返回 `headers` 元数据，新建 `frontend/src/shared/utils/idempotency.ts` 统一生成幂等键。 |
+| 停用/启用 Hooks 契约对齐 | ✅ 已完成 | `useSuspendOrganization`、`useActivateOrganization` 接受正式字段并附带 `If-Match`、`Idempotency-Key`，成功后返回最新 `ETag`。 |
+| 命令服务并发控制 | ✅ 已完成 | `cmd/organization-command-service/internal/handlers/organization.go` 校验 `If-Match`，响应写入 `ETag`，412 场景返回明确错误。 |
+| 详情页按钮与确认流程 | ✅ 已完成 | 新增 `SuspendActivateButtons` 组件集成至 `TemporalMasterDetailView`，表单采集 `effectiveDate`/`operationReason` 并复用统一消息提示。 |
+
+以上整改已合并主干，等待集成测试与验收回归。
+
 ---
 
-*文档版本：v2.1*
+*文档版本：v2.3*
 *创建日期：2025-09-21*
-*更新日期：2025-09-21*
-*状态：已优化，可实施*
+*更新日期：2025-09-22*
+*状态：实现完成，待验收*
 
 ## 更新记录
+
+### v2.3 (2025-09-22)
+- 完成 REST 客户端头部透传与幂等键生成，新增 `includeRawResponse` 与响应头回传支持。
+- 前端停用/启用 Hooks 支持 `effectiveDate`、`operationReason`、`If-Match`、`Idempotency-Key`，并将最新 `ETag` 返回给详情页。
+- 命令服务停用/启用端点补齐 `If-Match` 校验与 `ETag` 响应头，触发 412 时返回明确错误信息。
+- 组织详情页引入 `SuspendActivateButtons`，提供表单式确认与消息反馈。
+
+### v2.2 (2025-09-22)
+- 新增“现有实现复用评估”，确认旧组件/Hook 未接入且契约不兼容，重复建设风险降级至低。
+- 在风险评估中补充重复建设风险说明，明确整改优先级仍为契约对齐。
+- 调整确认对话框实现策略，采纳渐进式交付路径，先满足字段采集再进行 UI 提升。
+- 更新文档状态为“待前置整改”，保持与最新验证结论一致。
 
 ### v2.1 (2025-09-21)
 - 补充评审发现：明确前端必须采集并提交 `effectiveDate`；`operationReason` 为可选项，应允许用户留空且在交互流程中提示填写建议。

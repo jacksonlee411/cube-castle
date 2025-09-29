@@ -534,6 +534,46 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
 
+	currentOrg, err := h.repo.GetByCode(r.Context(), tenantID, code)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
+			return
+		}
+		h.handleRepositoryError(w, r, "GET_CURRENT_ORG", err)
+		return
+	}
+	if currentOrg == nil {
+		h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", nil)
+		return
+	}
+
+	expectedETag := strings.TrimSpace(currentOrg.RecordID)
+	if expectedETag == "" {
+		expectedETag = currentOrg.UpdatedAt.Format(time.RFC3339Nano)
+	}
+
+	if rawIfMatch := strings.TrimSpace(r.Header.Get("If-Match")); rawIfMatch != "" {
+		ifMatch, parseErr := h.getIfMatchValue(r)
+		if parseErr != nil {
+			h.writeErrorResponse(w, r, http.StatusPreconditionFailed, "PRECONDITION_FAILED", "缺少或无效的 If-Match 标头", parseErr)
+			return
+		}
+		if expectedETag == "" {
+			h.writeErrorResponse(w, r, http.StatusPreconditionFailed, "PRECONDITION_FAILED", "无法验证资源版本，请刷新后重试", map[string]interface{}{
+				"provided": ifMatch,
+			})
+			return
+		}
+		if ifMatch != expectedETag {
+			h.writeErrorResponse(w, r, http.StatusPreconditionFailed, "PRECONDITION_FAILED", "资源已发生变更，请刷新后重试", map[string]interface{}{
+				"expected": expectedETag,
+				"provided": ifMatch,
+			})
+			return
+		}
+	}
+
 	// 操作原因处理（可选）
 	operationReason := ""
 	if req.OperationReason != nil {
@@ -665,6 +705,10 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 		"operationReason": operationReason,
 		"isImmediate":     isImmediate,
 		"timeline":        timelineResponse,
+	}
+
+	if resourceRecordID != "" {
+		w.Header().Set("ETag", fmt.Sprintf("\"%s\"", resourceRecordID))
 	}
 
 	if err := utils.WriteSuccess(w, response, actionName+"成功", requestID); err != nil {

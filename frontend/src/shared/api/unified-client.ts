@@ -3,16 +3,16 @@
  * 消除重复的GraphQL和REST客户端实现
  * 基于CQRS架构：查询使用GraphQL，命令使用REST API
  */
-import { authManager } from './auth';
-import { env } from '../config/environment';
-import { authEvents } from '../auth/events';
-import type { GraphQLResponse } from '../types';
+import { authManager } from "./auth";
+import { env } from "../config/environment";
+import { authEvents } from "../auth/events";
+import type { GraphQLResponse } from "../types";
 // import { CQRS_ENDPOINTS } from '../config/ports'; // TODO: 将来可能用于直接端点配置
 
 // 🔧 CQRS架构端点配置 - 使用代理避免CORS问题
 const API_ENDPOINTS = {
-  GRAPHQL_QUERY: '/graphql',     // 查询服务 (PostgreSQL GraphQL) - 通过Vite代理
-  REST_COMMAND: '/api/v1'        // 命令服务 (REST API) - 通过Vite代理
+  GRAPHQL_QUERY: "/graphql", // 查询服务 (PostgreSQL GraphQL) - 通过Vite代理
+  REST_COMMAND: "/api/v1", // 命令服务 (REST API) - 通过Vite代理
 } as const;
 
 /**
@@ -26,27 +26,30 @@ export class UnifiedGraphQLClient {
     this.endpoint = endpoint;
   }
 
-  async request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+  async request<T>(
+    query: string,
+    variables?: Record<string, unknown>,
+  ): Promise<T> {
     const doRequest = async (): Promise<Response> => {
       // 🔧 开发和生产环境都需要JWT认证
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         // 租户头：优先使用会话返回的 tenantId，回退到环境默认
-        'X-Tenant-ID': authManager.getTenantId() || env.defaultTenantId,
+        "X-Tenant-ID": authManager.getTenantId() || env.defaultTenantId,
       };
-      
+
       // 所有环境都需要JWT认证
       const accessToken = await authManager.getAccessToken();
       if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
+        headers["Authorization"] = `Bearer ${accessToken}`;
       }
-      
+
       return fetch(this.endpoint, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify({
           query,
-          variables
+          variables,
         }),
       });
     };
@@ -59,18 +62,20 @@ export class UnifiedGraphQLClient {
       if (!response.ok) {
         // 401：强制刷新令牌并重试一次
         if (response.status === 401) {
-          console.warn('[GraphQL Client] 401 未认证，尝试强制刷新令牌并重试一次');
+          console.warn(
+            "[GraphQL Client] 401 未认证，尝试强制刷新令牌并重试一次",
+          );
           if (!retried) {
             retried = true;
             await authManager.forceRefresh();
             response = await doRequest();
             if (!response.ok) {
               authEvents.emitUnauthorized();
-              throw new Error('认证已过期，请刷新页面重新登录');
+              throw new Error("认证已过期，请刷新页面重新登录");
             }
           } else {
             authEvents.emitUnauthorized();
-            throw new Error('认证已过期，请刷新页面重新登录');
+            throw new Error("认证已过期，请刷新页面重新登录");
           }
         }
 
@@ -80,67 +85,98 @@ export class UnifiedGraphQLClient {
             const text = await response.text();
             const maybeJson = text ? JSON.parse(text) : undefined;
             const code = maybeJson?.error?.code as string | undefined;
-            if (code === 'TENANT_ACCESS_DENIED' || code === 'TENANT_MISMATCH' || code === 'TENANT_ID_MISMATCH') {
-              throw new Error('无权访问所选租户，请切换到有权限的租户');
+            if (
+              code === "TENANT_ACCESS_DENIED" ||
+              code === "TENANT_MISMATCH" ||
+              code === "TENANT_ID_MISMATCH"
+            ) {
+              throw new Error("无权访问所选租户，请切换到有权限的租户");
             }
-            if (code === 'INSUFFICIENT_PERMISSIONS') {
-              throw new Error('权限不足，无法访问该资源，请联系管理员');
+            if (code === "INSUFFICIENT_PERMISSIONS") {
+              throw new Error("权限不足，无法访问该资源，请联系管理员");
             }
             // 无法解析具体码时的兜底
-            throw new Error('访问被禁止：请检查权限或租户设置');
+            throw new Error("访问被禁止：请检查权限或租户设置");
           } catch (e) {
             if (e instanceof SyntaxError) {
               // 非JSON错误体
-              throw new Error('访问被禁止：请检查权限或租户设置');
+              throw new Error("访问被禁止：请检查权限或租户设置");
             }
             throw e;
           }
         }
-        
+
         // 服务器内部错误时提供更友好的错误信息
         if (response.status === 500) {
-          console.error('[GraphQL Client] 服务器内部错误:', { query, variables, status: response.status });
-          throw new Error('服务器内部错误，请稍后重试或联系管理员');
+          console.error("[GraphQL Client] 服务器内部错误:", {
+            query,
+            variables,
+            status: response.status,
+          });
+          throw new Error("服务器内部错误，请稍后重试或联系管理员");
         }
-        
-        throw new Error(`GraphQL Error: ${response.status} ${response.statusText}`);
+
+        throw new Error(
+          `GraphQL Error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const responseBody = await response.json();
-      
+
       // 检查是否为企业级API响应信封格式
       if (responseBody.success !== undefined) {
         // 企业级信封格式: {success: true, data: {...}, message: "...", timestamp: "..."}
         if (!responseBody.success) {
-          const errorMsg = responseBody.error?.message || responseBody.message || 'API调用失败';
+          const errorMsg =
+            responseBody.error?.message ||
+            responseBody.message ||
+            "API调用失败";
           throw new Error(`API Error: ${errorMsg}`);
         }
-        
+
         if (!responseBody.data) {
-          throw new Error('API Error: No data returned');
+          throw new Error("API Error: No data returned");
         }
-        
+
         return responseBody.data as T;
       } else {
         // 标准GraphQL格式: {data: {...}, errors: [...]}
         const result = responseBody as GraphQLResponse<T>;
-        
+
         if (result.errors && result.errors.length > 0) {
           throw new Error(`GraphQL Error: ${result.errors[0].message}`);
         }
 
         if (!result.data) {
-          throw new Error('GraphQL Error: No data returned');
+          throw new Error("GraphQL Error: No data returned");
         }
 
         return result.data;
       }
     } catch (error) {
-      console.error('GraphQL request failed:', { query, variables, error });
+      console.error("GraphQL request failed:", { query, variables, error });
       throw error;
     }
   }
 }
+
+export interface RESTRequestOptions extends RequestInit {
+  includeRawResponse?: boolean;
+}
+
+export interface RESTResponseMeta<T> {
+  data: T;
+  headers: Record<string, string>;
+  response: Response;
+}
+
+const normalizeHeaders = (response: Response): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    headers[key.toLowerCase()] = value;
+  });
+  return headers;
+};
 
 /**
  * 统一的REST API客户端 - 专用于命令操作
@@ -153,120 +189,190 @@ export class UnifiedRESTClient {
   constructor(baseURL: string = API_ENDPOINTS.REST_COMMAND) {
     this.baseURL = baseURL;
     this.defaultHeaders = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       // 注意：实际请求时会覆盖为 authManager.getTenantId() || env.defaultTenantId
-      'X-Tenant-ID': env.defaultTenantId,
+      "X-Tenant-ID": env.defaultTenantId,
     };
   }
 
-  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  async request<T>(
+    endpoint: string,
+    options: RESTRequestOptions & { includeRawResponse: true },
+  ): Promise<RESTResponseMeta<T>>;
+  async request<T>(endpoint: string, options?: RESTRequestOptions): Promise<T>;
+  async request<T>(
+    endpoint: string,
+    options: RESTRequestOptions = {},
+  ): Promise<T | RESTResponseMeta<T>> {
+    const { includeRawResponse, ...fetchOptions } = options;
     const url = `${this.baseURL}${endpoint}`;
-    const doRequest = async (): Promise<Response> => {
+
+    const buildHeaders = async (): Promise<Record<string, string>> => {
+      const headers: Record<string, string> = {
+        ...this.defaultHeaders,
+        "X-Tenant-ID": authManager.getTenantId() || env.defaultTenantId,
+      };
+
+      const customHeaders = new Headers(
+        fetchOptions.headers as HeadersInit | undefined,
+      );
+      const hasCustomAuthorization = customHeaders.has("Authorization");
+
       const accessToken = await authManager.getAccessToken();
-      return fetch(url, {
-        headers: {
-          ...this.defaultHeaders,
-          // 租户头：优先使用会话返回的 tenantId，回退到环境默认
-          'X-Tenant-ID': authManager.getTenantId() || env.defaultTenantId,
-          'Authorization': `Bearer ${accessToken}`,
-          ...options.headers,
-        },
-        ...options,
+      if (accessToken && !hasCustomAuthorization) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      customHeaders.forEach((value, key) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+        headers[key] = value;
       });
+
+      return headers;
+    };
+
+    const doRequest = async (): Promise<Response> => {
+      const headers = await buildHeaders();
+      return fetch(url, {
+        ...fetchOptions,
+        headers,
+      });
+    };
+
+    const readBody = async (
+      response: Response,
+    ): Promise<Record<string, unknown>> => {
+      const contentType = response.headers.get("content-type") || "";
+      const text = await response.text();
+
+      if (!text) {
+        return {};
+      }
+
+      const looksLikeJson =
+        contentType.includes("application/json") || /^(\s*[[{])/.test(text);
+      if (!looksLikeJson) {
+        if (!response.ok) {
+          console.error("[REST Client] 非JSON错误体，返回HTTP错误:", {
+            endpoint,
+            status: response.status,
+            statusText: response.statusText,
+          });
+          throw new Error(
+            `REST Error: ${response.status} ${response.statusText}`,
+          );
+        }
+        console.error("[REST Client] JSON解析失败: 响应非JSON", {
+          endpoint,
+          text,
+        });
+        throw new Error(
+          `响应解析失败: ${text.substring(0, 100)}${text.length > 100 ? "..." : ""}`,
+        );
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        if (!response.ok) {
+          console.error("[REST Client] JSON解析失败 (错误响应):", {
+            endpoint,
+            status: response.status,
+            statusText: response.statusText,
+            text,
+          });
+          throw new Error(
+            `REST Error: ${response.status} ${response.statusText}`,
+          );
+        }
+        console.error("[REST Client] JSON解析失败:", {
+          endpoint,
+          text,
+          parseError,
+        });
+        throw new Error(
+          `响应解析失败: ${text.substring(0, 100)}${text.length > 100 ? "..." : ""}`,
+        );
+      }
     };
 
     let retried = false;
     try {
       let response = await doRequest();
+      let result = await readBody(response);
 
-      // 读取文本与内容类型，按需解析JSON，避免非JSON错误体导致误导的解析错误
-      const contentType = response.headers.get('content-type') || '';
-      const text = await response.text();
-      let result: Record<string, unknown> = {};
-      if (text) {
-        const looksLikeJson = contentType.includes('application/json') || /^(\s*[[{])/.test(text);
-        if (looksLikeJson) {
-          try {
-            result = JSON.parse(text);
-          } catch (parseError) {
-            // 对于非OK状态，优先返回HTTP错误而不是解析错误，便于前端精确分流
-            if (!response.ok) {
-              console.error('[REST Client] 非JSON错误体，返回HTTP错误:', { endpoint, status: response.status, statusText: response.statusText });
-              throw new Error(`REST Error: ${response.status} ${response.statusText}`);
-            }
-            console.error('[REST Client] JSON解析失败:', { endpoint, text, parseError });
-            throw new Error(`响应解析失败: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`);
-          }
+      if (!response.ok && response.status === 401) {
+        console.warn("[REST Client] 401 未认证，尝试强制刷新令牌并重试一次");
+        if (!retried) {
+          retried = true;
+          await authManager.forceRefresh();
+          response = await doRequest();
+          result = await readBody(response);
+        } else {
+          authEvents.emitUnauthorized();
+          throw new Error("认证已过期，请刷新页面重新登录");
+        }
+
+        if (!response.ok) {
+          authEvents.emitUnauthorized();
+          throw new Error("认证已过期，请刷新页面重新登录");
         }
       }
 
       if (!response.ok) {
-        // 401：强制刷新令牌并重试一次
-        if (response.status === 401) {
-          console.warn('[REST Client] 401 未认证，尝试强制刷新令牌并重试一次');
-          if (!retried) {
-            retried = true;
-            await authManager.forceRefresh();
-            response = await doRequest();
-          } else {
-            authEvents.emitUnauthorized();
-            throw new Error('认证已过期，请刷新页面重新登录');
-          }
-          // 重新读取响应体
-          const contentTypeRetry = response.headers.get('content-type') || '';
-          const textRetry = await response.text();
-          let resultRetry: Record<string, unknown> = {};
-          if (textRetry) {
-            const looksLikeJsonRetry = contentTypeRetry.includes('application/json') || /^(\s*[[{])/.test(textRetry);
-            if (looksLikeJsonRetry) {
-              try { 
-                resultRetry = JSON.parse(textRetry); 
-              } catch (error) {
-                console.warn('[REST Client] Failed to parse retry response as JSON:', error);
-              }
-            }
-          }
-          if (!response.ok) {
-            authEvents.emitUnauthorized();
-            throw new Error('认证已过期，请刷新页面重新登录');
-          }
-          return (resultRetry || {}) as T;
-        }
-        
-        // 403：区分租户访问与权限不足
         if (response.status === 403) {
-          const code = (result?.error as Record<string, unknown>)?.code as string | undefined;
-          if (code === 'TENANT_ACCESS_DENIED' || code === 'TENANT_MISMATCH' || code === 'TENANT_ID_MISMATCH') {
-            throw new Error('无权访问所选租户，请切换到有权限的租户');
+          const code = (result?.error as Record<string, unknown>)?.code as
+            | string
+            | undefined;
+          if (
+            code === "TENANT_ACCESS_DENIED" ||
+            code === "TENANT_MISMATCH" ||
+            code === "TENANT_ID_MISMATCH"
+          ) {
+            throw new Error("无权访问所选租户，请切换到有权限的租户");
           }
-          if (code === 'INSUFFICIENT_PERMISSIONS') {
-            throw new Error('权限不足，无法执行此操作，请联系管理员');
+          if (code === "INSUFFICIENT_PERMISSIONS") {
+            throw new Error("权限不足，无法执行此操作，请联系管理员");
           }
-          throw new Error('访问被禁止：请检查权限或租户设置');
+          throw new Error("访问被禁止：请检查权限或租户设置");
         }
-        
-        // 服务器内部错误时提供更友好的错误信息
+
         if (response.status === 500) {
-          console.error('[REST Client] 服务器内部错误:', { endpoint, status: response.status, result });
-          throw new Error('服务器内部错误，请稍后重试或联系管理员');
+          console.error("[REST Client] 服务器内部错误:", {
+            endpoint,
+            status: response.status,
+            result,
+          });
+          throw new Error("服务器内部错误，请稍后重试或联系管理员");
         }
-        
-        // 尝试解析服务器返回的错误信息
-        if (result && typeof result === 'object' && 'error' in result) {
+
+        if (result && typeof result === "object" && "error" in result) {
           const errorInfo = result.error as { message?: string };
           if (errorInfo && errorInfo.message) {
             throw new Error(errorInfo.message);
           }
         }
-        
-        // 如果没有具体错误信息，使用HTTP状态信息
-        throw new Error(`REST Error: ${response.status} ${response.statusText}`);
+
+        throw new Error(
+          `REST Error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      // OK 情况下：有JSON返回即返回；无体则返回空对象
-      return (result || {}) as T;
+      const payload = (result || {}) as T;
+
+      if (includeRawResponse) {
+        return {
+          data: payload,
+          headers: normalizeHeaders(response),
+          response,
+        };
+      }
+
+      return payload;
     } catch (error) {
-      console.error('REST request failed:', { endpoint, options, error });
+      console.error("REST request failed:", { endpoint, options, error });
       throw error;
     }
   }
@@ -280,7 +386,7 @@ export class UnifiedRESTClient {
 export class UnauthenticatedRESTClient {
   private baseURL: string;
 
-  constructor(baseURL: string = '') {
+  constructor(baseURL: string = "") {
     this.baseURL = baseURL;
   }
 
@@ -289,11 +395,11 @@ export class UnauthenticatedRESTClient {
     try {
       const response: Response = await fetch(url, options);
       // 兼容测试环境的最小 fetch mock：headers/文本体可能不存在
-      const contentType = response?.headers?.get?.('content-type') || '';
-      let text = '';
-      if (typeof response?.text === 'function') {
+      const contentType = response?.headers?.get?.("content-type") || "";
+      let text = "";
+      if (typeof response?.text === "function") {
         text = await response.text();
-      } else if (typeof response?.json === 'function') {
+      } else if (typeof response?.json === "function") {
         // 某些测试仅提供 json()，则直接读取
         try {
           const j = await response.json();
@@ -304,18 +410,31 @@ export class UnauthenticatedRESTClient {
       }
       let json: unknown = undefined;
       if (text) {
-        const looksLikeJson = contentType.includes('application/json') || /^(\s*[[{])/.test(text);
+        const looksLikeJson =
+          contentType.includes("application/json") || /^(\s*[[{])/.test(text);
         if (looksLikeJson) {
-          try { json = JSON.parse(text); } catch { /* ignore parse errors for non-JSON bodies */ }
+          try {
+            json = JSON.parse(text);
+          } catch {
+            /* ignore parse errors for non-JSON bodies */
+          }
         }
       }
       if (!response?.ok) {
         let message = `${response.status} ${response.statusText}`;
-        if (json && typeof json === 'object' && 'error' in (json as Record<string, unknown>)) {
+        if (
+          json &&
+          typeof json === "object" &&
+          "error" in (json as Record<string, unknown>)
+        ) {
           const errVal = (json as Record<string, unknown>).error;
-          if (errVal && typeof errVal === 'object' && 'message' in (errVal as Record<string, unknown>)) {
+          if (
+            errVal &&
+            typeof errVal === "object" &&
+            "message" in (errVal as Record<string, unknown>)
+          ) {
             const m = (errVal as Record<string, unknown>).message;
-            if (typeof m === 'string' && m.trim()) {
+            if (typeof m === "string" && m.trim()) {
               message = m;
             }
           }
@@ -324,7 +443,11 @@ export class UnauthenticatedRESTClient {
       }
       return (json ?? ({} as unknown)) as T;
     } catch (error) {
-      console.error('[UnauthREST] request failed:', { endpoint, options, error });
+      console.error("[UnauthREST] request failed:", {
+        endpoint,
+        options,
+        error,
+      });
       throw error;
     }
   }
@@ -335,17 +458,22 @@ export const unifiedRESTClient = new UnifiedRESTClient();
 export const unauthenticatedRESTClient = new UnauthenticatedRESTClient();
 
 // 📋 客户端工厂方法 - 支持自定义配置
-export const createGraphQLClient = (endpoint?: string) => new UnifiedGraphQLClient(endpoint);
-export const createRESTClient = (baseURL?: string) => new UnifiedRESTClient(baseURL);
+export const createGraphQLClient = (endpoint?: string) =>
+  new UnifiedGraphQLClient(endpoint);
+export const createRESTClient = (baseURL?: string) =>
+  new UnifiedRESTClient(baseURL);
 
 // 🔧 架构原则检查器 - 开发模式下验证正确使用
-export const validateCQRSUsage = (operation: 'query' | 'command', method: string) => {
-  if (process.env.NODE_ENV === 'development') {
-    if (operation === 'query' && !method.includes('GraphQL')) {
-      console.warn('⚠️ CQRS违反: 查询操作应该使用GraphQL客户端');
+export const validateCQRSUsage = (
+  operation: "query" | "command",
+  method: string,
+) => {
+  if (process.env.NODE_ENV === "development") {
+    if (operation === "query" && !method.includes("GraphQL")) {
+      console.warn("⚠️ CQRS违反: 查询操作应该使用GraphQL客户端");
     }
-    if (operation === 'command' && !method.includes('REST')) {
-      console.warn('⚠️ CQRS违反: 命令操作应该使用REST客户端');
+    if (operation === "command" && !method.includes("REST")) {
+      console.warn("⚠️ CQRS违反: 命令操作应该使用REST客户端");
     }
   }
 };
@@ -354,5 +482,5 @@ export default {
   graphql: unifiedGraphQLClient,
   rest: unifiedRESTClient,
   unauth: unauthenticatedRESTClient,
-  validateCQRSUsage
+  validateCQRSUsage,
 };
