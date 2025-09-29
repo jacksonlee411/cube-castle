@@ -30,6 +30,7 @@ type OrgItem = {
   effectiveDate: string
   endDate?: string
   isFuture: boolean
+  childrenCount?: number
 }
 
 type QueryResult = {
@@ -57,6 +58,7 @@ const QUERY = /* GraphQL */ `
         asOfDate: $asOfDate
         excludeCodes: [$currentCode]
         excludeDescendantsOf: $currentCode
+        includeDisabledAncestors: true
       }
       pagination: { page: 1, pageSize: $pageSize, sortBy: "code", sortOrder: "asc" }
     ) {
@@ -69,6 +71,7 @@ const QUERY = /* GraphQL */ `
         effectiveDate
         endDate
         isFuture
+        childrenCount
       }
       pagination { total page pageSize }
     }

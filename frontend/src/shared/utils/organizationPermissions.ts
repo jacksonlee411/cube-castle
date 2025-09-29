@@ -33,13 +33,13 @@ export const getOperationPermissions = (
     canMove: isAdmin,
     canViewTimeline: true
   };
-  
-  // TODO-TEMPORARY: Child organization check disabled; implement API integration for child count in v4.3 by 2025-09-20.
-  // if (organization.childCount && organization.childCount > 0) {
-  //   permissions.canDelete = false;
-  //   permissions.reason = '存在子组织，无法删除';
-  // }
-  
+
+  const childCount = organization.childrenCount ?? (organization as unknown as { childCount?: number }).childCount ?? 0;
+  if (childCount > 0) {
+    permissions.canDelete = false;
+    permissions.reason = '存在子组织，无法删除';
+  }
+
   return permissions;
 };
 
@@ -78,6 +78,12 @@ export function getOperationPermissionsByScopes(
 
   if (!canDelete && has('org:delete') && organization.status === 'ACTIVE') {
     ctx.reason = 'ACTIVE 状态下不允许删除';
+  }
+
+  const childCount = organization.childrenCount ?? (organization as unknown as { childCount?: number }).childCount ?? 0;
+  if (childCount > 0) {
+    ctx.canDelete = false;
+    ctx.reason = '存在子组织，无法删除';
   }
 
   return ctx;

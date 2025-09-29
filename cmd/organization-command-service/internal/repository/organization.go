@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -21,6 +22,27 @@ type OrganizationRepository struct {
 
 func NewOrganizationRepository(db *sql.DB, logger *log.Logger) *OrganizationRepository {
 	return &OrganizationRepository{db: db, logger: logger}
+}
+
+var (
+	ErrOrganizationHasChildren  = errors.New("organization has non-deleted child units")
+	ErrOrganizationPrecondition = errors.New("organization precondition failed")
+)
+
+type OrganizationHasChildrenError struct {
+	Count int
+}
+
+func (e *OrganizationHasChildrenError) Error() string {
+	return ErrOrganizationHasChildren.Error()
+}
+
+func (e *OrganizationHasChildrenError) Is(target error) bool {
+	return target == ErrOrganizationHasChildren
+}
+
+func NewOrganizationHasChildrenError(count int) error {
+	return &OrganizationHasChildrenError{Count: count}
 }
 
 type hierarchyFields struct {
@@ -395,7 +417,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	addAssignment("updated_at", time.Now())
 
 	setClause := strings.Join(setParts, ", ")
-query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND code = $2\n  AND status <> 'DELETED'\nRETURNING tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
+	query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND code = $2\n  AND status <> 'DELETED'\nRETURNING tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
@@ -590,7 +612,7 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 	addAssignment("updated_at", time.Now())
 
 	setClause := strings.Join(setParts, ", ")
-query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND record_id = $2\n  AND status <> 'DELETED'\nRETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
+	query := fmt.Sprintf("UPDATE organization_units\nSET %s\nWHERE tenant_id = $1 AND record_id = $2\n  AND status <> 'DELETED'\nRETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,\n          level, path, code_path, name_path, sort_order, description, created_at, updated_at,\n          effective_date, end_date, change_reason", setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
@@ -724,4 +746,72 @@ func (r *OrganizationRepository) ListVersionsByCode(ctx context.Context, tenantI
 	}
 
 	return versions, nil
+}
+
+func (r *OrganizationRepository) CountNonDeletedChildren(ctx context.Context, tenantID uuid.UUID, code string) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT code)
+		FROM organization_units
+		WHERE tenant_id = $1 AND parent_code = $2 AND status <> 'DELETED'
+		  AND (is_current = true OR effective_date >= CURRENT_DATE)
+	`
+
+	var count int
+	if err := r.db.QueryRowContext(ctx, query, tenantID.String(), code).Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to count child organizations: %w", err)
+	}
+
+	return count, nil
+}
+
+func (r *OrganizationRepository) SoftDeleteOrganization(ctx context.Context, tenantID uuid.UUID, code string, deletedAt time.Time, actorID, reason string) error {
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return fmt.Errorf("begin transaction failed: %w", err)
+	}
+	defer tx.Rollback()
+
+	updateQuery := `
+		UPDATE organization_units
+		SET status = 'DELETED',
+		    is_current = false,
+		    updated_at = NOW(),
+		    deleted_at = $3,
+		    deleted_by = $4,
+		    deletion_reason = CASE WHEN $5 <> '' THEN $5 ELSE deletion_reason END
+		WHERE tenant_id = $1 AND code = $2 AND status <> 'DELETED'
+	`
+
+	res, err := tx.ExecContext(ctx, updateQuery, tenantID.String(), code, deletedAt, actorID, strings.TrimSpace(reason))
+	if err != nil {
+		return fmt.Errorf("soft delete organization failed: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("retrieve delete row count failed: %w", err)
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit soft delete transaction failed: %w", err)
+	}
+
+	r.logger.Printf("🗑️ 已软删除组织 %s (tenant=%s, rows=%d)", code, tenantID, rowsAffected)
+	return nil
+}
+
+func (r *OrganizationRepository) HasOtherNonDeletedVersions(ctx context.Context, tenantID uuid.UUID, code, excludeRecordID string) (bool, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM organization_units
+		WHERE tenant_id = $1 AND code = $2 AND status <> 'DELETED' AND record_id <> $3
+	`
+	var count int
+	if err := r.db.QueryRowContext(ctx, query, tenantID.String(), code, excludeRecordID).Scan(&count); err != nil {
+		return false, fmt.Errorf("failed to count remaining versions: %w", err)
+	}
+	return count > 0, nil
 }

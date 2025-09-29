@@ -40,6 +40,7 @@ export interface GraphQLOrganizationData {
   endDate?: string;
   isCurrent?: boolean;
   isFuture?: boolean;
+  childrenCount?: number;
   
   // 审计字段
   createdAt?: string;
@@ -94,6 +95,13 @@ export function convertGraphQLToOrganizationUnit(
     suspendedAt: data.suspendedAt ?? null,
     suspendedBy: data.suspendedBy ?? null,
     suspensionReason: data.suspensionReason ?? null,
+    childrenCount:
+      typeof data.childrenCount === 'number'
+        ? data.childrenCount
+        : ((): number | undefined => {
+            const legacy = (data as Record<string, unknown>).childCount;
+            return typeof legacy === 'number' ? legacy : undefined;
+          })(),
   };
 }
 

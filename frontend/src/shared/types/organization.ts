@@ -13,6 +13,7 @@ export interface OrganizationUnit {
   path?: string | null;
   sortOrder: number;  // camelCase
   description?: string;
+  childrenCount?: number;
   
   // 审计字段
   createdAt: string;  // camelCase

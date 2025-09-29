@@ -196,6 +196,7 @@ type Organization {
   isTemporal: Boolean!
   isFuture: Boolean!
   hierarchyDepth: Int!
+  childrenCount: Int!
 
   # Soft delete & suspension audit fields (optional)
   deletedAt: String
@@ -540,6 +541,7 @@ input OrganizationFilter {
   codes: [String!]
   excludeCodes: [String!]
   excludeDescendantsOf: String
+  includeDisabledAncestors: Boolean = false
   
   # Hierarchy Filtering
   level: Int

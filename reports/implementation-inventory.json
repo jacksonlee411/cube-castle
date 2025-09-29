@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-09-27T12:25:27.963Z",
+  "timestamp": "2025-09-29T05:17:53.054Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 12,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 143
+    "tsExports": 145
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -876,6 +876,16 @@
     },
     {
       "name": "getOrganizationLevelText",
+      "file": "frontend/src/shared/utils/organization-helpers.ts",
+      "kind": "const"
+    },
+    {
+      "name": "coerceOrganizationLevel",
+      "file": "frontend/src/shared/utils/organization-helpers.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getDisplayLevel",
       "file": "frontend/src/shared/utils/organization-helpers.ts",
       "kind": "const"
     },

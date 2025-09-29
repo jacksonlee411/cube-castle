@@ -77,6 +77,7 @@ type Organization struct {
 
 	// 新增缺失的字段
 	HierarchyDepthField int `json:"hierarchyDepth" db:"hierarchy_depth"`
+	ChildrenCountField  int `json:"childrenCount" db:"children_count"`
 }
 
 func clampToInt32(value int) int32 {
@@ -134,6 +135,7 @@ func (o Organization) IsTemporal() bool {
 }
 func (o Organization) ChangeReason() *string { return o.ChangeReasonField }
 func (o Organization) HierarchyDepth() int32 { return clampToInt32(o.HierarchyDepthField) }
+func (o Organization) ChildrenCount() int32  { return clampToInt32(o.ChildrenCountField) }
 func cnTodayDate() time.Time {
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
@@ -451,12 +453,13 @@ type OrganizationFilter struct {
 	OnlyFuture    bool    `json:"onlyFuture"`
 
 	// Business Filtering
-	UnitType             *string   `json:"unitType"`
-	Status               *string   `json:"status"`
-	ParentCode           *string   `json:"parentCode"`
-	Codes                *[]string `json:"codes"`
-	ExcludeCodes         *[]string `json:"excludeCodes"`
-	ExcludeDescendantsOf *string   `json:"excludeDescendantsOf"`
+	UnitType                 *string   `json:"unitType"`
+	Status                   *string   `json:"status"`
+	ParentCode               *string   `json:"parentCode"`
+	Codes                    *[]string `json:"codes"`
+	ExcludeCodes             *[]string `json:"excludeCodes"`
+	ExcludeDescendantsOf     *string   `json:"excludeDescendantsOf"`
+	IncludeDisabledAncestors bool      `json:"includeDisabledAncestors"`
 
 	// Hierarchy Filtering
 	Level      *int32 `json:"level"`
@@ -532,6 +535,8 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	offset := (page - 1) * pageSize
 	limit := pageSize
 
+	includeDisabledAncestors := false
+
 	var (
 		status, searchText, unitType, parentCode string
 		includeCodes, excludeCodes               []string
@@ -540,6 +545,7 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 	)
 
 	if filter != nil {
+		includeDisabledAncestors = filter.IncludeDisabledAncestors
 		if filter.Status != nil {
 			status = strings.TrimSpace(*filter.Status)
 		}
@@ -618,9 +624,22 @@ latest_versions AS (
 SELECT lv.record_id, lv.tenant_id, lv.code, lv.parent_code, lv.name, lv.unit_type, lv.status,
        lv.level, lv.path, lv.sort_order, lv.description, lv.profile, lv.created_at, lv.updated_at,
        lv.effective_date, lv.end_date, lv.is_current, lv.change_reason,
-       lv.deleted_at, lv.deleted_by, lv.deletion_reason, lv.suspended_at, lv.suspended_by, lv.suspension_reason
+       lv.deleted_at, lv.deleted_by, lv.deletion_reason, lv.suspended_at, lv.suspended_by, lv.suspension_reason,
+       COALESCE(child_stats.child_count, 0) AS children_count
 FROM latest_versions lv
 LEFT JOIN parent_path pp ON TRUE
+LEFT JOIN LATERAL (
+    SELECT COUNT(*) AS child_count
+    FROM organization_units child
+    WHERE child.tenant_id = lv.tenant_id
+      AND child.parent_code = lv.code
+      AND child.status <> 'DELETED'
+      AND (
+        $2::text IS NULL OR (
+          child.effective_date <= $2::date AND (child.end_date IS NULL OR child.end_date > $2::date)
+        )
+      )
+) child_stats ON TRUE
 WHERE 1=1`
 
 	countSelect := `
@@ -634,9 +653,15 @@ WHERE 1=1`
 	whereConditions := ""
 
 	if status != "" {
-		whereConditions += fmt.Sprintf(" AND lv.status = $%d", argIndex)
-		args = append(args, status)
-		argIndex++
+		if includeDisabledAncestors && parentCode != "" {
+			whereConditions += fmt.Sprintf(" AND (lv.status = $%d OR (lv.parent_code = $%d AND lv.status <> 'DELETED'))", argIndex, argIndex+1)
+			args = append(args, status, parentCode)
+			argIndex += 2
+		} else {
+			whereConditions += fmt.Sprintf(" AND lv.status = $%d", argIndex)
+			args = append(args, status)
+			argIndex++
+		}
 	} else {
 		whereConditions += " AND lv.status <> 'DELETED'"
 	}
@@ -709,7 +734,7 @@ WHERE 1=1`
 			&org.DescriptionField, &org.ProfileField, &org.CreatedAtField, &org.UpdatedAtField,
 			&org.EffectiveDateField, &org.EndDateField, &org.IsCurrentField,
 			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
-			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
+			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField, &org.ChildrenCountField,
 		); err != nil {
 			r.logger.Printf("[ERROR] 扫描组织数据失败: %v", err)
 			return nil, err
