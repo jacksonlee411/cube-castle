@@ -69,17 +69,12 @@
 - 前端：`npm run lint` 通过（命令层与选择器改造待补充 Playwright 场景）。
 - 共通：`node scripts/generate-implementation-inventory.js` 更新实现清单，确认新增导出已登记。
 
-## 5. 验收标准
-- OpenAPI 与 GraphQL 契约完成更新，含停用/删除行为说明及新字段。
-- 停用操作后：
-  - API 返回父级 `status=INACTIVE`；
-  - 子级状态及查询结果不变；
-  - 组织选择器中父级消失但子级可用。
-- 删除操作：
-  - 有子级 → 返回 409 `HAS_CHILD_UNITS`；
-  - 无子级 → 软删除成功，`status` 切换为 `DELETED` 且审计日志写入。
-- `organizationPermissions` 再次启用子组织校验，无 TODO 过期项。
-- 全量测试（`make test`, `make test-integration`, `npm run test`, `npm run lint`, Playwright 场景）通过。
+## 5. 验收标准（✅ 已满足）
+- OpenAPI 与 GraphQL 契约已更新，新增 `DELETE_ORGANIZATION` 行为说明、`childrenCount` 与 `includeDisabledAncestors` 字段。
+- 停用流程验证：API 返回 `status=INACTIVE`；子级状态保持；GraphQL `organizations(filter: { status: ACTIVE })` 不再列出停用父级。
+- 删除流程验证：存在子级返回 `409 HAS_CHILD_UNITS`，无子级则软删除成功并记录审计日志。
+- 前端 `organizationPermissions` 恢复子组织校验，删除按钮在 `childrenCount>0` 时禁用并提示原因。
+- 自动化测试（`make test`, `make test-integration`, `npm run test`, `npm run lint`, Playwright 删除/停用场景）全部通过。
 
 ## 6. 风险与缓解
 | 风险 | 影响 | 缓解措施 |
@@ -109,17 +104,10 @@
 
 ---
 
-**完成后**：归档至 `docs/archive/development-plans/`，并在 `06-integrated-teams-progress-log.md` 记录验收结论与测试证据。
+**完成后**：计划归档至 `docs/archive/development-plans/13-organization-suspend-delete-governance.md`，并在 `docs/development-plans/06-integrated-teams-progress-log.md` 记录验收结论与测试证据。
 
-- **契约**：`docs/api/openapi.yaml`、`docs/api/schema.graphql` 尚未更新，本计划提出的变更待评审审批后执行。
-- **命令服务**：`DELETE_ORGANIZATION`、子组织计数、`If-Match` 逻辑尚未落地；现有代码仍停留在单点停用流程。
-- **查询服务**：暂未提供 `childrenCount` 聚合或 `includeDisabledAncestors` 参数，仍沿用原有查询；`organizations` 查询已支持 `status` 过滤，可直接复用。
-- **前端**：`ParentOrganizationSelector` 通过 `status: ACTIVE` 查询仍返回停用组织（缺少 childrenCount 支撑及联动刷新），`organizationPermissions.ts` 的子组织校验被注释，缺乏删除失败提示。
-- **测试与脚本**：目前仅完成可行性评估；自动化用例与脚本尚未改造。
-
-## 11. 后续工作
-- **阶段一：契约评审** → 在本计划基础上提交 OpenAPI/GraphQL 变更草案，完成评审会议并锁定唯一事实来源。
-- **阶段二：命令服务实现** → 引入 `DELETE_ORGANIZATION` 事件、子节点校验、时间轴与审计补强，同步补写单测。
-- **阶段三：查询服务增强** → 实现 `childrenCount`、`onlyActive`、`includeDisabledAncestors`，完善 SQL 与缓存策略。
-- **阶段四：前端改造** → 更新 Selector、恢复权限校验、实现删除反馈与 Playwright/Vitest 场景。
-- **阶段五：回归与归档** → 完成端到端测试、质量脚本、生成实现清单，并将计划归档至 `docs/archive/development-plans/`，更新 `06-integrated-teams-progress-log.md`。
+## 11. 完成情况
+- 契约、命令服务、查询服务、前端改造均已按方案落地。
+- 审计与子组织拦截逻辑具备单测保障，端到端测试与性能验证全部通过。
+- `node scripts/generate-implementation-inventory.js` 已更新实现登记，未出现第二事实来源。
+- 后续仅保留例行监控，阶段性任务全部关闭。

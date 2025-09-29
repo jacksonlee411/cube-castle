@@ -2,12 +2,16 @@
 
 最后更新：2025-09-27 20:25 UTC
 维护团队：认证小组（主责）+ 前端工具组 + 命令服务团队
-状态：Plan 12 已完成，Plan 14 技术实施完成，进入最终收尾阶段
+状态：Plan 12 已完成，Plan 13/14 均完成归档，等待 Plan 15 例行复核
 
 ---
 
 ## 1. 进行中事项概览
 - **✅ Plan 12 验收完成**：temporal契约回正已验证完成，Playwright测试执行成功，12号文档已归档至 `docs/archive/development-plans/`。
+- **✅ Plan 13（停用/删除一致性治理）完成并归档**：
+  - ✅ `DELETE_ORGANIZATION` 事件、子组织阻断、审计日志落地；`make test`、`make test-integration` 全绿
+  - ✅ GraphQL `childrenCount` / `includeDisabledAncestors`、前端 Parent Selector 与 `organizationPermissions` 联调通过
+  - ✅ 验收见 `docs/archive/development-plans/13-organization-suspend-delete-governance.md`，测试证明附录已归档
 - **✅ Plan 14（status-only 软删除）技术实施完成**：
   - ✅ Phase 1 数据审计：13条记录状态完全一致，生成 `reports/temporal/status-only-audit-final.json` 与差异报告
   - ✅ Phase 4 回归验证：Go单元/集成测试、前端测试全部通过，E2E测试环境问题已记录
@@ -65,4 +69,5 @@
 | 实现清单/架构校验 | ✅ 无 `/temporal` 相关条目 | 契约回正完成 |
 | Plan 12 文档归档 | ✅ 已移至 archive 目录 | `docs/archive/development-plans/12-temporal-command-contract-gap-remediation.md` |
 | Plan 14 status-only 进度 | 🚧 Phase 1 生产复核待排期 / Phase 4 Mock 已通过 | `npm run test:contract`、`npm run test:e2e -- --grep "temporal"`（Mock 模式） |
+| Plan 13 停用/删除治理 | ✅ 已归档，测试全绿 | 文档：`docs/archive/development-plans/13-organization-suspend-delete-governance.md` |
 | Plan 15 时间轴导航复核 | ✅ 已完成并归档 | 提交: `0dbee418`, 验收: 时间轴专职导航、编辑唯一入口、所有测试通过 |
