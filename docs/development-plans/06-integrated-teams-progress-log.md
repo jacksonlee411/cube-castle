@@ -16,9 +16,9 @@
   - ✅ Phase 1 数据审计：13条记录状态完全一致，生成 `reports/temporal/status-only-audit-final.json` 与差异报告
   - ✅ Phase 4 回归验证：Go单元/集成测试、前端测试全部通过，E2E测试环境问题已记录
   - ✅ 实现清单已更新为v1.9.1版本，记录软删除统一架构变更
+- **🚧 Plan 16 代码异味治理**：Phase 0 基线确认阶段，已生成基线报告，待完成实现清单检查与工作量评估（详见下方进展跟踪）
+- **✅ Plan 17 TODO 治理（已归档）**：419 状态码评审完成；`scripts/check-temporary-tags.sh` 扩展支持文档扫描，CI 及周度巡检日志已提交，持续巡检按模板执行。
 - **API 合规例外决策**：前端 lint 仍报 3 个 `camelcase`（外部协议字段）与多处 `no-console`，尚未决定豁免或改写，CI 配置也未同步。
-- **Plan 16 代码异味治理**：已建立基线与分阶段目标，聚焦 Go/TS 红灯文件拆分与类型治理，按周同步进展。
-- **Plan 17 TODO 治理（已归档）**：419 状态码评审完成；`scripts/check-temporary-tags.sh` 扩展支持文档扫描，CI 及周度巡检日志已提交，持续巡检按模板执行。
 - **Console 输出治理**：缺乏统一日志策略，是否替换 `console` 需由前端团队给出方案与时间表。
 - **Spectral 依赖失效**：`npm install` 拉取 `@stoplight/spectral-oasx` 仍报 404，需与平台团队协作替换镜像或缓存，避免阻断安装流程。
 - **Playwright 权限回归**：时态相关用例因权限配置失败，需定位业务策略或测试数据，确认能够在 RS256 环境下稳定通过。
@@ -73,3 +73,50 @@
 | Plan 14 status-only 进度 | 🚧 Phase 1 生产复核待排期 / Phase 4 Mock 已通过 | `npm run test:contract`、`npm run test:e2e -- --grep "temporal"`（Mock 模式） |
 | Plan 13 停用/删除治理 | ✅ 已归档，测试全绿 | 文档：`docs/archive/development-plans/13-organization-suspend-delete-governance.md` |
 | Plan 15 时间轴导航复核 | ✅ 已完成并归档 | 提交: `0dbee418`, 验收: 时间轴专职导航、编辑唯一入口、所有测试通过 |
+
+---
+
+## 7. Plan 16 代码异味治理进展跟踪
+
+### Phase 0 基线确认（2025-09-30 启动）
+- **✅ 基线报告生成**: `reports/iig-guardian/code-smell-baseline-20250929.md`
+  - Go后端：54文件，16,888行，红灯3个（27.5%），橙灯5个（22.1%）
+  - 前端TS：112文件，18,254行，红灯2个（12.2%），橙灯9个（26.2%）
+- **⏳ 待完成任务**:
+  - [ ] 运行实现清单：`node scripts/generate-implementation-inventory.js`
+  - [ ] 临时治理巡检：`bash scripts/check-temporary-tags.sh`
+  - [ ] 工作量复核：确认团队30%工作量可投入（架构组+PM）
+  - [ ] Git标签基线：`git tag plan16-phase0-baseline`
+  - [ ] 弱类型统计：`rg "\bany\b|\bunknown\b" frontend/src --stats`
+  - [ ] 更新本日志：填写Phase 0完成时间与责任人
+
+### 进展模板（每周五更新）
+| 周次 | 完成任务 | 红灯文件 | 阻塞项 | 风险变化 |
+|------|---------|---------|--------|---------|
+| W1 (2025-10-04) | Phase 0完成 | Go:3, TS:2 | - | - |
+| W2 (2025-10-11) | main.go拆分 | Go:2, TS:2 | 待填写 | 待填写 |
+| W3 (2025-10-18) | handler/repo拆分 | Go:0, TS:2 | 待填写 | 待填写 |
+| W4 (2025-10-25) | 前端组件拆分 | Go:0, TS:0 | 待填写 | 待填写 |
+| W5 (2025-11-01) | Phase 2类型治理 | - | 待填写 | 待填写 |
+| W6 (2025-11-08) | Phase 3监控系统 | - | 待填写 | 待填写 |
+
+### 关键里程碑
+- **Phase 0 目标完成**: 2025-10-01（责任人：待填写）
+- **Phase 1 红灯清零**: 2025-10-22（3周，含测试）
+- **Phase 2 类型治理**: 2025-11-05（1.5周）
+- **Phase 3 监控上线**: 2025-11-08（1周）
+
+### 风险追踪
+- **测试工作量**: Phase 1需额外30%时间用于单元测试编写（覆盖率≥80%）
+- **前端类型改动**: Phase 2需分批次进行，避免大面积编译失败
+- **回滚准备**: 每个重构任务前创建git标签 `plan16-phase[X]-task[Y]-before`
+
+### 验收标准
+- [ ] 红灯文件清零（Go 0个, TS 0个）
+- [ ] 橙灯文件控制（Go ≤3个, TS ≤5个）
+- [ ] any/unknown使用≤30处（当前169处）
+- [ ] 单元测试覆盖率≥80%
+- [ ] 契约测试通过率100%
+- [ ] 监控脚本 `scripts/code-smell-monitor.sh` 交付并纳入CI
+
+---

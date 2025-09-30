@@ -3,7 +3,7 @@
 版本: v1.9.1 软删除状态迁移完成版
 维护人: 架构组（与IIG护卫系统协同维护）
 范围: 基于最新IIG扫描的完整实现清单（API优先+CQRS架构+状态字段统一）
-最后更新: 2025-09-27（**14号计划完成后**：26个命令端点 + 12个GraphQL字段 + 26个Go处理器 + 19个Go服务类型 + 146个前端导出项）
+最后更新: 2025-09-30（脚本刷新：26个命令端点 + 12个GraphQL字段 + 26个Go处理器 + 19个Go服务类型 + 146个前端导出项；来源 `reports/implementation-inventory.json` 快照 2025-09-30T00:22:04Z）
 
 ## 🔄 **重要架构变更记录**
 **2025-09-27**: ✅ **软删除判定统一为仅依赖status字段**（14号计划完成）
@@ -94,7 +94,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ### 🎯 **API优先设计端点** (26个端点，按类别汇总)
 
-> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-09-24，详见 `reports/implementation-inventory.json.openapiPaths`
+> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-09-30（快照 2025-09-30T00:22:04Z），详见 `reports/implementation-inventory.json.openapiPaths`
 
 #### 运维与可观测性（9）
 - `/api/v1/operational/health` — 健康检查 (GetHealth)
@@ -677,9 +677,9 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ### **🎯 API优先架构成果统计** ⭐ **基于最新扫描结果**
 
-#### **📋 API契约层统计** (API-First Core) ⭐ **IIG护卫验证完成**
-- **REST API端点**: 17个端点（10个业务 + 7个认证）⭐ **API优先设计完成**
+- **REST API端点**: 26个端点（运维9 + 认证7 + 组织命令10）⭐ **API优先设计完成**
   - 权威来源: `docs/api/openapi.yaml` 完整定义
+  - 分类说明: 运维可观测性端点9个、认证/OIDC端点7个、组织命令端点10个
   - 认证架构: OAuth2 + OIDC标准实现，JWT + JWKS公钥验证
   - 业务端点: 组织CRUD + 时态版本管理 + 层级维护
   - 实现状态: 所有端点严格按照OpenAPI规范实现
