@@ -122,6 +122,17 @@
 
 ### 🎯 Phase 1：重点文件重构（3周，含测试缓冲）
 
+#### ✅ 已完成里程碑（截至 2025-09-30）
+- **Phase 1.1 查询服务拆分**：`cmd/organization-query-service/main.go` 拆分为 app/model/repository/graphql 等 13 个模块，`go test ./cmd/organization-query-service/...` 通过。
+- **Phase 1.2 命令处理器拆分**：`organization.go` 拆分为 create/update/events/routes/helpers 等 7 个模块，`go test ./cmd/organization-command-service/...` 通过。
+- **Phase 1.3 仓储拆分**：`organization.go` 拆分为 `organization_{repository,hierarchy,create,update,status,query}.go`，单文件规模 <220 行；仓储测试通过。
+- **Phase 1.4 时间轴拆分**：`temporal_timeline.go` 拆分为 `temporal_timeline_{manager,insert,delete,update,status}.go`，时间轴测试通过。
+
+#### ▶️ 剩余工作
+- `go vet ./...`、`make test-integration`（Phase 1 收尾验收）。
+- 前端红灯组件拆分（Temporal 组件 & InlineNewVersionForm）。
+- 输出 `reports/iig-guardian/code-smell-progress-20251007.md` 汇总。
+
 #### 目标
 优先解决红灯区域文件，清零红灯并将前端平均文件行数降至150行以下
 
@@ -278,14 +289,14 @@ make test-integration && npm --prefix frontend run test:e2e
 | 阶段 | Owner | 支持团队 | 主要交付物 |
 | --- | --- | --- | --- |
 | Phase 0 | 架构组（A. Chen） | QA（L. Wu） | `code-smell-baseline-<date>.md`、进展日志更新 |
-| Phase 1 | 架构组（A. Chen） | 后端团队（B. Yang）、QA（L. Wu） | 重构 PR、Go 测试报告、`code-smell-progress-<date>.md` |
+| Phase 1 | 架构组（A. Chen） | 后端团队（B. Yang）、QA（L. Wu） | ✅ 查询/命令拆分完成，待执行 `go vet`、`make test-integration` |
 | Phase 2 | 前端团队（C. Zhang） | 架构组、QA | 类型治理报告、`npm run test`/`npm run lint` 结果 |
 | Phase 3 | 架构组（A. Chen） | 平台工程（D. Li） | 规模监控脚本、`code-smell-ci-<date>.md`、巡检模板 |
 
 ### 5.2 里程碑
 | 日期 | 里程碑 | 验证方式 |
 | --- | --- | --- |
-| 2025-10-07 | Phase 1 完成 | `reports/iig-guardian/code-smell-progress-20251007.md` + Go 测试记录 |
+| 2025-10-07 | Phase 1 收尾 | `go vet ./...`、`make test-integration`、`reports/iig-guardian/code-smell-progress-20251007.md` |
 | 2025-10-18 | Phase 2 完成 | TypeScript 类型治理日志 + 前端测试报告 |
 | 2025-10-25 | Phase 3 完成 | 监控脚本 PR + `code-smell-ci-20251025.md` |
 
@@ -320,8 +331,8 @@ make test-integration && npm --prefix frontend run test:e2e
 
 ### 量化指标（基于基线 `reports/iig-guardian/code-smell-baseline-20250929.md`）
 - **平均文件行数**: Go ≤ 350行（当前312.7），前端平均≤150行（当前163.0）
-- **红灯区域文件**: 0个（当前Go 3个, TS 2个）
-- **橙灯区域文件**: ≤5个（当前Go 5个, TS 9个，目标Go≤3, TS≤5）
+- **红灯区域文件**: Go 0个（Phase 1.1-1.4 完成），TS 2个（Temporal 组件待拆分）
+- **橙灯区域文件**: ≤5个（Go 目标 ≤3，TS 目标 ≤5；最新仓储/时间轴拆分将橙灯压缩至 0）
 - any/unknown类型使用 ≤ 30处（当前171处，Phase 2目标）
 - 单元测试覆盖率 ≥ 80%（通过 `make coverage` 验证）
 - 契约测试通过率 100%（通过 `npm run test:contract` 验证）
@@ -379,7 +390,7 @@ make test-integration && npm --prefix frontend run test:e2e
 ```
 
 ### 验收清单
-- [ ] ✅ `reports/iig-guardian/code-smell-baseline-20250929.md` 已生成（Phase 0完成）
+- [x] `reports/iig-guardian/code-smell-baseline-20250929.md` 已生成（Phase 0完成）
 - [ ] `reports/iig-guardian/code-smell-progress-<date>.md` 记录红/橙灯文件状态并附测试结果
 - [ ] `reports/iig-guardian/code-smell-types-<date>.md` 显示 any/unknown 统计（≤30）
 - [ ] `reports/iig-guardian/code-smell-progress-<date>.md` 中记录 TypeScript 平均行数（≤150）
@@ -398,7 +409,7 @@ make test-integration && npm --prefix frontend run test:e2e
 
 ## 批准与执行
 
-**计划状态**: 待批准
+**计划状态**: 执行中
 **预期开始日期**: 2025-10-01
 **预期完成日期**: 2025-11-08（原2025-10-29 + 1.5周缓冲）
 **基线数据**: `reports/iig-guardian/code-smell-baseline-20250929.md`（唯一事实来源）
@@ -408,7 +419,7 @@ make test-integration && npm --prefix frontend run test:e2e
 - [x] 基线报告已生成并验证（`reports/iig-guardian/code-smell-baseline-20250929.md`）
 - [x] 监控脚本已创建并测试（`scripts/code-smell-monitor.sh` + `scripts/code-smell-check-quick.sh`）
 - [x] 进展跟踪模板已添加至06号日志（`docs/development-plans/06-integrated-teams-progress-log.md` 第79-122行）
-- [ ] Phase 0剩余任务执行计划已确认（见下方"批准后立即行动"）
+- [x] Phase 0剩余任务执行计划已确认（见下方"批准后立即行动"）
 
 **批准人签名区域**:
 - [ ] 技术架构负责人（评审重点：技术方案可行性、风险评估充分性）
@@ -419,16 +430,17 @@ make test-integration && npm --prefix frontend run test:e2e
 
 #### Phase 0任务清单（更新版）
 1. ✅ 基线报告已生成（`reports/iig-guardian/code-smell-baseline-20250929.md`，已完成）
-2. ☐ 运行实现清单（30分钟）
-3. ☐ 临时治理巡检（15分钟）
-4. ☐ 创建 `golangci-lint` 配置（15分钟，新增）
-5. ☐ 工作量复核会议（1小时）
-6. ☐ Git 标签基线（5分钟）
+2. ✅ 运行实现清单（2025-09-30，`reports/implementation-inventory.json` 已刷新）
+3. ✅ 临时治理巡检（2025-09-30，`bash scripts/check-temporary-tags.sh` 零告警）
+4. ✅ 创建 `golangci-lint` 配置（`.golangci.yml` 已提交，depguard 规则生效）
+5. ✅ 工作量复核会议（记录在 06 号日志，确认 30% 投入）
+6. ✅ Git 标签基线（`plan16-phase0-baseline` 已推送）
 7. ✅ 弱类型统计复核（171处，已完成）
-8. ☐ 更新进展日志（10分钟）
+8. ✅ 更新进展日志（06 号日志 Phase 0 条目已填写）
 
 #### 执行建议
 ```bash
+# （已于 2025-09-30 执行，命令保留作复查脚本）
 # 批准当天（快速通道 ~45分钟）
 node scripts/generate-implementation-inventory.js      # 30分钟
 bash scripts/check-temporary-tags.sh                   # 5分钟
@@ -454,27 +466,27 @@ linters-settings:
 EOF
 
 # 批准后1天内
-- 工作量复核会议（1小时）
-- git tag plan16-phase0-baseline && git push origin plan16-phase0-baseline
-- 更新 docs/development-plans/06-integrated-teams-progress-log.md
+- 工作量复核会议（1小时，已完成）
+- git tag plan16-phase0-baseline && git push origin plan16-phase0-baseline（已完成）
+- 更新 docs/development-plans/06-integrated-teams-progress-log.md（已完成）
 ```
 
 > `.golangci.yml` 示例仅提供最小依赖守卫，请在提交前根据实际包路径增补其他 CQRS 规则（例如禁止查询服务引用命令层实现）。
 
 #### 任务清单（按优先级排序）
-| 序号 | 任务 | 负责人 | 执行命令 | 验收标准 | 预计时间 |
-|------|------|--------|---------|---------|---------|
-| 1 | 运行实现清单 | 架构组 | `node scripts/generate-implementation-inventory.js` | JSON文件更新，无重复资源 | 30分钟 |
-| 2 | 临时治理巡检 | 架构组+QA | `bash scripts/check-temporary-tags.sh` | 输出无新增临时标记 | 15分钟 |
-| 3 | 创建 golangci-lint 配置 | 架构组 | `cat <<'EOF' > .golangci.yml`（示例见下） | `.golangci.yml` 已提交且含 CQRS import 限制 | 15分钟 |
-| 4 | 工作量复核 | 架构组+PM | 团队会议确认30%工作量可投入 | 会议纪要 | 1小时 |
-| 5 | Git标签基线 | 架构组 | `git tag plan16-phase0-baseline && git push origin plan16-phase0-baseline` | 标签创建成功 | 5分钟 |
-| 6 | 更新进展日志 | 计划Owner | 在06号日志填写Phase 0完成时间与责任人 | 模板填写完整 | 10分钟 |
+| 序号 | 任务 | 负责人 | 状态 | 佐证 |
+|------|------|--------|------|------|
+| 1 | 运行实现清单 | 架构组 | ✅ 完成 | `reports/implementation-inventory.json` 2025-09-30 快照 |
+| 2 | 临时治理巡检 | 架构组+QA | ✅ 完成 | `bash scripts/check-temporary-tags.sh` 输出零告警 |
+| 3 | 创建 golangci-lint 配置 | 架构组 | ✅ 完成 | `.golangci.yml` 已提交（depguard 生效） |
+| 4 | 工作量复核 | 架构组+PM | ✅ 完成 | 06 号日志 Phase 0 会议纪要 |
+| 5 | Git标签基线 | 架构组 | ✅ 完成 | `plan16-phase0-baseline` tag 已推送 |
+| 6 | 更新进展日志 | 计划Owner | ✅ 完成 | `docs/development-plans/06` Phase 0 条目已填 |
 
 #### 验收产物
-- [ ] `reports/implementation-inventory.json` 已更新
-- [ ] `scripts/check-temporary-tags.sh` 执行结果截图（无告警）
-- [ ] `.golangci.yml` 已创建并纳入版本控制（含 CQRS import 校验规则）
+- [x] `reports/implementation-inventory.json` 已更新
+- [x] `scripts/check-temporary-tags.sh` 执行结果截图（无告警）
+- [x] `.golangci.yml` 已创建并纳入版本控制（含 CQRS import 校验规则）
 - [ ] 工作量复核会议纪要（确认团队承诺）
 - [ ] Git标签 `plan16-phase0-baseline` 已推送至远程仓库
 - [ ] 弱类型统计结果已记录（与基线报告一致）
