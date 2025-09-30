@@ -7,7 +7,10 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.12.0
+	shared v0.0.0
 )
+
+replace shared => ./shared
 
 require (
 	github.com/bytedance/sonic v1.9.1 // indirect

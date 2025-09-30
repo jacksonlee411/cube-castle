@@ -1,0 +1,39 @@
+run:
+  timeout: 5m
+  issues-exit-code: 1
+
+linters:
+  enable:
+    - depguard
+    - importas
+    - revive
+    - govet
+
+linters-settings:
+  depguard:
+    rules:
+      command-service-boundary:
+        list-type: blacklist
+        packages:
+          - cube-castle-deployment-test/cmd/organization-query-service/internal
+          - cube-castle-deployment-test/cmd/organization-query-service/internal/...
+        files:
+          - cmd/organization-command-service/internal/...
+        message: "命令服务不得依赖查询服务内部实现"
+      query-service-boundary:
+        list-type: blacklist
+        packages:
+          - cube-castle-deployment-test/cmd/organization-command-service/internal
+          - cube-castle-deployment-test/cmd/organization-command-service/internal/...
+        files:
+          - cmd/organization-query-service/internal/...
+        message: "查询服务不得依赖命令服务内部实现"
+  importas:
+    alias:
+      - pkg: cube-castle-deployment-test/internal/graphql
+        alias: schemaLoader
+      - pkg: cube-castle-deployment-test/internal/middleware
+        alias: requestMiddleware
+
+issues:
+  exclude-use-default: false
