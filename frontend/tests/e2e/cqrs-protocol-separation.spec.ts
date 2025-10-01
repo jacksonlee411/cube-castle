@@ -115,16 +115,17 @@ test.describe('CQRS协议分离验证', () => {
     console.log('测试: 查询端支持GraphQL查询');
     
     const graphqlQuery = {
-      query: `
-        query {
-          organization_units(first: 5) {
+      query: `query ($page: Int!, $size: Int!) {
+        organizations(pagination: { page: $page, pageSize: $size }) {
+          data {
             code
             name
-            unit_type
+            unitType
             status
           }
         }
-      `
+      }`,
+      variables: { page: 1, size: 5 },
     };
 
     const response = await request.post('http://localhost:8090/graphql', {
@@ -135,10 +136,10 @@ test.describe('CQRS协议分离验证', () => {
     
     const body = await response.json();
     expect(body.data).toBeDefined();
-    expect(body.data.organization_units).toBeInstanceOf(Array);
+    expect(body.data.organizations.data).toBeInstanceOf(Array);
     
     console.log('✅ 查询端正确支持GraphQL查询');
-    console.log(`📊 查询到 ${body.data.organization_units.length} 个组织`);
+    console.log(`📊 查询到 ${body.data.organizations.data.length} 个组织`);
   });
 
   test('✅ 查询端应支持单个组织GraphQL查询', async ({ request }) => {
@@ -146,14 +147,15 @@ test.describe('CQRS协议分离验证', () => {
     
     // 首先获取一个存在的组织代码
     const listQuery = {
-      query: `
-        query {
-          organization_units(first: 1) {
+      query: `query ($page: Int!, $size: Int!) {
+        organizations(pagination: { page: $page, pageSize: $size }) {
+          data {
             code
             name
           }
         }
-      `
+      }`,
+      variables: { page: 1, size: 1 },
     };
 
     const listResponse = await request.post('http://localhost:8090/graphql', {
@@ -161,27 +163,25 @@ test.describe('CQRS协议分离验证', () => {
     });
 
     const listBody = await listResponse.json();
-    if (listBody.data.organization_units.length === 0) {
+    if (listBody.data.organizations.data.length === 0) {
       console.log('⚠️ 跳过测试: 没有可查询的组织');
       return;
     }
 
-    const testCode = listBody.data.organization_units[0].code;
+    const testCode = listBody.data.organizations.data[0].code;
     console.log(`📋 使用组织代码: ${testCode}`);
 
     // 查询单个组织
     const singleQuery = {
-      query: `
-        query($code: String!) {
-          organization_unit(code: $code) {
-            code
-            name
-            unit_type
-            status
-          }
+      query: `query ($code: String!) {
+        organization(code: $code) {
+          code
+          name
+          unitType
+          status
         }
-      `,
-      variables: { code: testCode }
+      }`,
+      variables: { code: testCode },
     };
 
     const response = await request.post('http://localhost:8090/graphql', {
@@ -192,8 +192,8 @@ test.describe('CQRS协议分离验证', () => {
     
     const body = await response.json();
     expect(body.data).toBeDefined();
-    expect(body.data.organization_unit).toBeDefined();
-    expect(body.data.organization_unit.code).toBe(testCode);
+    expect(body.data.organization).toBeDefined();
+    expect(body.data.organization.code).toBe(testCode);
     
     console.log('✅ 查询端正确支持单个组织GraphQL查询');
   });

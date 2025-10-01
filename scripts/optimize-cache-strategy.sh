@@ -73,7 +73,7 @@ echo "预热关键查询缓存:"
 echo "预热组织列表查询..."
 curl -s -X POST http://localhost:8090/graphql \
     -H "Content-Type: application/json" \
-    -d '{"query":"query { organizations(first: 20) { code name unit_type status level } }"}' \
+    -d '{"query":"query { organizations(pagination: { page: 1, pageSize: 20 }) { data { code name unitType status level } } }"}' \
     > /dev/null
 
 # 预热统计查询
@@ -88,7 +88,7 @@ echo "预热常用组织查询..."
 for org_code in "1000000" "1000001" "1000002"; do
     curl -s -X POST http://localhost:8090/graphql \
         -H "Content-Type: application/json" \
-        -d '{"query":"query { organization(code: \"'$org_code'\") { code name unit_type status level } }"}' \
+        -d '{"query":"query { organization(code: \"'$org_code'\") { code name unitType status level } }"}' \
         > /dev/null
 done
 

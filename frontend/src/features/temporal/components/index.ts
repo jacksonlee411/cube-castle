@@ -7,6 +7,7 @@
 export { default as DateTimePicker } from './DateTimePicker';
 export { TimelineComponent, type TimelineComponentProps, type TimelineVersion } from './TimelineComponent'; // 新增健壮版时间轴组件
 export { default as TemporalSettings } from './TemporalSettings';
+export { InlineNewVersionForm } from './InlineNewVersionForm';
 
 // 添加时态状态选择器的导出
 export { TemporalStatusSelector, temporalStatusUtils, TEMPORAL_STATUS_OPTIONS } from './TemporalStatusSelector';

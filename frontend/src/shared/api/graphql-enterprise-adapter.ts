@@ -6,6 +6,7 @@
 
 import type { APIResponse } from '../types/api';
 import { UnifiedGraphQLClient } from './unified-client';
+import type { JsonValue } from '../types/json';
 // import { authManager } from './auth'; // 暂时移除未使用的import
 
 /*
@@ -45,7 +46,7 @@ export class GraphQLEnterpriseAdapter {
    */
   async request<T>(
     query: string, 
-    variables?: Record<string, unknown>
+    variables?: Record<string, JsonValue>
   ): Promise<APIResponse<T>> {
     try {
       // 先尝试使用客户端的原生请求方法
@@ -82,7 +83,7 @@ export class GraphQLEnterpriseAdapter {
   async batchRequest<T>(
     requests: Array<{
       query: string;
-      variables?: Record<string, unknown>;
+      variables?: Record<string, JsonValue>;
       operationName?: string;
     }>
   ): Promise<APIResponse<T[]>> {

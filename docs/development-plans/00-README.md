@@ -48,6 +48,7 @@
 
 #### **07-20 - 已完成计划和指南**
 - `../archive/development-plans/07-contract-testing-automation-system.md` - ⭐ **契约测试自动化验证体系** (S级成功完成)
+- `../archive/development-plans/08-parent-organization-selector-enhancement.md` - 上级组织选择器增强方案（Canvas Kit回归 + 测试同步完成）
 - `../archive/development-plans/08-frontend-api-standards.md` - 前端API调用规范文档和开发标准
 - `../archive/development-plans/09-code-review-checklist.md` - 前端代码审查检查清单和质量标准
 - `../archive/development-plans/10-codebase-cleanup-maintenance-plan.md` - 代码库清理维护计划

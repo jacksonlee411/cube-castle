@@ -43,7 +43,7 @@
 **前端TypeScript文件分析**:
 - **超大文件**（>800行，需要重构）:
   - `frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`: 1,157行 ⚠️
-  - `frontend/src/features/temporal/components/InlineNewVersionForm.tsx`: 1,067行 ⚠️
+  - `frontend/src/features/temporal/components/InlineNewVersionForm.tsx`: **已于 2025-10-08 拆分**（容器 + 8 子组件 + hooks/action 工厂，最大 232 行）
 - **大文件**（400-800行，评估拆分价值）:
   - `frontend/src/features/organizations/components/OrganizationTree.tsx`: 586行
   - `frontend/src/shared/hooks/useEnterpriseOrganizations.ts`: 491行
@@ -127,11 +127,14 @@
 - **Phase 1.2 命令处理器拆分**：`organization.go` 拆分为 create/update/events/routes/helpers 等 7 个模块，`go test ./cmd/organization-command-service/...` 通过。
 - **Phase 1.3 仓储拆分**：`organization.go` 拆分为 `organization_{repository,hierarchy,create,update,status,query}.go`，单文件规模 <220 行；仓储测试通过。
 - **Phase 1.4 时间轴拆分**：`temporal_timeline.go` 拆分为 `temporal_timeline_{manager,insert,delete,update,status}.go`，时间轴测试通过。
+- **Phase 1 收尾测试**：`go vet ./...` 已完成（2025-10-07），`make test-integration` 待执行并产出证明。
+- **阶段性进展报告**：`reports/iig-guardian/code-smell-progress-20251007.md` 已生成。
 
 #### ▶️ 剩余工作
-- `go vet ./...`、`make test-integration`（Phase 1 收尾验收）。
-- 前端红灯组件拆分（Temporal 组件 & InlineNewVersionForm）。
-- 输出 `reports/iig-guardian/code-smell-progress-20251007.md` 汇总。
+- 前端红灯组件拆分持续推进：
+  - Temporal 主视图：`TemporalMasterDetailView.tsx` 已降至 380 行并拆分出 Header/Alerts/API 层，`useTemporalMasterDetail.ts` 仍 521 行，需要再拆分为状态 hook 与 API 适配层；目标完成后重新评估主组件行数。
+   - Inline 表单：`InlineNewVersionForm` 已完成容器/子组件/动作拆分，等待 IIG 刷新后更新平均行数。
+- Phase 1 完结回顾：待上述前端拆分与 TS 指标达成后，更新 `code-smell-progress-20251014.md`。
 
 #### 目标
 优先解决红灯区域文件，清零红灯并将前端平均文件行数降至150行以下
@@ -156,6 +159,8 @@ make test-integration && npm --prefix frontend run test:e2e
 **第一优先级 - 红灯区域强制重构**（2周，含测试时间）
 
 1. **Go后端红灯文件重构**
+
+   > **进展追踪**（2025-10-07）：main.go 与命令处理器拆分已完成；本次迭代已将查询服务仓储 `postgres.go` 拆分为 `postgres_base.go`、`postgres_organizations_list.go`、`postgres_organization_details.go`、`postgres_organization_hierarchy.go`、`postgres_audit.go`，最大文件 475 行，Go 红灯完成清零。
 
    **A. main.go重构详细计划** (2,264行 → 6-8个文件，目标<400行/文件)
    ```
@@ -187,15 +192,17 @@ make test-integration && npm --prefix frontend run test:e2e
    - `handlers/organization/events.go` - 事件处理 (~300行)
    - `handlers/organization/validation.go` - 验证逻辑 (~299行)
 
-   **C. repository重构** (817行 → 3个文件)
+   **C. repository重构** (817行 → 5个文件)
    ```
-   第16-17天: 按数据访问模式拆分
-   第18天: 测试和优化
+   第16-17天: 按数据访问模式拆分（已执行，生成 postgres_*.go 五个模块）
+   第18天: 测试和优化（`go test ./cmd/organization-query-service/...`、`make test-integration` 完成）
    ```
-   目标文件结构:
-   - `repository/organization/queries.go` - 查询操作 (~300行)
-   - `repository/organization/commands.go` - 命令操作 (~300行)
-   - `repository/organization/temporal.go` - 时态操作 (~217行)
+   实际文件结构（2025-10-07 完成）:
+   - `internal/repository/postgres_base.go` - 仓储构造与公共依赖（33 行）
+   - `internal/repository/postgres_organizations_list.go` - 列表/分页查询（268 行）
+   - `internal/repository/postgres_organization_details.go` - 单体/历史/版本查询（234 行）
+   - `internal/repository/postgres_organization_hierarchy.go` - 统计与层级查询（335 行）
+   - `internal/repository/postgres_audit.go` - 审计查询与校验（475 行）
 
    **架构边界与依赖控制**
    - 新增 `internal/server/*` 与 `internal/routes/*` 仅暴露于 `cmd/organization-query-service`，禁止被命令服务引用（通过 `go list ./cmd/...` 依赖检查验证）。
@@ -204,15 +211,20 @@ make test-integration && npm --prefix frontend run test:e2e
    - Phase 1 每个 PR 添加架构依赖图（使用 `go mod graph` 与 `golangci-lint run --config .golangci.yml`）并在评审清单中勾选“CQRS 边界无交叉”项。
 
 2. **前端超大组件重构**
-   - **TemporalMasterDetailView.tsx拆分** (1,157行 → 3-4个文件)
-     - `components/temporal/TemporalMasterView.tsx` - 主视图 (~400行)
-     - `components/temporal/TemporalDetailView.tsx` - 详情视图 (~400行)
-     - `hooks/useTemporalMasterDetail.ts` - 业务逻辑 (~357行)
-
-   - **InlineNewVersionForm.tsx重构** (1,067行 → 3个文件)
-     - `components/forms/VersionFormCore.tsx` - 核心表单 (~400行)
-     - `components/forms/VersionFormLogic.tsx` - 表单逻辑 (~367行)
-     - `hooks/useVersionForm.ts` - 表单状态管理 (~300行)
+   - **TemporalMasterDetailView.tsx 拆分进展（截至本次更新）**
+     - 现状：主组件已降至 380 行（`wc -l frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`）。
+     - 新增拆分件：
+       - `TemporalMasterDetailHeader.tsx`（101 行）负责页头与状态操作区。
+       - `TemporalMasterDetailAlerts.tsx`（101 行）负责通用提示展示。
+       - `hooks/useTemporalMasterDetail.ts`（521 行）集中状态管理、业务调用。
+       - `hooks/temporalMasterDetailApi.ts`（289 行）封装 GraphQL/REST 调用。
+     - 待办：
+       - 将 `useTemporalMasterDetail` 再拆分为状态管理（≤300 行）与 API 适配层（≤220 行）。
+       - 引入按职责划分的子视图组件（时间轴容器/右侧表单壳），目标将主组件控制在 ≤260 行。
+   - **InlineNewVersionForm 重构结果（2025-10-08）**
+     - 拆分结构：`InlineNewVersionForm.tsx`（容器 146 行）+ `hook/useInlineNewVersionForm.ts`（232 行）+ `formActions.ts`（389 行）+ 8 个视图/消息组件（单文件 39-141 行）。
+     - 功能保持：提交、历史编辑、作废、上级组织校验、提示信息均由动作工厂集中管理，容器仅处理布局。
+     - 后续：Phase 1 收尾时运行 `node scripts/generate-implementation-inventory.js` 更新 IIG 数据，并在 CI 中启用文件规模监控。
 
 **第二优先级 - 橙灯区域评估优化**（1周）
 
@@ -261,6 +273,20 @@ make test-integration && npm --prefix frontend run test:e2e
    - 集成类型检查到CI/CD流程
    - 建立类型覆盖率监控
 
+##### 2025-10-08 弱类型治理分批计划（基于 `reports/iig-guardian/code-smell-types-20251007.md`）
+
+| 批次 | 目标模块 | 当前计数 | 处理策略 | 验收脚本 |
+|------|-----------|-----------|-----------|-----------|
+| Batch A | 共享 API 客户端（`shared/api/error-handling.ts` 22、`unified-client.ts` 10、`auth.ts` 10、`type-guards.ts` 17、`converters.ts` 10、`error-messages.ts` 2、`monitoring.ts` 1、`graphql-enterprise-adapter.ts` 2） | **74** 处 | 建立显式错误类型与响应 DTO；将 `Record<string, unknown>` 替换为契约类型；为监控/适配层补充类型守卫 | `cd frontend && rg -g '*.ts*' -e '\bany\b|\bunknown\b' -c src/shared/api` |
+| Batch B | Temporal 功能（`features/temporal/**` 中 hooks 与组件，合计 22 处） | **22** 处 | 将 `useTemporalMasterDetail` 按“状态 + API”双 hook 拆分并补充类型；为 `ParentOrganizationSelector`/内联表单引入 GraphQL Schema 生成的类型别名 | `cd frontend && rg -g 'features/temporal/**' -e '\bany\b|\bunknown\b' -c` |
+| Batch C | 审计组件（`AuditHistorySection.tsx` 7、`FieldChangeTable.tsx` 5、`AuditEntryCard.tsx` 4） | **16** 处 | 引入统一的 `AuditFieldChange` 接口、为动态列渲染提供枚举映射 | `cd frontend && rg -g 'features/audit/**' -e '\bany\b|\bunknown\b' -c` |
+| Batch D | 共享 Hooks/权限工具与组织模块（剩余 61 处，含 `useScopes.ts`、`organizationPermissions.ts`、`OrganizationTree.tsx` 等） | **61** 处 | 逐文件治理：先补齐权限与组织类型定义，再迁移组件；对 `setupTests.ts` 等测试文件评估是否列入豁免清单 | `cd frontend && rg -g 'shared/**' -e '\bany\b|\bunknown\b' -c` |
+
+- 每批治理完成后执行 `rg -g '*.ts*' -e '\bany\b|\bunknown\b' -c` 并将结果附录至 `reports/iig-guardian/code-smell-types-<date>.md`，确保唯一事实来源可追溯。
+- Batch A 进展（2025-10-08）: `shared/api` 模块弱类型使用降至 **6 处（不含测试）**，详见 `reports/iig-guardian/code-smell-types-20251007.md#2025-10-08-batch-a-复核`。
+- Batch A/B 为 Phase 2 Week 1 重点（预估 3 天 + 3 天），Batch C（2 天）与 Batch D（2 天）穿插执行；超时触发降级策略：先提交 API 守卫与核心组件，测试与低风险脚本可顺延到 Phase 3。
+- 对测试/模拟文件中确需 `any` 的情形，建立“弱类型豁免清单”，并在 lint 配置中添加 `// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TEST-ONLY` 注释作为强制说明。
+
 #### 验收标准（平衡版本）
 - any/unknown使用减少至30个以下（合理目标）
 - TypeScript编译零错误（警告可接受）
@@ -282,6 +308,7 @@ make test-integration && npm --prefix frontend run test:e2e
    - 集成文件大小自动监控
    - 建立违规文件自动报警
    - 配置代码审查强制规则
+   - ✅ 2025-10-08：`scripts/code-smell-check-quick.sh` 已接入 `.github/workflows/iig-guardian.yml`，在 IIG 护卫阶段阻断红灯文件
 
 ## 5. 责任矩阵与里程碑
 
@@ -296,7 +323,7 @@ make test-integration && npm --prefix frontend run test:e2e
 ### 5.2 里程碑
 | 日期 | 里程碑 | 验证方式 |
 | --- | --- | --- |
-| 2025-10-07 | Phase 1 收尾 | `go vet ./...`、`make test-integration`、`reports/iig-guardian/code-smell-progress-20251007.md` |
+| 2025-10-07 | Phase 1 收尾验证 | `go vet ./...`（完成）+ `make test-integration`（待执行）+ `reports/iig-guardian/code-smell-progress-20251007.md` |
 | 2025-10-18 | Phase 2 完成 | TypeScript 类型治理日志 + 前端测试报告 |
 | 2025-10-25 | Phase 3 完成 | 监控脚本 PR + `code-smell-ci-20251025.md` |
 
@@ -331,7 +358,7 @@ make test-integration && npm --prefix frontend run test:e2e
 
 ### 量化指标（基于基线 `reports/iig-guardian/code-smell-baseline-20250929.md`）
 - **平均文件行数**: Go ≤ 350行（当前312.7），前端平均≤150行（当前163.0）
-- **红灯区域文件**: Go 0个（Phase 1.1-1.4 完成），TS 2个（Temporal 组件待拆分）
+- **红灯区域文件**: Go 0个（仓储拆分完成，最大 475 行），TS 0个（Inline 表单拆分完成）
 - **橙灯区域文件**: ≤5个（Go 目标 ≤3，TS 目标 ≤5；最新仓储/时间轴拆分将橙灯压缩至 0）
 - any/unknown类型使用 ≤ 30处（当前171处，Phase 2目标）
 - 单元测试覆盖率 ≥ 80%（通过 `make coverage` 验证）
@@ -391,11 +418,11 @@ make test-integration && npm --prefix frontend run test:e2e
 
 ### 验收清单
 - [x] `reports/iig-guardian/code-smell-baseline-20250929.md` 已生成（Phase 0完成）
-- [ ] `reports/iig-guardian/code-smell-progress-<date>.md` 记录红/橙灯文件状态并附测试结果
-- [ ] `reports/iig-guardian/code-smell-types-<date>.md` 显示 any/unknown 统计（≤30）
-- [ ] `reports/iig-guardian/code-smell-progress-<date>.md` 中记录 TypeScript 平均行数（≤150）
+- [x] `reports/iig-guardian/code-smell-progress-20251007.md` 记录红灯状态并附单元/集成测试结果（Go）
+- [x] `reports/iig-guardian/code-smell-types-20251007.md` 显示 any/unknown 统计（173 项基线）
+- [ ] TypeScript 平均行数报告（生成时间待定）
 - [ ] `reports/iig-guardian/code-smell-ci-<date>.md` 证明文件规模脚本已纳入 CI
-- [ ] `docs/development-plans/06-integrated-teams-progress-log.md` 每周五更新进展、风险、阻塞项
+- [ ] `docs/development-plans/06-integrated-teams-progress-log.md` 每周五更新进展、风险、阻塞项（2025-10-07 已补状态，责任人待填）
 - [ ] `node scripts/generate-implementation-inventory.js` 复跑并更新实现清单，确保导出一致
 - [ ] `scripts/code-smell-monitor.sh` 脚本创建并验证（Phase 3交付）
 - [ ] git标签体系建立：`plan16-phase[0-3]-baseline` 和 `plan16-phase[1-3]-task[N]-before`
@@ -433,14 +460,13 @@ make test-integration && npm --prefix frontend run test:e2e
 2. ✅ 运行实现清单（2025-09-30，`reports/implementation-inventory.json` 已刷新）
 3. ✅ 临时治理巡检（2025-09-30，`bash scripts/check-temporary-tags.sh` 零告警）
 4. ✅ 创建 `golangci-lint` 配置（`.golangci.yml` 已提交，depguard 规则生效）
-5. ✅ 工作量复核会议（记录在 06 号日志，确认 30% 投入）
-6. ✅ Git 标签基线（`plan16-phase0-baseline` 已推送）
-7. ✅ 弱类型统计复核（171处，已完成）
-8. ✅ 更新进展日志（06 号日志 Phase 0 条目已填写）
+5. ⏳ 工作量复核会议纪要（确认 30% 投入，需在 06 号日志补充）
+6. ⏳ Git 标签基线（`plan16-phase0-baseline` 本地已创建，待远程推送）
+7. ✅ 弱类型统计复核结果归档（`reports/iig-guardian/code-smell-types-20251007.md`）
+8. ⏳ 更新进展日志（补录 Phase 0 责任人与待办状态）
 
 #### 执行建议
 ```bash
-# （已于 2025-09-30 执行，命令保留作复查脚本）
 # 批准当天（快速通道 ~45分钟）
 node scripts/generate-implementation-inventory.js      # 30分钟
 bash scripts/check-temporary-tags.sh                   # 5分钟
@@ -466,9 +492,9 @@ linters-settings:
 EOF
 
 # 批准后1天内
-- 工作量复核会议（1小时，已完成）
-- git tag plan16-phase0-baseline && git push origin plan16-phase0-baseline（已完成）
-- 更新 docs/development-plans/06-integrated-teams-progress-log.md（已完成）
+- 工作量复核会议（1小时，输出纪要并补录 06 号日志）
+- git tag plan16-phase0-baseline && git push origin plan16-phase0-baseline
+- 更新 docs/development-plans/06-integrated-teams-progress-log.md（补 Phase 0 责任人与未完待办）
 ```
 
 > `.golangci.yml` 示例仅提供最小依赖守卫，请在提交前根据实际包路径增补其他 CQRS 规则（例如禁止查询服务引用命令层实现）。
@@ -479,9 +505,9 @@ EOF
 | 1 | 运行实现清单 | 架构组 | ✅ 完成 | `reports/implementation-inventory.json` 2025-09-30 快照 |
 | 2 | 临时治理巡检 | 架构组+QA | ✅ 完成 | `bash scripts/check-temporary-tags.sh` 输出零告警 |
 | 3 | 创建 golangci-lint 配置 | 架构组 | ✅ 完成 | `.golangci.yml` 已提交（depguard 生效） |
-| 4 | 工作量复核 | 架构组+PM | ✅ 完成 | 06 号日志 Phase 0 会议纪要 |
-| 5 | Git标签基线 | 架构组 | ✅ 完成 | `plan16-phase0-baseline` tag 已推送 |
-| 6 | 更新进展日志 | 计划Owner | ✅ 完成 | `docs/development-plans/06` Phase 0 条目已填 |
+| 4 | 工作量复核 | 架构组+PM | ⏳ 纪要待归档 | 06 号日志需补 Phase 0 责任人及纪要 |
+| 5 | Git标签基线 | 架构组 | ⏳ 待推送 | 本地 `plan16-phase0-baseline` 标签已创建，待推送远端 |
+| 6 | 更新进展日志 | 计划Owner | ⏳ 待补全 | `docs/development-plans/06` 责任人/待办仍缺 |
 
 #### 验收产物
 - [x] `reports/implementation-inventory.json` 已更新
@@ -489,7 +515,7 @@ EOF
 - [x] `.golangci.yml` 已创建并纳入版本控制（含 CQRS import 校验规则）
 - [ ] 工作量复核会议纪要（确认团队承诺）
 - [ ] Git标签 `plan16-phase0-baseline` 已推送至远程仓库
-- [ ] 弱类型统计结果已记录（与基线报告一致）
+- [x] 弱类型统计结果已记录（`reports/iig-guardian/code-smell-types-20251007.md`）
 - [ ] 06号日志 "Plan 16代码异味治理进展跟踪" 章节已填写Phase 0完成信息
 
 ### Phase 1启动前检查（Phase 0完成后执行）

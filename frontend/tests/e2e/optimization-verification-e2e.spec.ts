@@ -209,7 +209,15 @@ test.describe('优化效果验证测试', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: '{ organization_units(first: 50) { code name } }'
+          query: `query ($page: Int!, $size: Int!) {
+            organizations(pagination: { page: $page, pageSize: $size }) {
+              data {
+                code
+                name
+              }
+            }
+          }`,
+          variables: { page: 1, size: 5 }
         })
       });
     });

@@ -1,9 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { setupAuth } from './auth-setup';
 
 test.describe('业务流程端到端测试', () => {
-  
+
   test.beforeEach(async ({ page }) => {
+    // 设置认证信息到 localStorage（确保 RequireAuth 可以通过验证）
+    await setupAuth(page);
+
+    // 导航到组织管理页面
     await page.goto('/organizations');
+
     // 等待页面加载完成
     await expect(page.getByText('组织架构管理')).toBeVisible();
   });
@@ -220,13 +226,16 @@ test.describe('业务流程端到端测试', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: `{
-            organization_units(first: 50) {
-              code
-              name
-              unitType
+          query: `query ($page: Int!, $size: Int!) {
+            organizations(pagination: { page: $page, pageSize: $size }) {
+              data {
+                code
+                name
+                unitType
+              }
             }
-          }`
+          }`,
+          variables: { page: 1, size: 5 }
         })
       });
       return response.json();
@@ -297,18 +306,24 @@ test.describe('业务流程端到端测试', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: `{
-            organization_units(first: 50) {
-              code
-              name
-              unitType
-              status
+          query: `query ($page: Int!, $size: Int!) {
+            organizations(pagination: { page: $page, pageSize: $size }) {
+              data {
+                code
+                name
+                unitType
+                status
+              }
+              pagination {
+                total
+              }
             }
-          }`
+          }`,
+          variables: { page: 1, size: 50 }
         })
       });
       const result = await response.json();
-      return result.data?.organizations || [];
+      return result.data?.organizations?.data ?? [];
     });
 
     // 3. 验证数据一致性 - 考虑状态显示的本地化

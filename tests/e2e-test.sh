@@ -132,14 +132,17 @@ test_crud_operations() {
     
     # 3.2 查询组织 (GraphQL)
     log_info "3.2 GraphQL查询组织..."
+    local query_payload=$(jq -n --arg code "$TEST_ORG_CODE" '{
+        query: "query($codes: [String!]) { organizations(filter: { codes: $codes }, pagination: { page: 1, pageSize: 1 }) { data { code name unitType status } } }",
+        variables: { codes: [$code] }
+    }')
+
     local query_response=$(curl -s -X POST "$BASE_URL_QUERY/graphql" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $JWT_TOKEN" \
         -H "X-Tenant-ID: $TENANT_ID" \
-        -d '{
-            "query": "query { organizations(filter: {code: \"'$TEST_ORG_CODE'\"}) { code name unitType status } }"
-        }')
-    
+        -d "$query_payload")
+
     if echo "$query_response" | grep -q '"code":"'$TEST_ORG_CODE'"'; then
         log_success "GraphQL查询成功"
     else

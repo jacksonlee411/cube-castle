@@ -33,25 +33,30 @@ test.describe('回归测试和兼容性验证', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: `{
-            organization_units(first: 50) {
-              code
-              name
-              unitType
-              status
-              level
-              parentCode
-              createdAt
-              updatedAt
+          query: `query ($page: Int!, $size: Int!) {
+            organizations(pagination: { page: $page, pageSize: $size }) {
+              data {
+                code
+                name
+                unitType
+                status
+                level
+                parentCode
+                createdAt
+                updatedAt
+              }
+              pagination {
+                total
+              }
             }
-          }`
+          }`,
+          variables: { page: 1, size: 50 }
         })
       });
       return response.json();
     });
 
-    expect(graphqlResult).toHaveProperty('data');
-    expect(graphqlResult.data).toHaveProperty('organizations');
+    expect(graphqlResult).toHaveProperty(['data', 'organizations', 'data']);
 
     // 2. 测试REST API兼容性（如果保留）
     const restResult = await page.evaluate(async () => {
@@ -103,20 +108,23 @@ test.describe('回归测试和兼容性验证', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: `{
-            organization_units(first: 50) {
-              code
-              name
-              unitType
-              status
-              level
-              parentCode
+          query: `query ($page: Int!, $size: Int!) {
+            organizations(pagination: { page: $page, pageSize: $size }) {
+              data {
+                code
+                name
+                unitType
+                status
+                level
+                parentCode
+              }
             }
-          }`
+          }`,
+          variables: { page: 1, size: 1 }
         })
       });
       const result = await response.json();
-      return result.data?.organizations?.[0];
+      return result.data?.organizations?.data?.[0];
     });
 
     if (sampleData) {
@@ -210,7 +218,15 @@ test.describe('回归测试和兼容性验证', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: '{ organization_units(first: 50) { code name } }'
+          query: `query ($page: Int!, $size: Int!) {
+            organizations(pagination: { page: $page, pageSize: $size }) {
+              data {
+                code
+                name
+              }
+            }
+          }`,
+          variables: { page: 1, size: 5 }
         })
       });
       return response.json();

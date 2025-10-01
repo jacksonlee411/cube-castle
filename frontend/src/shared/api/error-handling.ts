@@ -2,6 +2,9 @@ import React from 'react';
 import { isValidationError, isAPIError, isNetworkError } from './type-guards';
 import { authManager } from './auth';
 import { ORGANIZATION_API_ERRORS, getErrorMessage, formatErrorForUser, SUCCESS_MESSAGES } from './error-messages';
+import type { JsonObject } from '../types/json';
+
+type RawError = unknown;
 
 // API错误接口
 interface APIErrorResponse {
@@ -21,7 +24,7 @@ export class APIErrorImpl extends Error implements APIError {
   public statusText: string;
   public response?: APIErrorResponse;
 
-  constructor(status: number, statusText: string, response?: unknown) {
+  constructor(status: number, statusText: string, response?: RawError) {
     super(`API Error: ${status} ${statusText}`);
     this.name = 'APIError';
     this.status = status;
@@ -45,7 +48,7 @@ export class OAuthError extends Error {
 
 // 统一错误处理器
 export class ErrorHandler {
-  private static logError(context: string, error: unknown): void {
+  private static logError(context: string, error: RawError): void {
     const timestamp = new Date().toISOString();
     console.group(`[${timestamp}] Error in ${context}`);
     console.error('Error details:', error);
@@ -64,7 +67,7 @@ export class ErrorHandler {
     console.groupEnd();
   }
   
-  private static createUserMessage(error: unknown): string {
+  private static createUserMessage(error: RawError): string {
     if (isValidationError(error)) {
       return '数据验证失败，请检查输入的信息格式是否正确';
     } else if (isOAuthError(error)) {
@@ -92,7 +95,7 @@ export class ErrorHandler {
   }
   
   // API调用错误处理 - 增强OAuth认证错误处理
-  static async handleAPIError(context: string, error: unknown): Promise<never> {
+  static async handleAPIError(context: string, error: RawError): Promise<never> {
     this.logError(context, error);
     
     if (isValidationError(error)) {
@@ -158,7 +161,7 @@ export class ErrorHandler {
   }
   
   // 表单验证错误处理
-  static handleFormValidationError(error: unknown): FormValidationErrors {
+  static handleFormValidationError(error: RawError): FormValidationErrors {
     if (!isValidationError(error)) {
       return { _form: ['表单验证失败'] };
     }
@@ -180,10 +183,10 @@ export class ErrorHandler {
 // 用户友好的错误类
 export class UserFriendlyError extends Error {
   public readonly code: string;
-  public readonly originalError: unknown;
+  public readonly originalError: RawError;
   public readonly timestamp: Date;
   
-  constructor(message: string, code: string, originalError: unknown) {
+  constructor(message: string, code: string, originalError: RawError) {
     super(message);
     this.name = 'UserFriendlyError';
     this.code = code;
@@ -198,19 +201,19 @@ export interface FormValidationErrors {
 }
 
 // 错误类型守卫
-export const isUserFriendlyError = (error: unknown): error is UserFriendlyError => {
+export const isUserFriendlyError = (error: RawError): error is UserFriendlyError => {
   return error instanceof UserFriendlyError;
 };
 
 // OAuth错误类型守卫
-export const isOAuthError = (error: unknown): error is OAuthError => {
+export const isOAuthError = (error: RawError): error is OAuthError => {
   return error instanceof OAuthError;
 };
 
 // 异步操作错误包装器 - 更新为支持异步错误处理
-export const withErrorHandling = <T extends unknown[], R>(
+export const withErrorHandling = <T extends readonly RawError[], R>(
   fn: (...args: T) => Promise<R>,
-  context: string
+  context: string,
 ) => {
   return async (...args: T): Promise<R> => {
     try {
@@ -224,11 +227,11 @@ export const withErrorHandling = <T extends unknown[], R>(
 
 // React Hook 错误处理 - 更新为支持异步
 export const useErrorHandler = () => {
-  const handleError = (context: string) => async (error: unknown) => {
+  const handleError = (context: string) => async (error: RawError) => {
     await ErrorHandler.handleAPIError(context, error);
   };
   
-  const handleFormError = (error: unknown): FormValidationErrors => {
+  const handleFormError = (error: RawError): FormValidationErrors => {
     return ErrorHandler.handleFormValidationError(error);
   };
   
@@ -236,13 +239,13 @@ export const useErrorHandler = () => {
 };
 
 // 通用错误恢复策略
-export const withRetry = <T extends unknown[], R>(
+export const withRetry = <T extends readonly RawError[], R>(
   fn: (...args: T) => Promise<R>,
   maxRetries: number = 3,
   delay: number = 1000
 ) => {
   return async (...args: T): Promise<R> => {
-    let lastError: unknown;
+    let lastError: RawError;
     
     for (let i = 0; i <= maxRetries; i++) {
       try {
@@ -266,12 +269,12 @@ export const withRetry = <T extends unknown[], R>(
 };
 
 // OAuth感知的重试机制 - 专门处理认证过期
-export const withOAuthRetry = <T extends unknown[], R>(
+export const withOAuthRetry = <T extends readonly RawError[], R>(
   fn: (...args: T) => Promise<R>,
   maxRetries: number = 1
 ) => {
   return async (...args: T): Promise<R> => {
-    let lastError: unknown;
+    let lastError: RawError;
     
     for (let i = 0; i <= maxRetries; i++) {
       try {
@@ -299,13 +302,13 @@ export const withOAuthRetry = <T extends unknown[], R>(
 };
 
 // 统一的API客户端包装器 - 结合错误处理和OAuth重试
-export const withOAuthAwareErrorHandling = <T extends unknown[], R>(
+export const withOAuthAwareErrorHandling = <T extends readonly RawError[], R>(
   fn: (...args: T) => Promise<R>,
   context: string,
-  enableRetry: boolean = true
+  enableRetry: boolean = true,
 ) => {
   const wrappedFn = enableRetry ? withOAuthRetry(fn) : fn;
-  
+
   return async (...args: T): Promise<R> => {
     try {
       return await wrappedFn(...args);
@@ -331,7 +334,7 @@ export const UnifiedErrorHandler = {
   getSuccessMessage: (key: keyof typeof SUCCESS_MESSAGES) => SUCCESS_MESSAGES[key],
   
   // 创建标准化的API错误
-  createAPIError: (status: number, statusText: string, response?: unknown, errorCode?: string) => {
+  createAPIError: (status: number, statusText: string, response?: RawError, errorCode?: string) => {
     const apiError = new APIErrorImpl(status, statusText, response);
     if (errorCode) {
       const errorInfo = getErrorMessage(errorCode);
@@ -350,12 +353,12 @@ export const UnifiedErrorHandler = {
   },
   
   // 快速错误类型判断
-  isAPIError: (error: unknown): error is APIError => error instanceof APIErrorImpl,
-  isUserFriendlyError: (error: unknown): error is UserFriendlyError => error instanceof UserFriendlyError,
-  isOAuthError: (error: unknown): error is OAuthError => error instanceof OAuthError,
+  isAPIError: (error: RawError): error is APIError => error instanceof APIErrorImpl,
+  isUserFriendlyError: (error: RawError): error is UserFriendlyError => error instanceof UserFriendlyError,
+  isOAuthError: (error: RawError): error is OAuthError => error instanceof OAuthError,
   
   // 统一的错误日志记录
-  logError: (context: string, error: unknown, additionalInfo?: Record<string, unknown>) => {
+  logError: (context: string, error: RawError, additionalInfo?: JsonObject) => {
     const timestamp = new Date().toISOString();
     console.group(`[${timestamp}] Error in ${context}`);
     console.error('Error details:', error);

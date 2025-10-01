@@ -7,6 +7,8 @@ import { authManager } from "./auth";
 import { env } from "../config/environment";
 import { authEvents } from "../auth/events";
 import type { GraphQLResponse } from "../types";
+import type { JsonValue } from "../types/json";
+import { isJsonObject } from "../types/json";
 // import { CQRS_ENDPOINTS } from '../config/ports'; // TODO: 将来可能用于直接端点配置
 
 // 🔧 CQRS架构端点配置 - 使用代理避免CORS问题
@@ -28,7 +30,7 @@ export class UnifiedGraphQLClient {
 
   async request<T>(
     query: string,
-    variables?: Record<string, unknown>,
+    variables?: Record<string, JsonValue>,
   ): Promise<T> {
     const doRequest = async (): Promise<Response> => {
       // 🔧 开发和生产环境都需要JWT认证
@@ -243,7 +245,7 @@ export class UnifiedRESTClient {
 
     const readBody = async (
       response: Response,
-    ): Promise<Record<string, unknown>> => {
+    ): Promise<JsonValue> => {
       const contentType = response.headers.get("content-type") || "";
       const text = await response.text();
 
@@ -274,7 +276,7 @@ export class UnifiedRESTClient {
       }
 
       try {
-        return JSON.parse(text);
+        return JSON.parse(text) as JsonValue;
       } catch (parseError) {
         if (!response.ok) {
           console.error("[REST Client] JSON解析失败 (错误响应):", {
@@ -323,9 +325,10 @@ export class UnifiedRESTClient {
 
       if (!response.ok) {
         if (response.status === 403) {
-          const code = (result?.error as Record<string, unknown>)?.code as
-            | string
-            | undefined;
+          const code =
+            isJsonObject(result) && "error" in result
+              ? (result.error as { code?: string })?.code
+              : undefined;
           if (
             code === "TENANT_ACCESS_DENIED" ||
             code === "TENANT_MISMATCH" ||
@@ -348,7 +351,7 @@ export class UnifiedRESTClient {
           throw new Error("服务器内部错误，请稍后重试或联系管理员");
         }
 
-        if (result && typeof result === "object" && "error" in result) {
+        if (isJsonObject(result) && "error" in result) {
           const errorInfo = result.error as { message?: string };
           if (errorInfo && errorInfo.message) {
             throw new Error(errorInfo.message);
@@ -360,7 +363,7 @@ export class UnifiedRESTClient {
         );
       }
 
-      const payload = (result || {}) as T;
+      const payload = (result ?? {}) as T;
 
       if (includeRawResponse) {
         return {
@@ -403,18 +406,18 @@ export class UnauthenticatedRESTClient {
         // 某些测试仅提供 json()，则直接读取
         try {
           const j = await response.json();
-          return (j ?? ({} as unknown)) as T;
+          return (j ?? {}) as T;
         } catch {
           // ignore, fallback to empty text
         }
       }
-      let json: unknown = undefined;
+      let json: JsonValue | undefined;
       if (text) {
         const looksLikeJson =
           contentType.includes("application/json") || /^(\s*[[{])/.test(text);
         if (looksLikeJson) {
           try {
-            json = JSON.parse(text);
+            json = JSON.parse(text) as JsonValue;
           } catch {
             /* ignore parse errors for non-JSON bodies */
           }
@@ -422,26 +425,18 @@ export class UnauthenticatedRESTClient {
       }
       if (!response?.ok) {
         let message = `${response.status} ${response.statusText}`;
-        if (
-          json &&
-          typeof json === "object" &&
-          "error" in (json as Record<string, unknown>)
-        ) {
-          const errVal = (json as Record<string, unknown>).error;
-          if (
-            errVal &&
-            typeof errVal === "object" &&
-            "message" in (errVal as Record<string, unknown>)
-          ) {
-            const m = (errVal as Record<string, unknown>).message;
-            if (typeof m === "string" && m.trim()) {
+        if (json && isJsonObject(json) && "error" in json) {
+          const errVal = json.error;
+          if (errVal && isJsonObject(errVal) && typeof errVal.message === "string") {
+            const m = errVal.message;
+            if (m.trim()) {
               message = m;
             }
           }
         }
         throw new Error(message);
       }
-      return (json ?? ({} as unknown)) as T;
+      return (json ?? ({} as JsonValue)) as T;
     } catch (error) {
       console.error("[UnauthREST] request failed:", {
         endpoint,

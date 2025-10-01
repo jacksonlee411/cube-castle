@@ -40,14 +40,22 @@ test.describe('重构后架构完整性验证', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            query: `{
-              organizations {
-                code
-                name
-                unitType
-                status
+            query: `query($page: Int!, $size: Int!) {
+              organizations(pagination: { page: $page, pageSize: $size }) {
+                data {
+                  code
+                  name
+                  unitType
+                  status
+                }
+                pagination {
+                  total
+                  page
+                  pageSize
+                }
               }
-            }`
+            }`,
+            variables: { page: 1, size: 1 }
           })
         });
         return await response.json();
@@ -56,7 +64,7 @@ test.describe('重构后架构完整性验证', () => {
       }
     });
 
-    expect(graphqlResponse).toHaveProperty('data');
+    expect(graphqlResponse).toHaveProperty('data.organizations.data');
   });
 
   test('Phase 1: 冗余服务移除验证', async ({ page }) => {

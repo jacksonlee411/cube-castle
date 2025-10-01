@@ -2,14 +2,16 @@
 // 实现Client Credentials Flow和JWT Token管理
 import { env } from '../config/environment';
 import { unauthenticatedRESTClient } from './unified-client';
+import type { JsonObject, JsonValue } from '../types/json';
+import { isJsonObject } from '../types/json';
 
 const camelToSnakeCase = (value: string): string =>
   value.replace(/([A-Z])/g, letter => `_${letter.toLowerCase()}`);
 
-const mapKeysToSnakeCase = (record: Record<string, unknown>): Record<string, unknown> =>
+const mapKeysToSnakeCase = (record: Record<string, JsonValue>): JsonObject =>
   Object.fromEntries(
     Object.entries(record).map(([key, value]) => [camelToSnakeCase(key), value])
-  );
+  ) as JsonObject;
 
 export interface OAuthToken {
   accessToken: string;
@@ -34,12 +36,30 @@ type SessionPayload = {
   scope?: string;
 };
 
-const parseSessionPayload = (payload: unknown): SessionPayload => {
-  if (!payload || typeof payload !== 'object') {
+interface OAuthTokenResponse extends JsonObject {
+  accessToken?: string;
+  token?: string;
+  data?: { token?: string } | null;
+  tokenType?: string;
+  expiresIn?: number | string | null;
+  scope?: string;
+}
+
+interface SessionApiResponse extends JsonObject {
+  data?: JsonValue;
+  accessToken?: string;
+  expiresIn?: number | string | null;
+  tenantId?: string | null;
+  scopes?: string[];
+  scope?: string;
+}
+
+const parseSessionPayload = (payload: JsonValue): SessionPayload => {
+  if (!isJsonObject(payload)) {
     throw new Error('[OAuth] 会话响应格式不正确，缺少主体数据');
   }
 
-  const record = payload as Record<string, unknown>;
+  const record = payload;
   const accessToken = record.accessToken;
 
   if (typeof accessToken !== 'string' || accessToken.length === 0) {
@@ -57,14 +77,18 @@ const parseSessionPayload = (payload: unknown): SessionPayload => {
     }
   }
 
-  const scopes = Array.isArray(record.scopes)
-    ? record.scopes.filter((item): item is string => typeof item === 'string')
-    : undefined;
+  const scopes =
+    Array.isArray(record.scopes) && record.scopes.every((item) => typeof item === 'string')
+      ? (record.scopes as string[])
+      : undefined;
 
   return {
     accessToken,
     expiresIn,
-    tenantId: typeof record.tenantId === 'string' && record.tenantId.length > 0 ? record.tenantId : null,
+    tenantId:
+      typeof record.tenantId === 'string' && record.tenantId.length > 0
+        ? record.tenantId
+        : null,
     scopes,
     scope: typeof record.scope === 'string' ? record.scope : undefined,
   };
@@ -127,7 +151,7 @@ export class AuthManager {
     console.log('[OAuth] 正在获取新的访问令牌...');
     
     // 修复：使用开发令牌端点的JSON格式请求
-    const tokenResponse = await unauthenticatedRESTClient.request<Record<string, unknown>>(this.config.tokenEndpoint, {
+    const tokenResponse = await unauthenticatedRESTClient.request<OAuthTokenResponse>(this.config.tokenEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -145,15 +169,7 @@ export class AuthManager {
     // - { accessToken, tokenType, expiresIn }
     // - { token, tokenType, expiresIn }
     // - { data: { token } }
-    const tr = tokenResponse as {
-      accessToken?: string;
-      token?: string;
-      data?: { token?: string };
-      tokenType?: string;
-      expiresIn?: unknown;
-      scope?: string;
-    };
-    const accessToken = tr.accessToken || tr.token || tr.data?.token;
+    const accessToken = tokenResponse.accessToken ?? tokenResponse.token ?? tokenResponse.data?.token;
 
     if (!accessToken) {
       throw new Error(
@@ -162,13 +178,19 @@ export class AuthManager {
     }
 
     // 计算过期时间：优先后端expiresIn，否则默认1小时
-    const expiresIn: number = Number(tr.expiresIn) || 3600;
+    const expiresInRaw = tokenResponse.expiresIn;
+    const expiresIn: number =
+      typeof expiresInRaw === 'number'
+        ? expiresInRaw
+        : typeof expiresInRaw === 'string'
+          ? Number(expiresInRaw) || 3600
+          : 3600;
 
     const token: OAuthToken = {
       accessToken,
-      tokenType: tr.tokenType || 'Bearer',
+      tokenType: tokenResponse.tokenType || 'Bearer',
       expiresIn,
-      scope: tr.scope,
+      scope: tokenResponse.scope,
       issuedAt: Date.now(),
     };
 
@@ -186,9 +208,9 @@ export class AuthManager {
    */
   private async obtainFromSession(): Promise<OAuthToken> {
     await this.ensureRS256();
-    const body = await unauthenticatedRESTClient.request<Record<string, unknown>>('/auth/session', { credentials: 'include' });
-    const rawPayload = (body as { data?: unknown }).data ?? body;
-    const session = parseSessionPayload(rawPayload);
+    const body = await unauthenticatedRESTClient.request<SessionApiResponse>('/auth/session', { credentials: 'include' });
+    const rawPayload = body.data ?? body;
+    const session = parseSessionPayload(rawPayload ?? {});
     const expiresIn = session.expiresIn ?? 600;
     // 记录会话租户，供统一客户端注入 X-Tenant-ID
     this.sessionTenantId = session.tenantId ?? null;
@@ -228,7 +250,7 @@ export class AuthManager {
       if (!response.ok) {
         throw new Error(`JWKS 请求失败，HTTP ${response.status}`);
       }
-      const jwks = await response.json();
+      const jwks = (await response.json()) as { keys?: JsonValue[] };
       if (!jwks || !Array.isArray(jwks.keys) || jwks.keys.length === 0) {
         throw new Error('JWKS 未返回任何公钥，无法确认 RS256 配置');
       }
@@ -275,7 +297,11 @@ export class AuthManager {
     if (typeof atob === 'function') {
       return atob(padded);
     }
-    const globalBuffer = typeof globalThis !== 'undefined' ? (globalThis as unknown as { Buffer?: { from: (input: string, encoding: string) => { toString: (encoding: string) => string } } }).Buffer : undefined;
+    const globalBuffer =
+      typeof globalThis !== 'undefined' &&
+      typeof (globalThis as { Buffer?: { from: (input: string, encoding: string) => { toString: (encoding: string) => string } } }).Buffer === 'object'
+        ? (globalThis as { Buffer?: { from: (input: string, encoding: string) => { toString: (encoding: string) => string } } }).Buffer
+        : undefined;
     if (globalBuffer) {
       return globalBuffer.from(padded, 'base64').toString('binary');
     }
@@ -377,13 +403,13 @@ export class AuthManager {
     if (env.authConfig.mode === 'oidc') {
       await this.ensureRS256();
       const csrf = this.getCookie('csrf');
-      const body = await unauthenticatedRESTClient.request<Record<string, unknown>>('/auth/refresh', {
+      const body = await unauthenticatedRESTClient.request<SessionApiResponse>('/auth/refresh', {
         method: 'POST',
         headers: { 'X-CSRF-Token': csrf || '' },
         credentials: 'include'
       });
-      const rawPayload = (body as { data?: unknown }).data ?? body;
-      const session = parseSessionPayload(rawPayload);
+      const rawPayload = body.data ?? body;
+      const session = parseSessionPayload(rawPayload ?? {});
       const accessToken = session.accessToken;
       const expiresIn = session.expiresIn ?? 600;
       const token: OAuthToken = {

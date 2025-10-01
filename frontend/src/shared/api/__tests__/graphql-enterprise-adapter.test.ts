@@ -25,7 +25,7 @@ describe('GraphQLEnterpriseAdapter (Vitest)', () => {
   it('客户端抛错应映射为企业级错误信封', async () => {
     (mockClient.request as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network timeout'));
 
-    const result = await adapter.request('{ organizations { code } }');
+    const result = await adapter.request('{ organizations(pagination: { page: 1, pageSize: 1 }) { data { code } } }');
     expect(result.success).toBe(false);
     expect(result.error).toMatchObject({ code: 'GRAPHQL_CLIENT_ERROR', message: 'Network timeout' });
   });

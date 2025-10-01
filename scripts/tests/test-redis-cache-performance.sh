@@ -20,7 +20,7 @@ echo "第一次查询 (应该缓存MISS):"
 time1=$(curl -s -w "%{time_total}" -o /tmp/gql_result1.json \
     -X POST http://localhost:8090/graphql \
     -H "Content-Type: application/json" \
-    -d '{"query":"query { organizations(first: 5) { code name unit_type status } }"}')
+    -d '{"query":"query { organizations(pagination: { page: 1, pageSize: 5 }) { data { code name unitType status } } }"}')
 
 echo "响应时间: ${time1}s"
 
@@ -30,7 +30,7 @@ echo "第二次相同查询 (应该缓存HIT):"
 time2=$(curl -s -w "%{time_total}" -o /tmp/gql_result2.json \
     -X POST http://localhost:8090/graphql \
     -H "Content-Type: application/json" \
-    -d '{"query":"query { organizations(first: 5) { code name unit_type status } }"}')
+    -d '{"query":"query { organizations(pagination: { page: 1, pageSize: 5 }) { data { code name unitType status } } }"}')
 
 echo "响应时间: ${time2}s"
 
@@ -68,7 +68,7 @@ echo "测试不同分页参数 (应该产生不同缓存键):"
 time3=$(curl -s -w "%{time_total}" -o /tmp/gql_result3.json \
     -X POST http://localhost:8090/graphql \
     -H "Content-Type: application/json" \
-    -d '{"query":"query { organizations(first: 10, offset: 5) { code name } }"}')
+    -d '{"query":"query { organizations(pagination: { page: 2, pageSize: 5 }) { data { code name } } }"}')
 
 echo "不同查询响应时间: ${time3}s"
 

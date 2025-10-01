@@ -70,19 +70,15 @@ fi
 
 # 启动命令服务 (端口9090)
 echo "🎯 启动命令服务 (端口9090)..."
-cd cmd/organization-command-service
-go run main.go > ../../logs/command-service.log 2>&1 &
+go run cmd/organization-command-service/main.go > logs/command-service.log 2>&1 &
 COMMAND_PID=$!
-echo "Command Service PID: $COMMAND_PID" > ../../data/command-service.pid
-cd ../..
+echo "Command Service PID: $COMMAND_PID" > data/command-service.pid
 
 # 启动查询服务 (端口8090)
 echo "🔍 启动查询服务 (端口8090)..."
-cd cmd/organization-query-service
-go run main.go > ../../logs/query-service.log 2>&1 &
+go run cmd/organization-query-service/main.go > logs/query-service.log 2>&1 &
 QUERY_PID=$!
-echo "Query Service PID: $QUERY_PID" > ../../data/query-service.pid
-cd ../..
+echo "Query Service PID: $QUERY_PID" > data/query-service.pid
 
 # 等待Go服务启动
 echo "⏳ 等待Go服务启动..."
@@ -111,11 +107,9 @@ echo ""
 echo -e "${BLUE}🎨 启动前端开发服务器...${NC}"
 
 # 启动前端 (后台运行)
-cd frontend
-npm run dev > ../logs/frontend-service.log 2>&1 &
+(cd frontend && npm run dev) > logs/frontend-service.log 2>&1 &
 FRONTEND_PID=$!
-echo "Frontend PID: $FRONTEND_PID" > ../data/frontend-service.pid
-cd ..
+echo "Frontend PID: $FRONTEND_PID" > data/frontend-service.pid
 
 # 等待前端启动
 sleep 3

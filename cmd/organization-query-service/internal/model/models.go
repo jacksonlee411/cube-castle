@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"math"
 	"time"
 )
@@ -150,11 +151,11 @@ type OrganizationStats struct {
 	TemporalStatsField TemporalStats `json:"temporalStats"`
 }
 
-func (s OrganizationStats) TotalCount() int     { return s.TotalCountField }
-func (s OrganizationStats) ActiveCount() int    { return s.ActiveCountField }
-func (s OrganizationStats) InactiveCount() int  { return s.InactiveCountField }
-func (s OrganizationStats) PlannedCount() int   { return s.PlannedCountField }
-func (s OrganizationStats) DeletedCount() int   { return s.DeletedCountField }
+func (s OrganizationStats) TotalCount() int32   { return int32(s.TotalCountField) }
+func (s OrganizationStats) ActiveCount() int32  { return int32(s.ActiveCountField) }
+func (s OrganizationStats) InactiveCount() int32 { return int32(s.InactiveCountField) }
+func (s OrganizationStats) PlannedCount() int32 { return int32(s.PlannedCountField) }
+func (s OrganizationStats) DeletedCount() int32 { return int32(s.DeletedCountField) }
 func (s OrganizationStats) ByType() []TypeCount { return s.ByTypeField }
 func (s OrganizationStats) ByStatus() []StatusCount {
 	return s.ByStatusField
@@ -172,7 +173,7 @@ type TemporalStats struct {
 	NewestEffectiveDateField   string  `json:"newestEffectiveDate"`
 }
 
-func (t TemporalStats) TotalVersions() int { return t.TotalVersionsField }
+func (t TemporalStats) TotalVersions() int32 { return int32(t.TotalVersionsField) }
 func (t TemporalStats) AverageVersionsPerOrg() float64 {
 	return t.AverageVersionsPerOrgField
 }
@@ -185,12 +186,12 @@ func (t TemporalStats) NewestEffectiveDate() string {
 
 // TypeCount 类型统计
 type TypeCount struct {
-	TypeField  string `json:"type"`
-	CountField int    `json:"count"`
+	UnitTypeField string `json:"unitType"`
+	CountField    int    `json:"count"`
 }
 
-func (t TypeCount) Type() string { return t.TypeField }
-func (t TypeCount) Count() int   { return t.CountField }
+func (t TypeCount) UnitType() string { return t.UnitTypeField }
+func (t TypeCount) Count() int32     { return int32(t.CountField) }
 
 // LevelCount 层级统计
 type LevelCount struct {
@@ -198,8 +199,8 @@ type LevelCount struct {
 	CountField int `json:"count"`
 }
 
-func (l LevelCount) Level() int { return l.LevelField }
-func (l LevelCount) Count() int { return l.CountField }
+func (l LevelCount) Level() int32 { return int32(l.LevelField) }
+func (l LevelCount) Count() int32 { return int32(l.CountField) }
 
 // StatusCount 状态统计
 type StatusCount struct {
@@ -208,7 +209,7 @@ type StatusCount struct {
 }
 
 func (s StatusCount) Status() string { return s.StatusField }
-func (s StatusCount) Count() int     { return s.CountField }
+func (s StatusCount) Count() int32   { return int32(s.CountField) }
 
 // OrganizationConnection GraphQL 分页封装
 type OrganizationConnection struct {
@@ -232,9 +233,9 @@ type PaginationInfo struct {
 	HasPreviousField bool `json:"hasPrevious"`
 }
 
-func (p PaginationInfo) Total() int        { return p.TotalField }
-func (p PaginationInfo) Page() int         { return p.PageField }
-func (p PaginationInfo) PageSize() int     { return p.PageSizeField }
+func (p PaginationInfo) Total() int32      { return int32(p.TotalField) }
+func (p PaginationInfo) Page() int32       { return int32(p.PageField) }
+func (p PaginationInfo) PageSize() int32   { return int32(p.PageSizeField) }
 func (p PaginationInfo) HasNext() bool     { return p.HasNextField }
 func (p PaginationInfo) HasPrevious() bool { return p.HasPreviousField }
 
@@ -246,10 +247,10 @@ type TemporalInfo struct {
 	HistoricalCountField int    `json:"historicalCount"`
 }
 
-func (t TemporalInfo) AsOfDate() string     { return t.AsOfDateField }
-func (t TemporalInfo) CurrentCount() int    { return t.CurrentCountField }
-func (t TemporalInfo) FutureCount() int     { return t.FutureCountField }
-func (t TemporalInfo) HistoricalCount() int { return t.HistoricalCountField }
+func (t TemporalInfo) AsOfDate() string        { return t.AsOfDateField }
+func (t TemporalInfo) CurrentCount() int32     { return int32(t.CurrentCountField) }
+func (t TemporalInfo) FutureCount() int32      { return int32(t.FutureCountField) }
+func (t TemporalInfo) HistoricalCount() int32  { return int32(t.HistoricalCountField) }
 
 // OrganizationHierarchyData 组织层级数据
 type OrganizationHierarchyData struct {
@@ -268,12 +269,22 @@ type OrganizationHierarchyData struct {
 
 func (o OrganizationHierarchyData) Code() string          { return o.CodeField }
 func (o OrganizationHierarchyData) Name() string          { return o.NameField }
-func (o OrganizationHierarchyData) Level() int            { return o.LevelField }
-func (o OrganizationHierarchyData) HierarchyDepth() int   { return o.HierarchyDepthField }
-func (o OrganizationHierarchyData) CodePath() *string     { return o.CodePathField }
-func (o OrganizationHierarchyData) NamePath() *string     { return o.NamePathField }
+func (o OrganizationHierarchyData) Level() int32          { return int32(o.LevelField) }
+func (o OrganizationHierarchyData) HierarchyDepth() int32 { return int32(o.HierarchyDepthField) }
+func (o OrganizationHierarchyData) CodePath() string {
+	if o.CodePathField == nil {
+		return ""
+	}
+	return *o.CodePathField
+}
+func (o OrganizationHierarchyData) NamePath() string {
+	if o.NamePathField == nil {
+		return ""
+	}
+	return *o.NamePathField
+}
 func (o OrganizationHierarchyData) ParentChain() []string { return o.ParentChainField }
-func (o OrganizationHierarchyData) ChildrenCount() int    { return o.ChildrenCountField }
+func (o OrganizationHierarchyData) ChildrenCount() int32  { return int32(o.ChildrenCountField) }
 func (o OrganizationHierarchyData) IsRoot() bool          { return o.IsRootField }
 func (o OrganizationHierarchyData) IsLeaf() bool          { return o.IsLeafField }
 func (o OrganizationHierarchyData) Children() []OrganizationHierarchyData {
@@ -295,18 +306,28 @@ type OrganizationSubtreeData struct {
 	ChildrenField       []OrganizationSubtreeData `json:"children"`
 }
 
-func (o OrganizationSubtreeData) Code() string { return o.CodeField }
-func (o OrganizationSubtreeData) Name() string { return o.NameField }
-func (o OrganizationSubtreeData) Level() int   { return o.LevelField }
-func (o OrganizationSubtreeData) HierarchyDepth() int {
-	return o.HierarchyDepthField
+func (o OrganizationSubtreeData) Code() string  { return o.CodeField }
+func (o OrganizationSubtreeData) Name() string  { return o.NameField }
+func (o OrganizationSubtreeData) Level() int32  { return int32(o.LevelField) }
+func (o OrganizationSubtreeData) HierarchyDepth() int32 {
+	return int32(o.HierarchyDepthField)
 }
-func (o OrganizationSubtreeData) CodePath() *string { return o.CodePathField }
-func (o OrganizationSubtreeData) NamePath() *string { return o.NamePathField }
+func (o OrganizationSubtreeData) CodePath() string {
+	if o.CodePathField == nil {
+		return ""
+	}
+	return *o.CodePathField
+}
+func (o OrganizationSubtreeData) NamePath() string {
+	if o.NamePathField == nil {
+		return ""
+	}
+	return *o.NamePathField
+}
 func (o OrganizationSubtreeData) ParentChain() []string {
 	return o.ParentChainField
 }
-func (o OrganizationSubtreeData) ChildrenCount() int { return o.ChildrenCountField }
+func (o OrganizationSubtreeData) ChildrenCount() int32 { return int32(o.ChildrenCountField) }
 func (o OrganizationSubtreeData) IsRoot() bool       { return o.IsRootField }
 func (o OrganizationSubtreeData) IsLeaf() bool       { return o.IsLeafField }
 func (o OrganizationSubtreeData) Children() []OrganizationSubtreeData {
@@ -327,14 +348,14 @@ type HierarchyStatistics struct {
 }
 
 func (h HierarchyStatistics) TenantId() string        { return h.TenantIdField }
-func (h HierarchyStatistics) TotalOrganizations() int { return h.TotalOrganizationsField }
-func (h HierarchyStatistics) MaxDepth() int           { return h.MaxDepthField }
+func (h HierarchyStatistics) TotalOrganizations() int32 { return int32(h.TotalOrganizationsField) }
+func (h HierarchyStatistics) MaxDepth() int32         { return int32(h.MaxDepthField) }
 func (h HierarchyStatistics) AvgDepth() float64       { return h.AvgDepthField }
 func (h HierarchyStatistics) DepthDistribution() []DepthDistribution {
 	return h.DepthDistributionField
 }
-func (h HierarchyStatistics) RootOrganizations() int { return h.RootOrganizationsField }
-func (h HierarchyStatistics) LeafOrganizations() int { return h.LeafOrganizationsField }
+func (h HierarchyStatistics) RootOrganizations() int32 { return int32(h.RootOrganizationsField) }
+func (h HierarchyStatistics) LeafOrganizations() int32 { return int32(h.LeafOrganizationsField) }
 func (h HierarchyStatistics) IntegrityIssues() []IntegrityIssue {
 	return h.IntegrityIssuesField
 }
@@ -346,19 +367,19 @@ type DepthDistribution struct {
 	CountField int `json:"count"`
 }
 
-func (d DepthDistribution) Depth() int { return d.DepthField }
-func (d DepthDistribution) Count() int { return d.CountField }
+func (d DepthDistribution) Depth() int32 { return int32(d.DepthField) }
+func (d DepthDistribution) Count() int32 { return int32(d.CountField) }
 
 // IntegrityIssue 数据一致性问题
 type IntegrityIssue struct {
-	CodeField     string `json:"code"`
-	IssueField    string `json:"issue"`
-	SeverityField string `json:"severity"`
+	TypeField          string   `json:"type"`
+	CountField         int      `json:"count"`
+	AffectedCodesField []string `json:"affectedCodes"`
 }
 
-func (i IntegrityIssue) Code() string     { return i.CodeField }
-func (i IntegrityIssue) Issue() string    { return i.IssueField }
-func (i IntegrityIssue) Severity() string { return i.SeverityField }
+func (i IntegrityIssue) Type() string          { return i.TypeField }
+func (i IntegrityIssue) Count() int32          { return int32(i.CountField) }
+func (i IntegrityIssue) AffectedCodes() []string { return i.AffectedCodesField }
 
 // FieldChangeData 审计字段变更详情
 type FieldChangeData struct {
@@ -368,13 +389,21 @@ type FieldChangeData struct {
 	NewValueField interface{} `json:"newValue"`
 }
 
-func (f FieldChangeData) Field() string    { return f.FieldField }
-func (f FieldChangeData) DataType() string { return f.DataTypeField }
-func (f FieldChangeData) OldValue() interface{} {
-	return f.OldValueField
+func (f FieldChangeData) Field() string      { return f.FieldField }
+func (f FieldChangeData) DataType() string   { return f.DataTypeField }
+func (f FieldChangeData) OldValue() *string {
+	if f.OldValueField == nil {
+		return nil
+	}
+	str := fmt.Sprint(f.OldValueField)
+	return &str
 }
-func (f FieldChangeData) NewValue() interface{} {
-	return f.NewValueField
+func (f FieldChangeData) NewValue() *string {
+	if f.NewValueField == nil {
+		return nil
+	}
+	str := fmt.Sprint(f.NewValueField)
+	return &str
 }
 
 // AuditRecordData 审计记录-包含变更详情

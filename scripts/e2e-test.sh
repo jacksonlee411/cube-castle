@@ -99,11 +99,11 @@ fi
 echo "  📊 测试认证后的GraphQL查询..."
 GRAPHQL_RESPONSE=$(curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
-  -X POST -d '{"query":"query { organizations(first: 5) { data { code name unitType status } totalCount hasMore } }"}' \
+  -X POST -d '{"query":"query { organizations(pagination: { page: 1, pageSize: 5 }) { data { code name unitType status } pagination { total page pageSize hasNext } } }"}' \
   $GRAPHQL_SERVICE/graphql)
 
 if echo "$GRAPHQL_RESPONSE" | jq -e '.data.organizations' > /dev/null 2>&1; then
-    ORG_COUNT=$(echo "$GRAPHQL_RESPONSE" | jq -r '.data.organizations.totalCount')
+    ORG_COUNT=$(echo "$GRAPHQL_RESPONSE" | jq -r '.data.organizations.pagination.total')
     test_success "GraphQL查询成功，返回 $ORG_COUNT 个组织"
 else
     test_failure "GraphQL查询失败: $GRAPHQL_RESPONSE"
@@ -156,11 +156,11 @@ sleep 1  # 等待数据同步
 # 通过GraphQL查询新创建的组织
 VERIFY_RESPONSE=$(curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
-  -X POST -d "{\"query\":\"query { organizations(first: 10) { data { code name unitType } totalCount } }\"}" \
+  -X POST -d '{"query":"query { organizations(pagination: { page: 1, pageSize: 10 }) { data { code name unitType } pagination { total } } }"}' \
   $GRAPHQL_SERVICE/graphql)
 
 if echo "$VERIFY_RESPONSE" | jq -e '.data.organizations' > /dev/null 2>&1; then
-    NEW_TOTAL=$(echo "$VERIFY_RESPONSE" | jq -r '.data.organizations.totalCount')
+    NEW_TOTAL=$(echo "$VERIFY_RESPONSE" | jq -r '.data.organizations.pagination.total')
     if [ "$NEW_TOTAL" -gt "$ORG_COUNT" ]; then
         test_success "CQRS读写一致性验证成功，组织总数: $ORG_COUNT → $NEW_TOTAL"
     else

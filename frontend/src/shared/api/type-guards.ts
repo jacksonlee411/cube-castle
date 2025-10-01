@@ -1,23 +1,25 @@
 import { z } from 'zod';
-import { 
-  OrganizationUnitSchema, 
-  CreateOrganizationInputSchema, 
+import {
+  OrganizationUnitSchema,
+  CreateOrganizationInputSchema,
   CreateOrganizationResponseSchema,
   UpdateOrganizationInputSchema,
   GraphQLVariablesSchema,
-  GraphQLOrganizationResponseSchema
+  GraphQLOrganizationResponseSchema,
 } from '../validation/schemas';
 import type { OrganizationRequest as CreateOrganizationInput } from '../types/organization';
-import type { 
+import type {
   ValidatedOrganizationUnit,
   ValidatedCreateOrganizationInput,
   ValidatedCreateOrganizationResponse,
   ValidatedUpdateOrganizationInput,
   ValidatedGraphQLVariables,
-  ValidatedGraphQLOrganizationResponse 
+  ValidatedGraphQLOrganizationResponse,
 } from '../validation/schemas';
 import type { OrganizationUnit } from '../types/organization';
 import type { GraphQLResponse, GraphQLError } from '../types/api';
+import type { JsonObject, JsonValue } from '../types/json';
+import type { APIError } from './error-handling';
 
 // 验证错误类
 export class ValidationError extends Error {
@@ -32,7 +34,7 @@ export class ValidationError extends Error {
 }
 
 // 组织单元验证函数
-export const validateOrganizationUnit = (data: unknown): ValidatedOrganizationUnit => {
+export const validateOrganizationUnit = (data: JsonValue): ValidatedOrganizationUnit => {
   const result = OrganizationUnitSchema.safeParse(data);
   if (!result.success) {
     throw new ValidationError('Invalid organization unit data', result.error.issues);
@@ -41,7 +43,9 @@ export const validateOrganizationUnit = (data: unknown): ValidatedOrganizationUn
 };
 
 // 创建组织输入验证函数
-export const validateCreateOrganizationInput = (data: unknown): ValidatedCreateOrganizationInput => {
+export const validateCreateOrganizationInput = (
+  data: JsonValue,
+): ValidatedCreateOrganizationInput => {
   const result = CreateOrganizationInputSchema.safeParse(data);
   if (!result.success) {
     throw new ValidationError('Invalid create organization input', result.error.issues);
@@ -50,7 +54,9 @@ export const validateCreateOrganizationInput = (data: unknown): ValidatedCreateO
 };
 
 // 更新组织输入验证函数
-export const validateUpdateOrganizationInput = (data: unknown): ValidatedUpdateOrganizationInput => {
+export const validateUpdateOrganizationInput = (
+  data: JsonValue,
+): ValidatedUpdateOrganizationInput => {
   const result = UpdateOrganizationInputSchema.safeParse(data);
   if (!result.success) {
     throw new ValidationError('Invalid update organization input', result.error.issues);
@@ -59,7 +65,9 @@ export const validateUpdateOrganizationInput = (data: unknown): ValidatedUpdateO
 };
 
 // 创建组织响应验证函数
-export const validateCreateOrganizationResponse = (data: unknown): ValidatedCreateOrganizationResponse => {
+export const validateCreateOrganizationResponse = (
+  data: JsonValue,
+): ValidatedCreateOrganizationResponse => {
   const result = CreateOrganizationResponseSchema.safeParse(data);
   if (!result.success) {
     throw new ValidationError('Invalid create organization response', result.error.issues);
@@ -68,7 +76,7 @@ export const validateCreateOrganizationResponse = (data: unknown): ValidatedCrea
 };
 
 // GraphQL变量验证函数
-export const validateGraphQLVariables = (data: unknown): ValidatedGraphQLVariables => {
+export const validateGraphQLVariables = (data: JsonValue): ValidatedGraphQLVariables => {
   const result = GraphQLVariablesSchema.safeParse(data);
   if (!result.success) {
     throw new ValidationError('Invalid GraphQL variables', result.error.issues);
@@ -77,7 +85,9 @@ export const validateGraphQLVariables = (data: unknown): ValidatedGraphQLVariabl
 };
 
 // GraphQL组织响应验证函数
-export const validateGraphQLOrganizationResponse = (data: unknown): ValidatedGraphQLOrganizationResponse => {
+export const validateGraphQLOrganizationResponse = (
+  data: JsonValue,
+): ValidatedGraphQLOrganizationResponse => {
   const result = GraphQLOrganizationResponseSchema.safeParse(data);
   if (!result.success) {
     throw new ValidationError('Invalid GraphQL organization response', result.error.issues);
@@ -86,7 +96,9 @@ export const validateGraphQLOrganizationResponse = (data: unknown): ValidatedGra
 };
 
 // 批量验证GraphQL组织响应
-export const validateGraphQLOrganizationList = (data: unknown[]): ValidatedGraphQLOrganizationResponse[] => {
+export const validateGraphQLOrganizationList = (
+  data: JsonValue[],
+): ValidatedGraphQLOrganizationResponse[] => {
   return data.map((item, index) => {
     try {
       return validateGraphQLOrganizationResponse(item);
@@ -98,33 +110,33 @@ export const validateGraphQLOrganizationList = (data: unknown[]): ValidatedGraph
 };
 
 // GraphQL响应类型守卫
-export const isGraphQLError = (response: unknown): response is { errors: GraphQLError[] } => {
+export const isGraphQLError = (
+  response: JsonValue,
+): response is { errors: GraphQLError[] } => {
   return (
     typeof response === 'object' && 
     response !== null && 
     'errors' in response &&
-    Array.isArray((response as Record<string, unknown>).errors) &&
-    ((response as Record<string, unknown>).errors as unknown[]).length > 0
+    Array.isArray((response as JsonObject).errors) &&
+    ((response as JsonObject).errors as JsonValue[]).length > 0
   );
 };
 
 // GraphQL成功响应类型守卫
 export const isGraphQLSuccessResponse = <T>(
-  response: unknown
+  response: JsonValue
 ): response is GraphQLResponse<T> => {
   if (typeof response !== 'object' || response === null) {
     return false;
   }
   
-  const obj = response as Record<string, unknown>;
+  const obj = response as JsonObject;
   return (
     'data' in obj &&
     obj.data !== null &&
     obj.data !== undefined
   );
 };
-
-import type { APIError } from './error-handling';
 
 // API错误类型守卫
 export const isAPIError = (error: unknown): error is APIError => {
@@ -168,8 +180,8 @@ export const safeTransformGraphQLToOrganizationUnit = (
 
 // 安全的类型转换函数 - 将前端输入转换为API格式
 export const safeTransformCreateInputToAPI = (
-  input: CreateOrganizationInput
-): Record<string, unknown> => {
+  input: CreateOrganizationInput,
+): JsonObject => {
   // 预清洗：空字符串的 parentCode 视为未提供
   const sanitized: CreateOrganizationInput = {
     ...input,
@@ -177,7 +189,7 @@ export const safeTransformCreateInputToAPI = (
   };
   const validated = validateCreateOrganizationInput(sanitized);
   
-  const apiPayload: Record<string, unknown> = {
+  const apiPayload: JsonObject = {
     name: validated.name,
     unitType: validated.unitType,
     status: validated.status,

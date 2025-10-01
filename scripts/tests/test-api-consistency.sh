@@ -49,19 +49,19 @@ test_case \
 # 测试3: GraphQL查询 - camelCase字段
 test_case \
     "GraphQL查询响应使用camelCase" \
-    "curl -s -X POST $QUERY_SERVICE/graphql -H 'Content-Type: application/json' -d '{\"query\":\"query { organizations(first: 1) { unitType parentCode sortOrder createdAt } }\"}'" \
+    "curl -s -X POST $QUERY_SERVICE/graphql -H 'Content-Type: application/json' -d '{"query":"query { organizations(pagination: { page: 1, pageSize: 1 }) { data { unitType parentCode sortOrder createdAt } } }"}'" \
     '"unitType":"[A-Z_]+".*"parentCode".*"sortOrder":[0-9]+.*"createdAt"'
 
 # 测试4: 禁止snake_case字段
 test_case \
     "确认无snake_case字段出现" \
-    "curl -s -X POST $QUERY_SERVICE/graphql -H 'Content-Type: application/json' -d '{\"query\":\"query { organizations(first: 1) { code name unitType status } }\"}'" \
+    "curl -s -X POST $QUERY_SERVICE/graphql -H 'Content-Type: application/json' -d '{"query":"query { organizations(pagination: { page: 1, pageSize: 1 }) { data { code name unitType status } } }"}'" \
     'unitType.*ORGANIZATION_UNIT'
 
 # 测试5: unitType枚举值正确性
 test_case \
     "unitType枚举值包含新值" \
-    "curl -s -X POST $QUERY_SERVICE/graphql -H 'Content-Type: application/json' -d '{\"query\":\"query { organizations { unitType } }\"}' | jq -r '.data.organizations[].unitType' | sort | uniq | tr '\n' ' '" \
+    "curl -s -X POST $QUERY_SERVICE/graphql -H 'Content-Type: application/json' -d '{"query":"query { organizations(pagination: { page: 1, pageSize: 100 }) { data { unitType } } }"}' | jq -r '.data.organizations.data[].unitType' | sort | uniq | tr '\n' ' '" \
     'DEPARTMENT.*ORGANIZATION_UNIT.*PROJECT_TEAM'
 
 # 测试6: COST_CENTER已被禁用

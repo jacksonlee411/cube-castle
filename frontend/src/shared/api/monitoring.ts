@@ -43,18 +43,26 @@ export interface RateLimitStats {
   blockRate: string
 }
 
-function unwrapData<T>(res: unknown): T {
-  if (res && typeof res === 'object') {
-    const payload = res as { success?: boolean; data?: T; error?: { message?: string } }
-    if (typeof payload.success === 'boolean') {
-      if (!payload.success) {
-        throw new Error(payload.error?.message || '监控接口返回失败')
-      }
-      if (!payload.data) {
-        throw new Error('监控接口缺少数据返回')
-      }
-      return payload.data
+type EnvelopeError = { message?: string }
+
+type Envelope<T> = {
+  success: boolean
+  data?: T
+  error?: EnvelopeError
+}
+
+type MaybeEnvelope<T> = T | Envelope<T>
+
+function unwrapData<T>(res: MaybeEnvelope<T>): T {
+  if (typeof res === 'object' && res !== null && 'success' in res) {
+    const payload = res as Envelope<T>
+    if (!payload.success) {
+      throw new Error(payload.error?.message || '监控接口返回失败')
     }
+    if (!payload.data) {
+      throw new Error('监控接口缺少数据返回')
+    }
+    return payload.data
   }
   return res as T
 }
@@ -70,17 +78,17 @@ export const monitoringAPI = {
   },
 
   async getMetrics(): Promise<MonitoringMetrics> {
-    const res = await unifiedRESTClient.request(`/operational/metrics`, { method: 'GET' })
+    const res = await unifiedRESTClient.request<MaybeEnvelope<MonitoringMetrics>>(`/operational/metrics`, { method: 'GET' })
     return unwrapData<MonitoringMetrics>(res)
   },
 
   async getAlerts(): Promise<AlertList> {
-    const res = await unifiedRESTClient.request(`/operational/alerts`, { method: 'GET' })
+    const res = await unifiedRESTClient.request<MaybeEnvelope<AlertList>>(`/operational/alerts`, { method: 'GET' })
     return unwrapData<AlertList>(res)
   },
 
   async getRateLimitStats(): Promise<RateLimitStats> {
-    const res = await unifiedRESTClient.request(`/operational/rate-limit/stats`, { method: 'GET' })
+    const res = await unifiedRESTClient.request<MaybeEnvelope<RateLimitStats>>(`/operational/rate-limit/stats`, { method: 'GET' })
     return unwrapData<RateLimitStats>(res)
   },
 }

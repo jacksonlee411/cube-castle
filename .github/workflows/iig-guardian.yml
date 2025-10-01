@@ -77,6 +77,11 @@ jobs:
         mkdir -p reports/architecture
         mkdir -p reports/document-sync
 
+    - name: 📏 代码规模红灯巡检
+      run: |
+        chmod +x scripts/code-smell-check-quick.sh
+        scripts/code-smell-check-quick.sh
+
     - name: 🔍 自动检测变更内容 (用于功能描述)
       if: env.FEATURE_DESCRIPTION == 'auto-detected-changes'
       run: |
