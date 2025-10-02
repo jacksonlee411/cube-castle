@@ -1,8 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { setupAuth } from './auth-setup';
+
+const hasAuthToken = Boolean(process.env.PW_JWT);
+test.skip(!hasAuthToken, '需要 RS256 JWT 令牌运行受保护路由测试');
 
 test.describe('重构后架构完整性验证', () => {
   
   test.beforeEach(async ({ page }) => {
+    await setupAuth(page);
     await page.goto('/organizations');
   });
 
@@ -33,38 +38,53 @@ test.describe('重构后架构完整性验证', () => {
   });
 
   test('Phase 1: GraphQL统一查询接口验证', async ({ page }) => {
-    // 验证GraphQL端点
-    const graphqlResponse = await page.evaluate(async () => {
-      try {
-        const response = await fetch('http://localhost:8090/graphql', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: `query($page: Int!, $size: Int!) {
-              organizations(pagination: { page: $page, pageSize: $size }) {
-                data {
-                  code
-                  name
-                  unitType
-                  status
-                }
-                pagination {
-                  total
-                  page
-                  pageSize
-                }
-              }
-            }`,
-            variables: { page: 1, size: 1 }
-          })
-        });
-        return await response.json();
-      } catch (error) {
-        return { error: error.message };
-      }
-    });
+    const token = process.env.PW_JWT;
+    test.skip(!token, '缺少 PW_JWT 令牌，无法验证 GraphQL 接口');
 
-    expect(graphqlResponse).toHaveProperty('data.organizations.data');
+    const tenantId = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
+
+    const graphqlResult = await page.evaluate(async ({ authToken, tenant }) => {
+      // 使用相对路径，通过 Vite dev server 代理到后端
+      const response = await fetch('/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+          'X-Tenant-ID': tenant,
+        },
+        body: JSON.stringify({
+          query: `query ($page: Int!, $size: Int!) {
+            organizations(pagination: { page: $page, pageSize: $size }) {
+              data {
+                code
+                name
+                unitType
+                status
+              }
+              pagination {
+                total
+                page
+                pageSize
+                hasNext
+              }
+            }
+          }`,
+          variables: { page: 1, size: 5 },
+        }),
+      });
+
+      const body = await response.json();
+      return {
+        status: response.status,
+        ok: response.ok,
+        body,
+      };
+    }, { authToken: token, tenant: tenantId });
+
+    expect(graphqlResult.status).toBe(200);
+    expect(graphqlResult.ok).toBeTruthy();
+    expect(graphqlResult.body).toHaveProperty('data.organizations.data');
+    expect(Array.isArray(graphqlResult.body.data.organizations.data)).toBeTruthy();
   });
 
   test('Phase 1: 冗余服务移除验证', async ({ page }) => {

@@ -78,12 +78,14 @@ export default tseslint.config([
   
   // 🧪 测试文件特殊规则配置 - 允许fetch用于E2E测试和契约测试
   {
-    files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
+    files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}', 'scripts/**/*.ts', 'playwright.config.ts'],
     rules: {
       // 测试文件允许使用fetch进行API测试
       'no-restricted-globals': 'off',
       // 测试文件允许使用any类型进行模拟数据
-      '@typescript-eslint/no-explicit-any': 'off'
+      '@typescript-eslint/no-explicit-any': 'off',
+      // 测试文件和脚本允许使用console进行调试输出
+      'no-console': 'warn'
     }
   },
   

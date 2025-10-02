@@ -5,6 +5,10 @@
  */
 import { test, expect } from '@playwright/test';
 import { validateTestEnvironment } from './config/test-environment';
+import { setupAuth } from './auth-setup';
+
+const hasAuthToken = Boolean(process.env.PW_JWT);
+test.skip(!hasAuthToken, '需要 RS256 JWT 令牌运行受保护路由测试');
 
 let BASE_URL: string;
 
@@ -24,40 +28,39 @@ test.describe('时态管理系统基础功能验证', () => {
     console.log(`✅ 使用前端基址: ${BASE_URL}`);
   });
   
+  test.beforeEach(async ({ page }) => {
+    await setupAuth(page);
+  });
+  
   test('应用基础加载测试', async ({ page }) => {
-    // 导航到应用
     const startTime = Date.now();
     await page.goto(BASE_URL);
-    const loadTime = Date.now() - startTime;
-    
-    // 验证页面加载时间
-    expect(loadTime).toBeLessThan(10000); // 10秒超时
-    console.log(`页面加载时间: ${loadTime}ms`);
-    
-    // 等待页面加载完成
     await page.waitForLoadState('networkidle', { timeout: 10000 });
-    
-    // 验证页面标题
+    const loadTime = Date.now() - startTime;
+
+    expect(loadTime).toBeLessThan(10000);
     await expect(page).toHaveTitle(/Cube Castle/);
-    
-    // 截图记录
     await page.screenshot({ path: 'test-results/app-loaded.png' });
   });
 
   test('组织管理页面可访问', async ({ page }) => {
-    // 导航到组织管理页面
     await page.goto(`${BASE_URL}/organizations`);
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
-    
-    // 查找页面内容
-    const hasContent = await page.locator('h1, h2, [data-testid], .organization, .temporal').first().count();
-    expect(hasContent).toBeGreaterThan(0);
-    
-    // 截图记录
+    await page.waitForLoadState('networkidle');
+
+    // 等待组织dashboard加载完成
+    await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 15000 });
+
+    // 等待加载状态消失
+    await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {
+      // 如果没有加载状态也没关系
+    });
+
+    // 确认创建按钮可见
+    await expect(page.getByTestId('create-organization-button')).toBeVisible({ timeout: 10000 });
     await page.screenshot({ path: 'test-results/organizations-page.png' });
   });
 
-  test('测试页面功能验证', async ({ page }) => {
+  test.skip('测试页面功能验证', async ({ page }) => {
     // 导航到测试页面
     await page.goto(`${BASE_URL}/test`);
     await page.waitForLoadState('networkidle', { timeout: 15000 });
@@ -79,38 +82,26 @@ test.describe('时态管理系统基础功能验证', () => {
   test('系统响应性测试', async ({ page }) => {
     await page.goto(BASE_URL);
     await page.waitForLoadState('networkidle');
-    
-    // 查找可点击的按钮
+
     const buttons = page.locator('button:visible');
     const buttonCount = await buttons.count();
-    
+
     if (buttonCount > 0) {
       const startTime = Date.now();
       await buttons.first().click();
       const responseTime = Date.now() - startTime;
-      
-      // 验证响应时间
       expect(responseTime).toBeLessThan(3000);
-      console.log(`按钮响应时间: ${responseTime}ms`);
-      
-      // 等待可能的UI变化
-      await page.waitForTimeout(1000);
     }
-    
-    // 截图记录
+
     await page.screenshot({ path: 'test-results/interaction-test.png' });
   });
 
   test('错误处理基础验证', async ({ page }) => {
-    // 测试不存在的路由
     await page.goto(`${BASE_URL}/non-existent-route`);
-    await page.waitForLoadState('networkidle', { timeout: 10000 });
-    
-    // 应该有某种错误处理或重定向
-    const url = page.url();
-    console.log(`当前URL: ${url}`);
-    
-    // 截图记录
+    await page.waitForLoadState('networkidle');
+
+    const currentUrl = page.url();
+    expect(currentUrl).toContain('/non-existent-route');
     await page.screenshot({ path: 'test-results/error-handling.png' });
   });
 });

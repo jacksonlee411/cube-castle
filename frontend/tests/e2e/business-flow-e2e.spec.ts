@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { setupAuth } from './auth-setup';
 
+const hasAuthToken = Boolean(process.env.PW_JWT);
+test.skip(!hasAuthToken, '需要 RS256 JWT 令牌运行受保护路由测试');
+
 test.describe('业务流程端到端测试', () => {
 
   test.beforeEach(async ({ page }) => {
@@ -10,94 +13,100 @@ test.describe('业务流程端到端测试', () => {
     // 导航到组织管理页面
     await page.goto('/organizations');
 
-    // 等待页面加载完成
-    await expect(page.getByText('组织架构管理')).toBeVisible();
+    // 等待页面加载完成 - 使用 data-testid 而不是文本，避免加载状态干扰
+    await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 15000 });
+
+    // 等待加载状态消失，确保数据已加载
+    await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {
+      // 如果没有加载状态也没关系，说明加载很快完成了
+    });
+
+    // 最后确认标题可见
+    await expect(page.getByText('组织架构管理')).toBeVisible({ timeout: 10000 });
   });
 
   test('完整CRUD业务流程测试', async ({ page }) => {
-    // === CREATE 操作测试 ===
-    
-    // 1. 点击新增按钮
-    await page.getByRole('button', { name: '新增组织单元' }).click();
-    
-    // 2. 等待表单模态框出现
-    const formModal = page.getByTestId('organization-form');
-    await expect(formModal).toBeVisible();
-    
-    // 3. 填写表单字段 - 使用更可靠的测试选择器
-    await page.getByTestId('form-field-name').fill('测试部门E2E');
-    await page.getByTestId('form-field-unit-type').selectOption('DEPARTMENT');
-    await page.getByTestId('form-field-description').fill('E2E测试创建的组织');
-    
-    // 4. 提交表单
-    await page.getByTestId('form-submit-button').click();
-    
-    // 5. 验证表单关闭
-    await expect(formModal).not.toBeVisible();
+    test.setTimeout(180000);
 
-    // === READ 操作测试 ===
-    
-    // 6. 验证数据显示在表格中
-    await page.waitForTimeout(2000); // 等待数据刷新
-    const organizationTable = page.getByTestId('organization-table');
-    await expect(organizationTable).toBeVisible();
-    
-    const tableRow = page.locator('tr:has-text("测试部门E2E")');
-    await expect(tableRow).toBeVisible();
-    
-    // 7. 验证数据字段完整性
-    await expect(tableRow.getByText('DEPARTMENT')).toBeVisible();
-    await expect(tableRow.getByText('ACTIVE')).toBeVisible();
+    const uniqueSuffix = Date.now().toString(36);
+    const baseName = `测试部门E2E-${uniqueSuffix}`;
+    const updatedName = `${baseName}-已更新`;
 
-    // === UPDATE 操作测试 ===
-    
-    // 8. 点击编辑按钮
-    const editButton = tableRow.getByRole('button', { name: /编辑|Edit/ });
-    
-    if (await editButton.isVisible()) {
-      await editButton.click();
-      
-      // 等待编辑表单出现
-      await expect(formModal).toBeVisible();
-      await expect(page.getByText('编辑组织单元')).toBeVisible();
-      
-      // 修改名称 - 使用更可靠的测试选择器
-      const nameInput = page.getByTestId('form-field-name');
-      await nameInput.clear();
-      await nameInput.fill('测试部门E2E-已更新');
-      
-      // 提交更新
+    await test.step('创建新组织', async () => {
+      await page.getByTestId('create-organization-button').click();
+      await page.waitForURL('**/organizations/new');
+      await expect(page.getByTestId('organization-form')).toBeVisible();
+
+      const today = new Date().toISOString().slice(0, 10);
+      await page.getByTestId('form-field-effective-date').fill(today);
+      await page.getByTestId('form-field-name').fill(baseName);
+      await page.getByTestId('form-field-description').fill(`自动化创建 ${baseName}`);
       await page.getByTestId('form-submit-button').click();
-      
-      // 验证表单关闭
-      await expect(formModal).not.toBeVisible();
-      
-      // 验证更新后的数据
-      await page.waitForTimeout(2000);
-      await expect(page.locator('tr:has-text("测试部门E2E-已更新")')).toBeVisible();
-    }
 
-    // === DELETE 操作测试 ===
-    
-    // 9. 点击删除按钮
-    const updatedRow = page.locator('tr:has-text("测试部门E2E")');
-    const deleteButton = updatedRow.getByRole('button', { name: /删除|Delete/ });
-    
-    if (await deleteButton.isVisible()) {
-      await deleteButton.click();
-      
-      // 如果有确认对话框，确认删除
-      const confirmButton = page.getByRole('button', { name: /确认|删除|Delete|确定/ });
-      if (await confirmButton.isVisible({ timeout: 2000 })) {
-        await confirmButton.click();
-      }
-      
-      // 验证删除后数据不再显示
-      await page.waitForTimeout(2000);
-      await expect(updatedRow).not.toBeVisible();
-    } else {
-      console.log('删除按钮不可见，跳过删除测试');
+      await page.waitForURL(/\/organizations\/[0-9]{7}\/temporal$/);
+      await expect(page.getByTestId('organization-form')).toBeVisible();
+    });
+
+    const detailUrl = page.url();
+    const createdCodeMatch = detailUrl.match(/organizations\/(\d{7})/);
+    if (!createdCodeMatch?.[1]) {
+      throw new Error('成功创建的组织需要返回7位编码');
     }
+    const organizationCode = createdCodeMatch[1];
+
+    await page.getByTestId('back-to-organization-list').click();
+    await page.waitForURL('**/organizations');
+
+    await test.step('验证列表展示新组织', async () => {
+      const organizationTable = page.getByTestId('organization-table');
+      await expect(organizationTable).toBeVisible();
+
+      const createdRow = page.getByTestId(`table-row-${organizationCode}`);
+      await expect(createdRow).toBeVisible();
+      await expect(createdRow.getByText(baseName)).toBeVisible();
+      await expect(createdRow.getByText('DEPARTMENT')).toBeVisible();
+      await expect(page.getByTestId(`status-pill-${organizationCode}`)).toHaveText('✓ 启用');
+    });
+
+    await test.step('更新组织名称', async () => {
+      await page.getByTestId(`temporal-manage-button-${organizationCode}`).click();
+      await page.waitForURL(`**/organizations/${organizationCode}/temporal`);
+      await expect(page.getByTestId('organization-form')).toBeVisible();
+
+      await page.getByTestId('edit-history-toggle-button').click();
+      const nameInput = page.getByTestId('form-field-name');
+      await expect(nameInput).toBeEnabled();
+      await nameInput.fill(updatedName);
+      await page.getByTestId('submit-edit-history-button').click();
+
+      await expect(nameInput).toHaveValue(updatedName);
+      await expect(nameInput).toBeDisabled();
+
+      await page.getByTestId('back-to-organization-list').click();
+      await page.waitForURL('**/organizations');
+
+      const updatedRow = page.getByTestId(`table-row-${organizationCode}`);
+      await expect(updatedRow.getByText(updatedName)).toBeVisible();
+    });
+
+    await test.step('删除组织并在列表中消失', async () => {
+      await page.getByTestId(`temporal-manage-button-${organizationCode}`).click();
+      await page.waitForURL(`**/organizations/${organizationCode}/temporal`);
+      await expect(page.getByTestId('organization-form')).toBeVisible();
+
+      const deleteButton = page.getByTestId('temporal-delete-record-button');
+      await expect(deleteButton).toBeVisible();
+      await deleteButton.click();
+      const confirmButton = page.getByTestId('deactivate-confirm-button');
+      await expect(confirmButton).toBeVisible();
+      await confirmButton.click();
+
+      await page.getByTestId('back-to-organization-list').click();
+      await page.waitForURL('**/organizations');
+
+      const deletedRow = page.getByTestId(`table-row-${organizationCode}`);
+      await expect(deletedRow).toHaveCount(0);
+    });
   });
 
   test('分页和筛选功能测试', async ({ page }) => {
@@ -336,13 +345,13 @@ test.describe('业务流程端到端测试', () => {
       expect(firstFrontendItem.type).toBe(firstApiItem.unitType);
       
       // 状态字段处理本地化映射
-      const statusMap = {
-        'ACTIVE': '启用',
-        'INACTIVE': '禁用',
-        'PLANNED': '计划'
+      const statusMap: Record<string, string> = {
+        'ACTIVE': '✓ 启用',
+        'INACTIVE': '停用',
+        'PLANNED': '计划中'
       };
-      const expectedStatus = statusMap[firstApiItem.status] || firstApiItem.status;
-      expect(firstFrontendItem.status).toBe(expectedStatus);
+      const expectedDisplayStatus = statusMap[firstApiItem.status] || firstApiItem.status;
+      expect(firstFrontendItem.status).toBe(expectedDisplayStatus);
     }
   });
 });
