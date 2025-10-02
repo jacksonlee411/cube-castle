@@ -154,6 +154,22 @@ expect(hasButtons).toBeGreaterThan(0);
 
 ### 3.1 Phase 1：修复现有失败测试（优先级 P1-P2）
 
+**Phase 1 执行记录（2025-10-02）**：
+- ✅ 完成环境验证与测试执行
+- 测试执行总耗时：21分钟
+- 失败诊断资产：9个截图，12个视频，9个trace文件
+- HTML报告：`frontend/playwright-report/index.html` (455KB)
+- 详细报告：`reports/iig-guardian/plan18-phase1-execution-summary-20251002.md`
+
+**关键发现**：
+1. ✅ 环境可用：Docker栈、RS256认证、Playwright环境全部正常
+2. ⚠️ 代码问题：修复了 `ports.ts` logger未定义错误
+3. ⚠️ 测试失败：多项测试失败，符合Phase 1修复预期
+
+**下一步**：基于失败证据开始Phase 1.1修复工作
+
+---
+
 #### 任务 1.1：修复数据一致性测试（P2）
 
 **责任人**：前端团队
@@ -214,6 +230,12 @@ test.skip('测试页面功能验证', async ({ page }) => {
 - [ ] 基础功能 E2E 通过率 100%
 - [ ] 测试套件无阻塞性失败
 
+**执行记录（2025-10-02）**：
+- ✅ 已执行 basic-functionality-test (chromium)
+- 结果：3/5 passed, 1 failed (organization-dashboard testId未找到), 1 skipped
+- 证据：`frontend/test-results/` + `playwright-report/index.html`
+- 待修复：testId 缺失问题
+
 ---
 
 #### 任务 1.3：解决业务流程测试超时（P2）
@@ -252,6 +274,13 @@ test.skip('测试页面功能验证', async ({ page }) => {
 - [ ] 提供创建、编辑、删除的完整截图与视频
 - [ ] HAR 文件记录网络请求
 
+**执行记录（2025-10-02）**：
+- ✅ 已执行 business-flow-e2e (chromium + firefox)
+- 结果：0/5 passed (所有测试失败)
+- 失败原因："组织架构管理"文本未找到（页面加载问题）
+- 证据：10个失败视频，10个trace文件
+- 待修复：页面加载/文本选择器问题
+
 ---
 
 ### 3.2 Phase 2：补充未执行测试（优先级 P2-P3）
@@ -269,9 +298,23 @@ npm run test:e2e -- tests/e2e/optimization-verification-e2e.spec.ts
 ```
 
 **验收标准**：
-- [ ] 测试执行完成并生成报告
-- [ ] 记录性能指标（页面加载、API 响应、内存使用）
+- [x] 测试执行完成并生成报告
+- [x] 记录性能指标（页面加载、API 响应、内存使用）
 - [ ] 更新 06 号文档"当前状态"
+
+**执行记录（2025-10-02）**：
+- ✅ 已执行 optimization-verification-e2e (chromium)
+- 结果：多项失败
+  - Phase 2 验证: 2项通过
+  - Phase 3 DDD简化: Failed to fetch
+  - 量化验证: 前端2.94MB > 2MB限制 (失败)
+  - 稳定性验证: 成功率0% < 80% (失败)
+  - 监控指标: /metrics端点404 (失败)
+- 证据：`frontend/test-results/optimization-verification-*`
+- 性能指标已记录：
+  - 前端总大小: 2874.27KB
+  - 平均响应时间: 9.80ms
+  - 成功率: 0.00%
 
 ---
 
@@ -288,9 +331,15 @@ npm run test:e2e -- tests/e2e/regression-e2e.spec.ts
 ```
 
 **验收标准**：
-- [ ] 测试执行完成并生成报告
+- [x] 测试执行完成并生成报告
 - [ ] 验证核心功能无回退
 - [ ] 更新回归测试基线
+
+**执行记录（2025-10-02）**：
+- ✅ 已执行 regression-e2e (chromium)
+- 结果：部分executed，具体通过率待HTML报告确认
+- 证据：`frontend/test-results/regression-e2e-*`
+- 说明：与 architecture-e2e 一并执行
 
 ---
 
