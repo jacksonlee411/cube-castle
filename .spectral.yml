@@ -1,7 +1,7 @@
 # OpenAPI规范合规性检查 (ADR-008实施)
 # 基于Spectral引擎的自动化规则验证
 
-extends: ["@stoplight/spectral-oasx"]
+extends: ["spectral:oas"]
 
 rules:
   # 禁止弃用端点定义
@@ -151,7 +151,9 @@ rules:
           - "DELETE"
 
 # 跳过规则（如果某些规则不适用）
-except:
-  # 跳过Spectral内置的某些规则，如果它们与我们的标准冲突
-  - "info-contact"  # 我们有自己的联系信息规范
-  - "tag-description"  # 我们有自己的标签规范
+# 注意：Spectral 6.x 使用 overrides 而非 except
+overrides:
+  - files: ["**"]
+    rules:
+      info-contact: off  # 我们有自己的联系信息规范
+      tag-description: off  # 我们有自己的标签规范

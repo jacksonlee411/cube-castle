@@ -1,460 +1,107 @@
 # 06 — 集成团队推进记录（RS256 认证与 API 合规治理）
 
-最后更新：2025-10-02 01:15 UTC
+最后更新：2025-10-02 18:30 UTC
 维护团队：认证小组（主责）+ 前端工具组 + 命令服务团队 + QA
-状态：Plan 12/13/14 已完成归档，Plan 16 代码异味治理 Phase 0 完成（P1 问题已解决），Plan 17 TODO 治理持续巡检，Plan 15 例行复核中
+状态：Plan 12/13/14 已归档；Plan 16 Phase 0 证据齐全，Playwright RS256 回归持续观察；Plan 17 Phase 3 完成待收尾 warning；Plan 15 例行复核中
 
 ---
 
 ## 1. 进行中事项概览
-- **✅ Plan 12 验收完成**：temporal契约回正已验证完成，Playwright测试执行成功，12号文档已归档至 `docs/archive/development-plans/`。
-- **✅ Plan 13（停用/删除一致性治理）完成并归档**：
-  - ✅ `DELETE_ORGANIZATION` 事件、子组织阻断、审计日志落地；`make test`、`make test-integration` 全绿
-  - ✅ GraphQL `childrenCount` / `includeDisabledAncestors`、前端 Parent Selector 与 `organizationPermissions` 联调通过
-  - ✅ 验收见 `docs/archive/development-plans/13-organization-suspend-delete-governance.md`，测试证明附录已归档
-- **✅ Plan 14（status-only 软删除）技术实施完成**：
-  - ✅ Phase 1 数据审计：13条记录状态完全一致，生成 `reports/temporal/status-only-audit-final.json` 与差异报告
-  - ✅ Phase 4 回归验证：Go单元/集成测试、前端测试全部通过，E2E测试环境问题已记录
-  - ✅ 实现清单已更新为v1.9.1版本，记录软删除统一架构变更
-- **🚧 Plan 16 代码异味治理**：Phase 1 执行中，Go 红灯已清零（仓储拆分为 `postgres_*.go` 子模块，最大 475 行），前端红灯仍剩 1 个（`frontend/src/features/temporal/components/InlineNewVersionForm.tsx` 1 067 行）；实现清单与 TODO 巡检已完成，待补 `plan16-phase0-baseline` 标签推送与 Playwright 复测
-- **✅ Plan 17 TODO 治理（已归档）**：419 状态码评审完成；`scripts/check-temporary-tags.sh` 扩展支持文档扫描，CI 及周度巡检日志已提交，持续巡检按模板执行。
-- **API 合规例外决策**：前端 lint 仍报 3 个 `camelcase`（外部协议字段）与多处 `no-console`，尚未决定豁免或改写，CI 配置也未同步。
-- **Console 输出治理**：缺乏统一日志策略，是否替换 `console` 需由前端团队给出方案与时间表。
-- **Spectral 依赖失效**：`npm install` 拉取 `@stoplight/spectral-oasx` 仍报 404，需与平台团队协作替换镜像或缓存，避免阻断安装流程。
-- **Playwright 权限回归**：时态相关用例因权限配置失败，需定位业务策略或测试数据，确认能够在 RS256 环境下稳定通过。
+- **✅ Plan 16 Phase 0 证据齐全**：`plan16-phase0-baseline` 远端可查（提交 `718d7cf6`），补证纪要归档于 Plan 19《Plan 16 Phase 0 工作量复核纪要（证据归档）》(`../archive/development-plans/19-phase0-workload-review.md`)，本日志已登记完成时间 2025-09-30 10:00 UTC，责任人架构组。
+- **✅ Playwright RS256 回归已完成**（2025-10-02）：核心验证通过（PBAC + 架构契约 100%），次要问题已记录（数据一致性 + 测试页面）。
+- **✅ Spectral 依赖修复与 API 契约治理完成**（2025-10-02 18:30 UTC）：
+  - ✅ 依赖修复：`@stoplight/spectral-oasx` → `@stoplight/spectral-rulesets:1.22.0` + CLI 6.15.0
+  - ✅ Error 级别问题修复：6 → 0（100% 消除）
+  - ✅ Warning 级别问题修复：69 → 14（降幅 80%，补充 5 个 operation description + `temporal-operations` tag）
+  - ✅ CI 集成：`api-compliance.yml` 新增 Node.js + `npm ci` + `npm run lint:api`
+  - ⏳ 剩余 14 项 warning 待评估（`standard-response-envelope` 7 + `oas3-unused-component` 7）
+  - 📋 详见 Plan 17（版本 2.1，2025-10-02 18:30 UTC）
+- **⚠️ ESLint 例外决策缺失**：`camelcase` 与 `no-console` 告警未定案，API 合规与 TODO 巡检暂无法闭环。
+- **⏳ Console 输出治理方案**：前端团队尚未提交替换策略，统一日志规范仍待确认。
 
 ---
 
 ## 2. 当前状态与证据
-- ✅ `make run-auth-rs256-sim` + `curl http://localhost:9090/.well-known/jwks.json` 可拿到 `kid=bff-key-1` RSA 公钥，RS256 链路基线可用。
-- ✅ `rg "temporal" frontend/src tests/e2e` 仅保留契约内引用，`frontend/tests/e2e/temporal-management-integration.spec.ts` 已校验 `/versions` 并阻断 `/temporal`。
-- ✅ **2025-09-27 Playwright 复测完成**：环境就绪后执行成功，12个测试中10个通过，2个预期失败（契约验证正常），结果已记录在 `reports/iig-guardian/temporal-contract-rollback-20250926.md`。
-- ✅ `docs/api/openapi.yaml`、`docs/api/schema.graphql`、Quick Reference 与 API Guide 已更新为 status-only 语义，唯一事实来源指向 `status` 字段。
-- ⚠️ `NODE_PATH=frontend/node_modules npx eslint@8.57.0 frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs` 输出 `camelcase` 与 `no-console` 告警，需决策处理方式。
-- ⚠️ `npm install` 过程中抓取 `@stoplight/spectral-oasx` 失败，阻塞工具链；暂无替代方案。
-- ⚠️ Playwright `--grep "temporal"` 用例在带 RS256 JWT 时仍因权限被拒绝，需补充数据或权限配置。
-- ✅ TypeScript 弱类型基线报告：`reports/iig-guardian/code-smell-types-20251007.md`（173 处 `any/unknown`）。
-- ✅ Go 集成测试：`make test-integration`（2025-10-07，E2E_RUN 未设步跳过真实 HTTP）。
-- ⏳ `plan16-phase0-baseline` 标签已在本地创建，等待远程推送并登记责任人。
+- ✅ **Spectral 依赖修复与 API 契约治理验证**（2025-10-02 18:30 UTC）：
+  - ✅ `npm ci` 成功（330 packages，无 404 错误）
+  - ✅ Spectral CLI 6.15.0（`npx spectral --version`）
+  - ✅ `npm run lint:api` 正常执行 → 0 errors / 14 warnings / 0 hints
+  - ✅ **API 契约质量提升**: 75 problems → 14 problems（降幅 81%）
+    - Error 级别: 6 → 0（100% 消除）
+    - Warning 级别: 69 → 14（降幅 80%）
+  - ✅ **核心修复内容**:
+    - 修复 `oas3-valid-media-example`: 添加缺失 `message`
+    - 修复 `camelcase-field-names`: `record_id` → `recordId`
+    - 修复 `oas3-schema` OAuth2: `flows` 缩进
+    - 修复 `oas3-schema` CSRFToken: 移至 `securitySchemes`
+    - 添加 27 个 `operationId`
+    - 新增 5 个 operational `description` 与 `temporal-operations` 标签
+    - `api-compliance.yml` 新增 Node.js + `npm ci` + `npm run lint:api`
+  - ⏳ **剩余 14 项 warning**: `standard-response-envelope`(7), `oas3-unused-component`(7)
+  - 📋 详见 `docs/development-plans/17-spectral-dependency-recovery-plan.md` v2.1
+- ⚠️ `NODE_PATH=frontend/node_modules npx eslint@8.57.0 frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs` 持续输出 `camelcase` 与 `no-console` 告警，尚无处理策略。
+- ✅ **Playwright RS256 E2E 验证已完成**（2025-10-02）：
+  - ✅ PBAC scope 验证通过（GraphQL API 返回 200，含 `data.organizations.data`）
+  - ✅ 架构契约 E2E 全通过（6/6 passed，9.6s）
+  - ⚠️ 业务流程 E2E 部分通过（1 失败：数据一致性 - 状态字段含 `✓` 标记）
+  - ⚠️ 基础功能 E2E 80% 通过（8/10 passed，2 失败：`/test` 页面无交互元素）
+  - 📊 详见 `reports/iig-guardian/playwright-rs256-verification-20251002.md`
+- ✅ `plan16-phase0-baseline` 远端标签已验证（`git ls-remote --tags origin plan16-phase0-baseline` 指向 `718d7cf6249e68e764827424fe8f9fa2a1c1cf80`）。
+- ✅ Phase 0 工作量复核纪要已归档：Plan 19《Plan 16 Phase 0 工作量复核纪要（证据归档）》(`../archive/development-plans/19-phase0-workload-review.md`)。
+- ✅ 本日志已补记 Phase 0 完成信息（完成时间 2025-09-30 10:00 UTC，责任人架构组）。
+- ⏳ `reports/iig-guardian/code-smell-types-20251007.md` 统计 173 处 `any/unknown` 待治理，`scripts/code-smell-check-quick.sh` 尚未接入 CI。
 
 ---
 
-## 3. 待办清单
-1. ✅ ~~修复 Playwright 页面加载超时问题~~（**已完成 2025-10-02**）：已通过 localStorage 认证注入解决，详见 `reports/iig-guardian/playwright-rs256-p1-resolution-20251002.md`。
-2. **【P1 - 前端团队】排查 CRUD 功能测试失败**（预计 1-2 天）：
-   - 手动验证"新增组织单元"功能是否可用
-   - 执行排查脚本收集诊断信息（Console 日志、网络请求、JWT scopes）
-   - 确认 `organization-form` 等测试选择器是否正确配置
-   - 详见 `reports/iig-guardian/p1-crud-issue-analysis-20251002.md`
-3. **【P2 - QA】应用认证修复到其他测试**（预计 1 天）：
-   - 将 `setupAuth()` 应用到 `regression-e2e.spec.ts`
-   - 将 `setupAuth()` 应用到 `optimization-verification-e2e.spec.ts`
-   - 将 `setupAuth()` 应用到 `basic-functionality-test.spec.ts`
-   - 验证测试页面交互元素问题是否同样为认证问题
-4. 确认 `camelcase` 与 `no-console` 的长期处理方式（豁免名单或代码调整），同步更新 lint 配置及文档记录。
-5. 制定前端日志替换方案（目标组件、负责人、时间表），避免出现无限制 `console`。
-6. 与平台团队协作，为 `@stoplight/spectral-oasx` 配置可用镜像或缓存，并在日志记录处理进度。
-7. 【Plan 14】数据平台+命令服务团队：执行 `sql/inspection/status_deleted_audit.sql` 并按手册产出 `reports/temporal/status-only-audit-after.json`、`status-only-migration_diff.md`（生产等价环境复核待排期）。
+## 3. QA 验证任务（2025-10-02 更新）
+1. **RS256 CRUD 回归**（`tests/e2e/business-flow-e2e.spec.ts`）
+   - 令牌：使用 `.cache/dev.jwt` 或 `make jwt-dev-mint` 生成，需包含 `org:read org:write org:read:history org:read:hierarchy org:read:stats org:read:audit`。
+   - 命令：`PW_JWT=$(cat .cache/dev.jwt) PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 npm run test:e2e -- --grep "业务流程"`。
+   - 期待：表单定位通过新 `data-testid`，按钮点击后跳转 `/organizations/{code}/temporal` 并返回列表成功；提交 HAR、screenshot、video。
 
----
+2. **GraphQL 契约验证**（`tests/e2e/architecture-e2e.spec.ts`）
+   - 重点：`Authorization` 与 `X-Tenant-ID` 头由 Playwright 配置自动注入，需验证 HTTP 200 且响应含 `data.organizations.data`。
+   - 证据：保存 `playwright-report` 中的 `trace.zip` 和响应日志，附于 `reports/iig-guardian/plan16-e2e-rs256-verification-20251002.md`。
 
-## 4. 待测试事项
-- **Playwright E2E（temporal 场景）**：Mock 模式已完成 `npm run test:e2e -- --grep "temporal"`；待后端服务可用时在 RS256 环境复跑并附带监控结果。
-- **API 合规 Lint 复验**：按 `NODE_PATH=frontend/node_modules npx eslint@8.57.0 ...` 命令重跑，确认告警清零或与豁免清单一致，输出结果需归档。
-- **Status-only 数据审计**：在具备数据库访问权限的环境运行 `psql -f sql/inspection/status_deleted_audit.sql > reports/temporal/status-only-audit-after.json`，并更新差异报告。
-- **Status-only 回归测试**：完成 Phase 4 测试矩阵后，将执行证据与监控结论附于 `reports/temporal/`。
+3. **基础功能/优化剧本**（`basic-functionality-test.spec.ts`、`optimization-verification-e2e.spec.ts`、`regression-e2e.spec.ts`）
+   - 重点：确认 `setupAuth` 已在 `beforeEach` 生效，页面初始加载通过；若缺少 `PW_JWT` 需标记跳过原因。
+   - 证据：输出命令、测试结果、截图，更新 `reports/iig-guardian/` 目录并在本日志登记结果。
+
+4. **PBAC scope 验证**
+   - 接口：`curl -H "Authorization: Bearer $PW_JWT" -H "X-Tenant-ID: $PW_TENANT_ID" http://localhost:8090/graphql -d '{"query":"query { organizations(pagination:{page:1,pageSize:1}) { data { code } } }"}'`。
+   - 期待：状态码 200，无 `access denied`；若失败，记录返回体并对照 `internal/auth/pbac.go` 与生成令牌 scopes。
+
+5. **日志归档与文档更新**
+   - 执行结束后，将测试产出统一放入 `reports/iig-guardian/playwright-rs256-verification-<date>.md`，并在本日志“当前状态”栏目补记结论。
+
+## 4. 其他工作待办
+1. **【P3 - API 治理】Spectral 剩余 warning 处理（可选）**：Plan 17 已完成核心修复（75→14），剩余 14 项 warning 为低优先级问题（`standard-response-envelope` 7 项、`oas3-unused-component` 7 项），可根据团队优先级决定是否处理。
+2. **【P2 - 前端】确定 ESLint 例外策略**：就 `camelcase`、`no-console` 做出最终决策，更新 ESLint 配置或代码并输出零告警报告。
+3. **【P2 - QA + 架构组】推进弱类型治理**：
+   - **前置依赖**：Plan 21《弱类型治理专项计划》Phase 1（脚本扩展与 CI 接入）完成后，方可启动 Plan 16 Phase 2 弱类型治理子任务
+   - **时间窗口**：Plan 21 Phase 1 预计 2025-10-10 ~ 2025-10-13（4 天），完成后立即启动 Plan 16 Phase 2
+   - **关键交付物**：
+     - `scripts/code-smell-check-quick.sh` 扩展（支持 `--with-types`、`--exclude-tests`、`--group-by-module`）
+     - `.github/workflows/iig-guardian.yml` 更新（接入弱类型 CI 报告）
+     - `reports/iig-guardian/code-smell-ci-20251013.md`（首份 CI 报告，含生产/测试分离统计与模块分布）
+     - `reports/iig-guardian/code-smell-types-20251010.md`（基线数据确认，区分生产代码基线与测试代码基线）
+   - **并行执行**：Plan 16 Phase 2 其他任务（文件规模治理、函数拆分）可与 Plan 21 Phase 1 并行
+   - **详见**：`docs/development-plans/21-weak-typing-governance-plan.md`
 
 ---
 
 ## 5. 风险与跟踪
-- **验证证据风险**：Playwright 新剧本尚未在 RS256 环境复跑出绿灯，需要补充报告以形成唯一事实来源。
-- **CI 阻断风险**：`@stoplight/spectral-oasx` 拉取失败会导致 `npm install` 崩溃，一旦命中，CI 将无法完成前端构建。
-- **合规缺口**：若 `camelcase`/`no-console` 未决策且 CI 未加入豁免，未来合并将被阻塞或放行不一致实现。
-- **权限回归风险**：Playwright 用例失败说明权限策略未覆盖 RS256 场景，需要在业务层确认期望行为。
+- **测试阻塞风险**：Playwright CRUD/GraphQL 仍有零星失败（状态字段 + `/test` 页面），需在 Phase 1 前进一步验证以解锁 154 项 E2E 回归。
+- **✅ 工具链风险已解除**（2025-10-02）：Spectral 依赖修复完成，CI `npm install` 障碍移除。
+- **✅ API 契约风险大幅降低**（2025-10-02）：Spectral 检测的 75 项问题已修复 61 项（降幅 81%），剩余 14 项为低优先级 warning。
+- **合规风险**：`camelcase`/`no-console` 未定案将持续触发 lint 告警，影响 TODO 巡检闭环。
+- **质量风险**：弱类型统计维持 173 处，若不治理将影响 Plan 16 Phase 2 目标。
 
 ---
 
-## 6. 验证记录更新（截至 2025-10-08）
-
-| 测试项 | 状态 | 说明 / 责任人 | 证据 |
-| --- | --- | --- | --- |
-| Go 单元 + 集成测试 | ✅ 已执行 | `go test ./...`、`make test-integration`（2025-10-01，E2E_RUN 未设跳过真实调用） | `reports/iig-guardian/plan16-test-report-20251001.md` |
-| 前端 Lint + 单测 | ✅ 已执行 | `npm run lint`、`npm run test` (100/101)；剩余跳过项为 Legacy 快照 | 同上 |
-| GraphQL 契约脚本 | ✅ 对齐 | e2e + consistency + Redis 脚本已改用 `filter.codes + pagination`，验证 `data + pagination` 字段 | `tests/e2e-test.sh`、`scripts/tests/test-api-consistency.sh` 等最新提交 |
-| Shared API 弱类型治理 | ✅ Batch A 完成 | `frontend/src/shared/api/**` `any/unknown` 74 → 6，剩余为类型守卫入口 | `reports/iig-guardian/code-smell-types-20251007.md`（Batch A 附录） |
-| Playwright RS256 回归 | ⚠️ 阻塞 | 154 用例仅跑前 12 项，4 个 P0 失败（契约/性能）；需在 `/organizations/:code/temporal` 复测 | `tests/e2e/temporal-graphql-comprehensive.spec.ts` 日志 | 
-| 契约测试（REST/GraphQL） | ⚠️ 待复核 | `npm run test:contract` 当前 32/33，通过 Mock；需在 RS256 环境验证缺口 | `reports/iig-guardian/plan16-test-report-20251001.md` |
-
----
-
-## 7. Plan 16 代码异味治理进展跟踪
-
-### Phase 0 基线确认（2025-09-30 完成）
-- **✅ 基线报告生成**: `reports/iig-guardian/code-smell-baseline-20250929.md`
-  - Go后端：54文件，16 888行，红灯3个（27.5%），橙灯5个（22.1%）
-  - 前端TS：112文件，18 254行，红灯2个（12.2%），橙灯9个（26.2%）
-- **✅ 已完成任务**:
-  - 实现清单刷新：`reports/implementation-inventory.json`（2025-09-30 生成）
-  - TODO 巡检扩展：`reports/iig-guardian/todo-temporary-ci-verification-20251003.md`
-  - `go vet ./...`（2025-10-07 验证通过）
-  - 弱类型统计基线：`reports/iig-guardian/code-smell-types-20251007.md`
-  - Go 集成测试：`make test-integration`（2025-10-07，E2E_RUN 未设步跳过真实 HTTP）
-  - 仓储拆分完成：`postgres.go` 拆解为 `postgres_base.go`、`postgres_organizations_list.go`、`postgres_organization_details.go`、`postgres_organization_hierarchy.go`、`postgres_audit.go`
-  - 工作量复核纪要归档：见下方《Phase 0 工作量复核纪要（2025-10-08）》
-  - Git 标签基线：`plan16-phase0-baseline` 已推送至远程（2025-10-08 10:32 UTC，提交窗口内可回滚）
-  - `InlineNewVersionForm` 重构完成：拆分为容器组件 + 8 个子组件 + 独立 hooks/动作工厂（单文件 ≤150 行，核心 hook 232 行）
-  - `scripts/code-smell-check-quick.sh` 纳入 `.github/workflows/iig-guardian.yml`（Playwright 失败前即阻断红灯文件）
-  - GraphQL 测试脚本对齐契约：`tests/e2e-test.sh`、`scripts/tests/test-api-consistency.sh`、`scripts/tests/test-redis-cache-performance.sh`、`scripts/e2e-test.sh` 等已改用 `PaginationInput` + `filter.codes`
-  - 类型治理 Batch A 完成：`frontend/src/shared/api/**` 中 `any/unknown` 自 74 → 6（详见 `reports/iig-guardian/code-smell-types-20251007.md` 附录）
-- **✅ 已完成任务**:
-  - ✅ **Playwright RS256 场景复测第三轮（2025-10-01 23:45）**: **P0 问题已修复并验证通过**。`architecture-e2e.spec.ts` 已更新使用 `pagination` 参数和 `data/pagination` 返回结构，所有 6 个架构测试通过（Chromium + Firefox）。详见 `reports/iig-guardian/playwright-rs256-final-20251001.md`。
-  - ✅ **GraphQL 契约完全对齐**: 后端 schema、测试脚本（`tests/e2e-test.sh` 等）、Playwright E2E 架构测试现已完全一致。
-  - ✅ **P1 问题修复（2025-10-02 00:45）**: **业务流程页面加载超时问题已解决**。根因为 Playwright 测试未设置 localStorage 认证信息，导致 `RequireAuth` 组件重定向到登录页。已创建 `tests/e2e/auth-setup.ts` 辅助函数，更新 `business-flow-e2e.spec.ts` 使用正确的 `cube_castle_oauth_token` 键名和 OAuthToken 格式。验证通过：`test-auth-fix.spec.ts` 2/2 测试通过（Chromium 1.5s，Firefox 2.0s），页面加载时间从 120s 超时降至 ~2s。详见 `reports/iig-guardian/p1-fix-verification-20251002.md`。
-- **⏳ 剩余问题**:
-  - ⚠️ CRUD 功能测试失败：`business-flow-e2e.spec.ts` 页面加载成功，但 `getByTestId('organization-form')` 等元素未找到。可能原因：功能未实现、测试选择器不正确、或组件加载延迟。需前端团队确认 `OrganizationDashboard` CRUD 功能实现状态与测试属性设置（预计 1-2 天）。
-  - ⚠️ 测试页面交互元素缺失：`basic-functionality-test.spec.ts:60` 页面 `hasButtons = 0`（同样可能是认证或路由问题，预计 1 天）。
-
-#### 卡住事项分析（2025-10-01）
-
-**RS256 Playwright E2E 回归测试 - 部分执行结果**
-
-**执行环境**:
-- 日期: 2025-10-01 20:53 UTC+8
-- 认证: RS256 JWT（通过 `/auth/dev-token` 生成，有效期 1 天）
-- 服务状态:
-  - 前端 localhost:3000 (Vite) ✅
-  - 命令服务 localhost:9090 ✅
-  - 查询服务 localhost:8090 ✅
-- 环境变量: `PW_TENANT_ID=default-tenant`, `PW_JWT=<valid-rs256-token>`
-
-**测试执行**:
-- 总数: 154 tests
-- Workers: 2 并发
-- 超时配置: 120秒/用例，整体 180秒
-- 状态: 部分超时（3分钟限制触发）
-
-**已发现问题** (优先级 P0):
-
-1. **GraphQL Schema 不一致** (`architecture-e2e.spec.ts:35`) - ✅ **已解决（2025-10-01）**
-   - 错误: `OrganizationConnection` 缺少直接字段 `code/name/unitType/status`
-   - **根因**: Playwright E2E 测试用例未同步更新至新 GraphQL 契约
-   - **修复方式**: 更新 `architecture-e2e.spec.ts:43-67` 使用 `organizations(pagination: { page, pageSize }) { data {...} pagination {...} }` 结构
-   - **验证结果**: 6/6 tests passed（Chromium + Firefox，耗时 8.0s）
-   - **责任团队**: QA + 后端团队（**已完成**）
-   - **报告**:
-     - 第二轮根因分析：`reports/iig-guardian/playwright-rs256-retest-20251001.md`
-     - 第三轮修复验证：`reports/iig-guardian/playwright-rs256-final-20251001.md`
-
-2. **测试页面交互元素缺失** (`basic-functionality-test.spec.ts:60`) - ⚠️ **待修复**
-   - 错误: `hasButtons = 0`（期望 > 0）
-   - 根因: 测试页面路由/组件加载异常（可能同样需要认证设置）
-   - 影响: 基础功能验证失败
-   - 预计修复: 1 天
-
-3-4. **业务流程页面加载超时** (`business-flow-e2e.spec.ts:11, 97`) - ✅ **已解决（2025-10-02）**
-   - **错误**: `beforeEach` hook 超时（120秒），找不到 `'组织架构管理'` 文本
-   - **根因**: Playwright 测试未设置 localStorage 认证信息（`cube_castle_oauth_token`），导致 `RequireAuth` 组件检查 `authManager.isAuthenticated()` 失败并重定向到 `/login`
-   - **修复方式**:
-     - 创建 `tests/e2e/auth-setup.ts` 辅助函数，使用 `page.addInitScript` 在页面加载前注入正确的 OAuthToken 对象
-     - 更新 `business-flow-e2e.spec.ts` 的 `beforeEach` 调用 `setupAuth(page)` 设置认证
-   - **验证结果**: `test-auth-fix.spec.ts` 2/2 通过（Chromium 1.5s，Firefox 2.0s）
-   - **影响**: 页面加载问题已解决，但 CRUD 功能元素仍缺失（新问题，需前端团队确认功能实现状态）
-   - **责任团队**: QA（**已完成**）
-   - **报告**:
-     - 修复验证报告：`reports/iig-guardian/p1-fix-verification-20251002.md`
-     - 根因分析文档：`reports/iig-guardian/p1-issue-analysis-20251002.md`
-     - 测试执行日志：`/tmp/auth-fix-test-result.log`
-
-**通过的测试**:
-- ✅ Phase 1: 服务合并验证 - 双核心服务架构
-- ✅ 应用基础加载测试（269ms）
-- ✅ 系统响应性测试（51ms）
-
-**阻塞处置计划**:
-1. 【高优】修复 GraphQL schema 定义与测试用例不一致（责任人：后端团队 + QA）
-2. 【中优】排查 `/organizations` 页面加载超时（责任人：前端团队）
-3. 【中优】延长 Playwright 超时配置或优化页面加载性能
-4. 【低优】补充完整测试执行日志（当前仅前 12/154 项）
-
-**结论**: RS256 认证链路可用，但测试套件存在**契约不一致**和**性能问题**，需优先修复 P0 问题后重新执行完整回归。
-
----
-
-#### Phase 0 工作量复核纪要（2025-10-08）
-- **会议时间**: 2025-10-08 09:00-09:45 UTC+8（45分钟）
-- **参会人员**: 架构组 Owner、项目经理、后端团队 Lead、前端团队 Lead、QA Lead
-- **结论概要**:
-  - 各团队确认可投入30%工作量，整体排期维持5.5-6周；封版周可顺延不超过3个工作日。
-  - Phase 1 责任划分：查询服务 `main.go` 拆分由后端 Lead 牵头；命令处理器与仓储拆分由后端工程师A/B负责；`InlineNewVersionForm.tsx` 拆分由前端 Lead 负责。
-  - 测试策略：每次重构需附带 `go test ./...`、`make test-integration`、`npm run lint` 结果；前端拆分批次完成后运行 `npm run test`。
-- **风险与应对**:
-  - 若 Playwright RS256 复测连续两次失败，先切换 Mock 场景验证后再排查真实链路。
-  - Phase 2 类型治理若出现大规模类型错误，按 20 文件/批次回滚并重新分批执行。
-
-#### 高速测试团队测试要求
-- **后端回归**：每轮提交后执行 `go test ./...` 与 `make test-integration`，并将结果截图或日志上传至 `reports/iig-guardian/`；若 `E2E_RUN` 未设导致 HTTP 跳过，需备注原因。
-- **覆盖率校验**：至少每周一次运行 `make coverage`，生成报告附加到 `reports/iig-guardian/code-smell-progress-<date>.md`，确保覆盖率 ≥80% 目标可追踪。
-- **前端单测与静态检查**：`npm run lint` 与 `npm run test` 必须随前端拆分批次执行；若存在快照更新或跳过的测试，应登记在周报阻塞项中。
-- **Playwright RS256 回归**：在 `make docker-up` + `make run-dev` + `make frontend-dev` 环境下，使用 `PW_TENANT_ID`、`PW_JWT`（通过 `make jwt-dev-mint` 获取）执行 `npm run test:e2e -- --grep "RS256"`，失败用例需记录到 `docs/development-plans/06` 阻塞栏并创建修复任务。
-- **契约一致性**：GraphQL / REST 契约变更后，测试团队需复核 `docs/api/schema.graphql` 与 `docs/api/openapi.yaml`，确保 Playwright、contract tests (`npm run test:contract`) 与后端返回字段完全一致。
-- **报告归档**：所有测试结果（含失败截图、日志）统一放置在 `reports/iig-guardian/` 目录，并在周五同步时更新链接，保持单一事实来源。
-- **Playwright 契约同步**：在更新后的 `architecture-e2e.spec.ts`、`business-flow-e2e.spec.ts`、`regression-e2e.spec.ts`、`optimization-verification-e2e.spec.ts`、`cqrs-protocol-separation.spec.ts` 中，统一校验 `organizations(filter: { codes }, pagination)` 返回结构；后续新增脚本必须复用同一查询模式。
-
-### 进展模板（每周五更新）
-| 周次 | 完成任务 | 红灯文件 | 阻塞项 | 风险变化 |
-|------|---------|---------|--------|---------|
-| W1 (2025-10-04) | Phase 0完成（基线/实现清单/TODO 巡检） | Go:3, TS:2 | - | - |
-| W2 (2025-10-11) | main.go拆分 + 后端红灯清零 + `make test-integration` + 内联表单拆分 + **核心测试验证完成（2025-10-01）** | Go:0, TS:0 | Playwright RS256 部分失败（4个P0问题） | E2E测试需修复schema不一致 |
-| W3 (2025-10-18) | handler/repo拆分 | Go:0, TS:2 | 待填写 | 待填写 |
-| W4 (2025-10-25) | 前端组件拆分 | Go:0, TS:0 | 待填写 | 待填写 |
-| W5 (2025-11-01) | Phase 2类型治理 | - | 待填写 | 待填写 |
-| W6 (2025-11-08) | Phase 3监控系统 | - | 待填写 | 待填写 |
-
-### 关键里程碑
-- **Phase 0 目标完成**: 2025-09-30（责任人：架构组 Owner）
-- **Phase 1 红灯清零**: 2025-10-22（3周，含测试）
-- **Phase 2 类型治理**: 2025-11-05（1.5周）
-- **Phase 3 监控上线**: 2025-11-08（1周）
-
-### 风险追踪
-- **测试工作量**: Phase 1需额外30%时间用于单元测试编写（覆盖率≥80%）
-- **前端类型改动**: Phase 2需分批次进行，避免大面积编译失败
-- **回滚准备**: 每个重构任务前创建git标签 `plan16-phase[X]-task[Y]-before`
-
-### 验收标准
-- [ ] 红灯文件清零（Go 0个, TS 0个）
-- [ ] 橙灯文件控制（Go ≤3个, TS ≤5个）
-- [ ] any/unknown使用≤30处（当前171处）
-- [x] 单元测试覆盖率≥80%（**2025-10-01 已验证**: Go/前端单测全部通过）
-- [x] 契约测试通过率100%（**2025-10-01 已验证**: 32/33 通过，1个预期跳过）
-- [ ] 监控脚本 `scripts/code-smell-monitor.sh` 交付并纳入CI
-
----
-
-## 8. Phase 1 测试验证记录（2025-10-01）
-
-### 📋 测试执行总结
-
-**执行时间**: 2025-10-01 22:21 UTC+8
-**执行环境**: 本地开发环境（make run-dev）
-**负责人**: 架构组
-**报告路径**: `reports/iig-guardian/plan16-test-report-20251001.md`
-
-### ✅ 测试结果
-
-| 测试类型 | 命令 | 状态 | 通过率 | 耗时 | 备注 |
-|---------|------|------|--------|------|------|
-| **Go 单元测试** | `go test ./...` | ✅ PASS | 100% | <1秒 | middleware/e2e 全通过 |
-| **Go 集成测试** | `make test-integration` | ✅ PASS | 100% | <1秒 | E2E_RUN 未设跳过预期 |
-| **前端单元测试** | `npm run test` | ✅ PASS | 99% (100/101) | 5.78秒 | 1个预期跳过 |
-| **契约测试** | `npm run test:contract` | ✅ PASS | 97% (32/33) | 840ms | 1个schema验证跳过 |
-| **代码规范** | `npm run lint` | ✅ PASS | 100% | <5秒 | 0 errors |
-
-### 📊 关键指标达成
-
-- ✅ **Go 单元测试**: middleware 包 2 个测试通过（GraphQL信封格式验证）
-- ✅ **Go 集成测试**: RS256 JWKS 认证流程测试符合预期（E2E_RUN 未设时跳过真实 HTTP）
-- ✅ **前端测试覆盖**: 19 个测试文件，覆盖：
-  - 契约验证（33 tests）
-  - 类型守卫（24 tests）
-  - 组件测试（OrganizationTree, MonitoringDashboard, ParentOrganizationSelector 等）
-  - API 适配器（GraphQL Enterprise Adapter）
-  - 工具函数（temporal-validation, organization-helpers）
-- ✅ **契约一致性**: GraphQL/REST 响应完全符合 `docs/api/schema.graphql` 与 `docs/api/openapi.yaml` 规范
-
-### ⚠️ 已知问题（非阻塞）
-
-1. **React DOM 属性警告**: justifyContent, alignItems 等 Canvas Kit props 传递到 DOM - 已知问题，不影响功能
-2. **E2E_RUN 环境变量**: 未设置时跳过真实 HTTP 测试属于设计行为，非缺陷
-
-### 🚨 阻塞项（详见"卡住事项分析"章节）
-
-**Playwright E2E 回归测试**（部分失败）:
-- ❌ GraphQL Schema 不一致（P0）- OrganizationConnection 缺少直接字段 code/name/unitType/status
-- ❌ 业务流程页面加载超时（P1）- `/organizations` 页面 120 秒超时
-- ❌ 测试页面交互元素缺失（P1）- 测试路由未正确加载
-
-**责任分配**:
-- P0 Schema 问题: 后端团队 + QA
-- P1 页面性能: 前端团队
-
-### 📝 测试日志归档
-
-所有测试日志已归档至 `/tmp/` 目录：
-- `go-test-result.log` - Go 单元测试完整输出
-- `integration-test-result.log` - Go 集成测试完整输出
-- `frontend-test-result.log` - 前端单元测试完整输出
-- `contract-test-result.log` - 契约测试完整输出
-- `lint-result.log` - ESLint 检查完整输出
-
-### 🎯 结论
-
-**✅ 核心测试套件全部通过，代码质量验证达标，可继续 Phase 1 重构工作。**
-
-**⚠️ Playwright E2E 问题需并行修复**，修复完成后重新执行完整 154 项 E2E 回归测试。
-
-### 📅 下一步行动
-
-1. ✅ ~~继续 Phase 1 重构任务（红灯文件拆分）~~ - **已完成**
-2. ✅ ~~后端团队修复 GraphQL Schema 定义（P0）~~ - **已完成 2025-10-01**
-3. ✅ ~~前端团队排查页面加载性能（P1）~~ - **已完成 2025-10-02**（QA 通过认证修复解决）
-4. 🔧 **前端团队排查 CRUD 功能测试失败（P1 - 新问题）** - **进行中**
-5. 📊 完整 E2E 回归测试（待 CRUD 修复后执行）
-
----
-
-## 8. 最新进展更新（2025-10-02）
-
-### ✅ P1 页面加载超时问题已完全解决
-
-**执行时间**: 2025-10-02 00:45 - 01:15 UTC+8
-**责任团队**: QA
-**状态**: ✅ **已完成并验证**
-
-#### 问题回顾
-
-- **症状**: `business-flow-e2e.spec.ts` 所有测试失败，`beforeEach` hook 超时（120秒）
-- **错误**: `getByText('组织架构管理')` 找不到元素
-- **影响**: 6 个业务流程测试用例无法执行，Plan 16 Phase 0 验收阻塞
-
-#### 根因分析
-
-**核心问题**: Playwright 测试未设置 localStorage 认证信息
-
-- `RequireAuth` 组件调用 `authManager.isAuthenticated()` 检查 localStorage 中的 `cube_castle_oauth_token`
-- 期望格式: `{ accessToken, tokenType, expiresIn, issuedAt }`
-- Playwright 仅设置 HTTP headers，不影响客户端 localStorage
-- 未认证用户被重定向到 `/login`，导致测试超时
-
-#### 修复方案
-
-**新增文件**:
-- `frontend/tests/e2e/auth-setup.ts` - 认证辅助函数
-- `frontend/tests/e2e/test-auth-fix.spec.ts` - 验证测试
-
-**更新文件**:
-- `frontend/tests/e2e/business-flow-e2e.spec.ts` - 应用 `setupAuth()`
-
-**核心代码**:
-```typescript
-export async function setupAuth(page: Page): Promise<void> {
-  await page.addInitScript((authData) => {
-    localStorage.setItem('cube_castle_oauth_token', JSON.stringify({
-      accessToken: authData.token,
-      tokenType: 'Bearer',
-      expiresIn: 86400,
-      issuedAt: Date.now()
-    }));
-  }, { token: process.env.PW_JWT, tenantId: process.env.PW_TENANT_ID });
-}
-```
-
-#### 验证结果
-
-**测试执行**: `npx playwright test tests/e2e/test-auth-fix.spec.ts`
-
-**结果**:
-```
-2 passed (3.5s)
-✓ [chromium] 验证页面可以成功加载 (1.5s)
-✓ [firefox] 验证页面可以成功加载 (2.0s)
-```
-
-**关键指标**:
-
-| 指标 | 修复前 | 修复后 | 改善 |
-|------|--------|--------|------|
-| 页面加载时间（Chromium） | 120s 超时 | 1.5s | **98.8% ↓** |
-| 页面加载时间（Firefox） | 120s 超时 | 2.0s | **98.3% ↓** |
-| 认证成功率 | 0% | 100% | **100% ↑** |
-
-#### 生成的文档
-
-- ✅ 根因分析: `reports/iig-guardian/p1-issue-analysis-20251002.md`
-- ✅ 修复验证: `reports/iig-guardian/p1-fix-verification-20251002.md`
-- ✅ 完整报告: `reports/iig-guardian/playwright-rs256-p1-resolution-20251002.md`
-- ✅ 测试日志: `/tmp/auth-fix-test-result.log`
-
-#### 受益范围
-
-所有需要访问受保护路由的 Playwright 测试都可以使用 `setupAuth()` 辅助函数：
-- `business-flow-e2e.spec.ts` ✅ 已应用
-- `regression-e2e.spec.ts` ⏳ 待应用
-- `optimization-verification-e2e.spec.ts` ⏳ 待应用
-- `basic-functionality-test.spec.ts` ⏳ 待应用
-- 其他需要认证的测试 ⏳ 待评估
-
-### ⚠️ 新发现问题：CRUD 功能测试失败
-
-**状态**: 待排查
-**责任团队**: 前端团队
-**预计时间**: 1-2 天
-
-#### 症状
-
-虽然页面加载成功，但 CRUD 功能测试仍然失败：
-
-```
-Error: expect(locator).toBeVisible()
-Locator: getByTestId('organization-form')
-Expected: visible
-Received: <element(s) not found>
-```
-
-#### 可能原因
-
-1. **历史模式导致按钮禁用**: `disabled={isHistorical}`
-2. **权限检查失败**: JWT token 缺少必要的 scopes
-3. **事件绑定问题**: `onClick` 未正确触发
-4. **模态框渲染延迟**: 需要更长等待时间
-
-#### 建议行动
-
-**立即行动**（前端开发者）:
-1. 手动访问 http://localhost:3000/organizations
-2. 点击"新增组织单元"按钮
-3. 确认表单是否正常弹出
-4. 检查 Console 错误日志
-
-**诊断排查**（QA）:
-1. 执行排查脚本收集诊断信息
-2. 记录按钮禁用状态
-3. 收集 Console 日志和网络请求
-4. 解码 JWT token 查看 scopes
-
-**详细分析**: 见 `reports/iig-guardian/p1-crud-issue-analysis-20251002.md`
-
-### 📊 Plan 16 Phase 0 状态总结
-
-#### ✅ 已完成项
-
-1. Go 后端红灯清零（仓储拆分）
-2. 前端红灯清零（`InlineNewVersionForm` 重构）
-3. 实现清单更新
-4. TODO 巡检完成
-5. `plan16-phase0-baseline` 标签推送
-6. **Playwright RS256 P1 问题解决**（页面加载超时）
-
-#### ⏳ 剩余工作
-
-1. **CRUD 功能测试排查**（前端团队，1-2 天）
-2. **认证修复应用到其他测试**（QA，1 天）
-3. **完整 E2E 回归测试**（154 项，待 CRUD 修复后执行）
-
-### 🎯 下一步优先级
-
-**P1 - 立即处理**:
-1. 前端团队手动验证 CRUD 功能
-2. 收集诊断信息（Console、网络、JWT）
-3. 修复 CRUD 功能问题
-
-**P2 - 并行处理**:
-1. QA 应用 `setupAuth()` 到其他测试
-2. 验证测试页面交互元素问题
-
-**P3 - 后续行动**:
-1. 执行完整 154 项 E2E 回归
-2. 生成最终测试报告
-3. 关闭 Plan 16 Phase 0 所有阻塞项
-
----
+## 6. 参考链接
+- `reports/iig-guardian/p1-crud-issue-analysis-20251002.md`
+- `reports/iig-guardian/code-smell-types-20251007.md`
+- `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md`
+- `docs/development-plans/17-spectral-dependency-recovery-plan.md`（新增，2025-10-02）
+- `../archive/development-plans/19-phase0-workload-review.md`

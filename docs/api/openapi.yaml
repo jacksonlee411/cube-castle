@@ -73,10 +73,13 @@ tags:
     description: Authentication and session management (BFF for frontend)
   - name: operational
     description: System operational monitoring and scheduler management
+  - name: temporal-operations
+    description: Temporal timeline governance and lifecycle event processing endpoints
 
 paths:
   /api/v1/operational/health:
     get:
+      operationId: getOperationalHealth
       tags: [operational]
       summary: Get system health overview (per-tenant by default)
       description: |
@@ -97,6 +100,7 @@ paths:
                 health:
                   value:
                     success: true
+                    message: 'Health check completed successfully'
                     timestamp: '2025-09-15T10:00:00Z'
                     requestId: 'req_operational_health_001'
                     data:
@@ -119,6 +123,7 @@ paths:
 
   /api/v1/operational/metrics:
     get:
+      operationId: getOperationalMetrics
       tags: [operational]
       summary: Get detailed monitoring metrics (per-tenant)
       description: Returns full MonitoringMetrics fields in data.
@@ -138,6 +143,7 @@ paths:
 
   /api/v1/operational/alerts:
     get:
+      operationId: getOperationalAlerts
       tags: [operational]
       summary: Get current alerts
       description: Returns current alert list and count based on thresholds.
@@ -157,6 +163,7 @@ paths:
 
   /api/v1/operational/rate-limit/stats:
     get:
+      operationId: getRateLimitStats
       tags: [operational]
       summary: Get rate limit statistics
       description: Returns total/blocked requests, active clients and block rate.
@@ -176,8 +183,10 @@ paths:
 
   /api/v1/operational/tasks:
     get:
+      operationId: getOperationalTasks
       tags: [operational]
       summary: List scheduled operational tasks
+      description: Returns all configured operational tasks with cron schedule, last run metadata, and enablement status for operational dashboards.
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
       security:
@@ -194,8 +203,10 @@ paths:
 
   /api/v1/operational/tasks/status:
     get:
+      operationId: getOperationalTasksStatus
       tags: [operational]
       summary: Get scheduler status and task summary
+      description: Provides scheduler heartbeat information plus aggregated counts of pending, running, and failed tasks to support operational readiness checks.
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
       security:
@@ -212,8 +223,10 @@ paths:
 
   /api/v1/operational/tasks/{taskName}/trigger:
     post:
+      operationId: triggerOperationalTask
       tags: [operational]
       summary: Trigger an operational task by name
+      description: Immediately enqueues the specified operational task for execution, bypassing its cron schedule while preserving idempotency safeguards.
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
         - name: taskName
@@ -236,8 +249,10 @@ paths:
 
   /api/v1/operational/cutover:
     post:
+      operationId: triggerCutover
       tags: [operational]
       summary: Trigger daily cutover immediately
+      description: Forces the nightly temporal cutover workflow to run on demand, recomputing hierarchy snapshots and cache materializations for the tenant.
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
       security:
@@ -254,8 +269,10 @@ paths:
 
   /api/v1/operational/consistency-check:
     post:
+      operationId: triggerConsistencyCheck
       tags: [operational]
       summary: Trigger data consistency check
+      description: Launches the full consistency validation job that compares command and query projections, emitting a report to the audit log stream.
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
       security:
@@ -271,6 +288,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
   /auth/login:
     get:
+      operationId: authLogin
       tags: [auth]
       summary: Start OIDC login (redirect)
       description: Redirects to the IdP authorization endpoint with PKCE.
@@ -286,6 +304,7 @@ paths:
 
   /auth/callback:
     get:
+      operationId: authCallback
       tags: [auth]
       summary: OIDC callback endpoint
       description: Handles IdP callback, exchanges code for tokens, creates server-side session.
@@ -304,6 +323,7 @@ paths:
 
   /auth/session:
     get:
+      operationId: getAuthSession
       tags: [auth]
       summary: Get current session & short-lived access token
       description: Returns a fresh short-lived access token and session info bound to HttpOnly cookie.
@@ -336,6 +356,7 @@ paths:
 
   /auth/refresh:
     post:
+      operationId: refreshAuthToken
       tags: [auth]
       summary: Refresh access token via server-side refresh token
       description: Rotates refresh token and returns a new short-lived access token.
@@ -366,6 +387,7 @@ paths:
 
   /auth/logout:
     post:
+      operationId: authLogoutPost
       tags: [auth]
       summary: Logout & revoke session
       description: Destroys server-side session and clears cookies. Optionally triggers IdP logout.
@@ -377,6 +399,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
     get:
+      operationId: authLogoutGet
       tags: [auth]
       summary: RP-initiated logout (redirect)
       description: Clears local session and redirects user agent to IdP end_session_endpoint.
@@ -392,6 +415,7 @@ paths:
           description: OK (fallback when IdP not configured)
   /.well-known/oidc:
     get:
+      operationId: getOidcDiscovery
       tags: [auth]
       summary: OIDC discovery (BFF subset)
       description: |
@@ -451,6 +475,7 @@ paths:
                     requestId: "req_oidc_not_configured_001"
   /.well-known/jwks.json:
     get:
+      operationId: getJwks
       tags: [auth]
       summary: BFF JWKS (when RS256 is enabled)
       description: Returns the JSON Web Key Set (JWKS) for verifying BFF-minted access tokens when RS256 is enabled.
@@ -465,6 +490,7 @@ paths:
           description: Not available
   /api/v1/organization-units:
     post:
+      operationId: createOrganizationUnit
       tags:
         - organization-units
       summary: Create new organization unit
@@ -594,6 +620,7 @@ paths:
 
   /api/v1/organization-units/{code}:
     put:
+      operationId: updateOrganizationUnit
       tags:
         - organization-units
       summary: Complete replacement of organization unit
@@ -669,6 +696,7 @@ paths:
 
   /api/v1/organization-units/{code}/versions:
     post:
+      operationId: createOrganizationUnitVersion
       tags:
         - organization-units
       summary: Create new temporal version for existing organization
@@ -784,6 +812,7 @@ paths:
 
   /api/v1/organization-units/{code}/events:
     post:
+      operationId: createOrganizationUnitEvent
       tags:
         - temporal-operations
       summary: Process organization events
@@ -861,7 +890,7 @@ paths:
                           operationType:
                             type: string
                             example: "DELETE_ORGANIZATION"
-                          record_id:
+                          recordId:
                             type: string
                             format: uuid
                             nullable: true
@@ -1012,6 +1041,7 @@ paths:
 
   /api/v1/organization-units/{code}/suspend:
     post:
+      operationId: suspendOrganizationUnit
       tags:
         - business-operations
       summary: Suspend organization unit
@@ -1164,6 +1194,7 @@ paths:
 
   /api/v1/organization-units/{code}/activate:
     post:
+      operationId: activateOrganizationUnit
       tags:
         - business-operations
       summary: Activate organization unit
@@ -1289,6 +1320,7 @@ paths:
 
   /api/v1/organization-units/validate:
     post:
+      operationId: validateOrganizationUnits
       tags:
         - data-validation
       summary: Validate organization unit data
@@ -1385,6 +1417,7 @@ paths:
 
   /api/v1/organization-units/{code}/refresh-hierarchy:
     post:
+      operationId: refreshOrganizationUnitHierarchy
       tags:
         - maintenance
       summary: Manual hierarchy refresh for single organization
@@ -1460,6 +1493,7 @@ paths:
 
   /api/v1/organization-units/batch-refresh-hierarchy:
     post:
+      operationId: batchRefreshOrganizationUnitHierarchy
       tags:
         - maintenance
       summary: Batch hierarchy refresh for multiple organizations
@@ -1512,6 +1546,7 @@ paths:
 
   /api/v1/corehr/organizations:
     post:
+      operationId: createCoreHROrganization
       tags:
         - corehr-compatibility
       summary: Create organization (CoreHR compatible)
@@ -1555,15 +1590,15 @@ components:
       type: oauth2
       description: |
         OAuth 2.0 Client Credentials Flow for machine-to-machine authentication.
-        
+
         **Token Endpoint:** `POST /oauth/token`
         **Grant Type:** `client_credentials`
         **Token Type:** Bearer JWT
         **Expiration:** 1-4 hours (configurable)
-          flows:
-            clientCredentials:
-              tokenUrl: /oauth/token
-              scopes:
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth/token
+          scopes:
             # 基础CRUD权限
             'org:read': Read organization unit information
             'org:create': Create organization units
@@ -1598,6 +1633,11 @@ components:
             'system:monitor:read': Read operational health/metrics/alerts
             'system:ops:read': Read scheduler and tasks status
             'system:ops:write': Trigger operational tasks and actions
+    CSRFToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Anti-CSRF token required for state-changing auth routes
 
   parameters:
     CodePathParam:
@@ -2663,8 +2703,3 @@ components:
                     supportContact: "api-support@yourcompany.com"
                 timestamp: "2025-08-23T10:30:00Z"
                 requestId: "req_internal_error_001"
-    CSRFToken:
-      type: apiKey
-      in: header
-      name: X-CSRF-Token
-      description: Anti-CSRF token required for state-changing auth routes
