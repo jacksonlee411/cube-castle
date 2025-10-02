@@ -2,7 +2,7 @@
 
 最后更新：2025-10-02 19:20 UTC
 维护团队：认证小组（主责）+ 前端工具组 + 命令服务团队 + QA
-状态：Plan 12/13/14/17 已归档；Plan 16 Phase 0 证据齐全，Playwright RS256 回归持续观察；Plan 15 例行复核中
+状态：Plan 12/13/14/17/20 已归档；Plan 16 Phase 0 证据齐全，Playwright RS256 回归持续观察；Plan 15 例行复核中
 
 ---
 
@@ -10,8 +10,7 @@
 - **✅ Plan 16 Phase 0 证据齐全**：`plan16-phase0-baseline` 远端可查（提交 `718d7cf6`），补证纪要归档于 Plan 19《Plan 16 Phase 0 工作量复核纪要（证据归档）》(`../archive/development-plans/19-phase0-workload-review.md`)，本日志已登记完成时间 2025-09-30 10:00 UTC，责任人架构组。
 - **✅ Playwright RS256 回归已完成**（2025-10-02）：核心验证通过（PBAC + 架构契约 100%），次要问题已记录（数据一致性 + 测试页面）。
 - **✅ Plan 17 已归档**（完成于 2025-10-02 19:20 UTC）：Spectral 依赖修复与 API 契约治理完成（75 problems → 0，100% 清零），CI 集成生效，详见归档文档 `../archive/development-plans/17-spectral-dependency-recovery-plan.md`
-- **✅ ESLint 例外决策完成**（2025-10-02 15:25 UTC）：Plan 20 落地统一日志工具、受控豁免与 `architecture-validator --rule eslint-exception-comment` 检查。
-- **✅ Console 输出治理完成**：`frontend/src` 全量替换为 `logger`，`reports/eslint/plan20/api-compliance-scan-20251002.json` 留存自检记录。
+- **✅ Plan 20 已归档**（完成于 2025-10-02 15:25 UTC）：ESLint 例外策略与零告警方案完成，统一日志工具落地，113 处 console.* → logger.*（100% 替换），详见归档文档 `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md`
 
 ---
 
