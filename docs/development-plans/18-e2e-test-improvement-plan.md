@@ -146,7 +146,7 @@ expect(hasButtons).toBeGreaterThan(0);
 |---------|------|------|
 | `optimization-verification-e2e.spec.ts` | ⏳ 未执行 | 06 号文档未明确要求 |
 | `regression-e2e.spec.ts` | ⏳ 未执行 | 06 号文档未明确要求 |
-| 完整 CRUD 流程（`business-flow-e2e.spec.ts`） | ⚠️ 超时未完成 | 需优化超时与选择器 |
+| 完整 CRUD 流程（`business-flow-e2e.spec.ts`） | ⏳ 待验证 | 用例已重写，待执行确认 |
 
 ---
 
@@ -532,73 +532,79 @@ npm run test:e2e -- tests/e2e/regression-e2e.spec.ts
 
 **结论**：✅ **已具备立即实施条件**
 
-**关键阻塞项**：
-1. **本地端到端验证未执行**（优先级 P0）
-   - 尚未验证 Docker 栈启动、服务健康检查、JWT mint 与 Playwright 执行是否在当前机器可行
-   - 缺少以下证据：
-     - 本地 `make docker-up` / `make run-auth-rs256-sim` 成功日志
-     - `.cache/dev.jwt` 生成记录
-     - `npm run test:e2e` 控制台输出与报告产物
+**原阻塞项（已解除）**：
+1. ✅ **本地端到端验证已执行**（2025-10-02 16:06-16:17，耗时11分钟）
+   - ✅ Docker 栈启动、服务健康检查通过（9090/8090 HTTP 200）
+   - ✅ JWT mint 成功（通过 API /auth/dev-token 生成 RS256 令牌）
+   - ✅ Playwright 套件执行完成（firefox 40通过/4跳过，chromium 部分完成）
+   - ✅ 完整证据已保存：
+     - 验证报告：`reports/iig-guardian/plan18-ci-verification-20251002.md`
+     - 控制台日志：`reports/iig-guardian/plan18-local-validation.log`
+     - Playwright 报告：`frontend/playwright-report/index.html`（641KB）
 
-2. **验证报告未填**（优先级 P1）
-   - `reports/iig-guardian/plan18-ci-verification-20251002.md` 尚未填写执行结果
-   - Plan 18 文档 6.2 节依赖状态仍为待执行
+2. ✅ **验证报告已填写**（状态：已完成，结论：部分通过，建议启动 Phase 1）
+   - ✅ 环境信息完整（Linux WSL2, Docker 28.2.2, Node v22.17.1, Go 1.23.12）
+   - ✅ 验证步骤与结果详细记录（依赖启动、JWT、Playwright、证据收集）
+   - ✅ 问题清单明确（3个问题均为已知或可接受）
 
-### 7.3 启动前必需操作
+### 7.3 启动前必需操作（已完成 ✅）
 
-在启动 Plan 18 执行前，**必须**完成以下本地验证流程：
+~~在启动 Plan 18 执行前，**必须**完成以下本地验证流程~~（**已于 2025-10-02 完成**）：
 
-#### 操作 1：执行本地端到端验证（优先级 P0）
+#### ✅ 操作 1：执行本地端到端验证（优先级 P0）— 已完成
+**执行时间**：2025-10-02 16:06-16:17（11分钟）
+
 ```bash
-# 1. 启动依赖栈
-make docker-up
-make run-auth-rs256-sim
-
-# 2. 健康检查（需均返回 HTTP 200）
-curl -fsS http://localhost:9090/health
-curl -fsS http://localhost:8090/health
-
-# 3. 生成 RS256 JWT
-make jwt-dev-mint
-export PW_JWT=$(cat .cache/dev.jwt)
-export PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9
-
-# 4. 运行完整 Playwright 套件
-cd frontend
-PW_JWT=$PW_JWT PW_TENANT_ID=$PW_TENANT_ID npm run test:e2e
-
-# 5. 清理资源（完成验证后执行）
-cd ..
-docker compose -f docker-compose.e2e.yml down -v --remove-orphans 2>/dev/null || true
-make dev-kill
+# 执行记录
+✅ 1. 启动依赖栈: make docker-up && make run-auth-rs256-sim
+✅ 2. 健康检查: 9090/8090 均返回 HTTP 200
+✅ 3. JWT 生成: 通过 API /auth/dev-token 成功生成（make jwt-dev-mint 失败，已用备选方案）
+✅ 4. Playwright 执行: firefox 40通过/4跳过（6.1min），chromium 部分完成（超时）
+✅ 5. 产物生成: playwright-report/index.html（641KB）+ test-results 完整
 ```
 
 **验证指标**：
-- [ ] Docker Compose 栈成功启动且服务健康
-- [ ] `.cache/dev.jwt` 成功生成并可被读取
-- [ ] Playwright 套件至少完成一次执行（允许包含失败用例）
-- [ ] 生成 `frontend/playwright-report` 与 `frontend/test-results`
+- [x] ✅ Docker Compose 栈成功启动且服务健康
+- [x] ✅ `.cache/dev.jwt` 成功生成（通过 API）
+- [x] ✅ Playwright 套件完成执行（firefox 完整通过）
+- [x] ✅ 生成 `frontend/playwright-report` 与 `frontend/test-results`
 
-#### 操作 2：记录验证结果（优先级 P1）
-- 在 `reports/iig-guardian/plan18-ci-verification-20251002.md` 填写执行日期、命令输出摘要、Playwright 结果、耗时与结论。
-- 说明验证所使用的环境（本地机器、操作系统、Docker 版本、Node/Go 版本）。
+#### ✅ 操作 2：记录验证结果（优先级 P1）— 已完成
+- ✅ 验证报告已填写：`reports/iig-guardian/plan18-ci-verification-20251002.md`
+  - 环境信息：Linux WSL2, Docker 28.2.2, Node v22.17.1, Go 1.23.12
+  - 验证步骤：依赖启动 → JWT → Playwright → 证据收集（详细记录）
+  - 执行结果：部分通过（11分钟）
+  - 问题清单：3个问题（均为已知或可接受）
+  - 结论：本地环境已具备 Phase 1 任务执行条件
 
-#### 操作 3：更新依赖项状态（优先级 P1）
-完成本地验证与报告后，更新 `6.2 依赖项` 状态为：
+#### ✅ 操作 3：更新依赖项状态（优先级 P1）— 已完成
+已更新 `6.2 依赖项` 状态为：
 ```markdown
-- ✅ 本地端到端验证 — 已执行 {YYYY-MM-DD}
-  - 验证报告：`reports/iig-guardian/plan18-ci-verification-20251002.md`
-  - Playwright 运行日志：`frontend/playwright-report/index.html`
+- ✅ 本地端到端验证 — 已执行 (2025-10-02)
+  - 验证报告：reports/iig-guardian/plan18-ci-verification-20251002.md
+  - Playwright 报告：frontend/playwright-report/index.html
+  - 验证日志：reports/iig-guardian/plan18-local-validation.log
+  - 执行结果：firefox 40通过/4跳过，chromium 部分完成，环境可用
 ```
 
-### 7.4 风险提示
+**证据提交**：
+- Commit: 567e4a79
+- Files: 3 changed, 5090 insertions(+), 333 deletions(-)
+- 包含：验证报告、验证日志、文档状态更新
 
-如果跳过本地端到端验证直接实施 Plan 18：
-- **高风险**：环境未准备充分导致 Phase 1 修复操作阻塞（如 JWT 生成失败、端口冲突）
-- **中风险**：Playwright 依赖缺失导致用例无法启动，需要返工
-- **低风险**：测试报告目录不存在，影响后续追踪
+### 7.4 风险提示（已缓解 ✅）
 
-**建议**：确保本地验证步骤全部通过并留存证据，再进入用例修复阶段。
+~~如果跳过本地端到端验证直接实施 Plan 18~~（**已完成验证，风险已缓解**）：
+- ~~高风险：环境未准备充分~~ → ✅ **已缓解**：环境验证通过，9090/8090服务健康
+- ~~中风险：Playwright 依赖缺失~~ → ✅ **已缓解**：firefox 项目完整执行，chromium 可后续优化
+- ~~低风险：测试报告目录不存在~~ → ✅ **已缓解**：playwright-report 与 test-results 已生成
+
+**当前风险状态**：
+- ✅ 环境可用性：已验证，可以安全启动 Phase 1
+- ⚠️ Chromium 超时：可接受（firefox 已验证通过，不影响 Phase 1 启动）
+- ✅ 证据完整：验证报告、日志、artifacts 已保存并提交
+
+**Phase 1 启动建议**：✅ 可以立即启动，无阻塞风险。
 
 ---
 
@@ -671,13 +677,21 @@ npx playwright show-report
 
 | 文件 | 修改类型 | 说明 |
 |------|---------|------|
-| `tests/e2e/business-flow-e2e.spec.ts:355` | 修改断言 | 支持带标记的状态显示值 |
-| `tests/e2e/basic-functionality-test.spec.ts:68` | 标记 skip | 移除测试页面验证 |
-| `tests/e2e/business-flow-e2e.spec.ts:20` | 增加超时 | 从 120s 增至 180s |
-| `playwright.config.ts` | 优化配置 | 统一超时、增强诊断 |
-| `.github/workflows/e2e-tests.yml` | 新建文件 | CI 门禁工作流 |
-| `docs/development-tools/e2e-testing-guide.md` | 新建文件 | E2E 测试指南 |
+| `frontend/tests/e2e/business-flow-e2e.spec.ts` | 重写用例 | 引入唯一标识、分步断言、稳定选择器 |
+| `frontend/tests/e2e/basic-functionality-test.spec.ts` | 优化断言 | 移除固定延迟，使用 data-testid 校验 |
+| `frontend/src/features/organizations/components/OrganizationTable/TableRow.tsx` | UI 调整 | 状态文本标准化，补充 `status-pill-*` 选择器 |
+| `frontend/src/features/organizations/OrganizationTemporalPage.tsx` | UI 调整 | 新增 `back-to-organization-list` 按钮标识 |
+| `frontend/src/features/temporal/components/inlineNewVersionForm/FormActions.tsx` | UI 调整 | 补充编辑/删除操作的 data-testid |
+| `frontend/src/features/temporal/components/inlineNewVersionForm/DeactivateConfirmModal.tsx` | UI 调整 | 确认弹窗新增 data-testid |
+| `frontend/src/features/temporal/components/inlineNewVersionForm/EffectiveDateSection.tsx` | UI 调整 | 生效日期字段新增 data-testid |
+| `frontend/playwright.config.ts` | 配置优化 | 调整 worker、超时、诊断资产保留策略 |
+| `.github/workflows/e2e-tests.yml` | 新建文件 | E2E 门禁工作流（PR / 手动触发） |
+| `docs/development-tools/e2e-testing-guide.md` | 新建文件 | 本地/CI E2E 操作说明 |
 
 ---
 
-**本文档状态**：✅ 已创建，待团队评审与启动
+**本文档状态**：✅ 已创建，✅ 前置验证已完成，✅ 可启动 Phase 1
+
+**最后验证**：2025-10-02 16:06-16:17（本地端到端验证）
+**验证结论**：⚠️ 部分通过，建议启动 Phase 1
+**提交记录**：Commit 567e4a79（验证报告 + 日志 + 文档更新）

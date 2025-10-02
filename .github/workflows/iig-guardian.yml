@@ -36,6 +36,7 @@ env:
   GUARDIAN_MODE: ${{ github.event.inputs.guardian_mode || 'guard' }}
   RISK_TOLERANCE: ${{ github.event.inputs.risk_tolerance || 'medium' }}
   NODE_VERSION: '18'
+  TYPE_SAFETY_THRESHOLD: '120'
 
 jobs:
   iig-guardian-check:
@@ -77,10 +78,13 @@ jobs:
         mkdir -p reports/architecture
         mkdir -p reports/document-sync
 
-    - name: 📏 代码规模红灯巡检
+    - name: 📏 代码规模与弱类型巡检
       run: |
         chmod +x scripts/code-smell-check-quick.sh
-        scripts/code-smell-check-quick.sh
+        scripts/code-smell-check-quick.sh \
+          --with-types \
+          --type-threshold "${{ env.TYPE_SAFETY_THRESHOLD }}" \
+          --ci-output "reports/iig-guardian/code-smell-ci-${{ github.run_id }}.md"
 
     - name: 🔍 自动检测变更内容 (用于功能描述)
       if: env.FEATURE_DESCRIPTION == 'auto-detected-changes'
