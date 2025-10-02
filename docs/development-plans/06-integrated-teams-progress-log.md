@@ -1,34 +1,28 @@
 # 06 — 集成团队推进记录（RS256 认证与 API 合规治理）
 
-最后更新：2025-10-02 18:30 UTC
+最后更新：2025-10-02 19:20 UTC
 维护团队：认证小组（主责）+ 前端工具组 + 命令服务团队 + QA
-状态：Plan 12/13/14 已归档；Plan 16 Phase 0 证据齐全，Playwright RS256 回归持续观察；Plan 17 Phase 3 完成待收尾 warning；Plan 15 例行复核中
+状态：Plan 12/13/14/17 已归档；Plan 16 Phase 0 证据齐全，Playwright RS256 回归持续观察；Plan 15 例行复核中
 
 ---
 
 ## 1. 进行中事项概览
 - **✅ Plan 16 Phase 0 证据齐全**：`plan16-phase0-baseline` 远端可查（提交 `718d7cf6`），补证纪要归档于 Plan 19《Plan 16 Phase 0 工作量复核纪要（证据归档）》(`../archive/development-plans/19-phase0-workload-review.md`)，本日志已登记完成时间 2025-09-30 10:00 UTC，责任人架构组。
 - **✅ Playwright RS256 回归已完成**（2025-10-02）：核心验证通过（PBAC + 架构契约 100%），次要问题已记录（数据一致性 + 测试页面）。
-- **✅ Spectral 依赖修复与 API 契约治理完成**（2025-10-02 18:30 UTC）：
-  - ✅ 依赖修复：`@stoplight/spectral-oasx` → `@stoplight/spectral-rulesets:1.22.0` + CLI 6.15.0
-  - ✅ Error 级别问题修复：6 → 0（100% 消除）
-  - ✅ Warning 级别问题修复：69 → 14（降幅 80%，补充 5 个 operation description + `temporal-operations` tag）
-  - ✅ CI 集成：`api-compliance.yml` 新增 Node.js + `npm ci` + `npm run lint:api`
-  - ⏳ 剩余 14 项 warning 待评估（`standard-response-envelope` 7 + `oas3-unused-component` 7）
-  - 📋 详见 Plan 17（版本 2.1，2025-10-02 18:30 UTC）
-- **⚠️ ESLint 例外决策缺失**：`camelcase` 与 `no-console` 告警未定案，API 合规与 TODO 巡检暂无法闭环。
-- **⏳ Console 输出治理方案**：前端团队尚未提交替换策略，统一日志规范仍待确认。
+- **✅ Plan 17 已归档**（完成于 2025-10-02 19:20 UTC）：Spectral 依赖修复与 API 契约治理完成（75 problems → 0，100% 清零），CI 集成生效，详见归档文档 `../archive/development-plans/17-spectral-dependency-recovery-plan.md`
+- **✅ ESLint 例外决策完成**（2025-10-02 15:25 UTC）：Plan 20 落地统一日志工具、受控豁免与 `architecture-validator --rule eslint-exception-comment` 检查。
+- **✅ Console 输出治理完成**：`frontend/src` 全量替换为 `logger`，`reports/eslint/plan20/api-compliance-scan-20251002.json` 留存自检记录。
 
 ---
 
 ## 2. 当前状态与证据
-- ✅ **Spectral 依赖修复与 API 契约治理验证**（2025-10-02 18:30 UTC）：
+- ✅ **Spectral 依赖修复与 API 契约治理验证**（2025-10-02 19:20 UTC）：
   - ✅ `npm ci` 成功（330 packages，无 404 错误）
   - ✅ Spectral CLI 6.15.0（`npx spectral --version`）
-  - ✅ `npm run lint:api` 正常执行 → 0 errors / 14 warnings / 0 hints
-  - ✅ **API 契约质量提升**: 75 problems → 14 problems（降幅 81%）
+  - ✅ `npm run lint:api` 正常执行 → 0 errors / 0 warnings / 0 hints
+  - ✅ **API 契约质量提升**: 75 problems → 0 problems（全部清零）
     - Error 级别: 6 → 0（100% 消除）
-    - Warning 级别: 69 → 14（降幅 80%）
+    - Warning 级别: 69 → 0（100% 消除）
   - ✅ **核心修复内容**:
     - 修复 `oas3-valid-media-example`: 添加缺失 `message`
     - 修复 `camelcase-field-names`: `record_id` → `recordId`
@@ -36,10 +30,11 @@
     - 修复 `oas3-schema` CSRFToken: 移至 `securitySchemes`
     - 添加 27 个 `operationId`
     - 新增 5 个 operational `description` 与 `temporal-operations` 标签
+    - 统一企业成功响应，新增 `x-cube-envelope-validated` / `x-cube-envelope-exempt` 标记
+    - 移除未使用的 `AnalysisType` 等 6 个遗留组件，引入 `OrganizationUnit` 组件复用
     - `api-compliance.yml` 新增 Node.js + `npm ci` + `npm run lint:api`
-  - ⏳ **剩余 14 项 warning**: `standard-response-envelope`(7), `oas3-unused-component`(7)
-  - 📋 详见 `docs/development-plans/17-spectral-dependency-recovery-plan.md` v2.1
-- ⚠️ `NODE_PATH=frontend/node_modules npx eslint@8.57.0 frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs` 持续输出 `camelcase` 与 `no-console` 告警，尚无处理策略。
+  - 📋 详见 `docs/archive/development-plans/17-spectral-dependency-recovery-plan.md` v2.2（已归档）
+- ✅ `rg 'console\.' frontend/src -g '*.ts' --glob '!shared/utils/logger.ts'` → 0；`architecture-validator --rule eslint-exception-comment` 通过（2025-10-02），ESLint 零告警报告存档于 `reports/eslint/plan20/`。
 - ✅ **Playwright RS256 E2E 验证已完成**（2025-10-02）：
   - ✅ PBAC scope 验证通过（GraphQL API 返回 200，含 `data.organizations.data`）
   - ✅ 架构契约 E2E 全通过（6/6 passed，9.6s）
@@ -75,27 +70,22 @@
    - 执行结束后，将测试产出统一放入 `reports/iig-guardian/playwright-rs256-verification-<date>.md`，并在本日志“当前状态”栏目补记结论。
 
 ## 4. 其他工作待办
-1. **【P3 - API 治理】Spectral 剩余 warning 处理（可选）**：Plan 17 已完成核心修复（75→14），剩余 14 项 warning 为低优先级问题（`standard-response-envelope` 7 项、`oas3-unused-component` 7 项），可根据团队优先级决定是否处理。
-2. **【P2 - 前端】确定 ESLint 例外策略**：就 `camelcase`、`no-console` 做出最终决策，更新 ESLint 配置或代码并输出零告警报告。
-3. **【P2 - QA + 架构组】推进弱类型治理**：
-   - **前置依赖**：Plan 21《弱类型治理专项计划》Phase 1（脚本扩展与 CI 接入）完成后，方可启动 Plan 16 Phase 2 弱类型治理子任务
-   - **时间窗口**：Plan 21 Phase 1 预计 2025-10-10 ~ 2025-10-13（4 天），完成后立即启动 Plan 16 Phase 2
-   - **关键交付物**：
-     - `scripts/code-smell-check-quick.sh` 扩展（支持 `--with-types`、`--exclude-tests`、`--group-by-module`）
-     - `.github/workflows/iig-guardian.yml` 更新（接入弱类型 CI 报告）
-     - `reports/iig-guardian/code-smell-ci-20251013.md`（首份 CI 报告，含生产/测试分离统计与模块分布）
-     - `reports/iig-guardian/code-smell-types-20251010.md`（基线数据确认，区分生产代码基线与测试代码基线）
-   - **并行执行**：Plan 16 Phase 2 其他任务（文件规模治理、函数拆分）可与 Plan 21 Phase 1 并行
-   - **详见**：`docs/development-plans/21-weak-typing-governance-plan.md`
+1. ~~【P3 - API 治理】Spectral 剩余 warning 处理（可选）~~ ✅ 已完成（Spectral 警告清零，新增 `x-cube-envelope-*` 标记与组件治理）。
+2. ~~【P2 - 前端】确定 ESLint 例外策略~~ ✅ 已完成（Plan 20）。
+3. **【P2 - QA + 架构组】推进弱类型治理**：✅ 2025-10-09 完成
+   - `scripts/code-smell-check-quick.sh --with-types` 扩展上线，`frontend/src` 范围 `any/unknown` 归零（见 `reports/iig-guardian/code-smell-ci-20251009.md`、`reports/iig-guardian/code-smell-types-20251009.md`）
+   - `.github/workflows/iig-guardian.yml` 已集成弱类型巡检输出；当前阈值 120，后续可按计划逐步下调至 60/30
+   - 核心模块（Temporal、共享 utils/hooks、验证工具）完成类型替换，不再需要弱类型豁免清单
+   - 详见 `docs/development-plans/21-weak-typing-governance-plan.md`
 
 ---
 
 ## 5. 风险与跟踪
 - **测试阻塞风险**：Playwright CRUD/GraphQL 仍有零星失败（状态字段 + `/test` 页面），需在 Phase 1 前进一步验证以解锁 154 项 E2E 回归。
 - **✅ 工具链风险已解除**（2025-10-02）：Spectral 依赖修复完成，CI `npm install` 障碍移除。
-- **✅ API 契约风险大幅降低**（2025-10-02）：Spectral 检测的 75 项问题已修复 61 项（降幅 81%），剩余 14 项为低优先级 warning。
+- **✅ API 契约风险清除**（2025-10-02）：Spectral 检测的 75 项问题已全部修复（0 warnings，0 errors）。
 - **合规风险**：`camelcase`/`no-console` 未定案将持续触发 lint 告警，影响 TODO 巡检闭环。
-- **质量风险**：弱类型统计维持 173 处，若不治理将影响 Plan 16 Phase 2 目标。
+- **质量风险**：弱类型统计已清零；关注 CI 阈值下调阶段的稳定性。
 
 ---
 
@@ -103,5 +93,5 @@
 - `reports/iig-guardian/p1-crud-issue-analysis-20251002.md`
 - `reports/iig-guardian/code-smell-types-20251007.md`
 - `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md`
-- `docs/development-plans/17-spectral-dependency-recovery-plan.md`（新增，2025-10-02）
+- `docs/archive/development-plans/17-spectral-dependency-recovery-plan.md`（已归档，2025-10-02）
 - `../archive/development-plans/19-phase0-workload-review.md`
