@@ -4,15 +4,17 @@ import type { UnifiedGraphQLClient } from '../unified-client';
 
 describe('GraphQLEnterpriseAdapter (Vitest)', () => {
   let adapter: GraphQLEnterpriseAdapter;
+  let requestMock: ReturnType<typeof vi.fn>;
   let mockClient: Pick<UnifiedGraphQLClient, 'request'>;
 
   beforeEach(() => {
-    mockClient = { request: vi.fn() } as unknown as Pick<UnifiedGraphQLClient, 'request'>;
+    requestMock = vi.fn();
+    mockClient = { request: requestMock };
     adapter = new GraphQLEnterpriseAdapter(mockClient as UnifiedGraphQLClient);
   });
 
   it('标准GraphQL成功结果应包装为企业级成功信封', async () => {
-    (mockClient.request as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+    requestMock.mockResolvedValue({
       organizations: { data: [{ code: 'TEST001', name: 'Test Org' }] }
     });
 
@@ -23,7 +25,7 @@ describe('GraphQLEnterpriseAdapter (Vitest)', () => {
   });
 
   it('客户端抛错应映射为企业级错误信封', async () => {
-    (mockClient.request as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network timeout'));
+    requestMock.mockRejectedValue(new Error('Network timeout'));
 
     const result = await adapter.request('{ organizations(pagination: { page: 1, pageSize: 1 }) { data { code } } }');
     expect(result.success).toBe(false);

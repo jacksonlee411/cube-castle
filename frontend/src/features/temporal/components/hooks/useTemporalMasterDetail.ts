@@ -1,6 +1,9 @@
+import { logger } from '@/shared/utils/logger';
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { normalizeParentCode } from "../../../shared/utils/organization-helpers";
 import type { OrganizationStateMutationResult } from "../../../shared/hooks/useOrganizationMutations";
+import type { OrganizationRequest } from "../../../shared/types/organization";
+import type { TemporalVersionPayload } from "../../../shared/types/temporal";
 import type { TemporalEditFormData } from "../TemporalEditForm";
 import type { TimelineVersion } from "../TimelineComponent";
 import type { TabType } from "../TabNavigation";
@@ -81,7 +84,7 @@ export interface TemporalMasterDetailHandlers {
   handleVersionSelect: (version: TimelineVersion) => void;
   handleFormSubmit: (formData: TemporalEditFormData) => Promise<void>;
   handleHistoryEditClose: () => void;
-  handleHistoryEditSubmit: (versionData: Record<string, unknown>) => Promise<void>;
+  handleHistoryEditSubmit: (versionData: TemporalVersionPayload & { recordId: string }) => Promise<void>;
   setActiveTab: (tab: TabType) => void;
   setCurrentETag: (etag: string | null) => void;
   notifySuccess: (message: string) => void;
@@ -196,7 +199,7 @@ export const useTemporalMasterDetail = (
             const hierarchy = await fetchHierarchyPaths(currentVersion.code);
             setDisplayPaths(hierarchy);
           } catch (pathError) {
-            console.warn("加载组织层级路径失败（忽略，不阻塞详情展示）:", pathError);
+            logger.warn("加载组织层级路径失败（忽略，不阻塞详情展示）:", pathError);
             setDisplayPaths(null);
           }
         } else {
@@ -205,7 +208,7 @@ export const useTemporalMasterDetail = (
           setDisplayPaths(null);
         }
       } catch (loadingException) {
-        console.error("Error loading temporal versions:", loadingException);
+        logger.error("Error loading temporal versions:", loadingException);
         const errorMessage =
           loadingException instanceof Error
             ? loadingException.message
@@ -230,7 +233,7 @@ export const useTemporalMasterDetail = (
       try {
         await loadVersions();
       } catch (mutationRefreshError) {
-        console.warn("状态变更后刷新失败:", mutationRefreshError);
+        logger.warn("状态变更后刷新失败:", mutationRefreshError);
       }
     },
     [loadVersions],
@@ -258,7 +261,7 @@ export const useTemporalMasterDetail = (
           try {
             await loadVersions();
           } catch (refreshError) {
-            console.warn("数据刷新失败，但删除操作已成功:", refreshError);
+            logger.warn("数据刷新失败，但删除操作已成功:", refreshError);
           }
         }
 
@@ -270,7 +273,7 @@ export const useTemporalMasterDetail = (
           setSelectedVersion(null);
         }
       } catch (error) {
-        console.error("Error deactivating version:", error);
+        logger.error("Error deactivating version:", error);
         throw error;
       } finally {
         setIsDeleting(false);
@@ -299,7 +302,7 @@ export const useTemporalMasterDetail = (
         const hierarchy = await fetchHierarchyPaths(version.code);
         setDisplayPaths(hierarchy);
       } catch (pathError) {
-        console.warn("加载组织层级路径失败（忽略，不阻塞详情展示）:", pathError);
+        logger.warn("加载组织层级路径失败（忽略，不阻塞详情展示）:", pathError);
         setDisplayPaths(null);
       }
     })();
@@ -315,17 +318,17 @@ export const useTemporalMasterDetail = (
           formData.lifecycleStatus,
         );
         if (isCreateMode) {
-          const requestBody = {
+          const requestBody: OrganizationRequest = {
             name: formData.name,
-            unitType: formData.unitType,
+            unitType: formData.unitType as OrganizationRequest["unitType"],
             description: formData.description || "",
             parentCode: normalizeParentCode.forAPI(formData.parentCode),
             effectiveDate: formData.effectiveDate,
             status: mappedStatus,
-            lifecycleStatus: formData.lifecycleStatus,
+            operationReason: formData.changeReason,
           };
 
-          console.log("提交创建组织请求:", requestBody);
+          logger.info("提交创建组织请求:", requestBody);
 
           const newOrganizationCode = await createOrganizationUnit(requestBody);
 
@@ -334,12 +337,12 @@ export const useTemporalMasterDetail = (
             return;
           }
 
-          console.error("创建成功但未返回组织编码");
+          logger.error("创建成功但未返回组织编码");
           notifyError("创建成功，但未能获取新组织编码，请手动刷新页面");
         } else {
-          const versionPayload: Record<string, unknown> = {
+          const versionPayload: TemporalVersionPayload = {
             name: formData.name,
-            unitType: formData.unitType,
+            unitType: formData.unitType as TemporalVersionPayload["unitType"],
             parentCode: normalizeParentCode.forAPI(formData.parentCode),
             description: formData.description || null,
             effectiveDate: formData.effectiveDate,
@@ -361,7 +364,7 @@ export const useTemporalMasterDetail = (
           notifySuccess("时态版本创建成功！");
         }
       } catch (submissionError) {
-        console.error(
+        logger.error(
           isCreateMode ? "创建组织失败:" : "创建时态版本失败:",
           submissionError,
         );
@@ -402,37 +405,35 @@ export const useTemporalMasterDetail = (
   }, [isSubmitting, onBack]);
 
   const handleHistoryEditSubmit = useCallback(
-    async (updateData: Record<string, unknown>) => {
+    async (updateData: TemporalVersionPayload & { recordId: string }) => {
       setIsSubmitting(true);
       try {
         const lifecycleStatus =
-          (updateData.status as TemporalEditFormData["lifecycleStatus"]) ||
-          "CURRENT";
+          updateData.lifecycleStatus ?? "CURRENT";
         const mappedStatus = mapLifecycleStatusToApiStatus(lifecycleStatus);
 
         await updateHistoryRecord(
           organizationCode,
-          updateData.recordId as string,
+          updateData.recordId,
           {
             name: updateData.name,
             unitType: updateData.unitType,
             status: mappedStatus,
             lifecycleStatus,
-            description: updateData.description,
+            description: updateData.description ?? null,
             effectiveDate: updateData.effectiveDate,
-            parentCode: normalizeParentCode.forAPI(
-              updateData.parentCode as string,
-            ),
+            parentCode: normalizeParentCode.forAPI(updateData.parentCode),
             changeReason: "通过组织详情页面修改历史记录",
+            operationReason: updateData.operationReason,
           },
         );
 
-        await loadVersions(false, updateData.recordId as string | undefined);
+        await loadVersions(false, updateData.recordId);
         setActiveTab("edit-history");
         setFormMode("edit");
         setFormInitialData({
           name: updateData.name as string,
-          unitType: updateData.unitType as string,
+          unitType: updateData.unitType,
           status: mappedStatus,
           lifecycleStatus,
           description: (updateData.description as string) || "",
@@ -458,7 +459,7 @@ export const useTemporalMasterDetail = (
         });
         notifySuccess("历史记录修改成功！");
       } catch (historyError) {
-        console.error("修改历史记录失败:", historyError);
+        logger.error("修改历史记录失败:", historyError);
         notifyError("修改失败，请检查网络连接");
       } finally {
         setIsSubmitting(false);

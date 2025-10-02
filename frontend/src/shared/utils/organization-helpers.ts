@@ -62,8 +62,8 @@ export const getOrganizationLevelText = (parentCode: string | null | undefined):
  * - 可选地提供备用候选值（例如 hierarchyDepth）
  */
 export const coerceOrganizationLevel = (
-  levelValue: unknown,
-  fallbackValue?: unknown
+  levelValue: number | string | null | undefined,
+  fallbackValue?: number | string | null | undefined
 ): number => {
   const candidates = [levelValue, fallbackValue];
 

@@ -3,8 +3,8 @@ import type { FormData } from './FormTypes';
 /**
  * 统一清洗表单数据，确保传入共享验证 Schema 前格式正确。
  */
-export const prepareFormDataForValidation = (data: FormData): Record<string, unknown> => {
-  const normalized: Record<string, unknown> = { ...data };
+export const prepareFormDataForValidation = (data: FormData): FormData => {
+  const normalized: FormData = { ...data };
 
   if (typeof normalized.code === 'string') {
     const trimmed = normalized.code.trim();

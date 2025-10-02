@@ -177,9 +177,9 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
         }
         memoryCache.set(cacheKey, { data: list, total: data.organizations?.pagination?.total || list.length, expiresAt: now + (cacheTtlMs ?? DEFAULT_TTL_MS) })
       })
-      .catch((e: unknown) => {
+      .catch((error: Error | { message?: string } | null | undefined) => {
         if (!mounted) return
-        const msg = e instanceof Error ? e.message : '加载组织列表失败，请稍后重试'
+        const msg = error instanceof Error ? error.message : '加载组织列表失败，请稍后重试'
         setError(msg)
         onValidationError?.(msg)
       })

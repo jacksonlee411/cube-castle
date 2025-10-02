@@ -2,6 +2,7 @@
  * 组织详情编辑表单组件
  * 支持创建和编辑时态版本
  */
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text, Heading } from '@workday/canvas-kit-react/text';
@@ -111,35 +112,52 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
     }
   };
 
-  const handleParentTemporalError = (error: unknown): boolean => {
-    const apiError = error as { code?: string; message?: string; details?: unknown } | undefined;
-    if (apiError?.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
+  interface TemporalParentUnavailableDetail {
+    code?: string;
+    message?: string;
+    context?: {
+      suggestedDate?: string;
+    };
+  }
+
+  interface TemporalParentUnavailableError {
+    code?: string;
+    message?: string;
+    details?: TemporalParentUnavailableDetail[];
+  }
+
+  const handleParentTemporalError = (
+    error: TemporalParentUnavailableError | Error,
+  ): boolean => {
+    if (
+      typeof error !== 'object' ||
+      error === null ||
+      'name' in error // likely Error instance
+    ) {
       return false;
     }
 
-    let message = typeof apiError.message === 'string' ? apiError.message : '上级组织在指定日期不可用';
+    if (error.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
+      return false;
+    }
+
+    let message =
+      typeof error.message === 'string'
+        ? error.message
+        : '上级组织在指定日期不可用';
     let suggested: string | undefined;
 
-    if (Array.isArray(apiError.details)) {
-      type TemporalErrorDetail = {
-        code?: string;
-        message?: string;
-        context?: {
-          suggestedDate?: string;
-          [key: string]: unknown;
-        };
-      };
+    const detail = Array.isArray(error.details)
+      ? error.details.find((item) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE')
+      : undefined;
 
-      const detail = (apiError.details as TemporalErrorDetail[]).find(
-        (item) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE'
-      );
-      if (detail?.message && typeof detail.message === 'string') {
-        message = detail.message;
-      }
-      const candidate = detail?.context?.suggestedDate;
-      if (typeof candidate === 'string' && candidate.trim().length > 0) {
-        suggested = candidate;
-      }
+    if (detail?.message && typeof detail.message === 'string') {
+      message = detail.message;
+    }
+
+    const candidate = detail?.context?.suggestedDate;
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      suggested = candidate;
     }
 
     setParentError(message);
@@ -249,7 +267,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
     try {
       await onSubmit(formData);
     } catch (error) {
-      console.error('提交表单失败:', error);
+      logger.error('提交表单失败:', error);
       if (!handleParentTemporalError(error)) {
         setSuggestedEffectiveDate(undefined);
         if (error instanceof Error) {

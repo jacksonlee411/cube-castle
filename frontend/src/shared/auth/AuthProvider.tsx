@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authManager } from '../api/auth';
@@ -11,7 +12,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const handler = () => {
       try { authManager.clearAuth(); } catch (error) {
-        console.warn('Failed to clear auth:', error);
+        logger.warn('Failed to clear auth:', error);
       }
       const redirect = encodeURIComponent(location.pathname + location.search);
       navigate(`/login?redirect=${redirect}`, { replace: true });

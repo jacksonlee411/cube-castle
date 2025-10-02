@@ -27,7 +27,13 @@ const EffectiveDateSection: React.FC<EffectiveDateSectionProps> = ({
         <FormField isRequired error={error ? 'error' : undefined}>
           <FormField.Label>生效日期 *</FormField.Label>
           <FormField.Field>
-            <TextInput type="date" value={value} onChange={onChange} disabled={disabled} />
+            <TextInput
+              type="date"
+              value={value}
+              onChange={onChange}
+              disabled={disabled}
+              data-testid="form-field-effective-date"
+            />
             {error ? <FormField.Hint>{error}</FormField.Hint> : null}
           </FormField.Field>
         </FormField>

@@ -1,3 +1,5 @@
+import type { JsonValue } from '@/shared/types/json';
+
 // 企业级信封响应结构 - 符合API一致性规范11.1
 export interface APIResponse<T> {
   success: boolean;
@@ -5,7 +7,7 @@ export interface APIResponse<T> {
   error?: {
     code: string;
     message: string;
-    details?: unknown;
+    details?: JsonValue;
   };
   message?: string;
   timestamp: string;
@@ -36,7 +38,7 @@ export interface GraphQLError {
     column: number;
   }>;
   path?: Array<string | number>;
-  extensions?: Record<string, unknown>;
+  extensions?: Record<string, JsonValue>;
 }
 
 // Strict GraphQL variables interface
@@ -60,7 +62,7 @@ export interface ValidationIssue {
 }
 
 // Type guards for API responses
-export const isGraphQLResponse = <T>(response: unknown): response is GraphQLResponse<T> => {
+export const isGraphQLResponse = <T>(response: object | null | undefined): response is GraphQLResponse<T> => {
   return (
     typeof response === 'object' &&
     response !== null &&

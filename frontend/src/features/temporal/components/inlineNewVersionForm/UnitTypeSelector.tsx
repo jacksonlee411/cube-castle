@@ -59,6 +59,7 @@ const UnitTypeSelector: React.FC<UnitTypeSelectorProps> = ({
             fontSize: '14px',
             color: selectedOption?.color ?? colors.licorice500,
           }}
+          data-testid="form-field-unit-type"
         >
           {unitTypeOptions.map((option) => (
             <option key={option.value} value={option.value}>

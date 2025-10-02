@@ -54,10 +54,18 @@ const DeactivateConfirmModal: React.FC<DeactivateConfirmModalProps> = ({
                 </Box>
               </Flex>
               <Flex gap="s" justifyContent="flex-end">
-                <SecondaryButton onClick={onCancel} disabled={isDeactivating}>
+                <SecondaryButton
+                  onClick={onCancel}
+                  disabled={isDeactivating}
+                  data-testid="deactivate-cancel-button"
+                >
                   取消
                 </SecondaryButton>
-                <PrimaryButton onClick={onConfirm} disabled={isDeactivating}>
+                <PrimaryButton
+                  onClick={onConfirm}
+                  disabled={isDeactivating}
+                  data-testid="deactivate-confirm-button"
+                >
                   {isDeactivating ? '删除中...' : '确认删除'}
                 </PrimaryButton>
               </Flex>

@@ -126,6 +126,6 @@ export type CQRSEndpointKey = keyof typeof CQRS_ENDPOINTS;
 
 // 📋 开发提醒
 if (process.env.NODE_ENV === 'development') {
-  console.log('🎯 端口配置已加载 - 使用统一配置，严禁硬编码端口');
-  console.log(`📊 核心服务: REST(${SERVICE_PORTS.REST_COMMAND_SERVICE}) + GraphQL(${SERVICE_PORTS.GRAPHQL_QUERY_SERVICE})`);
+  logger.info('🎯 端口配置已加载 - 使用统一配置，严禁硬编码端口');
+  logger.info(`📊 核心服务: REST(${SERVICE_PORTS.REST_COMMAND_SERVICE}) + GraphQL(${SERVICE_PORTS.GRAPHQL_QUERY_SERVICE})`);
 }

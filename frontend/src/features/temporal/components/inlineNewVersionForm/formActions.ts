@@ -1,5 +1,8 @@
 import type { BaseSyntheticEvent, ChangeEvent, Dispatch, SetStateAction } from 'react';
+import type { TemporalVersionPayload } from '@/shared/types/temporal';
+import type { TimelineVersion } from '../TimelineComponent';
 import type { TemporalEditFormData } from '../TemporalEditForm';
+import { normalizeParentCode } from '@/shared/utils/organization-helpers';
 import {
   DEFAULT_FORM_DATA,
   TemporalParentErrorDetail,
@@ -29,8 +32,8 @@ interface CreateFormActionsArgs {
   setOriginalHistoryData: Dispatch<SetStateAction<InlineVersionRecord | null>>;
   selectedVersion: InlineVersionRecord | null;
   allVersions: InlineVersionSummary[] | null;
-  onEditHistory?: (versionData: Record<string, unknown>) => Promise<void>;
-  onDeactivate?: (version: Record<string, unknown>) => Promise<void>;
+  onEditHistory?: (versionData: TemporalVersionPayload & { recordId: string }) => Promise<void>;
+  onDeactivate?: (version: TimelineVersion) => Promise<void>;
   onSubmit: (data: TemporalEditFormData) => Promise<void>;
   setShowDeactivateConfirm: Dispatch<SetStateAction<boolean>>;
   setIsDeactivating: Dispatch<SetStateAction<boolean>>;
@@ -80,33 +83,40 @@ const buildValidateForm = (
   };
 };
 
+interface TemporalParentUnavailableError {
+  code?: string;
+  message?: string;
+  details?: TemporalParentErrorDetail[];
+}
+
+const isTemporalParentUnavailableError = (
+  value: TemporalParentUnavailableError | Error,
+): value is TemporalParentUnavailableError =>
+  typeof value === 'object' && value !== null && 'code' in value;
+
 const buildParentTemporalErrorHandler = (
   setParentError: React.Dispatch<React.SetStateAction<string>>,
   setSuggestedEffectiveDate: React.Dispatch<React.SetStateAction<string | undefined>>
 ) => {
-  return (error: unknown): boolean => {
-    const apiError = error as { code?: string; message?: string; details?: unknown } | undefined;
-    if (apiError?.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
+  return (error: TemporalParentUnavailableError | Error): boolean => {
+    if (!isTemporalParentUnavailableError(error) || error.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
       return false;
     }
 
     let message =
-      typeof apiError.message === 'string'
-        ? apiError.message
+      typeof error.message === 'string'
+        ? error.message
         : '上级组织在指定日期不可用';
     let suggested: string | undefined;
 
-    if (Array.isArray(apiError?.details)) {
-      const detail = (apiError.details as TemporalParentErrorDetail[]).find(
-        (item) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE'
-      );
-      if (detail?.message && typeof detail.message === 'string') {
-        message = detail.message;
-      }
-      const candidate = detail?.context?.suggestedDate;
-      if (typeof candidate === 'string' && candidate.trim().length > 0) {
-        suggested = candidate;
-      }
+    const details = Array.isArray(error.details) ? error.details : [];
+    const detail = details.find((item) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE');
+    if (detail?.message && typeof detail.message === 'string') {
+      message = detail.message;
+    }
+    const candidate = detail?.context?.suggestedDate;
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      suggested = candidate;
     }
 
     setParentError(message);
@@ -114,6 +124,28 @@ const buildParentTemporalErrorHandler = (
     return true;
   };
 };
+
+const toTimelineVersion = (record: InlineVersionRecord): TimelineVersion => ({
+  recordId: record.recordId,
+  code: record.code,
+  name: record.name,
+  unitType: record.unitType,
+  status: record.status,
+  effectiveDate: record.effectiveDate,
+  endDate: null,
+  changeReason: '',
+  isCurrent: true,
+  createdAt: record.createdAt,
+  updatedAt: record.updatedAt,
+  description: record.description,
+  level: record.level ?? 0,
+  path: record.path ?? null,
+  parentCode: record.parentCode,
+  sortOrder: 0,
+  lifecycleStatus: record.status === 'ACTIVE' ? 'CURRENT' : 'HISTORICAL',
+  businessStatus: record.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+  dataStatus: 'NORMAL',
+});
 
 export const createFormActions = (
   args: CreateFormActionsArgs
@@ -280,15 +312,17 @@ export const createFormActions = (
     setLoading(true);
 
     try {
-      const updateData = {
-        ...originalHistoryData,
+      const updateData: TemporalVersionPayload & { recordId: string } = {
+        recordId: originalHistoryData.recordId,
         name: formData.name,
         unitType: formData.unitType,
         status: formData.lifecycleStatus,
-        description: formData.description,
+        lifecycleStatus: formData.lifecycleStatus,
+        description: formData.description ?? null,
         effectiveDate: formData.effectiveDate,
-        parentCode: formData.parentCode,
-        updatedAt: new Date().toISOString(),
+        parentCode: normalizeParentCode.forAPI(formData.parentCode),
+        operationReason: formData.changeReason,
+        changeReason: formData.changeReason,
       };
 
       await onEditHistory(updateData);
@@ -317,8 +351,9 @@ export const createFormActions = (
       setIsDeactivating(true);
       setErrorMessage(null);
       setSuccessMessage(null);
-      await onDeactivate(selectedVersion);
+      await onDeactivate(toTimelineVersion(selectedVersion));
       setShowDeactivateConfirm(false);
+      setSuccessMessage('版本已成功作废');
     } catch (error) {
       const message = error instanceof Error ? error.message : '删除失败，请重试';
       setErrorMessage(message);

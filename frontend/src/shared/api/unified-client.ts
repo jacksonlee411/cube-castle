@@ -3,6 +3,7 @@
  * 消除重复的GraphQL和REST客户端实现
  * 基于CQRS架构：查询使用GraphQL，命令使用REST API
  */
+import { logger } from '@/shared/utils/logger';
 import { authManager } from "./auth";
 import { env } from "../config/environment";
 import { authEvents } from "../auth/events";
@@ -64,7 +65,7 @@ export class UnifiedGraphQLClient {
       if (!response.ok) {
         // 401：强制刷新令牌并重试一次
         if (response.status === 401) {
-          console.warn(
+          logger.warn(
             "[GraphQL Client] 401 未认证，尝试强制刷新令牌并重试一次",
           );
           if (!retried) {
@@ -110,7 +111,7 @@ export class UnifiedGraphQLClient {
 
         // 服务器内部错误时提供更友好的错误信息
         if (response.status === 500) {
-          console.error("[GraphQL Client] 服务器内部错误:", {
+          logger.error("[GraphQL Client] 服务器内部错误:", {
             query,
             variables,
             status: response.status,
@@ -156,7 +157,7 @@ export class UnifiedGraphQLClient {
         return result.data;
       }
     } catch (error) {
-      console.error("GraphQL request failed:", { query, variables, error });
+      logger.error("GraphQL request failed:", { query, variables, error });
       throw error;
     }
   }
@@ -257,7 +258,7 @@ export class UnifiedRESTClient {
         contentType.includes("application/json") || /^(\s*[[{])/.test(text);
       if (!looksLikeJson) {
         if (!response.ok) {
-          console.error("[REST Client] 非JSON错误体，返回HTTP错误:", {
+          logger.error("[REST Client] 非JSON错误体，返回HTTP错误:", {
             endpoint,
             status: response.status,
             statusText: response.statusText,
@@ -266,7 +267,7 @@ export class UnifiedRESTClient {
             `REST Error: ${response.status} ${response.statusText}`,
           );
         }
-        console.error("[REST Client] JSON解析失败: 响应非JSON", {
+        logger.error("[REST Client] JSON解析失败: 响应非JSON", {
           endpoint,
           text,
         });
@@ -279,7 +280,7 @@ export class UnifiedRESTClient {
         return JSON.parse(text) as JsonValue;
       } catch (parseError) {
         if (!response.ok) {
-          console.error("[REST Client] JSON解析失败 (错误响应):", {
+          logger.error("[REST Client] JSON解析失败 (错误响应):", {
             endpoint,
             status: response.status,
             statusText: response.statusText,
@@ -289,7 +290,7 @@ export class UnifiedRESTClient {
             `REST Error: ${response.status} ${response.statusText}`,
           );
         }
-        console.error("[REST Client] JSON解析失败:", {
+        logger.error("[REST Client] JSON解析失败:", {
           endpoint,
           text,
           parseError,
@@ -306,7 +307,7 @@ export class UnifiedRESTClient {
       let result = await readBody(response);
 
       if (!response.ok && response.status === 401) {
-        console.warn("[REST Client] 401 未认证，尝试强制刷新令牌并重试一次");
+        logger.warn("[REST Client] 401 未认证，尝试强制刷新令牌并重试一次");
         if (!retried) {
           retried = true;
           await authManager.forceRefresh();
@@ -343,7 +344,7 @@ export class UnifiedRESTClient {
         }
 
         if (response.status === 500) {
-          console.error("[REST Client] 服务器内部错误:", {
+          logger.error("[REST Client] 服务器内部错误:", {
             endpoint,
             status: response.status,
             result,
@@ -375,7 +376,7 @@ export class UnifiedRESTClient {
 
       return payload;
     } catch (error) {
-      console.error("REST request failed:", { endpoint, options, error });
+      logger.error("REST request failed:", { endpoint, options, error });
       throw error;
     }
   }
@@ -438,7 +439,7 @@ export class UnauthenticatedRESTClient {
       }
       return (json ?? ({} as JsonValue)) as T;
     } catch (error) {
-      console.error("[UnauthREST] request failed:", {
+      logger.error("[UnauthREST] request failed:", {
         endpoint,
         options,
         error,
@@ -465,10 +466,10 @@ export const validateCQRSUsage = (
 ) => {
   if (process.env.NODE_ENV === "development") {
     if (operation === "query" && !method.includes("GraphQL")) {
-      console.warn("⚠️ CQRS违反: 查询操作应该使用GraphQL客户端");
+      logger.warn("⚠️ CQRS违反: 查询操作应该使用GraphQL客户端");
     }
     if (operation === "command" && !method.includes("REST")) {
-      console.warn("⚠️ CQRS违反: 命令操作应该使用REST客户端");
+      logger.warn("⚠️ CQRS违反: 命令操作应该使用REST客户端");
     }
   }
 };

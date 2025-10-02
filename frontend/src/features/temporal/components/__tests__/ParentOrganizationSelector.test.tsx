@@ -2,10 +2,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ParentOrganizationSelector } from '../ParentOrganizationSelector'
 import { authManager } from '../../../../shared/api/auth'
+import type { JsonValue } from '@/shared/types/json'
 
-function mockFetchWithTokenAndGraphQL(graphqlData: unknown) {
-  vi.spyOn(global, 'fetch').mockImplementation((input: any) => {
-    const url = typeof input === 'string' ? input : (input?.url || '')
+interface ScopeContainer {
+  __SCOPES__?: string[]
+}
+
+const resolveUrl = (input: RequestInfo | URL): string => {
+  if (typeof input === 'string') {
+    return input
+  }
+  if (input instanceof URL) {
+    return input.toString()
+  }
+  const candidate = (input as { url?: string }).url
+  return typeof candidate === 'string' ? candidate : input.toString()
+}
+
+function mockFetchWithTokenAndGraphQL(graphqlData: JsonValue) {
+  vi.spyOn(global, 'fetch').mockImplementation((input: RequestInfo | URL) => {
+    const url = resolveUrl(input)
     if (url.includes('/.well-known/jwks.json')) {
       return Promise.resolve(
         new Response(
@@ -31,9 +47,11 @@ function mockFetchWithTokenAndGraphQL(graphqlData: unknown) {
   })
 }
 
+const scopeContainer = globalThis as ScopeContainer
+
 describe('ParentOrganizationSelector', () => {
   beforeEach(() => {
-    (global as any).__SCOPES__ = ['org:read']
+    scopeContainer.__SCOPES__ = ['org:read']
     vi.spyOn(authManager, 'getAccessToken').mockResolvedValue('test-token')
   })
   afterEach(() => {
@@ -85,7 +103,7 @@ describe('ParentOrganizationSelector', () => {
   })
 
   it('gates by PBAC: disabled when missing org:read', async () => {
-    ;(global as any).__SCOPES__ = [] // 移除权限
+    scopeContainer.__SCOPES__ = [] // 移除权限
     const organizations = { organizations: { data: [], pagination: { total: 0, page: 1, pageSize: 500 } } }
     mockFetchWithTokenAndGraphQL(organizations)
     render(<ParentOrganizationSelector currentCode="X" effectiveDate="2025-09-17" onChange={() => {}} />)

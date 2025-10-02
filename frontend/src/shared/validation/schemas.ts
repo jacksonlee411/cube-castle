@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { JsonValue } from '@/shared/types/json';
 import { validateTemporalDate } from '../utils/temporal-validation-adapter';
 
 // 统一验证系统 - 整合所有验证逻辑到Zod Schema
@@ -140,7 +141,7 @@ export const GraphQLOrganizationResponseSchema = z.object({
 // 统一验证工具函数 - 替代simple-validation.ts
 export const ValidationUtils = {
   // 替代validateOrganizationBasic
-  validateCreateInput: (data: unknown) => {
+  validateCreateInput: (data: JsonValue) => {
     const result = CreateOrganizationInputSchema.safeParse(data);
     return {
       isValid: result.success,
@@ -152,7 +153,7 @@ export const ValidationUtils = {
   },
 
   // 替代validateOrganizationUpdate  
-  validateUpdateInput: (data: unknown) => {
+  validateUpdateInput: (data: JsonValue) => {
     const result = UpdateOrganizationInputSchema.safeParse(data);
     return {
       isValid: result.success,
@@ -164,7 +165,7 @@ export const ValidationUtils = {
   },
 
   // 替代validateOrganizationResponse
-  validateAPIResponse: (data: unknown) => {
+  validateAPIResponse: (data: JsonValue) => {
     const result = GraphQLOrganizationResponseSchema.safeParse(data);
     return {
       isValid: result.success,
@@ -176,7 +177,7 @@ export const ValidationUtils = {
   },
 
   // 替代validateForm (来自ValidationRules.ts)
-  validateForm: (formData: unknown, isEditing = false) => {
+  validateForm: (formData: JsonValue, isEditing = false) => {
     const schema = isEditing ? UpdateOrganizationInputSchema : CreateOrganizationInputSchema;
     const result = schema.safeParse(formData);
     

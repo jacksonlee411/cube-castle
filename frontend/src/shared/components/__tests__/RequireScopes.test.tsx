@@ -2,9 +2,15 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { RequireScopes } from '../RequireScopes'
 
+interface ScopeContainer {
+  __SCOPES__?: string[]
+}
+
+const scopeContainer = globalThis as ScopeContainer
+
 describe('RequireScopes', () => {
   beforeEach(() => {
-    ;(global as any).__SCOPES__ = []
+    scopeContainer.__SCOPES__ = []
   })
 
   it('renders fallback when missing required scopes', () => {
@@ -17,7 +23,7 @@ describe('RequireScopes', () => {
   })
 
   it('renders children when scopes are satisfied', () => {
-    ;(global as any).__SCOPES__ = ['org:read', 'org:validate']
+    scopeContainer.__SCOPES__ = ['org:read', 'org:validate']
     render(
       <RequireScopes allOf={["org:read"]} anyOf={["org:validate", "org:read:hierarchy"]} fallback={<div>no</div>}>
         <div data-testid="content">content</div>

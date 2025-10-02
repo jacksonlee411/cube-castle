@@ -59,7 +59,7 @@ describe('monitoringAPI', () => {
     }
     const spy = vi
       .spyOn(unifiedRESTClient, 'request')
-      .mockResolvedValue(mockMetrics as unknown as MonitoringMetrics)
+      .mockResolvedValue(mockMetrics as MonitoringMetrics)
 
     const result = await monitoringAPI.getMetrics()
 
@@ -74,7 +74,7 @@ describe('monitoringAPI', () => {
     }
     const spy = vi
       .spyOn(unifiedRESTClient, 'request')
-      .mockResolvedValue(mockAlerts as unknown as AlertList)
+      .mockResolvedValue(mockAlerts as AlertList)
 
     const result = await monitoringAPI.getAlerts()
 
@@ -92,7 +92,7 @@ describe('monitoringAPI', () => {
     }
     const spy = vi
       .spyOn(unifiedRESTClient, 'request')
-      .mockResolvedValue(mockStats as unknown as RateLimitStats)
+      .mockResolvedValue(mockStats as RateLimitStats)
 
     const result = await monitoringAPI.getRateLimitStats()
 

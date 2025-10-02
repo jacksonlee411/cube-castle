@@ -237,15 +237,10 @@ export const TemporalMasterDetailView: React.FC<
                     isCurrent: v.isCurrent,
                   }))}
                   onEditHistory={handleHistoryEditSubmit}
-                  onDeactivate={async (version: Record<string, unknown>) => {
+                  onDeactivate={async (version) => {
                     try {
-                      // 类型安全转换
-                      const typedVersion =
-                        version as unknown as TimelineVersion;
-                      await handleDeleteVersion(typedVersion);
-                      // 成功时的处理由handleDeleteVersion内部完成
+                      await handleDeleteVersion(version);
                     } catch (error) {
-                      // 显示错误消息
                       const errorMessage =
                         error instanceof Error
                           ? error.message

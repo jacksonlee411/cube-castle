@@ -34,7 +34,7 @@ export const getOperationPermissions = (
     canViewTimeline: true
   };
 
-  const childCount = organization.childrenCount ?? (organization as unknown as { childCount?: number }).childCount ?? 0;
+  const childCount = organization.childrenCount ?? (organization as { childCount?: number }).childCount ?? 0;
   if (childCount > 0) {
     permissions.canDelete = false;
     permissions.reason = '存在子组织，无法删除';
@@ -80,7 +80,7 @@ export function getOperationPermissionsByScopes(
     ctx.reason = 'ACTIVE 状态下不允许删除';
   }
 
-  const childCount = organization.childrenCount ?? (organization as unknown as { childCount?: number }).childCount ?? 0;
+  const childCount = organization.childrenCount ?? (organization as { childCount?: number }).childCount ?? 0;
   if (childCount > 0) {
     ctx.canDelete = false;
     ctx.reason = '存在子组织，无法删除';

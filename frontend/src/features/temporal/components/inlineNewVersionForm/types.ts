@@ -1,3 +1,5 @@
+import type { TemporalVersionPayload } from '@/shared/types/temporal';
+import type { TimelineVersion } from '../TimelineComponent';
 import type { TemporalEditFormData } from '../TemporalEditForm';
 
 export type InlineNewVersionFormMode = 'create' | 'edit';
@@ -38,8 +40,8 @@ export interface InlineNewVersionFormProps {
   initialData?: InlineNewVersionInitialData | null;
   selectedVersion?: InlineVersionRecord | null;
   allVersions?: InlineVersionSummary[] | null;
-  onEditHistory?: (versionData: Record<string, unknown>) => Promise<void>;
-  onDeactivate?: (version: Record<string, unknown>) => Promise<void>;
+  onEditHistory?: (versionData: TemporalVersionPayload & { recordId: string }) => Promise<void>;
+  onDeactivate?: (version: TimelineVersion) => Promise<void>;
   onInsertRecord?: (data: TemporalEditFormData) => Promise<void>;
   activeTab?: 'edit-history' | 'new-version' | 'audit-history';
   onTabChange?: (tab: 'edit-history' | 'new-version' | 'audit-history') => void;

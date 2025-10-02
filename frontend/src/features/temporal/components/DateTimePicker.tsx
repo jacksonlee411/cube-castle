@@ -2,6 +2,7 @@
  * 时间日期选择器组件
  * 用于选择历史查看时点和时间范围
  */
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
@@ -194,7 +195,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
       onSelect(dateTime);
     } catch (error) {
-      console.error('DateTime selection error:', error);
+      logger.error('DateTime selection error:', error);
     }
   }, [customInput, selectedDate, selectedTime, showTime, minDate, maxDate, onSelect]);
 

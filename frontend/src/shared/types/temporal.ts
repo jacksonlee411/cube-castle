@@ -3,6 +3,8 @@
  * 支持组织架构的时间维度查询和操作
  */
 
+import type { JsonValue } from './json';
+
 // 时态查询模式
 export type TemporalMode = 'current' | 'historical' | 'planning';
 
@@ -48,7 +50,7 @@ export interface ChangeInfo {
   type: 'creation' | 'modification' | 'deletion' | 'statusChange';
   description: string;
   author?: string;
-  changes?: Record<string, { old: unknown; new: unknown }>;
+  changes?: Record<string, { old: JsonValue | null; new: JsonValue | null }>;
 }
 
 // 时态组织单元 - 扩展原有OrganizationUnit (符合camelCase规范)
@@ -91,7 +93,7 @@ export interface TimelineEvent {
   status: EventStatus;
   description: string;
   recordId: string;
-  changes?: Record<string, { old: unknown; new: unknown }>;
+  changes?: Record<string, { old: JsonValue | null; new: JsonValue | null }>;
   author?: string;
 }
 
@@ -133,9 +135,24 @@ export interface BatchTemporalOperation {
   organizationCodes: string[];
   effectiveDate: string;  // 统一为字符串
   endDate?: string;       // 统一为字符串
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   progress?: number;  // 0-100
+}
+
+export interface TemporalVersionPayload {
+  name: string;
+  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
+  parentCode: string;
+  description?: string | null;
+  effectiveDate: string;
+  endDate?: string | null;
+  operationReason?: string;
+  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
+  lifecycleStatus?: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'INACTIVE' | 'DELETED';
+  changeReason?: string;
+  sortOrder?: number;
+  profile?: Record<string, JsonValue>;
 }
 
 // 时态缓存配置 (纯日期生效模型)

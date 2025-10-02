@@ -55,7 +55,11 @@ export const OrganizationTemporalPage: React.FC = () => {
       {/* 顶部操作条：仅保留返回入口，具体层级面包屑由详情组件自绘 */}
       <Box padding="m" borderBottom="solid" borderColor="soap300" marginBottom="m">
         <Flex alignItems="center" gap="s">
-          <SecondaryButton size="small" onClick={handleBackToList}>
+          <SecondaryButton
+            size="small"
+            onClick={handleBackToList}
+            data-testid="back-to-organization-list"
+          >
             ← 组织列表
           </SecondaryButton>
           <Text typeLevel="subtext.medium" color="hint">

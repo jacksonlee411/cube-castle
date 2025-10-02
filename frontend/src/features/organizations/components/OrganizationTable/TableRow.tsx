@@ -13,6 +13,12 @@ import { coerceOrganizationLevel, getDisplayLevel } from '../../../../shared/uti
 
 type TemporalStatus = 'ACTIVE' | 'PLANNED' | 'INACTIVE';
 
+const STATUS_DISPLAY: Record<TemporalStatus, { label: string; color: string }> = {
+  ACTIVE: { label: '✓ 启用', color: '#00A844' },
+  PLANNED: { label: '计划中', color: '#0875E1' },
+  INACTIVE: { label: '停用', color: '#999999' }
+};
+
 // 临时的状态工具函数
 const temporalStatusUtils = {
   isTemporal: (effectiveDate?: string, endDate?: string): boolean => {
@@ -96,21 +102,19 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
       <Table.Cell>{organization.unitType}</Table.Cell>
       
       <Table.Cell>
-        <span 
+        <span
+          data-testid={`status-pill-${organization.code}`}
           style={{
             display: 'inline-block',
             padding: '2px 6px',
             borderRadius: '12px',
             fontSize: '11px',
             fontWeight: '500',
-            backgroundColor: temporalStatus === 'ACTIVE' ? '#00A844' : 
-                           temporalStatus === 'PLANNED' ? '#0875E1' : '#999999',
+            backgroundColor: STATUS_DISPLAY[temporalStatus]?.color ?? '#999999',
             color: 'white'
           }}
         >
-          {temporalStatus === 'ACTIVE' ? '✓ 启用' :
-           temporalStatus === 'PLANNED' ? '计划 计划' :
-           temporalStatus === 'INACTIVE' ? '停用 停用' : temporalStatus}
+          {STATUS_DISPLAY[temporalStatus]?.label ?? temporalStatus}
         </span>
       </Table.Cell>
       
@@ -159,4 +163,3 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
     </Table.Row>
   );
 };
-

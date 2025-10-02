@@ -1,3 +1,5 @@
+import type { JsonValue } from './json';
+
 // 🎯 核心接口1: 组织单元主实体 (统一所有组织相关字段)
 export interface OrganizationUnit {
   // 主要标识字段
@@ -113,7 +115,7 @@ export interface OrganizationResponse {
   organization?: OrganizationUnit;
   
   // 变更信息
-  changes?: Record<string, unknown>;
+  changes?: Record<string, JsonValue>;
   reason?: string;  // 操作原因
   
   // 时态信息
@@ -169,5 +171,5 @@ export interface OrganizationValidationError {
   field: string;
   message: string;
   code: string;
-  value?: unknown;
+  value?: JsonValue;
 }

@@ -73,7 +73,7 @@ export const validateEnvironmentConfig = (): void => {
   
   // 开发环境配置验证
   if (env.isDevelopment) {
-    console.log('[Environment] 开发环境配置已加载:', {
+    logger.info('[Environment] 开发环境配置已加载:', {
       defaultTenantId: env.defaultTenantId.substring(0, 8) + '...',
       authClientId: env.authConfig.clientId,
       apiBaseUrl: env.apiBaseUrl,

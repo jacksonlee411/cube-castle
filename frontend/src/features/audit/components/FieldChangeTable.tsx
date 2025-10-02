@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Flex, 
+import {
+  Box,
+  Flex,
   Text
 } from '@workday/canvas-kit-react';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
-import { 
+import {
   chevronDownIcon,
   chevronUpIcon
 } from '@workday/canvas-system-icons-web';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
+import type { JsonObject, JsonValue } from '@/shared/types/json';
 
 // 字段变更接口定义
 export interface FieldChange {
   field: string;
-  oldValue: unknown;
-  newValue: unknown;
+  oldValue: JsonValue | null;
+  newValue: JsonValue | null;
   dataType: string;
 }
 
@@ -26,9 +27,9 @@ interface FieldChangeTableProps {
   /** 字段变更列表 */
   changes?: FieldChange[];
   /** 创建后数据 (CREATE操作使用) */
-  afterData?: Record<string, unknown>;
+  afterData?: JsonObject;
   /** 删除前数据 (DELETE操作使用) */
-  beforeData?: Record<string, unknown>;
+  beforeData?: JsonObject;
   /** 是否允许折叠 */
   collapsible?: boolean;
   /** 默认是否展开 */
@@ -76,22 +77,26 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // 格式化显示值
-  const formatValue = (value: unknown, dataType?: string): string => {
+  const formatValue = (value: JsonValue | null | undefined, dataType?: string): string => {
     if (value === null || value === undefined) {
       return '-';
     }
-    
+
     if (value === '') {
       return '(空)';
     }
-    
+
     if (typeof value === 'boolean') {
       return value ? '是' : '否';
     }
-    
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value.toString() : '(非数字)';
+    }
+
     if (dataType === 'date' || dataType === 'datetime') {
       try {
-        const date = new Date(value as string);
+        const date = new Date(String(value));
         return new Intl.DateTimeFormat('zh-CN', {
           year: 'numeric',
           month: '2-digit',
@@ -104,7 +109,15 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
         return String(value);
       }
     }
-    
+
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return '[复杂数据]';
+      }
+    }
+
     const stringValue = String(value);
     // 长文本截断
     if (stringValue.length > 50) {

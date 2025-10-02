@@ -38,6 +38,8 @@ export const TEMPORAL_CONSTANTS = {
 } as const;
 
 // 工具函数
+import type { TemporalQueryParams } from '@/shared/types/temporal';
+
 export const temporalUtils = {
   formatTemporalDate: (dateStr: string, options?: Intl.DateTimeFormatOptions) => {
     try {
@@ -72,7 +74,7 @@ export const temporalUtils = {
     return 'active'; // 当前有效
   },
 
-  buildTemporalQueryKey: (organizationCode: string, params: Record<string, unknown>) => {
+  buildTemporalQueryKey: (organizationCode: string, params: TemporalQueryParams) => {
     return `temporal:${organizationCode}:${JSON.stringify(params)}`;
   }
 };

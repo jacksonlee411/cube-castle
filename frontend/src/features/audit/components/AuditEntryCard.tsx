@@ -1,11 +1,6 @@
+import { logger } from '@/shared/utils/logger';
 import React from 'react';
-import { 
-  Card, 
-  Flex, 
-  Box, 
-  Text, 
-  Heading
-} from '@workday/canvas-kit-react';
+import { Card, Flex, Box, Text, Heading } from '@workday/canvas-kit-react';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { 
   plusIcon,
@@ -15,7 +10,8 @@ import {
   mediaPlayIcon
 } from '@workday/canvas-system-icons-web';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
-import { FieldChangeTable } from './FieldChangeTable';
+import type { JsonObject } from '@/shared/types/json';
+import { FieldChangeTable, FieldChange } from './FieldChangeTable';
 
 // ✅ P2修复: 移除缺失的audit.ts类型依赖，定义本地类型
 export interface AuditTimelineEntry {
@@ -25,15 +21,10 @@ export interface AuditTimelineEntry {
   userName: string;
   operationReason?: string;
   dataChanges: {
-    beforeData?: Record<string, unknown>;
-    afterData?: Record<string, unknown>;
+    beforeData?: JsonObject | null;
+    afterData?: JsonObject | null;
     modifiedFields: string[];
-    changes?: Array<{
-      field: string;
-      oldValue: unknown;
-      newValue: unknown;
-      dataType: string;
-    }>;
+    changes?: FieldChange[];
   };
 }
 
@@ -129,7 +120,7 @@ export const AuditEntryCard: React.FC<AuditEntryCardProps> = ({
   // 处理关键变更标签点击
   const handleKeyChangeClick = (event: React.MouseEvent, change: string) => {
     event.stopPropagation();
-    console.log('Key change clicked:', change);
+    logger.info('Key change clicked:', change);
   };
 
   return (

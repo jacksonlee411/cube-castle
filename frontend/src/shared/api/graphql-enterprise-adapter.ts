@@ -4,6 +4,7 @@
  * 基于API契约v4.2.1和后端团队P0级优先任务
  */
 
+import { logger } from '@/shared/utils/logger';
 import type { APIResponse } from '../types/api';
 import { UnifiedGraphQLClient } from './unified-client';
 import type { JsonValue } from '../types/json';
@@ -62,7 +63,7 @@ export class GraphQLEnterpriseAdapter {
       };
     } catch (error) {
       // UnifiedGraphQLClient 抛出了异常，将错误转换为企业级格式
-      console.warn('GraphQL客户端异常，转换为企业级错误格式:', error);
+      logger.warn('GraphQL客户端异常，转换为企业级错误格式:', error);
       
       return {
         success: false,

@@ -7,20 +7,39 @@ import { AppShell } from '../../layout/AppShell';
 import { vi } from 'vitest';
 
 // Minimal mocks for Canvas Kit components used by AppShell tree
-vi.mock('@workday/canvas-kit-react/layout', () => ({
-  Box: (p: any) => <div {...p}>{p.children}</div>,
-  Flex: (p: any) => <div {...p}>{p.children}</div>,
-}));
+vi.mock('@workday/canvas-kit-react/layout', () => {
+  const MockContainer = ({ children, ...rest }: React.HTMLAttributes<HTMLDivElement>) => (
+    <div {...rest}>{children}</div>
+  );
+  return {
+    Box: MockContainer,
+    Flex: MockContainer,
+  };
+});
 vi.mock('@workday/canvas-kit-react/text', () => ({
-  Heading: (p: any) => <h1 {...p}>{p.children}</h1>,
-  Text: (p: any) => <span {...p}>{p.children}</span>,
+  Heading: ({ children, ...rest }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h1 {...rest}>{children}</h1>
+  ),
+  Text: ({ children, ...rest }: React.HTMLAttributes<HTMLSpanElement>) => (
+    <span {...rest}>{children}</span>
+  ),
 }));
 vi.mock('@workday/canvas-kit-react/icon', () => ({
-  SystemIcon: (p: any) => <span data-testid="icon">{p.children}</span>,
+  SystemIcon: ({ children, ...rest }: React.HTMLAttributes<HTMLSpanElement>) => (
+    <span data-testid="icon" {...rest}>{children}</span>
+  ),
 }));
 vi.mock('@workday/canvas-kit-react/button', () => ({
-  SecondaryButton: (p: any) => <button onClick={p.onClick}>{p.children}</button>,
-  PrimaryButton: (p: any) => <button onClick={p.onClick}>{p.children}</button>,
+  SecondaryButton: ({ children, onClick, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" onClick={onClick} {...rest}>
+      {children}
+    </button>
+  ),
+  PrimaryButton: ({ children, onClick, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" onClick={onClick} {...rest}>
+      {children}
+    </button>
+  ),
 }));
 vi.mock('@workday/canvas-kit-react/tokens', () => ({
   space: { l: 16, m: 12, s: 8 },

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react'
 import { Box } from '@workday/canvas-kit-react/layout'
 import { Text } from '@workday/canvas-kit-react/text'
@@ -132,7 +133,7 @@ export const ContractTestingDashboard: React.FC = () => {
         timestamp: new Date().toLocaleString('zh-CN')
       }))
     } catch (error) {
-      console.error('Failed to refresh metrics:', error)
+      logger.error('Failed to refresh metrics:', error)
     } finally {
       setIsRefreshing(false)
     }
@@ -150,7 +151,7 @@ export const ContractTestingDashboard: React.FC = () => {
       }))
       showSuccess(`契约测试完成！通过 ${result.passedTests}/${result.totalTests} 个测试`)
     } catch (error) {
-      console.error('Contract test failed:', error)
+      logger.error('Contract test failed:', error)
       showError('契约测试执行失败：' + (error as Error).message)
     } finally {
       setIsRefreshing(false)
@@ -169,7 +170,7 @@ export const ContractTestingDashboard: React.FC = () => {
       }))
       showSuccess(`字段命名验证完成！合规率 ${result.complianceRate}%，违规项 ${result.violations} 个`)
     } catch (error) {
-      console.error('Field naming validation failed:', error)
+      logger.error('Field naming validation failed:', error)
       showError('字段命名验证失败：' + (error as Error).message)
     } finally {
       setIsRefreshing(false)
@@ -188,7 +189,7 @@ export const ContractTestingDashboard: React.FC = () => {
       }))
       showSuccess(`Schema验证完成！状态：${result.message}`)
     } catch (error) {
-      console.error('Schema validation failed:', error)
+      logger.error('Schema validation failed:', error)
       showError('Schema验证失败：' + (error as Error).message)
     } finally {
       setIsRefreshing(false)

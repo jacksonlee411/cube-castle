@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unifiedRESTClient } from "../api";
 import type {
@@ -5,6 +6,7 @@ import type {
   OrganizationRequest,
   APIResponse,
 } from "../types";
+import type { JsonValue } from '@/shared/types/json';
 
 const ensureSuccess = <T>(
   response: APIResponse<T>,
@@ -15,7 +17,7 @@ const ensureSuccess = <T>(
       response.error?.message ?? fallbackMessage,
     ) as Error & {
       code?: string;
-      details?: unknown;
+      details?: JsonValue;
     };
     if (response.error?.code) {
       error.code = response.error.code;
@@ -81,7 +83,7 @@ export const useCreateOrganization = () => {
     mutationFn: async (
       data: OrganizationRequest,
     ): Promise<OrganizationUnit> => {
-      console.log("[Mutation] Creating organization:", data);
+      logger.mutation("[Mutation] Creating organization:", data);
       const response = await unifiedRESTClient.request<
         APIResponse<OrganizationUnit>
       >("/organization-units", {
@@ -89,11 +91,11 @@ export const useCreateOrganization = () => {
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
-      console.log("[Mutation] Create successful:", response);
+      logger.mutation("[Mutation] Create successful:", response);
       return ensureSuccess(response, "创建组织失败");
     },
     onSettled: () => {
-      console.log("[Mutation] Create settled, invalidating queries");
+      logger.mutation("[Mutation] Create settled, invalidating queries");
 
       // 立即失效所有相关查询缓存
       queryClient.invalidateQueries({
@@ -117,7 +119,7 @@ export const useCreateOrganization = () => {
         type: "active",
       });
 
-      console.log("[Mutation] Create cache invalidation and refetch completed");
+      logger.mutation("[Mutation] Create cache invalidation and refetch completed");
     },
   });
 };
@@ -130,7 +132,7 @@ export const useUpdateOrganization = () => {
     mutationFn: async (
       data: OrganizationRequest,
     ): Promise<OrganizationUnit> => {
-      console.log("[Mutation] Updating organization:", data);
+      logger.mutation("[Mutation] Updating organization:", data);
       const response = await unifiedRESTClient.request<
         APIResponse<OrganizationUnit>
       >(`/organization-units/${data.code}`, {
@@ -138,11 +140,11 @@ export const useUpdateOrganization = () => {
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
-      console.log("[Mutation] Update successful:", response);
+      logger.mutation("[Mutation] Update successful:", response);
       return ensureSuccess(response, "更新组织失败");
     },
     onSettled: (data, error, variables) => {
-      console.log("[Mutation] Update settled:", variables.code);
+      logger.mutation("[Mutation] Update settled:", variables.code);
 
       // 立即失效所有相关查询缓存
       queryClient.invalidateQueries({
@@ -183,7 +185,7 @@ export const useUpdateOrganization = () => {
         type: "inactive",
       });
 
-      console.log("[Mutation] Update cache invalidation and refetch completed");
+      logger.mutation("[Mutation] Update cache invalidation and refetch completed");
     },
   });
 };
@@ -206,7 +208,7 @@ export const useSuspendOrganization = () => {
       currentETag,
       idempotencyKey,
     }: OrganizationStateMutationVariables) => {
-      console.log("[Mutation] Suspending organization:", code, effectiveDate);
+      logger.mutation("[Mutation] Suspending organization:", code, effectiveDate);
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
@@ -240,7 +242,7 @@ export const useSuspendOrganization = () => {
 
       const organization = ensureSuccess(data, "暂停组织失败");
       const etag = responseHeaders["etag"] ?? null;
-      console.log("[Mutation] Suspend successful:", { code, etag });
+      logger.mutation("[Mutation] Suspend successful:", { code, etag });
 
       return {
         organization,
@@ -249,7 +251,7 @@ export const useSuspendOrganization = () => {
       };
     },
     onSettled: (result, error, variables) => {
-      console.log("[Mutation] Suspend settled:", variables.code);
+      logger.mutation("[Mutation] Suspend settled:", variables.code);
 
       queryClient.invalidateQueries({
         queryKey: ["organizations"],
@@ -283,7 +285,7 @@ export const useSuspendOrganization = () => {
         );
       }
 
-      console.log(
+      logger.mutation(
         "[Mutation] Suspend cache invalidation and refetch completed",
       );
     },
@@ -306,7 +308,7 @@ export const useActivateOrganization = () => {
       currentETag,
       idempotencyKey,
     }: OrganizationStateMutationVariables) => {
-      console.log("[Mutation] Activating organization:", code, effectiveDate);
+      logger.mutation("[Mutation] Activating organization:", code, effectiveDate);
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
@@ -340,7 +342,7 @@ export const useActivateOrganization = () => {
 
       const organization = ensureSuccess(data, "重新启用组织失败");
       const etag = responseHeaders["etag"] ?? null;
-      console.log("[Mutation] Activate successful:", { code, etag });
+      logger.mutation("[Mutation] Activate successful:", { code, etag });
 
       return {
         organization,
@@ -349,7 +351,7 @@ export const useActivateOrganization = () => {
       };
     },
     onSettled: (result, error, variables) => {
-      console.log("[Mutation] Activate settled:", variables.code);
+      logger.mutation("[Mutation] Activate settled:", variables.code);
 
       queryClient.invalidateQueries({
         queryKey: ["organizations"],
@@ -383,7 +385,7 @@ export const useActivateOrganization = () => {
         );
       }
 
-      console.log(
+      logger.mutation(
         "[Mutation] Activate cache invalidation and refetch completed",
       );
     },
@@ -408,7 +410,7 @@ export const useCreateOrganizationVersion = () => {
       return ensureSuccess(response, "创建时态版本失败");
     },
     onSettled: (_data, _error, variables) => {
-      console.log(
+      logger.mutation(
         "[Mutation] Temporal version create settled:",
         variables.code,
       );
@@ -448,7 +450,7 @@ export const useCreateOrganizationVersion = () => {
         type: "active",
       });
 
-      console.log("[Mutation] Temporal version cache refresh completed");
+      logger.mutation("[Mutation] Temporal version cache refresh completed");
     },
   });
 };

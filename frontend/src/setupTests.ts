@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import '@testing-library/jest-dom';
 
 // 定义通用的React组件props类型
-type MockComponentProps = React.PropsWithChildren<Record<string, unknown>>;
+type MockComponentProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
 
 // Mock Canvas Kit components to avoid CSS issues in tests
 vi.mock('@workday/canvas-kit-react/layout', () => ({
@@ -217,7 +217,7 @@ vi.mock('@workday/canvas-kit-react/combobox', () => {
 // FormField 简易 mock
 vi.mock('@workday/canvas-kit-react/form-field', () => ({
   FormField: Object.assign(
-    ({ children, error, model: _model }: MockComponentProps & { error?: string; model?: unknown }) => React.createElement('div', { 'data-testid': 'form-field', 'data-error': error || '' }, children),
+    ({ children, error, model: _model }: MockComponentProps & { error?: string; model?: Record<string, never> }) => React.createElement('div', { 'data-testid': 'form-field', 'data-error': error || '' }, children),
     {
       Label: ({ children, required }: MockComponentProps & { required?: boolean }) => React.createElement('label', { 'data-testid': 'form-field-label', 'data-required': !!required }, children),
       Hint: ({ children }: MockComponentProps) => React.createElement('div', { 'data-testid': 'form-field-hint' }, children),

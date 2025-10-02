@@ -1,8 +1,11 @@
+import { logger } from '@/shared/utils/logger';
 import {
   unifiedGraphQLClient,
   unifiedRESTClient,
 } from "../../../shared/api/unified-client";
 import { env } from "../../../shared/config/environment";
+import type { OrganizationRequest } from "../../../shared/types/organization";
+import type { TemporalVersionPayload } from "../../../shared/types/temporal";
 import type { TimelineVersion } from "../TimelineComponent";
 
 export interface HierarchyPaths {
@@ -33,6 +36,46 @@ interface OrganizationVersionsResponse {
 interface OrganizationSnapshotResponse {
   organization: OrganizationVersion | null;
 }
+
+interface TimelineItemResponse {
+  recordId: string;
+  code: string;
+  name: string;
+  unitType: string;
+  status: string;
+  level: number;
+  effectiveDate: string;
+  endDate: string | null;
+  isCurrent: boolean;
+  createdAt: string;
+  updatedAt: string;
+  parentCode?: string | null;
+  description?: string | null;
+  path?: string | null;
+}
+
+interface TimelineEventData {
+  code?: string;
+  status?: string;
+  operationType?: string;
+  recordId?: string | null;
+  timeline?: TimelineItemResponse[];
+}
+
+interface SuccessEnvelope<T> {
+  success?: boolean;
+  data?: T;
+  message?: string;
+}
+
+type OrganizationEventResponse = SuccessEnvelope<TimelineEventData>;
+
+interface OrganizationCreationData {
+  code?: string;
+  organization?: { code?: string };
+}
+
+type CreateOrganizationResponse = SuccessEnvelope<OrganizationCreationData> & OrganizationCreationData;
 
 export interface FetchVersionsResult {
   versions: TimelineVersion[];
@@ -111,7 +154,7 @@ const mapOrganizationVersions = (
       createdAt: org.createdAt,
       updatedAt: org.updatedAt,
       parentCode: org.parentCode,
-      description: org.description,
+      description: org.description ?? undefined,
       lifecycleStatus:
         org.endDate === null ? ("CURRENT" as const) : ("HISTORICAL" as const),
       businessStatus: org.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
@@ -126,6 +169,28 @@ const mapOrganizationVersions = (
         new Date(a.effectiveDate).getTime(),
     );
 
+const mapTimelineItem = (item: TimelineItemResponse): TimelineVersion => ({
+  recordId: item.recordId,
+  code: item.code,
+  name: item.name,
+  unitType: item.unitType,
+  status: item.status,
+  level: item.level,
+  effectiveDate: item.effectiveDate,
+  endDate: item.endDate,
+  isCurrent: item.isCurrent,
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
+  parentCode: item.parentCode ?? undefined,
+  description: item.description ?? undefined,
+  lifecycleStatus: item.isCurrent ? "CURRENT" : "HISTORICAL",
+  businessStatus: item.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+  dataStatus: "NORMAL",
+  path: item.path ?? undefined,
+  sortOrder: 1,
+  changeReason: "",
+});
+
 export const fetchOrganizationVersions = async (
   organizationCode: string,
 ): Promise<FetchVersionsResult> => {
@@ -136,7 +201,7 @@ export const fetchOrganizationVersions = async (
     );
     return { versions: mapOrganizationVersions(data.organizationVersions) };
   } catch (graphqlError) {
-    console.warn(
+    logger.warn(
       "organizationVersions查询失败，回退到单体快照逻辑:",
       graphqlError,
     );
@@ -184,7 +249,7 @@ export const deactivateOrganizationVersion = async (
   organizationCode: string,
   version: TimelineVersion,
 ): Promise<TimelineVersion[] | null> => {
-  const resp = (await unifiedRESTClient.request(
+  const response = await unifiedRESTClient.request<OrganizationEventResponse>(
     `/organization-units/${organizationCode}/events`,
     {
       method: "POST",
@@ -195,75 +260,51 @@ export const deactivateOrganizationVersion = async (
         changeReason: "通过组织详情页面作废版本",
       }),
     },
-  )) as { data?: { timeline?: Record<string, unknown>[] } };
+  );
 
-  const timeline = resp?.data?.timeline;
-  if (!Array.isArray(timeline)) {
+  const timeline = response.data?.timeline;
+  if (!timeline || timeline.length === 0) {
     return null;
   }
 
-  const mapped = timeline.map((item) => {
-    const isCurrent =
-      (item.endDate as string) === null || item.endDate === undefined;
-    return {
-      recordId: item.recordId as string,
-      code: item.code as string,
-      name: item.name as string,
-      unitType: item.unitType as string,
-      status: item.status as string,
-      level: item.level as number,
-      effectiveDate: item.effectiveDate as string,
-      endDate: (item.endDate as string) || null,
-      isCurrent,
-      createdAt: item.createdAt as string,
-      updatedAt: item.updatedAt as string,
-      parentCode: (item.parentCode as string) || undefined,
-      description: (item.description as string) || undefined,
-      lifecycleStatus: isCurrent ? "CURRENT" : "HISTORICAL",
-      businessStatus: item.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
-      dataStatus: "NORMAL",
-      path: (item.path as string | undefined) ?? undefined,
-      sortOrder: 1,
-      changeReason: "",
-    } as TimelineVersion;
-  });
-
-  return mapped.sort(
-    (a, b) =>
-      new Date(b.effectiveDate).getTime() -
-      new Date(a.effectiveDate).getTime(),
-  );
+  return timeline
+    .map(mapTimelineItem)
+    .sort(
+      (a, b) =>
+        new Date(b.effectiveDate).getTime() -
+        new Date(a.effectiveDate).getTime(),
+    );
 };
 
 export const createOrganizationUnit = async (
-  payload: Record<string, unknown>,
+  payload: OrganizationRequest,
 ): Promise<string | null> => {
-  const result = (await unifiedRESTClient.request(
+  const result = await unifiedRESTClient.request<CreateOrganizationResponse>(
     "/organization-units",
     {
       method: "POST",
       body: JSON.stringify(payload),
     },
-  )) as Record<string, unknown>;
+  );
 
-  interface CreateResult {
-    code?: string;
-    organization?: { code?: string };
-    data?: { code?: string };
+  if (result.data?.code) {
+    return result.data.code;
   }
 
-  const typedResult = result as CreateResult;
-  return (
-    typedResult.data?.code ||
-    typedResult.code ||
-    typedResult.organization?.code ||
-    null
-  );
+  if (result.data?.organization?.code) {
+    return result.data.organization.code;
+  }
+
+  if (result.code) {
+    return result.code;
+  }
+
+  return result.organization?.code ?? null;
 };
 
 export const createTemporalVersion = async (
   organizationCode: string,
-  payload: Record<string, unknown>,
+  payload: TemporalVersionPayload,
 ): Promise<void> => {
   await unifiedRESTClient.request(
     `/organization-units/${organizationCode}/versions`,
@@ -277,7 +318,7 @@ export const createTemporalVersion = async (
 export const updateHistoryRecord = async (
   organizationCode: string,
   recordId: string,
-  payload: Record<string, unknown>,
+  payload: TemporalVersionPayload,
 ): Promise<void> => {
   await unifiedRESTClient.request(
     `/organization-units/${organizationCode}/history/${recordId}`,

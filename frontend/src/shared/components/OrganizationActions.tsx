@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
@@ -15,7 +16,6 @@ export interface Organization {
   code: string;
   name: string;
   status: OrganizationStatus;
-  [key: string]: unknown;
 }
 
 export interface OrganizationActionsProps {
@@ -71,10 +71,10 @@ export const OrganizationActions: React.FC<OrganizationActionsProps> = ({
           break;
           
         default:
-          console.warn(`未知操作: ${action}`);
+          logger.warn(`未知操作: ${action}`);
       }
     } catch (error) {
-      console.error(`操作失败 [${action}]:`, error);
+      logger.error(`操作失败 [${action}]:`, error);
       showError(`操作失败: ${String(error)}`);
     } finally {
       setLoading(null);

@@ -138,11 +138,13 @@ export const isGraphQLSuccessResponse = <T>(
   );
 };
 
+type PossibleError = APIError | ValidationError | Error | null | undefined;
+
 // API错误类型守卫
-export const isAPIError = (error: unknown): error is APIError => {
+export const isAPIError = (error: PossibleError): error is APIError => {
   return (
-    error instanceof Error && 
-    'status' in error && 
+    error instanceof Error &&
+    'status' in error &&
     'statusText' in error &&
     typeof (error as APIError).status === 'number' &&
     typeof (error as APIError).statusText === 'string'
@@ -150,12 +152,12 @@ export const isAPIError = (error: unknown): error is APIError => {
 };
 
 // 验证错误类型守卫
-export const isValidationError = (error: unknown): error is ValidationError => {
+export const isValidationError = (error: PossibleError): error is ValidationError => {
   return error instanceof ValidationError;
 };
 
 // 网络错误类型守卫
-export const isNetworkError = (error: unknown): error is TypeError => {
+export const isNetworkError = (error: Error | null | undefined): error is TypeError => {
   return error instanceof TypeError && error.message.includes('fetch');
 };
 

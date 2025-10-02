@@ -1,5 +1,6 @@
 // OAuth 2.0客户端认证管理器
 // 实现Client Credentials Flow和JWT Token管理
+import { logger } from '@/shared/utils/logger';
 import { env } from '../config/environment';
 import { unauthenticatedRESTClient } from './unified-client';
 import type { JsonObject, JsonValue } from '../types/json';
@@ -118,7 +119,7 @@ export class AuthManager {
       if (!this.isTokenValid(this.token)) {
         this.clearAuth();
       } else if (!this.isRS256Token(this.token)) {
-        console.warn('[OAuth] 检测到历史 HS256 令牌，已强制清除，请重新获取');
+        logger.warn('[OAuth] 检测到历史 HS256 令牌，已强制清除，请重新获取');
         this.clearAuth();
       } else {
         return this.token.accessToken;
@@ -148,7 +149,7 @@ export class AuthManager {
    */
   private async obtainNewToken(): Promise<OAuthToken> {
     await this.ensureRS256();
-    console.log('[OAuth] 正在获取新的访问令牌...');
+    logger.info('[OAuth] 正在获取新的访问令牌...');
     
     // 修复：使用开发令牌端点的JSON格式请求
     const tokenResponse = await unauthenticatedRESTClient.request<OAuthTokenResponse>(this.config.tokenEndpoint, {
@@ -199,7 +200,7 @@ export class AuthManager {
     this.token = token;
     this.saveTokenToStorage();
     
-    console.log('[OAuth] 访问令牌获取成功，有效期:', token.expiresIn, '秒');
+    logger.info('[OAuth] 访问令牌获取成功，有效期:', token.expiresIn, '秒');
     return token;
   }
 
@@ -285,7 +286,7 @@ export class AuthManager {
       const header = JSON.parse(decoded) as { alg?: string };
       return header.alg;
     } catch (error) {
-      console.warn('[OAuth] 无法解析JWT头部:', error);
+      logger.warn('[OAuth] 无法解析JWT头部:', error);
       return undefined;
     }
   }
@@ -321,7 +322,7 @@ export class AuthManager {
       ];
       legacyKeys.forEach((key) => {
         try { localStorage.removeItem(key); } catch (legacyError) {
-          console.warn('[OAuth] 无法清理历史令牌字段:', key, legacyError);
+          logger.warn('[OAuth] 无法清理历史令牌字段:', key, legacyError);
         }
       });
       const stored = localStorage.getItem('cube_castle_oauth_token');
@@ -332,7 +333,7 @@ export class AuthManager {
 
       if (stored.trim().startsWith('eyJ')) {
         // 旧版本直接存储原始JWT字符串
-        console.warn('[OAuth] 检测到历史原始JWT存储，已清理');
+        logger.warn('[OAuth] 检测到历史原始JWT存储，已清理');
         localStorage.removeItem('cube_castle_oauth_token');
         this.token = null;
         return;
@@ -343,19 +344,19 @@ export class AuthManager {
 
       // 迁移：清除 HS256 或已过期令牌，避免后续请求失败
       if (!this.isRS256Token(parsed)) {
-        console.warn('[OAuth] 检测到历史 HS256 令牌，已清理');
+        logger.warn('[OAuth] 检测到历史 HS256 令牌，已清理');
         this.clearAuth();
         return;
       }
       if (!this.isTokenValid(parsed)) {
-        console.warn('[OAuth] 检测到过期令牌，已清理');
+        logger.warn('[OAuth] 检测到过期令牌，已清理');
         this.clearAuth();
       }
     } catch (error) {
-      console.warn('[OAuth] 无法从存储中加载token:', error);
+      logger.warn('[OAuth] 无法从存储中加载token:', error);
       this.token = null;
       try { localStorage.removeItem('cube_castle_oauth_token'); } catch (clearError) {
-        console.warn('[OAuth] 清理损坏的token失败:', clearError);
+        logger.warn('[OAuth] 清理损坏的token失败:', clearError);
       }
     }
   }
@@ -369,7 +370,7 @@ export class AuthManager {
         localStorage.setItem('cube_castle_oauth_token', JSON.stringify(this.token));
       }
     } catch (error) {
-      console.warn('[OAuth] 无法保存token到存储:', error);
+      logger.warn('[OAuth] 无法保存token到存储:', error);
     }
   }
 
@@ -379,14 +380,14 @@ export class AuthManager {
   clearAuth(): void {
     this.token = null;
     try { localStorage.removeItem('cube_castle_oauth_token'); } catch (error) {
-      console.warn('[OAuth] Failed to clear localStorage:', error);
+      logger.warn('[OAuth] Failed to clear localStorage:', error);
     }
     ['cube_castle_token', 'cubeCastleToken', 'cube-castle-token'].forEach((key) => {
       try { localStorage.removeItem(key); } catch (legacyError) {
-        console.warn('[OAuth] Failed to clear legacy token key:', key, legacyError);
+        logger.warn('[OAuth] Failed to clear legacy token key:', key, legacyError);
       }
     });
-    console.log('[OAuth] 认证状态已清除');
+    logger.info('[OAuth] 认证状态已清除');
   }
 
   /**

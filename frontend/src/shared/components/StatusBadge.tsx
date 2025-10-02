@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
@@ -25,7 +26,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   const config = STATUS_CONFIG[status];
   
   if (!config) {
-    console.warn(`未知的组织状态: ${status}`);
+    logger.warn(`未知的组织状态: ${status}`);
     return null;
   }
 

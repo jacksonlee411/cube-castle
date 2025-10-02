@@ -2,6 +2,7 @@
  * 时态设置组件
  * 提供时态查询的高级设置和配置选项
  */
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useCallback } from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
@@ -95,11 +96,11 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
   const handleApply = useCallback(async () => {
     try {
       // setQueryParams(localParams); // temporalStore已移除
-      console.log('Apply temporal settings:', localParams); // 临时日志
+      logger.info('Apply temporal settings:', localParams); // 临时日志
       setHasChanges(false);
       onClose();
     } catch (error) {
-      console.error('Failed to apply settings:', error);
+      logger.error('Failed to apply settings:', error);
     }
   }, [localParams, onClose]);
 
@@ -125,10 +126,10 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
   const handleClearCache = useCallback(async () => {
     try {
       // await clearCache(); // temporalStore已移除
-      console.log('Clear temporal cache requested'); // 临时日志
+      logger.info('Clear temporal cache requested'); // 临时日志
       showSuccess('缓存已清除');
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      logger.error('Failed to clear cache:', error);
       showError('清除缓存失败');
     }
   }, [showSuccess, showError]);

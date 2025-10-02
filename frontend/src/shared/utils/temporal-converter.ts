@@ -4,6 +4,8 @@
  */
 
 // 时态转换器工具类
+type TemporalFieldValue = string | Date | null | undefined;
+
 export class TemporalConverter {
   /**
    * 将Date对象转换为ISO字符串格式
@@ -77,7 +79,7 @@ export class TemporalConverter {
   /**
    * 标准化时态字段 - 确保所有时态字段使用统一的字符串格式
    */
-  static normalizeTemporalFields<T extends Record<string, unknown>>(
+  static normalizeTemporalFields<T extends Record<string, TemporalFieldValue>>(
     obj: T,
     temporalFields: (keyof T)[]
   ): T {
@@ -85,8 +87,8 @@ export class TemporalConverter {
     
     temporalFields.forEach(field => {
       const value = normalized[field];
-      if (value && Object.prototype.toString.call(value) === '[object Date]') {
-        normalized[field] = (value as unknown as Date).toISOString() as T[keyof T];
+      if (value instanceof Date) {
+        normalized[field] = TemporalConverter.dateToIso(value) as T[keyof T];
       } else if (typeof value === 'string' && value) {
         // 验证字符串格式
         const date = new Date(value);
@@ -120,7 +122,12 @@ export class TemporalConverter {
     effectiveFrom?: string;
     effectiveTo?: string;
   } {
-    const normalized: Record<string, unknown> = {};
+    const normalized: {
+      asOfDate?: string;
+      dateRange?: { start: string; end: string };
+      effectiveFrom?: string;
+      effectiveTo?: string;
+    } = {};
 
     if (params.asOfDate) {
       normalized.asOfDate = this.dateToIso(params.asOfDate);

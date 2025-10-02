@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
@@ -117,10 +118,19 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           },
           dryRun: true
         };
-        const validateResp = await unifiedRESTClient.request('/organization-units/validate', {
+        interface ValidateResponse {
+          success?: boolean;
+          data?: {
+            valid?: boolean;
+            errors?: string[];
+            warnings?: string[];
+          };
+        }
+
+        const validateResp = await unifiedRESTClient.request<ValidateResponse>('/organization-units/validate', {
           method: 'POST',
           body: JSON.stringify(payload)
-        }) as unknown as { success?: boolean; data?: { valid?: boolean; errors?: string[]; warnings?: string[] } };
+        });
 
         if (validateResp && validateResp.success === true && validateResp.data && validateResp.data.valid === false) {
           const errs = validateResp.data.errors || ['服务器校验未通过'];
@@ -135,9 +145,9 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         // 无权限或校验端点不可用时，不阻塞提交（后端最终裁决）
         const msg = precheckError instanceof Error ? precheckError.message : String(precheckError);
         if (/权限不足|禁止|Unauthorized|Forbidden/i.test(msg)) {
-          console.warn('[Validate] 跳过服务器校验（权限不足）：', msg);
+          logger.warn('[Validate] 跳过服务器校验（权限不足）：', msg);
         } else {
-          console.warn('[Validate] 校验端点不可用或失败，继续提交：', msg);
+          logger.warn('[Validate] 校验端点不可用或失败，继续提交：', msg);
         }
       }
       const trimmedReason = formData.changeReason?.trim() ?? '';
@@ -216,7 +226,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
       model.events.hide();
       onClose();
     } catch (error) {
-      console.error(`[Form] ${isEditing ? '更新' : '创建'}失败:`, error);
+      logger.error(`[Form] ${isEditing ? '更新' : '创建'}失败:`, error);
       
       let errorMessage = '操作失败';
       

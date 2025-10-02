@@ -2,6 +2,7 @@
  * 审计历史区域组件
  * 基于auditHistory GraphQL查询展示组织的完整审计记录
  */
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
@@ -12,8 +13,30 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { activityStreamIcon, exclamationCircleIcon } from '@workday/canvas-system-icons-web';
 
 import { AuditEntryCard } from './AuditEntryCard';
+import type { AuditTimelineEntry } from './AuditEntryCard';
 import { unifiedGraphQLClient } from '../../../shared/api';
 import type { TemporalQueryParams } from '../../../shared/types/temporal';
+import type { JsonObject, JsonValue } from '@/shared/types/json';
+import { isJsonObject } from '@/shared/types/json';
+
+interface AuditHistoryGraphQLChange {
+  field: string;
+  oldValue: string | null;
+  newValue: string | null;
+  dataType: string;
+}
+
+interface AuditHistoryGraphQLEntry {
+  auditId: string;
+  recordId: string;
+  operation: string;
+  timestamp: string;
+  operationReason?: string | null;
+  beforeData?: string | null;
+  afterData?: string | null;
+  modifiedFields: string[];
+  changes: AuditHistoryGraphQLChange[];
+}
 
 export interface AuditHistorySectionProps {
   /** 组织记录ID (recordId) */
@@ -43,25 +66,10 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
   } = useQuery({
     queryKey: ['auditHistory', recordId, params],
     queryFn: async () => {
-      console.log('🚀 AuditHistorySection: Calling auditHistory GraphQL query with recordId:', recordId, 'params:', params);
+      logger.info('🚀 AuditHistorySection: Calling auditHistory GraphQL query with recordId:', recordId, 'params:', params);
       
       const result = await unifiedGraphQLClient.request<{
-        auditHistory: Array<{
-          auditId: string;
-          recordId: string;
-          operation: string;
-          timestamp: string;
-          operationReason?: string;
-          beforeData?: string;
-          afterData?: string;
-          modifiedFields: string[];
-          changes: Array<{
-            field: string;
-            oldValue: unknown;
-            newValue: unknown;
-            dataType: string;
-          }>;
-        }>;
+        auditHistory: AuditHistoryGraphQLEntry[];
       }>(`
         query GetAuditHistory($recordId: String!, $limit: Int, $startDate: String, $endDate: String, $operation: OperationType, $userId: String) {
           auditHistory(recordId: $recordId, limit: $limit, startDate: $startDate, endDate: $endDate, operation: $operation, userId: $userId) {
@@ -97,7 +105,7 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
     gcTime: 300000,   // 5分钟垃圾回收
   });
 
-  console.log('📊 AuditHistorySection state:', { recordId, isLoading, error, auditHistoryLength: auditHistory?.length });
+  logger.info('📊 AuditHistorySection state:', { recordId, isLoading, error, auditHistoryLength: auditHistory?.length });
 
   // 处理展开/收起
   const handleToggleExpand = (auditId: string) => {
@@ -113,43 +121,40 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
   };
 
   // 数据适配器：GraphQL → UI格式 (完整版本，包含变更详情)
-  const transformAuditData = (audit: Record<string, unknown>) => {
-    // 解析beforeData和afterData
-    let beforeData: Record<string, unknown> | undefined = undefined;
-    let afterData: Record<string, unknown> | undefined = undefined;
-
-    try {
-      if (audit.beforeData && typeof audit.beforeData === 'string') {
-        beforeData = JSON.parse(audit.beforeData as string);
-      }
-    } catch (e) {
-      console.warn('Failed to parse beforeData:', e);
+  const parseSnapshot = (payload?: string | null): JsonObject | null => {
+    if (!payload) {
+      return null;
     }
 
     try {
-      if (audit.afterData && typeof audit.afterData === 'string') {
-        afterData = JSON.parse(audit.afterData as string);
-      }
-    } catch (e) {
-      console.warn('Failed to parse afterData:', e);
+      const parsed = JSON.parse(payload) as JsonValue;
+      return isJsonObject(parsed) ? parsed : null;
+    } catch (error) {
+      logger.warn('Failed to parse audit snapshot', error);
+      return null;
     }
+  };
+
+  const transformAuditData = (audit: AuditHistoryGraphQLEntry): AuditTimelineEntry => {
+    const beforeData = parseSnapshot(audit.beforeData);
+    const afterData = parseSnapshot(audit.afterData);
 
     return {
-      auditId: audit.auditId as string,
-      operation: audit.operation as string,
-      timestamp: audit.timestamp as string,
+      auditId: audit.auditId,
+      operation: audit.operation,
+      timestamp: audit.timestamp,
       userName: '系统用户', // 简化版本暂时使用默认值
-      operationReason: audit.operationReason as string || '',
+      operationReason: audit.operationReason ?? '',
       dataChanges: {
-        beforeData: beforeData,
-        afterData: afterData,
-        modifiedFields: audit.modifiedFields as string[] || [],
-        changes: audit.changes as Array<{
-          field: string;
-          oldValue: unknown;
-          newValue: unknown;
-          dataType: string;
-        }> || []
+        beforeData,
+        afterData,
+        modifiedFields: audit.modifiedFields ?? [],
+        changes: audit.changes?.map((change) => ({
+          field: change.field,
+          oldValue: change.oldValue ?? null,
+          newValue: change.newValue ?? null,
+          dataType: change.dataType
+        })) ?? []
       }
     };
   };

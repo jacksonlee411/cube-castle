@@ -35,10 +35,11 @@ const DashboardHeader: React.FC<{
       )}
     </Heading>
     <Box paddingTop="m">
-      <PrimaryButton 
-        marginRight="s" 
+      <PrimaryButton
+        marginRight="s"
         onClick={onCreateClick}
         disabled={isHistorical}
+        data-testid="create-organization-button"
       >
         {isHistorical ? '新增组织单元 (历史模式禁用)' : '新增组织单元'}
       </PrimaryButton>
@@ -54,13 +55,17 @@ const DashboardHeader: React.FC<{
         </SecondaryButton>
       )} */}
       
-      <SecondaryButton 
+      <SecondaryButton
         marginRight="s"
         disabled={isHistorical}
+        data-testid="import-data-button"
       >
         导入数据
       </SecondaryButton>
-      <TertiaryButton disabled={isHistorical}>
+      <TertiaryButton
+        disabled={isHistorical}
+        data-testid="export-report-button"
+      >
         导出报告
       </TertiaryButton>
       {isHistorical && (

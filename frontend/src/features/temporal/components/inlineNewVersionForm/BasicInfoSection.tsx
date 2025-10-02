@@ -61,6 +61,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               onChange={onFieldChange('name')}
               placeholder="请输入组织名称"
               disabled={disabled}
+              data-testid="form-field-name"
             />
             {errors.name ? <FormField.Hint>{errors.name}</FormField.Hint> : null}
           </FormField.Field>
@@ -130,6 +131,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               placeholder="请输入组织描述信息"
               disabled={disabled}
               rows={3}
+              data-testid="form-field-description"
             />
           </FormField.Field>
         </FormField>

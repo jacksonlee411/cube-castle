@@ -49,7 +49,11 @@ const FormActions: React.FC<FormActionsProps> = ({
         <Flex gap="s" justifyContent="space-between">
           <Box>
             {selectedVersion && !isEditingHistory ? (
-              <TertiaryButton onClick={onDeactivateClick} disabled={isSubmitting || isDeactivating}>
+              <TertiaryButton
+                onClick={onDeactivateClick}
+                disabled={isSubmitting || isDeactivating}
+                data-testid="temporal-delete-record-button"
+              >
                 删除此记录
               </TertiaryButton>
             ) : null}
@@ -57,19 +61,35 @@ const FormActions: React.FC<FormActionsProps> = ({
           <Flex gap="s">
             {!isEditingHistory ? (
               <>
-                <SecondaryButton onClick={onStartInsertVersion} disabled={isSubmitting || loading}>
+                <SecondaryButton
+                  onClick={onStartInsertVersion}
+                  disabled={isSubmitting || loading}
+                  data-testid="start-insert-version-button"
+                >
                   插入新版本
                 </SecondaryButton>
-                <SecondaryButton onClick={onToggleEditHistory} disabled={isSubmitting || loading}>
+                <SecondaryButton
+                  onClick={onToggleEditHistory}
+                  disabled={isSubmitting || loading}
+                  data-testid="edit-history-toggle-button"
+                >
                   修改记录
                 </SecondaryButton>
-                <PrimaryButton onClick={onCancel} disabled={isSubmitting}>
+                <PrimaryButton
+                  onClick={onCancel}
+                  disabled={isSubmitting}
+                  data-testid="form-close-button"
+                >
                   关闭
                 </PrimaryButton>
               </>
             ) : (
               <>
-                <SecondaryButton onClick={onCancelEditHistory} disabled={isSubmitting || loading}>
+                <SecondaryButton
+                  onClick={onCancelEditHistory}
+                  disabled={isSubmitting || loading}
+                  data-testid="cancel-edit-history-button"
+                >
                   取消编辑
                 </SecondaryButton>
                 <PrimaryButton
@@ -77,6 +97,7 @@ const FormActions: React.FC<FormActionsProps> = ({
                     originalHistoryData ? onSubmitEditHistory() : onSubmitNewVersion(event)
                   }
                   disabled={isSubmitting || loading}
+                  data-testid="submit-edit-history-button"
                 >
                   {isSubmitting || loading
                     ? '提交中...'
@@ -95,10 +116,18 @@ const FormActions: React.FC<FormActionsProps> = ({
   return (
     <Box marginTop="xl" paddingTop="l" borderTop={`1px solid ${colors.soap300}`}>
       <Flex gap="s" justifyContent="flex-end">
-        <SecondaryButton onClick={onCancel} disabled={isSubmitting || loading}>
+        <SecondaryButton
+          onClick={onCancel}
+          disabled={isSubmitting || loading}
+          data-testid="form-cancel-button"
+        >
           取消
         </SecondaryButton>
-        <PrimaryButton type="submit" disabled={isSubmitting || loading}>
+        <PrimaryButton
+          type="submit"
+          disabled={isSubmitting || loading}
+          data-testid="form-submit-button"
+        >
           {isSubmitting || loading
             ? currentMode === 'create'
               ? '创建中...'

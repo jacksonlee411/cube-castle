@@ -3,6 +3,8 @@
  * 统一前端错误处理和用户提示
  */
 
+import type { JsonValue } from '@/shared/types/json';
+
 export interface ApiErrorCode {
   code: string;
   userMessage: string;
@@ -10,8 +12,8 @@ export interface ApiErrorCode {
   recoveryAction?: string;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
+const isRecord = (value: JsonValue | Record<string, JsonValue> | null | undefined): value is Record<string, JsonValue> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
 // 启用/停用操作标准错误码
@@ -133,7 +135,13 @@ export function getErrorMessage(errorCode: string): ApiErrorCode {
  * @param error 捕获的错误对象
  * @returns 标准化的用户提示消息
  */
-export function formatErrorForUser(error: unknown): string {
+type ErrorPayload = Error | Record<string, JsonValue> | null | undefined;
+
+export function formatErrorForUser(error: ErrorPayload): string {
+  if (error instanceof Error) {
+    return error.message || '操作失败，请稍后重试';
+  }
+
   if (isRecord(error)) {
     const apiErrorRaw = error['error'];
     const apiError = isRecord(apiErrorRaw) ? apiErrorRaw : null;

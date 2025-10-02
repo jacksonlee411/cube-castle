@@ -166,7 +166,7 @@ export const useEnterpriseOrganizations = (
         const organizations = Array.isArray(orgData.data)
           ? orgData.data.map((org) => ({
               ...org,
-              level: coerceOrganizationLevel(org.level, (org as Record<string, unknown>).hierarchyDepth)
+              level: coerceOrganizationLevel(org.level, (org as { hierarchyDepth?: number }).hierarchyDepth)
             }))
           : [];
         const stats: OrganizationStats | null = orgData.temporal

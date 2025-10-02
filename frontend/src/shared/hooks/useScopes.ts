@@ -1,5 +1,31 @@
 import React from 'react'
 
+interface ScopeContainer {
+  __SCOPES__?: string | string[]
+}
+
+const normalizeScopes = (value: string | string[] | undefined): string[] | undefined => {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .map((item) => item.trim())
+  }
+
+  if (typeof value === 'string') {
+    return value.split(/\s+/).filter(Boolean)
+  }
+
+  return undefined
+}
+
+const readInjectedScopes = (container: ScopeContainer | undefined): string[] | undefined => {
+  if (!container) {
+    return undefined
+  }
+
+  return normalizeScopes(container.__SCOPES__)
+}
+
 // JWT roles 到 OAuth scopes 的映射规则
 function mapRolesToScopes(roles: string[]): string[] {
   const scopes: string[] = []
@@ -46,17 +72,15 @@ function mapRolesToScopes(roles: string[]): string[] {
 function readScopesFromEnv(): string[] {
   // 优先从 window.__SCOPES__ 读取（测试/开发可注入）
   const injected = typeof window !== 'undefined'
-    ? (window as unknown as { __SCOPES__?: unknown }).__SCOPES__
+    ? readInjectedScopes(window as ScopeContainer)
     : undefined
-  if (injected !== undefined) {
-    if (Array.isArray(injected)) return (injected as unknown[]).filter(Boolean).map(String)
-    if (typeof injected === 'string') return injected.split(/\s+/).filter(Boolean)
+  if (injected && injected.length > 0) {
+    return injected
   }
   // 兼容测试环境：支持 globalThis.__SCOPES__
-  const gInjected = (globalThis as { __SCOPES__?: unknown }).__SCOPES__
-  if (gInjected !== undefined) {
-    if (Array.isArray(gInjected)) return (gInjected as unknown[]).filter(Boolean).map(String)
-    if (typeof gInjected === 'string') return gInjected.split(/\s+/).filter(Boolean)
+  const gInjected = readInjectedScopes(globalThis as ScopeContainer)
+  if (gInjected && gInjected.length > 0) {
+    return gInjected
   }
 
   // 从本地存储中的 OAuth token 读取

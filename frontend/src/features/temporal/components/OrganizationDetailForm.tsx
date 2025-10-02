@@ -2,6 +2,7 @@
  * 组织详情表单组件 (纯日期生效模型)
  * 用于查看和编辑组织的详细信息
  */
+import { logger } from '@/shared/utils/logger';
 import React from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
@@ -209,7 +210,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
                 onChange={(parentCode) => onFieldChange('parentCode', parentCode || '')}
                 onValidationError={(err) => {
                   // 暂时仅展示辅助提示，不改变表单状态
-                  console.warn('[ParentOrganizationSelector] 验证提示:', err)
+                  logger.warn('[ParentOrganizationSelector] 验证提示:', err)
                 }}
               />
             ) : (

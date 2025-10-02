@@ -341,6 +341,6 @@ export type APIConstantKey = keyof typeof API_CONSTANTS;
 
 // 📋 开发提醒
 if (process.env.NODE_ENV === 'development') {
-  console.log('🎯 统一常量管理已加载 - P2级配置常量集中管理完成');
-  console.log('📊 硬编码消除率: 95%+，所有业务常量已集中管理');
+  logger.info('🎯 统一常量管理已加载 - P2级配置常量集中管理完成');
+  logger.info('📊 硬编码消除率: 95%+，所有业务常量已集中管理');
 }

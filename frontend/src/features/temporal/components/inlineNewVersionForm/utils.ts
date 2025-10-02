@@ -134,7 +134,6 @@ export interface TemporalParentErrorDetail {
   message?: string;
   context?: {
     suggestedDate?: string;
-    [key: string]: unknown;
   };
 }
 

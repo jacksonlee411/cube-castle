@@ -1,10 +1,11 @@
+import { logger } from '@/shared/utils/logger';
 import React from 'react';
 import { isValidationError, isAPIError, isNetworkError } from './type-guards';
 import { authManager } from './auth';
 import { ORGANIZATION_API_ERRORS, getErrorMessage, formatErrorForUser, SUCCESS_MESSAGES } from './error-messages';
 import type { JsonObject } from '../types/json';
 
-type RawError = unknown;
+type RawError = JsonObject | Error | null | undefined;
 
 // API错误接口
 interface APIErrorResponse {
@@ -50,21 +51,21 @@ export class OAuthError extends Error {
 export class ErrorHandler {
   private static logError(context: string, error: RawError): void {
     const timestamp = new Date().toISOString();
-    console.group(`[${timestamp}] Error in ${context}`);
-    console.error('Error details:', error);
+    logger.group(`[${timestamp}] Error in ${context}`);
+    logger.error('Error details:', error);
     
     if (isValidationError(error)) {
-      console.error('Validation details:', error.details);
+      logger.error('Validation details:', error.details);
     } else if (isAPIError(error)) {
-      console.error('API Error:', error.status, error.statusText);
+      logger.error('API Error:', error.status, error.statusText);
       if (error.response) {
-        console.error('Response:', error.response);
+        logger.error('Response:', error.response);
       }
     } else if (isNetworkError(error)) {
-      console.error('Network Error:', error.message);
+      logger.error('Network Error:', error.message);
     }
     
-    console.groupEnd();
+    logger.groupEnd();
   }
   
   private static createUserMessage(error: RawError): string {
@@ -107,7 +108,7 @@ export class ErrorHandler {
     } else if (isOAuthError(error)) {
       // 尝试清除无效的认证状态
       if (error.status === 401) {
-        console.log('[OAuth] Clearing invalid authentication state...');
+        logger.info('[OAuth] Clearing invalid authentication state...');
         authManager.clearAuth();
       }
       
@@ -119,7 +120,7 @@ export class ErrorHandler {
     } else if (isAPIError(error)) {
       // 检查是否是OAuth相关的401错误
       if (error.status === 401) {
-        console.log('[Auth] API returned 401, clearing auth state...');
+        logger.info('[Auth] API returned 401, clearing auth state...');
         authManager.clearAuth();
         
         throw new UserFriendlyError(
@@ -156,7 +157,7 @@ export class ErrorHandler {
     // 发送错误报告到监控服务（如果需要）
     if (process.env.NODE_ENV === 'production') {
       // 这里可以集成错误监控服务，如 Sentry
-      console.warn('Error reporting not implemented');
+      logger.warn('Error reporting not implemented');
     }
   }
   
@@ -284,7 +285,7 @@ export const withOAuthRetry = <T extends readonly RawError[], R>(
         
         // 只对401错误重试，并清除认证状态
         if (isAPIError(error) && error.status === 401 && i < maxRetries) {
-          console.log('[OAuth] API returned 401, clearing auth and retrying...');
+          logger.info('[OAuth] API returned 401, clearing auth and retrying...');
           authManager.clearAuth();
           
           // 等待一短暂时间让用户界面更新
@@ -360,20 +361,20 @@ export const UnifiedErrorHandler = {
   // 统一的错误日志记录
   logError: (context: string, error: RawError, additionalInfo?: JsonObject) => {
     const timestamp = new Date().toISOString();
-    console.group(`[${timestamp}] Error in ${context}`);
-    console.error('Error details:', error);
+    logger.group(`[${timestamp}] Error in ${context}`);
+    logger.error('Error details:', error);
     
     if (additionalInfo) {
-      console.error('Additional info:', additionalInfo);
+      logger.error('Additional info:', additionalInfo);
     }
     
     if (isUserFriendlyError(error)) {
-      console.error('User message:', error.message);
-      console.error('Error code:', error.code);
-      console.error('Original error:', error.originalError);
+      logger.error('User message:', error.message);
+      logger.error('Error code:', error.code);
+      logger.error('Original error:', error.originalError);
     }
     
-    console.groupEnd();
+    logger.groupEnd();
   }
 };
 

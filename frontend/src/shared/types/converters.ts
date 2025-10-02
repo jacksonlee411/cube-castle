@@ -4,6 +4,9 @@
  * 符合CLAUDE.md API一致性规范
  */
 
+import { logger } from '@/shared/utils/logger';
+import type { JsonValue } from './json';
+import { isJsonObject } from './json';
 import type { OrganizationUnit } from './organization';
 import type { TemporalOrganizationUnit } from './temporal';
 import { coerceOrganizationLevel } from '../utils/organization-helpers';
@@ -61,6 +64,8 @@ export interface GraphQLOrganizationData {
   changeReason?: string;
   validFrom?: string;
   validTo?: string;
+  hierarchyDepth?: number;
+  childCount?: number;
 }
 
 /**
@@ -77,7 +82,7 @@ export function convertGraphQLToOrganizationUnit(
     name: data.name || '',
     unitType: (data.unitType as OrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as OrganizationUnit['status']) || 'ACTIVE',
-    level: coerceOrganizationLevel(data.level, (data as Record<string, unknown>).hierarchyDepth),
+    level: coerceOrganizationLevel(data.level, data.hierarchyDepth),
     path: data.codePath ?? data.path ?? undefined,  // 使用codePath字段
     sortOrder: data.sortOrder || 0,
     description: data.description || '',
@@ -99,7 +104,7 @@ export function convertGraphQLToOrganizationUnit(
       typeof data.childrenCount === 'number'
         ? data.childrenCount
         : ((): number | undefined => {
-            const legacy = (data as Record<string, unknown>).childCount;
+            const legacy = data.childCount;
             return typeof legacy === 'number' ? legacy : undefined;
           })(),
   };
@@ -117,7 +122,7 @@ export function convertGraphQLToTemporalOrganizationUnit(
     name: data.name || '',
     unitType: (data.unitType as TemporalOrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as TemporalOrganizationUnit['status']) || 'ACTIVE',
-    level: coerceOrganizationLevel(data.level, (data as Record<string, unknown>).hierarchyDepth),
+    level: coerceOrganizationLevel(data.level, data.hierarchyDepth),
     path: data.path ?? undefined,
     sortOrder: data.sortOrder || 0,
     description: data.description || '',
@@ -228,7 +233,7 @@ export function convertUpdateInputToREST(
  * 用于开发期间的类型同步验证
  */
 export function checkTypeConsistency(
-  apiResponse: unknown,
+  apiResponse: JsonValue,
   expectedFields: string[]
 ): {
   isConsistent: boolean;
@@ -236,7 +241,7 @@ export function checkTypeConsistency(
   extraFields: string[];
   report: string;
 } {
-  if (!apiResponse || typeof apiResponse !== 'object') {
+  if (!isJsonObject(apiResponse)) {
     return {
       isConsistent: false,
       missingFields: expectedFields,
@@ -245,7 +250,7 @@ export function checkTypeConsistency(
     };
   }
 
-  const obj = apiResponse as Record<string, unknown>;
+  const obj = apiResponse;
   const actualFields = Object.keys(obj);
   
   const missingFields = expectedFields.filter(field => !(field in obj));
@@ -297,21 +302,21 @@ export const TEMPORAL_ORGANIZATION_UNIT_FIELDS: string[] = [
  * 用于开发期间快速同步类型定义
  */
 export function generateTypeDefinition(
-  apiResponse: unknown,
+  apiResponse: JsonValue,
   interfaceName: string
 ): string {
-  if (!apiResponse || typeof apiResponse !== 'object') {
+  if (!isJsonObject(apiResponse)) {
     return `// 无法生成类型定义: API响应无效`;
   }
 
-  const obj = apiResponse as Record<string, unknown>;
+  const obj = apiResponse;
   const fields: string[] = [];
 
   Object.entries(obj).forEach(([key, value]) => {
-    const type = Array.isArray(value) 
-      ? 'unknown[]'
+    const type = Array.isArray(value)
+      ? 'JsonValue[]'
       : value === null || value === undefined
-      ? 'unknown'
+      ? 'JsonValue'
       : typeof value;
     
     const optional = value === null || value === undefined ? '?' : '';
@@ -331,27 +336,27 @@ export function generateTypeDefinition(
  */
 export function logTypeSyncReport(
   context: string,
-  apiResponse: unknown,
+  apiResponse: JsonValue,
   expectedFields: string[]
 ): void {
   const result = checkTypeConsistency(apiResponse, expectedFields);
   
-  console.group(`[TypeSync] ${context}`);
-  console.log(result.report);
+  logger.group(`[TypeSync] ${context}`);
+  logger.info(result.report);
   
   if (!result.isConsistent) {
-    console.warn('类型不一致可能导致运行时错误，建议更新类型定义');
+    logger.warn('类型不一致可能导致运行时错误，建议更新类型定义');
     
     if (result.missingFields.length > 0) {
-      console.error('缺失字段可能导致undefined错误:', result.missingFields);
+      logger.error('缺失字段可能导致undefined错误:', result.missingFields);
     }
     
     if (result.extraFields.length > 0) {
-      console.info('额外字段暂未使用:', result.extraFields);
-      console.log('建议的类型定义更新:');
-      console.log(generateTypeDefinition(apiResponse, 'UpdatedInterface'));
+      logger.info('额外字段暂未使用:', result.extraFields);
+      logger.info('建议的类型定义更新:');
+      logger.info(generateTypeDefinition(apiResponse, 'UpdatedInterface'));
     }
   }
   
-  console.groupEnd();
+  logger.groupEnd();
 }

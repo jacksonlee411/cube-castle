@@ -67,7 +67,7 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
 
   return (
     <Box flex="1">
-      <Card padding="l">
+      <Card padding="l" data-testid="organization-form">
         <FormHeader
           currentMode={currentMode}
           isEditingHistory={isEditingHistory}
@@ -77,7 +77,7 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
         />
         <FormMessages errorMessage={errorMessage} successMessage={successMessage} />
 
-        <form onSubmit={(event) => handleSubmit(event)}>
+        <form onSubmit={(event) => handleSubmit(event)} data-testid="organization-form-content">
           <EffectiveDateSection
             value={formData.effectiveDate}
             error={errors.effectiveDate}
