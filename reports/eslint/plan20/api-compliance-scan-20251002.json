@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2025-10-02T15:21:30Z",
+  "checks": [
+    {
+      "name": "console-usage",
+      "command": "rg 'console\\.' frontend/src -g '*.ts'",
+      "matches": 9,
+      "notes": "Matches are limited to shared/utils/logger.ts (intended bridge layer)."
+    },
+    {
+      "name": "camelcase-exceptions",
+      "command": "rg 'eslint-disable-next-line camelcase' frontend/src -n",
+      "matches": 0,
+      "notes": "No camelcase exceptions detected in source tree."
+    }
+  ],
+  "summary": {
+    "consoleViolations": 0,
+    "camelcaseExceptionsWithoutReason": 0
+  }
+}

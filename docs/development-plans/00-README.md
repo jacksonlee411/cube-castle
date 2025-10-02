@@ -40,6 +40,7 @@
 
 
 
+
 ### **归档文档** (docs/archive/development-plans/)
 
 > **文档归档时间**: 2025-09-13  
@@ -62,7 +63,9 @@
 - `../archive/development-plans/17-temporary-governance-enhancement-plan.md` - TODO-TEMPORARY 治理与 419 状态码决策计划
 - `../archive/development-plans/18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)
 - `../archive/development-plans/19-code-smells-and-remediation-plan.md` - 代码异味和修复计划
+- `../archive/development-plans/19-phase0-workload-review.md` - Plan 19：Plan 16 Phase 0 工作量复核纪要（证据归档）
 - `../archive/development-plans/20-existing-resource-analysis-guide.md` - 现有资源分析开发指南
+- `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md` - ESLint 例外策略与零告警方案（完成）
 
 ## 📊 文档关系
 

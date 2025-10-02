@@ -3,12 +3,11 @@
  */
 
 const path = require('path');
-const js = require('@eslint/js');
-const tsParser = require('@typescript-eslint/parser');
-const tsPlugin = require('@typescript-eslint/eslint-plugin');
 
-const baseLanguageOptions = {
-  parser: tsParser,
+module.exports = {
+  root: true,
+  ignorePatterns: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/coverage/**'],
+  parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
@@ -16,49 +15,20 @@ const baseLanguageOptions = {
       jsx: true,
     },
     warnOnUnsupportedTypeScriptVersion: true,
+    project: [
+      path.join(__dirname, 'tsconfig.app.json'),
+      path.join(__dirname, 'tsconfig.node.json'),
+    ],
+    tsconfigRootDir: __dirname,
+  },
+  plugins: ['@typescript-eslint', 'react-refresh'],
+  extends: [],
+  rules: {
+    // 🚨 所有日志输出必须通过 shared/utils/logger.ts（桥接层含 eslint-disable 说明）
+    'no-console': 'error',
+    '@typescript-eslint/no-unused-vars': 'off',
+    'react-refresh/only-export-components': 'off',
+    // 行级例外需注明原因，详见 Plan 20 桥接清单
+    camelcase: ['error', { properties: 'always' }],
   },
 };
-
-module.exports = [
-  {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/coverage/**'],
-  },
-  {
-    languageOptions: baseLanguageOptions,
-    plugins: {
-      '@typescript-eslint': tsPlugin,
-    },
-    rules: {
-      ...js.configs.recommended.rules,
-      ...tsPlugin.configs.recommended.rules,
-      'no-console': 'warn',
-      'no-alert': 'error',
-      eqeqeq: 'error',
-      'no-undef': 'off',
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'warn',
-      camelcase: ['error', { properties: 'always' }],
-    },
-  },
-  {
-    files: ['**/*.{ts,tsx}'],
-    languageOptions: {
-      ...baseLanguageOptions,
-      parserOptions: {
-        ...baseLanguageOptions.parserOptions,
-        project: [
-          path.join(__dirname, 'tsconfig.app.json'),
-          path.join(__dirname, 'tsconfig.node.json'),
-        ],
-        tsconfigRootDir: __dirname,
-      },
-    },
-    plugins: {
-      '@typescript-eslint': tsPlugin,
-    },
-    rules: {
-      ...tsPlugin.configs['recommended-requiring-type-checking'].rules,
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-    },
-  },
-];

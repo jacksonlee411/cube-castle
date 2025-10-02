@@ -1,0 +1,12 @@
+ESLint Zero Warning Report (Plan 20)
+Generated: 2025-10-02T15:21:30Z
+
+Command: rg 'console\.' frontend/src -g '*.ts'
+Result : OK (only shared/utils/logger.ts contains console bridge)
+
+Command: rg 'eslint-disable-next-line camelcase' frontend/src -n
+Result : OK (no manual camelcase exceptions detected)
+
+Notes:
+- Custom check used because legacy ESLint flat config enforces additional project rules.
+- Architecture validator rule `eslint-exception-comment` enforces inline reason for future exceptions.

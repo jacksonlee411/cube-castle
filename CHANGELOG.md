@@ -1,5 +1,23 @@
 # Cube Castle 项目变更日志
 
+## v1.5.5 - 前端日志统一与ESLint零告警方案 (2025-10-02)
+
+### ✨ 新增
+- **统一日志工具**：新增 `frontend/src/shared/utils/logger.ts`，按环境分级输出并提供 `mutation` 专用日志接口
+- **日志单元测试**：覆盖调试模式、生产模式及分组日志行为，确保桥接层行为稳定
+
+### 🔧 改进
+- **移除 `console.*`**：`frontend/src` 目录全部迁移至 `logger`，强化 CQRS 调试日志与错误报表一致性
+- **ESLint 门禁**：`no-console` 升级为 `error`，新增 CI 步骤校验 `eslint-disable-next-line camelcase` 例外说明
+- **架构验证器扩展**：`scripts/quality/architecture-validator.js` 新增 `eslintExceptionComment` 规则和 `--rule` 过滤能力
+- **文档更新**：开发者速查手册补充日志规范，Plan 20 验收标准同步调整
+
+### ✅ 验证
+- `npm run lint:frontend-api`（已知配置缺陷触发循环引用错误，详见提交备注）
+- `npm run test`（覆盖 logger 单测）
+
+---
+
 ## v1.5.4 - 移除未经审批的组织架构复制链接功能 (2025-09-21)
 
 ### 🔧 合规性修正

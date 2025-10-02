@@ -29,6 +29,9 @@ export default tseslint.config([
           caughtErrorsIgnorePattern: '^_'
         }
       ],
+
+      // 🚨 日志统一：必须通过 shared/utils/logger.ts 输出
+      'no-console': 'error',
       
       // 🚨 架构违规防范规则 - 防止FRONTEND-AUTH-BYPASS类问题
       'no-restricted-globals': [

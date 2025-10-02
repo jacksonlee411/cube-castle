@@ -136,17 +136,30 @@ which gosec                  # 应在 PATH 中可访问
 # 详见: docs/development-plans/06-integrated-teams-progress-log.md
 ```
 
-### E2E 快速入口（本地/CI 对齐）
+### E2E 快速入口（本地 / CI 对齐）
 ```bash
-# 本地一键冒烟：拉起完整栈 + 运行契约 + 简化E2E
-docker compose -f docker-compose.e2e.yml up -d --build
-npm --prefix frontend ci && npm --prefix frontend run -s test:contract
-chmod +x ./simplified-e2e-test.sh && ./simplified-e2e-test.sh
-cat reports/QUALITY_GATE_TEST_REPORT.md
+# 1. 启动依赖 + RS256 联调
+make docker-up
+make run-auth-rs256-sim
 
-# CI 工作流：.github/workflows/e2e-smoke.yml（push/PR 自动触发）
-# 行为：Compose Up → 健康等待 → 契约测试 → 简化E2E → 产物上传
+# 2. 生成 RS256 开发令牌
+make jwt-dev-mint
+PW_JWT=$(cat .cache/dev.jwt)
+PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9
+
+# 3. 前端目录执行 Playwright
+cd frontend
+PW_JWT=$PW_JWT PW_TENANT_ID=$PW_TENANT_ID npm run test:e2e
+
+# 4. 指定套件
+PW_JWT=$PW_JWT PW_TENANT_ID=$PW_TENANT_ID \
+  npm run test:e2e -- tests/e2e/regression-e2e.spec.ts
+
+# 5. 查看报告 / Trace
+npx playwright show-report
 ```
+- 规范、调试技巧详见 `docs/development-tools/e2e-testing-guide.md`（Plan 18）。
+- CI 门禁：`.github/workflows/e2e-tests.yml` 在 PR 上运行完整 Playwright 套件；失败将阻止合并并上传报告。
 
 ---
 
@@ -257,6 +270,20 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
   ✅ 查询用GraphQL，命令用REST
   ❌ 混用协议
 ```
+
+### 日志输出规范
+- **客户端统一日志**：使用 `@/shared/utils/logger`，禁止直接调用 `console.*`
+- **受控桥接**：`logger` 在开发环境输出 `debug/info`；`warn/error` 全环境保留
+- **Mutation 调试日志**：使用 `logger.mutation('[Mutation] ...')`，可通过 `VITE_ENABLE_MUTATION_LOGS` 在生产启用
+- **例外注释**：`eslint-disable-next-line camelcase` 必须追加 `-- 原因` 说明，CI 会校验执行理由
+- **基准示例**：
+  ```ts
+  import { logger } from '@/shared/utils/logger';
+
+  logger.info('Refreshing hierarchy', { code });
+  logger.warn('本地缓存缺失，已触发回源');
+  logger.error('命令执行失败', error);
+  ```
 
 ---
 

@@ -77,6 +77,13 @@ const config = {
         statusFields: ['status', 'isCurrent', 'isFuture', 'isTemporal'],
         operationFields: ['operationType', 'operatedBy', 'operationReason']
       }
+    },
+
+    // ESLint例外说明校验规则
+    eslintExceptionComment: {
+      enabled: true,
+      targetPattern: /eslint-disable-next-line\s+camelcase/,
+      requireReasonPattern: /eslint-disable-next-line\s+camelcase\s+--\s+\S/
     }
   }
 };
@@ -91,6 +98,7 @@ const stats = {
     ports: 0,
     contracts: 0,
     forbidden: 0,
+    eslintExceptions: 0,
     total: 0
   },
   fixedIssues: 0
@@ -381,6 +389,39 @@ class APIContractValidator {
   }
 }
 
+// 🛡️ ESLint例外说明验证器
+class ESLintExceptionCommentValidator {
+  static validate(filePath, content, options) {
+    const violations = [];
+    if (!options?.targetPattern) {
+      return violations;
+    }
+
+    const lines = content.split('\n');
+    const reasonRegex = options.requireReasonPattern || /eslint-disable-next-line\s+camelcase\s+--\s+\S/;
+
+    lines.forEach((rawLine, lineNum) => {
+      const line = rawLine.trim();
+      if (!options.targetPattern.test(line)) {
+        return;
+      }
+
+      if (!reasonRegex.test(line)) {
+        violations.push({
+          type: 'eslintExceptions',
+          line: lineNum + 1,
+          column: rawLine.indexOf('eslint-disable-next-line'),
+          message: 'eslint-disable-next-line camelcase 必须包含 "-- 原因" 说明',
+          code: 'missing-eslintexception-reason',
+          severity: 'error'
+        });
+      }
+    });
+
+    return violations;
+  }
+}
+
 // 🚫 禁止端点验证器
 class ForbiddenEndpointValidator {
   static validate(filePath, content, options) {
@@ -426,8 +467,17 @@ class ForbiddenEndpointValidator {
 // 🚀 主验证引擎
 class ArchitectureValidator {
   constructor(options = {}) {
-    this.options = { ...config, ...options };
+    const { ruleFilter, ...restOptions } = options;
+    this.options = { ...config, ...restOptions };
     this.violations = [];
+    this.ruleFilter = Array.isArray(ruleFilter) && ruleFilter.length > 0 ? ruleFilter : null;
+  }
+
+  isRuleEnabled(ruleName) {
+    if (!this.ruleFilter) {
+      return true;
+    }
+    return this.ruleFilter.includes(ruleName);
   }
   
   async validateFile(filePath) {
@@ -438,7 +488,8 @@ class ArchitectureValidator {
       stats.totalFiles++;
       
       // CQRS架构验证
-      if (this.options.rules.cqrsArchitecture.enabled && 
+      if (this.isRuleEnabled('cqrsArchitecture') &&
+          this.options.rules.cqrsArchitecture.enabled && 
           filePath.includes(this.options.rules.cqrsArchitecture.frontendPath)) {
         const cqrsViolations = CQRSArchitectureValidator.validate(filePath, content);
         fileViolations.push(...cqrsViolations);
@@ -446,21 +497,32 @@ class ArchitectureValidator {
       }
       
       // 端口配置验证
-      if (this.options.rules.portConfiguration.enabled) {
+      if (this.isRuleEnabled('portConfiguration') && this.options.rules.portConfiguration.enabled) {
         const portViolations = PortConfigurationValidator.validate(filePath, content);
         fileViolations.push(...portViolations);
         stats.violations.ports += portViolations.length;
       }
       
       // API契约验证
-      if (this.options.rules.apiContracts.enabled) {
+      if (this.isRuleEnabled('apiContracts') && this.options.rules.apiContracts.enabled) {
         const contractViolations = APIContractValidator.validate(filePath, content);
         fileViolations.push(...contractViolations);
         stats.violations.contracts += contractViolations.length;
       }
 
+      // ESLint 例外注释验证
+      if (this.isRuleEnabled('eslintExceptionComment') && this.options.rules.eslintExceptionComment?.enabled) {
+        const eslintExceptionViolations = ESLintExceptionCommentValidator.validate(
+          filePath,
+          content,
+          this.options.rules.eslintExceptionComment
+        );
+        fileViolations.push(...eslintExceptionViolations);
+        stats.violations.eslintExceptions += eslintExceptionViolations.length;
+      }
+
       // 禁止端点验证
-      if (this.options.rules.forbiddenEndpoints?.enabled) {
+      if (this.isRuleEnabled('forbiddenEndpoints') && this.options.rules.forbiddenEndpoints?.enabled) {
         const forbiddenViolations = ForbiddenEndpointValidator.validate(
           filePath,
           content,
@@ -518,7 +580,8 @@ class ArchitectureValidator {
           cqrs: stats.violations.cqrs,
           ports: stats.violations.ports,
           contracts: stats.violations.contracts,
-          forbidden: stats.violations.forbidden
+          forbidden: stats.violations.forbidden,
+          eslintExceptions: stats.violations.eslintExceptions
         }
       },
       violations: this.violations
@@ -557,9 +620,15 @@ class ArchitectureValidator {
     if (stats.violations.forbidden > 0) {
       log.error(`   🚫 禁止端点违规: ${stats.violations.forbidden} 个`);
     }
+    if (stats.violations.eslintExceptions > 0) {
+      log.warning(`   📝 ESLint例外说明缺失: ${stats.violations.eslintExceptions} 个`);
+    }
 
     // 质量门禁判定
-    const criticalViolations = stats.violations.cqrs + stats.violations.ports + stats.violations.forbidden;
+    const criticalViolations = stats.violations.cqrs +
+      stats.violations.ports +
+      stats.violations.forbidden +
+      stats.violations.eslintExceptions;
     if (criticalViolations > 0) {
       log.error(`🚫 质量门禁失败: ${criticalViolations} 个关键违规`);
       return false;
@@ -574,11 +643,30 @@ class ArchitectureValidator {
 async function main() {
   const args = process.argv.slice(2);
   const scope = args.includes('--scope') ? args[args.indexOf('--scope') + 1] : 'frontend';
+  const ruleArgIndex = args.indexOf('--rule');
+  const ruleAliases = {
+    cqrs: 'cqrsArchitecture',
+    ports: 'portConfiguration',
+    contracts: 'apiContracts',
+    forbidden: 'forbiddenEndpoints',
+    'eslint-exception-comment': 'eslintExceptionComment',
+    'eslintExceptionComment': 'eslintExceptionComment'
+  };
+  let ruleFilter = null;
+  if (ruleArgIndex !== -1 && args[ruleArgIndex + 1]) {
+    ruleFilter = args[ruleArgIndex + 1]
+      .split(',')
+      .map(rule => ruleAliases[rule] || rule)
+      .filter(Boolean);
+  }
   
   log.info('🏗️ Cube Castle - 架构验证器启动');
   log.info(`验证范围: ${scope}`);
+  if (ruleFilter && ruleFilter.length > 0) {
+    log.info(`验证规则: ${ruleFilter.join(', ')}`);
+  }
   
-  const validator = new ArchitectureValidator();
+  const validator = new ArchitectureValidator({ ruleFilter });
   
   // 确定验证路径
   const targetPath = scope === 'frontend' ? 
