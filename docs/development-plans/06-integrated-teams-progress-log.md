@@ -1,16 +1,18 @@
 # 06 — 集成团队推进记录（RS256 认证与 API 合规治理）
 
-最后更新：2025-10-02 19:20 UTC
+最后更新：2025-10-09 16:25 UTC
 维护团队：认证小组（主责）+ 前端工具组 + 命令服务团队 + QA
-状态：Plan 12/13/14/17/20 已归档；Plan 16 Phase 0 证据齐全，Playwright RS256 回归持续观察；Plan 15 例行复核中
+状态：Plan 12/13/14/17/20/21 已归档；Plan 16 Phase 0 证据齐全，Phase 2 弱类型治理完成；Plan 15 例行复核中
 
 ---
 
 ## 1. 进行中事项概览
 - **✅ Plan 16 Phase 0 证据齐全**：`plan16-phase0-baseline` 远端可查（提交 `718d7cf6`），补证纪要归档于 Plan 19《Plan 16 Phase 0 工作量复核纪要（证据归档）》(`../archive/development-plans/19-phase0-workload-review.md`)，本日志已登记完成时间 2025-09-30 10:00 UTC，责任人架构组。
+- **✅ Plan 16 Phase 2 弱类型治理完成**（2025-10-09）：TypeScript `any/unknown` 从 173 处降至 **0 处**（100% 清零），CI 持续巡检已生效，详见归档文档 `../archive/development-plans/21-weak-typing-governance-plan.md`
 - **✅ Playwright RS256 回归已完成**（2025-10-02）：核心验证通过（PBAC + 架构契约 100%），次要问题已记录（数据一致性 + 测试页面）。
 - **✅ Plan 17 已归档**（完成于 2025-10-02 19:20 UTC）：Spectral 依赖修复与 API 契约治理完成（75 problems → 0，100% 清零），CI 集成生效，详见归档文档 `../archive/development-plans/17-spectral-dependency-recovery-plan.md`
 - **✅ Plan 20 已归档**（完成于 2025-10-02 15:25 UTC）：ESLint 例外策略与零告警方案完成，统一日志工具落地，113 处 console.* → logger.*（100% 替换），详见归档文档 `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md`
+- **✅ Plan 21 已归档**（完成于 2025-10-09 16:25 UTC）：弱类型治理专项计划完成，Phase 1（脚本扩展）+ Phase 2（批次治理）提前达成，CI 巡检生效，详见归档文档 `../archive/development-plans/21-weak-typing-governance-plan.md`
 
 ---
 
@@ -71,11 +73,14 @@
 ## 4. 其他工作待办
 1. ~~【P3 - API 治理】Spectral 剩余 warning 处理（可选）~~ ✅ 已完成（Spectral 警告清零，新增 `x-cube-envelope-*` 标记与组件治理）。
 2. ~~【P2 - 前端】确定 ESLint 例外策略~~ ✅ 已完成（Plan 20）。
-3. **【P2 - QA + 架构组】推进弱类型治理**：✅ 2025-10-09 完成
-   - `scripts/code-smell-check-quick.sh --with-types` 扩展上线，`frontend/src` 范围 `any/unknown` 归零（见 `reports/iig-guardian/code-smell-ci-20251009.md`、`reports/iig-guardian/code-smell-types-20251009.md`）
-   - `.github/workflows/iig-guardian.yml` 已集成弱类型巡检输出；当前阈值 120，后续可按计划逐步下调至 60/30
-   - 核心模块（Temporal、共享 utils/hooks、验证工具）完成类型替换，不再需要弱类型豁免清单
-   - 详见 `docs/development-plans/21-weak-typing-governance-plan.md`
+3. ~~【P2 - QA + 架构组】推进弱类型治理~~ ✅ 2025-10-09 完成（Plan 21）
+   - `scripts/code-smell-check-quick.sh --with-types` 扩展上线，`frontend/src` 范围 `any/unknown` 归零（0 处）
+   - `.github/workflows/iig-guardian.yml` 已集成弱类型巡检输出；当前阈值 120
+   - 核心模块（Temporal、共享 utils/hooks、验证工具）完成类型替换，无需弱类型豁免清单
+   - 详见归档文档 `../archive/development-plans/21-weak-typing-governance-plan.md`
+4. **【P0 - 前端】补充 logger mock 修复单元测试**：Plan 21 验证发现 5 个测试套件因 logger 未 mock 失败，需在 `vitest.setup.ts` 添加全局 mock（预计 10 分钟）
+5. **【P1 - 前端】配置测试文件 ESLint 豁免**：155 个测试/脚本文件 `no-console` 告警，需在 `.eslintrc.cjs` 添加 overrides（预计 5 分钟）
+6. **【P1 - 平台工具组】降低 CI 弱类型阈值**：将 `.github/workflows/iig-guardian.yml` 中 `TYPE_SAFETY_THRESHOLD` 从 120 降至 30（预计 2 分钟）
 
 ---
 
@@ -90,7 +95,10 @@
 
 ## 6. 参考链接
 - `reports/iig-guardian/p1-crud-issue-analysis-20251002.md`
-- `reports/iig-guardian/code-smell-types-20251007.md`
+- `reports/iig-guardian/code-smell-types-20251009.md`（最新，Plan 21 完成基线）
+- `reports/iig-guardian/code-smell-ci-20251009.md`（CI 报告示例）
 - `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md`
-- `docs/archive/development-plans/17-spectral-dependency-recovery-plan.md`（已归档，2025-10-02）
+- `../archive/development-plans/17-spectral-dependency-recovery-plan.md`（已归档，2025-10-02）
+- `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md`（已归档，2025-10-02）
+- `../archive/development-plans/21-weak-typing-governance-plan.md`（已归档，2025-10-09）
 - `../archive/development-plans/19-phase0-workload-review.md`
