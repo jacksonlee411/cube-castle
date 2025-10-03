@@ -10,7 +10,7 @@ test.describe('业务流程端到端测试', () => {
     // 设置认证信息到 localStorage（确保 RequireAuth 可以通过验证）
     await setupAuth(page);
 
-    // 导航到组织管理页面
+    // 导航到组织管理页面 (使用相对路径,Playwright会自动添加baseURL)
     await page.goto('/organizations');
 
     // 等待页面加载完成 - 使用 data-testid 而不是文本，避免加载状态干扰
@@ -127,16 +127,11 @@ test.describe('业务流程端到端测试', () => {
       const searchResults = page.locator('tr:has-text("高谷集团")');
       if (await searchResults.first().isVisible()) {
         await expect(searchResults.first()).toBeVisible();
-        console.log('✓ 搜索功能正常');
-      } else {
-        console.log('搜索结果为空，继续测试');
       }
       
       // 清空搜索
       await searchInput.clear();
       await page.waitForTimeout(1000);
-    } else {
-      console.log('搜索框不可见，跳过搜索测试');
     }
 
     // 2. 验证筛选功能
@@ -151,16 +146,11 @@ test.describe('业务流程端到端测试', () => {
       const companyRows = page.locator('tr:has-text("COMPANY")');
       if (await companyRows.first().isVisible()) {
         await expect(companyRows.first()).toBeVisible();
-        console.log('✓ 类型筛选功能正常');
-      } else {
-        console.log('无COMPANY类型数据，筛选结果为空');
       }
       
       // 重置筛选
       await typeFilterSelect.selectOption('');
       await page.waitForTimeout(1000);
-    } else {
-      console.log('类型筛选器不可见，跳过筛选测试');
     }
 
     // 3. 验证分页功能（如果有足够数据）
@@ -180,8 +170,6 @@ test.describe('业务流程端到端测试', () => {
       // 验证页面已切换
       const newPageInfo = await currentPageInfo.textContent();
       if (initialPage !== newPageInfo) {
-        console.log('✓ 分页功能正常');
-        
         // 返回第一页
         const prevPageButton = page.getByRole('button', { name: /上一页|Previous|</ });
         if (await prevPageButton.isVisible()) {
@@ -189,15 +177,12 @@ test.describe('业务流程端到端测试', () => {
           await page.waitForTimeout(1000);
         }
       }
-    } else {
-      console.log('分页按钮不可见，数据可能不足一页');
     }
 
     // 4. 验证数据加载状态
     const tableRows = organizationTable.locator('tbody tr');
     const rowCount = await tableRows.count();
-    console.log(`表格显示 ${rowCount} 行数据`);
-    
+
     if (rowCount > 0) {
       // 验证表格基本结构
       const firstRow = tableRows.first();
@@ -207,23 +192,18 @@ test.describe('业务流程端到端测试', () => {
       const tableHeaders = organizationTable.locator('thead th');
       const headerCount = await tableHeaders.count();
       expect(headerCount).toBeGreaterThan(3); // 至少有编码、名称、类型、状态等列
-      
-      console.log('✓ 表格结构验证通过');
-    } else {
-      console.log('表格无数据，检查数据源');
     }
   });
 
   test('性能和响应时间测试', async ({ page }) => {
     const startTime = Date.now();
-    
+
     // 1. 测试页面加载性能
     await page.goto('/organizations');
     await expect(page.getByText('组织架构管理')).toBeVisible();
-    
+
     const loadTime = Date.now() - startTime;
-    console.log(`页面加载时间: ${loadTime}ms`);
-    
+
     // 断言加载时间在合理范围内（< 3秒）
     expect(loadTime).toBeLessThan(3000);
 
@@ -249,10 +229,9 @@ test.describe('业务流程端到端测试', () => {
       });
       return response.json();
     });
-    
+
     const apiTime = Date.now() - apiStartTime;
-    console.log(`API响应时间: ${apiTime}ms`);
-    
+
     // 断言API响应时间在合理范围内（< 1秒）
     expect(apiTime).toBeLessThan(1000);
   });

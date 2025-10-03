@@ -26,9 +26,12 @@ export async function setupAuth(page: Page): Promise<void> {
     return;
   }
 
-  // 使用 addInitScript 在页面加载前设置 localStorage
-  // 这样可以确保 RequireAuth 组件能读取到认证信息
-  await page.addInitScript((authData) => {
+  // 先导航到基础URL建立上下文,然后注入localStorage
+  // 这确保localStorage在正确的域下设置
+  await page.goto('/');
+
+  // 直接在页面上下文中设置 localStorage
+  await page.evaluate((authData) => {
     // 设置 OAuth token（前端 authManager 期望的键名和格式）
     // 参考：frontend/src/shared/api/auth.ts:327 - localStorage.getItem('cube_castle_oauth_token')
     localStorage.setItem('cube_castle_oauth_token', JSON.stringify({
