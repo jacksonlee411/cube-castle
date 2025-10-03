@@ -104,6 +104,10 @@
 - 前端红灯组件拆分持续推进：
   - Temporal 主视图：`TemporalMasterDetailView.tsx` 已降至 380 行并拆分出 Header/Alerts/API 层，`useTemporalMasterDetail.ts` 仍 521 行，需要再拆分为状态 hook 与 API 适配层；目标完成后重新评估主组件行数。
    - Inline 表单：`InlineNewVersionForm` 已完成容器/子组件/动作拆分，等待 IIG 刷新后更新平均行数。
+- **✅ 根节点父代码标准化完成**（2025-10-03）：
+  - 后端新增 `internal/utils/parent_code.go` 定义 `ROOT_PARENT_CODE="0000000"`，统一命令服务验证、处理器、仓储层根节点处理逻辑，兼容遗留"0"输入自动转换。
+  - 前端更新 `normalizeParentCode` 工具函数和 GraphQL 转换器，调整共享类型和时态组件以使用七位根代码，同步单元测试和集成测试 fixture。
+  - E2E 验证：Playwright 业务流程测试通过（4/5），CRUD 操作正确处理新根代码格式（提交 `11c5886d`）。
 - Phase 1 完结回顾：待上述前端拆分与 TS 指标达成后，更新 `code-smell-progress-20251014.md`。
 
 #### 目标
