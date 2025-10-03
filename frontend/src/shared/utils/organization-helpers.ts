@@ -3,10 +3,24 @@
  * 专门处理parentCode等字段的null值转换问题
  */
 
+export const ROOT_PARENT_CODE = '0000000'
+const LEGACY_ROOT_PARENT_CODES = new Set([ROOT_PARENT_CODE, '0'])
+
+const isRootParentCode = (value: string | null | undefined): boolean => {
+  if (value == null) {
+    return true
+  }
+  const trimmed = value.trim()
+  if (trimmed === '') {
+    return true
+  }
+  return LEGACY_ROOT_PARENT_CODES.has(trimmed)
+}
+
 /**
  * 安全地处理parentCode字段
- * API要求：根级组织使用字符串"0"，子组织使用7位数字编码
- * 
+ * API要求：根级组织使用字符串"0000000"，子组织使用7位数字编码
+ *
  * @param parentCode - 可能是null、undefined或字符串
  * @returns 用于表单显示的字符串，或用于API的字符串值
  */
@@ -17,8 +31,8 @@ export const normalizeParentCode = {
    * @returns 用于表单输入的字符串
    */
   forForm: (value: string | null | undefined): string => {
-    if (!value || value === '0') {
-      return '0'; // 根组织在表单中显示为"0"
+    if (isRootParentCode(value)) {
+      return ROOT_PARENT_CODE; // 根组织在表单中显示为规范编码
     }
     return value;
   },
@@ -29,10 +43,14 @@ export const normalizeParentCode = {
    * @returns 符合API规范的值（"0"或有效的7位代码）
    */
   forAPI: (value: string | null | undefined): string => {
-    if (!value || value.trim() === '' || value.trim() === '0') {
-      return '0'; // 根级组织使用"0"
+    if (isRootParentCode(value)) {
+      return ROOT_PARENT_CODE;
     }
-    return value.trim();
+    const trimmed = value.trim();
+    if (LEGACY_ROOT_PARENT_CODES.has(trimmed)) {
+      return ROOT_PARENT_CODE; // 根级组织使用规范编码
+    }
+    return trimmed;
   }
 };
 
@@ -42,7 +60,7 @@ export const normalizeParentCode = {
  * @returns 是否为根级组织
  */
 export const isRootOrganization = (parentCode: string | null | undefined): boolean => {
-  return !parentCode || parentCode.trim() === '' || parentCode.trim() === '0';
+  return isRootParentCode(parentCode);
 };
 
 /**

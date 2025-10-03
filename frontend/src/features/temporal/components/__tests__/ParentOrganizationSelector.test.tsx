@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ParentOrganizationSelector } from '../ParentOrganizationSelector'
 import { authManager } from '../../../../shared/api/auth'
 import type { JsonValue } from '@/shared/types/json'
+import { ROOT_PARENT_CODE } from '@/shared/utils/organization-helpers'
 
 interface ScopeContainer {
   __SCOPES__?: string[]
@@ -62,7 +63,7 @@ describe('ParentOrganizationSelector', () => {
     const organizations = {
       organizations: {
         data: [
-          { code: '1000000', name: 'Root', unitType: 'DEPARTMENT', parentCode: '0', level: 0, effectiveDate: '2025-01-01', endDate: null, isFuture: false },
+          { code: '1000000', name: 'Root', unitType: 'DEPARTMENT', parentCode: ROOT_PARENT_CODE, level: 0, effectiveDate: '2025-01-01', endDate: null, isFuture: false },
           { code: '1000001', name: 'Self', unitType: 'DEPARTMENT', parentCode: '1000000', level: 1, effectiveDate: '2025-01-01', endDate: null, isFuture: false },
           { code: '1000002', name: 'Dept Two', unitType: 'DEPARTMENT', parentCode: '1000001', level: 2, effectiveDate: '2025-01-01', endDate: null, isFuture: false }
         ],
@@ -84,7 +85,7 @@ describe('ParentOrganizationSelector', () => {
     const organizations = {
       organizations: {
         data: [
-          { code: 'A', name: 'A', unitType: 'DEPARTMENT', parentCode: '0', level: 1, effectiveDate: '2025-01-01', endDate: null, isFuture: false },
+          { code: 'A', name: 'A', unitType: 'DEPARTMENT', parentCode: ROOT_PARENT_CODE, level: 1, effectiveDate: '2025-01-01', endDate: null, isFuture: false },
           { code: 'B', name: 'B', unitType: 'DEPARTMENT', parentCode: 'A', level: 2, effectiveDate: '2025-01-01', endDate: null, isFuture: false }
         ],
         pagination: { total: 2, page: 1, pageSize: 500 }

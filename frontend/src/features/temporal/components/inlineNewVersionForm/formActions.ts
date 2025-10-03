@@ -5,11 +5,11 @@ import type { TemporalEditFormData } from '../TemporalEditForm';
 import { normalizeParentCode } from '@/shared/utils/organization-helpers';
 import {
   DEFAULT_FORM_DATA,
-  TemporalParentErrorDetail,
   computeEditDateRange,
   formatDisplayDate,
   getCurrentMonthFirstDay,
 } from './utils';
+import type { TemporalParentErrorDetail } from './utils';
 import type {
   InlineNewVersionFormMode,
   InlineVersionRecord,

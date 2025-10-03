@@ -1,9 +1,9 @@
 import { logger } from '@/shared/utils/logger';
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { normalizeParentCode } from "../../../shared/utils/organization-helpers";
-import type { OrganizationStateMutationResult } from "../../../shared/hooks/useOrganizationMutations";
-import type { OrganizationRequest } from "../../../shared/types/organization";
-import type { TemporalVersionPayload } from "../../../shared/types/temporal";
+import { normalizeParentCode } from "@/shared/utils/organization-helpers";
+import type { OrganizationStateMutationResult } from "@/shared/hooks/useOrganizationMutations";
+import type { OrganizationRequest } from "@/shared/types/organization";
+import type { TemporalVersionPayload } from "@/shared/types/temporal";
 import type { TemporalEditFormData } from "../TemporalEditForm";
 import type { TimelineVersion } from "../TimelineComponent";
 import type { TabType } from "../TabNavigation";
@@ -109,7 +109,7 @@ export const useTemporalMasterDetail = (
   const [versions, setVersions] = useState<TimelineVersion[]>([]);
   const [selectedVersion, setSelectedVersion] =
     useState<TimelineVersion | null>(null);
-  const [isLoading, setIsLoading] = useState(!isCreateMode);
+  const [isLoading, setIsLoading] = useState(() => Boolean(organizationCode));
   const [showDeleteConfirm, setShowDeleteConfirm] =
     useState<TimelineVersion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -120,8 +120,8 @@ export const useTemporalMasterDetail = (
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentETag, setCurrentETag] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("edit-history");
-  const [formMode, setFormMode] = useState<"create" | "edit">(
-    isCreateMode ? "create" : "create",
+  const [formMode, setFormMode] = useState<"create" | "edit">(() =>
+    isCreateMode ? "create" : "edit",
   );
   const [formInitialData, setFormInitialData] = useState<FormInitialData | null>(
     null,
@@ -143,6 +143,7 @@ export const useTemporalMasterDetail = (
   const loadVersions = useCallback(
     async (isRetry = false, focusRecordId?: string) => {
       if (!organizationCode) {
+        setIsLoading(false);
         setVersions([]);
         setSelectedVersion(null);
         setCurrentETag(null);
@@ -473,6 +474,18 @@ export const useTemporalMasterDetail = (
       loadVersions();
     }
   }, [loadVersions, isCreateMode, organizationCode]);
+
+  useEffect(() => {
+    if (organizationCode) {
+      return;
+    }
+
+    setIsLoading(false);
+    setFormMode("create");
+    setFormInitialData(null);
+    setSelectedVersion(null);
+    setDisplayPaths(null);
+  }, [organizationCode]);
 
   const currentOrganizationName = useMemo(() => {
     const currentVersion = versions.find((v) => v.isCurrent);

@@ -2,10 +2,10 @@ import { logger } from '@/shared/utils/logger';
 import {
   unifiedGraphQLClient,
   unifiedRESTClient,
-} from "../../../shared/api/unified-client";
-import { env } from "../../../shared/config/environment";
-import type { OrganizationRequest } from "../../../shared/types/organization";
-import type { TemporalVersionPayload } from "../../../shared/types/temporal";
+} from "@/shared/api/unified-client";
+import { env } from "@/shared/config/environment";
+import type { OrganizationRequest } from "@/shared/types/organization";
+import type { TemporalVersionPayload } from "@/shared/types/temporal";
 import type { TimelineVersion } from "../TimelineComponent";
 
 export interface HierarchyPaths {

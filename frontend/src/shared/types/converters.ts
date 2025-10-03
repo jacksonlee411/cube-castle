@@ -9,7 +9,7 @@ import type { JsonValue } from './json';
 import { isJsonObject } from './json';
 import type { OrganizationUnit } from './organization';
 import type { TemporalOrganizationUnit } from './temporal';
-import { coerceOrganizationLevel } from '../utils/organization-helpers';
+import { coerceOrganizationLevel, ROOT_PARENT_CODE } from '../utils/organization-helpers';
 
 // ============================================================================
 // 前端 ↔ GraphQL 转换器 (camelCase ↔ camelCase)
@@ -78,7 +78,7 @@ export function convertGraphQLToOrganizationUnit(
   return {
     code: data.code || '',
     recordId: data.tenantId,
-    parentCode: data.parentCode || '0', // 根据API规范，parentCode必填，默认使用根组织"0"
+    parentCode: data.parentCode || ROOT_PARENT_CODE, // 根组织默认使用"0000000"
     name: data.name || '',
     unitType: (data.unitType as OrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as OrganizationUnit['status']) || 'ACTIVE',
@@ -118,7 +118,7 @@ export function convertGraphQLToTemporalOrganizationUnit(
 ): TemporalOrganizationUnit {
   return {
     code: data.code || '',
-    parentCode: data.parentCode || '',
+    parentCode: data.parentCode || ROOT_PARENT_CODE,
     name: data.name || '',
     unitType: (data.unitType as TemporalOrganizationUnit['unitType']) || 'DEPARTMENT',
     status: (data.status as TemporalOrganizationUnit['status']) || 'ACTIVE',
