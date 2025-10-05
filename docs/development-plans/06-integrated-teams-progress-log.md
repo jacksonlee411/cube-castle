@@ -1,6 +1,6 @@
 # 06 — 集成团队推进记录（RS256 认证与 API 合规治理）
 
-最后更新：2025-10-03 17:50 UTC
+最后更新：2025-10-04 12:30 UTC
 维护团队：认证小组（主责）+ 前端工具组 + 命令服务团队 + QA
 状态：Plan 12/13/14/17/20/21 已归档；Plan 16 Phase 0 证据齐全，Phase 2 弱类型治理完成，根节点父代码标准化已完成；Plan 15 例行复核中
 
@@ -8,9 +8,11 @@
 
 ## 1. 进行中事项概览
 - **✅ Plan 16 Phase 0 证据齐全**：`plan16-phase0-baseline` 远端可查（提交 `718d7cf6`），补证纪要归档于 Plan 19《Plan 16 Phase 0 工作量复核纪要（证据归档）》(`../archive/development-plans/19-phase0-workload-review.md`)，本日志已登记完成时间 2025-09-30 10:00 UTC，责任人架构组。
+- **✅ Plan 16 Phase 1 后端完成**（2025-10-05）：命令服务 handlers 拆分完成，`organization.go` (1,399行) → 8 文件（平均 186 行/文件），红灯清零，详细报告 `reports/iig-guardian/plan16-phase1-handlers-refactor-20251005.md`
 - **✅ Plan 16 Phase 2 弱类型治理完成**（2025-10-09）：TypeScript `any/unknown` 从 173 处降至 **0 处**（100% 清零），CI 持续巡检已生效，详见归档文档 `../archive/development-plans/21-weak-typing-governance-plan.md`
 - **✅ Plan 16 根节点父代码标准化完成**（2025-10-03）：后端 `ROOT_PARENT_CODE="0000000"` 统一实现，前端 `normalizeParentCode` 对齐，兼容遗留"0"输入，E2E CRUD 测试验证通过（提交 `11c5886d`）
-- **🚧 Plan 18 Phase 1.2**（2025-10-16）：`optimization-verification`、`regression`、`basic-functionality` E2E 全部绿灯，查询服务新增 `/metrics` 指标用于监控断言，剩余阻塞为 `business-flow-e2e` 创建表单未渲染（需修复 `useTemporalMasterDetail` 创建态初始加载）。
+- **🚧 Plan 18 Phase 1.3**（2025-10-05）：迁移脚本 025a/027a/030 已完成，`make db-migrate-all` 全量执行通过（日志：`reports/iig-guardian/plan18-db-migrate-verification-20251005.log`）；business-flow-e2e 测试 4/5 通过，创建操作因数据库触发器问题返回 500（阻塞项：审计触发器引用已删除列 `operation_reason`/`is_temporal`）。
+- **⚠️ Plan 18 阻塞项**（P0）：数据库触发器需修复 `log_audit_changes()` 函数移除已删除列引用，关联 Plan 18 Phase B 审计触发器整改。
 - **✅ Playwright RS256 回归已完成**（2025-10-02）：核心验证通过（PBAC + 架构契约 100%），次要问题已记录（数据一致性 + 测试页面）。
 - **✅ Plan 17 已归档**（完成于 2025-10-02 19:20 UTC）：Spectral 依赖修复与 API 契约治理完成（75 problems → 0，100% 清零），CI 集成生效，详见归档文档 `../archive/development-plans/17-spectral-dependency-recovery-plan.md`
 - **✅ Plan 20 已归档**（完成于 2025-10-02 15:25 UTC）：ESLint 例外策略与零告警方案完成，统一日志工具落地，113 处 console.* → logger.*（100% 替换），详见归档文档 `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md`
