@@ -62,6 +62,7 @@
 - `../archive/development-plans/17-index-audit-and-optimization-plan.md` - 索引审计与优化计划
 - `../archive/development-plans/17-temporary-governance-enhancement-plan.md` - TODO-TEMPORARY 治理与 419 状态码决策计划
 - `../archive/development-plans/18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)
+- `../archive/development-plans/18-e2e-test-improvement-plan.md` - E2E 测试完善计划（Phase 1.3 完成）
 - `../archive/development-plans/19-code-smells-and-remediation-plan.md` - 代码异味和修复计划
 - `../archive/development-plans/19-phase0-workload-review.md` - Plan 19：Plan 16 Phase 0 工作量复核纪要（证据归档）
 - `../archive/development-plans/20-existing-resource-analysis-guide.md` - 现有资源分析开发指南

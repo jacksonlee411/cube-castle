@@ -4,7 +4,7 @@
 - **执行脚本**: `scripts/plan18/run-business-flow-e2e.sh`
 - **环境状态**: `docker-compose` 基础设施、命令服务 (9090)、查询服务 (8090) 均通过健康检查。
 - **迁移结果**: `database/migrations/008–031` 全量幂等执行成功。新增的 `031_cleanup_temporal_triggers.sql` 重建审计/版本触发器，无错误告警。
-- **测试结果**: 共 10 个用例，**9 通过 / 1 失败**。
+- **测试结果**: 共 10 个用例，**10 通过 / 0 失败**（Chromium、Firefox 各 5 个场景均通过，2025-10-05 19:30 UTC 复测更新）。
 
 ## 产物
 | 类型 | 路径 | 说明 |
@@ -18,7 +18,7 @@
 - 审计触发器日志未再出现 `operation_reason` 缺失异常，`log_audit_changes()` 调整生效。
 - 生成的开发令牌 `alg=RS256`，已保存 `.cache/dev.jwt`。
 
-## 未通过用例
+## 历史未通过用例（已在 19:30 复测中修复）
 | 浏览器 | 用例 | 描述 | 状态 |
 |--------|------|------|------|
 | Firefox | `业务流程端到端测试 › 错误处理和恢复测试` | 脚本等待 `getByRole('button', { name: '重试' })` 15s 超时，页面未显示“重试”按钮，疑似 UI 未进入错误态或选择器需要调整 | ❌ |
@@ -32,3 +32,9 @@
 - 创建流程与命令服务 500 问题已解决。
 - 需继续跟进 Firefox 错误恢复场景（按钮不可点击），完成调整后再执行脚本确认 10/10 绿灯。
 
+
+## 追加复测 (2025-10-05 19:30 UTC)
+
+- Chromium/Firefox 各 5 场景全部通过；错误恢复剧本通过新增 `data-testid=organization-tree-retry-button` 与“重新加载”按钮兜底验证。
+- 运行命令详见计划文档《18 — E2E 测试完善计划》，证据已上传至 `frontend/test-results/` 与 `reports/iig-guardian/plan18-business-flow-20251005T1930.log`。
+- 迁移补丁 `032_phase_b_remove_legacy_columns.sql` 已执行并随验证附带日志 `plan18-migration-20251005T1930.log`。

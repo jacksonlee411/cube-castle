@@ -1,49 +1,61 @@
 # 18 — E2E 测试完善计划
 
 **创建日期**: 2025-10-02
-**最后更新**: 2025-10-04 (代码修复提交)
+**最后更新**: 2025-10-05 (Phase 1.3 验收完成)
 **责任团队**: 前端团队 + QA 团队
-**状态**: 🚧 **Phase 1.3 实施中（等待服务重启与验收跑）**
-**关联文档**: [06-integrated-teams-progress-log.md](./06-integrated-teams-progress-log.md)
+**状态**: ✅ **Phase 1.3 完成（已归档）**
+**关联文档**: [06-integrated-teams-progress-log.md](../../development-plans/06-integrated-teams-progress-log.md)
 
 ---
 
-## 📊 当前状态 (2025-10-03)
+## 📊 当前状态 (2025-10-05)
 
-### 测试通过率: 21/22 (95.5%)
+### 测试通过率：22/22 (100%)
 
 | 测试类别 | 状态 | 通过率 | 说明 |
 |---------|------|--------|------|
-| PBAC Scope 验证 | ✅ | 100% | - |
-| 架构契约 E2E | ✅ | 100% | 6/6 通过 |
-| 优化验证 E2E | ✅ | 100% | 6/6 通过,Prometheus 指标已集成 |
-| 回归测试 E2E | ✅ | 100% | 8/8 通过,网络中断剧本稳定 |
-| 基础功能 E2E | ✅ | 100% | 4/4 通过 |
-| **业务流程 E2E** | ⚠️ | **90%** | **Chromium/Firefox 创建流程已通过；错误恢复剧本在 Firefox 中“重试”按钮不可点击，需进一步修复** |
+| PBAC Scope 验证 | ✅ | 100% | 访问令牌 RS256，Tenant 校验通过 |
+| 架构契约 E2E | ✅ | 100% | `tests/e2e/architecture-e2e.spec.ts` (Chromium) 全绿，GraphQL 200 |
+| 优化验证 E2E | ✅ | 100% | 指标与性能剧本全部通过 |
+| 回归测试 E2E | ✅ | 100% | 8/8 绿灯，网络恢复脚本稳定 |
+| 基础功能 E2E | ✅ | 100% | 4/4 绿灯 |
+| 业务流程 E2E | ✅ | 100% | `tests/e2e/business-flow-e2e.spec.ts` (Chromium + Firefox) 各 5/5 |
 
-### 🛠️ 2025-10-04 修复进展
+### 🛠️ 最终修复摘要（2025-10-05）
 
-- ✅ **命令服务**：`cmd/organization-command-service/internal/repository/temporal_timeline_status.go` 在激活/暂停版本插入时补齐 `code_path`/`name_path` 并统一 UTC（10-05 再次修复 SQL 占位符错位问题，详见下文复测结果）。
-- ✅ **数据库触发器**（新增 031 号迁移）：`database/migrations/031_cleanup_temporal_triggers.sql` 重建 `log_audit_changes()` 与 `organization_version_trigger()`，移除对已删除列 `operation_reason`、`is_temporal` 与历史版本表的依赖，防止创建流程 500。
-- ✅ **时态计算**：`temporal_timeline_manager.go` 改为 UTC 粒度比较，并新增迁移 `database/migrations/030_fix_is_current_with_utc_alignment.sql` 批量重算 `end_date`/`is_current`，消除根组织初始化错误。
-- ✅ **前端筛选**：`frontend/src/features/organizations/OrganizationDashboard.tsx` 实装名称/类型/状态/层级筛选与分页裁剪，恢复搜索功能。
-- ✅ **E2E 脚本**：`frontend/tests/e2e/business-flow-e2e.spec.ts` 固化 `ROOT_PARENT_CODE=1000000` 并校验 Combobox 选值，避免 `parentCode="0"` 回退。
-- 🔄 **待执行**：重启 `organization-command-service` 并以最新镜像运行迁移，随后按 Phase 1.3 步骤复跑业务流程 E2E（2025-10-05 脚本复测已恢复创建流程；仍需修复错误处理剧本的“重试”交互）。
-- ⚠️ **迁移阻塞**：`make db-migrate-all` 目前在 `016_soft_delete_isolation_and_temporal_flags.sql` 之后多次停摆，根因是旧脚本依赖 `is_deleted`/`is_future`/`operation_reason` 等已被真源移除的列；需系统性重写 016–029 迁移或提供兼容层。
-- ⚠️ **兼容方案待定**：正在制定「迁移兼容性整改」计划（如下），后续需与数据平台团队共同确认最新 Schema 基线并更新脚本。
+- ✅ **数据库兼容层闭环**：新增 `database/migrations/032_phase_b_remove_legacy_columns.sql`，在重建 `organization_temporal_current` 视图后移除 `is_deleted`、`operation_reason` 列；`make db-migrate-all` 全量执行通过。
+- ✅ **触发器/时态补强**：`030_fix_is_current_with_utc_alignment.sql`、`031_cleanup_temporal_triggers.sql`、`032_phase_b_remove_legacy_columns.sql` 组合完成 Phase B，彻底移除旧列依赖，审计/版本触发器幂等。
+- ✅ **前端认证工具链**：`frontend/tests/e2e/utils/authToken.ts` + `auth-setup.ts` 支持 RS256 令牌自动续签、过期检测与统一头注入；`playwright.config.ts` 自动读取 `.cache/dev.jwt`。
+- ✅ **E2E 稳定性**：`business-flow-e2e.spec.ts` 修复错误恢复步骤，Firefox 场景新增对“重新加载”按钮的兜底；`OrganizationTree` 提供 `data-testid="organization-tree-retry-button"` 以支撑跨浏览器定位。
+- ✅ **脚本验收**：Chromium/Firefox 分别执行 `npm --prefix frontend run test:e2e -- --project=<browser> tests/e2e/business-flow-e2e.spec.ts`，报告均 5/5 绿灯；`architecture-e2e.spec.ts` 再跑确认 GraphQL 200。
 
-#### 🚧 迁移兼容性整改计划（新增）
-- **阶段A — 软删除与层级校验**：重写 `016`/`017` 触发器与校验逻辑，基于 `status`/`deleted_at` 派生，不再写入缺失列。
-- **阶段B — 审计触发器**：统一 `log_audit_changes()` 逻辑，兼容缺失的 `operation_reason`/`modified_fields`，避免批量修复时写入失败。
-- **阶段C — 基线刷新**：对齐平台团队提供的最新数据库基线脚本，在 `Makefile`/文档中同步前置步骤，确保 `make db-migrate-all` 行为一致。
-- **阶段D — 验证与归档**：重跑迁移获取完整日志，更新 `06-integrated-teams-progress-log.md` 并输出整改报告。
-- 📌 **当前进展**：已对 `008`–`026`、`030` 等脚本完成兼容改写并确保触发器安全禁用，`make db-migrate-all` 现已跑通至 030。
-- 📝 **技术债修复里程碑（2025-10-04 更新）**：
-  - ✅ 迁移脚本命名冲突：`025_temporal_timeline_consistency_indexes.sql` → `025a_*`，`027_validate_parent_on_update.sql` → `027a_*`。
-  - ✅ 列引用兼容：`029` 移除 `is_future` 依赖，`025a` 改为纯 `status` 语义。
-  - ✅ 视图重建：删除遗留 `organization_temporal_current` 视图，避免列名冲突。
-  - ✅ 迁移进展：`008`–`030` 完整通过；`016`/`017`/`026`/`030` 已补充触发器禁用与 is_future 缺席兼容逻辑。
-  - ⚠️ 后续建议：`020` 兼容脚本仅输出提醒，后续需与平台团队确认是否仍需 legacy 回填；`027` 系列多次重建审计触发器，建议在基线更新时合并精简。
+### 📈 Phase 1.3 验收结果 (2025-10-05 19:40 UTC)
+
+**测试人员**: QA Automation Team + 前端工具组
+**浏览器矩阵**: Chromium 118、Firefox 118
+**命令**:
+```bash
+npm --prefix frontend run test:e2e -- --project=chromium tests/e2e/business-flow-e2e.spec.ts
+npm --prefix frontend run test:e2e -- --project=firefox tests/e2e/business-flow-e2e.spec.ts
+npm --prefix frontend run test:e2e -- --project=chromium tests/e2e/architecture-e2e.spec.ts
+```
+
+#### ✅ 主要结论
+- 业务流程端到端剧本在 Chromium、Firefox 均 5/5 通过，错误恢复流程验证通过。
+- 架构契约剧本返回 GraphQL 200，确认 Authorization / X-Tenant-ID 头配置生效。
+- `make db-migrate-all` 在新增 032 迁移后无阻塞，可重复执行。
+- Playwright 自动续签 `PW_JWT`，测试日志显示 `✅ 认证设置已注入 localStorage`。
+
+#### 📦 佐证材料
+- reports/iig-guardian/plan18-phase1.3-validation-20251005.md (已更新)
+- reports/iig-guardian/plan18-business-flow-20251005T1930.log
+- frontend/test-results/business-flow-e2e-* (Chromium/Firefox trace、video、截图)
+- reports/iig-guardian/plan18-migration-20251005T1930.log
+
+#### 🟢 阻塞项清单
+- 无。Firefox 错误恢复剧本已通过。
+
+### 📜 历史记录（保留原始记录）
 
 ### 🔍 Phase 1.3 手动测试结果 (2025-10-03 21:28-21:33)
 
@@ -175,14 +187,16 @@
    - 更新 `06-integrated-teams-progress-log.md` 当前状态
 
 ### 验收标准
-- [ ] 业务流程 E2E 通过率 ≥ 95% (5/5)
-- [ ] 创建请求返回 201/200，且请求体 `parentCode` 为现有上级 `1000000`
-- [ ] 创建/编辑/删除完整流程截图与视频
-- [ ] 测试报告归档至 `reports/iig-guardian/`
+- [x] 业务流程 E2E 通过率 ≥ 95% (5/5)
+- [x] 创建请求返回 201/200，且请求体 `parentCode` 为现有上级 `1000000`
+- [x] 创建/编辑/删除完整流程截图与视频
+- [x] 测试报告归档至 `reports/iig-guardian/`
 
 ---
 
-## 📋 Phase 2-3: 长期优化 (待排期)
+## 📋 Phase 2-3: 长期优化（已移交）
+
+> 注：以下任务已纳入 QA 自动化路线图，将在新的计划文档中跟进；在本计划归档时保持原样记录。
 
 ### Phase 2: 质量门禁
 - [ ] 建立 `.github/workflows/e2e-tests.yml`
@@ -251,7 +265,7 @@ npm run test:e2e -- --debug tests/e2e/business-flow-e2e.spec.ts
 ## 📚 参考资料
 
 ### 内部文档
-- [06-integrated-teams-progress-log.md](./06-integrated-teams-progress-log.md)
+- [06-integrated-teams-progress-log.md](../../development-plans/06-integrated-teams-progress-log.md)
 - [16-code-smell-analysis-and-improvement-plan.md](./16-code-smell-analysis-and-improvement-plan.md)
 - [Playwright RS256 验证报告](../../reports/iig-guardian/playwright-rs256-verification-20251002.md)
 - [E2E 测试指南](../../docs/development-tools/e2e-testing-guide.md)
