@@ -36,7 +36,7 @@ env:
   GUARDIAN_MODE: ${{ github.event.inputs.guardian_mode || 'guard' }}
   RISK_TOLERANCE: ${{ github.event.inputs.risk_tolerance || 'medium' }}
   NODE_VERSION: '18'
-  TYPE_SAFETY_THRESHOLD: '120'
+  TYPE_SAFETY_THRESHOLD: '30'
 
 jobs:
   iig-guardian-check:

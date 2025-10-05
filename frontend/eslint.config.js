@@ -85,7 +85,7 @@ export default tseslint.config([
       // 测试文件允许使用any类型进行模拟数据
       '@typescript-eslint/no-explicit-any': 'off',
       // 测试文件和脚本允许使用console进行调试输出
-      'no-console': 'warn'
+      'no-console': 'off'
     }
   },
   

@@ -2,6 +2,28 @@ import React from 'react';
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
 
+vi.mock('@/shared/utils/logger', async () => {
+  const actual = await vi.importActual<typeof import('@/shared/utils/logger')>(
+    '@/shared/utils/logger'
+  );
+
+  const mockLogger = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    group: vi.fn(),
+    groupEnd: vi.fn(),
+    mutation: vi.fn()
+  } as const;
+
+  return {
+    ...actual,
+    logger: mockLogger
+  };
+});
+
 // 定义通用的React组件props类型
 type MockComponentProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
 

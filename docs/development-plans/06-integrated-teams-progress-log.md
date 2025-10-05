@@ -88,9 +88,9 @@
    - `.github/workflows/iig-guardian.yml` 已集成弱类型巡检输出；当前阈值 120
    - 核心模块（Temporal、共享 utils/hooks、验证工具）完成类型替换，无需弱类型豁免清单
    - 详见归档文档 `../archive/development-plans/21-weak-typing-governance-plan.md`
-4. **【P0 - 前端】补充 logger mock 修复单元测试**：Plan 21 验证发现 5 个测试套件因 logger 未 mock 失败，需在 `vitest.setup.ts` 添加全局 mock（预计 10 分钟）
-5. **【P1 - 前端】配置测试文件 ESLint 豁免**：155 个测试/脚本文件 `no-console` 告警，需在 `.eslintrc.cjs` 添加 overrides（预计 5 分钟）
-6. **【P1 - 平台工具组】降低 CI 弱类型阈值**：将 `.github/workflows/iig-guardian.yml` 中 `TYPE_SAFETY_THRESHOLD` 从 120 降至 30（预计 2 分钟）
+4. ~~**【P0 - 前端】补充 logger mock 修复单元测试**~~ ✅ 2025-10-06 07:57 UTC 完成：`frontend/src/setupTests.ts` 基于 `vi.importActual` 注入全局 logger mock，`npm --prefix frontend run test` 全量通过恢复 5 个受影响套件。
+5. ~~**【P1 - 前端】配置测试文件 ESLint 豁免**~~ ✅ 2025-10-06 07:57 UTC 完成：`frontend/eslint.config.js` 测试/脚本 overrides 将 `no-console` 关闭，`npm --prefix frontend run lint` 零告警。
+6. ~~**【P1 - 平台工具组】降低 CI 弱类型阈值**~~ ✅ 2025-10-06 07:57 UTC 完成：`.github/workflows/iig-guardian.yml` `TYPE_SAFETY_THRESHOLD` 调整为 30，`scripts/code-smell-check-quick.sh --with-types --type-threshold 30` 产出 `reports/iig-guardian/code-smell-ci-20251006075736.md` 显示匹配 0。
 
 ---
 
