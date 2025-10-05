@@ -39,7 +39,8 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		}
 	}
 
-	fields, err := h.repo.ComputeHierarchyForNew(r.Context(), tenantID, code, req.ParentCode, req.Name)
+	normalizedParent := utils.NormalizeParentCodePointer(req.ParentCode)
+	fields, err := h.repo.ComputeHierarchyForNew(r.Context(), tenantID, code, normalizedParent, req.Name)
 	if err != nil {
 		errorMessage := err.Error()
 		switch {
@@ -53,11 +54,11 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	org := &types.Organization{
 		TenantID:      tenantID.String(),
 		Code:          code,
-		ParentCode:    req.ParentCode,
+		ParentCode:    normalizedParent,
 		Name:          req.Name,
 		UnitType:      req.UnitType,
 		Status:        "ACTIVE",
@@ -91,7 +92,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 			"code":       code,
 			"name":       req.Name,
 			"unitType":   req.UnitType,
-			"parentCode": req.ParentCode,
+			"parentCode": normalizedParent,
 		}
 
 		if logErr := h.auditLogger.LogError(
@@ -178,12 +179,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 
 	var targetParent *string
 	if req.ParentCode != nil {
-		trimmed := strings.TrimSpace(*req.ParentCode)
-		if trimmed != "" {
-			targetParent = &trimmed
-		} else {
-			targetParent = nil
-		}
+		targetParent = utils.NormalizeParentCodePointer(req.ParentCode)
 	} else {
 		targetParent = existingOrg.ParentCode
 	}
@@ -210,7 +206,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	}
 
 	// 创建新的时态版本
-	now := time.Now()
+	now := time.Now().UTC()
 	newVersion := &types.Organization{
 		TenantID:   tenantID.String(),
 		Code:       code,

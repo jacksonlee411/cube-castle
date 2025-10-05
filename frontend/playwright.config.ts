@@ -1,5 +1,43 @@
 import { defineConfig, devices } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SERVICE_PORTS } from './src/shared/config/ports';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PROJECT_ROOT = path.resolve(__dirname, '..');
+const DEV_JWT_PATH = path.join(PROJECT_ROOT, '.cache', 'dev.jwt');
+
+const sanitizeJwt = (rawToken?: string | null): string | undefined => {
+  if (!rawToken) return undefined;
+  const trimmed = rawToken.trim();
+  if (!trimmed) return undefined;
+  const token = trimmed.toLowerCase().startsWith('bearer ') ? trimmed.slice(7).trim() : trimmed;
+  if (token.split('.').length !== 3) {
+    console.warn('⚠️  PW_JWT 格式无效，请重新生成 dev.jwt');
+    return undefined;
+  }
+  return token;
+};
+
+let playwrightJwt = sanitizeJwt(process.env.PW_JWT);
+
+if (!playwrightJwt) {
+  try {
+    const tokenFromFile = fs.readFileSync(DEV_JWT_PATH, 'utf-8');
+    playwrightJwt = sanitizeJwt(tokenFromFile);
+  } catch (_error) {
+    console.warn('⚠️  PW_JWT 未设置，且未能从 .cache/dev.jwt 读取令牌');
+  }
+}
+
+if (playwrightJwt) {
+  process.env.PW_JWT = playwrightJwt;
+} else {
+  delete process.env.PW_JWT;
+}
 
 // 允许通过环境变量跳过 webServer（前端已在本机运行时避免重复启动）
 const SKIP_SERVER = process.env.PW_SKIP_SERVER === '1';
@@ -12,15 +50,17 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 2 : 4,
   reporter: 'html',
-  expect: { timeout: 120_000 },
+  expect: { timeout: 10_000 },
   
   use: {
     baseURL: FRONTEND_URL, // 允许通过 PW_BASE_URL 覆盖
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     // 为所有请求注入认证头（后端强制要求）
     extraHTTPHeaders: {
       'Authorization': process.env.PW_JWT ? `Bearer ${process.env.PW_JWT}` : '',

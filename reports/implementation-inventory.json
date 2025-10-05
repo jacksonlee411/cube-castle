@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-09-30T03:54:56.704Z",
+  "timestamp": "2025-10-04T09:45:59.176Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 12,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 146
+    "tsExports": 166
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -142,42 +142,42 @@
     },
     {
       "name": "CreateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "file": "cmd/organization-command-service/internal/handlers/organization_create.go",
       "kind": "method"
     },
     {
       "name": "CreateOrganizationVersion",
-      "file": "cmd/organization-command-service/internal/handlers/organization.go",
-      "kind": "method"
-    },
-    {
-      "name": "UpdateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization.go",
-      "kind": "method"
-    },
-    {
-      "name": "SuspendOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization.go",
-      "kind": "method"
-    },
-    {
-      "name": "ActivateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "file": "cmd/organization-command-service/internal/handlers/organization_create.go",
       "kind": "method"
     },
     {
       "name": "CreateOrganizationEvent",
-      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "file": "cmd/organization-command-service/internal/handlers/organization_events.go",
       "kind": "method"
     },
     {
       "name": "UpdateHistoryRecord",
-      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "file": "cmd/organization-command-service/internal/handlers/organization_history.go",
       "kind": "method"
     },
     {
       "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/organization.go",
+      "file": "cmd/organization-command-service/internal/handlers/organization_routes.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateOrganization",
+      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
+      "kind": "method"
+    },
+    {
+      "name": "SuspendOrganization",
+      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
+      "kind": "method"
+    },
+    {
+      "name": "ActivateOrganization",
+      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
       "kind": "method"
     }
   ],
@@ -332,6 +332,81 @@
     {
       "name": "LOADING_STATES",
       "file": "frontend/src/features/organizations/constants/tableConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "fetchOrganizationVersions",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
+      "kind": "const"
+    },
+    {
+      "name": "fetchHierarchyPaths",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
+      "kind": "const"
+    },
+    {
+      "name": "deactivateOrganizationVersion",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createOrganizationUnit",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createTemporalVersion",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
+      "kind": "const"
+    },
+    {
+      "name": "updateHistoryRecord",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useTemporalMasterDetail",
+      "file": "frontend/src/features/temporal/components/hooks/useTemporalMasterDetail.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createFormActions",
+      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/formActions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "mapLifecycleStatusToOrganizationStatus",
+      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getCurrentMonthFirstDay",
+      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "computeEditDateRange",
+      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "formatDisplayDate",
+      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "normalizeInitialData",
+      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "deriveCodePath",
+      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "deriveNamePath",
+      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
       "kind": "const"
     },
     {
@@ -840,6 +915,16 @@
       "kind": "const"
     },
     {
+      "name": "isJsonObject",
+      "file": "frontend/src/shared/types/json.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isJsonArray",
+      "file": "frontend/src/shared/types/json.ts",
+      "kind": "const"
+    },
+    {
       "name": "baseColors",
       "file": "frontend/src/shared/utils/colorTokens.ts",
       "kind": "const"
@@ -867,6 +952,21 @@
     {
       "name": "TEMPORAL_UTILS_INFO",
       "file": "frontend/src/shared/utils/index.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createLogger",
+      "file": "frontend/src/shared/utils/logger.ts",
+      "kind": "const"
+    },
+    {
+      "name": "logger",
+      "file": "frontend/src/shared/utils/logger.ts",
+      "kind": "const"
+    },
+    {
+      "name": "ROOT_PARENT_CODE",
+      "file": "frontend/src/shared/utils/organization-helpers.ts",
       "kind": "const"
     },
     {

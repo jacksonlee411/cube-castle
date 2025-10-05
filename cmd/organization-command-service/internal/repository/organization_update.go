@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"organization-command-service/internal/types"
+	"organization-command-service/internal/utils"
 )
 
 func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID, code string, req *types.UpdateOrganizationRequest) (*types.Organization, error) {
@@ -44,11 +45,8 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	}
 
 	if req.ParentCode != nil {
-		trimmed := strings.TrimSpace(*req.ParentCode)
-		var normalizedParent *string
-		if trimmed != "" {
-			normalizedParent = &trimmed
-		}
+		normalizedParent := utils.NormalizeParentCodePointer(req.ParentCode)
+		req.ParentCode = normalizedParent
 
 		fields, err := r.recalculateSelfHierarchy(ctx, tenantID, code, nil, normalizedParent, nameOverride)
 		if err != nil {
@@ -148,11 +146,8 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 	}
 
 	if req.ParentCode != nil {
-		trimmed := strings.TrimSpace(*req.ParentCode)
-		var normalizedParent *string
-		if trimmed != "" {
-			normalizedParent = &trimmed
-		}
+		normalizedParent := utils.NormalizeParentCodePointer(req.ParentCode)
+		req.ParentCode = normalizedParent
 
 		fields, err := r.recalculateSelfHierarchy(ctx, tenantID, "", &recordId, normalizedParent, nameOverride)
 		if err != nil {

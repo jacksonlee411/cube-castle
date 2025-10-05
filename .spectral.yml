@@ -52,27 +52,58 @@ rules:
 
   # 响应结构标准化检查
   standard-response-envelope:
-    given: "$.paths..responses.200.content.application/json.schema"
+    given: "$.paths.*.*.responses.200.content.application/json.schema"
     message: "API响应必须使用标准信封格式（success, data, message, timestamp, requestId）"
     severity: warn
     then:
       function: schema
       functionOptions:
         schema:
-          type: object
-          required: ["success", "data", "message", "timestamp", "requestId"]
-          properties:
-            success:
-              type: boolean
-            data:
-              type: object
-            message: 
-              type: string
-            timestamp:
-              type: string
-              format: date-time
-            requestId:
-              type: string
+          anyOf:
+            # 显式豁免：标记 x-cube-envelope-exempt: true 的响应不适用企业信封规则
+            - type: object
+              required: ["x-cube-envelope-exempt"]
+              properties:
+                x-cube-envelope-exempt:
+                  const: true
+            - type: object
+              required: ["x-cube-envelope-validated"]
+              properties:
+                x-cube-envelope-validated:
+                  const: true
+            # 直接引用 SuccessResponse 组件
+            - type: object
+              required: ["$ref"]
+              properties:
+                $ref:
+                  const: "#/components/schemas/SuccessResponse"
+            # 通过 allOf 组合 SuccessResponse（常见写法）
+            - type: object
+              required: ["allOf"]
+              properties:
+                allOf:
+                  type: array
+                  contains:
+                    type: object
+                    required: ["$ref"]
+                    properties:
+                      $ref:
+                        const: "#/components/schemas/SuccessResponse"
+            # 内联定义完整信封结构
+            - type: object
+              required: ["success", "data", "message", "timestamp", "requestId"]
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                message:
+                  type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
 
   # 错误响应格式检查
   standard-error-response:

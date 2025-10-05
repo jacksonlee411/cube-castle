@@ -55,14 +55,18 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 	}
 
 	// 4. 父组织代码验证（如果提供）
-	if req.ParentCode != nil && *req.ParentCode != "" {
-		if len(*req.ParentCode) < 3 || len(*req.ParentCode) > 10 {
-			return fmt.Errorf("父组织代码格式无效，长度必须在3-10个字符之间")
-		}
-		// 修复：支持数字开头的父组织代码格式，兼容现有数据
-		codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
-		if !codePattern.MatchString(*req.ParentCode) {
-			return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+	if req.ParentCode != nil {
+		normalizedParent := NormalizeParentCodePointer(req.ParentCode)
+		req.ParentCode = normalizedParent
+		if normalizedParent != nil {
+			if len(*normalizedParent) < 3 || len(*normalizedParent) > 10 {
+				return fmt.Errorf("父组织代码格式无效，长度必须在3-10个字符之间")
+			}
+			// 修复：支持数字开头的父组织代码格式，兼容现有数据
+			codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
+			if !codePattern.MatchString(*normalizedParent) {
+				return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+			}
 		}
 	}
 
@@ -119,14 +123,18 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 	}
 
 	// 3. 父组织代码验证
-	if req.ParentCode != nil && *req.ParentCode != "" {
-		if len(*req.ParentCode) < 3 || len(*req.ParentCode) > 10 {
-			return fmt.Errorf("父组织代码格式无效，长度必须在3-10个字符之间")
-		}
-		// 修复：支持数字开头的父组织代码格式，兼容现有数据
-		codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
-		if !codePattern.MatchString(*req.ParentCode) {
-			return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+	if req.ParentCode != nil {
+		normalizedParent := NormalizeParentCodePointer(req.ParentCode)
+		req.ParentCode = normalizedParent
+		if normalizedParent != nil {
+			if len(*normalizedParent) < 3 || len(*normalizedParent) > 10 {
+				return fmt.Errorf("父组织代码格式无效，长度必须在3-10个字符之间")
+			}
+			// 修复：支持数字开头的父组织代码格式，兼容现有数据
+			codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
+			if !codePattern.MatchString(*normalizedParent) {
+				return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+			}
 		}
 	}
 
@@ -252,14 +260,18 @@ func ValidateCreateVersionRequest(req *types.CreateVersionRequest) error {
 	}
 
 	// 3. 父组织代码验证（如果提供）
-	if req.ParentCode != nil && *req.ParentCode != "" {
-		if len(*req.ParentCode) != 7 {
-			return fmt.Errorf("父组织代码长度必须为7个字符")
-		}
-		// 支持数字开头的组织代码格式，兼容现有数据
-		codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
-		if !codePattern.MatchString(*req.ParentCode) {
-			return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+	if req.ParentCode != nil {
+		normalizedParent := NormalizeParentCodePointer(req.ParentCode)
+		req.ParentCode = normalizedParent
+		if normalizedParent != nil {
+			if len(*normalizedParent) != 7 {
+				return fmt.Errorf("父组织代码长度必须为7个字符")
+			}
+			// 支持数字开头的组织代码格式，兼容现有数据
+			codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
+			if !codePattern.MatchString(*normalizedParent) {
+				return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+			}
 		}
 	}
 

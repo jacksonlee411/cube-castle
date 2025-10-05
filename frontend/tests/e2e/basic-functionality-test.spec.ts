@@ -7,9 +7,6 @@ import { test, expect } from '@playwright/test';
 import { validateTestEnvironment } from './config/test-environment';
 import { setupAuth } from './auth-setup';
 
-const hasAuthToken = Boolean(process.env.PW_JWT);
-test.skip(!hasAuthToken, '需要 RS256 JWT 令牌运行受保护路由测试');
-
 let BASE_URL: string;
 
 test.describe('时态管理系统基础功能验证', () => {
@@ -19,13 +16,10 @@ test.describe('时态管理系统基础功能验证', () => {
     const envValidation = await validateTestEnvironment();
     
     if (!envValidation.isValid) {
-      console.error('🚨 测试环境验证失败:');
-      envValidation.errors.forEach(error => console.error(`  - ${error}`));
       throw new Error('测试环境不可用');
     }
     
     BASE_URL = envValidation.frontendUrl;
-    console.log(`✅ 使用前端基址: ${BASE_URL}`);
   });
   
   test.beforeEach(async ({ page }) => {
@@ -66,12 +60,8 @@ test.describe('时态管理系统基础功能验证', () => {
     await page.waitForLoadState('networkidle', { timeout: 15000 });
     
     // 查找表格或数据内容
-    const hasTable = await page.locator('table, .table, [role="table"], .data-table').first().count();
     const hasButtons = await page.locator('button').count();
-    
-    console.log(`找到表格数量: ${hasTable}`);
-    console.log(`找到按钮数量: ${hasButtons}`);
-    
+
     // 验证页面有交互元素
     expect(hasButtons).toBeGreaterThan(0);
     

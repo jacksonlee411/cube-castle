@@ -135,6 +135,24 @@ BEGIN
 END $$;
 
 -- 数据修复（与在线执行版本一致）
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_trigger
+         WHERE tgname = 'audit_changes_trigger'
+           AND tgrelid = 'organization_units'::regclass
+    ) THEN
+        EXECUTE 'ALTER TABLE organization_units DISABLE TRIGGER audit_changes_trigger';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM pg_trigger
+         WHERE tgname = 'trg_prevent_update_deleted'
+           AND tgrelid = 'organization_units'::regclass
+    ) THEN
+        EXECUTE 'ALTER TABLE organization_units DISABLE TRIGGER trg_prevent_update_deleted';
+    END IF;
+END $$;
+
 UPDATE organization_units
    SET is_current = FALSE,
        is_future = FALSE
@@ -161,5 +179,22 @@ UPDATE organization_units c
 
 UPDATE organization_units SET name = name;
 
-ANALYZE organization_units;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_trigger
+         WHERE tgname = 'audit_changes_trigger'
+           AND tgrelid = 'organization_units'::regclass
+    ) THEN
+        EXECUTE 'ALTER TABLE organization_units ENABLE TRIGGER audit_changes_trigger';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM pg_trigger
+         WHERE tgname = 'trg_prevent_update_deleted'
+           AND tgrelid = 'organization_units'::regclass
+    ) THEN
+        EXECUTE 'ALTER TABLE organization_units ENABLE TRIGGER trg_prevent_update_deleted';
+    END IF;
+END $$;
 
+ANALYZE organization_units;

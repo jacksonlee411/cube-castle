@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { setupAuth } from './auth-setup';
-
-const hasAuthToken = Boolean(process.env.PW_JWT);
-test.skip(!hasAuthToken, '需要 RS256 JWT 令牌运行受保护路由测试');
+import { ensurePwJwt } from './utils/authToken';
 
 test.describe('重构后架构完整性验证', () => {
   
@@ -38,8 +36,10 @@ test.describe('重构后架构完整性验证', () => {
   });
 
   test('Phase 1: GraphQL统一查询接口验证', async ({ page }) => {
-    const token = process.env.PW_JWT;
-    test.skip(!token, '缺少 PW_JWT 令牌，无法验证 GraphQL 接口');
+    const token = await ensurePwJwt();
+    if (!token) {
+      throw new Error('无法获取 GraphQL 所需的 RS256 JWT 令牌');
+    }
 
     const tenantId = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
 

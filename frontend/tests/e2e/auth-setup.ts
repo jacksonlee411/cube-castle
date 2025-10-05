@@ -15,16 +15,25 @@
  */
 
 import { Page } from '@playwright/test';
+import { ensurePwJwt, getPwJwt, isJwtNearlyExpired } from './utils/authToken';
 
 export async function setupAuth(page: Page): Promise<void> {
   // 从环境变量获取 JWT token
-  const token = process.env.PW_JWT;
   const tenantId = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
 
-  if (!token) {
-    console.warn('⚠️  PW_JWT 环境变量未设置，测试可能无法访问受保护路由');
-    return;
+  let token = getPwJwt();
+  if (!token || isJwtNearlyExpired(token)) {
+    token = await ensurePwJwt({ tenantId });
   }
+
+  if (!token) {
+    throw new Error('无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev');
+  }
+
+  await page.context().setExtraHTTPHeaders({
+    Authorization: `Bearer ${token}`,
+    'X-Tenant-ID': tenantId,
+  });
 
   // 先导航到基础URL建立上下文,然后注入localStorage
   // 这确保localStorage在正确的域下设置

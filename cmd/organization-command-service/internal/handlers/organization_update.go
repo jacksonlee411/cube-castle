@@ -46,11 +46,9 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	tenantID := h.getTenantID(r)
 	parentProvided := req.ParentCode != nil
 	if parentProvided {
-		trimmed := strings.TrimSpace(*req.ParentCode)
-		if trimmed == "" {
-			req.ParentCode = nil
-		} else {
-			req.ParentCode = &trimmed
+		req.ParentCode = utils.NormalizeParentCodePointer(req.ParentCode)
+		if req.ParentCode != nil {
+			trimmed := *req.ParentCode
 			if trimmed == code {
 				h.logger.Printf("⚠️ circular reference attempt: code=%s parentCode=%s", code, trimmed)
 				h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "父组织不能指向自身", nil)
@@ -321,7 +319,7 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 		}
 	}
 
-	isImmediate := effectiveDate.Before(time.Now().Add(24 * time.Hour))
+	isImmediate := effectiveDate.Before(time.Now().UTC().Add(24 * time.Hour))
 	message := fmt.Sprintf("%s成功（%s生效），时间轴已自动调整", actionName,
 		func() string {
 			if isImmediate {

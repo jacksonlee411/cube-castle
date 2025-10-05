@@ -89,15 +89,18 @@ func (tm *TemporalTimelineManager) RecalculateTimelineInTx(ctx context.Context, 
 		return nil, fmt.Errorf("清除当前状态标记失败: %w", err)
 	}
 
-	today := time.Now().Truncate(24 * time.Hour)
+	today := time.Now().UTC().Truncate(24 * time.Hour)
 	var currentVersionRecordID *uuid.UUID
-	var latestEffectiveDate *time.Time
+	var latestEffectiveDate time.Time
+	var hasLatest bool
 
 	for i := range versions {
+		effectiveUTC := versions[i].EffectiveDate.In(time.UTC)
+		versions[i].EffectiveDate = effectiveUTC
 		var endDate *time.Time
 		if i < len(versions)-1 {
-			nextEffectiveDate := versions[i+1].EffectiveDate
-			calculatedEnd := nextEffectiveDate.AddDate(0, 0, -1)
+			nextEffectiveDateUTC := versions[i+1].EffectiveDate.In(time.UTC)
+			calculatedEnd := nextEffectiveDateUTC.AddDate(0, 0, -1)
 			endDate = &calculatedEnd
 		}
 
@@ -113,10 +116,11 @@ func (tm *TemporalTimelineManager) RecalculateTimelineInTx(ctx context.Context, 
 		versions[i].EndDate = endDate
 
 		if !versions[i].EffectiveDate.After(today) {
-			if latestEffectiveDate == nil || versions[i].EffectiveDate.After(*latestEffectiveDate) {
-				latestEffectiveDate = &versions[i].EffectiveDate
+			if !hasLatest || versions[i].EffectiveDate.After(latestEffectiveDate) {
+				latestEffectiveDate = versions[i].EffectiveDate
 				recordID := versions[i].RecordID
 				currentVersionRecordID = &recordID
+				hasLatest = true
 			}
 		}
 	}

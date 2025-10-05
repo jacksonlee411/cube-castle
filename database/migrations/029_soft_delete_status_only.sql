@@ -97,19 +97,15 @@ AS $$
 BEGIN
     IF NEW.status = 'DELETED' THEN
         NEW.is_current := FALSE;
-        NEW.is_future := FALSE;
         RETURN NEW;
     END IF;
 
     IF NEW.effective_date > CURRENT_DATE THEN
         NEW.is_current := FALSE;
-        NEW.is_future := TRUE;
     ELSIF NEW.end_date IS NOT NULL AND NEW.end_date <= CURRENT_DATE THEN
         NEW.is_current := FALSE;
-        NEW.is_future := FALSE;
     ELSE
         NEW.is_current := TRUE;
-        NEW.is_future := FALSE;
     END IF;
     RETURN NEW;
 END;

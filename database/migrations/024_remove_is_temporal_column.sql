@@ -9,6 +9,9 @@ BEGIN
   IF EXISTS (SELECT 1 FROM pg_views WHERE viewname = 'organization_temporal_current') THEN
     EXECUTE 'DROP VIEW organization_temporal_current';
   END IF;
+  IF EXISTS (SELECT 1 FROM pg_views WHERE viewname = 'temporal_performance_stats') THEN
+    EXECUTE 'DROP VIEW temporal_performance_stats';
+  END IF;
 END$$;
 
 -- Drop indexes on organization_units that reference is_temporal
@@ -32,5 +35,31 @@ ALTER TABLE organization_units
 -- Recreate simplified view without is_temporal (select current records)
 CREATE OR REPLACE VIEW organization_temporal_current AS
   SELECT * FROM organization_units WHERE is_current = true;
+
+CREATE OR REPLACE VIEW temporal_performance_stats AS
+SELECT 
+    'current_temporal_orgs' AS metric,
+    COUNT(*) AS value,
+    NOW() AS collected_at
+FROM organization_units 
+WHERE is_current = TRUE
+  AND (end_date IS NULL OR end_date > NOW())
+
+UNION ALL
+
+SELECT 
+    'total_versions' AS metric,
+    COUNT(*) AS value,
+    NOW() AS collected_at
+FROM organization_unit_versions
+
+UNION ALL
+
+SELECT 
+    'timeline_events_last_30d' AS metric,
+    COUNT(*) AS value,
+    NOW() AS collected_at
+FROM organization_timeline_events 
+WHERE event_date >= NOW() - INTERVAL '30 days';
 
 COMMIT;

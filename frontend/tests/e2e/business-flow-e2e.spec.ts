@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { setupAuth } from './auth-setup';
 
-const hasAuthToken = Boolean(process.env.PW_JWT);
-test.skip(!hasAuthToken, '需要 RS256 JWT 令牌运行受保护路由测试');
+const ROOT_PARENT_CODE = '1000000';
 
 test.describe('业务流程端到端测试', () => {
 
@@ -41,6 +40,19 @@ test.describe('业务流程端到端测试', () => {
       await page.getByTestId('form-field-effective-date').fill(today);
       await page.getByTestId('form-field-name').fill(baseName);
       await page.getByTestId('form-field-description').fill(`自动化创建 ${baseName}`);
+
+      const parentSelector = page.getByTestId('combobox-input');
+      await parentSelector.click();
+
+      const parentMenu = page.getByTestId('combobox-menu');
+      await expect(parentMenu).toBeVisible({ timeout: 10000 });
+
+      const parentOption = page.getByTestId(`combobox-item-${ROOT_PARENT_CODE}`);
+      await parentOption.waitFor({ state: 'visible', timeout: 10000 });
+      await parentOption.click();
+
+      await expect(parentSelector).toHaveValue(new RegExp(`^${ROOT_PARENT_CODE}`));
+
       await page.getByTestId('form-submit-button').click();
 
       await page.waitForURL(/\/organizations\/[0-9]{7}\/temporal$/);
@@ -256,16 +268,19 @@ test.describe('业务流程端到端测试', () => {
     // 2. 测试重试机制
     await page.unroute('**/graphql');
     
-    const retryButton = page.getByRole('button', { name: '重试' }).or(
-      page.getByText('重试')
-    );
-    
-    if (await retryButton.isVisible()) {
-      await retryButton.click();
-      
-      // 验证恢复后正常显示
-      await expect(page.getByText('组织架构管理')).toBeVisible();
+    const treeRetryButton = page.getByTestId('organization-tree-retry-button');
+    const reloadButton = page.getByRole('button', { name: /重新加载|重试/ });
+
+    if (await treeRetryButton.isVisible()) {
+      await treeRetryButton.click();
+    } else {
+      await reloadButton.waitFor({ state: 'visible', timeout: 15000 });
+      await reloadButton.click();
+      await page.waitForLoadState('load');
     }
+
+    // 验证恢复后正常显示
+    await expect(page.getByText('组织架构管理')).toBeVisible();
   });
 
   test('数据一致性验证测试', async ({ page }) => {

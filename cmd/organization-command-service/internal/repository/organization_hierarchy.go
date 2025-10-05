@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"organization-command-service/internal/utils"
 )
 
 type hierarchyFields struct {
@@ -100,7 +101,7 @@ func (r *OrganizationRepository) calculateHierarchyFields(ctx context.Context, t
 	}
 
 	trimmedParent := strings.TrimSpace(*parentCode)
-	if trimmedParent == "" {
+	if trimmedParent == "" || trimmedParent == utils.RootParentCode {
 		fields.Level = 1
 		fields.Path = ensureJoinedPath("", code)
 		fields.CodePath = fields.Path

@@ -31,3 +31,8 @@ jobs:
         shell: bash
         run: |
           node scripts/quality/architecture-validator.js --scope frontend
+
+      - name: Verify ESLint camelcase exceptions include reasons
+        shell: bash
+        run: |
+          node scripts/quality/architecture-validator.js --scope frontend --rule eslint-exception-comment

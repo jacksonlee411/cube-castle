@@ -4,6 +4,8 @@
  * 基于项目配置管理原则
  */
 
+import { logger } from '@/shared/utils/logger';
+
 export interface EnvironmentConfig {
   // API端点配置
   apiBaseUrl: string;

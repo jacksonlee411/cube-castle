@@ -112,6 +112,9 @@ export class AuthManager {
    * 获取有效的访问令牌
    */
   async getAccessToken(): Promise<string> {
+    if (!this.token) {
+      this.loadTokenFromStorage();
+    }
     await this.ensureRS256();
 
     // 检查缓存token是否有效，且必须为RS256
@@ -394,6 +397,9 @@ export class AuthManager {
    * 获取当前认证状态
    */
   isAuthenticated(): boolean {
+    if (!this.token) {
+      this.loadTokenFromStorage();
+    }
     return this.token !== null && this.isTokenValid(this.token);
   }
 

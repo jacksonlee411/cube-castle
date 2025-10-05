@@ -428,6 +428,7 @@ paths:
           content:
             application/json:
               schema:
+                x-cube-envelope-exempt: true
                 type: object
                 required: [issuer, authorizationEndpoint, tokenEndpoint]
                 properties:
@@ -485,6 +486,7 @@ paths:
           content:
             application/json:
               schema:
+                x-cube-envelope-exempt: true
                 type: object
         '404':
           description: Not available
@@ -555,7 +557,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                x-cube-envelope-validated: true
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrganizationUnit'
               examples:
                 success_creation:
                   summary: Successful Creation
@@ -571,6 +579,7 @@ paths:
                       status: "ACTIVE"
                       deletedAt: null
                       level: 2
+                      hierarchyDepth: 2
                       codePath: "/1000000/1000008"
                       namePath: "/高谷集团/技术部"
                       sortOrder: 0
@@ -874,10 +883,25 @@ paths:
           content:
             application/json:
               schema:
+                x-cube-envelope-validated: true
                 allOf:
                   - $ref: '#/components/schemas/SuccessResponse'
                   - type: object
+                    required: [success, data, message, timestamp, requestId]
                     properties:
+                      success:
+                        type: boolean
+                        description: Indicates operation success (always true when HTTP 200 returned)
+                      message:
+                        type: string
+                        description: Human-readable operation message
+                      timestamp:
+                        type: string
+                        format: date-time
+                        description: Response timestamp in ISO 8601 format
+                      requestId:
+                        type: string
+                        description: Request identifier for tracing
                       data:
                         type: object
                         properties:
@@ -1100,10 +1124,21 @@ paths:
           content:
             application/json:
               schema:
+                x-cube-envelope-validated: true
                 allOf:
                   - $ref: '#/components/schemas/SuccessResponse'
                   - type: object
+                    required: [success, data, message, timestamp, requestId]
                     properties:
+                      success:
+                        type: boolean
+                      message:
+                        type: string
+                      timestamp:
+                        type: string
+                        format: date-time
+                      requestId:
+                        type: string
                       data:
                         type: object
                         properties:
@@ -1252,10 +1287,21 @@ paths:
           content:
             application/json:
               schema:
+                x-cube-envelope-validated: true
                 allOf:
                   - $ref: '#/components/schemas/SuccessResponse'
                   - type: object
+                    required: [success, data, message, timestamp, requestId]
                     properties:
+                      success:
+                        type: boolean
+                      message:
+                        type: string
+                      timestamp:
+                        type: string
+                        format: date-time
+                      requestId:
+                        type: string
                       data:
                         type: object
                         properties:
@@ -1368,7 +1414,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationResult'
+                x-cube-envelope-validated: true
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    required: [success, data, message, timestamp, requestId]
+                    properties:
+                      success:
+                        type: boolean
+                      message:
+                        type: string
+                      timestamp:
+                        type: string
+                        format: date-time
+                      requestId:
+                        type: string
+                      data:
+                        $ref: '#/components/schemas/ValidationResult'
               examples:
                 validation_success:
                   summary: Validation Passed
@@ -1902,80 +1964,6 @@ components:
         Standard operator information structure used across all endpoints.
         Provides both machine-readable ID and human-readable name for audit trails.
 
-    AnalysisType:
-      type: string
-      enum:
-        - SUMMARY
-        - DETAILED
-      description: |
-        Analysis depth for change analysis queries:
-        - **SUMMARY**: High-level summary analysis
-        - **DETAILED**: Detailed field-by-field analysis with impact assessment
-      default: "SUMMARY"
-      example: "DETAILED"
-
-    ConsistencyCheckMode:
-      type: string
-      enum:
-        - FAST
-        - DEEP
-        - TARGETED
-      description: |
-        Consistency check modes with different performance characteristics:
-        - **FAST**: Cache field consistency only (< 5s)
-        - **DEEP**: Full recursive validation (30s-5min data dependent)
-        - **TARGETED**: Specific area focus validation (< 30s)
-      default: "FAST"
-      example: "DEEP"
-
-    SearchField:
-      type: string
-      enum:
-        - NAME
-        - DESCRIPTION
-        - CODE_PATH
-        - NAME_PATH
-      description: |
-        Search fields for text-based filtering:
-        - **NAME**: Search in organization name
-        - **DESCRIPTION**: Search in description field
-        - **CODE_PATH**: Search in hierarchy code path
-        - **NAME_PATH**: Search in hierarchy name path
-      example: "NAME"
-
-    SortField:
-      type: string
-      enum:
-        - CODE
-        - NAME
-        - CREATED_AT
-        - UPDATED_AT
-        - EFFECTIVE_DATE
-        - LEVEL
-        - SORT_ORDER
-      description: |
-        Sorting field options:
-        - **CODE**: Sort by organization code
-        - **NAME**: Sort by organization name
-        - **CREATED_AT**: Sort by creation timestamp
-        - **UPDATED_AT**: Sort by last update timestamp
-        - **EFFECTIVE_DATE**: Sort by effective date
-        - **LEVEL**: Sort by hierarchy level
-        - **SORT_ORDER**: Sort by sort order value
-      example: "NAME"
-
-    SortOrder:
-      type: string
-      enum:
-        - ASC
-        - DESC
-      description: |
-        Sorting order options:
-        - **ASC**: Ascending order (A-Z, 0-9, oldest first)
-        - **DESC**: Descending order (Z-A, 9-0, newest first)
-      default: "ASC"
-      example: "DESC"
-
     CreateOrganizationUnitRequest:
       type: object
       required:
@@ -2134,41 +2122,6 @@ components:
           description: Optional reason for the operation; omitted values are recorded as empty
           example: "组织架构全面重构"
 
-    UpdateOrganizationUnitRequest:
-      type: object
-      description: |
-        Partial update request. Only provided fields are modified, others remain unchanged.
-        **Cannot be used to change status** - use dedicated suspend/activate endpoints.
-      properties:
-        name:
-          type: string
-          maxLength: 255
-          example: "技术研发部"
-        description:
-          type: string
-          maxLength: 1000
-          nullable: true
-          example: "负责产品研发、技术创新和系统架构设计"
-        sortOrder:
-          type: integer
-          example: 0
-        profile:
-          type: object
-          description: Partial profile updates (merged with existing)
-          example:
-            budget: 6000000
-            headCountLimit: 60
-        effectiveDate:
-          type: string
-          format: date
-          description: Update effective date
-          example: "2025-08-23"
-        operationReason:
-          type: string
-          maxLength: 500
-          description: Optional reason for update; when omitted no textual reason is stored
-          example: "预算调整和人员编制优化"
-
     SuspendOrganizationRequest:
       type: object
       required:
@@ -2313,6 +2266,7 @@ components:
               enum: [PASS, FAIL]
 
     SuccessResponse:
+      x-cube-envelope-validated: true
       type: object
       description: |
         Unified enterprise envelope for successful responses.

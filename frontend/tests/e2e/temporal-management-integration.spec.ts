@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
+import { ensurePwJwt, getPwJwt } from './utils/authToken';
 
 const MOCK_MODE_ENV = process.env.E2E_MOCK_MODE === 'true';
 let USE_MOCK_MODE = MOCK_MODE_ENV;
@@ -11,7 +12,6 @@ const COMMAND_API_URL = E2E_CONFIG.COMMAND_API_URL;
 const GRAPHQL_API_URL = E2E_CONFIG.GRAPHQL_API_URL;
 const GRAPHQL_HEADERS = { 'Content-Type': 'application/json' } as const;
 const TEST_ORG_CODE = process.env.E2E_ORG_CODE || '1000056';
-const HAS_AUTH_TOKEN = Boolean(process.env.PW_JWT);
 
 const ORGANIZATION_VERSIONS_QUERY = `
   query OrganizationVersions($code: String!) {
@@ -110,12 +110,17 @@ function isMockMode(): boolean {
 }
 
 async function ensureAuthentication(page: Page) {
-  if (!HAS_AUTH_TOKEN) {
-    return;
+  let accessToken = getPwJwt();
+  if (!accessToken) {
+    accessToken = await ensurePwJwt() ?? null;
+  }
+
+  if (!accessToken) {
+    throw new Error('无法获取 RS256 JWT 令牌，无法进行集成测试');
   }
 
   const payload = {
-    accessToken: process.env.PW_JWT as string,
+    accessToken,
     tokenType: 'Bearer',
     expiresIn: 3600,
     issuedAt: Date.now(),
@@ -239,7 +244,7 @@ test.describe('时态管理系统集成测试', () => {
   });
 
   test.describe('UI 场景 (需认证)', () => {
-    test.skip(!HAS_AUTH_TOKEN || isMockMode(), '缺少 PW_JWT 或 Mock 模式下跳过 UI 场景');
+    test.skip(isMockMode(), 'Mock 模式下跳过 UI 场景');
 
     test('组织列表可导航至组织详情页面', async ({ page }) => {
       await ensureAuthentication(page);

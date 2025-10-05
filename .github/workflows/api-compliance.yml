@@ -15,6 +15,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0  # 获取完整历史用于diff检查
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 安装API合规性依赖
+        run: npm ci
         
       - name: 安装依赖工具
         run: |
@@ -90,6 +99,9 @@ jobs:
           
           echo "✅ 权限-端点对齐验证通过"
 
+      - name: Spectral OpenAPI 契约校验
+        run: npm run lint:api
+
       - name: 检查响应结构一致性
         run: |
           echo "🔍 检查API响应结构一致性..."
@@ -131,7 +143,8 @@ jobs:
           **分支**: $GITHUB_REF_NAME
           
           ## 检查结果
-          
+
+          ✅ **Spectral 契约校验**: docs/api/openapi.yaml 规则扫描完成（详见工作流日志）
           ✅ **禁用端点扫描**: 未发现 /reactivate 或 org:reactivate 残留
           ✅ **权限对齐验证**: activate/suspend 端点权限配置正确
           ✅ **响应结构检查**: API响应使用标准信封格式

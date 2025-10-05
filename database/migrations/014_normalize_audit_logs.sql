@@ -40,9 +40,8 @@ DO $$ BEGIN
    WHERE c.relname = 'idx_audit_logs_record_id_time'
      AND n.nspname = 'public';
   IF NOT FOUND THEN
-    EXECUTE 'CREATE INDEX idx_audit_logs_record_id_time ON audit_logs (record_id, operation_timestamp DESC)';
+    EXECUTE 'CREATE INDEX idx_audit_logs_record_id_time ON audit_logs (record_id, "timestamp" DESC)';
   END IF;
 END $$;
 
 COMMIT;
-

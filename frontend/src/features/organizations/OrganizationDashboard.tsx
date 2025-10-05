@@ -111,29 +111,84 @@ export const OrganizationDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   // 简化的filter状态管理
-  const [filters, setFilters] = React.useState({ 
+  const [filters, setFilters] = React.useState({
     searchText: '',
     unitType: undefined as string | undefined,
     status: undefined as string | undefined,
     level: undefined as number | undefined,
-    page: 1, 
-    pageSize: 50 
+    page: 1,
+    pageSize: 50,
   });
-  const isFiltered = false;
-  const resetFilters = () => setFilters({ 
-    searchText: '',
-    unitType: undefined,
-    status: undefined,
-    level: undefined,
-    page: 1, 
-    pageSize: 50 
-  });
-  const handlePageChange = (page: number) => setFilters(prev => ({ ...prev, page }));
+
+  const pageSize = filters.pageSize || 50;
+
+  const isFiltered = Boolean(
+    filters.searchText?.trim() ||
+    filters.unitType ||
+    filters.status ||
+    filters.level !== undefined,
+  );
+
+  const resetFilters = () =>
+    setFilters({
+      searchText: '',
+      unitType: undefined,
+      status: undefined,
+      level: undefined,
+      page: 1,
+      pageSize: 50,
+    });
+
+  const handlePageChange = (page: number) =>
+    setFilters(prev => ({ ...prev, page }));
 
   // 组织数据查询
   const { organizations, loading: isLoading, error } = useEnterpriseOrganizations();
-  // useEnterpriseOrganizations 已返回 organizations 数组
-  const totalCount = organizations.length; // 使用数组长度作为总数
+
+  const filteredOrganizations = React.useMemo(() => {
+    return organizations.filter(org => {
+      if (filters.searchText?.trim()) {
+        const keyword = filters.searchText.trim().toLowerCase();
+        const nameMatch = org.name.toLowerCase().includes(keyword);
+        const codeMatch = org.code.toLowerCase().includes(keyword);
+        if (!nameMatch && !codeMatch) {
+          return false;
+        }
+      }
+
+      if (filters.unitType && org.unitType !== filters.unitType) {
+        return false;
+      }
+
+      if (filters.status && org.status !== filters.status) {
+        return false;
+      }
+
+      if (typeof filters.level === 'number' && org.level !== filters.level) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [organizations, filters.searchText, filters.unitType, filters.status, filters.level]);
+
+  const totalCount = filteredOrganizations.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(filters.page, totalPages);
+
+  React.useEffect(() => {
+    if (filters.page > totalPages) {
+      setFilters(prev => ({ ...prev, page: totalPages }));
+    }
+  }, [filters.page, totalPages]);
+
+  const paginatedOrganizations = React.useMemo(() => {
+    if (totalCount === 0) {
+      return [];
+    }
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredOrganizations.slice(startIndex, startIndex + pageSize);
+  }, [filteredOrganizations, currentPage, pageSize, totalCount]);
 
   // 组织操作(暂时简化)
   const selectedOrg: OrganizationUnit | undefined = undefined;
@@ -165,7 +220,7 @@ export const OrganizationDashboard: React.FC = () => {
 
   // 🔧 修复: 保持界面结构完整性，不因错误而隐藏所有UI组件
 
-  const hasOrganizations = organizations && organizations.length > 0;
+  const hasOrganizations = totalCount > 0;
 
   return (
     <Box data-testid="organization-dashboard">
@@ -231,16 +286,16 @@ export const OrganizationDashboard: React.FC = () => {
           ) : hasOrganizations ? (
             <>
               <OrganizationTable
-                organizations={organizations}
+                organizations={paginatedOrganizations}
                 onTemporalManage={handleTemporalManage} // 组织详情导航
                 temporalMode={temporalMode}
                 isHistorical={isHistorical}
               />
               
               <PaginationControls
-                currentPage={filters.page}
+                currentPage={currentPage}
                 totalCount={totalCount}
-                pageSize={filters.pageSize}
+                pageSize={pageSize}
                 onPageChange={handlePageChange}
                 disabled={isFetching || temporalLoading.organizations}
               />

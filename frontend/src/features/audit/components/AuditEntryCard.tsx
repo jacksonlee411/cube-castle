@@ -11,7 +11,8 @@ import {
 } from '@workday/canvas-system-icons-web';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
 import type { JsonObject } from '@/shared/types/json';
-import { FieldChangeTable, FieldChange } from './FieldChangeTable';
+import { FieldChangeTable } from './FieldChangeTable';
+import type { FieldChange } from './FieldChangeTable';
 
 // ✅ P2修复: 移除缺失的audit.ts类型依赖，定义本地类型
 export interface AuditTimelineEntry {

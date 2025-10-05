@@ -36,6 +36,8 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 		Status        string
 		Level         int
 		Path          string
+		CodePath      string
+		NamePath      string
 		SortOrder     int
 		Description   string
 		EffectiveDate time.Time
@@ -46,8 +48,8 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	}
 
 	row := tx.QueryRowContext(ctx, `
-		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, level, path, 
-		       sort_order, description, effective_date, is_current, change_reason, 
+		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, level, path,
+		       code_path, name_path, sort_order, description, effective_date, is_current, change_reason,
 		       created_at, updated_at
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2 AND is_current = true 
@@ -56,7 +58,8 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 
 	if err := row.Scan(
 		&currentOrg.RecordID, &currentOrg.TenantID, &currentOrg.Code, &currentOrg.ParentCode, &currentOrg.Name,
-		&currentOrg.UnitType, &currentOrg.Status, &currentOrg.Level, &currentOrg.Path, &currentOrg.SortOrder,
+		&currentOrg.UnitType, &currentOrg.Status, &currentOrg.Level, &currentOrg.Path, &currentOrg.CodePath,
+		&currentOrg.NamePath, &currentOrg.SortOrder,
 		&currentOrg.Description, &currentOrg.EffectiveDate, &currentOrg.IsCurrent,
 		&currentOrg.ChangeReason, &currentOrg.CreatedAt, &currentOrg.UpdatedAt,
 	); err != nil {
@@ -77,28 +80,29 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2 AND effective_date = $3 
 		  AND status != 'DELETED'`
-	if err := tx.QueryRowContext(ctx, conflictQuery, tenantID, code, effectiveDate).Scan(&conflictCount); err != nil {
+	effectiveDateUTC := effectiveDate.In(time.UTC)
+	if err := tx.QueryRowContext(ctx, conflictQuery, tenantID, code, effectiveDateUTC).Scan(&conflictCount); err != nil {
 		return nil, fmt.Errorf("冲突校验查询失败: %w", err)
 	}
 	if conflictCount > 0 {
-		return nil, fmt.Errorf("TEMPORAL_POINT_CONFLICT: 生效日期 %s 与现有版本冲突", effectiveDate.Format("2006-01-02"))
+		return nil, fmt.Errorf("TEMPORAL_POINT_CONFLICT: 生效日期 %s 与现有版本冲突", effectiveDateUTC.Format("2006-01-02"))
 	}
 
-	now := time.Now()
+	nowUTC := time.Now().UTC()
 	newRecordID := uuid.New()
-	isFuture := effectiveDate.After(now.Truncate(24 * time.Hour))
+	isFuture := effectiveDateUTC.After(nowUTC.Truncate(24 * time.Hour))
 
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO organization_units (
 			record_id, tenant_id, code, parent_code, name, unit_type, status,
-			level, path, sort_order, description, effective_date, end_date,
+			level, path, code_path, name_path, sort_order, description, effective_date, end_date,
 			is_current, change_reason, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NULL,
-			false, $13, $14, $14
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NULL,
+			false, $15, $16, $16
 		)`, newRecordID, currentOrg.TenantID, currentOrg.Code, currentOrg.ParentCode, currentOrg.Name,
-		currentOrg.UnitType, newStatus, currentOrg.Level, currentOrg.Path, currentOrg.SortOrder,
-		currentOrg.Description, effectiveDate, operationReason, now, now); err != nil {
+		currentOrg.UnitType, newStatus, currentOrg.Level, currentOrg.Path, currentOrg.CodePath, currentOrg.NamePath,
+		currentOrg.SortOrder, currentOrg.Description, effectiveDateUTC, operationReason, nowUTC); err != nil {
 		return nil, fmt.Errorf("插入%s版本失败: %w", operationType, err)
 	}
 
@@ -117,7 +121,7 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	}
 
 	if isFuture {
-		tm.logger.Printf("✅ 组织%s成功（计划生效）: %s → %s, 生效日期=%s", action, code, newStatus, effectiveDate.Format("2006-01-02"))
+		tm.logger.Printf("✅ 组织%s成功（计划生效）: %s → %s, 生效日期=%s", action, code, newStatus, effectiveDateUTC.Format("2006-01-02"))
 	} else {
 		tm.logger.Printf("✅ 组织%s成功（即时生效）: %s → %s, 时间轴已重算", action, code, newStatus)
 	}

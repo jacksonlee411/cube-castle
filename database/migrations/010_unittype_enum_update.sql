@@ -49,7 +49,7 @@ SELECT
     COUNT(CASE WHEN is_current = true THEN 1 END) as current_count,
     COUNT(CASE WHEN is_current = false THEN 1 END) as historical_count
 FROM organization_units 
-WHERE is_deleted = false
+WHERE deleted_at IS NULL
 GROUP BY tenant_id, unit_type;
 
 COMMIT;

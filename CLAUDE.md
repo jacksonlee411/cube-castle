@@ -42,7 +42,9 @@
   - `docs/README.md`（Reference vs Plans 导航与边界）
   - `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`
 - 开发工具文档：`docs/development-tools/`
+  - Playwright & E2E 指南：`docs/development-tools/e2e-testing-guide.md`
 - 计划与进展（易变）：`docs/development-plans/`（完成项归档至 `docs/archive/`）
+  - Plan 18: E2E 测试完善计划 — `docs/development-plans/18-e2e-test-improvement-plan.md`
 - 版本变更记录：`CHANGELOG.md`
 
 —

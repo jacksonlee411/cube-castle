@@ -6,24 +6,24 @@
 -- =============================================
 
 -- 1. 时点唯一约束 (tenant_id, code, effective_date)
-CREATE UNIQUE INDEX IF NOT EXISTS uk_org_temporal_point 
+CREATE UNIQUE INDEX IF NOT EXISTS uk_org_temporal_point
 ON organization_units(tenant_id, code, effective_date)
-WHERE status != 'DELETED' AND deleted_at IS NULL;
+WHERE status != 'DELETED';
 
--- 2. 当前唯一约束 (tenant_id, code) WHERE is_current = true  
-CREATE UNIQUE INDEX IF NOT EXISTS uk_org_current 
-ON organization_units(tenant_id, code) 
-WHERE is_current = true AND status != 'DELETED' AND deleted_at IS NULL;
+-- 2. 当前唯一约束 (tenant_id, code) WHERE is_current = true
+CREATE UNIQUE INDEX IF NOT EXISTS uk_org_current
+ON organization_units(tenant_id, code)
+WHERE is_current = true AND status != 'DELETED';
 
 -- 3. 时态查询性能索引 (tenant_id, code, effective_date DESC)
-CREATE INDEX IF NOT EXISTS ix_org_temporal_query 
+CREATE INDEX IF NOT EXISTS ix_org_temporal_query
 ON organization_units(tenant_id, code, effective_date DESC)
-WHERE status != 'DELETED' AND deleted_at IS NULL;
+WHERE status != 'DELETED';
 
 -- 4. 相邻版本锁定查询优化索引 (用于 FOR UPDATE)
-CREATE INDEX IF NOT EXISTS ix_org_adjacent_versions 
+CREATE INDEX IF NOT EXISTS ix_org_adjacent_versions
 ON organization_units(tenant_id, code, effective_date, record_id)
-WHERE status != 'DELETED' AND deleted_at IS NULL;
+WHERE status != 'DELETED';
 
 -- =============================================  
 -- 性能优化索引
@@ -32,17 +32,17 @@ WHERE status != 'DELETED' AND deleted_at IS NULL;
 -- 5. 当前态高频查询索引
 CREATE INDEX IF NOT EXISTS ix_org_current_lookup
 ON organization_units(tenant_id, code, is_current)
-WHERE is_current = true AND status != 'DELETED' AND deleted_at IS NULL;
+WHERE is_current = true AND status != 'DELETED';
 
 -- 6. 时态边界查询索引 (effective_date, end_date)
 CREATE INDEX IF NOT EXISTS ix_org_temporal_boundaries
 ON organization_units(code, effective_date, end_date, is_current)
-WHERE status != 'DELETED' AND deleted_at IS NULL;
+WHERE status != 'DELETED';
 
 -- 7. 日切任务专用索引 (昨天结束/今天生效的记录) - 移除CURRENT_DATE条件
 CREATE INDEX IF NOT EXISTS ix_org_daily_transition
 ON organization_units(effective_date, end_date, is_current)
-WHERE status != 'DELETED' AND deleted_at IS NULL;
+WHERE status != 'DELETED';
 
 -- =============================================
 -- 数据完整性检查函数
@@ -62,14 +62,14 @@ BEGIN
     -- 检查区间重叠
     RETURN QUERY
     WITH ordered_versions AS (
-        SELECT 
+        SELECT
             effective_date,
             end_date,
             ROW_NUMBER() OVER (ORDER BY effective_date) as rn
-        FROM organization_units 
-        WHERE tenant_id = p_tenant_id 
-          AND code = p_code 
-          AND status != 'DELETED' AND deleted_at IS NULL
+        FROM organization_units
+        WHERE tenant_id = p_tenant_id
+          AND code = p_code
+          AND status != 'DELETED'
         ORDER BY effective_date
     ),
     version_overlaps AS (
@@ -93,14 +93,14 @@ BEGIN
     -- 检查断档
     RETURN QUERY
     WITH ordered_versions AS (
-        SELECT 
+        SELECT
             effective_date,
             end_date,
             ROW_NUMBER() OVER (ORDER BY effective_date) as rn
-        FROM organization_units 
-        WHERE tenant_id = p_tenant_id 
-          AND code = p_code 
-          AND status != 'DELETED' AND deleted_at IS NULL
+        FROM organization_units
+        WHERE tenant_id = p_tenant_id
+          AND code = p_code
+          AND status != 'DELETED'
         ORDER BY effective_date
     ),
     gaps AS (

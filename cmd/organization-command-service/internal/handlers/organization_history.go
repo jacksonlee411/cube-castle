@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -40,12 +39,7 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 	tenantID := h.getTenantID(r)
 	parentProvided := req.ParentCode != nil
 	if parentProvided {
-		trimmed := strings.TrimSpace(*req.ParentCode)
-		if trimmed == "" {
-			req.ParentCode = nil
-		} else {
-			req.ParentCode = &trimmed
-		}
+		req.ParentCode = utils.NormalizeParentCodePointer(req.ParentCode)
 	}
 
 	// 先获取当前记录数据用于审计日志

@@ -127,6 +127,25 @@ make dev-kill
 - 报告产物：frontend/playwright-report/index.html 已生成（641KB），test-results 包含完整诊断资产
 ```
 
+### 4.1.2 Phase 1.3 自动化复测（2025-10-05 11:32）
+
+```markdown
+执行时间：2025-10-05 11:20-11:33（耗时约 13 分钟）
+总体结论： ☑ ⚠️ 部分通过（创建流程恢复正常，错误恢复剧本待跟进）
+
+要点：
+- 迁移：`database/migrations/008–031` 幂等执行，无错误；新增 031 清理 legacy 触发器。
+- 健康检查：9090 / 8090 服务均返回 HTTP 200。
+- JWT：脚本自动生成 `.cache/dev.jwt`，Header.alg=RS256。
+- Playwright：10 场景共 9 通过 / 1 失败。
+  - ✅ “完整 CRUD” 流程（Chromium/Firefox）— 请求返回 201，页面成功跳转。
+  - ⚠️ Firefox “错误处理与恢复” — `getByRole('button', { name: '重试' })` 超时，页面未显示重试按钮（日志：`plan18-business-flow-20251005T113248.log`）。
+- 产物：
+  - `reports/iig-guardian/plan18-migration-20251005T113248.log`
+  - `reports/iig-guardian/plan18-business-flow-20251005T113248.log`
+  - `reports/iig-guardian/plan18-phase1.3-validation-20251005.md`
+```
+
 ### 4.2 发现的问题与处理（第二次验证）
 
 | 问题描述 | 影响范围 | 处理措施 | 状态 |
@@ -199,6 +218,16 @@ make dev-kill
 - ✅ 问题诊断准确（失败模式符合预期）
 - ✅ 修复目标明确（有完整的失败证据支持）
 
+### 5.2 Phase 1.3 复测补充结论（2025-10-05）
+
+```markdown
+☑ ⚠️ 环境稳定，剩余待办集中在 Firefox 错误恢复剧本。
+
+补充说明：
+- 创建/更新/删除流程已恢复，命令服务不再返回 CREATE_ERROR。
+- 需协调前端确认“重试”按钮展示或更新测试脚本预期；处理完毕后再次运行脚本以追踪 10/10 绿灯。
+```
+
 结论：本地环境已完全具备Phase 1任务执行条件，**建议立即启动**。
 ```
 
@@ -236,4 +265,3 @@ make dev-kill
 **报告状态**：✅ 已完成
 **验证负责人**：Claude Code（开发团队）
 **验证结论**：⚠️ 部分通过，建议启动 Phase 1
-

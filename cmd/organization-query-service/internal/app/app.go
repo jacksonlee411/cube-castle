@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -23,6 +24,8 @@ import (
 	"github.com/go-chi/cors"
 	graphqlgo "github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -31,6 +34,30 @@ type Application struct {
 	db          *sql.DB
 	redisClient *redis.Client
 	server      *http.Server
+}
+
+var (
+	httpRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total HTTP requests handled by the PostgreSQL GraphQL service.",
+		},
+		[]string{"method", "path", "status"},
+	)
+	organizationOperationsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "organization_operations_total",
+			Help: "Count of organization operations processed via GraphQL endpoints.",
+		},
+		[]string{"operation"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(organizationOperationsTotal)
+	// 预注册GraphQL请求标签，确保指标在无流量时也可见
+	organizationOperationsTotal.WithLabelValues("graphql_query").Add(0)
 }
 
 func Run() error {
@@ -196,10 +223,15 @@ func (a *Application) buildRouter(schema *graphqlgo.Schema, permission *auth.Gra
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+	r.Use(metricsMiddleware)
 
 	envelopeMiddleware := requestMiddleware.NewGraphQLEnvelopeMiddleware()
 	relayHandler := &relay.Handler{Schema: schema}
-	graphqlHandler := envelopeMiddleware.Middleware()(permission.Middleware()(relayHandler))
+	baseGraphQLHandler := envelopeMiddleware.Middleware()(permission.Middleware()(relayHandler))
+	graphqlHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		organizationOperationsTotal.WithLabelValues("graphql_query").Inc()
+		baseGraphQLHandler.ServeHTTP(w, r)
+	})
 	r.Handle("/graphql", graphqlHandler)
 
 	if devMode {
@@ -225,7 +257,21 @@ func (a *Application) buildRouter(schema *graphqlgo.Schema, permission *auth.Gra
 		}
 	})
 
+	r.Handle("/metrics", promhttp.Handler())
+
 	return r
+}
+
+func metricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wrapper := chiMiddleware.NewWrapResponseWriter(w, r.ProtoMajor)
+		next.ServeHTTP(wrapper, r)
+		status := wrapper.Status()
+		if status == 0 {
+			status = http.StatusOK
+		}
+		httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, strconv.Itoa(status)).Inc()
+	})
 }
 
 func graphiqlPage() string {

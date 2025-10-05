@@ -50,10 +50,6 @@ CREATE TABLE IF NOT EXISTS organization_unit_versions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     tenant_id UUID NOT NULL,
     
-    -- 外键约束
-    FOREIGN KEY (organization_code) REFERENCES organization_units(code) ON DELETE CASCADE,
-    FOREIGN KEY (parent_code) REFERENCES organization_units(code) ON DELETE SET NULL,
-    
     -- 唯一约束
     UNIQUE(organization_code, version)
 );
@@ -65,14 +61,26 @@ CREATE INDEX IF NOT EXISTS idx_org_versions_temporal ON organization_unit_versio
 CREATE INDEX IF NOT EXISTS idx_org_versions_tenant ON organization_unit_versions(tenant_id);
 
 -- 3. 创建时间线事件表
-CREATE TYPE IF NOT EXISTS timeline_event_type AS ENUM (
-    'create', 'update', 'delete', 'activate', 'deactivate',
-    'restructure', 'merge', 'split', 'transfer', 'rename'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'timeline_event_type') THEN
+        CREATE TYPE timeline_event_type AS ENUM (
+            'create', 'update', 'delete', 'activate', 'deactivate',
+            'restructure', 'merge', 'split', 'transfer', 'rename'
+        );
+    END IF;
+END
+$$;
 
-CREATE TYPE IF NOT EXISTS timeline_event_status AS ENUM (
-    'pending', 'approved', 'rejected', 'completed', 'cancelled'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'timeline_event_status') THEN
+        CREATE TYPE timeline_event_status AS ENUM (
+            'pending', 'approved', 'rejected', 'completed', 'cancelled'
+        );
+    END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS organization_timeline_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -101,10 +109,7 @@ CREATE TABLE IF NOT EXISTS organization_timeline_events (
     -- 审计字段
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    tenant_id UUID NOT NULL,
-    
-    -- 外键约束
-    FOREIGN KEY (organization_code) REFERENCES organization_units(code) ON DELETE CASCADE
+    tenant_id UUID NOT NULL
 );
 
 -- 时间线事件索引
@@ -253,12 +258,12 @@ BEGIN
         ORDER BY code, priority, version DESC
     )
     SELECT 
-        do.code, do.name, do.unit_type, do.status, do.level, do.path,
-        do.sort_order, do.description, do.parent_code,
-        do.effective_from, do.effective_to, do.version, do.temporal_status,
-        do.created_at, do.updated_at
-    FROM deduped_orgs do
-    ORDER BY do.level, do.sort_order, do.name
+        org.code, org.name, org.unit_type, org.status, org.level, org.path,
+        org.sort_order, org.description, org.parent_code,
+        org.effective_from, org.effective_to, org.version, org.temporal_status,
+        org.created_at, org.updated_at
+    FROM deduped_orgs org
+    ORDER BY org.level, org.sort_order, org.name
     LIMIT p_limit OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql;
@@ -378,29 +383,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 9. 插入示例时态数据 (用于测试)
-INSERT INTO organization_units (
-    code, name, unit_type, status, level, path, sort_order,
-    effective_from, effective_to, is_temporal, version, change_reason,
-    tenant_id
-) VALUES 
-(
-    '1000001', '研发部门', 'DEPARTMENT', 'ACTIVE', 1, '/1000001', 1,
-    '2024-01-01 00:00:00+00'::TIMESTAMPTZ, 
-    '2024-06-30 23:59:59+00'::TIMESTAMPTZ,
-    TRUE, 1, '部门初始创建',
-    '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9'::UUID
-),
-(
-    '1000002', '产品部门', 'DEPARTMENT', 'PLANNED', 2, '/1000002', 2,
-    '2024-07-01 00:00:00+00'::TIMESTAMPTZ, 
-    NULL,
-    TRUE, 1, '新部门规划',
-    '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9'::UUID
-)
-ON CONFLICT (code) DO NOTHING;
-
--- 10. 创建时态查询性能监控视图
+-- 9. 创建时态查询性能监控视图
 CREATE OR REPLACE VIEW temporal_performance_stats AS
 SELECT 
     'current_temporal_orgs' as metric,

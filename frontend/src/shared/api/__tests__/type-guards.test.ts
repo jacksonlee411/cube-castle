@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { ROOT_PARENT_CODE } from '@/shared/utils/organization-helpers';
 import {
   validateOrganizationUnit,
   validateCreateOrganizationInput,
@@ -270,7 +271,7 @@ describe('Type Guards and Validators', () => {
           unitType: 'DEPARTMENT',
           status: 'ACTIVE',
           level: 2,
-          parentCode: '0', // 根据API v4.3规范，parentCode为必填，根组织使用"0"
+          parentCode: ROOT_PARENT_CODE, // 根据最新规范，根组织使用"0000000"
           sortOrder: null,
           description: null,
           createdAt: null,
@@ -279,7 +280,7 @@ describe('Type Guards and Validators', () => {
 
         const result = safeTransformGraphQLToOrganizationUnit(graphqlResponse);
 
-        expect(result.parentCode).toBe('0'); // parentCode现在是必填，应该保持原值
+        expect(result.parentCode).toBe(ROOT_PARENT_CODE); // parentCode现在是必填，应该保持原值
         expect(result.sortOrder).toBe(0);
         expect(result.description).toBe('');
         expect(result.createdAt).toBe('');

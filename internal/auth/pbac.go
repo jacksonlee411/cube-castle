@@ -41,23 +41,23 @@ var GraphQLQueryPermissions = map[string]string{
 	"auditLog":     "org:read:audit",
 }
 
-// 角色权限预设映射
+// 角色权限预设映射（使用与 GraphQLQueryPermissions 一致的 scope 格式）
 var RolePermissions = map[string][]string{
 	"ADMIN": {
-		"READ_ORGANIZATION",
-		"READ_ORGANIZATION_HISTORY",
-		"READ_ORGANIZATION_HIERARCHY",
-		"READ_ORGANIZATION_STATISTICS",
-		"READ_ORGANIZATION_AUDIT",
-		"WRITE_ORGANIZATION",
+		"org:read",
+		"org:read:history",
+		"org:read:hierarchy",
+		"org:read:stats",
+		"org:read:audit",
+		"org:write",
 	},
 	"MANAGER": {
-		"READ_ORGANIZATION",
-		"READ_ORGANIZATION_HISTORY",
-		"READ_ORGANIZATION_HIERARCHY",
+		"org:read",
+		"org:read:history",
+		"org:read:hierarchy",
 	},
 	"EMPLOYEE": {
-		"READ_ORGANIZATION",
+		"org:read",
 	},
 	"GUEST": {},
 }

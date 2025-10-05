@@ -1,240 +1,142 @@
-# Plan 18 CI 验证操作指南
+# Plan 18 本地端到端验证操作指南
 
-**目的**：完成 Plan 18 启动前的 P0 必需操作（CI 环境验证）
-**预计耗时**：10-15 分钟（设置）+ 30-45 分钟（workflow 运行）
-**前置条件**：✅ 已完成（workflow 已提交并推送）
+**目的**：完成 Plan 18 启动前的 P0 必需操作（本地端到端验证）
+**预计耗时**：约 20-30 分钟（含依赖启动 + Playwright 执行）
+**前置条件**：已完成 `docker-compose.e2e.yml`、Playwright 套件与 RS256 工具链配置
 
 ---
 
 ## 快速操作步骤
 
-### 步骤 1：创建验证 PR（触发 CI）
-
-#### 方式 A：通过浏览器创建 PR（推荐，无需本地工具）
-
-1. **点击以下链接**：
-   ```
-   https://github.com/jacksonlee411/cube-castle/pull/new/plan16-code-smell-implementation
-   ```
-
-2. **填写 PR 信息**：
-   - **标题**：`[CI验证] Plan 18 E2E 环境测试`
-   - **描述**（复制以下内容）：
-     ```markdown
-     ## 目的
-     验证 Plan 18 的 GitHub Actions E2E workflows 在 CI 环境可用性
-
-     ## 验证范围
-     - ✅ e2e-tests.yml workflow 完整运行
-     - ✅ Docker Compose E2E 栈启动成功
-     - ✅ 服务健康检查通过
-     - ✅ JWT mint 流程正常
-     - ✅ Playwright 测试执行（不要求全部通过）
-     - ✅ Artifact 上传成功
-
-     ## 验证报告
-     结果将记录到 reports/iig-guardian/plan18-ci-verification-20251002.md
-
-     ## 注意
-     本 PR 为验证用途，不应合并到主分支。验证完成后将关闭此 PR。
-     ```
-
-3. **选择**：✅ **Create draft pull request**（草稿状态）
-
-4. **点击**："Create pull request"
-
-5. **等待**：GitHub Actions 自动触发，预计 30-45 分钟完成
-
----
-
-#### 方式 B：安装 gh CLI 后手动触发（可选）
+# 步骤 1：启动依赖栈
 
 ```bash
-# 1. 安装 gh CLI（如未安装）
-# Ubuntu/Debian:
-sudo apt install gh
-
-# macOS:
-brew install gh
-
-# 2. 认证
-gh auth login
-
-# 3. 手动触发 workflow
-gh workflow run e2e-tests.yml --ref plan16-code-smell-implementation
-
-# 4. 监控运行
-gh run watch
+make docker-up
+make run-auth-rs256-sim
 ```
 
----
+> 若本地已有运行中的服务，请先执行 `make dev-kill` 清理端口占用（9090 / 8090）。
 
-### 步骤 2：监控 Workflow 运行
+完成后使用下列命令确认依赖健康：
 
-**监控入口**（任选一种）：
+```bash
+curl -fsS http://localhost:9090/health
+curl -fsS http://localhost:8090/health
+```
 
-- **PR Checks 页签**（如使用方式 A）
-- **GitHub Actions 页面**：https://github.com/jacksonlee411/cube-castle/actions
-
-**关注要点**：
-
-| 步骤名称 | 验收标准 | 预计耗时 |
-|---------|---------|---------|
-| Set up Node.js | ✅ 成功 | <1 分钟 |
-| Set up Go | ✅ 成功 | <1 分钟 |
-| Install frontend dependencies | ✅ 成功 | 2-3 分钟 |
-| Start E2E stack | ✅ Docker 镜像构建成功 | 5-10 分钟 |
-| Wait for services | ✅ 所有服务健康检查通过 | 1-2 分钟 |
-| Mint dev JWT | ✅ JWT 生成成功 | <30 秒 |
-| Run Playwright E2E suite | ⚠️ 执行即可（允许部分测试失败） | 10-20 分钟 |
-| Upload Playwright report | ✅ Artifact 上传成功 | 1-2 分钟 |
-
-**成功标准**：
-- ✅ **核心成功**：前 7 步全部通过（到 "Mint dev JWT"）
-- ⚠️ **可接受**：Playwright 测试有失败，但 Artifact 成功上传
-- ❌ **需修复**：Docker 栈启动失败或服务健康检查超时
+两条命令均返回 200 即视为通过。
 
 ---
 
-### 步骤 3：下载验证证据
+### 步骤 2：生成 JWT 并执行 Playwright 套件
 
-**如 Workflow 运行完成**：
+```bash
+# 生成 RS256 开发令牌
+make jwt-dev-mint
 
-1. **进入 Workflow 运行页面**
-   - 点击 PR 的 "Checks" 页签
-   - 或访问 GitHub Actions 页面找到最新运行
+# 设置环境变量
+export PW_JWT=$(cat .cache/dev.jwt)
+export PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9
 
-2. **复制 Workflow URL**
-   - 格式：`https://github.com/jacksonlee411/cube-castle/actions/runs/{run_id}`
-   - 保存此 URL，稍后填入验证报告
+# 进入前端目录并运行完整 Playwright 套件
+cd frontend
+PW_JWT=$PW_JWT PW_TENANT_ID=$PW_TENANT_ID npm run test:e2e
+```
 
-3. **下载 Artifacts**
-   - 滚动到页面底部 "Artifacts" 区域
-   - 下载 `playwright-report`（如存在）
-   - 解压并打开 `index.html` 查看测试报告
+**提示**：创建场景需要填写 `form-field-effective-date`、`form-field-name` 等字段，删除场景会触发 `temporal-delete-record-button` 与确认弹窗。
+
+**预期结果**：
+- Playwright 至少完成一次执行（允许存在失败用例）
+- 生成 `frontend/playwright-report/` 与 `frontend/test-results/`
+
+---
+
+### 步骤 3：收集验证证据
+
+| 证据项目 | 操作 |
+|----------|------|
+| Playwright 报告 | 打开 `frontend/playwright-report/index.html`，确认日志与截图存在 |
+| 失败截图/视频 | 检查 `frontend/test-results/` 目录 |
+| 命令输出 | 保存 `npm run test:e2e` 的终端输出摘要 |
+| 环境信息 | 记录操作系统、Docker、Node.js、Go 的版本号 |
+
+如需保留完整命令日志，可执行：
+
+```bash
+PW_JWT=$PW_JWT PW_TENANT_ID=$PW_TENANT_ID npm run test:e2e | tee ../reports/iig-guardian/plan18-local-validation.log
+```
 
 ---
 
 ### 步骤 4：填写验证报告
 
-**编辑文件**：`reports/iig-guardian/plan18-ci-verification-20251002.md`
+1. 编辑 `reports/iig-guardian/plan18-ci-verification-20251002.md`
+2. 在 “四、验证结果” 中填写：
+   - 执行日期与时长
+   - 健康检查结果
+   - Playwright 执行结论（通过 / 部分通过 / 失败）
+   - 关键日志或问题
+3. 在 “五、结论与建议” 中确认是否满足启动条件。
 
-**需要填写的关键信息**：
+范例（若验证通过）：
 
-1. **四、验证结果 > 4.1 执行摘要**
-   ```markdown
-   **状态**：✅ 验证通过 / ⚠️ 部分通过 / ❌ 验证失败
+```markdown
+**状态**：✅ 验证通过
 
-   **Workflow 运行信息**：
-   - 运行 ID：{从 URL 提取}
-   - 运行 URL：https://github.com/jacksonlee411/cube-castle/actions/runs/{run_id}
-   - 触发方式：PR 创建
-   - 运行时间：2025-10-02 {具体时间}
-   - 总耗时：{X} 分钟
+- 健康检查：9090 / 8090 服务均返回 200
+- JWT 生成：.cache/dev.jwt 已生成并载入
+- Playwright：chromium / firefox 项目均完成执行，失败 0 项（或列出失败详情）
+- 产物：frontend/playwright-report/index.html 已生成
+```
 
-   **结果**：
-   - [x] ✅ 验证通过：所有关键指标满足验收标准
-   ```
-
-2. **四、验证结果 > 4.2 详细指标验证结果**
-   - 将表格中的 `⏳ 待验证` 更新为 `✅ 通过` 或 `❌ 失败`
-   - 填写"说明"列（如有失败或异常）
-
-3. **四、验证结果 > 4.3 发现的问题**
-   - 如有失败步骤，记录问题详情
-
-4. **五、结论与建议 > 5.1 验证结论**
-   ```markdown
-   **✅ 验证通过**
-
-   CI 环境配置完整可用，满足 Plan 18 启动条件：
-   - Docker Compose E2E 栈在 GitHub Actions 成功启动
-   - 所有服务健康检查通过
-   - JWT mint 流程正常
-   - Playwright 测试套件成功执行
-   - Artifact 上传功能正常
-
-   **可以解除 Plan 18 的 P0 阻塞项，启动 Phase 1 任务。**
-   ```
+---
 
 ---
 
 ### 步骤 5：更新 Plan 18 文档
 
-**编辑文件**：`docs/development-plans/18-e2e-test-improvement-plan.md`
+完成验证后，在 `docs/development-plans/18-e2e-test-improvement-plan.md` 中更新：
 
-**更新 1：📊 执行摘要**
 ```markdown
-**状态**：✅ **就绪，可启动**
-
-**关键阻塞项**（优先级 P0）：
-- ~~CI 环境未实际验证~~ → ✅ 已完成验证
-```
-
-**更新 2：6.2 依赖项**
-```markdown
-- ✅ CI 环境配置（GitHub Actions）— **已验证可用**
-  - ✅ docker-compose.e2e.yml 已创建并提交（ff383eb0）
-  - ✅ frontend-e2e.yml workflow 已创建并提交（7f1644eb）
-  - ✅ e2e-smoke.yml workflow 已创建并提交（ff383eb0）
-  - ✅ e2e-tests.yml workflow 已创建并提交（7cbba95d）
-  - ✅ **首次成功运行验证**：{Workflow URL}
-  - 📄 验证报告：reports/iig-guardian/plan18-ci-verification-20251002.md
+- ✅ 本地端到端验证 — 已执行 {YYYY-MM-DD}
+  - 验证报告：reports/iig-guardian/plan18-ci-verification-20251002.md
+  - Playwright 报告：frontend/playwright-report/index.html
 ```
 
 ---
 
 ## 常见问题
 
-### Q1：Workflow 运行失败怎么办？
+### Q1：`make run-auth-rs256-sim` 启动失败怎么办？
 
-**A1**：根据失败步骤定位问题：
-
-- **Docker 构建失败**：检查 `docker-compose.e2e.yml` 配置和镜像拉取
-- **健康检查超时**：增加 `wait for services` 步骤的重试时间
-- **JWT mint 失败**：确认 `make jwt-dev-mint` 依赖的工具（jq、curl）已安装
-- **Playwright 失败**：查看 Artifact 中的错误日志和截图
-
-**修复后重新触发**：
-- 推送修复代码到同一分支
-- PR 会自动重新运行 CI
-- 或手动点击 "Re-run jobs"
+**A1**：
+- 确认 Docker 服务已启动
+- 检查 9090/8090 端口是否被占用，必要时执行 `make dev-kill`
+- 查看 `run-dev*.log` 获取详细错误
 
 ---
 
-### Q2：需要所有 Playwright 测试都通过吗？
+### Q2：Playwright 有少量失败算通过吗？
 
-**A2**：**不需要**。验证目标是 **CI 环境可用性**，而非测试通过率。
-
-**验收标准**：
-- ✅ **必须通过**：Docker 栈启动、服务健康检查、JWT mint
-- ⚠️ **允许失败**：Playwright 测试（已知有 3 个失败，见 Plan 18 第二章）
-- ✅ **必须成功**：Artifact 上传（即使测试失败也要能下载报告）
+**A2**：可以。验证的目标是确认环境可完整运行流程。若个别用例失败，请在报告中记录并附上截图或日志，后续在 Phase 1 修复。
 
 ---
 
-### Q3：验证通过后需要合并 PR 吗？
+### Q3：验证结束后需要保留哪些文件？
 
-**A3**：**不需要**。此 PR 仅用于验证，应：
-1. ✅ 保持 draft 状态
-2. ✅ 添加评论说明验证结果
-3. ✅ 关闭 PR（不合并）
-
-实际功能开发的 PR 会在 Phase 1 任务中另行创建。
+**A3**：
+- `frontend/playwright-report/` 与 `frontend/test-results/`
+- `reports/iig-guardian/plan18-ci-verification-20251002.md`
+- 如有失败，保留控制台输出或截图用于分析
 
 ---
 
-### Q4：验证耗时超过 45 分钟怎么办？
+### Q4：如何加速验证耗时？
 
-**A4**：Workflow 会自动超时失败。可能原因：
-- Docker 镜像构建过慢（网络问题）
-- 服务启动卡住
-- Playwright 测试执行过久
-
-**解决方案**：
-- 检查 Workflow 日志找到卡顿步骤
-- 调整超时配置或优化执行速度
-- 考虑拆分测试（仅运行核心测试）
+**A4**：
+- 预先执行 `npm ci`、`npx playwright install --with-deps`
+- 确保 Docker 镜像已构建过一次
+- 运行 Playwright 时追加 `--project=chromium` 进行快速验证（留存完整流程需两种浏览器时再补跑）
 
 ---
 
@@ -243,8 +145,6 @@ gh run watch
 完成以上 5 个步骤后，Plan 18 的 P0 阻塞项将被解除，可以正式启动 Phase 1 任务。
 
 **当前状态**：
-- ✅ 步骤 1：workflow 已提交并推送
-- ⏳ 步骤 2-5：等待您执行
+- ⏳ 步骤 1-5：需在本地执行并记录结果
 
-**下一步行动**：
-👉 **点击创建 PR**：https://github.com/jacksonlee411/cube-castle/pull/new/plan16-code-smell-implementation
+如需协助，请参考 `docs/development-plans/18-e2e-test-improvement-plan.md` 第七章或联系 QA 团队支持。
