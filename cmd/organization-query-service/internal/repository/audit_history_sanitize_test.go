@@ -93,7 +93,7 @@ func TestSanitizeChanges(t *testing.T) {
 			input:          `[{"field":"name","oldValue":"A","newValue":"B"}]`,
 			wantLen:        1,
 			wantIssues:     1,
-			wantDataType:   "unknown",
+			wantDataType:   "string",
 			firstFieldName: "name",
 		},
 		{

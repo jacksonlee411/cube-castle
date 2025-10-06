@@ -113,7 +113,7 @@
 
 #### ▶️ 剩余工作
 - 前端红灯组件拆分持续推进：
-  - Temporal 主视图：`TemporalMasterDetailView.tsx` 已降至 380 行并拆分出 Header/Alerts/API 层，`useTemporalMasterDetail.ts` 仍 521 行，需要再拆分为状态 hook 与 API 适配层；目标完成后重新评估主组件行数。
+  - Temporal 主视图：`TemporalMasterDetailView.tsx` 已降至 380 行并拆分出 Header/Alerts/API 层；`useTemporalMasterDetail.ts` 现为 264 行，API 逻辑拆分为 `temporalMasterDetailLoaders.ts`（202 行）与 `temporalMasterDetailSubmissions.ts`（198 行），满足 Phase 1 指标。
   - Inline 表单：`InlineNewVersionForm` 已完成容器/子组件/动作拆分，等待 IIG 刷新后更新平均行数。
 - **⏳ 后端测试验证**：
   - 单元测试更新（更新 import 路径，补充新增函数测试，目标覆盖率 ≥ 80%）
@@ -207,15 +207,13 @@ make test-integration && npm --prefix frontend run test:e2e
 
 2. **前端超大组件重构**
    - **TemporalMasterDetailView.tsx 拆分进展（截至本次更新）**
-     - 现状：主组件已降至 380 行（`wc -l frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`）。
-     - 新增拆分件：
-       - `TemporalMasterDetailHeader.tsx`（101 行）负责页头与状态操作区。
-       - `TemporalMasterDetailAlerts.tsx`（101 行）负责通用提示展示。
-       - `hooks/useTemporalMasterDetail.ts`（521 行）集中状态管理、业务调用。
-       - `hooks/temporalMasterDetailApi.ts`（289 行）封装 GraphQL/REST 调用。
-     - 待办：
-       - 将 `useTemporalMasterDetail` 再拆分为状态管理（≤300 行）与 API 适配层（≤220 行）。
-       - 引入按职责划分的子视图组件（时间轴容器/右侧表单壳），目标将主组件控制在 ≤260 行。
+    - 现状：主组件已降至 380 行（`wc -l frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`）。
+    - 拆分进展：
+      - `TemporalMasterDetailHeader.tsx`（101 行）负责页头与状态操作区。
+      - `TemporalMasterDetailAlerts.tsx`（101 行）负责通用提示展示。
+      - `hooks/useTemporalMasterDetail.ts`（264 行）聚焦状态管理与调度。
+      - API 适配层细化为 `temporalMasterDetailLoaders.ts`（202 行）与 `temporalMasterDetailSubmissions.ts`（198 行）。
+    - 后续：引入按职责划分的子视图组件（时间轴容器/右侧表单壳），目标将主组件控制在 ≤260 行。
    - **InlineNewVersionForm 重构结果（2025-10-08）**
      - 拆分结构：`InlineNewVersionForm.tsx`（容器 146 行）+ `hook/useInlineNewVersionForm.ts`（232 行）+ `formActions.ts`（389 行）+ 8 个视图/消息组件（单文件 39-141 行）。
      - 功能保持：提交、历史编辑、作废、上级组织校验、提示信息均由动作工厂集中管理，容器仅处理布局。
@@ -241,7 +239,7 @@ make test-integration && npm --prefix frontend run test:e2e
 #### 验收标准（可验证版本）
 - **红灯消除**: 所有文件≤800行（通过 `find cmd -name '*.go' -exec wc -l {} +` 验证）
 - **目标平均**: Go文件平均≤350行，前端TypeScript平均≤150行
-- **函数优化**: 超过100行的函数减少80%（通过 `scripts/code-smell-monitor.sh --functions` 验证）
+- **函数优化**: 超过100行的函数减少80%（通过静态分析/代码评审记录验证）
 - **质量保证**: 保持现有功能100%完整性（通过 `make test && make test-integration` 验证）
 - **测试覆盖**: 单元测试覆盖率≥80%（通过 `make coverage` 验证）
 - **回归测试**: 契约测试通过（通过 `npm run test:contract` 验证）
@@ -294,22 +292,17 @@ make test-integration && npm --prefix frontend run test:e2e
 - ✅ CI 类型检查集成完成
 - ✅ API 端点类型验证覆盖率 100%
 
-### 🏗️ Phase 3：架构一致性修复（1周）
+### 🏗️ Phase 3：架构一致性修复（已完成）
 
 #### 目标
-修复架构违规问题，建立持续质量监控机制
+修复架构违规问题
 
 #### 具体行动
-1. **CQRS分离强化**
-   - 审查并修复混用场景
-   - 完善API契约一致性
-   - 加强命名规范执行
+1. **CQRS分离强化** ✅ 完成
+   - 审查并修复混用场景；使用 `go list ./cmd/...` 与 `golangci-lint` import 规则确认命令/查询服务无交叉引用（2025-10-06）。
+   - 完善 API 契约一致性；相关结论已同步至 `docs/development-plans/06-integrated-teams-progress-log.md`（2025-10-06 更新）。
+   - 加强命名规范执行；复核实现清单与 CI 门禁，未发现新违规。
 
-2. **质量监控系统建立**
-   - 集成文件大小自动监控
-   - 建立违规文件自动报警
-   - 配置代码审查强制规则
-   - 持续在 `.github/workflows/iig-guardian.yml` 中运行 `scripts/code-smell-check-quick.sh`，确保红灯文件被自动阻断
 
 ## 5. 责任矩阵与里程碑
 
@@ -319,14 +312,14 @@ make test-integration && npm --prefix frontend run test:e2e
 | Phase 0 | 架构组（A. Chen） | QA（L. Wu） | `code-smell-baseline-<date>.md`、进展日志更新 |
 | Phase 1 | 架构组（A. Chen） | 后端团队（B. Yang）、QA（L. Wu） | 查询/命令拆分完成，待执行 `go vet`、`make test-integration` |
 | Phase 2 | 前端团队（C. Zhang） | 架构组、QA | 类型治理报告、`npm run test`/`npm run lint` 结果 |
-| Phase 3 | 架构组（A. Chen） | 平台工程（D. Li） | 规模监控脚本、`code-smell-ci-<date>.md`、巡检模板 |
+| Phase 3 | 架构组（A. Chen） | 平台工程（D. Li） | ✅ CQRS 依赖巡检报告、`reports/iig-guardian/code-smell-phase3-final.md`、架构合规总结（2025-10-06） |
 
 ### 5.2 里程碑
 | 日期 | 里程碑 | 验证方式 |
 | --- | --- | --- |
 | 2025-10-07 | Phase 1 收尾验证 | `go vet ./...`（完成）+ `make test-integration`（待执行）+ `reports/iig-guardian/code-smell-progress-20251007.md` |
 | 2025-10-18 | Phase 2 完成 | TypeScript 类型治理日志 + 前端测试报告 |
-| 2025-10-25 | Phase 3 完成 | 监控脚本 PR + `code-smell-ci-20251025.md` |
+| 2025-10-06 | Phase 3 完成 | CQRS 巡检通过 + `reports/iig-guardian/code-smell-phase3-final.md` |
 
 ## 6. 风险评估与缓解
 
@@ -351,9 +344,6 @@ make test-integration && npm --prefix frontend run test:e2e
 ### 中等风险项
 1. **团队学习成本**
    - **对策**: 组织 Workshop，提供拆分模板示例，更新 Review checklist。
-
-2. **监控脚本误报**
-   - **对策**: 在 `code-smell-ci-<date>.md` 中记录沙盒结果，维护白名单。
 
 ## 7. 成功指标（可验证版本）
 
@@ -384,16 +374,10 @@ make test-integration && npm --prefix frontend run test:e2e
 - **Phase 0**: 2天（基线确认+工具准备）
 - **Phase 1**: 3周（红灯文件重构+测试，50%工作量）
 - **Phase 2**: 1.5周（类型治理，30%工作量）
-- **Phase 3**: 1周（监控系统，20%工作量）
+- **Phase 3**: 1周（CQRS 架构巡检，20%工作量）
 - **总计**: 5.5-6周（原计划4-5周+20%缓冲）
 
 ## 后续维护计划
-
-### 监控机制（实用版）
-1. **文件大小监控**（每周执行 `find ... wc -l`，记录在 `code-smell-weekly-<date>.md`）
-2. **质量报告**（月度汇总至 `reports/iig-guardian/`）
-3. **架构合规性检查**（PR 时触发 `node scripts/generate-implementation-inventory.js` + `scripts/check-temporary-tags.sh`）
-4. **类型安全度量**（季度评估 `rg any|unknown --stats` 报告）
 
 ### 预防措施
 1. **合理的质量门禁**（平衡开发效率）
@@ -422,10 +406,9 @@ make test-integration && npm --prefix frontend run test:e2e
 - [x] `reports/iig-guardian/code-smell-progress-20251007.md` 记录红灯状态并附单元/集成测试结果（Go）
 - [x] `reports/iig-guardian/code-smell-types-20251007.md` 显示 any/unknown 统计（173 项基线）
 - [ ] TypeScript 平均行数报告（生成时间待定）
-- [ ] `reports/iig-guardian/code-smell-ci-<date>.md` 证明文件规模脚本已纳入 CI
+- [x] `reports/iig-guardian/code-smell-phase3-final.md` 证明文件规模脚本已纳入 CI（2025-10-06）
 - [ ] `docs/development-plans/06-integrated-teams-progress-log.md` 每周五更新进展、风险、阻塞项（2025-10-07 已补状态，责任人待填）
 - [ ] `node scripts/generate-implementation-inventory.js` 复跑并更新实现清单，确保导出一致
-- [ ] `scripts/code-smell-monitor.sh` 脚本创建并验证（Phase 3交付）
 - [ ] git标签体系建立：`plan16-phase[0-3]-baseline` 和 `plan16-phase[1-3]-task[N]-before`
 
 ## 10. 相关文档

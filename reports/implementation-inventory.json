@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-10-04T09:45:59.176Z",
+  "timestamp": "2025-10-06T00:50:11.461Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 12,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 166
+    "tsExports": 172
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -362,6 +362,36 @@
     {
       "name": "updateHistoryRecord",
       "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createLoadVersions",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailLoaders.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createHandleVersionSelect",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailLoaders.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createHandleStateMutationCompleted",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createHandleDeleteVersion",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createHandleFormSubmit",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createHandleHistoryEditSubmit",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts",
       "kind": "const"
     },
     {

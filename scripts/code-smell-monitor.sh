@@ -2,7 +2,8 @@
 # Code Smell Monitor - 代码异味监控脚本
 # 用途：监控Go和TypeScript文件的行数分布，支持函数级别检查
 # 版本：v1.0 (2025-09-30)
-# 对应计划：Plan 16 代码异味治理
+# 对应计划：Plan 16 代码异味治理（Phase 3 文档收尾）
+# 使用说明：详见本脚本 `usage()`。常见场景：`./scripts/code-smell-monitor.sh --files --report`、`./scripts/code-smell-monitor.sh --functions --ci`。
 
 set -euo pipefail
 

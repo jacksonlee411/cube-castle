@@ -30,10 +30,10 @@
 - `06-integrated-teams-progress-log.md` - 集成团队协作进展日志
 
 #### **07 - 待修复问题**
-- `07-audit-history-load-failure-fix-plan.md` - 审计历史页签“加载审计历史失败”分析与修复计划（P0）
+- `07-audit-history-load-failure-fix-plan.md` - 审计历史页签“加载审计历史失败”分析与修复计划（P1）
 
-#### **12 - 时态命令契约缺口**
-- `12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P0）
+#### **12 - 时态命令契约缺口（归档复测）**
+- `../archive/development-plans/12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P3 复测，核心整改已归档）
 
 #### **16 - 代码异味治理**
 - `16-code-smell-analysis-and-improvement-plan.md` - Go 工程实践为导向的代码异味分析与改进计划（P2）
