@@ -140,6 +140,7 @@ npm --prefix frontend run test:e2e -- --grep "temporal"
 ## 12. 待决事项
 - **Playwright 复测**：待前端团队确认演示页面路由（或补齐 `/temporal-demo` 页面）并更新测试脚本后，再次执行 `npm --prefix frontend run test:e2e -- --grep "temporal"`；通过结果需追加至 `reports/iig-guardian/temporal-contract-rollback-20250926.md`。
 - **Playwright 复测（更新）**：服务与认证就绪后，按 8.2 步骤重新执行 `npm --prefix frontend run test:e2e -- --grep "temporal"`；运行日志与报告需补录到 `reports/iig-guardian/temporal-contract-rollback-20250926.md`。
+- **Playwright 实施进展**（2025-10-06）：`frontend/tests/e2e/temporal-management-integration.spec.ts` 已改用 `getByRole('tab')` 精确定位“版本历史/审计历史”，避免重复文本导致的 strict mode 失败；待完成整套 E2E 复测后附件更新。
 - **生产端口验证（可选）**：落地环境可补充 `curl -X POST http://localhost:9090/api/v1/organization-units/{code}/versions` 实测截图，增强审计说明。
 - **计划归档**：待 Playwright 复测完成并附证据后，将本计划移至 `docs/archive/development-plans/` 并同步进度日志。
 

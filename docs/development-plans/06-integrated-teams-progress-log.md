@@ -114,6 +114,7 @@
 7. **【P3 - QA】Plan 12 时态命令契约复测**：
    - 复核归档文档 `../archive/development-plans/12-temporal-command-contract-gap-remediation.md` 第 12 节待决事项。
    - 补齐 Playwright 时态场景复测（`npm --prefix frontend run test:e2e -- --grep "temporal"`），并将日志追加至 `reports/iig-guardian/temporal-contract-rollback-20250926.md`。
+     - ✅ 2025-10-06 调整 `frontend/tests/e2e/temporal-management-integration.spec.ts`，使用 `getByRole('tab')` 避免文本重复冲突；待全量复测后附上最新报告。
    - 通过后在本日志与 00-README.md 标记 Plan 12 全面关闭。
 
 ---
