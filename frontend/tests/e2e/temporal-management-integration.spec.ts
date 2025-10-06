@@ -258,8 +258,8 @@ test.describe('时态管理系统集成测试', () => {
       await manageButton.click();
 
       await expect(page).toHaveURL(new RegExp(`/organizations/${TEST_ORG_CODE}/temporal$`));
-      await expect(page.getByText('版本历史')).toBeVisible();
-      await expect(page.getByText('审计历史')).toBeVisible();
+      await expect(page.getByRole('tab', { name: '版本历史', exact: true })).toBeVisible();
+      await expect(page.getByRole('tab', { name: '审计历史', exact: true })).toBeVisible();
     });
 
     test('组织详情页面展示关键时态组件', async ({ page }) => {
