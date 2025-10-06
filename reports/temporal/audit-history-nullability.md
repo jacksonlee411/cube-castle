@@ -117,25 +117,18 @@ query($id: String!) {
         "operation": "UPDATE",
         "recordId": "8fee4ec4-865c-494b-8d5c-2bc72c312733",
         "timestamp": "2025-09-27T14:45:03.813114+08:00"
-      },
-      {
-        "auditId": "bd52d886-b4e6-42a7-9f4c-6f8c8ec3f8a2",
-        "changes": [],  ⚠️ 缺陷：空变更的 UPDATE 记录
-        "modifiedFields": [],
-        "operation": "UPDATE",
-        "recordId": "8fee4ec4-865c-494b-8d5c-2bc72c312733",
-        "timestamp": "2025-09-27T14:44:55.799881+08:00"
       }
     ]
   },
   "message": "Query executed successfully",
-  "timestamp": "2025-10-06T01:00:55Z"
+  "timestamp": "2025-10-06T09:03:54Z"
 }
 ```
 
 ### 6.3 修复摘要
-- 2025-10-06 更新 `cmd/organization-query-service/internal/repository/postgres_audit.go` 中 `sanitizeChanges`，对缺失或 `unknown` 的 `dataType` 依据 old/new 值推断类型。
-- 复测后 GraphQL 返回已将 `dataType` 更正为 `"string"`。
+- 2025-10-06 更新 `sanitizeChanges` 推断缺失/`unknown` 的 `dataType`。
+- 同步忽略空 `changes`/`modifiedFields` 的遗留 UPDATE 记录（历史 `log_audit_changes` 触发器输出）。
+- GraphQL 复测仅返回有效记录，`dataType` 均为 `"string"`。
 
 ### 6.3 发现的问题
 1. **dataType 为 "unknown"**: name 字段的 dataType 应为 "string" 而非 "unknown"，与契约不符

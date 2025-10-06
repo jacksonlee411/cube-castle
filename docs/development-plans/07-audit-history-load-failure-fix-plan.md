@@ -72,7 +72,8 @@
 1. 根据根因选择修复策略（示例）：
    - SQL 层：调整查询或补数据，确保 `changes`、`modified_fields` 始终为有效 JSON。
    - 代码层：补充错误处理/降级逻辑，同时保持 GraphQL 契约。
-     - ✅ 2025-10-06 更新 `postgres_audit.go/sanitizeChanges`，在 `dataType` 缺失或为 `"unknown"` 时根据 old/new 值推断类型（如 `"string"`）。
+     - ✅ 2025-10-06 更新 `postgres_audit.go/sanitizeChanges`，在 `dataType` 缺失或为 `"unknown"` 时根据 old/new 值推断类型。
+     - ✅ `processAuditRowsStrict` 忽略 `changes`/`modifiedFields` 均为空的旧日志记录，避免 GraphQL 返回空变更条目。
    - 数据层：通过迁移或脚本补齐历史数据。
 2. 补充单元测试 / 集成测试：
    - Go：`cmd/organization-query-service/internal/.../_test.go`
@@ -83,7 +84,7 @@
    - `npm --prefix frontend run test:e2e -- --grep "audit"`（如剧本存在）
    - ✅ `go test ./cmd/organization-query-service/internal/repository`（2025-10-06）确保 `sanitizeChanges` 推断逻辑通过单元测试。
 4. 更新 `reports/temporal/audit-history-nullability.md`，注明修复后巡检结果；附 Playwright 或手动验证证据。
-   - ✅ GraphQL 复测显示 `changes[].dataType` 由 `"unknown"` 修正为 `"string"`。
+   - ✅ GraphQL 复测显示 `changes[].dataType` 由 `"unknown"` 修正为 `"string"`，空变更记录已过滤。
 
 ### Phase 3 — 归档与回溯（0.5 天）
 1. 在 `docs/development-plans/06-integrated-teams-progress-log.md` 标记任务完成并总结风险。
