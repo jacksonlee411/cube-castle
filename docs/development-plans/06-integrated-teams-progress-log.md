@@ -102,10 +102,11 @@
      - ✅ 2025-10-06 GraphQL 请求（recordId `8fee4ec4-865c-494b-8d5c-2bc72c312733`）返回 200，但 `changes[0].dataType` = `"unknown"`，确认数据质量问题仍存在（详见报告第 6 节）。
    - 执行 `sql/inspection/audit-history-nullability.sql`，将结果填入 `reports/temporal/audit-history-nullability.md` 并分析根因。
      - ✅ 2025-10-06 运行脚本（PG 用户 `user`，DB `cubecastle`），发现 UPDATE 事件中存在 1 条缺失 `dataType` 的记录，样本 `auditId=5a380d66-e581-4700-b7f3-803042babd7c`。
-    - 排查 `cmd/organization-query-service` Resolver → Service → Repository 链路，形成修复方案并回填计划文档。
-      - ✅ 2025-10-06 更新 `postgres_audit.go` 以推断缺失 `dataType` 并忽略空记录，复测 GraphQL `dataType` 现为 `"string"`。
-      - ✅ 同日补充 `audit_history_sanitize_test.go` 单元测试并执行 `go test ./cmd/organization-query-service/internal/repository`。
-      - ✅ 新增迁移 `033_cleanup_audit_empty_changes.sql` 清理旧触发器写入的空审计记录。
+   - 排查 `cmd/organization-query-service` Resolver → Service → Repository 链路，形成修复方案并回填计划文档。
+     - ✅ 2025-10-06 更新 `postgres_audit.go` 以推断缺失 `dataType` 并忽略空记录，复测 GraphQL `dataType` 现为 `"string"`。
+     - ✅ 同日补充 `audit_history_sanitize_test.go` 单元测试并执行 `go test ./cmd/organization-query-service/internal/repository`。
+     - ✅ 新增迁移 `033_cleanup_audit_empty_changes.sql` 清理旧触发器写入的空审计记录。
+   - ✅ Phase 3：文档、巡检报告已更新并准备归档。
 6. **【P3 - 架构组】Plan 16 Phase 3 文档收尾**：
    - 聚焦 CQRS 分离强化验收：整理命令/查询服务依赖图，使用 `go list`/`golangci-lint` import 规则确认无交叉引用，并在 16 号计划记录结论。
    - 归档 `reports/iig-guardian/code-smell-ci-20251006075736.md` 为 Phase 3 最终基线，补充脚本使用说明。
