@@ -13,10 +13,10 @@
 ## 2. 统计摘要
 | 指标 | 数值 | 说明 |
 | --- | --- | --- |
-| 总审计记录数 | 2 | 租户 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 的 UPDATE 事件 |
+| 总审计记录数 | 1 | 租户 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 的 UPDATE 事件（空记录已清理） |
 | modified_fields NULL/非数组 条数 | 0 | `查询2` 无异常 ✅ |
 | changes NULL/非数组 条数 | 0 | `查询2` 无异常 ✅ |
-| 缺失 dataType 的条目 | 1 | `查询3` 发现 1 条记录存在 dataType 缺失 ⚠️ |
+| 缺失 dataType 的条目 | 1 | `查询3` 仍显示 1 条记录缺失 dataType（由 sanitizeChanges 兜底） ⚠️ |
 | 受影响租户数 | 1 | 租户 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 |
 
 ## 3. 受影响租户与事件分布
@@ -26,7 +26,7 @@
 🧪 1. 数据库表基本统计
               tenant_id               | event_type | total_records
 --------------------------------------+------------+---------------
- 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 | UPDATE     |             2
+ 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 | UPDATE     |             1
 
 🧪 2. changes NULL 或 非数组 的记录统计
  tenant_id | event_type | suspect_count
@@ -42,7 +42,7 @@
 audit_id: 5a380d66-e581-4700-b7f3-803042babd7c
 timestamp: 2025-09-27 14:45:03.813114+08
 changes: [
-  {"field": "name", "newValue": "新名称", "oldValue": "旧名称"},           ⚠️ 缺失 dataType
+  {"field": "name", "newValue": "新名称", "oldValue": "旧名称"},           ⚠️ 缺失 dataType（sanitizeChanges 运行时推断为 string）
   {"field": "description", "dataType": "string", "newValue": "新描述", "oldValue": null}
 ]
 ```

@@ -75,6 +75,7 @@
      - ✅ 2025-10-06 更新 `postgres_audit.go/sanitizeChanges`，在 `dataType` 缺失或为 `"unknown"` 时根据 old/new 值推断类型。
      - ✅ `processAuditRowsStrict` 忽略 `changes`/`modifiedFields` 均为空的旧日志记录，避免 GraphQL 返回空变更条目。
    - 数据层：通过迁移或脚本补齐历史数据。
+     - ✅ 2025-10-06 新增 `database/migrations/033_cleanup_audit_empty_changes.sql` 清理旧触发器写入的空 UPDATE 记录。
 2. 补充单元测试 / 集成测试：
    - Go：`cmd/organization-query-service/internal/.../_test.go`
    - GraphQL：新增契约测试验证非空约束。
