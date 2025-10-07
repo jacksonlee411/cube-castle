@@ -80,7 +80,8 @@ make db-migrate-all
 ### JWT认证管理
 ```bash
 make jwt-dev-setup              # 首次运行时生成 RS256 密钥对 (secrets/dev-jwt-*.pem)
-make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h
+scripts/dev/mint-dev-jwt.sh --user-id dev --roles ADMIN,USER   # 直接调用脚本（写入 .cache/dev.jwt）
+make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h  # 包装脚本，支持 make 变量
 eval $(make jwt-dev-export)     # 导出令牌到环境变量
 make jwt-dev-info               # 查看令牌信息
 export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用默认租户
@@ -107,7 +108,7 @@ export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用�
 - JWKS 预览：`curl http://localhost:9090/.well-known/jwks.json`（应返回 RSA 公钥，kid 一般为 `bff-key-1`）。
 
 #### 关于 dev-token（开发专用）
-- `make jwt-dev-mint` 调用 `/auth/dev-token` 生成开发令牌，签名算法固定为 RS256。
+- `scripts/dev/mint-dev-jwt.sh` / `make jwt-dev-mint` 通过 `/auth/dev-token` 生成开发令牌，签名算法固定为 RS256。
 - 缺少私钥或 JWKS 配置时，命令/查询服务会拒绝启动；请执行 `make jwt-dev-setup` 或使用运维提供的正式密钥。
 - `.well-known/jwks.json` 为唯一公钥来源，前端与自动化测试会检测该端点以确认 RS256 已启用。
 

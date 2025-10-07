@@ -246,54 +246,11 @@ db-migrate-all:
 # 开发JWT工具
 jwt-dev-mint:
 	@echo "🔑 生成开发JWT..."
-	@mkdir -p .cache
-	@if [ ! -f secrets/dev-jwt-private.pem ] || [ ! -f secrets/dev-jwt-public.pem ]; then \
-	  echo "🔐 未检测到本地RS256密钥对，自动执行 make jwt-dev-setup"; \
-	  $(MAKE) -s jwt-dev-setup; \
-	fi
-	@USER_ID=$${USER_ID:-dev-user} ; \
-	TENANT_ID=$${TENANT_ID:-3b99930c-4dc6-4cc9-8e4d-7d960a931cb9} ; \
-	ROLES=$${ROLES:-ADMIN,USER} ; \
-	DURATION=$${DURATION:-8h} ; \
-	BODY=$$(printf '{"userId":"%s","tenantId":"%s","roles":[%s],"duration":"%s"}' "$$USER_ID" "$$TENANT_ID" "$$(echo $$ROLES | sed 's/,/","/g' | sed 's/^/"/;s/$$/"/')" "$$DURATION") ; \
-	RESP=$$(curl -sf -X POST http://localhost:9090/auth/dev-token -H 'Content-Type: application/json' -d "$$BODY") || { echo "❌ 无法访问命令服务，请确认 make run-dev 已启动"; exit 2; } ; \
-	echo "$$RESP" | python3 - <<-'PY' || exit $$? 
-	import base64
-	import json
-	import sys
-
-	resp = sys.stdin.read()
-	try:
-	    data = json.loads(resp)
-	except json.JSONDecodeError as exc:
-	    print(f"❌ 生成失败: 无法解析响应: {exc}")
-	    sys.exit(2)
-
-	if not data.get("success"):
-	    error = data.get("error") or {}
-	    message = error.get("message") or data.get("message") or "未知错误"
-	    print(f"❌ 生成失败: {message}")
-	    sys.exit(2)
-
-	token = ((data.get("data") or {}).get("token")) or ""
-	if not token:
-	    print("❌ 生成失败: 响应中缺少token字段")
-	    sys.exit(2)
-
-	header_b64 = token.split('.')[:1][0]
-	padding = '=' * (-len(header_b64) % 4)
-	header_json = base64.urlsafe_b64decode(header_b64 + padding).decode('utf-8')
-	header = json.loads(header_json)
-	alg = header.get("alg")
-	if alg != "RS256":
-	    print(f"❌ 令牌签名算法不匹配: 期望 RS256, 实际 {alg}")
-	    sys.exit(2)
-
-	with open(".cache/dev.jwt", "w", encoding="utf-8") as fp:
-	    fp.write(token)
-
-	print("✅ 已保存到 ./.cache/dev.jwt (alg=RS256)")
-	PY
+	@scripts/dev/mint-dev-jwt.sh \
+	  $(if $(USER_ID),--user-id $(USER_ID),) \
+	  $(if $(TENANT_ID),--tenant-id $(TENANT_ID),) \
+	  $(if $(ROLES),--roles $(ROLES),) \
+	  $(if $(DURATION),--duration $(DURATION),)
 
 jwt-dev-info:
 	@echo "🔎 查询开发JWT信息..."
