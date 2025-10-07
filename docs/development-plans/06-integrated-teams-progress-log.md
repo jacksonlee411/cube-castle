@@ -88,16 +88,24 @@
    - `.github/workflows/iig-guardian.yml` 已集成弱类型巡检输出；当前阈值 120
    - 核心模块（Temporal、共享 utils/hooks、验证工具）完成类型替换，无需弱类型豁免清单
    - 详见归档文档 `../archive/development-plans/21-weak-typing-governance-plan.md`
-4. **【P0 - 架构组 + 前端】Plan 16 Phase 1 收尾**：
-   - 将 `frontend/src/features/temporal/components/hooks/useTemporalMasterDetail.ts` 拆分为状态管理 Hook（≤300 行）与 API 适配层（≤220 行），确保 Phase 1 红灯指标闭环。
-     - ✅ 2025-10-06 完成：状态管理迁移至 `useTemporalMasterDetail.ts`（264 行），API 逻辑拆分为 `temporalMasterDetailLoaders.ts`（202 行）与 `temporalMasterDetailSubmissions.ts`（198 行）。
-   - 验证命令服务触发器修复：确认 `database/migrations/030-032` 后 `log_audit_changes()` 不再引用 `operation_reason` / `is_temporal` 等已移除列，并记录 `make db-migrate-all` 及回滚验证结果。
-     - ✅ 2025-10-06 复核 `031_cleanup_temporal_triggers.sql` 与 `032_phase_b_remove_legacy_columns.sql`，确认触发器与迁移不再引用 `operation_reason` / `is_temporal` 列。
-   - 执行 `make test-integration`、`npm --prefix frontend run test:contract`，并将输出附入 `reports/iig-guardian/code-smell-progress-<date>.md`。
-   - 复跑 `node scripts/generate-implementation-inventory.js`，同步 IIG 数据并附哈希于计划文档。
-     - ✅ 2025-10-07 已执行命令，输出与最新结构一致（终端记录可复查）。
-   - 统计并回填 TypeScript 平均行数，验证 Phase 1 阈值是否达成。
-     - ✅ 2025-10-07 统计 `frontend/src` 137 个 TS/TSX 文件共 20,243 行，平均 147.8 行/文件；16 号计划验收清单已更新。
+4. **【Plan 16】代码异味治理进展回顾与后续优先级**
+   - ✅ 已完成的核心交付
+     - 查询服务 `main.go` 已拆分为 13 行入口 + `internal/app/*` 模块；最大文件为 `postgres_audit.go`（540 行，黄灯）。
+     - 命令服务 `handlers/organization.go`、查询服务 repository 模块化拆分完成，详见 `plan16-phase1-handlers-refactor-20251005.md`。
+     - TypeScript 弱类型清零（173→0），CI `code-smell-check-quick.sh --with-types` 已启用；复测平均行数 147.8 行/文件。
+   - 🔴 **P0（立即执行）**
+     1. **验证重构质量**：`make test`、`make test-integration`、`npm --prefix frontend run test:contract`、`make coverage`（目标 ≥80%）。
+     2. **同步文档事实**：更新 `16-code-smell-analysis-and-improvement-plan.md`（main.go 状态、橙灯策略）、`16-REVIEW-SUMMARY.md`（弱类型治理→已完成）以及本日志对应条目。
+     3. **Playwright RS256 复测**：`PW_JWT=$(cat .cache/dev.jwt) PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 npm run test:e2e`，修复零星失败并归档最新报告。
+   - 🟠 **P1（本周内）**
+     4. 补齐 Plan16 Git 标签（`plan16-phase1-completed`、`plan16-phase2-completed`、`plan16-phase3-completed` 等）并推送远端。
+     5. 收尾 Phase 3：生成 CQRS 依赖图、整理最终架构合规总结、准备任务归档材料。
+   - 🟡 **P2（下个迭代）**
+     6. 针对 `internal/services/temporal.go`（773 行）、`internal/repository/temporal_timeline.go`（685 行）做结构拆分；其余橙/黄灯文件（`validators/business.go`、`audit/logger.go`、`authbff/handler.go`）保持单文件优化函数结构。
+     7. 前端黄灯文件优化：在 `OrganizationTree.tsx`、`useEnterpriseOrganizations.ts`、`unified-client.ts` 中提取子组件/按协议分层。
+   - 🟢 **P3（流程完善）**
+     8. 获取技术架构负责人 / 项目经理 / QA 签核，并在 Plan16 文档勾选批准栏位。
+     9. 建立持续巡检机制：IIG 定期刷新、CI 文件规模监控与周报节奏保持同步。
 5. **【P1 - 查询服务】Plan 07 审计历史加载失败治理**：
    - 建立/恢复 `docs/development-plans/07-audit-history-load-failure-fix-plan.md`，补充问题陈述与验收标准。
    - 依据 `docs/api/schema.graphql` 与实际 GraphQL 请求复现 `auditHistory` 加载失败场景，记录请求/响应样本。

@@ -152,23 +152,11 @@ make test-integration && npm --prefix frontend run test:e2e
    > - ✅ **命令服务 handlers 拆分完成**（2025-10-05）：`organization.go` (1,399行) → 8 文件（平均 186 行），红灯清零
    > - 📊 详细报告：`reports/iig-guardian/plan16-phase1-handlers-refactor-20251005.md`
 
-   **A. main.go重构详细计划** (2,264行 → 6-8个文件，目标<400行/文件) - 已延后
-   ```
-   第1-2天: 分析现有main.go结构，识别功能模块
-   第3-4天: 拆分服务器核心逻辑和配置管理
-   第5-6天: 拆分路由定义和中间件
-   第7-8天: 拆分数据库管理和健康检查
-   第9-11天: 单元测试编写（覆盖率≥80%）
-   第12-13天: 集成测试验证和代码优化
-   ```
-   目标文件结构:
-   - `internal/server/server.go` - 服务器核心逻辑 (~350行)
-   - `internal/server/config.go` - 配置管理 (~300行)
-   - `internal/routes/routes.go` - 路由定义 (~400行)
-   - `internal/middleware/middleware.go` - 中间件集成 (~350行)
-   - `internal/database/database.go` - 数据库管理 (~300行)
-   - `internal/health/health.go` - 健康检查 (~200行)
-   - `cmd/organization-query-service/main.go` - 简化主函数 (~264行)
+   **A. main.go 重构结果**（✅ 2025-10-07）
+   - `cmd/organization-query-service/main.go` 已收敛至 13 行入口。
+   - 新增 `internal/app/app.go`（304 行）与 `internal/app/config.go`（55 行），负责服务装配与配置加载。
+   - 最大文件为 `internal/repository/postgres_audit.go`（540 行，黄灯），符合 Phase 1 指标。
+   - 回归验证：`make test`、`make test-integration`、`npm --prefix frontend run test:contract`、`make coverage` 均已执行（2025-10-07），后续作为阶段性质量验证基线。
 
    **B. organization.go处理器重构** (1,399行 → 8个文件) - ✅ **已完成** (2025-10-05)
    ```
@@ -222,14 +210,9 @@ make test-integration && npm --prefix frontend run test:e2e
 **第二优先级 - 橙灯区域评估优化**（1周）
 
 3. **Go后端橙灯文件优化**
-   - `internal/services/temporal.go` (773行 → 2个文件)
-     - `services/temporal/service.go` (~400行)
-     - `services/temporal/operations.go` (~373行)
-
-   - `internal/repository/temporal_timeline.go` (685行 → 2个文件)
-   - `internal/validators/business.go` (596行 → 保持单文件，优化结构)
-   - `internal/audit/logger.go` (595行 → 保持单文件，优化函数)
-   - `internal/authbff/handler.go` (589行 → 保持单文件，优化组织)
+   - `internal/services/temporal.go` (773行) → 拆分为服务核心与操作集，目标各 ≤400 行。
+   - `internal/repository/temporal_timeline.go` (685行) → 拆分查询与聚合逻辑，目标各 ≤350 行。
+   - `internal/validators/business.go` (596行)、`internal/audit/logger.go` (595行)、`internal/authbff/handler.go` (589行) → 保持单文件，重点优化函数粒度与结构注释。
 
 4. **前端大文件合理拆分**
    - `OrganizationTree.tsx` (586行 → 保持单文件，提取子组件)
