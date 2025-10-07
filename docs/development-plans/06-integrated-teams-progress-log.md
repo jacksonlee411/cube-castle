@@ -113,6 +113,7 @@
      - ✅ 2025-10-07 查询服务重启后使用 `curl` 验证 GraphQL `auditHistory`（3 条记录，`dataType` 符合契约），响应样本已写入巡检报告。
      - ⚠️ 待执行：Playwright / E2E 场景需补齐 GraphQL 截图与自动化凭证（转入 Phase 3 序列）。
    - ✅ Phase 2 已关闭：数据库巡检与 GraphQL 接口验证完成，等待 Phase 3 统一归档。
+   - ✅ Phase 3 收尾：新增 `reports/iig-guardian/plan07-audit-history-validation-20251007.md`、更新 07 号计划与开发者参考说明，并着手归档至 `docs/archive/development-plans/`（Playwright 截图由 QA 在后续迭代执行）。
 6. **【P3 - 架构组】Plan 16 Phase 3 文档收尾**：
    - 聚焦 CQRS 分离强化验收：整理命令/查询服务依赖图，使用 `go list`/`golangci-lint` import 规则确认无交叉引用，并在 16 号计划记录结论。
    - 归档 `reports/iig-guardian/code-smell-ci-20251006075736.md` 为 Phase 3 最终基线，补充脚本使用说明。

@@ -89,11 +89,11 @@
    - ✅ 2025-10-07 复跑 SQL 巡检（3 条 UPDATE 审计 / 缺失 dataType=0），并记录新样本。
    - ✅ 2025-10-07 GraphQL 响应样本已补充（Playwright 覆盖移交 Phase 3 收尾）。
 
-### Phase 3 — 归档与回溯（0.5 天）
-1. 在 `docs/development-plans/06-integrated-teams-progress-log.md` 标记任务完成并总结风险。
-2. 若需，更新 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 或实现清单中的相关条目。
-3. 汇总执行记录至 `reports/iig-guardian/plan07-audit-history-<date>.md`（若创建）。
-4. 验收完成后将本计划移入 `docs/archive/development-plans/`，并在 00-README.md 标记状态。
+### Phase 3 — 归档与回溯（0.5 天） ✅ 2025-10-07 完成
+1. ✅ 2025-10-07 在 `docs/development-plans/06-integrated-teams-progress-log.md` 记录 Phase 2/3 完成情况与后续 Playwright 安排。
+2. ✅ 2025-10-07 更新 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`，增加 `scripts/dev/mint-dev-jwt.sh` 调用说明（与修复流程保持一致）。
+3. ✅ 2025-10-07 新增 `reports/iig-guardian/plan07-audit-history-validation-20251007.md`，汇总迁移、巡检与 GraphQL 验证证据。
+4. ✅ 2025-10-07 本计划准备归档：移动至 `docs/archive/development-plans/` 并在 `00-README.md` 标记状态。
 
 ## 5. 风险与依赖
 | 风险 | 描述 | 缓解措施 |
@@ -119,13 +119,14 @@
 
 ---
 
-**执行状态**: ✅ Phase 2 完成（数据库 & GraphQL 双线验证通过，Playwright 覆盖移交 Phase 3）
+**执行状态**: ✅ Phase 3 完成（数据库 & GraphQL 验证闭环，Playwright 覆盖记录在团队日志待后续迭代执行）
 
 **进度跟踪**：
 - ✅ 2025-10-06: Phase 0 完成 - SQL 巡检与 GraphQL 查询验证完成，报告已更新
 - ✅ 2025-10-07: Phase 1 完成 - 明确根因系 `log_audit_changes()` 移除字段差异计算并输出修复方案
 - ✅ 2025-10-07: Phase 2（数据库侧）- 执行迁移 034、补齐历史记录并复跑巡检，确认缺失 `dataType` 清零
 - ✅ 2025-10-07: Phase 2（应用侧）- 手动 GraphQL 调用验证通过，Playwright 自动化待在 Phase 3 中补充
+- ✅ 2025-10-07: Phase 3 收尾 - 更新团队日志/开发者参考、新增验收报告、准备归档
 
 **Phase 0 关键成果**：
 1. 确认 GraphQL 端点可正常返回数据，不存在 500 错误或空数组问题
