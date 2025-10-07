@@ -13,7 +13,7 @@
 
 ## 执行摘要
 
-通过分析项目代码库，发现当前平均文件行数已达到312.7行（Go）和163.0行（TypeScript）。基于Go语言工程实践的最佳标准，本计划制定了平衡的重构策略，重点解决超大文件问题，将代码质量提升到行业标准水平。
+通过分析项目代码库，基线（2025-09-29）平均文件行数为312.7行（Go）与163.0行（TypeScript）。2025-10-07 复测显示 TypeScript 已降至 **147.8 行/文件**，计划持续围绕 Go 工程实践标准推进重构以保持改进趋势。
 
 **基线数据来源**: `reports/iig-guardian/code-smell-baseline-20250929.md`（唯一事实来源）
 - Go后端：54个文件，16,888行，红灯3个（27.5%），橙灯5个（22.1%）
@@ -49,7 +49,7 @@
   - `frontend/src/shared/hooks/useEnterpriseOrganizations.ts`: 491行
   - `frontend/src/shared/api/unified-client.ts`: 486行
 - **中等文件**（300-400行）: 其他多个文件
-- **统计数据**: 112个TypeScript文件，平均163.0行（基线参见同一报告）
+- **统计数据**: 112个TypeScript文件（2025-09-29 基线）平均163.0行；2025-10-07 复测 137 个文件平均 147.8 行（降幅约 9.3%）。
 
 **影响评估（合理级别）**:
 - 超大文件影响代码可读性和团队协作效率
@@ -348,7 +348,7 @@ make test-integration && npm --prefix frontend run test:e2e
 ## 7. 成功指标（可验证版本）
 
 ### 量化指标（基于基线 `reports/iig-guardian/code-smell-baseline-20250929.md`）
-- **平均文件行数**: Go ≤ 350行（当前312.7），前端平均≤150行（当前163.0）
+- **平均文件行数**: Go ≤ 350行（当前312.7），前端平均≤150行（2025-10-07 实测 147.8 ✅）
 - **红灯区域文件**: Go 0个（仓储拆分完成，最大 475 行），TS 0个（Inline 表单拆分完成）
 - **橙灯区域文件**: ≤5个（Go 目标 ≤3，TS 目标 ≤5；最新仓储/时间轴拆分将橙灯压缩至 0）
 - any/unknown类型使用 ≤ 30处（当前171处，Phase 2目标）
@@ -405,10 +405,10 @@ make test-integration && npm --prefix frontend run test:e2e
 - [x] `reports/iig-guardian/code-smell-baseline-20250929.md` 已生成（Phase 0完成）
 - [x] `reports/iig-guardian/code-smell-progress-20251007.md` 记录红灯状态并附单元/集成测试结果（Go）
 - [x] `reports/iig-guardian/code-smell-types-20251007.md` 显示 any/unknown 统计（173 项基线）
-- [ ] TypeScript 平均行数报告（生成时间待定）
+- [x] TypeScript 平均行数报告（2025-10-07 统计：20243 行 / 137 文件，平均 147.8 行；来源：`find frontend/src -type f (ts|tsx)` + `wc -l`）
 - [x] `reports/iig-guardian/code-smell-phase3-final.md` 证明文件规模脚本已纳入 CI（2025-10-06）
 - [ ] `docs/development-plans/06-integrated-teams-progress-log.md` 每周五更新进展、风险、阻塞项（2025-10-07 已补状态，责任人待填）
-- [ ] `node scripts/generate-implementation-inventory.js` 复跑并更新实现清单，确保导出一致
+- [x] `node scripts/generate-implementation-inventory.js` 复跑并更新实现清单（2025-10-07 执行，无新增漏项）
 - [ ] git标签体系建立：`plan16-phase[0-3]-baseline` 和 `plan16-phase[1-3]-task[N]-before`
 
 ## 10. 相关文档

@@ -95,7 +95,9 @@
      - ✅ 2025-10-06 复核 `031_cleanup_temporal_triggers.sql` 与 `032_phase_b_remove_legacy_columns.sql`，确认触发器与迁移不再引用 `operation_reason` / `is_temporal` 列。
    - 执行 `make test-integration`、`npm --prefix frontend run test:contract`，并将输出附入 `reports/iig-guardian/code-smell-progress-<date>.md`。
    - 复跑 `node scripts/generate-implementation-inventory.js`，同步 IIG 数据并附哈希于计划文档。
-     - ✅ 2025-10-06 已执行命令，控制台输出与最新结构一致（见终端记录）。
+     - ✅ 2025-10-07 已执行命令，输出与最新结构一致（终端记录可复查）。
+   - 统计并回填 TypeScript 平均行数，验证 Phase 1 阈值是否达成。
+     - ✅ 2025-10-07 统计 `frontend/src` 137 个 TS/TSX 文件共 20,243 行，平均 147.8 行/文件；16 号计划验收清单已更新。
 5. **【P1 - 查询服务】Plan 07 审计历史加载失败治理**：
    - 建立/恢复 `docs/development-plans/07-audit-history-load-failure-fix-plan.md`，补充问题陈述与验收标准。
    - 依据 `docs/api/schema.graphql` 与实际 GraphQL 请求复现 `auditHistory` 加载失败场景，记录请求/响应样本。
@@ -103,10 +105,14 @@
    - 执行 `sql/inspection/audit-history-nullability.sql`，将结果填入 `reports/temporal/audit-history-nullability.md` 并分析根因。
      - ✅ 2025-10-06 运行脚本（PG 用户 `user`，DB `cubecastle`），发现 UPDATE 事件中存在 1 条缺失 `dataType` 的记录，样本 `auditId=5a380d66-e581-4700-b7f3-803042babd7c`。
    - 排查 `cmd/organization-query-service` Resolver → Service → Repository 链路，形成修复方案并回填计划文档。
-     - ✅ 2025-10-06 更新 `postgres_audit.go` 以推断缺失 `dataType` 并忽略空记录，复测 GraphQL `dataType` 现为 `"string"`。
-     - ✅ 同日补充 `audit_history_sanitize_test.go` 单元测试并执行 `go test ./cmd/organization-query-service/internal/repository`。
-     - ✅ 新增迁移 `033_cleanup_audit_empty_changes.sql` 清理旧触发器写入的空审计记录。
-   - ✅ Phase 3：文档、巡检报告已更新并准备归档。
+     - ✅ 2025-10-06 更新 `postgres_audit.go` 推断缺失 `dataType` 并忽略空记录，补充 `audit_history_sanitize_test.go` 单元测试，`go test ./cmd/organization-query-service/internal/repository` 通过。
+     - ✅ 2025-10-06 新增迁移 `033_cleanup_audit_empty_changes.sql` 清理旧触发器写入的空审计记录。
+     - ✅ 2025-10-07 完成 Phase 1 根因复盘：确认 `031_cleanup_temporal_triggers.sql` 精简触发器导致字段差异丢失，更新计划文档与巡检报告。
+     - ✅ 2025-10-07 提交并执行 `database/migrations/034_rebuild_audit_trigger_with_diff.sql`，恢复 `log_audit_changes()` 生成 `changes`/`modified_fields` 与 `dataType`。
+     - ✅ 2025-10-07 通过手动 UPDATE + `jsonb_set` 补齐历史审计记录，并复跑 `sql/inspection/audit-history-nullability.sql`（3 条 UPDATE / 缺失 dataType = 0），报告已更新。
+     - ✅ 2025-10-07 查询服务重启后使用 `curl` 验证 GraphQL `auditHistory`（3 条记录，`dataType` 符合契约），响应样本已写入巡检报告。
+     - ⚠️ 待执行：Playwright / E2E 场景需补齐 GraphQL 截图与自动化凭证（转入 Phase 3 序列）。
+   - ✅ Phase 2 已关闭：数据库巡检与 GraphQL 接口验证完成，等待 Phase 3 统一归档。
 6. **【P3 - 架构组】Plan 16 Phase 3 文档收尾**：
    - 聚焦 CQRS 分离强化验收：整理命令/查询服务依赖图，使用 `go list`/`golangci-lint` import 规则确认无交叉引用，并在 16 号计划记录结论。
    - 归档 `reports/iig-guardian/code-smell-ci-20251006075736.md` 为 Phase 3 最终基线，补充脚本使用说明。
