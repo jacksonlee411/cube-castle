@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { setupAuth } from './auth-setup';
 
 test.describe('Canvas Frontend E2E Tests', () => {
-  
+
   test.beforeEach(async ({ page }) => {
+    // 注入认证信息，确保通过RequireAuth验证
+    await setupAuth(page);
     await page.goto('/');
   });
 

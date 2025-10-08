@@ -70,11 +70,18 @@ test.describe('业务流程端到端测试', () => {
     await page.waitForURL('**/organizations');
 
     await test.step('验证列表展示新组织', async () => {
+      // 等待列表加载完成
       const organizationTable = page.getByTestId('organization-table');
       await expect(organizationTable).toBeVisible();
 
+      // 等待加载状态消失，确保数据已刷新
+      await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {
+        // 如果没有加载状态也没关系，说明加载很快完成了
+      });
+
+      // 等待新创建的行出现（允许足够时间让列表刷新）
       const createdRow = page.getByTestId(`table-row-${organizationCode}`);
-      await expect(createdRow).toBeVisible();
+      await expect(createdRow).toBeVisible({ timeout: 15000 });
       await expect(createdRow.getByText(baseName)).toBeVisible();
       await expect(createdRow.getByText('DEPARTMENT')).toBeVisible();
       await expect(page.getByTestId(`status-pill-${organizationCode}`)).toHaveText('✓ 启用');
@@ -97,8 +104,11 @@ test.describe('业务流程端到端测试', () => {
       await page.getByTestId('back-to-organization-list').click();
       await page.waitForURL('**/organizations');
 
+      // 等待列表数据刷新
+      await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {});
+
       const updatedRow = page.getByTestId(`table-row-${organizationCode}`);
-      await expect(updatedRow.getByText(updatedName)).toBeVisible();
+      await expect(updatedRow.getByText(updatedName)).toBeVisible({ timeout: 15000 });
     });
 
     await test.step('删除组织并在列表中消失', async () => {
@@ -115,6 +125,9 @@ test.describe('业务流程端到端测试', () => {
 
       await page.getByTestId('back-to-organization-list').click();
       await page.waitForURL('**/organizations');
+
+      // 等待列表数据刷新
+      await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {});
 
       const deletedRow = page.getByTestId(`table-row-${organizationCode}`);
       await expect(deletedRow).toHaveCount(0);
