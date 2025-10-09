@@ -109,6 +109,12 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
   const [selectedCode, setSelectedCode] = React.useState<string | undefined>(_currentParentCode)
   const [items, setItems] = React.useState<OrgItem[]>([])
   const { canRead } = useOrgPBAC()
+  const validationHandlerRef = React.useRef(onValidationError)
+  const [isFocused, setIsFocused] = React.useState(false)
+
+  React.useEffect(() => {
+    validationHandlerRef.current = onValidationError
+  }, [onValidationError])
 
   const pageSize = 500
   const cacheKey = React.useMemo(() => `${effectiveDate}::${currentCode}::${pageSize}`, [currentCode, effectiveDate])
@@ -143,16 +149,17 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     const cached = memoryCache.get(cacheKey)
     const now = Date.now()
     if (cached && cached.expiresAt > now) {
+      setLoading(false)
       setItems(cached.data)
-      setIsMenuOpen(true)
-        if (_currentParentCode) {
-          const cachedItem = cached.data.find(item => item.code === _currentParentCode)
-          if (cachedItem) {
-            setSelectedCode(_currentParentCode)
-            setSearch(formatLabel(cachedItem))
-          }
+      setIsMenuOpen(isFocused && canRead && !disabled)
+      if (_currentParentCode) {
+        const cachedItem = cached.data.find(item => item.code === _currentParentCode)
+        if (cachedItem) {
+          setSelectedCode(_currentParentCode)
+          setSearch(formatLabel(cachedItem))
         }
-        return
+      }
+      return
     }
     setLoading(true)
     const client = new UnifiedGraphQLClient()
@@ -167,7 +174,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
         const list = (data.organizations?.data || []).filter(o => o.code !== currentCode)
         setItems(list)
         setError(undefined)
-        setIsMenuOpen(true)
+        setIsMenuOpen(isFocused && canRead && !disabled)
         if (_currentParentCode) {
           const preselected = list.find(item => item.code === _currentParentCode)
           if (preselected) {
@@ -181,13 +188,13 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
         if (!mounted) return
         const msg = error instanceof Error ? error.message : '加载组织列表失败，请稍后重试'
         setError(msg)
-        onValidationError?.(msg)
+        validationHandlerRef.current?.(msg)
       })
       .finally(() => mounted && setLoading(false))
     return () => {
       mounted = false
     }
-  }, [cacheKey, cacheTtlMs, canRead, currentCode, effectiveDate, formatLabel, onValidationError, _currentParentCode])
+  }, [cacheKey, cacheTtlMs, canRead, currentCode, disabled, effectiveDate, formatLabel, isFocused, _currentParentCode])
 
   React.useEffect(() => {
     if (!_currentParentCode) {
@@ -208,10 +215,10 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     setSelectedCode(undefined)
     setSearch('')
     setError(undefined)
-    onValidationError?.(undefined)
+    validationHandlerRef.current?.(undefined)
     onChange(undefined)
     setIsMenuOpen(false)
-  }, [onChange, onValidationError])
+  }, [onChange])
 
   const applySelection = React.useCallback((nextCode: string | undefined, source?: OrgItem | null) => {
     if (!nextCode) {
@@ -227,7 +234,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
       const pathStr = cyclePath?.join(' -> ') || ''
       const msg = `选择该组织将导致循环依赖：${pathStr}`
       setError(msg)
-      onValidationError?.(msg)
+      validationHandlerRef.current?.(msg)
       if (selectedCode) {
         const existing = orgMap.get(selectedCode)
         setSearch(formatLabel(existing))
@@ -237,14 +244,15 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
       return
     }
     setError(undefined)
-    onValidationError?.(undefined)
+    validationHandlerRef.current?.(undefined)
     setSelectedCode(nextCode)
     setSearch(formatLabel(item))
     onChange(nextCode)
       setIsMenuOpen(false)
-  }, [clearSelection, currentCode, formatLabel, onChange, onValidationError, orgMap, selectedCode])
+  }, [clearSelection, currentCode, formatLabel, onChange, orgMap, selectedCode])
 
   const handleInputFocus = React.useCallback(() => {
+    setIsFocused(true)
     if (canRead && !disabled && !loading) {
       setIsMenuOpen(true)
     }
@@ -256,6 +264,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     }
     inputBlurTimeoutRef.current = window.setTimeout(() => {
       setIsMenuOpen(false)
+      setIsFocused(false)
     }, 100)
   }, [])
 
@@ -264,16 +273,16 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     setSearch(value)
     if (error) {
       setError(undefined)
-      onValidationError?.(undefined)
+      validationHandlerRef.current?.(undefined)
     }
     if (!value) {
       clearSelection()
       return
     }
-    if (canRead && !disabled) {
+    if (canRead && !disabled && !loading) {
       setIsMenuOpen(true)
     }
-  }, [canRead, clearSelection, disabled, error, onValidationError])
+  }, [canRead, clearSelection, disabled, error, loading])
 
   const handleItemSelect = React.useCallback((item: OrgItem) => (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()

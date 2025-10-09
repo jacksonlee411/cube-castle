@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
+import { validateTestEnvironment } from './config/test-environment';
 import { setupAuth } from './auth-setup';
 
 const TEST_ORGANIZATION_CODE = '1000004';

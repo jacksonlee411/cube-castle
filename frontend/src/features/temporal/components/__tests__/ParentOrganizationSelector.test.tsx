@@ -76,6 +76,8 @@ describe('ParentOrganizationSelector', () => {
     render(<ParentOrganizationSelector currentCode="1000001" effectiveDate="2025-09-15" onChange={onChange} />)
 
     // 等待加载结束并渲染候选项（自组织会被过滤）
+    const input = screen.getByTestId('combobox-input')
+    fireEvent.focus(input)
     const itemBtn = await screen.findByTestId('combobox-item-1000000')
     fireEvent.click(itemBtn)
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('1000000'))
@@ -96,6 +98,8 @@ describe('ParentOrganizationSelector', () => {
     const onChange = vi.fn()
     render(<ParentOrganizationSelector currentCode="A" effectiveDate="2025-09-16" onChange={onChange} onValidationError={onErr} />)
 
+    const input = screen.getByTestId('combobox-input')
+    fireEvent.focus(input)
     const itemBtn = await screen.findByTestId('combobox-item-B')
     fireEvent.click(itemBtn)
     await waitFor(() => expect(onChange).not.toHaveBeenCalled())
