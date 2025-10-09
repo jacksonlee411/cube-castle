@@ -10,8 +10,8 @@
 ## 执行概览
 
 ### 📊 完成状态
-- ✅ IIG 最新扫描（2025-09-24）已与当前代码一致：OpenAPI 26、GraphQL 12、Go Handlers 26、Go Services 19、TS 导出 146。
-- ✅ 2025-09-28 复核：`node scripts/generate-implementation-inventory.js` 输出与仓库匹配，未出现历史 `/organization-units/temporal` 端点。
+- ✅ IIG 最新扫描（2025-10-09，`reports/implementation-inventory.json` 快照 2025-10-09T01:56:12Z）与当前代码一致：OpenAPI 26、GraphQL 12、Go Handlers 26、Go Services 19、TS 导出 172。
+- ✅ 2025-10-09 复核：`node scripts/generate-implementation-inventory.js` 输出与仓库匹配，未出现历史 `/organization-units/temporal` 端点或未登记导出。
 
 ---
 
@@ -35,10 +35,10 @@
 - REST/OpenAPI 契约与实现保持一致（时态端点统一回归 `/api/v1/organization-units/{code}/versions`）。
 
 ### 📈 统计更新
-- REST 端点：26（含 `/api/v1/organization-units/validate`、`/api/v1/organization-units/{code}/refresh-hierarchy`、`/batch-refresh-hierarchy`、`/api/v1/corehr/organizations` 等最新补录项）。
-- GraphQL 查询：12 个主要字段，`organizationHierarchy` 已对接 `codePath/namePath`。
-- Go 组件：Handlers 26、Services 19（匹配生成脚本输出）。
-- 前端导出：146（较 2025-09-15 再压缩 16 项，新增 `generateIdempotencyKey` 等聚合入口一致化）。
+- REST 端点：26（含 `/api/v1/organization-units/validate`、`/api/v1/organization-units/{code}/refresh-hierarchy`、`/batch-refresh-hierarchy`、`/api/v1/corehr/organizations` 等已登记项）。
+- GraphQL 查询：12 个主要字段，`organizationHierarchy` 持续对接 `codePath/namePath`，符合最新 Schema。
+- Go 组件：Handlers 26、Services 19（与 IIG 报告保持一致）。
+- 前端导出：172（较 2025-09-24 快照 +26，涵盖 `shared/config/ports.ts`、`shared/validation/schemas.ts` 等新增导出）。
 
 ---
 

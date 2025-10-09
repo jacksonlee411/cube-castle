@@ -3,7 +3,7 @@
 版本: v1.9.1 软删除状态迁移完成版
 维护人: 架构组（与IIG护卫系统协同维护）
 范围: 基于最新IIG扫描的完整实现清单（API优先+CQRS架构+状态字段统一）
-最后更新: 2025-09-30（脚本刷新：26个命令端点 + 12个GraphQL字段 + 26个Go处理器 + 19个Go服务类型 + 146个前端导出项；来源 `reports/implementation-inventory.json` 快照 2025-09-30T00:22:04Z）
+最后更新: 2025-10-09（脚本刷新：26个命令端点 + 12个GraphQL字段 + 26个Go处理器 + 19个Go服务类型 + 172个前端导出项；来源 `reports/implementation-inventory.json` 快照 2025-10-09T01:56:12Z）
 
 ## 🔄 **重要架构变更记录**
 **2025-09-27**: ✅ **软删除判定统一为仅依赖status字段**（14号计划完成）
@@ -35,7 +35,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - ✅ **REST API端点**: 从 `docs/api/openapi.yaml` 提取 (26个端点：运维/命令/认证完整登记)
 - ✅ **GraphQL查询**: 从 `docs/api/schema.graphql` 提取 (12个查询字段及参数)
 - ✅ **Go后端组件**: 扫描 handlers / services (26个导出处理器 + 19个服务类型)
-- ✅ **前端TypeScript导出**: 扫描 class/function/const (146 个导出符号)
+- ✅ **前端TypeScript导出**: 扫描 class/function/const (172 个导出符号)
 
 #### 🔍 **IIG护卫集成** (Implementation Inventory Guardian)
 - **预开发强制检查**: 每次新功能开发前必须运行此脚本
@@ -94,7 +94,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ### 🎯 **API优先设计端点** (26个端点，按类别汇总)
 
-> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-09-30（快照 2025-09-30T00:22:04Z），详见 `reports/implementation-inventory.json.openapiPaths`
+> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-10-09（快照 2025-10-09T01:56:12Z），详见 `reports/implementation-inventory.json.openapiPaths`
 
 #### 运维与可观测性（9）
 - `/api/v1/operational/health` — 健康检查 (GetHealth)
@@ -313,7 +313,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ## 前端（TypeScript/React）关键导出（Key Exported Items）
 
-基于最新IIG扫描的146个导出项（详见 `reports/implementation-inventory.json.tsExports`），下列按领域归纳关键模块：
+基于最新IIG扫描的172个导出项（详见 `reports/implementation-inventory.json.tsExports`），下列按领域归纳关键模块：
 
 ### API客户端架构
 #### 统一客户端 (`unified-client.ts`)
@@ -694,7 +694,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
   - 运维管理处理器: 10个方法（健康检查、指标收集、任务管理、切换控制）
   - 组织业务处理器: 8个方法（组织CRUD、时态版本、事件处理）
   - 核心服务层: 19个服务类型（级联更新、时态管理、监控告警）
-- **前端统一架构**: 146个导出组件 ⭐ **IIG护卫扫描覆盖**
+- **前端统一架构**: 172个导出组件 ⭐ **IIG护卫扫描覆盖**
   - API客户端架构: 统一GraphQL/REST客户端，OAuth认证管理
   - 数据管理层: 企业级组织管理Hook，时态数据API
   - 类型系统: 完整类型守卫和转换器，Zod Schema验证
@@ -759,7 +759,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 #### 📊 **护卫效果统计**
 - **重复防护率**: 93%+ (120+个分散导出 → 4个统一系统)
-- **清单覆盖度**: 100% (26个REST端点 + 12个GraphQL查询 + 45个后端组件 + 146个前端导出)
+- **清单覆盖度**: 100% (26个REST端点 + 12个GraphQL查询 + 45个后端组件 + 172个前端导出)
 - **质量门禁**: 与P3系统100%集成，自动化检测和报告
 - **团队效率**: 显著减少"重复造轮子"问题，提升代码复用率
 
