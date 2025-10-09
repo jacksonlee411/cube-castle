@@ -42,6 +42,8 @@ export interface TemporalMasterDetailState {
   displayPaths: HierarchyPaths | null;
   currentTimelineStatus: string | undefined;
   currentOrganizationName: string;
+  earliestVersion: TimelineVersion | null;
+  isEarliestVersionSelected: boolean;
 }
 
 export interface TemporalMasterDetailHandlers {
@@ -52,6 +54,7 @@ export interface TemporalMasterDetailHandlers {
     result: OrganizationStateMutationResult,
   ) => Promise<void>;
   handleDeleteVersion: (version: TimelineVersion) => Promise<void>;
+  handleDeleteOrganization: (version: TimelineVersion) => Promise<void>;
   handleVersionSelect: (version: TimelineVersion) => void;
   handleFormSubmit: (formData: TemporalEditFormData) => Promise<void>;
   handleHistoryEditClose: () => void;

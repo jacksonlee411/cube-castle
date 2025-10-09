@@ -1,5 +1,9 @@
 import { logger } from '@/shared/utils/logger';
-import type { OrganizationStateMutationResult } from '@/shared/hooks/useOrganizationMutations';
+import type {
+  DeleteOrganizationMutationResult,
+  DeleteOrganizationVariables,
+  OrganizationStateMutationResult,
+} from '@/shared/hooks/useOrganizationMutations';
 import type { TimelineVersion } from '../TimelineComponent';
 import { deactivateOrganizationVersion } from './temporalMasterDetailApi';
 import type {
@@ -82,6 +86,82 @@ export const createHandleDeleteVersion = ({
     }
   } catch (error) {
     logger.error('Error deactivating version:', error);
+    throw error;
+  } finally {
+    setIsDeleting(false);
+  }
+};
+
+export const createHandleDeleteOrganization = ({
+  organizationCode,
+  deleteOrganization,
+  setters,
+  loadVersions,
+  notifySuccess,
+  notifyError,
+  onBack,
+  currentETag,
+}: {
+  organizationCode: string | null;
+  deleteOrganization: (
+    variables: DeleteOrganizationVariables,
+  ) => Promise<DeleteOrganizationMutationResult>;
+  setters: Pick<
+    TemporalMasterDetailStateUpdaters,
+    | 'setIsDeleting'
+    | 'setVersions'
+    | 'setSelectedVersion'
+    | 'setCurrentETag'
+    | 'setShowDeleteConfirm'
+  >;
+  loadVersions: LoadVersionsFn;
+  notifySuccess: (message: string) => void;
+  notifyError: (message: string) => void;
+  onBack?: () => void;
+  currentETag: string | null;
+}) => async (version: TimelineVersion) => {
+  const {
+    setIsDeleting,
+    setVersions,
+    setSelectedVersion,
+    setCurrentETag,
+    setShowDeleteConfirm,
+  } = setters;
+
+  if (!organizationCode) {
+    notifyError('无法删除组织：缺少组织编码');
+    return;
+  }
+
+  try {
+    setIsDeleting(true);
+
+    await deleteOrganization({
+      code: organizationCode,
+      effectiveDate: version.effectiveDate,
+      currentETag: currentETag ?? undefined,
+    });
+
+    setCurrentETag(null);
+    setVersions([]);
+    setSelectedVersion(null);
+    setShowDeleteConfirm(null);
+
+    notifySuccess('组织编码已删除');
+
+    try {
+      await loadVersions();
+    } catch (refreshError) {
+      logger.warn('组织删除后刷新版本失败（可忽略）:', refreshError);
+    }
+
+    if (onBack) {
+      onBack();
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : '删除组织失败，请稍后再试';
+    notifyError(message);
     throw error;
   } finally {
     setIsDeleting(false);

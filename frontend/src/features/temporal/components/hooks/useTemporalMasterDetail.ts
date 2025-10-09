@@ -6,6 +6,7 @@ import {
   type LoadVersionsFn,
 } from './temporalMasterDetailLoaders';
 import {
+  createHandleDeleteOrganization,
   createHandleDeleteVersion,
   createHandleStateMutationCompleted,
 } from './temporalMasterDetailMutations';
@@ -19,6 +20,7 @@ import type {
   TemporalMasterDetailViewProps,
   UseTemporalMasterDetailResult,
 } from './temporalMasterDetailTypes';
+import { useDeleteOrganization } from '@/shared/hooks/useOrganizationMutations';
 
 export type {
   FormInitialData,
@@ -65,6 +67,7 @@ export const useTemporalMasterDetail = (
   const [displayPaths, setDisplayPaths] = useState<
     TemporalMasterDetailState['displayPaths']
   >(null);
+  const { mutateAsync: deleteOrganizationAsync } = useDeleteOrganization();
 
   const notifySuccess = useCallback((message: string) => {
     setError(null);
@@ -136,6 +139,30 @@ export const useTemporalMasterDetail = (
         loadVersions,
       }),
     [loadVersions],
+  );
+
+  const handleDeleteOrganization = useMemo(
+    () =>
+      createHandleDeleteOrganization({
+        organizationCode,
+        deleteOrganization: deleteOrganizationAsync,
+        setters,
+        loadVersions,
+        notifySuccess,
+        notifyError,
+        onBack,
+        currentETag,
+      }),
+    [
+      organizationCode,
+      deleteOrganizationAsync,
+      setters,
+      loadVersions,
+      notifySuccess,
+      notifyError,
+      onBack,
+      currentETag,
+    ],
   );
 
   const handleDeleteVersion = useMemo(
@@ -223,6 +250,29 @@ export const useTemporalMasterDetail = (
     return currentVersion?.name || '';
   }, [versions]);
 
+  const earliestVersion = useMemo(() => {
+    if (versions.length === 0) {
+      return null;
+    }
+
+    const nonDeleted = versions.filter((v) => v.status !== 'DELETED');
+    if (nonDeleted.length === 0) {
+      return null;
+    }
+
+    return nonDeleted[nonDeleted.length - 1];
+  }, [versions]);
+
+  const isEarliestVersionSelected = useMemo(
+    () =>
+      Boolean(
+        selectedVersion &&
+          earliestVersion &&
+          selectedVersion.recordId === earliestVersion.recordId,
+      ),
+    [selectedVersion, earliestVersion],
+  );
+
   const currentTimelineStatus = useMemo(() => {
     const current = versions.find((v) => v.isCurrent);
     return current?.status || selectedVersion?.status;
@@ -247,11 +297,14 @@ export const useTemporalMasterDetail = (
       displayPaths,
       currentTimelineStatus,
       currentOrganizationName,
+      earliestVersion,
+      isEarliestVersionSelected,
     },
     {
       setShowDeleteConfirm,
       loadVersions,
       handleStateMutationCompleted,
+      handleDeleteOrganization,
       handleDeleteVersion,
       handleVersionSelect,
       handleFormSubmit,

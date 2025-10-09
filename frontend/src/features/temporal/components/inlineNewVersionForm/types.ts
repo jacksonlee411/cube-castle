@@ -3,6 +3,7 @@ import type { TimelineVersion } from '../TimelineComponent';
 import type { TemporalEditFormData } from '../TemporalEditForm';
 
 export type InlineNewVersionFormMode = 'create' | 'edit';
+export type DeleteConfirmMode = 'record' | 'organization' | null;
 
 export interface InlineVersionRecord {
   recordId: string;
@@ -16,7 +17,7 @@ export interface InlineVersionRecord {
   description?: string;
   parentCode?: string;
   level?: number;
-  path?: string | null;
+  codePath?: string | null;
 }
 
 export interface InlineVersionSummary {
@@ -46,6 +47,9 @@ export interface InlineNewVersionFormProps {
   activeTab?: 'edit-history' | 'new-version' | 'audit-history';
   onTabChange?: (tab: 'edit-history' | 'new-version' | 'audit-history') => void;
   hierarchyPaths?: InlineHierarchyPaths | null;
+  canDeleteOrganization?: boolean;
+  onDeleteOrganization?: () => Promise<void>;
+  isDeletingOrganization?: boolean;
 }
 
 export interface InlineNewVersionInitialData {

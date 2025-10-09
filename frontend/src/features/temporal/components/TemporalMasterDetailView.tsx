@@ -69,12 +69,15 @@ export const TemporalMasterDetailView: React.FC<
     displayPaths,
     currentTimelineStatus,
     currentOrganizationName,
+    earliestVersion,
+    isEarliestVersionSelected,
   } = state;
 
   const {
     setShowDeleteConfirm,
     loadVersions,
     handleStateMutationCompleted,
+    handleDeleteOrganization,
     handleDeleteVersion,
     handleVersionSelect,
     handleFormSubmit,
@@ -252,6 +255,13 @@ export const TemporalMasterDetailView: React.FC<
                   activeTab="edit-history"
                   onTabChange={updateActiveTab}
                   hierarchyPaths={displayPaths}
+                  canDeleteOrganization={!readonly && isEarliestVersionSelected}
+                  onDeleteOrganization={
+                    earliestVersion
+                      ? () => handleDeleteOrganization(earliestVersion)
+                      : undefined
+                  }
+                  isDeletingOrganization={isDeleting}
                 />
               )}
 

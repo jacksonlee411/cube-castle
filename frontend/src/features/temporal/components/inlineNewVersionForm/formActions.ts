@@ -11,6 +11,7 @@ import {
 } from './utils';
 import type { TemporalParentErrorDetail } from './utils';
 import type {
+  DeleteConfirmMode,
   InlineNewVersionFormMode,
   InlineVersionRecord,
   InlineVersionSummary,
@@ -35,7 +36,7 @@ interface CreateFormActionsArgs {
   onEditHistory?: (versionData: TemporalVersionPayload & { recordId: string }) => Promise<void>;
   onDeactivate?: (version: TimelineVersion) => Promise<void>;
   onSubmit: (data: TemporalEditFormData) => Promise<void>;
-  setShowDeactivateConfirm: Dispatch<SetStateAction<boolean>>;
+  setShowDeactivateConfirm: Dispatch<SetStateAction<DeleteConfirmMode>>;
   setIsDeactivating: Dispatch<SetStateAction<boolean>>;
   isDeactivating: boolean;
   setLoading: Dispatch<SetStateAction<boolean>>;
@@ -139,7 +140,7 @@ const toTimelineVersion = (record: InlineVersionRecord): TimelineVersion => ({
   updatedAt: record.updatedAt,
   description: record.description,
   level: record.level ?? 0,
-  path: record.path ?? null,
+  codePath: record.codePath ?? null,
   parentCode: record.parentCode,
   sortOrder: 0,
   lifecycleStatus: record.status === 'ACTIVE' ? 'CURRENT' : 'HISTORICAL',
@@ -337,7 +338,7 @@ export const createFormActions = (
   };
 
   const handleDeactivateClick = () => {
-    setShowDeactivateConfirm(true);
+    setShowDeactivateConfirm('record');
     setErrorMessage(null);
     setSuccessMessage(null);
   };
@@ -352,19 +353,19 @@ export const createFormActions = (
       setErrorMessage(null);
       setSuccessMessage(null);
       await onDeactivate(toTimelineVersion(selectedVersion));
-      setShowDeactivateConfirm(false);
+      setShowDeactivateConfirm(null);
       setSuccessMessage('版本已成功作废');
     } catch (error) {
       const message = error instanceof Error ? error.message : '删除失败，请重试';
       setErrorMessage(message);
-      setShowDeactivateConfirm(false);
+      setShowDeactivateConfirm(null);
     } finally {
       setIsDeactivating(false);
     }
   };
 
   const handleDeactivateCancel = () => {
-    setShowDeactivateConfirm(false);
+    setShowDeactivateConfirm(null);
   };
 
   const handleSubmit = async (event?: BaseSyntheticEvent) => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TemporalEditFormData } from '../TemporalEditForm';
 import {
   DEFAULT_FORM_DATA,
@@ -9,6 +9,7 @@ import {
 } from './utils';
 import { createFormActions } from './formActions';
 import type {
+  DeleteConfirmMode,
   InlineNewVersionFormMode,
   InlineNewVersionFormProps,
   InlineVersionRecord,
@@ -22,8 +23,9 @@ export interface UseInlineNewVersionFormResult {
   suggestedEffectiveDate?: string;
   isEditingHistory: boolean;
   originalHistoryData: InlineVersionRecord | null;
-  showDeactivateConfirm: boolean;
+  deleteConfirmMode: DeleteConfirmMode;
   isDeactivating: boolean;
+  deleteProcessing: boolean;
   loading: boolean;
   errorMessage: string | null;
   successMessage: string | null;
@@ -45,7 +47,8 @@ export interface UseInlineNewVersionFormResult {
   handleCancelEditHistory: () => void;
   handleEditHistorySubmit: () => Promise<void>;
   handleDeactivateClick: () => void;
-  handleDeactivateConfirm: () => Promise<void>;
+  handleDeleteOrganizationClick: () => void;
+  handleConfirmDelete: () => Promise<void>;
   handleDeactivateCancel: () => void;
   handleStartInsertVersion: () => void;
   handleUnitTypeChange: (value: string) => void;
@@ -64,6 +67,9 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
     activeTab: _activeTab,
     onTabChange: _onTabChange,
     hierarchyPaths = null,
+    canDeleteOrganization = false,
+    onDeleteOrganization,
+    isDeletingOrganization = false,
   } = props;
 
   const [formData, setFormData] = useState<TemporalEditFormData>({ ...DEFAULT_FORM_DATA });
@@ -72,7 +78,7 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
   const [suggestedEffectiveDate, setSuggestedEffectiveDate] = useState<string | undefined>(undefined);
   const [isEditingHistory, setIsEditingHistory] = useState(false);
   const [originalHistoryData, setOriginalHistoryData] = useState<InlineVersionRecord | null>(null);
-  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [deleteConfirmMode, setDeleteConfirmMode] = useState<DeleteConfirmMode>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -154,7 +160,7 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
         onEditHistory,
         onDeactivate,
         onSubmit,
-        setShowDeactivateConfirm,
+        setShowDeactivateConfirm: setDeleteConfirmMode,
         setIsDeactivating,
         isDeactivating,
         setLoading,
@@ -195,6 +201,63 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
     handleSubmit,
   } = actions;
 
+  const handleDeleteOrganizationClick = useCallback(() => {
+    if (!canDeleteOrganization || isDeactivating || isDeletingOrganization) {
+      return;
+    }
+    setDeleteConfirmMode('organization');
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  }, [
+    canDeleteOrganization,
+    isDeactivating,
+    isDeletingOrganization,
+    setDeleteConfirmMode,
+    setErrorMessage,
+    setSuccessMessage,
+  ]);
+
+  const handleDeleteOrganizationConfirm = useCallback(async () => {
+    if (!onDeleteOrganization) {
+      setErrorMessage('当前环境暂不支持删除组织编码');
+      setDeleteConfirmMode(null);
+      return;
+    }
+
+    try {
+      setIsDeactivating(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await onDeleteOrganization();
+      setDeleteConfirmMode(null);
+      setSuccessMessage('组织编码已删除');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '删除失败，请重试';
+      setErrorMessage(message);
+      setDeleteConfirmMode(null);
+    } finally {
+      setIsDeactivating(false);
+    }
+  }, [
+    onDeleteOrganization,
+    setDeleteConfirmMode,
+    setErrorMessage,
+    setIsDeactivating,
+    setSuccessMessage,
+  ]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (deleteConfirmMode === 'organization') {
+      await handleDeleteOrganizationConfirm();
+      return;
+    }
+    if (deleteConfirmMode === 'record') {
+      await handleDeactivateConfirm();
+    }
+  }, [deleteConfirmMode, handleDeactivateConfirm, handleDeleteOrganizationConfirm]);
+
+  const deleteProcessing = isDeactivating || isDeletingOrganization;
+
   return {
     formData,
     errors,
@@ -202,8 +265,9 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
     suggestedEffectiveDate,
     isEditingHistory,
     originalHistoryData,
-    showDeactivateConfirm,
+    deleteConfirmMode,
     isDeactivating,
+    deleteProcessing,
     loading,
     errorMessage,
     successMessage,
@@ -221,7 +285,8 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
     handleCancelEditHistory,
     handleEditHistorySubmit,
     handleDeactivateClick,
-    handleDeactivateConfirm,
+    handleDeleteOrganizationClick,
+    handleConfirmDelete,
     handleDeactivateCancel,
     handleStartInsertVersion,
     handleUnitTypeChange,

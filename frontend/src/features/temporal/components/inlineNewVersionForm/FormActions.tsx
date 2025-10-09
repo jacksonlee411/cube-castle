@@ -25,6 +25,9 @@ export interface FormActionsProps {
   originalHistoryData: InlineVersionRecord | null;
   onStartInsertVersion: () => void;
   isDeactivating: boolean;
+  canDeleteOrganization?: boolean;
+  onDeleteOrganizationClick?: () => void;
+  isProcessingDelete?: boolean;
 }
 
 const FormActions: React.FC<FormActionsProps> = ({
@@ -35,6 +38,7 @@ const FormActions: React.FC<FormActionsProps> = ({
   selectedVersion,
   onCancel,
   onDeactivateClick,
+  onDeleteOrganizationClick,
   onToggleEditHistory,
   onCancelEditHistory,
   onSubmitEditHistory,
@@ -42,16 +46,34 @@ const FormActions: React.FC<FormActionsProps> = ({
   originalHistoryData,
   onStartInsertVersion,
   isDeactivating,
+  canDeleteOrganization = false,
+  isProcessingDelete = false,
 }) => {
   if (currentMode === 'edit') {
+    const deleteButtonDisabled =
+      isSubmitting || isDeactivating || isProcessingDelete;
+    const showOrganizationDelete =
+      canDeleteOrganization && !!selectedVersion && !isEditingHistory;
+    const showRecordDelete =
+      !showOrganizationDelete && !!selectedVersion && !isEditingHistory;
+
     return (
       <Box marginTop="xl" paddingTop="l" borderTop={`1px solid ${colors.soap300}`}>
         <Flex gap="s" justifyContent="space-between">
           <Box>
-            {selectedVersion && !isEditingHistory ? (
+            {showOrganizationDelete ? (
+              <TertiaryButton
+                onClick={onDeleteOrganizationClick}
+                disabled={deleteButtonDisabled || !onDeleteOrganizationClick}
+                data-testid="temporal-delete-organization-button"
+              >
+                删除组织编码
+              </TertiaryButton>
+            ) : null}
+            {showRecordDelete ? (
               <TertiaryButton
                 onClick={onDeactivateClick}
-                disabled={isSubmitting || isDeactivating}
+                disabled={deleteButtonDisabled}
                 data-testid="temporal-delete-record-button"
               >
                 删除此记录

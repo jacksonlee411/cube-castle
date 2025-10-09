@@ -19,6 +19,7 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
     onCancel,
     isSubmitting = false,
     selectedVersion = null,
+    canDeleteOrganization = false,
   } = props;
 
   const {
@@ -28,8 +29,9 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
     suggestedEffectiveDate,
     isEditingHistory,
     originalHistoryData,
-    showDeactivateConfirm,
+    deleteConfirmMode,
     isDeactivating,
+    deleteProcessing,
     loading,
     errorMessage,
     successMessage,
@@ -47,7 +49,8 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
     handleCancelEditHistory,
     handleEditHistorySubmit,
     handleDeactivateClick,
-    handleDeactivateConfirm,
+    handleDeleteOrganizationClick,
+    handleConfirmDelete,
     handleDeactivateCancel,
     handleStartInsertVersion,
     handleUnitTypeChange,
@@ -56,12 +59,13 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
   const deactivateModalModel = useModalModel();
 
   React.useEffect(() => {
-    if (showDeactivateConfirm && deactivateModalModel.state.visibility !== 'visible') {
+    const shouldShow = deleteConfirmMode !== null;
+    if (shouldShow && deactivateModalModel.state.visibility !== 'visible') {
       deactivateModalModel.events.show();
-    } else if (!showDeactivateConfirm && deactivateModalModel.state.visibility === 'visible') {
+    } else if (!shouldShow && deactivateModalModel.state.visibility === 'visible') {
       deactivateModalModel.events.hide();
     }
-  }, [deactivateModalModel, showDeactivateConfirm]);
+  }, [deactivateModalModel, deleteConfirmMode]);
 
   const fieldDisabled = isSubmitting || (currentMode === 'edit' && !isEditingHistory);
 
@@ -119,6 +123,7 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
             selectedVersion={selectedVersion}
             onCancel={onCancel}
             onDeactivateClick={handleDeactivateClick}
+            onDeleteOrganizationClick={handleDeleteOrganizationClick}
             onToggleEditHistory={handleEditHistoryToggle}
             onCancelEditHistory={handleCancelEditHistory}
             onSubmitEditHistory={handleEditHistorySubmit}
@@ -126,17 +131,21 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
             originalHistoryData={originalHistoryData}
             onStartInsertVersion={handleStartInsertVersion}
             isDeactivating={isDeactivating}
+            canDeleteOrganization={canDeleteOrganization}
+            isProcessingDelete={deleteProcessing}
           />
         </form>
       </Card>
 
       <DeactivateConfirmModal
-        visible={showDeactivateConfirm}
+        visible={deleteConfirmMode !== null}
         modalModel={deactivateModalModel}
         selectedVersion={selectedVersion}
-        onConfirm={handleDeactivateConfirm}
+        mode={deleteConfirmMode ?? 'record'}
+        organizationCode={organizationCode ?? selectedVersion?.code ?? null}
+        onConfirm={handleConfirmDelete}
         onCancel={handleDeactivateCancel}
-        isDeactivating={isDeactivating}
+        isProcessing={deleteProcessing}
       />
     </Box>
   );

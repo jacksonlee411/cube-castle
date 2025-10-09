@@ -41,6 +41,8 @@ const formatIfMatchHeader = (etag: string): string => {
   return `"${trimmed}"`;
 };
 
+const DEFAULT_DELETE_ORGANIZATION_REASON = '通过组织详情页删除组织编码';
+
 export interface OrganizationStateMutationVariables {
   code: string;
   effectiveDate: string;
@@ -51,6 +53,30 @@ export interface OrganizationStateMutationVariables {
 
 export interface OrganizationStateMutationResult {
   organization: OrganizationUnit;
+  etag: string | null;
+  headers: Record<string, string>;
+}
+
+export interface DeleteOrganizationVariables {
+  code: string;
+  effectiveDate: string;
+  operationReason?: string;
+  currentETag?: string | null;
+  idempotencyKey?: string;
+}
+
+interface DeleteOrganizationEventData {
+  code: string;
+  status: string;
+  operationType: string;
+  recordId: string | null;
+  effectiveDate: string;
+  operationReason?: string | null;
+  timeline?: Array<Record<string, JsonValue>>;
+}
+
+export interface DeleteOrganizationMutationResult {
+  payload: DeleteOrganizationEventData;
   etag: string | null;
   headers: Record<string, string>;
 }
@@ -388,6 +414,111 @@ export const useActivateOrganization = () => {
       logger.mutation(
         "[Mutation] Activate cache invalidation and refetch completed",
       );
+    },
+  });
+};
+
+export const useDeleteOrganization = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    DeleteOrganizationMutationResult,
+    Error,
+    DeleteOrganizationVariables
+  >({
+    mutationFn: async ({
+      code,
+      effectiveDate,
+      operationReason,
+      currentETag,
+      idempotencyKey,
+    }: DeleteOrganizationVariables) => {
+      logger.mutation('[Mutation] Deleting organization:', { code, effectiveDate });
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (currentETag) {
+        const formatted = formatIfMatchHeader(currentETag);
+        if (formatted) {
+          headers['If-Match'] = formatted;
+        }
+      }
+
+      if (idempotencyKey) {
+        headers['Idempotency-Key'] = idempotencyKey;
+      }
+
+      const body: {
+        eventType: string;
+        effectiveDate: string;
+        changeReason?: string;
+      } = {
+        eventType: 'DELETE_ORGANIZATION',
+        effectiveDate,
+      };
+
+      const finalReason = (operationReason ?? DEFAULT_DELETE_ORGANIZATION_REASON).trim();
+      if (finalReason) {
+        body.changeReason = finalReason;
+      }
+
+      const { data, headers: responseHeaders } =
+        await unifiedRESTClient.request<APIResponse<DeleteOrganizationEventData>>(
+          `/organization-units/${code}/events`,
+          {
+            method: 'POST',
+            body: JSON.stringify(body),
+            headers,
+            includeRawResponse: true,
+          },
+        );
+
+      const payload = ensureSuccess(
+        data,
+        '删除组织失败',
+      );
+
+      const etag = responseHeaders['etag'] ?? null;
+      logger.mutation('[Mutation] Delete organization successful:', { code, etag });
+
+      return {
+        payload,
+        etag,
+        headers: responseHeaders,
+      };
+    },
+    onSettled: (_result, error, variables) => {
+      logger.mutation('[Mutation] Delete organization settled:', variables.code);
+
+      queryClient.invalidateQueries({
+        queryKey: ['organizations'],
+        exact: false,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['organization', variables.code],
+        exact: false,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['organization-stats'],
+        exact: false,
+      });
+
+      queryClient.removeQueries({
+        queryKey: ['organization', variables.code],
+        exact: true,
+      });
+
+      if (!error) {
+        queryClient.removeQueries({
+          queryKey: ['organizations'],
+          exact: false,
+          type: 'inactive',
+        });
+      }
     },
   });
 };
