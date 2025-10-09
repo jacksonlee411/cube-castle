@@ -14,6 +14,7 @@
 - 变更审计表结构需评估历史数据兼容性，避免影响现网 BI / 报表查询。
 - 若迁移未同步到所有环境，会导致旧服务继续写旧结构，引发列不存在或数据丢失风险。
 - 与 GraphQL 查询审计历史 (`docs/api/schema.graphql` 中 `auditHistory` 定义) 相关字段需确认是否也同步扩充。
+- ALTER 表时需要评估 `audit_logs` 数据量，避免长时间锁表影响线上写入。
 
 ## 实施步骤
 1. 设计数据库迁移：在 `database/migrations/` 添加顺序迁移脚本，创建 `operation_reason TEXT` 列，并针对历史数据提供合理默认值（可为空）。
