@@ -1,4 +1,6 @@
-# 25 号计划：version 字段契约纳管方案
+# 25 号计划：version 字段契约纳管方案（已作废）
+
+> **2025-10-09 更新**：经核对，REST 与 GraphQL 契约均已包含 `version` 字段，本计划立项假设不成立，整体作废，仅保留档案。
 
 ## 1. 背景与问题陈述
 - 组织数据表与触发器：`database/migrations/031_cleanup_temporal_triggers.sql` 定义 `organization_version_trigger()`，在每次插入/更新 `organization_units` 时维护 `version` 自增，表明后端已具备乐观锁版本号。  
