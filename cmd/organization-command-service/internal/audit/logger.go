@@ -103,12 +103,25 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 	modifiedFieldsJSON := string(mf)
 	changesJSON := string(ch)
 
+	if beforeDataJSON == "null" {
+		beforeDataJSON = "{}"
+	}
+	if afterDataJSON == "null" {
+		afterDataJSON = "{}"
+	}
+	if modifiedFieldsJSON == "null" {
+		modifiedFieldsJSON = "[]"
+	}
+	if changesJSON == "null" {
+		changesJSON = "[]"
+	}
+
 	query := `
     INSERT INTO audit_logs (
         id, tenant_id, event_type, resource_type, resource_id,
         actor_id, actor_type, action_name, request_id, operation_reason,
         timestamp, success, error_code, error_message,
-        before_data, after_data, modified_fields, changes
+        request_data, response_data, modified_fields, changes
     ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb
     )`

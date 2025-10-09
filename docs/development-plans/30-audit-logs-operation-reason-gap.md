@@ -24,10 +24,10 @@
 5. 产出迁移执行记录：在 `docs/development-plans/` 更新计划状态，并在 `docs/archive/development-plans/` 归档完成报告。
 
 ## 验收标准
-- [ ] 新迁移脚本执行后，`audit_logs` 表包含 `operation_reason` 列，历史数据保持可查询。
-- [ ] 再次执行组织激活/停用接口，命令服务日志不再出现列缺失错误，返回 200 且审计记录写入成功。
-- [ ] GraphQL `auditHistory` 与 REST 审计接口（若有）能透出 `operationReason` 字段，前端展示正常。
-- [ ] 相关单元与集成测试通过，`npm run lint`、`make test` 或等效命令无错误。
+- [x] 新迁移脚本执行后，`audit_logs` 表包含 `operation_reason` 列，历史数据保持可查询。
+- [x] 再次执行组织激活/停用接口，命令服务日志不再出现列缺失错误，返回 200 且審计记录写入成功。
+- [x] GraphQL `auditHistory` 与 REST 审计接口（若有）能透出 `operationReason` 字段，前端展示正常。
+- [x] 相关单元与集成测试通过，`npm run lint`、`make test` 或等效命令无错误。
 
 ## 一致性校验说明
 - 数据库结构以最新迁移脚本为唯一事实来源，所有服务需通过迁移保持一致。
@@ -35,3 +35,4 @@
 
 ## 现状记录
 - 2025-10-09：本地开发环境在命令服务激活请求过程中确认 `audit_logs.operation_reason` 缺失，计划立项。
+- 2025-10-09：新增 039/040 数据库迁移，补齐 `operation_reason` 列并清理 JSON 默认值；更新命令/查询服务以返回 `operationReason`。
