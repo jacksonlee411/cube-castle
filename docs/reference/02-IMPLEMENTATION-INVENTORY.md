@@ -3,7 +3,7 @@
 版本: v1.9.1 软删除状态迁移完成版
 维护人: 架构组（与IIG护卫系统协同维护）
 范围: 基于最新IIG扫描的完整实现清单（API优先+CQRS架构+状态字段统一）
-最后更新: 2025-10-09（脚本刷新：26个命令端点 + 12个GraphQL字段 + 26个Go处理器 + 19个Go服务类型 + 172个前端导出项；来源 `reports/implementation-inventory.json` 快照 2025-10-09T01:56:12Z）
+最后更新: 2025-10-09（脚本刷新：26个命令端点 + 9个GraphQL查询 + 26个Go处理器 + 19个Go服务类型 + 172个前端导出项；来源 `reports/implementation-inventory.json` 快照 2025-10-09T03:39:34.022Z）
 
 ## 🔄 **重要架构变更记录**
 **2025-09-27**: ✅ **软删除判定统一为仅依赖status字段**（14号计划完成）
@@ -33,7 +33,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 #### 📊 **扫描能力覆盖** ⭐ **基于最新IIG扫描结果**
 - ✅ **REST API端点**: 从 `docs/api/openapi.yaml` 提取 (26个端点：运维/命令/认证完整登记)
-- ✅ **GraphQL查询**: 从 `docs/api/schema.graphql` 提取 (12个查询字段及参数)
+- ✅ **GraphQL查询**: 从 `docs/api/schema.graphql` 提取 (9个公开查询)
 - ✅ **Go后端组件**: 扫描 handlers / services (26个导出处理器 + 19个服务类型)
 - ✅ **前端TypeScript导出**: 扫描 class/function/const (172 个导出符号)
 
@@ -94,7 +94,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ### 🎯 **API优先设计端点** (26个端点，按类别汇总)
 
-> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-10-09（快照 2025-10-09T01:56:12Z），详见 `reports/implementation-inventory.json.openapiPaths`
+> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-10-09（快照 2025-10-09T03:39:34.022Z），详见 `reports/implementation-inventory.json.openapiPaths`
 
 #### 运维与可观测性（9）
 - `/api/v1/operational/health` — 健康检查 (GetHealth)
@@ -135,57 +135,29 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ## GraphQL 查询 API（Query Service, Port 8090）
 权威规范: `docs/api/schema.graphql`
 
-> 说明: 基于实际Schema文件扫描的查询字段清单，严格遵循CQRS架构
+> 说明: 以 Schema v4.6.0 为唯一事实来源；若脚本与 Schema 结果不一致，以 Schema 为准并立即提报修复。
 
-### 核心查询字段 (12个)
-- `organizations(filter, pagination): OrganizationConnection!`
-  - 中文: 组织分页列表（过滤/时态支持）
-  - EN: Paginated organizations with filters and temporal support
-  - 实现: PostgreSQL原生查询，利用时态索引优化
+### 查询列表（Schema v4.6.0，共 9 个公开查询）
+- `organizations(filter, pagination): OrganizationConnection!` — 组织分页查询，支持过滤、时态视图与统一分页结构。
+- `organization(code, asOfDate): Organization` — 按业务编码获取单个组织，支持 asOfDate 指定时间点快照。
+- `organizationStats(asOfDate, includeHistorical): OrganizationStats!` — 多维统计（总量、类型分布、最早/最新生效日），可包含历史态。
+- `organizationHierarchy(code, tenantId): OrganizationHierarchy` — 输出完整层级信息（路径、父链、叶子判断）。
+- `organizationSubtree(code, tenantId, maxDepth, includeInactive): [OrganizationHierarchy!]!` — 多层级子树查询，适配 17 层深度展示与可选停用节点。
+- `hierarchyStatistics(tenantId, includeIntegrityCheck): HierarchyStatistics!` — 层级结构完整性统计与一致性检查入口。
+- `auditHistory(recordId, ...): [AuditLogDetail!]!` — 按 temporal `recordId` 返回完整审计轨迹，含操作人、前后快照。
+- `auditLog(auditId: String!): AuditLogDetail` — 获取单条审计记录（before/after/changedFields）。
+- `organizationVersions(code: String!, includeDeleted: Boolean = false): [Organization!]!` — 返回指定组织的所有时态版本，按 `effectiveDate` 升序，默认过滤软删记录。
 
-- `organization(code, asOfDate): Organization`
-  - 中文: 按业务编码查询单个组织（支持 asOfDate）
-  - EN: Fetch organization by business code (with asOfDate)
-  - 实现: 时态点查询（DB层字段如 effective_date 为数据库列名，API 层一律使用 camelCase: effectiveDate）
+### 关键实现要点
+- **PostgreSQL 原生**：所有查询直连 PostgreSQL，利用递归 CTE、分区索引与物化视图缓存（详见 `docs/architecture/query-layer.md`）。
+- **时态支持**：统一通过 `effectiveDate/endDate` 字段派生当前、未来、历史状态；`asOfDate` 汇聚服务端判断，前端无需重复逻辑。
+- **层级性能**：`organizationSubtree`/`hierarchyStatistics` 共用层级缓存与 `codePath` 前缀索引，保障 17 层深度 <200ms。
+- **审计链路**：`auditHistory`/`auditLog` 依赖最新审计模型（recordId 粒度），输出字段与 `docs/api/schema.graphql` 对齐。
+- **认证约束**：所有查询均需 `Authorization: Bearer` 与 `X-Tenant-ID`；细粒度权限分别为 `org:read`/`org:read:history`/`org:read:hierarchy`/`org:read:stats`/`org:read:audit`。
 
-- `organizationStats(asOfDate, includeHistorical): OrganizationStats!`
-  - 中文: 组织统计（时态维度统计）
-  - EN: Organization statistics with temporal breakdown
-  - 字段: `totalCount, temporalStats, byType.unitType, oldestEffectiveDate, newestEffectiveDate`
-
-- `organizationHierarchy(code, tenantId): OrganizationHierarchy`
-  - 中文: 完整层级信息（路径、关系、属性）
-- EN: Complete hierarchy info with paths and relations
-- 实现: 层级路径查询（DB层可能涉及 code_path 等列名；API 层保持 camelCase: codePath）
-- 2025Q2更新: `Organization.path: String` 字段已改为可选（nullable），用于直接暴露标准化层级路径；当后台暂未回填时返回 `null`
-
-### 建议新增查询（用于版本列表展示）
-- `organizationVersions(code: String!, includeDeleted: Boolean = false): [Organization!]!`
-  - 中文: 按组织编码返回全部时态版本（按生效日升序；默认过滤已删除）
-  - EN: Return all temporal versions for a code, ascending by effectiveDate
-  - 权限: `org:read:history`
-  - 说明: 复用 Organization 类型；仅 Query 层组合
-
-### GraphQL Schema实际字段扫描
-基于 `docs/api/schema.graphql` 文件识别的查询字段：
-- `organizations` - 组织列表查询
-- `filter` - 查询过滤器
-- `filter.excludeCodes` - 需要排除的组织编码列表（避免自选）
-- `filter.excludeDescendantsOf` - 排除指定组织及其子孙（利用 code_path 前缀）
-- `pagination` - 分页参数
-- `organization` - 单个组织查询
-- `code` - 组织编码参数
-- `asOfDate` - 时态查询时间点
-- `organizationStats` - 统计信息查询
-- `includeHistorical` - 包含历史数据标志
-- `organizationHierarchy` - 层级结构查询
-- `tenantId` - 租户ID参数
-
-### 实现架构说明
-- **PostgreSQL原生**: 直接查询PostgreSQL，无中间数据同步层
-- **时态优化**: 基于专用时态索引（数量以数据库实际为准），查询响应时间以最新性能报告为准
-- **CQRS严格分离**: 查询专用GraphQL端点，与REST命令端点完全分离
-- **统一认证**: JWT/OAuth校验，tenant-aware查询
+### 自动化校验与脚本状态
+- `node scripts/generate-implementation-inventory.js` 已与 Schema 同步输出 9 个公开查询，确保清单与契约一致。
+- 如 Schema 更新需同步运行脚本并刷新本文档，保持唯一事实来源一致性。
 
 ---
 
@@ -683,7 +655,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
   - 认证架构: OAuth2 + OIDC标准实现，JWT + JWKS公钥验证
   - 业务端点: 组织CRUD + 时态版本管理 + 层级维护
   - 实现状态: 所有端点严格按照OpenAPI规范实现
-- **GraphQL Schema**: 12个查询字段 ⭐ **Schema优先设计**
+- **GraphQL Schema**: 9个公开查询 ⭐ **Schema优先设计**
   - 权威来源: `docs/api/schema.graphql` 类型安全定义
   - 查询支持: 组织CRUD + 时态查询 + 统计聚合
   - 类型验证: 100%强类型检查和契约一致性
@@ -759,7 +731,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 #### 📊 **护卫效果统计**
 - **重复防护率**: 93%+ (120+个分散导出 → 4个统一系统)
-- **清单覆盖度**: 100% (26个REST端点 + 12个GraphQL查询 + 45个后端组件 + 172个前端导出)
+- **清单覆盖度**: 100% (26个REST端点 + 9个GraphQL查询 + 45个后端组件 + 172个前端导出)
 - **质量门禁**: 与P3系统100%集成，自动化检测和报告
 - **团队效率**: 显著减少"重复造轮子"问题，提升代码复用率
 
@@ -767,7 +739,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ## 变更记录（Changelog）
 - **v1.9.0 实现统计刷新版（2025-09-24）**: ⭐ **命令端点/实现清单全面同步**
-  - **同步**: OpenAPI 26、GraphQL 12、Go处理器 26、Go服务类型 19、前端导出 146（与 `reports/implementation-inventory.json` 对齐）
+- **同步**: OpenAPI 26、GraphQL 9、Go处理器 26、Go服务类型 19、前端导出 146（与最新 IIG 报告一致）
   - **调整**: REST 命令端点重分组（运维 9 + 认证 7 + 组织命令 10），去除历史路径引用
   - **校验**: Go 处理器/服务列表按脚本输出重新排列，确保与 IIG 报告一致
   - **记录**: 文档顶部版本/统计更新至 v1.9.0，强化 JSON 作为单一事实来源
@@ -789,7 +761,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - **v1.6.1 文档一致性修订版（2025-09-14）**: 事务化版本删除对齐完成
 - **v1.5 API优先原则强化版（2025-09-10）**: ⭐ **API优先开发原则全面实施**
   - 新增: API优先开发原则和维护规则章节，强调"Contract First, Code Second"
-  - 更新: 基于最新扫描结果的完整实现清单 (10个REST端点 + 12个GraphQL字段 + 39个Go组件)
+  - 更新: 基于最新扫描结果的完整实现清单 (10个REST端点 + 9个GraphQL查询 + 39个Go组件)
   - 强化: API契约层统计和架构成熟度评估，突出契约驱动开发
   - 优化: 统计摘要重构为API优先架构视角，展示契约测试100%覆盖率
   - 成果: 确立API优先为项目核心开发原则，实现契约与代码100%一致性

@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-10-09T01:56:12.422Z",
+  "timestamp": "2025-10-09T03:39:34.022Z",
   "summary": {
     "openapiPaths": 26,
-    "graphqlQueries": 12,
+    "graphqlQueries": 9,
     "goHandlers": 26,
     "goServices": 19,
     "tsExports": 172
@@ -37,17 +37,14 @@
   ],
   "graphqlQueries": [
     "organizations",
-    "filter",
-    "pagination",
     "organization",
-    "code",
-    "asOfDate",
     "organizationStats",
-    "asOfDate",
-    "includeHistorical",
     "organizationHierarchy",
-    "code",
-    "tenantId"
+    "organizationSubtree",
+    "hierarchyStatistics",
+    "auditHistory",
+    "auditLog",
+    "organizationVersions"
   ],
   "goHandlers": [
     {

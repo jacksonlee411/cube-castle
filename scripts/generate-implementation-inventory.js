@@ -38,22 +38,100 @@ function extractOpenApiPaths() {
 }
 
 function extractGraphQLQueries() {
-  const p = path.join(repoRoot, 'docs/api/schema.graphql');
-  const text = readSafe(p);
+  const schemaPath = path.join(repoRoot, 'docs/api/schema.graphql');
+  const text = readSafe(schemaPath);
   if (!text) return [];
+
+  const typeIndex = text.indexOf('type Query');
+  if (typeIndex === -1) return [];
+  const braceStart = text.indexOf('{', typeIndex);
+  if (braceStart === -1) return [];
+
+  let cursor = braceStart + 1;
+  let depth = 1;
+  const end = text.length;
+  let body = '';
+
+  while (cursor < end && depth > 0) {
+    // Block strings (""" ... """), ignore internal braces
+    if (text.startsWith('"""', cursor)) {
+      cursor += 3;
+      while (cursor < end && !text.startsWith('"""', cursor)) cursor += 1;
+      cursor = Math.min(end, cursor + 3);
+      continue;
+    }
+
+    // Regular quoted strings "...", skip escaped quotes
+    if (text[cursor] === '"') {
+      cursor += 1;
+      while (cursor < end) {
+        if (text[cursor] === '\\') { cursor += 2; continue; }
+        if (text[cursor] === '"') { cursor += 1; break; }
+        cursor += 1;
+      }
+      continue;
+    }
+
+    const ch = text[cursor];
+    if (ch === '{') depth += 1;
+    else if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) break;
+    }
+
+    if (depth > 0) body += ch;
+    cursor += 1;
+  }
+
   const queries = [];
-  const queryBlock = /type\s+Query\s*\{([\s\S]*?)\}/m.exec(text);
-  if (!queryBlock) return queries;
-  let body = queryBlock[1];
-  // remove triple-quoted description blocks to avoid capturing words inside docs
-  body = body.replace(/"""[\s\S]*?"""/g, '\n');
-  body.split(/\n/).forEach((line) => {
-    const clean = line.trim();
-    if (!clean || clean.startsWith('#')) return;
-    // e.g. organizations( ... ): OrganizationConnection!
-    const m = clean.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\(/) || clean.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*:/);
-    if (m) queries.push(m[1]);
-  });
+  let i = 0;
+  while (i < body.length) {
+    while (i < body.length && /\s/.test(body[i])) i += 1;
+    if (i >= body.length) break;
+
+    if (body.startsWith('#', i)) {
+      while (i < body.length && body[i] !== '\n') i += 1;
+      continue;
+    }
+
+    if (body.startsWith('"""', i)) {
+      i += 3;
+      while (i < body.length && !body.startsWith('"""', i)) i += 1;
+      if (i < body.length) i += 3;
+      continue;
+    }
+
+    const identifierMatch = body.slice(i).match(/^([A-Za-z_][A-Za-z0-9_]*)/);
+    if (!identifierMatch) {
+      i += 1;
+      continue;
+    }
+
+    const name = identifierMatch[1];
+    i += name.length;
+
+    while (i < body.length && /\s/.test(body[i])) i += 1;
+
+    if (body[i] === '(') {
+      let parenDepth = 0;
+      while (i < body.length) {
+        const ch = body[i];
+        if (ch === '(') parenDepth += 1;
+        else if (ch === ')') {
+          parenDepth -= 1;
+          if (parenDepth === 0) { i += 1; break; }
+        }
+        i += 1;
+      }
+      while (i < body.length && /\s/.test(body[i])) i += 1;
+    }
+
+    if (body[i] === ':') {
+      queries.push(name);
+      while (i < body.length && body[i] !== '\n') i += 1;
+    }
+  }
+
   return queries;
 }
 
