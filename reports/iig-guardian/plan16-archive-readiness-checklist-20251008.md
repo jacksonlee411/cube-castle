@@ -87,8 +87,8 @@
 - `plan16-phase3-completed` (`bd6e69ca`) — 2025-10-07
 
 #### 3. 文档同步更新 ✅ 完成
-- `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md` — 2025-10-09 补充 Plan24 E2E 验收章节
-- `docs/development-plans/16-REVIEW-SUMMARY.md` — 2025-10-09 更新 Phase 0-3 时间线、Git 标签与 ≥90% E2E 状态
+- `docs/archive/development-plans/16-code-smell-analysis-and-improvement-plan.md` — 2025-10-09 补充 Plan24 E2E 验收章节
+- `docs/archive/development-plans/16-REVIEW-SUMMARY.md` — 2025-10-09 更新 Phase 0-3 时间线、Git 标签与 ≥90% E2E 状态
 - `docs/development-plans/06-integrated-teams-progress-log.md` — 2025-10-09 记录 Plan24 完成与归档动作
 
 ---

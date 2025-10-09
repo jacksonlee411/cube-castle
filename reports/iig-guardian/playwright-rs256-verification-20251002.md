@@ -280,7 +280,7 @@ npx playwright show-report
 - PBAC 实现：`internal/auth/pbac.go:66-108`
 - GraphQL Schema：`docs/api/schema.graphql`
 - OpenAPI 契约：`docs/api/openapi.yaml`
-- Plan 16 计划：`docs/development-plans/16-code-smell-analysis-and-improvement-plan.md`
+- Plan 16 计划：`docs/archive/development-plans/16-code-smell-analysis-and-improvement-plan.md`
 
 ---
 

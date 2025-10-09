@@ -32,12 +32,6 @@
 #### **12 - 时态命令契约缺口（归档复测）**
 - `../archive/development-plans/12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P3 复测，核心整改已归档）
 
-#### **16 - 代码异味治理**
-- `16-code-smell-analysis-and-improvement-plan.md` - Go 工程实践为导向的代码异味分析与改进计划（P2）
-
-
-
-
 ### **归档文档** (docs/archive/development-plans/)
 
 > **文档归档时间**: 2025-09-13  
@@ -56,6 +50,8 @@
 - `../archive/development-plans/14-api-implementation-alignment-plan.md` - API实现对齐计划文档
 - `../archive/development-plans/15-database-triggers-diagnostic-report.md` - 数据库触发器混乱问题诊断分析和优化方案
 - `../archive/development-plans/16-trigger-optimization-action-plan.md` - 触发器优化行动计划
+- `../archive/development-plans/16-code-smell-analysis-and-improvement-plan.md` - Go 工程实践为导向的代码异味分析与改进计划（P0-P3 完成）
+- `../archive/development-plans/16-REVIEW-SUMMARY.md` - Plan16 评审摘要（Phase 0-3 + Plan24 验收记录）
 - `../archive/development-plans/17-index-audit-and-optimization-plan.md` - 索引审计与优化计划
 - `../archive/development-plans/17-temporary-governance-enhancement-plan.md` - TODO-TEMPORARY 治理与 419 状态码决策计划
 - `../archive/development-plans/18-duplicate-code-elimination-plan.md` - ⭐ **重复代码消除计划** (S级全面完成)

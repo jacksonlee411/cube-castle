@@ -154,5 +154,5 @@ Received: <element(s) not found>
 **报告生成**: 2025-10-08 17:29 UTC
 **生成工具**: IIG Guardian
 **关联文档**: 
-- `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md`
+- `docs/archive/development-plans/16-code-smell-analysis-and-improvement-plan.md`
 - `docs/development-plans/06-integrated-teams-progress-log.md`

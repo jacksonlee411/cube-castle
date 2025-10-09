@@ -97,7 +97,7 @@
      - TypeScript 弱类型清零（173→0），CI `code-smell-check-quick.sh --with-types` 已启用；复测平均行数 147.8 行/文件。
    - 🔴 **P0（立即执行）** - ✅ 2025-10-08 已完成
      1. ~~**验证重构质量**~~：✅ `make test`、`make test-integration`、`npm --prefix frontend run test:contract`、`make coverage` 均已执行（2025-10-07），覆盖率达标。
-     2. ~~**同步文档事实**~~：✅ 已更新 `16-code-smell-analysis-and-improvement-plan.md`（添加E2E验收章节）、`16-REVIEW-SUMMARY.md`（Phase 0-3时间线与Git标签）以及本日志（2025-10-08）。
+    2. ~~**同步文档事实**~~：✅ 已更新 `../archive/development-plans/16-code-smell-analysis-and-improvement-plan.md`（添加E2E验收章节）、`../archive/development-plans/16-REVIEW-SUMMARY.md`（Phase 0-3时间线与Git标签）以及本日志（2025-10-08）。
      3. ~~**Playwright RS256 复测**~~：⚠️ 部分完成（44.2%通过率，69/156），已修复认证与等待逻辑问题，剩余问题记录为技术债务（详见 `reports/iig-guardian/e2e-partial-fixes-20251008.md`），建议在Plan 24中专项处理。
    - 🟠 **P1（本周内）**
      4. ~~补齐 Plan16 Git 标签（`plan16-phase1-completed`、`plan16-phase2-completed`、`plan16-phase3-completed` 等）并推送远端。~~ ✅ 2025-10-08 完成
@@ -130,8 +130,8 @@
 6. **【P3 - 架构组】Plan 16归档准备** ✅ 2025-10-09 完成：
    - ✅ Git标签补齐：`plan16-phase0-baseline`、`plan16-phase1-completed`、`plan16-phase2-completed`、`plan16-phase3-completed` 已推送远端
    - ✅ 文档同步完成：
-     - `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md` 已补充 Plan24 E2E 验收记录
-     - `docs/development-plans/16-REVIEW-SUMMARY.md` 更新 Phase 0-3 时间线、Git 标签与 ≥90% E2E 状态
+     - `../archive/development-plans/16-code-smell-analysis-and-improvement-plan.md` 已补充 Plan24 E2E 验收记录
+     - `../archive/development-plans/16-REVIEW-SUMMARY.md` 更新 Phase 0-3 时间线、Git 标签与 ≥90% E2E 状态
      - 本日志记录 Plan24 完成情况
    - ✅ 归档检查表更新：`reports/iig-guardian/plan16-archive-readiness-checklist-20251008.md` M1-M5 均已勾选（2025-10-09 版）
    - 🟡 可选项（P1-P2）：CQRS依赖图生成、Phase 3 最终报告整理（可在 Plan16 归档后作为新计划跟进）
@@ -157,7 +157,7 @@
 - `reports/iig-guardian/p1-crud-issue-analysis-20251002.md`
 - `reports/iig-guardian/code-smell-types-20251009.md`（最新，Plan 21 完成基线）
 - `reports/iig-guardian/code-smell-ci-20251009.md`（CI 报告示例）
-- `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md`
+- `../archive/development-plans/16-code-smell-analysis-and-improvement-plan.md`
 - `../archive/development-plans/17-spectral-dependency-recovery-plan.md`（已归档，2025-10-02）
 - `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md`（已归档，2025-10-02）
 - `../archive/development-plans/21-weak-typing-governance-plan.md`（已归档，2025-10-09）

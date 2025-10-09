@@ -2,7 +2,7 @@
 
 **报告日期**: 2025-10-05
 **执行团队**: 架构组 + 后端团队
-**关联计划**: `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md`
+**关联计划**: `docs/archive/development-plans/16-code-smell-analysis-and-improvement-plan.md`
 
 ---
 
@@ -214,7 +214,7 @@ make coverage
 - Phase 0 基线标签: `plan16-phase0-baseline` (`718d7cf6`)
 
 ### C. 相关文档
-- Plan 16 主文档: `docs/development-plans/16-code-smell-analysis-and-improvement-plan.md`
+- Plan 16 主文档: `docs/archive/development-plans/16-code-smell-analysis-and-improvement-plan.md`
 - 06 号集成日志: `docs/development-plans/06-integrated-teams-progress-log.md`
 - Plan 18 E2E 计划: `docs/development-plans/18-e2e-test-improvement-plan.md`
 
