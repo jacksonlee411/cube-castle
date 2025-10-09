@@ -84,13 +84,46 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	if err := tx.QueryRowContext(ctx, conflictQuery, tenantID, code, effectiveDateUTC).Scan(&conflictCount); err != nil {
 		return nil, fmt.Errorf("冲突校验查询失败: %w", err)
 	}
+	nowUTC := time.Now().UTC()
+	isFuture := effectiveDateUTC.After(nowUTC.Truncate(24 * time.Hour))
+
 	if conflictCount > 0 {
-		return nil, fmt.Errorf("TEMPORAL_POINT_CONFLICT: 生效日期 %s 与现有版本冲突", effectiveDateUTC.Format("2006-01-02"))
+		tm.logger.Printf("⚠️ 检测到相同生效日期版本，改为更新现有记录: code=%s date=%s", code, effectiveDateUTC.Format("2006-01-02"))
+		_, err := tx.ExecContext(ctx, `
+            UPDATE organization_units
+            SET status = $3,
+                change_reason = CASE WHEN $4 <> '' THEN $4 ELSE change_reason END,
+                updated_at = NOW()
+            WHERE tenant_id = $1 AND code = $2 AND effective_date = $5 AND status <> 'DELETED'
+        `, tenantID, code, newStatus, operationReason, effectiveDateUTC)
+		if err != nil {
+			return nil, fmt.Errorf("更新现有状态版本失败: %w", err)
+		}
+
+		timeline, err := tm.RecalculateTimelineInTx(ctx, tx, tenantID, code)
+		if err != nil {
+			return nil, fmt.Errorf("时间轴重算失败: %w", err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("事务提交失败: %w", err)
+		}
+
+		action := "暂停"
+		if operationType == "REACTIVATE" {
+			action = "激活"
+		}
+
+		if isFuture {
+			tm.logger.Printf("✅ 组织%s成功（计划生效，更新现有版本）: %s → %s, 生效日期=%s", action, code, newStatus, effectiveDateUTC.Format("2006-01-02"))
+		} else {
+			tm.logger.Printf("✅ 组织%s成功（即时生效，更新现有版本）: %s → %s", action, code, newStatus)
+		}
+
+		return timeline, nil
 	}
 
-	nowUTC := time.Now().UTC()
 	newRecordID := uuid.New()
-	isFuture := effectiveDateUTC.After(nowUTC.Truncate(24 * time.Hour))
 
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO organization_units (

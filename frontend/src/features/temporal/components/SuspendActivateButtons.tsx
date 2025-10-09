@@ -1,9 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
-import { SecondaryButton } from '@workday/canvas-kit-react/button';
+import { SecondaryButton, PrimaryButton } from '@workday/canvas-kit-react/button';
 import { colors } from '@workday/canvas-kit-react/tokens';
 import { mediaPauseIcon, mediaPlayIcon } from '@workday/canvas-system-icons-web';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
+import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
+import { Text } from '@workday/canvas-kit-react/text';
+import { TextInput } from '@workday/canvas-kit-react/text-input';
+import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { logger } from '@/shared/utils/logger';
 import {
   useSuspendOrganization,
@@ -54,46 +58,64 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps> = ({
   } = useActivateOrganization();
 
   const effectiveDate = useMemo(getTodayISODate, []);
+  const [dialogMode, setDialogMode] = useState<'suspend' | 'activate' | null>(null);
+  const [selectedDate, setSelectedDate] = useState(effectiveDate);
+  const [operationReasonInput, setOperationReasonInput] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const modalModel = useModalModel();
 
-  const isInactive = currentStatus === 'INACTIVE' || currentStatus === 'DELETED';
+  const isInactive = currentStatus === 'INACTIVE';
 
   const baseDisabled = disabled || readonly || isSuspending || isActivating;
 
-  const handleSuspend = async () => {
-    try {
-      const result = await suspendAsync({
-        code: organizationCode,
-        effectiveDate,
-        currentETag: currentETag ?? undefined,
-        operationReason: '自动生成停用',
-      });
-      onETagChange(result.etag);
-      await onCompleted('suspend', result);
-      onSuccess('组织已停用');
-    } catch (error) {
-      logger.error('暂停组织失败', error);
-      const message =
-        error instanceof Error ? error.message : '暂停组织失败，请稍后再试';
-      onError(message);
-    }
+  const openDialog = (mode: 'suspend' | 'activate') => {
+    setDialogMode(mode);
+    setSelectedDate(getTodayISODate());
+    setOperationReasonInput('');
+    modalModel.events.show();
   };
 
-  const handleActivate = async () => {
+  const closeDialog = () => {
+    modalModel.events.hide();
+    setDialogMode(null);
+    setIsProcessing(false);
+  };
+
+  const handleConfirm = async () => {
+    if (!dialogMode) {
+      return;
+    }
+
+    setIsProcessing(true);
+
     try {
-      const result = await activateAsync({
-        code: organizationCode,
-        effectiveDate,
-        currentETag: currentETag ?? undefined,
-        operationReason: '自动生成重新启用',
-      });
+      let result: OrganizationStateMutationResult;
+      if (dialogMode === 'suspend') {
+        result = await suspendAsync({
+          code: organizationCode,
+          effectiveDate: selectedDate,
+          currentETag: currentETag ?? undefined,
+          operationReason: operationReasonInput.trim() || undefined,
+        });
+      } else {
+        result = await activateAsync({
+          code: organizationCode,
+          effectiveDate: selectedDate,
+          currentETag: currentETag ?? undefined,
+          operationReason: operationReasonInput.trim() || undefined,
+        });
+      }
+
       onETagChange(result.etag);
-      await onCompleted('activate', result);
-      onSuccess('组织已重新启用');
+      await onCompleted(dialogMode, result);
+      onSuccess(dialogMode === 'suspend' ? '组织已停用' : '组织已重新启用');
+      closeDialog();
     } catch (error) {
-      logger.error('重新启用组织失败', error);
+      logger.error('状态变更失败', error);
       const message =
-        error instanceof Error ? error.message : '重新启用组织失败，请稍后再试';
+        error instanceof Error ? error.message : '状态变更失败，请稍后再试';
       onError(message);
+      setIsProcessing(false);
     }
   };
 
@@ -101,11 +123,16 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps> = ({
     return null;
   }
 
+  if (currentStatus === 'DELETED') {
+    return null;
+  }
+
   return (
-    <Flex gap="s" alignItems="center">
-      <SecondaryButton
-        data-testid={isInactive ? 'activate-organization-button' : 'suspend-organization-button'}
-        onClick={isInactive ? handleActivate : handleSuspend}
+    <>
+      <Flex gap="s" alignItems="center">
+        <SecondaryButton
+          data-testid={isInactive ? 'activate-organization-button' : 'suspend-organization-button'}
+        onClick={() => openDialog(isInactive ? 'activate' : 'suspend')}
         disabled={baseDisabled}
         icon={
           <SystemIcon
@@ -117,7 +144,70 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps> = ({
       >
         {isInactive ? '重新启用' : '暂停组织'}
       </SecondaryButton>
-    </Flex>
+      </Flex>
+
+      {dialogMode && (
+        <Modal model={modalModel} isOpen={dialogMode !== null}>
+          <Modal.Overlay>
+            <Modal.Card width={480}>
+              <Modal.CloseIcon aria-label="关闭" onClick={closeDialog} />
+              <Modal.Heading>
+                {dialogMode === 'suspend' ? '暂停组织' : '重新启用组织'}
+              </Modal.Heading>
+              <Modal.Body>
+                <Flex flexDirection="column" gap="m">
+                  <div>
+                    <Text typeLevel="body.small" marginBottom="xs">
+                      生效日期
+                    </Text>
+                    <TextInput
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      data-testid="status-change-date-input"
+                    />
+                  </div>
+
+                  <div>
+                    <Text typeLevel="body.small" marginBottom="xs">
+                      操作原因（可选）
+                    </Text>
+                    <TextArea
+                      rows={3}
+                      value={operationReasonInput}
+                      onChange={(e) => setOperationReasonInput(e.target.value)}
+                      placeholder="请输入此次停用/启用原因"
+                      data-testid="status-change-reason-input"
+                    />
+                  </div>
+
+                  <Flex justifyContent="flex-end" gap="s">
+                    <SecondaryButton
+                      onClick={closeDialog}
+                      disabled={isProcessing}
+                      data-testid="status-change-cancel"
+                    >
+                      取消
+                    </SecondaryButton>
+                    <PrimaryButton
+                      onClick={handleConfirm}
+                      disabled={isProcessing || !selectedDate}
+                      data-testid="status-change-confirm"
+                    >
+                      {isProcessing
+                        ? '处理中...'
+                        : dialogMode === 'suspend'
+                          ? '确认暂停'
+                          : '确认启用'}
+                    </PrimaryButton>
+                  </Flex>
+                </Flex>
+              </Modal.Body>
+            </Modal.Card>
+          </Modal.Overlay>
+        </Modal>
+      )}
+    </>
   );
 };
 

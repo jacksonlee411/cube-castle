@@ -1082,6 +1082,7 @@ paths:
         - Sets operationType=SUSPEND automatically
         - Supports future-effective suspension planning
         - Records complete audit trail
+        - Does **not** cascade to child organization units; 子组织需要单独处理
         
         **Temporal Behavior:**
         - Inserts a temporal version with status=INACTIVE at the specified effectiveDate
@@ -1246,6 +1247,7 @@ paths:
         - Sets operationType=REACTIVATE automatically
         - Supports future-effective activation planning
         - Can cancel planned suspension operations
+        - Does **not**自动恢复子组织状态，若有子组织需单独处理
         
         **Temporal Behavior:**
         - Inserts a temporal version with status=ACTIVE at the specified effectiveDate
