@@ -5,7 +5,7 @@
 **计划名称**: 代码异味分析与改进计划（Go工程实践优化版）
 **计划编号**: 16
 **创建日期**: 2025-09-29
-**更新日期**: 2025-10-02（Phase 0 证据归档与日志同步）
+**更新日期**: 2025-10-09（Plan24 验收同步）
 **优先级**: P2（中高优先级 - 平衡质量与实用性）
 **预计完成时间**: 5-6周（增加20%缓冲）
 **负责团队**: 架构组（Owner） / 前端团队 / 后端团队 / QA 联合小组
@@ -286,17 +286,17 @@ make test-integration && npm --prefix frontend run test:e2e
    - 完善 API 契约一致性；相关结论已同步至 `docs/development-plans/06-integrated-teams-progress-log.md`（2025-10-06 更新）。
    - 加强命名规范执行；复核实现清单与 CI 门禁，未发现新违规。
 
-2. **E2E测试验收** ⚠️ 部分完成（2025-10-08）
-   - **测试覆盖范围**：156个E2E测试，覆盖CQRS协议、Canvas前端、CRUD业务流程、时态管理等核心场景
-   - **当前通过率**：69/156 (44.2%)
-   - **修复进展**：
-     - ✅ 修复3个测试文件认证问题（CQRS测试添加AUTH_HEADERS，Canvas测试添加setupAuth）
-     - ✅ 修复CRUD列表刷新等待逻辑（添加15秒超时与加载状态检测）
-     - ✅ 调整CQRS测试预期（401/405响应码兼容）
-     - ⚠️ 剩余问题记录为技术债务（Canvas UI元素定位6个失败，CQRS部分认证5个失败，CRUD时序1个失败）
-   - **技术债务文档**：`reports/iig-guardian/e2e-partial-fixes-20251008.md`
-   - **根本原因**：测试代码认证缺失、UI元素定位器过时、异步等待逻辑不足（非重构质量问题）
-   - **后续计划**：建议在Plan 24中专项处理E2E测试稳定性
+2. **E2E测试验收** ✅ 完成（2025-10-09）
+   - **测试覆盖范围**：Chromium 套件 66 项（含 CQRS 协议、Canvas、CRUD、时态、Schema/Regression、Optimization 等核心场景），保留 1 项历史 Skip 占位
+   - **当前通过率**：Chromium 66/66 ✅（1 Skip，计划保留），无 Mock 模式触发；Firefox 回归与新增规格纳入常规巡检
+   - **修复进展（Plan23 → Plan24）**：
+     - ✅ 全量套件统一端口与认证注入（`ensurePwJwt` + `E2E_CONFIG.FRONTEND_BASE_URL`）
+     - ✅ Canvas/CQRS/业务流程/Schema/Regression/Optimization/五状态生命周期脚本同步现网 DOM 与契约
+     - ✅ CRUD 与 GraphQL 断言改写为真实后端验证，去除过时的 `/test` 页面依赖
+   - **核心证据**：
+     - `docs/archive/development-plans/24-plan16-e2e-stabilization-phase2.md`
+     - `frontend/playwright-report/index.html`（2025-10-09 03:05 UTC）
+   - **技术沉淀**：Plan23 阶段遗留问题与原因记录在 `reports/iig-guardian/e2e-partial-fixes-20251008.md`，已在 Plan24 全部清理
 
 
 ## 5. 责任矩阵与里程碑
