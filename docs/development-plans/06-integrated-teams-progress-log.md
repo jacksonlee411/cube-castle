@@ -13,6 +13,9 @@
 - **✅ Plan 16 根节点父代码标准化完成**（2025-10-03）：后端 `ROOT_PARENT_CODE="0000000"` 统一实现，前端 `normalizeParentCode` 对齐，兼容遗留"0"输入，E2E CRUD 测试验证通过（提交 `11c5886d`）
 - **✅ Plan 18 Phase 1.3 完成**（2025-10-05 19:40 UTC）：Chromium/Firefox `business-flow-e2e.spec.ts` 5/5 全绿，`architecture-e2e.spec.ts` GraphQL 200；新增迁移 `032_phase_b_remove_legacy_columns.sql` 移除遗留列并重建视图，`make db-migrate-all` 幂等通过。验证报告：`reports/iig-guardian/plan18-phase1.3-validation-20251005.md`。
 
+- **🆕 Plan 24（Plan16 E2E 稳定化二阶段）启动**（2025-10-08 20:10 UTC）：聚焦端口配置、认证注入、Canvas/CQRS/业务流程/Schema 等脚本同步，目标达成 E2E ≥90% 通过率。计划文档：`docs/development-plans/24-plan16-e2e-stabilization-phase2.md`。
+- **✅ Plan 24 完成**（2025-10-09 03:05 UTC）：Chromium 全量 E2E 66/66 ✅（1 Skip，历史占位），五状态/Business Flow/Canvas/CQRS/Regression/Schema/Optimization 全部通过；计划文档已归档至 `docs/archive/development-plans/24-plan16-e2e-stabilization-phase2.md`。
+
 - **✅ Playwright RS256 回归已完成**（2025-10-02）：核心验证通过（PBAC + 架构契约 100%），次要问题已记录（数据一致性 + 测试页面）。
 - **✅ Plan 17 已归档**（完成于 2025-10-02 19:20 UTC）：Spectral 依赖修复与 API 契约治理完成（75 problems → 0，100% 清零），CI 集成生效，详见归档文档 `../archive/development-plans/17-spectral-dependency-recovery-plan.md`
 - **✅ Plan 20 已归档**（完成于 2025-10-02 15:25 UTC）：ESLint 例外策略与零告警方案完成，统一日志工具落地，113 处 console.* → logger.*（100% 替换），详见归档文档 `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md`

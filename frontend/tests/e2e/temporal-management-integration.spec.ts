@@ -9,9 +9,11 @@ let USE_MOCK_MODE = MOCK_MODE_ENV;
 let FRONTEND_URL: string;
 
 const COMMAND_API_URL = E2E_CONFIG.COMMAND_API_URL;
+const COMMAND_HEALTH_URL = E2E_CONFIG.COMMAND_HEALTH_URL;
 const GRAPHQL_API_URL = E2E_CONFIG.GRAPHQL_API_URL;
+const GRAPHQL_HEALTH_URL = E2E_CONFIG.GRAPHQL_HEALTH_URL;
 const GRAPHQL_HEADERS = { 'Content-Type': 'application/json' } as const;
-const TEST_ORG_CODE = process.env.E2E_ORG_CODE || '1000056';
+const TEST_ORG_CODE = process.env.E2E_ORG_CODE || '1000000';
 
 const ORGANIZATION_VERSIONS_QUERY = `
   query OrganizationVersions($code: String!) {
@@ -74,7 +76,7 @@ function structuredCloneSafe<T>(value: T): T {
 
 async function pingCommandHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${COMMAND_API_URL}/health`, {
+    const response = await fetch(COMMAND_HEALTH_URL, {
       method: 'GET',
       signal: AbortSignal.timeout(2000),
     });
@@ -85,6 +87,18 @@ async function pingCommandHealth(): Promise<boolean> {
 }
 
 async function pingGraphQL(): Promise<boolean> {
+  try {
+    const response = await fetch(GRAPHQL_HEALTH_URL, {
+      method: 'GET',
+      signal: AbortSignal.timeout(2000),
+    });
+    if (response.ok) {
+      return true;
+    }
+  } catch (_error) {
+    // fallback to GraphQL 查询检测
+  }
+
   try {
     const response = await fetch(GRAPHQL_API_URL, {
       method: 'POST',
@@ -180,7 +194,7 @@ async function navigateToTemporalPage(page: Page) {
   }
 
   await expect(page).toHaveURL(targetUrl);
-  await expect(page.getByText('版本历史')).toBeVisible();
+  await expect(page.getByText('版本历史', { exact: true }).first()).toBeVisible();
 }
 
 async function commandRequestStatus(
@@ -236,7 +250,7 @@ test.describe('时态管理系统集成测试', () => {
       return;
     }
 
-    const restHealth = await page.request.get(`${COMMAND_API_URL}/health`);
+    const restHealth = await page.request.get(COMMAND_HEALTH_URL);
     expect(restHealth.ok()).toBeTruthy();
 
     const data = await graphQLRequest(page, GRAPHQL_HEALTH_QUERY);
@@ -250,16 +264,18 @@ test.describe('时态管理系统集成测试', () => {
       await ensureAuthentication(page);
 
       await page.goto(`${FRONTEND_URL}/organizations`, { waitUntil: 'networkidle' });
-      const row = page.getByTestId(`table-row-${TEST_ORG_CODE}`);
-      await expect(row).toBeVisible();
+      const searchInput = page.getByPlaceholder('搜索组织名称...');
+      await searchInput.fill(TEST_ORG_CODE);
+      await page.waitForTimeout(500);
+      await expect(page.getByTestId(`table-row-${TEST_ORG_CODE}`)).toBeVisible({ timeout: 15000 });
 
       const manageButton = page.getByTestId(`temporal-manage-button-${TEST_ORG_CODE}`);
       await expect(manageButton).toBeVisible();
       await manageButton.click();
 
       await expect(page).toHaveURL(new RegExp(`/organizations/${TEST_ORG_CODE}/temporal$`));
-      await expect(page.getByRole('tab', { name: '版本历史', exact: true })).toBeVisible();
-      await expect(page.getByRole('tab', { name: '审计历史', exact: true })).toBeVisible();
+      await expect(page.getByText('版本历史', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText('审计历史', { exact: true }).first()).toBeVisible();
     });
 
     test('组织详情页面展示关键时态组件', async ({ page }) => {

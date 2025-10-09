@@ -252,6 +252,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
       border="1px solid #E9ECEF"
       padding="m"
       overflowY="auto"
+      data-testid="temporal-timeline"
     >
       {/* 操作区域 */}
       <Box marginBottom="m">
@@ -319,6 +320,11 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
                 <Box marginLeft="32px">
                   <Card
                     padding="s"
+                    data-testid="temporal-timeline-node"
+                    data-lifecycle={statusInfo.badge}
+                    data-current={isSelected ? 'true' : 'false'}
+                    data-status={version.status}
+                    data-business-status={version.businessStatus}
                     style={{
                       backgroundColor: isSelected ? '#E3F2FD' : 'white',
                       border: isSelected ? '2px solid #2196F3' : '1px solid #E9ECEF',
@@ -359,10 +365,15 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
                         </Text>
                         
                         {/* 状态标识 - 使用统一的状态系统 */}
-                        <StatusBadge 
-                          status={mapBackendStatusToOrganizationStatus(version.status)} 
-                          size="small"
-                        />
+                        <Box
+                          data-testid="temporal-lifecycle-badge"
+                          data-lifecycle={statusInfo.badge}
+                        >
+                          <StatusBadge 
+                            status={mapBackendStatusToOrganizationStatus(version.status)} 
+                            size="small"
+                          />
+                        </Box>
                       </Flex>
                     </Box>
                     

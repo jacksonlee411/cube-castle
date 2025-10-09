@@ -16,7 +16,9 @@ export const E2E_CONFIG = {
   
   // 后端服务端点
   COMMAND_API_URL: process.env.E2E_COMMAND_API_URL || buildServiceURL('REST_COMMAND_SERVICE', '/api/v1'),
+  COMMAND_HEALTH_URL: process.env.E2E_COMMAND_HEALTH_URL || buildServiceURL('REST_COMMAND_SERVICE', '/health'),
   GRAPHQL_API_URL: process.env.E2E_GRAPHQL_API_URL || buildServiceURL('GRAPHQL_QUERY_SERVICE', '/graphql'),
+  GRAPHQL_HEALTH_URL: process.env.E2E_GRAPHQL_HEALTH_URL || buildServiceURL('GRAPHQL_QUERY_SERVICE', '/health'),
   
   // 超时配置（默认2分钟，可通过环境变量覆盖）
   PAGE_TIMEOUT: parseInt(process.env.E2E_PAGE_TIMEOUT || '120000'),
@@ -136,11 +138,13 @@ export const generateTestConfigReport = (): string => {
   return [
     '🎯 E2E测试环境配置报告',
     '========================',
-    '',
-    '🏗️ 服务端点配置:',
-    `  前端基址: ${E2E_CONFIG.FRONTEND_BASE_URL}`,
-    `  命令API: ${E2E_CONFIG.COMMAND_API_URL}`,
-    `  GraphQL API: ${E2E_CONFIG.GRAPHQL_API_URL}`,
+  '',
+  '🏗️ 服务端点配置:',
+  `  前端基址: ${E2E_CONFIG.FRONTEND_BASE_URL}`,
+  `  命令API: ${E2E_CONFIG.COMMAND_API_URL}`,
+  `  命令健康检查: ${E2E_CONFIG.COMMAND_HEALTH_URL}`,
+  `  GraphQL API: ${E2E_CONFIG.GRAPHQL_API_URL}`,
+  `  GraphQL 健康检查: ${E2E_CONFIG.GRAPHQL_HEALTH_URL}`,
     '',
     '⏱️ 超时配置:',
     `  页面超时: ${E2E_CONFIG.PAGE_TIMEOUT}ms`,

@@ -100,7 +100,7 @@ export const TemporalMasterDetailView: React.FC<
   }, [showDeleteConfirm, deleteModalModel]);
 
   return (
-    <Box padding="l">
+    <Box padding="l" data-testid="temporal-master-detail-view">
       <TemporalMasterDetailHeader
         isCreateMode={isCreateMode}
         organizationCode={organizationCode}

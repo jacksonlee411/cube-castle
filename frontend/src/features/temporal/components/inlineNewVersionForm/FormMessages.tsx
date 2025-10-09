@@ -24,6 +24,7 @@ const FormMessages: React.FC<FormMessagesProps> = ({ errorMessage, successMessag
           border={`1px solid ${colors.cinnamon600}`}
           borderRadius="4px"
           marginBottom={successMessage ? 's' : undefined}
+          data-testid="temporal-form-error"
         >
           <Flex alignItems="center" gap="s">
             <SystemIcon icon={exclamationCircleIcon} color={colors.cinnamon600} size={20} />
@@ -40,6 +41,7 @@ const FormMessages: React.FC<FormMessagesProps> = ({ errorMessage, successMessag
           backgroundColor={colors.greenApple100}
           border={`1px solid ${colors.greenApple600}`}
           borderRadius="4px"
+          data-testid="temporal-form-success"
         >
           <Flex alignItems="center" gap="s">
             <SystemIcon icon={checkCircleIcon} color={colors.greenApple600} size={20} />

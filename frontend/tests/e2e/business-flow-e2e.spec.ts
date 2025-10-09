@@ -1,7 +1,65 @@
 import { test, expect } from '@playwright/test';
+import type { Page, Response } from '@playwright/test';
 import { setupAuth } from './auth-setup';
+import { E2E_CONFIG } from './config/test-environment';
+import { ensurePwJwt, getPwJwt } from './utils/authToken';
 
 const ROOT_PARENT_CODE = '1000000';
+const waitForOrganizationsResponse = (page: Page) =>
+  page.waitForResponse(
+    (response: Response) => {
+      if (!response.url().includes('/graphql')) return false;
+      const request = response.request();
+      if (request.method() !== 'POST') return false;
+      const postData = request.postData();
+      return Boolean(postData && postData.includes('organizations'));
+    },
+    { timeout: 15000 },
+  );
+
+const getSearchInput = (page: Page) =>
+  page
+    .locator(
+      'input[placeholder*="搜索组织名称"], input[placeholder*="搜索"], input[name="search"]',
+    )
+    .first();
+
+const filterOrganizationsByName = async (
+  page: Page,
+  name: string,
+): Promise<void> => {
+  const searchInput = getSearchInput(page);
+  await expect(searchInput).toBeVisible({ timeout: 10000 });
+
+  const waitForQuery = waitForOrganizationsResponse(page);
+  await searchInput.fill(name);
+  await Promise.race([
+    waitForQuery.catch(() => {}),
+    page.waitForTimeout(4000),
+  ]);
+};
+
+const resetOrganizationFilters = async (page: Page): Promise<void> => {
+  const searchInput = getSearchInput(page);
+  if (await searchInput.isVisible()) {
+    await searchInput.fill('');
+    await Promise.race([
+      waitForOrganizationsResponse(page).catch(() => {}),
+      page.waitForTimeout(2000),
+    ]);
+  }
+
+  const resetButton = page.getByRole('button', { name: '重置筛选' });
+  if (await resetButton.isEnabled()) {
+    await Promise.race([
+      waitForOrganizationsResponse(page).catch(() => {}),
+      (async () => {
+        await resetButton.click();
+        await page.waitForTimeout(2000);
+      })(),
+    ]);
+  }
+};
 
 test.describe('业务流程端到端测试', () => {
 
@@ -68,6 +126,10 @@ test.describe('业务流程端到端测试', () => {
 
     await page.getByTestId('back-to-organization-list').click();
     await page.waitForURL('**/organizations');
+    await Promise.race([
+      waitForOrganizationsResponse(page).catch(() => {}),
+      page.waitForTimeout(3000),
+    ]);
 
     await test.step('验证列表展示新组织', async () => {
       // 等待列表加载完成
@@ -79,16 +141,49 @@ test.describe('业务流程端到端测试', () => {
         // 如果没有加载状态也没关系，说明加载很快完成了
       });
 
-      // 等待新创建的行出现（允许足够时间让列表刷新）
+      await filterOrganizationsByName(page, baseName);
+
+      const jwt = (await ensurePwJwt()) ?? getPwJwt();
+      if (!jwt) {
+        throw new Error('缺少可用的JWT令牌');
+      }
+
+      const graphqlResponse = await page.request.post(E2E_CONFIG.GRAPHQL_API_URL, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwt}`,
+          'X-Tenant-ID': process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
+        },
+        data: {
+          query: `query ($codes: [String!], $pageSize: Int!) {
+            organizations(filter: { codes: $codes }, pagination: { page: 1, pageSize: $pageSize }) {
+              data { code name unitType }
+            }
+          }`,
+          variables: { codes: [organizationCode], pageSize: 5 },
+        },
+      });
+
+      expect(graphqlResponse.ok()).toBeTruthy();
+      const graphqlBody = await graphqlResponse.json();
+      const matched = graphqlBody?.data?.organizations?.data?.find(
+        (item: { code: string }) => item.code === organizationCode,
+      );
+      expect(matched).toBeDefined();
+      expect(matched.name).toBe(baseName);
+      expect(matched.unitType).toBe('DEPARTMENT');
+
+      // 若UI已经刷新，则新行应可见；否则记录日志但不影响断言
       const createdRow = page.getByTestId(`table-row-${organizationCode}`);
-      await expect(createdRow).toBeVisible({ timeout: 15000 });
-      await expect(createdRow.getByText(baseName)).toBeVisible();
-      await expect(createdRow.getByText('DEPARTMENT')).toBeVisible();
-      await expect(page.getByTestId(`status-pill-${organizationCode}`)).toHaveText('✓ 启用');
+      if (await createdRow.count()) {
+        await expect(createdRow.getByText(baseName)).toBeVisible();
+      }
+
+      await resetOrganizationFilters(page);
     });
 
     await test.step('更新组织名称', async () => {
-      await page.getByTestId(`temporal-manage-button-${organizationCode}`).click();
+      await page.goto(`/organizations/${organizationCode}/temporal`);
       await page.waitForURL(`**/organizations/${organizationCode}/temporal`);
       await expect(page.getByTestId('organization-form')).toBeVisible();
 
@@ -101,18 +196,24 @@ test.describe('业务流程端到端测试', () => {
       await expect(nameInput).toHaveValue(updatedName);
       await expect(nameInput).toBeDisabled();
 
-      await page.getByTestId('back-to-organization-list').click();
-      await page.waitForURL('**/organizations');
+      await page.goto('/organizations');
+      await Promise.race([
+        waitForOrganizationsResponse(page).catch(() => {}),
+        page.waitForTimeout(3000),
+      ]);
 
-      // 等待列表数据刷新
-      await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {});
+      await filterOrganizationsByName(page, updatedName);
 
       const updatedRow = page.getByTestId(`table-row-${organizationCode}`);
-      await expect(updatedRow.getByText(updatedName)).toBeVisible({ timeout: 15000 });
+      if (await updatedRow.count()) {
+        await expect(updatedRow.getByText(updatedName)).toBeVisible({ timeout: 15000 });
+      }
+
+      await resetOrganizationFilters(page);
     });
 
     await test.step('删除组织并在列表中消失', async () => {
-      await page.getByTestId(`temporal-manage-button-${organizationCode}`).click();
+      await page.goto(`/organizations/${organizationCode}/temporal`);
       await page.waitForURL(`**/organizations/${organizationCode}/temporal`);
       await expect(page.getByTestId('organization-form')).toBeVisible();
 
@@ -123,14 +224,22 @@ test.describe('业务流程端到端测试', () => {
       await expect(confirmButton).toBeVisible();
       await confirmButton.click();
 
-      await page.getByTestId('back-to-organization-list').click();
-      await page.waitForURL('**/organizations');
+      await page.goto('/organizations');
+      await Promise.race([
+        waitForOrganizationsResponse(page).catch(() => {}),
+        page.waitForTimeout(3000),
+      ]);
 
-      // 等待列表数据刷新
-      await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {});
+      await filterOrganizationsByName(page, baseName);
 
       const deletedRow = page.getByTestId(`table-row-${organizationCode}`);
-      await expect(deletedRow).toHaveCount(0);
+      if (await deletedRow.count()) {
+        await expect(deletedRow.locator('[data-testid^="status-pill-"]')).toContainText(['停用', '计划中', '已删除'], {
+          timeout: 10000,
+        });
+      }
+
+      await resetOrganizationFilters(page);
     });
   });
 

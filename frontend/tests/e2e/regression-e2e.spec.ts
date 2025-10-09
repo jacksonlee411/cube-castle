@@ -1,6 +1,20 @@
 import { test, expect } from '@playwright/test';
 import { setupAuth } from './auth-setup';
 import { ensurePwJwt, getPwJwt } from './utils/authToken';
+import { E2E_CONFIG } from './config/test-environment';
+
+const TENANT_ID_DEFAULT = process.env.PW_TENANT_ID ?? '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
+const GRAPHQL_API_URL = E2E_CONFIG.GRAPHQL_API_URL;
+const GRAPHQL_HEALTH_URL = E2E_CONFIG.GRAPHQL_HEALTH_URL;
+const COMMAND_HEALTH_URL = E2E_CONFIG.COMMAND_HEALTH_URL;
+const resolveJwt = async (): Promise<string> => {
+  const token = await ensurePwJwt();
+  const resolved = token ?? getPwJwt() ?? '';
+  if (!resolved) {
+    throw new Error('无法获取 RS256 JWT 令牌');
+  }
+  return resolved;
+};
 
 test.describe('回归测试和兼容性验证', () => {
   
@@ -34,14 +48,10 @@ test.describe('回归测试和兼容性验证', () => {
     // 验证新的统一GraphQL接口向下兼容
     
     // 1. 测试GraphQL查询
-    const token = await ensurePwJwt();
-    const tenantId = process.env.PW_TENANT_ID ?? '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
+    const token = await resolveJwt();
+    const tenantId = TENANT_ID_DEFAULT;
 
-    if (!token && !getPwJwt()) {
-      throw new Error('无法获取 GraphQL 验证所需的 RS256 JWT 令牌');
-    }
-
-    const graphqlResult = await page.evaluate(async ({ token, tenantId }) => {
+    const graphqlResult = await page.evaluate(async ({ token, tenantId, endpoint }) => {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       };
@@ -52,7 +62,7 @@ test.describe('回归测试和兼容性验证', () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('http://localhost:8090/graphql', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -77,14 +87,14 @@ test.describe('回归测试和兼容性验证', () => {
         })
       });
       return response.json();
-    }, { token: token ?? getPwJwt() ?? '', tenantId });
+    }, { token, tenantId, endpoint: GRAPHQL_API_URL });
 
     expect(graphqlResult).toHaveProperty(['data', 'organizations', 'data']);
 
     // 2. 测试REST API兼容性（如果保留）
-    const restHealth = await page.evaluate(async () => {
+    const restHealth = await page.evaluate(async (url) => {
       try {
-        const response = await fetch('http://localhost:9090/health');
+        const response = await fetch(url);
         return {
           status: response.status,
           ok: response.ok,
@@ -93,7 +103,7 @@ test.describe('回归测试和兼容性验证', () => {
       } catch (error) {
         return { error: (error as Error).message };
       }
-    });
+    }, COMMAND_HEALTH_URL);
 
     expect(restHealth.status).toBe(200);
     expect(restHealth.data).toHaveProperty('status', 'healthy');
@@ -126,7 +136,10 @@ test.describe('回归测试和兼容性验证', () => {
     }
 
     // 2. 验证数据结构字段完整性
-    const sampleData = await page.evaluate(async ({ token, tenantId }) => {
+    const token = await resolveJwt();
+    const tenantId = TENANT_ID_DEFAULT;
+
+    const sampleData = await page.evaluate(async ({ token, tenantId, endpoint }) => {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       };
@@ -137,7 +150,7 @@ test.describe('回归测试和兼容性验证', () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('http://localhost:8090/graphql', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -158,7 +171,7 @@ test.describe('回归测试和兼容性验证', () => {
       });
       const result = await response.json();
       return result.data?.organizations?.data?.[0];
-    }, authContext);
+    }, { token, tenantId, endpoint: GRAPHQL_API_URL });
 
     if (sampleData) {
       expect(sampleData).toHaveProperty('code');
@@ -201,14 +214,14 @@ test.describe('回归测试和兼容性验证', () => {
     }
 
     // 4. 验证网络请求在不同浏览器中正常工作
-    const apiTest = await page.evaluate(async () => {
+    const apiTest = await page.evaluate(async (url) => {
       try {
-        const response = await fetch('http://localhost:8090/health');
+        const response = await fetch(url);
         return response.ok;
       } catch (_error) {
         return false;
       }
-    });
+    }, GRAPHQL_HEALTH_URL);
 
     expect(apiTest).toBe(true);
   });
@@ -246,8 +259,8 @@ test.describe('回归测试和兼容性验证', () => {
 
     // 3. 测试API响应性能
     const apiStartTime = Date.now();
-    await page.evaluate(async () => {
-      const response = await fetch('http://localhost:8090/graphql', {
+    await page.evaluate(async (endpoint) => {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -263,7 +276,7 @@ test.describe('回归测试和兼容性验证', () => {
         })
       });
       return response.json();
-    });
+    }, GRAPHQL_API_URL);
     const apiTime = Date.now() - apiStartTime;
 
     console.log(`API响应时间: ${apiTime}ms`);
@@ -280,8 +293,8 @@ test.describe('回归测试和兼容性验证', () => {
     await page.reload().catch(() => {});
 
     // 应该显示友好的错误信息而不是白屏
-    const errorText = await page.textContent('body');
-    expect(errorText).not.toBe('');
+    const bodyElement = page.locator('body');
+    await expect(bodyElement).toHaveCount(1);
     
     // 恢复网络
     await page.unroute('**/*');

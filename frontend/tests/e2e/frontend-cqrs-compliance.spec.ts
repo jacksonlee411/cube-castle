@@ -4,9 +4,12 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { validateTestEnvironment } from './config/test-environment';
+import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
+import { setupAuth } from './auth-setup';
 
 let BASE_URL: string;
+const COMMAND_API_BASE = E2E_CONFIG.COMMAND_API_URL.replace(/\/$/, '');
+const buildCommandEndpoint = (path: string): string => `${COMMAND_API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
 
 test.describe('前端CQRS协议遵循验证', () => {
 
@@ -23,6 +26,8 @@ test.describe('前端CQRS协议遵循验证', () => {
 
   test('✅ 前端应使用GraphQL进行查询', async ({ page }) => {
     console.log('测试: 前端使用GraphQL查询');
+
+    await setupAuth(page);
 
     // 监听网络请求
     const graphqlRequests = [];
@@ -66,6 +71,8 @@ test.describe('前端CQRS协议遵循验证', () => {
 
   test('✅ 前端应使用REST API进行命令操作', async ({ page }) => {
     console.log('测试: 前端使用REST API执行命令');
+
+    await setupAuth(page);
 
     const restCommandRequests = [];
 
@@ -119,8 +126,9 @@ test.describe('前端CQRS协议遵循验证', () => {
       
       const postRequests = restCommandRequests.filter(req => req.method === 'POST');
       if (postRequests.length > 0) {
-        expect(postRequests[0].url).toContain('9090'); // 命令端端口
-        console.log('✅ POST请求正确发送到命令端 (9090端口)');
+        const expectedEndpoint = buildCommandEndpoint('/organization-units');
+        expect(postRequests[0].url.startsWith(expectedEndpoint)).toBeTruthy();
+        console.log(`✅ POST请求正确发送到命令端 (${expectedEndpoint})`);
       }
     } else {
       console.log('ℹ️ 本次测试未触发命令操作，这是正常的');
@@ -129,6 +137,8 @@ test.describe('前端CQRS协议遵循验证', () => {
 
   test('🔍 前端网络请求协议分析', async ({ page }) => {
     console.log('测试: 分析前端网络请求协议使用情况');
+
+    await setupAuth(page);
 
     const networkRequests = {
       graphql: [],
@@ -184,6 +194,8 @@ test.describe('前端CQRS协议遵循验证', () => {
 
   test('🎯 前端错误处理验证', async ({ page }) => {
     console.log('测试: 前端处理CQRS服务错误');
+
+    await setupAuth(page);
 
     let hasGraphqlError = false;
     let hasRestError = false;
