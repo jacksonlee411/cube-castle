@@ -1,7 +1,7 @@
 # Plan 24 - Plan16 E2E 稳定化二阶段（测试脚本同步专项）
 
 ## 背景与事实来源
-- `docs/development-plans/23-plan16-p0-stabilization.md`：记录 2025-10-08 `npm run test:e2e` 最新结果（80 通过 / 74 失败 / 2 跳过，通过率 51.3%）。
+- `docs/archive/development-plans/23-plan16-p0-stabilization.md`：记录 2025-10-08 `npm run test:e2e` 最新结果（80 通过 / 74 失败 / 2 跳过，通过率 51.3%），并补充 2025-10-09 验收总结。
 - `frontend/playwright-report/index.html` 与 `frontend/playwright-report/data/*.zip`：提供失败用例的页面快照、网络追踪及状态码证据。
 - `frontend/test-results/.last-run.json`：CI 本地运行状态（`status: "failed"`，失败用例 ID `413fc8901e109ca863fd-7c233bcd55997dac0f1f`）。
 - `frontend/tests/e2e/config/test-environment.ts` 与 `src/shared/config/ports.ts`：确认当前前端开发端口为 3000 且存在统一配置工具。
@@ -73,7 +73,7 @@
 | M1 环境统一 | 所有 E2E 规格均通过 `E2E_CONFIG.FRONTEND_BASE_URL` 获取端口，`grep -R "localhost:3001" frontend/tests/e2e` 返回 0 | MR 链接 + 代码 Diff |
 | M2 核心套件通过 | `npm run test:e2e -- --project=chromium` 和 `--project=firefox` 均 ≥ 90% 通过，且 Canvas、CQRS、业务流程、Schema 用例全部通过 | `reports/iig-guardian/e2e-test-results-YYYYMMDD.md` |
 | M3 认证链路稳定 | `frontend-cqrs-compliance.spec.ts` 抓取到 ≥1 条 GraphQL 请求，`five-state-lifecycle-management.spec.ts` 页面渲染成功 | `frontend/playwright-report/index.html` |
-| M4 文档同步 | 更新 `docs/development-plans/06-integrated-teams-progress-log.md`、`docs/development-plans/23-plan16-p0-stabilization.md` 的 Plan24 状态；若涉及契约变更，同步 `docs/reference/16-code-smell-analysis-and-improvement-plan.md` | 对应文档 PR |
+| M4 文档同步 | 更新 `docs/development-plans/06-integrated-teams-progress-log.md`、`docs/archive/development-plans/23-plan16-p0-stabilization.md` 的 Plan24 状态；若涉及契约变更，同步 `docs/reference/16-code-smell-analysis-and-improvement-plan.md` | 对应文档 PR |
 
 ## 风险与缓解
 - **认证失效**：自动刷新 JWT 失败时需回退到 `make jwt-dev-mint` 手动流程，测试脚本需捕获错误并提示。  
@@ -84,7 +84,7 @@
 
 ## 沟通与输出
 - 周报同步：在 `docs/development-plans/06-integrated-teams-progress-log.md` 新增 Plan24 小节，每日更新进展。  
-- 完成后：迁移本文件至 `docs/archive/development-plans/`，并在 `23-plan16-p0-stabilization.md` 中记录 Plan24 验收结果。
+- 完成后：迁移本文件至 `docs/archive/development-plans/`，并在 `docs/archive/development-plans/23-plan16-p0-stabilization.md` 中记录 Plan24 验收结果。
 
 ## 验收结论（2025-10-09 03:05 UTC）
 - Chromium 全量套件 66 ✅ / 1 Skip（历史占位用例），核心分类全部通过。

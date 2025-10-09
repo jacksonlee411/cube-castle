@@ -194,7 +194,7 @@ await expect(page.getByTestId('org-count')).not.toHaveText(initialCount);
 ## 🔗 相关文档
 
 - 原始错误报告: `reports/iig-guardian/e2e-test-results-20251008.md`
-- Plan 23执行计划: `docs/development-plans/23-plan16-p0-stabilization.md`
+- Plan 23执行计划: `docs/archive/development-plans/23-plan16-p0-stabilization.md`
 - 进度日志: `docs/development-plans/06-integrated-teams-progress-log.md`
 
 ---
