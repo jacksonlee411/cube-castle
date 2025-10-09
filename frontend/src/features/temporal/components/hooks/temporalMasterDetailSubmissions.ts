@@ -7,10 +7,7 @@ import {
   createTemporalVersion,
   updateHistoryRecord,
 } from './temporalMasterDetailApi';
-import {
-  mapLifecycleStatusToApiStatus,
-  type LoadVersionsFn,
-} from './temporalMasterDetailLoaders';
+import { type LoadVersionsFn } from './temporalMasterDetailLoaders';
 import type {
   TemporalHistoryUpdatePayload,
   TemporalMasterDetailFormSubmitArgs,
@@ -42,9 +39,6 @@ export const createHandleFormSubmit = ({
 
     setIsSubmitting(true);
     try {
-      const mappedStatus = mapLifecycleStatusToApiStatus(
-        formData.lifecycleStatus,
-      );
       if (isCreateMode) {
         const requestBody = {
           name: formData.name,
@@ -52,7 +46,6 @@ export const createHandleFormSubmit = ({
           description: formData.description || '',
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
           effectiveDate: formData.effectiveDate,
-          status: mappedStatus,
           operationReason: formData.changeReason,
         };
 
@@ -74,7 +67,6 @@ export const createHandleFormSubmit = ({
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
           description: formData.description || null,
           effectiveDate: formData.effectiveDate,
-          status: mappedStatus,
           lifecycleStatus: formData.lifecycleStatus,
         };
 
@@ -141,7 +133,6 @@ export const createHandleHistoryEditSubmit = ({
     setIsSubmitting(true);
     try {
       const lifecycleStatus = updateData.lifecycleStatus ?? 'CURRENT';
-      const mappedStatus = mapLifecycleStatusToApiStatus(lifecycleStatus);
 
       await updateHistoryRecord(
         organizationCode,
@@ -149,7 +140,6 @@ export const createHandleHistoryEditSubmit = ({
         {
           name: updateData.name,
           unitType: updateData.unitType,
-          status: mappedStatus,
           lifecycleStatus,
           description: updateData.description ?? null,
           effectiveDate: updateData.effectiveDate,
@@ -165,7 +155,6 @@ export const createHandleHistoryEditSubmit = ({
       setFormInitialData({
         name: updateData.name as string,
         unitType: updateData.unitType,
-        status: mappedStatus,
         lifecycleStatus,
         description: (updateData.description as string) || '',
         parentCode: normalizeParentCode.forForm(
@@ -181,7 +170,6 @@ export const createHandleHistoryEditSubmit = ({
           ...prev,
           name: updateData.name as string,
           unitType: updateData.unitType as string,
-          status: mappedStatus,
           lifecycleStatus,
           description: (updateData.description as string) || undefined,
           parentCode: (updateData.parentCode as string) || undefined,

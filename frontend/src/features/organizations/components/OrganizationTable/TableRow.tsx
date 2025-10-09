@@ -34,7 +34,7 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
   showTemporalInfo = false
 }) => {
   const level = coerceOrganizationLevel(organization.level);
-  const displayLevel = getDisplayLevel(level, 1);
+  const displayLevel = getDisplayLevel(level);
 
   // 计算时态状态
   const temporalStatus = organization.status as TemporalStatus;

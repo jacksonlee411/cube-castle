@@ -577,6 +577,7 @@ paths:
                       name: "技术部"
                       unitType: "DEPARTMENT"
                       status: "ACTIVE"
+                      version: 1
                       deletedAt: null
                       level: 2
                       hierarchyDepth: 2
@@ -1767,6 +1768,7 @@ components:
         - unitType
         - parentCode
         - status
+        - version
         - level
         - hierarchyDepth
         - codePath

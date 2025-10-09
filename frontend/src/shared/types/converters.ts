@@ -60,7 +60,6 @@ export interface GraphQLOrganizationData {
   
   // 兼容字段
   isTemporal?: boolean;
-  version?: number;
   changeReason?: string;
   validFrom?: string;
   validTo?: string;
@@ -91,7 +90,6 @@ export function convertGraphQLToOrganizationUnit(
     effectiveDate: data.effectiveDate,
     endDate: data.endDate,
     isTemporal: data.isTemporal,
-    version: data.version,
     changeReason: data.changeReason || data.operationReason, // 支持operationReason字段
     isCurrent: data.isCurrent,
     deletedAt: data.deletedAt ?? null,
@@ -281,7 +279,7 @@ export function checkTypeConsistency(
 export const ORGANIZATION_UNIT_FIELDS: string[] = [
   'code', 'recordId', 'parentCode', 'name', 'unitType', 'status',
   'level', 'path', 'sortOrder', 'description', 'createdAt', 'updatedAt',
-  'effectiveDate', 'endDate', 'isTemporal', 'version', 'changeReason', 'isCurrent'
+  'effectiveDate', 'endDate', 'isTemporal', 'changeReason', 'isCurrent'
 ];
 
 /**

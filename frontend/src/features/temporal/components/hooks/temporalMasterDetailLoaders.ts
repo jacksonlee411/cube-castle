@@ -1,15 +1,11 @@
 import { logger } from '@/shared/utils/logger';
 import { normalizeParentCode } from '@/shared/utils/organization-helpers';
-import type { TemporalEditFormData } from '../TemporalEditForm';
 import type { TimelineVersion } from '../TimelineComponent';
 import {
   fetchHierarchyPaths,
   fetchOrganizationVersions,
 } from './temporalMasterDetailApi';
-import type {
-  ApiOrganizationStatus,
-  TemporalMasterDetailStateUpdaters,
-} from './temporalMasterDetailTypes';
+import type { TemporalMasterDetailStateUpdaters } from './temporalMasterDetailTypes';
 
 export type LoadVersionsFn = (
   isRetry?: boolean,
@@ -42,22 +38,6 @@ export type VersionSelectDeps = {
     | 'setActiveTab'
     | 'setDisplayPaths'
   >;
-};
-
-const mapLifecycleStatusToApiStatus = (
-  lifecycleStatus: TemporalEditFormData['lifecycleStatus'],
-): ApiOrganizationStatus => {
-  switch (lifecycleStatus) {
-    case 'CURRENT':
-      return 'ACTIVE';
-    case 'PLANNED':
-      return 'PLANNED';
-    case 'HISTORICAL':
-    case 'INACTIVE':
-    case 'DELETED':
-    default:
-      return 'INACTIVE';
-  }
 };
 
 export const createLoadVersions = ({
@@ -198,5 +178,3 @@ export const createHandleVersionSelect = ({
     }
   })();
 };
-
-export { mapLifecycleStatusToApiStatus };

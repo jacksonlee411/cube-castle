@@ -168,7 +168,6 @@ type Organization {
   # Soft-delete 判定完全依赖该字段，DELETED 表示记录不再对外展示
   # ADR-008: 一维业务状态模型，INACTIVE 等价于停用/暂停语义
   status: Status!
-
   # Hierarchy Information
   level: Int!
   sortOrder: Int

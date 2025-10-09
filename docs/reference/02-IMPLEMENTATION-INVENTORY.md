@@ -3,7 +3,7 @@
 版本: v1.9.1 软删除状态迁移完成版
 维护人: 架构组（与IIG护卫系统协同维护）
 范围: 基于最新IIG扫描的完整实现清单（API优先+CQRS架构+状态字段统一）
-最后更新: 2025-10-09（脚本刷新：26个命令端点 + 9个GraphQL查询 + 26个Go处理器 + 19个Go服务类型 + 172个前端导出项；来源 `reports/implementation-inventory.json` 快照 2025-10-09T03:39:34.022Z）
+最后更新: 2025-10-09（脚本刷新：26个命令端点 + 9个GraphQL查询 + 26个Go处理器 + 19个Go服务类型 + 172个前端导出项；来源 `reports/implementation-inventory.json` 快照 2025-10-09T07:09:39.108Z）
 
 ## 🔄 **重要架构变更记录**
 **2025-09-27**: ✅ **软删除判定统一为仅依赖status字段**（14号计划完成）
@@ -94,7 +94,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ### 🎯 **API优先设计端点** (26个端点，按类别汇总)
 
-> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-10-09（快照 2025-10-09T03:39:34.022Z），详见 `reports/implementation-inventory.json.openapiPaths`
+> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-10-09（快照 2025-10-09T06:39:16.340Z），详见 `reports/implementation-inventory.json.openapiPaths`
 
 #### 运维与可观测性（9）
 - `/api/v1/operational/health` — 健康检查 (GetHealth)

@@ -7,8 +7,6 @@ import type { TabType } from '../TabNavigation';
 import type { TimelineVersion } from '../TimelineComponent';
 import type { HierarchyPaths } from './temporalMasterDetailApi';
 
-export type ApiOrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED';
-
 export interface TemporalMasterDetailViewProps {
   organizationCode: string | null;
   readonly?: boolean;
@@ -20,7 +18,6 @@ export interface TemporalMasterDetailViewProps {
 export interface FormInitialData {
   name: string;
   unitType: string;
-  status: string;
   lifecycleStatus?: TimelineVersion['lifecycleStatus'];
   description?: string;
   parentCode?: string;

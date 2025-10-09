@@ -27,14 +27,19 @@ describe('organization-helpers', () => {
   });
 
   describe('getDisplayLevel', () => {
-    it('offsets level by default value', () => {
+    it('returns level directly when no offset provided', () => {
+      expect(getDisplayLevel(1)).toBe(1);
+      expect(getDisplayLevel(3)).toBe(3);
+    });
+
+    it('supports optional offset for legacy zero-based data', () => {
       expect(getDisplayLevel(0, 1)).toBe(1);
       expect(getDisplayLevel(2, 1)).toBe(3);
     });
 
-    it('handles non-finite values by treating them as 0', () => {
+    it('falls back to offset when value is non-finite', () => {
+      expect(getDisplayLevel(Number.NaN)).toBe(0);
       expect(getDisplayLevel(Number.NaN, 1)).toBe(1);
     });
   });
 });
-

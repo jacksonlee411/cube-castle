@@ -14,14 +14,12 @@ export interface TemporalInfo {
   status?: TemporalStatus;
   isTemporal?: boolean;
   changeReason?: string;
-  version?: number;
 }
 
 export interface TemporalInfoDisplayProps {
   temporalInfo: TemporalInfo;
   variant?: 'default' | 'compact' | 'detailed';
   showChangeReason?: boolean;
-  showVersion?: boolean;
 }
 
 // 简单的Badge实现
@@ -51,7 +49,6 @@ export const TemporalInfoDisplay: React.FC<TemporalInfoDisplayProps> = ({
   temporalInfo,
   variant = 'default',
   showChangeReason = false,
-  showVersion = false,
 }) => {
   const {
     effectiveDate,
@@ -59,7 +56,6 @@ export const TemporalInfoDisplay: React.FC<TemporalInfoDisplayProps> = ({
     status,
     isTemporal,
     changeReason,
-    version,
   } = temporalInfo;
 
   // 如果不是时态组织，显示简单状态
@@ -102,11 +98,6 @@ export const TemporalInfoDisplay: React.FC<TemporalInfoDisplayProps> = ({
             <SimpleBadge style={{ backgroundColor: statusColor }}>
               {statusIcon} {statusLabel}
             </SimpleBadge>
-            {version && showVersion && (
-              <Text as="span" typeLevel="subtext.large" color="licorice300">
-                版本 {version}
-              </Text>
-            )}
           </Flex>
 
           <Flex flexDirection="column" gap="xxs">

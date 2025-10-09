@@ -27,7 +27,6 @@ export interface OrganizationUnit {
   endDate?: string;  // camelCase
   isTemporal?: boolean;  // camelCase
   isCurrent?: boolean;  // camelCase
-  version?: number;
   changeReason?: string;  // camelCase
   deletedAt?: string | null;  // 审计字段
   deletedBy?: string | null;
@@ -120,7 +119,6 @@ export interface OrganizationResponse {
   
   // 时态信息
   effectiveDate?: string;
-  version?: number;
 }
 
 // 🎯 核心接口6: 组件Props统一接口 (替代所有组件Props)

@@ -136,7 +136,11 @@
    - ✅ 归档检查表更新：`reports/iig-guardian/plan16-archive-readiness-checklist-20251008.md` M1-M5 均已勾选（2025-10-09 版）
    - 🟡 可选项（P1-P2）：CQRS依赖图生成、Phase 3 最终报告整理（可在 Plan16 归档后作为新计划跟进）
    - **归档决策**：Plan16 满足 P0 闭环与 M1-M5 条件，进入归档动作（对应 Plan23/Plan24 归档记录）
-7. **【P3 - QA】Plan 12 时态命令契约复测**：
+7. **【P0 - 架构组】Plan 28 Version 字段退役** ✅ 2025-10-09 完成：
+   - ✅ 执行 `database/migrations/036_drop_version_column.sql` 与 `035_drop_temporal_history_tables.sql`，`psql \d organization_units` 等检查确认 `version` 列及关联触发器/索引/视图全部移除。
+   - ✅ 代码与契约同步：`go build ./cmd/organization-command-service`、`go build ./cmd/organization-query-service`、`go test` 全数通过；`npm --prefix frontend run test -- --run`（105 项）与 `npm --prefix frontend run lint` 均成功；`node scripts/generate-implementation-inventory.js` 已刷新实现清单。
+   - ✅ GraphQL 支持验证：使用 `.cache/dev.jwt` 调用 `organization` / `organizationVersions`，响应不再返回 `version` 字段（详见 `reports/iig-guardian/plan28-version-decommission-20251009.md`）。计划归档至 `docs/archive/development-plans/28-version-field-decommission-plan.md`。
+8. **【P3 - QA】Plan 12 时态命令契约复测**：
    - 复核归档文档 `../archive/development-plans/12-temporal-command-contract-gap-remediation.md` 第 12 节待决事项。
    - 补齐 Playwright 时态场景复测（`npm --prefix frontend run test:e2e -- --grep "temporal"`），并将日志追加至 `reports/iig-guardian/temporal-contract-rollback-20250926.md`。
      - ✅ 2025-10-06 调整 `frontend/tests/e2e/temporal-management-integration.spec.ts`，使用 `getByRole('tab')` 避免文本重复冲突；待全量复测后附上最新报告。

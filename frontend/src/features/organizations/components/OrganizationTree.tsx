@@ -170,7 +170,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                   {node.name}
                 </Text>
                 <Text typeLevel="subtext.small" color="hint">
-                  {node.code} • 第{getDisplayLevel(node.level, 1)}级 • {node.unitType}
+                  {node.code} • 第{getDisplayLevel(node.level)}级 • {node.unitType}
                 </Text>
               </Box>
               

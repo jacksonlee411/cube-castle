@@ -102,9 +102,13 @@ export const coerceOrganizationLevel = (
 /**
  * 计算用于界面展示的层级。
  *
- * 默认将存储层级视为 0 起始，可通过 `offset` 调整为 1 起始显示。
+ * GraphQL 契约保证 level 字段为 1 起始的业务值。
+ * 为兼容历史 0 起始或缺失数据，保留 offset（默认 0），当解析失败时回退到 offset。
  */
 export const getDisplayLevel = (level: number, offset: number = 0): number => {
-  const parsed = Number.isFinite(level) ? level : 0;
-  return parsed + offset;
+  const parsed = Number(level);
+  if (Number.isFinite(parsed)) {
+    return parsed + offset;
+  }
+  return offset;
 };
