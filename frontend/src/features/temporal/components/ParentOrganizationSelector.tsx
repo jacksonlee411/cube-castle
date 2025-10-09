@@ -128,8 +128,25 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
 
   const filtered = React.useMemo(() => {
     if (!search) return items
-    const s = search.trim().toLowerCase()
-    return items.filter(it => it.code.toLowerCase().includes(s) || it.name.toLowerCase().includes(s))
+    const normalized = search.trim().toLowerCase()
+    if (!normalized) {
+      return items
+    }
+
+    const tokens = normalized.split(/\s*-\s*/).filter(Boolean)
+    if (tokens.length > 1) {
+      return items.filter((item) => {
+        const code = item.code.toLowerCase()
+        const name = item.name.toLowerCase()
+        return tokens.some((token) => code.includes(token) || name.includes(token))
+      })
+    }
+
+    return items.filter((it) => {
+      const code = it.code.toLowerCase()
+      const name = it.name.toLowerCase()
+      return code.includes(normalized) || name.includes(normalized)
+    })
   }, [items, search])
 
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)

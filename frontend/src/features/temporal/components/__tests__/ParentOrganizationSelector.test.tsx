@@ -73,10 +73,19 @@ describe('ParentOrganizationSelector', () => {
     mockFetchWithTokenAndGraphQL(organizations)
 
     const onChange = vi.fn()
-    render(<ParentOrganizationSelector currentCode="1000001" effectiveDate="2025-09-15" onChange={onChange} />)
+    render(
+      <ParentOrganizationSelector
+        currentCode="1000001"
+        effectiveDate="2025-09-15"
+        currentParentCode="1000000"
+        onChange={onChange}
+      />
+    )
+
+    const input = (await screen.findByTestId('combobox-input')) as HTMLInputElement
+    await waitFor(() => expect(input.value).toBe('1000000 - Root'))
 
     // 等待加载结束并渲染候选项（自组织会被过滤）
-    const input = screen.getByTestId('combobox-input')
     fireEvent.focus(input)
     const itemBtn = await screen.findByTestId('combobox-item-1000000')
     fireEvent.click(itemBtn)
