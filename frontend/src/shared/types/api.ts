@@ -1,4 +1,8 @@
 import type { JsonValue } from '@/shared/types/json';
+import type {
+  OrganizationStatus,
+  OrganizationUnitType
+} from './contract_gen';
 
 // 企业级信封响应结构 - 符合API一致性规范11.1
 export interface APIResponse<T> {
@@ -90,5 +94,4 @@ export interface RequestConfig {
 }
 
 // Organization-specific API types
-export type OrganizationUnitType = 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
-export type OrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED';
+export type { OrganizationUnitType, OrganizationStatus };

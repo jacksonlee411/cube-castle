@@ -461,6 +461,7 @@ func (v *BusinessRuleValidator) validateStatusTransition(currentStatus, newStatu
 	validTransitions := map[string][]string{
 		"ACTIVE":   {"INACTIVE", "DELETED"},
 		"INACTIVE": {"ACTIVE", "DELETED"},
+		"PLANNED":  {"ACTIVE", "DELETED"},
 		"DELETED":  {}, // 已删除状态不能转换到其他状态
 	}
 

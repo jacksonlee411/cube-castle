@@ -5,8 +5,7 @@ import {
   clockIcon
 } from '@workday/canvas-system-icons-web';
 
-// 标准组织状态类型 - 符合API契约规范 (status-only)
-export type OrganizationStatus = 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
+import type { OrganizationStatus } from '../types/contract_gen';
 
 // 状态配置 - 符合API契约规范
 export const STATUS_CONFIG = {

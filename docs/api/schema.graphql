@@ -614,6 +614,7 @@ enum OperationType {
   UPDATE         # Data modification (PUT/PATCH)  
   SUSPEND        # Suspension operation (endpoint: POST /suspend)
   REACTIVATE     # Reactivation operation (endpoint: POST /activate)
+  DEACTIVATE     # Deactivation (timeline correction / planned removal)
   DELETE         # Deletion operation
   
   # ADR-008注释：REACTIVATE作为操作类型保持审计语义精确性

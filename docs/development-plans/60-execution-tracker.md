@@ -15,7 +15,7 @@
 
 ### 第一阶段：契约与类型统一（2周）
 - [x] Week 1: 契约同步脚本开发
-- [ ] Week 2: 枚举对齐与代码生成集成
+- [x] Week 2: 枚举对齐与代码生成集成（进行中）
 
 ### 第二阶段：后端服务与中间件收敛（3周）
 - [ ] 待启动
@@ -44,11 +44,11 @@
 - ✅ 实现 TypeScript 类型生成器（generate-ts-types.js）
 
 ### 进行中
-- 🔄 第一阶段 Week 1：REST/GraphQL 枚举差异治理
+- 🔄 第一阶段 Week 2：契约一致性测试设计（REST/GraphQL 已对齐，准备测试框架）
 
 ### 下周计划
-- 启动 REST/GraphQL 枚举修复（Status、OperationType）
-- 准备契约一致性测试骨架（tests/contract）
+- 完成 tests/contract 快照/差异测试骨架
+- 更新验证/业务规则以引用生成常量（可选）
 
 ## 风险与问题日志
 

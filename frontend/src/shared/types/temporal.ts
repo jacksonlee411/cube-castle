@@ -4,13 +4,18 @@
  */
 
 import type { JsonValue } from './json';
+import type {
+  OrganizationUnitType,
+  OrganizationStatus,
+  OrganizationOperationType
+} from './contract_gen';
 
 // 时态查询模式
 export type TemporalMode = 'current' | 'historical' | 'planning';
 
 // 事件类型定义 (扩展支持具体业务事件类型)
 export type EventType = 
-  | 'CREATE' | 'UPDATE' | 'DELETE' | 'SUSPEND' | 'REACTIVATE' | 'QUERY' | 'VALIDATION' | 'AUTHENTICATION' | 'ERROR'
+  | 'CREATE' | 'UPDATE' | 'DELETE' | 'DEACTIVATE' | 'SUSPEND' | 'REACTIVATE' | 'QUERY' | 'VALIDATION' | 'AUTHENTICATION' | 'ERROR'
   | 'organizationCreated' | 'organizationUpdated' | 'organizationDeleted'
   | 'statusChanged' | 'hierarchyChanged' | 'metadataUpdated' 
   | 'plannedChange' | 'changeCancelled';
@@ -39,7 +44,7 @@ export interface TemporalQueryParams {
   // 审计历史查询参数
   startDate?: string;       // 审计记录开始时间
   endDate?: string;         // 审计记录结束时间
-  operation?: string;       // 操作类型过滤
+  operation?: OrganizationOperationType;       // 操作类型过滤
   userId?: string;          // 用户ID过滤
 }
 
@@ -59,8 +64,8 @@ export interface TemporalOrganizationUnit {
   code: string;
   parentCode?: string;        // camelCase
   name: string;
-  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
+  unitType: OrganizationUnitType;  // camelCase
+  status: OrganizationStatus;
   level: number;
   path?: string | null;
   sortOrder: number;          // camelCase
@@ -142,13 +147,13 @@ export interface BatchTemporalOperation {
 
 export interface TemporalVersionPayload {
   name: string;
-  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
+  unitType: OrganizationUnitType;
   parentCode: string;
   description?: string | null;
   effectiveDate: string;
   endDate?: string | null;
   operationReason?: string;
-  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
+  status?: OrganizationStatus;
   lifecycleStatus?: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'INACTIVE' | 'DELETED';
   changeReason?: string;
   sortOrder?: number;

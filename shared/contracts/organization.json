@@ -2,8 +2,8 @@
   "metadata": {
     "source": "docs/api/openapi.yaml",
     "openapiVersion": "4.6.0",
-    "generatedAt": "2025-10-10T11:16:36.859Z",
-    "schemaSha256": "efa956e0f18545a229f2658163902f652a72b68ffd9df620fe85270b6441e350"
+    "generatedAt": "2025-10-10T11:25:57.793Z",
+    "schemaSha256": "b7040398b65d330de9525de13fdf678e184c4c57145f1504acd4bd8493a5437f"
   },
   "enums": {
     "unitType": [
@@ -15,6 +15,7 @@
     "status": [
       "ACTIVE",
       "INACTIVE",
+      "PLANNED",
       "DELETED"
     ],
     "operationType": [
@@ -22,7 +23,8 @@
       "UPDATE",
       "SUSPEND",
       "REACTIVATE",
-      "DEACTIVATE"
+      "DEACTIVATE",
+      "DELETE"
     ]
   },
   "constraints": {
@@ -71,7 +73,7 @@
   "graphql": {
     "source": "docs/api/schema.graphql",
     "schemaVersion": "4.6.0",
-    "generatedAt": "2025-10-10T11:16:36.882Z",
+    "generatedAt": "2025-10-10T11:25:57.815Z",
     "enums": {
       "unitType": [
         "DEPARTMENT",
@@ -90,6 +92,7 @@
         "UPDATE",
         "SUSPEND",
         "REACTIVATE",
+        "DEACTIVATE",
         "DELETE"
       ]
     }

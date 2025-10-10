@@ -29,7 +29,9 @@ export interface AuditTimelineEntry {
   };
 }
 
-export type OperationType = 'CREATE' | 'UPDATE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE';
+import type { OrganizationOperationType } from '@/shared/types/contract_gen';
+
+type OperationType = OrganizationOperationType;
 
 // 组件Props接口
 interface AuditEntryCardProps {
@@ -70,6 +72,12 @@ const operationConfig: Record<OperationType, {
     color: colors.greenApple600,
     bgColor: colors.greenApple100,
     label: '重新启用'
+  },
+  DEACTIVATE: {
+    icon: mediaPauseIcon,
+    color: colors.licorice400,
+    bgColor: colors.soap200,
+    label: '失活'
   },
   DELETE: {
     icon: trashIcon,

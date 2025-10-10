@@ -8,14 +8,10 @@ export enum OrganizationUnitTypeEnum {
   ProjectTeam = 'PROJECT_TEAM',
 }
 
-/**
- * ⚠️ 枚举差异提示：GraphQL 定义的状态在 REST 契约中缺失，需要在后续阶段补齐。
- * 缺失项: PLANNED
- */
-
 export enum OrganizationStatusEnum {
   Active = 'ACTIVE',
   Inactive = 'INACTIVE',
+  Planned = 'PLANNED',
   Deleted = 'DELETED',
 }
 
@@ -25,6 +21,7 @@ export enum OrganizationOperationTypeEnum {
   Suspend = 'SUSPEND',
   Reactivate = 'REACTIVATE',
   Deactivate = 'DEACTIVATE',
+  Delete = 'DELETE',
 }
 
 export const OrganizationUnitTypeEnumValues = Object.values(OrganizationUnitTypeEnum) as OrganizationUnitTypeEnum[];

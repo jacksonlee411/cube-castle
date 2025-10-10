@@ -1,4 +1,9 @@
 import type { JsonValue } from './json';
+import type {
+  OrganizationUnitType,
+  OrganizationStatus,
+  OrganizationOperationType
+} from './contract_gen';
 
 // 🎯 核心接口1: 组织单元主实体 (统一所有组织相关字段)
 export interface OrganizationUnit {
@@ -9,8 +14,8 @@ export interface OrganizationUnit {
   
   // 基本属性
   name: string;
-  unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
-  status: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
+  unitType: OrganizationUnitType;  // camelCase
+  status: OrganizationStatus;
   level: number;
   codePath?: string | null;
   namePath?: string | null;
@@ -60,8 +65,8 @@ export interface OrganizationQueryParams {
   parentCode?: string;  // camelCase - 查询参数保持可选
   
   // 过滤条件
-  unitType?: string;  // camelCase
-  status?: string;
+  unitType?: OrganizationUnitType;  // camelCase
+  status?: OrganizationStatus;
   level?: number;
   
   // 时态查询
@@ -81,8 +86,8 @@ export interface OrganizationRequest {
   // 基本字段
   code?: string;  // 创建时可选（支持自动生成）
   name?: string;
-  unitType?: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
-  status?: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
+  unitType?: OrganizationUnitType;
+  status?: OrganizationStatus;
   parentCode?: string;
   description?: string;
   sortOrder?: number;
@@ -94,7 +99,7 @@ export interface OrganizationRequest {
   changeReason?: string;
   
   // 操作相关
-  operationType?: 'CREATE' | 'UPDATE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE';
+  operationType?: OrganizationOperationType;
   operationReason?: string;  // 操作原因（兼容reason字段）
   reason?: string;  // 向后兼容
 }
@@ -107,7 +112,7 @@ export interface OrganizationResponse {
   status: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
   
   // 操作相关响应
-  operationType?: 'CREATE' | 'UPDATE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE';
+  operationType?: OrganizationOperationType;
   createdAt?: string;
   updatedAt?: string;
   suspendedAt?: string;  // 操作时间戳

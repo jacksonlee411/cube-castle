@@ -1922,11 +1922,13 @@ components:
       enum:
         - ACTIVE
         - INACTIVE
+        - PLANNED
         - DELETED
       description: |
         Business status of organization unit:
         - **ACTIVE**: Actively operating unit
         - **INACTIVE**: Temporarily inactive (suspended) unit
+        - **PLANNED**: Future planned unit (not yet active)
         - **DELETED**: Soft-deleted unit（所有业务判定以该状态为准）
       default: "ACTIVE"
       example: "ACTIVE"
@@ -1939,6 +1941,7 @@ components:
         - SUSPEND
         - REACTIVATE
         - DEACTIVATE
+        - DELETE
       description: |
         Operation types (automatically set by API endpoints):
         - **CREATE**: New organization creation
@@ -1946,6 +1949,7 @@ components:
         - **SUSPEND**: Suspension operation (/suspend endpoint)
         - **REACTIVATE**: Reactivation operation (/activate endpoint)
         - **DEACTIVATE**: Version deactivation operation (/events endpoint)
+        - **DELETE**: Permanent deletion operation for legacy cleanup
       readOnly: true
       example: "UPDATE"
 

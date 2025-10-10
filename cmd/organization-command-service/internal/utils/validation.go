@@ -151,10 +151,13 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 	// 5. 状态验证
 	if req.Status != nil {
 		validStatuses := map[string]bool{
-			"ACTIVE": true, "INACTIVE": true, "DELETED": true,
+			"ACTIVE":   true,
+			"INACTIVE": true,
+			"PLANNED":  true,
+			"DELETED":  true,
 		}
 		if !validStatuses[*req.Status] {
-			return fmt.Errorf("无效的状态: %s，允许的状态: ACTIVE, INACTIVE, DELETED", *req.Status)
+			return fmt.Errorf("无效的状态: %s，允许的状态: ACTIVE, INACTIVE, PLANNED, DELETED", *req.Status)
 		}
 	}
 

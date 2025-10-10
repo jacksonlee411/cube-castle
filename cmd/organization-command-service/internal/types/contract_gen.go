@@ -19,6 +19,7 @@ type OrganizationStatus string
 const (
 	OrganizationStatusActive   OrganizationStatus = "ACTIVE"
 	OrganizationStatusInactive OrganizationStatus = "INACTIVE"
+	OrganizationStatusPlanned  OrganizationStatus = "PLANNED"
 	OrganizationStatusDeleted  OrganizationStatus = "DELETED"
 )
 
@@ -31,6 +32,7 @@ const (
 	OperationTypeSuspend    OperationType = "SUSPEND"
 	OperationTypeReactivate OperationType = "REACTIVATE"
 	OperationTypeDeactivate OperationType = "DEACTIVATE"
+	OperationTypeDelete     OperationType = "DELETE"
 )
 
 // OrganizationConstraints 契约约束常量（由 generate-go-types.js 生成）
