@@ -2,15 +2,15 @@
   "files": {
     "docs/api/openapi.yaml": {
       "sha256": "0abbad61b0890ade171ff444e26e857eb170ac80f81906e13e05b610a15abac2",
-      "lineCount": 2668
+      "lineCount": 2667
     },
     "docs/api/schema.graphql": {
       "sha256": "f9335fbfff186b9172df11442de9812fe1c27bad2f505974224ae3de69a41001",
-      "lineCount": 721
+      "lineCount": 720
     },
     "shared/contracts/organization.json": {
-      "sha256": "43b8e7953b2f07c95a41acab7927c32da5df8e089e20667f6d65865ff0276467",
-      "lineCount": 101
+      "sha256": "d07559546338a8b605732d230f35e77e924526e297ce241fa2b7e0f7cad8cbb6",
+      "lineCount": 100
     }
   }
 }

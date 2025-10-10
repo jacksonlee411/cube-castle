@@ -2,7 +2,7 @@
   "metadata": {
     "source": "docs/api/openapi.yaml",
     "openapiVersion": "4.6.0",
-    "generatedAt": "2025-10-10T11:25:57.793Z",
+    "generatedAt": "2025-10-10T12:12:12.556Z",
     "schemaSha256": "b7040398b65d330de9525de13fdf678e184c4c57145f1504acd4bd8493a5437f"
   },
   "enums": {
@@ -73,7 +73,7 @@
   "graphql": {
     "source": "docs/api/schema.graphql",
     "schemaVersion": "4.6.0",
-    "generatedAt": "2025-10-10T11:25:57.815Z",
+    "generatedAt": "2025-10-10T12:12:12.581Z",
     "enums": {
       "unitType": [
         "DEPARTMENT",
