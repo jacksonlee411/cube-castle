@@ -39,13 +39,14 @@
 - ✅ 建立执行跟踪机制（60-execution-tracker.md）
 - ✅ 搭建契约同步脚本框架（sync.sh + 占位子脚本）
 - ✅ 实现 OpenAPI 契约解析器（openapi-to-json.js）
+- ✅ 实现 GraphQL 契约解析器（graphql-to-json.js，发现 REST/GraphQL 枚举差异）
 
 ### 进行中
-- 🔄 第一阶段 Week 1：完善 GraphQL/生成器脚本
+- 🔄 第一阶段 Week 1：设计并实现 Go/TS 代码生成器
 
 ### 下周计划
-- 实现 GraphQL 契约解析器
-- 设计 Go/TS 生成器输出结构
+- 完成 Go/TS 生成器输出结构设计
+- 将契约枚举差异纳入后续修复计划（REST Status 补齐 PLANNED 等）
 
 ## 风险与问题日志
 

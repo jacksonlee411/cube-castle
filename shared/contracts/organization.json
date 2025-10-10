@@ -2,7 +2,7 @@
   "metadata": {
     "source": "docs/api/openapi.yaml",
     "openapiVersion": "4.6.0",
-    "generatedAt": "2025-10-10T10:53:40.127Z",
+    "generatedAt": "2025-10-10T11:07:03.319Z",
     "schemaSha256": "efa956e0f18545a229f2658163902f652a72b68ffd9df620fe85270b6441e350"
   },
   "enums": {
@@ -66,6 +66,32 @@
       "format": "date",
       "example": "2025-08-23",
       "description": "Record effective date"
+    }
+  },
+  "graphql": {
+    "source": "docs/api/schema.graphql",
+    "schemaVersion": "4.6.0",
+    "generatedAt": "2025-10-10T11:07:03.341Z",
+    "enums": {
+      "unitType": [
+        "DEPARTMENT",
+        "ORGANIZATION_UNIT",
+        "COMPANY",
+        "PROJECT_TEAM"
+      ],
+      "status": [
+        "ACTIVE",
+        "INACTIVE",
+        "PLANNED",
+        "DELETED"
+      ],
+      "operationType": [
+        "CREATE",
+        "UPDATE",
+        "SUSPEND",
+        "REACTIVATE",
+        "DELETE"
+      ]
     }
   }
 }
