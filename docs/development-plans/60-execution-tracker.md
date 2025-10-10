@@ -42,13 +42,16 @@
 - ✅ 实现 GraphQL 契约解析器（graphql-to-json.js，发现 REST/GraphQL 枚举差异）
 - ✅ 实现 Go 类型生成器（generate-go-types.js）
 - ✅ 实现 TypeScript 类型生成器（generate-ts-types.js）
+- ✅ 建立契约快照基线与校验脚本（tests/contract/）
+- ✅ 将契约快照校验纳入 CI（contract-snapshot job）
 
 ### 进行中
-- 🔄 第一阶段 Week 2：契约一致性测试设计（REST/GraphQL 已对齐，准备测试框架）
+- 🔄 第一阶段 Week 2：准备阶段验收（编写报告、补充参考文档、首次运行 CI 快照）
 
 ### 下周计划
-- 完成 tests/contract 快照/差异测试骨架
-- 更新验证/业务规则以引用生成常量（可选）
+- 编写阶段零/阶段一简要验收记录，并在 61 号文档中归档
+- 首次运行 CI 快照/契约测试，确认绿灯并记录结果
+- 视需要更新 `docs/reference` 中枚举/约束表格
 
 ## 风险与问题日志
 
