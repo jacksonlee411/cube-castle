@@ -40,12 +40,13 @@
 - ✅ 搭建契约同步脚本框架（sync.sh + 占位子脚本）
 - ✅ 实现 OpenAPI 契约解析器（openapi-to-json.js）
 - ✅ 实现 GraphQL 契约解析器（graphql-to-json.js，发现 REST/GraphQL 枚举差异）
+- ✅ 实现 Go 类型生成器（generate-go-types.js）
 
 ### 进行中
-- 🔄 第一阶段 Week 1：设计并实现 Go/TS 代码生成器
+- 🔄 第一阶段 Week 1：实现 TypeScript 类型生成器
 
 ### 下周计划
-- 完成 Go/TS 生成器输出结构设计
+- 完成 TypeScript 生成器实现
 - 将契约枚举差异纳入后续修复计划（REST Status 补齐 PLANNED 等）
 
 ## 风险与问题日志
