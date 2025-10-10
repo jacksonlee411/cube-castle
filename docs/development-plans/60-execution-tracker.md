@@ -14,8 +14,8 @@
 - [x] Step 0.4: 建立迭代跟踪
 
 ### 第一阶段：契约与类型统一（2周）
-- [ ] Week 1: 契约同步脚本开发（进行中）
-- [ ] Week 2: 代码生成与集成
+- [x] Week 1: 契约同步脚本开发
+- [ ] Week 2: 枚举对齐与代码生成集成
 
 ### 第二阶段：后端服务与中间件收敛（3周）
 - [ ] 待启动
@@ -44,10 +44,10 @@
 - ✅ 实现 TypeScript 类型生成器（generate-ts-types.js）
 
 ### 进行中
-- 🔄 第一阶段 Week 1：梳理枚举差异修复策略（REST vs GraphQL）
+- 🔄 第一阶段 Week 1：REST/GraphQL 枚举差异治理
 
 ### 下周计划
-- 制定 REST/GraphQL 枚举差异修复计划（Status、OperationType）
+- 启动 REST/GraphQL 枚举修复（Status、OperationType）
 - 准备契约一致性测试骨架（tests/contract）
 
 ## 风险与问题日志
