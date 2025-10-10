@@ -91,7 +91,8 @@ redis-data/
 
 # Backup and archive files
 backup/
-archive/
+/archive/
+# Note: /docs/archive/ 应该被追踪（文档归档区）
 # 编译后的二进制文件
 **/organization-command-service
 **/organization-query-service
