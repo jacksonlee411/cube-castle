@@ -15,7 +15,8 @@
     "@stoplight/spectral-rulesets": "^1.22.0",
     "eslint": "^8.57.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0"
+    "@typescript-eslint/parser": "^6.0.0",
+    "js-yaml": "^4.1.0"
   },
   "engines": {
     "node": ">=16.0.0"

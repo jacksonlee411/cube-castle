@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "source": "docs/api/openapi.yaml",
+    "openapiVersion": "4.6.0",
+    "generatedAt": "2025-10-10T10:53:40.127Z",
+    "schemaSha256": "efa956e0f18545a229f2658163902f652a72b68ffd9df620fe85270b6441e350"
+  },
+  "enums": {
+    "unitType": [
+      "DEPARTMENT",
+      "ORGANIZATION_UNIT",
+      "COMPANY",
+      "PROJECT_TEAM"
+    ],
+    "status": [
+      "ACTIVE",
+      "INACTIVE",
+      "DELETED"
+    ],
+    "operationType": [
+      "CREATE",
+      "UPDATE",
+      "SUSPEND",
+      "REACTIVATE",
+      "DEACTIVATE"
+    ]
+  },
+  "constraints": {
+    "code": {
+      "pattern": "^[1-9][0-9]{6}$",
+      "example": "1000001",
+      "description": "7-digit organization code (primary business identifier)"
+    },
+    "parentCode": {
+      "pattern": "^(0|[1-9][0-9]{6})$",
+      "example": "1000000",
+      "description": "Parent organization code. Use '0' for root organizations, or valid 7-digit code for child organizations"
+    },
+    "name": {
+      "maxLength": 255,
+      "example": "技术部",
+      "description": "Organization unit name"
+    },
+    "description": {
+      "maxLength": 1000,
+      "nullable": true,
+      "example": "技术研发部门",
+      "description": "Organization unit description"
+    },
+    "level": {
+      "min": 1,
+      "max": 17,
+      "example": 2,
+      "description": "Hierarchy level (1-17)"
+    },
+    "sortOrder": {
+      "default": 0,
+      "description": "Sorting order within same level"
+    },
+    "operationReason": {
+      "maxLength": 500,
+      "example": "业务扩展需要",
+      "description": "Optional reason for creation; when omitted the service records an empty reason"
+    },
+    "effectiveDate": {
+      "format": "date",
+      "example": "2025-08-23",
+      "description": "Record effective date"
+    }
+  }
+}
