@@ -25,12 +25,9 @@
 - **现有工具**: `scripts/check-api-naming.sh`、`scripts/generate-implementation-inventory.js` 可用
 - **API 契约**: `docs/api/openapi.yaml`、`docs/api/schema.graphql` 为唯一真源
 
-### ❌ 待建设施（第一阶段目标）
-- `scripts/contract/` 目录及契约同步脚本体系
-- `shared/contracts/organization.json` 中间契约文件
-- CI Job `contract-sync` 和 `contract-snapshot`
-- Go/TS 代码生成器 (`contract_gen.go`、`contract_gen.ts`)
-- 跨层快照测试框架 (`tests/contract/*.snap`)
+### 🚧 待建设施（第一阶段剩余目标）
+- [ ] CI Job `contract-sync` 和 `contract-snapshot`
+- [ ] 跨层快照测试框架（`tests/contract/*.snap`）
 
 ### ⚠️ 关键依赖
 - 60 号计划文档需提交到主干并获架构组批准
@@ -47,13 +44,13 @@
 **负责人**: 架构组负责人
 
 **任务清单**:
-- [ ] 确认 60 号计划已合入主干并完成评审（若尚未提交，按常规流程补交）。
-- [ ] 在 `docs/development-plans/00-README.md` 的“活跃计划”中列出 60/61 号文档。
-- [ ] 确认本执行计划（61 号）为最新版本并已提交。
+- [x] 确认 60 号计划已合入主干并完成评审（commit `4258bce6`）。
+- [x] 在 `docs/development-plans/00-README.md` 的“活跃计划”中列出 60/61 号文档（commit `8cf9b6c2`）。
+- [x] 确认本执行计划（61 号）为最新版本并已提交。
 
 **验收标准**:
-- [ ] 主分支可查阅 60 号计划与本执行计划。
-- [ ] 计划索引与实际文档保持一致。
+- [x] 主分支可查阅 60 号计划与本执行计划。
+- [x] 计划索引与实际文档保持一致。
 
 ---
 
@@ -63,14 +60,14 @@
 **负责人**: 项目经理 + 架构组负责人
 
 **任务清单**:
-- [ ] 明确各阶段责任人与时间投入，并将人员列表存档于共享工作区（而非本文档）。
-- [ ] 召开启动会议（建议 1 小时），确认目标、分工、沟通节奏；会议纪要上传至协作空间。
-- [ ] 建立沟通渠道（群组、双周同步会、共享文档空间等），通知所有参与者。
+- [x] 明确各阶段责任人与时间投入（单人执行，责任人为本人，记录于 60-execution-tracker.md）。
+- [x] 召开启动会议 → 单人执行，无需会议，改以书面行动计划确认。
+- [x] 建立沟通渠道 → 单人执行，采用 60-execution-tracker.md + Git 提交作为信息同步渠道。
 
 **验收标准**:
-- [ ] 各阶段责任人已确认
-- [ ] 启动会议已完成并有会议纪要
-- [ ] 沟通渠道已建立并测试可用
+- [x] 各阶段责任人已确认（单人执行）
+- [x] 启动会议已完成并有会议纪要（以执行计划变更记录代替）
+- [x] 沟通渠道已建立并测试可用（以文档+提交为通道）
 
 ---
 
@@ -79,15 +76,15 @@
 **执行时间**: Day 2
 **负责人**: 第一阶段责任人
 
-- [ ] 验证 API 契约干净无未合并变更；检查 53、56 号计划列出的风险项已关闭或纳入本计划。
-- [ ] 运行 `scripts/generate-implementation-inventory.js` 输出参考基线（保存为团队共享文件或 CI 工件，非必须提交到仓库）。
-- [ ] 验证辅助脚本可执行（如 `scripts/check-api-naming.sh`），确认无运行错误。
+- [x] 验证 API 契约干净无未合并变更；检查 53、56 号计划列出的风险项已关闭或纳入本计划。
+- [x] 运行 `scripts/generate-implementation-inventory.js` 输出参考基线（` .baseline-before-refactor.md`）。
+- [x] 验证辅助脚本可执行（如 `scripts/check-api-naming.sh`），确认无运行错误。
 
 **验收标准**:
-- [ ] API 契约文件干净无变更
-- [ ] 相关计划无阻塞项
-- [ ] 基线文件已提交到 Git
-- [ ] 现有工具测试通过
+- [x] API 契约文件干净无变更
+- [x] 相关计划无阻塞项
+- [x] 基线文件已提交到 Git
+- [x] 现有工具测试通过
 
 ---
 
@@ -97,76 +94,14 @@
 **负责人**: 项目经理
 
 **任务清单**:
-- [ ] 创建执行跟踪文档
-  ```bash
-  cat > docs/development-plans/60-execution-tracker.md <<'EOF'
-  # 60号计划执行跟踪
-
-  **启动日期**: 2025-10-10
-  **当前阶段**: 阶段零（启动准备）
-  **预计完成**: 2025-12-20（10周）
-
-  ## 进度看板
-
-  ### 阶段零：启动准备（3-5天）
-  - [ ] Step 0.1: 计划文档正式化
-  - [ ] Step 0.2: 组建跨团队小组
-  - [ ] Step 0.3: 评估前置条件
-  - [ ] Step 0.4: 建立迭代跟踪
-
-  ### 第一阶段：契约与类型统一（2周）
-  - [ ] Week 1: 契约同步脚本开发
-  - [ ] Week 2: 代码生成与集成
-
-  ### 第二阶段：后端服务与中间件收敛（3周）
-  - [ ] 待启动
-
-  ### 第三阶段：前端 API/Hooks/配置整治（2-3周）
-  - [ ] 待启动
-
-  ### 第四阶段：工具与验证体系巩固（1-2周）
-  - [ ] 待启动
-
-  ## 本周进展（Week 41, 2025-10-10）
-
-  ### 已完成
-  - 创建 60 号计划文档 v1.1
-  - 创建 61 号执行计划
-
-  ### 进行中
-  - 组建跨团队小组
-  - 评估前置条件
-
-  ### 下周计划
-  - 搭建契约脚本框架
-  - 实现 OpenAPI 解析器
-
-  ## 风险与问题日志
-
-  | ID | 风险/问题 | 影响 | 状态 | 负责人 | 应对措施 |
-  |----|----------|------|------|--------|---------|
-  | R01 | 契约脚本开发延期 | 中 | 监控中 | _______ | 保留人工校对备选 |
-
-  ## 变更记录
-
-  - 2025-10-10: 初始化跟踪文档
-  EOF
-
-  git add docs/development-plans/60-execution-tracker.md
-  git commit -m "docs: 初始化60号计划执行跟踪看板
-
-  ref: plan-60"
-  ```
-
-- [ ] （可选）在项目管理工具中创建任务
-  - 创建 Epic: "60号系统级质量重构"
-  - 创建 4 个 Story（对应四个阶段）
-  - 为第一阶段创建详细 Task
+- [x] 创建执行跟踪文档（`docs/development-plans/60-execution-tracker.md`）。
+- [x] 每次阶段推进时更新看板与变更记录。
+- [x] （单人执行，项目管理工具任务不再单独建立，改为文档+提交记录）。
 
 **验收标准**:
-- [ ] 跟踪文档已创建并提交
-- [ ] 进度看板初始化完成
-- [ ] （可选）项目管理工具任务已创建
+- [x] 跟踪文档已创建并提交
+- [x] 进度看板初始化完成并持续更新
+- [x] （可选项）项目管理工具改以文档记录代替
 
 ---
 
@@ -175,16 +110,16 @@
 **验收会议**: 由架构组负责人主持，所有阶段责任人参加
 
 **验收清单**:
-- [ ] 60 号计划文档已合并主干
-- [ ] 61 号执行计划已合并主干
-- [ ] 跨团队小组已组建，责任人明确
-- [ ] 前置条件已评估，无阻塞项
-- [ ] 实现清单基线已记录
-- [ ] 执行跟踪机制已建立
+- [x] 60 号计划文档已合并主干
+- [x] 61 号执行计划已合并主干
+- [x] 跨团队小组已组建，责任人明确（单人执行）
+- [x] 前置条件已评估，无阻塞项
+- [x] 实现清单基线已记录
+- [x] 执行跟踪机制已建立
 
 **输出物**:
-- [ ] 阶段零验收报告（简短邮件或会议纪要）
-- [ ] 更新 `60-execution-tracker.md` 状态
+- [ ] 阶段零验收报告（单人执行，按提交记录存档，待补简要说明）
+- [x] 更新 `60-execution-tracker.md` 状态
 
 **通过标准**: 所有清单项 ✓，可进入第一阶段
 
@@ -199,101 +134,17 @@
 **执行时间**: 第一阶段 Week 1, Day 1-2
 **负责人**: 第一阶段责任人
 
-**任务清单**:
-- [ ] 创建目录结构
-  ```bash
-  cd /home/shangmeilin/cube-castle
-  mkdir -p scripts/contract
-  mkdir -p shared/contracts
-  mkdir -p tests/contract
-
-  # 创建主同步脚本
-  cat > scripts/contract/sync.sh <<'EOF'
-  #!/bin/bash
-  # 契约同步主脚本
-  # 用途：从 OpenAPI/GraphQL 契约生成统一中间层与 Go/TS 类型
-  # 维护：架构组
-
-  set -e
-
-  PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-  cd "$PROJECT_ROOT"
-
-  echo "📋 [契约同步] 开始..."
-  echo "  工作目录: $PROJECT_ROOT"
-
-  # 1. 从 OpenAPI 提取契约
-  echo "  → 提取 OpenAPI 契约..."
-  node scripts/contract/openapi-to-json.js
-
-  # 2. 从 GraphQL 提取契约
-  echo "  → 提取 GraphQL 契约..."
-  node scripts/contract/graphql-to-json.js
-
-  # 3. 生成 Go 类型
-  echo "  → 生成 Go 类型..."
-  node scripts/contract/generate-go-types.js
-
-  # 4. 生成 TypeScript 类型
-  echo "  → 生成 TypeScript 类型..."
-  node scripts/contract/generate-ts-types.js
-
-  echo "✅ [契约同步] 完成"
-  echo "  输出文件:"
-  echo "    - shared/contracts/organization.json"
-  echo "    - cmd/organization-command-service/internal/types/contract_gen.go"
-  echo "    - frontend/src/shared/types/contract_gen.ts"
-  EOF
-
-  chmod +x scripts/contract/sync.sh
-  ```
-
-- [ ] 创建辅助脚本占位文件
-  ```bash
-  touch scripts/contract/openapi-to-json.js
-  touch scripts/contract/graphql-to-json.js
-  touch scripts/contract/generate-go-types.js
-  touch scripts/contract/generate-ts-types.js
-
-  # 添加基础注释
-  for file in scripts/contract/*.js; do
-    cat > "$file" <<EOF
-  #!/usr/bin/env node
-  // $(basename "$file")
-  // 用途：[待实现]
-  // 维护：架构组
-
-  console.log('[TODO] $(basename "$file") 待实现');
-  EOF
-  done
-
-  chmod +x scripts/contract/*.js
-  ```
-
-- [ ] 测试框架可执行性
-  ```bash
-  bash scripts/contract/sync.sh
-  # 预期输出：所有子脚本输出 [TODO] 待实现
-  ```
-
-- [ ] 提交框架代码
-  ```bash
-  git add scripts/contract/ shared/contracts/ tests/contract/
-  git commit -m "feat(contract): 建立契约同步脚本框架
-
-  - 创建主同步脚本 sync.sh
-  - 建立 OpenAPI/GraphQL 解析器占位
-  - 建立 Go/TS 代码生成器占位
-  - 准备测试目录结构
-
-  ref: plan-60 stage-1"
-  ```
+- **任务清单（已完成）**:
+  - [x] 创建 `scripts/contract/`、`shared/contracts/`、`tests/contract/` 目录并编写 `sync.sh`（commit `7e268c57`）。
+  - [x] 初始化四个子脚本文件，现已实现并加入可执行权限。
+  - [x] 验证 `scripts/contract/sync.sh` 可顺利执行并产出三份契约工件。
+  - [x] 相关变更已提交并通过预提交检查。
 
 **验收标准**:
-- [ ] 目录结构已创建
-- [ ] `sync.sh` 可执行且逻辑清晰
-- [ ] 子脚本占位文件已创建
-- [ ] 框架代码已提交 Git
+- [x] 目录结构与主脚本已创建
+- [x] `sync.sh` 可执行且逻辑清晰
+- [x] 子脚本完成初始化并纳入版本控制
+- [x] 框架代码已提交 Git
 
 ---
 
@@ -302,104 +153,17 @@
 **执行时间**: 第一阶段 Week 1, Day 3-4
 **负责人**: 第一阶段责任人
 
-**任务清单**:
-- [ ] 安装依赖
-  ```bash
-  cd /home/shangmeilin/cube-castle
-  npm install --save-dev js-yaml
-  ```
-
-- [ ] 实现 OpenAPI 解析器
-  ```javascript
-  // scripts/contract/openapi-to-json.js
-  #!/usr/bin/env node
-  const yaml = require('js-yaml');
-  const fs = require('fs');
-  const path = require('path');
-
-  const PROJECT_ROOT = path.resolve(__dirname, '../..');
-  const OPENAPI_PATH = path.join(PROJECT_ROOT, 'docs/api/openapi.yaml');
-  const OUTPUT_PATH = path.join(PROJECT_ROOT, 'shared/contracts/organization.json');
-
-  console.log('[OpenAPI] 解析契约...');
-
-  try {
-    // 读取 OpenAPI 规范
-    const openapi = yaml.load(fs.readFileSync(OPENAPI_PATH, 'utf8'));
-
-    // 提取枚举
-    const schemas = openapi.components.schemas;
-    const organizationUnit = schemas.OrganizationUnit || {};
-    const properties = organizationUnit.properties || {};
-
-    const contract = {
-      version: '1.0.0',
-      source: 'openapi',
-      timestamp: new Date().toISOString(),
-      enums: {
-        UnitType: properties.unitType?.enum || [],
-        Status: properties.status?.enum || []
-      },
-      constraints: {
-        hierarchy: {
-          maxLevel: 17,
-          description: '组织层级上限'
-        },
-        name: {
-          maxLength: properties.name?.maxLength || 100,
-          pattern: properties.name?.pattern || ''
-        },
-        code: {
-          pattern: properties.code?.pattern || ''
-        }
-      }
-    };
-
-    // 确保输出目录存在
-    const outputDir = path.dirname(OUTPUT_PATH);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    // 写入文件
-    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(contract, null, 2));
-
-    console.log('[OpenAPI] ✓ 契约已提取');
-    console.log(`  → ${OUTPUT_PATH}`);
-    console.log(`  → UnitType: ${contract.enums.UnitType.length} 个枚举值`);
-    console.log(`  → Status: ${contract.enums.Status.length} 个枚举值`);
-
-  } catch (error) {
-    console.error('[OpenAPI] ✗ 解析失败:', error.message);
-    process.exit(1);
-  }
-  ```
-
-- [ ] 测试 OpenAPI 解析器
-  ```bash
-  node scripts/contract/openapi-to-json.js
-  cat shared/contracts/organization.json
-  # 验证输出格式正确
-  ```
-
-- [ ] 提交实现代码
-  ```bash
-  git add scripts/contract/openapi-to-json.js shared/contracts/organization.json package.json
-  git commit -m "feat(contract): 实现 OpenAPI 契约解析器
-
-  - 从 openapi.yaml 提取 UnitType/Status 枚举
-  - 提取组织层级约束（maxLevel: 17）
-  - 提取字段校验规则（name/code pattern）
-  - 输出统一中间契约文件
-
-  ref: plan-60 stage-1"
-  ```
+**任务清单（已完成）**:
+- [x] 安装 `js-yaml` 依赖并写入 `package.json`。
+- [x] 实现 `scripts/contract/openapi-to-json.js`，输出枚举/约束（commit `b5deddac`）。
+- [x] 通过 `scripts/contract/sync.sh` 验证生成的 `shared/contracts/organization.json`。
+- [x] 相关代码与契约文件已提交并记录生成时间戳 / SHA。
 
 **验收标准**:
-- [ ] `openapi-to-json.js` 执行成功
-- [ ] `organization.json` 包含正确枚举与约束
-- [ ] 输出格式规范（带时间戳、版本号）
-- [ ] 代码已提交 Git
+- [x] `openapi-to-json.js` 执行成功
+- [x] `organization.json` 包含正确枚举与约束
+- [x] 输出格式规范（带时间戳、版本号）
+- [x] 代码已提交 Git
 
 ---
 
@@ -409,7 +173,7 @@
 **负责人**: 第一阶段责任人
 
 **任务清单**:
-- [ ] 实现 GraphQL 解析器
+- [x] 实现 GraphQL 解析器（commit 4efc3ebb）
   ```javascript
   // scripts/contract/graphql-to-json.js
   #!/usr/bin/env node
@@ -480,13 +244,13 @@
   }
   ```
 
-- [ ] 测试 GraphQL 解析器
+- [x] 测试 GraphQL 解析器（通过脚本执行和 diff 日志验证）
   ```bash
   node scripts/contract/graphql-to-json.js
   cat shared/contracts/organization.json | jq .
   ```
 
-- [ ] 人工验收契约文件
+- [x] 人工验收契约文件（差异已记录，现已对齐）
   ```bash
   # 验收检查清单
   echo "## 契约文件人工验收"
@@ -503,7 +267,7 @@
   cat shared/contracts/organization.json | jq '.constraints'
   ```
 
-- [ ] 提交验收通过的代码
+- [x] 提交验收通过的代码
   ```bash
   git add scripts/contract/graphql-to-json.js shared/contracts/organization.json
   git commit -m "feat(contract): 实现 GraphQL Schema 解析器
@@ -517,10 +281,10 @@
   ```
 
 **验收标准**:
-- [ ] GraphQL 解析器执行成功
-- [ ] 枚举一致性检查通过
-- [ ] 人工验收检查清单全部 ✓
-- [ ] 代码已提交 Git
+- [x] GraphQL 解析器执行成功
+- [x] 枚举一致性检查通过
+- [x] 人工验收检查清单全部 ✓
+- [x] 代码已提交 Git
 
 ---
 
@@ -532,7 +296,7 @@
 **负责人**: 第一阶段责任人
 
 **任务清单**:
-- [ ] 实现 Go 类型生成器
+- [x] 实现 Go 类型生成器
   ```javascript
   // scripts/contract/generate-go-types.js
   #!/usr/bin/env node
@@ -602,20 +366,20 @@
   }
   ```
 
-- [ ] 测试 Go 代码生成
+- [x] 测试 Go 代码生成（通过 sync.sh）
   ```bash
   node scripts/contract/generate-go-types.js
   cat cmd/organization-command-service/internal/types/contract_gen.go
   ```
 
-- [ ] 验证 Go 代码编译
+- [x] 验证 Go 代码编译
   ```bash
   cd cmd/organization-command-service
   go build ./internal/types
   # 确保编译通过
   ```
 
-- [ ] 提交生成器代码
+- [x] 提交生成器代码
   ```bash
   git add scripts/contract/generate-go-types.js \
          cmd/organization-command-service/internal/types/contract_gen.go
@@ -630,10 +394,10 @@
   ```
 
 **验收标准**:
-- [ ] Go 类型生成器执行成功
-- [ ] 生成的 Go 代码编译通过
-- [ ] 枚举值与契约一致
-- [ ] 代码已提交 Git
+- [x] Go 类型生成器执行成功
+- [x] 生成的 Go 代码编译通过
+- [x] 枚举值与契约一致
+- [x] 代码已提交 Git
 
 ---
 
@@ -643,7 +407,7 @@
 **负责人**: 第一阶段责任人
 
 **任务清单**:
-- [ ] 实现 TypeScript 类型生成器
+- [x] 实现 TypeScript 类型生成器
   ```javascript
   // scripts/contract/generate-ts-types.js
   #!/usr/bin/env node
@@ -727,20 +491,20 @@
   }
   ```
 
-- [ ] 测试 TypeScript 代码生成
+- [x] 测试 TypeScript 代码生成（通过 sync.sh）
   ```bash
   node scripts/contract/generate-ts-types.js
   cat frontend/src/shared/types/contract_gen.ts
   ```
 
-- [ ] 验证 TypeScript 编译
+- [x] 验证 TypeScript 编译
   ```bash
   cd frontend
   npm run typecheck
   # 确保无类型错误
   ```
 
-- [ ] 更新现有代码引用生成类型（示例）
+- [x] 更新现有代码引用生成类型（已在 shared/types 等处替换）
   ```typescript
   // frontend/src/shared/types/organization.ts
   // 添加导入
@@ -751,7 +515,7 @@
   // 改为使用 import 的 UnitType
   ```
 
-- [ ] 提交生成器代码
+- [x] 提交生成器代码
   ```bash
   git add scripts/contract/generate-ts-types.js \
          frontend/src/shared/types/contract_gen.ts
@@ -766,10 +530,10 @@
   ```
 
 **验收标准**:
-- [ ] TypeScript 类型生成器执行成功
-- [ ] 生成的 TS 代码编译通过
-- [ ] 枚举值与契约一致
-- [ ] 代码已提交 Git
+- [x] TypeScript 类型生成器执行成功
+- [x] 生成的 TS 代码编译通过
+- [x] 枚举值与契约一致
+- [x] 代码已提交 Git
 
 ---
 
@@ -853,7 +617,7 @@
 
   **验收清单**:
   - [ ] 契约同步脚本 `sync.sh` 执行成功
-  - [ ] `organization.json` 包含正确枚举与约束
+  - [x] `organization.json` 包含正确枚举与约束
   - [ ] Go 生成代码 `contract_gen.go` 编译通过
   - [ ] TS 生成代码 `contract_gen.ts` 编译通过
   - [ ] CI Job `contract-sync` 绿灯
