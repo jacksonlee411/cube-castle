@@ -272,17 +272,43 @@ func (h *HierarchyRepository) GetOrganization(ctx context.Context, code string, 
 
 	query := `
 	SELECT 
-		tenant_id, code, parent_code, name, unit_type, status,
-		level, COALESCE(path, ''), sort_order, description,
-		effective_date, end_date, is_current, created_at, updated_at
+		tenant_id,
+		code,
+		parent_code,
+		name,
+		unit_type,
+		status,
+	level,
+	COALESCE(code_path, '/' || code) AS code_path,
+	COALESCE(name_path, '/' || name) AS name_path,
+		sort_order,
+		description,
+		effective_date,
+		end_date,
+		is_current,
+		created_at,
+		updated_at
 	FROM organization_units 
 	WHERE code = $1 AND tenant_id = $2 AND is_current = true
 	`
 
 	err := h.db.QueryRowContext(ctx, query, code, tenantID.String()).Scan(
-		&org.TenantID, &org.Code, &parentCode, &org.Name, &org.UnitType, &org.Status,
-		&org.Level, &org.Path, &org.SortOrder, &org.Description,
-		&effectiveDate, &endDate, &org.IsCurrent, &org.CreatedAt, &org.UpdatedAt,
+		&org.TenantID,
+		&org.Code,
+		&parentCode,
+		&org.Name,
+		&org.UnitType,
+		&org.Status,
+		&org.Level,
+		&org.CodePath,
+		&org.NamePath,
+		&org.SortOrder,
+		&org.Description,
+		&effectiveDate,
+		&endDate,
+		&org.IsCurrent,
+		&org.CreatedAt,
+		&org.UpdatedAt,
 	)
 
 	if err != nil {

@@ -63,7 +63,6 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		UnitType:      req.UnitType,
 		Status:        "ACTIVE",
 		Level:         fields.Level,
-		Path:          fields.Path,
 		CodePath:      fields.CodePath,
 		NamePath:      fields.NamePath,
 		SortOrder:     req.SortOrder,
@@ -215,7 +214,6 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		UnitType:   req.UnitType,
 		Status:     "ACTIVE", // 新版本默认激活
 		Level:      fields.Level,
-		Path:       fields.Path,
 		CodePath:   fields.CodePath,
 		NamePath:   fields.NamePath,
 		SortOrder: func() int {

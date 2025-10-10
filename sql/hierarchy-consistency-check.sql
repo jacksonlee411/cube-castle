@@ -7,7 +7,6 @@ WITH current_units AS (
         tenant_id,
         code,
         parent_code,
-        path,
         code_path,
         name_path,
         level,
@@ -22,7 +21,6 @@ annotated AS (
         parent.code_path   AS parent_code_path,
         parent.name_path   AS parent_name_path,
         parent.level       AS parent_level,
-        NULLIF(TRIM(BOTH '/' FROM cu.path), '')      AS trimmed_path,
         NULLIF(TRIM(BOTH '/' FROM cu.code_path), '')  AS trimmed_code_path,
         NULLIF(TRIM(BOTH '/' FROM cu.name_path), '')  AS trimmed_name_path
     FROM current_units cu
@@ -38,10 +36,6 @@ metrics AS (
             ELSE array_length(string_to_array(trimmed_code_path, '/'), 1)
         END AS code_depth,
         CASE
-            WHEN trimmed_path IS NULL THEN 0
-            ELSE array_length(string_to_array(trimmed_path, '/'), 1)
-        END AS path_depth,
-        CASE
             WHEN trimmed_name_path IS NULL THEN 0
             ELSE array_length(string_to_array(trimmed_name_path, '/'), 1)
         END AS name_depth
@@ -55,7 +49,6 @@ anomalies AS (
            status,
            'missing_code_path' AS anomaly_type,
            'code_path 为空或缺失' AS anomaly_detail,
-           path,
            code_path,
            name_path
     FROM metrics
@@ -70,7 +63,6 @@ anomalies AS (
            status,
            'missing_name_path' AS anomaly_type,
            'name_path 为空或缺失' AS anomaly_detail,
-           path,
            code_path,
            name_path
     FROM metrics
@@ -83,24 +75,8 @@ anomalies AS (
            parent_code,
            level,
            status,
-           'path_codepath_mismatch' AS anomaly_type,
-           'path 与 code_path 不一致' AS anomaly_detail,
-           path,
-           code_path,
-           name_path
-    FROM metrics
-    WHERE trimmed_path IS DISTINCT FROM trimmed_code_path
-
-    UNION ALL
-
-    SELECT tenant_id,
-           code,
-           parent_code,
-           level,
-           status,
            'depth_level_mismatch' AS anomaly_type,
            FORMAT('code_path 深度 %s 与 level %s 不一致', code_depth, level) AS anomaly_detail,
-           path,
            code_path,
            name_path
     FROM metrics
@@ -116,7 +92,6 @@ anomalies AS (
            status,
            'code_tail_mismatch' AS anomaly_type,
            'code_path 最末段与组织代码不一致' AS anomaly_detail,
-           path,
            code_path,
            name_path
     FROM metrics
@@ -132,7 +107,6 @@ anomalies AS (
            status,
            'parent_missing' AS anomaly_type,
            '父组织不存在或非当前记录' AS anomaly_detail,
-           path,
            code_path,
            name_path
     FROM metrics
@@ -149,7 +123,6 @@ anomalies AS (
            status,
            'parent_path_mismatch' AS anomaly_type,
            'code_path 未以父组织路径为前缀' AS anomaly_detail,
-           path,
            code_path,
            name_path
     FROM metrics
@@ -168,7 +141,6 @@ anomalies AS (
            status,
            'root_level_mismatch' AS anomaly_type,
            '根组织 level 应为 1' AS anomaly_detail,
-           path,
            code_path,
            name_path
     FROM metrics
@@ -182,7 +154,6 @@ SELECT tenant_id,
        status,
        anomaly_type,
        anomaly_detail,
-       path,
        code_path,
        name_path
 FROM anomalies

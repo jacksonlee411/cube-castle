@@ -580,11 +580,13 @@ func (v *BusinessRuleValidator) ValidateHierarchyConsistency(ctx context.Context
 				expectedCodePath += ancestor.Code
 			}
 
-			if org.Path != expectedCodePath {
+			actualCodePath := strings.TrimSpace(org.CodePath)
+
+			if actualCodePath != expectedCodePath {
 				result.Errors = append(result.Errors, ValidationError{
 					Code:     ErrorCodePathInconsistency,
-					Message:  fmt.Sprintf("代码路径不一致: 期望=%s, 实际=%s", expectedCodePath, org.Path),
-					Field:    "path",
+					Message:  fmt.Sprintf("代码路径不一致: 期望=%s, 实际=%s", expectedCodePath, actualCodePath),
+					Field:    "codePath",
 					Severity: "MEDIUM",
 				})
 			}

@@ -21,15 +21,15 @@ func (tm *TemporalTimelineManager) UpdateVersionEffectiveDate(ctx context.Contex
 
 	var org types.Organization
 	row := tx.QueryRowContext(ctx, `
-		SELECT tenant_id, code, parent_code, name, unit_type, status, level, path, sort_order, 
-		       description, effective_date, is_current, change_reason, created_at, updated_at
-		FROM organization_units 
-		WHERE record_id = $1 AND status != 'DELETED'
-		FOR UPDATE`, recordID)
+	SELECT tenant_id, code, parent_code, name, unit_type, status, level, code_path, name_path, sort_order,
+	       description, effective_date, is_current, change_reason, created_at, updated_at
+	FROM organization_units 
+	WHERE record_id = $1 AND status != 'DELETED'
+	FOR UPDATE`, recordID)
 
 	if err := row.Scan(
 		&org.TenantID, &org.Code, &org.ParentCode, &org.Name, &org.UnitType,
-		&org.Status, &org.Level, &org.Path, &org.SortOrder, &org.Description,
+		&org.Status, &org.Level, &org.CodePath, &org.NamePath, &org.SortOrder, &org.Description,
 		&org.EffectiveDate, &org.IsCurrent, &org.ChangeReason,
 		&org.CreatedAt, &org.UpdatedAt,
 	); err != nil {
@@ -76,13 +76,13 @@ func (tm *TemporalTimelineManager) UpdateVersionEffectiveDate(ctx context.Contex
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO organization_units (
 			record_id, tenant_id, code, parent_code, name, unit_type, status,
-			level, path, sort_order, description, effective_date, end_date,
+			level, code_path, name_path, sort_order, description, effective_date, end_date,
 			is_current, change_reason, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NULL,
-			false, $13, $14, $14
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL,
+			false, $14, $15, $15
 		)`, newRecordID, org.TenantID, org.Code, org.ParentCode, org.Name, org.UnitType,
-		org.Status, org.Level, org.Path, org.SortOrder, org.Description,
+		org.Status, org.Level, org.CodePath, org.NamePath, org.SortOrder, org.Description,
 		newEffectiveDate, operationReason, now); err != nil {
 		return nil, fmt.Errorf("插入新版本失败: %w", err)
 	}

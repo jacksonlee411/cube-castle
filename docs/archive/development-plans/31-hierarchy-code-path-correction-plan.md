@@ -34,11 +34,11 @@
    - 通过 `make test`、`npm run lint` 等质量门禁，发布后监控日志与前端异常。
 
 ## 验收标准
-- [ ] GraphQL 契约更新并发布，`Organization` 类型默认提供 `codePath`/`namePath`，`path` 标记废弃或移除，客户端同步升级。
-- [ ] 命令服务与查询服务响应不再暴露 `path` 字段，相关处理逻辑统一依赖 `code_path`/`name_path`。
-- [ ] 前端“组织路径（编码）”展示 `/1000002/1000003/1000004` 且无 `path` 字段依赖，回归测试通过。
-- [ ] 层级一致性扫描通过；如需保留 `path` 列用于历史迁移，确认数据已与 `code_path` 完全一致并有移除计划。
-- [ ] Go/前端质量门禁（`make test`、`npm run lint` 等）全部通过，发布与监控记录齐备。
+- [x] GraphQL 契约更新并发布，`Organization` 类型默认提供 `codePath`/`namePath`，`path` 标记废弃或移除，客户端同步升级。
+- [x] 命令服务与查询服务响应不再暴露 `path` 字段，相关处理逻辑统一依赖 `code_path`/`name_path`。
+- [x] 前端“组织路径（编码）”展示 `/1000002/1000003/1000004` 且无 `path` 字段依赖，回归测试通过。
+- [x] 层级一致性扫描通过；如需保留 `path` 列用于历史迁移，确认数据已与 `code_path` 完全一致并有移除计划。
+- [x] Go/前端质量门禁（`make test`、`npm run lint` 等）全部通过，发布与监控记录齐备。
 
 ## 一致性校验说明
 - 契约字段以 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql` 为唯一事实来源，迁移后以 `codePath`/`namePath` 为唯一层级路径字段。
@@ -46,3 +46,7 @@
 
 ## 现状记录
 - 2025-10-09：收到 1000003 → 1000002 重挂后路径不一致问题反馈；定位命令服务与前端逻辑，方案立项。
+- 2025-10-10：更新 GraphQL 契约与查询服务提供 `codePath`/`namePath`，命令服务响应移除 `path` 字段并统一校验；前端切换至 `codePath` 展示路径并通过 `npm run lint`，同时执行 `go test ./cmd/organization-command-service/... ./cmd/organization-query-service/...` 验证接口层编译。
+- 2025-10-10：运行 `scripts/maintenance/run-hierarchy-consistency-check.sh` 初次巡检，报告 `reports/hierarchy-consistency/hierarchy_anomalies_20251010T020838Z.csv` 检测到 4 条 `path_codepath_mismatch`。
+- 2025-10-10：新增迁移 `database/migrations/041_sync_path_with_code_path.sql` 将 `organization_units.path` 与 `code_path` 对齐并更新 `updated_at`；复跑巡检（UTC 2025-10-10T02:11:07Z）未检测到异常（空结果不保留 CSV）。
+- 2025-10-10：发布迁移 `database/migrations/042_drop_path_column.sql` 正式移除 `organization_units.path` 列（包含备份表及依赖视图重建），命令/查询/前端仅依赖 `codePath/namePath`；更新 `sql/hierarchy-consistency-check.sql` 去除 `path` 校验并再次巡检确认无异常。

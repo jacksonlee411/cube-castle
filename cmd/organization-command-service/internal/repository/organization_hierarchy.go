@@ -11,7 +11,6 @@ import (
 )
 
 type hierarchyFields struct {
-	Path     string
 	CodePath string
 	NamePath string
 	Level    int
@@ -80,7 +79,7 @@ func (r *OrganizationRepository) recalculateSelfHierarchy(ctx context.Context, t
 	}
 	fields.oldLevel = currentLevel
 
-	r.logger.Printf("recalculateSelfHierarchy: code=%s oldLevel=%d newLevel=%d path=%s", resolvedCode, fields.oldLevel, fields.Level, fields.Path)
+	r.logger.Printf("recalculateSelfHierarchy: code=%s oldLevel=%d newLevel=%d codePath=%s", resolvedCode, fields.oldLevel, fields.Level, fields.CodePath)
 	return fields, nil
 }
 
@@ -94,8 +93,7 @@ func (r *OrganizationRepository) calculateHierarchyFields(ctx context.Context, t
 
 	if parentCode == nil {
 		fields.Level = 1
-		fields.Path = ensureJoinedPath("", code)
-		fields.CodePath = fields.Path
+		fields.CodePath = ensureJoinedPath("", code)
 		fields.NamePath = ensureJoinedPath("", finalName)
 		return fields, nil
 	}
@@ -103,8 +101,7 @@ func (r *OrganizationRepository) calculateHierarchyFields(ctx context.Context, t
 	trimmedParent := strings.TrimSpace(*parentCode)
 	if trimmedParent == "" || trimmedParent == utils.RootParentCode {
 		fields.Level = 1
-		fields.Path = ensureJoinedPath("", code)
-		fields.CodePath = fields.Path
+		fields.CodePath = ensureJoinedPath("", code)
 		fields.NamePath = ensureJoinedPath("", finalName)
 		return fields, nil
 	}
@@ -127,8 +124,7 @@ func (r *OrganizationRepository) calculateHierarchyFields(ctx context.Context, t
 	}
 
 	fields.Level = parentLevel + 1
-	fields.Path = ensureJoinedPath(parentCodePath, code)
-	fields.CodePath = fields.Path
+	fields.CodePath = ensureJoinedPath(parentCodePath, code)
 	fields.NamePath = ensureJoinedPath(parentNamePath, finalName)
 
 	return fields, nil

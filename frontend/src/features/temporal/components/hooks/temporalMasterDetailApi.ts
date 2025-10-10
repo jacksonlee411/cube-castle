@@ -21,7 +21,8 @@ interface OrganizationVersion {
   level: number;
   parentCode?: string;
   description?: string;
-  path?: string | null;
+  codePath?: string | null;
+  namePath?: string | null;
   effectiveDate: string;
   endDate?: string | null;
   recordId: string;
@@ -51,7 +52,8 @@ interface TimelineItemResponse {
   updatedAt: string;
   parentCode?: string | null;
   description?: string | null;
-  path?: string | null;
+  codePath?: string | null;
+  namePath?: string | null;
 }
 
 interface TimelineEventData {
@@ -96,7 +98,8 @@ const ORGANIZATION_VERSIONS_QUERY = `
       unitType
       status
       level
-      path
+      codePath
+      namePath
       effectiveDate
       endDate
       createdAt
@@ -115,7 +118,8 @@ const ORGANIZATION_SNAPSHOT_QUERY = `
       unitType
       status
       level
-      path
+      codePath
+      namePath
       effectiveDate
       endDate
       createdAt
@@ -159,7 +163,8 @@ const mapOrganizationVersions = (
         org.endDate === null ? ("CURRENT" as const) : ("HISTORICAL" as const),
       businessStatus: org.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
       dataStatus: "NORMAL" as const,
-      path: org.path ?? undefined,
+      codePath: org.codePath ?? undefined,
+      namePath: org.namePath ?? undefined,
       sortOrder: 1,
       changeReason: "",
     }))
@@ -186,7 +191,8 @@ const mapTimelineItem = (item: TimelineItemResponse): TimelineVersion => ({
   lifecycleStatus: item.isCurrent ? "CURRENT" : "HISTORICAL",
   businessStatus: item.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
   dataStatus: "NORMAL",
-  path: item.path ?? undefined,
+  codePath: item.codePath ?? undefined,
+  namePath: item.namePath ?? undefined,
   sortOrder: 1,
   changeReason: "",
 });

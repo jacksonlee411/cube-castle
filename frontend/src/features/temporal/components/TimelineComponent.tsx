@@ -30,7 +30,8 @@ export interface TimelineVersion {
   updatedAt: string;
   description?: string;
   level: number;
-  path?: string | null;
+  codePath?: string | null;
+  namePath?: string | null;
   parentCode?: string;
   sortOrder: number;
   

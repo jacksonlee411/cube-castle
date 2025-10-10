@@ -12,7 +12,7 @@ import (
 func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
 	query := `
         SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
-               level, path, code_path, name_path, sort_order, description, created_at, updated_at,
+               level, code_path, name_path, sort_order, description, created_at, updated_at,
                effective_date, end_date, change_reason
         FROM organization_units 
         WHERE tenant_id = $1 AND code = $2 AND is_current = true
@@ -26,7 +26,7 @@ func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UU
 
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), code).Scan(
 		&org.RecordID, &org.TenantID, &org.Code, &parentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder,
+		&org.UnitType, &org.Status, &org.Level, &org.CodePath, &org.NamePath, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&effectiveDate, &endDate, &changeReason,
 	)
@@ -57,7 +57,7 @@ func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UU
 func (r *OrganizationRepository) GetByRecordId(ctx context.Context, tenantID uuid.UUID, recordId string) (*types.Organization, error) {
 	query := `
         SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
-               level, path, code_path, name_path, sort_order, description, created_at, updated_at,
+               level, code_path, name_path, sort_order, description, created_at, updated_at,
                effective_date, end_date, change_reason
         FROM organization_units
         WHERE tenant_id = $1 AND record_id = $2
@@ -71,7 +71,7 @@ func (r *OrganizationRepository) GetByRecordId(ctx context.Context, tenantID uui
 
 	err := r.db.QueryRowContext(ctx, query, tenantID.String(), recordId).Scan(
 		&org.RecordID, &org.TenantID, &org.Code, &parentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder,
+		&org.UnitType, &org.Status, &org.Level, &org.CodePath, &org.NamePath, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&effectiveDate, &endDate, &changeReason,
 	)
@@ -102,7 +102,7 @@ func (r *OrganizationRepository) GetByRecordId(ctx context.Context, tenantID uui
 func (r *OrganizationRepository) ListVersionsByCode(ctx context.Context, tenantID uuid.UUID, code string) ([]types.Organization, error) {
 	query := `
         SELECT record_id, tenant_id, code, parent_code, name, unit_type, status,
-               level, path, sort_order, description, created_at, updated_at,
+               level, code_path, name_path, sort_order, description, created_at, updated_at,
                effective_date, end_date, change_reason
         FROM organization_units
         WHERE tenant_id = $1 AND code = $2
@@ -125,7 +125,7 @@ func (r *OrganizationRepository) ListVersionsByCode(ctx context.Context, tenantI
 
 		if err := rows.Scan(
 			&org.RecordID, &org.TenantID, &org.Code, &parentCode, &org.Name,
-			&org.UnitType, &org.Status, &org.Level, &org.Path, &org.SortOrder,
+			&org.UnitType, &org.Status, &org.Level, &org.CodePath, &org.NamePath, &org.SortOrder,
 			&org.Description, &org.CreatedAt, &org.UpdatedAt,
 			&effectiveDate, &endDate, &changeReason,
 		); err != nil {

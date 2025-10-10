@@ -111,8 +111,8 @@ export const deriveCodePath = (
   selectedVersion: InlineVersionRecord | null | undefined,
   hierarchyPaths: InlineHierarchyPaths | null | undefined
 ): string => {
-  if (selectedVersion?.path) {
-    return selectedVersion.path;
+  if (selectedVersion?.codePath) {
+    return selectedVersion.codePath;
   }
   if (hierarchyPaths?.codePath) {
     return hierarchyPaths.codePath;

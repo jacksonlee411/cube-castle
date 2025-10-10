@@ -58,7 +58,6 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 		} else {
 			addAssignment("parent_code", nil)
 		}
-		addAssignment("path", fields.Path)
 		addAssignment("level", fields.Level)
 		addAssignment("code_path", fields.CodePath)
 		addAssignment("name_path", fields.NamePath)
@@ -88,13 +87,13 @@ SET %s
 WHERE tenant_id = $1 AND code = $2
   AND status <> 'DELETED'
 RETURNING tenant_id, code, parent_code, name, unit_type, status,
-          level, path, code_path, name_path, sort_order, description, created_at, updated_at,
+          level, code_path, name_path, sort_order, description, created_at, updated_at,
           effective_date, end_date, change_reason`, setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder,
+		&org.UnitType, &org.Status, &org.Level, &org.CodePath, &org.NamePath, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.ChangeReason,
 	)
@@ -159,7 +158,6 @@ func (r *OrganizationRepository) UpdateByRecordId(ctx context.Context, tenantID 
 		} else {
 			addAssignment("parent_code", nil)
 		}
-		addAssignment("path", fields.Path)
 		addAssignment("level", fields.Level)
 		addAssignment("code_path", fields.CodePath)
 		addAssignment("name_path", fields.NamePath)
@@ -189,13 +187,13 @@ SET %s
 WHERE tenant_id = $1 AND record_id = $2
   AND status <> 'DELETED'
 RETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,
-          level, path, code_path, name_path, sort_order, description, created_at, updated_at,
+          level, code_path, name_path, sort_order, description, created_at, updated_at,
           effective_date, end_date, change_reason`, setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
-		&org.UnitType, &org.Status, &org.Level, &org.Path, &org.CodePath, &org.NamePath, &org.SortOrder,
+		&org.UnitType, &org.Status, &org.Level, &org.CodePath, &org.NamePath, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.ChangeReason,
 	)

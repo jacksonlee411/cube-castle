@@ -16,7 +16,8 @@ type Organization struct {
 	UnitTypeField         string     `json:"unitType" db:"unit_type"`
 	StatusField           string     `json:"status" db:"status"`
 	LevelField            int        `json:"level" db:"level"`
-	PathField             *string    `json:"path" db:"path"`
+	CodePathField         string     `json:"codePath" db:"code_path"`
+	NamePathField         string     `json:"namePath" db:"name_path"`
 	SortOrderField        *int       `json:"sortOrder" db:"sort_order"`
 	DescriptionField      *string    `json:"description" db:"description"`
 	ProfileField          *string    `json:"profile" db:"profile"`
@@ -70,7 +71,25 @@ func (o Organization) Name() string     { return o.NameField }
 func (o Organization) UnitType() string { return o.UnitTypeField }
 func (o Organization) Status() string   { return o.StatusField }
 func (o Organization) Level() int32     { return clampToInt32(o.LevelField) }
-func (o Organization) Path() *string    { return o.PathField }
+func (o Organization) Path() *string {
+	if o.CodePathField == "" {
+		return nil
+	}
+	path := o.CodePathField
+	return &path
+}
+func (o Organization) CodePath() string {
+	if o.CodePathField != "" {
+		return o.CodePathField
+	}
+	return ""
+}
+func (o Organization) NamePath() string {
+	if o.NamePathField != "" {
+		return o.NamePathField
+	}
+	return ""
+}
 func (o Organization) SortOrder() *int32 {
 	return clampToInt32Ptr(o.SortOrderField)
 }

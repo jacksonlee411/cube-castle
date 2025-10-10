@@ -171,7 +171,9 @@ type Organization {
   # Hierarchy Information
   level: Int!
   sortOrder: Int
-  path: String
+  codePath: String!
+  namePath: String!
+  path: String @deprecated(reason: "使用 codePath/namePath 作为唯一事实来源，path 将在后续版本移除")
 
   # Configuration
   description: String

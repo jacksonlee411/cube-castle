@@ -109,7 +109,6 @@ func (h *OrganizationHandler) toOrganizationResponse(org *types.Organization) *t
 		UnitType:      org.UnitType,
 		Status:        org.Status,
 		Level:         org.Level,
-		Path:          org.Path,
 		CodePath:      org.CodePath,
 		NamePath:      org.NamePath,
 		SortOrder:     org.SortOrder,

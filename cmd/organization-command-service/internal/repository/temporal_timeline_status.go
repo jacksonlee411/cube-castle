@@ -35,7 +35,6 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 		UnitType      string
 		Status        string
 		Level         int
-		Path          string
 		CodePath      string
 		NamePath      string
 		SortOrder     int
@@ -48,9 +47,9 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	}
 
 	row := tx.QueryRowContext(ctx, `
-		SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, level, path,
-		       code_path, name_path, sort_order, description, effective_date, is_current, change_reason,
-		       created_at, updated_at
+	SELECT record_id, tenant_id, code, parent_code, name, unit_type, status, level,
+	       code_path, name_path, sort_order, description, effective_date, is_current, change_reason,
+	       created_at, updated_at
 		FROM organization_units 
 		WHERE tenant_id = $1 AND code = $2 AND is_current = true 
 		  AND status != 'DELETED'
@@ -58,7 +57,7 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 
 	if err := row.Scan(
 		&currentOrg.RecordID, &currentOrg.TenantID, &currentOrg.Code, &currentOrg.ParentCode, &currentOrg.Name,
-		&currentOrg.UnitType, &currentOrg.Status, &currentOrg.Level, &currentOrg.Path, &currentOrg.CodePath,
+		&currentOrg.UnitType, &currentOrg.Status, &currentOrg.Level, &currentOrg.CodePath,
 		&currentOrg.NamePath, &currentOrg.SortOrder,
 		&currentOrg.Description, &currentOrg.EffectiveDate, &currentOrg.IsCurrent,
 		&currentOrg.ChangeReason, &currentOrg.CreatedAt, &currentOrg.UpdatedAt,
@@ -128,13 +127,13 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO organization_units (
 			record_id, tenant_id, code, parent_code, name, unit_type, status,
-			level, path, code_path, name_path, sort_order, description, effective_date, end_date,
+			level, code_path, name_path, sort_order, description, effective_date, end_date,
 			is_current, change_reason, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NULL,
 			false, $15, $16, $16
 		)`, newRecordID, currentOrg.TenantID, currentOrg.Code, currentOrg.ParentCode, currentOrg.Name,
-		currentOrg.UnitType, newStatus, currentOrg.Level, currentOrg.Path, currentOrg.CodePath, currentOrg.NamePath,
+		currentOrg.UnitType, newStatus, currentOrg.Level, currentOrg.CodePath, currentOrg.NamePath,
 		currentOrg.SortOrder, currentOrg.Description, effectiveDateUTC, operationReason, nowUTC); err != nil {
 		return nil, fmt.Errorf("插入%s版本失败: %w", operationType, err)
 	}

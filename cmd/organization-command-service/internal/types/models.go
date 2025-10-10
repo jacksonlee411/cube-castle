@@ -24,7 +24,6 @@ type Organization struct {
 	UnitType    string    `json:"unitType" db:"unit_type"`
 	Status      string    `json:"status" db:"status"`
 	Level       int       `json:"level" db:"level"`
-	Path        string    `json:"path" db:"path"`
 	CodePath    string    `json:"codePath" db:"code_path"`
 	NamePath    string    `json:"namePath" db:"name_path"`
 	SortOrder   int       `json:"sortOrder" db:"sort_order"`
@@ -73,7 +72,6 @@ type OrganizationResponse struct {
 	UnitType    string    `json:"unitType"`
 	Status      string    `json:"status"`
 	Level       int       `json:"level"`
-	Path        string    `json:"path"`
 	CodePath    string    `json:"codePath"`
 	NamePath    string    `json:"namePath"`
 	SortOrder   int       `json:"sortOrder"`

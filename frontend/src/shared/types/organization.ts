@@ -12,6 +12,9 @@ export interface OrganizationUnit {
   unitType: 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';  // camelCase
   status: 'ACTIVE' | 'INACTIVE' | 'PLANNED' | 'DELETED';
   level: number;
+  codePath?: string | null;
+  namePath?: string | null;
+  /** @deprecated 请使用 codePath/namePath */
   path?: string | null;
   sortOrder: number;  // camelCase
   description?: string;

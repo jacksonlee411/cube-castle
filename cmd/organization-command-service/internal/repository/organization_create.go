@@ -43,16 +43,15 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 	}
 
 	org.Level = fields.Level
-	org.Path = fields.Path
 	org.CodePath = fields.CodePath
 	org.NamePath = fields.NamePath
 
 	query := `
         INSERT INTO organization_units (
             tenant_id, code, parent_code, name, unit_type, status, 
-            level, path, code_path, name_path, sort_order, description, created_at, updated_at,
+            level, code_path, name_path, sort_order, description, created_at, updated_at,
             effective_date, end_date, change_reason, is_current
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING record_id, created_at, updated_at
     `
 
@@ -81,7 +80,6 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 		org.UnitType,
 		org.Status,
 		org.Level,
-		org.Path,
 		org.CodePath,
 		org.NamePath,
 		org.SortOrder,
@@ -121,10 +119,10 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sql.Tx, org *types.Organization) (*types.Organization, error) {
 	query := `
         INSERT INTO organization_units (
-            tenant_id, code, parent_code, name, unit_type, status, 
-            level, path, sort_order, description, created_at, updated_at,
+            tenant_id, code, parent_code, name, unit_type, status,
+            level, code_path, name_path, sort_order, description, created_at, updated_at,
             effective_date, end_date, change_reason, is_current
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING record_id, created_at, updated_at
     `
 
@@ -146,7 +144,8 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 		org.UnitType,
 		org.Status,
 		org.Level,
-		org.Path,
+		org.CodePath,
+		org.NamePath,
 		org.SortOrder,
 		org.Description,
 		time.Now(),
