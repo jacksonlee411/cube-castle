@@ -111,19 +111,19 @@
 - `.github/workflows/duplicate-code-detection.yml`
 - `docker-compose.yml`
 
-## 未命中或路径不一致项
-- `/.well-known/jwks.js` — 文档中的 API 路径，仓库无对应静态文件。
-- `ValidationRules.ts` — 仓库已无同名文件；当前验证逻辑集中在 `frontend/src/shared/validation/`。
-- `docker-compose.monitoring.yml` — 文档引用的编排文件缺失（可能已整合或重命名）。
-- `docs/architecture/query-layer.md` — 文档目录下不存在该文件。
-- `frontend/src/features/temporal/components/TemporalMasterDetailView.ts` — 实际文件为 `TemporalMasterDetailView.tsx`。
-- `internal/metrics/collector.go` — 仓库未找到该指标收集器实现。
-- `reports/architecture/architecture-validation.js`、`reports/iig-guardian/iig-guardian-report.js`、`reports/implementation-inventory.js`、`reports/implementation-inventory.json.go`、`reports/implementation-inventory.json.ts` — 仅在文档中提及的报告快照文件，仓库当前未保存。
-- `simple-validation.ts` — 已迁移至统一验证体系，源文件不存在。
-- `temp-inventory.md` — 临时输出文件（生成命令示例），仓库未提交。
-- `useOrganizations.ts` — 文档标记为废弃 Hook，代码库已移除。
+## 未命中或路径不一致项（2025-10-09 校核结果）
+- `/.well-known/jwks.js` — **已确认** 实际为运行时端点 `/.well-known/jwks.json`，实现清单已修正。
+- `ValidationRules.ts` — **已修正** 更新为 `frontend/src/shared/validation/index.ts` / `schemas.ts` 的统一验证入口。
+- `docker-compose.monitoring.yml` — **已修正** 改为仓库现有的 `docker-compose.yml` / `docker-compose.dev.yml` / `docker-compose.e2e.yml`。
+- `docs/architecture/query-layer.md` — **已修正** 指向 `docs/architecture/metacontract-v6.0-specification.md` 第3.6节。
+- `frontend/src/features/temporal/components/TemporalMasterDetailView.ts` — **已确认** 文档现使用 `.tsx` 文件路径。
+- `internal/metrics/collector.go` — **已修正** 替换为 `middleware/performance.go`、`services/temporal_monitor.go`、`handlers/operational.go` 的实际实现。
+- `reports/architecture/architecture-validation.js` 等 — **已修正** 统一引用为仓库存在的 `reports/architecture/architecture-validation.json` 和 `reports/implementation-inventory.json` 等 JSON 报告。
+- `simple-validation.ts` — **已修正** 说明已删除，并指向统一验证系统。
+- `temp-inventory.md` — **已标注** 为临时输出示例，明确不纳入仓库。
+- `useOrganizations.ts` — **已修正** 文档注明该 Hook 已移除，仅保留迁移提示。
 
 ## 结论
 - 文档列出的核心实现文件大部分仍与仓库一致；命令服务与前端关键模块均已找到对应路径。
-- 少量条目指向已重命名或删除的资产（如 `.tsx` 扩展、验证/监控旧文件、生成报告快照），建议在维护实现清单时同步修正。
-- 对于 API 路径或临时产物（如 `/.well-known/jwks.js`、`temp-inventory.md`），应在文档中注明其用途或移至相应章节，避免被误认为仓库文件。
+- 原未命中条目已逐项对齐现有实现；实现清单与仓库状态同步。
+- 对运行态端点与临时输出已在文档中标注用途与范围，防止被误判为缺失文件。

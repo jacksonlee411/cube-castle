@@ -28,6 +28,7 @@ node scripts/generate-implementation-inventory.js
 
 # 生成最新清单（校对用）
 node scripts/generate-implementation-inventory.js > temp-inventory.md
+# temp-inventory.md 为临时输出，勿提交到仓库
 # 对比后再更新本文档；禁止凭记忆填写规模/路径/行号
 ```
 
@@ -94,7 +95,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ### 🎯 **API优先设计端点** (26个端点，按类别汇总)
 
-> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-10-09（快照 2025-10-09T06:39:16.340Z），详见 `reports/implementation-inventory.json.openapiPaths`
+> **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-10-09（快照 2025-10-09T06:39:16.340Z），详见 `reports/implementation-inventory.json`（openapiPaths 段）
 
 #### 运维与可观测性（9）
 - `/api/v1/operational/health` — 健康检查 (GetHealth)
@@ -149,7 +150,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `organizationVersions(code: String!, includeDeleted: Boolean = false): [Organization!]!` — 返回指定组织的所有时态版本，按 `effectiveDate` 升序，默认过滤软删记录。
 
 ### 关键实现要点
-- **PostgreSQL 原生**：所有查询直连 PostgreSQL，利用递归 CTE、分区索引与物化视图缓存（详见 `docs/architecture/query-layer.md`）。
+- **PostgreSQL 原生**：所有查询直连 PostgreSQL，利用递归 CTE、分区索引与物化视图缓存（详见 `docs/architecture/metacontract-v6.0-specification.md` 第3.6节）。
 - **时态支持**：统一通过 `effectiveDate/endDate` 字段派生当前、未来、历史状态；`asOfDate` 汇聚服务端判断，前端无需重复逻辑。
 - **层级性能**：`organizationSubtree`/`hierarchyStatistics` 共用层级缓存与 `codePath` 前缀索引，保障 17 层深度 <200ms。
 - **审计链路**：`auditHistory`/`auditLog` 依赖最新审计模型（recordId 粒度），输出字段与 `docs/api/schema.graphql` 对齐。
@@ -164,7 +165,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ## 🔎 验证命令与报告路径
 
 - 生成实现清单（校对用）
-  - `node scripts/generate-implementation-inventory.js > temp-inventory.md`
+  - `node scripts/generate-implementation-inventory.js > temp-inventory.md`（临时输出，生成后用于人工对比）
 - 架构一致性校验
   - `node scripts/quality/architecture-validator.js`（报告：`reports/architecture/architecture-validation.json`）
 - 契约文件权威位置
@@ -176,7 +177,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ## 后端（Go）关键导出（Key Exported Items）
 
 ### 处理器（Handlers） - 26个导出方法
-> **数据来源**: `reports/implementation-inventory.json.goHandlers`（自动扫描 `cmd/organization-command-service/internal/handlers`）
+> **数据来源**: `reports/implementation-inventory.json`（goHandlers 段，自动扫描 `cmd/organization-command-service/internal/handlers`）
 
 #### 命令服务 · 开发工具 (`devtools.go`)
 - `SetupRoutes` — 开发工具路由注册
@@ -208,7 +209,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `organization_history.go` — `UpdateHistoryRecord`
 
 ### 服务层（Services） - 19个导出类型
-> **数据来源**: `reports/implementation-inventory.json.goServices`
+> **数据来源**: `reports/implementation-inventory.json`（goServices 段）
 
 #### 层级级联 (`internal/services/cascade.go`)
 - `CascadeUpdateService` — 层级变更级联处理
@@ -268,8 +269,10 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `AuditLogger` - 结构化审计日志记录器
   - 审计生产对齐 API 优先：before_data/after_data 中排除动态时态标记字段（is_current、is_temporal、is_future），以数据库触发器 `log_audit_changes()` 统一实现（见 `database/migrations/023_audit_exclude_dynamic_temporal_flags.sql`）。
 
-#### 指标收集 (`internal/metrics/collector.go`)
-- `MetricsCollector` - Prometheus指标收集器
+#### 指标收集
+- `cmd/organization-command-service/internal/middleware/performance.go` - 请求性能日志与慢查询告警
+- `cmd/organization-command-service/internal/services/temporal_monitor.go` - 组织时态健康监控指标
+- `cmd/organization-command-service/internal/handlers/operational.go` - `/api/v1/operational/metrics` 暴露统一监控接口
 
 ### 架构特点
 - **CQRS分离**: 命令服务(9090端口)与查询服务(8090端口)完全分离
@@ -282,7 +285,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 ## 前端（TypeScript/React）关键导出（Key Exported Items）
 
-基于最新IIG扫描的172个导出项（详见 `reports/implementation-inventory.json.tsExports`），下列按领域归纳关键模块：
+基于最新IIG扫描的172个导出项（详见 `reports/implementation-inventory.json` 的 tsExports 段），下列按领域归纳关键模块：
 
 ### API客户端架构
 #### 统一客户端 (`unified-client.ts`)
@@ -314,9 +317,10 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ### 数据管理层
 #### 状态管理Hooks ⭐ **已修复稳定版**
 - `useEnterpriseOrganizations` - 企业级组织管理 (`useEnterpriseOrganizations.ts`) ✅ **主要Hook - 已修复初始化逻辑**
-- `useOrganizations` - 组织列表管理 (`useOrganizations.ts`) ⚠️ **已废弃** - 兼容封装，调用useEnterpriseOrganizations
-- `useOrganization` - 单个组织管理 ⚠️ **已废弃** - 兼容封装，调用useEnterpriseOrganizations
 - `useMessages` - 用户消息管理 (`useMessages.ts`) ✅ **稳定**
+- `useScopes` - 权限范围感知 Hook (`useScopes.ts`) ✅ **同步 PBAC 权限**
+
+> ⚠️ 历史 Hook `useOrganizations`、`useOrganization` 已于 2025-09 移除，全部能力并入 `useEnterpriseOrganizations`。
 
 #### 组织变更操作 (`useOrganizationMutations.ts`)
 - `useCreateOrganization` - 创建组织Hook
@@ -488,18 +492,8 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `GraphQLVariablesSchema` - GraphQL变量Schema
 - `GraphQLOrganizationResponseSchema` - GraphQL组织响应Schema
 
-#### 简单验证 (`simple-validation.ts`) ⚠️ **已弃用 - 迁移至统一验证系统**
-- `SimpleValidationError` - 简单验证错误类 (已弃用)
-- `validateOrganizationBasic` - 组织基础验证 (已弃用)
-- `validateOrganizationUpdate` - 组织更新验证 (已弃用)
-- `validateOrganizationResponse` - 组织响应验证 (已弃用)
-- `formatValidationErrors` - 格式化验证错误 (已弃用)
-- `getFieldError` - 获取字段错误 (已弃用)
-- `validateStatusUpdate` - 状态更新验证 (已弃用)
-- `basicValidation` - 基础验证函数 (已弃用)
-- `safeTransform` - 安全转换函数 (已弃用)
-- `validateCreateOrganizationInput` - 验证创建输入 (已弃用)
-- `validateUpdateOrganizationInput` - 验证更新输入 (已弃用)
+#### 简单验证 (`simple-validation.ts`) ⚠️ **已移除**
+- 历史验证函数全部并入 `frontend/src/shared/validation/`；如需维护遗留代码，请从统一验证入口引入 `ValidationUtils`
 
 ### 设计系统
 #### 品牌令牌 (`brand.ts`)
@@ -532,8 +526,9 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `formatErrorForUser` - 格式化用户错误
 - `SUCCESS_MESSAGES` - 成功消息常量
 
-### 表单验证规则 (`ValidationRules.ts`)
-- `validateForm` - 表单验证函数
+### 表单验证规则（统一验证系统）
+- `frontend/src/shared/validation/index.ts` - 统一验证入口，导出 `validateForm` / `ValidationUtils`
+- `frontend/src/shared/validation/schemas.ts` - Zod Schema 定义，整合原 `ValidationRules.ts` 逻辑
 
 ### 时态验证适配层 (`temporal-validation-adapter.ts`)
 - `validateTemporalDate` - 与遗留接口保持一致的时态日期验证包装
@@ -572,8 +567,9 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `.git/hooks/pre-commit` - 提交前质量检查
 
 ### 监控与部署
-- `docker-compose.yml` - 本地开发环境编排
-- `docker-compose.monitoring.yml` - 监控服务编排 (Prometheus/Grafana)
+- `docker-compose.yml` - 本地开发环境编排（数据库 + Redis + 服务）
+- `docker-compose.dev.yml` - 开发模式增强配置（命令/查询服务）
+- `docker-compose.e2e.yml` - E2E 测试场景专用编排
 - 各种启动脚本: `start.sh`, `start_smart.sh` 等
 
 ---
