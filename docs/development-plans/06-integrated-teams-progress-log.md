@@ -1,277 +1,126 @@
-# 06 — 集成团队推进记录
+# 06 — 集成团队推进记录（待执行任务清单）
 
-最后更新：2025-10-10 20:15 CST
-维护团队：架构组 + 全栈工程师
-状态：Plan 61 第一阶段验收完成
-
----
-
-## 当前进展：Plan 61 第一阶段 CI 验收完成 ✅
-
-### 验收摘要
-
-**阶段**: 契约与类型统一
-**完成日期**: 2025-10-10
-**负责人**: 全栈工程师（单人执行）
-**状态**: ✅ 通过
-
-第一阶段"契约与类型统一"已完成所有核心交付物，包括契约同步脚本体系、统一契约文件、Go/TypeScript类型生成器以及CI快照校验机制。所有验收标准已达成。
+最后更新：2025-10-10 23:00 CST
+维护团队：架构组（协调）+ 运行保障组（执行）
+当前目标：62 号计划首批交付已完成（Prometheus 指标与监控文档），剩余工作（运维开关）待后续评估优先级。
 
 ---
 
-## 交付物清单
+## 一、任务概览
 
-### ✅ 核心基础设施
-- [x] 契约同步主脚本 (`scripts/contract/sync.sh`)
-- [x] OpenAPI解析器 (`scripts/contract/openapi-to-json.js`)
-- [x] GraphQL解析器 (`scripts/contract/graphql-to-json.js`)
-- [x] Go类型生成器 (`scripts/contract/generate-go-types.js`)
-- [x] TypeScript类型生成器 (`scripts/contract/generate-ts-types.js`)
-
-### ✅ 契约工件
-- [x] 统一契约文件 (`shared/contracts/organization.json`)
-  - OpenAPI版本: 4.6.0
-  - GraphQL版本: 4.6.0
-  - SHA256: d07559546338a8b605732d230f35e77e924526e297ce241fa2b7e0f7cad8cbb6
-  - 文件大小: 100行
-
-### ✅ 生成的类型代码
-
-#### Go类型 (`cmd/organization-command-service/internal/types/contract_gen.go`)
-- UnitType枚举: 4个值 (DEPARTMENT, ORGANIZATION_UNIT, COMPANY, PROJECT_TEAM)
-- OrganizationStatus枚举: 4个值 (ACTIVE, INACTIVE, PLANNED, DELETED)
-- OperationType枚举: 6个值 (CREATE, UPDATE, SUSPEND, REACTIVATE, DEACTIVATE, DELETE)
-- 约束常量: 11个
-
-#### TypeScript类型 (`frontend/src/shared/types/contract_gen.ts`)
-- OrganizationUnitTypeEnum: 4个值
-- OrganizationStatusEnum: 4个值
-- OrganizationOperationTypeEnum: 6个值
-- 类型守卫函数: 3个 (isOrganizationUnitTypeEnum, isOrganizationStatusEnum, isOrganizationOperationTypeEnum)
-- 约束常量: 9个 (codePattern, parentCodePattern, nameMaxLength, descriptionMaxLength, levelMin, levelMax, sortOrderDefault, operationReasonMaxLength, effectiveDateFormat)
-
-### ✅ 测试与验证
-- [x] 契约快照基线 (`tests/contract/inventory.baseline.json`)
-- [x] 快照校验脚本 (`tests/contract/verify_inventory.py`)
-- [x] CI工作流 (`.github/workflows/contract-testing.yml`)
-  - contract-snapshot job: ✅ 配置完成
-  - contract-testing job: ✅ 配置完成
-  - contract-compliance-gate job: ✅ 配置完成
-  - schema-change-detection job: ✅ 配置完成
-  - performance-impact-analysis job: ✅ 配置完成
+| 编号 | 任务 | 责任团队 | 依赖文档 | 状态 | 完成时间 |
+|------|------|----------|----------|------|----------|
+| T1 | 命令服务运行时指标验证 | 运行保障组 | 62-backend-middleware-refactor-plan.md §4.1.3, 62-phase-2-acceptance-draft.md | ✅ 完成 | 2025-10-10 |
+| T2 | 指标验证脚本/自动化补强 | 平台工具组 | 同上 | ✅ 完成 | 2025-10-10 |
+| T3 | 更新验收草稿并提交归档申请 | 架构组 | 62-phase-2-acceptance-draft.md | ✅ 完成 | 2025-10-10 |
 
 ---
 
-## 验收测试结果
+## 二、执行摘要（2025-10-10）
 
-### 1. 契约同步脚本验证 ✅
-```bash
-$ bash scripts/contract/sync.sh
-✅ [契约同步] 完成
-  输出文件:
-    - shared/contracts/organization.json
-    - cmd/organization-command-service/internal/types/contract_gen.go
-    - frontend/src/shared/types/contract_gen.ts
-```
-**状态**: ✅ 通过
+**✅ 所有任务已完成**
 
-### 2. 契约快照校验 ✅
-```bash
-$ python3 tests/contract/verify_inventory.py
-Contract snapshot verified successfully.
-```
-**状态**: ✅ 通过
-**备注**: 初始快照基线已更新以反映当前契约状态
+本次执行完成了 62 号计划（后端观测与运维巩固）的首批交付工作，主要成果包括：
 
-### 3. Go类型编译验证 ✅
-```bash
-$ cd cmd/organization-command-service && go build ./internal/types
-# 无错误输出
-```
-**状态**: ✅ 通过
-**编译器**: Go 1.21+
+1. **Prometheus 指标体系建立** (T1)
+   - 实现三类 Counter 指标：`temporal_operations_total`、`audit_writes_total`、`http_requests_total`
+   - 在命令服务 main.go 中暴露 `/metrics` 端点
+   - 完成运行时验证并记录样例输出
 
-### 4. TypeScript类型验证 ✅
-```bash
-$ node scripts/contract/generate-ts-types.js
-[TypeScript] ✓ 类型已生成
-  → frontend/src/shared/types/contract_gen.ts
-```
-**状态**: ✅ 通过
-**工具**: Node.js v22.17.1
+2. **自动化验证工具** (T2)
+   - 创建 `scripts/quality/validate-metrics.sh` 验证脚本
+   - 支持关键指标与业务触发指标分类检查
+   - CI 集成友好（适当退出码）
 
-### 5. 契约枚举一致性检查 ✅
-- **UnitType**
-  - OpenAPI: [DEPARTMENT, ORGANIZATION_UNIT, COMPANY, PROJECT_TEAM]
-  - GraphQL: [DEPARTMENT, ORGANIZATION_UNIT, COMPANY, PROJECT_TEAM]
-  - **一致性**: ✅ 完全一致
+3. **文档完善与验收** (T3)
+   - 更新 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 添加完整监控章节
+   - 完成 `62-phase-2-acceptance-draft.md` v0.2 含运行时验证结果
+   - 更新 `62-backend-middleware-refactor-plan.md` v2.1 标记已完成项
+   - 更新 `60-execution-tracker.md` 第二阶段进度
 
-- **Status**
-  - OpenAPI: [ACTIVE, INACTIVE, PLANNED, DELETED]
-  - GraphQL: [ACTIVE, INACTIVE, PLANNED, DELETED]
-  - **一致性**: ✅ 完全一致
-
-- **OperationType**
-  - OpenAPI/GraphQL: [CREATE, UPDATE, SUSPEND, REACTIVATE, DEACTIVATE, DELETE]
-  - **一致性**: ✅ 完全一致
+**后续建议**:
+- 62 号计划剩余工作（运维开关与熔断策略）可根据业务优先级评估是否继续执行
+- 可考虑启动第三阶段（前端 API/Hooks/配置整治）或其他优先级更高的工作
 
 ---
 
-## 关键指标
+## 三、任务详情（已完成）
 
-| 指标项 | 目标 | 实际 | 状态 |
-|--------|------|------|------|
-| 契约文件数量 | 1 | 1 | ✅ |
-| 枚举类型数量 | ≥3 | 3 | ✅ |
-| 约束条件数量 | ≥5 | 8 | ✅ |
-| Go类型生成成功 | 是 | 是 | ✅ |
-| TS类型生成成功 | 是 | 是 | ✅ |
-| 快照校验通过 | 是 | 是 | ✅ |
-| CI配置完成 | 是 | 是 | ✅ |
-| 枚举一致性 | 100% | 100% | ✅ |
+### T1. 命令服务运行时指标验证 ✅
+- **目标**：获取 `temporal_operations_total`、`audit_writes_total`、`http_requests_total` 实际采样结果，为验收附件提供运行证据。
+- **执行步骤**：
+  1. `make docker-up` 启动依赖（PostgreSQL、Redis）。
+  2. `make run-dev` 启动命令服务（需确保 `/metrics` 已暴露，参考 `cmd/organization-command-service/main.go`）。
+  3. 使用 REST API 触发至少一次组织创建与状态变更，以累积时态与审计计数器（参考 `docs/api/openapi.yaml` 中 `/api/v1/organization-units` 契约）。
+  4. `curl http://localhost:9090/metrics | grep temporal_operations_total` 等三条命令采集样例。
+  5. 将采样输出粘贴到 `docs/development-plans/62-phase-2-acceptance-draft.md` "验证步骤与结果" 小节，并注明执行时间。
+- **交付物**：✅ 更新后的 62-phase-2-acceptance-draft.md v0.2（含指标样例与验证结果）
 
----
+### T2. 指标验证脚本 / 自动化补强 ✅
+- **目标**：在 `scripts/quality/` 下补充或更新指标验证脚本，支持 CI / 本地快速校验新指标是否存在。
+- **执行步骤**：
+  1. 确认现有监控脚本（若无则新建 `scripts/quality/validate-metrics.sh`）。
+  2. 脚本需在本地运行并校验三类 Counter 是否可用；运行失败应返回非零退出码。
+  3. 在 `docs/development-plans/62-backend-middleware-refactor-plan.md` §4.1.3 "验证与文档" 勾选对应项，并记录脚本名称。
+- **交付物**：
+  - ✅ 新脚本：`scripts/quality/validate-metrics.sh`
+  - ✅ 62-backend-middleware-refactor-plan.md v2.1 已更新并勾选完成项
 
-## 已知问题与风险
-
-### 🟡 已识别问题
-
-#### 1. 时间戳导致的快照不稳定
-- **描述**: 每次运行sync.sh都会更新generatedAt时间戳，导致SHA256变化
-- **影响**: 中等 - 需要手动更新快照基线
-- **缓解措施**: 文档化更新流程，考虑在第四阶段优化脚本
-- **跟踪**: 在60号计划第四阶段工具巩固中处理
-
-#### 2. 前端TypeScript编译未验证
-- **描述**: 未运行npm typecheck验证生成的TS类型
-- **原因**: 前端依赖未安装
-- **计划**: 在第三阶段前端整治中完成
-
-### ✅ 已解决问题
-- ~~契约文件路径不一致~~ - 已统一到shared/contracts/
-- ~~快照基线过期~~ - 已更新到最新状态
-- ~~契约文件SHA256不匹配~~ - 已更新基线并通过校验
-
----
-
-## 文档更新
-
-### 已完成
-- [x] 61号执行计划更新 (标记第一阶段任务完成状态)
-- [x] 60号执行跟踪更新 (记录进展与里程碑)
-- [x] tests/contract/README.md (快照更新流程说明)
-- [x] 06号推进记录更新 (本文档)
-- [x] 生成第一阶段验收报告 (`docs/development-plans/61-phase-1-acceptance-report.md`)
-
-### 待补充
-- [ ] docs/reference/ 中的枚举/约束表格 (如有需要在第二阶段补充)
-- [ ] CI首次运行结果验证与记录
+### T3. 更新验收草稿并提交归档申请 ✅
+- **目标**：将 62 号验收草稿升级至 v0.2，并准备归档所需材料。
+- **执行步骤**：
+  1. 汇总 T1/T2 产出，更新 `62-phase-2-acceptance-draft.md`（状态改为“待审批”）。
+  2. 在 `docs/development-plans/62-backend-middleware-refactor-plan.md` 的交付物清单中标记已完成项。
+  3. 向架构组提交归档请求，将 62 号计划文件移动至 `docs/archive/development-plans/`（待审批后执行）。
+- **交付物**：
+  - ✅ 更新后的验收草稿：62-phase-2-acceptance-draft.md v0.2
+  - ✅ 计划文档：62-backend-middleware-refactor-plan.md v2.1（已勾选完成项）
+  - ✅ 进度跟踪：60-execution-tracker.md（已更新第二阶段进度与变更记录）
+  - ✅ 本文档：06-integrated-teams-progress-log.md（已更新所有任务状态为"完成"）
 
 ---
 
-## 下一步行动
+## 四、完成总结
 
-### 立即行动
-1. ✅ 提交第一阶段所有变更到版本控制
-2. ✅ 更新快照基线到最新状态
-3. 🔄 触发CI运行验证contract-snapshot job (等待首次运行)
+**执行日期**: 2025-10-10
+**执行人**: 全栈工程师（单人执行）
+**总体状态**: ✅ 所有计划任务已完成
 
-### 第二阶段准备 (Week 3-5)
-1. 制定详细的后端服务与中间件收敛计划
-2. 设计统一事务/审计封装接口
-3. 评估Prometheus/Otel集成方案
+本次执行严格按照 06 号文档的任务清单进行，完成了以下关键成果：
 
----
+1. **代码实现**
+   - Prometheus 指标实现（utils/metrics.go）
+   - `/metrics` 端点暴露（main.go:202-207）
+   - 指标插桩（temporal service、audit logger、performance middleware）
 
-## 验收结论
+2. **工具脚本**
+   - 自动化验证脚本：scripts/quality/validate-metrics.sh
+   - 支持分类验证（关键指标 vs 业务触发指标）
+   - CI 集成友好（适当退出码）
 
-**总体评估**: ✅ 第一阶段验收通过
+3. **文档更新**
+   - 参考手册：docs/reference/03-API-AND-TOOLS-GUIDE.md（新增运行监控章节）
+   - 验收报告：62-phase-2-acceptance-draft.md v0.2
+   - 计划文档：62-backend-middleware-refactor-plan.md v2.1
+   - 进度跟踪：60-execution-tracker.md（第二阶段进度）
 
-**核心成果**:
-- 建立了从API契约到代码类型的自动化同步管道
-- 实现了跨层枚举与约束的统一事实来源
-- 搭建了契约快照校验的基础设施
-- 完成了Go和TypeScript类型生成器
+4. **验证与测试**
+   - 运行时指标验证完成
+   - 记录样例输出与技术说明
+   - 识别 Prometheus Counter 行为特性
 
-**建议**:
-- 在第二阶段前安排一次CI首次运行验证
-- 考虑在第四阶段优化时间戳处理逻辑
-- 建议在第三阶段完成前端依赖安装和编译验证
-
----
-
-## 附录
-
-### A. 文件清单
-```
-scripts/contract/
-├── sync.sh                    # 主同步脚本
-├── openapi-to-json.js         # OpenAPI解析器
-├── graphql-to-json.js         # GraphQL解析器
-├── generate-go-types.js       # Go类型生成器
-└── generate-ts-types.js       # TypeScript类型生成器
-
-shared/contracts/
-└── organization.json          # 统一契约文件
-
-tests/contract/
-├── README.md                  # 快照测试说明
-├── inventory.baseline.json    # 快照基线
-└── verify_inventory.py        # 快照校验脚本
-
-cmd/organization-command-service/internal/types/
-└── contract_gen.go            # 生成的Go类型
-
-frontend/src/shared/types/
-└── contract_gen.ts            # 生成的TS类型
-
-.github/workflows/
-└── contract-testing.yml       # CI工作流
-```
-
-### B. 命令速查
-```bash
-# 同步契约
-bash scripts/contract/sync.sh
-
-# 验证快照
-python3 tests/contract/verify_inventory.py
-
-# 更新快照基线（当契约变更时）
-python3 -c "
-import json, hashlib
-from pathlib import Path
-files = [
-    'docs/api/openapi.yaml',
-    'docs/api/schema.graphql',
-    'shared/contracts/organization.json'
-]
-baseline = {'files': {}}
-for f in files:
-    p = Path(f)
-    content = p.read_text()
-    sha = hashlib.sha256(content.encode('utf-8')).hexdigest()
-    lines = len(content.splitlines())
-    baseline['files'][f] = {'sha256': sha, 'lineCount': lines}
-print(json.dumps(baseline, indent=2))
-" > tests/contract/inventory.baseline.json
-
-# 验证Go编译
-cd cmd/organization-command-service && go build ./internal/types
-
-# 生成TypeScript类型
-node scripts/contract/generate-ts-types.js
-```
-
-### C. 相关文档
-- Plan 60: [系统级质量整合与重构计划](./60-system-wide-quality-refactor-plan.md)
-- Plan 61: [系统级质量重构执行计划](./61-system-quality-refactor-execution-plan.md)
-- 执行跟踪: [60号执行跟踪](./60-execution-tracker.md)
-- 验收报告: [第一阶段验收报告](./61-phase-1-acceptance-report.md)
+**归档建议**:
+- 62 号计划首批交付已完成，可考虑部分归档或标记为"首批完成"状态
+- 剩余工作（运维开关）可根据业务优先级评估是否单独立项
 
 ---
 
-**报告生成时间**: 2025-10-10 20:15 CST
-**报告版本**: v1.0
-**负责人**: 全栈工程师
-**审批状态**: 待架构组审批
+## 五、联系人（备案）
+
+- **架构组协调人**：全栈工程师（Slack: @fullstack）
+- **运行保障组**：运行值守负责人（Slack: @ops-oncall）
+- **平台工具组**：脚本维护负责人（Slack: @platform-tools）
+
+---
+
+> **说明**：本文档为 62 号计划执行的单一事实来源。所有任务已于 2025-10-10 完成，相关文档已全部更新。若后续需要继续执行 62 号计划剩余工作（运维开关），请基于当前状态评估优先级并另行安排。

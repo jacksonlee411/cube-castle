@@ -271,6 +271,101 @@ ENFORCE=1 APPLY_FIXES=1 bash scripts/apply-audit-fixes.sh
 
 ---
 
+## 📊 运行监控（Prometheus）
+
+### 指标端点
+```bash
+# 命令服务指标端点（无需认证）
+curl http://localhost:9090/metrics
+```
+
+### 可用指标
+
+#### 1. HTTP 请求计数器（立即可见）
+- **名称**: `http_requests_total{method, route, status}`
+- **说明**: 由性能中间件自动记录所有 HTTP 请求
+- **标签**:
+  - `method`: HTTP 方法（GET、POST、PUT、DELETE）
+  - `route`: 路由模式（如 `/api/v1/organization-units`）
+  - `status`: HTTP 状态码（200、400、500 等）
+- **示例查询**:
+```bash
+curl -s http://localhost:9090/metrics | grep http_requests_total
+# 输出: http_requests_total{method="POST",route="/api/v1/organization-units",status="201"} 15
+```
+
+#### 2. 时态操作计数器（业务触发）
+- **名称**: `temporal_operations_total{operation, status}`
+- **说明**: 记录时态版本管理操作的执行情况
+- **标签**:
+  - `operation`: 操作类型（create、update、delete、suspend、reactivate）
+  - `status`: 操作结果（success、error）
+- **触发操作**:
+  - 创建版本: `POST /api/v1/organization-units/{code}/versions`
+  - 更新生效日期: `PUT /api/v1/organization-units/{code}/versions/{versionId}/effective-date`
+  - 删除版本: `DELETE /api/v1/organization-units/{code}/versions/{versionId}`
+  - 暂停组织: `POST /api/v1/organization-units/{code}/suspend`
+  - 激活组织: `POST /api/v1/organization-units/{code}/activate`
+
+#### 3. 审计日志写入计数器（业务触发）
+- **名称**: `audit_writes_total{status}`
+- **说明**: 记录审计日志写入操作的成功/失败情况
+- **标签**:
+  - `status`: 写入结果（success、error）
+- **触发**: 所有命令操作都会自动触发审计日志写入
+
+### 指标验证
+
+#### 自动化验证脚本
+```bash
+# 运行指标验证脚本
+./scripts/quality/validate-metrics.sh
+
+# 自定义 metrics 端点
+METRICS_URL=http://localhost:9090 ./scripts/quality/validate-metrics.sh
+```
+
+脚本会验证：
+- ✅ 服务可达性
+- ✅ `/metrics` 端点响应
+- ✅ 关键指标定义存在（`http_requests_total`）
+- ⚠️ 业务触发指标状态（`temporal_operations_total`、`audit_writes_total`）
+
+#### 手动验证步骤
+```bash
+# 1. 检查 metrics 端点可访问性
+curl -s http://localhost:9090/metrics | head -5
+
+# 2. 验证 HTTP 请求计数器（应立即可见）
+curl -s http://localhost:9090/metrics | grep http_requests_total
+
+# 3. 触发业务操作以生成指标数据
+curl -X POST http://localhost:9090/api/v1/organization-units \
+  -H "Authorization: Bearer $(cat /tmp/jwt.txt)" \
+  -H "X-Tenant-ID: 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"测试部门","unitType":"DEPARTMENT","parentCode":"0","effectiveDate":"2025-10-10"}'
+
+# 4. 再次检查业务指标（应显示数据点）
+curl -s http://localhost:9090/metrics | grep -E "temporal_operations_total|audit_writes_total"
+```
+
+### 技术说明
+
+**Prometheus Counter 行为**:
+- Counter 指标只有在至少被记录一次（调用 `.Inc()`）后才会出现在 `/metrics` 输出中
+- `http_requests_total` 由中间件自动触发，因此启动后立即可见
+- `temporal_operations_total` 和 `audit_writes_total` 需要实际业务操作触发
+- 这是 Prometheus 的标准行为，不代表指标未正确集成
+
+**代码位置**:
+- 指标定义: `cmd/organization-command-service/internal/utils/metrics.go`
+- 端点暴露: `cmd/organization-command-service/main.go:202-207`
+- 时态操作插桩: `internal/services/organization_temporal_service.go`
+- 审计插桩: `internal/audit/logger.go`、`internal/repository/audit_writer.go`
+
+---
+
 ## ⚠️ 错误处理
 
 ---

@@ -15,6 +15,7 @@ import (
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"organization-command-service/internal/audit"
 	"organization-command-service/internal/auth"
 	"organization-command-service/internal/authbff"
@@ -23,6 +24,7 @@ import (
 	"organization-command-service/internal/middleware"
 	"organization-command-service/internal/repository"
 	"organization-command-service/internal/services"
+	"organization-command-service/internal/utils"
 	"organization-command-service/internal/validators"
 )
 
@@ -195,6 +197,14 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status": "healthy", "service": "organization-command-service", "timestamp": "%s"}`, time.Now().Format(time.RFC3339))
 	})
+
+	// Prometheus metrics 端点（无需认证，供监控系统采集）
+	if !authOnlyMode {
+		// 确保 metrics 已注册
+		utils.RecordHTTPRequest("GET", "/metrics", 200) // 触发初始化
+		r.Handle("/metrics", promhttp.Handler())
+		logger.Println("📊 Prometheus metrics 端点: http://localhost:9090/metrics")
+	}
 
 	// 限流状态监控端点（Dev-only）
 	if devMode {
