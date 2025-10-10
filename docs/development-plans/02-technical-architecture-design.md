@@ -132,6 +132,13 @@ PRIMARY KEY (code, effective_date)
 
 *详细API规范: `/docs/api/openapi.yaml`*
 
+#### 命令服务 · 组织业务文件索引
+- `cmd/organization-command-service/internal/handlers/organization_routes.go` — `SetupRoutes`（组织业务路由注册）
+- `cmd/organization-command-service/internal/handlers/organization_create.go` — `CreateOrganization` / `CreateOrganizationVersion`
+- `cmd/organization-command-service/internal/handlers/organization_update.go` — `UpdateOrganization` / `SuspendOrganization` / `ActivateOrganization`
+- `cmd/organization-command-service/internal/handlers/organization_events.go` — `CreateOrganizationEvent`
+- `cmd/organization-command-service/internal/handlers/organization_history.go` — `UpdateHistoryRecord`
+
 ---
 
 ## 🔧 技术栈选型

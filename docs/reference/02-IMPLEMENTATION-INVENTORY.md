@@ -200,15 +200,12 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `TriggerCutover` — 运维切换控制
 - `TriggerConsistencyCheck` — 数据一致性巡检
 
-#### 命令服务 · 组织业务 (`organization.go`)
-- `SetupRoutes` — 组织业务路由注册
-- `CreateOrganization` — 创建组织单元
-- `CreateOrganizationVersion` — 创建时态版本
-- `UpdateOrganization` — 更新组织信息
-- `SuspendOrganization` — 暂停组织
-- `ActivateOrganization` — 激活组织
-- `CreateOrganizationEvent` — 处理组织事件（含 DEACTIVATE 作废流程）
-- `UpdateHistoryRecord` — 更新历史记录
+#### 命令服务 · 组织业务（多文件）
+- `organization_routes.go` — `SetupRoutes`（组织业务路由注册）
+- `organization_create.go` — `CreateOrganization` / `CreateOrganizationVersion`
+- `organization_update.go` — `UpdateOrganization` / `SuspendOrganization` / `ActivateOrganization`
+- `organization_events.go` — `CreateOrganizationEvent`
+- `organization_history.go` — `UpdateHistoryRecord`
 
 ### 服务层（Services） - 19个导出类型
 > **数据来源**: `reports/implementation-inventory.json.goServices`
