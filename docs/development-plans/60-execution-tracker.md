@@ -41,13 +41,14 @@
 - ✅ 实现 OpenAPI 契约解析器（openapi-to-json.js）
 - ✅ 实现 GraphQL 契约解析器（graphql-to-json.js，发现 REST/GraphQL 枚举差异）
 - ✅ 实现 Go 类型生成器（generate-go-types.js）
+- ✅ 实现 TypeScript 类型生成器（generate-ts-types.js）
 
 ### 进行中
-- 🔄 第一阶段 Week 1：实现 TypeScript 类型生成器
+- 🔄 第一阶段 Week 1：梳理枚举差异修复策略（REST vs GraphQL）
 
 ### 下周计划
-- 完成 TypeScript 生成器实现
-- 将契约枚举差异纳入后续修复计划（REST Status 补齐 PLANNED 等）
+- 制定 REST/GraphQL 枚举差异修复计划（Status、OperationType）
+- 准备契约一致性测试骨架（tests/contract）
 
 ## 风险与问题日志
 
