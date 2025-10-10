@@ -26,8 +26,8 @@
 - **API 契约**: `docs/api/openapi.yaml`、`docs/api/schema.graphql` 为唯一真源
 
 ### 🚧 待建设施（第一阶段剩余目标）
-- [ ] CI Job `contract-sync` 和 `contract-snapshot`
-- [ ] 跨层快照测试框架（`tests/contract/*.snap`）
+- [x] CI Job `contract-sync` 和 `contract-snapshot` (新增快照校验工作流)
+- [x] 跨层快照测试框架（`tests/contract/` 基线 + 验证脚本）
 
 ### ⚠️ 关键依赖
 - 60 号计划文档需提交到主干并获架构组批准

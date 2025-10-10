@@ -8,9 +8,39 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  contract-snapshot:
+    name: 契约快照校验
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v4
+
+    - name: 设置 Go 环境
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: 设置 Node.js 环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+
+    - name: 安装根目录依赖
+      run: npm ci
+
+    - name: 运行契约同步脚本
+      run: bash scripts/contract/sync.sh
+
+    - name: 验证契约快照
+      run: python3 tests/contract/verify_inventory.py
+
   contract-testing:
     name: 契约测试验证
     runs-on: ubuntu-latest
+    needs: contract-snapshot
     
     steps:
     - name: Checkout代码
@@ -64,7 +94,9 @@ jobs:
 
   contract-compliance-gate:
     name: 契约合规性门禁
-    needs: contract-testing
+    needs:
+      - contract-snapshot
+      - contract-testing
     runs-on: ubuntu-latest
     if: always()
     
