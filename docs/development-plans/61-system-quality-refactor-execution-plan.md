@@ -290,6 +290,14 @@
 
 ### Week 2: 代码生成与集成
 
+### 第一阶段验收草稿
+
+- ✅ 契约脚本与生成器全量运行并产出工件（同步自 `scripts/contract/sync.sh`）。
+- ✅ tests/contract 快照校验通过（本地执行 `python3 tests/contract/verify_inventory.py`）。
+- ✅ CI 工作流已合入并包含快照校验 Job，等待首次运行结果。
+- 🔄 待办：首次 CI 运行确认 (`contract-snapshot`)、补充 `docs/reference`（如需）与正式验收报告。
+
+
 #### Day 6-7: Go 类型生成器
 
 **执行时间**: 第一阶段 Week 2, Day 6-7
@@ -612,7 +620,7 @@
   git push origin master
   ```
 
-- [ ] 执行第一阶段验收
+- [ ] 执行第一阶段验收（待撰写验收记录）
   **验收会议**: 第一阶段责任人主持，架构组参与
 
   **验收清单**:
@@ -629,7 +637,7 @@
     ```
   - [ ] 更新 `docs/reference/` 相关表格（如有需要）
 
-- [ ] 输出第一阶段验收报告
+- [ ] 输出第一阶段验收报告（待撰写）
   ```markdown
   # 第一阶段验收报告
 
