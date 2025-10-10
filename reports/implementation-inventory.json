@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-10-09T08:33:42.891Z",
+  "timestamp": "2025-10-10T09:15:56.933Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 9,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 172
+    "tsExports": 174
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -378,6 +378,11 @@
     },
     {
       "name": "createHandleDeleteVersion",
+      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createHandleDeleteOrganization",
       "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts",
       "kind": "const"
     },
@@ -873,6 +878,11 @@
     },
     {
       "name": "useActivateOrganization",
+      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useDeleteOrganization",
       "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
       "kind": "const"
     },
