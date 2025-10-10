@@ -32,9 +32,10 @@
 #### **12 - 时态命令契约缺口（归档复测）**
 - `../archive/development-plans/12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P3 复测，核心整改已归档）
 
-#### **60-61 - 系统级质量重构**
+#### **60-62 - 系统级质量重构**
 - `60-system-wide-quality-refactor-plan.md` - 系统级质量整合与重构计划（4阶段，8-10周）
 - `61-system-quality-refactor-execution-plan.md` - 60号计划执行落地指南
+- `62-backend-middleware-refactor-plan.md` - Phase 2 后端服务与中间件收敛计划
 
 ### **归档文档** (docs/archive/development-plans/)
 
