@@ -736,20 +736,20 @@
 ### 第四阶段：工具与验证体系巩固（Week 9-10）
 
 **关键里程碑**:
-- **Week 9**: Temporal/Validation 工具折叠，审计字段完善
-- **Week 10**: 新增 CI 守护任务，最终验收
+- [x] Week 9：Validation/Temporal 工具折叠，审计兜底增强
+- [x] Week 10：新增 CI 守护任务，准备验收草案
 
 **输出物**:
-- 单一 Temporal/Validation 实现
-- 结构化审计 DTO
-- CI 新增 `lint-contract`、`lint-audit`、`doc-archive-check`
+- [x] 统一 Validation/Temporal 实现与 scripts（`lint-validation`、`validate:temporal` 等）
+- [x] 审计日志 fallback + 单测 (`logger_test.go`)
+- [x] CI 新增 `lint-audit`、`lint:docs` 工作流，契约快照扩展校验
 
 **验收标准**:
-- 审计记录含完整字段
-- CI 守护任务全绿
-- 所有旧别名标记废弃
+- [x] 审计记录含完整字段（fallback 验证）
+- [x] 守护任务全绿（Docs/Audit workflow + contract lint）
+- [x] 历史别名标记并清理（temporalValidation 脚本迁移完成）
 
-**详细执行计划**: ☐ 待第三阶段（配置整治）全部验收达成后补充收尾动作
+**详细执行计划**: ✅ Phase 4 执行完成，详见 `docs/development-plans/65-tooling-validation-consolidation-plan.md` 与 `66-phase-4-acceptance-draft.md`
 
 ---
 
