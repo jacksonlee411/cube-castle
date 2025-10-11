@@ -4,9 +4,12 @@ const DEFAULT_SERVICE_HOST = getEnvVar(
   'VITE_SERVICE_HOST',
   'localhost',
 );
+const defaultProtocolFallback =
+  env.mode === 'production' ? 'https' : 'http';
+
 const DEFAULT_PROTOCOL = getEnvVar(
   'VITE_SERVICE_PROTOCOL',
-  env.isDevelopment ? 'http' : 'https',
+  defaultProtocolFallback,
 );
 
 export const SERVICE_PORTS = {

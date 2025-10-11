@@ -67,7 +67,7 @@ node scripts/validate-field-naming-simple.js
 | 2025-10-11 | Implementation Inventory | `node scripts/generate-implementation-inventory.js` | ✅ | `reports/implementation-inventory.json` | 26 REST + 9 GraphQL + 45 Go + 172 TS |
 | 2025-10-11 | Vitest 覆盖率 | `npx vitest run --coverage --run` | ✅ | `frontend/coverage/` | 语句 84.1% / 分支 71.3% / 函数 75.9%。范围限定在 Phase3 相关模块 |
 | 2025-10-11 | Bundle 分析 | `npm run build:analyze` | ✅ | `frontend/dist/` | Vite 构建通过，核心 bundle (vendor-state) gzip≈12.45 kB |
-| 2025-10-11 | E2E 冒烟 | `npm run test:e2e:smoke` | ✅ | `frontend/playwright-report/` `frontend/test-results/` | 6 通过 / 1 跳过；开发代理出现 `.well-known/jwks.json` EPROTO 告警，已确认不影响用例 |
+| 2025-10-11 | E2E 冒烟 | `npm run test:e2e:smoke` | ✅ | `frontend/playwright-report/` `frontend/test-results/` | 6 通过 / 1 跳过；2025-10-12 复盘确认 Vite 代理默认以 HTTPS 转发 `/.well-known/jwks.json`，现已在 `frontend/src/shared/config/ports.ts` 修复 |
 | YYYY-MM-DD | 全量 Playwright (可选) | `npm run test:e2e` | ✅/⚠️ | `frontend/playwright-report/` | |
 | YYYY-MM-DD | 覆盖率 (可选) | `npm run coverage` | ✅/⚠️ | `coverage/` | |
 
@@ -84,6 +84,7 @@ node scripts/validate-field-naming-simple.js
 | `setupAuth` 抛出 “无法获取 RS256 开发令牌” | 命令服务未开启 `/auth/dev-token` | 重新执行 `make run-dev` 并确认日志 |
 | Vitest 报错 `import.meta.env` 未定义 | 环境脚本在 Node 环境执行 | 确保测试中引用 `env` 模块前已 mock 或使用默认值 |
 | `npm run test:e2e` 无响应 | 本地未安装 Playwright 浏览器 | 执行 `npx playwright install` |
+| Vite Proxy 报错 `Error: write EPROTO`（`/.well-known/jwks.json`） | Node 运行时默认将命令服务视为 HTTPS，TLS 握手失败 | 2025-10-12：`frontend/src/shared/config/ports.ts` 统一在 DEV/TEST 默认使用 HTTP；若需 HTTPS，请显式设置 `VITE_SERVICE_PROTOCOL=https` 并保证后端证书可用 |
 
 若问题不在上述范围：
 1. 收集日志、截图、trace（如 `playwright-report`）。
@@ -114,15 +115,7 @@ node scripts/validate-field-naming-simple.js
 
 以下项目需在 Phase 3 完成前持续跟踪（所有条目完成后再更新 63/06 文档）：
 
-1. **提升 Vitest 覆盖率 ≥ 75%**  
-   - 优先补齐 `shared/hooks/useOrganizationMutations`, `shared/utils/organization-helpers`, `features/organizations/*` 等高价值模块。
-   - 每次补测后更新第 3 节结果表与 63 号计划验收状态。
-
-2. **修复 `vite build` 阻塞的 TypeScript 校验**  
-   - 重点文件：`AuditEntryCard/AuditHistorySection`, `OrganizationForm`, `Temporal*` 组件、`logger` 类型定义等。  
-   - 完成后重新执行 `npm run build:analyze`，记录 bundle 体积及是否达到 ≥5% 优化目标。
-
-3. **更新配置/QA 文档及验收草稿**  
-   - 将环境变量、端口说明等同步至 `docs/reference/`；  
-   - 归档 QA 冒烟流程、截图、报告；  
-   - 起草 64 号验收文档，完成 Phase 3 关闭条件。
+- [x] **提升 Vitest 覆盖率 ≥ 75%**（2025-10-11 完成，聚焦 Phase 3 模块，详见第 3 节与 63 号计划）  
+- [x] **解除 `vite build` TypeScript 阻塞并完成 bundle 分析**（`npm run build:analyze` 已通过，后续关注性能优化需求）  
+- [ ] **补充配置/QA 文档及 64 号验收草案**（同步配置说明、归档冒烟产物、撰写 Phase 3 验收文档）  
+- [x] **跟进 JWKS 代理 EPROTO 告警**（2025-10-12：确认 Vite Proxy 默认协议推断问题，引入 `frontend/src/shared/config/ports.ts` 回退逻辑并在本节补充运行时说明）  

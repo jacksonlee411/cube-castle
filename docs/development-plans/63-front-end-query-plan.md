@@ -70,7 +70,7 @@
 - [x] 整理 QA 冒烟场景（Playwright 在 `frontend/tests/`），确保关键路径通过。（2025-10-11：`npm run test:e2e:smoke` 全部通过，报告已归档）
 - [x] 运行 Vitest 覆盖率，目标 ≥ 75%（记录报告）。*2025-10-11：语句 84.1%，范围限定在 Phase 3 模块*
 - [x] 分析 bundle 大小，确保与基线相比下降 ≥ 5% 或给出优化说明。*2025-10-11：`npm run build:analyze` 输出 dist 体积，无新增异常*
-- [ ] 更新文档（配置指南、运行手册）。
+- [x] 更新文档（配置指南、运行手册）。*2025-10-12：同步 06 号常见故障/TODO 与 03-API-AND-TOOLS-GUIDE 代理说明*
 
 ---
 
@@ -101,7 +101,7 @@
 - 重构后的 Hooks 及桥接层（如有）
 - 新的环境配置工具与文档
 - QA 冒烟报告、Vitest 覆盖率报告、bundle 分析
-- Phase 3 验收报告草稿（64号文档，后续创建）
+- Phase 3 验收报告草稿（64号文档 v0.1 已创建：`docs/development-plans/64-phase-3-acceptance-draft.md`）
 
 ---
 

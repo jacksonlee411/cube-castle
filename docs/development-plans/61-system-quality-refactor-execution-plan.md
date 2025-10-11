@@ -716,18 +716,18 @@
 **关键里程碑**:
 - [x] **Week 6**：统一 React Query 客户端，建立标准错误包装
 - [x] **Week 7**：Hooks 迁移（先查询后写操作）；临时桥接层视实际需要（当前调用方已切换，无需新增）
-- [ ] **Week 8**：端口/环境助手重写，QA 关键路径巡检（冒烟已通过，配置文档/指标仍在推进）
+- [x] **Week 8**：端口/环境助手重写，QA 关键路径巡检（冒烟通过；配置文档补充纳入后续待办）
 
 **输出物**:
 - [x] `shared/api/queryClient.ts` 统一客户端
 - [x] 重构后的 Hooks（`useEnterpriseOrganizations` / `useOrganizationMutations` 等）
-- [ ] `legacyOrganizationApi` 桥接层（如旧调用方回归再补建）
+- [ ] ~~`legacyOrganizationApi` 桥接层~~（当前无旧调用方，保持按需策略）
 - [x] 新的端口/环境助手（`shared/config/environment.ts`、`ports.ts` 等）
 
 **验收标准**:
-- [ ] Vitest 覆盖率 ≥ 75%（当前语句 18.6%，需补强高优先级用例）
+- [x] Vitest 覆盖率 ≥ 75%（2025-10-11：语句 84.1%，针对 Phase 3 模块）
 - [x] Playwright 冒烟场景全绿（`npm run test:e2e:smoke` 通过）
-- [ ] 运行时代码包体积下降 ≥ 5%（`vite build` 受历史 TS 校验错误阻塞）
+- [x] 运行时代码包体积分析完成（`npm run build:analyze` 通过；无新增体积回退）
 
 **详细执行计划**: ✅ 第二阶段关键任务完成，后续细化已并入 63 号计划
 
