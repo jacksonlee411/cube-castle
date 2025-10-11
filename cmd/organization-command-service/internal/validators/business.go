@@ -75,6 +75,13 @@ const (
 	ErrorCodePermissionDenied = "PERMISSION_DENIED"
 )
 
+var validUnitTypes = map[string]struct{}{
+	string(types.UnitTypeDepartment):       {},
+	string(types.UnitTypeOrganizationUnit): {},
+	string(types.UnitTypeCompany):          {},
+	string(types.UnitTypeProjectTeam):      {},
+}
+
 func NewBusinessRuleValidator(hierarchyRepo *repository.HierarchyRepository, orgRepo *repository.OrganizationRepository, logger *log.Logger) *BusinessRuleValidator {
 	return &BusinessRuleValidator{
 		hierarchyRepo: hierarchyRepo,
@@ -402,16 +409,7 @@ func (v *BusinessRuleValidator) validateTemporalData(effectiveDate, endDate *typ
 // validateBusinessLogic 验证业务逻辑规则
 func (v *BusinessRuleValidator) validateBusinessLogic(ctx context.Context, req *types.CreateOrganizationRequest, tenantID uuid.UUID, result *ValidationResult) error {
 	// 1. 验证单位类型有效性
-	validUnitTypes := []string{"COMPANY", "DEPARTMENT", "TEAM", "POSITION"}
-	isValidType := false
-	for _, validType := range validUnitTypes {
-		if req.UnitType == validType {
-			isValidType = true
-			break
-		}
-	}
-
-	if !isValidType {
+	if _, ok := validUnitTypes[strings.ToUpper(req.UnitType)]; !ok {
 		result.Errors = append(result.Errors, ValidationError{
 			Code:     "INVALID_UNIT_TYPE",
 			Message:  fmt.Sprintf("无效的单位类型: %s", req.UnitType),
@@ -422,20 +420,10 @@ func (v *BusinessRuleValidator) validateBusinessLogic(ctx context.Context, req *
 	}
 
 	// 2. 验证名称规则
-	if len(req.Name) < 2 {
-		result.Errors = append(result.Errors, ValidationError{
-			Code:     "NAME_TOO_SHORT",
-			Message:  "组织名称长度不能少于2个字符",
-			Field:    "name",
-			Value:    req.Name,
-			Severity: "MEDIUM",
-		})
-	}
-
-	if len(req.Name) > 100 {
+	if len(req.Name) > types.OrganizationNameMaxLength {
 		result.Errors = append(result.Errors, ValidationError{
 			Code:     "NAME_TOO_LONG",
-			Message:  "组织名称长度不能超过100个字符",
+			Message:  fmt.Sprintf("组织名称长度不能超过%d个字符", types.OrganizationNameMaxLength),
 			Field:    "name",
 			Value:    len(req.Name),
 			Severity: "MEDIUM",

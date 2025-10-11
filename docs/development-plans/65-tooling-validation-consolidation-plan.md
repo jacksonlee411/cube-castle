@@ -49,23 +49,22 @@
 ### 4.1 Week 9：工具与数据模型统一
 
 1. **梳理现有校验逻辑**
-   - 盘点后端 `internal/validators/business.go` 与前端 `frontend/src/shared/validation/schemas.ts` 差异。
-   - 输出差异清单（字段、约束、错误码），记录于 `reports/validation/phase4-diff.md`（新建）。
+   - [x] 盘点后端 `internal/validators/business.go` 与前端 `frontend/src/shared/validation/schemas.ts` 差异。
+   - [x] 输出差异清单（字段、约束、错误码），记录于 `reports/validation/phase4-diff.md`。*2025-10-12：生成基线*
 
 2. **复用第一阶段契约成果**
-   - 直接基于 `shared/contracts/organization.json` 与生成的 `contract_gen.go/ts` 对照现有校验实现，列出差异清单。
-   - 在后端 `internal/validators/business.go` 中补充 TODO 标注的缺口或复用公共辅助函数（仅在确有重复逻辑时抽取单独函数，避免无谓抽象）。
-   - 前端更新 `frontend/src/shared/validation/schemas.ts` / `utils/validation.ts`，通过 `contract_gen.ts` 中的 `OrganizationConstraints` 等常量驱动校验，而非额外维护一份 JSON。
-   - 将差异与调整结果记录在 `reports/validation/phase4-diff.md`，便于回归与评审。
+   - [x] 前端以 `contract_gen.ts` 常量驱动 Zod Schema（正则、枚举、长度限制）。*2025-10-12：已完成*
+   - [x] 后端校验逻辑改用 `contract_gen.go` 常量，保留必要的业务规则。*2025-10-12：核心字段统一*
+   - [x] 与业务确认剩余差异（层级上限 17 等），必要时更新契约或追加注释。*2025-10-12：已对齐*
 
 3. **Temporal 工具折叠**
-   - 清理历史脚本/工具（如 `frontend/tests/e2e/utils/*`、`scripts/dev/*` 中与 Temporal 相关的临时脚本），保留单一入口。
-   - 在 `Makefile` / `package.json` 中提供 `make temporal-validate`、`npm run validate:temporal` 等命令入口。
+   - [x] 提供统一校验命令：`make temporal-validate`、`npm run validate:temporal`（复用迁移脚本）。*2025-10-12：已完成*
+   - [ ] 清理遗留脚本/引用并在 README 中注明迁移完成。
 
 4. **审计 DTO 完整化**
-   - 统一 `audit.AuditEvent` 映射，必要时新增轻量 DTO（例如 `internal/audit/dto.go`）用于序列化，确保 `resourceId`、`actorId`、`changes` 字段在认证 / 系统事件场景下也有值（仅针对后续新增记录，不修改历史数据）。
-   - 更新 `cmd/organization-command-service/internal/audit/logger.go`、`internal/utils/metrics.go` 相关调用，确认 `audit_logs` 表兼容现有结构。
-   - 补充 `tests/e2e/auth_flow_e2e_test.go` 或新增 Go 单测覆盖开发模式登录、刷新、异常场景，验证审计字段完整性。
+   - [x] 补强 `AuditLogger` fallback 逻辑，确保非 UUID 资源也有稳定 ID。*2025-10-12：已完成*
+   - [x] 新增 sqlmock 单测验证 fallback 行为。*2025-10-12：已完成*
+   - [ ] 若需要输出 DTO（例如接口复用），另行收敛到统一结构体。
 
 5. **同步文档**
    - 更新 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 增加“统一校验工具”与“审计 DTO”章节。
@@ -74,13 +73,14 @@
 ### 4.2 Week 10：CI 守护与验收
 
 1. **新增 / 扩展质量脚本**
-   - 扩展既有 `contract-snapshot` CI job：补充 Phase 4 相关断言（无需新增脚本，更新脚本参数与工作流配置即可）。
-   - 新增 `scripts/quality/lint-audit.js`：检测审计 DTO / 数据库字段缺失（可调用 Go 程序 `cmd/tools/audit-lint/main.go`）。
-   - 新增 `scripts/quality/doc-archive-check.js`：校验计划文档与归档目录的一致性。
+   - [ ] 扩展 `contract-snapshot` CI job，补充 Phase 4 断言。
+   - [x] 新增 `scripts/quality/lint-audit.js` 并纳入 npm 脚本。*2025-10-12：已实现*
+   - [x] 新增 `scripts/quality/doc-archive-check.js`。*2025-10-12：已实现*
 
 2. **CI 集成**
-   - 在 `.github/workflows/quality.yml`（若不存在则新建）中新增 `lint-contract`、`lint-audit`、`doc-archive-check` 三个 job。
-   - 本地 Makefile/NPM Scripts 增补快捷命令：`make lint-contract`、`make lint-audit`、`npm run lint:docs` 等。
+   - [x] 新增 `.github/workflows/docs-audit-quality.yml`，纳入 `lint-audit`、`lint:docs`。*2025-10-12：已完成*
+   - [ ] 根据需要扩展 `contract-snapshot` workflow。
+   - [x] 增补本地命令：`npm run lint:audit`、`npm run lint:docs`、`make temporal-validate`。*2025-10-12：已完成*
 
 3. **回归验证**
    - 执行 `make test`、`npm run test`、`npm run test:e2e:smoke`、`npm run build:analyze`，确保 Phase 3 基线不回退。

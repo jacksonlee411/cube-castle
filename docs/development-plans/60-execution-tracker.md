@@ -37,7 +37,11 @@
 - [x] 代码包体积下降 ≥ 5%（2025-10-12：`npm run build:analyze` dist 主包 gzip≈82.97 kB，保持 ≥5% 优化，详情见 06/63/64 文档）
 
 ### 第四阶段：工具与验证体系巩固（1-2周）
-- [ ] 待启动
+- [x] Week 9：契约复用与差异基线（`reports/validation/phase4-diff.md`、前端 `schemas.ts` 迁移）
+- [x] Week 9：命令服务审计兜底增强 + 单测（`audit/logger.go`、`logger_test.go`、`npm run lint:audit`）
+- [x] Week 9：统一时态校验入口（`npm run validate:temporal`、`make temporal-validate`）
+- [x] Week 10：新增文档/审计守护工作流（`docs-audit-quality.yml`、`npm run lint:docs`）
+- [ ] Week 10：扩展 `contract-snapshot` 断言并补充剩余文档同步
 
 ## 本周进展（Week 41, 2025-10-10）
 
