@@ -9,6 +9,23 @@ import (
 	"organization-command-service/internal/types"
 )
 
+var (
+	organizationCodeRegex       = regexp.MustCompile(types.OrganizationCodePattern)
+	organizationParentCodeRegex = regexp.MustCompile(types.OrganizationParentCodePattern)
+	validUnitTypes              = map[types.UnitType]struct{}{
+		types.UnitTypeDepartment:       {},
+		types.UnitTypeOrganizationUnit: {},
+		types.UnitTypeCompany:          {},
+		types.UnitTypeProjectTeam:      {},
+	}
+	validStatuses = map[types.OrganizationStatus]struct{}{
+		types.OrganizationStatusActive:   {},
+		types.OrganizationStatusInactive: {},
+		types.OrganizationStatusPlanned:  {},
+		types.OrganizationStatusDeleted:  {},
+	}
+)
+
 // ValidateCreateOrganization 验证创建组织请求
 func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 	// 1. 名称验证
@@ -16,12 +33,8 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 		return fmt.Errorf("组织名称不能为空")
 	}
 
-	if len(req.Name) < 2 {
-		return fmt.Errorf("组织名称长度不能少于2个字符")
-	}
-
-	if len(req.Name) > 100 {
-		return fmt.Errorf("组织名称不能超过100个字符")
+	if len(req.Name) > types.OrganizationNameMaxLength {
+		return fmt.Errorf("组织名称不能超过%d个字符", types.OrganizationNameMaxLength)
 	}
 
 	// 名称格式验证（不能包含特殊字符）- 修复Unicode转义问题
@@ -35,22 +48,14 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 		return fmt.Errorf("组织类型不能为空")
 	}
 
-	validTypes := map[string]bool{
-		"DEPARTMENT": true, "ORGANIZATION_UNIT": true, "PROJECT_TEAM": true,
-	}
-	if !validTypes[req.UnitType] {
-		return fmt.Errorf("无效的组织类型: %s，允许的类型: DEPARTMENT, ORGANIZATION_UNIT, PROJECT_TEAM", req.UnitType)
+	if _, ok := validUnitTypes[types.UnitType(req.UnitType)]; !ok {
+		return fmt.Errorf("无效的组织类型: %s", req.UnitType)
 	}
 
 	// 3. 代码验证（如果提供）
 	if req.Code != nil && *req.Code != "" {
-		if len(*req.Code) < 3 || len(*req.Code) > 10 {
-			return fmt.Errorf("组织代码长度必须在3-10个字符之间")
-		}
-		// 修复：支持数字开头的代码格式，兼容现有数据
-		codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
-		if !codePattern.MatchString(*req.Code) {
-			return fmt.Errorf("组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+		if !organizationCodeRegex.MatchString(*req.Code) {
+			return fmt.Errorf("组织代码格式无效，必须为7位数字且首位不可为0")
 		}
 	}
 
@@ -59,13 +64,8 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 		normalizedParent := NormalizeParentCodePointer(req.ParentCode)
 		req.ParentCode = normalizedParent
 		if normalizedParent != nil {
-			if len(*normalizedParent) < 3 || len(*normalizedParent) > 10 {
-				return fmt.Errorf("父组织代码格式无效，长度必须在3-10个字符之间")
-			}
-			// 修复：支持数字开头的父组织代码格式，兼容现有数据
-			codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
-			if !codePattern.MatchString(*normalizedParent) {
-				return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+			if !organizationParentCodeRegex.MatchString(*normalizedParent) {
+				return fmt.Errorf("父组织代码格式无效，需为0或合法的7位数字编码")
 			}
 		}
 	}
@@ -80,8 +80,8 @@ func ValidateCreateOrganization(req *types.CreateOrganizationRequest) error {
 	}
 
 	// 6. 描述验证
-	if len(req.Description) > 500 {
-		return fmt.Errorf("描述长度不能超过500个字符")
+	if len(req.Description) > types.OrganizationDescriptionMaxLength {
+		return fmt.Errorf("描述长度不能超过%d个字符", types.OrganizationDescriptionMaxLength)
 	}
 
 	// 7. 时态字段基本验证（不引入 isTemporal）
@@ -99,11 +99,8 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 		if strings.TrimSpace(*req.Name) == "" {
 			return fmt.Errorf("组织名称不能为空")
 		}
-		if len(*req.Name) < 2 {
-			return fmt.Errorf("组织名称长度不能少于2个字符")
-		}
-		if len(*req.Name) > 100 {
-			return fmt.Errorf("组织名称不能超过100个字符")
+		if len(*req.Name) > types.OrganizationNameMaxLength {
+			return fmt.Errorf("组织名称不能超过%d个字符", types.OrganizationNameMaxLength)
 		}
 		// 名称格式验证 - 修复正则表达式Unicode转义
 		namePattern := regexp.MustCompile(`^[\p{L}\p{N}\s\-]+$`)
@@ -114,11 +111,8 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 
 	// 2. 组织类型验证
 	if req.UnitType != nil {
-		validTypes := map[string]bool{
-			"DEPARTMENT": true, "ORGANIZATION_UNIT": true, "PROJECT_TEAM": true,
-		}
-		if !validTypes[*req.UnitType] {
-			return fmt.Errorf("无效的组织类型: %s，允许的类型: DEPARTMENT, ORGANIZATION_UNIT, PROJECT_TEAM", *req.UnitType)
+		if _, ok := validUnitTypes[types.UnitType(*req.UnitType)]; !ok {
+			return fmt.Errorf("无效的组织类型: %s", *req.UnitType)
 		}
 	}
 
@@ -127,13 +121,8 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 		normalizedParent := NormalizeParentCodePointer(req.ParentCode)
 		req.ParentCode = normalizedParent
 		if normalizedParent != nil {
-			if len(*normalizedParent) < 3 || len(*normalizedParent) > 10 {
-				return fmt.Errorf("父组织代码格式无效，长度必须在3-10个字符之间")
-			}
-			// 修复：支持数字开头的父组织代码格式，兼容现有数据
-			codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
-			if !codePattern.MatchString(*normalizedParent) {
-				return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+			if !organizationParentCodeRegex.MatchString(*normalizedParent) {
+				return fmt.Errorf("父组织代码格式无效，需为0或合法的7位数字编码")
 			}
 		}
 	}
@@ -150,20 +139,14 @@ func ValidateUpdateOrganization(req *types.UpdateOrganizationRequest) error {
 
 	// 5. 状态验证
 	if req.Status != nil {
-		validStatuses := map[string]bool{
-			"ACTIVE":   true,
-			"INACTIVE": true,
-			"PLANNED":  true,
-			"DELETED":  true,
-		}
-		if !validStatuses[*req.Status] {
-			return fmt.Errorf("无效的状态: %s，允许的状态: ACTIVE, INACTIVE, PLANNED, DELETED", *req.Status)
+		if _, ok := validStatuses[types.OrganizationStatus(*req.Status)]; !ok {
+			return fmt.Errorf("无效的状态: %s", *req.Status)
 		}
 	}
 
 	// 6. 描述验证
-	if req.Description != nil && len(*req.Description) > 500 {
-		return fmt.Errorf("描述长度不能超过500个字符")
+	if req.Description != nil && len(*req.Description) > types.OrganizationDescriptionMaxLength {
+		return fmt.Errorf("描述长度不能超过%d个字符", types.OrganizationDescriptionMaxLength)
 	}
 
 	// 7. 时态字段基本验证（不引入 isTemporal）
@@ -180,14 +163,8 @@ func ValidateOrganizationCode(code string) error {
 		return fmt.Errorf("组织代码不能为空")
 	}
 
-	if len(code) < 3 || len(code) > 10 {
-		return fmt.Errorf("组织代码长度必须在3-10个字符之间")
-	}
-
-	// 修复：支持数字开头的组织代码格式，兼容现有数据
-	codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
-	if !codePattern.MatchString(code) {
-		return fmt.Errorf("组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+	if !organizationCodeRegex.MatchString(code) {
+		return fmt.Errorf("组织代码格式无效，必须为7位数字且首位不可为0")
 	}
 
 	return nil
@@ -236,12 +213,8 @@ func ValidateCreateVersionRequest(req *types.CreateVersionRequest) error {
 		return fmt.Errorf("组织名称不能为空")
 	}
 
-	if len(req.Name) < 2 {
-		return fmt.Errorf("组织名称长度不能少于2个字符")
-	}
-
-	if len(req.Name) > 255 {
-		return fmt.Errorf("组织名称不能超过255个字符")
+	if len(req.Name) > types.OrganizationNameMaxLength {
+		return fmt.Errorf("组织名称不能超过%d个字符", types.OrganizationNameMaxLength)
 	}
 
 	// 名称格式验证 - 支持Unicode字符
@@ -255,11 +228,8 @@ func ValidateCreateVersionRequest(req *types.CreateVersionRequest) error {
 		return fmt.Errorf("组织类型不能为空")
 	}
 
-	validTypes := map[string]bool{
-		"DEPARTMENT": true, "ORGANIZATION_UNIT": true, "PROJECT_TEAM": true,
-	}
-	if !validTypes[req.UnitType] {
-		return fmt.Errorf("无效的组织类型: %s，允许的类型: DEPARTMENT, ORGANIZATION_UNIT, PROJECT_TEAM", req.UnitType)
+	if _, ok := validUnitTypes[types.UnitType(req.UnitType)]; !ok {
+		return fmt.Errorf("无效的组织类型: %s", req.UnitType)
 	}
 
 	// 3. 父组织代码验证（如果提供）
@@ -267,13 +237,8 @@ func ValidateCreateVersionRequest(req *types.CreateVersionRequest) error {
 		normalizedParent := NormalizeParentCodePointer(req.ParentCode)
 		req.ParentCode = normalizedParent
 		if normalizedParent != nil {
-			if len(*normalizedParent) != 7 {
-				return fmt.Errorf("父组织代码长度必须为7个字符")
-			}
-			// 支持数字开头的组织代码格式，兼容现有数据
-			codePattern := regexp.MustCompile(`^[A-Z0-9][A-Z0-9_]*$`)
-			if !codePattern.MatchString(*normalizedParent) {
-				return fmt.Errorf("父组织代码格式无效，必须以大写字母或数字开头，只能包含大写字母、数字和下划线")
+			if !organizationParentCodeRegex.MatchString(*normalizedParent) {
+				return fmt.Errorf("父组织代码格式无效，需为0或合法的7位数字编码")
 			}
 		}
 	}
@@ -322,8 +287,8 @@ func ValidateCreateVersionRequest(req *types.CreateVersionRequest) error {
 			return fmt.Errorf("操作原因至少需要5个字符")
 		}
 
-		if len(trimmedReason) > 500 {
-			return fmt.Errorf("操作原因不能超过500个字符")
+		if len(trimmedReason) > types.OrganizationOperationReasonMaxLength {
+			return fmt.Errorf("操作原因不能超过%d个字符", types.OrganizationOperationReasonMaxLength)
 		}
 	}
 

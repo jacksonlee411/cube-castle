@@ -159,6 +159,15 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 		}
 	}
 
+	// 最终兜底：对于 AUTH / USER / SYSTEM 等非 UUID 资源，使用原始 ResourceID 或组合键
+	if resIDParam == nil {
+		if event.ResourceID != "" {
+			resIDParam = event.ResourceID
+		} else {
+			resIDParam = fmt.Sprintf("%s_%s_%s", event.EventType, event.ResourceType, event.ActionName)
+		}
+	}
+
 	_, err := a.db.ExecContext(ctx, query,
 		event.ID, event.TenantID, event.EventType, event.ResourceType, resIDParam,
 		event.ActorID, event.ActorType, event.ActionName, event.RequestID, event.OperationReason,

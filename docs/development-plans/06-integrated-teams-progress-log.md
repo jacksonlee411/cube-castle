@@ -69,6 +69,10 @@ node scripts/validate-field-naming-simple.js
 | 2025-10-11 | Bundle 分析 | `npm run build:analyze` | ✅ | `frontend/dist/` | Vite 构建通过，核心 bundle (vendor-state) gzip≈12.45 kB |
 | 2025-10-12 | Bundle 分析 | `npm run build:analyze` | ✅ | `frontend/dist/` | dist/index-DjTu0n_R.js≈264.34 kB（gzip≈82.97 kB），核心 vendor-state gzip≈12.45 kB，满足 ≥5% 优化目标 |
 | 2025-10-12 | 登录链路 | 浏览器手动验证 | ✅ | `docs/troubleshooting/login-csrf-failure-diagnosis-2025-10-11.md` | HTTPS/DEV 模式均可登录，`/auth/dev-token` 链路验证通过 |
+| 2025-10-12 | Validation Diff | `reports/validation/phase4-diff.md` | ✅ | `reports/validation/phase4-diff.md` | 对齐契约约束，前端已复用 contract_gen，剩余后端差异待统一 |
+| 2025-10-12 | Temporal 校验 | `npm run validate:temporal` | ✅ | `frontend/scripts/migrations/20250921-replace-temporal-validation.ts` | 校验时态工具引用已统一，无遗留 `temporalValidation` 入口 |
+| 2025-10-12 | Audit 校验 | `npm run lint:audit` | ✅ | `go test ./cmd/organization-command-service/internal/audit` | 审计日志 fallback 逻辑通过单测校验 |
+| 2025-10-12 | 文档归档检查 | `npm run lint:docs` | ✅ | `scripts/quality/doc-archive-check.js` | 活跃/归档计划目录无重复文件 |
 | 2025-10-11 | E2E 冒烟 | `npm run test:e2e:smoke` | ✅ | `frontend/playwright-report/` `frontend/test-results/` | 6 通过 / 1 跳过；2025-10-12 复盘确认 Vite 代理默认以 HTTPS 转发 `/.well-known/jwks.json`，已改为按浏览器协议自动选择（默认回退 HTTP） |
 | YYYY-MM-DD | 全量 Playwright (可选) | `npm run test:e2e` | ✅/⚠️ | `frontend/playwright-report/` | |
 | YYYY-MM-DD | 覆盖率 (可选) | `npm run coverage` | ✅/⚠️ | `coverage/` | |

@@ -2,6 +2,19 @@ import { z } from 'zod';
 import type { JsonValue } from '@/shared/types/json';
 import { validateTemporalDate } from '../utils/temporal-validation-adapter';
 
+const codeRegex = new RegExp(OrganizationConstraints.codePattern);
+const parentCodeRegex = new RegExp(OrganizationConstraints.parentCodePattern);
+
+const unitTypeValues = OrganizationUnitTypeEnumValues as [OrganizationUnitTypeEnum, ...OrganizationUnitTypeEnum[]];
+const statusValues = OrganizationStatusEnumValues as [OrganizationStatusEnum, ...OrganizationStatusEnum[]];
+import {
+  OrganizationConstraints,
+  OrganizationStatusEnum,
+  OrganizationStatusEnumValues,
+  OrganizationUnitTypeEnum,
+  OrganizationUnitTypeEnumValues,
+} from '@/shared/types/contract_gen';
+
 // 统一验证系统 - 整合所有验证逻辑到Zod Schema
 // 替代: simple-validation.ts, ValidationRules.ts, temporalValidation.ts
 
@@ -29,18 +42,30 @@ const FutureDateSchema = z.string().refine(
 
 // 组织单元完整验证模式
 export const OrganizationUnitSchema = z.object({
-  code: z.string().regex(/^\d{7}$/, 'Organization code must be 7 digits'),
-  name: z.string().min(1, '组织名称不能为空').max(100, '组织名称不能超过100个字符'),
-  unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM'], { 
-    message: '请选择有效的组织类型'
+  code: z.string().regex(codeRegex, '组织编码必须为 7 位数字，且首位不可为 0'),
+  name: z.string().min(1, '组织名称不能为空').max(
+    OrganizationConstraints.nameMaxLength,
+    `组织名称不能超过 ${OrganizationConstraints.nameMaxLength} 个字符`
+  ),
+  unitType: z.enum(unitTypeValues, {
+    message: '请选择有效的组织类型',
   }),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED'], {
-    message: '状态必须是 ACTIVE、INACTIVE 或 PLANNED'
+  status: z.enum(statusValues, {
+    message: '状态值无效',
   }),
-  level: z.number().int().min(1, '组织层级必须大于0').max(10, '组织层级不能超过10'),
-  parentCode: z.string().regex(/^(0|\d{7})$/, 'Parent code must be "0" for root organizations or 7 digits for child organizations'),
+  level: z.number().int().min(1, '组织层级必须大于0').max(
+    OrganizationConstraints.levelMax,
+    `组织层级不能超过 ${OrganizationConstraints.levelMax}`
+  ),
+  parentCode: z.string().regex(
+    parentCodeRegex,
+    '父组织编码需为 0 或合法的 7 位数字代码（首位不可为 0）'
+  ),
   sortOrder: z.number().int().min(0, '排序顺序必须为非负数').default(0),
-  description: z.string().max(500, '描述不能超过500个字符').optional().or(z.literal('')),
+  description: z.string().max(
+    OrganizationConstraints.descriptionMaxLength,
+    `描述不能超过 ${OrganizationConstraints.descriptionMaxLength} 个字符`
+  ).optional().or(z.literal('')),
   createdAt: z.string().datetime().optional().or(z.literal('')),
   updatedAt: z.string().datetime().optional().or(z.literal('')),
   path: z.string().optional().or(z.literal('')).or(z.null()),
@@ -54,7 +79,10 @@ export const OrganizationUnitSchema = z.object({
 export const TemporalFormSchema = z.object({
   effectiveFrom: z.string().optional(),
   effectiveTo: z.string().optional(), 
-  changeReason: z.string().max(200, '变更原因不能超过200个字符').optional(),
+  changeReason: z.string().max(
+    OrganizationConstraints.operationReasonMaxLength,
+    `变更原因不能超过 ${OrganizationConstraints.operationReasonMaxLength} 个字符`
+  ).optional(),
   isTemporal: z.boolean().default(false)
 }).refine(
   (data) => {
@@ -84,18 +112,30 @@ export const TemporalFormSchema = z.object({
 
 // 创建组织单元输入验证模式 - 整合所有验证逻辑
 export const CreateOrganizationInputSchema = z.object({
-  code: z.string().regex(/^\d{7}$/, '组织编码必须为7位数字').optional(), // 可选，由系统生成
-  name: z.string().min(1, '组织名称不能为空').max(100, '组织名称不能超过100个字符'),
-  unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM'], { 
-    message: '请选择有效的组织类型'
+  code: z.string().regex(codeRegex, '组织编码必须为 7 位数字，且首位不可为 0').optional(), // 可选，由系统生成
+  name: z.string().min(1, '组织名称不能为空').max(
+    OrganizationConstraints.nameMaxLength,
+    `组织名称不能超过 ${OrganizationConstraints.nameMaxLength} 个字符`
+  ),
+  unitType: z.enum(unitTypeValues, {
+    message: '请选择有效的组织类型',
   }),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED'], {
-    message: '状态必须是 ACTIVE、INACTIVE 或 PLANNED'
-  }).default('ACTIVE'),
-  level: z.number().int().min(1, '组织层级必须大于0').max(10, '组织层级不能超过10'),
-  parentCode: z.string().regex(/^(0|\d{7})$/, 'Parent code must be "0" for root organizations or 7 digits for child organizations').optional(),
+  status: z.enum(statusValues, {
+    message: '状态值无效',
+  }).default(OrganizationStatusEnum.Active),
+  level: z.number().int().min(1, '组织层级必须大于0').max(
+    OrganizationConstraints.levelMax,
+    `组织层级不能超过 ${OrganizationConstraints.levelMax}`
+  ),
+  parentCode: z.string().regex(
+    parentCodeRegex,
+    '父组织编码需为 0 或合法的 7 位数字代码（首位不可为 0）'
+  ).optional(),
   sortOrder: z.number().int().min(0, '排序顺序必须为非负数').default(0),
-  description: z.string().max(500, '描述不能超过500个字符').optional().or(z.literal('')),
+  description: z.string().max(
+    OrganizationConstraints.descriptionMaxLength,
+    `描述不能超过 ${OrganizationConstraints.descriptionMaxLength} 个字符`
+  ).optional().or(z.literal('')),
 }).merge(TemporalFormSchema); // 合并时态验证
 
 // 创建组织单元响应验证模式 (后端实际返回的字段)
@@ -116,9 +156,9 @@ export const UpdateOrganizationInputSchema = CreateOrganizationInputSchema.parti
 // GraphQL查询变量验证模式
 export const GraphQLVariablesSchema = z.object({
   searchText: z.string().optional(),
-  unitType: z.enum(['DEPARTMENT', 'ORGANIZATION_UNIT', 'PROJECT_TEAM']).optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'PLANNED']).optional(),
-  level: z.number().int().min(1).max(10).optional(),
+  unitType: z.enum(unitTypeValues).optional(),
+  status: z.enum(statusValues).optional(),
+  level: z.number().int().min(1).max(OrganizationConstraints.levelMax).optional(),
   page: z.number().int().min(1).optional(),
   pageSize: z.number().int().min(1).max(100).optional(),
 });
