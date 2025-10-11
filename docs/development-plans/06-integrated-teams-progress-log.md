@@ -85,6 +85,7 @@ node scripts/validate-field-naming-simple.js
 | Vitest 报错 `import.meta.env` 未定义 | 环境脚本在 Node 环境执行 | 确保测试中引用 `env` 模块前已 mock 或使用默认值 |
 | `npm run test:e2e` 无响应 | 本地未安装 Playwright 浏览器 | 执行 `npx playwright install` |
 | Vite Proxy 报错 `Error: write EPROTO`（`/.well-known/jwks.json`） | Node 运行时默认将命令服务视为 HTTPS，TLS 握手失败 | 2025-10-12：`frontend/src/shared/config/ports.ts` 改为按浏览器协议自动检测（默认回退 HTTP）；若需强制 HTTPS，请显式设置 `VITE_SERVICE_PROTOCOL=https` 并提供有效证书 |
+| HTTPS 环境登录失败 | 命令服务证书或前端代理协议未对齐 | 启动前端前设置 `VITE_SERVICE_PROTOCOL=https` 及对应 `VITE_REST_COMMAND_HOST` / `VITE_GRAPHQL_QUERY_HOST`，并确认 `/.well-known/jwks.json` 能通过 HTTPS 访问 |
 
 若问题不在上述范围：
 1. 收集日志、截图、trace（如 `playwright-report`）。
