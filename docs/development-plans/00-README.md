@@ -68,8 +68,9 @@
 - `../archive/development-plans/20-existing-resource-analysis-guide.md` - 现有资源分析开发指南
 - `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md` - ESLint 例外策略与零告警方案（完成）
 - `../archive/development-plans/07-audit-history-load-failure-fix-plan.md` - 审计历史加载失败修复计划（P1，2025-10-07 验收归档）
-- `../archive/development-plans/63-front-end-query-plan.md` - Phase 3 前端 API/Hooks/配置整治计划（2025-10-12 验收归档）
 - `../archive/development-plans/23-plan16-p0-stabilization.md` - Plan16 P0 稳定化方案（E2E ≥90% 验收完成）
+- `../archive/development-plans/63-front-end-query-plan.md` - Phase 3 前端 API/Hooks/配置整治计划（2025-10-12 验收归档）
+- `../archive/development-plans/64-phase-3-acceptance-report.md` - Phase 3 验收报告（2025-10-12 通过）
 
 ## 📊 文档关系
 

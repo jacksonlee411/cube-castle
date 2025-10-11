@@ -28,7 +28,7 @@
   - 更新 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 添加"📊 运行监控（Prometheus）"章节
   - 更新 `62-backend-middleware-refactor-plan.md` v2.1 并标记已完成项
 
-### 第三阶段：前端 API/Hooks/配置整治（2-3周）✅ 2025-10-12 结项（详见 `../archive/development-plans/63-front-end-query-plan.md` 与 `docs/development-plans/64-phase-3-acceptance-draft.md`）
+### 第三阶段：前端 API/Hooks/配置整治（2-3周）✅ 2025-10-12 结项（详见 `../archive/development-plans/63-front-end-query-plan.md` 与 `../archive/development-plans/64-phase-3-acceptance-report.md`）
 - [x] Week 6：统一 React Query 客户端与错误包装（`shared/api/queryClient.ts` 已落地）
 - [x] Week 7：组织相关 Hooks 迁移（查询与写操作整合，现有调用方无需额外桥接层）
 - [x] Week 8：端口/环境助手重写（`shared/config/environment.ts` 等已更新）
