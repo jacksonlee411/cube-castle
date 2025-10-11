@@ -32,10 +32,6 @@
 #### **12 - 时态命令契约缺口（归档复测）**
 - `../archive/development-plans/12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P3 复测，核心整改已归档）
 
-#### **60-66 - 系统级质量重构**
-- `62-backend-middleware-refactor-plan.md` - Phase 2 后端观测与运维巩固计划
-- `62-phase-2-acceptance-draft.md` - Phase 2 验收草稿（观测与运维巩固）
-
 ### **归档文档** (docs/archive/development-plans/)
 
 > **文档归档时间**: 2025-09-13  
