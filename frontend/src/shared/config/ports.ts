@@ -1,102 +1,163 @@
-/**
- * 统一端口配置管理
- * 🎯 单一真源：所有端口配置的权威来源
- * 🔒 零容忍：严禁在其他文件中硬编码端口
- */
+import { env, getEnvVar, getNumberEnvVar } from './environment';
 
-// 🎯 核心服务端口配置
+const DEFAULT_SERVICE_HOST = getEnvVar(
+  'VITE_SERVICE_HOST',
+  'localhost',
+);
+const DEFAULT_PROTOCOL = getEnvVar(
+  'VITE_SERVICE_PROTOCOL',
+  env.isDevelopment ? 'http' : 'https',
+);
+
 export const SERVICE_PORTS = {
-  // 前端开发服务器
-  FRONTEND_DEV: 3000,
-  FRONTEND_PREVIEW: 3001,
-  
-  // 后端核心服务 (CQRS架构)
-  REST_COMMAND_SERVICE: 9090,    // 命令操作 (REST API)
-  GRAPHQL_QUERY_SERVICE: 8090,   // 查询操作 (GraphQL)
-  
-  // 基础设施服务
-  POSTGRESQL: 5432,
-  REDIS: 6379
+  FRONTEND_DEV: getNumberEnvVar('VITE_PORT_FRONTEND_DEV', 3000),
+  FRONTEND_PREVIEW: getNumberEnvVar('VITE_PORT_FRONTEND_PREVIEW', 3001),
+  REST_COMMAND_SERVICE: getNumberEnvVar('VITE_PORT_REST_COMMAND', 9090),
+  GRAPHQL_QUERY_SERVICE: getNumberEnvVar('VITE_PORT_GRAPHQL_QUERY', 8090),
+  POSTGRESQL: getNumberEnvVar('VITE_PORT_POSTGRESQL', 5432),
+  REDIS: getNumberEnvVar('VITE_PORT_REDIS', 6379),
 } as const;
 
-// 🎯 环境相关端口映射
-export const getServicePort = (service: keyof typeof SERVICE_PORTS, env: string = 'development'): number => {
-  // 开发环境使用默认端口
-  if (env === 'development') {
-    return SERVICE_PORTS[service];
+export type ServicePortKey = keyof typeof SERVICE_PORTS;
+
+const SERVICE_HOST_OVERRIDES: Partial<Record<ServicePortKey, string>> = {
+  REST_COMMAND_SERVICE: getEnvVar('VITE_REST_COMMAND_HOST', ''),
+  GRAPHQL_QUERY_SERVICE: getEnvVar('VITE_GRAPHQL_QUERY_HOST', ''),
+};
+
+const SERVICE_PROTOCOL_OVERRIDES: Partial<Record<ServicePortKey, string>> = {
+  REST_COMMAND_SERVICE: getEnvVar('VITE_REST_COMMAND_PROTOCOL', ''),
+  GRAPHQL_QUERY_SERVICE: getEnvVar('VITE_GRAPHQL_QUERY_PROTOCOL', ''),
+};
+
+export const getServicePort = (service: ServicePortKey): number =>
+  SERVICE_PORTS[service];
+
+const getHostForService = (service: ServicePortKey): string => {
+  const override = SERVICE_HOST_OVERRIDES[service];
+  return override ? override : DEFAULT_SERVICE_HOST;
+};
+
+const getProtocolForService = (service: ServicePortKey): string => {
+  const override = SERVICE_PROTOCOL_OVERRIDES[service];
+  return override ? override : DEFAULT_PROTOCOL;
+};
+
+const buildServiceOrigin = (
+  service: ServicePortKey,
+  overrides?: { protocol?: string; host?: string; port?: number },
+): string => {
+  const protocol = overrides?.protocol ?? getProtocolForService(service);
+  const host = overrides?.host ?? getHostForService(service);
+  const port = overrides?.port ?? getServicePort(service);
+  return `${protocol}://${host}:${port}`;
+};
+
+const ensurePath = (path: string): string => {
+  if (!path) {
+    return '';
   }
-  
-  // 生产环境可能需要端口映射 (预留扩展)
-  // TODO: 根据部署环境调整端口映射
-  return SERVICE_PORTS[service];
+  return path.startsWith('/') ? path : `/${path}`;
 };
 
-// 🎯 服务端点构造器
-export const buildServiceURL = (service: keyof typeof SERVICE_PORTS, path: string = '', env: string = 'development'): string => {
-  const port = getServicePort(service, env);
-  const host = env === 'development' ? 'localhost' : process.env.SERVICE_HOST || 'localhost';
-  const protocol = env === 'development' ? 'http' : process.env.SERVICE_PROTOCOL || 'http';
-  
-  return `${protocol}://${host}:${port}${path}`;
+export const buildServiceURL = (
+  service: ServicePortKey,
+  path = '',
+  overrides?: { protocol?: string; host?: string; port?: number },
+): string => {
+  const origin = buildServiceOrigin(service, overrides);
+  const resolvedPath = ensurePath(path);
+  return `${origin}${resolvedPath}`;
 };
 
-// 🎯 CQRS端点配置 (企业级架构标准)
+const resolveConfiguredEndpoint = (
+  value: string,
+  service: ServicePortKey,
+  fallbackPath = '',
+): string => {
+  const candidate = value || fallbackPath;
+  if (!candidate) {
+    return buildServiceOrigin(service);
+  }
+  if (/^https?:\/\//i.test(candidate)) {
+    return candidate.replace(/\/+$/, '');
+  }
+  const normalized = candidate === '/' ? '' : ensurePath(candidate);
+  return `${buildServiceOrigin(service)}${normalized}`;
+};
+
 export const CQRS_ENDPOINTS = {
-  // 命令操作端点 (REST)
-  COMMAND_BASE: buildServiceURL('REST_COMMAND_SERVICE'),
-  COMMAND_API: buildServiceURL('REST_COMMAND_SERVICE', '/api/v1'),
-  AUTH_ENDPOINT: buildServiceURL('REST_COMMAND_SERVICE', '/auth'),
+  COMMAND_BASE: buildServiceOrigin('REST_COMMAND_SERVICE'),
+  COMMAND_API: resolveConfiguredEndpoint(
+    env.apiBaseUrl,
+    'REST_COMMAND_SERVICE',
+    '/api/v1',
+  ),
+  AUTH_ENDPOINT: resolveConfiguredEndpoint(
+    env.auth.tokenEndpoint,
+    'REST_COMMAND_SERVICE',
+    '/auth/dev-token',
+  ),
   METRICS_COMMAND: buildServiceURL('REST_COMMAND_SERVICE', '/metrics'),
-  
-  // 查询操作端点 (GraphQL)
-  QUERY_BASE: buildServiceURL('GRAPHQL_QUERY_SERVICE'),
-  GRAPHQL_ENDPOINT: buildServiceURL('GRAPHQL_QUERY_SERVICE', '/graphql'),
-  GRAPHQL_PLAYGROUND: buildServiceURL('GRAPHQL_QUERY_SERVICE', '/graphiql'),
-  METRICS_QUERY: buildServiceURL('GRAPHQL_QUERY_SERVICE', '/metrics')
+  QUERY_BASE: buildServiceOrigin('GRAPHQL_QUERY_SERVICE'),
+  GRAPHQL_ENDPOINT: resolveConfiguredEndpoint(
+    env.graphqlEndpoint,
+    'GRAPHQL_QUERY_SERVICE',
+    '/graphql',
+  ),
+  GRAPHQL_PLAYGROUND: buildServiceURL(
+    'GRAPHQL_QUERY_SERVICE',
+    '/graphiql',
+  ),
+  METRICS_QUERY: buildServiceURL('GRAPHQL_QUERY_SERVICE', '/metrics'),
 } as const;
 
-// 🎯 前端开发端点
 export const FRONTEND_ENDPOINTS = {
   DEV_SERVER: buildServiceURL('FRONTEND_DEV'),
-  PREVIEW_SERVER: buildServiceURL('FRONTEND_PREVIEW')
+  PREVIEW_SERVER: buildServiceURL('FRONTEND_PREVIEW'),
 } as const;
 
-// 🎯 基础设施端点
 export const INFRASTRUCTURE_ENDPOINTS = {
   DATABASE: buildServiceURL('POSTGRESQL'),
-  CACHE: buildServiceURL('REDIS')
+  CACHE: buildServiceURL('REDIS'),
 } as const;
 
+export type CQRSEndpointKey = keyof typeof CQRS_ENDPOINTS;
 
-// 🎯 端口配置验证
-export const validatePortConfiguration = (): { isValid: boolean; errors: string[] } => {
+export const validatePortConfiguration = (): {
+  isValid: boolean;
+  errors: string[];
+} => {
   const errors: string[] = [];
-  
-  // 检查端口冲突
-  const portValues = Object.values(SERVICE_PORTS);
-  const duplicates = portValues.filter((port, index) => portValues.indexOf(port) !== index);
-  
+  const values = Object.values(SERVICE_PORTS).filter((port) =>
+    Number.isFinite(port),
+  );
+  const duplicates = values.filter(
+    (port, index) => values.indexOf(port) !== index,
+  );
+
   if (duplicates.length > 0) {
-    errors.push(`端口冲突检测到: ${duplicates.join(', ')}`);
+    errors.push(`端口冲突检测到: ${Array.from(new Set(duplicates)).join(', ')}`);
   }
-  
-  // 检查端口范围
-  const invalidPorts = portValues.filter(port => port < 1024 || port > 65535);
+
+  const invalidPorts = values.filter(
+    (port) => port < 1024 || port > 65535,
+  );
   if (invalidPorts.length > 0) {
-    errors.push(`无效端口范围: ${invalidPorts.join(', ')} (有效范围: 1024-65535)`);
+    errors.push(
+      `无效端口范围: ${invalidPorts.join(', ')} (有效范围: 1024-65535)`,
+    );
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
-// 🎯 开发工具：端口配置报告
 export const generatePortConfigReport = (): string => {
   const validation = validatePortConfiguration();
-  
-  return [
+  const lines: string[] = [
     '🎯 端口配置报告',
     '====================',
     '',
@@ -111,22 +172,16 @@ export const generatePortConfigReport = (): string => {
     '',
     '🔍 配置验证:',
     `  状态: ${validation.isValid ? '✅ 通过' : '❌ 失败'}`,
-    ...(validation.errors.map(error => `  错误: ${error}`)),
+  ];
+
+  validation.errors.forEach((error) => lines.push(`  错误: ${error}`));
+
+  lines.push(
     '',
     '🎯 CQRS端点:',
     `  命令API: ${CQRS_ENDPOINTS.COMMAND_API}`,
     `  GraphQL查询: ${CQRS_ENDPOINTS.GRAPHQL_ENDPOINT}`,
-    ''
-  ].join('\n');
+  );
+
+  return `${lines.join('\n')}\n`;
 };
-
-// 🔒 类型安全导出
-export type ServicePortKey = keyof typeof SERVICE_PORTS;
-export type CQRSEndpointKey = keyof typeof CQRS_ENDPOINTS;
-
-// 📋 开发提醒
-// TODO-TEMPORARY: 暂时禁用开发提示以避免ESLint no-console错误
-// if (process.env.NODE_ENV === 'development') {
-//   console.log('🎯 端口配置已加载 - 使用统一配置，严禁硬编码端口');
-//   console.log(`📊 核心服务: REST(${SERVICE_PORTS.REST_COMMAND_SERVICE}) + GraphQL(${SERVICE_PORTS.GRAPHQL_QUERY_SERVICE})`);
-// }

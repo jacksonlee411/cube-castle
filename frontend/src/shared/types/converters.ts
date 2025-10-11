@@ -79,8 +79,12 @@ export function convertGraphQLToOrganizationUnit(
     recordId: data.tenantId,
     parentCode: data.parentCode || ROOT_PARENT_CODE, // 根组织默认使用"0000000"
     name: data.name || '',
-    unitType: (data.unitType as OrganizationUnit['unitType']) || 'DEPARTMENT',
-    status: (data.status as OrganizationUnit['status']) || 'ACTIVE',
+    unitType:
+      (data.unitType as OrganizationUnit['unitType']) ||
+      ('DEPARTMENT' as OrganizationUnit['unitType']),
+    status:
+      (data.status as OrganizationUnit['status']) ||
+      ('ACTIVE' as OrganizationUnit['status']),
     level: coerceOrganizationLevel(data.level, data.hierarchyDepth),
     codePath: data.codePath ?? data.path ?? undefined,
     namePath: data.namePath ?? undefined,
@@ -120,8 +124,12 @@ export function convertGraphQLToTemporalOrganizationUnit(
     code: data.code || '',
     parentCode: data.parentCode || ROOT_PARENT_CODE,
     name: data.name || '',
-    unitType: (data.unitType as TemporalOrganizationUnit['unitType']) || 'DEPARTMENT',
-    status: (data.status as TemporalOrganizationUnit['status']) || 'ACTIVE',
+    unitType:
+      (data.unitType as TemporalOrganizationUnit['unitType']) ||
+      ('DEPARTMENT' as TemporalOrganizationUnit['unitType']),
+    status:
+      (data.status as TemporalOrganizationUnit['status']) ||
+      ('ACTIVE' as TemporalOrganizationUnit['status']),
     level: coerceOrganizationLevel(data.level, data.hierarchyDepth),
     codePath: data.codePath ?? data.path ?? undefined,
     namePath: data.namePath ?? undefined,
@@ -161,11 +169,12 @@ export function convertCreateInputToREST(
 ): OrganizationRequest {
   const request: OrganizationRequest = {
     name: input.name || '',
-    unitType: input.unitType || 'DEPARTMENT',
+    unitType:
+      input.unitType || ('DEPARTMENT' as OrganizationRequest['unitType']),
     description: input.description || '',
     level: coerceOrganizationLevel(input.level),
     sortOrder: input.sortOrder || 0,
-    status: input.status || 'ACTIVE',
+    status: input.status || ('ACTIVE' as OrganizationRequest['status']),
   };
 
   // 只添加有值的可选字段

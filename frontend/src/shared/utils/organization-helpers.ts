@@ -34,7 +34,7 @@ export const normalizeParentCode = {
     if (isRootParentCode(value)) {
       return ROOT_PARENT_CODE; // 根组织在表单中显示为规范编码
     }
-    return value;
+    return (value ?? '').trim();
   },
 
   /**
@@ -46,7 +46,7 @@ export const normalizeParentCode = {
     if (isRootParentCode(value)) {
       return ROOT_PARENT_CODE;
     }
-    const trimmed = value.trim();
+    const trimmed = (value ?? '').trim();
     if (LEGACY_ROOT_PARENT_CODES.has(trimmed)) {
       return ROOT_PARENT_CODE; // 根级组织使用规范编码
     }

@@ -9,6 +9,7 @@
 export * from './tenant';
 export * from './ports';
 export * from './constants';
+export * from './api';
 
 // 🔧 便捷配置对象导出
 import { 

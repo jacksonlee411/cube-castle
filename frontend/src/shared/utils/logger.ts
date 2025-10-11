@@ -1,14 +1,12 @@
 /* eslint-disable no-console -- Logger bridges console under controlled policy */
 
-import type { JsonValue } from '@/shared/types/json';
-
 type LoggerEnv = {
   DEV?: boolean;
   MODE?: string;
   VITE_ENABLE_MUTATION_LOGS?: string;
 };
 
-type LogValue = JsonValue | Error | Date | RegExp | bigint;
+type LogValue = unknown;
 type LogArguments = [message: string, ...optional: LogValue[]];
 
 const buildTimestamp = () => new Date().toISOString();

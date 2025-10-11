@@ -191,16 +191,19 @@ export const safeTransformCreateInputToAPI = (
     ...input,
     parentCode: input.parentCode === '' ? undefined : input.parentCode,
   };
-  const validated = validateCreateOrganizationInput(sanitized);
-  
+  const validated = validateCreateOrganizationInput(sanitized as JsonValue);
+
   const apiPayload: JsonObject = {
     name: validated.name,
     unitType: validated.unitType,
     status: validated.status,
     level: validated.level,
     sortOrder: validated.sortOrder,
-    description: validated.description,
   };
+
+  if (typeof validated.description === 'string') {
+    apiPayload.description = validated.description;
+  }
 
   // 只添加有值的可选字段
   if (validated['code'] !== undefined) {

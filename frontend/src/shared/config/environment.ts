@@ -1,90 +1,188 @@
-/**
- * 环境配置管理器
- * 统一管理所有环境变量，避免硬编码
- * 基于项目配置管理原则
- */
+/* eslint-disable no-console -- 环境诊断信息需直接输出 */
 
-import { logger } from '@/shared/utils/logger';
+type RawEnv = Record<string, string | boolean | undefined>;
+
+type ImportMetaContainer = { env?: unknown };
+
+const rawImportMeta =
+  typeof import.meta !== 'undefined'
+    ? ((import.meta as unknown) as ImportMetaContainer)
+    : undefined;
+
+const rawEnv: RawEnv =
+  rawImportMeta?.env && typeof rawImportMeta.env === 'object'
+    ? (rawImportMeta.env as RawEnv)
+    : {};
+const BOOLEAN_TRUE_VALUES = new Set(['true', '1', 'yes', 'on']);
+
+const toOptionalString = (
+  value: string | boolean | undefined,
+): string | undefined => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  return undefined;
+};
+
+export const getEnvVar = (key: string, fallback?: string): string => {
+  const value = toOptionalString(rawEnv[key]);
+  if (value !== undefined) {
+    return value;
+  }
+  if (fallback !== undefined) {
+    return fallback;
+  }
+  return '';
+};
+
+export const requireEnvVar = (key: string): string => {
+  const value = getEnvVar(key);
+  if (!value) {
+    throw new Error(`[env] Missing required environment variable "${key}"`);
+  }
+  return value;
+};
+
+export const getBooleanEnvVar = (key: string, fallback?: boolean): boolean => {
+  const value = rawEnv[key];
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return BOOLEAN_TRUE_VALUES.has(value.trim().toLowerCase());
+  }
+  return fallback ?? false;
+};
+
+export const getNumberEnvVar = (key: string, fallback?: number): number => {
+  const value = rawEnv[key];
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  if (fallback !== undefined) {
+    return fallback;
+  }
+  return Number.NaN;
+};
+
+const ensureLeadingSlash = (value: string): string => {
+  if (!value) {
+    return '';
+  }
+  return value.startsWith('/') ? value : `/${value}`;
+};
+
+const stripTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
+
+const resolveEndpointValue = (value: string, fallback: string): string => {
+  const candidate = value || fallback;
+  if (!candidate) {
+    return '';
+  }
+  if (/^https?:\/\//i.test(candidate)) {
+    return stripTrailingSlash(candidate);
+  }
+  if (candidate === '/') {
+    return '';
+  }
+  return stripTrailingSlash(ensureLeadingSlash(candidate));
+};
 
 export interface EnvironmentConfig {
-  // API端点配置
+  mode: string;
+  isDevelopment: boolean;
+  isProduction: boolean;
+  isTest: boolean;
   apiBaseUrl: string;
   graphqlEndpoint: string;
-  
-  // 多租户配置
   defaultTenantId: string;
-  
-  // 认证配置
-  authConfig: {
+  auth: {
     clientId: string;
     clientSecret: string;
     tokenEndpoint: string;
     mode: 'dev' | 'oidc';
   };
-  
-  // 开发配置
-  isDevelopment: boolean;
-  isProduction: boolean;
-}
-
-/**
- * 从环境变量或默认值获取配置
- */
-function getEnvironmentConfig(): EnvironmentConfig {
-  const isDevelopment = import.meta.env.DEV;
-  const isProduction = import.meta.env.PROD;
-  
-  return {
-    // API端点配置 - 开发环境使用代理，生产环境使用完整URL
-    apiBaseUrl: isDevelopment ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1'),
-    graphqlEndpoint: isDevelopment ? '/graphql' : (import.meta.env.VITE_GRAPHQL_ENDPOINT || '/graphql'),
-    
-    // 多租户配置 - 支持环境变量覆盖
-    defaultTenantId: import.meta.env.VITE_DEFAULT_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
-    
-    // 认证配置
-    authConfig: {
-      clientId: import.meta.env.VITE_AUTH_CLIENT_ID || 'dev-client',
-      clientSecret: import.meta.env.VITE_AUTH_CLIENT_SECRET || 'dev-secret',
-      tokenEndpoint: isDevelopment ? '/auth/dev-token' : (import.meta.env.VITE_AUTH_TOKEN_ENDPOINT || '/auth/dev-token'),
-      mode: (import.meta.env.VITE_AUTH_MODE as 'dev' | 'oidc') || (isDevelopment ? 'dev' : 'oidc'),
-    },
-    
-    // 环境标识
-    isDevelopment,
-    isProduction,
+  features: {
+    queryRefactorEnabled: boolean;
   };
 }
 
-// 导出单例配置实例
-export const env = getEnvironmentConfig();
+const mode = typeof rawEnv.MODE === 'string' ? rawEnv.MODE : 'development';
+const authModeRaw = getEnvVar(
+  'VITE_AUTH_MODE',
+  getBooleanEnvVar('DEV', false) ? 'dev' : 'oidc',
+);
+const authMode = authModeRaw === 'dev' ? 'dev' : 'oidc';
 
-// 配置验证器
+export const env: EnvironmentConfig = {
+  mode,
+  isDevelopment: Boolean(rawEnv.DEV),
+  isProduction: Boolean(rawEnv.PROD),
+  isTest: mode === 'test',
+  apiBaseUrl: resolveEndpointValue(getEnvVar('VITE_API_BASE_URL'), '/api/v1'),
+  graphqlEndpoint: resolveEndpointValue(
+    getEnvVar('VITE_GRAPHQL_ENDPOINT'),
+    '/graphql',
+  ),
+  defaultTenantId: getEnvVar(
+    'VITE_DEFAULT_TENANT_ID',
+    '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
+  ),
+  auth: {
+    clientId: getEnvVar('VITE_AUTH_CLIENT_ID', 'dev-client'),
+    clientSecret: getEnvVar('VITE_AUTH_CLIENT_SECRET', ''),
+    tokenEndpoint: resolveEndpointValue(
+      getEnvVar('VITE_AUTH_TOKEN_ENDPOINT'),
+      '/auth/dev-token',
+    ),
+    mode: authMode,
+  },
+  features: {
+    queryRefactorEnabled: getBooleanEnvVar(
+      'VITE_QUERY_REFACTOR_ENABLED',
+      true,
+    ),
+  },
+};
+
 export const validateEnvironmentConfig = (): void => {
-  const requiredVars = [
-    { key: 'defaultTenantId', value: env.defaultTenantId },
-    { key: 'authConfig.clientId', value: env.authConfig.clientId },
-  ];
-  
-  const missing = requiredVars.filter(({ value }) => !value);
-  
-  if (missing.length > 0) {
-    const missingKeys = missing.map(({ key }) => key).join(', ');
-    throw new Error(`Environment configuration missing required variables: ${missingKeys}`);
+  const missing: string[] = [];
+
+  if (!env.defaultTenantId) {
+    missing.push('VITE_DEFAULT_TENANT_ID');
   }
-  
-  // 开发环境配置验证
-  if (env.isDevelopment) {
-    logger.info('[Environment] 开发环境配置已加载:', {
-      defaultTenantId: env.defaultTenantId.substring(0, 8) + '...',
-      authClientId: env.authConfig.clientId,
-      apiBaseUrl: env.apiBaseUrl,
-      graphqlEndpoint: env.graphqlEndpoint,
+  if (!env.auth.clientId) {
+    missing.push('VITE_AUTH_CLIENT_ID');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[env] Missing required environment variables: ${missing.join(', ')}`,
+    );
+  }
+
+  if (env.isDevelopment && typeof console !== 'undefined') {
+    console.info('[Environment] 开发环境配置已加载', {
+      mode: env.mode,
+      apiBaseUrl: env.apiBaseUrl || 'relative:/api/v1',
+      graphqlEndpoint: env.graphqlEndpoint || 'relative:/graphql',
+      defaultTenantId: env.defaultTenantId.slice(0, 8) + '…',
+      authMode: env.auth.mode,
+      queryRefactorEnabled: env.features.queryRefactorEnabled,
     });
   }
 };
 
-// 自动验证配置
 if (env.isDevelopment) {
   validateEnvironmentConfig();
 }

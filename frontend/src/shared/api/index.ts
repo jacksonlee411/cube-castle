@@ -13,6 +13,7 @@ export * from './unified-client';
 // 🔧 支持工具和适配器
 export * from './graphql-enterprise-adapter';
 export * from './auth';
+export * from './queryClient';
 
 // 🛡️ 统一错误处理体系 (P1级重复代码消除完成)
 export * from './error-handling';

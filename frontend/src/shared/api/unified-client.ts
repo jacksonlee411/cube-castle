@@ -18,6 +18,10 @@ const API_ENDPOINTS = {
   REST_COMMAND: "/api/v1", // 命令服务 (REST API) - 通过Vite代理
 } as const;
 
+export interface GraphQLRequestOptions {
+  signal?: AbortSignal;
+}
+
 /**
  * 统一的GraphQL客户端 - 专用于查询操作
  * 遵循CQRS原则：所有查询统一使用GraphQL
@@ -32,6 +36,7 @@ export class UnifiedGraphQLClient {
   async request<T>(
     query: string,
     variables?: Record<string, JsonValue>,
+    options: GraphQLRequestOptions = {},
   ): Promise<T> {
     const doRequest = async (): Promise<Response> => {
       // 🔧 开发和生产环境都需要JWT认证
@@ -54,6 +59,7 @@ export class UnifiedGraphQLClient {
           query,
           variables,
         }),
+        signal: options.signal,
       });
     };
 

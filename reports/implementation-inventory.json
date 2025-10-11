@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-10-10T09:15:56.933Z",
+  "timestamp": "2025-10-10T23:34:50.104Z",
   "summary": {
     "openapiPaths": 26,
     "graphqlQueries": 9,
     "goHandlers": 26,
     "goServices": 19,
-    "tsExports": 174
+    "tsExports": 203
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -572,6 +572,26 @@
       "kind": "const"
     },
     {
+      "name": "queryClient",
+      "file": "frontend/src/shared/api/queryClient.ts",
+      "kind": "const"
+    },
+    {
+      "name": "queryMetrics",
+      "file": "frontend/src/shared/api/queryClient.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createQueryError",
+      "file": "frontend/src/shared/api/queryClient.ts",
+      "kind": "const"
+    },
+    {
+      "name": "__internal",
+      "file": "frontend/src/shared/api/queryClient.ts",
+      "kind": "const"
+    },
+    {
       "name": "ValidationError",
       "file": "frontend/src/shared/api/type-guards.ts",
       "kind": "class"
@@ -712,6 +732,61 @@
       "kind": "const"
     },
     {
+      "name": "commandBaseUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "commandApiBaseUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "commandMetricsUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "queryBaseUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "graphqlEndpoint",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "graphqlMetricsUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "authEndpoint",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "resolveCommandUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "resolveQueryUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "resolveGraphqlUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "resolveAuthUrl",
+      "file": "frontend/src/shared/config/api.ts",
+      "kind": "const"
+    },
+    {
       "name": "TIMEOUTS",
       "file": "frontend/src/shared/config/constants.ts",
       "kind": "const"
@@ -762,7 +837,22 @@
       "kind": "const"
     },
     {
-      "name": "env",
+      "name": "getEnvVar",
+      "file": "frontend/src/shared/config/environment.ts",
+      "kind": "const"
+    },
+    {
+      "name": "requireEnvVar",
+      "file": "frontend/src/shared/config/environment.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getBooleanEnvVar",
+      "file": "frontend/src/shared/config/environment.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getNumberEnvVar",
       "file": "frontend/src/shared/config/environment.ts",
       "kind": "const"
     },
@@ -852,7 +942,27 @@
       "kind": "const"
     },
     {
+      "name": "ORGANIZATIONS_QUERY_ROOT_KEY",
+      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "organizationsQueryKey",
+      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "organizationByCodeQueryKey",
+      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+      "kind": "const"
+    },
+    {
       "name": "useEnterpriseOrganizations",
+      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "__internal",
       "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
       "kind": "const"
     },
@@ -909,6 +1019,41 @@
     {
       "name": "hasGraphQLErrors",
       "file": "frontend/src/shared/types/api.ts",
+      "kind": "const"
+    },
+    {
+      "name": "isOrganizationUnitTypeEnum",
+      "file": "frontend/src/shared/types/contract_gen.ts",
+      "kind": "func"
+    },
+    {
+      "name": "isOrganizationStatusEnum",
+      "file": "frontend/src/shared/types/contract_gen.ts",
+      "kind": "func"
+    },
+    {
+      "name": "isOrganizationOperationTypeEnum",
+      "file": "frontend/src/shared/types/contract_gen.ts",
+      "kind": "func"
+    },
+    {
+      "name": "OrganizationUnitTypeEnumValues",
+      "file": "frontend/src/shared/types/contract_gen.ts",
+      "kind": "const"
+    },
+    {
+      "name": "OrganizationStatusEnumValues",
+      "file": "frontend/src/shared/types/contract_gen.ts",
+      "kind": "const"
+    },
+    {
+      "name": "OrganizationOperationTypeEnumValues",
+      "file": "frontend/src/shared/types/contract_gen.ts",
+      "kind": "const"
+    },
+    {
+      "name": "OrganizationConstraints",
+      "file": "frontend/src/shared/types/contract_gen.ts",
       "kind": "const"
     },
     {

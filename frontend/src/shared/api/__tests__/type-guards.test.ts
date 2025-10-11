@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ROOT_PARENT_CODE } from '@/shared/utils/organization-helpers';
+import { OrganizationUnitTypeEnum, OrganizationStatusEnum } from '@/shared/types/contract_gen';
 import {
   validateOrganizationUnit,
   validateCreateOrganizationInput,
@@ -20,8 +21,8 @@ describe('Type Guards and Validators', () => {
       const validData = {
         code: '1000001',
         name: 'Test Department',
-        unitType: 'DEPARTMENT',
-        status: 'ACTIVE',
+        unitType: OrganizationUnitTypeEnum.Department,
+        status: OrganizationStatusEnum.Active,
         level: 2,
         parentCode: '1000000',
         sortOrder: 1,
@@ -39,8 +40,8 @@ describe('Type Guards and Validators', () => {
       const invalidData = {
         code: '123', // Invalid code
         name: 'Test Department',
-        unitType: 'DEPARTMENT',
-        status: 'ACTIVE',
+        unitType: OrganizationUnitTypeEnum.Department,
+        status: OrganizationStatusEnum.Active,
         level: 2
       };
 
@@ -52,8 +53,8 @@ describe('Type Guards and Validators', () => {
     it('should validate and return valid create input', () => {
       const validInput = {
         name: 'New Department',
-        unitType: 'DEPARTMENT',
-        status: 'ACTIVE',
+        unitType: OrganizationUnitTypeEnum.Department,
+        status: OrganizationStatusEnum.Active,
         level: 3,
         parentCode: '1000001',
         sortOrder: 5,
@@ -62,18 +63,18 @@ describe('Type Guards and Validators', () => {
 
       const result = validateCreateOrganizationInput(validInput);
       expect(result.name).toBe('New Department');
-      expect(result.status).toBe('ACTIVE');
+      expect(result.status).toBe(OrganizationStatusEnum.Active);
     });
 
     it('should apply default values', () => {
       const minimalInput = {
         name: 'New Department',
-        unitType: 'DEPARTMENT',
+        unitType: OrganizationUnitTypeEnum.Department,
         level: 3
       };
 
       const result = validateCreateOrganizationInput(minimalInput);
-      expect(result.status).toBe('ACTIVE');
+      expect(result.status).toBe(OrganizationStatusEnum.Active);
       expect(result.sortOrder).toBe(0);
     });
   });
@@ -84,15 +85,15 @@ describe('Type Guards and Validators', () => {
         {
           code: '1000001',
           name: 'Department 1',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 2
         },
         {
           code: '1000002',
           name: 'Department 2',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 2
         }
       ];
@@ -107,13 +108,16 @@ describe('Type Guards and Validators', () => {
         {
           code: '1000001',
           name: 'Department 1',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 2
         },
         {
           code: '1000002',
-          // Missing required fields
+          name: 'Invalid Department',
+          unitType: 'UNKNOWN',
+          status: OrganizationStatusEnum.Active,
+          level: 2
         }
       ];
 
@@ -236,8 +240,8 @@ describe('Type Guards and Validators', () => {
         const graphqlResponse = {
           code: '1000001',
           name: 'Test Department',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 2,
           parentCode: '1000000',
           path: '/1000000/1000001',
@@ -253,8 +257,8 @@ describe('Type Guards and Validators', () => {
           code: '1000001',
           parentCode: '1000000',
           name: 'Test Department',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 2,
           path: '/1000000/1000001',
           sortOrder: 1,
@@ -268,8 +272,8 @@ describe('Type Guards and Validators', () => {
         const graphqlResponse = {
           code: '1000001',
           name: 'Test Department',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 2,
           parentCode: ROOT_PARENT_CODE, // 根据最新规范，根组织使用"0000000"
           sortOrder: null,
@@ -293,8 +297,8 @@ describe('Type Guards and Validators', () => {
         const createInput = {
           code: '1000001',
           name: 'New Department',
-          unitType: 'DEPARTMENT' as const,
-          status: 'ACTIVE' as const,
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 3,
           parentCode: '1000000',
           sortOrder: 5,
@@ -305,8 +309,8 @@ describe('Type Guards and Validators', () => {
 
         expect(result).toEqual({
           name: 'New Department',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 3,
           sortOrder: 5,
           description: 'New department description',
@@ -318,8 +322,8 @@ describe('Type Guards and Validators', () => {
       it('should omit undefined optional fields', () => {
         const minimalInput = {
           name: 'New Department',
-          unitType: 'DEPARTMENT' as const,
-          status: 'ACTIVE' as const,
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 3,
           sortOrder: 0,
           description: ''
@@ -329,8 +333,8 @@ describe('Type Guards and Validators', () => {
 
         expect(result).toEqual({
           name: 'New Department',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 3,
           sortOrder: 0,
           description: ''
@@ -342,8 +346,8 @@ describe('Type Guards and Validators', () => {
       it('should not include empty string parentCode', () => {
         const inputWithEmptyParent = {
           name: 'New Department',
-          unitType: 'DEPARTMENT' as const,
-          status: 'ACTIVE' as const,
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           level: 3,
           parentCode: '',
           sortOrder: 0,

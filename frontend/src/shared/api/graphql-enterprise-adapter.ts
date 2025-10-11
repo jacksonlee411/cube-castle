@@ -6,7 +6,7 @@
 
 import { logger } from '@/shared/utils/logger';
 import type { APIResponse } from '../types/api';
-import { UnifiedGraphQLClient } from './unified-client';
+import { UnifiedGraphQLClient, type GraphQLRequestOptions } from './unified-client';
 import type { JsonValue } from '../types/json';
 // import { authManager } from './auth'; // 暂时移除未使用的import
 
@@ -47,11 +47,12 @@ export class GraphQLEnterpriseAdapter {
    */
   async request<T>(
     query: string, 
-    variables?: Record<string, JsonValue>
+    variables?: Record<string, JsonValue>,
+    options: GraphQLRequestOptions = {}
   ): Promise<APIResponse<T>> {
     try {
       // 先尝试使用客户端的原生请求方法
-      const result = await this.client.request<T>(query, variables);
+      const result = await this.client.request<T>(query, variables, options);
       
       // 如果成功，将结果包装为企业级格式
       return {
@@ -86,11 +87,12 @@ export class GraphQLEnterpriseAdapter {
       query: string;
       variables?: Record<string, JsonValue>;
       operationName?: string;
-    }>
+    }>,
+    options: GraphQLRequestOptions = {}
   ): Promise<APIResponse<T[]>> {
     try {
       const results = await Promise.all(
-        requests.map(req => this.request<T>(req.query, req.variables))
+        requests.map(req => this.request<T>(req.query, req.variables, options))
       );
 
       // 检查是否有任何请求失败

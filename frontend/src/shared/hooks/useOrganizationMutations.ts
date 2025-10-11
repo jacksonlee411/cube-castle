@@ -1,6 +1,11 @@
 import { logger } from '@/shared/utils/logger';
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { unifiedRESTClient } from "../api";
+import { createQueryError } from '../api/queryClient';
+import {
+  organizationByCodeQueryKey,
+  ORGANIZATIONS_QUERY_ROOT_KEY,
+} from './useEnterpriseOrganizations';
 import type {
   OrganizationUnit,
   OrganizationRequest,
@@ -13,19 +18,11 @@ const ensureSuccess = <T>(
   fallbackMessage: string,
 ): T => {
   if (!response.success || !response.data) {
-    const error = new Error(
-      response.error?.message ?? fallbackMessage,
-    ) as Error & {
-      code?: string;
-      details?: JsonValue;
-    };
-    if (response.error?.code) {
-      error.code = response.error.code;
-    }
-    if (response.error?.details) {
-      error.details = response.error.details;
-    }
-    throw error;
+    throw createQueryError(response.error?.message ?? fallbackMessage, {
+      code: response.error?.code,
+      details: response.error?.details,
+      requestId: response.requestId,
+    });
   }
   return response.data;
 };
@@ -42,6 +39,33 @@ const formatIfMatchHeader = (etag: string): string => {
 };
 
 const DEFAULT_DELETE_ORGANIZATION_REASON = '通过组织详情页删除组织编码';
+
+const invalidateOrganizationsCache = (client: QueryClient) => {
+  client.invalidateQueries({
+    queryKey: ORGANIZATIONS_QUERY_ROOT_KEY,
+    exact: false,
+  });
+};
+
+const invalidateOrganizationDetailCache = (client: QueryClient, code?: string | null) => {
+  if (!code) {
+    return;
+  }
+  client.invalidateQueries({
+    queryKey: organizationByCodeQueryKey(code),
+    exact: false,
+  });
+};
+
+const removeOrganizationDetailCache = (client: QueryClient, code?: string | null) => {
+  if (!code) {
+    return;
+  }
+  client.removeQueries({
+    queryKey: organizationByCodeQueryKey(code),
+    exact: false,
+  });
+};
 
 export interface OrganizationStateMutationVariables {
   code: string;
@@ -120,32 +144,18 @@ export const useCreateOrganization = () => {
       logger.mutation("[Mutation] Create successful:", response);
       return ensureSuccess(response, "创建组织失败");
     },
-    onSettled: () => {
-      logger.mutation("[Mutation] Create settled, invalidating queries");
-
-      // 立即失效所有相关查询缓存
-      queryClient.invalidateQueries({
-        queryKey: ["organizations"],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization-stats"],
-        exact: false,
-      });
-
-      // 强制重新获取数据以确保立即显示新创建的组织
-      queryClient.refetchQueries({
-        queryKey: ["organizations"],
-        type: "active",
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["organization-stats"],
-        type: "active",
-      });
-
-      logger.mutation("[Mutation] Create cache invalidation and refetch completed");
+    onSuccess: (organization) => {
+      logger.mutation("[Mutation] Create settled, refreshing caches");
+      invalidateOrganizationsCache(queryClient);
+      if (organization?.code) {
+        queryClient.setQueryData(
+          organizationByCodeQueryKey(organization.code),
+          organization,
+        );
+      }
+    },
+    onError: (error) => {
+      logger.error("[Mutation] Create organization failed:", error);
     },
   });
 };
@@ -169,49 +179,23 @@ export const useUpdateOrganization = () => {
       logger.mutation("[Mutation] Update successful:", response);
       return ensureSuccess(response, "更新组织失败");
     },
-    onSettled: (data, error, variables) => {
+    onSuccess: (organization, variables) => {
       logger.mutation("[Mutation] Update settled:", variables.code);
+      invalidateOrganizationsCache(queryClient);
+      invalidateOrganizationDetailCache(queryClient, variables.code ?? organization?.code ?? null);
 
-      // 立即失效所有相关查询缓存
-      queryClient.invalidateQueries({
-        queryKey: ["organizations"],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization", variables.code!],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization-stats"],
-        exact: false,
-      });
-
-      // 强制重新获取数据以确保立即显示更新的组织
-      queryClient.refetchQueries({
-        queryKey: ["organizations"],
-        type: "active",
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["organization-stats"],
-        type: "active",
-      });
-
-      // 新增：直接设置缓存数据以提供即时反馈
-      if (data) {
-        queryClient.setQueryData(["organization", variables.code!], data);
+      if (organization?.code) {
+        queryClient.setQueryData(
+          organizationByCodeQueryKey(organization.code),
+          organization,
+        );
       }
-
-      // 新增：移除过时的缓存数据
-      queryClient.removeQueries({
-        queryKey: ["organizations"],
-        exact: false,
-        type: "inactive",
+    },
+    onError: (error, variables) => {
+      logger.error("[Mutation] Update organization failed:", {
+        code: variables.code,
+        error,
       });
-
-      logger.mutation("[Mutation] Update cache invalidation and refetch completed");
     },
   });
 };
@@ -276,44 +260,23 @@ export const useSuspendOrganization = () => {
         headers: responseHeaders,
       };
     },
-    onSettled: (result, error, variables) => {
+    onSuccess: (result, variables) => {
       logger.mutation("[Mutation] Suspend settled:", variables.code);
+      invalidateOrganizationsCache(queryClient);
+      invalidateOrganizationDetailCache(queryClient, variables.code);
 
-      queryClient.invalidateQueries({
-        queryKey: ["organizations"],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization", variables.code!],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization-stats"],
-        exact: false,
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["organizations"],
-        type: "active",
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["organization-stats"],
-        type: "active",
-      });
-
-      if (result?.organization) {
+      if (result?.organization?.code) {
         queryClient.setQueryData(
-          ["organization", variables.code!],
+          organizationByCodeQueryKey(result.organization.code),
           result.organization,
         );
       }
-
-      logger.mutation(
-        "[Mutation] Suspend cache invalidation and refetch completed",
-      );
+    },
+    onError: (error, variables) => {
+      logger.error("[Mutation] Suspend organization failed:", {
+        code: variables.code,
+        error,
+      });
     },
   });
 };
@@ -376,44 +339,23 @@ export const useActivateOrganization = () => {
         headers: responseHeaders,
       };
     },
-    onSettled: (result, error, variables) => {
+    onSuccess: (result, variables) => {
       logger.mutation("[Mutation] Activate settled:", variables.code);
+      invalidateOrganizationsCache(queryClient);
+      invalidateOrganizationDetailCache(queryClient, variables.code);
 
-      queryClient.invalidateQueries({
-        queryKey: ["organizations"],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization", variables.code!],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization-stats"],
-        exact: false,
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["organizations"],
-        type: "active",
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["organization-stats"],
-        type: "active",
-      });
-
-      if (result?.organization) {
+      if (result?.organization?.code) {
         queryClient.setQueryData(
-          ["organization", variables.code!],
+          organizationByCodeQueryKey(result.organization.code),
           result.organization,
         );
       }
-
-      logger.mutation(
-        "[Mutation] Activate cache invalidation and refetch completed",
-      );
+    },
+    onError: (error, variables) => {
+      logger.error("[Mutation] Activate organization failed:", {
+        code: variables.code,
+        error,
+      });
     },
   });
 };
@@ -489,36 +431,16 @@ export const useDeleteOrganization = () => {
         headers: responseHeaders,
       };
     },
-    onSettled: (_result, error, variables) => {
+    onSuccess: (_result, variables) => {
       logger.mutation('[Mutation] Delete organization settled:', variables.code);
-
-      queryClient.invalidateQueries({
-        queryKey: ['organizations'],
-        exact: false,
+      invalidateOrganizationsCache(queryClient);
+      removeOrganizationDetailCache(queryClient, variables.code);
+    },
+    onError: (error, variables) => {
+      logger.error('[Mutation] Delete organization failed:', {
+        code: variables.code,
+        error,
       });
-
-      queryClient.invalidateQueries({
-        queryKey: ['organization', variables.code],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ['organization-stats'],
-        exact: false,
-      });
-
-      queryClient.removeQueries({
-        queryKey: ['organization', variables.code],
-        exact: true,
-      });
-
-      if (!error) {
-        queryClient.removeQueries({
-          queryKey: ['organizations'],
-          exact: false,
-          type: 'inactive',
-        });
-      }
     },
   });
 };
@@ -540,48 +462,25 @@ export const useCreateOrganizationVersion = () => {
       });
       return ensureSuccess(response, "创建时态版本失败");
     },
-    onSettled: (_data, _error, variables) => {
+    onSuccess: (_data, variables) => {
       logger.mutation(
         "[Mutation] Temporal version create settled:",
         variables.code,
       );
 
-      queryClient.invalidateQueries({
-        queryKey: ["organizations"],
-        exact: false,
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization", variables.code],
-        exact: false,
-      });
+      invalidateOrganizationsCache(queryClient);
+      invalidateOrganizationDetailCache(queryClient, variables.code);
 
       queryClient.invalidateQueries({
         queryKey: ["organization-history", variables.code],
         exact: false,
       });
-
-      queryClient.invalidateQueries({
-        queryKey: ["organization-stats"],
-        exact: false,
+    },
+    onError: (error, variables) => {
+      logger.error("[Mutation] Temporal version create failed:", {
+        code: variables.code,
+        error,
       });
-
-      queryClient.refetchQueries({
-        queryKey: ["organizations"],
-        type: "active",
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["organization", variables.code],
-        type: "active",
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["organization-stats"],
-        type: "active",
-      });
-
-      logger.mutation("[Mutation] Temporal version cache refresh completed");
     },
   });
 };

@@ -9,9 +9,11 @@ import { isJsonObject } from '../types/json';
 const camelToSnakeCase = (value: string): string =>
   value.replace(/([A-Z])/g, letter => `_${letter.toLowerCase()}`);
 
-const mapKeysToSnakeCase = (record: Record<string, JsonValue>): JsonObject =>
+const mapKeysToSnakeCase = (record: Record<string, JsonValue | undefined>): JsonObject =>
   Object.fromEntries(
-    Object.entries(record).map(([key, value]) => [camelToSnakeCase(key), value])
+    Object.entries(record)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [camelToSnakeCase(key), value as JsonValue])
   ) as JsonObject;
 
 export interface OAuthToken {
@@ -136,7 +138,7 @@ export class AuthManager {
     }
 
     // 获取新的token（按模式）
-    this.refreshPromise = env.authConfig.mode === 'oidc'
+    this.refreshPromise = env.auth.mode === 'oidc'
       ? this.obtainFromSession()
       : this.obtainNewToken();
     try {
@@ -407,7 +409,7 @@ export class AuthManager {
    * 生产态：强制刷新（POST /auth/refresh），开发态：重新获取开发令牌
    */
   async forceRefresh(): Promise<OAuthToken> {
-    if (env.authConfig.mode === 'oidc') {
+    if (env.auth.mode === 'oidc') {
       await this.ensureRS256();
       const csrf = this.getCookie('csrf');
       const body = await unauthenticatedRESTClient.request<SessionApiResponse>('/auth/refresh', {
@@ -453,9 +455,9 @@ export class AuthManager {
 
 // 默认OAuth配置 - 使用环境配置避免硬编码
 export const defaultOAuthConfig: OAuthConfig = {
-  clientId: env.authConfig.clientId,
-  clientSecret: env.authConfig.clientSecret, 
-  tokenEndpoint: env.authConfig.tokenEndpoint,  // 使用环境配置的端点
+  clientId: env.auth.clientId,
+  clientSecret: env.auth.clientSecret, 
+  tokenEndpoint: env.auth.tokenEndpoint,  // 使用环境配置的端点
   grantType: 'client_credentials',
 };
 

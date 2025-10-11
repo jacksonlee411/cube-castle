@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../config/environment', () => ({
   env: {
-    authConfig: {
+    auth: {
       clientId: 'dev-client',
       clientSecret: 'dev-secret',
       tokenEndpoint: '/auth/dev-token',
@@ -11,6 +11,7 @@ vi.mock('../../config/environment', () => ({
     defaultTenantId: '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
     isDevelopment: true,
     isProduction: false,
+    isTest: false,
   },
 }));
 

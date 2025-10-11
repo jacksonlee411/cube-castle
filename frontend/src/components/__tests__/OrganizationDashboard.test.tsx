@@ -1,9 +1,10 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { CanvasProvider } from '@workday/canvas-kit-react/common';
-import { vi } from 'vitest';
+import { beforeEach, vi } from 'vitest';
+import { queryClient, queryMetrics } from '@/shared/api';
 
 // Mock the API hooks first
 vi.mock('../../shared/hooks/useEnterpriseOrganizations', () => ({
@@ -26,14 +27,12 @@ vi.mock('../../shared/hooks/useEnterpriseOrganizations', () => ({
   })
 }));
 
-const createTestWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false }
-    }
-  });
+beforeEach(() => {
+  queryMetrics.reset();
+  queryClient.clear();
+});
 
+const createTestWrapper = () => {
   return ({ children }: { children: React.ReactNode }) => (
     <CanvasProvider>
       <QueryClientProvider client={queryClient}>

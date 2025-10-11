@@ -68,6 +68,8 @@ export interface TemporalOrganizationUnit {
   status: OrganizationStatus;
   level: number;
   path?: string | null;
+  codePath?: string | null;
+  namePath?: string | null;
   sortOrder: number;          // camelCase
   description?: string;
   createdAt: string;          // camelCase
