@@ -4,12 +4,16 @@ const DEFAULT_SERVICE_HOST = getEnvVar(
   'VITE_SERVICE_HOST',
   'localhost',
 );
-const defaultProtocolFallback =
-  env.mode === 'production' ? 'https' : 'http';
+const inferDefaultProtocol = (): string => {
+  if (typeof window !== 'undefined' && window.location && typeof window.location.protocol === 'string') {
+    return window.location.protocol === 'https:' ? 'https' : 'http';
+  }
+  return 'http';
+};
 
 const DEFAULT_PROTOCOL = getEnvVar(
   'VITE_SERVICE_PROTOCOL',
-  defaultProtocolFallback,
+  inferDefaultProtocol(),
 );
 
 export const SERVICE_PORTS = {

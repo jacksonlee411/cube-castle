@@ -12,7 +12,7 @@ make docker-up          # 启动基础设施 (PostgreSQL + Redis)
 make run-dev            # 启动后端服务 (命令9090 + 查询8090)
 make frontend-dev       # 启动前端开发服务器 (3000)
 ```
-> ℹ️ **开发代理说明**：前端 Vite Dev Server 通过 `frontend/src/shared/config/ports.ts` 代理命令/查询服务。DEV/TEST 环境默认使用 HTTP 代理以避免 `.well-known/jwks.json` 触发 `EPROTO`。若需启用 HTTPS，请先为后端配置有效证书，并显式设置 `VITE_SERVICE_PROTOCOL=https`。
+> ℹ️ **开发代理说明**：前端 Vite Dev Server 通过 `frontend/src/shared/config/ports.ts` 代理命令/查询服务。默认按浏览器当前协议自动选择；若无法检测则回退为 HTTP，以避免 `.well-known/jwks.json` 出现 `EPROTO`。如需强制使用 HTTPS，请为后端配置有效证书并显式设置 `VITE_SERVICE_PROTOCOL=https`。
 
 ### JWT认证设置（全环境统一 RS256）
 ```bash
