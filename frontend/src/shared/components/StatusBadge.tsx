@@ -3,10 +3,8 @@ import React from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
 import { Text } from '@workday/canvas-kit-react/text';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
-import { STATUS_CONFIG, type OrganizationStatus } from '../utils/statusUtils';
-
-// 重新导出类型以保持向后兼容
-export type { OrganizationStatus };
+import { STATUS_CONFIG } from '../utils/statusUtils';
+import type { OrganizationStatus } from '@/shared/types';
 
 export interface StatusBadgeProps {
   status: OrganizationStatus;

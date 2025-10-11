@@ -57,6 +57,11 @@ export const createHandleDeleteVersion = ({
     return;
   }
 
+  if (!organizationCode) {
+    logger.warn('缺少组织编码，无法作废版本');
+    return;
+  }
+
   try {
     setIsDeleting(true);
     const timeline = await deactivateOrganizationVersion(

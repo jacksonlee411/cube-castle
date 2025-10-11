@@ -25,7 +25,7 @@ vi.mock('@/shared/utils/logger', async () => {
 });
 
 // 定义通用的React组件props类型
-type MockComponentProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
+type MockComponentProps = React.PropsWithChildren<Record<string, unknown>>;
 
 // Mock Canvas Kit components to avoid CSS issues in tests
 vi.mock('@workday/canvas-kit-react/layout', () => ({

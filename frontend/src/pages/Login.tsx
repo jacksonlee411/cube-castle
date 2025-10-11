@@ -69,7 +69,7 @@ export const LoginPage: React.FC = () => {
           </SecondaryButton>
         </Flex>
 
-        {env.authConfig.mode === 'oidc' && (
+        {env.auth.mode === 'oidc' && (
           <Box marginTop="s">
             <PrimaryButton onClick={handleEnterpriseLogin}>
               前往企业登录（生产）

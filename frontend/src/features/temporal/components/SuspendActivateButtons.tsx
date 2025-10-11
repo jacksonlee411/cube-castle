@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Flex } from '@workday/canvas-kit-react/layout';
 import { SecondaryButton, PrimaryButton } from '@workday/canvas-kit-react/button';
-import { colors } from '@workday/canvas-kit-react/tokens';
 import { mediaPauseIcon, mediaPlayIcon } from '@workday/canvas-system-icons-web';
-import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
 import { Text } from '@workday/canvas-kit-react/text';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
@@ -134,20 +132,15 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps> = ({
           data-testid={isInactive ? 'activate-organization-button' : 'suspend-organization-button'}
         onClick={() => openDialog(isInactive ? 'activate' : 'suspend')}
         disabled={baseDisabled}
-        icon={
-          <SystemIcon
-            icon={isInactive ? mediaPlayIcon : mediaPauseIcon}
-            color={isInactive ? colors.greenApple500 : colors.cantaloupe600}
-            size={16}
-          />
-        }
+        icon={isInactive ? mediaPlayIcon : mediaPauseIcon}
+        iconPosition="start"
       >
         {isInactive ? '重新启用' : '暂停组织'}
       </SecondaryButton>
       </Flex>
 
       {dialogMode && (
-        <Modal model={modalModel} isOpen={dialogMode !== null}>
+        <Modal model={modalModel}>
           <Modal.Overlay>
             <Modal.Card width={480}>
               <Modal.CloseIcon aria-label="关闭" onClick={closeDialog} />

@@ -13,6 +13,8 @@ import { useMessages } from '../../../../shared/hooks/useMessages';
 import { normalizeParentCode, coerceOrganizationLevel } from '../../../../shared/utils/organization-helpers';
 import { unifiedRESTClient } from '../../../../shared/api';
 import type { OrganizationRequest } from '../../../../shared/types';
+import { OrganizationUnitTypeEnum, OrganizationStatusEnum } from '../../../../shared/types/contract_gen';
+import type { JsonValue } from '@/shared/types/json';
 
 export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   organization,
@@ -35,8 +37,8 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   const [formData, setFormData] = useState<FormData>({
     code: organization?.code || '',
     name: organization?.name || '',
-    unitType: organization?.unitType || 'DEPARTMENT',
-    status: organization?.status || 'ACTIVE',
+    unitType: organization?.unitType ?? OrganizationUnitTypeEnum.Department,
+    status: organization?.status ?? OrganizationStatusEnum.Active,
     description: organization?.description || '',
     parentCode: normalizeParentCode.forForm(organization?.parentCode),
     level: coerceOrganizationLevel(organization?.level),
@@ -64,8 +66,8 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     setFormData({
       code: organization?.code || '',
       name: organization?.name || '',
-      unitType: organization?.unitType || 'DEPARTMENT',
-      status: organization?.status || 'ACTIVE',
+      unitType: organization?.unitType ?? OrganizationUnitTypeEnum.Department,
+      status: organization?.status ?? OrganizationStatusEnum.Active,
       description: organization?.description || '',
       parentCode: normalizeParentCode.forForm(organization?.parentCode),
       level: coerceOrganizationLevel(organization?.level),
@@ -90,11 +92,20 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     
     // Validate form
     const normalizedFormData = prepareFormDataForValidation(formData);
-    const errors = validateForm(normalizedFormData, isEditing);
+    const errors = validateForm(normalizedFormData as JsonValue, isEditing);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
+
+    if (!normalizedFormData.name || normalizedFormData.name.trim().length === 0) {
+      setFormErrors({ name: '组织名称不能为空' });
+      return;
+    }
+
+    const unitTypeValue = normalizedFormData.unitType ?? OrganizationUnitTypeEnum.Department;
+    const statusValue = normalizedFormData.status ?? OrganizationStatusEnum.Active;
+    const nameValue = normalizedFormData.name.trim();
     
     setIsSubmitting(true);
     
@@ -110,9 +121,9 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
             operation,
             data: {
               code: isEditing ? organization!.code : formData.code || undefined,
-              name: formData.name,
-              unitType: formData.unitType,
-              status: (formData.status as 'ACTIVE' | 'INACTIVE'),
+              name: nameValue,
+              unitType: unitTypeValue,
+              status: statusValue,
               parentCode: normalizeParentCode.forAPI(formData.parentCode),
             effectiveDate: temporalEffectiveDate
           },
@@ -150,35 +161,35 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           logger.warn('[Validate] 校验端点不可用或失败，继续提交：', msg);
         }
       }
-      const trimmedReason = formData.changeReason?.trim() ?? '';
+      const trimmedReason = normalizedFormData.changeReason?.trim() ?? '';
       const operationReason = trimmedReason.length > 0 ? trimmedReason : undefined;
 
       if (isEditing) {
-        if (formData.isTemporal) {
-          if (!formData.effectiveFrom) {
+        if (normalizedFormData.isTemporal) {
+          if (!normalizedFormData.effectiveFrom) {
             throw new Error('请填写时态版本的生效日期');
           }
 
           await createVersionMutation.mutateAsync({
             code: organization!.code,
-            name: formData.name,
-            unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
-            parentCode: normalizeParentCode.forAPI(formData.parentCode),
-            description: formData.description || undefined,
-            sortOrder: formData.sortOrder,
-            effectiveDate: TemporalConverter.dateToDateString(formData.effectiveFrom as string),
-            ...(formData.effectiveTo ? { endDate: TemporalConverter.dateToDateString(formData.effectiveTo as string) } : {}),
+            name: nameValue,
+            unitType: unitTypeValue,
+            parentCode: normalizeParentCode.forAPI(normalizedFormData.parentCode),
+            description: normalizedFormData.description || undefined,
+            sortOrder: normalizedFormData.sortOrder,
+            effectiveDate: TemporalConverter.dateToDateString(normalizedFormData.effectiveFrom as string),
+            ...(normalizedFormData.effectiveTo ? { endDate: TemporalConverter.dateToDateString(normalizedFormData.effectiveTo as string) } : {}),
             ...(operationReason ? { operationReason } : {}),
           });
         } else {
           const updateData: OrganizationRequest = {
             code: organization!.code,
-            name: formData.name,
-            unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
-            status: formData.status as 'ACTIVE' | 'INACTIVE',
-            description: formData.description,
-            sortOrder: formData.sortOrder,
-            parentCode: normalizeParentCode.forAPI(formData.parentCode),
+            name: nameValue,
+            unitType: unitTypeValue,
+            status: statusValue,
+            description: normalizedFormData.description,
+            sortOrder: normalizedFormData.sortOrder,
+            parentCode: normalizeParentCode.forAPI(normalizedFormData.parentCode),
             ...(operationReason ? { changeReason: operationReason, operationReason } : {}),
           };
 
@@ -186,18 +197,18 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         }
       } else {
         const createData: OrganizationRequest = {
-          code: formData.code && formData.code.trim() ? formData.code.trim() : undefined,
-          name: formData.name,
-          unitType: formData.unitType as 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM',
-          status: formData.status as 'ACTIVE' | 'INACTIVE',
-          description: formData.description,
-          parentCode: normalizeParentCode.forAPI(formData.parentCode),
+          code: normalizedFormData.code && normalizedFormData.code.trim() ? normalizedFormData.code.trim() : undefined,
+          name: nameValue,
+          unitType: unitTypeValue,
+          status: statusValue,
+          description: normalizedFormData.description,
+          parentCode: normalizeParentCode.forAPI(normalizedFormData.parentCode),
           ...(operationReason ? { changeReason: operationReason, operationReason } : {}),
-          ...(formData.isTemporal && formData.effectiveFrom
-            ? { effectiveDate: TemporalConverter.dateToDateString(formData.effectiveFrom as string) }
+          ...(normalizedFormData.isTemporal && normalizedFormData.effectiveFrom
+            ? { effectiveDate: TemporalConverter.dateToDateString(normalizedFormData.effectiveFrom as string) }
             : {}),
-          ...(formData.isTemporal && formData.effectiveTo
-            ? { endDate: TemporalConverter.dateToDateString(formData.effectiveTo as string) }
+          ...(normalizedFormData.isTemporal && normalizedFormData.effectiveTo
+            ? { endDate: TemporalConverter.dateToDateString(normalizedFormData.effectiveTo as string) }
             : {}),
         };
 
@@ -209,8 +220,8 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         setFormData({
           code: '',
           name: '',
-          unitType: 'DEPARTMENT',
-          status: 'ACTIVE',
+          unitType: OrganizationUnitTypeEnum.Department,
+          status: OrganizationStatusEnum.Active,
           description: '',
           parentCode: '',
           level: 1,

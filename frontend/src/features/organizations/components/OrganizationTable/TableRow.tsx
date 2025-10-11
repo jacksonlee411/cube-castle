@@ -145,7 +145,6 @@ export const TableRow: React.FC<OrganizationTableRowProps> = ({
               status: temporalStatus,
               isTemporal: isTemporal,
               changeReason: organization.changeReason,
-              version: organization.version
             }}
             variant="compact"
           />

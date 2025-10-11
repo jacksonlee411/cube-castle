@@ -91,7 +91,7 @@ interface TemporalParentUnavailableError {
 }
 
 const isTemporalParentUnavailableError = (
-  value: TemporalParentUnavailableError | Error,
+  value: unknown,
 ): value is TemporalParentUnavailableError =>
   typeof value === 'object' && value !== null && 'code' in value;
 
@@ -99,7 +99,7 @@ const buildParentTemporalErrorHandler = (
   setParentError: React.Dispatch<React.SetStateAction<string>>,
   setSuggestedEffectiveDate: React.Dispatch<React.SetStateAction<string | undefined>>
 ) => {
-  return (error: TemporalParentUnavailableError | Error): boolean => {
+  return (error: unknown): boolean => {
     if (!isTemporalParentUnavailableError(error) || error.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
       return false;
     }
@@ -316,8 +316,7 @@ export const createFormActions = (
       const updateData: TemporalVersionPayload & { recordId: string } = {
         recordId: originalHistoryData.recordId,
         name: formData.name,
-        unitType: formData.unitType,
-        status: formData.lifecycleStatus,
+        unitType: formData.unitType as TemporalVersionPayload['unitType'],
         lifecycleStatus: formData.lifecycleStatus,
         description: formData.description ?? null,
         effectiveDate: formData.effectiveDate,

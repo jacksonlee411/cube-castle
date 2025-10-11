@@ -161,7 +161,7 @@ const mapOrganizationVersions = (
       description: org.description ?? undefined,
       lifecycleStatus:
         org.endDate === null ? ("CURRENT" as const) : ("HISTORICAL" as const),
-      businessStatus: org.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+      businessStatus: (org.status === "ACTIVE" ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
       dataStatus: "NORMAL" as const,
       codePath: org.codePath ?? undefined,
       namePath: org.namePath ?? undefined,
@@ -189,7 +189,7 @@ const mapTimelineItem = (item: TimelineItemResponse): TimelineVersion => ({
   parentCode: item.parentCode ?? undefined,
   description: item.description ?? undefined,
   lifecycleStatus: item.isCurrent ? "CURRENT" : "HISTORICAL",
-  businessStatus: item.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+  businessStatus: (item.status === "ACTIVE" ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
   dataStatus: "NORMAL",
   codePath: item.codePath ?? undefined,
   namePath: item.namePath ?? undefined,

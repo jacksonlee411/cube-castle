@@ -11,6 +11,7 @@ import {
 } from '@workday/canvas-system-icons-web';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
 import type { JsonObject, JsonValue } from '@/shared/types/json';
+import type { OrganizationOperationType } from '@/shared/types/contract_gen';
 
 // 字段变更接口定义
 export interface FieldChange {
@@ -23,13 +24,13 @@ export interface FieldChange {
 // 组件Props接口
 interface FieldChangeTableProps {
   /** 操作类型 */
-  operationType: 'CREATE' | 'UPDATE' | 'DELETE' | 'SUSPEND' | 'REACTIVATE';
+  operationType: OrganizationOperationType;
   /** 字段变更列表 */
   changes?: FieldChange[];
   /** 创建后数据 (CREATE操作使用) */
-  afterData?: JsonObject;
+  afterData?: JsonObject | null;
   /** 删除前数据 (DELETE操作使用) */
-  beforeData?: JsonObject;
+  beforeData?: JsonObject | null;
   /** 是否允许折叠 */
   collapsible?: boolean;
   /** 默认是否展开 */

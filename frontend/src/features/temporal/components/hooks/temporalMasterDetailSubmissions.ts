@@ -1,7 +1,9 @@
 import { logger } from '@/shared/utils/logger';
 import { normalizeParentCode } from '@/shared/utils/organization-helpers';
 import type { TemporalVersionPayload } from '@/shared/types/temporal';
+import type { OrganizationRequest } from '@/shared/types';
 import type { TemporalEditFormData } from '../TemporalEditForm';
+import type { TimelineVersion } from '../TimelineComponent';
 import {
   createOrganizationUnit,
   createTemporalVersion,
@@ -40,13 +42,13 @@ export const createHandleFormSubmit = ({
     setIsSubmitting(true);
     try {
       if (isCreateMode) {
-        const requestBody = {
+        const requestBody: OrganizationRequest = {
           name: formData.name,
-          unitType: formData.unitType,
+          unitType: formData.unitType as OrganizationRequest['unitType'],
           description: formData.description || '',
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
           effectiveDate: formData.effectiveDate,
-          operationReason: formData.changeReason,
+          changeReason: formData.changeReason,
         };
 
         logger.info('提交创建组织请求:', requestBody);
@@ -61,9 +63,14 @@ export const createHandleFormSubmit = ({
         logger.error('创建成功但未返回组织编码');
         notifyError('创建成功，但未能获取新组织编码，请手动刷新页面');
       } else {
+        if (!organizationCode) {
+          notifyError('缺少组织编码，无法创建时态版本');
+          return;
+        }
+
         const versionPayload: TemporalVersionPayload = {
           name: formData.name,
-          unitType: formData.unitType,
+          unitType: formData.unitType as TemporalVersionPayload['unitType'],
           parentCode: normalizeParentCode.forAPI(formData.parentCode),
           description: formData.description || null,
           effectiveDate: formData.effectiveDate,
@@ -134,20 +141,26 @@ export const createHandleHistoryEditSubmit = ({
     try {
       const lifecycleStatus = updateData.lifecycleStatus ?? 'CURRENT';
 
+      if (!organizationCode) {
+        notifyError('缺少组织编码，无法更新历史记录');
+        setIsSubmitting(false);
+        return;
+      }
+
       await updateHistoryRecord(
         organizationCode,
         updateData.recordId,
         {
           name: updateData.name,
-          unitType: updateData.unitType,
-          lifecycleStatus,
-          description: updateData.description ?? null,
-          effectiveDate: updateData.effectiveDate,
-          parentCode: normalizeParentCode.forAPI(updateData.parentCode),
-          changeReason: '通过组织详情页面修改历史记录',
-          operationReason: updateData.operationReason,
-        },
-      );
+        unitType: updateData.unitType,
+        lifecycleStatus,
+        description: updateData.description ?? null,
+        effectiveDate: updateData.effectiveDate,
+        parentCode: normalizeParentCode.forAPI(updateData.parentCode),
+        changeReason: '通过组织详情页面修改历史记录',
+        operationReason: updateData.operationReason,
+      },
+    );
 
       await loadVersions(false, updateData.recordId);
       setActiveTab('edit-history');
@@ -155,6 +168,7 @@ export const createHandleHistoryEditSubmit = ({
       setFormInitialData({
         name: updateData.name as string,
         unitType: updateData.unitType,
+        status: (updateData.status ?? 'ACTIVE') as TimelineVersion['status'],
         lifecycleStatus,
         description: (updateData.description as string) || '',
         parentCode: normalizeParentCode.forForm(

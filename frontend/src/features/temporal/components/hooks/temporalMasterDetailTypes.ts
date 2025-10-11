@@ -18,6 +18,7 @@ export interface TemporalMasterDetailViewProps {
 export interface FormInitialData {
   name: string;
   unitType: string;
+  status: TimelineVersion['status'];
   lifecycleStatus?: TimelineVersion['lifecycleStatus'];
   description?: string;
   parentCode?: string;

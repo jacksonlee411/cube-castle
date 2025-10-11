@@ -14,7 +14,9 @@ import {
   colors, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
-import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import type { OrganizationStatus } from '@/shared/types';
+import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
 import { unifiedGraphQLClient } from '../../../shared/api/unified-client';
 import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
 import { useNavigate } from 'react-router-dom';
@@ -78,10 +80,15 @@ export interface OrganizationTreeProps {
 // 状态映射函数 - 符合API契约的3个业务状态
 const mapStatusToOrganizationStatus = (status: string): OrganizationStatus => {
   switch (status) {
-    case 'ACTIVE': return 'ACTIVE';
-    case 'INACTIVE': return 'INACTIVE';
-    case 'PLANNED': return 'PLANNED';
-    default: return 'ACTIVE';
+    case OrganizationStatusEnum.Inactive:
+      return OrganizationStatusEnum.Inactive;
+    case OrganizationStatusEnum.Planned:
+      return OrganizationStatusEnum.Planned;
+    case OrganizationStatusEnum.Deleted:
+      return OrganizationStatusEnum.Deleted;
+    case OrganizationStatusEnum.Active:
+    default:
+      return OrganizationStatusEnum.Active;
   }
 };
 

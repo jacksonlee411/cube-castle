@@ -14,6 +14,7 @@ export interface TemporalInfo {
   status?: TemporalStatus;
   isTemporal?: boolean;
   changeReason?: string;
+  version?: number;
 }
 
 export interface TemporalInfoDisplayProps {

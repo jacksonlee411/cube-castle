@@ -11,21 +11,24 @@ import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
-import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import type { OrganizationStatus } from '@/shared/types';
+import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
 import ParentOrganizationSelector from './ParentOrganizationSelector';
 
 // 添加映射函数
 const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): OrganizationStatus => {
   switch (lifecycleStatus) {
+    case 'INACTIVE':
+      return OrganizationStatusEnum.Inactive;
+    case 'PLANNED':
+      return OrganizationStatusEnum.Planned;
+    case 'DELETED':
+      return OrganizationStatusEnum.Deleted;
     case 'CURRENT':
     case 'ACTIVE':
-      return 'ACTIVE';
-    case 'INACTIVE':
-      return 'INACTIVE';
-    case 'PLANNED':
-      return 'PLANNED';
     default:
-      return 'ACTIVE';
+      return OrganizationStatusEnum.Active;
   }
 };
 
@@ -126,29 +129,29 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
     details?: TemporalParentUnavailableDetail[];
   }
 
-  const handleParentTemporalError = (
-    error: TemporalParentUnavailableError | Error,
-  ): boolean => {
-    if (
-      typeof error !== 'object' ||
-      error === null ||
-      'name' in error // likely Error instance
-    ) {
+  const handleParentTemporalError = (error: unknown): boolean => {
+    if (typeof error !== 'object' || error === null) {
       return false;
     }
 
-    if (error.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
+    if ('name' in (error as Record<string, unknown>)) {
+      return false;
+    }
+
+    const temporalError = error as TemporalParentUnavailableError;
+
+    if (temporalError.code !== 'TEMPORAL_PARENT_UNAVAILABLE') {
       return false;
     }
 
     let message =
-      typeof error.message === 'string'
-        ? error.message
+      typeof temporalError.message === 'string'
+        ? temporalError.message
         : '上级组织在指定日期不可用';
     let suggested: string | undefined;
 
-    const detail = Array.isArray(error.details)
-      ? error.details.find((item) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE')
+    const detail = Array.isArray(temporalError.details)
+      ? temporalError.details.find((item) => item?.code === 'TEMPORAL_PARENT_UNAVAILABLE')
       : undefined;
 
     if (detail?.message && typeof detail.message === 'string') {

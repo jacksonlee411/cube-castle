@@ -13,7 +13,9 @@ import {
   colors, 
   borderRadius 
 } from '@workday/canvas-kit-react/tokens';
-import { StatusBadge, type OrganizationStatus } from '../../../shared/components/StatusBadge';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import type { OrganizationStatus } from '@/shared/types';
+import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
 
 // 时态版本接口定义 - 与现有组件保持一致
 export interface TimelineVersion {
@@ -63,16 +65,17 @@ export interface TimelineComponentProps {
 
 // 状态映射函数：将后端状态映射到组织状态系统
 const mapBackendStatusToOrganizationStatus = (backendStatus: string): OrganizationStatus => {
-  // 映射到API契约的3个业务状态：ACTIVE, INACTIVE, PLANNED
+  // 映射到API契约的业务状态
   switch (backendStatus) {
-    case 'ACTIVE':
-      return 'ACTIVE';
-    case 'INACTIVE':
-      return 'INACTIVE';
-    case 'PLANNED':
-      return 'PLANNED';
+    case OrganizationStatusEnum.Inactive:
+      return OrganizationStatusEnum.Inactive;
+    case OrganizationStatusEnum.Planned:
+      return OrganizationStatusEnum.Planned;
+    case OrganizationStatusEnum.Deleted:
+      return OrganizationStatusEnum.Deleted;
+    case OrganizationStatusEnum.Active:
     default:
-      return 'ACTIVE'; // 默认状态
+      return OrganizationStatusEnum.Active;
   }
 };
 

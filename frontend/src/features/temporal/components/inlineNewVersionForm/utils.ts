@@ -1,4 +1,5 @@
-import type { OrganizationStatus } from '../../../../shared/components/StatusBadge';
+import type { OrganizationStatus } from '@/shared/types';
+import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
 import type { TemporalEditFormData } from '../TemporalEditForm';
 import type {
   InlineHierarchyPaths,
@@ -11,15 +12,16 @@ export const mapLifecycleStatusToOrganizationStatus = (
   lifecycleStatus: string
 ): OrganizationStatus => {
   switch (lifecycleStatus) {
+    case 'INACTIVE':
+      return OrganizationStatusEnum.Inactive;
+    case 'PLANNED':
+      return OrganizationStatusEnum.Planned;
+    case 'DELETED':
+      return OrganizationStatusEnum.Deleted;
     case 'CURRENT':
     case 'ACTIVE':
-      return 'ACTIVE';
-    case 'INACTIVE':
-      return 'INACTIVE';
-    case 'PLANNED':
-      return 'PLANNED';
     default:
-      return 'ACTIVE';
+      return OrganizationStatusEnum.Active;
   }
 };
 
@@ -136,12 +138,3 @@ export interface TemporalParentErrorDetail {
     suggestedDate?: string;
   };
 }
-
-type InlineNewVersionInitialData = {
-  name: string;
-  unitType: string;
-  status: string;
-  description?: string;
-  parentCode?: string;
-  effectiveDate?: string;
-};
