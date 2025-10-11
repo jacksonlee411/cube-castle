@@ -59,12 +59,12 @@
 
 3. **Temporal 工具折叠**
    - [x] 提供统一校验命令：`make temporal-validate`、`npm run validate:temporal`（复用迁移脚本）。*2025-10-12：已完成*
-   - [ ] 清理遗留脚本/引用并在 README 中注明迁移完成。
+   - [x] 清理遗留脚本/引用并在 README 中注明迁移完成。*2025-10-12：脚本 README 新增说明，验证命令纳入日常巡检*
 
 4. **审计 DTO 完整化**
    - [x] 补强 `AuditLogger` fallback 逻辑，确保非 UUID 资源也有稳定 ID。*2025-10-12：已完成*
    - [x] 新增 sqlmock 单测验证 fallback 行为。*2025-10-12：已完成*
-   - [ ] 若需要输出 DTO（例如接口复用），另行收敛到统一结构体。
+   - [x] 评估 DTO 输出需求：当前仅内部使用，统一结构待后续需求驱动。*2025-10-12：评估完成，无需立即抽象*
 
 5. **同步文档**
    - 更新 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 增加“统一校验工具”与“审计 DTO”章节。

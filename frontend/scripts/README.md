@@ -2,7 +2,7 @@
 
 ## 迁移脚本（migrations/）
 - `20250921-replace-temporal-validation.ts`
-  - 功能：将所有导入/导出 `temporalValidation` 的语句替换为统一适配层 `@/shared/utils/temporal-validation-adapter`。
+  - 功能：将所有导入/导出 `temporalValidation` 的语句替换为统一适配层 `@/shared/utils/temporal-validation-adapter`。当前仓库已完成迁移，脚本保留用于回归检测（执行 `npm run validate:temporal` 会触发 `--check` 模式）。
   - 依赖：`tsx` + `ts-morph`，执行前需安装 `npm install` 同步依赖。
   - 使用：
     - 检查模式（不写入文件）：`npm run migrate:temporal-validation -- --check`

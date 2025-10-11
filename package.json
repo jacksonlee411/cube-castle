@@ -8,6 +8,7 @@
     "lint:frontend-api": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs",
     "lint:audit": "node scripts/quality/lint-audit.js",
     "lint:docs": "node scripts/quality/doc-archive-check.js",
+    "lint:validation": "node scripts/quality/lint-validation.js",
     "compliance:check": "npm run lint:api && npm run lint:frontend-api",
     "compliance:fix": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs --fix",
     "test:compliance": "npm run compliance:check && echo '✅ API合规性检查通过'",
