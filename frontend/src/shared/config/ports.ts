@@ -5,8 +5,12 @@ const DEFAULT_SERVICE_HOST = getEnvVar(
   'localhost',
 );
 const inferDefaultProtocol = (): string => {
-  if (typeof window !== 'undefined' && window.location && typeof window.location.protocol === 'string') {
-    return window.location.protocol === 'https:' ? 'https' : 'http';
+  if (typeof globalThis !== 'undefined') {
+    const locationAccessor = (globalThis as { location?: { protocol?: string } }).location;
+    const protocol = locationAccessor?.protocol;
+    if (typeof protocol === 'string') {
+      return protocol === 'https:' ? 'https' : 'http';
+    }
   }
   return 'http';
 };

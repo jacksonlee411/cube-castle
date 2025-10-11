@@ -23,6 +23,48 @@ export const SERVICE_PORTS = {
 - **类型系统重构**: 90+→8个核心接口 (80%+重复消除)
 - **端口配置集中**: 15+文件→1个统一配置 (95%+硬编码消除)
 
+### ✅ **统一 API 客户端 / Hook 使用示例**
+```typescript
+// 查询：统一使用共享 TanStack Query 客户端
+import { useOrganizationsQuery } from '@/shared/hooks/useOrganizationsQuery';
+
+export const OrganizationList = () => {
+  const { data, isLoading, error } = useOrganizationsQuery({ status: 'ACTIVE' });
+
+  if (isLoading) return <Spinner />;
+  if (error) return <InlineError message={error.message} />;
+
+  return (
+    <ul>
+      {data?.organizations?.data?.map(item => (
+        <li key={item.code}>{item.name}</li>
+      ))}
+    </ul>
+  );
+};
+
+// 命令：统一复用 useOrganizationMutations
+import { useOrganizationMutations } from '@/shared/hooks/useOrganizationMutations';
+
+export const CreateButton = () => {
+  const { createOrganization, isCreating } = useOrganizationMutations();
+
+  const handleCreate = () => {
+    createOrganization.mutate({
+      name: '新部门',
+      unitType: 'DEPARTMENT',
+      effectiveDate: new Date().toISOString().slice(0, 10),
+    });
+  };
+
+  return (
+    <PrimaryButton onClick={handleCreate} loading={isCreating}>
+      新建组织
+    </PrimaryButton>
+  );
+};
+```
+
 ### 🔧 技术栈
 - **构建工具**: Vite 7.0+ (统一配置支持)
 - **UI框架**: React 19 + Canvas Kit v13 + TypeScript 5.8+
