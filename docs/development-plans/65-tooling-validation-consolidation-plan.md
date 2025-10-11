@@ -1,7 +1,8 @@
 # 65号文档：工具与验证体系巩固计划（Phase 4）
 
-**版本**: v0.1  
+**版本**: v0.2  
 **创建日期**: 2025-10-12  
+**更新日期**: 2025-10-12  
 **维护团队**: 全栈工程师（单人执行）  
 **状态**: 规划中  
 **关联计划**: 60号系统级质量重构总计划、61号执行计划（第四阶段）  
@@ -51,19 +52,20 @@
    - 盘点后端 `internal/validators/business.go` 与前端 `frontend/src/shared/validation/schemas.ts` 差异。
    - 输出差异清单（字段、约束、错误码），记录于 `reports/validation/phase4-diff.md`（新建）。
 
-2. **构建统一的 Validation 底座**
-   - 在后端创建 `internal/validators/ruleset.go`（示例命名）定义可复用的规则集，导出供 REST Handler、Temporal 服务复用。
-   - 前端通过生成脚本或共享 JSON（例如 `shared/contracts/validation-rules.json`）拉取规则，更新 `schemas.ts`。
-   - 更新 `frontend/src/shared/utils/validation.ts`（如不存在则新建），封装统一的错误消息映射。
+2. **复用第一阶段契约成果**
+   - 直接基于 `shared/contracts/organization.json` 与生成的 `contract_gen.go/ts` 对照现有校验实现，列出差异清单。
+   - 在后端 `internal/validators/business.go` 中补充 TODO 标注的缺口或复用公共辅助函数（仅在确有重复逻辑时抽取单独函数，避免无谓抽象）。
+   - 前端更新 `frontend/src/shared/validation/schemas.ts` / `utils/validation.ts`，通过 `contract_gen.ts` 中的 `OrganizationConstraints` 等常量驱动校验，而非额外维护一份 JSON。
+   - 将差异与调整结果记录在 `reports/validation/phase4-diff.md`，便于回归与评审。
 
 3. **Temporal 工具折叠**
    - 清理历史脚本/工具（如 `frontend/tests/e2e/utils/*`、`scripts/dev/*` 中与 Temporal 相关的临时脚本），保留单一入口。
    - 在 `Makefile` / `package.json` 中提供 `make temporal-validate`、`npm run validate:temporal` 等命令入口。
 
 4. **审计 DTO 完整化**
-   - 统一 `audit.AuditEvent` 映射，新增 DTO（例如 `internal/audit/dto.go`）确保 `resourceId`、`actorId`、`changes` 字段在认证 / 系统事件场景下也有值。
-   - 更新 `cmd/organization-command-service/internal/audit/logger.go`、`internal/utils/metrics.go` 相关调用，确认 `audit_logs` 表兼容。
-   - 补充 `tests/e2e/auth_flow_e2e_test.go` 或新增 Go 单测覆盖开发模式登录、刷新、异常场景。
+   - 统一 `audit.AuditEvent` 映射，必要时新增轻量 DTO（例如 `internal/audit/dto.go`）用于序列化，确保 `resourceId`、`actorId`、`changes` 字段在认证 / 系统事件场景下也有值（仅针对后续新增记录，不修改历史数据）。
+   - 更新 `cmd/organization-command-service/internal/audit/logger.go`、`internal/utils/metrics.go` 相关调用，确认 `audit_logs` 表兼容现有结构。
+   - 补充 `tests/e2e/auth_flow_e2e_test.go` 或新增 Go 单测覆盖开发模式登录、刷新、异常场景，验证审计字段完整性。
 
 5. **同步文档**
    - 更新 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 增加“统一校验工具”与“审计 DTO”章节。
@@ -71,10 +73,10 @@
 
 ### 4.2 Week 10：CI 守护与验收
 
-1. **新增质量脚本**
-   - `scripts/quality/lint-contract.js`：校验生成的契约 JSON 是否与 `docs/api` 一致（结合 `shared/contracts/`）。
-   - `scripts/quality/lint-audit.js`：检测审计 DTO / 数据库字段是否缺失（可调用 Go 程序 `cmd/tools/audit-lint/main.go`）。
-   - `scripts/quality/doc-archive-check.js`：校验 `docs/development-plans/` 与 `docs/archive/development-plans/` 的计划状态一致性。
+1. **新增 / 扩展质量脚本**
+   - 扩展既有 `contract-snapshot` CI job：补充 Phase 4 相关断言（无需新增脚本，更新脚本参数与工作流配置即可）。
+   - 新增 `scripts/quality/lint-audit.js`：检测审计 DTO / 数据库字段缺失（可调用 Go 程序 `cmd/tools/audit-lint/main.go`）。
+   - 新增 `scripts/quality/doc-archive-check.js`：校验计划文档与归档目录的一致性。
 
 2. **CI 集成**
    - 在 `.github/workflows/quality.yml`（若不存在则新建）中新增 `lint-contract`、`lint-audit`、`doc-archive-check` 三个 job。
@@ -94,16 +96,16 @@
 ## 5. 验收标准
 
 1. **校验工具统一**
-   - 前后端共享同一份 Validation 规则（通过契约文件或脚本生成），重复逻辑清零。
+   - 前后端直接复用第一阶段产出的契约生成物（`contract_gen.go/ts`），避免新增独立规则文件。
    - `npm run validate:temporal` 与 `make temporal-validate` 输出一致、通过。
 
 2. **审计记录完整**
-   - 任意 `AUTH`、`SYSTEM`、`USER` 事件的 `resource_id` 不为 NULL，`changes` / `beforeData` / `afterData` 字段完整。
-   - `tests/e2e/auth_flow_e2e_test.go` 引入断言校验审计内容。
+   - 后续新增的 `AUTH`、`SYSTEM`、`USER` 审计事件在数据库中 `resource_id`、`changes`、`beforeData`、`afterData` 字段完整（历史记录允许保留旧状态）。
+   - `tests/e2e/auth_flow_e2e_test.go` 或新增单测引入断言校验审计内容。
 
 3. **CI 守护生效**
-   - GitHub Actions 新增三个 job 全绿。
-   - 本地 `make lint-contract && make lint-audit && npm run lint:docs` 返回 0。
+   - GitHub Actions 中 `contract-snapshot`（增强版）、`lint-audit`、`doc-archive-check` job 全绿。
+   - 本地 `node scripts/quality/lint-audit.js`、`node scripts/quality/doc-archive-check.js` 与 `npm run lint:docs`（如新增）运行通过，输出 0。
 
 4. **文档同步**
    - `docs/reference/03-API-AND-TOOLS-GUIDE.md`、`docs/development-plans/06-integrated-teams-progress-log.md`、`docs/development-plans/60-execution-tracker.md` 均记录 Phase 4 成果。
@@ -112,7 +114,7 @@
 
 ## 6. 依赖与前提
 
-- Phase 3（文档参考：`docs/archive/development-plans/63-front-end-query-plan.md`、`docs/development-plans/64-phase-3-acceptance-draft.md`）已完成并归档。
+- Phase 3（文档参考：`docs/archive/development-plans/63-front-end-query-plan.md`、`docs/archive/development-plans/64-phase-3-acceptance-report.md`）已完成并归档。
 - CI 管道具备新增 job 的权限（需提前在仓库设置中确认）。
 - `scripts/quality/` 目录已有现成脚本模板（如 `architecture-validator.js`）可复用。
 
@@ -123,7 +125,7 @@
 | 风险 | 影响 | 缓解措施 |
 |------|------|----------|
 | 前后端 Validation 规则冲突 | 中 | 建立自动对比脚本，若差异超出白名单则阻断 CI |
-| 审计日志历史数据缺失 | 中 | 引入兼容迁移脚本（仅在需要时），新版逻辑允许回写缺失字段 |
+| 审计日志历史数据缺失 | 低 | 历史数据保持原状，文档记录差异；如需迁移另立计划 |
 | CI Job 耗时增加导致流水线变慢 | 低 | 将新 job 与现有 job 并行执行，必要时调高缓存利用率 |
 | 工具统一影响既有脚本 | 中 | 在 Week 9 完成后立即回归 `scripts/quality/iig-guardian.js`、`validate-metrics.sh`，确保输出未变 |
 
@@ -131,9 +133,9 @@
 
 ## 8. 交付物
 
-- 统一的 Validation 规则文件与生成脚本
+- Validation 差异清单与复用方案（含 `contract_gen` 引用示例）
 - 审计 DTO / Logger 更新代码与测试
-- 新增质量脚本（`lint-contract`、`lint-audit`、`doc-archive-check`）
+- 质量守护更新（扩展 `contract-snapshot` job、新增 `lint-audit`、`doc-archive-check`）
 - GitHub Actions 工作流更新
 - Phase 4 验收草案（66 号文档，占位）
 - 更新后的参考文档与执行跟踪条目
