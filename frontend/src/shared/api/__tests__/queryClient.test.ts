@@ -8,12 +8,14 @@ import {
   type QueryMetricsSnapshot,
 } from '../queryClient';
 
-const buildEvent = (partial: Partial<QueryCacheNotifyEvent>): QueryCacheNotifyEvent => {
-  const baseQuery = {
-    queryHash: 'test',
+const buildEvent = (options: { queryHash: string; stale?: boolean }): QueryCacheNotifyEvent => {
+  const { queryHash, stale = false } = options;
+
+  const query = {
+    queryHash,
     getObserversCount: () => 0,
     getObservers: () => [],
-    isStale: () => false,
+    isStale: () => stale,
     promise: Promise.resolve(),
     options: {},
     meta: {},
@@ -24,39 +26,24 @@ const buildEvent = (partial: Partial<QueryCacheNotifyEvent>): QueryCacheNotifyEv
     cancel: vi.fn(),
     destroy: vi.fn(),
     state: {
-      data: { ok: true },
+      data: stale ? undefined : { ok: true },
       dataUpdatedAt: Date.now(),
       dataUpdateCount: 0,
       error: null,
       errorUpdatedAt: 0,
       errorUpdateCount: 0,
       fetchFailureCount: 0,
-      fetchMeta: null,
+      fetchFailureReason: null,
+      fetchMeta: undefined,
       fetchStatus: 'idle' as const,
       isInvalidated: false,
       status: 'success' as const,
     },
   };
 
-  const overrideQuery = partial.query ?? {};
-  const overrideState = (overrideQuery as { state?: Record<string, unknown> }).state ?? {};
-  const mergedState = { ...baseQuery.state } as Record<string, unknown>;
-  for (const [key, value] of Object.entries(overrideState)) {
-    if (value !== undefined) {
-      mergedState[key] = value;
-    }
-  }
-
-  const mergedQuery = {
-    ...baseQuery,
-    ...overrideQuery,
-    state: mergedState,
-  };
-
   return {
     type: 'observerAdded',
-    query: mergedQuery,
-    ...partial,
+    query: query as unknown as QueryCacheNotifyEvent['query'],
   } as QueryCacheNotifyEvent;
 };
 
@@ -96,25 +83,8 @@ describe('queryMetrics tracker', () => {
       logIntervalMs: 0,
     });
 
-    tracker.handleEvent(
-      buildEvent({
-        query: {
-          queryHash: 'cache-hit',
-          isStale: () => false,
-          state: { data: { ok: true }, dataUpdatedAt: Date.now() },
-        },
-      }),
-    );
-
-    tracker.handleEvent(
-      buildEvent({
-        query: {
-          queryHash: 'cache-miss',
-          isStale: () => true,
-          state: { data: undefined, dataUpdatedAt: undefined },
-        },
-      }),
-    );
+    tracker.handleEvent(buildEvent({ queryHash: 'cache-hit' }));
+    tracker.handleEvent(buildEvent({ queryHash: 'cache-miss', stale: true }));
 
     const snapshot = tracker.snapshot();
     expect(snapshot.totalRequests).toBe(2);
@@ -130,15 +100,7 @@ describe('queryMetrics tracker', () => {
     });
     const spy = vi.spyOn(__internal, 'safeQueryHash').mockReturnValue('forced-log');
 
-    tracker.handleEvent(
-      buildEvent({
-        query: {
-          queryHash: 'forced-log',
-          isStale: () => false,
-          state: { data: { ok: true }, dataUpdatedAt: Date.now() },
-        },
-      }),
-    );
+    tracker.handleEvent(buildEvent({ queryHash: 'forced-log' }));
 
     tracker.logNow('test');
     const snapshot: QueryMetricsSnapshot = tracker.snapshot();

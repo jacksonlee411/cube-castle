@@ -10,7 +10,7 @@ import {
 } from '@workday/canvas-system-icons-web';
 import { statusUtils } from '../utils/statusUtils';
 import { useMessages } from '../hooks/useMessages';
-import type { OrganizationStatus } from '../components/StatusBadge';
+import type { OrganizationStatus } from '@/shared/types';
 
 export interface Organization {
   code: string;

@@ -39,23 +39,23 @@ type SessionPayload = {
   scope?: string;
 };
 
-interface OAuthTokenResponse extends JsonObject {
-  accessToken?: string;
-  token?: string;
-  data?: { token?: string } | null;
-  tokenType?: string;
+type OAuthTokenResponse = {
+  accessToken?: string | null;
+  token?: string | null;
+  data?: { token?: string | null } | null;
+  tokenType?: string | null;
   expiresIn?: number | string | null;
-  scope?: string;
-}
+  scope?: string | null;
+};
 
-interface SessionApiResponse extends JsonObject {
+type SessionApiResponse = {
   data?: JsonValue;
-  accessToken?: string;
+  accessToken?: string | null;
   expiresIn?: number | string | null;
   tenantId?: string | null;
   scopes?: string[];
-  scope?: string;
-}
+  scope?: string | null;
+};
 
 const parseSessionPayload = (payload: JsonValue): SessionPayload => {
   if (!isJsonObject(payload)) {
@@ -192,11 +192,13 @@ export class AuthManager {
           ? Number(expiresInRaw) || 3600
           : 3600;
 
+    const scopeValue = typeof tokenResponse.scope === 'string' ? tokenResponse.scope : undefined;
+
     const token: OAuthToken = {
       accessToken,
       tokenType: tokenResponse.tokenType || 'Bearer',
       expiresIn,
-      scope: tokenResponse.scope,
+      scope: scopeValue,
       issuedAt: Date.now(),
     };
 

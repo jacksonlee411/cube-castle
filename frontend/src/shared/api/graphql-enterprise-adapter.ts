@@ -34,6 +34,26 @@ export class GraphQLEnterpriseAdapter {
     this.client = client;
   }
 
+  private serializeErrorDetail(err: unknown): JsonValue {
+    if (err instanceof Error) {
+      return { name: err.name, message: err.message };
+    }
+
+    if (err === null || err === undefined) {
+      return 'UNKNOWN_ERROR';
+    }
+
+    if (typeof err === 'string' || typeof err === 'number' || typeof err === 'boolean') {
+      return err;
+    }
+
+    try {
+      return JSON.parse(JSON.stringify(err));
+    } catch {
+      return String(err);
+    }
+  }
+
   // 获取访问令牌方法已移动到UnifiedGraphQLClient
 
   // 响应格式检测方法 - 预留用于未来企业级格式支持
@@ -71,7 +91,7 @@ export class GraphQLEnterpriseAdapter {
         error: {
           code: 'GRAPHQL_CLIENT_ERROR',
           message: error instanceof Error ? error.message : 'GraphQL客户端请求失败',
-          details: error
+          details: this.serializeErrorDetail(error),
         },
         timestamp: new Date().toISOString(),
         requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -99,12 +119,18 @@ export class GraphQLEnterpriseAdapter {
       const failedRequests = results.filter(result => !result.success);
       
       if (failedRequests.length > 0) {
+        const summaries = failedRequests.map(({ error, requestId }) => ({
+          requestId: requestId ?? null,
+          code: error?.code ?? null,
+          message: error?.message ?? null,
+        })) as JsonValue;
+
         return {
           success: false,
           error: {
             code: 'BATCH_REQUEST_PARTIAL_FAILURE',
             message: `批量请求中有 ${failedRequests.length} 个失败`,
-            details: failedRequests
+            details: summaries,
           },
           timestamp: new Date().toISOString(),
           requestId: `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -112,7 +138,9 @@ export class GraphQLEnterpriseAdapter {
       }
 
       // 所有请求成功，提取数据
-      const data = results.map(result => result.data).filter((data): data is T => data !== undefined);
+      const data = results
+        .map(result => result.data)
+        .filter((item): item is T => item !== undefined);
 
       return {
         success: true,
@@ -127,7 +155,7 @@ export class GraphQLEnterpriseAdapter {
         error: {
           code: 'BATCH_REQUEST_ERROR',
           message: error instanceof Error ? error.message : '批量请求失败',
-          details: error
+          details: this.serializeErrorDetail(error),
         },
         timestamp: new Date().toISOString(),
         requestId: `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`

@@ -124,6 +124,17 @@ export default defineConfig({
       'node_modules',
       'dist',
       'tests/e2e/**' // 排除E2E测试文件，这些由Playwright处理
-    ]
+    ],
+    coverage: {
+      reporter: ['text', 'html'],
+      include: [
+        'src/shared/api/queryClient.ts',
+        'src/shared/api/type-guards.ts',
+        'src/shared/api/graphql-enterprise-adapter.ts',
+        'src/shared/hooks/useEnterpriseOrganizations.ts',
+        'src/shared/hooks/useMessages.ts'
+      ],
+      exclude: ['src/shared/api/__tests__/**', 'src/shared/hooks/__tests__/**']
+    }
   }
 })

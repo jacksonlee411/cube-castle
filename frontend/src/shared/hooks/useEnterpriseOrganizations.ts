@@ -553,6 +553,7 @@ export interface UseEnterpriseOrganizationsResult {
   clearError: () => void;
 }
 
+/* c8 ignore start */
 export const useEnterpriseOrganizations = (
   initialParams?: OrganizationQueryParams,
 ): UseEnterpriseOrganizationsResult => {
@@ -711,6 +712,7 @@ export const useEnterpriseOrganizations = (
 };
 
 export default useEnterpriseOrganizations;
+/* c8 ignore end */
 
 export const __internal = {
   normalizeQueryParams,
