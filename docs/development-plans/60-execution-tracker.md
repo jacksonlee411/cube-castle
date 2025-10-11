@@ -22,14 +22,19 @@
   - 实现 `temporal_operations_total`、`audit_writes_total`、`http_requests_total` 三类 Counter
   - 在 main.go 中暴露 `/metrics` 端点
   - 创建 `scripts/quality/validate-metrics.sh` 自动化验证脚本
-- [ ] 运维开关与熔断策略调研
+- [ ] ~~运维开关与熔断策略调研~~（已取消：判定为过度设计）
 - [x] Phase 2 验收草稿与监控文档完善 ✅ 2025-10-10
   - 完成 `62-phase-2-acceptance-draft.md` v0.2（含运行时验证结果）
   - 更新 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 添加"📊 运行监控（Prometheus）"章节
   - 更新 `62-backend-middleware-refactor-plan.md` v2.1 并标记已完成项
 
 ### 第三阶段：前端 API/Hooks/配置整治（2-3周）
-- [ ] 待启动
+- [x] Week 6：统一 React Query 客户端与错误包装（`shared/api/queryClient.ts` 已落地）
+- [x] Week 7：组织相关 Hooks 迁移（查询与写操作整合，现有调用方无需额外桥接层）
+- [x] Week 8：端口/环境助手重写（`shared/config/environment.ts` 等已更新）
+- [x] QA 冒烟巡检：`npm run test:e2e:smoke` 通过，报告归档于 `frontend/playwright-report/`
+- [ ] Vitest 覆盖率 ≥ 75%（当前 18.6%，需补充重点模块测试）
+- [ ] 代码包体积下降 ≥ 5%（`vite build` 暂被历史 TS 校验错误阻塞，待治理后再分析）
 
 ### 第四阶段：工具与验证体系巩固（1-2周）
 - [ ] 待启动
@@ -79,7 +84,10 @@
   - 更新计划状态为"第一批交付完成"
 
 ### 进行中
-- 🔄 第二阶段剩余工作：运维开关与熔断策略调研（待后续跟进）
+- 🔄 第三阶段跟进事项：
+  - 补齐关键模块单测以提升覆盖率
+  - 清理 TypeScript 校验阻塞，产出 bundle 分析
+  - 更新配置/QA 文档与 64 号验收草稿
 
 ### 下周计划
 - 评估第二阶段剩余工作优先级（运维开关）

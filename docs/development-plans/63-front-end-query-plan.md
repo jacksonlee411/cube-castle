@@ -53,23 +53,23 @@
 ## 4. 详细任务清单
 
 ### 4.1 Week 6：统一 API 客户端与错误包装
-- [ ] 梳理现有 API 调用入口，确认保留/废弃路径。
-- [ ] 实现共享的 queryClient（含缓存策略、重试策略）。
-- [ ] 编写标准化错误包装（含 requestId、错误码、用户友好提示）。
-- [ ] 编写单元测试覆盖 queryClient 与错误包装。
+- [x] 梳理现有 API 调用入口，确认保留/废弃路径。
+- [x] 实现共享的 queryClient（含缓存策略、重试策略）。
+- [x] 编写标准化错误包装（含 requestId、错误码、用户友好提示）。
+- [x] 编写单元测试覆盖 queryClient 与错误包装。
 - [ ] 更新调用示例与文档（README / 计划记录）。
 
 ### 4.2 Week 7：Hooks 迁移与桥接
-- [ ] 逐一迁移组织相关 Hooks（优先查询类：`useOrganizationsQuery`、`useOrganizationQuery`）。
-- [ ] 重构写操作 Hooks（创建、更新、停用/启用）以复用新客户端与错误包装。
-- [ ] 提供 `legacyOrganizationApi` 桥接层（如需），确保旧调用方逐步迁移。
-- [ ] 更新单元测试/集成测试覆盖迁移的 Hooks。
+- [x] 逐一迁移组织相关 Hooks（优先查询类：`useOrganizationsQuery`、`useOrganizationQuery`）。
+- [x] 重构写操作 Hooks（创建、更新、停用/启用）以复用新客户端与错误包装。
+- [x] 提供 `legacyOrganizationApi` 桥接层（如需），确保旧调用方逐步迁移。（评估结果：当前调用方已整体切换，暂不新增桥接层）
+- [x] 更新单元测试/集成测试覆盖迁移的 Hooks。
 
 ### 4.3 Week 8：配置整治与验证
-- [ ] 重写端口/环境助手（`frontend/src/shared/config/`），明确环境变量读取、默认值与校验。
-- [ ] 整理 QA 冒烟场景（Playwright 在 `frontend/tests/`），确保关键路径通过。
-- [ ] 运行 Vitest 覆盖率，目标 ≥ 75%（记录报告）。
-- [ ] 分析 bundle 大小，确保与基线相比下降 ≥ 5% 或给出优化说明。
+- [x] 重写端口/环境助手（`frontend/src/shared/config/`），明确环境变量读取、默认值与校验。
+- [x] 整理 QA 冒烟场景（Playwright 在 `frontend/tests/`），确保关键路径通过。（2025-10-11：`npm run test:e2e:smoke` 全部通过，报告已归档）
+- [ ] 运行 Vitest 覆盖率，目标 ≥ 75%（记录报告）。*当前语句 18.6%，待补齐高优先级用例*
+- [ ] 分析 bundle 大小，确保与基线相比下降 ≥ 5% 或给出优化说明。*现有 TS 校验错误阻塞 build*
 - [ ] 更新文档（配置指南、运行手册）。
 
 ---
@@ -116,4 +116,3 @@
 - 参考文档：Phase 1、Phase 2 验收记录；`frontend/src/shared/api/`、`frontend/src/shared/hooks/` 现状清单。
 - 相关脚本：`frontend/scripts/validate-field-naming*.js`、`frontend/tests/`。
 - 配置说明：待第三阶段执行时补充。
-

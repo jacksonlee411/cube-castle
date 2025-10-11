@@ -42,7 +42,7 @@
 
 | 周次 | 里程碑 | 交付物 |
 |------|--------|--------|
-| Week 3 | 指标补充与运维开关梳理 | Prometheus 指标、Dev/Operational 开关、运维手册更新 |
+| Week 3 | 指标补充与运维开关梳理 | Prometheus 指标、~~Dev/Operational 开关~~（已取消：过度设计判定）、运维手册更新 |
 
 ---
 
@@ -62,7 +62,7 @@
   - 提供详细使用说明和示例操作
 
 ### 4.2 文档与验收
-- [ ] 更新 60-execution-tracker 第二阶段进展。
+- [x] 更新 60-execution-tracker 第二阶段进展（2025-10-10 已记录 Prometheus 指标与文档进度）。
 - [x] 更新或新增 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 中监控/运维章节。✅ 2025-10-10
   - 新增"📊 运行监控（Prometheus）"完整章节
   - 记录三类指标的名称、说明、标签、触发条件
@@ -83,8 +83,7 @@
    - Prometheus 中能看到新增指标，执行 `curl /metrics` 出现对应字段。
    - 指标说明文档中记录含义与参考阈值。
 2. **开关验证**：
-   - 通过环境变量/配置关闭 Dev/Operational Handler 后，接口返回 403 或 404。
-   - 白名单生效示例（白名单用户可访问，其他用户被拒绝）。
+  - （已取消）Dev/Operational Handler 开关与白名单相关调整被判定为过度设计，本阶段不再执行。
 3. **文档更新**：
    - 60-execution-tracker 第二阶段进度勾选。
    - 63号验收报告草稿完成。
@@ -97,7 +96,7 @@
 | 风险 | 说明 | 缓解措施 |
 |------|------|----------|
 | 指标过多影响性能 | 新增指标可能带来额外开销 | 控制指标粒度，仅保留关键指标，并在文档注明采样策略 |
-| 运维开关默认异常 | 默认配置可能阻止合法访问 | 提供默认配置模板，保留安全兜底（例如仅对生产环境启用严格限制） |
+| ~~运维开关默认异常~~ | （已取消）相关策略被判定为过度设计 | 无需额外动作 |
 | 文档滞后 | 新能力未同步至手册 | 在任务中明确文档更新步骤，并纳入验收标准 |
 
 ---
@@ -107,7 +106,7 @@
   - Prometheus 指标实现：`cmd/organization-command-service/internal/utils/metrics.go`
   - `/metrics` 端点暴露：`cmd/organization-command-service/main.go:202-207`
   - 自动化验证脚本：`scripts/quality/validate-metrics.sh`
-- [ ] Dev/Operational Handler 开关与白名单示例配置（已有实现，待文档化）
+- [ ] ~~Dev/Operational Handler 开关与白名单示例配置~~（已取消：过度设计判定）
 - [x] 运维/监控手册更新 ✅ 2025-10-10
   - `docs/reference/03-API-AND-TOOLS-GUIDE.md` 新增"📊 运行监控（Prometheus）"章节
 - [x] Phase 2 验收报告草稿 ✅ 2025-10-10
@@ -120,4 +119,3 @@
 - 执行跟踪：`docs/development-plans/60-execution-tracker.md`（第二阶段条目）。
 - 验收报告：63号文档（待创建）。
 - 若后续发现新的后端缺口，再另立专题计划，避免与现有能力重复。
-

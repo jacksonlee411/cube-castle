@@ -76,9 +76,9 @@
   - 阶段一交付物已合并主干并在 CI 稳定运行 ≥ 48 小时。
   - Temporal 相关数据库迁移与备份已完成（可通过 `make backup` 或运维预留的备份脚本执行），确保回滚时有可用快照。
 - **关键任务与迁移策略**
-  1. 先抽取共享事务与审计封装（`internal/services/temporal_transaction.go`），在旧服务中引入，再逐个方法切换至新封装，实现“双写+比对”日志。
-  2. 定义统一响应/错误结构体，替换 REST/GraphQL 层散落的写法；为 Dev/Operational Endpoint 制定白名单与角色校验（参考 OpenAPI scopes）。
-  3. 引入 Prometheus/Otel 中间件与 `golang.org/x/time/rate` 限流器，并记录请求 ID，提供回滚开关（环境变量 `TEMPORAL_REFACTOR_ENABLED`）。
+  1. ~~先抽取共享事务与审计封装（`internal/services/temporal_transaction.go`），在旧服务中引入，再逐个方法切换至新封装，实现“双写+比对”日志。~~（2025-10-10 更新：评估为过度设计，取消实施）
+  2. ~~定义统一响应/错误结构体，替换 REST/GraphQL 层散落的写法；为 Dev/Operational Endpoint 制定白名单与角色校验（参考 OpenAPI scopes）。~~（2025-10-10 更新：评估为过度设计，取消实施）
+  3. 引入 Prometheus 指标补充（已完成）；~~Otel 中间件与 `golang.org/x/time/rate` 限流器，并记录请求 ID，提供回滚开关（环境变量 `TEMPORAL_REFACTOR_ENABLED`）~~ 经评估为过度设计暂不实施。
   4. 阶段验收必须更新相关运行手册片段（若有影响），并执行 `make test`、`make lint`、`make test-integration`。
 - **验证方式**
   - 阶段性灰度：在 `make run-dev` 中启用双写，比较新旧时间轴数据日志。
