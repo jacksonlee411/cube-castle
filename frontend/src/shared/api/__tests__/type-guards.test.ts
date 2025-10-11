@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ROOT_PARENT_CODE } from '@/shared/utils/organization-helpers';
 import { OrganizationUnitTypeEnum, OrganizationStatusEnum } from '@/shared/types/contract_gen';
+import type { JsonValue } from '@/shared/types/json';
 import {
   validateOrganizationUnit,
   validateCreateOrganizationInput,
@@ -104,7 +105,7 @@ describe('Type Guards and Validators', () => {
     });
 
     it('should throw ValidationError with index information for invalid items', () => {
-      const invalidList = [
+      const invalidList: JsonValue[] = [
         {
           code: '1000001',
           name: 'Department 1',
@@ -113,11 +114,7 @@ describe('Type Guards and Validators', () => {
           level: 2
         },
         {
-          code: '1000002',
-          name: 'Invalid Department',
-          unitType: 'UNKNOWN',
-          status: OrganizationStatusEnum.Active,
-          level: 2
+          code: '1000002'
         }
       ];
 

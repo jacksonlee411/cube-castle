@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"organization-command-service/internal/types"
 	"organization-command-service/internal/utils"
 )
 
@@ -126,6 +127,10 @@ func (r *OrganizationRepository) calculateHierarchyFields(ctx context.Context, t
 	fields.Level = parentLevel + 1
 	fields.CodePath = ensureJoinedPath(parentCodePath, code)
 	fields.NamePath = ensureJoinedPath(parentNamePath, finalName)
+
+	if fields.Level > types.OrganizationLevelMax {
+		return nil, fmt.Errorf("层级超过系统允许的最大深度 (%d)", types.OrganizationLevelMax)
+	}
 
 	return fields, nil
 }

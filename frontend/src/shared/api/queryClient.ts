@@ -179,9 +179,16 @@ const queryCache = new QueryCache({
 
 const mutationCache = new MutationCache({
   onError: (error, _variables, _context, mutation) => {
-    UnifiedErrorHandler.logError('React Query变更失败', error, {
-      mutationKey: mutation?.options?.mutationKey,
-    });
+    const mutationKey = mutation?.options?.mutationKey;
+    const additionalInfo =
+      mutationKey === undefined
+        ? undefined
+        : {
+            mutationKey: Array.isArray(mutationKey)
+              ? JSON.stringify(mutationKey)
+              : String(mutationKey),
+          };
+    UnifiedErrorHandler.logError('React Query变更失败', error, additionalInfo);
   },
 });
 

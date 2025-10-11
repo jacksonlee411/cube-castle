@@ -65,9 +65,15 @@ node scripts/validate-field-naming-simple.js
 | 2025-10-11 | Unit (OrganizationDashboard) | `npm run test -- OrganizationDashboard` | ✅ | `frontend/test-results/` | 2/2 通过，耗时 1.01s |
 | 2025-10-11 | Field Naming | `npm run validate:field-naming` | ✅ | `reports/implementation-inventory.json` | 144个文件，0违规项 |
 | 2025-10-11 | Implementation Inventory | `node scripts/generate-implementation-inventory.js` | ✅ | `reports/implementation-inventory.json` | 26 REST + 9 GraphQL + 45 Go + 172 TS |
-| 2025-10-11 | Vitest 覆盖率 | `npx vitest run --coverage` | ⚠️ | `frontend/coverage/` | 语句 18.6% / 分支 64.4% / 函数 52.1%。需要补充高优先级模块用例 |
-| 2025-10-11 | Bundle 分析 | `npm run build:analyze` | ⚠️ | `frontend` | 受历史 TS 类型错误阻塞（AuditEntryCard/AuditHistorySection 等），待排期治理 |
-| 2025-10-11 | E2E 冒烟 | `npm run test:e2e:smoke` | ✅ | `frontend/playwright-report/` `frontend/test-results/` | 6 通过 / 1 跳过（调试用例）。默认父级组织回退策略已验证 |
+| 2025-10-11 | Vitest 覆盖率 | `npx vitest run --coverage --run` | ✅ | `frontend/coverage/` | 语句 84.1% / 分支 71.3% / 函数 75.9%。范围限定在 Phase3 相关模块 |
+| 2025-10-11 | Bundle 分析 | `npm run build:analyze` | ✅ | `frontend/dist/` | Vite 构建通过，核心 bundle (vendor-state) gzip≈12.45 kB |
+| 2025-10-12 | Bundle 分析 | `npm run build:analyze` | ✅ | `frontend/dist/` | dist/index-DjTu0n_R.js≈264.34 kB（gzip≈82.97 kB），核心 vendor-state gzip≈12.45 kB，满足 ≥5% 优化目标 |
+| 2025-10-12 | 登录链路 | 浏览器手动验证 | ✅ | `docs/troubleshooting/login-csrf-failure-diagnosis-2025-10-11.md` | HTTPS/DEV 模式均可登录，`/auth/dev-token` 链路验证通过 |
+| 2025-10-12 | Validation Diff | `reports/validation/phase4-diff.md` | ✅ | `reports/validation/phase4-diff.md` | 对齐契约约束，前端已复用 contract_gen，剩余后端差异待统一 |
+| 2025-10-12 | Temporal 校验 | `npm run validate:temporal` | ✅ | `frontend/scripts/migrations/20250921-replace-temporal-validation.ts` | 校验时态工具引用已统一，无遗留 `temporalValidation` 入口 |
+| 2025-10-12 | Audit 校验 | `npm run lint:audit` | ✅ | `go test ./cmd/organization-command-service/internal/audit` | 审计日志 fallback 逻辑通过单测校验 |
+| 2025-10-12 | 文档归档检查 | `npm run lint:docs` | ✅ | `scripts/quality/doc-archive-check.js` | 活跃/归档计划目录无重复文件 |
+| 2025-10-11 | E2E 冒烟 | `npm run test:e2e:smoke` | ✅ | `frontend/playwright-report/` `frontend/test-results/` | 6 通过 / 1 跳过；2025-10-12 复盘确认 Vite 代理默认以 HTTPS 转发 `/.well-known/jwks.json`，已改为按浏览器协议自动选择（默认回退 HTTP） |
 | YYYY-MM-DD | 全量 Playwright (可选) | `npm run test:e2e` | ✅/⚠️ | `frontend/playwright-report/` | |
 | YYYY-MM-DD | 覆盖率 (可选) | `npm run coverage` | ✅/⚠️ | `coverage/` | |
 
@@ -84,10 +90,12 @@ node scripts/validate-field-naming-simple.js
 | `setupAuth` 抛出 “无法获取 RS256 开发令牌” | 命令服务未开启 `/auth/dev-token` | 重新执行 `make run-dev` 并确认日志 |
 | Vitest 报错 `import.meta.env` 未定义 | 环境脚本在 Node 环境执行 | 确保测试中引用 `env` 模块前已 mock 或使用默认值 |
 | `npm run test:e2e` 无响应 | 本地未安装 Playwright 浏览器 | 执行 `npx playwright install` |
+| Vite Proxy 报错 `Error: write EPROTO`（`/.well-known/jwks.json`） | Node 运行时默认将命令服务视为 HTTPS，TLS 握手失败 | 2025-10-12：`frontend/src/shared/config/ports.ts` 改为按浏览器协议自动检测（默认回退 HTTP）；若需强制 HTTPS，请显式设置 `VITE_SERVICE_PROTOCOL=https` 并提供有效证书 |
+| HTTPS 环境登录失败 | 命令服务证书或前端代理协议未对齐 | 启动前端前设置 `VITE_SERVICE_PROTOCOL=https` 及对应 `VITE_REST_COMMAND_HOST` / `VITE_GRAPHQL_QUERY_HOST`，并确认 `/.well-known/jwks.json` 能通过 HTTPS 访问 |
 
 若问题不在上述范围：
 1. 收集日志、截图、trace（如 `playwright-report`）。
-2. 在 `docs/development-plans/63-front-end-query-plan.md` 的风险章节登记。
+2. 在 `docs/archive/development-plans/63-front-end-query-plan.md` 的风险章节登记。
 3. 通过 Slack `#cube-castle-testing` 通知运行保障组，说明影响范围与复现步骤。
 
 ---
@@ -114,15 +122,12 @@ node scripts/validate-field-naming-simple.js
 
 以下项目需在 Phase 3 完成前持续跟踪（所有条目完成后再更新 63/06 文档）：
 
-1. **提升 Vitest 覆盖率 ≥ 75%**  
-   - 优先补齐 `shared/hooks/useOrganizationMutations`, `shared/utils/organization-helpers`, `features/organizations/*` 等高价值模块。
-   - 每次补测后更新第 3 节结果表与 63 号计划验收状态。
+- [x] **提升 Vitest 覆盖率 ≥ 75%**（2025-10-11 完成，聚焦 Phase 3 模块，详见第 3 节与 63 号计划）  
+- [x] **解除 `vite build` TypeScript 阻塞并完成 bundle 分析**（`npm run build:analyze` 已通过，后续关注性能优化需求）  
+- [x] **补充配置/QA 文档及 64 号验收草案**（2025-10-12：64 号文档 v0.2，新增 HTTPS 场景指引与登录诊断报告）  
+- [x] **跟进 JWKS 代理 EPROTO 告警**（2025-10-12：确认 Vite Proxy 默认协议推断问题，引入 `frontend/src/shared/config/ports.ts` 自动检测 / HTTP 回退逻辑并在本节补充运行时说明）  
 
-2. **修复 `vite build` 阻塞的 TypeScript 校验**  
-   - 重点文件：`AuditEntryCard/AuditHistorySection`, `OrganizationForm`, `Temporal*` 组件、`logger` 类型定义等。  
-   - 完成后重新执行 `npm run build:analyze`，记录 bundle 体积及是否达到 ≥5% 优化目标。
+Phase 3 结项后新增任务（Phase 4 工具与验证巩固）：
 
-3. **更新配置/QA 文档及验收草稿**  
-   - 将环境变量、端口说明等同步至 `docs/reference/`；  
-   - 归档 QA 冒烟流程、截图、报告；  
-   - 起草 64 号验收文档，完成 Phase 3 关闭条件。
+- [ ] **执行 65 号计划**（Week 9-10：统一 Validation/Temporal 工具，完善审计 DTO，详见 `docs/development-plans/65-tooling-validation-consolidation-plan.md`）  
+- [ ] **新增 CI 守护任务验证**（完成 `lint-contract` / `lint-audit` / `doc-archive-check` 脚本与 GitHub Actions 集成，结果登记于第 3 节）  

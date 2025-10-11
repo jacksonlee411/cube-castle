@@ -1,1295 +1,292 @@
-{
-  "timestamp": "2025-10-10T23:34:50.104Z",
-  "summary": {
-    "openapiPaths": 26,
-    "graphqlQueries": 9,
-    "goHandlers": 26,
-    "goServices": 19,
-    "tsExports": 203
-  },
-  "openapiPaths": [
-    "/api/v1/operational/health",
-    "/api/v1/operational/metrics",
-    "/api/v1/operational/alerts",
-    "/api/v1/operational/rate-limit/stats",
-    "/api/v1/operational/tasks",
-    "/api/v1/operational/tasks/status",
-    "/api/v1/operational/tasks/{taskName}/trigger",
-    "/api/v1/operational/cutover",
-    "/api/v1/operational/consistency-check",
-    "/auth/login",
-    "/auth/callback",
-    "/auth/session",
-    "/auth/refresh",
-    "/auth/logout",
-    "/.well-known/oidc",
-    "/.well-known/jwks.json",
-    "/api/v1/organization-units",
-    "/api/v1/organization-units/{code}",
-    "/api/v1/organization-units/{code}/versions",
-    "/api/v1/organization-units/{code}/events",
-    "/api/v1/organization-units/{code}/suspend",
-    "/api/v1/organization-units/{code}/activate",
-    "/api/v1/organization-units/validate",
-    "/api/v1/organization-units/{code}/refresh-hierarchy",
-    "/api/v1/organization-units/batch-refresh-hierarchy",
-    "/api/v1/corehr/organizations"
-  ],
-  "graphqlQueries": [
-    "organizations",
-    "organization",
-    "organizationStats",
-    "organizationHierarchy",
-    "organizationSubtree",
-    "hierarchyStatistics",
-    "auditHistory",
-    "auditLog",
-    "organizationVersions"
-  ],
-  "goHandlers": [
-    {
-      "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
-      "kind": "method"
-    },
-    {
-      "name": "GenerateDevToken",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
-      "kind": "method"
-    },
-    {
-      "name": "GetTokenInfo",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
-      "kind": "method"
-    },
-    {
-      "name": "DevStatus",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
-      "kind": "method"
-    },
-    {
-      "name": "ListTestEndpoints",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
-      "kind": "method"
-    },
-    {
-      "name": "DatabaseStatus",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
-      "kind": "method"
-    },
-    {
-      "name": "PerformanceMetrics",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
-      "kind": "method"
-    },
-    {
-      "name": "TestAPI",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
-      "kind": "method"
-    },
-    {
-      "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "GetRateLimitStats",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "GetHealth",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "GetMetrics",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "GetAlerts",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "GetTasks",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "GetTaskStatus",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "TriggerTask",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "TriggerCutover",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "TriggerConsistencyCheck",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
-      "kind": "method"
-    },
-    {
-      "name": "CreateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization_create.go",
-      "kind": "method"
-    },
-    {
-      "name": "CreateOrganizationVersion",
-      "file": "cmd/organization-command-service/internal/handlers/organization_create.go",
-      "kind": "method"
-    },
-    {
-      "name": "CreateOrganizationEvent",
-      "file": "cmd/organization-command-service/internal/handlers/organization_events.go",
-      "kind": "method"
-    },
-    {
-      "name": "UpdateHistoryRecord",
-      "file": "cmd/organization-command-service/internal/handlers/organization_history.go",
-      "kind": "method"
-    },
-    {
-      "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/organization_routes.go",
-      "kind": "method"
-    },
-    {
-      "name": "UpdateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
-      "kind": "method"
-    },
-    {
-      "name": "SuspendOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
-      "kind": "method"
-    },
-    {
-      "name": "ActivateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
-      "kind": "method"
-    }
-  ],
-  "goServices": [
-    {
-      "name": "CascadeUpdateService",
-      "file": "cmd/organization-command-service/internal/services/cascade.go",
-      "kind": "type"
-    },
-    {
-      "name": "CascadeTask",
-      "file": "cmd/organization-command-service/internal/services/cascade.go",
-      "kind": "type"
-    },
-    {
-      "name": "OperationalScheduler",
-      "file": "cmd/organization-command-service/internal/services/operational_scheduler.go",
-      "kind": "type"
-    },
-    {
-      "name": "ScheduledTask",
-      "file": "cmd/organization-command-service/internal/services/operational_scheduler.go",
-      "kind": "type"
-    },
-    {
-      "name": "OrganizationTemporalService",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
-      "kind": "type"
-    },
-    {
-      "name": "TemporalCreateVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
-      "kind": "type"
-    },
-    {
-      "name": "TemporalUpdateVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
-      "kind": "type"
-    },
-    {
-      "name": "TemporalDeleteVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
-      "kind": "type"
-    },
-    {
-      "name": "TemporalStatusChangeRequest",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
-      "kind": "type"
-    },
-    {
-      "name": "TemporalService",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
-      "kind": "type"
-    },
-    {
-      "name": "InsertVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
-      "kind": "type"
-    },
-    {
-      "name": "OrganizationData",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
-      "kind": "type"
-    },
-    {
-      "name": "DeleteVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
-      "kind": "type"
-    },
-    {
-      "name": "ChangeEffectiveDateRequest",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
-      "kind": "type"
-    },
-    {
-      "name": "SuspendActivateRequest",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
-      "kind": "type"
-    },
-    {
-      "name": "VersionResponse",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
-      "kind": "type"
-    },
-    {
-      "name": "TemporalMonitor",
-      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
-      "kind": "type"
-    },
-    {
-      "name": "MonitoringMetrics",
-      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
-      "kind": "type"
-    },
-    {
-      "name": "AlertRule",
-      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
-      "kind": "type"
-    }
-  ],
-  "tsExports": [
-    {
-      "name": "cubecastleBrandTokens",
-      "file": "frontend/src/design-system/tokens/brand.ts",
-      "kind": "const"
-    },
-    {
-      "name": "prepareFormDataForValidation",
-      "file": "frontend/src/features/organizations/components/OrganizationForm/validation.ts",
-      "kind": "const"
-    },
-    {
-      "name": "ORGANIZATION_UNIT_TYPES",
-      "file": "frontend/src/features/organizations/constants/formConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "ORGANIZATION_STATUSES",
-      "file": "frontend/src/features/organizations/constants/formConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "BUSINESS_STATUSES",
-      "file": "frontend/src/features/organizations/constants/formConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "ORGANIZATION_LEVELS",
-      "file": "frontend/src/features/organizations/constants/formConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "FORM_DEFAULTS",
-      "file": "frontend/src/features/organizations/constants/formConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "PAGINATION_DEFAULTS",
-      "file": "frontend/src/features/organizations/constants/formConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TABLE_COLUMNS",
-      "file": "frontend/src/features/organizations/constants/tableConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "STATUS_COLORS",
-      "file": "frontend/src/features/organizations/constants/tableConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "LOADING_STATES",
-      "file": "frontend/src/features/organizations/constants/tableConfig.ts",
-      "kind": "const"
-    },
-    {
-      "name": "fetchOrganizationVersions",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
-      "kind": "const"
-    },
-    {
-      "name": "fetchHierarchyPaths",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
-      "kind": "const"
-    },
-    {
-      "name": "deactivateOrganizationVersion",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createOrganizationUnit",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createTemporalVersion",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
-      "kind": "const"
-    },
-    {
-      "name": "updateHistoryRecord",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createLoadVersions",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailLoaders.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createHandleVersionSelect",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailLoaders.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createHandleStateMutationCompleted",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createHandleDeleteVersion",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createHandleDeleteOrganization",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createHandleFormSubmit",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createHandleHistoryEditSubmit",
-      "file": "frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useTemporalMasterDetail",
-      "file": "frontend/src/features/temporal/components/hooks/useTemporalMasterDetail.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createFormActions",
-      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/formActions.ts",
-      "kind": "const"
-    },
-    {
-      "name": "mapLifecycleStatusToOrganizationStatus",
-      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getCurrentMonthFirstDay",
-      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "computeEditDateRange",
-      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "formatDisplayDate",
-      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "normalizeInitialData",
-      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "deriveCodePath",
-      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "deriveNamePath",
-      "file": "frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TEMPORAL_STATUS_COLORS",
-      "file": "frontend/src/features/temporal/constants/temporalStatus.ts",
-      "kind": "const"
-    },
-    {
-      "name": "temporalStatusUtils",
-      "file": "frontend/src/features/temporal/constants/temporalStatus.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TEMPORAL_CONSTANTS",
-      "file": "frontend/src/features/temporal/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "temporalUtils",
-      "file": "frontend/src/features/temporal/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "AuthManager",
-      "file": "frontend/src/shared/api/auth.ts",
-      "kind": "class"
-    },
-    {
-      "name": "authManager",
-      "file": "frontend/src/shared/api/auth.ts",
-      "kind": "const"
-    },
-    {
-      "name": "contractTestingAPI",
-      "file": "frontend/src/shared/api/contract-testing.ts",
-      "kind": "const"
-    },
-    {
-      "name": "APIErrorImpl",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "class"
-    },
-    {
-      "name": "OAuthError",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "class"
-    },
-    {
-      "name": "ErrorHandler",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "class"
-    },
-    {
-      "name": "UserFriendlyError",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "class"
-    },
-    {
-      "name": "isUserFriendlyError",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isOAuthError",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "const"
-    },
-    {
-      "name": "withErrorHandling",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useErrorHandler",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "const"
-    },
-    {
-      "name": "withRetry",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "const"
-    },
-    {
-      "name": "withOAuthRetry",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "const"
-    },
-    {
-      "name": "withOAuthAwareErrorHandling",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "const"
-    },
-    {
-      "name": "UnifiedErrorHandler",
-      "file": "frontend/src/shared/api/error-handling.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getErrorMessage",
-      "file": "frontend/src/shared/api/error-messages.ts",
-      "kind": "func"
-    },
-    {
-      "name": "formatErrorForUser",
-      "file": "frontend/src/shared/api/error-messages.ts",
-      "kind": "func"
-    },
-    {
-      "name": "SUCCESS_MESSAGES",
-      "file": "frontend/src/shared/api/error-messages.ts",
-      "kind": "const"
-    },
-    {
-      "name": "GraphQLEnterpriseAdapter",
-      "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts",
-      "kind": "class"
-    },
-    {
-      "name": "graphqlEnterpriseAdapter",
-      "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useEnterpriseGraphQL",
-      "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts",
-      "kind": "const"
-    },
-    {
-      "name": "monitoringAPI",
-      "file": "frontend/src/shared/api/monitoring.ts",
-      "kind": "const"
-    },
-    {
-      "name": "queryClient",
-      "file": "frontend/src/shared/api/queryClient.ts",
-      "kind": "const"
-    },
-    {
-      "name": "queryMetrics",
-      "file": "frontend/src/shared/api/queryClient.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createQueryError",
-      "file": "frontend/src/shared/api/queryClient.ts",
-      "kind": "const"
-    },
-    {
-      "name": "__internal",
-      "file": "frontend/src/shared/api/queryClient.ts",
-      "kind": "const"
-    },
-    {
-      "name": "ValidationError",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "class"
-    },
-    {
-      "name": "validateOrganizationUnit",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateCreateOrganizationInput",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateUpdateOrganizationInput",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateCreateOrganizationResponse",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateGraphQLVariables",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateGraphQLOrganizationResponse",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateGraphQLOrganizationList",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isGraphQLError",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isGraphQLSuccessResponse",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isAPIError",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isValidationError",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isNetworkError",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "safeTransformGraphQLToOrganizationUnit",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "safeTransformCreateInputToAPI",
-      "file": "frontend/src/shared/api/type-guards.ts",
-      "kind": "const"
-    },
-    {
-      "name": "UnifiedGraphQLClient",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "class"
-    },
-    {
-      "name": "UnifiedRESTClient",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "class"
-    },
-    {
-      "name": "UnauthenticatedRESTClient",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "class"
-    },
-    {
-      "name": "unifiedGraphQLClient",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "const"
-    },
-    {
-      "name": "unifiedRESTClient",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "const"
-    },
-    {
-      "name": "unauthenticatedRESTClient",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createGraphQLClient",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createRESTClient",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateCQRSUsage",
-      "file": "frontend/src/shared/api/unified-client.ts",
-      "kind": "const"
-    },
-    {
-      "name": "AuthContext",
-      "file": "frontend/src/shared/auth/context.ts",
-      "kind": "const"
-    },
-    {
-      "name": "AUTH_UNAUTHORIZED",
-      "file": "frontend/src/shared/auth/events.ts",
-      "kind": "const"
-    },
-    {
-      "name": "authEvents",
-      "file": "frontend/src/shared/auth/events.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useAuth",
-      "file": "frontend/src/shared/auth/hooks.ts",
-      "kind": "const"
-    },
-    {
-      "name": "commandBaseUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "commandApiBaseUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "commandMetricsUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "queryBaseUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "graphqlEndpoint",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "graphqlMetricsUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "authEndpoint",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "resolveCommandUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "resolveQueryUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "resolveGraphqlUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "resolveAuthUrl",
-      "file": "frontend/src/shared/config/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TIMEOUTS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "LIMITS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "BUSINESS_CONSTANTS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "UI_CONSTANTS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "API_CONSTANTS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TEST_CONSTANTS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "RETRY_CONSTANTS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "VALIDATION_CONSTANTS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "FEATURE_FLAGS",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "generateConstantsReport",
-      "file": "frontend/src/shared/config/constants.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getEnvVar",
-      "file": "frontend/src/shared/config/environment.ts",
-      "kind": "const"
-    },
-    {
-      "name": "requireEnvVar",
-      "file": "frontend/src/shared/config/environment.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getBooleanEnvVar",
-      "file": "frontend/src/shared/config/environment.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getNumberEnvVar",
-      "file": "frontend/src/shared/config/environment.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateEnvironmentConfig",
-      "file": "frontend/src/shared/config/environment.ts",
-      "kind": "const"
-    },
-    {
-      "name": "Config",
-      "file": "frontend/src/shared/config/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "CONFIG_MANAGEMENT_STATS",
-      "file": "frontend/src/shared/config/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "SERVICE_PORTS",
-      "file": "frontend/src/shared/config/ports.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getServicePort",
-      "file": "frontend/src/shared/config/ports.ts",
-      "kind": "const"
-    },
-    {
-      "name": "buildServiceURL",
-      "file": "frontend/src/shared/config/ports.ts",
-      "kind": "const"
-    },
-    {
-      "name": "CQRS_ENDPOINTS",
-      "file": "frontend/src/shared/config/ports.ts",
-      "kind": "const"
-    },
-    {
-      "name": "FRONTEND_ENDPOINTS",
-      "file": "frontend/src/shared/config/ports.ts",
-      "kind": "const"
-    },
-    {
-      "name": "INFRASTRUCTURE_ENDPOINTS",
-      "file": "frontend/src/shared/config/ports.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validatePortConfiguration",
-      "file": "frontend/src/shared/config/ports.ts",
-      "kind": "const"
-    },
-    {
-      "name": "generatePortConfigReport",
-      "file": "frontend/src/shared/config/ports.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TenantManager",
-      "file": "frontend/src/shared/config/tenant.ts",
-      "kind": "class"
-    },
-    {
-      "name": "DEFAULT_TENANT_CONFIG",
-      "file": "frontend/src/shared/config/tenant.ts",
-      "kind": "const"
-    },
-    {
-      "name": "tenantManager",
-      "file": "frontend/src/shared/config/tenant.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getCurrentTenantId",
-      "file": "frontend/src/shared/config/tenant.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isDefaultTenant",
-      "file": "frontend/src/shared/config/tenant.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getTenantConfig",
-      "file": "frontend/src/shared/config/tenant.ts",
-      "kind": "const"
-    },
-    {
-      "name": "ORGANIZATIONS_QUERY_ROOT_KEY",
-      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "organizationsQueryKey",
-      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "organizationByCodeQueryKey",
-      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useEnterpriseOrganizations",
-      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "__internal",
-      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useMessages",
-      "file": "frontend/src/shared/hooks/useMessages.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useCreateOrganization",
-      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useUpdateOrganization",
-      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useSuspendOrganization",
-      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useActivateOrganization",
-      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useDeleteOrganization",
-      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useCreateOrganizationVersion",
-      "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
-      "kind": "const"
-    },
-    {
-      "name": "useScopes",
-      "file": "frontend/src/shared/hooks/useScopes.ts",
-      "kind": "func"
-    },
-    {
-      "name": "useOrgPBAC",
-      "file": "frontend/src/shared/hooks/useScopes.ts",
-      "kind": "func"
-    },
-    {
-      "name": "isGraphQLResponse",
-      "file": "frontend/src/shared/types/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "hasGraphQLErrors",
-      "file": "frontend/src/shared/types/api.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isOrganizationUnitTypeEnum",
-      "file": "frontend/src/shared/types/contract_gen.ts",
-      "kind": "func"
-    },
-    {
-      "name": "isOrganizationStatusEnum",
-      "file": "frontend/src/shared/types/contract_gen.ts",
-      "kind": "func"
-    },
-    {
-      "name": "isOrganizationOperationTypeEnum",
-      "file": "frontend/src/shared/types/contract_gen.ts",
-      "kind": "func"
-    },
-    {
-      "name": "OrganizationUnitTypeEnumValues",
-      "file": "frontend/src/shared/types/contract_gen.ts",
-      "kind": "const"
-    },
-    {
-      "name": "OrganizationStatusEnumValues",
-      "file": "frontend/src/shared/types/contract_gen.ts",
-      "kind": "const"
-    },
-    {
-      "name": "OrganizationOperationTypeEnumValues",
-      "file": "frontend/src/shared/types/contract_gen.ts",
-      "kind": "const"
-    },
-    {
-      "name": "OrganizationConstraints",
-      "file": "frontend/src/shared/types/contract_gen.ts",
-      "kind": "const"
-    },
-    {
-      "name": "convertGraphQLToOrganizationUnit",
-      "file": "frontend/src/shared/types/converters.ts",
-      "kind": "func"
-    },
-    {
-      "name": "convertGraphQLToTemporalOrganizationUnit",
-      "file": "frontend/src/shared/types/converters.ts",
-      "kind": "func"
-    },
-    {
-      "name": "convertCreateInputToREST",
-      "file": "frontend/src/shared/types/converters.ts",
-      "kind": "func"
-    },
-    {
-      "name": "convertUpdateInputToREST",
-      "file": "frontend/src/shared/types/converters.ts",
-      "kind": "func"
-    },
-    {
-      "name": "checkTypeConsistency",
-      "file": "frontend/src/shared/types/converters.ts",
-      "kind": "func"
-    },
-    {
-      "name": "generateTypeDefinition",
-      "file": "frontend/src/shared/types/converters.ts",
-      "kind": "func"
-    },
-    {
-      "name": "logTypeSyncReport",
-      "file": "frontend/src/shared/types/converters.ts",
-      "kind": "func"
-    },
-    {
-      "name": "TYPE_USAGE_GUIDE",
-      "file": "frontend/src/shared/types/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isJsonObject",
-      "file": "frontend/src/shared/types/json.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isJsonArray",
-      "file": "frontend/src/shared/types/json.ts",
-      "kind": "const"
-    },
-    {
-      "name": "baseColors",
-      "file": "frontend/src/shared/utils/colorTokens.ts",
-      "kind": "const"
-    },
-    {
-      "name": "statusColors",
-      "file": "frontend/src/shared/utils/colorTokens.ts",
-      "kind": "const"
-    },
-    {
-      "name": "legacyColors",
-      "file": "frontend/src/shared/utils/colorTokens.ts",
-      "kind": "const"
-    },
-    {
-      "name": "generateIdempotencyKey",
-      "file": "frontend/src/shared/utils/idempotency.ts",
-      "kind": "const"
-    },
-    {
-      "name": "DateUtils",
-      "file": "frontend/src/shared/utils/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TEMPORAL_UTILS_INFO",
-      "file": "frontend/src/shared/utils/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "createLogger",
-      "file": "frontend/src/shared/utils/logger.ts",
-      "kind": "const"
-    },
-    {
-      "name": "logger",
-      "file": "frontend/src/shared/utils/logger.ts",
-      "kind": "const"
-    },
-    {
-      "name": "ROOT_PARENT_CODE",
-      "file": "frontend/src/shared/utils/organization-helpers.ts",
-      "kind": "const"
-    },
-    {
-      "name": "normalizeParentCode",
-      "file": "frontend/src/shared/utils/organization-helpers.ts",
-      "kind": "const"
-    },
-    {
-      "name": "isRootOrganization",
-      "file": "frontend/src/shared/utils/organization-helpers.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getOrganizationLevelText",
-      "file": "frontend/src/shared/utils/organization-helpers.ts",
-      "kind": "const"
-    },
-    {
-      "name": "coerceOrganizationLevel",
-      "file": "frontend/src/shared/utils/organization-helpers.ts",
-      "kind": "const"
-    },
-    {
-      "name": "getDisplayLevel",
-      "file": "frontend/src/shared/utils/organization-helpers.ts",
-      "kind": "const"
-    },
-    {
-      "name": "splitPath",
-      "file": "frontend/src/shared/utils/organizationPath.ts",
-      "kind": "func"
-    },
-    {
-      "name": "toBreadcrumbItems",
-      "file": "frontend/src/shared/utils/organizationPath.ts",
-      "kind": "func"
-    },
-    {
-      "name": "toParentChainFromCodePath",
-      "file": "frontend/src/shared/utils/organizationPath.ts",
-      "kind": "func"
-    },
-    {
-      "name": "getOperationPermissionsByScopes",
-      "file": "frontend/src/shared/utils/organizationPermissions.ts",
-      "kind": "func"
-    },
-    {
-      "name": "getOperationPermissions",
-      "file": "frontend/src/shared/utils/organizationPermissions.ts",
-      "kind": "const"
-    },
-    {
-      "name": "STATUS_CONFIG",
-      "file": "frontend/src/shared/utils/statusUtils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "statusUtils",
-      "file": "frontend/src/shared/utils/statusUtils.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TemporalConverter",
-      "file": "frontend/src/shared/utils/temporal-converter.ts",
-      "kind": "class"
-    },
-    {
-      "name": "TemporalUtils",
-      "file": "frontend/src/shared/utils/temporal-converter.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateTemporalDate",
-      "file": "frontend/src/shared/utils/temporal-validation-adapter.ts",
-      "kind": "const"
-    },
-    {
-      "name": "VALIDATION_SYSTEM_INFO",
-      "file": "frontend/src/shared/validation/index.ts",
-      "kind": "const"
-    },
-    {
-      "name": "OrganizationUnitSchema",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "TemporalFormSchema",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "CreateOrganizationInputSchema",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "CreateOrganizationResponseSchema",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "UpdateOrganizationInputSchema",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "GraphQLVariablesSchema",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "GraphQLOrganizationResponseSchema",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "ValidationUtils",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateCreateOrganizationInput",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateUpdateOrganizationInput",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateOrganizationResponse",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    },
-    {
-      "name": "validateForm",
-      "file": "frontend/src/shared/validation/schemas.ts",
-      "kind": "const"
-    }
-  ]
-}
+## Draft – Command API (from OpenAPI)
+- `/api/v1/operational/health`
+- `/api/v1/operational/metrics`
+- `/api/v1/operational/alerts`
+- `/api/v1/operational/rate-limit/stats`
+- `/api/v1/operational/tasks`
+- `/api/v1/operational/tasks/status`
+- `/api/v1/operational/tasks/{taskName}/trigger`
+- `/api/v1/operational/cutover`
+- `/api/v1/operational/consistency-check`
+- `/auth/login`
+- `/auth/callback`
+- `/auth/session`
+- `/auth/refresh`
+- `/auth/logout`
+- `/.well-known/oidc`
+- `/.well-known/jwks.json`
+- `/api/v1/organization-units`
+- `/api/v1/organization-units/{code}`
+- `/api/v1/organization-units/{code}/versions`
+- `/api/v1/organization-units/{code}/events`
+- `/api/v1/organization-units/{code}/suspend`
+- `/api/v1/organization-units/{code}/activate`
+- `/api/v1/organization-units/validate`
+- `/api/v1/organization-units/{code}/refresh-hierarchy`
+- `/api/v1/organization-units/batch-refresh-hierarchy`
+- `/api/v1/corehr/organizations`
+
+## Draft – GraphQL Queries (from schema.graphql)
+- `organizations`
+- `organization`
+- `organizationStats`
+- `organizationHierarchy`
+- `organizationSubtree`
+- `hierarchyStatistics`
+- `auditHistory`
+- `auditLog`
+- `organizationVersions`
+
+## Draft – Go Handlers (exported methods)
+- SetupRoutes — cmd/organization-command-service/internal/handlers/devtools.go
+- GenerateDevToken — cmd/organization-command-service/internal/handlers/devtools.go
+- GetTokenInfo — cmd/organization-command-service/internal/handlers/devtools.go
+- DevStatus — cmd/organization-command-service/internal/handlers/devtools.go
+- ListTestEndpoints — cmd/organization-command-service/internal/handlers/devtools.go
+- DatabaseStatus — cmd/organization-command-service/internal/handlers/devtools.go
+- PerformanceMetrics — cmd/organization-command-service/internal/handlers/devtools.go
+- TestAPI — cmd/organization-command-service/internal/handlers/devtools.go
+- SetupRoutes — cmd/organization-command-service/internal/handlers/operational.go
+- GetRateLimitStats — cmd/organization-command-service/internal/handlers/operational.go
+- GetHealth — cmd/organization-command-service/internal/handlers/operational.go
+- GetMetrics — cmd/organization-command-service/internal/handlers/operational.go
+- GetAlerts — cmd/organization-command-service/internal/handlers/operational.go
+- GetTasks — cmd/organization-command-service/internal/handlers/operational.go
+- GetTaskStatus — cmd/organization-command-service/internal/handlers/operational.go
+- TriggerTask — cmd/organization-command-service/internal/handlers/operational.go
+- TriggerCutover — cmd/organization-command-service/internal/handlers/operational.go
+- TriggerConsistencyCheck — cmd/organization-command-service/internal/handlers/operational.go
+- CreateOrganization — cmd/organization-command-service/internal/handlers/organization_create.go
+- CreateOrganizationVersion — cmd/organization-command-service/internal/handlers/organization_create.go
+- CreateOrganizationEvent — cmd/organization-command-service/internal/handlers/organization_events.go
+- UpdateHistoryRecord — cmd/organization-command-service/internal/handlers/organization_history.go
+- SetupRoutes — cmd/organization-command-service/internal/handlers/organization_routes.go
+- UpdateOrganization — cmd/organization-command-service/internal/handlers/organization_update.go
+- SuspendOrganization — cmd/organization-command-service/internal/handlers/organization_update.go
+- ActivateOrganization — cmd/organization-command-service/internal/handlers/organization_update.go
+
+## Draft – Go Services (exported types)
+- CascadeUpdateService — cmd/organization-command-service/internal/services/cascade.go
+- CascadeTask — cmd/organization-command-service/internal/services/cascade.go
+- OperationalScheduler — cmd/organization-command-service/internal/services/operational_scheduler.go
+- ScheduledTask — cmd/organization-command-service/internal/services/operational_scheduler.go
+- OrganizationTemporalService — cmd/organization-command-service/internal/services/organization_temporal_service.go
+- TemporalCreateVersionRequest — cmd/organization-command-service/internal/services/organization_temporal_service.go
+- TemporalUpdateVersionRequest — cmd/organization-command-service/internal/services/organization_temporal_service.go
+- TemporalDeleteVersionRequest — cmd/organization-command-service/internal/services/organization_temporal_service.go
+- TemporalStatusChangeRequest — cmd/organization-command-service/internal/services/organization_temporal_service.go
+- TemporalService — cmd/organization-command-service/internal/services/temporal.go
+- InsertVersionRequest — cmd/organization-command-service/internal/services/temporal.go
+- OrganizationData — cmd/organization-command-service/internal/services/temporal.go
+- DeleteVersionRequest — cmd/organization-command-service/internal/services/temporal.go
+- ChangeEffectiveDateRequest — cmd/organization-command-service/internal/services/temporal.go
+- SuspendActivateRequest — cmd/organization-command-service/internal/services/temporal.go
+- VersionResponse — cmd/organization-command-service/internal/services/temporal.go
+- TemporalMonitor — cmd/organization-command-service/internal/services/temporal_monitor.go
+- MonitoringMetrics — cmd/organization-command-service/internal/services/temporal_monitor.go
+- AlertRule — cmd/organization-command-service/internal/services/temporal_monitor.go
+
+## Draft – Frontend Exports (classes/functions/const)
+- [const] cubecastleBrandTokens — frontend/src/design-system/tokens/brand.ts
+- [const] prepareFormDataForValidation — frontend/src/features/organizations/components/OrganizationForm/validation.ts
+- [const] ORGANIZATION_UNIT_TYPES — frontend/src/features/organizations/constants/formConfig.ts
+- [const] ORGANIZATION_STATUSES — frontend/src/features/organizations/constants/formConfig.ts
+- [const] BUSINESS_STATUSES — frontend/src/features/organizations/constants/formConfig.ts
+- [const] ORGANIZATION_LEVELS — frontend/src/features/organizations/constants/formConfig.ts
+- [const] FORM_DEFAULTS — frontend/src/features/organizations/constants/formConfig.ts
+- [const] PAGINATION_DEFAULTS — frontend/src/features/organizations/constants/formConfig.ts
+- [const] TABLE_COLUMNS — frontend/src/features/organizations/constants/tableConfig.ts
+- [const] STATUS_COLORS — frontend/src/features/organizations/constants/tableConfig.ts
+- [const] LOADING_STATES — frontend/src/features/organizations/constants/tableConfig.ts
+- [const] fetchOrganizationVersions — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] fetchHierarchyPaths — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] deactivateOrganizationVersion — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] createOrganizationUnit — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] createTemporalVersion — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] updateHistoryRecord — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] createLoadVersions — frontend/src/features/temporal/components/hooks/temporalMasterDetailLoaders.ts
+- [const] createHandleVersionSelect — frontend/src/features/temporal/components/hooks/temporalMasterDetailLoaders.ts
+- [const] createHandleStateMutationCompleted — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
+- [const] createHandleDeleteVersion — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
+- [const] createHandleDeleteOrganization — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
+- [const] createHandleFormSubmit — frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts
+- [const] createHandleHistoryEditSubmit — frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts
+- [const] useTemporalMasterDetail — frontend/src/features/temporal/components/hooks/useTemporalMasterDetail.ts
+- [const] createFormActions — frontend/src/features/temporal/components/inlineNewVersionForm/formActions.ts
+- [const] mapLifecycleStatusToOrganizationStatus — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] getCurrentMonthFirstDay — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] computeEditDateRange — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] formatDisplayDate — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] normalizeInitialData — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] deriveCodePath — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] deriveNamePath — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] TEMPORAL_STATUS_COLORS — frontend/src/features/temporal/constants/temporalStatus.ts
+- [const] temporalStatusUtils — frontend/src/features/temporal/constants/temporalStatus.ts
+- [const] TEMPORAL_CONSTANTS — frontend/src/features/temporal/index.ts
+- [const] temporalUtils — frontend/src/features/temporal/index.ts
+- [class] AuthManager — frontend/src/shared/api/auth.ts
+- [const] authManager — frontend/src/shared/api/auth.ts
+- [const] contractTestingAPI — frontend/src/shared/api/contract-testing.ts
+- [class] APIErrorImpl — frontend/src/shared/api/error-handling.ts
+- [class] OAuthError — frontend/src/shared/api/error-handling.ts
+- [class] ErrorHandler — frontend/src/shared/api/error-handling.ts
+- [class] UserFriendlyError — frontend/src/shared/api/error-handling.ts
+- [const] isUserFriendlyError — frontend/src/shared/api/error-handling.ts
+- [const] isOAuthError — frontend/src/shared/api/error-handling.ts
+- [const] withErrorHandling — frontend/src/shared/api/error-handling.ts
+- [const] useErrorHandler — frontend/src/shared/api/error-handling.ts
+- [const] withRetry — frontend/src/shared/api/error-handling.ts
+- [const] withOAuthRetry — frontend/src/shared/api/error-handling.ts
+- [const] withOAuthAwareErrorHandling — frontend/src/shared/api/error-handling.ts
+- [const] UnifiedErrorHandler — frontend/src/shared/api/error-handling.ts
+- [func] getErrorMessage — frontend/src/shared/api/error-messages.ts
+- [func] formatErrorForUser — frontend/src/shared/api/error-messages.ts
+- [const] SUCCESS_MESSAGES — frontend/src/shared/api/error-messages.ts
+- [class] GraphQLEnterpriseAdapter — frontend/src/shared/api/graphql-enterprise-adapter.ts
+- [const] graphqlEnterpriseAdapter — frontend/src/shared/api/graphql-enterprise-adapter.ts
+- [const] useEnterpriseGraphQL — frontend/src/shared/api/graphql-enterprise-adapter.ts
+- [const] monitoringAPI — frontend/src/shared/api/monitoring.ts
+- [const] queryClient — frontend/src/shared/api/queryClient.ts
+- [const] queryMetrics — frontend/src/shared/api/queryClient.ts
+- [const] createQueryError — frontend/src/shared/api/queryClient.ts
+- [const] __internal — frontend/src/shared/api/queryClient.ts
+- [class] ValidationError — frontend/src/shared/api/type-guards.ts
+- [const] validateOrganizationUnit — frontend/src/shared/api/type-guards.ts
+- [const] validateCreateOrganizationInput — frontend/src/shared/api/type-guards.ts
+- [const] validateUpdateOrganizationInput — frontend/src/shared/api/type-guards.ts
+- [const] validateCreateOrganizationResponse — frontend/src/shared/api/type-guards.ts
+- [const] validateGraphQLVariables — frontend/src/shared/api/type-guards.ts
+- [const] validateGraphQLOrganizationResponse — frontend/src/shared/api/type-guards.ts
+- [const] validateGraphQLOrganizationList — frontend/src/shared/api/type-guards.ts
+- [const] isGraphQLError — frontend/src/shared/api/type-guards.ts
+- [const] isGraphQLSuccessResponse — frontend/src/shared/api/type-guards.ts
+- [const] isAPIError — frontend/src/shared/api/type-guards.ts
+- [const] isValidationError — frontend/src/shared/api/type-guards.ts
+- [const] isNetworkError — frontend/src/shared/api/type-guards.ts
+- [const] safeTransformGraphQLToOrganizationUnit — frontend/src/shared/api/type-guards.ts
+- [const] safeTransformCreateInputToAPI — frontend/src/shared/api/type-guards.ts
+- [class] UnifiedGraphQLClient — frontend/src/shared/api/unified-client.ts
+- [class] UnifiedRESTClient — frontend/src/shared/api/unified-client.ts
+- [class] UnauthenticatedRESTClient — frontend/src/shared/api/unified-client.ts
+- [const] unifiedGraphQLClient — frontend/src/shared/api/unified-client.ts
+- [const] unifiedRESTClient — frontend/src/shared/api/unified-client.ts
+- [const] unauthenticatedRESTClient — frontend/src/shared/api/unified-client.ts
+- [const] createGraphQLClient — frontend/src/shared/api/unified-client.ts
+- [const] createRESTClient — frontend/src/shared/api/unified-client.ts
+- [const] validateCQRSUsage — frontend/src/shared/api/unified-client.ts
+- [const] AuthContext — frontend/src/shared/auth/context.ts
+- [const] AUTH_UNAUTHORIZED — frontend/src/shared/auth/events.ts
+- [const] authEvents — frontend/src/shared/auth/events.ts
+- [const] useAuth — frontend/src/shared/auth/hooks.ts
+- [const] commandBaseUrl — frontend/src/shared/config/api.ts
+- [const] commandApiBaseUrl — frontend/src/shared/config/api.ts
+- [const] commandMetricsUrl — frontend/src/shared/config/api.ts
+- [const] queryBaseUrl — frontend/src/shared/config/api.ts
+- [const] graphqlEndpoint — frontend/src/shared/config/api.ts
+- [const] graphqlMetricsUrl — frontend/src/shared/config/api.ts
+- [const] authEndpoint — frontend/src/shared/config/api.ts
+- [const] resolveCommandUrl — frontend/src/shared/config/api.ts
+- [const] resolveQueryUrl — frontend/src/shared/config/api.ts
+- [const] resolveGraphqlUrl — frontend/src/shared/config/api.ts
+- [const] resolveAuthUrl — frontend/src/shared/config/api.ts
+- [const] TIMEOUTS — frontend/src/shared/config/constants.ts
+- [const] LIMITS — frontend/src/shared/config/constants.ts
+- [const] BUSINESS_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] UI_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] API_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] TEST_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] RETRY_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] VALIDATION_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] FEATURE_FLAGS — frontend/src/shared/config/constants.ts
+- [const] generateConstantsReport — frontend/src/shared/config/constants.ts
+- [const] getEnvVar — frontend/src/shared/config/environment.ts
+- [const] requireEnvVar — frontend/src/shared/config/environment.ts
+- [const] getBooleanEnvVar — frontend/src/shared/config/environment.ts
+- [const] getNumberEnvVar — frontend/src/shared/config/environment.ts
+- [const] validateEnvironmentConfig — frontend/src/shared/config/environment.ts
+- [const] Config — frontend/src/shared/config/index.ts
+- [const] CONFIG_MANAGEMENT_STATS — frontend/src/shared/config/index.ts
+- [const] SERVICE_PORTS — frontend/src/shared/config/ports.ts
+- [const] getServicePort — frontend/src/shared/config/ports.ts
+- [const] buildServiceURL — frontend/src/shared/config/ports.ts
+- [const] CQRS_ENDPOINTS — frontend/src/shared/config/ports.ts
+- [const] FRONTEND_ENDPOINTS — frontend/src/shared/config/ports.ts
+- [const] INFRASTRUCTURE_ENDPOINTS — frontend/src/shared/config/ports.ts
+- [const] validatePortConfiguration — frontend/src/shared/config/ports.ts
+- [const] generatePortConfigReport — frontend/src/shared/config/ports.ts
+- [class] TenantManager — frontend/src/shared/config/tenant.ts
+- [const] DEFAULT_TENANT_CONFIG — frontend/src/shared/config/tenant.ts
+- [const] tenantManager — frontend/src/shared/config/tenant.ts
+- [const] getCurrentTenantId — frontend/src/shared/config/tenant.ts
+- [const] isDefaultTenant — frontend/src/shared/config/tenant.ts
+- [const] getTenantConfig — frontend/src/shared/config/tenant.ts
+- [const] ORGANIZATIONS_QUERY_ROOT_KEY — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] organizationsQueryKey — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] organizationByCodeQueryKey — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] useEnterpriseOrganizations — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] __internal — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] useMessages — frontend/src/shared/hooks/useMessages.ts
+- [const] useCreateOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useUpdateOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useSuspendOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useActivateOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useDeleteOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useCreateOrganizationVersion — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [func] useScopes — frontend/src/shared/hooks/useScopes.ts
+- [func] useOrgPBAC — frontend/src/shared/hooks/useScopes.ts
+- [const] isGraphQLResponse — frontend/src/shared/types/api.ts
+- [const] hasGraphQLErrors — frontend/src/shared/types/api.ts
+- [func] isOrganizationUnitTypeEnum — frontend/src/shared/types/contract_gen.ts
+- [func] isOrganizationStatusEnum — frontend/src/shared/types/contract_gen.ts
+- [func] isOrganizationOperationTypeEnum — frontend/src/shared/types/contract_gen.ts
+- [const] OrganizationUnitTypeEnumValues — frontend/src/shared/types/contract_gen.ts
+- [const] OrganizationStatusEnumValues — frontend/src/shared/types/contract_gen.ts
+- [const] OrganizationOperationTypeEnumValues — frontend/src/shared/types/contract_gen.ts
+- [const] OrganizationConstraints — frontend/src/shared/types/contract_gen.ts
+- [func] convertGraphQLToOrganizationUnit — frontend/src/shared/types/converters.ts
+- [func] convertGraphQLToTemporalOrganizationUnit — frontend/src/shared/types/converters.ts
+- [func] convertCreateInputToREST — frontend/src/shared/types/converters.ts
+- [func] convertUpdateInputToREST — frontend/src/shared/types/converters.ts
+- [func] checkTypeConsistency — frontend/src/shared/types/converters.ts
+- [func] generateTypeDefinition — frontend/src/shared/types/converters.ts
+- [func] logTypeSyncReport — frontend/src/shared/types/converters.ts
+- [const] TYPE_USAGE_GUIDE — frontend/src/shared/types/index.ts
+- [const] isJsonObject — frontend/src/shared/types/json.ts
+- [const] isJsonArray — frontend/src/shared/types/json.ts
+- [const] baseColors — frontend/src/shared/utils/colorTokens.ts
+- [const] statusColors — frontend/src/shared/utils/colorTokens.ts
+- [const] legacyColors — frontend/src/shared/utils/colorTokens.ts
+- [const] generateIdempotencyKey — frontend/src/shared/utils/idempotency.ts
+- [const] DateUtils — frontend/src/shared/utils/index.ts
+- [const] TEMPORAL_UTILS_INFO — frontend/src/shared/utils/index.ts
+- [const] createLogger — frontend/src/shared/utils/logger.ts
+- [const] logger — frontend/src/shared/utils/logger.ts
+- [const] ROOT_PARENT_CODE — frontend/src/shared/utils/organization-helpers.ts
+- [const] normalizeParentCode — frontend/src/shared/utils/organization-helpers.ts
+- [const] isRootOrganization — frontend/src/shared/utils/organization-helpers.ts
+- [const] getOrganizationLevelText — frontend/src/shared/utils/organization-helpers.ts
+- [const] coerceOrganizationLevel — frontend/src/shared/utils/organization-helpers.ts
+- [const] getDisplayLevel — frontend/src/shared/utils/organization-helpers.ts
+- [func] splitPath — frontend/src/shared/utils/organizationPath.ts
+- [func] toBreadcrumbItems — frontend/src/shared/utils/organizationPath.ts
+- [func] toParentChainFromCodePath — frontend/src/shared/utils/organizationPath.ts
+- [func] getOperationPermissionsByScopes — frontend/src/shared/utils/organizationPermissions.ts
+- [const] getOperationPermissions — frontend/src/shared/utils/organizationPermissions.ts
+- [const] STATUS_CONFIG — frontend/src/shared/utils/statusUtils.ts
+- [const] statusUtils — frontend/src/shared/utils/statusUtils.ts
+- [class] TemporalConverter — frontend/src/shared/utils/temporal-converter.ts
+- [const] TemporalUtils — frontend/src/shared/utils/temporal-converter.ts
+- [const] validateTemporalDate — frontend/src/shared/utils/temporal-validation-adapter.ts
+- [const] VALIDATION_SYSTEM_INFO — frontend/src/shared/validation/index.ts
+- [const] OrganizationUnitSchema — frontend/src/shared/validation/schemas.ts
+- [const] TemporalFormSchema — frontend/src/shared/validation/schemas.ts
+- [const] CreateOrganizationInputSchema — frontend/src/shared/validation/schemas.ts
+- [const] CreateOrganizationResponseSchema — frontend/src/shared/validation/schemas.ts
+- [const] UpdateOrganizationInputSchema — frontend/src/shared/validation/schemas.ts
+- [const] GraphQLVariablesSchema — frontend/src/shared/validation/schemas.ts
+- [const] GraphQLOrganizationResponseSchema — frontend/src/shared/validation/schemas.ts
+- [const] ValidationUtils — frontend/src/shared/validation/schemas.ts
+- [const] validateCreateOrganizationInput — frontend/src/shared/validation/schemas.ts
+- [const] validateUpdateOrganizationInput — frontend/src/shared/validation/schemas.ts
+- [const] validateOrganizationResponse — frontend/src/shared/validation/schemas.ts
+- [const] validateForm — frontend/src/shared/validation/schemas.ts

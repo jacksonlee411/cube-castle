@@ -40,7 +40,7 @@ type Organization struct {
 // CreateOrganizationRequest 创建组织请求
 type CreateOrganizationRequest struct {
 	Code        *string `json:"code,omitempty"` // 可选：指定组织代码（用于时态记录）
-	Name        string  `json:"name" validate:"required,max=100"`
+	Name        string  `json:"name" validate:"required,max=255"`
 	UnitType    string  `json:"unitType" validate:"required"`
 	ParentCode  *string `json:"parentCode,omitempty"`
 	SortOrder   int     `json:"sortOrder"`

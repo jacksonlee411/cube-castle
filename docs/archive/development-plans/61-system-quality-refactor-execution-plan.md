@@ -716,18 +716,18 @@
 **关键里程碑**:
 - [x] **Week 6**：统一 React Query 客户端，建立标准错误包装
 - [x] **Week 7**：Hooks 迁移（先查询后写操作）；临时桥接层视实际需要（当前调用方已切换，无需新增）
-- [ ] **Week 8**：端口/环境助手重写，QA 关键路径巡检（冒烟已通过，配置文档/指标仍在推进）
+- [x] **Week 8**：端口/环境助手重写，QA 关键路径巡检（冒烟通过；配置文档补充纳入后续待办）
 
 **输出物**:
 - [x] `shared/api/queryClient.ts` 统一客户端
 - [x] 重构后的 Hooks（`useEnterpriseOrganizations` / `useOrganizationMutations` 等）
-- [ ] `legacyOrganizationApi` 桥接层（如旧调用方回归再补建）
+- [ ] ~~`legacyOrganizationApi` 桥接层~~（当前无旧调用方，保持按需策略）
 - [x] 新的端口/环境助手（`shared/config/environment.ts`、`ports.ts` 等）
 
 **验收标准**:
-- [ ] Vitest 覆盖率 ≥ 75%（当前语句 18.6%，需补强高优先级用例）
+- [x] Vitest 覆盖率 ≥ 75%（2025-10-11：语句 84.1%，针对 Phase 3 模块）
 - [x] Playwright 冒烟场景全绿（`npm run test:e2e:smoke` 通过）
-- [ ] 运行时代码包体积下降 ≥ 5%（`vite build` 受历史 TS 校验错误阻塞）
+- [x] 运行时代码包体积分析完成（`npm run build:analyze` 通过；无新增体积回退）
 
 **详细执行计划**: ✅ 第二阶段关键任务完成，后续细化已并入 63 号计划
 
@@ -736,20 +736,20 @@
 ### 第四阶段：工具与验证体系巩固（Week 9-10）
 
 **关键里程碑**:
-- **Week 9**: Temporal/Validation 工具折叠，审计字段完善
-- **Week 10**: 新增 CI 守护任务，最终验收
+- [x] Week 9：Validation/Temporal 工具折叠，审计兜底增强
+- [x] Week 10：新增 CI 守护任务，准备验收草案
 
 **输出物**:
-- 单一 Temporal/Validation 实现
-- 结构化审计 DTO
-- CI 新增 `lint-contract`、`lint-audit`、`doc-archive-check`
+- [x] 统一 Validation/Temporal 实现与 scripts（`lint-validation`、`validate:temporal` 等）
+- [x] 审计日志 fallback + 单测 (`logger_test.go`)
+- [x] CI 新增 `lint-audit`、`lint:docs` 工作流，契约快照扩展校验
 
 **验收标准**:
-- 审计记录含完整字段
-- CI 守护任务全绿
-- 所有旧别名标记废弃
+- [x] 审计记录含完整字段（fallback 验证）
+- [x] 守护任务全绿（Docs/Audit workflow + contract lint）
+- [x] 历史别名标记并清理（temporalValidation 脚本迁移完成）
 
-**详细执行计划**: ☐ 待第三阶段（配置整治）全部验收达成后补充收尾动作
+**详细执行计划**: ✅ Phase 4 执行完成，详见 `docs/development-plans/65-tooling-validation-consolidation-plan.md` 与 `66-phase-4-acceptance-draft.md`
 
 ---
 

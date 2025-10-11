@@ -37,6 +37,9 @@ jobs:
     - name: 验证契约快照
       run: python3 tests/contract/verify_inventory.py
 
+    - name: 校验校验规则引用一致性
+      run: npm run lint:validation
+
   contract-testing:
     name: 契约测试验证
     runs-on: ubuntu-latest

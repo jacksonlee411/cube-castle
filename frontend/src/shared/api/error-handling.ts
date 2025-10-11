@@ -5,7 +5,7 @@ import { authManager } from './auth';
 import { ORGANIZATION_API_ERRORS, getErrorMessage, formatErrorForUser, SUCCESS_MESSAGES } from './error-messages';
 import type { JsonObject } from '../types/json';
 
-type RawError = JsonObject | Error | null | undefined;
+type RawError = unknown;
 
 // API错误接口
 interface APIErrorResponse {

@@ -9,10 +9,23 @@ const rawImportMeta =
     ? ((import.meta as unknown) as ImportMetaContainer)
     : undefined;
 
-const rawEnv: RawEnv =
+let rawEnv: RawEnv =
   rawImportMeta?.env && typeof rawImportMeta.env === 'object'
     ? (rawImportMeta.env as RawEnv)
     : {};
+
+// WORKAROUND: 如果 import.meta.env 为空，从外层 import.meta.env 直接读取
+// Vite 的 define 注入的变量在顶层可访问
+if (Object.keys(rawEnv).length === 0 && typeof import.meta !== 'undefined') {
+  try {
+    const metaEnv = (import.meta as {env?: Record<string, unknown>}).env;
+    if (metaEnv && typeof metaEnv.VITE_AUTH_MODE === 'string') {
+      rawEnv = metaEnv as RawEnv;
+    }
+  } catch (_error) {
+    // 忽略错误
+  }
+}
 const BOOLEAN_TRUE_VALUES = new Set(['true', '1', 'yes', 'on']);
 
 const toOptionalString = (
@@ -118,9 +131,10 @@ export interface EnvironmentConfig {
 }
 
 const mode = typeof rawEnv.MODE === 'string' ? rawEnv.MODE : 'development';
+const devMode = getBooleanEnvVar('DEV', false);
 const authModeRaw = getEnvVar(
   'VITE_AUTH_MODE',
-  getBooleanEnvVar('DEV', false) ? 'dev' : 'oidc',
+  devMode ? 'dev' : 'oidc',
 );
 const authMode = authModeRaw === 'dev' ? 'dev' : 'oidc';
 

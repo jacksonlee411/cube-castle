@@ -32,13 +32,6 @@
 #### **12 - 时态命令契约缺口（归档复测）**
 - `../archive/development-plans/12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P3 复测，核心整改已归档）
 
-#### **60-63 - 系统级质量重构**
-- `60-system-wide-quality-refactor-plan.md` - 系统级质量整合与重构计划（4阶段，8-10周）
-- `61-system-quality-refactor-execution-plan.md` - 60号计划执行落地指南
-- `62-backend-middleware-refactor-plan.md` - Phase 2 后端观测与运维巩固计划
-- `63-front-end-query-plan.md` - Phase 3 前端 API/Hooks/配置整治计划
-- `62-phase-2-acceptance-draft.md` - Phase 2 验收草稿（观测与运维巩固）
-
 ### **归档文档** (docs/archive/development-plans/)
 
 > **文档归档时间**: 2025-09-13  
@@ -69,6 +62,12 @@
 - `../archive/development-plans/20-eslint-exception-strategy-and-zero-warning-plan.md` - ESLint 例外策略与零告警方案（完成）
 - `../archive/development-plans/07-audit-history-load-failure-fix-plan.md` - 审计历史加载失败修复计划（P1，2025-10-07 验收归档）
 - `../archive/development-plans/23-plan16-p0-stabilization.md` - Plan16 P0 稳定化方案（E2E ≥90% 验收完成）
+- `../archive/development-plans/60-system-wide-quality-refactor-plan.md` - 系统级质量整合与重构计划（四阶段全部完成）
+- `../archive/development-plans/61-system-quality-refactor-execution-plan.md` - 60号计划执行落地指南（Phase 4 验收后归档）
+- `../archive/development-plans/63-front-end-query-plan.md` - Phase 3 前端 API/Hooks/配置整治计划（2025-10-12 验收归档）
+- `../archive/development-plans/64-phase-3-acceptance-report.md` - Phase 3 验收报告（2025-10-12 通过）
+- `../archive/development-plans/65-tooling-validation-consolidation-plan.md` - Phase 4 工具与验证巩固计划（2025-10-12 完成）
+- `../archive/development-plans/66-phase-4-acceptance-draft.md` - Phase 4 验收草案
 
 ## 📊 文档关系
 

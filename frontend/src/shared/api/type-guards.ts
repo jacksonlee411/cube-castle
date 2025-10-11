@@ -109,45 +109,53 @@ export const validateGraphQLOrganizationList = (
   });
 };
 
+const isGraphQLErrorEntry = (value: unknown): value is GraphQLError => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'message' in value &&
+    typeof (value as { message?: unknown }).message === 'string'
+  );
+};
+
 // GraphQL响应类型守卫
 export const isGraphQLError = (
-  response: JsonValue,
+  response: unknown,
 ): response is { errors: GraphQLError[] } => {
-  return (
-    typeof response === 'object' && 
-    response !== null && 
-    'errors' in response &&
-    Array.isArray((response as JsonObject).errors) &&
-    ((response as JsonObject).errors as JsonValue[]).length > 0
-  );
+  if (typeof response !== 'object' || response === null) {
+    return false;
+  }
+
+  const errors = (response as { errors?: unknown }).errors;
+  return Array.isArray(errors) && errors.length > 0 && errors.every(isGraphQLErrorEntry);
 };
 
 // GraphQL成功响应类型守卫
 export const isGraphQLSuccessResponse = <T>(
-  response: JsonValue
+  response: unknown
 ): response is GraphQLResponse<T> => {
   if (typeof response !== 'object' || response === null) {
     return false;
   }
   
-  const obj = response as JsonObject;
-  return (
-    'data' in obj &&
-    obj.data !== null &&
-    obj.data !== undefined
-  );
+  const obj = response as Record<string, unknown>;
+  return 'data' in obj && obj.data !== null && obj.data !== undefined;
 };
 
-type PossibleError = APIError | ValidationError | Error | null | undefined;
+type PossibleError = unknown;
 
 // API错误类型守卫
 export const isAPIError = (error: PossibleError): error is APIError => {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
   return (
     error instanceof Error &&
     'status' in error &&
     'statusText' in error &&
-    typeof (error as APIError).status === 'number' &&
-    typeof (error as APIError).statusText === 'string'
+    typeof (error as { status?: unknown }).status === 'number' &&
+    typeof (error as { statusText?: unknown }).statusText === 'string'
   );
 };
 
@@ -157,14 +165,27 @@ export const isValidationError = (error: PossibleError): error is ValidationErro
 };
 
 // 网络错误类型守卫
-export const isNetworkError = (error: Error | null | undefined): error is TypeError => {
-  return error instanceof TypeError && error.message.includes('fetch');
+export const isNetworkError = (error: PossibleError): error is TypeError => {
+  return error instanceof TypeError && typeof error.message === 'string' && error.message.includes('fetch');
 };
 
 // 安全的类型转换函数 - 将GraphQL响应转换为前端期望的格式
 export const safeTransformGraphQLToOrganizationUnit = (
   graphqlOrg: ValidatedGraphQLOrganizationResponse
 ): OrganizationUnit => {
+  const codePath =
+    'codePath' in graphqlOrg && typeof (graphqlOrg as { codePath?: string | null }).codePath === 'string'
+      ? (graphqlOrg as { codePath?: string | null }).codePath ?? undefined
+      : undefined;
+  const namePath =
+    'namePath' in graphqlOrg && typeof (graphqlOrg as { namePath?: string | null }).namePath === 'string'
+      ? (graphqlOrg as { namePath?: string | null }).namePath ?? undefined
+      : undefined;
+  const pathValue =
+    'path' in graphqlOrg && typeof (graphqlOrg as { path?: string | null }).path === 'string'
+      ? (graphqlOrg as { path?: string | null }).path ?? undefined
+      : undefined;
+
   return {
     code: graphqlOrg.code,
     parentCode: graphqlOrg.parentCode || '',
@@ -172,9 +193,9 @@ export const safeTransformGraphQLToOrganizationUnit = (
     unitType: graphqlOrg.unitType as OrganizationUnit['unitType'],
     status: graphqlOrg.status as OrganizationUnit['status'],
     level: graphqlOrg.level,
-    codePath: graphqlOrg.codePath ?? undefined,
-    namePath: graphqlOrg.namePath ?? undefined,
-    path: graphqlOrg.codePath ?? graphqlOrg.path ?? undefined,
+    codePath,
+    namePath,
+    path: pathValue ?? codePath,
     sortOrder: graphqlOrg.sortOrder || 0,
     description: graphqlOrg.description || '',
     createdAt: graphqlOrg.createdAt || '',

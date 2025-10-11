@@ -4,9 +4,20 @@ const DEFAULT_SERVICE_HOST = getEnvVar(
   'VITE_SERVICE_HOST',
   'localhost',
 );
+const inferDefaultProtocol = (): string => {
+  if (typeof globalThis !== 'undefined') {
+    const locationAccessor = (globalThis as { location?: { protocol?: string } }).location;
+    const protocol = locationAccessor?.protocol;
+    if (typeof protocol === 'string') {
+      return protocol === 'https:' ? 'https' : 'http';
+    }
+  }
+  return 'http';
+};
+
 const DEFAULT_PROTOCOL = getEnvVar(
   'VITE_SERVICE_PROTOCOL',
-  env.isDevelopment ? 'http' : 'https',
+  inferDefaultProtocol(),
 );
 
 export const SERVICE_PORTS = {

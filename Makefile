@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate
 
 # 默认目标
 help:
@@ -34,6 +34,7 @@ help:
 	@echo "  test-auth-unit   - 运行 RS256+JWKS 认证单元测试（查询服务中间件）"
 	@echo "  test-e2e-auth    - 运行 认证端到端测试（需要 Postgres/Redis 运行中）"
 	@echo "  e2e-full         - 清理→重启（RS256+JWKS）→前端E2E（webServer自启）"
+	@echo "  temporal-validate- 校验时态工具引用与规则（前端统一入口）"
 	@echo "  fmt              - Go 代码格式化"
 	@echo "  lint             - golangci-lint 检查"
 	@echo "  security         - gosec 安全扫描"
@@ -156,6 +157,10 @@ test-e2e-auth:
 e2e-full:
 	@echo "🧪 清理→重启（RS256+JWKS）→前端E2E（webServer自启）"
 	bash scripts/dev/cleanup-and-full-e2e.sh
+
+temporal-validate:
+	@echo "🕒 校验前端时态工具引用..."
+	cd frontend && npm run validate:temporal
 
 dev-kill:
 	@echo "🧹 结束本地开发服务进程 (9090/8090) ..."

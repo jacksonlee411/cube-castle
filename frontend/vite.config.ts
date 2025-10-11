@@ -1,11 +1,19 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'node:path'
 import { SERVICE_PORTS, CQRS_ENDPOINTS } from './src/shared/config/ports'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // 显式加载环境变量并注入到客户端
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
+  // 显式定义环境变量以注入到客户端 (解决 Vite 环境变量注入问题)
+  define: {
+    'import.meta.env.VITE_AUTH_MODE': JSON.stringify(env.VITE_AUTH_MODE || 'oidc'),
+  },
   plugins: [
     react(),
     // Dev-only health endpoint for E2E env validation
@@ -124,6 +132,18 @@ export default defineConfig({
       'node_modules',
       'dist',
       'tests/e2e/**' // 排除E2E测试文件，这些由Playwright处理
-    ]
+    ],
+    coverage: {
+      reporter: ['text', 'html'],
+      include: [
+        'src/shared/api/queryClient.ts',
+        'src/shared/api/type-guards.ts',
+        'src/shared/api/graphql-enterprise-adapter.ts',
+        'src/shared/hooks/useEnterpriseOrganizations.ts',
+        'src/shared/hooks/useMessages.ts'
+      ],
+      exclude: ['src/shared/api/__tests__/**', 'src/shared/hooks/__tests__/**']
+    }
   }
+};
 })

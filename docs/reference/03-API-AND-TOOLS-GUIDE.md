@@ -12,6 +12,20 @@ make docker-up          # 启动基础设施 (PostgreSQL + Redis)
 make run-dev            # 启动后端服务 (命令9090 + 查询8090)
 make frontend-dev       # 启动前端开发服务器 (3000)
 ```
+> ℹ️ **开发代理说明**：前端 Vite Dev Server 通过 `frontend/src/shared/config/ports.ts` 代理命令/查询服务。默认按浏览器当前协议自动选择；若无法检测则回退为 HTTP，以避免 `.well-known/jwks.json` 出现 `EPROTO`。如需强制使用 HTTPS，请为后端配置有效证书并显式设置 `VITE_SERVICE_PROTOCOL=https`。
+
+#### HTTPS 环境验证指引
+1. **生成/配置证书**：确保命令服务在 HTTPS 端口（默认 9090）启用有效证书，可使用自签证书并导入受信任列表。  
+2. **启动服务**：保持 `make run-dev` 或自定义部署，但需确保 `/.well-known/jwks.json` 可通过 HTTPS 访问。  
+3. **设置前端变量**：在构建或启动前端前设置环境变量：
+   ```bash
+   export VITE_SERVICE_PROTOCOL=https
+   export VITE_REST_COMMAND_HOST=<命令服务域名或IP>
+   export VITE_GRAPHQL_QUERY_HOST=<查询服务域名或IP>
+   npm run build   # 或 npm run dev
+   ```
+   若端口非默认值，可额外传入 `VITE_PORT_REST_COMMAND` 等。  
+4. **前端验证**：访问 `/login`，点击“重新获取开发令牌并继续”或“前往企业登录（生产）”，确认能成功跳转/刷新；控制台中不应再出现 `EPROTO` 或 Mixed Content 告警。  
 
 ### JWT认证设置（全环境统一 RS256）
 ```bash

@@ -22,6 +22,7 @@
     "typecheck": "tsc --noEmit",
     "validate:field-naming": "node scripts/validate-field-naming-simple.js",
     "validate:ports": "tsx scripts/validate-port-config.ts",
+    "validate:temporal": "npm run migrate:temporal-validation -- --check",
     "lint:graphql": "graphql-codegen --check",
     "build:verify": "tsc --noEmit && vite build",
     "migrate:temporal-validation": "tsx scripts/migrations/20250921-replace-temporal-validation.ts",
