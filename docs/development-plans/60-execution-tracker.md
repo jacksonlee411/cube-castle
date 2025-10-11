@@ -41,7 +41,7 @@
 - [x] Week 9：命令服务审计兜底增强 + 单测（`audit/logger.go`、`logger_test.go`、`npm run lint:audit`）
 - [x] Week 9：统一时态校验入口（`npm run validate:temporal`、`make temporal-validate`）
 - [x] Week 10：新增文档/审计守护工作流（`docs-audit-quality.yml`、`npm run lint:docs`）
-- [ ] Week 10：扩展 `contract-snapshot` 断言并补充剩余文档同步
+- [x] Week 10：扩展 `contract-snapshot` 断言并补充剩余文档同步（`lint:validation`、`docs/development-plans/66-phase-4-acceptance-draft.md`）
 
 ## 本周进展（Week 41, 2025-10-10）
 

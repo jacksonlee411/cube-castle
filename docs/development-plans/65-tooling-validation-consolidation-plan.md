@@ -87,7 +87,7 @@
    - 复核 `reports/implementation-inventory.json`，确认新增工具未破坏现有导出。
 
 4. **验收文档**
-   - 起草 Phase 4 验收文档 `docs/development-plans/66-phase-4-acceptance-draft.md`（占位名称，执行过程中创建）。
+   - [x] 起草 Phase 4 验收文档 `docs/development-plans/66-phase-4-acceptance-draft.md`。
    - 更新 `docs/development-plans/60-execution-tracker.md`，标记第四阶段进度。
    - 在 `docs/development-plans/06-integrated-teams-progress-log.md` 添加 Week 9-10 验收结果表格。
 
