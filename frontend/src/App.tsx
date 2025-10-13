@@ -32,6 +32,27 @@ const SuspenseLoader: React.FC = () => (
 )
 
 function App() {
+  const isPositionMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
+  const renderWithAuth = (element: React.ReactNode) =>
+    <RequireAuth>
+      <Suspense fallback={<SuspenseLoader />}>
+        {element}
+      </Suspense>
+    </RequireAuth>
+
+  const renderWithoutAuth = (element: React.ReactNode) =>
+    <Suspense fallback={<SuspenseLoader />}>
+      {element}
+    </Suspense>
+
+  const renderPositions = () =>
+    isPositionMockMode
+      ? renderWithoutAuth(<PositionDashboard />)
+      : renderWithAuth(<PositionDashboard />)
+
+  const renderOrganizations = (component: React.ReactNode) =>
+    renderWithAuth(component)
+
   return (
     <Routes>
       <Route path="/" element={<AppShell />}>
@@ -41,69 +62,35 @@ function App() {
         {/* 组织管理模块 - 使用懒加载优化性能 */}
         <Route 
           path="/organizations" 
-          element={
-            <RequireAuth>
-              <Suspense fallback={<SuspenseLoader />}>
-                <OrganizationDashboard />
-              </Suspense>
-            </RequireAuth>
-          } 
+          element={renderOrganizations(<OrganizationDashboard />)} 
         />
         
         {/* 组织相关页面 - 统一使用参数化路由和懒加载 */}
         <Route 
           path="/organizations/:code" 
-          element={
-            <RequireAuth>
-              <Suspense fallback={<SuspenseLoader />}>
-                <OrganizationTemporalPage />
-              </Suspense>
-            </RequireAuth>
-          } 
+          element={renderOrganizations(<OrganizationTemporalPage />)} 
         />
         <Route 
           path="/organizations/:code/temporal" 
-          element={
-            <RequireAuth>
-              <Suspense fallback={<SuspenseLoader />}>
-                <OrganizationTemporalPage />
-              </Suspense>
-            </RequireAuth>
-          } 
+          element={renderOrganizations(<OrganizationTemporalPage />)} 
         />
         
         {/* 职位管理 - Stage 0 页面框架 */}
         <Route 
           path="/positions" 
-          element={
-            <RequireAuth>
-              <Suspense fallback={<SuspenseLoader />}>
-                <PositionDashboard />
-              </Suspense>
-            </RequireAuth>
-          } 
+          element={renderPositions()} 
         />
         
         {/* 系统监控总览 */}
         <Route 
           path="/dashboard" 
-          element={
-            <RequireAuth>
-              <Suspense fallback={<SuspenseLoader />}>
-                <MonitoringDashboard />
-              </Suspense>
-            </RequireAuth>
-          } 
+          element={renderWithAuth(<MonitoringDashboard />)} 
         />
         
         {/* 契约测试监控页面 - 位于组织架构之后 */}
         <Route 
           path="/contract-testing" 
-          element={
-            <Suspense fallback={<SuspenseLoader />}>
-              <ContractTestingDashboard />
-            </Suspense>
-          } 
+          element={renderWithoutAuth(<ContractTestingDashboard />)} 
         />
       </Route>
       {/* 登录页（开发态） */}
