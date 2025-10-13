@@ -1,9 +1,10 @@
 import React from 'react'
 import { Card } from '@workday/canvas-kit-react/card'
-import { Flex, Stack } from '@workday/canvas-kit-react/layout'
+import { Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import type { PositionMock } from '../mockData'
+import { SimpleStack } from './SimpleStack'
 
 interface PositionSummaryCardsProps {
   positions: PositionMock[]
@@ -50,7 +51,7 @@ export const PositionSummaryCards: React.FC<PositionSummaryCardsProps> = ({ posi
           backgroundColor={colors.frenchVanilla100}
           style={{ borderTop: `4px solid ${metric.accent}` }}
         >
-          <Stack space={space.xs}>
+          <SimpleStack gap={space.xs}>
             <Heading level="3">{metric.title}</Heading>
             <Text fontSize="32px" fontWeight="bold" color={metric.accent}>
               {metric.value}
@@ -58,7 +59,7 @@ export const PositionSummaryCards: React.FC<PositionSummaryCardsProps> = ({ posi
             <Text as="p" color={colors.licorice500}>
               {metric.description}
             </Text>
-          </Stack>
+          </SimpleStack>
         </Card>
       ))}
     </Flex>

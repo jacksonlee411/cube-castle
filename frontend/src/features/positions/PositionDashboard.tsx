@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react'
-import { Box, Flex, Stack } from '@workday/canvas-kit-react/layout'
+import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { PositionSummaryCards } from './components/PositionSummaryCards'
 import { PositionList } from './components/PositionList'
 import { PositionDetails } from './components/PositionDetails'
+import { SimpleStack } from './components/SimpleStack'
 import { mockPositions } from './mockData'
 
 const jobFamilyGroupOptions = Array.from(new Set(mockPositions.map(item => item.jobFamilyGroup)))
@@ -57,18 +58,18 @@ export const PositionDashboard: React.FC = () => {
 
   return (
     <Box padding={space.l} data-testid="position-dashboard">
-      <Stack space={space.l}>
-        <Stack space={space.xs}>
+      <SimpleStack gap={space.l}>
+        <SimpleStack gap={space.xs}>
           <Heading level="2">职位管理（Stage 0 Mock）</Heading>
           <Text color={colors.licorice500}>
             当前页面展示的是 Stage 0 布局与交互框架，数据来源于内部 mock，待验收后再接入真实 API。
           </Text>
-        </Stack>
+        </SimpleStack>
 
         <PositionSummaryCards positions={filteredPositions} />
 
         <CardLikeContainer>
-          <Stack space={space.m}>
+          <SimpleStack gap={space.m}>
             <Heading level="4">筛选条件</Heading>
             <Flex gap={space.m} flexWrap="wrap">
               <TextInput
@@ -102,7 +103,7 @@ export const PositionDashboard: React.FC = () => {
                 ))}
               </NativeSelect>
             </Flex>
-          </Stack>
+          </SimpleStack>
         </CardLikeContainer>
 
         <Flex gap={space.l} alignItems="stretch" flexDirection={{ xs: 'column', md: 'row' }}>
@@ -113,7 +114,7 @@ export const PositionDashboard: React.FC = () => {
             <PositionDetails position={selectedPosition} />
           </Box>
         </Flex>
-      </Stack>
+      </SimpleStack>
     </Box>
   )
 }

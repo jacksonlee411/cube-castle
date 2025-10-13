@@ -1,11 +1,12 @@
 import React from 'react'
 import { Card } from '@workday/canvas-kit-react/card'
-import { Box, Flex, Stack } from '@workday/canvas-kit-react/layout'
+import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { StatusBadge } from '../../../shared/components/StatusBadge'
 import type { PositionMock } from '../mockData'
 import type { PositionLifecycleEvent } from '../types'
+import { SimpleStack } from './SimpleStack'
 
 interface PositionDetailsProps {
   position?: PositionMock
@@ -36,7 +37,7 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({ position }) =>
 
   return (
     <Card data-testid="position-detail-card" padding={space.l} height="100%" backgroundColor={colors.frenchVanilla100}>
-      <Stack space={space.m}>
+      <SimpleStack gap={space.m}>
         <Flex alignItems="center" justifyContent="space-between">
           <Heading level="3">{position.title}</Heading>
           <StatusBadge status={position.status} size="medium" />
@@ -45,7 +46,7 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({ position }) =>
           {position.organization.name} · 汇报给 {position.supervisor.name}
         </Text>
         <DividerLine />
-        <Stack space={space.xs}>
+        <SimpleStack gap={space.xs}>
           <Heading level="4">岗位信息</Heading>
           <Text>
             职类 / 职种：{position.jobFamilyGroup} · {position.jobFamily}
@@ -64,17 +65,17 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({ position }) =>
               {position.notes}
             </Text>
           )}
-        </Stack>
+        </SimpleStack>
         <DividerLine />
-        <Stack space={space.s}>
+        <SimpleStack gap={space.s}>
           <Heading level="4">最近事件</Heading>
           {position.lifecycle.length === 0 ? (
             <Text color={colors.licorice400}>暂无事件记录</Text>
           ) : (
             position.lifecycle.slice(0, 4).map(item => <TimelineItem key={item.id} event={item} />)
           )}
-        </Stack>
-      </Stack>
+        </SimpleStack>
+      </SimpleStack>
     </Card>
   )
 }
