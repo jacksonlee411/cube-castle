@@ -1,133 +1,77 @@
-# 06 号文档：测试任务与执行要求（最新版）
+# 06 号文档：职位管理 Stage 0 验收测试计划（相对 80 号方案）
 
-> 本文为集成团队在所有阶段执行测试的唯一事实来源。涉及环境准备、测试范围、执行命令、结果记录与缺陷反馈，请严格遵守。若与其他文档冲突，以本文件为准。
-
----
-
-## 1. 环境准备（必须满足后方测试才可执行）
-
-| 组件 | 目标状态 | 启动/校验命令 | 说明 |
-|------|-----------|---------------|------|
-| **PostgreSQL & Redis** | 已启动 | `make docker-up` | 仅需最小依赖，无需额外容器 |
-| **命令服务 (REST, :9090)** | 运行中、/health 返回 200 | `make run-dev` 或手动执行 `go run ./cmd/organization-command-service/main.go` | 必须使用 RS256，`secrets/dev-jwt-*.pem` 已存在 |
-| **查询服务 (GraphQL, :8090)** | 运行中、/health 返回 200 | 同上（`go run ./cmd/organization-query-service/main.go`） | `JWT_JWKS_URL` 指向命令服务 JWKS |
-| **前端 (Vite Dev, :3000)** | 可访问，首页返回 HTML | `npm run dev`（默认 webpack dev server，已在 Playwright 中复用） | Playwright 取 `baseURL` 时需判定该服务是否已经就绪 |
-| **RS256 开发令牌** | `.cache/dev.jwt` 存在且未过期 | `make jwt-dev-mint`（如需刷新） | `PW_JWT`、`PW_TENANT_ID` 从此文件导出 |
-| **本地环境变量** | 已设置 | ```bash 
-export PW_JWT=$(cat .cache/dev.jwt)  
-export PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9
-``` | Playwright 会自动回退读取 `.cache/dev.jwt`，但建议显式导出 |
-
-**验证脚本**（全部通过后才允许进入测试环节）：
-```bash
-curl -fsS http://localhost:9090/health
-curl -fsS http://localhost:8090/health
-curl -fsS http://localhost:3000/ | head -n 1
-node scripts/validate-field-naming-simple.js
-```
+**创建日期**：2025-10-13  
+**维护人**：集成团队（前端验证小组）  
+**关联计划**：80 号《职位管理模块设计方案》 Stage 0  
 
 ---
 
-## 2. 测试范围与执行顺序
+## 1. 验收范围
 
-1. **单元与集合测试（可并行）**
-   - `npm run test -- queryClient`
-   - `npm run test -- useEnterpriseOrganizations`
-   - `npm run test -- OrganizationDashboard`
-
-2. **前端静态校验**
-   - `npm run validate:field-naming`
-   - `node scripts/generate-implementation-inventory.js`
-
-3. **E2E 冒烟测试（Chromium）**
-   - 命令：`npm run test:e2e:smoke`
-   - 覆盖规格：
-     - `tests/e2e/simple-connection-test.spec.ts`
-     - `tests/e2e/basic-functionality-test.spec.ts`
-     - `tests/e2e/organization-create.spec.ts`
-   - Playwright 会自动判定前端是否启用；若检测到“环境不可用”即视为失败，需先恢复服务再重试。
-
-4. **（可选）全量 Playwright / Vitest 覆盖**
-   - `npm run test:e2e`（全浏览器矩阵）
-   - `npm run test`（Vitest 全量）
-   - `npm run coverage`（如需覆盖率报告）
-
-> **执行顺序不可调换**：只有在 1~2 步全部通过后才能进入 E2E；若冒烟失败需先修复环境，禁止忽略后续步骤直接归档。
+- 仅针对 80 号计划 *Stage 0「前端布局与交互确认」* 的交付物进行测试确认。
+- 验证对象：`feature/position-ui-frame` 分支中的 `/positions` Mock 页面及相关导航改动。
+- 不纳入范围：真实 API 数据接入、命令服务实现、后续 Stage 1+ 的业务逻辑。
 
 ---
 
-## 3. 结果记录模板
+## 2. 前置条件
 
-| 日期 | 测试类型 | 命令 | 结果 | 主要产物/日志 | 备注 |
-|------|----------|------|------|---------------|------|
-| 2025-10-11 | Unit (queryClient) | `npm run test -- queryClient` | ✅ | `frontend/test-results/` | 4/4 通过，耗时 1.34s |
-| 2025-10-11 | Unit (useEnterpriseOrganizations) | `npm run test -- useEnterpriseOrganizations` | ✅ | `frontend/test-results/` | 4/4 通过，耗时 950ms |
-| 2025-10-11 | Unit (OrganizationDashboard) | `npm run test -- OrganizationDashboard` | ✅ | `frontend/test-results/` | 2/2 通过，耗时 1.01s |
-| 2025-10-11 | Field Naming | `npm run validate:field-naming` | ✅ | `reports/implementation-inventory.json` | 144个文件，0违规项 |
-| 2025-10-11 | Implementation Inventory | `node scripts/generate-implementation-inventory.js` | ✅ | `reports/implementation-inventory.json` | 26 REST + 9 GraphQL + 45 Go + 172 TS |
-| 2025-10-11 | Vitest 覆盖率 | `npx vitest run --coverage --run` | ✅ | `frontend/coverage/` | 语句 84.1% / 分支 71.3% / 函数 75.9%。范围限定在 Phase3 相关模块 |
-| 2025-10-11 | Bundle 分析 | `npm run build:analyze` | ✅ | `frontend/dist/` | Vite 构建通过，核心 bundle (vendor-state) gzip≈12.45 kB |
-| 2025-10-12 | Bundle 分析 | `npm run build:analyze` | ✅ | `frontend/dist/` | dist/index-DjTu0n_R.js≈264.34 kB（gzip≈82.97 kB），核心 vendor-state gzip≈12.45 kB，满足 ≥5% 优化目标 |
-| 2025-10-12 | 登录链路 | 浏览器手动验证 | ✅ | `docs/troubleshooting/login-csrf-failure-diagnosis-2025-10-11.md` | HTTPS/DEV 模式均可登录，`/auth/dev-token` 链路验证通过 |
-| 2025-10-12 | Validation Diff | `reports/validation/phase4-diff.md` | ✅ | `reports/validation/phase4-diff.md` | 对齐契约约束，前端已复用 contract_gen，剩余后端差异待统一 |
-| 2025-10-12 | Temporal 校验 | `npm run validate:temporal` | ✅ | `frontend/scripts/migrations/20250921-replace-temporal-validation.ts` | 校验时态工具引用已统一，无遗留 `temporalValidation` 入口 |
-| 2025-10-12 | Audit 校验 | `npm run lint:audit` | ✅ | `go test ./cmd/organization-command-service/internal/audit` | 审计日志 fallback 逻辑通过单测校验 |
-| 2025-10-12 | 文档归档检查 | `npm run lint:docs` | ✅ | `scripts/quality/doc-archive-check.js` | 活跃/归档计划目录无重复文件 |
-| 2025-10-11 | E2E 冒烟 | `npm run test:e2e:smoke` | ✅ | `frontend/playwright-report/` `frontend/test-results/` | 6 通过 / 1 跳过；2025-10-12 复盘确认 Vite 代理默认以 HTTPS 转发 `/.well-known/jwks.json`，已改为按浏览器协议自动选择（默认回退 HTTP） |
-| YYYY-MM-DD | 全量 Playwright (可选) | `npm run test:e2e` | ✅/⚠️ | `frontend/playwright-report/` | |
-| YYYY-MM-DD | 覆盖率 (可选) | `npm run coverage` | ✅/⚠️ | `coverage/` | |
-
-- 所有失败项必须附带：命令输出、关键日志、截图/trace（Playwright 自动保存在 `frontend/playwright-report/` 与 `frontend/test-results/`）。
-- 在 63 号计划或其他执行文档中引用测试结果时，应链接至本表格对应行，并明示产物路径。
+1. 前端依赖已安装：`npm install`（在 `frontend/` 目录下执行）。  
+2. 使用本计划指定分支：`feature/position-ui-frame`。  
+3. 构建/测试命令可本地执行（Node.js ≥ 20 / PNPM/NPM 均可，本计划以 NPM 为基准）。  
+4. 无需启动后端服务，Mock 页面不依赖 API。  
 
 ---
 
-## 4. 常见故障与处理
+## 3. 测试步骤与预期
 
-| 现象 | 原因 | 处理方式 |
+### 3.1 单元测试（Vitest）
+
+| 步骤 | 命令 | 预期结果 |
 |------|------|----------|
-| Playwright 报 “测试环境不可用” | 前端/命令/查询服务尚未启动，或端口被占用 | 按第 1 节重启服务；确认 `validateTestEnvironment()` 输出路径 |
-| `setupAuth` 抛出 “无法获取 RS256 开发令牌” | 命令服务未开启 `/auth/dev-token` | 重新执行 `make run-dev` 并确认日志 |
-| Vitest 报错 `import.meta.env` 未定义 | 环境脚本在 Node 环境执行 | 确保测试中引用 `env` 模块前已 mock 或使用默认值 |
-| `npm run test:e2e` 无响应 | 本地未安装 Playwright 浏览器 | 执行 `npx playwright install` |
-| Vite Proxy 报错 `Error: write EPROTO`（`/.well-known/jwks.json`） | Node 运行时默认将命令服务视为 HTTPS，TLS 握手失败 | 2025-10-12：`frontend/src/shared/config/ports.ts` 改为按浏览器协议自动检测（默认回退 HTTP）；若需强制 HTTPS，请显式设置 `VITE_SERVICE_PROTOCOL=https` 并提供有效证书 |
-| HTTPS 环境登录失败 | 命令服务证书或前端代理协议未对齐 | 启动前端前设置 `VITE_SERVICE_PROTOCOL=https` 及对应 `VITE_REST_COMMAND_HOST` / `VITE_GRAPHQL_QUERY_HOST`，并确认 `/.well-known/jwks.json` 能通过 HTTPS 访问 |
+| 1 | `npm run test -- PositionDashboard`（目录：`frontend/`） | 测试通过；`PositionDashboard` 套件 2 个用例均为 PASS，无警告或错误 |
 
-若问题不在上述范围：
-1. 收集日志、截图、trace（如 `playwright-report`）。
-2. 在 `docs/archive/development-plans/63-front-end-query-plan.md` 的风险章节登记。
-3. 通过 Slack `#cube-castle-testing` 通知运行保障组，说明影响范围与复现步骤。
+### 3.2 类型检查 / Lint
 
----
+| 步骤 | 命令 | 预期结果 |
+|------|------|----------|
+| 2 | `npm run typecheck` | TypeScript 无错误（0 issue） |
+| 3 | `npm run lint` | ESLint 通过，无 BLOCKER 级别告警 |
 
-## 5. 归档要求
+### 3.3 手动验证
 
-- 每轮测试结束后，必须将第 3 节表格更新到最新状态，并附上失败分析或验收结论。
-- 阶段性验收需打包以下文件：
-  1. `frontend/playwright-report/index.html` 及 `data/`、`trace/` 全量目录。
-  2. `frontend/test-results/` 下的截图与 trace（如有失败）。
-  3. `reports/implementation-inventory.json` 最新版本。
-  4. 任何附加脚本或调试记录（存放在 `reports/` 或 `docs/archive/`，严禁散落）。
-- 归档提交前请再次执行 `node scripts/generate-implementation-inventory.js`，确认前端导出清单与最新改动保持一致。
+| 步骤 | 操作 | 预期结果 |
+|------|------|----------|
+| 4 | 启动本地前端：`npm run dev`；浏览器访问 `http://localhost:3000/positions` | 页面可加载“职位管理（Stage 0 Mock）”标题，无后端依赖错误 |
+| 5 | 观察「岗位总数 / 编制容量 / 规划职位」统计卡片 | 数据与 `mockData.ts` 保持一致（4 岗位、容量 12 FTE 等） |
+| 6 | 列表选择「保洁主管」行 | 右侧详情显示主管信息、编制 1/1、最近事件列表 |
+| 7 | 输入筛选条件（如搜索“保洁”或筛选职类 `OPER`） | 列表与详情按筛选结果更新，筛选后可用编制数据同步变化 |
+| 8 | 切换到 `Sidebar` → “职位管理” | 导航按钮高亮，侧边栏其它菜单不受影响，组织菜单可继续访问 |
+
+证据收集：截图或录屏保存至 `test-results/positions-stage0/`（可选，但若出现差异必须提供）。  
 
 ---
 
-**维护人**：集成团队测试负责人（全栈工程师）  
-**最后更新**：2025-10-11 08:50 CST  
-**变更摘要**：清空旧的运维记录，重新定义标准化测试流程与验收要求，覆盖环境准备、执行顺序、结果登记与故障处理。若需调整流程，请先提 PR 修改本文件，并通知所有相关团队。
+## 4. 验收结论模板
+
+完成测试后，请在本节补充表格记录：  
+
+| 日期 | 执行人 | 结果 | 备注 |
+|------|--------|------|------|
+| YYYY-MM-DD | 张三 | ✅ / ❌ | （例如：命令输出、截图路径、问题描述） |
+
+若出现 ❌：需列明问题、影响范围、回滚/修复建议，并在 80 号计划对应章节登记。  
 
 ---
 
-## 6. 待办事项（与 63 号计划同步）
+## 5. 后续推进建议
 
-以下项目需在 Phase 3 完成前持续跟踪（所有条目完成后再更新 63/06 文档）：
+- Stage 0 验收通过后，方可进入 80 号计划 Stage 1（真实数据接入）。
+- Stage 1 开始前需：  
+  1. 输出《职位管理前端布局验收报告》（80 号计划待办）。  
+  2. 根据本验收记录更新 `docs/development-plans/80-...` 中的进度表。  
+- Stage 1 测试计划将补充 API 契约验证与集成测试，另行发布。  
 
-- [x] **提升 Vitest 覆盖率 ≥ 75%**（2025-10-11 完成，聚焦 Phase 3 模块，详见第 3 节与 63 号计划）  
-- [x] **解除 `vite build` TypeScript 阻塞并完成 bundle 分析**（`npm run build:analyze` 已通过，后续关注性能优化需求）  
-- [x] **补充配置/QA 文档及 64 号验收草案**（2025-10-12：64 号文档 v0.2，新增 HTTPS 场景指引与登录诊断报告）  
-- [x] **跟进 JWKS 代理 EPROTO 告警**（2025-10-12：确认 Vite Proxy 默认协议推断问题，引入 `frontend/src/shared/config/ports.ts` 自动检测 / HTTP 回退逻辑并在本节补充运行时说明）  
+---
 
-Phase 3 结项后新增任务（Phase 4 工具与验证巩固）：
-
-- [ ] **执行 65 号计划**（Week 9-10：统一 Validation/Temporal 工具，完善审计 DTO，详见 `docs/development-plans/65-tooling-validation-consolidation-plan.md`）  
-- [ ] **新增 CI 守护任务验证**（完成 `lint-contract` / `lint-audit` / `doc-archive-check` 脚本与 GitHub Actions 集成，结果登记于第 3 节）  
+> 本文档作为 80 号计划 Stage 0 的唯一测试验收依据，如需修改请先在 PR 中更新本文件并说明变更原因。
