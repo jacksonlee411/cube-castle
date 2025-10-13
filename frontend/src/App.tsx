@@ -10,6 +10,7 @@ import LoginPage from './pages/Login'
 // 懒加载关键页面组件以优化初始加载性能
 const OrganizationDashboard = React.lazy(() => import('./features/organizations/OrganizationDashboard').then(module => ({ default: module.OrganizationDashboard })))
 const OrganizationTemporalPage = React.lazy(() => import('./features/organizations/OrganizationTemporalPage').then(module => ({ default: module.OrganizationTemporalPage })))
+const PositionDashboard = React.lazy(() => import('./features/positions/PositionDashboard').then(module => ({ default: module.PositionDashboard })))
 const ContractTestingDashboard = React.lazy(() => import('./features/contract-testing/ContractTestingDashboard').then(module => ({ default: module.ContractTestingDashboard })))
 const MonitoringDashboard = React.lazy(() => import('./features/monitoring/MonitoringDashboard').then(module => ({ default: module.MonitoringDashboard })))
 
@@ -66,6 +67,18 @@ function App() {
             <RequireAuth>
               <Suspense fallback={<SuspenseLoader />}>
                 <OrganizationTemporalPage />
+              </Suspense>
+            </RequireAuth>
+          } 
+        />
+        
+        {/* 职位管理 - Stage 0 页面框架 */}
+        <Route 
+          path="/positions" 
+          element={
+            <RequireAuth>
+              <Suspense fallback={<SuspenseLoader />}>
+                <PositionDashboard />
               </Suspense>
             </RequireAuth>
           } 

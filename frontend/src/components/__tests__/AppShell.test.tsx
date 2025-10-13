@@ -67,5 +67,6 @@ describe('AppShell Layout', () => {
     
     expect(screen.getByText(/仪表板/)).toBeInTheDocument();
     expect(screen.getByText(/组织架构/)).toBeInTheDocument();
+    expect(screen.getByText(/职位管理/)).toBeInTheDocument();
   });
 });

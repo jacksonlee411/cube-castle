@@ -28,16 +28,63 @@ vi.mock('@/shared/utils/logger', async () => {
 type MockComponentProps = React.PropsWithChildren<Record<string, unknown>>;
 
 // Mock Canvas Kit components to avoid CSS issues in tests
-vi.mock('@workday/canvas-kit-react/layout', () => ({
-  Box: ({ children, ...props }: MockComponentProps) => {
-    const { marginBottom: _marginBottom, paddingY: _paddingY, borderBottom: _borderBottom, borderColor: _borderColor, paddingTop: _paddingTop, ...cleanProps } = props;
-    return React.createElement('div', { 'data-testid': 'canvas-box', ...cleanProps }, children);
-  },
-  Flex: ({ children, ...props }: MockComponentProps) => {
-    const { alignItems: _alignItems, justifyContent: _justifyContent, gap: _gap, ...cleanProps } = props;
-    return React.createElement('div', { 'data-testid': 'canvas-flex', ...cleanProps }, children);
+vi.mock('@workday/canvas-kit-react/layout', () => {
+  const stripLayoutProps = (props: Record<string, unknown>) => {
+    const {
+      marginBottom: _marginBottom,
+      marginTop: _marginTop,
+      marginY: _marginY,
+      marginX: _marginX,
+      margin: _margin,
+      padding: _padding,
+      paddingTop: _paddingTop,
+      paddingBottom: _paddingBottom,
+      paddingLeft: _paddingLeft,
+      paddingRight: _paddingRight,
+      paddingY: _paddingY,
+      paddingX: _paddingX,
+      border: _border,
+      borderRadius: _borderRadius,
+      borderBottom: _borderBottom,
+      borderLeft: _borderLeft,
+      borderRight: _borderRight,
+      borderColor: _borderColor,
+      backgroundColor: _backgroundColor,
+      flex: _flex,
+      flexWrap: _flexWrap,
+      flexDirection: _flexDirection,
+      alignItems: _alignItems,
+      justifyContent: _justifyContent,
+      gap: _gap,
+      minWidth: _minWidth,
+      width: _width,
+      height: _height,
+      color: _color,
+      as: asProp,
+      style,
+      ...cleanProps
+    } = props
+    const component = (asProp as keyof HTMLElementTagNameMap | undefined) ?? 'div'
+    return { component, cleanProps: { ...cleanProps, style } }
   }
-}));
+
+  const Box = ({ children, ...props }: MockComponentProps & { as?: keyof HTMLElementTagNameMap }) => {
+    const { component, cleanProps } = stripLayoutProps(props)
+    return React.createElement(component, { 'data-testid': 'canvas-box', ...cleanProps }, children)
+  }
+
+  const Flex = ({ children, ...props }: MockComponentProps & { as?: keyof HTMLElementTagNameMap }) => {
+    const { component, cleanProps } = stripLayoutProps(props)
+    return React.createElement(component, { 'data-testid': 'canvas-flex', ...cleanProps }, children)
+  }
+
+  const Stack = ({ children, ...props }: MockComponentProps & { as?: keyof HTMLElementTagNameMap }) => {
+    const { component, cleanProps } = stripLayoutProps(props)
+    return React.createElement(component, { 'data-testid': 'canvas-stack', ...cleanProps }, children)
+  }
+
+  return { Box, Flex, Stack }
+})
 
 vi.mock('@workday/canvas-kit-react/button', () => ({
   PrimaryButton: ({ children, ...props }: MockComponentProps) => {
@@ -61,26 +108,49 @@ vi.mock('@workday/canvas-kit-react/text', () => ({
 
 vi.mock('@workday/canvas-kit-react/card', () => ({
   Card: Object.assign(
-    ({ children }: MockComponentProps) => React.createElement('div', { 'data-testid': 'canvas-card' }, children),
+    ({ children, ...props }: MockComponentProps) => {
+      const {
+        backgroundColor: _backgroundColor,
+        borderTop: _borderTop,
+        border: _border,
+        padding: _padding,
+        paddingTop: _paddingTop,
+        paddingBottom: _paddingBottom,
+        paddingLeft: _paddingLeft,
+        paddingRight: _paddingRight,
+        paddingX: _paddingX,
+        paddingY: _paddingY,
+        ...rest
+      } = props
+      return React.createElement('div', { 'data-testid': 'canvas-card', ...rest }, children)
+    },
     {
-      Heading: ({ children }: MockComponentProps) => React.createElement('div', { 'data-testid': 'card-heading' }, children),
-      Body: ({ children }: MockComponentProps) => React.createElement('div', { 'data-testid': 'card-body' }, children)
+      Heading: ({ children, ...props }: MockComponentProps) =>
+        React.createElement('div', { 'data-testid': 'card-heading', ...props }, children),
+      Body: ({ children, ...props }: MockComponentProps) =>
+        React.createElement('div', { 'data-testid': 'card-body', ...props }, children)
     }
   )
-}));
+}))
 
 vi.mock('@workday/canvas-kit-react/table', () => ({
   Table: Object.assign(
-    ({ children }: MockComponentProps) => React.createElement('table', { 'data-testid': 'canvas-table' }, children),
+    ({ children, ...props }: MockComponentProps) =>
+      React.createElement('table', { 'data-testid': 'canvas-table', ...props }, children),
     {
-      Head: ({ children }: MockComponentProps) => React.createElement('thead', { 'data-testid': 'table-head' }, children),
-      Body: ({ children }: MockComponentProps) => React.createElement('tbody', { 'data-testid': 'table-body' }, children),
-      Row: ({ children }: MockComponentProps) => React.createElement('tr', { 'data-testid': 'table-row' }, children),
-      Header: ({ children }: MockComponentProps) => React.createElement('th', { 'data-testid': 'table-header' }, children),
-      Cell: ({ children }: MockComponentProps) => React.createElement('td', { 'data-testid': 'table-cell' }, children)
+      Head: ({ children, ...props }: MockComponentProps) =>
+        React.createElement('thead', { 'data-testid': 'table-head', ...props }, children),
+      Body: ({ children, ...props }: MockComponentProps) =>
+        React.createElement('tbody', { 'data-testid': 'table-body', ...props }, children),
+      Row: ({ children, ...props }: MockComponentProps) =>
+        React.createElement('tr', { 'data-testid': 'table-row', ...props }, children),
+      Header: ({ children, ...props }: MockComponentProps) =>
+        React.createElement('th', { 'data-testid': 'table-header', ...props }, children),
+      Cell: ({ children, ...props }: MockComponentProps) =>
+        React.createElement('td', { 'data-testid': 'table-cell', ...props }, children)
     }
   )
-}));
+}))
 
 vi.mock('@workday/canvas-kit-react/side-panel', () => ({
   SidePanel: ({ children }: MockComponentProps) => React.createElement('div', { 'data-testid': 'side-panel' }, children)
