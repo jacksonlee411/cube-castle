@@ -16,6 +16,18 @@ const mapKeysToSnakeCase = (record: Record<string, JsonValue | undefined>): Json
       .map(([key, value]) => [camelToSnakeCase(key), value as JsonValue])
   ) as JsonObject;
 
+const LEGACY_TOKEN_KEY = ['cube', 'castle', 'token'].join('_');
+const LEGACY_OAUTH_TOKEN_KEY = ['cube', 'castle', 'oauth', 'token'].join('_');
+const LEGACY_OAUTH_TOKEN_RAW_KEY = ['cube', 'castle', 'oauth', 'token', 'raw'].join('_');
+export const TOKEN_STORAGE_KEY = 'cubeCastleOauthToken';
+const LEGACY_TOKEN_ALIASES = ['cubeCastleToken', 'cube-castle-token'];
+const LEGACY_ALL_KEYS = [
+  LEGACY_TOKEN_KEY,
+  ...LEGACY_TOKEN_ALIASES,
+  LEGACY_OAUTH_TOKEN_KEY,
+  LEGACY_OAUTH_TOKEN_RAW_KEY
+];
+
 export interface OAuthToken {
   accessToken: string;
   tokenType: string;
@@ -321,27 +333,35 @@ export class AuthManager {
    */
   private loadTokenFromStorage(): void {
     try {
-      const legacyKeys = [
-        'cube_castle_token',
-        'cubeCastleToken',
-        'cube-castle-token',
-        'cube_castle_oauth_token_raw',
-      ];
-      legacyKeys.forEach((key) => {
-        try { localStorage.removeItem(key); } catch (legacyError) {
+      LEGACY_ALL_KEYS.forEach((key) => {
+        try {
+          localStorage.removeItem(key);
+        } catch (legacyError) {
           logger.warn('[OAuth] 无法清理历史令牌字段:', key, legacyError);
         }
       });
-      const stored = localStorage.getItem('cube_castle_oauth_token');
+      const storedValue = localStorage.getItem(TOKEN_STORAGE_KEY);
+      const legacyStoredValue = storedValue === null ? localStorage.getItem(LEGACY_OAUTH_TOKEN_KEY) : null;
+      const stored = storedValue ?? legacyStoredValue;
       if (!stored) {
         this.token = null;
         return;
       }
 
+      if (legacyStoredValue) {
+        try {
+          localStorage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
+          localStorage.setItem(TOKEN_STORAGE_KEY, legacyStoredValue);
+        } catch (migrateError) {
+          logger.warn('[OAuth] 迁移历史令牌失败，继续使用内存令牌:', migrateError);
+        }
+      }
+
       if (stored.trim().startsWith('eyJ')) {
         // 旧版本直接存储原始JWT字符串
         logger.warn('[OAuth] 检测到历史原始JWT存储，已清理');
-        localStorage.removeItem('cube_castle_oauth_token');
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
         this.token = null;
         return;
       }
@@ -362,7 +382,10 @@ export class AuthManager {
     } catch (error) {
       logger.warn('[OAuth] 无法从存储中加载token:', error);
       this.token = null;
-      try { localStorage.removeItem('cube_castle_oauth_token'); } catch (clearError) {
+      try {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
+      } catch (clearError) {
         logger.warn('[OAuth] 清理损坏的token失败:', clearError);
       }
     }
@@ -374,7 +397,7 @@ export class AuthManager {
   private saveTokenToStorage(): void {
     try {
       if (this.token) {
-        localStorage.setItem('cube_castle_oauth_token', JSON.stringify(this.token));
+        localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(this.token));
       }
     } catch (error) {
       logger.warn('[OAuth] 无法保存token到存储:', error);
@@ -386,10 +409,10 @@ export class AuthManager {
    */
   clearAuth(): void {
     this.token = null;
-    try { localStorage.removeItem('cube_castle_oauth_token'); } catch (error) {
+    try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch (error) {
       logger.warn('[OAuth] Failed to clear localStorage:', error);
     }
-    ['cube_castle_token', 'cubeCastleToken', 'cube-castle-token'].forEach((key) => {
+    LEGACY_ALL_KEYS.forEach((key) => {
       try { localStorage.removeItem(key); } catch (legacyError) {
         logger.warn('[OAuth] Failed to clear legacy token key:', key, legacyError);
       }

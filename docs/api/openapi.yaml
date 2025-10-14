@@ -41,7 +41,7 @@ info:
     
     **Response Format**: All endpoints use unified enterprise envelope structure
     with `success`, `data`, `message`, `timestamp`, and `requestId` fields.
-  version: 4.6.0
+  version: 4.7.0
   contact:
     name: System Architecture Team
     email: api-support@yourcompany.com
@@ -75,6 +75,10 @@ tags:
     description: System operational monitoring and scheduler management
   - name: temporal-operations
     description: Temporal timeline governance and lifecycle event processing endpoints
+  - name: positions
+    description: Position management and lifecycle operations
+  - name: job-catalog
+    description: Job catalog maintenance and synchronization endpoints
 
 paths:
   /api/v1/operational/health:
@@ -1649,6 +1653,581 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/positions:
+    post:
+      operationId: createPosition
+      tags: [positions]
+      summary: Create position
+      description: Create a new position with temporal metadata and job catalog linkage.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      security:
+        - OAuth2ClientCredentials:
+            - position:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePositionRequest'
+      responses:
+        '201':
+          description: Position created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/positions/{code}:
+    put:
+      operationId: replacePosition
+      tags: [positions]
+      summary: Replace position (full update)
+      description: Performs a full replacement of the position resource with concurrency control.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IfMatchHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^P[0-9]{7}$
+          description: Position code (P + 7 digits)
+      security:
+        - OAuth2ClientCredentials:
+            - position:update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePositionRequest'
+      responses:
+        '200':
+          description: Position updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/positions/{code}/versions:
+    post:
+      operationId: createPositionVersion
+      tags: [positions]
+      summary: Insert position version
+      description: Inserts a temporal position version at a specific effective date.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^P[0-9]{7}$
+      security:
+        - OAuth2ClientCredentials:
+            - position:modify:history
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePositionVersionRequest'
+      responses:
+        '201':
+          description: Position version created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/positions/{code}/events:
+    post:
+      operationId: postPositionEvent
+      tags: [positions]
+      summary: Apply position event
+      description: Applies lifecycle events such as suspend, reactivate, or delete to a position.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^P[0-9]{7}$
+      security:
+        - OAuth2ClientCredentials:
+            - position:modify:history
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PositionEventRequest'
+      responses:
+        '200':
+          description: Event applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/positions/{code}/fill:
+    post:
+      operationId: fillPosition
+      tags: [positions]
+      summary: Fill position
+      description: Assigns a holder to the position. This endpoint remains temporary until the assignment service is available.
+      x-temporary:
+        reason: Assignment table not yet implemented
+        deadline: '2025-12-31'
+        migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+        owner: backend-architect-developer
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^P[0-9]{7}$
+      security:
+        - OAuth2ClientCredentials:
+            - position:fill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FillPositionRequest'
+      responses:
+        '200':
+          description: Position filled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/positions/{code}/vacate:
+    post:
+      operationId: vacatePosition
+      tags: [positions]
+      summary: Vacate position
+      description: Vacates a position by removing assignments. This endpoint remains temporary until the assignment service is available.
+      x-temporary:
+        reason: Assignment table not yet implemented
+        deadline: '2025-12-31'
+        migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+        owner: backend-architect-developer
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^P[0-9]{7}$
+      security:
+        - OAuth2ClientCredentials:
+            - position:vacate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VacatePositionRequest'
+      responses:
+        '200':
+          description: Position vacated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/positions/{code}/transfer:
+    post:
+      operationId: transferPosition
+      tags: [positions]
+      summary: Transfer position
+      description: Transfers a position to a different organization. This endpoint remains temporary until the assignment service is available.
+      x-temporary:
+        reason: Assignment table not yet implemented
+        deadline: '2025-12-31'
+        migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+        owner: backend-architect-developer
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^P[0-9]{7}$
+      security:
+        - OAuth2ClientCredentials:
+            - position:transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferPositionRequest'
+      responses:
+        '200':
+          description: Position transferred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-family-groups:
+    post:
+      operationId: createJobFamilyGroup
+      tags: [job-catalog]
+      summary: Create job family group
+      description: Creates the first version of a job family group with the provided effective date.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobFamilyGroupRequest'
+      responses:
+        '201':
+          description: Job family group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-family-groups/{code}/versions:
+    post:
+      operationId: createJobFamilyGroupVersion
+      tags: [job-catalog]
+      summary: Insert job family group version
+      description: Inserts a temporal version for an existing job family group.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Z]{4,6}$
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCatalogVersionRequest'
+      responses:
+        '201':
+          description: Job family group version created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-families:
+    post:
+      operationId: createJobFamily
+      tags: [job-catalog]
+      summary: Create job family
+      description: Creates a new job family under an existing job family group.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobFamilyRequest'
+      responses:
+        '201':
+          description: Job family created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-families/{code}/versions:
+    post:
+      operationId: createJobFamilyVersion
+      tags: [job-catalog]
+      summary: Insert job family version
+      description: Inserts a temporal version for an existing job family.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}$
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCatalogVersionRequest'
+      responses:
+        '201':
+          description: Job family version created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-roles:
+    post:
+      operationId: createJobRole
+      tags: [job-catalog]
+      summary: Create job role
+      description: Creates a new job role under an existing job family.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobRoleRequest'
+      responses:
+        '201':
+          description: Job role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-roles/{code}/versions:
+    post:
+      operationId: createJobRoleVersion
+      tags: [job-catalog]
+      summary: Insert job role version
+      description: Inserts a temporal version for an existing job role.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}-[A-Z0-9]{3,6}$
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCatalogVersionRequest'
+      responses:
+        '201':
+          description: Job role version created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-levels:
+    post:
+      operationId: createJobLevel
+      tags: [job-catalog]
+      summary: Create job level
+      description: Creates a job level under a job role with ranking information.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobLevelRequest'
+      responses:
+        '201':
+          description: Job level created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-levels/{code}/versions:
+    post:
+      operationId: createJobLevelVersion
+      tags: [job-catalog]
+      summary: Insert job level version
+      description: Inserts a temporal version for an existing job level.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Z][0-9]{1,2}$
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCatalogVersionRequest'
+      responses:
+        '201':
+          description: Job level version created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-catalog/sync:
+    post:
+      operationId: syncJobCatalog
+      tags: [job-catalog]
+      summary: Synchronize job catalog from external system
+      description: Ingests job catalog changes from external systems in chronological order.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCatalogSyncRequest'
+      responses:
+        '202':
+          description: Synchronization accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
 components:
   securitySchemes:
     OAuth2ClientCredentials:
@@ -1698,6 +2277,25 @@ components:
             'system:monitor:read': Read operational health/metrics/alerts
             'system:ops:read': Read scheduler and tasks status
             'system:ops:write': Trigger operational tasks and actions
+            # Position management permissions
+            'position:read': Read position information
+            'position:create': Create positions
+            'position:update': Update positions
+            'position:fill': Fill positions with assignments (temporary implementation)
+            'position:vacate': Vacate positions (temporary implementation)
+            'position:suspend': Suspend positions
+            'position:activate': Activate positions
+            'position:transfer': Transfer positions across organizations (temporary implementation)
+            'position:delete': Delete or retire positions
+            'position:read:history': Read historical position versions
+            'position:read:future': Read future-effective position data
+            'position:create:planned': Create planned/future-effective positions
+            'position:modify:history': Modify historical position versions
+            'position:read:stats': Read position headcount statistics
+            'position:read:headcount': Read detailed headcount utilization data
+            # Job catalog permissions
+            'job-catalog:read': Read job catalog classifications
+            'job-catalog:write': Manage job catalog classifications and versions
     CSRFToken:
       type: apiKey
       in: header
@@ -2349,6 +2947,471 @@ components:
           type: string
           description: Unique request identifier for debugging
           example: "req_error_12345678"
+
+    PositionStatus:
+      type: string
+      enum: [PLANNED, ACTIVE, FILLED, VACANT, INACTIVE, DELETED]
+      description: Position lifecycle status.
+
+    PositionType:
+      type: string
+      enum: [REGULAR, TEMPORARY, CONTRACTOR]
+      description: Position classification based on employment contract.
+
+    EmploymentType:
+      type: string
+      enum: [FULL_TIME, PART_TIME, INTERN]
+      description: Employment type for the position contract.
+
+    PositionEventType:
+      type: string
+      enum: [SUSPEND, REACTIVATE, DELETE]
+      description: Position lifecycle events supported by the /events endpoint.
+
+    JobCatalogStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE]
+      description: Active or inactive status for job catalog entries.
+
+    PositionResource:
+      type: object
+      required:
+        - code
+        - title
+        - organizationCode
+        - positionType
+        - employmentType
+        - status
+        - effectiveDate
+        - headcountCapacity
+        - headcountInUse
+        - availableHeadcount
+        - recordId
+      properties:
+        code:
+          type: string
+          pattern: ^P[0-9]{7}$
+          description: Position code (P + 7 digits)
+          example: "P1000001"
+        title:
+          type: string
+          maxLength: 120
+          description: Position title
+          example: "高级后端工程师"
+        organizationCode:
+          type: string
+          pattern: '^[1-9][0-9]{6}$'
+          description: Owning organization code
+          example: "1000001"
+        jobProfileCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        jobProfileName:
+          type: string
+          maxLength: 120
+          nullable: true
+        jobFamilyGroupCode:
+          type: string
+          pattern: ^[A-Z]{4,6}$
+          example: "PROF"
+        jobFamilyCode:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}$
+          example: "PROF-ITOPS"
+        jobRoleCode:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}-[A-Z0-9]{3,6}$
+          example: "PROF-ITOPS-BKND"
+        jobLevelCode:
+          type: string
+          pattern: ^[A-Z][0-9]{1,2}$
+          example: "P5"
+        positionType:
+          $ref: '#/components/schemas/PositionType'
+        employmentType:
+          $ref: '#/components/schemas/EmploymentType'
+        gradeLevel:
+          type: string
+          maxLength: 16
+          nullable: true
+        headcountCapacity:
+          type: number
+          format: float
+          minimum: 0
+          example: 3
+        headcountInUse:
+          type: number
+          format: float
+          minimum: 0
+          example: 2
+        availableHeadcount:
+          type: number
+          format: float
+          minimum: 0
+          example: 1
+        status:
+          $ref: '#/components/schemas/PositionStatus'
+        effectiveDate:
+          type: string
+          format: date
+          example: "2025-10-01"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        isCurrent:
+          type: boolean
+        isFuture:
+          type: boolean
+        reportsToPositionCode:
+          type: string
+          pattern: ^P[0-9]{7}$
+          nullable: true
+        recordId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    PositionSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PositionResource'
+
+    CreatePositionRequest:
+      type: object
+      required:
+        - title
+        - jobFamilyGroupCode
+        - jobFamilyCode
+        - jobRoleCode
+        - jobLevelCode
+        - organizationCode
+        - positionType
+        - employmentType
+        - headcountCapacity
+        - effectiveDate
+        - operationReason
+      properties:
+        title:
+          type: string
+          maxLength: 120
+        jobProfileCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        jobProfileName:
+          type: string
+          maxLength: 120
+          nullable: true
+        jobFamilyGroupCode:
+          type: string
+          pattern: ^[A-Z]{4,6}$
+        jobFamilyGroupRecordId:
+          type: string
+          format: uuid
+          nullable: true
+        jobFamilyCode:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}$
+        jobFamilyRecordId:
+          type: string
+          format: uuid
+          nullable: true
+        jobRoleCode:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}-[A-Z0-9]{3,6}$
+        jobRoleRecordId:
+          type: string
+          format: uuid
+          nullable: true
+        jobLevelCode:
+          type: string
+          pattern: ^[A-Z][0-9]{1,2}$
+        jobLevelRecordId:
+          type: string
+          format: uuid
+          nullable: true
+        organizationCode:
+          type: string
+          pattern: '^[1-9][0-9]{6}$'
+        positionType:
+          $ref: '#/components/schemas/PositionType'
+        employmentType:
+          $ref: '#/components/schemas/EmploymentType'
+        gradeLevel:
+          type: string
+          maxLength: 16
+          nullable: true
+        headcountCapacity:
+          type: number
+          format: float
+          minimum: 0
+        reportsToPositionCode:
+          type: string
+          pattern: ^P[0-9]{7}$
+          nullable: true
+        effectiveDate:
+          type: string
+          format: date
+        operationReason:
+          type: string
+          maxLength: 500
+
+    CreatePositionVersionRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreatePositionRequest'
+      description: Request to insert a new temporal version for an existing position.
+
+    FillPositionRequest:
+      type: object
+      required:
+        - positionHolderId
+        - assignmentType
+        - effectiveDate
+        - operationReason
+      properties:
+        positionHolderId:
+          type: string
+          maxLength: 64
+        assignmentType:
+          type: string
+          enum: [PRIMARY, SECONDARY]
+        fte:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          default: 1
+        effectiveDate:
+          type: string
+          format: date
+        operationReason:
+          type: string
+          maxLength: 500
+
+    VacatePositionRequest:
+      type: object
+      required:
+        - effectiveDate
+        - operationReason
+      properties:
+        fte:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          default: 1
+        effectiveDate:
+          type: string
+          format: date
+        operationReason:
+          type: string
+          maxLength: 500
+
+    TransferPositionRequest:
+      type: object
+      required:
+        - targetOrganizationCode
+        - effectiveDate
+        - operationReason
+      properties:
+        targetOrganizationCode:
+          type: string
+          pattern: '^[1-9][0-9]{6}$'
+        effectiveDate:
+          type: string
+          format: date
+        operationReason:
+          type: string
+          maxLength: 500
+
+    PositionEventRequest:
+      type: object
+      required:
+        - eventType
+        - effectiveDate
+        - operationReason
+      properties:
+        eventType:
+          $ref: '#/components/schemas/PositionEventType'
+        recordId:
+          type: string
+          format: uuid
+          nullable: true
+        effectiveDate:
+          type: string
+          format: date
+        operationReason:
+          type: string
+          maxLength: 500
+
+    CreateJobFamilyGroupRequest:
+      type: object
+      required:
+        - code
+        - name
+        - status
+        - effectiveDate
+      properties:
+        code:
+          type: string
+          pattern: ^[A-Z]{4,6}$
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    CreateJobFamilyRequest:
+      type: object
+      required:
+        - code
+        - name
+        - jobFamilyGroupCode
+        - status
+        - effectiveDate
+      properties:
+        code:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}$
+        jobFamilyGroupCode:
+          type: string
+          pattern: ^[A-Z]{4,6}$
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    CreateJobRoleRequest:
+      type: object
+      required:
+        - code
+        - name
+        - jobFamilyCode
+        - status
+        - effectiveDate
+      properties:
+        code:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}-[A-Z0-9]{3,6}$
+        jobFamilyCode:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}$
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    CreateJobLevelRequest:
+      type: object
+      required:
+        - code
+        - name
+        - jobRoleCode
+        - status
+        - effectiveDate
+        - levelRank
+      properties:
+        code:
+          type: string
+          pattern: ^[A-Z][0-9]{1,2}$
+        jobRoleCode:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}-[A-Z0-9]{3,6}$
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        levelRank:
+          type: integer
+          minimum: 1
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    JobCatalogVersionRequest:
+      type: object
+      required:
+        - name
+        - status
+        - effectiveDate
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        parentRecordId:
+          type: string
+          format: uuid
+          nullable: true
+
+    JobCatalogSyncRequest:
+      type: object
+      required:
+        - sourceSystem
+        - batchId
+        - changes
+      properties:
+        sourceSystem:
+          type: string
+          maxLength: 64
+        batchId:
+          type: string
+          maxLength: 64
+        changes:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        dryRun:
+          type: boolean
+          default: false
 
   responses:
     BadRequest:

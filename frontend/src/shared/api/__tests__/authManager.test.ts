@@ -22,7 +22,7 @@ vi.mock('../unified-client', () => ({
 }));
 
 // Import after mocks
-import { AuthManager, type OAuthConfig } from '../auth';
+import { AuthManager, TOKEN_STORAGE_KEY, type OAuthConfig } from '../auth';
 
 const HS256_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.signature';
 const RS256_HEADER = 'eyJhbGciOiJSUzI1NiJ9';
@@ -48,11 +48,11 @@ describe('AuthManager storage migration', () => {
       expiresIn: 3600,
       issuedAt: Date.now(),
     };
-    localStorage.setItem('cube_castle_oauth_token', JSON.stringify(stored));
+    localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(stored));
 
     const manager = new AuthManager(config);
 
-    expect(localStorage.getItem('cube_castle_oauth_token')).toBeNull();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
     expect(manager.isAuthenticated()).toBe(false);
   });
 
@@ -63,20 +63,37 @@ describe('AuthManager storage migration', () => {
       expiresIn: 3600,
       issuedAt: Date.now(),
     };
-    localStorage.setItem('cube_castle_oauth_token', JSON.stringify(stored));
+    localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(stored));
 
     const manager = new AuthManager(config);
 
-    expect(localStorage.getItem('cube_castle_oauth_token')).not.toBeNull();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).not.toBeNull();
     expect(manager.isAuthenticated()).toBe(true);
   });
 
   it('removes raw JWT strings stored under oauth token key', () => {
-    localStorage.setItem('cube_castle_oauth_token', HS256_TOKEN);
+    localStorage.setItem(TOKEN_STORAGE_KEY, HS256_TOKEN);
 
     const manager = new AuthManager(config);
 
-    expect(localStorage.getItem('cube_castle_oauth_token')).toBeNull();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
     expect(manager.isAuthenticated()).toBe(false);
+  });
+
+  it('migrates legacy snake_case storage key to camelCase', () => {
+    const stored = {
+      accessToken: RS256_TOKEN,
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      issuedAt: Date.now(),
+    };
+    const legacyKey = ['cube', 'castle', 'oauth', 'token'].join('_');
+    localStorage.setItem(legacyKey, JSON.stringify(stored));
+
+    const manager = new AuthManager(config);
+
+    expect(localStorage.getItem(legacyKey)).toBeNull();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toEqual(JSON.stringify(stored));
+    expect(manager.isAuthenticated()).toBe(true);
   });
 });

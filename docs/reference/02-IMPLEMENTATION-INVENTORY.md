@@ -93,7 +93,7 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 
 > 说明: 基于实际代码扫描的端点清单，与 OpenAPI 规范保持一致
 
-### 🎯 **API优先设计端点** (26个端点，按类别汇总)
+### 🎯 **API优先设计端点** (42个端点，按类别汇总)
 
 > **数据来源**: `node scripts/generate-implementation-inventory.js` 自动扫描的 OpenAPI v2025-10-09（快照 2025-10-09T06:39:16.340Z），详见 `reports/implementation-inventory.json`（openapiPaths 段）
 
@@ -129,6 +129,26 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `/api/v1/organization-units/batch-refresh-hierarchy` — 批量层级重算（迁移/修复）
 - `/api/v1/corehr/organizations` — CoreHR 兼容输出（受控暴露）
 
+#### 职位管理（7）
+- `/api/v1/positions` — 创建职位（含 Job Catalog 关联）
+- `/api/v1/positions/{code}` — 替换职位（支持 If-Match 并发控制）
+- `/api/v1/positions/{code}/versions` — 插入职位时态版本
+- `/api/v1/positions/{code}/events` — 职位事件（SUSPEND/REACTIVATE/DELETE）
+- `/api/v1/positions/{code}/fill` — 填充职位（临时实现，待 Assignment 服务接管）
+- `/api/v1/positions/{code}/vacate` — 职位清空（临时实现）
+- `/api/v1/positions/{code}/transfer` — 职位转移到其他组织（临时实现）
+
+#### 职位体系主数据（9）
+- `/api/v1/job-family-groups` — 创建职类（Job Family Group）首个版本
+- `/api/v1/job-family-groups/{code}/versions` — 职类时态版本维护
+- `/api/v1/job-families` — 创建职种（Job Family）
+- `/api/v1/job-families/{code}/versions` — 职种时态版本维护
+- `/api/v1/job-roles` — 创建职务（Job Role）
+- `/api/v1/job-roles/{code}/versions` — 职务时态版本维护
+- `/api/v1/job-levels` — 创建职级（Job Level）
+- `/api/v1/job-levels/{code}/versions` — 职级时态版本维护
+- `/api/v1/job-catalog/sync` — 从外部系统同步 Job Catalog 变更
+
 > 🛈 DEV 专用工具端点（如 `/auth/dev-token`、`/dev/status` 等）保留在命令服务 `devtools` 路由，仅在开发模式启用，不计入 OpenAPI 对外契约。
 
 ---
@@ -136,9 +156,9 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 ## GraphQL 查询 API（Query Service, Port 8090）
 权威规范: `docs/api/schema.graphql`
 
-> 说明: 以 Schema v4.6.0 为唯一事实来源；若脚本与 Schema 结果不一致，以 Schema 为准并立即提报修复。
+> 说明: 以 Schema v4.7.0 为唯一事实来源；若脚本与 Schema 结果不一致，以 Schema 为准并立即提报修复。
 
-### 查询列表（Schema v4.6.0，共 9 个公开查询）
+### 查询列表（Schema v4.7.0，共 18 个公开查询）
 - `organizations(filter, pagination): OrganizationConnection!` — 组织分页查询，支持过滤、时态视图与统一分页结构。
 - `organization(code, asOfDate): Organization` — 按业务编码获取单个组织，支持 asOfDate 指定时间点快照。
 - `organizationStats(asOfDate, includeHistorical): OrganizationStats!` — 多维统计（总量、类型分布、最早/最新生效日），可包含历史态。
@@ -148,6 +168,15 @@ node scripts/generate-implementation-inventory.js > temp-inventory.md
 - `auditHistory(recordId, ...): [AuditLogDetail!]!` — 按 temporal `recordId` 返回完整审计轨迹，含操作人、前后快照。
 - `auditLog(auditId: String!): AuditLogDetail` — 获取单条审计记录（before/after/changedFields）。
 - `organizationVersions(code: String!, includeDeleted: Boolean = false): [Organization!]!` — 返回指定组织的所有时态版本，按 `effectiveDate` 升序，默认过滤软删记录。
+- `positions(filter, pagination, sorting): PositionConnection!` — 职位分页查询，支持多维过滤与排序。
+- `position(code: PositionCode!, asOfDate: Date): Position` — 单职位查询，支持时态视图。
+- `positionTimeline(code: PositionCode!, startDate, endDate): [PositionTimelineEntry!]!` — 职位时态版本时间轴。
+- `vacantPositions(organizationCode, positionType, includeSubordinates): [Position!]!` — 空缺职位列表。
+- `positionHeadcountStats(organizationCode, includeSubordinates): HeadcountStats!` — 职位编制利用率统计。
+- `jobFamilyGroups(includeInactive, asOfDate): [JobFamilyGroup!]!` — 职类时态数据查询。
+- `jobFamilies(groupCode, includeInactive, asOfDate): [JobFamily!]!` — 职种时态数据查询。
+- `jobRoles(familyCode, includeInactive, asOfDate): [JobRole!]!` — 职务时态数据查询。
+- `jobLevels(roleCode, includeInactive, asOfDate): [JobLevel!]!` — 职级时态数据查询。
 
 ### 关键实现要点
 - **PostgreSQL 原生**：所有查询直连 PostgreSQL，利用递归 CTE、分区索引与物化视图缓存（详见 `docs/architecture/metacontract-v6.0-specification.md` 第3.6节）。

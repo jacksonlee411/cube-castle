@@ -1,5 +1,5 @@
 # Organization Units Management GraphQL Schema
-# Version: 4.6.0
+# Version: 4.7.0
 # Architecture: CQRS Query Layer (Read Operations Only)
 # Data Source: PostgreSQL with temporal data support
 # Authentication: OAuth 2.0 Bearer Token required
@@ -7,7 +7,7 @@
 # Features:
 # - Temporal data queries with asOfDate parameter
 # - 17-level hierarchy depth support with intelligent caching
-# - Precise audit trail tracking individual temporal versions (record_id)
+# - Precise audit trail tracking individual temporal versions (recordId)
 # - Multi-tenant isolation and security
 # - Index-optimized for common filters and access patterns
 #
@@ -19,7 +19,7 @@
 # - auditHistory: org:read:audit
 #
 # Recent Changes (v4.6.0):
-# - BREAKING: Audit system redesigned for precise record_id tracking
+# - BREAKING: Audit system redesigned for precise recordId tracking
 # - Removed organizationAuditHistory query (replaced with auditHistory)
 # - AuditLogDetail now tracks specific temporal versions via recordId field only
 # - Simplified audit queries: single auditHistory(recordId) for precise tracking
@@ -104,12 +104,67 @@ type Query {
     tenantId: String!
     includeIntegrityCheck: Boolean = false
   ): HierarchyStatistics!
+
+  # Position Queries
   
+  """
+  Get paginated position list with temporal awareness.
+  
+  Permissions Required: position:read
+  """
+  positions(
+    filter: PositionFilterInput
+    pagination: PaginationInput
+    sorting: [PositionSortInput!]
+  ): PositionConnection!
+  
+  """
+  Get single position by code with optional temporal perspective.
+  
+  Permissions Required: position:read
+  """
+  position(
+    code: PositionCode!
+    asOfDate: Date
+  ): Position
+  
+  """
+  Get temporal timeline for a specific position.
+  
+  Permissions Required: position:read:history
+  """
+  positionTimeline(
+    code: PositionCode!
+    startDate: Date
+    endDate: Date
+  ): [PositionTimelineEntry!]!
+  
+  """
+  Get list of vacant positions with optional filters.
+  
+  Permissions Required: position:read
+  """
+  vacantPositions(
+    organizationCode: String
+    positionType: PositionType
+    includeSubordinates: Boolean = true
+  ): [Position!]!
+  
+  """
+  Get headcount statistics for positions under an organization.
+  
+  Permissions Required: position:read:stats
+  """
+  positionHeadcountStats(
+    organizationCode: String!
+    includeSubordinates: Boolean = true
+  ): HeadcountStats!
+
   # Audit and Analysis Queries
   
   """
   Get complete audit history for a specific organization record (temporal version).
-  This query returns audit records for a specific record_id, allowing precise tracking
+  This query returns audit records for a specific recordId, allowing precise tracking
   of individual temporal version lifecycle changes.
   
   Permissions Required: org:read:audit
@@ -142,6 +197,51 @@ type Query {
     code: String!
     includeDeleted: Boolean
   ): [Organization!]!
+
+  # Job Catalog Queries
+  
+  """
+  Get job family groups with optional historical inclusion.
+  
+  Permissions Required: job-catalog:read
+  """
+  jobFamilyGroups(
+    includeInactive: Boolean = false
+    asOfDate: Date
+  ): [JobFamilyGroup!]!
+  
+  """
+  Get job families under a specified group.
+  
+  Permissions Required: job-catalog:read
+  """
+  jobFamilies(
+    groupCode: JobFamilyGroupCode!
+    includeInactive: Boolean = false
+    asOfDate: Date
+  ): [JobFamily!]!
+  
+  """
+  Get job roles under a specified family.
+  
+  Permissions Required: job-catalog:read
+  """
+  jobRoles(
+    familyCode: JobFamilyCode!
+    includeInactive: Boolean = false
+    asOfDate: Date
+  ): [JobRole!]!
+  
+  """
+  Get job levels under a specified role.
+  
+  Permissions Required: job-catalog:read
+  """
+  jobLevels(
+    roleCode: JobRoleCode!
+    includeInactive: Boolean = false
+    asOfDate: Date
+  ): [JobLevel!]!
 
 
   # System Maintenance and Monitoring
@@ -267,7 +367,7 @@ type HierarchyStatistics {
 
 """
 Comprehensive audit log entry with complete change tracking information.
-Each audit record tracks changes to a specific organization temporal version (record_id).
+Each audit record tracks changes to a specific organization temporal version (recordId).
 """
 type AuditLogDetail {
   auditId: String!
@@ -340,6 +440,131 @@ type TemporalInfo {
   currentCount: Int!
   futureCount: Int!
   historicalCount: Int!
+}
+
+"""
+Entry describing a specific temporal version of a position.
+"""
+type PositionTimelineEntry {
+  recordId: UUID!
+  status: PositionStatus!
+  title: String!
+  effectiveDate: Date!
+  endDate: Date
+  isCurrent: Boolean!
+  changeReason: String
+}
+
+"""
+Position resource exposed via GraphQL.
+"""
+type Position {
+  code: PositionCode!
+  recordId: UUID!
+  tenantId: UUID!
+  title: String!
+  jobProfileCode: String
+  jobProfileName: String
+  jobFamilyGroupCode: JobFamilyGroupCode!
+  jobFamilyCode: JobFamilyCode!
+  jobRoleCode: JobRoleCode!
+  jobLevelCode: JobLevelCode!
+  organizationCode: String!
+  positionType: PositionType!
+  employmentType: EmploymentType!
+  gradeLevel: String
+  headcountCapacity: Float!
+  headcountInUse: Float!
+  availableHeadcount: Float!
+  reportsToPositionCode: PositionCode
+  status: PositionStatus!
+  effectiveDate: Date!
+  endDate: Date
+  isCurrent: Boolean!
+  isFuture: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type PositionEdge {
+  cursor: String!
+  node: Position!
+}
+
+type PositionConnection {
+  edges: [PositionEdge!]!
+  pagination: PaginationInfo!
+  data: [Position!]!
+  totalCount: Int!
+}
+
+type LevelHeadcount {
+  jobLevelCode: JobLevelCode!
+  capacity: Float!
+  utilized: Float!
+  available: Float!
+}
+
+type TypeHeadcount {
+  positionType: PositionType!
+  capacity: Float!
+  filled: Float!
+  available: Float!
+}
+
+type HeadcountStats {
+  organizationCode: String!
+  organizationName: String!
+  totalCapacity: Float!
+  totalFilled: Float!
+  totalAvailable: Float!
+  fillRate: Float!
+  byLevel: [LevelHeadcount!]!
+  byType: [TypeHeadcount!]!
+}
+
+type JobFamilyGroup {
+  code: JobFamilyGroupCode!
+  recordId: UUID!
+  name: String!
+  status: JobCatalogStatus!
+  effectiveDate: Date!
+  endDate: Date
+  description: String
+}
+
+type JobFamily {
+  code: JobFamilyCode!
+  recordId: UUID!
+  groupCode: JobFamilyGroupCode!
+  name: String!
+  status: JobCatalogStatus!
+  effectiveDate: Date!
+  endDate: Date
+  description: String
+}
+
+type JobRole {
+  code: JobRoleCode!
+  recordId: UUID!
+  familyCode: JobFamilyCode!
+  name: String!
+  status: JobCatalogStatus!
+  effectiveDate: Date!
+  endDate: Date
+  description: String
+}
+
+type JobLevel {
+  code: JobLevelCode!
+  recordId: UUID!
+  roleCode: JobRoleCode!
+  name: String!
+  status: JobCatalogStatus!
+  effectiveDate: Date!
+  endDate: Date
+  levelRank: Int!
+  description: String
 }
 
 """
@@ -584,6 +809,40 @@ input DateRangeInput {
   to: String
 }
 
+"""
+Filter options for position queries.
+"""
+input PositionFilterInput {
+  organizationCode: String
+  positionCodes: [PositionCode!]
+  status: PositionStatus
+  jobFamilyGroupCodes: [JobFamilyGroupCode!]
+  jobFamilyCodes: [JobFamilyCode!]
+  jobRoleCodes: [JobRoleCode!]
+  jobLevelCodes: [JobLevelCode!]
+  positionTypes: [PositionType!]
+  employmentTypes: [EmploymentType!]
+  effectiveRange: DateRangeInput
+}
+
+"""
+Supported position sorting fields.
+"""
+enum PositionSortField {
+  CODE
+  TITLE
+  EFFECTIVE_DATE
+  STATUS
+}
+
+"""
+Sorting input for position queries.
+"""
+input PositionSortInput {
+  field: PositionSortField!
+  direction: SortOrder = ASC
+}
+
 # Enums
 
 """
@@ -662,6 +921,44 @@ enum SortOrder {
   DESC
 }
 
+"""
+Lifecycle status for positions.
+"""
+enum PositionStatus {
+  PLANNED
+  ACTIVE
+  FILLED
+  VACANT
+  INACTIVE
+  DELETED
+}
+
+"""
+Contract type for positions.
+"""
+enum PositionType {
+  REGULAR
+  TEMPORARY
+  CONTRACTOR
+}
+
+"""
+Employment type for position assignments.
+"""
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  INTERN
+}
+
+"""
+Status for job catalog entries.
+"""
+enum JobCatalogStatus {
+  ACTIVE
+  INACTIVE
+}
+
 # Scalar Types
 
 """
@@ -683,6 +980,31 @@ scalar UUID
 JSON scalar for arbitrary JSON data structures.
 """
 scalar JSON
+
+"""
+Position code scalar (P + 7 digits).
+"""
+scalar PositionCode
+
+"""
+Job family group code scalar (4-6 uppercase letters).
+"""
+scalar JobFamilyGroupCode
+
+"""
+Job family code scalar (group + '-' + 3-6 alphanumeric characters).
+"""
+scalar JobFamilyCode
+
+"""
+Job role code scalar (family + '-' + 3-6 alphanumeric characters).
+"""
+scalar JobRoleCode
+
+"""
+Job level code scalar (uppercase letter + 1-2 digits).
+"""
+scalar JobLevelCode
 
 # Schema Directives and Documentation
 

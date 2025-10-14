@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { TOKEN_STORAGE_KEY } from '@/shared/api/auth';
 import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 import { ensurePwJwt, getPwJwt } from './utils/authToken';
 
@@ -142,7 +143,7 @@ async function ensureAuthentication(page: Page) {
   };
 
   await page.addInitScript(({ tokenPayload }) => {
-    window.localStorage.setItem('cube_castle_oauth_token', JSON.stringify(tokenPayload));
+    window.localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokenPayload));
   }, { tokenPayload: payload });
 }
 

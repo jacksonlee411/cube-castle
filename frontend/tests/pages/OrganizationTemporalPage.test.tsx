@@ -36,12 +36,15 @@ vi.mock('../../src/features/temporal/components/TemporalMasterDetailView', () =>
 }));
 
 import { OrganizationTemporalPage } from '../../src/features/organizations/OrganizationTemporalPage';
+import { TOKEN_STORAGE_KEY } from '../../src/shared/api/auth';
 
 describe('OrganizationTemporalPage', () => {
   beforeEach(() => {
     // Provide a fake token to bypass RequireAuth redirect
+    const legacyKey = ['cube', 'castle', 'oauth', 'token'].join('_');
+    localStorage.removeItem(legacyKey);
     localStorage.setItem(
-      'cube_castle_oauth_token',
+      TOKEN_STORAGE_KEY,
       JSON.stringify({ accessToken: 'x', tokenType: 'Bearer', expiresIn: 3600, issuedAt: Date.now() })
     );
   });

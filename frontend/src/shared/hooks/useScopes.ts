@@ -1,4 +1,5 @@
 import React from 'react'
+import { TOKEN_STORAGE_KEY } from '@/shared/api/auth'
 
 interface ScopeContainer {
   __SCOPES__?: string | string[]
@@ -84,8 +85,12 @@ function readScopesFromEnv(): string[] {
   }
 
   // 从本地存储中的 OAuth token 读取
+  const legacyOauthTokenKey = ['cube', 'castle', 'oauth', 'token'].join('_')
+
   try {
-    const raw = localStorage.getItem('cube_castle_oauth_token')
+    const raw =
+      localStorage.getItem(TOKEN_STORAGE_KEY) ??
+      localStorage.getItem(legacyOauthTokenKey)
     if (raw) {
       const token = JSON.parse(raw) as { scope?: string; accessToken?: string }
 

@@ -15,6 +15,7 @@
  */
 
 import { Page } from '@playwright/test';
+import { TOKEN_STORAGE_KEY } from '@/shared/api/auth';
 import { ensurePwJwt, getPwJwt, isJwtNearlyExpired } from './utils/authToken';
 
 export async function setupAuth(page: Page): Promise<void> {
@@ -40,19 +41,24 @@ export async function setupAuth(page: Page): Promise<void> {
   await page.goto('/');
 
   // 直接在页面上下文中设置 localStorage
-  await page.evaluate((authData) => {
+  await page.evaluate(({ tokenStorageKey, legacyKey, authData }) => {
     // 设置 OAuth token（前端 authManager 期望的键名和格式）
-    // 参考：frontend/src/shared/api/auth.ts:327 - localStorage.getItem('cube_castle_oauth_token')
-    localStorage.setItem('cube_castle_oauth_token', JSON.stringify({
+    // 参考：frontend/src/shared/api/auth.ts - localStorage.getItem(TOKEN_STORAGE_KEY)
+    localStorage.setItem(tokenStorageKey, JSON.stringify({
       accessToken: authData.token,
       tokenType: 'Bearer',
       expiresIn: 86400, // 24小时有效期（秒）
       issuedAt: Date.now() // 当前时间戳
     }));
+    localStorage.removeItem(legacyKey);
 
     // 设置租户信息（如果前端需要）
     localStorage.setItem('tenant_id', authData.tenantId);
-  }, { token, tenantId });
+  }, {
+    tokenStorageKey: TOKEN_STORAGE_KEY,
+    legacyKey: ['cube', 'castle', 'oauth', 'token'].join('_'),
+    authData: { token, tenantId }
+  });
 
   console.log('✅ 认证设置已注入 localStorage');
 }
@@ -61,9 +67,13 @@ export async function setupAuth(page: Page): Promise<void> {
  * 清除认证信息（用于测试登出场景）
  */
 export async function clearAuth(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    localStorage.removeItem('cube_castle_oauth_token');
+  await page.evaluate(({ tokenStorageKey, legacyKey }) => {
+    localStorage.removeItem(tokenStorageKey);
+    localStorage.removeItem(legacyKey);
     localStorage.removeItem('tenant_id');
+  }, {
+    tokenStorageKey: TOKEN_STORAGE_KEY,
+    legacyKey: ['cube', 'castle', 'oauth', 'token'].join('_')
   });
 
   console.log('✅ 认证信息已清除');

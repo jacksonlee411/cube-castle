@@ -9,7 +9,14 @@ generates:
     config:
       scalars:
         Date: string
+        DateTime: string
         UUID: string
+        JSON: Record<string, unknown>
+        PositionCode: string
+        JobFamilyGroupCode: string
+        JobFamilyCode: string
+        JobRoleCode: string
+        JobLevelCode: string
       namingConvention:
         typeNames: pascal-case#pascalCase
         fieldNames: camelCase

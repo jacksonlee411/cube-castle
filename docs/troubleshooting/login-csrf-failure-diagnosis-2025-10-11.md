@@ -109,7 +109,7 @@ await unauthenticatedRESTClient.request('/auth/refresh', {
 document.cookie
 // 结果: "" (空字符串)
 
-localStorage.getItem('cube_castle_oauth_token')
+localStorage.getItem('cubeCastleOauthToken')
 // 结果: null
 ```
 
