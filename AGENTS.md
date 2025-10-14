@@ -2,6 +2,8 @@
 
 > ⚠️ 资源唯一性与跨层一致性为最高优先级约束：所有代理执行前需确保不引入第二事实来源或跨层不一致，一旦发现必须立即中止并回滚。
 
+> 🐳 **Docker 容器化部署强制约束**：本项目所有服务、数据库、中间件（PostgreSQL、Redis、Temporal 等）必须通过 Docker Compose 管理，**严禁在宿主机直接安装**。如发现宿主服务占用容器端口（如 5432、6379），必须卸载宿主服务以释放端口，**不得调整容器端口映射**以迁就宿主服务。此约束确保开发环境一致性、隔离性与可复现性。
+
 ## 项目结构与模块组织
 - 命令服务位于 `cmd/organization-command-service/`，查询服务位于 `cmd/organization-query-service/`，共享中间件、鉴权、缓存与 GraphQL 工具集中在 `internal/`，严格遵循 PostgreSQL 原生 CQRS（命令→REST、查询→GraphQL）。
 - 数据迁移统一保存在 `database/migrations/`，通用 SQL 助手位于 `sql/`；禁止回退至 `sql/init/01-schema.sql` 等历史脚本，数据真源始终由迁移驱动。
@@ -15,7 +17,7 @@
 - 如需快速确认环境，可执行 `make status`、`curl http://localhost:9090/health` 与 `curl http://localhost:8090/health`（命令返回 200 表示核心服务就绪）。
 
 ## 构建、测试与开发命令
-- 基础设施与服务：`make docker-up` → `make run-dev`（端口 9090/8090）→ `make frontend-dev`；必要时使用 `make run-auth-rs256-sim` 提供 JWKS。
+- **基础设施与服务（Docker 强制）**：所有服务通过 `make docker-up` 启动 Docker Compose 容器，包括 PostgreSQL (5432)、Redis (6379)、Temporal (7233) 等。**严禁**在宿主机安装这些服务，如遇端口冲突必须卸载宿主服务。启动后执行 `make run-dev`（端口 9090/8090）→ `make frontend-dev`；必要时使用 `make run-auth-rs256-sim` 提供 JWKS。
 - 编译与清理：`make build`、`make clean`；数据库迁移使用 `make db-migrate-all`，日志追踪可查阅 `run-dev*.log`。
 - 测试：`make test`、`make test-integration`、`make coverage`，前端 `cd frontend && npm run test` 或 `npm run lint`，E2E 使用 `npm run test:e2e`。
 - 鉴权链路：`make jwt-dev-setup`、`make jwt-dev-mint`，令牌存放 `.cache/dev.jwt`；必要时通过 `curl http://localhost:9090/.well-known/jwks.json` 验证公钥。
@@ -35,6 +37,7 @@
 - 评论区需明确剩余风险、待办与迁移步骤，审阅者以 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 为核对清单。
 
 ## 安全与配置提示
+- **Docker 环境隔离**：所有数据库、缓存、消息队列必须运行在 Docker 容器内，数据卷统一由 Docker Compose 管理（`postgres_data`、`redis_data` 等）。如遇宿主机服务占用容器端口（如 PostgreSQL 占用 5432），必须执行 `sudo apt remove postgresql*` 或等效卸载命令，**禁止修改 docker-compose.dev.yml 端口映射**来迁就宿主服务。
 - 所有环境初始化均通过迁移脚本完成；必要时使用 `make db-migrate-all` 或 `make db-rollback-last`（若可用）进行回滚，再同步更新计划文档。
 - 秘钥统一存放于 `secrets/`，严禁提交到版本库；调试时通过 `make jwt-dev-export` 导出会话令牌，并遵循 `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`。
 - 若出现异常，优先参考 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `CHANGELOG.md`，若与本指南冲突，以上述权威文档与 `CLAUDE.md` 为最终解释。
