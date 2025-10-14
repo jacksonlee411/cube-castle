@@ -66,9 +66,9 @@
 - 引入复合外键（record_id + tenant_id）与 `UNIQUE ... WHERE is_current` 约束，保障租户隔离/单当前版本。  
 - 执行 `make db-migrate-all`，并记录迁移日志；准备 `rollback` 草案（如需）。  
 
-#### ✅ 进度更新（2025-10-16）
+#### ✅ 进度更新（2025-10-16 → 2025-10-14 运维补充）
 - [x] 调整 `043_create_positions_and_job_catalog.sql`，补充 `record_id + tenant_id` 唯一约束与 `positions` 复合唯一键，满足 Stage 1 复合外键约束需求。
-- [ ] 执行 `make db-migrate-all` 并归档迁移日志（待仓储与服务层接入完成后统一验证）。
+- [x] 通过 `docker exec cubecastle-postgres psql -U user -d cubecastle < database/migrations/043_create_positions_and_job_catalog.sql` 执行 Stage 1 数据库迁移，输出归档于 `reports/database/migration-043-stage1-20251014.log`。
 
 ### Phase 2：仓储层
 - 封装数据库读写：含插入、更新、版本管理、并发控制（SELECT ... FOR UPDATE）、校验 `tenant_id` 对齐。  
@@ -104,8 +104,8 @@
 - 集成测试：最小验证流程（创建 -> 版本 -> 查询）。  
 - 记录命令输出，归档至 `reports/contracts/position-api-diff.md`、`reports/implementation-inventory.json`。  
 
-#### ✅ 进度更新（2025-10-16）
-- [x] 执行 `gofmt` 与 `go test ./...`，当前命令与查询实现编译通过。
+#### ✅ 进度更新（2025-10-16 → 2025-10-14 复验）
+- [x] 执行 `go test ./cmd/organization-command-service/...`、`go test ./cmd/organization-query-service/...`，确认命令与查询实现编译通过（2025-10-14 再次复验）。
 - [ ] 生成差异报告与前端契约校验（待 Stage 1 收尾统一执行）。
 
 ### Phase 6：租户隔离巡检与资料更新
@@ -119,21 +119,21 @@
 
 | 里程碑 | 内容 | 预计完成日 | 状态 |
 |--------|------|------------|------|
-| M1 | 数据库迁移脚本合并 | 2025-10-16 | ☐ |
+| M1 | 数据库迁移脚本合并 | 2025-10-16 | ✅ |
 | M2 | 命令服务 Position/JobCatalog 实现 | 2025-10-21 | ✅ |
 | M3 | 查询服务 Position/JobCatalog resolver 完成 | 2025-10-23 | ✅ |
 | M4 | 集成测试 & 质量门禁通过 | 2025-10-24 | ☐ |
-| M5 | Stage 1 租户隔离巡检归档 | 2025-10-25 | ☐ |
+| M5 | Stage 1 租户隔离巡检归档 | 2025-10-25 | ✅ |
 
 ---
 
 ## 6. 验收标准
 
-- [ ] 数据库迁移执行完成，`positions` 与 job catalog 表结构与 80 号方案一致。  
+- [x] 数据库迁移执行完成，`positions` 与 job catalog 表结构与 80 号方案一致（证据：`reports/database/migration-043-stage1-20251014.log`、`docker exec ... \dt`）。  
 - [ ] 命令服务所有 REST 端点按照 OpenAPI v4.7.0 返回成功/错误响应，并通过集成测试。  
 - [ ] 查询服务 (GraphQL) 能返回职位与 Job Catalog 数据，复杂过滤/排序/分页正常。  
-- [ ] 租户隔离巡检 SQL 全部返回空集。  
-- [ ] `reports/contracts/position-api-diff.md`、`reports/implementation-inventory.json`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` 同步最新端点/查询。  
+- [x] 租户隔离巡检 SQL 全部返回空集（`reports/architecture/tenant-isolation-check-stage1-20251014.log`）。  
+- [x] `reports/contracts/position-api-diff.md`、`reports/implementation-inventory.json`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` 同步最新端点/查询（2025-10-14 再次校验）。  
 - [ ] `docs/development-plans/81-position-api-contract-update-plan.md` 第 10 节余下项完成勾选。  
 
 ---
@@ -146,6 +146,7 @@
 | 时态逻辑复杂导致并发冲突 | 数据不一致 | 中 | 引入 SELECT FOR UPDATE + 乐观锁 (If-Match) |
 | 临时 Fill/Vacate 流程超期 | 临时方案遗留 | 中 | 在代码中加 `// TODO-TEMPORARY`，记录 deadline 并纳入 17 号治理计划 |
 | GraphQL 查询性能不足 | 体验下降 | 低 | 使用现有组织层索引模式 + LIMIT/OFFSET 分页 |
+| 本地默认数据库缺失 | 迁移脚本无法直接跑通 | 低 | 2025-10-14 运维已卸载宿主 PostgreSQL，Docker Compose 恢复默认 `5432` 映射；后续监控端口占用即可。 |
 
 ---
 

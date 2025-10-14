@@ -36,7 +36,7 @@ SELECT
   status,
   level,
   hierarchy_depth,
-  path,
+  code_path AS path,
   code_path,
   name_path,
   sort_order,

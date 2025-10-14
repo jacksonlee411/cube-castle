@@ -48,18 +48,11 @@ WHERE is_current = TRUE
 UNION ALL
 
 SELECT 
-    'total_versions' AS metric,
+    'inactive_orgs' AS metric,
     COUNT(*) AS value,
     NOW() AS collected_at
-FROM organization_unit_versions
-
-UNION ALL
-
-SELECT 
-    'timeline_events_last_30d' AS metric,
-    COUNT(*) AS value,
-    NOW() AS collected_at
-FROM organization_timeline_events 
-WHERE event_date >= NOW() - INTERVAL '30 days';
+FROM organization_units 
+WHERE is_current = TRUE
+  AND status <> 'ACTIVE';
 
 COMMIT;

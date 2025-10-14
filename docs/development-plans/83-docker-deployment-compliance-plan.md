@@ -93,26 +93,26 @@ run-dev:
 	@echo "🔐 检查 JWT 密钥..."
 	$(MAKE) jwt-dev-setup
 	@echo "🐳 拉起完整服务栈（基础设施 + 应用服务）..."
-	docker-compose up -d --build postgres redis graphql-service rest-service
+	docker compose -f docker-compose.dev.yml up -d --build postgres redis graphql-service rest-service
 	@echo "⏳ 等待服务健康..."
 	@sleep 8
 	@echo "🩺 健康检查："
 	-@for i in 1 2 3 4 5 6 7 8 9 10; do \
 	  curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" && break || \
 	  (echo "  ⏳ 等待 command-service..." && sleep 2); \
-	done || echo "  ⚠️  command-service 未就绪，请检查: docker-compose logs rest-service"
+	done || echo "  ⚠️  command-service 未就绪，请检查: docker compose -f docker-compose.dev.yml logs rest-service"
 	-@for i in 1 2 3 4 5 6 7 8 9 10; do \
 	  curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" && break || \
 	  (echo "  ⏳ 等待 query-service..." && sleep 2); \
-	done || echo "  ⚠️  query-service 未就绪，请检查: docker-compose logs graphql-service"
+	done || echo "  ⚠️  query-service 未就绪，请检查: docker compose -f docker-compose.dev.yml logs graphql-service"
 	@echo "✅ 服务已就绪"
-	@echo "📊 查看日志: docker-compose logs -f graphql-service rest-service"
+	@echo "📊 查看日志: docker compose -f docker-compose.dev.yml logs -f graphql-service rest-service"
 	@echo "🛑 停止服务: make docker-down"
 ```
 
 #### 3.1.2 run-auth-rs256-sim 目标
 
-**修复方案**: 同样改用 `docker-compose up`，或废弃此目标（功能已被 run-dev 覆盖）
+**修复方案**: 同样改用 `docker compose -f docker-compose.dev.yml up`，或废弃此目标（功能已被 run-dev 覆盖）
 
 #### 3.1.3 新增 run-dev-debug 目标（调试专用）
 
@@ -209,8 +209,8 @@ LOG_LEVEL=info
 JWT_SECRET=cube-castle-development-secret-key-please-change-in-production
 JWT_EXPIRY=24h
 JWT_ALG=RS256
-JWT_PRIVATE_KEY_PATH=/home/shangmeilin/cube-castle/secrets/dev-jwt-private.pem
-JWT_PUBLIC_KEY_PATH=/home/shangmeilin/cube-castle/secrets/dev-jwt-public.pem
+JWT_PRIVATE_KEY_PATH=./secrets/dev-jwt-private.pem
+JWT_PUBLIC_KEY_PATH=./secrets/dev-jwt-public.pem
 JWT_KEY_ID=bff-key-1
 
 # -----------------------------------------------------------------------------
@@ -257,7 +257,7 @@ services:
   graphql-service:
     build:
       context: .
-      dockerfile: cmd/organization-query-service-unified/Dockerfile
+      dockerfile: cmd/organization-query-service/Dockerfile  # 需新增/补齐
     container_name: cubecastle-graphql
     environment:
       # 使用容器内主机名
@@ -326,9 +326,12 @@ networks:
 2. 环境变量使用容器内主机名（postgres、redis）
 3. JWT 配置通过 volumes 挂载 secrets 目录
 4. 添加注释说明为何移除 profiles
+5. Phase 1 内新增 `cmd/organization-query-service/Dockerfile`，确保 Compose 构建路径有效
+
+> 注：当前仓库尚未提供 GraphQL 查询服务的 Dockerfile，需在 Phase 1 内新增 `cmd/organization-query-service/Dockerfile`（可参考命令服务 Dockerfile 的分层结构），方可使上述 Compose 片段生效。
 
 **验收标准**:
-- [ ] `docker-compose up -d` 启动所有服务（postgres, redis, graphql-service, rest-service）
+- [ ] `docker compose -f docker-compose.dev.yml up -d` 启动所有服务（postgres, redis, graphql-service, rest-service）
 - [ ] 容器间网络互通（graphql-service 可访问 postgres、redis、rest-service）
 - [ ] JWT JWKS 配置正确（graphql-service 从 rest-service 获取公钥）
 
@@ -362,7 +365,7 @@ cd cmd/organization-query-service && go run .
 ### 一键启动（推荐，符合 Docker 强制原则）
 ​```bash
 # 1. 启动完整服务栈（基础设施 + 应用服务）
-make run-dev  # 或 docker-compose up -d --build
+make run-dev  # 或 docker compose -f docker-compose.dev.yml up -d --build
 
 # 2. 检查服务状态
 make status
@@ -373,7 +376,7 @@ make status
 #   cubecastle-graphql    ... Up             0.0.0.0:8090->8090/tcp
 
 # 3. 查看服务日志
-docker-compose logs -f graphql-service rest-service
+docker compose -f docker-compose.dev.yml logs -f graphql-service rest-service
 
 # 4. 启动前端（仍在宿主机，因需热重载）
 make frontend-dev  # 或 cd frontend && npm run dev
@@ -382,10 +385,10 @@ make frontend-dev  # 或 cd frontend && npm run dev
 ### 分步启动（手动控制，仍符合 Docker 原则）
 ​```bash
 # 1. 仅启动基础设施
-docker-compose up -d postgres redis
+docker compose -f docker-compose.dev.yml up -d postgres redis
 
 # 2. 启动应用服务
-docker-compose up -d --build graphql-service rest-service
+docker compose -f docker-compose.dev.yml up -d --build graphql-service rest-service
 
 # 3. 启动前端
 cd frontend && npm run dev
@@ -398,7 +401,7 @@ cd frontend && npm run dev
 # 日常开发请使用上方"一键启动"
 
 # 1. 启动基础设施
-docker-compose up -d postgres redis
+docker compose -f docker-compose.dev.yml up -d postgres redis
 
 # 2. 宿主机运行 Go 服务（调试模式）
 make run-dev-debug
@@ -413,10 +416,10 @@ make docker-down && make run-dev
 ### 停止服务
 ​```bash
 # 停止所有服务
-make docker-down  # 或 docker-compose down
+make docker-down  # 或 docker compose -f docker-compose.dev.yml down
 
 # 停止并清理数据卷（⚠️ 会删除数据库数据）
-docker-compose down -v
+docker compose -f docker-compose.dev.yml down -v
 ​```
 ```
 
@@ -432,9 +435,9 @@ docker-compose down -v
 
 | 检查项 | 验收标准 | 证据 |
 |--------|----------|------|
-| Makefile | `make run-dev` 启动 Docker 容器 | 执行输出显示 `docker-compose up` |
+| Makefile | `make run-dev` 启动 Docker 容器 | 执行输出显示 `docker compose -f docker-compose.dev.yml up` |
 | .env | 移除 "host-based primary" 注释 | 文件内容检查 |
-| docker-compose.dev.yml | 移除 profiles，默认启动所有服务 | `docker-compose up -d` 启动4个容器 |
+| docker-compose.dev.yml | 移除 profiles，默认启动所有服务 | `docker compose -f docker-compose.dev.yml up -d` 启动4个容器 |
 | README.md | "一键启动"仅 Docker 命令 | 文档内容检查 |
 | 集成测试 | 完整服务栈启动并通过健康检查 | `curl http://localhost:9090/health` 返回 200 |
 
@@ -500,7 +503,7 @@ make docker-down        # 停止所有 Docker 服务
 # 原因: 脚本在宿主机运行 Go 服务，违反 CLAUDE.md 第2节 Docker 强制原则
 # 替代方案:
 #   - 推荐: make run-dev
-#   - 或: docker-compose up -d --build
+#   - 或: docker compose -f docker-compose.dev.yml up -d --build
 #
 # 详见:
 #   - CLAUDE.md 第2节（Docker 容器化部署强制原则）
@@ -516,7 +519,7 @@ echo "⚠️  警告: 此脚本已废弃，违反 Docker 强制部署原则"
 echo ""
 echo "请使用符合规范的启动方式:"
 echo "  make run-dev"
-echo "  或: docker-compose up -d --build"
+echo "  或: docker compose -f docker-compose.dev.yml up -d --build"
 echo ""
 echo "详见: docs/development-plans/83-docker-deployment-compliance-plan.md"
 echo ""
@@ -606,7 +609,7 @@ jobs:
             echo "❌ 发现脚本包含 'go run' 命令:"
             echo "$VIOLATIONS"
             echo ""
-            echo "正确做法: 使用 docker-compose up 或在脚本顶部添加废弃警告"
+            echo "正确做法: 使用 docker compose -f docker-compose.dev.yml up 或在脚本顶部添加废弃警告"
             exit 1
           fi
           echo "✅ 脚本合规检查通过"
@@ -791,12 +794,12 @@ volumes:
 ## 2. 开发流程
 ### 2.1 启动服务
 ​```bash
-make run-dev  # 启动完整服务栈
+make run-dev  # 启动完整服务栈（或 docker compose -f docker-compose.dev.yml up -d --build）
 ​```
 
 ### 2.2 查看日志
 ​```bash
-docker-compose logs -f graphql-service rest-service
+docker compose -f docker-compose.dev.yml logs -f graphql-service rest-service
 ​```
 
 ### 2.3 进入容器调试
@@ -908,13 +911,14 @@ A: 卸载宿主服务（如 `sudo apt remove postgresql*`），不得修改容�
 ## 10. 附录：快速修复检查清单
 
 ### Phase 1 (P0) 检查清单
-- [ ] Makefile: `run-dev` 改用 `docker-compose up`
+- [ ] Makefile: `run-dev` 改用 `docker compose -f docker-compose.dev.yml up`
 - [ ] Makefile: 新增 `run-dev-debug` 调试目标（带警告）
 - [ ] .env: 移除 "host-based primary"，优先容器内配置
 - [ ] docker-compose.dev.yml: 移除 `profiles: ["services"]`
 - [ ] README.md: "一键启动"仅 Docker 命令
 - [ ] README.md: 新增"调试模式"部分（带警告）
 - [ ] 集成测试: `make run-dev` 启动服务并通过健康检查
+- [ ] 新增 `cmd/organization-query-service/Dockerfile` 并通过 compose 构建验证
 
 ### Phase 2 (P1) 检查清单
 - [ ] 开发者快速参考: 所有 localhost 示例添加 Docker 说明

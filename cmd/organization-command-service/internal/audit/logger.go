@@ -65,6 +65,8 @@ const (
 const (
 	ResourceTypeOrganization = "ORGANIZATION"
 	ResourceTypeHierarchy    = "HIERARCHY"
+	ResourceTypeJobCatalog   = "JOB_CATALOG"
+	ResourceTypePosition     = "POSITION"
 	ResourceTypeUser         = "USER"
 	ResourceTypeSystem       = "SYSTEM"
 )

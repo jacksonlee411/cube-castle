@@ -85,3 +85,5 @@
 **归档时间**: 2025-09-29  
 **归档事由**: TODO 治理到期事项处理完成，CI/周报机制上线；证据与模板已归档于 `reports/iig-guardian/`。  
 **后续提醒**: 持续执行周度巡检；若出现新的 `TODO-TEMPORARY` 条目需重新立项。
+
+- 2025-10-14 登记：职位编制临时端点 `/api/v1/positions/{code}/fill|vacate|transfer` 已按 Stage1 实施计划添加 `// TODO-TEMPORARY`（Owner: 命令服务组，截止: 2025-11-15）。计划接入统一 assignments 模块后替换，届时需回收本地实现并在 IIG 周报中记录关闭。
