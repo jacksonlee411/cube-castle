@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-10-14T08:03:44.871Z",
+  "timestamp": "2025-10-14T12:17:40.615Z",
   "summary": {
     "openapiPaths": 42,
     "graphqlQueries": 18,
-    "goHandlers": 26,
-    "goServices": 19,
+    "goHandlers": 43,
+    "goServices": 21,
     "tsExports": 204
   },
   "openapiPaths": [
@@ -114,6 +114,51 @@
     },
     {
       "name": "SetupRoutes",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobFamilyGroup",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobFamilyGroupVersion",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobFamily",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobFamilyVersion",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobRole",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobRoleVersion",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobLevel",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobLevelVersion",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "SetupRoutes",
       "file": "cmd/organization-command-service/internal/handlers/operational.go",
       "kind": "method"
     },
@@ -201,6 +246,46 @@
       "name": "ActivateOrganization",
       "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
       "kind": "method"
+    },
+    {
+      "name": "SetupRoutes",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreatePosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "ReplacePosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreatePositionVersion",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "FillPosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "VacatePosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "TransferPosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "ApplyPositionEvent",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
     }
   ],
   "goServices": [
@@ -212,6 +297,11 @@
     {
       "name": "CascadeTask",
       "file": "cmd/organization-command-service/internal/services/cascade.go",
+      "kind": "type"
+    },
+    {
+      "name": "JobCatalogService",
+      "file": "cmd/organization-command-service/internal/services/job_catalog_service.go",
       "kind": "type"
     },
     {
@@ -247,6 +337,11 @@
     {
       "name": "TemporalStatusChangeRequest",
       "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "PositionService",
+      "file": "cmd/organization-command-service/internal/services/position_service.go",
       "kind": "type"
     },
     {

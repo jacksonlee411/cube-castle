@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS job_family_groups (
     is_current BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (tenant_id, family_group_code, effective_date)
+    UNIQUE (tenant_id, family_group_code, effective_date),
+    UNIQUE (record_id, tenant_id)
 );
 
 CREATE TABLE IF NOT EXISTS job_families (
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS job_families (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (tenant_id, family_code, effective_date),
+    UNIQUE (record_id, tenant_id),
     CONSTRAINT fk_job_families_group FOREIGN KEY (parent_record_id, tenant_id)
         REFERENCES job_family_groups(record_id, tenant_id)
 );
@@ -53,6 +55,7 @@ CREATE TABLE IF NOT EXISTS job_roles (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (tenant_id, role_code, effective_date),
+    UNIQUE (record_id, tenant_id),
     CONSTRAINT fk_job_roles_family FOREIGN KEY (parent_record_id, tenant_id)
         REFERENCES job_families(record_id, tenant_id)
 );
@@ -74,6 +77,7 @@ CREATE TABLE IF NOT EXISTS job_levels (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (tenant_id, level_code, effective_date),
+    UNIQUE (record_id, tenant_id),
     CONSTRAINT fk_job_levels_role FOREIGN KEY (parent_record_id, tenant_id)
         REFERENCES job_roles(record_id, tenant_id)
 );
@@ -145,8 +149,7 @@ CREATE TABLE IF NOT EXISTS positions (
     operated_by_name VARCHAR(255) NOT NULL,
     operation_reason TEXT,
     UNIQUE (tenant_id, code, effective_date),
-    CONSTRAINT uk_positions_current UNIQUE (tenant_id, code)
-        WHERE is_current = true AND status <> 'DELETED',
+    UNIQUE (tenant_id, code, record_id),
     CONSTRAINT fk_positions_family_group FOREIGN KEY (job_family_group_record_id, tenant_id)
         REFERENCES job_family_groups(record_id, tenant_id),
     CONSTRAINT fk_positions_family FOREIGN KEY (job_family_record_id, tenant_id)
@@ -175,5 +178,8 @@ CREATE INDEX IF NOT EXISTS idx_positions_job_family
     ON positions(tenant_id, job_family_code, is_current);
 CREATE INDEX IF NOT EXISTS idx_positions_job_role
     ON positions(tenant_id, job_role_code, is_current);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_positions_current_active
+    ON positions(tenant_id, code)
+    WHERE is_current = true AND status <> 'DELETED';
 
 COMMIT;

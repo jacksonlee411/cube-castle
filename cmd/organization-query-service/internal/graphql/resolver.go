@@ -8,8 +8,8 @@ import (
 	"cube-castle-deployment-test/cmd/organization-query-service/internal/model"
 	"cube-castle-deployment-test/cmd/organization-query-service/internal/repository"
 	"cube-castle-deployment-test/internal/auth"
-	sharedconfig "shared/config"
 	"github.com/google/uuid"
+	sharedconfig "shared/config"
 )
 
 type Resolver struct {
@@ -207,6 +207,167 @@ func (r *Resolver) HierarchyStatistics(ctx context.Context, args struct {
 		IntegrityIssuesField:    []model.IntegrityIssue{},
 		LastAnalyzedField:       "",
 	}, nil
+}
+
+// Positions 查询
+func (r *Resolver) Positions(ctx context.Context, args struct {
+	Filter     *model.PositionFilterInput
+	Pagination *model.PaginationInput
+	Sorting    *[]model.PositionSortInput
+}) (*model.PositionConnection, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "positions"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: positions: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+
+	var sorting []model.PositionSortInput
+	if args.Sorting != nil {
+		sorting = *args.Sorting
+	}
+	r.logger.Printf("[GraphQL] 查询职位列表 filter=%+v pagination=%+v sort=%d", args.Filter, args.Pagination, len(sorting))
+
+	return r.repo.GetPositions(ctx, sharedconfig.DefaultTenantID, args.Filter, args.Pagination, sorting)
+}
+
+// Position 查询单个职位
+func (r *Resolver) Position(ctx context.Context, args struct {
+	Code     string
+	AsOfDate *string
+}) (*model.Position, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "position"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: position: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 查询职位详情 code=%s asOfDate=%v", args.Code, args.AsOfDate)
+
+	return r.repo.GetPositionByCode(ctx, sharedconfig.DefaultTenantID, args.Code, args.AsOfDate)
+}
+
+// PositionTimeline 查询职位时间线
+func (r *Resolver) PositionTimeline(ctx context.Context, args struct {
+	Code      string
+	StartDate *string
+	EndDate   *string
+}) ([]model.PositionTimelineEntry, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "positionTimeline"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: positionTimeline: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	r.logger.Printf("[GraphQL] 查询职位时间线 code=%s start=%v end=%v", args.Code, args.StartDate, args.EndDate)
+
+	return r.repo.GetPositionTimeline(ctx, sharedconfig.DefaultTenantID, args.Code, args.StartDate, args.EndDate)
+}
+
+// VacantPositions 查询空缺职位
+func (r *Resolver) VacantPositions(ctx context.Context, args struct {
+	OrganizationCode    *string
+	PositionType        *string
+	IncludeSubordinates *bool
+}) ([]model.Position, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "vacantPositions"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: vacantPositions: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	includeSubordinates := true
+	if args.IncludeSubordinates != nil {
+		includeSubordinates = *args.IncludeSubordinates
+	}
+	r.logger.Printf("[GraphQL] 查询空缺职位 org=%v type=%v includeSub=%v", args.OrganizationCode, args.PositionType, includeSubordinates)
+
+	return r.repo.GetVacantPositions(ctx, sharedconfig.DefaultTenantID, args.OrganizationCode, args.PositionType, includeSubordinates)
+}
+
+// PositionHeadcountStats 查询编制统计
+func (r *Resolver) PositionHeadcountStats(ctx context.Context, args struct {
+	OrganizationCode    string
+	IncludeSubordinates *bool
+}) (*model.HeadcountStats, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "positionHeadcountStats"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: positionHeadcountStats: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	includeSubordinates := true
+	if args.IncludeSubordinates != nil {
+		includeSubordinates = *args.IncludeSubordinates
+	}
+	r.logger.Printf("[GraphQL] 查询职位编制统计 org=%s includeSub=%v", args.OrganizationCode, includeSubordinates)
+
+	return r.repo.GetPositionHeadcountStats(ctx, sharedconfig.DefaultTenantID, args.OrganizationCode, includeSubordinates)
+}
+
+// JobFamilyGroups 查询职类
+func (r *Resolver) JobFamilyGroups(ctx context.Context, args struct {
+	IncludeInactive *bool
+	AsOfDate        *string
+}) ([]model.JobFamilyGroup, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "jobFamilyGroups"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: jobFamilyGroups: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	includeInactive := false
+	if args.IncludeInactive != nil {
+		includeInactive = *args.IncludeInactive
+	}
+	r.logger.Printf("[GraphQL] 查询职类 includeInactive=%v asOf=%v", includeInactive, args.AsOfDate)
+
+	return r.repo.GetJobFamilyGroups(ctx, sharedconfig.DefaultTenantID, includeInactive, args.AsOfDate)
+}
+
+// JobFamilies 查询职种
+func (r *Resolver) JobFamilies(ctx context.Context, args struct {
+	GroupCode       string
+	IncludeInactive *bool
+	AsOfDate        *string
+}) ([]model.JobFamily, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "jobFamilies"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: jobFamilies: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	includeInactive := false
+	if args.IncludeInactive != nil {
+		includeInactive = *args.IncludeInactive
+	}
+	r.logger.Printf("[GraphQL] 查询职种 group=%s includeInactive=%v asOf=%v", args.GroupCode, includeInactive, args.AsOfDate)
+
+	return r.repo.GetJobFamilies(ctx, sharedconfig.DefaultTenantID, args.GroupCode, includeInactive, args.AsOfDate)
+}
+
+// JobRoles 查询职务
+func (r *Resolver) JobRoles(ctx context.Context, args struct {
+	FamilyCode      string
+	IncludeInactive *bool
+	AsOfDate        *string
+}) ([]model.JobRole, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "jobRoles"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: jobRoles: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	includeInactive := false
+	if args.IncludeInactive != nil {
+		includeInactive = *args.IncludeInactive
+	}
+	r.logger.Printf("[GraphQL] 查询职务 family=%s includeInactive=%v asOf=%v", args.FamilyCode, includeInactive, args.AsOfDate)
+
+	return r.repo.GetJobRoles(ctx, sharedconfig.DefaultTenantID, args.FamilyCode, includeInactive, args.AsOfDate)
+}
+
+// JobLevels 查询职级
+func (r *Resolver) JobLevels(ctx context.Context, args struct {
+	RoleCode        string
+	IncludeInactive *bool
+	AsOfDate        *string
+}) ([]model.JobLevel, error) {
+	if err := r.authMW.CheckQueryPermission(ctx, "jobLevels"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: jobLevels: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	includeInactive := false
+	if args.IncludeInactive != nil {
+		includeInactive = *args.IncludeInactive
+	}
+	r.logger.Printf("[GraphQL] 查询职级 role=%s includeInactive=%v asOf=%v", args.RoleCode, includeInactive, args.AsOfDate)
+
+	return r.repo.GetJobLevels(ctx, sharedconfig.DefaultTenantID, args.RoleCode, includeInactive, args.AsOfDate)
 }
 
 // 审计历史查询 - v4.6.0 基于record_id

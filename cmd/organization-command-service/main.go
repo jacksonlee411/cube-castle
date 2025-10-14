@@ -60,6 +60,8 @@ func main() {
 
 	var (
 		orgRepo           *repository.OrganizationRepository
+		jobCatalogRepo    *repository.JobCatalogRepository
+		positionRepo      *repository.PositionRepository
 		hierarchyRepo     *repository.HierarchyRepository
 		cascadeService    *services.CascadeUpdateService
 		auditLogger       *audit.AuditLogger
@@ -68,6 +70,8 @@ func main() {
 	if !authOnlyMode {
 		// 初始化仓储层
 		orgRepo = repository.NewOrganizationRepository(db, logger)
+		jobCatalogRepo = repository.NewJobCatalogRepository(db, logger)
+		positionRepo = repository.NewPositionRepository(db, logger)
 		hierarchyRepo = repository.NewHierarchyRepository(db, logger)
 
 		// 初始化业务服务层
@@ -161,11 +165,18 @@ func main() {
 	// 初始化处理器
 	var (
 		orgHandler         *handlers.OrganizationHandler
+		positionHandler    *handlers.PositionHandler
+		jobCatalogHandler  *handlers.JobCatalogHandler
 		devToolsHandler    *handlers.DevToolsHandler
 		operationalHandler *handlers.OperationalHandler
 	)
 	if !authOnlyMode {
+		positionService := services.NewPositionService(positionRepo, jobCatalogRepo, orgRepo, auditLogger, logger)
+		jobCatalogService := services.NewJobCatalogService(jobCatalogRepo, auditLogger, logger)
+
 		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager, hierarchyRepo, businessValidator)
+		positionHandler = handlers.NewPositionHandler(positionService, logger)
+		jobCatalogHandler = handlers.NewJobCatalogHandler(jobCatalogService, logger)
 		operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, rateLimitMiddleware, logger)
 	}
 	// 开发工具路由即使在 authOnly 模式下也允许初始化（内部会根据 devMode 控制）
@@ -246,6 +257,12 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(restAuthMiddleware.Middleware()) // JWT认证和权限验证中间件
 			// 设置组织相关路由 (需要认证)
+			if positionHandler != nil {
+				positionHandler.SetupRoutes(r)
+			}
+			if jobCatalogHandler != nil {
+				jobCatalogHandler.SetupRoutes(r)
+			}
 			orgHandler.SetupRoutes(r)
 			// 设置运维管理路由 (需要认证)
 			operationalHandler.SetupRoutes(r)

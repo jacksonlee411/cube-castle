@@ -502,3 +502,331 @@ type PaginationInput struct {
 	SortBy    string `json:"sortBy"`
 	SortOrder string `json:"sortOrder"`
 }
+
+// Position 数据实体
+type Position struct {
+	CodeField               string     `json:"code" db:"code"`
+	RecordIDField           string     `json:"recordId" db:"record_id"`
+	TenantIDField           string     `json:"tenantId" db:"tenant_id"`
+	TitleField              string     `json:"title" db:"title"`
+	JobProfileCodeField     *string    `json:"jobProfileCode" db:"job_profile_code"`
+	JobProfileNameField     *string    `json:"jobProfileName" db:"job_profile_name"`
+	JobFamilyGroupCodeField string     `json:"jobFamilyGroupCode" db:"job_family_group_code"`
+	JobFamilyCodeField      string     `json:"jobFamilyCode" db:"job_family_code"`
+	JobRoleCodeField        string     `json:"jobRoleCode" db:"job_role_code"`
+	JobLevelCodeField       string     `json:"jobLevelCode" db:"job_level_code"`
+	OrganizationCodeField   string     `json:"organizationCode" db:"organization_code"`
+	PositionTypeField       string     `json:"positionType" db:"position_type"`
+	EmploymentTypeField     string     `json:"employmentType" db:"employment_type"`
+	GradeLevelField         *string    `json:"gradeLevel" db:"grade_level"`
+	HeadcountCapacityField  float64    `json:"headcountCapacity" db:"headcount_capacity"`
+	HeadcountInUseField     float64    `json:"headcountInUse" db:"headcount_in_use"`
+	ReportsToPositionField  *string    `json:"reportsToPositionCode" db:"reports_to_position_code"`
+	StatusField             string     `json:"status" db:"status"`
+	EffectiveDateField      time.Time  `json:"effectiveDate" db:"effective_date"`
+	EndDateField            *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField          bool       `json:"isCurrent" db:"is_current"`
+	CreatedAtField          time.Time  `json:"createdAt" db:"created_at"`
+	UpdatedAtField          time.Time  `json:"updatedAt" db:"updated_at"`
+	JobFamilyGroupNameField *string    `json:"jobFamilyGroupName" db:"job_family_group_name"`
+	JobFamilyNameField      *string    `json:"jobFamilyName" db:"job_family_name"`
+	JobRoleNameField        *string    `json:"jobRoleName" db:"job_role_name"`
+	JobLevelNameField       *string    `json:"jobLevelName" db:"job_level_name"`
+	OrganizationNameField   *string    `json:"organizationName" db:"organization_name"`
+}
+
+func (p Position) Code() string               { return p.CodeField }
+func (p Position) RecordId() string           { return p.RecordIDField }
+func (p Position) TenantId() string           { return p.TenantIDField }
+func (p Position) Title() string              { return p.TitleField }
+func (p Position) JobProfileCode() *string    { return p.JobProfileCodeField }
+func (p Position) JobProfileName() *string    { return p.JobProfileNameField }
+func (p Position) JobFamilyGroupCode() string { return p.JobFamilyGroupCodeField }
+func (p Position) JobFamilyCode() string      { return p.JobFamilyCodeField }
+func (p Position) JobRoleCode() string        { return p.JobRoleCodeField }
+func (p Position) JobLevelCode() string       { return p.JobLevelCodeField }
+func (p Position) OrganizationCode() string   { return p.OrganizationCodeField }
+func (p Position) PositionType() string       { return p.PositionTypeField }
+func (p Position) EmploymentType() string     { return p.EmploymentTypeField }
+func (p Position) GradeLevel() *string        { return p.GradeLevelField }
+func (p Position) HeadcountCapacity() float64 { return p.HeadcountCapacityField }
+func (p Position) HeadcountInUse() float64    { return p.HeadcountInUseField }
+func (p Position) AvailableHeadcount() float64 {
+	available := p.HeadcountCapacityField - p.HeadcountInUseField
+	if available < 0 {
+		return 0
+	}
+	return available
+}
+func (p Position) ReportsToPositionCode() *string { return p.ReportsToPositionField }
+func (p Position) Status() string                 { return p.StatusField }
+func (p Position) EffectiveDate() string          { return p.EffectiveDateField.Format("2006-01-02") }
+func (p Position) EndDate() *string {
+	if p.EndDateField == nil {
+		return nil
+	}
+	val := p.EndDateField.Format("2006-01-02")
+	return &val
+}
+func (p Position) IsCurrent() bool { return p.IsCurrentField }
+func (p Position) IsFuture() bool {
+	today := cnTodayDate()
+	return p.EffectiveDateField.After(today)
+}
+func (p Position) CreatedAt() string { return p.CreatedAtField.Format(time.RFC3339) }
+func (p Position) UpdatedAt() string { return p.UpdatedAtField.Format(time.RFC3339) }
+
+// PositionConnection 连接结果
+type PositionConnection struct {
+	EdgesField      []PositionEdge `json:"edges"`
+	DataField       []Position     `json:"data"`
+	PaginationField PaginationInfo `json:"pagination"`
+	TotalCountField int            `json:"totalCount"`
+}
+
+func (c PositionConnection) Edges() []PositionEdge      { return c.EdgesField }
+func (c PositionConnection) Data() []Position           { return c.DataField }
+func (c PositionConnection) Pagination() PaginationInfo { return c.PaginationField }
+func (c PositionConnection) TotalCount() int32          { return int32(c.TotalCountField) }
+
+// PositionEdge 用于游标分页
+type PositionEdge struct {
+	CursorField string   `json:"cursor"`
+	NodeField   Position `json:"node"`
+}
+
+func (e PositionEdge) Cursor() string { return e.CursorField }
+func (e PositionEdge) Node() Position { return e.NodeField }
+
+// PositionFilterInput 过滤条件
+type PositionFilterInput struct {
+	OrganizationCodeField    *string         `json:"organizationCode"`
+	PositionCodesField       *[]string       `json:"positionCodes"`
+	StatusField              *string         `json:"status"`
+	JobFamilyGroupCodesField *[]string       `json:"jobFamilyGroupCodes"`
+	JobFamilyCodesField      *[]string       `json:"jobFamilyCodes"`
+	JobRoleCodesField        *[]string       `json:"jobRoleCodes"`
+	JobLevelCodesField       *[]string       `json:"jobLevelCodes"`
+	PositionTypesField       *[]string       `json:"positionTypes"`
+	EmploymentTypesField     *[]string       `json:"employmentTypes"`
+	EffectiveRangeField      *DateRangeInput `json:"effectiveRange"`
+}
+
+func (f PositionFilterInput) OrganizationCode() *string       { return f.OrganizationCodeField }
+func (f PositionFilterInput) PositionCodes() *[]string        { return f.PositionCodesField }
+func (f PositionFilterInput) Status() *string                 { return f.StatusField }
+func (f PositionFilterInput) JobFamilyGroupCodes() *[]string  { return f.JobFamilyGroupCodesField }
+func (f PositionFilterInput) JobFamilyCodes() *[]string       { return f.JobFamilyCodesField }
+func (f PositionFilterInput) JobRoleCodes() *[]string         { return f.JobRoleCodesField }
+func (f PositionFilterInput) JobLevelCodes() *[]string        { return f.JobLevelCodesField }
+func (f PositionFilterInput) PositionTypes() *[]string        { return f.PositionTypesField }
+func (f PositionFilterInput) EmploymentTypes() *[]string      { return f.EmploymentTypesField }
+func (f PositionFilterInput) EffectiveRange() *DateRangeInput { return f.EffectiveRangeField }
+
+// PositionSortInput 排序输入
+type PositionSortInput struct {
+	FieldField     string `json:"field"`
+	DirectionField string `json:"direction"`
+}
+
+func (s PositionSortInput) Field() string     { return s.FieldField }
+func (s PositionSortInput) Direction() string { return s.DirectionField }
+
+// PositionTimelineEntry 时间线条目
+type PositionTimelineEntry struct {
+	RecordIDField      string     `json:"recordId" db:"record_id"`
+	StatusField        string     `json:"status" db:"status"`
+	TitleField         string     `json:"title" db:"title"`
+	EffectiveDateField time.Time  `json:"effectiveDate" db:"effective_date"`
+	EndDateField       *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField     bool       `json:"isCurrent" db:"is_current"`
+	ChangeReasonField  *string    `json:"changeReason" db:"operation_reason"`
+}
+
+func (e PositionTimelineEntry) RecordId() string { return e.RecordIDField }
+func (e PositionTimelineEntry) Status() string   { return e.StatusField }
+func (e PositionTimelineEntry) Title() string    { return e.TitleField }
+func (e PositionTimelineEntry) EffectiveDate() string {
+	return e.EffectiveDateField.Format("2006-01-02")
+}
+func (e PositionTimelineEntry) EndDate() *string {
+	if e.EndDateField == nil {
+		return nil
+	}
+	val := e.EndDateField.Format("2006-01-02")
+	return &val
+}
+func (e PositionTimelineEntry) IsCurrent() bool { return e.IsCurrentField }
+func (e PositionTimelineEntry) ChangeReason() *string {
+	return e.ChangeReasonField
+}
+
+// HeadcountStats 编制统计
+type HeadcountStats struct {
+	OrganizationCodeField string           `json:"organizationCode"`
+	OrganizationNameField string           `json:"organizationName"`
+	TotalCapacityField    float64          `json:"totalCapacity"`
+	TotalFilledField      float64          `json:"totalFilled"`
+	TotalAvailableField   float64          `json:"totalAvailable"`
+	LevelBreakdownField   []LevelHeadcount `json:"levelBreakdown"`
+	TypeBreakdownField    []TypeHeadcount  `json:"typeBreakdown"`
+}
+
+func (h HeadcountStats) OrganizationCode() string { return h.OrganizationCodeField }
+func (h HeadcountStats) OrganizationName() string { return h.OrganizationNameField }
+func (h HeadcountStats) TotalCapacity() float64   { return h.TotalCapacityField }
+func (h HeadcountStats) TotalFilled() float64     { return h.TotalFilledField }
+func (h HeadcountStats) TotalAvailable() float64  { return h.TotalAvailableField }
+func (h HeadcountStats) LevelBreakdown() []LevelHeadcount {
+	return h.LevelBreakdownField
+}
+func (h HeadcountStats) TypeBreakdown() []TypeHeadcount {
+	return h.TypeBreakdownField
+}
+
+// LevelHeadcount 按职级统计
+type LevelHeadcount struct {
+	JobLevelCodeField string  `json:"jobLevelCode" db:"job_level_code"`
+	CapacityField     float64 `json:"capacity" db:"capacity"`
+	UtilizedField     float64 `json:"utilized" db:"utilized"`
+	AvailableField    float64 `json:"available" db:"available"`
+}
+
+func (l LevelHeadcount) JobLevelCode() string { return l.JobLevelCodeField }
+func (l LevelHeadcount) Capacity() float64    { return l.CapacityField }
+func (l LevelHeadcount) Utilized() float64    { return l.UtilizedField }
+func (l LevelHeadcount) Available() float64   { return l.AvailableField }
+
+// TypeHeadcount 按职位类型统计
+type TypeHeadcount struct {
+	PositionTypeField string  `json:"positionType" db:"position_type"`
+	CapacityField     float64 `json:"capacity" db:"capacity"`
+	FilledField       float64 `json:"filled" db:"filled"`
+	AvailableField    float64 `json:"available" db:"available"`
+}
+
+func (t TypeHeadcount) PositionType() string { return t.PositionTypeField }
+func (t TypeHeadcount) Capacity() float64    { return t.CapacityField }
+func (t TypeHeadcount) Filled() float64      { return t.FilledField }
+func (t TypeHeadcount) Available() float64   { return t.AvailableField }
+
+// Job catalog 基础类型
+type JobFamilyGroup struct {
+	RecordIDField      string     `json:"recordId" db:"record_id"`
+	TenantIDField      string     `json:"tenantId" db:"tenant_id"`
+	CodeField          string     `json:"code" db:"family_group_code"`
+	NameField          string     `json:"name" db:"name"`
+	DescriptionField   *string    `json:"description" db:"description"`
+	StatusField        string     `json:"status" db:"status"`
+	EffectiveDateField time.Time  `json:"effectiveDate" db:"effective_date"`
+	EndDateField       *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField     bool       `json:"isCurrent" db:"is_current"`
+}
+
+func (g JobFamilyGroup) Code() string         { return g.CodeField }
+func (g JobFamilyGroup) Name() string         { return g.NameField }
+func (g JobFamilyGroup) Description() *string { return g.DescriptionField }
+func (g JobFamilyGroup) Status() string       { return g.StatusField }
+func (g JobFamilyGroup) EffectiveDate() string {
+	return g.EffectiveDateField.Format("2006-01-02")
+}
+func (g JobFamilyGroup) EndDate() *string {
+	if g.EndDateField == nil {
+		return nil
+	}
+	val := g.EndDateField.Format("2006-01-02")
+	return &val
+}
+func (g JobFamilyGroup) IsCurrent() bool { return g.IsCurrentField }
+
+type JobFamily struct {
+	RecordIDField        string     `json:"recordId" db:"record_id"`
+	TenantIDField        string     `json:"tenantId" db:"tenant_id"`
+	CodeField            string     `json:"code" db:"family_code"`
+	NameField            string     `json:"name" db:"name"`
+	DescriptionField     *string    `json:"description" db:"description"`
+	StatusField          string     `json:"status" db:"status"`
+	EffectiveDateField   time.Time  `json:"effectiveDate" db:"effective_date"`
+	EndDateField         *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField       bool       `json:"isCurrent" db:"is_current"`
+	FamilyGroupCodeField string     `json:"groupCode" db:"family_group_code"`
+}
+
+func (f JobFamily) Code() string         { return f.CodeField }
+func (f JobFamily) Name() string         { return f.NameField }
+func (f JobFamily) Description() *string { return f.DescriptionField }
+func (f JobFamily) Status() string       { return f.StatusField }
+func (f JobFamily) EffectiveDate() string {
+	return f.EffectiveDateField.Format("2006-01-02")
+}
+func (f JobFamily) EndDate() *string {
+	if f.EndDateField == nil {
+		return nil
+	}
+	val := f.EndDateField.Format("2006-01-02")
+	return &val
+}
+func (f JobFamily) IsCurrent() bool   { return f.IsCurrentField }
+func (f JobFamily) GroupCode() string { return f.FamilyGroupCodeField }
+
+type JobRole struct {
+	RecordIDField      string     `json:"recordId" db:"record_id"`
+	TenantIDField      string     `json:"tenantId" db:"tenant_id"`
+	CodeField          string     `json:"code" db:"role_code"`
+	NameField          string     `json:"name" db:"name"`
+	DescriptionField   *string    `json:"description" db:"description"`
+	StatusField        string     `json:"status" db:"status"`
+	EffectiveDateField time.Time  `json:"effectiveDate" db:"effective_date"`
+	EndDateField       *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField     bool       `json:"isCurrent" db:"is_current"`
+	FamilyCodeField    string     `json:"familyCode" db:"family_code"`
+}
+
+func (r JobRole) Code() string         { return r.CodeField }
+func (r JobRole) Name() string         { return r.NameField }
+func (r JobRole) Description() *string { return r.DescriptionField }
+func (r JobRole) Status() string       { return r.StatusField }
+func (r JobRole) EffectiveDate() string {
+	return r.EffectiveDateField.Format("2006-01-02")
+}
+func (r JobRole) EndDate() *string {
+	if r.EndDateField == nil {
+		return nil
+	}
+	val := r.EndDateField.Format("2006-01-02")
+	return &val
+}
+func (r JobRole) IsCurrent() bool    { return r.IsCurrentField }
+func (r JobRole) FamilyCode() string { return r.FamilyCodeField }
+
+type JobLevel struct {
+	RecordIDField      string     `json:"recordId" db:"record_id"`
+	TenantIDField      string     `json:"tenantId" db:"tenant_id"`
+	CodeField          string     `json:"code" db:"level_code"`
+	NameField          string     `json:"name" db:"name"`
+	DescriptionField   *string    `json:"description" db:"description"`
+	StatusField        string     `json:"status" db:"status"`
+	EffectiveDateField time.Time  `json:"effectiveDate" db:"effective_date"`
+	EndDateField       *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField     bool       `json:"isCurrent" db:"is_current"`
+	RoleCodeField      string     `json:"roleCode" db:"role_code"`
+	LevelRankField     string     `json:"levelRank" db:"level_rank"`
+}
+
+func (l JobLevel) Code() string         { return l.CodeField }
+func (l JobLevel) Name() string         { return l.NameField }
+func (l JobLevel) Description() *string { return l.DescriptionField }
+func (l JobLevel) Status() string       { return l.StatusField }
+func (l JobLevel) EffectiveDate() string {
+	return l.EffectiveDateField.Format("2006-01-02")
+}
+func (l JobLevel) EndDate() *string {
+	if l.EndDateField == nil {
+		return nil
+	}
+	val := l.EndDateField.Format("2006-01-02")
+	return &val
+}
+func (l JobLevel) IsCurrent() bool   { return l.IsCurrentField }
+func (l JobLevel) RoleCode() string  { return l.RoleCodeField }
+func (l JobLevel) LevelRank() string { return l.LevelRankField }
