@@ -35,7 +35,7 @@
 
 4. **验证与巡检**  
    - 质量门禁（lint:api、contract:generate、architecture-validator、field-naming）。  
-   - 重新执行 `docs/development-plans/81-tenant-isolation-checks.sql` 并归档真实结果。  
+   - 重新执行 `sql/inspection/tenant-isolation-checks.sql` 并归档真实结果。  
    - 更新 `reports/contracts/position-api-diff.md`、`reports/implementation-inventory.json`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`。  
 
 ### 2.2 可选扩展（P2，Stage 1.1 之后）
@@ -110,7 +110,7 @@
 - [x] 差异报告与契约校验无需新增变更，`reports/contracts/position-api-diff.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` 已于 2025-10-14 对齐，复核无新增差异（记录保留本周期日志）。
 
 ### Phase 6：租户隔离巡检与资料更新
-- Stage 1 迁移后执行 `81-tenant-isolation-checks.sql`，输出 `tenant-isolation-check-stage1-YYYYMMDD.sql`。  
+- Stage 1 迁移后执行 `sql/inspection/tenant-isolation-checks.sql`，输出 `tenant-isolation-check-stage1-YYYYMMDD.sql`。  
 - 更新 `docs/development-plans/06-integrated-teams-progress-log.md` 第10节执行记录。  
 - 完成 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`docs/development-plans/81-position-api-contract-update-plan.md` 第 10 节最后两项勾选。  
 
