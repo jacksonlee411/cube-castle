@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# 🚀 Cube Castle 简化开发环境启动脚本
-# 专注于开发效率，移除不必要的生产环境配置
+# 🚀 Cube Castle 简化开发环境启动脚本（已废弃）
+# 📢 本脚本违反 83 号 Docker 强制合规计划，保留仅用于提示。请改用 `make run-dev`。
 
-echo "🏰 启动 Cube Castle 开发环境..."
-echo "📅 $(date '+%Y-%m-%d %H:%M:%S')"
-echo ""
+echo "⚠️  本脚本已废弃：项目要求所有服务通过 Docker Compose 启动。"
+echo "👉  请执行 \`make run-dev\`（或自定义 docker compose 命令）以启动容器化环境。"
+echo "❌  正在退出（未执行任何操作）。"
+exit 1
 
 # 设置颜色输出
 GREEN='\033[0;32m'

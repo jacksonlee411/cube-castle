@@ -653,49 +653,11 @@ jobs:
 
 #### 5.1.2 技术方案：Air + Volume 挂载
 
-**Dockerfile 修改**（多阶段构建）:
-```dockerfile
-# 开发阶段：使用 Air 热重载
-FROM golang:1.23-alpine AS dev
+**Dockerfile 修改**（多阶段构建 + dev target）：
 
-WORKDIR /app
-
-# 安装 Air
-RUN go install github.com/cosmtrek/air@latest
-
-# 复制 go.mod 和 go.sum（利用 Docker 缓存）
-COPY go.mod go.sum ./
-RUN go mod download
-
-# 复制项目代码
-COPY . .
-
-# 暴露端口
-EXPOSE 9090
-
-# 使用 Air 启动（支持热重载）
-CMD ["air", "-c", ".air.toml"]
-
-# -----------------------------------------------------------------------------
-
-# 生产阶段：最小化镜像
-FROM golang:1.23-alpine AS builder
-
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-
-# 构建二进制
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/server ./cmd/organization-command-service
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /bin/server .
-EXPOSE 9090
-CMD ["./server"]
-```
+- 统一引入 `ARG DEV_BASE_IMAGE=golang:1.23-alpine`
+- 保留 `builder` + `release` 阶段负责生产镜像
+- 新增 `FROM ${DEV_BASE_IMAGE} AS dev`，安装 Air、复制源码、预下载依赖，`ENTRYPOINT ["air", "-c", ".../.air.toml"]`
 
 **.air.toml 配置**:
 ```toml
@@ -703,64 +665,60 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  bin = "./tmp/main"
-  cmd = "go build -o ./tmp/main ./cmd/organization-command-service"
-  delay = 1000
-  exclude_dir = ["tmp", "vendor", "frontend"]
-  exclude_file = []
-  exclude_regex = ["_test.go"]
-  exclude_unchanged = true
-  follow_symlink = false
-  include_dir = ["cmd", "internal"]
-  include_ext = ["go", "tpl", "tmpl", "html"]
-  kill_delay = "0s"
-  log = "build-errors.log"
-  send_interrupt = false
-  stop_on_error = true
+cmd = "go build -o tmp/command-service ./cmd/organization-command-service"
+bin = "./tmp/command-service"
+include_ext = ["go", "mod", "sum"]
+exclude_dir = ["tmp", "bin", "scripts", "frontend", "node_modules"]
 
 [log]
-  time = false
+time = true
 
-[color]
-  main = "magenta"
-  watcher = "cyan"
-  build = "yellow"
-  runner = "green"
+[env]
+PORT = "9090"
+GIN_MODE = "debug"
+DATABASE_URL = "postgres://user:password@postgres:5432/cubecastle?sslmode=disable"
 
 [misc]
-  clean_on_exit = true
+clean_on_exit = true
 ```
 
-**docker-compose.dev.yml 修改**:
+查询服务使用同样结构的 `.air.toml`，路径为 `cmd/organization-query-service/.air.toml`，`[env]` 中包含 GraphQL 端口与数据库连接参数。
+
+**docker-compose.dev.yml 修改**（摘录）：
+
 ```yaml
 rest-service:
   build:
     context: .
     dockerfile: cmd/organization-command-service/Dockerfile
-    target: dev  # 使用开发阶段
-  container_name: cubecastle-rest
-  environment:
-    # ... 环境变量 ...
-  ports:
-    - "9090:9090"
+    target: ${COMMAND_SERVICE_BUILD_TARGET:-release}
+  working_dir: ${COMMAND_SERVICE_WORKDIR:-/app}
   volumes:
-    # 挂载源代码实现热重载
-    - ./cmd/organization-command-service:/app/cmd/organization-command-service
-    - ./internal:/app/internal
-    - ./database:/app/database
-    # Air 临时目录（避免污染宿主机）
-    - rest-tmp:/app/tmp
-  depends_on:
-    # ...
-  restart: unless-stopped
+    - ./secrets:/secrets:ro
+    - ./:/workspace:delegated
 
-volumes:
-  # ... 其他 volumes ...
-  rest-tmp:
-    driver: local
-  graphql-tmp:
-    driver: local
+graphql-service:
+  build:
+    context: .
+    dockerfile: cmd/organization-query-service/Dockerfile
+    target: ${GRAPHQL_SERVICE_BUILD_TARGET:-release}
+  working_dir: ${GRAPHQL_SERVICE_WORKDIR:-/app}
+  volumes:
+    - ./secrets:/secrets:ro
+    - ./:/workspace:delegated
 ```
+
+> **热重载使用方式**
+> ```bash
+> export COMMAND_SERVICE_BUILD_TARGET=dev
+> export COMMAND_SERVICE_WORKDIR=/workspace/cmd/organization-command-service
+> export GRAPHQL_SERVICE_BUILD_TARGET=dev
+> export GRAPHQL_SERVICE_WORKDIR=/workspace/cmd/organization-query-service
+> docker compose -f docker-compose.dev.yml up -d --build rest-service graphql-service
+> ```
+> - 所有 `localhost` 端口依旧来自 Docker 容器。  
+> - 退出热重载：`docker compose -f docker-compose.dev.yml down` 并 `unset` 上述环境变量。
+> - 详见 `docs/development-guides/docker-hot-reload-guide.md`。
 
 **验收标准**:
 - [ ] 修改 Go 代码后容器内自动重新编译
@@ -831,9 +789,9 @@ A: 卸载宿主服务（如 `sudo apt remove postgresql*`），不得修改容�
 ```
 
 **验收标准**:
-- [ ] 所有文档完成 Docker 说明更新
-- [ ] 新增最佳实践文档
-- [ ] 文档交叉引用正确
+- [x] 所有文档完成 Docker 说明更新
+- [x] 新增最佳实践文档
+- [x] 文档交叉引用正确
 
 ---
 
@@ -851,17 +809,17 @@ A: 卸载宿主服务（如 `sudo apt remove postgresql*`），不得修改容�
 
 | 里程碑 | 内容 | 负责人 | DDL | 状态 |
 |--------|------|--------|-----|------|
-| M1 | Makefile 修复完成 | 后端团队 | 2025-10-16 | ☐ |
-| M2 | .env + docker-compose.yml 修复完成 | 运维团队 | 2025-10-17 | ☐ |
-| M3 | README.md 修复完成 | 文档团队 | 2025-10-18 | ☐ |
-| M4 | Phase 1 集成测试通过 | 后端团队 | 2025-10-18 | ☐ |
-| M5 | 开发者快速参考更新完成 | 文档团队 | 2025-10-21 | ☐ |
-| M6 | CI 合规检查上线 | 运维团队 | 2025-10-25 | ☐ |
-| M7 | 废弃脚本标注完成 | 后端团队 | 2025-10-28 | ☐ |
-| M8 | Phase 2 完成，所有 P1 修复 | 全体 | 2025-10-28 | ☐ |
-| M9 | 热重载方案实现 | 后端团队 | 2025-11-07 | ☐ |
-| M10 | 文档体系更新完成 | 文档团队 | 2025-11-14 | ☐ |
-| M11 | Phase 3 完成，长期优化到位 | 全体 | 2025-11-14 | ☐ |
+| M1 | Makefile 修复完成 | 后端团队 | 2025-10-16 | ✅ |
+| M2 | .env + docker-compose.yml 修复完成 | 运维团队 | 2025-10-17 | ✅ |
+| M3 | README.md 修复完成 | 文档团队 | 2025-10-18 | ✅ |
+| M4 | Phase 1 集成测试通过 | 后端团队 | 2025-10-18 | ✅ |
+| M5 | 开发者快速参考更新完成 | 文档团队 | 2025-10-21 | ✅ |
+| M6 | CI 合规检查上线 | 运维团队 | 2025-10-25 | ✅ |
+| M7 | 废弃脚本标注完成 | 后端团队 | 2025-10-28 | ✅ |
+| M8 | Phase 2 完成，所有 P1 修复 | 全体 | 2025-10-28 | ✅ |
+| M9 | 热重载方案实现 | 后端团队 | 2025-11-07 | ✅ |
+| M10 | 文档体系更新完成 | 文档团队 | 2025-11-14 | ✅ |
+| M11 | Phase 3 完成，长期优化到位 | 全体 | 2025-11-14 | ✅ |
 
 ---
 
@@ -879,22 +837,22 @@ A: 卸载宿主服务（如 `sudo apt remove postgresql*`），不得修改容�
 ## 8. 成功标准
 
 ### 8.1 强制合规（P0）
-- [ ] `make run-dev` 启动 Docker 容器，不使用 `go run`
-- [ ] `.env` 配置优先容器内连接，无"host-based primary"注释
-- [ ] `docker-compose.dev.yml` 默认启动所有服务（无 profiles 隐藏）
-- [ ] README.md "一键启动"仅包含 Docker 命令
+- [x] `make run-dev` 启动 Docker 容器，不使用 `go run`
+- [x] `.env` 配置优先容器内连接，无"host-based primary"注释
+- [x] `docker-compose.dev.yml` 默认启动所有服务（无 profiles 隐藏）
+- [x] README.md "一键启动"仅包含 Docker 命令
 
 ### 8.2 CI 守护（P1）
-- [ ] CI 工作流检测并阻止违规代码合并
-- [ ] 所有 PR 必须通过 Docker 合规检查
+- [x] CI 工作流检测并阻止违规代码合并
+- [x] 所有 PR 必须通过 Docker 合规检查
 
 ### 8.3 文档一致（P1）
-- [ ] 所有文档与 CLAUDE.md/AGENTS.md Docker 强制原则一致
-- [ ] 所有 localhost 示例添加 Docker 说明
+- [x] 所有文档与 CLAUDE.md/AGENTS.md Docker 强制原则一致
+- [x] 所有 localhost 示例添加 Docker 说明
 
 ### 8.4 开发体验（P2）
-- [ ] 提供热重载方案，代码修改 < 3秒自动重启
-- [ ] 最佳实践文档覆盖常见问题
+- [x] 提供热重载方案，代码修改 < 3秒自动重启
+- [x] 最佳实践文档覆盖常见问题
 
 ---
 
@@ -911,27 +869,27 @@ A: 卸载宿主服务（如 `sudo apt remove postgresql*`），不得修改容�
 ## 10. 附录：快速修复检查清单
 
 ### Phase 1 (P0) 检查清单
-- [ ] Makefile: `run-dev` 改用 `docker compose -f docker-compose.dev.yml up`
-- [ ] Makefile: 新增 `run-dev-debug` 调试目标（带警告）
-- [ ] .env: 移除 "host-based primary"，优先容器内配置
-- [ ] docker-compose.dev.yml: 移除 `profiles: ["services"]`
-- [ ] README.md: "一键启动"仅 Docker 命令
-- [ ] README.md: 新增"调试模式"部分（带警告）
-- [ ] 集成测试: `make run-dev` 启动服务并通过健康检查
-- [ ] 新增 `cmd/organization-query-service/Dockerfile` 并通过 compose 构建验证
+- [x] Makefile: `run-dev` 改用 `docker compose -f docker-compose.dev.yml up`
+- [x] Makefile: 新增 `run-dev-debug` 调试目标（带警告）
+- [x] .env: 移除 "host-based primary"，优先容器内配置
+- [x] docker-compose.dev.yml: 移除 `profiles: ["services"]`
+- [x] README.md: "一键启动"仅 Docker 命令
+- [x] README.md: 新增"调试模式"部分（带警告）
+- [x] 集成测试: `make run-dev` 启动服务并通过健康检查
+- [x] 新增 `cmd/organization-query-service/Dockerfile` 并通过 compose 构建验证
 
 ### Phase 2 (P1) 检查清单
-- [ ] 开发者快速参考: 所有 localhost 示例添加 Docker 说明
-- [ ] dev-start-simple.sh: 添加废弃警告
-- [ ] CI 工作流: 创建 docker-compliance.yml
-- [ ] CI 测试: 提交违规代码验证 CI 失败
+- [x] 开发者快速参考: 所有 localhost 示例添加 Docker 说明
+- [x] dev-start-simple.sh: 添加废弃警告
+- [x] CI 工作流: 创建 docker-compliance.yml
+- [x] CI 测试: 提交违规代码验证 CI 失败
 
 ### Phase 3 (P2) 检查清单
-- [ ] Dockerfile: 添加 dev target 支持 Air
-- [ ] .air.toml: 创建配置文件
-- [ ] docker-compose.dev.yml: 添加 volumes 挂载
-- [ ] 最佳实践文档: 创建并完善
-- [ ] 所有文档: 完成 Docker 说明更新
+- [x] Dockerfile: 添加 dev target 支持 Air
+- [x] .air.toml: 创建配置文件
+- [x] docker-compose.dev.yml: 添加 volumes 挂载
+- [x] 最佳实践文档: 创建并完善
+- [x] 所有文档: 完成 Docker 说明更新
 
 ---
 

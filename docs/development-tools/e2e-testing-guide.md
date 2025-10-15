@@ -9,7 +9,7 @@
    make docker-up
    make run-auth-rs256-sim
    ```
-   - PostgreSQL、Redis、命令服务（9090）和查询服务（8090）启动后再继续。
+   - PostgreSQL、Redis、命令服务（9090）和查询服务（8090）均由 Docker 容器提供；确认宿主机未安装同名服务占用端口。
    - `run-auth-rs256-sim` 会确保 RS256 密钥对存在并提供 JWKS。
 
 2. **生成开发 JWT**

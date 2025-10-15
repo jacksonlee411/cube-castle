@@ -53,39 +53,53 @@ export const SERVICE_PORTS = {
 ## 🚀 快速开始
 
 ### 环境要求
-- **Go 1.23+** (后端服务)
-- **Node.js 18+** (前端构建)
-- **PostgreSQL 16+**
-- **Redis 7.x**
-- **Docker & Docker Compose**
+- **Docker & Docker Compose**（必需，用于启动 PostgreSQL、Redis、REST、GraphQL 等全部服务）
+- **Go 1.23+**（仅在需要 `make run-dev-debug` 进行宿主机调试时使用）
+- **Node.js 18+**（前端构建/测试）
+- **PostgreSQL / Redis**：由 Docker Compose 管理，宿主机 **不得** 安装同名服务占用端口
 
-### 一键启动 (推荐)
+> ⚠️ **重要**：本项目强制使用 Docker 容器化部署（见 `CLAUDE.md` 第2节），禁止在宿主机直接运行 PostgreSQL、Redis、Temporal 或 Go 服务。
+
+### 一键启动（容器化，推荐）
 ```bash
-# 1. 启动基础设施
-make docker-up
+# 1. 启动完整服务栈（PostgreSQL + Redis + REST + GraphQL）
+make run-dev
 
-# 2. 启动后端服务
-make run-dev  # 命令服务(9090) + 查询服务(8090)
-
-# 3. 启动前端
-make frontend-dev  # Vite开发服务器(3000)
-
-# 4. 检查状态
+# 2. 查看容器状态与关键端口
 make status
+
+# 3. 启动前端（需热重载，仍在宿主机执行）
+make frontend-dev
 ```
 
-### 手动启动
+### 分步启动（容器化手动控制）
 ```bash
-# 基础设施
-docker-compose up -d postgres redis
+# 1. 仅启动基础设施
+docker compose -f docker-compose.dev.yml up -d postgres redis
 
-# 后端服务
-cd cmd/organization-command-service && go run .
-cd cmd/organization-query-service && go run .
+# 2. 启动应用服务
+docker compose -f docker-compose.dev.yml up -d --build rest-service graphql-service
 
-# 前端开发
-cd frontend && npm install && npm run dev
+# 3. 启动前端（宿主机）
+cd frontend && npm run dev
 ```
+
+### 调试模式（⚠️ 仅限特殊场景）
+```bash
+# 警告: 该模式会在宿主机直接运行 Go 服务，违反 CLAUDE.md Docker 强制原则
+make run-dev-debug
+```
+
+### 容器热重载（可选）
+```bash
+export COMMAND_SERVICE_BUILD_TARGET=dev
+export COMMAND_SERVICE_WORKDIR=/workspace/cmd/organization-command-service
+export GRAPHQL_SERVICE_BUILD_TARGET=dev
+export GRAPHQL_SERVICE_WORKDIR=/workspace/cmd/organization-query-service
+docker compose -f docker-compose.dev.yml up -d --build rest-service graphql-service
+```
+- 完整说明参考：`docs/development-guides/docker-hot-reload-guide.md`
+- 退出热重载：执行 `docker compose -f docker-compose.dev.yml down` 并 `unset` 上述环境变量
 
 ### 数据库初始化（迁移优先，禁止使用初始脚本）
 - 规范：使用 `database/migrations/` 按序执行迁移脚本作为唯一初始化来源（幂等，可重复执行）。

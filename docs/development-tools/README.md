@@ -34,7 +34,7 @@
 ## 🚀 快速开始
 
 ### 前置条件
-1. 后端服务运行:
+1. 后端服务运行（均由 Docker 容器暴露端口，宿主机禁止安装同名服务占用端口）:
    - REST命令服务: http://localhost:9090
    - GraphQL查询服务: http://localhost:8090
 2. 开发模式启用 (`DEV_MODE=true`)

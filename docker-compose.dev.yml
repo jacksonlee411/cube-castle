@@ -42,29 +42,40 @@ services:
   graphql-service:
     build:
       context: .
-      dockerfile: cmd/organization-query-service-unified/Dockerfile
+      dockerfile: cmd/organization-query-service/Dockerfile
+      target: ${GRAPHQL_SERVICE_BUILD_TARGET:-release}
     container_name: cubecastle-graphql
     environment:
-      - DATABASE_URL=postgres://user:password@postgres:5432/cubecastle?sslmode=disable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=cubecastle
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=""
       - PORT=8090
       - GIN_MODE=debug
+      - JWT_ALG=${JWT_ALG}
+      - JWT_JWKS_URL=http://rest-service:9090/.well-known/jwks.json
+    working_dir: ${GRAPHQL_SERVICE_WORKDIR:-/app}
     ports:
       - "8090:8090"
+    volumes:
+      - ./secrets:/secrets:ro
+      - ./:/workspace:delegated
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
-    profiles: ["services"]
 
   # REST命令服务 (端口9090)
   rest-service:
     build:
       context: .
       dockerfile: cmd/organization-command-service/Dockerfile
+      target: ${COMMAND_SERVICE_BUILD_TARGET:-release}
     container_name: cubecastle-rest
     environment:
       - DATABASE_URL=postgres://user:password@postgres:5432/cubecastle?sslmode=disable
@@ -72,15 +83,23 @@ services:
       - REDIS_PASSWORD=""
       - PORT=9090
       - GIN_MODE=debug
+      - JWT_ALG=${JWT_ALG}
+      - JWT_MINT_ALG=${JWT_ALG}
+      - JWT_PRIVATE_KEY_PATH=/secrets/dev-jwt-private.pem
+      - JWT_PUBLIC_KEY_PATH=/secrets/dev-jwt-public.pem
+      - JWT_KEY_ID=${JWT_KEY_ID}
+    working_dir: ${COMMAND_SERVICE_WORKDIR:-/app}
     ports:
       - "9090:9090"
+    volumes:
+      - ./secrets:/secrets:ro
+      - ./:/workspace:delegated
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
-    profiles: ["services"]
 
 volumes:
   postgres_data:

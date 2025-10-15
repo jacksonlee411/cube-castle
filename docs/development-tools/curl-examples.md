@@ -8,6 +8,7 @@ export COMMAND_SERVICE="http://localhost:9090"
 export QUERY_SERVICE="http://localhost:8090"
 export TENANT_ID="3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"  # 默认租户（与后端一致）
 ```
+> ⚠️ 端口提示：上述 `localhost` 端点均为 Docker 容器映射结果，宿主机不得安装同名服务占用端口；如检测到冲突，请卸载宿主服务并重新执行 `make docker-up`。
 
 ## JWT令牌管理
 

@@ -68,6 +68,8 @@
 | **GraphQL查询** | `localhost:8090/graphql` | GraphQL | 灵活查询、统计 |
 | **命令API** | `localhost:9090/api/v1` | REST | 创建、更新、删除 |
 
+> ⚠️ `localhost` 端点说明：所有接口均由 `docker-compose.dev.yml` 启动的容器服务暴露。禁止在宿主机安装同名服务占用端口；如遇冲突，请卸载宿主服务后重新执行 `make run-dev`。
+
 ### 性能指标
 
 - **平均性能提升**: 76%

@@ -47,7 +47,7 @@ help:
 	@echo "  db-migrate-all   - 按序执行数据库迁移（迁移即真源）"
 	@echo ""
 	@echo "📊 运行状态:"
-	@echo "  status           - docker-compose 服务状态 + 关键地址"
+	@echo "  status           - docker compose 服务状态 + 关键地址"
 	@echo "  reset            - 清理并重新拉起最小依赖（不删除卷）"
 
 # 构建 Go 应用（PostgreSQL 原生：两个服务）
@@ -73,22 +73,61 @@ docker-build:
 # 最小依赖（PostgreSQL + Redis）
 docker-up:
 	@echo "🚀 启动最小依赖 (postgres, redis)..."
-	@command -v docker-compose >/dev/null 2>&1 || { echo "❌ 需要 docker-compose"; exit 1; }
-	docker-compose up -d postgres redis
+	docker compose -f docker-compose.dev.yml up -d postgres redis
 
 docker-down:
-	@echo "🛑 停止最小依赖 (postgres, redis)..."
-	@command -v docker-compose >/dev/null 2>&1 || { echo "❌ 需要 docker-compose"; exit 1; }
-	docker-compose stop postgres redis
+	@echo "🛑 停止并清理开发容器..."
+	docker compose -f docker-compose.dev.yml down
 
 docker-logs:
 	@echo "📋 查看最小依赖日志... (Ctrl+C 退出)"
-	@command -v docker-compose >/dev/null 2>&1 || { echo "❌ 需要 docker-compose"; exit 1; }
-	docker-compose logs -f postgres redis
+	docker compose -f docker-compose.dev.yml logs -f postgres redis
 
-# 启动本地开发（两个 Go 服务 + 最小依赖）
+# 启动本地开发（Docker 强制）
 run-dev:
-	@echo "🚀 启动本地开发环境 (PostgreSQL 原生)..."
+	@echo "🚀 启动开发环境（Docker 强制原则）..."
+	@echo "🔐 检查 RS256 密钥..."
+	@$(MAKE) jwt-dev-setup >/dev/null
+	@echo "🐳 拉起基础设施与应用服务 (postgres, redis, rest-service, graphql-service)..."
+	docker compose -f docker-compose.dev.yml up -d --build postgres redis rest-service graphql-service
+	@echo "⏳ 等待服务健康..."
+	-@SUCCESS=0; \
+	for i in 1 2 3 4 5 6 7 8 9 10; do \
+	  if curl -fsS http://localhost:9090/health >/dev/null; then \
+	    echo "  ✅ command-service 就绪 (http://localhost:9090/health)"; \
+	    SUCCESS=1; \
+	    break; \
+	  fi; \
+	  echo "  ⏳ 等待 command-service..."; \
+	  sleep 2; \
+	done; \
+	if [ $$SUCCESS -ne 1 ]; then \
+	  echo "  ⚠️  command-service 未就绪，查看日志: docker compose -f docker-compose.dev.yml logs -f rest-service"; \
+	fi
+	-@SUCCESS=0; \
+	for i in 1 2 3 4 5 6 7 8 9 10; do \
+	  if curl -fsS http://localhost:8090/health >/dev/null; then \
+	    echo "  ✅ graphql-service 就绪 (http://localhost:8090/health)"; \
+	    SUCCESS=1; \
+	    break; \
+	  fi; \
+	  echo "  ⏳ 等待 graphql-service..."; \
+	  sleep 2; \
+	done; \
+	if [ $$SUCCESS -ne 1 ]; then \
+	  echo "  ⚠️  graphql-service 未就绪，查看日志: docker compose -f docker-compose.dev.yml logs -f graphql-service"; \
+	fi
+	@echo ""
+	@echo "📊 查看日志: docker compose -f docker-compose.dev.yml logs -f rest-service graphql-service"
+	@echo "🛑 停止服务: docker compose -f docker-compose.dev.yml down 或 make docker-down"
+	@echo "ℹ️  若需宿主机调试，请使用: make run-dev-debug"
+
+# 调试模式：宿主机运行 Go 服务（仅限特殊场景）
+run-dev-debug:
+	@echo "⚠️  警告: 调试模式违反 Docker 强制原则，仅限特殊调试场景使用"
+	@echo "    日常开发请使用: make run-dev"
+	@read -p "确认继续？(y/N) " -n 1 -r REPLY; echo ""; \
+	if [[ ! $$REPLY =~ ^[Yy]$$ ]]; then echo "已取消"; exit 1; fi
 	@echo "🧹 清理端口占用 (9090/8090)..."
 	-@PIDS=$$(lsof -t -i :9090 -sTCP:LISTEN 2>/dev/null || true); \
 	if [ -n "$$PIDS" ]; then \
@@ -118,28 +157,8 @@ run-dev:
 
 # 启动 RS256+JWKS 本地联调（命令服务 RS256 mint + OIDC 模拟；查询服务用 JWKS 验签）
 run-auth-rs256-sim:
-	@echo "🚀 启动 RS256+JWKS 本地联调（含 OIDC 模拟）..."
-	$(MAKE) dev-kill >/dev/null 2>&1 || true
-	$(MAKE) docker-up
-	@mkdir -p secrets
-	@if [ ! -f secrets/dev-jwt-private.pem ]; then \
-	  echo "🔐 生成RS256开发私钥..."; \
-	  openssl genrsa -out secrets/dev-jwt-private.pem 2048 >/dev/null 2>&1 && \
-	  openssl rsa -in secrets/dev-jwt-private.pem -pubout -out secrets/dev-jwt-public.pem >/dev/null 2>&1 && \
-	  echo "✅ 已生成 secrets/dev-jwt-*.pem"; \
-	fi
-	@echo "▶ 启动命令服务 (RS256 mint + OIDC_SIMULATE) ..."
-	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=$(CURDIR)/secrets/dev-jwt-private.pem JWT_PUBLIC_KEY_PATH=$(CURDIR)/secrets/dev-jwt-public.pem JWT_KEY_ID=bff-key-1 OIDC_SIMULATE=true \
-		go run ./cmd/organization-command-service/main.go &
-	@sleep 1
-	@echo "▶ 启动查询服务 (RS256 验签 via JWKS) ..."
-	JWT_ALG=RS256 JWT_JWKS_URL=http://localhost:9090/.well-known/jwks.json \
-		go run ./cmd/organization-query-service/main.go &
-	@echo "⏳ 健康检查..."
-	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" && break || (echo "  ⏳ 等待 command-service..." && sleep 1); done || true
-	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" && break || (echo "  ⏳ 等待 query-service..." && sleep 1); done || true
-	@echo "🔗 JWKS: http://localhost:9090/.well-known/jwks.json"
-	@echo "🧪 运行认证联调脚本: make auth-flow-test"
+	@echo "ℹ️  run-auth-rs256-sim 已合并至 make run-dev（容器化）"
+	@echo "👉 运行: make run-dev"
 
 # 认证联调脚本（自动执行登录→会话→GraphQL 调用）
 auth-flow-test:
@@ -207,18 +226,18 @@ coverage:
 backup:
 	@echo "💾 备份数据库..."
 	@command -v docker >/dev/null 2>&1 || { echo "❌ 需要 docker"; exit 1; }
-	docker exec cube_castle_postgres pg_dump -U $${POSTGRES_USER:-user} $${POSTGRES_DB:-cubecastle} > backup_$$(date +%Y%m%d_%H%M%S).sql
+	docker exec cubecastle-postgres pg_dump -U $${POSTGRES_USER:-user} $${POSTGRES_DB:-cubecastle} > backup_$$(date +%Y%m%d_%H%M%S).sql
 
 restore:
 	@echo "📥 恢复数据库..."
 	@test -n "$(BACKUP_FILE)" || (echo "❌ 需要指定 BACKUP_FILE=/path/to/file.sql" && exit 2)
 	@command -v docker >/dev/null 2>&1 || { echo "❌ 需要 docker"; exit 1; }
-	docker exec -i cube_castle_postgres psql -U $${POSTGRES_USER:-user} $${POSTGRES_DB:-cubecastle} < $(BACKUP_FILE)
+	docker exec -i cubecastle-postgres psql -U $${POSTGRES_USER:-user} $${POSTGRES_DB:-cubecastle} < $(BACKUP_FILE)
 
 # 状态与重置
 status:
-	@echo "📊 docker-compose 服务状态:"
-	docker-compose ps
+	@echo "📊 docker compose 服务状态:"
+	docker compose -f docker-compose.dev.yml ps
 	@echo ""
 	@echo "🔗 关键地址:"
 	@echo "  - Command Service:   http://localhost:9090"

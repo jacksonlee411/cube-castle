@@ -168,12 +168,14 @@ npx playwright show-report
 
 ### 核心服务端口
 ```yaml
-前端应用: http://localhost:3000
-REST命令API: http://localhost:9090
-GraphQL查询API: http://localhost:8090
-GraphiQL调试: http://localhost:8090/graphiql
-PostgreSQL: localhost:5432
-Redis: localhost:6379
+> ⚠️ **端口声明**：以下 `localhost` 端点均由 `docker-compose.dev.yml` 暴露的容器服务提供。禁止在宿主机安装 PostgreSQL / Redis / Go 服务占用这些端口；如发现冲突，请优先卸载宿主服务而非修改容器映射。
+
+前端应用: http://localhost:3000（宿主机 Vite，依赖容器服务）
+REST命令API: http://localhost:9090（容器 `rest-service` 映射）
+GraphQL查询API: http://localhost:8090（容器 `graphql-service` 映射）
+GraphiQL调试: http://localhost:8090/graphiql（同上）
+PostgreSQL: localhost:5432（容器 `postgres` 映射）
+Redis: localhost:6379（容器 `redis` 映射）
 ```
 
 ### ⚠️ 端口配置权威来源

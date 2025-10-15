@@ -50,6 +50,14 @@
 - ✅ 质量工具操作和问题排查
 - ✅ 新功能开发前的完整指导
 
+### 🛡️ [04. Docker 最佳实践](./04-DOCKER-BEST-PRACTICES.md)
+**用途**: 汇总容器化开发的强制原则与常见操作  
+**包含内容**:
+- Docker Compose 启停流程与日志查看
+- `localhost` 端口映射与环境变量说明
+- 可选的 Air 热重载配置入口
+- 违规时的回滚与排障建议
+
 ---
 
 ## 🚀 快速开始
@@ -113,8 +121,9 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 - [项目指导原则](../../CLAUDE.md) - 开发规范和原则
 
 ### 开发工具
-- GraphiQL调试界面: http://localhost:8090/graphiql
-- Grafana监控面板: http://localhost:3001
+> ⚠️ `localhost` 端口均由 Docker 容器对外暴露，禁止在宿主机安装同名服务占用端口；若遇冲突请卸载宿主服务，切勿修改容器映射。
+- GraphiQL调试界面: http://localhost:8090/graphiql（容器 `graphql-service` 映射）
+- Grafana监控面板: http://localhost:3001（容器 `metrics-stack` 映射，如有启用）
 - 实现清单生成器: `node scripts/generate-implementation-inventory.js`
 
 ---

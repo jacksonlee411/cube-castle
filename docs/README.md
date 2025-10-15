@@ -55,6 +55,7 @@ docs/
 
 ### 📖 development-guides/ - 开发指南
 - **jwt-development-guide.md** - JWT开发工具使用指南（开发环境专用）
+- **docker-hot-reload-guide.md** - 使用 Air 在 Docker 容器中启用热重载
 - 历史 guides 已归档：`archive/deprecated-guides/`
 
 ### 🔌 api/ - 核心API文档

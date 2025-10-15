@@ -42,10 +42,12 @@ eval $(make jwt-dev-export)     # 导出令牌到环境变量
 > ⚠️ **禁止使用 HS256**：命令/查询/前端已经移除 HS256 兜底，若缺少 RS256 私钥或 JWKS 配置，服务将直接失败启动。请务必保证 `.well-known/jwks.json` 可访问，否则前端与测试用例会提示“未启用 RS256”。
 
 ### 服务端点
-- **REST命令API**: http://localhost:9090/api/v1
-- **GraphQL查询API**: http://localhost:8090/graphql
-- **GraphiQL调试界面**: http://localhost:8090/graphiql
-- **前端应用**: http://localhost:3000
+- **REST命令API**: http://localhost:9090/api/v1 （Docker 容器 `rest-service` 暴露）
+- **GraphQL查询API**: http://localhost:8090/graphql （Docker 容器 `graphql-service` 暴露）
+- **GraphiQL调试界面**: http://localhost:8090/graphiql （同上）
+- **前端应用**: http://localhost:3000（宿主机 Vite，依赖容器服务）
+
+> ⚠️ **注意**：所有 `localhost` 端点均由 Docker Compose 管理的容器提供。禁止在宿主机安装 PostgreSQL/Redis/Go 服务占用这些端口；如发现冲突，须卸载宿主服务，切勿修改容器端口映射。
 
 ---
 

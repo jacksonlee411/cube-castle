@@ -3,6 +3,8 @@ package model
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -495,6 +497,72 @@ type OrganizationFilter struct {
 	OperationDateRange       *DateRangeInput `json:"operationDateRange"`
 }
 
+func (f *OrganizationFilter) UnmarshalGraphQL(input interface{}) error {
+	raw, ok := input.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("OrganizationFilter: 期望对象类型，实际得到 %T", input)
+	}
+
+	if value, exists := raw["asOfDate"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("OrganizationFilter.asOfDate: %w", err)
+		}
+		f.AsOfDate = strPtr
+	}
+	if value, exists := raw["includeFuture"]; exists {
+		boolVal, err := asBool(value)
+		if err != nil {
+			return fmt.Errorf("OrganizationFilter.includeFuture: %w", err)
+		}
+		f.IncludeFuture = boolVal
+	}
+	if value, exists := raw["onlyFuture"]; exists {
+		boolVal, err := asBool(value)
+		if err != nil {
+			return fmt.Errorf("OrganizationFilter.onlyFuture: %w", err)
+		}
+		f.OnlyFuture = boolVal
+	}
+	if value, exists := raw["unitType"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("OrganizationFilter.unitType: %w", err)
+		}
+		f.UnitType = strPtr
+	}
+	if value, exists := raw["status"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("OrganizationFilter.status: %w", err)
+		}
+		f.Status = strPtr
+	}
+	if value, exists := raw["parentCode"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("OrganizationFilter.parentCode: %w", err)
+		}
+		f.ParentCode = strPtr
+	}
+	if value, exists := raw["hasChildren"]; exists {
+		boolPtr, err := asOptionalBool(value)
+		if err != nil {
+			return fmt.Errorf("OrganizationFilter.hasChildren: %w", err)
+		}
+		f.HasChildren = boolPtr
+	}
+	if value, exists := raw["hasProfile"]; exists {
+		boolPtr, err := asOptionalBool(value)
+		if err != nil {
+			return fmt.Errorf("OrganizationFilter.hasProfile: %w", err)
+		}
+		f.HasProfile = boolPtr
+	}
+
+	return nil
+}
+
 // PaginationInput 查询分页参数
 type PaginationInput struct {
 	Page      int32  `json:"page"`
@@ -535,22 +603,24 @@ type Position struct {
 	OrganizationNameField   *string    `json:"organizationName" db:"organization_name"`
 }
 
-func (p Position) Code() string               { return p.CodeField }
-func (p Position) RecordId() string           { return p.RecordIDField }
-func (p Position) TenantId() string           { return p.TenantIDField }
-func (p Position) Title() string              { return p.TitleField }
-func (p Position) JobProfileCode() *string    { return p.JobProfileCodeField }
-func (p Position) JobProfileName() *string    { return p.JobProfileNameField }
-func (p Position) JobFamilyGroupCode() string { return p.JobFamilyGroupCodeField }
-func (p Position) JobFamilyCode() string      { return p.JobFamilyCodeField }
-func (p Position) JobRoleCode() string        { return p.JobRoleCodeField }
-func (p Position) JobLevelCode() string       { return p.JobLevelCodeField }
-func (p Position) OrganizationCode() string   { return p.OrganizationCodeField }
-func (p Position) PositionType() string       { return p.PositionTypeField }
-func (p Position) EmploymentType() string     { return p.EmploymentTypeField }
-func (p Position) GradeLevel() *string        { return p.GradeLevelField }
-func (p Position) HeadcountCapacity() float64 { return p.HeadcountCapacityField }
-func (p Position) HeadcountInUse() float64    { return p.HeadcountInUseField }
+func (p Position) Code() PositionCode      { return PositionCode(p.CodeField) }
+func (p Position) RecordId() UUID          { return UUID(p.RecordIDField) }
+func (p Position) TenantId() UUID          { return UUID(p.TenantIDField) }
+func (p Position) Title() string           { return p.TitleField }
+func (p Position) JobProfileCode() *string { return p.JobProfileCodeField }
+func (p Position) JobProfileName() *string { return p.JobProfileNameField }
+func (p Position) JobFamilyGroupCode() JobFamilyGroupCode {
+	return JobFamilyGroupCode(p.JobFamilyGroupCodeField)
+}
+func (p Position) JobFamilyCode() JobFamilyCode { return JobFamilyCode(p.JobFamilyCodeField) }
+func (p Position) JobRoleCode() JobRoleCode     { return JobRoleCode(p.JobRoleCodeField) }
+func (p Position) JobLevelCode() JobLevelCode   { return JobLevelCode(p.JobLevelCodeField) }
+func (p Position) OrganizationCode() string     { return p.OrganizationCodeField }
+func (p Position) PositionType() string         { return p.PositionTypeField }
+func (p Position) EmploymentType() string       { return p.EmploymentTypeField }
+func (p Position) GradeLevel() *string          { return p.GradeLevelField }
+func (p Position) HeadcountCapacity() float64   { return p.HeadcountCapacityField }
+func (p Position) HeadcountInUse() float64      { return p.HeadcountInUseField }
 func (p Position) AvailableHeadcount() float64 {
 	available := p.HeadcountCapacityField - p.HeadcountInUseField
 	if available < 0 {
@@ -558,14 +628,25 @@ func (p Position) AvailableHeadcount() float64 {
 	}
 	return available
 }
-func (p Position) ReportsToPositionCode() *string { return p.ReportsToPositionField }
-func (p Position) Status() string                 { return p.StatusField }
-func (p Position) EffectiveDate() string          { return p.EffectiveDateField.Format("2006-01-02") }
-func (p Position) EndDate() *string {
+func (p Position) ReportsToPositionCode() *PositionCode {
+	if p.ReportsToPositionField == nil {
+		return nil
+	}
+	value := PositionCode(strings.TrimSpace(*p.ReportsToPositionField))
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+func (p Position) Status() string { return p.StatusField }
+func (p Position) EffectiveDate() Date {
+	return Date(p.EffectiveDateField.Format("2006-01-02"))
+}
+func (p Position) EndDate() *Date {
 	if p.EndDateField == nil {
 		return nil
 	}
-	val := p.EndDateField.Format("2006-01-02")
+	val := Date(p.EndDateField.Format("2006-01-02"))
 	return &val
 }
 func (p Position) IsCurrent() bool { return p.IsCurrentField }
@@ -573,8 +654,8 @@ func (p Position) IsFuture() bool {
 	today := cnTodayDate()
 	return p.EffectiveDateField.After(today)
 }
-func (p Position) CreatedAt() string { return p.CreatedAtField.Format(time.RFC3339) }
-func (p Position) UpdatedAt() string { return p.UpdatedAtField.Format(time.RFC3339) }
+func (p Position) CreatedAt() DateTime { return DateTime(p.CreatedAtField.Format(time.RFC3339)) }
+func (p Position) UpdatedAt() DateTime { return DateTime(p.UpdatedAtField.Format(time.RFC3339)) }
 
 // PositionConnection 连接结果
 type PositionConnection struct {
@@ -600,37 +681,123 @@ func (e PositionEdge) Node() Position { return e.NodeField }
 
 // PositionFilterInput 过滤条件
 type PositionFilterInput struct {
-	OrganizationCodeField    *string         `json:"organizationCode"`
-	PositionCodesField       *[]string       `json:"positionCodes"`
-	StatusField              *string         `json:"status"`
-	JobFamilyGroupCodesField *[]string       `json:"jobFamilyGroupCodes"`
-	JobFamilyCodesField      *[]string       `json:"jobFamilyCodes"`
-	JobRoleCodesField        *[]string       `json:"jobRoleCodes"`
-	JobLevelCodesField       *[]string       `json:"jobLevelCodes"`
-	PositionTypesField       *[]string       `json:"positionTypes"`
-	EmploymentTypesField     *[]string       `json:"employmentTypes"`
-	EffectiveRangeField      *DateRangeInput `json:"effectiveRange"`
+	OrganizationCode    *string         `json:"organizationCode"`
+	PositionCodes       *[]string       `json:"positionCodes"`
+	Status              *string         `json:"status"`
+	JobFamilyGroupCodes *[]string       `json:"jobFamilyGroupCodes"`
+	JobFamilyCodes      *[]string       `json:"jobFamilyCodes"`
+	JobRoleCodes        *[]string       `json:"jobRoleCodes"`
+	JobLevelCodes       *[]string       `json:"jobLevelCodes"`
+	PositionTypes       *[]string       `json:"positionTypes"`
+	EmploymentTypes     *[]string       `json:"employmentTypes"`
+	EffectiveRange      *DateRangeInput `json:"effectiveRange"`
 }
 
-func (f PositionFilterInput) OrganizationCode() *string       { return f.OrganizationCodeField }
-func (f PositionFilterInput) PositionCodes() *[]string        { return f.PositionCodesField }
-func (f PositionFilterInput) Status() *string                 { return f.StatusField }
-func (f PositionFilterInput) JobFamilyGroupCodes() *[]string  { return f.JobFamilyGroupCodesField }
-func (f PositionFilterInput) JobFamilyCodes() *[]string       { return f.JobFamilyCodesField }
-func (f PositionFilterInput) JobRoleCodes() *[]string         { return f.JobRoleCodesField }
-func (f PositionFilterInput) JobLevelCodes() *[]string        { return f.JobLevelCodesField }
-func (f PositionFilterInput) PositionTypes() *[]string        { return f.PositionTypesField }
-func (f PositionFilterInput) EmploymentTypes() *[]string      { return f.EmploymentTypesField }
-func (f PositionFilterInput) EffectiveRange() *DateRangeInput { return f.EffectiveRangeField }
+func (f *PositionFilterInput) UnmarshalGraphQL(input interface{}) error {
+	raw, ok := input.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("PositionFilterInput: 期望对象类型，实际得到 %T", input)
+	}
+
+	if value, exists := raw["organizationCode"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.organizationCode: %w", err)
+		}
+		f.OrganizationCode = strPtr
+	}
+	if value, exists := raw["positionCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.positionCodes: %w", err)
+		}
+		f.PositionCodes = slicePtr
+	}
+	if value, exists := raw["status"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.status: %w", err)
+		}
+		f.Status = strPtr
+	}
+	if value, exists := raw["jobFamilyGroupCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.jobFamilyGroupCodes: %w", err)
+		}
+		f.JobFamilyGroupCodes = slicePtr
+	}
+	if value, exists := raw["jobFamilyCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.jobFamilyCodes: %w", err)
+		}
+		f.JobFamilyCodes = slicePtr
+	}
+	if value, exists := raw["jobRoleCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.jobRoleCodes: %w", err)
+		}
+		f.JobRoleCodes = slicePtr
+	}
+	if value, exists := raw["jobLevelCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.jobLevelCodes: %w", err)
+		}
+		f.JobLevelCodes = slicePtr
+	}
+	if value, exists := raw["positionTypes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.positionTypes: %w", err)
+		}
+		f.PositionTypes = slicePtr
+	}
+	if value, exists := raw["employmentTypes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.employmentTypes: %w", err)
+		}
+		f.EmploymentTypes = slicePtr
+	}
+	if value, exists := raw["effectiveRange"]; exists {
+		rangePtr, err := asOptionalDateRange(value)
+		if err != nil {
+			return fmt.Errorf("PositionFilterInput.effectiveRange: %w", err)
+		}
+		f.EffectiveRange = rangePtr
+	}
+
+	return nil
+}
 
 // PositionSortInput 排序输入
 type PositionSortInput struct {
-	FieldField     string `json:"field"`
-	DirectionField string `json:"direction"`
+	Field     string `json:"field"`
+	Direction string `json:"direction"`
 }
 
-func (s PositionSortInput) Field() string     { return s.FieldField }
-func (s PositionSortInput) Direction() string { return s.DirectionField }
+func (s *PositionSortInput) UnmarshalGraphQL(input interface{}) error {
+	raw, ok := input.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("PositionSortInput: 期望对象类型，实际得到 %T", input)
+	}
+
+	field, err := asRequiredString(raw, "field")
+	if err != nil {
+		return fmt.Errorf("PositionSortInput.field: %w", err)
+	}
+	direction, err := asRequiredString(raw, "direction")
+	if err != nil {
+		return fmt.Errorf("PositionSortInput.direction: %w", err)
+	}
+
+	s.Field = field
+	s.Direction = direction
+	return nil
+}
 
 // PositionTimelineEntry 时间线条目
 type PositionTimelineEntry struct {
@@ -643,17 +810,17 @@ type PositionTimelineEntry struct {
 	ChangeReasonField  *string    `json:"changeReason" db:"operation_reason"`
 }
 
-func (e PositionTimelineEntry) RecordId() string { return e.RecordIDField }
-func (e PositionTimelineEntry) Status() string   { return e.StatusField }
-func (e PositionTimelineEntry) Title() string    { return e.TitleField }
-func (e PositionTimelineEntry) EffectiveDate() string {
-	return e.EffectiveDateField.Format("2006-01-02")
+func (e PositionTimelineEntry) RecordId() UUID { return UUID(e.RecordIDField) }
+func (e PositionTimelineEntry) Status() string { return e.StatusField }
+func (e PositionTimelineEntry) Title() string  { return e.TitleField }
+func (e PositionTimelineEntry) EffectiveDate() Date {
+	return Date(e.EffectiveDateField.Format("2006-01-02"))
 }
-func (e PositionTimelineEntry) EndDate() *string {
+func (e PositionTimelineEntry) EndDate() *Date {
 	if e.EndDateField == nil {
 		return nil
 	}
-	val := e.EndDateField.Format("2006-01-02")
+	val := Date(e.EndDateField.Format("2006-01-02"))
 	return &val
 }
 func (e PositionTimelineEntry) IsCurrent() bool { return e.IsCurrentField }
@@ -677,12 +844,21 @@ func (h HeadcountStats) OrganizationName() string { return h.OrganizationNameFie
 func (h HeadcountStats) TotalCapacity() float64   { return h.TotalCapacityField }
 func (h HeadcountStats) TotalFilled() float64     { return h.TotalFilledField }
 func (h HeadcountStats) TotalAvailable() float64  { return h.TotalAvailableField }
-func (h HeadcountStats) LevelBreakdown() []LevelHeadcount {
-	return h.LevelBreakdownField
+func (h HeadcountStats) FillRate() float64 {
+	if h.TotalCapacityField <= 0 {
+		return 0
+	}
+	rate := h.TotalFilledField / h.TotalCapacityField
+	if rate < 0 {
+		return 0
+	}
+	if rate > 1 {
+		return 1
+	}
+	return rate
 }
-func (h HeadcountStats) TypeBreakdown() []TypeHeadcount {
-	return h.TypeBreakdownField
-}
+func (h HeadcountStats) ByLevel() []LevelHeadcount { return h.LevelBreakdownField }
+func (h HeadcountStats) ByType() []TypeHeadcount   { return h.TypeBreakdownField }
 
 // LevelHeadcount 按职级统计
 type LevelHeadcount struct {
@@ -692,10 +868,10 @@ type LevelHeadcount struct {
 	AvailableField    float64 `json:"available" db:"available"`
 }
 
-func (l LevelHeadcount) JobLevelCode() string { return l.JobLevelCodeField }
-func (l LevelHeadcount) Capacity() float64    { return l.CapacityField }
-func (l LevelHeadcount) Utilized() float64    { return l.UtilizedField }
-func (l LevelHeadcount) Available() float64   { return l.AvailableField }
+func (l LevelHeadcount) JobLevelCode() JobLevelCode { return JobLevelCode(l.JobLevelCodeField) }
+func (l LevelHeadcount) Capacity() float64          { return l.CapacityField }
+func (l LevelHeadcount) Utilized() float64          { return l.UtilizedField }
+func (l LevelHeadcount) Available() float64         { return l.AvailableField }
 
 // TypeHeadcount 按职位类型统计
 type TypeHeadcount struct {
@@ -723,18 +899,22 @@ type JobFamilyGroup struct {
 	IsCurrentField     bool       `json:"isCurrent" db:"is_current"`
 }
 
-func (g JobFamilyGroup) Code() string         { return g.CodeField }
+func (g JobFamilyGroup) RecordId() UUID { return UUID(g.RecordIDField) }
+func (g JobFamilyGroup) TenantId() UUID { return UUID(g.TenantIDField) }
+func (g JobFamilyGroup) Code() JobFamilyGroupCode {
+	return JobFamilyGroupCode(g.CodeField)
+}
 func (g JobFamilyGroup) Name() string         { return g.NameField }
 func (g JobFamilyGroup) Description() *string { return g.DescriptionField }
 func (g JobFamilyGroup) Status() string       { return g.StatusField }
-func (g JobFamilyGroup) EffectiveDate() string {
-	return g.EffectiveDateField.Format("2006-01-02")
+func (g JobFamilyGroup) EffectiveDate() Date {
+	return Date(g.EffectiveDateField.Format("2006-01-02"))
 }
-func (g JobFamilyGroup) EndDate() *string {
+func (g JobFamilyGroup) EndDate() *Date {
 	if g.EndDateField == nil {
 		return nil
 	}
-	val := g.EndDateField.Format("2006-01-02")
+	val := Date(g.EndDateField.Format("2006-01-02"))
 	return &val
 }
 func (g JobFamilyGroup) IsCurrent() bool { return g.IsCurrentField }
@@ -752,22 +932,26 @@ type JobFamily struct {
 	FamilyGroupCodeField string     `json:"groupCode" db:"family_group_code"`
 }
 
-func (f JobFamily) Code() string         { return f.CodeField }
+func (f JobFamily) RecordId() UUID       { return UUID(f.RecordIDField) }
+func (f JobFamily) TenantId() UUID       { return UUID(f.TenantIDField) }
+func (f JobFamily) Code() JobFamilyCode  { return JobFamilyCode(f.CodeField) }
 func (f JobFamily) Name() string         { return f.NameField }
 func (f JobFamily) Description() *string { return f.DescriptionField }
 func (f JobFamily) Status() string       { return f.StatusField }
-func (f JobFamily) EffectiveDate() string {
-	return f.EffectiveDateField.Format("2006-01-02")
+func (f JobFamily) EffectiveDate() Date {
+	return Date(f.EffectiveDateField.Format("2006-01-02"))
 }
-func (f JobFamily) EndDate() *string {
+func (f JobFamily) EndDate() *Date {
 	if f.EndDateField == nil {
 		return nil
 	}
-	val := f.EndDateField.Format("2006-01-02")
+	val := Date(f.EndDateField.Format("2006-01-02"))
 	return &val
 }
-func (f JobFamily) IsCurrent() bool   { return f.IsCurrentField }
-func (f JobFamily) GroupCode() string { return f.FamilyGroupCodeField }
+func (f JobFamily) IsCurrent() bool { return f.IsCurrentField }
+func (f JobFamily) GroupCode() JobFamilyGroupCode {
+	return JobFamilyGroupCode(f.FamilyGroupCodeField)
+}
 
 type JobRole struct {
 	RecordIDField      string     `json:"recordId" db:"record_id"`
@@ -782,22 +966,24 @@ type JobRole struct {
 	FamilyCodeField    string     `json:"familyCode" db:"family_code"`
 }
 
-func (r JobRole) Code() string         { return r.CodeField }
+func (r JobRole) RecordId() UUID       { return UUID(r.RecordIDField) }
+func (r JobRole) TenantId() UUID       { return UUID(r.TenantIDField) }
+func (r JobRole) Code() JobRoleCode    { return JobRoleCode(r.CodeField) }
 func (r JobRole) Name() string         { return r.NameField }
 func (r JobRole) Description() *string { return r.DescriptionField }
 func (r JobRole) Status() string       { return r.StatusField }
-func (r JobRole) EffectiveDate() string {
-	return r.EffectiveDateField.Format("2006-01-02")
+func (r JobRole) EffectiveDate() Date {
+	return Date(r.EffectiveDateField.Format("2006-01-02"))
 }
-func (r JobRole) EndDate() *string {
+func (r JobRole) EndDate() *Date {
 	if r.EndDateField == nil {
 		return nil
 	}
-	val := r.EndDateField.Format("2006-01-02")
+	val := Date(r.EndDateField.Format("2006-01-02"))
 	return &val
 }
-func (r JobRole) IsCurrent() bool    { return r.IsCurrentField }
-func (r JobRole) FamilyCode() string { return r.FamilyCodeField }
+func (r JobRole) IsCurrent() bool           { return r.IsCurrentField }
+func (r JobRole) FamilyCode() JobFamilyCode { return JobFamilyCode(r.FamilyCodeField) }
 
 type JobLevel struct {
 	RecordIDField      string     `json:"recordId" db:"record_id"`
@@ -813,20 +999,155 @@ type JobLevel struct {
 	LevelRankField     string     `json:"levelRank" db:"level_rank"`
 }
 
-func (l JobLevel) Code() string         { return l.CodeField }
+func (l JobLevel) RecordId() UUID       { return UUID(l.RecordIDField) }
+func (l JobLevel) TenantId() UUID       { return UUID(l.TenantIDField) }
+func (l JobLevel) Code() JobLevelCode   { return JobLevelCode(l.CodeField) }
 func (l JobLevel) Name() string         { return l.NameField }
 func (l JobLevel) Description() *string { return l.DescriptionField }
 func (l JobLevel) Status() string       { return l.StatusField }
-func (l JobLevel) EffectiveDate() string {
-	return l.EffectiveDateField.Format("2006-01-02")
+func (l JobLevel) EffectiveDate() Date {
+	return Date(l.EffectiveDateField.Format("2006-01-02"))
 }
-func (l JobLevel) EndDate() *string {
+func (l JobLevel) EndDate() *Date {
 	if l.EndDateField == nil {
 		return nil
 	}
-	val := l.EndDateField.Format("2006-01-02")
+	val := Date(l.EndDateField.Format("2006-01-02"))
 	return &val
 }
-func (l JobLevel) IsCurrent() bool   { return l.IsCurrentField }
-func (l JobLevel) RoleCode() string  { return l.RoleCodeField }
-func (l JobLevel) LevelRank() string { return l.LevelRankField }
+func (l JobLevel) IsCurrent() bool       { return l.IsCurrentField }
+func (l JobLevel) RoleCode() JobRoleCode { return JobRoleCode(l.RoleCodeField) }
+func (l JobLevel) LevelRank() int32 {
+	trimmed := strings.TrimSpace(l.LevelRankField)
+	if trimmed == "" {
+		return 0
+	}
+	if v, err := strconv.Atoi(trimmed); err == nil {
+		return int32(v)
+	}
+	return 0
+}
+
+func asOptionalString(value interface{}) (*string, error) {
+	if value == nil {
+		return nil, nil
+	}
+	str, ok := value.(string)
+	if !ok {
+		return nil, fmt.Errorf("期望字符串，实际得到 %T", value)
+	}
+	str = strings.TrimSpace(str)
+	if str == "" {
+		return nil, nil
+	}
+	return &str, nil
+}
+
+func asOptionalStringSlice(value interface{}) (*[]string, error) {
+	if value == nil {
+		return nil, nil
+	}
+
+	var rawItems []string
+	switch v := value.(type) {
+	case []string:
+		rawItems = v
+	case []interface{}:
+		rawItems = make([]string, 0, len(v))
+		for _, item := range v {
+			str, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("期望字符串数组，实际包含 %T", item)
+			}
+			rawItems = append(rawItems, str)
+		}
+	default:
+		return nil, fmt.Errorf("期望字符串数组，实际得到 %T", value)
+	}
+
+	result := make([]string, 0, len(rawItems))
+	for _, item := range rawItems {
+		trimmed := strings.TrimSpace(item)
+		if trimmed == "" {
+			continue
+		}
+		result = append(result, trimmed)
+	}
+
+	if len(result) == 0 {
+		return nil, nil
+	}
+	return &result, nil
+}
+
+func asOptionalDateRange(value interface{}) (*DateRangeInput, error) {
+	if value == nil {
+		return nil, nil
+	}
+
+	raw, ok := value.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("期望对象类型，实际得到 %T", value)
+	}
+
+	from, err := asOptionalString(raw["from"])
+	if err != nil {
+		return nil, fmt.Errorf("from: %w", err)
+	}
+	to, err := asOptionalString(raw["to"])
+	if err != nil {
+		return nil, fmt.Errorf("to: %w", err)
+	}
+
+	if from == nil && to == nil {
+		return nil, nil
+	}
+
+	return &DateRangeInput{
+		From: from,
+		To:   to,
+	}, nil
+}
+
+func asBool(value interface{}) (bool, error) {
+	switch v := value.(type) {
+	case bool:
+		return v, nil
+	case string:
+		lower := strings.TrimSpace(strings.ToLower(v))
+		if lower == "true" || lower == "1" || lower == "yes" || lower == "y" {
+			return true, nil
+		}
+		if lower == "false" || lower == "0" || lower == "no" || lower == "n" {
+			return false, nil
+		}
+	}
+	return false, fmt.Errorf("期望布尔值，实际得到 %T", value)
+}
+
+func asOptionalBool(value interface{}) (*bool, error) {
+	if value == nil {
+		return nil, nil
+	}
+	boolVal, err := asBool(value)
+	if err != nil {
+		return nil, err
+	}
+	return &boolVal, nil
+}
+
+func asRequiredString(raw map[string]interface{}, key string) (string, error) {
+	value, exists := raw[key]
+	if !exists {
+		return "", fmt.Errorf("缺少必填字段 %q", key)
+	}
+	str, ok := value.(string)
+	if !ok {
+		return "", fmt.Errorf("字段 %q 期望为字符串，实际得到 %T", key, value)
+	}
+	str = strings.TrimSpace(str)
+	if str == "" {
+		return "", fmt.Errorf("字段 %q 不能为空字符串", key)
+	}
+	return str, nil
+}

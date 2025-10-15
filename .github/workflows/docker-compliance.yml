@@ -1,0 +1,19 @@
+name: docker-compliance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker compliance guard
+        run: |
+          bash scripts/quality/docker-compliance-check.sh
