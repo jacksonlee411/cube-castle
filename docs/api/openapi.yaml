@@ -1802,12 +1802,7 @@ paths:
       operationId: fillPosition
       tags: [positions]
       summary: Fill position
-      description: Assigns a holder to the position. This endpoint remains temporary until the assignment service is available.
-      x-temporary:
-        reason: Assignment table not yet implemented
-        deadline: '2025-12-31'
-        migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
-        owner: backend-architect-developer
+      description: Assigns a worker to the position and creates a new position assignment record with temporal tracking.
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
         - name: code
@@ -1844,12 +1839,7 @@ paths:
       operationId: vacatePosition
       tags: [positions]
       summary: Vacate position
-      description: Vacates a position by removing assignments. This endpoint remains temporary until the assignment service is available.
-      x-temporary:
-        reason: Assignment table not yet implemented
-        deadline: '2025-12-31'
-        migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
-        owner: backend-architect-developer
+      description: Closes an active position assignment and releases capacity back to the position.
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
         - name: code
@@ -1885,12 +1875,7 @@ paths:
       operationId: transferPosition
       tags: [positions]
       summary: Transfer position
-      description: Transfers a position to a different organization. This endpoint remains temporary until the assignment service is available.
-      x-temporary:
-        reason: Assignment table not yet implemented
-        deadline: '2025-12-31'
-        migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
-        owner: backend-architect-developer
+      description: Transfers a position to a different organization and optionally re-aligns active assignments.
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
         - name: code
@@ -3050,6 +3035,15 @@ components:
           format: float
           minimum: 0
           example: 1
+        currentAssignment:
+          $ref: '#/components/schemas/PositionAssignmentResource'
+          nullable: true
+          description: Latest active assignment for the position, if any.
+        assignmentHistory:
+          type: array
+          description: Full assignment history sorted by startDate descending.
+          items:
+            $ref: '#/components/schemas/PositionAssignmentResource'
         status:
           $ref: '#/components/schemas/PositionStatus'
         effectiveDate:
@@ -3175,48 +3169,73 @@ components:
     FillPositionRequest:
       type: object
       required:
-        - positionHolderId
+        - employeeId
+        - employeeName
         - assignmentType
         - effectiveDate
         - operationReason
       properties:
-        positionHolderId:
+        employeeId:
+          type: string
+          format: uuid
+          description: Unique identifier of the worker being assigned.
+        employeeName:
+          type: string
+          maxLength: 120
+          description: Display name of the worker being assigned.
+        employeeNumber:
           type: string
           maxLength: 64
+          nullable: true
+          description: Optional worker number for HR reporting.
         assignmentType:
-          type: string
-          enum: [PRIMARY, SECONDARY]
+          $ref: '#/components/schemas/PositionAssignmentType'
         fte:
           type: number
           format: float
           minimum: 0
           maximum: 1
           default: 1
+          description: Full-time equivalent allocation for this assignment.
         effectiveDate:
           type: string
           format: date
+          description: Date when the assignment becomes active.
+        anticipatedEndDate:
+          type: string
+          format: date
+          nullable: true
+          description: Optional planned end date for fixed-term assignments.
         operationReason:
           type: string
           maxLength: 500
+        notes:
+          type: string
+          maxLength: 500
+          nullable: true
 
     VacatePositionRequest:
       type: object
       required:
+        - assignmentId
         - effectiveDate
         - operationReason
       properties:
-        fte:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 1
-          default: 1
+        assignmentId:
+          type: string
+          format: uuid
+          description: Identifier of the active assignment to close.
         effectiveDate:
           type: string
           format: date
+          description: Date when the assignment should end.
         operationReason:
           type: string
           maxLength: 500
+        notes:
+          type: string
+          maxLength: 500
+          nullable: true
 
     TransferPositionRequest:
       type: object
@@ -3234,6 +3253,82 @@ components:
         operationReason:
           type: string
           maxLength: 500
+        reassignReports:
+          type: boolean
+          default: true
+          description: Whether to automatically re-align subordinate reporting lines after transfer.
+
+    PositionAssignmentType:
+      type: string
+      enum: [PRIMARY, SECONDARY, ACTING]
+
+    PositionAssignmentStatus:
+      type: string
+      enum: [PENDING, ACTIVE, ENDED]
+
+    PositionAssignmentResource:
+      type: object
+      required:
+        - assignmentId
+        - positionCode
+        - positionRecordId
+        - employeeId
+        - employeeName
+        - assignmentType
+        - assignmentStatus
+        - fte
+        - startDate
+        - isCurrent
+        - createdAt
+        - updatedAt
+      properties:
+        assignmentId:
+          type: string
+          format: uuid
+        positionCode:
+          type: string
+          pattern: ^P[0-9]{7}$
+        positionRecordId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        employeeName:
+          type: string
+          maxLength: 120
+        employeeNumber:
+          type: string
+          maxLength: 64
+          nullable: true
+        assignmentType:
+          $ref: '#/components/schemas/PositionAssignmentType'
+        assignmentStatus:
+          $ref: '#/components/schemas/PositionAssignmentStatus'
+        fte:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        isCurrent:
+          type: boolean
+        notes:
+          type: string
+          maxLength: 500
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     PositionEventRequest:
       type: object

@@ -223,7 +223,7 @@ CREATE INDEX idx_positions_job_level ON positions(tenant_id, job_level_code, is_
 
 - `isFuture` 字段在 API/GraphQL 层通过 `effectiveDate > current_date` 动态计算，不再在数据库中持久化物理列，以保持与既有时态表的约束一致。
 
-### 3.2 扩展实体：Position Assignment（未来扩展）
+### 3.2 扩展实体：Position Assignment
 
 ```sql
 CREATE TABLE position_assignments (
@@ -253,6 +253,40 @@ CREATE TABLE position_assignments (
       REFERENCES positions(tenant_id, code, record_id)
 );
 ```
+
+### 3.2.1 Position Assignment 时态模式定义
+
+为了与职位定义（positions）的版本管理模式互补，Position Assignment 采用**事件周期模式**：每条记录代表一次独立的任职事件，`start_date`/`end_date` 描述任职时间跨度，`is_current` 表示当前是否在任。关键规则如下：
+
+- **唯一事实来源**：任职数据仅存储于 `position_assignments`，`positions` 表不再保留 `current_holder_*` 等冗余字段。
+- **唯一性约束**：
+  ```sql
+  -- 一个员工在同一职位的每次任职以 start_date 划分独立记录
+  UNIQUE (tenant_id, position_code, employee_id, start_date)
+
+  -- 当前在职记录唯一（ACTIVE 状态下 is_current=true 最多一条）
+  UNIQUE (tenant_id, position_code, employee_id, is_current)
+    WHERE (is_current = true AND assignment_status = 'ACTIVE')
+  ```
+- **时间跨度有效性**：
+  ```sql
+  CHECK (end_date IS NULL OR end_date > start_date)
+  ```
+- **asOfDate 查询语义**：
+  ```sql
+  -- 查询某日期的在任员工
+  SELECT *
+  FROM position_assignments
+  WHERE tenant_id = $1
+    AND position_code = $2
+    AND start_date <= $3
+    AND (end_date IS NULL OR end_date >= $3);
+  ```
+- **历史修订**：任职记录如需修订（例如更正入职日期），直接更新原记录；所有修改由 `audit_logs` 记录，避免派生额外版本链。
+- **多次任职场景**：员工多次在同一职位任职会生成多条独立记录（例如张三 2025 入职、2026 再次入职），便于统计空缺周期与任职历史。
+- **未来计划**：允许插入 `assignment_status = 'PENDING'` 的未来生效记录，`start_date` 到达时自动视为在任。
+
+该模式确保任职数据与职位定义保持一致的租户隔离、审计追踪与时态查询能力，同时避免双数据源与复杂版本链，为 Stage 2 实施提供唯一事实来源。
 
 ### 3.3 职位体系化分类（Workday 级联 + 全生命周期）
 

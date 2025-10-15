@@ -138,6 +138,40 @@ type Query {
     startDate: Date
     endDate: Date
   ): [PositionTimelineEntry!]!
+
+  """
+  Get paginated assignment records for a position.
+
+  Permissions Required: position:read
+  """
+  positionAssignments(
+    positionCode: PositionCode!
+    filter: PositionAssignmentFilterInput
+    pagination: PaginationInput
+    sorting: [PositionAssignmentSortInput!]
+  ): PositionAssignmentConnection!
+
+  """
+  Get vacant positions with optional filters.
+
+  Permissions Required: position:read
+  """
+  vacantPositions(
+    filter: VacantPositionFilterInput
+    pagination: PaginationInput
+    sorting: [VacantPositionSortInput!]
+  ): VacantPositionConnection!
+
+  """
+  Get transfer history for positions.
+
+  Permissions Required: position:read:history
+  """
+  positionTransfers(
+    positionCode: PositionCode
+    organizationCode: String
+    pagination: PaginationInput
+  ): PositionTransferConnection!
   
   """
   Get list of vacant positions with optional filters.
@@ -476,6 +510,8 @@ type Position {
   headcountCapacity: Float!
   headcountInUse: Float!
   availableHeadcount: Float!
+  currentAssignment: PositionAssignment
+  assignmentHistory: [PositionAssignment!]!
   reportsToPositionCode: PositionCode
   status: PositionStatus!
   effectiveDate: Date!
@@ -495,6 +531,84 @@ type PositionConnection {
   edges: [PositionEdge!]!
   pagination: PaginationInfo!
   data: [Position!]!
+  totalCount: Int!
+}
+
+type PositionAssignment {
+  assignmentId: UUID!
+  positionCode: PositionCode!
+  positionRecordId: UUID!
+  employeeId: UUID!
+  employeeName: String!
+  employeeNumber: String
+  assignmentType: PositionAssignmentType!
+  assignmentStatus: PositionAssignmentStatus!
+  fte: Float!
+  startDate: Date!
+  endDate: Date
+  isCurrent: Boolean!
+  notes: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type PositionAssignmentEdge {
+  cursor: String!
+  node: PositionAssignment!
+}
+
+type PositionAssignmentConnection {
+  edges: [PositionAssignmentEdge!]!
+  pagination: PaginationInfo!
+  data: [PositionAssignment!]!
+  totalCount: Int!
+}
+
+type VacantPosition {
+  positionCode: PositionCode!
+  organizationCode: String!
+  organizationName: String
+  jobFamilyCode: JobFamilyCode!
+  jobRoleCode: JobRoleCode!
+  jobLevelCode: JobLevelCode!
+  vacantSince: Date!
+  headcountCapacity: Float!
+  headcountAvailable: Float!
+  totalAssignments: Int!
+}
+
+type VacantPositionEdge {
+  cursor: String!
+  node: VacantPosition!
+}
+
+type VacantPositionConnection {
+  edges: [VacantPositionEdge!]!
+  pagination: PaginationInfo!
+  data: [VacantPosition!]!
+  totalCount: Int!
+}
+
+type PositionTransfer {
+  transferId: UUID!
+  positionCode: PositionCode!
+  fromOrganizationCode: String!
+  toOrganizationCode: String!
+  effectiveDate: Date!
+  initiatedBy: OperatedBy!
+  operationReason: String
+  createdAt: DateTime!
+}
+
+type PositionTransferEdge {
+  cursor: String!
+  node: PositionTransfer!
+}
+
+type PositionTransferConnection {
+  edges: [PositionTransferEdge!]!
+  pagination: PaginationInfo!
+  data: [PositionTransfer!]!
   totalCount: Int!
 }
 
@@ -843,6 +957,64 @@ input PositionSortInput {
   direction: SortOrder = ASC
 }
 
+"""
+Filter options for position assignment queries.
+"""
+input PositionAssignmentFilterInput {
+  employeeId: UUID
+  assignmentStatus: PositionAssignmentStatus
+  assignmentType: PositionAssignmentType
+  asOfDate: Date
+  includeHistorical: Boolean = true
+}
+
+"""
+Supported assignment sorting fields.
+"""
+enum PositionAssignmentSortField {
+  START_DATE
+  END_DATE
+  CREATED_AT
+}
+
+"""
+Sorting input for assignment queries.
+"""
+input PositionAssignmentSortInput {
+  field: PositionAssignmentSortField!
+  direction: SortOrder = DESC
+}
+
+"""
+Filter options for vacant position queries.
+"""
+input VacantPositionFilterInput {
+  organizationCodes: [String!]
+  jobFamilyCodes: [JobFamilyCode!]
+  jobRoleCodes: [JobRoleCode!]
+  jobLevelCodes: [JobLevelCode!]
+  positionTypes: [PositionType!]
+  minimumVacantDays: Int
+  asOfDate: Date
+}
+
+"""
+Supported vacant position sorting fields.
+"""
+enum VacantPositionSortField {
+  VACANT_SINCE
+  HEADCOUNT_AVAILABLE
+  HEADCOUNT_CAPACITY
+}
+
+"""
+Sorting input for vacant position queries.
+"""
+input VacantPositionSortInput {
+  field: VacantPositionSortField!
+  direction: SortOrder = DESC
+}
+
 # Enums
 
 """
@@ -949,6 +1121,24 @@ enum EmploymentType {
   FULL_TIME
   PART_TIME
   INTERN
+}
+
+"""
+Assignment type within a position.
+"""
+enum PositionAssignmentType {
+  PRIMARY
+  SECONDARY
+  ACTING
+}
+
+"""
+Lifecycle status for a position assignment.
+"""
+enum PositionAssignmentStatus {
+  PENDING
+  ACTIVE
+  ENDED
 }
 
 """
