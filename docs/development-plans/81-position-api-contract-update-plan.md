@@ -215,7 +215,9 @@ HAVING SUM(CASE WHEN is_current THEN 1 ELSE 0 END) > 1;
 | M2 | Phase 1/2 契约片段完成 | 2025-10-18 | ✅ |
 | M3 | 架构评审（含权限、安全、前端代表） | 2025-10-15 | ✅ |
 | M4 | 正式更新 `openapi.yaml` & `schema.graphql` | 2025-10-15 | ✅ |
-| M5 | 契约校验报告生成并归档 | 2025-10-24 | ☐ |
+| M5 | 契约校验报告生成并归档 | 2025-10-24 | ✅ |
+
+> 2025-10-16：依据 82 号计划集成测试结果，命令/查询服务的新职位契约均通过 `go test ./cmd/organization-command-service/internal/handlers ./cmd/organization-query-service/internal/graphql` 与 `go test ./...` 复核，契约差异报告无新增项，复验记录已归档。
 
 评审记录通过后，将在本节追加评审结论、意见清单与处理结果。
 

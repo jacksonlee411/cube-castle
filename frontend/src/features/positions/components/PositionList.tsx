@@ -2,28 +2,36 @@ import React from 'react'
 import { Table } from '@workday/canvas-kit-react/table'
 import { Text } from '@workday/canvas-kit-react/text'
 import { colors } from '@workday/canvas-kit-react/tokens'
-import { StatusBadge } from '../../../shared/components/StatusBadge'
-import type { PositionMock } from '../mockData'
+import type { PositionRecord } from '@/shared/types/positions'
+import { getPositionStatusMeta } from '../statusMeta'
 
 export interface PositionListProps {
-  positions: PositionMock[]
+  positions: PositionRecord[]
   selectedCode?: string
   onSelect: (code: string) => void
 }
 
-const statusToStatusBadge = (status: PositionMock['status']) => {
-  switch (status) {
-    case 'FILLED':
-      return 'ACTIVE'
-    case 'VACANT':
-      return 'INACTIVE'
-    case 'PLANNED':
-      return 'PLANNED'
-    case 'INACTIVE':
-      return 'INACTIVE'
-    default:
-      return 'ACTIVE'
-  }
+const PositionStatusPill: React.FC<{ status: string }> = ({ status }) => {
+  const meta = getPositionStatusMeta(status)
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '4px 8px',
+        borderRadius: 12,
+        fontSize: 12,
+        fontWeight: 600,
+        minWidth: 60,
+        color: meta.color,
+        backgroundColor: meta.background,
+        border: `1px solid ${meta.border}`,
+      }}
+    >
+      {meta.label}
+    </span>
+  )
 }
 
 export const PositionList: React.FC<PositionListProps> = ({ positions, selectedCode, onSelect }) => {
@@ -37,7 +45,7 @@ export const PositionList: React.FC<PositionListProps> = ({ positions, selectedC
           <Table.Header>职务 / 职级</Table.Header>
           <Table.Header width="140px">编制</Table.Header>
           <Table.Header width="120px">状态</Table.Header>
-          <Table.Header width="160px">主管</Table.Header>
+          <Table.Header width="160px">汇报对象</Table.Header>
         </Table.Row>
       </Table.Head>
       <Table.Body>
@@ -52,7 +60,6 @@ export const PositionList: React.FC<PositionListProps> = ({ positions, selectedC
         ) : (
           positions.map(item => {
             const isSelected = selectedCode === item.code
-            const available = Math.max(item.headcountCapacity - item.headcountInUse, 0)
             return (
               <Table.Row
                 key={item.code}
@@ -67,19 +74,19 @@ export const PositionList: React.FC<PositionListProps> = ({ positions, selectedC
                 <Table.Cell>
                   <Text fontWeight="bold">{item.title}</Text>
                   <Text fontSize="12px" color={colors.licorice400}>
-                    {item.organization.name}
+                    {item.organizationName ?? '未设置归属组织'}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <Text>{item.jobFamilyGroup}</Text>
+                  <Text>{item.jobFamilyGroupName ?? item.jobFamilyGroupCode}</Text>
                   <Text fontSize="12px" color={colors.licorice400}>
-                    {item.jobFamily}
+                    {item.jobFamilyName ?? item.jobFamilyCode}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <Text>{item.jobRole}</Text>
+                  <Text>{item.jobRoleName ?? item.jobRoleCode}</Text>
                   <Text fontSize="12px" color={colors.licorice400}>
-                    {item.jobLevel}
+                    {item.jobLevelName ?? item.jobLevelCode}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
@@ -87,16 +94,16 @@ export const PositionList: React.FC<PositionListProps> = ({ positions, selectedC
                     {item.headcountInUse} / {item.headcountCapacity}
                   </Text>
                   <Text fontSize="12px" color={colors.celery500}>
-                    可用 {available}
+                    可用 {item.availableHeadcount}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <StatusBadge status={statusToStatusBadge(item.status)} size="small" />
+                  <PositionStatusPill status={item.status} />
                 </Table.Cell>
                 <Table.Cell>
-                  <Text>{item.supervisor.name}</Text>
+                  <Text>{item.reportsToPositionCode ?? '未设置'}</Text>
                   <Text fontSize="12px" color={colors.licorice400}>
-                    {item.supervisor.code}
+                    {item.reportsToPositionCode ? '汇报职位编码' : '暂无上级信息'}
                   </Text>
                 </Table.Cell>
               </Table.Row>

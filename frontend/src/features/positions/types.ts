@@ -14,3 +14,10 @@ export interface PositionLifecycleEvent {
   occurredAt: string
   summary: string
 }
+export type {
+  PositionStatus,
+  PositionRecord,
+  PositionTimelineEvent,
+  PositionsQueryResult,
+  PositionDetailResult,
+} from '@/shared/types/positions'

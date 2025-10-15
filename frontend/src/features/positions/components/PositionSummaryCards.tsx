@@ -3,11 +3,11 @@ import { Card } from '@workday/canvas-kit-react/card'
 import { Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
-import type { PositionMock } from '../mockData'
+import type { PositionRecord } from '@/shared/types/positions'
 import { SimpleStack } from './SimpleStack'
 
 interface PositionSummaryCardsProps {
-  positions: PositionMock[]
+  positions: PositionRecord[]
 }
 
 const formatNumber = (value: number) => value.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 1 })
@@ -16,7 +16,7 @@ export const PositionSummaryCards: React.FC<PositionSummaryCardsProps> = ({ posi
   const totalPositions = positions.length
   const totalCapacity = positions.reduce((acc, item) => acc + item.headcountCapacity, 0)
   const totalInUse = positions.reduce((acc, item) => acc + item.headcountInUse, 0)
-  const totalAvailable = Math.max(totalCapacity - totalInUse, 0)
+  const totalAvailable = positions.reduce((acc, item) => acc + item.availableHeadcount, 0)
   const plannedCount = positions.filter(item => item.status === 'PLANNED').length
   const multiSeatPositions = positions.filter(item => item.headcountCapacity > 1).length
 

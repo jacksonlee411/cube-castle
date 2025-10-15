@@ -1,27 +1,111 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { beforeEach, vi, type Mock } from 'vitest'
 import { PositionDashboard } from '../PositionDashboard'
+import type { PositionRecord, PositionDetailResult, PositionsQueryResult } from '@/shared/types/positions'
 
-describe('PositionDashboard (Stage 0)', () => {
-  it('renders mock summary and table rows', () => {
+vi.mock('@/shared/hooks/useEnterprisePositions', () => ({
+  useEnterprisePositions: vi.fn(),
+  usePositionDetail: vi.fn(),
+}))
+
+const { useEnterprisePositions, usePositionDetail } = await import('@/shared/hooks/useEnterprisePositions')
+const mockedUseEnterprisePositions = useEnterprisePositions as unknown as Mock
+const mockedUsePositionDetail = usePositionDetail as unknown as Mock
+
+const samplePosition: PositionRecord = {
+  code: 'P9000001',
+  title: '物业保洁员',
+  jobFamilyGroupCode: 'OPER',
+  jobFamilyGroupName: 'OPER',
+  jobFamilyCode: 'OPER-OPS',
+  jobFamilyName: 'OPER-OPS',
+  jobRoleCode: 'OPER-OPS-CLEAN',
+  jobRoleName: 'OPER-OPS-CLEAN',
+  jobLevelCode: 'S1',
+  jobLevelName: 'S1',
+  organizationCode: '2000010',
+  organizationName: '上海虹桥商务区物业项目',
+  positionType: 'REGULAR',
+  employmentType: 'FULL_TIME',
+  headcountCapacity: 8,
+  headcountInUse: 6,
+  availableHeadcount: 2,
+  gradeLevel: undefined,
+  reportsToPositionCode: 'P2000008',
+  status: 'FILLED',
+  effectiveDate: '2024-01-01',
+  endDate: undefined,
+  isCurrent: true,
+  isFuture: false,
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: '2024-01-01T00:00:00.000Z',
+}
+
+const positionsQueryResult: PositionsQueryResult = {
+  positions: [samplePosition],
+  pagination: {
+    total: 1,
+    page: 1,
+    pageSize: 100,
+    hasNext: false,
+    hasPrevious: false,
+  },
+  totalCount: 1,
+  timestamp: '2025-10-16T00:00:00.000Z',
+}
+
+const positionDetailResult: PositionDetailResult = {
+  position: samplePosition,
+  timeline: [
+    {
+      id: 'rec-001',
+      status: 'FILLED',
+      title: '岗位填充',
+      effectiveDate: '2024-03-01',
+      changeReason: '张三入职',
+    },
+  ],
+  fetchedAt: '2025-10-16T00:00:00.000Z',
+}
+
+beforeEach(() => {
+  mockedUseEnterprisePositions.mockReset()
+  mockedUsePositionDetail.mockReset()
+
+  mockedUseEnterprisePositions.mockReturnValue({
+    data: positionsQueryResult,
+    isLoading: false,
+    isError: false,
+  })
+  mockedUsePositionDetail.mockReturnValue({
+    data: positionDetailResult,
+    isLoading: false,
+  })
+})
+
+describe('PositionDashboard（Stage 1 数据接入）', () => {
+  it('渲染职位列表与统计信息', () => {
     render(<PositionDashboard />)
 
     expect(screen.getByTestId('position-dashboard')).toBeInTheDocument()
+    expect(screen.getByText('职位管理（Stage 1 数据接入）')).toBeInTheDocument()
     expect(screen.getByText('岗位总数')).toBeInTheDocument()
-    expect(screen.getByText('职位名称')).toBeInTheDocument()
-    expect(screen.getByTestId('position-row-P1000101')).toBeInTheDocument()
+    expect(screen.getByTestId('position-row-P9000001')).toBeInTheDocument()
+    expect(screen.getAllByText('物业保洁员')[0]).toBeInTheDocument()
   })
 
-  it('shows detail panel for selected position', () => {
+  it('切换列表项时展示职位详情与时间线', () => {
     render(<PositionDashboard />)
 
-    const supervisorRow = screen.getByTestId('position-row-P1000102')
-    fireEvent.click(supervisorRow)
+    const row = screen.getByTestId('position-row-P9000001')
+    fireEvent.click(row)
 
     const detailCard = screen.getByTestId('position-detail-card')
     expect(detailCard).toBeInTheDocument()
-    expect(detailCard).toHaveTextContent('保洁主管')
-    expect(detailCard).toHaveTextContent('编制：1 / 1')
+    expect(detailCard).toHaveTextContent('物业保洁员')
+    expect(detailCard).toHaveTextContent('岗位填充')
+    expect(detailCard).toHaveTextContent('张三入职')
   })
 })

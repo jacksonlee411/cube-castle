@@ -12,6 +12,10 @@
 export * from './useEnterpriseOrganizations';
 export { default as useEnterpriseOrganizations } from './useEnterpriseOrganizations';
 
+// 🎯 职位管理查询 Hook
+export * from './useEnterprisePositions';
+export { default as useEnterprisePositions } from './useEnterprisePositions';
+
 // 🔧 专用工具Hook
 export * from './useOrganizationMutations';
 export * from './useDebounce';

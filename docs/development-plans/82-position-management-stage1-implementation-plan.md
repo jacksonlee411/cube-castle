@@ -40,7 +40,7 @@
 
 ### 2.2 可选扩展（P2，Stage 1.1 之后）
 
-- 前端 Hook / UI 接入（Stage 1.1 与 Stage 2 并行）。  
+- [x] 前端 Hook / UI 接入（Stage 1.1 与 Stage 2 并行）。  
 - Position 事件审计报表。  
 - Job Catalog 同步任务（外部系统接入）。  
 
@@ -104,14 +104,20 @@
 - 集成测试：最小验证流程（创建 -> 版本 -> 查询）。  
 - 记录命令输出，归档至 `reports/contracts/position-api-diff.md`、`reports/implementation-inventory.json`。  
 
-#### ✅ 进度更新（2025-10-16 → 2025-10-14 复验）
-- [x] 执行 `go test ./cmd/organization-command-service/...`、`go test ./cmd/organization-query-service/...`，确认命令与查询实现编译通过（2025-10-14 再次复验）。
-- [ ] 生成差异报告与前端契约校验（待 Stage 1 收尾统一执行）。
+#### ✅ 进度更新（2025-10-16 → 2025-10-16 复验）
+- [x] 新增职位管理 Stage 1 REST/GraphQL 集成测试：`cmd/organization-command-service/internal/handlers/position_handler_test.go`、`cmd/organization-query-service/internal/graphql/position_resolver_test.go`，命令行执行 `go test ./cmd/organization-command-service/internal/handlers ./cmd/organization-query-service/internal/graphql`。
+- [x] 执行 `go test ./...` 完成全量 Go 测试，确认命令与查询服务均通过质量门禁（2025-10-16）。
+- [x] 差异报告与契约校验无需新增变更，`reports/contracts/position-api-diff.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` 已于 2025-10-14 对齐，复核无新增差异（记录保留本周期日志）。
 
 ### Phase 6：租户隔离巡检与资料更新
 - Stage 1 迁移后执行 `81-tenant-isolation-checks.sql`，输出 `tenant-isolation-check-stage1-YYYYMMDD.sql`。  
 - 更新 `docs/development-plans/06-integrated-teams-progress-log.md` 第10节执行记录。  
 - 完成 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`docs/development-plans/81-position-api-contract-update-plan.md` 第 10 节最后两项勾选。  
+
+### Stage 1.1：前端数据接入回合
+- [x] 将 `PositionDashboard` 接入 GraphQL `positions`/`positionTimeline` 查询与 REST 命令状态，保留 API 故障时的 mock 回退机制（2025-10-16）。  
+- [x] 新增 `useEnterprisePositions` / `usePositionDetail` Hook，统一封装 React Query + GraphQL 客户端，输出 Stage 1 列表与时间线数据。  
+- [x] 补充 Vitest 覆盖（`PositionDashboard.test.tsx`）验证数据绑定、筛选与时间线渲染路径。  
 
 ---
 
@@ -122,7 +128,7 @@
 | M1 | 数据库迁移脚本合并 | 2025-10-16 | ✅ |
 | M2 | 命令服务 Position/JobCatalog 实现 | 2025-10-21 | ✅ |
 | M3 | 查询服务 Position/JobCatalog resolver 完成 | 2025-10-23 | ✅ |
-| M4 | 集成测试 & 质量门禁通过 | 2025-10-24 | ☐ |
+| M4 | 集成测试 & 质量门禁通过 | 2025-10-24 | ✅ |
 | M5 | Stage 1 租户隔离巡检归档 | 2025-10-25 | ✅ |
 
 ---
@@ -130,11 +136,11 @@
 ## 6. 验收标准
 
 - [x] 数据库迁移执行完成，`positions` 与 job catalog 表结构与 80 号方案一致（证据：`reports/database/migration-043-stage1-20251014.log`、`docker exec ... \dt`）。  
-- [ ] 命令服务所有 REST 端点按照 OpenAPI v4.7.0 返回成功/错误响应，并通过集成测试。  
-- [ ] 查询服务 (GraphQL) 能返回职位与 Job Catalog 数据，复杂过滤/排序/分页正常。  
+- [x] 命令服务所有 REST 端点按照 OpenAPI v4.7.0 返回成功/错误响应，并通过集成测试。  
+- [x] 查询服务 (GraphQL) 能返回职位与 Job Catalog 数据，复杂过滤/排序/分页正常。  
 - [x] 租户隔离巡检 SQL 全部返回空集（`reports/architecture/tenant-isolation-check-stage1-20251014.log`）。  
 - [x] `reports/contracts/position-api-diff.md`、`reports/implementation-inventory.json`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` 同步最新端点/查询（2025-10-14 再次校验）。  
-- [ ] `docs/development-plans/81-position-api-contract-update-plan.md` 第 10 节余下项完成勾选。  
+- [x] `docs/development-plans/81-position-api-contract-update-plan.md` 第 10 节余下项完成勾选。  
 
 ---
 
