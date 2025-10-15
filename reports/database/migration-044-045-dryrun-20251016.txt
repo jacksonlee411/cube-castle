@@ -1,0 +1,25 @@
+== Running 044_create_position_assignments.sql ==
+BEGIN
+psql:database/migrations/044_create_position_assignments.sql:34: NOTICE:  relation "position_assignments" already exists, skipping
+CREATE TABLE
+psql:database/migrations/044_create_position_assignments.sql:38: NOTICE:  relation "uk_position_assignments_active" already exists, skipping
+CREATE INDEX
+psql:database/migrations/044_create_position_assignments.sql:41: NOTICE:  relation "uk_position_assignments_start" already exists, skipping
+CREATE INDEX
+psql:database/migrations/044_create_position_assignments.sql:44: NOTICE:  relation "idx_position_assignments_position" already exists, skipping
+CREATE INDEX
+psql:database/migrations/044_create_position_assignments.sql:47: NOTICE:  relation "idx_position_assignments_employee" already exists, skipping
+CREATE INDEX
+psql:database/migrations/044_create_position_assignments.sql:50: NOTICE:  relation "idx_position_assignments_status" already exists, skipping
+CREATE INDEX
+COMMIT
+== Running 045_drop_position_legacy_columns.sql ==
+BEGIN
+psql:database/migrations/045_drop_position_legacy_columns.sql:6: NOTICE:  index "idx_positions_holder" does not exist, skipping
+DROP INDEX
+psql:database/migrations/045_drop_position_legacy_columns.sql:12: NOTICE:  column "current_holder_id" of relation "positions" does not exist, skipping
+psql:database/migrations/045_drop_position_legacy_columns.sql:12: NOTICE:  column "current_holder_name" of relation "positions" does not exist, skipping
+psql:database/migrations/045_drop_position_legacy_columns.sql:12: NOTICE:  column "filled_date" of relation "positions" does not exist, skipping
+psql:database/migrations/045_drop_position_legacy_columns.sql:12: NOTICE:  column "current_assignment_type" of relation "positions" does not exist, skipping
+ALTER TABLE
+COMMIT

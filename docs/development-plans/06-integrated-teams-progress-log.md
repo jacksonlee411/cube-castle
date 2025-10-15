@@ -287,12 +287,14 @@ rollback/045_restore_position_legacy_columns.sql
 
 ### Stage 2 进展跟踪点
 
-1. **Week 1 结束**（Phase A 中期）
-   - 检查点：契约 PR 已提交，迁移脚本已完成
+1. **Week 1 结束**（Phase A 中期） — ✅ 2025-10-16 完成  
+   - 检查点：契约 PR 已提交，迁移脚本已完成  
+   - 记录：OpenAPI/GraphQL v4.7.0 更新已提交，迁移脚本 `044/045` 与回滚脚本落地  
    - 更新：06号日志"当前进展"栏
 
-2. **Week 2 结束**（Phase A 完成）
-   - 检查点：sandbox 演练通过，租户隔离巡检通过
+2. **Week 2 结束**（Phase A 完成） — ✅ 2025-10-16 完成  
+   - 检查点：sandbox 演练通过，租户隔离巡检通过  
+   - 记录：`reports/database/migration-044-045-dryrun-20251016.log`、`reports/database/positions-legacy-snapshot-20251016.csv`（空数据基线）、`reports/architecture/tenant-isolation-check-stage2-20251016.sql`  
    - 更新：06号日志"Phase A 验收"
 
 3. **Week 4 结束**（Phase B 完成）

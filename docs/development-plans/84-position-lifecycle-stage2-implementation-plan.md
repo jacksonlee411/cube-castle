@@ -22,7 +22,7 @@
 - [x] Phase A 契约更新（OpenAPI/GraphQL：新增任职、空缺、转移类型并移除冗余字段）
 - [x] Phase A 迁移脚本与回滚脚本（044/045 + rollback 版本）已产出
 - [x] Sandbox 演练流程与日志归档规范已写入计划
-- [ ] Sandbox 环境迁移 & 回滚演练
+- [x] Sandbox 环境迁移 & 回滚演练（reports/database/migration-044-045-dryrun-20251016.txt、reports/architecture/tenant-isolation-check-stage2-20251016.sql）
 - [ ] Phase B 命令/查询服务实现
 - [ ] Phase C 前端交互与 E2E 验收
 - [ ] Phase D 质量门禁与文档归档
