@@ -11,6 +11,7 @@ import LoginPage from './pages/Login'
 const OrganizationDashboard = React.lazy(() => import('./features/organizations/OrganizationDashboard').then(module => ({ default: module.OrganizationDashboard })))
 const OrganizationTemporalPage = React.lazy(() => import('./features/organizations/OrganizationTemporalPage').then(module => ({ default: module.OrganizationTemporalPage })))
 const PositionDashboard = React.lazy(() => import('./features/positions/PositionDashboard').then(module => ({ default: module.PositionDashboard })))
+const PositionTemporalPage = React.lazy(() => import('./features/positions/PositionTemporalPage').then(module => ({ default: module.PositionTemporalPage })))
 const ContractTestingDashboard = React.lazy(() => import('./features/contract-testing/ContractTestingDashboard').then(module => ({ default: module.ContractTestingDashboard })))
 const MonitoringDashboard = React.lazy(() => import('./features/monitoring/MonitoringDashboard').then(module => ({ default: module.MonitoringDashboard })))
 
@@ -45,10 +46,8 @@ function App() {
       {element}
     </Suspense>
 
-  const renderPositions = () =>
-    isPositionMockMode
-      ? renderWithoutAuth(<PositionDashboard />)
-      : renderWithAuth(<PositionDashboard />)
+  const renderPositions = (component: React.ReactNode) =>
+    isPositionMockMode ? renderWithoutAuth(component) : renderWithAuth(component)
 
   const renderOrganizations = (component: React.ReactNode) =>
     renderWithAuth(component)
@@ -78,7 +77,15 @@ function App() {
         {/* 职位管理 - Stage 0 页面框架 */}
         <Route 
           path="/positions" 
-          element={renderPositions()} 
+          element={renderPositions(<PositionDashboard />)} 
+        />
+        <Route
+          path="/positions/:code"
+          element={renderPositions(<PositionTemporalPage />)}
+        />
+        <Route
+          path="/positions/:code/temporal"
+          element={renderPositions(<PositionTemporalPage />)}
         />
         
         {/* 系统监控总览 */}

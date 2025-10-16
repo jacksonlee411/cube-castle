@@ -140,6 +140,16 @@ type Query {
   ): [PositionTimelineEntry!]!
 
   """
+  List temporal versions for a position.
+
+  Permissions Required: position:read:history
+  """
+  positionVersions(
+    code: PositionCode!
+    includeDeleted: Boolean = false
+  ): [Position!]!
+
+  """
   Get paginated assignment records for a position.
 
   Permissions Required: position:read

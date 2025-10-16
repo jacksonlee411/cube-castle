@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
-import { useEnterprisePositions, usePositionDetail } from '@/shared/hooks/useEnterprisePositions'
-import type { PositionRecord, PositionTimelineEvent } from '@/shared/types/positions'
+import { PrimaryButton } from '@workday/canvas-kit-react/button'
+import { useEnterprisePositions } from '@/shared/hooks/useEnterprisePositions'
+import type { PositionRecord } from '@/shared/types/positions'
 import { PositionSummaryCards } from './components/PositionSummaryCards'
 import { PositionList } from './components/PositionList'
-import { PositionDetails } from './components/PositionDetails'
 import { PositionVacancyBoard } from './components/PositionVacancyBoard'
 import { PositionHeadcountDashboard } from './components/PositionHeadcountDashboard'
 import { SimpleStack } from './components/SimpleStack'
@@ -23,27 +24,9 @@ const statusOptions: Array<{ label: string; value: string }> = [
   { label: '停用', value: 'INACTIVE' },
 ]
 
-const lifecycleTypeToStatus = (type: string): string => {
-  switch (type) {
-    case 'CREATE':
-      return 'PLANNED'
-    case 'FILL':
-      return 'FILLED'
-    case 'VACATE':
-      return 'VACANT'
-    case 'SUSPEND':
-      return 'INACTIVE'
-    case 'REACTIVATE':
-      return 'ACTIVE'
-    case 'TRANSFER':
-      return 'ACTIVE'
-    default:
-      return type.toUpperCase()
-  }
-}
-
 const mapMockPositionToRecord = (item: PositionMock): PositionRecord => ({
   code: item.code,
+  recordId: `${item.code}-mock`,
   title: item.title,
   jobFamilyGroupCode: item.jobFamilyGroup,
   jobFamilyGroupName: item.jobFamilyGroup,
@@ -71,15 +54,6 @@ const mapMockPositionToRecord = (item: PositionMock): PositionRecord => ({
   updatedAt: `${item.effectiveDate}T00:00:00.000Z`,
 })
 
-const mapMockTimeline = (item: PositionMock): PositionTimelineEvent[] =>
-  item.lifecycle.map(event => ({
-    id: event.id,
-    status: lifecycleTypeToStatus(event.type),
-    title: event.label,
-    effectiveDate: event.occurredAt,
-    changeReason: event.summary,
-  }))
-
 const applyFilters = (
   positions: PositionRecord[],
   keyword: string,
@@ -106,6 +80,7 @@ export const PositionDashboard: React.FC = () => {
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [jobFamilyGroupFilter, setJobFamilyGroupFilter] = useState('ALL')
+  const navigate = useNavigate()
 
   const positionsQuery = useEnterprisePositions({
     status: statusFilter !== 'ALL' ? statusFilter : undefined,
@@ -115,10 +90,6 @@ export const PositionDashboard: React.FC = () => {
   })
 
   const mockRecords = useMemo(() => mockPositions.map(mapMockPositionToRecord), [])
-  const mockTimelineMap = useMemo(() => {
-    const entries = mockPositions.map(item => [item.code, mapMockTimeline(item)] as const)
-    return new Map(entries)
-  }, [])
 
   const apiPositions = positionsQuery.data?.positions ?? []
   const useMockData = !positionsQuery.isLoading && (positionsQuery.isError || apiPositions.length === 0)
@@ -139,47 +110,9 @@ export const PositionDashboard: React.FC = () => {
     return Array.from(map.entries()).map(([code, label]) => ({ code, label }))
   }, [basePositions])
 
-  const [selectedCode, setSelectedCode] = useState<string>()
-
-  useEffect(() => {
-    if (filteredPositions.length === 0) {
-      setSelectedCode(undefined)
-      return
-    }
-    setSelectedCode(prev =>
-      prev && filteredPositions.some(item => item.code === prev) ? prev : filteredPositions[0].code,
-    )
-  }, [filteredPositions])
-
-  const detailQuery = usePositionDetail(selectedCode, {
-    enabled: !useMockData && Boolean(selectedCode),
-  })
-
-  const selectedPosition = useMemo(() => {
-    if (filteredPositions.length === 0) {
-      return undefined
-    }
-    return filteredPositions.find(item => item.code === selectedCode) ?? filteredPositions[0]
-  }, [filteredPositions, selectedCode])
-
-  const detailPosition = useMockData
-    ? selectedPosition
-    : detailQuery.data?.position ?? selectedPosition
-
-  const timeline: PositionTimelineEvent[] = useMockData
-    ? selectedCode
-      ? mockTimelineMap.get(selectedCode) ?? []
-      : []
-    : detailQuery.data?.timeline ?? []
-
-  const assignments = useMockData ? [] : detailQuery.data?.assignments ?? []
-  const currentAssignment = useMockData ? null : detailQuery.data?.currentAssignment ?? null
-  const transfers = useMockData ? [] : detailQuery.data?.transfers ?? []
-
   const listData = filteredPositions
   const summaryData = filteredPositions
-  const headcountOrganizationCode =
-    detailPosition?.organizationCode ?? filteredPositions[0]?.organizationCode ?? undefined
+  const headcountOrganizationCode = filteredPositions[0]?.organizationCode ?? undefined
 
   return (
     <Box padding={space.l} data-testid="position-dashboard">
@@ -198,6 +131,12 @@ export const PositionDashboard: React.FC = () => {
             </Text>
           )}
         </SimpleStack>
+
+        <Flex justifyContent="flex-end">
+          <PrimaryButton onClick={() => navigate('/positions/new')} data-testid="position-create-button">
+            创建职位
+          </PrimaryButton>
+        </Flex>
 
         <PositionSummaryCards positions={summaryData} />
 
@@ -242,22 +181,7 @@ export const PositionDashboard: React.FC = () => {
           </SimpleStack>
         </CardLikeContainer>
 
-        <Flex gap={space.l} alignItems="stretch" flexDirection="row" flexWrap="wrap">
-          <Box flex="2" minWidth="60%">
-            <PositionList positions={listData} selectedCode={selectedCode} onSelect={setSelectedCode} />
-          </Box>
-          <Box flex="1" minWidth="35%">
-            <PositionDetails
-              position={detailPosition}
-              timeline={timeline}
-              currentAssignment={currentAssignment ?? undefined}
-              assignments={assignments}
-              transfers={transfers}
-              isLoading={!useMockData && detailQuery.isLoading}
-              dataSource={useMockData ? 'mock' : 'api'}
-            />
-          </Box>
-        </Flex>
+        <PositionList positions={listData} onSelect={code => navigate(`/positions/${code}`)} />
       </SimpleStack>
     </Box>
   )

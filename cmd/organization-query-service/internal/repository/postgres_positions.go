@@ -700,6 +700,71 @@ ORDER BY p.job_family_code
 	return stats, nil
 }
 
+func (r *PostgreSQLRepository) GetPositionVersions(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]model.Position, error) {
+	args := []interface{}{tenantID.String(), strings.TrimSpace(code)}
+	whereParts := []string{"p.tenant_id = $1", "p.code = $2"}
+	if !includeDeleted {
+		whereParts = append(whereParts, "p.status <> 'DELETED'")
+	}
+
+	whereClause := "WHERE " + strings.Join(whereParts, " AND ")
+
+	query := fmt.Sprintf(`
+SELECT
+    p.record_id::text,
+    p.tenant_id::text,
+    p.code,
+    p.title,
+    p.job_profile_code,
+    p.job_profile_name,
+    p.job_family_group_code,
+    p.job_family_code,
+    p.job_role_code,
+    p.job_level_code,
+    p.organization_code,
+    p.position_type,
+    p.employment_type,
+    p.grade_level,
+    p.headcount_capacity,
+    p.headcount_in_use,
+    p.reports_to_position_code,
+    p.status,
+    p.effective_date,
+    p.end_date,
+    p.is_current,
+    p.created_at,
+    p.updated_at,
+    p.job_family_group_name,
+    p.job_family_name,
+    p.job_role_name,
+    p.job_level_name,
+    p.organization_name
+FROM positions p
+%s
+ORDER BY p.effective_date DESC, p.created_at DESC
+`, whereClause)
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query position versions: %w", err)
+	}
+	defer rows.Close()
+
+	versions := make([]model.Position, 0)
+	for rows.Next() {
+		pos, scanErr := scanPosition(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		versions = append(versions, *pos)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate position versions: %w", err)
+	}
+
+	return versions, nil
+}
+
 func (r *PostgreSQLRepository) GetVacantPositionConnection(ctx context.Context, tenantID uuid.UUID, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error) {
 	args := []interface{}{tenantID.String()}
 	argIndex := 2

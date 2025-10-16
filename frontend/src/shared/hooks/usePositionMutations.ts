@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { unifiedRESTClient } from '@/shared/api';
 import { createQueryError } from '@/shared/api/queryClient';
 import { logger } from '@/shared/utils/logger';
@@ -9,6 +9,12 @@ import {
   VACANT_POSITIONS_QUERY_ROOT_KEY,
   positionDetailQueryKey,
 } from './useEnterprisePositions';
+import type {
+  CreatePositionRequest,
+  UpdatePositionRequest,
+  CreatePositionVersionRequest,
+  PositionResource,
+} from '@/shared/types/positions';
 
 interface PositionCommandPayload {
   code: string;
@@ -45,6 +51,105 @@ const ensurePositionSuccess = <T>(
     });
   }
   return response.data;
+};
+
+const invalidatePositionCaches = (client: QueryClient, code?: string) => {
+  client.invalidateQueries({ queryKey: POSITIONS_QUERY_ROOT_KEY, exact: false });
+  client.invalidateQueries({ queryKey: VACANT_POSITIONS_QUERY_ROOT_KEY, exact: false });
+  client.invalidateQueries({ queryKey: POSITION_DETAIL_QUERY_ROOT_KEY, exact: false });
+
+  if (code) {
+    client.invalidateQueries({ queryKey: positionDetailQueryKey(code), exact: false });
+  }
+};
+
+export const useCreatePosition = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (variables: CreatePositionRequest): Promise<PositionResource> => {
+      logger.mutation('[Mutation] Create position', variables);
+      const response = await unifiedRESTClient.request<APIResponse<PositionResource>>('/positions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(variables),
+      });
+
+      logger.mutation('[Mutation] Create position response', response);
+      return ensurePositionSuccess(response, '创建职位失败');
+    },
+    onSuccess: (resource) => {
+      logger.mutation('[Mutation] Create position settled, refreshing caches', resource.code);
+      invalidatePositionCaches(queryClient, resource.code);
+    },
+    onError: (error) => {
+      logger.error('[Mutation] Create position failed', error);
+    },
+  });
+};
+
+export const useUpdatePosition = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (variables: UpdatePositionRequest): Promise<PositionResource> => {
+      const { code, ...payload } = variables;
+      logger.mutation('[Mutation] Update position', { code, payload });
+      const response = await unifiedRESTClient.request<APIResponse<PositionResource>>(`/positions/${code}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      logger.mutation('[Mutation] Update position response', response);
+      return ensurePositionSuccess(response, '更新职位失败');
+    },
+    onSuccess: (_, variables) => {
+      logger.mutation('[Mutation] Update position settled', variables.code);
+      invalidatePositionCaches(queryClient, variables.code);
+    },
+    onError: (error, variables) => {
+      logger.error('[Mutation] Update position failed', {
+        code: variables.code,
+        error,
+      });
+    },
+  });
+};
+
+export const useCreatePositionVersion = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (variables: CreatePositionVersionRequest): Promise<PositionResource> => {
+      const { code, ...payload } = variables;
+      logger.mutation('[Mutation] Create position version', { code, payload });
+      const response = await unifiedRESTClient.request<APIResponse<PositionResource>>(`/positions/${code}/versions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      logger.mutation('[Mutation] Create position version response', response);
+      return ensurePositionSuccess(response, '创建职位时态版本失败');
+    },
+    onSuccess: (_, variables) => {
+      logger.mutation('[Mutation] Create position version settled', variables.code);
+      invalidatePositionCaches(queryClient, variables.code);
+    },
+    onError: (error, variables) => {
+      logger.error('[Mutation] Create position version failed', {
+        code: variables.code,
+        error,
+      });
+    },
+  });
 };
 
 export const useTransferPosition = () => {

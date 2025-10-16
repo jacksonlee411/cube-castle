@@ -36,6 +36,7 @@ type stubRepository struct {
 	positionsFn                      func(ctx context.Context, tenantID uuid.UUID, filter *model.PositionFilterInput, pagination *model.PaginationInput, sorting []model.PositionSortInput) (*model.PositionConnection, error)
 	positionByCodeFn                 func(ctx context.Context, tenantID uuid.UUID, code string, asOfDate *string) (*model.Position, error)
 	timelineFn                       func(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]model.PositionTimelineEntry, error)
+	versionsFn                       func(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]model.Position, error)
 	vacantFn                         func(ctx context.Context, tenantID uuid.UUID, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error)
 	transferFn                       func(ctx context.Context, tenantID uuid.UUID, positionCode *string, organizationCode *string, pagination *model.PaginationInput) (*model.PositionTransferConnection, error)
 	headcountFn                      func(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error)
@@ -48,6 +49,8 @@ type stubRepository struct {
 	capturedAssignmentFilter         *model.PositionAssignmentFilterInput
 	capturedAssignmentSorting        []model.PositionAssignmentSortInput
 	capturedPositionCode             string
+	capturedVersionsCode             string
+	capturedIncludeDeleted           bool
 	capturedVacantFilter             *model.VacantPositionFilterInput
 	capturedVacantSorting            []model.VacantPositionSortInput
 	capturedTransferPositionCode     *string
@@ -121,6 +124,16 @@ func (s *stubRepository) GetPositionTimeline(ctx context.Context, tenantID uuid.
 		panic("timelineFn not configured")
 	}
 	return s.timelineFn(ctx, tenantID, code, startDate, endDate)
+}
+
+func (s *stubRepository) GetPositionVersions(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]model.Position, error) {
+	if s.versionsFn == nil {
+		panic("versionsFn not configured")
+	}
+	s.capturedTenant = tenantID
+	s.capturedVersionsCode = code
+	s.capturedIncludeDeleted = includeDeleted
+	return s.versionsFn(ctx, tenantID, code, includeDeleted)
 }
 
 func (s *stubRepository) GetVacantPositionConnection(ctx context.Context, tenantID uuid.UUID, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error) {
@@ -618,4 +631,71 @@ func TestResolver_PositionTimeline_ForwardsDateRange(t *testing.T) {
 
 func logDiscard() *log.Logger {
 	return log.New(io.Discard, "", log.LstdFlags)
+}
+
+func TestResolver_PositionVersions_ForwardsParameters(t *testing.T) {
+	repo := &stubRepository{
+		versionsFn: func(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]model.Position, error) {
+			if code != "P1000001" {
+				t.Fatalf("unexpected code: %s", code)
+			}
+			return []model.Position{{CodeField: code}}, nil
+		},
+	}
+
+	checker := &stubPermissionChecker{allow: true}
+	resolver := NewResolver(repo, log.New(io.Discard, "", 0), checker)
+
+	result, err := resolver.PositionVersions(context.Background(), struct {
+		Code           string
+		IncludeDeleted *bool
+	}{
+		Code: "P1000001",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 version, got %d", len(result))
+	}
+
+	if checker.lastQuery != "positionVersions" {
+		t.Fatalf("expected permission check for positionVersions, got %s", checker.lastQuery)
+	}
+
+	if repo.capturedVersionsCode != "P1000001" {
+		t.Fatalf("expected captured code, got %s", repo.capturedVersionsCode)
+	}
+
+	if repo.capturedIncludeDeleted {
+		t.Fatalf("expected includeDeleted=false by default")
+	}
+}
+
+func TestResolver_PositionVersions_IncludeDeletedFlag(t *testing.T) {
+	trueVal := true
+	repo := &stubRepository{
+		versionsFn: func(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]model.Position, error) {
+			if !includeDeleted {
+				t.Fatalf("expected includeDeleted true")
+			}
+			return []model.Position{}, nil
+		},
+	}
+
+	resolver := NewResolver(repo, log.New(io.Discard, "", 0), &stubPermissionChecker{allow: true})
+
+	_, err := resolver.PositionVersions(context.Background(), struct {
+		Code           string
+		IncludeDeleted *bool
+	}{
+		Code:           "P1000001",
+		IncludeDeleted: &trueVal,
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }

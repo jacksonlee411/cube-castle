@@ -10,6 +10,7 @@ export type PositionStatus =
 
 export interface PositionRecord {
   code: string;
+  recordId?: string;
   title: string;
   jobFamilyGroupCode: string;
   jobFamilyGroupName?: string | null;
@@ -98,6 +99,7 @@ export interface PositionDetailResult {
   currentAssignment?: PositionAssignmentRecord | null;
   assignments: PositionAssignmentRecord[];
   transfers: PositionTransferRecord[];
+  versions: PositionRecord[];
   fetchedAt: string;
 }
 
@@ -160,4 +162,38 @@ export interface PositionHeadcountStats {
   byType: PositionHeadcountTypeBreakdown[];
   byFamily: PositionHeadcountFamilyBreakdown[];
   fetchedAt: string;
+}
+
+export interface PositionMutationRequest {
+  title: string;
+  jobFamilyGroupCode: string;
+  jobFamilyCode: string;
+  jobRoleCode: string;
+  jobLevelCode: string;
+  organizationCode: string;
+  positionType: string;
+  employmentType: string;
+  headcountCapacity: number;
+  effectiveDate: string;
+  operationReason: string;
+  jobProfileCode?: string | null;
+  jobProfileName?: string | null;
+  gradeLevel?: string | null;
+  reportsToPositionCode?: string | null;
+}
+
+export interface UpdatePositionRequest extends PositionMutationRequest {
+  code: string;
+}
+
+export interface CreatePositionVersionRequest extends PositionMutationRequest {
+  code: string;
+}
+
+export type CreatePositionRequest = PositionMutationRequest;
+
+export interface PositionResource extends PositionRecord {
+  recordId: string;
+  currentAssignment?: PositionAssignmentRecord | null;
+  assignmentHistory?: PositionAssignmentRecord[];
 }

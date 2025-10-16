@@ -25,6 +25,7 @@ type QueryRepository interface {
 	GetPositionByCode(ctx context.Context, tenantID uuid.UUID, code string, asOfDate *string) (*model.Position, error)
 	GetPositionAssignments(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error)
 	GetPositionTimeline(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]model.PositionTimelineEntry, error)
+	GetPositionVersions(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]model.Position, error)
 	GetVacantPositionConnection(ctx context.Context, tenantID uuid.UUID, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error)
 	GetPositionTransfers(ctx context.Context, tenantID uuid.UUID, positionCode *string, organizationCode *string, pagination *model.PaginationInput) (*model.PositionTransferConnection, error)
 	GetPositionHeadcountStats(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error)
@@ -319,6 +320,26 @@ func (r *Resolver) PositionTimeline(ctx context.Context, args struct {
 	r.logger.Printf("[GraphQL] 查询职位时间线 code=%s start=%v end=%v", args.Code, args.StartDate, args.EndDate)
 
 	return r.repo.GetPositionTimeline(ctx, sharedconfig.DefaultTenantID, args.Code, args.StartDate, args.EndDate)
+}
+
+// PositionVersions 查询职位版本列表
+func (r *Resolver) PositionVersions(ctx context.Context, args struct {
+	Code           string
+	IncludeDeleted *bool
+}) ([]model.Position, error) {
+	if err := r.permissions.CheckQueryPermission(ctx, "positionVersions"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: positionVersions: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+
+	includeDeleted := false
+	if args.IncludeDeleted != nil {
+		includeDeleted = *args.IncludeDeleted
+	}
+
+	r.logger.Printf("[GraphQL] 查询职位版本 code=%s includeDeleted=%v", args.Code, includeDeleted)
+
+	return r.repo.GetPositionVersions(ctx, sharedconfig.DefaultTenantID, args.Code, includeDeleted)
 }
 
 // VacantPositions 查询空缺职位

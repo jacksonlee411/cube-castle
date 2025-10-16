@@ -77,6 +77,7 @@ interface PositionTransferGraphQLNode {
 
 interface PositionNodeResponse {
   code: string;
+  recordId?: string;
   title: string;
   jobFamilyGroupCode: string;
   jobFamilyGroupName?: string | null;
@@ -138,6 +139,7 @@ interface PositionDetailGraphQLResponse {
   positionTransfers: {
     data: PositionTransferGraphQLNode[];
   };
+  positionVersions: PositionNodeResponse[];
 }
 
 interface VacantPositionGraphQLNode {
@@ -298,6 +300,7 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
   query PositionDetail($code: PositionCode!) {
     position(code: $code) {
       code
+      recordId
       title
       jobFamilyGroupCode
       jobFamilyCode
@@ -387,6 +390,33 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
         operationReason
         createdAt
       }
+    }
+    positionVersions(
+      code: $code
+      includeDeleted: false
+    ) {
+      recordId
+      code
+      title
+      jobFamilyGroupCode
+      jobFamilyCode
+      jobRoleCode
+      jobLevelCode
+      organizationCode
+      organizationName
+      positionType
+      employmentType
+      gradeLevel
+      headcountCapacity
+      headcountInUse
+      availableHeadcount
+      reportsToPositionCode
+      status
+      effectiveDate
+      endDate
+      isCurrent
+      createdAt
+      updatedAt
     }
   }
 `;
@@ -668,6 +698,7 @@ const transformPositionNode = (node: PositionNodeResponse): PositionRecord => {
 
   return {
     code: node.code,
+    recordId: node.recordId ?? undefined,
     title: node.title,
     jobFamilyGroupCode: node.jobFamilyGroupCode,
     jobFamilyGroupName: node.jobFamilyGroupName ?? undefined,
@@ -821,6 +852,7 @@ const fetchPositionDetail = async (
   const timeline = (response.data.positionTimeline ?? []).map(transformTimelineEntry);
   const assignments = (response.data.positionAssignments?.data ?? []).map(transformAssignmentNode);
   const transfers = (response.data.positionTransfers?.data ?? []).map(transformTransferNode);
+  const versions = (response.data.positionVersions ?? []).map(transformPositionNode);
 
   let currentAssignment: PositionAssignmentRecord | null = null;
   if (response.data.position.currentAssignment) {
@@ -835,6 +867,7 @@ const fetchPositionDetail = async (
     currentAssignment: currentAssignment ?? null,
     assignments,
     transfers,
+    versions,
     fetchedAt: response.timestamp ?? new Date().toISOString(),
   };
 };
