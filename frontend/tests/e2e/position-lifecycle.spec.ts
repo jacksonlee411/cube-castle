@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 
 const POSITIONS_QUERY_NAME = 'EnterprisePositions';
 const POSITION_DETAIL_QUERY_NAME = 'PositionDetail';
+const VACANT_POSITIONS_QUERY_NAME = 'VacantPositions';
+const POSITION_HEADCOUNT_STATS_QUERY_NAME = 'PositionHeadcountStats';
 
 const GRAPHQL_FIXTURES = {
   positions: {
@@ -172,6 +174,74 @@ const GRAPHQL_FIXTURES = {
       },
     },
   },
+  vacantPositions: {
+    data: {
+      vacantPositions: {
+        data: [
+          {
+            positionCode: 'P-VAC-001',
+            organizationCode: 'ORG-B',
+            organizationName: '缺编演示组织',
+            jobFamilyCode: 'OPER-OPS',
+            jobRoleCode: 'OPER-OPS-SUPV',
+            jobLevelCode: 'S1',
+            vacantSince: '2024-06-01',
+            headcountCapacity: 3,
+            headcountAvailable: 2,
+            totalAssignments: 5,
+          },
+        ],
+        pagination: {
+          total: 1,
+          page: 1,
+          pageSize: 25,
+          hasNext: false,
+          hasPrevious: false,
+        },
+        totalCount: 1,
+      },
+    },
+  },
+  headcountStats: {
+    data: {
+      positionHeadcountStats: {
+        organizationCode: 'ORG-A',
+        organizationName: '生命周期演示组织',
+        totalCapacity: 5,
+        totalFilled: 3,
+        totalAvailable: 2,
+        fillRate: 0.6,
+        byLevel: [
+          {
+            jobLevelCode: 'S1',
+            capacity: 2,
+            utilized: 1,
+            available: 1,
+          },
+          {
+            jobLevelCode: 'M2',
+            capacity: 3,
+            utilized: 2,
+            available: 1,
+          },
+        ],
+        byType: [
+          {
+            positionType: 'REGULAR',
+            capacity: 4,
+            filled: 3,
+            available: 1,
+          },
+          {
+            positionType: 'CONTRACT',
+            capacity: 1,
+            filled: 0,
+            available: 1,
+          },
+        ],
+      },
+    },
+  },
 };
 
 test.describe('职位生命周期视图', () => {
@@ -206,6 +276,22 @@ test.describe('职位生命周期视图', () => {
         });
       }
 
+      if (query.includes(VACANT_POSITIONS_QUERY_NAME)) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(GRAPHQL_FIXTURES.vacantPositions),
+        });
+      }
+
+      if (query.includes(POSITION_HEADCOUNT_STATS_QUERY_NAME)) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(GRAPHQL_FIXTURES.headcountStats),
+        });
+      }
+
       return route.continue();
     });
 
@@ -224,5 +310,21 @@ test.describe('职位生命周期视图', () => {
     await expect(detailCard).toContainText('调动记录');
     await expect(detailCard).toContainText('ORG-A → ORG-B');
     await expect(detailCard).toContainText('业务线整合');
+    await expect(detailCard.getByRole('button', { name: '发起职位转移' })).toBeVisible();
+
+    const vacancyBoard = page.getByTestId('position-vacancy-board');
+    await expect(vacancyBoard).toContainText('空缺职位看板');
+    await expect(vacancyBoard).toContainText('P-VAC-001');
+    await expect(vacancyBoard).toContainText('缺编演示组织');
+    await expect(vacancyBoard).toContainText('空缺职位数');
+
+    const headcountDashboard = page.getByTestId('position-headcount-dashboard');
+    await expect(headcountDashboard).toContainText('职位编制统计');
+    await expect(headcountDashboard).toContainText('总编制');
+    await expect(headcountDashboard).toContainText('5');
+    await expect(headcountDashboard).toContainText('已占用');
+    await expect(headcountDashboard).toContainText('3');
+    await expect(page.getByTestId('headcount-level-table')).toContainText('S1');
+    await expect(page.getByTestId('headcount-type-table')).toContainText('REGULAR');
   });
 });
