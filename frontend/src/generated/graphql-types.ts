@@ -1368,7 +1368,6 @@ export type EnterprisePositionsQuery = {
 
 export type PositionDetailQueryVariables = Exact<{
   code: Scalars["PositionCode"]["input"];
-  includeDeleted?: InputMaybe<Scalars["Boolean"]["input"]>;
 }>;
 
 export type PositionDetailQuery = {
@@ -1484,7 +1483,6 @@ export type PositionDetailQuery = {
     effectiveDate: string;
     endDate?: string | null;
     isCurrent: boolean;
-    isFuture: boolean;
     createdAt: string;
     updatedAt: string;
   }>;

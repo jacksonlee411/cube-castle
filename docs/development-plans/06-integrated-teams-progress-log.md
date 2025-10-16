@@ -23,18 +23,17 @@
 | 模块 | 更新内容 | 说明 |
 |------|----------|------|
 | `frontend/src/App.tsx` | 新增 `/positions/:code` 与 `/positions/:code/temporal` 路由，保持 Mock/鉴权切换逻辑 | 完成“路由导航差距”修复 |
-| `PositionTemporalPage.tsx` | 职位独立详情页：整合 `PositionDetails`、版本列表、差异视图与表单入口 | 独立路由 + 时态版本 UI 基线完成（含 includeDeleted/CSV） |
+| `PositionTemporalPage.tsx` | 职位独立详情页：整合 `PositionDetails`、版本列表与表单入口，Mock 模式回退演示数据 | 独立路由 + 时态版本 UI 基线完成 |
 | `components/PositionForm/` | 新增职位表单组件，支持创建/编辑/创建未来版本，复用 `usePositionMutations` | 完成“创建/编辑/时态版本 UI 缺失” |
 | `usePositionMutations.ts` | 增补 `useCreatePosition` / `useUpdatePosition` / `useCreatePositionVersion`，统一缓存失效策略 | REST API 已就绪，前端接入 |
 | `components/PositionVersionList.tsx` | 新增职位版本列表组件（Canvas Table），支持当前/历史/计划标签展示 | 覆盖 `positionVersions` GraphQL 返回数据 |
-| `components/PositionVersionDiff.tsx` | 新增职位版本差异对比组件，高亮差异字段 | 前端差异视图上线，支撑 P1 能力 |
 | `frontend/src/shared/hooks/useEnterprisePositions.ts` | 补充 `positionVersions` 字段查询与数据转换 | GraphQL detail 请求与缓存链路打通 |
 | `PositionDashboard.tsx` | 列表点击跳转详情页，提供“创建职位”按钮，移除内嵌详情 | 与组织模块交互方式一致 |
 | `PositionDashboard.test.tsx` | 更新用例，校验导航行为与创建按钮 | Vitest 通过 |
 | `frontend/src/features/positions/__tests__/PositionTemporalPage.test.tsx` | 新增 Vitest 覆盖版本列表渲染与编码校验 | 前端 P1 功能具备最小回归保障 |
 | `docs/api/schema.graphql` | 新增 `positionVersions` Query 与说明，保持 camelCase 命名 | 契约与实现保持单一事实来源 |
 | 查询服务（resolver/repository/pbac/tests） | `GetPositionVersions` 查询、权限映射、单元测试补充 | `cmd/organization-query-service/internal` 相关文件同步更新 |
-| `docs/development-plans/88-position-frontend-gap-analysis.md` | 更新 P1 状态（版本差异视图上线）、补充下一步待办 | 文档与实施进度保持一致 |
+| `docs/development-plans/88-position-frontend-gap-analysis.md` | 更新 P1 状态（版本列表上线）、补充下一步待办 | 文档与实施进度保持一致 |
 
 ---
 
@@ -55,7 +54,7 @@ npm --prefix frontend run test -- PositionTemporalPage
 
 | 项目 | 描述 | 责任人 | 备注 |
 |------|------|--------|------|
-| 版本增强 | 差异摘要（字段分组/概览）、CSV 字段别名、版本备注 | 前端团队 | 对应 88 号计划 P1 后续任务 |
+| 版本增强 | 基于现有列表扩展差异视图、CSV 导出、includeDeleted 切换 | 前端团队 | 对应 88 号计划 P1 后续任务 |
 | 88号计划文档跟踪 | Week 1 交付项完成；Week 2 建议按新版排期推进 | 架构组 | 在 88 号文档第 12 节记录决策 |
 
 ---
@@ -63,5 +62,5 @@ npm --prefix frontend run test -- PositionTemporalPage
 ## 5. 总结
 
 - 88 号计划 P0 范围（路由、表单、交互统一）已全部完成并通过测试。  
-- GraphQL `positionVersions` 查询、权限映射与查询服务实现已落地；前端版本列表、差异视图、CSV 导出与 Vitest 回归保障同步上线。  
+- GraphQL `positionVersions` 查询、权限映射与查询服务实现已落地；前端版本列表 UI + Vitest 回归保障同步上线。  
 - 后续聚焦 P1 增强（版本差异视图、CSV 导出、includeDeleted 切换）与 P2 组件结构重构。

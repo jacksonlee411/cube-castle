@@ -297,7 +297,7 @@ const POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
 `;
 
 const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
-  query PositionDetail($code: PositionCode!, $includeDeleted: Boolean = false) {
+  query PositionDetail($code: PositionCode!) {
     position(code: $code) {
       code
       recordId
@@ -393,7 +393,7 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
     }
     positionVersions(
       code: $code
-      includeDeleted: $includeDeleted
+      includeDeleted: false
     ) {
       recordId
       code
@@ -415,7 +415,6 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
       effectiveDate
       endDate
       isCurrent
-      isFuture
       createdAt
       updatedAt
     }
@@ -826,12 +825,11 @@ const fetchPositionsWithParams = async (
 
 const fetchPositionDetail = async (
   code: string,
-  includeDeleted: boolean,
   signal?: AbortSignal,
 ): Promise<PositionDetailResult> => {
   const response = await graphqlEnterpriseAdapter.request<PositionDetailGraphQLResponse>(
     POSITION_DETAIL_QUERY_DOCUMENT,
-    { code, includeDeleted },
+    { code },
     { signal },
   );
 
@@ -973,8 +971,8 @@ export const POSITION_HEADCOUNT_STATS_QUERY_ROOT_KEY = ['enterprise-position-hea
 export const positionsQueryKey = (params: NormalizedPositionQueryParams) =>
   [...POSITIONS_QUERY_ROOT_KEY, params] as const;
 
-export const positionDetailQueryKey = (code: string, includeDeleted = false) =>
-  [...POSITION_DETAIL_QUERY_ROOT_KEY, { code, includeDeleted }] as const;
+export const positionDetailQueryKey = (code: string) =>
+  [...POSITION_DETAIL_QUERY_ROOT_KEY, code] as const;
 
 export const vacantPositionsQueryKey = (params: NormalizedVacantPositionsQueryParams) =>
   [...VACANT_POSITIONS_QUERY_ROOT_KEY, params] as const;
@@ -999,15 +997,8 @@ const positionDetailQueryFn = async ({
   queryKey,
   signal,
 }: QueryFunctionContext<PositionDetailQueryKey>): Promise<PositionDetailResult> => {
-  const [, params] = queryKey;
-  const code = params?.code ?? 'placeholder';
-  const includeDeleted = params?.includeDeleted ?? false;
-
-  if (!code || code === 'placeholder') {
-    throw new Error('Position code is required');
-  }
-
-  return fetchPositionDetail(code, includeDeleted, signal);
+  const [, code] = queryKey;
+  return fetchPositionDetail(code, signal);
 };
 
 const vacantPositionsQueryFn = async ({
@@ -1040,23 +1031,20 @@ export function useEnterprisePositions(
 
 export interface PositionDetailOptions {
   enabled?: boolean;
-  includeDeleted?: boolean;
 }
 
 export function usePositionDetail(
   code: string | undefined,
   options?: PositionDetailOptions,
 ): UseQueryResult<PositionDetailResult> {
-  const includeDeleted = options?.includeDeleted ?? false;
   const enabled = Boolean(code) && (options?.enabled ?? true);
-  const queryKey = positionDetailQueryKey(code ?? 'placeholder', includeDeleted);
+  const queryKey = code ? positionDetailQueryKey(code) : positionDetailQueryKey('placeholder');
 
   return useQuery({
     queryKey,
     queryFn: positionDetailQueryFn,
     enabled,
     staleTime: 60_000,
-    keepPreviousData: true,
   });
 }
 

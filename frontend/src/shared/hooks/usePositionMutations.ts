@@ -59,8 +59,7 @@ const invalidatePositionCaches = (client: QueryClient, code?: string) => {
   client.invalidateQueries({ queryKey: POSITION_DETAIL_QUERY_ROOT_KEY, exact: false });
 
   if (code) {
-    client.invalidateQueries({ queryKey: positionDetailQueryKey(code, false), exact: false });
-    client.invalidateQueries({ queryKey: positionDetailQueryKey(code, true), exact: false });
+    client.invalidateQueries({ queryKey: positionDetailQueryKey(code), exact: false });
   }
 };
 
@@ -198,11 +197,7 @@ export const useTransferPosition = () => {
       queryClient.invalidateQueries({ queryKey: POSITION_DETAIL_QUERY_ROOT_KEY, exact: false });
 
       queryClient.invalidateQueries({
-        queryKey: positionDetailQueryKey(variables.code, false),
-        exact: false,
-      });
-      queryClient.invalidateQueries({
-        queryKey: positionDetailQueryKey(variables.code, true),
+        queryKey: positionDetailQueryKey(variables.code),
         exact: false,
       });
     },
