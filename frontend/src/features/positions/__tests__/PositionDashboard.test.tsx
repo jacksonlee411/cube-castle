@@ -3,16 +3,40 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, vi, type Mock } from 'vitest'
 import { PositionDashboard } from '../PositionDashboard'
-import type { PositionRecord, PositionDetailResult, PositionsQueryResult } from '@/shared/types/positions'
+import type {
+  PositionRecord,
+  PositionDetailResult,
+  PositionsQueryResult,
+  VacantPositionsQueryResult,
+} from '@/shared/types/positions'
 
 vi.mock('@/shared/hooks/useEnterprisePositions', () => ({
   useEnterprisePositions: vi.fn(),
   usePositionDetail: vi.fn(),
+  useVacantPositions: vi.fn(),
 }))
 
-const { useEnterprisePositions, usePositionDetail } = await import('@/shared/hooks/useEnterprisePositions')
+vi.mock('@/shared/hooks/usePositionMutations', () => ({
+  useTransferPosition: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+    isSuccess: false,
+    error: null,
+  })),
+}))
+
+vi.mock('../components/PositionVacancyBoard', () => ({
+  PositionVacancyBoard: () => <div data-testid="position-vacancy-board" />,
+}))
+
+vi.mock('../components/PositionTransferDialog', () => ({
+  PositionTransferDialog: () => <div data-testid="position-transfer-dialog" />,
+}))
+
+const { useEnterprisePositions, usePositionDetail, useVacantPositions } = await import('@/shared/hooks/useEnterprisePositions')
 const mockedUseEnterprisePositions = useEnterprisePositions as unknown as Mock
 const mockedUsePositionDetail = usePositionDetail as unknown as Mock
+const mockedUseVacantPositions = useVacantPositions as unknown as Mock
 
 const samplePosition: PositionRecord = {
   code: 'P9000001',
@@ -135,9 +159,36 @@ const positionDetailResult: PositionDetailResult = {
   fetchedAt: '2025-10-16T00:00:00.000Z',
 }
 
+const vacantPositionsResult: VacantPositionsQueryResult = {
+  data: [
+    {
+      positionCode: 'P9000002',
+      organizationCode: '2000011',
+      organizationName: '北京朝阳商务区物业项目',
+      jobFamilyCode: 'OPER-OPS',
+      jobRoleCode: 'OPER-OPS-CLEAN',
+      jobLevelCode: 'S1',
+      vacantSince: '2024-05-01',
+      headcountCapacity: 4,
+      headcountAvailable: 2.5,
+      totalAssignments: 3,
+    },
+  ],
+  pagination: {
+    total: 1,
+    page: 1,
+    pageSize: 25,
+    hasNext: false,
+    hasPrevious: false,
+  },
+  totalCount: 1,
+  fetchedAt: '2025-10-17T00:00:00.000Z',
+}
+
 beforeEach(() => {
   mockedUseEnterprisePositions.mockReset()
   mockedUsePositionDetail.mockReset()
+  mockedUseVacantPositions.mockReset()
 
   mockedUseEnterprisePositions.mockReturnValue({
     data: positionsQueryResult,
@@ -147,6 +198,12 @@ beforeEach(() => {
   mockedUsePositionDetail.mockReturnValue({
     data: positionDetailResult,
     isLoading: false,
+  })
+  mockedUseVacantPositions.mockReturnValue({
+    data: vacantPositionsResult,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
   })
 })
 
@@ -159,6 +216,7 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
     expect(screen.getByText('岗位总数')).toBeInTheDocument()
     expect(screen.getByTestId('position-row-P9000001')).toBeInTheDocument()
     expect(screen.getAllByText('物业保洁员')[0]).toBeInTheDocument()
+    expect(screen.getByTestId('position-vacancy-board')).toBeInTheDocument()
   })
 
   it('切换列表项时展示职位详情与时间线', () => {

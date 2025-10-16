@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { QueryFunctionContext, UseQueryResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { graphqlEnterpriseAdapter } from '../api/graphql-enterprise-adapter';
@@ -138,6 +137,96 @@ interface PositionDetailGraphQLResponse {
   };
 }
 
+interface VacantPositionGraphQLNode {
+  positionCode: string;
+  organizationCode: string;
+  organizationName?: string | null;
+  jobFamilyCode: string;
+  jobRoleCode: string;
+  jobLevelCode: string;
+  vacantSince: string;
+  headcountCapacity: number;
+  headcountAvailable: number;
+  totalAssignments: number;
+}
+
+interface VacantPositionsGraphQLResponse {
+  vacantPositions: {
+    data: VacantPositionGraphQLNode[];
+    pagination: {
+      total: number;
+      page: number;
+      pageSize: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+    totalCount: number;
+  };
+}
+
+interface PositionHeadcountStatsGraphQLResponse {
+  positionHeadcountStats: {
+    organizationCode: string;
+    organizationName: string;
+    totalCapacity: number;
+    totalFilled: number;
+    totalAvailable: number;
+    fillRate: number;
+    byLevel: Array<{
+      jobLevelCode: string;
+      capacity: number;
+      utilized: number;
+      available: number;
+    }>;
+    byType: Array<{
+      positionType: string;
+      capacity: number;
+      filled: number;
+      available: number;
+    }>;
+  };
+}
+
+export type VacantPositionSortField = 'VACANT_SINCE' | 'HEADCOUNT_AVAILABLE' | 'HEADCOUNT_CAPACITY';
+
+export interface VacantPositionsQueryParams {
+  organizationCodes?: string[];
+  jobFamilyCodes?: string[];
+  jobRoleCodes?: string[];
+  jobLevelCodes?: string[];
+  positionTypes?: string[];
+  minimumVacantDays?: number;
+  asOfDate?: string;
+  page?: number;
+  pageSize?: number;
+  sortField?: VacantPositionSortField;
+  sortDirection?: 'ASC' | 'DESC';
+}
+
+export interface PositionHeadcountStatsParams {
+  organizationCode: string;
+  includeSubordinates?: boolean;
+}
+
+interface NormalizedVacantPositionsQueryParams {
+  page: number;
+  pageSize: number;
+  organizationCodes?: string[];
+  jobFamilyCodes?: string[];
+  jobRoleCodes?: string[];
+  jobLevelCodes?: string[];
+  positionTypes?: string[];
+  minimumVacantDays?: number;
+  asOfDate?: string;
+  sortField?: VacantPositionSortField;
+  sortDirection: 'ASC' | 'DESC';
+}
+
+interface NormalizedPositionHeadcountParams {
+  organizationCode: string;
+  includeSubordinates: boolean;
+}
+
 const POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
   query EnterprisePositions($filter: PositionFilterInput, $pagination: PaginationInput) {
     positions(filter: $filter, pagination: $pagination) {
@@ -274,6 +363,65 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
   }
 `;
 
+const VACANT_POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
+  query VacantPositions(
+    $filter: VacantPositionFilterInput
+    $pagination: PaginationInput
+    $sorting: [VacantPositionSortInput!]
+  ) {
+    vacantPositions(filter: $filter, pagination: $pagination, sorting: $sorting) {
+      data {
+        positionCode
+        organizationCode
+        organizationName
+        jobFamilyCode
+        jobRoleCode
+        jobLevelCode
+        vacantSince
+        headcountCapacity
+        headcountAvailable
+        totalAssignments
+      }
+      pagination {
+        total
+        page
+        pageSize
+        hasNext
+        hasPrevious
+      }
+      totalCount
+    }
+  }
+`;
+
+const POSITION_HEADCOUNT_STATS_QUERY_DOCUMENT = /* GraphQL */ `
+  query PositionHeadcountStats($organizationCode: String!, $includeSubordinates: Boolean) {
+    positionHeadcountStats(
+      organizationCode: $organizationCode
+      includeSubordinates: $includeSubordinates
+    ) {
+      organizationCode
+      organizationName
+      totalCapacity
+      totalFilled
+      totalAvailable
+      fillRate
+      byLevel {
+        jobLevelCode
+        capacity
+        utilized
+        available
+      }
+      byType {
+        positionType
+        capacity
+        filled
+        available
+      }
+    }
+  }
+`;
+
 const normalizeString = (value?: string | null): string | undefined => {
   if (typeof value !== 'string') {
     return undefined;
@@ -285,6 +433,47 @@ const normalizeString = (value?: string | null): string | undefined => {
 const normalizeUppercase = (value?: string | null): string | undefined => {
   const normalized = normalizeString(value);
   return normalized ? normalized.toUpperCase() : undefined;
+};
+
+const normalizeDateString = (value?: string | null): string | undefined => normalizeString(value);
+
+const normalizePositiveInteger = (value?: number | null): number | undefined => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined;
+  }
+  const integer = Math.floor(value);
+  if (integer < 0) {
+    return undefined;
+  }
+  return integer;
+};
+
+const normalizeStringArray = (
+  values?: readonly (string | null | undefined)[] | null,
+): string[] | undefined => {
+  if (!Array.isArray(values)) {
+    return undefined;
+  }
+
+  const mapped = values
+    .map(item => normalizeString(item))
+    .filter((item): item is string => Boolean(item));
+
+  if (mapped.length === 0) {
+    return undefined;
+  }
+
+  return Array.from(new Set(mapped));
+};
+
+const normalizeUppercaseArray = (
+  values?: readonly (string | null | undefined)[] | null,
+): string[] | undefined => {
+  const normalized = normalizeStringArray(values);
+  if (!normalized) {
+    return undefined;
+  }
+  return normalized.map(item => item.toUpperCase());
 };
 
 const normalizePositionParams = (
@@ -306,6 +495,35 @@ const normalizePositionParams = (
     employmentType: normalizeUppercase(params.employmentType),
   };
 };
+
+const normalizeVacantPositionsParams = (
+  params: VacantPositionsQueryParams = {},
+): NormalizedVacantPositionsQueryParams => {
+  const page = Math.max(DEFAULT_PAGE, Math.floor(params.page ?? DEFAULT_PAGE));
+  const rawPageSize = Math.floor(params.pageSize ?? DEFAULT_PAGE_SIZE);
+  const pageSize = Math.max(1, Math.min(rawPageSize, MAX_PAGE_SIZE));
+
+  return {
+    page,
+    pageSize,
+    organizationCodes: normalizeStringArray(params.organizationCodes),
+    jobFamilyCodes: normalizeUppercaseArray(params.jobFamilyCodes),
+    jobRoleCodes: normalizeUppercaseArray(params.jobRoleCodes),
+    jobLevelCodes: normalizeUppercaseArray(params.jobLevelCodes),
+    positionTypes: normalizeUppercaseArray(params.positionTypes),
+    minimumVacantDays: normalizePositiveInteger(params.minimumVacantDays),
+    asOfDate: normalizeDateString(params.asOfDate),
+    sortField: params.sortField,
+    sortDirection: params.sortDirection === 'ASC' ? 'ASC' : 'DESC',
+  };
+};
+
+const normalizeHeadcountParams = (
+  params: PositionHeadcountStatsParams,
+): NormalizedPositionHeadcountParams => ({
+  organizationCode: normalizeString(params.organizationCode) ?? '',
+  includeSubordinates: params.includeSubordinates !== false,
+});
 
 const buildGraphQLVariables = (params: NormalizedPositionQueryParams) => {
   const filter: Record<string, unknown> = {};
@@ -340,6 +558,62 @@ const buildGraphQLVariables = (params: NormalizedPositionQueryParams) => {
       sortBy: 'code',
       sortOrder: 'asc',
     },
+  };
+};
+
+const buildVacantPositionsVariables = (params: NormalizedVacantPositionsQueryParams) => {
+  const filter: Record<string, unknown> = {};
+
+  if (params.organizationCodes) {
+    filter.organizationCodes = params.organizationCodes;
+  }
+  if (params.jobFamilyCodes) {
+    filter.jobFamilyCodes = params.jobFamilyCodes;
+  }
+  if (params.jobRoleCodes) {
+    filter.jobRoleCodes = params.jobRoleCodes;
+  }
+  if (params.jobLevelCodes) {
+    filter.jobLevelCodes = params.jobLevelCodes;
+  }
+  if (params.positionTypes) {
+    filter.positionTypes = params.positionTypes;
+  }
+  if (typeof params.minimumVacantDays === 'number') {
+    filter.minimumVacantDays = params.minimumVacantDays;
+  }
+  if (params.asOfDate) {
+    filter.asOfDate = params.asOfDate;
+  }
+
+  let sorting: Array<{ field: VacantPositionSortField; direction?: 'ASC' | 'DESC' }> | undefined;
+  if (params.sortField) {
+    sorting = [
+      {
+        field: params.sortField,
+        direction: params.sortDirection,
+      },
+    ];
+  }
+
+  return {
+    filter: Object.keys(filter).length > 0 ? filter : undefined,
+    pagination: {
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+    sorting,
+  };
+};
+
+const buildHeadcountVariables = (params: NormalizedPositionHeadcountParams) => {
+  if (!params.organizationCode) {
+    throw createQueryError('必须提供组织编码以获取编制统计');
+  }
+
+  return {
+    organizationCode: params.organizationCode,
+    includeSubordinates: params.includeSubordinates,
   };
 };
 
@@ -409,6 +683,19 @@ const transformTransferNode = (node: PositionTransferGraphQLNode): PositionTrans
   },
   operationReason: node.operationReason ?? undefined,
   createdAt: node.createdAt,
+});
+
+const transformVacantPositionNode = (node: VacantPositionGraphQLNode): VacantPositionRecord => ({
+  positionCode: node.positionCode,
+  organizationCode: node.organizationCode,
+  organizationName: node.organizationName ?? undefined,
+  jobFamilyCode: node.jobFamilyCode,
+  jobRoleCode: node.jobRoleCode,
+  jobLevelCode: node.jobLevelCode,
+  vacantSince: node.vacantSince,
+  headcountCapacity: node.headcountCapacity,
+  headcountAvailable: node.headcountAvailable,
+  totalAssignments: node.totalAssignments,
 });
 
 const transformTimelineEntry = (entry: PositionTimelineResponse): PositionTimelineEvent => ({
@@ -509,8 +796,94 @@ const fetchPositionDetail = async (
   };
 };
 
+const fetchVacantPositions = async (
+  params: NormalizedVacantPositionsQueryParams,
+  signal?: AbortSignal,
+): Promise<VacantPositionsQueryResult> => {
+  const response = await graphqlEnterpriseAdapter.request<VacantPositionsGraphQLResponse>(
+    VACANT_POSITIONS_QUERY_DOCUMENT,
+    buildVacantPositionsVariables(params),
+    { signal },
+  );
+
+  if (!response.success || !response.data) {
+    throw createQueryError(response.error?.message ?? '获取空缺职位列表失败', {
+      code: response.error?.code,
+      requestId: response.requestId,
+      details: response.error?.details,
+    });
+  }
+
+  const payload = response.data.vacantPositions;
+  const records = (payload?.data ?? []).map(transformVacantPositionNode);
+
+  return {
+    data: records,
+    pagination: {
+      total: payload?.pagination?.total ?? records.length,
+      page: payload?.pagination?.page ?? params.page,
+      pageSize: payload?.pagination?.pageSize ?? params.pageSize,
+      hasNext:
+        payload?.pagination?.hasNext ??
+        ((payload?.pagination?.page ?? params.page) *
+          (payload?.pagination?.pageSize ?? params.pageSize) <
+          (payload?.pagination?.total ?? records.length)),
+      hasPrevious:
+        payload?.pagination?.hasPrevious ??
+        ((payload?.pagination?.page ?? params.page) > 1),
+    },
+    totalCount: payload?.totalCount ?? records.length,
+    fetchedAt: response.timestamp ?? new Date().toISOString(),
+  };
+};
+
+const fetchPositionHeadcountStats = async (
+  params: NormalizedPositionHeadcountParams,
+  signal?: AbortSignal,
+): Promise<PositionHeadcountStats> => {
+  const response = await graphqlEnterpriseAdapter.request<PositionHeadcountStatsGraphQLResponse>(
+    POSITION_HEADCOUNT_STATS_QUERY_DOCUMENT,
+    buildHeadcountVariables(params),
+    { signal },
+  );
+
+  if (!response.success || !response.data) {
+    throw createQueryError(response.error?.message ?? '获取编制统计失败', {
+      code: response.error?.code,
+      requestId: response.requestId,
+      details: response.error?.details,
+    });
+  }
+
+  const payload = response.data.positionHeadcountStats;
+
+  return {
+    organizationCode: payload.organizationCode,
+    organizationName: payload.organizationName,
+    totalCapacity: payload.totalCapacity,
+    totalFilled: payload.totalFilled,
+    totalAvailable: payload.totalAvailable,
+    fillRate: payload.fillRate,
+    byLevel: payload.byLevel.map(item => ({
+      jobLevelCode: item.jobLevelCode,
+      capacity: item.capacity,
+      utilized: item.utilized,
+      available: item.available,
+    })),
+    byType: payload.byType.map(item => ({
+      positionType: item.positionType,
+      capacity: item.capacity,
+      filled: item.filled,
+      available: item.available,
+    })),
+    fetchedAt: response.timestamp ?? new Date().toISOString(),
+  };
+};
+
 export const POSITIONS_QUERY_ROOT_KEY = ['enterprise-positions'] as const;
 export const POSITION_DETAIL_QUERY_ROOT_KEY = ['enterprise-position-detail'] as const;
+export const VACANT_POSITIONS_QUERY_ROOT_KEY = ['enterprise-vacant-positions'] as const;
+export const POSITION_HEADCOUNT_STATS_QUERY_ROOT_KEY = ['enterprise-position-headcount-stats'] as const;
 
 export const positionsQueryKey = (params: NormalizedPositionQueryParams) =>
   [...POSITIONS_QUERY_ROOT_KEY, params] as const;
@@ -518,8 +891,16 @@ export const positionsQueryKey = (params: NormalizedPositionQueryParams) =>
 export const positionDetailQueryKey = (code: string) =>
   [...POSITION_DETAIL_QUERY_ROOT_KEY, code] as const;
 
+export const vacantPositionsQueryKey = (params: NormalizedVacantPositionsQueryParams) =>
+  [...VACANT_POSITIONS_QUERY_ROOT_KEY, params] as const;
+
+export const positionHeadcountStatsQueryKey = (params: NormalizedPositionHeadcountParams) =>
+  [...POSITION_HEADCOUNT_STATS_QUERY_ROOT_KEY, params] as const;
+
 type PositionsQueryKey = ReturnType<typeof positionsQueryKey>;
 type PositionDetailQueryKey = ReturnType<typeof positionDetailQueryKey>;
+type VacantPositionsQueryKey = ReturnType<typeof vacantPositionsQueryKey>;
+type PositionHeadcountStatsQueryKey = ReturnType<typeof positionHeadcountStatsQueryKey>;
 
 const positionsQueryFn = async ({
   queryKey,
@@ -537,14 +918,26 @@ const positionDetailQueryFn = async ({
   return fetchPositionDetail(code, signal);
 };
 
+const vacantPositionsQueryFn = async ({
+  queryKey,
+  signal,
+}: QueryFunctionContext<VacantPositionsQueryKey>): Promise<VacantPositionsQueryResult> => {
+  const [, params] = queryKey;
+  return fetchVacantPositions(params, signal);
+};
+
+const positionHeadcountStatsQueryFn = async ({
+  queryKey,
+  signal,
+}: QueryFunctionContext<PositionHeadcountStatsQueryKey>): Promise<PositionHeadcountStats> => {
+  const [, params] = queryKey;
+  return fetchPositionHeadcountStats(params, signal);
+};
+
 export function useEnterprisePositions(
   params: PositionQueryParams = {},
 ): UseQueryResult<PositionsQueryResult> {
-  const serialized = JSON.stringify(params ?? {});
-  const normalizedParams = useMemo(
-    () => normalizePositionParams(params),
-    [serialized],
-  );
+  const normalizedParams = normalizePositionParams(params);
 
   return useQuery({
     queryKey: positionsQueryKey(normalizedParams),
@@ -573,6 +966,32 @@ export function usePositionDetail(
   });
 }
 
+export function useVacantPositions(
+  params: VacantPositionsQueryParams = {},
+): UseQueryResult<VacantPositionsQueryResult> {
+  const normalizedParams = normalizeVacantPositionsParams(params);
+
+  return useQuery({
+    queryKey: vacantPositionsQueryKey(normalizedParams),
+    queryFn: vacantPositionsQueryFn,
+    staleTime: 30_000,
+    keepPreviousData: true,
+  });
+}
+
+export function usePositionHeadcountStats(
+  params: PositionHeadcountStatsParams,
+): UseQueryResult<PositionHeadcountStats> {
+  const normalizedParams = normalizeHeadcountParams(params);
+
+  return useQuery({
+    queryKey: positionHeadcountStatsQueryKey(normalizedParams),
+    queryFn: positionHeadcountStatsQueryFn,
+    enabled: Boolean(normalizedParams.organizationCode),
+    staleTime: 60_000,
+  });
+}
+
 const defaultExport = useEnterprisePositions;
 export default defaultExport;
 
@@ -585,7 +1004,14 @@ export const __internal = {
   transformPositionNode,
   transformAssignmentNode,
   transformTransferNode,
+  transformVacantPositionNode,
   transformTimelineEntry,
   fetchPositionsWithParams,
   fetchPositionDetail,
+  fetchVacantPositions,
+  normalizeVacantPositionsParams,
+  buildVacantPositionsVariables,
+  normalizeHeadcountParams,
+  buildHeadcountVariables,
+  fetchPositionHeadcountStats,
 };

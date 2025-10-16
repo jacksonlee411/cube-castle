@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API合规性检查工具配置 (ADR-008实施)",
   "scripts": {
+    "lint": "npm run lint:frontend-api",
     "lint:api": "spectral lint docs/api/openapi.yaml --fail-on-unmatched-globs",
     "lint:api:watch": "spectral lint docs/api/openapi.yaml --watch",
     "lint:frontend-api": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs",

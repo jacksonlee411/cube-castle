@@ -179,10 +179,10 @@ type Query {
   Permissions Required: position:read
   """
   vacantPositions(
-    organizationCode: String
-    positionType: PositionType
-    includeSubordinates: Boolean = true
-  ): [Position!]!
+    filter: VacantPositionFilterInput
+    pagination: PaginationInput
+    sorting: [VacantPositionSortInput!]
+  ): VacantPositionConnection!
   
   """
   Get headcount statistics for positions under an organization.

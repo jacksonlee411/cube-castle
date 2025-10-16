@@ -100,3 +100,55 @@ export interface PositionDetailResult {
   transfers: PositionTransferRecord[];
   fetchedAt: string;
 }
+
+export interface VacantPositionRecord {
+  positionCode: string;
+  organizationCode: string;
+  organizationName?: string | null;
+  jobFamilyCode: string;
+  jobRoleCode: string;
+  jobLevelCode: string;
+  vacantSince: string;
+  headcountCapacity: number;
+  headcountAvailable: number;
+  totalAssignments: number;
+}
+
+export interface VacantPositionsQueryResult {
+  data: VacantPositionRecord[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
+  totalCount: number;
+  fetchedAt: string;
+}
+
+export interface PositionHeadcountLevelBreakdown {
+  jobLevelCode: string;
+  capacity: number;
+  utilized: number;
+  available: number;
+}
+
+export interface PositionHeadcountTypeBreakdown {
+  positionType: string;
+  capacity: number;
+  filled: number;
+  available: number;
+}
+
+export interface PositionHeadcountStats {
+  organizationCode: string;
+  organizationName: string;
+  totalCapacity: number;
+  totalFilled: number;
+  totalAvailable: number;
+  fillRate: number;
+  byLevel: PositionHeadcountLevelBreakdown[];
+  byType: PositionHeadcountTypeBreakdown[];
+  fetchedAt: string;
+}

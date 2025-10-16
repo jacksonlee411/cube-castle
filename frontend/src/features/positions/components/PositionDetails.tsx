@@ -11,6 +11,7 @@ import type {
 } from '@/shared/types/positions'
 import { getPositionStatusMeta } from '../statusMeta'
 import { SimpleStack } from './SimpleStack'
+import { PositionTransferDialog } from './PositionTransferDialog'
 
 interface PositionDetailsProps {
   position?: PositionRecord
@@ -165,6 +166,10 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
             当前展示的是演示数据，后端接口不可用时自动回退。
           </Text>
         )}
+
+        <Flex justifyContent="flex-end">
+          <PositionTransferDialog position={position} disabled={dataSource === 'mock'} />
+        </Flex>
 
         <DividerLine />
 

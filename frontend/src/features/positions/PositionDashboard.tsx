@@ -8,6 +8,7 @@ import type { PositionRecord, PositionTimelineEvent } from '@/shared/types/posit
 import { PositionSummaryCards } from './components/PositionSummaryCards'
 import { PositionList } from './components/PositionList'
 import { PositionDetails } from './components/PositionDetails'
+import { PositionVacancyBoard } from './components/PositionVacancyBoard'
 import { SimpleStack } from './components/SimpleStack'
 import { mockPositions } from './mockData'
 import type { PositionMock } from './mockData'
@@ -196,6 +197,8 @@ export const PositionDashboard: React.FC = () => {
         </SimpleStack>
 
         <PositionSummaryCards positions={summaryData} />
+
+        <PositionVacancyBoard />
 
         <CardLikeContainer>
           <SimpleStack gap={space.m}>
