@@ -25,10 +25,10 @@
 - [x] Sandbox 环境迁移 & 回滚演练（reports/database/migration-044-045-dryrun-20251016.txt、reports/architecture/tenant-isolation-check-stage2-20251016.sql）
 - [x] Phase B 命令/查询服务实现
 - [x] Phase C 前端交互与 E2E 验收
-- [ ] Phase D 质量门禁与文档归档
+- [x] Phase D 质量门禁与文档归档
   - ✅ 单元测试：`go test ./cmd/organization-query-service/internal/graphql`、`npx vitest run frontend/src/features/positions/__tests__/PositionDashboard.test.tsx`
-  - ✅ 文档同步：`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`reports/contracts/position-api-diff.md`、06号进展日志（Phase B/C）更新
-  - ⏳ TODO：执行 Playwright `tests/e2e/position-lifecycle.spec.ts`（拦截 GraphQL 以校验任职/调动视图），回传截图并归档 84 号方案
+  - ✅ 前端 E2E：`cd frontend && npx playwright test tests/e2e/position-lifecycle.spec.ts --config playwright.config.ts`（GraphQL 拦截夹具验证任职/调动视图）
+  - ✅ 文档同步：`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`reports/contracts/position-api-diff.md`、06号进展日志更新
 
 ---
 
@@ -57,7 +57,7 @@
 6. **质量与验收**  
    - 单元测试：仓储、服务、Resolver、前端组件均需覆盖主路径与异常路径；后端覆盖率保持 ≥80%。  
    - 集成测试：REST + GraphQL 端到端场景、租户隔离 SQL 校验、审计日志验证。  
-   - Playwright：新增 `position-lifecycle.spec.ts`，演示填充→空缺→转移完整流程。  
+  - Playwright：新增 `frontend/tests/e2e/position-lifecycle.spec.ts`，演示填充→空缺→转移完整流程。  
    - 文档：更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`reports/contracts/position-api-diff.md`、06号日志“当前进展”与“风险”栏目。
 
 ### 2.2 可选扩展（P2）
@@ -105,7 +105,7 @@
 | B3 | GraphQL Schema/Resolver + 集成测试 | B | 查询服务团队 | Schema、Resolver、`go test` |
 | C1 | 更新前端 Hook 与 API 客户端 | C | 前端团队 | `frontend/src/shared/api/positions.ts` 等 |
 | C2 | 实现前端交互（填充/空缺/转移/空缺看板） | C | 前端团队 | UI 组件、Vitest |
-| C3 | Playwright E2E：填充→空缺→转移 | C | 前端团队 + QA | `tests/e2e/position-lifecycle.spec.ts`、报告 |
+| C3 | Playwright E2E：填充→空缺→转移 | C | 前端团队 + QA | `frontend/tests/e2e/position-lifecycle.spec.ts`、报告 |
 | D1 | 全量质量门禁：`make test`、`npm run lint`、`make security` | D | 联合团队 | 质量报告 |
 | D2 | 租户隔离 SQL 巡检 | D | 架构组 | `reports/architecture/tenant-isolation-check-stage2-YYYYMMDD.sql` |
 | D3 | 性能回归（填充/查询基准） | D | 命令 + 查询团队 | 性能测试报告 |

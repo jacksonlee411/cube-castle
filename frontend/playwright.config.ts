@@ -46,7 +46,7 @@ const FRONTEND_URL = process.env.PW_BASE_URL || `http://localhost:${SERVICE_PORT
 export default defineConfig({
   // 全局测试超时：2分钟
   timeout: 120_000,
-  testDir: './tests/e2e',
+  testDir: path.resolve(__dirname, 'tests/e2e'),
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

@@ -178,14 +178,14 @@ test.describe('职位生命周期视图', () => {
   test('展示任职与调动历史', async ({ page }) => {
     await page.route('**/graphql', async route => {
       const request = route.request();
-      let body: any;
+      let body: { query?: string } | undefined;
       try {
         body = request.postDataJSON();
-      } catch (error) {
+      } catch (_error) {
         return route.continue();
       }
 
-      const query: string | undefined = body?.query;
+      const query = body?.query;
       if (!query) {
         return route.continue();
       }
