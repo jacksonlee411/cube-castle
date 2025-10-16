@@ -215,7 +215,7 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
       <SimpleStack gap={space.l}>
         <Flex justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" rowGap={space.m}>
           <SimpleStack gap={space.xxxs}>
-            <Heading level="3">职位编制统计</Heading>
+            <Heading size="small">职位编制统计</Heading>
             <Text color={colors.licorice500} fontSize="14px">
               查看指定组织的编制占用情况、职级分布和职位类型分布，辅助判断招聘与调度策略。
             </Text>
@@ -230,12 +230,11 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
               data-testid="headcount-org-input"
             />
             <Checkbox
+              label="包含下级组织"
               checked={includeSubordinates}
-              onChange={(_, isChecked) => setIncludeSubordinates(isChecked)}
+              onChange={event => setIncludeSubordinates(event.target.checked)}
               data-testid="headcount-include-subordinates"
-            >
-              包含下级组织
-            </Checkbox>
+            />
             <PrimaryButton type="submit" disabled={statsQuery.isFetching}>
               加载统计
             </PrimaryButton>
@@ -275,7 +274,7 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
                   <SummaryTile label="占用率" value={summaryTiles.fillRate} accentColor={colors.greenApple500} />
                 </Flex>
 
-                <Flex gap={space.l} flexDirection={{ xs: 'column', md: 'row' }} flexWrap="wrap">
+                <Flex gap={space.l} flexDirection="row" flexWrap="wrap">
                   <Box flex="1" minWidth="280px" border={`1px solid ${colors.soap400}`} borderRadius="12px" overflow="hidden">
                     <Table data-testid="headcount-level-table">
                       <Table.Head>

@@ -112,7 +112,7 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
         )}
       </Flex>
 
-      {modalModel.state.isVisible && (
+      {modalModel.state.visibility === 'visible' && (
         <Modal model={modalModel}>
           <Modal.Overlay>
             <Modal.Card width={520}>
@@ -168,12 +168,11 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
                     </div>
 
                     <Checkbox
+                      label="自动重新关联下级职位的汇报关系"
                       checked={reassignReports}
-                      onChange={(_, isChecked) => setReassignReports(isChecked)}
+                      onChange={event => setReassignReports(event.target.checked)}
                       data-testid="position-transfer-reassign-checkbox"
-                    >
-                      自动重新关联下级职位的汇报关系
-                    </Checkbox>
+                    />
 
                     {(formError || error) && (
                       <Text fontSize="12px" color={colors.cinnamon500}>
@@ -182,14 +181,14 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
                     )}
                   </Flex>
                 </Modal.Body>
-                <Modal.Footer gap="s">
+                <Flex gap="s" padding={space.m} justifyContent="flex-end">
                   <SecondaryButton onClick={closeDialog} disabled={isPending}>
                     取消
                   </SecondaryButton>
                   <PrimaryButton type="submit" disabled={isPending} data-testid="position-transfer-confirm">
                     {isPending ? '处理中...' : '确认转移'}
                   </PrimaryButton>
-                </Modal.Footer>
+                </Flex>
               </form>
             </Modal.Card>
           </Modal.Overlay>

@@ -4,7 +4,7 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Select } from '@workday/canvas-kit-react/select'
 import { Table } from '@workday/canvas-kit-react/table'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
-import { Button } from '@workday/canvas-kit-react/button'
+import { SecondaryButton } from '@workday/canvas-kit-react/button'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { useVacantPositions, type VacantPositionsQueryParams } from '@/shared/hooks/useEnterprisePositions'
 import type { VacantPositionRecord } from '@/shared/types/positions'
@@ -54,7 +54,7 @@ export const PositionVacancyBoard: React.FC = () => {
       <SimpleStack gap={space.l}>
         <Flex justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" rowGap={space.m}>
           <SimpleStack gap={space.xxxs}>
-            <Heading level="3">空缺职位看板</Heading>
+            <Heading size="small">空缺职位看板</Heading>
             <Text color={colors.licorice500} fontSize="14px">
               监控长期空缺职位，优先关注空缺天数较长、可用编制较大的岗位。
             </Text>
@@ -62,7 +62,7 @@ export const PositionVacancyBoard: React.FC = () => {
 
           <Flex gap={space.s} alignItems="center">
             <Select
-              value={minimumVacantDays ?? 'ALL'}
+              value={minimumVacantDays !== undefined ? String(minimumVacantDays) : 'ALL'}
               onChange={event => {
                 const value = event.target.value
                 setMinimumVacantDays(value === 'ALL' ? undefined : Number(value))
@@ -75,9 +75,9 @@ export const PositionVacancyBoard: React.FC = () => {
                 </option>
               ))}
             </Select>
-            <Button onClick={() => vacancyQuery.refetch()} disabled={vacancyQuery.isFetching}>
+            <SecondaryButton onClick={() => vacancyQuery.refetch()} disabled={vacancyQuery.isFetching}>
               刷新数据
-            </Button>
+            </SecondaryButton>
           </Flex>
         </Flex>
 

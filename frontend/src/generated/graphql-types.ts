@@ -1513,5 +1513,13 @@ export type PositionHeadcountStatsQuery = {
       filled: number;
       available: number;
     }>;
+    byFamily: Array<{
+      __typename: "FamilyHeadcount";
+      jobFamilyCode: string;
+      jobFamilyName?: string | null;
+      capacity: number;
+      utilized: number;
+      available: number;
+    }>;
   };
 };

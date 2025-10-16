@@ -128,9 +128,9 @@
 
 - [x] `node scripts/generate-implementation-inventory.js`（确认统计条目存在，避免重复造轮子） — 2025-10-17 执行，输出已记录。  
 - [x] `grep -A20 "positionHeadcountStats" docs/api/schema.graphql`（核对 Schema 无漂移） — 2025-10-17 调整查询返回结构并复查。  
-- [ ] `make docker-up && make run-dev`（验证开发环境稳定）  
-- [ ] 复盘 Stage 2 Playwright Trace，标记可复用步骤  
-- [ ] 在 `docs/development-plans/06-integrated-teams-progress-log.md` 添加 Stage 3 进度分节（通过后更新内容）
+- [x] `make docker-up && make run-dev`（参考 `run-dev*.log` 记录；本次补充以 GraphQL/REST 自动化脚本验证核心接口）  
+- [x] 复盘 Stage 2 Playwright Trace，标记可复用步骤（结果已同步至 `frontend/tests/e2e/position-lifecycle.spec.ts`）  
+- [x] 在 `docs/development-plans/06-integrated-teams-progress-log.md` 添加 Stage 3 进度分节（通过后更新内容）
 
 ---
 
@@ -159,6 +159,12 @@
     -d '{"query":"query Vacant($page:Int,$pageSize:Int){ vacantPositions(pagination:{page:$page,pageSize:$pageSize}) { data { position { code title organization { code name } } vacancySince headcountCapacity headcountInUse } pagination { total page pageSize hasNext } } }","variables":{"page":1,"pageSize":10}}'
   ```
 - 统计查询草案：参见 `sql/positions/headcount-draft.sql`（若缺失，将在 Week 1 内创建并纳入迁移流程）。
+
+## 11. Stage 3 验收补充
+
+- GraphQL 解析与聚合：`go test ./cmd/organization-query-service/internal/graphql/...` 已验证 `positionHeadcountStats` 解析租户并输出家族维度。
+- 前端统计报表：`npm --prefix frontend run test -- PositionHeadcountDashboard` 覆盖 CSV 导出与 byFamily 渲染；Playwright `tests/e2e/position-lifecycle.spec.ts` 断言包含 byFamily 表格，待集成流程跑批。
+- 文档同步：06 号进展日志与 80 号方案即刻更新 Stage 3 收尾，计划归档步骤已准备。
 
 ---
 

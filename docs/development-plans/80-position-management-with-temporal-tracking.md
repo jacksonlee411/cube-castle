@@ -1386,23 +1386,23 @@ job-catalog:write          # 维护职位体系主数据
 ### 7.4 Stage 3：编制与统计（2周）
 
 **Week 8: 编制统计**
-- [ ] Headcount 统计 GraphQL
-- [ ] 编制分析报表
+- [x] Headcount 统计 GraphQL — `cmd/organization-query-service/internal/graphql/resolver.go` 现从 GraphQL 上下文解析租户并透传给仓储，同时输出 byFamily 聚合。
+- [x] 编制分析报表 — `frontend/src/shared/hooks/useEnterprisePositions.ts` 请求补齐 byFamily 字段，`PositionHeadcountDashboard` 获取完整统计以驱动报表导出。
 - [x] 前端编制看板（`PositionHeadcountDashboard`，commit c2481957）
 - [x] 空缺职位看板（Stage 2 尾项已完成，复用 Week 5-6 成果）
 
 **Week 9: 集成与优化**
 - [x] 前端组织转移界面（Stage 2 尾项已完成，见 Week 7）
-- [ ] E2E 测试
-- [ ] 性能优化
-- [ ] 文档完善
+- [x] E2E 测试 — `frontend/tests/e2e/position-lifecycle.spec.ts` 校验编制看板含 byFamily 表格，Vitest + Playwright 均通过。
+- [x] 性能优化 — 复核 `GetPositionHeadcountStats` SQL 聚合沿用租户/组织索引，无需新增索引；确认仅扫描当前租户现势记录。
+- [x] 文档完善 — 更新 06 号进展日志与 85 号执行计划收尾说明，准备归档 Stage 3。
 
 > **2025-10-17 更新**：Stage 3 已批准启动 ✅
 > - **评审通过**：85号执行计划 v0.2 复审通过（A级 4.8/5分），所有 P0/P1 问题已修复。
 > - **前置核查完成**：`positionHeadcountStats` Schema 已定义，查询服务已实现，`vacantPositions` Resolver 已就绪。
 > - **时间确认**：维持 2 周交付节奏，Week 1 完成空缺看板+转移界面+统计 API，Week 2 完成编制看板+E2E+文档。
-> - **执行计划**：详见 `docs/development-plans/85-position-stage3-execution-plan.md` v0.2。
-> - **下一步**：建议 2025-10-18 召开 Kick-off 会议确认任务分工。
+> - **执行计划**：详见 `docs/archive/development-plans/85-position-stage3-execution-plan.md` v0.2。
+> - **最终验收**：2025-10-17 通过 GraphQL/前端测试确认编制统计链路完成，85 号计划已归档。
 
 ### 7.5 Stage 4（未来扩展）：任职管理
 

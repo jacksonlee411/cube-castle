@@ -1,57 +1,66 @@
-# 06号文档：集成团队协作进展日志
+# 06号文档：集成团队协作进展日志（Stage 3 收尾补记）
 
-> 更新时间：2025-10-17  
-> 负责人：集成协作小组（命令服务、查询服务、前端、QA、架构组）  
-> 当前阶段：**Stage 3 — 编制与统计执行中**
-
----
-
-## 🔔 当前进展速览
-
-- **Stage 3 Week 1 交付完成**
-  - `PositionVacancyBoard`、`PositionTransferDialog` 与数据接入上线；Playwright/Vitest 已覆盖空缺、转移流程。
-  - 查询服务扩展 `vacantPositions` / `positionHeadcountStats`，新增职种聚合 `byFamily`，补充租户 & asOf 参数转发测试。
-  - `simplified-e2e-test.sh` 增加职位空缺与编制统计查询，维持冒烟脚本对新能力的覆盖。
-- **Stage 3 Week 2 执行中**
-  - `PositionHeadcountDashboard`、`usePositionHeadcountStats` 发布，支持家族维度展示与 CSV 导出。
-  - `frontend/tests/e2e/position-lifecycle.spec.ts`、`PositionHeadcountDashboard.test.tsx` 验证空缺/编制视图。
-  - 80 号方案、85 号计划、实现清单与本日志已同步勾选进度。
+> 更新时间：2025-10-17
+> 负责人：集成协作小组（命令服务、查询服务、前端、QA、架构组）
 
 ---
 
-## ✅ 已完成里程碑
+## 📌 遭遇问题
 
-| 阶段 | 交付内容 | 完成时间 | 佐证 |
-|------|----------|----------|------|
-| Stage 3 Week 1 | 空缺看板、转移界面、统计 API、自检脚本 | 2025-10-17 | commits 851da6eb / bc9601fb / 2d299319 等 |
-| Stage 3 Week 2（前端/QA） | 编制看板、`byFamily` 聚合、统计校验 | 2025-10-17 | commits c2481957 / 3a7e16b1 / bc9601fb |
-
----
-
-## 📌 当前风险与观察
-
-- **性能**：`positionHeadcountStats` 仍实时汇总，多租户数据量需重点监控；如出现瓶颈需评估缓存/物化视图。
-- **自动化告警**：简化脚本已更新，但 nightly 报警与结果统计尚未接入。
-- **文档归档**：Stage 3 最终总结、实现清单对比及归档流程待 Week 2 结束前完成。
+- **Playwright E2E 失败**
+  - 用例：`职位生命周期视图 › 展示任职与调动历史`
+  - 现象：等待标题 "职位管理（Stage 1 数据接入）" 超时。
+  - 根因：TypeScript编译错误导致页面无法正常构建，包括Canvas Kit API变化（Button、Heading、Checkbox等组件）、React Query升级（keepPreviousData选项移除）、类型定义缺失等问题。
 
 ---
 
-## 🔜 下一步计划
+## ✅ 修复方案与进展
 
-1. **性能评估与优化**  
-   - 审核 `positionHeadcountStats` 执行计划、索引使用；若需缓存方案，输出设计评审。  
-   - 检查 `byFamily` 聚合在大租户/多级组织下的响应时间。
-2. **QA 覆盖扩展**  
-   - 将更新后的 `simplified-e2e-test.sh` 纳入 nightly，并收集统计趋势。  
-   - 准备真实数据集的 Playwright 回归，关注空缺/编制视图一致性。
-3. **文档与归档**  
-   - 撰写 Stage 3 Week 2 验收总结，准备归档 85 号计划。  
-   - 更新实现清单差异报告与参考文档链接。
+### 已完成的修复
+1. **Canvas Kit组件API适配**
+   - `Heading`：将所有 `level` prop 改为 `size` prop
+   - `Button`：使用 `SecondaryButton` 和 `PrimaryButton`
+   - `Checkbox`：更新 onChange 处理器为标准event handler
+   - `Flex`：移除响应式flexDirection对象语法
+   - `SimpleStack`：改用Flex组件支持flexDirection
+
+2. **React Query升级适配**
+   - 移除 `keepPreviousData` 选项（v5已废弃）
+
+3. **类型系统修复**
+   - 添加 `VacantPositionRecord` 和 `VacantPositionsQueryResult` 导入
+   - 修复 Select value 类型（string vs number）
+
+### 验证结果
+- ✅ `npm --prefix frontend run test -- PositionDashboard` 通过（2/2测试）
+- ✅ `npm --prefix frontend run test -- PositionHeadcountDashboard` 通过（2/2测试）
+
+### 剩余非阻塞问题
+- PositionTransferDialog 中的 Dialog.Footer API变化
+- useEnterprisePositions 中的 filter undefined 类型警告
+- 这些问题不影响核心功能，可在后续迭代修复
 
 ---
 
-## 📎 参考资料
+## 🔄 下一步行动
 
-- 80号方案：`docs/development-plans/80-position-management-with-temporal-tracking.md`
-- 85号执行计划：`docs/development-plans/85-position-stage3-execution-plan.md`
-- 关键提交：851da6eb / c2481957 / 3a7e16b1 / bc9601fb / 2d299319 / 3a7e16b1
+1. 运行完整E2E测试验证修复效果：`npm --prefix frontend run test:e2e -- tests/e2e/position-lifecycle.spec.ts`
+2. 如测试通过，更新实现清单并关闭此问题
+3. 剩余类型问题记录到技术债务清单
+
+---
+
+## 📎 跟踪
+
+- 修复范围：
+  - `frontend/src/features/positions/components/PositionVacancyBoard.tsx`
+  - `frontend/src/features/positions/components/PositionHeadcountDashboard.tsx`
+  - `frontend/src/features/positions/components/PositionSummaryCards.tsx`
+  - `frontend/src/features/positions/components/PositionDetails.tsx`
+  - `frontend/src/features/positions/PositionDashboard.tsx`
+  - `frontend/src/features/positions/components/SimpleStack.tsx`
+  - `frontend/src/shared/hooks/useEnterprisePositions.ts`
+- 相关测试：
+  - `frontend/src/features/positions/__tests__/PositionDashboard.test.tsx`
+  - `frontend/src/features/positions/__tests__/PositionHeadcountDashboard.test.tsx`
+  - `frontend/tests/e2e/position-lifecycle.spec.ts`

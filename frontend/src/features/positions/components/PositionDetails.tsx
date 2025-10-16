@@ -152,7 +152,7 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
     <Card data-testid="position-detail-card" padding={space.l} height="100%" backgroundColor={colors.frenchVanilla100}>
       <SimpleStack gap={space.m}>
         <Flex alignItems="center" justifyContent="space-between">
-          <Heading level="3">{position.title}</Heading>
+          <Heading size="small">{position.title}</Heading>
           <StatusPill status={position.status} />
         </Flex>
         <Text fontSize="14px" color={colors.licorice500}>
@@ -174,7 +174,7 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
         <DividerLine />
 
         <SimpleStack gap={space.xs}>
-          <Heading level="4">岗位信息</Heading>
+          <Heading size="small">岗位信息</Heading>
           <Text>
             职类 / 职种：{position.jobFamilyGroupName ?? position.jobFamilyGroupCode} ·{' '}
             {position.jobFamilyName ?? position.jobFamilyCode}
@@ -201,7 +201,7 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
         <DividerLine />
 
         <SimpleStack gap={space.xs}>
-          <Heading level="4">当前任职</Heading>
+          <Heading size="small">当前任职</Heading>
           {currentAssignment ? (
             <AssignmentItem assignment={currentAssignment} highlight />
           ) : (
@@ -212,7 +212,7 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
         <DividerLine />
 
         <SimpleStack gap={space.s}>
-          <Heading level="4">任职历史</Heading>
+          <Heading size="small">任职历史</Heading>
           {assignments.length === 0 ? (
             <Text color={colors.licorice400}>暂无任职记录</Text>
           ) : (
@@ -225,7 +225,7 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
         <DividerLine />
 
         <SimpleStack gap={space.s}>
-          <Heading level="4">调动记录</Heading>
+          <Heading size="small">调动记录</Heading>
           {transfers.length === 0 ? (
             <Text color={colors.licorice400}>暂无调动记录</Text>
           ) : (
@@ -236,7 +236,7 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
         <DividerLine />
 
         <SimpleStack gap={space.s}>
-          <Heading level="4">职位时间线</Heading>
+          <Heading size="small">职位时间线</Heading>
           {timeline.length === 0 ? (
             <Text color={colors.licorice400}>暂无时间线记录</Text>
           ) : (

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"cube-castle-deployment-test/cmd/organization-query-service/internal/model"
+	"cube-castle-deployment-test/internal/auth"
 	"github.com/google/uuid"
 	graphqlgo "github.com/graph-gophers/graphql-go"
 	sharedconfig "shared/config"
@@ -137,6 +138,7 @@ func (s *stubRepository) GetPositionHeadcountStats(ctx context.Context, tenantID
 	if s.headcountFn == nil {
 		panic("headcountFn not configured")
 	}
+	s.capturedTenant = tenantID
 	s.includeSubs = includeSubordinates
 	return s.headcountFn(ctx, tenantID, organizationCode, includeSubordinates)
 }
@@ -529,6 +531,39 @@ func TestResolver_PositionHeadcountStats_CustomIncludeSubordinates(t *testing.T)
 	}
 	if repo.includeSubs {
 		t.Fatalf("expected includeSubordinates=false when provided")
+	}
+}
+
+func TestResolver_PositionHeadcountStats_UsesTenantFromContext(t *testing.T) {
+	targetTenant := uuid.New()
+	repo := &stubRepository{
+		headcountFn: func(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error) {
+			if tenantID != targetTenant {
+				t.Fatalf("expected tenant %s, got %s", targetTenant, tenantID)
+			}
+			return &model.HeadcountStats{OrganizationCodeField: organizationCode}, nil
+		},
+	}
+	perm := &stubPermissionChecker{allow: true}
+	resolver := NewResolver(repo, logDiscard(), perm)
+
+	ctx := auth.SetUserContext(context.Background(), &auth.Claims{
+		UserID:   "tenant-tester",
+		TenantID: targetTenant.String(),
+	})
+
+	_, err := resolver.PositionHeadcountStats(ctx, struct {
+		OrganizationCode    string
+		IncludeSubordinates graphqlgo.NullBool
+	}{OrganizationCode: "1000001"})
+	if err != nil {
+		t.Fatalf("PositionHeadcountStats returned error: %v", err)
+	}
+	if repo.capturedTenant != targetTenant {
+		t.Fatalf("expected captured tenant to be %s, got %s", targetTenant, repo.capturedTenant)
+	}
+	if !repo.includeSubs {
+		t.Fatalf("expected includeSubordinates to default to true")
 	}
 }
 

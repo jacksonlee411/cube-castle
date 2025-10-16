@@ -52,7 +52,7 @@ export const PositionSummaryCards: React.FC<PositionSummaryCardsProps> = ({ posi
           style={{ borderTop: `4px solid ${metric.accent}` }}
         >
           <SimpleStack gap={space.xs}>
-            <Heading level="3">{metric.title}</Heading>
+            <Heading size="small">{metric.title}</Heading>
             <Text fontSize="32px" fontWeight="bold" color={metric.accent}>
               {metric.value}
             </Text>

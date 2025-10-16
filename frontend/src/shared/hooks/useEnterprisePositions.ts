@@ -11,6 +11,8 @@ import type {
   PositionTransferRecord,
   PositionsQueryResult,
   PositionHeadcountStats,
+  VacantPositionRecord,
+  VacantPositionsQueryResult,
 } from '../types/positions';
 
 const DEFAULT_PAGE = 1;
@@ -235,6 +237,24 @@ interface NormalizedPositionHeadcountParams {
   includeSubordinates: boolean;
 }
 
+type PositionsQueryVariables = {
+  pagination: {
+    page: number;
+    pageSize: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  };
+  filter?: Record<string, unknown>;
+};
+
+type VacantPositionsQueryVariables = {
+  pagination: {
+    page: number;
+    pageSize: number;
+  };
+  filter?: Record<string, unknown>;
+};
+
 const POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
   query EnterprisePositions($filter: PositionFilterInput, $pagination: PaginationInput) {
     positions(filter: $filter, pagination: $pagination) {
@@ -426,6 +446,13 @@ const POSITION_HEADCOUNT_STATS_QUERY_DOCUMENT = /* GraphQL */ `
         filled
         available
       }
+      byFamily {
+        jobFamilyCode
+        jobFamilyName
+        capacity
+        utilized
+        available
+      }
     }
   }
 `;
@@ -558,8 +585,7 @@ const buildGraphQLVariables = (params: NormalizedPositionQueryParams) => {
     filter.employmentTypes = [params.employmentType];
   }
 
-  return {
-    filter: Object.keys(filter).length > 0 ? filter : undefined,
+  const variables: PositionsQueryVariables = {
     pagination: {
       page: params.page,
       pageSize: params.pageSize,
@@ -567,6 +593,12 @@ const buildGraphQLVariables = (params: NormalizedPositionQueryParams) => {
       sortOrder: 'asc',
     },
   };
+
+  if (Object.keys(filter).length > 0) {
+    variables.filter = filter;
+  }
+
+  return variables;
 };
 
 const buildVacantPositionsVariables = (params: NormalizedVacantPositionsQueryParams) => {
@@ -594,9 +626,19 @@ const buildVacantPositionsVariables = (params: NormalizedVacantPositionsQueryPar
     filter.asOfDate = params.asOfDate;
   }
 
-  let sorting: Array<{ field: VacantPositionSortField; direction?: 'ASC' | 'DESC' }> | undefined;
+  const variables: VacantPositionsQueryVariables = {
+    pagination: {
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+  };
+
+  if (Object.keys(filter).length > 0) {
+    variables.filter = filter;
+  }
+
   if (params.sortField) {
-    sorting = [
+    variables.sorting = [
       {
         field: params.sortField,
         direction: params.sortDirection,
@@ -604,14 +646,7 @@ const buildVacantPositionsVariables = (params: NormalizedVacantPositionsQueryPar
     ];
   }
 
-  return {
-    filter: Object.keys(filter).length > 0 ? filter : undefined,
-    pagination: {
-      page: params.page,
-      pageSize: params.pageSize,
-    },
-    sorting,
-  };
+  return variables;
 };
 
 const buildHeadcountVariables = (params: NormalizedPositionHeadcountParams) => {
@@ -958,7 +993,6 @@ export function useEnterprisePositions(
     queryKey: positionsQueryKey(normalizedParams),
     queryFn: positionsQueryFn,
     staleTime: 60_000,
-    keepPreviousData: true,
   });
 }
 
@@ -990,7 +1024,6 @@ export function useVacantPositions(
     queryKey: vacantPositionsQueryKey(normalizedParams),
     queryFn: vacantPositionsQueryFn,
     staleTime: 30_000,
-    keepPreviousData: true,
   });
 }
 

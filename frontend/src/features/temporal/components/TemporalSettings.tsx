@@ -208,11 +208,10 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
           {/* 包含停用数据 */}
           <Box marginBottom={space.m}>
             <Checkbox
+              label="包含停用/失效的组织数据"
               checked={localParams.includeInactive || false}
               onChange={(e) => updateLocalParams({ includeInactive: e.target.checked })}
-            >
-              包含停用/失效的组织数据
-            </Checkbox>
+            />
             <Text fontSize="small" color={colors.licorice500} marginTop={space.xs}>
               勾选后将显示已停用或失效的组织单元
             </Text>
@@ -288,11 +287,10 @@ export const TemporalSettings: React.FC<TemporalSettingsProps> = ({
             {eventTypeOptions.map(option => (
               <Checkbox
                 key={option.value}
+                label={option.label}
                 checked={(localParams.eventTypes || []).includes(option.value)}
                 onChange={() => handleEventTypeToggle(option.value)}
-              >
-                {option.label}
-              </Checkbox>
+              />
             ))}
           </Box>
 

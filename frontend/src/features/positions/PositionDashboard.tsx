@@ -185,7 +185,7 @@ export const PositionDashboard: React.FC = () => {
     <Box padding={space.l} data-testid="position-dashboard">
       <SimpleStack gap={space.l}>
         <SimpleStack gap={space.xs}>
-          <Heading level="2">职位管理（Stage 1 数据接入）</Heading>
+          <Heading size="medium">职位管理（Stage 1 数据接入）</Heading>
           <Text color={colors.licorice500}>
             当前页面已接入 GraphQL 查询服务与 REST 命令服务，可进行职位筛选、搜索与时间线查看。
           </Text>
@@ -206,7 +206,7 @@ export const PositionDashboard: React.FC = () => {
 
         <CardLikeContainer>
           <SimpleStack gap={space.m}>
-            <Heading level="4">筛选条件</Heading>
+            <Heading size="small">筛选条件</Heading>
             <Flex gap={space.m} flexWrap="wrap">
               <TextInput
                 placeholder="搜索职位名称 / 编码 / 组织"
@@ -242,7 +242,7 @@ export const PositionDashboard: React.FC = () => {
           </SimpleStack>
         </CardLikeContainer>
 
-        <Flex gap={space.l} alignItems="stretch" flexDirection={{ xs: 'column', md: 'row' }}>
+        <Flex gap={space.l} alignItems="stretch" flexDirection="row" flexWrap="wrap">
           <Box flex="2" minWidth="60%">
             <PositionList positions={listData} selectedCode={selectedCode} onSelect={setSelectedCode} />
           </Box>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box } from '@workday/canvas-kit-react/layout'
+import { Flex } from '@workday/canvas-kit-react/layout'
 
 interface SimpleStackProps {
   children: React.ReactNode
@@ -7,9 +7,9 @@ interface SimpleStackProps {
 }
 
 export const SimpleStack: React.FC<SimpleStackProps> = ({ children, gap = '16px' }) => (
-  <Box display="flex" flexDirection="column" gap={gap}>
+  <Flex flexDirection="column" gap={gap}>
     {children}
-  </Box>
+  </Flex>
 )
 
 export default SimpleStack

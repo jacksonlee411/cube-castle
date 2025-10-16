@@ -9,12 +9,40 @@
  */
 
 // 🎯 唯一组织Hook实现
-export * from './useEnterpriseOrganizations';
-export { default as useEnterpriseOrganizations } from './useEnterpriseOrganizations';
+export {
+  useEnterpriseOrganizations,
+  type OrganizationStats,
+  type OrganizationTemporalSummary,
+  type OrganizationsQueryResult,
+  type NormalizedQueryParams,
+  type UseEnterpriseOrganizationsResult,
+  ORGANIZATIONS_QUERY_ROOT_KEY,
+  organizationsQueryKey,
+  organizationByCodeQueryKey,
+} from './useEnterpriseOrganizations';
+export { default as useEnterpriseOrganizationsDefault } from './useEnterpriseOrganizations';
 
 // 🎯 职位管理查询 Hook
-export * from './useEnterprisePositions';
-export { default as useEnterprisePositions } from './useEnterprisePositions';
+export {
+  useEnterprisePositions,
+  usePositionDetail,
+  useVacantPositions,
+  usePositionHeadcountStats,
+  type PositionQueryParams,
+  type VacantPositionsQueryParams,
+  type PositionHeadcountStatsParams,
+  type VacantPositionSortField,
+  type PositionDetailOptions,
+  POSITIONS_QUERY_ROOT_KEY,
+  POSITION_DETAIL_QUERY_ROOT_KEY,
+  VACANT_POSITIONS_QUERY_ROOT_KEY,
+  POSITION_HEADCOUNT_STATS_QUERY_ROOT_KEY,
+  positionsQueryKey,
+  positionDetailQueryKey,
+  vacantPositionsQueryKey,
+  positionHeadcountStatsQueryKey,
+} from './useEnterprisePositions';
+export { default as useEnterprisePositionsDefault } from './useEnterprisePositions';
 
 // 🔧 专用工具Hook
 export * from './useOrganizationMutations';

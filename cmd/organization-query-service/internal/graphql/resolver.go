@@ -393,9 +393,18 @@ func (r *Resolver) PositionHeadcountStats(ctx context.Context, args struct {
 	if args.IncludeSubordinates.Set && args.IncludeSubordinates.Value != nil {
 		includeSubordinates = *args.IncludeSubordinates.Value
 	}
-	r.logger.Printf("[GraphQL] 查询职位编制统计 org=%s includeSub=%v", args.OrganizationCode, includeSubordinates)
+	tenantID := sharedconfig.DefaultTenantID
+	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
+		parsed, err := uuid.Parse(tenantStr)
+		if err != nil {
+			r.logger.Printf("[AUTH] 无效租户ID: %s", tenantStr)
+			return nil, fmt.Errorf("INVALID_TENANT")
+		}
+		tenantID = parsed
+	}
+	r.logger.Printf("[GraphQL] 查询职位编制统计 org=%s includeSub=%v tenant=%s", args.OrganizationCode, includeSubordinates, tenantID.String())
 
-	return r.repo.GetPositionHeadcountStats(ctx, sharedconfig.DefaultTenantID, args.OrganizationCode, includeSubordinates)
+	return r.repo.GetPositionHeadcountStats(ctx, tenantID, args.OrganizationCode, includeSubordinates)
 }
 
 // JobFamilyGroups 查询职类
