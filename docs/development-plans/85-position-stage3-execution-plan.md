@@ -93,7 +93,7 @@
     - 2025-10-17 提交 `feat: add position headcount dashboard`（c2481957）交付上述 3 项。  
 - **QA**  
   - [x] Playwright 新增编制看板验证（复用 `position-lifecycle.spec.ts`，校验空缺/编制区域）。  
-  - [ ] `simplified-e2e-test.sh` 补充统计验证步骤。  
+  - [x] `simplified-e2e-test.sh` 补充统计验证步骤（2025-10-17 新增职位空缺/编制校验）。  
 - **文档与同步**  
   - 更新实现清单、契约差异报告。  
   - 06 号日志：新增 Stage 3 进展段落与验收总结。  

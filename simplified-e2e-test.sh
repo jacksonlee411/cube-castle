@@ -158,7 +158,46 @@ EOF
   fi
 fi
 
-# 测试6: 前端资源加载
+# 测试6: 职位空缺与编制统计查询
+print_step "职位空缺与编制统计查询"
+
+if [ -z "$TOKEN" ]; then
+    test_fail "缺少令牌，跳过职位空缺/编制统计校验"
+else
+    read -r -d '' GQL_VACANCY << 'EOF'
+{
+  "query": "query($page:Int,$pageSize:Int){ vacantPositions(pagination:{page:$page,pageSize:$pageSize}) { data { positionCode organizationCode headcountAvailable } totalCount } }",
+  "variables": {"page":1, "pageSize":5}
+}
+EOF
+
+    VACANCY_RESPONSE=$(curl -s -X POST "$QUERY_API/graphql" \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "X-Tenant-ID: $TENANT_ID" \
+        -H "Content-Type: application/json" \
+        -d "$GQL_VACANCY" 2>/dev/null || echo "")
+
+    read -r -d '' GQL_HEADCOUNT << 'EOF'
+{
+  "query": "query($code:String!){ positionHeadcountStats(organizationCode:$code){ organizationCode totalCapacity totalFilled totalAvailable fillRate } }",
+  "variables": {"code":"1000000"}
+}
+EOF
+
+    HEADCOUNT_RESPONSE=$(curl -s -X POST "$QUERY_API/graphql" \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "X-Tenant-ID: $TENANT_ID" \
+        -H "Content-Type: application/json" \
+        -d "$GQL_HEADCOUNT" 2>/dev/null || echo "")
+
+    if echo "$VACANCY_RESPONSE" | grep -q '"vacantPositions"' && echo "$HEADCOUNT_RESPONSE" | grep -q '"positionHeadcountStats"'; then
+        test_pass "职位空缺/编制统计查询正常"
+    else
+        test_fail "职位空缺/编制统计查询失败"
+    fi
+fi
+
+# 测试7: 前端资源加载
 print_step "前端资源加载测试"
 
 FRONTEND_CONTENT=$(curl -s "$FRONTEND" | head -n 20)
