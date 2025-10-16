@@ -809,6 +809,53 @@ func (c VacantPositionConnection) Data() []VacantPosition      { return c.DataFi
 func (c VacantPositionConnection) Pagination() PaginationInfo  { return c.PaginationField }
 func (c VacantPositionConnection) TotalCount() int32           { return int32(c.TotalCountField) }
 
+// PositionTransfer 职位转移记录
+type PositionTransfer struct {
+	TransferIDField           string         `json:"transferId"`
+	PositionCodeField         string         `json:"positionCode"`
+	FromOrganizationCodeField string         `json:"fromOrganizationCode"`
+	ToOrganizationCodeField   string         `json:"toOrganizationCode"`
+	EffectiveDateField        time.Time      `json:"effectiveDate"`
+	InitiatedByField          OperatedByData `json:"initiatedBy"`
+	OperationReasonField      *string        `json:"operationReason"`
+	CreatedAtField            time.Time      `json:"createdAt"`
+}
+
+func (t PositionTransfer) TransferId() UUID             { return UUID(t.TransferIDField) }
+func (t PositionTransfer) PositionCode() PositionCode   { return PositionCode(t.PositionCodeField) }
+func (t PositionTransfer) FromOrganizationCode() string { return t.FromOrganizationCodeField }
+func (t PositionTransfer) ToOrganizationCode() string   { return t.ToOrganizationCodeField }
+func (t PositionTransfer) EffectiveDate() Date {
+	return Date(t.EffectiveDateField.Format("2006-01-02"))
+}
+func (t PositionTransfer) InitiatedBy() OperatedByData { return t.InitiatedByField }
+func (t PositionTransfer) OperationReason() *string    { return t.OperationReasonField }
+func (t PositionTransfer) CreatedAt() DateTime {
+	return DateTime(t.CreatedAtField.Format(time.RFC3339))
+}
+
+// PositionTransferEdge 游标结果
+type PositionTransferEdge struct {
+	CursorField string           `json:"cursor"`
+	NodeField   PositionTransfer `json:"node"`
+}
+
+func (e PositionTransferEdge) Cursor() string         { return e.CursorField }
+func (e PositionTransferEdge) Node() PositionTransfer { return e.NodeField }
+
+// PositionTransferConnection 连接结果
+type PositionTransferConnection struct {
+	EdgesField      []PositionTransferEdge `json:"edges"`
+	DataField       []PositionTransfer     `json:"data"`
+	PaginationField PaginationInfo         `json:"pagination"`
+	TotalCountField int                    `json:"totalCount"`
+}
+
+func (c PositionTransferConnection) Edges() []PositionTransferEdge { return c.EdgesField }
+func (c PositionTransferConnection) Data() []PositionTransfer      { return c.DataField }
+func (c PositionTransferConnection) Pagination() PaginationInfo    { return c.PaginationField }
+func (c PositionTransferConnection) TotalCount() int32             { return int32(c.TotalCountField) }
+
 // PositionFilterInput 过滤条件
 type PositionFilterInput struct {
 	OrganizationCode    *string         `json:"organizationCode"`

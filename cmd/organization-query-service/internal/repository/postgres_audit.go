@@ -278,6 +278,258 @@ func (r *PostgreSQLRepository) processAuditRowsStrict(rows *sql.Rows) ([]model.A
 	return auditRecords, nil
 }
 
+func (r *PostgreSQLRepository) GetPositionTransfers(ctx context.Context, tenantID uuid.UUID, positionCode *string, organizationCode *string, pagination *model.PaginationInput) (*model.PositionTransferConnection, error) {
+	page := int32(1)
+	pageSize := int32(25)
+	if pagination != nil {
+		if pagination.Page > 0 {
+			page = pagination.Page
+		}
+		if pagination.PageSize > 0 {
+			pageSize = pagination.PageSize
+			if pageSize > 200 {
+				pageSize = 200
+			}
+		}
+	}
+	offset := int((page - 1) * pageSize)
+	limit := int(pageSize)
+
+	baseFilters := []string{
+		"a.tenant_id = $1",
+		"a.resource_type = 'POSITION'",
+		"a.action_name = 'TransferPosition'",
+		"a.success = true",
+	}
+	args := []interface{}{tenantID.String()}
+	argIndex := 2
+
+	whereClause := strings.Join(baseFilters, " AND ")
+
+	filterConditions := []string{"1=1"}
+	if positionCode != nil && strings.TrimSpace(*positionCode) != "" {
+		whereClause += fmt.Sprintf(" AND (a.response_data->>'code') = $%d", argIndex)
+		filterConditions = append(filterConditions, fmt.Sprintf("final.position_code = $%d", argIndex))
+		args = append(args, strings.TrimSpace(*positionCode))
+		argIndex++
+	}
+	if organizationCode != nil && strings.TrimSpace(*organizationCode) != "" {
+		filterConditions = append(filterConditions, fmt.Sprintf("(final.from_org_code = $%d OR final.to_org_code = $%d)", argIndex, argIndex))
+		args = append(args, strings.TrimSpace(*organizationCode))
+		argIndex++
+	}
+
+	filterClause := strings.Join(filterConditions, " AND ")
+
+	baseCTE := fmt.Sprintf(`
+WITH raw AS (
+	SELECT
+		a.id,
+		a.resource_id,
+		a.timestamp,
+		a.operation_reason,
+		a.request_data,
+		a.response_data,
+		a.changes,
+		a.business_context,
+		a.actor_id,
+		a.actor_type,
+		a.response_data->>'code' AS position_code,
+		change_ctx.old_value AS change_old_org,
+		change_ctx.new_value AS change_new_org
+	FROM audit_logs a
+	LEFT JOIN LATERAL (
+		SELECT elem->>'oldValue' AS old_value,
+			   elem->>'newValue' AS new_value
+		FROM jsonb_array_elements(a.changes) elem
+		WHERE elem->>'field' IN ('organizationCode', 'organization_code')
+		ORDER BY elem->>'field'
+		LIMIT 1
+	) change_ctx ON true
+	WHERE %s
+),
+normalized AS (
+	SELECT
+		id,
+		resource_id,
+		position_code,
+		COALESCE(change_new_org, response_data->>'organizationCode') AS to_org_code,
+		COALESCE(change_old_org, request_data->>'organizationCode') AS explicit_from_org,
+		timestamp,
+		operation_reason,
+		actor_id,
+		actor_type,
+		business_context
+	FROM raw
+),
+with_prev AS (
+	SELECT
+		id,
+		resource_id,
+		position_code,
+		to_org_code,
+		COALESCE(explicit_from_org,
+			LAG(to_org_code) OVER (PARTITION BY resource_id ORDER BY timestamp)
+		) AS from_org_code,
+		timestamp,
+		operation_reason,
+		actor_id,
+		actor_type,
+		business_context
+	FROM normalized
+),
+final AS (
+	SELECT
+		id,
+		resource_id,
+		position_code,
+		COALESCE(from_org_code, to_org_code) AS from_org_code,
+		COALESCE(to_org_code, from_org_code) AS to_org_code,
+		timestamp,
+		operation_reason,
+		actor_id,
+		actor_type,
+		business_context
+	FROM with_prev
+)
+`, whereClause)
+
+	countArgs := append([]interface{}{}, args...)
+	countQuery := fmt.Sprintf(`%s SELECT COUNT(*) FROM final WHERE %s`, baseCTE, filterClause)
+
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("count position transfers: %w", err)
+	}
+
+	dataArgs := append([]interface{}{}, args...)
+	limitIdx := len(dataArgs) + 1
+	dataArgs = append(dataArgs, limit)
+	offsetIdx := len(dataArgs) + 1
+	dataArgs = append(dataArgs, offset)
+
+	dataQuery := fmt.Sprintf(`
+%s
+SELECT
+	final.id::text,
+	final.position_code,
+	final.from_org_code,
+	final.to_org_code,
+	CASE 
+		WHEN COALESCE(final.business_context->>'effectiveDate', '') <> '' THEN (final.business_context->>'effectiveDate')::date
+		ELSE DATE(final.timestamp)
+	END AS effective_date,
+	final.timestamp,
+	final.operation_reason,
+	final.actor_id,
+	COALESCE(
+		NULLIF(trim(final.business_context->>'operatorName'), ''),
+		NULLIF(trim(final.business_context->>'actorName'), ''),
+		final.actor_id
+	) AS actor_name
+FROM final
+WHERE %s
+ORDER BY final.timestamp DESC
+LIMIT $%d OFFSET $%d
+`, baseCTE, filterClause, limitIdx, offsetIdx)
+
+	rows, err := r.db.QueryContext(ctx, dataQuery, dataArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("query position transfers: %w", err)
+	}
+	defer rows.Close()
+
+	transfers := make([]model.PositionTransfer, 0, limit)
+	for rows.Next() {
+		record, scanErr := scanPositionTransfer(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		transfers = append(transfers, *record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate position transfers: %w", err)
+	}
+
+	totalPages := 0
+	if pageSize > 0 {
+		totalPages = (total + int(pageSize) - 1) / int(pageSize)
+	}
+
+	edges := make([]model.PositionTransferEdge, 0, len(transfers))
+	for _, item := range transfers {
+		edges = append(edges, model.PositionTransferEdge{
+			CursorField: item.TransferIDField,
+			NodeField:   item,
+		})
+	}
+
+	connection := &model.PositionTransferConnection{
+		EdgesField: edges,
+		DataField:  transfers,
+		PaginationField: model.PaginationInfo{
+			TotalField:       total,
+			PageField:        int(page),
+			PageSizeField:    int(pageSize),
+			HasNextField:     int(page) < totalPages,
+			HasPreviousField: page > 1,
+		},
+		TotalCountField: total,
+	}
+
+	return connection, nil
+}
+
+func scanPositionTransfer(scanner rowScanner) (*model.PositionTransfer, error) {
+	var (
+		transferID    string
+		positionCode  string
+		fromOrg       string
+		toOrg         string
+		effectiveDate time.Time
+		createdAt     time.Time
+		reason        sql.NullString
+		actorID       string
+		actorName     string
+	)
+
+	if err := scanner.Scan(
+		&transferID,
+		&positionCode,
+		&fromOrg,
+		&toOrg,
+		&effectiveDate,
+		&createdAt,
+		&reason,
+		&actorID,
+		&actorName,
+	); err != nil {
+		return nil, fmt.Errorf("scan position transfer: %w", err)
+	}
+
+	transfer := &model.PositionTransfer{
+		TransferIDField:           transferID,
+		PositionCodeField:         positionCode,
+		FromOrganizationCodeField: fromOrg,
+		ToOrganizationCodeField:   toOrg,
+		EffectiveDateField:        effectiveDate,
+		CreatedAtField:            createdAt,
+		InitiatedByField: model.OperatedByData{
+			IDField:   actorID,
+			NameField: actorName,
+		},
+	}
+
+	if reason.Valid {
+		trimmed := strings.TrimSpace(reason.String)
+		if trimmed != "" {
+			transfer.OperationReasonField = &trimmed
+		}
+	}
+
+	return transfer, nil
+}
+
 func (r *PostgreSQLRepository) registerValidationFailure() bool {
 	count := atomic.AddInt32(&r.validationFailureCount, 1)
 	if r.auditConfig.CircuitBreakerThreshold > 0 && count >= r.auditConfig.CircuitBreakerThreshold {

@@ -32,22 +32,25 @@ func (s *stubPermissionChecker) CheckQueryPermission(ctx context.Context, queryN
 }
 
 type stubRepository struct {
-	positionsFn               func(ctx context.Context, tenantID uuid.UUID, filter *model.PositionFilterInput, pagination *model.PaginationInput, sorting []model.PositionSortInput) (*model.PositionConnection, error)
-	positionByCodeFn          func(ctx context.Context, tenantID uuid.UUID, code string, asOfDate *string) (*model.Position, error)
-	timelineFn                func(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]model.PositionTimelineEntry, error)
-	vacantFn                  func(ctx context.Context, tenantID uuid.UUID, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error)
-	headcountFn               func(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error)
-	assignmentsFn             func(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error)
-	capturedSorting           []model.PositionSortInput
-	capturedFilter            *model.PositionFilterInput
-	capturedPagination        *model.PaginationInput
-	capturedTenant            uuid.UUID
-	includeSubs               bool
-	capturedAssignmentFilter  *model.PositionAssignmentFilterInput
-	capturedAssignmentSorting []model.PositionAssignmentSortInput
-	capturedPositionCode      string
-	capturedVacantFilter      *model.VacantPositionFilterInput
-	capturedVacantSorting     []model.VacantPositionSortInput
+	positionsFn                      func(ctx context.Context, tenantID uuid.UUID, filter *model.PositionFilterInput, pagination *model.PaginationInput, sorting []model.PositionSortInput) (*model.PositionConnection, error)
+	positionByCodeFn                 func(ctx context.Context, tenantID uuid.UUID, code string, asOfDate *string) (*model.Position, error)
+	timelineFn                       func(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]model.PositionTimelineEntry, error)
+	vacantFn                         func(ctx context.Context, tenantID uuid.UUID, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error)
+	transferFn                       func(ctx context.Context, tenantID uuid.UUID, positionCode *string, organizationCode *string, pagination *model.PaginationInput) (*model.PositionTransferConnection, error)
+	headcountFn                      func(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error)
+	assignmentsFn                    func(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error)
+	capturedSorting                  []model.PositionSortInput
+	capturedFilter                   *model.PositionFilterInput
+	capturedPagination               *model.PaginationInput
+	capturedTenant                   uuid.UUID
+	includeSubs                      bool
+	capturedAssignmentFilter         *model.PositionAssignmentFilterInput
+	capturedAssignmentSorting        []model.PositionAssignmentSortInput
+	capturedPositionCode             string
+	capturedVacantFilter             *model.VacantPositionFilterInput
+	capturedVacantSorting            []model.VacantPositionSortInput
+	capturedTransferPositionCode     *string
+	capturedTransferOrganizationCode *string
 }
 
 func (s *stubRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, filter *model.OrganizationFilter, pagination *model.PaginationInput) (*model.OrganizationConnection, error) {
@@ -136,6 +139,17 @@ func (s *stubRepository) GetPositionHeadcountStats(ctx context.Context, tenantID
 	}
 	s.includeSubs = includeSubordinates
 	return s.headcountFn(ctx, tenantID, organizationCode, includeSubordinates)
+}
+
+func (s *stubRepository) GetPositionTransfers(ctx context.Context, tenantID uuid.UUID, positionCode *string, organizationCode *string, pagination *model.PaginationInput) (*model.PositionTransferConnection, error) {
+	if s.transferFn == nil {
+		panic("transferFn not configured")
+	}
+	s.capturedTenant = tenantID
+	s.capturedPagination = pagination
+	s.capturedTransferPositionCode = positionCode
+	s.capturedTransferOrganizationCode = organizationCode
+	return s.transferFn(ctx, tenantID, positionCode, organizationCode, pagination)
 }
 
 func (s *stubRepository) GetJobFamilyGroups(ctx context.Context, tenantID uuid.UUID, includeInactive bool, asOfDate *string) ([]model.JobFamilyGroup, error) {
@@ -400,6 +414,66 @@ func TestResolver_VacantPositions_ForwardsParameters(t *testing.T) {
 	}
 	if len(repo.capturedVacantSorting) != len(sorting) {
 		t.Fatalf("expected %d sorting items, got %d", len(sorting), len(repo.capturedVacantSorting))
+	}
+}
+
+func TestResolver_PositionTransfers_ForwardsParameters(t *testing.T) {
+	positionCode := "P2000001"
+	orgCode := "1002001"
+	pagination := &model.PaginationInput{Page: 2, PageSize: 5}
+
+	repo := &stubRepository{
+		transferFn: func(ctx context.Context, tenantID uuid.UUID, posCode *string, org *string, p *model.PaginationInput) (*model.PositionTransferConnection, error) {
+			transfer := model.PositionTransfer{
+				TransferIDField:           uuid.New().String(),
+				PositionCodeField:         positionCode,
+				FromOrganizationCodeField: "1001000",
+				ToOrganizationCodeField:   orgCode,
+				EffectiveDateField:        time.Now().UTC(),
+				CreatedAtField:            time.Now().UTC(),
+				InitiatedByField: model.OperatedByData{
+					IDField:   "user-1",
+					NameField: "User One",
+				},
+			}
+			return &model.PositionTransferConnection{
+				DataField:       []model.PositionTransfer{transfer},
+				EdgesField:      []model.PositionTransferEdge{{CursorField: transfer.TransferIDField, NodeField: transfer}},
+				PaginationField: model.PaginationInfo{PageField: int(p.Page), PageSizeField: int(p.PageSize), TotalField: 1, HasNextField: false},
+				TotalCountField: 1,
+			}, nil
+		},
+	}
+
+	perm := &stubPermissionChecker{allow: true}
+	resolver := NewResolver(repo, logDiscard(), perm)
+
+	_, err := resolver.PositionTransfers(context.Background(), struct {
+		PositionCode     *string
+		OrganizationCode *string
+		Pagination       *model.PaginationInput
+	}{
+		PositionCode:     &positionCode,
+		OrganizationCode: &orgCode,
+		Pagination:       pagination,
+	})
+	if err != nil {
+		t.Fatalf("PositionTransfers returned error: %v", err)
+	}
+	if perm.lastQuery != "positionTransfers" {
+		t.Fatalf("expected permission check for positionTransfers, got %s", perm.lastQuery)
+	}
+	if repo.capturedTenant != sharedconfig.DefaultTenantID {
+		t.Fatalf("expected tenant %s, got %s", sharedconfig.DefaultTenantID, repo.capturedTenant)
+	}
+	if repo.capturedTransferPositionCode == nil || *repo.capturedTransferPositionCode != positionCode {
+		t.Fatalf("expected position code forwarded")
+	}
+	if repo.capturedTransferOrganizationCode == nil || *repo.capturedTransferOrganizationCode != orgCode {
+		t.Fatalf("expected organization code forwarded")
+	}
+	if repo.capturedPagination != pagination {
+		t.Fatalf("expected pagination forwarded")
 	}
 }
 

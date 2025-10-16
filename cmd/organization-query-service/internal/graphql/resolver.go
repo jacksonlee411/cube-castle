@@ -26,6 +26,7 @@ type QueryRepository interface {
 	GetPositionAssignments(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error)
 	GetPositionTimeline(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]model.PositionTimelineEntry, error)
 	GetVacantPositionConnection(ctx context.Context, tenantID uuid.UUID, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error)
+	GetPositionTransfers(ctx context.Context, tenantID uuid.UUID, positionCode *string, organizationCode *string, pagination *model.PaginationInput) (*model.PositionTransferConnection, error)
 	GetPositionHeadcountStats(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error)
 	GetJobFamilyGroups(ctx context.Context, tenantID uuid.UUID, includeInactive bool, asOfDate *string) ([]model.JobFamilyGroup, error)
 	GetJobFamilies(ctx context.Context, tenantID uuid.UUID, groupCode string, includeInactive bool, asOfDate *string) ([]model.JobFamily, error)
@@ -350,6 +351,33 @@ func (r *Resolver) VacantPositions(ctx context.Context, args struct {
 		args.Filter, args.Pagination, len(sorting), tenantID.String())
 
 	return r.repo.GetVacantPositionConnection(ctx, tenantID, args.Filter, args.Pagination, sorting)
+}
+
+// PositionTransfers 查询职位转移记录
+func (r *Resolver) PositionTransfers(ctx context.Context, args struct {
+	PositionCode     *string
+	OrganizationCode *string
+	Pagination       *model.PaginationInput
+}) (*model.PositionTransferConnection, error) {
+	if err := r.permissions.CheckQueryPermission(ctx, "positionTransfers"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: positionTransfers: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+
+	tenantID := sharedconfig.DefaultTenantID
+	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
+		parsed, err := uuid.Parse(tenantStr)
+		if err != nil {
+			r.logger.Printf("[AUTH] 无效租户ID: %s", tenantStr)
+			return nil, fmt.Errorf("INVALID_TENANT")
+		}
+		tenantID = parsed
+	}
+
+	r.logger.Printf("[GraphQL] 查询职位转移 positionCode=%v organizationCode=%v pagination=%+v tenant=%s",
+		args.PositionCode, args.OrganizationCode, args.Pagination, tenantID.String())
+
+	return r.repo.GetPositionTransfers(ctx, tenantID, args.PositionCode, args.OrganizationCode, args.Pagination)
 }
 
 // PositionHeadcountStats 查询编制统计
