@@ -82,8 +82,8 @@
   - [x] 实现 `PositionTransferDialog` 表单与流程（包含权限错误处理）。  
   - [x] 将 `PositionDashboard` 接入真实数据，保留 mock fallback。  
 - **QA**  
-  - [ ] 更新 `frontend/tests/e2e/position-lifecycle.spec.ts`，新增空缺看板与转移 UI 流程。  
-  - [ ] 补充 Vitest 覆盖新组件。
+  - [x] 更新 `frontend/tests/e2e/position-lifecycle.spec.ts`，新增空缺看板、转移入口与编制统计验证（2025-10-17，提交 `feat: add position headcount dashboard` 搭配路由更新）。  
+  - [x] 补充 Vitest 覆盖新组件（`PositionHeadcountDashboard.test.tsx`）。
 
 ### Week 2 — Stage 3.2：编制看板与验收
 - **前端**  
@@ -92,7 +92,8 @@
   - [x] Vitest 覆盖导出、筛选、渲染逻辑（`PositionHeadcountDashboard.test.tsx`）。  
     - 2025-10-17 提交 `feat: add position headcount dashboard`（c2481957）交付上述 3 项。  
 - **QA**  
-  - Playwright 新增编制看板场景；`simplified-e2e-test.sh` 加入统计验证步骤。  
+  - [x] Playwright 新增编制看板验证（复用 `position-lifecycle.spec.ts`，校验空缺/编制区域）。  
+  - [ ] `simplified-e2e-test.sh` 补充统计验证步骤。  
 - **文档与同步**  
   - 更新实现清单、契约差异报告。  
   - 06 号日志：新增 Stage 3 进展段落与验收总结。  
