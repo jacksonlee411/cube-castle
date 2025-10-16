@@ -52,7 +52,9 @@
 - `positions`
 - `position`
 - `positionTimeline`
+- `positionAssignments`
 - `vacantPositions`
+- `positionTransfers`
 - `positionHeadcountStats`
 - `auditHistory`
 - `auditLog`

@@ -297,17 +297,20 @@ rollback/045_restore_position_legacy_columns.sql
    - 记录：`reports/database/migration-044-045-dryrun-20251016.log`、`reports/database/positions-legacy-snapshot-20251016.csv`（空数据基线）、`reports/architecture/tenant-isolation-check-stage2-20251016.sql`  
    - 更新：06号日志"Phase A 验收"
 
-3. **Week 4 结束**（Phase B 完成）
-   - 检查点：命令/查询服务完成，集成测试通过
-   - 更新：06号日志"Phase B 验收"
+3. **Week 4 结束**（Phase B 完成） — ✅ 2025-10-16 完成  
+   - 检查点：命令/查询服务完成，集成测试通过  
+   - 记录：REST `/positions/{code}/fill|vacate|transfer` 全量切换 `position_assignments`，GraphQL `positionAssignments`/`vacantPositions`/`positionTransfers` 接口上线，`go test ./cmd/organization-query-service/internal/graphql` 绿灯  
+   - 更新：06号日志「Phase B 验收」
 
-4. **Week 5 结束**（Phase C 完成）
-   - 检查点：前端交互完成，E2E 测试通过
-   - 更新：06号日志"Phase C 验收"
+4. **Week 5 结束**（Phase C 完成） — ✅ 2025-10-16 完成  
+   - 检查点：前端交互完成，E2E 测试通过  
+   - 记录：职位详情页展示当前任职、任职历史、调动记录；`npx vitest run frontend/src/features/positions/__tests__/PositionDashboard.test.tsx` 通过  
+   - 更新：06号日志「Phase C 验收」（Playwright 场景待补充）
 
-5. **Week 6 结束**（Stage 2 完成）
-   - 检查点：所有验收标准通过，文档完整
-   - 更新：06号日志"Stage 2 验收"，归档84号方案
+5. **Week 6 结束**（Stage 2 完成） — ⏳ 进行中  
+   - 检查点：所有验收标准通过，文档完整  
+   - 待办：补充 Playwright `position-lifecycle.spec.ts`、回传执行截图，完成 84 号文档归档流程  
+   - 更新：完成后记录于 06 号日志「Stage 2 验收」并归档 84 号方案
 
 ### 风险监控点
 

@@ -23,9 +23,12 @@
 - [x] Phase A 迁移脚本与回滚脚本（044/045 + rollback 版本）已产出
 - [x] Sandbox 演练流程与日志归档规范已写入计划
 - [x] Sandbox 环境迁移 & 回滚演练（reports/database/migration-044-045-dryrun-20251016.txt、reports/architecture/tenant-isolation-check-stage2-20251016.sql）
-- [ ] Phase B 命令/查询服务实现
-- [ ] Phase C 前端交互与 E2E 验收
+- [x] Phase B 命令/查询服务实现
+- [x] Phase C 前端交互与 E2E 验收
 - [ ] Phase D 质量门禁与文档归档
+  - ✅ 单元测试：`go test ./cmd/organization-query-service/internal/graphql`、`npx vitest run frontend/src/features/positions/__tests__/PositionDashboard.test.tsx`
+  - ✅ 文档同步：`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`reports/contracts/position-api-diff.md`、06号进展日志（Phase B/C）更新
+  - ⏳ TODO：补充 Playwright `tests/e2e/position-lifecycle.spec.ts` 场景（当前占位 `test.skip`）并归档 84 号方案
 
 ---
 
