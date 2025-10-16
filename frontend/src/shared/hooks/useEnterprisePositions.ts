@@ -4,10 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { graphqlEnterpriseAdapter } from '../api/graphql-enterprise-adapter';
 import { createQueryError } from '../api/queryClient';
 import type {
+  PositionAssignmentRecord,
   PositionDetailResult,
   PositionRecord,
   PositionStatus,
   PositionTimelineEvent,
+  PositionTransferRecord,
   PositionsQueryResult,
 } from '../types/positions';
 
@@ -39,6 +41,38 @@ interface NormalizedPositionQueryParams {
   employmentType?: string;
 }
 
+interface PositionAssignmentGraphQLNode {
+  assignmentId: string;
+  positionCode: string;
+  positionRecordId?: string | null;
+  employeeId: string;
+  employeeName: string;
+  employeeNumber?: string | null;
+  assignmentType: string;
+  assignmentStatus: string;
+  fte: number;
+  startDate: string;
+  endDate?: string | null;
+  isCurrent: boolean;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PositionTransferGraphQLNode {
+  transferId: string;
+  positionCode: string;
+  fromOrganizationCode: string;
+  toOrganizationCode: string;
+  effectiveDate: string;
+  initiatedBy: {
+    id: string;
+    name: string;
+  };
+  operationReason?: string | null;
+  createdAt: string;
+}
+
 interface PositionNodeResponse {
   code: string;
   title: string;
@@ -66,6 +100,7 @@ interface PositionNodeResponse {
   isFuture: boolean;
   createdAt: string;
   updatedAt: string;
+  currentAssignment?: PositionAssignmentGraphQLNode | null;
 }
 
 interface PositionTimelineResponse {
@@ -95,6 +130,12 @@ interface PositionsGraphQLResponse {
 interface PositionDetailGraphQLResponse {
   position: PositionNodeResponse | null;
   positionTimeline: PositionTimelineResponse[];
+  positionAssignments: {
+    data: PositionAssignmentGraphQLNode[];
+  };
+  positionTransfers: {
+    data: PositionTransferGraphQLNode[];
+  };
 }
 
 const POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
@@ -161,6 +202,23 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
       isFuture
       createdAt
       updatedAt
+      currentAssignment {
+        assignmentId
+        positionCode
+        positionRecordId
+        employeeId
+        employeeName
+        employeeNumber
+        assignmentType
+        assignmentStatus
+        fte
+        startDate
+        endDate
+        isCurrent
+        notes
+        createdAt
+        updatedAt
+      }
     }
     positionTimeline(code: $code) {
       recordId
@@ -170,6 +228,48 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
       endDate
       changeReason
       isCurrent
+    }
+    positionAssignments(
+      positionCode: $code
+      filter: { includeHistorical: true }
+      pagination: { page: 1, pageSize: 50 }
+      sorting: [{ field: START_DATE, direction: DESC }]
+    ) {
+      data {
+        assignmentId
+        positionCode
+        positionRecordId
+        employeeId
+        employeeName
+        employeeNumber
+        assignmentType
+        assignmentStatus
+        fte
+        startDate
+        endDate
+        isCurrent
+        notes
+        createdAt
+        updatedAt
+      }
+    }
+    positionTransfers(
+      positionCode: $code
+      pagination: { page: 1, pageSize: 50 }
+    ) {
+      data {
+        transferId
+        positionCode
+        fromOrganizationCode
+        toOrganizationCode
+        effectiveDate
+        initiatedBy {
+          id
+          name
+        }
+        operationReason
+        createdAt
+      }
     }
   }
 `;
@@ -279,6 +379,38 @@ const transformPositionNode = (node: PositionNodeResponse): PositionRecord => {
   };
 };
 
+const transformAssignmentNode = (node: PositionAssignmentGraphQLNode): PositionAssignmentRecord => ({
+  assignmentId: node.assignmentId,
+  positionCode: node.positionCode,
+  positionRecordId: node.positionRecordId ?? undefined,
+  employeeId: node.employeeId,
+  employeeName: node.employeeName,
+  employeeNumber: node.employeeNumber ?? undefined,
+  assignmentType: node.assignmentType,
+  assignmentStatus: node.assignmentStatus,
+  fte: node.fte,
+  startDate: node.startDate,
+  endDate: node.endDate ?? undefined,
+  isCurrent: node.isCurrent,
+  notes: node.notes ?? undefined,
+  createdAt: node.createdAt,
+  updatedAt: node.updatedAt,
+});
+
+const transformTransferNode = (node: PositionTransferGraphQLNode): PositionTransferRecord => ({
+  transferId: node.transferId,
+  positionCode: node.positionCode,
+  fromOrganizationCode: node.fromOrganizationCode,
+  toOrganizationCode: node.toOrganizationCode,
+  effectiveDate: node.effectiveDate,
+  initiatedBy: {
+    id: node.initiatedBy?.id ?? '',
+    name: node.initiatedBy?.name ?? '',
+  },
+  operationReason: node.operationReason ?? undefined,
+  createdAt: node.createdAt,
+});
+
 const transformTimelineEntry = (entry: PositionTimelineResponse): PositionTimelineEvent => ({
   id: entry.recordId,
   status: (entry.status ?? '').toUpperCase(),
@@ -357,10 +489,22 @@ const fetchPositionDetail = async (
 
   const position = transformPositionNode(response.data.position);
   const timeline = (response.data.positionTimeline ?? []).map(transformTimelineEntry);
+  const assignments = (response.data.positionAssignments?.data ?? []).map(transformAssignmentNode);
+  const transfers = (response.data.positionTransfers?.data ?? []).map(transformTransferNode);
+
+  let currentAssignment: PositionAssignmentRecord | null = null;
+  if (response.data.position.currentAssignment) {
+    currentAssignment = transformAssignmentNode(response.data.position.currentAssignment);
+  } else {
+    currentAssignment = assignments.find(item => item.isCurrent) ?? null;
+  }
 
   return {
     position,
     timeline,
+    currentAssignment: currentAssignment ?? null,
+    assignments,
+    transfers,
     fetchedAt: response.timestamp ?? new Date().toISOString(),
   };
 };
@@ -439,6 +583,8 @@ export const __internal = {
   normalizePositionParams,
   buildGraphQLVariables,
   transformPositionNode,
+  transformAssignmentNode,
+  transformTransferNode,
   transformTimelineEntry,
   fetchPositionsWithParams,
   fetchPositionDetail,

@@ -3,13 +3,21 @@ import { Card } from '@workday/canvas-kit-react/card'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
-import type { PositionRecord, PositionTimelineEvent } from '@/shared/types/positions'
+import type {
+  PositionAssignmentRecord,
+  PositionRecord,
+  PositionTimelineEvent,
+  PositionTransferRecord,
+} from '@/shared/types/positions'
 import { getPositionStatusMeta } from '../statusMeta'
 import { SimpleStack } from './SimpleStack'
 
 interface PositionDetailsProps {
   position?: PositionRecord
   timeline: PositionTimelineEvent[]
+  assignments?: PositionAssignmentRecord[]
+  currentAssignment?: PositionAssignmentRecord | null
+  transfers?: PositionTransferRecord[]
   isLoading?: boolean
   dataSource?: 'api' | 'mock'
 }
@@ -36,6 +44,64 @@ const StatusPill: React.FC<{ status: string }> = ({ status }) => {
   )
 }
 
+const formatDateRange = (start: string, end?: string | null) => {
+  if (!start && !end) {
+    return '未提供'
+  }
+  if (!end) {
+    return `${start} 起`
+  }
+  return `${start} - ${end}`
+}
+
+const AssignmentItem: React.FC<{ assignment: PositionAssignmentRecord; highlight?: boolean }> = ({
+  assignment,
+  highlight = false,
+}) => (
+  <Box
+    border={`1px solid ${highlight ? colors.blueberry400 : colors.soap400}`}
+    borderRadius="12px"
+    padding={space.s}
+    backgroundColor={highlight ? colors.blueberry50 : colors.frenchVanilla100}
+  >
+    <SimpleStack gap={space.xxxs}>
+      <Flex justifyContent="space-between" alignItems="baseline">
+        <Text fontWeight="bold">
+          {assignment.employeeName}
+          {assignment.employeeNumber ? `（${assignment.employeeNumber}）` : ''}
+        </Text>
+        <Text fontSize="12px" color={colors.licorice400}>
+          {assignment.assignmentStatus} · {assignment.assignmentType}
+        </Text>
+      </Flex>
+      <Text fontSize="12px" color={colors.licorice400}>
+        任职时间：{formatDateRange(assignment.startDate, assignment.endDate)} · FTE：{assignment.fte.toFixed(2)}
+      </Text>
+      {assignment.notes && (
+        <Text fontSize="12px" color={colors.licorice500}>
+          备注：{assignment.notes}
+        </Text>
+      )}
+    </SimpleStack>
+  </Box>
+)
+
+const TransferItem: React.FC<{ transfer: PositionTransferRecord }> = ({ transfer }) => (
+  <Box borderLeft={`2px solid ${colors.blueberry400}`} paddingLeft={space.m} marginBottom={space.m}>
+    <Text fontWeight="bold">
+      {transfer.fromOrganizationCode || '未记录'} → {transfer.toOrganizationCode}
+    </Text>
+    <Text fontSize="12px" color={colors.licorice400}>
+      生效：{transfer.effectiveDate} · 发起人：{transfer.initiatedBy.name || transfer.initiatedBy.id}
+    </Text>
+    {transfer.operationReason && (
+      <Text fontSize="12px" color={colors.licorice500}>
+        原因：{transfer.operationReason}
+      </Text>
+    )}
+  </Box>
+)
+
 const TimelineItem: React.FC<{ event: PositionTimelineEvent }> = ({ event }) => (
   <Box borderLeft={`2px solid ${colors.blueberry400}`} paddingLeft={space.m} marginBottom={space.m}>
     <Text fontWeight="bold">
@@ -59,6 +125,9 @@ const TimelineItem: React.FC<{ event: PositionTimelineEvent }> = ({ event }) => 
 export const PositionDetails: React.FC<PositionDetailsProps> = ({
   position,
   timeline,
+  assignments = [],
+  currentAssignment = null,
+  transfers = [],
   isLoading = false,
   dataSource = 'api',
 }) => {
@@ -122,6 +191,41 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
           <Text>
             汇报职位：{position.reportsToPositionCode ?? '未设置'}
           </Text>
+        </SimpleStack>
+
+        <DividerLine />
+
+        <SimpleStack gap={space.xs}>
+          <Heading level="4">当前任职</Heading>
+          {currentAssignment ? (
+            <AssignmentItem assignment={currentAssignment} highlight />
+          ) : (
+            <Text color={colors.licorice400}>暂无当前任职</Text>
+          )}
+        </SimpleStack>
+
+        <DividerLine />
+
+        <SimpleStack gap={space.s}>
+          <Heading level="4">任职历史</Heading>
+          {assignments.length === 0 ? (
+            <Text color={colors.licorice400}>暂无任职记录</Text>
+          ) : (
+            assignments.map(item => (
+              <AssignmentItem key={item.assignmentId} assignment={item} highlight={item.assignmentId === currentAssignment?.assignmentId} />
+            ))
+          )}
+        </SimpleStack>
+
+        <DividerLine />
+
+        <SimpleStack gap={space.s}>
+          <Heading level="4">调动记录</Heading>
+          {transfers.length === 0 ? (
+            <Text color={colors.licorice400}>暂无调动记录</Text>
+          ) : (
+            transfers.map(item => <TransferItem key={item.transferId} transfer={item} />)
+          )}
         </SimpleStack>
 
         <DividerLine />

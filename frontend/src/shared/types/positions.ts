@@ -47,6 +47,38 @@ export interface PositionTimelineEvent {
   isCurrent?: boolean;
 }
 
+export interface PositionAssignmentRecord {
+  assignmentId: string;
+  positionCode: string;
+  positionRecordId?: string | null;
+  employeeId: string;
+  employeeName: string;
+  employeeNumber?: string | null;
+  assignmentType: string;
+  assignmentStatus: string;
+  fte: number;
+  startDate: string;
+  endDate?: string | null;
+  isCurrent: boolean;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PositionTransferRecord {
+  transferId: string;
+  positionCode: string;
+  fromOrganizationCode: string;
+  toOrganizationCode: string;
+  effectiveDate: string;
+  initiatedBy: {
+    id: string;
+    name: string;
+  };
+  operationReason?: string | null;
+  createdAt: string;
+}
+
 export interface PositionsQueryResult {
   positions: PositionRecord[];
   pagination: {
@@ -63,5 +95,8 @@ export interface PositionsQueryResult {
 export interface PositionDetailResult {
   position: PositionRecord;
   timeline: PositionTimelineEvent[];
+  currentAssignment?: PositionAssignmentRecord | null;
+  assignments: PositionAssignmentRecord[];
+  transfers: PositionTransferRecord[];
   fetchedAt: string;
 }

@@ -170,6 +170,10 @@ export const PositionDashboard: React.FC = () => {
       : []
     : detailQuery.data?.timeline ?? []
 
+  const assignments = useMockData ? [] : detailQuery.data?.assignments ?? []
+  const currentAssignment = useMockData ? null : detailQuery.data?.currentAssignment ?? null
+  const transfers = useMockData ? [] : detailQuery.data?.transfers ?? []
+
   const listData = filteredPositions
   const summaryData = filteredPositions
 
@@ -239,6 +243,9 @@ export const PositionDashboard: React.FC = () => {
             <PositionDetails
               position={detailPosition}
               timeline={timeline}
+              currentAssignment={currentAssignment ?? undefined}
+              assignments={assignments}
+              transfers={transfers}
               isLoading={!useMockData && detailQuery.isLoading}
               dataSource={useMockData ? 'mock' : 'api'}
             />

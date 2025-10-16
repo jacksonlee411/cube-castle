@@ -67,6 +67,71 @@ const positionDetailResult: PositionDetailResult = {
       changeReason: '张三入职',
     },
   ],
+  currentAssignment: {
+    assignmentId: 'assign-001',
+    positionCode: samplePosition.code,
+    positionRecordId: 'pos-rec-001',
+    employeeId: 'emp-001',
+    employeeName: '张三',
+    employeeNumber: 'E001',
+    assignmentType: 'PRIMARY',
+    assignmentStatus: 'ACTIVE',
+    fte: 1,
+    startDate: '2024-03-01',
+    endDate: undefined,
+    isCurrent: true,
+    notes: '夜班负责人',
+    createdAt: '2024-03-01T00:00:00.000Z',
+    updatedAt: '2024-03-02T00:00:00.000Z',
+  },
+  assignments: [
+    {
+      assignmentId: 'assign-001',
+      positionCode: samplePosition.code,
+      positionRecordId: 'pos-rec-001',
+      employeeId: 'emp-001',
+      employeeName: '张三',
+      employeeNumber: 'E001',
+      assignmentType: 'PRIMARY',
+      assignmentStatus: 'ACTIVE',
+      fte: 1,
+      startDate: '2024-03-01',
+      endDate: undefined,
+      isCurrent: true,
+      notes: '夜班负责人',
+      createdAt: '2024-03-01T00:00:00.000Z',
+      updatedAt: '2024-03-02T00:00:00.000Z',
+    },
+    {
+      assignmentId: 'assign-000',
+      positionCode: samplePosition.code,
+      positionRecordId: 'pos-rec-000',
+      employeeId: 'emp-000',
+      employeeName: '李四',
+      employeeNumber: 'E000',
+      assignmentType: 'PRIMARY',
+      assignmentStatus: 'ENDED',
+      fte: 1,
+      startDate: '2023-01-01',
+      endDate: '2024-02-28',
+      isCurrent: false,
+      notes: '内部调岗',
+      createdAt: '2023-01-01T00:00:00.000Z',
+      updatedAt: '2024-02-28T00:00:00.000Z',
+    },
+  ],
+  transfers: [
+    {
+      transferId: 'transfer-001',
+      positionCode: samplePosition.code,
+      fromOrganizationCode: '1001000',
+      toOrganizationCode: samplePosition.organizationCode,
+      effectiveDate: '2024-02-15',
+      initiatedBy: { id: 'user-001', name: '刘洋' },
+      operationReason: '项目调整',
+      createdAt: '2024-02-16T00:00:00.000Z',
+    },
+  ],
   fetchedAt: '2025-10-16T00:00:00.000Z',
 }
 
@@ -107,5 +172,9 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
     expect(detailCard).toHaveTextContent('物业保洁员')
     expect(detailCard).toHaveTextContent('岗位填充')
     expect(detailCard).toHaveTextContent('张三入职')
+    expect(detailCard).toHaveTextContent('当前任职')
+    expect(detailCard).toHaveTextContent('张三')
+    expect(detailCard).toHaveTextContent('调动记录')
+    expect(detailCard).toHaveTextContent('项目调整')
   })
 })
