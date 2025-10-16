@@ -33,6 +33,10 @@ vi.mock('../components/PositionTransferDialog', () => ({
   PositionTransferDialog: () => <div data-testid="position-transfer-dialog" />,
 }))
 
+vi.mock('../components/PositionHeadcountDashboard', () => ({
+  PositionHeadcountDashboard: () => <div data-testid="position-headcount-dashboard" />,
+}))
+
 const { useEnterprisePositions, usePositionDetail, useVacantPositions } = await import('@/shared/hooks/useEnterprisePositions')
 const mockedUseEnterprisePositions = useEnterprisePositions as unknown as Mock
 const mockedUsePositionDetail = usePositionDetail as unknown as Mock
@@ -217,6 +221,7 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
     expect(screen.getByTestId('position-row-P9000001')).toBeInTheDocument()
     expect(screen.getAllByText('物业保洁员')[0]).toBeInTheDocument()
     expect(screen.getByTestId('position-vacancy-board')).toBeInTheDocument()
+    expect(screen.getByTestId('position-headcount-dashboard')).toBeInTheDocument()
   })
 
   it('切换列表项时展示职位详情与时间线', () => {

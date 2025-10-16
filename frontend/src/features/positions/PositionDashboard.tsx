@@ -9,6 +9,7 @@ import { PositionSummaryCards } from './components/PositionSummaryCards'
 import { PositionList } from './components/PositionList'
 import { PositionDetails } from './components/PositionDetails'
 import { PositionVacancyBoard } from './components/PositionVacancyBoard'
+import { PositionHeadcountDashboard } from './components/PositionHeadcountDashboard'
 import { SimpleStack } from './components/SimpleStack'
 import { mockPositions } from './mockData'
 import type { PositionMock } from './mockData'
@@ -177,6 +178,8 @@ export const PositionDashboard: React.FC = () => {
 
   const listData = filteredPositions
   const summaryData = filteredPositions
+  const headcountOrganizationCode =
+    detailPosition?.organizationCode ?? filteredPositions[0]?.organizationCode ?? undefined
 
   return (
     <Box padding={space.l} data-testid="position-dashboard">
@@ -199,6 +202,7 @@ export const PositionDashboard: React.FC = () => {
         <PositionSummaryCards positions={summaryData} />
 
         <PositionVacancyBoard />
+        <PositionHeadcountDashboard organizationCode={headcountOrganizationCode} />
 
         <CardLikeContainer>
           <SimpleStack gap={space.m}>
