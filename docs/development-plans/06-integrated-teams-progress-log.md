@@ -309,8 +309,8 @@ rollback/045_restore_position_legacy_columns.sql
 
 5. **Week 6 结束**（Stage 2 完成） — ✅ 2025-10-16 完成  
    - 检查点：所有验收标准通过，文档完整  
-   - 记录：`cd frontend && npx playwright test tests/e2e/position-lifecycle.spec.ts --config playwright.config.ts` 通过；准备归档 84 号文档并整理截图  
-   - 更新：06号日志「Stage 2 验收」（待归档流程）
+   - 记录：`cd frontend && npx playwright test tests/e2e/position-lifecycle.spec.ts --config playwright.config.ts` 通过；84 号文档已归档至 `docs/archive/development-plans/`
+   - 更新：06号日志「Stage 2 验收」
 
 ### 风险监控点
 

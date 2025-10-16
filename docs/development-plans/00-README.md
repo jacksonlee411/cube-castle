@@ -68,6 +68,7 @@
 - `../archive/development-plans/64-phase-3-acceptance-report.md` - Phase 3 验收报告（2025-10-12 通过）
 - `../archive/development-plans/65-tooling-validation-consolidation-plan.md` - Phase 4 工具与验证巩固计划（2025-10-12 完成）
 - `../archive/development-plans/66-phase-4-acceptance-draft.md` - Phase 4 验收草案
+- `../archive/development-plans/84-position-lifecycle-stage2-implementation-plan.md` - 职位生命周期 Stage 2 实施计划（方案B）
 
 ## 📊 文档关系
 

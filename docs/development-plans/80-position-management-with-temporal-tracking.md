@@ -1368,14 +1368,14 @@ job-catalog:write          # 维护职位体系主数据
 ### 7.3 Stage 2：职位生命周期（3周）
 
 **Week 5-6: 填充与空缺**
-- [ ] Fill/Vacate 命令端点
-- [ ] 任职关系基础数据模型
-- [ ] 前端职位填充流程
+- [x] Fill/Vacate 命令端点
+- [x] 任职关系基础数据模型
+- [x] 前端职位填充流程
 - [ ] 空缺职位看板
 
 **Week 7: 职位转移与调整**
-- [ ] Transfer 命令端点
-- [ ] 汇报关系管理
+- [x] Transfer 命令端点
+- [x] 汇报关系管理
 - [ ] 前端组织转移界面
 
 ### 7.4 Stage 3：编制与统计（2周）
@@ -1399,10 +1399,9 @@ job-catalog:write          # 维护职位体系主数据
 
 ### 7.6 Assignment 依赖与临时策略
 
-- **Phase 1-2 过渡方案**：在 Assignment 表尚未落地前，`fill/vacate` 命令写入 `positions` 表内的 `current_holder_*` 与 `current_assignment_type` 冗余字段，并在响应中标记 `assignmentStatus = LEGACY`，提醒前端仅展示占位信息。
-- **落地条件**：推进 Phase 4 前，需完成以下前置项：
-  1. 在 `docs/api/openapi.yaml` 与 `schema.graphql` 中定义 `PositionAssignment` 资源/类型及关系字段。
-  2. 更新时态管理服务，支持 `positions` 与 `position_assignments` 同事务写入及回滚。
+- ✅ **Phase 1-2 过渡方案回收**：`current_holder_*` 与 `current_assignment_type` 冗余字段已通过 045 迁移移除，命令服务全面改写至 `position_assignments`。
+- ✅ **落地条件完成**：GraphQL/REST 契约已补充 `PositionAssignment` 资源，命令服务与仓储层支持 `position_assignments` + `positions` 同事务写入与回滚。
+- ⏳ **后续迭代**：按 Stage 4 规划继续扩展多重任职（Secondary/Acting）、代理任职等高级场景。
   3. 对接员工基础数据服务，确认 `employeeId` 的唯一事实来源和授权范围。
 - **数据回填策略**：Assignment 表上线时，通过迁移脚本将现有 `positions.current_holder_*` 与 `current_assignment_type` 数据转存为首个 `assignment` 记录，并设置 `start_date = filled_date`。迁移完成后清理冗余字段，避免双写。
 

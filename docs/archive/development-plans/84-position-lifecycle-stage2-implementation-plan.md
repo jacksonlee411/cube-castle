@@ -1,9 +1,10 @@
 # 84号文档：职位生命周期 Stage 2 实施计划（方案B重构版）
 
-**版本**: v0.2 草案  
+**版本**: v1.0  
 **创建日期**: 2025-10-16  
 **维护团队**: 命令服务团队 · 查询服务团队 · 前端团队 · 架构组  
-**状态**: 待评审（方案B采纳后重构）  
+**归档日期**: 2025-10-16  
+**状态**: ✅ 已完成（Stage 2 全量上线并验收通过）  
 **关联计划**: 80号职位管理方案 · 06号集成团队进展日志 · 82号 Stage 1 实施计划  
 **唯一事实来源**:  
 - `docs/development-plans/80-position-management-with-temporal-tracking.md`（Stage 2 目标）  
@@ -188,10 +189,21 @@
 
 ---
 
-## 8. 变更记录
+## 8. 验收与归档记录
+
+- ✅ 2025-10-16：Stage 2 全量上线，命令/查询服务、前端交互与E2E 覆盖完成。
+- ✅ 核心验证：
+  - `go test ./cmd/organization-query-service/internal/graphql`
+  - `npx vitest run frontend/src/features/positions/__tests__/PositionDashboard.test.tsx`
+  - `cd frontend && npx playwright test tests/e2e/position-lifecycle.spec.ts --config playwright.config.ts`
+- ✅ 文档同步：实现清单、契约差异报告、06号进展日志更新；80号计划勾选 Stage 2 任务。
+- 📦 归档说明：本计划文件迁移至 `docs/archive/development-plans/`，持续参考 80 号与 06 号文档追踪后续迭代。
+
+## 9. 变更记录
 
 | 版本 | 日期 | 内容 | 作者 |
 |------|------|------|------|
+| v1.0 | 2025-10-16 | Stage 2 实施完成，补充验收记录并归档 | 项目智能助手 |
 | v0.2 | 2025-10-16 | 采纳方案B，重写 Stage 2 计划（移除双数据源、延长周期） | 项目智能助手 |
 
 ---
