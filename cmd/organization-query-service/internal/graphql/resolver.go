@@ -23,6 +23,7 @@ type QueryRepository interface {
 	GetOrganizationSubtree(ctx context.Context, tenantID uuid.UUID, code string, maxDepth int) (*model.OrganizationHierarchyData, error)
 	GetPositions(ctx context.Context, tenantID uuid.UUID, filter *model.PositionFilterInput, pagination *model.PaginationInput, sorting []model.PositionSortInput) (*model.PositionConnection, error)
 	GetPositionByCode(ctx context.Context, tenantID uuid.UUID, code string, asOfDate *string) (*model.Position, error)
+	GetPositionAssignments(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error)
 	GetPositionTimeline(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]model.PositionTimelineEntry, error)
 	GetVacantPositions(ctx context.Context, tenantID uuid.UUID, organizationCode, positionType *string, includeSubordinates bool) ([]model.Position, error)
 	GetPositionHeadcountStats(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error)
@@ -267,6 +268,41 @@ func (r *Resolver) Position(ctx context.Context, args struct {
 	r.logger.Printf("[GraphQL] 查询职位详情 code=%s asOfDate=%v", args.Code, args.AsOfDate)
 
 	return r.repo.GetPositionByCode(ctx, sharedconfig.DefaultTenantID, args.Code, args.AsOfDate)
+}
+
+// PositionAssignments 查询职位任职记录
+func (r *Resolver) PositionAssignments(ctx context.Context, args struct {
+	PositionCode string
+	Filter       *model.PositionAssignmentFilterInput
+	Pagination   *model.PaginationInput
+	Sorting      *[]model.PositionAssignmentSortInput
+}) (*model.PositionAssignmentConnection, error) {
+	if err := r.permissions.CheckQueryPermission(ctx, "positionAssignments"); err != nil {
+		r.logger.Printf("[AUTH] 权限拒绝: positionAssignments: %v", err)
+		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+
+	var (
+		tenantID = sharedconfig.DefaultTenantID
+	)
+	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
+		parsed, err := uuid.Parse(tenantStr)
+		if err != nil {
+			r.logger.Printf("[AUTH] 非法租户ID: %s", tenantStr)
+			return nil, fmt.Errorf("INVALID_TENANT")
+		}
+		tenantID = parsed
+	}
+
+	var sorting []model.PositionAssignmentSortInput
+	if args.Sorting != nil {
+		sorting = *args.Sorting
+	}
+
+	r.logger.Printf("[GraphQL] 查询职位任职 positionCode=%s filter=%+v pagination=%+v sort=%d tenant=%s",
+		args.PositionCode, args.Filter, args.Pagination, len(sorting), tenantID.String())
+
+	return r.repo.GetPositionAssignments(ctx, tenantID, args.PositionCode, args.Filter, args.Pagination, sorting)
 }
 
 // PositionTimeline 查询职位时间线

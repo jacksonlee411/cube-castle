@@ -679,6 +679,83 @@ type PositionEdge struct {
 func (e PositionEdge) Cursor() string { return e.CursorField }
 func (e PositionEdge) Node() Position { return e.NodeField }
 
+// PositionAssignment 表示职位任职记录
+type PositionAssignment struct {
+	AssignmentIDField     string     `json:"assignmentId" db:"assignment_id"`
+	TenantIDField         string     `json:"tenantId" db:"tenant_id"`
+	PositionCodeField     string     `json:"positionCode" db:"position_code"`
+	PositionRecordIDField string     `json:"positionRecordId" db:"position_record_id"`
+	EmployeeIDField       string     `json:"employeeId" db:"employee_id"`
+	EmployeeNameField     string     `json:"employeeName" db:"employee_name"`
+	EmployeeNumberField   *string    `json:"employeeNumber" db:"employee_number"`
+	AssignmentTypeField   string     `json:"assignmentType" db:"assignment_type"`
+	AssignmentStatusField string     `json:"assignmentStatus" db:"assignment_status"`
+	FTEField              float64    `json:"fte" db:"fte"`
+	StartDateField        time.Time  `json:"startDate" db:"start_date"`
+	EndDateField          *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField        bool       `json:"isCurrent" db:"is_current"`
+	NotesField            *string    `json:"notes" db:"notes"`
+	CreatedAtField        time.Time  `json:"createdAt" db:"created_at"`
+	UpdatedAtField        time.Time  `json:"updatedAt" db:"updated_at"`
+}
+
+func (a PositionAssignment) AssignmentId() UUID         { return UUID(a.AssignmentIDField) }
+func (a PositionAssignment) TenantId() UUID             { return UUID(a.TenantIDField) }
+func (a PositionAssignment) PositionCode() PositionCode { return PositionCode(a.PositionCodeField) }
+func (a PositionAssignment) PositionRecordId() UUID     { return UUID(a.PositionRecordIDField) }
+func (a PositionAssignment) EmployeeId() UUID           { return UUID(a.EmployeeIDField) }
+func (a PositionAssignment) EmployeeName() string       { return a.EmployeeNameField }
+func (a PositionAssignment) EmployeeNumber() *string    { return a.EmployeeNumberField }
+func (a PositionAssignment) AssignmentType() string     { return a.AssignmentTypeField }
+func (a PositionAssignment) AssignmentStatus() string   { return a.AssignmentStatusField }
+func (a PositionAssignment) Fte() float64               { return a.FTEField }
+func (a PositionAssignment) StartDate() Date {
+	return Date(a.StartDateField.Format("2006-01-02"))
+}
+func (a PositionAssignment) EndDate() *Date {
+	if a.EndDateField == nil {
+		return nil
+	}
+	val := Date(a.EndDateField.Format("2006-01-02"))
+	return &val
+}
+func (a PositionAssignment) IsCurrent() bool { return a.IsCurrentField }
+func (a PositionAssignment) Notes() *string  { return a.NotesField }
+func (a PositionAssignment) CreatedAt() DateTime {
+	return DateTime(a.CreatedAtField.Format(time.RFC3339))
+}
+func (a PositionAssignment) UpdatedAt() DateTime {
+	return DateTime(a.UpdatedAtField.Format(time.RFC3339))
+}
+
+// PositionAssignmentEdge 游标数据
+type PositionAssignmentEdge struct {
+	CursorField string             `json:"cursor"`
+	NodeField   PositionAssignment `json:"node"`
+}
+
+func (e PositionAssignmentEdge) Cursor() string           { return e.CursorField }
+func (e PositionAssignmentEdge) Node() PositionAssignment { return e.NodeField }
+
+// PositionAssignmentConnection 连接响应
+type PositionAssignmentConnection struct {
+	EdgesField      []PositionAssignmentEdge `json:"edges"`
+	DataField       []PositionAssignment     `json:"data"`
+	PaginationField PaginationInfo           `json:"pagination"`
+	TotalCountField int                      `json:"totalCount"`
+}
+
+func (c PositionAssignmentConnection) Edges() []PositionAssignmentEdge {
+	return c.EdgesField
+}
+func (c PositionAssignmentConnection) Data() []PositionAssignment { return c.DataField }
+func (c PositionAssignmentConnection) Pagination() PaginationInfo {
+	return c.PaginationField
+}
+func (c PositionAssignmentConnection) TotalCount() int32 {
+	return int32(c.TotalCountField)
+}
+
 // PositionFilterInput 过滤条件
 type PositionFilterInput struct {
 	OrganizationCode    *string         `json:"organizationCode"`
@@ -796,6 +873,91 @@ func (s *PositionSortInput) UnmarshalGraphQL(input interface{}) error {
 
 	s.Field = field
 	s.Direction = direction
+	return nil
+}
+
+// PositionAssignmentFilterInput GraphQL 任职过滤条件
+type PositionAssignmentFilterInput struct {
+	EmployeeID        *string `json:"employeeId"`
+	AssignmentStatus  *string `json:"assignmentStatus"`
+	AssignmentType    *string `json:"assignmentType"`
+	AsOfDate          *string `json:"asOfDate"`
+	IncludeHistorical bool    `json:"includeHistorical"`
+}
+
+func (f *PositionAssignmentFilterInput) UnmarshalGraphQL(input interface{}) error {
+	raw, ok := input.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("PositionAssignmentFilterInput: 期望对象类型，实际得到 %T", input)
+	}
+
+	f.IncludeHistorical = true
+
+	if value, exists := raw["employeeId"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("PositionAssignmentFilterInput.employeeId: %w", err)
+		}
+		f.EmployeeID = strPtr
+	}
+	if value, exists := raw["assignmentStatus"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("PositionAssignmentFilterInput.assignmentStatus: %w", err)
+		}
+		f.AssignmentStatus = strPtr
+	}
+	if value, exists := raw["assignmentType"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("PositionAssignmentFilterInput.assignmentType: %w", err)
+		}
+		f.AssignmentType = strPtr
+	}
+	if value, exists := raw["asOfDate"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("PositionAssignmentFilterInput.asOfDate: %w", err)
+		}
+		f.AsOfDate = strPtr
+	}
+	if value, exists := raw["includeHistorical"]; exists {
+		boolVal, err := asBool(value)
+		if err != nil {
+			return fmt.Errorf("PositionAssignmentFilterInput.includeHistorical: %w", err)
+		}
+		f.IncludeHistorical = boolVal
+	}
+	return nil
+}
+
+// PositionAssignmentSortInput 任职排序输入
+type PositionAssignmentSortInput struct {
+	Field     string `json:"field"`
+	Direction string `json:"direction"`
+}
+
+func (s *PositionAssignmentSortInput) UnmarshalGraphQL(input interface{}) error {
+	raw, ok := input.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("PositionAssignmentSortInput: 期望对象类型，实际得到 %T", input)
+	}
+
+	field, err := asRequiredString(raw, "field")
+	if err != nil {
+		return fmt.Errorf("PositionAssignmentSortInput.field: %w", err)
+	}
+	direction, err := asOptionalString(raw["direction"])
+	if err != nil {
+		return fmt.Errorf("PositionAssignmentSortInput.direction: %w", err)
+	}
+
+	s.Field = field
+	if direction != nil {
+		s.Direction = *direction
+	} else {
+		s.Direction = "DESC"
+	}
 	return nil
 }
 
