@@ -73,17 +73,17 @@
 
 ### Week 1 — Stage 3.1：基础能力整合
 - **查询服务**  
-  - 审视 `GetVacantPositionConnection` 与 `GetPositionHeadcountStats`，补齐缺失的聚合字段（如按职类/职位类型分类）。  
-  - 增加租户隔离与 asOfDate 单元测试。  
+  - [ ] 审视 `GetVacantPositionConnection` 与 `GetPositionHeadcountStats`，补齐缺失的聚合字段（如按职类/职位类型分类）。  
+  - [ ] 增加租户隔离与 asOfDate 单元测试。  
 - **命令服务**  
-  - 核查 Fill/Vacate/Transfer 后 headcount 缓存更新逻辑；如需事件或刷新机制，补充实现与测试。  
+  - [ ] 核查 Fill/Vacate/Transfer 后 headcount 缓存更新逻辑；如需事件或刷新机制，补充实现与测试。  
 - **前端**  
-  - 实现 `PositionVacancyBoard` 组件与 `useVacantPositions` Hook。  
-  - 实现 `PositionTransferDialog` 表单与流程（包含权限错误处理）。  
-  - 将 `PositionDashboard` 接入真实数据，保留 mock fallback。  
+  - [x] 实现 `PositionVacancyBoard` 组件与 `useVacantPositions` Hook。  
+  - [x] 实现 `PositionTransferDialog` 表单与流程（包含权限错误处理）。  
+  - [x] 将 `PositionDashboard` 接入真实数据，保留 mock fallback。  
 - **QA**  
-  - 更新 `frontend/tests/e2e/position-lifecycle.spec.ts`，新增空缺看板与转移 UI 流程。  
-  - 补充 Vitest 覆盖新组件。
+  - [ ] 更新 `frontend/tests/e2e/position-lifecycle.spec.ts`，新增空缺看板与转移 UI 流程。  
+  - [ ] 补充 Vitest 覆盖新组件。
 
 ### Week 2 — Stage 3.2：编制看板与验收
 - **前端**  
@@ -124,8 +124,8 @@
 
 ## 8. 前置检查清单（执行前完成）
 
-- [ ] `node scripts/generate-implementation-inventory.js`（确认统计条目存在，避免重复造轮子）  
-- [ ] `grep -A20 "positionHeadcountStats" docs/api/schema.graphql`（核对 Schema 无漂移）  
+- [x] `node scripts/generate-implementation-inventory.js`（确认统计条目存在，避免重复造轮子） — 2025-10-17 执行，输出已记录。  
+- [x] `grep -A20 "positionHeadcountStats" docs/api/schema.graphql`（核对 Schema 无漂移） — 2025-10-17 调整查询返回结构并复查。  
 - [ ] `make docker-up && make run-dev`（验证开发环境稳定）  
 - [ ] 复盘 Stage 2 Playwright Trace，标记可复用步骤  
 - [ ] 在 `docs/development-plans/06-integrated-teams-progress-log.md` 添加 Stage 3 进度分节（通过后更新内容）
