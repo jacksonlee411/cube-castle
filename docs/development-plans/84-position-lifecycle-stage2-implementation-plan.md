@@ -28,7 +28,7 @@
 - [ ] Phase D 质量门禁与文档归档
   - ✅ 单元测试：`go test ./cmd/organization-query-service/internal/graphql`、`npx vitest run frontend/src/features/positions/__tests__/PositionDashboard.test.tsx`
   - ✅ 文档同步：`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`reports/contracts/position-api-diff.md`、06号进展日志（Phase B/C）更新
-  - ⏳ TODO：补充 Playwright `tests/e2e/position-lifecycle.spec.ts` 场景（当前占位 `test.skip`）并归档 84 号方案
+  - ⏳ TODO：执行 Playwright `tests/e2e/position-lifecycle.spec.ts`（拦截 GraphQL 以校验任职/调动视图），回传截图并归档 84 号方案
 
 ---
 

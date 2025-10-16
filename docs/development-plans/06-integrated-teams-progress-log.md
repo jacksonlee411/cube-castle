@@ -304,12 +304,12 @@ rollback/045_restore_position_legacy_columns.sql
 
 4. **Week 5 结束**（Phase C 完成） — ✅ 2025-10-16 完成  
    - 检查点：前端交互完成，E2E 测试通过  
-   - 记录：职位详情页展示当前任职、任职历史、调动记录；`npx vitest run frontend/src/features/positions/__tests__/PositionDashboard.test.tsx` 通过  
-   - 更新：06号日志「Phase C 验收」（Playwright 场景待补充）
+   - 记录：职位详情页展示当前任职、任职历史、调动记录；`npx vitest run frontend/src/features/positions/__tests__/PositionDashboard.test.tsx` 通过；新增 Playwright 脚本 `tests/e2e/position-lifecycle.spec.ts`（待执行上传截图）  
+   - 更新：06号日志「Phase C 验收」
 
 5. **Week 6 结束**（Stage 2 完成） — ⏳ 进行中  
    - 检查点：所有验收标准通过，文档完整  
-   - 待办：补充 Playwright `position-lifecycle.spec.ts`、回传执行截图，完成 84 号文档归档流程  
+   - 待办：执行 Playwright `position-lifecycle.spec.ts`、回传执行截图，完成 84 号文档归档流程  
    - 更新：完成后记录于 06 号日志「Stage 2 验收」并归档 84 号方案
 
 ### 风险监控点
