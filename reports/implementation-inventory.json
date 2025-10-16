@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-10-16T05:48:21.317Z",
+  "timestamp": "2025-10-16T08:40:55.927Z",
   "summary": {
     "openapiPaths": 42,
     "graphqlQueries": 21,
     "goHandlers": 50,
     "goServices": 21,
-    "tsExports": 212
+    "tsExports": 219
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -1145,6 +1145,16 @@
       "kind": "func"
     },
     {
+      "name": "useVacantPositions",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "func"
+    },
+    {
+      "name": "usePositionHeadcountStats",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "func"
+    },
+    {
       "name": "POSITIONS_QUERY_ROOT_KEY",
       "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
       "kind": "const"
@@ -1155,12 +1165,32 @@
       "kind": "const"
     },
     {
+      "name": "VACANT_POSITIONS_QUERY_ROOT_KEY",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "POSITION_HEADCOUNT_STATS_QUERY_ROOT_KEY",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
       "name": "positionsQueryKey",
       "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
       "kind": "const"
     },
     {
       "name": "positionDetailQueryKey",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "vacantPositionsQueryKey",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "positionHeadcountStatsQueryKey",
       "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
       "kind": "const"
     },
@@ -1202,6 +1232,11 @@
     {
       "name": "useCreateOrganizationVersion",
       "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useTransferPosition",
+      "file": "frontend/src/shared/hooks/usePositionMutations.ts",
       "kind": "const"
     },
     {

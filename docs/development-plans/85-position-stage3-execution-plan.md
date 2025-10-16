@@ -73,10 +73,10 @@
 
 ### Week 1 — Stage 3.1：基础能力整合
 - **查询服务**  
-  - [ ] 审视 `GetVacantPositionConnection` 与 `GetPositionHeadcountStats`，补齐缺失的聚合字段（如按职类/职位类型分类）。  
-  - [ ] 增加租户隔离与 asOfDate 单元测试。  
+  - [x] 审视 `GetVacantPositionConnection` 与 `GetPositionHeadcountStats`；新增职种聚合 `byFamily` 并保留职位类型/职级统计（Go 实现见 commit 3a7e16b1）。  
+  - [x] 增加租户隔离与 asOfDate 单元测试（`TestResolver_VacantPositions_ForwardsAsOfDate` 等，commit 3a7e16b1）。  
 - **命令服务**  
-  - [ ] 核查 Fill/Vacate/Transfer 后 headcount 缓存更新逻辑；如需事件或刷新机制，补充实现与测试。  
+  - [x] 核查 Fill/Vacate/Transfer 后 headcount 缓存逻辑：当前无本地缓存，统计实时读取 PostgreSQL，确认无需额外刷新机制（2025-10-17 评审记录）。  
 - **前端**  
   - [x] 实现 `PositionVacancyBoard` 组件与 `useVacantPositions` Hook。  
   - [x] 实现 `PositionTransferDialog` 表单与流程（包含权限错误处理）。  
@@ -95,9 +95,9 @@
   - [x] Playwright 新增编制看板验证（复用 `position-lifecycle.spec.ts`，校验空缺/编制区域）。  
   - [x] `simplified-e2e-test.sh` 补充统计验证步骤（2025-10-17 新增职位空缺/编制校验）。  
 - **文档与同步**  
-  - 更新实现清单、契约差异报告。  
-  - 06 号日志：新增 Stage 3 进展段落与验收总结。  
-  - 80 号计划：Stage 3 复选框勾选并说明脚注。  
+  - [x] 更新实现清单、契约差异报告（`node scripts/generate-implementation-inventory.js` 2025-10-17 再执行；GraphQL schema 同步）。  
+  - [x] 06 号日志：新增 Stage 3 进展段落与验收总结。  
+  - [x] 80 号计划：Stage 3 复选框更新并附脚注。  
   - 完成后准备将 85 号计划归档。
 
 ---
