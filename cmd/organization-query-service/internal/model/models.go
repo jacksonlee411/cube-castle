@@ -756,6 +756,59 @@ func (c PositionAssignmentConnection) TotalCount() int32 {
 	return int32(c.TotalCountField)
 }
 
+// VacantPosition 空缺职位视图
+type VacantPosition struct {
+	PositionCodeField       string    `json:"positionCode" db:"position_code"`
+	OrganizationCodeField   string    `json:"organizationCode" db:"organization_code"`
+	OrganizationNameField   *string   `json:"organizationName" db:"organization_name"`
+	JobFamilyCodeField      string    `json:"jobFamilyCode" db:"job_family_code"`
+	JobRoleCodeField        string    `json:"jobRoleCode" db:"job_role_code"`
+	JobLevelCodeField       string    `json:"jobLevelCode" db:"job_level_code"`
+	VacantSinceField        time.Time `json:"vacantSince" db:"vacant_since"`
+	HeadcountCapacityField  float64   `json:"headcountCapacity" db:"headcount_capacity"`
+	HeadcountAvailableField float64   `json:"headcountAvailable" db:"headcount_available"`
+	TotalAssignmentsField   int       `json:"totalAssignments" db:"total_assignments"`
+}
+
+func (v VacantPosition) PositionCode() PositionCode { return PositionCode(v.PositionCodeField) }
+func (v VacantPosition) OrganizationCode() string   { return v.OrganizationCodeField }
+func (v VacantPosition) OrganizationName() *string  { return v.OrganizationNameField }
+func (v VacantPosition) JobFamilyCode() JobFamilyCode {
+	return JobFamilyCode(v.JobFamilyCodeField)
+}
+func (v VacantPosition) JobRoleCode() JobRoleCode { return JobRoleCode(v.JobRoleCodeField) }
+func (v VacantPosition) JobLevelCode() JobLevelCode {
+	return JobLevelCode(v.JobLevelCodeField)
+}
+func (v VacantPosition) VacantSince() Date {
+	return Date(v.VacantSinceField.Format("2006-01-02"))
+}
+func (v VacantPosition) HeadcountCapacity() float64  { return v.HeadcountCapacityField }
+func (v VacantPosition) HeadcountAvailable() float64 { return v.HeadcountAvailableField }
+func (v VacantPosition) TotalAssignments() int32     { return int32(v.TotalAssignmentsField) }
+
+// VacantPositionEdge 游标包装
+type VacantPositionEdge struct {
+	CursorField string         `json:"cursor"`
+	NodeField   VacantPosition `json:"node"`
+}
+
+func (e VacantPositionEdge) Cursor() string       { return e.CursorField }
+func (e VacantPositionEdge) Node() VacantPosition { return e.NodeField }
+
+// VacantPositionConnection 连接响应
+type VacantPositionConnection struct {
+	EdgesField      []VacantPositionEdge `json:"edges"`
+	DataField       []VacantPosition     `json:"data"`
+	PaginationField PaginationInfo       `json:"pagination"`
+	TotalCountField int                  `json:"totalCount"`
+}
+
+func (c VacantPositionConnection) Edges() []VacantPositionEdge { return c.EdgesField }
+func (c VacantPositionConnection) Data() []VacantPosition      { return c.DataField }
+func (c VacantPositionConnection) Pagination() PaginationInfo  { return c.PaginationField }
+func (c VacantPositionConnection) TotalCount() int32           { return int32(c.TotalCountField) }
+
 // PositionFilterInput 过滤条件
 type PositionFilterInput struct {
 	OrganizationCode    *string         `json:"organizationCode"`
@@ -873,6 +926,106 @@ func (s *PositionSortInput) UnmarshalGraphQL(input interface{}) error {
 
 	s.Field = field
 	s.Direction = direction
+	return nil
+}
+
+// VacantPositionFilterInput 空缺职位过滤条件
+type VacantPositionFilterInput struct {
+	OrganizationCodes *[]string `json:"organizationCodes"`
+	JobFamilyCodes    *[]string `json:"jobFamilyCodes"`
+	JobRoleCodes      *[]string `json:"jobRoleCodes"`
+	JobLevelCodes     *[]string `json:"jobLevelCodes"`
+	PositionTypes     *[]string `json:"positionTypes"`
+	MinimumVacantDays *int      `json:"minimumVacantDays"`
+	AsOfDate          *string   `json:"asOfDate"`
+}
+
+func (f *VacantPositionFilterInput) UnmarshalGraphQL(input interface{}) error {
+	raw, ok := input.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("VacantPositionFilterInput: 期望对象类型，实际得到 %T", input)
+	}
+
+	if value, exists := raw["organizationCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("VacantPositionFilterInput.organizationCodes: %w", err)
+		}
+		f.OrganizationCodes = slicePtr
+	}
+	if value, exists := raw["jobFamilyCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("VacantPositionFilterInput.jobFamilyCodes: %w", err)
+		}
+		f.JobFamilyCodes = slicePtr
+	}
+	if value, exists := raw["jobRoleCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("VacantPositionFilterInput.jobRoleCodes: %w", err)
+		}
+		f.JobRoleCodes = slicePtr
+	}
+	if value, exists := raw["jobLevelCodes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("VacantPositionFilterInput.jobLevelCodes: %w", err)
+		}
+		f.JobLevelCodes = slicePtr
+	}
+	if value, exists := raw["positionTypes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
+		if err != nil {
+			return fmt.Errorf("VacantPositionFilterInput.positionTypes: %w", err)
+		}
+		f.PositionTypes = slicePtr
+	}
+	if value, exists := raw["minimumVacantDays"]; exists {
+		intPtr, err := asOptionalInt(value)
+		if err != nil {
+			return fmt.Errorf("VacantPositionFilterInput.minimumVacantDays: %w", err)
+		}
+		f.MinimumVacantDays = intPtr
+	}
+	if value, exists := raw["asOfDate"]; exists {
+		strPtr, err := asOptionalString(value)
+		if err != nil {
+			return fmt.Errorf("VacantPositionFilterInput.asOfDate: %w", err)
+		}
+		f.AsOfDate = strPtr
+	}
+
+	return nil
+}
+
+// VacantPositionSortInput 空缺职位排序输入
+type VacantPositionSortInput struct {
+	Field     string `json:"field"`
+	Direction string `json:"direction"`
+}
+
+func (s *VacantPositionSortInput) UnmarshalGraphQL(input interface{}) error {
+	raw, ok := input.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("VacantPositionSortInput: 期望对象类型，实际得到 %T", input)
+	}
+
+	field, err := asRequiredString(raw, "field")
+	if err != nil {
+		return fmt.Errorf("VacantPositionSortInput.field: %w", err)
+	}
+	direction, err := asOptionalString(raw["direction"])
+	if err != nil {
+		return fmt.Errorf("VacantPositionSortInput.direction: %w", err)
+	}
+
+	s.Field = field
+	if direction != nil {
+		s.Direction = *direction
+	} else {
+		s.Direction = "DESC"
+	}
 	return nil
 }
 
@@ -1312,4 +1465,34 @@ func asRequiredString(raw map[string]interface{}, key string) (string, error) {
 		return "", fmt.Errorf("字段 %q 不能为空字符串", key)
 	}
 	return str, nil
+}
+
+func asOptionalInt(value interface{}) (*int, error) {
+	if value == nil {
+		return nil, nil
+	}
+	switch v := value.(type) {
+	case int:
+		return &v, nil
+	case int32:
+		val := int(v)
+		return &val, nil
+	case int64:
+		val := int(v)
+		return &val, nil
+	case float64:
+		return nil, fmt.Errorf("期望整数，实际得到浮点数")
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" {
+			return nil, nil
+		}
+		parsed, err := strconv.Atoi(trimmed)
+		if err != nil {
+			return nil, fmt.Errorf("期望整数，实际得到 %q", trimmed)
+		}
+		return &parsed, nil
+	default:
+		return nil, fmt.Errorf("期望整数，实际得到 %T", value)
+	}
 }

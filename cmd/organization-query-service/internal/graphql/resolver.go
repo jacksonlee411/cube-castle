@@ -25,7 +25,7 @@ type QueryRepository interface {
 	GetPositionByCode(ctx context.Context, tenantID uuid.UUID, code string, asOfDate *string) (*model.Position, error)
 	GetPositionAssignments(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error)
 	GetPositionTimeline(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]model.PositionTimelineEntry, error)
-	GetVacantPositions(ctx context.Context, tenantID uuid.UUID, organizationCode, positionType *string, includeSubordinates bool) ([]model.Position, error)
+	GetVacantPositionConnection(ctx context.Context, tenantID uuid.UUID, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error)
 	GetPositionHeadcountStats(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error)
 	GetJobFamilyGroups(ctx context.Context, tenantID uuid.UUID, includeInactive bool, asOfDate *string) ([]model.JobFamilyGroup, error)
 	GetJobFamilies(ctx context.Context, tenantID uuid.UUID, groupCode string, includeInactive bool, asOfDate *string) ([]model.JobFamily, error)
@@ -322,21 +322,34 @@ func (r *Resolver) PositionTimeline(ctx context.Context, args struct {
 
 // VacantPositions 查询空缺职位
 func (r *Resolver) VacantPositions(ctx context.Context, args struct {
-	OrganizationCode    *string
-	PositionType        *string
-	IncludeSubordinates graphqlgo.NullBool
-}) ([]model.Position, error) {
+	Filter     *model.VacantPositionFilterInput
+	Pagination *model.PaginationInput
+	Sorting    *[]model.VacantPositionSortInput
+}) (*model.VacantPositionConnection, error) {
 	if err := r.permissions.CheckQueryPermission(ctx, "vacantPositions"); err != nil {
 		r.logger.Printf("[AUTH] 权限拒绝: vacantPositions: %v", err)
 		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
 	}
-	includeSubordinates := true
-	if args.IncludeSubordinates.Set && args.IncludeSubordinates.Value != nil {
-		includeSubordinates = *args.IncludeSubordinates.Value
-	}
-	r.logger.Printf("[GraphQL] 查询空缺职位 org=%v type=%v includeSub=%v", args.OrganizationCode, args.PositionType, includeSubordinates)
 
-	return r.repo.GetVacantPositions(ctx, sharedconfig.DefaultTenantID, args.OrganizationCode, args.PositionType, includeSubordinates)
+	tenantID := sharedconfig.DefaultTenantID
+	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
+		parsed, err := uuid.Parse(tenantStr)
+		if err != nil {
+			r.logger.Printf("[AUTH] 无效租户ID: %s", tenantStr)
+			return nil, fmt.Errorf("INVALID_TENANT")
+		}
+		tenantID = parsed
+	}
+
+	var sorting []model.VacantPositionSortInput
+	if args.Sorting != nil {
+		sorting = *args.Sorting
+	}
+
+	r.logger.Printf("[GraphQL] 查询空缺职位 filter=%+v pagination=%+v sort=%d tenant=%s",
+		args.Filter, args.Pagination, len(sorting), tenantID.String())
+
+	return r.repo.GetVacantPositionConnection(ctx, tenantID, args.Filter, args.Pagination, sorting)
 }
 
 // PositionHeadcountStats 查询编制统计
