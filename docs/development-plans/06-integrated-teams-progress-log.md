@@ -17,11 +17,11 @@
     - `npx vitest run frontend/src/features/positions/__tests__/PositionDashboard.test.tsx`
     - `cd frontend && npx playwright test tests/e2e/position-lifecycle.spec.ts --config playwright.config.ts`
 
-- 🚀 **Stage 3 已批准启动**（编制与统计，2025-10-17）：
+- 🚀 **Stage 3 进展（编制与统计，2025-10-17）**：
   - **85号v0.2评审通过**：A级 (4.8/5分)，所有P0/P1问题已修复。
   - **前置核查完成**：`positionHeadcountStats` Schema已定义，查询服务已实现，`vacantPositions` Resolver已就绪。
-  - **时间计划**：2周 (Week 1: 空缺看板+转移界面+统计API，Week 2: 编制看板+E2E+文档)。
-  - **下一步**：建议2025-10-18召开Kick-off会议确认任务分工。
+  - **Week 1 交付**：前端完成 `PositionVacancyBoard`、`PositionTransferDialog` 与 `usePositionMutations`，E2E 覆盖空缺/转移；`simplified-e2e-test.sh` 新增空缺/编制校验。
+  - **Week 2 进行中**：`PositionHeadcountDashboard`、`usePositionHeadcountStats` 与 Vitest 用例上线，Playwright 断言已扩展。
   - 详见下方"Stage 3 计划评审记录"章节。
 
 - 🗂️ **文档与计划同步**：
@@ -50,12 +50,12 @@
 
 ## 📌 下一步任务建议
 
-1. **Stage 3（编制与统计）准备**  
-   - 实现 GraphQL 编制统计、编制看板 UI；继续复用 Playwright 夹具扩展统计断言。  
-   - 关注 `headcount_in_use` 聚合逻辑与 `position_assignments` 的 FTE 精度。
-2. **空缺职位看板**  
-   - 在职位列表页或单独面板展示 `vacantPositions` 查询结果，匹配 UX 设计稿。  
-   - 补充 Playwright 断言覆盖空缺列表切换。
+1. **Stage 3（编制与统计）收尾**  
+   - 评估是否需要补充 `positionHeadcountStats` 聚合与性能优化；如有缺口尽快排期。  
+   - 梳理 Week 2 未完项：数据导出报告、性能优化、文档同步。  
+2. **QA 覆盖扩展**  
+   - 将简化脚本统计校验纳入 nightly；预备真实数据集 Playwright 回归。  
+   - 跟踪 `simplified-e2e-test.sh` 输出，补充自动化告警。  
 3. **归档工作**  
    - 结合 Playwright 报告/截图，整理 Stage 2 验收证明材料；在项目 Wiki 留存。
 4. **后续追踪**  

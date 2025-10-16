@@ -1374,12 +1374,12 @@ job-catalog:write          # 维护职位体系主数据
 - [x] Fill/Vacate 命令端点
 - [x] 任职关系基础数据模型
 - [x] 前端职位填充流程
-- [ ] 空缺职位看板
+- [x] 空缺职位看板（2025-10-17，`PositionVacancyBoard` 发布并接入 GraphQL，见 commit 851da6eb）
 
 **Week 7: 职位转移与调整**
 - [x] Transfer 命令端点
 - [x] 汇报关系管理
-- [ ] 前端组织转移界面
+- [x] 前端组织转移界面（2025-10-17，`PositionTransferDialog` 上线，见 commit 851da6eb）
 
 > 2025-10-16：参见《06号文档》Stage 2 交付总结，命令/查询服务与填充流程已上线；空缺看板与组织转移前端界面转入 Stage 3 优先事项。
 
@@ -1388,11 +1388,11 @@ job-catalog:write          # 维护职位体系主数据
 **Week 8: 编制统计**
 - [ ] Headcount 统计 GraphQL
 - [ ] 编制分析报表
-- [ ] 前端编制看板
-- [ ] 空缺职位看板（Stage 2 尾项）
+- [x] 前端编制看板（`PositionHeadcountDashboard`，commit c2481957）
+- [x] 空缺职位看板（Stage 2 尾项已完成，复用 Week 5-6 成果）
 
 **Week 9: 集成与优化**
-- [ ] 前端组织转移界面（Stage 2 尾项）
+- [x] 前端组织转移界面（Stage 2 尾项已完成，见 Week 7）
 - [ ] E2E 测试
 - [ ] 性能优化
 - [ ] 文档完善
