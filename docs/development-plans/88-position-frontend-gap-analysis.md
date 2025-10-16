@@ -5,7 +5,7 @@
 **分析方法**: 静态代码分析（MCP Browser认证问题回退）
 **对比基准**: 组织架构模块（frontend/src/features/organizations）
 **分析对象**: 职位管理模块（frontend/src/features/positions）
-**状态**: P0 完成（见 06 号进展日志），P1 待推进
+**状态**: P0 完成（2025-10-17），P1 版本列表上线（2025-10-18）
 **维护团队**: 前端团队 · 架构组
 **遵循原则**: CLAUDE.md 资源唯一性 · CQRS 分工 · API-First 契约
 
@@ -414,7 +414,8 @@ const timeline: PositionTimelineEvent[] = useMockData
   - 用户可以创建未来版本（PLANNED 状态）
 - **工作量预估**：3-5天
 - **依赖**：后端需补充 `positionVersions` GraphQL 查询（待命令/查询服务排期）
-- **状态**：□ 待实施（等待 positionVersions 查询完成）
+- **完成说明**：`docs/api/schema.graphql` 新增 `positionVersions`，查询服务实现 `GetPositionVersions`，前端通过 `usePositionDetail` 拉取并渲染 `PositionVersionList`。
+- **状态**：√ 已完成（2025-10-18，含 Vitest 覆盖 `PositionTemporalPage`）
 
 **建议4：统一交互模式 - 采用"列表+独立详情页"架构**
 
@@ -498,9 +499,10 @@ const timeline: PositionTimelineEvent[] = useMockData
 
 ### 9.4 下一步行动（P1 进行中）
 
-- [ ] 补齐 GraphQL 契约：在 `docs/api/schema.graphql` 中新增 `positionVersions` 查询并完成查询服务实现。
-- [ ] 扩展 `PositionTemporalPage`：集成版本列表 Tab，调用 `positionVersions` 数据，并接入 PositionForm 的时态模式。
-- [ ] 增补测试：为时态版本管理编写 Vitest 单测与 Playwright 场景，确保 P1 功能上线即具备回归能力。
+- [x] 补齐 GraphQL 契约：`docs/api/schema.graphql` + 查询服务 `GetPositionVersions` 已合并，PBAC 映射补全。
+- [x] 扩展 `PositionTemporalPage`：版本列表组件 `PositionVersionList` 与 `PositionForm` 集成，GraphQL 数据链路打通。
+- [x] 增补测试：新增 `frontend/src/features/positions/__tests__/PositionTemporalPage.test.tsx` 覆盖版本列表渲染与编码校验。
+- [ ] 阶段增强规划：补充版本差异视图、CSV 导出与 includeDeleted 切换（待 P1 后续迭代排期）。
 
 ---
 

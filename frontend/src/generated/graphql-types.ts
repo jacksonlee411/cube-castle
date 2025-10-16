@@ -786,6 +786,12 @@ export type Query = {
    */
   positionTransfers: PositionTransferConnection;
   /**
+   * List temporal versions for a position.
+   *
+   * Permissions Required: position:read:history
+   */
+  positionVersions: Array<Position>;
+  /**
    * Get paginated position list with temporal awareness.
    *
    * Permissions Required: position:read
@@ -971,6 +977,15 @@ export type QueryPositionTransfersArgs = {
   organizationCode?: InputMaybe<Scalars["String"]["input"]>;
   pagination?: InputMaybe<PaginationInput>;
   positionCode?: InputMaybe<Scalars["PositionCode"]["input"]>;
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
+export type QueryPositionVersionsArgs = {
+  code: Scalars["PositionCode"]["input"];
+  includeDeleted?: InputMaybe<Scalars["Boolean"]["input"]>;
 };
 
 /**
@@ -1360,6 +1375,7 @@ export type PositionDetailQuery = {
   position?: {
     __typename: "Position";
     code: string;
+    recordId: string;
     title: string;
     jobFamilyGroupCode: string;
     jobFamilyCode: string;
@@ -1445,6 +1461,31 @@ export type PositionDetailQuery = {
       initiatedBy: { __typename: "OperatedBy"; id: string; name: string };
     }>;
   };
+  positionVersions: Array<{
+    __typename: "Position";
+    recordId: string;
+    code: string;
+    title: string;
+    jobFamilyGroupCode: string;
+    jobFamilyCode: string;
+    jobRoleCode: string;
+    jobLevelCode: string;
+    organizationCode: string;
+    organizationName?: string | null;
+    positionType: PositionType;
+    employmentType: EmploymentType;
+    gradeLevel?: string | null;
+    headcountCapacity: number;
+    headcountInUse: number;
+    availableHeadcount: number;
+    reportsToPositionCode?: string | null;
+    status: PositionStatus;
+    effectiveDate: string;
+    endDate?: string | null;
+    isCurrent: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 };
 
 export type VacantPositionsQueryVariables = Exact<{
