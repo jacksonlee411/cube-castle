@@ -1,13 +1,16 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button'
 import { Card } from '@workday/canvas-kit-react/card'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
+import { Checkbox } from '@workday/canvas-kit-react/checkbox'
 import { PositionDetails } from './components/PositionDetails'
 import { PositionVersionList } from './components/PositionVersionList'
 import { SimpleStack } from './components/SimpleStack'
+import { PositionVersionDiff } from './components/PositionVersionDiff'
+import { POSITION_VERSION_FIELDS } from './components/positionVersionFields'
 import { usePositionDetail } from '@/shared/hooks/useEnterprisePositions'
 import type {
   PositionAssignmentRecord,
@@ -36,7 +39,74 @@ const mapLifecycleStatus = (type: string): string => {
 			return 'ACTIVE'
 		default:
 			return type.toUpperCase()
-	}
+}
+}
+
+const getVersionIdentifier = (version: PositionRecord): string =>
+  version.recordId ?? `${version.code}-${version.effectiveDate}-${version.updatedAt}`
+
+const formatVersionLabel = (version: PositionRecord): string => {
+  const markers = [
+    version.isCurrent ? '当前' : undefined,
+    version.isFuture ? '计划' : undefined,
+    version.status === 'DELETED' ? '已删除' : undefined,
+  ].filter(Boolean)
+
+  const markerText = markers.length ? ` · ${markers.join('/')}` : ''
+  return `${version.effectiveDate}${markerText}`
+}
+
+const formatCsvValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value.toString() : ''
+  }
+  return String(value)
+}
+
+const buildVersionsCsv = (versions: PositionRecord[]): string => {
+  const header = POSITION_VERSION_FIELDS.map(field => field.label)
+  const rows = versions.map(version =>
+    POSITION_VERSION_FIELDS.map(field => formatCsvValue((version as Record<string, unknown>)[field.key])),
+  )
+
+  return [header, ...rows]
+    .map(row =>
+      row
+        .map(column => {
+          const value = column ?? ''
+          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+            return `"${value.replace(/"/g, '""')}"`
+          }
+          return value
+        })
+        .join(','),
+    )
+    .join('\n')
+}
+
+const downloadCsv = (content: string, filename: string) => {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.rel = 'noopener'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const SELECT_STYLE: React.CSSProperties = {
+  minWidth: '220px',
+  padding: '8px 12px',
+  borderRadius: 8,
+  border: `1px solid ${colors.soap500}`,
+  fontSize: '14px',
+  backgroundColor: colors.frenchVanilla100,
 }
 
 const normalizeMockPosition = (code: string) => {
@@ -114,6 +184,9 @@ export const PositionTemporalPage: React.FC = () => {
   const navigate = useNavigate()
   const isMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
   const [activeForm, setActiveForm] = useState<'none' | 'edit' | 'version'>('none')
+  const [includeDeleted, setIncludeDeleted] = useState(false)
+  const [baseVersionId, setBaseVersionId] = useState<string | null>(null)
+  const [compareVersionId, setCompareVersionId] = useState<string | null>(null)
 
   const code = rawCode ? rawCode.toUpperCase() : ''
   const isCreateMode = code === 'NEW'
@@ -121,6 +194,7 @@ export const PositionTemporalPage: React.FC = () => {
 
   const detailQuery = usePositionDetail(isValidCode && !isCreateMode ? code : undefined, {
     enabled: !isMockMode && isValidCode && !isCreateMode,
+    includeDeleted,
   })
 
   const { position, timeline, assignments, currentAssignment, transfers, versions } = useMemo(() => {
@@ -157,6 +231,63 @@ export const PositionTemporalPage: React.FC = () => {
       versions: graph?.versions ?? [],
     }
   }, [code, detailQuery.data, isCreateMode, isMockMode, isValidCode])
+
+  useEffect(() => {
+    if (!versions.length) {
+      if (baseVersionId !== null) {
+        setBaseVersionId(null)
+      }
+      if (compareVersionId !== null) {
+        setCompareVersionId(null)
+      }
+      return
+    }
+
+    const nextBaseId =
+      baseVersionId && versions.some(version => getVersionIdentifier(version) === baseVersionId)
+        ? baseVersionId
+        : getVersionIdentifier(versions[0])
+
+    const availableForCompare = versions.filter(
+      version => getVersionIdentifier(version) !== nextBaseId,
+    )
+
+    const nextCompareId = availableForCompare.length
+      ? (compareVersionId &&
+        availableForCompare.some(version => getVersionIdentifier(version) === compareVersionId)
+          ? compareVersionId
+          : getVersionIdentifier(availableForCompare[0]))
+      : null
+
+    if (nextBaseId !== baseVersionId) {
+      setBaseVersionId(nextBaseId)
+    }
+    if (nextCompareId !== compareVersionId) {
+      setCompareVersionId(nextCompareId)
+    }
+  }, [baseVersionId, compareVersionId, versions])
+
+  const versionOptions = useMemo(
+    () =>
+      versions.map(version => {
+        const id = getVersionIdentifier(version)
+        return {
+          id,
+          label: formatVersionLabel(version),
+        }
+      }),
+    [versions],
+  )
+
+  const selectedBaseVersion = useMemo(
+    () => versions.find(version => getVersionIdentifier(version) === baseVersionId) ?? null,
+    [baseVersionId, versions],
+  )
+
+  const selectedCompareVersion = useMemo(
+    () => versions.find(version => getVersionIdentifier(version) === compareVersionId) ?? null,
+    [compareVersionId, versions],
+  )
 
   const handleBack = () => {
     navigate('/positions')
@@ -203,6 +334,19 @@ export const PositionTemporalPage: React.FC = () => {
   const handleFormSuccess = () => {
     setActiveForm('none')
     detailQuery.refetch()
+  }
+
+  const handleIncludeDeletedChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIncludeDeleted(event.target.checked)
+  }
+
+  const handleExportVersions = () => {
+    if (!versions.length) {
+      return
+    }
+    const csv = buildVersionsCsv(versions)
+    const filename = `position-versions-${code}-${Date.now()}.csv`
+    downloadCsv(csv, filename)
   }
 
   const canMutate = !isMockMode && Boolean(position)
@@ -273,7 +417,94 @@ export const PositionTemporalPage: React.FC = () => {
         )}
 
         {!isCreateMode && (
-          <PositionVersionList versions={versions} isLoading={detailQuery.isLoading} />
+          <SimpleStack gap={space.l}>
+            <Flex
+              justifyContent="space-between"
+              alignItems="flex-start"
+              flexWrap="wrap"
+              gap={space.s}
+            >
+              <Flex gap={space.s} alignItems="center">
+                <Checkbox
+                  label="显示已删除版本"
+                  checked={includeDeleted}
+                  onChange={handleIncludeDeletedChange}
+                  data-testid="position-include-deleted"
+                />
+                <SecondaryButton
+                  type="button"
+                  onClick={handleExportVersions}
+                  disabled={!versions.length}
+                  data-testid="position-versions-export"
+                >
+                  导出版本 CSV
+                </SecondaryButton>
+              </Flex>
+
+              <Flex gap={space.m} flexWrap="wrap">
+                <Box minWidth="220px">
+                  <SimpleStack gap={space.xxxs}>
+                    <label
+                      htmlFor="position-base-version-select"
+                      style={{ fontSize: '12px', color: colors.licorice500 }}
+                    >
+                      基准版本
+                    </label>
+                    <select
+                      id="position-base-version-select"
+                      value={baseVersionId ?? ''}
+                      onChange={event => setBaseVersionId(event.target.value || null)}
+                      disabled={!versions.length}
+                      data-testid="position-base-version-select"
+                      style={{ ...SELECT_STYLE, width: '100%' }}
+                    >
+                      {versionOptions.map(option => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </SimpleStack>
+                </Box>
+
+                <Box minWidth="220px">
+                  <SimpleStack gap={space.xxxs}>
+                    <label
+                      htmlFor="position-compare-version-select"
+                      style={{ fontSize: '12px', color: colors.licorice500 }}
+                    >
+                      对比版本
+                    </label>
+                    <select
+                      id="position-compare-version-select"
+                      value={compareVersionId ?? ''}
+                      onChange={event => setCompareVersionId(event.target.value || null)}
+                      disabled={versionOptions.length <= 1}
+                      data-testid="position-compare-version-select"
+                      style={{ ...SELECT_STYLE, width: '100%' }}
+                    >
+                      <option value="">（无）</option>
+                      {versionOptions
+                        .filter(option => option.id !== baseVersionId)
+                        .map(option => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                    </select>
+                  </SimpleStack>
+                </Box>
+              </Flex>
+            </Flex>
+
+            <PositionVersionList versions={versions} isLoading={detailQuery.isLoading} />
+
+            <PositionVersionDiff
+              baseVersion={selectedBaseVersion}
+              compareVersion={selectedCompareVersion}
+              isLoading={detailQuery.isLoading}
+            />
+          </SimpleStack>
         )}
       </SimpleStack>
     </Box>

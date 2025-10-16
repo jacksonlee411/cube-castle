@@ -120,8 +120,22 @@ describe('PositionTemporalPage', () => {
     expect(screen.getByTestId('position-details')).toBeInTheDocument()
     expect(screen.getByTestId('position-version-list')).toBeInTheDocument()
     expect(screen.getByText('职位版本记录')).toBeInTheDocument()
-    expect(screen.getByText('当前版本')).toBeInTheDocument()
-    expect(screen.getByText('计划版本')).toBeInTheDocument()
+    expect(screen.getAllByText('当前版本').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('计划版本').length).toBeGreaterThan(0)
+
+    const [queryCode, queryOptions] = mockedUsePositionDetail.mock.calls[0] ?? []
+    expect(queryCode).toBe('P9000001')
+    expect(queryOptions?.includeDeleted).toBe(false)
+
+    const includeDeletedCheckbox = screen.getByTestId('position-include-deleted') as HTMLInputElement
+    expect(includeDeletedCheckbox).toBeInTheDocument()
+    expect(includeDeletedCheckbox.checked).toBe(false)
+
+    expect(screen.getByLabelText('基准版本')).toBeInTheDocument()
+    expect(screen.getByLabelText('对比版本')).toBeInTheDocument()
+
+    expect(screen.getByTestId('position-versions-export')).toBeEnabled()
+    expect(screen.getByTestId('position-version-diff')).toBeInTheDocument()
   })
 
   it('shows guidance when职位编码缺失', () => {
