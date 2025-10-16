@@ -87,9 +87,10 @@
 
 ### Week 2 — Stage 3.2：编制看板与验收
 - **前端**  
-  - 构建 `PositionHeadcountDashboard`（KPI 卡片、趋势图、分组表、导出按钮）。  
-  - 实现 `usePositionHeadcountStats` Hook，处理加载/错误/空态。  
-  - Vitest 覆盖导出、筛选、渲染逻辑。  
+  - [x] 构建 `PositionHeadcountDashboard`（KPI 卡片、趋势图、分组表、导出按钮）。  
+  - [x] 实现 `usePositionHeadcountStats` Hook，处理加载/错误/空态。  
+  - [x] Vitest 覆盖导出、筛选、渲染逻辑（`PositionHeadcountDashboard.test.tsx`）。  
+    - 2025-10-17 提交 `feat: add position headcount dashboard`（c2481957）交付上述 3 项。  
 - **QA**  
   - Playwright 新增编制看板场景；`simplified-e2e-test.sh` 加入统计验证步骤。  
 - **文档与同步**  
