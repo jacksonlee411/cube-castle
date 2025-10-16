@@ -47,6 +47,16 @@ const buildCsv = (stats: PositionHeadcountStats): string => {
       item.filled.toString(),
       item.available.toString(),
     ]),
+    [],
+    ['Family Breakdown'],
+    ['Job Family Code', 'Job Family Name', 'Capacity', 'Utilized', 'Available'],
+    ...stats.byFamily.map(item => [
+      item.jobFamilyCode,
+      item.jobFamilyName ?? '',
+      item.capacity.toString(),
+      item.utilized.toString(),
+      item.available.toString(),
+    ]),
   ]
 
   return lines
@@ -130,11 +140,11 @@ export const PositionHeadcountDashboard: React.FC<PositionHeadcountDashboardProp
     downloadCsv(csv, filename)
   }
 
-  const renderLevelTable = (data: PositionHeadcountStats['byLevel']) => {
-    if (!data.length) {
-      return (
-        <Table.Row>
-          <Table.Cell colSpan={4}>
+const renderLevelTable = (data: PositionHeadcountStats['byLevel']) => {
+  if (!data.length) {
+    return (
+      <Table.Row>
+        <Table.Cell colSpan={4}>
             <Text color={colors.licorice400} textAlign="center">
               暂无职级维度数据
             </Text>
@@ -150,11 +160,11 @@ export const PositionHeadcountDashboard: React.FC<PositionHeadcountDashboardProp
         <Table.Cell>{formatNumber(item.utilized, 1)}</Table.Cell>
         <Table.Cell>{formatNumber(item.available, 1)}</Table.Cell>
       </Table.Row>
-    ))
-  }
+  ))
+}
 
-  const renderTypeTable = (data: PositionHeadcountStats['byType']) => {
-    if (!data.length) {
+const renderTypeTable = (data: PositionHeadcountStats['byType']) => {
+  if (!data.length) {
       return (
         <Table.Row>
           <Table.Cell colSpan={4}>
@@ -166,15 +176,39 @@ export const PositionHeadcountDashboard: React.FC<PositionHeadcountDashboardProp
       )
     }
 
-    return data.map(item => (
-      <Table.Row key={item.positionType}>
-        <Table.Cell>{item.positionType}</Table.Cell>
-        <Table.Cell>{formatNumber(item.capacity, 1)}</Table.Cell>
-        <Table.Cell>{formatNumber(item.filled, 1)}</Table.Cell>
-        <Table.Cell>{formatNumber(item.available, 1)}</Table.Cell>
+  return data.map(item => (
+    <Table.Row key={item.positionType}>
+      <Table.Cell>{item.positionType}</Table.Cell>
+      <Table.Cell>{formatNumber(item.capacity, 1)}</Table.Cell>
+      <Table.Cell>{formatNumber(item.filled, 1)}</Table.Cell>
+      <Table.Cell>{formatNumber(item.available, 1)}</Table.Cell>
+    </Table.Row>
+  ))
+}
+
+const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
+  if (!data.length) {
+    return (
+      <Table.Row>
+        <Table.Cell colSpan={5}>
+          <Text color={colors.licorice400} textAlign="center">
+            暂无职种维度数据
+          </Text>
+        </Table.Cell>
       </Table.Row>
-    ))
+    )
   }
+
+  return data.map(item => (
+    <Table.Row key={item.jobFamilyCode}>
+      <Table.Cell>{item.jobFamilyCode}</Table.Cell>
+      <Table.Cell>{item.jobFamilyName ?? '—'}</Table.Cell>
+      <Table.Cell>{formatNumber(item.capacity, 1)}</Table.Cell>
+      <Table.Cell>{formatNumber(item.utilized, 1)}</Table.Cell>
+      <Table.Cell>{formatNumber(item.available, 1)}</Table.Cell>
+    </Table.Row>
+  ))
+}
 
   return (
     <Card padding={space.l} data-testid="position-headcount-dashboard" backgroundColor={colors.frenchVanilla100}>
@@ -241,7 +275,7 @@ export const PositionHeadcountDashboard: React.FC<PositionHeadcountDashboardProp
                   <SummaryTile label="占用率" value={summaryTiles.fillRate} accentColor={colors.greenApple500} />
                 </Flex>
 
-                <Flex gap={space.l} flexDirection={{ xs: 'column', md: 'row' }}>
+                <Flex gap={space.l} flexDirection={{ xs: 'column', md: 'row' }} flexWrap="wrap">
                   <Box flex="1" minWidth="280px" border={`1px solid ${colors.soap400}`} borderRadius="12px" overflow="hidden">
                     <Table data-testid="headcount-level-table">
                       <Table.Head>
@@ -266,6 +300,20 @@ export const PositionHeadcountDashboard: React.FC<PositionHeadcountDashboardProp
                         </Table.Row>
                       </Table.Head>
                       <Table.Body>{renderTypeTable(stats.byType)}</Table.Body>
+                    </Table>
+                  </Box>
+                  <Box flex="1" minWidth="320px" border={`1px solid ${colors.soap400}`} borderRadius="12px" overflow="hidden">
+                    <Table data-testid="headcount-family-table">
+                      <Table.Head>
+                        <Table.Row>
+                          <Table.Header width="160px">职种编码</Table.Header>
+                          <Table.Header>职种名称</Table.Header>
+                          <Table.Header>编制</Table.Header>
+                          <Table.Header>已占用</Table.Header>
+                          <Table.Header>可用</Table.Header>
+                        </Table.Row>
+                      </Table.Head>
+                      <Table.Body>{renderFamilyTable(stats.byFamily)}</Table.Body>
                     </Table>
                   </Box>
                 </Flex>

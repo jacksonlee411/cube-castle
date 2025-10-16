@@ -190,6 +190,9 @@ const sampleStats: PositionHeadcountStats = {
     { positionType: 'REGULAR', capacity: 100, filled: 80, available: 20 },
     { positionType: 'CONTRACT', capacity: 20, filled: 10, available: 10 },
   ],
+  byFamily: [
+    { jobFamilyCode: 'OPER-OPS', jobFamilyName: '运营支持', capacity: 60, utilized: 45, available: 15 },
+  ],
   fetchedAt: '2025-10-17T00:00:00.000Z',
 }
 
@@ -223,10 +226,11 @@ describe('PositionHeadcountDashboard', () => {
 
     expect(screen.getByTestId('position-headcount-dashboard')).toBeInTheDocument()
     expect(screen.getByText('总编制')).toBeInTheDocument()
-    expect(screen.getByText('120')).toBeInTheDocument()
-    expect(screen.getByText('占用率')).toBeInTheDocument()
-    expect(screen.getByTestId('headcount-level-table')).toBeInTheDocument()
-    expect(screen.getByTestId('headcount-type-table')).toBeInTheDocument()
+   expect(screen.getByText('120')).toBeInTheDocument()
+   expect(screen.getByText('占用率')).toBeInTheDocument()
+   expect(screen.getByTestId('headcount-level-table')).toBeInTheDocument()
+   expect(screen.getByTestId('headcount-type-table')).toBeInTheDocument()
+    expect(screen.getByTestId('headcount-family-table')).toBeInTheDocument()
   })
 
   it('submits organization code and triggers export', async () => {

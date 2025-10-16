@@ -142,6 +142,15 @@ export enum EmploymentType {
   PART_TIME = "PART_TIME",
 }
 
+export type FamilyHeadcount = {
+  __typename: "FamilyHeadcount";
+  available: Scalars["Float"]["output"];
+  capacity: Scalars["Float"]["output"];
+  jobFamilyCode: Scalars["JobFamilyCode"]["output"];
+  jobFamilyName?: Maybe<Scalars["String"]["output"]>;
+  utilized: Scalars["Float"]["output"];
+};
+
 /** Detailed field-level change information for audit tracking. */
 export type FieldChange = {
   __typename: "FieldChange";
@@ -153,6 +162,7 @@ export type FieldChange = {
 
 export type HeadcountStats = {
   __typename: "HeadcountStats";
+  byFamily: Array<FamilyHeadcount>;
   byLevel: Array<LevelHeadcount>;
   byType: Array<TypeHeadcount>;
   fillRate: Scalars["Float"]["output"];
@@ -452,9 +462,11 @@ export type PathMismatch = {
 /** Position resource exposed via GraphQL. */
 export type Position = {
   __typename: "Position";
+  assignmentHistory: Array<PositionAssignment>;
   availableHeadcount: Scalars["Float"]["output"];
   code: Scalars["PositionCode"]["output"];
   createdAt: Scalars["DateTime"]["output"];
+  currentAssignment?: Maybe<PositionAssignment>;
   effectiveDate: Scalars["Date"]["output"];
   employmentType: EmploymentType;
   endDate?: Maybe<Scalars["Date"]["output"]>;
@@ -470,6 +482,7 @@ export type Position = {
   jobProfileName?: Maybe<Scalars["String"]["output"]>;
   jobRoleCode: Scalars["JobRoleCode"]["output"];
   organizationCode: Scalars["String"]["output"];
+  organizationName?: Maybe<Scalars["String"]["output"]>;
   positionType: PositionType;
   recordId: Scalars["UUID"]["output"];
   reportsToPositionCode?: Maybe<Scalars["PositionCode"]["output"]>;
@@ -478,6 +491,75 @@ export type Position = {
   title: Scalars["String"]["output"];
   updatedAt: Scalars["DateTime"]["output"];
 };
+
+export type PositionAssignment = {
+  __typename: "PositionAssignment";
+  assignmentId: Scalars["UUID"]["output"];
+  assignmentStatus: PositionAssignmentStatus;
+  assignmentType: PositionAssignmentType;
+  createdAt: Scalars["DateTime"]["output"];
+  employeeId: Scalars["UUID"]["output"];
+  employeeName: Scalars["String"]["output"];
+  employeeNumber?: Maybe<Scalars["String"]["output"]>;
+  endDate?: Maybe<Scalars["Date"]["output"]>;
+  fte: Scalars["Float"]["output"];
+  isCurrent: Scalars["Boolean"]["output"];
+  notes?: Maybe<Scalars["String"]["output"]>;
+  positionCode: Scalars["PositionCode"]["output"];
+  positionRecordId: Scalars["UUID"]["output"];
+  startDate: Scalars["Date"]["output"];
+  updatedAt: Scalars["DateTime"]["output"];
+};
+
+export type PositionAssignmentConnection = {
+  __typename: "PositionAssignmentConnection";
+  data: Array<PositionAssignment>;
+  edges: Array<PositionAssignmentEdge>;
+  pagination: PaginationInfo;
+  totalCount: Scalars["Int"]["output"];
+};
+
+export type PositionAssignmentEdge = {
+  __typename: "PositionAssignmentEdge";
+  cursor: Scalars["String"]["output"];
+  node: PositionAssignment;
+};
+
+/** Filter options for position assignment queries. */
+export type PositionAssignmentFilterInput = {
+  asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
+  assignmentStatus?: InputMaybe<PositionAssignmentStatus>;
+  assignmentType?: InputMaybe<PositionAssignmentType>;
+  employeeId?: InputMaybe<Scalars["UUID"]["input"]>;
+  includeHistorical?: InputMaybe<Scalars["Boolean"]["input"]>;
+};
+
+/** Supported assignment sorting fields. */
+export enum PositionAssignmentSortField {
+  CREATED_AT = "CREATED_AT",
+  END_DATE = "END_DATE",
+  START_DATE = "START_DATE",
+}
+
+/** Sorting input for assignment queries. */
+export type PositionAssignmentSortInput = {
+  direction?: InputMaybe<SortOrder>;
+  field: PositionAssignmentSortField;
+};
+
+/** Lifecycle status for a position assignment. */
+export enum PositionAssignmentStatus {
+  ACTIVE = "ACTIVE",
+  ENDED = "ENDED",
+  PENDING = "PENDING",
+}
+
+/** Assignment type within a position. */
+export enum PositionAssignmentType {
+  ACTING = "ACTING",
+  PRIMARY = "PRIMARY",
+  SECONDARY = "SECONDARY",
+}
 
 export type PositionConnection = {
   __typename: "PositionConnection";
@@ -543,6 +625,32 @@ export type PositionTimelineEntry = {
   recordId: Scalars["UUID"]["output"];
   status: PositionStatus;
   title: Scalars["String"]["output"];
+};
+
+export type PositionTransfer = {
+  __typename: "PositionTransfer";
+  createdAt: Scalars["DateTime"]["output"];
+  effectiveDate: Scalars["Date"]["output"];
+  fromOrganizationCode: Scalars["String"]["output"];
+  initiatedBy: OperatedBy;
+  operationReason?: Maybe<Scalars["String"]["output"]>;
+  positionCode: Scalars["PositionCode"]["output"];
+  toOrganizationCode: Scalars["String"]["output"];
+  transferId: Scalars["UUID"]["output"];
+};
+
+export type PositionTransferConnection = {
+  __typename: "PositionTransferConnection";
+  data: Array<PositionTransfer>;
+  edges: Array<PositionTransferEdge>;
+  pagination: PaginationInfo;
+  totalCount: Scalars["Int"]["output"];
+};
+
+export type PositionTransferEdge = {
+  __typename: "PositionTransferEdge";
+  cursor: Scalars["String"]["output"];
+  node: PositionTransfer;
 };
 
 /** Contract type for positions. */
@@ -654,6 +762,12 @@ export type Query = {
    */
   position?: Maybe<Position>;
   /**
+   * Get paginated assignment records for a position.
+   *
+   * Permissions Required: position:read
+   */
+  positionAssignments: PositionAssignmentConnection;
+  /**
    * Get headcount statistics for positions under an organization.
    *
    * Permissions Required: position:read:stats
@@ -666,6 +780,12 @@ export type Query = {
    */
   positionTimeline: Array<PositionTimelineEntry>;
   /**
+   * Get transfer history for positions.
+   *
+   * Permissions Required: position:read:history
+   */
+  positionTransfers: PositionTransferConnection;
+  /**
    * Get paginated position list with temporal awareness.
    *
    * Permissions Required: position:read
@@ -676,7 +796,7 @@ export type Query = {
    *
    * Permissions Required: position:read
    */
-  vacantPositions: Array<Position>;
+  vacantPositions: VacantPositionConnection;
 };
 
 /**
@@ -817,6 +937,17 @@ export type QueryPositionArgs = {
  * Root Query type providing all organization management query operations.
  * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
  */
+export type QueryPositionAssignmentsArgs = {
+  filter?: InputMaybe<PositionAssignmentFilterInput>;
+  pagination?: InputMaybe<PaginationInput>;
+  positionCode: Scalars["PositionCode"]["input"];
+  sorting?: InputMaybe<Array<PositionAssignmentSortInput>>;
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
 export type QueryPositionHeadcountStatsArgs = {
   includeSubordinates?: InputMaybe<Scalars["Boolean"]["input"]>;
   organizationCode: Scalars["String"]["input"];
@@ -836,6 +967,16 @@ export type QueryPositionTimelineArgs = {
  * Root Query type providing all organization management query operations.
  * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
  */
+export type QueryPositionTransfersArgs = {
+  organizationCode?: InputMaybe<Scalars["String"]["input"]>;
+  pagination?: InputMaybe<PaginationInput>;
+  positionCode?: InputMaybe<Scalars["PositionCode"]["input"]>;
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
 export type QueryPositionsArgs = {
   filter?: InputMaybe<PositionFilterInput>;
   pagination?: InputMaybe<PaginationInput>;
@@ -847,9 +988,9 @@ export type QueryPositionsArgs = {
  * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
  */
 export type QueryVacantPositionsArgs = {
-  includeSubordinates?: InputMaybe<Scalars["Boolean"]["input"]>;
-  organizationCode?: InputMaybe<Scalars["String"]["input"]>;
-  positionType?: InputMaybe<PositionType>;
+  filter?: InputMaybe<VacantPositionFilterInput>;
+  pagination?: InputMaybe<PaginationInput>;
+  sorting?: InputMaybe<Array<VacantPositionSortInput>>;
 };
 
 /** Repair suggestion with automation capability. */
@@ -949,6 +1090,58 @@ export type UserInfo = {
   role?: Maybe<Scalars["String"]["output"]>;
   userId: Scalars["String"]["output"];
   userName: Scalars["String"]["output"];
+};
+
+export type VacantPosition = {
+  __typename: "VacantPosition";
+  headcountAvailable: Scalars["Float"]["output"];
+  headcountCapacity: Scalars["Float"]["output"];
+  jobFamilyCode: Scalars["JobFamilyCode"]["output"];
+  jobLevelCode: Scalars["JobLevelCode"]["output"];
+  jobRoleCode: Scalars["JobRoleCode"]["output"];
+  organizationCode: Scalars["String"]["output"];
+  organizationName?: Maybe<Scalars["String"]["output"]>;
+  positionCode: Scalars["PositionCode"]["output"];
+  totalAssignments: Scalars["Int"]["output"];
+  vacantSince: Scalars["Date"]["output"];
+};
+
+export type VacantPositionConnection = {
+  __typename: "VacantPositionConnection";
+  data: Array<VacantPosition>;
+  edges: Array<VacantPositionEdge>;
+  pagination: PaginationInfo;
+  totalCount: Scalars["Int"]["output"];
+};
+
+export type VacantPositionEdge = {
+  __typename: "VacantPositionEdge";
+  cursor: Scalars["String"]["output"];
+  node: VacantPosition;
+};
+
+/** Filter options for vacant position queries. */
+export type VacantPositionFilterInput = {
+  asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
+  jobFamilyCodes?: InputMaybe<Array<Scalars["JobFamilyCode"]["input"]>>;
+  jobLevelCodes?: InputMaybe<Array<Scalars["JobLevelCode"]["input"]>>;
+  jobRoleCodes?: InputMaybe<Array<Scalars["JobRoleCode"]["input"]>>;
+  minimumVacantDays?: InputMaybe<Scalars["Int"]["input"]>;
+  organizationCodes?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  positionTypes?: InputMaybe<Array<PositionType>>;
+};
+
+/** Supported vacant position sorting fields. */
+export enum VacantPositionSortField {
+  HEADCOUNT_AVAILABLE = "HEADCOUNT_AVAILABLE",
+  HEADCOUNT_CAPACITY = "HEADCOUNT_CAPACITY",
+  VACANT_SINCE = "VACANT_SINCE",
+}
+
+/** Sorting input for vacant position queries. */
+export type VacantPositionSortInput = {
+  direction?: InputMaybe<SortOrder>;
+  field: VacantPositionSortField;
 };
 
 export type GetValidParentOrganizationsQueryVariables = Exact<{
@@ -1110,4 +1303,215 @@ export type OrganizationByCodeQuery = {
     hierarchyDepth: number;
     childrenCount: number;
   } | null;
+};
+
+export type EnterprisePositionsQueryVariables = Exact<{
+  filter?: InputMaybe<PositionFilterInput>;
+  pagination?: InputMaybe<PaginationInput>;
+}>;
+
+export type EnterprisePositionsQuery = {
+  __typename: "Query";
+  positions: {
+    __typename: "PositionConnection";
+    totalCount: number;
+    data: Array<{
+      __typename: "Position";
+      code: string;
+      title: string;
+      jobFamilyGroupCode: string;
+      jobFamilyCode: string;
+      jobRoleCode: string;
+      jobLevelCode: string;
+      organizationCode: string;
+      organizationName?: string | null;
+      positionType: PositionType;
+      employmentType: EmploymentType;
+      headcountCapacity: number;
+      headcountInUse: number;
+      availableHeadcount: number;
+      gradeLevel?: string | null;
+      reportsToPositionCode?: string | null;
+      status: PositionStatus;
+      effectiveDate: string;
+      endDate?: string | null;
+      isCurrent: boolean;
+      isFuture: boolean;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    pagination: {
+      __typename: "PaginationInfo";
+      total: number;
+      page: number;
+      pageSize: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+  };
+};
+
+export type PositionDetailQueryVariables = Exact<{
+  code: Scalars["PositionCode"]["input"];
+}>;
+
+export type PositionDetailQuery = {
+  __typename: "Query";
+  position?: {
+    __typename: "Position";
+    code: string;
+    title: string;
+    jobFamilyGroupCode: string;
+    jobFamilyCode: string;
+    jobRoleCode: string;
+    jobLevelCode: string;
+    organizationCode: string;
+    organizationName?: string | null;
+    positionType: PositionType;
+    employmentType: EmploymentType;
+    headcountCapacity: number;
+    headcountInUse: number;
+    availableHeadcount: number;
+    gradeLevel?: string | null;
+    reportsToPositionCode?: string | null;
+    status: PositionStatus;
+    effectiveDate: string;
+    endDate?: string | null;
+    isCurrent: boolean;
+    isFuture: boolean;
+    createdAt: string;
+    updatedAt: string;
+    currentAssignment?: {
+      __typename: "PositionAssignment";
+      assignmentId: string;
+      positionCode: string;
+      positionRecordId: string;
+      employeeId: string;
+      employeeName: string;
+      employeeNumber?: string | null;
+      assignmentType: PositionAssignmentType;
+      assignmentStatus: PositionAssignmentStatus;
+      fte: number;
+      startDate: string;
+      endDate?: string | null;
+      isCurrent: boolean;
+      notes?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    } | null;
+  } | null;
+  positionTimeline: Array<{
+    __typename: "PositionTimelineEntry";
+    recordId: string;
+    status: PositionStatus;
+    title: string;
+    effectiveDate: string;
+    endDate?: string | null;
+    changeReason?: string | null;
+    isCurrent: boolean;
+  }>;
+  positionAssignments: {
+    __typename: "PositionAssignmentConnection";
+    data: Array<{
+      __typename: "PositionAssignment";
+      assignmentId: string;
+      positionCode: string;
+      positionRecordId: string;
+      employeeId: string;
+      employeeName: string;
+      employeeNumber?: string | null;
+      assignmentType: PositionAssignmentType;
+      assignmentStatus: PositionAssignmentStatus;
+      fte: number;
+      startDate: string;
+      endDate?: string | null;
+      isCurrent: boolean;
+      notes?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  };
+  positionTransfers: {
+    __typename: "PositionTransferConnection";
+    data: Array<{
+      __typename: "PositionTransfer";
+      transferId: string;
+      positionCode: string;
+      fromOrganizationCode: string;
+      toOrganizationCode: string;
+      effectiveDate: string;
+      operationReason?: string | null;
+      createdAt: string;
+      initiatedBy: { __typename: "OperatedBy"; id: string; name: string };
+    }>;
+  };
+};
+
+export type VacantPositionsQueryVariables = Exact<{
+  filter?: InputMaybe<VacantPositionFilterInput>;
+  pagination?: InputMaybe<PaginationInput>;
+  sorting?: InputMaybe<
+    Array<VacantPositionSortInput> | VacantPositionSortInput
+  >;
+}>;
+
+export type VacantPositionsQuery = {
+  __typename: "Query";
+  vacantPositions: {
+    __typename: "VacantPositionConnection";
+    totalCount: number;
+    data: Array<{
+      __typename: "VacantPosition";
+      positionCode: string;
+      organizationCode: string;
+      organizationName?: string | null;
+      jobFamilyCode: string;
+      jobRoleCode: string;
+      jobLevelCode: string;
+      vacantSince: string;
+      headcountCapacity: number;
+      headcountAvailable: number;
+      totalAssignments: number;
+    }>;
+    pagination: {
+      __typename: "PaginationInfo";
+      total: number;
+      page: number;
+      pageSize: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+  };
+};
+
+export type PositionHeadcountStatsQueryVariables = Exact<{
+  organizationCode: Scalars["String"]["input"];
+  includeSubordinates?: InputMaybe<Scalars["Boolean"]["input"]>;
+}>;
+
+export type PositionHeadcountStatsQuery = {
+  __typename: "Query";
+  positionHeadcountStats: {
+    __typename: "HeadcountStats";
+    organizationCode: string;
+    organizationName: string;
+    totalCapacity: number;
+    totalFilled: number;
+    totalAvailable: number;
+    fillRate: number;
+    byLevel: Array<{
+      __typename: "LevelHeadcount";
+      jobLevelCode: string;
+      capacity: number;
+      utilized: number;
+      available: number;
+    }>;
+    byType: Array<{
+      __typename: "TypeHeadcount";
+      positionType: PositionType;
+      capacity: number;
+      filled: number;
+      available: number;
+    }>;
+  };
 };

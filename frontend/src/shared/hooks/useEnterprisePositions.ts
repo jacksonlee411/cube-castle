@@ -10,6 +10,7 @@ import type {
   PositionTimelineEvent,
   PositionTransferRecord,
   PositionsQueryResult,
+  PositionHeadcountStats,
 } from '../types/positions';
 
 const DEFAULT_PAGE = 1;
@@ -182,6 +183,13 @@ interface PositionHeadcountStatsGraphQLResponse {
       positionType: string;
       capacity: number;
       filled: number;
+      available: number;
+    }>;
+    byFamily: Array<{
+      jobFamilyCode: string;
+      jobFamilyName?: string | null;
+      capacity: number;
+      utilized: number;
       available: number;
     }>;
   };
@@ -874,6 +882,13 @@ const fetchPositionHeadcountStats = async (
       positionType: item.positionType,
       capacity: item.capacity,
       filled: item.filled,
+      available: item.available,
+    })),
+    byFamily: (payload.byFamily ?? []).map(item => ({
+      jobFamilyCode: item.jobFamilyCode,
+      jobFamilyName: item.jobFamilyName ?? undefined,
+      capacity: item.capacity,
+      utilized: item.utilized,
       available: item.available,
     })),
     fetchedAt: response.timestamp ?? new Date().toISOString(),

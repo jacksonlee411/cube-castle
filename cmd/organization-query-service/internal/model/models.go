@@ -621,6 +621,7 @@ func (p Position) EmploymentType() string       { return p.EmploymentTypeField }
 func (p Position) GradeLevel() *string          { return p.GradeLevelField }
 func (p Position) HeadcountCapacity() float64   { return p.HeadcountCapacityField }
 func (p Position) HeadcountInUse() float64      { return p.HeadcountInUseField }
+func (p Position) OrganizationName() *string    { return p.OrganizationNameField }
 func (p Position) AvailableHeadcount() float64 {
 	available := p.HeadcountCapacityField - p.HeadcountInUseField
 	if available < 0 {
@@ -1192,13 +1193,14 @@ func (e PositionTimelineEntry) ChangeReason() *string {
 
 // HeadcountStats 编制统计
 type HeadcountStats struct {
-	OrganizationCodeField string           `json:"organizationCode"`
-	OrganizationNameField string           `json:"organizationName"`
-	TotalCapacityField    float64          `json:"totalCapacity"`
-	TotalFilledField      float64          `json:"totalFilled"`
-	TotalAvailableField   float64          `json:"totalAvailable"`
-	LevelBreakdownField   []LevelHeadcount `json:"levelBreakdown"`
-	TypeBreakdownField    []TypeHeadcount  `json:"typeBreakdown"`
+	OrganizationCodeField string            `json:"organizationCode"`
+	OrganizationNameField string            `json:"organizationName"`
+	TotalCapacityField    float64           `json:"totalCapacity"`
+	TotalFilledField      float64           `json:"totalFilled"`
+	TotalAvailableField   float64           `json:"totalAvailable"`
+	LevelBreakdownField   []LevelHeadcount  `json:"levelBreakdown"`
+	TypeBreakdownField    []TypeHeadcount   `json:"typeBreakdown"`
+	FamilyBreakdownField  []FamilyHeadcount `json:"familyBreakdown"`
 }
 
 func (h HeadcountStats) OrganizationCode() string { return h.OrganizationCodeField }
@@ -1219,8 +1221,9 @@ func (h HeadcountStats) FillRate() float64 {
 	}
 	return rate
 }
-func (h HeadcountStats) ByLevel() []LevelHeadcount { return h.LevelBreakdownField }
-func (h HeadcountStats) ByType() []TypeHeadcount   { return h.TypeBreakdownField }
+func (h HeadcountStats) ByLevel() []LevelHeadcount   { return h.LevelBreakdownField }
+func (h HeadcountStats) ByType() []TypeHeadcount     { return h.TypeBreakdownField }
+func (h HeadcountStats) ByFamily() []FamilyHeadcount { return h.FamilyBreakdownField }
 
 // LevelHeadcount 按职级统计
 type LevelHeadcount struct {
@@ -1229,6 +1232,25 @@ type LevelHeadcount struct {
 	UtilizedField     float64 `json:"utilized" db:"utilized"`
 	AvailableField    float64 `json:"available" db:"available"`
 }
+
+// FamilyHeadcount 按职种统计
+type FamilyHeadcount struct {
+	JobFamilyCodeField string  `json:"jobFamilyCode" db:"job_family_code"`
+	JobFamilyNameField *string `json:"jobFamilyName" db:"job_family_name"`
+	CapacityField      float64 `json:"capacity" db:"capacity"`
+	UtilizedField      float64 `json:"utilized" db:"utilized"`
+	AvailableField     float64 `json:"available" db:"available"`
+}
+
+func (f FamilyHeadcount) JobFamilyCode() string {
+	return f.JobFamilyCodeField
+}
+func (f FamilyHeadcount) JobFamilyName() *string {
+	return f.JobFamilyNameField
+}
+func (f FamilyHeadcount) Capacity() float64  { return f.CapacityField }
+func (f FamilyHeadcount) Utilized() float64  { return f.UtilizedField }
+func (f FamilyHeadcount) Available() float64 { return f.AvailableField }
 
 func (l LevelHeadcount) JobLevelCode() JobLevelCode { return JobLevelCode(l.JobLevelCodeField) }
 func (l LevelHeadcount) Capacity() float64          { return l.CapacityField }

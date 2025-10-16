@@ -417,6 +417,39 @@ func TestResolver_VacantPositions_ForwardsParameters(t *testing.T) {
 	}
 }
 
+func TestResolver_VacantPositions_ForwardsAsOfDate(t *testing.T) {
+	orgCodes := []string{"1001001"}
+	asOf := "2025-01-15"
+	filter := &model.VacantPositionFilterInput{
+		OrganizationCodes: &orgCodes,
+		AsOfDate:          &asOf,
+	}
+	repo := &stubRepository{
+		vacantFn: func(ctx context.Context, tenantID uuid.UUID, f *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error) {
+			return &model.VacantPositionConnection{}, nil
+		},
+	}
+	perm := &stubPermissionChecker{allow: true}
+	resolver := NewResolver(repo, logDiscard(), perm)
+
+	_, err := resolver.VacantPositions(context.Background(), struct {
+		Filter     *model.VacantPositionFilterInput
+		Pagination *model.PaginationInput
+		Sorting    *[]model.VacantPositionSortInput
+	}{
+		Filter: filter,
+	})
+	if err != nil {
+		t.Fatalf("VacantPositions returned error: %v", err)
+	}
+	if repo.capturedVacantFilter == nil || repo.capturedVacantFilter.AsOfDate == nil {
+		t.Fatalf("expected asOfDate forwarded")
+	}
+	if *repo.capturedVacantFilter.AsOfDate != asOf {
+		t.Fatalf("expected asOfDate %s, got %s", asOf, *repo.capturedVacantFilter.AsOfDate)
+	}
+}
+
 func TestResolver_PositionTransfers_ForwardsParameters(t *testing.T) {
 	positionCode := "P2000001"
 	orgCode := "1002001"

@@ -651,6 +651,41 @@ ORDER BY p.position_type
 		return nil, fmt.Errorf("iterate type headcount: %w", err)
 	}
 
+	familyQuery := fmt.Sprintf(`
+SELECT
+    p.job_family_code,
+    MAX(p.job_family_name) AS job_family_name,
+    COALESCE(SUM(p.headcount_capacity), 0) AS capacity,
+    COALESCE(SUM(p.headcount_in_use), 0) AS utilized,
+    COALESCE(SUM(p.headcount_capacity - p.headcount_in_use), 0) AS available
+FROM positions p
+JOIN organization_units ou ON ou.tenant_id = p.tenant_id AND ou.code = p.organization_code AND ou.is_current = true
+WHERE p.tenant_id = $1
+  AND p.is_current = true
+  AND p.status <> 'DELETED'
+  AND %s
+GROUP BY p.job_family_code
+ORDER BY p.job_family_code
+`, condition)
+
+	familyRows, err := r.db.QueryContext(ctx, familyQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query family headcount: %w", err)
+	}
+	defer familyRows.Close()
+
+	familyBreakdown := make([]model.FamilyHeadcount, 0)
+	for familyRows.Next() {
+		var item model.FamilyHeadcount
+		if err := familyRows.Scan(&item.JobFamilyCodeField, &item.JobFamilyNameField, &item.CapacityField, &item.UtilizedField, &item.AvailableField); err != nil {
+			return nil, fmt.Errorf("scan family headcount: %w", err)
+		}
+		familyBreakdown = append(familyBreakdown, item)
+	}
+	if err := familyRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate family headcount: %w", err)
+	}
+
 	stats := &model.HeadcountStats{
 		OrganizationCodeField: organizationCode,
 		OrganizationNameField: orgName,
@@ -659,6 +694,7 @@ ORDER BY p.position_type
 		TotalAvailableField:   totalCapacity - totalFilled,
 		LevelBreakdownField:   levelBreakdown,
 		TypeBreakdownField:    typeBreakdown,
+		FamilyBreakdownField:  familyBreakdown,
 	}
 
 	return stats, nil

@@ -504,6 +504,7 @@ type Position {
   jobRoleCode: JobRoleCode!
   jobLevelCode: JobLevelCode!
   organizationCode: String!
+  organizationName: String
   positionType: PositionType!
   employmentType: EmploymentType!
   gradeLevel: String
@@ -626,6 +627,14 @@ type TypeHeadcount {
   available: Float!
 }
 
+type FamilyHeadcount {
+  jobFamilyCode: JobFamilyCode!
+  jobFamilyName: String
+  capacity: Float!
+  utilized: Float!
+  available: Float!
+}
+
 type HeadcountStats {
   organizationCode: String!
   organizationName: String!
@@ -635,6 +644,7 @@ type HeadcountStats {
   fillRate: Float!
   byLevel: [LevelHeadcount!]!
   byType: [TypeHeadcount!]!
+  byFamily: [FamilyHeadcount!]!
 }
 
 type JobFamilyGroup {

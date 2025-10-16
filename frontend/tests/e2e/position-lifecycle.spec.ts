@@ -239,6 +239,15 @@ const GRAPHQL_FIXTURES = {
             available: 1,
           },
         ],
+        byFamily: [
+          {
+            jobFamilyCode: 'OPER-OPS',
+            jobFamilyName: '运营支持',
+            capacity: 5,
+            utilized: 3,
+            available: 2,
+          },
+        ],
       },
     },
   },
@@ -326,5 +335,6 @@ test.describe('职位生命周期视图', () => {
     await expect(headcountDashboard).toContainText('3');
     await expect(page.getByTestId('headcount-level-table')).toContainText('S1');
     await expect(page.getByTestId('headcount-type-table')).toContainText('REGULAR');
+    await expect(page.getByTestId('headcount-family-table')).toContainText('OPER-OPS');
   });
 });

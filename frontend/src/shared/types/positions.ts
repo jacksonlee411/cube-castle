@@ -141,6 +141,14 @@ export interface PositionHeadcountTypeBreakdown {
   available: number;
 }
 
+export interface PositionHeadcountFamilyBreakdown {
+  jobFamilyCode: string;
+  jobFamilyName?: string | null;
+  capacity: number;
+  utilized: number;
+  available: number;
+}
+
 export interface PositionHeadcountStats {
   organizationCode: string;
   organizationName: string;
@@ -150,5 +158,6 @@ export interface PositionHeadcountStats {
   fillRate: number;
   byLevel: PositionHeadcountLevelBreakdown[];
   byType: PositionHeadcountTypeBreakdown[];
+  byFamily: PositionHeadcountFamilyBreakdown[];
   fetchedAt: string;
 }
