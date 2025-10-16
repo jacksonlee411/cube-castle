@@ -2,9 +2,10 @@
 
 **版本**: v1.0
 **创建日期**: 2025-10-12
+**最新更新**: 2025-10-17
 **维护团队**: 后端团队 + 前端团队
-**状态**: 规划中
-**关联计划**: 60号系统级质量重构总计划
+**状态**: Stage 2 已完成（Stage 3 已批准启动） ✅
+**关联计划**: 60号系统级质量重构总计划 · 85号 Stage 3 执行计划 v0.2
 **参考系统**: Workday Position Management + HCM Core
 **遵循原则**: CLAUDE.md 资源唯一性与跨层一致性原则（最高优先级）
 
@@ -1340,30 +1341,32 @@ job-catalog:write          # 维护职位体系主数据
 - [x] 基于 mock 数据搭建职位列表/详情/表单骨架（2025-10-13）
 - [x] 实现导航、筛选器、职位编制卡片等核心布局，与实际数据逻辑解耦（2025-10-13）
 - [x] 编写 Vitest 组件测试验证列表与详情交互（frontend/src/features/positions/__tests__/PositionDashboard.test.tsx）
-- [ ] 形成《职位管理前端布局验收报告》，待业务方确认 ✅ 后解锁后续阶段
+- [x] 形成《职位管理前端布局验收报告》，待业务方确认 ✅ 后解锁后续阶段（2025-10-14，参见 06 号进展日志 Stage 1 启动记录）
 
 > ✅ **进入 Stage 1 的前置条件**：完成布局验收，并获得“页面展示框架”确认；未获批准前不得进入真实 API/逻辑开发。
 
 ### 7.2 Stage 1：核心职位管理（4周）
 
 **Week 1-2: 后端基础设施**
-- [ ] 数据库表结构（positions + job catalog 时态表）
-- [ ] TemporalCore 抽象 + PositionTemporalAdapter 接入
-- [ ] Position 实体与 Repository（含分类外键校验）
-- [ ] REST API 命令端点（职位 & 分类的 CRUD + 时态版本）
-- [ ] 单元测试与集成测试（覆盖分类层级的时间轴重算）
+- [x] 数据库表结构（positions + job catalog 时态表）
+- [x] TemporalCore 抽象 + PositionTemporalAdapter 接入
+- [x] Position 实体与 Repository（含分类外键校验）
+- [x] REST API 命令端点（职位 & 分类的 CRUD + 时态版本）
+- [x] 单元测试与集成测试（覆盖分类层级的时间轴重算）
 
 **Week 3: GraphQL 查询层**
-- [ ] Position GraphQL Schema（支持分类过滤、asOfDate）
-- [ ] Job Catalog GraphQL Schema（时态查询）
-- [ ] Resolver 实现 + 数据加载优化（分类缓存）
-- [ ] 与组织架构的关联查询
-- [ ] 查询性能优化（索引、缓存）
+- [x] Position GraphQL Schema（支持分类过滤、asOfDate）
+- [x] Job Catalog GraphQL Schema（时态查询）
+- [x] Resolver 实现 + 数据加载优化（分类缓存）
+- [x] 与组织架构的关联查询
+- [x] 查询性能优化（索引、缓存）
 
 **Week 4: 前端数据接入**
-- [ ] 将 Stage 0 已验收的 mock 页面接入真实 GraphQL/REST 数据
-- [ ] 实现表单提交流程、错误提示及权限控制
-- [ ] 保留 mock fallback 机制，便于后续迭代验证
+- [x] 将 Stage 0 已验收的 mock 页面接入真实 GraphQL/REST 数据
+- [x] 实现表单提交流程、错误提示及权限控制
+- [x] 保留 mock fallback 机制，便于后续迭代验证
+
+> 2025-10-16：参考《06号文档》Stage 2 交付总结，以上 Stage 1 工作已完成并支撑职位生命周期实现。
 
 ### 7.3 Stage 2：职位生命周期（3周）
 
@@ -1378,17 +1381,28 @@ job-catalog:write          # 维护职位体系主数据
 - [x] 汇报关系管理
 - [ ] 前端组织转移界面
 
+> 2025-10-16：参见《06号文档》Stage 2 交付总结，命令/查询服务与填充流程已上线；空缺看板与组织转移前端界面转入 Stage 3 优先事项。
+
 ### 7.4 Stage 3：编制与统计（2周）
 
 **Week 8: 编制统计**
 - [ ] Headcount 统计 GraphQL
 - [ ] 编制分析报表
 - [ ] 前端编制看板
+- [ ] 空缺职位看板（Stage 2 尾项）
 
 **Week 9: 集成与优化**
+- [ ] 前端组织转移界面（Stage 2 尾项）
 - [ ] E2E 测试
 - [ ] 性能优化
 - [ ] 文档完善
+
+> **2025-10-17 更新**：Stage 3 已批准启动 ✅
+> - **评审通过**：85号执行计划 v0.2 复审通过（A级 4.8/5分），所有 P0/P1 问题已修复。
+> - **前置核查完成**：`positionHeadcountStats` Schema 已定义，查询服务已实现，`vacantPositions` Resolver 已就绪。
+> - **时间确认**：维持 2 周交付节奏，Week 1 完成空缺看板+转移界面+统计 API，Week 2 完成编制看板+E2E+文档。
+> - **执行计划**：详见 `docs/development-plans/85-position-stage3-execution-plan.md` v0.2。
+> - **下一步**：建议 2025-10-18 召开 Kick-off 会议确认任务分工。
 
 ### 7.5 Stage 4（未来扩展）：任职管理
 

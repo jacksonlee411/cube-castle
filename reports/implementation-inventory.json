@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-10-14T12:42:39.712Z",
+  "timestamp": "2025-10-16T05:48:21.317Z",
   "summary": {
     "openapiPaths": 42,
-    "graphqlQueries": 18,
-    "goHandlers": 43,
+    "graphqlQueries": 21,
+    "goHandlers": 50,
     "goServices": 21,
-    "tsExports": 204
+    "tsExports": 212
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -61,6 +61,9 @@
     "positions",
     "position",
     "positionTimeline",
+    "positionAssignments",
+    "vacantPositions",
+    "positionTransfers",
     "vacantPositions",
     "positionHeadcountStats",
     "auditHistory",
@@ -286,6 +289,41 @@
       "name": "ApplyPositionEvent",
       "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
       "kind": "method"
+    },
+    {
+      "name": "CreatePosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "ReplacePosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreatePositionVersion",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "FillPosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "VacatePosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "TransferPosition",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "ApplyEvent",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
     }
   ],
   "goServices": [
@@ -449,6 +487,11 @@
     {
       "name": "LOADING_STATES",
       "file": "frontend/src/features/organizations/constants/tableConfig.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getPositionStatusMeta",
+      "file": "frontend/src/features/positions/statusMeta.ts",
       "kind": "const"
     },
     {
@@ -1089,6 +1132,41 @@
     {
       "name": "__internal",
       "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useEnterprisePositions",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "func"
+    },
+    {
+      "name": "usePositionDetail",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "func"
+    },
+    {
+      "name": "POSITIONS_QUERY_ROOT_KEY",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "POSITION_DETAIL_QUERY_ROOT_KEY",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "positionsQueryKey",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "positionDetailQueryKey",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "__internal",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
       "kind": "const"
     },
     {
