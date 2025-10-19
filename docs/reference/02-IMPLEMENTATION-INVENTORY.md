@@ -134,7 +134,6 @@
 
 ## Draft – Frontend Exports (classes/functions/const)
 - [const] cubecastleBrandTokens — frontend/src/design-system/tokens/brand.ts
-- [const] prepareFormDataForValidation — frontend/src/features/organizations/components/OrganizationForm/validation.ts
 - [const] ORGANIZATION_UNIT_TYPES — frontend/src/features/organizations/constants/formConfig.ts
 - [const] ORGANIZATION_STATUSES — frontend/src/features/organizations/constants/formConfig.ts
 - [const] BUSINESS_STATUSES — frontend/src/features/organizations/constants/formConfig.ts

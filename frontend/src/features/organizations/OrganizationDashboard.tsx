@@ -6,12 +6,10 @@ import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-
 import { Card } from '@workday/canvas-kit-react/card';
 
 import { OrganizationTable } from './components/OrganizationTable';
-import { OrganizationForm } from './components/OrganizationForm';
 import { OrganizationFilters } from './OrganizationFilters';
 import { PaginationControls } from './PaginationControls';
 
 import { useEnterpriseOrganizations } from '../../shared/hooks/useEnterpriseOrganizations';
-import type { OrganizationUnit } from '../../shared/types/organization';
 import { OrganizationBreadcrumb } from '../../shared/components/OrganizationBreadcrumb';
 // import { useOrganizationMutations } from '../../shared/hooks/useOrganizationMutations'; // TODO: Implement mutations
 
@@ -191,11 +189,6 @@ export const OrganizationDashboard: React.FC = () => {
   }, [filteredOrganizations, currentPage, pageSize, totalCount]);
 
   // 组织操作(暂时简化)
-  const selectedOrg: OrganizationUnit | undefined = undefined;
-  const isFormOpen = false;
-  const handleFormClose = () => {};
-  const handleFormSubmit = () => {};
-
   // 新建组织处理器 - 修改为页面跳转而不是打开Modal
   const handleCreateOrganization = () => {
     navigate('/organizations/new');
@@ -308,19 +301,6 @@ export const OrganizationDashboard: React.FC = () => {
           )}
         </Card.Body>
       </Card>
-
-      {/* 组织表单 - 历史模式下禁用 */}
-      {!isHistorical && (
-        <OrganizationForm 
-          organization={selectedOrg}
-          isOpen={isFormOpen}
-          onClose={handleFormClose}
-          onSubmit={handleFormSubmit}
-          temporalMode={temporalMode}
-          isHistorical={isHistorical}
-          enableTemporalFeatures={true}
-        />
-      )}
     </Box>
   );
 };
