@@ -98,3 +98,4 @@ backup/
 **/organization-query-service
 cmd/*/organization-command-service*
 cmd/*/organization-query-service*
+.playwright-mcp/
