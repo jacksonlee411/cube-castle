@@ -57,6 +57,11 @@ jobs:
         cd frontend
         npm run validate:field-naming
       continue-on-error: false
+
+    - name: 🔄 GraphQL 契约一致性校验
+      run: |
+        npm run schema:positions
+      continue-on-error: false
         
     - name: 🧪 契约测试完整验证
       run: |
