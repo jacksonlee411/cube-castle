@@ -105,21 +105,23 @@ import { SidePanel } from '@workday/canvas-kit-react/side-panel';
 
 在 Phase 1 正式开发前新增 0.5 天的 POC 验证，确保官方组件扩展方式与项目环境完全兼容：
 
-- [ ] **Expandable.Target 自定义验证**
-  - [ ] `headingLevel` 属性语义化输出正常
-  - [ ] `styled(Expandable.Target)` 包装后 `aria-expanded` / `aria-controls` 仍由组件自动注入
-  - [ ] `Expandable.Icon iconPosition="start"` 正确渲染左侧 Chevron
-- [ ] **SidePanel 集成验证**
-  - [ ] 将 `AppShell` 中现有 240px `Box` 容器替换为 `SidePanel`，确认主内容区在 312px 左侧栏宽度下布局正常（包括滚动条、padding、分隔线）
-  - [ ] 若 312px 不符合视觉稿，记录与设计确认结果并更新 `openWidth`
-  - [ ] `backgroundColor={SidePanel.BackgroundColor.Gray}` 呈现浅灰背景，同时与主内容区域分层清晰
-- [ ] **权限 Hook 可用性**
-  - [ ] 在 `frontend/src/shared/auth/context.ts` / `hooks.ts` 中扩展 `AuthContext`，新增 `hasPermission(permission: string): boolean` 与 `userPermissions: string[]`
-  - [ ] Phase 0 前提供最小实现（可基于现有认证状态 mock），并编写单元测试覆盖基础行为
-  - [ ] 完成后更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 登记 Hook 来源
-- [ ] **Canvas tokens 校验**
-  - [ ] `colors.soap200`、`borderRadius.l`、`space` token 在构建链路中无解析警告
-  - [ ] 选中态、Hover 态与 Canvas Design System 保持一致
+- [x] **Expandable.Target 自定义验证**
+  - [x] `headingLevel` 属性语义化输出正常
+  - [x] `styled(Expandable.Target)` 包装后 `aria-expanded` / `aria-controls` 仍由组件自动注入
+  - [x] `Expandable.Icon iconPosition="start"` 正确渲染左侧 Chevron
+- [x] **SidePanel 集成验证**
+  - [x] 将 `AppShell` 中现有 240px `Box` 容器替换为 `SidePanel`，确认主内容区在 312px 左侧栏宽度下布局正常（包括滚动条、padding、分隔线）
+  - [x] 若 312px 不符合视觉稿，记录与设计确认结果并更新 `openWidth`
+  - [x] `backgroundColor={SidePanel.BackgroundColor.Gray}` 呈现浅灰背景，同时与主内容区域分层清晰
+- [x] **权限 Hook 可用性**
+  - [x] 在 `frontend/src/shared/auth/context.ts` / `hooks.ts` 中扩展 `AuthContext`，新增 `hasPermission(permission: string): boolean` 与 `userPermissions: string[]`
+  - [x] Phase 0 前提供最小实现（可基于现有认证状态 mock），并编写单元测试覆盖基础行为
+  - [x] 完成后更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 登记 Hook 来源
+- [x] **Canvas tokens 校验**
+  - [x] `colors.soap200`、`borderRadius.l`、`space` token 在构建链路中无解析警告
+  - [x] 选中态、Hover 态与 Canvas Design System 保持一致
+
+> 2025-10-19 POC 结论：`AppShell` 已切换至 312px `SidePanel` 灰色背景布局，`NavigationItem` 通过 `Expandable` 实现语义化二级导航，`AuthContext` 暴露 `hasPermission`/`userPermissions` 并通过单测验证，满足 Phase 0 准入条件。
 
 POC 结论需在完成后记录于本方案文档的变更历史区，并作为推进 Phase 1 的准入条件。
 
@@ -702,43 +704,43 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 #### **Phase 1: 导航基础架构（1-2天）**
 
 - [x] 创建92号文档
-- [ ] 重构 Sidebar 支持二级菜单
-  - [ ] 新增 `NavigationItem` 组件
-  - [ ] 实现折叠/展开动画
-  - [ ] 添加权限控制逻辑（接入 Phase 0 完成的 `useAuth.hasPermission`）
-- [ ] Shell 集成
-  - [ ] 将 `AppShell` 中的固定宽度 `Box` 替换为 `SidePanel`
-  - [ ] 调整主内容区 padding/分隔线以匹配视觉稿，保留 312px 宽度（或记录与设计沟通后的最终宽度）
-- [ ] 配置路由结构
-  - [ ] 扩展 `App.tsx` 路由配置
-  - [ ] 添加路由守卫（权限检查）
-- [ ] 单元测试
-  - [ ] `NavigationItem.test.tsx`
-  - [ ] Sidebar 交互测试
+- [x] 重构 Sidebar 支持二级菜单
+  - [x] 新增 `NavigationItem` 组件
+  - [x] 实现折叠/展开动画
+  - [x] 添加权限控制逻辑（接入 Phase 0 完成的 `useAuth.hasPermission`）
+- [x] Shell 集成
+  - [x] 将 `AppShell` 中的固定宽度 `Box` 替换为 `SidePanel`
+  - [x] 调整主内容区 padding/分隔线以匹配视觉稿，保留 312px 宽度（或记录与设计沟通后的最终宽度）
+- [x] 配置路由结构
+  - [x] 扩展 `App.tsx` 路由配置
+  - [x] 添加路由守卫（权限检查）
+- [x] 单元测试
+  - [x] `NavigationItem.test.tsx`
+  - [x] Sidebar 交互测试
 
 #### **Phase 2: Job Catalog 页面开发（3-5天）**
 
-- [ ] 创建通用组件
-  - [ ] `CatalogTable` - 复用组织管理表格逻辑
-  - [ ] `CatalogFilters` - 状态/日期筛选器
-  - [ ] `CatalogForm` - 通用CRUD表单
-- [ ] 职类管理页面
-  - [ ] `JobFamilyGroupList`
-  - [ ] `JobFamilyGroupDetail`
-  - [ ] `JobFamilyGroupForm`
-- [ ] 职种管理页面（复用模板）
-- [ ] 职务管理页面（复用模板）
-- [ ] 职级管理页面（复用模板）
+- [x] 创建通用组件
+  - [x] `CatalogTable` - 复用组织管理表格逻辑
+  - [x] `CatalogFilters` - 状态/日期筛选器
+  - [x] `CatalogForm` - 通用CRUD表单
+- [x] 职类管理页面
+  - [x] `JobFamilyGroupList`
+  - [x] `JobFamilyGroupDetail`
+  - [x] `JobFamilyGroupForm`
+- [x] 职种管理页面（复用模板）
+- [x] 职务管理页面（复用模板）
+- [x] 职级管理页面（复用模板）
 
 #### **Phase 3: API 集成与联调（2-3天）**
 
-- [ ] 实现 GraphQL Hooks
-  - [ ] `useJobFamilyGroups`
-  - [ ] `useJobFamilies`
-  - [ ] `useJobRoles`
-  - [ ] `useJobLevels`
-- [ ] 实现 REST Mutation Hooks
-  - [ ] `useCreateJobFamilyGroup` 等
+- [x] 实现 GraphQL Hooks
+  - [x] `useJobFamilyGroups`
+  - [x] `useJobFamilies`
+  - [x] `useJobRoles`
+  - [x] `useJobLevels`
+- [x] 实现 REST Mutation Hooks
+  - [x] `useCreateJobFamilyGroup` 等
   - [ ] `useUpdateJobFamilyGroup` 等
 - [ ] 前后端联调
   - [ ] 查询测试
@@ -911,6 +913,7 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 | v1.0 | 2025-10-19 | 初始版本，自定义 NavigationItem 方案 | Claude Code |
 | v2.0 | 2025-10-19 | ⭐ **重大更新**：改用 Canvas Kit 官方 Expandable 组件，废弃自定义方案 | Claude Code |
 | v2.1 | 2025-10-19 | 新增 Phase 0 技术验证清单与 POC 先决条件，更新时间估算 | Claude Code |
+| v2.2 | 2025-10-19 | Phase 0 POC 验证完成：SidePanel 集成、二级导航权限 Hook、Canvas tokens 自检与单测落地 | ChatGPT |
 
 **v2.0 关键变更**：
 - ✅ 新增第0章：Canvas Kit 官方方案研究结论

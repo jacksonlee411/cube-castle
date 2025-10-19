@@ -1,33 +1,50 @@
 import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query'
 import { graphqlEnterpriseAdapter } from '../api/graphql-enterprise-adapter'
 import { createQueryError } from '../api/queryClient'
+import type { JobCatalogStatus } from '@/generated/graphql-types'
 
 interface JobFamilyGroupNode {
   code: string
   name: string
-  status?: string | null
+  status: JobCatalogStatus
+  effectiveDate: string
+  endDate?: string | null
+  description?: string | null
+  recordId: string
 }
 
 interface JobFamilyNode {
   code: string
   name: string
   groupCode: string
-  status?: string | null
+  status: JobCatalogStatus
+  effectiveDate: string
+  endDate?: string | null
+  description?: string | null
+  recordId: string
 }
 
 interface JobRoleNode {
   code: string
   name: string
   familyCode: string
-  status?: string | null
+  status: JobCatalogStatus
+  effectiveDate: string
+  endDate?: string | null
+  description?: string | null
+  recordId: string
 }
 
 interface JobLevelNode {
   code: string
   name: string
   roleCode: string
-  levelRank?: number | null
-  status?: string | null
+  levelRank: number
+  status: JobCatalogStatus
+  effectiveDate: string
+  endDate?: string | null
+  description?: string | null
+  recordId: string
 }
 
 interface JobFamilyGroupsResponse {
@@ -51,7 +68,11 @@ const JOB_FAMILY_GROUPS_QUERY = /* GraphQL */ `
     jobFamilyGroups(includeInactive: $includeInactive, asOfDate: $asOfDate) {
       code
       name
+      description
       status
+      effectiveDate
+      endDate
+      recordId
     }
   }
 `
@@ -62,7 +83,11 @@ const JOB_FAMILIES_QUERY = /* GraphQL */ `
       code
       name
       groupCode
+      description
       status
+      effectiveDate
+      endDate
+      recordId
     }
   }
 `
@@ -73,7 +98,11 @@ const JOB_ROLES_QUERY = /* GraphQL */ `
       code
       name
       familyCode
+      description
       status
+      effectiveDate
+      endDate
+      recordId
     }
   }
 `
@@ -85,7 +114,11 @@ const JOB_LEVELS_QUERY = /* GraphQL */ `
       name
       roleCode
       levelRank
+      description
       status
+      effectiveDate
+      endDate
+      recordId
     }
   }
 `

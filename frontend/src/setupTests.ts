@@ -101,9 +101,61 @@ vi.mock('@workday/canvas-kit-react/button', () => ({
   }
 }));
 
+vi.mock('@workday/canvas-kit-react/modal', () => {
+  const ModalComponent = ({ children, onClose: _onClose, model: _model, ...rest }: MockComponentProps & { onClose?: () => void; model?: unknown }) => (
+    React.createElement('div', { 'data-testid': 'canvas-modal', ...rest }, children)
+  )
+
+  ModalComponent.Overlay = ({ children }: MockComponentProps) => (
+    React.createElement('div', { 'data-testid': 'canvas-modal-overlay' }, children)
+  )
+
+  ModalComponent.Card = ({ children, ...props }: MockComponentProps) => (
+    React.createElement('div', { 'data-testid': 'canvas-modal-card', ...props }, children)
+  )
+
+  ModalComponent.CloseIcon = ({ onClick, ...props }: { onClick?: () => void }) => (
+    React.createElement('button', { type: 'button', 'data-testid': 'canvas-modal-close', onClick, ...props }, 'close')
+  )
+
+  ModalComponent.Heading = ({ children }: MockComponentProps) => (
+    React.createElement('h2', { 'data-testid': 'canvas-modal-heading' }, children)
+  )
+
+  ModalComponent.Body = ({ children }: MockComponentProps) => (
+    React.createElement('div', { 'data-testid': 'canvas-modal-body' }, children)
+  )
+
+  const useModalModel = () => {
+    const [visibility, setVisibility] = React.useState<'hidden' | 'visible'>('hidden')
+
+    return {
+      state: { visibility },
+      events: {
+        show: () => setVisibility('visible'),
+        hide: () => setVisibility('hidden'),
+      },
+    }
+  }
+
+  return { Modal: ModalComponent, useModalModel }
+})
+
 vi.mock('@workday/canvas-kit-react/text', () => ({
   Heading: ({ children }: MockComponentProps) => React.createElement('h1', { 'data-testid': 'canvas-heading' }, children),
   Text: ({ children }: MockComponentProps) => React.createElement('span', { 'data-testid': 'canvas-text' }, children)
+}));
+
+vi.mock('@workday/canvas-kit-react/text-input', () => ({
+  TextInput: ({ children, ...props }: MockComponentProps) => React.createElement('input', { 'data-testid': 'canvas-text-input', ...props }, children),
+}));
+
+vi.mock('@workday/canvas-kit-react/text-area', () => ({
+  TextArea: ({ children, ...props }: MockComponentProps) => React.createElement('textarea', { 'data-testid': 'canvas-text-area', ...props }, children),
+}));
+
+vi.mock('@workday/canvas-kit-react/select', () => ({
+  Select: ({ children, ...props }: MockComponentProps) => React.createElement('select', { 'data-testid': 'canvas-select', ...props }, children),
 }));
 
 vi.mock('@workday/canvas-kit-react/card', () => ({
@@ -152,9 +204,29 @@ vi.mock('@workday/canvas-kit-react/table', () => ({
   )
 }))
 
-vi.mock('@workday/canvas-kit-react/side-panel', () => ({
-  SidePanel: ({ children }: MockComponentProps) => React.createElement('div', { 'data-testid': 'side-panel' }, children)
-}));
+vi.mock('@workday/canvas-kit-react/side-panel', () => {
+  const SidePanelMock = ({ children, ...props }: MockComponentProps) => {
+    const {
+      open: _open,
+      openWidth: _openWidth,
+      backgroundColor: _backgroundColor,
+      padding: _padding,
+      header: _header,
+      onToggleClick: _onToggleClick,
+      onBreakpointChange: _onBreakpointChange,
+      openDirection: _openDirection,
+      closeNavigationAriaLabel: _closeNavigationAriaLabel,
+      openNavigationAriaLabel: _openNavigationAriaLabel,
+      ...rest
+    } = props;
+    return React.createElement('div', { 'data-testid': 'side-panel', ...rest }, children);
+  };
+
+  SidePanelMock.OpenDirection = { Left: 0, Right: 1 };
+  SidePanelMock.BackgroundColor = { White: 'white', Transparent: 'transparent', Gray: 'gray' };
+
+  return { SidePanel: SidePanelMock };
+});
 
 vi.mock('@workday/canvas-kit-react/avatar', () => ({
   Avatar: ({ children, altText }: MockComponentProps & { altText?: string }) => React.createElement('div', { 'data-testid': 'avatar', 'aria-label': altText }, children)

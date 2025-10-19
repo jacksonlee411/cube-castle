@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots'
 import { Box } from '@workday/canvas-kit-react/layout'
@@ -14,6 +14,14 @@ const PositionDashboard = React.lazy(() => import('./features/positions/Position
 const PositionTemporalPage = React.lazy(() => import('./features/positions/PositionTemporalPage').then(module => ({ default: module.PositionTemporalPage })))
 const ContractTestingDashboard = React.lazy(() => import('./features/contract-testing/ContractTestingDashboard').then(module => ({ default: module.ContractTestingDashboard })))
 const MonitoringDashboard = React.lazy(() => import('./features/monitoring/MonitoringDashboard').then(module => ({ default: module.MonitoringDashboard })))
+const JobFamilyGroupList = React.lazy(() => import('./features/job-catalog/family-groups/JobFamilyGroupList').then(module => ({ default: module.JobFamilyGroupList })))
+const JobFamilyGroupDetail = React.lazy(() => import('./features/job-catalog/family-groups/JobFamilyGroupDetail').then(module => ({ default: module.JobFamilyGroupDetail })))
+const JobFamilyList = React.lazy(() => import('./features/job-catalog/families/JobFamilyList').then(module => ({ default: module.JobFamilyList })))
+const JobFamilyDetail = React.lazy(() => import('./features/job-catalog/families/JobFamilyDetail').then(module => ({ default: module.JobFamilyDetail })))
+const JobRoleList = React.lazy(() => import('./features/job-catalog/roles/JobRoleList').then(module => ({ default: module.JobRoleList })))
+const JobRoleDetail = React.lazy(() => import('./features/job-catalog/roles/JobRoleDetail').then(module => ({ default: module.JobRoleDetail })))
+const JobLevelList = React.lazy(() => import('./features/job-catalog/levels/JobLevelList').then(module => ({ default: module.JobLevelList })))
+const JobLevelDetail = React.lazy(() => import('./features/job-catalog/levels/JobLevelDetail').then(module => ({ default: module.JobLevelDetail })))
 
 // 优化的加载组件
 const SuspenseLoader: React.FC = () => (
@@ -74,19 +82,21 @@ function App() {
           element={renderOrganizations(<OrganizationTemporalPage />)} 
         />
         
-        {/* 职位管理 - Stage 0 页面框架 */}
-        <Route 
-          path="/positions" 
-          element={renderPositions(<PositionDashboard />)} 
-        />
-        <Route
-          path="/positions/:code"
-          element={renderPositions(<PositionTemporalPage />)}
-        />
-        <Route
-          path="/positions/:code/temporal"
-          element={renderPositions(<PositionTemporalPage />)}
-        />
+        {/* 职位管理 - 二级导航结构 */}
+        <Route path="/positions" element={renderPositions(<Outlet />)}>
+          <Route index element={<PositionDashboard />} />
+          <Route path=":code" element={<PositionTemporalPage />} />
+          <Route path="catalog">
+            <Route path="family-groups" element={<JobFamilyGroupList />} />
+            <Route path="family-groups/:code" element={<JobFamilyGroupDetail />} />
+            <Route path="families" element={<JobFamilyList />} />
+            <Route path="families/:code" element={<JobFamilyDetail />} />
+            <Route path="roles" element={<JobRoleList />} />
+            <Route path="roles/:code" element={<JobRoleDetail />} />
+            <Route path="levels" element={<JobLevelList />} />
+            <Route path="levels/:code" element={<JobLevelDetail />} />
+          </Route>
+        </Route>
         
         {/* 系统监控总览 */}
         <Route 

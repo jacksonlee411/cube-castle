@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { CanvasProvider } from '@workday/canvas-kit-react/common';
 import { AppShell } from '../../layout/AppShell';
 import { vi } from 'vitest';
+import { AuthProvider } from '@/shared/auth/AuthProvider';
 
 // Minimal mocks for Canvas Kit components used by AppShell tree
 vi.mock('@workday/canvas-kit-react/layout', () => {
@@ -40,19 +41,57 @@ vi.mock('@workday/canvas-kit-react/button', () => ({
       {children}
     </button>
   ),
+  TertiaryButton: ({ children, onClick, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" onClick={onClick} {...rest}>
+      {children}
+    </button>
+  ),
 }));
 vi.mock('@workday/canvas-kit-react/tokens', () => ({
-  space: { l: 16, m: 12, s: 8 },
-  colors: { blueberry500: '#0875e1', frenchVanilla100: '#fff' },
+  space: {
+    zero: '0',
+    xxs: '0.5rem',
+    xs: '0.75rem',
+    s: '1rem',
+    m: '1.5rem',
+    l: '2rem',
+  },
+  colors: {
+    blueberry400: '#0875e1',
+    blueberry500: '#0875e1',
+    licorice500: '#2e2d2b',
+    soap200: '#f5f5f5',
+    soap100: '#fafafa',
+    frenchVanilla100: '#fff',
+  },
+  borderRadius: {
+    zero: '0px',
+    s: '2px',
+    m: '4px',
+    l: '8px',
+    circle: '999px',
+  },
 }));
 
 const TestWrapper = ({ children }: { children: React.ReactNode }) => (
   <CanvasProvider>
     <MemoryRouter initialEntries={['/organizations']}>
-      {children}
+      <AuthProvider>{children}</AuthProvider>
     </MemoryRouter>
   </CanvasProvider>
 );
+
+beforeEach(() => {
+  (globalThis as { __SCOPES__?: string[] }).__SCOPES__ = [
+    'org:read',
+    'position:read',
+    'job-catalog:read',
+  ];
+});
+
+afterEach(() => {
+  delete (globalThis as { __SCOPES__?: string[] }).__SCOPES__;
+});
 
 describe('AppShell Layout', () => {
   it('renders header with brand title', () => {
@@ -65,8 +104,9 @@ describe('AppShell Layout', () => {
   it('renders sidebar navigation', () => {
     render(<AppShell />, { wrapper: TestWrapper });
     
-    expect(screen.getByText(/仪表板/)).toBeInTheDocument();
-    expect(screen.getByText(/组织架构/)).toBeInTheDocument();
-    expect(screen.getByText(/职位管理/)).toBeInTheDocument();
+    expect(screen.getByText('仪表板')).toBeInTheDocument();
+    expect(screen.getByText('组织架构')).toBeInTheDocument();
+    expect(screen.getByText('职位管理')).toBeInTheDocument();
+    expect(screen.getByText('职位列表')).toBeInTheDocument();
   });
 });

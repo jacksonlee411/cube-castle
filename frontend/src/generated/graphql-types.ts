@@ -1577,7 +1577,11 @@ export type JobFamilyGroupsQuery = {
     __typename: "JobFamilyGroup";
     code: string;
     name: string;
+    description?: string | null;
     status: JobCatalogStatus;
+    effectiveDate: string;
+    endDate?: string | null;
+    recordId: string;
   }>;
 };
 
@@ -1594,7 +1598,11 @@ export type JobFamiliesQuery = {
     code: string;
     name: string;
     groupCode: string;
+    description?: string | null;
     status: JobCatalogStatus;
+    effectiveDate: string;
+    endDate?: string | null;
+    recordId: string;
   }>;
 };
 
@@ -1611,7 +1619,11 @@ export type JobRolesQuery = {
     code: string;
     name: string;
     familyCode: string;
+    description?: string | null;
     status: JobCatalogStatus;
+    effectiveDate: string;
+    endDate?: string | null;
+    recordId: string;
   }>;
 };
 
@@ -1629,6 +1641,10 @@ export type JobLevelsQuery = {
     name: string;
     roleCode: string;
     levelRank: number;
+    description?: string | null;
     status: JobCatalogStatus;
+    effectiveDate: string;
+    endDate?: string | null;
+    recordId: string;
   }>;
 };

@@ -40,12 +40,16 @@ function mapRolesToScopes(roles: string[]): string[] {
           'org:write',
           'org:validate',
           'org:read:hierarchy',
-          'org:delete'
+          'org:delete',
+          'position:read',
+          'position:write',
+          'job-catalog:read',
+          'job-catalog:write'
         )
         break
       case 'USER':
         // 普通用户拥有基本读取权限
-        scopes.push('org:read')
+        scopes.push('org:read', 'position:read')
         break
       case 'HR_MANAGER':
         // HR管理员拥有组织管理权限
@@ -53,12 +57,15 @@ function mapRolesToScopes(roles: string[]): string[] {
           'org:read',
           'org:write',
           'org:validate',
-          'org:read:hierarchy'
+          'org:read:hierarchy',
+          'position:read',
+          'position:write',
+          'job-catalog:read'
         )
         break
       case 'READONLY':
         // 只读用户
-        scopes.push('org:read', 'org:read:hierarchy')
+        scopes.push('org:read', 'org:read:hierarchy', 'position:read', 'job-catalog:read')
         break
       default:
         // 未知角色不映射任何权限

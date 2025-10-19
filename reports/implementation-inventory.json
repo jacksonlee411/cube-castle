@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-10-19T02:40:32.292Z",
+  "timestamp": "2025-10-19T11:02:44.201Z",
   "summary": {
     "openapiPaths": 42,
     "graphqlQueries": 22,
     "goHandlers": 50,
     "goServices": 21,
-    "tsExports": 222
+    "tsExports": 237
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -441,11 +441,6 @@
       "kind": "const"
     },
     {
-      "name": "prepareFormDataForValidation",
-      "file": "frontend/src/features/organizations/components/OrganizationForm/validation.ts",
-      "kind": "const"
-    },
-    {
       "name": "ORGANIZATION_UNIT_TYPES",
       "file": "frontend/src/features/organizations/constants/formConfig.ts",
       "kind": "const"
@@ -491,8 +486,68 @@
       "kind": "const"
     },
     {
+      "name": "buildCreatePositionPayload",
+      "file": "frontend/src/features/positions/components/PositionForm/payload.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createInitialState",
+      "file": "frontend/src/features/positions/components/PositionForm/types.ts",
+      "kind": "const"
+    },
+    {
+      "name": "usePositionJobCatalogOptions",
+      "file": "frontend/src/features/positions/components/PositionForm/usePositionJobCatalogOptions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "parseHeadcount",
+      "file": "frontend/src/features/positions/components/PositionForm/validation.ts",
+      "kind": "const"
+    },
+    {
+      "name": "validatePositionForm",
+      "file": "frontend/src/features/positions/components/PositionForm/validation.ts",
+      "kind": "const"
+    },
+    {
+      "name": "getVersionKey",
+      "file": "frontend/src/features/positions/components/versioning/utils.ts",
+      "kind": "const"
+    },
+    {
+      "name": "buildVersionsCsv",
+      "file": "frontend/src/features/positions/components/versioning/utils.ts",
+      "kind": "const"
+    },
+    {
       "name": "getPositionStatusMeta",
       "file": "frontend/src/features/positions/statusMeta.ts",
+      "kind": "const"
+    },
+    {
+      "name": "buildPositionVersionKey",
+      "file": "frontend/src/features/positions/timelineAdapter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "sortPositionVersions",
+      "file": "frontend/src/features/positions/timelineAdapter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createTimelineVersion",
+      "file": "frontend/src/features/positions/timelineAdapter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "mapPositionVersionsToTimeline",
+      "file": "frontend/src/features/positions/timelineAdapter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "mapTimelineEventsToTimeline",
+      "file": "frontend/src/features/positions/timelineAdapter.ts",
       "kind": "const"
     },
     {
@@ -1198,6 +1253,26 @@
     {
       "name": "__internal",
       "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useJobFamilyGroups",
+      "file": "frontend/src/shared/hooks/useJobCatalog.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useJobFamilies",
+      "file": "frontend/src/shared/hooks/useJobCatalog.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useJobRoles",
+      "file": "frontend/src/shared/hooks/useJobCatalog.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useJobLevels",
+      "file": "frontend/src/shared/hooks/useJobCatalog.ts",
       "kind": "const"
     },
     {

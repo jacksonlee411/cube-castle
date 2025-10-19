@@ -1,60 +1,60 @@
-import React from 'react'
-import { Box } from '@workday/canvas-kit-react/layout'
-import { PrimaryButton } from '@workday/canvas-kit-react/button'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { 
+import React from 'react';
+import { Box } from '@workday/canvas-kit-react/layout';
+import { space } from '@workday/canvas-kit-react/tokens';
+import {
   dashboardIcon,
   homeIcon,
   checkIcon,
-  viewTeamIcon
+  viewTeamIcon,
 } from '@workday/canvas-system-icons-web';
+import { NavigationItem, type NavigationItemConfig } from './NavigationItem';
 
-const navigationItems = [
+const navigationConfig: NavigationItemConfig[] = [
   {
     label: '仪表板',
     path: '/dashboard',
-    icon: dashboardIcon
+    icon: dashboardIcon,
   },
   {
     label: '组织架构',
     path: '/organizations',
-    icon: homeIcon
+    icon: homeIcon,
+    permission: 'org:read',
   },
   {
     label: '职位管理',
     path: '/positions',
-    icon: viewTeamIcon
+    icon: viewTeamIcon,
+    permission: 'position:read',
+    subItems: [
+      { label: '职位列表', path: '/positions', permission: 'position:read' },
+      { label: '职类管理', path: '/positions/catalog/family-groups', permission: 'job-catalog:read' },
+      { label: '职种管理', path: '/positions/catalog/families', permission: 'job-catalog:read' },
+      { label: '职务管理', path: '/positions/catalog/roles', permission: 'job-catalog:read' },
+      { label: '职级管理', path: '/positions/catalog/levels', permission: 'job-catalog:read' },
+    ],
   },
   {
     label: '契约测试',
     path: '/contract-testing',
-    icon: checkIcon
-  }
+    icon: checkIcon,
+  },
 ];
 
-export const Sidebar: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  return (
-    <Box height="100%" padding="m">
-      {/* 导航菜单 */}
-      {navigationItems.map((item) => {
-        const isActive = location.pathname.startsWith(item.path);
-        
-        return (
-          <Box key={item.path} marginBottom="s" width="100%">
-            <PrimaryButton
-              variant={isActive ? undefined : "inverse"}
-              onClick={() => navigate(item.path)}
-              width="100%"
-              icon={item.icon}
-            >
-              {item.label}
-            </PrimaryButton>
-          </Box>
-        );
-      })}
-    </Box>
-  );
-};
+export const Sidebar: React.FC = () => (
+  <Box
+    as="nav"
+    aria-label="主导航"
+    padding="s"
+    cs={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: space.xxs,
+      height: '100%',
+    }}
+  >
+    {navigationConfig.map(item => (
+      <NavigationItem key={item.path} {...item} />
+    ))}
+  </Box>
+);
