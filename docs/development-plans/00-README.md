@@ -69,6 +69,7 @@
 - `../archive/development-plans/65-tooling-validation-consolidation-plan.md` - Phase 4 工具与验证巩固计划（2025-10-12 完成）
 - `../archive/development-plans/66-phase-4-acceptance-draft.md` - Phase 4 验收草案
 - `../archive/development-plans/84-position-lifecycle-stage2-implementation-plan.md` - 职位生命周期 Stage 2 实施计划（方案B）
+- `../archive/development-plans/90-organization-stats-null-handling-report.md` - 组织列表 GraphQL 错误复盘与修复建议
 
 ## 📊 文档关系
 
