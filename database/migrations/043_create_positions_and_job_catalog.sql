@@ -165,9 +165,21 @@ CREATE INDEX IF NOT EXISTS idx_positions_org_code
 CREATE INDEX IF NOT EXISTS idx_positions_current
     ON positions(tenant_id)
     WHERE is_current = true;
-CREATE INDEX IF NOT EXISTS idx_positions_holder
-    ON positions(tenant_id, current_holder_id)
-    WHERE current_holder_id IS NOT NULL;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'positions'
+          AND column_name = 'current_holder_id'
+    ) THEN
+        EXECUTE 'CREATE INDEX IF NOT EXISTS idx_positions_holder ON positions(tenant_id, current_holder_id) WHERE current_holder_id IS NOT NULL';
+    ELSE
+        RAISE NOTICE 'idx_positions_holder skipped: current_holder_id column missing';
+    END IF;
+END
+$$;
 CREATE INDEX IF NOT EXISTS idx_positions_effective_date
     ON positions(tenant_id, effective_date);
 CREATE INDEX IF NOT EXISTS idx_positions_status

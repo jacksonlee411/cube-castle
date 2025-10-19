@@ -6,6 +6,7 @@ DO $$
 DECLARE
     parent_exists BOOLEAN;
     target_exists BOOLEAN;
+    path_exists BOOLEAN;
 BEGIN
     SELECT EXISTS (
         SELECT 1
@@ -29,6 +30,8 @@ BEGIN
         RAISE NOTICE 'Skip 037_reparent_1000004_to_1000003: required organizations absent (parent=%, target=%)', parent_exists, target_exists;
         RETURN;
     END IF;
+
+    CREATE TEMP TABLE tmp_reparent(record_id UUID, new_code_path TEXT) ON COMMIT DROP;
 
     WITH RECURSIVE parent_ctx AS (
         SELECT
@@ -94,16 +97,38 @@ BEGIN
         WHERE c.is_current = true
           AND c.status <> 'DELETED'
     )
-    UPDATE organization_units ou
-    SET parent_code = subtree.new_parent_code,
-        level = subtree.new_level,
-        hierarchy_depth = subtree.new_hierarchy_depth,
-        path = subtree.new_code_path,
-        code_path = subtree.new_code_path,
-        name_path = subtree.new_name_path,
-        updated_at = NOW()
-    FROM subtree
-    WHERE ou.record_id = subtree.record_id;
+    , updated AS (
+        UPDATE organization_units ou
+        SET parent_code = subtree.new_parent_code,
+            level = subtree.new_level,
+            hierarchy_depth = subtree.new_hierarchy_depth,
+            code_path = subtree.new_code_path,
+            name_path = subtree.new_name_path,
+            updated_at = NOW()
+        FROM subtree
+        WHERE ou.record_id = subtree.record_id
+        RETURNING ou.record_id, subtree.new_code_path
+    )
+    INSERT INTO tmp_reparent(record_id, new_code_path)
+    SELECT record_id, new_code_path FROM updated;
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'organization_units'
+          AND column_name = 'path'
+    ) INTO path_exists;
+
+    IF path_exists THEN
+        UPDATE organization_units ou
+        SET path = tr.new_code_path,
+            updated_at = NOW()
+        FROM tmp_reparent tr
+        WHERE ou.record_id = tr.record_id;
+    END IF;
+
+    DROP TABLE IF EXISTS tmp_reparent;
 
     RAISE NOTICE 'Reparented organization 1000004 under 1000003';
 END
