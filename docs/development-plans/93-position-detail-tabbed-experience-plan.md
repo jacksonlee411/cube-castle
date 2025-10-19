@@ -158,3 +158,116 @@ flowchart LR
 - 文档同步：实施完成后更新 88 号文档第 7 节状态，并在 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 登记。
 
 > 草案提交人：前端团队 · 架构组（代）
+
+## 14. 前置校验记录（2025-10-20）
+
+1. **GraphQL recordId 验证**  
+   - `docs/api/schema.graphql` 的 `positionVersions` 查询返回 `recordId`（第 146-183 行）。  
+   - 查询服务 `Resolver.PositionVersions` 将结果映射到仓储 `GetPositionVersions`（`cmd/organization-query-service/internal/graphql/resolver.go:320-346`），仓储扫描函数 `scanPosition` 同步填充 `RecordIDField`（`cmd/organization-query-service/internal/repository/postgres_positions.go:1293-1364`）。  
+   - 前端 `POSITION_DETAIL_QUERY_DOCUMENT` 请求 `recordId`，`transformPositionNode` 直接赋值至 `PositionRecord.recordId`（`frontend/src/shared/hooks/useEnterprisePositions.ts:299-361`、`:693-722`）。  
+   - 结论：契约与实现均支持 `recordId`，后续仅需对历史缺失情况进行数据抽样确认。
+
+2. **审计链路静态检查**  
+   - 命令服务在创建、版本新增、填充、清空、转移、事件等操作中均调用 `logPositionEvent`，写入 `audit_logs`（`cmd/organization-command-service/internal/services/position_service.go:107-689`）。  
+   - `logPositionEvent` 通过 `auditLogger.LogEvent` 写库，对应仓储 `audit_writer.go` 使用最新迁移字段写入 `audit_logs`（`cmd/organization-command-service/internal/repository/audit_writer.go:84-164`）。  
+   - 结论：审计写入路径完备，后续需在实际环境执行抽样查询验证数据存在。
+
+3. **设计评审排期**  
+   - 评审负责人：前端 @职位体验小组，协同 UX、产品。  
+   - 会议目标：确认页签命名/排序与响应式折叠策略，形成《职位页签命名/排序确认稿》。  
+   - 计划时间：2025-10-25 前完成；评审结论将在 06 号日志与本计划中记录。
+
+---
+
+## 附录 A. 审计抽样脚本与操作指南
+
+### A.1 GraphQL 抽样查询（验证 `recordId`）
+```bash
+curl -sS -X POST http://localhost:8090/graphql \
+  -H "Authorization: Bearer $DEV_JWT" \
+  -H "X-Tenant-ID: $TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "query($code: PositionCode!) { positionVersions(code: $code, includeDeleted: false) { recordId code status effectiveDate isCurrent } }",
+    "variables": { "code": "P1000001" }
+  }' | jq .
+```
+- 期望：列表中所有版本均返回非空 `recordId`。  
+- 若发现缺失，记录 `code` 与版本信息，通知后端核查数据迁移。
+
+### A.2 GraphQL 审计历史抽样
+```bash
+curl -sS -X POST http://localhost:8090/graphql \
+  -H "Authorization: Bearer $DEV_JWT" \
+  -H "X-Tenant-ID: $TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "query($recordId: String!) { auditHistory(recordId: $recordId, pageSize: 5) { data { auditId operationType operatedAt operatedBy { name } modifiedFields } } }",
+    "variables": { "recordId": "REPLACE_WITH_RECORD_ID" }
+  }' | jq .
+```
+- 期望：返回 `auditId`、`operationType`、`modifiedFields` 等字段。  
+- 若返回空数组，确认对应版本是否曾触发命令；如确定应有记录则需排查命令服务审计写入。
+
+### A.3 SQL 审计抽样（可选）
+```sql
+SELECT
+  record_id,
+  operation_type,
+  operated_by_name,
+  operated_at,
+  target_type,
+  target_id
+FROM audit_logs
+WHERE tenant_id = :TENANT_ID
+  AND target_type = 'POSITION'
+  AND target_id = :POSITION_RECORD_ID
+ORDER BY operated_at DESC
+LIMIT 5;
+```
+- 通过 `psql` 或 `pgcli` 执行，核对记录数量与 GraphQL 返回保持一致。
+
+### A.4 抽样记录模板
+| 抽样时间 | 职位编码 | 版本 `recordId` | 审计记录条数 | 结果 |
+|----------|----------|-----------------|--------------|------|
+| 2025-10-XX | P1000001 | 9da3-... | 3 | ✅ 正常 |
+
+> 建议抽样覆盖至少 1 条当前版本、1 条历史版本；结果回填至 06 号日志第 10 节。
+
+---
+
+## 附录 B. 设计评审纪要模板
+
+```
+会议名称：职位详情多页签设计评审
+会议时间：2025-10-25 14:00-15:00
+与会人员：前端（姓名）、UX（姓名）、产品（姓名）、架构（姓名）
+
+议题：
+1. 页签命名与排序（概览 / 任职记录 / 调动记录 / 时间线 / 版本历史 / 审计历史）
+2. 左侧版本导航样式（宽度、折叠、状态徽章）
+3. 移动端/窄屏降级方案
+4. Mock 模式下的只读指示
+
+结论：
+- 页签排序：概览 → 任职记录 → 调动记录 → 时间线 → 版本历史 → 审计历史
+- 左侧导航：桌面宽度 320px，窄屏折叠为 Drawer
+- 响应式策略：<960px 时默认折叠版本列表，通过按钮展开
+- Mock 模式：顶部展示只读提示，禁用所有命令按钮
+
+后续行动：
+- 前端：根据结论更新组件拆分与样式实现（负责人 / 截止时间）
+- 设计：提供最终视觉稿（负责人 / 截止时间）
+- 文档：在 06 号日志与 93 号计划更新评审结果（负责人 / 截止时间）
+```
+
+> 建议使用该模板记录实际会议纪要，必要时归档至 `docs/archive/meetings/`。
+
+---
+
+## 15. 实施进展记录（2025-10-20）
+
+- 多页签布局正式落地，涵盖「概览 / 任职记录 / 调动记录 / 时间线 / 版本历史 / 审计历史」六个内容区域，并保持桌面 + 窄屏自适应。  
+- 左侧版本导航复用 `TimelineComponent`，支持版本选择同步 tabs；版本列表支持点击高亮与回到概览。  
+- 审计页签接入 `AuditHistorySection`，选中版本缺少 `recordId` 时展示提示信息。  
+- 前端单测：`npm --prefix frontend run test -- PositionTemporalPage` 通过（Vitest）。

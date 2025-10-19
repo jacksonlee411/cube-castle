@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
+
+import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, afterEach, afterAll, describe, expect, it, vi, type Mock } from 'vitest'
+import { beforeEach, afterAll, afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import type { PositionDetailResult, PositionRecord } from '@/shared/types/positions'
 
 vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
@@ -21,12 +23,93 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
-vi.mock('../components/PositionDetails', () => ({
-  PositionDetails: () => <div data-testid="position-details" />,
+vi.mock('@/features/audit/components/AuditHistorySection', () => ({
+  AuditHistorySection: ({ recordId }: { recordId: string }) => (
+    <div data-testid="audit-history-section">{recordId}</div>
+  ),
+}))
+
+vi.mock('@/features/temporal/components', () => ({
+  TimelineComponent: ({ versions }: { versions: unknown[] }) => (
+    <div data-testid="timeline-component">{versions.length}</div>
+  ),
+}))
+
+vi.mock('@workday/canvas-kit-react/layout', () => ({
+  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  Flex: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+}))
+
+vi.mock('@workday/canvas-kit-react/text', () => ({
+  Heading: ({ children, ...props }: any) => <h3 {...props}>{children}</h3>,
+  Text: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+}))
+
+vi.mock('@workday/canvas-kit-react/button', () => ({
+  PrimaryButton: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  SecondaryButton: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+}))
+
+vi.mock('@workday/canvas-kit-react/card', () => ({
+  Card: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+}))
+
+vi.mock('@workday/canvas-kit-react/tokens', () => ({
+  colors: {
+    licorice400: '#333',
+    licorice500: '#222',
+    licorice600: '#111',
+    cinnamon600: '#c00',
+    cinnamon500: '#d22',
+    cinnamon100: '#fee',
+    soap300: '#ccc',
+    soap200: '#ddd',
+    soap100: '#eee',
+    soap400: '#bbb',
+    frenchVanilla100: '#fff',
+    blueberry600: '#08c',
+    blueberry400: '#09c',
+    blueberry50: '#def',
+    cantaloupe600: '#f80',
+  },
+  space: {
+    xxxs: '2px',
+    xxs: '4px',
+    xs: '8px',
+    s: '12px',
+    m: '16px',
+    l: '20px',
+    xl: '24px',
+  },
+}))
+
+vi.mock('@workday/canvas-kit-react/table', () => {
+  const Table = ({ children, ...props }: any) => <table {...props}>{children}</table>
+  Table.Head = ({ children, ...props }: any) => <thead {...props}>{children}</thead>
+  Table.Body = ({ children, ...props }: any) => <tbody {...props}>{children}</tbody>
+  Table.Row = ({ children, ...props }: any) => <tr {...props}>{children}</tr>
+  Table.Header = ({ children, ...props }: any) => <th {...props}>{children}</th>
+  Table.Cell = ({ children, ...props }: any) => <td {...props}>{children}</td>
+  return { Table }
+})
+
+vi.mock('@workday/canvas-kit-react/switch', () => ({
+  Switch: ({ checked, onChange, ...props }: any) => (
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={event => onChange?.({ target: { checked: event.target.checked } })}
+      {...props}
+    />
+  ),
 }))
 
 vi.mock('../components/PositionForm', () => ({
   PositionForm: ({ mode }: { mode: string }) => <div data-testid={`position-form-${mode}`} />,
+}))
+
+vi.mock('../components/PositionTransferDialog', () => ({
+  PositionTransferDialog: () => <div data-testid="position-transfer-dialog" />,
 }))
 
 const { usePositionDetail } = await import('@/shared/hooks/useEnterprisePositions')
@@ -79,7 +162,11 @@ const createDetailResult = (): PositionDetailResult => ({
   assignments: [],
   transfers: [],
   versions: [
-    createPositionRecord({ updatedAt: '2024-01-01T00:00:00.000Z', recordId: 'rec-001', isCurrent: true }),
+    createPositionRecord({
+      updatedAt: '2024-01-01T00:00:00.000Z',
+      recordId: 'rec-001',
+      isCurrent: true,
+    }),
     createPositionRecord({
       recordId: 'rec-002',
       effectiveDate: '2024-06-01',
@@ -94,47 +181,52 @@ const createDetailResult = (): PositionDetailResult => ({
 })
 
 describe('PositionTemporalPage', () => {
-beforeEach(() => {
-  vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
-  params = { code: 'P9000001' }
-  mockedUsePositionDetail.mockReset()
-  mockedUsePositionDetail.mockImplementation((_code: string | undefined, _options?: unknown) => ({
-    data: createDetailResult(),
-    isLoading: false,
+  beforeEach(() => {
+    vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
+    params = { code: 'P9000001' }
+    mockedUsePositionDetail.mockReset()
+    mockedUsePositionDetail.mockImplementation((_code: string | undefined, _options?: unknown) => ({
+      data: createDetailResult(),
+      isLoading: false,
       isFetching: false,
       isError: false,
+      error: undefined,
       refetch: vi.fn(),
     }))
   })
 
-afterEach(() => {
-  navigateMock.mockReset()
-  vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
-})
+  afterEach(() => {
+    navigateMock.mockReset()
+    vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
+  })
 
   afterAll(() => {
     vi.unstubAllEnvs()
   })
 
-  it('renders版本工具栏和列表', () => {
+  it('renders detail layout并可打开版本历史页签', () => {
     render(<PositionTemporalPage />)
 
     expect(screen.getByTestId('position-temporal-page')).toBeInTheDocument()
-    expect(screen.getByTestId('position-details')).toBeInTheDocument()
+    expect(screen.getByTestId('position-overview-card')).toBeInTheDocument()
+    expect(screen.getByText('概览')).toBeInTheDocument()
+    expect(screen.getByText('版本历史')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('版本历史'))
     expect(screen.getByTestId('position-version-toolbar')).toBeInTheDocument()
     expect(screen.getByTestId('position-version-list')).toBeInTheDocument()
     expect(screen.getByText('职位版本记录')).toBeInTheDocument()
-    expect(screen.getByTestId('position-version-export-button')).toBeInTheDocument()
-    expect(screen.queryByText('版本对比')).not.toBeInTheDocument()
   })
 
-  it('supports切换包含已删除版本', async () => {
+  it('toggles includeDeleted flag when开关切换', async () => {
     render(<PositionTemporalPage />)
 
     expect(mockedUsePositionDetail).toHaveBeenLastCalledWith(
       'P9000001',
       expect.objectContaining({ includeDeleted: false }),
     )
+
+    fireEvent.click(screen.getByText('版本历史'))
 
     const toggle = screen.getByTestId('position-version-include-deleted')
     fireEvent.click(toggle)
@@ -147,13 +239,25 @@ afterEach(() => {
     )
   })
 
-  it('shows guidance when职位编码缺失', () => {
+  it('navigates to overview when版本表点击行', () => {
+    render(<PositionTemporalPage />)
+
+    fireEvent.click(screen.getByText('版本历史'))
+    const versionRow = screen.getAllByTestId(/position-version-row/)[1]
+    fireEvent.click(versionRow)
+
+    expect(screen.getByTestId('position-overview-card')).toBeInTheDocument()
+    expect(screen.getByText(/当前版本：/)).toBeInTheDocument()
+  })
+
+  it('shows提示 when职位编码缺失', () => {
     params = {}
     mockedUsePositionDetail.mockReturnValue({
       data: undefined,
       isLoading: false,
-      isError: false,
       isFetching: false,
+      isError: false,
+      error: undefined,
       refetch: vi.fn(),
     })
 
@@ -167,8 +271,9 @@ afterEach(() => {
     mockedUsePositionDetail.mockReturnValue({
       data: undefined,
       isLoading: false,
-      isError: false,
       isFetching: false,
+      isError: false,
+      error: undefined,
       refetch: vi.fn(),
     })
 
@@ -196,12 +301,12 @@ afterEach(() => {
       isLoading: false,
       isFetching: false,
       isError: false,
+      error: undefined,
       refetch: vi.fn(),
     })
 
     render(<PositionTemporalPage />)
 
-    expect(screen.getByTestId('position-mock-banner')).toBeInTheDocument()
-    expect(screen.queryByTestId('position-form-create')).not.toBeInTheDocument()
+    expect(screen.getByText('⚠️ Mock 模式下无法创建职位。')).toBeInTheDocument()
   })
 })

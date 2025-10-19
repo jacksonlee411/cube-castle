@@ -10,6 +10,9 @@ import { getPositionStatusMeta } from '../../statusMeta';
 export interface PositionVersionListProps {
   versions: PositionRecord[];
   isLoading?: boolean;
+  selectedVersionKey?: string | null;
+  onSelectVersion?: (version: PositionRecord, versionKey: string) => void;
+  versionKeys?: string[];
 }
 
 const formatVersionLabel = (version: PositionRecord): string => {
@@ -33,6 +36,9 @@ const formatVersionLabel = (version: PositionRecord): string => {
 export const PositionVersionList: React.FC<PositionVersionListProps> = ({
   versions,
   isLoading = false,
+  selectedVersionKey,
+  onSelectVersion,
+  versionKeys,
 }) => {
   return (
     <Card
@@ -60,16 +66,26 @@ export const PositionVersionList: React.FC<PositionVersionListProps> = ({
             </Table.Row>
           </Table.Head>
           <Table.Body>
-            {versions.map(version => {
-              const key = getVersionKey(version);
+            {versions.map((version, index) => {
+              const key = versionKeys?.[index] ?? getVersionKey(version);
+              const isSelected = selectedVersionKey === key;
 
               return (
                 <Table.Row
                   key={key}
                   data-testid={`position-version-row-${key}`}
+                  onClick={() => {
+                    if (onSelectVersion) {
+                      onSelectVersion(version, key);
+                    }
+                  }}
+                  style={{
+                    cursor: onSelectVersion ? 'pointer' : 'default',
+                    backgroundColor: isSelected ? colors.soap200 : 'inherit',
+                  }}
                 >
                   <Table.Cell>
-                    <Text>{formatVersionLabel(version)}</Text>
+                    <Text fontWeight={isSelected ? 'bold' : 'normal'}>{formatVersionLabel(version)}</Text>
                   </Table.Cell>
                   <Table.Cell>{version.effectiveDate}</Table.Cell>
                   <Table.Cell>{version.endDate ?? '—'}</Table.Cell>

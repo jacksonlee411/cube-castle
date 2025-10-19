@@ -91,6 +91,8 @@ import { SidePanel } from '@workday/canvas-kit-react/side-panel';
 </SidePanel>
 ```
 
+> 说明：职位详情采用单一路由 `/positions/:code`，时态版本通过详情页内的页签/组件呈现；不再保留 `/positions/:code/temporal` 冗余地址，避免路由重复。
+
 > 以上示例沿用 2.3.1 中定义的 `NavigationButton`、`ExpandableTrigger`、`SubNavigationButton` 以及 `space` tokens。
 
 **核心特性**：
@@ -108,12 +110,13 @@ import { SidePanel } from '@workday/canvas-kit-react/side-panel';
   - [ ] `styled(Expandable.Target)` 包装后 `aria-expanded` / `aria-controls` 仍由组件自动注入
   - [ ] `Expandable.Icon iconPosition="start"` 正确渲染左侧 Chevron
 - [ ] **SidePanel 集成验证**
-  - [ ] `openWidth={312}` 与视觉稿一致且无布局抖动
+  - [ ] 将 `AppShell` 中现有 240px `Box` 容器替换为 `SidePanel`，确认主内容区在 312px 左侧栏宽度下布局正常（包括滚动条、padding、分隔线）
+  - [ ] 若 312px 不符合视觉稿，记录与设计确认结果并更新 `openWidth`
   - [ ] `backgroundColor={SidePanel.BackgroundColor.Gray}` 呈现浅灰背景，同时与主内容区域分层清晰
-  - [ ] 与现有 Shell 布局共存时无溢出及滚动冲突
 - [ ] **权限 Hook 可用性**
-  - [ ] 确认 `useAuth` Hook 已存在或补齐实现路径
-  - [ ] 验证 `hasPermission` 行为满足菜单过滤需求
+  - [ ] 在 `frontend/src/shared/auth/context.ts` / `hooks.ts` 中扩展 `AuthContext`，新增 `hasPermission(permission: string): boolean` 与 `userPermissions: string[]`
+  - [ ] Phase 0 前提供最小实现（可基于现有认证状态 mock），并编写单元测试覆盖基础行为
+  - [ ] 完成后更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 登记 Hook 来源
 - [ ] **Canvas tokens 校验**
   - [ ] `colors.soap200`、`borderRadius.l`、`space` token 在构建链路中无解析警告
   - [ ] 选中态、Hover 态与 Canvas Design System 保持一致
@@ -199,7 +202,6 @@ Setup (设置)
 |------|------|------|------|
 | `/positions` | PositionDashboard | 职位列表（默认页） | position:read |
 | `/positions/:code` | PositionTemporalPage | 职位详情 | position:read |
-| `/positions/:code/temporal` | PositionTemporalPage | 职位时态视图 | position:read:history |
 | `/positions/catalog/family-groups` | JobFamilyGroupList | 职类管理 | job-catalog:read |
 | `/positions/catalog/family-groups/:code` | JobFamilyGroupDetail | 职类详情 | job-catalog:read |
 | `/positions/catalog/families` | JobFamilyList | 职种管理 | job-catalog:read |
@@ -219,8 +221,6 @@ Setup (设置)
     {/* 职位列表和详情 */}
     <Route index element={<PositionDashboard />} />
     <Route path=":code" element={<PositionTemporalPage />} />
-    <Route path=":code/temporal" element={<PositionTemporalPage />} />
-
     {/* Job Catalog 四层 */}
     <Route path="catalog">
       <Route path="family-groups" element={<JobFamilyGroupList />} />
@@ -252,6 +252,7 @@ import {Expandable} from '@workday/canvas-kit-react/expandable';
 import {SystemIcon} from '@workday/canvas-kit-react/icon';
 import {Box} from '@workday/canvas-kit-react/layout';
 import {colors, space, borderRadius} from '@workday/canvas-kit-react/tokens';
+import {TertiaryButton} from '@workday/canvas-kit-react/button';
 import {useAuth} from '@/shared/hooks/useAuth';
 
 interface SubMenuItem {
@@ -268,7 +269,7 @@ interface NavigationItemProps {
   permission?: string;
 }
 
-const NavigationButton = styled('button', {
+const NavigationButton = styled(TertiaryButton, {
   shouldForwardProp: prop => prop !== 'active',
 })<{active: boolean}>`
   display: flex;
@@ -449,6 +450,8 @@ export const Sidebar: React.FC = () => (
 );
 ```
 
+> 国际化前置：为减少后续多语言改造成本，实施时应将 `navigationConfig` 的 `label` 字段接入现有 i18n 方案（如 `t('nav.positions.list')`），并在 Phase 1 完成相关语言包登记。
+
 #### 2.3.2 Job Catalog 页面组件
 
 **目录结构**：
@@ -568,12 +571,12 @@ const { hasPermission } = useAuth();
 
 ### 3.1 GraphQL 查询（端口 8090）
 
-参考 `docs/api/schema.graphql`：
+参考 `docs/api/schema.graphql`（统一使用 `includeInactive` 参数，与契约保持一致）：
 
 ```graphql
 # 职类查询
-query GetJobFamilyGroups($includeHistorical: Boolean) {
-  jobFamilyGroups(includeHistorical: $includeHistorical) {
+query GetJobFamilyGroups($includeInactive: Boolean = false, $asOfDate: Date) {
+  jobFamilyGroups(includeInactive: $includeInactive, asOfDate: $asOfDate) {
     code
     name
     description
@@ -585,8 +588,8 @@ query GetJobFamilyGroups($includeHistorical: Boolean) {
 }
 
 # 职种查询（需指定父级职类）
-query GetJobFamilies($groupCode: JobFamilyGroupCode!) {
-  jobFamilies(groupCode: $groupCode) {
+query GetJobFamilies($groupCode: JobFamilyGroupCode!, $includeInactive: Boolean = false, $asOfDate: Date) {
+  jobFamilies(groupCode: $groupCode, includeInactive: $includeInactive, asOfDate: $asOfDate) {
     code
     name
     groupCode
@@ -598,8 +601,8 @@ query GetJobFamilies($groupCode: JobFamilyGroupCode!) {
 }
 
 # 职务查询（需指定父级职种）
-query GetJobRoles($familyCode: JobFamilyCode!) {
-  jobRoles(familyCode: $familyCode) {
+query GetJobRoles($familyCode: JobFamilyCode!, $includeInactive: Boolean = false, $asOfDate: Date) {
+  jobRoles(familyCode: $familyCode, includeInactive: $includeInactive, asOfDate: $asOfDate) {
     code
     name
     familyCode
@@ -610,8 +613,8 @@ query GetJobRoles($familyCode: JobFamilyCode!) {
 }
 
 # 职级查询（需指定父级职务）
-query GetJobLevels($roleCode: JobRoleCode!) {
-  jobLevels(roleCode: $roleCode) {
+query GetJobLevels($roleCode: JobRoleCode!, $includeInactive: Boolean = false, $asOfDate: Date) {
+  jobLevels(roleCode: $roleCode, includeInactive: $includeInactive, asOfDate: $asOfDate) {
     code
     name
     roleCode
@@ -692,8 +695,8 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 
 - [ ] 复现并验证第0.4节技术清单
   - [ ] Expandable.Target 自定义包装兼容性
-  - [ ] SidePanel 与 Shell 布局联调
-  - [ ] 权限 Hook 与 tokens 可用性
+  - [ ] 替换 `AppShell` 左侧容器为 `SidePanel`，验证 312px 宽度、滚动与分隔线
+  - [ ] 权限 Hook 与 tokens 可用性（含 `hasPermission` 实装与单测）
 - [ ] 输出 POC 报告并在本文档变更历史登记
 
 #### **Phase 1: 导航基础架构（1-2天）**
@@ -702,7 +705,10 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 - [ ] 重构 Sidebar 支持二级菜单
   - [ ] 新增 `NavigationItem` 组件
   - [ ] 实现折叠/展开动画
-  - [ ] 添加权限控制逻辑
+  - [ ] 添加权限控制逻辑（接入 Phase 0 完成的 `useAuth.hasPermission`）
+- [ ] Shell 集成
+  - [ ] 将 `AppShell` 中的固定宽度 `Box` 替换为 `SidePanel`
+  - [ ] 调整主内容区 padding/分隔线以匹配视觉稿，保留 312px 宽度（或记录与设计沟通后的最终宽度）
 - [ ] 配置路由结构
   - [ ] 扩展 `App.tsx` 路由配置
   - [ ] 添加路由守卫（权限检查）
@@ -820,6 +826,12 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [ ] 字段命名严格 camelCase
   - [ ] API 调用遵循 CQRS 分离
   - [ ] GraphQL Schema 与类型定义同步
+
+- [ ] **T5 - 无障碍验证**
+  - [ ] 使用键盘 (Tab/Enter/Space/Arrow) 可完成展开、选中与导航
+  - [ ] 屏幕阅读器朗读 `aria-expanded` / `aria-controls` 信息准确
+  - [ ] 焦点状态、hover/active 对比度符合 WCAG AA
+  - [ ] 无额外 console 无障碍警告
 
 ### 5.3 文档验收
 

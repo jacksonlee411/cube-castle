@@ -531,5 +531,15 @@ panic: model.Position does not resolve "Position": missing method for field "cur
 
 ---
 
+## 10. 93 号多页签前置校验记录（2025-10-20）
+
+- **GraphQL recordId 静态检查**：确认 `docs/api/schema.graphql`、查询服务 resolver 以及前端 `POSITION_DETAIL_QUERY_DOCUMENT` 均携带 `recordId`，`transformPositionNode` 已写入 `PositionRecord`；后续仅需在真实环境抽样验证缺失场景。  
+- **审计链路静态检查**：命令服务 `PositionService` 的创建/版本/填充等操作全部调用 `logPositionEvent` 并经 `audit_writer` 写入 `audit_logs`；后续在联调环境抽样执行 `auditHistory(recordId)` 验证数据存在。  
+- **设计评审排期**：前端 @职位体验小组联合 UX、产品于 2025-10-25 前完成页签命名/排序确认，输出文档并同步至本日志与 93 号计划。  
+- **待执行动作**：完成环境抽样验证及评审纪要后更新本节状态，并作为进入实现阶段的前置条件。
+- **2025-10-20 实施记录**：完成职位详情多页签实现（概览/任职/调动/时间线/版本/审计），执行 `npm --prefix frontend run test -- PositionTemporalPage` 单测通过，版本导航支持桌面与窄屏折叠。
+
+---
+
 **文档更新时间**：2025-10-19 14:30
 **下次更新触发条件**：86/88 号计划 P1 功能完成时

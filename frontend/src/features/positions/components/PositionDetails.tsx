@@ -13,13 +13,20 @@ import { getPositionStatusMeta } from '../statusMeta'
 import { SimpleStack } from './SimpleStack'
 import { PositionTransferDialog } from './PositionTransferDialog'
 
-interface PositionDetailsProps {
-  position?: PositionRecord
-  timeline: PositionTimelineEvent[]
-  assignments?: PositionAssignmentRecord[]
-  currentAssignment?: PositionAssignmentRecord | null
-  transfers?: PositionTransferRecord[]
-  isLoading?: boolean
+const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
+  <Heading size="small" as="h3">
+    {title}
+  </Heading>
+)
+
+const formatDateRange = (start: string, end?: string | null) => {
+  if (!start && !end) {
+    return '未提供'
+  }
+  if (!end) {
+    return `${start} 起`
+  }
+  return `${start} - ${end}`
 }
 
 const StatusPill: React.FC<{ status: string }> = ({ status }) => {
@@ -44,17 +51,7 @@ const StatusPill: React.FC<{ status: string }> = ({ status }) => {
   )
 }
 
-const formatDateRange = (start: string, end?: string | null) => {
-  if (!start && !end) {
-    return '未提供'
-  }
-  if (!end) {
-    return `${start} 起`
-  }
-  return `${start} - ${end}`
-}
-
-const AssignmentItem: React.FC<{ assignment: PositionAssignmentRecord; highlight?: boolean }> = ({
+export const AssignmentItem: React.FC<{ assignment: PositionAssignmentRecord; highlight?: boolean }> = ({
   assignment,
   highlight = false,
 }) => (
@@ -122,17 +119,20 @@ const TimelineItem: React.FC<{ event: PositionTimelineEvent }> = ({ event }) => 
   </Box>
 )
 
-export const PositionDetails: React.FC<PositionDetailsProps> = ({
+interface PositionOverviewCardProps {
+  position?: PositionRecord
+  currentAssignment?: PositionAssignmentRecord | null
+  isLoading?: boolean
+}
+
+export const PositionOverviewCard: React.FC<PositionOverviewCardProps> = ({
   position,
-  timeline,
-  assignments = [],
   currentAssignment = null,
-  transfers = [],
   isLoading = false,
 }) => {
   if (isLoading) {
     return (
-      <Card data-testid="position-detail-card" padding={space.l} height="100%" backgroundColor={colors.frenchVanilla100}>
+      <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
         <Text color={colors.licorice400}>正在加载职位详情...</Text>
       </Card>
     )
@@ -140,34 +140,34 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
 
   if (!position) {
     return (
-      <Card data-testid="position-detail-card" padding={space.l} height="100%" backgroundColor={colors.frenchVanilla100}>
+      <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
         <Text color={colors.licorice400}>请选择左侧职位查看详情</Text>
       </Card>
     )
   }
 
   return (
-    <Card data-testid="position-detail-card" padding={space.l} height="100%" backgroundColor={colors.frenchVanilla100}>
+    <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
       <SimpleStack gap={space.m}>
-        <Flex alignItems="center" justifyContent="space-between">
-          <Heading size="small">{position.title}</Heading>
+        <Flex alignItems='center' justifyContent='space-between'>
+          <Heading size='small'>{position.title}</Heading>
           <StatusPill status={position.status} />
         </Flex>
-        <Text fontSize="14px" color={colors.licorice500}>
+        <Text fontSize='14px' color={colors.licorice500}>
           职位编码：{position.code}
         </Text>
-        <Text fontSize="14px" color={colors.licorice500}>
+        <Text fontSize='14px' color={colors.licorice500}>
           所属组织：{position.organizationName ?? `${position.organizationCode}（未提供名称）`}
         </Text>
 
-        <Flex justifyContent="flex-end">
+        <Flex justifyContent='flex-end'>
           <PositionTransferDialog position={position} />
         </Flex>
 
         <DividerLine />
 
         <SimpleStack gap={space.xs}>
-          <Heading size="small">岗位信息</Heading>
+          <SectionTitle title='岗位信息' />
           <Text>
             职类 / 职种：{position.jobFamilyGroupName ?? position.jobFamilyGroupCode} ·{' '}
             {position.jobFamilyName ?? position.jobFamilyCode}
@@ -176,8 +176,8 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
             职务 / 职级：{position.jobRoleName ?? position.jobRoleCode} · {position.jobLevelName ?? position.jobLevelCode}
           </Text>
           <Text>
-            职位类型 / 雇佣方式：{position.positionType}{' '}
-            {position.employmentType ? `· ${position.employmentType}` : ''}
+            职位类型 / 雇佣方式：{position.positionType}
+            {position.employmentType ? ` · ${position.employmentType}` : ''}
           </Text>
           <Text>
             编制：{position.headcountInUse} / {position.headcountCapacity}（可用 {position.availableHeadcount}）
@@ -186,54 +186,17 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
             生效日期：{position.effectiveDate}
             {position.endDate ? ` · 结束日期：${position.endDate}` : ''}
           </Text>
-          <Text>
-            汇报职位：{position.reportsToPositionCode ?? '未设置'}
-          </Text>
+          <Text>汇报职位：{position.reportsToPositionCode ?? '未设置'}</Text>
         </SimpleStack>
 
         <DividerLine />
 
         <SimpleStack gap={space.xs}>
-          <Heading size="small">当前任职</Heading>
+          <SectionTitle title='当前任职' />
           {currentAssignment ? (
             <AssignmentItem assignment={currentAssignment} highlight />
           ) : (
             <Text color={colors.licorice400}>暂无当前任职</Text>
-          )}
-        </SimpleStack>
-
-        <DividerLine />
-
-        <SimpleStack gap={space.s}>
-          <Heading size="small">任职历史</Heading>
-          {assignments.length === 0 ? (
-            <Text color={colors.licorice400}>暂无任职记录</Text>
-          ) : (
-            assignments.map(item => (
-              <AssignmentItem key={item.assignmentId} assignment={item} highlight={item.assignmentId === currentAssignment?.assignmentId} />
-            ))
-          )}
-        </SimpleStack>
-
-        <DividerLine />
-
-        <SimpleStack gap={space.s}>
-          <Heading size="small">调动记录</Heading>
-          {transfers.length === 0 ? (
-            <Text color={colors.licorice400}>暂无调动记录</Text>
-          ) : (
-            transfers.map(item => <TransferItem key={item.transferId} transfer={item} />)
-          )}
-        </SimpleStack>
-
-        <DividerLine />
-
-        <SimpleStack gap={space.s}>
-          <Heading size="small">职位时间线</Heading>
-          {timeline.length === 0 ? (
-            <Text color={colors.licorice400}>暂无时间线记录</Text>
-          ) : (
-            timeline.map(item => <TimelineItem key={item.id} event={item} />)
           )}
         </SimpleStack>
       </SimpleStack>
@@ -241,8 +204,94 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
   )
 }
 
-const DividerLine: React.FC = () => (
-  <Box borderBottom={`1px solid ${colors.soap400}`} marginY={space.s} />
+interface PositionAssignmentsPanelProps {
+  assignments: PositionAssignmentRecord[]
+  currentAssignment?: PositionAssignmentRecord | null
+}
+
+export const PositionAssignmentsPanel: React.FC<PositionAssignmentsPanelProps> = ({
+  assignments,
+  currentAssignment = null,
+}) => (
+  <Card padding={space.l} backgroundColor={colors.frenchVanilla100}>
+    <SimpleStack gap={space.m}>
+      <SectionTitle title='任职历史' />
+      {assignments.length === 0 ? (
+        <Text color={colors.licorice400}>暂无任职记录</Text>
+      ) : (
+        <SimpleStack gap={space.s}>
+          {assignments.map(assignment => (
+            <AssignmentItem
+              key={assignment.assignmentId}
+              assignment={assignment}
+              highlight={currentAssignment?.assignmentId === assignment.assignmentId}
+            />
+          ))}
+        </SimpleStack>
+      )}
+    </SimpleStack>
+  </Card>
 )
+
+interface PositionTransfersPanelProps {
+  transfers: PositionTransferRecord[]
+}
+
+export const PositionTransfersPanel: React.FC<PositionTransfersPanelProps> = ({ transfers }) => (
+  <Card padding={space.l} backgroundColor={colors.frenchVanilla100}>
+    <SimpleStack gap={space.m}>
+      <SectionTitle title='调动记录' />
+      {transfers.length === 0 ? (
+        <Text color={colors.licorice400}>暂无调动记录</Text>
+      ) : (
+        transfers.map(transfer => <TransferItem key={transfer.transferId} transfer={transfer} />)
+      )}
+    </SimpleStack>
+  </Card>
+)
+
+interface PositionTimelinePanelProps {
+  timeline: PositionTimelineEvent[]
+}
+
+export const PositionTimelinePanel: React.FC<PositionTimelinePanelProps> = ({ timeline }) => (
+  <Card padding={space.l} backgroundColor={colors.frenchVanilla100}>
+    <SimpleStack gap={space.m}>
+      <SectionTitle title='时间线事件' />
+      {timeline.length === 0 ? (
+        <Text color={colors.licorice400}>暂无时间线事件</Text>
+      ) : (
+        timeline.map(event => <TimelineItem key={event.id} event={event} />)
+      )}
+    </SimpleStack>
+  </Card>
+)
+
+interface PositionDetailsProps {
+  position?: PositionRecord
+  timeline: PositionTimelineEvent[]
+  assignments?: PositionAssignmentRecord[]
+  currentAssignment?: PositionAssignmentRecord | null
+  transfers?: PositionTransferRecord[]
+  isLoading?: boolean
+}
+
+export const PositionDetails: React.FC<PositionDetailsProps> = ({
+  position,
+  timeline,
+  assignments = [],
+  currentAssignment = null,
+  transfers = [],
+  isLoading = false,
+}) => (
+  <SimpleStack gap={space.m}>
+    <PositionOverviewCard position={position} currentAssignment={currentAssignment} isLoading={isLoading} />
+    <PositionAssignmentsPanel assignments={assignments} currentAssignment={currentAssignment} />
+    <PositionTransfersPanel transfers={transfers} />
+    <PositionTimelinePanel timeline={timeline} />
+  </SimpleStack>
+)
+
+const DividerLine: React.FC = () => <Box borderBottom={`1px solid ${colors.soap400}`} marginY={space.s} />
 
 export default PositionDetails
