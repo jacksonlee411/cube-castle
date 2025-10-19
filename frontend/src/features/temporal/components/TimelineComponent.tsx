@@ -1,7 +1,8 @@
 /**
  * 时间轴组件
  * 基于 Canvas Kit v13 企业级设计系统
- * 依赖 GraphQL 返回的组织版本基础字段进行渲染
+ * 依赖 GraphQL 返回的组织版本基础字段进行渲染（当前实际可用状态仅为 ACTIVE/INACTIVE + isCurrent；
+ * PLANNED/DELETED 等分支需调用方自行派生或在 API 扩展后使用）
  */
 import React from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
@@ -22,7 +23,7 @@ export interface TimelineVersion {
   code: string;
   name: string;
   unitType: string;
-  status: string; // 组织状态：ACTIVE, INACTIVE, PLANNED
+  status: string; // 组织状态：API 目前仅返回 ACTIVE/INACTIVE，PLANNED 等值需调用方自行派生
   effectiveDate: string;
   endDate?: string | null;
   changeReason?: string;
@@ -36,7 +37,7 @@ export interface TimelineVersion {
   parentCode?: string;
   sortOrder: number;
 
-  // 兼容字段：调用方可选传入派生状态，缺省时组件内部退化处理
+  // 兼容字段：调用方可选传入派生状态；若未传入则组件退化为基于二态(status/isCurrent)渲染
   lifecycleStatus?: 'CURRENT' | 'HISTORICAL' | 'PLANNED';
   businessStatus?: 'ACTIVE' | 'INACTIVE';
   dataStatus?: 'NORMAL' | 'DELETED';

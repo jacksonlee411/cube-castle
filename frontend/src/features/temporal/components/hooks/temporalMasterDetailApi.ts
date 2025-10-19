@@ -141,6 +141,9 @@ const ORGANIZATION_HIERARCHY_QUERY = `
   }
 `;
 
+// 注意：当前 GraphQL 仅返回 status=ACTIVE/INACTIVE 与 isCurrent。
+// 这里将 lifecycleStatus 固定映射为 CURRENT/HISTORICAL，dataStatus 固定为 'NORMAL'，
+// 以避免误解为后端已提供五态或软删除数据。
 const mapOrganizationVersions = (
   organizations: OrganizationVersion[],
 ): TimelineVersion[] =>
@@ -174,6 +177,8 @@ const mapOrganizationVersions = (
         new Date(a.effectiveDate).getTime(),
     );
 
+// REST 事件返回同样不含 PLANNED/DELETED 等扩展状态；
+// 继续维持二态映射，调用方若需额外状态必须自行派生或等待契约扩展。
 const mapTimelineItem = (item: TimelineItemResponse): TimelineVersion => ({
   recordId: item.recordId,
   code: item.code,

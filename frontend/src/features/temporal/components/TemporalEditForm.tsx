@@ -88,7 +88,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
   const [formData, setFormData] = useState<TemporalEditFormData>({
     name: '',
     unitType: 'DEPARTMENT',
-    lifecycleStatus: 'PLANNED',
+    lifecycleStatus: 'PLANNED', // UI 默认以计划态展示；提交后后端仍会将 status 固定为 ACTIVE
     description: '',
     effectiveDate: new Date().toISOString().split('T')[0], // 默认今天
     parentCode: '', // 修复：添加上级组织编码字段
@@ -201,7 +201,7 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
         setFormData({
           name: '',
           unitType: 'DEPARTMENT',
-          lifecycleStatus: 'PLANNED',
+          lifecycleStatus: 'PLANNED', // 前端默认值；命令服务仍按 ACTIVE 持久化
           description: '',
           effectiveDate: tomorrow.toISOString().split('T')[0], // 默认明天生效
           parentCode: '', // 修复：添加上级组织编码默认值

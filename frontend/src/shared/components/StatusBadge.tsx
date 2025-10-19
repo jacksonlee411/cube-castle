@@ -14,7 +14,8 @@ export interface StatusBadgeProps {
 
 /**
  * 简化的状态显示组件
- * 只显示3个基本状态：启用、停用、计划中
+ * 只显示当前 API 可用的三种状态（ACTIVE/INACTIVE 以及调用方派生的 PLANNED）。
+ * 若未来扩展 DELETED 等状态，需要先更新契约与 STATUS_CONFIG。
  */
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,

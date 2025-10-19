@@ -126,6 +126,8 @@ const buildParentTemporalErrorHandler = (
   };
 };
 
+// 调用方派生的 TimelineVersion；命令服务仍以 ACTIVE/INACTIVE 持久化状态，
+// 因此 lifecycleStatus/dataStatus 在此仅用于前端展示退化，不代表后端已支持五态。
 const toTimelineVersion = (record: InlineVersionRecord): TimelineVersion => ({
   recordId: record.recordId,
   code: record.code,

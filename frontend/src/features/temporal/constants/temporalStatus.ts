@@ -4,6 +4,7 @@ export interface TemporalStatusOption {
   description: string;
 }
 
+// 前端派生用状态映射：后端当前仅提供 ACTIVE/INACTIVE，PLANNED/EXPIRED 需依赖前端日期推导。
 export const TEMPORAL_STATUS_OPTIONS: TemporalStatusOption[] = [
   {
     value: 'ACTIVE',
@@ -50,7 +51,7 @@ export const temporalStatusUtils = {
     return option?.description || '';
   },
 
-  // 根据日期计算状态
+  // 根据日期计算状态（用于前端推导，非后端事实字段）
   calculateStatus: (effectiveDate?: string, endDate?: string): TemporalStatus => {
     const today = new Date().toISOString().split('T')[0];
     
