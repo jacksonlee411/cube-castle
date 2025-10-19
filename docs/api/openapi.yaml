@@ -1937,6 +1937,45 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/job-family-groups/{code}:
+    put:
+      operationId: updateJobFamilyGroup
+      tags: [job-catalog]
+      summary: Update job family group
+      description: Updates the current version of a job family group.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Z]{4,6}$
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJobFamilyGroupRequest'
+      responses:
+        '200':
+          description: Job family group updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   /api/v1/job-family-groups/{code}/versions:
     post:
       operationId: createJobFamilyGroupVersion
@@ -2004,6 +2043,45 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-families/{code}:
+    put:
+      operationId: updateJobFamily
+      tags: [job-catalog]
+      summary: Update job family
+      description: Updates the current version of a job family.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}$
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJobFamilyRequest'
+      responses:
+        '200':
+          description: Job family updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '500': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/job-families/{code}/versions:
@@ -2075,6 +2153,45 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/job-roles/{code}:
+    put:
+      operationId: updateJobRole
+      tags: [job-catalog]
+      summary: Update job role
+      description: Updates the current version of a job role.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}-[A-Z0-9]{3,6}$
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJobRoleRequest'
+      responses:
+        '200':
+          description: Job role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   /api/v1/job-roles/{code}/versions:
     post:
       operationId: createJobRoleVersion
@@ -2142,6 +2259,45 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/job-levels/{code}:
+    put:
+      operationId: updateJobLevel
+      tags: [job-catalog]
+      summary: Update job level
+      description: Updates the current version of a job level.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Z][0-9]{1,2}$
+      security:
+        - OAuth2ClientCredentials:
+            - job-catalog:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJobLevelRequest'
+      responses:
+        '200':
+          description: Job level updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '500': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/job-levels/{code}/versions:
@@ -3374,6 +3530,26 @@ components:
           maxLength: 500
           nullable: true
 
+    UpdateJobFamilyGroupRequest:
+      type: object
+      required:
+        - name
+        - status
+        - effectiveDate
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+
     CreateJobFamilyRequest:
       type: object
       required:
@@ -3402,6 +3578,29 @@ components:
           maxLength: 500
           nullable: true
 
+    UpdateJobFamilyRequest:
+      type: object
+      required:
+        - name
+        - status
+        - effectiveDate
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        jobFamilyGroupCode:
+          type: string
+          pattern: ^[A-Z]{4,6}$
+
     CreateJobRoleRequest:
       type: object
       required:
@@ -3429,6 +3628,29 @@ components:
           type: string
           maxLength: 500
           nullable: true
+
+    UpdateJobRoleRequest:
+      type: object
+      required:
+        - name
+        - status
+        - effectiveDate
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        jobFamilyCode:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}$
 
     CreateJobLevelRequest:
       type: object
@@ -3461,6 +3683,32 @@ components:
           type: string
           maxLength: 500
           nullable: true
+
+    UpdateJobLevelRequest:
+      type: object
+      required:
+        - name
+        - status
+        - effectiveDate
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/JobCatalogStatus'
+        effectiveDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        jobRoleCode:
+          type: string
+          pattern: ^[A-Z]{4,6}-[A-Z0-9]{3,6}-[A-Z0-9]{3,6}$
+        levelRank:
+          type: integer
+          minimum: 1
 
     JobCatalogVersionRequest:
       type: object

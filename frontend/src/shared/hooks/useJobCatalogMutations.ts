@@ -76,6 +76,42 @@ export interface CreateCatalogVersionInput {
   description?: string | null
 }
 
+export interface UpdateJobFamilyGroupInput {
+  code: string
+  name: string
+  status: JobCatalogStatus
+  effectiveDate: string
+  description?: string | null
+}
+
+export interface UpdateJobFamilyInput {
+  code: string
+  jobFamilyGroupCode?: string
+  name: string
+  status: JobCatalogStatus
+  effectiveDate: string
+  description?: string | null
+}
+
+export interface UpdateJobRoleInput {
+  code: string
+  jobFamilyCode?: string
+  name: string
+  status: JobCatalogStatus
+  effectiveDate: string
+  description?: string | null
+}
+
+export interface UpdateJobLevelInput {
+  code: string
+  jobRoleCode?: string
+  name: string
+  status: JobCatalogStatus
+  effectiveDate: string
+  description?: string | null
+  levelRank?: number
+}
+
 const jsonHeaders = { 'Content-Type': 'application/json' }
 
 export const useCreateJobFamilyGroup = () => {
@@ -92,6 +128,24 @@ export const useCreateJobFamilyGroup = () => {
     },
     onSuccess: () => invalidateGroups(queryClient),
     onError: error => logger.error('[JobCatalog] create job family group failed', error),
+  })
+}
+
+export const useUpdateJobFamilyGroup = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: UpdateJobFamilyGroupInput) => {
+      const { code, ...payload } = input
+      logger.mutation('[JobCatalog] update job family group', { code, ...payload })
+      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-family-groups/${code}`, {
+        method: 'PUT',
+        headers: jsonHeaders,
+        body: JSON.stringify(payload),
+      })
+      ensureSuccess(response, '更新职类失败')
+    },
+    onSuccess: () => invalidateGroups(queryClient),
+    onError: error => logger.error('[JobCatalog] update job family group failed', error),
   })
 }
 
@@ -114,6 +168,26 @@ export const useCreateJobFamily = () => {
   })
 }
 
+export const useUpdateJobFamily = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: UpdateJobFamilyInput) => {
+      const { code, ...payload } = input
+      logger.mutation('[JobCatalog] update job family', { code, ...payload })
+      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-families/${code}`, {
+        method: 'PUT',
+        headers: jsonHeaders,
+        body: JSON.stringify(payload),
+      })
+      ensureSuccess(response, '更新职种失败')
+    },
+    onSuccess: () => {
+      invalidateFamilies(queryClient)
+    },
+    onError: error => logger.error('[JobCatalog] update job family failed', error),
+  })
+}
+
 export const useCreateJobRole = () => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -133,6 +207,26 @@ export const useCreateJobRole = () => {
   })
 }
 
+export const useUpdateJobRole = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: UpdateJobRoleInput) => {
+      const { code, ...payload } = input
+      logger.mutation('[JobCatalog] update job role', { code, ...payload })
+      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-roles/${code}`, {
+        method: 'PUT',
+        headers: jsonHeaders,
+        body: JSON.stringify(payload),
+      })
+      ensureSuccess(response, '更新职务失败')
+    },
+    onSuccess: () => {
+      invalidateRoles(queryClient)
+    },
+    onError: error => logger.error('[JobCatalog] update job role failed', error),
+  })
+}
+
 export const useCreateJobLevel = () => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -149,6 +243,26 @@ export const useCreateJobLevel = () => {
       invalidateLevels(queryClient)
     },
     onError: error => logger.error('[JobCatalog] create job level failed', error),
+  })
+}
+
+export const useUpdateJobLevel = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: UpdateJobLevelInput) => {
+      const { code, ...payload } = input
+      logger.mutation('[JobCatalog] update job level', { code, ...payload })
+      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-levels/${code}`, {
+        method: 'PUT',
+        headers: jsonHeaders,
+        body: JSON.stringify(payload),
+      })
+      ensureSuccess(response, '更新职级失败')
+    },
+    onSuccess: () => {
+      invalidateLevels(queryClient)
+    },
+    onError: error => logger.error('[JobCatalog] update job level failed', error),
   })
 }
 

@@ -21,6 +21,9 @@ interface CatalogVersionFormProps {
   isSubmitting?: boolean
   initialName?: string
   initialDescription?: string | null
+  initialStatus?: JobCatalogStatus
+  initialEffectiveDate?: string
+  submitLabel?: string
 }
 
 const initialState: CatalogVersionFormValues = {
@@ -38,6 +41,9 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
   isSubmitting = false,
   initialName,
   initialDescription,
+  initialStatus,
+  initialEffectiveDate,
+  submitLabel,
 }) => {
   const [form, setForm] = useState<CatalogVersionFormValues>(initialState)
   const [error, setError] = useState<string | null>(null)
@@ -46,13 +52,13 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
     if (isOpen) {
       setForm({
         name: initialName ?? '',
-        status: 'ACTIVE',
-        effectiveDate: '',
+        status: initialStatus ?? 'ACTIVE',
+        effectiveDate: initialEffectiveDate ?? '',
         description: initialDescription ?? '',
       })
       setError(null)
     }
-  }, [initialDescription, initialName, isOpen])
+  }, [initialDescription, initialEffectiveDate, initialName, initialStatus, isOpen])
 
   const handleChange = <K extends keyof CatalogVersionFormValues>(key: K, value: CatalogVersionFormValues[K]) => {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -85,7 +91,7 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
         void handleSubmit()
       }}
       isSubmitting={isSubmitting}
-      submitLabel="提交"
+      submitLabel={submitLabel ?? '提交'}
       errorMessage={error}
     >
       <div>

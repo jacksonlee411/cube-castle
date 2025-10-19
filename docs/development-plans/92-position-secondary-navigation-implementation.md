@@ -1,6 +1,6 @@
 # 92号文档：职位管理二级导航实施方案（Canvas Kit 官方组件）
 
-**版本**: v2.1
+**版本**: v2.3
 **创建日期**: 2025-10-19
 **最新更新**: 2025-10-19
 **维护团队**: 前端团队 + 后端团队
@@ -741,7 +741,10 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [x] `useJobLevels`
 - [x] 实现 REST Mutation Hooks
   - [x] `useCreateJobFamilyGroup` 等
-  - [ ] `useUpdateJobFamilyGroup` 等
+  - [x] `useUpdateJobFamilyGroup` 等
+  - [x] 复用 `CatalogVersionForm` 实现“编辑当前版本”对话框
+- [x] 单元测试补充
+  - [x] `jobCatalogPages.test.tsx` 覆盖“编辑当前版本”校验与权限控制
 - [ ] 前后端联调
   - [ ] 查询测试
   - [ ] 命令测试
@@ -914,6 +917,7 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 | v2.0 | 2025-10-19 | ⭐ **重大更新**：改用 Canvas Kit 官方 Expandable 组件，废弃自定义方案 | Claude Code |
 | v2.1 | 2025-10-19 | 新增 Phase 0 技术验证清单与 POC 先决条件，更新时间估算 | Claude Code |
 | v2.2 | 2025-10-19 | Phase 0 POC 验证完成：SidePanel 集成、二级导航权限 Hook、Canvas tokens 自检与单测落地 | ChatGPT |
+| v2.3 | 2025-10-19 | Phase 3 更新链路：补齐更新 Mutations、详情页编辑（复用 CatalogVersionForm）、单元测试覆盖 | ChatGPT |
 
 **v2.0 关键变更**：
 - ✅ 新增第0章：Canvas Kit 官方方案研究结论

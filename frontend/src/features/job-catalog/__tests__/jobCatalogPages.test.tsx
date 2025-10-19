@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   mockUseJobLevels: vi.fn(),
   mockUseCreateJobFamilyGroup: vi.fn(),
   mockUseCreateJobFamilyGroupVersion: vi.fn(),
+  mockUseUpdateJobFamilyGroup: vi.fn(),
 }))
 
 let JobFamilyGroupList: React.ComponentType
@@ -29,6 +30,7 @@ vi.mock('@/shared/hooks/useJobCatalog', () => ({
 vi.mock('@/shared/hooks/useJobCatalogMutations', () => ({
   useCreateJobFamilyGroup: () => mocks.mockUseCreateJobFamilyGroup(),
   useCreateJobFamilyGroupVersion: () => mocks.mockUseCreateJobFamilyGroupVersion(),
+  useUpdateJobFamilyGroup: () => mocks.mockUseUpdateJobFamilyGroup(),
   useCreateJobFamily: vi.fn(),
   useCreateJobRole: vi.fn(),
   useCreateJobLevel: vi.fn(),
@@ -83,6 +85,7 @@ describe('Job Catalog pages', () => {
     vi.clearAllMocks()
     mocks.mockUseCreateJobFamilyGroup.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false })
     mocks.mockUseCreateJobFamilyGroupVersion.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false })
+    mocks.mockUseUpdateJobFamilyGroup.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false })
   })
 
   it('renders job family group list and allows creating new entries', async () => {
@@ -166,5 +169,56 @@ describe('Job Catalog pages', () => {
 
     fireEvent.click(within(versionForm).getByText('提交'))
     expect(await screen.findByText('请选择生效日期')).toBeInTheDocument()
+  })
+
+  it('allows updating job family group with prefilled version form', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined)
+    mocks.mockUseUpdateJobFamilyGroup.mockReturnValue({ mutateAsync, isPending: false })
+    mocks.mockUseJobFamilyGroups.mockReturnValue({
+      data: [
+        {
+          code: 'PROF',
+          name: '专业技术类',
+          status: 'ACTIVE',
+          effectiveDate: '2025-01-01',
+          endDate: null,
+          description: '专家序列',
+          recordId: 'uuid-1',
+        },
+      ],
+      isLoading: false,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/positions/catalog/family-groups/PROF']}>
+        <Routes>
+          <Route path="/positions/catalog/family-groups/:code" element={<JobFamilyGroupDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    const editButton = screen.getByText('编辑当前版本')
+    fireEvent.click(editButton)
+
+    const editForm = await screen.findByTestId('mock-catalog-form')
+    const nameInput = within(editForm).getByPlaceholderText('版本名称') as HTMLInputElement
+    expect(nameInput.value).toBe('专业技术类')
+    fireEvent.change(nameInput, { target: { value: '专业技术类（更新）' } })
+
+    const dateInput = within(editForm).getByDisplayValue('2025-01-01') as HTMLInputElement
+    expect(dateInput.value).toBe('2025-01-01')
+
+    fireEvent.click(within(editForm).getByText('保存更新'))
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledTimes(1)
+      expect(mutateAsync).toHaveBeenCalledWith({
+        code: 'PROF',
+        name: '专业技术类（更新）',
+        status: 'ACTIVE',
+        effectiveDate: '2025-01-01',
+        description: '专家序列',
+      })
+    })
   })
 })

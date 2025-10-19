@@ -33,12 +33,16 @@
 - `/api/v1/positions/{code}/vacate`
 - `/api/v1/positions/{code}/transfer`
 - `/api/v1/job-family-groups`
+- `/api/v1/job-family-groups/{code}`
 - `/api/v1/job-family-groups/{code}/versions`
 - `/api/v1/job-families`
+- `/api/v1/job-families/{code}`
 - `/api/v1/job-families/{code}/versions`
 - `/api/v1/job-roles`
+- `/api/v1/job-roles/{code}`
 - `/api/v1/job-roles/{code}/versions`
 - `/api/v1/job-levels`
+- `/api/v1/job-levels/{code}`
 - `/api/v1/job-levels/{code}/versions`
 - `/api/v1/job-catalog/sync`
 
@@ -249,9 +253,13 @@
 - [const] useJobRoles — frontend/src/shared/hooks/useJobCatalog.ts
 - [const] useJobLevels — frontend/src/shared/hooks/useJobCatalog.ts
 - [const] useCreateJobFamilyGroup — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useUpdateJobFamilyGroup — frontend/src/shared/hooks/useJobCatalogMutations.ts
 - [const] useCreateJobFamily — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useUpdateJobFamily — frontend/src/shared/hooks/useJobCatalogMutations.ts
 - [const] useCreateJobRole — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useUpdateJobRole — frontend/src/shared/hooks/useJobCatalogMutations.ts
 - [const] useCreateJobLevel — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useUpdateJobLevel — frontend/src/shared/hooks/useJobCatalogMutations.ts
 - [const] useCreateJobFamilyGroupVersion — frontend/src/shared/hooks/useJobCatalogMutations.ts
 - [const] useCreateJobFamilyVersion — frontend/src/shared/hooks/useJobCatalogMutations.ts
 - [const] useCreateJobRoleVersion — frontend/src/shared/hooks/useJobCatalogMutations.ts

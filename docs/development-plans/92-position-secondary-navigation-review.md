@@ -311,24 +311,24 @@ const JobFamilyGroupList = lazy(() =>
 
 ## 5. 准入条件清单（Phase 0 前）
 
-- [ ] **P0 - 权限 Hook 实现**
-  - [ ] 创建 `useAuth.ts` Hook（即使是简化版本）
-  - [ ] 实现 `hasPermission` 方法（可临时 mock）
-  - [ ] 编写单元测试验证基本功能
+- [x] **P0 - 权限 Hook 实现**
+  - [x] 创建 `useAuth.ts` Hook（即使是简化版本）
+  - [x] 实现 `hasPermission` 方法（可临时 mock）
+  - [x] 编写单元测试验证基本功能
 
 - [ ] **P1 - GraphQL Schema 参数一致性修正**
   - [ ] 更新计划文档第3.1节，所有查询示例使用 `includeInactive` 而非 `includeHistorical`
   - [ ] 确认前端 Hooks（useJobFamilyGroups 等）使用正确的参数名
   - [ ] 运行 `npm run validate:schema` 确认语法正确
 
-- [ ] **P1 - 路由策略明确**
-  - [ ] 决定 `/positions/:code` 与 `/positions/:code/temporal` 的关系
-  - [ ] 更新路由表，消除冗余或歧义
+- [x] **P1 - 路由策略明确**
+  - [x] 决定 `/positions/:code` 与 `/positions/:code/temporal` 的关系
+  - [x] 更新路由表，消除冗余或歧义
 
-- [ ] **P1 - AppShell 集成方案确认**
-  - [ ] 决定是替换现有 Box 还是调整布局结构
-  - [ ] 评估宽度从 240px 到 312px 的影响
-  - [ ] 更新 AppShell.tsx 示例代码到计划文档
+- [x] **P1 - AppShell 集成方案确认**
+  - [x] 决定是替换现有 Box 还是调整布局结构
+  - [x] 评估宽度从 240px 到 312px 的影响
+  - [x] 更新 AppShell.tsx 示例代码到计划文档
 
 ---
 

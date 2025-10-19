@@ -11,9 +11,8 @@
 - ✅ **Phase 0 POC**：`AppShell` 已替换为 312px 灰底 `SidePanel`，`NavigationItem` 基于 Canvas `Expandable` 实现折叠导航，`AuthContext` 暴露 `hasPermission`/`userPermissions` 并配套单测（`useAuth.test.tsx`）。
 - ✅ **Phase 1 导航架构**：Sidebar 与导航配置完成权限过滤、动画与路由联动；`App.tsx` 职位路由迁移为 `<Route path="/positions" element={<Outlet />}>` 嵌套路由。
 - ✅ **Phase 2 页面框架**：`frontend/src/features/job-catalog/` 新增职类/职种/职务/职级列表与详情页（含新增表单），共用 `CatalogTable`、`CatalogFilters`、`CatalogForm`、`CatalogVersionForm` 与 `StatusBadge` 组件。
-- ✅ **Phase 3 查询与命令集成**：`useJobCatalog.ts` 扩展 GraphQL 字段（含 `recordId`、描述、时态信息），新增 `useJobCatalogMutations.ts` 覆盖四层新增及版本创建；相应 REST/GraphQL 调用已通过类型校验。
-- 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/layout/__tests__/NavigationItem.test.tsx src/layout/__tests__/Sidebar.test.tsx src/components/__tests__/AppShell.test.tsx src/shared/auth/__tests__/useAuth.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过。
-- 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx src/layout/__tests__/NavigationItem.test.tsx src/layout/__tests__/Sidebar.test.tsx src/components/__tests__/AppShell.test.tsx src/shared/auth/__tests__/useAuth.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过；最新一次验证已确认导航栏贴左、标题栏覆盖顶部及“职位管理”可展开及跳转。
+- ✅ **Phase 3 查询与命令集成**：`useJobCatalog.ts` 扩展 GraphQL 字段（含 `recordId`、描述、时态信息），`useJobCatalogMutations.ts` 已覆盖四层新增、更新与版本创建；详情页复用 `CatalogVersionForm` 支持“编辑当前版本”，所有操作均走统一缓存失效逻辑。
+- 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过；覆盖“编辑当前版本”流程，并验证权限控制按钮与导航交互保持稳定。
 
 ---
 
@@ -39,8 +38,8 @@
 
 | 优先级 | 项目 | 负责人 | 截止 | 说明 |
 |--------|------|--------|------|------|
-| P0 | 完成 `useUpdateJobFamily*` / `useUpdateJobRole*` Hook，实现列表刷新与版本表单复用 | 前端职位小组 | 2025-10-21 | 补齐 Phase 3 “更新”链路，避免后续页面阻塞 |
-| P0 | 补充 Job Catalog 页面 Vitest（列表渲染、权限过滤、表单校验） | 前端测试代表 | 2025-10-22 | 保障核心页面在 CI 中可回归 |
+| P0 | 补充 Job Catalog 页面 Vitest（包含更新链路断言） | 前端测试代表 | 2025-10-22 | 保障核心页面在 CI 中可回归 |
+| P0 | 前后端联调：REST 更新接口 + 权限校验 | 前端/后端联调小组 | 2025-10-22 | 配合命令服务确认 2xx/412 契约，完善错误提示 |
 | P1 | Playwright 脚本覆盖二级导航与职类 CRUD 正向路径 | QA 团队 | 2025-10-24 | 与 92 号 Phase 4 测试要求对齐 |
 | P1 | 文案国际化：将导航配置及表单提示接入现有 i18n 方案 | 前端国际化负责人 | 2025-10-24 | 对齐 92 号文档 2.3.1 国际化前置说明 |
 | P1 | 设计评审：确认 Job Catalog 列表/详情在新导航下的视觉稿（含 312px 左侧栏对齐） | 设计团队 | 2025-10-23 | 记录结果并更新 92 号文档 “视觉对齐” 条目 |
@@ -58,7 +57,7 @@
 
 ## 5. 已知开放事项
 
-- `useJobCatalogMutations` 暂缺更新/删除 Hook；对应 Phase 3 “命令测试” 条目仍为待办。
+- `useJobCatalogMutations` 已补齐更新 Hook，仍缺删除能力；对应 Phase 3 “命令测试” 条目继续跟踪。
 - 页面尚未接入国际化与空态插画，需配合设计在 Phase 4 统一收敛。
 - Playwright 场景待补充；当前仅依赖 Vitest + 手动验证。
 

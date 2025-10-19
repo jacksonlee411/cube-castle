@@ -2,10 +2,10 @@ import React, { useMemo, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
-import { PrimaryButton } from '@workday/canvas-kit-react/button'
+import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button'
 import { useAuth } from '@/shared/auth/hooks'
 import { useJobLevels } from '@/shared/hooks/useJobCatalog'
-import { useCreateJobLevelVersion } from '@/shared/hooks/useJobCatalogMutations'
+import { useCreateJobLevelVersion, useUpdateJobLevel } from '@/shared/hooks/useJobCatalogMutations'
 import { StatusBadge } from '../shared/StatusBadge'
 import { CatalogVersionForm, type CatalogVersionFormValues } from '../shared/CatalogVersionForm'
 import { formatISODate } from '../types'
@@ -22,9 +22,11 @@ export const JobLevelDetail: React.FC = () => {
   const code = params.code ?? ''
   const { hasPermission } = useAuth()
   const [isVersionFormOpen, setVersionFormOpen] = useState(false)
+  const [isEditFormOpen, setEditFormOpen] = useState(false)
 
   const levelsQuery = useJobLevels(roleCode, { includeInactive: true })
   const versionMutation = useCreateJobLevelVersion()
+  const updateMutation = useUpdateJobLevel()
 
   const level = useMemo(() => levelsQuery.data?.find(item => item.code === code), [code, levelsQuery.data])
 
@@ -67,12 +69,29 @@ export const JobLevelDetail: React.FC = () => {
     setVersionFormOpen(false)
   }
 
+  const handleUpdate = async (values: CatalogVersionFormValues) => {
+    await updateMutation.mutateAsync({
+      code: level.code,
+      jobRoleCode: level.roleCode,
+      levelRank: level.levelRank,
+      ...values,
+    })
+    setEditFormOpen(false)
+  }
+
   return (
     <Box padding="l" display="flex" flexDirection="column" gap="l">
       <Flex justifyContent="space-between" alignItems="center">
         <Heading size="large">职级详情</Heading>
         {hasPermission('job-catalog:update') && (
-          <PrimaryButton onClick={() => setVersionFormOpen(true)}>新增版本</PrimaryButton>
+          <Flex gap="s">
+            <SecondaryButton onClick={() => setEditFormOpen(true)} disabled={updateMutation.isPending}>
+              编辑当前版本
+            </SecondaryButton>
+            <PrimaryButton onClick={() => setVersionFormOpen(true)} disabled={versionMutation.isPending}>
+              新增版本
+            </PrimaryButton>
+          </Flex>
         )}
       </Flex>
 
@@ -143,6 +162,19 @@ export const JobLevelDetail: React.FC = () => {
           </Text>
         </Box>
       </Box>
+
+      <CatalogVersionForm
+        title="编辑职级信息"
+        isOpen={isEditFormOpen}
+        onClose={() => setEditFormOpen(false)}
+        onSubmit={handleUpdate}
+        isSubmitting={updateMutation.isPending}
+        initialName={level.name}
+        initialDescription={level.description}
+        initialStatus={level.status}
+        initialEffectiveDate={level.effectiveDate}
+        submitLabel="保存更新"
+      />
 
       <CatalogVersionForm
         title="新增职级版本"
