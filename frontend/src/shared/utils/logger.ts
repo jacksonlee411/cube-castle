@@ -75,6 +75,11 @@ export const createLogger = (env: LoggerEnv) => {
   } as const;
 };
 
-export const logger = createLogger(import.meta.env);
+const importMetaEnv =
+  typeof import.meta !== 'undefined' && typeof (import.meta as { env?: LoggerEnv }).env === 'object'
+    ? ((import.meta as { env?: LoggerEnv }).env as LoggerEnv)
+    : { DEV: false, MODE: 'test' };
+
+export const logger = createLogger(importMetaEnv);
 
 export type Logger = typeof logger;

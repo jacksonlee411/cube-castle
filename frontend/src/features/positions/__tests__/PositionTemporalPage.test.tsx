@@ -94,21 +94,23 @@ const createDetailResult = (): PositionDetailResult => ({
 })
 
 describe('PositionTemporalPage', () => {
-  beforeEach(() => {
-    params = { code: 'P9000001' }
-    mockedUsePositionDetail.mockReset()
-    mockedUsePositionDetail.mockImplementation((_code: string | undefined, _options?: unknown) => ({
-      data: createDetailResult(),
-      isLoading: false,
+beforeEach(() => {
+  vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
+  params = { code: 'P9000001' }
+  mockedUsePositionDetail.mockReset()
+  mockedUsePositionDetail.mockImplementation((_code: string | undefined, _options?: unknown) => ({
+    data: createDetailResult(),
+    isLoading: false,
       isFetching: false,
       isError: false,
       refetch: vi.fn(),
     }))
   })
 
-  afterEach(() => {
-    navigateMock.mockReset()
-  })
+afterEach(() => {
+  navigateMock.mockReset()
+  vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
+})
 
   afterAll(() => {
     vi.unstubAllEnvs()
@@ -173,5 +175,33 @@ describe('PositionTemporalPage', () => {
     render(<PositionTemporalPage />)
 
     expect(screen.getByText('职位编码格式不正确，请从职位列表页面重新进入。')).toBeInTheDocument()
+  })
+
+  it('Mock 模式下隐藏写操作', () => {
+    vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'true')
+
+    render(<PositionTemporalPage />)
+
+    expect(screen.getByTestId('position-temporal-page')).toBeInTheDocument()
+    expect(screen.getByTestId('position-mock-banner')).toBeInTheDocument()
+    expect(screen.queryByTestId('position-edit-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('position-version-button')).not.toBeInTheDocument()
+  })
+
+  it('Mock 模式下创建页面仅展示指引', () => {
+    vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'true')
+    params = { code: 'new' }
+    mockedUsePositionDetail.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    render(<PositionTemporalPage />)
+
+    expect(screen.getByTestId('position-mock-banner')).toBeInTheDocument()
+    expect(screen.queryByTestId('position-form-create')).not.toBeInTheDocument()
   })
 })

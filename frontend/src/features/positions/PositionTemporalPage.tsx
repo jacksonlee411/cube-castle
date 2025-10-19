@@ -31,6 +31,7 @@ export const PositionTemporalPage: React.FC = () => {
   const navigate = useNavigate()
   const [activeForm, setActiveForm] = useState<'none' | 'edit' | 'version'>('none')
   const [includeDeleted, setIncludeDeleted] = useState(false)
+  const isMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
 
   const code = rawCode ? rawCode.toUpperCase() : ''
   const isCreateMode = code === 'NEW'
@@ -122,11 +123,29 @@ export const PositionTemporalPage: React.FC = () => {
               <Heading size="small">创建职位</Heading>
             </Flex>
           </Flex>
-          <PositionForm
-            mode="create"
-            onCancel={handleBack}
-            onSuccess={({ code: createdCode }) => navigate(`/positions/${createdCode}`)}
-          />
+          {isMockMode ? (
+            <Card
+              padding={space.l}
+              backgroundColor={colors.cinnamon100}
+              data-testid="position-mock-banner"
+              style={{ borderLeft: `4px solid ${colors.cinnamon600}` }}
+            >
+              <SimpleStack gap={space.s}>
+                <Text color={colors.cinnamon600} fontWeight="bold">
+                  ⚠️ Mock 模式下无法创建职位。
+                </Text>
+                <Text fontSize="12px" color={colors.cinnamon600}>
+                  请将环境变量 `VITE_POSITIONS_MOCK_MODE=false` 并启动后端服务后再尝试创建职位。
+                </Text>
+              </SimpleStack>
+            </Card>
+          ) : (
+            <PositionForm
+              mode="create"
+              onCancel={handleBack}
+              onSuccess={({ code: createdCode }) => navigate(`/positions/${createdCode}`)}
+            />
+          )}
         </SimpleStack>
       </Box>
     )
@@ -137,11 +156,28 @@ export const PositionTemporalPage: React.FC = () => {
     detailQuery.refetch()
   }
 
-  const canMutate = Boolean(position) && !detailQuery.isError
+  const canMutate = Boolean(position) && !detailQuery.isError && !isMockMode
 
   return (
     <Box padding={space.l} data-testid="position-temporal-page">
       <SimpleStack gap={space.l}>
+        {isMockMode && (
+          <Card
+            padding={space.m}
+            backgroundColor={colors.cinnamon100}
+            data-testid="position-mock-banner"
+            style={{ borderLeft: `4px solid ${colors.cinnamon600}` }}
+          >
+            <SimpleStack gap={space.xs}>
+              <Text color={colors.cinnamon600} fontWeight="bold">
+                ⚠️ 当前处于 Mock 模式，仅支持浏览职位数据。
+              </Text>
+              <Text fontSize="12px" color={colors.cinnamon600}>
+                编辑与版本操作已禁用。请设置 `VITE_POSITIONS_MOCK_MODE=false` 并确保后端服务正常后再进行写入操作。
+              </Text>
+            </SimpleStack>
+          </Card>
+        )}
         <Flex justifyContent="space-between" alignItems="center">
           <Flex alignItems="center" gap={space.s}>
             <SecondaryButton onClick={handleBack} size="small">
@@ -151,7 +187,7 @@ export const PositionTemporalPage: React.FC = () => {
           </Flex>
           <Flex alignItems="center" gap={space.s}>
             <Text fontSize="12px" color={colors.licorice400}>
-              数据来源：GraphQL / REST 实时数据
+              数据来源：{isMockMode ? '演示环境（只读）' : 'GraphQL / REST 实时数据'}
             </Text>
             {canMutate && (
               <>

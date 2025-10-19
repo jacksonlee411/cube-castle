@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen, fireEvent } from '@testing-library/react'
-import { beforeEach, vi, type Mock } from 'vitest'
+import { beforeEach, afterEach, vi, type Mock } from 'vitest'
 import { PositionDashboard } from '../PositionDashboard'
 import type { PositionRecord, PositionsQueryResult } from '@/shared/types/positions'
 
@@ -85,6 +85,7 @@ const positionsQueryResult: PositionsQueryResult = {
 }
 
 beforeEach(() => {
+  vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
   mockedUseEnterprisePositions.mockReset()
   navigateMock.mockReset()
 
@@ -93,6 +94,10 @@ beforeEach(() => {
     isLoading: false,
     isError: false,
   })
+})
+
+afterEach(() => {
+  vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
 })
 
 describe('PositionDashboard（Stage 1 数据接入）', () => {
@@ -140,6 +145,7 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
     expect(screen.getByTestId('position-dashboard-error')).toHaveTextContent(
       '无法加载职位数据，请刷新页面或联系系统管理员。',
     )
+    expect(screen.getByTestId('position-create-button')).toBeDisabled()
   })
 
   it('无数据时展示空态提醒', () => {
@@ -160,5 +166,14 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
       screen.getByText('暂无职位记录，如果这是异常情况，请检查数据同步或后端服务状态。'),
     ).toBeInTheDocument()
     expect(screen.getByText('暂无职位数据')).toBeInTheDocument()
+  })
+
+  it('Mock 模式下提示只读并禁用创建', () => {
+    vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'true')
+
+    render(<PositionDashboard />)
+
+    expect(screen.getByTestId('position-dashboard-mock-banner')).toBeInTheDocument()
+    expect(screen.getByTestId('position-create-button')).toBeDisabled()
   })
 })

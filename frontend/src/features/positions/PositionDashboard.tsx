@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
+import { Card } from '@workday/canvas-kit-react/card'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { PrimaryButton } from '@workday/canvas-kit-react/button'
@@ -49,6 +50,7 @@ export const PositionDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [jobFamilyGroupFilter, setJobFamilyGroupFilter] = useState('ALL')
   const navigate = useNavigate()
+  const isMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
 
   const positionsQuery = useEnterprisePositions({
     status: statusFilter !== 'ALL' ? statusFilter : undefined,
@@ -57,7 +59,8 @@ export const PositionDashboard: React.FC = () => {
     pageSize: 100,
   })
 
-  const positions = positionsQuery.data?.positions ?? []
+  const positionsData = positionsQuery.data?.positions
+  const positions = useMemo(() => positionsData ?? [], [positionsData])
   const hasError = positionsQuery.isError
   const isLoading = positionsQuery.isLoading
   const hasNoData = !isLoading && !hasError && positions.length === 0
@@ -89,6 +92,23 @@ export const PositionDashboard: React.FC = () => {
           <Text color={colors.licorice500}>
             当前页面依赖 GraphQL 查询服务与 REST 命令服务，请确保后端接口可用。
           </Text>
+          {isMockMode && (
+            <Card
+              padding={space.m}
+              backgroundColor={colors.cinnamon100}
+              data-testid="position-dashboard-mock-banner"
+              style={{ borderLeft: `4px solid ${colors.cinnamon600}` }}
+            >
+              <SimpleStack gap={space.xs}>
+                <Text color={colors.cinnamon600} fontWeight="bold">
+                  ⚠️ 当前处于 Mock 模式，仅支持查看数据。
+                </Text>
+                <Text fontSize="12px" color={colors.cinnamon600}>
+                  若需执行创建、编辑或版本操作，请将环境变量 `VITE_POSITIONS_MOCK_MODE=false` 并确保后端服务运行后再刷新页面。
+                </Text>
+              </SimpleStack>
+            </Card>
+          )}
           {isLoading && (
             <Text fontSize="12px" color={colors.licorice300}>
               正在加载最新职位数据...
@@ -109,7 +129,11 @@ export const PositionDashboard: React.FC = () => {
         </SimpleStack>
 
         <Flex justifyContent="flex-end">
-          <PrimaryButton onClick={() => navigate('/positions/new')} data-testid="position-create-button">
+          <PrimaryButton
+            onClick={() => navigate('/positions/new')}
+            data-testid="position-create-button"
+            disabled={isMockMode || hasError}
+          >
             创建职位
           </PrimaryButton>
         </Flex>
