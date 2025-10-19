@@ -744,11 +744,12 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [x] `useUpdateJobFamilyGroup` 等
   - [x] 复用 `CatalogVersionForm` 实现“编辑当前版本”对话框
 - [x] 单元测试补充
-- [x] `jobCatalogPages.test.tsx` 覆盖“编辑当前版本”校验、职类/职种/职务/职级更新链路与权限控制
+  - [x] `jobCatalogPages.test.tsx` 覆盖“编辑当前版本”校验、职类/职种/职务/职级更新链路与权限控制
+  - [x] `jobCatalogPermissions.test.tsx` 验证 `job-catalog:create/update` 权限屏蔽逻辑
 - [ ] 前后端联调
   - [x] 查询测试
   - [x] 命令测试
-  - [ ] 权限验证
+  - [x] 权限验证
 
 #### **Phase 4: E2E 测试与优化（2-3天）**
 
