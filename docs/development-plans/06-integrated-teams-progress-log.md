@@ -23,13 +23,14 @@
 | 模块 | 更新内容 | 说明 |
 |------|----------|------|
 | `frontend/src/App.tsx` | 新增 `/positions/:code` 与 `/positions/:code/temporal` 路由，保持 Mock/鉴权切换逻辑 | 完成“路由导航差距”修复 |
-| `PositionTemporalPage.tsx` | 职位独立详情页：整合 `PositionDetails`、版本列表与表单入口，Mock 模式回退演示数据 | 独立路由 + 时态版本 UI 基线完成 |
-| `components/PositionForm/` | 新增职位表单组件，支持创建/编辑/创建未来版本，复用 `usePositionMutations` | 完成“创建/编辑/时态版本 UI 缺失” |
+| `PositionTemporalPage.tsx` | 职位独立详情页：整合 `PositionDetails`、版本列表与表单入口，Mock 模式下展示只读提醒并禁用写操作 | 独立路由 + 时态版本 UI 基线完成 |
+| `components/PositionForm/` | 拆分表单字段与验证逻辑（`FormFields`/`validation`/`payload`），复用 `usePositionMutations` | 完成“创建/编辑/时态版本 UI 缺失”，并提升可维护性 |
+| `docs/development-plans/93-position-detail-tabbed-experience-plan.md` | 草案提交：定义职位详情多页签布局与审计页签接入方案 | 承接 88 号 P2，待设计评审 |
 | `usePositionMutations.ts` | 增补 `useCreatePosition` / `useUpdatePosition` / `useCreatePositionVersion`，统一缓存失效策略 | REST API 已就绪，前端接入 |
 | `components/PositionVersionList.tsx` | 新增职位版本列表组件（Canvas Table），支持当前/历史/计划标签展示 | 覆盖 `positionVersions` GraphQL 返回数据 |
 | `frontend/src/shared/hooks/useEnterprisePositions.ts` | 补充 `positionVersions` 字段查询与数据转换 | GraphQL detail 请求与缓存链路打通 |
-| `PositionDashboard.tsx` | 列表点击跳转详情页，提供“创建职位”按钮，移除内嵌详情 | 与组织模块交互方式一致 |
-| `PositionDashboard.test.tsx` | 更新用例，校验导航行为与创建按钮 | Vitest 通过 |
+| `PositionDashboard.tsx` | 列表点击跳转详情页，提供“创建职位”按钮，移除内嵌详情；Mock 模式下新增只读提示并禁用创建 | 与组织模块交互方式一致 |
+| `PositionDashboard.test.tsx` | 更新用例，校验导航行为、创建按钮与 Mock 模式只读逻辑 | Vitest 通过 |
 | `frontend/src/features/positions/__tests__/PositionTemporalPage.test.tsx` | 新增 Vitest 覆盖版本列表渲染与编码校验 | 前端 P1 功能具备最小回归保障 |
 | `docs/api/schema.graphql` | 新增 `positionVersions` Query 与说明，保持 camelCase 命名 | 契约与实现保持单一事实来源 |
 | 查询服务（resolver/repository/pbac/tests） | `GetPositionVersions` 查询、权限映射、单元测试补充 | `cmd/organization-query-service/internal` 相关文件同步更新 |
@@ -55,7 +56,8 @@ npm --prefix frontend run test -- PositionTemporalPage
 | 项目 | 描述 | 责任人 | 备注 |
 |------|------|--------|------|
 | 版本增强 | CSV 导出、includeDeleted 切换（不含差异对比） | 前端团队 | 对应 88 号计划 P1 后续任务 |
-| 88号计划文档跟踪 | Week 1 交付项完成；Week 2 建议按新版排期推进 | 架构组 | 在 88 号文档第 12 节记录决策 |
+| 多页签重构规划 | 参考 93 号方案，评审后执行左栏 + Tabs 重构 | 前端 + 设计 | 88 号文档 P2 更新为进行中 |
+| Mock 模式说明同步 | 更新 README / QA 脚本 / 设计规范的只读提示 | 前端团队 | 88 号建议A 剩余事项 |
 
 ---
 
@@ -398,6 +400,12 @@ panic: model.Position does not resolve "Position": missing method for field "cur
 | **88 号计划 P0 交付** | ✅ 解除阻塞 | 职位创建 UI 可调用后端 |
 | **前端职位详情页** | ✅ 解除阻塞 | currentAssignment 字段可查询 |
 | **前端版本列表** | ✅ 解除阻塞 | assignmentHistory 字段可查询 |
+
+### 8.6 89 号计划归档记录（2025-10-19）
+
+- **归档文档**：`docs/archive/development-plans/89-position-crud-verification-report.md`
+- **归档原因**：P0 阻塞解除，前端已移除 Mock 回退，`046_seed_positions_data` 迁移写入 5 条真实职位，相关自动化门禁上线。
+- **后续跟踪**：职位 CRUD 回归验证并入常规质量门禁（GraphQL 契约校验、Vitest、Playwright E2E），无需额外专项计划。
 | **E2E 测试** | ✅ 解除阻塞 | 服务健康，可执行集成测试 |
 
 ### 8.6 经验教训与改进建议

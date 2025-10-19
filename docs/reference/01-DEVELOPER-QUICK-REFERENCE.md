@@ -52,6 +52,8 @@ make status             # 查看所有服务状态
 make db-migrate-all     # 一键执行数据库迁移（迁移即真源）
 ```
 
+> **重要**：前端职位管理页面默认使用真实 GraphQL/REST 数据。若环境存在历史配置，请确保 `.env` / `.env.local` 中设置 `VITE_POSITIONS_MOCK_MODE=false`，避免误用 Mock 数据导致验证失真；Mock 模式下界面会显示只读提醒并禁用写操作。
+
 ### 最小依赖与启动顺序（现行 PostgreSQL 原生架构）
 - 依赖：PostgreSQL 16+，Redis 7.x
 - 顺序：

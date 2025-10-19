@@ -13,7 +13,8 @@
    export PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9
    ```
    若已在 `.cache/dev.jwt` 中缓存令牌，可直接复用。
-3. **测试焦点**：仅运行 Chromium 浏览器项目，聚焦可达性与关键交互，不覆盖性能/回归等全量场景。
+3. **Mock 环境变量**：确认 `frontend/.env` 或运行终端中设置 `VITE_POSITIONS_MOCK_MODE=false`；如需临时启用 Mock，请记录原因，并注意 Playwright 会显示“只读”提示且跳过写操作用例。
+4. **测试焦点**：仅运行 Chromium 浏览器项目，聚焦可达性与关键交互，不覆盖性能/回归等全量场景。
 
 ---
 

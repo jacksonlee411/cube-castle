@@ -14,6 +14,7 @@
 - **Schema 对齐**：`docs/api/schema.graphql` 提供 `Position.organizationName`、`HeadcountStats.byFamily`、`VacantPositionFilterInput` 等字段，与 `frontend/src/shared/hooks/useEnterprisePositions.ts` 中的 GraphQL 查询保持一致。
 - **后端实现**：`cmd/organization-query-service/internal/model/models.go` 与 `internal/repository/postgres_positions.go`（`populatePositionAssignments`、`GetPositionHeadcountStats` 等）返回结构与 GraphQL 契约完全匹配。
 - **前端渲染**：`frontend/src/features/positions/PositionDashboard.tsx` 与 `PositionTemporalPage.tsx` 仅依赖真实 GraphQL/REST 数据；加载失败时显示错误提示并支持重试；`PositionForm` 负责 `/positions/new` 流程并调度 `usePositionMutations` 执行 REST 命令。
+- **Mock 可见性**：位置模块在 Mock 模式下展示只读提醒并禁用创建/编辑/版本操作，防止演示数据掩盖真实链路异常。
 - **测试执行记录**：参考 `docs/development-plans/06-integrated-teams-progress-log.md` 2025-10-19 条目，已运行 `npm --prefix frontend run lint`、`npm --prefix frontend run typecheck`、`npm --prefix frontend run test -- PositionDashboard`、`npm --prefix frontend run test -- PositionTemporalPage`，并完成 GraphQL 服务健康检查。
 - **端到端门禁**：`frontend/tests/e2e/position-crud-live.spec.ts` 默认在 CI 中执行（通过 `PW_REQUIRE_LIVE_BACKEND=1` 强制启用真实链路），依赖 `make jwt-dev-mint` 生成的 JWT 对真实接口进行 CRUD 流程验证。
 - **契约校验脚本**：`scripts/check-graphql-schema-sync.sh` 通过根目录 `npm run schema:positions` 纳入 `.github/workflows/frontend-quality-gate.yml`，阻止 `Position.organizationName` 等关键字段再次漂移。
