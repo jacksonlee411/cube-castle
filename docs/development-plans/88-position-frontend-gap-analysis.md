@@ -513,7 +513,7 @@ const timeline: PositionTimelineEvent[] = useMockData
 - [x] 更新 `docs/development-plans/06-integrated-teams-progress-log.md`、README、开发速查指引的 Mock 说明（建议A）。
 - [x] 拆分 `PositionForm` 字段与校验、补充基础 Vitest 覆盖（建议B 首阶段）。
 - [x] 抽离岗位字典数据源并切换表单为下拉选择，保留只读兜底（建议B）。
-- [ ] 补充 PositionForm Storybook 场景与错误态文案，完成建议B 收尾。
+- [x] 补充 PositionForm Storybook 场景与错误态文案，完成建议B 收尾。
 - [ ] 依据 93 号方案实施多页签重构（建议C），同步设计评审结论。
 - [ ] 更新 Playwright 脚本覆盖页签切换、Mock 只读校验，完善 CI 门禁（建议C/D）。
 - [ ] 完成组件目录整理与文档同步，关闭建议D。
