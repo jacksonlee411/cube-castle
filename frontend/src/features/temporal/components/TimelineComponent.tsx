@@ -1,8 +1,7 @@
 /**
- * 健壮版时间轴组件
- * 基于Canvas Kit v13企业级设计系统
- * 集成真实organizationAuditHistory查询
- * 替代删除的SimpleTimelineVisualization组件
+ * 时间轴组件
+ * 基于 Canvas Kit v13 企业级设计系统
+ * 依赖 GraphQL 返回的组织版本基础字段进行渲染
  */
 import React from 'react';
 import { Box, Flex } from '@workday/canvas-kit-react/layout';
@@ -17,7 +16,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import type { OrganizationStatus } from '@/shared/types';
 import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
 
-// 时态版本接口定义 - 与现有组件保持一致
+// 时态版本接口定义 - 兼容历史字段（多数由调用方派生）
 export interface TimelineVersion {
   recordId: string; // UUID唯一标识符
   code: string;
@@ -36,11 +35,11 @@ export interface TimelineVersion {
   namePath?: string | null;
   parentCode?: string;
   sortOrder: number;
-  
-  // 五状态生命周期管理字段
-  lifecycleStatus: 'CURRENT' | 'HISTORICAL' | 'PLANNED' | 'INACTIVE' | 'DELETED'; // 生命周期状态
-  businessStatus: 'ACTIVE' | 'INACTIVE'; // 业务状态
-  dataStatus: 'NORMAL' | 'DELETED'; // 数据状态
+
+  // 兼容字段：调用方可选传入派生状态，缺省时组件内部退化处理
+  lifecycleStatus?: 'CURRENT' | 'HISTORICAL' | 'PLANNED';
+  businessStatus?: 'ACTIVE' | 'INACTIVE';
+  dataStatus?: 'NORMAL' | 'DELETED';
   suspended_at?: string | null; // 停用时间
   suspended_by?: string | null; // 停用者
   suspension_reason?: string | null; // 停用原因
@@ -79,6 +78,41 @@ const mapBackendStatusToOrganizationStatus = (backendStatus: string): Organizati
   }
 };
 
+const isSoftDeleted = (version: TimelineVersion) =>
+  version.dataStatus === 'DELETED' || version.status === OrganizationStatusEnum.Deleted;
+
+const resolveBusinessStatus = (version: TimelineVersion): 'ACTIVE' | 'INACTIVE' => {
+  if (version.businessStatus) {
+    return version.businessStatus;
+  }
+
+  if (
+    version.status === OrganizationStatusEnum.Inactive ||
+    version.status === OrganizationStatusEnum.Deleted
+  ) {
+    return 'INACTIVE';
+  }
+
+  return 'ACTIVE';
+};
+
+const resolveLifecycleStatus = (
+  version: TimelineVersion,
+): 'CURRENT' | 'HISTORICAL' | 'PLANNED' => {
+  if (version.lifecycleStatus) {
+    if (version.lifecycleStatus === 'PLANNED') {
+      return 'PLANNED';
+    }
+    return version.lifecycleStatus === 'CURRENT' ? 'CURRENT' : 'HISTORICAL';
+  }
+
+  if (version.status === OrganizationStatusEnum.Planned) {
+    return 'PLANNED';
+  }
+
+  return version.isCurrent ? 'CURRENT' : 'HISTORICAL';
+};
+
 /**
  * 健壮版时间轴组件
  * 使用Canvas Kit v13组件，遵循企业级设计标准
@@ -96,65 +130,57 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
   showActions: _showActions = true
 }) => {
   
-  // 获取版本状态指示器 - 基于五状态生命周期管理系统
+  // 获取版本状态指示器 - 基于现有字段派生 UI 提示
   const getVersionStatusIndicator = (version: TimelineVersion) => {
-    // 1. 软删除状态（优先级最高）
-    if (version.dataStatus === 'DELETED') {
-      return { 
-        color: colors.cinnamon600, 
-        dotColor: colors.cinnamon600, 
+    if (isSoftDeleted(version)) {
+      return {
+        color: colors.cinnamon600,
+        dotColor: colors.cinnamon600,
         label: '已删除',
         isDeactivated: true,
-        badge: 'DELETED' as const
+        badge: 'DELETED' as const,
       };
     }
-    
-    // 2. 业务停用状态
-    if (version.businessStatus === 'INACTIVE') {
-      return { 
-        color: colors.cantaloupe600, 
-        dotColor: colors.cantaloupe600, 
+
+    const businessStatus = resolveBusinessStatus(version);
+    if (businessStatus === 'INACTIVE') {
+      return {
+        color: colors.cantaloupe600,
+        dotColor: colors.cantaloupe600,
         label: '已停用',
         isDeactivated: false,
-        badge: 'INACTIVE' as const
+        badge: 'INACTIVE' as const,
       };
     }
-    
-    // 3. 生命周期状态
-    switch (version.lifecycleStatus) {
-      case 'CURRENT':
-        return { 
-          color: colors.greenApple500, 
-          dotColor: colors.greenApple500, 
-          label: '生效中',
-          isDeactivated: false,
-          badge: 'CURRENT' as const
-        };
-      case 'PLANNED':
-        return { 
-          color: colors.blueberry600, 
-          dotColor: 'white', 
-          label: '计划中',
-          isDeactivated: false,
-          badge: 'PLANNED' as const
-        };
-      case 'HISTORICAL':
-        return { 
-          color: colors.licorice400, 
-          dotColor: colors.licorice400, 
-          label: '历史记录',
-          isDeactivated: false,
-          badge: 'HISTORICAL' as const
-        };
-      default:
-        return { 
-          color: colors.licorice400, 
-          dotColor: colors.licorice400, 
-          label: '未知状态',
-          isDeactivated: false,
-          badge: 'HISTORICAL' as const
-        };
+
+    const lifecycleStatus = resolveLifecycleStatus(version);
+    if (lifecycleStatus === 'PLANNED') {
+      return {
+        color: colors.blueberry600,
+        dotColor: 'white',
+        label: '计划中',
+        isDeactivated: false,
+        badge: 'PLANNED' as const,
+      };
     }
+
+    if (lifecycleStatus === 'CURRENT') {
+      return {
+        color: colors.greenApple500,
+        dotColor: colors.greenApple500,
+        label: '生效中',
+        isDeactivated: false,
+        badge: 'CURRENT' as const,
+      };
+    }
+
+    return {
+      color: colors.licorice400,
+      dotColor: colors.licorice400,
+      label: '历史记录',
+      isDeactivated: false,
+      badge: 'HISTORICAL' as const,
+    };
   };
 
   // 格式化日期
@@ -165,9 +191,8 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
   // 计算日期范围显示
   const formatDateRange = (version: TimelineVersion, allVersions: TimelineVersion[]) => {
     const start = formatDate(version.effectiveDate);
-    
-    // 优先检查删除状态（通过dataStatus字段）
-    if (version.dataStatus === 'DELETED') {
+
+    if (isSoftDeleted(version)) {
       return `${start} ~ 已删除`;
     }
     
@@ -179,10 +204,10 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
     
     // 找到下一个生效日期更晚的版本（排除已删除的版本）
     const nextVersion = allVersions
-      .filter(v => new Date(v.effectiveDate) > new Date(version.effectiveDate))
-      .filter(v => v.dataStatus !== 'DELETED')
+      .filter((v) => new Date(v.effectiveDate) > new Date(version.effectiveDate))
+      .filter((v) => !isSoftDeleted(v))
       .sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime())[0];
-    
+
     if (nextVersion) {
       // 如果有下一个版本，当前版本的结束日期是下一个版本生效日期的前一天
       const nextDate = new Date(nextVersion.effectiveDate);
@@ -190,19 +215,18 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
       return `${start} ~ ${formatDate(nextDate.toISOString().split('T')[0])}`;
     }
     
-    // 如果没有下一个版本，根据生命周期状态决定显示内容
-    if (version.lifecycleStatus === 'PLANNED') {
-      // 计划中的记录显示"未来"
-      return `${start} ~ 未来`;
-    } else {
-      // 当前记录或历史记录显示"至今"
-      return `${start} ~ 至今`;
+    const lifecycleStatus = resolveLifecycleStatus(version);
+    if (lifecycleStatus === 'PLANNED') {
+      return `${start} ~ 计划中`;
     }
+
+    return `${start} ~ 至今`;
   };
 
   // 增强版时间范围显示 - 提供更直观的时间信息
   const getEnhancedDateRange = (version: TimelineVersion, allVersions: TimelineVersion[]) => {
     const baseRange = formatDateRange(version, allVersions);
+    const lifecycleStatus = resolveLifecycleStatus(version);
     
     // 计算持续时间
     const calculateDuration = (startDate: string, endDate?: string | null) => {
@@ -224,26 +248,29 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
     };
 
     // 获取状态图标
-    const getStatusIcon = (lifecycleStatus: string) => {
-      switch (lifecycleStatus) {
-        case 'CURRENT': return '🟢';
-        case 'PLANNED': return '🔵';
-        case 'HISTORICAL': return '⚪';
-        default: return '⚫';
+    const getStatusIcon = (status: 'CURRENT' | 'HISTORICAL' | 'PLANNED') => {
+      switch (status) {
+        case 'CURRENT':
+          return '🟢';
+        case 'PLANNED':
+          return '🔵';
+        case 'HISTORICAL':
+        default:
+          return '⚪';
       }
     };
 
     const duration = version.endDate 
       ? calculateDuration(version.effectiveDate, version.endDate)
-      : version.lifecycleStatus === 'CURRENT' 
+      : lifecycleStatus === 'CURRENT'
         ? calculateDuration(version.effectiveDate)
         : '未确定';
 
     return {
       primary: baseRange,
-      duration: version.lifecycleStatus !== 'PLANNED' ? duration : '计划中',
-      icon: getStatusIcon(version.lifecycleStatus),
-      isActive: version.lifecycleStatus === 'CURRENT'
+      duration: lifecycleStatus !== 'PLANNED' ? duration : '计划中',
+      icon: getStatusIcon(lifecycleStatus),
+      isActive: lifecycleStatus === 'CURRENT'
     };
   };
 
@@ -328,7 +355,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
                     data-lifecycle={statusInfo.badge}
                     data-current={isSelected ? 'true' : 'false'}
                     data-status={version.status}
-                    data-business-status={version.businessStatus}
+                    data-business-status={resolveBusinessStatus(version)}
                     style={{
                       backgroundColor: isSelected ? '#E3F2FD' : 'white',
                       border: isSelected ? '2px solid #2196F3' : '1px solid #E9ECEF',

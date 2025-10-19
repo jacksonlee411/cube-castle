@@ -39,7 +39,7 @@
 
 - 顶部保持现有返回与操作按钮区，补充当前位置面包屑（可复用 `TemporalMasterDetailHeader` 的结构逻辑）。  
 - 主内容区采用左右分栏：
-  - 左栏：版本/时间轴导航（复用 `PositionVersionList`，改造成“版本选择器”模式，支持 includeDeleted 过滤）。
+  - 左栏：版本/时间轴导航。优先复用组织模块的 `TimelineComponent`，仅依赖 `recordId`、`status`、`isCurrent` 等基础字段；严禁在未扩展契约的情况下对 `lifecycleStatus`、`businessStatus`、`dataStatus` 推导额外语义（参见 95 号文档）。若需临时保留 `PositionVersionList`，必须完成视觉对齐并记录降级说明。
   - 右栏：页签容器，容纳不同信息分区；默认选中“概览”。
 - 移动端/窄屏 fallback：当宽度不足时左栏折叠为顶部抽屉式列表，页签保持。
 
@@ -77,7 +77,7 @@
 ## 9. 实施步骤与验收标准
 
 1. UI 拆分：重构 `PositionTemporalPage`，引入 `PositionDetailTabs` 容器组件；将现有卡片内容拆分为独立子组件。  
-2. 版本导航：改造 `PositionVersionList` 支持“侧栏导航”模式，添加选中态与回调。  
+2. 版本导航：改造 `PositionVersionList` 支持“侧栏导航”模式，添加选中态与回调；复用 `TimelineComponent` 时，仅传递基础字段并维持 95 号文档所述的状态语义约束。  
 3. 审计页签：引入 `AuditHistorySection`，确保 recordId 传递正确并添加空状态文案。  
 4. 状态管理：在页面级维护 `activeTab`、`selectedVersionRecordId`；预留 URL 查询参数占位（便于分享）。  
 5. 验收标准：
@@ -90,7 +90,7 @@
 
 - recordId 完整性：部分历史版本可能缺失 recordId（历史迁移遗留），需要在查询层补齐或提供降级提示。  
 - 审计数据量：大批量记录加载可能影响性能，需启用 `AuditHistorySection` 内置的分页/limit 参数。  
-- 左栏复用：`PositionVersionList` 当前为表格样式，改造成侧栏列表时需配合设计评审，确认 Canvas Kit 组件选型。  
+- 左栏复用：`PositionVersionList` 当前为表格样式，改造成侧栏列表时需配合设计评审，确认 Canvas Kit 组件选型，并遵循 95 号文档的状态字段约束，不扩展额外状态标签。  
 - 回归范围：重构涉及 Position 详情多处组件，需配合 Vitest 与 Playwright 规格更新（按 88号计划后续待办）。
 
 ## 11. 布局示意图
