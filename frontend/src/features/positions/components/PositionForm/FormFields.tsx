@@ -25,7 +25,9 @@ interface SelectFieldProps {
   onChange: React.ChangeEventHandler<HTMLSelectElement>
   options: SelectOption[]
   error?: string
+  helperText?: string
   isRequired?: boolean
+  disabled?: boolean
 }
 
 const SELECT_BASE_STYLE: React.CSSProperties = {
@@ -43,7 +45,16 @@ const SELECT_ERROR_STYLE: React.CSSProperties = {
   borderColor: colors.cinnamon500,
 }
 
-const SelectField: React.FC<SelectFieldProps> = ({ label, value, onChange, options, error, isRequired }) => (
+const SelectField: React.FC<SelectFieldProps> = ({
+  label,
+  value,
+  onChange,
+  options,
+  error,
+  helperText,
+  isRequired,
+  disabled,
+}) => (
   <FormField isRequired={isRequired} error={error}>
     <FormField.Label>{label}</FormField.Label>
     <FormField.Field>
@@ -51,6 +62,7 @@ const SelectField: React.FC<SelectFieldProps> = ({ label, value, onChange, optio
         value={value}
         onChange={onChange}
         style={{ ...SELECT_BASE_STYLE, ...(error ? SELECT_ERROR_STYLE : {}) }}
+        disabled={disabled}
       >
         {options.map(option => (
           <option key={option.value} value={option.value}>
@@ -58,7 +70,7 @@ const SelectField: React.FC<SelectFieldProps> = ({ label, value, onChange, optio
           </option>
         ))}
       </select>
-      {error ? <FormField.Error>{error}</FormField.Error> : null}
+      {error ? <FormField.Error>{error}</FormField.Error> : helperText ? <FormField.HelperText>{helperText}</FormField.HelperText> : null}
     </FormField.Field>
   </FormField>
 )
@@ -70,10 +82,24 @@ interface PositionFormFieldsProps {
     key: keyof PositionFormState,
   ) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void
   isVersion: boolean
+  catalogAvailable: boolean
+  catalogLoading: boolean
+  jobFamilyGroupOptions: SelectOption[]
+  jobFamilyOptions: SelectOption[]
+  jobRoleOptions: SelectOption[]
+  jobLevelOptions: SelectOption[]
+  onJobFamilyGroupChange: React.ChangeEventHandler<HTMLSelectElement>
+  onJobFamilyChange: React.ChangeEventHandler<HTMLSelectElement>
+  onJobRoleChange: React.ChangeEventHandler<HTMLSelectElement>
+  onJobLevelChange: React.ChangeEventHandler<HTMLSelectElement>
 }
 
-export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({ state, errors, onChange, isVersion }) => (
-  <SimpleStack gap={space.xs}>
+const renderTextInputs = (
+  state: PositionFormState,
+  errors: PositionFormErrors,
+  onChange: PositionFormFieldsProps['onChange'],
+) => (
+  <>
     <TextInput
       label="职位名称"
       value={state.title}
@@ -125,6 +151,94 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({ state, e
         helperText={errors.jobLevelCode}
       />
     </Flex>
+  </>
+)
+
+export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
+  state,
+  errors,
+  onChange,
+  isVersion,
+  catalogAvailable,
+  catalogLoading,
+  jobFamilyGroupOptions,
+  jobFamilyOptions,
+  jobRoleOptions,
+  jobLevelOptions,
+  onJobFamilyGroupChange,
+  onJobFamilyChange,
+  onJobRoleChange,
+  onJobLevelChange,
+}) => (
+  <SimpleStack gap={space.xs}>
+    {!catalogAvailable && (
+      <FormField>
+        <FormField.HelperText>
+          未能加载岗位字典数据，可手动填写编码；请稍后刷新页面。
+        </FormField.HelperText>
+      </FormField>
+    )}
+
+    {catalogAvailable ? (
+      <>
+        <TextInput
+          label="职位名称"
+          value={state.title}
+          onChange={onChange('title')}
+          placeholder="请输入职位名称"
+          isRequired
+          error={Boolean(errors.title)}
+          helperText={errors.title}
+        />
+
+        <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
+          <SelectField
+            label="职类"
+            value={state.jobFamilyGroupCode}
+            onChange={onJobFamilyGroupChange}
+            options={jobFamilyGroupOptions}
+            error={errors.jobFamilyGroupCode}
+            isRequired
+            disabled={catalogLoading}
+          />
+          <SelectField
+            label="职种"
+            value={state.jobFamilyCode}
+            onChange={onJobFamilyChange}
+            options={jobFamilyOptions}
+            error={errors.jobFamilyCode}
+            isRequired
+            disabled={catalogLoading || !state.jobFamilyGroupCode}
+            helperText={!state.jobFamilyGroupCode ? '请先选择职类' : undefined}
+          />
+        </Flex>
+
+        <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
+          <SelectField
+            label="职务"
+            value={state.jobRoleCode}
+            onChange={onJobRoleChange}
+            options={jobRoleOptions}
+            error={errors.jobRoleCode}
+            isRequired
+            disabled={catalogLoading || !state.jobFamilyCode}
+            helperText={!state.jobFamilyCode ? '请先选择职种' : undefined}
+          />
+          <SelectField
+            label="职级"
+            value={state.jobLevelCode}
+            onChange={onJobLevelChange}
+            options={jobLevelOptions}
+            error={errors.jobLevelCode}
+            isRequired
+            disabled={catalogLoading || !state.jobRoleCode}
+            helperText={!state.jobRoleCode ? '请先选择职务' : undefined}
+          />
+        </Flex>
+      </>
+    ) : (
+      renderTextInputs(state, errors, onChange)
+    )}
 
     <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
       <TextInput
@@ -209,4 +323,3 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({ state, e
     />
   </SimpleStack>
 )
-

@@ -21,6 +21,7 @@ import {
 import { validatePositionForm } from './validation'
 import { buildCreatePositionPayload } from './payload'
 import { PositionFormFields } from './FormFields'
+import { usePositionJobCatalogOptions } from './usePositionJobCatalogOptions'
 
 export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCancel, onSuccess }) => {
   const createMutation = useCreatePosition()
@@ -40,6 +41,13 @@ export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCa
     if (mode === 'version') return '新增时态版本'
     return '编辑职位'
   }, [mode])
+
+  const jobCatalog = usePositionJobCatalogOptions({
+    groupCode: formState.jobFamilyGroupCode,
+    familyCode: formState.jobFamilyCode,
+    roleCode: formState.jobRoleCode,
+    levelCode: formState.jobLevelCode,
+  })
 
   const validateAndSetErrors = useCallback(
     (state: PositionFormState) => {
@@ -67,6 +75,73 @@ export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCa
         return next
       })
     }
+
+  const handleJobFamilyGroupChange: React.ChangeEventHandler<HTMLSelectElement> = event => {
+    const value = event.target.value
+    setFormState(prev => ({
+      ...prev,
+      jobFamilyGroupCode: value,
+      jobFamilyCode: '',
+      jobRoleCode: '',
+      jobLevelCode: '',
+    }))
+    setErrors(prev => {
+      const next = { ...prev }
+      delete next.jobFamilyGroupCode
+      delete next.jobFamilyCode
+      delete next.jobRoleCode
+      delete next.jobLevelCode
+      return next
+    })
+  }
+
+  const handleJobFamilyChange: React.ChangeEventHandler<HTMLSelectElement> = event => {
+    const value = event.target.value
+    setFormState(prev => ({
+      ...prev,
+      jobFamilyCode: value,
+      jobRoleCode: '',
+      jobLevelCode: '',
+    }))
+    setErrors(prev => {
+      const next = { ...prev }
+      delete next.jobFamilyCode
+      delete next.jobRoleCode
+      delete next.jobLevelCode
+      return next
+    })
+  }
+
+  const handleJobRoleChange: React.ChangeEventHandler<HTMLSelectElement> = event => {
+    const value = event.target.value
+    setFormState(prev => ({
+      ...prev,
+      jobRoleCode: value,
+      jobLevelCode: '',
+    }))
+    setErrors(prev => {
+      const next = { ...prev }
+      delete next.jobRoleCode
+      delete next.jobLevelCode
+      return next
+    })
+  }
+
+  const handleJobLevelChange: React.ChangeEventHandler<HTMLSelectElement> = event => {
+    const value = event.target.value
+    setFormState(prev => ({
+      ...prev,
+      jobLevelCode: value,
+    }))
+    setErrors(prev => {
+      if (!prev.jobLevelCode) {
+        return prev
+      }
+      const next = { ...prev }
+      delete next.jobLevelCode
+      return next
+    })
+  }
 
   const mutationPending =
     createMutation.isPending || updateMutation.isPending || createVersionMutation.isPending || isSubmitting
@@ -122,7 +197,22 @@ export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCa
         <SimpleStack gap={space.l}>
           <Heading size="small">{headerTitle}</Heading>
 
-          <PositionFormFields state={formState} errors={errors} onChange={handleChange} isVersion={isVersion} />
+          <PositionFormFields
+            state={formState}
+            errors={errors}
+            onChange={handleChange}
+            isVersion={isVersion}
+            catalogAvailable={!jobCatalog.hasError}
+            catalogLoading={jobCatalog.isLoading}
+            jobFamilyGroupOptions={jobCatalog.groupOptions}
+            jobFamilyOptions={jobCatalog.familyOptions}
+            jobRoleOptions={jobCatalog.roleOptions}
+            jobLevelOptions={jobCatalog.levelOptions}
+            onJobFamilyGroupChange={handleJobFamilyGroupChange}
+            onJobFamilyChange={handleJobFamilyChange}
+            onJobRoleChange={handleJobRoleChange}
+            onJobLevelChange={handleJobLevelChange}
+          />
 
           <Flex justifyContent="flex-end" gap={space.s}>
             {onCancel && (
