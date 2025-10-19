@@ -20,7 +20,6 @@ interface PositionDetailsProps {
   currentAssignment?: PositionAssignmentRecord | null
   transfers?: PositionTransferRecord[]
   isLoading?: boolean
-  dataSource?: 'api' | 'mock'
 }
 
 const StatusPill: React.FC<{ status: string }> = ({ status }) => {
@@ -130,7 +129,6 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
   currentAssignment = null,
   transfers = [],
   isLoading = false,
-  dataSource = 'api',
 }) => {
   if (isLoading) {
     return (
@@ -161,14 +159,9 @@ export const PositionDetails: React.FC<PositionDetailsProps> = ({
         <Text fontSize="14px" color={colors.licorice500}>
           所属组织：{position.organizationName ?? `${position.organizationCode}（未提供名称）`}
         </Text>
-        {dataSource === 'mock' && (
-          <Text fontSize="12px" color={colors.licorice300}>
-            当前展示的是演示数据，后端接口不可用时自动回退。
-          </Text>
-        )}
 
         <Flex justifyContent="flex-end">
-          <PositionTransferDialog position={position} disabled={dataSource === 'mock'} />
+          <PositionTransferDialog position={position} />
         </Flex>
 
         <DividerLine />

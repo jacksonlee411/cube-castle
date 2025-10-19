@@ -101,6 +101,9 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
 
     expect(screen.getByTestId('position-dashboard')).toBeInTheDocument()
     expect(screen.getByText('职位管理（Stage 1 数据接入）')).toBeInTheDocument()
+    expect(
+      screen.getByText('当前页面依赖 GraphQL 查询服务与 REST 命令服务，请确保后端接口可用。'),
+    ).toBeInTheDocument()
     expect(screen.getByText('岗位总数')).toBeInTheDocument()
     expect(screen.getByTestId('position-row-P9000001')).toBeInTheDocument()
     expect(screen.getAllByText('物业保洁员')[0]).toBeInTheDocument()
@@ -123,5 +126,39 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
 
     fireEvent.click(screen.getByTestId('position-create-button'))
     expect(navigateMock).toHaveBeenCalledWith('/positions/new')
+  })
+
+  it('接口报错时展示错误提示', () => {
+    mockedUseEnterprisePositions.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+    })
+
+    render(<PositionDashboard />)
+
+    expect(screen.getByTestId('position-dashboard-error')).toHaveTextContent(
+      '无法加载职位数据，请刷新页面或联系系统管理员。',
+    )
+  })
+
+  it('无数据时展示空态提醒', () => {
+    mockedUseEnterprisePositions.mockReturnValue({
+      data: {
+        positions: [],
+        pagination: positionsQueryResult.pagination,
+        totalCount: 0,
+        timestamp: positionsQueryResult.timestamp,
+      },
+      isLoading: false,
+      isError: false,
+    })
+
+    render(<PositionDashboard />)
+
+    expect(
+      screen.getByText('暂无职位记录，如果这是异常情况，请检查数据同步或后端服务状态。'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('暂无职位数据')).toBeInTheDocument()
   })
 })

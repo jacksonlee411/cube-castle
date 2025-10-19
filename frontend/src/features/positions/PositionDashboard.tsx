@@ -12,8 +12,6 @@ import { PositionList } from './components/PositionList'
 import { PositionVacancyBoard } from './components/PositionVacancyBoard'
 import { PositionHeadcountDashboard } from './components/PositionHeadcountDashboard'
 import { SimpleStack } from './components/SimpleStack'
-import { mockPositions } from './mockData'
-import type { PositionMock } from './mockData'
 
 const statusOptions: Array<{ label: string; value: string }> = [
   { label: '全部状态', value: 'ALL' },
@@ -23,36 +21,6 @@ const statusOptions: Array<{ label: string; value: string }> = [
   { label: '规划中', value: 'PLANNED' },
   { label: '停用', value: 'INACTIVE' },
 ]
-
-const mapMockPositionToRecord = (item: PositionMock): PositionRecord => ({
-  code: item.code,
-  recordId: `${item.code}-mock`,
-  title: item.title,
-  jobFamilyGroupCode: item.jobFamilyGroup,
-  jobFamilyGroupName: item.jobFamilyGroup,
-  jobFamilyCode: item.jobFamily,
-  jobFamilyName: item.jobFamily,
-  jobRoleCode: item.jobRole,
-  jobRoleName: item.jobRole,
-  jobLevelCode: item.jobLevel,
-  jobLevelName: item.jobLevel,
-  organizationCode: item.organization.code,
-  organizationName: item.organization.name,
-  positionType: 'REGULAR',
-  employmentType: 'FULL_TIME',
-  headcountCapacity: item.headcountCapacity,
-  headcountInUse: item.headcountInUse,
-  availableHeadcount: Math.max(item.headcountCapacity - item.headcountInUse, 0),
-  gradeLevel: undefined,
-  reportsToPositionCode: item.supervisor.code,
-  status: item.status,
-  effectiveDate: item.effectiveDate,
-  endDate: undefined,
-  isCurrent: item.status !== 'PLANNED',
-  isFuture: item.status === 'PLANNED',
-  createdAt: `${item.effectiveDate}T00:00:00.000Z`,
-  updatedAt: `${item.effectiveDate}T00:00:00.000Z`,
-})
 
 const applyFilters = (
   positions: PositionRecord[],
@@ -89,26 +57,25 @@ export const PositionDashboard: React.FC = () => {
     pageSize: 100,
   })
 
-  const mockRecords = useMemo(() => mockPositions.map(mapMockPositionToRecord), [])
-
-  const apiPositions = positionsQuery.data?.positions ?? []
-  const useMockData = !positionsQuery.isLoading && (positionsQuery.isError || apiPositions.length === 0)
-  const basePositions = useMockData ? mockRecords : apiPositions
+  const positions = positionsQuery.data?.positions ?? []
+  const hasError = positionsQuery.isError
+  const isLoading = positionsQuery.isLoading
+  const hasNoData = !isLoading && !hasError && positions.length === 0
 
   const filteredPositions = useMemo(
-    () => applyFilters(basePositions, searchText, statusFilter, jobFamilyGroupFilter),
-    [basePositions, searchText, statusFilter, jobFamilyGroupFilter],
+    () => applyFilters(positions, searchText, statusFilter, jobFamilyGroupFilter),
+    [positions, searchText, statusFilter, jobFamilyGroupFilter],
   )
 
   const jobFamilyGroupOptions = useMemo(() => {
     const map = new Map<string, string>()
-    basePositions.forEach(item => {
+    positions.forEach(item => {
       if (!map.has(item.jobFamilyGroupCode)) {
         map.set(item.jobFamilyGroupCode, item.jobFamilyGroupName ?? item.jobFamilyGroupCode)
       }
     })
     return Array.from(map.entries()).map(([code, label]) => ({ code, label }))
-  }, [basePositions])
+  }, [positions])
 
   const listData = filteredPositions
   const summaryData = filteredPositions
@@ -120,14 +87,23 @@ export const PositionDashboard: React.FC = () => {
         <SimpleStack gap={space.xs}>
           <Heading size="medium">职位管理（Stage 1 数据接入）</Heading>
           <Text color={colors.licorice500}>
-            当前页面已接入 GraphQL 查询服务与 REST 命令服务，可进行职位筛选、搜索与时间线查看。
+            当前页面依赖 GraphQL 查询服务与 REST 命令服务，请确保后端接口可用。
           </Text>
-          <Text fontSize="12px" color={colors.licorice400}>
-            数据来源：{useMockData ? '本地演示数据（API 不可用时自动回退）' : 'GraphQL / REST 实时数据'}
-          </Text>
-          {positionsQuery.isLoading && !useMockData && (
+          {isLoading && (
             <Text fontSize="12px" color={colors.licorice300}>
               正在加载最新职位数据...
+            </Text>
+          )}
+          {hasError && (
+            <Box data-testid="position-dashboard-error">
+              <Text fontSize="12px" color={colors.cinnamon500}>
+                无法加载职位数据，请刷新页面或联系系统管理员。
+              </Text>
+            </Box>
+          )}
+          {hasNoData && (
+            <Text fontSize="12px" color={colors.licorice400}>
+              暂无职位记录，如果这是异常情况，请检查数据同步或后端服务状态。
             </Text>
           )}
         </SimpleStack>

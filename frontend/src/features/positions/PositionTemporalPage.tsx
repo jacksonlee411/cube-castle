@@ -14,95 +14,11 @@ import type {
   PositionTimelineEvent,
   PositionTransferRecord,
 } from '@/shared/types/positions'
-import { mockPositions } from './mockData'
 import { PositionForm } from './components/PositionForm'
 import { PositionVersionList, PositionVersionToolbar, buildVersionsCsv } from './components/versioning'
 import { logger } from '@/shared/utils/logger'
 
 const POSITION_CODE_PATTERN = /^P\d{7}$/
-
-const mapLifecycleStatus = (type: string): string => {
-	switch (type) {
-		case 'CREATE':
-			return 'PLANNED'
-		case 'FILL':
-			return 'FILLED'
-		case 'VACATE':
-			return 'VACANT'
-		case 'SUSPEND':
-			return 'INACTIVE'
-		case 'REACTIVATE':
-			return 'ACTIVE'
-		case 'TRANSFER':
-			return 'ACTIVE'
-		default:
-			return type.toUpperCase()
-	}
-}
-
-const normalizeMockPosition = (code: string) => {
-  const record = mockPositions.find(item => item.code === code)
-  if (!record) {
-    return { position: undefined, timeline: [] as PositionTimelineEvent[], versions: [] as PositionRecord[] }
-  }
-
-  const position: PositionRecord = {
-    code: record.code,
-    recordId: `${record.code}-current`,
-    title: record.title,
-    jobFamilyGroupCode: record.jobFamilyGroup,
-    jobFamilyGroupName: record.jobFamilyGroup,
-    jobFamilyCode: record.jobFamily,
-    jobFamilyName: record.jobFamily,
-    jobRoleCode: record.jobRole,
-    jobRoleName: record.jobRole,
-    jobLevelCode: record.jobLevel,
-    jobLevelName: record.jobLevel,
-    organizationCode: record.organization.code,
-    organizationName: record.organization.name,
-    positionType: 'REGULAR',
-    employmentType: 'FULL_TIME',
-    headcountCapacity: record.headcountCapacity,
-    headcountInUse: record.headcountInUse,
-    availableHeadcount: Math.max(record.headcountCapacity - record.headcountInUse, 0),
-    status: record.status,
-    effectiveDate: record.effectiveDate,
-    endDate: undefined,
-    isCurrent: record.status !== 'PLANNED',
-    isFuture: record.status === 'PLANNED',
-    createdAt: `${record.effectiveDate}T00:00:00.000Z`,
-    updatedAt: `${record.effectiveDate}T00:00:00.000Z`,
-    reportsToPositionCode: record.supervisor.code,
-  } as PositionRecord
-
-  const timeline: PositionTimelineEvent[] = record.lifecycle.map(event => ({
-    id: event.id,
-    status: mapLifecycleStatus(event.type),
-    title: event.label,
-    effectiveDate: event.occurredAt,
-    endDate: undefined,
-    changeReason: event.summary,
-  }))
-
-  const versions: PositionRecord[] = [
-    { ...position },
-    ...record.lifecycle
-      .slice()
-      .sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0))
-      .map((event, index) => ({
-        ...position,
-        status: mapLifecycleStatus(event.type),
-        effectiveDate: event.occurredAt,
-        endDate: undefined,
-        isCurrent: index === 0 ? position.isCurrent : false,
-        isFuture: false,
-        createdAt: `${'{'}event.occurredAt{'}'}T00:00:00.000Z`,
-        updatedAt: `${'{'}event.occurredAt{'}'}T00:00:00.000Z`,
-      })),
-  ]
-
-  return { position, timeline, versions }
-}
 
 const EmptyStateCard: React.FC<{ message: string }> = ({ message }) => (
   <Card padding={space.l} backgroundColor={colors.frenchVanilla100}>
@@ -113,7 +29,6 @@ const EmptyStateCard: React.FC<{ message: string }> = ({ message }) => (
 export const PositionTemporalPage: React.FC = () => {
   const { code: rawCode } = useParams<{ code: string }>()
   const navigate = useNavigate()
-  const isMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
   const [activeForm, setActiveForm] = useState<'none' | 'edit' | 'version'>('none')
   const [includeDeleted, setIncludeDeleted] = useState(false)
 
@@ -122,9 +37,11 @@ export const PositionTemporalPage: React.FC = () => {
   const isValidCode = rawCode ? (isCreateMode || POSITION_CODE_PATTERN.test(code)) : false
 
   const detailQuery = usePositionDetail(isValidCode && !isCreateMode ? code : undefined, {
-    enabled: !isMockMode && isValidCode && !isCreateMode,
+    enabled: isValidCode && !isCreateMode,
     includeDeleted,
   })
+
+  const detailErrorMessage = detailQuery.error instanceof Error ? detailQuery.error.message : undefined
 
   const { position, timeline, assignments, currentAssignment, transfers, versions } = useMemo(() => {
     if (isCreateMode || !isValidCode) {
@@ -138,18 +55,6 @@ export const PositionTemporalPage: React.FC = () => {
       }
     }
 
-    if (isMockMode) {
-      const mock = normalizeMockPosition(code)
-      return {
-        position: mock.position,
-        timeline: mock.timeline,
-        assignments: [] as PositionAssignmentRecord[],
-        currentAssignment: null as PositionAssignmentRecord | null,
-        transfers: [] as PositionTransferRecord[],
-        versions: mock.versions,
-      }
-    }
-
     const graph = detailQuery.data
     return {
       position: graph?.position ?? undefined,
@@ -159,7 +64,7 @@ export const PositionTemporalPage: React.FC = () => {
       transfers: graph?.transfers ?? [],
       versions: graph?.versions ?? [],
     }
-  }, [code, detailQuery.data, isCreateMode, isMockMode, isValidCode])
+  }, [detailQuery.data, isCreateMode, isValidCode])
 
   const handleExportVersions = useCallback(() => {
     if (versions.length === 0 || typeof window === 'undefined') {
@@ -229,12 +134,10 @@ export const PositionTemporalPage: React.FC = () => {
 
   const handleFormSuccess = () => {
     setActiveForm('none')
-    if (!isMockMode) {
-      detailQuery.refetch()
-    }
+    detailQuery.refetch()
   }
 
-  const canMutate = !isMockMode && Boolean(position)
+  const canMutate = Boolean(position) && !detailQuery.isError
 
   return (
     <Box padding={space.l} data-testid="position-temporal-page">
@@ -248,7 +151,7 @@ export const PositionTemporalPage: React.FC = () => {
           </Flex>
           <Flex alignItems="center" gap={space.s}>
             <Text fontSize="12px" color={colors.licorice400}>
-              数据来源：{isMockMode ? '演示数据（Mock 模式）' : 'GraphQL / REST 实时数据'}
+              数据来源：GraphQL / REST 实时数据
             </Text>
             {canMutate && (
               <>
@@ -273,15 +176,38 @@ export const PositionTemporalPage: React.FC = () => {
           </Flex>
         </Flex>
 
-        <PositionDetails
-          position={position}
-          timeline={timeline}
-          assignments={assignments}
-          currentAssignment={currentAssignment}
-          transfers={transfers}
-          isLoading={detailQuery.isLoading}
-          dataSource={isMockMode ? 'mock' : 'api'}
-        />
+        {detailQuery.isError && (
+          <Card padding={space.l} backgroundColor={colors.frenchVanilla100} data-testid="position-detail-error">
+            <SimpleStack gap={space.xs}>
+              <Text color={colors.cinnamon500}>加载职位详情失败，请稍后重试。</Text>
+              {detailErrorMessage && (
+                <Text fontSize="12px" color={colors.licorice400}>
+                  错误详情：{detailErrorMessage}
+                </Text>
+              )}
+              <Flex>
+                <PrimaryButton
+                  size="small"
+                  onClick={() => detailQuery.refetch()}
+                  disabled={detailQuery.isFetching}
+                >
+                  {detailQuery.isFetching ? '正在重新加载...' : '重新加载'}
+                </PrimaryButton>
+              </Flex>
+            </SimpleStack>
+          </Card>
+        )}
+
+        {!detailQuery.isError && (
+          <PositionDetails
+            position={position}
+            timeline={timeline}
+            assignments={assignments}
+            currentAssignment={currentAssignment}
+            transfers={transfers}
+            isLoading={detailQuery.isLoading}
+          />
+        )}
 
         {activeForm === 'edit' && position && (
           <PositionForm
@@ -301,7 +227,7 @@ export const PositionTemporalPage: React.FC = () => {
           />
         )}
 
-        {!isCreateMode && (
+        {!isCreateMode && !detailQuery.isError && (
           <SimpleStack gap={space.m}>
             <PositionVersionToolbar
               includeDeleted={includeDeleted}
