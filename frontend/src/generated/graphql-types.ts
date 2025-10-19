@@ -798,7 +798,7 @@ export type Query = {
    */
   positions: PositionConnection;
   /**
-   * Get list of vacant positions with optional filters.
+   * Get vacant positions with optional filters.
    *
    * Permissions Required: position:read
    */
