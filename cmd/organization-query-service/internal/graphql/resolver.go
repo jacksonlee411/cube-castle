@@ -116,7 +116,7 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 // 组织版本查询 - 按计划实现，支持includeDeleted参数
 func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
 	Code           string
-	IncludeDeleted *bool
+	IncludeDeleted graphqlgo.NullBool
 }) ([]model.Organization, error) {
 	if err := r.permissions.CheckQueryPermission(ctx, "organizationVersions"); err != nil {
 		r.logger.Printf("[AUTH] 权限拒绝: organizationVersions: %v", err)
@@ -124,8 +124,8 @@ func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
 	}
 
 	includeDeleted := false
-	if args.IncludeDeleted != nil {
-		includeDeleted = *args.IncludeDeleted
+	if args.IncludeDeleted.Set && args.IncludeDeleted.Value != nil {
+		includeDeleted = *args.IncludeDeleted.Value
 	}
 
 	r.logger.Printf("[GraphQL] 版本查询 - code: %s, includeDeleted: %v", args.Code, includeDeleted)
@@ -325,7 +325,7 @@ func (r *Resolver) PositionTimeline(ctx context.Context, args struct {
 // PositionVersions 查询职位版本列表
 func (r *Resolver) PositionVersions(ctx context.Context, args struct {
 	Code           string
-	IncludeDeleted *bool
+	IncludeDeleted graphqlgo.NullBool
 }) ([]model.Position, error) {
 	if err := r.permissions.CheckQueryPermission(ctx, "positionVersions"); err != nil {
 		r.logger.Printf("[AUTH] 权限拒绝: positionVersions: %v", err)
@@ -333,8 +333,8 @@ func (r *Resolver) PositionVersions(ctx context.Context, args struct {
 	}
 
 	includeDeleted := false
-	if args.IncludeDeleted != nil {
-		includeDeleted = *args.IncludeDeleted
+	if args.IncludeDeleted.Set && args.IncludeDeleted.Value != nil {
+		includeDeleted = *args.IncludeDeleted.Value
 	}
 
 	r.logger.Printf("[GraphQL] 查询职位版本 code=%s includeDeleted=%v", args.Code, includeDeleted)

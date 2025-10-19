@@ -648,7 +648,7 @@ func TestResolver_PositionVersions_ForwardsParameters(t *testing.T) {
 
 	result, err := resolver.PositionVersions(context.Background(), struct {
 		Code           string
-		IncludeDeleted *bool
+		IncludeDeleted graphqlgo.NullBool
 	}{
 		Code: "P1000001",
 	})
@@ -689,10 +689,10 @@ func TestResolver_PositionVersions_IncludeDeletedFlag(t *testing.T) {
 
 	_, err := resolver.PositionVersions(context.Background(), struct {
 		Code           string
-		IncludeDeleted *bool
+		IncludeDeleted graphqlgo.NullBool
 	}{
 		Code:           "P1000001",
-		IncludeDeleted: &trueVal,
+		IncludeDeleted: graphqlgo.NullBool{Value: &trueVal, Set: true},
 	})
 
 	if err != nil {

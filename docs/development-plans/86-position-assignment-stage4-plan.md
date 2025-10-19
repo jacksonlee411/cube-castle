@@ -25,11 +25,36 @@
 |------|----------|----------|
 | Assignment 表结构 | ✅ `assignment_id` 主键、`assignment_type` (PRIMARY/SECONDARY/ACTING)、`fte`、`start_date/end_date`、租户外键、唯一约束 | `database/migrations/044_create_position_assignments.sql` |
 | 命令服务仓储与服务 | ✅ Create/List/Close/FTE 聚合、Fill/Vacate/Transfer 写入任职历史 | `cmd/organization-command-service/internal/repository/position_assignment_repository.go`、`position_service.go` |
-| GraphQL 查询 | ✅ `positionAssignments`、`assignmentHistory`、`PositionAssignmentType` 枚举、租户上下文解析 | `docs/api/schema.graphql`、`cmd/organization-query-service/internal/repository/postgres_positions.go` |
+| GraphQL 查询 | ❌ `currentAssignment` / `assignmentHistory` 缺少 resolver，GraphQL 服务无法启动 | `docs/api/schema.graphql`、`cmd/organization-query-service/internal/model/models.go`、`cmd/organization-query-service/internal/repository/postgres_positions.go` |
 | 前端展示 | ✅ `PositionDetails` 任职列表/历史，`PositionDashboard` 读取 GraphQL 数据 | `frontend/src/features/positions` |
 | 编制统计 | ✅ `positionHeadcountStats` 复用 FTE 计算并驱动 `PositionHeadcountDashboard` | `cmd/organization-query-service`、`frontend` |
 
-> 结论：Stage 4 仅需补齐先进管理场景与质量治理，不再重新定义实体或基础 CRUD。
+> 🚨 当前阻塞：GraphQL Schema 已定义 `currentAssignment`、`assignmentHistory` 字段，但查询服务 `model.Position` 缺失 `CurrentAssignment()`、`AssignmentHistory()`，`MustParseSchema` 在启动阶段抛出 `missing method for field`，导致服务无法运行。必须先补齐 resolver 并通过集成验证，方能继续执行 Stage 4 增量工作。
+
+---
+
+## 2.1 阻塞解除专项计划（GraphQL Resolver 修复）
+
+| 项目 | 目标 | 责任团队 | 验收标准 |
+|------|------|----------|----------|
+| Resolver 实现 | 在 `cmd/organization-query-service/internal/model/models.go` 新增 `CurrentAssignment()` / `AssignmentHistory()`，按 GraphQL 契约返回数据 | 查询服务团队 | `go test ./cmd/organization-query-service/...` 通过；GraphQL 服务启动不再 panic |
+| 仓储查询 | 在 `cmd/organization-query-service/internal/repository/postgres_positions.go` 补充 `GetCurrentAssignment`、`GetAssignmentHistory`（JOIN `position_assignments`、`employees` 视需求），复用分页/租户隔离逻辑 | 查询服务团队 · 数据库团队 | SQL 查询带上 `tenant_id` 过滤，返回字段满足 schema 定义；提供单元测试覆盖 |
+| 集成验证 | 运行 `make run-dev` + GraphQL 查询 `position { currentAssignment assignmentHistory }` 验证字段可用，前端去除 Mock 回退 | 查询服务团队 · 前端团队 · QA 团队 | GraphQL 请求返回 200；Playwright `position-lifecycle.spec.ts` 通过；前端页面展示实际数据 |
+| 文档同步 | 更新 `docs/api/schema.graphql` 内联注释、实现清单（`node scripts/generate-implementation-inventory.js`）与本计划状态 | 架构组 | 文档与实现一致，进展日志反映阻塞解除时间点 |
+
+### 专项实施步骤（预计 4-6 小时）
+1. **模型扩展**（1h）：在 `model.Position` 定义中新增缓存字段（如 `currentAssignmentField`、`assignmentHistoryField`），并实现 getter；确保空值返回 `nil` / 空 slice。  
+2. **仓储查询**（2h）：  
+   - 新建 `fetchCurrentAssignment` 查询：`SELECT ... FROM position_assignments pa WHERE pa.tenant_id=$1 AND pa.position_code=$2 ORDER BY pa.is_current DESC, pa.start_date DESC LIMIT 1`。  
+   - 新建 `fetchAssignmentHistory` 查询：`SELECT ... ORDER BY pa.start_date DESC`；必要时 JOIN 员工表以获取姓名/编号。  
+   - 在 `GetPositionByCode` 流程中并行拉取任职数据，或在 resolver 内按需懒加载。  
+3. **Resolver 绑定**（1h）：`CurrentAssignment()` 调用仓储 `GetPositionAssignments` 并返回首条 `isCurrent=true` 记录；`AssignmentHistory()` 返回所有记录，按 schema 映射。  
+4. **测试与验证**（1-2h）：  
+   - 增补 `position_resolver_test.go` 单元测试，模拟仓储返回并断言 resolver 输出。  
+   - 运行 `make run-dev`，执行 GraphQL 查询确认字段可用，更新前端页面验证真实数据展示。  
+5. **归档与同步**（0.5h）：更新本计划状态、06 号进展日志及实现清单，归档相关执行日志。
+
+> 完成上述步骤后，Stage 4 其余增量任务方可恢复推进。
 
 ---
 
@@ -187,4 +212,3 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 |------|------|------|------|
 | v0.2 | 2025-10-17 | 根据 06 号评审意见修订，聚焦增量能力与差距分析 | 项目智能助手 |
 | v0.1 | 2025-10-17 | 初始草案（已废弃） | 项目智能助手 |
-

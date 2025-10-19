@@ -288,6 +288,10 @@ LIMIT 1
 		}
 		return nil, err
 	}
+
+	if err := r.populatePositionAssignments(ctx, tenantID, pos); err != nil {
+		return nil, fmt.Errorf("load position assignments: %w", err)
+	}
 	return pos, nil
 }
 
@@ -1404,4 +1408,86 @@ func scanPosition(scanner rowScanner) (*model.Position, error) {
 	}
 
 	return position, nil
+}
+
+func (r *PostgreSQLRepository) populatePositionAssignments(ctx context.Context, tenantID uuid.UUID, position *model.Position) error {
+	if position == nil {
+		return nil
+	}
+
+	assignments, err := r.fetchAssignmentsForPosition(ctx, tenantID, position.CodeField)
+	if err != nil {
+		return err
+	}
+
+	if len(assignments) == 0 {
+		position.AssignmentHistoryField = []model.PositionAssignment{}
+		position.CurrentAssignmentField = nil
+		return nil
+	}
+
+	position.AssignmentHistoryField = assignments
+	position.CurrentAssignmentField = nil
+
+	for i := range position.AssignmentHistoryField {
+		if position.AssignmentHistoryField[i].IsCurrent() {
+			position.CurrentAssignmentField = &position.AssignmentHistoryField[i]
+			break
+		}
+	}
+
+	if position.CurrentAssignmentField == nil {
+		position.CurrentAssignmentField = &position.AssignmentHistoryField[0]
+	}
+
+	return nil
+}
+
+func (r *PostgreSQLRepository) fetchAssignmentsForPosition(ctx context.Context, tenantID uuid.UUID, positionCode string) ([]model.PositionAssignment, error) {
+	code := strings.TrimSpace(positionCode)
+	if code == "" {
+		return []model.PositionAssignment{}, nil
+	}
+
+	query := `
+SELECT
+    assignment_id::text,
+    tenant_id::text,
+    position_code,
+    position_record_id::text,
+    employee_id::text,
+    employee_name,
+    employee_number,
+    assignment_type,
+    assignment_status,
+    fte,
+    start_date,
+    end_date,
+    is_current,
+    notes,
+    created_at,
+    updated_at
+FROM position_assignments
+WHERE tenant_id = $1 AND position_code = $2
+ORDER BY start_date DESC, created_at DESC`
+
+	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code)
+	if err != nil {
+		return nil, fmt.Errorf("fetch position assignments: %w", err)
+	}
+	defer rows.Close()
+
+	assignments := make([]model.PositionAssignment, 0)
+	for rows.Next() {
+		item, scanErr := scanPositionAssignment(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		assignments = append(assignments, *item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate position assignments: %w", err)
+	}
+
+	return assignments, nil
 }

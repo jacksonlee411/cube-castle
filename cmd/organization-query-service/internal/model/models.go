@@ -573,34 +573,36 @@ type PaginationInput struct {
 
 // Position 数据实体
 type Position struct {
-	CodeField               string     `json:"code" db:"code"`
-	RecordIDField           string     `json:"recordId" db:"record_id"`
-	TenantIDField           string     `json:"tenantId" db:"tenant_id"`
-	TitleField              string     `json:"title" db:"title"`
-	JobProfileCodeField     *string    `json:"jobProfileCode" db:"job_profile_code"`
-	JobProfileNameField     *string    `json:"jobProfileName" db:"job_profile_name"`
-	JobFamilyGroupCodeField string     `json:"jobFamilyGroupCode" db:"job_family_group_code"`
-	JobFamilyCodeField      string     `json:"jobFamilyCode" db:"job_family_code"`
-	JobRoleCodeField        string     `json:"jobRoleCode" db:"job_role_code"`
-	JobLevelCodeField       string     `json:"jobLevelCode" db:"job_level_code"`
-	OrganizationCodeField   string     `json:"organizationCode" db:"organization_code"`
-	PositionTypeField       string     `json:"positionType" db:"position_type"`
-	EmploymentTypeField     string     `json:"employmentType" db:"employment_type"`
-	GradeLevelField         *string    `json:"gradeLevel" db:"grade_level"`
-	HeadcountCapacityField  float64    `json:"headcountCapacity" db:"headcount_capacity"`
-	HeadcountInUseField     float64    `json:"headcountInUse" db:"headcount_in_use"`
-	ReportsToPositionField  *string    `json:"reportsToPositionCode" db:"reports_to_position_code"`
-	StatusField             string     `json:"status" db:"status"`
-	EffectiveDateField      time.Time  `json:"effectiveDate" db:"effective_date"`
-	EndDateField            *time.Time `json:"endDate" db:"end_date"`
-	IsCurrentField          bool       `json:"isCurrent" db:"is_current"`
-	CreatedAtField          time.Time  `json:"createdAt" db:"created_at"`
-	UpdatedAtField          time.Time  `json:"updatedAt" db:"updated_at"`
-	JobFamilyGroupNameField *string    `json:"jobFamilyGroupName" db:"job_family_group_name"`
-	JobFamilyNameField      *string    `json:"jobFamilyName" db:"job_family_name"`
-	JobRoleNameField        *string    `json:"jobRoleName" db:"job_role_name"`
-	JobLevelNameField       *string    `json:"jobLevelName" db:"job_level_name"`
-	OrganizationNameField   *string    `json:"organizationName" db:"organization_name"`
+	CodeField               string               `json:"code" db:"code"`
+	RecordIDField           string               `json:"recordId" db:"record_id"`
+	TenantIDField           string               `json:"tenantId" db:"tenant_id"`
+	TitleField              string               `json:"title" db:"title"`
+	JobProfileCodeField     *string              `json:"jobProfileCode" db:"job_profile_code"`
+	JobProfileNameField     *string              `json:"jobProfileName" db:"job_profile_name"`
+	JobFamilyGroupCodeField string               `json:"jobFamilyGroupCode" db:"job_family_group_code"`
+	JobFamilyCodeField      string               `json:"jobFamilyCode" db:"job_family_code"`
+	JobRoleCodeField        string               `json:"jobRoleCode" db:"job_role_code"`
+	JobLevelCodeField       string               `json:"jobLevelCode" db:"job_level_code"`
+	OrganizationCodeField   string               `json:"organizationCode" db:"organization_code"`
+	PositionTypeField       string               `json:"positionType" db:"position_type"`
+	EmploymentTypeField     string               `json:"employmentType" db:"employment_type"`
+	GradeLevelField         *string              `json:"gradeLevel" db:"grade_level"`
+	HeadcountCapacityField  float64              `json:"headcountCapacity" db:"headcount_capacity"`
+	HeadcountInUseField     float64              `json:"headcountInUse" db:"headcount_in_use"`
+	ReportsToPositionField  *string              `json:"reportsToPositionCode" db:"reports_to_position_code"`
+	StatusField             string               `json:"status" db:"status"`
+	EffectiveDateField      time.Time            `json:"effectiveDate" db:"effective_date"`
+	EndDateField            *time.Time           `json:"endDate" db:"end_date"`
+	IsCurrentField          bool                 `json:"isCurrent" db:"is_current"`
+	CreatedAtField          time.Time            `json:"createdAt" db:"created_at"`
+	UpdatedAtField          time.Time            `json:"updatedAt" db:"updated_at"`
+	JobFamilyGroupNameField *string              `json:"jobFamilyGroupName" db:"job_family_group_name"`
+	JobFamilyNameField      *string              `json:"jobFamilyName" db:"job_family_name"`
+	JobRoleNameField        *string              `json:"jobRoleName" db:"job_role_name"`
+	JobLevelNameField       *string              `json:"jobLevelName" db:"job_level_name"`
+	OrganizationNameField   *string              `json:"organizationName" db:"organization_name"`
+	CurrentAssignmentField  *PositionAssignment  `json:"currentAssignment"`
+	AssignmentHistoryField  []PositionAssignment `json:"assignmentHistory"`
 }
 
 func (p Position) Code() PositionCode      { return PositionCode(p.CodeField) }
@@ -657,6 +659,16 @@ func (p Position) IsFuture() bool {
 }
 func (p Position) CreatedAt() DateTime { return DateTime(p.CreatedAtField.Format(time.RFC3339)) }
 func (p Position) UpdatedAt() DateTime { return DateTime(p.UpdatedAtField.Format(time.RFC3339)) }
+func (p Position) CurrentAssignment() *PositionAssignment {
+	return p.CurrentAssignmentField
+}
+
+func (p Position) AssignmentHistory() []PositionAssignment {
+	if p.AssignmentHistoryField == nil {
+		return []PositionAssignment{}
+	}
+	return p.AssignmentHistoryField
+}
 
 // PositionConnection 连接结果
 type PositionConnection struct {
@@ -1242,8 +1254,8 @@ type FamilyHeadcount struct {
 	AvailableField     float64 `json:"available" db:"available"`
 }
 
-func (f FamilyHeadcount) JobFamilyCode() string {
-	return f.JobFamilyCodeField
+func (f FamilyHeadcount) JobFamilyCode() JobFamilyCode {
+	return JobFamilyCode(f.JobFamilyCodeField)
 }
 func (f FamilyHeadcount) JobFamilyName() *string {
 	return f.JobFamilyNameField
