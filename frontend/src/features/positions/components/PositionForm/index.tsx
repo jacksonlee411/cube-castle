@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading } from '@workday/canvas-kit-react/text'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
-import { NativeSelect } from '@workday/canvas-kit-react/select'
+import { FormField } from '@workday/canvas-kit-react/form-field'
 import { TextArea } from '@workday/canvas-kit-react/text-area'
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button'
 import { Card } from '@workday/canvas-kit-react/card'
@@ -32,6 +32,55 @@ const EMPLOYMENT_TYPES = [
   { label: '兼职 (PART_TIME)', value: 'PART_TIME' },
   { label: '实习 (INTERN)', value: 'INTERN' },
 ]
+
+interface SelectOption {
+  label: string
+  value: string
+}
+
+const SELECT_BASE_STYLE: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 12px',
+  borderRadius: 8,
+  border: `1px solid ${colors.soap500}`,
+  backgroundColor: colors.frenchVanilla100,
+  fontSize: '14px',
+  lineHeight: '20px',
+  appearance: 'none',
+}
+
+const SELECT_ERROR_STYLE: React.CSSProperties = {
+  borderColor: colors.cinnamon500,
+}
+
+interface SelectFieldProps {
+  label: string
+  value: string
+  onChange: React.ChangeEventHandler<HTMLSelectElement>
+  options: SelectOption[]
+  error?: string
+  isRequired?: boolean
+}
+
+const SelectField: React.FC<SelectFieldProps> = ({ label, value, onChange, options, error, isRequired }) => (
+  <FormField isRequired={isRequired} error={error}>
+    <FormField.Label>{label}</FormField.Label>
+    <FormField.Field>
+      <select
+        value={value}
+        onChange={onChange}
+        style={{ ...SELECT_BASE_STYLE, ...(error ? SELECT_ERROR_STYLE : {}) }}
+      >
+        {options.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {error ? <FormField.Error>{error}</FormField.Error> : null}
+    </FormField.Field>
+  </FormField>
+)
 
 type PositionFormMode = 'create' | 'edit' | 'version'
 
@@ -313,32 +362,24 @@ export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCa
 
             <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
               <Box flex={1}>
-                <NativeSelect
+                <SelectField
                   label="职位类型"
                   value={formState.positionType}
-                  onChange={handleChange('positionType')}
+                  onChange={handleChange('positionType') as React.ChangeEventHandler<HTMLSelectElement>}
+                  options={POSITION_TYPES}
+                  error={errors.positionType}
                   isRequired
-                >
-                  {POSITION_TYPES.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
+                />
               </Box>
               <Box flex={1}>
-                <NativeSelect
+                <SelectField
                   label="雇佣方式"
                   value={formState.employmentType}
-                  onChange={handleChange('employmentType')}
+                  onChange={handleChange('employmentType') as React.ChangeEventHandler<HTMLSelectElement>}
+                  options={EMPLOYMENT_TYPES}
+                  error={errors.employmentType}
                   isRequired
-                >
-                  {EMPLOYMENT_TYPES.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
+                />
               </Box>
               <TextInput
                 label="职级等级（可选）"

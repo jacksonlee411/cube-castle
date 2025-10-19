@@ -22,8 +22,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -a -installsuffix cgo \
     -o /main .
 
-ARG DEV_BASE_IMAGE=golang:1.23-alpine
-FROM ${DEV_BASE_IMAGE} AS dev
+FROM golang:1.23-alpine AS dev
 ENV GOTOOLCHAIN=auto
 ENV GOPROXY=https://goproxy.cn,https://mirrors.aliyun.com/goproxy/,direct
 RUN apk add --no-cache git ca-certificates tzdata curl bash

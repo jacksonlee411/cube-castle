@@ -59,19 +59,21 @@ func main() {
 	}
 
 	var (
-		orgRepo           *repository.OrganizationRepository
-		jobCatalogRepo    *repository.JobCatalogRepository
-		positionRepo      *repository.PositionRepository
-		hierarchyRepo     *repository.HierarchyRepository
-		cascadeService    *services.CascadeUpdateService
-		auditLogger       *audit.AuditLogger
-		businessValidator *validators.BusinessRuleValidator
+		orgRepo                *repository.OrganizationRepository
+		jobCatalogRepo         *repository.JobCatalogRepository
+		positionRepo           *repository.PositionRepository
+		positionAssignmentRepo *repository.PositionAssignmentRepository
+		hierarchyRepo          *repository.HierarchyRepository
+		cascadeService         *services.CascadeUpdateService
+		auditLogger            *audit.AuditLogger
+		businessValidator      *validators.BusinessRuleValidator
 	)
 	if !authOnlyMode {
 		// 初始化仓储层
 		orgRepo = repository.NewOrganizationRepository(db, logger)
 		jobCatalogRepo = repository.NewJobCatalogRepository(db, logger)
 		positionRepo = repository.NewPositionRepository(db, logger)
+		positionAssignmentRepo = repository.NewPositionAssignmentRepository(db, logger)
 		hierarchyRepo = repository.NewHierarchyRepository(db, logger)
 
 		// 初始化业务服务层
@@ -171,7 +173,7 @@ func main() {
 		operationalHandler *handlers.OperationalHandler
 	)
 	if !authOnlyMode {
-		positionService := services.NewPositionService(positionRepo, jobCatalogRepo, orgRepo, auditLogger, logger)
+		positionService := services.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, auditLogger, logger)
 		jobCatalogService := services.NewJobCatalogService(jobCatalogRepo, auditLogger, logger)
 
 		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager, hierarchyRepo, businessValidator)

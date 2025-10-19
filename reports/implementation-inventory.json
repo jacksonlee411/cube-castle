@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-10-16T09:01:45.767Z",
+  "timestamp": "2025-10-19T02:40:32.292Z",
   "summary": {
     "openapiPaths": 42,
-    "graphqlQueries": 21,
+    "graphqlQueries": 22,
     "goHandlers": 50,
     "goServices": 21,
-    "tsExports": 219
+    "tsExports": 222
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -61,6 +61,7 @@
     "positions",
     "position",
     "positionTimeline",
+    "positionVersions",
     "positionAssignments",
     "vacantPositions",
     "positionTransfers",
@@ -1232,6 +1233,21 @@
     {
       "name": "useCreateOrganizationVersion",
       "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreatePosition",
+      "file": "frontend/src/shared/hooks/usePositionMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useUpdatePosition",
+      "file": "frontend/src/shared/hooks/usePositionMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreatePositionVersion",
+      "file": "frontend/src/shared/hooks/usePositionMutations.ts",
       "kind": "const"
     },
     {
