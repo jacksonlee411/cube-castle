@@ -256,7 +256,7 @@ interface TimelineComponentProps {
 }
 ```
 
-> 字段约束：按照 95 号《Status Fields Review 调查报告》，TimelineComponent 仅依赖 `recordId`、`status`、`isCurrent` 等基础字段；`lifecycleStatus`、`businessStatus`、`dataStatus` 在现阶段属于派生/占位字段，禁止延伸“五态”或软删除语义。
+> 字段约束：按照 95 号《Status Fields Review 调查报告》，TimelineComponent 仅依赖 `recordId`、`status`、`isCurrent` 等基础字段；`lifecycleStatus`、`businessStatus`、`dataStatus` 在现阶段属于派生/占位字段，禁止延伸“五态”或软删除语义。当前 GraphQL 默认只返回 `status ∈ {ACTIVE, INACTIVE}`，如需展示 `PLANNED/DELETED` 或软删除样式，必须先扩展契约与实现。
 
 #### 应该如何做
 
