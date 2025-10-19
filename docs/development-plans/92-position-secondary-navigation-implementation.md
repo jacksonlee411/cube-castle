@@ -754,9 +754,9 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 #### **Phase 4: E2E 测试与优化（2-3天）**
 
 - [ ] Playwright E2E 测试
-  - [ ] 二级菜单展开/折叠
-  - [ ] 职类 CRUD 流程
-  - [ ] 权限控制验证
+  - [x] 二级菜单展开/折叠（`tests/e2e/job-catalog-secondary-navigation.spec.ts` 基于拦截模拟）
+  - [x] 职类 CRUD 流程（同上，验证新增/编辑成功路径）
+  - [ ] 权限控制验证（待结合真实命令服务验证 403/412 场景）
 - [ ] 性能优化
   - [ ] 懒加载优化
   - [ ] 缓存策略
