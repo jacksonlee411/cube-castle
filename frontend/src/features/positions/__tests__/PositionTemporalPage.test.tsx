@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, afterEach, afterAll, describe, expect, it, vi, type Mock } from 'vitest'
 import type { PositionDetailResult, PositionRecord } from '@/shared/types/positions'
 
@@ -97,12 +97,13 @@ describe('PositionTemporalPage', () => {
   beforeEach(() => {
     params = { code: 'P9000001' }
     mockedUsePositionDetail.mockReset()
-    mockedUsePositionDetail.mockReturnValue({
+    mockedUsePositionDetail.mockImplementation((_code: string | undefined, _options?: unknown) => ({
       data: createDetailResult(),
       isLoading: false,
+      isFetching: false,
       isError: false,
       refetch: vi.fn(),
-    })
+    }))
   })
 
   afterEach(() => {
@@ -113,15 +114,35 @@ describe('PositionTemporalPage', () => {
     vi.unstubAllEnvs()
   })
 
-  it('renders GraphQL versions list when数据可用', () => {
+  it('renders版本工具栏和列表', () => {
     render(<PositionTemporalPage />)
 
     expect(screen.getByTestId('position-temporal-page')).toBeInTheDocument()
     expect(screen.getByTestId('position-details')).toBeInTheDocument()
+    expect(screen.getByTestId('position-version-toolbar')).toBeInTheDocument()
     expect(screen.getByTestId('position-version-list')).toBeInTheDocument()
     expect(screen.getByText('职位版本记录')).toBeInTheDocument()
-    expect(screen.getByText('当前版本')).toBeInTheDocument()
-    expect(screen.getByText('计划版本')).toBeInTheDocument()
+    expect(screen.getByTestId('position-version-export-button')).toBeInTheDocument()
+    expect(screen.queryByText('版本对比')).not.toBeInTheDocument()
+  })
+
+  it('supports切换包含已删除版本', async () => {
+    render(<PositionTemporalPage />)
+
+    expect(mockedUsePositionDetail).toHaveBeenLastCalledWith(
+      'P9000001',
+      expect.objectContaining({ includeDeleted: false }),
+    )
+
+    const toggle = screen.getByTestId('position-version-include-deleted')
+    fireEvent.click(toggle)
+
+    await waitFor(() =>
+      expect(mockedUsePositionDetail).toHaveBeenLastCalledWith(
+        'P9000001',
+        expect.objectContaining({ includeDeleted: true }),
+      ),
+    )
   })
 
   it('shows guidance when职位编码缺失', () => {
@@ -130,6 +151,7 @@ describe('PositionTemporalPage', () => {
       data: undefined,
       isLoading: false,
       isError: false,
+      isFetching: false,
       refetch: vi.fn(),
     })
 
@@ -144,6 +166,7 @@ describe('PositionTemporalPage', () => {
       data: undefined,
       isLoading: false,
       isError: false,
+      isFetching: false,
       refetch: vi.fn(),
     })
 

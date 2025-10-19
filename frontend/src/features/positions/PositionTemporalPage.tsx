@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
@@ -6,7 +6,6 @@ import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button
 import { Card } from '@workday/canvas-kit-react/card'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { PositionDetails } from './components/PositionDetails'
-import { PositionVersionList } from './components/PositionVersionList'
 import { SimpleStack } from './components/SimpleStack'
 import { usePositionDetail } from '@/shared/hooks/useEnterprisePositions'
 import type {
@@ -17,6 +16,8 @@ import type {
 } from '@/shared/types/positions'
 import { mockPositions } from './mockData'
 import { PositionForm } from './components/PositionForm'
+import { PositionVersionList, PositionVersionToolbar, buildVersionsCsv } from './components/versioning'
+import { logger } from '@/shared/utils/logger'
 
 const POSITION_CODE_PATTERN = /^P\d{7}$/
 
@@ -114,6 +115,7 @@ export const PositionTemporalPage: React.FC = () => {
   const navigate = useNavigate()
   const isMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
   const [activeForm, setActiveForm] = useState<'none' | 'edit' | 'version'>('none')
+  const [includeDeleted, setIncludeDeleted] = useState(false)
 
   const code = rawCode ? rawCode.toUpperCase() : ''
   const isCreateMode = code === 'NEW'
@@ -121,6 +123,7 @@ export const PositionTemporalPage: React.FC = () => {
 
   const detailQuery = usePositionDetail(isValidCode && !isCreateMode ? code : undefined, {
     enabled: !isMockMode && isValidCode && !isCreateMode,
+    includeDeleted,
   })
 
   const { position, timeline, assignments, currentAssignment, transfers, versions } = useMemo(() => {
@@ -157,6 +160,30 @@ export const PositionTemporalPage: React.FC = () => {
       versions: graph?.versions ?? [],
     }
   }, [code, detailQuery.data, isCreateMode, isMockMode, isValidCode])
+
+  const handleExportVersions = useCallback(() => {
+    if (versions.length === 0 || typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      const csv = buildVersionsCsv(versions)
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `${code || 'position'}-versions.csv`
+      anchor.style.display = 'none'
+      document.body.appendChild(anchor)
+      anchor.click()
+      document.body.removeChild(anchor)
+
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      logger.error('[PositionTemporalPage] 导出职位版本失败', error)
+    }
+  }, [versions, code])
 
   const handleBack = () => {
     navigate('/positions')
@@ -202,7 +229,9 @@ export const PositionTemporalPage: React.FC = () => {
 
   const handleFormSuccess = () => {
     setActiveForm('none')
-    detailQuery.refetch()
+    if (!isMockMode) {
+      detailQuery.refetch()
+    }
   }
 
   const canMutate = !isMockMode && Boolean(position)
@@ -273,7 +302,16 @@ export const PositionTemporalPage: React.FC = () => {
         )}
 
         {!isCreateMode && (
-          <PositionVersionList versions={versions} isLoading={detailQuery.isLoading} />
+          <SimpleStack gap={space.m}>
+            <PositionVersionToolbar
+              includeDeleted={includeDeleted}
+              onIncludeDeletedChange={checked => setIncludeDeleted(checked)}
+              onExportCsv={handleExportVersions}
+              isBusy={detailQuery.isFetching}
+              hasVersions={versions.length > 0}
+            />
+            <PositionVersionList versions={versions} isLoading={detailQuery.isLoading} />
+          </SimpleStack>
         )}
       </SimpleStack>
     </Box>

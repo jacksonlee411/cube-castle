@@ -54,7 +54,7 @@ npm --prefix frontend run test -- PositionTemporalPage
 
 | 项目 | 描述 | 责任人 | 备注 |
 |------|------|--------|------|
-| 版本增强 | 基于现有列表扩展差异视图、CSV 导出、includeDeleted 切换 | 前端团队 | 对应 88 号计划 P1 后续任务 |
+| 版本增强 | CSV 导出、includeDeleted 切换（不含差异对比） | 前端团队 | 对应 88 号计划 P1 后续任务 |
 | 88号计划文档跟踪 | Week 1 交付项完成；Week 2 建议按新版排期推进 | 架构组 | 在 88 号文档第 12 节记录决策 |
 
 ---
@@ -63,7 +63,7 @@ npm --prefix frontend run test -- PositionTemporalPage
 
 - 88 号计划 P0 范围（路由、表单、交互统一）已全部完成并通过测试。
 - GraphQL `positionVersions` 查询、权限映射与查询服务实现已落地；前端版本列表 UI + Vitest 回归保障同步上线。
-- 后续聚焦 P1 增强（版本差异视图、CSV 导出、includeDeleted 切换）与 P2 组件结构重构。
+- 后续聚焦 P1 增强（CSV 导出、includeDeleted 切换）与 P2 组件结构重构。
 
 ---
 
@@ -272,7 +272,7 @@ jobs:
 | **创建页面修复** | 修复 /positions/new 空白问题 | 前端团队 | ✅ 已完成 | 2025-10-19 修复完成 |
 | **Canvas Kit修复** | 修复NativeSelect导入错误 | 前端团队 | ✅ 已完成 | 2025-10-19 修复完成 |
 | **浏览器验证** | 重新执行Playwright E2E测试 | QA团队 | ✅ 已完成 | 2025-10-19 验证通过 |
-| 版本增强 | 差异视图、CSV导出、includeDeleted切换 | 前端团队 | 🟡 P1 | 可继续开发 |
+| 版本增强 | CSV导出、includeDeleted切换 | 前端团队 | 🟡 P1 | 可继续开发 |
 | 集成测试CI | 建立Playwright E2E测试门禁 | 架构组 | 🟡 P1 | 防止回归 |
 | Schema同步检查 | 前后端schema一致性CI检查 | 架构组 | 🟡 P1 | 长期改进 |
 
@@ -437,7 +437,7 @@ panic: model.Position does not resolve "Position": missing method for field "cur
 **P1 待办**：
 - 🟡 建立 Playwright E2E 测试门禁（防止回归）
 - 🟡 实现 Schema 同步检查脚本
-- 🟡 完善版本增强功能（差异视图、CSV 导出）
+- 🟡 完善版本增强功能（CSV 导出、includeDeleted 切换）
 
 ---
 
