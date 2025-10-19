@@ -746,8 +746,8 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 - [x] 单元测试补充
 - [x] `jobCatalogPages.test.tsx` 覆盖“编辑当前版本”校验、职类/职种/职务/职级更新链路与权限控制
 - [ ] 前后端联调
-  - [ ] 查询测试
-  - [ ] 命令测试
+  - [x] 查询测试
+  - [x] 命令测试
   - [ ] 权限验证
 
 #### **Phase 4: E2E 测试与优化（2-3天）**
