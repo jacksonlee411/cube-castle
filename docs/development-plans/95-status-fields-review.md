@@ -1,7 +1,7 @@
 # 95 号文档：Status Fields Review 调查报告
 
 **创建日期**：2025-10-21  
-**状态**：已完成（待归档）  
+**状态**：进行中（2025-10-19 复检中）  
 **维护人**：架构组 · 前端治理小组
 
 ---
@@ -16,7 +16,7 @@
 
 ## 2. 权威事实来源
 
-- `frontend/src/features/temporal/components/TimelineComponent.tsx`：时间轴渲染与状态映射逻辑。
+- `frontend/src/features/temporal/components/TimelineComponent.tsx`：时间轴渲染与状态映射逻辑（当前事实数据仅含 `status ∈ {ACTIVE, INACTIVE}` 与 `isCurrent`，其余状态为调用方派生占位）。
 - `frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts`：组织版本 GraphQL 查询与 `TimelineVersion` 构造函数。
 - `frontend/src/features/temporal/components/inlineNewVersionForm/formActions.ts`：客户端插入/编辑历史记录时构造的 `TimelineVersion`。
 - `docs/api/schema.graphql`：`organizationVersions` 查询返回字段定义（`status`、`isCurrent` 等）。
@@ -74,3 +74,26 @@
 
 - 待 Plan 93 更新完毕并决定是否扩展 GraphQL 字段后，再将本报告移动至 `docs/archive/development-plans/95-status-fields-review.md`。  
 - 若后续确有变更需求，应以新的契约文件为唯一事实来源，并同步更新本报告；在正式决定前不得提前传播假设字段。
+
+---
+
+## 8. 2025-10-19 复检记录
+
+### 8.1 复检触发背景
+- 根据最新指令，需重新核对“Status Fields Review” 结论，确认前端时间轴组件与后端时态接口是否已实现五态/软删除等预期能力，并更新行动建议。
+
+### 8.2 最新事实核验
+- **前端状态派生**：`frontend/src/features/temporal/components/TimelineComponent.tsx` 新增 `resolveLifecycleStatus` 与 `isSoftDeleted`，若调用方自行派生 `status === 'PLANNED'` 或 `OrganizationStatusEnum.Deleted` 时会切换相应样式；但当前 GraphQL 仍只返回 `status ∈ {ACTIVE, INACTIVE}`，因此这些分支属于预留逻辑。
+- **数据映射层**：`frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts` `mapOrganizationVersions` 与 `mapTimelineItem` 仍将 `lifecycleStatus` 固定为 `CURRENT/HISTORICAL`，`dataStatus` 固定为 `'NORMAL'`，`businessStatus` 直接由 `status === 'ACTIVE'` 派生，与 95 号首版结论一致，未引入五态或软删除信息。
+- **后端插入逻辑**：`cmd/organization-command-service/internal/repository/temporal_timeline_insert.go` 在写入新版本时始终将 `status` 置为 `'ACTIVE'`，即使是未来生效的计划版本也不会返回 `'PLANNED'`。版本重算 `RecalculateTimelineInTx` 亦未对 `status` 做额外派生。
+- **GraphQL 可见性**：查询服务 `GetOrganizationVersions`（`cmd/organization-query-service/internal/repository/postgres_organization_details.go`）在 `includeDeleted=false` 时过滤掉 `status='DELETED'` 记录，因此时间轴默认看不到软删除版本；即便后端存在软删除记录，前端仍只会收到 `status` 为 `'ACTIVE'/'INACTIVE'`。
+
+### 8.3 与原结论的差异
+- 前端组件虽新增对 `'PLANNED'/'DELETED'` 的样式处理，但当前数据源仍只提供 `ACTIVE/INACTIVE`；原报告“生命周期五态未落地、软删除样式无法触发”的结论仍成立。
+- 组件新增逻辑带来“代码看似支持五态”与“实际数据只返回二态”的落差，进一步放大跨层一致性风险，需避免误读。
+
+### 8.4 推荐后续行动
+1. **同步文档口径**：更新 Plan 93 及相关设计稿，明确目前仅返回 `CURRENT/HISTORICAL` + `ACTIVE/INACTIVE`，`dataStatus` 为保留字段，防止继续引用五态设想。
+2. **决定实现策略**：在架构层明确是扩展后端以产出 `PLANNED/DELETED`、`dataStatus` 等字段，还是正式降级需求；若选择扩展，需先更新 `docs/api/schema.graphql` 与 REST 契约。
+3. **测试覆盖**：补充前端单测/E2E，用真实接口响应验证“计划态/软删除缺失”现状，确保未来若引入新状态时有检测机制。
+4. **回溯审计**：若决定落地软删除展示，需要评估 GraphQL `includeDeleted` 默认值与缓存策略，避免再次出现“代码支持但数据缺席”的局面。

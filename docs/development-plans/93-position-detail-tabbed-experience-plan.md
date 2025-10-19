@@ -39,7 +39,7 @@
 
 - 顶部保持现有返回与操作按钮区，补充当前位置面包屑（可复用 `TemporalMasterDetailHeader` 的结构逻辑）。  
 - 主内容区采用左右分栏：
-  - 左栏：版本/时间轴导航。优先复用组织模块的 `TimelineComponent`，仅依赖 `recordId`、`status`、`isCurrent` 等基础字段；严禁在未扩展契约的情况下对 `lifecycleStatus`、`businessStatus`、`dataStatus` 推导额外语义（参见 95 号文档）。若需临时保留 `PositionVersionList`，必须完成视觉对齐并记录降级说明。
+- 左栏：版本/时间轴导航。优先复用组织模块的 `TimelineComponent`，仅依赖 `recordId`、`status`、`isCurrent` 等基础字段；当前 GraphQL 仅返回 `status ∈ {ACTIVE, INACTIVE}` 与 `isCurrent`，`PLANNED/DELETED`、`dataStatus` 等值仍未从后端提供——任何扩展必须先更新 `docs/api/` 契约。若需临时保留 `PositionVersionList`，必须完成视觉对齐并记录降级说明。
   - 右栏：页签容器，容纳不同信息分区；默认选中“概览”。
 - 移动端/窄屏 fallback：当宽度不足时左栏折叠为顶部抽屉式列表，页签保持。
 
@@ -77,7 +77,7 @@
 ## 9. 实施步骤与验收标准
 
 1. UI 拆分：重构 `PositionTemporalPage`，引入 `PositionDetailTabs` 容器组件；将现有卡片内容拆分为独立子组件。  
-2. 版本导航：改造 `PositionVersionList` 支持“侧栏导航”模式，添加选中态与回调；复用 `TimelineComponent` 时，仅传递基础字段并维持 95 号文档所述的状态语义约束。  
+2. 版本导航：改造 `PositionVersionList` 支持“侧栏导航”模式，添加选中态与回调；复用 `TimelineComponent` 时仅传递 `recordId`/`status`/`isCurrent` 等基础字段，保持二态现实（ACTIVE/INACTIVE）。若未来要展示 `PLANNED/DELETED`，必须先扩展 API 契约并同步 95 号报告。
 3. 审计页签：引入 `AuditHistorySection`，确保 recordId 传递正确并添加空状态文案。  
 4. 状态管理：在页面级维护 `activeTab`、`selectedVersionRecordId`；预留 URL 查询参数占位（便于分享）。  
 5. 验收标准：
@@ -93,7 +93,33 @@
 - 左栏复用：`PositionVersionList` 当前为表格样式，改造成侧栏列表时需配合设计评审，确认 Canvas Kit 组件选型，并遵循 95 号文档的状态字段约束，不扩展额外状态标签。  
 - 回归范围：重构涉及 Position 详情多处组件，需配合 Vitest 与 Playwright 规格更新（按 88号计划后续待办）。
 
-## 11. 布局示意图
+## 11. 组件适配与前置校验
+
+### 11.1 TimelineComponent 复用策略
+- 新增 `PositionTimelineAdapter`（或等价包装函数），在查询结果映射阶段生成 `TimelineVersion` 所需字段：  
+  - `unitType` 固定写入 `POSITION`，`level/sortOrder` 按 `effectiveDate` 派生，缺失时回退为 0。  
+  - `codePath/namePath` 暂为空字符串，确保组件宽度计算正常；如后续需要组织链路再行扩展契约。  
+  - `businessStatus/lifecycleStatus/dataStatus` 仅依据现有字段派生，不引入假设值，明确记录降级逻辑。  
+- 若 `TimelineComponent` 内存在组织专有样式（例如层级色块），通过 `showStatusBadge=false` 或样式覆盖关闭；如无法关闭则拆出轻量版 `TimelineList` 并记录在案。
+
+### 11.2 审计链路验证
+- 在进入开发前，执行以下检查并记录于 06 号日志：  
+  1. 通过 GraphQL `positionVersions` 抽样确认所有版本均携带 `recordId`。  
+  2. 调用 `auditHistory(recordId)` 验证至少一条职位历史能返回非空结果；如为空需与命令服务核对审计写入流程。  
+  3. 若发现缺口，优先修复命令服务审计逻辑（参考 `PositionService.logPositionEvent`），然后再落地审计页签。
+
+### 11.3 设计评审里程碑
+- 负责人：前端团队 @职位体验小组；协同：UX 设计、产品。  
+- 计划时间：2025-10-25 前完成评审会议，形成《职位页签命名/排序确认稿》。  
+- 交付物：页签命名、排序、移动端交互说明；评审结论需同步至 06 号日志与本计划附录。
+
+### 11.4 响应式策略
+- ≥1280px：采用左右分栏布局，左栏固定 320-360px，右栏自适应。  
+- 960-1279px：左栏缩至 260px，并启用 `PositionVersionList` 折叠按钮，默认展开。  
+- <960px：隐藏固定左栏，使用顶部 `Drawer` 展示版本列表；保留 Tabs，页签内模块按顺序垂直排布。  
+- 需在实现阶段补充 Storybook/测试覆盖窄屏切换，并在 README/设计稿中标注降级策略。
+
+## 12. 布局示意图
 
 ```mermaid
 flowchart LR
@@ -122,11 +148,13 @@ flowchart LR
 
 > 示意图说明：左侧 `PositionVersionList` 控制当前版本，右侧通过 `TabNavigation` 切换，各页签分别渲染相应组件并共享选中版本上下文。创建模式时隐藏 `LeftPane` 并仅保留“概览”页签。
 
-## 12. 后续工作
+## 13. 后续工作
 
-- 设计评审：与 UX/业务确认页签命名与排序，确保与组织模块一致。  
-- 技术实现：创建 `feature/position-tabbed-detail` 分支，分阶段提交并同步 06号日志。  
+- 设计评审：按照 11.3 节排期完成评审会议并输出结论。  
+- 时间轴适配：实现 11.1 节所述包装层或组件降级，提交复用验证记录。  
+- 审计校验：执行 11.2 节三项检查，若需修复需附带脚本或补丁说明。  
+- 技术实现：创建 `feature/position-tabbed-detail` 分支，分阶段提交并同步 06 号日志。  
 - 测试计划：补充 Vitest 覆盖页签状态切换、审计加载；更新 Playwright 脚本覆盖“职位详情 → 审计历史”。  
-- 文档同步：实施完成后更新 88号文档第 7 节状态，并在 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 登记。
+- 文档同步：实施完成后更新 88 号文档第 7 节状态，并在 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 登记。
 
 > 草案提交人：前端团队 · 架构组（代）
