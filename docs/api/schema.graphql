@@ -184,17 +184,6 @@ type Query {
   ): PositionTransferConnection!
   
   """
-  Get list of vacant positions with optional filters.
-  
-  Permissions Required: position:read
-  """
-  vacantPositions(
-    filter: VacantPositionFilterInput
-    pagination: PaginationInput
-    sorting: [VacantPositionSortInput!]
-  ): VacantPositionConnection!
-  
-  """
   Get headcount statistics for positions under an organization.
   
   Permissions Required: position:read:stats
