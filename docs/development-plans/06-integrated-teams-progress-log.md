@@ -25,6 +25,7 @@
 | `frontend/src/App.tsx` | 新增 `/positions/:code` 与 `/positions/:code/temporal` 路由，保持 Mock/鉴权切换逻辑 | 完成“路由导航差距”修复 |
 | `PositionTemporalPage.tsx` | 职位独立详情页：整合 `PositionDetails`、版本列表与表单入口，Mock 模式下展示只读提醒并禁用写操作 | 独立路由 + 时态版本 UI 基线完成 |
 | `components/PositionForm/` | 拆分表单字段与验证逻辑（`FormFields`/`validation`/`payload`），复用 `usePositionMutations` | 完成“创建/编辑/时态版本 UI 缺失”，并提升可维护性 |
+| `shared/hooks/useJobCatalog.ts` | 新增职类/职种/职务/职级 GraphQL 字典查询，`PositionForm` 切换为下拉选择并兼容只读回退 | 覆盖 88 号计划建议B 的字典抽象部分 |
 | `docs/development-plans/93-position-detail-tabbed-experience-plan.md` | 草案提交：定义职位详情多页签布局与审计页签接入方案 | 承接 88 号 P2，待设计评审 |
 | `usePositionMutations.ts` | 增补 `useCreatePosition` / `useUpdatePosition` / `useCreatePositionVersion`，统一缓存失效策略 | REST API 已就绪，前端接入 |
 | `components/PositionVersionList.tsx` | 新增职位版本列表组件（Canvas Table），支持当前/历史/计划标签展示 | 覆盖 `positionVersions` GraphQL 返回数据 |
@@ -57,6 +58,7 @@ npm --prefix frontend run test -- PositionTemporalPage
 |------|------|--------|------|
 | 版本增强 | CSV 导出、includeDeleted 切换（不含差异对比） | 前端团队 | 对应 88 号计划 P1 后续任务 |
 | 多页签重构规划 | 参考 93 号方案，评审后执行左栏 + Tabs 重构 | 前端 + 设计 | 88 号文档 P2 更新为进行中 |
+| PositionForm 体验收尾 | Storybook 场景与字典加载失败文案优化 | 前端团队 | 建议B 后续优化 |
 | Mock 模式说明同步 | 更新 README / QA 脚本 / 设计规范的只读提示 | 前端团队 | 88 号建议A 剩余事项 |
 
 ---
