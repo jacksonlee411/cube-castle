@@ -1564,3 +1564,70 @@ export type PositionHeadcountStatsQuery = {
     }>;
   };
 };
+
+export type JobFamilyGroupsQueryVariables = Exact<{
+  includeInactive?: InputMaybe<Scalars["Boolean"]["input"]>;
+  asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
+}>;
+
+export type JobFamilyGroupsQuery = {
+  __typename: "Query";
+  jobFamilyGroups: Array<{
+    __typename: "JobFamilyGroup";
+    code: string;
+    name: string;
+    status: JobCatalogStatus;
+  }>;
+};
+
+export type JobFamiliesQueryVariables = Exact<{
+  groupCode: Scalars["JobFamilyGroupCode"]["input"];
+  includeInactive?: InputMaybe<Scalars["Boolean"]["input"]>;
+  asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
+}>;
+
+export type JobFamiliesQuery = {
+  __typename: "Query";
+  jobFamilies: Array<{
+    __typename: "JobFamily";
+    code: string;
+    name: string;
+    groupCode: string;
+    status: JobCatalogStatus;
+  }>;
+};
+
+export type JobRolesQueryVariables = Exact<{
+  familyCode: Scalars["JobFamilyCode"]["input"];
+  includeInactive?: InputMaybe<Scalars["Boolean"]["input"]>;
+  asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
+}>;
+
+export type JobRolesQuery = {
+  __typename: "Query";
+  jobRoles: Array<{
+    __typename: "JobRole";
+    code: string;
+    name: string;
+    familyCode: string;
+    status: JobCatalogStatus;
+  }>;
+};
+
+export type JobLevelsQueryVariables = Exact<{
+  roleCode: Scalars["JobRoleCode"]["input"];
+  includeInactive?: InputMaybe<Scalars["Boolean"]["input"]>;
+  asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
+}>;
+
+export type JobLevelsQuery = {
+  __typename: "Query";
+  jobLevels: Array<{
+    __typename: "JobLevel";
+    code: string;
+    name: string;
+    roleCode: string;
+    levelRank: number;
+    status: JobCatalogStatus;
+  }>;
+};
