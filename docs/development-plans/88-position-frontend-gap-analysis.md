@@ -435,27 +435,17 @@ const timeline: PositionTimelineEvent[] = useMockData
 
 **建议5：职位详情多页签与组件层次化重构（承接 93 号计划）**
 
-- **复用指引**：严格遵循 93 号《职位详情多页签体验方案》5-7 节布局（左侧版本导航 + 右侧 Tabs），以及组织模块 `TemporalMasterDetailView` 的目录结构。拆分需与设计团队评审一致，避免新旧模式并存。
-- **核心目标**：
-  1. 将 `PositionTemporalPage` 拆分为 `PositionDetailTabs` 容器 + 各页签组件（概览、任职、调动、时间线、版本历史、审计）。
-  2. 将 `PositionVersionList` 改造为“版本导航”模式，支持选中态、includeDeleted 与 CSV 导出复用。
-  3. 接入 `AuditHistorySection`，为职位版本提供审计页签，确保 `recordId` 全量可用。
-  4. 更新 Story/Vitest/Playwright 用例覆盖多页签切换与 Mock 只读场景。
-- **工作项拆分**：
-  1. 架构重构：新增 `PositionDetailTabs`、`VersionSidebar` 等组件目录，迁移现有卡片内容。
-  2. 页签实现：为每个页签创建独立组件与查询聚合逻辑，复用已有 hooks。
-  3. 审计页签：接入 `AuditHistorySection`（若缺字段需同时提 PR 更新 schema 与查询服务）。
-  4. 测试补充：更新 Vitest（tab 切换、版本选择、Mock 提示）、Playwright（职位详情 → 审计历史）脚本。
-- **验收标准**：
-  - 左侧版本导航与右侧页签在桌面与移动端均表现正常，切换不触发整页刷新。
-  - includeDeleted、导出、版本对比操作在新布局中保持可用。
-  - 审计页签在有 `recordId` 时展示记录，无数据时提示；Playwright 脚本覆盖主流程。
-  - 相关文档（88 号、93 号、06 号）同步记录上线时间与验证步骤。
-- **依赖**：
-  - 设计团队确认页签命名与布局（93 号文档第 12 节待评审）。
-  - 查询服务确保版本 `recordId`、审计日志可用；如缺失需先完成后端补齐工作。
-- **工作量预估**：5-7 天（前端），另需 1-2 天设计评审与后端确认。
-- **状态**：规划中（待评审通过后执行）。
+- **复用指引**：严格遵循 93 号《职位详情多页签体验方案》布局（左侧版本导航 + 右侧 Tabs），并与组织模块 `TemporalMasterDetailView` 保持一致。
+- **交付成果**（2025-10-20 完成）：
+  1. `PositionTemporalPage` 已重构为多页签容器，覆盖概览、任职、调动、时间线、版本历史、审计六个页签。
+  2. 左侧复用 `TimelineComponent` 提供版本导航，版本列表支持点击高亮、includeDeleted 与 CSV 导出。
+  3. 审计页签接入 `AuditHistorySection`，缺失 `recordId` 时提示；后端审计抽样待联调确认。
+  4. 补充 Vitest 用例验证 tab 切换、版本选择、Mock 模式提示（`npm --prefix frontend run test -- PositionTemporalPage`）。
+- **后续动作**：
+  - 按 93 号计划附录脚本执行审计/版本抽样，回填 06 号日志。
+  - 2025-10-25 前完成设计评审，确认页签命名与响应式策略并归档纪要。
+  - Playwright 场景待补：职位详情 → 审计历史、Mock 只读校验。
+- **状态**：√ 已上线（审计抽样与设计纪要待补录）。
 
 ### 8.4 优先级决策矩阵
 

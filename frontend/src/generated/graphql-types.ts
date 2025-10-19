@@ -1368,6 +1368,7 @@ export type EnterprisePositionsQuery = {
 
 export type PositionDetailQueryVariables = Exact<{
   code: Scalars["PositionCode"]["input"];
+  includeDeleted: Scalars["Boolean"]["input"];
 }>;
 
 export type PositionDetailQuery = {
