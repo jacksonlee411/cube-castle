@@ -744,7 +744,7 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [x] `useUpdateJobFamilyGroup` 等
   - [x] 复用 `CatalogVersionForm` 实现“编辑当前版本”对话框
 - [x] 单元测试补充
-  - [x] `jobCatalogPages.test.tsx` 覆盖“编辑当前版本”校验与权限控制
+- [x] `jobCatalogPages.test.tsx` 覆盖“编辑当前版本”校验、职类/职种/职务/职级更新链路与权限控制
 - [ ] 前后端联调
   - [ ] 查询测试
   - [ ] 命令测试

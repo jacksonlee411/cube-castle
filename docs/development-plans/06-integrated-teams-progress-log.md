@@ -1,6 +1,6 @@
 # 06号文档：集成团队协作进展日志（92号计划实时记录）
 
-> **更新时间**：2025-10-19 19:40
+> **更新时间**：2025-10-19 22:50
 > **负责人**：前端团队 · 职位域
 > **关联计划**：92号《职位管理二级导航实施方案》 v2.2
 
@@ -12,7 +12,7 @@
 - ✅ **Phase 1 导航架构**：Sidebar 与导航配置完成权限过滤、动画与路由联动；`App.tsx` 职位路由迁移为 `<Route path="/positions" element={<Outlet />}>` 嵌套路由。
 - ✅ **Phase 2 页面框架**：`frontend/src/features/job-catalog/` 新增职类/职种/职务/职级列表与详情页（含新增表单），共用 `CatalogTable`、`CatalogFilters`、`CatalogForm`、`CatalogVersionForm` 与 `StatusBadge` 组件。
 - ✅ **Phase 3 查询与命令集成**：`useJobCatalog.ts` 扩展 GraphQL 字段（含 `recordId`、描述、时态信息），`useJobCatalogMutations.ts` 已覆盖四层新增、更新与版本创建；详情页复用 `CatalogVersionForm` 支持“编辑当前版本”，所有操作均走统一缓存失效逻辑。
-- 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过；覆盖“编辑当前版本”流程，并验证权限控制按钮与导航交互保持稳定。
+- 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过；新增职种/职务/职级详情页更新链路断言，覆盖“编辑当前版本”流程，并验证权限控制按钮与导航交互保持稳定。
 
 ---
 
@@ -38,7 +38,7 @@
 
 | 优先级 | 项目 | 负责人 | 截止 | 说明 |
 |--------|------|--------|------|------|
-| P0 | 补充 Job Catalog 页面 Vitest（包含更新链路断言） | 前端测试代表 | 2025-10-22 | 保障核心页面在 CI 中可回归 |
+| ✅ | 补充 Job Catalog 页面 Vitest（包含更新链路断言） | 前端测试代表 | 2025-10-19 | 新增职类/职种/职务/职级更新断言，确保 CI 回归覆盖 |
 | P0 | 前后端联调：REST 更新接口 + 权限校验 | 前端/后端联调小组 | 2025-10-22 | 配合命令服务确认 2xx/412 契约，完善错误提示 |
 | P1 | Playwright 脚本覆盖二级导航与职类 CRUD 正向路径 | QA 团队 | 2025-10-24 | 与 92 号 Phase 4 测试要求对齐 |
 | P1 | 文案国际化：将导航配置及表单提示接入现有 i18n 方案 | 前端国际化负责人 | 2025-10-24 | 对齐 92 号文档 2.3.1 国际化前置说明 |
