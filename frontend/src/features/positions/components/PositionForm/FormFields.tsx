@@ -5,7 +5,7 @@ import { TextArea } from '@workday/canvas-kit-react/text-area'
 import { FormField } from '@workday/canvas-kit-react/form-field'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { Text } from '@workday/canvas-kit-react/text'
-import { SimpleStack } from '../SimpleStack'
+import { SimpleStack } from '../layout/SimpleStack'
 import type { PositionFormErrors, PositionFormState, SelectOption } from './types'
 
 const POSITION_TYPES: SelectOption[] = [

@@ -59,6 +59,28 @@ cd /home/shangmeilin/cube-castle/frontend
 npx playwright test tests/e2e/architecture-e2e.spec.ts
 ```
 
+### 职位模块（真实 / Mock 双模式）
+
+#### 真实链路联调
+```bash
+# 1. 确保命令/查询服务通过 docker-compose 运行，并获取 RS256 JWT
+make docker-up && make run-dev && make jwt-dev-mint
+
+# 2. 运行真实链路 e2e（需 PW_JWT / PW_TENANT_ID）
+PW_REQUIRE_LIVE_BACKEND=1 PW_JWT="$(cat ../.cache/dev.jwt)" \
+  npx playwright test tests/e2e/position-crud-live.spec.ts
+```
+
+#### Mock 守护检查
+```bash
+# 1. 以 Mock 模式启动前端
+VITE_POSITIONS_MOCK_MODE=true npm run dev
+
+# 2. 运行 Mock 守护测试（确认只读提示仍在）
+PW_REQUIRE_MOCK_CHECK=1 npx playwright test tests/e2e/position-crud-live.spec.ts --project=chromium
+```
+> 提示：Mock 模式下 `position-crud-live.spec.ts` 仅校验只读 banner 与按钮禁用；真实链路用例仍会被跳过。
+
 ### 调试模式
 ```bash
 cd /home/shangmeilin/cube-castle/frontend

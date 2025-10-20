@@ -10,7 +10,7 @@ import { useCreateJobRoleVersion, useUpdateJobRole } from '@/shared/hooks/useJob
 import { StatusBadge } from '../shared/StatusBadge'
 import { CatalogVersionForm, type CatalogVersionFormValues } from '../shared/CatalogVersionForm'
 import { formatISODate } from '../types'
-import { SimpleStack } from '@/features/positions/components/SimpleStack'
+import { SimpleStack } from '@/features/positions/components'
 import { CardContainer } from '@/shared/components/CardContainer'
 
 const deriveFamilyCode = (roleCode: string): string | undefined => {

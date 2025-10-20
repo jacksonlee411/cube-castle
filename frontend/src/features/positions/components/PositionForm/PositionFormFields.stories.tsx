@@ -36,9 +36,10 @@ type Story = StoryObj<typeof PositionFormFields>
 
 const Template: React.FC<{
   catalogAvailable: boolean
-}> = ({ catalogAvailable }) => {
+  initialErrors?: PositionFormErrors
+}> = ({ catalogAvailable, initialErrors }) => {
   const [state, setState] = useState<PositionFormState>(initialState)
-  const [errors, setErrors] = useState<PositionFormErrors>({})
+  const [errors, setErrors] = useState<PositionFormErrors>(initialErrors ?? {})
 
   const handleChange = (key: keyof PositionFormState) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -78,4 +79,17 @@ export const Default: Story = {
 
 export const CatalogUnavailable: Story = {
   render: () => <Template catalogAvailable={false} />,
+}
+
+export const WithValidationErrors: Story = {
+  render: () => (
+    <Template
+      catalogAvailable
+      initialErrors={{
+        title: '请填写职位名称',
+        headcountCapacity: '编制容量需为非负数字',
+        operationReason: '请填写操作原因',
+      }}
+    />
+  ),
 }

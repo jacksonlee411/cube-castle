@@ -7,7 +7,7 @@ import { SecondaryButton } from '@workday/canvas-kit-react/button'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { useVacantPositions, type VacantPositionsQueryParams } from '@/shared/hooks/useEnterprisePositions'
 import type { VacantPositionRecord } from '@/shared/types/positions'
-import { SimpleStack } from './SimpleStack'
+import { SimpleStack } from '../layout/SimpleStack'
 
 const MINIMUM_VACANT_OPTIONS: Array<{ label: string; value?: number }> = [
   { label: '全部空缺', value: undefined },

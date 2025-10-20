@@ -8,11 +8,9 @@ import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { PrimaryButton } from '@workday/canvas-kit-react/button'
 import { useEnterprisePositions } from '@/shared/hooks/useEnterprisePositions'
 import type { PositionRecord } from '@/shared/types/positions'
-import { PositionSummaryCards } from './components/PositionSummaryCards'
-import { PositionList } from './components/PositionList'
-import { PositionVacancyBoard } from './components/PositionVacancyBoard'
-import { PositionHeadcountDashboard } from './components/PositionHeadcountDashboard'
-import { SimpleStack } from './components/SimpleStack'
+import { PositionSummaryCards, PositionVacancyBoard, PositionHeadcountDashboard } from './components/dashboard'
+import { PositionList } from './components/list'
+import { SimpleStack } from './components/layout'
 
 const statusOptions: Array<{ label: string; value: string }> = [
   { label: '全部状态', value: 'ALL' },

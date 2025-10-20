@@ -10,8 +10,7 @@ import {
   useCreatePositionVersion,
 } from '@/shared/hooks/usePositionMutations'
 import { useMessages } from '@/shared/hooks/useMessages'
-import type { CreatePositionVersionRequest, UpdatePositionRequest } from '@/shared/types/positions'
-import { SimpleStack } from '../SimpleStack'
+import { SimpleStack } from '../layout/SimpleStack'
 import {
   createInitialState,
   type PositionFormErrors,
@@ -19,9 +18,13 @@ import {
   type PositionFormState,
 } from './types'
 import { validatePositionForm } from './validation'
-import { buildCreatePositionPayload } from './payload'
+import {
+  buildCreatePositionPayload,
+  buildUpdatePositionPayload,
+  buildCreatePositionVersionPayload,
+} from './payload'
 import { PositionFormFields } from './FormFields'
-import { usePositionJobCatalogOptions } from './usePositionJobCatalogOptions'
+import { usePositionCatalogOptions } from '@/shared/hooks/usePositionCatalogOptions'
 
 export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCancel, onSuccess }) => {
   const createMutation = useCreatePosition()
@@ -42,7 +45,7 @@ export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCa
     return '编辑职位'
   }, [mode])
 
-  const jobCatalog = usePositionJobCatalogOptions({
+  const jobCatalog = usePositionCatalogOptions({
     groupCode: formState.jobFamilyGroupCode,
     familyCode: formState.jobFamilyCode,
     roleCode: formState.jobRoleCode,
@@ -167,18 +170,12 @@ export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCa
         showSuccess('职位创建成功')
         onSuccess?.({ code: resource.code })
       } else if (mode === 'edit') {
-        const updatePayload: UpdatePositionRequest = {
-          ...basePayload,
-          code: position!.code,
-        }
+        const updatePayload: UpdatePositionRequest = buildUpdatePositionPayload(formState, position!.code)
         await updateMutation.mutateAsync(updatePayload)
         showSuccess('职位更新成功')
         onSuccess?.({ code: position!.code })
       } else {
-        const versionPayload: CreatePositionVersionRequest = {
-          ...basePayload,
-          code: position!.code,
-        }
+        const versionPayload: CreatePositionVersionRequest = buildCreatePositionVersionPayload(formState, position!.code)
         const resource = await createVersionMutation.mutateAsync(versionPayload)
         showSuccess('职位时态版本创建成功')
         onSuccess?.({ code: resource.code })

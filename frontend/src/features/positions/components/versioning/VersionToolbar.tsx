@@ -4,7 +4,7 @@ import { Flex } from '@workday/canvas-kit-react/layout';
 import { Switch } from '@workday/canvas-kit-react/switch';
 import { SecondaryButton } from '@workday/canvas-kit-react/button';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
-import { SimpleStack } from '../SimpleStack';
+import { SimpleStack } from '../layout/SimpleStack';
 
 interface PositionVersionToolbarProps {
   includeDeleted: boolean;

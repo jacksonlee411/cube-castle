@@ -44,6 +44,14 @@ export {
 } from './useEnterprisePositions';
 export { default as useEnterprisePositionsDefault } from './useEnterprisePositions';
 
+// 职位表单支持 Hook
+export {
+  usePositionCatalogOptions,
+  type PositionCatalogOption,
+  type PositionCatalogOptionsParams,
+  type PositionCatalogOptionsResult,
+} from './usePositionCatalogOptions';
+
 // 🔧 专用工具Hook
 export * from './useOrganizationMutations';
 export * from './useDebounce';

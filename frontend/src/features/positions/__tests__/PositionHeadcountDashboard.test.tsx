@@ -2,7 +2,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { beforeEach, vi, type Mock } from 'vitest'
-import { PositionHeadcountDashboard } from '../components/PositionHeadcountDashboard'
+import { PositionHeadcountDashboard } from '../components/dashboard/PositionHeadcountDashboard'
 import type { PositionHeadcountStats } from '@/shared/types/positions'
 
 vi.mock('@/shared/hooks/useEnterprisePositions', () => ({

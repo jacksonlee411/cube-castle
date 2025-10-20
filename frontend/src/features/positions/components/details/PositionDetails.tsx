@@ -9,9 +9,9 @@ import type {
   PositionTimelineEvent,
   PositionTransferRecord,
 } from '@/shared/types/positions'
-import { getPositionStatusMeta } from '../statusMeta'
-import { SimpleStack } from './SimpleStack'
-import { PositionTransferDialog } from './PositionTransferDialog'
+import { getPositionStatusMeta } from '../../statusMeta'
+import { SimpleStack } from '../layout/SimpleStack'
+import { PositionTransferDialog } from '../transfer/PositionTransferDialog'
 
 const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
   <Heading size="small" as="h3">

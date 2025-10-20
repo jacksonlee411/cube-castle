@@ -27,15 +27,15 @@ vi.mock('@/shared/hooks/usePositionMutations', () => ({
   })),
 }))
 
-vi.mock('../components/PositionVacancyBoard', () => ({
+vi.mock('../components/dashboard/PositionVacancyBoard', () => ({
   PositionVacancyBoard: () => <div data-testid="position-vacancy-board" />,
 }))
 
-vi.mock('../components/PositionTransferDialog', () => ({
+vi.mock('../components/transfer/PositionTransferDialog', () => ({
   PositionTransferDialog: () => <div data-testid="position-transfer-dialog" />,
 }))
 
-vi.mock('../components/PositionHeadcountDashboard', () => ({
+vi.mock('../components/dashboard/PositionHeadcountDashboard', () => ({
   PositionHeadcountDashboard: () => <div data-testid="position-headcount-dashboard" />,
 }))
 

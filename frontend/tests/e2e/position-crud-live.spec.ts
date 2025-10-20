@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const shouldRunLiveSuite = process.env.CI === 'true' || process.env.PW_REQUIRE_LIVE_BACKEND === '1';
+const shouldRunMockGuard = process.env.PW_REQUIRE_MOCK_CHECK === '1';
 
 test.describe('职位管理 CRUD（真实后端链路）', () => {
   test.skip(!shouldRunLiveSuite, '未启用真实后端联调（设置 PW_REQUIRE_LIVE_BACKEND=1 或在 CI 环境运行）');
@@ -60,5 +61,19 @@ test.describe('职位管理 CRUD（真实后端链路）', () => {
     await expect(page.getByText(`职位详情：${positionCode}`)).toBeVisible();
     await expect(page.getByTestId('position-detail-card')).toBeVisible();
     await expect(page.getByTestId('position-version-list')).toBeVisible();
+  });
+});
+
+test.describe('职位管理 Mock 守护', () => {
+  test.skip(!shouldRunMockGuard, '未启用 Mock 守护检查（设置 PW_REQUIRE_MOCK_CHECK=1）');
+
+  test('Mock 模式显示只读提示并禁用创建按钮', async ({ page }) => {
+    await page.goto('/positions');
+
+    await expect(page.getByTestId('position-dashboard')).toBeVisible();
+    await expect(page.getByTestId('position-dashboard-mock-banner')).toBeVisible();
+
+    const createButton = page.getByTestId('position-create-button');
+    await expect(createButton).toBeDisabled();
   });
 });

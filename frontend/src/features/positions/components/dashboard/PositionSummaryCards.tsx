@@ -4,7 +4,7 @@ import { Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import type { PositionRecord } from '@/shared/types/positions'
-import { SimpleStack } from './SimpleStack'
+import { SimpleStack } from '../layout/SimpleStack'
 
 interface PositionSummaryCardsProps {
   positions: PositionRecord[]

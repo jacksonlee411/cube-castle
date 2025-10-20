@@ -1,4 +1,5 @@
 import type { PositionRecord } from '@/shared/types/positions'
+import type { PositionCatalogOption } from '@/shared/hooks/usePositionCatalogOptions'
 
 export type PositionFormMode = 'create' | 'edit' | 'version'
 
@@ -27,10 +28,7 @@ export interface PositionFormState {
 
 export type PositionFormErrors = Partial<Record<keyof PositionFormState, string>>
 
-export interface SelectOption {
-  label: string
-  value: string
-}
+export type SelectOption = PositionCatalogOption
 
 export const createInitialState = (
   mode: PositionFormMode,
@@ -50,4 +48,3 @@ export const createInitialState = (
   effectiveDate: mode === 'version' ? '' : position?.effectiveDate ?? '',
   operationReason: '',
 })
-

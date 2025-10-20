@@ -1,4 +1,8 @@
-import type { CreatePositionRequest } from '@/shared/types/positions'
+import type {
+  CreatePositionRequest,
+  UpdatePositionRequest,
+  CreatePositionVersionRequest,
+} from '@/shared/types/positions'
 import type { PositionFormState } from './types'
 import { parseHeadcount } from './validation'
 
@@ -18,3 +22,18 @@ export const buildCreatePositionPayload = (state: PositionFormState): CreatePosi
   operationReason: state.operationReason.trim(),
 })
 
+export const buildUpdatePositionPayload = (
+  state: PositionFormState,
+  code: string,
+): UpdatePositionRequest => ({
+  ...buildCreatePositionPayload(state),
+  code,
+})
+
+export const buildCreatePositionVersionPayload = (
+  state: PositionFormState,
+  code: string,
+): CreatePositionVersionRequest => ({
+  ...buildCreatePositionPayload(state),
+  code,
+})

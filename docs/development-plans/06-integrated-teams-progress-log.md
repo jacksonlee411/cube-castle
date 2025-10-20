@@ -1,6 +1,6 @@
 # 06号文档：集成团队协作进展日志（92号计划实时记录）
 
-> **更新时间**：2025-10-20 13:25
+> **更新时间**：2025-10-20 19:45
 > **负责人**：前端团队 · 职位域
 > **关联计划**：92号《职位管理二级导航实施方案》 v2.2
 
@@ -22,6 +22,13 @@
 - 🚧 **计划 97 Phase 3**：校准 Temporal `lifecycleStatus` 映射并以 `normalizeLifecycleStatus` 约束，修复职位 GraphQL 变量 `JsonValue` 建模与 `logger.mutation` 日志参数；`npm run build` 仅剩 Storybook 类型 2 项（按 Phase 4 处理）。
 - 🚧 **计划 97 Phase 3**：校准 Temporal `lifecycleStatus` 映射并以 `normalizeLifecycleStatus` 约束，修复职位 GraphQL 变量 `JsonValue` 建模与 `logger.mutation` 日志参数；`npm run build` 仅剩 Storybook 类型 2 项（已在 Phase 4 处理）。
 - ✅ **计划 97 Phase 4**：通过 `tsconfig.app.json` 排除 Storybook 目录完成收尾，`npm run build`、`npm run test -- --run src/features/job-catalog`、`npm run test -- --run src/features/positions` 均通过；文档及进度表已更新。
+- ✅ **Position 多页签 Playwright 验证**：2025-10-20 新增 `frontend/tests/e2e/position-tabs.spec.ts`，覆盖六个页签切换与审计空态提示；`position-crud-live.spec.ts` 补充 Mock 守护断言。
+- ✅ **Mock 模式策略决议**：确认长期保留开关（选项B），发布前由前端团队验证 `VITE_POSITIONS_MOCK_MODE=false` 并在 QA checklist 记录；FE-1181/1182/1183 将分别跟踪 Playwright 覆盖、PositionForm 抽象与组件层次化收尾。
+- ✅ **Playwright 运行指引更新**：`frontend/tests/e2e/README.md` 新增真实链路与 Mock 守护执行步骤，统一 PW_REQUIRE_LIVE_BACKEND / PW_REQUIRE_MOCK_CHECK 环境变量说明，便于 QA 快速切换验证模式。
+- ✅ **FE-1182 代码落地**：抽离 `usePositionCatalogOptions` 到共享 Hook，统一 PositionForm payload/validation，并新增 Storybook 错误态示例与 README（待评审合并）。
+- ✅ **FE-1183 目录整理推进**：components/ 重组为 dashboard/details/list/layout/transfer 子目录，新增聚合导出与 README，移除遗留 `PositionVersionList.tsx`。
+- ✅ **DS-147 设计规范 v0.1**：新增 `docs/reference/positions-tabbed-experience-guide.md`，定义多页签布局、Mock 提示与响应式规则，并在 `frontend/artifacts/layout/README.md` 记录截图要求。
+- ✅ **101~104 计划归档**：职位 Playwright、PositionForm、组件目录与 DS-147 设计计划均已生成正式文档并标记完成。
 
 ---
 
@@ -52,6 +59,12 @@
 | ✅ | Playwright 脚本覆盖二级导航与职类 CRUD 正向路径 | QA 团队 | 2025-10-24 | `frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 接入真实后端，覆盖管理员成功编辑、普通用户 403 及 If-Match 412 场景 |
 | P1 | 文案国际化：将导航配置及表单提示接入现有 i18n 方案 | 前端国际化负责人 | 2025-10-24 | 对齐 92 号文档 2.3.1 国际化前置说明 |
 | ✅ | 设计评审：确认 Job Catalog 列表/详情在新导航下的视觉稿（含 312px 侧栏） | 设计团队 | 2025-10-20 | **评审已完成**。基线截图 `artifacts/layout/{positions-list,job-family-groups-list,job-family-group-detail}.png` 用于留白对比；根据结论已完成 CardContainer 抽取、列表筛选/表格卡片化与详情页分层，并同步更新 92 号 Phase 4 F4 子项与 96 号文档第 8 节。 |
+| P0 | 101 · FE-1181 Position Playwright hardening | QA 团队（陈慧） | 2025-10-28 | ✅ 计划已归档，Mock 守护用例与 README 指南已更新。 |
+| P0 | 102 · FE-1182 PositionForm 数据层抽象深化 | 前端组件组（李程） | 2025-10-31 | ✅ 计划已归档，共享 Hook 与 Storybook/README 完成。 |
+| P1 | 103 · FE-1183 Position 组件目录收尾 | 职位域前端组（赵琳） | 2025-11-08 | ✅ 计划已归档，目录分层与聚合导出就绪。 |
+| P1 | 104 · DS-147 Positions Tabbed Experience | 设计团队（刘冉） | 2025-10-29 | ✅ 计划已归档，规范发布并约定截图路径。 |
+
+> **优先级执行顺序**：P0 任务需优先于 P1；FE-1183 依赖 FE-1182 完成后再开展，DS-147 可与 FE-1182 并行但需在 FE-1183 启动前冻结规范。
 
 ---
 
@@ -70,7 +83,7 @@
 - `useJobCatalogMutations` 已补齐更新 Hook，仍缺删除能力；对应 Phase 3 “命令测试” 条目继续跟踪。
 - 页面尚未接入国际化与空态插画，需配合设计在 Phase 4 统一收敛。
 - 性能优化（懒加载/缓存策略）暂缓执行，纳入监控清单，性能指标回退时优先恢复。
-- Playwright 场景待补充；当前仅依赖 Vitest + 手动验证。
+- 后续若扩展 Playwright 场景，请同步调优真实/Mock job 配置，并继续在 README 中登记运行方式。
 
 ---
 

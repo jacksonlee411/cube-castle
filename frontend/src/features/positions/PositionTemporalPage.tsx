@@ -12,14 +12,14 @@ import {
   PositionOverviewCard,
   PositionTimelinePanel,
   PositionTransfersPanel,
-} from './components/PositionDetails'
+} from './components/details'
 import type {
   PositionAssignmentRecord,
   PositionRecord,
   PositionTimelineEvent,
   PositionTransferRecord,
 } from '@/shared/types/positions'
-import { SimpleStack } from './components/SimpleStack'
+import { SimpleStack } from './components/layout'
 import { PositionForm } from './components/PositionForm'
 import { PositionVersionList, PositionVersionToolbar, buildVersionsCsv } from './components/versioning'
 import {

@@ -9,7 +9,7 @@ import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { usePositionHeadcountStats } from '@/shared/hooks/useEnterprisePositions'
 import type { PositionHeadcountStats } from '@/shared/types/positions'
-import { SimpleStack } from './SimpleStack'
+import { SimpleStack } from '../layout/SimpleStack'
 
 interface PositionHeadcountDashboardProps {
   organizationCode?: string

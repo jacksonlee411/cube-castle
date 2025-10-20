@@ -12,7 +12,7 @@ import { formatISODate } from '../types'
 import { useJobFamilyGroups } from '@/shared/hooks/useJobCatalog'
 import { useCreateJobFamilyGroup } from '@/shared/hooks/useJobCatalogMutations'
 import { JobFamilyGroupForm } from './JobFamilyGroupForm'
-import { SimpleStack } from '@/features/positions/components/SimpleStack'
+import { SimpleStack } from '@/features/positions/components'
 import { CardContainer } from '@/shared/components/CardContainer'
 
 export const JobFamilyGroupList: React.FC = () => {

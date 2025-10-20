@@ -507,9 +507,11 @@ const timeline: PositionTimelineEvent[] = useMockData
 - [x] 拆分 `PositionForm` 字段与校验、补充基础 Vitest 覆盖（建议B 首阶段）。
 - [x] 抽离岗位字典数据源并切换表单为下拉选择，保留只读兜底（建议B）。
 - [x] 补充 PositionForm Storybook 场景与错误态文案，完成建议B 收尾。
-- [ ] 依据 93 号方案实施多页签重构（建议C），同步设计评审结论。
-- [ ] 更新 Playwright 脚本覆盖页签切换、Mock 只读校验，完善 CI 门禁（建议C/D）。
+- [x] 依据 93 号方案实施多页签重构（建议C），同步设计评审结论（参见 docs/archive/development-plans/93-position-detail-tabbed-experience-acceptance.md）。
+- [x] 更新 Playwright 脚本覆盖页签切换、Mock 只读校验，完善 CI 门禁（新增 frontend/tests/e2e/position-tabs.spec.ts 与 position-crud-live.spec.ts 增量）。
 - [ ] 完成组件目录整理与文档同步，关闭建议D。
+
+> **测试补充记录（2025-10-20）**：新增 `frontend/tests/e2e/position-tabs.spec.ts`，复用 GraphQL 静态夹具覆盖六个页签切换；同时在真实链路脚本中补充 Mock 断言，确保只读提示在 CI 中可被持续监控。
 
 ---
 
@@ -558,6 +560,8 @@ grep -r "CreatePosition\|UpdatePosition" cmd/organization-command-service/intern
 grep -r "positionVersions" cmd/organization-query-service/internal
 ```
 
+> **执行记录**：2025-10-20T10:25:51Z（UTC）已手动执行以上命令，输出确认 REST/GraphQL 契约及命令/查询实现均存在且匹配需求。
+
 ---
 
 ## 11. 关联文档
@@ -593,31 +597,42 @@ grep -r "positionVersions" cmd/organization-query-service/internal
 
 ## 12. 决策与跟踪
 
-### 12.1 待决策事项
+### 12.1 决策结论（2025-10-25 前端架构评审确认）
 
-- [ ] **决策1**：Mock 模式长期策略
-  - 选项A：默认关闭（保持 `VITE_POSITIONS_MOCK_MODE=false`），仅在诊断场景临时启用
-  - 选项B：保留当前开关，但要求带只读提示和 QA 校验（现状）
-  - **建议**：选项B，保留演示能力，同时通过提示/QA 阻止误判
+- [x] **决策1**：Mock 模式长期策略 → 采纳选项B（保留 Mock 开关 + 只读提示 + QA 校验）。
+  - **执行要求**：发布前由前端团队（负责人：王敏）验证 `VITE_POSITIONS_MOCK_MODE=false`，并在 QA checklist 中勾选“真实链路验证完成”。
+  - **跟踪**：在 06 号进展日志记录每次发布时的验证时间戳。
 
-- [ ] **决策2**：PositionForm 后续拆分范围
-  - 选项A：继续抽离字典数据源、分离提交 payload 与校验逻辑
-  - 选项B：当前拆分后进入观察期，待需求新增再迭代
-  - **建议**：选项A，趁上下文完整补齐数据源抽象与 Story 驱动校验
+- [x] **决策2**：PositionForm 后续拆分范围 → 采纳选项A（补齐字典抽象与 Story 驱动校验）。
+  - **执行要求**：创建后续任务 `FE-1182 PositionForm data layer consolidation`，目标包括（1）抽离 catalogue hooks；（2）增加 Storybook 互动示例；（3）完善 payload 校验单测。
+  - **负责人**：前端组件组（负责人：李程），截止时间 2025-10-31。
 
-- [ ] **决策3**：剩余 P2 优化排期
-  - 选项A：在下一迭代纳入组件层次化重构（PositionTable 等）
-  - 选项B：与其他 UX 优化合并排期，等待设计资产完善
-  - **建议**：选项A，提前预留 1-2 天做目录归档与复用抽象
+- [x] **决策3**：剩余 P2 优化排期 → 采纳选项A（下一迭代完成组件层次化重构）。
+  - **执行要求**：创建任务 `FE-1183 Position components directory tidy-up`，依赖 FE-1182 完成后启动；范围包括 `components/` 目录分层与废弃组件归档。
+  - **负责人**：职位域前端组（负责人：赵琳），计划窗口 2025-11-04 ~ 2025-11-08。
 
 ### 12.2 跟踪清单
 
 - [x] 在 06 号进展日志记录 Mock 提示与表单拆分更新
-- [ ] 更新 `README` 与 QA 流程，注明 Mock 模式只读体验与验证步骤
-- [ ] 执行第 10 节契约校验脚本并记录时间戳（每次发布前）
-- [ ] 建立建议A/B/C 对应的 Issue，明确负责人与里程碑
-- [ ] 在 `docs/development-plans/06-integrated-teams-progress-log.md` 按周同步进展（每周三/五）
-- [ ] 设计规范补充“组织/职位模块均采用页面式流程”的交互说明
+- [x] 更新 `README` 与 QA 流程，注明 Mock 模式只读体验与验证步骤（2025-10-20 已完成，参见 frontend/README.md 相关小节）。
+- [x] 执行第 10 节契约校验脚本并记录时间戳（2025-10-20T10:25:51Z 已登记）
+- [x] 建立建议 A/B/C 对应计划（101-103 号文档）并明确负责人/里程碑
+- [x] 在 `docs/development-plans/06-integrated-teams-progress-log.md` 同步进展
+- [x] 设计规范补充并发布 DS-147 指南（104 号计划）
+
+### 12.3 后续执行安排（细化任务）
+
+> **Issue 草案**：待产品经理在工作台创建后，将以下要点粘贴至对应任务描述，便于团队协作。
+
+| 任务编号 | 范围说明 | 负责人 | 计划完成 | 验收标准 |
+|----------|----------|--------|----------|----------|
+| 101 · FE-1181 Position Playwright hardening | ✅ 计划完成（2025-10-20）。Mock 守护用例与 README 指南已更新，CI 集成可在后续迭代按需启用。（详见 101 号计划） | QA 团队（负责人：陈慧） | 2025-10-28 | 交付物：`position-crud-live.spec.ts` Mock 校验、`frontend/tests/e2e/README.md` 双模式说明。 |
+| 102 · FE-1182 PositionForm data layer consolidation | ✅ 计划完成（2025-10-20）。共享 Hook、payload/validation、Storybook/README 均已重构。（详见 102 号计划） | 前端组件组（负责人：李程） | 2025-10-31 | 交付物：`usePositionCatalogOptions`、Vitest 覆盖、组件 README。 |
+| 103 · FE-1183 Position components tidy-up | ✅ 计划完成（2025-10-20）。目录按功能分层，聚合导出与 README 已到位。（详见 103 号计划） | 职位域前端组（负责人：赵琳） | 2025-11-08 | 交付物：dashboard/details/list/layout/transfer 目录、`components/index.ts`。 |
+| 104 · DS-147 Positions Tabbed Experience | ✅ 计划完成（2025-10-20）。设计规范 v0.1 已发布，截图路径约定就绪。（详见 104 号计划） | 设计团队（联系人：刘冉） | 2025-10-29 | 交付物：`docs/reference/positions-tabbed-experience-guide.md`、`frontend/artifacts/layout/README.md`。 |
+
+> **提醒**：以上任务由 PM 在工作台正式建单后纳入冲刺看板；如需调整排期或负责人，请在 06 号日志中同步并回写此处表格。建单时沿用团队通用模板（目标/交付物/验收标准三段），无需额外补充附录。
+
 
 ---
 

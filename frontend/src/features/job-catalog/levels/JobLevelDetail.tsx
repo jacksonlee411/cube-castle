@@ -10,7 +10,7 @@ import { useCreateJobLevelVersion, useUpdateJobLevel } from '@/shared/hooks/useJ
 import { StatusBadge } from '../shared/StatusBadge'
 import { CatalogVersionForm, type CatalogVersionFormValues } from '../shared/CatalogVersionForm'
 import { formatISODate } from '../types'
-import { SimpleStack } from '@/features/positions/components/SimpleStack'
+import { SimpleStack } from '@/features/positions/components'
 import { CardContainer } from '@/shared/components/CardContainer'
 
 interface LocationState {

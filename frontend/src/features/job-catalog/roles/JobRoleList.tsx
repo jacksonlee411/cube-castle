@@ -12,7 +12,7 @@ import { CatalogTable, type CatalogTableColumn } from '../shared/CatalogTable'
 import { StatusBadge } from '../shared/StatusBadge'
 import { formatISODate } from '../types'
 import { JobRoleForm } from './JobRoleForm'
-import { SimpleStack } from '@/features/positions/components/SimpleStack'
+import { SimpleStack } from '@/features/positions/components'
 import { CardContainer } from '@/shared/components/CardContainer'
 
 const inlineSelectStyle: React.CSSProperties = {

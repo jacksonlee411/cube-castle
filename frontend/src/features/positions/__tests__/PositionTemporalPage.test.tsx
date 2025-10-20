@@ -107,7 +107,7 @@ vi.mock('../components/PositionForm', () => ({
   PositionForm: ({ mode }: { mode: string }) => <div data-testid={`position-form-${mode}`} />,
 }))
 
-vi.mock('../components/PositionTransferDialog', () => ({
+vi.mock('../components/transfer/PositionTransferDialog', () => ({
   PositionTransferDialog: () => <div data-testid="position-transfer-dialog" />,
 }))
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildCreatePositionPayload } from '../payload'
+import {
+  buildCreatePositionPayload,
+  buildUpdatePositionPayload,
+  buildCreatePositionVersionPayload,
+} from '../payload'
 import type { PositionFormState } from '../types'
 
 const baseState: PositionFormState = {
@@ -44,3 +48,20 @@ describe('buildCreatePositionPayload', () => {
   })
 })
 
+describe('buildUpdatePositionPayload', () => {
+  it('附带职位编码并沿用创建 payload', () => {
+    const payload = buildUpdatePositionPayload(baseState, 'P9000001')
+
+    expect(payload.code).toBe('P9000001')
+    expect(payload.title).toBe('HR Manager')
+  })
+})
+
+describe('buildCreatePositionVersionPayload', () => {
+  it('附带职位编码并保留生效日期', () => {
+    const payload = buildCreatePositionVersionPayload(baseState, 'P9000001')
+
+    expect(payload.code).toBe('P9000001')
+    expect(payload.effectiveDate).toBe('2025-01-01')
+  })
+})
