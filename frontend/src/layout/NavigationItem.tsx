@@ -5,6 +5,7 @@ import type { CanvasSystemIcon } from '@workday/design-assets-types';
 import { Expandable, useExpandableModel } from '@workday/canvas-kit-react/expandable';
 import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { TertiaryButton } from '@workday/canvas-kit-react/button';
+import { Flex } from '@workday/canvas-kit-react/layout';
 import { borderRadius, colors, space } from '@workday/canvas-kit-react/tokens';
 import { useAuth } from '@/shared/auth/hooks';
 
@@ -64,6 +65,7 @@ const ExpandableTrigger = styled(Expandable.Target, {
   {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     width: '100%',
     gap: space.xs,
     borderRadius: borderRadius.l,
@@ -78,8 +80,8 @@ const ExpandableTrigger = styled(Expandable.Target, {
 
 const SubNavigationButton = styled(BaseNavigationButton)(
   {
-    padding: `${space.xxs} ${space.m}`,
-    marginLeft: space.m,
+    padding: `${space.xxs} ${space.s}`,
+    paddingLeft: `calc(${space.s} + 20px + ${space.xs})`,
     gap: space.xxs,
   },
   ({active}: {active: boolean}) => ({
@@ -149,9 +151,11 @@ const NavigationGroup: React.FC<NavigationGroupProps> = ({
   return (
     <StyledExpandable model={model}>
       <ExpandableTrigger active={sectionActive} headingLevel="h3">
-        <Expandable.Icon iconPosition="start" />
-        <SystemIcon icon={icon} size={20} />
-        <Expandable.Title>{label}</Expandable.Title>
+        <Flex cs={{ alignItems: 'center', gap: space.xs, flex: 1, minWidth: 0 }}>
+          <SystemIcon icon={icon} size={20} />
+          <Expandable.Title>{label}</Expandable.Title>
+        </Flex>
+        <Expandable.Icon iconPosition="end" />
       </ExpandableTrigger>
       <Expandable.Content>
         <SubNavigationList>
