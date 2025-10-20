@@ -62,6 +62,7 @@ export const JobFamilyDetail: React.FC = () => {
   const handleUpdate = async (values: CatalogVersionFormValues) => {
     await updateMutation.mutateAsync({
       code: family.code,
+      recordId: family.recordId,
       jobFamilyGroupCode: family.groupCode,
       ...values,
     })

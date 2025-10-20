@@ -24,49 +24,65 @@ func NewPBACPermissionChecker(db *sql.DB, logger *log.Logger) *PBACPermissionChe
 
 // REST API权限映射表
 var RESTAPIPermissions = map[string]map[string]string{
-	"POST /api/v1/organization-units":                    {"method": "POST", "permission": "WRITE_ORGANIZATION"},
-	"PUT /api/v1/organization-units/*":                   {"method": "PUT", "permission": "UPDATE_ORGANIZATION"},
-	"POST /api/v1/organization-units/*/suspend":          {"method": "POST", "permission": "SUSPEND_ORGANIZATION"},
-	"POST /api/v1/organization-units/*/activate":         {"method": "POST", "permission": "ACTIVATE_ORGANIZATION"},
-    "POST /api/v1/organization-units/*/events":           {"method": "POST", "permission": "MANAGE_ORGANIZATION_EVENTS"},
-    "POST /api/v1/organization-units/*/versions":         {"method": "POST", "permission": "CREATE_TEMPORAL_VERSION"},
-    "PUT /api/v1/organization-units/*/history/*":         {"method": "PUT", "permission": "UPDATE_ORGANIZATION_HISTORY"},
-    // 系统运维与监控
-    "GET /api/v1/operational/health":                     {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
-    "GET /api/v1/operational/metrics":                    {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
-    "GET /api/v1/operational/alerts":                     {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
-    "GET /api/v1/operational/rate-limit/stats":           {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
-    "GET /api/v1/operational/tasks":                      {"method": "GET", "permission": "SYSTEM_OPS_READ"},
-    "GET /api/v1/operational/tasks/status":               {"method": "GET", "permission": "SYSTEM_OPS_READ"},
-    "POST /api/v1/operational/tasks/*/trigger":           {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
-    "POST /api/v1/operational/cutover":                   {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
-    "POST /api/v1/operational/consistency-check":         {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
+	"POST /api/v1/organization-units":            {"method": "POST", "permission": "WRITE_ORGANIZATION"},
+	"PUT /api/v1/organization-units/*":           {"method": "PUT", "permission": "UPDATE_ORGANIZATION"},
+	"POST /api/v1/organization-units/*/suspend":  {"method": "POST", "permission": "SUSPEND_ORGANIZATION"},
+	"POST /api/v1/organization-units/*/activate": {"method": "POST", "permission": "ACTIVATE_ORGANIZATION"},
+	"POST /api/v1/organization-units/*/events":   {"method": "POST", "permission": "MANAGE_ORGANIZATION_EVENTS"},
+	"POST /api/v1/organization-units/*/versions": {"method": "POST", "permission": "CREATE_TEMPORAL_VERSION"},
+	"PUT /api/v1/organization-units/*/history/*": {"method": "PUT", "permission": "UPDATE_ORGANIZATION_HISTORY"},
+	// 系统运维与监控
+	"GET /api/v1/operational/health":             {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
+	"GET /api/v1/operational/metrics":            {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
+	"GET /api/v1/operational/alerts":             {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
+	"GET /api/v1/operational/rate-limit/stats":   {"method": "GET", "permission": "SYSTEM_MONITOR_READ"},
+	"GET /api/v1/operational/tasks":              {"method": "GET", "permission": "SYSTEM_OPS_READ"},
+	"GET /api/v1/operational/tasks/status":       {"method": "GET", "permission": "SYSTEM_OPS_READ"},
+	"POST /api/v1/operational/tasks/*/trigger":   {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
+	"POST /api/v1/operational/cutover":           {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
+	"POST /api/v1/operational/consistency-check": {"method": "POST", "permission": "SYSTEM_OPS_WRITE"},
+	// Job catalog
+	"POST /api/v1/job-family-groups":            {"method": "POST", "permission": "job-catalog:write"},
+	"PUT /api/v1/job-family-groups/*":           {"method": "PUT", "permission": "job-catalog:write"},
+	"POST /api/v1/job-family-groups/*/versions": {"method": "POST", "permission": "job-catalog:write"},
+	"POST /api/v1/job-families":                 {"method": "POST", "permission": "job-catalog:write"},
+	"PUT /api/v1/job-families/*":                {"method": "PUT", "permission": "job-catalog:write"},
+	"POST /api/v1/job-families/*/versions":      {"method": "POST", "permission": "job-catalog:write"},
+	"POST /api/v1/job-roles":                    {"method": "POST", "permission": "job-catalog:write"},
+	"PUT /api/v1/job-roles/*":                   {"method": "PUT", "permission": "job-catalog:write"},
+	"POST /api/v1/job-roles/*/versions":         {"method": "POST", "permission": "job-catalog:write"},
+	"POST /api/v1/job-levels":                   {"method": "POST", "permission": "job-catalog:write"},
+	"PUT /api/v1/job-levels/*":                  {"method": "PUT", "permission": "job-catalog:write"},
+	"POST /api/v1/job-levels/*/versions":        {"method": "POST", "permission": "job-catalog:write"},
 }
 
 // 角色权限预设映射
 var RolePermissions = map[string][]string{
-    "ADMIN": {
-        "WRITE_ORGANIZATION",
-        "UPDATE_ORGANIZATION",
-        "SUSPEND_ORGANIZATION",
-        "ACTIVATE_ORGANIZATION",
-        "MANAGE_ORGANIZATION_EVENTS",
-        "CREATE_TEMPORAL_VERSION",
-        "UPDATE_ORGANIZATION_HISTORY",
-        // 系统运维与监控
-        "SYSTEM_MONITOR_READ",
-        "SYSTEM_OPS_READ",
-        "SYSTEM_OPS_WRITE",
-    },
+	"ADMIN": {
+		"WRITE_ORGANIZATION",
+		"UPDATE_ORGANIZATION",
+		"SUSPEND_ORGANIZATION",
+		"ACTIVATE_ORGANIZATION",
+		"MANAGE_ORGANIZATION_EVENTS",
+		"CREATE_TEMPORAL_VERSION",
+		"UPDATE_ORGANIZATION_HISTORY",
+		// 系统运维与监控
+		"SYSTEM_MONITOR_READ",
+		"SYSTEM_OPS_READ",
+		"SYSTEM_OPS_WRITE",
+		"job-catalog:write",
+	},
 	"MANAGER": {
 		"WRITE_ORGANIZATION",
 		"UPDATE_ORGANIZATION",
 		"SUSPEND_ORGANIZATION",
 		"ACTIVATE_ORGANIZATION",
+		"job-catalog:write",
 	},
 	"HR_STAFF": {
 		"WRITE_ORGANIZATION",
 		"UPDATE_ORGANIZATION",
+		"job-catalog:write",
 	},
 	"EMPLOYEE": {},
 	"GUEST":    {},
@@ -85,11 +101,11 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, method, pat
 
 	// 构建权限检查key
 	permissionKey := fmt.Sprintf("%s %s", method, path)
-	
+
 	// 查找匹配的权限映射
 	var requiredPermission string
 	found := false
-	
+
 	for pattern, config := range RESTAPIPermissions {
 		if p.matchPattern(pattern, permissionKey) {
 			requiredPermission = config["permission"]
@@ -129,17 +145,17 @@ func (p *PBACPermissionChecker) matchPattern(pattern, actual string) bool {
 	if !strings.Contains(pattern, "*") {
 		return pattern == actual
 	}
-	
+
 	// 分割模式和实际路径
 	parts := strings.Split(pattern, "*")
 	if len(parts) != 2 {
 		// 只支持单个通配符
 		return false
 	}
-	
+
 	prefix := parts[0]
 	suffix := parts[1]
-	
+
 	// 检查前缀和后缀是否匹配
 	return strings.HasPrefix(actual, prefix) && strings.HasSuffix(actual, suffix) && len(actual) >= len(prefix)+len(suffix)
 }
@@ -191,17 +207,17 @@ func (p *PBACPermissionChecker) MockPermissionCheck(ctx context.Context, method,
 
 	// 检查角色权限
 	permissionKey := fmt.Sprintf("%s %s", method, path)
-	
+
 	for pattern, config := range RESTAPIPermissions {
 		if p.matchPattern(pattern, permissionKey) {
 			requiredPermission := config["permission"]
-			
+
 			for _, role := range roles {
 				if p.checkRolePermission(role, requiredPermission) {
 					return nil
 				}
 			}
-			
+
 			return fmt.Errorf("access denied for: %s %s", method, path)
 		}
 	}

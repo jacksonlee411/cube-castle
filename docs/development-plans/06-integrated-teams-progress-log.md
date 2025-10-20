@@ -1,6 +1,6 @@
 # 06号文档：集成团队协作进展日志（92号计划实时记录）
 
-> **更新时间**：2025-10-19 22:50
+> **更新时间**：2025-10-20 08:30
 > **负责人**：前端团队 · 职位域
 > **关联计划**：92号《职位管理二级导航实施方案》 v2.2
 
@@ -13,7 +13,7 @@
 - ✅ **Phase 2 页面框架**：`frontend/src/features/job-catalog/` 新增职类/职种/职务/职级列表与详情页（含新增表单），共用 `CatalogTable`、`CatalogFilters`、`CatalogForm`、`CatalogVersionForm` 与 `StatusBadge` 组件。
 - ✅ **Phase 3 查询与命令集成**：`useJobCatalog.ts` 扩展 GraphQL 字段（含 `recordId`、描述、时态信息），`useJobCatalogMutations.ts` 已覆盖四层新增、更新与版本创建；详情页复用 `CatalogVersionForm` 支持“编辑当前版本”，所有操作均走统一缓存失效逻辑。
 - ✅ **Job Catalog 数据补充**：通过迁移 `047_seed_additional_job_catalog_data.sql` 新增“数据智能”域 10 组职类、10 条职种、10 条职务与 10 条职级样板数据，确保每类实体均具备真实链路（如 DATA → DATA-CORE → DATA-CORE-ENG → IC5-DATA）。
-- 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过；新增职种/职务/职级详情页更新链路断言，并补充 `src/shared/hooks/__tests__/useJobCatalogMutations.test.tsx` 覆盖 REST 更新入参与缓存失效行为；新增 `src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx` 验证 `job-catalog:create/update` 权限屏蔽逻辑；新增 Playwright 规格 `tests/e2e/job-catalog-secondary-navigation.spec.ts`（基于拦截模拟验证导航与职类 CRUD 流程）；`npm --prefix frontend run test:contract` 通过（同步移除 schema 重复字段），确认 GraphQL 契约保持一致。
+- 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过；新增职种/职务/职级详情页更新链路断言，并补充 `src/shared/hooks/__tests__/useJobCatalogMutations.test.tsx` 覆盖 REST 更新入参与缓存失效行为；新增 `src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx` 验证 `job-catalog:create/update` 权限屏蔽逻辑；Playwright 规格 `frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 已接入真实命令/查询服务，验证管理员更新成功、普通用户 403 拒绝及 If-Match 412 并发保护；`npm --prefix frontend run test:contract` 通过（同步移除 schema 重复字段），确认 GraphQL 契约保持一致。
 
 ---
 
@@ -40,8 +40,8 @@
 | 优先级 | 项目 | 负责人 | 截止 | 说明 |
 |--------|------|--------|------|------|
 | ✅ | 补充 Job Catalog 页面 Vitest（包含更新链路断言） | 前端测试代表 | 2025-10-19 | 新增职类/职种/职务/职级更新断言，确保 CI 回归覆盖 |
-| P0 | 前后端联调：REST 更新接口 + 权限校验 | 前端/后端联调小组 | 2025-10-22 | REST 更新 Hook 单测已覆盖入参与缓存；待真实命令服务验证 2xx/412 契约与权限策略 |
-| P1 | Playwright 脚本覆盖二级导航与职类 CRUD 正向路径 | QA 团队 | 2025-10-24 | 新增 `tests/e2e/job-catalog-secondary-navigation.spec.ts`（模拟后端拦截），后续需接入真实命令/查询服务验证 |
+| ✅ | 前后端联调：REST 更新接口 + 权限校验 | 前端/后端联调小组 | 2025-10-22 | 命令服务补齐 Job Catalog `PUT` 接口＋PBAC `job-catalog:write` 映射，支持 If-Match 412 并运行 `go test ./cmd/organization-command-service/...` 通过，前端 hooks 联动已可直连容器服务 |
+| ✅ | Playwright 脚本覆盖二级导航与职类 CRUD 正向路径 | QA 团队 | 2025-10-24 | `frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 接入真实后端，覆盖管理员成功编辑、普通用户 403 及 If-Match 412 场景 |
 | P1 | 文案国际化：将导航配置及表单提示接入现有 i18n 方案 | 前端国际化负责人 | 2025-10-24 | 对齐 92 号文档 2.3.1 国际化前置说明 |
 | P1 | 设计评审：确认 Job Catalog 列表/详情在新导航下的视觉稿（含 312px 左侧栏对齐） | 设计团队 | 2025-10-23 | 记录结果并更新 92 号文档 “视觉对齐” 条目 |
 

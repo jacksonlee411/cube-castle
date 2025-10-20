@@ -238,6 +238,7 @@ describe('Job Catalog pages', () => {
       expect(mutateAsync).toHaveBeenCalledTimes(1)
       expect(mutateAsync).toHaveBeenCalledWith({
         code: 'PROF',
+        recordId: 'uuid-1',
         name: '专业技术类（更新）',
         status: 'ACTIVE',
         effectiveDate: '2025-01-01',
@@ -285,6 +286,7 @@ describe('Job Catalog pages', () => {
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
         code: 'PROF-SALES',
+        recordId: 'family-1',
         jobFamilyGroupCode: 'PROF',
         name: '销售序列（更新）',
         status: 'ACTIVE',
@@ -332,6 +334,7 @@ describe('Job Catalog pages', () => {
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
         code: 'PROF-SALES-MGR',
+        recordId: 'role-1',
         jobFamilyCode: 'PROF-SALES',
         name: '销售经理',
         status: 'ACTIVE',
@@ -387,6 +390,7 @@ describe('Job Catalog pages', () => {
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
         code: 'PROF-SALES-MGR-L3',
+        recordId: 'level-1',
         jobRoleCode: 'PROF-SALES-MGR',
         levelRank: 3,
         name: '高级销售经理',

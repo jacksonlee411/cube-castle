@@ -1,211 +1,245 @@
-import { test, expect } from '@playwright/test'
-import { TOKEN_STORAGE_KEY } from '@/shared/api/auth'
+import { test, expect, Page } from '@playwright/test';
+import { TOKEN_STORAGE_KEY } from '@/shared/api/auth';
+import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
+import { updateCachedJwt } from './utils/authToken';
 
-type JobFamilyGroup = {
-  code: string
-  name: string
-  status: string
-  effectiveDate: string
-  endDate: string | null
-  description: string | null
-  recordId: string
-}
+const TENANT_ID = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
+const COMMAND_BASE_URL = E2E_CONFIG.COMMAND_API_URL.replace(/\/$/, '').replace(/\/api\/v1$/, '');
+const COMMAND_API_URL = E2E_CONFIG.COMMAND_API_URL.replace(/\/$/, '');
 
-const TENANT_ID = 'test-tenant'
-const AUTH_TOKEN = 'test-rs256-token'
+type JobFamilyGroupResponse = {
+  data?: {
+    recordId?: string;
+    RecordID?: string;
+  };
+  success?: boolean;
+};
 
-const fulfillJson = async (route: import('@playwright/test').Route, body: unknown) => {
-  await route.fulfill({
-    status: 200,
-    contentType: 'application/json',
+type TokenOptions = {
+  roles: string[];
+  userId: string;
+  duration?: string;
+};
+
+const generateCode = (): string => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let code = 'QA';
+  while (code.length < 4) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return code;
+};
+
+const createJobFamilyPayload = (code: string, nameSuffix: string) => ({
+  code,
+  name: `E2E 职类 ${nameSuffix}`,
+  status: 'ACTIVE',
+  effectiveDate: new Date().toISOString().slice(0, 10),
+  description: `Playwright E2E 初始化 (${nameSuffix})`,
+});
+
+const ADMIN_SCOPES = [
+  'job-catalog:read',
+  'job-catalog:update',
+  'job-catalog:write',
+  'position:read',
+  'position:write',
+  'org:read',
+  'org:write',
+] as const;
+
+const setAuthStorage = async (page: Page, token: string, scopes: readonly string[] = ADMIN_SCOPES) => {
+  await page.addInitScript(
+    ({ storageKey, accessToken, tenant, scopeList }) => {
+      (window as typeof window & { __SCOPES__?: string[] }).__SCOPES__ = Array.from(scopeList);
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          accessToken,
+          tokenType: 'Bearer',
+          expiresIn: 8 * 60 * 60,
+          issuedAt: Date.now(),
+          scope: Array.from(scopeList).join(' '),
+        }),
+      );
+      window.localStorage.setItem('cube-castle-tenant-id', tenant);
+    },
+    { storageKey: TOKEN_STORAGE_KEY, accessToken: token, tenant: TENANT_ID, scopeList: scopes },
+  );
+};
+
+const mintToken = async (
+  request: import('@playwright/test').APIRequestContext,
+  options: TokenOptions,
+): Promise<string> => {
+  const response = await request.post(`${COMMAND_BASE_URL}/auth/dev-token`, {
+    data: {
+      tenantId: TENANT_ID,
+      roles: options.roles,
+      userId: options.userId,
+      duration: options.duration ?? '2h',
+    },
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  expect(response.ok(), '获取开发 JWT 失败').toBeTruthy();
+  const json = (await response.json()) as { data?: { token?: string }; token?: string; accessToken?: string };
+  const token = json?.data?.token ?? json?.token ?? json?.accessToken;
+  if (!token) {
+    throw new Error('开发令牌响应缺少 token 字段');
+  }
+  return token;
+};
+
+const createJobFamilyGroup = async (
+  request: import('@playwright/test').APIRequestContext,
+  token: string,
+) => {
+  const code = generateCode();
+  const payload = createJobFamilyPayload(code, '初始化');
+  const response = await request.post(`${COMMAND_API_URL}/job-family-groups`, {
+    data: payload,
     headers: {
-      'access-control-allow-origin': '*',
+      Authorization: `Bearer ${token}`,
+      'X-Tenant-ID': TENANT_ID,
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body),
-  })
-}
+  });
 
-const setupAuthStorage = async (page: import('@playwright/test').Page) => {
-  await page.addInitScript(({ tokenStorageKey, token, tenant }) => {
-    localStorage.setItem(
-      tokenStorageKey,
-      JSON.stringify({
-        accessToken: token,
-        tokenType: 'Bearer',
-        expiresIn: 8 * 60 * 60,
-        issuedAt: Date.now(),
-      }),
-    )
-    localStorage.setItem('cube-castle-tenant-id', tenant)
-  }, {
-    tokenStorageKey: TOKEN_STORAGE_KEY,
-    token: AUTH_TOKEN,
-    tenant: TENANT_ID,
-  })
-}
+  expect(response.status(), '创建职类失败').toBe(201);
+  const body = (await response.json()) as JobFamilyGroupResponse;
+  const recordId = body.data?.recordId ?? body.data?.RecordID;
+  if (!recordId) {
+    throw new Error('创建职类响应缺少 recordId');
+  }
 
-const registerJobCatalogMocks = async (page: import('@playwright/test').Page) => {
-  const jobFamilyGroups: JobFamilyGroup[] = [
-    {
-      code: 'PROF',
-      name: '专业技术类',
-      status: 'ACTIVE',
-      effectiveDate: '2025-01-01',
-      endDate: null,
-      description: '核心职类',
-      recordId: 'record-prof',
+  return { code, recordId, name: payload.name };
+};
+
+const fetchJobFamilyGroupName = async (
+  request: import('@playwright/test').APIRequestContext,
+  token: string,
+  code: string,
+) => {
+  const query = `
+    query JobFamilyGroups($includeInactive: Boolean) {
+      jobFamilyGroups(includeInactive: $includeInactive) {
+        code
+        name
+      }
+    }
+  `;
+
+  const response = await request.post(E2E_CONFIG.GRAPHQL_API_URL, {
+    data: { query, variables: { includeInactive: true } },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'X-Tenant-ID': TENANT_ID,
+      'Content-Type': 'application/json',
     },
-    {
-      code: 'SALE',
-      name: '销售序列',
-      status: 'ACTIVE',
-      effectiveDate: '2025-02-01',
-      endDate: null,
-      description: '销售团队',
-      recordId: 'record-sale',
-    },
-  ]
+  });
 
-  await page.route('**/graphql', async route => {
-    const request = route.request()
-    if (request.method() !== 'POST') {
-      await route.continue()
-      return
-    }
+  expect(response.ok(), 'GraphQL 查询失败').toBeTruthy();
+  const json = (await response.json()) as {
+    data?: { jobFamilyGroups?: Array<{ code: string; name: string }> };
+    errors?: unknown;
+  };
+  if (json.errors) {
+    throw new Error(`GraphQL 返回错误: ${JSON.stringify(json.errors)}`);
+  }
+  const target = json.data?.jobFamilyGroups?.find(item => item.code === code);
+  return target?.name ?? null;
+};
 
-    let query = ''
-    try {
-      const payload = JSON.parse(request.postData() ?? '{}') as { query?: string }
-      query = payload.query ?? ''
-    } catch (_error) {
-      await fulfillJson(route, { data: {} })
-      return
-    }
+test.describe.serial('职位管理二级导航（真实后端权限验证）', () => {
+  let adminToken: string;
+  let viewerToken: string;
+  let jobFamilyGroup: { code: string; recordId: string; name: string };
 
-    if (query.includes('JobFamilyGroups')) {
-      await fulfillJson(route, {
-        data: {
-          jobFamilyGroups,
-        },
-      })
-      return
-    }
+  test.beforeAll(async ({ request }) => {
+    const env = await validateTestEnvironment();
+    test.skip(!env.isValid, env.errors.join('; '));
 
-    await fulfillJson(route, { data: {} })
-  })
+    const [commandHealth, graphqlHealth] = await Promise.all([
+      request.get(E2E_CONFIG.COMMAND_HEALTH_URL),
+      request.get(E2E_CONFIG.GRAPHQL_HEALTH_URL),
+    ]);
 
-  await page.route('**/api/v1/job-family-groups/**', async route => {
-    const request = route.request()
-    const url = new URL(request.url())
+    test.skip(!commandHealth.ok(), `命令服务不可用: ${E2E_CONFIG.COMMAND_HEALTH_URL}`);
+    test.skip(!graphqlHealth.ok(), `查询服务不可用: ${E2E_CONFIG.GRAPHQL_HEALTH_URL}`);
 
-    if (request.method() === 'POST' && url.pathname.endsWith('/job-family-groups')) {
-      let payload: any = {}
-      try {
-        payload = JSON.parse(request.postData() ?? '{}')
-      } catch (_) {
-        /* noop */
-      }
-      jobFamilyGroups.push({
-        code: String(payload.code ?? 'NEW1'),
-        name: String(payload.name ?? '新职类'),
-        status: String(payload.status ?? 'ACTIVE'),
-        effectiveDate: String(payload.effectiveDate ?? '2025-05-01'),
-        endDate: payload.endDate ?? null,
-        description: payload.description ?? null,
-        recordId: `record-${Date.now()}`,
-      })
-      await fulfillJson(route, { success: true, data: null })
-      return
-    }
+    adminToken = await mintToken(request, { roles: ['ADMIN', 'USER'], userId: 'job-catalog-admin' });
+    updateCachedJwt(adminToken);
 
-    if (request.method() === 'PUT') {
-      const segments = url.pathname.split('/')
-      const code = segments[segments.length - 1] ?? ''
-      let payload: any = {}
-      try {
-        payload = JSON.parse(request.postData() ?? '{}')
-      } catch (_) {
-        /* noop */
-      }
-      const target = jobFamilyGroups.find(item => item.code === code)
-      if (target) {
-        target.name = String(payload.name ?? target.name)
-        target.status = String(payload.status ?? target.status)
-        target.effectiveDate = String(payload.effectiveDate ?? target.effectiveDate)
-        target.description = payload.description ?? target.description
-      }
-      await fulfillJson(route, { success: true, data: null })
-      return
-    }
+    viewerToken = await mintToken(request, { roles: ['USER'], userId: 'job-catalog-viewer' });
+    jobFamilyGroup = await createJobFamilyGroup(request, adminToken);
+  });
 
-    await fulfillJson(route, { success: true, data: null })
-  })
-}
+  test('管理员通过 UI 编辑职类成功并触发 If-Match', async ({ page, request }) => {
+    await setAuthStorage(page, adminToken);
 
-test.describe('职位管理二级导航（模拟后端）', () => {
-  test.beforeEach(async ({ page }) => {
-    await setupAuthStorage(page)
-    await registerJobCatalogMocks(page)
-  })
+    await expect
+      .poll(async () => fetchJobFamilyGroupName(request, adminToken, jobFamilyGroup.code))
+      .toBe(jobFamilyGroup.name);
 
-  test('展示职位管理子菜单并加载职类列表', async ({ page }) => {
-    await page.goto('/positions')
+    await page.goto(`/positions/catalog/family-groups/${jobFamilyGroup.code}`);
+    await expect(page.getByRole('heading', { name: '职类详情' })).toBeVisible();
+    await expect(page.getByText(jobFamilyGroup.name)).toBeVisible();
 
-    const navigationButton = page.getByRole('button', { name: '职位管理' })
-    await expect(navigationButton).toBeVisible()
+  await page.getByRole('button', { name: '编辑当前版本' }).click();
+  await expect(page.getByRole('heading', { name: '编辑职类信息' })).toBeVisible();
 
-    const familyGroupButton = page.getByRole('button', { name: '职类管理' })
-    await familyGroupButton.click()
+  const newName = `${jobFamilyGroup.name}-已更新`;
 
-    await expect(page).toHaveURL(/positions\/catalog\/family-groups/)
-    await expect(page.getByRole('heading', { name: '职类管理' })).toBeVisible()
-    await expect(page.getByText('专业技术类')).toBeVisible()
-    await expect(page.getByText('销售序列')).toBeVisible()
+  const nameInput = page.getByPlaceholder('版本名称');
+  await nameInput.fill(newName);
 
-    const searchBox = page.getByPlaceholder('输入关键字搜索')
-    await searchBox.fill('财务')
-    await expect(page.getByText('暂无数据')).toBeVisible()
+  const [response] = await Promise.all([
+    page.waitForResponse(res => res.url().includes(`/api/v1/job-family-groups/${jobFamilyGroup.code}`) && res.request().method() === 'PUT'),
+    page.getByRole('button', { name: /保存更新|提交|确认/ }).click(),
+  ]);
 
-    await searchBox.fill('销')
-    await expect(page.getByText('销售序列')).toBeVisible()
-  })
+    expect(response.status()).toBe(200);
 
-  test('支持新增与编辑职类（模拟成功响应）', async ({ page }) => {
-    await page.goto('/positions/catalog/family-groups')
+  await expect
+    .poll(async () => fetchJobFamilyGroupName(request, adminToken, jobFamilyGroup.code))
+    .toBe(newName);
+    jobFamilyGroup = { ...jobFamilyGroup, name: newName };
+  });
 
-    await expect(page.getByRole('heading', { name: '职类管理' })).toBeVisible()
+  test('普通用户更新职类遭遇 403 禁止访问', async ({ request }) => {
+    const response = await request.put(`${COMMAND_API_URL}/job-family-groups/${jobFamilyGroup.code}`, {
+      data: {
+        name: `${jobFamilyGroup.name}-403`,
+        status: 'ACTIVE',
+        effectiveDate: new Date().toISOString().slice(0, 10),
+      },
+      headers: {
+        Authorization: `Bearer ${viewerToken}`,
+        'X-Tenant-ID': TENANT_ID,
+        'Content-Type': 'application/json',
+        'If-Match': jobFamilyGroup.recordId,
+      },
+    });
 
-    await page.getByRole('button', { name: '新增职类' }).click()
-    await expect(page.getByRole('heading', { name: '新增职类' })).toBeVisible()
+    expect(response.status()).toBe(403);
+  });
 
-    await page.getByPlaceholder('例如：PROF').fill('OPER')
-    await page.getByPlaceholder('例如：专业技术类').fill('运营管理类')
-    await page.getByLabel('生效日期').fill('2025-06-01')
-    await page.getByPlaceholder('可选：维护该职类的说明').fill('由 Playwright 创建')
+  test('If-Match 不匹配返回 412 Precondition Failed', async ({ request }) => {
+    const response = await request.put(`${COMMAND_API_URL}/job-family-groups/${jobFamilyGroup.code}`, {
+      data: {
+        name: `${jobFamilyGroup.name}-412`,
+        status: 'ACTIVE',
+        effectiveDate: new Date().toISOString().slice(0, 10),
+      },
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'X-Tenant-ID': TENANT_ID,
+        'Content-Type': 'application/json',
+        'If-Match': `${jobFamilyGroup.recordId}-stale`,
+      },
+    });
 
-    const createRequestPromise = page.waitForRequest('**/api/v1/job-family-groups')
-    await page.getByRole('button', { name: '确认创建' }).click()
-    await createRequestPromise
-
-    await expect(page.getByRole('heading', { name: '新增职类' })).not.toBeVisible()
-    await expect(page.getByText('运营管理类')).toBeVisible()
-
-    await page.getByText('专业技术类').click()
-    await expect(page).toHaveURL(/family-groups\/PROF/)
-    await expect(page.getByRole('heading', { name: '职类详情' })).toBeVisible()
-
-    await page.getByRole('button', { name: '编辑当前版本' }).click()
-    await expect(page.getByRole('heading', { name: '编辑职类信息' })).toBeVisible()
-
-    const nameInput = page.getByPlaceholder('版本名称')
-    await expect(nameInput).toHaveValue('专业技术类')
-    await nameInput.fill('专业技术类（更新）')
-
-    const updateRequestPromise = page.waitForRequest('**/api/v1/job-family-groups/PROF')
-    await page.getByRole('button', { name: '保存更新' }).click()
-    await updateRequestPromise
-
-    await expect(page.getByRole('heading', { name: '编辑职类信息' })).not.toBeVisible()
-    await expect(page.getByText('专业技术类（更新）')).toBeVisible()
-  })
-})
+    expect(response.status()).toBe(412);
+  });
+});

@@ -72,6 +72,7 @@ export const JobLevelDetail: React.FC = () => {
   const handleUpdate = async (values: CatalogVersionFormValues) => {
     await updateMutation.mutateAsync({
       code: level.code,
+      recordId: level.recordId,
       jobRoleCode: level.roleCode,
       levelRank: level.levelRank,
       ...values,

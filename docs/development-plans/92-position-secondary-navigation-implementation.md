@@ -699,7 +699,7 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [ ] Expandable.Target 自定义包装兼容性
   - [ ] 替换 `AppShell` 左侧容器为 `SidePanel`，验证 312px 宽度、滚动与分隔线
   - [ ] 权限 Hook 与 tokens 可用性（含 `hasPermission` 实装与单测）
-- [ ] 输出 POC 报告并在本文档变更历史登记
+- [x] 输出 POC 报告并在本文档变更历史登记（详见 06 号日志 2025-10-19 进展快照，并在变更历史 v2.3 记录）
 
 #### **Phase 1: 导航基础架构（1-2天）**
 
@@ -746,17 +746,17 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 - [x] 单元测试补充
   - [x] `jobCatalogPages.test.tsx` 覆盖“编辑当前版本”校验、职类/职种/职务/职级更新链路与权限控制
   - [x] `jobCatalogPermissions.test.tsx` 验证 `job-catalog:create/update` 权限屏蔽逻辑
-- [ ] 前后端联调
-  - [x] 查询测试
-  - [x] 命令测试
-  - [x] 权限验证
+- [x] 前后端联调
+  - [x] 查询测试（2025-10-20 `curl` /graphql 确认 12 条职类返回）
+  - [x] 命令测试（`POST /api/v1/job-family-groups` 返回 201，rest-service 审计日志记录）
+  - [x] 权限验证（命令服务新增 Job Catalog `PUT` 接口并映射 `job-catalog:write`，支持 If-Match 412；`go test ./cmd/organization-command-service/...` 通过）
 
 #### **Phase 4: E2E 测试与优化（2-3天）**
 
-- [ ] Playwright E2E 测试
-  - [x] 二级菜单展开/折叠（`tests/e2e/job-catalog-secondary-navigation.spec.ts` 基于拦截模拟）
-  - [x] 职类 CRUD 流程（同上，验证新增/编辑成功路径）
-  - [ ] 权限控制验证（待结合真实命令服务验证 403/412 场景）
+- [x] Playwright E2E 测试
+  - [x] 二级菜单展开/折叠（`frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 对接真实前端/命令/查询服务）
+  - [x] 职类 CRUD 流程（管理员令牌驱动 UI 编辑，确认 GraphQL 回读成功）
+  - [x] 权限控制验证（同一规格覆盖普通用户 403 禁止访问与 If-Match 412 并发保护）
 - [ ] 性能优化
   - [ ] 懒加载优化
   - [ ] 缓存策略
@@ -803,6 +803,7 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [ ] 职务列表展示正确
   - [ ] 职级列表展示正确
   - [ ] 所有页面支持时态查询（历史/未来）
+  - 备注：布局验收详细分析参见《96号文档：职位管理 Job Catalog 布局校准前置分析》（docs/development-plans/96-position-job-catalog-layout-alignment.md）
 
 - [ ] **F5 - CRUD 操作**
   - [ ] 创建职类成功并刷新列表

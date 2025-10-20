@@ -78,6 +78,7 @@ export interface CreateCatalogVersionInput {
 
 export interface UpdateJobFamilyGroupInput {
   code: string
+  recordId: string
   name: string
   status: JobCatalogStatus
   effectiveDate: string
@@ -86,6 +87,7 @@ export interface UpdateJobFamilyGroupInput {
 
 export interface UpdateJobFamilyInput {
   code: string
+  recordId: string
   jobFamilyGroupCode?: string
   name: string
   status: JobCatalogStatus
@@ -95,6 +97,7 @@ export interface UpdateJobFamilyInput {
 
 export interface UpdateJobRoleInput {
   code: string
+  recordId: string
   jobFamilyCode?: string
   name: string
   status: JobCatalogStatus
@@ -104,6 +107,7 @@ export interface UpdateJobRoleInput {
 
 export interface UpdateJobLevelInput {
   code: string
+  recordId: string
   jobRoleCode?: string
   name: string
   status: JobCatalogStatus
@@ -112,7 +116,12 @@ export interface UpdateJobLevelInput {
   levelRank?: number
 }
 
-const jsonHeaders = { 'Content-Type': 'application/json' }
+const jsonHeaders = { 'Content-Type': 'application/json' } as const
+
+const withIfMatch = (recordId: string) => ({
+  ...jsonHeaders,
+  'If-Match': recordId,
+})
 
 export const useCreateJobFamilyGroup = () => {
   const queryClient = useQueryClient()
@@ -135,11 +144,11 @@ export const useUpdateJobFamilyGroup = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: UpdateJobFamilyGroupInput) => {
-      const { code, ...payload } = input
-      logger.mutation('[JobCatalog] update job family group', { code, ...payload })
+      const { code, recordId, ...payload } = input
+      logger.mutation('[JobCatalog] update job family group', { code, ...payload, recordId })
       const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-family-groups/${code}`, {
         method: 'PUT',
-        headers: jsonHeaders,
+        headers: withIfMatch(recordId),
         body: JSON.stringify(payload),
       })
       ensureSuccess(response, '更新职类失败')
@@ -172,11 +181,11 @@ export const useUpdateJobFamily = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: UpdateJobFamilyInput) => {
-      const { code, ...payload } = input
-      logger.mutation('[JobCatalog] update job family', { code, ...payload })
+      const { code, recordId, ...payload } = input
+      logger.mutation('[JobCatalog] update job family', { code, ...payload, recordId })
       const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-families/${code}`, {
         method: 'PUT',
-        headers: jsonHeaders,
+        headers: withIfMatch(recordId),
         body: JSON.stringify(payload),
       })
       ensureSuccess(response, '更新职种失败')
@@ -211,11 +220,11 @@ export const useUpdateJobRole = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: UpdateJobRoleInput) => {
-      const { code, ...payload } = input
-      logger.mutation('[JobCatalog] update job role', { code, ...payload })
+      const { code, recordId, ...payload } = input
+      logger.mutation('[JobCatalog] update job role', { code, ...payload, recordId })
       const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-roles/${code}`, {
         method: 'PUT',
-        headers: jsonHeaders,
+        headers: withIfMatch(recordId),
         body: JSON.stringify(payload),
       })
       ensureSuccess(response, '更新职务失败')
@@ -250,11 +259,11 @@ export const useUpdateJobLevel = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: UpdateJobLevelInput) => {
-      const { code, ...payload } = input
-      logger.mutation('[JobCatalog] update job level', { code, ...payload })
+      const { code, recordId, ...payload } = input
+      logger.mutation('[JobCatalog] update job level', { code, ...payload, recordId })
       const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-levels/${code}`, {
         method: 'PUT',
-        headers: jsonHeaders,
+        headers: withIfMatch(recordId),
         body: JSON.stringify(payload),
       })
       ensureSuccess(response, '更新职级失败')

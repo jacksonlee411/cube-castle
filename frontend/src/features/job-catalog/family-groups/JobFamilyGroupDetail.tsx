@@ -65,6 +65,7 @@ export const JobFamilyGroupDetail: React.FC = () => {
   const handleUpdate = async (values: CatalogVersionFormValues) => {
     await updateMutation.mutateAsync({
       code: group.code,
+      recordId: group.recordId,
       ...values,
     })
     setEditFormOpen(false)

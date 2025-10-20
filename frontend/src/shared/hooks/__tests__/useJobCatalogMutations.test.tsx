@@ -73,6 +73,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       const input: UpdateJobFamilyGroupInput = {
         code: 'PROF',
+        recordId: 'rec-prof',
         name: '专业技术类',
         status: 'ACTIVE',
         effectiveDate: '2025-01-01',
@@ -85,7 +86,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       expect(mocks.requestMock).toHaveBeenCalledWith('/job-family-groups/PROF', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'If-Match': 'rec-prof' },
         body: JSON.stringify({
           name: '专业技术类',
           status: 'ACTIVE',
@@ -110,6 +111,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       const input: UpdateJobFamilyInput = {
         code: 'PROF-SALES',
+        recordId: 'rec-family',
         jobFamilyGroupCode: 'PROF',
         name: '销售序列',
         status: 'ACTIVE',
@@ -123,7 +125,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       expect(mocks.requestMock).toHaveBeenCalledWith('/job-families/PROF-SALES', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'If-Match': 'rec-family' },
         body: JSON.stringify({
           jobFamilyGroupCode: 'PROF',
           name: '销售序列',
@@ -149,6 +151,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       const input: UpdateJobRoleInput = {
         code: 'PROF-SALES-MGR',
+        recordId: 'rec-role',
         jobFamilyCode: 'PROF-SALES',
         name: '销售经理',
         status: 'ACTIVE',
@@ -162,7 +165,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       expect(mocks.requestMock).toHaveBeenCalledWith('/job-roles/PROF-SALES-MGR', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'If-Match': 'rec-role' },
         body: JSON.stringify({
           jobFamilyCode: 'PROF-SALES',
           name: '销售经理',
@@ -188,6 +191,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       const input: UpdateJobLevelInput = {
         code: 'PROF-SALES-MGR-L3',
+        recordId: 'rec-level',
         jobRoleCode: 'PROF-SALES-MGR',
         name: '高级销售经理',
         status: 'ACTIVE',
@@ -202,7 +206,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       expect(mocks.requestMock).toHaveBeenCalledWith('/job-levels/PROF-SALES-MGR-L3', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'If-Match': 'rec-level' },
         body: JSON.stringify({
           jobRoleCode: 'PROF-SALES-MGR',
           name: '高级销售经理',
@@ -236,6 +240,7 @@ describe('useJobCatalogMutations REST integration', () => {
 
       const input: UpdateJobFamilyGroupInput = {
         code: 'DUPL',
+        recordId: 'rec-dupl',
         name: '重复编码',
         status: 'ACTIVE',
         effectiveDate: '2025-01-01',
