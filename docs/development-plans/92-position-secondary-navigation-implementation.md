@@ -831,31 +831,31 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 ### 5.2 技术验收
 
 - [ ] **T1 - 代码质量**
-  - [ ] TypeScript 零错误编译
-  - [ ] ESLint 零告警（允许合理例外）
-  - [ ] 所有组件有 PropTypes/Interface 定义
-  - [ ] 复用率 ≥80%（通用组件）
+  - [ ] TypeScript 零错误编译（2025-10-20 执行 `npm run build`，因历史遗留的 Job Catalog/Temporal 类型错误失败，需后续统一修复）
+  - [x] ESLint 零告警（允许合理例外）（2025-10-20 执行 `npm run lint` 通过）
+  - [ ] 所有组件有 PropTypes/Interface 定义（Job Catalog 组件均为 TS 类型，需输出接口清单以完成签核）
+  - [ ] 复用率 ≥80%（通用组件）（CardContainer/SimpleStack 已复用，待提交复用率统计）
 
 - [ ] **T2 - 测试覆盖**
-  - [ ] 单元测试覆盖率 ≥80%
-  - [ ] E2E 测试通过率 100%
-  - [ ] 关键路径测试完整（创建→编辑→查询）
+  - [ ] 单元测试覆盖率 ≥80%（2025-10-20 执行 `npm run test -- --run src/features/job-catalog`，需补充整仓覆盖率报告）
+  - [ ] E2E 测试通过率 100%（Playwright `job-catalog-secondary-navigation.spec.ts`/`job-catalog-layout-baseline.spec.ts` 已通过，需汇总全量 E2E 列表）
+  - [ ] 关键路径测试完整（创建→编辑→查询）（现有 Vitest 覆盖 CRUD，需确认版本/时间维度场景）
 
 - [ ] **T3 - 性能指标**
-  - [ ] 页面初次加载 < 1秒
-  - [ ] 路由切换 < 200ms
-  - [ ] 表格渲染100行数据 < 500ms
+  - [ ] 页面初次加载 < 1秒（待执行 Lighthouse/Performance 采样）
+  - [ ] 路由切换 < 200ms（需浏览器性能录制验证）
+  - [ ] 表格渲染100行数据 < 500ms（需结合真实/Mock 数据测试）
 
 - [ ] **T4 - 契约一致性**
-  - [ ] 字段命名严格 camelCase
-  - [ ] API 调用遵循 CQRS 分离
-  - [ ] GraphQL Schema 与类型定义同步
+  - [ ] 字段命名严格 camelCase（需附 `npm run lint` contract 报告截图）
+  - [ ] API 调用遵循 CQRS 分离（前端统一使用 `unifiedGraphQLClient`/`unifiedRESTClient`，需静态检查结果）
+  - [ ] GraphQL Schema 与类型定义同步（已通过 contract tests，需在文档登记 Schema 版本）
 
 - [ ] **T5 - 无障碍验证**
-  - [ ] 使用键盘 (Tab/Enter/Space/Arrow) 可完成展开、选中与导航
-  - [ ] 屏幕阅读器朗读 `aria-expanded` / `aria-controls` 信息准确
-  - [ ] 焦点状态、hover/active 对比度符合 WCAG AA
-  - [ ] 无额外 console 无障碍警告
+  - [ ] 使用键盘 (Tab/Enter/Space/Arrow) 可完成展开、选中与导航（需补充键盘走查记录）
+  - [ ] 屏幕阅读器朗读 `aria-expanded` / `aria-controls` 信息准确（单测覆盖 aria 属性，需实际读屏验证）
+  - [ ] 焦点状态、hover/active 对比度符合 WCAG AA（需设计/QA 提供对比度报告）
+  - [ ] 无额外 console 无障碍警告（需运行 Playwright/E2E 查看日志）
 
 ### 5.3 文档验收
 
@@ -894,19 +894,19 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 
 ## 7. 后续扩展
 
-### 7.1 短期优化（1-2个月）
+### 7.1 短期优化（1-2个月，暂缓进入路线图）
 
-- [ ] 增加批量操作功能（批量导入/导出）
-- [ ] 支持拖拽排序（职类、职种优先级）
-- [ ] 添加数据校验规则（编码格式、层级关系）
-- [ ] 集成搜索高亮功能
+- [ ] 增加批量操作功能（批量导入/导出）— 暂缓，纳入路线图
+- [ ] 支持拖拽排序（职类、职种优先级）— 暂缓，纳入路线图
+- [ ] 添加数据校验规则（编码格式、层级关系）— 暂缓，纳入路线图
+- [ ] 集成搜索高亮功能 — 暂缓，纳入路线图
 
-### 7.2 长期规划（3-6个月）
+### 7.2 长期规划（3-6个月，暂缓进入路线图）
 
-- [ ] 支持多语言（国际化）
-- [ ] 与外部系统同步（Workday、SAP）
-- [ ] AI 辅助分类建议
-- [ ] 组织架构与职位体系联动可视化
+- [ ] 支持多语言（国际化）— 暂缓，交由多语言专项
+- [ ] 与外部系统同步（Workday、SAP）— 暂缓，待接口准备完毕
+- [ ] AI 辅助分类建议 — 暂缓，待数据策略明确
+- [ ] 组织架构与职位体系联动可视化 — 暂缓，待后续 UX 规划
 
 ---
 
