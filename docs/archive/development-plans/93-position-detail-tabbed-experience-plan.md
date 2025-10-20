@@ -1,10 +1,13 @@
 # 93号文档：职位详情多页签体验方案
 
-**版本**: v0.1  
-**创建日期**: 2025-10-20  
-**状态**: 草案（待评审）  
-**关联计划**: 88号《职位管理前端功能差距分析》、80号《Position Management with Temporal Tracking》、06号《集成团队协作进展日志》  
+**版本**: v0.2
+**创建日期**: 2025-10-20
+**状态**: 已完成
+**实际完成日期**: 2025-10-19（实现并通过验收）
+**关联计划**: 88号《职位管理前端功能差距分析》、80号《Position Management with Temporal Tracking》、06号《集成团队协作进展日志》
 **唯一事实来源引用**: `CLAUDE.md`、`AGENTS.md`、`docs/api/schema.graphql`、`frontend/src/features/positions/PositionTemporalPage.tsx`、`frontend/src/features/temporal/components/TemporalMasterDetailView.tsx`
+
+> **文档说明**：本文档为事后补充的实施记录。实际功能已于 2025-10-19 完成并通过验收（详见 [93号验收报告](./93-position-detail-tabbed-experience-acceptance.md)），本方案文档于 2025-10-20 补充编写以完整记录设计决策与实现细节。
 
 ## 1. 背景
 

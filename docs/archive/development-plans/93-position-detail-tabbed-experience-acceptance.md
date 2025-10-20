@@ -450,9 +450,9 @@ const handleTabChange = (tab: DetailTab) => {
 
 ### 7.1 立即执行
 
-- [ ] 更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`，登记职位详情多页签功能
-- [ ] 更新 88号文档第7节状态，标记职位详情体验对齐完成
-- [ ] 在 06号日志记录验收结果
+- [x] 更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`，登记职位详情多页签功能
+- [x] 更新 88号文档第7节状态，标记职位详情体验对齐完成
+- [x] 在 06号日志记录验收结果
 
 ### 7.2 短期优化（1-2周）
 
@@ -483,9 +483,9 @@ const handleTabChange = (tab: DetailTab) => {
 ### 8.2 相关文档
 
 - [93号文档：职位详情多页签体验方案](./93-position-detail-tabbed-experience-plan.md)
-- [88号文档：职位管理前端功能差距分析](./88-position-feature-gap-analysis.md)
-- [80号文档：Position Management with Temporal Tracking](./80-position-management-with-temporal-tracking.md)
-- [06号文档：集成团队协作进展日志](./06-integrated-teams-progress-log.md)
+- [88号文档：职位管理前端功能差距分析](../development-plans/88-position-frontend-gap-analysis.md)
+- [80号文档：Position Management with Temporal Tracking](../development-plans/80-position-management-with-temporal-tracking.md)
+- [06号文档：集成团队协作进展日志](../development-plans/06-integrated-teams-progress-log.md)
 
 ### 8.3 验收截图占位
 

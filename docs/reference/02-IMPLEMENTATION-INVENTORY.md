@@ -168,6 +168,17 @@
 - [const] computeEditDateRange — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
 - [const] formatDisplayDate — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
 - [const] normalizeInitialData — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [component] PositionTemporalPage — frontend/src/features/positions/PositionTemporalPage.tsx
+- [component] TabsNavigation — frontend/src/features/positions/PositionTemporalPage.tsx
+- [component] PositionOverviewCard — frontend/src/features/positions/components/PositionDetails.tsx
+- [component] PositionAssignmentsPanel — frontend/src/features/positions/components/PositionDetails.tsx
+- [component] PositionTransfersPanel — frontend/src/features/positions/components/PositionDetails.tsx
+- [component] PositionTimelinePanel — frontend/src/features/positions/components/PositionDetails.tsx
+- [component] PositionVersionToolbar — frontend/src/features/positions/components/versioning/VersionToolbar.tsx
+- [component] PositionVersionList — frontend/src/features/positions/components/versioning/VersionList.tsx
+- [function] sortPositionVersions — frontend/src/features/positions/timelineAdapter.ts
+- [function] createTimelineVersion — frontend/src/features/positions/timelineAdapter.ts
+- [component] AuditHistorySection — frontend/src/features/audit/components/AuditHistorySection.tsx
 - [const] deriveCodePath — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
 - [const] deriveNamePath — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
 - [const] TEMPORAL_STATUS_COLORS — frontend/src/features/temporal/constants/temporalStatus.ts

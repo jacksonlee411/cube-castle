@@ -20,7 +20,7 @@
 - `frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts`：组织版本 GraphQL 查询与 `TimelineVersion` 构造函数。
 - `frontend/src/features/temporal/components/inlineNewVersionForm/formActions.ts`：客户端插入/编辑历史记录时构造的 `TimelineVersion`。
 - `docs/api/schema.graphql`：`organizationVersions` 查询返回字段定义（`status`、`isCurrent` 等）。
-- `docs/development-plans/93-position-detail-tabbed-experience-plan.md` 第 94 行：对 `lifecycleStatus`/`businessStatus`/`dataStatus` 的复用要求（误解来源关键记录）。
+- `docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md` 第 94 行：对 `lifecycleStatus`/`businessStatus`/`dataStatus` 的复用要求（误解来源关键记录）。
 
 上述文件互为佐证，未引入第二事实来源；若未来实现有变动，应首先更新这些权威文件并同步调整本报告。
 
@@ -40,7 +40,7 @@
 
 1. **生命周期五态假设**  
    - `TimelineComponent.tsx` 顶部注释写明“基于五状态生命周期管理字段”，且 `TimelineVersion` 接口允许 `'PLANNED' | 'INACTIVE' | 'DELETED'`。  
-   - `docs/development-plans/93-position-detail-tabbed-experience-plan.md` 明确要求“复用组织模块的 `lifecycleStatus` 字段”，团队在移植职位时间轴时沿用了该设想，却未重新校验 `temporalMasterDetailApi.ts` 的实际映射逻辑（仅返回 `CURRENT/HISTORICAL`）。
+   - `docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md` 明确要求“复用组织模块的 `lifecycleStatus` 字段”，团队在移植职位时间轴时沿用了该设想，却未重新校验 `temporalMasterDetailApi.ts` 的实际映射逻辑（仅返回 `CURRENT/HISTORICAL`）。
 
 2. **业务状态复用误差**  
    - 组织模块早期在设计评审中拟定“两层状态”区分：业务启停（Active/Inactive）+ 生命周期。相关描述保留在 Plan 93 与组件注释中。  

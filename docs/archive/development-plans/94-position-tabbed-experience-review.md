@@ -27,7 +27,7 @@
 
 ### 1.1 评审对象
 
-- **文档**: `docs/development-plans/93-position-detail-tabbed-experience-plan.md` v0.1
+- **文档**: `docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md` v0.1（原提交路径：`docs/development-plans/93-position-detail-tabbed-experience-plan.md`）
 - **提交日期**: 2025-10-20
 - **状态**: 草案（待评审）
 
@@ -778,7 +778,7 @@ flowchart LR
 4. 新增：PositionInlineDetailForm 组件设计、与组织模块对比分析
 
 **复审流程**（预计0.5天）:
-1. 提交修订版 v0.2 至 `docs/development-plans/93-position-detail-tabbed-experience-plan.md`
+1. 提交修订版 v0.2 至 `docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md`
 2. 架构组复审修订版（检查3项阻断级修改是否完成）
 3. 若通过，状态改为"已批准"，可进入实施
 4. 若不通过，提出进一步修改意见
@@ -792,7 +792,7 @@ flowchart LR
 ### 8.3 后续跟踪
 
 **文档更新清单**:
-- [ ] 更新 `docs/development-plans/93-position-detail-tabbed-experience-plan.md` 至 v0.2
+- [ ] 更新 `docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md` 至 v0.2
 - [ ] 在 `docs/development-plans/06-integrated-teams-progress-log.md` 记录：
   - 93号方案评审结论（不通过，需修订）
   - 主要问题：6页签过度设计、重复造轮子

@@ -1,11 +1,12 @@
 # 88号文档：职位管理前端功能差距分析
 
-**版本**: v1.1
+**版本**: v1.2
 **创建日期**: 2025-10-17
+**最近更新**: 2025-10-20（同步93号完成状态）
 **分析方法**: 静态代码分析（MCP Browser认证问题回退）
 **对比基准**: 组织架构模块（frontend/src/features/organizations）
 **分析对象**: 职位管理模块（frontend/src/features/positions）
-**状态**: P0 完成（2025-10-17），P1 完成（版本列表上线 2025-10-18），Mock 只读提醒与 PositionForm 拆分完成（2025-10-19），P2 进入多页签重构规划阶段
+**状态**: P0 完成（2025-10-17），P1 完成（版本列表上线 2025-10-18），Mock 只读提醒与 PositionForm 拆分完成（2025-10-19），**P2 多页签重构完成（2025-10-19，93号验收通过）**
 **维护团队**: 前端团队 · 架构组
 **遵循原则**: CLAUDE.md 资源唯一性 · CQRS 分工 · API-First 契约
 
@@ -341,7 +342,7 @@ const timeline: PositionTimelineEvent[] = useMockData
 |---------|---------|---------|---------|---------|
 | **Mock 可见性** | UI 提示已上线，文档/QA 待更新 | 🟡 中 | 演示或验收易误判 | README 与 QA 脚本需补充 Mock 只读说明 |
 | **PositionForm 架构** | 主文件拆分完成，字典/Story 待补 | 🟡 中 | 扩展字段时仍需人工同步 | 需抽离岗位字典加载、补 Story/Vitest 场景 |
-| **详情交互** | 多页签方案 93 号草案中 | 🟡 中 | 大量信息堆叠，缺乏审计页签 | 待按 93 号计划实施左栏 + Tabs 重构 |
+| **详情交互** | 多页签方案已实施（93号） | 🟢 低 | 已完成左栏版本导航 + 6个页签布局 | ✅ 已完成（2025-10-19） |
 | **组件层次化** | Form 已拆分，其余组件待整理 | 🟢 低 | 目录与命名仍混杂 | 需建立 PositionDetailTabs、VersionNav 等目录结构 |
 | **测试覆盖** | 单元测试完善，E2E 待补充新流程 | 🟢 低 | 多页签落地后需新增 Playwright 用例 | 需在 tab 化完成后更新/新增脚本 |
 
@@ -360,7 +361,7 @@ const timeline: PositionTimelineEvent[] = useMockData
 
 ## 8. 补齐建议与优先级
 
-> **设计复用声明**：自 2025-10-20 起，所有与职位详情多页签布局相关的实现须遵循 93 号《职位详情多页签体验方案》（docs/development-plans/93-position-detail-tabbed-experience-plan.md）。请在执行以下建议（特别是建议3、建议4、建议5）前先查阅该文档的布局示意与组件拆分，避免重复设计或背离与组织模块的一致性要求。
+> **设计复用声明**：自 2025-10-20 起，所有与职位详情多页签布局相关的实现须遵循 93 号《职位详情多页签体验方案》（docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md）。请在执行以下建议（特别是建议3、建议4、建议5）前先查阅该文档的布局示意与组件拆分，避免重复设计或背离与组织模块的一致性要求。
 
 ### 8.1 高优先级（P0）- 核心功能缺失
 
@@ -402,7 +403,7 @@ const timeline: PositionTimelineEvent[] = useMockData
 
 **建议3：实现时态版本管理页面**
 
-- **复用指引**：实施前请参考 93 号《职位详情多页签体验方案》（docs/development-plans/93-position-detail-tabbed-experience-plan.md）第 5-7 节，直接沿用既定页签布局与版本导航模式，避免重复设计。
+- **复用指引**：实施前请参考 93 号《职位详情多页签体验方案》（docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md）第 5-7 节，直接沿用既定页签布局与版本导航模式，避免重复设计。
 - **工作项**：
   1. 扩展 PositionTemporalPage，添加"版本列表"Tab
   2. 集成 GraphQL 查询 `positionVersions(code: String!): [PositionVersion]`
@@ -433,9 +434,11 @@ const timeline: PositionTimelineEvent[] = useMockData
 
 ### 8.3 低优先级（P2）- 架构优化与多页签重构
 
-**建议5：职位详情多页签与组件层次化重构（承接 93 号计划）**
+**建议5：职位详情多页签与组件层次化重构（✅ 已完成，参考 93 号计划）**
 
-- **复用指引**：严格遵循 93 号《职位详情多页签体验方案》布局（左侧版本导航 + 右侧 Tabs），并与组织模块 `TemporalMasterDetailView` 保持一致。
+- **实施状态**：✅ 已于 2025-10-19 完成并通过验收。实现采用左侧版本导航 + 6个页签布局（概览、任职记录、调动记录、时间线、版本历史、审计历史），与组织模块 `TemporalMasterDetailView` 保持一致。
+- **实现位置**：`frontend/src/features/positions/PositionTemporalPage.tsx`
+- **验收报告**：详见 [93号验收报告](../archive/development-plans/93-position-detail-tabbed-experience-acceptance.md)
 - **交付成果**（2025-10-20 完成）：
   1. `PositionTemporalPage` 已重构为多页签容器，覆盖概览、任职、调动、时间线、版本历史、审计六个页签。
   2. 左侧复用 `TimelineComponent` 提供版本导航，版本列表支持点击高亮、includeDeleted 与 CSV 导出。
@@ -453,7 +456,7 @@ const timeline: PositionTimelineEvent[] = useMockData
 |---------|---------|-------|---------|---------|-------|-------|-------------|
 | 建议A | Mock 提示 + 文档/QA 同步 | 🔴 P0 | ⭐⭐⭐⭐ | 🟢 低 | 1-2天 | 无 | 立即 |
 | 建议B | PositionForm 架构深化（字典/Story） | 🟡 P1 | ⭐⭐⭐ | 🟡 中 | 3-4天 | 现有 API | Week 1 |
-| 建议C | 职位详情多页签重构（93 号方案） | 🟡 P1 | ⭐⭐⭐⭐ | 🟡 中 | 5-7天 | 设计评审、recordId 检查 | Week 2 |
+| 建议C | 职位详情多页签重构（93 号方案） | ✅ 已完成 | ⭐⭐⭐⭐ | 🟢 低 | 已完成 | ✅ 2025-10-19 验收通过 | ✅ 完成 |
 | 建议D | 组件层次化与测试补齐 | 🟢 P2 | ⭐⭐ | 🟢 低 | 2天 | 建议C 完成后 | Week 3 |
 
 ---
@@ -474,7 +477,7 @@ const timeline: PositionTimelineEvent[] = useMockData
 
 - Day 1-2：完成 Mock 只读提示的 README / QA 脚本同步（建议A）。
 - Day 3-5：继续拆分 `PositionForm`（字典数据源、Story、额外单测）（建议B）。
-- Day 5：完成 93 号方案设计评审（与设计/业务对齐页签命名与布局）。
+- Day 5：✅ 93 号方案已完成（2025-10-19 验收通过，实现了6个页签的多页签布局）。
 
 **Week 2（多页签实施）**：
 
@@ -484,7 +487,7 @@ const timeline: PositionTimelineEvent[] = useMockData
 **Week 3（收尾与回归）**：
 
 - Day 13-14：整理组件目录、补 Story/文档、执行建议D（层次化收尾）。
-- Day 15：复核 88/93/06 号文档、README、QA 指南，确保状态一致。
+- Day 15：复核 88/93/06 号文档、README、QA 指南，确保状态一致。（93号已完成并归档准备中）
 - Day 16-17：Playwright 全量回归、schema 校验脚本执行并记录时间戳。
 
 ### 9.3 风险与缓解
