@@ -1,8 +1,8 @@
 # 86号文档：职位任职管理 Stage 4 增量计划
 
-**版本**: v0.2 修订版  
+**版本**: v0.3 修订版  
 **创建日期**: 2025-10-17  
-**最新更新**: 2025-10-17  
+**最新更新**: 2025-10-19  
 **维护团队**: 命令服务团队 · 查询服务团队 · 前端团队 · QA 团队 · 架构组  
 **状态**: 待复审（修订稿）  
 **关联计划**: 80号职位管理方案 · 84号 Stage 2 实施计划（归档） · 85号 Stage 3 执行计划（归档） · 06号集成团队协作日志  
@@ -25,36 +25,28 @@
 |------|----------|----------|
 | Assignment 表结构 | ✅ `assignment_id` 主键、`assignment_type` (PRIMARY/SECONDARY/ACTING)、`fte`、`effective_date/end_date`、租户外键、唯一约束 | `database/migrations/047_rename_position_assignments_start_date.sql` |
 | 命令服务仓储与服务 | ✅ Create/List/Close/FTE 聚合、Fill/Vacate/Transfer 写入任职历史 | `cmd/organization-command-service/internal/repository/position_assignment_repository.go`、`position_service.go` |
-| GraphQL 查询 | ❌ `currentAssignment` / `assignmentHistory` 缺少 resolver，GraphQL 服务无法启动 | `docs/api/schema.graphql`、`cmd/organization-query-service/internal/model/models.go`、`cmd/organization-query-service/internal/repository/postgres_positions.go` |
+| GraphQL 查询 | ⚠️ `currentAssignment` / `assignmentHistory` 已上线；缺少高级过滤、时间轴聚合与性能基线 | `cmd/organization-query-service/internal/model/models.go`、`cmd/organization-query-service/internal/repository/postgres_positions.go`、`docs/archive/development-plans/89-position-crud-verification-report.md` |
 | 前端展示 | ✅ `PositionDetails` 任职列表/历史，`PositionDashboard` 读取 GraphQL 数据 | `frontend/src/features/positions` |
 | 编制统计 | ✅ `positionHeadcountStats` 复用 FTE 计算并驱动 `PositionHeadcountDashboard` | `cmd/organization-query-service`、`frontend` |
 
-> 🚨 当前阻塞：GraphQL Schema 已定义 `currentAssignment`、`assignmentHistory` 字段，但查询服务 `model.Position` 缺失 `CurrentAssignment()`、`AssignmentHistory()`，`MustParseSchema` 在启动阶段抛出 `missing method for field`，导致服务无法运行。必须先补齐 resolver 并通过集成验证，方能继续执行 Stage 4 增量工作。
+> ✅ GraphQL 查询服务可正常运行，Stage 4 聚焦在现有能力上扩展过滤、历史聚合与性能观测，而不是阻塞性修复。
 
 ---
 
-## 2.1 阻塞解除专项计划（GraphQL Resolver 修复）
+## 2.1 前置增强事项（GraphQL & 数据访问）
 
 | 项目 | 目标 | 责任团队 | 验收标准 |
 |------|------|----------|----------|
-| Resolver 实现 | 在 `cmd/organization-query-service/internal/model/models.go` 新增 `CurrentAssignment()` / `AssignmentHistory()`，按 GraphQL 契约返回数据 | 查询服务团队 | `go test ./cmd/organization-query-service/...` 通过；GraphQL 服务启动不再 panic |
-| 仓储查询 | 在 `cmd/organization-query-service/internal/repository/postgres_positions.go` 补充 `GetCurrentAssignment`、`GetAssignmentHistory`（JOIN `position_assignments`、`employees` 视需求），复用分页/租户隔离逻辑 | 查询服务团队 · 数据库团队 | SQL 查询带上 `tenant_id` 过滤，返回字段满足 schema 定义；提供单元测试覆盖 |
-| 集成验证 | 运行 `make run-dev` + GraphQL 查询 `position { currentAssignment assignmentHistory }` 验证字段可用，前端去除 Mock 回退 | 查询服务团队 · 前端团队 · QA 团队 | GraphQL 请求返回 200；Playwright `position-lifecycle.spec.ts` 通过；前端页面展示实际数据 |
-| 文档同步 | 更新 `docs/api/schema.graphql` 内联注释、实现清单（`node scripts/generate-implementation-inventory.js`）与本计划状态 | 架构组 | 文档与实现一致，进展日志反映阻塞解除时间点 |
+| GraphQL 查询增强 | 扩展 `cmd/organization-query-service/internal/model` 与 `repository/postgres_positions.go`，支持任职过滤（类型/状态/日期范围）、分页与租户隔离 | 查询服务团队 | `go test ./cmd/organization-query-service/...` 通过；`make run-dev` 下 GraphQL 查询 P95 < 250ms |
+| 时间轴整合 | 在 `GetPositionTimeline` 聚合 Acting/Primary 任职节点，输出时间顺序与标识 | 查询服务团队 · 架构组 | GraphQL `positionTimeline` 返回任职节点；前端时间轴验收通过 |
+| 事实来源同步 | 更新 `docs/api/schema.graphql` 注释，执行 `node scripts/generate-implementation-inventory.js` 并记录差异 | 架构组 | 契约、实现、实现清单一致；06 号日志留存 |
 
-### 专项实施步骤（预计 4-6 小时）
-1. **模型扩展**（1h）：在 `model.Position` 定义中新增缓存字段（如 `currentAssignmentField`、`assignmentHistoryField`），并实现 getter；确保空值返回 `nil` / 空 slice。  
-2. **仓储查询**（2h）：  
-   - 新建 `fetchCurrentAssignment` 查询：`SELECT ... FROM position_assignments pa WHERE pa.tenant_id=$1 AND pa.position_code=$2 ORDER BY pa.is_current DESC, pa.effective_date DESC LIMIT 1`。  
-   - 新建 `fetchAssignmentHistory` 查询：`SELECT ... ORDER BY pa.effective_date DESC`；必要时 JOIN 员工表以获取姓名/编号。  
-   - 在 `GetPositionByCode` 流程中并行拉取任职数据，或在 resolver 内按需懒加载。  
-3. **Resolver 绑定**（1h）：`CurrentAssignment()` 调用仓储 `GetPositionAssignments` 并返回首条 `isCurrent=true` 记录；`AssignmentHistory()` 返回所有记录，按 schema 映射。  
-4. **测试与验证**（1-2h）：  
-   - 增补 `position_resolver_test.go` 单元测试，模拟仓储返回并断言 resolver 输出。  
-   - 运行 `make run-dev`，执行 GraphQL 查询确认字段可用，更新前端页面验证真实数据展示。  
-5. **归档与同步**（0.5h）：更新本计划状态、06 号进展日志及实现清单，归档相关执行日志。
-
-> 完成上述步骤后，Stage 4 其余增量任务方可恢复推进。
+### 前置增强步骤（预计 4-6 小时）
+1. **查询扩展**（1h）：在 `repository/postgres_positions.go` 添加任职过滤、分页参数与租户校验。  
+2. **模型调整**（1h）：复用 `AssignmentHistoryField`，保证空值语义，同时承载过滤结果缓存。  
+3. **时间轴组装**（1h）：在 `GetPositionTimeline` 输出 Acting/Primary 节点与事件排序。  
+4. **性能校准**（1h）：运行 `make run-dev`，采集 GraphQL 查询延迟，生成 `reports/position-stage4/latency-baseline.md`。  
+5. **契约同步**（≤2h）：更新 GraphQL Schema 注释、实现清单并记录 06 号日志时间戳。
 
 ---
 
@@ -116,9 +108,9 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 
 | 周次 | 核心目标 | 责任团队 | 产出物 & 验收 |
 |------|----------|----------|----------------|
-| **Week 1** | 代理任职自动化 & 任职 API | 命令服务 · 数据库 · 架构 | 046 迁移、REST 端点、单元测试、审计日志 |
-| **Week 2** | 历史视图增强 & 跨租户测试 | 查询服务 · 前端 · QA | GraphQL 扩展、前端时间轴、Playwright/集成测试 |
-| **Week 3 (缓冲)** | 监控指标 & 文档归档 | 全员 | Prometheus 指标、脚本、文档同步、计划归档 |
+| **Week 1** | 代理任职自动化 & 契约对齐 | 命令服务 · 数据库 · 架构 | 048 迁移、REST `/assignments`、OpenAPI/Schema 更新、单元测试、审计日志 |
+| **Week 2** | 历史视图增强 & 跨租户测试 | 查询服务 · 前端 · QA · 运维 | GraphQL 扩展、前端时间轴、调度集成、Playwright/集成测试 |
+| **Week 3 (缓冲)** | 监控指标 & 文档归档 | 全员 | Prometheus 指标、调度运行日志、文档同步、计划归档 |
 
 每周周三风控例会、周五演示与风险复盘；重大事项写入 06 号日志。
 
@@ -126,33 +118,38 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 
 ## 6. 任务拆解
 
-### Week 1 — 代理任职自动化 & 任职 API
-- **数据库**：`046_extend_position_assignments.sql` 增加 `acting_until`, `auto_revert`, `reminder_sent_at` 等字段（含回滚脚本、演练日志）。  
-- **命令服务**：  
-  - 新增 `/positions/{code}/assignments` 系列端点（create/update/end/list），并与现有 Fill/Vacate 保持幂等。  
-  - 实现代理到期扫描器（定时任务/函数），自动将 Acting 记录转换为 Ended 并恢复主任职，记录审计。  
-  - 扩展 `SumActiveFTE` 逻辑以支持 Acting 结束后的即刻更新。  
-  - 单元测试覆盖冲突检测（主任职同时存在 Acting）、FTE 校验、自动恢复路径。  
-- **监控初步**：埋点 Prometheus Counter/Gauge，记录代理即将到期数量。
+### API 契约定义（Stage 4 增量）
+- **REST — `/api/v1/positions/{code}/assignments` 套件**（OpenAPI 将新增/更新以下条目，均要求 `position:assignments:write` 或 `position:assignments:read` 权限）：  
+  - `GET /api/v1/positions/{code}/assignments`: 查询当前与历史任职，支持 `assignmentTypes[]`、`assignmentStatus`、`asOfDate`、`includeHistorical`、分页参数。响应主体为 `PositionAssignmentListResponse`，字段沿用 Stage 2/3 输出，新增 `actingUntil`、`autoRevert`、`reminderSentAt`。  
+  - `POST /api/v1/positions/{code}/assignments`: 创建任职。请求体需提供 `employeeId`、`employeeName`、`assignmentType`、`effectiveDate`、`fte`，可选 `actingUntil`、`autoRevert`、`notes`。成功返回 201 + 新建记录。  
+  - `PATCH /api/v1/positions/{code}/assignments/{assignmentId}`: 更新任职（调整 `fte`、`actingUntil`、`autoRevert`、`notes`），返回 200。  
+  - `POST /api/v1/positions/{code}/assignments/{assignmentId}/close`: 结束任职。请求体包含 `endDate`、可选 `notes`，返回 200 并写入审计。  
+  - 所有端点必须校验租户一致性（`tenantId` header/claims），返回标准错误码：`403 JOB_CATALOG_TENANT_MISMATCH`、`409 POSITION_ASSIGNMENT_CONFLICT`、`422 POSITION_ASSIGNMENT_VALIDATION_FAILED`。
+- **GraphQL — `docs/api/schema.graphql` 增量**：  
+  - `positionAssignments(positionCode: PositionCode!, filter: PositionAssignmentFilterInput, pagination: PaginationInput, sorting: [PositionAssignmentSortInput!]): PositionAssignmentConnection!` 新增 filter 字段：`assignmentTypes: [PositionAssignmentType!]`, `status: PositionAssignmentStatus`, `dateRange: DateRangeInput`, `includeActingOnly: Boolean`.  
+  - `type PositionAssignment` 新增只读字段：`actingUntil: Date`, `autoRevert: Boolean!`, `reminderSentAt: DateTime`.  
+  - `type PositionTimelineEntry` 增补 `assignmentType: PositionAssignmentType`、`assignmentStatus: PositionAssignmentStatus`，并允许 `timelineCategory: POSITION_ASSIGNMENT`.  
+  - `type PositionAssignmentAudit`（新）用于 CSV 导出：包含 `assignmentId`, `eventType`, `effectiveDate`, `endDate`, `actor`, `changes`.  
+  - 权限要求：查询需 `position:assignments:read` scope，导出需额外 `position:assignments:audit`.
+
+### Week 1 — 代理任职自动化 & 契约对齐
+- **数据库**：交付 `048_extend_position_assignments.sql`（及回滚脚本），新增 `acting_until DATE`, `auto_revert BOOLEAN DEFAULT false`, `reminder_sent_at TIMESTAMPTZ`，并更新索引/校验。输出演练日志与延迟评估。  
+- **命令服务**：实现上述 REST 契约，对接 `PositionAssignmentRepository`，保持 Fill/Vacate 兼容，新增幂等锁与审计事件。  
+- **自动化任务**：实现代理到期扫描器（使用 `OperationalScheduler` 任务定义），支持重试、失败告警、审计写入。  
+- **单元与契约测试**：扩展 `position_handler_test.go`、`assignment_repository_test.go`，覆盖冲突/FTE 验证；新增 OpenAPI contract tests。  
+- **契约同步**：更新 `docs/api/openapi.yaml`、`docs/api/schema.graphql`，运行 `node scripts/generate-implementation-inventory.js` 并在 06 号日志记录差异。
 
 ### Week 2 — 历史视图增强 & 跨租户测试
-- **GraphQL**：  
-  - 扩展 `positionAssignments` Filter（支持 `assignmentTypes`, `status`, `dateRange`）。  
-  - 在 `positionTimeline` 中插入 Assignment 节点（含 Acting 标识）。  
-  - 输出 `PositionAssignmentAudit` 以支持 CSV 导出。  
-- **前端**：  
-  - 新增“任职历史”页签，使用时间轴组件展示主任职/代理切换；提供筛选、导出按钮。  
-  - 在 `PositionTransferDialog` 与 `PositionSummaryCards` 显示代理提醒与 FTE 总览。  
-- **QA**：  
-  - Playwright 增补 Acting 场景：创建代理 → 自动到期 → 恢复。  
-  - REST/GraphQL 跨租户测试脚本：验证 403 `JOB_CATALOG_TENANT_MISMATCH`、`POSITION_ASSIGNMENT_TENANT_MISMATCH`。  
-  - 将脚本对接 CI（`make test-integration`）。
+- **GraphQL 查询服务**：落地前置增强事项，提供过滤、分页、时间轴整合及性能基线；新增 `positionAssignmentAudit` 查询导出。  
+- **前端**：在 `frontend/src/features/positions` 新增任职历史页签、时间轴视图、过滤器与 CSV 导出；更新 `PositionTransferDialog`、`PositionSummaryCards` 展示代理提醒。  
+- **命令服务调度**：将代理恢复任务接入 `OperationalScheduler` 配置（默认每日 02:00），提供手动触发脚本与日志归档。  
+- **质量验证**：编写 Playwright 场景（代理创建→到期→恢复→时间轴验证）与 REST/GraphQL 跨租户脚本，纳入 `make test-integration`。
 
 ### Week 3 — 缓冲 & 收尾
-- 验证自动恢复任务运行（附运行日志）。  
-- 完成监控指标与告警文档（写入 `docs/development-tools/`）。  
-- 更新 80 号方案 Stage 4 勾选、06 号日志 Stage 4 小节、实现清单、API 差异报告。  
-- 将本计划归档至 `docs/archive/development-plans/86-position-assignment-stage4-plan.md`。
+- 观察自动恢复任务运行（收集调度日志、Prometheus 指标），若异常则回滚或调整。  
+- 完成监控与告警文档（`docs/development-tools/position-assignment-monitoring.md`），更新 80 号方案与 06 号日志。  
+- 整理 API 契约差异报告、实现清单、回归测试记录，并准备归档。  
+- 将计划移动至 `docs/archive/development-plans/86-position-assignment-stage4-plan.md`。
 
 ---
 
@@ -173,11 +170,11 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 
 | 风险 | 影响 | 概率 | 缓解措施 |
 |------|------|------|----------|
-| 自动恢复误触发 | 高 | 中 | 双重条件校验（到期 + 当前状态），预演演练脚本；提供回滚操作。 |
-| 任职 API 与 Fill/Vacate 冲突 | 中 | 中 | 先由 Rest API 包装现有服务，再决定是否逐步迁移；保留特性开关。 |
-| 跨租户脚本复杂 | 中 | 中 | 先在 sandbox 演练，输出脚本与结果；纳入 CI 逐步运行。 |
-| 代理扫描任务性能 | 中 | 低 | 分批处理 + 指标监控；必要时引入任务队列。 |
-| 前端时间轴复杂度 | 中 | 低 | 复用现有组件，分阶段上线（beta feature flag）。 |
+| 自动恢复误触发 | 高 | 中 | 双重条件校验（到期 + 当前状态），留存手动回滚脚本与审计确认。 |
+| 任职 API 与 Fill/Vacate 冲突 | 中 | 中 | 通过 `/assignments` 封装现有逻辑，设置特性开关逐步启用并监控审计事件。 |
+| 调度器集成不稳定 | 中 | 中 | 在 `OperationalScheduler` 引入幂等锁、失败重试、Prometheus 告警，首周每日人工巡检。 |
+| 契约漂移 | 中 | 中 | 每次变更前更新 OpenAPI/GraphQL 并执行实现清单脚本，CI 增加契约 diff 校验。 |
+| 跨租户脚本复杂 | 中 | 中 | 先在 sandbox 演练并记录结果，再纳入 CI 分阶段执行。 |
 
 ---
 
@@ -196,12 +193,12 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 
 ## 10. 交付与归档清单
 
-- [ ] 046 迁移 & 回滚脚本 + 演练日志  
+- [ ] 048 迁移 & 回滚脚本 + 演练日志  
 - [ ] 任职专用 REST API 代码与测试  
-- [ ] 代理自动恢复任务代码、日志、监控指标  
+- [ ] 代理自动恢复任务（含 `OperationalScheduler` 集成）、日志、监控指标  
 - [ ] GraphQL & 前端任职历史增强 + Playwright 场景  
 - [ ] 跨租户回归测试脚本（REST/GraphQL）及 CI 集成  
-- [ ] 文档同步（80 号 Stage 4 勾选、06 号日志、实现清单、API 差异报告、监控指南）  
+- [ ] 契约与文档同步（OpenAPI/GraphQL、实现清单、80 号 Stage 4 勾选、06 号日志、监控指南）  
 - [ ] 计划归档（完成后移动至 `docs/archive/development-plans/`）
 
 ---
@@ -210,5 +207,6 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 
 | 版本 | 日期 | 说明 | 作者 |
 |------|------|------|------|
+| v0.3 | 2025-10-19 | 新增 API 契约定义、更新迁移编号与调度集成、补充风险缓解 | 项目智能助手 |
 | v0.2 | 2025-10-17 | 根据 06 号评审意见修订，聚焦增量能力与差距分析 | 项目智能助手 |
 | v0.1 | 2025-10-17 | 初始草案（已废弃） | 项目智能助手 |
