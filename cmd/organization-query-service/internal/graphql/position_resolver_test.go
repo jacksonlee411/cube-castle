@@ -293,7 +293,7 @@ func TestResolver_PositionAssignments_ForwardsParameters(t *testing.T) {
 
 	pagination := &model.PaginationInput{Page: 1, PageSize: 10}
 	sorting := []model.PositionAssignmentSortInput{
-		{Field: "START_DATE", Direction: "ASC"},
+		{Field: "EFFECTIVE_DATE", Direction: "ASC"},
 	}
 
 	repo := &stubRepository{
@@ -309,7 +309,7 @@ func TestResolver_PositionAssignments_ForwardsParameters(t *testing.T) {
 				AssignmentTypeField:   "PRIMARY",
 				AssignmentStatusField: "ACTIVE",
 				FTEField:              1,
-				StartDateField:        now,
+				EffectiveDateField:    now,
 				IsCurrentField:        true,
 				CreatedAtField:        now,
 				UpdatedAtField:        now,

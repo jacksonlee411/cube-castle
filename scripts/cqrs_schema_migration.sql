@@ -69,12 +69,12 @@ CREATE TABLE employee_positions (
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     position_id UUID NOT NULL REFERENCES positions(id) ON DELETE CASCADE,
     tenant_id UUID NOT NULL,
-    start_date DATE NOT NULL,
+    effective_date DATE NOT NULL,
     end_date DATE,
     is_primary BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     
-    CONSTRAINT employee_positions_unique UNIQUE (employee_id, position_id, start_date)
+    CONSTRAINT employee_positions_unique UNIQUE (employee_id, position_id, effective_date)
 );
 
 -- 创建索引提升查询性能

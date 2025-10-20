@@ -544,7 +544,7 @@ type PositionAssignment {
   assignmentType: PositionAssignmentType!
   assignmentStatus: PositionAssignmentStatus!
   fte: Float!
-  startDate: Date!
+  effectiveDate: Date!
   endDate: Date
   isCurrent: Boolean!
   notes: String
@@ -981,7 +981,7 @@ input PositionAssignmentFilterInput {
 Supported assignment sorting fields.
 """
 enum PositionAssignmentSortField {
-  START_DATE
+  EFFECTIVE_DATE
   END_DATE
   CREATED_AT
 }

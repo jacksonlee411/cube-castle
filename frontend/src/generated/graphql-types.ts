@@ -507,7 +507,7 @@ export type PositionAssignment = {
   notes?: Maybe<Scalars["String"]["output"]>;
   positionCode: Scalars["PositionCode"]["output"];
   positionRecordId: Scalars["UUID"]["output"];
-  startDate: Scalars["Date"]["output"];
+  effectiveDate: Scalars["Date"]["output"];
   updatedAt: Scalars["DateTime"]["output"];
 };
 
@@ -537,8 +537,8 @@ export type PositionAssignmentFilterInput = {
 /** Supported assignment sorting fields. */
 export enum PositionAssignmentSortField {
   CREATED_AT = "CREATED_AT",
+  EFFECTIVE_DATE = "EFFECTIVE_DATE",
   END_DATE = "END_DATE",
-  START_DATE = "START_DATE",
 }
 
 /** Sorting input for assignment queries. */
@@ -1409,7 +1409,7 @@ export type PositionDetailQuery = {
       assignmentType: PositionAssignmentType;
       assignmentStatus: PositionAssignmentStatus;
       fte: number;
-      startDate: string;
+      effectiveDate: string;
       endDate?: string | null;
       isCurrent: boolean;
       notes?: string | null;
@@ -1440,7 +1440,7 @@ export type PositionDetailQuery = {
       assignmentType: PositionAssignmentType;
       assignmentStatus: PositionAssignmentStatus;
       fte: number;
-      startDate: string;
+      effectiveDate: string;
       endDate?: string | null;
       isCurrent: boolean;
       notes?: string | null;

@@ -242,7 +242,7 @@ CREATE TABLE position_assignments (
     assignment_status VARCHAR(20) NOT NULL,      -- ACTIVE, PENDING, ENDED
 
     -- 时态
-    start_date DATE NOT NULL,
+    effective_date DATE NOT NULL,
     end_date DATE,
     is_current BOOLEAN NOT NULL DEFAULT false,
 
@@ -257,13 +257,13 @@ CREATE TABLE position_assignments (
 
 ### 3.2.1 Position Assignment 时态模式定义
 
-为了与职位定义（positions）的版本管理模式互补，Position Assignment 采用**事件周期模式**：每条记录代表一次独立的任职事件，`start_date`/`end_date` 描述任职时间跨度，`is_current` 表示当前是否在任。关键规则如下：
+为了与职位定义（positions）的版本管理模式互补，Position Assignment 采用**事件周期模式**：每条记录代表一次独立的任职事件，`effective_date`/`end_date` 描述任职时间跨度，`is_current` 表示当前是否在任。关键规则如下：
 
 - **唯一事实来源**：任职数据仅存储于 `position_assignments`，`positions` 表不再保留 `current_holder_*` 等冗余字段。
 - **唯一性约束**：
   ```sql
-  -- 一个员工在同一职位的每次任职以 start_date 划分独立记录
-  UNIQUE (tenant_id, position_code, employee_id, start_date)
+  -- 一个员工在同一职位的每次任职以 effective_date 划分独立记录
+  UNIQUE (tenant_id, position_code, employee_id, effective_date)
 
   -- 当前在职记录唯一（ACTIVE 状态下 is_current=true 最多一条）
   UNIQUE (tenant_id, position_code, employee_id, is_current)
@@ -271,7 +271,7 @@ CREATE TABLE position_assignments (
   ```
 - **时间跨度有效性**：
   ```sql
-  CHECK (end_date IS NULL OR end_date > start_date)
+  CHECK (end_date IS NULL OR end_date > effective_date)
   ```
 - **asOfDate 查询语义**：
   ```sql
@@ -280,12 +280,12 @@ CREATE TABLE position_assignments (
   FROM position_assignments
   WHERE tenant_id = $1
     AND position_code = $2
-    AND start_date <= $3
+    AND effective_date <= $3
     AND (end_date IS NULL OR end_date >= $3);
   ```
 - **历史修订**：任职记录如需修订（例如更正入职日期），直接更新原记录；所有修改由 `audit_logs` 记录，避免派生额外版本链。
 - **多次任职场景**：员工多次在同一职位任职会生成多条独立记录（例如张三 2025 入职、2026 再次入职），便于统计空缺周期与任职历史。
-- **未来计划**：允许插入 `assignment_status = 'PENDING'` 的未来生效记录，`start_date` 到达时自动视为在任。
+- **未来计划**：允许插入 `assignment_status = 'PENDING'` 的未来生效记录，`effective_date` 到达时自动视为在任。
 
 该模式确保任职数据与职位定义保持一致的租户隔离、审计追踪与时态查询能力，同时避免双数据源与复杂版本链，为 Stage 2 实施提供唯一事实来源。
 
@@ -1417,7 +1417,7 @@ job-catalog:write          # 维护职位体系主数据
 - ✅ **落地条件完成**：GraphQL/REST 契约已补充 `PositionAssignment` 资源，命令服务与仓储层支持 `position_assignments` + `positions` 同事务写入与回滚。
 - ⏳ **后续迭代**：按 Stage 4 规划继续扩展多重任职（Secondary/Acting）、代理任职等高级场景。
   3. 对接员工基础数据服务，确认 `employeeId` 的唯一事实来源和授权范围。
-- **数据回填策略**：Assignment 表上线时，通过迁移脚本将现有 `positions.current_holder_*` 与 `current_assignment_type` 数据转存为首个 `assignment` 记录，并设置 `start_date = filled_date`。迁移完成后清理冗余字段，避免双写。
+- **数据回填策略**：Assignment 表上线时，通过迁移脚本将现有 `positions.current_holder_*` 与 `current_assignment_type` 数据转存为首个 `assignment` 记录，并设置 `effective_date = filled_date`。迁移完成后清理冗余字段，避免双写。
 
 ---
 

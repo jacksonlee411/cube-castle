@@ -3197,7 +3197,7 @@ components:
           description: Latest active assignment for the position, if any.
         assignmentHistory:
           type: array
-          description: Full assignment history sorted by startDate descending.
+          description: Full assignment history sorted by effectiveDate descending.
           items:
             $ref: '#/components/schemas/PositionAssignmentResource'
         status:
@@ -3433,7 +3433,7 @@ components:
         - assignmentType
         - assignmentStatus
         - fte
-        - startDate
+        - effectiveDate
         - isCurrent
         - createdAt
         - updatedAt
@@ -3466,7 +3466,7 @@ components:
           format: float
           minimum: 0
           maximum: 1
-        startDate:
+        effectiveDate:
           type: string
           format: date
         endDate:

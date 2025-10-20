@@ -72,7 +72,7 @@ export const AssignmentItem: React.FC<{ assignment: PositionAssignmentRecord; hi
         </Text>
       </Flex>
       <Text fontSize="12px" color={colors.licorice400}>
-        任职时间：{formatDateRange(assignment.startDate, assignment.endDate)} · FTE：{assignment.fte.toFixed(2)}
+        任职时间：{formatDateRange(assignment.effectiveDate, assignment.endDate)} · FTE：{assignment.fte.toFixed(2)}
       </Text>
       {assignment.notes && (
         <Text fontSize="12px" color={colors.licorice500}>

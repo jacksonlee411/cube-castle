@@ -58,7 +58,7 @@ export interface PositionAssignmentRecord {
   assignmentType: string;
   assignmentStatus: string;
   fte: number;
-  startDate: string;
+  effectiveDate: string;
   endDate?: string | null;
   isCurrent: boolean;
   notes?: string | null;

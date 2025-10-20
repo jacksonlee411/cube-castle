@@ -704,7 +704,7 @@ type PositionAssignment struct {
 	AssignmentTypeField   string     `json:"assignmentType" db:"assignment_type"`
 	AssignmentStatusField string     `json:"assignmentStatus" db:"assignment_status"`
 	FTEField              float64    `json:"fte" db:"fte"`
-	StartDateField        time.Time  `json:"startDate" db:"start_date"`
+	EffectiveDateField    time.Time  `json:"effectiveDate" db:"effective_date"`
 	EndDateField          *time.Time `json:"endDate" db:"end_date"`
 	IsCurrentField        bool       `json:"isCurrent" db:"is_current"`
 	NotesField            *string    `json:"notes" db:"notes"`
@@ -722,8 +722,8 @@ func (a PositionAssignment) EmployeeNumber() *string    { return a.EmployeeNumbe
 func (a PositionAssignment) AssignmentType() string     { return a.AssignmentTypeField }
 func (a PositionAssignment) AssignmentStatus() string   { return a.AssignmentStatusField }
 func (a PositionAssignment) Fte() float64               { return a.FTEField }
-func (a PositionAssignment) StartDate() Date {
-	return Date(a.StartDateField.Format("2006-01-02"))
+func (a PositionAssignment) EffectiveDate() Date {
+	return Date(a.EffectiveDateField.Format("2006-01-02"))
 }
 func (a PositionAssignment) EndDate() *Date {
 	if a.EndDateField == nil {

@@ -53,7 +53,7 @@ interface PositionAssignmentGraphQLNode {
   assignmentType: string;
   assignmentStatus: string;
   fte: number;
-  startDate: string;
+  effectiveDate: string;
   endDate?: string | null;
   isCurrent: boolean;
   notes?: string | null;
@@ -339,7 +339,7 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
         assignmentType
         assignmentStatus
         fte
-        startDate
+        effectiveDate
         endDate
         isCurrent
         notes
@@ -360,7 +360,7 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
       positionCode: $code
       filter: { includeHistorical: true }
       pagination: { page: 1, pageSize: 50 }
-      sorting: [{ field: START_DATE, direction: DESC }]
+      sorting: [{ field: EFFECTIVE_DATE, direction: DESC }]
     ) {
       data {
         assignmentId
@@ -372,7 +372,7 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
         assignmentType
         assignmentStatus
         fte
-        startDate
+        effectiveDate
         endDate
         isCurrent
         notes
@@ -744,7 +744,7 @@ const transformAssignmentNode = (node: PositionAssignmentGraphQLNode): PositionA
   assignmentType: node.assignmentType,
   assignmentStatus: node.assignmentStatus,
   fte: node.fte,
-  startDate: node.startDate,
+  effectiveDate: node.effectiveDate,
   endDate: node.endDate ?? undefined,
   isCurrent: node.isCurrent,
   notes: node.notes ?? undefined,

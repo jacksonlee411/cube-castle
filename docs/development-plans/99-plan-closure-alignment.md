@@ -21,12 +21,12 @@
 - `docs/development-plans/80-position-management-with-temporal-tracking.md`
 - `docs/development-plans/86-position-assignment-stage4-plan.md`
 - `docs/development-plans/87-temporal-field-naming-consistency-decision.md`
-- `docs/development-plans/88-position-frontend-gap-analysis.md` 及 `docs/development-plans/88-position-frontend-gap-analysis-review.md`
+- `docs/development-plans/88-position-frontend-gap-analysis.md` 及 `docs/archive/development-plans/88-position-frontend-gap-analysis-review.md`
 - `docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md`
 - `docs/archive/development-plans/93-position-detail-tabbed-experience-acceptance.md`
-- `docs/development-plans/95-status-fields-review.md`
+- `docs/archive/development-plans/95-status-fields-review.md`
 - `docs/development-plans/96-position-job-catalog-layout-alignment.md`
-- `docs/development-plans/06-design-review-task-assessment.md`
+- `docs/archive/development-plans/06-design-review-task-assessment.md`
 - `docs/archive/development-plans/92-position-secondary-navigation-implementation.md`
 
 ## 3. 计划现状与阻塞因素
@@ -35,11 +35,11 @@
 | --- | --- | --- | --- |
 | **80号** 职位管理方案 | 标记「Stage 2 已完成，Stage 3 已批准」；未同步 Stage 4 后续 | 需等待 Stage 4（86号）执行成果与字段命名决策（87号）后更新全局方案 | 依赖 86、87 |
 | **86号** 任职 Stage4 计划 | 状态「待复审」，GraphQL `currentAssignment/assignmentHistory` 缺失 | 先补齐查询服务 resolver 与仓储实现；待 87 号对字段命名给出结论 | 依赖 87、与 80 同步 |
-| **87号** 时态字段命名决策 | 「待决策」，高优先级 | 必须统一 `effective_date`/`start_date` 命名，更新迁移/代码/文档 | 为 80、86 的前置约束 |
+| **87号** 时态字段命名决策 | ✅ 已完成（2025-10-21） | CLI 迁移 + 代码/契约/前端同步统一为 `effective_date` | 已解除 80、86 的前置约束 |
 | **88号** 前端差距分析 | P0/P1 完成，P2 进入多页签规划 | 需等待 93 号方案定稿与 95 号结论回写 | 依赖 93、95 |
 | **93号** 方案文档 | 已归档为 v0.2（状态「已完成」） | -- | 与 88、95、06 号引用保持同步 |
 | **93号** 验收报告 | 标记 ✅ 通过，但部分回写（实现清单、06号日志）未完成 | 确认所有回写闭环后方可归档 | 需要与 93 号方案、88 号同步 |
-| **95号** Status Fields Review | 状态「进行中」，结论指出时间轴仅有 ACTIVE/INACTIVE | 需定稿并更新 93 号等文档的状态描述 | 为 93 方案、88 差距分析前置 |
+| **95号** Status Fields Review | 已归档（2025-10-20），架构决策确认不扩展五态 | 已定稿并更新 93 号文档，技术债务转P3清单 | 与 93 方案一致，不阻塞 88 号 |
 | **96号** Job Catalog 布局校准 | 文档中仍写「必须改造」，与现有实现不符 | **验证步骤见 3.2 节**，需确认改造已完成 | 依赖 92号归档、06号日志 |
 
 ### 3.1 93号方案状态更新
@@ -108,12 +108,9 @@
 
 ### 5.1 第一批次：架构决策链
 
-1. **87号**（时态字段命名决策）
-   - 目标：统一 `effective_date/start_date` 命名，提供迁移与代码更新步骤。
-   - 完成标志：
-     - 决策备忘录定稿并归档至 `docs/archive/`
-     - 相关迁移/代码修订计划落实到 86 号文档或独立变更单
-   - 完成后立即通知 86 号与 80 号负责人同步。
+1. **87号**（时态字段命名决策）— ✅ 已完成（开发环境）
+   - 结果：047 迁移 + 全栈改造合并，OpenAPI/GraphQL/前端已统一为 `effective_date`。
+   - 后续：待生产迁移执行后，将文档归档至 `docs/archive/` 并在 06 号日志记录上线验证。
 
 2. **86号**（职位任职 Stage 4 计划）
    - 前提：87 号已完成；查询服务 resolver 落地。
@@ -129,6 +126,7 @@
 4. **95号**（Status Fields Review）
    - 目标：定稿时间轴字段结论，明确当前仅有 `ACTIVE/INACTIVE` + `CURRENT/HISTORICAL`。
    - 完成标志：推送修订至 93 号方案/验收及相关文档，必要时创建后续计划处理软删除或五态扩展。
+   - 动作：✅ **已完成**（2025-10-20）——架构决策确认不扩展五态，避免过度设计；技术债务转P3清单；文档已归档。
 
 5. **93号方案**（职位详情多页签体验）
    - 前提：95 号结论已经合入。
@@ -140,7 +138,7 @@
    - 动作：✅ 已完成——文档已归档，相关引用与回写均确认闭环。
 
 7. **88号**（前端差距分析）
-   - 前提：93 号计划与验收均已闭环。
+   - 前提：93 号计划与验收均已闭环，95 号决策已明确。
    - 动作：将 P2 状态更新为「完成」，或者将剩余事项拆分到新的计划；同步引用 93、95 的最终结论。
 
 ### 5.3 第三批次：布局一致性链
@@ -156,7 +154,7 @@
 | 1 | 87 号决策讨论并定稿 | 架构组 & 数据库团队 | 决策纪要、迁移计划、代码修订任务链接 |
 | 2 | 86 号解除 GraphQL 阻塞 | 查询服务团队 | Resolver/仓储变更 PR、`go test ./cmd/organization-query-service/...` 记录 |
 | 3 | 更新 80 号方案 | 业务架构组 | Stage 3/4 进展回写、与 86 号状态一致的时间线 |
-| 4 | 95 号定稿并同步到 93/88 | 前端治理小组 | 95 号文档更新、93 号方案/验收修订、实现清单/日志引用 |
+| 4 | 95 号定稿并同步到 93/88 | 前端治理小组 | ✅ 已完成（架构决策确认不扩展五态，文档已归档） |
 | 5 | 93 号方案与验收闭环 | 职位体验小组 | ✅ 已完成（实现清单与文档引用已同步） |
 | 6 | 88 号调整状态 | 前端团队 | 文档状态更新或拆分后续计划 |
 | 7 | 96 号状态更新与归档 | 前端团队 · 设计团队 | 截图佐证、92 号归档/06 号日志引用、文档状态切换 |

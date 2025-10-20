@@ -23,7 +23,7 @@
 
 | 能力 | 当前状态 | 事实来源 |
 |------|----------|----------|
-| Assignment 表结构 | ✅ `assignment_id` 主键、`assignment_type` (PRIMARY/SECONDARY/ACTING)、`fte`、`start_date/end_date`、租户外键、唯一约束 | `database/migrations/044_create_position_assignments.sql` |
+| Assignment 表结构 | ✅ `assignment_id` 主键、`assignment_type` (PRIMARY/SECONDARY/ACTING)、`fte`、`effective_date/end_date`、租户外键、唯一约束 | `database/migrations/047_rename_position_assignments_start_date.sql` |
 | 命令服务仓储与服务 | ✅ Create/List/Close/FTE 聚合、Fill/Vacate/Transfer 写入任职历史 | `cmd/organization-command-service/internal/repository/position_assignment_repository.go`、`position_service.go` |
 | GraphQL 查询 | ❌ `currentAssignment` / `assignmentHistory` 缺少 resolver，GraphQL 服务无法启动 | `docs/api/schema.graphql`、`cmd/organization-query-service/internal/model/models.go`、`cmd/organization-query-service/internal/repository/postgres_positions.go` |
 | 前端展示 | ✅ `PositionDetails` 任职列表/历史，`PositionDashboard` 读取 GraphQL 数据 | `frontend/src/features/positions` |
@@ -45,8 +45,8 @@
 ### 专项实施步骤（预计 4-6 小时）
 1. **模型扩展**（1h）：在 `model.Position` 定义中新增缓存字段（如 `currentAssignmentField`、`assignmentHistoryField`），并实现 getter；确保空值返回 `nil` / 空 slice。  
 2. **仓储查询**（2h）：  
-   - 新建 `fetchCurrentAssignment` 查询：`SELECT ... FROM position_assignments pa WHERE pa.tenant_id=$1 AND pa.position_code=$2 ORDER BY pa.is_current DESC, pa.start_date DESC LIMIT 1`。  
-   - 新建 `fetchAssignmentHistory` 查询：`SELECT ... ORDER BY pa.start_date DESC`；必要时 JOIN 员工表以获取姓名/编号。  
+   - 新建 `fetchCurrentAssignment` 查询：`SELECT ... FROM position_assignments pa WHERE pa.tenant_id=$1 AND pa.position_code=$2 ORDER BY pa.is_current DESC, pa.effective_date DESC LIMIT 1`。  
+   - 新建 `fetchAssignmentHistory` 查询：`SELECT ... ORDER BY pa.effective_date DESC`；必要时 JOIN 员工表以获取姓名/编号。  
    - 在 `GetPositionByCode` 流程中并行拉取任职数据，或在 resolver 内按需懒加载。  
 3. **Resolver 绑定**（1h）：`CurrentAssignment()` 调用仓储 `GetPositionAssignments` 并返回首条 `isCurrent=true` 记录；`AssignmentHistory()` 返回所有记录，按 schema 映射。  
 4. **测试与验证**（1-2h）：  

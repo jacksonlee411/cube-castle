@@ -869,7 +869,7 @@ assignment_snapshot AS (
     SELECT
         pa.position_code,
         COALESCE(SUM(CASE WHEN pa.assignment_status <> 'ENDED'
-            AND pa.start_date <= $%d
+            AND pa.effective_date <= $%d
             AND (pa.end_date IS NULL OR pa.end_date > $%d)
             THEN pa.fte ELSE 0 END), 0) AS active_fte,
         MAX(CASE WHEN pa.assignment_status = 'ENDED' AND pa.end_date <= $%d THEN pa.end_date END) AS last_vacated,
@@ -1046,7 +1046,7 @@ func (r *PostgreSQLRepository) GetPositionAssignments(ctx context.Context, tenan
 		}
 		if filter.AsOfDate != nil && strings.TrimSpace(*filter.AsOfDate) != "" {
 			whereParts = append(whereParts,
-				fmt.Sprintf("(start_date <= $%d AND (end_date IS NULL OR end_date >= $%d))", argIndex, argIndex))
+				fmt.Sprintf("(effective_date <= $%d AND (end_date IS NULL OR end_date >= $%d))", argIndex, argIndex))
 			args = append(args, strings.TrimSpace(*filter.AsOfDate))
 			argIndex++
 		}
@@ -1060,15 +1060,15 @@ func (r *PostgreSQLRepository) GetPositionAssignments(ctx context.Context, tenan
 		whereClause = "WHERE " + strings.Join(whereParts, " AND ")
 	}
 
-	orderClause := "ORDER BY start_date DESC, created_at DESC"
+	orderClause := "ORDER BY effective_date DESC, created_at DESC"
 	if len(sorting) > 0 {
 		orderParts := make([]string, 0, len(sorting))
 		for _, sort := range sorting {
 			field := strings.ToUpper(strings.TrimSpace(sort.Field))
 			column := ""
 			switch field {
-			case "START_DATE":
-				column = "start_date"
+			case "START_DATE", "EFFECTIVE_DATE":
+				column = "effective_date"
 			case "END_DATE":
 				column = "end_date"
 			case "CREATED_AT":
@@ -1105,7 +1105,7 @@ SELECT
     assignment_type,
     assignment_status,
     fte,
-    start_date,
+    effective_date,
     end_date,
     is_current,
     notes,
@@ -1177,9 +1177,9 @@ func scanPositionAssignment(scanner rowScanner) (*model.PositionAssignment, erro
 		assignmentType,
 		assignmentStatus string
 		employeeNumber sql.NullString
-		fte            float64
-		startDate      time.Time
-		endDate        sql.NullTime
+	fte            float64
+	effectiveDate  time.Time
+	endDate        sql.NullTime
 		isCurrent      bool
 		notes          sql.NullString
 		createdAt      time.Time
@@ -1197,7 +1197,7 @@ func scanPositionAssignment(scanner rowScanner) (*model.PositionAssignment, erro
 		&assignmentType,
 		&assignmentStatus,
 		&fte,
-		&startDate,
+		&effectiveDate,
 		&endDate,
 		&isCurrent,
 		&notes,
@@ -1216,8 +1216,8 @@ func scanPositionAssignment(scanner rowScanner) (*model.PositionAssignment, erro
 		EmployeeNameField:     employeeName,
 		AssignmentTypeField:   assignmentType,
 		AssignmentStatusField: assignmentStatus,
-		FTEField:              fte,
-		StartDateField:        startDate,
+	FTEField:              fte,
+	EffectiveDateField:    effectiveDate,
 		IsCurrentField:        isCurrent,
 		CreatedAtField:        createdAt,
 		UpdatedAtField:        updatedAt,
@@ -1461,7 +1461,7 @@ SELECT
     assignment_type,
     assignment_status,
     fte,
-    start_date,
+    effective_date,
     end_date,
     is_current,
     notes,
@@ -1469,7 +1469,7 @@ SELECT
     updated_at
 FROM position_assignments
 WHERE tenant_id = $1 AND position_code = $2
-ORDER BY start_date DESC, created_at DESC`
+ORDER BY effective_date DESC, created_at DESC`
 
 	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code)
 	if err != nil {
