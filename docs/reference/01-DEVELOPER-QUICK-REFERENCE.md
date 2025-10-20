@@ -166,6 +166,24 @@ npx playwright show-report
 
 ---
 
+## 🗂️ Job Catalog 模块速查
+
+### 导航入口
+- 侧栏“职位管理”使用 Canvas Kit `SidePanel` + `Expandable` 组合；二级菜单包含“职位列表”“职类”“职种”“职务”“职级”五个子项。
+- 导航结构配置位于 `frontend/src/layout/navigationConfig.ts`，二级菜单逻辑集中在 `frontend/src/layout/NavigationItem.tsx`。
+- 布局基线截图存放于 `frontend/artifacts/layout/{positions-list,job-family-groups-list,job-family-group-detail}.png`，用于验证 312px 侧栏与卡片分层。
+
+### 权限与后端依赖
+- 读取菜单需 `job-catalog:read` scope；写操作分别依赖 `job-catalog:create`、`job-catalog:update`，后端 PBAC 映射详见 `docs/api/openapi.yaml`。
+- 前端复用 GraphQL 查询 `jobFamilyGroups/jobFamilies/jobRoles/jobLevels` 与 REST 命令 `/api/v1/job-*` 系列，请确保命令、查询服务均由 Docker 环境提供。
+
+### 验证脚本
+- 单元测试：`npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx`
+- 权限断言：`npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx`
+- E2E 场景：`PW_CAPTURE_LAYOUT=true PW_JWT=... PW_TENANT_ID=... npm --prefix frontend run test:e2e -- tests/e2e/job-catalog-secondary-navigation.spec.ts`
+
+---
+
 ## 🔗 端口配置参考
 
 ### 核心服务端口

@@ -14,6 +14,7 @@
 - ✅ **Phase 3 查询与命令集成**：`useJobCatalog.ts` 扩展 GraphQL 字段（含 `recordId`、描述、时态信息），`useJobCatalogMutations.ts` 已覆盖四层新增、更新与版本创建；详情页复用 `CatalogVersionForm` 支持“编辑当前版本”，所有操作均走统一缓存失效逻辑。
 - ✅ **Job Catalog 数据补充**：通过迁移 `047_seed_additional_job_catalog_data.sql` 新增“数据智能”域 10 组职类、10 条职种、10 条职务与 10 条职级样板数据，确保每类实体均具备真实链路（如 DATA → DATA-CORE → DATA-CORE-ENG → IC5-DATA）。
 - 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过；新增职种/职务/职级详情页更新链路断言，并补充 `src/shared/hooks/__tests__/useJobCatalogMutations.test.tsx` 覆盖 REST 更新入参与缓存失效行为；新增 `src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx` 验证 `job-catalog:create/update` 权限屏蔽逻辑；Playwright 规格 `frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 已接入真实命令/查询服务，验证管理员更新成功、普通用户 403 拒绝及 If-Match 412 并发保护；`npm --prefix frontend run test:contract` 通过（同步移除 schema 重复字段），确认 GraphQL 契约保持一致。
+- ✅ **文档对齐**：`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 新增 Job Catalog 模块速查段落，并发布 `docs/reference/job-catalog-navigation-guide.md`（导航说明、截图索引、权限映射），92号文档 D1/D2 验收项已勾选。
 
 ---
 
@@ -50,7 +51,8 @@
 ## 4. 风险与依赖
 
 - 🔶 **后端写接口联调**：目前新增/版本创建调用依赖 REST `/api/v1/job-*` 接口，需确认命令服务环境数据准备与 idempotency header 要求（跟踪 80 号计划接口列表）。
-- 🔶 **缓存刷新策略**：`useJobCatalogMutations` 仅做 QueryKey 级别失效；后续若新增分页/搜索参数，需要补充精细化无效化逻辑。
+- 🔶 **缓存刷新策略**：`useJobCatalogMutations` 仅做 QueryKey 级别失效；暂缓深度优化，保持监控并在新增分页/搜索参数时补充精细化逻辑。
+- 🔸 **懒加载优化**：性能指标当前满足 92 号计划 T3 要求，作为监控项保留，若首屏或路由时延回退再恢复实施。
 - 🔶 **浏览器上下文依赖**：职级详情页需从列表携带 `roleCode`（`navigate(..., { state })`），直接访问时提示缺少上下文；评估是否改为 URL 查询参数或在页面内重新推导父级信息。
 - 🔷 **权限模拟**：`useScopes` 根据本地 token scopes 推导权限；若环境未提供 `job-catalog:*` scope，需在 QA 文档中明确设置方式。
 
@@ -60,6 +62,7 @@
 
 - `useJobCatalogMutations` 已补齐更新 Hook，仍缺删除能力；对应 Phase 3 “命令测试” 条目继续跟踪。
 - 页面尚未接入国际化与空态插画，需配合设计在 Phase 4 统一收敛。
+- 性能优化（懒加载/缓存策略）暂缓执行，纳入监控清单，性能指标回退时优先恢复。
 - Playwright 场景待补充；当前仅依赖 Vitest + 手动验证。
 
 ---

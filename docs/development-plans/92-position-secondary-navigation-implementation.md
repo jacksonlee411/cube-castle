@@ -763,12 +763,12 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [x] Job Catalog 详情页信息区采用卡片分层并校准间距
   - [x] Playwright 布局截图基线（启用 `PW_CAPTURE_LAYOUT=true` 输出至 `artifacts/layout/`）
   - [x] 06号日志 P1 「设计评审」任务根据评审结论更新状态
-- [ ] 性能优化
-  - [ ] 懒加载优化
-  - [ ] 缓存策略
-- [ ] 文档更新
-  - [ ] 更新开发者快速参考
-  - [ ] 更新实现清单
+- [ ] 性能优化（暂缓执行：当前 T3 指标未触发性能缺陷，作为监控项保留）
+  - [ ] 懒加载优化（暂缓：待首屏或路由时延超出阈值时再启动）
+  - [ ] 缓存策略（暂缓：待新增分页/搜索场景带来缓存压力时再推进）
+- [x] 文档更新
+  - [x] 更新开发者快速参考（2025-10-20 补充 Job Catalog 模块速查段落）
+  - [x] 更新实现清单（2025-10-20 校验 job catalog 组件/Hook 登记）
 
 ### 4.2 时间估算
 
@@ -854,15 +854,15 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 
 ### 5.3 文档验收
 
-- [ ] **D1 - 技术文档**
-  - [ ] 更新 `02-IMPLEMENTATION-INVENTORY.md`
-  - [ ] 更新 `01-DEVELOPER-QUICK-REFERENCE.md`
-  - [ ] 组件使用说明完整
+- [x] **D1 - 技术文档**
+  - [x] 更新 `02-IMPLEMENTATION-INVENTORY.md`（2025-10-20 校验 Job Catalog 组件/Hook 条目）
+  - [x] 更新 `01-DEVELOPER-QUICK-REFERENCE.md`（新增 Job Catalog 模块速查段落）
+  - [x] 组件使用说明完整（参考 4.1「Job Catalog 页面开发」与 `docs/reference/job-catalog-navigation-guide.md`）
 
-- [ ] **D2 - 用户文档**
-  - [ ] 导航使用说明（截图）
-  - [ ] Job Catalog 管理指南
-  - [ ] 权限配置说明
+- [x] **D2 - 用户文档**
+  - [x] 导航使用说明（截图）（`frontend/artifacts/layout/*.png` 已在用户指南 §1 引用）
+  - [x] Job Catalog 管理指南（`docs/reference/job-catalog-navigation-guide.md` §2-4）
+  - [x] 权限配置说明（同上 §3）
 
 ---
 
