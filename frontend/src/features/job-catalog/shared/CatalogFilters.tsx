@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Flex } from '@workday/canvas-kit-react/layout'
+import { Flex } from '@workday/canvas-kit-react/layout'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { Checkbox } from '@workday/canvas-kit-react/checkbox'
 import { SecondaryButton } from '@workday/canvas-kit-react/button'
@@ -29,7 +29,15 @@ export const CatalogFilters: React.FC<CatalogFiltersProps> = ({
   onReset,
 }) => {
   return (
-    <Box padding={space.zero} marginBottom={space.l} display="flex" flexDirection="column" gap={space.s}>
+    <div
+      style={{
+        marginBottom: space.l,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: space.s,
+        padding: 0,
+      }}
+    >
       <Flex gap={space.s} flexWrap="wrap">
         <TextInput
           placeholder={searchPlaceholder}
@@ -54,6 +62,6 @@ export const CatalogFilters: React.FC<CatalogFiltersProps> = ({
           <SecondaryButton onClick={onReset}>重置</SecondaryButton>
         )}
       </Flex>
-    </Box>
+    </div>
   )
 }

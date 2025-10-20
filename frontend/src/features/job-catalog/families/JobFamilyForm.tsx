@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { TextArea } from '@workday/canvas-kit-react/text-area'
-import { Select } from '@workday/canvas-kit-react/select'
 import { Text } from '@workday/canvas-kit-react/text'
 import { CatalogForm } from '../shared/CatalogForm'
 import { jobCatalogStatusOptions } from '../types'
-import type { JobCatalogStatus } from '@/generated/graphql-types'
+import { JobCatalogStatus } from '@/generated/graphql-types'
 import type { CreateJobFamilyInput } from '@/shared/hooks/useJobCatalogMutations'
+import { colors } from '@workday/canvas-kit-react/tokens'
 
 interface JobFamilyFormProps {
   isOpen: boolean
@@ -20,12 +20,21 @@ const initialState = (groupCode: string): CreateJobFamilyInput => ({
   code: '',
   jobFamilyGroupCode: groupCode,
   name: '',
-  status: 'ACTIVE',
+  status: JobCatalogStatus.ACTIVE,
   effectiveDate: '',
   description: '',
 })
 
 const validateFamilyCode = (value: string) => /^[A-Z]{4,6}-[A-Z0-9]{3,6}$/.test(value)
+
+const selectStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 12px',
+  borderRadius: 8,
+  border: `1px solid ${colors.soap500}`,
+  backgroundColor: colors.frenchVanilla100,
+  fontSize: '14px',
+}
 
 export const JobFamilyForm: React.FC<JobFamilyFormProps> = ({
   isOpen,
@@ -131,16 +140,17 @@ export const JobFamilyForm: React.FC<JobFamilyFormProps> = ({
         <Text typeLevel="body.small" marginBottom="xxs">
           状态
         </Text>
-        <Select
+        <select
           value={form.status}
           onChange={event => handleChange('status', event.target.value as JobCatalogStatus)}
+          style={selectStyle}
         >
           {jobCatalogStatusOptions.map(option => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
-        </Select>
+        </select>
       </div>
 
       <div>

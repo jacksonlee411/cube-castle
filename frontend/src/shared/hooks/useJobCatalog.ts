@@ -3,6 +3,9 @@ import { graphqlEnterpriseAdapter } from '../api/graphql-enterprise-adapter'
 import { createQueryError } from '../api/queryClient'
 import type { JobCatalogStatus } from '@/generated/graphql-types'
 
+type JsonPrimitive = string | number | boolean | null
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
+
 interface JobFamilyGroupNode {
   code: string
   name: string
@@ -150,7 +153,7 @@ export const useJobFamilyGroups = (
   const queryOptions: QueryContext<JobFamilyGroupNode[]> = {
     queryKey: ['jobCatalog', 'groups', options.includeInactive ?? false, options.asOfDate ?? null],
     queryFn: async ({ signal }) => {
-      const variables: Record<string, unknown> = {}
+      const variables: Record<string, JsonValue> = {}
       if (typeof options.includeInactive === 'boolean') {
         variables.includeInactive = options.includeInactive
       }
@@ -186,7 +189,7 @@ export const useJobFamilies = (
         return []
       }
 
-      const variables: Record<string, unknown> = { groupCode }
+      const variables: Record<string, JsonValue> = { groupCode }
       if (typeof options.includeInactive === 'boolean') {
         variables.includeInactive = options.includeInactive
       }
@@ -223,7 +226,7 @@ export const useJobRoles = (
         return []
       }
 
-      const variables: Record<string, unknown> = { familyCode }
+      const variables: Record<string, JsonValue> = { familyCode }
       if (typeof options.includeInactive === 'boolean') {
         variables.includeInactive = options.includeInactive
       }
@@ -258,7 +261,7 @@ export const useJobLevels = (
         return []
       }
 
-      const variables: Record<string, unknown> = { roleCode }
+      const variables: Record<string, JsonValue> = { roleCode }
       if (typeof options.includeInactive === 'boolean') {
         variables.includeInactive = options.includeInactive
       }

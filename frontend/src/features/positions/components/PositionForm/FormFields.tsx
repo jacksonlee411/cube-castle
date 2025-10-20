@@ -4,6 +4,7 @@ import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { TextArea } from '@workday/canvas-kit-react/text-area'
 import { FormField } from '@workday/canvas-kit-react/form-field'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
+import { Text } from '@workday/canvas-kit-react/text'
 import { SimpleStack } from '../SimpleStack'
 import type { PositionFormErrors, PositionFormState, SelectOption } from './types'
 
@@ -45,6 +46,104 @@ const SELECT_ERROR_STYLE: React.CSSProperties = {
   borderColor: colors.cinnamon500,
 }
 
+const toErrorType = (message?: string): 'error' | undefined => (message ? 'error' : undefined)
+
+const renderFieldHint = (error?: string, helperText?: string) => {
+  const hint = error ?? helperText
+  return hint ? <FormField.Hint>{hint}</FormField.Hint> : null
+}
+
+interface TextInputFieldProps {
+  label: string
+  value: string
+  onChange: React.ChangeEventHandler<HTMLInputElement>
+  placeholder?: string
+  type?: React.HTMLInputTypeAttribute
+  error?: string
+  helperText?: string
+  isRequired?: boolean
+  disabled?: boolean
+  min?: number | string
+  step?: number | string
+}
+
+const TextInputField: React.FC<TextInputFieldProps> = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type,
+  error,
+  helperText,
+  isRequired,
+  disabled,
+  min,
+  step,
+}) => (
+  <FormField isRequired={isRequired} error={toErrorType(error)}>
+    <FormField.Label>{label}</FormField.Label>
+    <FormField.Field>
+      <FormField.Input
+        as={TextInput}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        type={type}
+        disabled={disabled}
+        min={min}
+        step={step}
+      />
+      {renderFieldHint(error, helperText)}
+    </FormField.Field>
+  </FormField>
+)
+
+interface TextAreaFieldProps {
+  label: string
+  value: string
+  onChange: React.ChangeEventHandler<HTMLTextAreaElement>
+  placeholder?: string
+  error?: string
+  helperText?: string
+  isRequired?: boolean
+  disabled?: boolean
+  rows?: number
+}
+
+const TextAreaField: React.FC<TextAreaFieldProps> = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  error,
+  helperText,
+  isRequired,
+  disabled,
+  rows = 3,
+}) => (
+  <FormField isRequired={isRequired} error={toErrorType(error)}>
+    <FormField.Label>{label}</FormField.Label>
+    <FormField.Field>
+      <FormField.Input
+        as={TextArea}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        rows={rows}
+      />
+      {renderFieldHint(error, helperText)}
+    </FormField.Field>
+  </FormField>
+)
+
+const responsiveRowStyle = {
+  flexDirection: 'column',
+  '@media (min-width: 768px)': {
+    flexDirection: 'row',
+  },
+} as const
+
 const SelectField: React.FC<SelectFieldProps> = ({
   label,
   value,
@@ -55,7 +154,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   isRequired,
   disabled,
 }) => (
-  <FormField isRequired={isRequired} error={error}>
+  <FormField isRequired={isRequired} error={toErrorType(error)}>
     <FormField.Label>{label}</FormField.Label>
     <FormField.Field>
       <select
@@ -70,7 +169,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
           </option>
         ))}
       </select>
-      {error ? <FormField.Error>{error}</FormField.Error> : helperText ? <FormField.HelperText>{helperText}</FormField.HelperText> : null}
+      {renderFieldHint(error, helperText)}
     </FormField.Field>
   </FormField>
 )
@@ -100,55 +199,50 @@ const renderTextInputs = (
   onChange: PositionFormFieldsProps['onChange'],
 ) => (
   <>
-    <TextInput
+    <TextInputField
       label="职位名称"
       value={state.title}
       onChange={onChange('title')}
       placeholder="请输入职位名称"
       isRequired
-      error={Boolean(errors.title)}
-      helperText={errors.title}
+      error={errors.title}
     />
 
-    <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
-      <TextInput
+    <Flex gap={space.m} cs={responsiveRowStyle}>
+      <TextInputField
         label="职类编码"
         value={state.jobFamilyGroupCode}
         onChange={onChange('jobFamilyGroupCode')}
         placeholder="例如：PROF"
         isRequired
-        error={Boolean(errors.jobFamilyGroupCode)}
-        helperText={errors.jobFamilyGroupCode}
+        error={errors.jobFamilyGroupCode}
       />
-      <TextInput
+      <TextInputField
         label="职种编码"
         value={state.jobFamilyCode}
         onChange={onChange('jobFamilyCode')}
         placeholder="例如：PROF-IT"
         isRequired
-        error={Boolean(errors.jobFamilyCode)}
-        helperText={errors.jobFamilyCode}
+        error={errors.jobFamilyCode}
       />
     </Flex>
 
-    <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
-      <TextInput
+    <Flex gap={space.m} cs={responsiveRowStyle}>
+      <TextInputField
         label="职务编码"
         value={state.jobRoleCode}
         onChange={onChange('jobRoleCode')}
         placeholder="例如：PROF-IT-BKND"
         isRequired
-        error={Boolean(errors.jobRoleCode)}
-        helperText={errors.jobRoleCode}
+        error={errors.jobRoleCode}
       />
-      <TextInput
+      <TextInputField
         label="职级编码"
         value={state.jobLevelCode}
         onChange={onChange('jobLevelCode')}
         placeholder="例如：P5"
         isRequired
-        error={Boolean(errors.jobLevelCode)}
-        helperText={errors.jobLevelCode}
+        error={errors.jobLevelCode}
       />
     </Flex>
   </>
@@ -172,26 +266,23 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
 }) => (
   <SimpleStack gap={space.xs}>
     {!catalogAvailable && (
-      <FormField>
-        <FormField.HelperText>
-          未能加载岗位字典数据，可手动填写编码；请稍后刷新页面。
-        </FormField.HelperText>
-      </FormField>
+      <Text typeLevel="subtext.small" color={colors.cinnamon500}>
+        未能加载岗位字典数据，可手动填写编码；请稍后刷新页面。
+      </Text>
     )}
 
     {catalogAvailable ? (
       <>
-        <TextInput
+        <TextInputField
           label="职位名称"
           value={state.title}
           onChange={onChange('title')}
           placeholder="请输入职位名称"
           isRequired
-          error={Boolean(errors.title)}
-          helperText={errors.title}
+          error={errors.title}
         />
 
-        <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
+        <Flex gap={space.m} cs={responsiveRowStyle}>
           <SelectField
             label="职类"
             value={state.jobFamilyGroupCode}
@@ -213,7 +304,7 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
           />
         </Flex>
 
-        <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
+        <Flex gap={space.m} cs={responsiveRowStyle}>
           <SelectField
             label="职务"
             value={state.jobRoleCode}
@@ -240,27 +331,25 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
       renderTextInputs(state, errors, onChange)
     )}
 
-    <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
-      <TextInput
+    <Flex gap={space.m} cs={responsiveRowStyle}>
+      <TextInputField
         label="所属组织编码"
         value={state.organizationCode}
         onChange={onChange('organizationCode')}
         placeholder="7 位数字"
         isRequired
-        error={Boolean(errors.organizationCode)}
-        helperText={errors.organizationCode}
+        error={errors.organizationCode}
       />
-      <TextInput
+      <TextInputField
         label="汇报职位编码（可选）"
         value={state.reportsToPositionCode}
         onChange={onChange('reportsToPositionCode')}
         placeholder="例如：P1000001"
-        error={Boolean(errors.reportsToPositionCode)}
-        helperText={errors.reportsToPositionCode}
+        error={errors.reportsToPositionCode}
       />
     </Flex>
 
-    <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
+    <Flex gap={space.m} cs={responsiveRowStyle}>
       <Box flex={1}>
         <SelectField
           label="职位类型"
@@ -281,44 +370,42 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
           isRequired
         />
       </Box>
-      <TextInput
+      <TextInputField
         label="职级等级（可选）"
         value={state.gradeLevel}
         onChange={onChange('gradeLevel')}
         placeholder="例如：L3"
+        error={errors.gradeLevel}
       />
     </Flex>
 
-    <Flex gap={space.m} flexDirection={{ base: 'column', md: 'row' }}>
-      <TextInput
+    <Flex gap={space.m} cs={responsiveRowStyle}>
+      <TextInputField
         type="number"
         label="编制容量 (FTE)"
         value={state.headcountCapacity}
         onChange={onChange('headcountCapacity')}
         placeholder="例如：1 或 2.5"
         isRequired
-        error={Boolean(errors.headcountCapacity)}
-        helperText={errors.headcountCapacity}
+        error={errors.headcountCapacity}
       />
-      <TextInput
+      <TextInputField
         type="date"
         label={isVersion ? '版本生效日期' : '生效日期'}
         value={state.effectiveDate}
         onChange={onChange('effectiveDate')}
         isRequired
-        error={Boolean(errors.effectiveDate)}
-        helperText={errors.effectiveDate}
+        error={errors.effectiveDate}
       />
     </Flex>
 
-    <TextArea
+    <TextAreaField
       label="操作原因"
       value={state.operationReason}
-      onChange={onChange('operationReason')}
+      onChange={onChange('operationReason') as React.ChangeEventHandler<HTMLTextAreaElement>}
       placeholder={isVersion ? '请说明创建新版本的原因' : '请说明此次操作的原因'}
       isRequired
-      error={Boolean(errors.operationReason)}
-      helperText={errors.operationReason}
+      error={errors.operationReason}
       rows={3}
     />
   </SimpleStack>

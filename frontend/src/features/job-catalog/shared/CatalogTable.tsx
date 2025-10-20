@@ -4,14 +4,16 @@ import { Text } from '@workday/canvas-kit-react/text'
 import { LoadingDots } from '@workday/canvas-kit-react/loading-dots'
 import { colors } from '@workday/canvas-kit-react/tokens'
 
-export interface CatalogTableColumn<T> {
-  key: keyof T | string
+type ColumnKey<T extends object> = Extract<keyof T, string>
+
+export interface CatalogTableColumn<T extends object> {
+  key: ColumnKey<T>
   label: string
   width?: string
   render?: (item: T) => React.ReactNode
 }
 
-export interface CatalogTableProps<T> {
+export interface CatalogTableProps<T extends object> {
   data: T[]
   columns: CatalogTableColumn<T>[]
   isLoading?: boolean
@@ -19,7 +21,7 @@ export interface CatalogTableProps<T> {
   emptyMessage?: string
 }
 
-export const CatalogTable = <T extends Record<string, unknown>>({
+export const CatalogTable = <T extends object>({
   data,
   columns,
   isLoading = false,
@@ -31,7 +33,7 @@ export const CatalogTable = <T extends Record<string, unknown>>({
       return column.render(item)
     }
 
-    const value = column.key in item ? (item[column.key as keyof T] as unknown) : undefined
+    const value = column.key in item ? (item[column.key] as unknown) : undefined
     if (value === null || value === undefined) {
       return '—'
     }
@@ -46,7 +48,7 @@ export const CatalogTable = <T extends Record<string, unknown>>({
       <Table.Head>
         <Table.Row>
           {columns.map(column => (
-            <Table.Header key={column.key as string} width={column.width}>
+            <Table.Header key={column.key} width={column.width}>
               {column.label}
             </Table.Header>
           ))}
@@ -69,7 +71,8 @@ export const CatalogTable = <T extends Record<string, unknown>>({
           </Table.Row>
         ) : (
           data.map((item, index) => {
-            const key = (item.code as string | undefined) ?? String(index)
+            const codeCandidate = (item as Record<string, unknown>).code
+            const key = typeof codeCandidate === 'string' || typeof codeCandidate === 'number' ? String(codeCandidate) : String(index)
             const clickable = typeof onRowClick === 'function'
             return (
               <Table.Row
@@ -78,7 +81,7 @@ export const CatalogTable = <T extends Record<string, unknown>>({
                 style={clickable ? { cursor: 'pointer' } : undefined}
               >
                 {columns.map(column => (
-                  <Table.Cell key={`${key}-${column.key as string}`}>{renderCell(item, column)}</Table.Cell>
+                  <Table.Cell key={`${key}-${column.key}`}>{renderCell(item, column)}</Table.Cell>
                 ))}
               </Table.Row>
             )

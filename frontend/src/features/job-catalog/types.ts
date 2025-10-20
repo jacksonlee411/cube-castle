@@ -1,4 +1,4 @@
-import type { JobCatalogStatus } from '@/generated/graphql-types'
+import { JobCatalogStatus } from '@/generated/graphql-types'
 
 export interface CatalogStatusMeta {
   label: string
@@ -8,13 +8,13 @@ export interface CatalogStatusMeta {
 }
 
 const STATUS_META: Record<JobCatalogStatus, CatalogStatusMeta> = {
-  ACTIVE: {
+  [JobCatalogStatus.ACTIVE]: {
     label: '启用',
     color: '#056449',
     background: '#D6F0E4',
     border: '#6CD2A4',
   },
-  INACTIVE: {
+  [JobCatalogStatus.INACTIVE]: {
     label: '停用',
     color: '#C43737',
     background: '#F9DAD8',
@@ -25,8 +25,8 @@ const STATUS_META: Record<JobCatalogStatus, CatalogStatusMeta> = {
 export const getCatalogStatusMeta = (status: JobCatalogStatus): CatalogStatusMeta => STATUS_META[status]
 
 export const jobCatalogStatusOptions: Array<{ value: JobCatalogStatus; label: string }> = [
-  { value: 'ACTIVE', label: '启用' },
-  { value: 'INACTIVE', label: '停用' },
+  { value: JobCatalogStatus.ACTIVE, label: '启用' },
+  { value: JobCatalogStatus.INACTIVE, label: '停用' },
 ]
 
 export const formatISODate = (value?: string | null): string => {

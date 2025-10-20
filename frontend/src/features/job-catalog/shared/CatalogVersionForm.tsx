@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { TextArea } from '@workday/canvas-kit-react/text-area'
-import { Select } from '@workday/canvas-kit-react/select'
-import type { JobCatalogStatus } from '@/generated/graphql-types'
+import { JobCatalogStatus } from '@/generated/graphql-types'
 import { CatalogForm } from './CatalogForm'
 import { jobCatalogStatusOptions } from '../types'
+import { colors } from '@workday/canvas-kit-react/tokens'
 
 export interface CatalogVersionFormValues {
   name: string
@@ -28,9 +28,18 @@ interface CatalogVersionFormProps {
 
 const initialState: CatalogVersionFormValues = {
   name: '',
-  status: 'ACTIVE',
+  status: JobCatalogStatus.ACTIVE,
   effectiveDate: '',
   description: '',
+}
+
+const selectStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 12px',
+  borderRadius: 8,
+  border: `1px solid ${colors.soap500}`,
+  backgroundColor: colors.frenchVanilla100,
+  fontSize: '14px',
 }
 
 export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
@@ -52,7 +61,7 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
     if (isOpen) {
       setForm({
         name: initialName ?? '',
-        status: initialStatus ?? 'ACTIVE',
+        status: initialStatus ?? JobCatalogStatus.ACTIVE,
         effectiveDate: initialEffectiveDate ?? '',
         description: initialDescription ?? '',
       })
@@ -109,16 +118,17 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
         />
       </div>
       <div>
-        <Select
+        <select
           value={form.status}
           onChange={event => handleChange('status', event.target.value as JobCatalogStatus)}
+          style={selectStyle}
         >
           {jobCatalogStatusOptions.map(option => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
-        </Select>
+        </select>
       </div>
       <div>
         <TextArea

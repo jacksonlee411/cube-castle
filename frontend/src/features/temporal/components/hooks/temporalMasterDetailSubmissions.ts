@@ -17,6 +17,21 @@ import type {
   TemporalMasterDetailStateUpdaters,
 } from './temporalMasterDetailTypes';
 
+const allowedLifecycleStatuses: ReadonlyArray<TimelineVersion['lifecycleStatus']> = [
+  'PLANNED',
+  'CURRENT',
+  'HISTORICAL',
+];
+
+const normalizeLifecycleStatus = (
+  value?: string | null,
+): TimelineVersion['lifecycleStatus'] => {
+  if (value && allowedLifecycleStatuses.includes(value as TimelineVersion['lifecycleStatus'])) {
+    return value as TimelineVersion['lifecycleStatus'];
+  }
+  return 'HISTORICAL';
+};
+
 export const createHandleFormSubmit = ({
   notifications,
   setters,
@@ -139,7 +154,8 @@ export const createHandleHistoryEditSubmit = ({
 
     setIsSubmitting(true);
     try {
-      const lifecycleStatus = updateData.lifecycleStatus ?? 'CURRENT';
+      const lifecycleStatusRaw = updateData.lifecycleStatus ?? 'CURRENT';
+      const lifecycleStatus = normalizeLifecycleStatus(lifecycleStatusRaw);
 
       if (!organizationCode) {
         notifyError('缺少组织编码，无法更新历史记录');
@@ -153,7 +169,7 @@ export const createHandleHistoryEditSubmit = ({
         {
           name: updateData.name,
         unitType: updateData.unitType,
-        lifecycleStatus,
+        lifecycleStatus: lifecycleStatusRaw,
         description: updateData.description ?? null,
         effectiveDate: updateData.effectiveDate,
         parentCode: normalizeParentCode.forAPI(updateData.parentCode),

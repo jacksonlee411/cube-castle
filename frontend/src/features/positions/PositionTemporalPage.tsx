@@ -321,20 +321,20 @@ export const PositionTemporalPage: React.FC = () => {
               <>
                 <PrimaryButton
                   size="small"
-                  variant={activeForm === 'edit' ? 'inverse' : 'primary'}
+                  variant={activeForm === 'edit' ? 'inverse' : undefined}
                   onClick={() => setActiveForm(prev => (prev === 'edit' ? 'none' : 'edit'))}
                   data-testid="position-edit-button"
                 >
                   {activeForm === 'edit' ? '收起编辑' : '编辑职位'}
                 </PrimaryButton>
-                <PrimaryButton
+                <SecondaryButton
                   size="small"
-                  variant={activeForm === 'version' ? 'inverse' : 'secondary'}
+                  variant={activeForm === 'version' ? 'inverse' : undefined}
                   onClick={() => setActiveForm(prev => (prev === 'version' ? 'none' : 'version'))}
                   data-testid="position-version-button"
                 >
                   {activeForm === 'version' ? '收起版本表单' : '新增时态版本'}
-                </PrimaryButton>
+                </SecondaryButton>
               </>
             )}
           </Flex>

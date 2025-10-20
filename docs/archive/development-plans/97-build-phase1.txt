@@ -1,0 +1,176 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/features/job-catalog/levels/JobLevelList.tsx(155,19): error TS2322: Type '{ children: Element[]; value: string; onChange: (event: ChangeEvent<HTMLInputElement>) => void; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & SelectProps & Partial<{ shouldVirtualize: boolean; mode: "multiple" | "single"; returnFocusRef: RefObject<any> | undefined; ... 19 more ...; onChange(event: ChangeEvent<...>): void; }> & { ...; } & { ...; } & PropsWithModel<...>'.
+  Property 'disabled' does not exist on type 'IntrinsicAttributes & SelectProps & Partial<{ shouldVirtualize: boolean; mode: "multiple" | "single"; returnFocusRef: RefObject<any> | undefined; ... 19 more ...; onChange(event: ChangeEvent<...>): void; }> & { ...; } & { ...; } & PropsWithModel<...>'.
+src/features/job-catalog/levels/JobLevelList.tsx(166,19): error TS2322: Type '{ children: Element[]; value: string; onChange: (event: ChangeEvent<HTMLInputElement>) => void; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & SelectProps & Partial<{ shouldVirtualize: boolean; mode: "multiple" | "single"; returnFocusRef: RefObject<any> | undefined; ... 19 more ...; onChange(event: ChangeEvent<...>): void; }> & { ...; } & { ...; } & PropsWithModel<...>'.
+  Property 'disabled' does not exist on type 'IntrinsicAttributes & SelectProps & Partial<{ shouldVirtualize: boolean; mode: "multiple" | "single"; returnFocusRef: RefObject<any> | undefined; ... 19 more ...; onChange(event: ChangeEvent<...>): void; }> & { ...; } & { ...; } & PropsWithModel<...>'.
+src/features/job-catalog/roles/JobRoleList.tsx(133,19): error TS2322: Type '{ children: Element[]; value: string; onChange: (event: ChangeEvent<HTMLInputElement>) => void; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & SelectProps & Partial<{ shouldVirtualize: boolean; mode: "multiple" | "single"; returnFocusRef: RefObject<any> | undefined; ... 19 more ...; onChange(event: ChangeEvent<...>): void; }> & { ...; } & { ...; } & PropsWithModel<...>'.
+  Property 'disabled' does not exist on type 'IntrinsicAttributes & SelectProps & Partial<{ shouldVirtualize: boolean; mode: "multiple" | "single"; returnFocusRef: RefObject<any> | undefined; ... 19 more ...; onChange(event: ChangeEvent<...>): void; }> & { ...; } & { ...; } & PropsWithModel<...>'.
+src/features/job-catalog/shared/CatalogFilters.tsx(32,6): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: BackgroundStyleProps & BorderColorStyleProps & BorderLineStyleProps & BorderRadiusStyleProps & ... 14 more ... & { ...; }): JSX.Element', gave the following error.
+    Property 'as' is missing in type '{ children: Element; padding: "0"; marginBottom: "2rem"; display: "flex"; flexDirection: string; gap: "1rem"; }' but required in type '{ as: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: PropsWithoutAs<BackgroundStyleProps & BorderColorStyleProps & BorderLineStyleProps & BorderRadiusStyleProps & ... 11 more ... & CSProps, "div">): JSX.Element', gave the following error.
+    Type '{ children: Element; padding: "0"; marginBottom: "2rem"; display: "flex"; flexDirection: string; gap: "1rem"; }' is not assignable to type 'IntrinsicAttributes & BackgroundStyleProps & BorderColorStyleProps & BorderLineStyleProps & ... 14 more ... & { ...; }'.
+      Property 'flexDirection' does not exist on type 'IntrinsicAttributes & BackgroundStyleProps & BorderColorStyleProps & BorderLineStyleProps & ... 14 more ... & { ...; }'.
+src/features/job-catalog/shared/CatalogForm.tsx(58,31): error TS2322: Type '{ children: Element; model: { state: { stackRef: RefObject<HTMLDivElement>; targetRef: RefObject<HTMLButtonElement>; ... 4 more ...; visibility: "hidden" | "visible"; }; events: { ...; }; }; onClose: () => void; closeOnEscape: true; closeOnOverlayClick: true; }' is not assignable to type 'IntrinsicAttributes & DialogProps & Partial<{ returnFocusRef: RefObject<any> | undefined; initialFocusRef: RefObject<any> | undefined; id: string; initialVisibility: Visibility; }> & { ...; } & { ...; } & PropsWithModel<...> & PropsWithModel<...>'.
+  Property 'onClose' does not exist on type 'IntrinsicAttributes & DialogProps & Partial<{ returnFocusRef: RefObject<any> | undefined; initialFocusRef: RefObject<any> | undefined; id: string; initialVisibility: Visibility; }> & { ...; } & { ...; } & PropsWithModel<...> & PropsWithModel<...>'.
+src/features/positions/PositionTemporalPage.tsx(324,19): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: PrimaryButtonProps & Omit<any, "as" | keyof PrimaryButtonProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type '"inverse" | "primary"' is not assignable to type '"inverse" | undefined'.
+      Type '"primary"' is not assignable to type '"inverse"'.
+  Overload 2 of 2, '(props: PropsWithoutAs<PrimaryButtonProps, "button">): JSX.Element', gave the following error.
+    Type '"inverse" | "primary"' is not assignable to type '"inverse" | undefined'.
+      Type '"primary"' is not assignable to type '"inverse"'.
+src/features/positions/PositionTemporalPage.tsx(332,19): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: PrimaryButtonProps & Omit<any, "as" | keyof PrimaryButtonProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type '"inverse" | "secondary"' is not assignable to type '"inverse" | undefined'.
+      Type '"secondary"' is not assignable to type '"inverse"'.
+  Overload 2 of 2, '(props: PropsWithoutAs<PrimaryButtonProps, "button">): JSX.Element', gave the following error.
+    Type '"inverse" | "secondary"' is not assignable to type '"inverse" | undefined'.
+      Type '"secondary"' is not assignable to type '"inverse"'.
+src/features/positions/__tests__/PositionTemporalPage.test.tsx(3,1): error TS6133: 'React' is declared but its value is never read.
+src/features/positions/components/PositionForm/FormFields.tsx(58,38): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: FormFieldProps & Partial<{ error: "error" | "alert" | undefined; id: string; isRequired: boolean; orientation: "vertical" | "horizontalStart" | "horizontalEnd"; }> & Omit<...> & { ...; } & PropsWithModel<...> & { ...; }): JSX.Element', gave the following error.
+    Type 'string | undefined' is not assignable to type '"error" | "alert" | undefined'.
+      Type 'string' is not assignable to type '"error" | "alert" | undefined'.
+  Overload 2 of 2, '(props: FormFieldProps & Partial<{ error: "error" | "alert" | undefined; id: string; isRequired: boolean; orientation: "vertical" | "horizontalStart" | "horizontalEnd"; }> & Omit<...> & { ...; } & PropsWithModel<...>): JSX.Element', gave the following error.
+    Type 'string | undefined' is not assignable to type '"error" | "alert" | undefined'.
+      Type 'string' is not assignable to type '"error" | "alert" | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(73,27): error TS2339: Property 'Error' does not exist on type 'ElementComponentM<"div", FormFieldProps & Partial<{ error: "error" | "alert" | undefined; id: string; isRequired: boolean; orientation: "vertical" | "horizontalStart" | "horizontalEnd"; }>, { ...; }> & { ...; }'.
+src/features/positions/components/PositionForm/FormFields.tsx(73,52): error TS2339: Property 'Error' does not exist on type 'ElementComponentM<"div", FormFieldProps & Partial<{ error: "error" | "alert" | undefined; id: string; isRequired: boolean; orientation: "vertical" | "horizontalStart" | "horizontalEnd"; }>, { ...; }> & { ...; }'.
+src/features/positions/components/PositionForm/FormFields.tsx(73,85): error TS2339: Property 'HelperText' does not exist on type 'ElementComponentM<"div", FormFieldProps & Partial<{ error: "error" | "alert" | undefined; id: string; isRequired: boolean; orientation: "vertical" | "horizontalStart" | "horizontalEnd"; }>, { ...; }> & { ...; }'.
+src/features/positions/components/PositionForm/FormFields.tsx(73,120): error TS2339: Property 'HelperText' does not exist on type 'ElementComponentM<"div", FormFieldProps & Partial<{ error: "error" | "alert" | undefined; id: string; isRequired: boolean; orientation: "vertical" | "horizontalStart" | "horizontalEnd"; }>, { ...; }> & { ...; }'.
+src/features/positions/components/PositionForm/FormFields.tsx(109,7): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(113,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: Omit<BoxProps, "display"> & FlexStyleProps & Omit<any, "as" | "content" | "color" | "children" | "fill" | "background" | "left" | "right" | ... 139 more ... | keyof FlexStyleProps> & { ...; } & { ...; }): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<Omit<BoxProps, "display"> & FlexStyleProps, "div">): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(120,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(129,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(134,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: Omit<BoxProps, "display"> & FlexStyleProps & Omit<any, "as" | "content" | "color" | "children" | "fill" | "background" | "left" | "right" | ... 139 more ... | keyof FlexStyleProps> & { ...; } & { ...; }): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<Omit<BoxProps, "display"> & FlexStyleProps, "div">): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(141,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(150,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(176,20): error TS2339: Property 'HelperText' does not exist on type 'ElementComponentM<"div", FormFieldProps & Partial<{ error: "error" | "alert" | undefined; id: string; isRequired: boolean; orientation: "vertical" | "horizontalStart" | "horizontalEnd"; }>, { ...; }> & { ...; }'.
+src/features/positions/components/PositionForm/FormFields.tsx(178,21): error TS2339: Property 'HelperText' does not exist on type 'ElementComponentM<"div", FormFieldProps & Partial<{ error: "error" | "alert" | undefined; id: string; isRequired: boolean; orientation: "vertical" | "horizontalStart" | "horizontalEnd"; }>, { ...; }> & { ...; }'.
+src/features/positions/components/PositionForm/FormFields.tsx(190,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(194,29): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: Omit<BoxProps, "display"> & FlexStyleProps & Omit<any, "as" | "content" | "color" | "children" | "fill" | "background" | "left" | "right" | ... 139 more ... | keyof FlexStyleProps> & { ...; } & { ...; }): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<Omit<BoxProps, "display"> & FlexStyleProps, "div">): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(216,29): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: Omit<BoxProps, "display"> & FlexStyleProps & Omit<any, "as" | "content" | "color" | "children" | "fill" | "background" | "left" | "right" | ... 139 more ... | keyof FlexStyleProps> & { ...; } & { ...; }): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<Omit<BoxProps, "display"> & FlexStyleProps, "div">): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(243,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: Omit<BoxProps, "display"> & FlexStyleProps & Omit<any, "as" | "content" | "color" | "children" | "fill" | "background" | "left" | "right" | ... 139 more ... | keyof FlexStyleProps> & { ...; } & { ...; }): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<Omit<BoxProps, "display"> & FlexStyleProps, "div">): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(250,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(258,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(263,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: Omit<BoxProps, "display"> & FlexStyleProps & Omit<any, "as" | "content" | "color" | "children" | "fill" | "background" | "left" | "right" | ... 139 more ... | keyof FlexStyleProps> & { ...; } & { ...; }): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<Omit<BoxProps, "display"> & FlexStyleProps, "div">): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(284,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Property 'as' is missing in type '{ label: string; value: string; onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void; placeholder: string; }' but required in type '{ as: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type '{ label: string; value: string; onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void; placeholder: string; }' is not assignable to type 'IntrinsicAttributes & TextInputProps & Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "as" | keyof TextInputProps> & { ...; }'.
+      Property 'label' does not exist on type 'IntrinsicAttributes & TextInputProps & Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "as" | keyof TextInputProps> & { ...; }'.
+src/features/positions/components/PositionForm/FormFields.tsx(292,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: Omit<BoxProps, "display"> & FlexStyleProps & Omit<any, "as" | "content" | "color" | "children" | "fill" | "background" | "left" | "right" | ... 139 more ... | keyof FlexStyleProps> & { ...; } & { ...; }): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<Omit<BoxProps, "display"> & FlexStyleProps, "div">): JSX.Element', gave the following error.
+    Type '{ base: string; md: string; }' is not assignable to type 'FlexDirection | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(300,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(309,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps & Omit<any, "as" | keyof TextInputProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextInputProps, "input">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/FormFields.tsx(320,7): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextAreaProps & Omit<any, "as" | keyof TextAreaProps> & { ref?: ((instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)) | ... 262 more ... | undefined; } & { ...; }): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+  Overload 2 of 2, '(props: PropsWithoutAs<TextAreaProps, "textarea">): JSX.Element', gave the following error.
+    Type 'boolean' is not assignable to type 'ErrorType | undefined'.
+src/features/positions/components/PositionForm/PositionFormFields.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+src/features/positions/components/PositionForm/PositionFormFields.stories.tsx(31,16): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts(172,9): error TS2322: Type '"INACTIVE" | "PLANNED" | "DELETED" | "CURRENT" | "HISTORICAL"' is not assignable to type '"PLANNED" | "CURRENT" | "HISTORICAL" | undefined'.
+  Type '"INACTIVE"' is not assignable to type '"PLANNED" | "CURRENT" | "HISTORICAL" | undefined'.
+src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts(179,26): error TS2345: Argument of type '(prev: TimelineVersion | null) => TimelineVersion | { name: string; unitType: string; lifecycleStatus: "INACTIVE" | "PLANNED" | "DELETED" | "CURRENT" | "HISTORICAL"; ... 22 more ...; deletion_reason?: string | ... 1 more ... | undefined; } | null' is not assignable to parameter of type 'SetStateAction<TimelineVersion | null>'.
+  Type '(prev: TimelineVersion | null) => TimelineVersion | { name: string; unitType: string; lifecycleStatus: "INACTIVE" | "PLANNED" | "DELETED" | "CURRENT" | "HISTORICAL"; ... 22 more ...; deletion_reason?: string | ... 1 more ... | undefined; } | null' is not assignable to type '(prevState: TimelineVersion | null) => TimelineVersion | null'.
+    Type 'TimelineVersion | { name: string; unitType: string; lifecycleStatus: "INACTIVE" | "PLANNED" | "DELETED" | "CURRENT" | "HISTORICAL"; description: string | undefined; ... 21 more ...; deletion_reason?: string | ... 1 more ... | undefined; } | null' is not assignable to type 'TimelineVersion | null'.
+      Type '{ name: string; unitType: string; lifecycleStatus: "INACTIVE" | "PLANNED" | "DELETED" | "CURRENT" | "HISTORICAL"; description: string | undefined; parentCode: string | undefined; ... 20 more ...; deletion_reason?: string | null; }' is not assignable to type 'TimelineVersion'.
+        Types of property 'lifecycleStatus' are incompatible.
+          Type '"INACTIVE" | "PLANNED" | "DELETED" | "CURRENT" | "HISTORICAL"' is not assignable to type '"PLANNED" | "CURRENT" | "HISTORICAL" | undefined'.
+            Type '"INACTIVE"' is not assignable to type '"PLANNED" | "CURRENT" | "HISTORICAL" | undefined'.
+src/shared/hooks/useEnterprisePositions.ts(671,15): error TS2339: Property 'sorting' does not exist on type 'VacantPositionsQueryVariables'.
+src/shared/hooks/useEnterprisePositions.ts(791,5): error TS2345: Argument of type 'PositionsQueryVariables' is not assignable to parameter of type 'Record<string, JsonValue>'.
+  Property 'filter' is incompatible with index signature.
+    Type 'Record<string, unknown>' is not assignable to type 'JsonValue'.
+      Type 'Record<string, unknown>' is missing the following properties from type 'JsonValue[]': length, pop, push, concat, and 29 more.
+src/shared/hooks/useEnterprisePositions.ts(882,5): error TS2345: Argument of type 'VacantPositionsQueryVariables' is not assignable to parameter of type 'Record<string, JsonValue>'.
+  Property 'filter' is incompatible with index signature.
+    Type 'Record<string, unknown>' is not assignable to type 'JsonValue'.
+      Type 'Record<string, unknown>' is missing the following properties from type 'JsonValue[]': length, pop, push, concat, and 29 more.
+src/shared/hooks/useJobCatalog.ts(163,9): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'Record<string, JsonValue>'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'JsonValue'.
+src/shared/hooks/useJobCatalog.ts(199,9): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'Record<string, JsonValue>'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'JsonValue'.
+src/shared/hooks/useJobCatalog.ts(236,9): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'Record<string, JsonValue>'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'JsonValue'.
+src/shared/hooks/useJobCatalog.ts(271,9): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'Record<string, JsonValue>'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'JsonValue'.
+src/shared/hooks/usePositionMutations.ts(62,42): error TS2554: Expected 2 arguments, but got 1.
+src/shared/hooks/usePositionMutations.ts(200,19): error TS2554: Expected 2 arguments, but got 1.

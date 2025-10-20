@@ -1,0 +1,6 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/features/positions/components/PositionForm/PositionFormFields.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+src/features/positions/components/PositionForm/PositionFormFields.stories.tsx(31,16): error TS7006: Parameter 'Story' implicitly has an 'any' type.

@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { PrimaryButton } from '@workday/canvas-kit-react/button'
-import { Select } from '@workday/canvas-kit-react/select'
-import { space } from '@workday/canvas-kit-react/tokens'
+import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { useAuth } from '@/shared/auth/hooks'
 import { useJobFamilyGroups, useJobFamilies, useJobRoles } from '@/shared/hooks/useJobCatalog'
 import { useCreateJobRole } from '@/shared/hooks/useJobCatalogMutations'
@@ -15,6 +14,15 @@ import { formatISODate } from '../types'
 import { JobRoleForm } from './JobRoleForm'
 import { SimpleStack } from '@/features/positions/components/SimpleStack'
 import { CardContainer } from '@/shared/components/CardContainer'
+
+const inlineSelectStyle: React.CSSProperties = {
+  minWidth: '180px',
+  padding: '8px 12px',
+  borderRadius: 8,
+  border: `1px solid ${colors.soap500}`,
+  backgroundColor: colors.frenchVanilla100,
+  fontSize: '14px',
+}
 
 export const JobRoleList: React.FC = () => {
   const { hasPermission } = useAuth()
@@ -113,31 +121,37 @@ export const JobRoleList: React.FC = () => {
             onAsOfDateChange={setAsOfDate}
             extraFilters={
               <Flex gap="s">
-                <Select
+                <select
                   value={groupCode}
                   onChange={event => {
                     const value = event.target.value
                     setGroupCode(value)
                     setFamilyCode('')
                   }}
+                  style={inlineSelectStyle}
                 >
                   {groupOptions.map(option => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
-                </Select>
-                <Select
+                </select>
+                <select
                   value={familyCode}
                   onChange={event => setFamilyCode(event.target.value)}
                   disabled={!groupCode}
+                  style={{
+                    ...inlineSelectStyle,
+                    backgroundColor: !groupCode ? colors.soap100 : colors.frenchVanilla100,
+                    color: !groupCode ? colors.licorice400 : undefined,
+                  }}
                 >
                   {familyOptions.map(option => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
-                </Select>
+                </select>
               </Flex>
             }
             onReset={() => {

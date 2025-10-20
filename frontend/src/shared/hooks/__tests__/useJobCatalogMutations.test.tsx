@@ -12,6 +12,7 @@ import {
   type UpdateJobRoleInput,
   type UpdateJobLevelInput,
 } from '../useJobCatalogMutations'
+import { JobCatalogStatus } from '@/generated/graphql-types'
 
 const mocks = vi.hoisted(() => ({
   requestMock: vi.fn(),
@@ -75,7 +76,7 @@ describe('useJobCatalogMutations REST integration', () => {
         code: 'PROF',
         recordId: 'rec-prof',
         name: '专业技术类',
-        status: 'ACTIVE',
+        status: JobCatalogStatus.ACTIVE,
         effectiveDate: '2025-01-01',
         description: '描述',
       }
@@ -89,7 +90,7 @@ describe('useJobCatalogMutations REST integration', () => {
         headers: { 'Content-Type': 'application/json', 'If-Match': 'rec-prof' },
         body: JSON.stringify({
           name: '专业技术类',
-          status: 'ACTIVE',
+          status: JobCatalogStatus.ACTIVE,
           effectiveDate: '2025-01-01',
           description: '描述',
         }),
@@ -114,7 +115,7 @@ describe('useJobCatalogMutations REST integration', () => {
         recordId: 'rec-family',
         jobFamilyGroupCode: 'PROF',
         name: '销售序列',
-        status: 'ACTIVE',
+        status: JobCatalogStatus.ACTIVE,
         effectiveDate: '2025-01-10',
         description: '描述',
       }
@@ -129,7 +130,7 @@ describe('useJobCatalogMutations REST integration', () => {
         body: JSON.stringify({
           jobFamilyGroupCode: 'PROF',
           name: '销售序列',
-          status: 'ACTIVE',
+          status: JobCatalogStatus.ACTIVE,
           effectiveDate: '2025-01-10',
           description: '描述',
         }),
@@ -154,7 +155,7 @@ describe('useJobCatalogMutations REST integration', () => {
         recordId: 'rec-role',
         jobFamilyCode: 'PROF-SALES',
         name: '销售经理',
-        status: 'ACTIVE',
+        status: JobCatalogStatus.ACTIVE,
         effectiveDate: '2025-02-01',
         description: '负责销售',
       }
@@ -169,7 +170,7 @@ describe('useJobCatalogMutations REST integration', () => {
         body: JSON.stringify({
           jobFamilyCode: 'PROF-SALES',
           name: '销售经理',
-          status: 'ACTIVE',
+          status: JobCatalogStatus.ACTIVE,
           effectiveDate: '2025-02-01',
           description: '负责销售',
         }),
@@ -194,7 +195,7 @@ describe('useJobCatalogMutations REST integration', () => {
         recordId: 'rec-level',
         jobRoleCode: 'PROF-SALES-MGR',
         name: '高级销售经理',
-        status: 'ACTIVE',
+        status: JobCatalogStatus.ACTIVE,
         effectiveDate: '2025-03-01',
         description: '关键岗位',
         levelRank: 3,
@@ -210,7 +211,7 @@ describe('useJobCatalogMutations REST integration', () => {
         body: JSON.stringify({
           jobRoleCode: 'PROF-SALES-MGR',
           name: '高级销售经理',
-          status: 'ACTIVE',
+          status: JobCatalogStatus.ACTIVE,
           effectiveDate: '2025-03-01',
           description: '关键岗位',
           levelRank: 3,
@@ -242,7 +243,7 @@ describe('useJobCatalogMutations REST integration', () => {
         code: 'DUPL',
         recordId: 'rec-dupl',
         name: '重复编码',
-        status: 'ACTIVE',
+        status: JobCatalogStatus.ACTIVE,
         effectiveDate: '2025-01-01',
       }
 

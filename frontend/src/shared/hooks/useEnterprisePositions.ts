@@ -239,6 +239,9 @@ interface NormalizedPositionHeadcountParams {
   includeSubordinates: boolean;
 }
 
+type JsonPrimitive = string | number | boolean | null
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
+
 type PositionsQueryVariables = {
   pagination: {
     page: number;
@@ -246,7 +249,7 @@ type PositionsQueryVariables = {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   };
-  filter?: Record<string, unknown>;
+  filter?: Record<string, JsonValue>;
 };
 
 type VacantPositionsQueryVariables = {
@@ -254,7 +257,11 @@ type VacantPositionsQueryVariables = {
     page: number;
     pageSize: number;
   };
-  filter?: Record<string, unknown>;
+  filter?: Record<string, JsonValue>;
+  sorting?: Array<{
+    field: VacantPositionSortField;
+    direction: 'ASC' | 'DESC';
+  }>;
 };
 
 const POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
@@ -591,7 +598,7 @@ const normalizeHeadcountParams = (
 });
 
 const buildGraphQLVariables = (params: NormalizedPositionQueryParams) => {
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, JsonValue> = {};
 
   if (params.status) {
     filter.status = params.status;
@@ -632,7 +639,7 @@ const buildGraphQLVariables = (params: NormalizedPositionQueryParams) => {
 };
 
 const buildVacantPositionsVariables = (params: NormalizedVacantPositionsQueryParams) => {
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, JsonValue> = {};
 
   if (params.organizationCodes) {
     filter.organizationCodes = params.organizationCodes;

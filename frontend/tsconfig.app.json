@@ -39,5 +39,6 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false // 保持：Canvas Kit兼容性
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.stories.tsx"]
 }

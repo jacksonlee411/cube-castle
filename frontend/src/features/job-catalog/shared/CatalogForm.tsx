@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Modal, useModalModel } from '@workday/canvas-kit-react/modal'
 import { Flex } from '@workday/canvas-kit-react/layout'
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button'
@@ -30,7 +30,8 @@ export const CatalogForm: React.FC<CatalogFormProps> = ({
   width = 520,
   children,
 }) => {
-  const modalModel = useModalModel()
+  const modalModel = useModalModel({ initialVisibility: isOpen ? 'visible' : 'hidden' })
+  const shouldNotifyCloseRef = useRef(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -40,13 +41,20 @@ export const CatalogForm: React.FC<CatalogFormProps> = ({
     }
   }, [isOpen, modalModel.events])
 
+  useEffect(() => {
+    if (modalModel.state.visibility === 'hidden' && (shouldNotifyCloseRef.current || isOpen)) {
+      shouldNotifyCloseRef.current = false
+      onClose()
+    }
+  }, [isOpen, modalModel.state.visibility, onClose])
+
   if (modalModel.state.visibility !== 'visible') {
     return null
   }
 
   const handleClose = () => {
+    shouldNotifyCloseRef.current = true
     modalModel.events.hide()
-    onClose()
   }
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -55,7 +63,7 @@ export const CatalogForm: React.FC<CatalogFormProps> = ({
   }
 
   return (
-    <Modal model={modalModel} onClose={handleClose} closeOnEscape closeOnOverlayClick>
+    <Modal model={modalModel}>
       <Modal.Overlay>
         <Modal.Card width={width} paddingBottom="s">
           <Modal.CloseIcon aria-label="关闭" onClick={handleClose} />

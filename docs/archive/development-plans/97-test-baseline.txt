@@ -1,0 +1,302 @@
+
+> frontend@0.0.0 test
+> vitest --run
+
+
+ RUN  v3.2.4 /home/shangmeilin/cube-castle/frontend
+
+stdout | src/shared/hooks/__tests__/useEnterpriseOrganizations.test.ts
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/shared/api/__tests__/type-guards.test.ts (24 tests) 10ms
+ ✓ src/shared/hooks/__tests__/useEnterpriseOrganizations.test.ts (12 tests) 7ms
+ ✓ src/features/job-catalog/__tests__/jobCatalogPages.test.tsx (6 tests) 817ms
+stdout | src/layout/__tests__/NavigationItem.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+stdout | src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+stderr | src/layout/__tests__/NavigationItem.test.tsx > NavigationItem > renders collapsible sub navigation and navigates on click
+undefined: Icon type "undefined" does not match expected type "system"
+undefined: Icon type "undefined" does not match expected type "system"
+undefined: Icon type "undefined" does not match expected type "system"
+
+stderr | src/layout/__tests__/NavigationItem.test.tsx > NavigationItem > filters sub navigation items based on permission set
+undefined: Icon type "undefined" does not match expected type "system"
+undefined: Icon type "undefined" does not match expected type "system"
+
+ ✓ src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx (5 tests) 477ms
+stderr | src/layout/__tests__/NavigationItem.test.tsx > NavigationItem > exposes aria-expanded via Expandable.Target wrapper
+undefined: Icon type "undefined" does not match expected type "system"
+undefined: Icon type "undefined" does not match expected type "system"
+
+ ✓ src/layout/__tests__/NavigationItem.test.tsx (4 tests) 145ms
+ ✓ src/features/positions/__tests__/PositionDashboard.test.tsx (6 tests) 133ms
+stdout | src/features/temporal/components/__tests__/ParentOrganizationSelector.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/features/temporal/components/__tests__/ParentOrganizationSelector.test.tsx (3 tests) 100ms
+stderr | src/features/positions/__tests__/PositionTemporalPage.test.tsx > PositionTemporalPage > renders detail layout并可打开版本历史页签
+React does not recognize the `alignItems` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `alignitems` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `justifyContent` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `justifycontent` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `backgroundColor` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `backgroundcolor` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `maxWidth` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `maxwidth` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `typeLevel` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `typelevel` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `marginBottom` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `marginbottom` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `borderBottom` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `borderbottom` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `marginY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `marginy` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `flexDirection` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `flexdirection` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `minWidth` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `minwidth` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `flexWrap` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `flexwrap` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+
+ ✓ src/features/positions/__tests__/PositionTemporalPage.test.tsx (7 tests) 153ms
+stdout | src/layout/__tests__/Sidebar.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/layout/__tests__/Sidebar.test.tsx (3 tests) 91ms
+stderr | src/features/positions/__tests__/PositionHeadcountDashboard.test.tsx > PositionHeadcountDashboard > renders summary tiles and tables when data is available
+React does not recognize the `textAlign` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `textalign` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `backgroundColor` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `backgroundcolor` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+
+stderr | src/features/positions/__tests__/PositionHeadcountDashboard.test.tsx
+Error: Not implemented: navigation (except hash changes)
+    at module.exports (/home/shangmeilin/cube-castle/frontend/node_modules/jsdom/lib/jsdom/browser/not-implemented.js:9:17)
+    at navigateFetch (/home/shangmeilin/cube-castle/frontend/node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+    at exports.navigate (/home/shangmeilin/cube-castle/frontend/node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+    at Timeout._onTimeout (/home/shangmeilin/cube-castle/frontend/node_modules/jsdom/lib/jsdom/living/nodes/HTMLHyperlinkElementUtils-impl.js:80:7)
+    at listOnTimeout (node:internal/timers:588:17)
+    at processTimers (node:internal/timers:523:7) [90mundefined[39m
+
+ ✓ src/features/positions/__tests__/PositionHeadcountDashboard.test.tsx (2 tests) 194ms
+ ✓ tests/contract/schema-validation.test.ts (13 tests | 1 skipped) 78ms
+stdout | src/shared/hooks/__tests__/useJobCatalogMutations.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/shared/hooks/__tests__/useJobCatalogMutations.test.tsx (5 tests) 30ms
+ ✓ tests/contract/field-naming-validation.test.ts (9 tests) 8ms
+stdout | src/shared/auth/__tests__/useAuth.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/shared/auth/__tests__/useAuth.test.tsx (1 test) 28ms
+ ✓ tests/contract/envelope-format-validation.test.ts (11 tests) 4ms
+stderr | src/features/temporal/components/__tests__/SuspendActivateButtons.test.tsx > SuspendActivateButtons > allows selecting date and reason before suspending
+React does not recognize the `iconPosition` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `iconposition` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+
+ ✓ src/features/temporal/components/__tests__/SuspendActivateButtons.test.tsx (2 tests) 72ms
+stdout | tests/components/OrganizationTree.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+stderr | tests/components/OrganizationTree.test.tsx > OrganizationTree > navigates to detail when clicking node (default behavior)
+React does not recognize the `justifyContent` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `justifycontent` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `alignItems` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `alignitems` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `marginBottom` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `marginbottom` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `typeLevel` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `typelevel` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `marginTop` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `margintop` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `textAlign` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `textalign` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `backgroundColor` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `backgroundcolor` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `borderRadius` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `borderradius` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `overflowY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `overflowy` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+
+ ✓ tests/components/OrganizationTree.test.tsx (1 test) 74ms
+stdout | src/components/__tests__/AppShell.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/shared/utils/__tests__/logger.test.ts (4 tests) 7ms
+ ✓ src/components/__tests__/AppShell.test.tsx (2 tests) 64ms
+stdout | src/shared/api/__tests__/queryClient.test.ts
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/shared/api/__tests__/queryClient.test.ts (4 tests) 4ms
+stdout | src/shared/api/__tests__/monitoring.test.ts
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/shared/api/__tests__/monitoring.test.ts (4 tests) 5ms
+stdout | src/features/monitoring/__tests__/MonitoringDashboard.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ❯ src/shared/api/__tests__/authManager.test.ts (4 tests | 1 failed) 8ms
+   ✓ AuthManager storage migration > clears legacy HS256 tokens from storage on init 2ms
+   ✓ AuthManager storage migration > retains RS256 tokens that remain valid 0ms
+   ✓ AuthManager storage migration > removes raw JWT strings stored under oauth token key 0ms
+   × AuthManager storage migration > migrates legacy snake_case storage key to camelCase 5ms
+     → expected null to deeply equal '{"accessToken":"eyJhbGciOiJSUzI1NiJ9.…'
+ ✓ src/features/monitoring/__tests__/MonitoringDashboard.test.tsx (2 tests) 130ms
+stdout | tests/pages/OrganizationTemporalPage.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+stderr | tests/pages/OrganizationTemporalPage.test.tsx > OrganizationTemporalPage > renders detail page with breadcrumb and title
+React does not recognize the `typeLevel` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `typelevel` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `alignItems` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `alignitems` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `borderBottom` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `borderbottom` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `borderColor` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `bordercolor` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `marginBottom` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `marginbottom` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+
+ ✓ tests/pages/OrganizationTemporalPage.test.tsx (1 test) 38ms
+stdout | src/shared/api/__tests__/graphql-enterprise-adapter.test.ts
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/shared/api/__tests__/graphql-enterprise-adapter.test.ts (4 tests) 5ms
+ ✓ src/shared/utils/__tests__/temporal-validation-adapter.test.ts (6 tests) 76ms
+stdout | src/components/__tests__/OrganizationDashboard.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/features/positions/components/PositionForm/__tests__/validation.test.ts (5 tests) 3ms
+ ✓ src/components/__tests__/OrganizationDashboard.test.tsx (2 tests) 31ms
+ ✓ src/components/__tests__/canvas-integration.test.tsx (4 tests) 28ms
+stderr | src/features/temporal/components/inlineNewVersionForm/__tests__/FormActions.test.tsx > FormActions delete buttons > shows organization delete button when earliest version selected
+React does not recognize the `borderTop` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `bordertop` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+
+ ✓ src/features/temporal/components/inlineNewVersionForm/__tests__/FormActions.test.tsx (2 tests) 31ms
+stderr | tests/components/OrganizationBreadcrumb.test.tsx > OrganizationBreadcrumb > renders namePath as readable breadcrumb
+React does not recognize the `typeLevel` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `typelevel` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+React does not recognize the `alignItems` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `alignitems` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+
+ ✓ tests/components/OrganizationBreadcrumb.test.tsx (2 tests) 42ms
+ ✓ src/shared/hooks/__tests__/useMessages.test.ts (3 tests) 22ms
+ ✓ src/shared/utils/__tests__/organization-helpers.test.ts (8 tests) 3ms
+ ✓ src/features/positions/components/PositionForm/__tests__/payload.test.ts (2 tests) 2ms
+stdout | src/shared/components/__tests__/RequireScopes.test.tsx
+[Environment] 开发环境配置已加载 {
+  mode: [32m'test'[39m,
+  apiBaseUrl: [32m'/api/v1'[39m,
+  graphqlEndpoint: [32m'/graphql'[39m,
+  defaultTenantId: [32m'3b99930c…'[39m,
+  authMode: [32m'dev'[39m,
+  queryRefactorEnabled: [33mtrue[39m
+}
+
+ ✓ src/shared/components/__tests__/RequireScopes.test.tsx (2 tests) 21ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/shared/api/__tests__/authManager.test.ts > AuthManager storage migration > migrates legacy snake_case storage key to camelCase
+AssertionError: expected null to deeply equal '{"accessToken":"eyJhbGciOiJSUzI1NiJ9.…'
+
+[32m- Expected:[39m 
+"{\"accessToken\":\"eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.signature\",\"tokenType\":\"Bearer\",\"expiresIn\":3600,\"issuedAt\":1760937516685}"
+
+[31m+ Received:[39m 
+null
+
+ ❯ src/shared/api/__tests__/authManager.test.ts:96:53
+     94| 
+     95|     expect(localStorage.getItem(legacyKey)).toBeNull();
+     96|     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toEqual(JSON.strin…
+       |                                                     ^
+     97|     expect(manager.isAuthenticated()).toBe(true);
+     98|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 34 passed (35)
+      Tests  1 failed | 173 passed | 1 skipped (175)
+   Start at  13:18:31
+   Duration  10.34s (transform 1.03s, setup 2.79s, collect 5.11s, tests 2.94s, environment 12.17s, prepare 2.72s)
+

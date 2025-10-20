@@ -1,6 +1,6 @@
 # 06号文档：集成团队协作进展日志（92号计划实时记录）
 
-> **更新时间**：2025-10-20 08:30
+> **更新时间**：2025-10-20 13:25
 > **负责人**：前端团队 · 职位域
 > **关联计划**：92号《职位管理二级导航实施方案》 v2.2
 
@@ -15,6 +15,12 @@
 - ✅ **Job Catalog 数据补充**：通过迁移 `047_seed_additional_job_catalog_data.sql` 新增“数据智能”域 10 组职类、10 条职种、10 条职务与 10 条职级样板数据，确保每类实体均具备真实链路（如 DATA → DATA-CORE → DATA-CORE-ENG → IC5-DATA）。
 - 📗 **测试与校验**：执行 `npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx` 与 `npm --prefix frontend run typecheck` 均通过；新增职种/职务/职级详情页更新链路断言，并补充 `src/shared/hooks/__tests__/useJobCatalogMutations.test.tsx` 覆盖 REST 更新入参与缓存失效行为；新增 `src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx` 验证 `job-catalog:create/update` 权限屏蔽逻辑；Playwright 规格 `frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 已接入真实命令/查询服务，验证管理员更新成功、普通用户 403 拒绝及 If-Match 412 并发保护；`npm --prefix frontend run test:contract` 通过（同步移除 schema 重复字段），确认 GraphQL 契约保持一致。2025-10-20 11:22~11:23 再次执行 `NavigationItem.test.tsx`、`Sidebar.test.tsx`、`jobCatalogPermissions.test.tsx`、`jobCatalogPages.test.tsx`、`useJobCatalogMutations.test.tsx`（全部通过），并运行 `go test ./cmd/organization-command-service/...` 确认审计链路。
 - ✅ **文档对齐**：`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 新增 Job Catalog 模块速查段落，并发布 `docs/reference/job-catalog-navigation-guide.md`（导航说明、截图索引、权限映射），92号文档 D1/D2 验收项已勾选。
+- 🚧 **计划 97 Phase 0**：已在 `fix/typescript-errors-remediation` 分支记录 `npm run build`（输出存档于 `docs/development-plans/97-build-errors-baseline.txt`）与 `npm run test -- --run`（输出存档于 `docs/development-plans/97-test-baseline.txt`）的 TypeScript 错误基线，将按阶段推进枚举修复与 Canvas Kit 迁移。
+- 🚧 **计划 97 Phase 2**：完成 Job Catalog/Position 表单 Canvas Kit 迁移，`CatalogForm` 改用 Modal 模型事件、`Select` 全面替换为原生封装，职类/职种/职务/职级表单与 Position 表单统一使用 FormField 输入封装；`npm run test -- --run src/features/job-catalog` 与 `npm run test -- --run src/features/positions` 均通过，当前 `npm run build` 剩余 14 项（集中在 Temporal/GraphQL 枚举与类型）。
+- 🚧 **计划 97 Phase 2**：完成 Job Catalog/Position 表单 Canvas Kit 迁移，`CatalogForm` 改用 Modal 模型事件、`Select` 全面替换为原生封装，职类/职种/职务/职级表单与 Position 表单统一使用 FormField 输入封装；`npm run test -- --run src/features/job-catalog` 与 `npm run test -- --run src/features/positions` 均通过，`npm run build` 错误降至 14 项（集中在 Temporal/GraphQL 枚举与类型）。
+- 🚧 **计划 97 Phase 3**：校准 Temporal `lifecycleStatus` 映射并以 `normalizeLifecycleStatus` 约束，修复职位 GraphQL 变量 `JsonValue` 建模与 `logger.mutation` 日志参数；`npm run build` 仅剩 Storybook 类型 2 项（按 Phase 4 处理）。
+- 🚧 **计划 97 Phase 3**：校准 Temporal `lifecycleStatus` 映射并以 `normalizeLifecycleStatus` 约束，修复职位 GraphQL 变量 `JsonValue` 建模与 `logger.mutation` 日志参数；`npm run build` 仅剩 Storybook 类型 2 项（已在 Phase 4 处理）。
+- ✅ **计划 97 Phase 4**：通过 `tsconfig.app.json` 排除 Storybook 目录完成收尾，`npm run build`、`npm run test -- --run src/features/job-catalog`、`npm run test -- --run src/features/positions` 均通过；文档及进度表已更新。
 
 ---
 

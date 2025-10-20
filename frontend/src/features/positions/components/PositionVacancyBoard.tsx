@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Card } from '@workday/canvas-kit-react/card'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
-import { Select } from '@workday/canvas-kit-react/select'
 import { Table } from '@workday/canvas-kit-react/table'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { SecondaryButton } from '@workday/canvas-kit-react/button'
@@ -40,6 +39,15 @@ const buildQueryParams = (minimumVacantDays?: number): VacantPositionsQueryParam
   pageSize: 25,
 })
 
+const selectStyle: React.CSSProperties = {
+  minWidth: '180px',
+  padding: '8px 12px',
+  borderRadius: 8,
+  border: `1px solid ${colors.soap500}`,
+  backgroundColor: colors.frenchVanilla100,
+  fontSize: '14px',
+}
+
 export const PositionVacancyBoard: React.FC = () => {
   const [minimumVacantDays, setMinimumVacantDays] = useState<number | undefined>(undefined)
 
@@ -61,20 +69,21 @@ export const PositionVacancyBoard: React.FC = () => {
           </SimpleStack>
 
           <Flex gap={space.s} alignItems="center">
-            <Select
+            <select
               value={minimumVacantDays !== undefined ? String(minimumVacantDays) : 'ALL'}
               onChange={event => {
                 const value = event.target.value
                 setMinimumVacantDays(value === 'ALL' ? undefined : Number(value))
               }}
               aria-label="空缺时长筛选"
+              style={selectStyle}
             >
               {MINIMUM_VACANT_OPTIONS.map(option => (
                 <option key={option.label} value={option.value ?? 'ALL'}>
                   {option.label}
                 </option>
               ))}
-            </Select>
+            </select>
             <SecondaryButton onClick={() => vacancyQuery.refetch()} disabled={vacancyQuery.isFetching}>
               刷新数据
             </SecondaryButton>

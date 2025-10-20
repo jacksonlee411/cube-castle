@@ -382,7 +382,7 @@ describe('Job Catalog pages', () => {
     fireEvent.click(screen.getByText('编辑当前版本'))
 
     const editForm = await screen.findByTestId('mock-catalog-form')
-    const statusSelect = within(editForm).getByTestId('canvas-select') as HTMLSelectElement
+    const statusSelect = within(editForm).getByRole('combobox') as HTMLSelectElement
     expect(statusSelect.value).toBe('ACTIVE')
 
     fireEvent.click(within(editForm).getByText('保存更新'))
