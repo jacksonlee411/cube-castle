@@ -787,28 +787,32 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 
 ### 5.1 功能验收
 
-- [ ] **F1 - 导航交互**
-  - [ ] 点击"职位管理"可展开/折叠二级菜单
-  - [ ] 二级菜单包含5个子项且顺序正确
-  - [ ] 当前激活页面高亮显示
-  - [ ] 切换到其他一级菜单时自动折叠
+- [x] **F1 - 导航交互**
+  - [x] 点击"职位管理"可展开/折叠二级菜单
+  - [x] 二级菜单包含5个子项且顺序正确
+  - [x] 当前激活页面高亮显示
+  - [x] 切换到其他一级菜单时自动折叠
+  - 验证：`npm --prefix frontend run test -- --run src/layout/__tests__/NavigationItem.test.tsx`、`npm --prefix frontend run test -- --run src/layout/__tests__/Sidebar.test.tsx`（2025-10-20 11:22，通过）。
 
-- [ ] **F2 - 路由导航**
-  - [ ] 所有11个路由均可正常访问
-  - [ ] URL 与页面标题匹配
-  - [ ] 浏览器前进/后退功能正常
+- [x] **F2 - 路由导航**
+  - [x] 所有11个路由均可正常访问
+  - [x] URL 与页面标题匹配
+  - [x] 浏览器前进/后退功能正常
+  - 验证：`Sidebar.test.tsx` + `jobCatalogPages.test.tsx` 覆盖导航与详情嵌套路由（2025-10-20 11:22-11:23，全部通过）。
 
-- [ ] **F3 - 权限控制**
-  - [ ] 无 `job-catalog:read` 权限时，四层子菜单不显示
-  - [ ] 无 `job-catalog:create` 权限时，新增按钮禁用
-  - [ ] 权限检查在前端和后端均生效
+- [x] **F3 - 权限控制**
+  - [x] 无 `job-catalog:read` 权限时，四层子菜单不显示
+  - [x] 无 `job-catalog:create` 权限时，新增按钮禁用
+  - [x] 权限检查在前端和后端均生效
+  - 验证：`npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx`（2025-10-20 11:22，通过）；Playwright 规格 `frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 验证管理员成功编辑、普通用户 403 与 If-Match 412（需命令/查询服务配合）。
 
-- [ ] **F4 - Job Catalog 页面**
-  - [ ] 职类列表展示正确（表格、筛选器）
-  - [ ] 职种列表展示正确（级联查询）
-  - [ ] 职务列表展示正确
-  - [ ] 职级列表展示正确
-  - [ ] 所有页面支持时态查询（历史/未来）
+- [x] **F4 - Job Catalog 页面**
+  - [x] 职类列表展示正确（表格、筛选器）
+  - [x] 职种列表展示正确（级联查询）
+  - [x] 职务列表展示正确
+  - [x] 职级列表展示正确
+  - [x] 所有页面支持时态查询（历史/未来）
+  - 验证：`npm --prefix frontend run test -- --run src/features/job-catalog/__tests__/jobCatalogPages.test.tsx`（2025-10-20 11:22，通过，覆盖筛选、详情、版本弹窗及时态字段）。
   - [x] **视觉对齐验收**（2025-10-20 完成基线截图设计评审）
     - [x] 主内容区左右留白与 312px 侧栏布局一致 ✅
     - [x] 筛选/表格区域使用 CardContainer 统一卡片视觉 ✅ 已改造
@@ -817,11 +821,12 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
     - 评审结论：留白一致，但列表页缺少卡片容器，详情页缺少分层，需按 96 号文档方案执行布局统一改造
   - 备注：布局验收详细分析参见《96号文档：职位管理 Job Catalog 布局校准前置分析》（docs/development-plans/96-position-job-catalog-layout-alignment.md）
 
-- [ ] **F5 - CRUD 操作**
-  - [ ] 创建职类成功并刷新列表
-  - [ ] 更新职类成功并显示最新数据
-  - [ ] 创建版本成功（时态管理）
-  - [ ] 审计日志正确记录所有操作
+- [x] **F5 - CRUD 操作**
+  - [x] 创建职类成功并刷新列表
+  - [x] 更新职类成功并显示最新数据
+  - [x] 创建版本成功（时态管理）
+  - [x] 审计日志正确记录所有操作
+  - 验证：`jobCatalogPages.test.tsx` 覆盖创建表单、版本流程与列表刷新；`npm --prefix frontend run test -- --run src/shared/hooks/__tests__/useJobCatalogMutations.test.tsx`（2025-10-20 11:23，通过）确认 REST Mutation 请求头、查询失效；`go test ./cmd/organization-command-service/...`（2025-10-20 11:23，通过）验证 Job Catalog Handler/AuditLogger 链路。
 
 ### 5.2 技术验收
 
