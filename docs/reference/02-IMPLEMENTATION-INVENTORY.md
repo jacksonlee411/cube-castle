@@ -158,6 +158,7 @@
 - [const] createHandleStateMutationCompleted — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
 - [const] createHandleDeleteVersion — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
 - [const] createHandleDeleteOrganization — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
+- [component] CardContainer — frontend/src/shared/components/CardContainer.tsx
 - [const] createHandleFormSubmit — frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts
 - [const] createHandleHistoryEditSubmit — frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts
 - [const] useTemporalMasterDetail — frontend/src/features/temporal/components/hooks/useTemporalMasterDetail.ts

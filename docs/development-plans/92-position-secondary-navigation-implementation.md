@@ -695,10 +695,10 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
 
 #### **Phase 0: 技术验证 POC（0.5天）**
 
-- [ ] 复现并验证第0.4节技术清单
-  - [ ] Expandable.Target 自定义包装兼容性
-  - [ ] 替换 `AppShell` 左侧容器为 `SidePanel`，验证 312px 宽度、滚动与分隔线
-  - [ ] 权限 Hook 与 tokens 可用性（含 `hasPermission` 实装与单测）
+- [x] 复现并验证第0.4节技术清单
+  - [x] Expandable.Target 自定义包装兼容性（`NavigationItem` 单测覆盖 `aria-expanded` 暴露）
+  - [x] 替换 `AppShell` 左侧容器为 `SidePanel`，验证 312px 宽度、滚动与分隔线（基线截图 `positions-list.png` & 设计评审确认）
+  - [x] 权限 Hook 与 tokens 可用性（`useAuth` 单测覆盖 `hasPermission` 行为）
 - [x] 输出 POC 报告并在本文档变更历史登记（详见 06 号日志 2025-10-19 进展快照，并在变更历史 v2.3 记录）
 
 #### **Phase 1: 导航基础架构（1-2天）**
@@ -757,6 +757,12 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [x] 二级菜单展开/折叠（`frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 对接真实前端/命令/查询服务）
   - [x] 职类 CRUD 流程（管理员令牌驱动 UI 编辑，确认 GraphQL 回读成功）
   - [x] 权限控制验证（同一规格覆盖普通用户 403 禁止访问与 If-Match 412 并发保护）
+- [x] 布局对齐（参见《96号文档：职位管理 Job Catalog 布局校准前置分析》 §6-§7）
+  - [x] 抽取共享 `CardContainer` 组件并登记至 `02-IMPLEMENTATION-INVENTORY.md`
+  - [x] Job Catalog 四个列表页统一接入 `SimpleStack` + `CardContainer` 布局
+  - [x] Job Catalog 详情页信息区采用卡片分层并校准间距
+  - [x] Playwright 布局截图基线（启用 `PW_CAPTURE_LAYOUT=true` 输出至 `artifacts/layout/`）
+  - [x] 06号日志 P1 「设计评审」任务根据评审结论更新状态
 - [ ] 性能优化
   - [ ] 懒加载优化
   - [ ] 缓存策略
@@ -803,6 +809,12 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
   - [ ] 职务列表展示正确
   - [ ] 职级列表展示正确
   - [ ] 所有页面支持时态查询（历史/未来）
+  - [x] **视觉对齐验收**（2025-10-20 完成基线截图设计评审）
+    - [x] 主内容区左右留白与 312px 侧栏布局一致 ✅
+    - [x] 筛选/表格区域使用 CardContainer 统一卡片视觉 ✅ 已改造
+    - [x] 详情页信息区使用卡片分层，操作区与内容区明确分离 ✅ 已改造
+    - 评审依据：基线截图 `frontend/artifacts/layout/{positions-list,job-family-groups-list,job-family-group-detail}.png`（2025-10-20 08:47 生成）
+    - 评审结论：留白一致，但列表页缺少卡片容器，详情页缺少分层，需按 96 号文档方案执行布局统一改造
   - 备注：布局验收详细分析参见《96号文档：职位管理 Job Catalog 布局校准前置分析》（docs/development-plans/96-position-job-catalog-layout-alignment.md）
 
 - [ ] **F5 - CRUD 操作**

@@ -4,6 +4,7 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { PrimaryButton } from '@workday/canvas-kit-react/button'
 import { Select } from '@workday/canvas-kit-react/select'
+import { space } from '@workday/canvas-kit-react/tokens'
 import { useAuth } from '@/shared/auth/hooks'
 import { useJobFamilyGroups, useJobFamilies, useJobRoles, useJobLevels } from '@/shared/hooks/useJobCatalog'
 import { useCreateJobLevel } from '@/shared/hooks/useJobCatalogMutations'
@@ -12,6 +13,8 @@ import { CatalogTable, type CatalogTableColumn } from '../shared/CatalogTable'
 import { StatusBadge } from '../shared/StatusBadge'
 import { formatISODate } from '../types'
 import { JobLevelForm } from './JobLevelForm'
+import { SimpleStack } from '@/features/positions/components/SimpleStack'
+import { CardContainer } from '@/shared/components/CardContainer'
 
 export const JobLevelList: React.FC = () => {
   const { hasPermission } = useAuth()
@@ -105,104 +108,110 @@ export const JobLevelList: React.FC = () => {
   }
 
   return (
-    <Box padding="l" display="flex" flexDirection="column">
-      <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
-        <Heading size="large">职级管理</Heading>
-        {hasPermission('job-catalog:create') && (
-          <PrimaryButton onClick={() => setFormOpen(true)} disabled={!roleCode}>
-            新增职级
-          </PrimaryButton>
-        )}
-      </Flex>
+    <Box padding={space.l}>
+      <SimpleStack gap={space.l}>
+        <Flex justifyContent="space-between" alignItems="center">
+          <Heading size="large">职级管理</Heading>
+          {hasPermission('job-catalog:create') && (
+            <PrimaryButton onClick={() => setFormOpen(true)} disabled={!roleCode}>
+              新增职级
+            </PrimaryButton>
+          )}
+        </Flex>
 
-      <CatalogFilters
-        searchPlaceholder="搜索职级编码或名称"
-        searchValue={searchText}
-        onSearchChange={setSearchText}
-        includeInactive={includeInactive}
-        onIncludeInactiveChange={setIncludeInactive}
-        asOfDate={asOfDate}
-        onAsOfDateChange={setAsOfDate}
-        extraFilters={
-          <Flex gap="s">
-            <Select
-              value={groupCode}
-              onChange={event => {
-                const value = event.target.value
-                setGroupCode(value)
-                setFamilyCode('')
-                setRoleCode('')
-              }}
-            >
-              {groupOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={familyCode}
-              onChange={event => {
-                const value = event.target.value
-                setFamilyCode(value)
-                setRoleCode('')
-              }}
-              disabled={!groupCode}
-            >
-              {familyOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={roleCode}
-              onChange={event => setRoleCode(event.target.value)}
-              disabled={!familyCode}
-            >
-              {roleOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </Flex>
-        }
-        onReset={() => {
-          setSearchText('')
-          setIncludeInactive(false)
-          setAsOfDate(undefined)
-          setRoleCode('')
-          setFamilyCode('')
-          setGroupCode('')
-        }}
-      />
+        <CardContainer>
+          <CatalogFilters
+            searchPlaceholder="搜索职级编码或名称"
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            includeInactive={includeInactive}
+            onIncludeInactiveChange={setIncludeInactive}
+            asOfDate={asOfDate}
+            onAsOfDateChange={setAsOfDate}
+            extraFilters={
+              <Flex gap="s">
+                <Select
+                  value={groupCode}
+                  onChange={event => {
+                    const value = event.target.value
+                    setGroupCode(value)
+                    setFamilyCode('')
+                    setRoleCode('')
+                  }}
+                >
+                  {groupOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  value={familyCode}
+                  onChange={event => {
+                    const value = event.target.value
+                    setFamilyCode(value)
+                    setRoleCode('')
+                  }}
+                  disabled={!groupCode}
+                >
+                  {familyOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  value={roleCode}
+                  onChange={event => setRoleCode(event.target.value)}
+                  disabled={!familyCode}
+                >
+                  {roleOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+            }
+            onReset={() => {
+              setSearchText('')
+              setIncludeInactive(false)
+              setAsOfDate(undefined)
+              setRoleCode('')
+              setFamilyCode('')
+              setGroupCode('')
+            }}
+          />
+        </CardContainer>
 
-      {roleCode === '' && (
-        <Text marginBottom="s" color="licorice400">
-          请依次选择职类、职种、职务以查看关联职级。
-        </Text>
-      )}
+        <CardContainer>
+          <SimpleStack gap={space.s}>
+            {roleCode === '' && (
+              <Text color="licorice400">请依次选择职类、职种、职务以查看关联职级。</Text>
+            )}
 
-      <CatalogTable
-        data={filteredLevels}
-        columns={columns}
-        isLoading={levelsQuery.isLoading}
-        onRowClick={item =>
-          navigate(`/positions/catalog/levels/${item.code}`, {
-            state: { roleCode: item.roleCode },
-          })
-        }
-        emptyMessage={roleCode ? '暂无职级数据' : '请选择职类、职种与职务后查看'}
-      />
+            <CatalogTable
+              data={filteredLevels}
+              columns={columns}
+              isLoading={levelsQuery.isLoading}
+              onRowClick={item =>
+                navigate(`/positions/catalog/levels/${item.code}`, {
+                  state: { roleCode: item.roleCode },
+                })
+              }
+              emptyMessage={roleCode ? '暂无职级数据' : '请选择职类、职种与职务后查看'}
+            />
+          </SimpleStack>
+        </CardContainer>
 
-      <JobLevelForm
-        isOpen={isFormOpen}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleCreate}
-        isSubmitting={createMutation.isPending}
-        roleCode={roleCode}
-      />
+        <JobLevelForm
+          isOpen={isFormOpen}
+          onClose={() => setFormOpen(false)}
+          onSubmit={handleCreate}
+          isSubmitting={createMutation.isPending}
+          roleCode={roleCode}
+        />
+      </SimpleStack>
     </Box>
   )
 }

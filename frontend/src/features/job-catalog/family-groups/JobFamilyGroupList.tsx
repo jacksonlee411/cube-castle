@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading } from '@workday/canvas-kit-react/text'
 import { PrimaryButton } from '@workday/canvas-kit-react/button'
+import { space } from '@workday/canvas-kit-react/tokens'
 import { useAuth } from '@/shared/auth/hooks'
 import { CatalogFilters } from '../shared/CatalogFilters'
 import { CatalogTable, type CatalogTableColumn } from '../shared/CatalogTable'
@@ -11,6 +12,8 @@ import { formatISODate } from '../types'
 import { useJobFamilyGroups } from '@/shared/hooks/useJobCatalog'
 import { useCreateJobFamilyGroup } from '@/shared/hooks/useJobCatalogMutations'
 import { JobFamilyGroupForm } from './JobFamilyGroupForm'
+import { SimpleStack } from '@/features/positions/components/SimpleStack'
+import { CardContainer } from '@/shared/components/CardContainer'
 
 export const JobFamilyGroupList: React.FC = () => {
   const navigate = useNavigate()
@@ -65,41 +68,47 @@ export const JobFamilyGroupList: React.FC = () => {
   }
 
   return (
-    <Box padding="l" display="flex" flexDirection="column">
-      <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
-        <Heading size="large">职类管理</Heading>
-        {hasPermission('job-catalog:create') && (
-          <PrimaryButton onClick={() => setFormOpen(true)}>新增职类</PrimaryButton>
-        )}
-      </Flex>
+    <Box padding={space.l}>
+      <SimpleStack gap={space.l}>
+        <Flex justifyContent="space-between" alignItems="center">
+          <Heading size="large">职类管理</Heading>
+          {hasPermission('job-catalog:create') && (
+            <PrimaryButton onClick={() => setFormOpen(true)}>新增职类</PrimaryButton>
+          )}
+        </Flex>
 
-      <CatalogFilters
-        searchValue={searchText}
-        onSearchChange={setSearchText}
-        includeInactive={includeInactive}
-        onIncludeInactiveChange={setIncludeInactive}
-        asOfDate={asOfDate}
-        onAsOfDateChange={setAsOfDate}
-        onReset={() => {
-          setSearchText('')
-          setIncludeInactive(false)
-          setAsOfDate(undefined)
-        }}
-      />
+        <CardContainer>
+          <CatalogFilters
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            includeInactive={includeInactive}
+            onIncludeInactiveChange={setIncludeInactive}
+            asOfDate={asOfDate}
+            onAsOfDateChange={setAsOfDate}
+            onReset={() => {
+              setSearchText('')
+              setIncludeInactive(false)
+              setAsOfDate(undefined)
+            }}
+          />
+        </CardContainer>
 
-      <CatalogTable
-        data={filtered}
-        columns={columns}
-        isLoading={isLoading}
-        onRowClick={item => navigate(`/positions/catalog/family-groups/${item.code}`)}
-      />
+        <CardContainer>
+          <CatalogTable
+            data={filtered}
+            columns={columns}
+            isLoading={isLoading}
+            onRowClick={item => navigate(`/positions/catalog/family-groups/${item.code}`)}
+          />
+        </CardContainer>
 
-      <JobFamilyGroupForm
-        isOpen={isFormOpen}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleCreate}
-        isSubmitting={createMutation.isPending}
-      />
+        <JobFamilyGroupForm
+          isOpen={isFormOpen}
+          onClose={() => setFormOpen(false)}
+          onSubmit={handleCreate}
+          isSubmitting={createMutation.isPending}
+        />
+      </SimpleStack>
     </Box>
   )
 }

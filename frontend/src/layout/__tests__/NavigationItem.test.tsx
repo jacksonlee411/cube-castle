@@ -82,4 +82,22 @@ describe('NavigationItem', () => {
     expect(screen.getByText('职位列表')).toBeInTheDocument()
     expect(screen.queryByText('职类管理')).not.toBeInTheDocument()
   })
+
+  it('exposes aria-expanded via Expandable.Target wrapper', () => {
+    renderWithProviders(
+      {
+        label: '职位管理',
+        path: '/positions',
+        icon: {} as any,
+        subItems: [
+          { label: '职位列表', path: '/positions', permission: 'position:read' },
+          { label: '职类管理', path: '/positions/catalog/family-groups', permission: 'job-catalog:read' },
+        ],
+      },
+      '/positions/catalog/family-groups',
+    )
+
+    const trigger = screen.getByRole('button', { name: '职位管理' })
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  })
 })

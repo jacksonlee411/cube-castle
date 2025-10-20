@@ -43,7 +43,7 @@
 | ✅ | 前后端联调：REST 更新接口 + 权限校验 | 前端/后端联调小组 | 2025-10-22 | 命令服务补齐 Job Catalog `PUT` 接口＋PBAC `job-catalog:write` 映射，支持 If-Match 412 并运行 `go test ./cmd/organization-command-service/...` 通过，前端 hooks 联动已可直连容器服务 |
 | ✅ | Playwright 脚本覆盖二级导航与职类 CRUD 正向路径 | QA 团队 | 2025-10-24 | `frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 接入真实后端，覆盖管理员成功编辑、普通用户 403 及 If-Match 412 场景 |
 | P1 | 文案国际化：将导航配置及表单提示接入现有 i18n 方案 | 前端国际化负责人 | 2025-10-24 | 对齐 92 号文档 2.3.1 国际化前置说明 |
-| P1 | 设计评审：确认 Job Catalog 列表/详情在新导航下的视觉稿（含 312px 左侧栏对齐） | 设计团队 | 2025-10-23 | 记录结果并更新 92 号文档 “视觉对齐” 条目 |
+| ✅ | 设计评审：确认 Job Catalog 列表/详情在新导航下的视觉稿（含 312px 侧栏） | 设计团队 | 2025-10-20 | **评审已完成**。基线截图 `artifacts/layout/{positions-list,job-family-groups-list,job-family-group-detail}.png` 用于留白对比；根据结论已完成 CardContainer 抽取、列表筛选/表格卡片化与详情页分层，并同步更新 92 号 Phase 4 F4 子项与 96 号文档第 8 节。 |
 
 ---
 

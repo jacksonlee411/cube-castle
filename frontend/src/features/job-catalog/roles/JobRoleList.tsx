@@ -4,6 +4,7 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { PrimaryButton } from '@workday/canvas-kit-react/button'
 import { Select } from '@workday/canvas-kit-react/select'
+import { space } from '@workday/canvas-kit-react/tokens'
 import { useAuth } from '@/shared/auth/hooks'
 import { useJobFamilyGroups, useJobFamilies, useJobRoles } from '@/shared/hooks/useJobCatalog'
 import { useCreateJobRole } from '@/shared/hooks/useJobCatalogMutations'
@@ -12,6 +13,8 @@ import { CatalogTable, type CatalogTableColumn } from '../shared/CatalogTable'
 import { StatusBadge } from '../shared/StatusBadge'
 import { formatISODate } from '../types'
 import { JobRoleForm } from './JobRoleForm'
+import { SimpleStack } from '@/features/positions/components/SimpleStack'
+import { CardContainer } from '@/shared/components/CardContainer'
 
 export const JobRoleList: React.FC = () => {
   const { hasPermission } = useAuth()
@@ -88,83 +91,89 @@ export const JobRoleList: React.FC = () => {
   }
 
   return (
-    <Box padding="l" display="flex" flexDirection="column">
-      <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
-        <Heading size="large">职务管理</Heading>
-        {hasPermission('job-catalog:create') && (
-          <PrimaryButton onClick={() => setFormOpen(true)} disabled={!familyCode}>
-            新增职务
-          </PrimaryButton>
-        )}
-      </Flex>
+    <Box padding={space.l}>
+      <SimpleStack gap={space.l}>
+        <Flex justifyContent="space-between" alignItems="center">
+          <Heading size="large">职务管理</Heading>
+          {hasPermission('job-catalog:create') && (
+            <PrimaryButton onClick={() => setFormOpen(true)} disabled={!familyCode}>
+              新增职务
+            </PrimaryButton>
+          )}
+        </Flex>
 
-      <CatalogFilters
-        searchPlaceholder="搜索职务编码或名称"
-        searchValue={searchText}
-        onSearchChange={setSearchText}
-        includeInactive={includeInactive}
-        onIncludeInactiveChange={setIncludeInactive}
-        asOfDate={asOfDate}
-        onAsOfDateChange={setAsOfDate}
-        extraFilters={
-          <Flex gap="s">
-            <Select
-              value={groupCode}
-              onChange={event => {
-                const value = event.target.value
-                setGroupCode(value)
-                setFamilyCode('')
-              }}
-            >
-              {groupOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={familyCode}
-              onChange={event => setFamilyCode(event.target.value)}
-              disabled={!groupCode}
-            >
-              {familyOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </Flex>
-        }
-        onReset={() => {
-          setSearchText('')
-          setIncludeInactive(false)
-          setAsOfDate(undefined)
-          setFamilyCode('')
-          setGroupCode('')
-        }}
-      />
+        <CardContainer>
+          <CatalogFilters
+            searchPlaceholder="搜索职务编码或名称"
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            includeInactive={includeInactive}
+            onIncludeInactiveChange={setIncludeInactive}
+            asOfDate={asOfDate}
+            onAsOfDateChange={setAsOfDate}
+            extraFilters={
+              <Flex gap="s">
+                <Select
+                  value={groupCode}
+                  onChange={event => {
+                    const value = event.target.value
+                    setGroupCode(value)
+                    setFamilyCode('')
+                  }}
+                >
+                  {groupOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  value={familyCode}
+                  onChange={event => setFamilyCode(event.target.value)}
+                  disabled={!groupCode}
+                >
+                  {familyOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+            }
+            onReset={() => {
+              setSearchText('')
+              setIncludeInactive(false)
+              setAsOfDate(undefined)
+              setFamilyCode('')
+              setGroupCode('')
+            }}
+          />
+        </CardContainer>
 
-      {familyCode === '' && (
-        <Text marginBottom="s" color="licorice400">
-          请先选择职类和职种以查看对应职务列表。
-        </Text>
-      )}
+        <CardContainer>
+          <SimpleStack gap={space.s}>
+            {familyCode === '' && (
+              <Text color="licorice400">请先选择职类和职种以查看对应职务列表。</Text>
+            )}
 
-      <CatalogTable
-        data={filteredRoles}
-        columns={columns}
-        isLoading={rolesQuery.isLoading}
-        onRowClick={item => navigate(`/positions/catalog/roles/${item.code}`)}
-        emptyMessage={familyCode ? '暂无职务数据' : '请选择职类和职种后查看'}
-      />
+            <CatalogTable
+              data={filteredRoles}
+              columns={columns}
+              isLoading={rolesQuery.isLoading}
+              onRowClick={item => navigate(`/positions/catalog/roles/${item.code}`)}
+              emptyMessage={familyCode ? '暂无职务数据' : '请选择职类和职种后查看'}
+            />
+          </SimpleStack>
+        </CardContainer>
 
-      <JobRoleForm
-        isOpen={isFormOpen}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleCreate}
-        isSubmitting={createMutation.isPending}
-        familyCode={familyCode}
-      />
+        <JobRoleForm
+          isOpen={isFormOpen}
+          onClose={() => setFormOpen(false)}
+          onSubmit={handleCreate}
+          isSubmitting={createMutation.isPending}
+          familyCode={familyCode}
+        />
+      </SimpleStack>
     </Box>
   )
 }
