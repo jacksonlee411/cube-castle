@@ -1091,9 +1091,9 @@ func (r *PostgreSQLRepository) GetPositionAssignments(ctx context.Context, tenan
 			args = append(args, strings.ToUpper(strings.TrimSpace(*filter.Status)))
 			argIndex++
 		}
-		if len(filter.AssignmentTypes) > 0 {
-			normalized := make([]string, 0, len(filter.AssignmentTypes))
-			for _, item := range filter.AssignmentTypes {
+		if filter.AssignmentTypes != nil && len(*filter.AssignmentTypes) > 0 {
+			normalized := make([]string, 0, len(*filter.AssignmentTypes))
+			for _, item := range *filter.AssignmentTypes {
 				trimmed := strings.ToUpper(strings.TrimSpace(item))
 				if trimmed == "" {
 					continue

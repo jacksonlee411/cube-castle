@@ -501,7 +501,8 @@ psql "$PRODUCTION_DATABASE_URL" -v ON_ERROR_STOP=1 \
 - [x] 代理自动恢复任务（含 `OperationalScheduler` 集成），监控指标待后续排期
 - [x] GraphQL & 前端任职历史增强 + Playwright 场景
 - [x] 跨租户回归测试脚本 —— REST 场景已完成并归档（`tests/consolidated/position-assignments-cross-tenant.sh`，日志位于 `reports/position-stage4/position-assignments-cross-tenant.*`）
-- [ ] GraphQL 脚本与 CI 集成（待补齐）
+- [x] GraphQL 脚本完成（`tests/consolidated/position-assignments-graphql-cross-tenant.sh`，日志位于 `reports/position-stage4/position-assignments-graphql-cross-tenant.log`）
+- [ ] CI 集成与自动化回归（待补齐）
 - [x] 契约与文档同步（OpenAPI/GraphQL、实现清单、80 号 Stage 4 勾选、06 号日志、监控指南）
 
 ### 11.2 87号生产迁移交付（前置依赖）

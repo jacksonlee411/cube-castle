@@ -788,13 +788,13 @@ func (c PositionAssignmentConnection) TotalCount() int32 {
 }
 
 type PositionAssignmentAudit struct {
-	AssignmentIDField string                 `json:"assignmentId"`
-	EventTypeField    string                 `json:"eventType"`
-	EffectiveDateField time.Time             `json:"effectiveDate"`
-	EndDateField      *time.Time             `json:"endDate"`
-	ActorField        string                 `json:"actor"`
-	ChangesField      map[string]interface{} `json:"changes"`
-	CreatedAtField    time.Time              `json:"createdAt"`
+	AssignmentIDField  string                 `json:"assignmentId"`
+	EventTypeField     string                 `json:"eventType"`
+	EffectiveDateField time.Time              `json:"effectiveDate"`
+	EndDateField       *time.Time             `json:"endDate"`
+	ActorField         string                 `json:"actor"`
+	ChangesField       map[string]interface{} `json:"changes"`
+	CreatedAtField     time.Time              `json:"createdAt"`
 }
 
 func (a PositionAssignmentAudit) AssignmentId() UUID { return UUID(a.AssignmentIDField) }
@@ -810,11 +810,12 @@ func (a PositionAssignmentAudit) EndDate() *Date {
 	return &val
 }
 func (a PositionAssignmentAudit) Actor() string { return a.ActorField }
-func (a PositionAssignmentAudit) Changes() JSON {
+func (a PositionAssignmentAudit) Changes() *JSON {
 	if a.ChangesField == nil {
 		return nil
 	}
-	return JSON(a.ChangesField)
+	val := JSON(a.ChangesField)
+	return &val
 }
 func (a PositionAssignmentAudit) CreatedAt() DateTime {
 	return DateTime(a.CreatedAtField.Format(time.RFC3339))
@@ -827,8 +828,8 @@ type PositionAssignmentAuditConnection struct {
 }
 
 func (c PositionAssignmentAuditConnection) Data() []PositionAssignmentAudit { return c.DataField }
-func (c PositionAssignmentAuditConnection) Pagination() PaginationInfo     { return c.PaginationField }
-func (c PositionAssignmentAuditConnection) TotalCount() int32              { return int32(c.TotalCountField) }
+func (c PositionAssignmentAuditConnection) Pagination() PaginationInfo      { return c.PaginationField }
+func (c PositionAssignmentAuditConnection) TotalCount() int32               { return int32(c.TotalCountField) }
 
 // VacantPosition 空缺职位视图
 type VacantPosition struct {
@@ -1154,7 +1155,7 @@ func (s *VacantPositionSortInput) UnmarshalGraphQL(input interface{}) error {
 type PositionAssignmentFilterInput struct {
 	EmployeeID        *string         `json:"employeeId"`
 	Status            *string         `json:"status"`
-	AssignmentTypes   []string        `json:"assignmentTypes"`
+	AssignmentTypes   *[]string       `json:"assignmentTypes"`
 	DateRange         *DateRangeInput `json:"dateRange"`
 	AsOfDate          *string         `json:"asOfDate"`
 	IncludeHistorical bool            `json:"includeHistorical"`
@@ -1188,9 +1189,7 @@ func (f *PositionAssignmentFilterInput) UnmarshalGraphQL(input interface{}) erro
 		if err != nil {
 			return fmt.Errorf("PositionAssignmentFilterInput.assignmentTypes: %w", err)
 		}
-		if slicePtr != nil {
-			f.AssignmentTypes = *slicePtr
-		}
+		f.AssignmentTypes = slicePtr
 	}
 	if value, exists := raw["dateRange"]; exists {
 		rangePtr, err := asOptionalDateRange(value)

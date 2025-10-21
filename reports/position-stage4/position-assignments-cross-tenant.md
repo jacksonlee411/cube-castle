@@ -31,7 +31,20 @@
 - 成功关闭后，`position_assignments` 中脚本生成的任职均为 `ENDED`，`positions.headcount_in_use` 恢复为 0。
 - 为保持环境整洁，对历史测试留下的任职执行了统一清理（同脚本附录中的 SQL），确保职位 `P9000003` 当前无残留占用。
 
+## GraphQL 跨租户补充验证
+- **脚本**：`tests/consolidated/position-assignments-graphql-cross-tenant.sh`
+- **GraphQL_URL**：`http://localhost:8090/graphql`
+- **输出日志**：`reports/position-stage4/position-assignments-graphql-cross-tenant.log`
+
+| 步骤 | 预期 | 实际 | 备注 |
+|------|------|------|------|
+| Token/Header 不匹配 | 403 | 403（`TENANT_MISMATCH`） | GraphQL 中间件拦截租户不一致请求 |
+| Tenant B 查询 `positionAssignments` | totalCount = 0 | totalCount = 0 | 按租户隔离返回空集，无越权数据 |
+| Tenant A 查询 `positionAssignments` | totalCount > 0 | totalCount = 11 | 返回 acting 任职并携带 `effectiveDate/actingUntil/autoRevert` 字段 |
+
+> GraphQL 服务升级至最新 Schema（`effectiveDate`、`actingUntil` 等字段），并修复输入过滤器指针问题；容器镜像通过 `docker compose up -d --build graphql-service` 重建。
+
 ## 后续建议
-1. **回归测试**：将该脚本纳入 CI 冒烟测试，持续验证跨租户隔离与 acting 任职关闭链路。
+1. **回归测试**：将脚本套件（REST + GraphQL）纳入 CI 冒烟测试，持续验证跨租户隔离与 acting 任职关闭链路。
 2. **开发守护**：在命令服务错误处理中追加更明确的日志（可选），方便排查类似 SQL 参数类型问题。
 3. **计划文档**：同步更新 86 号计划与 06 号协作日志，注明缺陷与修复细节（待后续归档时执行）。
