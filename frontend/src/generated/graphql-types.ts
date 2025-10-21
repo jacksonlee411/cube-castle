@@ -494,10 +494,13 @@ export type Position = {
 
 export type PositionAssignment = {
   __typename: "PositionAssignment";
+  actingUntil?: Maybe<Scalars["Date"]["output"]>;
   assignmentId: Scalars["UUID"]["output"];
   assignmentStatus: PositionAssignmentStatus;
   assignmentType: PositionAssignmentType;
+  autoRevert: Scalars["Boolean"]["output"];
   createdAt: Scalars["DateTime"]["output"];
+  effectiveDate: Scalars["Date"]["output"];
   employeeId: Scalars["UUID"]["output"];
   employeeName: Scalars["String"]["output"];
   employeeNumber?: Maybe<Scalars["String"]["output"]>;
@@ -507,8 +510,26 @@ export type PositionAssignment = {
   notes?: Maybe<Scalars["String"]["output"]>;
   positionCode: Scalars["PositionCode"]["output"];
   positionRecordId: Scalars["UUID"]["output"];
-  effectiveDate: Scalars["Date"]["output"];
+  reminderSentAt?: Maybe<Scalars["DateTime"]["output"]>;
   updatedAt: Scalars["DateTime"]["output"];
+};
+
+export type PositionAssignmentAudit = {
+  __typename: "PositionAssignmentAudit";
+  actor: Scalars["String"]["output"];
+  assignmentId: Scalars["UUID"]["output"];
+  changes?: Maybe<Scalars["JSON"]["output"]>;
+  createdAt: Scalars["DateTime"]["output"];
+  effectiveDate: Scalars["Date"]["output"];
+  endDate?: Maybe<Scalars["Date"]["output"]>;
+  eventType: Scalars["String"]["output"];
+};
+
+export type PositionAssignmentAuditConnection = {
+  __typename: "PositionAssignmentAuditConnection";
+  data: Array<PositionAssignmentAudit>;
+  pagination: PaginationInfo;
+  totalCount: Scalars["Int"]["output"];
 };
 
 export type PositionAssignmentConnection = {
@@ -528,10 +549,12 @@ export type PositionAssignmentEdge = {
 /** Filter options for position assignment queries. */
 export type PositionAssignmentFilterInput = {
   asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
-  assignmentStatus?: InputMaybe<PositionAssignmentStatus>;
-  assignmentType?: InputMaybe<PositionAssignmentType>;
+  assignmentTypes?: InputMaybe<Array<PositionAssignmentType>>;
+  dateRange?: InputMaybe<DateRangeInput>;
   employeeId?: InputMaybe<Scalars["UUID"]["input"]>;
+  includeActingOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
   includeHistorical?: InputMaybe<Scalars["Boolean"]["input"]>;
+  status?: InputMaybe<PositionAssignmentStatus>;
 };
 
 /** Supported assignment sorting fields. */
@@ -615,15 +638,23 @@ export enum PositionStatus {
   VACANT = "VACANT",
 }
 
+export enum PositionTimelineCategory {
+  POSITION_ASSIGNMENT = "POSITION_ASSIGNMENT",
+  POSITION_VERSION = "POSITION_VERSION",
+}
+
 /** Entry describing a specific temporal version of a position. */
 export type PositionTimelineEntry = {
   __typename: "PositionTimelineEntry";
+  assignmentStatus?: Maybe<PositionAssignmentStatus>;
+  assignmentType?: Maybe<PositionAssignmentType>;
   changeReason?: Maybe<Scalars["String"]["output"]>;
   effectiveDate: Scalars["Date"]["output"];
   endDate?: Maybe<Scalars["Date"]["output"]>;
   isCurrent: Scalars["Boolean"]["output"];
   recordId: Scalars["UUID"]["output"];
   status: PositionStatus;
+  timelineCategory: PositionTimelineCategory;
   title: Scalars["String"]["output"];
 };
 
@@ -761,6 +792,12 @@ export type Query = {
    * Permissions Required: position:read
    */
   position?: Maybe<Position>;
+  /**
+   * Export assignment audit events for a position.
+   *
+   * Permissions Required: position:assignments:audit
+   */
+  positionAssignmentAudit: PositionAssignmentAuditConnection;
   /**
    * Get paginated assignment records for a position.
    *
@@ -937,6 +974,17 @@ export type QueryOrganizationsArgs = {
 export type QueryPositionArgs = {
   asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
   code: Scalars["PositionCode"]["input"];
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
+export type QueryPositionAssignmentAuditArgs = {
+  assignmentId?: InputMaybe<Scalars["UUID"]["input"]>;
+  dateRange?: InputMaybe<DateRangeInput>;
+  pagination?: InputMaybe<PaginationInput>;
+  positionCode: Scalars["PositionCode"]["input"];
 };
 
 /**
@@ -1354,6 +1402,27 @@ export type EnterprisePositionsQuery = {
       isFuture: boolean;
       createdAt: string;
       updatedAt: string;
+      currentAssignment?: {
+        __typename: "PositionAssignment";
+        assignmentId: string;
+        positionCode: string;
+        positionRecordId: string;
+        employeeId: string;
+        employeeName: string;
+        employeeNumber?: string | null;
+        assignmentType: PositionAssignmentType;
+        assignmentStatus: PositionAssignmentStatus;
+        fte: number;
+        effectiveDate: string;
+        endDate?: string | null;
+        actingUntil?: string | null;
+        autoRevert: boolean;
+        reminderSentAt?: string | null;
+        isCurrent: boolean;
+        notes?: string | null;
+        createdAt: string;
+        updatedAt: string;
+      } | null;
     }>;
     pagination: {
       __typename: "PaginationInfo";
@@ -1411,6 +1480,9 @@ export type PositionDetailQuery = {
       fte: number;
       effectiveDate: string;
       endDate?: string | null;
+      actingUntil?: string | null;
+      autoRevert: boolean;
+      reminderSentAt?: string | null;
       isCurrent: boolean;
       notes?: string | null;
       createdAt: string;
@@ -1426,6 +1498,9 @@ export type PositionDetailQuery = {
     endDate?: string | null;
     changeReason?: string | null;
     isCurrent: boolean;
+    timelineCategory: PositionTimelineCategory;
+    assignmentType?: PositionAssignmentType | null;
+    assignmentStatus?: PositionAssignmentStatus | null;
   }>;
   positionAssignments: {
     __typename: "PositionAssignmentConnection";
@@ -1442,6 +1517,9 @@ export type PositionDetailQuery = {
       fte: number;
       effectiveDate: string;
       endDate?: string | null;
+      actingUntil?: string | null;
+      autoRevert: boolean;
+      reminderSentAt?: string | null;
       isCurrent: boolean;
       notes?: string | null;
       createdAt: string;
@@ -1487,6 +1565,85 @@ export type PositionDetailQuery = {
     createdAt: string;
     updatedAt: string;
   }>;
+};
+
+export type PositionAssignmentsQueryVariables = Exact<{
+  positionCode: Scalars["PositionCode"]["input"];
+  filter?: InputMaybe<PositionAssignmentFilterInput>;
+  pagination?: InputMaybe<PaginationInput>;
+  sorting?: InputMaybe<
+    Array<PositionAssignmentSortInput> | PositionAssignmentSortInput
+  >;
+}>;
+
+export type PositionAssignmentsQuery = {
+  __typename: "Query";
+  positionAssignments: {
+    __typename: "PositionAssignmentConnection";
+    totalCount: number;
+    data: Array<{
+      __typename: "PositionAssignment";
+      assignmentId: string;
+      positionCode: string;
+      positionRecordId: string;
+      employeeId: string;
+      employeeName: string;
+      employeeNumber?: string | null;
+      assignmentType: PositionAssignmentType;
+      assignmentStatus: PositionAssignmentStatus;
+      fte: number;
+      effectiveDate: string;
+      endDate?: string | null;
+      actingUntil?: string | null;
+      autoRevert: boolean;
+      reminderSentAt?: string | null;
+      isCurrent: boolean;
+      notes?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    pagination: {
+      __typename: "PaginationInfo";
+      total: number;
+      page: number;
+      pageSize: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+  };
+};
+
+export type PositionAssignmentAuditQueryVariables = Exact<{
+  positionCode: Scalars["PositionCode"]["input"];
+  assignmentId?: InputMaybe<Scalars["UUID"]["input"]>;
+  dateRange?: InputMaybe<DateRangeInput>;
+  pagination?: InputMaybe<PaginationInput>;
+}>;
+
+export type PositionAssignmentAuditQuery = {
+  __typename: "Query";
+  positionAssignmentAudit: {
+    __typename: "PositionAssignmentAuditConnection";
+    totalCount: number;
+    data: Array<{
+      __typename: "PositionAssignmentAudit";
+      assignmentId: string;
+      eventType: string;
+      effectiveDate: string;
+      endDate?: string | null;
+      actor: string;
+      changes?: Record<string, unknown> | null;
+      createdAt: string;
+    }>;
+    pagination: {
+      __typename: "PaginationInfo";
+      total: number;
+      page: number;
+      pageSize: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+  };
 };
 
 export type VacantPositionsQueryVariables = Exact<{
