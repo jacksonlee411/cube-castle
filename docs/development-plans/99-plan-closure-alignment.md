@@ -33,12 +33,13 @@
 - `docs/archive/development-plans/104-ds147-positions-tabbed-experience.md`
 - `docs/archive/development-plans/06-design-review-task-assessment.md`
 - `docs/archive/development-plans/92-position-secondary-navigation-implementation.md`
+- `docs/development-plans/107-position-closeout-gap-report.md`
 
 ## 3. 计划现状与阻塞因素
 
 | 文档 | 当前状态摘要 | 主要阻塞 / 待回写 | 与其他计划的依赖 |
 | --- | --- | --- | --- |
-| **80号** 职位管理方案 | Stage 2/3 结论已记录，Stage 4 成果已回填 | 待 86 号收尾结果、acting 自动化性能数据与 101–104 成果写入时间线 | 依赖 86 归档、87 生产迁移确认 |
+| **80号** 职位管理方案 | Stage 2/3 结论已记录，Stage 4 成果已回填 | 采纳 107 号差距报告中的性能/测试/设计补救措施，并回写时间线 | 依赖 86 归档、87 生产迁移确认 |
 | **86号** 任职 Stage 4 计划（已归档） | ✅ 跨租户脚本、047/048 迁移、CI 验证全部完成 | 无（如有新增需求另立新计划） | 为 80 号方案更新提供最终结论 |
 | **87号** 时态字段命名决策 | 开发侧迁移完成并归档；待与 86 号上线窗口联动执行生产迁移 | 按档案 §11（迁移流程）+ §12（与 86 号联动）完成上线验证并回写 06 号日志 | 为 80、86、88 提供命名一致性约束 |
 | **88号** 前端差距分析（已归档） | ✅ 全量差距闭环，2025-10-21 移至 `docs/archive` | 无 | 提供历史差距与交付记录参照 |

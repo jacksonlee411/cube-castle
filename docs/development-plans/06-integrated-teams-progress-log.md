@@ -16,6 +16,7 @@
 - ✅ **101~104号计划收口**：Position Playwright hardening、PositionForm 抽象、组件目录整理、设计规范 v0.1 全部归档
 - ✅ **101~104号计划归档确认**（2025-10-21）：文档迁移至 `docs/archive`，88号差距分析与 99号收口指引同步更新
 - ✅ **88号差距分析归档**（2025-10-21）：确认无新增缺口，文档及评审稿分别移动至 `docs/archive/development-plans/88-position-frontend-gap-analysis.md` 与 `docs/archive/development-plans/88-position-frontend-gap-analysis-review.md`
+- ✅ **107号差距核查报告**（2025-10-21）：补充 80 号计划收口评估，定位性能/测试/设计未结项，文件 `docs/development-plans/107-position-closeout-gap-report.md`
 
 ### 1.2 当前进行中
 
