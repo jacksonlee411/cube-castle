@@ -496,7 +496,7 @@ psql "$PRODUCTION_DATABASE_URL" -v ON_ERROR_STOP=1 \
 
 ### 11.1 Stage 4 功能交付
 
-- [ ] 048 迁移 & 回滚脚本 + 演练日志
+- [x] 048 迁移 & 回滚脚本 + 演练日志（见 `reports/position-stage4/048-migration-dryrun-20251021.log`）
 - [x] 任职专用 REST API 代码与测试
 - [x] 代理自动恢复任务（含 `OperationalScheduler` 集成），监控指标待后续排期
 - [x] GraphQL & 前端任职历史增强 + Playwright 场景

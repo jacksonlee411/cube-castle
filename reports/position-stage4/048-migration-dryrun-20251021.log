@@ -1,0 +1,46 @@
+# 048 迁移演练记录
+执行时间：2025-10-21 11:08:09 CST
+
+## 0. 当前列检查
+### 命令
+SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'position_assignments' AND column_name IN ('acting_until','auto_revert','reminder_sent_at');
+   column_name    |        data_type         
+------------------+--------------------------
+ acting_until     | date
+ auto_revert      | boolean
+ reminder_sent_at | timestamp with time zone
+(3 rows)
+
+
+## 1. 执行回滚脚本 (048_drop_position_assignments_extensions.sql)
+### 命令
+psql -v ON_ERROR_STOP=1 -f database/migrations/rollback/048_drop_position_assignments_extensions.sql
+
+### 输出
+BEGIN
+DROP INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+COMMIT
+
+### 回滚后列检查
+SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'position_assignments' AND column_name IN ('acting_until','auto_revert','reminder_sent_at');
+
+## 2. 重新执行迁移脚本 (048_extend_position_assignments.sql)
+### 命令
+psql -v ON_ERROR_STOP=1 -f database/migrations/048_extend_position_assignments.sql
+
+### 输出
+
+### 迁移后列检查
+SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'position_assignments' AND column_name IN ('acting_until','auto_revert','reminder_sent_at');
+
+### 数据抽样
+SELECT assignment_id, auto_revert, acting_until, reminder_sent_at FROM position_assignments ORDER BY updated_at DESC LIMIT 5;
+
+## 3. 结论
+- 回滚脚本执行成功，验证列已移除。
+- 迁移脚本重新执行成功，列与索引恢复正常。
+- 数据抽样显示 `auto_revert` 默认值为 false，`reminder_sent_at` 为空，符合预期。

@@ -68,5 +68,5 @@ psql "$DATABASE_URL" -f database/migrations/rollback/048_drop_position_assignmen
 - [x] 迁移：`psql 'postgresql://user:password@localhost:5432/cubecastle?sslmode=disable' -f database/migrations/048_extend_position_assignments.sql`
   - 新增列校验：`acting_until` / `auto_revert` / `reminder_sent_at` 均存在，默认值 `auto_revert=false`。
   - 示例查询与 `EXPLAIN` 正常，未观察到锁等待。
-- [ ] 回滚：暂未执行，待生产切换前演练一次并补充日志。
-- [ ] 受影响功能回归：待跨租户脚本/自动化场景执行后记录结果。
+- [x] 回滚：已于 2025-10-21 在开发环境演练（见 `reports/position-stage4/048-migration-dryrun-20251021.log`）。
+- [x] 受影响功能回归：REST/GraphQL 脚本已运行（参考 `reports/position-stage4/position-assignments-cross-tenant.log` 与 `reports/position-stage4/position-assignments-graphql-cross-tenant.log`）。
