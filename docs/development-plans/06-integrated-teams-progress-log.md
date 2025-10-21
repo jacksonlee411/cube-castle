@@ -15,6 +15,7 @@
 - ✅ **97号 TypeScript 错误修复**：Phase 0-4 完成，Canvas Kit 迁移、枚举修复、Storybook 隔离，`npm run build` 通过
 - ✅ **101~104号计划收口**：Position Playwright hardening、PositionForm 抽象、组件目录整理、设计规范 v0.1 全部归档
 - ✅ **101~104号计划归档确认**（2025-10-21）：文档迁移至 `docs/archive`，88号差距分析与 99号收口指引同步更新
+- ✅ **88号差距分析归档**（2025-10-21）：确认无新增缺口，文档及评审稿分别移动至 `docs/archive/development-plans/88-position-frontend-gap-analysis.md` 与 `docs/archive/development-plans/88-position-frontend-gap-analysis-review.md`
 
 ### 1.2 当前进行中
 
@@ -247,7 +248,7 @@ curl -X POST http://localhost:9090/api/v1/operational/tasks/recalculate-timeline
 
 - 📄 87号文档：`docs/development-plans/87-temporal-field-naming-consistency-decision.md`
 - 📄 80号文档：`docs/development-plans/80-position-management-with-temporal-tracking.md`
-- 📄 86号文档：`docs/development-plans/86-position-assignment-stage4-plan.md`
+- 📄 86号文档：`docs/archive/development-plans/86-position-assignment-stage4-plan.md`
 - 📄 项目原则：`CLAUDE.md` - 资源唯一性与跨层一致性原则
 
 ### 6.8 86号计划后续任务（2025-10-20）
@@ -265,6 +266,7 @@ curl -X POST http://localhost:9090/api/v1/operational/tasks/recalculate-timeline
 | 日期 | 更新内容 | 负责人 |
 |------|----------|--------|
 | 2025-10-21 14:30 | 记录 Stage 4 047 迁移演练 T-0/T+1 凭证（见 reports/position-stage4/*20251021*），供上线前复核 | 架构组 + Claude Code |
+| 2025-10-21 15:30 | 86 号 Stage 4 计划归档：CI `cross-tenant-tests` job 生效，计划文档迁入 archive | 架构组 + Claude Code |
 | 2025-10-21 13:00 | 87 号档案补充 §12（与 86 号收尾联动迁移策略），同步更新 99 号指引 | 架构组 + Claude Code |
 | 2025-10-21 12:30 | 87 号决策文档归档至 `docs/archive/development-plans/87-temporal-field-naming-consistency-decision.md` | 架构组 + Claude Code |
 | 2025-10-21 12:00 | 完成 87 号命名统一实施并同步相关文档/契约 | 数据库 + 全栈团队 |

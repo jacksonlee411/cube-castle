@@ -4,7 +4,7 @@
 **创建日期**: 2025-10-12
 **最新更新**: 2025-10-21
 **维护团队**: 后端团队 + 前端团队
-**状态**: Stage 2 已完成（Stage 3 已批准启动） ✅ · Stage 4 执行中（详见 86 号计划）
+**状态**: Stage 2 已完成（Stage 3 已批准启动） ✅ · Stage 4 已完成（详见 86 号归档计划）
 **关联计划**: 60号系统级质量重构总计划 · 85号 Stage 3 执行计划 v0.2
 **参考系统**: Workday Position Management + HCM Core
 **遵循原则**: CLAUDE.md 资源唯一性与跨层一致性原则（最高优先级）
@@ -1406,16 +1406,14 @@ job-catalog:write          # 维护职位体系主数据
 
 ### 7.5 Stage 4（未来扩展）：任职管理
 
-- [ ] Position Assignment 实体
-- [ ] 多重任职支持（Primary/Secondary）
-- [ ] 代理任职（Acting）
-- [ ] 任职历史追踪
+- ✅ Stage 4 增量（2025-10-21）：根据 86 号计划交付 Position Assignment 专用 API、代理自动恢复、历史视图增强及跨租户验证。
+- ⏳ 后续扩展：如需支持多重任职（Secondary/Acting 更高级场景）或后续运营需求，将另建新计划跟踪。
 
 ### 7.6 Assignment 依赖与临时策略
 
 - ✅ **Phase 1-2 过渡方案回收**：`current_holder_*` 与 `current_assignment_type` 冗余字段已通过 045 迁移移除，命令服务全面改写至 `position_assignments`。
 - ✅ **落地条件完成**：GraphQL/REST 契约已补充 `PositionAssignment` 资源，命令服务与仓储层支持 `position_assignments` + `positions` 同事务写入与回滚。
-- ⏳ **后续迭代**：按 Stage 4 规划继续扩展多重任职（Secondary/Acting）、代理任职等高级场景。
+- ⏳ **后续迭代**：多重任职等新增需求将通过新计划执行。
   3. 对接员工基础数据服务，确认 `employeeId` 的唯一事实来源和授权范围。
 - **数据回填策略**：Assignment 表上线时，通过迁移脚本将现有 `positions.current_holder_*` 与 `current_assignment_type` 数据转存为首个 `assignment` 记录，并设置 `effective_date = filled_date`。迁移完成后清理冗余字段，避免双写。
 

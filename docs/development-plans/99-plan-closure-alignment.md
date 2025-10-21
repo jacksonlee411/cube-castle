@@ -20,9 +20,9 @@
 ## 2. 唯一事实来源
 
 - `docs/development-plans/80-position-management-with-temporal-tracking.md`
-- `docs/development-plans/86-position-assignment-stage4-plan.md`
+- `docs/archive/development-plans/86-position-assignment-stage4-plan.md`
 - `docs/development-plans/87-temporal-field-naming-consistency-decision.md`
-- `docs/development-plans/88-position-frontend-gap-analysis.md` 及 `docs/archive/development-plans/88-position-frontend-gap-analysis-review.md`
+- `docs/archive/development-plans/88-position-frontend-gap-analysis.md` 及 `docs/archive/development-plans/88-position-frontend-gap-analysis-review.md`
 - `docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md`
 - `docs/archive/development-plans/93-position-detail-tabbed-experience-acceptance.md`
 - `docs/archive/development-plans/95-status-fields-review.md`
@@ -38,10 +38,10 @@
 
 | 文档 | 当前状态摘要 | 主要阻塞 / 待回写 | 与其他计划的依赖 |
 | --- | --- | --- | --- |
-| **80号** 职位管理方案 | Stage 2/3 结论已记录，Stage 4 增量待回填 | 待 86 号收尾结果、acting 自动化性能数据与 101–104 成果写入时间线 | 依赖 86 收尾、87 生产迁移确认 |
-| **86号** 任职 Stage 4 计划 | 交付已合并，清单项剩跨租户脚本、监控文档与归档动作 | 完成跨租户脚本回写、生成 `position-stage4` 报告并移动至 archive | 需 87 生产迁移结论；完成后驱动 80 号更新 |
+| **80号** 职位管理方案 | Stage 2/3 结论已记录，Stage 4 成果已回填 | 待 86 号收尾结果、acting 自动化性能数据与 101–104 成果写入时间线 | 依赖 86 归档、87 生产迁移确认 |
+| **86号** 任职 Stage 4 计划（已归档） | ✅ 跨租户脚本、047/048 迁移、CI 验证全部完成 | 无（如有新增需求另立新计划） | 为 80 号方案更新提供最终结论 |
 | **87号** 时态字段命名决策 | 开发侧迁移完成并归档；待与 86 号上线窗口联动执行生产迁移 | 按档案 §11（迁移流程）+ §12（与 86 号联动）完成上线验证并回写 06 号日志 | 为 80、86、88 提供命名一致性约束 |
-| **88号** 前端差距分析 | P0–P2 已兑现，后续事项拆分到 101–104 并完成；文档仍标记进行中 | 更新第 12 节与跟踪清单引用 101–104 成果，调整状态并准备归档 | 需 101–104 归档动作与证据链接 |
+| **88号** 前端差距分析（已归档） | ✅ 全量差距闭环，2025-10-21 移至 `docs/archive` | 无 | 提供历史差距与交付记录参照 |
 | **93号** 方案（已归档） | ✅ 归档至 `docs/archive`，引用已更新 | 无 | 为 88、101–104 提供设计基线 |
 | **93号** 验收报告（已归档） | ✅ 归档并补齐回写 | 无 | 与 88、101–104 的验收引用保持同步 |
 | **95号** 状态字段评审（已归档） | ✅ 结论“暂不扩展五态” 已生效 | 无 | 供 88、101–104 引用，无额外依赖 |
@@ -146,9 +146,7 @@
    - 行动：✅ 2025-10-21 完成归档并回写 88 号与 06 号日志，无需额外动作。
    - 产出：归档提交与日志条目已就位。
 
-5. **88号**（前端差距分析）
-   - 行动：在第 12 节与跟踪清单中引用 101–104 成果，更新状态为“完成-待归档”，确认无新增待办后归档。
-   - 产出：修订后的 88 号文档、归档提交、06 号日志补充记录。
+5. **88号**（前端差距分析） — ✅ 2025-10-21 归档完成，无需额外动作。
 
 ### 5.3 阶段三：布局一致性收尾
 
@@ -161,10 +159,9 @@
 | 顺序 | 行动 | 责任角色 | 需要的证据/输出 |
 | --- | --- | --- | --- |
 | 1 | 87 号执行生产迁移并归档 | 架构组 · 数据库团队 | 迁移执行/回滚记录、06 号日志条目、文档归档 PR |
-| 2 | 86 号收尾与归档 | 命令服务团队 · 查询服务团队 · QA 团队 | 跨租户脚本记录、`reports/position-stage4/` 基线、归档提交 |
+| 2 | 86 号归档 | 命令服务团队 · 查询服务团队 · QA 团队 | ✅ 跨租户脚本、reports/position-stage4/ 基线、归档提交 |
 | 3 | 80 号方案更新 | 业务架构组 | Stage 4 进展段落、引用 87/101–104 链接、归档或后续计划说明 |
-| 4 | 88 号状态更新与归档 | 前端团队 · 架构组 | 更新第 12 节与跟踪清单、调整状态、归档 PR、06 号日志记录 |
-| 5 | 96 号验证并决策 | 前端团队 · 设计团队 | 验证清单结果、截图或新计划编号、文档状态更新 |
+| 4 | 96 号验证并决策 | 前端团队 · 设计团队 | 验证清单结果、截图或新计划编号、文档状态更新 |
 
 ## 7. 审阅与更新机制
 

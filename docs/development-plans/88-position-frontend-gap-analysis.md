@@ -579,7 +579,7 @@ grep -r "positionVersions" cmd/organization-query-service/internal
 - **`docs/development-plans/80-position-management-with-temporal-tracking.md`**
   职位管理总方案，Line 184-187 承诺"完全复用组织架构模式"
 
-- **`docs/development-plans/86-position-assignment-stage4-plan.md`**
+- **`docs/archive/development-plans/86-position-assignment-stage4-plan.md`**
   职位任职 Stage 4 增量计划（v0.2），本次差距分析的触发来源
 
 - **`docs/development-plans/06-integrated-teams-progress-log.md`**
