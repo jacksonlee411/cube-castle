@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -97,4 +95,3 @@ services:
 networks:
   default:
     name: cubecastle-e2e
-

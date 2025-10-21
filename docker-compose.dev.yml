@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   # PostgreSQL数据库 - 唯一数据源
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: cubecastle-postgres
     environment:
       POSTGRES_DB: cubecastle
