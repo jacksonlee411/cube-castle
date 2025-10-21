@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -299,33 +300,68 @@ func (r *PostgreSQLRepository) GetPositionTimeline(ctx context.Context, tenantID
 	args := []interface{}{tenantID.String(), strings.TrimSpace(code)}
 	argIndex := 3
 	whereParts := []string{"p.tenant_id = $1", "p.code = $2"}
+	assignmentWhereParts := []string{"pa.tenant_id = $1", "pa.position_code = $2"}
 
 	if startDate != nil && strings.TrimSpace(*startDate) != "" {
 		whereParts = append(whereParts, fmt.Sprintf("p.effective_date >= $%d", argIndex))
+		assignmentWhereParts = append(assignmentWhereParts, fmt.Sprintf("pa.effective_date >= $%d", argIndex))
 		args = append(args, strings.TrimSpace(*startDate))
 		argIndex++
 	}
 	if endDate != nil && strings.TrimSpace(*endDate) != "" {
 		whereParts = append(whereParts, fmt.Sprintf("p.effective_date <= $%d", argIndex))
+		assignmentWhereParts = append(assignmentWhereParts, fmt.Sprintf("pa.effective_date <= $%d", argIndex))
 		args = append(args, strings.TrimSpace(*endDate))
 		argIndex++
 	}
 
 	whereClause := "WHERE " + strings.Join(whereParts, " AND ")
+	assignmentClause := "WHERE " + strings.Join(assignmentWhereParts, " AND ")
 
 	query := fmt.Sprintf(`
+WITH timeline AS (
+    SELECT
+        p.record_id::text AS record_id,
+        p.status,
+        p.title,
+        p.effective_date,
+        p.end_date,
+        p.is_current,
+        p.operation_reason,
+        'POSITION_VERSION'::text AS timeline_category,
+        NULL::text AS assignment_type,
+        NULL::text AS assignment_status
+    FROM positions p
+    %s
+    UNION ALL
+    SELECT
+        pa.assignment_id::text AS record_id,
+        pa.assignment_status AS status,
+        pa.employee_name AS title,
+        pa.effective_date,
+        COALESCE(pa.end_date, pa.acting_until) AS end_date,
+        pa.is_current,
+        pa.notes AS change_reason,
+        'POSITION_ASSIGNMENT'::text AS timeline_category,
+        pa.assignment_type,
+        pa.assignment_status
+    FROM position_assignments pa
+    %s
+)
 SELECT
-    p.record_id::text,
-    p.status,
-    p.title,
-    p.effective_date,
-    p.end_date,
-    p.is_current,
-    p.operation_reason
-FROM positions p
-%s
-ORDER BY p.effective_date ASC, p.created_at ASC
-`, whereClause)
+    record_id,
+    status,
+    title,
+    effective_date,
+    end_date,
+    is_current,
+    change_reason,
+    timeline_category,
+    assignment_type,
+    assignment_status
+FROM timeline
+ORDER BY effective_date ASC, record_id ASC
+`, whereClause, assignmentClause)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -338,6 +374,8 @@ ORDER BY p.effective_date ASC, p.created_at ASC
 		var entry model.PositionTimelineEntry
 		var endDate sql.NullTime
 		var changeReason sql.NullString
+		var assignmentType sql.NullString
+		var assignmentStatus sql.NullString
 		if err := rows.Scan(
 			&entry.RecordIDField,
 			&entry.StatusField,
@@ -346,6 +384,9 @@ ORDER BY p.effective_date ASC, p.created_at ASC
 			&endDate,
 			&entry.IsCurrentField,
 			&changeReason,
+			&entry.TimelineCategoryField,
+			&assignmentType,
+			&assignmentStatus,
 		); err != nil {
 			return nil, fmt.Errorf("scan timeline entry: %w", err)
 		}
@@ -354,6 +395,17 @@ ORDER BY p.effective_date ASC, p.created_at ASC
 		}
 		if changeReason.Valid {
 			entry.ChangeReasonField = &changeReason.String
+		}
+		if assignmentType.Valid {
+			val := strings.ToUpper(strings.TrimSpace(assignmentType.String))
+			entry.AssignmentTypeField = &val
+		}
+		if assignmentStatus.Valid {
+			val := strings.ToUpper(strings.TrimSpace(assignmentStatus.String))
+			entry.AssignmentStatusField = &val
+		}
+		if strings.TrimSpace(entry.TimelineCategoryField) == "" {
+			entry.TimelineCategoryField = "POSITION_VERSION"
 		}
 		result = append(result, entry)
 	}
@@ -1034,21 +1086,46 @@ func (r *PostgreSQLRepository) GetPositionAssignments(ctx context.Context, tenan
 			args = append(args, strings.TrimSpace(*filter.EmployeeID))
 			argIndex++
 		}
-		if filter.AssignmentStatus != nil && strings.TrimSpace(*filter.AssignmentStatus) != "" {
+		if filter.Status != nil && strings.TrimSpace(*filter.Status) != "" {
 			whereParts = append(whereParts, fmt.Sprintf("assignment_status = $%d", argIndex))
-			args = append(args, strings.ToUpper(strings.TrimSpace(*filter.AssignmentStatus)))
+			args = append(args, strings.ToUpper(strings.TrimSpace(*filter.Status)))
 			argIndex++
 		}
-		if filter.AssignmentType != nil && strings.TrimSpace(*filter.AssignmentType) != "" {
-			whereParts = append(whereParts, fmt.Sprintf("assignment_type = $%d", argIndex))
-			args = append(args, strings.ToUpper(strings.TrimSpace(*filter.AssignmentType)))
-			argIndex++
+		if len(filter.AssignmentTypes) > 0 {
+			normalized := make([]string, 0, len(filter.AssignmentTypes))
+			for _, item := range filter.AssignmentTypes {
+				trimmed := strings.ToUpper(strings.TrimSpace(item))
+				if trimmed == "" {
+					continue
+				}
+				normalized = append(normalized, trimmed)
+			}
+			if len(normalized) > 0 {
+				whereParts = append(whereParts, fmt.Sprintf("assignment_type = ANY($%d)", argIndex))
+				args = append(args, pq.StringArray(normalized))
+				argIndex++
+			}
 		}
 		if filter.AsOfDate != nil && strings.TrimSpace(*filter.AsOfDate) != "" {
 			whereParts = append(whereParts,
 				fmt.Sprintf("(effective_date <= $%d AND (end_date IS NULL OR end_date >= $%d))", argIndex, argIndex))
 			args = append(args, strings.TrimSpace(*filter.AsOfDate))
 			argIndex++
+		}
+		if filter.DateRange != nil {
+			if filter.DateRange.From != nil && strings.TrimSpace(*filter.DateRange.From) != "" {
+				whereParts = append(whereParts, fmt.Sprintf("effective_date >= $%d", argIndex))
+				args = append(args, strings.TrimSpace(*filter.DateRange.From))
+				argIndex++
+			}
+			if filter.DateRange.To != nil && strings.TrimSpace(*filter.DateRange.To) != "" {
+				whereParts = append(whereParts, fmt.Sprintf("effective_date <= $%d", argIndex))
+				args = append(args, strings.TrimSpace(*filter.DateRange.To))
+				argIndex++
+			}
+		}
+		if filter.IncludeActingOnly {
+			whereParts = append(whereParts, "assignment_type = 'ACTING'")
 		}
 		if !filter.IncludeHistorical {
 			whereParts = append(whereParts, "assignment_status <> 'ENDED'")
@@ -1107,6 +1184,9 @@ SELECT
     fte,
     effective_date,
     end_date,
+    acting_until,
+    auto_revert,
+    reminder_sent_at,
     is_current,
     notes,
     created_at,
@@ -1166,6 +1246,188 @@ LIMIT $%d OFFSET $%d`, whereClause, orderClause, argIndex, argIndex+1)
 	return connection, nil
 }
 
+func (r *PostgreSQLRepository) GetPositionAssignmentAudit(ctx context.Context, tenantID uuid.UUID, positionCode string, assignmentID *string, dateRange *model.DateRangeInput, pagination *model.PaginationInput) (*model.PositionAssignmentAuditConnection, error) {
+	page := int32(1)
+	pageSize := int32(25)
+	if pagination != nil {
+		if pagination.Page > 0 {
+			page = pagination.Page
+		}
+		if pagination.PageSize > 0 {
+			pageSize = pagination.PageSize
+			if pageSize > 500 {
+				pageSize = 500
+			}
+		}
+	}
+
+	limit := int(pageSize)
+	offset := int((page - 1) * pageSize)
+
+	args := []interface{}{tenantID.String(), strings.TrimSpace(positionCode)}
+	conditions := []string{
+		"al.tenant_id = $1",
+		"p.code = $2",
+		"al.resource_type = 'POSITION'",
+		"al.response_data ? 'assignmentId'",
+		"NULLIF(al.response_data->>'assignmentId', '') IS NOT NULL",
+	}
+	argIndex := 3
+
+	if assignmentID != nil && strings.TrimSpace(*assignmentID) != "" {
+		conditions = append(conditions, fmt.Sprintf("al.response_data->>'assignmentId' = $%d", argIndex))
+		args = append(args, strings.TrimSpace(*assignmentID))
+		argIndex++
+	}
+
+	if dateRange != nil {
+		if dateRange.From != nil && strings.TrimSpace(*dateRange.From) != "" {
+			conditions = append(conditions, fmt.Sprintf("al.timestamp >= $%d", argIndex))
+			args = append(args, strings.TrimSpace(*dateRange.From))
+			argIndex++
+		}
+		if dateRange.To != nil && strings.TrimSpace(*dateRange.To) != "" {
+			conditions = append(conditions, fmt.Sprintf("al.timestamp <= $%d", argIndex))
+			args = append(args, strings.TrimSpace(*dateRange.To))
+			argIndex++
+		}
+	}
+
+	whereClause := strings.Join(conditions, " AND ")
+
+	countQuery := fmt.Sprintf(`
+SELECT COUNT(*)
+FROM audit_logs al
+JOIN positions p ON p.tenant_id = al.tenant_id AND p.record_id = al.resource_id::uuid
+WHERE %s
+`, whereClause)
+
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("count position assignment audit: %w", err)
+	}
+
+	if total == 0 {
+		return &model.PositionAssignmentAuditConnection{
+			DataField: []model.PositionAssignmentAudit{},
+			PaginationField: model.PaginationInfo{
+				TotalField:       0,
+				PageField:        int(page),
+				PageSizeField:    int(pageSize),
+				HasNextField:     false,
+				HasPreviousField: page > 1,
+			},
+			TotalCountField: 0,
+		}, nil
+	}
+
+	selectQuery := fmt.Sprintf(`
+SELECT
+    al.response_data->>'assignmentId' AS assignment_id,
+    COALESCE(NULLIF(al.action_name, ''), al.event_type) AS event_type,
+    COALESCE(pa.effective_date, NULLIF(al.response_data->>'assignmentEffective', '')::date, al.timestamp::date) AS effective_date,
+    COALESCE(pa.end_date, pa.acting_until, NULLIF(al.response_data->>'assignmentEndDate', '')::date) AS end_date,
+    COALESCE(al.business_context->>'actor_name', al.actor_id) AS actor_name,
+    COALESCE(al.changes, '[]'::jsonb)::text AS changes_json,
+    al.timestamp
+FROM audit_logs al
+JOIN positions p ON p.tenant_id = al.tenant_id AND p.record_id = al.resource_id::uuid
+LEFT JOIN position_assignments pa ON pa.tenant_id = al.tenant_id AND pa.assignment_id::text = al.response_data->>'assignmentId'
+WHERE %s
+ORDER BY al.timestamp DESC
+LIMIT $%d OFFSET $%d
+`, whereClause, argIndex, argIndex+1)
+
+	queryArgs := append([]interface{}{}, args...)
+	queryArgs = append(queryArgs, limit, offset)
+
+	rows, err := r.db.QueryContext(ctx, selectQuery, queryArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("query position assignment audit: %w", err)
+	}
+	defer rows.Close()
+
+	records := make([]model.PositionAssignmentAudit, 0)
+	for rows.Next() {
+		var assignID sql.NullString
+		var eventType sql.NullString
+		var effectiveDate sql.NullTime
+		var endDate sql.NullTime
+		var actorName sql.NullString
+		var changesJSON sql.NullString
+		var timestamp time.Time
+
+		if err := rows.Scan(&assignID, &eventType, &effectiveDate, &endDate, &actorName, &changesJSON, &timestamp); err != nil {
+			return nil, fmt.Errorf("scan assignment audit row: %w", err)
+		}
+
+		if !assignID.Valid || strings.TrimSpace(assignID.String) == "" {
+			continue
+		}
+
+		eventTypeValue := ""
+		if eventType.Valid {
+			eventTypeValue = strings.TrimSpace(eventType.String)
+		}
+		record := model.PositionAssignmentAudit{
+			AssignmentIDField: assignID.String,
+			EventTypeField:    strings.ToUpper(eventTypeValue),
+			CreatedAtField:    timestamp,
+			ActorField:        strings.TrimSpace(actorName.String),
+		}
+
+		if effectiveDate.Valid {
+			record.EffectiveDateField = effectiveDate.Time
+		} else {
+			record.EffectiveDateField = timestamp
+		}
+		if endDate.Valid {
+			record.EndDateField = &endDate.Time
+		}
+
+		if changesJSON.Valid && strings.TrimSpace(changesJSON.String) != "" && strings.TrimSpace(changesJSON.String) != "[]" {
+			var parsed interface{}
+			if err := json.Unmarshal([]byte(changesJSON.String), &parsed); err == nil {
+				switch val := parsed.(type) {
+				case map[string]interface{}:
+					record.ChangesField = val
+				case []interface{}:
+					record.ChangesField = map[string]interface{}{"items": val}
+				}
+			}
+		}
+
+		if record.ActorField == "" {
+			record.ActorField = "system"
+		}
+
+		records = append(records, record)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate position assignment audit: %w", err)
+	}
+
+	totalPages := 0
+	if pageSize > 0 {
+		totalPages = (total + int(pageSize) - 1) / int(pageSize)
+	}
+
+	connection := &model.PositionAssignmentAuditConnection{
+		DataField: records,
+		PaginationField: model.PaginationInfo{
+			TotalField:       total,
+			PageField:        int(page),
+			PageSizeField:    int(pageSize),
+			HasNextField:     int(page) < totalPages,
+			HasPreviousField: page > 1,
+		},
+		TotalCountField: total,
+	}
+
+	return connection, nil
+}
+
 func scanPositionAssignment(scanner rowScanner) (*model.PositionAssignment, error) {
 	var (
 		assignmentID,
@@ -1177,9 +1439,12 @@ func scanPositionAssignment(scanner rowScanner) (*model.PositionAssignment, erro
 		assignmentType,
 		assignmentStatus string
 		employeeNumber sql.NullString
-	fte            float64
-	effectiveDate  time.Time
-	endDate        sql.NullTime
+		fte            float64
+		effectiveDate  time.Time
+		endDate        sql.NullTime
+		actingUntil    sql.NullTime
+		autoRevert     bool
+		reminderSentAt sql.NullTime
 		isCurrent      bool
 		notes          sql.NullString
 		createdAt      time.Time
@@ -1199,6 +1464,9 @@ func scanPositionAssignment(scanner rowScanner) (*model.PositionAssignment, erro
 		&fte,
 		&effectiveDate,
 		&endDate,
+		&actingUntil,
+		&autoRevert,
+		&reminderSentAt,
 		&isCurrent,
 		&notes,
 		&createdAt,
@@ -1216,8 +1484,9 @@ func scanPositionAssignment(scanner rowScanner) (*model.PositionAssignment, erro
 		EmployeeNameField:     employeeName,
 		AssignmentTypeField:   assignmentType,
 		AssignmentStatusField: assignmentStatus,
-	FTEField:              fte,
-	EffectiveDateField:    effectiveDate,
+		FTEField:              fte,
+		EffectiveDateField:    effectiveDate,
+		AutoRevertField:       autoRevert,
 		IsCurrentField:        isCurrent,
 		CreatedAtField:        createdAt,
 		UpdatedAtField:        updatedAt,
@@ -1228,6 +1497,12 @@ func scanPositionAssignment(scanner rowScanner) (*model.PositionAssignment, erro
 	}
 	if endDate.Valid {
 		assignment.EndDateField = &endDate.Time
+	}
+	if actingUntil.Valid {
+		assignment.ActingUntilField = &actingUntil.Time
+	}
+	if reminderSentAt.Valid {
+		assignment.ReminderSentAtField = &reminderSentAt.Time
 	}
 	if notes.Valid {
 		trimmed := strings.TrimSpace(notes.String)
@@ -1463,6 +1738,9 @@ SELECT
     fte,
     effective_date,
     end_date,
+    acting_until,
+    auto_revert,
+    reminder_sent_at,
     is_current,
     notes,
     created_at,

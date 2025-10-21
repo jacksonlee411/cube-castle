@@ -41,6 +41,7 @@ type stubRepository struct {
 	transferFn                       func(ctx context.Context, tenantID uuid.UUID, positionCode *string, organizationCode *string, pagination *model.PaginationInput) (*model.PositionTransferConnection, error)
 	headcountFn                      func(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*model.HeadcountStats, error)
 	assignmentsFn                    func(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error)
+	assignmentAuditFn                func(ctx context.Context, tenantID uuid.UUID, positionCode string, assignmentID *string, dateRange *model.DateRangeInput, pagination *model.PaginationInput) (*model.PositionAssignmentAuditConnection, error)
 	capturedSorting                  []model.PositionSortInput
 	capturedFilter                   *model.PositionFilterInput
 	capturedPagination               *model.PaginationInput
@@ -55,6 +56,9 @@ type stubRepository struct {
 	capturedVacantSorting            []model.VacantPositionSortInput
 	capturedTransferPositionCode     *string
 	capturedTransferOrganizationCode *string
+	capturedAuditAssignmentID        *string
+	capturedAuditDateRange           *model.DateRangeInput
+	capturedAuditPagination          *model.PaginationInput
 }
 
 func (s *stubRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, filter *model.OrganizationFilter, pagination *model.PaginationInput) (*model.OrganizationConnection, error) {
@@ -117,6 +121,18 @@ func (s *stubRepository) GetPositionAssignments(ctx context.Context, tenantID uu
 	s.capturedPagination = pagination
 	s.capturedPositionCode = positionCode
 	return s.assignmentsFn(ctx, tenantID, positionCode, filter, pagination, sorting)
+}
+
+func (s *stubRepository) GetPositionAssignmentAudit(ctx context.Context, tenantID uuid.UUID, positionCode string, assignmentID *string, dateRange *model.DateRangeInput, pagination *model.PaginationInput) (*model.PositionAssignmentAuditConnection, error) {
+	if s.assignmentAuditFn == nil {
+		panic("assignmentAuditFn not configured")
+	}
+	s.capturedTenant = tenantID
+	s.capturedPositionCode = positionCode
+	s.capturedAuditAssignmentID = assignmentID
+	s.capturedAuditDateRange = dateRange
+	s.capturedAuditPagination = pagination
+	return s.assignmentAuditFn(ctx, tenantID, positionCode, assignmentID, dateRange, pagination)
 }
 
 func (s *stubRepository) GetPositionTimeline(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]model.PositionTimelineEntry, error) {
@@ -289,7 +305,7 @@ func TestResolver_PositionAssignments_ForwardsParameters(t *testing.T) {
 	}
 	filter.EmployeeID = &employeeID
 	status := "ACTIVE"
-	filter.AssignmentStatus = &status
+	filter.Status = &status
 
 	pagination := &model.PaginationInput{Page: 1, PageSize: 10}
 	sorting := []model.PositionAssignmentSortInput{
@@ -369,6 +385,66 @@ func TestResolver_PositionAssignments_ForwardsParameters(t *testing.T) {
 	}
 	if len(repo.capturedAssignmentSorting) != len(sorting) {
 		t.Fatalf("expected %d sorting items, got %d", len(sorting), len(repo.capturedAssignmentSorting))
+	}
+}
+
+func TestResolver_PositionAssignmentAudit_ForwardsParameters(t *testing.T) {
+	assignmentID := uuid.New().String()
+	from := "2025-01-01"
+	to := "2025-01-31"
+	dateRange := &model.DateRangeInput{From: &from, To: &to}
+	pagination := &model.PaginationInput{Page: 2, PageSize: 20}
+
+	repo := &stubRepository{
+		assignmentAuditFn: func(ctx context.Context, tenantID uuid.UUID, code string, assignID *string, dr *model.DateRangeInput, p *model.PaginationInput) (*model.PositionAssignmentAuditConnection, error) {
+			return &model.PositionAssignmentAuditConnection{
+				DataField: []model.PositionAssignmentAudit{},
+				PaginationField: model.PaginationInfo{
+					PageField:        int(p.Page),
+					PageSizeField:    int(p.PageSize),
+					TotalField:       0,
+					HasNextField:     false,
+					HasPreviousField: false,
+				},
+				TotalCountField: 0,
+			}, nil
+		},
+	}
+	perm := &stubPermissionChecker{allow: true}
+	resolver := NewResolver(repo, logDiscard(), perm)
+
+	code := "P3000001"
+	_, err := resolver.PositionAssignmentAudit(context.Background(), struct {
+		PositionCode string
+		AssignmentId *string
+		DateRange    *model.DateRangeInput
+		Pagination   *model.PaginationInput
+	}{
+		PositionCode: code,
+		AssignmentId: &assignmentID,
+		DateRange:    dateRange,
+		Pagination:   pagination,
+	})
+	if err != nil {
+		t.Fatalf("PositionAssignmentAudit returned error: %v", err)
+	}
+	if perm.lastQuery != "positionAssignmentAudit" {
+		t.Fatalf("expected permission check for positionAssignmentAudit, got %s", perm.lastQuery)
+	}
+	if repo.capturedTenant != sharedconfig.DefaultTenantID {
+		t.Fatalf("expected tenant %s, got %s", sharedconfig.DefaultTenantID, repo.capturedTenant)
+	}
+	if repo.capturedPositionCode != code {
+		t.Fatalf("expected position code %s, got %s", code, repo.capturedPositionCode)
+	}
+	if repo.capturedAuditAssignmentID == nil || *repo.capturedAuditAssignmentID != assignmentID {
+		t.Fatalf("expected assignmentId forwarded")
+	}
+	if repo.capturedAuditDateRange != dateRange {
+		t.Fatalf("expected dateRange pointer forwarded")
+	}
+	if repo.capturedAuditPagination != pagination {
+		t.Fatalf("expected pagination pointer forwarded")
 	}
 }
 

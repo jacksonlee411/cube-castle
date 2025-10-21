@@ -152,11 +152,8 @@ func main() {
 		temporalMonitor = services.NewTemporalMonitor(db, logger)
 	}
 
-	// 初始化运维调度器
+	// 初始化运维调度器占位
 	var operationalScheduler *services.OperationalScheduler
-	if !authOnlyMode {
-		operationalScheduler = services.NewOperationalScheduler(db, logger, temporalMonitor)
-	}
 
 	// 初始化时态时间轴管理器
 	var timelineManager *repository.TemporalTimelineManager
@@ -175,6 +172,7 @@ func main() {
 	if !authOnlyMode {
 		positionService := services.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, auditLogger, logger)
 		jobCatalogService := services.NewJobCatalogService(jobCatalogRepo, auditLogger, logger)
+		operationalScheduler = services.NewOperationalScheduler(db, logger, temporalMonitor, positionService)
 
 		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager, hierarchyRepo, businessValidator)
 		positionHandler = handlers.NewPositionHandler(positionService, logger)

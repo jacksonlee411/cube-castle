@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import type { QueryFunctionContext, UseQueryResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { graphqlEnterpriseAdapter } from '../api/graphql-enterprise-adapter';
 import { createQueryError } from '../api/queryClient';
 import type {
+  PositionAssignmentAuditRecord,
   PositionAssignmentRecord,
   PositionDetailResult,
   PositionRecord,
@@ -55,6 +57,9 @@ interface PositionAssignmentGraphQLNode {
   fte: number;
   effectiveDate: string;
   endDate?: string | null;
+  actingUntil?: string | null;
+  autoRevert?: boolean | null;
+  reminderSentAt?: string | null;
   isCurrent: boolean;
   notes?: string | null;
   createdAt: string;
@@ -114,6 +119,9 @@ interface PositionTimelineResponse {
   endDate?: string | null;
   changeReason?: string | null;
   isCurrent?: boolean;
+  timelineCategory?: string | null;
+  assignmentType?: string | null;
+  assignmentStatus?: string | null;
 }
 
 interface PositionsGraphQLResponse {
@@ -140,6 +148,44 @@ interface PositionDetailGraphQLResponse {
     data: PositionTransferGraphQLNode[];
   };
   positionVersions: PositionNodeResponse[];
+}
+
+interface PositionAssignmentsGraphQLResponse {
+  positionAssignments: {
+    data: PositionAssignmentGraphQLNode[];
+    pagination: {
+      total: number;
+      page: number;
+      pageSize: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+    totalCount: number;
+  };
+}
+
+interface PositionAssignmentAuditGraphQLNode {
+  assignmentId: string;
+  eventType: string;
+  effectiveDate: string;
+  endDate?: string | null;
+  actor: string;
+  changes?: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+interface PositionAssignmentAuditGraphQLResponse {
+  positionAssignmentAudit: {
+    data: PositionAssignmentAuditGraphQLNode[];
+    pagination: {
+      total: number;
+      page: number;
+      pageSize: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+    totalCount: number;
+  };
 }
 
 interface VacantPositionGraphQLNode {
@@ -239,6 +285,55 @@ interface NormalizedPositionHeadcountParams {
   includeSubordinates: boolean;
 }
 
+export interface PositionAssignmentsQueryParams {
+  page?: number;
+  pageSize?: number;
+  assignmentTypes?: string[];
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  includeHistorical?: boolean;
+  includeActingOnly?: boolean;
+}
+
+interface NormalizedPositionAssignmentsQueryParams {
+  positionCode: string;
+  page: number;
+  pageSize: number;
+  assignmentTypes?: string[];
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  includeHistorical: boolean;
+  includeActingOnly: boolean;
+}
+
+export interface PositionAssignmentsQueryResult {
+  data: PositionAssignmentRecord[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
+  totalCount: number;
+  fetchedAt: string;
+}
+
+export interface PositionAssignmentAuditQueryResult {
+  records: PositionAssignmentAuditRecord[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
+  totalCount: number;
+  fetchedAt: string;
+}
+
 type JsonPrimitive = string | number | boolean | null
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
 
@@ -262,6 +357,32 @@ type VacantPositionsQueryVariables = {
     field: VacantPositionSortField;
     direction: 'ASC' | 'DESC';
   }>;
+};
+
+type PositionAssignmentsQueryVariables = {
+  positionCode: string;
+  filter?: Record<string, JsonValue>;
+  pagination: {
+    page: number;
+    pageSize: number;
+  };
+  sorting: Array<{
+    field: string;
+    direction: 'ASC' | 'DESC';
+  }>;
+};
+
+type PositionAssignmentAuditQueryVariables = {
+  positionCode: string;
+  assignmentId?: string;
+  dateRange?: {
+    from?: string;
+    to?: string;
+  };
+  pagination: {
+    page: number;
+    pageSize: number;
+  };
 };
 
 const POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
@@ -290,6 +411,26 @@ const POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
         isFuture
         createdAt
         updatedAt
+        currentAssignment {
+          assignmentId
+          positionCode
+          positionRecordId
+          employeeId
+          employeeName
+          employeeNumber
+          assignmentType
+          assignmentStatus
+          fte
+          effectiveDate
+          endDate
+          actingUntil
+          autoRevert
+          reminderSentAt
+          isCurrent
+          notes
+          createdAt
+          updatedAt
+        }
       }
       pagination {
         total
@@ -341,6 +482,9 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
         fte
         effectiveDate
         endDate
+        actingUntil
+        autoRevert
+        reminderSentAt
         isCurrent
         notes
         createdAt
@@ -355,6 +499,9 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
       endDate
       changeReason
       isCurrent
+      timelineCategory
+      assignmentType
+      assignmentStatus
     }
     positionAssignments(
       positionCode: $code
@@ -374,6 +521,9 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
         fte
         effectiveDate
         endDate
+        actingUntil
+        autoRevert
+        reminderSentAt
         isCurrent
         notes
         createdAt
@@ -424,6 +574,85 @@ const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
       isCurrent
       createdAt
       updatedAt
+    }
+  }
+`;
+
+const POSITION_ASSIGNMENTS_QUERY_DOCUMENT = /* GraphQL */ `
+  query PositionAssignments(
+    $positionCode: PositionCode!
+    $filter: PositionAssignmentFilterInput
+    $pagination: PaginationInput
+    $sorting: [PositionAssignmentSortInput!]
+  ) {
+    positionAssignments(
+      positionCode: $positionCode
+      filter: $filter
+      pagination: $pagination
+      sorting: $sorting
+    ) {
+      data {
+        assignmentId
+        positionCode
+        positionRecordId
+        employeeId
+        employeeName
+        employeeNumber
+        assignmentType
+        assignmentStatus
+        fte
+        effectiveDate
+        endDate
+        actingUntil
+        autoRevert
+        reminderSentAt
+        isCurrent
+        notes
+        createdAt
+        updatedAt
+      }
+      pagination {
+        total
+        page
+        pageSize
+        hasNext
+        hasPrevious
+      }
+      totalCount
+    }
+  }
+`;
+
+const POSITION_ASSIGNMENT_AUDIT_QUERY_DOCUMENT = /* GraphQL */ `
+  query PositionAssignmentAudit(
+    $positionCode: PositionCode!
+    $assignmentId: UUID
+    $dateRange: DateRangeInput
+    $pagination: PaginationInput
+  ) {
+    positionAssignmentAudit(
+      positionCode: $positionCode
+      assignmentId: $assignmentId
+      dateRange: $dateRange
+      pagination: $pagination
+    ) {
+      data {
+        assignmentId
+        eventType
+        effectiveDate
+        endDate
+        actor
+        changes
+        createdAt
+      }
+      pagination {
+        total
+        page
+        pageSize
+        hasNext
+        hasPrevious
+      }
+      totalCount
     }
   }
 `;
@@ -597,6 +826,62 @@ const normalizeHeadcountParams = (
   includeSubordinates: params.includeSubordinates !== false,
 });
 
+const normalizeAssignmentQueryParams = (
+  positionCode: string,
+  params: PositionAssignmentsQueryParams = {},
+): NormalizedPositionAssignmentsQueryParams => {
+  const page = Math.max(DEFAULT_PAGE, Math.floor(params.page ?? DEFAULT_PAGE));
+  const rawPageSize = Math.floor(params.pageSize ?? DEFAULT_PAGE_SIZE);
+  const pageSize = Math.max(1, Math.min(rawPageSize, MAX_PAGE_SIZE));
+
+  return {
+    positionCode,
+    page,
+    pageSize,
+    assignmentTypes: normalizeUppercaseArray(params.assignmentTypes),
+    status: normalizeUppercase(params.status),
+    dateFrom: normalizeDateString(params.dateFrom),
+    dateTo: normalizeDateString(params.dateTo),
+    includeHistorical: params.includeHistorical !== false,
+    includeActingOnly: params.includeActingOnly === true,
+  };
+};
+
+export interface PositionAssignmentAuditParams {
+  assignmentId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+interface NormalizedPositionAssignmentAuditParams {
+  positionCode: string;
+  assignmentId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page: number;
+  pageSize: number;
+}
+
+const normalizeAssignmentAuditParams = (
+  positionCode: string,
+  params: PositionAssignmentAuditParams = {},
+): NormalizedPositionAssignmentAuditParams => {
+  const page = Math.max(DEFAULT_PAGE, Math.floor(params.page ?? DEFAULT_PAGE));
+  const rawPageSize = Math.floor(params.pageSize ?? DEFAULT_PAGE_SIZE);
+  const pageSize = Math.max(1, Math.min(rawPageSize, MAX_PAGE_SIZE));
+
+  return {
+    positionCode,
+    assignmentId: normalizeString(params.assignmentId),
+    dateFrom: normalizeDateString(params.dateFrom),
+    dateTo: normalizeDateString(params.dateTo),
+    page,
+    pageSize,
+  };
+};
+
 const buildGraphQLVariables = (params: NormalizedPositionQueryParams) => {
   const filter: Record<string, JsonValue> = {};
 
@@ -686,6 +971,63 @@ const buildVacantPositionsVariables = (params: NormalizedVacantPositionsQueryPar
   return variables;
 };
 
+const buildAssignmentVariables = (params: NormalizedPositionAssignmentsQueryParams): PositionAssignmentsQueryVariables => {
+  const filter: Record<string, JsonValue> = {};
+
+  if (params.assignmentTypes && params.assignmentTypes.length > 0) {
+    filter.assignmentTypes = params.assignmentTypes;
+  }
+  if (params.status) {
+    filter.status = params.status;
+  }
+  if (params.dateFrom || params.dateTo) {
+    filter.dateRange = {
+      from: params.dateFrom ?? null,
+      to: params.dateTo ?? null,
+    };
+  }
+  if (!params.includeHistorical) {
+    filter.includeHistorical = false;
+  }
+  if (params.includeActingOnly) {
+    filter.includeActingOnly = true;
+  }
+
+  return {
+    positionCode: params.positionCode,
+    filter: Object.keys(filter).length > 0 ? filter : undefined,
+    pagination: {
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+    sorting: [{ field: 'EFFECTIVE_DATE', direction: 'DESC' }],
+  };
+};
+
+const buildAssignmentAuditVariables = (
+  params: NormalizedPositionAssignmentAuditParams,
+): PositionAssignmentAuditQueryVariables => {
+  const dateRange: { from?: string; to?: string } = {};
+  if (params.dateFrom) {
+    dateRange.from = params.dateFrom;
+  }
+  if (params.dateTo) {
+    dateRange.to = params.dateTo;
+  }
+
+  const hasRange = Object.keys(dateRange).length > 0;
+
+  return {
+    positionCode: params.positionCode,
+    assignmentId: params.assignmentId,
+    dateRange: hasRange ? dateRange : undefined,
+    pagination: {
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+  };
+};
+
 const buildHeadcountVariables = (params: NormalizedPositionHeadcountParams) => {
   if (!params.organizationCode) {
     throw createQueryError('必须提供组织编码以获取编制统计');
@@ -731,6 +1073,7 @@ const transformPositionNode = (node: PositionNodeResponse): PositionRecord => {
     isFuture: node.isFuture,
     createdAt: node.createdAt,
     updatedAt: node.updatedAt,
+    currentAssignment: node.currentAssignment ? transformAssignmentNode(node.currentAssignment) : undefined,
   };
 };
 
@@ -746,10 +1089,23 @@ const transformAssignmentNode = (node: PositionAssignmentGraphQLNode): PositionA
   fte: node.fte,
   effectiveDate: node.effectiveDate,
   endDate: node.endDate ?? undefined,
+  actingUntil: node.actingUntil ?? undefined,
+  autoRevert: Boolean(node.autoRevert),
+  reminderSentAt: node.reminderSentAt ?? undefined,
   isCurrent: node.isCurrent,
   notes: node.notes ?? undefined,
   createdAt: node.createdAt,
   updatedAt: node.updatedAt,
+});
+
+const transformAssignmentAuditNode = (node: PositionAssignmentAuditGraphQLNode): PositionAssignmentAuditRecord => ({
+  assignmentId: node.assignmentId,
+  eventType: (node.eventType ?? '').toUpperCase(),
+  effectiveDate: node.effectiveDate,
+  endDate: node.endDate ?? undefined,
+  actor: node.actor,
+  changes: node.changes ?? null,
+  createdAt: node.createdAt,
 });
 
 const transformTransferNode = (node: PositionTransferGraphQLNode): PositionTransferRecord => ({
@@ -779,6 +1135,94 @@ const transformVacantPositionNode = (node: VacantPositionGraphQLNode): VacantPos
   totalAssignments: node.totalAssignments,
 });
 
+const fetchPositionAssignments = async (
+  params: NormalizedPositionAssignmentsQueryParams,
+  signal?: AbortSignal,
+): Promise<PositionAssignmentsQueryResult> => {
+  const response = await graphqlEnterpriseAdapter.request<PositionAssignmentsGraphQLResponse>(
+    POSITION_ASSIGNMENTS_QUERY_DOCUMENT,
+    buildAssignmentVariables(params),
+    { signal },
+  );
+
+  if (!response.success || !response.data) {
+    throw createQueryError(response.error?.message ?? '获取任职记录失败', {
+      code: response.error?.code,
+      requestId: response.requestId,
+      details: response.error?.details,
+    });
+  }
+
+  const payload = response.data.positionAssignments;
+  const assignments = (payload?.data ?? []).map(transformAssignmentNode);
+  const pagination = payload?.pagination ?? {
+    total: assignments.length,
+    page: params.page,
+    pageSize: params.pageSize,
+    hasNext: false,
+    hasPrevious: params.page > 1,
+  };
+
+  return {
+    data: assignments,
+    pagination: {
+      total: pagination.total ?? assignments.length,
+      page: pagination.page ?? params.page,
+      pageSize: pagination.pageSize ?? params.pageSize,
+      hasNext:
+        pagination.hasNext ??
+        ((pagination.page ?? params.page) * (pagination.pageSize ?? params.pageSize) < (pagination.total ?? assignments.length)),
+      hasPrevious: pagination.hasPrevious ?? ((pagination.page ?? params.page) > 1),
+    },
+    totalCount: payload?.totalCount ?? assignments.length,
+    fetchedAt: response.timestamp ?? new Date().toISOString(),
+  };
+};
+
+const fetchPositionAssignmentAuditInternal = async (
+  params: NormalizedPositionAssignmentAuditParams,
+  signal?: AbortSignal,
+): Promise<PositionAssignmentAuditQueryResult> => {
+  const response = await graphqlEnterpriseAdapter.request<PositionAssignmentAuditGraphQLResponse>(
+    POSITION_ASSIGNMENT_AUDIT_QUERY_DOCUMENT,
+    buildAssignmentAuditVariables(params),
+    { signal },
+  );
+
+  if (!response.success || !response.data) {
+    throw createQueryError(response.error?.message ?? '获取任职审计记录失败', {
+      code: response.error?.code,
+      requestId: response.requestId,
+      details: response.error?.details,
+    });
+  }
+
+  const payload = response.data.positionAssignmentAudit;
+  const records = (payload?.data ?? []).map(transformAssignmentAuditNode);
+  const pagination = payload?.pagination ?? {
+    total: records.length,
+    page: params.page,
+    pageSize: params.pageSize,
+    hasNext: false,
+    hasPrevious: params.page > 1,
+  };
+
+  return {
+    records,
+    pagination: {
+      total: pagination.total ?? records.length,
+      page: pagination.page ?? params.page,
+      pageSize: pagination.pageSize ?? params.pageSize,
+      hasNext:
+        pagination.hasNext ??
+        ((pagination.page ?? params.page) * (pagination.pageSize ?? params.pageSize) < (pagination.total ?? records.length)),
+      hasPrevious: pagination.hasPrevious ?? ((pagination.page ?? params.page) > 1),
+    },
+    totalCount: payload?.totalCount ?? records.length,
+    fetchedAt: response.timestamp ?? new Date().toISOString(),
+  };
+};
+
 const transformTimelineEntry = (entry: PositionTimelineResponse): PositionTimelineEvent => ({
   id: entry.recordId,
   status: (entry.status ?? '').toUpperCase(),
@@ -787,6 +1231,9 @@ const transformTimelineEntry = (entry: PositionTimelineResponse): PositionTimeli
   endDate: entry.endDate ?? undefined,
   changeReason: entry.changeReason ?? undefined,
   isCurrent: entry.isCurrent,
+  timelineCategory: entry.timelineCategory ?? undefined,
+  assignmentType: entry.assignmentType ?? undefined,
+  assignmentStatus: entry.assignmentStatus ?? undefined,
 });
 
 const fetchPositionsWithParams = async (
@@ -973,6 +1420,7 @@ const fetchPositionHeadcountStats = async (
 
 export const POSITIONS_QUERY_ROOT_KEY = ['enterprise-positions'] as const;
 export const POSITION_DETAIL_QUERY_ROOT_KEY = ['enterprise-position-detail'] as const;
+export const POSITION_ASSIGNMENTS_QUERY_ROOT_KEY = ['enterprise-position-assignments'] as const;
 export const VACANT_POSITIONS_QUERY_ROOT_KEY = ['enterprise-vacant-positions'] as const;
 export const POSITION_HEADCOUNT_STATS_QUERY_ROOT_KEY = ['enterprise-position-headcount-stats'] as const;
 
@@ -982,6 +1430,9 @@ export const positionsQueryKey = (params: NormalizedPositionQueryParams) =>
 export const positionDetailQueryKey = (code: string, includeDeleted: boolean) =>
   [...POSITION_DETAIL_QUERY_ROOT_KEY, { code, includeDeleted }] as const;
 
+export const positionAssignmentsQueryKey = (params: NormalizedPositionAssignmentsQueryParams) =>
+  [...POSITION_ASSIGNMENTS_QUERY_ROOT_KEY, params] as const;
+
 export const vacantPositionsQueryKey = (params: NormalizedVacantPositionsQueryParams) =>
   [...VACANT_POSITIONS_QUERY_ROOT_KEY, params] as const;
 
@@ -990,6 +1441,7 @@ export const positionHeadcountStatsQueryKey = (params: NormalizedPositionHeadcou
 
 type PositionsQueryKey = ReturnType<typeof positionsQueryKey>;
 type PositionDetailQueryKey = ReturnType<typeof positionDetailQueryKey>;
+type PositionAssignmentsQueryKey = ReturnType<typeof positionAssignmentsQueryKey>;
 type VacantPositionsQueryKey = ReturnType<typeof vacantPositionsQueryKey>;
 type PositionHeadcountStatsQueryKey = ReturnType<typeof positionHeadcountStatsQueryKey>;
 
@@ -1007,6 +1459,14 @@ const positionDetailQueryFn = async ({
 }: QueryFunctionContext<PositionDetailQueryKey>): Promise<PositionDetailResult> => {
   const [, params] = queryKey;
   return fetchPositionDetail(params.code, params.includeDeleted, signal);
+};
+
+const positionAssignmentsQueryFn = async ({
+  queryKey,
+  signal,
+}: QueryFunctionContext<PositionAssignmentsQueryKey>): Promise<PositionAssignmentsQueryResult> => {
+  const [, params] = queryKey;
+  return fetchPositionAssignments(params, signal);
 };
 
 const vacantPositionsQueryFn = async ({
@@ -1059,6 +1519,30 @@ export function usePositionDetail(
   });
 }
 
+export function usePositionAssignments(
+  positionCode: string | undefined,
+  params: PositionAssignmentsQueryParams = {},
+): UseQueryResult<PositionAssignmentsQueryResult> {
+  const normalizedParams = useMemo(() => {
+    if (!positionCode) {
+      return null;
+    }
+    return normalizeAssignmentQueryParams(positionCode, params);
+  }, [positionCode, params]);
+
+  const queryKey = normalizedParams
+    ? positionAssignmentsQueryKey(normalizedParams)
+    : ([...POSITION_ASSIGNMENTS_QUERY_ROOT_KEY, 'disabled'] as const);
+
+  return useQuery<PositionAssignmentsQueryResult>({
+    queryKey: queryKey as unknown as PositionAssignmentsQueryKey,
+    queryFn: positionAssignmentsQueryFn,
+    keepPreviousData: true,
+    staleTime: 30_000,
+    enabled: Boolean(normalizedParams),
+  });
+}
+
 export function useVacantPositions(
   params: VacantPositionsQueryParams = {},
 ): UseQueryResult<VacantPositionsQueryResult> {
@@ -1084,6 +1568,15 @@ export function usePositionHeadcountStats(
   });
 }
 
+export async function fetchPositionAssignmentAudit(
+  positionCode: string,
+  params: PositionAssignmentAuditParams = {},
+  signal?: AbortSignal,
+): Promise<PositionAssignmentAuditQueryResult> {
+  const normalizedParams = normalizeAssignmentAuditParams(positionCode, params);
+  return fetchPositionAssignmentAuditInternal(normalizedParams, signal);
+}
+
 const defaultExport = useEnterprisePositions;
 export default defaultExport;
 
@@ -1095,6 +1588,7 @@ export const __internal = {
   buildGraphQLVariables,
   transformPositionNode,
   transformAssignmentNode,
+  transformAssignmentAuditNode,
   transformTransferNode,
   transformVacantPositionNode,
   transformTimelineEntry,
@@ -1106,4 +1600,10 @@ export const __internal = {
   normalizeHeadcountParams,
   buildHeadcountVariables,
   fetchPositionHeadcountStats,
+  normalizeAssignmentQueryParams,
+  buildAssignmentVariables,
+  fetchPositionAssignments,
+  normalizeAssignmentAuditParams,
+  buildAssignmentAuditVariables,
+  fetchPositionAssignmentAuditInternal,
 };

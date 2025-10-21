@@ -38,6 +38,10 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
   const [feedback, setFeedback] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
+  const actingAssignment = position?.currentAssignment
+  const showActingWarning =
+    actingAssignment?.assignmentType === 'ACTING' && actingAssignment.autoRevert && actingAssignment.actingUntil
+
   if (!position) {
     return null
   }
@@ -100,6 +104,11 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
         <PrimaryButton onClick={openDialog} disabled={isPending || disabled} data-testid="position-transfer-open">
           发起职位转移
         </PrimaryButton>
+        {showActingWarning && actingAssignment?.actingUntil && (
+          <Text fontSize="12px" color={colors.cinnamon500}>
+            当前为代理任职，将于 {actingAssignment.actingUntil} 自动恢复，请确认是否需要同步调整。
+          </Text>
+        )}
         {feedback && (
           <Text fontSize="12px" color={colors.greenApple500}>
             {feedback}

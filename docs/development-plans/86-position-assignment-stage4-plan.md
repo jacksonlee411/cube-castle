@@ -1,12 +1,12 @@
 # 86号文档：职位任职管理 Stage 4 增量计划
 
-**版本**: v0.3 修订版  
-**创建日期**: 2025-10-17  
-**最新更新**: 2025-10-19  
-**维护团队**: 命令服务团队 · 查询服务团队 · 前端团队 · QA 团队 · 架构组  
-**状态**: 待复审（修订稿）  
-**关联计划**: 80号职位管理方案 · 84号 Stage 2 实施计划（归档） · 85号 Stage 3 执行计划（归档） · 06号集成团队协作日志  
-**遵循原则**: `CLAUDE.md` 资源唯一性与跨层一致性 · `AGENTS.md` 开发前必检规范 · CQRS 分工（命令 REST / 查询 GraphQL） · Docker 容器化强制
+**版本**: v0.4（整合87号迁移）
+**创建日期**: 2025-10-17
+**最新更新**: 2025-10-21
+**维护团队**: 命令服务团队 · 查询服务团队 · 前端团队 · QA 团队 · 数据库团队 · 架构组
+**状态**: 待执行（含87号生产迁移前置依赖）
+**关联计划**: 80号职位管理方案 · 84号 Stage 2（归档） · 85号 Stage 3（归档） · **87号时态字段命名一致性决策（归档）** · 06号集成团队协作日志
+**遵循原则**: `CLAUDE.md` 资源唯一性与跨层一致性（最高优先级） · `AGENTS.md` 开发前必检规范 · CQRS 分工（命令 REST / 查询 GraphQL） · Docker 容器化强制
 
 ---
 
@@ -116,7 +116,263 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 
 ---
 
-## 6. 任务拆解
+## 6. 前置依赖：87号生产迁移（effectiveDate 字段统一）
+
+### 6.1 迁移背景
+
+根据 **87号时态字段命名一致性决策文档**，开发环境已完成 `position_assignments.start_date` → `effective_date` 的字段重命名（047迁移），以确保与组织架构、职位主数据、Job Catalog 的时态字段命名保持一致。
+
+**当前状态**：
+- ✅ 开发环境：047迁移已执行，代码/契约/文档已同步
+- 🔴 生产环境：仍使用 `start_date` 字段，需在 Stage 4 上线前统一
+
+**重要性**：
+- 🔴 **最高优先级**：违反 CLAUDE.md 资源唯一性原则，属于阻断性问题
+- 🔴 **技术债务**：推迟迁移会增加后续维护成本和风险
+- 🔴 **架构一致性**：Stage 4 新功能基于 `effectiveDate` 字段实现
+
+### 6.2 迁移时间线（与 Stage 4 联动）
+
+按照87号文档 §12 的联动执行策略，将迁移任务整合到 Stage 4 时间线：
+
+| 时间点 | 阶段 | 任务内容 | 责任人 | 交付物 |
+|--------|------|----------|--------|--------|
+| **T-5天** | Week 2 中期 | 预生产环境演练 047 迁移 | 数据库团队 | 演练日志：`reports/position-stage4/047-preprod-dryrun-YYYYMMDD.txt` |
+| **T-5天** | Week 2 中期 | 复核 Stage 4 代码无 `startDate` 残留 | 查询/前端团队 | 静态检查结果（`rg "startDate"`） |
+| **T-3天** | Week 2 末 | 确认迁移窗口与发布计划 | 架构组 | 上线计划（含迁移时段） |
+| **T-3天** | Week 2 末 | 合并测试清单（87号 + 86号） | QA团队 | `reports/position-stage4/final-acceptance-checklist.md` |
+| **T-3天** | Week 2 末 | 外部集成方/BI团队通知 | 架构组 | 发布说明 + Breaking Change 声明 |
+| **T-0** | Week 3 上线窗口 | 执行 047 生产迁移 | 数据库团队 | 迁移执行日志 + 验证报告 |
+| **T+0** | Week 3 上线窗口 | 迁移后验证 + Stage 4 部署 | 全员 | 服务健康检查 + 监控数据 |
+| **T+1** | Week 3 上线后 | 06号日志登记 + 文档归档 | 架构组 | 06号日志更新 + 87号归档确认 |
+
+### 6.3 迁移执行计划（基于87号 §11）
+
+#### 6.3.1 迁移前校验（T-5天）
+
+**现状评估**：
+```bash
+# 统计生产环境数据量
+psql "$PRODUCTION_DATABASE_URL" -c "
+SELECT
+  COUNT(*) as total_rows,
+  pg_size_pretty(pg_total_relation_size('position_assignments')) as table_size
+FROM position_assignments;"
+
+# 确认依赖 start_date 的脚本/任务
+grep -r "start_date" scripts/ database/ | grep position_assignments
+```
+
+**预生产演练**：
+```bash
+# 1. 在预生产环境执行 047 迁移
+psql "$PREPROD_DATABASE_URL" -f database/migrations/047_rename_position_assignments_start_date.sql
+
+# 2. 记录执行时间与锁表情况
+# 输出到：reports/position-stage4/047-preprod-dryrun-$(date +%Y%m%d).txt
+
+# 3. 验证回滚脚本
+psql "$PREPROD_DATABASE_URL" -f database/migrations/rollback/047_rollback.sql
+```
+
+**备份策略**：
+- 生产数据库完整备份或分区级快照
+- 确认可在 15 分钟内恢复
+- 验证回滚脚本可无损恢复
+
+#### 6.3.2 代码残留检查（T-5天）
+
+**静态代码检查**：
+```bash
+# 检查后端代码
+rg "start_date|startDate" cmd/organization-command-service/internal --type go
+rg "start_date|startDate" cmd/organization-query-service/internal --type go
+
+# 检查前端代码
+rg "startDate" frontend/src/features/positions --type ts --type tsx
+rg "startDate" frontend/src/shared/hooks --type ts
+rg "startDate" frontend/src/shared/types --type ts
+
+# 期望结果：无匹配（除注释/文档外）
+```
+
+**契约检查**：
+```bash
+# 检查 GraphQL Schema
+grep -i "startDate" docs/api/schema.graphql
+# 期望：仅 effectiveDate，无 startDate
+
+# 检查 OpenAPI
+grep -i "start_date\|startDate" docs/api/openapi.yaml
+# 期望：无匹配
+```
+
+#### 6.3.3 迁移执行步骤（T-0）
+
+**维护窗口安排**：
+- 建议时间：北京时间 02:00-04:00（低流量窗口）
+- 预计耗时：30分钟（含验证）
+- 冻结部署流水线，停止命令服务写流量
+
+**执行流程**：
+```bash
+# 1. 宣布维护窗口，切换命令服务至维护模式
+# （查询服务保持只读）
+
+# 2. 执行迁移脚本
+psql "$PRODUCTION_DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f database/migrations/047_rename_position_assignments_start_date.sql \
+  > reports/position-stage4/047-production-migration-$(date +%Y%m%d-%H%M).log 2>&1
+
+# 3. 验证迁移结果
+psql "$PRODUCTION_DATABASE_URL" -c "
+-- 验证字段重命名
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'position_assignments'
+  AND column_name IN ('effective_date', 'start_date');
+-- 期望：仅 effective_date
+
+-- 验证约束
+SELECT constraint_name FROM information_schema.table_constraints
+WHERE table_name = 'position_assignments';
+-- 期望：包含 chk_position_assignments_dates（引用 effective_date）
+
+-- 验证索引
+SELECT indexname FROM pg_indexes
+WHERE tablename = 'position_assignments';
+-- 期望：包含 uk_position_assignments_effective
+"
+
+# 4. 运行测试清单（见 6.3.4）
+
+# 5. 恢复命令服务写流量
+
+# 6. 监控错误日志 30 分钟
+tail -f /var/log/cube-castle/command-service.log | grep -i error
+```
+
+#### 6.3.4 迁移后验证清单
+
+基于87号文档 §6.2/§6.3 + 86号验收标准：
+
+```bash
+# 数据完整性验证
+psql "$PRODUCTION_DATABASE_URL" -c "
+SELECT COUNT(*) FROM position_assignments
+WHERE effective_date IS NULL;
+-- 期望：0（所有记录都有 effective_date）
+
+SELECT COUNT(*) FROM position_assignments
+WHERE end_date IS NOT NULL AND end_date <= effective_date;
+-- 期望：0（约束生效）
+"
+
+# GraphQL 查询验证
+curl -X POST https://api.production/graphql \
+  -H "Authorization: Bearer $PROD_JWT" \
+  -H "X-Tenant-ID: $TENANT_ID" \
+  -d '{"query":"{ position(code:\"TEST001\") { currentAssignment { effectiveDate endDate } } }"}' \
+| jq '.data.position.currentAssignment'
+# 期望：返回 effectiveDate 字段，无 startDate
+
+# REST API 验证
+curl -s https://api.production/api/v1/positions/TEST001/assignments \
+  -H "Authorization: Bearer $PROD_JWT" \
+  -H "X-Tenant-ID: $TENANT_ID" \
+| jq '.[0] | keys | map(select(. == "effectiveDate" or . == "startDate"))'
+# 期望：["effectiveDate"]，无 startDate
+
+# 前端缓存清理
+# 确保发布版本包含缓存 bust 机制（版本号 bump 或 queryClient.invalidateQueries）
+```
+
+#### 6.3.5 回滚预案
+
+如迁移后发现阻塞性问题，立即执行回滚：
+
+```bash
+# 1. 停止命令服务写流量
+# 2. 执行回滚脚本
+psql "$PRODUCTION_DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f database/migrations/rollback/047_rollback.sql
+
+# 3. 验证回滚结果（字段恢复为 start_date）
+# 4. 恢复服务
+# 5. 在06号日志登记回滚原因与后续计划
+```
+
+### 6.4 风险与缓解（迁移专项）
+
+| 风险 | 影响 | 概率 | 缓解措施 |
+|------|------|------|----------|
+| 迁移与 Stage 4 上线冲突（锁表/回滚） | 🔴 高（延迟上线） | 中 | 047 提前1小时执行；准备回滚脚本；必要时拆分为两阶段部署 |
+| Stage 4 源码仍引用 `startDate` | 🔴 高（接口报错） | 低 | T-3天静态检查并强制修复后才进入上线窗口 |
+| 外部依赖未同步（第三方集成/BI） | 🟡 中（集成失败） | 中 | 提前48小时发送 Breaking Change 通知；必要时提供临时兼容层（视图别名） |
+| 运维窗口过短，验证不充分 | 🟡 中（需重新上线） | 中 | Week 3 预留完整缓冲时间；演练阶段确认执行时间 < 30分钟 |
+| 前端缓存未更新，仍显示旧字段 | 🟡 中（用户体验） | 低 | 发布版本强制缓存清理（service worker / version bump） |
+
+### 6.5 外部通知与协调
+
+#### 发布说明（T-3天发送）
+
+**收件人**：外部集成方、BI团队、运维团队
+
+**内容**：
+```markdown
+# Cube Castle API Breaking Change 通知
+
+## 变更概述
+在即将发布的 Stage 4 版本中，position_assignments 相关 API 字段命名将统一为 effectiveDate，
+以保持与组织架构、职位主数据的一致性。
+
+## 影响范围
+- REST API: /api/v1/positions/{code}/assignments
+- GraphQL: PositionAssignment 类型
+
+## 字段映射
+| 旧字段名 | 新字段名 | 数据类型 | 说明 |
+|---------|---------|---------|------|
+| startDate | effectiveDate | Date (ISO 8601) | 任职生效日期 |
+| endDate | endDate | Date (ISO 8601) | 无变化 |
+
+## 上线窗口
+- 时间：2025-10-XX 02:00-04:00 (UTC+8)
+- 预计维护时长：30分钟
+
+## 迁移建议
+1. 更新集成代码，使用 effectiveDate 替代 startDate
+2. 在测试环境验证（测试环境已提前更新）
+3. 如有疑问，请联系架构组
+
+## 兼容性支持
+- 临时兼容层：可在上线窗口后提供视图别名（有效期7天）
+- 联系方式：architecture@cubecastle.com
+```
+
+#### 内部协调清单
+
+- [ ] **T-3天**：通知外部集成方（邮件 + Slack）
+- [ ] **T-3天**：通知 BI 团队更新 ETL 脚本
+- [ ] **T-3天**：运维团队确认备份策略与回滚演练
+- [ ] **T-1天**：与 Stage 4 上线负责人同步最终时间表
+- [ ] **T-0**：在公司 Slack 频道宣布维护窗口
+- [ ] **T+1**：发送迁移完成通知 + 验证结果
+
+### 6.6 迁移成功标准
+
+- ✅ 047迁移脚本执行成功，无 SQL 错误
+- ✅ 字段重命名完成：`start_date` → `effective_date`
+- ✅ 索引与约束重建成功
+- ✅ 数据完整性验证通过（无空值、无约束违反）
+- ✅ GraphQL/REST API 返回 `effectiveDate` 字段
+- ✅ 前端缓存刷新，无旧字段残留
+- ✅ Stage 4 功能正常部署与运行
+- ✅ 监控30分钟无异常错误
+- ✅ 06号日志完整记录执行过程与结果
+
+---
+
+## 7. 任务拆解
 
 ### API 契约定义（Stage 4 增量）
 - **REST — `/api/v1/positions/{code}/assignments` 套件**（OpenAPI 将新增/更新以下条目，均要求 `position:assignments:write` 或 `position:assignments:read` 权限）：  
@@ -132,28 +388,53 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
   - `type PositionAssignmentAudit`（新）用于 CSV 导出：包含 `assignmentId`, `eventType`, `effectiveDate`, `endDate`, `actor`, `changes`.  
   - 权限要求：查询需 `position:assignments:read` scope，导出需额外 `position:assignments:audit`.
 
-### Week 1 — 代理任职自动化 & 契约对齐
+### 7.1 Week 1 — 代理任职自动化 & 契约对齐
 - **数据库**：交付 `048_extend_position_assignments.sql`（及回滚脚本），新增 `acting_until DATE`, `auto_revert BOOLEAN DEFAULT false`, `reminder_sent_at TIMESTAMPTZ`，并更新索引/校验。输出演练日志与延迟评估。  
 - **命令服务**：实现上述 REST 契约，对接 `PositionAssignmentRepository`，保持 Fill/Vacate 兼容，新增幂等锁与审计事件。  
 - **自动化任务**：实现代理到期扫描器（使用 `OperationalScheduler` 任务定义），支持重试、失败告警、审计写入。  
 - **单元与契约测试**：扩展 `position_handler_test.go`、`assignment_repository_test.go`，覆盖冲突/FTE 验证；新增 OpenAPI contract tests。  
 - **契约同步**：更新 `docs/api/openapi.yaml`、`docs/api/schema.graphql`，运行 `node scripts/generate-implementation-inventory.js` 并在 06 号日志记录差异。
 
-### Week 2 — 历史视图增强 & 跨租户测试
+### 7.2 Week 2 — 历史视图增强 & 跨租户测试
 - **GraphQL 查询服务**：落地前置增强事项，提供过滤、分页、时间轴整合及性能基线；新增 `positionAssignmentAudit` 查询导出。  
 - **前端**：在 `frontend/src/features/positions` 新增任职历史页签、时间轴视图、过滤器与 CSV 导出；更新 `PositionTransferDialog`、`PositionSummaryCards` 展示代理提醒。  
 - **命令服务调度**：将代理恢复任务接入 `OperationalScheduler` 配置（默认每日 02:00），提供手动触发脚本与日志归档。  
-- **质量验证**：编写 Playwright 场景（代理创建→到期→恢复→时间轴验证）与 REST/GraphQL 跨租户脚本，纳入 `make test-integration`。
+- **质量验证**：编写 Playwright 场景（代理创建→到期→恢复→时间轴验证）与 REST/GraphQL 跨租户脚本，纳入 `make test-integration`；2025-10-21 完成命令服务 REST 跨租户脚本冒烟（`tests/consolidated/position-assignments-cross-tenant.sh`），输出归档至 `reports/position-stage4/position-assignments-cross-tenant.md`。
 
-### Week 3 — 缓冲 & 收尾
-- 观察自动恢复任务运行（收集调度日志、Prometheus 指标），若异常则回滚或调整。  
-- 完成监控与告警文档（`docs/development-tools/position-assignment-monitoring.md`），更新 80 号方案与 06 号日志。  
-- 整理 API 契约差异报告、实现清单、回归测试记录，并准备归档。  
-- 将计划移动至 `docs/archive/development-plans/86-position-assignment-stage4-plan.md`。
+### 7.3 Week 3 — 缓冲、迁移与收尾
+
+**Week 3 重点**：执行87号生产迁移 + Stage 4 上线 + 监控验收
+
+- **T-5天（Week 2中期）**：
+  - 预生产环境演练047迁移（数据库团队）
+  - 静态代码检查，确认无 `startDate` 残留（查询/前端团队）
+  - 输出：`reports/position-stage4/047-preprod-dryrun-YYYYMMDD.txt`
+
+- **T-3天（Week 2末）**：
+  - 确认迁移窗口与上线计划（架构组）
+  - 发送外部通知：Breaking Change 声明（架构组）
+  - 合并87号+86号测试清单（QA团队）
+  - 输出：`reports/position-stage4/final-acceptance-checklist.md`
+
+- **T-0（Week 3上线窗口，建议02:00-04:00）**：
+  - 执行047生产迁移（数据库团队）
+  - 迁移后验证（见第6.3.4节）
+  - 部署 Stage 4 功能（全员）
+  - 监控30分钟无异常
+
+- **T+1（上线后）**：
+  - 观察自动恢复任务运行（收集调度日志、Prometheus 指标）
+  - 完成监控与告警文档（`docs/development-tools/position-assignment-monitoring.md`）
+  - 更新 80 号方案 Stage 4 勾选、06 号日志
+  - 发送迁移完成通知 + 验证结果
+  - 整理 API 契约差异报告、实现清单、回归测试记录
+  - 将86号、87号计划归档至 `docs/archive/development-plans/`
 
 ---
 
-## 7. 质量与验收标准
+## 8. 质量与验收标准
+
+### 8.1 功能验收标准（原 Stage 4）
 
 | 类别 | 验收标准 |
 |------|----------|
@@ -164,9 +445,24 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 | 文档 | 80号 Stage 4 勾选完成；06 号日志更新；实现清单/契约差异/监控文档同步。 |
 | 监控 | 新增 `position_assignment_acting_total` 等指标并接入报警；运行记录归档到 `reports/position-stage4/`. |
 
+### 8.2 迁移验收标准（87号集成）
+
+| 类别 | 验收标准 |
+|------|----------|
+| **迁移执行** | ✅ 047迁移脚本成功执行，无 SQL 错误；执行时间 < 30分钟 |
+| **字段重命名** | ✅ `position_assignments.start_date` → `effective_date`；索引/约束重建成功 |
+| **数据完整性** | ✅ 无空值（`effective_date IS NOT NULL`）；约束生效（`end_date > effective_date`） |
+| **API契约** | ✅ GraphQL/REST 返回 `effectiveDate` 字段；OpenAPI/Schema 同步更新 |
+| **代码一致性** | ✅ 静态检查无 `startDate` 残留（后端/前端/契约） |
+| **前端缓存** | ✅ 缓存清理机制生效，用户端无旧字段显示 |
+| **外部通知** | ✅ 提前48小时发送 Breaking Change 通知；集成方确认收到 |
+| **监控验证** | ✅ 迁移后30分钟内无异常错误；服务健康检查通过 |
+| **回滚演练** | ✅ 预生产环境验证回滚脚本可用；回滚时间 < 15分钟 |
+| **文档归档** | ✅ 06号日志完整记录迁移过程；87号计划归档确认 |
+
 ---
 
-## 8. 风险与缓解
+## 9. 风险与缓解
 
 | 风险 | 影响 | 概率 | 缓解措施 |
 |------|------|------|----------|
@@ -176,37 +472,63 @@ echo "Stage4 差距分析（现状 vs 目标）" > reports/position-stage4/gap-a
 | 契约漂移 | 中 | 中 | 每次变更前更新 OpenAPI/GraphQL 并执行实现清单脚本，CI 增加契约 diff 校验。 |
 | 跨租户脚本复杂 | 中 | 中 | 先在 sandbox 演练并记录结果，再纳入 CI 分阶段执行。 |
 
+**迁移专项风险**（详见第6.4节）：
+- 🔴 迁移与上线冲突、代码残留 `startDate`
+- 🟡 外部依赖未同步、运维窗口过短、前端缓存未更新
+
 ---
 
-## 9. 协作机制
+## 10. 协作机制
 
 - **例会**：周一计划同步、周三风控、周五演示。  
-- **责任人**：  
-  - 命令服务负责人：迁移、REST、定时任务。  
-  - 查询服务负责人：GraphQL 扩展、性能。  
-  - 前端负责人：时间轴与导出。  
-  - QA 负责人：集成/Playwright/跨租户脚本。  
-  - 架构组：事实来源守护、评审、质量门禁。  
-- **文档记录**：所有关键决策、测试结果、监控数据写入 06 号日志 & `reports/position-stage4/`。
+- **责任人**：
+  - 数据库团队：047迁移执行、预生产演练、回滚验证
+  - 命令服务负责人：REST API、定时任务、迁移后验证
+  - 查询服务负责人：GraphQL 扩展、性能基线
+  - 前端负责人：时间轴与导出、缓存清理机制
+  - QA 负责人：集成/Playwright/跨租户脚本、测试清单合并
+  - 架构组：事实来源守护、迁移协调、外部通知、评审、质量门禁
+- **文档记录**：所有关键决策、测试结果、监控数据、迁移执行日志写入 06 号日志 & `reports/position-stage4/`
 
 ---
 
-## 10. 交付与归档清单
+## 11. 交付与归档清单
 
-- [ ] 048 迁移 & 回滚脚本 + 演练日志  
-- [ ] 任职专用 REST API 代码与测试  
-- [ ] 代理自动恢复任务（含 `OperationalScheduler` 集成）、日志、监控指标  
-- [ ] GraphQL & 前端任职历史增强 + Playwright 场景  
-- [ ] 跨租户回归测试脚本（REST/GraphQL）及 CI 集成  
-- [ ] 契约与文档同步（OpenAPI/GraphQL、实现清单、80 号 Stage 4 勾选、06 号日志、监控指南）  
-- [ ] 计划归档（完成后移动至 `docs/archive/development-plans/`）
+### 11.1 Stage 4 功能交付
+
+- [ ] 048 迁移 & 回滚脚本 + 演练日志
+- [x] 任职专用 REST API 代码与测试
+- [x] 代理自动恢复任务（含 `OperationalScheduler` 集成），监控指标待后续排期
+- [x] GraphQL & 前端任职历史增强 + Playwright 场景
+- [x] 跨租户回归测试脚本 —— REST 场景已完成并归档（`tests/consolidated/position-assignments-cross-tenant.sh`，日志位于 `reports/position-stage4/position-assignments-cross-tenant.*`）
+- [ ] GraphQL 脚本与 CI 集成（待补齐）
+- [x] 契约与文档同步（OpenAPI/GraphQL、实现清单、80 号 Stage 4 勾选、06 号日志、监控指南）
+
+### 11.2 87号生产迁移交付（前置依赖）
+
+- [ ] **T-5天**：预生产环境047迁移演练日志（`reports/position-stage4/047-preprod-dryrun-YYYYMMDD.txt`）
+- [ ] **T-5天**：静态代码检查报告（确认无 `startDate` 残留）
+- [ ] **T-3天**：外部通知发送记录（Breaking Change 声明）
+- [ ] **T-3天**：合并测试清单（`reports/position-stage4/final-acceptance-checklist.md`）
+- [ ] **T-0**：047生产迁移执行日志（`reports/position-stage4/047-production-migration-YYYYMMDD-HHMM.log`）
+- [ ] **T-0**：迁移后验证报告（数据完整性 + API契约 + 性能监控）
+- [ ] **T+1**：迁移完成通知（发送给外部集成方/BI团队）
+- [ ] **T+1**：06号日志更新（迁移执行过程与结果）
+- [ ] **T+1**：87号计划归档确认（移动至 `docs/archive/development-plans/87-temporal-field-naming-consistency-decision.md`）
+
+### 11.3 最终归档
+
+- [ ] 86号计划归档（移动至 `docs/archive/development-plans/86-position-assignment-stage4-plan.md`）
+- [ ] 80号方案 Stage 4 勾选更新
+- [ ] 实现清单最终同步（`node scripts/generate-implementation-inventory.js`）
 
 ---
 
-## 11. 变更记录
+## 12. 变更记录
 
 | 版本 | 日期 | 说明 | 作者 |
 |------|------|------|------|
+| v0.4 | 2025-10-21 | **重大更新**：整合87号生产迁移计划（effectiveDate字段统一）<br>- 新增第6节：前置依赖-87号生产迁移详细流程<br>- 更新时间线：T-5/T-3/T-0/T+1迁移节点<br>- 新增验收标准：迁移专项验收清单（§8.2）<br>- 更新风险：迁移专项风险与缓解措施（§6.4）<br>- 更新协作：增补数据库团队迁移职责<br>- 更新交付清单：87号迁移交付物（§11.2）<br>- Week 3 重点调整：先迁移后上线策略 | Claude Code 助手 |
 | v0.3 | 2025-10-19 | 新增 API 契约定义、更新迁移编号与调度集成、补充风险缓解 | 项目智能助手 |
 | v0.2 | 2025-10-17 | 根据 06 号评审意见修订，聚焦增量能力与差距分析 | 项目智能助手 |
 | v0.1 | 2025-10-17 | 初始草案（已废弃） | 项目智能助手 |

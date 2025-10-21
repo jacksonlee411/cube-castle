@@ -54,34 +54,55 @@ const StatusPill: React.FC<{ status: string }> = ({ status }) => {
 export const AssignmentItem: React.FC<{ assignment: PositionAssignmentRecord; highlight?: boolean }> = ({
   assignment,
   highlight = false,
-}) => (
-  <Box
-    border={`1px solid ${highlight ? colors.blueberry400 : colors.soap400}`}
-    borderRadius="12px"
-    padding={space.s}
-    backgroundColor={highlight ? colors.blueberry50 : colors.frenchVanilla100}
-  >
-    <SimpleStack gap={space.xxxs}>
-      <Flex justifyContent="space-between" alignItems="baseline">
-        <Text fontWeight="bold">
-          {assignment.employeeName}
-          {assignment.employeeNumber ? `（${assignment.employeeNumber}）` : ''}
-        </Text>
+}) => {
+  const actingUntilDate = assignment.actingUntil ? new Date(assignment.actingUntil) : null
+  const today = new Date()
+  const daysUntilActingEnds = actingUntilDate ? Math.ceil((actingUntilDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null
+  const isActing = assignment.assignmentType === 'ACTING'
+  const showActingReminder = isActing && assignment.autoRevert && actingUntilDate
+  const isActingExpiringSoon = showActingReminder && daysUntilActingEnds !== null && daysUntilActingEnds >= 0 && daysUntilActingEnds <= 7
+
+  return (
+    <Box
+      border={`1px solid ${highlight ? colors.blueberry400 : colors.soap400}`}
+      borderRadius="12px"
+      padding={space.s}
+      backgroundColor={highlight ? colors.blueberry50 : colors.frenchVanilla100}
+    >
+      <SimpleStack gap={space.xxxs}>
+        <Flex justifyContent="space-between" alignItems="baseline">
+          <Text fontWeight="bold">
+            {assignment.employeeName}
+            {assignment.employeeNumber ? `（${assignment.employeeNumber}）` : ''}
+          </Text>
+          <Text fontSize="12px" color={colors.licorice400}>
+            {assignment.assignmentStatus} · {assignment.assignmentType}
+          </Text>
+        </Flex>
         <Text fontSize="12px" color={colors.licorice400}>
-          {assignment.assignmentStatus} · {assignment.assignmentType}
+          任职时间：{formatDateRange(assignment.effectiveDate, assignment.endDate)} · FTE：{assignment.fte.toFixed(2)}
         </Text>
-      </Flex>
-      <Text fontSize="12px" color={colors.licorice400}>
-        任职时间：{formatDateRange(assignment.effectiveDate, assignment.endDate)} · FTE：{assignment.fte.toFixed(2)}
-      </Text>
-      {assignment.notes && (
-        <Text fontSize="12px" color={colors.licorice500}>
-          备注：{assignment.notes}
-        </Text>
-      )}
-    </SimpleStack>
-  </Box>
-)
+        {showActingReminder && (
+          <Text fontSize="12px" color={isActingExpiringSoon ? colors.cinnamon500 : colors.licorice400}>
+            代理截至：{assignment.actingUntil}
+            {assignment.autoRevert ? '（到期自动恢复）' : ''}
+            {isActingExpiringSoon ? ' · 即将到期，请确认继任人安排' : ''}
+          </Text>
+        )}
+        {assignment.reminderSentAt && (
+          <Text fontSize="12px" color={colors.licorice400}>
+            提醒发送时间：{assignment.reminderSentAt.substring(0, 16).replace('T', ' ')}
+          </Text>
+        )}
+        {assignment.notes && (
+          <Text fontSize="12px" color={colors.licorice500}>
+            备注：{assignment.notes}
+          </Text>
+        )}
+      </SimpleStack>
+    </Box>
+  )
+}
 
 const TransferItem: React.FC<{ transfer: PositionTransferRecord }> = ({ transfer }) => (
   <Box borderLeft={`2px solid ${colors.blueberry400}`} paddingLeft={space.m} marginBottom={space.m}>
@@ -99,25 +120,34 @@ const TransferItem: React.FC<{ transfer: PositionTransferRecord }> = ({ transfer
   </Box>
 )
 
-const TimelineItem: React.FC<{ event: PositionTimelineEvent }> = ({ event }) => (
-  <Box borderLeft={`2px solid ${colors.blueberry400}`} paddingLeft={space.m} marginBottom={space.m}>
-    <Text fontWeight="bold">
-      {event.title}{' '}
-      <Text as="span" fontSize="12px" color={colors.licorice400}>
-        （{getPositionStatusMeta(event.status).label}）
+const TimelineItem: React.FC<{ event: PositionTimelineEvent }> = ({ event }) => {
+  const isAssignmentEvent = event.timelineCategory?.toUpperCase() === 'POSITION_ASSIGNMENT'
+  const statusMeta = getPositionStatusMeta(event.status)
+  return (
+    <Box borderLeft={`2px solid ${colors.blueberry400}`} paddingLeft={space.m} marginBottom={space.m}>
+      <Text fontWeight="bold">
+        {event.title}{' '}
+        <Text as="span" fontSize="12px" color={colors.licorice400}>
+          （{statusMeta.label}）
+        </Text>
       </Text>
-    </Text>
-    <Text fontSize="12px" color={colors.licorice400}>
-      生效：{event.effectiveDate}
-      {event.endDate ? ` · 结束：${event.endDate}` : ''}
-    </Text>
-    {event.changeReason && (
-      <Text as="p" marginY="xxs" color={colors.licorice500}>
-        {event.changeReason}
+      <Text fontSize="12px" color={colors.licorice400}>
+        生效：{event.effectiveDate}
+        {event.endDate ? ` · 结束：${event.endDate}` : ''}
       </Text>
-    )}
-  </Box>
-)
+      {isAssignmentEvent && (
+        <Text fontSize="12px" color={colors.licorice400}>
+          任职类型：{event.assignmentType ?? '未标记'} · 状态：{event.assignmentStatus ?? '未知'}
+        </Text>
+      )}
+      {event.changeReason && (
+        <Text as="p" marginY="xxs" color={colors.licorice500}>
+          {event.changeReason}
+        </Text>
+      )}
+    </Box>
+  )
+}
 
 interface PositionOverviewCardProps {
   position?: PositionRecord

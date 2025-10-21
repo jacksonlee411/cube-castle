@@ -249,17 +249,28 @@ curl -X POST http://localhost:9090/api/v1/operational/tasks/recalculate-timeline
 - 📄 86号文档：`docs/development-plans/86-position-assignment-stage4-plan.md`
 - 📄 项目原则：`CLAUDE.md` - 资源唯一性与跨层一致性原则
 
+### 6.8 86号计划后续任务（2025-10-20）
+
+- **完成 048 迁移演练**：记录执行与回滚日志至 `reports/position-stage4/`，确认操作手册可复用。
+- **跨租户验证脚本**：补全 REST/GraphQL 跨租户校验脚本并在 CI 侧留存执行截图/结果。
+- **计划文档归档**：更新 86 号计划完成项后移动至 `docs/archive/development-plans/`，确保引用唯一性。
+- **QA 场景补强**：协调 QA 在 `tests/e2e/` 添加代理任职自动恢复端到端脚本。
+- **监控指标暂缓**：根据决策，`position_assignment_acting_total` 等指标暂不实施，待后续需求触发。
+
 ---
 
 ## 7. 更新日志
 
 | 日期 | 更新内容 | 负责人 |
 |------|----------|--------|
+| 2025-10-21 13:00 | 87 号档案补充 §12（与 86 号收尾联动迁移策略），同步更新 99 号指引 | 架构组 + Claude Code |
+| 2025-10-21 12:30 | 87 号决策文档归档至 `docs/archive/development-plans/87-temporal-field-naming-consistency-decision.md` | 架构组 + Claude Code |
 | 2025-10-21 12:00 | 完成 87 号命名统一实施并同步相关文档/契约 | 数据库 + 全栈团队 |
 | 2025-10-20 23:30 | 记录70号、95号文档归档事件至已关闭事项清单 | 架构组 + Claude Code |
 | 2025-10-20 23:00 | 补充组织软删除恢复步骤（响应70号调查报告行动项2） | 架构组 + Claude Code |
 | 2025-10-20 21:30 | 清理已完成任务，添加87号方案评审结果 | 架构组 + Claude Code |
 | 2025-10-20 19:45 | 更新92号计划最新进展，记录101~104归档 | 前端团队 |
+| 2025-10-20 15:20 | 复核 87 号迁移后回归：执行 `go test ./cmd/organization-command-service/...`、`go test ./cmd/organization-query-service/...`、`npm --prefix frontend run typecheck` | 架构组 + Claude Code |
 | 2025-10-19 16:00 | 记录93号职位详情多页签验收完成 | 前端团队 |
 
 ---

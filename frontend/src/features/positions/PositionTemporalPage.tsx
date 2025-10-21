@@ -8,7 +8,7 @@ import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { TimelineComponent, type TimelineVersion } from '@/features/temporal/components'
 import { AuditHistorySection } from '@/features/audit/components/AuditHistorySection'
 import {
-  PositionAssignmentsPanel,
+  PositionAssignmentHistory,
   PositionOverviewCard,
   PositionTimelinePanel,
   PositionTransfersPanel,
@@ -79,12 +79,11 @@ export const PositionTemporalPage: React.FC = () => {
 
   const detailErrorMessage = detailQuery.error instanceof Error ? detailQuery.error.message : undefined
 
-  const { position, timeline, assignments, currentAssignment, transfers, versions } = useMemo(() => {
+  const { position, timeline, currentAssignment, transfers, versions } = useMemo(() => {
     if (isCreateMode || !isValidCode) {
       return {
         position: undefined as PositionRecord | undefined,
         timeline: [] as PositionTimelineEvent[],
-        assignments: [] as PositionAssignmentRecord[],
         currentAssignment: null as PositionAssignmentRecord | null,
         transfers: [] as PositionTransferRecord[],
         versions: [] as PositionRecord[],
@@ -95,7 +94,6 @@ export const PositionTemporalPage: React.FC = () => {
     return {
       position: graph?.position ?? undefined,
       timeline: graph?.timeline ?? [],
-      assignments: graph?.assignments ?? [],
       currentAssignment: graph?.currentAssignment ?? null,
       transfers: graph?.transfers ?? [],
       versions: graph?.versions ?? [],
@@ -446,7 +444,6 @@ export const PositionTemporalPage: React.FC = () => {
                   activeTab,
                   overviewRecord,
                   currentAssignment,
-                  assignments,
                   transfers,
                   timeline,
                   detailQuery,
@@ -506,7 +503,6 @@ interface TabContentProps {
   activeTab: DetailTab
   overviewRecord: PositionRecord | null | undefined
   currentAssignment: PositionAssignmentRecord | null
-  assignments: PositionAssignmentRecord[]
   transfers: PositionTransferRecord[]
   timeline: PositionTimelineEvent[]
   detailQuery: DetailQueryResult
@@ -524,7 +520,6 @@ const renderTabContent = ({
   activeTab,
   overviewRecord,
   currentAssignment,
-  assignments,
   transfers,
   timeline,
   detailQuery,
@@ -547,7 +542,12 @@ const renderTabContent = ({
         />
       )
     case 'assignments':
-      return <PositionAssignmentsPanel assignments={assignments} currentAssignment={currentAssignment} />
+      return (
+        <PositionAssignmentHistory
+          positionCode={overviewRecord?.code}
+          currentAssignment={currentAssignment}
+        />
+      )
     case 'transfers':
       return <PositionTransfersPanel transfers={transfers} />
     case 'timeline':

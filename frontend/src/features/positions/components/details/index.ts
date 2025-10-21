@@ -5,3 +5,5 @@ export {
   PositionTransfersPanel,
   PositionTimelinePanel,
 } from './PositionDetails';
+
+export { PositionAssignmentHistory } from './PositionAssignmentHistory';

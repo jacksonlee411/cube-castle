@@ -36,6 +36,7 @@ export interface PositionRecord {
   isFuture: boolean;
   createdAt: string;
   updatedAt: string;
+  currentAssignment?: PositionAssignmentRecord | null;
 }
 
 export interface PositionTimelineEvent {
@@ -46,6 +47,9 @@ export interface PositionTimelineEvent {
   endDate?: string | null;
   changeReason?: string | null;
   isCurrent?: boolean;
+  timelineCategory?: string;
+  assignmentType?: string | null;
+  assignmentStatus?: string | null;
 }
 
 export interface PositionAssignmentRecord {
@@ -60,10 +64,23 @@ export interface PositionAssignmentRecord {
   fte: number;
   effectiveDate: string;
   endDate?: string | null;
+  actingUntil?: string | null;
+  autoRevert: boolean;
+  reminderSentAt?: string | null;
   isCurrent: boolean;
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PositionAssignmentAuditRecord {
+  assignmentId: string;
+  eventType: string;
+  effectiveDate: string;
+  endDate?: string | null;
+  actor: string;
+  changes?: Record<string, unknown> | null;
+  createdAt: string;
 }
 
 export interface PositionTransferRecord {

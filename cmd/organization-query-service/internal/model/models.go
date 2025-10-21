@@ -706,6 +706,9 @@ type PositionAssignment struct {
 	FTEField              float64    `json:"fte" db:"fte"`
 	EffectiveDateField    time.Time  `json:"effectiveDate" db:"effective_date"`
 	EndDateField          *time.Time `json:"endDate" db:"end_date"`
+	ActingUntilField      *time.Time `json:"actingUntil" db:"acting_until"`
+	AutoRevertField       bool       `json:"autoRevert" db:"auto_revert"`
+	ReminderSentAtField   *time.Time `json:"reminderSentAt" db:"reminder_sent_at"`
 	IsCurrentField        bool       `json:"isCurrent" db:"is_current"`
 	NotesField            *string    `json:"notes" db:"notes"`
 	CreatedAtField        time.Time  `json:"createdAt" db:"created_at"`
@@ -730,6 +733,21 @@ func (a PositionAssignment) EndDate() *Date {
 		return nil
 	}
 	val := Date(a.EndDateField.Format("2006-01-02"))
+	return &val
+}
+func (a PositionAssignment) ActingUntil() *Date {
+	if a.ActingUntilField == nil {
+		return nil
+	}
+	val := Date(a.ActingUntilField.Format("2006-01-02"))
+	return &val
+}
+func (a PositionAssignment) AutoRevert() bool { return a.AutoRevertField }
+func (a PositionAssignment) ReminderSentAt() *DateTime {
+	if a.ReminderSentAtField == nil {
+		return nil
+	}
+	val := DateTime(a.ReminderSentAtField.Format(time.RFC3339))
 	return &val
 }
 func (a PositionAssignment) IsCurrent() bool { return a.IsCurrentField }
@@ -768,6 +786,49 @@ func (c PositionAssignmentConnection) Pagination() PaginationInfo {
 func (c PositionAssignmentConnection) TotalCount() int32 {
 	return int32(c.TotalCountField)
 }
+
+type PositionAssignmentAudit struct {
+	AssignmentIDField string                 `json:"assignmentId"`
+	EventTypeField    string                 `json:"eventType"`
+	EffectiveDateField time.Time             `json:"effectiveDate"`
+	EndDateField      *time.Time             `json:"endDate"`
+	ActorField        string                 `json:"actor"`
+	ChangesField      map[string]interface{} `json:"changes"`
+	CreatedAtField    time.Time              `json:"createdAt"`
+}
+
+func (a PositionAssignmentAudit) AssignmentId() UUID { return UUID(a.AssignmentIDField) }
+func (a PositionAssignmentAudit) EventType() string  { return a.EventTypeField }
+func (a PositionAssignmentAudit) EffectiveDate() Date {
+	return Date(a.EffectiveDateField.Format("2006-01-02"))
+}
+func (a PositionAssignmentAudit) EndDate() *Date {
+	if a.EndDateField == nil {
+		return nil
+	}
+	val := Date(a.EndDateField.Format("2006-01-02"))
+	return &val
+}
+func (a PositionAssignmentAudit) Actor() string { return a.ActorField }
+func (a PositionAssignmentAudit) Changes() JSON {
+	if a.ChangesField == nil {
+		return nil
+	}
+	return JSON(a.ChangesField)
+}
+func (a PositionAssignmentAudit) CreatedAt() DateTime {
+	return DateTime(a.CreatedAtField.Format(time.RFC3339))
+}
+
+type PositionAssignmentAuditConnection struct {
+	DataField       []PositionAssignmentAudit `json:"data"`
+	PaginationField PaginationInfo            `json:"pagination"`
+	TotalCountField int                       `json:"totalCount"`
+}
+
+func (c PositionAssignmentAuditConnection) Data() []PositionAssignmentAudit { return c.DataField }
+func (c PositionAssignmentAuditConnection) Pagination() PaginationInfo     { return c.PaginationField }
+func (c PositionAssignmentAuditConnection) TotalCount() int32              { return int32(c.TotalCountField) }
 
 // VacantPosition 空缺职位视图
 type VacantPosition struct {
@@ -1091,11 +1152,13 @@ func (s *VacantPositionSortInput) UnmarshalGraphQL(input interface{}) error {
 
 // PositionAssignmentFilterInput GraphQL 任职过滤条件
 type PositionAssignmentFilterInput struct {
-	EmployeeID        *string `json:"employeeId"`
-	AssignmentStatus  *string `json:"assignmentStatus"`
-	AssignmentType    *string `json:"assignmentType"`
-	AsOfDate          *string `json:"asOfDate"`
-	IncludeHistorical bool    `json:"includeHistorical"`
+	EmployeeID        *string         `json:"employeeId"`
+	Status            *string         `json:"status"`
+	AssignmentTypes   []string        `json:"assignmentTypes"`
+	DateRange         *DateRangeInput `json:"dateRange"`
+	AsOfDate          *string         `json:"asOfDate"`
+	IncludeHistorical bool            `json:"includeHistorical"`
+	IncludeActingOnly bool            `json:"includeActingOnly"`
 }
 
 func (f *PositionAssignmentFilterInput) UnmarshalGraphQL(input interface{}) error {
@@ -1113,19 +1176,28 @@ func (f *PositionAssignmentFilterInput) UnmarshalGraphQL(input interface{}) erro
 		}
 		f.EmployeeID = strPtr
 	}
-	if value, exists := raw["assignmentStatus"]; exists {
+	if value, exists := raw["status"]; exists {
 		strPtr, err := asOptionalString(value)
 		if err != nil {
-			return fmt.Errorf("PositionAssignmentFilterInput.assignmentStatus: %w", err)
+			return fmt.Errorf("PositionAssignmentFilterInput.status: %w", err)
 		}
-		f.AssignmentStatus = strPtr
+		f.Status = strPtr
 	}
-	if value, exists := raw["assignmentType"]; exists {
-		strPtr, err := asOptionalString(value)
+	if value, exists := raw["assignmentTypes"]; exists {
+		slicePtr, err := asOptionalStringSlice(value)
 		if err != nil {
-			return fmt.Errorf("PositionAssignmentFilterInput.assignmentType: %w", err)
+			return fmt.Errorf("PositionAssignmentFilterInput.assignmentTypes: %w", err)
 		}
-		f.AssignmentType = strPtr
+		if slicePtr != nil {
+			f.AssignmentTypes = *slicePtr
+		}
+	}
+	if value, exists := raw["dateRange"]; exists {
+		rangePtr, err := asOptionalDateRange(value)
+		if err != nil {
+			return fmt.Errorf("PositionAssignmentFilterInput.dateRange: %w", err)
+		}
+		f.DateRange = rangePtr
 	}
 	if value, exists := raw["asOfDate"]; exists {
 		strPtr, err := asOptionalString(value)
@@ -1140,6 +1212,13 @@ func (f *PositionAssignmentFilterInput) UnmarshalGraphQL(input interface{}) erro
 			return fmt.Errorf("PositionAssignmentFilterInput.includeHistorical: %w", err)
 		}
 		f.IncludeHistorical = boolVal
+	}
+	if value, exists := raw["includeActingOnly"]; exists {
+		boolVal, err := asBool(value)
+		if err != nil {
+			return fmt.Errorf("PositionAssignmentFilterInput.includeActingOnly: %w", err)
+		}
+		f.IncludeActingOnly = boolVal
 	}
 	return nil
 }
@@ -1176,13 +1255,16 @@ func (s *PositionAssignmentSortInput) UnmarshalGraphQL(input interface{}) error 
 
 // PositionTimelineEntry 时间线条目
 type PositionTimelineEntry struct {
-	RecordIDField      string     `json:"recordId" db:"record_id"`
-	StatusField        string     `json:"status" db:"status"`
-	TitleField         string     `json:"title" db:"title"`
-	EffectiveDateField time.Time  `json:"effectiveDate" db:"effective_date"`
-	EndDateField       *time.Time `json:"endDate" db:"end_date"`
-	IsCurrentField     bool       `json:"isCurrent" db:"is_current"`
-	ChangeReasonField  *string    `json:"changeReason" db:"operation_reason"`
+	RecordIDField         string     `json:"recordId" db:"record_id"`
+	StatusField           string     `json:"status" db:"status"`
+	TitleField            string     `json:"title" db:"title"`
+	EffectiveDateField    time.Time  `json:"effectiveDate" db:"effective_date"`
+	EndDateField          *time.Time `json:"endDate" db:"end_date"`
+	IsCurrentField        bool       `json:"isCurrent" db:"is_current"`
+	ChangeReasonField     *string    `json:"changeReason" db:"operation_reason"`
+	TimelineCategoryField string     `json:"timelineCategory" db:"timeline_category"`
+	AssignmentTypeField   *string    `json:"assignmentType" db:"assignment_type"`
+	AssignmentStatusField *string    `json:"assignmentStatus" db:"assignment_status"`
 }
 
 func (e PositionTimelineEntry) RecordId() UUID { return UUID(e.RecordIDField) }
@@ -1201,6 +1283,21 @@ func (e PositionTimelineEntry) EndDate() *Date {
 func (e PositionTimelineEntry) IsCurrent() bool { return e.IsCurrentField }
 func (e PositionTimelineEntry) ChangeReason() *string {
 	return e.ChangeReasonField
+}
+
+func (e PositionTimelineEntry) TimelineCategory() string {
+	if strings.TrimSpace(e.TimelineCategoryField) == "" {
+		return "POSITION_VERSION"
+	}
+	return e.TimelineCategoryField
+}
+
+func (e PositionTimelineEntry) AssignmentType() *string {
+	return e.AssignmentTypeField
+}
+
+func (e PositionTimelineEntry) AssignmentStatus() *string {
+	return e.AssignmentStatusField
 }
 
 // HeadcountStats 编制统计

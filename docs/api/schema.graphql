@@ -162,6 +162,18 @@ type Query {
   ): PositionAssignmentConnection!
 
   """
+  Export assignment audit events for a position.
+
+  Permissions Required: position:assignments:audit
+  """
+  positionAssignmentAudit(
+    positionCode: PositionCode!
+    assignmentId: UUID
+    dateRange: DateRangeInput
+    pagination: PaginationInput
+  ): PositionAssignmentAuditConnection!
+
+  """
   Get vacant positions with optional filters.
 
   Permissions Required: position:read
@@ -486,6 +498,14 @@ type PositionTimelineEntry {
   endDate: Date
   isCurrent: Boolean!
   changeReason: String
+  timelineCategory: PositionTimelineCategory!
+  assignmentType: PositionAssignmentType
+  assignmentStatus: PositionAssignmentStatus
+}
+
+enum PositionTimelineCategory {
+  POSITION_VERSION
+  POSITION_ASSIGNMENT
 }
 
 """
@@ -546,6 +566,9 @@ type PositionAssignment {
   fte: Float!
   effectiveDate: Date!
   endDate: Date
+  actingUntil: Date
+  autoRevert: Boolean!
+  reminderSentAt: DateTime
   isCurrent: Boolean!
   notes: String
   createdAt: DateTime!
@@ -562,6 +585,22 @@ type PositionAssignmentConnection {
   pagination: PaginationInfo!
   data: [PositionAssignment!]!
   totalCount: Int!
+}
+
+type PositionAssignmentAuditConnection {
+  data: [PositionAssignmentAudit!]!
+  pagination: PaginationInfo!
+  totalCount: Int!
+}
+
+type PositionAssignmentAudit {
+  assignmentId: UUID!
+  eventType: String!
+  effectiveDate: Date!
+  endDate: Date
+  actor: String!
+  changes: JSON
+  createdAt: DateTime!
 }
 
 type VacantPosition {
@@ -971,10 +1010,12 @@ Filter options for position assignment queries.
 """
 input PositionAssignmentFilterInput {
   employeeId: UUID
-  assignmentStatus: PositionAssignmentStatus
-  assignmentType: PositionAssignmentType
+  status: PositionAssignmentStatus
+  assignmentTypes: [PositionAssignmentType!]
+  dateRange: DateRangeInput
   asOfDate: Date
   includeHistorical: Boolean = true
+  includeActingOnly: Boolean = false
 }
 
 """

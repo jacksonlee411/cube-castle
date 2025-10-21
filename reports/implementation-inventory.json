@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-10-19T11:02:44.201Z",
+  "timestamp": "2025-10-20T23:12:15.272Z",
   "summary": {
-    "openapiPaths": 42,
+    "openapiPaths": 49,
     "graphqlQueries": 22,
-    "goHandlers": 50,
+    "goHandlers": 62,
     "goServices": 21,
-    "tsExports": 237
+    "tsExports": 257
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -41,13 +41,20 @@
     "/api/v1/positions/{code}/fill",
     "/api/v1/positions/{code}/vacate",
     "/api/v1/positions/{code}/transfer",
+    "/api/v1/positions/{code}/assignments",
+    "/api/v1/positions/{code}/assignments/{assignmentId}",
+    "/api/v1/positions/{code}/assignments/{assignmentId}/close",
     "/api/v1/job-family-groups",
+    "/api/v1/job-family-groups/{code}",
     "/api/v1/job-family-groups/{code}/versions",
     "/api/v1/job-families",
+    "/api/v1/job-families/{code}",
     "/api/v1/job-families/{code}/versions",
     "/api/v1/job-roles",
+    "/api/v1/job-roles/{code}",
     "/api/v1/job-roles/{code}/versions",
     "/api/v1/job-levels",
+    "/api/v1/job-levels/{code}",
     "/api/v1/job-levels/{code}/versions",
     "/api/v1/job-catalog/sync"
   ],
@@ -63,9 +70,9 @@
     "positionTimeline",
     "positionVersions",
     "positionAssignments",
+    "positionAssignmentAudit",
     "vacantPositions",
     "positionTransfers",
-    "vacantPositions",
     "positionHeadcountStats",
     "auditHistory",
     "auditLog",
@@ -127,12 +134,22 @@
       "kind": "method"
     },
     {
+      "name": "UpdateJobFamilyGroup",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
       "name": "CreateJobFamilyGroupVersion",
       "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobFamily",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateJobFamily",
       "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
@@ -147,12 +164,22 @@
       "kind": "method"
     },
     {
+      "name": "UpdateJobRole",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
       "name": "CreateJobRoleVersion",
       "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobLevel",
+      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateJobLevel",
       "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
@@ -287,6 +314,26 @@
       "kind": "method"
     },
     {
+      "name": "ListAssignments",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateAssignment",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateAssignment",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CloseAssignment",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "kind": "method"
+    },
+    {
       "name": "ApplyPositionEvent",
       "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
       "kind": "method"
@@ -323,6 +370,26 @@
     },
     {
       "name": "ApplyEvent",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "ListAssignments",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateAssignmentRecord",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateAssignmentRecord",
+      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "CloseAssignmentRecord",
       "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
       "kind": "method"
     }
@@ -441,6 +508,21 @@
       "kind": "const"
     },
     {
+      "name": "CatalogTable",
+      "file": "frontend/src/features/job-catalog/shared/CatalogTable.tsx",
+      "kind": "const"
+    },
+    {
+      "name": "getCatalogStatusMeta",
+      "file": "frontend/src/features/job-catalog/types.ts",
+      "kind": "const"
+    },
+    {
+      "name": "formatISODate",
+      "file": "frontend/src/features/job-catalog/types.ts",
+      "kind": "const"
+    },
+    {
       "name": "ORGANIZATION_UNIT_TYPES",
       "file": "frontend/src/features/organizations/constants/formConfig.ts",
       "kind": "const"
@@ -491,13 +573,18 @@
       "kind": "const"
     },
     {
-      "name": "createInitialState",
-      "file": "frontend/src/features/positions/components/PositionForm/types.ts",
+      "name": "buildUpdatePositionPayload",
+      "file": "frontend/src/features/positions/components/PositionForm/payload.ts",
       "kind": "const"
     },
     {
-      "name": "usePositionJobCatalogOptions",
-      "file": "frontend/src/features/positions/components/PositionForm/usePositionJobCatalogOptions.ts",
+      "name": "buildCreatePositionVersionPayload",
+      "file": "frontend/src/features/positions/components/PositionForm/payload.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createInitialState",
+      "file": "frontend/src/features/positions/components/PositionForm/types.ts",
       "kind": "const"
     },
     {
@@ -1201,6 +1288,11 @@
       "kind": "func"
     },
     {
+      "name": "usePositionAssignments",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "func"
+    },
+    {
       "name": "useVacantPositions",
       "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
       "kind": "func"
@@ -1221,6 +1313,11 @@
       "kind": "const"
     },
     {
+      "name": "POSITION_ASSIGNMENTS_QUERY_ROOT_KEY",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
       "name": "VACANT_POSITIONS_QUERY_ROOT_KEY",
       "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
       "kind": "const"
@@ -1237,6 +1334,11 @@
     },
     {
       "name": "positionDetailQueryKey",
+      "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
+      "kind": "const"
+    },
+    {
+      "name": "positionAssignmentsQueryKey",
       "file": "frontend/src/shared/hooks/useEnterprisePositions.ts",
       "kind": "const"
     },
@@ -1276,6 +1378,66 @@
       "kind": "const"
     },
     {
+      "name": "useCreateJobFamilyGroup",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useUpdateJobFamilyGroup",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreateJobFamily",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useUpdateJobFamily",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreateJobRole",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useUpdateJobRole",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreateJobLevel",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useUpdateJobLevel",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreateJobFamilyGroupVersion",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreateJobFamilyVersion",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreateJobRoleVersion",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "useCreateJobLevelVersion",
+      "file": "frontend/src/shared/hooks/useJobCatalogMutations.ts",
+      "kind": "const"
+    },
+    {
       "name": "useMessages",
       "file": "frontend/src/shared/hooks/useMessages.ts",
       "kind": "const"
@@ -1308,6 +1470,11 @@
     {
       "name": "useCreateOrganizationVersion",
       "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
+      "kind": "const"
+    },
+    {
+      "name": "usePositionCatalogOptions",
+      "file": "frontend/src/shared/hooks/usePositionCatalogOptions.ts",
       "kind": "const"
     },
     {

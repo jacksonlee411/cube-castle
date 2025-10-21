@@ -1906,6 +1906,196 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/positions/{code}/assignments:
+    get:
+      operationId: listPositionAssignments
+      tags: [positions]
+      summary: List position assignments
+      description: Returns current and historical assignments for a position with optional filters.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: assignmentTypes
+          in: query
+          description: Comma-separated assignment types to include (PRIMARY, SECONDARY, ACTING)
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PositionAssignmentType'
+          style: form
+          explode: false
+        - name: status
+          in: query
+          description: Filter by assignment status
+          schema:
+            $ref: '#/components/schemas/PositionAssignmentStatus'
+        - name: asOfDate
+          in: query
+          description: Return only assignments active on the specified date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: includeHistorical
+          in: query
+          description: Include ended assignments in the response
+          schema:
+            type: boolean
+            default: true
+        - name: includeActingOnly
+          in: query
+          description: When true, only acting assignments are returned
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 25
+      security:
+        - OAuth2ClientCredentials: ['position:assignments:read']
+      responses:
+        '200':
+          description: Assignments returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionAssignmentListResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+    post:
+      operationId: createPositionAssignment
+      tags: [positions]
+      summary: Create a new position assignment
+      description: Creates a primary, secondary or acting assignment for the specified position.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - OAuth2ClientCredentials: ['position:assignments:write']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePositionAssignmentRequest'
+      responses:
+        '201':
+          description: Assignment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionAssignmentResource'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/positions/{code}/assignments/{assignmentId}:
+    patch:
+      operationId: updatePositionAssignment
+      tags: [positions]
+      summary: Update an existing assignment
+      description: Adjust FTE, acting window or notes for an assignment.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: assignmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      security:
+        - OAuth2ClientCredentials: ['position:assignments:write']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePositionAssignmentRequest'
+      responses:
+        '200':
+          description: Assignment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionAssignmentResource'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/positions/{code}/assignments/{assignmentId}/close:
+    post:
+      operationId: closePositionAssignment
+      tags: [positions]
+      summary: Close an assignment
+      description: Marks an assignment as ended and updates position headcount.
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: assignmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      security:
+        - OAuth2ClientCredentials: ['position:assignments:write']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClosePositionAssignmentRequest'
+      responses:
+        '200':
+          description: Assignment closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionAssignmentResource'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   /api/v1/job-family-groups:
     post:
       operationId: createJobFamilyGroup
@@ -3435,6 +3625,7 @@ components:
         - fte
         - effectiveDate
         - isCurrent
+        - autoRevert
         - createdAt
         - updatedAt
       properties:
@@ -3473,6 +3664,17 @@ components:
           type: string
           format: date
           nullable: true
+        actingUntil:
+          type: string
+          format: date
+          nullable: true
+        autoRevert:
+          type: boolean
+          description: Whether the assignment should automatically revert when actingUntil is reached
+        reminderSentAt:
+          type: string
+          format: date-time
+          nullable: true
         isCurrent:
           type: boolean
         notes:
@@ -3498,6 +3700,131 @@ components:
         recordId:
           type: string
           format: uuid
+
+    CreatePositionAssignmentRequest:
+      type: object
+      required:
+        - employeeId
+        - employeeName
+        - assignmentType
+        - effectiveDate
+        - operationReason
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeName:
+          type: string
+          maxLength: 120
+        employeeNumber:
+          type: string
+          maxLength: 64
+          nullable: true
+        assignmentType:
+          $ref: '#/components/schemas/PositionAssignmentType'
+        fte:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          default: 1
+        effectiveDate:
+          type: string
+          format: date
+        actingUntil:
+          type: string
+          format: date
+          nullable: true
+        autoRevert:
+          type: boolean
+          default: false
+        notes:
+          type: string
+          maxLength: 500
+          nullable: true
+        operationReason:
+          type: string
+          maxLength: 500
+
+    UpdatePositionAssignmentRequest:
+      type: object
+      required:
+        - operationReason
+      properties:
+        fte:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        actingUntil:
+          type: string
+          format: date
+          nullable: true
+        autoRevert:
+          type: boolean
+          nullable: true
+        notes:
+          type: string
+          maxLength: 500
+          nullable: true
+        operationReason:
+          type: string
+          maxLength: 500
+
+    ClosePositionAssignmentRequest:
+      type: object
+      required:
+        - endDate
+        - operationReason
+      properties:
+        endDate:
+          type: string
+          format: date
+        notes:
+          type: string
+          maxLength: 500
+          nullable: true
+        operationReason:
+          type: string
+          maxLength: 500
+
+    PositionAssignmentListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+        - totalCount
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PositionAssignmentResource'
+        pagination:
+          type: object
+          required:
+            - total
+            - page
+            - pageSize
+            - hasNext
+            - hasPrevious
+          properties:
+            total:
+              type: integer
+              minimum: 0
+            page:
+              type: integer
+              minimum: 1
+            pageSize:
+              type: integer
+              minimum: 1
+              maximum: 200
+            hasNext:
+              type: boolean
+            hasPrevious:
+              type: boolean
+        totalCount:
+          type: integer
+          minimum: 0
           nullable: true
         effectiveDate:
           type: string

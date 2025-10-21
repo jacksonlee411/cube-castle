@@ -19,6 +19,25 @@ export const PositionSummaryCards: React.FC<PositionSummaryCardsProps> = ({ posi
   const totalAvailable = positions.reduce((acc, item) => acc + item.availableHeadcount, 0)
   const plannedCount = positions.filter(item => item.status === 'PLANNED').length
   const multiSeatPositions = positions.filter(item => item.headcountCapacity > 1).length
+  const actingDueSoonCount = positions.filter(position => {
+    const assignment = position.currentAssignment
+    if (!assignment) {
+      return false
+    }
+    if (assignment.assignmentType !== 'ACTING') {
+      return false
+    }
+    if (!assignment.autoRevert || !assignment.actingUntil) {
+      return false
+    }
+    const actingUntilDate = new Date(assignment.actingUntil)
+    if (Number.isNaN(actingUntilDate.getTime())) {
+      return false
+    }
+    const today = new Date()
+    const diffDays = Math.ceil((actingUntilDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    return diffDays >= 0 && diffDays <= 7
+  }).length
 
   const metrics = [
     {
@@ -38,6 +57,12 @@ export const PositionSummaryCards: React.FC<PositionSummaryCardsProps> = ({ posi
       value: plannedCount,
       description: '等待预算批复或启用的岗位数量',
       accent: colors.cantaloupe600,
+    },
+    {
+      title: '代理任职提醒',
+      value: actingDueSoonCount,
+      description: '7 天内将自动恢复的代理任职数量',
+      accent: colors.cinnamon500,
     },
   ]
 
