@@ -158,7 +158,7 @@
 
 ## 8. 参考资料
 
-- `docs/development-plans/80-position-management-with-temporal-tracking.md` — 数据模型、状态机、权限定义  
+- `docs/archive/development-plans/80-position-management-with-temporal-tracking.md` — 数据模型、状态机、权限定义  
 - `docs/development-plans/81-position-api-contract-update-plan.md` — Stage 0/4 契约要求与质量门禁  
 - `docs/api/openapi.yaml`、`docs/api/schema.graphql` v4.7.0 — REST/GraphQL 契约  
 - `docs/reference/02-IMPLEMENTATION-INVENTORY.md` — 现有端点与查询清单  

@@ -21,7 +21,7 @@
 ## 3. 权威事实来源
 
 - `frontend/src/features/positions/components` 目录
-- `docs/development-plans/88-position-frontend-gap-analysis.md`
+- `docs/archive/development-plans/88-position-frontend-gap-analysis.md`
 - `docs/development-plans/06-integrated-teams-progress-log.md`
 - `docs/archive/development-plans/93-position-detail-tabbed-experience-acceptance.md`
 

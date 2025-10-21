@@ -333,11 +333,11 @@ components:
     description: |
       **⚠️ TEMPORARY IMPLEMENTATION**
       Deadline: 2025-12-31
-      Migration: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+      Migration: docs/archive/development-plans/80-position-management-with-temporal-tracking.md#7.6
     x-temporary:
       reason: Assignment table not yet implemented
       deadline: '2025-12-31'
-      migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+      migrationPlan: docs/archive/development-plans/80-position-management-with-temporal-tracking.md#7.6
       owner: backend-architect-developer
     operationId: fillPosition
     tags: [Positions]
@@ -364,11 +364,11 @@ components:
     description: |
       **⚠️ TEMPORARY IMPLEMENTATION**
       Deadline: 2025-12-31
-      Migration: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+      Migration: docs/archive/development-plans/80-position-management-with-temporal-tracking.md#7.6
     x-temporary:
       reason: Assignment table not yet implemented
       deadline: '2025-12-31'
-      migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+      migrationPlan: docs/archive/development-plans/80-position-management-with-temporal-tracking.md#7.6
       owner: backend-architect-developer
     operationId: vacatePosition
     tags: [Positions]
@@ -395,11 +395,11 @@ components:
     description: |
       **⚠️ TEMPORARY IMPLEMENTATION**
       Deadline: 2025-12-31
-      Migration: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+      Migration: docs/archive/development-plans/80-position-management-with-temporal-tracking.md#7.6
     x-temporary:
       reason: Assignment table not yet implemented
       deadline: '2025-12-31'
-      migrationPlan: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+      migrationPlan: docs/archive/development-plans/80-position-management-with-temporal-tracking.md#7.6
       owner: backend-architect-developer
     operationId: transferPosition
     tags: [Positions]

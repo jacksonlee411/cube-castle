@@ -45,8 +45,8 @@
 **权威参考文档**:
 - `CLAUDE.md` - 项目指导原则，资源唯一性与跨层一致性（最高优先级）
 - `AGENTS.md` - PostgreSQL 原生 CQRS 架构约束
-- `docs/development-plans/88-position-frontend-gap-analysis.md` v1.1
-- `docs/development-plans/80-position-management-with-temporal-tracking.md`（第184-187行承诺）
+- `docs/archive/development-plans/88-position-frontend-gap-analysis.md` v1.1
+- `docs/archive/development-plans/80-position-management-with-temporal-tracking.md`（第184-187行承诺）
 - `frontend/src/features/temporal/components/TemporalMasterDetailView.tsx` - 组织模块实际实现
 
 **关键代码证据**:
@@ -797,7 +797,7 @@ flowchart LR
   - 93号方案评审结论（不通过，需修订）
   - 主要问题：6页签过度设计、重复造轮子
   - 修订方向：2页签、复用 TimelineComponent、集成式组件
-- [ ] 在 `docs/development-plans/88-position-frontend-gap-analysis.md` 第8.3节建议5备注：
+- [ ] 在 `docs/archive/development-plans/88-position-frontend-gap-analysis.md` 第8.3节建议5备注：
   - "93号方案已提交评审，需修订为2页签版本后方可实施"
 
 **代码实施清单**（修订版通过后）:
@@ -826,8 +826,8 @@ flowchart LR
 - `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md` - 文档命名与目录边界
 
 **关联计划**:
-- `docs/development-plans/88-position-frontend-gap-analysis.md` v1.1
-- `docs/development-plans/80-position-management-with-temporal-tracking.md`
+- `docs/archive/development-plans/88-position-frontend-gap-analysis.md` v1.1
+- `docs/archive/development-plans/80-position-management-with-temporal-tracking.md`
 - `docs/development-plans/06-integrated-teams-progress-log.md`
 
 **实际实现**:

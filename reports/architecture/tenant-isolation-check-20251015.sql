@@ -74,4 +74,4 @@ LINE 2: FROM positions p
 
 -- 参考文档：
 --   - docs/development-plans/81-position-api-contract-update-plan.md 第8节
---   - docs/development-plans/80-position-management-with-temporal-tracking.md 第3节（数据库设计）
+--   - docs/archive/development-plans/80-position-management-with-temporal-tracking.md 第3节（数据库设计）

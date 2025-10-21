@@ -22,7 +22,7 @@
 
 - `frontend/src/features/positions/components/PositionForm` 目录
 - `frontend/src/shared/hooks/usePositionCatalogOptions.ts`
-- `docs/development-plans/88-position-frontend-gap-analysis.md`
+- `docs/archive/development-plans/88-position-frontend-gap-analysis.md`
 - `docs/development-plans/06-integrated-teams-progress-log.md`
 
 ## 4. 交付物与状态

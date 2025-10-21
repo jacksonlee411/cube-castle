@@ -520,7 +520,7 @@ psql "$PRODUCTION_DATABASE_URL" -v ON_ERROR_STOP=1 \
 ### 11.3 最终归档
 
 - [x] 86号计划归档（本文件已迁入 archive，CI 集成 job `cross-tenant-tests` 生效）
-- [x] 80号方案 Stage 4 勾选更新（见 `docs/development-plans/80-position-management-with-temporal-tracking.md`）
+- [x] 80号方案 Stage 4 勾选更新（见 `docs/archive/development-plans/80-position-management-with-temporal-tracking.md`）
 - [x] 实现清单最终同步（`reports/implementation-inventory.json` 已更新）
 
 ---

@@ -819,7 +819,7 @@ export const useJobFamilies = (groupCode: string, options?: QueryOptions) => {
     - [x] 详情页信息区使用卡片分层，操作区与内容区明确分离 ✅ 已改造
     - 评审依据：基线截图 `frontend/artifacts/layout/{positions-list,job-family-groups-list,job-family-group-detail}.png`（2025-10-20 08:47 生成）
     - 评审结论：留白一致，但列表页缺少卡片容器，详情页缺少分层，需按 96 号文档方案执行布局统一改造
-  - 备注：布局验收详细分析参见《96号文档：职位管理 Job Catalog 布局校准前置分析》（docs/development-plans/96-position-job-catalog-layout-alignment.md）
+  - 备注：布局验收详细分析参见《96号文档：职位管理 Job Catalog 布局校准前置分析》（docs/archive/development-plans/96-position-job-catalog-layout-alignment.md）
 
 - [x] **F5 - CRUD 操作**
   - [x] 创建职类成功并刷新列表

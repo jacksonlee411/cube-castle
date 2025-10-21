@@ -22,7 +22,7 @@
 - `frontend/tests/e2e/position-tabs.spec.ts`
 - `frontend/tests/e2e/position-crud-live.spec.ts`
 - `frontend/tests/e2e/README.md`
-- `docs/development-plans/88-position-frontend-gap-analysis.md`
+- `docs/archive/development-plans/88-position-frontend-gap-analysis.md`
 - `docs/development-plans/06-integrated-teams-progress-log.md`
 
 ## 4. 交付物

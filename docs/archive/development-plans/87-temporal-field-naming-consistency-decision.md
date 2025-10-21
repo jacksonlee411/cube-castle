@@ -566,7 +566,7 @@ COMMIT;
 
 ## 8. 关联文档
 
-- `docs/development-plans/80-position-management-with-temporal-tracking.md` - 职位管理总方案（承诺"完全复用"）
+- `docs/archive/development-plans/80-position-management-with-temporal-tracking.md` - 职位管理总方案（承诺"完全复用"）
 - `docs/archive/development-plans/86-position-assignment-stage4-plan.md` - Stage 4 计划（触发此次调查）
 - `docs/development-plans/06-integrated-teams-progress-log.md` - 进展日志（记录86号评审）
 - `database/migrations/008_temporal_management_schema.sql` - 组织架构时态模式

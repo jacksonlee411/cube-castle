@@ -402,31 +402,27 @@ curl http://localhost:9090/metrics | grep position
 
 ### 7.2 86/87计划归档
 
-**执行时间**: 2025-10-21（待执行）
-**待归档文件**:
-- `docs/development-plans/86-position-stage4-implementation.md`
-- `docs/development-plans/87-position-migration-plan.md`
+**执行时间**: 2025-10-21
+**已归档文件**:
+- `docs/archive/development-plans/86-position-assignment-stage4-plan.md`
+- `docs/archive/development-plans/87-temporal-field-naming-consistency-decision.md`
 
-**归档目标**: `docs/archive/development-plans/`
-
-**归档条件**:
-- [ ] 107号报告确认收口条件满足
-- [ ] 80号方案验收章节全部勾选
+**归档说明**:
+- 107 号报告 v2.0 已确认收口条件满足。
+- 80 号方案验收章节全部勾选并迁移至归档目录。
 
 ### 7.3 80号方案验收章节勾选
 
-**执行时间**: 2025-10-21（待执行）
-**文件**: `docs/development-plans/80-position-management-with-temporal-tracking.md`
+**执行时间**: 2025-10-21
+**文件**: `docs/archive/development-plans/80-position-management-with-temporal-tracking.md`
 
-**待勾选项**（§10验收标准）:
-- [ ] 功能验收6项
-- [ ] 性能验收4项
-- [ ] 质量验收4项
+**勾选情况**（§10验收标准）:
+- [x] 功能验收 6 项
+- [x] 性能验收（本阶段豁免，保留执行建议）
+- [x] 质量验收 4 项
 
-**前置条件**:
-- 补充性能测试（P50/P95数据）
-- 补充E2E完整CRUD脚本
-- 补充单元测试至≥80%覆盖率
+**前置条件执行结果**:
+- Go 单元测试 ≥80%、E2E CRUD 生命周期、文档勾选均已完成；性能压测按决议豁免。
 
 ---
 

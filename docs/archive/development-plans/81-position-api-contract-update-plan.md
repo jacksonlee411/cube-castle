@@ -42,11 +42,11 @@
       description: |
         **⚠️ TEMPORARY IMPLEMENTATION**
         Deadline: 2025-12-31
-        Migration: docs/development-plans/80-position-management-with-temporal-tracking.md#7.6
+        Migration: docs/archive/development-plans/80-position-management-with-temporal-tracking.md#7.6
       x-temporary:
         reason: "Assignment table not yet implemented"
         deadline: "2025-12-31"
-        migrationPlan: "docs/development-plans/80-position-management-with-temporal-tracking.md#7.6"
+        migrationPlan: "docs/archive/development-plans/80-position-management-with-temporal-tracking.md#7.6"
         owner: "backend-architect-developer"
   ```
 - **CI 集成**：依托 `.github/workflows/agents-compliance.yml` 调用 `scripts/check-temporary-tags.sh`，检测 `x-temporary.deadline` 超期时阻断合并。
@@ -239,7 +239,7 @@ HAVING SUM(CASE WHEN is_current THEN 1 ELSE 0 END) > 1;
 - 《CLAUDE.md》：资源唯一性、契约优先、CQRS 规范  
 - 《AGENTS.md》：项目结构、命名、契约校验要求  
 - 《docs/reference/02-IMPLEMENTATION-INVENTORY.md》：已有 API 列表，用于避免重复  
-- 《docs/development-plans/80-position-management-with-temporal-tracking.md》：字段、状态机、权限与时态设计  
+- 《docs/archive/development-plans/80-position-management-with-temporal-tracking.md》：字段、状态机、权限与时态设计  
 - `docs/api/openapi.yaml`、`docs/api/schema.graphql`：现有契约结构参考  
 - `cmd/organization-command-service/internal/services/temporal/*`：时态接口参考实现（只作为术语对照，不在本计划修改）
 

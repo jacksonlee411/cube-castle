@@ -3,7 +3,7 @@
 **版本**: v0.1 草案  
 **创建日期**: 2025-10-14  
 **维护团队**: 架构组 + 安全团队  
-**来源**: `docs/development-plans/80-position-management-with-temporal-tracking.md` 第 6 节、OpenAPI/GraphQL 草拟片段  
+**来源**: `docs/archive/development-plans/80-position-management-with-temporal-tracking.md` 第 6 节、OpenAPI/GraphQL 草拟片段  
 
 ---
 

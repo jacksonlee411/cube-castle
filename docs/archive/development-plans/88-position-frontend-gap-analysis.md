@@ -1,24 +1,24 @@
 # 88号文档：职位管理前端功能差距分析
 
-**版本**: v1.3
+**版本**: v1.4
 **创建日期**: 2025-10-17
-**最近更新**: 2025-10-21（验证101-104号计划交付）
+**最近更新**: 2025-10-21 18:45（归档核实）
 **分析方法**: 静态代码分析（MCP Browser认证问题回退）
 **对比基准**: 组织架构模块（frontend/src/features/organizations）
 **分析对象**: 职位管理模块（frontend/src/features/positions）
-**状态**: 全部差距项已闭环（2025-10-20，101-104号计划交付完成）
+**状态**: ✅ 全部差距项闭环并归档（依据 101-104 号计划及 107 号报告 v2.0）
 **维护团队**: 前端团队 · 架构组
 **遵循原则**: CLAUDE.md 资源唯一性 · CQRS 分工 · API-First 契约
 
 ---
 
-## 0. 现状核实（2025-10-21）
+## 0. 现状核实（2025-10-21 18:45）
 
 - ✅ **101号计划（Position Playwright hardening）**：`frontend/tests/e2e/position-crud-live.spec.ts` 引入 `PW_REQUIRE_MOCK_CHECK` 守护断言，`frontend/tests/e2e/README.md` 增补真实/Mock 双模式执行步骤。详见 `docs/archive/development-plans/101-position-playwright-hardening.md`。
 - ✅ **102号计划（PositionForm data layer consolidation）**：共享 Hook `frontend/src/shared/hooks/usePositionCatalogOptions.ts` 已抽离并在 `frontend/src/features/positions/components/PositionForm/README.md`、Storybook 场景及 Vitest 覆盖中使用。详见 `docs/archive/development-plans/102-positionform-data-layer-consolidation.md`。
 - ✅ **103号计划（Position components tidy-up）**：`frontend/src/features/positions/components/` 重组为 `dashboard/`、`details/`、`list/`、`layout/`、`transfer/`、`versioning/` 与 `PositionForm/` 分层结构，聚合导出 `index.ts` 生效。详见 `docs/archive/development-plans/103-position-components-tidy-up.md`。
 - ✅ **104号计划（DS-147 Positions Tabbed Experience）**：设计规范 `docs/reference/positions-tabbed-experience-guide.md` v0.1 与截图路径 `frontend/artifacts/layout/README.md` 已发布。详见 `docs/archive/development-plans/104-ds147-positions-tabbed-experience.md`。
-- 📌 **归档提醒**：已同步 06 号进展日志记录归档完成时间，后续如有新增差距需从 88 号衍生新计划。
+- ✅ **归档确认**：已在 06 号进展日志记录归档时间，并在 99 号计划中标记 88 号方案关闭；后续新增差距需另立新计划。
 
 ## 1. 背景与目标
 
@@ -576,7 +576,7 @@ grep -r "positionVersions" cmd/organization-query-service/internal
 
 ## 11. 关联文档
 
-- **`docs/development-plans/80-position-management-with-temporal-tracking.md`**
+- **`docs/archive/development-plans/80-position-management-with-temporal-tracking.md`**
   职位管理总方案，Line 184-187 承诺"完全复用组织架构模式"
 
 - **`docs/archive/development-plans/86-position-assignment-stage4-plan.md`**
@@ -688,3 +688,9 @@ Transfer对话框:
 
 **文档完成**：2025-10-17（2025-10-21 核实 101-104 号交付）
 **下次更新**：如需追加新差距或更新设计资产时同步修订
+
+## 14. 归档说明
+
+- 依据 107 号《职位管理收口差距核查报告》 v2.0，本分析已确认所有差距闭环。
+- 与之相关的整改计划（101-104 号）均已归档，引用路径已更新为 `docs/archive/development-plans/*`。
+- 本文档随 88 号评审报告一并迁移至 `docs/archive/development-plans/`，作为历史记录保留；后续新增差距需另起新计划。

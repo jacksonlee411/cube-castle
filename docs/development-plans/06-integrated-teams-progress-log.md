@@ -247,8 +247,8 @@ curl -X POST http://localhost:9090/api/v1/operational/tasks/recalculate-timeline
 
 ### 6.7 相关文档
 
-- 📄 87号文档：`docs/development-plans/87-temporal-field-naming-consistency-decision.md`
-- 📄 80号文档：`docs/development-plans/80-position-management-with-temporal-tracking.md`
+- 📄 87号文档：`docs/archive/development-plans/87-temporal-field-naming-consistency-decision.md`
+- 📄 80号文档：`docs/archive/development-plans/80-position-management-with-temporal-tracking.md`
 - 📄 86号文档：`docs/archive/development-plans/86-position-assignment-stage4-plan.md`
 - 📄 项目原则：`CLAUDE.md` - 资源唯一性与跨层一致性原则
 

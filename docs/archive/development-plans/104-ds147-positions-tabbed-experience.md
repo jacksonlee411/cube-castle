@@ -22,7 +22,7 @@
 
 - `docs/reference/positions-tabbed-experience-guide.md`
 - `frontend/artifacts/layout/README.md`
-- `docs/development-plans/88-position-frontend-gap-analysis.md`
+- `docs/archive/development-plans/88-position-frontend-gap-analysis.md`
 - `docs/development-plans/06-integrated-teams-progress-log.md`
 
 ## 4. 交付物与状态

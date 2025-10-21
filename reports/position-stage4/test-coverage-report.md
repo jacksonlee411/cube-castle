@@ -526,7 +526,7 @@ k6 run performance-tests/position-list.js
 
 ### 11.2 相关文档链接
 
-- 80号职位管理方案: `docs/development-plans/80-position-management-with-temporal-tracking.md`
+- 80号职位管理方案: `docs/archive/development-plans/80-position-management-with-temporal-tracking.md`
 - 107号收口差距报告: `docs/development-plans/107-position-closeout-gap-report.md`
 - E2E测试指南: `docs/development-tools/e2e-testing-guide.md`
 - 契约测试自动化: `docs/archive/development-plans/07-contract-testing-automation-system.md`

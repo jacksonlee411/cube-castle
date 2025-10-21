@@ -7,7 +7,7 @@
 **状态**: ✅ 已完成（Stage 2 全量上线并验收通过）  
 **关联计划**: 80号职位管理方案 · 06号集成团队进展日志 · 82号 Stage 1 实施计划  
 **唯一事实来源**:  
-- `docs/development-plans/80-position-management-with-temporal-tracking.md`（Stage 2 目标）  
+- `docs/archive/development-plans/80-position-management-with-temporal-tracking.md`（Stage 2 目标）  
 - `docs/development-plans/06-integrated-teams-progress-log.md`（评审意见与风险）  
 - `CLAUDE.md` / `AGENTS.md`（资源唯一性与临时方案治理）
 

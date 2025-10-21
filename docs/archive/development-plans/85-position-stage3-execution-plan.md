@@ -7,7 +7,7 @@
 **状态**: 待复审（v0.2）  
 **关联计划**: 80号职位管理方案 · 06号集成团队进展日志 · 84号 Stage 2 实施计划（归档）  
 **唯一事实来源**:  
-- `docs/development-plans/80-position-management-with-temporal-tracking.md`（Stage 0/1/2 里程碑与 Stage 3 目标）  
+- `docs/archive/development-plans/80-position-management-with-temporal-tracking.md`（Stage 0/1/2 里程碑与 Stage 3 目标）  
 - `docs/development-plans/06-integrated-teams-progress-log.md`（Stage 2 完成情况与后续建议、评审意见）  
 - `docs/archive/development-plans/84-position-lifecycle-stage2-implementation-plan.md`（Stage 2 验收细节）
 
