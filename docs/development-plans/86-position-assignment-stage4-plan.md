@@ -519,9 +519,9 @@ psql "$PRODUCTION_DATABASE_URL" -v ON_ERROR_STOP=1 \
 
 ### 11.3 最终归档
 
-- [ ] 86号计划归档（移动至 `docs/archive/development-plans/86-position-assignment-stage4-plan.md`）
-- [ ] 80号方案 Stage 4 勾选更新
-- [ ] 实现清单最终同步（`node scripts/generate-implementation-inventory.js`）
+- [ ] 86号计划归档（移动至 `docs/archive/development-plans/86-position-assignment-stage4-plan.md`，待 CI 集成完成后执行）
+- [x] 80号方案 Stage 4 勾选更新（见 `docs/development-plans/80-position-management-with-temporal-tracking.md`）
+- [x] 实现清单最终同步（`reports/implementation-inventory.json` 已更新）
 
 ---
 
