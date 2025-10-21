@@ -507,8 +507,8 @@ psql "$PRODUCTION_DATABASE_URL" -v ON_ERROR_STOP=1 \
 
 ### 11.2 87号生产迁移交付（前置依赖）
 
-- [ ] **T-5天**：预生产环境047迁移演练日志（`reports/position-stage4/047-preprod-dryrun-YYYYMMDD.txt`）
-- [ ] **T-5天**：静态代码检查报告（确认无 `startDate` 残留）
+- [x] **T-5天**：预生产环境047迁移演练日志（`reports/position-stage4/047-preprod-dryrun-20251021.txt`）
+- [x] **T-5天**：静态代码检查报告（确认无 `startDate` 残留，见 `reports/position-stage4/static-code-check-20251021.txt`）
 - [ ] **T-3天**：外部通知发送记录（Breaking Change 声明）
 - [ ] **T-3天**：合并测试清单（`reports/position-stage4/final-acceptance-checklist.md`）
 - [ ] **T-0**：047生产迁移执行日志（`reports/position-stage4/047-production-migration-YYYYMMDD-HHMM.log`）

@@ -1,0 +1,65 @@
+# 047 迁移预演验证（2025-10-21）
+
+## 1. 字段检查
+### 命令
+psql -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'position_assignments' AND column_name IN ('effective_date','start_date');"
+  column_name   
+----------------
+ effective_date
+(1 row)
+
+
+## 2. 约束检查
+### 命令
+psql -c "SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = 'position_assignments';"
+           constraint_name            
+--------------------------------------
+ chk_position_assignments_type
+ chk_position_assignments_status
+ chk_position_assignments_fte
+ position_assignments_pkey
+ fk_position_assignments_position
+ chk_position_assignments_dates
+ chk_position_assignments_auto_revert
+ 2200_41405_1_not_null
+ 2200_41405_2_not_null
+ 2200_41405_3_not_null
+ 2200_41405_4_not_null
+ 2200_41405_5_not_null
+ 2200_41405_6_not_null
+ 2200_41405_8_not_null
+ 2200_41405_9_not_null
+ 2200_41405_10_not_null
+ 2200_41405_11_not_null
+ 2200_41405_13_not_null
+ 2200_41405_15_not_null
+ 2200_41405_16_not_null
+ 2200_41405_18_not_null
+(21 rows)
+
+
+## 3. 索引检查
+### 命令
+psql -c "SELECT indexname FROM pg_indexes WHERE tablename = 'position_assignments';"
+                indexname                 
+------------------------------------------
+ position_assignments_pkey
+ uk_position_assignments_active
+ idx_position_assignments_status
+ uk_position_assignments_effective
+ idx_position_assignments_position
+ idx_position_assignments_employee
+ idx_position_assignments_auto_revert_due
+(7 rows)
+
+
+## 4. 版本确认
+### 命令
+psql -c 'SELECT version();'
+                                         version                                         
+-----------------------------------------------------------------------------------------
+ PostgreSQL 16.9 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+(1 row)
+
+
+> 说明：上表显示仅存在 effective_date，047 迁移已在开发环境生效，作为 T-5 预演验证记录。
