@@ -327,7 +327,7 @@ WITH timeline AS (
         p.effective_date,
         p.end_date,
         p.is_current,
-        p.operation_reason,
+        p.operation_reason AS change_reason,
         'POSITION_VERSION'::text AS timeline_category,
         NULL::text AS assignment_type,
         NULL::text AS assignment_status

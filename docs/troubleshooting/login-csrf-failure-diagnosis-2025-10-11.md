@@ -173,14 +173,16 @@ func (h *BFFHandler) checkCSRF(w http.ResponseWriter, r *http.Request) bool {
 - AUTH_MODE=dev
 + AUTH_MODE=dev
 + VITE_AUTH_MODE=dev
-  JWT_ALG=HS256
-  JWT_SECRET=cube-castle-development-secret-key-2025
+  JWT_ALG=RS256
+  JWT_PRIVATE_KEY_PATH=./secrets/dev-jwt-private.pem
+  JWT_PUBLIC_KEY_PATH=./secrets/dev-jwt-public.pem
+  JWT_KEY_ID=bff-key-1
   JWT_ISSUER=cube-castle
   JWT_AUDIENCE=cube-castle-users
   JWT_ALLOWED_CLOCK_SKEW=60
 ```
 
-**原理**: 添加 `VITE_AUTH_MODE=dev` 使前端能够正确识别为开发模式。
+**原理**: 添加 `VITE_AUTH_MODE=dev` 使前端能够正确识别为开发模式，并确保所有 JWT 相关变量统一指向 RS256 密钥与 `kid`。
 
 **验证步骤**:
 1. 添加环境变量

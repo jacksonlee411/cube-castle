@@ -91,11 +91,40 @@ if curl -s -c ./.cache/bff.cookies -L "$COMMAND_API/auth/login?redirect=/" >/dev
   if [ -n "$T2" ]; then TENANT_ID="$T2"; fi
 fi
 
-# 如 BFF 不可用或未取到令牌，回退到 dev-token（根据 JWT_ALG 使用 HS256/RS256，需确保与查询服务配置一致）
+# 如 BFF 不可用或未取到令牌，回退到 dev-token（仅支持 RS256，需与查询服务保持一致）
 if [ -z "$TOKEN" ]; then
   MINT_RESP=$(curl -s -X POST "$COMMAND_API/auth/dev-token" -H 'Content-Type: application/json' \
     -d '{"userId":"dev-user","tenantId":"'"$DEFAULT_TENANT"'","roles":["ADMIN","USER"],"duration":"2h"}')
   TOKEN=$(echo "$MINT_RESP" | sed -n 's/.*"token"\s*:\s*"\([^"]*\)".*/\1/p' | head -n1)
+fi
+
+# 校验令牌算法是否为 RS256（坚持单一事实来源约束）
+if [ -n "$TOKEN" ]; then
+  if command -v python3 >/dev/null 2>&1; then
+    if ALG=$(python3 - "$TOKEN" <<'PY'
+import base64, json, sys
+token = sys.argv[1]
+try:
+    header = token.split('.')[0]
+    header += '=' * (-len(header) % 4)
+    data = base64.urlsafe_b64decode(header.encode())
+    print(json.loads(data).get('alg', ''))
+except Exception:
+    print('')
+PY
+); then
+      :
+    else
+      ALG=""
+    fi
+  else
+    ALG=""
+    echo -e "${YELLOW}⚠️ 检测到系统缺少 python3，跳过 RS256 算法验证${NC}"
+  fi
+  if [ "$ALG" != "RS256" ]; then
+    test_fail "检测到非 RS256 令牌算法 (${ALG:-unknown})，请执行 make jwt-dev-mint 重新生成"
+    TOKEN=""
+  fi
 fi
 
 if [ -z "$TOKEN" ]; then

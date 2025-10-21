@@ -29,7 +29,31 @@ func main() {
 	jwksFlag := flag.String("jwks", ".well-known/jwks.json", "Path to write JWKS JSON (empty to skip)")
 	flag.Parse()
 
+	provided := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) {
+		provided[f.Name] = true
+	})
+
 	cfg := config.GetJWTConfig()
+	if !cfg.IsRS256() {
+		log.Fatalf("当前 JWT_ALG=%s，开发令牌工具仅支持 RS256，请纠正环境配置。", cfg.Algorithm)
+	}
+
+	issuer := strings.TrimSpace(*issuerFlag)
+	if !provided["issuer"] && strings.TrimSpace(cfg.Issuer) != "" {
+		issuer = cfg.Issuer
+	}
+	if issuer == "" {
+		log.Fatalf("JWT issuer 不能为空")
+	}
+
+	audience := strings.TrimSpace(*audienceFlag)
+	if !provided["audience"] && strings.TrimSpace(cfg.Audience) != "" {
+		audience = cfg.Audience
+	}
+	if audience == "" {
+		log.Fatalf("JWT audience 不能为空")
+	}
 
 	keyPath, err := resolveKeyPath(*keyPathFlag, cfg.PrivateKeyPath)
 	if err != nil {
@@ -57,8 +81,8 @@ func main() {
 		"sub":       *subjectFlag,
 		"tenant_id": sharedconfig.GetDefaultTenantIDString(),
 		"roles":     roles,
-		"iss":       *issuerFlag,
-		"aud":       *audienceFlag,
+		"iss":       issuer,
+		"aud":       audience,
 		"exp":       expiresAt.Unix(),
 		"iat":       time.Now().Unix(),
 	}
@@ -73,7 +97,11 @@ func main() {
 		log.Fatalf("签名令牌失败: %v", err)
 	}
 
-	fmt.Printf("Valid JWT Token (alg=RS256)\n%s\n", signed)
+	if err := ensureTokenAlgorithm(signed, jwt.SigningMethodRS256.Alg()); err != nil {
+		log.Fatalf("生成的令牌签名算法校验失败: %v", err)
+	}
+
+	fmt.Printf("Valid JWT Token (alg=RS256, aud=%s)\n%s\n", audience, signed)
 
 	if err := maybeWriteFile(tokenPath, []byte(signed)); err != nil {
 		log.Fatalf("写入开发令牌失败: %v", err)
@@ -206,4 +234,31 @@ func resolveWorkspacePath(raw string, fallback string, allowEmpty bool) (string,
 	}
 
 	return cleaned, nil
+}
+
+func ensureTokenAlgorithm(tokenString, expectedAlg string) error {
+	segments := strings.Split(tokenString, ".")
+	if len(segments) != 3 {
+		return fmt.Errorf("JWT 格式错误: 期望 3 个段，实际 %d", len(segments))
+	}
+
+	headerBytes, err := base64.RawURLEncoding.DecodeString(segments[0])
+	if err != nil {
+		return fmt.Errorf("解析 JWT header 失败: %w", err)
+	}
+
+	var header map[string]interface{}
+	if err := json.Unmarshal(headerBytes, &header); err != nil {
+		return fmt.Errorf("解析 JWT header JSON 失败: %w", err)
+	}
+
+	rawAlg, ok := header["alg"].(string)
+	if !ok {
+		return fmt.Errorf("JWT header 缺少 alg 字段")
+	}
+	if !strings.EqualFold(rawAlg, expectedAlg) {
+		return fmt.Errorf("签名算法不匹配: 期望 %s，实际 %s", expectedAlg, rawAlg)
+	}
+
+	return nil
 }
