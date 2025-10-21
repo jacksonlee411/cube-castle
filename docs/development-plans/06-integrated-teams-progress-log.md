@@ -263,6 +263,7 @@ curl -X POST http://localhost:9090/api/v1/operational/tasks/recalculate-timeline
 
 | 日期 | 更新内容 | 负责人 |
 |------|----------|--------|
+| 2025-10-21 14:30 | 记录 Stage 4 047 迁移演练 T-0/T+1 凭证（见 reports/position-stage4/*20251021*），供上线前复核 | 架构组 + Claude Code |
 | 2025-10-21 13:00 | 87 号档案补充 §12（与 86 号收尾联动迁移策略），同步更新 99 号指引 | 架构组 + Claude Code |
 | 2025-10-21 12:30 | 87 号决策文档归档至 `docs/archive/development-plans/87-temporal-field-naming-consistency-decision.md` | 架构组 + Claude Code |
 | 2025-10-21 12:00 | 完成 87 号命名统一实施并同步相关文档/契约 | 数据库 + 全栈团队 |

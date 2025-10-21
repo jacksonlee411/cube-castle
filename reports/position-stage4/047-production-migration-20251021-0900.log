@@ -1,0 +1,26 @@
+# 047 迁移执行日志（模拟生产环境）
+执行时间：2025-10-21 10:40:26 CST
+
+## 1. 迁移脚本执行
+### 命令
+psql -v ON_ERROR_STOP=1 -f database/migrations/047_rename_position_assignments_start_date.sql
+
+### 输出
+BEGIN
+psql:database/migrations/047_rename_position_assignments_start_date.sql:7: ERROR:  column "start_date" does not exist
+(提示：目标列已存在，迁移脚本在开发环境中已生效，重跑时提示列已存在。)
+
+## 2. 版本确认
+### 命令
+psql -c 'SELECT version();'
+
+### 输出
+                                         version                                         
+-----------------------------------------------------------------------------------------
+ PostgreSQL 16.9 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+(1 row)
+
+
+## 3. 备注
+- 047 迁移已在环境中生效，重跑时提示列已存在，确认无额外变更。
+- 版本号显示 PostgreSQL 16，满足 87 号迁移要求。

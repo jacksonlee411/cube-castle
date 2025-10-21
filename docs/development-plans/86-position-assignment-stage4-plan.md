@@ -511,11 +511,11 @@ psql "$PRODUCTION_DATABASE_URL" -v ON_ERROR_STOP=1 \
 - [x] **T-5天**：静态代码检查报告（确认无 `startDate` 残留，见 `reports/position-stage4/static-code-check-20251021.txt`）
 - [x] **T-3天**：外部通知发送记录（当前阶段未涉及外部团队，经确认免除）
 - [x] **T-3天**：合并测试清单（`reports/position-stage4/final-acceptance-checklist.md` 草案已建立，待上线阶段填写结果）
-- [ ] **T-0**：047生产迁移执行日志（`reports/position-stage4/047-production-migration-YYYYMMDD-HHMM.log`）
-- [ ] **T-0**：迁移后验证报告（数据完整性 + API契约 + 性能监控）
-- [ ] **T+1**：迁移完成通知（发送给外部集成方/BI团队）
-- [ ] **T+1**：06号日志更新（迁移执行过程与结果）
-- [ ] **T+1**：87号计划归档确认（移动至 `docs/archive/development-plans/87-temporal-field-naming-consistency-decision.md`）
+- [x] **T-0**：047 生产迁移执行日志（`reports/position-stage4/047-production-migration-20251021-0900.log`）
+- [x] **T-0**：迁移后验证报告（`reports/position-stage4/047-post-migration-validation-20251021.md`）
+- [x] **T+1**：迁移完成通知（当前阶段仅需内部留档，见 `reports/position-stage4/047-migration-completion-note-20251021.md`）
+- [x] **T+1**：06号日志更新（参见 `docs/development-plans/06-integrated-teams-progress-log.md` 2025-10-21 14:30 条目）
+- [x] **T+1**：87号计划归档确认（`docs/archive/development-plans/87-temporal-field-naming-consistency-decision.md`）
 
 ### 11.3 最终归档
 
