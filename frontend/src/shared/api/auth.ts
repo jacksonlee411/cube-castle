@@ -333,25 +333,33 @@ export class AuthManager {
    */
   private loadTokenFromStorage(): void {
     try {
-      LEGACY_ALL_KEYS.forEach((key) => {
+      // 1. 先尝试从新键读取
+      const storedValue = localStorage.getItem(TOKEN_STORAGE_KEY);
+
+      // 2. 如果新键不存在，尝试从旧的 snake_case 键读取（迁移逻辑）
+      const legacyStoredValue = storedValue === null ? localStorage.getItem(LEGACY_OAUTH_TOKEN_KEY) : null;
+
+      // 3. 清理其他历史键（但不包括 LEGACY_OAUTH_TOKEN_KEY，它将在迁移后清理）
+      const keysToClean = LEGACY_ALL_KEYS.filter(key => key !== LEGACY_OAUTH_TOKEN_KEY);
+      keysToClean.forEach((key) => {
         try {
           localStorage.removeItem(key);
         } catch (legacyError) {
           logger.warn('[OAuth] 无法清理历史令牌字段:', key, legacyError);
         }
       });
-      const storedValue = localStorage.getItem(TOKEN_STORAGE_KEY);
-      const legacyStoredValue = storedValue === null ? localStorage.getItem(LEGACY_OAUTH_TOKEN_KEY) : null;
+
       const stored = storedValue ?? legacyStoredValue;
       if (!stored) {
         this.token = null;
         return;
       }
 
+      // 4. 如果是从旧键读取的，执行迁移
       if (legacyStoredValue) {
         try {
-          localStorage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
           localStorage.setItem(TOKEN_STORAGE_KEY, legacyStoredValue);
+          localStorage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
         } catch (migrateError) {
           logger.warn('[OAuth] 迁移历史令牌失败，继续使用内存令牌:', migrateError);
         }

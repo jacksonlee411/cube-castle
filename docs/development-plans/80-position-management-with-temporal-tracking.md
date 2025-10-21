@@ -1468,9 +1468,35 @@ job-catalog:write          # 维护职位体系主数据
 - **路由规划**：`/positions`（职位）、`/positions/catalog/categories` 等路径挂载在同一 `PositionsLayout` 下，与组织模块共享 `AppShell`。
 - **权限控制**：前端菜单渲染基于新增的 `job-catalog:read` 等权限，与组织模块权限组件共享逻辑。
 - **改进目标**：通过二级导航将 Job Catalog 各层呈现为独立对象模型，便于运维按 Workday 规范管理主数据，同时保持用户在组织模块已有的操作习惯。
-- **后续补充**：
-  - `TODO`：整理职位页面复用的具体组件映射（例如组织模块的 `OrganizationListTable` → `PositionListTable` 对照表）。
-  - `TODO`：绘制导航结构图（一级/二级菜单及路由关系），确保前端与设计团队共识。
+- **组件复用映射**：
+
+  | 组织模块组件 | 职位模块对应 | 复用说明 |
+  |--------------|----------------|-----------|
+  | `OrganizationDashboard` | `PositionDashboard` | 复用相同步骤（GraphQL 列表加载 + 详情面板切换），仅替换 Hook 与列配置。 |
+  | `OrganizationTemporalPage` | `PositionTemporalPage` | 延续多页签 + 版本时间线布局，新增任职/编制页签。 |
+  | `OrganizationTree` | `components/list/PositionList` + `PositionSummaryCards` | Tree → Table 的差异由 `useEnterprisePositions` 输出，保持 Canvas Table/UI token。 |
+  | `OrganizationForm`（表单模式） | `components/PositionForm` | React Hook Form + Zod 校验结构一致，字段 schema 由岗位字典驱动。 |
+  | `OrganizationHeadcountDashboard` | `PositionHeadcountDashboard` | 共享统计卡片样式，指标来源改用 `positionHeadcountStats`。 |
+  | `OrganizationTimeline` | `components/details/PositionTimelinePanel` | 继续使用纵向时间线组件，事件节点来自 `positionTimeline`。 |
+
+- **导航结构图**：
+
+  ```text
+  /positions (PositionsLayout)
+  ├─ index                → PositionDashboard（职位列表 + 概览）
+  ├─ :code                → PositionTemporalPage（六个页签 + 版本导航）
+  └─ catalog/
+       ├─ family-groups   → JobFamilyGroupList
+       ├─ family-groups/:code → JobFamilyGroupDetail
+       ├─ families        → JobFamilyList
+       ├─ families/:code  → JobFamilyDetail
+       ├─ roles           → JobRoleList
+       ├─ roles/:code     → JobRoleDetail
+       ├─ levels          → JobLevelList
+       └─ levels/:code    → JobLevelDetail
+  ```
+
+- **状态同步**：上述映射与路由结构已在 93 号方案与 104 号设计规范中评审通过，本节作为实现端的补充说明。
 
 ---
 
@@ -1617,28 +1643,70 @@ FROM (SELECT DISTINCT code FROM positions WHERE tenant_id = '987fcdeb-51a2-43d7-
 
 ## 10. 验收标准
 
-### 10.1 功能验收
+> **验收状态汇总** (2025-10-21):
+> ✅ 功能交付完成 | ⚠️ 性能与测试覆盖待补充 | 详见107号收口差距报告
 
-- [ ] **职位CRUD**：创建、读取、更新、删除职位
-- [ ] **时态管理**：支持历史版本、当前版本、未来版本
-- [ ] **职位填充**：填充职位、空缺职位、查看任职历史
-- [ ] **职位转移**：跨组织转移、汇报关系调整
-- [ ] **权限控制**：19个职位权限生效
-- [ ] **编制统计**：按组织、职级、类型统计编制
+### 10.1 功能验收（✅ 已完成）
 
-### 10.2 性能验收
+- [x] **职位CRUD**：创建、读取、更新、删除职位 ✅
+- [x] **时态管理**：支持历史版本、当前版本、未来版本 ✅
+- [x] **职位填充**：填充职位、空缺职位、查看任职历史 ✅（Stage 4 + 86号计划）
+- [x] **职位转移**：跨组织转移、汇报关系调整 ✅（Stage 4 + 86号计划）
+- [x] **权限控制**：19个职位权限生效 ✅（见 OpenAPI § scopes）
+- [x] **编制统计**：按组织、职级、类型统计编制 ✅（GraphQL positionHeadcountStats）
 
-- [ ] 职位列表查询 < 200ms（1000条记录）
-- [ ] 职位详情查询 < 50ms
-- [ ] 时态版本创建 < 100ms
-- [ ] 编制统计查询 < 500ms
+**验证证据**:
+- REST API冒烟测试: `reports/position-stage4/final-acceptance-execution-log.md` §2
+- GraphQL查询测试: `reports/position-stage4/final-acceptance-execution-log.md` §3
+- 跨租户隔离验证: `reports/position-stage4/position-assignments-cross-tenant.log`
 
-### 10.3 质量验收
+### 10.2 性能验收（⚠️ 待补充）
 
-- [ ] 单元测试覆盖率 ≥ 80%
-- [ ] 集成测试覆盖核心场景
-- [ ] E2E 测试通过（创建→填充→空缺→删除）
-- [ ] API 文档完整（OpenAPI + GraphQL Schema）
+- [ ] 职位列表查询 < 200ms（1000条记录） ⚠️ **未测试** - 需执行k6压力测试
+- [ ] 职位详情查询 < 50ms ⚠️ **未测试** - 需执行基准测试
+- [ ] 时态版本创建 < 100ms ⚠️ **未测试** - 需执行基准测试
+- [ ] 编制统计查询 < 500ms ⚠️ **未测试** - 需执行聚合查询测试
+
+**缺失原因**: 107号报告§2.2.2 - 性能基线测试未执行，无P50/P95延迟数据
+**补充计划**: 详见 `reports/position-stage4/test-coverage-report.md` §7（性能测试执行建议）
+
+### 10.3 质量验收（⚠️ 部分完成）
+
+- [ ] 单元测试覆盖率 ≥ 80% ❌ **未达标** - Go后端~10%，需紧急补充（见107号报告§2.2.3）
+- [x] 集成测试覆盖核心场景 ⚠️ **部分覆盖** - 跨租户测试✅，编制联动测试待补充
+- [ ] E2E 测试通过（创建→填充→空缺→删除） ⚠️ **仅只读场景** - 需补充完整CRUD生命周期脚本
+- [x] API 文档完整（OpenAPI + GraphQL Schema） ✅ **已完成** - `docs/api/` 契约完整
+
+**验证证据**:
+- 测试覆盖率报告: `reports/position-stage4/test-coverage-report.md`
+- E2E测试日志: `frontend/tests/e2e/*.spec.ts`（仅只读场景）
+- API契约: `docs/api/openapi.yaml` + `docs/api/schema.graphql`
+
+### 10.4 设计物料验收（✅ 已补充，2025-10-21）
+
+- [x] **组件映射表**: `reports/position-stage4/position-component-mapping.md` ✅
+- [x] **导航结构图**: `reports/position-stage4/position-navigation-structure.md` ✅
+
+**补充原因**: 107号报告§2.2.1 - 80号文档§7.4存在待办物料缺口，现已补齐
+
+---
+
+**收口条件评估**（根据107号收口差距报告v0.1）:
+
+| 验收维度 | 达标状态 | 阻塞项 |
+|---------|---------|--------|
+| 功能完整性 | ✅ 已达标 | 无 |
+| 性能基线 | ❌ 未达标 | 需补充P50/P95指标 |
+| 测试覆盖率 | ❌ 未达标 | Go后端<80%，E2E缺失CRUD |
+| 文档完整性 | ✅ 已达标 | 设计物料已补充 |
+
+**归档前置条件**（按99号指引）:
+1. 补充性能测试并记录P50/P95指标
+2. Go后端单元测试达到≥80%覆盖率
+3. 新增Playwright E2E完整CRUD生命周期脚本
+4. 更新107号报告为最终版本
+
+完成上述补充后，方可将本计划移入 `docs/archive/development-plans/`。
 
 ---
 
