@@ -70,6 +70,7 @@
 - `../archive/development-plans/66-phase-4-acceptance-draft.md` - Phase 4 验收草案
 - `../archive/development-plans/84-position-lifecycle-stage2-implementation-plan.md` - 职位生命周期 Stage 2 实施计划（方案B）
 - `../archive/development-plans/90-organization-stats-null-handling-report.md` - 组织列表 GraphQL 错误复盘与修复建议
+- `../archive/development-plans/106-postgres-image-tags-investigation.md` - PostgreSQL 镜像标签一致性调查报告（完成）
 
 ## 📊 文档关系
 
