@@ -1,16 +1,24 @@
 # 88号文档：职位管理前端功能差距分析
 
-**版本**: v1.2
+**版本**: v1.3
 **创建日期**: 2025-10-17
-**最近更新**: 2025-10-20（同步93号完成状态）
+**最近更新**: 2025-10-21（验证101-104号计划交付）
 **分析方法**: 静态代码分析（MCP Browser认证问题回退）
 **对比基准**: 组织架构模块（frontend/src/features/organizations）
 **分析对象**: 职位管理模块（frontend/src/features/positions）
-**状态**: P0 完成（2025-10-17），P1 完成（版本列表上线 2025-10-18），Mock 只读提醒与 PositionForm 拆分完成（2025-10-19），**P2 多页签重构完成（2025-10-19，93号验收通过）**
+**状态**: 全部差距项已闭环（2025-10-20，101-104号计划交付完成）
 **维护团队**: 前端团队 · 架构组
 **遵循原则**: CLAUDE.md 资源唯一性 · CQRS 分工 · API-First 契约
 
 ---
+
+## 0. 现状核实（2025-10-21）
+
+- ✅ **101号计划（Position Playwright hardening）**：`frontend/tests/e2e/position-crud-live.spec.ts` 引入 `PW_REQUIRE_MOCK_CHECK` 守护断言，`frontend/tests/e2e/README.md` 增补真实/Mock 双模式执行步骤。详见 `docs/archive/development-plans/101-position-playwright-hardening.md`。
+- ✅ **102号计划（PositionForm data layer consolidation）**：共享 Hook `frontend/src/shared/hooks/usePositionCatalogOptions.ts` 已抽离并在 `frontend/src/features/positions/components/PositionForm/README.md`、Storybook 场景及 Vitest 覆盖中使用。详见 `docs/archive/development-plans/102-positionform-data-layer-consolidation.md`。
+- ✅ **103号计划（Position components tidy-up）**：`frontend/src/features/positions/components/` 重组为 `dashboard/`、`details/`、`list/`、`layout/`、`transfer/`、`versioning/` 与 `PositionForm/` 分层结构，聚合导出 `index.ts` 生效。详见 `docs/archive/development-plans/103-position-components-tidy-up.md`。
+- ✅ **104号计划（DS-147 Positions Tabbed Experience）**：设计规范 `docs/reference/positions-tabbed-experience-guide.md` v0.1 与截图路径 `frontend/artifacts/layout/README.md` 已发布。详见 `docs/archive/development-plans/104-ds147-positions-tabbed-experience.md`。
+- 📌 **归档提醒**：已同步 06 号进展日志记录归档完成时间，后续如有新增差距需从 88 号衍生新计划。
 
 ## 1. 背景与目标
 
@@ -39,6 +47,8 @@
 | 组件架构 | 层次化缺失 | 🟢 低 |
 | 交互模式 | 详情页导航缺失 | 🟡 中等 |
 | 时态功能 | 时态版本管理缺失 | 🔴 高 |
+
+> **说明**：第 2–11 节保留 2025-10-17 的原始差距分析用于历史追溯，实际落地进展请参考第 0 节与第 12 节。
 
 ### 1.4 评审结论采纳
 
@@ -622,16 +632,12 @@ grep -r "positionVersions" cmd/organization-query-service/internal
 
 ### 12.3 后续执行安排（细化任务）
 
-> **Issue 草案**：待产品经理在工作台创建后，将以下要点粘贴至对应任务描述，便于团队协作。
-
-| 任务编号 | 范围说明 | 负责人 | 计划完成 | 验收标准 |
-|----------|----------|--------|----------|----------|
-| 101 · FE-1181 Position Playwright hardening | ✅ 计划完成（2025-10-20）。Mock 守护用例与 README 指南已更新，CI 集成可在后续迭代按需启用。（详见 101 号计划） | QA 团队（负责人：陈慧） | 2025-10-28 | 交付物：`position-crud-live.spec.ts` Mock 校验、`frontend/tests/e2e/README.md` 双模式说明。 |
-| 102 · FE-1182 PositionForm data layer consolidation | ✅ 计划完成（2025-10-20）。共享 Hook、payload/validation、Storybook/README 均已重构。（详见 102 号计划） | 前端组件组（负责人：李程） | 2025-10-31 | 交付物：`usePositionCatalogOptions`、Vitest 覆盖、组件 README。 |
-| 103 · FE-1183 Position components tidy-up | ✅ 计划完成（2025-10-20）。目录按功能分层，聚合导出与 README 已到位。（详见 103 号计划） | 职位域前端组（负责人：赵琳） | 2025-11-08 | 交付物：dashboard/details/list/layout/transfer 目录、`components/index.ts`。 |
-| 104 · DS-147 Positions Tabbed Experience | ✅ 计划完成（2025-10-20）。设计规范 v0.1 已发布，截图路径约定就绪。（详见 104 号计划） | 设计团队（联系人：刘冉） | 2025-10-29 | 交付物：`docs/reference/positions-tabbed-experience-guide.md`、`frontend/artifacts/layout/README.md`。 |
-
-> **提醒**：以上任务由 PM 在工作台正式建单后纳入冲刺看板；如需调整排期或负责人，请在 06 号日志中同步并回写此处表格。建单时沿用团队通用模板（目标/交付物/验收标准三段），无需额外补充附录。
+| 计划编号 | 完成说明 | 交付证据 | 后续动作 |
+|----------|----------|----------|----------|
+| 101 · Position Playwright hardening | ✅ 2025-10-20 完成，`frontend/tests/e2e/position-crud-live.spec.ts` 增补 Mock 守护断言，`frontend/tests/e2e/README.md` 记录真实/Mock 双模式步骤。 | `docs/archive/development-plans/101-position-playwright-hardening.md` | 监控 CI 执行情况，如需启用自动化 job 则在新计划跟踪。 |
+| 102 · PositionForm data layer consolidation | ✅ 2025-10-20 完成，`frontend/src/shared/hooks/usePositionCatalogOptions.ts` 抽离共享 Hook，并在 `PositionForm` README、Storybook、Vitest 中校验。 | `docs/archive/development-plans/102-positionform-data-layer-consolidation.md` | 新增字段时同步更新共享 Hook 与校验逻辑。 |
+| 103 · Position components tidy-up | ✅ 2025-10-20 完成，`frontend/src/features/positions/components/` 分层结构与 `index.ts` 聚合导出生效。 | `docs/archive/development-plans/103-position-components-tidy-up.md` | 新增组件按 README 指南落位，避免结构漂移。 |
+| 104 · DS-147 Positions Tabbed Experience | ✅ 2025-10-20 发布，设计规范 v0.1 与截图目录约定已到位。 | `docs/archive/development-plans/104-ds147-positions-tabbed-experience.md` | 设计资产更新时同步替换截图并回写指南。 |
 
 
 ---
@@ -680,5 +686,5 @@ Transfer对话框:
 
 ---
 
-**文档完成**：2025-10-17
-**下次更新**：决策完成后更新第12节，实施开始后记录进展到06号日志
+**文档完成**：2025-10-17（2025-10-21 核实 101-104 号交付）
+**下次更新**：如需追加新差距或更新设计资产时同步修订

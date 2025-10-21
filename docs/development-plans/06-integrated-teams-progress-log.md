@@ -14,6 +14,7 @@
 - ✅ **93号职位详情多页签**：六个页签布局、时间轴侧栏、审计页签接入完成并归档
 - ✅ **97号 TypeScript 错误修复**：Phase 0-4 完成，Canvas Kit 迁移、枚举修复、Storybook 隔离，`npm run build` 通过
 - ✅ **101~104号计划收口**：Position Playwright hardening、PositionForm 抽象、组件目录整理、设计规范 v0.1 全部归档
+- ✅ **101~104号计划归档确认**（2025-10-21）：文档迁移至 `docs/archive`，88号差距分析与 99号收口指引同步更新
 
 ### 1.2 当前进行中
 

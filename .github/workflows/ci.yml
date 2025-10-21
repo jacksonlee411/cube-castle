@@ -39,4 +39,51 @@ jobs:
       - name: Install Python dependencies
         run: cd python-ai && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
       - name: Python tests (if any)
-        run: cd python-ai && source venv/bin/activate && pytest || echo 'No tests' 
+        run: cd python-ai && source venv/bin/activate && pytest || echo 'No tests'
+
+  cross-tenant-tests:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Start docker compose stack
+        run: docker compose -f docker-compose.dev.yml up -d postgres redis rest-service graphql-service
+
+      - name: Wait for services
+        run: |
+          timeout 120 bash -c 'until curl -sf http://localhost:9090/health; do sleep 3; done'
+          timeout 120 bash -c 'until curl -sf http://localhost:8090/health; do sleep 3; done'
+
+      - name: Generate tenant tokens
+        run: |
+          mkdir -p .cache
+          TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 OUTPUT_PATH=.cache/dev-tenantA.jwt make jwt-dev-mint
+          TENANT_ID=11111111-2222-3333-4444-555555555555 OUTPUT_PATH=.cache/dev-tenantB.jwt make jwt-dev-mint
+
+      - name: Run REST cross-tenant validation
+        run: |
+          BASE_URL=http://localhost:9090 \
+          TENANT_A_TOKEN="$(cat .cache/dev-tenantA.jwt)" \
+          TENANT_B_TOKEN="$(cat .cache/dev-tenantB.jwt)" \
+          TENANT_A_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 \
+          TENANT_B_ID=11111111-2222-3333-4444-555555555555 \
+          POSITION_CODE=P9000003 \
+          bash tests/consolidated/position-assignments-cross-tenant.sh
+
+      - name: Run GraphQL cross-tenant validation
+        run: |
+          GRAPHQL_URL=http://localhost:8090/graphql \
+          TENANT_A_TOKEN="$(cat .cache/dev-tenantA.jwt)" \
+          TENANT_B_TOKEN="$(cat .cache/dev-tenantB.jwt)" \
+          TENANT_A_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 \
+          TENANT_B_ID=11111111-2222-3333-4444-555555555555 \
+          POSITION_CODE=P9000003 \
+          bash tests/consolidated/position-assignments-graphql-cross-tenant.sh
+
+      - name: Tear down docker compose stack
+        if: always()
+        run: docker compose -f docker-compose.dev.yml down -v

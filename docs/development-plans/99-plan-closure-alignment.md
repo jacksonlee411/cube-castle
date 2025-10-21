@@ -27,10 +27,10 @@
 - `docs/archive/development-plans/93-position-detail-tabbed-experience-acceptance.md`
 - `docs/archive/development-plans/95-status-fields-review.md`
 - `docs/development-plans/96-position-job-catalog-layout-alignment.md`
-- `docs/development-plans/101-position-playwright-hardening.md`
-- `docs/development-plans/102-positionform-data-layer-consolidation.md`
-- `docs/development-plans/103-position-components-tidy-up.md`
-- `docs/development-plans/104-ds147-positions-tabbed-experience.md`
+- `docs/archive/development-plans/101-position-playwright-hardening.md`
+- `docs/archive/development-plans/102-positionform-data-layer-consolidation.md`
+- `docs/archive/development-plans/103-position-components-tidy-up.md`
+- `docs/archive/development-plans/104-ds147-positions-tabbed-experience.md`
 - `docs/archive/development-plans/06-design-review-task-assessment.md`
 - `docs/archive/development-plans/92-position-secondary-navigation-implementation.md`
 
@@ -46,10 +46,10 @@
 | **93号** 验收报告（已归档） | ✅ 归档并补齐回写 | 无 | 与 88、101–104 的验收引用保持同步 |
 | **95号** 状态字段评审（已归档） | ✅ 结论“暂不扩展五态” 已生效 | 无 | 供 88、101–104 引用，无额外依赖 |
 | **96号** Job Catalog 布局校准 | 文档仍写“必须改造”，需验证现状 | 按第 3.2 节执行代码/截图验证，决定归档或新建实施计划 | 依赖 92 号归档证据、06 号日志记录 |
-| **101号** Playwright Hardening | ✅ 2025-10-20 完成，E2E 指南已更新 | 移至 archive 并在 06 号日志挂载报告链接 | 为 88 第 12.3 节与 QA checklist 提供证据 |
-| **102号** PositionForm 数据层整合 | ✅ 2025-10-20 完成，共享 Hook/Story 补齐 | 归档并确认实现清单/06 号日志条目同步 | 为 88 建议 2 的交付证明 |
-| **103号** 组件结构整理 | ✅ 2025-10-20 完成，目录分层上线 | 归档并确认 README 与测试链接长期可查 | 为 88 建议 3 的交付证明 |
-| **104号** DS-147 设计规范 | ✅ 2025-10-20 发布 v0.1 指南 | 归档并追踪截图资产落地时间线 | 为 88 设计一致性与后续评审提供依据 |
+| **101号** Playwright Hardening（已归档） | ✅ 2025-10-20 完成，2025-10-21 移至 `docs/archive` | 无 | 为 88 第 12.3 节与 QA checklist 提供证据 |
+| **102号** PositionForm 数据层整合（已归档） | ✅ 2025-10-20 完成，2025-10-21 移至 `docs/archive` | 无 | 为 88 建议 2 的交付证明 |
+| **103号** 组件结构整理（已归档） | ✅ 2025-10-20 完成，2025-10-21 移至 `docs/archive` | 无 | 为 88 建议 3 的交付证明 |
+| **104号** DS-147 设计规范（已归档） | ✅ 2025-10-20 发布，2025-10-21 移至 `docs/archive` | 无 | 为 88 设计一致性与后续评审提供依据 |
 
 ### 3.1 93号方案状态更新
 
@@ -94,7 +94,7 @@
 - **103号计划**：`frontend/src/features/positions/components` 完成目录分层与聚合导出，相关测试通过，状态为“已完成（2025-10-20）”。
 - **104号计划**：`docs/reference/positions-tabbed-experience-guide.md` 发布 v0.1 指南，`frontend/artifacts/layout/README.md` 对截图命名与存放进行约定，状态为“已完成（2025-10-20）”。
 
-> **结论**：101–104 号计划均已交付，需执行归档动作并在 88 号文档第 12 节及跟踪清单中明确勾选，防止计划状态再次漂移。
+> **结论**：101–104 号计划已于 2025-10-21 归档，88 号文档第 12 节随即更新完成。
 
 ## 4. 归档标准统一定义
 
@@ -143,8 +143,8 @@
 ### 5.2 阶段二：前端差距与交付归档
 
 4. **101–104号**（拆分计划归档）
-   - 行动：核对交付物已落地，补齐 06 号日志链接后，将 101–104 文档分别移动至 `docs/archive/`。
-   - 产出：归档提交、日志时间戳、README/Storybook/测试链接校验记录。
+   - 行动：✅ 2025-10-21 完成归档并回写 88 号与 06 号日志，无需额外动作。
+   - 产出：归档提交与日志条目已就位。
 
 5. **88号**（前端差距分析）
    - 行动：在第 12 节与跟踪清单中引用 101–104 成果，更新状态为“完成-待归档”，确认无新增待办后归档。
@@ -163,9 +163,8 @@
 | 1 | 87 号执行生产迁移并归档 | 架构组 · 数据库团队 | 迁移执行/回滚记录、06 号日志条目、文档归档 PR |
 | 2 | 86 号收尾与归档 | 命令服务团队 · 查询服务团队 · QA 团队 | 跨租户脚本记录、`reports/position-stage4/` 基线、归档提交 |
 | 3 | 80 号方案更新 | 业务架构组 | Stage 4 进展段落、引用 87/101–104 链接、归档或后续计划说明 |
-| 4 | 101–104 号归档 | 前端团队 · QA 团队 · 设计团队 | 归档提交、06 号日志时间戳、README/Storybook/测试链接校验结果 |
-| 5 | 88 号状态更新与归档 | 前端团队 · 架构组 | 更新第 12 节与跟踪清单、调整状态、归档 PR、06 号日志记录 |
-| 6 | 96 号验证并决策 | 前端团队 · 设计团队 | 验证清单结果、截图或新计划编号、文档状态更新 |
+| 4 | 88 号状态更新与归档 | 前端团队 · 架构组 | 更新第 12 节与跟踪清单、调整状态、归档 PR、06 号日志记录 |
+| 5 | 96 号验证并决策 | 前端团队 · 设计团队 | 验证清单结果、截图或新计划编号、文档状态更新 |
 
 ## 7. 审阅与更新机制
 
