@@ -698,7 +698,7 @@ export enum PositionType {
 export type Query = {
   __typename: "Query";
   /**
-   * Get complete audit history for a specific organization record (temporal version).
+   * Get complete audit history for a specific temporal record (organization units, positions, or job catalog entries).
    * This query returns audit records for a specific recordId, allowing precise tracking
    * of individual temporal version lifecycle changes.
    *
