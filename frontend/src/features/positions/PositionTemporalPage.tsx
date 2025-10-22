@@ -29,7 +29,7 @@ import {
 } from './timelineAdapter'
 import { usePositionDetail } from '@/shared/hooks/useEnterprisePositions'
 import { logger } from '@/shared/utils/logger'
-import { getPositionStatusMeta } from './components/statusMeta'
+import { getPositionStatusMeta } from './statusMeta'
 
 const POSITION_CODE_PATTERN = /^P\d{7}$/
 
