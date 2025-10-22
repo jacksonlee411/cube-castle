@@ -1630,6 +1630,8 @@ func scanPosition(scanner rowScanner) (*model.Position, error) {
 		return nil, err
 	}
 
+	normalizedStatus := normalizePositionStatus(status, effectiveDate, endDate, isCurrent)
+
 	position := &model.Position{
 		CodeField:               code,
 		RecordIDField:           recordID,
@@ -1644,7 +1646,7 @@ func scanPosition(scanner rowScanner) (*model.Position, error) {
 		EmploymentTypeField:     employmentType,
 		HeadcountCapacityField:  headcountCapacity,
 		HeadcountInUseField:     headcountInUse,
-		StatusField:             status,
+		StatusField:             normalizedStatus,
 		EffectiveDateField:      effectiveDate,
 		IsCurrentField:          isCurrent,
 		CreatedAtField:          createdAt,
@@ -1683,6 +1685,33 @@ func scanPosition(scanner rowScanner) (*model.Position, error) {
 	}
 
 	return position, nil
+}
+
+func normalizePositionStatus(status string, effectiveDate time.Time, endDate sql.NullTime, isCurrent bool) string {
+	normalized := strings.ToUpper(strings.TrimSpace(status))
+	if normalized != "PLANNED" {
+		return normalized
+	}
+
+	today := cnTodayUTC()
+	if effectiveDate.After(today) {
+		return normalized
+	}
+
+	if isCurrent && (!endDate.Valid || endDate.Time.After(today)) {
+		return "ACTIVE"
+	}
+
+	return "INACTIVE"
+}
+
+func cnTodayUTC() time.Time {
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		return time.Now().UTC().Truncate(24 * time.Hour)
+	}
+	now := time.Now().In(loc)
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 }
 
 func (r *PostgreSQLRepository) populatePositionAssignments(ctx context.Context, tenantID uuid.UUID, position *model.Position) error {

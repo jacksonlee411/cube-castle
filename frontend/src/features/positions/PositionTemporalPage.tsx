@@ -29,6 +29,7 @@ import {
 } from './timelineAdapter'
 import { usePositionDetail } from '@/shared/hooks/useEnterprisePositions'
 import { logger } from '@/shared/utils/logger'
+import { getPositionStatusMeta } from './components/statusMeta'
 
 const POSITION_CODE_PATTERN = /^P\d{7}$/
 
@@ -48,6 +49,16 @@ const DETAIL_TABS: Array<{ key: DetailTab; label: string }> = [
   { key: 'versions', label: '版本历史' },
   { key: 'audit', label: '审计历史' },
 ]
+
+const buildVersionBannerLabel = (version: PositionRecord): string => {
+  if (version.isCurrent) {
+    return '当前版本'
+  }
+  if (version.isFuture) {
+    return '计划版本'
+  }
+  return '历史版本'
+}
 
 interface VersionEntry {
   key: string
@@ -417,7 +428,8 @@ export const PositionTemporalPage: React.FC = () => {
                 {selectedVersion && (
                   <Card padding={space.m} backgroundColor={colors.soap100}>
                     <Text fontSize="14px" color={colors.licorice500}>
-                      当前版本：{selectedVersion.effectiveDate}（状态：{selectedVersion.status}）
+                      {buildVersionBannerLabel(selectedVersion)}：{selectedVersion.effectiveDate}（状态：
+                      {getPositionStatusMeta(selectedVersion.status).label}）
                     </Text>
                   </Card>
                 )}
