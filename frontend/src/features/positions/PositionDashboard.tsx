@@ -18,7 +18,7 @@ const statusOptions: Array<{ label: string; value: string }> = [
   { label: '已填充', value: 'FILLED' },
   { label: '空缺', value: 'VACANT' },
   { label: '规划中', value: 'PLANNED' },
-  { label: '停用', value: 'INACTIVE' },
+  { label: '已结束', value: 'INACTIVE' },
 ]
 
 const applyFilters = (

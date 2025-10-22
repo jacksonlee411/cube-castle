@@ -50,7 +50,7 @@ export const OrganizationDetailForm: React.FC<OrganizationDetailFormProps> = ({
   // 状态选项
   const statusOptions = [
     { value: 'ACTIVE', label: '启用' },
-    { value: 'INACTIVE', label: '停用' },
+    { value: 'INACTIVE', label: '已结束' },
   ];
 
   // 获取状态对应的颜色

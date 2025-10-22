@@ -34,10 +34,10 @@ const POSITION_STATUS_META: Record<string, PositionStatusMeta> = {
     border: colors.soap300,
   },
   INACTIVE: {
-    label: '停用',
-    color: colors.peach600,
-    background: colors.peach100,
-    border: colors.peach300,
+    label: '已结束',
+    color: colors.licorice400,
+    background: colors.soap100,
+    border: colors.soap300,
   },
 };
 

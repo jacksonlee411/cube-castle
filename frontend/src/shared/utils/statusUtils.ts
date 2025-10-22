@@ -18,12 +18,12 @@ export const STATUS_CONFIG = {
     description: '正常运行状态'
   },
   INACTIVE: {
-    label: '停用',
-    color: colors.cantaloupe600,
+    label: '已结束',
+    color: colors.licorice400,
     icon: clockPauseIcon,
-    backgroundColor: colors.cantaloupe100,
-    borderColor: colors.cantaloupe300,
-    description: '非活跃状态（等价于停用/暂停）'
+    backgroundColor: colors.soap100,
+    borderColor: colors.soap300,
+    description: '已结束的历史版本'
   },
   PLANNED: {
     label: '计划中',

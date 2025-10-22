@@ -18,8 +18,8 @@ export const TEMPORAL_STATUS_OPTIONS: TemporalStatusOption[] = [
   },
   {
     value: 'INACTIVE',
-    label: '停用',
-    description: '已停用的组织'
+    label: '已结束',
+    description: '已结束的历史版本'
   },
   {
     value: 'EXPIRED',

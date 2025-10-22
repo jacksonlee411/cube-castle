@@ -148,7 +148,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
       return {
         color: colors.cantaloupe600,
         dotColor: colors.cantaloupe600,
-        label: '已停用',
+        label: '已结束',
         isDeactivated: false,
         badge: 'INACTIVE' as const,
       };
