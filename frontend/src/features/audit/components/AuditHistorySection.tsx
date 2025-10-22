@@ -1,6 +1,6 @@
 /**
  * 审计历史区域组件
- * 基于auditHistory GraphQL查询展示组织的完整审计记录
+ * 基于 auditHistory GraphQL 查询展示指定记录（组织 / 职位 / 职位分类）的完整审计记录
  */
 import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';

@@ -62,7 +62,9 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 			END::text as modified_fields,
 			COALESCE(changes, '[]'::jsonb)::text as detailed_changes
 		FROM audit_logs
-		WHERE tenant_id = $1::uuid AND resource_id::uuid = $2::uuid AND resource_type = 'ORGANIZATION'`
+		WHERE tenant_id = $1::uuid 
+		  AND resource_id::uuid = $2::uuid 
+		  AND resource_type IN ('ORGANIZATION', 'POSITION', 'JOB_CATALOG')`
 
 	args := []interface{}{tenantId, recordUUID}
 	argIndex := 3
@@ -231,7 +233,11 @@ func (r *PostgreSQLRepository) processAuditRowsStrict(rows *sql.Rows) ([]model.A
 
 		trimmedChanges := strings.TrimSpace(rawChanges)
 		trimmedModified := strings.TrimSpace(rawModified)
-		if isEmptyArrayOrNull(trimmedChanges) && isEmptyArrayOrNull(trimmedModified) && len(record.ChangesField) == 0 && len(record.ModifiedFieldsField) == 0 {
+		beforeSnapshotEmpty := isEmptySnapshot(record.BeforeDataField)
+		afterSnapshotEmpty := isEmptySnapshot(record.AfterDataField)
+		noSnapshots := beforeSnapshotEmpty && afterSnapshotEmpty
+
+		if isEmptyArrayOrNull(trimmedChanges) && isEmptyArrayOrNull(trimmedModified) && len(record.ChangesField) == 0 && len(record.ModifiedFieldsField) == 0 && noSnapshots {
 			continue
 		}
 
@@ -760,6 +766,23 @@ func firstNonNil(values ...interface{}) interface{} {
 func isEmptyArrayOrNull(raw string) bool {
 	switch raw {
 	case "", "[]", "null":
+		return true
+	default:
+		return false
+	}
+}
+
+func isEmptySnapshot(value *string) bool {
+	if value == nil {
+		return true
+	}
+	return isEmptyJSONPayload(*value)
+}
+
+func isEmptyJSONPayload(raw string) bool {
+	trimmed := strings.TrimSpace(raw)
+	switch trimmed {
+	case "", "{}", "[]", "null":
 		return true
 	default:
 		return false
