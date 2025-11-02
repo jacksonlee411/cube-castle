@@ -388,3 +388,10 @@
 - [const] validateUpdateOrganizationInput — frontend/src/shared/validation/schemas.ts
 - [const] validateOrganizationResponse — frontend/src/shared/validation/schemas.ts
 - [const] validateForm — frontend/src/shared/validation/schemas.ts
+
+---
+
+## 数据库工具链（2025-11 更新）
+- Goose 迁移目录：`database/migrations/`，配置 `goose.yaml`，通过 `make db-migrate-all` / `make db-rollback-last` 执行。
+- 声明式 Schema：`database/schema.sql` 为唯一事实来源，变更后需同步更新。
+- Atlas 配置：`atlas.hcl`（用于生成 Goose 迁移草稿，触发器/函数仍需手工审阅补全）。

@@ -137,18 +137,17 @@ ENFORCE=1 APPLY_FIXES=0 bash scripts/apply-audit-fixes.sh
 2) 修复+校验（本地修复流程）
 ```bash
 export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
-# 建议先应用关键迁移（仅值变更更新 + 移除目标触发器）
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/021_audit_and_temporal_sane_updates.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/022_remove_db_triggers_and_functions.sql
+# 建议先执行 Goose up（填充最新 Schema 与触发器）
+GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" goose -dir database/migrations up
 
 ENFORCE=1 APPLY_FIXES=1 bash scripts/apply-audit-fixes.sh
 ```
 
 ### CI 工作流
 - `.github/workflows/audit-consistency.yml`：
-  - 应用 021→022 后，`ENFORCE=1 APPLY_FIXES=0` 执行强制校验
+  - 执行 Goose up 后，`ENFORCE=1 APPLY_FIXES=0` 执行强制校验
 - `.github/workflows/consistency-guard.yml`：
-  - 新增 `audit` 任务，流程同上
+  - `audit` 任务沿用 Goose up + 校验流程
 
 ### 备注
 - 可通过 `APP_ASSERT_TRIGGERS_ZERO=0` 暂时跳过“目标触发器为 0”的断言（例如执行 022 之前），仅用于过渡开发场景。

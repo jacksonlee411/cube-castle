@@ -280,8 +280,7 @@ ENFORCE=1 APPLY_FIXES=0 bash scripts/apply-audit-fixes.sh
 - 本地修复后校验（建议先执行 021→022）：
 ```bash
 export DATABASE_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/021_audit_and_temporal_sane_updates.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/022_remove_db_triggers_and_functions.sql
+GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" goose -dir database/migrations up
 ENFORCE=1 APPLY_FIXES=1 bash scripts/apply-audit-fixes.sh
 ```
 

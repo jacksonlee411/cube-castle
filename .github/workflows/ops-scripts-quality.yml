@@ -46,10 +46,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install tools (psql client, shellcheck)
+      - name: Install tools (psql client, shellcheck, goose)
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client shellcheck
+          curl -sSL https://github.com/pressly/goose/releases/download/v3.26.0/goose_linux_x86_64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin goose
 
       - name: Verify expected scripts exist
         run: |
@@ -69,17 +71,11 @@ jobs:
         run: |
           timeout 60 bash -c 'until pg_isready -h "$PGHOST" -U "$PGUSER"; do sleep 1; done'
 
-      - name: Initialize database schema
+      - name: Apply Goose migrations
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
-          psql -v ON_ERROR_STOP=1 -f sql/init/01-schema.sql
-
-      - name: Apply database migrations (ordered)
-        run: |
-          set -e
-          for f in $(ls -1 database/migrations/*.sql | sort); do
-            echo "Applying migration: $f"
-            psql -v ON_ERROR_STOP=1 -f "$f"
-          done
+          GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" goose -dir database/migrations up
 
       - name: SQL smoke test - daily cutover
         run: |
@@ -88,4 +84,3 @@ jobs:
       - name: SQL smoke test - consistency check
         run: |
           psql -v ON_ERROR_STOP=1 -f scripts/data-consistency-check.sql
-

@@ -49,7 +49,8 @@ make docker-up          # 启动基础设施 (PostgreSQL + Redis)
 make run-dev            # 启动统一 hrms-server：REST (9090) + GraphQL (8090)
 make frontend-dev       # 启动前端开发服务器 (端口3000)
 make status             # 查看所有服务状态
-make db-migrate-all     # 一键执行数据库迁移（迁移即真源）
+make db-migrate-all     # 使用 Goose 执行数据库迁移（迁移即真源）
+make db-rollback-last   # 使用 Goose 回滚最近一条迁移
 ```
 
 > **重要**：前端职位管理页面默认使用真实 GraphQL/REST 数据。若环境存在历史配置，请确保 `.env` / `.env.local` 中设置 `VITE_POSITIONS_MOCK_MODE=false`，避免误用 Mock 数据导致验证失真；Mock 模式下界面会显示只读提醒并禁用写操作。
@@ -67,7 +68,7 @@ make db-migrate-all     # 一键执行数据库迁移（迁移即真源）
 - 统一入口：`cmd/hrms-server/`（命令/查询共享配置，通过依赖注入注册各模块）
 - 核心业务模块：`internal/organization`（已投产），`internal/workforce`, `internal/contract`（按 203 号计划逐步落地）
 - 共享基础设施：`pkg/database`（连接池 + 事务 + outbox）、`pkg/eventbus`、`pkg/logger`、`internal/auth`
-- 迁移与 Schema 管理：`database/migrations/`（Goose up/down + Atlas diff），配置文件位于 `atlas.hcl`、`goose.toml`
+- 迁移与 Schema 管理：`database/migrations/`（Goose up/down + Atlas diff），配置文件位于 `atlas.hcl`、`goose.yaml`
 
 ### 数据库初始化（迁移优先）
 - 规范：严禁使用过时的初始建表脚本；仅通过 `database/migrations/` 按序迁移来初始化/升级数据库。

@@ -1,0 +1,13 @@
+version: 3
+defaults:
+  dir: database/migrations
+  dialect: postgres
+envs:
+  dev:
+    dir: database/migrations
+    dialect: postgres
+    datasource: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+  test:
+    dir: database/migrations
+    dialect: postgres
+    datasource: postgres://user:password@localhost:5433/cubecastle_test?sslmode=disable

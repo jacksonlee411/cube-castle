@@ -30,10 +30,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install tooling (psql, jq, make)
+      - name: Install tooling (psql, jq, make, goose)
         run: |
           sudo apt-get update -y
           sudo apt-get install -y postgresql-client jq make
+          curl -sSL https://github.com/pressly/goose/releases/download/v3.26.0/goose_linux_x86_64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin goose
 
       - name: Wait for Postgres
         run: |
@@ -43,12 +45,11 @@ jobs:
           echo "Postgres not ready" >&2
           exit 1
 
-      - name: Apply required migrations only (021 → 022)
+      - name: Apply Goose migrations
         env:
           DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/021_audit_and_temporal_sane_updates.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/022_remove_db_triggers_and_functions.sql
+          GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" goose -dir database/migrations up
 
       - name: Enforce audit consistency (no empty updates, no recordId mismatch, target triggers absent)
         env:

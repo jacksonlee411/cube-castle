@@ -18,7 +18,7 @@
 
 1. **数据访问层演进（sqlc/Ent）**：203 第4.5节、204 第三阶段与205 步骤10均已纳入，待按阶段实施。
 2. **异步可靠性（事务性发件箱）**：203 第4.3.3节明确 `event_id` 幂等策略，204/205 要求建立统一 outbox 基座。
-3. **数据库迁移治理（Atlas + Goose + Down 脚本）**：204 第二阶段新增 go​ose/down/atlas 交付物，205 步骤10 定义 `make db-migrate-verify`。
+3. **数据库迁移治理（Atlas + Goose + Down 脚本）**：204 第二阶段新增 goose/down/atlas 交付物，205 步骤10 定义 `make db-migrate-verify`。
 4. **权限策略外部化（Casbin/配置化）**：203 第5.4节提供三阶段路线，需在实施计划中跟踪排期。
 5. **测试策略（Docker 实库 + 集成测试）**：204 第二阶段交付 Docker 基座，205 步骤10 与验收清单新增 `make test-db`。
 6. **连接池配置一致性**：203 第10.1节与205 步骤10 已明确参数基线。
@@ -47,8 +47,8 @@
 
 #### 203/204/205 最新措施
 
-- `203-hrms-module-division-plan.md:471-518` 明确“数据访问层演进”章节，对 sqlc/Ent 的选型与分阶段迁移给出路线图。
-- `204-HRMS-Implementation-Roadmap.md:167-215` 在第三阶段新增“编写 sqlc 查询”“make sqlc-generate 纳入 CI”等行动与验收点。
+- `203-hrms-module-division-plan.md:471-518` 明确"数据访问层演进"章节，对 sqlc/Ent 的选型与分阶段迁移给出路线图。
+- `204-HRMS-Implementation-Roadmap.md:167-215` 在第三阶段新增"编写 sqlc 查询""make sqlc-generate 纳入 CI"等行动与验收点。
 - `205-HRMS-Transition-Plan.md:300-360,686-711` 通过步骤10、测试清单和命令速查表将 `make sqlc-generate`、`git diff --exit-code` 列为强制项。
 
 #### 下一步执行动作
@@ -81,7 +81,7 @@
 
 1. 在命令服务中落地 `pkg/database/outbox`，以事务方式插入事件并记录 `retry_count`。
 2. 将 relay 注册到主进程的 lifecycle，确保失败重试与监控指标生效。
-3. 在 Docker 集成测试中增加“模拟崩溃 + 重启”场景，验证事件至少一次投递。
+3. 在 Docker 集成测试中增加"模拟崩溃 + 重启"场景，验证事件至少一次投递。
 
 ---
 
@@ -99,14 +99,14 @@
 
 #### 203/204/205 最新措施
 
-- `203-hrms-module-division-plan.md:1266-1346`（附录D）规定“所有迁移必须附带 down”“Atlas + Goose”工作流与监控指标。
+- `203-hrms-module-division-plan.md:1266-1346`（附录D）规定"所有迁移必须附带 down""Atlas + Goose"工作流与监控指标。
 - `204-HRMS-Implementation-Roadmap.md:100-147` 在第二阶段交付 down 脚本补全、`atlas.hcl`/`goose.toml` 配置及 `make db-migrate-verify` 验收。
 - `205-HRMS-Transition-Plan.md:272-360,686-711` 在步骤10和测试清单中，将 `make db-migrate-verify` 作为合并前必跑项。
 
 #### 下一步执行动作
 
 1. 为既有迁移补写 `-- +goose Down` 并通过 `make db-migrate-verify` 验证。
-2. 在 CI 中新增“atlas diff + goose up/down”流水线，确保回滚能力 100% 可用。
+2. 在 CI 中新增"atlas diff + goose up/down"流水线，确保回滚能力 100% 可用。
 3. 在 206 后续版本记录迁移补齐进度与失败回归。
 
 ---
@@ -171,7 +171,7 @@
 #### 201号发现的风险
 
 - 查询服务：✅ 已配置连接池。
-- 命令服务：❌ 仍依赖默认值，高并发存在“too many connections”风险。
+- 命令服务：❌ 仍依赖默认值，高并发存在"too many connections"风险。
 
 #### 203/204/205 最新措施
 

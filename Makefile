@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate
 
 # 默认目标
 help:
@@ -44,7 +44,8 @@ help:
 	@echo "🗄️ 数据库维护:"
 	@echo "  backup           - 备份 PostgreSQL 数据到文件"
 	@echo "  restore          - 从备份文件恢复 (需 BACKUP_FILE)"
-	@echo "  db-migrate-all   - 按序执行数据库迁移（迁移即真源）"
+	@echo "  db-migrate-all   - 使用 Goose 执行数据库迁移（迁移即真源）"
+	@echo "  db-rollback-last - 使用 Goose 回滚最近一条迁移"
 	@echo ""
 	@echo "📊 运行状态:"
 	@echo "  status           - docker compose 服务状态 + 关键地址"
@@ -250,21 +251,32 @@ reset:
 	$(MAKE) docker-down
 	$(MAKE) docker-up
 
-# 迁移即真源：按序执行 database/migrations/*.sql
+# 迁移即真源：按序执行 database/migrations/*.sql（Goose）
 db-migrate-all:
-	@echo "🧭 执行数据库迁移（迁移即真源）..."
-	@command -v psql >/dev/null 2>&1 || { echo "❌ 需要安装 psql (PostgreSQL 客户端)"; exit 1; }
+	@echo "🧭 使用 Goose 执行数据库迁移..."
+	@command -v goose >/dev/null 2>&1 || { echo "❌ 需要安装 goose，请先执行: go install github.com/pressly/goose/v3/cmd/goose@latest"; exit 1; }
 	@DB_URL="$$DATABASE_URL" ; \
 	if [ -z "$$DB_URL" ]; then \
 	  DB_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable" ; \
 	  echo "ℹ️  未设置 DATABASE_URL，使用默认: $$DB_URL" ; \
 	fi ; \
 	set -e ; \
-	for f in $$(ls -1 database/migrations/*.sql | sort); do \
-	  echo "▶ 迁移: $$f" ; \
-	  psql "$$DB_URL" -v ON_ERROR_STOP=1 -f "$$f" ; \
-	done ; \
-	echo "✅ 迁移完成"
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$$DB_URL" goose -dir database/migrations status >/dev/null ; \
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$$DB_URL" goose -dir database/migrations up ; \
+	echo "✅ Goose up 完成"
+
+db-rollback-last:
+	@echo "↩️  回滚最近一条 Goose 迁移..."
+	@command -v goose >/dev/null 2>&1 || { echo "❌ 需要安装 goose，请先执行: go install github.com/pressly/goose/v3/cmd/goose@latest"; exit 1; }
+	@DB_URL="$$DATABASE_URL" ; \
+	if [ -z "$$DB_URL" ]; then \
+	  DB_URL="postgres://user:password@localhost:5432/cubecastle?sslmode=disable" ; \
+	  echo "ℹ️  未设置 DATABASE_URL，使用默认: $$DB_URL" ; \
+	fi ; \
+	set -e ; \
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$$DB_URL" goose -dir database/migrations status >/dev/null ; \
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$$DB_URL" goose -dir database/migrations down ; \
+	echo "✅ Goose down 完成"
 
 
 # 开发JWT工具

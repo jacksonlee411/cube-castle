@@ -1,5 +1,16 @@
 # Cube Castle 项目变更日志
 
+## 未发布 - 数据库基线重建（2025-11-06）
+
+### 🛠️ 基础设施
+- **数据库迁移体系重建**：生成 `database/schema.sql` 为唯一事实来源，输出 Goose 基线迁移 `20251106000000_base_schema.sql`，并清理历史脚本。
+- **迁移工具链切换**：新增 `goose.yaml`、`atlas.hcl` 与 `scripts/generate-migration.sh`，Makefile 和 CI 改为使用 Goose `up/down`。
+- **验证资产**：新增 `tests/integration/migration_roundtrip_test.go`，确保 Goose 迁移支持 up→down→up 循环；在 `schema/` 输出备份与 diff 清单。
+
+### 📚 文档
+- `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`docs/reference/03-API-AND-TOOLS-GUIDE.md` 同步更新 Goose/Atlas 使用方式。
+- `scripts/README.md` 与 Plan 210 文档补充新流程、回滚策略与检查清单。
+
 ## v1.5.5 - 前端日志统一与ESLint零告警方案 (2025-10-02)
 
 ### ✨ 新增
