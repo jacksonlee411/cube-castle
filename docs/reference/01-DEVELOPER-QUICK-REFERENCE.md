@@ -1,6 +1,6 @@
 # Cube Castle 开发者快速参考
 
-版本: v2.0 | 最后更新: 2025-09-09 | 用途: 开发快速查阅手册
+版本: v2.1 | 最后更新: 2025-11-05 | 用途: 开发快速查阅手册
 
 ---
 
@@ -46,7 +46,7 @@ cat docs/api/schema.graphql
 ### 开发环境启动
 ```bash
 make docker-up          # 启动基础设施 (PostgreSQL + Redis)
-make run-dev            # 启动后端服务 (命令9090 + 查询8090)
+make run-dev            # 启动统一 hrms-server：REST (9090) + GraphQL (8090)
 make frontend-dev       # 启动前端开发服务器 (端口3000)
 make status             # 查看所有服务状态
 make db-migrate-all     # 一键执行数据库迁移（迁移即真源）
@@ -58,10 +58,16 @@ make db-migrate-all     # 一键执行数据库迁移（迁移即真源）
 - 依赖：PostgreSQL 16+，Redis 7.x
 - 顺序：
   1) `make docker-up`（基础设施）
-  2) `make run-dev`（命令 9090 + 查询 8090）
+  2) `make run-dev`（模块化单体 hrms-server，统一注入所有模块）
   3) `make frontend-dev`（可选）
 
 前端 UI/组件规范详见项目指导原则文档 `CLAUDE.md`（Canvas Kit v13 图标与用法规范）。
+
+### 模块化单体结构导航
+- 统一入口：`cmd/hrms-server/`（命令/查询共享配置，通过依赖注入注册各模块）
+- 核心业务模块：`internal/organization`（已投产），`internal/workforce`, `internal/contract`（按 203 号计划逐步落地）
+- 共享基础设施：`pkg/database`（连接池 + 事务 + outbox）、`pkg/eventbus`、`pkg/logger`、`internal/auth`
+- 迁移与 Schema 管理：`database/migrations/`（Goose up/down + Atlas diff），配置文件位于 `atlas.hcl`、`goose.toml`
 
 ### 数据库初始化（迁移优先）
 - 规范：严禁使用过时的初始建表脚本；仅通过 `database/migrations/` 按序迁移来初始化/升级数据库。
@@ -119,6 +125,9 @@ export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用�
 # 代码质量门禁（需要 golangci-lint v1.61.0+ 支持 Go 1.23）
 make lint                      # Go 代码质量检查
 make security                  # Go 安全扫描 (gosec)
+make sqlc-generate             # 生成并验证类型安全查询（CI 会执行并要求无 diff）
+make db-migrate-verify         # Goose up/down 预演 + Atlas diff 校验
+make test-db                   # Docker 化 PostgreSQL 集成测试（含 outbox 验证）
 
 # 前端质量检查
 npm run quality:duplicates      # 运行重复代码检测
@@ -216,6 +225,9 @@ PUT    /api/v1/organization-units/{code}    # 更新组织
 POST   /api/v1/organization-units/{code}/suspend    # 暂停
 POST   /api/v1/organization-units/{code}/activate   # 激活
 POST   /api/v1/organization-units/{code}/versions   # 创建版本
+POST   /api/v1/workforce/employees          # 创建员工（Core HR：workforce v1，按203号计划上线）
+PATCH  /api/v1/workforce/employees/{id}     # 更新员工状态/岗位（203号计划）
+POST   /api/v1/contracts                    # 创建劳动合同（Core HR：contract v1，203号计划）
 POST   /auth/dev-token         # 生成令牌 (仅DEV模式)
 ```
 
@@ -225,6 +237,9 @@ organizations(filter, pagination): OrganizationConnection!
 organization(code, asOfDate): Organization
 organizationStats(asOfDate, includeHistorical): OrganizationStats!
 organizationHierarchy(code, tenantId): OrganizationHierarchy
+employees(filter, pagination): WorkforceEmployeeConnection!        # Core HR（203号计划）
+employee(id): WorkforceEmployee                                     # Core HR（203号计划）
+contracts(filter, pagination): ContractConnection!                  # Core HR（203号计划）
 ```
 
 ### 认证头部模板
@@ -333,6 +348,7 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 - ❌ 混用CQRS协议
 - ❌ 硬编码端口配置
 - ❌ 使用snake_case字段命名
+- ❌ 绕过 sqlc/Goose/Atlas 流程提交 SQL 变更或事件 outbox 改动
 
 ### ✅ 必须遵守
 - ✅ 开发前运行 `node scripts/generate-implementation-inventory.js`
@@ -342,6 +358,8 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 - ✅ 所有API调用包含认证头和租户ID
 - ✅ 软删除判定仅依赖 `status='DELETED'`；`deletedAt` 仅做审计输出
 - ✅ 组织详情页时间轴仅承担导航职责；编辑请在“版本历史”页签内完成
+- ✅ 数据库迁移附带 `-- +goose Down` 脚本，并通过 `make db-migrate-verify` 验证
+- ✅ 事件发布走 `pkg/database/outbox`（event_id + retry_count + relay），CI 中以 `make test-db` 回归
 
 ---
 
