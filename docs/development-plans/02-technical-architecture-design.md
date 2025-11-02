@@ -25,8 +25,8 @@
 
 命令服务: REST API服务
   - 端口: 9090 (/api/v1)
-  - 技术栈: Gin + GORM v2 + validator
-  - 特性: CRUD操作、业务命令、数据验证
+  - 技术栈: chi v5 + pgx/sqlc + validator
+  - 特性: CRUD操作、业务命令、事务性发件箱 + 事件中继
 
 认证授权: JWT + OAuth 2.0
   - 算法: RS256（开发 / 生产统一）
@@ -63,7 +63,7 @@
 2. **查询性能**: 时态索引直接支持，响应时间1.5-8ms
 3. **存储效率**: 共享索引结构，避免数据重复
 4. **开发简化**: 单一数据模型，统一CRUD逻辑
-5. **架构简洁**: 相比双数据库+CDC方案，复杂度降低60%
+5. **迁移治理**: Atlas diff + Goose up/down，所有迁移必须包含 `-- +goose Down`
 
 ### 数据模型核心字段
 ```sql
@@ -146,10 +146,10 @@ PRIMARY KEY (code, effective_date)
 ### 后端技术栈 (Go语言)
 - **运行时**: Go 1.21+ (静态编译、高并发、类型安全)
 - **GraphQL**: graph-gophers/graphql-go (Schema优先开发)
-- **REST框架**: Gin v1.9+ (高性能HTTP路由)
-- **数据访问**: pgx v5 + GORM v2 (连接池优化)
+- **REST框架**: chi v5 (轻量、与 net/http 兼容)
+- **数据访问**: pgx v5 + sqlc (编译期类型安全)
 - **认证**: JWT + OAuth 2.0 + PBAC权限模型
-- **监控**: 结构化日志 + 健康检查端点
+- **监控**: 结构化日志 + Prometheus 指标（HTTP、DB池、outbox）
 
 ### 前端技术栈 (React生态)
 - **核心**: React 18+ + TypeScript 5+ (类型安全)
@@ -174,10 +174,9 @@ PRIMARY KEY (code, effective_date)
 - **特性**: JWKS支持、时钟偏差容忍、自动刷新
 
 ### 权限模型
-- **架构**: 基于属性的访问控制 (PBAC)
-- **粒度**: 17个细粒度权限，4种标准角色
-- **隔离**: 租户级数据隔离 + 权限继承
-- **审计**: 完整操作日志 + 变更追踪
+- **当前状态**: 基于属性的访问控制 (PBAC) 内嵌策略
+- **演进路线**: 阶段1 配置文件外部化 → 阶段2 数据库存储 → 阶段3 Casbin 引擎
+- **隔离/审计**: 租户级隔离 + 全量操作日志
 
 ### API安全
 - **认证头**: `Authorization: Bearer <token>` + `X-Tenant-ID: <uuid>`
@@ -204,6 +203,7 @@ PRIMARY KEY (code, effective_date)
 - **命令性能**: REST命令 < 200ms (95%分位)
 - **数据库**: 时态查询响应时间 1.5-8ms
 - **并发**: 支持1000+ RPS处理能力
+- **异步可靠性**: outbox 未发布事件监控 < 100 条、重试成功率 > 99%
 
 ---
 
@@ -216,9 +216,9 @@ PRIMARY KEY (code, effective_date)
 - **类型安全**: 前后端TypeScript类型生成和校验
 
 ### CI/CD质量门禁
-- **自动化测试**: 契约测试、集成测试、端到端测试
+- **自动化测试**: 契约测试、Docker 实库集成测试(`make test-db`)、端到端测试
 - **质量检查**: ESLint、代码重复检测、架构违规检测
-- **部署验证**: 健康检查、数据库迁移验证、配置一致性检查
+- **部署验证**: 健康检查、`make db-migrate-verify`、配置一致性检查
 - **回滚机制**: 自动化回滚 + 数据备份恢复
 
 ### 质量指标监控
@@ -241,10 +241,11 @@ PRIMARY KEY (code, effective_date)
 - **自动化**: CI/CD集成测试 + 质量门禁验证
 
 ### 生产环境 (规划)
+- **部署形态**: 当前命令/查询双二进制，按203号文档计划回收为模块化单体
 - **容器化**: Kubernetes + Helm Charts
 - **高可用**: 多副本部署 + 负载均衡
 - **数据**: PostgreSQL主从复制 + 备份策略
-- **监控**: Prometheus + Grafana + 告警系统
+- **监控**: Prometheus + Grafana + 告警系统（含 outbox / DB 池指标）
 
 ---
 
