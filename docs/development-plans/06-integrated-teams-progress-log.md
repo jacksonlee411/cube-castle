@@ -59,6 +59,7 @@
 - ✅ 完成 Plan 213 Go 工具链评审：Steering 确认保持 Go 1.24.0 基线（toolchain go1.24.9），`go test ./... -count=1` 回归通过；暂无回退需求，相关记录见 `reports/phase1-regression.md` 与 `docs/development-plans/213-go-toolchain-baseline-plan.md`。
 - ✅ Plan 212 架构审查结论、Plan 213 工具链基线均已落地，Plan 210 “数据库基线重建方案” 可按 Week1-2 节奏推进（已在文档引用中标注完成依赖）。
 - 🆕 建立 `214-phase1-baseline-extraction-plan.md`，聚焦 Plan 210 Phase1 基线萃取执行，待评审后开始落地。
+- ✅ `PLAN-210-IMPLEMENTATION-VERIFICATION-REPORT.md` 已确认 Plan 210 四个阶段全部完成，文档状态更新为“已完成”。
 
 ---
 

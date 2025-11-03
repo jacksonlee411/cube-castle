@@ -4,7 +4,7 @@
 **标题**: 数据库基线重建 · Phase1 基线萃取执行方案  
 **创建日期**: 2025-11-05  
 **最近更新**: 2025-11-05  
-**状态**: 🟡 待执行  
+**状态**: 🔵 已归档（Plan 210 已完成，任务无需重复执行）  
 **关联文档**:
 - `210-database-baseline-reset-plan.md`（母计划）
 - `212-shared-architecture-alignment-plan.md`（架构目录与复用决议）  
@@ -21,7 +21,8 @@
 3. 基于 Schema 产出带 `-- +goose Up/Down` 标记的基线迁移。
 4. 完成 DBA、架构组联合审阅与签字。
 
-**目标**：在 Week1 结束前交付可复用的基线迁移文件，为 Phase2 目录重构与 Goose/Atlas 落地提供前提条件。
+**目标**：原计划在 Week1 结束前交付可复用的基线迁移文件，为 Phase2 目录重构与 Goose/Atlas 落地提供前提条件。  
+**现状**：Plan 210 已于 2025-11-04 完成全部阶段（参见 `reports/PLAN-210-IMPLEMENTATION-VERIFICATION-REPORT.md`），因此本计划不再推进，作为归档参考保留。
 
 ---
 
