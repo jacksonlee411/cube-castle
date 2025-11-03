@@ -210,7 +210,7 @@ node scripts/generate-implementation-inventory.js
 # IIG护卫检查 (防重复开发)
 node scripts/quality/iig-guardian.js "新功能描述" --guard
 
-# Go代码质量门禁 (需要 golangci-lint v1.61.0+ 支持 Go 1.23)
+# Go代码质量门禁 (需要 golangci-lint v1.61.0+ 支持 Go 1.24)
 make lint                                       # Go 代码质量检查
 make security                                   # Go 安全扫描 (gosec v2.22.8+)
 
@@ -223,14 +223,14 @@ node scripts/quality/document-sync.js           # 文档同步
 ### 质量门禁工具配置
 ```bash
 # 确认工具版本和路径
-golangci-lint --version    # 要求 v1.61.0+ (支持 Go 1.23 新语法)
+golangci-lint --version    # 要求 v1.61.0+ (支持 Go 1.24 新语法)
 gosec --version           # 要求 v2.22.8+
 which golangci-lint       # 应在 PATH 中
 which gosec              # 应在 PATH 中
 
 # 工具安装说明
 # 参考: docs/development-plans/06-integrated-teams-progress-log.md
-# golangci-lint v1.55.2 → v1.61.0 解决 Go 1.23 兼容性问题
+# golangci-lint v1.55.2 → v1.61.0 解决 Go 1.24 兼容性问题
 ```
 
 ### 质量指标监控

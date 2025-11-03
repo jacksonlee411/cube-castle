@@ -10,6 +10,11 @@
 
 ## 🚨 开发前必检清单
 
+### 预先检查：确认 Go 工具链
+```bash
+go version          # 需输出 go1.24.x，若低于 1.24 请立即升级本地环境
+```
+
 ### 第一步: 检查实现清单 (强制)
 ```bash
 # 运行实现清单生成器，查看现有功能
@@ -123,7 +128,7 @@ export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用�
 
 ### 质量检查命令
 ```bash
-# 代码质量门禁（需要 golangci-lint v1.61.0+ 支持 Go 1.23）
+# 代码质量门禁（需要 golangci-lint v1.61.0+ 支持 Go 1.24）
 make lint                      # Go 代码质量检查
 make security                  # Go 安全扫描 (gosec)
 make sqlc-generate             # 生成并验证类型安全查询（CI 会执行并要求无 diff）
@@ -140,7 +145,7 @@ npm run quality:docs           # 检查文档同步状态
 ### 质量门禁工具要求
 ```bash
 # 确认工具版本（必需）
-golangci-lint --version       # 要求 v1.61.0+ (支持 Go 1.23)
+golangci-lint --version       # 要求 v1.61.0+ (支持 Go 1.24)
 gosec --version              # 要求 v2.22.8+
 which golangci-lint          # 应在 PATH 中可访问
 which gosec                  # 应在 PATH 中可访问

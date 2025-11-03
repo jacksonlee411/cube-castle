@@ -144,7 +144,7 @@ PRIMARY KEY (code, effective_date)
 ## 🔧 技术栈选型
 
 ### 后端技术栈 (Go语言)
-- **运行时**: Go 1.21+ (静态编译、高并发、类型安全)
+- **运行时**: Go 1.24+（仓库指定 `toolchain go1.24.9`，提交前需通过 `go version` 自检）
 - **GraphQL**: graph-gophers/graphql-go (Schema优先开发)
 - **REST框架**: chi v5 (轻量、与 net/http 兼容)
 - **数据访问**: pgx v5 + sqlc (编译期类型安全)

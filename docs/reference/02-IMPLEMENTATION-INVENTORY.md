@@ -1,3 +1,5 @@
+> 环境要求：本地与 CI 必须使用 Go 1.24 及以上（仓库 `toolchain go1.24.9`），操作前请执行 `go version` 确认。
+
 ## Draft – Command API (from OpenAPI)
 - `/api/v1/operational/health`
 - `/api/v1/operational/metrics`

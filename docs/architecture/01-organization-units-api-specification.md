@@ -14,6 +14,11 @@
 - **数据源**: PostgreSQL单一数据源
 - **特性**: 时态数据、层级管理、多租户隔离
 
+## 开发环境要求
+
+- Go 1.24 及以上（仓库默认 `toolchain go1.24.9`，请使用 `go version` 自检）。
+- Docker Compose 环境提供 PostgreSQL、Redis、Temporal 等依赖，禁止使用宿主机服务。
+
 ## CQRS架构
 
 **协议分离**:
