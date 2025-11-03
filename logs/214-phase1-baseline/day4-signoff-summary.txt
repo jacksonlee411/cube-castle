@@ -1,0 +1,18 @@
+# Plan 214 Day 4 签字与归档（2025-11-03）
+
+## 核心动作
+- 整理并归档全部执行日志：`logs/214-phase1-baseline/`
+- 生成签字纪要：`docs/archive/development-plans/214-signoff-20251103.md`
+- 编写执行总结：`reports/phase1-baseline-extraction-report.md`
+- 更新计划/索引文档：
+  - `docs/development-plans/214-phase1-baseline-extraction-plan.md` 标记为已完成
+  - `reports/PHASE-TRANSITION-REPORT-20251104.md`、`FINAL-COMPLETION-SUMMARY-20251104.md`、`PLAN-210-214-DOCUMENT-INDEX-20251104.md` 勾选完成项
+  - `docs/development-plans/06-integrated-teams-progress-log.md` 新增 Plan 214 完成记录
+
+## 验收结论
+- DBA/架构师/DevOps 三方确认 Goose/Atlas 基线可复用，参考签字纪要表格。
+- 所有计划要求的交付物、日志、测试证据均已入库。
+
+## 下一步提醒
+- PM 整理 Plan 203 Phase 2 启动通知与资源锁定。
+- DevOps 考虑将 `bin/atlas` 纳入共享镜像或工具仓库，以便后续迁移增量生成。

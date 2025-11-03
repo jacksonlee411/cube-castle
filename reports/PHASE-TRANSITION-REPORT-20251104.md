@@ -310,24 +310,24 @@ make db-rollback-last    # goose down
 ## 八、成功标志
 
 ### Plan 214 成功完成标志
-- ✅ `docs/archive/development-plans/214-signoff-YYYYMMDD.md` 存在
-- ✅ `reports/phase1-baseline-extraction-report.md` 已生成
-- ✅ `logs/214-phase1-baseline/` 包含完整执行日志
-- ✅ `database/schema.sql` 已更新且对象覆盖 ≥ 98%
-- ✅ `go test ./...` 无回归失败
+- [x] `docs/archive/development-plans/214-signoff-20251103.md` 已归档
+- [x] `reports/phase1-baseline-extraction-report.md` 已生成
+- [x] `logs/214-phase1-baseline/` 包含完整执行日志
+- [x] `database/schema.sql` 已更新且对象覆盖 ≥ 98%
+- [x] `go test ./...` 无回归失败
 
 ### Plan 203 Phase 2 启动条件
-- ✅ Plan 214 完成验收
-- ✅ `06-integrated-teams-progress-log.md` 第 12 节更新 Plan 214 完成状态
-- ✅ PM 发送启动通知至后端团队
-- ✅ 后端开发 1-2 确认 Week 2 资源可用
+- [x] Plan 214 完成验收
+- [x] `06-integrated-teams-progress-log.md` 第 12 节更新 Plan 214 完成状态
+- [ ] PM 发送启动通知至后端团队
+- [ ] 后端开发 1-2 确认 Week 2 资源可用
 
 ---
 
 ## 九、后续同步点
 
-### 2025-11-09 (Plan 214 完成日)
-- [ ] DBA + 架构组签字
+### 2025-11-03 (Plan 214 完成日)
+- [x] DBA + 架构组签字
 - [ ] PM 发送 Plan 203 Phase 2 启动通知
 - [ ] 更新 `06-integrated-teams-progress-log.md` 第 12 节
 

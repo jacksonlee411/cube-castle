@@ -1,0 +1,338 @@
+---
+id: apply
+slug: /declarative/apply
+title: Declarative schema migrations
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+With Atlas, users do not need to plan database schema changes themselves. Instead
+of figuring out the correct SQL statements to get their database to the desired state,
+Atlas supports a kind of workflow that we call _declarative schema migration_.
+With declarative schema migrations the user provides a connection string to the target database
+and the desired schema, while Atlas does the planning.
+
+[Read more about declarative workflows](/concepts/declarative-vs-versioned)
+
+## Flags
+
+The `schema apply` command generates a migration plan and applies it to the database to bring it to the desired state.
+A desired state can be specified using a database URL, an HCL or SQL schema, or a migration directory.
+
+* `--url` (`-u` accepted as well) - the [URL](/concepts/url) of the database to be inspected.
+* `--to` - a list of [URLs](/concepts/url) to the desired state: can be a database URL, an HCL or
+  SQL schema, or a migration directory.
+* `--dev-url` - a [URL](/concepts/url) to the [_Dev-Database_](../concepts/dev.mdx).
+* `--schema` (optional, may be supplied multiple times) - schemas to inspect within the target database.
+* `--exclude` (optional, may be supplied multiple times) - filter out resources matching the given glob pattern.
+* `--format` (optional) - [Go template](https://pkg.go.dev/text/template) to use to format the output.
+
+### Auto-approval
+
+Before executing the migration against the target database, Atlas will print the SQL
+statements that it is going to run and prompt the user for approval. Users that wish
+to automatically approve may run the `schema apply` command with the `--auto-approve`
+flag.
+
+### Dry-runs
+
+In order to skip the execution of the SQL queries against the target database,
+users may provide the `--dry-run` flag. When invoked with this flag, Atlas will
+connect to the target database, inspect its current state, calculate the diff
+between the provided desired schema and print out a series of SQL statements to
+reconcile any gaps between the inspected and desired schemas.
+
+### Dev-database
+
+When storing schema definitions, many database engines perform some form of
+normalization. That is, despite us providing a specific definition of some
+aspect of the schema, the database will store it in another, equivalent form.
+This means in certain situations it may appear to Atlas as if some diff exists
+between the desired and inspected schemas, whereas in reality there is none.
+
+To overcome these situations, users may use the `--dev-url` flag to provide
+Atlas with a connection string to a [_Dev-Database_](../concepts/dev.mdx).
+This database is used to normalize the schema prior to planning migrations and
+for simulating changes to ensure their applicability before execution.
+
+## Diff Policy
+
+Atlas allows configuring the schema diffing policy in [project configuration](../atlas-schema/projects.mdx) to fine-tune
+or modify suggested changes before applying them to the database:
+
+<Tabs>
+<TabItem label="Skip Destructive" value="skip">
+
+```hcl title="atlas.hcl"
+variable "destructive" {
+  type    = bool
+  default = false
+}
+
+env "local" {
+  diff {
+    skip {
+      drop_schema = !var.destructive
+      drop_table  = !var.destructive
+    }
+  }
+}
+```
+
+The usage is as follows:
+
+```go
+atlas schema apply --env "local" --var "destructive=true"
+```
+
+</TabItem>
+<TabItem label="Concurrent Indexes" value="concurrent_indexes">
+
+```hcl title="atlas.hcl"
+env "local" {
+  diff {
+    // By default, indexes are not created or dropped concurrently.
+    concurrent_index {
+      create = true
+      drop   = true
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Examples
+
+### HCL schema
+
+The following example demonstrates how to use [Atlas DDL](../atlas-schema/hcl) (HCL) as the desired state and
+update the database schema to match it:
+
+<Tabs
+defaultValue="mysql"
+values={[
+{label: 'MySQL', value: 'mysql'},
+{label: 'MariaDB', value: 'maria'},
+{label: 'PostgreSQL', value: 'postgres'},
+{label: 'SQLite', value: 'sqlite'},
+]}>
+<TabItem value="mysql">
+
+```shell
+atlas schema apply \
+  --url "mysql://root:pass@localhost:3306/example" \
+  --to "file://schema.hcl" \
+  --dev-url "docker://mysql/8/example"
+```
+
+</TabItem>
+<TabItem value="maria">
+
+```shell
+atlas schema apply \
+  --url "maria://root:pass@:3306/example" \
+  --to "file://schema.hcl" \
+  --dev-url "docker://maria/latest/example"
+```
+
+</TabItem>
+<TabItem value="postgres">
+
+```shell
+atlas schema apply \
+  --url "postgres://postgres:pass@localhost:5432/database?search_path=public&sslmode=disable" \
+  --to "file://schema.hcl" \
+  --dev-url "docker://postgres/15"
+```
+
+</TabItem>
+<TabItem value="sqlite">
+
+```shell
+atlas schema apply \
+  --url "sqlite://file.db" \
+  --to "file://schema.hcl" \
+  --dev-url "sqlite://file?mode=memory"
+```
+
+</TabItem>
+</Tabs>
+
+### SQL schema
+
+The following example demonstrates how to use an SQL schema file as the desired state and update the database schema to
+match it:
+
+<Tabs
+defaultValue="mysql"
+values={[
+{label: 'MySQL', value: 'mysql'},
+{label: 'MariaDB', value: 'maria'},
+{label: 'PostgreSQL', value: 'postgres'},
+{label: 'SQLite', value: 'sqlite'},
+]}>
+<TabItem value="mysql">
+
+```shell
+atlas schema apply \
+  --url "mysql://root:pass@localhost:3306/example" \
+  --to "file://schema.sql" \
+  --dev-url "docker://mysql/8/example"
+```
+
+</TabItem>
+<TabItem value="maria">
+
+```shell
+atlas schema apply \
+  --url "maria://root:pass@:3306/example" \
+  --to "file://schema.sql" \
+  --dev-url "docker://maria/latest/example"
+```
+
+</TabItem>
+<TabItem value="postgres">
+
+```shell
+atlas schema apply \
+  --url "postgres://postgres:pass@localhost:5432/database?search_path=public&sslmode=disable" \
+  --to "file://schema.sql" \
+  --dev-url "docker://postgres/15"
+```
+
+</TabItem>
+<TabItem value="sqlite">
+
+```shell
+atlas schema apply \
+  --url "sqlite://file.db" \
+  --to "file://schema.sql" \
+  --dev-url "sqlite://file?mode=memory"
+```
+
+</TabItem>
+</Tabs>
+
+:::info The role of the [Dev Database](/concepts/dev-database)
+Atlas loads the **desired state** by executing the SQL files onto the provided [dev database](/concepts/dev-database),
+compares it against the database **current state** by inspecting its schema and writes a migration plan for moving
+from the current state to the desired state.
+:::
+
+### Migration directory
+
+The following example demonstrates how to use the migration directory as the desired state and update the database
+schema to match it. The URL for the migration directory can contain two optional query parameters:
+* `format` - migration directory format: atlas (default), golang-migrate, goose, dbmate, flyway, liquibase.
+* `version` - until which version of migration files to read. By default, all migrations are read.
+
+<Tabs
+defaultValue="mysql"
+values={[
+{label: 'MySQL', value: 'mysql'},
+{label: 'MariaDB', value: 'maria'},
+{label: 'PostgreSQL', value: 'postgres'},
+{label: 'SQLite', value: 'sqlite'},
+]}>
+<TabItem value="mysql">
+
+```shell
+atlas schema apply \
+  --url "mysql://root:pass@localhost:3306/example" \
+  --to "file://migrations" \
+  --dev-url "docker://mysql/8/example"
+```
+
+</TabItem>
+<TabItem value="maria">
+
+```shell
+atlas schema apply \
+  --url "maria://root:pass@:3306/example" \
+  --to "file://migrations" \
+  --dev-url "docker://maria/latest/example"
+```
+
+</TabItem>
+<TabItem value="postgres">
+
+```shell
+atlas schema apply \
+  --url "postgres://postgres:pass@localhost:5432/database?search_path=public&sslmode=disable" \
+  --to "file://migrations" \
+  --dev-url "docker://postgres/15"
+```
+
+</TabItem>
+<TabItem value="sqlite">
+
+```shell
+atlas schema apply \
+  --url "sqlite://file.db" \
+  --to "file://migrations" \
+  --dev-url "sqlite://file?mode=memory"
+```
+
+</TabItem>
+</Tabs>
+
+### Multi-Tenant environments
+
+The Atlas configuration language provides built-in support for executing declarative workflows in multi-tenant
+environments. Using the `for_each` meta-argument, users can define a single `env` block that is expanded to N instances,
+one for each tenant:
+
+<Tabs>
+<TabItem value="atlas" label="atlas.hcl" default>
+
+```hcl
+env "prod" {
+  for_each = toset(var.tenants)
+  url      = urlsetpath(var.url, each.value)
+  src      = "schema.hcl"
+  format {
+    schema {
+      apply = format(
+        "{{ json . | json_merge %q }}",
+        jsonencode({
+          Tenant : each.value
+        })
+      )
+    }
+  }
+  // Inject custom variables to the schema.hcl defined below.
+  tenant = each.value
+}
+```
+
+</TabItem>
+<TabItem value="schema" label="schema.hcl">
+
+```hcl
+variable "tenant" {
+  type        = string
+  description = "The schema we operate on"
+}
+
+schema "tenant" {
+  name = var.tenant
+}
+
+table "users" {
+  schema = schema.tenant
+  // ...
+}
+```
+
+</TabItem>
+</Tabs>
+
+[Read more](../atlas-schema/projects.mdx#multi-environment-example) about how to define declarative workflows using
+project files in multi-tenant environments.
+
+## Reference
+
+[CLI Command Reference](/cli-reference#atlas-schema-apply)

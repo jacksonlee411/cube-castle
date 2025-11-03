@@ -1,0 +1,368 @@
+---
+title: GitHub Actions
+id: github-actions
+slug: /integrations/github-actions
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+[GitHub Actions](https://github.com/features/actions) is a popular CI/CD 
+product from GitHub. With GitHub Actions, users can easily define workflows
+that are triggered in various lifecycle events related to a Git repository.
+For example, many teams configure GitHub actions to run all unit tests in
+a repository on each change that is committed to a repository. 
+
+One of the powerful features of GitHub Actions is its extensibility: it is
+very easy to package a piece of functionality as a module (called an "action")
+that can later be re-used by many projects. 
+
+Atlas provides a number of GitHub Actions that can be used to automate
+database schema management tasks.
+
+| Action                                                | Use Case                                            |
+|-------------------------------------------------------|-----------------------------------------------------|
+| [ariga/atlas-action](https://github.com/ariga/atlas-action)        | CI for schema changes                               |
+| [ariga/atlas-sync-action](https://github.com/ariga/atlas-sync-action)   | Sync your migration directory to Atlas Cloud (atlasgo.cloud) |
+| [ariga/atlas-deploy-action](https://github.com/ariga/atlas-deploy-action) | Deploy versioned migrations from GitHub Actions    |
+
+
+## `ariga/atlas-action` (CI)
+
+Teams using GitHub that wish to ensure all changes to their database schema are safe
+can use the [`atlas-action`](https://github.com/ariga/atlas-action) GitHub Action.
+
+This action is used for [linting migration directories](/versioned/lint)
+using the `atlas migrate lint` command. This command  validates and analyzes the contents
+of migration directories and generates insights and diagnostics on the selected changes:
+
+* Ensure the migration history can be replayed from any point at time.
+* Protect from unexpected history changes when concurrent migrations are written to the migration directory by
+  multiple team members. Read more about the consistency checks in the section below.
+* Detect whether destructive or irreversible changes have been made or whether they are dependent on tables'  
+  contents and can cause a migration failure.
+
+### Supported directory formats
+
+This action supports analyzing migration directories in formats
+accepted by different schema migration tools:
+* [Atlas](https://atlasgo.io)
+* [golang-migrate](https://github.com/golang-migrate/migrate)
+* [goose](https://github.com/pressly/goose)
+* [dbmate](https://github.com/amacneil/dbmate)
+* [Liquibase](https://liquibase.org)
+* [Flyway](https://flywaydb.org)
+
+### Usage
+
+Add `.github/workflows/atlas-ci.yaml` to your repo with the following contents:
+<Tabs
+defaultValue="mysql"
+values={[
+    {label: 'MySQL', value: 'mysql'},
+    {label: 'MariaDB', value: 'maria'},
+    {label: 'PostgreSQL', value: 'postgres'},
+]}>
+<TabItem value="mysql">
+
+```yaml
+name: Atlas CI
+on:
+  # Run whenever code is changed in the master branch,
+  # change this to your root branch.
+  push:
+    branches:
+      - master
+  # Run on PRs where something changed under the `path/to/migration/dir/` directory.
+  pull_request:
+    paths:
+      - 'path/to/migration/dir/*'
+jobs:
+  lint:
+    services:
+      # Spin up a mysql:8.0.29 container to be used as the dev-database for analysis.
+      mysql:
+        image: mysql:8.0.29
+        env:
+          MYSQL_ROOT_PASSWORD: pass
+          MYSQL_DATABASE: test
+        ports:
+          - "3307:3306"
+        options: >-
+          --health-cmd "mysqladmin ping -ppass"
+          --health-interval 10s
+          --health-start-period 10s
+          --health-timeout 5s
+          --health-retries 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.0.1
+        with:
+          fetch-depth: 0 # Mandatory unless "latest" is set below.
+      - uses: ariga/atlas-action@v0
+        with:
+          dir: path/to/migrations
+          dir-format: atlas # Or: golang-migrate, liquibase, flyway, goose, dbmate
+          dev-url: mysql://root:pass@localhost:3307/test
+```
+
+</TabItem>
+<TabItem value="maria">
+
+```yaml
+name: Atlas CI
+on:
+  # Run whenever code is changed in the master branch,
+  # change this to your root branch.
+  push:
+    branches:
+      - master
+  # Run on PRs where something changed under the `path/to/migration/dir/` directory.
+  pull_request:
+    paths:
+      - 'path/to/migration/dir/*'
+jobs:
+  lint:
+    services:
+      # Spin up a maria:10.7 container to be used as the dev-database for analysis.
+      maria107:
+        image: mariadb:10.7
+        env:
+          MYSQL_DATABASE: test
+          MYSQL_ROOT_PASSWORD: pass
+        ports:
+          - 4306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -ppass"
+          --health-interval 10s
+          --health-start-period 10s
+          --health-timeout 5s
+          --health-retries 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.0.1
+        with:
+          fetch-depth: 0 # Mandatory unless "latest" is set below.
+      - uses: ariga/atlas-action@v0
+        with:
+          dir: path/to/migrations
+          dir-format: atlas # Or: golang-migrate, liquibase, flyway, goose, dbmate
+          dev-url: maria://root:pass@localhost:4306/test
+```
+
+</TabItem>
+<TabItem value="postgres">
+
+```yaml
+name: Atlas CI
+on:
+  # Run whenever code is changed in the master branch,
+  # change this to your root branch.
+  push:
+    branches:
+      - master
+  # Run on PRs where something changed under the `path/to/migration/dir/` directory.
+  pull_request:
+    paths:
+      - 'path/to/migration/dir/*'
+jobs:
+  lint:
+    services:
+      # Spin up a postgres:10 container to be used as the dev-database for analysis.
+      postgres10:
+        image: postgres:10
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: pass
+        ports:
+          - 5430:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.0.1
+        with:
+          fetch-depth: 0 # Mandatory unless "latest" is set below.
+      - uses: ariga/atlas-action@v0
+        with:
+          dir: path/to/migrations
+          dir-format: atlas # Or: golang-migrate, liquibase, flyway, goose, dbmate
+          dev-url: postgres://postgres:pass@localhost:5430/test?sslmode=disable
+```
+
+</TabItem>
+</Tabs>
+
+### Configuration
+
+Configure the action by passing input parameters in the `with:` block.
+
+#### `dir`
+
+Sets the directory that contains the migration scripts to analyze.
+
+#### `dir-format`
+
+Sets the format of the migration directory. Options: `atlas` (default),
+`golang-migrate`, `goose` or `dbmate`, `flyway`, `liquibase`.
+
+#### `dev-url`
+
+The URL of the dev-database to use for analysis.
+
+* Read about [Atlas URL formats](/concepts/url)
+* Read about [dev-databases](/concepts/dev-database)
+
+#### `latest`
+
+Use the `latest` mode to decide which files to analyze. By default,
+Atlas will use `git-base` to analyze any files that are present in the
+diff between the base branch and the current.
+
+Unless this option is set, the base branch (`master`/`main`/etc) must
+be checked out locally or you will see an error such as:
+```
+Atlas failed with code 1: Error: git diff: exit status 128
+```
+
+The full list of input options can be found in [action.yml](https://github.com/ariga/atlas-action/blob/master/action.yml).
+
+## `ariga/atlas-deploy-action`
+
+You can use [ariga/atlas-deploy-action](https://github.com/ariga/atlas-deploy-action) to deploy migrations to your database directly from
+GitHub Actions.
+
+:::info
+
+Atlas needs network access to your database to deploy migrations,
+so make sure your database is either publicly accessible or that you have otherwise enabled
+network access to it from your GitHub Actions runners.
+
+:::
+
+This action supports two workflows:
+
+- *Local* - the migration directory is checked in to the repository.
+- *Cloud* - the migration directory is [connected to Atlas Cloud](https://atlasgo.io/cloud/directories).
+Runs are reported to your Atlas Cloud account.
+
+### Examples
+
+
+Notice that the following examples rely on a `DATABASE_URL` secret being set in your repository.
+
+To learn how to set secrets, read [GitHub's documentation](https://docs.github.com/en/actions/reference/encrypted-secrets).
+
+The `DATABASE_URL` secret should be set to the URL of your database, for examples please see [Atlas URL formats](/concepts/url).
+
+#### Local
+
+```yaml
+name: Deploy Database Migrations
+on:
+  push:
+    branches:
+      - master
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy Atlas Migrations
+        uses: ariga/atlas-deploy-action@v0
+        with:
+          url: ${{ secrets.DATABASE_URL }}
+          dir: path/to/migrations
+```
+
+#### Deploy from Cloud
+
+```yaml
+name: Deploy Database Migrations
+on:
+  push:
+    branches:
+      - master
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy Atlas Migrations
+        uses: ariga/atlas-deploy-action@v0
+        with:
+          url: ${{ secrets.DATABASE_URL }}
+          cloud-token: ${{ secrets.ATLAS_CLOUD_TOKEN }}
+          cloud-dir: hello # replace with your directory name
+```
+
+### Reference
+
+#### Inputs
+
+- `url`: URL to target database (should be passed as a secret). (Required)
+- `dir`: Local path of the migration directory in the repository. (Optional)
+- `cloud-token`: Token for using Atlas Cloud (should be passed as a secret). (Optional)
+- `cloud-dir`: Name of the migration directory in the cloud. (Must be set if `cloud-token` is set)
+- `cloud-tag`: Tag of the migration version in the cloud. (Optional)
+
+Note: Either `dir` or `cloud-dir` must be set. If both are provided, an error will be thrown.
+
+#### Outputs
+
+- `error`: Error message if any.
+- `current`: Current migration version.
+- `target`: Target migration version.
+- `pending_count`: Number of pending migrations.
+- `applied_count`: Number of applied migrations.
+
+## `ariga/atlas-sync-action`
+
+You can use [ariga/atlas-sync-action](https://github.com/ariga/atlas-sync-action) to sync your
+migration directory from your GitHub repository to [Atlas Cloud](https://atlasgo.cloud).
+
+Use this action in your workflow to sync your migration directory to Atlas Cloud.
+It is highly recommended that you only run this action on the main branch of your repository,
+as its purpose is to persist the desired state of your migration directory.
+
+To use this action, you must first have a Bot Token with permissions to write to your
+account. To learn how to create tokens, read [Atlas Cloud Bots](/cloud/bots).
+
+### Example
+
+```yaml
+name: Sync Atlas Migrations
+on:
+  push:
+    branches:
+      - master # Only run on our main branch
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ariga/atlas-sync-action@v0
+        with:
+          dir: path/to/migrations
+          driver: mysql # or: postgres | sqlite
+          cloud-token: ${{ secrets.ATLAS_CLOUD_TOKEN }}
+```
+
+### Reference
+
+Configure this action with the following inputs:
+
+#### `dir`
+
+**Required** The path to the directory containing your migrations.
+
+#### `driver`
+
+**Required** The database driver to use. One of: `mysql`, `postgres`, `sqlite`.
+
+#### `cloud-token`
+
+**Required** The Atlas Cloud token to use for authentication.

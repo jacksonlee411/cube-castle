@@ -1,0 +1,30 @@
+# Plan 214 Day 1 Execution Log
+# Date: 2025-11-03T10:07:48Z
+
+## Environment
+- Docker services: graphql-service, postgres, redis, rest-service
+- Postgres DSN: postgres://user:***@postgres:5432/cubecastle?sslmode=disable
+
+## Steps
+1. Generated schema snapshot via pg_dump:
+   - Command: docker compose exec -T postgres pg_dump --schema-only --no-owner --no-privileges -U user cubecastle > database/schema/current_schema.sql
+   - Result: success (51 KB, 1668 lines, tables=11, views=3, functions=12, triggers=6)
+
+2. Attempted atlas schema inspect to capture HCL diff:
+   - Command: docker run --rm -v "/home/shangmeilin/cube-castle:/workspace" -w /workspace --network cubecastle-network arigaio/atlas:latest schema inspect --url "postgres://user:password@postgres:5432/cubecastle?sslmode=disable" --format hcl
+   - Result: failed (Docker Hub access blocked by restricted network: proxyconnect tcp 127.0.0.1:7890)
+   - Action: fallback per Plan 214 §4.3 — continue with pg_dump-based diff and document missing atlas artifact.
+
+3. Produced diff against existing declaration:
+   - Command: diff --unified database/schema/current_schema.sql database/schema.sql > logs/214-phase1-baseline/schema-diff.txt
+   - Result: success (diff size 240 lines). Differences queued for Day 2 review.
+
+## Outstanding Items
+- Atlas HCL snapshot pending (blocked by Docker Hub access). Need offline image or alternative HCL generation before Day 2 review.
+- Proceed to Day 2: reconcile schema.sql with snapshot and prepare migration regeneration.
+
+
+## Atlas CLI Resolution
+- Built patched Atlas CLI from upstream v0.13.1 sources with custom dependency (tools/atlas & bin/atlas).
+- Applied modifications allowing Postgres 16 `pg_settings` output (server_version_num only) and fallback to `pg_database` for collation/ctype.
+- Verified `./bin/atlas schema inspect --url "postgres://user:password@localhost:5432/cubecastle?sslmode=disable" --schema public` succeeds and populates `database/schema/schema-inspect.hcl`.

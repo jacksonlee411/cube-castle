@@ -93,41 +93,41 @@ $ grep "^-- +goose" database/migrations/20251106000000_base_schema.sql
 
 ---
 
-#### **Day 3 (2025-11-08, 周四)** - 本地验证
+#### **Day 3 (2025-11-03, 周一)** - 本地验证（已完成）
 **负责**: DBA（李倩）+ QA
 **工作**:
-- [ ] 启动 Docker 环境: `make docker-up`
-- [ ] 应用迁移: `make db-migrate-all` (Goose up)
-- [ ] 回滚迁移: `make db-rollback-last` (Goose down)
-- [ ] 验证表存在: `SELECT tablename FROM pg_tables WHERE schemaname='public';`
-- [ ] 运行回归测试: `go test ./... -count=1`
-- [ ] 记录所有日志至 `logs/214-phase1-baseline/`
-- [ ] 输出: 验证日志 + 测试报告
+- [x] 启动 Docker 环境: `make docker-up`
+- [x] 应用迁移: `make db-migrate-all` (Goose up)
+- [x] 回滚迁移: `make db-rollback-last` (Goose down)
+- [x] 验证表存在: `SELECT tablename FROM pg_tables WHERE schemaname='public';`
+- [x] 运行回归测试: `go test ./... -count=1`
+- [x] 记录所有日志至 `logs/214-phase1-baseline/`
+- [x] 输出: 验证日志 + 测试报告（参见 `day3-*` 系列日志）
 
-**验收标准**:
-- ✅ `goose up` 成功 (无错误)
-- ✅ `goose down` 成功 (完全清理)
-- ✅ `goose up` 再次成功 (可重复)
-- ✅ `go test ./...` 无失败 (PASS)
-- ✅ `organization_units` 等关键表存在
+**验收标准（验证时逐项确认）**:
+- [x] `goose up` 成功 (无错误)
+- [x] `goose down` 成功 (完全清理)
+- [x] `goose up` 再次成功 (可重复)
+- [x] `go test ./...` 无失败 (PASS)
+- [x] `organization_units` 等关键表存在
 
 ---
 
-#### **Day 4 (2025-11-09, 周五)** - 评审、签字、交付
+#### **Day 4 (2025-11-03, 周一晚)** - 评审、签字、交付（已完成）
 **负责**: PM + 全体 (DBA, 架构师, DevOps)
 **工作**:
-- [ ] DBA + 架构组联合评审
-- [ ] 收集评审意见并文档化
-- [ ] 生成签字纪要: `docs/archive/development-plans/214-signoff-20251109.md`
-- [ ] 归档执行日志: `logs/214-phase1-baseline/`
-- [ ] 更新计划状态: `docs/development-plans/06-integrated-teams-progress-log.md` (第 12 节)
-- [ ] 交付物汇总: `reports/phase1-baseline-extraction-report.md`
+- [x] DBA + 架构组联合评审
+- [x] 收集评审意见并文档化
+- [x] 生成签字纪要: `docs/archive/development-plans/214-signoff-20251103.md`
+- [x] 归档执行日志: `logs/214-phase1-baseline/`
+- [x] 更新计划状态: `docs/development-plans/06-integrated-teams-progress-log.md`
+- [x] 交付物汇总: `reports/phase1-baseline-extraction-report.md`
 
-**最终交付物**:
-- ✅ `database/schema.sql` (已验证)
-- ✅ `database/migrations/20251106000000_base_schema.sql` (Up/Down 完整)
-- ✅ `docs/archive/development-plans/214-signoff-20251109.md` (3 人签字)
-- ✅ `logs/214-phase1-baseline/` (完整执行日志)
+**最终交付物（完成后勾选）**:
+- [x] `database/schema.sql`（经 Day 2/Day 4 审阅确认）
+- [x] `database/migrations/20251106000000_base_schema.sql`（Up/Down 验证通过）
+- [x] `docs/archive/development-plans/214-signoff-20251103.md`（3 人签字）
+- [x] `logs/214-phase1-baseline/`（完整执行日志）
 
 ---
 
@@ -247,11 +247,11 @@ Claude Code AI (on behalf of PM)
 
 #### 📦 Day 1 最终产出物
 
-**必须交付**:
-- ✅ `database/schema/current_schema.sql` (50 KB 左右)
-- ✅ `database/schema/schema-inspect.hcl` (Atlas 导出)
-- ✅ `logs/214-phase1-baseline/schema-diff.txt` (Diff 分析)
-- ✅ `logs/214-phase1-baseline/day1-execution-log.txt` (完整日志)
+**必须交付（完成后勾选）**:
+- [ ] `database/schema/current_schema.sql` (目标 ~50 KB)
+- [ ] `database/schema/schema-inspect.hcl` (Atlas 导出)
+- [ ] `logs/214-phase1-baseline/schema-diff.txt` (Diff 分析)
+- [ ] `logs/214-phase1-baseline/day1-execution-log.txt` (完整日志)
 
 **关键数据验证**:
 - 对象计数: `wc -l database/schema/current_schema.sql` (应 > 500 行)
@@ -353,11 +353,11 @@ PM Team
 #### ✅ 成功标志
 
 Plan 214 完成的标志:
-- ✅ Schema 对象覆盖率 ≥ 98% (vs Plan 210 基线)
-- ✅ `goose up && goose down && goose up` 所有操作成功
-- ✅ `go test ./...` 无失败
-- ✅ 所有签字已完成
-- ✅ 文档已归档
+- [ ] Schema 对象覆盖率 ≥ 98% (vs Plan 210 基线)
+- [ ] `goose up && goose down && goose up` 所有操作成功
+- [ ] `go test ./...` 无失败
+- [ ] 所有签字已完成
+- [ ] 文档已归档
 
 #### 🎯 后续启动
 

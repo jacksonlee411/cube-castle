@@ -1,0 +1,27 @@
+# Plan 214 Day 3 Round-Trip 验证
+# Date: 2025-11-03T11:05:00Z
+
+## 操作记录
+1. 清理与重建数据库
+   - 终止遗留连接并执行 `DROP DATABASE cubecastle;` → `CREATE DATABASE cubecastle;`
+2. Goose Up
+   - 命令: `make db-migrate-all`
+   - 日志: `logs/214-phase1-baseline/day3-goose-up.log` / `day3-goose-up-after-reset.log` / `day3-goose-up-final.log`
+   - 结果: 20251106000000 基线迁移 3 次执行均成功（首次 + 重建后两次）
+3. Goose Down
+   - 命令: `make db-rollback-last`
+   - 日志: `day3-goose-down.log`, `day3-goose-down-after-reset.log`
+   - 结果: 能够回滚至空库，并在脚本内重建公共 schema 与 goose version 表
+4. Goose Up（最终环境）
+   - 为 Go 测试重新创建数据库并执行基线迁移，保证测试在全新 Schema 上执行
+5. Go Test
+   - 命令: `go test ./... -count=1`
+   - 日志: `day3-go-test.log`
+   - 结果: 所有单元 / 集成测试通过（参见日志中的 ok 报告）
+
+## 注意事项
+- Goose Down 会重置 public schema 并写入 `goose_db_version` 记录；如需再次执行 Up，可先删除数据库或清空该表。
+- 所有命令均针对 Docker Postgres 实例执行，未触碰宿主服务。
+
+## 下一步
+- Day 4：整理签字包与文档（sign-off、执行总结、索引更新）。
