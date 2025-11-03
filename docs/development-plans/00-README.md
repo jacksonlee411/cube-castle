@@ -29,6 +29,12 @@
 #### **06 - 团队协作进展**
 - `06-integrated-teams-progress-log.md` - 集成团队协作进展日志
 
+#### **210-213 - Phase1 执行计划**
+- `210-database-baseline-reset-plan.md` - 数据库基线重置与验收计划
+- `211-phase1-module-unification-plan.md` - Phase1 模块统一化实施方案
+- `212-shared-architecture-alignment-plan.md` - Day6-7 架构复用决策与目录归属计划
+- `213-go-toolchain-baseline-plan.md` - Go 1.24 工具链基线评审计划
+
 #### **12 - 时态命令契约缺口（归档复测）**
 - `../archive/development-plans/12-temporal-command-contract-gap-remediation.md` - `/organization-units/temporal` 契约缺失专项治理计划（P3 复测，核心整改已归档）
 

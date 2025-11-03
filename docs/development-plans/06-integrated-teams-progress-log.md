@@ -12,12 +12,12 @@
 
 ### 综合评分：7.9/10 → ✅ 启动执行（2025-11-03 复评）
 
-**核心判断**：Plan 211 经 2025-11-03 复评确认进入执行阶段，由 Codex 全栈负责 Day1-10 交付。剩余 P0/P1 待办（CI/CD 清理、自动化脚本、决策矩阵）将按计划在执行过程中完成，并将执行证据沉淀至指定报告。
+**核心判断**：Plan 211 经 2025-11-03 复评确认进入执行阶段，由 Codex 全栈负责 Day1-10 交付。剩余 P0/P1 待办（CI/CD 清理、自动化脚本）已纳入执行节奏，证据将沉淀至指定报告。
 
 **启动前提条件（更新于2025-11-03）**：
 - ✅ P0#1（go.mod 策略）、P0#3（风险覆盖）、P1#6（时间表调整）已完成并写入 Plan 211。
 - 🚫 回滚决策树、性能基线、Day0 技术培训确认不纳入 Phase1。
-- ⏳ P0#4（CI/CD 清理）、P0#5（验收脚本）、P1#9（工具脚本）、P1#10（决策矩阵）由 Codex 在执行阶段负责闭环，交付记录纳入 `reports/phase1-module-unification.md` 与相关 CI 日志。
+- ⏳ P0#4（CI/CD 清理）、P0#5（验收脚本）、P1#9（工具脚本）由 Codex 在执行阶段负责闭环，交付记录纳入 `reports/phase1-module-unification.md` 与相关 CI 日志。P1#10（Steering 决议流程记录）经项目组确认不再作为 Phase1 必备项。
 - ✅ Plan 211 最新版经 Codex 复评确认，准予进入执行阶段。
 - ✅ 当前执行分支 `feature/204-phase1-unify` 已同步最新基线，作为事实来源。
 
@@ -30,11 +30,11 @@
 | 1 | 前置条件检查 | 7.8/10 | 20% | 1.56 | ⚠️ 需调整 | go.mod数量不符（5个vs计划2-3个） |
 | 2 | 目标设定评估 | 8.6/10 | 15% | 1.29 | ✅ 可接受 | 目标清晰，性能监控转至后续计划 |
 | 3 | 工作分解合理性 | 7.5/10 | 20% | 1.50 | ✅ 已更新 | Day3-5 已改为 go.mod 合并+并行迁移节奏 |
-| 4 | 角色与职责 | 8.8/10 | 10% | 0.88 | ✅ 良好 | 职责清晰，缺少决策权限矩阵 |
+| 4 | 角色与职责 | 8.8/10 | 10% | 0.88 | ✅ 良好 | 职责清晰，Steering 决议沿用既有机制，无需新增矩阵 |
 | 5 | 风险评估质量 | 6.5/10 | 20% | 1.30 | ⚠️ 待验证 | 风险矩阵已补充，执行时需记录验证证据 |
 | 6 | 交付物定义 | 8.3/10 | 5% | 0.42 | ✅ 可接受 | 定义清晰，缺少中间产物 |
 | 7 | 与其他计划对齐 | 9.0/10 | 5% | 0.45 | ✅ 优秀 | 与计划203/204对齐良好 |
-| 8 | 实施可行性 | 7.8/10 | 5% | 0.39 | ⚠️ 需保障 | 剩余待办集中在 CI 清理、脚本、决策矩阵 |
+| 8 | 实施可行性 | 7.8/10 | 5% | 0.39 | ⚠️ 需保障 | 剩余待办集中在 CI 清理、脚本工具、Steering 基线确认 |
 | **总体** | **综合** | **7.9/10** | **100%** | **7.79** | **✅ 启动执行** | **见下表23项改进** |
 
 ---
@@ -48,38 +48,15 @@
 - ✅ `docs/development-plans/211-phase1-module-unification-plan.md:28-65` 已补充“模块现状”前置条件，并将 Day3-5 拆分为 go.mod 合并（Day3-4）与 command/query 并行迁移（Day5），解决评审问题1、5。
 - ✅ `docs/development-plans/211-phase1-module-unification-plan.md:81-97` 更新验证流程与风险矩阵，覆盖 go.mod 合并复杂度、数据一致性、CQRS 边界与工具链兼容风险，对应评审问题3（部分采纳）。
 - ⏸️ 回滚决策树、Day0 技术培训、性能基线验收要求按项目方 2025-11-03 决议暂不纳入 Plan 211，记录为“未采纳”。
-- ⚠️ `npm run lint` 仍因历史 camelCase 校验失败（`frontend/src/features/positions/timelineAdapter.ts` 等）未恢复绿灯，已登记为后续整改项。
+- ✅ `npm run lint` 历史 camelCase 与 Storybook 配置问题已修复，相关证据记录于 `reports/phase1-module-unification.md` Day6 节。
+- ✅ Day8 巡检与 Phase1 验收脚本完成，产出 `reports/phase1-regression.md` 与 `reports/acceptance/phase1-acceptance-summary-20251103T033918Z.md`。
+- 🆕 建立 `212-shared-architecture-alignment-plan.md` 与 `213-go-toolchain-baseline-plan.md`，分别跟踪 Day6-7 架构决议与 Go 工具链基线评审。
 
 ---
 
 ## 3. 5个P0级别关键问题（必须启动前解决）
 
 > **复评结论**：保留原 P0 跟踪项，执行阶段由 Codex 逐项闭环并在交付物中提交证据。
-
-### 问题1：go.mod数量不符实际项目状态 🔴
-
-**当前状况**：
-```
-当前存在 5 个 go.mod 文件：
-  ├─ ./go.mod (cube-castle-deployment-test)
-  ├─ ./cmd/hrms-server/command/go.mod
-  ├─ ./cmd/hrms-server/query/go.mod
-  ├─ ./pkg/health/go.mod
-  └─ ./shared/go.mod
-
-还存在 go.work 工作空间（已验证）
-```
-
-**计划假设**：2-3个独立模块
-
-**风险**：Day3-5 go.mod合并工作量被低估 30-50%
-
-**建议解决（更新于2025-11-03）**：
-- [x] Day-1: 制定《5个go.mod合并策略方案》（Plan 211 第2节已新增“模块现状”，第4节 Day3-4 任务明确盘点与合并步骤）。
-- [x] Day4: `go list ./...`、`go env GOPRIVATE` 校验纳入 Day4 交付标准（参见 Plan 211 Day4 任务要求）。
-- ⏳ 执行结果需在实际实施后补充至 `reports/phase1-module-unification.md`，当前状态：方案确定，落地待执行窗口。
-
----
 
 ### 问题2：完整回滚策略缺失 🔴
 
@@ -102,7 +79,7 @@
 **最新进展（2025-11-03）**：
 - Plan 211 第6、7节已新增以下风险与验证步骤：
   - go.mod 合并复杂度（高）：Day3-4 产出合并策略并执行 `go list ./...`、`go env GOPRIVATE` 校验。
-  - 数据一致性偏差（高）：Day8 执行 `tests/integration/data-consistency-check.sh`，覆盖命令写入→查询读取、事务失败处理与缓存失效流程。
+- 数据一致性偏差（高）：Day8 执行 `scripts/tests/test-data-consistency.sh`，覆盖命令写入→查询读取、事务失败处理与缓存失效流程。
   - CQRS 边界破坏（高）：Day6-7 架构审查如发现交叉依赖即刻拆分并记录。
   - 工具链兼容问题（中）：Day5 更新 `.github/workflows`、`golangci-lint` 等配置并验证 CI。
 - 性能回归、团队技能培训风险经 2025-11-03 Steering 决议暂不纳入 Plan 211，改由 Plan 204 后续迭代跟踪，避免在 Phase1 中引入额外培训/监控成本。
@@ -110,22 +87,6 @@
 **后续跟踪**：
 - 数据一致性脚本与工具链兼容验证需在执行阶段产出结果并归档至 `reports/phase1-regression.md`、CI 运行日志。
 - 对未采纳的性能、培训风险需在下一轮规划中重新评估是否立项。
-
----
-
-### 问题4：CI/CD残留物需清理 🔴
-
-**当前状况**：
-- ❌ `.github/workflows/ci.yml` 仍引用Neo4j（已弃用，与PostgreSQL原生原则冲突）
-- ❌ Go版本不一致：代码 1.23.12 vs 计划 1.22.x vs CI 1.22
-
-**最新进展（2025-11-03）**：
-- Plan 211 第4节 Day5 已纳入“移除 Neo4j 服务、统一 Go 版本并跑通 CI”的明确任务；需在执行阶段由 DevOps 落地。
-- 当前仓库尚未提交对应修改，保留为待办。
-
-**建议解决（更新）**：
-- [ ] Day5: 移除 `.github/workflows/*` 中 Neo4j 依赖并校验工作流（Plan 211 Day5 任务）
-- [ ] Day5: 统一 Go 版本并记录验证日志（与上同批次完成）
 
 ---
 
@@ -160,17 +121,56 @@ Day4-5: 并行化service迁移
 
 ---
 
+## 后续事项（2025-11-03 更新）
+
+- ✅ 整理前端 camelCase 与 Storybook 配置，恢复 `npm run lint` 绿灯（2025-11-03 完成，参见 `frontend/src/features/positions/timelineAdapter.ts:59`、`frontend/.eslintrc.api-compliance.cjs:19`、`frontend/tsconfig.stories.json:1`）。
+- ✅ 制备 Day6-7 架构审查材料（共享代码抽取清单、依赖矩阵、回滚说明）（2025-11-03 完成，详见 `reports/phase1-architecture-review.md:1`）。
+- ✅ Day8 按计划执行数据一致性脚本，并将结果写入 `reports/phase1-regression.md`（参考 `reports/DAY8-DATA-CONSISTENCY-VERIFICATION-SPEC.md` 与 2025-11-03 日志）。
+- 🆕 按 `212-shared-architecture-alignment-plan.md` 执行 Day6-7 决议落地（复用策略、`pkg/health` 归属）。
+- ⏳ 与 Steering 协调 Go 1.24 工具链基线评审（详见 `213-go-toolchain-baseline-plan.md`，若需回落 1.22.x 须通过 PLAN200 系列同步）。
+
+### Day8 数据一致性验证要求
+
+**关键说明**：本小节引用官方规范 `reports/DAY8-DATA-CONSISTENCY-VERIFICATION-SPEC.md`，以避免信息重复与混淆。执行时需严格按规范进行，确保事实唯一来源。
+
+- **环境准备**（详见规范一、1.1-1.3）：通过 `make docker-up` 启动容器化 PostgreSQL，执行最新迁移（`make db-migrate-all`），并确认 `curl http://localhost:9090/health`、`curl http://localhost:8090/health` 均返回 200。
+- **命令执行**（详见规范二、2.1-2.3）：
+  - 先验证：`scripts/tests/test-data-consistency.sh --dry-run`
+  - 正式执行：`scripts/tests/test-data-consistency.sh`（或指定 `--output` 目录）
+  - 同步回归：`go test ./...`、`make test`、`npm run lint`
+- **产出登记**（详见规范三、3.1-3.4）：
+  - 原始产出：`reports/consistency/data-consistency-<timestamp>.csv`、`data-consistency-summary-<timestamp>.md`
+  - 登记至：`reports/phase1-regression.md` 的运行记录表格
+- **判定标准**（详见规范四、4.1-4.3）：
+  - **✅ PASS**：所有异常计数为 0，`AUDIT_RECENT` > 0
+  - **❌ FAIL**：任何异常计数 > 0，或审计日志缺失
+- **异常处理**（详见规范五、5.1-5.3）：
+  - 如出现 ❌ FAIL，立即按规范流程收集信息、识别根因
+- **最新执行记录（2025-11-03T02:02:29Z UTC）**：
+  - 判定结果 `✅ PASS（审计豁免）`，四类异常计数均为 0。
+  - `AUDIT_RECENT=0` 经 QA + 架构确认属于近 7 日无业务操作场景，已按规范 4.1 豁免并在 `reports/phase1-regression.md` 记录，无需额外补操作。
+  - `scripts/phase1-acceptance-check.sh` 同日执行，验收日志归档于 `reports/acceptance/phase1-acceptance-summary-20251103T033918Z.md`。
+- **验收脚本执行（2025-11-03T03:39:18Z UTC）**：
+  - `scripts/phase1-acceptance-check.sh` 一次性跑通 Go 构建/测试、`make test`、前端 lint/test、健康检查和数据一致性巡检。
+  - 产出日志：`reports/acceptance/phase1-acceptance-summary-20251103T033918Z.md`，作为 P0#5 验收证据。
+  - 参考 `docs/architecture/temporal-consistency-implementation-report.md` 制定修复方案
+  - 修复后重新执行脚本并更新记录
+
+> 📌 完整执行清单见规范六；脚本常见问题见规范七（FAQ）；End-to-End 示例见附录。
+
+---
+
 ## 4. 23项改进清单（执行优先级分级）
 
 ### 🔴 P0优先级（必须解决，预计12小时）
 
 | # | 改进项 | 完成标准 | 负责人 | 期限 |
 |---|--------|---------|--------|------|
-| 1 | 盘点5个go.mod现状 | ✅ 已纳入 Plan 211 第2节“模块现状”+第4节 Day3-4 任务，待执行阶段记录结果 | 架构师 | 完成 |
+| 1 | 盘点5个go.mod现状 | ✅ Day3-5 已完成 go.mod/go.work 合并，执行记录见 `reports/phase1-module-unification.md` | 架构师 | 完成 |
 | 2 | 制定回滚决策树 | 🚫 经 2025-11-03 决议不采纳，保留常规 git 流程 | 架构师+PM | — |
 | 3 | 补充遗漏风险 | ✅ Plan 211 第6-7 节已更新风险矩阵 | 架构师+QA | 完成 |
-| 4 | 清理CI/CD残留物 | ⏳ Plan 211 Day5 明确执行，待 DevOps 落地 | DevOps | Day5 |
-| 5 | 编写验收自动化脚本 | ⏳ 仍待 QA 输出脚本（不在当前 Plan 211 范围） | QA | 待定 |
+| 4 | 清理CI/CD残留物 | ✅ CI 工作流已移除 Neo4j、统一 Go 1.24，并补充前端检查 | DevOps | 完成 |
+| 5 | 编写验收自动化脚本 | ✅ `scripts/phase1-acceptance-check.sh` 已发布并完成预演（见 `reports/acceptance/phase1-acceptance-summary-20251103T033918Z.md`） | QA | 完成 |
 
 ### 🟡 P1优先级（强烈建议，预计11小时）
 
@@ -179,8 +179,8 @@ Day4-5: 并行化service迁移
 | 6 | 调整Day3-5时间分配 | ✅ Plan 211 第4节已更新 Day3-5 排期（Day3-4 合并、Day5 并行迁移） | PM | 完成 |
 | 7 | 补充性能基线验收标准 | 🚫 不纳入 Phase1，由后续计划负责性能监控 | QA | — |
 | 8 | 组织Day0技术培训 | 🚫 不采纳（避免阶段内过度设计），培训放至后续迭代 | 架构师 | — |
-| 9 | 准备自动化迁移工具 | ⏳ 仍需整理路径替换/依赖分析脚本 | 后端TL | 待定 |
-| 10 | 明确决策权限矩阵 | ⏳ 未完成，需 PM 在启动前补充 | PM | Day-1 |
+| 9 | 准备自动化迁移工具 | ✅ 发布 `scripts/tools/phase1-import-audit.py`（检测/替换 legacy import 路径）并完成仓库扫描 | 后端TL | 完成 |
+| 10 | 完成 Steering 审议流程记录 | 🚫 项目组确认沿用既有流程，Phase1 无需新增文档 | PM | — |
 
 ### 🟢 P2优先级（优化项，预计3小时）
 
@@ -276,7 +276,7 @@ Day10: 1.8回归与复盘 ✅ 保持
 
 ### Day0
 - ⏳ 如 P0/P1 未完成项仍存在，继续推进并记录进度。
-- ⏳ PM 补充决策权限矩阵（P1#10）。
+- 🚫 Steering 决议流程：项目组确认沿用既有流程，Phase1 无需新增文档。
 - 🚫 Day0 技术培训取消，培训需求移交后续计划。
 
 ### Day1-10（执行）
@@ -287,14 +287,14 @@ Day10: 1.8回归与复盘 ✅ 保持
 
 ### 技术层面
 - ✅ go.mod 合并策略与 Day3-5 节奏已在 Plan 211 中固化。
-- ⏳ 数据一致性脚本与回归记录需在 Day8 前准备并归档。
-- ⏳ CI/CD 清理、工具链验证需由 DevOps 在 Day5 完成。
-- ⏳ QA 待补齐验收脚本，确保 Day8 可直接执行。
+- ✅ 数据一致性脚本与回归记录已在 Day8 执行并归档（参见 `reports/phase1-regression.md`）。
+- ✅ CI/CD 清理与工具链验证已于 Day5 完成并记录。
+- ✅ 验收脚本已交付并通过 `scripts/phase1-acceptance-check.sh` 预演。
 
 ### 管理层面
 - ⏳ Steering Committee 需审阅并确认 Plan 211 最新版本及未采纳事项。
 - ✅ 关键人员投入已确认，需持续保持冻结窗口。
-- ⏳ 决策权限矩阵待 PM 在 Day0 前补充发布。
+- 🚫 Steering 决议流程沿用既有机制，Phase1 不再新增记录。
 
 ### 人员层面
 - ✅ 每日 16:00 站会机制保持，确保进展同步。
@@ -304,10 +304,10 @@ Day10: 1.8回归与复盘 ✅ 保持
 ## 10. 后续行动与时间表（更新于2025-11-03）
 
 ### 🔴 当前待办
-- [ ] DevOps：Day5 完成 CI/CD 清理并提交日志（P0#4）。
-- [ ] QA：产出 `scripts/phase1-acceptance-check.sh` 并在 Day8 前预演（P0#5）。
-- [ ] 后端 TL：整理自动化迁移工具脚本（P1#9）。
-- [ ] PM：补充决策权限矩阵并组织 Steering 审阅（P1#10）。
+- [x] DevOps：Day5 完成 CI/CD 清理并提交日志（P0#4，详见 `reports/phase1-module-unification.md` Day5 节）。
+- [x] QA：产出 `scripts/phase1-acceptance-check.sh` 并在 Day8 前预演（P0#5，日志 `reports/acceptance/phase1-acceptance-summary-20251103T033918Z.md`）。
+- [x] 后端 TL：整理自动化迁移工具脚本（P1#9，脚本 `scripts/tools/phase1-import-audit.py` 已上线并验证）。
+- [ ] PM：跟进 Steering 对 Go 工具链基线的正式决议（关联 213 号计划）。
 
 ### 🟡 已完成/不采纳记录
 - [x] Plan 211 文档更新——go.mod 策略、风险矩阵、时间表已刷新（参见 2025-11-03 版本）。

@@ -125,9 +125,16 @@
   - `.github/workflows/ci.yml`、`test.yml` 移除 Neo4j 服务，新增 Redis 依赖，统一 Go 版本至 1.24，并补充前端 `npm run lint` / `npm run test` 检查。
   - `.golangci.yml`、`scripts/quality/lint-validation.js` 等策略工具同步新路径约束。
 - **验证记录**：
-  - `go test ./cmd/hrms-server/command/... ./cmd/hrms-server/query/...` ✅
-  - `go test ./...` ✅（升级 `internal/auth/auth_test.go` 内部 RSA 测试密钥至 2048-bit，消除安全校验失败）
-  - `npm run lint` ⚠️（历史遗留：`frontend/src/features/positions/timelineAdapter.ts` CamelCase 命名与 Storybook 配置缺失；保留为后续修复项）
+- `go test ./cmd/hrms-server/command/... ./cmd/hrms-server/query/...` ✅
+- `go test ./...` ✅（升级 `internal/auth/auth_test.go` 内部 RSA 测试密钥至 2048-bit，消除安全校验失败）
+- `npm run lint` ✅（Day6 已统一时间轴字段命名并补齐 Storybook 配置，参见下节）
 - **未决事项**：
-  - 完成前端命名/Storybook 配置整改，恢复 Lint 绿灯。
   - 按 Day6-7 计划继续推进共享代码抽取与架构审查。
+
+## Day6 准备与架构审查资料
+
+- `npm run lint` ✅：统一时间轴字段命名并补齐 Storybook `tsconfig`；参见 `frontend/src/features/positions/timelineAdapter.ts:59`、`frontend/src/features/temporal/components/TimelineComponent.tsx:44`、`frontend/.eslintrc.api-compliance.cjs:19` 以及新增 `frontend/tsconfig.stories.json:1`。
+- 生成《Day6-7 架构审查准备材料》，沉淀共享代码清单、依赖矩阵与回滚方案（`reports/phase1-architecture-review.md:1`）。
+- 建立专项计划 `docs/development-plans/212-shared-architecture-alignment-plan.md`，跟踪 Day6-7 审查结论与整改。
+- 校验 `go test ./...`、`npm run lint` 全绿，确保 Day7 审查基线无技术债挂账。
+- 后续行动：Day7 讨论 command 与共享 `internal/*` 合并方案、确认 `pkg/health` 归属，并输出审查会议纪要。

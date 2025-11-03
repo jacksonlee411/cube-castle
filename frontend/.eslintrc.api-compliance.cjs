@@ -18,6 +18,7 @@ module.exports = {
     project: [
       path.join(__dirname, 'tsconfig.app.json'),
       path.join(__dirname, 'tsconfig.node.json'),
+      path.join(__dirname, 'tsconfig.stories.json'),
     ],
     tsconfigRootDir: __dirname,
   },

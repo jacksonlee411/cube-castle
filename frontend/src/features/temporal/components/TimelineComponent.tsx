@@ -41,12 +41,12 @@ export interface TimelineVersion {
   lifecycleStatus?: 'CURRENT' | 'HISTORICAL' | 'PLANNED';
   businessStatus?: 'ACTIVE' | 'INACTIVE';
   dataStatus?: 'NORMAL' | 'DELETED';
-  suspended_at?: string | null; // 停用时间
-  suspended_by?: string | null; // 停用者
-  suspension_reason?: string | null; // 停用原因
-  deleted_at?: string | null; // 删除时间
-  deleted_by?: string | null; // 删除者
-  deletion_reason?: string | null; // 删除原因
+  suspendedAt?: string | null; // 停用时间
+  suspendedBy?: string | null; // 停用者
+  suspensionReason?: string | null; // 停用原因
+  deletedAt?: string | null; // 删除时间
+  deletedBy?: string | null; // 删除者
+  deletionReason?: string | null; // 删除原因
 }
 
 // 时间轴组件属性接口

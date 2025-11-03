@@ -30,6 +30,7 @@
 - **模块现状**：已确认存在 5 个 `go.mod`（根目录、command、query、pkg/health、shared）及 `go.work`，需在 Day3 给出统一合并策略。
 - **CI/CD 约束**：阅读 `.github/workflows/agents-compliance.yml` 与 `.github/workflows/document-sync.yml`，确保目录、命名合规。
 - **数据状态**：执行 `goose status`（或团队自建等效脚本）确认迁移基线一致；清理临时测试数据，避免影响 Week 1-2 回归。
+- **Steering 审议**：沿用现有治理流程，无需新增决策权限矩阵，关键审批通过定期 Steering 会与 06 号文档记录同步。
 - **人员排期**：架构师、后端 TL、QA、DevOps、文档支持均确认两周内可投入，避免与其他关键发布冲突。
 
 ## 3. 关键角色与职责
@@ -72,6 +73,7 @@
   - 统一的 `go.mod` / `go.sum`、更新后的目录结构：`cmd/hrms-server/{command,query}`, `internal/*`, `pkg/*`。
   - 更新后的构建脚本、Make 目标、Docker 配置及部署日志。
   - `reports/phase1-module-unification.md`（结构调整说明）与 `reports/phase1-regression.md`（测试结果）。
+  - `scripts/phase1-acceptance-check.sh` + `reports/acceptance/` 验收日志（P0#5）。
   - `docs/development-plans/211-Day2-Module-Naming-Record.md`（模块命名与路径策略决议）。
   - 如涉及文档变更，更新 `README.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 等。
 - **验收标准**
@@ -84,7 +86,7 @@
 ## 6. 验证流程与工具
 
 1. **静态检查**：`make fmt`、`go fmt ./...`、`golangci-lint run ./...`；`node scripts/quality/architecture-validator.js` 确认目录合规。  
-2. **自动化测试**：`go test ./... -count=1`，如需集成测试加 `-tags=integration`；前端执行 `npm run lint`、`cd frontend && npm run test -- --runInBand`。  
+2. **自动化测试**：`go test ./... -count=1`，如需集成测试加 `-tags=integration`；前端执行 `npm run lint`、`cd frontend && npm run test:run`。  
 3. **契约校验**：手动对比 `docs/api/openapi.yaml`、`docs/api/schema.graphql` 与生成代码；如有生成任务需重新运行并审查差异。  
 4. **部署验证**：`docker compose -f docker-compose.dev.yml build hrms-server`、`make status`、`curl http://localhost:{9090,8090}/health`，并查看 `run-dev*.log` 确认无新错误。  
 5. **性能对比**：使用历史 `baseline-ports.log`、`baseline-processes.log` 与新的指标文件对比；必要时在测试环境运行 `wrk`/`ab` 短暂压测并记录。
