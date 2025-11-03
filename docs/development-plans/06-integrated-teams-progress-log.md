@@ -50,13 +50,29 @@
 
 ### 2.1 Phase2 目标与范围
 
-**阶段目标**：在统一的模块化基础上，按 203 号计划的领域划分，逐步建立 Core HR 域的 `workforce` 和 `contract` 模块，为 Phase3+ 做准备。
+**阶段目标**：在 Phase1 统一模块化基础上，为后续新模块开发建立共享基础设施和标准化模块结构。Phase2 重点是构建模块化单体的"脚手架"而非新业务模块。
 
-**范围清晰界定**：
-- ✅ 新增 `internal/workforce/` 模块（员工档案与生命周期事件）
-- ✅ 新增 `internal/contract/` 模块（劳动合同管理）
-- ✅ 完成 Core HR 域的三个模块（organization ← 已有，workforce ← 新建，contract ← 新建）
-- ❌ **不在 Phase2 范围内**：Talent Management 域、Compensation & Operations 域（预计 Phase3 推进）
+**具体工作范围**（Week 3-4，Day 12-18）：
+
+**基础设施实现** (2.1-2.3)：
+- ✅ 实现 `pkg/eventbus/` - 模块间事件驱动通信的基础
+- ✅ 实现 `pkg/database/` - 统一的数据库访问层和事务管理
+- ✅ 实现 `pkg/logger/` - 结构化日志系统
+
+**数据库迁移与工作流** (2.4-2.5)：
+- ✅ 完成迁移脚本 Down 脚本补齐（Plan 210）
+- ✅ 完成 Atlas + Goose 工作流配置（Plan 210）
+
+**模块重构与模板建设** (2.6-2.10)：
+- ✅ 重构 `organization` 模块按新标准结构
+- ✅ 创建模块开发模板与规范文档
+- ✅ 建立 Docker 化集成测试基座
+- ✅ 验证 organization 模块按新结构正常工作
+
+**不在 Phase2 范围内**：
+- ❌ 新的业务模块开发（workforce、contract 等）预计在 Phase3 推进
+- ❌ 新增 API 端点与功能特性
+- ❌ Talent Management、Compensation & Operations 等其他域
 
 ### 2.2 核心建议与工作流
 
@@ -189,18 +205,17 @@ contract:update
 
 ## 3. Phase2 详细时间表（Week 3-4）
 
-| 时间 | 行动项 | 描述 | 负责人 | 产出 | 依赖 |
+| 时间 | 行动项编号 | 描述 | 负责人 | 产出 | 状态 |
 |------|--------|------|--------|------|------|
-| **W3-D1** | 需求梳理 | 根据 79 号文档分析 workforce 与 contract 业务需求 | 产品 + 架构 | 需求文档 | Phase1 完成 |
-| **W3-D2** | 数据库设计 | 设计 employees 与 labor_contracts 表结构 | 后端 TL + DBA | ER 图、建表脚本 | 需求梳理 |
-| **W3-D3** | API 设计 | 补充 OpenAPI 与 GraphQL 契约 | 架构师 | openapi.yaml 更新 | 数据库设计 |
-| **W3-D4-5** | 迁移脚本创建 | 使用 Goose 创建迁移脚本，验证 up/down | DevOps | `goose_*_workforce_schema.sql` | API 设计 |
-| **W3-W4** | 模块开发 | 并行开发 workforce 与 contract 模块 | 后端团队（2-3人） | 代码提交 | 迁移脚本 |
-| **W4-D3-4** | 单元 + 集成测试 | 编写并执行测试 | QA + 后端 | 测试报告 | 模块开发 |
-| **W4-D5** | E2E 场景验证 | 核心业务流程端到端测试 | QA + 前端 | E2E 报告 | 集成测试 |
-| **W4-D5** | 性能基线 | 记录新模块的响应时间、数据库查询等指标 | DevOps + QA | 性能基线报告 | E2E 验证 |
-| **W4-D5** | 代码审查 & 合并 | 所有 PR 通过审查，合并至 main | 后端 TL | 合并日志 | E2E 验证 |
-| **W4-D5** | 文档更新 | 更新 README、开发者速查等文档 | 文档支持 | 文档 PR | 代码合并 |
+| **W3-D1** | 2.1 | 实现 `pkg/eventbus/` 事件总线接口与实现 | 基础设施 | eventbus.go、memory_eventbus.go | ⏳ 待启动 |
+| **W3-D2** | 2.2 | 实现 `pkg/database/` 数据库连接层和事务支持 | 基础设施 | connection.go、transaction.go、outbox.go | ⏳ 待启动 |
+| **W3-D2** | 2.3 | 实现 `pkg/logger/` 结构化日志系统 | 基础设施 | logger.go、formatter.go | ⏳ 待启动 |
+| **W3-D3** | 2.4-2.5 | 迁移脚本和 Atlas 配置（已完成，Plan 210） | DevOps | Goose + Atlas 工作流 | ✅ 完成 |
+| **W3-D4-5** | 2.6 | 重构 organization 模块按新结构 | 架构师 | 标准模块结构、api.go | ⏳ 待启动 |
+| **W4-D1** | 2.7 | 创建模块开发模板与规范文档 | 架构师 | module-development-template.md | ⏳ 待启动 |
+| **W4-D2** | 2.8 | 构建 Docker 化集成测试基座 | QA | docker-compose.test.yml | ⏳ 待启动 |
+| **W4-D3** | 2.9 | 验证 organization 模块正常工作（单元、集成、E2E） | QA | 测试报告、验收检查表 | ⏳ 待启动 |
+| **W4-D4** | 2.10 | 更新 README、开发指南与实现清单 | 文档支持 | 文档 PR | ⏳ 待启动 |
 
 ---
 
@@ -267,19 +282,19 @@ contract:update
 
 ### Phase2 Week1 里程碑
 
-- [ ] 需求文档已完成
-- [ ] 数据库 ER 图已设计
-- [ ] API 设计已锁定（openapi.yaml + schema.graphql）
-- [ ] `internal/workforce/` 与 `internal/contract/` 目录结构已建立
-- [ ] 第一批迁移脚本已创建
+- [ ] `pkg/eventbus/` 实现完成，单元测试 > 80%
+- [ ] `pkg/database/` 实现完成，连接池配置正确
+- [ ] `pkg/logger/` 实现完成，与 Prometheus 集成
+- [ ] `organization` 模块重构完成，按新模板组织
+- [ ] 第一批迁移脚本已验证（up/down 循环）
 
 ### Phase2 Week2 里程碑
 
-- [ ] 模块代码开发完成（workforce + contract）
-- [ ] 单元 & 集成测试全部通过
-- [ ] E2E 核心流程验证通过
-- [ ] 代码审查完成，PR 已合并
-- [ ] 文档更新完成
+- [ ] 模块开发模板文档完成
+- [ ] Docker 集成测试基座可正常启动
+- [ ] organization 模块所有测试通过（单元、集成、E2E）
+- [ ] REST/GraphQL 端点行为验证完成
+- [ ] README 和开发指南已更新
 
 ---
 
