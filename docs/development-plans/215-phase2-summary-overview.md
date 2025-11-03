@@ -47,7 +47,7 @@
 | 计划编号 | 名称 | 工作内容 | 完成日期 | 前置依赖 | 产出 | 负责人 |
 |---------|------|--------|---------|---------|------|--------|
 | **216** | eventbus 实现 | 事件总线接口与内存实现 | W3-D1 ✅ (2025-11-03) | Phase1 | pkg/eventbus/ | 基础设施 |
-| **217** | database 实现 | 连接池、事务、outbox | W3-D2 | Plan210 | pkg/database/ | 基础设施 |
+| **217** | database 实现 | 连接池、事务、outbox | W3-D2 | Plan210 | pkg/database/、20251107090000_create_outbox_events.sql | 基础设施（✅ 2025-11-04） |
 | **217B** | outbox 中继服务 | 实现 outbox→eventbus 中继 | W3-D3 | 217 | cmd/hrms-server/internal/outbox | 基础设施 |
 | **218** | logger 实现 | 结构化日志、Prometheus | W3-D2 | - | pkg/logger/ | 基础设施 |
 | **219** | 重构 org 模块 | 标准化目录、基础设施集成 | W3-D4-5 | 216-218 | organization/ | 架构师 |

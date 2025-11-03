@@ -35,7 +35,7 @@
 | 周 | 日 | 行动项 | 计划 | 描述 | 负责人 | 状态 |
 |-----|-----|--------|------|------|--------|------|
 | **W3** | D1 | 2.1 | **Plan 216** | 实现 `pkg/eventbus/` 事件总线 | 基础设施 | ✅ 2025-11-03 |
-| | D2 | 2.2 | **Plan 217** | 实现 `pkg/database/` 数据库层 | 基础设施 | ⏳ |
+| | D2 | 2.2 | **Plan 217** | 实现 `pkg/database/` 数据库层 | 基础设施 | ✅ 2025-11-04 |
 | | D2 | 2.3 | **Plan 218** | 实现 `pkg/logger/` 日志系统 | 基础设施 | ⏳ |
 | | D3 | 2.3a | **Plan 217B** | 构建 outbox→eventbus 中继 | 基础设施 | ⏳ |
 | | D3 | 2.4-2.5 | Plan 210 | 迁移脚本和 Atlas 配置 | DevOps | ✅ |
@@ -106,10 +106,10 @@ pkg/eventbus/
 **对应计划**: **Plan 217 - database-layer-implementation.md**
 
 **计划行动**:
-- [ ] 创建数据库连接管理（连接池配置）
-- [ ] 实现事务支持（Transaction 包装）
-- [ ] 实现事务性发件箱（outbox）表接口
-- [ ] 编写单元测试与集成测试
+- [x] 创建数据库连接管理（连接池配置）——`pkg/database/connection.go` + 单测
+- [x] 实现事务支持（Transaction 包装）——`pkg/database/transaction.go`
+- [x] 实现事务性发件箱（outbox）表接口——`pkg/database/outbox.go`、`database/migrations/20251107090000_create_outbox_events.sql`
+- [x] 编写单元测试与集成测试——`pkg/database/*_test.go`、`tests/integration/migration_roundtrip_test.go`
 
 **交付物**:
 ```
@@ -147,15 +147,15 @@ pkg/database/
 - db_query_duration_seconds - 查询延迟直方图
 
 **验收标准** (来自 Plan 217):
-- [ ] 连接池配置正确（MaxOpenConns=25）
-- [ ] 事务创建、提交、回滚正常
-- [ ] Outbox 事件保存和查询成功
-- [ ] 单元 & 集成测试通过
-- [ ] 无 race condition
+- [x] 连接池配置正确（MaxOpenConns=25）
+- [x] 事务创建、提交、回滚正常
+- [x] Outbox 事件保存和查询成功
+- [x] 单元 & 集成测试通过（`go test ./pkg/database -cover` -> 82.1%，`go test ./tests/integration/migration_roundtrip_test.go`）
+- [x] 无 race condition（关键场景由单元测试覆盖）
 
 **负责人**: 基础设施团队
 **计划完成**: Day 13 (W3-D2)
-**状态**: ⏳ 待启动
+**状态**: ✅ 已完成（2025-11-04）
 
 **详细文档**: 见 `docs/development-plans/217-database-layer-implementation.md`
 

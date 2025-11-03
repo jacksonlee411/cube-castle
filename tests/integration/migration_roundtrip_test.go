@@ -55,18 +55,18 @@ func TestMigrationRoundtrip(t *testing.T) {
 
 	migrationsDir := lookupProjectPath(t, "database", "migrations")
 
-	if err := goose.UpContext(ctx, db, migrationsDir, goose.WithNoVersioning()); err != nil {
+	if err := goose.UpContext(ctx, db, migrationsDir); err != nil {
 		t.Fatalf("goose up: %v", err)
 	}
 
 	assertTableExists(ctx, t, db, "organization_units")
 	assertExtensionExists(ctx, t, db, "pgcrypto")
 
-	if err := goose.DownContext(ctx, db, migrationsDir, goose.WithNoVersioning()); err != nil {
+	if err := goose.DownContext(ctx, db, migrationsDir); err != nil {
 		t.Fatalf("goose down: %v", err)
 	}
 
-	if err := goose.UpContext(ctx, db, migrationsDir, goose.WithNoVersioning()); err != nil {
+	if err := goose.UpContext(ctx, db, migrationsDir); err != nil {
 		t.Fatalf("goose up second time: %v", err)
 	}
 }

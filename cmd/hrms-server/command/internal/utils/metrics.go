@@ -24,6 +24,7 @@ var (
 	temporalOperationsTotal *prometheus.CounterVec
 	auditWritesTotal        *prometheus.CounterVec
 	httpRequestsTotal       *prometheus.CounterVec
+	outboxDispatchTotal     *prometheus.CounterVec
 )
 
 func ensureRegistered() {
@@ -52,7 +53,15 @@ func ensureRegistered() {
 			[]string{"method", "route", "status"},
 		)
 
-		prometheus.MustRegister(temporalOperationsTotal, auditWritesTotal, httpRequestsTotal)
+		outboxDispatchTotal = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "outbox_dispatch_total",
+				Help: "Total number of outbox dispatch operations grouped by result and event type",
+			},
+			[]string{"result", "event_type"},
+		)
+
+		prometheus.MustRegister(temporalOperationsTotal, auditWritesTotal, httpRequestsTotal, outboxDispatchTotal)
 	})
 }
 
@@ -83,4 +92,13 @@ func RecordHTTPRequest(method, route string, statusCode int) {
 
 	code := strconv.Itoa(statusCode)
 	httpRequestsTotal.WithLabelValues(method, route, code).Inc()
+}
+
+// RecordOutboxDispatch 记录 outbox 中继的派发结果。
+func RecordOutboxDispatch(result, eventType string) {
+	ensureRegistered()
+	if eventType == "" {
+		eventType = "unknown"
+	}
+	outboxDispatchTotal.WithLabelValues(result, eventType).Inc()
 }
