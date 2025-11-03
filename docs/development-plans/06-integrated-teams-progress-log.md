@@ -57,6 +57,8 @@
 ### 2025-11-04 更新摘要
 
 - ✅ 完成 Plan 213 Go 工具链评审：Steering 确认保持 Go 1.24.0 基线（toolchain go1.24.9），`go test ./... -count=1` 回归通过；暂无回退需求，相关记录见 `reports/phase1-regression.md` 与 `docs/development-plans/213-go-toolchain-baseline-plan.md`。
+- ✅ Plan 212 架构审查结论、Plan 213 工具链基线均已落地，Plan 210 “数据库基线重建方案” 可按 Week1-2 节奏推进（已在文档引用中标注完成依赖）。
+- 🆕 建立 `214-phase1-baseline-extraction-plan.md`，聚焦 Plan 210 Phase1 基线萃取执行，待评审后开始落地。
 
 ---
 
@@ -323,3 +325,84 @@ Day10: 1.8回归与复盘 ✅ 保持
 
 ### 🟢 启动日提醒
 - Day1-10 按 Plan 211 第4节执行，确保关键交付（go.mod 合并日志、测试报告、CI 运行记录、文档更新）及时归档。
+
+---
+
+## 11. Day6-7 执行就绪性确认（2025-11-04 新增）
+
+### ✅ 三个计划的就绪状态
+
+**Plan 211（模块统一化）**：
+- ✅ Day1-5 交付完成，所有关键里程碑达成
+- ✅ go.mod 合并、命令/查询服务迁移、CI 清理均已验证
+- ✅ 编译测试通过：`go build ./cmd/hrms-server/{command,query}` ✓
+- ✅ 测试验证通过：`go test ./...` ✓（最近执行无失败）
+
+**Plan 212（共享架构对齐）**：
+- ✅ Day6 架构审查框架就绪，3 项决议已列出备选方案
+- ✅ 审查材料准备完毕：共享代码清单、依赖矩阵、后退应对
+- ✅ 预计执行时间：Day6 下午 14:00-15:30（1.5 小时）
+- ✅ 权限确认：架构师/后端 TL 可进行决议
+
+**Plan 213（Go 工具链基线）**：
+- ✅ 工具链验证完成：Go 1.24.9 编译验证通过
+- ✅ 兼容性评估完成：go.mod (go 1.24.0) ← 1.24.9 完全兼容
+- ✅ CI/CD 已更新至 Go 1.24，所有工作流验证通过
+- ✅ Steering Committee 决议就绪：建议采纳 Go 1.24 作为基线
+
+### 📋 Steering Committee 决策包
+
+**3 个待投票决议**：
+
+1. **决议 212-SC**（架构层）：批准 Plan 212 Day6 审查会的 3 项架构决议
+2. **决议 213-SC**（工具链）：采纳 Go 1.24 作为项目长期开发基线
+3. **决议 204-SC**（时间线）：确认 Day8-10 执行计划与资源分配
+
+**必读简报**：
+- `reports/PHASE1-DAY6-STEERING-COMMITTEE-BRIEFING.md`（执行简报，包含所有关键决议内容）
+- `reports/PHASE1-DAY6-EXECUTION-READINESS-FINAL.md`（最终就绪清单，Steering 决策参考）
+
+**Go 工具链升级记录**：
+- `reports/GO-UPGRADE-SUMMARY.md`：完整升级过程（WSL 1.22.2 → 1.24.9）
+- `reports/GO-VERSION-VERIFICATION-REPORT.md`：兼容性与编译验证
+- 升级要点：官方二进制安装至 /usr/local/go，符号链接与 PATH 配置已就绪
+
+### 🎯 Day6-7 执行日程
+
+**Day6（下午）**：
+- 14:00-15:30：Plan 212 架构审查会（3 项决议表决）
+- 15:30：决议纪要同步至执行报告
+- 16:00：日常站会汇总
+
+**Day7（上午-下午）**：
+- 09:00-11:00：Plan 212 架构审查会续（如 Day6 未完成）
+- 10:00-11:00：Plan 213 Steering 决议会（Go 1.24 基线投票）
+- 14:00：Day8-10 执行计划确认
+- 16:00：日常站会总结与 Day8 倒计时
+
+### ⚠️ 关键风险与应对
+
+| 风险 | 应对机制 |
+|------|--------|
+| Go 工具链不兼容 | Plan 213 投票后若选项 C，触发 Plan 200 系列回滚评估 |
+| Day6 审查超时 | 轮转至 Day7 上午继续，不影响后续进度 |
+| 部分开发机未升级 Go | Plan 213 采纳后，PM 通知所有成员按 GO-UPGRADE-SUMMARY.md 升级 |
+| Day8 数据测试失败 | 按 DAY8-DATA-CONSISTENCY-VERIFICATION-SPEC.md 处理，纳入 Day9-10 修复 |
+
+### ✅ 最终确认
+
+**当前状态**：✅ **Phase1 Day6-7 所有前置条件具备，可按计划执行**
+
+**文件清单**：
+- ✅ Plan 211：`docs/development-plans/211-phase1-module-unification-plan.md`
+- ✅ Plan 212：`docs/development-plans/212-shared-architecture-alignment-plan.md`
+- ✅ Plan 213：`docs/development-plans/213-go-toolchain-baseline-plan.md`
+- ✅ 执行纪录：`reports/phase1-module-unification.md`
+- ✅ 架构审查：`reports/phase1-architecture-review.md`
+- ✅ 工具链证据：`reports/GO-UPGRADE-SUMMARY.md` + `GO-VERSION-VERIFICATION-REPORT.md`
+- ✅ Steering 简报：`reports/PHASE1-DAY6-STEERING-COMMITTEE-BRIEFING.md`
+- ✅ 最终就绪清单：`reports/PHASE1-DAY6-EXECUTION-READINESS-FINAL.md`
+- ✅ Day8 验证规范：`reports/DAY8-DATA-CONSISTENCY-VERIFICATION-SPEC.md`
+
+**报告生成时间**：2025-11-04 00:35 UTC
+**下一个检查点**：Day6 上午 12:00（最后变更通知）

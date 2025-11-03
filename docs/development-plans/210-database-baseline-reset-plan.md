@@ -9,6 +9,8 @@
 - `200-Go语言ERP系统最佳实践.md`（数据库治理原则）
 - `203-hrms-module-division-plan.md`（P0 迁移治理要求）
 - `205-HRMS-Transition-Plan.md`（服务统一化步骤）
+- `212-shared-architecture-alignment-plan.md`（Day6-7 架构审查结论，已于 2025-11-04 完成）
+- `213-go-toolchain-baseline-plan.md`（Go 1.24 工具链基线评审，Steering 已确认保持 Go 1.24）
 - `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`（环境操作手册）
 
 ---
@@ -39,9 +41,9 @@
 
 | Phase | 预估人天 | 关键角色 | 说明 |
 |-------|---------|---------|------|
-| Phase 0 | 2 | 基础设施组 2 人 | 冻结、备份与验证 |
-| Phase 1 | 4 | DBA 1 人 + 架构组 1 人 | Schema 萃取、基线生成与审阅（含重试） |
-| Phase 2 | 3 | 基础设施组 1 人 + DevOps 1 人 | Goose/Atlas 配置、CI 集成、旧迁移清理 |
+| Phase 0 | 2 | 基础设施组 2 人 | 冻结、备份与验证（依赖 Plan 212 架构决议已落地）|
+| Phase 1 | 4 | DBA 1 人 + 架构组 1 人 | Schema 萃取、基线生成与审阅（含重试）|
+| Phase 2 | 3 | 基础设施组 1 人 + DevOps 1 人 | Goose/Atlas 配置、CI 集成、旧迁移清理；确保环境 Go 1.24 toolchain（Plan 213 决议）|
 | Phase 3 | 2 | QA 1 人 + DevOps 1 人 | Round-trip 测试、文档同步 |
 | **总计** | **11** | - | **两周完成，预留一周缓冲** |
 
