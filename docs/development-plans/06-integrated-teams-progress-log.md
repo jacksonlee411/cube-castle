@@ -50,7 +50,13 @@
 - ⏸️ 回滚决策树、Day0 技术培训、性能基线验收要求按项目方 2025-11-03 决议暂不纳入 Plan 211，记录为“未采纳”。
 - ✅ `npm run lint` 历史 camelCase 与 Storybook 配置问题已修复，相关证据记录于 `reports/phase1-module-unification.md` Day6 节。
 - ✅ Day8 巡检与 Phase1 验收脚本完成，产出 `reports/phase1-regression.md` 与 `reports/acceptance/phase1-acceptance-summary-20251103T033918Z.md`。
-- ✅ 建立 `212-shared-architecture-alignment-plan.md` 并完成 Day6-7 架构审查交付（纪要参见 `reports/phase1-architecture-review.md#7-day7-架构审查会议纪要（2025-11-04-1000-1100-cst）`）；`213-go-toolchain-baseline-plan.md` 持续跟踪 Go 工具链评审。
+- ✅ 建立 `212-shared-architecture-alignment-plan.md` 并完成 Day6-7 架构审查交付（纪要参见 `reports/phase1-architecture-review.md#7-day7-架构审查会议纪要（2025-11-04-1000-1100-cst）`）；`213-go-toolchain-baseline-plan.md` 完成 Go 工具链基线确认。
+
+---
+
+### 2025-11-04 更新摘要
+
+- ✅ 完成 Plan 213 Go 工具链评审：Steering 确认保持 Go 1.24.0 基线（toolchain go1.24.9），`go test ./... -count=1` 回归通过；暂无回退需求，相关记录见 `reports/phase1-regression.md` 与 `docs/development-plans/213-go-toolchain-baseline-plan.md`。
 
 ---
 

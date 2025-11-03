@@ -26,7 +26,7 @@ Plan 212 与 Plan 213 是 Plan 211 Phase1 的延伸计划，分别负责 **Day6-
 
 **编号**：212
 **标题**：Day6-7 shared/internal 复用决策与 `pkg/health` 归属审查
-**状态**：🟡 执行中（纳入 Plan 211 Phase1 日程）
+**状态**：🟢 已完成（2025-11-04 架构审查纪要与整改落地）
 **范围**：聚焦 Day6-7 架构审查环节的 3 个关键决策
 
 ### 1.2 范围与目标评估
@@ -210,7 +210,7 @@ grep -r "pkg/health" . --include="*.go" | cut -d: -f1 | sort -u
 
 **编号**：213
 **标题**：Go 1.24 基线评审与回退预案
-**状态**：🟡 待 Steering 审议
+**状态**：🟢 已完成（Steering 确认维持 Go 1.24 基线，详见 `reports/phase1-regression.md`）
 **范围**：评估 Go 1.24 的兼容性、CI/部署影响、回退成本
 
 ### 2.2 背景与目标评估
