@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 )
 
 func getTenantIDFromRequest(r *http.Request) uuid.UUID {

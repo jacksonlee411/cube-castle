@@ -11,21 +11,21 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	chi_middleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
-	_ "github.com/lib/pq"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"cube-castle/cmd/hrms-server/command/internal/audit"
-	"cube-castle/cmd/hrms-server/command/internal/auth"
 	"cube-castle/cmd/hrms-server/command/internal/authbff"
-	"cube-castle/cmd/hrms-server/command/internal/config"
 	"cube-castle/cmd/hrms-server/command/internal/handlers"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
 	"cube-castle/cmd/hrms-server/command/internal/services"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
 	"cube-castle/cmd/hrms-server/command/internal/validators"
+	auth "cube-castle/internal/auth"
+	config "cube-castle/internal/config"
+	"github.com/go-chi/chi/v5"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {

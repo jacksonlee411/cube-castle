@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 )
 
 var (

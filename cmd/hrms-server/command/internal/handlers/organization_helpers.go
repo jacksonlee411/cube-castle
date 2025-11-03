@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
 	"cube-castle/cmd/hrms-server/command/internal/validators"
 )

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 )
 
 // BusinessRuleValidator 业务规则验证器

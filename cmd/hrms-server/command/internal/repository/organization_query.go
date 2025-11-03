@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 )
 
 func (r *OrganizationRepository) GetByCode(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {

@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"cube-castle/cmd/hrms-server/command/internal/audit"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
 )
 

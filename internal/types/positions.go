@@ -117,33 +117,33 @@ type AssignmentListFilter struct {
 }
 
 type AssignmentListOptions struct {
-	Filter    AssignmentListFilter
-	Page      int
-	PageSize  int
+	Filter   AssignmentListFilter
+	Page     int
+	PageSize int
 }
 
 type AssignmentUpdateParams struct {
-	FTE            *float64
-	ActingUntil    *time.Time
-	ClearActingUntil bool
-	AutoRevert     *bool
-	Notes          *string
-	ReminderSentAt *time.Time
+	FTE               *float64
+	ActingUntil       *time.Time
+	ClearActingUntil  bool
+	AutoRevert        *bool
+	Notes             *string
+	ReminderSentAt    *time.Time
 	ClearReminderSent bool
 }
 
 type PaginationMeta struct {
-	Total       int `json:"total"`
-	Page        int `json:"page"`
-	PageSize    int `json:"pageSize"`
+	Total       int  `json:"total"`
+	Page        int  `json:"page"`
+	PageSize    int  `json:"pageSize"`
 	HasNext     bool `json:"hasNext"`
 	HasPrevious bool `json:"hasPrevious"`
 }
 
 type PositionAssignmentListResponse struct {
 	Data       []PositionAssignmentResponse `json:"data"`
-	Pagination PaginationMeta              `json:"pagination"`
-	TotalCount int                         `json:"totalCount"`
+	Pagination PaginationMeta               `json:"pagination"`
+	TotalCount int                          `json:"totalCount"`
 }
 
 // VacatePositionRequest 清空职位请求

@@ -138,3 +138,19 @@
 - 建立专项计划 `docs/development-plans/212-shared-architecture-alignment-plan.md`，跟踪 Day6-7 审查结论与整改。
 - 校验 `go test ./...`、`npm run lint` 全绿，确保 Day7 审查基线无技术债挂账。
 - 后续行动：Day7 讨论 command 与共享 `internal/*` 合并方案、确认 `pkg/health` 归属，并输出审查会议纪要。
+
+## Day7 架构审查与整改（完成）
+
+### 会议决议执行
+- ✅ **共享认证合并**：命令服务导入 `cube-castle/internal/auth`、`cube-castle/internal/config`、`cube-castle/internal/types`，删除 `cmd/hrms-server/command/internal/{auth,config,types}`。新增 REST PBAC 定义与中间件位于 `internal/auth/pbac_rest.go`、`internal/auth/rest_middleware.go`，命令入口 `cmd/hrms-server/command/main.go:23`、`cmd/hrms-server/command/internal/handlers/devtools.go:17` 已切换至共享包。
+- ✅ **业务类型统一**：将组织/职位契约与日期封装迁移到 `internal/types/models.go`、`internal/types/positions.go`、`internal/types/contract_gen.go`、`internal/types/date.go`，确保与 OpenAPI 契约同步维护。
+- ✅ **健康检查归属**：原 `pkg/health` 重定位为 `internal/monitoring/health/`，保留包名 `health`，为后续 DevOps 接入提供权威路径。
+
+### 代码与脚本
+- 关键提交：`internal/auth/jwt.go` 增补 `GenerateTestTokenWithClaims`，`cmd/hrms-server/command/internal/handlers/devtools.go:87` 支持 scope/permissions；`cmd/hrms-server/command/internal/authbff/oidc.go:13`、`cmd/hrms-server/command/internal/services/temporal_monitor.go:13` 等改用共享认证模块。
+- 校验：`go test ./...` ✅（2025-11-04），`gofmt` 覆盖改动文件。依赖矩阵复检未发现 `cmd/.../internal/auth` 残留引用。
+
+### 文档与风险
+- 审查纪要：详见 `reports/phase1-architecture-review.md#7-day7-架构审查会议纪要（2025-11-04-1000-1100-cst）`。
+- 计划同步：Plan 212 标记完成（见 `docs/development-plans/212-shared-architecture-alignment-plan.md` 更新），06 号文档新增引用。
+- 风险跟踪：DevOps 将在 Day8 验证监控脚本对 `internal/monitoring/health` 的引用情况，若需 PR 支持将回填 `reports/phase1-module-unification.md`。

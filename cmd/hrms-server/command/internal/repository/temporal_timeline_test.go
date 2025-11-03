@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 )
 
 // TestTemporalTimelineManager_ComplexScenarios 测试复杂场景下的时态时间轴管理

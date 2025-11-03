@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/audit"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 )
 
 var (

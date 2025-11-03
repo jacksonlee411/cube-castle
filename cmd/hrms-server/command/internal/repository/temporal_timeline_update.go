@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 )
 
 func (tm *TemporalTimelineManager) UpdateVersionEffectiveDate(ctx context.Context, tenantID uuid.UUID, recordID uuid.UUID, newEffectiveDate time.Time, operationReason string) (*[]TimelineVersion, error) {

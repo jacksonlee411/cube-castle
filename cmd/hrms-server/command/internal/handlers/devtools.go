@@ -9,11 +9,12 @@ import (
 	"log"
 	"net/http"
 	"runtime"
+	"strings"
 	"time"
 
+	auth "cube-castle/internal/auth"
+	"cube-castle/internal/middleware"
 	"github.com/go-chi/chi/v5"
-	"cube-castle/cmd/hrms-server/command/internal/auth"
-	"cube-castle/cmd/hrms-server/command/internal/middleware"
 )
 
 // DevToolsHandler 开发工具处理器
@@ -87,8 +88,17 @@ func (h *DevToolsHandler) GenerateDevToken(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	scope := strings.TrimSpace(req.Scope)
+	var permissions []string
+	for _, p := range req.Permissions {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			permissions = append(permissions, p)
+		}
+	}
+
 	// 生成令牌
-	token, err := h.jwtMiddleware.GenerateTestToken(req.UserID, req.TenantID, req.Roles, duration)
+	token, err := h.jwtMiddleware.GenerateTestTokenWithClaims(req.UserID, req.TenantID, req.Roles, scope, permissions, duration)
 	if err != nil {
 		h.logger.Printf("Failed to generate dev token: %v", err)
 		h.writeErrorResponse(w, "TOKEN_GENERATION_FAILED", "Failed to generate token", http.StatusInternalServerError, r)
@@ -96,11 +106,13 @@ func (h *DevToolsHandler) GenerateDevToken(w http.ResponseWriter, r *http.Reques
 	}
 
 	response := auth.TestTokenResponse{
-		Token:     token,
-		ExpiresAt: time.Now().Add(duration),
-		UserID:    req.UserID,
-		TenantID:  req.TenantID,
-		Roles:     req.Roles,
+		Token:       token,
+		ExpiresAt:   time.Now().Add(duration),
+		UserID:      req.UserID,
+		TenantID:    req.TenantID,
+		Roles:       req.Roles,
+		Scope:       scope,
+		Permissions: permissions,
 	}
 
 	h.writeSuccessResponse(w, response, "Dev token generated successfully", r)
@@ -126,11 +138,13 @@ func (h *DevToolsHandler) GetTokenInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	info := map[string]interface{}{
-		"userId":    claims.UserID,
-		"tenantId":  claims.TenantID,
-		"roles":     claims.Roles,
-		"expiresAt": time.Unix(claims.ExpiresAt, 0),
-		"valid":     time.Now().Unix() < claims.ExpiresAt,
+		"userId":      claims.UserID,
+		"tenantId":    claims.TenantID,
+		"roles":       claims.Roles,
+		"scope":       claims.Scope,
+		"permissions": claims.Permissions,
+		"expiresAt":   time.Unix(claims.ExpiresAt, 0),
+		"valid":       time.Now().Unix() < claims.ExpiresAt,
 	}
 
 	h.writeSuccessResponse(w, info, "Token information retrieved", r)

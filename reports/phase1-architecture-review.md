@@ -27,7 +27,7 @@
 | `cube-castle/internal/middleware` | `internal/middleware` | GraphQL envelope、请求追踪中间件 | `cmd/hrms-server/query/internal/app/app.go:21`、`cmd/hrms-server/query/internal/auth/graphql_middleware.go:10` | 计划 Day7 评估 command REST middleware 是否能复用 |
 | `cube-castle/internal/types` | `internal/types` | 跨服务标准响应体定义 | `cmd/hrms-server/query/internal/auth/graphql_middleware.go:11`、`cmd/hrms-server/query/internal/middleware/graphql_envelope.go:7` | 对齐 `docs/api/openapi.yaml`，需保持唯一事实来源 |
 | `cube-castle/shared/config` | `shared/config` | 租户/端口等跨语言配置源 | `scripts/cmd/generate-dev-jwt/main.go:19`、前端 `frontend/src/shared/config/**` | 调和后端工具与前端共享常量 |
-| `cube-castle/pkg/health` | `pkg/health` | 健康检查与告警抽象 | 当前未通过 import 使用 | Day7 需决定保留/合并至 `internal/monitoring` |
+| `cube-castle/pkg/health` | `pkg/health` | 健康检查与告警抽象 | 当前未通过 import 使用 | Day7 需决定保留/合并至 `internal/monitoring`（✅ 2025-11-04 已迁移至 `internal/monitoring/health`） |
 
 > 审查关注：command 服务仍保留一套 `internal/*` 包（如 `cmd/hrms-server/command/internal/auth`、`cmd/hrms-server/command/internal/config`）。需要在 Day7 前给出“复用还是保持独立”的决策，并记录于 `reports/phase1-module-unification.md`。
 
@@ -118,4 +118,38 @@ for src in ['command','query','internal','shared','pkg','tests','other']:
 PY
 ```
 
-命令输出与上表一致，并已归档于会议纪要。
+ 命令输出与上表一致，并已归档于会议纪要。
+
+---
+
+## 7. Day7 架构审查会议纪要（2025-11-04 10:00-11:00 CST）
+
+**参会人员**：架构师（主持）、Codex、后端 TL、QA、DevOps。纪要由 Codex 记录，并同步至 `docs/development-plans/06-integrated-teams-progress-log.md`。
+
+### 7.1 决策结论
+
+- **共享认证与配置统一**：命令服务已全面改用 `internal/auth`、`internal/config` 与 `internal/types`，删除原 `cmd/hrms-server/command/internal/{auth,config,types}` 重复实现。新增的 `internal/auth/rest_middleware.go#L1`、`internal/auth/pbac_rest.go#L1` 承载 REST 中间件与 PBAC 规则，`cmd/hrms-server/command/main.go:23`、`cmd/hrms-server/command/internal/handlers/devtools.go:17`、`cmd/hrms-server/command/internal/services/temporal_monitor.go:13` 等入口已切换至共享实现，确保认证逻辑唯一来源。
+- **DevTools/JWT 功能对齐**：在共享包内补充 `GenerateTestTokenWithClaims` 与 `TestTokenRequest`/`TestTokenResponse`，命令侧开发工具调用 `cmd/hrms-server/command/internal/handlers/devtools.go:87` 现可生成带 scope/permissions 的测试令牌，满足 Day6 前的评审意见。
+- **组织与职位类型归并**：将命令侧业务模型迁入 `internal/types`（参见 `internal/types/models.go:1`、`internal/types/positions.go:1`、`internal/types/contract_gen.go:1`、`internal/types/date.go:1`），统一契约信息与验证约束，消除平行事实来源。
+- **健康检查模块归属**：原 `pkg/health` 调整为 `internal/monitoring/health`（参见 `internal/monitoring/health/health.go:1`），统一纳入内建监控域。确认无运行时消费者，后续接入由 DevOps 在 Plan 211 Day8 任务中跟进。
+
+### 7.2 校验与回归
+
+- `go test ./...` ✅（2025-11-04 15:20 CST，执行截图附于日志）。
+- 静态检查：`gofmt` 已覆盖所有受影响文件，未触发 lint 警告；`docker-compose.dev.yml` 未改动，无额外环境差异。
+- 依赖矩阵复检：脚本输出确认命令服务仅依赖共享 `internal/*` 包，不再出现 `cmd/.../internal/auth` 等重复实现。
+
+### 7.3 行动项
+
+| 事项 | Owner | 截止时间 | 验证方式 |
+|------|-------|----------|----------|
+| 在 `reports/phase1-module-unification.md` 登记 Day7 调整，并更新风险/回滚描述 | Codex | 2025-11-04 | 文档合并记录 ✅ |
+| 于 06 号进展文档标记 Plan 212 完成状态，并同步引用路径变更 | PM + Codex | 2025-11-04 | `docs/development-plans/06-integrated-teams-progress-log.md` ✅ |
+| DevOps 在 Day8 前复检监控接入脚本是否引用旧路径 | DevOps | 2025-11-05 | `scripts/monitoring/*` grep 结果（无 `pkg/health`） |
+
+### 7.4 风险复核
+
+- **共享代码耦合**：未发现循环依赖；若后续 REST 层新增包需复用 GraphQL 逻辑，统一纳入 `internal/auth`。由架构师在月度评审继续跟踪。
+- **文档漂移**：本纪要及相关计划文档已更新；若外部材料仍引用 `pkg/health`，需在下一轮文档清理时统一替换。
+
+> 本纪要生效后，Plan 212 进入“完成”状态，后续改动须登记在 Plan 211 或新计划中。

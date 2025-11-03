@@ -28,7 +28,7 @@ LEGACY_PATTERNS: Dict[str, str] = {
     "organization-command-service/": "cube-castle/cmd/hrms-server/command/",
     "organization-query-service/": "cube-castle/cmd/hrms-server/query/",
     "cube-castle-deployment-test/internal": "cube-castle/internal",
-    "cube-castle-deployment-test/pkg/health": "cube-castle/pkg/health",
+    "cube-castle-deployment-test/pkg/health": "cube-castle/internal/monitoring/health",
     "cube-castle-deployment-test/cmd/hrms-server/query": "cube-castle/cmd/hrms-server/query",
     "cube-castle-deployment-test/cmd/hrms-server/command": "cube-castle/cmd/hrms-server/command",
     "cube-castle-deployment-test": "cube-castle",

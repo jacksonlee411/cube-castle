@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"strings"
 	"time"
@@ -10,13 +13,15 @@ import (
 )
 
 type JWTMiddleware struct {
-	secretKey []byte
-	issuer    string
-	audience  string
-	alg       string
-	jwks      *JWKSManager
-	publicKey interface{}
-	clockSkew time.Duration
+	secretKey  []byte
+	privateKey *rsa.PrivateKey
+	issuer     string
+	audience   string
+	alg        string
+	jwks       *JWKSManager
+	publicKey  interface{}
+	keyID      string
+	clockSkew  time.Duration
 }
 
 type contextKey string
@@ -29,7 +34,12 @@ const (
 )
 
 func NewJWTMiddleware(secretKey, issuer, audience string) *JWTMiddleware {
-	return &JWTMiddleware{secretKey: []byte(secretKey), issuer: issuer, audience: audience, alg: "RS256"}
+	return &JWTMiddleware{
+		secretKey: []byte(secretKey),
+		issuer:    issuer,
+		audience:  audience,
+		alg:       "RS256",
+	}
 }
 
 type Options struct {
@@ -42,7 +52,17 @@ type Options struct {
 }
 
 func NewJWTMiddlewareWithOptions(secretKey, issuer, audience string, opt Options) *JWTMiddleware {
-	mw := &JWTMiddleware{secretKey: []byte(secretKey), issuer: issuer, audience: audience, alg: strings.ToUpper(strings.TrimSpace(opt.Alg)), clockSkew: opt.ClockSkew}
+	mw := &JWTMiddleware{
+		secretKey: []byte(secretKey),
+		issuer:    issuer,
+		audience:  audience,
+		alg:       strings.ToUpper(strings.TrimSpace(opt.Alg)),
+		keyID:     strings.TrimSpace(opt.KeyID),
+		clockSkew: opt.ClockSkew,
+	}
+	if mw.alg == "" {
+		mw.alg = "RS256"
+	}
 	if mw.alg == "RS256" {
 		if opt.JWKSURL != "" {
 			mw.jwks = NewJWKSManager(opt.JWKSURL, 5*time.Minute)
@@ -51,9 +71,15 @@ func NewJWTMiddlewareWithOptions(secretKey, issuer, audience string, opt Options
 				mw.publicKey = pk
 			}
 		}
-	}
-	if mw.alg == "" {
-		mw.alg = "RS256"
+		if len(opt.PrivateKeyPEM) > 0 {
+			if pk, err := parseRSAPrivateKey(opt.PrivateKeyPEM); err == nil {
+				mw.privateKey = pk
+			}
+		} else if strings.Contains(secretKey, "BEGIN") {
+			if pk, err := parseRSAPrivateKey([]byte(secretKey)); err == nil {
+				mw.privateKey = pk
+			}
+		}
 	}
 	mw.alg = strings.ToUpper(mw.alg)
 	return mw
@@ -72,7 +98,6 @@ type Claims struct {
 
 // ValidateToken 验证JWT令牌
 func (j *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
-	// 移除Bearer前缀
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
@@ -114,7 +139,6 @@ func (j *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		// 验证issuer和audience
 		if iss, ok := claims["iss"].(string); !ok || iss != j.issuer {
 			return nil, fmt.Errorf("invalid issuer")
 		}
@@ -163,7 +187,6 @@ func (j *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 	return nil, fmt.Errorf("invalid token claims")
 }
 
-// getClaimString 安全地获取字符串类型的claim
 func getClaimString(claims jwt.MapClaims, key string) string {
 	if value, ok := claims[key].(string); ok {
 		return value
@@ -171,7 +194,6 @@ func getClaimString(claims jwt.MapClaims, key string) string {
 	return ""
 }
 
-// getTenantIDClaim 兼容 camelCase 与 snake_case
 func getTenantIDClaim(claims jwt.MapClaims) string {
 	if v, ok := claims["tenantId"].(string); ok && v != "" {
 		return v
@@ -182,7 +204,6 @@ func getTenantIDClaim(claims jwt.MapClaims) string {
 	return ""
 }
 
-// SetUserContext 将用户信息设置到上下文中
 func SetUserContext(ctx context.Context, claims *Claims) context.Context {
 	ctx = context.WithValue(ctx, userIDKey, claims.UserID)
 	ctx = context.WithValue(ctx, tenantIDKey, claims.TenantID)
@@ -208,21 +229,116 @@ func GetUserID(ctx context.Context) string {
 	}
 	return ""
 }
+
 func GetTenantID(ctx context.Context) string {
 	if v, ok := ctx.Value(tenantIDKey).(string); ok {
 		return v
 	}
 	return ""
 }
+
 func GetUserRoles(ctx context.Context) []string {
 	if v, ok := ctx.Value(userRolesKey).([]string); ok {
 		return v
 	}
 	return []string{}
 }
+
 func GetUserScopes(ctx context.Context) []string {
 	if v, ok := ctx.Value(userScopesKey).([]string); ok {
 		return v
 	}
 	return []string{}
+}
+
+// GenerateTestToken 生成测试用的JWT令牌 (仅开发环境使用)
+func (j *JWTMiddleware) GenerateTestToken(userID, tenantID string, roles []string, duration time.Duration) (string, error) {
+	return j.GenerateTestTokenWithClaims(userID, tenantID, roles, "", nil, duration)
+}
+
+// GenerateTestTokenWithClaims 支持额外 scope 与 permissions 的测试令牌
+func (j *JWTMiddleware) GenerateTestTokenWithClaims(userID, tenantID string, roles []string, scope string, permissions []string, duration time.Duration) (string, error) {
+	now := time.Now()
+	expiresAt := now.Add(duration)
+
+	claims := jwt.MapClaims{
+		"sub":       userID,
+		"tenant_id": tenantID,
+		"roles":     roles,
+		"iss":       j.issuer,
+		"aud":       j.audience,
+		"iat":       now.Unix(),
+		"nbf":       now.Unix(),
+		"exp":       expiresAt.Unix(),
+	}
+	if scope != "" {
+		claims["scope"] = scope
+	}
+	if len(permissions) > 0 {
+		claims["permissions"] = permissions
+	}
+
+	switch j.alg {
+	case "RS256":
+		if j.privateKey == nil {
+			return "", fmt.Errorf("rs256 private key not configured")
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+		if j.keyID != "" {
+			token.Header["kid"] = j.keyID
+		}
+		tokenString, err := token.SignedString(j.privateKey)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate token: %w", err)
+		}
+		return tokenString, nil
+	case "HS256":
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, err := token.SignedString(j.secretKey)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate token: %w", err)
+		}
+		return tokenString, nil
+	default:
+		return "", fmt.Errorf("unsupported signing algorithm: %s", j.alg)
+	}
+}
+
+func parseRSAPrivateKey(pemBytes []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(pemBytes)
+	if block == nil {
+		return nil, fmt.Errorf("invalid rsa private key pem")
+	}
+	if key, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
+		return key, nil
+	}
+	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err == nil {
+		if pk, ok := parsed.(*rsa.PrivateKey); ok {
+			return pk, nil
+		}
+		return nil, fmt.Errorf("pem does not contain rsa private key")
+	}
+	return nil, err
+}
+
+// TestTokenRequest 开发环境测试令牌请求结构
+type TestTokenRequest struct {
+	UserID      string   `json:"userId"`
+	TenantID    string   `json:"tenantId"`
+	Roles       []string `json:"roles"`
+	Duration    string   `json:"duration"`
+	Scope       string   `json:"scope,omitempty"`
+	Permissions []string `json:"permissions,omitempty"`
+}
+
+// TestTokenResponse 测试令牌响应结构
+type TestTokenResponse struct {
+	Token       string    `json:"token"`
+	ExpiresAt   time.Time `json:"expiresAt"`
+	UserID      string    `json:"userId"`
+	TenantID    string    `json:"tenantId"`
+	Roles       []string  `json:"roles"`
+	Scope       string    `json:"scope,omitempty"`
+	Permissions []string  `json:"permissions,omitempty"`
 }

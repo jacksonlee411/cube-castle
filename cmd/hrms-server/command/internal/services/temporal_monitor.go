@@ -1,13 +1,13 @@
 package services
 
 import (
-    "context"
-    "database/sql"
-    "fmt"
-    "log"
-    "time"
+	"context"
+	"database/sql"
+	"fmt"
+	"log"
+	"time"
 
-    "cube-castle/cmd/hrms-server/command/internal/auth"
+	auth "cube-castle/internal/auth"
 )
 
 // TemporalMonitor 时态数据监控服务
@@ -26,18 +26,18 @@ func NewTemporalMonitor(db *sql.DB, logger *log.Logger) *TemporalMonitor {
 
 // MonitoringMetrics 监控指标
 type MonitoringMetrics struct {
-	TotalOrganizations     int       `json:"totalOrganizations"`
-	CurrentRecords         int       `json:"currentRecords"`
-	FutureRecords          int       `json:"futureRecords"`
-	HistoricalRecords      int       `json:"historicalRecords"`
-	DuplicateCurrentCount  int       `json:"duplicateCurrentCount"`
-	MissingCurrentCount    int       `json:"missingCurrentCount"`
-	TimelineOverlapCount   int       `json:"timelineOverlapCount"`
-	InconsistentFlagCount  int       `json:"inconsistentFlagCount"`
-	OrphanRecordCount      int       `json:"orphanRecordCount"`
-	HealthScore            float64   `json:"healthScore"` // 0-100
-	LastCheckTime          time.Time `json:"lastCheckTime"`
-	AlertLevel             string    `json:"alertLevel"` // HEALTHY, WARNING, CRITICAL
+	TotalOrganizations    int       `json:"totalOrganizations"`
+	CurrentRecords        int       `json:"currentRecords"`
+	FutureRecords         int       `json:"futureRecords"`
+	HistoricalRecords     int       `json:"historicalRecords"`
+	DuplicateCurrentCount int       `json:"duplicateCurrentCount"`
+	MissingCurrentCount   int       `json:"missingCurrentCount"`
+	TimelineOverlapCount  int       `json:"timelineOverlapCount"`
+	InconsistentFlagCount int       `json:"inconsistentFlagCount"`
+	OrphanRecordCount     int       `json:"orphanRecordCount"`
+	HealthScore           float64   `json:"healthScore"` // 0-100
+	LastCheckTime         time.Time `json:"lastCheckTime"`
+	AlertLevel            string    `json:"alertLevel"` // HEALTHY, WARNING, CRITICAL
 }
 
 // AlertRule 告警规则
@@ -92,24 +92,24 @@ func (m *TemporalMonitor) GetDefaultAlertRules() []AlertRule {
 
 // CollectMetrics 收集监控指标
 func (m *TemporalMonitor) CollectMetrics(ctx context.Context) (*MonitoringMetrics, error) {
-    // 多租户隔离：默认按请求上下文租户计算；若无租户（例如后台周期任务），则计算全局汇总，仅用于内部日志
-    tenantID := auth.GetTenantID(ctx)
-    metrics := &MonitoringMetrics{
-        LastCheckTime: time.Now(),
-        AlertLevel:    "HEALTHY",
-    }
+	// 多租户隔离：默认按请求上下文租户计算；若无租户（例如后台周期任务），则计算全局汇总，仅用于内部日志
+	tenantID := auth.GetTenantID(ctx)
+	metrics := &MonitoringMetrics{
+		LastCheckTime: time.Now(),
+		AlertLevel:    "HEALTHY",
+	}
 
-    // 1. 基础统计
-    err := m.collectBasicStats(ctx, metrics, tenantID)
-    if err != nil {
-        return nil, fmt.Errorf("failed to collect basic stats: %w", err)
-    }
+	// 1. 基础统计
+	err := m.collectBasicStats(ctx, metrics, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect basic stats: %w", err)
+	}
 
-    // 2. 数据一致性检查
-    err = m.collectConsistencyStats(ctx, metrics, tenantID)
-    if err != nil {
-        return nil, fmt.Errorf("failed to collect consistency stats: %w", err)
-    }
+	// 2. 数据一致性检查
+	err = m.collectConsistencyStats(ctx, metrics, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect consistency stats: %w", err)
+	}
 
 	// 3. 计算健康分数和告警级别
 	m.calculateHealthScore(metrics)
@@ -118,75 +118,75 @@ func (m *TemporalMonitor) CollectMetrics(ctx context.Context) (*MonitoringMetric
 }
 
 func (m *TemporalMonitor) collectBasicStats(ctx context.Context, metrics *MonitoringMetrics, tenantID string) error {
-    // 统计总组织数
-    var err error
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(DISTINCT code) FROM organization_units WHERE status <> 'DELETED' AND tenant_id = $1",
-            tenantID,
-        ).Scan(&metrics.TotalOrganizations)
-    } else {
-        err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(DISTINCT code) FROM organization_units WHERE status <> 'DELETED'",
-        ).Scan(&metrics.TotalOrganizations)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count total organizations: %w", err)
-    }
+	// 统计总组织数
+	var err error
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx,
+			"SELECT COUNT(DISTINCT code) FROM organization_units WHERE status <> 'DELETED' AND tenant_id = $1",
+			tenantID,
+		).Scan(&metrics.TotalOrganizations)
+	} else {
+		err = m.db.QueryRowContext(ctx,
+			"SELECT COUNT(DISTINCT code) FROM organization_units WHERE status <> 'DELETED'",
+		).Scan(&metrics.TotalOrganizations)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count total organizations: %w", err)
+	}
 
-    // 统计当前记录数
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE is_current = true AND status <> 'DELETED' AND tenant_id = $1",
-            tenantID,
-        ).Scan(&metrics.CurrentRecords)
-    } else {
-        err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE is_current = true AND status <> 'DELETED'",
-        ).Scan(&metrics.CurrentRecords)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count current records: %w", err)
-    }
+	// 统计当前记录数
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM organization_units WHERE is_current = true AND status <> 'DELETED' AND tenant_id = $1",
+			tenantID,
+		).Scan(&metrics.CurrentRecords)
+	} else {
+		err = m.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM organization_units WHERE is_current = true AND status <> 'DELETED'",
+		).Scan(&metrics.CurrentRecords)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count current records: %w", err)
+	}
 
-    // 统计未来记录数（派生条件）
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE effective_date > CURRENT_DATE AND status <> 'DELETED' AND tenant_id = $1",
-            tenantID,
-        ).Scan(&metrics.FutureRecords)
-    } else {
-        err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE effective_date > CURRENT_DATE AND status <> 'DELETED'",
-        ).Scan(&metrics.FutureRecords)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count future records: %w", err)
-    }
+	// 统计未来记录数（派生条件）
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM organization_units WHERE effective_date > CURRENT_DATE AND status <> 'DELETED' AND tenant_id = $1",
+			tenantID,
+		).Scan(&metrics.FutureRecords)
+	} else {
+		err = m.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM organization_units WHERE effective_date > CURRENT_DATE AND status <> 'DELETED'",
+		).Scan(&metrics.FutureRecords)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count future records: %w", err)
+	}
 
-    // 统计历史记录数（派生条件：已结束）
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE AND status <> 'DELETED' AND tenant_id = $1",
-            tenantID,
-        ).Scan(&metrics.HistoricalRecords)
-    } else {
-        err = m.db.QueryRowContext(ctx,
-            "SELECT COUNT(*) FROM organization_units WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE AND status <> 'DELETED'",
-        ).Scan(&metrics.HistoricalRecords)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count historical records: %w", err)
-    }
+	// 统计历史记录数（派生条件：已结束）
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM organization_units WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE AND status <> 'DELETED' AND tenant_id = $1",
+			tenantID,
+		).Scan(&metrics.HistoricalRecords)
+	} else {
+		err = m.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM organization_units WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE AND status <> 'DELETED'",
+		).Scan(&metrics.HistoricalRecords)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count historical records: %w", err)
+	}
 
-    return nil
+	return nil
 }
 
 func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *MonitoringMetrics, tenantID string) error {
-    // 检查重复当前记录
-    var err error
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx, `
+	// 检查重复当前记录
+	var err error
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM (
             SELECT tenant_id, code
             FROM organization_units 
@@ -195,8 +195,8 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
             HAVING COUNT(*) > 1
         ) duplicates
     `, tenantID).Scan(&metrics.DuplicateCurrentCount)
-    } else {
-        err = m.db.QueryRowContext(ctx, `
+	} else {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM (
             SELECT tenant_id, code
             FROM organization_units 
@@ -205,14 +205,14 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
             HAVING COUNT(*) > 1
         ) duplicates
     `).Scan(&metrics.DuplicateCurrentCount)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count duplicate current records: %w", err)
-    }
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count duplicate current records: %w", err)
+	}
 
-    // 检查缺失当前记录
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx, `
+	// 检查缺失当前记录
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM (
             SELECT DISTINCT tenant_id, code
             FROM organization_units
@@ -237,8 +237,8 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
               )
         ) missing
     `, tenantID).Scan(&metrics.MissingCurrentCount)
-    } else {
-        err = m.db.QueryRowContext(ctx, `
+	} else {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM (
             SELECT DISTINCT tenant_id, code
             FROM organization_units
@@ -261,14 +261,14 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
             )
         ) missing
     `).Scan(&metrics.MissingCurrentCount)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count missing current records: %w", err)
-    }
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count missing current records: %w", err)
+	}
 
-    // 检查时间线重叠
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx, `
+	// 检查时间线重叠
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM (
             SELECT DISTINCT o1.tenant_id, o1.code
             FROM organization_units o1
@@ -285,8 +285,8 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
                 AND o2.effective_date < COALESCE(o1.end_date, '9999-12-31'::date)
         ) AS timeline_overlaps
     `, tenantID).Scan(&metrics.TimelineOverlapCount)
-    } else {
-        err = m.db.QueryRowContext(ctx, `
+	} else {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM (
             SELECT DISTINCT o1.tenant_id, o1.code
             FROM organization_units o1
@@ -302,14 +302,14 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
                 AND o2.effective_date < COALESCE(o1.end_date, '9999-12-31'::date)
         ) AS timeline_overlaps
     `).Scan(&metrics.TimelineOverlapCount)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count timeline overlaps: %w", err)
-    }
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count timeline overlaps: %w", err)
+	}
 
-    // 检查标志不一致记录（仅校验 is_current；is_future 已移除，使用派生值但不与列比较）
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx, `
+	// 检查标志不一致记录（仅校验 is_current；is_future 已移除，使用派生值但不与列比较）
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM organization_units
         WHERE is_current != (
             effective_date <= CURRENT_DATE 
@@ -318,8 +318,8 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
         AND status <> 'DELETED'
         AND tenant_id = $1
     `, tenantID).Scan(&metrics.InconsistentFlagCount)
-    } else {
-        err = m.db.QueryRowContext(ctx, `
+	} else {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM organization_units
         WHERE is_current != (
             effective_date <= CURRENT_DATE 
@@ -327,14 +327,14 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
         )
         AND status <> 'DELETED'
     `).Scan(&metrics.InconsistentFlagCount)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count inconsistent flags: %w", err)
-    }
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count inconsistent flags: %w", err)
+	}
 
-    // 检查孤立记录
-    if tenantID != "" {
-        err = m.db.QueryRowContext(ctx, `
+	// 检查孤立记录
+	if tenantID != "" {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM organization_units o1
         WHERE 
             parent_code IS NOT NULL
@@ -348,8 +348,8 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
                     AND o2.status <> 'DELETED'
             )
     `, tenantID).Scan(&metrics.OrphanRecordCount)
-    } else {
-        err = m.db.QueryRowContext(ctx, `
+	} else {
+		err = m.db.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM organization_units o1
         WHERE 
             parent_code IS NOT NULL
@@ -362,12 +362,12 @@ func (m *TemporalMonitor) collectConsistencyStats(ctx context.Context, metrics *
                     AND o2.status <> 'DELETED'
             )
     `).Scan(&metrics.OrphanRecordCount)
-    }
-    if err != nil {
-        return fmt.Errorf("failed to count orphan records: %w", err)
-    }
+	}
+	if err != nil {
+		return fmt.Errorf("failed to count orphan records: %w", err)
+	}
 
-    return nil
+	return nil
 }
 
 func (m *TemporalMonitor) calculateHealthScore(metrics *MonitoringMetrics) {
@@ -446,7 +446,7 @@ func (m *TemporalMonitor) CheckAlerts(ctx context.Context) ([]string, error) {
 		}
 
 		if triggered {
-			alertMsg := fmt.Sprintf("[%s] %s: 当前值=%d, 阈值=%d", 
+			alertMsg := fmt.Sprintf("[%s] %s: 当前值=%d, 阈值=%d",
 				rule.AlertLevel, rule.Description, currentValue, rule.Threshold)
 			alerts = append(alerts, alertMsg)
 		}
@@ -477,7 +477,7 @@ func (m *TemporalMonitor) StartPeriodicMonitoring(ctx context.Context, interval 
 	ticker := time.NewTicker(interval)
 	go func() {
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -489,7 +489,7 @@ func (m *TemporalMonitor) StartPeriodicMonitoring(ctx context.Context, interval 
 					m.logger.Printf("监控检查失败: %v", err)
 					continue
 				}
-				
+
 				if len(alerts) > 0 {
 					m.logger.Printf("🚨 发现 %d 个告警:", len(alerts))
 					for _, alert := range alerts {
@@ -501,6 +501,6 @@ func (m *TemporalMonitor) StartPeriodicMonitoring(ctx context.Context, interval 
 			}
 		}
 	}()
-	
+
 	m.logger.Printf("✅ 时态数据监控服务已启动 (检查间隔: %v)", interval)
 }

@@ -14,7 +14,7 @@ import (
 	"cube-castle/cmd/hrms-server/command/internal/audit"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
 )
 

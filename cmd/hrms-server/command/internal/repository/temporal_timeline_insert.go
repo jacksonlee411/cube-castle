@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"cube-castle/cmd/hrms-server/command/internal/types"
+	"cube-castle/internal/types"
 )
 
 func (tm *TemporalTimelineManager) InsertVersion(ctx context.Context, org *types.Organization) (*TimelineVersion, error) {

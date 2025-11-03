@@ -541,3 +541,75 @@ func TestGinJWTMiddleware(t *testing.T) {
 		t.Fatalf("expected 403 for tenant mismatch, got %d", mismatchResp.Code)
 	}
 }
+
+func TestGenerateTestTokenRS256(t *testing.T) {
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate key: %v", err)
+	}
+	pubBytes, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
+	if err != nil {
+		t.Fatalf("failed to marshal public key: %v", err)
+	}
+	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
+	privPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+
+	mw := NewJWTMiddlewareWithOptions("", "issuer", "aud", Options{
+		Alg:           "RS256",
+		PublicKeyPEM:  pubPEM,
+		PrivateKeyPEM: privPEM,
+		KeyID:         "kid-dev",
+	})
+
+	token, err := mw.GenerateTestTokenWithClaims("user", "tenant", []string{"ADMIN"}, "org:write", []string{"custom:perm"}, time.Hour)
+	if err != nil {
+		t.Fatalf("failed to generate dev token: %v", err)
+	}
+
+	claims, err := mw.ValidateToken("Bearer " + token)
+	if err != nil {
+		t.Fatalf("failed to validate generated token: %v", err)
+	}
+	if claims.UserID != "user" || claims.TenantID != "tenant" {
+		t.Fatalf("unexpected claims: %+v", claims)
+	}
+	if claims.Scope != "org:write" {
+		t.Fatalf("expected scope org:write, got %s", claims.Scope)
+	}
+	if len(claims.Permissions) != 1 || claims.Permissions[0] != "custom:perm" {
+		t.Fatalf("unexpected permissions: %+v", claims.Permissions)
+	}
+}
+
+func TestGenerateTestTokenMissingPrivateKey(t *testing.T) {
+	mw := NewJWTMiddlewareWithOptions("", "issuer", "aud", Options{Alg: "RS256"})
+	if _, err := mw.GenerateTestToken("user", "tenant", []string{"ADMIN"}, time.Hour); err == nil {
+		t.Fatalf("expected error when private key not configured")
+	}
+}
+
+func TestCheckRESTPermission(t *testing.T) {
+	checker := NewPBACPermissionChecker(nil, log.New(io.Discard, "", 0))
+	ctx := SetUserContext(context.Background(), &Claims{UserID: "admin", TenantID: "tenant", Roles: []string{"ADMIN"}})
+	if err := checker.CheckRESTPermission(ctx, http.MethodPost, "/api/v1/organization-units"); err != nil {
+		t.Fatalf("expected admin to pass REST permission: %v", err)
+	}
+
+	ctxUser := SetUserContext(context.Background(), &Claims{UserID: "user", TenantID: "tenant", Roles: []string{"EMPLOYEE"}})
+	if err := checker.CheckRESTPermission(ctxUser, http.MethodPost, "/api/v1/organization-units"); err == nil {
+		t.Fatalf("expected employee to be denied")
+	}
+}
+
+func TestMockRESTPermissionCheck(t *testing.T) {
+	checker := NewPBACPermissionChecker(nil, log.New(io.Discard, "", 0))
+	ctx := SetUserContext(context.Background(), &Claims{UserID: "user", TenantID: "tenant", Roles: []string{"MANAGER"}})
+	if err := checker.MockRESTPermissionCheck(ctx, http.MethodPost, "/api/v1/organization-units"); err != nil {
+		t.Fatalf("expected manager to pass mock permission: %v", err)
+	}
+
+	ctxGuest := SetUserContext(context.Background(), &Claims{UserID: "guest", TenantID: "tenant", Roles: []string{"GUEST"}})
+	if err := checker.MockRESTPermissionCheck(ctxGuest, http.MethodPost, "/api/v1/organization-units"); err == nil {
+		t.Fatalf("expected guest to be denied")
+	}
+}
