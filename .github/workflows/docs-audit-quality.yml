@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, master, develop ]
     paths:
-      - 'cmd/organization-command-service/internal/audit/**'
+      - 'cmd/hrms-server/command/internal/audit/**'
       - 'docs/**'
       - 'scripts/quality/**'
       - 'Makefile'
@@ -13,7 +13,7 @@ on:
   pull_request:
     branches: [ main, master, develop ]
     paths:
-      - 'cmd/organization-command-service/internal/audit/**'
+      - 'cmd/hrms-server/command/internal/audit/**'
       - 'docs/**'
       - 'scripts/quality/**'
       - 'Makefile'

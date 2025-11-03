@@ -172,7 +172,7 @@ func TestParseRSAPublicKeyFromPEM(t *testing.T) {
 }
 
 func TestRSAFromModExp(t *testing.T) {
-	priv, err := rsa.GenerateKey(rand.Reader, 512)
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("failed to generate key: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestRSAFromModExp(t *testing.T) {
 }
 
 func TestJWKSManagerRefresh(t *testing.T) {
-	priv, err := rsa.GenerateKey(rand.Reader, 512)
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("failed to generate key: %v", err)
 	}

@@ -169,7 +169,7 @@ function main() {
   const gqlQueries = extractGraphQLQueries();
 
   const goHandlers = rgExportedFunctions(
-    path.join(repoRoot, 'cmd/organization-command-service/internal/handlers'),
+    path.join(repoRoot, 'cmd/hrms-server/command/internal/handlers'),
     ['.go'],
     [
       { label: 'method', regex: String.raw`func\s*\([^)]*\)\s+([A-Z][A-Za-z0-9_]*)\s*\(` },
@@ -177,7 +177,7 @@ function main() {
   );
 
   const goServices = rgExportedFunctions(
-    path.join(repoRoot, 'cmd/organization-command-service/internal/services'),
+    path.join(repoRoot, 'cmd/hrms-server/command/internal/services'),
     ['.go'],
     [
       { label: 'type', regex: String.raw`type\s+([A-Z][A-Za-z0-9_]*)\s+struct\b` },

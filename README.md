@@ -93,9 +93,9 @@ make run-dev-debug
 ### 容器热重载（可选）
 ```bash
 export COMMAND_SERVICE_BUILD_TARGET=dev
-export COMMAND_SERVICE_WORKDIR=/workspace/cmd/organization-command-service
+export COMMAND_SERVICE_WORKDIR=/workspace/cmd/hrms-server/command
 export GRAPHQL_SERVICE_BUILD_TARGET=dev
-export GRAPHQL_SERVICE_WORKDIR=/workspace/cmd/organization-query-service
+export GRAPHQL_SERVICE_WORKDIR=/workspace/cmd/hrms-server/query
 docker compose -f docker-compose.dev.yml up -d --build rest-service graphql-service
 ```
 - 完整说明参考：`docs/development-guides/docker-hot-reload-guide.md`
@@ -291,8 +291,8 @@ cube-castle/
 │   ├── src/features/         # 功能模块
 │   └── tests/               # 测试套件
 ├── cmd/                     # Go服务入口
-│   ├── organization-command-service/  # REST API(9090)
-│   └── organization-query-service/    # GraphQL(8090)
+│   ├── hrms-server/command/          # REST API(9090)
+│   └── hrms-server/query/            # GraphQL(8090)
 ├── scripts/quality/          # 🆕 P3防控系统工具
 │   ├── duplicate-detection.sh      # 重复代码检测
 │   ├── architecture-validator.js   # 架构守护验证

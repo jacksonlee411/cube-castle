@@ -29,7 +29,7 @@ services:
   graphql-service:
     build:
       context: .
-      dockerfile: cmd/organization-query-service-unified/Dockerfile
+      dockerfile: cmd/hrms-server/query-unified/Dockerfile
     environment:
       - DATABASE_URL=postgres://user:password@postgres:5432/cubecastle?sslmode=disable
       - REDIS_ADDR=redis:6379
@@ -53,7 +53,7 @@ services:
   rest-service:
     build:
       context: .
-      dockerfile: cmd/organization-command-service/Dockerfile
+      dockerfile: cmd/hrms-server/command/Dockerfile
     environment:
       - DATABASE_URL=postgres://user:password@postgres:5432/cubecastle?sslmode=disable
       - REDIS_ADDR=redis:6379

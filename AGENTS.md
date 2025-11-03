@@ -5,7 +5,7 @@
 > 🐳 **Docker 容器化部署强制约束**：本项目所有服务、数据库、中间件（PostgreSQL、Redis、Temporal 等）必须通过 Docker Compose 管理，**严禁在宿主机直接安装**。如发现宿主服务占用容器端口（如 5432、6379），必须卸载宿主服务以释放端口，**不得调整容器端口映射**以迁就宿主服务。此约束确保开发环境一致性、隔离性与可复现性。
 
 ## 项目结构与模块组织
-- 命令服务位于 `cmd/organization-command-service/`，查询服务位于 `cmd/organization-query-service/`，共享中间件、鉴权、缓存与 GraphQL 工具集中在 `internal/`，严格遵循 PostgreSQL 原生 CQRS（命令→REST、查询→GraphQL）。
+- 命令服务位于 `cmd/hrms-server/command/`，查询服务位于 `cmd/hrms-server/query/`，共享中间件、鉴权、缓存与 GraphQL 工具集中在 `internal/`，严格遵循 PostgreSQL 原生 CQRS（命令→REST、查询→GraphQL）。
 - 数据迁移统一保存在 `database/migrations/`，通用 SQL 助手位于 `sql/`；禁止回退至 `sql/init/01-schema.sql` 等历史脚本，数据真源始终由迁移驱动。
 - 前端代码在 `frontend/`，功能切片位于 `frontend/src/features/`，共用类型在 `frontend/src/shared/`；静态资源、脚本与测试说明遵循各目录 README。
 - 测试分布：Go 与集成测试在 `tests/` 和 `cmd/*`，前端 Vitest 规格在 `frontend/src/**/__tests__` 与 `frontend/tests/`，Playwright E2E 在 `tests/e2e/`，其配置归档于 `frontend/`。

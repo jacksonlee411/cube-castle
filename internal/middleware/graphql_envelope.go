@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"cube-castle-deployment-test/internal/types"
+	"cube-castle/internal/types"
 )
 
 // GraphQLEnvelopeMiddleware 企业级GraphQL响应信封中间件

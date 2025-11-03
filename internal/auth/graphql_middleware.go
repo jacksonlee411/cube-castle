@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"cube-castle-deployment-test/internal/middleware"
-	"cube-castle-deployment-test/internal/types"
+	"cube-castle/internal/middleware"
+	"cube-castle/internal/types"
 )
 
 type GraphQLPermissionMiddleware struct {

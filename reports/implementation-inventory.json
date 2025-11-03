@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-21T03:30:22.201Z",
+  "timestamp": "2025-11-02T23:49:23.385Z",
   "summary": {
     "openapiPaths": 49,
     "graphqlQueries": 22,
@@ -85,419 +85,419 @@
   "goHandlers": [
     {
       "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "file": "cmd/hrms-server/command/internal/handlers/devtools.go",
       "kind": "method"
     },
     {
       "name": "GenerateDevToken",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "file": "cmd/hrms-server/command/internal/handlers/devtools.go",
       "kind": "method"
     },
     {
       "name": "GetTokenInfo",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "file": "cmd/hrms-server/command/internal/handlers/devtools.go",
       "kind": "method"
     },
     {
       "name": "DevStatus",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "file": "cmd/hrms-server/command/internal/handlers/devtools.go",
       "kind": "method"
     },
     {
       "name": "ListTestEndpoints",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "file": "cmd/hrms-server/command/internal/handlers/devtools.go",
       "kind": "method"
     },
     {
       "name": "DatabaseStatus",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "file": "cmd/hrms-server/command/internal/handlers/devtools.go",
       "kind": "method"
     },
     {
       "name": "PerformanceMetrics",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "file": "cmd/hrms-server/command/internal/handlers/devtools.go",
       "kind": "method"
     },
     {
       "name": "TestAPI",
-      "file": "cmd/organization-command-service/internal/handlers/devtools.go",
+      "file": "cmd/hrms-server/command/internal/handlers/devtools.go",
       "kind": "method"
     },
     {
       "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobFamilyGroup",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "UpdateJobFamilyGroup",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobFamilyGroupVersion",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobFamily",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "UpdateJobFamily",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobFamilyVersion",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobRole",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "UpdateJobRole",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobRoleVersion",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobLevel",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "UpdateJobLevel",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateJobLevelVersion",
-      "file": "cmd/organization-command-service/internal/handlers/job_catalog_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/job_catalog_handler.go",
       "kind": "method"
     },
     {
       "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "GetRateLimitStats",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "GetHealth",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "GetMetrics",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "GetAlerts",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "GetTasks",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "GetTaskStatus",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "TriggerTask",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "TriggerCutover",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "TriggerConsistencyCheck",
-      "file": "cmd/organization-command-service/internal/handlers/operational.go",
+      "file": "cmd/hrms-server/command/internal/handlers/operational.go",
       "kind": "method"
     },
     {
       "name": "CreateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization_create.go",
+      "file": "cmd/hrms-server/command/internal/handlers/organization_create.go",
       "kind": "method"
     },
     {
       "name": "CreateOrganizationVersion",
-      "file": "cmd/organization-command-service/internal/handlers/organization_create.go",
+      "file": "cmd/hrms-server/command/internal/handlers/organization_create.go",
       "kind": "method"
     },
     {
       "name": "CreateOrganizationEvent",
-      "file": "cmd/organization-command-service/internal/handlers/organization_events.go",
+      "file": "cmd/hrms-server/command/internal/handlers/organization_events.go",
       "kind": "method"
     },
     {
       "name": "UpdateHistoryRecord",
-      "file": "cmd/organization-command-service/internal/handlers/organization_history.go",
+      "file": "cmd/hrms-server/command/internal/handlers/organization_history.go",
       "kind": "method"
     },
     {
       "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/organization_routes.go",
+      "file": "cmd/hrms-server/command/internal/handlers/organization_routes.go",
       "kind": "method"
     },
     {
       "name": "UpdateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
+      "file": "cmd/hrms-server/command/internal/handlers/organization_update.go",
       "kind": "method"
     },
     {
       "name": "SuspendOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
+      "file": "cmd/hrms-server/command/internal/handlers/organization_update.go",
       "kind": "method"
     },
     {
       "name": "ActivateOrganization",
-      "file": "cmd/organization-command-service/internal/handlers/organization_update.go",
+      "file": "cmd/hrms-server/command/internal/handlers/organization_update.go",
       "kind": "method"
     },
     {
       "name": "SetupRoutes",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "CreatePosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "ReplacePosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "CreatePositionVersion",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "FillPosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "VacatePosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "TransferPosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "ListAssignments",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "CreateAssignment",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "UpdateAssignment",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "CloseAssignment",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "ApplyPositionEvent",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler.go",
       "kind": "method"
     },
     {
       "name": "CreatePosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "ReplacePosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "CreatePositionVersion",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "FillPosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "VacatePosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "TransferPosition",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "ApplyEvent",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "ListAssignments",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "CreateAssignmentRecord",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "UpdateAssignmentRecord",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     },
     {
       "name": "CloseAssignmentRecord",
-      "file": "cmd/organization-command-service/internal/handlers/position_handler_test.go",
+      "file": "cmd/hrms-server/command/internal/handlers/position_handler_test.go",
       "kind": "method"
     }
   ],
   "goServices": [
     {
       "name": "CascadeUpdateService",
-      "file": "cmd/organization-command-service/internal/services/cascade.go",
+      "file": "cmd/hrms-server/command/internal/services/cascade.go",
       "kind": "type"
     },
     {
       "name": "CascadeTask",
-      "file": "cmd/organization-command-service/internal/services/cascade.go",
+      "file": "cmd/hrms-server/command/internal/services/cascade.go",
       "kind": "type"
     },
     {
       "name": "JobCatalogService",
-      "file": "cmd/organization-command-service/internal/services/job_catalog_service.go",
+      "file": "cmd/hrms-server/command/internal/services/job_catalog_service.go",
       "kind": "type"
     },
     {
       "name": "OperationalScheduler",
-      "file": "cmd/organization-command-service/internal/services/operational_scheduler.go",
+      "file": "cmd/hrms-server/command/internal/services/operational_scheduler.go",
       "kind": "type"
     },
     {
       "name": "ScheduledTask",
-      "file": "cmd/organization-command-service/internal/services/operational_scheduler.go",
+      "file": "cmd/hrms-server/command/internal/services/operational_scheduler.go",
       "kind": "type"
     },
     {
       "name": "OrganizationTemporalService",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "file": "cmd/hrms-server/command/internal/services/organization_temporal_service.go",
       "kind": "type"
     },
     {
       "name": "TemporalCreateVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "file": "cmd/hrms-server/command/internal/services/organization_temporal_service.go",
       "kind": "type"
     },
     {
       "name": "TemporalUpdateVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "file": "cmd/hrms-server/command/internal/services/organization_temporal_service.go",
       "kind": "type"
     },
     {
       "name": "TemporalDeleteVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "file": "cmd/hrms-server/command/internal/services/organization_temporal_service.go",
       "kind": "type"
     },
     {
       "name": "TemporalStatusChangeRequest",
-      "file": "cmd/organization-command-service/internal/services/organization_temporal_service.go",
+      "file": "cmd/hrms-server/command/internal/services/organization_temporal_service.go",
       "kind": "type"
     },
     {
       "name": "PositionService",
-      "file": "cmd/organization-command-service/internal/services/position_service.go",
+      "file": "cmd/hrms-server/command/internal/services/position_service.go",
       "kind": "type"
     },
     {
       "name": "TemporalService",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal.go",
       "kind": "type"
     },
     {
       "name": "InsertVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal.go",
       "kind": "type"
     },
     {
       "name": "OrganizationData",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal.go",
       "kind": "type"
     },
     {
       "name": "DeleteVersionRequest",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal.go",
       "kind": "type"
     },
     {
       "name": "ChangeEffectiveDateRequest",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal.go",
       "kind": "type"
     },
     {
       "name": "SuspendActivateRequest",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal.go",
       "kind": "type"
     },
     {
       "name": "VersionResponse",
-      "file": "cmd/organization-command-service/internal/services/temporal.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal.go",
       "kind": "type"
     },
     {
       "name": "TemporalMonitor",
-      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal_monitor.go",
       "kind": "type"
     },
     {
       "name": "MonitoringMetrics",
-      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal_monitor.go",
       "kind": "type"
     },
     {
       "name": "AlertRule",
-      "file": "cmd/organization-command-service/internal/services/temporal_monitor.go",
+      "file": "cmd/hrms-server/command/internal/services/temporal_monitor.go",
       "kind": "type"
     }
   ],

@@ -1,0 +1,24 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o tmp/query-service ./cmd/hrms-server/query"
+bin = "./tmp/query-service"
+include_ext = ["go", "mod", "sum"]
+exclude_dir = ["tmp", "bin", "scripts", "frontend", "node_modules"]
+
+[log]
+time = true
+
+[env]
+PORT = "8090"
+GIN_MODE = "debug"
+DB_HOST = "postgres"
+DB_PORT = "5432"
+DB_USER = "user"
+DB_PASSWORD = "password"
+DB_NAME = "cubecastle"
+JWT_JWKS_URL = "http://rest-service:9090/.well-known/jwks.json"
+
+[misc]
+clean_on_exit = true

@@ -40,7 +40,7 @@ services:
   graphql-service:
     build:
       context: .
-      dockerfile: cmd/organization-query-service/Dockerfile
+      dockerfile: cmd/hrms-server/query/Dockerfile
       target: ${GRAPHQL_SERVICE_BUILD_TARGET:-release}
     container_name: cubecastle-graphql
     environment:
@@ -72,7 +72,7 @@ services:
   rest-service:
     build:
       context: .
-      dockerfile: cmd/organization-command-service/Dockerfile
+      dockerfile: cmd/hrms-server/command/Dockerfile
       target: ${COMMAND_SERVICE_BUILD_TARGET:-release}
     container_name: cubecastle-rest
     environment:

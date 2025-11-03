@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	config "cube-castle-deployment-test/internal/config"
+	config "cube-castle/internal/config"
 	"github.com/golang-jwt/jwt/v5"
-	sharedconfig "shared/config"
+	sharedconfig "cube-castle/shared/config"
 )
 
 func main() {

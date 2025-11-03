@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"cube-castle-deployment-test/internal/config"
+	"cube-castle/internal/config"
 	"github.com/gin-gonic/gin"
 )
 

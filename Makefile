@@ -55,8 +55,8 @@ help:
 build:
 	@echo "🔨 构建 Go 应用..."
 	mkdir -p bin
-	go build -o bin/organization-command-service ./cmd/organization-command-service
-	go build -o bin/organization-query-service   ./cmd/organization-query-service
+	go build -o bin/organization-command-service ./cmd/hrms-server/command
+	go build -o bin/organization-query-service   ./cmd/hrms-server/query
 
 # 清理构建产物
 clean:
@@ -148,10 +148,10 @@ run-dev-debug:
 	@sleep 5
 	@echo "▶ 启动命令服务 (9090)..."
 	JWT_ALG=RS256 JWT_MINT_ALG=RS256 JWT_PRIVATE_KEY_PATH=$(CURDIR)/secrets/dev-jwt-private.pem JWT_PUBLIC_KEY_PATH=$(CURDIR)/secrets/dev-jwt-public.pem JWT_KEY_ID=bff-key-1 \
-		go run ./cmd/organization-command-service/main.go &
+		go run ./cmd/hrms-server/command/main.go &
 	@echo "▶ 启动查询服务 (8090)..."
 	JWT_ALG=RS256 JWT_JWKS_URL=http://localhost:9090/.well-known/jwks.json \
-		go run ./cmd/organization-query-service/main.go &
+		go run ./cmd/hrms-server/query/main.go &
 	@echo "🩺 健康检查 (若服务已实现 /health)："
 	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:9090/health >/dev/null && echo "  ✅ command-service ok" && break || (echo "  ⏳ 等待 command-service..." && sleep 1); done || true
 	-@for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://localhost:8090/health >/dev/null && echo "  ✅ query-service ok" && break || (echo "  ⏳ 等待 query-service..." && sleep 1); done || true
@@ -168,7 +168,7 @@ auth-flow-test:
 # 认证相关测试
 test-auth-unit:
 	@echo "🧪 运行 RS256+JWKS 认证单元测试（查询服务中间件）..."
-	cd cmd/organization-query-service && go test ./internal/auth -run TestRS256JWTValidationWithJWKS -v
+	cd cmd/hrms-server/query && go test ./internal/auth -run TestRS256JWTValidationWithJWKS -v
 
 test-e2e-auth:
 	@echo "🧪 运行 认证端到端测试...（需要 Postgres/Redis 已运行）"

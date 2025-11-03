@@ -1,0 +1,19 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o tmp/command-service ./cmd/hrms-server/command"
+bin = "./tmp/command-service"
+include_ext = ["go", "mod", "sum"]
+exclude_dir = ["tmp", "bin", "scripts", "frontend", "node_modules"]
+
+[log]
+time = true
+
+[env]
+PORT = "9090"
+GIN_MODE = "debug"
+DATABASE_URL = "postgres://user:password@postgres:5432/cubecastle?sslmode=disable"
+
+[misc]
+clean_on_exit = true

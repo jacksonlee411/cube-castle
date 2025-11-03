@@ -104,7 +104,7 @@ func TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks(t *testing.T) {
 		"JWT_KEY_ID=bff-key-1",
 		"OIDC_SIMULATE=true",
 	}
-	cmdSrv := startService(t, root, cmdEnv, "go", "run", "./cmd/organization-command-service/main.go")
+	cmdSrv := startService(t, root, cmdEnv, "go", "run", "./cmd/hrms-server/command/main.go")
 	defer killIfRunning(t, cmdSrv)
 
 	// Start query service (JWKS verify)
@@ -112,7 +112,7 @@ func TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks(t *testing.T) {
 		"JWT_ALG=RS256",
 		"JWT_JWKS_URL=http://localhost:9090/.well-known/jwks.json",
 	}
-	gqlSrv := startService(t, root, gqlEnv, "go", "run", "./cmd/organization-query-service/main.go")
+	gqlSrv := startService(t, root, gqlEnv, "go", "run", "./cmd/hrms-server/query/main.go")
 	defer killIfRunning(t, gqlSrv)
 
 	waitHealthy(t, "http://localhost:9090/health", 20*time.Second)
