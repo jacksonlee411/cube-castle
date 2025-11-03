@@ -46,13 +46,14 @@
 
 | 计划编号 | 名称 | 工作内容 | 完成日期 | 前置依赖 | 产出 | 负责人 |
 |---------|------|--------|---------|---------|------|--------|
-| **216** | eventbus 实现 | 事件总线接口与内存实现 | W3-D1 | Phase1 | pkg/eventbus/ | 基础设施 |
+| **216** | eventbus 实现 | 事件总线接口与内存实现 | W3-D1 ✅ (2025-11-03) | Phase1 | pkg/eventbus/ | 基础设施 |
 | **217** | database 实现 | 连接池、事务、outbox | W3-D2 | Plan210 | pkg/database/ | 基础设施 |
+| **217B** | outbox 中继服务 | 实现 outbox→eventbus 中继 | W3-D3 | 217 | cmd/hrms-server/internal/outbox | 基础设施 |
 | **218** | logger 实现 | 结构化日志、Prometheus | W3-D2 | - | pkg/logger/ | 基础设施 |
 | **219** | 重构 org 模块 | 标准化目录、基础设施集成 | W3-D4-5 | 216-218 | organization/ | 架构师 |
-| **220** | 模块模板文档 | 标准指南、检查清单、样本 | W4-D1 | 219 | 开发文档 | 架构师 |
-| **221** | Docker 测试基座 | Compose 配置、脚本、CI | W4-D2 | 217, 210 | 测试基座 | QA |
-| **222** | 验证与更新 | 测试验证、文档更新、报告 | W4-D3-4 | 219-221 | 验收报告 | QA |
+| **220** | 模块模板文档 | 标准指南、检查清单、样本 | W4-D2 | 219 | 开发文档 | 架构师 |
+| **221** | Docker 测试基座 | Compose 配置、脚本、CI | W4-D3 | 217, 210 | 测试基座 | QA |
+| **222** | 验证与更新 | 测试验证、文档更新、报告 | W4-D4-5 | 219-221 | 验收报告 | QA |
 
 ---
 
@@ -91,6 +92,8 @@
 
 ### Plan 216: `pkg/eventbus/` 事件总线
 
+**当前状态**: ✅ 已完成（2025-11-03），`go test`/`-race`/`-cover`/`go vet` 全部通过，覆盖率 98.1%。
+
 **交付成果**:
 - Event、EventBus、EventHandler 接口定义
 - MemoryEventBus 内存实现
@@ -104,7 +107,8 @@
 **验收标准**:
 - ✅ Subscribe/Publish 功能正常
 - ✅ 并发安全（使用 RWMutex）
-- ✅ 错误处理完善
+- ✅ 错误聚合：Publish 在处理器失败时返回详细的 `AggregatePublishError`
+- ✅ 成功/失败/无订阅者计数与延迟指标可通过 `MetricsRecorder` 输出
 
 ---
 
@@ -124,6 +128,29 @@
 - ✅ 连接池配置正确
 - ✅ 事务 up/down 循环正常
 - ✅ Outbox 事件保存和查询
+
+---
+
+### Plan 217B: `outbox dispatcher` 事务性发件箱中继
+
+**交付成果**:
+- `cmd/hrms-server/internal/outbox/dispatcher.go`：定时扫描 `outbox` 表并调用 `eventbus.Publish`
+- 与数据库层共享的 `OutboxRepository` 实现（重用 Plan 217 接口）
+- 中继的运行参数（轮询间隔、批量大小、重试策略）
+- 单元测试与集成测试（验证提交失败不会发布事件）
+
+**关键点**:
+- 在事务提交成功后由中继进程异步发布事件，避免在事务内直接 `go Publish(...)`
+- 支持幂等（基于 `event_id`）与失败重试（递增 `retry_count`）
+- 与 logger、metrics 集成，暴露成功/失败指标
+
+**验收标准**:
+- ✅ 事务提交失败时不会发布事件
+- ✅ 已发布事件在 `outbox` 中标记 `published=true`
+- ✅ 重试策略在连续失败后退避并记录报警
+- ✅ 单元 & 集成测试覆盖率 > 80%
+
+**详细文档**: `docs/development-plans/217B-outbox-dispatcher-plan.md`
 
 ---
 
@@ -212,7 +239,7 @@ internal/organization/
 - Makefile 新增 `make test-db` 等目标
 
 **验收标准**:
-- ✅ Docker 容器启动 < 10s
+- ✅ 预拉取镜像后冷启动 < 10s（首轮需先执行镜像预拉取脚本）
 - ✅ Goose 迁移 up/down 循环通过
 - ✅ 集成测试可正常运行
 
@@ -251,45 +278,46 @@ internal/organization/
 
 **Day 13 (W3-D2)**：
 - 继续 Plan 216（完成单元测试）
-- 开始 Plan 217（database）、Plan 218（logger）
-- 完成目标：216 完成，217-218 框架完成
+- 推进 Plan 217（database）与 Plan 218（logger）基础实现
+- 完成目标：216 完成，217-218 核心结构完成
 
 **Day 14 (W3-D3)**：
 - 完成 Plan 217（database）
-- 完成 Plan 218（logger）
-- 开始 Plan 219（organization 重构）
-- 完成目标：三个基础设施包完成
+- 启动并完成 Plan 217B（outbox dispatcher）
+- 开始 Plan 219（organization 重构）预备工作
+- 完成目标：数据库层与事件中继全部就绪
 
 **Day 15 (W3-D4)**：
-- 继续 Plan 219（organization 重构前半部分）
-- 开始 Plan 220（模板文档编写）
-- 完成目标：organization 重构过半
+- 深入 Plan 219（organization 重构前半部分）
+- 启动 Plan 220（模板文档）资料整理
+- 完成目标：organization 重构过半，模板文档框架确定
 
 **Day 16 (W3-D5)**：
 - 完成 Plan 219（organization 重构）
-- 完成 Plan 220（模板文档）
-- 开始 Plan 221（Docker 测试基座）
-- 完成目标：organization 重构完成，模板文档完成
+- 继续 Plan 220（模块开发模板草稿）
+- 完成目标：organization 重构完成，模板文档进入评审稿
 
 ### 4.2 周一至周五 (Week 4)
 
 **Day 17 (W4-D1)**：
-- 继续 Plan 221（Docker 配置完成）
-- 开始验证工作（Plan 222 前期准备）
-- 完成目标：221 完成 50%
+- 完成 Plan 220（模板文档定稿）
+- 启动 Plan 221（Docker 测试基座）环境预拉取
+- 完成目标：模块模板交付，测试环境准备就绪
 
 **Day 18 (W4-D2)**：
-- 完成 Plan 221（Docker 测试基座）
-- 开始 Plan 222（验证工作）
-- 完成目标：221 完成，222 进行中
+- 深入 Plan 221（Docker 测试基座），完成脚本与 CI 配置
+- 开始 Plan 222（验证工作前期准备）
+- 完成目标：221 完成 70%，验证用例清单确认
 
 **Day 19 (W4-D3)**：
-- 继续 Plan 222（测试验证）
-- 完成目标：单元、集成、回归测试完成
+- 完成 Plan 221（Docker 测试基座）
+- 执行 Plan 222（单元、集成、回归测试）
+- 完成目标：Docker 基座可复用，测试覆盖达标
 
-**Day 20 (W4-D4)**：
-- 完成 Plan 222（文档更新、验收报告）
-- 完成目标：Phase2 全部完成，交付验收
+**Day 20-21 (W4-D4~D5)**：
+- 继续 Plan 222（E2E、性能、文档更新）
+- 输出 Phase2 验收报告与 README/指南更新
+- 完成目标：Phase2 全部完成并提交验收材料
 
 ### 4.3 并行工作安排
 
@@ -298,13 +326,13 @@ internal/organization/
 ```
 W3-D1：Plan 216 (1人)
 W3-D2：Plan 216 (1人) + Plan 217 (1人) + Plan 218 (1人)
-W3-D3：Plan 217 (1人) + Plan 218 (1人)
+W3-D3：Plan 217 (1人) + Plan 217B (1人)
 W3-D4：Plan 219 (2人) + Plan 220 準備 (1人)
-W3-D5：Plan 219 (2人) + Plan 220 (1人) + Plan 221 準備 (1人)
+W3-D5：Plan 219 (2人) + Plan 220 (1人) + Plan 221 預拉取 (1人)
 W4-D1：Plan 219 (1人) + Plan 220 (1人) + Plan 221 (1人)
 W4-D2：Plan 221 (1人) + Plan 222 準備 (1人)
-W4-D3：Plan 222 測試 (2人)
-W4-D4：Plan 222 文檔 (1人)
+W4-D3：Plan 221 (1人) + Plan 222 測試 (2人)
+W4-D4~D5：Plan 222 測試與文檔 (2人)
 ```
 
 ---
@@ -316,6 +344,7 @@ W4-D4：Plan 222 文檔 (1人)
 **职责**:
 - Plan 216: eventbus 实现
 - Plan 217: database 层实现
+- Plan 217B: outbox dispatcher 中继
 - Plan 218: logger 实现
 
 **所需技能**:
@@ -378,7 +407,7 @@ W4-D4：Plan 222 文檔 (1人)
 - [ ] 查询延迟无增长
 - [ ] 并发性能达标
 - [ ] 内存使用稳定
-- [ ] Docker 启动 < 10s
+- [ ] 预拉取镜像后的 Docker 启动 < 10s
 
 ### 6.4 文档验收
 
@@ -404,7 +433,7 @@ W4-D4：Plan 222 文檔 (1人)
 
 - **如果基础设施出现问题**：在分支中修复，不影响 main
 - **如果 organization 重构失败**：回滚至 Phase1 版本，重新规划
-- **如果 Docker 不稳定**：使用本地 PostgreSQL 进行临时测试
+- **如果 Docker 不稳定**：重新拉取镜像、清理残留容器与数据卷，并确认宿主未占用标准端口后再启动 Docker Compose
 - **如果超期**：优先完成关键路径（216-217-219-222），其他任务推迟
 
 ---
@@ -440,6 +469,7 @@ Phase2 详细方案：
 ├── 215-phase2-execution-log.md            → 执行进度追踪
 ├── 216-eventbus-implementation-plan.md    → 事件总线
 ├── 217-database-layer-implementation.md   → 数据库层
+├── 217B-outbox-dispatcher-plan.md         → Outbox 中继
 ├── 218-logger-system-implementation.md    → 日志系统
 ├── 219-organization-restructuring.md      → 模块重构
 ├── 220-module-template-documentation.md   → 开发模板

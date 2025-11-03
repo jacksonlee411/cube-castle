@@ -34,15 +34,15 @@
 
 | 周 | 日 | 行动项 | 计划 | 描述 | 负责人 | 状态 |
 |-----|-----|--------|------|------|--------|------|
-| **W3** | D1 | 2.1 | **Plan 216** | 实现 `pkg/eventbus/` 事件总线 | 基础设施 | ⏳ |
+| **W3** | D1 | 2.1 | **Plan 216** | 实现 `pkg/eventbus/` 事件总线 | 基础设施 | ✅ 2025-11-03 |
 | | D2 | 2.2 | **Plan 217** | 实现 `pkg/database/` 数据库层 | 基础设施 | ⏳ |
 | | D2 | 2.3 | **Plan 218** | 实现 `pkg/logger/` 日志系统 | 基础设施 | ⏳ |
+| | D3 | 2.3a | **Plan 217B** | 构建 outbox→eventbus 中继 | 基础设施 | ⏳ |
 | | D3 | 2.4-2.5 | Plan 210 | 迁移脚本和 Atlas 配置 | DevOps | ✅ |
 | | D4-5 | 2.6 | **Plan 219** | 重构 organization 模块结构 | 架构师 | ⏳ |
-| **W4** | D1 | 2.7 | **Plan 220** | 创建模块开发模板文档 | 架构师 | ⏳ |
-| | D2 | 2.8 | **Plan 221** | 构建 Docker 化集成测试基座 | QA | ⏳ |
-| | D3 | 2.9 | **Plan 222** | 验证 organization 模块正常工作 | QA | ⏳ |
-| | D4 | 2.10 | **Plan 222** | 更新 README 与开发指南 | 文档 | ⏳ |
+| **W4** | D1-2 | 2.7 | **Plan 220** | 创建模块开发模板文档 | 架构师 | ⏳ |
+| | D2-3 | 2.8 | **Plan 221** | 构建 Docker 化集成测试基座 | QA | ⏳ |
+| | D3-5 | 2.9-2.10 | **Plan 222** | 验证与文档更新 | QA/文档 | ⏳ |
 
 ---
 
@@ -53,10 +53,10 @@
 **对应计划**: **Plan 216 - eventbus-implementation-plan.md**
 
 **计划行动**:
-- [ ] 定义事件总线接口（Event、EventBus、EventHandler）
-- [ ] 实现内存事件总线（MemoryEventBus）
-- [ ] 编写单元测试（覆盖率 > 80%）
-- [ ] 集成事件重试与错误处理机制
+- [x] 定义事件总线接口（Event、EventBus、EventHandler）- `pkg/eventbus/eventbus.go`
+- [x] 实现内存事件总线（MemoryEventBus + AggregatePublishError + MetricsRecorder）- `pkg/eventbus/memory_eventbus.go`
+- [x] 编写单元测试（覆盖率 98.1%，覆盖成功/失败/无订阅者/并发场景）- `pkg/eventbus/eventbus_test.go`
+- [x] 集成失败聚合、日志与指标记录（提供 noop Logger/Metrics，符合 Plan 217B 依赖）
 
 **交付物**:
 ```
@@ -72,24 +72,30 @@ pkg/eventbus/
 - EventBus 接口：Publish()、Subscribe()
 - EventHandler：func(ctx, event) error 签名
 - 支持多订阅者处理
-- 错误处理：处理器失败不阻止其他处理器
-- 日志记录：与 Plan 218 logger 集成
+- 错误处理：处理器失败不阻止其他处理器，并通过 `AggregatePublishError` 返回给调用方
+- 可观测性：提供成功/失败/无订阅者/耗时指标，日志接口与 Plan 218 logger 契约一致
 
 **技术要点**:
 - 并发安全：使用 RWMutex 保护 handlers 映射
-- 错误处理：处理器失败继续执行，但记录错误
+- 失败聚合：所有处理器执行完毕后返回聚合错误并记录指标
 - 性能目标：发布延迟 < 1ms
 
 **验收标准** (来自 Plan 216):
-- [ ] Subscribe/Publish 功能正常
-- [ ] 多订阅者都被调用
-- [ ] 并发安全（`go test -race` 通过）
-- [ ] 单元测试覆盖率 > 80%
-- [ ] 代码通过 `go fmt` 和 `go vet`
+- [x] Subscribe/Publish 功能正常（`TestPublishWithSingleSubscriber`、`TestPublishWithMultipleSubscribers`）
+- [x] 多订阅者都被调用（单测断言调用计数）
+- [x] 并发安全（`go test -race ./pkg/eventbus` 通过）
+- [x] 处理器失败时返回 `AggregatePublishError` 并包含失败明细（`TestPublishWithHandlerError`）
+- [x] 指标记录（成功/失败/无订阅者/延迟）经单元测试验证（`testMetrics` 断言）
+- [x] 单元测试覆盖率 > 80%（`go test -cover ./pkg/eventbus` 输出 98.1%）
+- [x] 代码通过 `go fmt` 和 `go vet`（手动执行 `gofmt`、`go vet ./pkg/eventbus`）
+
+**执行记录**:
+- 2025-11-03 完成代码提交，运行 `go test ./pkg/eventbus`、`go test -race ./pkg/eventbus`、`go test -cover ./pkg/eventbus`、`go vet ./pkg/eventbus` 全部通过。
+- 更新 `pkg/eventbus/README.md` 说明指标命名与 Plan 217B 集成方式。
 
 **负责人**: 基础设施团队
 **计划完成**: Day 12 (W3-D1)
-**状态**: ⏳ 待启动
+**状态**: ✅ 已完成（2025-11-03）
 
 **详细文档**: 见 `docs/development-plans/216-eventbus-implementation-plan.md`
 
@@ -152,6 +158,50 @@ pkg/database/
 **状态**: ⏳ 待启动
 
 **详细文档**: 见 `docs/development-plans/217-database-layer-implementation.md`
+
+---
+
+### 行动项 2.3a - 构建 outbox dispatcher 中继 (Plan 217B)
+
+**对应计划**: **Plan 217B - outbox dispatcher 中继**
+
+**计划行动**:
+- [ ] 实现独立的中继组件，定时查询 `outbox` 表未发布事件
+- [ ] 调用 Plan 217 提供的 `OutboxRepository` 接口，批量取回事件
+- [ ] 调用 Plan 216 的 `eventbus.Publish` 发布事件，并在成功后标记 `published=true`
+- [ ] 为失败事件增加 `retry_count` 并记录结构化日志
+- [ ] 实现指数退避或最小间隔，避免频繁轮询
+- [ ] 编写单元与集成测试，覆盖事务失败不发布事件的场景
+
+**交付物**:
+```
+cmd/hrms-server/internal/outbox/
+├── dispatcher.go        # 中继循环（可配置间隔/批量大小）
+├── dispatcher_config.go # 配置与默认值
+├── metrics.go           # 成功/失败/重试指标
+├── dispatcher_test.go   # 单元测试
+└── integration_test.go  # 集成测试（依赖 Plan 217/216）
+```
+
+**运行要点**:
+- 默认轮询间隔 5s，可通过环境变量覆盖
+- 每批拉取 50 条事件，发布成功后调用 `MarkPublished`
+- 发布失败时调用 `IncrementRetryCount` 并根据重试次数决定退避时间
+- 与 Plan 218 logger 集成，记录成功、失败与重试明细
+- 暴露 Prometheus 指标：`outbox_dispatch_success_total`、`outbox_dispatch_failure_total`、`outbox_dispatch_retry_total`
+
+**验收标准**:
+- [ ] 事务提交失败时不会发布事件（集成测试覆盖）
+- [ ] 成功发布的事件在 outbox 表中被标记为 `published=true`
+- [ ] 连续失败的事件会增加 `retry_count` 并进入退避队列
+- [ ] 中继可通过上下文或信号安全停止
+- [ ] 单元与集成测试覆盖率 > 80%
+
+**负责人**: 基础设施团队
+**计划完成**: Day 13 (W3-D3)
+**状态**: ⏳ 待启动
+
+**详细文档**: 见 `docs/development-plans/217B-outbox-dispatcher-plan.md`
 
 ---
 
@@ -377,7 +427,7 @@ docs/development-guides/
 - [ ] 新模块开发者可独立参考
 
 **负责人**: 架构师 + 文档支持
-**计划完成**: Day 15 (W4-D1)
+**计划完成**: Day 17 (W4-D1-2)
 **状态**: ⏳ 待启动
 
 **详细文档**: 见 `docs/development-plans/220-module-template-documentation.md`
@@ -414,7 +464,7 @@ docs/development-guides/
 **Docker 配置** (来自 Plan 221):
 - PostgreSQL 15 Alpine 镜像
 - 自动初始化数据库
-- 端口映射：5433:5432（避免与开发环境冲突）
+- 端口映射：5432:5432（保持标准端口；如被占用需清理宿主冲突服务后再启动）
 - 健康检查：pg_isready
 - 卷挂载：迁移脚本、初始化脚本
 
@@ -440,7 +490,7 @@ docs/development-guides/
 - 执行集成测试并上传覆盖率
 
 **验收标准** (来自 Plan 221):
-- [ ] Docker 容器启动 < 10s
+- [ ] 预拉取镜像后的 Docker 启动 < 10s
 - [ ] 数据库就绪时间 < 15s
 - [ ] Goose up/down 循环通过
 - [ ] 集成测试可正常运行
@@ -448,7 +498,7 @@ docs/development-guides/
 - [ ] 无端口冲突
 
 **负责人**: QA + DevOps
-**计划完成**: Day 16 (W4-D2)
+**计划完成**: Day 18-19 (W4-D2-3)
 **状态**: ⏳ 待启动
 
 **详细文档**: 见 `docs/development-plans/221-docker-integration-testing.md`
@@ -526,7 +576,7 @@ make test-db-down
 - [ ] 性能基准达标
 
 **负责人**: QA
-**计划完成**: Day 17 (W4-D3)
+**计划完成**: Day 19 (W4-D3)
 **状态**: ⏳ 待启动
 
 **详细文档**: 见 `docs/development-plans/222-organization-verification.md`
@@ -587,7 +637,7 @@ make test-db-down
 - [ ] 验收报告完成
 
 **负责人**: 文档支持 + 架构师
-**计划完成**: Day 18 (W4-D4)
+**计划完成**: Day 20-21 (W4-D4-5)
 **状态**: ⏳ 待启动
 
 **详细文档**: 见 `docs/development-plans/222-organization-verification.md`
@@ -601,6 +651,7 @@ make test-db-down
 - [ ] `pkg/eventbus/` (Plan 216) 单元测试覆盖率 > 80%
 - [ ] `pkg/database/` (Plan 217) 连接池配置正确（MaxOpenConns=25）
 - [ ] `pkg/logger/` (Plan 218) 与 Prometheus 指标集成
+- [ ] `outbox dispatcher` (Plan 217B) 能可靠发布并记录重试指标
 - [ ] 所有共享包无循环依赖
 - [ ] 代码格式通过 `go fmt ./...`
 - [ ] 代码通过 `go vet ./...`
@@ -640,6 +691,7 @@ make test-db-down
 | 事件总线设计不当 | 中 | 中 | 充分评审，确保扩展性 | Plan 216 |
 | 数据库层性能问题 | 高 | 中 | 连接池参数验证，压力测试 | Plan 217 |
 | organization 重构破裂 | 高 | 中 | 先分支测试，完全验证后合并 | Plan 219 |
+| outbox 中继未按时完成 | 高 | 中 | 提前在开发环境预演中继流程 | Plan 217B |
 | Docker 集成测试不稳定 | 中 | 中 | 固化镜像版本，CI 预跑 | Plan 221 |
 | 时间超期 | 中 | 低 | 充分的并行执行 | 整体协调 |
 
@@ -653,6 +705,7 @@ make test-db-down
 |------|--------|---------|---------|
 | **Plan 216** | 216-eventbus-implementation-plan.md | pkg/eventbus/ 实现 | 事件总线接口和内存实现 |
 | **Plan 217** | 217-database-layer-implementation.md | pkg/database/ 实现 | 连接池、事务、outbox |
+| **Plan 217B** | 217B-outbox-dispatcher-plan.md | outbox 中继实现 | 事件发布中继、重试机制 |
 | **Plan 218** | 218-logger-system-implementation.md | pkg/logger/ 实现 | 结构化日志、Prometheus |
 | **Plan 219** | 219-organization-restructuring.md | organization 重构 | 标准模块结构 |
 | **Plan 220** | 220-module-template-documentation.md | 模块开发指南 | 模板文档、样本代码 |

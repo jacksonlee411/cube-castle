@@ -21,7 +21,7 @@
 **关键成果**:
 - ✅ 数据库连接管理（连接池配置）
 - ✅ 事务管理（Transaction 包装）
-- ✅ 事务性发件箱表接口
+- ✅ 事务性发件箱迁移与 Repository 接口（对齐 Plan 217B）
 - ✅ 单元 & 集成测试（覆盖率 > 80%）
 - ✅ Prometheus 指标暴露
 
@@ -77,15 +77,16 @@ type ConnectionConfig struct {
 ```go
 // Transaction 包装了 *sql.Tx，提供统一的事务接口
 type Transaction interface {
-    Exec(query string, args ...interface{}) (sql.Result, error)
-    Query(query string, args ...interface{}) (*sql.Rows, error)
-    QueryRow(query string, args ...interface{}) *sql.Row
+    ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+    QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+    QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
     Commit() error
     Rollback() error
 }
 
 // TxFunc 定义事务操作的回调函数
-type TxFunc func(tx Transaction) error
+// 注意：WithTx 会负责提交/回滚，业务逻辑通常不要直接调用 Commit/Rollback。
+type TxFunc func(ctx context.Context, tx Transaction) error
 
 // WithTx 在事务内执行操作，自动提交或回滚
 func (db *Database) WithTx(ctx context.Context, fn TxFunc) error
@@ -111,11 +112,37 @@ type OutboxEvent struct {
 
 // OutboxRepository 管理 outbox 表
 type OutboxRepository interface {
-    SaveEvent(ctx context.Context, tx Transaction, event *OutboxEvent) error
+    Save(ctx context.Context, tx Transaction, event *OutboxEvent) error
     GetUnpublished(ctx context.Context, limit int) ([]*OutboxEvent, error)
     MarkPublished(ctx context.Context, eventID string) error
+    IncrementRetryCount(ctx context.Context, eventID string) error
 }
 ```
+
+#### 需求 4: 数据库迁移与 Schema 一致性
+
+Plan 210 基线迁移（`20251106000000_base_schema.sql`）尚未包含 `outbox_events` 表，因此本计划必须新增一条 Goose 迁移脚本（建议命名：`20251107090000_create_outbox_events.sql`）以创建下列结构：
+
+```sql
+CREATE TABLE public.outbox_events (
+    id BIGSERIAL PRIMARY KEY,
+    event_id UUID NOT NULL UNIQUE,
+    aggregate_id TEXT NOT NULL,
+    aggregate_type TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    published BOOLEAN NOT NULL DEFAULT FALSE,
+    published_at TIMESTAMPTZ,
+    available_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_outbox_unpublished ON public.outbox_events (published, created_at);
+CREATE INDEX idx_outbox_available ON public.outbox_events (available_at, published);
+```
+
+该迁移需放置于 `database/migrations/` 并附带 `-- +goose Down` 回滚脚本，确保与 Plan 215 及 Plan 217B 的数据契约一致。
 
 ### 2.2 非功能需求
 
@@ -181,6 +208,38 @@ const (
 ---
 
 ## 4. 详细实现
+
+### 4.0 迁移脚本：`database/migrations/20251107090000_create_outbox_events.sql`
+
+```sql
+-- +goose Up
+CREATE TABLE IF NOT EXISTS public.outbox_events (
+    id BIGSERIAL PRIMARY KEY,
+    event_id UUID NOT NULL UNIQUE,
+    aggregate_id TEXT NOT NULL,
+    aggregate_type TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    published BOOLEAN NOT NULL DEFAULT FALSE,
+    published_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_outbox_events_published_created_at
+    ON public.outbox_events (published, created_at);
+
+-- +goose Down
+DROP TABLE IF EXISTS public.outbox_events;
+```
+
+> 实施步骤  
+> 1. 通过 Goose CLI 创建草稿：`GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DEV_DSN" goose create create_outbox_events sql`。  
+> 2. 将生成文件重命名为 `20251107090000_create_outbox_events.sql` 并写入上述 up/down 语句；确保使用 `NOW()` 而非硬编码时间戳。  
+> 3. 执行 `goose up` / `goose down` 验证（连接开发数据库），记录输出到 `logs/plan217-goose.log`，供 Plan 215 审计引用。  
+> 4. 将表结构同步登记至 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`，保持单一事实来源。  
+
+
 
 ### 4.1 connection.go - 连接管理
 
@@ -310,15 +369,39 @@ import (
 
 // Transaction 定义事务接口
 type Transaction interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 	Commit() error
 	Rollback() error
 }
 
+type txAdapter struct {
+	inner *sql.Tx
+}
+
+func (a *txAdapter) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return a.inner.ExecContext(ctx, query, args...)
+}
+
+func (a *txAdapter) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return a.inner.QueryContext(ctx, query, args...)
+}
+
+func (a *txAdapter) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return a.inner.QueryRowContext(ctx, query, args...)
+}
+
+func (a *txAdapter) Commit() error {
+	return a.inner.Commit()
+}
+
+func (a *txAdapter) Rollback() error {
+	return a.inner.Rollback()
+}
+
 // TxFunc 定义事务操作的回调函数
-type TxFunc func(ctx context.Context, tx *sql.Tx) error
+type TxFunc func(ctx context.Context, tx Transaction) error
 
 // WithTx 在事务内执行操作，自动提交或回滚
 func (d *Database) WithTx(ctx context.Context, fn TxFunc) error {
@@ -327,7 +410,7 @@ func (d *Database) WithTx(ctx context.Context, fn TxFunc) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	err = fn(ctx, tx)
+	err = fn(ctx, &txAdapter{inner: tx})
 	if err != nil {
 		// 回滚事务
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
@@ -345,17 +428,17 @@ func (d *Database) WithTx(ctx context.Context, fn TxFunc) error {
 }
 
 // ExecContext 执行查询（兼容现有代码）
-func (d *Database) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (d *Database) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	return d.db.ExecContext(ctx, query, args...)
 }
 
 // QueryContext 执行查询（兼容现有代码）
-func (d *Database) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (d *Database) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	return d.db.QueryContext(ctx, query, args...)
 }
 
 // QueryRowContext 执行单行查询（兼容现有代码）
-func (d *Database) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (d *Database) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	return d.db.QueryRowContext(ctx, query, args...)
 }
 ```
@@ -367,28 +450,36 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 )
 
 // OutboxEvent 表示 outbox 表的一行记录
 type OutboxEvent struct {
-	ID            int64      // 主键
-	EventID       string     // UUID，幂等 ID（由应用生成）
-	AggregateID   string     // 业务对象 ID
-	AggregateType string     // 业务对象类型
-	EventType     string     // 事件类型
-	Payload       string     // JSON 格式的事件数据
-	RetryCount    int        // 重试次数
-	Published     bool       // 是否已发布
-	PublishedAt   *time.Time // 发布时间
-	CreatedAt     time.Time  // 创建时间
+    ID            int64      // 主键
+    EventID       string     // UUID，幂等 ID（由应用生成）
+    AggregateID   string     // 业务对象 ID
+    AggregateType string     // 业务对象类型
+    EventType     string     // 事件类型
+    Payload       string     // JSON 格式的事件数据
+    RetryCount    int        // 重试次数
+    Published     bool       // 是否已发布
+    PublishedAt   *time.Time // 发布时间
+    AvailableAt   time.Time  // 下次可重试时间
+    CreatedAt     time.Time  // 创建时间
 }
 
-// SaveOutboxEvent 在事务内保存 outbox 事件
-// 与业务操作一起在同一事务内执行，保证原子性
-func SaveOutboxEvent(ctx context.Context, tx *sql.Tx, event *OutboxEvent) error {
+type outboxRepository struct {
+	db *Database
+}
+
+// NewOutboxRepository 返回默认实现，供业务侧注入（Plan 217B 使用）。
+func NewOutboxRepository(db *Database) OutboxRepository {
+	return &outboxRepository{db: db}
+}
+
+// Save 在事务内保存 outbox 事件，与业务数据保持原子性。
+func (r *outboxRepository) Save(ctx context.Context, tx Transaction, event *OutboxEvent) error {
 	if event == nil {
 		return ErrNilOutboxEvent
 	}
@@ -397,47 +488,48 @@ func SaveOutboxEvent(ctx context.Context, tx *sql.Tx, event *OutboxEvent) error 
 		return ErrEmptyEventID
 	}
 
-	query := `
-		INSERT INTO outbox_events
-		(event_id, aggregate_id, aggregate_type, event_type, payload, retry_count, published, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id
-	`
+    row := tx.QueryRowContext(ctx, `
+        INSERT INTO outbox_events
+        (event_id, aggregate_id, aggregate_type, event_type, payload, retry_count, published, available_at, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id
+    `,
+        event.EventID,
+        event.AggregateID,
+        event.AggregateType,
+        event.EventType,
+        event.Payload,
+        0,          // 初始重试次数为 0
+        false,      // 初始发布状态为 false
+        time.Now(), // 首次可用时间
+        time.Now(), // 创建时间
+    )
 
-	err := tx.QueryRowContext(ctx, query,
-		event.EventID,
-		event.AggregateID,
-		event.AggregateType,
-		event.EventType,
-		event.Payload,
-		0,           // 初始重试次数为 0
-		false,       // 初始发布状态为 false
-		time.Now(),  // 创建时间
-	).Scan(&event.ID)
-
-	if err != nil {
+	if err := row.Scan(&event.ID); err != nil {
 		return fmt.Errorf("failed to save outbox event: %w", err)
 	}
 
 	return nil
 }
 
-// GetUnpublishedEvents 获取未发布的事件（用于后台中继）
-func (d *Database) GetUnpublishedEvents(ctx context.Context, limit int) ([]*OutboxEvent, error) {
+// GetUnpublished 获取未发布的事件（用于后台中继）。
+func (r *outboxRepository) GetUnpublished(ctx context.Context, limit int) ([]*OutboxEvent, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 
-	query := `
-		SELECT id, event_id, aggregate_id, aggregate_type, event_type, payload,
-		       retry_count, published, published_at, created_at
-		FROM outbox_events
-		WHERE published = FALSE
-		ORDER BY created_at ASC
-		LIMIT $1
-	`
+    query := `
+        SELECT id, event_id, aggregate_id, aggregate_type, event_type, payload,
+               retry_count, published, published_at, available_at, created_at
+        FROM outbox_events
+        WHERE published = FALSE
+          AND available_at <= NOW()
+        ORDER BY created_at ASC
+        LIMIT $1
+        FOR UPDATE SKIP LOCKED
+    `
 
-	rows, err := d.db.QueryContext(ctx, query, limit)
+	rows, err := r.db.GetDB().QueryContext(ctx, query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query unpublished events: %w", err)
 	}
@@ -452,12 +544,13 @@ func (d *Database) GetUnpublishedEvents(ctx context.Context, limit int) ([]*Outb
 			&event.AggregateID,
 			&event.AggregateType,
 			&event.EventType,
-			&event.Payload,
-			&event.RetryCount,
-			&event.Published,
-			&event.PublishedAt,
-			&event.CreatedAt,
-		)
+            &event.Payload,
+            &event.RetryCount,
+            &event.Published,
+            &event.PublishedAt,
+            &event.AvailableAt,
+            &event.CreatedAt,
+        )
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan outbox event: %w", err)
 		}
@@ -467,8 +560,8 @@ func (d *Database) GetUnpublishedEvents(ctx context.Context, limit int) ([]*Outb
 	return events, rows.Err()
 }
 
-// MarkEventPublished 标记事件为已发布
-func (d *Database) MarkEventPublished(ctx context.Context, eventID string) error {
+// MarkPublished 标记事件为已发布
+func (r *outboxRepository) MarkPublished(ctx context.Context, eventID string) error {
 	if eventID == "" {
 		return ErrEmptyEventID
 	}
@@ -479,7 +572,7 @@ func (d *Database) MarkEventPublished(ctx context.Context, eventID string) error
 		WHERE event_id = $1
 	`
 
-	result, err := d.db.ExecContext(ctx, query, eventID)
+	result, err := r.db.GetDB().ExecContext(ctx, query, eventID)
 	if err != nil {
 		return fmt.Errorf("failed to mark event published: %w", err)
 	}
@@ -497,18 +590,19 @@ func (d *Database) MarkEventPublished(ctx context.Context, eventID string) error
 }
 
 // IncrementRetryCount 增加事件的重试次数
-func (d *Database) IncrementRetryCount(ctx context.Context, eventID string) error {
+func (r *outboxRepository) IncrementRetryCount(ctx context.Context, eventID string, nextAvailable time.Time) error {
 	if eventID == "" {
 		return ErrEmptyEventID
 	}
 
-	query := `
-		UPDATE outbox_events
-		SET retry_count = retry_count + 1
-		WHERE event_id = $1
-	`
+    query := `
+        UPDATE outbox_events
+        SET retry_count = retry_count + 1,
+            available_at = $2
+        WHERE event_id = $1
+    `
 
-	_, err := d.db.ExecContext(ctx, query, eventID)
+    _, err := r.db.GetDB().ExecContext(ctx, query, eventID, nextAvailable)
 	if err != nil {
 		return fmt.Errorf("failed to increment retry count: %w", err)
 	}
@@ -567,17 +661,22 @@ TestWithTxError()
 // outbox_test.go 测试场景
 
 // Test 8: 保存 outbox 事件
-TestSaveOutboxEvent()
+TestOutboxRepositorySave()
 
 // Test 9: 获取未发布的事件
-TestGetUnpublishedEvents()
+TestOutboxRepositoryGetUnpublished()
 
 // Test 10: 标记事件为已发布
-TestMarkEventPublished()
+TestOutboxRepositoryMarkPublished()
 
 // Test 11: 增加重试次数
-TestIncrementRetryCount()
+TestOutboxRepositoryIncrementRetry()
+
+// migrations_test.go 场景
+TestOutboxMigrationUpDown()
 ```
+
+> 建议新增 `tests/migrations/outbox_migration_test.go`，通过 Docker 容器连接测试库执行 `goose up` → `goose down`，确保脚本与 Plan 210 基线兼容。
 
 ### 5.2 集成测试：端到端流程
 
@@ -648,6 +747,7 @@ func (d *Database) RecordConnectionStats(serviceName string) {
 
 ### 7.1 功能验收
 
+- [ ] 新增 `outbox_events` Goose 迁移脚本（含 up/down）通过验证
 - [ ] 连接池配置正确（MaxOpenConns=25, MaxIdleConns=5）
 - [ ] 连接验证通过（Ping）
 - [ ] 事务创建和提交正常
@@ -655,6 +755,7 @@ func (d *Database) RecordConnectionStats(serviceName string) {
 - [ ] Outbox 事件保存成功
 - [ ] Outbox 事件查询成功
 - [ ] 发布标记和重试计数更新正常
+- [ ] OutboxRepository 接口符合 Plan 217B 注入要求
 
 ### 7.2 质量验收
 
@@ -663,6 +764,7 @@ func (d *Database) RecordConnectionStats(serviceName string) {
 - [ ] 代码通过 `go fmt` 检查
 - [ ] 代码通过 `go vet` 检查
 - [ ] 无 race condition（`go test -race`）
+- [ ] `goose up` / `goose down` 在干净环境一次性通过（含新 outbox 脚本）
 
 ### 7.3 集成验收
 
@@ -686,11 +788,11 @@ rows, _ := db.Query("SELECT * FROM organizations")
 
 **新方式** (使用 pkg/database)：
 ```go
-database, _ := database.NewDatabase(dsn)
+dbClient, _ := database.NewDatabase(dsn)
 // 连接池已自动配置为标准参数
-rows, _ := database.GetDB().Query("SELECT * FROM organizations")
+rows, _ := dbClient.GetDB().Query("SELECT * FROM organizations")
 // 或直接使用
-rows, _ := database.QueryContext(ctx, "SELECT * FROM organizations")
+rows, _ := dbClient.QueryContext(ctx, "SELECT * FROM organizations")
 ```
 
 ### 8.2 事务使用
@@ -709,10 +811,26 @@ tx.Commit()
 
 **新方式**：
 ```go
-database.WithTx(ctx, func(ctx context.Context, tx *sql.Tx) error {
-    // 业务逻辑
-    return nil // 自动提交，若返回 error 则自动回滚
+dbClient, _ := database.NewDatabase(dsn)
+repo := database.NewOutboxRepository(dbClient)
+
+err := dbClient.WithTx(ctx, func(ctx context.Context, tx database.Transaction) error {
+    // 业务逻辑，例如保存组织信息
+    // ...
+
+    // 将领域事件写入 outbox，确保与业务数据同一事务
+    return repo.Save(ctx, tx, &database.OutboxEvent{
+        EventID:      uuid.NewString(),
+        AggregateID:  orgID,
+        AggregateType:"organization",
+        EventType:    "organization.created",
+        Payload:      string(payloadBytes),
+    })
 })
+
+if err != nil {
+    // 处理错误：记录日志或返回调用方
+}
 ```
 
 ---
@@ -730,6 +848,7 @@ database.WithTx(ctx, func(ctx context.Context, tx *sql.Tx) error {
 
 ## 10. 交付物清单
 
+- ✅ `database/migrations/20251107090000_create_outbox_events.sql`
 - ✅ `pkg/database/connection.go`
 - ✅ `pkg/database/transaction.go`
 - ✅ `pkg/database/outbox.go`
