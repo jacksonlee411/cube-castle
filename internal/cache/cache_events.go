@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // 缓存事件总线 - PostgreSQL原生架构的缓存更新事件
@@ -14,6 +15,7 @@ type CacheEventBus struct {
 	subscribers []chan CacheEvent
 	mu          sync.RWMutex
 	closed      bool
+	logger      pkglogger.Logger
 }
 
 // 缓存事件定义 - PostgreSQL原生架构
@@ -83,9 +85,16 @@ type L1Stats struct {
 }
 
 // 创建事件总线
-func NewCacheEventBus() *CacheEventBus {
+func NewCacheEventBus(logger pkglogger.Logger) *CacheEventBus {
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
 	return &CacheEventBus{
 		subscribers: make([]chan CacheEvent, 0),
+		logger: logger.WithFields(pkglogger.Fields{
+			"component": "cache",
+			"module":    "cacheEventBus",
+		}),
 	}
 }
 
@@ -119,7 +128,12 @@ func (bus *CacheEventBus) Publish(event CacheEvent) {
 		case ch <- event:
 		default:
 			// 如果通道满了，跳过该订阅者，避免阻塞
-			log.Printf("事件总线订阅者通道满，跳过事件: %s", event.EventID)
+			bus.logger.WithFields(pkglogger.Fields{
+				"event":   "publish",
+				"status":  "skipped",
+				"reason":  "channel_full",
+				"eventId": event.EventID,
+			}).Warn("cache event skipped due to slow subscriber")
 		}
 	}
 }
@@ -211,12 +225,18 @@ func getIntFromMap(data map[string]interface{}, key string) int {
 
 // 智能缓存更新器 - 负责高效更新列表缓存
 type SmartCacheUpdater struct {
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
-func NewSmartCacheUpdater(logger *log.Logger) *SmartCacheUpdater {
+func NewSmartCacheUpdater(logger pkglogger.Logger) *SmartCacheUpdater {
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
 	return &SmartCacheUpdater{
-		logger: logger,
+		logger: logger.WithFields(pkglogger.Fields{
+			"component": "cache",
+			"module":    "smartCacheUpdater",
+		}),
 	}
 }
 
@@ -230,10 +250,28 @@ func (updater *SmartCacheUpdater) UpdateListCache(
 
 	switch operation {
 	case "CREATE":
+		updater.logger.WithFields(pkglogger.Fields{
+			"event":     "updateList",
+			"operation": operation,
+			"tenantId":  updatedOrg.TenantID,
+			"entityId":  updatedOrg.Code,
+		}).Debug("handling list cache create event")
 		return updater.handleCreate(existingList, updatedOrg, queryParams)
 	case "UPDATE":
+		updater.logger.WithFields(pkglogger.Fields{
+			"event":     "updateList",
+			"operation": operation,
+			"tenantId":  updatedOrg.TenantID,
+			"entityId":  updatedOrg.Code,
+		}).Debug("handling list cache update event")
 		return updater.handleUpdate(existingList, updatedOrg, queryParams)
 	case "DELETE":
+		updater.logger.WithFields(pkglogger.Fields{
+			"event":     "updateList",
+			"operation": operation,
+			"tenantId":  updatedOrg.TenantID,
+			"entityId":  updatedOrg.Code,
+		}).Debug("handling list cache delete event")
 		return updater.handleDelete(existingList, updatedOrg, queryParams)
 	}
 
@@ -368,14 +406,20 @@ func findInString(str, substr string) int {
 type ConsistencyChecker struct {
 	l1Cache *L1Cache
 	l2Cache interface{} // Redis客户端接口
-	logger  *log.Logger
+	logger  pkglogger.Logger
 }
 
-func NewConsistencyChecker(l1Cache *L1Cache, l2Cache interface{}, logger *log.Logger) *ConsistencyChecker {
+func NewConsistencyChecker(l1Cache *L1Cache, l2Cache interface{}, logger pkglogger.Logger) *ConsistencyChecker {
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
 	return &ConsistencyChecker{
 		l1Cache: l1Cache,
 		l2Cache: l2Cache,
-		logger:  logger,
+		logger: logger.WithFields(pkglogger.Fields{
+			"component": "cache",
+			"module":    "consistencyChecker",
+		}),
 	}
 }
 
@@ -390,6 +434,11 @@ func (checker *ConsistencyChecker) CheckConsistency(ctx context.Context, sampleK
 	for _, key := range sampleKeys {
 		if inconsistency := checker.checkSingleKey(ctx, key); inconsistency != nil {
 			report.Inconsistencies = append(report.Inconsistencies, *inconsistency)
+			checker.logger.WithFields(pkglogger.Fields{
+				"event": "consistencyCheck",
+				"key":   key,
+				"issue": inconsistency.Issue,
+			}).Warn("cache inconsistency detected")
 		}
 	}
 

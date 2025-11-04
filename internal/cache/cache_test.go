@@ -4,17 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"testing"
 	"time"
 
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
+func newTestLogger() pkglogger.Logger {
+	return pkglogger.NewLogger(
+		pkglogger.WithWriter(io.Discard),
+		pkglogger.WithLevel(pkglogger.LevelDebug),
+	)
+}
+
 func TestCacheEventBusPublishAndClose(t *testing.T) {
-	bus := NewCacheEventBus()
+	bus := NewCacheEventBus(newTestLogger())
 	ch := bus.Subscribe()
 
 	event := CacheEvent{EventID: "evt-1", Operation: "CREATE"}
@@ -72,7 +80,7 @@ func TestCacheEventToOrganization(t *testing.T) {
 }
 
 func TestSmartCacheUpdaterOperations(t *testing.T) {
-	updater := NewSmartCacheUpdater(log.New(io.Discard, "", 0))
+	updater := NewSmartCacheUpdater(newTestLogger())
 	existing := []Organization{
 		{Code: "A", Name: "Alpha", SortOrder: 1},
 		{Code: "B", Name: "Beta", SortOrder: 2},
@@ -99,7 +107,7 @@ func TestSmartCacheUpdaterOperations(t *testing.T) {
 }
 
 func TestSmartCacheUpdaterSearchFiltering(t *testing.T) {
-	updater := NewSmartCacheUpdater(log.New(io.Discard, "", 0))
+	updater := NewSmartCacheUpdater(newTestLogger())
 	existing := []Organization{
 		{Code: "A", Name: "Alpha"},
 	}
@@ -170,7 +178,7 @@ func TestConsistencyChecker(t *testing.T) {
 	entry := CacheEntry{Key: "org", Data: json.RawMessage(`{"code":"A"}`)}
 	l1.Set("org", entry)
 
-	checker := NewConsistencyChecker(l1, nil, log.New(io.Discard, "", 0))
+	checker := NewConsistencyChecker(l1, nil, newTestLogger())
 
 	report := checker.CheckConsistency(context.Background(), []string{"org"})
 	if len(report.Inconsistencies) != 1 {
@@ -236,7 +244,7 @@ func (m *mockL3Query) GetOrganizationStats(ctx context.Context, tenantID uuid.UU
 func TestUnifiedCacheManagerQueryFlows(t *testing.T) {
 	mr := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	logger := log.New(io.Discard, "", 0)
+	logger := newTestLogger()
 
 	tenantID := uuid.New()
 	l3 := &mockL3Query{
@@ -338,7 +346,7 @@ func TestUnifiedCacheManagerQueryFlows(t *testing.T) {
 func TestUnifiedCacheManagerCDCAndInvalidation(t *testing.T) {
 	mr := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	logger := log.New(io.Discard, "", 0)
+	logger := newTestLogger()
 	tenantID := uuid.New()
 
 	cfg := &CacheConfig{
@@ -434,7 +442,7 @@ func TestUnifiedCacheManagerCDCAndInvalidation(t *testing.T) {
 func TestUnifiedCacheManagerCacheManagement(t *testing.T) {
 	mr := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	logger := log.New(io.Discard, "", 0)
+	logger := newTestLogger()
 	tenantID := uuid.New()
 
 	cfg := &CacheConfig{

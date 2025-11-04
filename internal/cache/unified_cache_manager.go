@@ -5,11 +5,12 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // 统一缓存管理器 - 企业级三层缓存架构
@@ -18,7 +19,7 @@ type UnifiedCacheManager struct {
 	l2Cache  *redis.Client    // Redis分布式缓存
 	l3Query  L3QueryInterface // 数据查询接口
 	eventBus *CacheEventBus   // 缓存事件总线
-	logger   *log.Logger
+	logger   pkglogger.Logger
 	config   *CacheConfig
 }
 
@@ -88,7 +89,7 @@ func (km *CacheKeyManager) GetPatternForTags(tags []string) []string {
 }
 
 // 初始化统一缓存管理器
-func NewUnifiedCacheManager(redisClient *redis.Client, l3Query L3QueryInterface, config *CacheConfig, logger *log.Logger) *UnifiedCacheManager {
+func NewUnifiedCacheManager(redisClient *redis.Client, l3Query L3QueryInterface, config *CacheConfig, logger pkglogger.Logger) *UnifiedCacheManager {
 	if config == nil {
 		config = &CacheConfig{
 			L1TTL:           5 * time.Minute,
@@ -100,13 +101,24 @@ func NewUnifiedCacheManager(redisClient *redis.Client, l3Query L3QueryInterface,
 		}
 	}
 
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
+	managerLogger := logger.WithFields(pkglogger.Fields{
+		"component": "cache",
+		"module":    "unifiedCacheManager",
+	})
+
 	ucm := &UnifiedCacheManager{
-		l1Cache:  NewL1Cache(config.L1MaxSize, config.L1TTL),
-		l2Cache:  redisClient,
-		l3Query:  l3Query,
-		eventBus: NewCacheEventBus(),
-		logger:   logger,
-		config:   config,
+		l1Cache: NewL1Cache(config.L1MaxSize, config.L1TTL),
+		l2Cache: redisClient,
+		l3Query: l3Query,
+		eventBus: NewCacheEventBus(logger.WithFields(pkglogger.Fields{
+			"component": "cache",
+			"module":    "cacheEventBus",
+		})),
+		logger: managerLogger,
+		config: config,
 	}
 
 	// 启动缓存事件监听
@@ -126,7 +138,14 @@ func (ucm *UnifiedCacheManager) GetOrganizations(ctx context.Context, tenantID u
 	if entry, ok := ucm.l1Cache.Get(cacheKey); ok {
 		var orgs []Organization
 		if err := json.Unmarshal(entry.Data, &orgs); err == nil {
-			ucm.logger.Printf("[L1 HIT] 组织列表缓存命中: %s", cacheKey)
+			ucm.logger.WithFields(pkglogger.Fields{
+				"event":     "hit",
+				"layer":     "L1",
+				"cacheKey":  cacheKey,
+				"tenantId":  tenantID.String(),
+				"entity":    "organizations",
+				"resultSet": len(orgs),
+			}).Info("organizations served from L1 cache")
 			return orgs, nil
 		}
 	}
@@ -140,14 +159,27 @@ func (ucm *UnifiedCacheManager) GetOrganizations(ctx context.Context, tenantID u
 			if json.Unmarshal(entry.Data, &orgs) == nil {
 				// 回填L1缓存
 				ucm.l1Cache.Set(cacheKey, entry)
-				ucm.logger.Printf("[L2 HIT] 组织列表缓存命中，回填L1: %s", cacheKey)
+				ucm.logger.WithFields(pkglogger.Fields{
+					"event":     "hit",
+					"layer":     "L2",
+					"cacheKey":  cacheKey,
+					"tenantId":  tenantID.String(),
+					"entity":    "organizations",
+					"resultSet": len(orgs),
+				}).Info("organizations served from L2 cache and hydrated into L1")
 				return orgs, nil
 			}
 		}
 	}
 
 	// L3 数据源查询
-	ucm.logger.Printf("[L3 QUERY] 查询数据源: %s", cacheKey)
+	ucm.logger.WithFields(pkglogger.Fields{
+		"event":    "fetch",
+		"layer":    "L3",
+		"cacheKey": cacheKey,
+		"tenantId": tenantID.String(),
+		"entity":   "organizations",
+	}).Info("cache miss; fetching organizations from L3 source")
 	orgs, err := ucm.l3Query.GetOrganizations(ctx, tenantID, params)
 	if err != nil {
 		return nil, fmt.Errorf("L3查询失败: %w", err)
@@ -181,7 +213,14 @@ func (ucm *UnifiedCacheManager) GetOrganizations(ctx context.Context, tenantID u
 
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, cacheKey, string(cacheData), ucm.config.L2TTL)
-		ucm.logger.Printf("[CACHE SET] 多层缓存已更新: %s, 数据量: %d", cacheKey, len(orgs))
+		ucm.logger.WithFields(pkglogger.Fields{
+			"event":     "refresh",
+			"layer":     "multi",
+			"cacheKey":  cacheKey,
+			"tenantId":  tenantID.String(),
+			"entity":    "organizations",
+			"resultSet": len(orgs),
+		}).Info("organizations cached across L1/L2")
 	}
 
 	return orgs, nil
@@ -196,7 +235,13 @@ func (ucm *UnifiedCacheManager) GetOrganizationStats(ctx context.Context, tenant
 	if entry, ok := ucm.l1Cache.Get(cacheKey); ok {
 		var stats OrganizationStats
 		if err := json.Unmarshal(entry.Data, &stats); err == nil {
-			ucm.logger.Printf("[L1 HIT] 统计缓存命中: %s", cacheKey)
+			ucm.logger.WithFields(pkglogger.Fields{
+				"event":    "hit",
+				"layer":    "L1",
+				"cacheKey": cacheKey,
+				"tenantId": tenantID.String(),
+				"entity":   "stats",
+			}).Info("organization stats served from L1 cache")
 			return &stats, nil
 		}
 	}
@@ -209,14 +254,26 @@ func (ucm *UnifiedCacheManager) GetOrganizationStats(ctx context.Context, tenant
 			var stats OrganizationStats
 			if json.Unmarshal(entry.Data, &stats) == nil {
 				ucm.l1Cache.Set(cacheKey, entry)
-				ucm.logger.Printf("[L2 HIT] 统计缓存命中，回填L1: %s", cacheKey)
+				ucm.logger.WithFields(pkglogger.Fields{
+					"event":    "hit",
+					"layer":    "L2",
+					"cacheKey": cacheKey,
+					"tenantId": tenantID.String(),
+					"entity":   "stats",
+				}).Info("organization stats served from L2 cache and hydrated into L1")
 				return &stats, nil
 			}
 		}
 	}
 
 	// L3数据源查询
-	ucm.logger.Printf("[L3 QUERY] 查询统计数据源: %s", cacheKey)
+	ucm.logger.WithFields(pkglogger.Fields{
+		"event":    "fetch",
+		"layer":    "L3",
+		"cacheKey": cacheKey,
+		"tenantId": tenantID.String(),
+		"entity":   "stats",
+	}).Info("cache miss; fetching organization stats from L3 source")
 	stats, err := ucm.l3Query.GetOrganizationStats(ctx, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("L3统计查询失败: %w", err)
@@ -249,7 +306,13 @@ func (ucm *UnifiedCacheManager) GetOrganizationStats(ctx context.Context, tenant
 
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, cacheKey, string(cacheData), ucm.config.L2TTL)
-		ucm.logger.Printf("[CACHE SET] 统计缓存已更新: %s", cacheKey)
+		ucm.logger.WithFields(pkglogger.Fields{
+			"event":    "refresh",
+			"layer":    "multi",
+			"cacheKey": cacheKey,
+			"tenantId": tenantID.String(),
+			"entity":   "stats",
+		}).Info("organization stats cached across L1/L2")
 	}
 
 	return stats, nil
@@ -264,7 +327,14 @@ func (ucm *UnifiedCacheManager) GetOrganization(ctx context.Context, tenantID uu
 	if entry, ok := ucm.l1Cache.Get(cacheKey); ok {
 		var org Organization
 		if err := json.Unmarshal(entry.Data, &org); err == nil {
-			ucm.logger.Printf("[L1 HIT] 单个组织缓存命中: %s", code)
+			ucm.logger.WithFields(pkglogger.Fields{
+				"event":    "hit",
+				"layer":    "L1",
+				"cacheKey": cacheKey,
+				"tenantId": tenantID.String(),
+				"entity":   "organization",
+				"entityId": code,
+			}).Info("organization served from L1 cache")
 			return &org, nil
 		}
 	}
@@ -277,7 +347,14 @@ func (ucm *UnifiedCacheManager) GetOrganization(ctx context.Context, tenantID uu
 			var org Organization
 			if json.Unmarshal(entry.Data, &org) == nil {
 				ucm.l1Cache.Set(cacheKey, entry)
-				ucm.logger.Printf("[L2 HIT] 单个组织缓存命中，回填L1: %s", code)
+				ucm.logger.WithFields(pkglogger.Fields{
+					"event":    "hit",
+					"layer":    "L2",
+					"cacheKey": cacheKey,
+					"tenantId": tenantID.String(),
+					"entity":   "organization",
+					"entityId": code,
+				}).Info("organization served from L2 cache and hydrated into L1")
 				return &org, nil
 			}
 		}
@@ -319,7 +396,14 @@ func (ucm *UnifiedCacheManager) GetOrganization(ctx context.Context, tenantID uu
 
 	if cacheData, err := json.Marshal(entry); err == nil {
 		ucm.l2Cache.Set(ctx, cacheKey, string(cacheData), ucm.config.L2TTL)
-		ucm.logger.Printf("[CACHE SET] 单个组织缓存已更新: %s", code)
+		ucm.logger.WithFields(pkglogger.Fields{
+			"event":    "refresh",
+			"layer":    "multi",
+			"cacheKey": cacheKey,
+			"tenantId": tenantID.String(),
+			"entity":   "organization",
+			"entityId": code,
+		}).Info("organization cached across L1/L2")
 	}
 
 	return org, nil
@@ -341,7 +425,14 @@ func (ucm *UnifiedCacheManager) HandleCDCEvent(ctx context.Context, event CacheE
 	case "DELETE":
 		return ucm.handleDeleteEvent(ctx, event)
 	default:
-		ucm.logger.Printf("未知CDC事件类型: %s", event.Operation)
+		ucm.logger.WithFields(pkglogger.Fields{
+			"event":       "cdcUnknown",
+			"operation":   event.Operation,
+			"entity":      event.EntityType,
+			"entityId":    event.EntityID,
+			"tenantId":    event.TenantID,
+			"sourceLayer": "CDC",
+		}).Warn("received unknown CDC operation")
 		return nil
 	}
 }
@@ -482,11 +573,23 @@ func (ucm *UnifiedCacheManager) smartUpdateListCaches(ctx context.Context, tenan
 
 		// 从L2缓存删除
 		if _, err := ucm.l2Cache.Del(ctx, key).Result(); err != nil {
-			ucm.logger.Printf("[CACHE INVALIDATE] 删除L2缓存失败: %s, err=%v", key, err)
+			ucm.logger.WithFields(pkglogger.Fields{
+				"event":    "invalidate",
+				"layer":    "L2",
+				"cacheKey": key,
+				"tenantId": tenantID.String(),
+				"error":    err.Error(),
+			}).Warn("failed to invalidate key from L2 cache")
 		}
 	}
 
-	ucm.logger.Printf("智能列表缓存更新完成: %s %s, 影响缓存: %d个", operation, org.Code, invalidatedCount)
+	ucm.logger.WithFields(pkglogger.Fields{
+		"event":     "invalidate",
+		"operation": operation,
+		"tenantId":  tenantID.String(),
+		"entityId":  org.Code,
+		"count":     invalidatedCount,
+	}).Info("smart cache invalidation completed")
 	return nil
 }
 
@@ -535,7 +638,14 @@ func (ucm *UnifiedCacheManager) RefreshCache(ctx context.Context, tenantID uuid.
 		}
 	}
 
-	ucm.logger.Printf("缓存刷新完成: %s:%s", entityType, entityID)
+	ucm.logger.WithFields(pkglogger.Fields{
+		"event":     "refresh",
+		"entity":    entityType,
+		"entityId":  entityID,
+		"tenantId":  tenantID.String(),
+		"cacheKey":  cacheKey,
+		"operation": "refreshCache",
+	}).Info("cache refresh request completed")
 	return nil
 }
 
@@ -543,7 +653,14 @@ func (ucm *UnifiedCacheManager) RefreshCache(ctx context.Context, tenantID uuid.
 func (ucm *UnifiedCacheManager) startEventListener() {
 	for event := range ucm.eventBus.Subscribe() {
 		if err := ucm.HandleCDCEvent(context.Background(), event); err != nil {
-			ucm.logger.Printf("处理缓存事件失败: %v", err)
+			ucm.logger.WithFields(pkglogger.Fields{
+				"event":     "cdcProcess",
+				"entity":    event.EntityType,
+				"entityId":  event.EntityID,
+				"operation": event.Operation,
+				"tenantId":  event.TenantID,
+				"error":     err.Error(),
+			}).Error("failed to process cache event")
 		}
 	}
 }
