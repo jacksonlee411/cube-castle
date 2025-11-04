@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // RateLimitConfig 限流配置
@@ -42,7 +43,7 @@ type RateLimitMiddleware struct {
 	config  *RateLimitConfig
 	clients map[string]*ClientInfo
 	mutex   sync.RWMutex
-	logger  *log.Logger
+	logger  pkglogger.Logger
 	stats   *RateLimitStats
 }
 
@@ -56,7 +57,7 @@ type RateLimitStats struct {
 }
 
 // NewRateLimitMiddleware 创建限流中间件
-func NewRateLimitMiddleware(config *RateLimitConfig, logger *log.Logger) *RateLimitMiddleware {
+func NewRateLimitMiddleware(config *RateLimitConfig, baseLogger pkglogger.Logger) *RateLimitMiddleware {
 	if config == nil {
 		config = DefaultRateLimitConfig
 	}
@@ -64,7 +65,7 @@ func NewRateLimitMiddleware(config *RateLimitConfig, logger *log.Logger) *RateLi
 	rlm := &RateLimitMiddleware{
 		config:  config,
 		clients: make(map[string]*ClientInfo),
-		logger:  logger,
+		logger:  scopedLogger(baseLogger, "rateLimit", pkglogger.Fields{"component": "middleware"}),
 		stats: &RateLimitStats{
 			LastReset: time.Now(),
 		},
@@ -145,17 +146,17 @@ func (rlm *RateLimitMiddleware) allowRequest(clientIP string) bool {
 
 	// 检查每分钟限制
 	if client.RequestCount >= rlm.config.RequestsPerMinute {
+		fields := pkglogger.Fields{"ip": clientIP, "limit": rlm.config.RequestsPerMinute}
 		client.BlockedUntil = now.Add(rlm.config.BlockDuration)
-		rlm.logger.Printf("🚫 IP %s 超过每分钟请求限制 (%d), 阻塞 %v",
-			clientIP, rlm.config.RequestsPerMinute, rlm.config.BlockDuration)
+		rlm.logger.WithFields(fields).Warnf("IP blocked for exceeding per-minute limit (duration=%v)", rlm.config.BlockDuration)
 		return false
 	}
 
 	// 检查突发限制
 	if client.BurstCount >= rlm.config.BurstSize {
+		fields := pkglogger.Fields{"ip": clientIP, "burst": rlm.config.BurstSize}
 		client.BlockedUntil = now.Add(rlm.config.BlockDuration / 2) // 突发阻塞时间较短
-		rlm.logger.Printf("⚡ IP %s 超过突发请求限制 (%d), 短暂阻塞 %v",
-			clientIP, rlm.config.BurstSize, rlm.config.BlockDuration/2)
+		rlm.logger.WithFields(fields).Warnf("IP temporarily blocked for burst limit (duration=%v)", rlm.config.BlockDuration/2)
 		return false
 	}
 
@@ -216,11 +217,15 @@ func (rlm *RateLimitMiddleware) handleRateLimitExceeded(w http.ResponseWriter, r
 		rlm.config.BlockDuration.String())
 
 	if _, err := w.Write([]byte(response)); err != nil {
-		rlm.logger.Printf("写入限流响应失败: %v", err)
+		rlm.logger.WithFields(pkglogger.Fields{"error": err}).Error("write rate limit response failed")
 	}
 
-	rlm.logger.Printf("🚫 限流拦截: IP %s | Path: %s | RequestID: %s",
-		clientIP, r.URL.Path, requestID)
+	rLogger := rlm.logger.WithFields(pkglogger.Fields{
+		"ip":        clientIP,
+		"path":      r.URL.Path,
+		"requestId": requestID,
+	})
+	rLogger.Warn("rate limit exceeded, request blocked")
 }
 
 // addRateLimitHeaders 添加限流相关头部
@@ -285,8 +290,8 @@ func (rlm *RateLimitMiddleware) cleanupExpiredClients() {
 	}
 
 	if expiredCount > 0 {
-		rlm.logger.Printf("🧹 限流清理: 清理了 %d 个过期客户端，当前活跃: %d",
-			expiredCount, len(rlm.clients))
+		rlm.logger.WithFields(pkglogger.Fields{"expired": expiredCount, "active": len(rlm.clients)}).
+			Info("rate limit clients cleanup completed")
 	}
 }
 
@@ -332,7 +337,7 @@ func (rlm *RateLimitMiddleware) ResetStats() {
 	rlm.stats.BlockedRequests = 0
 	rlm.stats.LastReset = time.Now()
 
-	rlm.logger.Printf("📊 限流统计信息已重置")
+	rlm.logger.Info("rate limit stats reset")
 }
 
 // UpdateConfig 更新限流配置
@@ -341,7 +346,7 @@ func (rlm *RateLimitMiddleware) UpdateConfig(config *RateLimitConfig) {
 	defer rlm.mutex.Unlock()
 
 	rlm.config = config
-	rlm.logger.Printf("⚙️ 限流配置已更新: %+v", config)
+	rlm.logger.WithFields(pkglogger.Fields{"config": config}).Info("rate limit config updated")
 }
 
 // GetActiveClients 获取活跃客户端列表
@@ -381,7 +386,7 @@ func (rlm *RateLimitMiddleware) BlockIP(ip string, duration time.Duration) {
 		client.BlockedUntil = now.Add(duration)
 	}
 
-	rlm.logger.Printf("🚫 手动阻塞IP: %s, 时长: %v", ip, duration)
+	rlm.logger.WithFields(pkglogger.Fields{"ip": ip, "duration": duration}).Warn("manual IP block applied")
 }
 
 // UnblockIP 解除IP阻塞
@@ -391,6 +396,6 @@ func (rlm *RateLimitMiddleware) UnblockIP(ip string) {
 
 	if client, exists := rlm.clients[ip]; exists {
 		client.BlockedUntil = time.Time{}
-		rlm.logger.Printf("✅ 解除IP阻塞: %s", ip)
+		rlm.logger.WithFields(pkglogger.Fields{"ip": ip}).Info("manual IP unblock applied")
 	}
 }
