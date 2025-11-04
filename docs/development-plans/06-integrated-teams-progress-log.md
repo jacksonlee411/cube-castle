@@ -34,8 +34,8 @@
 - ✅ `reports/plan-211-closure-assessment.md` - 关闭评估
 - ✅ `docs/development-plans/211-Day2-Module-Naming-Record.md` - 模块命名决议
 - ✅ `scripts/phase1-acceptance-check.sh` - 验收脚本
-- ✅ `docs/development-plans/205-Plan-Alignment-Assessment.md` - Plan 205 对标评估
-- ✅ `docs/archive/development-plans/205-HRMS-Transition-Plan.md` - Plan 205 归档
+- ✅ `docs/archive/development-plans/205-HRMS-Transition-Plan.md` - Plan 205 设计方案（已归档）
+- ✅ `docs/archive/development-plans/205-Plan-Alignment-Assessment.md` - Plan 205 对标评估（已归档）
 
 ### 1.3 前置条件满足情况
 
@@ -56,7 +56,7 @@
 | 核心目标对齐评估 | ✅ 完成 | 与 Plan 210/211/212 方向完全一致，无异议 |
 | 内容对标分析 | ✅ 完成 | 重复度 40-50%，可互补，参考价值高 |
 | 原文档归档 | ✅ 完成 | 归档至 `docs/archive/development-plans/205-HRMS-Transition-Plan.md` |
-| 评估报告生成 | ✅ 完成 | `docs/development-plans/205-Plan-Alignment-Assessment.md` |
+| 评估报告生成 | ✅ 完成 | `docs/archive/development-plans/205-Plan-Alignment-Assessment.md` |
 | 前置说明更新 | ✅ 完成 | 在 205 原位置添加完成标记与参考指引 |
 
 **Plan 205 保留的参考价值**：
@@ -66,10 +66,9 @@
 
 **执行细节**：由 Plan 211（Day1-10）、Plan 212（Day6-7）负责推进
 
-详见：
-- 📄 [Plan 205 - HRMS 系统过渡方案（已完成并归档）](./205-HRMS-Transition-Plan.md)
-- 📋 [205-Plan-Alignment-Assessment.md（详细对标评估）](./205-Plan-Alignment-Assessment.md)
-- 📁 [归档原文](../archive/development-plans/205-HRMS-Transition-Plan.md)
+详见（已全部归档至 archive）：
+- 📄 [Plan 205 - HRMS 系统过渡方案](../archive/development-plans/205-HRMS-Transition-Plan.md)
+- 📋 [205-Plan-Alignment-Assessment.md（对标评估）](../archive/development-plans/205-Plan-Alignment-Assessment.md)
 
 ---
 
