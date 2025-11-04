@@ -154,6 +154,17 @@ which gosec                  # 应在 PATH 中可访问
 # 详见: docs/development-plans/06-integrated-teams-progress-log.md
 ```
 
+## 🧾 结构化日志（Plan 218 最终规范）
+
+- **统一接口**：生产代码必须通过 `pkg/logger.Logger` 输出日志，禁止使用 `log.Printf` / `log.Println` / `*log.Logger`。运行 `rg "log\\.Print"` 应仅命中文档或第三方生成文件（如 `tools/atlas/...`）。
+- **字段模板**：
+  - 服务入口：`{"service":"query","component":"query-app","operation":"startup"}`。
+  - 仓储/Resolver：追加 `tenantId`、`code`、`operation`、`duration_ms`、`result_count` 等业务字段。
+  - 监控告警：`AlertManager.WithLogger(...)` + 渠道 `SetLogger(...)` 输出 `channel`、`alertId`、`level`、`service`、`component`。
+- **错误级别**：数据库/外部依赖失败使用 `Errorf`；访问拒绝/输入异常使用 `Warnf`；调试信息使用 `Debugf`，默认级别为 `INFO`。
+- **测试 Logger**：使用各模块提供的 `newTestLogger()`（缓存、查询 Resolver、审计等），避免再构造标准库 logger。
+- **验收门禁**：提交前执行 `go test ./...` 并确认 `rg "log\\.Print"` 仅匹配 README / vendor；若新增模块依赖日志，应在开发计划与文档中引用本节作为唯一事实来源。
+
 ### E2E 快速入口（本地 / CI 对齐）
 ```bash
 # 1. 启动依赖 + RS256 联调

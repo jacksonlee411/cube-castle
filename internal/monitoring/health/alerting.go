@@ -5,10 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // AlertLevel 告警级别
@@ -59,6 +60,10 @@ type AlertCondition struct {
 type AlertChannel interface {
 	Send(ctx context.Context, alert Alert) error
 	Name() string
+}
+
+type loggerAwareChannel interface {
+	SetLogger(pkglogger.Logger)
 }
 
 // WebhookChannel Webhook告警渠道
@@ -251,17 +256,36 @@ type EmailChannel struct {
 	password string
 	from     string
 	to       []string
+	logger   pkglogger.Logger
 }
 
 func (e *EmailChannel) Name() string {
 	return "email"
 }
 
+// SetLogger 允许注入结构化日志器
+func (e *EmailChannel) SetLogger(logger pkglogger.Logger) {
+	if logger != nil {
+		e.logger = logger.WithFields(pkglogger.Fields{
+			"channel": "email",
+		})
+	}
+}
+
 func (e *EmailChannel) Send(ctx context.Context, alert Alert) error {
 	// 这里应该实现SMTP邮件发送
 	// 为了简化，这里只是记录日志
-	log.Printf("EMAIL ALERT: [%s] %s - %s: %s",
-		alert.Level, alert.Service, alert.Component, alert.Message)
+	logger := e.logger
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
+	logger.WithFields(pkglogger.Fields{
+		"channel":   "email",
+		"alertId":   alert.ID,
+		"level":     alert.Level,
+		"service":   alert.Service,
+		"component": alert.Component,
+	}).Infof("EMAIL ALERT: %s", alert.Message)
 	return nil
 }
 
@@ -276,6 +300,7 @@ type AlertManager struct {
 	maxHistorySize   int
 	healthStates     map[string]HealthStatus
 	consecutiveFails map[string]int
+	logger           pkglogger.Logger
 }
 
 // NewAlertManager 创建告警管理器
@@ -289,7 +314,24 @@ func NewAlertManager(serviceName string) *AlertManager {
 		maxHistorySize:   1000,
 		healthStates:     make(map[string]HealthStatus),
 		consecutiveFails: make(map[string]int),
+		logger: pkglogger.NewLogger(
+			pkglogger.WithLevel(pkglogger.LevelInfo),
+		).WithFields(pkglogger.Fields{
+			"service":   serviceName,
+			"component": "health-alerting",
+		}),
 	}
+}
+
+// WithLogger 允许注入结构化日志器
+func (am *AlertManager) WithLogger(logger pkglogger.Logger) *AlertManager {
+	if logger != nil {
+		am.logger = logger.WithFields(pkglogger.Fields{
+			"service":   am.serviceName,
+			"component": "health-alerting",
+		})
+	}
+	return am
 }
 
 // AddRule 添加告警规则
@@ -303,6 +345,9 @@ func (am *AlertManager) AddRule(rule AlertRule) {
 func (am *AlertManager) AddChannel(channel AlertChannel) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
+	if lc, ok := channel.(loggerAwareChannel); ok {
+		lc.SetLogger(am.logger)
+	}
 	am.channels = append(am.channels, channel)
 }
 
@@ -400,14 +445,24 @@ func (am *AlertManager) triggerAlert(ctx context.Context, rule AlertRule, servic
 
 	// 发送告警到所有渠道
 	for _, channel := range am.channels {
+		ch := channel
 		go func(ch AlertChannel) {
 			if err := ch.Send(ctx, alert); err != nil {
-				log.Printf("Failed to send alert via %s: %v", ch.Name(), err)
+				am.logger.WithFields(pkglogger.Fields{
+					"channel": ch.Name(),
+					"alertId": alert.ID,
+					"error":   err,
+				}).Error("failed to dispatch alert")
 			}
-		}(channel)
+		}(ch)
 	}
 
-	log.Printf("ALERT TRIGGERED: [%s] %s - %s", alert.Level, alert.Service, alert.Message)
+	am.logger.WithFields(pkglogger.Fields{
+		"alertId":   alert.ID,
+		"level":     alert.Level,
+		"service":   alert.Service,
+		"component": alert.Component,
+	}).Info("alert triggered")
 }
 
 // checkResolvedAlerts 检查已解决的告警
@@ -431,14 +486,23 @@ func (am *AlertManager) checkResolvedAlerts(ctx context.Context, health ServiceH
 				resolvedAlert.Level = AlertLevelInfo
 
 				for _, channel := range am.channels {
+					ch := channel
 					go func(ch AlertChannel) {
 						if err := ch.Send(ctx, resolvedAlert); err != nil {
-							log.Printf("Failed to send resolved alert via %s: %v", ch.Name(), err)
+							am.logger.WithFields(pkglogger.Fields{
+								"channel": ch.Name(),
+								"alertId": alert.ID,
+								"error":   err,
+							}).Error("failed to dispatch resolved alert")
 						}
-					}(channel)
+					}(ch)
 				}
 
-				log.Printf("ALERT RESOLVED: [%s] %s - %s", alert.ID, alert.Service, alert.Component)
+				am.logger.WithFields(pkglogger.Fields{
+					"alertId":   alert.ID,
+					"service":   alert.Service,
+					"component": alert.Component,
+				}).Info("alert resolved")
 				delete(am.activeAlerts, alertID)
 				break
 			}
