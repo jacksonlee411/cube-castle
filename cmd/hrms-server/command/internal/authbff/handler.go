@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"cube-castle/cmd/hrms-server/command/internal/audit"
-	reqmw "cube-castle/cmd/hrms-server/command/internal/middleware"
-	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/organization/audit"
+	reqmw "cube-castle/internal/organization/middleware"
+	"cube-castle/internal/organization/utils"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"

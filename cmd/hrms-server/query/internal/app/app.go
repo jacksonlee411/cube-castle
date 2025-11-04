@@ -12,12 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	"cube-castle/cmd/hrms-server/query/internal/graphql"
-	"cube-castle/cmd/hrms-server/query/internal/repository"
 	"cube-castle/internal/auth"
 	"cube-castle/internal/config"
 	schemaLoader "cube-castle/internal/graphql"
 	requestMiddleware "cube-castle/internal/middleware"
+	organization "cube-castle/internal/organization"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -96,7 +95,7 @@ func (a *Application) run() error {
 	a.redisClient = a.openRedis()
 
 	auditConfig := loadAuditHistoryConfig()
-	repo := repository.NewPostgreSQLRepository(a.db, a.redisClient, a.logger, auditConfig)
+	repo := organization.NewQueryRepository(a.db, a.redisClient, a.logger, auditConfig)
 	a.log("audit.config", pkglogger.Fields{
 		"strictValidation": auditConfig.StrictValidation,
 		"allowFallback":    auditConfig.AllowFallback,
@@ -189,7 +188,7 @@ func (a *Application) openRedis() *redis.Client {
 	return client
 }
 
-func (a *Application) buildServer(repo *repository.PostgreSQLRepository) (*http.Server, error) {
+func (a *Application) buildServer(repo *organization.QueryRepository) (*http.Server, error) {
 	jwtConfig := config.GetJWTConfig()
 	devMode := getEnv("DEV_MODE", "true") == "true"
 
@@ -223,10 +222,10 @@ func (a *Application) buildServer(repo *repository.PostgreSQLRepository) (*http.
 		"audience":  jwtConfig.Audience,
 	}).Info("🔐 JWT认证初始化完成")
 
-	resolver := graphql.NewResolver(repo, a.logger, graphqlMiddleware)
+	gqlResolver := organization.NewQueryResolver(repo, a.logger, graphqlMiddleware)
 	schemaPath := schemaLoader.GetDefaultSchemaPath()
 	schemaString := schemaLoader.MustLoadSchema(schemaPath)
-	schema := graphqlgo.MustParseSchema(schemaString, resolver)
+	schema := graphqlgo.MustParseSchema(schemaString, gqlResolver)
 	a.log("graphql.schema", pkglogger.Fields{"path": schemaPath}).Info("✅ GraphQL Schema loaded from single source")
 
 	router := a.buildRouter(schema, graphqlMiddleware, devMode)

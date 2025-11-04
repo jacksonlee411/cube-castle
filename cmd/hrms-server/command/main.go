@@ -10,17 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"cube-castle/cmd/hrms-server/command/internal/audit"
-	"cube-castle/cmd/hrms-server/command/internal/authbff"
-	"cube-castle/cmd/hrms-server/command/internal/handlers"
-	"cube-castle/cmd/hrms-server/command/internal/middleware"
-	"cube-castle/cmd/hrms-server/command/internal/outbox"
-	"cube-castle/cmd/hrms-server/command/internal/repository"
-	"cube-castle/cmd/hrms-server/command/internal/services"
-	"cube-castle/cmd/hrms-server/command/internal/utils"
-	"cube-castle/cmd/hrms-server/command/internal/validators"
+	authbff "cube-castle/cmd/hrms-server/command/internal/authbff"
+	outbox "cube-castle/cmd/hrms-server/command/internal/outbox"
 	auth "cube-castle/internal/auth"
 	config "cube-castle/internal/config"
+	organization "cube-castle/internal/organization"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
@@ -98,30 +92,26 @@ func main() {
 	}
 
 	var (
-		orgRepo                *repository.OrganizationRepository
-		jobCatalogRepo         *repository.JobCatalogRepository
-		positionRepo           *repository.PositionRepository
-		positionAssignmentRepo *repository.PositionAssignmentRepository
-		hierarchyRepo          *repository.HierarchyRepository
-		cascadeService         *services.CascadeUpdateService
-		auditLogger            *audit.AuditLogger
-		businessValidator      *validators.BusinessRuleValidator
+		orgModule         *organization.CommandModule
+		commandHandlers   organization.CommandHandlers
+		auditLogger       *organization.AuditLogger
+		moduleMiddlewares = organization.NewCommandMiddlewares(commandLogger)
+		devToolsHandler   *organization.DevToolsHandler
 	)
 	if !authOnlyMode {
-		// 初始化仓储层
-		orgRepo = repository.NewOrganizationRepository(sqlDB, commandLogger)
-		jobCatalogRepo = repository.NewJobCatalogRepository(sqlDB, commandLogger)
-		positionRepo = repository.NewPositionRepository(sqlDB, commandLogger)
-		positionAssignmentRepo = repository.NewPositionAssignmentRepository(sqlDB, commandLogger)
-		hierarchyRepo = repository.NewHierarchyRepository(sqlDB, commandLogger)
+		var err error
+		orgModule, err = organization.NewCommandModule(organization.CommandModuleDeps{
+			DB:              sqlDB,
+			Logger:          commandLogger,
+			CascadeMaxDepth: 4,
+		})
+		if err != nil {
+			commandLogger.Errorf("[FATAL] 初始化组织模块失败: %v", err)
+			os.Exit(1)
+		}
 
-		// 初始化业务服务层
-		cascadeService = services.NewCascadeUpdateService(hierarchyRepo, 4, commandLogger)
-		businessValidator = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, commandLogger)
-		auditLogger = audit.NewAuditLogger(sqlDB, commandLogger)
-
-		// 启动级联更新服务
-		cascadeService.Start()
+		orgModule.Services.Cascade.Start()
+		auditLogger = orgModule.AuditLogger
 		commandLogger.Info("✅ 级联更新服务已启动")
 		commandLogger.Info("✅ 结构化审计日志系统已初始化")
 		commandLogger.Info("✅ Prometheus指标收集系统已初始化")
@@ -179,56 +169,37 @@ func main() {
 	commandLogger.Infof("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
 
 	// 初始化中间件
-	performanceMiddleware := middleware.NewPerformanceMiddleware(commandLogger)
-	rateLimitMiddleware := middleware.NewRateLimitMiddleware(middleware.DefaultRateLimitConfig, commandLogger)
+	performanceMiddleware := moduleMiddlewares.Performance
+	rateLimitMiddleware := moduleMiddlewares.RateLimit
 
 	// 初始化时态服务
-	var temporalService *services.TemporalService
-	if !authOnlyMode {
-		temporalService = services.NewTemporalService(sqlDB, commandLogger, orgRepo)
-	}
-
-	// 初始化监控服务
-	var temporalMonitor *services.TemporalMonitor
-	if !authOnlyMode {
-		temporalMonitor = services.NewTemporalMonitor(sqlDB, commandLogger)
-	}
-
-	// 初始化运维调度器占位
-	var operationalScheduler *services.OperationalScheduler
-
-	// 初始化时态时间轴管理器
-	var timelineManager *repository.TemporalTimelineManager
-	if !authOnlyMode {
-		timelineManager = repository.NewTemporalTimelineManager(sqlDB, commandLogger)
-	}
-
-	// 初始化处理器
 	var (
-		orgHandler         *handlers.OrganizationHandler
-		positionHandler    *handlers.PositionHandler
-		jobCatalogHandler  *handlers.JobCatalogHandler
-		devToolsHandler    *handlers.DevToolsHandler
-		operationalHandler *handlers.OperationalHandler
+		orgHandler         *organization.OrganizationHandler
+		positionHandler    *organization.PositionHandler
+		jobCatalogHandler  *organization.JobCatalogHandler
+		operationalHandler *organization.OperationalHandler
 	)
 	if !authOnlyMode {
-		positionService := services.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, auditLogger, commandLogger)
-		jobCatalogService := services.NewJobCatalogService(jobCatalogRepo, auditLogger, commandLogger)
-		operationalScheduler = services.NewOperationalScheduler(sqlDB, commandLogger, temporalMonitor, positionService)
-
-		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, commandLogger, timelineManager, hierarchyRepo, businessValidator)
-		positionHandler = handlers.NewPositionHandler(positionService, commandLogger)
-		jobCatalogHandler = handlers.NewJobCatalogHandler(jobCatalogService, commandLogger)
-		operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, rateLimitMiddleware, commandLogger)
+		commandHandlers = orgModule.NewHandlers(organization.CommandHandlerDeps{
+			JWTMiddleware:       jwtMiddleware,
+			RateLimitMiddleware: rateLimitMiddleware,
+			Logger:              commandLogger,
+			DevMode:             devMode,
+		})
+		orgHandler = commandHandlers.Organization
+		positionHandler = commandHandlers.Position
+		jobCatalogHandler = commandHandlers.JobCatalog
+		operationalHandler = commandHandlers.Operational
+		devToolsHandler = commandHandlers.DevTools
+	} else {
+		devToolsHandler = organization.NewDevToolsHandler(sqlDB, jwtMiddleware, commandLogger, devMode)
 	}
-	// 开发工具路由即使在 authOnly 模式下也允许初始化（内部会根据 devMode 控制）
-	devToolsHandler = handlers.NewDevToolsHandler(jwtMiddleware, commandLogger, devMode, sqlDB)
 
 	// 设置路由
 	r := chi.NewRouter()
 
 	// 基础中间件链 (无认证要求的中间件)
-	r.Use(middleware.RequestIDMiddleware)     // 请求追踪中间件
+	r.Use(organization.RequestIDMiddleware)   // 请求追踪中间件
 	r.Use(rateLimitMiddleware.Middleware())   // 限流中间件 - 最先执行
 	r.Use(performanceMiddleware.Middleware()) // 性能监控中间件
 	r.Use(chi_middleware.Logger)
@@ -254,7 +225,7 @@ func main() {
 	// Prometheus metrics 端点（无需认证，供监控系统采集）
 	if !authOnlyMode {
 		// 确保 metrics 已注册
-		utils.RecordHTTPRequest("GET", "/metrics", 200) // 触发初始化
+		organization.RecordHTTPRequest("GET", "/metrics", 200) // 触发初始化
 		r.Handle("/metrics", promhttp.Handler())
 		commandLogger.Info("📊 Prometheus metrics 端点: http://localhost:9090/metrics")
 	}
@@ -337,7 +308,7 @@ func main() {
 		commandLogger.Info("✅ Outbox dispatcher 已启动")
 	}
 	if !authOnlyMode {
-		operationalScheduler.Start(ctx)
+		orgModule.Services.OperationalScheduler.Start(ctx)
 		commandLogger.Info("✅ 运维任务调度器已启动")
 	}
 
@@ -360,11 +331,11 @@ func main() {
 
 	if !authOnlyMode {
 		// 停止级联更新服务
-		cascadeService.Stop()
+		orgModule.Services.Cascade.Stop()
 		commandLogger.Info("✅ 级联更新服务已停止")
 
 		// 停止运维调度器
-		operationalScheduler.Stop()
+		orgModule.Services.OperationalScheduler.Stop()
 		commandLogger.Info("✅ 运维任务调度器已停止")
 
 		if dispatcher != nil {

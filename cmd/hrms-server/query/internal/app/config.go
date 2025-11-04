@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"cube-castle/cmd/hrms-server/query/internal/repository"
+	"cube-castle/internal/organization/repository"
 )
 
 func loadAuditHistoryConfig() repository.AuditHistoryConfig {

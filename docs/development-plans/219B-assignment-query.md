@@ -3,7 +3,7 @@
 **文档编号**: 219B  
 **关联路线图**: Plan 219  
 **依赖子计划**: 219A 完成目录/Facade 基线  
-**目标周期**: Week 3 Day 3  
+**目标周期**: Week 4 Day 18（紧随 204 行动 2.6，提前对齐 2.7/2.8）  
 **负责人**: 查询服务组 + 后端团队  
 
 ---
@@ -45,11 +45,12 @@
    - 在 Facade 中实现 `GetAssignmentHistory`、`RefreshPositionCache` 等方法。
    - 在 dispatcher 中，根据 `AssignmentFilledEventType`、`AssignmentVacatedEventType` 触发缓存刷新。
    - 记录刷新策略（刷新单个职位缓存 vs. 刷新列表）。
-
 4. **测试与脚本**
    - 单元测试：Repository（使用 sqlmock）、Resolver（使用 mock Facade）。
    - 集成测试：`go test ./internal/organization/... -tags=integration`（针对 assignment 查询）。
    - 端到端脚本：模拟 fill/vacate→查询历史→验证响应。
+5. **文档同步**
+   - 在 `internal/organization/README.md` 的“查询与缓存”小节记录新增 Facade 方法、缓存刷新策略与测试脚本路径。
 
 ---
 

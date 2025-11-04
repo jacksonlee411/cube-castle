@@ -36,11 +36,11 @@
 
 | 周次 | 日程 | 里程碑 | 说明 |
 |------|------|--------|------|
-| **Week 3** | Day 1-3 | 完成 219A | 目录迁移、api.go、迁移清单 v1 | 
-| | Day 4 | 219B | Assignment 查询链路、缓存刷新 |
-| | Day 5 – Week 4 Day 1 | 219C | Audit & Validator 规则落地 |
-| **Week 4** | Day 2-3 | 219D | Scheduler/Temporal 迁移 + 监控 |
-| | Day 4-5 | 219E | 端到端验收、性能基准、回退演练 |
+| **Week 3** | Day 15-17 | 完成 219A | 目录迁移、api.go、迁移清单 v1（对应 204 计划行动 2.6） |
+| **Week 4** | Day 18 | 219B | Assignment 查询链路、缓存刷新（与行动 2.7/2.8 并行可行） |
+|  | Day 19-20 | 219C | Audit & Validator 规则落地，含规则清单入库 |
+|  | Day 21-22 | 219D | Scheduler/Temporal 迁移 + 监控配置 |
+| **Week 5** | Day 23-25 | 219E | 端到端验收、性能基准、回退演练；Day 26 预留缓冲 |
 
 > 时间表可根据实际执行情况调整，确保前置依赖达成后再启动下一子计划。
 
@@ -50,10 +50,10 @@
 
 - Plan 216（eventbus）、217（database/outbox）、217B（dispatcher）、218（logger）已交付并可用。
 - 契约遵循 `docs/api/openapi.yaml`、`docs/api/schema.graphql`，Department 仍为 Organization 聚合内节点（`unitType=DEPARTMENT`）。
-- 启动各子计划前请确认对应 P0 补充项已完成：
-  - 审计/验证规则清单（219C 输出）
-  - Department 聚合说明（219A 输出）
-  - Temporal 测试方案、性能脚本模板（219D/219E 输出）
+- 启动各子计划前请确认对应 P0 补充项已完成，并保证唯一事实来源：
+  - 审计/验证规则清单：由 219C 更新 `internal/organization/README.md` 的“审计与业务规则”章节并同步引用 `docs/reference/`（避免新增散落文件）。
+  - Department 聚合说明：在 219A 内更新 `internal/organization/README.md` 的聚合边界。
+  - Temporal 测试方案、性能脚本模板：219D/219E 输出统一存放于 `tests/organization/` 与 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 对应章节。
 
 ---
 
@@ -61,9 +61,9 @@
 
 | 风险 | 影响 | 对策 |
 |------|------|------|
-| 迁移量大导致 219A 超期 | 高 | 预留 3 天 + 每日同步；遇循环依赖及时拆分 |
+| 迁移量大导致 219A 超期 | 高 | 预留 Day 26 缓冲 + 每日同步；遇循环依赖及时拆分 |
 | Assignment 查询或缓存遗漏 | 中 | 219B 完成后进行冒烟/端到端验证 |
-| Audit/Validator 漏项 | 高 | 规则清单由架构/安全共同评审 | 
+| Audit/Validator 漏项 | 高 | 规则清单由架构/安全共同评审并更新唯一事实来源 | 
 | Temporal 行为变更 | 高 | 219D 在 sandbox 对照运行，保留回退脚本 |
 | 性能退化 | 中 | 219E 对比基线，预留优化时间 |
 

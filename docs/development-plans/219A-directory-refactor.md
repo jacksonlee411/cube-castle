@@ -2,7 +2,7 @@
 
 **文档编号**: 219A  
 **关联路线图**: Plan 219  
-**目标周期**: Week 3 Day 1-3  
+**目标周期**: Week 3 Day 15-17（对应 204 号计划行动 2.6）  
 **负责人**: 架构组 + 后端团队  
 
 ---
@@ -51,7 +51,7 @@
 ## 3. 详细任务
 
 1. **创建目录与 README**
-   - `internal/organization/README.md`：说明职责、聚合边界、依赖。
+   - 更新并作为唯一事实来源的 `internal/organization/README.md`：说明职责、聚合边界（含 Department 为 Organization 子聚合的描述）、依赖。
    - 子目录：domain、repository、service、handler、resolver、scheduler、validator、audit、dto、middleware。
 
 2. **迁移核心代码**
@@ -63,7 +63,7 @@
    - 在 `cmd/hrms-server/command/main.go`、`cmd/hrms-server/query/main.go` 中新增适配层，仅依赖 `api.go`。
 
 4. **迁移清单 v1**
-   - 记录每个旧文件的去向、状态（迁移完成/待清理/保留）。
+   - 记录每个旧文件的去向、状态（迁移完成/待清理/保留），并集中维护于 `internal/organization/README.md` 的“迁移清单”小节，避免额外散落文档。
    - 添加 CI 检查脚本（可选）或说明如何验证 `cmd/*` 不再直接引用旧路径。
 
 5. **基础验证**
