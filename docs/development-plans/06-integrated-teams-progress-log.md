@@ -2,7 +2,7 @@
 
 > **更新时间**：2025-11-04
 > **文档角色**：Phase2 启动指导与团队协作进展日志
-> **关联计划**：Plan 203（HRMS 系统模块化演进）、Plan 204（实施路线图）、Plan 211（已完成）
+> **关联计划**：Plan 203（HRMS 系统模块化演进）、Plan 204（实施路线图）、Plan 205（已完成并归档）、Plan 211（已完成）
 > **状态**：✅ **Phase1 已完成，Phase2 启动就绪**
 
 ---
@@ -34,15 +34,42 @@
 - ✅ `reports/plan-211-closure-assessment.md` - 关闭评估
 - ✅ `docs/development-plans/211-Day2-Module-Naming-Record.md` - 模块命名决议
 - ✅ `scripts/phase1-acceptance-check.sh` - 验收脚本
+- ✅ `docs/development-plans/205-Plan-Alignment-Assessment.md` - Plan 205 对标评估
+- ✅ `docs/archive/development-plans/205-HRMS-Transition-Plan.md` - Plan 205 归档
 
 ### 1.3 前置条件满足情况
 
 | 条件 | 状态 | 备注 |
 |------|------|------|
+| 设计决议（Plan 205） | ✅ 完成 | 问题诊断与设计决议已完成，已归档为参考文档 |
 | 数据库基线（Plan 210） | ✅ 完成 | Goose + Atlas 工作流已落地 |
 | 模块统一化（Plan 211） | ✅ 完成 | 2025-11-04 正式关闭 |
 | 构建与测试验证 | ✅ 完成 | 全部通过，无遗留问题 |
 | 团队培训（Go 1.24） | ✅ 完成 | 开发者需升级本地环境 ≥Go 1.24 |
+
+### 1.4 Plan 205 完成与归档（2025-11-04）
+
+**Plan 205 - HRMS 系统过渡方案** 在 **2025-11-04** 标记为已完成，并进行了文档规范化与归档：
+
+| 操作 | 状态 | 说明 |
+|------|------|------|
+| 核心目标对齐评估 | ✅ 完成 | 与 Plan 210/211/212 方向完全一致，无异议 |
+| 内容对标分析 | ✅ 完成 | 重复度 40-50%，可互补，参考价值高 |
+| 原文档归档 | ✅ 完成 | 归档至 `docs/archive/development-plans/205-HRMS-Transition-Plan.md` |
+| 评估报告生成 | ✅ 完成 | `docs/development-plans/205-Plan-Alignment-Assessment.md` |
+| 前置说明更新 | ✅ 完成 | 在 205 原位置添加完成标记与参考指引 |
+
+**Plan 205 保留的参考价值**：
+- 第一部分：问题诊断与现状分析（为什么需要 go.mod 统一化）
+- 第四部分：详细的风险应对指南（症状→原因→解决方案）
+- 附加资源：常用命令速查表（开发者参考）
+
+**执行细节**：由 Plan 211（Day1-10）、Plan 212（Day6-7）负责推进
+
+详见：
+- 📄 [Plan 205 - HRMS 系统过渡方案（已完成并归档）](./205-HRMS-Transition-Plan.md)
+- 📋 [205-Plan-Alignment-Assessment.md（详细对标评估）](./205-Plan-Alignment-Assessment.md)
+- 📁 [归档原文](../archive/development-plans/205-HRMS-Transition-Plan.md)
 
 ---
 
