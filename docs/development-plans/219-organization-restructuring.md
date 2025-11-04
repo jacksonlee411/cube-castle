@@ -107,11 +107,27 @@ type Service struct {
 - **handler/** - HTTP 处理器（REST）
 - **resolver/** - GraphQL 解析器（查询）
 
-#### 需求 3: 基础设施集成
+#### 需求 3: 部门（Department）聚合补强
+
+- 在 `domain/` 中定义 `Department` 聚合模型，明确与 `Organization` 的关联（聚合根/子聚合边界）。
+- 在 `repository/` 中提供独立的 `department_repository.go`，涵盖增删改查与层级查询。
+- 在 `service/` 中实现 `department_service.go`，支持部门生命周期（创建/更新/启停/级联校验）。
+- 在 `handler/` 中新增 `department_handler.go`（REST），在 `resolver/` 中新增 `department_resolver.go`（GraphQL）。
+- 调整组织层级相关逻辑，将部门业务从原有 `organization_hierarchy` 中剥离并通过依赖注入复用。
+
+#### 需求 4: 职位分配（Position Assignment）能力完善
+
+- 命令侧：在 `handler/` 中补充 `assignment_handler.go`，支撑 fill/vacate/transfer 操作；在 `service/` 中完善 `assignment_service.go`。
+- 查询侧：实现 `postgres_position_assignment_repository.go` 及对应 resolver，提供分配历史 / 当前占用 / 统计查询。
+- 明确职位分配的状态流转（draft → active → vacated），并在文档中列出验证规则与审计事件。
+
+#### 需求 5: 基础设施集成与审计/校验清单
 
 - 使用 Plan 216 的 eventbus 发布域事件
 - 使用 Plan 217 的 database 管理连接和事务
 - 使用 Plan 218 的 logger 进行结构化日志记录
+- 输出组织、部门、职位、职位分配的审计事件矩阵与业务校验规则清单，纳入测试与验收。
+- 为 API 的破坏性变更（特别是部门独立化）编写迁移指南，说明客户端兼容策略。
 
 ### 2.2 非功能需求
 
@@ -151,7 +167,21 @@ type Service struct {
 - [ ] 无循环依赖
 - [ ] 内部包不可被外部导入
 
-### 3.3 第三阶段：基础设施集成
+### 3.3 第三阶段：部门与职位分配模块落地
+
+**活动内容**:
+1. 按“需求 3 / 需求 4”完成部门与职位分配的独立化实现。
+2. 补充 REST handler、GraphQL resolver、service、repository 以及对应单元测试。
+3. 编写 Department/Assignment 的审计事件与业务校验规则清单。
+4. 输出 API 兼容性迁移指南（列出新/旧端点、兼容期策略）。
+
+**关键检查**:
+- [ ] 存在 `department_handler.go` / `department_resolver.go` / `department_repository.go` / `department_service.go`
+- [ ] 存在 `assignment_handler.go` / `assignment_resolver.go` / `postgres_position_assignment_repository.go`
+- [ ] 审计与校验清单完成（列出事件、规则、优先级）
+- [ ] 迁移指南草案完成
+
+### 3.4 第四阶段：基础设施集成
 
 **活动内容**:
 1. 注入 eventbus、database、logger
@@ -191,13 +221,14 @@ func (s *Service) CreateOrg(ctx context.Context, cmd CreateOrgCommand) error {
 }
 ```
 
-### 3.4 第四阶段：测试与验证
+### 3.5 第五阶段：测试与验证
 
 **活动内容**:
 1. 运行所有单元测试（`go test ./internal/organization/...`）
 2. 执行集成测试
 3. 进行回归测试（REST/GraphQL 端点）
-4. 性能基准测试
+4. 性能基准测试：对比重构前（P99、吞吐量、CPU/内存）
+5. 补充 10+ 端到端测试场景（部门/职位分配等）；更新测试执行清单
 
 **验收条件**:
 - [ ] 所有测试通过
@@ -236,6 +267,8 @@ func (s *Service) CreateOrg(ctx context.Context, cmd CreateOrgCommand) error {
 - [ ] handler 层测试（REST 接口）
 - [ ] resolver 层测试（GraphQL 接口）
 - [ ] 集成测试（端到端流程）
+- [ ] 部门 / 职位分配端到端场景（≥10 个）
+- [ ] 性能基准测试报告（对比重构前数据）
 
 ### 4.4 文档检查
 
@@ -263,6 +296,8 @@ func (s *Service) CreateOrg(ctx context.Context, cmd CreateOrgCommand) error {
 - ✅ 更新后的单元测试（覆盖率 > 80%）
 - ✅ 集成测试脚本
 - ✅ 性能基准报告
+- ✅ 审计事件矩阵与业务校验规则清单
+- ✅ 部门/职位分配迁移指南（API 兼容策略）
 - ✅ 模块 README 文档
 - ✅ 本计划文档（219）
 
