@@ -81,7 +81,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 		&typeStatsJSON, &statusStatsJSON, &levelStatsJSON,
 	)
 	if err != nil {
-		r.logger.Printf("[ERROR] 统计查询失败: %v", err)
+		r.logger.Errorf("统计查询失败: %v", err)
 		return nil, err
 	}
 
@@ -89,7 +89,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	var typeStats []model.TypeCount
 	if typeStatsJSON != "" {
 		if err := json.Unmarshal([]byte(typeStatsJSON), &typeStats); err != nil {
-			r.logger.Printf("解析typeStats失败: %v", err)
+			r.logger.Warnf("解析typeStats失败: %v", err)
 		}
 	}
 	stats.ByTypeField = typeStats
@@ -97,7 +97,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	var statusStats []model.StatusCount
 	if statusStatsJSON != "" {
 		if err := json.Unmarshal([]byte(statusStatsJSON), &statusStats); err != nil {
-			r.logger.Printf("解析statusStats失败: %v", err)
+			r.logger.Warnf("解析statusStats失败: %v", err)
 		}
 	}
 	stats.ByStatusField = statusStats
@@ -105,7 +105,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	var levelStats []model.LevelCount
 	if levelStatsJSON != "" {
 		if err := json.Unmarshal([]byte(levelStatsJSON), &levelStats); err != nil {
-			r.logger.Printf("解析levelStats失败: %v", err)
+			r.logger.Warnf("解析levelStats失败: %v", err)
 		}
 	}
 	stats.ByLevelField = levelStats
@@ -124,7 +124,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	}
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 统计查询完成，耗时: %v", duration)
+	r.logger.Infof("统计查询完成，耗时: %v", duration)
 
 	return &stats, nil
 }
@@ -226,14 +226,14 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		r.logger.Printf("[ERROR] 层级结构查询失败: %v", err)
+		r.logger.Errorf("层级结构查询失败: %v", err)
 		return nil, err
 	}
 
 	hierarchy.ParentChainField = parentChain
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 层级结构查询完成，耗时: %v", duration)
+	r.logger.Infof("层级结构查询完成，耗时: %v", duration)
 
 	return &hierarchy, nil
 }
@@ -274,7 +274,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 
 	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code, maxDepth)
 	if err != nil {
-		r.logger.Printf("[ERROR] 子树查询失败: %v", err)
+		r.logger.Errorf("子树查询失败: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -292,7 +292,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 			&node.CodePathField, &node.NamePathField, &parentCode,
 		)
 		if err != nil {
-			r.logger.Printf("[ERROR] 扫描子树数据失败: %v", err)
+			r.logger.Errorf("扫描子树数据失败: %v", err)
 			return nil, err
 		}
 
@@ -331,7 +331,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 	}
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 子树查询完成，返回 %d 节点，耗时: %v", len(nodeMap), duration)
+	r.logger.Infof("子树查询完成，返回 %d 节点，耗时: %v", len(nodeMap), duration)
 
 	converted := convertSubtreeToHierarchy(root)
 	return converted, nil

@@ -3,192 +3,177 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 
 	"cube-castle/internal/middleware"
 	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
 )
 
 type GraphQLPermissionMiddleware struct {
 	jwtMiddleware     *JWTMiddleware
 	permissionChecker *PBACPermissionChecker
-	logger            *log.Logger
-	devMode           bool // 开发模式标志
+	logger            pkglogger.Logger
+	devMode           bool
+}
+
+func scopedLogger(base pkglogger.Logger, component string, extra pkglogger.Fields) pkglogger.Logger {
+	if base == nil {
+		base = pkglogger.NewNoopLogger()
+	}
+	fields := pkglogger.Fields{
+		"component": component,
+	}
+	for k, v := range extra {
+		fields[k] = v
+	}
+	return base.WithFields(fields)
+}
+
+func requestLogger(base pkglogger.Logger, r *http.Request, action string, extra pkglogger.Fields) pkglogger.Logger {
+	if base == nil {
+		base = pkglogger.NewNoopLogger()
+	}
+	fields := pkglogger.Fields{}
+	for k, v := range extra {
+		fields[k] = v
+	}
+	if action != "" {
+		fields["action"] = action
+	}
+	if r != nil {
+		fields["method"] = r.Method
+		fields["path"] = r.URL.Path
+		fields["requestId"] = middleware.GetRequestID(r.Context())
+		if tenant := strings.TrimSpace(r.Header.Get("X-Tenant-ID")); tenant != "" {
+			fields["tenantId"] = tenant
+		}
+	}
+	return base.WithFields(fields)
 }
 
 func NewGraphQLPermissionMiddleware(
 	jwtMiddleware *JWTMiddleware,
 	permissionChecker *PBACPermissionChecker,
-	logger *log.Logger,
+	logger pkglogger.Logger,
 	devMode bool,
 ) *GraphQLPermissionMiddleware {
+	componentLogger := scopedLogger(logger, "graphqlPermissionMiddleware", pkglogger.Fields{
+		"module": "auth",
+	})
 	return &GraphQLPermissionMiddleware{
 		jwtMiddleware:     jwtMiddleware,
 		permissionChecker: permissionChecker,
-		logger:            logger,
+		logger:            componentLogger,
 		devMode:           devMode,
 	}
 }
 
-// Middleware HTTP中间件
 func (g *GraphQLPermissionMiddleware) Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// 跳过OPTIONS请求
-			if r.Method == "OPTIONS" {
+			if r.Method == http.MethodOptions {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// 开发模式下的宽松认证
 			if g.devMode {
-				g.handleDevMode(w, r, next)
+				reqLogger := requestLogger(g.logger, r, "GraphQLMiddleware", pkglogger.Fields{"mode": "dev"})
+				g.handleDevMode(w, r, next, reqLogger)
 				return
 			}
 
-			// 生产模式的严格JWT认证
-			g.handleProductionMode(w, r, next)
+			reqLogger := requestLogger(g.logger, r, "GraphQLMiddleware", pkglogger.Fields{})
+			g.handleProductionMode(w, r, next, reqLogger)
 		})
 	}
 }
 
-// handleDevMode 开发模式处理 - 生产就绪版本：严格JWT认证
-func (g *GraphQLPermissionMiddleware) handleDevMode(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	// 检查Authorization头
+func (g *GraphQLPermissionMiddleware) handleDevMode(w http.ResponseWriter, r *http.Request, next http.Handler, logger pkglogger.Logger) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		// 开发模式也必须提供JWT令牌
-		g.logger.Printf("Dev mode: Authorization header required")
-		g.writeErrorResponse(w, r, "DEV_UNAUTHORIZED", "Authorization header required even in development mode", 401)
+		logger.Warn("authorization header required in dev mode")
+		g.writeErrorResponse(w, r, logger, "DEV_UNAUTHORIZED", "Authorization header required even in development mode", http.StatusUnauthorized)
 		return
 	}
 
-	// 验证JWT令牌
 	claims, err := g.jwtMiddleware.ValidateToken(authHeader)
 	if err != nil {
-		g.logger.Printf("Dev mode: JWT validation failed: %v", err)
-		g.writeErrorResponse(w, r, "DEV_INVALID_TOKEN", "Invalid JWT token in development mode: "+err.Error(), 401)
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("JWT validation failed in dev mode")
+		g.writeErrorResponse(w, r, logger, "DEV_INVALID_TOKEN", "Invalid JWT token in development mode: "+err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	// 校验租户头并与JWT一致
 	tenantHeader := strings.TrimSpace(r.Header.Get("X-Tenant-ID"))
 	if tenantHeader == "" {
-		g.writeErrorResponse(w, r, "TENANT_HEADER_REQUIRED", "X-Tenant-ID header required", 401)
+		g.writeErrorResponse(w, r, logger, "TENANT_HEADER_REQUIRED", "X-Tenant-ID header required", http.StatusUnauthorized)
 		return
 	}
 	if claims.TenantID != "" && tenantHeader != claims.TenantID {
-		g.writeErrorResponse(w, r, "TENANT_MISMATCH", "X-Tenant-ID does not match tenant in token", 403)
+		g.writeErrorResponse(w, r, logger, "TENANT_MISMATCH", "X-Tenant-ID does not match tenant in token", http.StatusForbidden)
 		return
 	}
 	claims.TenantID = tenantHeader
 
-	g.logger.Printf("Dev mode: Valid JWT token provided for user: %s", claims.UserID)
+	logger.WithFields(pkglogger.Fields{"userId": claims.UserID}).Info("validated JWT token in dev mode")
 
-	// 设置用户上下文
 	ctx := SetUserContext(r.Context(), claims)
 	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// handleProductionMode 生产模式处理
-func (g *GraphQLPermissionMiddleware) handleProductionMode(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	// 提取Authorization头
+func (g *GraphQLPermissionMiddleware) handleProductionMode(w http.ResponseWriter, r *http.Request, next http.Handler, logger pkglogger.Logger) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		g.writeErrorResponse(w, r, "UNAUTHORIZED", "Authorization header required", 401)
+		g.writeErrorResponse(w, r, logger, "UNAUTHORIZED", "Authorization header required", http.StatusUnauthorized)
 		return
 	}
 
-	// 验证JWT令牌
 	claims, err := g.jwtMiddleware.ValidateToken(authHeader)
 	if err != nil {
-		g.logger.Printf("JWT validation failed: %v", err)
-		g.writeErrorResponse(w, r, "INVALID_TOKEN", err.Error(), 401)
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("JWT validation failed")
+		g.writeErrorResponse(w, r, logger, "INVALID_TOKEN", err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	// 校验租户头并与JWT一致（强制）
 	tenantHeader := strings.TrimSpace(r.Header.Get("X-Tenant-ID"))
 	if tenantHeader == "" {
-		g.writeErrorResponse(w, r, "TENANT_HEADER_REQUIRED", "X-Tenant-ID header required", 401)
+		g.writeErrorResponse(w, r, logger, "TENANT_HEADER_REQUIRED", "X-Tenant-ID header required", http.StatusUnauthorized)
 		return
 	}
 	if claims.TenantID != "" && tenantHeader != claims.TenantID {
-		g.writeErrorResponse(w, r, "TENANT_MISMATCH", "X-Tenant-ID does not match tenant in token", 403)
+		g.writeErrorResponse(w, r, logger, "TENANT_MISMATCH", "X-Tenant-ID does not match tenant in token", http.StatusForbidden)
 		return
 	}
 	claims.TenantID = tenantHeader
 
-	// 设置用户上下文
 	ctx := SetUserContext(r.Context(), claims)
 	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// createMockClaims 创建模拟用户声明（开发模式）
-func (g *GraphQLPermissionMiddleware) createMockClaims(r *http.Request) *Claims {
-	// 检查是否有特殊的开发头部
-	mockUser := r.Header.Get("X-Mock-User")
-	mockRoles := r.Header.Get("X-Mock-Roles")
-
-	claims := &Claims{
-		UserID:   "dev-user",
-		TenantID: "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9", // 默认租户
-		Roles:    []string{"ADMIN"},                      // 默认管理员权限
-	}
-
-	if mockUser != "" {
-		claims.UserID = mockUser
-	}
-
-	if mockRoles != "" {
-		claims.Roles = strings.Split(mockRoles, ",")
-		for i, role := range claims.Roles {
-			claims.Roles[i] = strings.TrimSpace(role)
-		}
-	}
-
-	return claims
-}
-
-// CheckQueryPermission GraphQL查询级权限检查
 func (g *GraphQLPermissionMiddleware) CheckQueryPermission(ctx context.Context, queryName string) error {
-	var err error
 	if g.devMode {
-		err = g.permissionChecker.MockPermissionCheck(ctx, queryName)
-	} else {
-		err = g.permissionChecker.CheckGraphQLQuery(ctx, queryName)
+		return g.permissionChecker.MockPermissionCheck(ctx, queryName)
 	}
-	return err
+	return g.permissionChecker.CheckGraphQLQuery(ctx, queryName)
 }
 
-// writeErrorResponse 写入错误响应
-func (g *GraphQLPermissionMiddleware) writeErrorResponse(w http.ResponseWriter, r *http.Request, code, message string, statusCode int) {
+func (g *GraphQLPermissionMiddleware) writeErrorResponse(w http.ResponseWriter, r *http.Request, logger pkglogger.Logger, code, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-
-	// 获取请求ID
 	requestID := middleware.GetRequestID(r.Context())
-
-	// 使用统一的企业级错误响应格式
 	errorResponse := types.WriteErrorResponse(code, message, requestID, nil)
 	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
-		g.logger.Printf("failed to encode GraphQL error response: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("failed to encode GraphQL error response")
 	}
 }
 
-// WriteEnterpriseErrorResponse 写入企业级错误响应
 func (g *GraphQLPermissionMiddleware) WriteEnterpriseErrorResponse(w http.ResponseWriter, r *http.Request, code, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-
-	// 获取请求ID
 	requestID := middleware.GetRequestID(r.Context())
-
-	// 使用统一的企业级错误响应格式
 	errorResponse := types.WriteErrorResponse(code, message, requestID, nil)
 	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
-		g.logger.Printf("failed to encode enterprise error response: %v", err)
+		requestLogger(g.logger, r, "WriteEnterpriseErrorResponse", pkglogger.Fields{"code": code}).WithFields(pkglogger.Fields{"error": err}).Error("failed to encode enterprise error response")
 	}
 }

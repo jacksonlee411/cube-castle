@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"testing"
 	"time"
 
 	"cube-castle/cmd/hrms-server/query/internal/model"
 	"cube-castle/internal/auth"
+	pkglogger "cube-castle/pkg/logger"
+	sharedconfig "cube-castle/shared/config"
 	"github.com/google/uuid"
 	graphqlgo "github.com/graph-gophers/graphql-go"
-	sharedconfig "cube-castle/shared/config"
 )
 
 type stubPermissionChecker struct {
@@ -248,7 +248,7 @@ func TestResolver_Positions_ForwardsParameters(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	result, err := resolver.Positions(context.Background(), struct {
 		Filter     *model.PositionFilterInput
@@ -284,7 +284,7 @@ func TestResolver_Positions_PermissionDenied(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: false}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	_, err := resolver.Positions(context.Background(), struct {
 		Filter     *model.PositionFilterInput
@@ -348,7 +348,7 @@ func TestResolver_PositionAssignments_ForwardsParameters(t *testing.T) {
 	}
 
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	result, err := resolver.PositionAssignments(context.Background(), struct {
 		PositionCode string
@@ -411,7 +411,7 @@ func TestResolver_PositionAssignmentAudit_ForwardsParameters(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	code := "P3000001"
 	_, err := resolver.PositionAssignmentAudit(context.Background(), struct {
@@ -477,7 +477,7 @@ func TestResolver_VacantPositions_ForwardsParameters(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	_, err := resolver.VacantPositions(context.Background(), struct {
 		Filter     *model.VacantPositionFilterInput
@@ -521,7 +521,7 @@ func TestResolver_VacantPositions_ForwardsAsOfDate(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	_, err := resolver.VacantPositions(context.Background(), struct {
 		Filter     *model.VacantPositionFilterInput
@@ -570,7 +570,7 @@ func TestResolver_PositionTransfers_ForwardsParameters(t *testing.T) {
 	}
 
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	_, err := resolver.PositionTransfers(context.Background(), struct {
 		PositionCode     *string
@@ -608,7 +608,7 @@ func TestResolver_PositionHeadcountStats_CustomIncludeSubordinates(t *testing.T)
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	falseVal := false
 	_, err := resolver.PositionHeadcountStats(context.Background(), struct {
@@ -634,7 +634,7 @@ func TestResolver_PositionHeadcountStats_UsesTenantFromContext(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	ctx := auth.SetUserContext(context.Background(), &auth.Claims{
 		UserID:   "tenant-tester",
@@ -667,7 +667,7 @@ func TestResolver_Position_ForwardsAsOfDate(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	_, err := resolver.Position(context.Background(), struct {
 		Code     string
@@ -693,7 +693,7 @@ func TestResolver_PositionTimeline_ForwardsDateRange(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, logDiscard(), perm)
+	resolver := NewResolver(repo, testLogger(), perm)
 
 	_, err := resolver.PositionTimeline(context.Background(), struct {
 		Code      string
@@ -705,8 +705,10 @@ func TestResolver_PositionTimeline_ForwardsDateRange(t *testing.T) {
 	}
 }
 
-func logDiscard() *log.Logger {
-	return log.New(io.Discard, "", log.LstdFlags)
+func testLogger() pkglogger.Logger {
+	return pkglogger.NewLogger(
+		pkglogger.WithWriter(io.Discard),
+	)
 }
 
 func TestResolver_PositionVersions_ForwardsParameters(t *testing.T) {
@@ -720,7 +722,7 @@ func TestResolver_PositionVersions_ForwardsParameters(t *testing.T) {
 	}
 
 	checker := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, log.New(io.Discard, "", 0), checker)
+	resolver := NewResolver(repo, pkglogger.NewLogger(pkglogger.WithWriter(io.Discard)), checker)
 
 	result, err := resolver.PositionVersions(context.Background(), struct {
 		Code           string
@@ -761,7 +763,7 @@ func TestResolver_PositionVersions_IncludeDeletedFlag(t *testing.T) {
 		},
 	}
 
-	resolver := NewResolver(repo, log.New(io.Discard, "", 0), &stubPermissionChecker{allow: true})
+	resolver := NewResolver(repo, pkglogger.NewLogger(pkglogger.WithWriter(io.Discard)), &stubPermissionChecker{allow: true})
 
 	_, err := resolver.PositionVersions(context.Background(), struct {
 		Code           string

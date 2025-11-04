@@ -9,8 +9,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
-	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -18,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -256,7 +255,7 @@ func TestSetUserContextHelpers(t *testing.T) {
 }
 
 func TestPBACPermissionChecker(t *testing.T) {
-	checker := NewPBACPermissionChecker(nil, log.New(io.Discard, "", 0))
+	checker := NewPBACPermissionChecker(nil, pkglogger.NewNoopLogger())
 
 	// missing auth context
 	if err := checker.CheckPermission(context.Background(), "organizations"); err == nil {
@@ -313,7 +312,7 @@ func TestPBACPermissionChecker(t *testing.T) {
 func TestGraphQLPermissionMiddlewareModes(t *testing.T) {
 	opt := Options{Alg: "HS256"}
 	jwtMW := NewJWTMiddlewareWithOptions("secret", "cube", "aud", opt)
-	logger := log.New(io.Discard, "", 0)
+	logger := pkglogger.NewNoopLogger()
 	checker := NewPBACPermissionChecker(nil, logger)
 
 	middleware := NewGraphQLPermissionMiddleware(jwtMW, checker, logger, true)
@@ -360,7 +359,7 @@ func TestGraphQLPermissionMiddlewareModes(t *testing.T) {
 func TestGraphQLPermissionMiddlewareProduction(t *testing.T) {
 	opt := Options{Alg: "HS256"}
 	jwtMW := NewJWTMiddlewareWithOptions("secret", "cube", "aud", opt)
-	logger := log.New(io.Discard, "", 0)
+	logger := pkglogger.NewNoopLogger()
 	checker := NewPBACPermissionChecker(nil, logger)
 
 	middleware := NewGraphQLPermissionMiddleware(jwtMW, checker, logger, false)
@@ -403,7 +402,7 @@ func TestGraphQLPermissionMiddlewareProduction(t *testing.T) {
 }
 
 func TestCheckQueryPermissionDelegation(t *testing.T) {
-	logger := log.New(io.Discard, "", 0)
+	logger := pkglogger.NewNoopLogger()
 	checker := NewPBACPermissionChecker(nil, logger)
 	mw := NewGraphQLPermissionMiddleware(nil, checker, logger, false)
 
@@ -589,7 +588,7 @@ func TestGenerateTestTokenMissingPrivateKey(t *testing.T) {
 }
 
 func TestCheckRESTPermission(t *testing.T) {
-	checker := NewPBACPermissionChecker(nil, log.New(io.Discard, "", 0))
+	checker := NewPBACPermissionChecker(nil, pkglogger.NewNoopLogger())
 	ctx := SetUserContext(context.Background(), &Claims{UserID: "admin", TenantID: "tenant", Roles: []string{"ADMIN"}})
 	if err := checker.CheckRESTPermission(ctx, http.MethodPost, "/api/v1/organization-units"); err != nil {
 		t.Fatalf("expected admin to pass REST permission: %v", err)
@@ -602,7 +601,7 @@ func TestCheckRESTPermission(t *testing.T) {
 }
 
 func TestMockRESTPermissionCheck(t *testing.T) {
-	checker := NewPBACPermissionChecker(nil, log.New(io.Discard, "", 0))
+	checker := NewPBACPermissionChecker(nil, pkglogger.NewNoopLogger())
 	ctx := SetUserContext(context.Background(), &Claims{UserID: "user", TenantID: "tenant", Roles: []string{"MANAGER"}})
 	if err := checker.MockRESTPermissionCheck(ctx, http.MethodPost, "/api/v1/organization-units"); err != nil {
 		t.Fatalf("expected manager to pass mock permission: %v", err)

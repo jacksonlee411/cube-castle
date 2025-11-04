@@ -38,8 +38,7 @@ func main() {
 		"service":   "command",
 		"component": "bootstrap",
 	})
-	logger := pkglogger.NewStdLogger(commandLogger, pkglogger.LevelInfo)
-	logger.Println("🚀 启动组织命令服务...")
+	commandLogger.Info("🚀 启动组织命令服务...")
 	authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
 
 	var db *sql.DB
@@ -53,18 +52,20 @@ func main() {
 		var err error
 		db, err = sql.Open("postgres", dbURL)
 		if err != nil {
-			logger.Fatalf("数据库连接失败: %v", err)
+			commandLogger.Errorf("数据库连接失败: %v", err)
+			os.Exit(1)
 		}
 		defer db.Close()
 
 		// 验证数据库连接
 		if err := db.Ping(); err != nil {
-			logger.Fatalf("数据库连接验证失败: %v", err)
+			commandLogger.Errorf("数据库连接验证失败: %v", err)
+			os.Exit(1)
 		}
 
-		logger.Println("✅ 数据库连接成功")
+		commandLogger.Info("✅ 数据库连接成功")
 	} else {
-		logger.Println("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
+		commandLogger.Info("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
 	}
 
 	var (
@@ -92,9 +93,9 @@ func main() {
 
 		// 启动级联更新服务
 		cascadeService.Start()
-		logger.Println("✅ 级联更新服务已启动")
-		logger.Println("✅ 结构化审计日志系统已初始化")
-		logger.Println("✅ Prometheus指标收集系统已初始化")
+		commandLogger.Info("✅ 级联更新服务已启动")
+		commandLogger.Info("✅ 结构化审计日志系统已初始化")
+		commandLogger.Info("✅ Prometheus指标收集系统已初始化")
 	}
 
 	// 初始化JWT中间件 - 使用统一配置
@@ -112,16 +113,19 @@ func main() {
 		if b, err := os.ReadFile(jwtConfig.PublicKeyPath); err == nil {
 			pubPEM = b
 		} else {
-			logger.Fatalf("[FATAL] 无法读取JWT公钥 (%s): %v", jwtConfig.PublicKeyPath, err)
+			commandLogger.Errorf("[FATAL] 无法读取JWT公钥 (%s): %v", jwtConfig.PublicKeyPath, err)
+			os.Exit(1)
 		}
 	}
 	if !jwtConfig.HasPrivateKey() {
-		logger.Fatalf("[FATAL] 启用了RS256但未配置JWT_PRIVATE_KEY_PATH。请运行 make jwt-dev-setup 或提供正式私钥文件。")
+		commandLogger.Error("[FATAL] 启用了RS256但未配置JWT_PRIVATE_KEY_PATH。请运行 make jwt-dev-setup 或提供正式私钥文件。")
+		os.Exit(1)
 	}
 	if b, err := os.ReadFile(jwtConfig.PrivateKeyPath); err == nil {
 		privPEM = b
 	} else {
-		logger.Fatalf("[FATAL] 无法读取JWT私钥 (%s): %v", jwtConfig.PrivateKeyPath, err)
+		commandLogger.Errorf("[FATAL] 无法读取JWT私钥 (%s): %v", jwtConfig.PrivateKeyPath, err)
+		os.Exit(1)
 	}
 
 	jwtMiddleware := auth.NewJWTMiddlewareWithOptions(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, auth.Options{
@@ -134,20 +138,20 @@ func main() {
 	})
 	var restAuthMiddleware *auth.RESTPermissionMiddleware
 	if !authOnlyMode {
-		permissionChecker := auth.NewPBACPermissionChecker(db, logger)
+		permissionChecker := auth.NewPBACPermissionChecker(db, commandLogger)
 		restAuthMiddleware = auth.NewRESTPermissionMiddleware(
 			jwtMiddleware,
 			permissionChecker,
-			logger,
+			commandLogger,
 			devMode,
 		)
 	}
 
-	logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
+	commandLogger.Infof("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
 
 	// 初始化中间件
-	performanceMiddleware := middleware.NewPerformanceMiddleware(logger)
-	rateLimitMiddleware := middleware.NewRateLimitMiddleware(middleware.DefaultRateLimitConfig, logger)
+	performanceMiddleware := middleware.NewPerformanceMiddleware(commandLogger)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(middleware.DefaultRateLimitConfig, commandLogger)
 
 	// 初始化时态服务
 	var temporalService *services.TemporalService
@@ -185,11 +189,11 @@ func main() {
 
 		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, commandLogger, timelineManager, hierarchyRepo, businessValidator)
 		positionHandler = handlers.NewPositionHandler(positionService, commandLogger)
-		jobCatalogHandler = handlers.NewJobCatalogHandler(jobCatalogService, logger)
-		operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, rateLimitMiddleware, logger)
+		jobCatalogHandler = handlers.NewJobCatalogHandler(jobCatalogService, commandLogger)
+		operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, rateLimitMiddleware, commandLogger)
 	}
 	// 开发工具路由即使在 authOnly 模式下也允许初始化（内部会根据 devMode 控制）
-	devToolsHandler = handlers.NewDevToolsHandler(jwtMiddleware, logger, devMode, db)
+	devToolsHandler = handlers.NewDevToolsHandler(jwtMiddleware, commandLogger, devMode, db)
 
 	// 设置路由
 	r := chi.NewRouter()
@@ -223,7 +227,7 @@ func main() {
 		// 确保 metrics 已注册
 		utils.RecordHTTPRequest("GET", "/metrics", 200) // 触发初始化
 		r.Handle("/metrics", promhttp.Handler())
-		logger.Println("📊 Prometheus metrics 端点: http://localhost:9090/metrics")
+		commandLogger.Info("📊 Prometheus metrics 端点: http://localhost:9090/metrics")
 	}
 
 	// 限流状态监控端点（Dev-only）
@@ -249,7 +253,7 @@ func main() {
 			fmt.Fprintf(w, `{"activeClients": %d, "timestamp": "%s"}`, len(clients), time.Now().Format(time.RFC3339))
 		})
 
-		logger.Println("🚦 限流监控端点(Dev): http://localhost:9090/debug/rate-limit/stats")
+		commandLogger.Info("🚦 限流监控端点(Dev): http://localhost:9090/debug/rate-limit/stats")
 	}
 
 	// 设置开发工具路由 (仅开发模式，无认证要求)
@@ -258,7 +262,7 @@ func main() {
 	}
 
 	// 📎 BFF 认证路由（生产态登录/会话管理） - 不要求已有Authorization
-	bffHandler := authbff.NewBFFHandler(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, logger, devMode, auditLogger)
+	bffHandler := authbff.NewBFFHandler(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, commandLogger, devMode, auditLogger)
 	bffHandler.SetupRoutes(r)
 
 	if !authOnlyMode {
@@ -298,14 +302,15 @@ func main() {
 	defer cancel()
 	if !authOnlyMode {
 		operationalScheduler.Start(ctx)
-		logger.Println("✅ 运维任务调度器已启动")
+		commandLogger.Info("✅ 运维任务调度器已启动")
 	}
 
 	// 优雅关闭
 	go func() {
-		logger.Printf("🎯 组织命令服务启动在端口 %s", port)
+		commandLogger.Infof("🎯 组织命令服务启动在端口 %s", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatalf("服务启动失败: %v", err)
+			commandLogger.Errorf("服务启动失败: %v", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -314,24 +319,24 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Println("🛑 正在关闭服务...")
+	commandLogger.Info("🛑 正在关闭服务...")
 
 	if !authOnlyMode {
 		// 停止级联更新服务
 		cascadeService.Stop()
-		logger.Println("✅ 级联更新服务已停止")
+		commandLogger.Info("✅ 级联更新服务已停止")
 
 		// 停止运维调度器
 		operationalScheduler.Stop()
-		logger.Println("✅ 运维任务调度器已停止")
+		commandLogger.Info("✅ 运维任务调度器已停止")
 	}
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Printf("服务关闭错误: %v", err)
+		commandLogger.Errorf("服务关闭错误: %v", err)
 	} else {
-		logger.Println("✅ 服务已安全关闭")
+		commandLogger.Info("✅ 服务已安全关闭")
 	}
 }

@@ -7,6 +7,11 @@
 
 ---
 
+**当前状态**（2025-11-04 更新）：
+- 218B 子计划已确认命令 / 查询入口不再依赖 `pkg/logger.NewStdLogger`，`rg "NewStdLogger"` 仅剩包内测试与桥接实现文件。
+- `go test ./cmd/hrms-server/command/... ./cmd/hrms-server/query/...` 执行通过，验证桥接器回收后无回归。
+- 需在 Reference 文档中追加字段规范说明（待 218E 正式收尾时处理）。
+
 ## 1. 前置条件
 - Plan 218A ~ 218D 均完成且通过回归。
 - 项目代码中 `rg "\*log.Logger"` 仅剩历史文档或已标记的兼容层。

@@ -41,12 +41,12 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		r.logger.Printf("[ERROR] 查询单个组织失败: %v", err)
+		r.logger.Errorf("查询单个组织失败: %v", err)
 		return nil, err
 	}
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 单个组织查询，耗时: %v", duration)
+	r.logger.Infof("单个组织查询，耗时: %v", duration)
 
 	return &org, nil
 }
@@ -107,12 +107,12 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		r.logger.Printf("[ERROR] 时态查询失败: %v", err)
+		r.logger.Errorf("时态查询失败: %v", err)
 		return nil, err
 	}
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 时态点查询 [%s @ %s]，耗时: %v", code, date, duration)
+	r.logger.Infof("时态点查询 [%s @ %s]，耗时: %v", code, date, duration)
 
 	return &org, nil
 }
@@ -157,7 +157,7 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
 	start := time.Now()
 	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code, fromDate, toDate)
 	if err != nil {
-		r.logger.Printf("[ERROR] 历史范围查询失败: %v", err)
+		r.logger.Errorf("历史范围查询失败: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -174,14 +174,14 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
 			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
 		)
 		if err != nil {
-			r.logger.Printf("[ERROR] 扫描历史数据失败: %v", err)
+			r.logger.Errorf("扫描历史数据失败: %v", err)
 			return nil, err
 		}
 		organizations = append(organizations, org)
 	}
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 历史查询 [%s: %s~%s] 返回 %d 条，耗时: %v", code, fromDate, toDate, len(organizations), duration)
+	r.logger.Infof("历史查询 [%s: %s~%s] 返回 %d 条，耗时: %v", code, fromDate, toDate, len(organizations), duration)
 
 	return organizations, nil
 }
@@ -215,7 +215,7 @@ func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tena
 
 	rows, err := r.db.QueryContext(ctx, finalQuery, args...)
 	if err != nil {
-		r.logger.Printf("[ERROR] 组织版本查询失败: %v", err)
+		r.logger.Errorf("组织版本查询失败: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -233,14 +233,14 @@ func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tena
 			&org.HierarchyDepthField,
 		)
 		if err != nil {
-			r.logger.Printf("[ERROR] 扫描组织版本数据失败: %v", err)
+			r.logger.Errorf("扫描组织版本数据失败: %v", err)
 			return nil, err
 		}
 		organizations = append(organizations, org)
 	}
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 组织版本查询 [%s] 返回 %d 条版本，耗时: %v", code, len(organizations), duration)
+	r.logger.Infof("组织版本查询 [%s] 返回 %d 条版本，耗时: %v", code, len(organizations), duration)
 
 	return organizations, nil
 }

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,6 +18,7 @@ import (
 	"cube-castle/internal/config"
 	schemaLoader "cube-castle/internal/graphql"
 	requestMiddleware "cube-castle/internal/middleware"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -30,7 +30,7 @@ import (
 )
 
 type Application struct {
-	logger      *log.Logger
+	logger      pkglogger.Logger
 	db          *sql.DB
 	redisClient *redis.Client
 	server      *http.Server
@@ -61,14 +61,22 @@ func init() {
 }
 
 func Run() error {
+	baseLogger := pkglogger.NewLogger(
+		pkglogger.WithWriter(os.Stdout),
+		pkglogger.WithLevel(pkglogger.LevelInfo),
+		pkglogger.WithCallerSkip(1),
+	)
 	app := &Application{
-		logger: log.New(os.Stdout, "[PG-GraphQL] ", log.LstdFlags),
+		logger: baseLogger.WithFields(pkglogger.Fields{
+			"service":   "query",
+			"component": "bootstrap",
+		}),
 	}
 	return app.run()
 }
 
 func (a *Application) run() error {
-	a.logger.Println("🚀 启动PostgreSQL原生GraphQL服务")
+	a.logger.Info("🚀 启动PostgreSQL原生GraphQL服务")
 
 	var err error
 	a.db, err = a.openDatabase()
@@ -79,8 +87,11 @@ func (a *Application) run() error {
 	a.redisClient = a.openRedis()
 
 	auditConfig := loadAuditHistoryConfig()
-	repo := repository.NewPostgreSQLRepository(a.db, a.redisClient, a.logger, auditConfig)
-	a.logger.Printf("⚙️ 审计历史配置: strictValidation=%v, allowFallback=%v, circuitThreshold=%d, legacyMode=%v",
+	repoLogger := a.logger.WithFields(pkglogger.Fields{
+		"component": "repository",
+	})
+	repo := repository.NewPostgreSQLRepository(a.db, a.redisClient, repoLogger, auditConfig)
+	a.logger.Infof("⚙️ 审计历史配置: strictValidation=%v, allowFallback=%v, circuitThreshold=%d, legacyMode=%v",
 		auditConfig.StrictValidation, auditConfig.AllowFallback, auditConfig.CircuitBreakerThreshold, auditConfig.LegacyMode)
 
 	a.server, err = a.buildServer(repo)
@@ -93,11 +104,11 @@ func (a *Application) run() error {
 
 	go func() {
 		<-ctx.Done()
-		a.logger.Println("🛑 正在关闭PostgreSQL GraphQL服务...")
+		a.logger.Info("🛑 正在关闭PostgreSQL GraphQL服务...")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := a.server.Shutdown(shutdownCtx); err != nil {
-			a.logger.Printf("❌ 服务关闭失败: %v", err)
+			a.logger.WithFields(pkglogger.Fields{"error": err}).Error("❌ 服务关闭失败")
 		}
 	}()
 
@@ -105,17 +116,17 @@ func (a *Application) run() error {
 	if len(port) > 0 && port[0] == ':' {
 		port = port[1:]
 	}
-	a.logger.Printf("🚀 PostgreSQL原生GraphQL服务启动在端口 :%s", port)
-	a.logger.Println("🔗 GraphiQL界面: http://localhost:" + port + "/graphiql")
-	a.logger.Println("🔗 GraphQL端点: http://localhost:" + port + "/graphql")
-	a.logger.Println("💾 数据库: PostgreSQL (原生优化)")
-	a.logger.Println("⚡ 性能模式: 激进优化")
+	a.logger.Infof("🚀 PostgreSQL原生GraphQL服务启动在端口 :%s", port)
+	a.logger.Info("🔗 GraphiQL界面: http://localhost:" + port + "/graphiql")
+	a.logger.Info("🔗 GraphQL端点: http://localhost:" + port + "/graphql")
+	a.logger.Info("💾 数据库: PostgreSQL (原生优化)")
+	a.logger.Info("⚡ 性能模式: 激进优化")
 
 	if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("listen: %w", err)
 	}
 
-	a.logger.Println("✅ PostgreSQL GraphQL服务已安全关闭")
+	a.logger.Info("✅ PostgreSQL GraphQL服务已安全关闭")
 	return nil
 }
 
@@ -143,7 +154,7 @@ func (a *Application) openDatabase() (*sql.DB, error) {
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
 
-	a.logger.Println("✅ PostgreSQL连接成功")
+	a.logger.Info("✅ PostgreSQL连接成功")
 	return db, nil
 }
 
@@ -154,11 +165,11 @@ func (a *Application) openRedis() *redis.Client {
 	})
 
 	if _, err := client.Ping(context.Background()).Result(); err != nil {
-		a.logger.Printf("⚠️  Redis连接失败，将不使用缓存: %v", err)
+		a.logger.WithFields(pkglogger.Fields{"error": err}).Warn("Redis连接失败，将不使用缓存")
 		return nil
 	}
 
-	a.logger.Println("✅ Redis连接成功")
+	a.logger.Info("✅ Redis连接成功")
 	return client
 }
 
@@ -188,13 +199,13 @@ func (a *Application) buildServer(repo *repository.PostgreSQLRepository) (*http.
 
 	permissionChecker := auth.NewPBACPermissionChecker(a.db, a.logger)
 	graphqlMiddleware := auth.NewGraphQLPermissionMiddleware(jwtMiddleware, permissionChecker, a.logger, devMode)
-	a.logger.Printf("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
+	a.logger.Infof("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
 
-	resolver := graphql.NewResolver(repo, a.logger, graphqlMiddleware)
+	resolver := graphql.NewResolver(repo, a.logger.WithFields(pkglogger.Fields{"component": "graphqlResolver"}), graphqlMiddleware)
 	schemaPath := schemaLoader.GetDefaultSchemaPath()
 	schemaString := schemaLoader.MustLoadSchema(schemaPath)
 	schema := graphqlgo.MustParseSchema(schemaString, resolver)
-	a.logger.Printf("✅ GraphQL Schema loaded from single source: %s", schemaPath)
+	a.logger.Infof("✅ GraphQL Schema loaded from single source: %s", schemaPath)
 
 	router := a.buildRouter(schema, graphqlMiddleware, devMode)
 

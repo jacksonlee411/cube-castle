@@ -117,7 +117,7 @@ latest_versions AS (
 )
 `
 
-baseSelect := `
+	baseSelect := `
 SELECT lv.record_id, lv.tenant_id, lv.code, lv.parent_code, lv.name, lv.unit_type, lv.status,
        lv.level, lv.code_path, lv.name_path, lv.sort_order, lv.description, lv.profile, lv.created_at, lv.updated_at,
        lv.effective_date, lv.end_date, lv.is_current, lv.change_reason,
@@ -207,7 +207,7 @@ WHERE 1=1`
 
 	var total int
 	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
-		r.logger.Printf("[ERROR] 查询组织总数失败: %v", err)
+		r.logger.Errorf("查询组织总数失败: %v", err)
 		return nil, err
 	}
 
@@ -217,7 +217,7 @@ WHERE 1=1`
 
 	rows, err := r.db.QueryContext(ctx, dataQuery, args...)
 	if err != nil {
-		r.logger.Printf("[ERROR] 查询组织列表失败: %v", err)
+		r.logger.Errorf("查询组织列表失败: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -233,14 +233,14 @@ WHERE 1=1`
 			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField, &org.ChildrenCountField,
 		); err != nil {
-			r.logger.Printf("[ERROR] 扫描组织数据失败: %v", err)
+			r.logger.Errorf("扫描组织数据失败: %v", err)
 			return nil, err
 		}
 		organizations = append(organizations, org)
 	}
 
 	duration := time.Since(start)
-	r.logger.Printf("[PERF] 查询 %d/%d 组织 (页面: %d/%d)，耗时: %v", len(organizations), total, page, (total+int(pageSize)-1)/int(pageSize), duration)
+	r.logger.Infof("查询 %d/%d 组织 (页面: %d/%d)，耗时: %v", len(organizations), total, page, (total+int(pageSize)-1)/int(pageSize), duration)
 
 	totalPages := (total + int(pageSize) - 1) / int(pageSize)
 	asOfDateValue := time.Now().Format("2006-01-02")

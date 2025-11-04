@@ -1,10 +1,10 @@
 package repository
 
 import (
-	"io"
-	"log"
 	"reflect"
 	"testing"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 func TestSanitizeModifiedFields(t *testing.T) {
@@ -161,7 +161,7 @@ func TestNormalizeChangeValue(t *testing.T) {
 
 func TestRegisterValidationFailure(t *testing.T) {
 	repo := &PostgreSQLRepository{
-		logger: log.New(io.Discard, "", 0),
+		logger: pkglogger.NewNoopLogger(),
 		auditConfig: AuditHistoryConfig{
 			CircuitBreakerThreshold: 2,
 		},

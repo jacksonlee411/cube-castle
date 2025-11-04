@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 )
 
@@ -124,7 +124,9 @@ func TestGetAuditHistoryReturnsStructuredRecords(t *testing.T) {
 	repo := &PostgreSQLRepository{
 		db:          db,
 		redisClient: nil,
-		logger:      log.New(io.Discard, "", 0),
+		logger: pkglogger.NewLogger(
+			pkglogger.WithWriter(io.Discard),
+		),
 		auditConfig: AuditHistoryConfig{LegacyMode: false},
 	}
 

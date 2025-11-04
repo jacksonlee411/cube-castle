@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,16 +13,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/audit"
 	reqmw "cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type BFFHandler struct {
 	store        Store
-	logger       *log.Logger
+	logger       pkglogger.Logger
 	jwtCfg       JWTMintConfig
 	devMode      bool
 	secureCookie bool
@@ -36,7 +36,39 @@ type BFFHandler struct {
 	auditor      *audit.AuditLogger
 }
 
-func NewBFFHandler(jwtSecret, issuer, audience string, logger *log.Logger, devMode bool, auditor *audit.AuditLogger) *BFFHandler {
+func scopedLogger(base pkglogger.Logger, component string, extra pkglogger.Fields) pkglogger.Logger {
+	if base == nil {
+		base = pkglogger.NewNoopLogger()
+	}
+	fields := pkglogger.Fields{
+		"component": component,
+	}
+	for k, v := range extra {
+		fields[k] = v
+	}
+	return base.WithFields(fields)
+}
+
+func (h *BFFHandler) requestLogger(r *http.Request, action string, extra pkglogger.Fields) pkglogger.Logger {
+	fields := pkglogger.Fields{}
+	for k, v := range extra {
+		fields[k] = v
+	}
+	if action != "" {
+		fields["action"] = action
+	}
+	if r != nil {
+		fields["method"] = r.Method
+		fields["path"] = r.URL.Path
+		fields["requestId"] = reqmw.GetRequestID(r.Context())
+	}
+	return h.logger.WithFields(fields)
+}
+
+func NewBFFHandler(jwtSecret, issuer, audience string, baseLogger pkglogger.Logger, devMode bool, auditor *audit.AuditLogger) *BFFHandler {
+	if baseLogger == nil {
+		baseLogger = pkglogger.NewNoopLogger()
+	}
 	secure := os.Getenv("SECURE_COOKIES") == "true"
 	domain := os.Getenv("COOKIE_DOMAIN")
 	ttlStr := os.Getenv("SESSION_TTL")
@@ -52,6 +84,8 @@ func NewBFFHandler(jwtSecret, issuer, audience string, logger *log.Logger, devMo
 			accessTTL = d
 		}
 	}
+	componentLogger := scopedLogger(baseLogger, "authBFF", pkglogger.Fields{"module": "authbff"})
+
 	jwMintAlg := strings.ToUpper(strings.TrimSpace(os.Getenv("JWT_MINT_ALG")))
 	if jwMintAlg == "" {
 		jwMintAlg = strings.ToUpper(strings.TrimSpace(os.Getenv("JWT_ALG")))
@@ -60,12 +94,13 @@ func NewBFFHandler(jwtSecret, issuer, audience string, logger *log.Logger, devMo
 		jwMintAlg = "RS256"
 	}
 	if jwMintAlg != "RS256" {
-		logger.Fatalf("[BFF][FATAL] JWT_MINT_ALG 必须配置为 RS256，当前为 %s", jwMintAlg)
+		componentLogger.WithFields(pkglogger.Fields{"alg": jwMintAlg}).Error("JWT_MINT_ALG must be RS256")
+		panic("JWT_MINT_ALG must be configured as RS256")
 	}
 
 	h := &BFFHandler{
 		store:        NewInMemoryStore(),
-		logger:       logger,
+		logger:       componentLogger,
 		jwtCfg:       JWTMintConfig{Secret: jwtSecret, Issuer: issuer, Audience: audience, Alg: jwMintAlg},
 		devMode:      devMode,
 		secureCookie: secure,
@@ -81,7 +116,8 @@ func NewBFFHandler(jwtSecret, issuer, audience string, logger *log.Logger, devMo
 		if rawPath := os.Getenv("JWT_PRIVATE_KEY_PATH"); rawPath != "" {
 			safePath, err := sanitizeAbsolutePath(rawPath)
 			if err != nil {
-				logger.Fatalf("[BFF][FATAL] RS256 私钥路径无效(%s): %v", rawPath, err)
+				h.logger.WithFields(pkglogger.Fields{"path": rawPath, "error": err}).Error("RS256 private key path invalid")
+				panic(fmt.Errorf("RS256私钥路径无效: %w", err))
 			}
 			// #nosec G304 -- safePath 已验证为绝对路径，由运维配置提供
 			if b, err := os.ReadFile(safePath); err == nil {
@@ -89,14 +125,17 @@ func NewBFFHandler(jwtSecret, issuer, audience string, logger *log.Logger, devMo
 					h.jwtCfg.PrivateKey = pk
 					h.jwtCfg.PrivateKeyPEM = b
 				} else {
-					logger.Fatalf("[BFF][FATAL] 无法解析RS256私钥(%s): %v", safePath, err)
+					h.logger.WithFields(pkglogger.Fields{"path": safePath, "error": err}).Error("failed to parse RS256 private key")
+					panic(fmt.Errorf("解析RS256私钥失败: %w", err))
 				}
 			} else {
-				logger.Fatalf("[BFF][FATAL] 无法读取RS256私钥(%s): %v", safePath, err)
+				h.logger.WithFields(pkglogger.Fields{"path": safePath, "error": err}).Error("failed to read RS256 private key")
+				panic(fmt.Errorf("读取RS256私钥失败: %w", err))
 			}
 		}
 		if h.jwtCfg.PrivateKey == nil {
-			logger.Fatalf("[BFF][FATAL] 启用了RS256但未配置JWT_PRIVATE_KEY_PATH。请运行 make jwt-dev-setup 或配置正式私钥。")
+			h.logger.Error("RS256 enabled but JWT_PRIVATE_KEY_PATH not configured")
+			panic("RS256 enabled but missing private key")
 		}
 		h.jwtCfg.KeyID = os.Getenv("JWT_KEY_ID")
 		if h.jwtCfg.KeyID == "" {
@@ -107,9 +146,9 @@ func NewBFFHandler(jwtSecret, issuer, audience string, logger *log.Logger, devMo
 	if addr := os.Getenv("REDIS_ADDR"); addr != "" {
 		if rs, err := NewRedisStore(addr, ttl); err == nil {
 			h.store = rs
-			logger.Printf("[BFF] Session store: Redis at %s", addr)
+			h.logger.WithFields(pkglogger.Fields{"redisAddr": addr}).Info("BFF session store initialized")
 		} else {
-			logger.Printf("[BFF][WARN] Redis init failed, fallback to in-memory: %v", err)
+			h.logger.WithFields(pkglogger.Fields{"error": err}).Warn("Redis init failed, fallback to in-memory store")
 		}
 	}
 
@@ -118,12 +157,12 @@ func NewBFFHandler(jwtSecret, issuer, audience string, logger *log.Logger, devMo
 	if oidc.IsConfigured() {
 		h.oidc = oidc
 		if _, err := h.oidc.Discover(); err != nil {
-			logger.Printf("[BFF][WARN] OIDC discovery failed: %v", err)
+			h.logger.WithFields(pkglogger.Fields{"error": err}).Warn("OIDC discovery failed")
 		} else {
-			logger.Printf("[BFF] OIDC configured: issuer=%s client_id=%s", oidc.cfg.Issuer, oidc.cfg.ClientID)
+			h.logger.WithFields(pkglogger.Fields{"issuer": oidc.cfg.Issuer, "clientId": oidc.cfg.ClientID}).Info("OIDC configured")
 		}
 	} else {
-		logger.Printf("[BFF] OIDC not fully configured, using simulation if enabled")
+		h.logger.Info("OIDC not fully configured; simulation mode may be used")
 	}
 	return h
 }
@@ -145,24 +184,32 @@ func (h *BFFHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if redirect == "" {
 		redirect = "/"
 	}
+	logger := h.requestLogger(r, "handleLogin", pkglogger.Fields{
+		"redirect": redirect,
+		"devMode":  h.devMode,
+		"authMode": h.authMode,
+	})
 
 	// TODO-TEMPORARY: OIDC集成前的模拟登录，DEV 或 OIDC_SIMULATE 下启用，后续替换为真实IdP跳转。截止：2025-10-17
 	if (h.devMode || os.Getenv("OIDC_SIMULATE") == "true") && !h.isOIDCEnabled() {
 		sess := h.newSimulatedSession()
 		h.store.Set(sess)
 		h.setSessionCookies(w, sess)
+		logger.WithFields(pkglogger.Fields{"sessionId": sess.ID, "tenantId": sess.TenantID}).Info("simulated login session established")
 		http.Redirect(w, r, redirect, http.StatusFound)
 		return
 	}
 	if !h.isOIDCEnabled() {
 		if err := utils.WriteError(w, http.StatusNotImplemented, "OIDC_NOT_CONFIGURED", "OIDC未配置，请设置 OIDC_ISSUER/CLIENT_ID/REDIRECT_URI", reqmw.GetRequestID(r.Context()), nil); err != nil {
-			h.logger.Printf("write OIDC_NOT_CONFIGURED error failed: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("failed to write OIDC_NOT_CONFIGURED response")
 		}
+		logger.Warn("OIDC not configured; login aborted")
 		return
 	}
 	// 构建授权请求
 	doc, err := h.oidc.Discover()
 	if err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("OIDC discovery failed during login")
 		_ = utils.WriteInternalError(w, reqmw.GetRequestID(r.Context()), "OIDC discovery failed: "+err.Error())
 		return
 	}
@@ -174,9 +221,11 @@ func (h *BFFHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	h.flows.Set(&AuthFlowState{State: state, Nonce: nonce, CodeVerifier: codeVerifier, RedirectPath: redirect, CreatedAt: time.Now(), ExpiresAt: time.Now().Add(10 * time.Minute)})
 	authURL, err := h.oidc.BuildAuthURL(doc.AuthorizationEndpoint, state, nonce, challenge, redirect)
 	if err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("failed to build OIDC authorization URL")
 		_ = utils.WriteInternalError(w, reqmw.GetRequestID(r.Context()), "build auth url failed: "+err.Error())
 		return
 	}
+	logger.WithFields(pkglogger.Fields{"state": state}).Info("redirecting to OIDC authorization endpoint")
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
@@ -185,39 +234,51 @@ func (h *BFFHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	if redirect == "" {
 		redirect = "/"
 	}
+	logger := h.requestLogger(r, "handleCallback", pkglogger.Fields{
+		"redirect": redirect,
+	})
 	if (h.devMode || os.Getenv("OIDC_SIMULATE") == "true") && !h.isOIDCEnabled() {
 		sess := h.newSimulatedSession()
 		h.store.Set(sess)
 		h.setSessionCookies(w, sess)
+		logger.WithFields(pkglogger.Fields{"sessionId": sess.ID}).Info("completed simulated callback")
 		http.Redirect(w, r, redirect, http.StatusFound)
 		return
 	}
 	if !h.isOIDCEnabled() {
 		if err := utils.WriteError(w, http.StatusNotImplemented, "OIDC_NOT_CONFIGURED", "未实现回调：请先配置 OIDC", reqmw.GetRequestID(r.Context()), nil); err != nil {
-			h.logger.Printf("write OIDC callback configuration error failed: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("failed to write OIDC callback error response")
 		}
+		logger.Warn("OIDC not configured for callback")
 		return
 	}
 	// 校验参数
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
+	logger = logger.WithFields(pkglogger.Fields{
+		"state": state,
+	})
 	if code == "" || state == "" {
+		logger.Warn("callback missing code or state parameters")
 		_ = utils.WriteError(w, http.StatusBadRequest, "INVALID_CALLBACK", "缺少code/state", reqmw.GetRequestID(r.Context()), nil)
 		return
 	}
 	flow, ok := h.flows.Get(state)
 	if !ok {
+		logger.Warn("state not found or expired during callback")
 		_ = utils.WriteError(w, http.StatusUnauthorized, "STATE_EXPIRED", "state已过期或无效", reqmw.GetRequestID(r.Context()), nil)
 		return
 	}
 	// 令牌交换
 	doc, err := h.oidc.Discover()
 	if err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("OIDC discovery failed during callback")
 		_ = utils.WriteInternalError(w, reqmw.GetRequestID(r.Context()), "discovery failed: "+err.Error())
 		return
 	}
 	tr, err := h.oidc.ExchangeCode(doc.TokenEndpoint, code, flow.CodeVerifier)
 	if err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("OIDC token exchange failed")
 		_ = utils.WriteInternalError(w, reqmw.GetRequestID(r.Context()), "token exchange failed: "+err.Error())
 		h.logAuthError(r, "OIDC_CALLBACK", "TOKEN_EXCHANGE_FAILED", err.Error(), map[string]any{"state": state})
 		return
@@ -225,6 +286,7 @@ func (h *BFFHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	// 校验并解析ID Token（开发阶段弱校验）
 	claims, err := h.oidc.ValidateIDToken(tr.IDToken, flow.Nonce)
 	if err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("OIDC id token invalid")
 		_ = utils.WriteError(w, http.StatusUnauthorized, "ID_TOKEN_INVALID", err.Error(), reqmw.GetRequestID(r.Context()), nil)
 		h.logAuthError(r, "OIDC_CALLBACK", "ID_TOKEN_INVALID", err.Error(), map[string]any{"state": state})
 		return
@@ -267,6 +329,11 @@ func (h *BFFHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	// 清理flow
 	h.flows.Delete(state)
 	h.logAuthSuccess(r, tenant, userID, "LOGIN", map[string]any{"scopes": scopes})
+	logger.WithFields(pkglogger.Fields{
+		"userId":   userID,
+		"tenantId": tenant,
+		"scopes":   scopes,
+	}).Info("OIDC login success")
 	// 回跳到发起页
 	target := redirect
 	if flow.RedirectPath != "" {
@@ -277,17 +344,22 @@ func (h *BFFHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 
 func (h *BFFHandler) handleSession(w http.ResponseWriter, r *http.Request) {
 	sid, _ := r.Cookie("sid")
+	logger := h.requestLogger(r, "handleSession", pkglogger.Fields{
+		"sessionId": getCookieValue(sid),
+	})
 	if sid == nil || sid.Value == "" {
 		_ = utils.WriteUnauthorized(w, reqmw.GetRequestID(r.Context()))
 		return
 	}
 	sess, ok := h.store.Get(sid.Value)
 	if !ok || time.Now().After(sess.ExpiresAt) {
+		logger.Warn("session expired or missing")
 		_ = utils.WriteError(w, http.StatusUnauthorized, "SESSION_EXPIRED", "会话已过期", reqmw.GetRequestID(r.Context()), nil)
 		return
 	}
 	token, exp, err := MintAccessToken(h.jwtCfg, sess, h.accessTTL)
 	if err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("failed to mint access token in session handler")
 		_ = utils.WriteInternalError(w, reqmw.GetRequestID(r.Context()), err.Error())
 		return
 	}
@@ -299,10 +371,13 @@ func (h *BFFHandler) handleSession(w http.ResponseWriter, r *http.Request) {
 		"scopes":      sess.Scopes,
 	}
 	_ = utils.WriteSuccess(w, data, "Session active", reqmw.GetRequestID(r.Context()))
+	logger.WithFields(pkglogger.Fields{"userId": sess.UserID}).Info("session validated")
 }
 
 func (h *BFFHandler) handleRefresh(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "handleRefresh", nil)
 	if !h.checkCSRF(w, r) {
+		logger.Warn("csrf validation failed during refresh")
 		return
 	}
 	sid, _ := r.Cookie("sid")
@@ -312,6 +387,7 @@ func (h *BFFHandler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, ok := h.store.Get(sid.Value)
 	if !ok || time.Now().After(sess.ExpiresAt) {
+		logger.Warn("session expired during refresh")
 		_ = utils.WriteError(w, http.StatusUnauthorized, "SESSION_EXPIRED", "会话已过期", reqmw.GetRequestID(r.Context()), nil)
 		h.logAuthError(r, "REFRESH", "SESSION_EXPIRED", "session expired", nil)
 		return
@@ -324,21 +400,26 @@ func (h *BFFHandler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 			if tr, err2 := h.oidc.RefreshWithToken(doc.TokenEndpoint, sess.RefreshTok); err2 == nil {
 				// 刷新成功：更新服务端 refresh token（rotation）
 				if tr.RefreshToken != "" {
+					logger.Info("OIDC refresh token rotated")
 					sess.RefreshTok = tr.RefreshToken
 				}
 				sess.LastUsedAt = time.Now().UTC()
 				h.store.Set(sess)
 			} else {
 				// 失败：判定会话失效（401路径）
+				logger.WithFields(pkglogger.Fields{"error": err2}).Warn("OIDC refresh token flow failed")
 				_ = utils.WriteError(w, http.StatusUnauthorized, "SESSION_EXPIRED", "会话已过期或刷新失败", reqmw.GetRequestID(r.Context()), map[string]string{"reason": err2.Error()})
 				h.logAuthError(r, "REFRESH", "REFRESH_FAILED", err2.Error(), nil)
 				return
 			}
+		} else {
+			logger.WithFields(pkglogger.Fields{"error": err}).Warn("OIDC discovery failed during refresh")
 		}
 	}
 
 	token, exp, err := MintAccessToken(h.jwtCfg, sess, h.accessTTL)
 	if err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("failed to mint access token during refresh")
 		_ = utils.WriteInternalError(w, reqmw.GetRequestID(r.Context()), err.Error())
 		return
 	}
@@ -347,11 +428,14 @@ func (h *BFFHandler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		"expiresIn":   exp - time.Now().UTC().Unix(),
 	}
 	_ = utils.WriteSuccess(w, data, "Access token refreshed", reqmw.GetRequestID(r.Context()))
+	logger.WithFields(pkglogger.Fields{"userId": sess.UserID}).Info("session refreshed")
 	h.logAuthSuccess(r, sess.TenantID, sess.UserID, "REFRESH", nil)
 }
 
 func (h *BFFHandler) handleLogout(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "handleLogout", nil)
 	if !h.checkCSRF(w, r) {
+		logger.Warn("csrf validation failed during logout")
 		return
 	}
 	sid, _ := r.Cookie("sid")
@@ -367,11 +451,13 @@ func (h *BFFHandler) handleLogout(w http.ResponseWriter, r *http.Request) {
 	h.clearCookie(w, "csrf")
 	// POST 语义保持 204；若需要 IdP 退出，由前端再调用 GET /auth/logout 以跳转至 IdP
 	h.logAuthSuccess(r, getSessionTenant(sess), getSessionUser(sess), "LOGOUT", nil)
+	logger.WithFields(pkglogger.Fields{"userId": getSessionUser(sess)}).Info("session logout completed")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleLogoutRedirect 触发RP-initiated IdP Logout
 func (h *BFFHandler) handleLogoutRedirect(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "handleLogoutRedirect", nil)
 	// 读取会话，用于获取 id_token_hint
 	sid, _ := r.Cookie("sid")
 	var sess *Session
@@ -394,6 +480,7 @@ func (h *BFFHandler) handleLogoutRedirect(w http.ResponseWriter, r *http.Request
 			redirect = "/"
 		}
 		http.Redirect(w, r, redirect, http.StatusFound)
+		logger.WithFields(pkglogger.Fields{"redirect": redirect}).Info("fallback logout redirect without OIDC")
 		return
 	}
 	// 发现文档
@@ -404,6 +491,7 @@ func (h *BFFHandler) handleLogoutRedirect(w http.ResponseWriter, r *http.Request
 			redirect = "/"
 		}
 		http.Redirect(w, r, redirect, http.StatusFound)
+		logger.WithFields(pkglogger.Fields{"redirect": redirect}).Warn("OIDC end session endpoint unavailable")
 		return
 	}
 	// 构建 IdP 退出URL：id_token_hint + post_logout_redirect_uri
@@ -421,6 +509,7 @@ func (h *BFFHandler) handleLogoutRedirect(w http.ResponseWriter, r *http.Request
 	u.RawQuery = q.Encode()
 	http.Redirect(w, r, u.String(), http.StatusFound)
 	h.logAuthSuccess(r, sess.TenantID, sess.UserID, "LOGOUT_RP", map[string]any{"end_session_endpoint": u.String()})
+	logger.WithFields(pkglogger.Fields{"endSessionEndpoint": u.String()}).Info("redirected to OIDC end session endpoint")
 }
 
 // 审计工具函数
@@ -465,6 +554,13 @@ func getSessionUser(sess *Session) string {
 		return sess.UserID
 	}
 	return ""
+}
+
+func getCookieValue(cookie *http.Cookie) string {
+	if cookie == nil {
+		return ""
+	}
+	return cookie.Value
 }
 
 func (h *BFFHandler) handleWellKnown(w http.ResponseWriter, r *http.Request) {

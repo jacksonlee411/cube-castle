@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // RESTAPIPermissions 定义 REST 端点与权限映射
@@ -81,9 +83,15 @@ func (p *PBACPermissionChecker) CheckRESTPermission(ctx context.Context, method,
 	}
 
 	key := fmt.Sprintf("%s %s", strings.ToUpper(method), path)
+	logger := p.logger.WithFields(pkglogger.Fields{
+		"tenantId": tenantID,
+		"userId":   userID,
+		"method":   strings.ToUpper(method),
+		"path":     path,
+	})
 	requiredPermission, found := resolveRESTPermission(key)
 	if !found {
-		p.logger.Printf("Unknown API endpoint: %s %s", method, path)
+		logger.Warn("unknown REST API endpoint")
 		return fmt.Errorf("unknown endpoint: %s %s", method, path)
 	}
 
@@ -93,7 +101,7 @@ func (p *PBACPermissionChecker) CheckRESTPermission(ctx context.Context, method,
 
 	for _, role := range roles {
 		if checkRESTRolePermission(role, requiredPermission) {
-			p.logger.Printf("Access granted via role %s for %s %s", role, method, path)
+			logger.WithFields(pkglogger.Fields{"role": role}).Info("REST access granted via role")
 			return nil
 		}
 	}

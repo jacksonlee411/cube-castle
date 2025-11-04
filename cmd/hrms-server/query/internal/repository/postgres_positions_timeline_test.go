@@ -2,11 +2,10 @@ package repository
 
 import (
 	"context"
-	"io"
-	"log"
 	"testing"
 	"time"
 
+	pkglogger "cube-castle/pkg/logger"
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 )
@@ -18,7 +17,7 @@ func TestGetPositionTimelineUsesChangeReasonAlias(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := NewPostgreSQLRepository(db, nil, log.New(io.Discard, "", 0), AuditHistoryConfig{})
+	repo := NewPostgreSQLRepository(db, nil, pkglogger.NewNoopLogger(), AuditHistoryConfig{})
 
 	tenantID := uuid.New()
 	code := "P9000004"

@@ -2,20 +2,27 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // PerformanceMiddleware 性能监控中间件
 type PerformanceMiddleware struct {
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
 // NewPerformanceMiddleware 创建性能监控中间件
-func NewPerformanceMiddleware(logger *log.Logger) *PerformanceMiddleware {
+func NewPerformanceMiddleware(logger pkglogger.Logger) *PerformanceMiddleware {
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
 	return &PerformanceMiddleware{
-		logger: logger,
+		logger: logger.WithFields(pkglogger.Fields{
+			"component":  "middleware",
+			"middleware": "performance",
+		}),
 	}
 }
 
@@ -68,12 +75,6 @@ func (p *PerformanceMiddleware) Middleware() func(http.Handler) http.Handler {
 
 			// 记录性能日志
 			p.logPerformance(r, wrapper.statusCode, wrapper.size, duration)
-
-			// 检查慢请求
-			if duration > 1*time.Second {
-				p.logger.Printf("⚠️ 慢请求检测: %s %s - %v (Status: %d, Size: %d bytes)",
-					r.Method, r.URL.Path, duration, wrapper.statusCode, wrapper.size)
-			}
 		})
 	}
 }
@@ -106,9 +107,19 @@ func (p *PerformanceMiddleware) logPerformance(r *http.Request, statusCode, resp
 		icon = "🚨"
 	}
 
-	// 记录性能日志
-	p.logger.Printf("%s [%s] %s %s - %v | Status: %d | Size: %d bytes | Type: %s | RequestID: %s",
-		icon, level, r.Method, r.URL.Path, duration, statusCode, responseSize, requestType, requestID)
+	fields := pkglogger.Fields{
+		"requestId":      requestID,
+		"method":         r.Method,
+		"path":           r.URL.Path,
+		"statusCode":     statusCode,
+		"responseSize":   responseSize,
+		"requestType":    requestType,
+		"duration":       duration.String(),
+		"durationMillis": duration.Milliseconds(),
+		"performance":    level,
+		"icon":           icon,
+	}
+	p.logger.WithFields(fields).Info("http request completed")
 
 	// 记录详细的慢请求信息
 	if duration > 1*time.Second {
@@ -118,20 +129,25 @@ func (p *PerformanceMiddleware) logPerformance(r *http.Request, statusCode, resp
 
 // logSlowRequestDetails 记录慢请求详细信息
 func (p *PerformanceMiddleware) logSlowRequestDetails(r *http.Request, statusCode, responseSize int, duration time.Duration, requestID string) {
-	p.logger.Printf("🔍 慢请求分析 [RequestID: %s]:", requestID)
-	p.logger.Printf("   📡 请求信息: %s %s", r.Method, r.URL.String())
-	p.logger.Printf("   ⏱️  执行时间: %v", duration)
-	p.logger.Printf("   📊 响应状态: %d", statusCode)
-	p.logger.Printf("   💾 响应大小: %d bytes", responseSize)
-	p.logger.Printf("   🌐 用户代理: %s", r.UserAgent())
-	p.logger.Printf("   📍 客户端IP: %s", getClientIP(r))
-
-	// 分析可能的性能问题
-	p.analyzePerformanceIssues(r, duration)
+	suggestions := p.analyzePerformanceIssues(r, duration)
+	fields := pkglogger.Fields{
+		"requestId":    requestID,
+		"method":       r.Method,
+		"url":          r.URL.String(),
+		"statusCode":   statusCode,
+		"responseSize": responseSize,
+		"duration":     duration.String(),
+		"userAgent":    r.UserAgent(),
+		"clientIP":     getClientIP(r),
+	}
+	if len(suggestions) > 0 {
+		fields["suggestions"] = suggestions
+	}
+	p.logger.WithFields(fields).Warn("slow request detected")
 }
 
 // analyzePerformanceIssues 分析性能问题
-func (p *PerformanceMiddleware) analyzePerformanceIssues(r *http.Request, duration time.Duration) {
+func (p *PerformanceMiddleware) analyzePerformanceIssues(r *http.Request, duration time.Duration) []string {
 	suggestions := []string{}
 
 	// 根据请求路径分析
@@ -152,12 +168,7 @@ func (p *PerformanceMiddleware) analyzePerformanceIssues(r *http.Request, durati
 		suggestions = append(suggestions, "考虑异步处理非关键操作")
 	}
 
-	if len(suggestions) > 0 {
-		p.logger.Printf("   💡 优化建议:")
-		for i, suggestion := range suggestions {
-			p.logger.Printf("      %d. %s", i+1, suggestion)
-		}
-	}
+	return suggestions
 }
 
 // GetPerformanceMetrics 获取性能指标
@@ -211,8 +222,14 @@ func getClientIP(r *http.Request) string {
 
 // LogAPICall 记录API调用日志
 func (p *PerformanceMiddleware) LogAPICall(method, path string, statusCode int, duration time.Duration, requestID string) {
-	p.logger.Printf("📊 API调用: %s %s | Status: %d | Duration: %v | RequestID: %s",
-		method, path, statusCode, duration, requestID)
+	p.logger.WithFields(pkglogger.Fields{
+		"requestId":  requestID,
+		"method":     method,
+		"path":       path,
+		"statusCode": statusCode,
+		"duration":   duration.String(),
+		"durationMs": duration.Milliseconds(),
+	}).Info("api call completed")
 }
 
 // PerformanceAlert 性能告警
@@ -237,11 +254,22 @@ func (pa *PerformanceAlert) Check(r *http.Request, duration time.Duration) {
 }
 
 // DefaultPerformanceAlertHandler 默认性能告警处理器
-func DefaultPerformanceAlertHandler(logger *log.Logger) func(r *http.Request, duration time.Duration) {
+func DefaultPerformanceAlertHandler(logger pkglogger.Logger) func(r *http.Request, duration time.Duration) {
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
+	alertLogger := logger.WithFields(pkglogger.Fields{
+		"component":  "middleware",
+		"middleware": "performanceAlert",
+	})
 	return func(r *http.Request, duration time.Duration) {
 		requestID := GetRequestID(r.Context())
-		logger.Printf("🚨 性能告警: %s %s 执行时间 %v 超过阈值 | RequestID: %s",
-			r.Method, r.URL.Path, duration, requestID)
+		alertLogger.WithFields(pkglogger.Fields{
+			"requestId": requestID,
+			"method":    r.Method,
+			"path":      r.URL.Path,
+			"duration":  duration.String(),
+		}).Warn("performance threshold exceeded")
 
 		// 这里可以添加更多告警逻辑，如发送邮件、短信等
 		// 例如: sendAlert(r, duration)

@@ -4,19 +4,26 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // PBACPermissionChecker 基于策略的访问控制检查器
 type PBACPermissionChecker struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
-func NewPBACPermissionChecker(db *sql.DB, logger *log.Logger) *PBACPermissionChecker {
+func NewPBACPermissionChecker(db *sql.DB, logger pkglogger.Logger) *PBACPermissionChecker {
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
+	componentLogger := scopedLogger(logger, "pbacChecker", pkglogger.Fields{
+		"module": "auth",
+	})
 	return &PBACPermissionChecker{
 		db:     db,
-		logger: logger,
+		logger: componentLogger,
 	}
 }
 
@@ -74,10 +81,16 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, resource st
 		return fmt.Errorf("authentication required")
 	}
 
+	requestLogger := p.logger.WithFields(pkglogger.Fields{
+		"tenantId": tenantID,
+		"userId":   userID,
+		"query":    resource,
+	})
+
 	// 获取查询所需权限
 	requiredPermission, exists := GraphQLQueryPermissions[resource]
 	if !exists {
-		p.logger.Printf("Unknown GraphQL query: %s", resource)
+		requestLogger.Warn("unknown GraphQL query resource")
 		return fmt.Errorf("unknown query: %s", resource)
 	}
 
@@ -94,7 +107,9 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, resource st
 	// 3. 角色权限（向后兼容开发期）
 	for _, role := range roles {
 		if p.checkRolePermission(role, requiredPermission) {
-			p.logger.Printf("Access granted via role %s for query %s", role, resource)
+			requestLogger.WithFields(pkglogger.Fields{
+				"role": role,
+			}).Info("access granted via role permission")
 			return nil
 		}
 	}

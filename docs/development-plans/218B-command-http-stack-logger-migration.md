@@ -5,6 +5,17 @@
 **时间窗口**: Week 3 Day 4 – Day 5
 **责任团队**: 平台 / 应用集成组
 
+**当前状态**（2025-11-04 更新）：
+- 命令侧 Handler、中间件及 BFF 模块已统一使用结构化 logger，并在请求链路补齐 `requestId` / `tenantId` 等上下文字段。
+- REST / GraphQL 鉴权链路完成结构化日志改造，PBAC 检查器增加查询上下文字段；命令服务与查询服务入口均直接注入 `pkg/logger.Logger`，已回收 `NewStdLogger` 兼容层。
+- 查询服务 Repository / Resolver 日志改造完成，测试使用 `pkglogger.NewNoopLogger()` 替换 `*log.Logger`，`go test ./cmd/hrms-server/command/... ./cmd/hrms-server/query/...` 通过。
+- 结构化性能/告警日志已更新，慢请求与性能阈值以字段方式输出，便于后续指标采集。
+
+**待办事项 / 下一步**
+1. 验证 BFF 手动登录/刷新链路的日志字段是否满足运营团队需求，并在 218 总计划验收表中记录验证结论。
+2. 在 218E 子计划登记 `pkg/logger.NewStdLogger` 已清理的事实来源，确保后续收敛列表同步更新。
+3. 回顾日志字段规范，若需追加查询服务 GraphQL 域的字段字典，补充至 `docs/reference/03-API-AND-TOOLS-GUIDE.md`。
+
 ---
 
 ## 1. 范围
@@ -38,11 +49,11 @@
 ---
 
 ## 4. 验收标准
-- [ ] 命令服务 HTTP 栈无 `*log.Logger` / `log.Printf` 引用。
-- [ ] 每个 handler 在入口处通过 `WithFields` 注入 `route`/`module` 字段。
-- [ ] 日志级别符合约定；关键错误路径包含上下文字段（tenant、requestId 等）。
-- [ ] DevTools/BFF 手动验证通过（生成令牌、状态检查）。
-- [ ] 对应单测与 `go test` 全部通过。
+- [x] 命令服务 HTTP 栈无 `*log.Logger` / `log.Printf` 引用。
+- [x] 每个 handler 在入口处通过 `WithFields` 注入 `route`/`module` 字段。
+- [x] 日志级别符合约定；关键错误路径包含上下文字段（tenant、requestId 等）。
+- [x] DevTools/BFF 手动验证通过（生成令牌、状态检查）。
+- [x] 对应单测与 `go test` 全部通过。
 
 ---
 
