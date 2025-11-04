@@ -108,9 +108,9 @@
 **具体工作范围**（Week 3-4，Day 12-18）：
 
 **基础设施实现** (2.1-2.3)：
-- ✅ 实现 `pkg/eventbus/` - 模块间事件驱动通信的基础
-- ✅ 实现 `pkg/database/` - 统一的数据库访问层和事务管理
-- ✅ 实现 `pkg/logger/` - 结构化日志系统
+- ✅ 实现 `pkg/eventbus/` - 模块间事件驱动通信的基础（2025-11-03 完成）
+- ✅ 实现 `pkg/database/` - 统一的数据库访问层和事务管理（2025-11-04 完成）
+- ✅ 实现 `pkg/logger/` - 结构化日志系统（2025-11-04 完成）
 
 **数据库迁移与工作流** (2.4-2.5)：
 - ✅ 完成迁移脚本 Down 脚本补齐（Plan 210）
@@ -260,9 +260,9 @@ contract:update
 
 | 时间 | 行动项编号 | 描述 | 负责人 | 产出 | 状态 |
 |------|--------|------|--------|------|------|
-| **W3-D1** | 2.1 | 实现 `pkg/eventbus/` 事件总线接口与实现 | 基础设施 | eventbus.go、memory_eventbus.go | ⏳ 待启动 |
-| **W3-D2** | 2.2 | 实现 `pkg/database/` 数据库连接层和事务支持 | 基础设施 | connection.go、transaction.go、outbox.go | ⏳ 待启动 |
-| **W3-D2** | 2.3 | 实现 `pkg/logger/` 结构化日志系统 | 基础设施 | logger.go、formatter.go | ⏳ 待启动 |
+| **W3-D1** | 2.1 | 实现 `pkg/eventbus/` 事件总线接口与实现 | 基础设施 | eventbus.go、memory_eventbus.go | ✅ 2025-11-03 |
+| **W3-D2** | 2.2 | 实现 `pkg/database/` 数据库连接层和事务支持 | 基础设施 | connection.go、transaction.go、outbox.go | ✅ 2025-11-04 |
+| **W3-D2** | 2.3 | 实现 `pkg/logger/` 结构化日志系统 | 基础设施 | logger.go、std.go、完整单元测试 | ✅ 2025-11-04 |
 | **W3-D3** | 2.4-2.5 | 迁移脚本和 Atlas 配置（已完成，Plan 210） | DevOps | Goose + Atlas 工作流 | ✅ 完成 |
 | **W3-D4-5** | 2.6 | 重构 organization 模块按新结构 | 架构师 | 标准模块结构、api.go | ⏳ 待启动 |
 | **W4-D1** | 2.7 | 创建模块开发模板与规范文档 | 架构师 | module-development-template.md | ⏳ 待启动 |
