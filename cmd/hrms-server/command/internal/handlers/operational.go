@@ -4,31 +4,35 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/services"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/go-chi/chi/v5"
 )
 
 // OperationalHandler 运维管理处理器
 type OperationalHandler struct {
 	monitor   *services.TemporalMonitor
 	scheduler *services.OperationalScheduler
-	logger    *log.Logger
+	logger    pkglogger.Logger
 	rateLimit *middleware.RateLimitMiddleware
 }
 
 // NewOperationalHandler 创建运维管理处理器
-func NewOperationalHandler(monitor *services.TemporalMonitor, scheduler *services.OperationalScheduler, rateLimit *middleware.RateLimitMiddleware, logger *log.Logger) *OperationalHandler {
+func NewOperationalHandler(monitor *services.TemporalMonitor, scheduler *services.OperationalScheduler, rateLimit *middleware.RateLimitMiddleware, baseLogger pkglogger.Logger) *OperationalHandler {
 	return &OperationalHandler{
 		monitor:   monitor,
 		scheduler: scheduler,
 		rateLimit: rateLimit,
-		logger:    logger,
+		logger:    scopedLogger(baseLogger, "operational", pkglogger.Fields{"module": "operational"}),
 	}
+}
+
+func (h *OperationalHandler) requestLogger(r *http.Request, action string, extra pkglogger.Fields) pkglogger.Logger {
+	return requestScopedLogger(h.logger, r, action, extra)
 }
 
 // SetupRoutes 设置运维管理路由
@@ -54,6 +58,11 @@ func (h *OperationalHandler) SetupRoutes(r chi.Router) {
 // GetRateLimitStats 获取限流统计（受PBAC保护）
 func (h *OperationalHandler) GetRateLimitStats(w http.ResponseWriter, r *http.Request) {
 	stats := h.rateLimit.GetStats()
+	logger := h.requestLogger(r, "GetRateLimitStats", pkglogger.Fields{
+		"totalRequests":   stats.TotalRequests,
+		"blockedRequests": stats.BlockedRequests,
+		"activeClients":   stats.ActiveClients,
+	})
 	response := map[string]interface{}{
 		"success":   true,
 		"timestamp": time.Now().Format(time.RFC3339),
@@ -73,7 +82,7 @@ func (h *OperationalHandler) GetRateLimitStats(w http.ResponseWriter, r *http.Re
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode rate limit stats response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode rate limit stats response failed")
 	}
 }
 
@@ -81,10 +90,11 @@ func (h *OperationalHandler) GetRateLimitStats(w http.ResponseWriter, r *http.Re
 func (h *OperationalHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
+	logger := h.requestLogger(r, "GetHealth", nil)
 
 	metrics, err := h.monitor.CollectMetrics(ctx)
 	if err != nil {
-		h.logger.Printf("获取健康状态失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("collect health metrics failed")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -114,7 +124,7 @@ func (h *OperationalHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(healthResponse); err != nil {
-		h.logger.Printf("encode health response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode health response failed")
 	}
 }
 
@@ -122,10 +132,11 @@ func (h *OperationalHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 func (h *OperationalHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
+	logger := h.requestLogger(r, "GetMetrics", nil)
 
 	metrics, err := h.monitor.CollectMetrics(ctx)
 	if err != nil {
-		h.logger.Printf("获取监控指标失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("collect monitoring metrics failed")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -138,7 +149,7 @@ func (h *OperationalHandler) GetMetrics(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode metrics response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode metrics response failed")
 	}
 }
 
@@ -146,10 +157,11 @@ func (h *OperationalHandler) GetMetrics(w http.ResponseWriter, r *http.Request) 
 func (h *OperationalHandler) GetAlerts(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
+	logger := h.requestLogger(r, "GetAlerts", nil)
 
 	alerts, err := h.monitor.CheckAlerts(ctx)
 	if err != nil {
-		h.logger.Printf("获取告警信息失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("fetch alerts failed")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -165,12 +177,13 @@ func (h *OperationalHandler) GetAlerts(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode alerts response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode alerts response failed")
 	}
 }
 
 // GetTasks 获取任务配置
 func (h *OperationalHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "GetTasks", nil)
 	tasks := h.scheduler.GetTaskStatus()
 
 	response := map[string]interface{}{
@@ -184,12 +197,13 @@ func (h *OperationalHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode tasks response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode tasks response failed")
 	}
 }
 
 // GetTaskStatus 获取任务运行状态
 func (h *OperationalHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "GetTaskStatus", nil)
 	tasks := h.scheduler.GetTaskStatus()
 
 	// 计算任务统计
@@ -214,7 +228,7 @@ func (h *OperationalHandler) GetTaskStatus(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode task status response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode task status response failed")
 	}
 }
 
@@ -225,6 +239,7 @@ func (h *OperationalHandler) TriggerTask(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Task name is required", http.StatusBadRequest)
 		return
 	}
+	logger := h.requestLogger(r, "TriggerTask", pkglogger.Fields{"taskName": taskName})
 
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
@@ -249,7 +264,7 @@ func (h *OperationalHandler) TriggerTask(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err != nil {
-		h.logger.Printf("手动触发任务 %s 失败: %v", taskName, err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("manual task execution failed")
 		response := map[string]interface{}{
 			"success":   false,
 			"timestamp": time.Now().Format(time.RFC3339),
@@ -261,7 +276,7 @@ func (h *OperationalHandler) TriggerTask(w http.ResponseWriter, r *http.Request)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			h.logger.Printf("encode manual task error response failed: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("encode manual task error response failed")
 		}
 		return
 	}
@@ -277,7 +292,7 @@ func (h *OperationalHandler) TriggerTask(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode manual task success response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode manual task success response failed")
 	}
 }
 
@@ -285,10 +300,11 @@ func (h *OperationalHandler) TriggerTask(w http.ResponseWriter, r *http.Request)
 func (h *OperationalHandler) TriggerCutover(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
+	logger := h.requestLogger(r, "TriggerCutover", nil)
 
 	err := h.executeCutover(ctx)
 	if err != nil {
-		h.logger.Printf("手动cutover失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("manual cutover failed")
 		response := map[string]interface{}{
 			"success":   false,
 			"timestamp": time.Now().Format(time.RFC3339),
@@ -300,7 +316,7 @@ func (h *OperationalHandler) TriggerCutover(w http.ResponseWriter, r *http.Reque
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			h.logger.Printf("encode cutover error response failed: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("encode cutover error response failed")
 		}
 		return
 	}
@@ -315,7 +331,7 @@ func (h *OperationalHandler) TriggerCutover(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode cutover success response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode cutover success response failed")
 	}
 }
 
@@ -323,10 +339,11 @@ func (h *OperationalHandler) TriggerCutover(w http.ResponseWriter, r *http.Reque
 func (h *OperationalHandler) TriggerConsistencyCheck(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
+	logger := h.requestLogger(r, "TriggerConsistencyCheck", nil)
 
 	err := h.executeConsistencyCheck(ctx)
 	if err != nil {
-		h.logger.Printf("一致性检查失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("manual consistency check failed")
 		response := map[string]interface{}{
 			"success":   false,
 			"timestamp": time.Now().Format(time.RFC3339),
@@ -338,7 +355,7 @@ func (h *OperationalHandler) TriggerConsistencyCheck(w http.ResponseWriter, r *h
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			h.logger.Printf("encode consistency check error response failed: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("encode consistency check error response failed")
 		}
 		return
 	}
@@ -353,7 +370,7 @@ func (h *OperationalHandler) TriggerConsistencyCheck(w http.ResponseWriter, r *h
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode consistency check success response failed: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("encode consistency check success response failed")
 	}
 }
 
@@ -362,13 +379,13 @@ func (h *OperationalHandler) TriggerConsistencyCheck(w http.ResponseWriter, r *h
 func (h *OperationalHandler) executeCutover(ctx context.Context) error {
 	// 这里应该调用scheduler的executeScript方法
 	// 简化实现，直接返回成功
-	h.logger.Println("执行cutover操作...")
+	h.logger.Info("执行cutover操作...")
 	return nil
 }
 
 func (h *OperationalHandler) executeConsistencyCheck(ctx context.Context) error {
 	// 这里应该调用scheduler的executeScript方法
 	// 简化实现，直接返回成功
-	h.logger.Println("执行一致性检查...")
+	h.logger.Info("执行一致性检查...")
 	return nil
 }
