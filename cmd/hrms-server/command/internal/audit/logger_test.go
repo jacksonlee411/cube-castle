@@ -3,10 +3,9 @@ package audit
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"testing"
 
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 )
@@ -18,7 +17,7 @@ func TestLogEvent_FallbackResourceID(t *testing.T) {
 	}
 	defer db.Close()
 
-	auditLogger := NewAuditLogger(db, log.New(io.Discard, "", 0))
+	auditLogger := NewAuditLogger(db, pkglogger.NewNoopLogger())
 	tenantID := uuid.New()
 	event := &AuditEvent{
 		TenantID:     tenantID,

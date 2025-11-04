@@ -15,7 +15,7 @@ func (tm *TemporalTimelineManager) DeleteVersion(ctx context.Context, tenantID u
 	}
 	defer tx.Rollback()
 
-	tm.logger.Printf("🗑️ 删除版本: RecordID=%s", recordID)
+	tm.logger.Infof("删除版本: RecordID=%s", recordID)
 
 	var code string
 	versionQuery := `
@@ -45,6 +45,6 @@ func (tm *TemporalTimelineManager) DeleteVersion(ctx context.Context, tenantID u
 		return nil, fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	tm.logger.Printf("✅ 版本删除成功，剩余版本: %d", len(*timeline))
+	tm.logger.Infof("版本删除成功，剩余版本: %d", len(*timeline))
 	return timeline, nil
 }

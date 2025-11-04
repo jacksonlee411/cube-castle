@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/audit"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
 	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 )
 
 var (
@@ -36,17 +36,17 @@ type PositionService struct {
 	jobCatalog  *repository.JobCatalogRepository
 	orgRepo     *repository.OrganizationRepository
 	auditLogger *audit.AuditLogger
-	logger      *log.Logger
+	logger      pkglogger.Logger
 }
 
-func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, auditLogger *audit.AuditLogger, logger *log.Logger) *PositionService {
+func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *PositionService {
 	return &PositionService{
 		positions:   positions,
 		assignments: assignments,
 		jobCatalog:  jobCatalog,
 		orgRepo:     orgRepo,
 		auditLogger: auditLogger,
-		logger:      logger,
+		logger:      scopedLogger(baseLogger, "position", nil),
 	}
 }
 
@@ -730,7 +730,7 @@ func (s *PositionService) ProcessAutoReverts(ctx context.Context, tenantID uuid.
 
 		resp, err := s.VacatePosition(ctx, tenantID, candidate.PositionCode, vacReq, operator)
 		if err != nil {
-			s.logger.Printf("[AUTO-REVERT] failed to close assignment %s: %v", candidate.AssignmentID, err)
+			s.logger.Errorf("[AUTO-REVERT] failed to close assignment %s: %v", candidate.AssignmentID, err)
 			continue
 		}
 
@@ -1365,7 +1365,7 @@ func (s *PositionService) logPositionEvent(ctx context.Context, operator types.O
 		AfterData:    after,
 	}
 	if err := s.auditLogger.LogEvent(ctx, event); err != nil {
-		s.logger.Printf("[AUDIT] failed to log position event: %v", err)
+		s.logger.Errorf("[AUDIT] failed to log position event: %v", err)
 	}
 }
 

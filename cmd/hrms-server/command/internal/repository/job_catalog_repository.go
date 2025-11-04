@@ -5,22 +5,25 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"cube-castle/internal/types"
 )
 
 type JobCatalogRepository struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
-func NewJobCatalogRepository(db *sql.DB, logger *log.Logger) *JobCatalogRepository {
-	return &JobCatalogRepository{db: db, logger: logger}
+func NewJobCatalogRepository(db *sql.DB, baseLogger pkglogger.Logger) *JobCatalogRepository {
+	return &JobCatalogRepository{
+		db:     db,
+		logger: scopedLogger(baseLogger, "jobCatalog", "JobCatalogRepository", nil),
+	}
 }
 
 func (r *JobCatalogRepository) BeginTx(ctx context.Context) (*sql.Tx, error) {
@@ -191,7 +194,7 @@ RETURNING record_id, tenant_id, family_group_code, name, description, status, ef
 		return nil, err
 	}
 
-	r.logger.Printf("✅ Job family group inserted: %s (%s)", req.Code, effectiveDate.Format("2006-01-02"))
+	r.logger.Infof("Job family group inserted: %s (%s)", req.Code, effectiveDate.Format("2006-01-02"))
 	return &entry, nil
 }
 

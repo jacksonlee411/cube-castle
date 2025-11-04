@@ -4,19 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 )
 
 type TemporalTimelineManager struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
-func NewTemporalTimelineManager(db *sql.DB, logger *log.Logger) *TemporalTimelineManager {
-	return &TemporalTimelineManager{db: db, logger: logger}
+func NewTemporalTimelineManager(db *sql.DB, baseLogger pkglogger.Logger) *TemporalTimelineManager {
+	return &TemporalTimelineManager{
+		db:     db,
+		logger: scopedLogger(baseLogger, "organization", "TemporalTimelineManager", nil),
+	}
 }
 
 type TimelineVersion struct {
@@ -37,7 +40,7 @@ func (tm *TemporalTimelineManager) RecalculateTimeline(ctx context.Context, tena
 	}
 	defer tx.Rollback()
 
-	tm.logger.Printf("🔄 开始全链重算: tenant=%s, code=%s", tenantID, code)
+	tm.logger.Infof("开始全链重算: tenant=%s, code=%s", tenantID, code)
 
 	versions, err := tm.RecalculateTimelineInTx(ctx, tx, tenantID, code)
 	if err != nil {
@@ -48,7 +51,7 @@ func (tm *TemporalTimelineManager) RecalculateTimeline(ctx context.Context, tena
 		return nil, fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	tm.logger.Printf("✅ 全链重算完成: %s, 版本数=%d", code, len(*versions))
+	tm.logger.Infof("全链重算完成: %s, 版本数=%d", code, len(*versions))
 	return versions, nil
 }
 

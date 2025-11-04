@@ -4,22 +4,25 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"cube-castle/internal/types"
 )
 
 type PositionAssignmentRepository struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
-func NewPositionAssignmentRepository(db *sql.DB, logger *log.Logger) *PositionAssignmentRepository {
-	return &PositionAssignmentRepository{db: db, logger: logger}
+func NewPositionAssignmentRepository(db *sql.DB, baseLogger pkglogger.Logger) *PositionAssignmentRepository {
+	return &PositionAssignmentRepository{
+		db:     db,
+		logger: scopedLogger(baseLogger, "position", "PositionAssignmentRepository", nil),
+	}
 }
 
 func (r *PositionAssignmentRepository) queryRow(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) *sql.Row {

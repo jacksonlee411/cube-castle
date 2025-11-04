@@ -5,20 +5,23 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"cube-castle/internal/types"
 )
 
 type PositionRepository struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
-func NewPositionRepository(db *sql.DB, logger *log.Logger) *PositionRepository {
-	return &PositionRepository{db: db, logger: logger}
+func NewPositionRepository(db *sql.DB, baseLogger pkglogger.Logger) *PositionRepository {
+	return &PositionRepository{
+		db:     db,
+		logger: scopedLogger(baseLogger, "position", "PositionRepository", nil),
+	}
 }
 
 func (r *PositionRepository) BeginTx(ctx context.Context) (*sql.Tx, error) {

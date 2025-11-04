@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/internal/types"
+	"github.com/google/uuid"
 )
 
 func (tm *TemporalTimelineManager) UpdateVersionEffectiveDate(ctx context.Context, tenantID uuid.UUID, recordID uuid.UUID, newEffectiveDate time.Time, operationReason string) (*[]TimelineVersion, error) {
@@ -17,7 +17,7 @@ func (tm *TemporalTimelineManager) UpdateVersionEffectiveDate(ctx context.Contex
 	}
 	defer tx.Rollback()
 
-	tm.logger.Printf("🔄 开始修改版本生效日期: RecordID=%s, 新日期=%s", recordID.String(), newEffectiveDate.Format("2006-01-02"))
+	tm.logger.Infof("开始修改版本生效日期: RecordID=%s, 新日期=%s", recordID.String(), newEffectiveDate.Format("2006-01-02"))
 
 	var org types.Organization
 	row := tx.QueryRowContext(ctx, `
@@ -96,6 +96,6 @@ func (tm *TemporalTimelineManager) UpdateVersionEffectiveDate(ctx context.Contex
 		return nil, fmt.Errorf("事务提交失败: %w", err)
 	}
 
-	tm.logger.Printf("✅ 版本生效日期修改成功: %s → %s", recordID.String(), newEffectiveDate.Format("2006-01-02"))
+	tm.logger.Infof("版本生效日期修改成功: %s → %s", recordID.String(), newEffectiveDate.Format("2006-01-02"))
 	return timeline, nil
 }

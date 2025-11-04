@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/internal/types"
+	"github.com/google/uuid"
 )
 
 func (tm *TemporalTimelineManager) InsertVersion(ctx context.Context, org *types.Organization) (*TimelineVersion, error) {
@@ -24,7 +24,7 @@ func (tm *TemporalTimelineManager) InsertVersion(ctx context.Context, org *types
 
 	effectiveDate := time.Date(org.EffectiveDate.Year(), org.EffectiveDate.Month(), org.EffectiveDate.Day(), 0, 0, 0, 0, time.UTC)
 
-	tm.logger.Printf("🔄 插入版本: %s, 生效日期: %s", org.Code, effectiveDate.Format("2006-01-02"))
+	tm.logger.Infof("插入版本: %s, 生效日期: %s", org.Code, effectiveDate.Format("2006-01-02"))
 
 	adjacentQuery := `
 		SELECT record_id, effective_date, end_date, is_current
@@ -83,7 +83,7 @@ func (tm *TemporalTimelineManager) InsertVersion(ctx context.Context, org *types
 		return nil, fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	tm.logger.Printf("✅ 版本插入成功: RecordID=%s", newRecordID)
+	tm.logger.Infof("版本插入成功: RecordID=%s", newRecordID)
 	return &TimelineVersion{
 		RecordID:      newRecordID,
 		Code:          org.Code,

@@ -3,16 +3,20 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"log"
+
+	pkglogger "cube-castle/pkg/logger"
 )
 
 type OrganizationRepository struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
-func NewOrganizationRepository(db *sql.DB, logger *log.Logger) *OrganizationRepository {
-	return &OrganizationRepository{db: db, logger: logger}
+func NewOrganizationRepository(db *sql.DB, baseLogger pkglogger.Logger) *OrganizationRepository {
+	return &OrganizationRepository{
+		db:     db,
+		logger: scopedLogger(baseLogger, "organization", "OrganizationRepository", nil),
+	}
 }
 
 var (

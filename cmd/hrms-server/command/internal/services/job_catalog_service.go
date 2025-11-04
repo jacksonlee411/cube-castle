@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"cube-castle/cmd/hrms-server/command/internal/audit"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
 	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 var (
@@ -26,14 +26,14 @@ var (
 type JobCatalogService struct {
 	repo        *repository.JobCatalogRepository
 	auditLogger *audit.AuditLogger
-	logger      *log.Logger
+	logger      pkglogger.Logger
 }
 
-func NewJobCatalogService(repo *repository.JobCatalogRepository, auditLogger *audit.AuditLogger, logger *log.Logger) *JobCatalogService {
+func NewJobCatalogService(repo *repository.JobCatalogRepository, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *JobCatalogService {
 	return &JobCatalogService{
 		repo:        repo,
 		auditLogger: auditLogger,
-		logger:      logger,
+		logger:      scopedLogger(baseLogger, "jobCatalog", nil),
 	}
 }
 
@@ -525,6 +525,6 @@ func (s *JobCatalogService) logCatalogEvent(ctx context.Context, tenantID uuid.U
 		AfterData:    after,
 	}
 	if err := s.auditLogger.LogEvent(ctx, event); err != nil {
-		s.logger.Printf("[AUDIT] failed to log job catalog event: %v", err)
+		s.logger.Errorf("[AUDIT] failed to log job catalog event: %v", err)
 	}
 }

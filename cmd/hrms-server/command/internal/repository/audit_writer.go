@@ -5,23 +5,23 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 )
 
 // AuditWriter 按06文档要求实现的审计写入器
 // 符合 021 迁移的审计契约：business_context、record_id、仅值变更写入
 type AuditWriter struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
-func NewAuditWriter(db *sql.DB, logger *log.Logger) *AuditWriter {
+func NewAuditWriter(db *sql.DB, baseLogger pkglogger.Logger) *AuditWriter {
 	return &AuditWriter{
 		db:     db,
-		logger: logger,
+		logger: scopedLogger(baseLogger, "audit", "AuditWriter", nil),
 	}
 }
 
@@ -53,7 +53,7 @@ type FieldChange struct {
 func (aw *AuditWriter) WriteAudit(ctx context.Context, entry *AuditEntry) error {
 	// 跳过空 UPDATE：无字段变化时不写审计
 	if entry.EventType == "UPDATE" && len(entry.Changes) == 0 {
-		aw.logger.Printf("⏭️ 跳过空UPDATE审计: RecordID=%s", entry.RecordID)
+		aw.logger.Infof("跳过空UPDATE审计: RecordID=%s", entry.RecordID)
 		return nil
 	}
 
@@ -120,12 +120,12 @@ func (aw *AuditWriter) WriteAudit(ctx context.Context, entry *AuditEntry) error 
 
 	if err != nil {
 		utils.RecordAuditWrite(err)
-		aw.logger.Printf("❌ 审计写入失败: %v", err)
+		aw.logger.Errorf("审计写入失败: %v", err)
 		return fmt.Errorf("审计写入失败: %w", err)
 	}
 
 	utils.RecordAuditWrite(nil)
-	aw.logger.Printf("✅ 审计已写入: %s/%s/%s (RecordID: %s)",
+	aw.logger.Infof("审计已写入: %s/%s/%s (RecordID: %s)",
 		entry.EventType, entry.ResourceType, entry.ActionName, entry.RecordID)
 
 	return nil
@@ -135,7 +135,7 @@ func (aw *AuditWriter) WriteAudit(ctx context.Context, entry *AuditEntry) error 
 func (aw *AuditWriter) WriteAuditInTx(ctx context.Context, tx *sql.Tx, entry *AuditEntry) error {
 	// 跳过空 UPDATE
 	if entry.EventType == "UPDATE" && len(entry.Changes) == 0 {
-		aw.logger.Printf("⏭️ 跳过空UPDATE审计: RecordID=%s", entry.RecordID)
+		aw.logger.Infof("跳过空UPDATE审计: RecordID=%s", entry.RecordID)
 		return nil
 	}
 

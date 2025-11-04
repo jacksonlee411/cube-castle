@@ -3,11 +3,10 @@ package repository
 import (
 	"context"
 	"errors"
-	"io"
-	"log"
 	"regexp"
 	"testing"
 
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 )
@@ -19,7 +18,7 @@ func TestOrganizationRepository_CountNonDeletedChildren(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := NewOrganizationRepository(db, log.New(io.Discard, "test", log.LstdFlags))
+	repo := NewOrganizationRepository(db, pkglogger.NewNoopLogger())
 	tenantID := uuid.New()
 	query := regexp.QuoteMeta(`
 		SELECT COUNT(DISTINCT code)
@@ -52,7 +51,7 @@ func TestOrganizationRepository_CountNonDeletedChildren_Error(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := NewOrganizationRepository(db, log.New(io.Discard, "test", log.LstdFlags))
+	repo := NewOrganizationRepository(db, pkglogger.NewNoopLogger())
 	tenantID := uuid.New()
 	query := regexp.QuoteMeta(`
 		SELECT COUNT(DISTINCT code)

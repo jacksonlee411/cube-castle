@@ -3,14 +3,14 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"log"
 	"os"
 	"testing"
 	"time"
 
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
-	"cube-castle/internal/types"
 )
 
 // TestTemporalTimelineManager_ComplexScenarios 测试复杂场景下的时态时间轴管理
@@ -36,8 +36,13 @@ func TestTemporalTimelineManager_ComplexScenarios(t *testing.T) {
 		t.Skipf("数据库连接验证失败，跳过集成测试: %v", err)
 	}
 
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	tm := NewTemporalTimelineManager(db, logger)
+	baseLogger := pkglogger.NewLogger(
+		pkglogger.WithWriter(os.Stdout),
+		pkglogger.WithLevel(pkglogger.LevelInfo),
+	)
+	tm := NewTemporalTimelineManager(db, baseLogger.WithFields(pkglogger.Fields{
+		"test": "temporalTimeline",
+	}))
 
 	tenantID := uuid.New()
 	orgCode := "TEST001"

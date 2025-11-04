@@ -4,27 +4,34 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
-	"log"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 )
 
 // TemporalService 时态管理服务
 type TemporalService struct {
 	db      *sql.DB
 	orgRepo *repository.OrganizationRepository
+	logger  pkglogger.Logger
 }
 
 // NewTemporalService 创建新的时态服务
-func NewTemporalService(db *sql.DB) *TemporalService {
+func NewTemporalService(db *sql.DB, baseLogger pkglogger.Logger, orgRepo *repository.OrganizationRepository) *TemporalService {
+	if baseLogger == nil {
+		baseLogger = pkglogger.NewNoopLogger()
+	}
+	if orgRepo == nil {
+		orgRepo = repository.NewOrganizationRepository(db, baseLogger)
+	}
 	return &TemporalService{
 		db:      db,
-		orgRepo: repository.NewOrganizationRepository(db, log.New(io.Discard, "temporal-service", log.LstdFlags)),
+		orgRepo: orgRepo,
+		logger:  scopedLogger(baseLogger, "temporal", pkglogger.Fields{"module": "organization"}),
 	}
 }
 
@@ -89,7 +96,15 @@ type VersionResponse struct {
 
 // InsertIntermediateVersion 插入中间版本
 func (s *TemporalService) InsertIntermediateVersion(ctx context.Context, req *InsertVersionRequest) (*VersionResponse, error) {
-	return s.withTransaction(ctx, func(tx *sql.Tx) (*VersionResponse, error) {
+	log := s.logger.WithFields(pkglogger.Fields{
+		"tenantId":      req.TenantID.String(),
+		"code":          req.Code,
+		"effectiveDate": req.EffectiveDate.Format("2006-01-02"),
+		"operation":     "insertIntermediate",
+	})
+	log.Info("接收到插入中间版本请求")
+
+	result, err := s.withTransaction(ctx, func(tx *sql.Tx) (*VersionResponse, error) {
 		// 1. 读取相邻版本并锁定
 		prev, next, err := s.getAdjacentVersionsForUpdate(tx, req.TenantID, req.Code, req.EffectiveDate)
 		if err != nil {
@@ -130,11 +145,28 @@ func (s *TemporalService) InsertIntermediateVersion(ctx context.Context, req *In
 
 		return newVersion, nil
 	})
+	if err != nil {
+		log.Errorf("插入中间版本失败: %v", err)
+		return nil, err
+	}
+
+	log.WithFields(pkglogger.Fields{
+		"recordId": result.RecordID,
+	}).Info("插入中间版本成功")
+	return result, nil
 }
 
 // DeleteIntermediateVersion 删除中间版本
 func (s *TemporalService) DeleteIntermediateVersion(ctx context.Context, req *DeleteVersionRequest) error {
-	return s.withTransactionNoReturn(ctx, func(tx *sql.Tx) error {
+	log := s.logger.WithFields(pkglogger.Fields{
+		"tenantId":      req.TenantID.String(),
+		"code":          req.Code,
+		"effectiveDate": req.EffectiveDate.Format("2006-01-02"),
+		"operation":     "deleteIntermediate",
+	})
+	log.Info("接收到删除中间版本请求")
+
+	err := s.withTransactionNoReturn(ctx, func(tx *sql.Tx) error {
 		// 1. 读取相邻版本并锁定
 		prev, next, err := s.getAdjacentVersionsForUpdate(tx, req.TenantID, req.Code, req.EffectiveDate)
 		if err != nil {
@@ -162,11 +194,27 @@ func (s *TemporalService) DeleteIntermediateVersion(ctx context.Context, req *De
 		// 5. 写入审计日志
 		return s.writeTimelineEvent(tx, req.TenantID, req.Code, "DELETE", req.OperationReason)
 	})
+	if err != nil {
+		log.Errorf("删除中间版本失败: %v", err)
+		return err
+	}
+
+	log.Info("删除中间版本成功")
+	return nil
 }
 
 // ChangeEffectiveDate 变更生效日期
 func (s *TemporalService) ChangeEffectiveDate(ctx context.Context, req *ChangeEffectiveDateRequest) (*VersionResponse, error) {
-	return s.withTransaction(ctx, func(tx *sql.Tx) (*VersionResponse, error) {
+	log := s.logger.WithFields(pkglogger.Fields{
+		"tenantId":         req.TenantID.String(),
+		"code":             req.Code,
+		"oldEffectiveDate": req.OldEffectiveDate.Format("2006-01-02"),
+		"newEffectiveDate": req.NewEffectiveDate.Format("2006-01-02"),
+		"operation":        "changeEffectiveDate",
+	})
+	log.Info("接收到变更生效日期请求")
+
+	result, err := s.withTransaction(ctx, func(tx *sql.Tx) (*VersionResponse, error) {
 		// 1. 预检新日期是否冲突
 		if err := s.validateEffectiveDateAvailable(tx, req.TenantID, req.Code, req.NewEffectiveDate); err != nil {
 			return nil, err
@@ -197,6 +245,15 @@ func (s *TemporalService) ChangeEffectiveDate(ctx context.Context, req *ChangeEf
 
 		return result, nil
 	})
+	if err != nil {
+		log.Errorf("变更生效日期失败: %v", err)
+		return nil, err
+	}
+
+	log.WithFields(pkglogger.Fields{
+		"recordId": result.RecordID,
+	}).Info("变更生效日期成功")
+	return result, nil
 }
 
 // SuspendActivate 停用/启用操作

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"cube-castle/internal/types"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"cube-castle/internal/types"
 )
 
 func (r *OrganizationRepository) GenerateCode(ctx context.Context, tenantID uuid.UUID) (string, error) {
@@ -112,7 +112,7 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 	org.UpdatedAt = updatedAt
 	org.EffectiveDate = effectiveDate
 
-	r.logger.Printf("组织创建成功: %s - %s", org.Code, org.Name)
+	r.logger.Infof("组织创建成功: %s - %s", org.Code, org.Name)
 	return org, nil
 }
 
@@ -176,7 +176,7 @@ func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sq
 	org.UpdatedAt = updatedAt
 	org.EffectiveDate = effectiveDate
 
-	r.logger.Printf("时态组织创建成功: %s - %s (生效日期: %v, 当前: %v)",
+	r.logger.Infof("时态组织创建成功: %s - %s (生效日期: %v, 当前: %v)",
 		org.Code, org.Name,
 		org.EffectiveDate.String(),
 		org.IsCurrent)

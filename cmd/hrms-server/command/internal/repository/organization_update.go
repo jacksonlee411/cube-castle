@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	"github.com/google/uuid"
 )
 
 func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID, code string, req *types.UpdateOrganizationRequest) (*types.Organization, error) {
@@ -105,7 +105,7 @@ RETURNING tenant_id, code, parent_code, name, unit_type, status,
 		return nil, fmt.Errorf("更新组织失败: %w", err)
 	}
 
-	r.logger.Printf("组织更新成功: %s - %s", org.Code, org.Name)
+	r.logger.Infof("组织更新成功: %s - %s", org.Code, org.Name)
 	return &org, nil
 }
 
@@ -205,6 +205,6 @@ RETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,
 		return nil, fmt.Errorf("更新历史记录失败: %w", err)
 	}
 
-	r.logger.Printf("历史记录更新成功: %s - %s (记录ID: %s)", org.Code, org.Name, recordId)
+	r.logger.Infof("历史记录更新成功: %s - %s (记录ID: %s)", org.Code, org.Name, recordId)
 	return &org, nil
 }

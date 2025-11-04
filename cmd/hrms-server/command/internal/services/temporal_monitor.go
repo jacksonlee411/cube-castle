@@ -4,23 +4,23 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
 	auth "cube-castle/internal/auth"
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // TemporalMonitor 时态数据监控服务
 type TemporalMonitor struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
 // NewTemporalMonitor 创建时态监控服务
-func NewTemporalMonitor(db *sql.DB, logger *log.Logger) *TemporalMonitor {
+func NewTemporalMonitor(db *sql.DB, baseLogger pkglogger.Logger) *TemporalMonitor {
 	return &TemporalMonitor{
 		db:     db,
-		logger: logger,
+		logger: scopedLogger(baseLogger, "temporalMonitor", nil),
 	}
 }
 
@@ -459,7 +459,7 @@ func (m *TemporalMonitor) CheckAlerts(ctx context.Context) ([]string, error) {
 	// 系统健康监控结果可以单独记录，不必强制写入操作审计表
 	// 可考虑使用专门的监控日志表或改为应用日志记录
 	if len(alerts) > 0 {
-		m.logger.Printf("📊 监控结果: 健康分数=%.1f, 告警=%d个", metrics.HealthScore, len(alerts))
+		m.logger.Infof("监控结果: 健康分数=%.1f, 告警=%d个", metrics.HealthScore, len(alerts))
 	}
 
 	return alerts, nil
@@ -481,26 +481,26 @@ func (m *TemporalMonitor) StartPeriodicMonitoring(ctx context.Context, interval 
 		for {
 			select {
 			case <-ctx.Done():
-				m.logger.Println("停止时态数据监控服务")
+				m.logger.Warn("停止时态数据监控服务")
 				return
 			case <-ticker.C:
 				alerts, err := m.CheckAlerts(ctx)
 				if err != nil {
-					m.logger.Printf("监控检查失败: %v", err)
+					m.logger.Errorf("监控检查失败: %v", err)
 					continue
 				}
 
 				if len(alerts) > 0 {
-					m.logger.Printf("🚨 发现 %d 个告警:", len(alerts))
+					m.logger.Warnf("发现 %d 个告警:", len(alerts))
 					for _, alert := range alerts {
-						m.logger.Printf("  - %s", alert)
+						m.logger.Warnf("告警详情: %s", alert)
 					}
 				} else {
-					m.logger.Println("✅ 时态数据监控: 系统健康")
+					m.logger.Info("时态数据监控: 系统健康")
 				}
 			}
 		}
 	}()
 
-	m.logger.Printf("✅ 时态数据监控服务已启动 (检查间隔: %v)", interval)
+	m.logger.Infof("时态数据监控服务已启动 (检查间隔: %v)", interval)
 }

@@ -5,17 +5,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 )
 
 // AuditLogger 结构化审计日志记录器
 type AuditLogger struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
 // AuditEvent 简化的审计事件 (v4.3.0 - 移除过度设计的技术细节追踪)
@@ -78,10 +78,13 @@ const (
 	ActorTypeService = "SERVICE"
 )
 
-func NewAuditLogger(db *sql.DB, logger *log.Logger) *AuditLogger {
+func NewAuditLogger(db *sql.DB, baseLogger pkglogger.Logger) *AuditLogger {
 	return &AuditLogger{
-		db:     db,
-		logger: logger,
+		db: db,
+		logger: baseLogger.WithFields(pkglogger.Fields{
+			"component": "audit",
+			"module":    "command",
+		}),
 	}
 }
 
@@ -178,11 +181,11 @@ func (a *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) error {
 	)
 
 	if err != nil {
-		a.logger.Printf("审计日志记录失败: %v", err)
+		a.logger.Errorf("审计日志记录失败: %v", err)
 		return fmt.Errorf("failed to log audit event: %w", err)
 	}
 
-	a.logger.Printf("✅ 审计事件已记录: %s/%s/%s (ID: %s)",
+	a.logger.Infof("审计事件已记录: %s/%s/%s (ID: %s)",
 		event.EventType, event.ResourceType, event.ActionName, event.ID.String())
 
 	return nil
@@ -593,27 +596,27 @@ func (a *AuditLogger) GetAuditHistory(ctx context.Context, resourceType, resourc
 			&modifiedFieldsJSON, &changesJSON,
 		)
 		if err != nil {
-			a.logger.Printf("扫描审计记录失败: %v", err)
+			a.logger.Errorf("扫描审计记录失败: %v", err)
 			continue
 		}
 
 		// 反序列化JSON字段
 		if err := json.Unmarshal([]byte(beforeDataJSON), &event.BeforeData); err != nil {
-			a.logger.Printf("解析before_data失败: %v", err)
+			a.logger.Warnf("解析before_data失败: %v", err)
 		}
 		if err := json.Unmarshal([]byte(afterDataJSON), &event.AfterData); err != nil {
-			a.logger.Printf("解析after_data失败: %v", err)
+			a.logger.Warnf("解析after_data失败: %v", err)
 		}
 		if err := json.Unmarshal([]byte(modifiedFieldsJSON), &event.ModifiedFields); err != nil {
-			a.logger.Printf("解析modified_fields失败: %v", err)
+			a.logger.Warnf("解析modified_fields失败: %v", err)
 		}
 		if err := json.Unmarshal([]byte(changesJSON), &event.Changes); err != nil {
-			a.logger.Printf("解析changes失败: %v", err)
+			a.logger.Warnf("解析changes失败: %v", err)
 		}
 
 		events = append(events, event)
 	}
 
-	a.logger.Printf("📊 审计历史查询: %s/%s, 返回%d条记录", resourceType, resourceID, len(events))
+	a.logger.Infof("审计历史查询: %s/%s, 返回%d条记录", resourceType, resourceID, len(events))
 	return events, nil
 }

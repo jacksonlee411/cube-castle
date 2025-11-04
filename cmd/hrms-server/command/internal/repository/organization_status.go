@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/internal/types"
+	"github.com/google/uuid"
 )
 
 func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID, code string, reason string) (*types.Organization, error) {
@@ -52,7 +52,7 @@ func (r *OrganizationRepository) Suspend(ctx context.Context, tenantID uuid.UUID
 		org.ChangeReason = &changeReason.String
 	}
 
-	r.logger.Printf("组织停用成功: %s - %s", org.Code, org.Name)
+	r.logger.Infof("组织停用成功: %s - %s", org.Code, org.Name)
 	return &org, nil
 }
 
@@ -97,7 +97,7 @@ func (r *OrganizationRepository) Activate(ctx context.Context, tenantID uuid.UUI
 		org.ChangeReason = &changeReason.String
 	}
 
-	r.logger.Printf("组织重新启用成功: %s - %s", org.Code, org.Name)
+	r.logger.Infof("组织重新启用成功: %s - %s", org.Code, org.Name)
 	return &org, nil
 }
 
@@ -152,7 +152,7 @@ func (r *OrganizationRepository) SoftDeleteOrganization(ctx context.Context, ten
 		return fmt.Errorf("commit soft delete transaction failed: %w", err)
 	}
 
-	r.logger.Printf("🗑️ 已软删除组织 %s (tenant=%s, rows=%d)", code, tenantID, rowsAffected)
+	r.logger.Infof("已软删除组织 %s (tenant=%s, rows=%d)", code, tenantID, rowsAffected)
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,6 +20,7 @@ import (
 	"cube-castle/cmd/hrms-server/command/internal/validators"
 	auth "cube-castle/internal/auth"
 	config "cube-castle/internal/config"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -29,7 +29,16 @@ import (
 )
 
 func main() {
-	logger := log.New(os.Stdout, "[COMMAND-SERVICE] ", log.LstdFlags|log.Lshortfile)
+	baseLogger := pkglogger.NewLogger(
+		pkglogger.WithWriter(os.Stdout),
+		pkglogger.WithLevelString(os.Getenv("COMMAND_LOG_LEVEL")),
+		pkglogger.WithCallerSkip(1),
+	)
+	commandLogger := baseLogger.WithFields(pkglogger.Fields{
+		"service":   "command",
+		"component": "bootstrap",
+	})
+	logger := pkglogger.NewStdLogger(commandLogger, pkglogger.LevelInfo)
 	logger.Println("🚀 启动组织命令服务...")
 	authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
 
@@ -70,16 +79,16 @@ func main() {
 	)
 	if !authOnlyMode {
 		// 初始化仓储层
-		orgRepo = repository.NewOrganizationRepository(db, logger)
-		jobCatalogRepo = repository.NewJobCatalogRepository(db, logger)
-		positionRepo = repository.NewPositionRepository(db, logger)
-		positionAssignmentRepo = repository.NewPositionAssignmentRepository(db, logger)
-		hierarchyRepo = repository.NewHierarchyRepository(db, logger)
+		orgRepo = repository.NewOrganizationRepository(db, commandLogger)
+		jobCatalogRepo = repository.NewJobCatalogRepository(db, commandLogger)
+		positionRepo = repository.NewPositionRepository(db, commandLogger)
+		positionAssignmentRepo = repository.NewPositionAssignmentRepository(db, commandLogger)
+		hierarchyRepo = repository.NewHierarchyRepository(db, commandLogger)
 
 		// 初始化业务服务层
-		cascadeService = services.NewCascadeUpdateService(hierarchyRepo, 4, logger)
-		businessValidator = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)
-		auditLogger = audit.NewAuditLogger(db, logger)
+		cascadeService = services.NewCascadeUpdateService(hierarchyRepo, 4, commandLogger)
+		businessValidator = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, commandLogger)
+		auditLogger = audit.NewAuditLogger(db, commandLogger)
 
 		// 启动级联更新服务
 		cascadeService.Start()
@@ -143,13 +152,13 @@ func main() {
 	// 初始化时态服务
 	var temporalService *services.TemporalService
 	if !authOnlyMode {
-		temporalService = services.NewTemporalService(db)
+		temporalService = services.NewTemporalService(db, commandLogger, orgRepo)
 	}
 
 	// 初始化监控服务
 	var temporalMonitor *services.TemporalMonitor
 	if !authOnlyMode {
-		temporalMonitor = services.NewTemporalMonitor(db, logger)
+		temporalMonitor = services.NewTemporalMonitor(db, commandLogger)
 	}
 
 	// 初始化运维调度器占位
@@ -158,7 +167,7 @@ func main() {
 	// 初始化时态时间轴管理器
 	var timelineManager *repository.TemporalTimelineManager
 	if !authOnlyMode {
-		timelineManager = repository.NewTemporalTimelineManager(db, logger)
+		timelineManager = repository.NewTemporalTimelineManager(db, commandLogger)
 	}
 
 	// 初始化处理器
@@ -170,9 +179,9 @@ func main() {
 		operationalHandler *handlers.OperationalHandler
 	)
 	if !authOnlyMode {
-		positionService := services.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, auditLogger, logger)
-		jobCatalogService := services.NewJobCatalogService(jobCatalogRepo, auditLogger, logger)
-		operationalScheduler = services.NewOperationalScheduler(db, logger, temporalMonitor, positionService)
+		positionService := services.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, auditLogger, commandLogger)
+		jobCatalogService := services.NewJobCatalogService(jobCatalogRepo, auditLogger, commandLogger)
+		operationalScheduler = services.NewOperationalScheduler(db, commandLogger, temporalMonitor, positionService)
 
 		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager, hierarchyRepo, businessValidator)
 		positionHandler = handlers.NewPositionHandler(positionService, logger)

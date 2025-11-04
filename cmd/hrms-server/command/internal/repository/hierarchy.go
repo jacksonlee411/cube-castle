@@ -4,17 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 )
 
 // HierarchyRepository 层级管理仓储
 type HierarchyRepository struct {
 	db     *sql.DB
-	logger *log.Logger
+	logger pkglogger.Logger
 }
 
 // OrganizationNode 组织层级节点
@@ -33,10 +33,10 @@ type OrganizationNode struct {
 	UnitType      string      `json:"unitType"`
 }
 
-func NewHierarchyRepository(db *sql.DB, logger *log.Logger) *HierarchyRepository {
+func NewHierarchyRepository(db *sql.DB, baseLogger pkglogger.Logger) *HierarchyRepository {
 	return &HierarchyRepository{
 		db:     db,
-		logger: logger,
+		logger: scopedLogger(baseLogger, "organization", "HierarchyRepository", nil),
 	}
 }
 
@@ -84,7 +84,7 @@ func (h *HierarchyRepository) GetOrganizationHierarchy(ctx context.Context, root
 	start := time.Now()
 	rows, err := h.db.QueryContext(ctx, query, rootCode, tenantID.String(), maxDepth)
 	if err != nil {
-		h.logger.Printf("递归层级查询失败: %v", err)
+		h.logger.Errorf("递归层级查询失败: %v", err)
 		return nil, fmt.Errorf("failed to query organization hierarchy: %w", err)
 	}
 	defer rows.Close()
@@ -100,7 +100,7 @@ func (h *HierarchyRepository) GetOrganizationHierarchy(ctx context.Context, root
 			&node.IsCurrent, &node.Depth, &node.Status, &node.UnitType,
 		)
 		if err != nil {
-			h.logger.Printf("扫描层级节点失败: %v", err)
+			h.logger.Errorf("扫描层级节点失败: %v", err)
 			return nil, fmt.Errorf("failed to scan hierarchy node: %w", err)
 		}
 
@@ -116,7 +116,7 @@ func (h *HierarchyRepository) GetOrganizationHierarchy(ctx context.Context, root
 	}
 
 	duration := time.Since(start)
-	h.logger.Printf("🔥 递归CTE查询完成: 根节点=%s, 深度=%d, 节点数=%d, 耗时=%v",
+	h.logger.Infof("递归CTE查询完成: 根节点=%s, 深度=%d, 节点数=%d, 耗时=%v",
 		rootCode, maxDepth, len(nodes), duration)
 
 	return nodes, nil
@@ -223,7 +223,7 @@ func (h *HierarchyRepository) UpdateHierarchyPaths(ctx context.Context, parentCo
 	}
 
 	affected, _ := result.RowsAffected()
-	h.logger.Printf("层级路径更新: 父节点=%s, 更新子节点数=%d", parentCode, affected)
+	h.logger.Infof("层级路径更新: 父节点=%s, 更新子节点数=%d", parentCode, affected)
 
 	return tx.Commit()
 }
@@ -490,6 +490,6 @@ func (h *HierarchyRepository) GetAncestorChain(ctx context.Context, code string,
 		ancestors = append(ancestors, node)
 	}
 
-	h.logger.Printf("祖先链查询: 目标=%s, 层级数=%d", code, len(ancestors))
+	h.logger.Infof("祖先链查询: 目标=%s, 层级数=%d", code, len(ancestors))
 	return ancestors, nil
 }

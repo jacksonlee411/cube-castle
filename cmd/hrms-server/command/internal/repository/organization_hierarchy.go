@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	"github.com/google/uuid"
 )
 
 type hierarchyFields struct {
@@ -80,7 +80,7 @@ func (r *OrganizationRepository) recalculateSelfHierarchy(ctx context.Context, t
 	}
 	fields.oldLevel = currentLevel
 
-	r.logger.Printf("recalculateSelfHierarchy: code=%s oldLevel=%d newLevel=%d codePath=%s", resolvedCode, fields.oldLevel, fields.Level, fields.CodePath)
+	r.logger.Infof("recalculateSelfHierarchy: code=%s oldLevel=%d newLevel=%d codePath=%s", resolvedCode, fields.oldLevel, fields.Level, fields.CodePath)
 	return fields, nil
 }
 

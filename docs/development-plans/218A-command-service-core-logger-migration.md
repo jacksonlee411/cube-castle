@@ -37,10 +37,10 @@
 ---
 
 ## 4. 验收标准
-- [ ] 命令服务核心层无 `*log.Logger` 引用（`rg "\*log.Logger"` 验证）。
-- [ ] 日志字段包含 `component` 或等效上下文信息。
-- [ ] `go test ./cmd/hrms-server/command/internal/...` 100% 通过。
-- [ ] 文档与主计划（218）同步记录。
+- [x] 命令服务核心层无 `*log.Logger` 引用（`rg "\*log.Logger"` 验证）。
+- [x] 日志字段包含 `component` 或等效上下文信息。
+- [x] `go test ./cmd/hrms-server/command/internal/...` 100% 通过。
+- [x] 文档与主计划（218）同步记录。
 
 ---
 

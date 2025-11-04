@@ -24,7 +24,7 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	}
 	defer tx.Rollback()
 
-	tm.logger.Printf("🔄 开始%s组织: Code=%s, 生效日期=%s, 新状态=%s", operationType, code, effectiveDate.Format("2006-01-02"), newStatus)
+	tm.logger.Infof("开始%s组织: Code=%s, 生效日期=%s, 新状态=%s", operationType, code, effectiveDate.Format("2006-01-02"), newStatus)
 
 	var currentOrg struct {
 		RecordID      string
@@ -69,7 +69,7 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	}
 
 	if currentOrg.Status == newStatus {
-		tm.logger.Printf("💡 组织%s状态已经是%s，幂等操作跳过", code, newStatus)
+		tm.logger.Infof("组织%s状态已经是%s，幂等操作跳过", code, newStatus)
 		return tm.RecalculateTimelineInTx(ctx, tx, tenantID, code)
 	}
 
@@ -87,7 +87,7 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	isFuture := effectiveDateUTC.After(nowUTC.Truncate(24 * time.Hour))
 
 	if conflictCount > 0 {
-		tm.logger.Printf("⚠️ 检测到相同生效日期版本，改为更新现有记录: code=%s date=%s", code, effectiveDateUTC.Format("2006-01-02"))
+		tm.logger.Warnf("检测到相同生效日期版本，改为更新现有记录: code=%s date=%s", code, effectiveDateUTC.Format("2006-01-02"))
 		_, err := tx.ExecContext(ctx, `
             UPDATE organization_units
             SET status = $3,
@@ -114,9 +114,9 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 		}
 
 		if isFuture {
-			tm.logger.Printf("✅ 组织%s成功（计划生效，更新现有版本）: %s → %s, 生效日期=%s", action, code, newStatus, effectiveDateUTC.Format("2006-01-02"))
+			tm.logger.Infof("组织%s成功（计划生效，更新现有版本）: %s → %s, 生效日期=%s", action, code, newStatus, effectiveDateUTC.Format("2006-01-02"))
 		} else {
-			tm.logger.Printf("✅ 组织%s成功（即时生效，更新现有版本）: %s → %s", action, code, newStatus)
+			tm.logger.Infof("组织%s成功（即时生效，更新现有版本）: %s → %s", action, code, newStatus)
 		}
 
 		return timeline, nil
@@ -153,9 +153,9 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 	}
 
 	if isFuture {
-		tm.logger.Printf("✅ 组织%s成功（计划生效）: %s → %s, 生效日期=%s", action, code, newStatus, effectiveDateUTC.Format("2006-01-02"))
+		tm.logger.Infof("组织%s成功（计划生效）: %s → %s, 生效日期=%s", action, code, newStatus, effectiveDateUTC.Format("2006-01-02"))
 	} else {
-		tm.logger.Printf("✅ 组织%s成功（即时生效）: %s → %s, 时间轴已重算", action, code, newStatus)
+		tm.logger.Infof("组织%s成功（即时生效）: %s → %s, 时间轴已重算", action, code, newStatus)
 	}
 
 	return timeline, nil

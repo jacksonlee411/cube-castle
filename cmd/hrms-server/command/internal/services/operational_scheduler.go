@@ -4,19 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
 )
 
 // OperationalScheduler 运维任务调度器
 type OperationalScheduler struct {
 	db          *sql.DB
-	logger      *log.Logger
+	logger      pkglogger.Logger
 	monitor     *TemporalMonitor
 	positions   *PositionService
 	scriptsPath string
@@ -25,7 +25,7 @@ type OperationalScheduler struct {
 }
 
 // NewOperationalScheduler 创建运维任务调度器
-func NewOperationalScheduler(db *sql.DB, logger *log.Logger, monitor *TemporalMonitor, positions *PositionService) *OperationalScheduler {
+func NewOperationalScheduler(db *sql.DB, baseLogger pkglogger.Logger, monitor *TemporalMonitor, positions *PositionService) *OperationalScheduler {
 	// 获取脚本目录路径
 	scriptsPath := filepath.Join(os.Getenv("PWD"), "scripts")
 	if _, err := os.Stat(scriptsPath); os.IsNotExist(err) {
@@ -35,7 +35,7 @@ func NewOperationalScheduler(db *sql.DB, logger *log.Logger, monitor *TemporalMo
 
 	return &OperationalScheduler{
 		db:          db,
-		logger:      logger,
+		logger:      scopedLogger(baseLogger, "operationalScheduler", nil),
 		monitor:     monitor,
 		positions:   positions,
 		scriptsPath: scriptsPath,
@@ -108,12 +108,12 @@ func (s *OperationalScheduler) GetDefaultTasks() []ScheduledTask {
 // Start 启动调度器
 func (s *OperationalScheduler) Start(ctx context.Context) {
 	if s.running {
-		s.logger.Println("运维任务调度器已在运行中")
+		s.logger.Warn("运维任务调度器已在运行中")
 		return
 	}
 
 	s.running = true
-	s.logger.Println("🚀 启动运维任务调度器...")
+	s.logger.Infof("启动运维任务调度器...")
 
 	// 启动定期监控
 	s.monitor.StartPeriodicMonitoring(ctx, 5*time.Minute)
@@ -121,7 +121,7 @@ func (s *OperationalScheduler) Start(ctx context.Context) {
 	// 启动任务调度循环
 	go s.schedulingLoop(ctx)
 
-	s.logger.Println("✅ 运维任务调度器已启动")
+	s.logger.Info("运维任务调度器已启动")
 }
 
 // Stop 停止调度器
@@ -130,10 +130,10 @@ func (s *OperationalScheduler) Stop() {
 		return
 	}
 
-	s.logger.Println("🛑 正在停止运维任务调度器...")
+	s.logger.Warn("正在停止运维任务调度器...")
 	close(s.stopCh)
 	s.running = false
-	s.logger.Println("✅ 运维任务调度器已停止")
+	s.logger.Info("运维任务调度器已停止")
 }
 
 // schedulingLoop 任务调度循环
@@ -163,7 +163,7 @@ func (s *OperationalScheduler) schedulingLoop(ctx context.Context) {
 // executeTask 执行任务
 func (s *OperationalScheduler) executeTask(ctx context.Context, task *ScheduledTask) {
 	startTime := time.Now()
-	s.logger.Printf("🔄 开始执行任务: %s", task.Description)
+	s.logger.Infof("开始执行任务: %s", task.Description)
 
 	var err error
 
@@ -182,12 +182,12 @@ func (s *OperationalScheduler) executeTask(ctx context.Context, task *ScheduledT
 	task.LastRun = &now
 
 	if err != nil {
-		s.logger.Printf("❌ 任务执行失败: %s, 耗时: %v, 错误: %v", task.Description, duration, err)
+		s.logger.Errorf("任务执行失败: %s, 耗时: %v, 错误: %v", task.Description, duration, err)
 
 		// 记录失败到审计日志
 		s.recordTaskExecution(ctx, task, "FAILED", err.Error(), duration)
 	} else {
-		s.logger.Printf("✅ 任务执行成功: %s, 耗时: %v", task.Description, duration)
+		s.logger.Infof("任务执行成功: %s, 耗时: %v", task.Description, duration)
 
 		// 记录成功到审计日志
 		s.recordTaskExecution(ctx, task, "SUCCESS", "", duration)
@@ -233,9 +233,9 @@ func (s *OperationalScheduler) executeMonitoring(ctx context.Context) error {
 	}
 
 	if len(alerts) > 0 {
-		s.logger.Printf("🚨 监控发现 %d 个告警:", len(alerts))
+		s.logger.Warnf("监控发现 %d 个告警:", len(alerts))
 		for _, alert := range alerts {
-			s.logger.Printf("  - %s", alert)
+			s.logger.Warnf("告警详情: %s", alert)
 		}
 	}
 
@@ -284,7 +284,7 @@ func (s *OperationalScheduler) recordTaskExecution(ctx context.Context, task *Sc
 
 	// 任务执行结果记录到应用日志而非审计表
 	// 系统任务日志不属于业务操作审计范围，应该单独处理
-	s.logger.Printf("📋 任务执行完成: %s - %s", task.Name, summary)
+	s.logger.Infof("任务执行完成: %s - %s", task.Name, summary)
 }
 
 // GetTaskStatus 获取任务状态
@@ -309,9 +309,9 @@ func (s *OperationalScheduler) runActingAssignmentAutoRevert(ctx context.Context
 	}
 
 	if len(processed) > 0 {
-		s.logger.Printf("[AUTO-REVERT] 成功自动结束 %d 条代理任职", len(processed))
+		s.logger.Infof("[AUTO-REVERT] 成功自动结束 %d 条代理任职", len(processed))
 	} else {
-		s.logger.Println("[AUTO-REVERT] 无代理任职需要自动结束")
+		s.logger.Info("[AUTO-REVERT] 无代理任职需要自动结束")
 	}
 
 	return nil

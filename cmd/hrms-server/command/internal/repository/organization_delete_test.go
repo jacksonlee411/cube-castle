@@ -4,12 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"io"
-	"log"
 	"regexp"
 	"testing"
 	"time"
 
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 )
@@ -21,7 +20,7 @@ func TestSoftDeleteOrganization(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := NewOrganizationRepository(db, log.New(io.Discard, "test", log.LstdFlags))
+	repo := NewOrganizationRepository(db, pkglogger.NewNoopLogger())
 	tenantID := uuid.New()
 	deletedAt := time.Date(2025, 9, 30, 0, 0, 0, 0, time.UTC)
 
@@ -58,7 +57,7 @@ func TestSoftDeleteOrganization_NoRows(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := NewOrganizationRepository(db, log.New(io.Discard, "test", log.LstdFlags))
+	repo := NewOrganizationRepository(db, pkglogger.NewNoopLogger())
 	tenantID := uuid.New()
 	deletedAt := time.Now().UTC()
 
@@ -99,7 +98,7 @@ func TestHasOtherNonDeletedVersions(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := NewOrganizationRepository(db, log.New(io.Discard, "test", log.LstdFlags))
+	repo := NewOrganizationRepository(db, pkglogger.NewNoopLogger())
 	tenantID := uuid.New()
 
 	query := regexp.QuoteMeta(`

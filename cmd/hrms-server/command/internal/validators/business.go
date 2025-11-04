@@ -3,20 +3,20 @@ package validators
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
 	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 )
 
 // BusinessRuleValidator 业务规则验证器
 type BusinessRuleValidator struct {
 	hierarchyRepo *repository.HierarchyRepository
 	orgRepo       *repository.OrganizationRepository
-	logger        *log.Logger
+	logger        pkglogger.Logger
 }
 
 // ValidationResult 验证结果
@@ -82,11 +82,14 @@ var validUnitTypes = map[string]struct{}{
 	string(types.UnitTypeProjectTeam):      {},
 }
 
-func NewBusinessRuleValidator(hierarchyRepo *repository.HierarchyRepository, orgRepo *repository.OrganizationRepository, logger *log.Logger) *BusinessRuleValidator {
+func NewBusinessRuleValidator(hierarchyRepo *repository.HierarchyRepository, orgRepo *repository.OrganizationRepository, baseLogger pkglogger.Logger) *BusinessRuleValidator {
 	return &BusinessRuleValidator{
 		hierarchyRepo: hierarchyRepo,
 		orgRepo:       orgRepo,
-		logger:        logger,
+		logger: baseLogger.WithFields(pkglogger.Fields{
+			"component": "validator",
+			"module":    "organization",
+		}),
 	}
 }
 
@@ -102,42 +105,42 @@ func (v *BusinessRuleValidator) ValidateOrganizationCreation(ctx context.Context
 	// 1. 验证父组织存在性和有效性
 	if req.ParentCode != nil && *req.ParentCode != "" {
 		if err := v.validateParentOrganization(ctx, *req.ParentCode, tenantID, result); err != nil {
-			v.logger.Printf("父组织验证失败: %v", err)
+			v.logger.Warnf("父组织验证失败: %v", err)
 		}
 	}
 
 	// 2. 验证层级深度限制
 	if req.ParentCode != nil {
 		if err := v.validateDepthLimit(ctx, req.ParentCode, tenantID, result); err != nil {
-			v.logger.Printf("深度限制验证失败: %v", err)
+			v.logger.Warnf("深度限制验证失败: %v", err)
 		}
 	}
 
 	if req.ParentCode != nil && *req.ParentCode != "" && req.EffectiveDate != nil {
 		if err := v.validateTemporalParentAvailability(ctx, tenantID, *req.ParentCode, req.EffectiveDate.Time, result); err != nil {
-			v.logger.Printf("时态父级验证失败: %v", err)
+			v.logger.Warnf("时态父级验证失败: %v", err)
 		}
 	}
 
 	// 3. 验证代码唯一性
 	if req.Code != nil {
 		if err := v.validateCodeUniqueness(ctx, *req.Code, tenantID, result); err != nil {
-			v.logger.Printf("代码唯一性验证失败: %v", err)
+			v.logger.Warnf("代码唯一性验证失败: %v", err)
 		}
 	}
 
 	// 4. 验证时态数据一致性
 	if err := v.validateTemporalData(req.EffectiveDate, req.EndDate, result); err != nil {
-		v.logger.Printf("时态数据验证失败: %v", err)
+		v.logger.Warnf("时态数据验证失败: %v", err)
 	}
 
 	// 5. 验证业务逻辑规则
 	if err := v.validateBusinessLogic(ctx, req, tenantID, result); err != nil {
-		v.logger.Printf("业务逻辑验证失败: %v", err)
+		v.logger.Warnf("业务逻辑验证失败: %v", err)
 	}
 
 	result.Valid = len(result.Errors) == 0
-	v.logger.Printf("组织创建验证完成: 有效=%t, 错误数=%d, 警告数=%d",
+	v.logger.Infof("组织创建验证完成: 有效=%t, 错误数=%d, 警告数=%d",
 		result.Valid, len(result.Errors), len(result.Warnings))
 
 	return result
@@ -170,21 +173,21 @@ func (v *BusinessRuleValidator) ValidateOrganizationUpdate(ctx context.Context, 
 	// 2. 如果更改了父组织，需要验证循环引用
 	if req.ParentCode != nil {
 		if err := v.validateCircularReference(ctx, code, *req.ParentCode, tenantID, result); err != nil {
-			v.logger.Printf("循环引用验证失败: %v", err)
+			v.logger.Warnf("循环引用验证失败: %v", err)
 		}
 	}
 
 	// 3. 验证状态转换合法性
 	if req.Status != nil {
 		if err := v.validateStatusTransition(existingOrg.Status, *req.Status, result); err != nil {
-			v.logger.Printf("状态转换验证失败: %v", err)
+			v.logger.Warnf("状态转换验证失败: %v", err)
 		}
 	}
 
 	// 4. 验证父组织变更影响
 	if req.ParentCode != nil && (existingOrg.ParentCode == nil || *existingOrg.ParentCode != *req.ParentCode) {
 		if err := v.validateParentChange(ctx, code, *req.ParentCode, tenantID, result); err != nil {
-			v.logger.Printf("父组织变更验证失败: %v", err)
+			v.logger.Warnf("父组织变更验证失败: %v", err)
 		}
 	}
 
@@ -202,7 +205,7 @@ func (v *BusinessRuleValidator) ValidateOrganizationUpdate(ctx context.Context, 
 		}
 		if hasEffective {
 			if err := v.validateTemporalParentAvailability(ctx, tenantID, *req.ParentCode, effectiveAt, result); err != nil {
-				v.logger.Printf("时态父级可用性验证失败: %v", err)
+				v.logger.Warnf("时态父级可用性验证失败: %v", err)
 			}
 		}
 	}
@@ -315,7 +318,7 @@ func (v *BusinessRuleValidator) validateTemporalParentAvailability(ctx context.C
 func (v *BusinessRuleValidator) ValidateTemporalParentAvailability(ctx context.Context, tenantID uuid.UUID, parentCode string, effectiveDate time.Time) *ValidationResult {
 	result := NewValidationResult()
 	if err := v.validateTemporalParentAvailability(ctx, tenantID, parentCode, effectiveDate, result); err != nil {
-		v.logger.Printf("时态父级可用性验证失败: %v", err)
+		v.logger.Warnf("时态父级可用性验证失败: %v", err)
 	}
 	result.Valid = len(result.Errors) == 0
 	return result

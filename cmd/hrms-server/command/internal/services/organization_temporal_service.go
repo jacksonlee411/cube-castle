@@ -4,14 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 )
 
 // OrganizationTemporalService 组织时态服务 - 按06文档要求实现
@@ -20,17 +20,17 @@ type OrganizationTemporalService struct {
 	db              *sql.DB
 	timelineManager *repository.TemporalTimelineManager
 	auditWriter     *repository.AuditWriter
-	logger          *log.Logger
+	logger          pkglogger.Logger
 	orgRepo         *repository.OrganizationRepository
 }
 
-func NewOrganizationTemporalService(db *sql.DB, logger *log.Logger) *OrganizationTemporalService {
+func NewOrganizationTemporalService(db *sql.DB, baseLogger pkglogger.Logger) *OrganizationTemporalService {
 	return &OrganizationTemporalService{
 		db:              db,
-		timelineManager: repository.NewTemporalTimelineManager(db, logger),
-		auditWriter:     repository.NewAuditWriter(db, logger),
-		logger:          logger,
-		orgRepo:         repository.NewOrganizationRepository(db, logger),
+		timelineManager: repository.NewTemporalTimelineManager(db, baseLogger),
+		auditWriter:     repository.NewAuditWriter(db, baseLogger),
+		logger:          scopedLogger(baseLogger, "organizationTemporal", nil),
+		orgRepo:         repository.NewOrganizationRepository(db, baseLogger),
 	}
 }
 
@@ -87,7 +87,7 @@ func (s *OrganizationTemporalService) CreateVersion(ctx context.Context, req *Te
 	}
 	defer tx.Rollback()
 
-	s.logger.Printf("🔄 创建版本: Code=%s, 生效日期=%s", req.Code, req.EffectiveDate.Format("2006-01-02"))
+	s.logger.Infof("创建组织版本: Code=%s, 生效日期=%s", req.Code, req.EffectiveDate.Format("2006-01-02"))
 
 	// 并发互斥：对同一 tenantId+code 使用咨询锁
 	tenantID, err := uuid.Parse(req.TenantID)
@@ -183,7 +183,7 @@ func (s *OrganizationTemporalService) CreateVersion(ctx context.Context, req *Te
 		return nil, fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	s.logger.Printf("✅ 版本创建完成: RecordID=%s", result.RecordID)
+	s.logger.Infof("组织版本创建完成: RecordID=%s", result.RecordID)
 	return result, nil
 }
 
@@ -211,7 +211,7 @@ func (s *OrganizationTemporalService) UpdateVersionEffectiveDate(ctx context.Con
 		return nil, fmt.Errorf("无效记录ID: %w", err)
 	}
 
-	s.logger.Printf("🔄 修改版本生效日期: RecordID=%s, 新日期=%s", recordID, req.NewEffectiveDate.Format("2006-01-02"))
+	s.logger.Infof("修改版本生效日期: RecordID=%s, 新日期=%s", recordID, req.NewEffectiveDate.Format("2006-01-02"))
 
 	// 获取原版本数据用于审计
 	var oldData map[string]interface{}
@@ -298,7 +298,7 @@ func (s *OrganizationTemporalService) UpdateVersionEffectiveDate(ctx context.Con
 		return nil, fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	s.logger.Printf("✅ 版本生效日期修改完成")
+	s.logger.Info("版本生效日期修改完成")
 	return timeline, nil
 }
 
@@ -326,7 +326,7 @@ func (s *OrganizationTemporalService) DeleteVersion(ctx context.Context, req *Te
 		return nil, fmt.Errorf("无效记录ID: %w", err)
 	}
 
-	s.logger.Printf("🗑️ 删除版本: RecordID=%s", recordID)
+	s.logger.Infof("删除组织版本: RecordID=%s", recordID)
 
 	// 获取版本数据用于审计和锁定
 	var beforeData map[string]interface{}
@@ -408,7 +408,7 @@ func (s *OrganizationTemporalService) DeleteVersion(ctx context.Context, req *Te
 		return nil, fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	s.logger.Printf("✅ 版本删除完成")
+	s.logger.Info("版本删除完成")
 	return timeline, nil
 }
 
@@ -445,7 +445,7 @@ func (s *OrganizationTemporalService) changeOrganizationStatus(ctx context.Conte
 		return nil, fmt.Errorf("无效租户ID: %w", err)
 	}
 
-	s.logger.Printf("🔄 %s组织: Code=%s, 生效日期=%s", operationType, req.Code, req.EffectiveDate.Format("2006-01-02"))
+	s.logger.Infof("%s 组织: Code=%s, 生效日期=%s", operationType, req.Code, req.EffectiveDate.Format("2006-01-02"))
 
 	// 并发互斥锁
 	lockKey := fmt.Sprintf("%s:%s", req.TenantID, req.Code)
@@ -476,7 +476,7 @@ func (s *OrganizationTemporalService) changeOrganizationStatus(ctx context.Conte
 	}
 
 	if newRecordID == uuid.Nil {
-		s.logger.Printf("⚠️ 未找到新创建的%s版本，跳过审计", operationType)
+		s.logger.Warnf("未找到新创建的%s版本，跳过审计", operationType)
 	} else {
 		err = s.auditWriter.WriteAuditInTx(ctx, tx, &repository.AuditEntry{
 			TenantID:        tenantID,
@@ -511,7 +511,7 @@ func (s *OrganizationTemporalService) changeOrganizationStatus(ctx context.Conte
 		return nil, fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	s.logger.Printf("✅ 组织%s完成", operationType)
+	s.logger.Infof("组织%s完成", operationType)
 	return timeline, nil
 }
 
