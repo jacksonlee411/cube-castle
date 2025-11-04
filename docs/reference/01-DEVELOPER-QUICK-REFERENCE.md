@@ -75,6 +75,24 @@ make db-rollback-last   # 使用 Goose 回滚最近一条迁移
 - 共享基础设施：`pkg/database`（连接池 + 事务 + outbox）、`pkg/eventbus`、`pkg/logger`、`internal/auth`
 - 迁移与 Schema 管理：`database/migrations/`（Goose up/down + Atlas diff），配置文件位于 `atlas.hcl`、`goose.yaml`
 
+### 命令服务启动依赖
+- 数据库：命令服务通过 `pkg/database.NewDatabaseWithConfig` 创建连接池，默认 DSN `postgres://user:password@localhost:5432/cubecastle?sslmode=disable`，ServiceName 请设置为 `command-service` 方便指标区分。  
+  ```go
+  dbClient, _ := database.NewDatabaseWithConfig(database.ConnectionConfig{
+      DSN:         os.Getenv("DATABASE_URL"),
+      ServiceName: "command-service",
+  })
+  sqlDB := dbClient.GetDB()
+  database.RegisterMetrics(prometheus.DefaultRegisterer)
+  outboxRepo := database.NewOutboxRepository(dbClient)
+  ```
+  > 所有 repository/service/audit 组件均复用同一 `*sql.DB`；Plan 217B 的 outbox dispatcher 将直接注入 `outboxRepo`。
+- 事件总线：启动时创建单例 `eventbus.NewMemoryEventBus(logger, metrics)`，并注入需要的模块。Plan 217B 会复用该实例消费 outbox 事件。
+- 日志：默认使用 `pkg/logger.NewLogger` + `WithFields` 嵌入 `service=command` 等上下文字段；Plan 218 已全面移除 `log.*` 直接调用。
+- 优雅停机：命令服务捕获 SIGINT/SIGTERM，需确保未来的 outbox dispatcher 在 goroutine 中启动，支持 context 取消并在 shutdown 阶段调用 `Stop()`。
+- Outbox Dispatcher 配置：通过环境变量 `OUTBOX_DISPATCH_INTERVAL`、`OUTBOX_DISPATCH_BATCH_SIZE`、`OUTBOX_DISPATCH_MAX_RETRY`、`OUTBOX_DISPATCH_BACKOFF_BASE`、`OUTBOX_DISPATCH_METRIC_PREFIX` 调整行为，默认值分别为 `5s`、`50`、`10`、`5s`、`outbox_dispatch`。
+- 集成测试：执行 `make test-db-up` 后运行 `go test -tags=integration ./cmd/hrms-server/command/internal/outbox`，验证成功/重试/停机场景；完成后 `make test-db-down` 清理环境。
+
 ### 数据库初始化（迁移优先）
 - 规范：严禁使用过时的初始建表脚本；仅通过 `database/migrations/` 按序迁移来初始化/升级数据库。
 - 一键迁移：

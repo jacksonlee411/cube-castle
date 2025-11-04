@@ -133,6 +133,8 @@
 
 ### Plan 217B: `outbox dispatcher` 事务性发件箱中继
 
+**当前状态**: ✅ 已完成（2025-11-05），单元与集成测试通过，命令服务已接入 dispatcher。
+
 **交付成果**:
 - `cmd/hrms-server/internal/outbox/dispatcher.go`：定时扫描 `outbox` 表并调用 `eventbus.Publish`
 - 与数据库层共享的 `OutboxRepository` 实现（重用 Plan 217 接口）

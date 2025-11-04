@@ -14,17 +14,21 @@ import (
 	"cube-castle/cmd/hrms-server/command/internal/authbff"
 	"cube-castle/cmd/hrms-server/command/internal/handlers"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
+	"cube-castle/cmd/hrms-server/command/internal/outbox"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
 	"cube-castle/cmd/hrms-server/command/internal/services"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
 	"cube-castle/cmd/hrms-server/command/internal/validators"
 	auth "cube-castle/internal/auth"
 	config "cube-castle/internal/config"
+	"cube-castle/pkg/database"
+	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -41,7 +45,11 @@ func main() {
 	commandLogger.Info("🚀 启动组织命令服务...")
 	authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
 
-	var db *sql.DB
+	var (
+		dbClient   *database.Database
+		sqlDB      *sql.DB
+		outboxRepo database.OutboxRepository
+	)
 	if !authOnlyMode {
 		// 数据库连接
 		dbURL := os.Getenv("DATABASE_URL")
@@ -50,22 +58,43 @@ func main() {
 		}
 
 		var err error
-		db, err = sql.Open("postgres", dbURL)
+		dbClient, err = database.NewDatabaseWithConfig(database.ConnectionConfig{
+			DSN:         dbURL,
+			ServiceName: "command-service",
+		})
 		if err != nil {
 			commandLogger.Errorf("数据库连接失败: %v", err)
 			os.Exit(1)
 		}
-		defer db.Close()
+		defer dbClient.Close()
+		sqlDB = dbClient.GetDB()
+		database.RegisterMetrics(prometheus.DefaultRegisterer)
 
 		// 验证数据库连接
-		if err := db.Ping(); err != nil {
+		if err := sqlDB.Ping(); err != nil {
 			commandLogger.Errorf("数据库连接验证失败: %v", err)
 			os.Exit(1)
 		}
 
 		commandLogger.Info("✅ 数据库连接成功")
+		outboxRepo = database.NewOutboxRepository(dbClient)
+		commandLogger.Infof("✅ Outbox 仓储初始化完成（impl=%T）", outboxRepo)
 	} else {
 		commandLogger.Info("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
+	}
+
+	eventBus := eventbus.NewMemoryEventBus(commandLogger, nil)
+	commandLogger.Info("✅ 事件总线初始化完成（内存实现）")
+
+	var dispatcher *outbox.Dispatcher
+	if !authOnlyMode {
+		outboxCfg, err := outbox.LoadConfig()
+		if err != nil {
+			commandLogger.Errorf("[FATAL] Outbox dispatcher 配置无效: %v", err)
+			os.Exit(1)
+		}
+		dispatcher = outbox.NewDispatcher(outboxCfg, outboxRepo, eventBus, commandLogger, prometheus.DefaultRegisterer, dbClient.WithTx)
+		commandLogger.Infof("✅ Outbox dispatcher 预备就绪 (interval=%s batch=%d maxRetry=%d)", outboxCfg.PollInterval, outboxCfg.BatchSize, outboxCfg.MaxRetry)
 	}
 
 	var (
@@ -80,16 +109,16 @@ func main() {
 	)
 	if !authOnlyMode {
 		// 初始化仓储层
-		orgRepo = repository.NewOrganizationRepository(db, commandLogger)
-		jobCatalogRepo = repository.NewJobCatalogRepository(db, commandLogger)
-		positionRepo = repository.NewPositionRepository(db, commandLogger)
-		positionAssignmentRepo = repository.NewPositionAssignmentRepository(db, commandLogger)
-		hierarchyRepo = repository.NewHierarchyRepository(db, commandLogger)
+		orgRepo = repository.NewOrganizationRepository(sqlDB, commandLogger)
+		jobCatalogRepo = repository.NewJobCatalogRepository(sqlDB, commandLogger)
+		positionRepo = repository.NewPositionRepository(sqlDB, commandLogger)
+		positionAssignmentRepo = repository.NewPositionAssignmentRepository(sqlDB, commandLogger)
+		hierarchyRepo = repository.NewHierarchyRepository(sqlDB, commandLogger)
 
 		// 初始化业务服务层
 		cascadeService = services.NewCascadeUpdateService(hierarchyRepo, 4, commandLogger)
 		businessValidator = validators.NewBusinessRuleValidator(hierarchyRepo, orgRepo, commandLogger)
-		auditLogger = audit.NewAuditLogger(db, commandLogger)
+		auditLogger = audit.NewAuditLogger(sqlDB, commandLogger)
 
 		// 启动级联更新服务
 		cascadeService.Start()
@@ -138,7 +167,7 @@ func main() {
 	})
 	var restAuthMiddleware *auth.RESTPermissionMiddleware
 	if !authOnlyMode {
-		permissionChecker := auth.NewPBACPermissionChecker(db, commandLogger)
+		permissionChecker := auth.NewPBACPermissionChecker(sqlDB, commandLogger)
 		restAuthMiddleware = auth.NewRESTPermissionMiddleware(
 			jwtMiddleware,
 			permissionChecker,
@@ -156,13 +185,13 @@ func main() {
 	// 初始化时态服务
 	var temporalService *services.TemporalService
 	if !authOnlyMode {
-		temporalService = services.NewTemporalService(db, commandLogger, orgRepo)
+		temporalService = services.NewTemporalService(sqlDB, commandLogger, orgRepo)
 	}
 
 	// 初始化监控服务
 	var temporalMonitor *services.TemporalMonitor
 	if !authOnlyMode {
-		temporalMonitor = services.NewTemporalMonitor(db, commandLogger)
+		temporalMonitor = services.NewTemporalMonitor(sqlDB, commandLogger)
 	}
 
 	// 初始化运维调度器占位
@@ -171,7 +200,7 @@ func main() {
 	// 初始化时态时间轴管理器
 	var timelineManager *repository.TemporalTimelineManager
 	if !authOnlyMode {
-		timelineManager = repository.NewTemporalTimelineManager(db, commandLogger)
+		timelineManager = repository.NewTemporalTimelineManager(sqlDB, commandLogger)
 	}
 
 	// 初始化处理器
@@ -185,7 +214,7 @@ func main() {
 	if !authOnlyMode {
 		positionService := services.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, auditLogger, commandLogger)
 		jobCatalogService := services.NewJobCatalogService(jobCatalogRepo, auditLogger, commandLogger)
-		operationalScheduler = services.NewOperationalScheduler(db, commandLogger, temporalMonitor, positionService)
+		operationalScheduler = services.NewOperationalScheduler(sqlDB, commandLogger, temporalMonitor, positionService)
 
 		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, commandLogger, timelineManager, hierarchyRepo, businessValidator)
 		positionHandler = handlers.NewPositionHandler(positionService, commandLogger)
@@ -193,7 +222,7 @@ func main() {
 		operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, rateLimitMiddleware, commandLogger)
 	}
 	// 开发工具路由即使在 authOnly 模式下也允许初始化（内部会根据 devMode 控制）
-	devToolsHandler = handlers.NewDevToolsHandler(jwtMiddleware, commandLogger, devMode, db)
+	devToolsHandler = handlers.NewDevToolsHandler(jwtMiddleware, commandLogger, devMode, sqlDB)
 
 	// 设置路由
 	r := chi.NewRouter()
@@ -300,6 +329,13 @@ func main() {
 	// 启动运维调度器
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	if !authOnlyMode && dispatcher != nil {
+		if err := dispatcher.Start(ctx); err != nil {
+			commandLogger.Errorf("[FATAL] Outbox dispatcher 启动失败: %v", err)
+			os.Exit(1)
+		}
+		commandLogger.Info("✅ Outbox dispatcher 已启动")
+	}
 	if !authOnlyMode {
 		operationalScheduler.Start(ctx)
 		commandLogger.Info("✅ 运维任务调度器已启动")
@@ -320,6 +356,7 @@ func main() {
 	<-quit
 
 	commandLogger.Info("🛑 正在关闭服务...")
+	cancel()
 
 	if !authOnlyMode {
 		// 停止级联更新服务
@@ -329,6 +366,14 @@ func main() {
 		// 停止运维调度器
 		operationalScheduler.Stop()
 		commandLogger.Info("✅ 运维任务调度器已停止")
+
+		if dispatcher != nil {
+			if err := dispatcher.Stop(); err != nil {
+				commandLogger.Errorf("outbox dispatcher 停止失败: %v", err)
+			} else {
+				commandLogger.Info("✅ Outbox dispatcher 已停止")
+			}
+		}
 	}
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)

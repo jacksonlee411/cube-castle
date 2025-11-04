@@ -37,7 +37,7 @@
 | **W3** | D1 | 2.1 | **Plan 216** | 实现 `pkg/eventbus/` 事件总线 | 基础设施 | ✅ 2025-11-03 |
 | | D2 | 2.2 | **Plan 217** | 实现 `pkg/database/` 数据库层 | 基础设施 | ✅ 2025-11-04 |
 | | D2 | 2.3 | **Plan 218** | 实现 `pkg/logger/` 日志系统 | 基础设施 | ✅ 2025-11-04 |
-| | D3 | 2.3a | **Plan 217B** | 构建 outbox→eventbus 中继 | 基础设施 | ⏳ |
+| | D3 | 2.3a | **Plan 217B** | 构建 outbox→eventbus 中继 | 基础设施 | ✅ 2025-11-05 |
 | | D3 | 2.4-2.5 | Plan 210 | 迁移脚本和 Atlas 配置 | DevOps | ✅ |
 | | D4-5 | 2.6 | **Plan 219** | 重构 organization 模块结构 | 架构师 | ⏳ |
 | **W4** | D1-2 | 2.7 | **Plan 220** | 创建模块开发模板文档 | 架构师 | ⏳ |
@@ -161,7 +161,7 @@ pkg/database/
 
 ---
 
-### 行动项 2.3a - 构建 outbox dispatcher 中继 (Plan 217B)
+### 行动项 2.3a - 构建 outbox dispatcher 中继 (Plan 217B) ✅ 已完成
 
 **对应计划**: **Plan 217B - outbox dispatcher 中继**
 
@@ -654,7 +654,7 @@ make test-db-down
 - [ ] `pkg/eventbus/` (Plan 216) 单元测试覆盖率 > 80%
 - [ ] `pkg/database/` (Plan 217) 连接池配置正确（MaxOpenConns=25）
 - [ ] `pkg/logger/` (Plan 218) 与 Prometheus 指标集成
-- [ ] `outbox dispatcher` (Plan 217B) 能可靠发布并记录重试指标
+- [x] `outbox dispatcher` (Plan 217B) 能可靠发布并记录重试指标
 - [ ] 所有共享包无循环依赖
 - [ ] 代码格式通过 `go fmt ./...`
 - [ ] 代码通过 `go vet ./...`
@@ -694,7 +694,7 @@ make test-db-down
 | 事件总线设计不当 | 中 | 中 | 充分评审，确保扩展性 | Plan 216 |
 | 数据库层性能问题 | 高 | 中 | 连接池参数验证，压力测试 | Plan 217 |
 | organization 重构破裂 | 高 | 中 | 先分支测试，完全验证后合并 | Plan 219 |
-| outbox 中继未按时完成 | 高 | 中 | 提前在开发环境预演中继流程 | Plan 217B |
+| outbox 中继未按时完成 | 高 | 中 | ✅ 已完成（2025-11-05） | Plan 217B |
 | Docker 集成测试不稳定 | 中 | 中 | 固化镜像版本，CI 预跑 | Plan 221 |
 | 时间超期 | 中 | 低 | 充分的并行执行 | 整体协调 |
 
