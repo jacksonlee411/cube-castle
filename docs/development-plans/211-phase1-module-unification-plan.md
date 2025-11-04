@@ -6,10 +6,11 @@
 **最后更新**: 2025-11-03  
 **评审状态**: ✅ 2025-11-03 复评通过（批准执行）  
 **执行负责人**: Codex（全栈执行）  
-**关联文档**:  
-- `204-HRMS-Implementation-Roadmap.md`（阶段整体路线图）  
-- `203-hrms-module-division-plan.md`（模块划分）  
-- `CLAUDE.md`（核心原则）  
+**关联文档**:
+- `204-HRMS-Implementation-Roadmap.md`（阶段整体路线图）
+- `203-hrms-module-division-plan.md`（模块划分）
+- `205-HRMS-Transition-Plan.md`（背景参考：问题诊断与设计决议）
+- `CLAUDE.md`（核心原则）
 - `AGENTS.md`（代理执行规范）
 
 ---
