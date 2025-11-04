@@ -24,6 +24,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -40,9 +41,10 @@ func main() {
 	authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
 
 	var (
-		dbClient   *database.Database
-		sqlDB      *sql.DB
-		outboxRepo database.OutboxRepository
+		dbClient    *database.Database
+		sqlDB       *sql.DB
+		outboxRepo  database.OutboxRepository
+		redisClient *redis.Client
 	)
 	if !authOnlyMode {
 		// 数据库连接
@@ -73,6 +75,11 @@ func main() {
 		commandLogger.Info("✅ 数据库连接成功")
 		outboxRepo = database.NewOutboxRepository(dbClient)
 		commandLogger.Infof("✅ Outbox 仓储初始化完成（impl=%T）", outboxRepo)
+
+		redisClient = openRedis(commandLogger)
+		if redisClient != nil {
+			defer redisClient.Close()
+		}
 	} else {
 		commandLogger.Info("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
 	}
@@ -80,14 +87,21 @@ func main() {
 	eventBus := eventbus.NewMemoryEventBus(commandLogger, nil)
 	commandLogger.Info("✅ 事件总线初始化完成（内存实现）")
 
-	var dispatcher *outbox.Dispatcher
+	var (
+		dispatcher      *outbox.Dispatcher
+		assignmentCache organization.AssignmentFacade
+	)
 	if !authOnlyMode {
 		outboxCfg, err := outbox.LoadConfig()
 		if err != nil {
 			commandLogger.Errorf("[FATAL] Outbox dispatcher 配置无效: %v", err)
 			os.Exit(1)
 		}
-		dispatcher = outbox.NewDispatcher(outboxCfg, outboxRepo, eventBus, commandLogger, prometheus.DefaultRegisterer, dbClient.WithTx)
+
+		queryRepo := organization.NewQueryRepository(sqlDB, redisClient, commandLogger, organization.DefaultAuditHistoryConfig())
+		assignmentCache = organization.NewAssignmentFacade(queryRepo, redisClient, commandLogger, time.Minute)
+
+		dispatcher = outbox.NewDispatcher(outboxCfg, outboxRepo, eventBus, commandLogger, prometheus.DefaultRegisterer, dbClient.WithTx, assignmentCache)
 		commandLogger.Infof("✅ Outbox dispatcher 预备就绪 (interval=%s batch=%d maxRetry=%d)", outboxCfg.PollInterval, outboxCfg.BatchSize, outboxCfg.MaxRetry)
 	}
 
@@ -355,4 +369,25 @@ func main() {
 	} else {
 		commandLogger.Info("✅ 服务已安全关闭")
 	}
+}
+
+func openRedis(logger pkglogger.Logger) *redis.Client {
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		addr = "localhost:6379"
+	}
+	client := redis.NewClient(&redis.Options{Addr: addr})
+	if err := client.Ping(context.Background()).Err(); err != nil {
+		logger.WithFields(pkglogger.Fields{
+			"component": "redis",
+			"error":     err,
+		}).Warn("Redis连接失败，将跳过缓存刷新")
+		client.Close()
+		return nil
+	}
+	logger.WithFields(pkglogger.Fields{
+		"component": "redis",
+		"address":   addr,
+	}).Info("✅ Redis连接成功")
+	return client
 }

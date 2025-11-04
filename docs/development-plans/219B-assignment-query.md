@@ -4,6 +4,7 @@
 **关联路线图**: Plan 219  
 **依赖子计划**: 219A 完成目录/Facade 基线  
 **目标周期**: Week 4 Day 18（紧随 204 行动 2.6，提前对齐 2.7/2.8）  
+**状态**: ✅ 已完成（2025-11-05）  
 **负责人**: 查询服务组 + 后端团队  
 
 ---
@@ -36,19 +37,23 @@
      - `GetAssignmentHistory(ctx, tenant, positionCode, filter, paging)`
      - `GetAssignmentStats(ctx, tenant, positionCode, orgCode)`
    - SQL 使用现有 timeline/assignment 表，确保与 Temporal 数据一致。
+   - ✅ 2025-11-05：实现并通过 `sqlmock` 覆盖空数据场景（参见 `internal/organization/repository/postgres_assignment_repository_test.go`）。
 
 2. **GraphQL Resolver**
    - 扩展 resolver：`assignments`, `assignmentHistory`, `assignmentStats` 等查询。
    - 更新 GraphQL schema（如需新增字段），并保持向后兼容。
+   - ✅ 2025-11-05：`resolver` 引入 `AssignmentProvider` 接口，`schema.graphql` 增补三类查询片段。
 
 3. **QueryFacade & 缓存刷新**
    - 在 Facade 中实现 `GetAssignmentHistory`、`RefreshPositionCache` 等方法。
    - 在 dispatcher 中，根据 `AssignmentFilledEventType`、`AssignmentVacatedEventType` 触发缓存刷新。
    - 记录刷新策略（刷新单个职位缓存 vs. 刷新列表）。
+   - ✅ 2025-11-05：`internal/organization/query_facade.go` 引入 Redis 缓存与失效策略，Outbox dispatcher 识别 `assignment.*` 事件后刷新缓存。
 4. **测试与脚本**
    - 单元测试：Repository（使用 sqlmock）、Resolver（使用 mock Facade）。
    - 集成测试：`go test ./internal/organization/... -tags=integration`（针对 assignment 查询）。
    - 端到端脚本：模拟 fill/vacate→查询历史→验证响应。
+   - ✅ 新增 `query_facade_test.go` 与 `assignment_resolver_test.go`，确保缓存命中以及 GraphQL 授权路径。
 5. **文档同步**
    - 在 `internal/organization/README.md` 的“查询与缓存”小节记录新增 Facade 方法、缓存刷新策略与测试脚本路径。
 

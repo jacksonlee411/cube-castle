@@ -42,6 +42,8 @@ type stubRepository struct {
 	headcountFn                      func(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*dto.HeadcountStats, error)
 	assignmentsFn                    func(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
 	assignmentAuditFn                func(ctx context.Context, tenantID uuid.UUID, positionCode string, assignmentID *string, dateRange *dto.DateRangeInput, pagination *dto.PaginationInput) (*dto.PositionAssignmentAuditConnection, error)
+	assignmentHistoryFn              func(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
+	assignmentStatsFn                func(ctx context.Context, tenantID uuid.UUID, positionCode string, organizationCode string) (*dto.AssignmentStats, error)
 	capturedSorting                  []dto.PositionSortInput
 	capturedFilter                   *dto.PositionFilterInput
 	capturedPagination               *dto.PaginationInput
@@ -133,6 +135,20 @@ func (s *stubRepository) GetPositionAssignmentAudit(ctx context.Context, tenantI
 	s.capturedAuditDateRange = dateRange
 	s.capturedAuditPagination = pagination
 	return s.assignmentAuditFn(ctx, tenantID, positionCode, assignmentID, dateRange, pagination)
+}
+
+func (s *stubRepository) GetAssignmentHistory(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
+	if s.assignmentHistoryFn == nil {
+		panic("assignmentHistoryFn not configured")
+	}
+	return s.assignmentHistoryFn(ctx, tenantID, positionCode, filter, pagination, sorting)
+}
+
+func (s *stubRepository) GetAssignmentStats(ctx context.Context, tenantID uuid.UUID, positionCode string, organizationCode string) (*dto.AssignmentStats, error) {
+	if s.assignmentStatsFn == nil {
+		panic("assignmentStatsFn not configured")
+	}
+	return s.assignmentStatsFn(ctx, tenantID, positionCode, organizationCode)
 }
 
 func (s *stubRepository) GetPositionTimeline(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]dto.PositionTimelineEntry, error) {

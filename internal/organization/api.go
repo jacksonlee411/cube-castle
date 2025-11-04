@@ -5,17 +5,20 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"time"
 
 	auth "cube-castle/internal/auth"
 	auditpkg "cube-castle/internal/organization/audit"
+	dto "cube-castle/internal/organization/dto"
 	handlerpkg "cube-castle/internal/organization/handler"
 	middlewarepkg "cube-castle/internal/organization/middleware"
 	repositorypkg "cube-castle/internal/organization/repository"
-	resolver "cube-castle/internal/organization/resolver"
+	"cube-castle/internal/organization/resolver"
 	servicepkg "cube-castle/internal/organization/service"
 	utilspkg "cube-castle/internal/organization/utils"
 	validatorpkg "cube-castle/internal/organization/validator"
 	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -36,6 +39,12 @@ type QueryRepository = repositorypkg.PostgreSQLRepository
 type QueryRepositoryInterface = resolver.QueryRepository
 type QueryResolver = resolver.Resolver
 type QueryPermissionChecker = resolver.PermissionChecker
+type AssignmentFacade interface {
+	GetAssignments(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
+	GetAssignmentHistory(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
+	GetAssignmentStats(ctx context.Context, tenantID uuid.UUID, positionCode string, organizationCode string) (*dto.AssignmentStats, error)
+	RefreshPositionCache(ctx context.Context, tenantID uuid.UUID, positionCode string) error
+}
 
 type CommandModule struct {
 	DB           *sql.DB
@@ -191,8 +200,24 @@ func NewQueryRepository(db *sql.DB, redisClient *redis.Client, logger pkglogger.
 	return repositorypkg.NewPostgreSQLRepository(db, redisClient, logger, auditConfig)
 }
 
-func NewQueryResolver(repo QueryRepositoryInterface, logger pkglogger.Logger, permissions QueryPermissionChecker) *resolver.Resolver {
+func NewQueryResolver(repo QueryRepositoryInterface, assignments resolver.AssignmentProvider, logger pkglogger.Logger, permissions QueryPermissionChecker) *resolver.Resolver {
+	if assignments != nil {
+		return resolver.NewResolverWithAssignments(repo, assignments, logger, permissions)
+	}
 	return resolver.NewResolver(repo, logger, permissions)
+}
+
+func NewAssignmentFacade(repo *repositorypkg.PostgreSQLRepository, redisClient *redis.Client, logger pkglogger.Logger, cacheTTL time.Duration) *AssignmentQueryFacade {
+	return NewAssignmentQueryFacade(repo, redisClient, logger, cacheTTL)
+}
+
+func DefaultAuditHistoryConfig() AuditHistoryConfig {
+	return AuditHistoryConfig{
+		StrictValidation:        true,
+		AllowFallback:           true,
+		CircuitBreakerThreshold: 25,
+		LegacyMode:              false,
+	}
 }
 
 func RequestIDMiddleware(next http.Handler) http.Handler {

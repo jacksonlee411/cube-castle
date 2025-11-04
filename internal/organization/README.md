@@ -36,4 +36,10 @@
 - `internal/organization/api.go` 暴露 `CommandModule` 及 `CommandHandlers` 构建函数，命令服务只需依赖该 API。
 - 查询服务通过 `internal/organization/resolver` & `repository` 注入 GraphQL 应用。
 
+## 查询与缓存（219B）
+
+- `AssignmentQueryFacade` 提供统一的任职查询、历史与统计接口，并负责 Redis 缓存键管理（前缀 `org:assignment:stats`）。
+- 缓存策略：职位维度统计命中 Redis，TTL 默认 2 分钟，命令侧 Outbox Dispatcher 发布 `assignment.*` 事件后调用 `RefreshPositionCache` 触发失效。
+- GraphQL 新增查询：`assignments`、`assignmentHistory`、`assignmentStats` 均通过 Facade 获取数据，保持与 `docs/api/schema.graphql` 契约一致。
+
 后续 219B~219E 将在本 README 中继续补充审计/验证规则、调度说明、测试脚本等章节。

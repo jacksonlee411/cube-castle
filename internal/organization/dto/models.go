@@ -787,6 +787,54 @@ func (c PositionAssignmentConnection) TotalCount() int32 {
 	return int32(c.TotalCountField)
 }
 
+// AssignmentStats 任职统计
+type AssignmentStats struct {
+	PositionCodeField     *string   `json:"positionCode"`
+	OrganizationCodeField *string   `json:"organizationCode"`
+	TotalCountField       int       `json:"totalAssignments"`
+	ActiveCountField      int       `json:"activeAssignments"`
+	PendingCountField     int       `json:"pendingAssignments"`
+	EndedCountField       int       `json:"endedAssignments"`
+	PrimaryCountField     int       `json:"primaryAssignments"`
+	SecondaryCountField   int       `json:"secondaryAssignments"`
+	ActingCountField      int       `json:"actingAssignments"`
+	LastUpdatedAtField    time.Time `json:"lastUpdatedAt"`
+}
+
+func (s AssignmentStats) PositionCode() *PositionCode {
+	if s.PositionCodeField == nil {
+		return nil
+	}
+	value := strings.TrimSpace(*s.PositionCodeField)
+	if value == "" {
+		return nil
+	}
+	code := PositionCode(value)
+	return &code
+}
+
+func (s AssignmentStats) OrganizationCode() *string {
+	if s.OrganizationCodeField == nil {
+		return nil
+	}
+	value := strings.TrimSpace(*s.OrganizationCodeField)
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func (s AssignmentStats) TotalAssignments() int32     { return int32(s.TotalCountField) }
+func (s AssignmentStats) ActiveAssignments() int32    { return int32(s.ActiveCountField) }
+func (s AssignmentStats) PendingAssignments() int32   { return int32(s.PendingCountField) }
+func (s AssignmentStats) EndedAssignments() int32     { return int32(s.EndedCountField) }
+func (s AssignmentStats) PrimaryAssignments() int32   { return int32(s.PrimaryCountField) }
+func (s AssignmentStats) SecondaryAssignments() int32 { return int32(s.SecondaryCountField) }
+func (s AssignmentStats) ActingAssignments() int32    { return int32(s.ActingCountField) }
+func (s AssignmentStats) LastUpdatedAt() DateTime {
+	return DateTime(s.LastUpdatedAtField.Format(time.RFC3339))
+}
+
 type PositionAssignmentAudit struct {
 	AssignmentIDField  string                 `json:"assignmentId"`
 	EventTypeField     string                 `json:"eventType"`

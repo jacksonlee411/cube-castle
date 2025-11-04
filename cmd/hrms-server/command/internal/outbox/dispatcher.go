@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -21,6 +23,7 @@ type Dispatcher struct {
 	logger  pkglogger.Logger
 	metrics *metrics
 	withTx  func(ctx context.Context, fn database.TxFunc) error
+	cache   AssignmentCacheRefresher
 
 	mu     sync.Mutex
 	cancel context.CancelFunc
@@ -29,7 +32,7 @@ type Dispatcher struct {
 
 const maxBackoff = 5 * time.Minute
 
-func NewDispatcher(cfg Config, repo database.OutboxRepository, bus eventbus.EventBus, logger pkglogger.Logger, reg prometheus.Registerer, withTx func(ctx context.Context, fn database.TxFunc) error) *Dispatcher {
+func NewDispatcher(cfg Config, repo database.OutboxRepository, bus eventbus.EventBus, logger pkglogger.Logger, reg prometheus.Registerer, withTx func(ctx context.Context, fn database.TxFunc) error, cache AssignmentCacheRefresher) *Dispatcher {
 	if logger == nil {
 		logger = pkglogger.NewNoopLogger()
 	}
@@ -40,6 +43,7 @@ func NewDispatcher(cfg Config, repo database.OutboxRepository, bus eventbus.Even
 		logger:  logger.WithFields(pkglogger.Fields{"component": "outbox-dispatcher"}),
 		metrics: newMetrics(cfg.MetricNamespace, reg),
 		withTx:  withTx,
+		cache:   cache,
 	}
 }
 
@@ -161,6 +165,7 @@ func (d *Dispatcher) publishOne(ctx context.Context, evt *database.OutboxEvent) 
 		p := now
 		evt.PublishedAt = &p
 	}
+	d.handlePostPublish(ctx, evt)
 	return nil
 }
 
@@ -181,4 +186,93 @@ func (d *Dispatcher) nextBackoff(retryCount int) time.Duration {
 func (d *Dispatcher) asEvent(evt *database.OutboxEvent) eventbus.Event {
 	payload := json.RawMessage(evt.Payload)
 	return eventbus.NewGenericJSONEvent(evt.EventType, evt.AggregateID, evt.AggregateType, payload)
+}
+
+type AssignmentCacheRefresher interface {
+	RefreshPositionCache(ctx context.Context, tenantID uuid.UUID, positionCode string) error
+}
+
+const (
+	eventAssignmentFilled  = "assignment.filled"
+	eventAssignmentVacated = "assignment.vacated"
+	eventAssignmentUpdated = "assignment.updated"
+	eventAssignmentClosed  = "assignment.closed"
+)
+
+type assignmentEventPayload struct {
+	TenantID     string `json:"tenantId"`
+	PositionCode string `json:"positionCode"`
+	Position     struct {
+		Code string `json:"code"`
+	} `json:"position"`
+}
+
+func (d *Dispatcher) handlePostPublish(ctx context.Context, evt *database.OutboxEvent) {
+	if evt == nil {
+		return
+	}
+	switch evt.EventType {
+	case eventAssignmentFilled, eventAssignmentVacated, eventAssignmentUpdated, eventAssignmentClosed:
+		d.invalidateAssignmentCache(ctx, evt)
+	}
+}
+
+func (d *Dispatcher) invalidateAssignmentCache(ctx context.Context, evt *database.OutboxEvent) {
+	if d.cache == nil || evt == nil {
+		return
+	}
+
+	var payload assignmentEventPayload
+	if err := json.Unmarshal([]byte(evt.Payload), &payload); err != nil {
+		d.logger.WithFields(pkglogger.Fields{
+			"eventId": evt.EventID,
+			"type":    evt.EventType,
+			"error":   err,
+		}).Warn("failed to decode assignment event payload")
+		return
+	}
+
+	positionCode := strings.TrimSpace(payload.PositionCode)
+	if positionCode == "" {
+		positionCode = strings.TrimSpace(payload.Position.Code)
+	}
+	if positionCode == "" {
+		d.logger.WithFields(pkglogger.Fields{
+			"eventId": evt.EventID,
+			"type":    evt.EventType,
+		}).Warn("assignment event missing positionCode, skip cache refresh")
+		return
+	}
+
+	tenantIDStr := strings.TrimSpace(payload.TenantID)
+	if tenantIDStr == "" {
+		tenantIDStr = strings.TrimSpace(evt.AggregateID)
+	}
+	tenantUUID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		d.logger.WithFields(pkglogger.Fields{
+			"eventId":  evt.EventID,
+			"type":     evt.EventType,
+			"tenantId": tenantIDStr,
+			"error":    err,
+		}).Warn("invalid tenant id in assignment event payload")
+		return
+	}
+
+	if err := d.cache.RefreshPositionCache(ctx, tenantUUID, positionCode); err != nil {
+		d.logger.WithFields(pkglogger.Fields{
+			"eventId":      evt.EventID,
+			"type":         evt.EventType,
+			"tenantId":     tenantUUID.String(),
+			"positionCode": positionCode,
+			"error":        err,
+		}).Warn("failed to refresh assignment cache")
+	} else {
+		d.logger.WithFields(pkglogger.Fields{
+			"eventId":      evt.EventID,
+			"type":         evt.EventType,
+			"tenantId":     tenantUUID.String(),
+			"positionCode": positionCode,
+		}).Debug("assignment cache refreshed")
+	}
 }

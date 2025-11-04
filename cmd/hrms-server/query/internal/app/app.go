@@ -96,6 +96,7 @@ func (a *Application) run() error {
 
 	auditConfig := loadAuditHistoryConfig()
 	repo := organization.NewQueryRepository(a.db, a.redisClient, a.logger, auditConfig)
+	assignmentFacade := organization.NewAssignmentFacade(repo, a.redisClient, a.logger, time.Minute)
 	a.log("audit.config", pkglogger.Fields{
 		"strictValidation": auditConfig.StrictValidation,
 		"allowFallback":    auditConfig.AllowFallback,
@@ -103,7 +104,7 @@ func (a *Application) run() error {
 		"legacyMode":       auditConfig.LegacyMode,
 	}).Info("⚙️ 审计历史配置加载完成")
 
-	a.server, err = a.buildServer(repo)
+	a.server, err = a.buildServer(repo, assignmentFacade)
 	if err != nil {
 		return fmt.Errorf("build server: %w", err)
 	}
@@ -188,7 +189,7 @@ func (a *Application) openRedis() *redis.Client {
 	return client
 }
 
-func (a *Application) buildServer(repo *organization.QueryRepository) (*http.Server, error) {
+func (a *Application) buildServer(repo *organization.QueryRepository, assignmentFacade organization.AssignmentFacade) (*http.Server, error) {
 	jwtConfig := config.GetJWTConfig()
 	devMode := getEnv("DEV_MODE", "true") == "true"
 
@@ -222,7 +223,7 @@ func (a *Application) buildServer(repo *organization.QueryRepository) (*http.Ser
 		"audience":  jwtConfig.Audience,
 	}).Info("🔐 JWT认证初始化完成")
 
-	gqlResolver := organization.NewQueryResolver(repo, a.logger, graphqlMiddleware)
+	gqlResolver := organization.NewQueryResolver(repo, assignmentFacade, a.logger, graphqlMiddleware)
 	schemaPath := schemaLoader.GetDefaultSchemaPath()
 	schemaString := schemaLoader.MustLoadSchema(schemaPath)
 	schema := graphqlgo.MustParseSchema(schemaString, gqlResolver)

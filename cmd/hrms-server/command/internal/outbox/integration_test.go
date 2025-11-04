@@ -67,7 +67,7 @@ func TestDispatcherIntegration(t *testing.T) {
 			MetricNamespace: "test_outbox",
 		}
 
-		dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx)
+        dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
 
 		// 启动dispatcher
 		ctx, cancel := context.WithCancel(context.Background())
@@ -132,7 +132,7 @@ func TestDispatcherIntegration(t *testing.T) {
 			MetricNamespace: "test_outbox_fail",
 		}
 
-		dispatcher := NewDispatcher(cfg, repo, failBus, logger, reg, dbClient.WithTx)
+        dispatcher := NewDispatcher(cfg, repo, failBus, logger, reg, dbClient.WithTx, nil)
 
 		// 启动dispatcher
 		ctx, cancel := context.WithCancel(context.Background())
@@ -191,7 +191,7 @@ func TestDispatcherIntegration(t *testing.T) {
 			MetricNamespace: "test_outbox_shutdown",
 		}
 
-		dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx)
+        dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
 
 		// 启动dispatcher
 		ctx, cancel := context.WithCancel(context.Background())
@@ -246,7 +246,7 @@ func TestDispatcherIntegration(t *testing.T) {
 			MetricNamespace: "test_outbox_idempotent",
 		}
 
-		dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx)
+        dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()

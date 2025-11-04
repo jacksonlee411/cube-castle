@@ -3,6 +3,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"cube-castle/internal/auth"
 	"cube-castle/internal/organization/dto"
@@ -36,6 +37,14 @@ type QueryRepository interface {
 	GetJobLevels(ctx context.Context, tenantID uuid.UUID, roleCode string, includeInactive bool, asOfDate *string) ([]dto.JobLevel, error)
 	GetAuditHistory(ctx context.Context, tenantID uuid.UUID, recordID string, startDate, endDate, operation, userID *string, limit int) ([]dto.AuditRecordData, error)
 	GetAuditLog(ctx context.Context, auditID string) (*dto.AuditRecordData, error)
+	GetAssignmentHistory(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
+	GetAssignmentStats(ctx context.Context, tenantID uuid.UUID, positionCode string, organizationCode string) (*dto.AssignmentStats, error)
+}
+
+type AssignmentProvider interface {
+	GetAssignments(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
+	GetAssignmentHistory(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
+	GetAssignmentStats(ctx context.Context, tenantID uuid.UUID, positionCode string, organizationCode string) (*dto.AssignmentStats, error)
 }
 
 type PermissionChecker interface {
@@ -43,18 +52,29 @@ type PermissionChecker interface {
 }
 
 type Resolver struct {
-	repo        QueryRepository
-	logger      pkglogger.Logger
-	permissions PermissionChecker
+	repo         QueryRepository
+	logger       pkglogger.Logger
+	permissions  PermissionChecker
+	assignFacade AssignmentProvider
 }
 
 func NewResolver(repo QueryRepository, logger pkglogger.Logger, permissions PermissionChecker) *Resolver {
 	if logger == nil {
 		logger = pkglogger.NewNoopLogger()
 	}
-	return &Resolver{repo: repo, logger: logger.WithFields(pkglogger.Fields{
-		"component": "query-resolver",
-	}), permissions: permissions}
+	return &Resolver{
+		repo: repo,
+		logger: logger.WithFields(pkglogger.Fields{
+			"component": "query-resolver",
+		}),
+		permissions: permissions,
+	}
+}
+
+func NewResolverWithAssignments(repo QueryRepository, assignments AssignmentProvider, logger pkglogger.Logger, permissions PermissionChecker) *Resolver {
+	res := NewResolver(repo, logger, permissions)
+	res.assignFacade = assignments
+	return res
 }
 
 func (r *Resolver) loggerFor(resolverName, operation string, fields pkglogger.Fields) pkglogger.Logger {
@@ -371,6 +391,91 @@ func (r *Resolver) PositionAssignments(ctx context.Context, args struct {
 	return r.repo.GetPositionAssignments(ctx, tenantID, args.PositionCode, args.Filter, args.Pagination, sorting)
 }
 
+// Assignments 查询多职位任职记录，兼容组织维度过滤
+func (r *Resolver) Assignments(ctx context.Context, args struct {
+	OrganizationCode *string
+	PositionCode     *string
+	Filter           *dto.PositionAssignmentFilterInput
+	Pagination       *dto.PaginationInput
+	Sorting          *[]dto.PositionAssignmentSortInput
+}) (*dto.PositionAssignmentConnection, error) {
+	log := r.loggerFor("assignments", "list", nil)
+	if err := r.authorize(ctx, "assignments", log); err != nil {
+		return nil, err
+	}
+
+	if r.assignFacade == nil {
+		return nil, fmt.Errorf("ASSIGNMENT_QUERY_FACADE_NOT_CONFIGURED")
+	}
+
+	positionCode := ""
+	if args.PositionCode != nil {
+		positionCode = strings.TrimSpace(*args.PositionCode)
+	}
+	if positionCode == "" {
+		return nil, fmt.Errorf("POSITION_CODE_REQUIRED")
+	}
+
+	tenantID := r.resolveTenant(ctx, log)
+	var sorting []dto.PositionAssignmentSortInput
+	if args.Sorting != nil {
+		sorting = *args.Sorting
+	}
+	return r.assignFacade.GetAssignments(ctx, tenantID, positionCode, args.Filter, args.Pagination, sorting)
+}
+
+// AssignmentHistory 查询职位任职历史
+func (r *Resolver) AssignmentHistory(ctx context.Context, args struct {
+	PositionCode string
+	Filter       *dto.PositionAssignmentFilterInput
+	Pagination   *dto.PaginationInput
+	Sorting      *[]dto.PositionAssignmentSortInput
+}) (*dto.PositionAssignmentConnection, error) {
+	log := r.loggerFor("assignments", "history", pkglogger.Fields{"positionCode": args.PositionCode})
+	if err := r.authorize(ctx, "assignmentHistory", log); err != nil {
+		return nil, err
+	}
+	if r.assignFacade == nil {
+		return nil, fmt.Errorf("ASSIGNMENT_QUERY_FACADE_NOT_CONFIGURED")
+	}
+	tenantID := r.resolveTenant(ctx, log)
+	var sorting []dto.PositionAssignmentSortInput
+	if args.Sorting != nil {
+		sorting = *args.Sorting
+	}
+	return r.assignFacade.GetAssignmentHistory(ctx, tenantID, args.PositionCode, args.Filter, args.Pagination, sorting)
+}
+
+// AssignmentStats 查询职位或组织的任职统计
+func (r *Resolver) AssignmentStats(ctx context.Context, args struct {
+	OrganizationCode *string
+	PositionCode     *string
+}) (*dto.AssignmentStats, error) {
+	log := r.loggerFor("assignments", "stats", pkglogger.Fields{
+		"positionCode":     args.PositionCode,
+		"organizationCode": args.OrganizationCode,
+	})
+	if err := r.authorize(ctx, "assignmentStats", log); err != nil {
+		return nil, err
+	}
+	if r.assignFacade == nil {
+		return nil, fmt.Errorf("ASSIGNMENT_QUERY_FACADE_NOT_CONFIGURED")
+	}
+	positionCode := ""
+	if args.PositionCode != nil {
+		positionCode = strings.TrimSpace(*args.PositionCode)
+	}
+	orgCode := ""
+	if args.OrganizationCode != nil {
+		orgCode = strings.TrimSpace(*args.OrganizationCode)
+	}
+	if positionCode == "" && orgCode == "" {
+		return nil, fmt.Errorf("POSITION_OR_ORGANIZATION_REQUIRED")
+	}
+	tenantID := r.resolveTenant(ctx, log)
+	return r.assignFacade.GetAssignmentStats(ctx, tenantID, positionCode, orgCode)
+}
+
 func (r *Resolver) PositionAssignmentAudit(ctx context.Context, args struct {
 	PositionCode string
 	AssignmentId *string
@@ -416,6 +521,19 @@ func (r *Resolver) PositionTimeline(ctx context.Context, args struct {
 	log.Info("查询职位时间线")
 
 	return r.repo.GetPositionTimeline(ctx, sharedconfig.DefaultTenantID, args.Code, args.StartDate, args.EndDate)
+}
+
+func (r *Resolver) resolveTenant(ctx context.Context, log pkglogger.Logger) uuid.UUID {
+	tenantID := sharedconfig.DefaultTenantID
+	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
+		parsed, err := uuid.Parse(tenantStr)
+		if err != nil {
+			log.WithFields(pkglogger.Fields{"tenantId": tenantStr, "error": err}).Warn("invalid tenant id")
+			return sharedconfig.DefaultTenantID
+		}
+		return parsed
+	}
+	return tenantID
 }
 
 // PositionVersions 查询职位版本列表
