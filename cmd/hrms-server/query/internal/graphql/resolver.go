@@ -53,8 +53,30 @@ func NewResolver(repo QueryRepository, logger pkglogger.Logger, permissions Perm
 		logger = pkglogger.NewNoopLogger()
 	}
 	return &Resolver{repo: repo, logger: logger.WithFields(pkglogger.Fields{
-		"component": "graphqlResolver",
+		"component": "query-resolver",
 	}), permissions: permissions}
+}
+
+func (r *Resolver) loggerFor(resolverName, operation string, fields pkglogger.Fields) pkglogger.Logger {
+	log := r.logger
+	if resolverName != "" {
+		log = log.WithFields(pkglogger.Fields{"resolver": resolverName})
+	}
+	if operation != "" {
+		log = log.WithFields(pkglogger.Fields{"operation": operation})
+	}
+	if len(fields) > 0 {
+		log = log.WithFields(fields)
+	}
+	return log
+}
+
+func (r *Resolver) authorize(ctx context.Context, queryName string, log pkglogger.Logger) error {
+	if err := r.permissions.CheckQueryPermission(ctx, queryName); err != nil {
+		log.WithFields(pkglogger.Fields{"error": err}).Warn("permission denied")
+		return fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	}
+	return nil
 }
 
 // 当前组织列表查询 - 符合API契约v4.2.1 (camelCase方法名)
@@ -62,18 +84,19 @@ func (r *Resolver) Organizations(ctx context.Context, args struct {
 	Filter     *model.OrganizationFilter
 	Pagination *model.PaginationInput
 }) (*model.OrganizationConnection, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "organizations"); err != nil {
-		r.logger.Warnf("权限拒绝: organizations: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("organizations", "list", pkglogger.Fields{
+		"tenantId": sharedconfig.DefaultTenantID.String(),
+	})
+	if err := r.authorize(ctx, "organizations", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("查询组织列表 - API契约v4.2.1")
+	log.Info("处理组织列表查询")
 
-	// 记录查询参数用于调试
 	if args.Filter != nil {
-		r.logger.Infof("过滤条件: %+v", *args.Filter)
+		log.WithFields(pkglogger.Fields{"filter": args.Filter}).Info("附带过滤参数")
 	}
 	if args.Pagination != nil {
-		r.logger.Infof("分页参数: %+v", *args.Pagination)
+		log.WithFields(pkglogger.Fields{"pagination": args.Pagination}).Info("附带分页参数")
 	}
 
 	return r.repo.GetOrganizations(ctx, sharedconfig.DefaultTenantID, args.Filter, args.Pagination)
@@ -84,11 +107,14 @@ func (r *Resolver) Organization(ctx context.Context, args struct {
 	Code     string
 	AsOfDate *string
 }) (*model.Organization, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "organization"); err != nil {
-		r.logger.Warnf("权限拒绝: organization: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("organization", "get", pkglogger.Fields{
+		"tenantId": sharedconfig.DefaultTenantID.String(),
+		"code":     args.Code,
+	})
+	if err := r.authorize(ctx, "organization", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("查询单个组织 - code: %s", args.Code)
+	log.Info("查询单个组织")
 	return r.repo.GetOrganization(ctx, sharedconfig.DefaultTenantID, args.Code)
 }
 
@@ -97,11 +123,15 @@ func (r *Resolver) OrganizationAtDate(ctx context.Context, args struct {
 	Code string
 	Date string
 }) (*model.Organization, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "organizationAtDate"); err != nil {
-		r.logger.Warnf("权限拒绝: organizationAtDate: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("organization", "temporal", pkglogger.Fields{
+		"tenantId": sharedconfig.DefaultTenantID.String(),
+		"code":     args.Code,
+		"date":     args.Date,
+	})
+	if err := r.authorize(ctx, "organizationAtDate", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("时态查询 - code: %s, date: %s", args.Code, args.Date)
+	log.Info("执行组织时态查询")
 	return r.repo.GetOrganizationAtDate(ctx, sharedconfig.DefaultTenantID, args.Code, args.Date)
 }
 
@@ -111,11 +141,16 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 	FromDate string
 	ToDate   string
 }) ([]model.Organization, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "organizationHistory"); err != nil {
-		r.logger.Warnf("权限拒绝: organizationHistory: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("organization", "history", pkglogger.Fields{
+		"tenantId": sharedconfig.DefaultTenantID.String(),
+		"code":     args.Code,
+		"from":     args.FromDate,
+		"to":       args.ToDate,
+	})
+	if err := r.authorize(ctx, "organizationHistory", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("历史查询 - code: %s, range: %s~%s", args.Code, args.FromDate, args.ToDate)
+	log.Info("执行组织历史查询")
 	return r.repo.GetOrganizationHistory(ctx, sharedconfig.DefaultTenantID, args.Code, args.FromDate, args.ToDate)
 }
 
@@ -124,17 +159,19 @@ func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
 	Code           string
 	IncludeDeleted graphqlgo.NullBool
 }) ([]model.Organization, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "organizationVersions"); err != nil {
-		r.logger.Warnf("权限拒绝: organizationVersions: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-	}
-
 	includeDeleted := false
 	if args.IncludeDeleted.Set && args.IncludeDeleted.Value != nil {
 		includeDeleted = *args.IncludeDeleted.Value
 	}
-
-	r.logger.Infof("版本查询 - code: %s, includeDeleted: %v", args.Code, includeDeleted)
+	log := r.loggerFor("organization", "versions", pkglogger.Fields{
+		"tenantId":       sharedconfig.DefaultTenantID.String(),
+		"code":           args.Code,
+		"includeDeleted": includeDeleted,
+	})
+	if err := r.authorize(ctx, "organizationVersions", log); err != nil {
+		return nil, err
+	}
+	log.Info("执行组织版本查询")
 	return r.repo.GetOrganizationVersions(ctx, sharedconfig.DefaultTenantID, args.Code, includeDeleted)
 }
 
@@ -143,11 +180,13 @@ func (r *Resolver) OrganizationStats(ctx context.Context, args struct {
 	AsOfDate          *string
 	IncludeHistorical bool
 }) (*model.OrganizationStats, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "organizationStats"); err != nil {
-		r.logger.Warnf("权限拒绝: organizationStats: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("organization", "stats", pkglogger.Fields{
+		"tenantId": sharedconfig.DefaultTenantID.String(),
+	})
+	if err := r.authorize(ctx, "organizationStats", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("统计查询")
+	log.Info("执行组织统计查询")
 	return r.repo.GetOrganizationStats(ctx, sharedconfig.DefaultTenantID)
 }
 
@@ -156,14 +195,17 @@ func (r *Resolver) OrganizationHierarchy(ctx context.Context, args struct {
 	Code     string
 	TenantId string
 }) (*model.OrganizationHierarchyData, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "organizationHierarchy"); err != nil {
-		r.logger.Warnf("权限拒绝: organizationHierarchy: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("organization", "hierarchy", pkglogger.Fields{
+		"code": args.Code,
+	})
+	if err := r.authorize(ctx, "organizationHierarchy", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("层级结构查询 - code: %s, tenantId: %s", args.Code, args.TenantId)
+	log.WithFields(pkglogger.Fields{"tenantId": args.TenantId}).Info("执行组织层级查询")
 
 	tenantID, err := uuid.Parse(args.TenantId)
 	if err != nil {
+		log.WithFields(pkglogger.Fields{"error": err}).Warn("invalid tenant ID")
 		return nil, fmt.Errorf("invalid tenant ID: %w", err)
 	}
 
@@ -176,14 +218,18 @@ func (r *Resolver) OrganizationSubtree(ctx context.Context, args struct {
 	MaxDepth        int32
 	IncludeInactive bool
 }) ([]model.OrganizationHierarchyData, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "organizationSubtree"); err != nil {
-		r.logger.Warnf("权限拒绝: organizationSubtree: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("organization", "subtree", pkglogger.Fields{
+		"code":     args.Code,
+		"maxDepth": args.MaxDepth,
+	})
+	if err := r.authorize(ctx, "organizationSubtree", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("子树查询 - code: %s, tenantId: %s, maxDepth: %v", args.Code, args.TenantId, args.MaxDepth)
+	log.WithFields(pkglogger.Fields{"tenantId": args.TenantId, "includeInactive": args.IncludeInactive}).Info("执行组织子树查询")
 
 	tenantID, err := uuid.Parse(args.TenantId)
 	if err != nil {
+		log.WithFields(pkglogger.Fields{"error": err}).Warn("invalid tenant ID")
 		return nil, fmt.Errorf("invalid tenant ID: %w", err)
 	}
 
@@ -225,9 +271,9 @@ func (r *Resolver) HierarchyStatistics(ctx context.Context, args struct {
 	TenantId              string
 	IncludeIntegrityCheck bool
 }) (*model.HierarchyStatistics, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "hierarchyStatistics"); err != nil {
-		r.logger.Warnf("权限拒绝: hierarchyStatistics: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("organization", "hierarchyStats", pkglogger.Fields{"tenantId": args.TenantId, "includeIntegrityCheck": args.IncludeIntegrityCheck})
+	if err := r.authorize(ctx, "hierarchyStatistics", log); err != nil {
+		return nil, err
 	}
 
 	// TODO: 实现实际的层级统计逻辑
@@ -250,16 +296,20 @@ func (r *Resolver) Positions(ctx context.Context, args struct {
 	Pagination *model.PaginationInput
 	Sorting    *[]model.PositionSortInput
 }) (*model.PositionConnection, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "positions"); err != nil {
-		r.logger.Warnf("权限拒绝: positions: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("position", "list", pkglogger.Fields{"tenantId": sharedconfig.DefaultTenantID.String()})
+	if err := r.authorize(ctx, "positions", log); err != nil {
+		return nil, err
 	}
 
 	var sorting []model.PositionSortInput
 	if args.Sorting != nil {
 		sorting = *args.Sorting
 	}
-	r.logger.Infof("查询职位列表 filter=%+v pagination=%+v sort=%d", args.Filter, args.Pagination, len(sorting))
+	log.WithFields(pkglogger.Fields{
+		"filter":     args.Filter,
+		"pagination": args.Pagination,
+		"sortCount":  len(sorting),
+	}).Info("查询职位列表")
 
 	return r.repo.GetPositions(ctx, sharedconfig.DefaultTenantID, args.Filter, args.Pagination, sorting)
 }
@@ -269,11 +319,15 @@ func (r *Resolver) Position(ctx context.Context, args struct {
 	Code     string
 	AsOfDate *string
 }) (*model.Position, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "position"); err != nil {
-		r.logger.Warnf("权限拒绝: position: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("position", "get", pkglogger.Fields{
+		"tenantId": sharedconfig.DefaultTenantID.String(),
+		"code":     args.Code,
+		"asOfDate": args.AsOfDate,
+	})
+	if err := r.authorize(ctx, "position", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("查询职位详情 code=%s asOfDate=%v", args.Code, args.AsOfDate)
+	log.Info("查询职位详情")
 
 	return r.repo.GetPositionByCode(ctx, sharedconfig.DefaultTenantID, args.Code, args.AsOfDate)
 }
@@ -285,18 +339,18 @@ func (r *Resolver) PositionAssignments(ctx context.Context, args struct {
 	Pagination   *model.PaginationInput
 	Sorting      *[]model.PositionAssignmentSortInput
 }) (*model.PositionAssignmentConnection, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "positionAssignments"); err != nil {
-		r.logger.Warnf("权限拒绝: positionAssignments: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("position", "assignments", pkglogger.Fields{
+		"positionCode": args.PositionCode,
+	})
+	if err := r.authorize(ctx, "positionAssignments", log); err != nil {
+		return nil, err
 	}
 
-	var (
-		tenantID = sharedconfig.DefaultTenantID
-	)
+	tenantID := sharedconfig.DefaultTenantID
 	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
 		parsed, err := uuid.Parse(tenantStr)
 		if err != nil {
-			r.logger.Warnf("非法租户ID: %s", tenantStr)
+			log.WithFields(pkglogger.Fields{"tenantId": tenantStr, "error": err}).Warn("invalid tenant id")
 			return nil, fmt.Errorf("INVALID_TENANT")
 		}
 		tenantID = parsed
@@ -307,8 +361,12 @@ func (r *Resolver) PositionAssignments(ctx context.Context, args struct {
 		sorting = *args.Sorting
 	}
 
-	r.logger.Infof("查询职位任职 positionCode=%s filter=%+v pagination=%+v sort=%d tenant=%s",
-		args.PositionCode, args.Filter, args.Pagination, len(sorting), tenantID.String())
+	log.WithFields(pkglogger.Fields{
+		"tenantId":   tenantID.String(),
+		"filter":     args.Filter,
+		"pagination": args.Pagination,
+		"sortCount":  len(sorting),
+	}).Info("查询职位任职记录")
 
 	return r.repo.GetPositionAssignments(ctx, tenantID, args.PositionCode, args.Filter, args.Pagination, sorting)
 }
@@ -319,22 +377,25 @@ func (r *Resolver) PositionAssignmentAudit(ctx context.Context, args struct {
 	DateRange    *model.DateRangeInput
 	Pagination   *model.PaginationInput
 }) (*model.PositionAssignmentAuditConnection, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "positionAssignmentAudit"); err != nil {
-		r.logger.Warnf("权限拒绝: positionAssignmentAudit: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("position", "assignmentAudit", pkglogger.Fields{
+		"positionCode": args.PositionCode,
+		"assignmentId": args.AssignmentId,
+	})
+	if err := r.authorize(ctx, "positionAssignmentAudit", log); err != nil {
+		return nil, err
 	}
 
 	tenantID := sharedconfig.DefaultTenantID
 	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
 		parsed, err := uuid.Parse(tenantStr)
 		if err != nil {
-			r.logger.Warnf("非法租户ID: %s", tenantStr)
+			log.WithFields(pkglogger.Fields{"tenantId": tenantStr, "error": err}).Warn("invalid tenant id")
 			return nil, fmt.Errorf("INVALID_TENANT")
 		}
 		tenantID = parsed
 	}
 
-	r.logger.Infof("查询任职审计 positionCode=%s assignmentId=%v", args.PositionCode, args.AssignmentId)
+	log.WithFields(pkglogger.Fields{"tenantId": tenantID.String(), "dateRange": args.DateRange}).Info("查询任职审计记录")
 	return r.repo.GetPositionAssignmentAudit(ctx, tenantID, args.PositionCode, args.AssignmentId, args.DateRange, args.Pagination)
 }
 
@@ -344,11 +405,15 @@ func (r *Resolver) PositionTimeline(ctx context.Context, args struct {
 	StartDate *string
 	EndDate   *string
 }) ([]model.PositionTimelineEntry, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "positionTimeline"); err != nil {
-		r.logger.Warnf("权限拒绝: positionTimeline: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("position", "timeline", pkglogger.Fields{
+		"code":      args.Code,
+		"startDate": args.StartDate,
+		"endDate":   args.EndDate,
+	})
+	if err := r.authorize(ctx, "positionTimeline", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("查询职位时间线 code=%s start=%v end=%v", args.Code, args.StartDate, args.EndDate)
+	log.Info("查询职位时间线")
 
 	return r.repo.GetPositionTimeline(ctx, sharedconfig.DefaultTenantID, args.Code, args.StartDate, args.EndDate)
 }
@@ -358,17 +423,19 @@ func (r *Resolver) PositionVersions(ctx context.Context, args struct {
 	Code           string
 	IncludeDeleted graphqlgo.NullBool
 }) ([]model.Position, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "positionVersions"); err != nil {
-		r.logger.Warnf("权限拒绝: positionVersions: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
-	}
-
 	includeDeleted := false
 	if args.IncludeDeleted.Set && args.IncludeDeleted.Value != nil {
 		includeDeleted = *args.IncludeDeleted.Value
 	}
-
-	r.logger.Infof("查询职位版本 code=%s includeDeleted=%v", args.Code, includeDeleted)
+	log := r.loggerFor("position", "versions", pkglogger.Fields{
+		"code":           args.Code,
+		"includeDeleted": includeDeleted,
+		"tenantId":       sharedconfig.DefaultTenantID.String(),
+	})
+	if err := r.authorize(ctx, "positionVersions", log); err != nil {
+		return nil, err
+	}
+	log.Info("查询职位版本列表")
 
 	return r.repo.GetPositionVersions(ctx, sharedconfig.DefaultTenantID, args.Code, includeDeleted)
 }
@@ -379,16 +446,16 @@ func (r *Resolver) VacantPositions(ctx context.Context, args struct {
 	Pagination *model.PaginationInput
 	Sorting    *[]model.VacantPositionSortInput
 }) (*model.VacantPositionConnection, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "vacantPositions"); err != nil {
-		r.logger.Warnf("权限拒绝: vacantPositions: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("position", "vacant", nil)
+	if err := r.authorize(ctx, "vacantPositions", log); err != nil {
+		return nil, err
 	}
 
 	tenantID := sharedconfig.DefaultTenantID
 	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
 		parsed, err := uuid.Parse(tenantStr)
 		if err != nil {
-			r.logger.Warnf("无效租户ID: %s", tenantStr)
+			log.WithFields(pkglogger.Fields{"tenantId": tenantStr, "error": err}).Warn("invalid tenant id")
 			return nil, fmt.Errorf("INVALID_TENANT")
 		}
 		tenantID = parsed
@@ -399,8 +466,12 @@ func (r *Resolver) VacantPositions(ctx context.Context, args struct {
 		sorting = *args.Sorting
 	}
 
-	r.logger.Infof("查询空缺职位 filter=%+v pagination=%+v sort=%d tenant=%s",
-		args.Filter, args.Pagination, len(sorting), tenantID.String())
+	log.WithFields(pkglogger.Fields{
+		"tenantId":   tenantID.String(),
+		"filter":     args.Filter,
+		"pagination": args.Pagination,
+		"sortCount":  len(sorting),
+	}).Info("查询空缺职位")
 
 	return r.repo.GetVacantPositionConnection(ctx, tenantID, args.Filter, args.Pagination, sorting)
 }
@@ -411,23 +482,28 @@ func (r *Resolver) PositionTransfers(ctx context.Context, args struct {
 	OrganizationCode *string
 	Pagination       *model.PaginationInput
 }) (*model.PositionTransferConnection, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "positionTransfers"); err != nil {
-		r.logger.Warnf("权限拒绝: positionTransfers: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("position", "transfers", pkglogger.Fields{
+		"positionCode":     args.PositionCode,
+		"organizationCode": args.OrganizationCode,
+	})
+	if err := r.authorize(ctx, "positionTransfers", log); err != nil {
+		return nil, err
 	}
 
 	tenantID := sharedconfig.DefaultTenantID
 	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
 		parsed, err := uuid.Parse(tenantStr)
 		if err != nil {
-			r.logger.Warnf("无效租户ID: %s", tenantStr)
+			log.WithFields(pkglogger.Fields{"tenantId": tenantStr, "error": err}).Warn("invalid tenant id")
 			return nil, fmt.Errorf("INVALID_TENANT")
 		}
 		tenantID = parsed
 	}
 
-	r.logger.Infof("查询职位转移 positionCode=%v organizationCode=%v pagination=%+v tenant=%s",
-		args.PositionCode, args.OrganizationCode, args.Pagination, tenantID.String())
+	log.WithFields(pkglogger.Fields{
+		"tenantId":   tenantID.String(),
+		"pagination": args.Pagination,
+	}).Info("查询职位转移记录")
 
 	return r.repo.GetPositionTransfers(ctx, tenantID, args.PositionCode, args.OrganizationCode, args.Pagination)
 }
@@ -437,9 +513,9 @@ func (r *Resolver) PositionHeadcountStats(ctx context.Context, args struct {
 	OrganizationCode    string
 	IncludeSubordinates graphqlgo.NullBool
 }) (*model.HeadcountStats, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "positionHeadcountStats"); err != nil {
-		r.logger.Warnf("权限拒绝: positionHeadcountStats: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("position", "headcountStats", pkglogger.Fields{"organizationCode": args.OrganizationCode})
+	if err := r.authorize(ctx, "positionHeadcountStats", log); err != nil {
+		return nil, err
 	}
 	includeSubordinates := true
 	if args.IncludeSubordinates.Set && args.IncludeSubordinates.Value != nil {
@@ -449,12 +525,15 @@ func (r *Resolver) PositionHeadcountStats(ctx context.Context, args struct {
 	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
 		parsed, err := uuid.Parse(tenantStr)
 		if err != nil {
-			r.logger.Warnf("无效租户ID: %s", tenantStr)
+			log.WithFields(pkglogger.Fields{"tenantId": tenantStr, "error": err}).Warn("invalid tenant id")
 			return nil, fmt.Errorf("INVALID_TENANT")
 		}
 		tenantID = parsed
 	}
-	r.logger.Infof("查询职位编制统计 org=%s includeSub=%v tenant=%s", args.OrganizationCode, includeSubordinates, tenantID.String())
+	log.WithFields(pkglogger.Fields{
+		"tenantId":           tenantID.String(),
+		"includeSubordinate": includeSubordinates,
+	}).Info("查询职位编制统计")
 
 	return r.repo.GetPositionHeadcountStats(ctx, tenantID, args.OrganizationCode, includeSubordinates)
 }
@@ -464,15 +543,15 @@ func (r *Resolver) JobFamilyGroups(ctx context.Context, args struct {
 	IncludeInactive graphqlgo.NullBool
 	AsOfDate        *string
 }) ([]model.JobFamilyGroup, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "jobFamilyGroups"); err != nil {
-		r.logger.Warnf("权限拒绝: jobFamilyGroups: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("jobCatalog", "familyGroups", nil)
+	if err := r.authorize(ctx, "jobFamilyGroups", log); err != nil {
+		return nil, err
 	}
 	includeInactive := false
 	if args.IncludeInactive.Set && args.IncludeInactive.Value != nil {
 		includeInactive = *args.IncludeInactive.Value
 	}
-	r.logger.Infof("查询职类 includeInactive=%v asOf=%v", includeInactive, args.AsOfDate)
+	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职类")
 
 	return r.repo.GetJobFamilyGroups(ctx, sharedconfig.DefaultTenantID, includeInactive, args.AsOfDate)
 }
@@ -483,15 +562,15 @@ func (r *Resolver) JobFamilies(ctx context.Context, args struct {
 	IncludeInactive graphqlgo.NullBool
 	AsOfDate        *string
 }) ([]model.JobFamily, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "jobFamilies"); err != nil {
-		r.logger.Warnf("权限拒绝: jobFamilies: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("jobCatalog", "families", pkglogger.Fields{"groupCode": args.GroupCode})
+	if err := r.authorize(ctx, "jobFamilies", log); err != nil {
+		return nil, err
 	}
 	includeInactive := false
 	if args.IncludeInactive.Set && args.IncludeInactive.Value != nil {
 		includeInactive = *args.IncludeInactive.Value
 	}
-	r.logger.Infof("查询职种 group=%s includeInactive=%v asOf=%v", args.GroupCode, includeInactive, args.AsOfDate)
+	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职种")
 
 	return r.repo.GetJobFamilies(ctx, sharedconfig.DefaultTenantID, args.GroupCode, includeInactive, args.AsOfDate)
 }
@@ -502,15 +581,15 @@ func (r *Resolver) JobRoles(ctx context.Context, args struct {
 	IncludeInactive graphqlgo.NullBool
 	AsOfDate        *string
 }) ([]model.JobRole, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "jobRoles"); err != nil {
-		r.logger.Warnf("权限拒绝: jobRoles: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("jobCatalog", "roles", pkglogger.Fields{"familyCode": args.FamilyCode})
+	if err := r.authorize(ctx, "jobRoles", log); err != nil {
+		return nil, err
 	}
 	includeInactive := false
 	if args.IncludeInactive.Set && args.IncludeInactive.Value != nil {
 		includeInactive = *args.IncludeInactive.Value
 	}
-	r.logger.Infof("查询职务 family=%s includeInactive=%v asOf=%v", args.FamilyCode, includeInactive, args.AsOfDate)
+	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职务")
 
 	return r.repo.GetJobRoles(ctx, sharedconfig.DefaultTenantID, args.FamilyCode, includeInactive, args.AsOfDate)
 }
@@ -521,15 +600,15 @@ func (r *Resolver) JobLevels(ctx context.Context, args struct {
 	IncludeInactive graphqlgo.NullBool
 	AsOfDate        *string
 }) ([]model.JobLevel, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "jobLevels"); err != nil {
-		r.logger.Warnf("权限拒绝: jobLevels: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("jobCatalog", "levels", pkglogger.Fields{"roleCode": args.RoleCode})
+	if err := r.authorize(ctx, "jobLevels", log); err != nil {
+		return nil, err
 	}
 	includeInactive := false
 	if args.IncludeInactive.Set && args.IncludeInactive.Value != nil {
 		includeInactive = *args.IncludeInactive.Value
 	}
-	r.logger.Infof("查询职级 role=%s includeInactive=%v asOf=%v", args.RoleCode, includeInactive, args.AsOfDate)
+	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职级")
 
 	return r.repo.GetJobLevels(ctx, sharedconfig.DefaultTenantID, args.RoleCode, includeInactive, args.AsOfDate)
 }
@@ -543,11 +622,13 @@ func (r *Resolver) AuditHistory(ctx context.Context, args struct {
 	UserId    *string
 	Limit     int32
 }) ([]model.AuditRecordData, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "auditHistory"); err != nil {
-		r.logger.Warnf("权限拒绝: auditHistory: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("audit", "history", pkglogger.Fields{
+		"recordId": args.RecordId,
+		"limit":    args.Limit,
+	})
+	if err := r.authorize(ctx, "auditHistory", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("审计历史查询 - recordId: %s", args.RecordId)
 
 	limit := int32(50) // 默认限制
 	if args.Limit > 0 {
@@ -557,17 +638,25 @@ func (r *Resolver) AuditHistory(ctx context.Context, args struct {
 		}
 	}
 
-	// 从上下文获取租户ID，强制租户隔离
 	tenantStr := auth.GetTenantID(ctx)
 	if tenantStr == "" {
-		r.logger.Warnf("缺少租户ID，拒绝审计历史查询")
+		log.Warn("缺少租户ID，拒绝审计历史查询")
 		return nil, fmt.Errorf("TENANT_REQUIRED")
 	}
 	tenantUUID, err := uuid.Parse(tenantStr)
 	if err != nil {
-		r.logger.Warnf("无效租户ID: %s", tenantStr)
+		log.WithFields(pkglogger.Fields{"tenantId": tenantStr, "error": err}).Warn("无效租户ID")
 		return nil, fmt.Errorf("INVALID_TENANT")
 	}
+
+	log.WithFields(pkglogger.Fields{
+		"tenantId":  tenantUUID.String(),
+		"startDate": args.StartDate,
+		"endDate":   args.EndDate,
+		"operation": args.Operation,
+		"userId":    args.UserId,
+		"limit":     limit,
+	}).Info("执行审计历史查询")
 
 	return r.repo.GetAuditHistory(ctx, tenantUUID, args.RecordId, args.StartDate, args.EndDate, args.Operation, args.UserId, int(limit))
 }
@@ -576,10 +665,10 @@ func (r *Resolver) AuditHistory(ctx context.Context, args struct {
 func (r *Resolver) AuditLog(ctx context.Context, args struct {
 	AuditId string
 }) (*model.AuditRecordData, error) {
-	if err := r.permissions.CheckQueryPermission(ctx, "auditLog"); err != nil {
-		r.logger.Warnf("权限拒绝: auditLog: %v", err)
-		return nil, fmt.Errorf("INSUFFICIENT_PERMISSIONS")
+	log := r.loggerFor("audit", "log", pkglogger.Fields{"auditId": args.AuditId})
+	if err := r.authorize(ctx, "auditLog", log); err != nil {
+		return nil, err
 	}
-	r.logger.Infof("单条审计记录查询 - auditId: %s", args.AuditId)
+	log.Info("单条审计记录查询")
 	return r.repo.GetAuditLog(ctx, args.AuditId)
 }

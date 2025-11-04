@@ -12,6 +12,7 @@ import (
 
 	"cube-castle/cmd/hrms-server/query/internal/model"
 	"cube-castle/internal/auth"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 )
 
@@ -19,9 +20,29 @@ import (
 func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uuid.UUID, recordId string, startDate, endDate, operation, userId *string, limit int) ([]model.AuditRecordData, error) {
 	start := time.Now()
 
+	logFields := pkglogger.Fields{
+		"tenantId": tenantId.String(),
+		"recordId": recordId,
+		"limit":    limit,
+	}
+
+	addOptional := func(key string, value *string) {
+		if value != nil {
+			if trimmed := strings.TrimSpace(*value); trimmed != "" {
+				logFields[key] = trimmed
+			}
+		}
+	}
+	addOptional("startDate", startDate)
+	addOptional("endDate", endDate)
+	addOptional("operation", operation)
+	addOptional("userId", userId)
+
+	log := r.loggerFor("audit.history", logFields)
+
 	recordUUID, err := uuid.Parse(recordId)
 	if err != nil {
-		r.logger.Errorf("无效的 recordId: %s", recordId)
+		log.Warn("invalid recordId")
 		return nil, fmt.Errorf("INVALID_RECORD_ID")
 	}
 
@@ -102,7 +123,7 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 
 	rows, err := r.db.QueryContext(ctx, finalQuery, args...)
 	if err != nil {
-		r.logger.Errorf("审计历史查询失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("audit history query failed")
 		return nil, err
 	}
 	defer rows.Close()
@@ -118,12 +139,16 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("record_id审计查询完成，返回 %d 条记录，耗时: %v", len(auditRecords), duration)
+	log.WithFields(pkglogger.Fields{
+		"result_count": len(auditRecords),
+		"duration_ms":  duration.Milliseconds(),
+	}).Info("audit history query succeeded")
 
 	return auditRecords, nil
 }
 
 func (r *PostgreSQLRepository) processAuditRowsLegacy(rows *sql.Rows) ([]model.AuditRecordData, error) {
+	logger := r.loggerFor("audit.history.legacy", nil)
 	var auditRecords []model.AuditRecordData
 	for rows.Next() {
 		var record model.AuditRecordData
@@ -137,7 +162,7 @@ func (r *PostgreSQLRepository) processAuditRowsLegacy(rows *sql.Rows) ([]model.A
 			&beforeData, &afterData, &modifiedFieldsJSON, &detailedChangesJSON,
 		)
 		if err != nil {
-			r.logger.Errorf("扫描审计记录失败: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("audit history legacy scan failed")
 			return nil, err
 		}
 
@@ -186,6 +211,7 @@ func (r *PostgreSQLRepository) processAuditRowsLegacy(rows *sql.Rows) ([]model.A
 }
 
 func (r *PostgreSQLRepository) processAuditRowsStrict(rows *sql.Rows) ([]model.AuditRecordData, error) {
+	logger := r.loggerFor("audit.history.strict", nil)
 	var auditRecords []model.AuditRecordData
 	for rows.Next() {
 		var record model.AuditRecordData
@@ -202,7 +228,7 @@ func (r *PostgreSQLRepository) processAuditRowsStrict(rows *sql.Rows) ([]model.A
 			&beforeData, &afterData, &modifiedFieldsJSON, &detailedChangesJSON,
 		)
 		if err != nil {
-			r.logger.Errorf("扫描审计记录失败: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("audit history strict scan failed")
 			return nil, err
 		}
 
@@ -256,7 +282,10 @@ func (r *PostgreSQLRepository) processAuditRowsStrict(rows *sql.Rows) ([]model.A
 		}
 
 		if len(issues) > 0 {
-			r.logger.Warnf("审计记录数据异常 audit_id=%s: %s", record.AuditIDField, strings.Join(issues, "; "))
+			logger.WithFields(pkglogger.Fields{
+				"auditId": record.AuditIDField,
+				"issues":  strings.Join(issues, "; "),
+			}).Warn("audit record data warnings")
 			if r.auditConfig.StrictValidation {
 				if hasHardError && !r.auditConfig.AllowFallback {
 					return nil, fmt.Errorf("AUDIT_HISTORY_VALIDATION_FAILED")
@@ -539,7 +568,10 @@ func scanPositionTransfer(scanner rowScanner) (*model.PositionTransfer, error) {
 func (r *PostgreSQLRepository) registerValidationFailure() bool {
 	count := atomic.AddInt32(&r.validationFailureCount, 1)
 	if r.auditConfig.CircuitBreakerThreshold > 0 && count >= r.auditConfig.CircuitBreakerThreshold {
-		r.logger.Errorf("审计历史验证失败次数达到阈值 (%d/%d)，触发熔断", count, r.auditConfig.CircuitBreakerThreshold)
+		r.loggerFor("audit.history.validation", pkglogger.Fields{
+			"failureCount": count,
+			"threshold":    r.auditConfig.CircuitBreakerThreshold,
+		}).Error("audit history validation reached circuit breaker threshold")
 		return true
 	}
 	return false
@@ -554,6 +586,12 @@ func (r *PostgreSQLRepository) registerValidationSuccess() {
 // 单条审计记录查询 - v4.6.0
 func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) (*model.AuditRecordData, error) {
 	start := time.Now()
+
+	tenantID := auth.GetTenantID(ctx)
+	log := r.loggerFor("audit.log", pkglogger.Fields{
+		"auditId":  auditId,
+		"tenantId": tenantID,
+	})
 
 	query := `
         SELECT 
@@ -576,10 +614,8 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
         FROM audit_logs 
         WHERE id = $1::uuid AND resource_type = 'ORGANIZATION' AND tenant_id = $2::uuid
         LIMIT 1`
-
-	tenantID := auth.GetTenantID(ctx)
 	if tenantID == "" {
-		r.logger.Warnf("缺少租户ID，拒绝单条审计记录查询")
+		log.Warn("tenant required for audit log query")
 		return nil, fmt.Errorf("TENANT_REQUIRED")
 	}
 
@@ -598,9 +634,10 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
 
 	if err != nil {
 		if err == sql.ErrNoRows {
+			log.Debug("audit log not found")
 			return nil, nil
 		}
-		r.logger.Errorf("单条审计记录查询失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("audit log query failed")
 		return nil, err
 	}
 
@@ -619,7 +656,7 @@ func (r *PostgreSQLRepository) GetAuditLog(ctx context.Context, auditId string) 
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("单条审计记录查询完成，耗时: %v", duration)
+	log.WithFields(pkglogger.Fields{"duration_ms": duration.Milliseconds()}).Info("audit log query succeeded")
 
 	return &record, nil
 }

@@ -34,10 +34,10 @@
 ---
 
 ## 4. 验收标准
-- [ ] 查询服务代码中不再存在 `*log.Logger` 依赖。
-- [ ] Resolver 日志包含 `resolver`、`operation`、`tenant` 等字段。
-- [ ] `go test ./cmd/hrms-server/query/internal/...` 通过。
-- [ ] 文档与主计划同步更新。
+- [x] 查询服务代码中不再存在 `*log.Logger` 依赖。
+- [x] Resolver 日志包含 `resolver`、`operation`、`tenant` 等字段。
+- [x] `go test ./cmd/hrms-server/query/internal/...` 通过。
+- [x] 文档与主计划同步更新。
 
 ---
 

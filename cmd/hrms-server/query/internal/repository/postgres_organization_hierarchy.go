@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cube-castle/cmd/hrms-server/query/internal/model"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
@@ -15,6 +16,9 @@ import (
 // 高级统计查询 - 利用PostgreSQL聚合优化
 func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*model.OrganizationStats, error) {
 	start := time.Now()
+	log := r.loggerFor("organization.stats", pkglogger.Fields{
+		"tenantId": tenantID.String(),
+	})
 
 	// 使用单个复杂查询获取所有统计信息
 	query := `
@@ -81,7 +85,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 		&typeStatsJSON, &statusStatsJSON, &levelStatsJSON,
 	)
 	if err != nil {
-		r.logger.Errorf("统计查询失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization stats query failed")
 		return nil, err
 	}
 
@@ -89,7 +93,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	var typeStats []model.TypeCount
 	if typeStatsJSON != "" {
 		if err := json.Unmarshal([]byte(typeStatsJSON), &typeStats); err != nil {
-			r.logger.Warnf("解析typeStats失败: %v", err)
+			log.WithFields(pkglogger.Fields{"error": err}).Warn("failed to parse typeStats")
 		}
 	}
 	stats.ByTypeField = typeStats
@@ -97,7 +101,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	var statusStats []model.StatusCount
 	if statusStatsJSON != "" {
 		if err := json.Unmarshal([]byte(statusStatsJSON), &statusStats); err != nil {
-			r.logger.Warnf("解析statusStats失败: %v", err)
+			log.WithFields(pkglogger.Fields{"error": err}).Warn("failed to parse statusStats")
 		}
 	}
 	stats.ByStatusField = statusStats
@@ -105,7 +109,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	var levelStats []model.LevelCount
 	if levelStatsJSON != "" {
 		if err := json.Unmarshal([]byte(levelStatsJSON), &levelStats); err != nil {
-			r.logger.Warnf("解析levelStats失败: %v", err)
+			log.WithFields(pkglogger.Fields{"error": err}).Warn("failed to parse levelStats")
 		}
 	}
 	stats.ByLevelField = levelStats
@@ -124,7 +128,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("统计查询完成，耗时: %v", duration)
+	log.WithFields(pkglogger.Fields{"duration_ms": duration.Milliseconds()}).Info("organization stats query succeeded")
 
 	return &stats, nil
 }
@@ -132,6 +136,10 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
 // 高级层级结构查询 - 严格遵循API规范v4.2.1
 func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, tenantID uuid.UUID, code string) (*model.OrganizationHierarchyData, error) {
 	start := time.Now()
+	log := r.loggerFor("organization.hierarchy", pkglogger.Fields{
+		"tenantId": tenantID.String(),
+		"code":     code,
+	})
 
 	// 使用PostgreSQL递归CTE查询完整层级信息
 	query := `
@@ -224,16 +232,17 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 
 	if err != nil {
 		if err == sql.ErrNoRows {
+			log.Debug("organization hierarchy not found")
 			return nil, nil
 		}
-		r.logger.Errorf("层级结构查询失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization hierarchy query failed")
 		return nil, err
 	}
 
 	hierarchy.ParentChainField = parentChain
 
 	duration := time.Since(start)
-	r.logger.Infof("层级结构查询完成，耗时: %v", duration)
+	log.WithFields(pkglogger.Fields{"duration_ms": duration.Milliseconds()}).Info("organization hierarchy query succeeded")
 
 	return &hierarchy, nil
 }
@@ -241,6 +250,11 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
 // 组织子树查询 - 严格遵循API规范v4.2.1
 func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenantID uuid.UUID, code string, maxDepth int) (*model.OrganizationHierarchyData, error) {
 	start := time.Now()
+	log := r.loggerFor("organization.subtree", pkglogger.Fields{
+		"tenantId": tenantID.String(),
+		"code":     code,
+		"maxDepth": maxDepth,
+	})
 
 	// 使用PostgreSQL递归CTE查询子树结构，限制深度
 	query := `
@@ -274,7 +288,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 
 	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code, maxDepth)
 	if err != nil {
-		r.logger.Errorf("子树查询失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization subtree query failed")
 		return nil, err
 	}
 	defer rows.Close()
@@ -292,7 +306,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 			&node.CodePathField, &node.NamePathField, &parentCode,
 		)
 		if err != nil {
-			r.logger.Errorf("扫描子树数据失败: %v", err)
+			log.WithFields(pkglogger.Fields{"error": err}).Error("organization subtree scan failed")
 			return nil, err
 		}
 
@@ -331,7 +345,10 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("子树查询完成，返回 %d 节点，耗时: %v", len(nodeMap), duration)
+	log.WithFields(pkglogger.Fields{
+		"node_count":  len(nodeMap),
+		"duration_ms": duration.Milliseconds(),
+	}).Info("organization subtree query succeeded")
 
 	converted := convertSubtreeToHierarchy(root)
 	return converted, nil

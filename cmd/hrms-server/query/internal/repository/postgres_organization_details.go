@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"cube-castle/cmd/hrms-server/query/internal/model"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 )
 
@@ -24,6 +25,10 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
         WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
         LIMIT 1`
 
+	log := r.loggerFor("organization.get", pkglogger.Fields{
+		"tenantId": tenantID.String(),
+		"code":     code,
+	})
 	start := time.Now()
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code)
 
@@ -39,14 +44,17 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
 
 	if err != nil {
 		if err == sql.ErrNoRows {
+			log.Debug("organization not found")
 			return nil, nil
 		}
-		r.logger.Errorf("查询单个组织失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization query failed")
 		return nil, err
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("单个组织查询，耗时: %v", duration)
+	log.WithFields(pkglogger.Fields{
+		"duration_ms": duration.Milliseconds(),
+	}).Info("organization query succeeded")
 
 	return &org, nil
 }
@@ -89,6 +97,11 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
         ORDER BY effective_date DESC, created_at DESC
         LIMIT 1`
 
+	log := r.loggerFor("organization.atDate", pkglogger.Fields{
+		"tenantId": tenantID.String(),
+		"code":     code,
+		"date":     date,
+	})
 	start := time.Now()
 	row := r.db.QueryRowContext(ctx, query, tenantID.String(), code, date)
 
@@ -105,14 +118,15 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
 
 	if err != nil {
 		if err == sql.ErrNoRows {
+			log.Debug("organization snapshot not found")
 			return nil, nil
 		}
-		r.logger.Errorf("时态查询失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization temporal query failed")
 		return nil, err
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("时态点查询 [%s @ %s]，耗时: %v", code, date, duration)
+	log.WithFields(pkglogger.Fields{"duration_ms": duration.Milliseconds()}).Info("organization temporal query succeeded")
 
 	return &org, nil
 }
@@ -154,10 +168,16 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
           AND (computed_end_date IS NULL OR computed_end_date >= $3::date)
         ORDER BY effective_date DESC, created_at DESC`
 
+	log := r.loggerFor("organization.history", pkglogger.Fields{
+		"tenantId": tenantID.String(),
+		"code":     code,
+		"fromDate": fromDate,
+		"toDate":   toDate,
+	})
 	start := time.Now()
 	rows, err := r.db.QueryContext(ctx, query, tenantID.String(), code, fromDate, toDate)
 	if err != nil {
-		r.logger.Errorf("历史范围查询失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization history query failed")
 		return nil, err
 	}
 	defer rows.Close()
@@ -174,20 +194,28 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
 			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField,
 		)
 		if err != nil {
-			r.logger.Errorf("扫描历史数据失败: %v", err)
+			log.WithFields(pkglogger.Fields{"error": err}).Error("organization history scan failed")
 			return nil, err
 		}
 		organizations = append(organizations, org)
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("历史查询 [%s: %s~%s] 返回 %d 条，耗时: %v", code, fromDate, toDate, len(organizations), duration)
+	log.WithFields(pkglogger.Fields{
+		"result_count": len(organizations),
+		"duration_ms":  duration.Milliseconds(),
+	}).Info("organization history query succeeded")
 
 	return organizations, nil
 }
 
 // 组织版本查询 - 按计划规范实现，返回指定code的全部版本
 func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]model.Organization, error) {
+	log := r.loggerFor("organization.versions", pkglogger.Fields{
+		"tenantId":       tenantID.String(),
+		"code":           code,
+		"includeDeleted": includeDeleted,
+	})
 	start := time.Now()
 
 	// 构建查询 - 过滤条件：tenant_id = $tenant AND code = $code
@@ -215,7 +243,7 @@ func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tena
 
 	rows, err := r.db.QueryContext(ctx, finalQuery, args...)
 	if err != nil {
-		r.logger.Errorf("组织版本查询失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization versions query failed")
 		return nil, err
 	}
 	defer rows.Close()
@@ -233,14 +261,17 @@ func (r *PostgreSQLRepository) GetOrganizationVersions(ctx context.Context, tena
 			&org.HierarchyDepthField,
 		)
 		if err != nil {
-			r.logger.Errorf("扫描组织版本数据失败: %v", err)
+			log.WithFields(pkglogger.Fields{"error": err}).Error("organization versions scan failed")
 			return nil, err
 		}
 		organizations = append(organizations, org)
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("组织版本查询 [%s] 返回 %d 条版本，耗时: %v", code, len(organizations), duration)
+	log.WithFields(pkglogger.Fields{
+		"result_count": len(organizations),
+		"duration_ms":  duration.Milliseconds(),
+	}).Info("organization versions query succeeded")
 
 	return organizations, nil
 }

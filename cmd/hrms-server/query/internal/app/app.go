@@ -36,6 +36,17 @@ type Application struct {
 	server      *http.Server
 }
 
+func (a *Application) log(operation string, fields pkglogger.Fields) pkglogger.Logger {
+	log := a.logger
+	if operation != "" {
+		log = log.WithFields(pkglogger.Fields{"operation": operation})
+	}
+	if len(fields) == 0 {
+		return log
+	}
+	return log.WithFields(fields)
+}
+
 var (
 	httpRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -65,18 +76,16 @@ func Run() error {
 		pkglogger.WithWriter(os.Stdout),
 		pkglogger.WithLevel(pkglogger.LevelInfo),
 		pkglogger.WithCallerSkip(1),
-	)
-	app := &Application{
-		logger: baseLogger.WithFields(pkglogger.Fields{
-			"service":   "query",
-			"component": "bootstrap",
-		}),
-	}
+	).WithFields(pkglogger.Fields{
+		"service":   "query",
+		"component": "query-app",
+	})
+	app := &Application{logger: baseLogger}
 	return app.run()
 }
 
 func (a *Application) run() error {
-	a.logger.Info("🚀 启动PostgreSQL原生GraphQL服务")
+	a.log("startup", nil).Info("🚀 启动PostgreSQL原生GraphQL服务")
 
 	var err error
 	a.db, err = a.openDatabase()
@@ -87,12 +96,13 @@ func (a *Application) run() error {
 	a.redisClient = a.openRedis()
 
 	auditConfig := loadAuditHistoryConfig()
-	repoLogger := a.logger.WithFields(pkglogger.Fields{
-		"component": "repository",
-	})
-	repo := repository.NewPostgreSQLRepository(a.db, a.redisClient, repoLogger, auditConfig)
-	a.logger.Infof("⚙️ 审计历史配置: strictValidation=%v, allowFallback=%v, circuitThreshold=%d, legacyMode=%v",
-		auditConfig.StrictValidation, auditConfig.AllowFallback, auditConfig.CircuitBreakerThreshold, auditConfig.LegacyMode)
+	repo := repository.NewPostgreSQLRepository(a.db, a.redisClient, a.logger, auditConfig)
+	a.log("audit.config", pkglogger.Fields{
+		"strictValidation": auditConfig.StrictValidation,
+		"allowFallback":    auditConfig.AllowFallback,
+		"circuitThreshold": auditConfig.CircuitBreakerThreshold,
+		"legacyMode":       auditConfig.LegacyMode,
+	}).Info("⚙️ 审计历史配置加载完成")
 
 	a.server, err = a.buildServer(repo)
 	if err != nil {
@@ -104,11 +114,11 @@ func (a *Application) run() error {
 
 	go func() {
 		<-ctx.Done()
-		a.logger.Info("🛑 正在关闭PostgreSQL GraphQL服务...")
+		a.log("shutdown", nil).Info("🛑 正在关闭PostgreSQL GraphQL服务...")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := a.server.Shutdown(shutdownCtx); err != nil {
-			a.logger.WithFields(pkglogger.Fields{"error": err}).Error("❌ 服务关闭失败")
+			a.log("shutdown", pkglogger.Fields{"error": err}).Error("❌ 服务关闭失败")
 		}
 	}()
 
@@ -116,17 +126,17 @@ func (a *Application) run() error {
 	if len(port) > 0 && port[0] == ':' {
 		port = port[1:]
 	}
-	a.logger.Infof("🚀 PostgreSQL原生GraphQL服务启动在端口 :%s", port)
-	a.logger.Info("🔗 GraphiQL界面: http://localhost:" + port + "/graphiql")
-	a.logger.Info("🔗 GraphQL端点: http://localhost:" + port + "/graphql")
-	a.logger.Info("💾 数据库: PostgreSQL (原生优化)")
-	a.logger.Info("⚡ 性能模式: 激进优化")
+	a.log("startup", pkglogger.Fields{"port": port}).Info("🚀 PostgreSQL原生GraphQL服务启动完成")
+	a.log("startup", pkglogger.Fields{"url": "http://localhost:" + port + "/graphiql"}).Info("🔗 GraphiQL界面")
+	a.log("startup", pkglogger.Fields{"url": "http://localhost:" + port + "/graphql"}).Info("🔗 GraphQL端点")
+	a.log("startup", pkglogger.Fields{"database": "postgres"}).Info("💾 数据库: PostgreSQL (原生优化)")
+	a.log("startup", pkglogger.Fields{"mode": "aggressive"}).Info("⚡ 性能模式: 激进优化")
 
 	if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("listen: %w", err)
 	}
 
-	a.logger.Info("✅ PostgreSQL GraphQL服务已安全关闭")
+	a.log("shutdown", nil).Info("✅ PostgreSQL GraphQL服务已安全关闭")
 	return nil
 }
 
@@ -154,7 +164,11 @@ func (a *Application) openDatabase() (*sql.DB, error) {
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
 
-	a.logger.Info("✅ PostgreSQL连接成功")
+	a.log("database.connect", pkglogger.Fields{
+		"host":     dbHost,
+		"port":     dbPort,
+		"database": dbName,
+	}).Info("✅ PostgreSQL连接成功")
 	return db, nil
 }
 
@@ -165,11 +179,13 @@ func (a *Application) openRedis() *redis.Client {
 	})
 
 	if _, err := client.Ping(context.Background()).Result(); err != nil {
-		a.logger.WithFields(pkglogger.Fields{"error": err}).Warn("Redis连接失败，将不使用缓存")
+		a.log("redis.connect", pkglogger.Fields{"error": err}).Warn("Redis连接失败，将不使用缓存")
 		return nil
 	}
 
-	a.logger.Info("✅ Redis连接成功")
+	a.log("redis.connect", pkglogger.Fields{
+		"address": client.Options().Addr,
+	}).Info("✅ Redis连接成功")
 	return client
 }
 
@@ -197,15 +213,21 @@ func (a *Application) buildServer(repo *repository.PostgreSQLRepository) (*http.
 		ClockSkew:    jwtConfig.AllowedClockSkew,
 	})
 
-	permissionChecker := auth.NewPBACPermissionChecker(a.db, a.logger)
-	graphqlMiddleware := auth.NewGraphQLPermissionMiddleware(jwtMiddleware, permissionChecker, a.logger, devMode)
-	a.logger.Infof("🔐 JWT认证初始化完成 (开发模式: %v, Alg=%s, Issuer=%s, Audience=%s)", devMode, jwtConfig.Algorithm, jwtConfig.Issuer, jwtConfig.Audience)
+	authLogger := a.logger.WithFields(pkglogger.Fields{"component": "query-auth"})
+	permissionChecker := auth.NewPBACPermissionChecker(a.db, authLogger)
+	graphqlMiddleware := auth.NewGraphQLPermissionMiddleware(jwtMiddleware, permissionChecker, authLogger, devMode)
+	a.log("graphql.init", pkglogger.Fields{
+		"devMode":   devMode,
+		"algorithm": jwtConfig.Algorithm,
+		"issuer":    jwtConfig.Issuer,
+		"audience":  jwtConfig.Audience,
+	}).Info("🔐 JWT认证初始化完成")
 
-	resolver := graphql.NewResolver(repo, a.logger.WithFields(pkglogger.Fields{"component": "graphqlResolver"}), graphqlMiddleware)
+	resolver := graphql.NewResolver(repo, a.logger, graphqlMiddleware)
 	schemaPath := schemaLoader.GetDefaultSchemaPath()
 	schemaString := schemaLoader.MustLoadSchema(schemaPath)
 	schema := graphqlgo.MustParseSchema(schemaString, resolver)
-	a.logger.Infof("✅ GraphQL Schema loaded from single source: %s", schemaPath)
+	a.log("graphql.schema", pkglogger.Fields{"path": schemaPath}).Info("✅ GraphQL Schema loaded from single source")
 
 	router := a.buildRouter(schema, graphqlMiddleware, devMode)
 

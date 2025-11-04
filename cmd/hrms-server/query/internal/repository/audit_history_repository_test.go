@@ -106,6 +106,10 @@ var (
 	currentExpectation *auditExpectation
 )
 
+func newTestLogger() pkglogger.Logger {
+	return pkglogger.NewLogger(pkglogger.WithWriter(io.Discard))
+}
+
 func openAuditMockDB() (*sql.DB, error) {
 	registerAuditMock.Do(func() {
 		sql.Register("auditmock", &auditMockDriver{})
@@ -124,9 +128,7 @@ func TestGetAuditHistoryReturnsStructuredRecords(t *testing.T) {
 	repo := &PostgreSQLRepository{
 		db:          db,
 		redisClient: nil,
-		logger: pkglogger.NewLogger(
-			pkglogger.WithWriter(io.Discard),
-		),
+		logger:      newTestLogger(),
 		auditConfig: AuditHistoryConfig{LegacyMode: false},
 	}
 

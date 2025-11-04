@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cube-castle/cmd/hrms-server/query/internal/model"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
@@ -28,6 +29,12 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 		}
 	}
 
+	logFields := pkglogger.Fields{
+		"tenantId": tenantID.String(),
+		"page":     page,
+		"pageSize": pageSize,
+	}
+
 	offset := (page - 1) * pageSize
 	limit := pageSize
 
@@ -42,21 +49,35 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 
 	if filter != nil {
 		includeDisabledAncestors = filter.IncludeDisabledAncestors
+		logFields["includeDisabledAncestors"] = includeDisabledAncestors
 		if filter.Status != nil {
 			status = strings.TrimSpace(*filter.Status)
+			if status != "" {
+				logFields["status"] = status
+			}
 		}
 		if filter.SearchText != nil {
 			searchText = strings.TrimSpace(*filter.SearchText)
+			if searchText != "" {
+				logFields["searchText"] = true
+			}
 		}
 		if filter.UnitType != nil {
 			unitType = strings.TrimSpace(*filter.UnitType)
+			if unitType != "" {
+				logFields["unitType"] = unitType
+			}
 		}
 		if filter.ParentCode != nil {
 			parentCode = strings.TrimSpace(*filter.ParentCode)
+			if parentCode != "" {
+				logFields["parentCode"] = parentCode
+			}
 		}
 		if filter.AsOfDate != nil {
 			if trimmed := strings.TrimSpace(*filter.AsOfDate); trimmed != "" {
 				asOfDateParam = sql.NullString{String: trimmed, Valid: true}
+				logFields["asOfDate"] = trimmed
 			}
 		}
 		if filter.ExcludeDescendantsOf != nil {
@@ -70,6 +91,9 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 					excludeCodes = append(excludeCodes, trimmed)
 				}
 			}
+			if len(excludeCodes) > 0 {
+				logFields["excludeCodes"] = len(excludeCodes)
+			}
 		}
 		if filter.Codes != nil {
 			for _, code := range *filter.Codes {
@@ -77,8 +101,13 @@ func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uu
 					includeCodes = append(includeCodes, trimmed)
 				}
 			}
+			if len(includeCodes) > 0 {
+				logFields["includeCodes"] = len(includeCodes)
+			}
 		}
 	}
+
+	log := r.loggerFor("organization.list", logFields)
 
 	cte := `
 WITH parent_path AS (
@@ -207,7 +236,7 @@ WHERE 1=1`
 
 	var total int
 	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
-		r.logger.Errorf("查询组织总数失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization list count query failed")
 		return nil, err
 	}
 
@@ -217,7 +246,7 @@ WHERE 1=1`
 
 	rows, err := r.db.QueryContext(ctx, dataQuery, args...)
 	if err != nil {
-		r.logger.Errorf("查询组织列表失败: %v", err)
+		log.WithFields(pkglogger.Fields{"error": err}).Error("organization list query failed")
 		return nil, err
 	}
 	defer rows.Close()
@@ -233,14 +262,18 @@ WHERE 1=1`
 			&org.ChangeReasonField, &org.DeletedAtField, &org.DeletedByField, &org.DeletionReasonField,
 			&org.SuspendedAtField, &org.SuspendedByField, &org.SuspensionReasonField, &org.ChildrenCountField,
 		); err != nil {
-			r.logger.Errorf("扫描组织数据失败: %v", err)
+			log.WithFields(pkglogger.Fields{"error": err}).Error("organization list scan failed")
 			return nil, err
 		}
 		organizations = append(organizations, org)
 	}
 
 	duration := time.Since(start)
-	r.logger.Infof("查询 %d/%d 组织 (页面: %d/%d)，耗时: %v", len(organizations), total, page, (total+int(pageSize)-1)/int(pageSize), duration)
+	log.WithFields(pkglogger.Fields{
+		"result_count": len(organizations),
+		"total_count":  total,
+		"duration_ms":  duration.Milliseconds(),
+	}).Info("organization list query succeeded")
 
 	totalPages := (total + int(pageSize) - 1) / int(pageSize)
 	asOfDateValue := time.Now().Format("2006-01-02")

@@ -31,8 +31,19 @@ func NewPostgreSQLRepository(db *sql.DB, redisClient *redis.Client, logger pkglo
 		db:          db,
 		redisClient: redisClient,
 		logger: logger.WithFields(pkglogger.Fields{
-			"component": "queryRepository",
+			"component": "query-repo",
 		}),
 		auditConfig: auditConfig,
 	}
+}
+
+func (r *PostgreSQLRepository) loggerFor(operation string, fields pkglogger.Fields) pkglogger.Logger {
+	log := r.logger
+	if operation != "" {
+		log = log.WithFields(pkglogger.Fields{"operation": operation})
+	}
+	if len(fields) == 0 {
+		return log
+	}
+	return log.WithFields(fields)
 }
