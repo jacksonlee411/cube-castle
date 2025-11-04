@@ -3,24 +3,42 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/services"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/go-chi/chi/v5"
 )
 
 type JobCatalogHandler struct {
 	service *services.JobCatalogService
-	logger  *log.Logger
+	logger  pkglogger.Logger
 }
 
-func NewJobCatalogHandler(service *services.JobCatalogService, logger *log.Logger) *JobCatalogHandler {
-	return &JobCatalogHandler{service: service, logger: logger}
+func NewJobCatalogHandler(service *services.JobCatalogService, baseLogger pkglogger.Logger) *JobCatalogHandler {
+	return &JobCatalogHandler{
+		service: service,
+		logger: scopedLogger(baseLogger, "jobCatalog", pkglogger.Fields{
+			"routeGroup": "/api/v1/job-*",
+			"module":     "jobCatalog",
+		}),
+	}
+}
+
+func (h *JobCatalogHandler) requestLogger(r *http.Request, action string) pkglogger.Logger {
+	fields := pkglogger.Fields{
+		"action":    action,
+		"requestId": middleware.GetRequestID(r.Context()),
+	}
+	if r != nil {
+		fields["method"] = r.Method
+		fields["path"] = r.URL.Path
+	}
+	return h.logger.WithFields(fields)
 }
 
 func (h *JobCatalogHandler) SetupRoutes(r chi.Router) {
@@ -44,6 +62,7 @@ func (h *JobCatalogHandler) CreateJobFamilyGroup(w http.ResponseWriter, r *http.
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	reqLogger := h.requestLogger(r, "CreateJobFamilyGroup")
 
 	tenantID := getTenantIDFromRequest(r)
 	operator := getOperatorFromRequest(r)
@@ -56,7 +75,7 @@ func (h *JobCatalogHandler) CreateJobFamilyGroup(w http.ResponseWriter, r *http.
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, entity, "Job family group created successfully", requestID); err != nil {
-		h.logger.Printf("写入职类创建响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job family group response failed")
 	}
 }
 
@@ -66,6 +85,7 @@ func (h *JobCatalogHandler) UpdateJobFamilyGroup(w http.ResponseWriter, r *http.
 		h.writeError(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少职类代码", nil)
 		return
 	}
+	reqLogger := h.requestLogger(r, "UpdateJobFamilyGroup")
 
 	var req types.UpdateJobFamilyGroupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -105,7 +125,7 @@ func (h *JobCatalogHandler) UpdateJobFamilyGroup(w http.ResponseWriter, r *http.
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, entity, "Job family group updated successfully", requestID); err != nil {
-		h.logger.Printf("写入职类更新响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job family group update response failed")
 	}
 }
 
@@ -115,6 +135,7 @@ func (h *JobCatalogHandler) CreateJobFamilyGroupVersion(w http.ResponseWriter, r
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	reqLogger := h.requestLogger(r, "CreateJobFamilyGroupVersion")
 
 	code := strings.ToUpper(strings.TrimSpace(chi.URLParam(r, "code")))
 	if code == "" {
@@ -133,7 +154,7 @@ func (h *JobCatalogHandler) CreateJobFamilyGroupVersion(w http.ResponseWriter, r
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, entity, "Job family group version created successfully", requestID); err != nil {
-		h.logger.Printf("写入职类版本响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job family group version response failed")
 	}
 }
 
@@ -143,6 +164,7 @@ func (h *JobCatalogHandler) CreateJobFamily(w http.ResponseWriter, r *http.Reque
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	reqLogger := h.requestLogger(r, "CreateJobFamily")
 
 	tenantID := getTenantIDFromRequest(r)
 	operator := getOperatorFromRequest(r)
@@ -155,7 +177,7 @@ func (h *JobCatalogHandler) CreateJobFamily(w http.ResponseWriter, r *http.Reque
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, entity, "Job family created successfully", requestID); err != nil {
-		h.logger.Printf("写入职种创建响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job family response failed")
 	}
 }
 
@@ -165,6 +187,7 @@ func (h *JobCatalogHandler) UpdateJobFamily(w http.ResponseWriter, r *http.Reque
 		h.writeError(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少职种代码", nil)
 		return
 	}
+	reqLogger := h.requestLogger(r, "UpdateJobFamily")
 
 	var req types.UpdateJobFamilyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -212,7 +235,7 @@ func (h *JobCatalogHandler) UpdateJobFamily(w http.ResponseWriter, r *http.Reque
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, entity, "Job family updated successfully", requestID); err != nil {
-		h.logger.Printf("写入职种更新响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job family update response failed")
 	}
 }
 
@@ -222,6 +245,7 @@ func (h *JobCatalogHandler) CreateJobFamilyVersion(w http.ResponseWriter, r *htt
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	reqLogger := h.requestLogger(r, "CreateJobFamilyVersion")
 
 	code := strings.ToUpper(strings.TrimSpace(chi.URLParam(r, "code")))
 	if code == "" {
@@ -240,7 +264,7 @@ func (h *JobCatalogHandler) CreateJobFamilyVersion(w http.ResponseWriter, r *htt
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, entity, "Job family version created successfully", requestID); err != nil {
-		h.logger.Printf("写入职种版本响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job family version response failed")
 	}
 }
 
@@ -250,6 +274,7 @@ func (h *JobCatalogHandler) CreateJobRole(w http.ResponseWriter, r *http.Request
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	reqLogger := h.requestLogger(r, "CreateJobRole")
 
 	tenantID := getTenantIDFromRequest(r)
 	operator := getOperatorFromRequest(r)
@@ -262,7 +287,7 @@ func (h *JobCatalogHandler) CreateJobRole(w http.ResponseWriter, r *http.Request
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, entity, "Job role created successfully", requestID); err != nil {
-		h.logger.Printf("写入职务创建响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job role response failed")
 	}
 }
 
@@ -272,6 +297,7 @@ func (h *JobCatalogHandler) UpdateJobRole(w http.ResponseWriter, r *http.Request
 		h.writeError(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少职务代码", nil)
 		return
 	}
+	reqLogger := h.requestLogger(r, "UpdateJobRole")
 
 	var req types.UpdateJobRoleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -319,7 +345,7 @@ func (h *JobCatalogHandler) UpdateJobRole(w http.ResponseWriter, r *http.Request
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, entity, "Job role updated successfully", requestID); err != nil {
-		h.logger.Printf("写入职务更新响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job role update response failed")
 	}
 }
 
@@ -329,6 +355,7 @@ func (h *JobCatalogHandler) CreateJobRoleVersion(w http.ResponseWriter, r *http.
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	reqLogger := h.requestLogger(r, "CreateJobRoleVersion")
 
 	code := strings.ToUpper(strings.TrimSpace(chi.URLParam(r, "code")))
 	if code == "" {
@@ -347,7 +374,7 @@ func (h *JobCatalogHandler) CreateJobRoleVersion(w http.ResponseWriter, r *http.
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, entity, "Job role version created successfully", requestID); err != nil {
-		h.logger.Printf("写入职务版本响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job role version response failed")
 	}
 }
 
@@ -357,6 +384,7 @@ func (h *JobCatalogHandler) CreateJobLevel(w http.ResponseWriter, r *http.Reques
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	reqLogger := h.requestLogger(r, "CreateJobLevel")
 
 	tenantID := getTenantIDFromRequest(r)
 	operator := getOperatorFromRequest(r)
@@ -369,7 +397,7 @@ func (h *JobCatalogHandler) CreateJobLevel(w http.ResponseWriter, r *http.Reques
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, entity, "Job level created successfully", requestID); err != nil {
-		h.logger.Printf("写入职级创建响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job level response failed")
 	}
 }
 
@@ -379,6 +407,7 @@ func (h *JobCatalogHandler) UpdateJobLevel(w http.ResponseWriter, r *http.Reques
 		h.writeError(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少职级代码", nil)
 		return
 	}
+	reqLogger := h.requestLogger(r, "UpdateJobLevel")
 
 	var req types.UpdateJobLevelRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -426,7 +455,7 @@ func (h *JobCatalogHandler) UpdateJobLevel(w http.ResponseWriter, r *http.Reques
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, entity, "Job level updated successfully", requestID); err != nil {
-		h.logger.Printf("写入职级更新响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job level update response failed")
 	}
 }
 
@@ -436,6 +465,7 @@ func (h *JobCatalogHandler) CreateJobLevelVersion(w http.ResponseWriter, r *http
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	reqLogger := h.requestLogger(r, "CreateJobLevelVersion")
 
 	code := strings.ToUpper(strings.TrimSpace(chi.URLParam(r, "code")))
 	if code == "" {
@@ -454,7 +484,7 @@ func (h *JobCatalogHandler) CreateJobLevelVersion(w http.ResponseWriter, r *http
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, entity, "Job level version created successfully", requestID); err != nil {
-		h.logger.Printf("写入职级版本响应失败: %v", err)
+		reqLogger.WithFields(pkglogger.Fields{"error": err}).Error("write job level version response failed")
 	}
 }
 
@@ -478,6 +508,6 @@ func (h *JobCatalogHandler) handleServiceError(w http.ResponseWriter, r *http.Re
 func (h *JobCatalogHandler) writeError(w http.ResponseWriter, r *http.Request, status int, code, message string, details interface{}) {
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteError(w, status, code, message, requestID, details); err != nil {
-		h.logger.Printf("写入错误响应失败: %v", err)
+		h.requestLogger(r, "writeError").WithFields(pkglogger.Fields{"error": err, "status": status, "code": code}).Error("write job catalog error response failed")
 	}
 }

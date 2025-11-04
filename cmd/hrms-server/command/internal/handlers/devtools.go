@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"runtime"
 	"strings"
@@ -14,25 +13,38 @@ import (
 
 	auth "cube-castle/internal/auth"
 	"cube-castle/internal/middleware"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 )
 
 // DevToolsHandler 开发工具处理器
 type DevToolsHandler struct {
 	jwtMiddleware *auth.JWTMiddleware
-	logger        *log.Logger
+	logger        pkglogger.Logger
 	devMode       bool
 	db            *sql.DB
 }
 
 // NewDevToolsHandler 创建开发工具处理器
-func NewDevToolsHandler(jwtMiddleware *auth.JWTMiddleware, logger *log.Logger, devMode bool, db *sql.DB) *DevToolsHandler {
+func NewDevToolsHandler(jwtMiddleware *auth.JWTMiddleware, baseLogger pkglogger.Logger, devMode bool, db *sql.DB) *DevToolsHandler {
 	return &DevToolsHandler{
 		jwtMiddleware: jwtMiddleware,
-		logger:        logger,
+		logger:        scopedLogger(baseLogger, "devTools", pkglogger.Fields{"routeGroup": "devtools"}),
 		devMode:       devMode,
 		db:            db,
 	}
+}
+
+func (h *DevToolsHandler) requestLogger(r *http.Request, action string) pkglogger.Logger {
+	fields := pkglogger.Fields{
+		"action": action,
+	}
+	if r != nil {
+		fields["method"] = r.Method
+		fields["path"] = r.URL.Path
+		fields["requestId"] = middleware.GetRequestID(r.Context())
+	}
+	return h.logger.WithFields(fields)
 }
 
 // SetupRoutes 设置开发工具路由
@@ -60,6 +72,7 @@ func (h *DevToolsHandler) GenerateDevToken(w http.ResponseWriter, r *http.Reques
 		h.writeErrorResponse(w, "DEV_MODE_DISABLED", "Development tools are disabled", http.StatusForbidden, r)
 		return
 	}
+	logger := h.requestLogger(r, "generateDevToken")
 
 	var req auth.TestTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -100,7 +113,7 @@ func (h *DevToolsHandler) GenerateDevToken(w http.ResponseWriter, r *http.Reques
 	// 生成令牌
 	token, err := h.jwtMiddleware.GenerateTestTokenWithClaims(req.UserID, req.TenantID, req.Roles, scope, permissions, duration)
 	if err != nil {
-		h.logger.Printf("Failed to generate dev token: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("generate dev token failed")
 		h.writeErrorResponse(w, "TOKEN_GENERATION_FAILED", "Failed to generate token", http.StatusInternalServerError, r)
 		return
 	}
@@ -221,7 +234,9 @@ func (h *DevToolsHandler) writeSuccessResponse(w http.ResponseWriter, data inter
 	w.Header().Set("X-Request-ID", requestID)
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode devtools success response failed: %v", err)
+		h.requestLogger(r, "writeSuccessResponse").
+			WithFields(pkglogger.Fields{"error": err}).
+			Error("encode devtools success response failed")
 	}
 }
 
@@ -430,6 +445,8 @@ func (h *DevToolsHandler) writeErrorResponse(w http.ResponseWriter, code, messag
 	w.Header().Set("X-Request-ID", requestID)
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Printf("encode devtools error response failed: %v", err)
+		h.requestLogger(r, "writeErrorResponse").
+			WithFields(pkglogger.Fields{"error": err}).
+			Error("encode devtools error response failed")
 	}
 }

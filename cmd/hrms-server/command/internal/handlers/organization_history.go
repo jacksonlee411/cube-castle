@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"cube-castle/cmd/hrms-server/command/internal/middleware"
+	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"cube-castle/cmd/hrms-server/command/internal/middleware"
-	"cube-castle/internal/types"
-	"cube-castle/cmd/hrms-server/command/internal/utils"
 )
 
 func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "UpdateHistoryRecord", nil)
 	recordId := chi.URLParam(r, "record_id")
 	if recordId == "" {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_RECORD_ID", "缺少记录ID", nil)
@@ -57,7 +59,7 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 	}
 
 	if req.ParentCode != nil && *req.ParentCode == oldOrg.Code {
-		h.logger.Printf("⚠️ circular reference attempt: code=%s parentCode=%s", oldOrg.Code, *req.ParentCode)
+		logger.WithFields(pkglogger.Fields{"code": oldOrg.Code, "parentCode": *req.ParentCode}).Warn("circular reference attempt in history update")
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "父组织不能指向自身", nil)
 		return
 	}
@@ -94,14 +96,14 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 	ipAddress := h.getIPAddress(r)
 	err = h.auditLogger.LogOrganizationUpdate(r.Context(), updatedOrg.Code, &req, oldOrg, updatedOrg, actorID, requestID, ipAddress)
 	if err != nil {
-		h.logger.Printf("⚠️ 历史记录更新审计日志记录失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("history update audit log failed")
 	}
 
 	// 构建企业级成功响应
 	response := h.toOrganizationResponse(updatedOrg)
 	if err := utils.WriteSuccess(w, response, "History record updated successfully", requestID); err != nil {
-		h.logger.Printf("写入历史记录更新响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write history record update response failed")
 	}
 
-	h.logger.Printf("✅ 历史记录更新成功: %s - %s (记录ID: %s, RequestID: %s)", response.Code, response.Name, recordId, requestID)
+	logger.WithFields(pkglogger.Fields{"recordId": recordId}).Info("history record updated")
 }

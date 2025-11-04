@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
 	"cube-castle/cmd/hrms-server/command/internal/validators"
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/google/uuid"
 )
 
 func (h *OrganizationHandler) getTenantID(r *http.Request) uuid.UUID {
@@ -46,13 +47,14 @@ func (h *OrganizationHandler) getIfMatchValue(r *http.Request) (string, error) {
 
 func (h *OrganizationHandler) writeValidationErrors(w http.ResponseWriter, r *http.Request, result *validators.ValidationResult) {
 	requestID := middleware.GetRequestID(r.Context())
+	logger := h.requestLogger(r, "writeValidationErrors", pkglogger.Fields{"errorCount": len(result.Errors)})
 
 	if len(result.Errors) == 0 {
 		if err := utils.WriteError(w, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", requestID, map[string]interface{}{
 			"validationErrors": []validators.ValidationError{},
 			"errorCount":       0,
 		}); err != nil {
-			h.logger.Printf("写入验证错误响应失败: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("write validation error response failed")
 		}
 		return
 	}
@@ -64,7 +66,7 @@ func (h *OrganizationHandler) writeValidationErrors(w http.ResponseWriter, r *ht
 	}
 
 	if err := utils.WriteError(w, http.StatusBadRequest, firstError.Code, firstError.Message, requestID, details); err != nil {
-		h.logger.Printf("写入验证错误响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write validation error response failed")
 	}
 }
 
@@ -128,7 +130,7 @@ func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, r *http.
 	// 如果details是error类型，处理错误信息
 	if err, ok := details.(error); ok && err != nil {
 		if statusCode >= 500 {
-			h.logger.Printf("Server error: %v", err)
+			h.requestLogger(r, "writeErrorResponse", pkglogger.Fields{"status": statusCode, "code": code}).WithFields(pkglogger.Fields{"error": err}).Error("server error while handling response")
 			errorMsg = "Internal server error"
 			details = nil // 不向客户端暴露内部错误详情
 		} else {
@@ -140,8 +142,9 @@ func (h *OrganizationHandler) writeErrorResponse(w http.ResponseWriter, r *http.
 	requestID := middleware.GetRequestID(r.Context())
 
 	// 使用统一响应构建器
+	logger := h.requestLogger(r, "writeErrorResponse", pkglogger.Fields{"status": statusCode, "code": code})
 	if err := utils.WriteError(w, statusCode, code, errorMsg, requestID, details); err != nil {
-		h.logger.Printf("写入错误响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write error response failed")
 	}
 }
 
@@ -204,6 +207,8 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 	if err == nil {
 		return
 	}
+
+	logger := h.requestLogger(r, "handleRepositoryError", pkglogger.Fields{"operation": operation})
 
 	if errors.Is(err, repository.ErrOrganizationHasChildren) {
 		h.writeErrorResponse(w, r, http.StatusConflict, "HAS_CHILD_UNITS", "存在子组织，无法删除", map[string]interface{}{
@@ -301,7 +306,7 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 
 	// 数据库连接错误
 	case strings.Contains(errorStr, "connection refused") || strings.Contains(errorStr, "timeout"):
-		h.logger.Printf("Database connection error in %s operation: %v", operation, err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("database connection issue")
 		h.writeErrorResponse(w, r, http.StatusServiceUnavailable, "DATABASE_UNAVAILABLE", "数据库服务暂时不可用", map[string]interface{}{
 			"operation": operation,
 			"retryable": true,
@@ -320,7 +325,7 @@ func (h *OrganizationHandler) handleRepositoryError(w http.ResponseWriter, r *ht
 
 	// 默认内部服务器错误
 	default:
-		h.logger.Printf("Unhandled repository error in %s operation: %v", operation, err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("unhandled repository error")
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, fmt.Sprintf("%s_ERROR", operation), fmt.Sprintf("%s操作失败", getOperationName(operation)), map[string]interface{}{
 			"operation": operation,
 			"retryable": false,

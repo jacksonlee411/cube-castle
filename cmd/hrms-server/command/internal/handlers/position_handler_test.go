@@ -4,20 +4,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/services"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type stubPositionService struct {
@@ -179,7 +178,7 @@ func TestPositionHandler_CreatePosition_Success(t *testing.T) {
 			return newPositionResponse(), nil
 		},
 	}
-	logger := logDiscard()
+	logger := testLogger()
 	handler := NewPositionHandler(service, logger)
 
 	payload := `{
@@ -243,7 +242,7 @@ func TestPositionHandler_ReplacePosition_VersionConflict(t *testing.T) {
 			return nil, services.ErrVersionConflict
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	payload := `{"title":"Update","jobFamilyGroupCode":"OPER","jobFamilyCode":"OPER-HR","jobRoleCode":"OPER-HR-SUP","jobLevelCode":"P1","organizationCode":"1000001","effectiveDate":"2025-01-01","employmentType":"FULL_TIME","positionType":"FULL_TIME","headcountCapacity":1}`
 
@@ -278,7 +277,7 @@ func TestPositionHandler_CreatePositionVersion_Success(t *testing.T) {
 			return newPositionResponse(), nil
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	payload := `{"effectiveDate":"2025-02-01","title":"HR Manager","jobFamilyGroupCode":"OPER","jobFamilyCode":"OPER-HR","jobRoleCode":"OPER-HR-SUP","jobLevelCode":"P1","organizationCode":"1000001","operationReason":"Planning"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/positions/P1000001/versions", strings.NewReader(payload))
@@ -304,7 +303,7 @@ func TestPositionHandler_CreatePositionVersion_Conflict(t *testing.T) {
 			return nil, services.ErrPositionVersionExists
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	payload := `{"effectiveDate":"2025-02-01","title":"HR Manager","jobFamilyGroupCode":"OPER","jobFamilyCode":"OPER-HR","jobRoleCode":"OPER-HR-SUP","jobLevelCode":"P1","organizationCode":"1000001","operationReason":"Planning"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/positions/P1000001/versions", strings.NewReader(payload))
@@ -339,7 +338,7 @@ func TestPositionHandler_FillPosition_Success(t *testing.T) {
 			return newPositionResponse(), nil
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	payload := `{"employeeId":"11111111-1111-1111-1111-111111111111","employeeName":"张三","assignmentType":"PRIMARY","effectiveDate":"2025-01-01","operationReason":"Initial fill"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/positions/P1000001/fill", strings.NewReader(payload))
@@ -391,7 +390,7 @@ func TestPositionHandler_ListAssignments_Success(t *testing.T) {
 			}, 5, nil
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/positions/P1000001/assignments?assignmentStatus=ACTIVE&page=2&pageSize=10&includeHistorical=false&asOfDate=2025-01-01&assignmentTypes=ACTING", nil)
 	req = withRequestID(req)
@@ -444,7 +443,7 @@ func TestPositionHandler_CreateAssignment_Success(t *testing.T) {
 			}, nil
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	payload := `{"employeeId":"11111111-1111-1111-1111-111111111112","employeeName":"李四","assignmentType":"ACTING","effectiveDate":"2025-02-01","operationReason":"代理","autoRevert":true,"actingUntil":"2025-03-01"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/positions/P1000002/assignments", strings.NewReader(payload))
@@ -472,7 +471,7 @@ func TestPositionHandler_ApplyPositionEvent_NotFound(t *testing.T) {
 			return nil, services.ErrPositionNotFound
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	payload := `{"eventType":"SUSPEND","effectiveDate":"2025-01-01","operationReason":"Audit"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/positions/P999/events", strings.NewReader(payload))
@@ -502,7 +501,7 @@ func TestPositionHandler_VacatePosition_MissingCode(t *testing.T) {
 			return nil, nil
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/positions//vacate", strings.NewReader(`{}`))
 	req = withRequestID(req)
@@ -528,7 +527,7 @@ func TestPositionHandler_TransferPosition_Error(t *testing.T) {
 			return nil, services.ErrJobCatalogMismatch
 		},
 	}
-	handler := NewPositionHandler(service, logDiscard())
+	handler := NewPositionHandler(service, testLogger())
 
 	payload := `{"targetOrganizationCode":"2000001","effectiveDate":"2025-01-01","operationReason":"Org restructure"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/positions/P1000001/transfer", strings.NewReader(payload))
@@ -550,6 +549,6 @@ func TestPositionHandler_TransferPosition_Error(t *testing.T) {
 	}
 }
 
-func logDiscard() *log.Logger {
-	return log.New(io.Discard, "", log.LstdFlags)
+func testLogger() pkglogger.Logger {
+	return pkglogger.NewNoopLogger()
 }

@@ -183,8 +183,8 @@ func main() {
 		jobCatalogService := services.NewJobCatalogService(jobCatalogRepo, auditLogger, commandLogger)
 		operationalScheduler = services.NewOperationalScheduler(db, commandLogger, temporalMonitor, positionService)
 
-		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, logger, timelineManager, hierarchyRepo, businessValidator)
-		positionHandler = handlers.NewPositionHandler(positionService, logger)
+		orgHandler = handlers.NewOrganizationHandler(orgRepo, temporalService, auditLogger, commandLogger, timelineManager, hierarchyRepo, businessValidator)
+		positionHandler = handlers.NewPositionHandler(positionService, commandLogger)
 		jobCatalogHandler = handlers.NewJobCatalogHandler(jobCatalogService, logger)
 		operationalHandler = handlers.NewOperationalHandler(temporalMonitor, operationalScheduler, rateLimitMiddleware, logger)
 	}

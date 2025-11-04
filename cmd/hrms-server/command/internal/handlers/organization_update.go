@@ -9,13 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/audit"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
@@ -24,6 +25,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
 		return
 	}
+	logger := h.requestLogger(r, "UpdateOrganization", pkglogger.Fields{"code": code})
 
 	// 验证组织代码格式
 	if err := utils.ValidateOrganizationCode(code); err != nil {
@@ -50,7 +52,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 		if req.ParentCode != nil {
 			trimmed := *req.ParentCode
 			if trimmed == code {
-				h.logger.Printf("⚠️ circular reference attempt: code=%s parentCode=%s", code, trimmed)
+				logger.WithFields(pkglogger.Fields{"parentCode": trimmed}).Warn("circular parent assignment detected")
 				h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "父组织不能指向自身", nil)
 				return
 			}
@@ -103,16 +105,16 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	ipAddress := h.getIPAddress(r)
 	err = h.auditLogger.LogOrganizationUpdate(r.Context(), code, &req, oldOrg, updatedOrg, actorID, requestID, ipAddress)
 	if err != nil {
-		h.logger.Printf("⚠️ 更新审计日志记录失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("audit log for organization update failed")
 	}
 
 	// 返回企业级成功响应
 	response := h.toOrganizationResponse(updatedOrg)
 	if err := utils.WriteSuccess(w, response, "Organization updated successfully", requestID); err != nil {
-		h.logger.Printf("写入组织更新响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write organization update response failed")
 	}
 
-	h.logger.Printf("✅ 组织更新成功: %s - %s (RequestID: %s)", updatedOrg.Code, updatedOrg.Name, requestID)
+	logger.WithFields(pkglogger.Fields{"name": updatedOrg.Name}).Info("organization updated")
 }
 
 // SuspendOrganization 暂停组织 - 实现第四大核心场景之暂停
@@ -137,6 +139,11 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
 		return
 	}
+	logger := h.requestLogger(r, actionName, pkglogger.Fields{
+		"code":          code,
+		"newStatus":     newStatus,
+		"operationType": operationType,
+	})
 
 	// 验证组织代码格式
 	if len(code) != 7 {
@@ -153,6 +160,7 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	logger = logger.WithFields(pkglogger.Fields{"effectiveDateRaw": req.EffectiveDate})
 
 	// 解析生效日期
 	effectiveDate, err := time.Parse("2006-01-02", req.EffectiveDate)
@@ -171,6 +179,7 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在", err)
 			return
 		}
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("failed to get current organization")
 		h.handleRepositoryError(w, r, "GET_CURRENT_ORG", err)
 		return
 	}
@@ -233,7 +242,7 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 				"operationReason": operationReason,
 			},
 		); logErr != nil {
-			h.logger.Printf("记录%s失败审计日志出错: %v", operationType, logErr)
+			logger.WithFields(pkglogger.Fields{"error": logErr}).Warn("audit log for status change failure failed")
 		}
 
 		// 检查是否是冲突错误
@@ -296,7 +305,7 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 	}
 
 	if err := h.auditLogger.LogEvent(r.Context(), event); err != nil {
-		h.logger.Printf("⚠️ 记录审计日志失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("audit event logging failed")
 	}
 
 	// 构造响应 - 返回更新后的时间轴
@@ -343,7 +352,10 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 	}
 
 	if err := utils.WriteSuccess(w, response, actionName+"成功", requestID); err != nil {
-		h.logger.Printf("写入%s响应失败: %v", actionName, err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write status change response failed")
 	}
-	h.logger.Printf("✅ %s成功: %s → %s, 生效日期=%s (RequestID: %s)", actionName, code, newStatus, req.EffectiveDate, requestID)
+	logger.WithFields(pkglogger.Fields{
+		"newStatus":     newStatus,
+		"effectiveDate": req.EffectiveDate,
+	}).Info("organization status changed")
 }

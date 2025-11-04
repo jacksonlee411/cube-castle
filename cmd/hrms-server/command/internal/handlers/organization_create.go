@@ -6,11 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"cube-castle/cmd/hrms-server/command/internal/audit"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/go-chi/chi/v5"
 )
 
 func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
@@ -19,6 +20,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	logger := h.requestLogger(r, "CreateOrganization", nil)
 
 	if err := utils.ValidateCreateOrganization(&req); err != nil {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "输入验证失败", err)
@@ -26,6 +28,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	}
 
 	tenantID := h.getTenantID(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String()})
 
 	var code string
 	if req.Code != nil && strings.TrimSpace(*req.Code) != "" {
@@ -38,6 +41,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 			return
 		}
 	}
+	logger = logger.WithFields(pkglogger.Fields{"code": code})
 
 	normalizedParent := utils.NormalizeParentCodePointer(req.ParentCode)
 	fields, err := h.repo.ComputeHierarchyForNew(r.Context(), tenantID, code, normalizedParent, req.Name)
@@ -98,7 +102,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 			r.Context(), tenantID, audit.ResourceTypeOrganization, code,
 			"CreateOrganization", actorID, requestID, "CREATE_ERROR", err.Error(), requestData,
 		); logErr != nil {
-			h.logger.Printf("记录创建失败审计日志出错: %v", logErr)
+			logger.WithFields(pkglogger.Fields{"error": logErr}).Warn("record create failure audit log failed")
 		}
 
 		h.handleRepositoryError(w, r, "CREATE", err)
@@ -110,15 +114,15 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	ipAddress := h.getIPAddress(r)
 
 	if err := h.auditLogger.LogOrganizationCreate(r.Context(), &req, createdOrg, actorID, requestID, ipAddress); err != nil {
-		h.logger.Printf("⚠️ 审计日志记录失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("audit log for organization create failed")
 	}
 
 	response := h.toOrganizationResponse(createdOrg)
 	if err := utils.WriteCreated(w, response, "Organization created successfully", requestID); err != nil {
-		h.logger.Printf("写入创建成功响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write organization create response failed")
 	}
 
-	h.logger.Printf("✅ 组织创建成功: %s - %s (RequestID: %s)", createdOrg.Code, createdOrg.Name, requestID)
+	logger.WithFields(pkglogger.Fields{"name": createdOrg.Name}).Info("organization created")
 }
 
 func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r *http.Request) {
@@ -127,6 +131,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
 		return
 	}
+	logger := h.requestLogger(r, "CreateOrganizationVersion", pkglogger.Fields{"code": code})
 
 	// 验证组织代码格式
 	if len(code) != 7 {
@@ -267,7 +272,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 			r.Context(), tenantID, audit.ResourceTypeOrganization, existingOrg.RecordID,
 			"CreateOrganizationVersion", actorID, requestID, "VERSION_CREATE_ERROR", err.Error(), requestData,
 		); logErr != nil {
-			h.logger.Printf("记录版本创建失败审计日志出错: %v", logErr)
+			logger.WithFields(pkglogger.Fields{"error": logErr}).Warn("audit log for version create failure failed")
 		}
 
 		h.handleRepositoryError(w, r, "CREATE_VERSION", err)
@@ -315,7 +320,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 
 	err = h.auditLogger.LogEvent(r.Context(), event)
 	if err != nil {
-		h.logger.Printf("⚠️ 审计日志记录失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("audit log for version create failed")
 		// 审计日志失败不影响业务操作，仅记录警告
 	}
 
@@ -330,9 +335,8 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 
 	// 返回企业级成功响应
 	if err := utils.WriteCreated(w, responseData, "Temporal version created successfully", requestID); err != nil {
-		h.logger.Printf("写入版本创建响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write organization version response failed")
 	}
 
-	h.logger.Printf("✅ 时态版本创建成功: %s - %s (生效日期: %s, RequestID: %s)",
-		createdVersion.Code, createdVersion.Name, req.EffectiveDate, requestID)
+	logger.WithFields(pkglogger.Fields{"name": createdVersion.Name, "effectiveDate": req.EffectiveDate}).Info("organization version created")
 }

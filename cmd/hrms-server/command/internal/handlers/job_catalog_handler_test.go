@@ -2,18 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"cube-castle/cmd/hrms-server/command/internal/services"
+	pkglogger "cube-castle/pkg/logger"
 )
 
 func TestJobCatalogHandlePreconditionFailed(t *testing.T) {
 	handler := &JobCatalogHandler{
-		logger: log.New(io.Discard, "", 0),
+		logger: pkglogger.NewNoopLogger(),
 	}
 
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/job-family-groups/PROF", nil)

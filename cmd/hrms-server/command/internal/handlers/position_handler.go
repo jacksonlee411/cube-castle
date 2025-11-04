@@ -4,18 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/services"
-	"cube-castle/internal/types"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	"cube-castle/internal/types"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type PositionService interface {
@@ -34,11 +34,20 @@ type PositionService interface {
 
 type PositionHandler struct {
 	service PositionService
-	logger  *log.Logger
+	logger  pkglogger.Logger
 }
 
-func NewPositionHandler(service PositionService, logger *log.Logger) *PositionHandler {
-	return &PositionHandler{service: service, logger: logger}
+func NewPositionHandler(service PositionService, baseLogger pkglogger.Logger) *PositionHandler {
+	return &PositionHandler{
+		service: service,
+		logger: scopedLogger(baseLogger, "position", pkglogger.Fields{
+			"module": "position",
+		}),
+	}
+}
+
+func (h *PositionHandler) requestLogger(r *http.Request, action string, extra pkglogger.Fields) pkglogger.Logger {
+	return requestScopedLogger(h.logger, r, action, extra)
 }
 
 func (h *PositionHandler) SetupRoutes(r chi.Router) {
@@ -60,6 +69,7 @@ func (h *PositionHandler) SetupRoutes(r chi.Router) {
 }
 
 func (h *PositionHandler) CreatePosition(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "CreatePosition", nil)
 	var req types.PositionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -67,6 +77,7 @@ func (h *PositionHandler) CreatePosition(w http.ResponseWriter, r *http.Request)
 	}
 
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String()})
 	operator := getOperatorFromRequest(r)
 
 	response, err := h.service.CreatePosition(r.Context(), tenantID, &req, operator)
@@ -77,11 +88,12 @@ func (h *PositionHandler) CreatePosition(w http.ResponseWriter, r *http.Request)
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, response, "Position created successfully", requestID); err != nil {
-		h.logger.Printf("写入创建职位响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write position create response failed")
 	}
 }
 
 func (h *PositionHandler) ReplacePosition(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "ReplacePosition", nil)
 	var req types.PositionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -96,6 +108,16 @@ func (h *PositionHandler) ReplacePosition(w http.ResponseWriter, r *http.Request
 	}
 
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{
+		"tenantId": tenantID.String(),
+		"code":     code,
+		"ifMatch": func() string {
+			if ifMatch != nil {
+				return *ifMatch
+			}
+			return ""
+		}(),
+	})
 	operator := getOperatorFromRequest(r)
 
 	response, err := h.service.ReplacePosition(r.Context(), tenantID, code, ifMatch, &req, operator)
@@ -106,11 +128,12 @@ func (h *PositionHandler) ReplacePosition(w http.ResponseWriter, r *http.Request
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, response, "Position updated successfully", requestID); err != nil {
-		h.logger.Printf("写入职位更新响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write position update response failed")
 	}
 }
 
 func (h *PositionHandler) CreatePositionVersion(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "CreatePositionVersion", nil)
 	var req types.PositionVersionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -124,6 +147,7 @@ func (h *PositionHandler) CreatePositionVersion(w http.ResponseWriter, r *http.R
 	}
 
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String()})
 	operator := getOperatorFromRequest(r)
 
 	response, err := h.service.CreatePositionVersion(r.Context(), tenantID, code, &req, operator)
@@ -134,11 +158,12 @@ func (h *PositionHandler) CreatePositionVersion(w http.ResponseWriter, r *http.R
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, response, "Position version created successfully", requestID); err != nil {
-		h.logger.Printf("写入职位版本响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write position version response failed")
 	}
 }
 
 func (h *PositionHandler) FillPosition(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "FillPosition", nil)
 	var req types.FillPositionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -150,6 +175,7 @@ func (h *PositionHandler) FillPosition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String(), "code": code})
 	operator := getOperatorFromRequest(r)
 
 	response, err := h.service.FillPosition(r.Context(), tenantID, code, &req, operator)
@@ -160,11 +186,12 @@ func (h *PositionHandler) FillPosition(w http.ResponseWriter, r *http.Request) {
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, response, "Position filled successfully", requestID); err != nil {
-		h.logger.Printf("写入填充职位响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write fill position response failed")
 	}
 }
 
 func (h *PositionHandler) VacatePosition(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "VacatePosition", nil)
 	var req types.VacatePositionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -176,6 +203,7 @@ func (h *PositionHandler) VacatePosition(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String(), "code": code})
 	operator := getOperatorFromRequest(r)
 
 	response, err := h.service.VacatePosition(r.Context(), tenantID, code, &req, operator)
@@ -186,11 +214,12 @@ func (h *PositionHandler) VacatePosition(w http.ResponseWriter, r *http.Request)
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, response, "Position vacated successfully", requestID); err != nil {
-		h.logger.Printf("写入清空职位响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write vacate position response failed")
 	}
 }
 
 func (h *PositionHandler) TransferPosition(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "TransferPosition", nil)
 	var req types.TransferPositionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -202,6 +231,7 @@ func (h *PositionHandler) TransferPosition(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String(), "code": code})
 	operator := getOperatorFromRequest(r)
 
 	response, err := h.service.TransferPosition(r.Context(), tenantID, code, &req, operator)
@@ -212,11 +242,12 @@ func (h *PositionHandler) TransferPosition(w http.ResponseWriter, r *http.Reques
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, response, "Position transferred successfully", requestID); err != nil {
-		h.logger.Printf("写入职位转移响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write transfer position response failed")
 	}
 }
 
 func (h *PositionHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "ListAssignments", nil)
 	code := strings.ToUpper(strings.TrimSpace(chi.URLParam(r, "code")))
 	if code == "" {
 		h.writeError(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少职位代码", nil)
@@ -297,6 +328,18 @@ func (h *PositionHandler) ListAssignments(w http.ResponseWriter, r *http.Request
 	}
 
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{
+		"tenantId":          tenantID.String(),
+		"code":              code,
+		"page":              page,
+		"pageSize":          pageSize,
+		"assignmentStatus":  assignmentStatus,
+		"includeHistorical": includeHistorical,
+		"includeActingOnly": includeActingOnly,
+	})
+	if asOfDate != nil {
+		logger = logger.WithFields(pkglogger.Fields{"asOfDate": asOfDate.Format("2006-01-02")})
+	}
 	assignments, total, err := h.service.ListAssignments(r.Context(), tenantID, code, opts)
 	if err != nil {
 		h.handleServiceError(w, r, err)
@@ -319,11 +362,12 @@ func (h *PositionHandler) ListAssignments(w http.ResponseWriter, r *http.Request
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, response, "Assignments retrieved successfully", requestID); err != nil {
-		h.logger.Printf("写入任职列表响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write assignment list response failed")
 	}
 }
 
 func (h *PositionHandler) CreateAssignment(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "CreateAssignment", nil)
 	var req types.CreateAssignmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -337,6 +381,7 @@ func (h *PositionHandler) CreateAssignment(w http.ResponseWriter, r *http.Reques
 	}
 
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String(), "code": code})
 	operator := getOperatorFromRequest(r)
 
 	assignment, err := h.service.CreateAssignmentRecord(r.Context(), tenantID, code, &req, operator)
@@ -347,11 +392,12 @@ func (h *PositionHandler) CreateAssignment(w http.ResponseWriter, r *http.Reques
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteCreated(w, assignment, "Assignment created successfully", requestID); err != nil {
-		h.logger.Printf("写入创建任职响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write assignment create response failed")
 	}
 }
 
 func (h *PositionHandler) UpdateAssignment(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "UpdateAssignment", nil)
 	var req types.UpdateAssignmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -372,6 +418,7 @@ func (h *PositionHandler) UpdateAssignment(w http.ResponseWriter, r *http.Reques
 	}
 
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String(), "code": code, "assignmentId": assignmentID.String()})
 	operator := getOperatorFromRequest(r)
 
 	assignment, err := h.service.UpdateAssignmentRecord(r.Context(), tenantID, code, assignmentID, &req, operator)
@@ -382,11 +429,12 @@ func (h *PositionHandler) UpdateAssignment(w http.ResponseWriter, r *http.Reques
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, assignment, "Assignment updated successfully", requestID); err != nil {
-		h.logger.Printf("写入任职更新响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write assignment update response failed")
 	}
 }
 
 func (h *PositionHandler) CloseAssignment(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "CloseAssignment", nil)
 	var req types.CloseAssignmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -407,6 +455,7 @@ func (h *PositionHandler) CloseAssignment(w http.ResponseWriter, r *http.Request
 	}
 
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String(), "code": code, "assignmentId": assignmentID.String()})
 	operator := getOperatorFromRequest(r)
 
 	assignment, err := h.service.CloseAssignmentRecord(r.Context(), tenantID, code, assignmentID, &req, operator)
@@ -417,11 +466,12 @@ func (h *PositionHandler) CloseAssignment(w http.ResponseWriter, r *http.Request
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, assignment, "Assignment closed successfully", requestID); err != nil {
-		h.logger.Printf("写入任职结束响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write assignment close response failed")
 	}
 }
 
 func (h *PositionHandler) ApplyPositionEvent(w http.ResponseWriter, r *http.Request) {
+	logger := h.requestLogger(r, "ApplyPositionEvent", nil)
 	var req types.PositionEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -435,6 +485,7 @@ func (h *PositionHandler) ApplyPositionEvent(w http.ResponseWriter, r *http.Requ
 	}
 
 	tenantID := getTenantIDFromRequest(r)
+	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String(), "code": code, "eventType": req.EventType})
 	operator := getOperatorFromRequest(r)
 
 	response, err := h.service.ApplyEvent(r.Context(), tenantID, code, &req, operator)
@@ -445,11 +496,12 @@ func (h *PositionHandler) ApplyPositionEvent(w http.ResponseWriter, r *http.Requ
 
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteSuccess(w, response, "Position event applied successfully", requestID); err != nil {
-		h.logger.Printf("写入职位事件响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write position event response failed")
 	}
 }
 
 func (h *PositionHandler) handleServiceError(w http.ResponseWriter, r *http.Request, err error) {
+	logger := h.requestLogger(r, "HandlePositionServiceError", pkglogger.Fields{"error": err})
 	switch {
 	case errors.Is(err, services.ErrOrganizationNotFound):
 		h.writeError(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织不存在", err)
@@ -472,13 +524,15 @@ func (h *PositionHandler) handleServiceError(w http.ResponseWriter, r *http.Requ
 	case errors.Is(err, services.ErrPositionVersionExists):
 		h.writeError(w, r, http.StatusConflict, "POSITION_VERSION_EXISTS", "该生效日期的职位版本已存在", err)
 	default:
+		logger.Error("unhandled position service error")
 		h.writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "服务器内部错误", err)
 	}
 }
 
 func (h *PositionHandler) writeError(w http.ResponseWriter, r *http.Request, status int, code, message string, details interface{}) {
+	logger := h.requestLogger(r, "writeError", pkglogger.Fields{"status": status, "code": code})
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteError(w, status, code, message, requestID, details); err != nil {
-		h.logger.Printf("写入错误响应失败: %v", err)
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write position error response failed")
 	}
 }

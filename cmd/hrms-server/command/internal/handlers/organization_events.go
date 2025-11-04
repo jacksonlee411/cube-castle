@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"cube-castle/cmd/hrms-server/command/internal/middleware"
 	"cube-castle/cmd/hrms-server/command/internal/repository"
 	"cube-castle/cmd/hrms-server/command/internal/utils"
+	pkglogger "cube-castle/pkg/logger"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *http.Request) {
@@ -35,11 +36,16 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
 		return
 	}
+	eventType := strings.TrimSpace(req.EventType)
+	logger := h.requestLogger(r, "CreateOrganizationEvent", pkglogger.Fields{
+		"code":      code,
+		"eventType": eventType,
+	})
 
 	tenantID := h.getTenantID(r)
 	operationReason := strings.TrimSpace(req.ChangeReason)
 
-	switch strings.TrimSpace(req.EventType) {
+	switch eventType {
 	case "DEACTIVATE":
 		if strings.TrimSpace(req.RecordID) == "" {
 			h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_RECORD_ID", "缺少记录ID", nil)
@@ -63,6 +69,7 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 				h.writeErrorResponse(w, r, http.StatusConflict, "HAS_CHILD_UNITS", "Cannot delete organization unit with child units", details)
 				return
 			}
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("deactivate organization version failed")
 			h.writeErrorResponse(w, r, http.StatusInternalServerError, "DEACTIVATE_ERROR", "作废版本失败", err)
 			return
 		}
@@ -70,7 +77,7 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		// 获取最新时间线（非删除记录），用于前端立即刷新，避免读缓存延迟
 		versions, listErr := h.repo.ListVersionsByCode(r.Context(), tenantID, code)
 		if listErr != nil {
-			h.logger.Printf("⚠️ 获取最新时间线失败（不影响作废结果）: %v", listErr)
+			logger.WithFields(pkglogger.Fields{"error": listErr}).Warn("fetch latest timeline failed (non-blocking)")
 		}
 
 		// 构建轻量时间线返回
@@ -104,13 +111,15 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 			})
 		}
 
-		h.logger.Printf("✅ 版本作废成功: 组织 %s, 记录ID: %s (返回最新时间线%d条)", code, req.RecordID, len(timeline))
+		logger.WithFields(pkglogger.Fields{
+			"timelineCount": len(timeline),
+		}).Info("organization version deactivated")
 		if err := utils.WriteSuccess(w, map[string]interface{}{
 			"code":      code,
 			"record_id": req.RecordID,
 			"timeline":  timeline,
 		}, "版本作废成功", requestID); err != nil {
-			h.logger.Printf("写入版本作废响应失败: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("write deactivate response failed")
 		}
 
 	case "DELETE_ORGANIZATION":
@@ -174,12 +183,13 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 				h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织单元不存在或已删除", err)
 				return
 			}
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("soft delete organization failed")
 			h.handleRepositoryError(w, r, "DELETE", err)
 			return
 		}
 
 		if err := h.auditLogger.LogOrganizationDelete(r.Context(), tenantID, code, currentOrg, actorID, requestID, operationReason); err != nil {
-			h.logger.Printf("⚠️ 记录组织删除审计日志失败: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Warn("record organization delete audit log failed")
 		}
 
 		responseData := map[string]interface{}{
@@ -193,10 +203,10 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		}
 
 		if err := utils.WriteSuccess(w, responseData, "组织删除成功", requestID); err != nil {
-			h.logger.Printf("写入组织删除响应失败: %v", err)
+			logger.WithFields(pkglogger.Fields{"error": err}).Error("write organization delete response failed")
 		}
 
-		h.logger.Printf("🗑️ 组织删除成功: %s (tenant=%s)", code, tenantID)
+		logger.WithFields(pkglogger.Fields{"tenantId": tenantID}).Info("organization deleted")
 
 	default:
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "UNSUPPORTED_EVENT", fmt.Sprintf("不支持的事件类型: %s", req.EventType), nil)
@@ -240,11 +250,11 @@ func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantI
 	// 记录审计日志 - 使用删除日志方法
 	err = h.auditLogger.LogOrganizationDelete(ctx, tenantID, code, oldOrg, actorID, requestID, changeReason)
 	if err != nil {
-		h.logger.Printf("⚠️ 审计日志记录失败 (但操作成功): %v", err)
+		h.logger.WithFields(pkglogger.Fields{"error": err, "recordId": recordID}).Warn("audit log for organization version delete failed")
 		// 审计日志失败不应该导致业务操作失败，只记录警告
+	} else {
+		h.logger.WithFields(pkglogger.Fields{"recordId": recordID}).Info("audit log recorded for organization version delete")
 	}
-
-	h.logger.Printf("📋 审计日志已记录: 作废组织版本 %s (记录ID: %s)", code, recordID)
 
 	return nil
 }
