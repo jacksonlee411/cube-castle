@@ -12,6 +12,7 @@ import (
 	"cube-castle/internal/organization/audit"
 	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
+	validator "cube-castle/internal/organization/validator"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
@@ -32,23 +33,55 @@ var (
 )
 
 type PositionService struct {
-	positions   *repository.PositionRepository
-	assignments *repository.PositionAssignmentRepository
-	jobCatalog  *repository.JobCatalogRepository
-	orgRepo     *repository.OrganizationRepository
-	auditLogger *audit.AuditLogger
-	logger      pkglogger.Logger
+	positions           *repository.PositionRepository
+	assignments         *repository.PositionAssignmentRepository
+	jobCatalog          *repository.JobCatalogRepository
+	orgRepo             *repository.OrganizationRepository
+	auditLogger         *audit.AuditLogger
+	logger              pkglogger.Logger
+	positionValidator   validator.PositionValidationService
+	assignmentValidator validator.AssignmentValidationService
 }
 
-func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *PositionService {
-	return &PositionService{
-		positions:   positions,
-		assignments: assignments,
-		jobCatalog:  jobCatalog,
-		orgRepo:     orgRepo,
-		auditLogger: auditLogger,
-		logger:      scopedLogger(baseLogger, "position", nil),
+func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, positionValidator validator.PositionValidationService, assignmentValidator validator.AssignmentValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *PositionService {
+	if positionValidator == nil {
+		positionValidator = validator.NewStubValidationService()
 	}
+	if assignmentValidator == nil {
+		assignmentValidator = validator.NewStubValidationService()
+	}
+
+	return &PositionService{
+		positions:           positions,
+		assignments:         assignments,
+		jobCatalog:          jobCatalog,
+		orgRepo:             orgRepo,
+		auditLogger:         auditLogger,
+		logger:              scopedLogger(baseLogger, "position", nil),
+		positionValidator:   positionValidator,
+		assignmentValidator: assignmentValidator,
+	}
+}
+
+func (s *PositionService) failIfInvalid(operation string, result *validator.ValidationResult) error {
+	if result == nil || result.Valid {
+		return nil
+	}
+	return validator.NewValidationFailedError(operation, result)
+}
+
+func (s *PositionService) validatePosition(operation string, exec func(validator.PositionValidationService) *validator.ValidationResult) error {
+	if exec == nil || s.positionValidator == nil {
+		return nil
+	}
+	return s.failIfInvalid(operation, exec(s.positionValidator))
+}
+
+func (s *PositionService) validateAssignment(operation string, exec func(validator.AssignmentValidationService) *validator.ValidationResult) error {
+	if exec == nil || s.assignmentValidator == nil {
+		return nil
+	}
+	return s.failIfInvalid(operation, exec(s.assignmentValidator))
 }
 
 type jobCatalogSnapshot struct {
@@ -59,6 +92,12 @@ type jobCatalogSnapshot struct {
 }
 
 func (s *PositionService) CreatePosition(ctx context.Context, tenantID uuid.UUID, req *types.PositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+	if err := s.validatePosition("CreatePosition", func(v validator.PositionValidationService) *validator.ValidationResult {
+		return v.ValidateCreatePosition(ctx, tenantID, req)
+	}); err != nil {
+		return nil, err
+	}
+
 	tx, err := s.positions.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -133,6 +172,12 @@ func (s *PositionService) ReplacePosition(ctx context.Context, tenantID uuid.UUI
 	}
 	if current == nil {
 		return nil, ErrPositionNotFound
+	}
+
+	if err := s.validatePosition("ReplacePosition", func(v validator.PositionValidationService) *validator.ValidationResult {
+		return v.ValidateReplacePosition(ctx, tenantID, code, req)
+	}); err != nil {
+		return nil, err
 	}
 
 	if ifMatch != nil && *ifMatch != "" && current.RecordID.String() != strings.Trim(*ifMatch, "\"") {
@@ -306,6 +351,18 @@ func (s *PositionService) CreatePositionVersion(ctx context.Context, tenantID uu
 
 // TODO-TEMPORARY: 临时占位以支撑 Stage1 填充流程，待 assignments 模块落地后改由专用服务处理（Owner: 命令服务组，Deadline: 2025-11-15，Plan: 接入统一 assignments API 并移除本地实现）
 func (s *PositionService) FillPosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.FillPositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+	if err := s.validatePosition("FillPosition", func(v validator.PositionValidationService) *validator.ValidationResult {
+		return v.ValidateFillPosition(ctx, tenantID, code, req)
+	}); err != nil {
+		return nil, err
+	}
+
+	if err := s.validateAssignment("CreateAssignment", func(av validator.AssignmentValidationService) *validator.ValidationResult {
+		return av.ValidateCreateAssignment(ctx, tenantID, code, fillToAssignmentRequest(req))
+	}); err != nil {
+		return nil, err
+	}
+
 	updated, assignments, _, err := s.createAssignment(ctx, tenantID, code, req, operator, func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error {
 		after := map[string]interface{}{
 			"code":                updated.Code,
@@ -502,6 +559,12 @@ func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UU
 }
 
 func (s *PositionService) CreateAssignmentRecord(ctx context.Context, tenantID uuid.UUID, code string, req *types.CreateAssignmentRequest, operator types.OperatedByInfo) (*types.PositionAssignmentResponse, error) {
+	if err := s.validateAssignment("CreateAssignment", func(v validator.AssignmentValidationService) *validator.ValidationResult {
+		return v.ValidateCreateAssignment(ctx, tenantID, code, req)
+	}); err != nil {
+		return nil, err
+	}
+
 	fillReq := &types.FillPositionRequest{
 		EmployeeID:         req.EmployeeID,
 		EmployeeName:       req.EmployeeName,
@@ -590,6 +653,12 @@ func (s *PositionService) UpdateAssignmentRecord(ctx context.Context, tenantID u
 	}
 	if strings.EqualFold(assignment.AssignmentStatus, "ENDED") {
 		return nil, ErrInvalidAssignmentState
+	}
+
+	if err := s.validateAssignment("UpdateAssignment", func(v validator.AssignmentValidationService) *validator.ValidationResult {
+		return v.ValidateUpdateAssignment(ctx, tenantID, code, assignmentID, req)
+	}); err != nil {
+		return nil, err
 	}
 
 	updateParams := types.AssignmentUpdateParams{}
@@ -706,6 +775,12 @@ func (s *PositionService) UpdateAssignmentRecord(ctx context.Context, tenantID u
 }
 
 func (s *PositionService) CloseAssignmentRecord(ctx context.Context, tenantID uuid.UUID, code string, assignmentID uuid.UUID, req *types.CloseAssignmentRequest, operator types.OperatedByInfo) (*types.PositionAssignmentResponse, error) {
+	if err := s.validateAssignment("CloseAssignment", func(v validator.AssignmentValidationService) *validator.ValidationResult {
+		return v.ValidateCloseAssignment(ctx, tenantID, code, assignmentID, req)
+	}); err != nil {
+		return nil, err
+	}
+
 	vacateReq := &types.VacatePositionRequest{
 		AssignmentID:    assignmentID.String(),
 		EffectiveDate:   req.EndDate,
@@ -763,7 +838,32 @@ func (s *PositionService) ProcessAutoReverts(ctx context.Context, tenantID uuid.
 	return results, nil
 }
 
+func fillToAssignmentRequest(req *types.FillPositionRequest) *types.CreateAssignmentRequest {
+	if req == nil {
+		return nil
+	}
+
+	return &types.CreateAssignmentRequest{
+		EmployeeID:      req.EmployeeID,
+		EmployeeName:    req.EmployeeName,
+		EmployeeNumber:  req.EmployeeNumber,
+		AssignmentType:  req.AssignmentType,
+		FTE:             req.FTE,
+		EffectiveDate:   req.EffectiveDate,
+		ActingUntil:     req.AnticipatedEndDate,
+		AutoRevert:      req.AutoRevert,
+		OperationReason: req.OperationReason,
+		Notes:           req.Notes,
+	}
+}
+
 func (s *PositionService) VacatePosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.VacatePositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+	if err := s.validatePosition("VacatePosition", func(v validator.PositionValidationService) *validator.ValidationResult {
+		return v.ValidateVacatePosition(ctx, tenantID, code, req)
+	}); err != nil {
+		return nil, err
+	}
+
 	tx, err := s.positions.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -781,6 +881,16 @@ func (s *PositionService) VacatePosition(ctx context.Context, tenantID uuid.UUID
 	assignmentID, err := uuid.Parse(strings.TrimSpace(req.AssignmentID))
 	if err != nil {
 		return nil, fmt.Errorf("assignmentId must be UUID: %w", err)
+	}
+
+	if err := s.validateAssignment("CloseAssignment", func(v validator.AssignmentValidationService) *validator.ValidationResult {
+		return v.ValidateCloseAssignment(ctx, tenantID, code, assignmentID, &types.CloseAssignmentRequest{
+			EndDate:         req.EffectiveDate,
+			OperationReason: req.OperationReason,
+			Notes:           req.Notes,
+		})
+	}); err != nil {
+		return nil, err
 	}
 
 	assignment, err := s.assignments.GetByID(ctx, tx, tenantID, assignmentID)
@@ -869,6 +979,12 @@ func (s *PositionService) VacatePosition(ctx context.Context, tenantID uuid.UUID
 
 // TODO-TEMPORARY: 临时 Transfer 实现，仅在 Stage1 过渡使用（Owner: 命令服务组，Deadline: 2025-11-15，Plan: 引入统一岗位调动服务并删除此实现）
 func (s *PositionService) TransferPosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.TransferPositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+	if err := s.validatePosition("TransferPosition", func(v validator.PositionValidationService) *validator.ValidationResult {
+		return v.ValidateTransferPosition(ctx, tenantID, code, req)
+	}); err != nil {
+		return nil, err
+	}
+
 	tx, err := s.positions.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -925,6 +1041,12 @@ func (s *PositionService) TransferPosition(ctx context.Context, tenantID uuid.UU
 }
 
 func (s *PositionService) ApplyEvent(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionEventRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+	if err := s.validatePosition("ApplyPositionEvent", func(v validator.PositionValidationService) *validator.ValidationResult {
+		return v.ValidateApplyEvent(ctx, tenantID, code, req)
+	}); err != nil {
+		return nil, err
+	}
+
 	tx, err := s.positions.BeginTx(ctx)
 	if err != nil {
 		return nil, err

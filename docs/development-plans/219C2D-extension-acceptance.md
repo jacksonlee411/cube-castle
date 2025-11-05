@@ -38,13 +38,15 @@
 
 ## 4. 详细任务
 
-### 4.1 Job Catalog 规则实现
+### 4.1 Job Catalog 与 Validator 覆盖率提升
+- 当前 validator 覆盖率约 78%，需在本阶段提升至 ≥85%。
 - 编写 Job Catalog 规则文件：生效区间冲突、引用存在性、层级依赖。
 - 与数据团队确认所需仓储接口，可复用 stub。
-- 单元测试覆盖正/反场景，纳入覆盖率统计。
+- 扩充单元测试（含职位/任职/Job Catalog）以将 `go test -cover ./internal/organization/validator` 覆盖率提升至 ≥85%，并在 `logs/219C2/test-Day24.log` 记录结果。
 
-### 4.2 端到端测试
-- 按计划执行 9 个用例（3 命令 × 3 场景），验证 REST/GraphQL 错误码一致。
+### 4.2 端到端测试与审计校验
+- 按计划执行 9 个用例（3 命令 × 3 场景），分别针对 REST 与 GraphQL 验证错误码一致性。
+- 在执行中抓取命令审计日志，确认 `business_context.ruleId`、`severity` 与错误响应一致，并将截图/日志附加到 `logs/219C2/validation.log`。
 - 输出测试报告 `tests/e2e/organization-validator/report-Day24.json`。
 - 若测试依赖初始数据，使用迁移或脚本初始化并记录。
 
@@ -81,6 +83,7 @@
 
 - [ ] `go test -cover ./internal/organization/validator` ≥ 85%，含 Job Catalog 规则；报告保存。
 - [ ] 9 个端到端测试全部通过，报告归档。
+- [ ] REST/GraphQL 自测完成并在 `logs/219C2/validation.log` 附加审计日志校验证据。
 - [ ] README 与 Implementation Inventory 更新并合并（含 Prometheus 指标说明）。
 - [ ] 验证链 Prometheus 指标注册完成，可在 Prometheus 中查询。
 - [ ] 219C 主计划验收勾选完成，归档文件生成。

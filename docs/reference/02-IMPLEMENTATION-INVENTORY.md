@@ -78,9 +78,10 @@
   - Handler 层统一错误翻译、审计联动（`organization_helpers.go`、`organization_create.go`）。
   - 文档/契约同步：README 规则矩阵冻结、OpenAPI `ValidatorRuleId/ValidatorErrorCode`、`logs/219C2/rule-freeze.md`。
   - OpenAPI 已登记 ORG-TEMPORAL 规则标识，新增错误码 `INVALID_PARENT` / `ORG_TEMPORAL_PARENT_INACTIVE` 与验证链对齐。
+  - 219C2C 交付：`position_assignment_validation.go`/`position_assignment_validation_test.go` 实现 POS-ORG / POS-HEADCOUNT / POS-JC-LINK / ASSIGN-STATE / ASSIGN-FTE / CROSS-ACTIVE，`CommandModule` 默认注入链式验证器。
 - Pending deliverables:
-  - 组织/GraphQL 命令全量接入链式验证（219C2B 后续）。
-  - P0 单测覆盖率 ≥85%（`go test -cover ./internal/organization/validator` 当前 48.7%）。
+  - GraphQL Mutation 接入职位/任职验证链（按 219C2D 排期）。
+  - Validator 包覆盖率提升至 ≥80%（当前 `go test -cover ./internal/organization/validator` ≈78%，剩余为 Stub 与未接入 GraphQL 的辅助函数）。
 
 ## Draft – Go Handlers (exported methods)
 - SetupRoutes — cmd/organization-command-service/internal/handlers/devtools.go

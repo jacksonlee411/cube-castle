@@ -12,6 +12,7 @@ import (
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/service"
 	"cube-castle/internal/organization/utils"
+	validator "cube-castle/internal/organization/validator"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
@@ -502,6 +503,11 @@ func (h *PositionHandler) ApplyPositionEvent(w http.ResponseWriter, r *http.Requ
 
 func (h *PositionHandler) handleServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	logger := h.requestLogger(r, "HandlePositionServiceError", pkglogger.Fields{"error": err})
+	var validationErr *validator.ValidationFailedError
+	if errors.As(err, &validationErr) {
+		h.writeValidationFailure(w, r, validationErr.Result())
+		return
+	}
 	switch {
 	case errors.Is(err, service.ErrOrganizationNotFound):
 		h.writeError(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织不存在", err)
@@ -534,5 +540,50 @@ func (h *PositionHandler) writeError(w http.ResponseWriter, r *http.Request, sta
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteError(w, status, code, message, requestID, details); err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Error("write position error response failed")
+	}
+}
+
+func (h *PositionHandler) writeValidationFailure(w http.ResponseWriter, r *http.Request, result *validator.ValidationResult) {
+	if result == nil {
+		h.writeError(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", nil)
+		return
+	}
+
+	status := http.StatusBadRequest
+	ruleCode := "BUSINESS_RULE_VIOLATION"
+	message := "业务规则校验失败"
+	if len(result.Errors) > 0 {
+		first := result.Errors[0]
+		if trimmed := strings.TrimSpace(first.Code); trimmed != "" {
+			ruleCode = trimmed
+		}
+		if trimmed := strings.TrimSpace(first.Message); trimmed != "" {
+			message = trimmed
+		}
+		severity := strings.ToUpper(strings.TrimSpace(first.Severity))
+		if severity == "" {
+			severity = string(validator.SeverityHigh)
+		}
+		mapped := validator.SeverityToHTTPStatus(severity)
+		if mapped >= http.StatusBadRequest {
+			status = mapped
+		}
+	}
+
+	details := map[string]interface{}{
+		"validationErrors": result.Errors,
+		"warnings":         result.Warnings,
+		"chainContext":     result.Context,
+		"errorCount":       len(result.Errors),
+		"warningCount":     len(result.Warnings),
+	}
+
+	requestID := middleware.GetRequestID(r.Context())
+	logger := h.requestLogger(r, "writeValidationFailure", pkglogger.Fields{
+		"status": status,
+		"code":   ruleCode,
+	})
+	if err := utils.WriteError(w, status, ruleCode, message, requestID, details); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write validation failure response failed")
 	}
 }

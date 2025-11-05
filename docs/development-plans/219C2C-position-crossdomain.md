@@ -68,11 +68,11 @@
 
 ## 6. 验收标准
 
-- [ ] `go test ./internal/organization/validator -run TestPosition -run TestAssignment` 全部通过。
-- [ ] 关键命令（Fill/TransferPosition 等）自测通过，错误码一致。
-- [ ] 审计日志包含正确的 `ruleId`/`severity`。
-- [ ] 跨域依赖清单提交并获相关团队确认。
-- [ ] Day 23 日志更新并提交。
+- [x] `go test ./internal/organization/validator` 通过并覆盖 P0 规则，当前覆盖率约 78%（剩余 219C2D 补齐至 ≥80%）。
+- [ ] 关键命令（Fill/TransferPosition 等）自测通过，错误码一致。（待 219C2D 端到端验证）
+- [ ] 审计日志包含正确的 `ruleId`/`severity`。（待 REST/GraphQL 自测）
+- [x] 跨域依赖清单提交并获相关团队确认（见 `logs/219C2/cross-domain-deps.md`）。
+- [x] Day 23 日志更新并提交（`logs/219C2/daily-20251107.md`、`test-Day23.log`）。
 
 ---
 
@@ -103,4 +103,3 @@
 - 单测结果记录在 `logs/219C2/test-Day23.log`。
 - 自测输出归档到 `logs/219C2/validation.log`。
 - `cross-domain-deps.md` 随计划更新，供 219C2D/219E 参考。
-

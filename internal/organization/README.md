@@ -76,6 +76,11 @@
 
 > 说明：表格作为 P0 规则冻结草案，后续 219C2A 执行时若需调整，必须先更新本节并取得架构/安全组确认，再同步 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 与 OpenAPI。
 
+#### P1 扩展规则（219C2C）
+| Rule ID | Priority | Severity | Error Code | Triggered At | Handler/Service | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| POS-JC-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST/GraphQL Position Create & Replace | `validator/position_assignment_validation.go` 链式 | Job Catalog Family/Role/Level 必须存在且处于 ACTIVE 状态，错误以 `JOB_CATALOG_NOT_FOUND` 暴露。 |
+
 ### 错误码与契约对齐
 - 错误码来源：`docs/api/openapi.yaml` `components.responses.BadRequest.examples` 以及具体端点的 `4xx/5xx` 响应。
 - 新增错误码流程：提交契约补丁（OpenAPI + GraphQL Schema，如适用）→ 获架构/安全组确认 → 更新本节表格 → 更新实现。
@@ -100,3 +105,10 @@
 - ORG-TEMPORAL 规则在父组织指定时会检查时态有效性，父组织在指定生效日缺失返回 `INVALID_PARENT`，存在但非激活态返回 `ORG_TEMPORAL_PARENT_INACTIVE`。
 - `ValidateOrganizationCreation` / `ValidateOrganizationUpdate` 通过链式执行替换旧的散落校验，并保留代码唯一性、业务逻辑等增量验证。
 - Handler 层（`organization_create.go`, `organization_update.go`, `organization_history.go`）在持久化前调用验证链，失败时统一触发审计与结构化错误响应。
+
+### 职位与任职规则实现（219C2C）
+- `internal/organization/validator/position_assignment_validation.go` 提供 `NewPositionAssignmentValidationService`，在命令模块中为职位/任职命令注入统一链式校验（见 `internal/organization/api.go`）。
+- 职位规则：`POS-ORG` 校验引用组织 ACTIVE；`POS-HEADCOUNT` 在填充/更新任职前验证编制；`POS-JC-LINK` 校验 Job Catalog 链路，违反时返回 `JOB_CATALOG_NOT_FOUND`。
+- 任职与跨域规则：`ASSIGN-FTE`、`ASSIGN-STATE`、`CROSS-ACTIVE` 在创建/更新/关闭任职时执行，阻断非法状态与跨域激活冲突。
+- 单元测试位于 `internal/organization/validator/position_assignment_validation_test.go`，覆盖职位/任职正反场景并记录于 `logs/219C2/test-Day23.log`，当前 validator 包覆盖率约 78%（P0 规则已命中，剩余由 GraphQL/E2E 补齐）。
+- 命令服务默认依赖链式验证：`PositionService` 在写库事务前执行链路，REST handler 通过 `ValidationFailedError` 捕获返回结构化错误并同步审计上下文。

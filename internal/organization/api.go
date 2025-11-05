@@ -117,7 +117,14 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 	cascadeService := servicepkg.NewCascadeUpdateService(hierarchyRepo, cascadeDepth, logger)
 	temporalService := servicepkg.NewTemporalService(deps.DB, logger, orgRepo)
 	temporalMonitor := servicepkg.NewTemporalMonitor(deps.DB, logger)
-	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, auditLogger, logger)
+	positionValidator, assignmentValidator := validatorpkg.NewPositionAssignmentValidationService(
+		orgRepo,
+		jobCatalogRepo,
+		positionRepo,
+		positionAssignmentRepo,
+		logger,
+	)
+	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger)
 	jobCatalogService := servicepkg.NewJobCatalogService(jobCatalogRepo, auditLogger, logger)
 	operationalScheduler := servicepkg.NewOperationalScheduler(deps.DB, logger, temporalMonitor, positionService)
 
