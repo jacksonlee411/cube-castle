@@ -109,6 +109,12 @@ make db-migrate-all
 - 说明：审计历史依赖迁移后的 `audit_logs` 列（before_data/after_data/modified_fields/changes/business_context/record_id）。
 - 注意：`sql/init/01-schema.sql` 已归档为历史快照，禁止用于初始化；参阅 `docs/archive/deprecated-setup/01-schema.sql`。
 
+### 审计执行检查（命令侧）
+- 审计写入唯一入口：`internal/organization/audit.AuditLogger`，命令域服务在事务中调用 `LogEventInTransaction`，无事务场景才可回退到 `LogEvent`。
+- 字段要求：`recordId`、`entityCode`、`actorName`、`requestId`、`correlationId/sourceCorrelation` 必须填充，`business_context.payload` 默认使用 `AfterData` 或错误请求体。
+- 链路 ID：确认 `internal/organization/middleware/request.go` / `internal/middleware/request_id.go` 已生效（响应头携带 `X-Request-ID`、`X-Correlation-ID`），服务层通过上下文读取并透传给审计。
+- 快速回归：`go test ./internal/organization/audit` 验证事务审计、错误事件、payload 兜底逻辑。
+
 ### JWT认证管理
 ```bash
 make jwt-dev-setup              # 首次运行时生成 RS256 密钥对 (secrets/dev-jwt-*.pem)

@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"cube-castle/internal/organization/audit"
+	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
@@ -49,14 +50,18 @@ func (s *JobCatalogService) CreateJobFamilyGroup(ctx context.Context, tenantID u
 		return nil, err
 	}
 
+	after := map[string]interface{}{
+		"code":        entity.Code,
+		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobFamilyGroup", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeCreate, "CreateJobFamilyGroup", entity.RecordID, map[string]interface{}{
-		"code":        entity.Code,
-		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
-	})
 	return entity, nil
 }
 
@@ -71,14 +76,18 @@ func (s *JobCatalogService) CreateJobFamilyGroupVersion(ctx context.Context, ten
 	if err != nil {
 		return nil, err
 	}
+	after := map[string]interface{}{
+		"code":        entity.Code,
+		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobFamilyGroupVersion", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeCreate, "CreateJobFamilyGroupVersion", entity.RecordID, map[string]interface{}{
-		"code":        entity.Code,
-		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
-	})
 	return entity, nil
 }
 
@@ -102,15 +111,18 @@ func (s *JobCatalogService) CreateJobFamily(ctx context.Context, tenantID uuid.U
 		return nil, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeCreate, "CreateJobFamily", entity.RecordID, map[string]interface{}{
+	after := map[string]interface{}{
 		"code":        entity.Code,
 		"groupCode":   entity.FamilyGroupCode,
 		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
-	})
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobFamily", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
 
 	return entity, nil
 }
@@ -135,15 +147,18 @@ func (s *JobCatalogService) CreateJobFamilyVersion(ctx context.Context, tenantID
 		return nil, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeCreate, "CreateJobFamilyVersion", entity.RecordID, map[string]interface{}{
+	after := map[string]interface{}{
 		"code":        entity.Code,
 		"groupCode":   entity.FamilyGroupCode,
 		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
-	})
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobFamilyVersion", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
 
 	return entity, nil
 }
@@ -168,15 +183,19 @@ func (s *JobCatalogService) CreateJobRole(ctx context.Context, tenantID uuid.UUI
 		return nil, err
 	}
 
+	after := map[string]interface{}{
+		"code":        entity.Code,
+		"familyCode":  entity.FamilyCode,
+		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobRole", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeCreate, "CreateJobRole", entity.RecordID, map[string]interface{}{
-		"code":        entity.Code,
-		"familyCode":  entity.FamilyCode,
-		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
-	})
 	return entity, nil
 }
 
@@ -200,15 +219,19 @@ func (s *JobCatalogService) CreateJobRoleVersion(ctx context.Context, tenantID u
 		return nil, err
 	}
 
+	after := map[string]interface{}{
+		"code":        entity.Code,
+		"familyCode":  entity.FamilyCode,
+		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobRoleVersion", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeCreate, "CreateJobRoleVersion", entity.RecordID, map[string]interface{}{
-		"code":        entity.Code,
-		"familyCode":  entity.FamilyCode,
-		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
-	})
 	return entity, nil
 }
 
@@ -232,15 +255,19 @@ func (s *JobCatalogService) CreateJobLevel(ctx context.Context, tenantID uuid.UU
 		return nil, err
 	}
 
+	after := map[string]interface{}{
+		"code":        entity.Code,
+		"roleCode":    entity.RoleCode,
+		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobLevel", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeCreate, "CreateJobLevel", entity.RecordID, map[string]interface{}{
-		"code":        entity.Code,
-		"roleCode":    entity.RoleCode,
-		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
-	})
 	return entity, nil
 }
 
@@ -264,15 +291,19 @@ func (s *JobCatalogService) CreateJobLevelVersion(ctx context.Context, tenantID 
 		return nil, err
 	}
 
+	after := map[string]interface{}{
+		"code":        entity.Code,
+		"roleCode":    entity.RoleCode,
+		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobLevelVersion", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeCreate, "CreateJobLevelVersion", entity.RecordID, map[string]interface{}{
-		"code":        entity.Code,
-		"roleCode":    entity.RoleCode,
-		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
-	})
 	return entity, nil
 }
 
@@ -301,15 +332,19 @@ func (s *JobCatalogService) UpdateJobFamilyGroup(ctx context.Context, tenantID u
 		return nil, s.mapUpdateError(err)
 	}
 
+	after := map[string]interface{}{
+		"code":        updated.Code,
+		"status":      updated.Status,
+		"effectiveAt": updated.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeUpdate, "UpdateJobFamilyGroup", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeUpdate, "UpdateJobFamilyGroup", updated.RecordID, map[string]interface{}{
-		"code":        updated.Code,
-		"status":      updated.Status,
-		"effectiveAt": updated.EffectiveDate.Format("2006-01-02"),
-	})
 	return updated, nil
 }
 
@@ -356,15 +391,19 @@ func (s *JobCatalogService) UpdateJobFamily(ctx context.Context, tenantID uuid.U
 		return nil, s.mapUpdateError(err)
 	}
 
+	after := map[string]interface{}{
+		"code":        updated.Code,
+		"groupCode":   updated.FamilyGroupCode,
+		"effectiveAt": updated.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeUpdate, "UpdateJobFamily", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeUpdate, "UpdateJobFamily", updated.RecordID, map[string]interface{}{
-		"code":        updated.Code,
-		"groupCode":   updated.FamilyGroupCode,
-		"effectiveAt": updated.EffectiveDate.Format("2006-01-02"),
-	})
 	return updated, nil
 }
 
@@ -411,15 +450,19 @@ func (s *JobCatalogService) UpdateJobRole(ctx context.Context, tenantID uuid.UUI
 		return nil, s.mapUpdateError(err)
 	}
 
+	after := map[string]interface{}{
+		"code":        updated.Code,
+		"familyCode":  updated.FamilyCode,
+		"effectiveAt": updated.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeUpdate, "UpdateJobRole", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeUpdate, "UpdateJobRole", updated.RecordID, map[string]interface{}{
-		"code":        updated.Code,
-		"familyCode":  updated.FamilyCode,
-		"effectiveAt": updated.EffectiveDate.Format("2006-01-02"),
-	})
 	return updated, nil
 }
 
@@ -474,15 +517,19 @@ func (s *JobCatalogService) UpdateJobLevel(ctx context.Context, tenantID uuid.UU
 		return nil, s.mapUpdateError(err)
 	}
 
+	after := map[string]interface{}{
+		"code":        updated.Code,
+		"roleCode":    updated.RoleCode,
+		"effectiveAt": updated.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeUpdate, "UpdateJobLevel", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	s.logCatalogEvent(ctx, tenantID, operator, audit.EventTypeUpdate, "UpdateJobLevel", updated.RecordID, map[string]interface{}{
-		"code":        updated.Code,
-		"roleCode":    updated.RoleCode,
-		"effectiveAt": updated.EffectiveDate.Format("2006-01-02"),
-	})
 	return updated, nil
 }
 
@@ -502,29 +549,53 @@ func (s *JobCatalogService) mapUpdateError(err error) error {
 	return err
 }
 
-func (s *JobCatalogService) logCatalogEvent(ctx context.Context, tenantID uuid.UUID, operator types.OperatedByInfo, eventType, action string, recordID uuid.UUID, after map[string]interface{}) {
+func (s *JobCatalogService) logCatalogEvent(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, operator types.OperatedByInfo, eventType, action string, recordID uuid.UUID, after map[string]interface{}) error {
 	if s.auditLogger == nil {
-		return
+		return nil
 	}
+
 	actorID := strings.TrimSpace(operator.ID)
+	actorName := strings.TrimSpace(operator.Name)
 	actorType := audit.ActorTypeUser
 	if actorID == "" {
 		actorType = audit.ActorTypeSystem
 		actorID = "system"
 	}
+	requestID := orgmiddleware.GetRequestID(ctx)
+	correlationID := orgmiddleware.GetCorrelationID(ctx)
+	sourceCorrelation := ""
+	if src := orgmiddleware.GetCorrelationSource(ctx); src == "header" {
+		sourceCorrelation = src
+	}
+
+	entityCode := ""
+	if v, ok := after["code"].(string); ok {
+		entityCode = strings.TrimSpace(v)
+	}
+
 	event := &audit.AuditEvent{
-		TenantID:     tenantID,
-		EventType:    eventType,
-		ResourceType: audit.ResourceTypeJobCatalog,
-		ResourceID:   recordID.String(),
-		ActorID:      actorID,
-		ActorType:    actorType,
-		ActionName:   action,
-		Timestamp:    time.Now().UTC(),
-		Success:      true,
-		AfterData:    after,
+		TenantID:          tenantID,
+		EventType:         eventType,
+		ResourceType:      audit.ResourceTypeJobCatalog,
+		ResourceID:        recordID.String(),
+		RecordID:          recordID,
+		EntityCode:        entityCode,
+		ActorID:           actorID,
+		ActorType:         actorType,
+		ActorName:         actorName,
+		ActionName:        action,
+		RequestID:         requestID,
+		CorrelationID:     correlationID,
+		SourceCorrelation: sourceCorrelation,
+		Success:           true,
+		AfterData:         after,
+		ContextPayload:    after,
 	}
-	if err := s.auditLogger.LogEvent(ctx, event); err != nil {
+
+	if err := s.auditLogger.LogEventInTransaction(ctx, tx, event); err != nil {
 		s.logger.Errorf("[AUDIT] failed to log job catalog event: %v", err)
+		return err
 	}
+
+	return nil
 }

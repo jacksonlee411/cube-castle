@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"cube-castle/internal/organization/audit"
+	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	"cube-castle/internal/organization/utils"
 	"cube-castle/internal/types"
@@ -15,11 +17,11 @@ import (
 )
 
 // OrganizationTemporalService 组织时态服务 - 按06文档要求实现
-// 聚合 TemporalTimelineManager + AuditWriter，单事务维护时间轴与审计
+// 聚合 TemporalTimelineManager + AuditLogger，单事务维护时间轴与审计
 type OrganizationTemporalService struct {
 	db              *sql.DB
 	timelineManager *repository.TemporalTimelineManager
-	auditWriter     *repository.AuditWriter
+	auditLogger     *audit.AuditLogger
 	logger          pkglogger.Logger
 	orgRepo         *repository.OrganizationRepository
 }
@@ -28,7 +30,7 @@ func NewOrganizationTemporalService(db *sql.DB, baseLogger pkglogger.Logger) *Or
 	return &OrganizationTemporalService{
 		db:              db,
 		timelineManager: repository.NewTemporalTimelineManager(db, baseLogger),
-		auditWriter:     repository.NewAuditWriter(db, baseLogger),
+		auditLogger:     audit.NewAuditLogger(db, baseLogger),
 		logger:          scopedLogger(baseLogger, "organizationTemporal", nil),
 		orgRepo:         repository.NewOrganizationRepository(db, baseLogger),
 	}
@@ -154,27 +156,11 @@ func (s *OrganizationTemporalService) CreateVersion(ctx context.Context, req *Te
 		"effective_date": req.EffectiveDate,
 	}
 
-	err = s.auditWriter.WriteAuditInTx(ctx, tx, &repository.AuditEntry{
-		TenantID:        tenantID,
-		EventType:       "CREATE",
-		ResourceType:    "ORGANIZATION",
-		ActorID:         actorID,
-		ActorType:       "SYSTEM",
-		ActionName:      "CREATE_ORGANIZATION",
-		RequestID:       requestID,
-		ResourceID:      result.RecordID,
-		OperationReason: normalizedReason,
-		BeforeData:      nil,
-		AfterData:       afterData,
-		Changes:         []repository.FieldChange{},
-		BusinessContext: map[string]interface{}{
-			"source":    "organization_temporal_service",
-			"requestId": requestID,
-			"context":   "create_version",
-		},
-		RecordID: result.RecordID,
-	})
-	if err != nil {
+	event := s.newAuditEvent(ctx, tenantID, actorID, "CreateOrganizationVersion", audit.EventTypeCreate, result.RecordID, req.Code, requestID, normalizedReason)
+	event.AfterData = afterData
+	event.ContextPayload = afterData
+
+	if err := s.auditLogger.LogEventInTransaction(ctx, tx, event); err != nil {
 		return nil, fmt.Errorf("审计写入失败: %w", err)
 	}
 
@@ -269,27 +255,21 @@ func (s *OrganizationTemporalService) UpdateVersionEffectiveDate(ctx context.Con
 	}
 	newData["effective_date"] = req.NewEffectiveDate
 
-	err = s.auditWriter.WriteAuditInTx(ctx, tx, &repository.AuditEntry{
-		TenantID:        tenantID,
-		EventType:       "UPDATE",
-		ResourceType:    "ORGANIZATION",
-		ActorID:         actorID,
-		ActorType:       "SYSTEM",
-		ActionName:      "UPDATE_ORGANIZATION",
-		RequestID:       requestID,
-		ResourceID:      recordID,
-		OperationReason: normalizedReason,
-		BeforeData:      oldData,
-		AfterData:       newData,
-		Changes:         s.auditWriter.CalculateChanges(oldData, newData),
-		BusinessContext: map[string]interface{}{
-			"source":    "organization_temporal_service",
-			"requestId": requestID,
-			"context":   "update_effective_date",
+	event := s.newAuditEvent(ctx, tenantID, actorID, "UpdateOrganizationVersionEffectiveDate", audit.EventTypeUpdate, recordID, code, requestID, normalizedReason)
+	event.BeforeData = oldData
+	event.AfterData = newData
+	event.ContextPayload = newData
+	event.ModifiedFields = []string{"effective_date"}
+	event.Changes = []audit.FieldChange{
+		{
+			Field:    "effective_date",
+			OldValue: oldData["effective_date"],
+			NewValue: req.NewEffectiveDate,
+			DataType: "timestamp",
 		},
-		RecordID: recordID,
-	})
-	if err != nil {
+	}
+
+	if err := s.auditLogger.LogEventInTransaction(ctx, tx, event); err != nil {
 		return nil, fmt.Errorf("审计写入失败: %w", err)
 	}
 
@@ -379,27 +359,12 @@ func (s *OrganizationTemporalService) DeleteVersion(ctx context.Context, req *Te
 	}
 
 	// 2. 写入审计日志
-	err = s.auditWriter.WriteAuditInTx(ctx, tx, &repository.AuditEntry{
-		TenantID:        tenantID,
-		EventType:       "DELETE",
-		ResourceType:    "ORGANIZATION",
-		ActorID:         actorID,
-		ActorType:       "SYSTEM",
-		ActionName:      "DELETE_ORGANIZATION",
-		RequestID:       requestID,
-		ResourceID:      recordID,
-		OperationReason: normalizedReason,
-		BeforeData:      beforeData,
-		AfterData:       nil,
-		Changes:         []repository.FieldChange{},
-		BusinessContext: map[string]interface{}{
-			"source":    "organization_temporal_service",
-			"requestId": requestID,
-			"context":   "delete_version",
-		},
-		RecordID: recordID,
-	})
-	if err != nil {
+	event := s.newAuditEvent(ctx, tenantID, actorID, "DeleteOrganizationVersion", audit.EventTypeDelete, recordID, code, requestID, normalizedReason)
+	event.BeforeData = beforeData
+	event.ContextPayload = beforeData
+	event.Success = true
+
+	if err := s.auditLogger.LogEventInTransaction(ctx, tx, event); err != nil {
 		return nil, fmt.Errorf("审计写入失败: %w", err)
 	}
 
@@ -478,30 +443,22 @@ func (s *OrganizationTemporalService) changeOrganizationStatus(ctx context.Conte
 	if newRecordID == uuid.Nil {
 		s.logger.Warnf("未找到新创建的%s版本，跳过审计", operationType)
 	} else {
-		err = s.auditWriter.WriteAuditInTx(ctx, tx, &repository.AuditEntry{
-			TenantID:        tenantID,
-			EventType:       "UPDATE",
-			ResourceType:    "ORGANIZATION",
-			ActorID:         actorID,
-			ActorType:       "SYSTEM",
-			ActionName:      fmt.Sprintf("%s_ORGANIZATION", operationType),
-			RequestID:       requestID,
-			ResourceID:      newRecordID,
-			OperationReason: normalizedReason,
-			BeforeData:      map[string]interface{}{"status": getOppositeStatus(targetStatus)},
-			AfterData:       map[string]interface{}{"status": targetStatus},
-			Changes: []repository.FieldChange{
-				{Field: "status", OldValue: getOppositeStatus(targetStatus), NewValue: targetStatus},
-			},
-			BusinessContext: map[string]interface{}{
-				"source":        "organization_temporal_service",
-				"requestId":     requestID,
-				"context":       fmt.Sprintf("%s_organization", operationType),
-				"operationType": operationType,
-			},
-			RecordID: newRecordID,
-		})
-		if err != nil {
+		prevStatus := getOppositeStatus(targetStatus)
+		afterData := map[string]interface{}{"status": targetStatus}
+		actionName := fmt.Sprintf("%s_ORGANIZATION", operationType)
+		event := s.newAuditEvent(ctx, tenantID, actorID, actionName, audit.EventTypeUpdate, newRecordID, req.Code, requestID, normalizedReason)
+		event.BeforeData = map[string]interface{}{"status": prevStatus}
+		event.AfterData = afterData
+		event.ContextPayload = map[string]interface{}{
+			"status":        targetStatus,
+			"operationType": operationType,
+		}
+		event.ModifiedFields = []string{"status"}
+		event.Changes = []audit.FieldChange{
+			{Field: "status", OldValue: prevStatus, NewValue: targetStatus, DataType: "string"},
+		}
+
+		if err := s.auditLogger.LogEventInTransaction(ctx, tx, event); err != nil {
 			return nil, fmt.Errorf("审计写入失败: %w", err)
 		}
 	}
@@ -513,6 +470,43 @@ func (s *OrganizationTemporalService) changeOrganizationStatus(ctx context.Conte
 
 	s.logger.Infof("组织%s完成", operationType)
 	return timeline, nil
+}
+
+func (s *OrganizationTemporalService) newAuditEvent(ctx context.Context, tenantID uuid.UUID, actorID, actionName string, eventType string, resourceID uuid.UUID, entityCode, requestID, operationReason string) *audit.AuditEvent {
+	trimmedActorID := strings.TrimSpace(actorID)
+	actorType := audit.ActorTypeUser
+	if trimmedActorID == "" {
+		trimmedActorID = "system"
+		actorType = audit.ActorTypeSystem
+	}
+	actorName := trimmedActorID
+
+	correlationID := orgmiddleware.GetCorrelationID(ctx)
+	if correlationID == "" && requestID != "" {
+		correlationID = requestID
+	}
+	sourceCorrelation := ""
+	if orgmiddleware.GetCorrelationSource(ctx) == "header" {
+		sourceCorrelation = "header"
+	}
+
+	return &audit.AuditEvent{
+		TenantID:          tenantID,
+		EventType:         eventType,
+		ResourceType:      audit.ResourceTypeOrganization,
+		ResourceID:        resourceID.String(),
+		RecordID:          resourceID,
+		EntityCode:        entityCode,
+		ActorID:           trimmedActorID,
+		ActorType:         actorType,
+		ActorName:         actorName,
+		ActionName:        actionName,
+		RequestID:         requestID,
+		CorrelationID:     correlationID,
+		SourceCorrelation: sourceCorrelation,
+		OperationReason:   strings.TrimSpace(operationReason),
+		Success:           true,
+	}
 }
 
 // getOppositeStatus 获取状态的相反状态

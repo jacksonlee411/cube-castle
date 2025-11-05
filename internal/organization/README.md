@@ -4,7 +4,7 @@
 
 - `audit/`: 审计记录写入器及依赖。
 - `handler/`: REST/BFF 处理器（命令侧）。
-- `middleware/`: 组织模块专用中间件（性能、限流、请求 ID）。
+- `middleware/`: 组织模块专用中间件（性能、限流、请求/关联 ID）。
 - `repository/`: 命令/查询共享的 PostgreSQL 仓储实现与时间轴管理器。
 - `resolver/`: GraphQL Resolver（查询侧入口）。
 - `service/`: 领域服务、时态服务、Job Catalog/Position/Cascade 等。
@@ -16,6 +16,14 @@
 
 - Department 是 Organization 聚合内节点，通过 `unitType=DEPARTMENT` 表示。
 - Position/JobCatalog/Assignment 共用 PostgreSQL 数据源，命令侧通过 `service/*` 管理，查询侧通过 `resolver` + `repository`。
+
+## 审计规范（219C1）
+
+- 唯一事实来源：`internal/organization/audit/logger.go` 提供的 `AuditLogger`，仅允许通过 `LogEvent`/`LogEventInTransaction` 写入 `audit_logs`。
+- 事务化要求：所有命令域服务（OrganizationTemporalService、JobCatalogService、PositionService 等）必须在业务事务中调用 `LogEventInTransaction`；审计写入失败时应回滚业务操作。
+- 字段对齐：`AuditEvent` 必须填充 `recordId`、`entityCode`、`actorName`、`requestId`、`correlationId/sourceCorrelation` 等字段；`business_context.payload` 默认保存 `AfterData` 或错误上下文。
+- 链路标识：`internal/organization/middleware/request.go` 中间件负责注入 `X-Request-ID`、`X-Correlation-ID` 并写入上下文；服务层从上下文获取并透传给审计。
+- 测试入口：`go test ./internal/organization/audit` 验证事务写入/错误记录等关键路径。
 
 ## 迁移清单（219A）
 

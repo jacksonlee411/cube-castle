@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"cube-castle/internal/organization/audit"
+	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
@@ -99,12 +100,7 @@ func (s *PositionService) CreatePosition(ctx context.Context, tenantID uuid.UUID
 		return nil, fmt.Errorf("%w: %v", ErrPositionTimelineUpdate, err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	response := s.toPositionResponse(entity, nil)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeCreate, "CreatePosition", entity.RecordID, map[string]interface{}{
+	after := map[string]interface{}{
 		"code":               entity.Code,
 		"title":              entity.Title,
 		"organizationCode":   entity.OrganizationCode,
@@ -112,9 +108,16 @@ func (s *PositionService) CreatePosition(ctx context.Context, tenantID uuid.UUID
 		"jobFamilyCode":      entity.JobFamilyCode,
 		"jobRoleCode":        entity.JobRoleCode,
 		"jobLevelCode":       entity.JobLevelCode,
-	})
+	}
+	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeCreate, "CreatePosition", entity.RecordID, after); err != nil {
+		return nil, err
+	}
 
-	return response, nil
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return s.toPositionResponse(entity, nil), nil
 }
 
 func (s *PositionService) ReplacePosition(ctx context.Context, tenantID uuid.UUID, code string, ifMatch *string, req *types.PositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
@@ -163,18 +166,20 @@ func (s *PositionService) ReplacePosition(ctx context.Context, tenantID uuid.UUI
 		return nil, err
 	}
 
+	after := map[string]interface{}{
+		"code":             updateEntity.Code,
+		"title":            updateEntity.Title,
+		"organizationCode": updateEntity.OrganizationCode,
+	}
+	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "UpdatePosition", updateEntity.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	response := s.toPositionResponse(updateEntity, nil)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeUpdate, "UpdatePosition", updateEntity.RecordID, map[string]interface{}{
-		"code":             updateEntity.Code,
-		"title":            updateEntity.Title,
-		"organizationCode": updateEntity.OrganizationCode,
-	})
-
-	return response, nil
+	return s.toPositionResponse(updateEntity, nil), nil
 }
 
 func (s *PositionService) CreatePositionVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionVersionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
@@ -284,39 +289,42 @@ func (s *PositionService) CreatePositionVersion(ctx context.Context, tenantID uu
 		return nil, fmt.Errorf("%w: %v", ErrPositionTimelineUpdate, err)
 	}
 
+	after := map[string]interface{}{
+		"code":          entity.Code,
+		"effectiveDate": entity.EffectiveDate.Format("2006-01-02"),
+	}
+	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeCreate, "CreatePositionVersion", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	response := s.toPositionResponse(entity, nil)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeCreate, "CreatePositionVersion", entity.RecordID, map[string]interface{}{
-		"code":          entity.Code,
-		"effectiveDate": entity.EffectiveDate.Format("2006-01-02"),
-	})
-
-	return response, nil
+	return s.toPositionResponse(entity, nil), nil
 }
 
 // TODO-TEMPORARY: 临时占位以支撑 Stage1 填充流程，待 assignments 模块落地后改由专用服务处理（Owner: 命令服务组，Deadline: 2025-11-15，Plan: 接入统一 assignments API 并移除本地实现）
 func (s *PositionService) FillPosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.FillPositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
-	updated, assignments, assignment, err := s.createAssignment(ctx, tenantID, code, req, operator)
+	updated, assignments, _, err := s.createAssignment(ctx, tenantID, code, req, operator, func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error {
+		after := map[string]interface{}{
+			"code":                updated.Code,
+			"assignmentId":        assignment.AssignmentID.String(),
+			"assignmentStatus":    assignment.AssignmentStatus,
+			"headcountInUse":      updated.HeadcountInUse,
+			"positionStatus":      updated.Status,
+			"assignmentEffective": assignment.EffectiveDate.Format("2006-01-02"),
+		}
+		return s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "FillPosition", updated.RecordID, after)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	response := s.toPositionResponse(updated, assignments)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeUpdate, "FillPosition", updated.RecordID, map[string]interface{}{
-		"code":                updated.Code,
-		"assignmentId":        assignment.AssignmentID.String(),
-		"assignmentStatus":    assignment.AssignmentStatus,
-		"headcountInUse":      updated.HeadcountInUse,
-		"positionStatus":      updated.Status,
-		"assignmentEffective": assignment.EffectiveDate.Format("2006-01-02"),
-	})
-	return response, nil
+	return s.toPositionResponse(updated, assignments), nil
 }
 
-func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UUID, code string, req *types.FillPositionRequest, operator types.OperatedByInfo) (*types.Position, []types.PositionAssignment, *types.PositionAssignment, error) {
+func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UUID, code string, req *types.FillPositionRequest, operator types.OperatedByInfo, auditFn func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error) (*types.Position, []types.PositionAssignment, *types.PositionAssignment, error) {
 	tx, err := s.positions.BeginTx(ctx)
 	if err != nil {
 		return nil, nil, nil, err
@@ -480,6 +488,12 @@ func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UU
 		return nil, nil, nil, err
 	}
 
+	if auditFn != nil {
+		if err := auditFn(tx, updated, assignment); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, nil, nil, err
 	}
@@ -501,20 +515,21 @@ func (s *PositionService) CreateAssignmentRecord(ctx context.Context, tenantID u
 		Notes:              req.Notes,
 	}
 
-	updated, _, assignment, err := s.createAssignment(ctx, tenantID, code, fillReq, operator)
+	_, _, assignment, err := s.createAssignment(ctx, tenantID, code, fillReq, operator, func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error {
+		after := map[string]interface{}{
+			"code":             updated.Code,
+			"assignmentId":     assignment.AssignmentID.String(),
+			"assignmentType":   assignment.AssignmentType,
+			"autoRevert":       assignment.AutoRevert,
+			"assignmentStatus": assignment.AssignmentStatus,
+		}
+		return s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "CreateAssignment", updated.RecordID, after)
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	resp := toAssignmentResponse(*assignment)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeUpdate, "CreateAssignment", updated.RecordID, map[string]interface{}{
-		"code":             updated.Code,
-		"assignmentId":     assignment.AssignmentID.String(),
-		"assignmentType":   assignment.AssignmentType,
-		"autoRevert":       assignment.AutoRevert,
-		"assignmentStatus": assignment.AssignmentStatus,
-	})
-
 	return &resp, nil
 }
 
@@ -673,17 +688,20 @@ func (s *PositionService) UpdateAssignmentRecord(ctx context.Context, tenantID u
 		}
 	}
 
+	after := map[string]interface{}{
+		"assignmentId":   updatedAssignment.AssignmentID.String(),
+		"assignmentType": updatedAssignment.AssignmentType,
+		"autoRevert":     updatedAssignment.AutoRevert,
+	}
+	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "UpdateAssignment", updatedAssignment.PositionRecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
 	resp := toAssignmentResponse(*updatedAssignment)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeUpdate, "UpdateAssignment", updatedAssignment.PositionRecordID, map[string]interface{}{
-		"assignmentId":   updatedAssignment.AssignmentID.String(),
-		"assignmentType": updatedAssignment.AssignmentType,
-		"autoRevert":     updatedAssignment.AutoRevert,
-	})
-
 	return &resp, nil
 }
 
@@ -830,20 +848,23 @@ func (s *PositionService) VacatePosition(ctx context.Context, tenantID uuid.UUID
 		return nil, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	response := s.toPositionResponse(updated, assignments)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeUpdate, "VacatePosition", updated.RecordID, map[string]interface{}{
+	after := map[string]interface{}{
 		"code":               updated.Code,
 		"assignmentId":       assignment.AssignmentID.String(),
 		"headcountInUse":     updated.HeadcountInUse,
 		"positionStatus":     updated.Status,
 		"assignmentEndDate":  effectiveDate.Format("2006-01-02"),
 		"assignmentPrevious": assignment.AssignmentStatus,
-	})
-	return response, nil
+	}
+	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "VacatePosition", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return s.toPositionResponse(updated, assignments), nil
 }
 
 // TODO-TEMPORARY: 临时 Transfer 实现，仅在 Stage1 过渡使用（Owner: 命令服务组，Deadline: 2025-11-15，Plan: 引入统一岗位调动服务并删除此实现）
@@ -883,21 +904,24 @@ func (s *PositionService) TransferPosition(ctx context.Context, tenantID uuid.UU
 		return nil, ErrPositionNotFound
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
 	assignments, err := s.assignments.ListByPosition(ctx, tx, tenantID, updated.Code)
 	if err != nil {
 		return nil, err
 	}
 
-	response := s.toPositionResponse(updated, assignments)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeUpdate, "TransferPosition", updated.RecordID, map[string]interface{}{
+	after := map[string]interface{}{
 		"code":             updated.Code,
 		"organizationCode": updated.OrganizationCode,
-	})
-	return response, nil
+	}
+	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "TransferPosition", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return s.toPositionResponse(updated, assignments), nil
 }
 
 func (s *PositionService) ApplyEvent(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionEventRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
@@ -969,18 +993,20 @@ func (s *PositionService) ApplyEvent(ctx context.Context, tenantID uuid.UUID, co
 		updated = target
 	}
 
+	after := map[string]interface{}{
+		"code":      updated.Code,
+		"eventType": eventType,
+		"status":    updated.Status,
+	}
+	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "ApplyPositionEvent", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	response := s.toPositionResponse(updated, nil)
-	s.logPositionEvent(ctx, operator, tenantID, audit.EventTypeUpdate, "ApplyPositionEvent", updated.RecordID, map[string]interface{}{
-		"code":      updated.Code,
-		"eventType": eventType,
-		"status":    updated.Status,
-	})
-
-	return response, nil
+	return s.toPositionResponse(updated, nil), nil
 }
 
 func (s *PositionService) resolveJobCatalog(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, groupCode string, groupRecord *string, familyCode string, familyRecord *string, roleCode string, roleRecord *string, levelCode string, levelRecord *string) (*jobCatalogSnapshot, error) {
@@ -1340,33 +1366,61 @@ func toAssignmentResponse(entity types.PositionAssignment) types.PositionAssignm
 	}
 }
 
-func (s *PositionService) logPositionEvent(ctx context.Context, operator types.OperatedByInfo, tenantID uuid.UUID, eventType, action string, recordID uuid.UUID, after map[string]interface{}) {
+func (s *PositionService) logPositionEvent(ctx context.Context, tx *sql.Tx, operator types.OperatedByInfo, tenantID uuid.UUID, eventType, action string, recordID uuid.UUID, after map[string]interface{}) error {
 	if s.auditLogger == nil {
-		return
+		return nil
 	}
-	opID, _ := resolveOperator(operator)
+
+	opID, opName := resolveOperator(operator)
 	actorID := strings.TrimSpace(operator.ID)
 	actorType := audit.ActorTypeUser
 	if actorID == "" {
-		actorID = opID.String()
 		actorType = audit.ActorTypeSystem
+		actorID = opID.String()
 	}
+
+	actorName := strings.TrimSpace(operator.Name)
+	if actorName == "" {
+		actorName = opName
+	}
+
+	requestID := orgmiddleware.GetRequestID(ctx)
+	correlationID := orgmiddleware.GetCorrelationID(ctx)
+	sourceCorrelation := ""
+	if src := orgmiddleware.GetCorrelationSource(ctx); src == "header" {
+		sourceCorrelation = src
+	}
+
+	positionCode := ""
+	if v, ok := after["code"].(string); ok {
+		positionCode = strings.TrimSpace(v)
+	}
+
 	event := &audit.AuditEvent{
-		TenantID:     tenantID,
-		EventType:    eventType,
-		ResourceType: audit.ResourceTypePosition,
-		ResourceID:   recordID.String(),
-		ActorID:      actorID,
-		ActorType:    actorType,
-		ActionName:   action,
-		RequestID:    "",
-		Timestamp:    time.Now(),
-		Success:      true,
-		AfterData:    after,
+		TenantID:          tenantID,
+		EventType:         eventType,
+		ResourceType:      audit.ResourceTypePosition,
+		ResourceID:        recordID.String(),
+		RecordID:          recordID,
+		EntityCode:        positionCode,
+		ActorID:           actorID,
+		ActorType:         actorType,
+		ActorName:         actorName,
+		ActionName:        action,
+		RequestID:         requestID,
+		CorrelationID:     correlationID,
+		SourceCorrelation: sourceCorrelation,
+		Success:           true,
+		AfterData:         after,
+		ContextPayload:    after,
 	}
-	if err := s.auditLogger.LogEvent(ctx, event); err != nil {
+
+	if err := s.auditLogger.LogEventInTransaction(ctx, tx, event); err != nil {
 		s.logger.Errorf("[AUDIT] failed to log position event: %v", err)
+		return err
 	}
+
+	return nil
 }
 
 func toNullString(value *string) sql.NullString {

@@ -3,7 +3,8 @@
 **文档编号**: 219C  
 **关联路线图**: Plan 219  
 **依赖子计划**: 219A 完成目录迁移  
-**目标周期**: Week 4 Day 19-20（衔接 219B，提前为 219D 提供输入）  
+**拆分子计划**: 219C1/219C2/219C3（见下表）  
+**目标周期**: Week 4 Day 19-25（衔接 219B，提前为 219D 提供输入）  
 **负责人**: 架构/安全组 + 后端团队
 
 ---
@@ -18,12 +19,13 @@
 
 ## 2. 范围
 
-| 模块 | 内容 |
-|------|------|
-| Audit | `audit/audit_logger.go` 实现、事件映射、写入流程、保留策略 |
-| Validator | `validator/business_validator.go`、规则清单、跨域校验接口 |
-| 文档 | 审计/验证规则表（集中更新 `internal/organization/README.md` 对应章节）、与 outbox/eventbus 的关系图 |
-| 测试 | Unit test for audit logger & validators、最小集成测试 |
+| 子计划 | 关注内容 | 输出 |
+|--------|-----------|------|
+| [219C1 – 审计事件底座与事务化改造](./219C1-audit-foundation.md) | Audit Logger 模型重构、事务内写入、`requestId`/`correlationId` 贯通 | 审计代码更新、README 审计章节、`go test ./internal/organization/audit` |
+| [219C2 – Validator 框架扩展](./219C2-validator-framework.md) | BusinessValidator 抽象、规则矩阵、服务注入、单测 | Validator 代码与测试、README 校验章节 |
+| [219C3 – 文档与测试对齐](./219C3-docs-and-tests.md) | 文档同步、计划索引、验收记录、测试证据 | 更新后的 README/参考文档、验收勾选清单 |
+
+本篇为总计划，子计划完成后需在此更新进度与验收记录。
 
 不包含：Assignment 查询（219B 负责）、Temporal 调度（219D 负责）。
 
@@ -88,3 +90,11 @@
 - Audit & Validator 实现 + 测试
 - 审计/验证规则文档
 - README / config 更新（必要时）
+
+---
+
+## 7. 进度纪要（最近更新于 2025-11-05T01:54:19Z）
+
+- [x] 219C1 – 审计事件底座与事务化改造：文档归档至 `docs/archive/development-plans/219C1-audit-foundation.md`，测试记录见 `logs/219C1/test.log`。
+- [ ] 219C2 – Validator 框架扩展：待补充验收证据与归档。
+- [ ] 219C3 – 文档与测试对齐：进行中，待完成统一验收与归档。

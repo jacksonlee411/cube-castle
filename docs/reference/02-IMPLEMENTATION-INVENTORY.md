@@ -181,6 +181,8 @@
 - [function] sortPositionVersions — frontend/src/features/positions/timelineAdapter.ts
 - [function] createTimelineVersion — frontend/src/features/positions/timelineAdapter.ts
 - [component] AuditHistorySection — frontend/src/features/audit/components/AuditHistorySection.tsx
+- [service] AuditLogger — internal/organization/audit/logger.go （统一审计事件模型、事务写入、businessContext 聚合）
+- [test] audit logger tests — internal/organization/audit/logger_test.go （覆盖事务插入、fallback 资源 ID、错误 payload）
 - [const] deriveCodePath — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
 - [const] deriveNamePath — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
 - [const] TEMPORAL_STATUS_COLORS — frontend/src/features/temporal/constants/temporalStatus.ts
