@@ -564,21 +564,39 @@ func (a *AuditLogger) LogOrganizationDelete(ctx context.Context, tenantID uuid.U
 // LogError 记录错误事件 (v4.3.0 - 简化参数)
 func (a *AuditLogger) LogError(ctx context.Context, tenantID uuid.UUID, resourceType, resourceID, actionName, actorID, requestID, errorCode, errorMessage string, requestData map[string]interface{}) error {
 	payload := cloneMap(requestData)
+	businessContext := map[string]interface{}{}
+	if ruleID, ok := payload["ruleId"]; ok {
+		businessContext["ruleId"] = ruleID
+	}
+	if severity, ok := payload["severity"]; ok {
+		businessContext["severity"] = severity
+	}
+	if rawPayload, ok := payload["payload"]; ok {
+		businessContext["payload"] = rawPayload
+	}
+	if httpStatus, ok := payload["httpStatus"]; ok {
+		businessContext["httpStatus"] = httpStatus
+	}
+	if len(businessContext) == 0 {
+		businessContext = nil
+	}
+
 	event := &AuditEvent{
-		TenantID:       tenantID,
-		EventType:      EventTypeError,
-		ResourceType:   resourceType,
-		ResourceID:     resourceID,
-		EntityCode:     resourceID,
-		ActorID:        actorID,
-		ActorType:      ActorTypeUser,
-		ActionName:     actionName,
-		RequestID:      requestID,
-		Success:        false,
-		ErrorCode:      errorCode,
-		ErrorMessage:   errorMessage,
-		BeforeData:     payload,
-		ContextPayload: payload,
+		TenantID:        tenantID,
+		EventType:       EventTypeError,
+		ResourceType:    resourceType,
+		ResourceID:      resourceID,
+		EntityCode:      resourceID,
+		ActorID:         actorID,
+		ActorType:       ActorTypeUser,
+		ActionName:      actionName,
+		RequestID:       requestID,
+		Success:         false,
+		ErrorCode:       errorCode,
+		ErrorMessage:    errorMessage,
+		BeforeData:      payload,
+		ContextPayload:  payload,
+		BusinessContext: businessContext,
 	}
 
 	return a.LogEvent(ctx, event)

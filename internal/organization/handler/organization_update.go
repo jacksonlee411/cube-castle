@@ -61,7 +61,15 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 
 	if h.validator != nil {
 		if result := h.validator.ValidateOrganizationUpdate(r.Context(), code, &req, tenantID); !result.Valid {
-			h.writeValidationErrors(w, r, result)
+			h.writeValidationErrors(w, r, result, &validationFailureContext{
+				TenantID:     tenantID,
+				ResourceType: audit.ResourceTypeOrganization,
+				ResourceID:   code,
+				Action:       "ValidateOrganizationUpdate",
+				Payload: map[string]interface{}{
+					"request": req,
+				},
+			})
 			return
 		}
 	}

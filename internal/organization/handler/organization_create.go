@@ -44,6 +44,22 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	logger = logger.WithFields(pkglogger.Fields{"code": code})
 
 	normalizedParent := utils.NormalizeParentCodePointer(req.ParentCode)
+
+	if h.validator != nil {
+		if result := h.validator.ValidateOrganizationCreation(r.Context(), &req, tenantID); !result.Valid {
+			h.writeValidationErrors(w, r, result, &validationFailureContext{
+				TenantID:     tenantID,
+				ResourceType: audit.ResourceTypeOrganization,
+				ResourceID:   code,
+				Action:       "ValidateOrganizationCreation",
+				Payload: map[string]interface{}{
+					"request": req,
+				},
+			})
+			return
+		}
+	}
+
 	fields, err := h.repo.ComputeHierarchyForNew(r.Context(), tenantID, code, normalizedParent, req.Name)
 	if err != nil {
 		errorMessage := err.Error()
@@ -81,7 +97,6 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		}(),
 		IsCurrent: true,
 	}
-
 	if org.EffectiveDate == nil {
 		today := types.NewDate(now.Year(), now.Month(), now.Day())
 		org.EffectiveDate = today
@@ -191,7 +206,19 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	if h.validator != nil && targetParent != nil {
 		validation := h.validator.ValidateTemporalParentAvailability(r.Context(), tenantID, strings.TrimSpace(*targetParent), effectiveDate)
 		if !validation.Valid {
-			h.writeValidationErrors(w, r, validation)
+			payload := map[string]interface{}{
+				"effectiveDate": effectiveDate.Format("2006-01-02"),
+			}
+			if targetParent != nil {
+				payload["parentCode"] = strings.TrimSpace(*targetParent)
+			}
+			h.writeValidationErrors(w, r, validation, &validationFailureContext{
+				TenantID:     tenantID,
+				ResourceType: audit.ResourceTypeOrganization,
+				ResourceID:   code,
+				Action:       "ValidateTemporalParentAvailability",
+				Payload:      payload,
+			})
 			return
 		}
 	}

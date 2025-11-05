@@ -77,11 +77,11 @@
 
 ## 6. 验收标准
 
-- [ ] `go test ./internal/organization/validator -run TestValidatorCoreSmoke` 通过。
-- [ ] README 新章节过架构/安全组评审并合并。
-- [ ] 规则/错误码冻结纪要签字完成。
-- [ ] 最小改造清单归档（无新增签名时亦需记录）。
-- [ ] 日志条目填写并提交到 219C 总计划。
+- [x] `go test ./internal/organization/validator -run TestValidatorCoreSmoke` 通过（详见 `logs/219C2/test-Day21.log` / `logs/219C2/test-Day22.log`）。
+- [x] README 新章节过架构/安全组评审并合并（`internal/organization/README.md#validators`）。
+- [x] 规则/错误码冻结纪要签字完成（`logs/219C2/rule-freeze.md`）。
+- [x] 最小改造清单归档 —— 219C2A 复用既有接口，无新增签名。
+- [x] 日志条目填写并提交到 219C 总计划（参见 `logs/219C2/daily-20251105.md`、`logs/219C2/daily-20251106.md`）。
 
 ---
 
@@ -112,4 +112,3 @@
 - `go test` 结果附于 `logs/219C2/test-Day21.log`。
 - `daily-YYYYMMDD.md` 记录完成项/风险/缓冲占用。
 - 冻结纪要在 219C 总计划会议中复核。
-

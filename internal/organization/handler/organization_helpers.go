@@ -16,6 +16,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type validationFailureContext struct {
+	TenantID     uuid.UUID
+	ResourceType string
+	ResourceID   string
+	Action       string
+	Payload      map[string]interface{}
+}
+
 func (h *OrganizationHandler) getTenantID(r *http.Request) uuid.UUID {
 	tenantIDHeader := r.Header.Get("X-Tenant-ID")
 	if tenantIDHeader != "" {
@@ -45,28 +53,150 @@ func (h *OrganizationHandler) getIfMatchValue(r *http.Request) (string, error) {
 	return trimmed, nil
 }
 
-func (h *OrganizationHandler) writeValidationErrors(w http.ResponseWriter, r *http.Request, result *validator.ValidationResult) {
+func (h *OrganizationHandler) writeValidationErrors(w http.ResponseWriter, r *http.Request, result *validator.ValidationResult, failureCtx *validationFailureContext) {
 	requestID := middleware.GetRequestID(r.Context())
-	logger := h.requestLogger(r, "writeValidationErrors", pkglogger.Fields{"errorCount": len(result.Errors)})
 
-	if len(result.Errors) == 0 {
-		if err := utils.WriteError(w, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", requestID, map[string]interface{}{
-			"validationErrors": []validator.ValidationError{},
-			"errorCount":       0,
-		}); err != nil {
+	var (
+		firstError validator.ValidationError
+		hasError   = len(result.Errors) > 0
+	)
+
+	if hasError {
+		firstError = result.Errors[0]
+	}
+
+	severity := strings.ToUpper(strings.TrimSpace(firstError.Severity))
+	if severity == "" {
+		severity = string(validator.SeverityHigh)
+	}
+
+	httpStatus := validator.SeverityToHTTPStatus(severity)
+	if httpStatus < http.StatusBadRequest {
+		httpStatus = http.StatusBadRequest
+	}
+
+	responseCode := strings.TrimSpace(firstError.Code)
+	if responseCode == "" {
+		responseCode = "BUSINESS_RULE_VIOLATION"
+	}
+
+	responseMessage := strings.TrimSpace(firstError.Message)
+	if responseMessage == "" {
+		responseMessage = "业务规则校验失败"
+	}
+
+	ruleID := responseCode
+	if ctx := firstError.Context; ctx != nil {
+		if val, ok := ctx["ruleId"]; ok {
+			ruleID = fmt.Sprintf("%v", val)
+		}
+	}
+	ruleID = strings.TrimSpace(ruleID)
+	if ruleID == "" {
+		ruleID = responseCode
+	}
+
+	details := map[string]interface{}{
+		"ruleId":           ruleID,
+		"severity":         severity,
+		"httpStatus":       httpStatus,
+		"validationErrors": result.Errors,
+		"errorCount":       len(result.Errors),
+	}
+
+	if len(result.Warnings) > 0 {
+		details["warnings"] = result.Warnings
+		details["warningCount"] = len(result.Warnings)
+	}
+
+	if field := strings.TrimSpace(firstError.Field); field != "" {
+		details["field"] = field
+	}
+
+	if len(result.Context) > 0 {
+		details["chainContext"] = result.Context
+	}
+
+	if ctx := firstError.Context; ctx != nil {
+		metadata := make(map[string]interface{})
+		for k, v := range ctx {
+			if strings.EqualFold(k, "ruleId") {
+				continue
+			}
+			metadata[k] = v
+		}
+		if len(metadata) > 0 {
+			details["metadata"] = metadata
+		}
+	}
+
+	logger := h.requestLogger(r, "writeValidationErrors", pkglogger.Fields{
+		"errorCount": len(result.Errors),
+		"ruleId":     ruleID,
+		"severity":   severity,
+		"httpStatus": httpStatus,
+		"code":       responseCode,
+	})
+
+	if !hasError {
+		if err := utils.WriteError(w, http.StatusBadRequest, responseCode, responseMessage, requestID, details); err != nil {
 			logger.WithFields(pkglogger.Fields{"error": err}).Error("write validation error response failed")
 		}
 		return
 	}
 
-	firstError := result.Errors[0]
-	details := map[string]interface{}{
-		"validationErrors": result.Errors,
-		"errorCount":       len(result.Errors),
+	if err := utils.WriteError(w, httpStatus, responseCode, responseMessage, requestID, details); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("write validation error response failed")
 	}
 
-	if err := utils.WriteError(w, http.StatusBadRequest, firstError.Code, firstError.Message, requestID, details); err != nil {
-		logger.WithFields(pkglogger.Fields{"error": err}).Error("write validation error response failed")
+	if failureCtx == nil || h.auditLogger == nil {
+		return
+	}
+
+	auditPayload := map[string]interface{}{
+		"ruleId":           ruleID,
+		"severity":         severity,
+		"httpStatus":       httpStatus,
+		"validationErrors": result.Errors,
+	}
+	if len(result.Context) > 0 {
+		auditPayload["chainContext"] = result.Context
+	}
+
+	if failureCtx.Payload != nil {
+		payloadCopy := make(map[string]interface{}, len(failureCtx.Payload))
+		for k, v := range failureCtx.Payload {
+			payloadCopy[k] = v
+		}
+		auditPayload["payload"] = payloadCopy
+	}
+
+	if metadata, ok := details["metadata"].(map[string]interface{}); ok && len(metadata) > 0 {
+		auditPayload["metadata"] = metadata
+	}
+
+	if field, ok := details["field"]; ok {
+		auditPayload["field"] = field
+	}
+
+	actionName := strings.TrimSpace(failureCtx.Action)
+	if actionName == "" {
+		actionName = r.Method
+	}
+
+	if err := h.auditLogger.LogError(
+		r.Context(),
+		failureCtx.TenantID,
+		failureCtx.ResourceType,
+		failureCtx.ResourceID,
+		actionName,
+		h.getActorID(r),
+		requestID,
+		responseCode,
+		responseMessage,
+		auditPayload,
+	); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Warn("audit log for validation error failed")
 	}
 }
 

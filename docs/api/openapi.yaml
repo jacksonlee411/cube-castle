@@ -3259,7 +3259,9 @@ components:
           properties:
             code:
               type: string
-              description: Machine-readable error code
+              description: >
+                Machine-readable error code. Business Validator violations use values from
+                `ValidatorErrorCode`.
               example: "ORG_UNIT_NOT_FOUND"
             message:
               type: string
@@ -3268,7 +3270,10 @@ components:
             details:
               type: object
               nullable: true
-              description: Additional error context (varies by error type)
+              description: >
+                Additional error context (varies by error type). For business validator violations,
+                the object MUST include `ruleId` (from `ValidatorRuleId`), `severity`, and may contain
+                `field`, `httpStatus`, and `metadata` to describe the failing payload scope.
         timestamp:
           type: string
           format: date-time
@@ -3278,6 +3283,36 @@ components:
           type: string
           description: Unique request identifier for debugging
           example: "req_error_12345678"
+
+    ValidatorRuleId:
+      type: string
+      description: >
+        Identifier for business validator rules (see `internal/organization/README.md#validators`).
+        Prefix indicates domain (`ORG`, `POS`, `ASSIGN`, `CROSS` etc).
+      enum:
+        - ORG-DEPTH
+        - ORG-CIRC
+        - ORG-STATUS
+        - POS-ORG
+        - POS-HEADCOUNT
+        - ASSIGN-STATE
+        - ASSIGN-FTE
+        - CROSS-ACTIVE
+
+    ValidatorErrorCode:
+      type: string
+      description: >
+        Machine-readable error codes returned when Business Validator rules fail. Codes align with
+        the frozen matrix documented in `internal/organization/README.md#validators`.
+      enum:
+        - ORG_DEPTH_LIMIT
+        - ORG_CYCLE_DETECTED
+        - ORG_STATUS_GUARD
+        - POS_ORG_INACTIVE
+        - POS_HEADCOUNT_EXCEEDED
+        - ASSIGN_INVALID_STATE
+        - ASSIGN_FTE_LIMIT
+        - CROSS_ACTIVATION_CONFLICT
 
     PositionStatus:
       type: string
@@ -4097,11 +4132,16 @@ components:
               value:
                 success: false
                 error:
-                  code: "VALIDATION_ERROR"
-                  message: "Request validation failed"
+                  code: "ORG_DEPTH_LIMIT"
+                  message: "Organization depth exceeds maximum of 17 levels"
                   details:
-                    field: "effectiveDate"
-                    reason: "Date cannot be more than 365 days in future"
+                    ruleId: "ORG-DEPTH"
+                    severity: "HIGH"
+                    field: "parentCode"
+                    httpStatus: 400
+                    metadata:
+                      maxDepth: 17
+                      attemptedDepth: 18
                 timestamp: "2025-08-23T10:30:00Z"
                 requestId: "req_validation_error_001"
             incomplete_resource:

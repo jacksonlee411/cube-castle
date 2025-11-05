@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"cube-castle/internal/organization/audit"
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/utils"
 	"cube-castle/internal/types"
@@ -53,7 +54,16 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 
 	if h.validator != nil {
 		if result := h.validator.ValidateOrganizationUpdate(r.Context(), oldOrg.Code, &req, tenantID); !result.Valid {
-			h.writeValidationErrors(w, r, result)
+			h.writeValidationErrors(w, r, result, &validationFailureContext{
+				TenantID:     tenantID,
+				ResourceType: audit.ResourceTypeOrganization,
+				ResourceID:   oldOrg.Code,
+				Action:       "ValidateHistoryUpdate",
+				Payload: map[string]interface{}{
+					"request":  req,
+					"recordId": recordId,
+				},
+			})
 			return
 		}
 	}

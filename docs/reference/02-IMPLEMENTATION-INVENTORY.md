@@ -70,6 +70,17 @@
 - `jobRoles`
 - `jobLevels`
 
+## Draft – Business Validator Chains
+- Source of truth: `internal/organization/README.md#validators`
+- Purpose: 219C2 计划下的 `BusinessRuleValidator` 链式框架、规则矩阵与错误码映射（REST/GraphQL/批处理共享）。
+- Deliveries to date:
+  - `internal/organization/validator/core.go` 链式执行骨架 & `organization_rules.go` 封装 ORG-* P0 规则。
+  - Handler 层统一错误翻译、审计联动（`organization_helpers.go`、`organization_create.go`）。
+  - 文档/契约同步：README 规则矩阵冻结、OpenAPI `ValidatorRuleId/ValidatorErrorCode`、`logs/219C2/rule-freeze.md`。
+- Pending deliverables:
+  - 组织/GraphQL 命令全量接入链式验证（219C2B 后续）。
+  - P0 单测覆盖率 ≥85%（`go test -cover ./internal/organization/validator` 当前 48.7%）。
+
 ## Draft – Go Handlers (exported methods)
 - SetupRoutes — cmd/organization-command-service/internal/handlers/devtools.go
 - GenerateDevToken — cmd/organization-command-service/internal/handlers/devtools.go

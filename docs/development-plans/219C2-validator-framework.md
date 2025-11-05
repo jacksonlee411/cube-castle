@@ -90,7 +90,7 @@
 
 | 子编号 | 里程碑日程 | 范围 | 主要输出 | 依赖 |
 | --- | --- | --- | --- | --- |
-| **219C2A – 框架基座** | Day 21 | PoC 通过后验证并复用现有 `BusinessRuleValidator` / `ValidationResult`，补充最小接口改造，完成 handler 辅助与 README 骨架 | `internal/organization/validator/core.go` 增量改造、`organization_helpers.go`、README `#validators` 骨架、接口评审纪要 | 219C1 + §3.0 PoC ✓ |
+| **219C2A – 框架基座** | Day 21 | ✅ 已完成：链式骨架、handler 集成、文档/日志同步 | `internal/organization/validator/core.go`、`organization_helpers.go`、README `#validators`、`logs/219C2/rule-freeze.md` | 219C1 + §3.0 PoC ✓ |
 | **219C2B – 组织域规则** | Day 22 | 将组织规则迁移至链式实现，接入 REST/GraphQL，补齐 P0 单测与错误码对齐 | `validator/organization_*`、命令入口改造、表驱动单测、自测记录 | 219C2A |
 | **219C2C – 职位与跨域规则** | Day 23 | 实现职位、Assignment 基础与跨域规则，统一命令入口，补齐 P0/P1 单测 | `validator/position_*`、`validator/assignment_*`、命令改造、测试日志 | 219C2B |
 | **219C2D – 扩展与验收** | Day 24 | 完成 Job Catalog 规则、端到端测试、Implementation Inventory 更新与归档 | `validator/job_catalog_*`、端到端测试输出、README 更新、档案记录 | 219C2C |
