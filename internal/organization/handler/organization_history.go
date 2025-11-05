@@ -33,17 +33,9 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 		return
 	}
 
-	// 业务验证
-	if err := utils.ValidateUpdateOrganization(&req); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "输入验证失败", err)
-		return
-	}
-
 	tenantID := h.getTenantID(r)
 	parentProvided := req.ParentCode != nil
-	if parentProvided {
-		req.ParentCode = utils.NormalizeParentCodePointer(req.ParentCode)
-	}
+	req.ParentCode = utils.NormalizeParentCodePointer(req.ParentCode)
 
 	// 先获取当前记录数据用于审计日志
 	oldOrg, err := h.repo.GetByRecordId(r.Context(), tenantID, recordId)
@@ -66,12 +58,6 @@ func (h *OrganizationHandler) UpdateHistoryRecord(w http.ResponseWriter, r *http
 			})
 			return
 		}
-	}
-
-	if req.ParentCode != nil && *req.ParentCode == oldOrg.Code {
-		logger.WithFields(pkglogger.Fields{"code": oldOrg.Code, "parentCode": *req.ParentCode}).Warn("circular reference attempt in history update")
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "父组织不能指向自身", nil)
-		return
 	}
 
 	parentChanged := false

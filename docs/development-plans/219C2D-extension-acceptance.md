@@ -21,6 +21,7 @@
 |---|---|
 | `internal/organization/validator/job_catalog_*.go` | 实现 Job Catalog 规则（JC-TEMPORAL 等）。 |
 | 端到端测试 | `tests/e2e/organization-validator/*.spec.ts`（或等效 Playwright 脚本）。 |
+| 可观测性 | Prometheus 指标（验证链执行耗时、失败率等）注册与文档记录。 |
 | README & Implementation Inventory | 更新规则矩阵、测试策略、实现清单。 |
 | `docs/archive/development-plans/` | 创建 219C2 归档文件。 |
 | 日志 | `logs/219C2/validation.log`, `logs/219C2/test-Day24.log`, `logs/219C2/daily-YYYYMMDD.md`。 |
@@ -53,7 +54,12 @@
 - 在 219C 主计划、Implementation Inventory 中打勾，更新验收进度。
 - 归档本计划：复制本文件与执行记录到 `docs/archive/development-plans/219C2-YYYYMMDD.md`。
 
-### 4.4 验收会议
+### 4.4 验证链可观测性
+- 注册验证链相关 Prometheus 指标（如执行总数、失败总数、执行耗时），复用现有 metrics 注册框架。
+- 在 README/Implementation Inventory 中记录指标名称、含义与监控面板位置。
+- 确认指标已在 Prometheus 暴露，并在验收纪要中附上查询示例。
+
+### 4.5 验收会议
 - Day 24 下午召开 30 分钟验收会议，参与：后端负责人、架构、安全。
 - 输出纪要：完成项、风险余量、滚动任务。
 - 若有未完成项，制定滚动计划并抄送 219C 总计划。
@@ -75,7 +81,8 @@
 
 - [ ] `go test -cover ./internal/organization/validator` ≥ 85%，含 Job Catalog 规则；报告保存。
 - [ ] 9 个端到端测试全部通过，报告归档。
-- [ ] README 与 Implementation Inventory 更新并合并。
+- [ ] README 与 Implementation Inventory 更新并合并（含 Prometheus 指标说明）。
+- [ ] 验证链 Prometheus 指标注册完成，可在 Prometheus 中查询。
 - [ ] 219C 主计划验收勾选完成，归档文件生成。
 - [ ] Day 24 验收纪要提交并记录下一步计划（如有）。
 
@@ -109,4 +116,3 @@
 - `tests/e2e/organization-validator/report-Day24.json`: e2e 结果。
 - `logs/219C2/daily-YYYYMMDD.md`: Day 24 完成情况、风险、缓冲。
 - 验收纪要保存于 `logs/219C2/acceptance-Day24.md`。
-

@@ -22,13 +22,10 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	}
 	logger := h.requestLogger(r, "CreateOrganization", nil)
 
-	if err := utils.ValidateCreateOrganization(&req); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "输入验证失败", err)
-		return
-	}
-
 	tenantID := h.getTenantID(r)
 	logger = logger.WithFields(pkglogger.Fields{"tenantId": tenantID.String()})
+
+	req.ParentCode = utils.NormalizeParentCodePointer(req.ParentCode)
 
 	var code string
 	if req.Code != nil && strings.TrimSpace(*req.Code) != "" {

@@ -39,25 +39,9 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// 业务验证
-	if err := utils.ValidateUpdateOrganization(&req); err != nil {
-		h.writeErrorResponse(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "输入验证失败", err)
-		return
-	}
-
 	tenantID := h.getTenantID(r)
 	parentProvided := req.ParentCode != nil
-	if parentProvided {
-		req.ParentCode = utils.NormalizeParentCodePointer(req.ParentCode)
-		if req.ParentCode != nil {
-			trimmed := *req.ParentCode
-			if trimmed == code {
-				logger.WithFields(pkglogger.Fields{"parentCode": trimmed}).Warn("circular parent assignment detected")
-				h.writeErrorResponse(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "父组织不能指向自身", nil)
-				return
-			}
-		}
-	}
+	req.ParentCode = utils.NormalizeParentCodePointer(req.ParentCode)
 
 	if h.validator != nil {
 		if result := h.validator.ValidateOrganizationUpdate(r.Context(), code, &req, tenantID); !result.Valid {

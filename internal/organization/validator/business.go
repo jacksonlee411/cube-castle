@@ -3,6 +3,7 @@ package validator
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -94,6 +95,19 @@ var validUnitTypes = map[string]struct{}{
 	string(types.UnitTypeProjectTeam):      {},
 }
 
+var validOrganizationStatuses = map[string]struct{}{
+	string(types.OrganizationStatusActive):   {},
+	string(types.OrganizationStatusInactive): {},
+	string(types.OrganizationStatusPlanned):  {},
+	string(types.OrganizationStatusDeleted):  {},
+}
+
+var (
+	organizationCodeRegex       = regexp.MustCompile(types.OrganizationCodePattern)
+	organizationParentCodeRegex = regexp.MustCompile(types.OrganizationParentCodePattern)
+	organizationNameRegex       = regexp.MustCompile(`^[\p{L}\p{N}\s\-]+$`)
+)
+
 func NewBusinessRuleValidator(hierarchyRepo *repository.HierarchyRepository, orgRepo *repository.OrganizationRepository, baseLogger pkglogger.Logger) *BusinessRuleValidator {
 	return &BusinessRuleValidator{
 		hierarchyRepo: hierarchyRepo,
@@ -109,6 +123,8 @@ func NewBusinessRuleValidator(hierarchyRepo *repository.HierarchyRepository, org
 func (v *BusinessRuleValidator) ValidateOrganizationCreation(ctx context.Context, req *types.CreateOrganizationRequest, tenantID uuid.UUID) *ValidationResult {
 	result := NewValidationResult()
 
+	v.validateCreateRequestBasics(req, result)
+
 	if req.ParentCode != nil && *req.ParentCode != "" {
 		parent, err := v.hierarchyRepo.GetOrganization(ctx, *req.ParentCode, tenantID)
 		if err != nil || parent == nil {
@@ -116,7 +132,7 @@ func (v *BusinessRuleValidator) ValidateOrganizationCreation(ctx context.Context
 				Code:     ErrorCodeInvalidParent,
 				Message:  fmt.Sprintf("父组织不存在或无效: %s", *req.ParentCode),
 				Field:    "parentCode",
-				Severity: "HIGH",
+				Severity: string(SeverityHigh),
 			})
 			result.Valid = false
 			return result
@@ -156,10 +172,6 @@ func (v *BusinessRuleValidator) ValidateOrganizationCreation(ctx context.Context
 		v.logger.Warnf("时态数据验证失败: %v", err)
 	}
 
-	if err := v.validateBusinessLogic(ctx, req, tenantID, result); err != nil {
-		v.logger.Warnf("业务逻辑验证失败: %v", err)
-	}
-
 	result.Valid = len(result.Errors) == 0
 	return result
 }
@@ -175,13 +187,21 @@ func (v *BusinessRuleValidator) ValidateOrganizationUpdate(ctx context.Context, 
 			Code:     "ORGANIZATION_NOT_FOUND",
 			Message:  fmt.Sprintf("目标组织不存在: %s", code),
 			Value:    code,
-			Severity: "CRITICAL",
+			Severity: string(SeverityCritical),
 		})
 		result.Valid = false
 		return result
 	}
 
 	result.Context["existing_organization"] = existingOrg
+
+	v.validateUpdateRequestBasics(req, result, existingOrg)
+
+	if req.EffectiveDate != nil || req.EndDate != nil {
+		if err := v.validateTemporalData(req.EffectiveDate, req.EndDate, result); err != nil {
+			v.logger.Warnf("时态数据验证失败: %v", err)
+		}
+	}
 
 	chain := v.buildOrganizationUpdateChain(existingOrg, req)
 
@@ -231,7 +251,7 @@ func (v *BusinessRuleValidator) validateCodeUniqueness(ctx context.Context, code
 			Message:  fmt.Sprintf("组织代码 %s 已存在", code),
 			Field:    "code",
 			Value:    code,
-			Severity: "HIGH",
+			Severity: string(SeverityHigh),
 		})
 		return fmt.Errorf("duplicate code: %s", code)
 	}
@@ -266,39 +286,236 @@ func (v *BusinessRuleValidator) validateTemporalData(effectiveDate, endDate *typ
 	return nil
 }
 
-// validateBusinessLogic 验证业务逻辑规则
-func (v *BusinessRuleValidator) validateBusinessLogic(ctx context.Context, req *types.CreateOrganizationRequest, tenantID uuid.UUID, result *ValidationResult) error {
-	// 1. 验证单位类型有效性
-	if _, ok := validUnitTypes[strings.ToUpper(req.UnitType)]; !ok {
+func (v *BusinessRuleValidator) validateCreateRequestBasics(req *types.CreateOrganizationRequest, result *ValidationResult) {
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
 		result.Errors = append(result.Errors, ValidationError{
-			Code:     "INVALID_UNIT_TYPE",
-			Message:  fmt.Sprintf("无效的单位类型: %s", req.UnitType),
-			Field:    "unitType",
-			Value:    req.UnitType,
-			Severity: "MEDIUM",
-		})
-	}
-
-	// 2. 验证名称规则
-	if len(req.Name) > types.OrganizationNameMaxLength {
-		result.Errors = append(result.Errors, ValidationError{
-			Code:     "NAME_TOO_LONG",
-			Message:  fmt.Sprintf("组织名称长度不能超过%d个字符", types.OrganizationNameMaxLength),
+			Code:     "ORG_NAME_REQUIRED",
+			Message:  "组织名称不能为空",
 			Field:    "name",
-			Value:    len(req.Name),
-			Severity: "MEDIUM",
+			Severity: string(SeverityHigh),
+		})
+	} else {
+		if len(req.Name) > types.OrganizationNameMaxLength {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_NAME_TOO_LONG",
+				Message:  fmt.Sprintf("组织名称不能超过%d个字符", types.OrganizationNameMaxLength),
+				Field:    "name",
+				Severity: string(SeverityHigh),
+			})
+		}
+		if !organizationNameRegex.MatchString(req.Name) {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_NAME_INVALID",
+				Message:  "组织名称包含无效字符，只允许字母、数字、中文、空格和连字符",
+				Field:    "name",
+				Severity: string(SeverityHigh),
+			})
+		}
+	}
+
+	unitType := strings.TrimSpace(req.UnitType)
+	if unitType == "" {
+		result.Errors = append(result.Errors, ValidationError{
+			Code:     "ORG_UNIT_TYPE_REQUIRED",
+			Message:  "组织类型不能为空",
+			Field:    "unitType",
+			Severity: string(SeverityHigh),
+		})
+	} else {
+		unitTypeUpper := strings.ToUpper(unitType)
+		if _, ok := validUnitTypes[unitTypeUpper]; !ok {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_UNIT_TYPE_INVALID",
+				Message:  fmt.Sprintf("无效的组织类型: %s", unitType),
+				Field:    "unitType",
+				Value:    unitType,
+				Severity: string(SeverityHigh),
+			})
+		} else {
+			req.UnitType = unitTypeUpper
+		}
+	}
+
+	if req.Code != nil {
+		trimmed := strings.TrimSpace(*req.Code)
+		if trimmed == "" {
+			req.Code = nil
+		} else if !organizationCodeRegex.MatchString(trimmed) {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_CODE_INVALID",
+				Message:  "组织代码格式无效，必须为7位数字且首位不可为0",
+				Field:    "code",
+				Value:    trimmed,
+				Severity: string(SeverityHigh),
+			})
+		} else {
+			req.Code = &trimmed
+		}
+	}
+
+	if req.ParentCode != nil {
+		trimmedParent := strings.TrimSpace(*req.ParentCode)
+		if trimmedParent == "" {
+			req.ParentCode = nil
+		} else if !organizationParentCodeRegex.MatchString(trimmedParent) {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_PARENT_INVALID",
+				Message:  "父组织代码格式无效，需为0或合法的7位数字编码",
+				Field:    "parentCode",
+				Value:    trimmedParent,
+				Severity: string(SeverityHigh),
+			})
+			req.ParentCode = nil
+		} else {
+			req.ParentCode = &trimmedParent
+		}
+	}
+
+	if req.SortOrder < 0 || req.SortOrder > 9999 {
+		result.Errors = append(result.Errors, ValidationError{
+			Code:     "ORG_SORT_ORDER_INVALID",
+			Message:  "排序顺序需在0到9999之间",
+			Field:    "sortOrder",
+			Value:    req.SortOrder,
+			Severity: string(SeverityHigh),
 		})
 	}
 
-	// 3. 验证排序规则
-	if req.SortOrder < 0 {
-		result.Warnings = append(result.Warnings, ValidationWarning{
-			Code:    "NEGATIVE_SORT_ORDER",
-			Message: "排序值为负数，可能影响显示顺序",
-			Field:   "sortOrder",
-			Value:   req.SortOrder,
+	req.Description = strings.TrimSpace(req.Description)
+	if len(req.Description) > types.OrganizationDescriptionMaxLength {
+		result.Errors = append(result.Errors, ValidationError{
+			Code:     "ORG_DESCRIPTION_TOO_LONG",
+			Message:  fmt.Sprintf("描述长度不能超过%d个字符", types.OrganizationDescriptionMaxLength),
+			Field:    "description",
+			Severity: string(SeverityHigh),
 		})
 	}
+}
 
-	return nil
+func (v *BusinessRuleValidator) validateUpdateRequestBasics(req *types.UpdateOrganizationRequest, result *ValidationResult, existing *types.Organization) {
+	if req.Name != nil {
+		trimmed := strings.TrimSpace(*req.Name)
+		if trimmed == "" {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_NAME_REQUIRED",
+				Message:  "组织名称不能为空",
+				Field:    "name",
+				Severity: string(SeverityHigh),
+			})
+		} else {
+			if len(trimmed) > types.OrganizationNameMaxLength {
+				result.Errors = append(result.Errors, ValidationError{
+					Code:     "ORG_NAME_TOO_LONG",
+					Message:  fmt.Sprintf("组织名称不能超过%d个字符", types.OrganizationNameMaxLength),
+					Field:    "name",
+					Severity: string(SeverityHigh),
+				})
+			}
+			if !organizationNameRegex.MatchString(trimmed) {
+				result.Errors = append(result.Errors, ValidationError{
+					Code:     "ORG_NAME_INVALID",
+					Message:  "组织名称包含无效字符，只允许字母、数字、中文、空格和连字符",
+					Field:    "name",
+					Severity: string(SeverityHigh),
+				})
+			}
+			req.Name = &trimmed
+		}
+	}
+
+	if req.UnitType != nil {
+		trimmed := strings.TrimSpace(*req.UnitType)
+		if trimmed == "" {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_UNIT_TYPE_REQUIRED",
+				Message:  "组织类型不能为空",
+				Field:    "unitType",
+				Severity: string(SeverityHigh),
+			})
+		} else {
+			unitTypeUpper := strings.ToUpper(trimmed)
+			if _, ok := validUnitTypes[unitTypeUpper]; !ok {
+				result.Errors = append(result.Errors, ValidationError{
+					Code:     "ORG_UNIT_TYPE_INVALID",
+					Message:  fmt.Sprintf("无效的组织类型: %s", trimmed),
+					Field:    "unitType",
+					Value:    trimmed,
+					Severity: string(SeverityHigh),
+				})
+			} else {
+				req.UnitType = &unitTypeUpper
+			}
+		}
+	}
+
+	if req.ParentCode != nil {
+		trimmedParent := strings.TrimSpace(*req.ParentCode)
+		if trimmedParent == "" {
+			req.ParentCode = nil
+		} else if !organizationParentCodeRegex.MatchString(trimmedParent) {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_PARENT_INVALID",
+				Message:  "父组织代码格式无效，需为0或合法的7位数字编码",
+				Field:    "parentCode",
+				Value:    trimmedParent,
+				Severity: string(SeverityHigh),
+			})
+			req.ParentCode = nil
+		} else {
+			req.ParentCode = &trimmedParent
+		}
+	}
+
+	if req.SortOrder != nil {
+		if *req.SortOrder < 0 || *req.SortOrder > 9999 {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_SORT_ORDER_INVALID",
+				Message:  "排序顺序需在0到9999之间",
+				Field:    "sortOrder",
+				Value:    *req.SortOrder,
+				Severity: string(SeverityHigh),
+			})
+		}
+	}
+
+	if req.Status != nil {
+		trimmedStatus := strings.ToUpper(strings.TrimSpace(*req.Status))
+		if trimmedStatus == "" {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_STATUS_REQUIRED",
+				Message:  "状态不能为空",
+				Field:    "status",
+				Severity: string(SeverityHigh),
+			})
+		} else if _, ok := validOrganizationStatuses[trimmedStatus]; !ok {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_STATUS_INVALID",
+				Message:  fmt.Sprintf("无效的组织状态: %s", trimmedStatus),
+				Field:    "status",
+				Value:    trimmedStatus,
+				Severity: string(SeverityHigh),
+			})
+		} else {
+			req.Status = &trimmedStatus
+		}
+	}
+
+	if req.Description != nil {
+		trimmed := strings.TrimSpace(*req.Description)
+		if len(trimmed) > types.OrganizationDescriptionMaxLength {
+			result.Errors = append(result.Errors, ValidationError{
+				Code:     "ORG_DESCRIPTION_TOO_LONG",
+				Message:  fmt.Sprintf("描述长度不能超过%d个字符", types.OrganizationDescriptionMaxLength),
+				Field:    "description",
+				Severity: string(SeverityHigh),
+			})
+		}
+		req.Description = &trimmed
+	}
+
+	// 当未提供新状态时，保持现有状态写回上下文，便于后续规则判断。
+	if req.Status == nil && existing != nil {
+		result.Context["existingStatus"] = strings.ToUpper(strings.TrimSpace(existing.Status))
+	}
 }

@@ -3293,6 +3293,7 @@ components:
         - ORG-DEPTH
         - ORG-CIRC
         - ORG-STATUS
+        - ORG-TEMPORAL
         - POS-ORG
         - POS-HEADCOUNT
         - ASSIGN-STATE
@@ -3305,9 +3306,11 @@ components:
         Machine-readable error codes returned when Business Validator rules fail. Codes align with
         the frozen matrix documented in `internal/organization/README.md#validators`.
       enum:
+        - INVALID_PARENT
         - ORG_DEPTH_LIMIT
         - ORG_CYCLE_DETECTED
         - ORG_STATUS_GUARD
+        - ORG_TEMPORAL_PARENT_INACTIVE
         - POS_ORG_INACTIVE
         - POS_HEADCOUNT_EXCEEDED
         - ASSIGN_INVALID_STATE

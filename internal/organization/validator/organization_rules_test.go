@@ -80,10 +80,10 @@ func TestOrganizationCreateDepthViolation(t *testing.T) {
 	tenant := uuid.New()
 	h := &stubHierarchy{
 		orgs: map[string]*types.Organization{
-			"PARENT": {Code: "PARENT", Status: "ACTIVE"},
+			"1000002": {Code: "1000002", Status: "ACTIVE"},
 		},
 		depths: map[string]int{
-			"PARENT": 17,
+			"1000002": 17,
 		},
 	}
 	validator := newTestValidator(h)
@@ -92,7 +92,7 @@ func TestOrganizationCreateDepthViolation(t *testing.T) {
 	req := &types.CreateOrganizationRequest{
 		Name:          "Child",
 		UnitType:      "DEPARTMENT",
-		ParentCode:    strPtr("PARENT"),
+		ParentCode:    strPtr("1000002"),
 		EffectiveDate: types.NewDateFromTime(now),
 	}
 
@@ -110,10 +110,10 @@ func TestOrganizationCreateDepthWarning(t *testing.T) {
 	tenant := uuid.New()
 	h := &stubHierarchy{
 		orgs: map[string]*types.Organization{
-			"PARENT": {Code: "PARENT", Status: "ACTIVE"},
+			"1000002": {Code: "1000002", Status: "ACTIVE"},
 		},
 		depths: map[string]int{
-			"PARENT": depthWarningThreshold,
+			"1000002": depthWarningThreshold,
 		},
 	}
 	validator := newTestValidator(h)
@@ -121,7 +121,7 @@ func TestOrganizationCreateDepthWarning(t *testing.T) {
 	req := &types.CreateOrganizationRequest{
 		Name:       "Child",
 		UnitType:   "DEPARTMENT",
-		ParentCode: strPtr("PARENT"),
+		ParentCode: strPtr("1000002"),
 	}
 
 	result := validator.ValidateOrganizationCreation(context.Background(), req, tenant)
@@ -139,15 +139,15 @@ func TestOrganizationCreateTemporalInactiveParent(t *testing.T) {
 
 	h := &stubHierarchy{
 		orgs: map[string]*types.Organization{
-			"PARENT": {Code: "PARENT", Status: "ACTIVE"},
+			"1000002": {Code: "1000002", Status: "ACTIVE"},
 		},
 		depths: map[string]int{
-			"PARENT": 1,
+			"1000002": 1,
 		},
 		temporal: map[string]map[string]*repository.OrganizationNode{
-			"PARENT": {
+			"1000002": {
 				date.Format("2006-01-02"): {
-					Code:   "PARENT",
+					Code:   "1000002",
 					Status: "INACTIVE",
 				},
 			},
@@ -158,7 +158,7 @@ func TestOrganizationCreateTemporalInactiveParent(t *testing.T) {
 	req := &types.CreateOrganizationRequest{
 		Name:          "Child",
 		UnitType:      "DEPARTMENT",
-		ParentCode:    strPtr("PARENT"),
+		ParentCode:    strPtr("1000002"),
 		EffectiveDate: types.NewDateFromTime(date),
 	}
 
@@ -182,7 +182,7 @@ func TestOrganizationCreateTemporalInactiveParent(t *testing.T) {
 func TestOrganizationCreateDuplicateCode(t *testing.T) {
 	tenant := uuid.New()
 	code := "1000001"
-	parent := "PARENT"
+	parent := "1000002"
 
 	h := &stubHierarchy{
 		orgs: map[string]*types.Organization{
@@ -228,7 +228,7 @@ func TestOrganizationCreateParentMissing(t *testing.T) {
 	req := &types.CreateOrganizationRequest{
 		Name:       "Missing Parent",
 		UnitType:   "DEPARTMENT",
-		ParentCode: strPtr("PARENT"),
+		ParentCode: strPtr("1000002"),
 	}
 
 	result := validator.ValidateOrganizationCreation(context.Background(), req, tenant)
@@ -252,7 +252,7 @@ func TestOrganizationCreateDepthUnknownReturnsInvalidParent(t *testing.T) {
 	tenant := uuid.New()
 	h := &stubHierarchy{
 		orgs: map[string]*types.Organization{
-			"PARENT": {Code: "PARENT", Status: "ACTIVE"},
+			"1000002": {Code: "1000002", Status: "ACTIVE"},
 		},
 	}
 	validator := newTestValidator(h)
@@ -260,7 +260,7 @@ func TestOrganizationCreateDepthUnknownReturnsInvalidParent(t *testing.T) {
 	req := &types.CreateOrganizationRequest{
 		Name:       "Child",
 		UnitType:   "DEPARTMENT",
-		ParentCode: strPtr("PARENT"),
+		ParentCode: strPtr("1000002"),
 	}
 
 	result := validator.ValidateOrganizationCreation(context.Background(), req, tenant)
@@ -297,19 +297,9 @@ func TestOrganizationCreateBusinessLogicValidation(t *testing.T) {
 		t.Fatalf("expected validation to fail due to business logic")
 	}
 
-	hasUnitType := false
-	for _, errItem := range result.Errors {
-		if errItem.Code == "INVALID_UNIT_TYPE" {
-			hasUnitType = true
-		}
-	}
-	if !hasUnitType {
-		t.Fatalf("expected INVALID_UNIT_TYPE error, got %#v", result.Errors)
-	}
-
-	if len(result.Warnings) == 0 {
-		t.Fatalf("expected warnings for temporal/sort order issues")
-	}
+	assertHasErrorCode(t, result.Errors, "ORG_UNIT_TYPE_INVALID")
+	assertHasErrorCode(t, result.Errors, "ORG_NAME_TOO_LONG")
+	assertHasErrorCode(t, result.Errors, "ORG_SORT_ORDER_INVALID")
 }
 
 func TestOrganizationCreateTemporalConflict(t *testing.T) {
@@ -346,6 +336,49 @@ func TestOrganizationCreateTemporalConflict(t *testing.T) {
 	}
 }
 
+func TestOrganizationCreateFieldSanitization(t *testing.T) {
+	code := " 1000001 "
+	parent := " 1000002 "
+	unitType := "department"
+	name := "  Org  "
+	desc := strings.Repeat("a", types.OrganizationDescriptionMaxLength)
+
+	req := &types.CreateOrganizationRequest{
+		Code:        &code,
+		Name:        name,
+		UnitType:    unitType,
+		ParentCode:  &parent,
+		SortOrder:   20,
+		Description: desc,
+	}
+
+	validator := newTestValidator(&stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"1000002": {Code: "1000002", Status: "ACTIVE"},
+		},
+		depths: map[string]int{
+			"1000002": 1,
+		},
+	})
+	result := validator.ValidateOrganizationCreation(context.Background(), req, uuid.New())
+	if !result.Valid {
+		t.Fatalf("expected sanitized request to pass validation, got errors: %#v", result.Errors)
+	}
+
+	if req.Code == nil || *req.Code != "1000001" {
+		t.Fatalf("expected trimmed code, got %v", req.Code)
+	}
+	if req.ParentCode == nil || *req.ParentCode != "1000002" {
+		t.Fatalf("expected trimmed parent code, got %v", req.ParentCode)
+	}
+	if req.UnitType != "DEPARTMENT" {
+		t.Fatalf("expected unit type upper-cased, got %s", req.UnitType)
+	}
+	if req.Name != "Org" {
+		t.Fatalf("expected trimmed name, got %q", req.Name)
+	}
+}
+
 func TestOrganizationUpdateCircularReference(t *testing.T) {
 	tenant := uuid.New()
 	h := &stubHierarchy{
@@ -357,10 +390,10 @@ func TestOrganizationUpdateCircularReference(t *testing.T) {
 			},
 		},
 		depths: map[string]int{
-			"PARENT": 2,
+			"1000002": 2,
 		},
 		ancestors: map[string][]repository.OrganizationNode{
-			"PARENT": {
+			"1000002": {
 				{Code: "ROOT"},
 				{Code: "TARGET"},
 			},
@@ -370,7 +403,7 @@ func TestOrganizationUpdateCircularReference(t *testing.T) {
 	validator := newTestValidator(h)
 
 	req := &types.UpdateOrganizationRequest{
-		ParentCode: strPtr("PARENT"),
+		ParentCode: strPtr("1000002"),
 	}
 
 	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
@@ -414,18 +447,18 @@ func TestValidateTemporalParentAvailability(t *testing.T) {
 
 	h := &stubHierarchy{
 		orgs: map[string]*types.Organization{
-			"PARENT": {Code: "PARENT", Status: "ACTIVE"},
+			"1000002": {Code: "1000002", Status: "ACTIVE"},
 		},
 		depths: map[string]int{
-			"PARENT": 1,
+			"1000002": 1,
 		},
 		temporal: map[string]map[string]*repository.OrganizationNode{
-			"PARENT": {},
+			"1000002": {},
 		},
 	}
 	validator := newTestValidator(h)
 
-	result := validator.ValidateTemporalParentAvailability(context.Background(), tenant, "PARENT", date)
+	result := validator.ValidateTemporalParentAvailability(context.Background(), tenant, "1000002", date)
 	if result.Valid {
 		t.Fatalf("expected temporal parent availability to fail with inactive parent")
 	}
@@ -448,15 +481,15 @@ func TestValidateTemporalParentAvailabilitySuccess(t *testing.T) {
 
 	h := &stubHierarchy{
 		orgs: map[string]*types.Organization{
-			"PARENT": {Code: "PARENT", Status: "ACTIVE"},
+			"1000002": {Code: "1000002", Status: "ACTIVE"},
 		},
 		depths: map[string]int{
-			"PARENT": 1,
+			"1000002": 1,
 		},
 		temporal: map[string]map[string]*repository.OrganizationNode{
-			"PARENT": {
+			"1000002": {
 				date.Format("2006-01-02"): {
-					Code:   "PARENT",
+					Code:   "1000002",
 					Status: "ACTIVE",
 				},
 			},
@@ -464,7 +497,7 @@ func TestValidateTemporalParentAvailabilitySuccess(t *testing.T) {
 	}
 	validator := newTestValidator(h)
 
-	result := validator.ValidateTemporalParentAvailability(context.Background(), tenant, "PARENT", date)
+	result := validator.ValidateTemporalParentAvailability(context.Background(), tenant, "1000002", date)
 	if !result.Valid {
 		t.Fatalf("expected temporal parent availability to succeed, errors: %#v", result.Errors)
 	}
@@ -504,4 +537,251 @@ func TestOrganizationUpdateStatusGuard(t *testing.T) {
 	if !found {
 		t.Fatalf("expected ORG_STATUS_GUARD error, got %#v", result.Errors)
 	}
+}
+
+func TestOrganizationCreateNameRequired(t *testing.T) {
+	validator := newTestValidator(&stubHierarchy{})
+	req := &types.CreateOrganizationRequest{
+		Name:       "   ",
+		UnitType:   "DEPARTMENT",
+		ParentCode: nil,
+	}
+
+	result := validator.ValidateOrganizationCreation(context.Background(), req, uuid.New())
+	if result.Valid {
+		t.Fatalf("expected name required validation to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_NAME_REQUIRED")
+}
+
+func TestOrganizationCreateInvalidCodeFormat(t *testing.T) {
+	validator := newTestValidator(&stubHierarchy{})
+	code := "ABC1234"
+	req := &types.CreateOrganizationRequest{
+		Name:       "Org",
+		UnitType:   "DEPARTMENT",
+		Code:       &code,
+		ParentCode: nil,
+	}
+
+	result := validator.ValidateOrganizationCreation(context.Background(), req, uuid.New())
+	if result.Valid {
+		t.Fatalf("expected invalid code to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_CODE_INVALID")
+}
+
+func TestOrganizationCreateInvalidParentFormat(t *testing.T) {
+	validator := newTestValidator(&stubHierarchy{})
+	parent := "abc"
+	req := &types.CreateOrganizationRequest{
+		Name:       "Org",
+		UnitType:   "DEPARTMENT",
+		ParentCode: &parent,
+	}
+
+	result := validator.ValidateOrganizationCreation(context.Background(), req, uuid.New())
+	if result.Valid {
+		t.Fatalf("expected invalid parent format to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_PARENT_INVALID")
+}
+
+func TestOrganizationUpdateInvalidStatus(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {Code: "TARGET", Status: "ACTIVE"},
+		},
+	}
+	validator := newTestValidator(h)
+
+	status := "unknown"
+	req := &types.UpdateOrganizationRequest{Status: &status}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if result.Valid {
+		t.Fatalf("expected invalid status to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_STATUS_INVALID")
+}
+
+func TestOrganizationUpdateInvalidParentFormat(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {Code: "TARGET", Status: "ACTIVE"},
+		},
+	}
+	validator := newTestValidator(h)
+
+	parent := "abc"
+	req := &types.UpdateOrganizationRequest{ParentCode: &parent}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if result.Valid {
+		t.Fatalf("expected invalid parent format to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_PARENT_INVALID")
+}
+
+func TestOrganizationUpdateSortOrderOutOfRange(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {Code: "TARGET", Status: "ACTIVE"},
+		},
+	}
+	validator := newTestValidator(h)
+
+	sortOrder := 10000
+	req := &types.UpdateOrganizationRequest{SortOrder: &sortOrder}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if result.Valid {
+		t.Fatalf("expected sort order validation to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_SORT_ORDER_INVALID")
+}
+
+func TestOrganizationCreateDescriptionTooLong(t *testing.T) {
+	validator := newTestValidator(&stubHierarchy{})
+	req := &types.CreateOrganizationRequest{
+		Name:        "Org",
+		UnitType:    "DEPARTMENT",
+		Description: strings.Repeat("a", types.OrganizationDescriptionMaxLength+1),
+	}
+
+	result := validator.ValidateOrganizationCreation(context.Background(), req, uuid.New())
+	if result.Valid {
+		t.Fatalf("expected description too long validation to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_DESCRIPTION_TOO_LONG")
+}
+
+func TestOrganizationUpdateNameEmpty(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {Code: "TARGET", Status: "ACTIVE"},
+		},
+	}
+	validator := newTestValidator(h)
+
+	name := "   "
+	req := &types.UpdateOrganizationRequest{Name: &name}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if result.Valid {
+		t.Fatalf("expected empty name validation to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_NAME_REQUIRED")
+}
+
+func TestOrganizationUpdateUnitTypeEmpty(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {Code: "TARGET", Status: "ACTIVE"},
+		},
+	}
+	validator := newTestValidator(h)
+
+	unitType := "  "
+	req := &types.UpdateOrganizationRequest{UnitType: &unitType}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if result.Valid {
+		t.Fatalf("expected empty unit type validation to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_UNIT_TYPE_REQUIRED")
+}
+
+func TestOrganizationUpdateDescriptionTooLong(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {Code: "TARGET", Status: "ACTIVE"},
+		},
+	}
+	validator := newTestValidator(h)
+
+	desc := strings.Repeat("b", types.OrganizationDescriptionMaxLength+1)
+	req := &types.UpdateOrganizationRequest{Description: &desc}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if result.Valid {
+		t.Fatalf("expected description too long validation to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_DESCRIPTION_TOO_LONG")
+}
+
+func TestOrganizationUpdateStatusEmpty(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {Code: "TARGET", Status: "ACTIVE"},
+		},
+	}
+	validator := newTestValidator(h)
+
+	status := " "
+	req := &types.UpdateOrganizationRequest{Status: &status}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if result.Valid {
+		t.Fatalf("expected empty status validation to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_STATUS_REQUIRED")
+}
+
+func TestOrganizationUpdateNegativeSortOrder(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {Code: "TARGET", Status: "ACTIVE"},
+		},
+	}
+	validator := newTestValidator(h)
+
+	sortOrder := -5
+	req := &types.UpdateOrganizationRequest{SortOrder: &sortOrder}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if result.Valid {
+		t.Fatalf("expected negative sort order to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORG_SORT_ORDER_INVALID")
+}
+
+func TestOrganizationUpdateTargetNotFound(t *testing.T) {
+	validator := newTestValidator(&stubHierarchy{})
+	req := &types.UpdateOrganizationRequest{}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "UNKNOWN", req, uuid.New())
+	if result.Valid {
+		t.Fatalf("expected target not found validation to fail")
+	}
+	assertHasErrorCode(t, result.Errors, "ORGANIZATION_NOT_FOUND")
+}
+
+func TestNewBusinessRuleValidator(t *testing.T) {
+	logger := pkglogger.NewLogger(
+		pkglogger.WithWriter(io.Discard),
+		pkglogger.WithLevel(pkglogger.LevelError),
+	)
+	validator := NewBusinessRuleValidator(nil, nil, logger)
+	if validator == nil {
+		t.Fatal("expected validator instance")
+	}
+}
+
+func assertHasErrorCode(t *testing.T, errs []ValidationError, code string) {
+	t.Helper()
+	for _, errItem := range errs {
+		if errItem.Code == code {
+			return
+		}
+	}
+	t.Fatalf("expected error code %s, got %#v", code, errs)
 }

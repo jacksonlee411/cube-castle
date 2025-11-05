@@ -97,5 +97,6 @@
 
 ### 组织域规则实现
 - `internal/organization/validator/organization_rules.go` 封装 ORG-DEPTH / ORG-CIRC / ORG-STATUS / ORG-TEMPORAL 规则，链路按照优先级（10/20/30/25）执行，支持短路与上下文聚合。
+- ORG-TEMPORAL 规则在父组织指定时会检查时态有效性，父组织在指定生效日缺失返回 `INVALID_PARENT`，存在但非激活态返回 `ORG_TEMPORAL_PARENT_INACTIVE`。
 - `ValidateOrganizationCreation` / `ValidateOrganizationUpdate` 通过链式执行替换旧的散落校验，并保留代码唯一性、业务逻辑等增量验证。
 - Handler 层（`organization_create.go`, `organization_update.go`, `organization_history.go`）在持久化前调用验证链，失败时统一触发审计与结构化错误响应。

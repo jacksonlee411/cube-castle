@@ -46,12 +46,13 @@
 - 生成 `go test -cover` 报告保存到 `logs/219C2/test-Day22.log`。
 
 ### 4.3 命令接入
-- 在组织 REST/GraphQL handler 添加验证链调用，移除旧的 `utils.Validate*`。
+- 在组织 REST handler 添加验证链调用，移除旧的 `utils.Validate*`。
+- GraphQL Mutation 目前尚未在命令服务落地，已在 219C2 总计划登记为 219C2C 跟进项，待命令层 GraphQL 上线时复用同一验证链与错误映射。
 - 确保错误码、HTTP 状态和响应结构与 OpenAPI 对齐。
 - 审计：校验失败时调用 `LogError`，记录 `ruleId`、`severity`。
 
 ### 4.4 自测与日志
-- 执行 Create/Update Organization（REST/GraphQL）自测，记录返回码。
+- 执行 Create/Update Organization REST 自测，记录返回码与审计日志（GraphQL 命令入口改造调整至 219C2C）。
 - 更新 `logs/219C2/daily-YYYYMMDD.md`（Day 22）并抄送 219C 总计划。
 
 ---
@@ -68,7 +69,7 @@
 ## 6. 验收标准
 
 - [ ] `go test -cover ./internal/organization/validator` ≥ 85%，报告归档。
-- [ ] REST/GraphQL 自测通过，错误码与响应结构一致。
+- [x] REST 自测通过，错误码与响应结构一致（详见 `logs/219C2/219C2B-SELF-TEST-REPORT.md`）；GraphQL 命令入口接入验证链调整到 219C2C。
 - [ ] 审计日志出现正确的 `ruleId` 与 `severity`。
 - [ ] Day 22 日志提交，列出完成项、风险、缓冲占用。
 
@@ -101,4 +102,3 @@
 - 覆盖率统计：`go test -cover` 输出归档。
 - REST/GraphQL 自测结果记录于 `logs/219C2/validation.log`。
 - 日度日志同步至 219C 主计划会议。
-

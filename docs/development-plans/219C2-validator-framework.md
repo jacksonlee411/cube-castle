@@ -134,8 +134,9 @@
   1. 将组织域校验拆分为独立规则文件，覆盖所有组织相关 Rule ID（P0/P1）。
   2. 为每条规则编写表驱动单测并使用 stub 仓储，确保无数据库依赖，目标覆盖率≥85%。
   3. 在 REST/GraphQL handler/service 注入统一验证链，移除旧散落校验，保持错误码与 OpenAPI 一致。
-  4. 执行 Create/Update Organization 命令自测，验证错误返回与审计日志（business_context.ruleId）。
-  5. 更新 `logs/219C2/daily-YYYYMMDD.md` 记录完成度、风险与延迟。
+ 4. 执行 Create/Update Organization 命令自测，验证错误返回与审计日志（business_context.ruleId）。
+ 5. 更新 `logs/219C2/daily-YYYYMMDD.md` 记录完成度、风险与延迟。
+- 备忘（Day 22）：已在 OpenAPI 中登记 ORG-TEMPORAL 规则与 `INVALID_PARENT`/`ORG_TEMPORAL_PARENT_INACTIVE` 错误码，REST 命令入口全面依赖验证链输出统一错误结构；GraphQL Mutation 接入与字段级错误码枚举扩展纳入 219C2C 后续跟进。REST 自测与审计凭证已由 Team 06 提交，详见 `logs/219C2/219C2B-SELF-TEST-REPORT.md`。
 - 交付物：组织域规则实现与单测、命令接入改造、自测日志、日同步记录。
 - 验收：`go test -cover ./internal/organization/validator` ≥85%；REST/GraphQL 错误码一致；审计日志写入 ruleId；日同步提交。
 - 风险：旧逻辑残留导致重复校验；若覆盖率未达标需在当日 17:00 前上报并申请 Day 23 上午补测。
