@@ -68,10 +68,10 @@
 
 ## 6. 验收标准
 
-- [ ] `go test -cover ./internal/organization/validator` ≥ 85%，报告归档。
+- [x] `go test -cover ./internal/organization/validator` ≥ 85%，报告归档（见 `logs/219C2/test-Day22.log`）。
 - [x] REST 自测通过，错误码与响应结构一致（详见 `logs/219C2/219C2B-SELF-TEST-REPORT.md`）；GraphQL 命令入口接入验证链调整到 219C2C。
-- [ ] 审计日志出现正确的 `ruleId` 与 `severity`。
-- [ ] Day 22 日志提交，列出完成项、风险、缓冲占用。
+- [x] 审计日志出现正确的 `ruleId` 与 `severity`（详见 `logs/219C2/219C2B-SELF-TEST-REPORT.md`）。
+- [x] Day 22 日志提交，列出完成项、风险、缓冲占用（参见 `logs/219C2/daily-20251106.md`）。
 
 ---
 
