@@ -47,7 +47,7 @@
 ### 4.2 端到端测试与审计校验
 - 按计划执行 9 个用例（3 命令 × 3 场景），分别针对 REST 与 GraphQL 验证错误码一致性，并**补齐 219C2C 留下的关键命令自测与审计证据**（`POS-HEADCOUNT`、`ASSIGN-STATE` 等）。
 - 在执行中抓取命令审计日志，确认 `business_context.ruleId`、`severity` 与错误响应一致，并将截图/日志附加到 `logs/219C2/validation.log`。
-- 输出测试报告 `tests/e2e/organization-validator/report-Day24.json`，并补完 `scripts/` 下的 GraphQL 自测脚本模板（源自 219C2C TODO）。
+- 输出测试报告 `tests/e2e/organization-validator/report-Day24.json`，并补完 `scripts/` 下的 REST 命令自测脚本（根据 CQRS 架构，GraphQL 仅承载查询，所有命令验证统一走 REST，不规划 GraphQL Mutation）。
 - 若测试依赖初始数据，使用迁移或脚本初始化并记录。
 - **当前进展（2025-11-06 18:00）**：通过 `scripts/219C2D-validator-self-test.sh` 完成 Job Catalog 数据准备，但 REST 调用仍返回 `INTERNAL_ERROR`（PostgreSQL `23505`）。已记录日志并触发 219C2W 专项以修复错误映射；待完成映射后重新跑脚本并生成报告。
 
@@ -109,7 +109,7 @@
 | 风险 | 影响 | 缓解 |
 |---|---|---|
 | 端到端测试依赖数据环境 | 高 | 提前验证 docker-compose 环境；失败时及时使用缓冲并通知负责人。 |
-| REST/GraphQL 自测脚本补齐耗时超出预估 | 中 | 复用 219C2C 现有 REST 脚本结构，同时并行完善 GraphQL 版本；自测输出统一归档 `logs/219C2/validation.log`。 |
+| REST/GraphQL 自测脚本补齐耗时超出预估 | 中 | 使用现有 REST 脚本结构，不需 GraphQL Mutation；自测输出统一归档 `logs/219C2/validation.log`。 |
 | 文档同步遗漏导致唯一事实来源漂移 | 中 | 使用 checklist：README → Implementation Inventory → 219C 主计划 → 归档；逐项勾选。 |
 | Job Catalog 规则需求变更 | 中 | 若发现新需求，立即记录并在验收会议确认是否转移到 219E。 |
 

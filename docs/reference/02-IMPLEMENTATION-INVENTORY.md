@@ -72,7 +72,7 @@
 
 ## Draft – Business Validator Chains
 - Source of truth: `internal/organization/README.md#validators`
-- Purpose: 219C2 计划下的 `BusinessRuleValidator` 链式框架、规则矩阵与错误码映射（REST/GraphQL/批处理共享）。
+- Purpose: 219C2 计划下的 `BusinessRuleValidator` 链式框架、规则矩阵与错误码映射（REST/批处理共享；GraphQL 仅提供查询只读能力）。
 - Deliveries to date:
 - `internal/organization/validator/core.go` 链式执行骨架 & `organization_rules.go` 封装 ORG-* P0 规则。
 - Handler 层统一错误翻译、审计联动（`organization_helpers.go`、`organization_create.go`）。
@@ -81,9 +81,10 @@
 - 219C2C 交付：`position_assignment_validation.go`/`position_assignment_validation_test.go` 实现 POS-ORG / POS-HEADCOUNT / POS-JC-LINK / ASSIGN-STATE / ASSIGN-FTE / CROSS-ACTIVE，`CommandModule` 默认注入链式验证器。
 - Day 24 更新：新增 `job_catalog_validation.go`/`job_catalog_validation_test.go`、完善 `testing_stubs_test.go` 默认路径；覆盖 `JC-TEMPORAL` / `JC-SEQUENCE` 规则（冲突、序列缺口、时间线加载失败）与 Job Catalog 验证服务注入，`go test -cover ./internal/organization/validator` 覆盖率提升至 **85.3%**（证据：`logs/219C2/test-Day24.log`）。
 - Day 25 更新：强制重建命令/查询服务镜像后，`scripts/219C2D-validator-self-test.sh` 自测记录 REST `JC-TEMPORAL` 重复版本返回 `400 JOB_CATALOG_TEMPORAL_CONFLICT`，报告 `tests/e2e/organization-validator/report-Day24.json`，日志 `logs/219C2/validation.log`。补充 `219C2Y` 验收清单（2025-11-06 14:51）确认 `POS-HEADCOUNT`、`ASSIGN-STATE` 等规则的审计 `ruleId`/`severity`。
+- 219C3 新增：`scripts/219C3-rest-self-test.sh` 聚焦 REST 命令自测（Create/Fill/Close 等命令 + 审计验证），输出 `logs/219C3/validation.log` 供验收与归档使用。
 - Day 25 Observability：`internal/organization/validator/metrics.go` 注册 Prometheus 指标 —— `validator_rule_duration_seconds`、`validator_rule_outcome_total`、`validator_chain_duration_seconds`、`validator_chain_outcome_total`，通过 `WithOperationLabel` & `WithBaseContext` 注入 operation 标签；查询服务 `GET /metrics` 暴露，参考 `curl -s http://localhost:9090/metrics | rg validator_chain_outcome_total` 与 PromQL `sum by (rule_id, outcome)(rate(validator_rule_outcome_total[5m]))`。
 - Pending deliverables:
-  - GraphQL Mutation 接入职位/任职验证链（按 219C2D 排期，当前仅验证查询快照）。
+  - ~~GraphQL Mutation 命令入口~~ **已否决：根据 CQRS 架构决策（CLAUDE.md 与 01-DEVELOPER-QUICK-REFERENCE.md 确认），GraphQL 仅承载查询（Query），所有命令（写入）统一走 REST API，故不再规划 GraphQL Mutation 入口。**
 
 ## Draft – Go Handlers (exported methods)
 - SetupRoutes — cmd/organization-command-service/internal/handlers/devtools.go

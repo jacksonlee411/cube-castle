@@ -19,7 +19,7 @@
 
 | 模块/文档 | 工作内容 |
 | --- | --- |
-| `scripts/219C2B-rest-self-test.sh`、GraphQL 自测脚本 | 补跑关键命令（Fill/TransferPosition 等）REST/GraphQL 自测并记录输出。 |
+| `scripts/219C2B-rest-self-test.sh`、REST 命令自测脚本 | 补跑关键命令（Fill/TransferPosition 等）REST 自测并记录输出。（根据 CQRS 架构，GraphQL 仅承载查询，不规划 GraphQL Mutation） |
 | `logs/219C2/validation.log`、`logs/219C2/daily-YYYYMMDD.md`、`logs/219C2/test-Day24.log` | 记录自测结果、覆盖率、审计日志证据。 |
 | 219C2X 方案（Docker Compose 环境复位） | 参见 [219C2X – Docker 环境恢复](./219C2X-docker-environment-recovery.md)。 |
 | `internal/organization/README.md#validators`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` | 更新规则矩阵、指标说明与 Implementation Inventory 草稿条目。 |
@@ -38,7 +38,7 @@
 ## 4. 详细任务
 
 ### 4.1 219C2C 验收补齐
-- 运行 REST 自测脚本覆盖 Fill/TransferPosition 及 Job Catalog 关联流程，必要时新增 GraphQL 自测脚本（保存至 `scripts/` 并在 README 记录使用方式）。
+- 运行 REST 自测脚本覆盖 Fill/TransferPosition 及 Job Catalog 关联流程，并记录输出。（根据 CQRS 架构，GraphQL 仅承载查询，所有命令验证统一走 REST，故不规划 GraphQL Mutation 自测脚本）
 - 在自测过程中抓取审计日志（`business_context.ruleId`、`severity`、`payload`），以截图或 JSON 形式追加至 `logs/219C2/validation.log`。
 - 将自测结果与审计截图摘要写入 `logs/219C2/daily-20251108.md`（或最新日志），并勾选 219C2C 验收项。
 - ✅ **已完成**: `/api/v1/job-levels` HTTP 500 错误已修复（见 [219C2D 修复报告](#219C2D-修复报告)）。原问题：`requestId=741db508-33ff-4cf9-b3d3-e32da8e04d25`、`a0f75de5-4dda-41d3-81b2-b918f42b9f41`。修复：CreateJobLevel 处理器添加必填字段验证，缺少 name 等字段时返回 HTTP 400 而非 500。
@@ -97,7 +97,7 @@
 | 风险 | 影响 | 缓解 |
 | --- | --- | --- |
 | Docker 环境因宿主服务占用端口无法启动 | 高 | 立即卸载冲突服务，必要时通知运维协助；严格禁止修改端口映射。 |
-| GraphQL 自测脚本缺失导致覆盖不足 | 中 | 复用 REST 脚本结构快速编写 GraphQL 版本，并在 README 记录使用方法。 |
+| GraphQL Mutation 自测脚本不需要 | 低 | 根据 CQRS 架构决策，GraphQL 仅承载查询，所有命令验证统一走 REST，故不需增划 GraphQL Mutation 自测脚本。 |
 | README/Inventory 未同步导致事实来源漂移 | 高 | 使用 checklist：README → Inventory → 219C2 主计划，完成后交叉校验。 |
 | 覆盖率仍<80% | 中 | 优先补充 Job Catalog 规则单测；必要时精简 Stub 并增加 GraphQL 路径测试。 |
 | Job Level API 返回 500 阻断 POS-* 自测 | 高 | ✅ **已解决** (见 [219C2D 修复报告](#219C2D-修复报告))：CreateJobLevel 处理器添加必填字段验证，缺少 name/status/levelRank/code/effectiveDate 时返回 HTTP 400。修复已提交 Commit 851a0564。复跑 POS-HEADCOUNT/ASSIGN-STATE 场景待续。 |
