@@ -53,6 +53,11 @@
 
 后续 219B~219E 将在本 README 中继续补充审计/验证规则、调度说明、测试脚本等章节。
 
+## 测试与验收（219E）
+- **组织生命周期冒烟**：`scripts/e2e/org-lifecycle-smoke.sh`（REST 创建→子部门→停用→启用→GraphQL 验证），输出日志 `logs/219E/org-lifecycle-*.log`。
+- **REST 性能基准**：`scripts/perf/rest-benchmark.sh`（依赖 `hey`，默认目标 `/api/v1/organization-units`），输出日志 `logs/219E/perf-rest-*.log`。
+- **执行前置**：需执行 `make run-dev`（Docker Compose）以启动 command/query 服务；若环境受限，参考 `logs/219E/BLOCKERS-*.md` 处理 Docker 权限。
+
 ## Scheduler / Temporal（219D）
 
 - **实现聚合**：`scheduler/` 目录由 `scheduler.Service` 聚合 `TemporalService`、`TemporalMonitor`、`OperationalScheduler`、`OrganizationTemporalService`，入口由 `internal/organization/api.go` 构建，并在 `cmd/hrms-server/command/main.go` `Services.Scheduler.Start/Stop` 中统一托管。

@@ -299,6 +299,11 @@ cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
 - JWT 注入：使用 `PW_JWT` 与 `PW_TENANT_ID` 作为全局认证环境变量
 - 执行命令：`npm --prefix frontend run test:e2e`
 
+### 219E 端到端 & 性能脚本
+- `scripts/e2e/org-lifecycle-smoke.sh`：组织/部门生命周期冒烟（REST + GraphQL），日志输出 `logs/219E/org-lifecycle-*.log`。
+- `scripts/perf/rest-benchmark.sh`：REST 接口 P99/P95 采集（依赖 `hey`），日志输出 `logs/219E/perf-rest-*.log`。
+- 若 Docker 权限受限，可参考 `logs/219E/BLOCKERS-*.md` 了解处理步骤。
+
 ### 审计一致性门禁（新增）
 - 目标：保障“空UPDATE=0 / recordId载荷一致 / 目标触发器不存在（022生效）”。
 - 脚本：

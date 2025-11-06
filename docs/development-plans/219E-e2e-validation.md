@@ -18,6 +18,16 @@
 
 ## 2. 测试范围
 
+### 2.1 当前执行矩阵（2025-11-06）
+
+| 场景 | 脚本/入口 | 状态 | 说明 |
+|------|-----------|------|------|
+| Organization + Department 生命周期 | `scripts/e2e/org-lifecycle-smoke.sh` | ⏳ 等待 Docker 权限 | 通过 REST 调用覆盖 create → child → suspend → activate → GraphQL 校验；日志写入 `logs/219E/org-lifecycle-*.log` |
+| Position + Assignment 流程 | `tests/e2e/organization-validator` + REST 手动脚本（待补） | ⏳ | 依赖命令服务数据流；待环境恢复后接入 |
+| Job Catalog 导入/导出 | `frontend/tests/e2e/job-catalog-*.spec.ts` | ⏳ | 需前端 webServer；待 `npm run dev` 可用 |
+| Outbox → Dispatcher → Query 缓存 | `scripts/dev/219C3-rest-self-test.sh` + 新增 PromQL | ⏳ | 观察 `outbox_dispatch` 指标 |
+| 故障恢复（Temporal/Scheduler） | `scripts/dev/scheduler-alert-smoke.sh` + `logs/219D4/FAULT-INJECTION-2025-11-06.md` | ✅ 输入可复用 | 需在服务运行时执行 |
+
 ### 2.1 端到端场景（至少覆盖以下 5 组）
 1. **Organization + Department 生命周期**：创建 → 子部门 → 更新 → 层级移动 → 删除；验证 REST、GraphQL、Audit。
 2. **Position + Assignment 流程**：创建职位 → Fill → Transfer → Vacate → 删除；验证 Temporal timeline 与 Assignment 查询。
@@ -51,11 +61,11 @@
 
 ## 4. 验收标准
 
-- [ ] 端到端场景执行完毕，结果记录于测试报告。
-- [ ] 性能基准与重构前对比，P99 差异在可接受范围内；若超出，提供优化方案或评估。
-- [ ] 回退演练完成并记录步骤。
-- [ ] 测试脚本/工具更新入库（`tests/organization/` 或相关目录），并在 `internal/organization/README.md` 的“测试与验收”小节记录引用。
-- [ ] 发布测试结论（通过/阻塞、剩余风险）。
+- [ ] 端到端场景执行完毕，结果记录于测试报告（预期路径：`logs/219E/org-lifecycle-*.log` 等）。
+- [ ] 性能基准与重构前对比，P99 差异在可接受范围内；若超出，提供优化方案或评估。`scripts/perf/rest-benchmark.sh` 负责采集数据。
+- [ ] 回退演练完成并记录步骤（参考 219D1 回退指引 + `make run-dev SCHEDULER_ENABLED=false` 演练）。
+- [ ] 测试脚本/工具更新入库（本次新增 `scripts/e2e/org-lifecycle-smoke.sh`、`scripts/perf/rest-benchmark.sh`），并在 `internal/organization/README.md` 的“测试与验收”小节记录引用。
+- [ ] 发布测试结论（通过/阻塞、剩余风险），同步到 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 性能章节。
 
 ---
 
@@ -75,3 +85,13 @@
 - 性能基准报告（对比表 + 图表，同步更新至上述章节）
 - 回退演练记录（补充到 `internal/organization/README.md` 的回退小节）
 - 阶段结论（供上线/合并决策）
+
+---
+
+## 当前阻塞（2025-11-06）
+- 无法访问 Docker daemon，`make run-dev` 报错 `permission denied`（详见 `logs/219E/BLOCKERS-2025-11-06.md`）。导致命令/查询服务无法启动，所有端到端/性能场景暂缓。
+- 已提前准备执行脚本与日志目录：  
+  - `scripts/e2e/org-lifecycle-smoke.sh` – 组织生命周期冒烟。  
+  - `scripts/perf/rest-benchmark.sh` – REST 性能基准。  
+  - `logs/219E/` – 记录测试、性能、回退以及阻塞信息。  
+- 待获取 Docker 权限后执行上述脚本，并补充 `logs/219E/` 下的正式报告，再更新本计划验收状态。
