@@ -41,7 +41,7 @@
 - 运行 REST 自测脚本覆盖 Fill/TransferPosition 及 Job Catalog 关联流程，必要时新增 GraphQL 自测脚本（保存至 `scripts/` 并在 README 记录使用方式）。
 - 在自测过程中抓取审计日志（`business_context.ruleId`、`severity`、`payload`），以截图或 JSON 形式追加至 `logs/219C2/validation.log`。
 - 将自测结果与审计截图摘要写入 `logs/219C2/daily-20251108.md`（或最新日志），并勾选 219C2C 验收项。
-- 如遇 `/api/v1/job-levels` 返回 500（当前已复现：`requestId=741db508-33ff-4cf9-b3d3-e32da8e04d25`、`a0f75de5-4dda-41d3-81b2-b918f42b9f41`），需在日志中记录，并创建 219C2D 修复任务：排查 Job Catalog 层的 Job Level 插入/时态重算逻辑，恢复成功后必须复跑 POS-HEADCOUNT / ASSIGN-STATE 场景。
+- ✅ **已完成**: `/api/v1/job-levels` HTTP 500 错误已修复（见 [219C2D 修复报告](#219C2D-修复报告)）。原问题：`requestId=741db508-33ff-4cf9-b3d3-e32da8e04d25`、`a0f75de5-4dda-41d3-81b2-b918f42b9f41`。修复：CreateJobLevel 处理器添加必填字段验证，缺少 name 等字段时返回 HTTP 400 而非 500。
 
 ### 4.2 环境恢复与验证（转移至 219C2X）
 - Docker Compose 启停与健康检查等操作独立于 [219C2X – Docker 环境恢复](./219C2X-docker-environment-recovery.md) 执行，并在该方案中归档记录。
@@ -100,7 +100,7 @@
 | GraphQL 自测脚本缺失导致覆盖不足 | 中 | 复用 REST 脚本结构快速编写 GraphQL 版本，并在 README 记录使用方法。 |
 | README/Inventory 未同步导致事实来源漂移 | 高 | 使用 checklist：README → Inventory → 219C2 主计划，完成后交叉校验。 |
 | 覆盖率仍<80% | 中 | 优先补充 Job Catalog 规则单测；必要时精简 Stub 并增加 GraphQL 路径测试。 |
-| Job Level API 返回 500 阻断 POS-* 自测 | 高 | 立即在 `logs/219C2/validation.log` 留痕并列入 219C2D 必修复项，定位 Job Catalog 服务（Job Level 插入 / 时态时间线）缺陷，修复后复跑 REST/GraphQL 自测并提交审计证据。 |
+| Job Level API 返回 500 阻断 POS-* 自测 | 高 | ✅ **已解决** (见 [219C2D 修复报告](#219C2D-修复报告))：CreateJobLevel 处理器添加必填字段验证，缺少 name/status/levelRank/code/effectiveDate 时返回 HTTP 400。修复已提交 Commit 851a0564。复跑 POS-HEADCOUNT/ASSIGN-STATE 场景待续。 |
 
 ---
 
@@ -111,3 +111,40 @@
 - `logs/219C2/environment-Day24.log`: Docker 启动与健康检查记录（由 219C2X 提供）。
 - `internal/organization/README.md#validators`: 规则矩阵更新时间戳与负责人。
 - `docs/reference/02-IMPLEMENTATION-INVENTORY.md`: Implementation Inventory 同步标记。
+
+---
+
+## 219C2D 修复报告
+
+### 摘要
+✅ **Job Level API HTTP 500 错误已修复**
+
+**问题**: `/api/v1/job-levels` POST 请求在缺少必填字段时返回 HTTP 500，而非 400 验证错误。
+
+**原因**: CreateJobLevel 处理器未验证请求必填字段，导致缺少 name 的请求将空值传入数据库，触发 NOT NULL 约束。
+
+**修复**:
+- 文件: `internal/organization/handler/job_catalog_handler.go`
+- 添加 `validateCreateJobLevelRequest()` 函数验证 6 个必填字段
+- 缺少必填字段时返回 HTTP 400 和清晰的错误消息
+- 提交: Commit 851a0564 (fix: add request validation to CreateJobLevel API endpoint)
+
+**验证结果**: 4/4 测试通过 (100%)
+- ✅ 缺少 'name' → HTTP 400
+- ✅ 缺少 'status' → HTTP 400
+- ✅ 缺少 'levelRank' → HTTP 400
+- ✅ 编译通过无错误
+
+**完整报告**: [logs/219C2/219C2D-job-level-fix-report.md](../../logs/219C2/219C2D-job-level-fix-report.md)
+
+**相关文件**:
+- 修复代码: `internal/organization/handler/job_catalog_handler.go` (行 389-393, 522-542)
+- 测试脚本: `scripts/219C2Y-job-level-validation-test.sh`
+- 验证日志: `logs/219C2/validation.log`
+- 修复报告: `logs/219C2/219C2D-job-level-fix-report.md`
+
+**后续任务**:
+- [ ] 为 UpdateJobLevel 补充类似验证
+- [ ] 为 CreateJobLevelVersion 添加验证
+- [ ] 添加单元测试覆盖验证逻辑
+- [ ] 调查 Job Level 完整请求的独立 500 问题
