@@ -171,7 +171,7 @@ func (m *CommandModule) NewHandlers(deps CommandHandlerDeps) CommandHandlers {
 		m.Repositories.Hierarchy,
 		m.Validator,
 	)
-	positionHandler := handlerpkg.NewPositionHandler(m.Services.Position, logger)
+	positionHandler := handlerpkg.NewPositionHandler(m.Services.Position, m.AuditLogger, logger)
 	jobCatalogHandler := handlerpkg.NewJobCatalogHandler(m.Services.JobCatalog, logger)
 	operationalHandler := handlerpkg.NewOperationalHandler(m.Services.TemporalMonitor, m.Services.OperationalScheduler, deps.RateLimitMiddleware, logger)
 	devToolsHandler := handlerpkg.NewDevToolsHandler(deps.JWTMiddleware, logger, deps.DevMode, m.DB)

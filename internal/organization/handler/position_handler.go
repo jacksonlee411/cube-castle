@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"cube-castle/internal/organization/audit"
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/service"
 	"cube-castle/internal/organization/utils"
@@ -34,13 +36,15 @@ type PositionService interface {
 }
 
 type PositionHandler struct {
-	service PositionService
-	logger  pkglogger.Logger
+	service     PositionService
+	logger      pkglogger.Logger
+	auditLogger *audit.AuditLogger
 }
 
-func NewPositionHandler(service PositionService, baseLogger pkglogger.Logger) *PositionHandler {
+func NewPositionHandler(service PositionService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *PositionHandler {
 	return &PositionHandler{
-		service: service,
+		service:     service,
+		auditLogger: auditLogger,
 		logger: scopedLogger(baseLogger, "position", pkglogger.Fields{
 			"module": "position",
 		}),
@@ -552,25 +556,40 @@ func (h *PositionHandler) writeValidationFailure(w http.ResponseWriter, r *http.
 	status := http.StatusBadRequest
 	ruleCode := "BUSINESS_RULE_VIOLATION"
 	message := "业务规则校验失败"
+	severity := string(validator.SeverityHigh)
+	ruleID := ruleCode
 	if len(result.Errors) > 0 {
 		first := result.Errors[0]
 		if trimmed := strings.TrimSpace(first.Code); trimmed != "" {
 			ruleCode = trimmed
+			ruleID = ruleCode
 		}
 		if trimmed := strings.TrimSpace(first.Message); trimmed != "" {
 			message = trimmed
 		}
-		severity := strings.ToUpper(strings.TrimSpace(first.Severity))
-		if severity == "" {
-			severity = string(validator.SeverityHigh)
+		if trimmed := strings.TrimSpace(first.Severity); trimmed != "" {
+			severity = strings.ToUpper(trimmed)
 		}
 		mapped := validator.SeverityToHTTPStatus(severity)
 		if mapped >= http.StatusBadRequest {
 			status = mapped
 		}
+		if ctx := first.Context; ctx != nil {
+			if val, ok := ctx["ruleId"]; ok {
+				if formatted := strings.TrimSpace(fmt.Sprintf("%v", val)); formatted != "" {
+					ruleID = formatted
+				}
+			}
+		}
+	}
+	ruleID = strings.TrimSpace(ruleID)
+	if ruleID == "" {
+		ruleID = ruleCode
 	}
 
 	details := map[string]interface{}{
+		"ruleId":           ruleID,
+		"severity":         severity,
 		"validationErrors": result.Errors,
 		"warnings":         result.Warnings,
 		"chainContext":     result.Context,
@@ -585,5 +604,67 @@ func (h *PositionHandler) writeValidationFailure(w http.ResponseWriter, r *http.
 	})
 	if err := utils.WriteError(w, status, ruleCode, message, requestID, details); err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Error("write validation failure response failed")
+	}
+
+	h.logValidationAudit(r, ruleID, severity, status, ruleCode, message, result, details)
+}
+
+func (h *PositionHandler) logValidationAudit(r *http.Request, ruleID, severity string, status int, code, message string, result *validator.ValidationResult, details map[string]interface{}) {
+	if h.auditLogger == nil || result == nil {
+		return
+	}
+
+	tenantID := getTenantIDFromRequest(r)
+	resourceID := strings.ToUpper(strings.TrimSpace(chi.URLParam(r, "code")))
+	if resourceID == "" {
+		if ctx := result.Context; ctx != nil {
+			if val, ok := ctx["positionCode"]; ok {
+				resourceID = strings.ToUpper(strings.TrimSpace(fmt.Sprintf("%v", val)))
+			}
+		}
+	}
+	if resourceID == "" {
+		resourceID = "UNKNOWN"
+	}
+
+	payload := map[string]interface{}{
+		"ruleId":           ruleID,
+		"severity":         severity,
+		"httpStatus":       status,
+		"errorCount":       len(result.Errors),
+		"validationErrors": result.Errors,
+	}
+	if len(result.Warnings) > 0 {
+		payload["warnings"] = result.Warnings
+		payload["warningCount"] = len(result.Warnings)
+	}
+	if len(result.Context) > 0 {
+		payload["chainContext"] = result.Context
+	}
+	for k, v := range details {
+		switch k {
+		case "field", "severity", "ruleId":
+			payload[k] = v
+		}
+	}
+
+	actionName := strings.TrimSpace(r.Method)
+	if actionName == "" {
+		actionName = "REQUEST"
+	}
+
+	if err := h.auditLogger.LogError(
+		r.Context(),
+		tenantID,
+		audit.ResourceTypePosition,
+		resourceID,
+		actionName,
+		getActorID(r),
+		middleware.GetRequestID(r.Context()),
+		code,
+		message,
+		payload,
+	); err != nil {
+		h.logger.WithFields(pkglogger.Fields{"error": err}).Warn("audit log for validation failure failed")
 	}
 }

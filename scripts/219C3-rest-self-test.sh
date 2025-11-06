@@ -196,14 +196,15 @@ section_log "219C3 REST 命令自测开始 ($TIMESTAMP)"
 print_log "准备基础数据（组织 + Job Catalog + 职位）"
 
 random_suffix="$(date +%s%N | tail -c 6)"
+ORG_CODE="$(printf '%07d' $((RANDOM%9000000 + 1000000)))"
 EFFECTIVE_BASE="${EFFECTIVE_BASE:-$(date '+%Y-%m-%d')}"
 
 # 1. 创建组织
-ORG_CODE="REST${random_suffix}"
 org_payload=$(jq -n \
   --arg code "$ORG_CODE" \
   --arg name "219C3 测试组织" \
-  '{code:$code,name:$name,unitType:"DEPARTMENT",operationReason:"219C3 rest self-test"}')
+  --arg effective "$EFFECTIVE_BASE" \
+  '{code:$code,name:$name,unitType:"DEPARTMENT",effectiveDate:$effective,operationReason:"219C3 rest self-test"}')
 rest_request POST "/api/v1/organization-units" "$org_payload"
 log_rest_scenario "organization.create" "success" "201"
 verify_audit "$REST_REQUEST_ID"
@@ -285,32 +286,37 @@ create_position
 
 # 4. 任职相关场景
 fill_payload() {
-  local worker_id="$1"
-  local fte="$2"
+  local employee_id="$1"
+  local employee_name="$2"
+  local fte="$3"
   jq -n \
-    --arg worker "$worker_id" \
+    --arg employeeId "$employee_id" \
+    --arg employeeName "$employee_name" \
+    --arg assignmentType "PRIMARY" \
     --arg fte "$fte" \
     --arg effective "$EFFECTIVE_BASE" \
-    '{workerId:$worker,fte:($fte|tonumber),effectiveDate:$effective,operationReason:"219C3 rest self-test"}'
+    '{employeeId:$employeeId,employeeName:$employeeName,assignmentType:$assignmentType,fte:($fte|tonumber),effectiveDate:$effective,operationReason:"219C3 rest self-test"}'
 }
 
 # A. 成功填充任职
-payload=$(fill_payload "00000000-0000-0000-0000-00000000a001" "1.0")
+payload=$(fill_payload "00000000-0000-0000-0000-00000000a001" "219C3 Dummy Worker" "1.0")
 rest_request POST "/api/v1/positions/$POSITION_CODE/fill" "$payload"
 log_rest_scenario "position.fill" "success" "200"
-ASSIGNMENT_ID="$(extract_field "$REST_BODY" '.data.assignmentId // .data.assignmentID')"
+ASSIGNMENT_ID="$(extract_field "$REST_BODY" '.data.assignmentId // .data.assignmentID // .data.currentAssignment.assignmentId // .data.currentAssignment.assignmentID')"
 verify_audit "$REST_REQUEST_ID"
 
 # B. headcount 超限
-payload=$(fill_payload "00000000-0000-0000-0000-00000000a002" "1.0")
+payload=$(fill_payload "00000000-0000-0000-0000-00000000a002" "219C3 Dummy Overflow" "1.0")
 rest_request POST "/api/v1/positions/$POSITION_CODE/fill" "$payload"
 log_rest_scenario "position.fill" "headcount_exceeded" "400" "POS_HEADCOUNT_EXCEEDED" "POS-HEADCOUNT" "HIGH"
 verify_audit "$REST_REQUEST_ID"
 
 # C. 关闭任职成功
+close_effective="$(date -d "$EFFECTIVE_BASE +1 day" '+%Y-%m-%d')"
 close_payload=$(jq -n \
   --arg reason "219C3 rest self-test" \
-  '{operationReason:$reason}')
+  --arg endDate "$close_effective" \
+  '{operationReason:$reason,endDate:$endDate}')
 rest_request POST "/api/v1/positions/$POSITION_CODE/assignments/$ASSIGNMENT_ID/close" "$close_payload"
 log_rest_scenario "assignment.close" "success" "200"
 verify_audit "$REST_REQUEST_ID"

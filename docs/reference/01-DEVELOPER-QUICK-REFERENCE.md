@@ -166,6 +166,22 @@ npm test:contract              # 运行契约测试
 npm run quality:docs           # 检查文档同步状态
 ```
 
+### REST 命令自测（219C3）
+```bash
+# 前置：make docker-up && make run-dev（确保命令服务 9090 就绪）
+./scripts/219C3-rest-self-test.sh \
+  BASE_URL_COMMAND=http://localhost:9090 \
+  TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9
+
+# 输出：
+#   logs/219C3/validation.log   # 含请求/响应、ruleId、severity
+#   logs/219C3/report.json      # 统一结果摘要（passed/failed）
+#
+# 如需自动验证审计，可在执行前导出 DATABASE_URL 并安装 psql：
+#   export DATABASE_URL=postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+```
+> 场景覆盖：职位填充 + Headcount 超限、任职关闭 + 状态校验、Job Level 版本创建与冲突。所有校验失败都会写入 `audit_logs.business_context.ruleId/severity`。
+
 ### 质量门禁工具要求
 ```bash
 # 确认工具版本（必需）

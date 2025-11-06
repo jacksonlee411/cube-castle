@@ -1085,16 +1085,32 @@ func (r *JobCatalogRepository) InsertJobLevelVersion(ctx context.Context, tx *sq
 		return nil, fmt.Errorf("invalid effective date: %w", err)
 	}
 
-	today := time.Now().UTC().Truncate(24 * time.Hour)
-	isCurrent := !effectiveDate.After(today)
+	parent, err := r.GetJobLevelByRecordID(ctx, tx, tenantID, parentRecord)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load parent job level: %w", err)
+	}
+	if parent == nil {
+		return nil, fmt.Errorf("job level parent record not found")
+	}
 
-	roleCodeQuery := `SELECT role_code FROM job_levels WHERE tenant_id = $1 AND level_code = $2 ORDER BY effective_date DESC LIMIT 1`
-	var roleCode string
-	if err := r.queryRow(ctx, tx, roleCodeQuery, tenantID, code).Scan(&roleCode); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("job level not found for code %s", code)
+	normalizedCode := strings.ToUpper(strings.TrimSpace(code))
+	if !strings.EqualFold(parent.Code, normalizedCode) {
+		return nil, fmt.Errorf("job level parent record mismatch")
+	}
+
+	var description interface{}
+	if req.Description != nil {
+		description = normalizeOptionalString(req.Description)
+	} else if parent.Description.Valid {
+		desc := strings.TrimSpace(parent.Description.String)
+		if desc != "" {
+			description = desc
 		}
-		return nil, fmt.Errorf("failed to resolve job level role code: %w", err)
+	}
+
+	var salaryBand interface{}
+	if len(parent.SalaryBand) > 0 {
+		salaryBand = parent.SalaryBand
 	}
 
 	query := `INSERT INTO job_levels (
@@ -1105,15 +1121,16 @@ RETURNING record_id, tenant_id, level_code, role_code, parent_record_id, level_r
 	var entry types.JobLevel
 	err = r.queryRow(ctx, tx, query,
 		tenantID,
-		code,
-		roleCode,
-		parentRecord,
+		normalizedCode,
+		parent.RoleCode,
+		parent.ParentRecord,
+		parent.LevelRank,
 		req.Name,
-		normalizeOptionalString(req.Description),
-		nil,
+		description,
+		salaryBand,
 		req.Status,
 		effectiveDate,
-		isCurrent,
+		false,
 	).Scan(
 		&entry.RecordID,
 		&entry.TenantID,
@@ -1141,7 +1158,7 @@ RETURNING record_id, tenant_id, level_code, role_code, parent_record_id, level_r
 		return nil, fmt.Errorf("failed to insert job level version: %w", err)
 	}
 
-	if err := r.recalculateJobLevelTimeline(ctx, tx, tenantID, code); err != nil {
+	if err := r.recalculateJobLevelTimeline(ctx, tx, tenantID, normalizedCode); err != nil {
 		return nil, err
 	}
 

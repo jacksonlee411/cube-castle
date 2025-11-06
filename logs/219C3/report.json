@@ -1,0 +1,41 @@
+[
+  {
+    "command": "position.fill",
+    "scenario": "headcount_exceeded",
+    "result": {
+      "status": "passed",
+      "httpStatus": 400,
+      "errorCode": "POS_HEADCOUNT_EXCEEDED",
+      "ruleId": "POS-HEADCOUNT",
+      "severity": "HIGH",
+      "requestId": "6f5043f5-7876-47f7-ad1c-622a0e43ea4c",
+      "correlationId": "6f5043f5-7876-47f7-ad1c-622a0e43ea4c"
+    }
+  },
+  {
+    "command": "assignment.close",
+    "scenario": "already_closed",
+    "result": {
+      "status": "passed",
+      "httpStatus": 400,
+      "errorCode": "ASSIGN_INVALID_STATE",
+      "ruleId": "ASSIGN-STATE",
+      "severity": "CRITICAL",
+      "requestId": "7961a07c-9d93-4c5d-a219-3fd98b668a9b",
+      "correlationId": "7961a07c-9d93-4c5d-a219-3fd98b668a9b"
+    }
+  },
+  {
+    "command": "jobLevel.version",
+    "scenario": "temporal_conflict",
+    "result": {
+      "status": "passed",
+      "httpStatus": 400,
+      "errorCode": "JOB_CATALOG_TEMPORAL_CONFLICT",
+      "ruleId": "JC-TEMPORAL",
+      "severity": "HIGH",
+      "requestId": "20bc8f83-5228-4207-96e5-9d025ba7e990",
+      "correlationId": "20bc8f83-5228-4207-96e5-9d025ba7e990"
+    }
+  }
+]

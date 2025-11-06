@@ -8,77 +8,45 @@
 
 ---
 
-## 1. 目标
+## 总体目标
 
-1. 将 `organization_temporal_service.go`、`operational_scheduler.go` 等调度逻辑迁移到 `internal/organization/scheduler/`，统一管理。
-2. 确保 Temporal 工作流、定时任务（position version 激活、timeline 修复等）在新结构下行为等同并通过测试。
-3. 完成监控与告警配置：Prometheus 指标、Grafana 面板、Alertmanager 规则。
-
----
-
-## 2. 范围
-
-| 模块 | 内容 |
-|------|------|
-| Scheduler 目录 | Temporal workflow / activity / cron jobs；操作性任务（operational endpoints） |
-| 配置 | YAML/ENV 中的调度配置、Cron 表达式、重试策略 |
-| 监控 | Prometheus 指标注册、Grafana 面板、告警阈值 |
-| 文档 | README 更新、运行手册 |
-
-不包含：Assignment 查询与缓存逻辑（219B）、新增业务功能。
+- 在统一目录下完成 Scheduler/Temporal 迁移，保持行为等价与可回退。
+- 形成覆盖配置、监控、测试、文档的闭环输入，为 219E E2E 验收提供基础。
+- 保持唯一事实来源：代码归属 `internal/organization/scheduler/`，配置归属 config 体系，监控/文档进入既有权威文件。
 
 ---
 
-## 3. 详细任务
+## 子任务索引
 
-1. **代码迁移**
-   - 将 Temporal workflow、activity、scheduler 逻辑从 `cmd/hrms-server/command/internal/...` 迁至 `internal/organization/scheduler/`。
-   - 更新依赖注入：`main.go` 在启动时注册 scheduler，使用 Facade/Service 代替旧引用。
-
-2. **配置梳理**
-   - 统一调度相关配置（cron 间隔、队列名称、重试次数）到 config 包或 `.env`；记录默认值。
-   - 更新 Makefile / README，说明启动 scheduler 的方式。
-
-3. **监控与告警**
-   - 注册指标：`temporal_workflow_duration_ms`、`temporal_workflow_failure_total`、`organization_event_dispatch_total` 等。
-   - 更新 `prometheus.yml` / Grafana 面板，新增监控图表。
-   - 编写 alert 规则（如失败率 > 1% 告警）。
-
-4. **测试验证**
-   - 单元测试：使用 Temporal SDK 测试工具对 workflow/activity 进行模拟，断言 retry/backoff 逻辑。
-   - 集成测试：在 sandbox 环境跑一次完整的 workflow（position version 激活），记录任务队列、执行日志、指标。
-   - 故障注入：模拟 activity 超时/失败，验证 retry/backoff 与告警触发。
-   - 输出验证 checklist（workflow 名称、预期事件、关键指标阈值）。
-
-5. **文档**
-   - 更新 `internal/organization/README.md`：调度逻辑、配置、监控说明，并引用监控工具统一指南。
-   - 运行手册（启动、停止、排错指南）增补至 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 现有监控章节，避免新增散落文件。
+| 子任务 | 负责人 | 核心交付 | 计划链接 |
+|--------|--------|----------|-----------|
+| 219D1 – 代码迁移 | 后端 | Scheduler 目录与 Facade、回退说明 | [docs/development-plans/219D1-scheduler-migration.md](219D1-scheduler-migration.md) |
+| 219D2 – 配置集中化 | 后端 | 调度配置清单、启动流程更新 | [docs/development-plans/219D2-scheduler-config.md](219D2-scheduler-config.md) |
+| 219D3 – 监控与告警 | 平台+后端 | 指标埋点、Grafana 面板、告警规则 | [docs/development-plans/219D3-scheduler-monitoring.md](219D3-scheduler-monitoring.md) |
+| 219D4 – 测试与故障注入 | 后端 | 单元/集成测试、故障脚本、验证报告 | [docs/development-plans/219D4-scheduler-testing.md](219D4-scheduler-testing.md) |
+| 219D5 – 文档收敛 | 后端+文档 | README、参考文档、复盘清单 | [docs/development-plans/219D5-scheduler-docs.md](219D5-scheduler-docs.md) |
 
 ---
 
-## 4. 验收标准
+## 依赖与协作
 
-- [ ] Scheduler/Temporal 代码迁移完成，旧目录无残留。
-- [ ] 工作流/定时任务在新目录下可构建并运行（本地 + sandbox）。
-- [ ] 指标在 Prometheus 中可查询，Grafana 告警生效。
-- [ ] README/运行手册更新完毕。
-- [ ] 测试脚本（单元/集成）通过；提供示例命令。
+- **前置依赖**：219A 目录调整提供结构约束；219B 查询、219C 审计输出校验策略与数据点。
+- **外部协作**：平台团队支持 219D3 监控落地与 sandbox 告警校验；测试团队在 219D4 阶段参与故障注入演练。
+- **回退策略**：219D1 记录的旧目录引用与配置默认值需在 219D5 汇总，确保任意阶段可回滚。
 
 ---
 
-## 5. 风险与缓解
+## 里程碑与交付节奏
 
-| 风险 | 影响 | 缓解措施 |
-|------|------|----------|
-| Workflow 行为改变 | 高 | 保留对照测试；执行真实数据的 dry-run |
-| 监控配置遗漏 | 中 | 与平台团队审查；在测试环境验证告警 |
-| 配置变更影响生产 | 中 | 变更前记录旧值，必要时灰度发布 |
+1. Day 21 上午完成 219D1、219D2 主要改动并进行初步冒烟。
+2. Day 21 下午至 Day 22 上午完成 219D3 指标落地与 sandbox 联调。
+3. Day 22 同步推进 219D4 测试矩阵与故障注入，输出验证报告。
+4. Day 22 末由 219D5 汇总文档、复盘成果，并将资料纳入参考文档。
 
 ---
 
-## 6. 交付物
+## 最终收敛与验收
 
-- Scheduler 目录及代码
-- 配置/README 更新
-- Prometheus/Grafana/Alertmanager 配置
-- 测试报告（workflow + 监控）
+- [ ] 219D1~219D5 均完成并通过各自验收标准，交付物归档。
+- [ ] `internal/organization/scheduler/` 目录、配置、监控、测试、文档形成闭环并对齐唯一事实来源。
+- [ ] Sandbox 验证记录、告警演练、回退指南在 219D5 文档中可追溯，供 219E 继续复用。

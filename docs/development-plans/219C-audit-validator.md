@@ -93,8 +93,8 @@
 
 ---
 
-## 7. 进度纪要（最近更新于 2025-11-05T01:54:19Z）
+## 7. 进度纪要（最近更新于 2025-11-06T19:29:32+08:00）
 
 - [x] 219C1 – 审计事件底座与事务化改造：文档归档至 `docs/archive/development-plans/219C1-audit-foundation.md`，测试记录见 `logs/219C1/test.log`。
-- [ ] 219C2 – Validator 框架扩展：待补充验收证据与归档。
-- [ ] 219C3 – 文档与测试对齐：进行中，待完成统一验收与归档。
+- [x] 219C2 – Validator 框架扩展：归档文档 `docs/archive/development-plans/219C2-20251108.md`，核心验证见 `logs/219C2/validation.log` 与 `tests/e2e/organization-validator/report-Day24.json`。
+- [x] 219C3 – 文档与测试对齐：验收记录详见 `docs/development-plans/219C3-docs-and-tests.md#6-验收记录（2025-11-06）`，证据包括 `logs/219C3/validation.log:2628-2896`、`logs/219C3/report.json:2-38` 以及归档副本 `docs/archive/development-plans/219C3-20251106.md`。

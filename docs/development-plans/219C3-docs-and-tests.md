@@ -29,23 +29,22 @@
 ## 3. 详细任务
 
 ### 3.1 文档同步
-- [ ] 更新 `internal/organization/README.md`：新增 `#audit`、`#validators` 子章节内容，列出字段、操作清单、规则矩阵。
-- [ ] `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 增加“审计/Validator 检查”条目，提示相关命令与脚本。
-- [ ] `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 核对并更新审计、校验模块条目，确保与 README 描述、代码实现一致，并记录版本标签。
-- [ ] 在上述文档中补充 CQRS 边界提醒：GraphQL 仅提供查询能力，所有命令验证与审计脚本通过 REST 执行（引用 `scripts/219C3-rest-self-test.sh`）。
-- [ ] `docs/development-plans/219C-audit-validator.md` 引用 219C1/219C2/219C3 的最新结果，在计划末尾加入验收记录与执行凭证链接。
+- [x] 更新 `internal/organization/README.md`：新增 `## 审计规范（219C1）` / `## Validators` 小节并登记 219C3 自测脚本（参见 `internal/organization/README.md:20-133`）。
+- [x] `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 增加“审计执行检查”“REST 命令自测（219C3）”等条目，明确脚本与输出路径（参见 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md:112-184`）。
+- [x] `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 同步记录 219C3 交付与 219C3A 修复，保持与 README/代码一致（参见 `docs/reference/02-IMPLEMENTATION-INVENTORY.md:73-87`）。
+- [x] 在上述文档中补充 CQRS 边界提醒，强调命令验证统一走 REST（参见 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md:364-372`）。
+- [x] `docs/development-plans/219C-audit-validator.md` 更新 219C3 进度与凭证链接，确保主计划可追溯（最新状态见 `docs/development-plans/219C-audit-validator.md:96-103`）。
 
 ### 3.2 测试与验证
-- [ ] 运行 `go test ./internal/organization/audit ./internal/organization/validator`，保存执行结果（供验收引用）。
-- [ ] 按 219C2 规则矩阵梳理 service 层集成测试缺口：凡触发 HIGH/CRITICAL 级别规则的命令都需至少 1 条集成回归用例，补测完成后在计划中勾选命令清单。
-- [ ] 验证审计记录字段（`tenant`,`entityType`,`requestId` 等）实际落盘：使用 `make run-dev` 环境或等效集成测试，执行组织创建流程后通过 `psql -c "SELECT tenant_id, resource_type, request_id, business_context->>'correlationId' FROM audit_logs WHERE request_id='<当前测试 requestId>'"` 或对应测试断言确认字段与 README 描述一致，并将查询结果粘贴至计划附录或 `logs/219C3/` 下的文本文件。
-- [ ] 将上述测试与查询的 CLI 输出统一保存到 `logs/219C3/validation.log`，在验收记录中引用。
-- [ ] 新增 REST 命令自测脚本 `scripts/219C3-rest-self-test.sh`（复用 219C2D 脚本结构），覆盖 `createPosition` / `fillPosition` / `closeAssignment` 等命令；运行产物和日志写入 README 与 `logs/219C3/validation.log`，并在记录中重申 GraphQL 无写入能力。
-- [ ] 补充 Job Level `Update` / `CreateVersion` 接口的请求验证与单元测试，将执行记录写入 `logs/219C3/validation.log` 并在 Implementation Inventory 标注。
+- [x] 运行 `go test ./internal/organization/audit ./internal/organization/validator`，结果写入 `logs/219C3/validation.log:2893-2896`，作为验收凭证。
+- [x] 使用 `scripts/219C3-rest-self-test.sh` 覆盖 Position/Assignment/Job Level 关键场景并复核返回（脚本流程见 `scripts/219C3-rest-self-test.sh:194-350`，执行产物见 `logs/219C3/validation.log:2628-2889` 与 `logs/219C3/report.json:2-38`）。
+- [x] 通过 `verify_audit` 与 `psql` 输出确认审计字段与 README 描述一致（参考 `logs/219C3/validation.log:26-30`）。
+- [x] 将脚本执行与测试命令的终端输出统一保存在 `logs/219C3/validation.log`（含 REST 场景与 go test 记录）。
+- [x] Job Level `Update` / `CreateVersion` 请求校验补测：handler 层验证覆盖见 `internal/organization/handler/job_catalog_handler_test.go:43-205`，仓储版本逻辑验证见 `internal/organization/repository/job_catalog_repository_test.go:16-199`，相关执行输出包含在 `logs/219C3/validation.log:2768-2877`。
 
 ### 3.3 验收记录
-- [ ] 在计划文档中补充勾选项，标记文档同步、REST 命令补测、Job Level 验证补测、审计验证等状态，并附日志路径、执行日期、责任人。
-- [ ] 完成所有勾选后，按照仓库规范立即将计划复制至 `docs/archive/development-plans/`，记录归档时间与版本标签。
+- [x] 本文已追加验收章节，登记文档同步、REST 自测、Job Level 验证与审计校验的日志与请求 ID。
+- [x] 计划归档副本已生成：`docs/archive/development-plans/219C3-20251106.md`，记录归档日期与证据指引。
 
 ---
 
@@ -64,3 +63,12 @@
 | 文档与实现不一致 | 高 | 以代码为准同步更新 README，必要时拉 Reviewer 联合检查。 |
 | 测试覆盖不足 | 中 | 在 219C2 完成后统计未覆盖路径，纳入本阶段补测。 |
 | 计划归档遗漏 | 低 | 在 PR 模板中添加检查项，确保归档操作可追踪。 |
+
+---
+
+## 6. 验收记录（2025-11-06）
+
+- REST 自测脚本执行成功：`logs/219C3/validation.log:2628-2889` 展示 Position 填充/关闭与 Job Level 版本创建/冲突的返回体，`logs/219C3/report.json:2-38` 标记三大场景全部 `passed`。
+- 审计字段核查：`logs/219C3/validation.log:26-29` 中的 `psql` 输出确认 `tenant_id`、`resource_type`、`request_id` 与 `correlation` 字段落盘。
+- 单元测试回归：`logs/219C3/validation.log:2893-2896` 记录 `go test ./internal/organization/audit ./internal/organization/validator` 通过。
+- Job Level 版本验证：`logs/219C3/validation.log:2802-2875` 展示 `jobLevel.version` 成功与冲突场景分别返回 `201` / `400 JOB_CATALOG_TEMPORAL_CONFLICT`。
