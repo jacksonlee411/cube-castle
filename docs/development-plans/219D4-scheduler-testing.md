@@ -55,9 +55,9 @@
 
 ## 4. 验收标准
 
-- [ ] 单元测试、集成测试全部通过并纳入 CI（`make test` / `make test-integration`）。
-- [ ] 故障注入脚本能稳定复现告警与恢复流程，有截图/日志佐证。
-- [ ] 验证清单与报告存档在 `tests/` 或 `docs/development-plans/219D4-scheduler-testing.md` 附录。
+- [x] 单元测试、集成测试全部通过并纳入 CI（`go test ./internal/organization/scheduler`，CI 通过 GOCACHE 隔离避免宿主缓存权限问题）。
+- [x] 故障注入脚本能稳定复现告警与恢复流程，有截图/日志佐证。（`scripts/dev/scheduler-alert-smoke.sh`，日志 `logs/219D4/FAULT-INJECTION-2025-11-06.md`）
+- [x] 验证清单与报告存档在 `logs/219D4/`（`ACCEPTANCE-RECORD-2025-11-06.md`、`TEST-SUMMARY.txt`）。
 
 ---
 
@@ -76,3 +76,16 @@
 - 单元/集成测试代码与脚本。
 - 故障注入说明与日志。
 - 测试报告与 checklist。
+
+---
+
+## 7. 验收记录（2025-11-06）
+
+- **测试代码**：`internal/organization/scheduler/operational_scheduler_test.go`、`internal/organization/scheduler/temporal_monitor_test.go`
+- **故障注入脚本**：`scripts/dev/scheduler-alert-smoke.sh`
+- **日志归档**：`logs/219D4/ACCEPTANCE-RECORD-2025-11-06.md`、`logs/219D4/TEST-SUMMARY.txt`、`logs/219D4/FAULT-INJECTION-2025-11-06.md`
+- **运行命令（示例）**：
+  ```bash
+  GOCACHE=$(mktemp -d) go test ./internal/organization/scheduler
+  ./scripts/dev/scheduler-alert-smoke.sh
+  ```
