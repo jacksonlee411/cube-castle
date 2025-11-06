@@ -1,110 +1,241 @@
-# Plan 06 – 集成测试行动记录（2025-11-06 更新）
+# Plan 06 – 集成测试行动记录（2025-11-07 更新）
 
-> 唯一事实来源：`docs/development-plans/219E-e2e-validation.md`、`logs/219E/`。本记录仅聚焦当前阻塞与下一步行动，便于与 219 系列计划协同。
+> 唯一事实来源：`docs/development-plans/219E-e2e-validation.md`、`logs/219E/`。  
+> 本记录聚焦当前阻塞与分阶段推进路径。
 
 ## 当前状态
-- 219D1~219D5 已完成，Scheduler 配置/监控/测试资料可直接复用。
-- 219E 端到端与性能验证因宿主环境无法访问 Docker daemon (`/var/run/docker.sock` permission denied) 暂停；详见 `logs/219E/BLOCKERS-2025-11-06.md`。
-- 新的测试/性能脚本已入库，但尚未执行：
-  - `scripts/e2e/org-lifecycle-smoke.sh`（组织/部门生命周期冒烟，输出 `logs/219E/org-lifecycle-*.log`）
-  - `scripts/perf/rest-benchmark.sh`（REST P99 基准，输出 `logs/219E/perf-rest-*.log`）
 
-## 后续步骤（需按顺序推进）
-1. **恢复 Docker 访问**
-   - 为当前用户授予 `/var/run/docker.sock` 访问权限（或在具备权限的宿主/runner 上执行）。
-   - 验证 `docker ps` / `make run-dev` 成功，保证命令/查询服务及依赖容器可启动。
+- **219D1~219D5**：已完成，Scheduler 配置/监控/测试资料可直接复用
+- **219E 端到端与性能验证**：因Docker socket权限问题暂停（详见 `logs/219E/BLOCKERS-2025-11-06.md`）
+- **新脚本入库**：已准备就绪，等待Docker环境恢复
+  - `scripts/e2e/org-lifecycle-smoke.sh`（组织/部门生命周期冒烟）
+  - `scripts/perf/rest-benchmark.sh`（REST P99 基准）
 
-   **快速诊断：**
-   ```bash
-   # 一键诊断脚本
-   bash -c 'echo "=== Docker 权限诊断 ==="; echo "1. Docker daemon:"; docker ps 2>&1 | head -2; echo "2. socket信息:"; ls -la /var/run/docker.sock 2>/dev/null || echo "不存在"; echo "3. 当前用户:"; whoami; echo "4. 用户所在组:"; groups; echo "5. docker组成员:"; getent group docker || echo "docker组不存在"'
-   ```
+---
 
-   **配置方案（按优先级）：**
+## 分阶段推进路径
 
-   **方案A：Linux用户组授权（推荐 - 一次性配置）**
-   ```bash
-   # 1. 创建 docker 用户组（如果不存在）
-   sudo groupadd docker 2>/dev/null || true
+### 第一阶段：紧迫路径（并行进行，不依赖Docker）
 
-   # 2. 将当前用户加入 docker 组
-   sudo usermod -aG docker $(whoami)
+在Docker权限问题解决前，以下工作可立即推进：
 
-   # 3. 更新用户组成员关系（重新获取组权限）
-   newgrp docker
+1. **代码审查与单元测试**
+   - 审查 219E 相关代码更改（特别是Scheduler、Assignment、缓存刷新逻辑）
+   - 本地运行单元测试：`go test ./...`（无需Docker）
+   - 输出结果至 `logs/219E/unit-tests-*.log`
 
-   # 4. 验证
-   docker ps
-   ```
+2. **文档完善**
+   - 补齐 219E 验收清单：`docs/development-plans/219E-e2e-validation.md` § 测试范围表格
+   - 性能基准表格初稿：`docs/reference/03-API-AND-TOOLS-GUIDE.md` § 性能部分
+   - 预期完成：3-5个工作日
 
-   **若方案A失败（常见于WSL2/无sudo权限）：方案B - 修改socket权限**
-   ```bash
-   # 临时方案（重启后失效）
-   sudo chmod 666 /var/run/docker.sock
+3. **Playwright脚本编写与预审**
+   - 基于 `frontend/tests/e2e/*.spec.ts` 编写或扩展测试用例
+   - 代码审查通过但不执行（缺Docker）
+   - 预期完成：2-3个工作日
 
-   # 永久方案：编辑Docker daemon配置
-   sudo nano /etc/docker/daemon.json
-   # 添加或修改以下内容：
-   # {
-   #   "unix-socket-group": "docker",
-   #   "unix-socket-permissions": "0660"
-   # }
+**预期时间**：1-2周  
+**产出**：代码审查完毕、文档就绪、脚本预审通过
 
-   # 重启Docker daemon
-   sudo systemctl restart docker
+---
 
-   # 重新加入docker组并验证
-   newgrp docker
-   docker ps
-   ```
+### 第二阶段：恢复Docker访问（阻塞解除条件）
 
-   **常见陷阱与解决：**
-   | 问题 | 原因 | 解决方法 |
-   |------|------|--------|
-   | 执行 `usermod` 后仍 permission denied | 需重新登录或使用 `newgrp` | 运行 `newgrp docker` 或重启终端 |
-   | 新终端仍报 permission denied | 新终端未加载新组关系 | 关闭所有终端重新打开，或 `exec su -l $USER` |
-   | WSL中重启Docker后仍不工作 | Docker daemon 未正确启动 | `sudo service docker status` / `sudo service docker restart` |
+#### 问题诊断与修复
 
-   > **外部权限配合说明**：上述 `sudo groupadd/usermod`、`chmod`、`systemctl` 等步骤均需要具备 `sudo` 权限。当前代理环境因 `no new privileges` 限制无法自行提升权限，需由宿主/平台运维代为执行方案A/B，或直接提供已完成配置、可运行 Docker 的 runner/机器。未获得外部协助前，219E 相关脚本无法落地。
+执行 Docker 权限诊断与修复：
 
-   **验证Docker访问已恢复：**
-   ```bash
-   # 运行以下命令，应不报 permission denied
-   docker ps
-   docker images | grep cube-castle
+**快速诊断**
+```bash
+bash -c 'echo "=== Docker 权限诊断 ==="; echo "1. Docker daemon:"; docker ps 2>&1 | head -2; echo "2. socket信息:"; ls -la /var/run/docker.sock 2>/dev/null || echo "不存在"; echo "3. 当前用户:"; whoami; echo "4. 用户所在组:"; groups'
+```
 
-   # 启动全栈服务
-   make run-dev
-   # 或
-   docker compose -f docker-compose.dev.yml up -d
+**修复选项**（详见 `docs/troubleshooting/docker-socket-permission-fix.md`）
 
-   # 验证关键服务运行
-   docker ps | grep -E 'postgres|redis|rest-service|graphql-service'
-   ```
-2. **执行组织生命周期冒烟脚本**  
-   - 在服务就绪后运行 `scripts/e2e/org-lifecycle-smoke.sh`（可自定义 `COMMAND_API`、`TENANT_ID`、`JWT_TOKEN`）。  
-   - 将生成的 `logs/219E/org-lifecycle-*.log` 附加到 219E 计划验收记录，并检查 REST/GraphQL 返回值是否符合预期。
-3. **采集 REST 性能基准**  
-   - 安装 `hey`（`go install github.com/rakyll/hey@latest`）并运行 `scripts/perf/rest-benchmark.sh`。  
-   - 收集 `logs/219E/perf-rest-*.log` 中的 P95/P99 数据，与历史基线对比并在 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 性能章节登记。
-4. **补充 Playwright/前端 E2E 及缓存场景**  
-   - 复用 `frontend/tests/e2e/*.spec.ts` 与 `tests/e2e/organization-validator/`，重点验证 Assignment、Outbox→Dispatcher→缓存刷新路径。  
-   - 失败用例整理至 `logs/219E/`，并在 219E 文档“测试范围”表格更新状态。
-5. **回退演练与报告**  
-   - 依据 `internal/organization/README.md#Scheduler / Temporal（219D）` 的回退指引，演练一次 `SCHEDULER_ENABLED=false` 与 219D1 目录回退，记录命令与验证日志。  
-   - 将回退步骤与结果同步到 219E 文档及 `logs/219E/rollback-*.log`。
+| 选项 | 适用场景 | 时间 |
+|------|--------|------|
+| **方案A**：用户组授权（推荐） | 多数Linux/WSL2环境 | 5分钟 |
+| **方案B**：Socket权限修改 | 无sudo权限或用户组失效 | 10分钟 |
+| **方案C**：CI/CD runner | 本地权限无法获取 | 在GitHub Actions中执行 |
+
+**验证Docker访问已恢复**
+```bash
+# 运行以下命令，应无 permission denied
+docker ps
+docker images | grep cube-castle
+
+# 启动全栈服务
+make run-dev
+# 或
+docker compose -f docker-compose.dev.yml up -d
+
+# 验证关键服务运行
+docker ps | grep -E 'postgres|redis|rest-service|graphql-service'
+```
+
+**优先级**：⚠️ 阻塞路径，需立即推进（或在CI/CD中绕过）
+
+---
+
+### 第三阶段：执行E2E验证（Docker恢复后）
+
+#### 3.1 执行组织生命周期冒烟脚本
+
+在服务就绪后运行：
+
+```bash
+# 配置变量（按需自定义）
+export COMMAND_API="http://localhost:8080"
+export TENANT_ID="default"
+export JWT_TOKEN="your-token"
+
+# 执行脚本
+scripts/e2e/org-lifecycle-smoke.sh
+
+# 检查输出日志
+ls -la logs/219E/org-lifecycle-*.log
+```
+
+**验证项**：
+- ✅ REST API 组织创建/更新/删除返回预期状态码
+- ✅ GraphQL 查询返回正确的组织结构
+- ✅ 部门生命周期变更正确同步
+
+**预期完成**：1-2天
+
+---
+
+#### 3.2 采集REST性能基准
+
+安装 `hey` 工具并执行性能测试：
+
+```bash
+# 安装 hey
+go install github.com/rakyll/hey@latest
+
+# 执行性能基准
+scripts/perf/rest-benchmark.sh
+
+# 收集性能数据
+ls -la logs/219E/perf-rest-*.log
+```
+
+**收集指标**：P50、P95、P99 响应时间（ms），吞吐量（req/s）  
+**对标基线**：与219D历史性能对比，记录差异原因  
+**登记位置**：`docs/reference/03-API-AND-TOOLS-GUIDE.md` § 性能部分
+
+**预期完成**：1天
+
+---
+
+#### 3.3 Playwright 前端E2E验证
+
+复用并扩展前端测试：
+
+```bash
+# 运行现有E2E测试
+cd frontend
+npm run test:e2e
+
+# 重点验证场景：
+# - Assignment 功能完整性
+# - Outbox → Dispatcher → 缓存刷新路径
+# - 性能场景（大批量操作）
+```
+
+**失败用例处理**：
+- 整理至 `logs/219E/playwright-failures-*.log`
+- 在 219E 文档"测试范围"表格更新状态（PASS/FAIL）
+- 失败原因追踪至代码（特别注意缓存一致性）
+
+**预期完成**：2-3天
+
+---
+
+### 第四阶段：回退演练（验证完毕后）
+
+依据 `internal/organization/README.md#Scheduler / Temporal（219D）` 的回退指引，演练一次完整回退：
+
+```bash
+# 1. 禁用Scheduler
+export SCHEDULER_ENABLED=false
+
+# 2. 恢复至219D1目录结构（保留数据）
+# 依据文档指引，恢复相关配置
+
+# 3. 验证业务连续性
+make run-dev
+scripts/e2e/org-lifecycle-smoke.sh
+
+# 4. 记录结果
+# logs/219E/rollback-test-*.log
+```
+
+**输出**：回退步骤文档、验证日志、风险评估
+
+**预期完成**：1-2天
+
+---
 
 ## 参考资料
-- **Docker权限配置：** 本文档第1步"恢复Docker访问"中的诊断与配置方案
-- **阻塞说明：** `logs/219E/BLOCKERS-2025-11-06.md`
-- **服务日志：** `logs/219D2/`, `logs/219D3/`, `logs/219D4/`
-- **监控配置：** `docs/reference/monitoring/`
-- **219E计划：** `docs/development-plans/219E-e2e-validation.md`
-- **Docker Compose配置：** `docker-compose.dev.yml`（本地开发服务定义）
-- **Makefile相关目标：** `make run-dev`、`make stop-dev`
 
-## Docker权限问题根本原因（背景知识）
-- `/var/run/docker.sock` 是Docker daemon的Unix socket，权限通常为 `660`（仅 `root:docker` 可访问）
-- 当前环境（WSL2：Linux 5.15.167.4-microsoft-standard）中，用户未在 `docker` 组内，导致无法访问socket
-- 本地 `sudo` 因 `no new privileges` 限制不可用，需通过用户组授权或修改daemon配置解决
-- CI/CD环境中，Docker daemon 通常以特定用户运行，需确保构建用户具备相应权限或在 docker 组内
+### 核心文档
+- **Docker权限诊断与修复**：`docs/troubleshooting/docker-socket-permission-fix.md`
+- **阻塞说明**：`logs/219E/BLOCKERS-2025-11-06.md`
+- **219E验收标准**：`docs/development-plans/219E-e2e-validation.md`
+
+### 支撑资料
+- **服务日志**：`logs/219D2/`、`logs/219D3/`、`logs/219D4/`
+- **监控配置**：`docs/reference/monitoring/`
+- **开发者速查**：`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`
+- **Docker Compose配置**：`docker-compose.dev.yml`
+- **Makefile目标**：`make run-dev`、`make stop-dev`
+
+---
+
+## 时间预估与关键路径
+
+```
+第一阶段（并行）
+├─ 代码审查 & 单元测试      [3-5天]
+├─ 文档完善                [3-5天]
+└─ Playwright脚本预审      [2-3天]
+   → 预期完成：1-2周
+
+第二阶段（阻塞解除）
+└─ Docker权限诊断与修复     [5-30分钟 或 CI/CD绕过]
+   → 预期完成：同日或使用CI/CD
+
+第三阶段（顺序执行）
+├─ 冒烟脚本                [1-2天]
+├─ 性能基准                [1天]
+├─ Playwright验证          [2-3天]
+└─ 问题修复与迭代          [按需]
+   → 预期完成：1-2周
+
+第四阶段（验证后）
+└─ 回退演练                [1-2天]
+   → 预期完成：1-2天
+
+总耗时：3-4周（Docker恢复后加速）
+关键路径：Docker权限 → E2E验证 → 回退测试
+```
+
+---
+
+## 即时行动项
+
+**今天可做**：
+- [ ] 运行Docker诊断脚本，确认问题类型
+- [ ] 开始第一阶段：代码审查、文档编写
+
+**本周必做**：
+- [ ] 执行Docker权限修复（方案A/B/C选一）
+- [ ] 完成第一阶段所有工作
+
+**恢复Docker后**：
+- [ ] 执行第二、三、四阶段（按时间预估推进）
+
+---
+
+> **更新说明**：本文档于2025-11-07简化重构，重点突出分阶段推进路径和Docker权限问题的具体解决方案。如有遗漏或需更新，请参考单一事实来源文档：219E验收标准、阻塞清单、troubleshooting指南。
