@@ -53,6 +53,7 @@ type ValidationChain struct {
 	sorted      bool
 	baseContext map[string]interface{}
 	logger      pkglogger.Logger
+	operation   string
 }
 
 // ChainOption 配置链式执行器。
@@ -69,6 +70,17 @@ func WithBaseContext(ctx map[string]interface{}) ChainOption {
 			copied[k] = v
 		}
 		chain.baseContext = copied
+	}
+}
+
+// WithOperationLabel 为验证链记录 operation 标签，便于指标聚合。
+func WithOperationLabel(operation string) ChainOption {
+	return func(chain *ValidationChain) {
+		operation = strings.TrimSpace(operation)
+		if operation == "" {
+			return
+		}
+		chain.operation = operation
 	}
 }
 
@@ -126,6 +138,7 @@ func (c *ValidationChain) Register(rule *Rule) error {
 
 // Execute 依次执行规则并聚合结果，支持短路控制。
 func (c *ValidationChain) Execute(ctx context.Context, subject interface{}) *ValidationResult {
+	overallStart := time.Now()
 	result := NewValidationResult()
 	for k, v := range c.baseContext {
 		result.Context[k] = v
@@ -156,6 +169,8 @@ func (c *ValidationChain) Execute(ctx context.Context, subject interface{}) *Val
 
 		executedRuleIDs = append(executedRuleIDs, rule.ID)
 
+		ruleOutcomeLabel := ruleOutcomeLabelSuccess
+
 		if err != nil {
 			c.logger.WithFields(pkglogger.Fields{
 				"ruleId": rule.ID,
@@ -173,6 +188,9 @@ func (c *ValidationChain) Execute(ctx context.Context, subject interface{}) *Val
 				},
 			})
 
+			ruleOutcomeLabel = ruleOutcomeLabelError
+			observeRuleMetrics(rule.ID, ruleOutcomeLabel, duration)
+
 			if rule.ShortCircuit && !rule.TelemetryOnly {
 				break
 			}
@@ -180,10 +198,19 @@ func (c *ValidationChain) Execute(ctx context.Context, subject interface{}) *Val
 		}
 
 		if outcome == nil {
+			observeRuleMetrics(rule.ID, ruleOutcomeLabel, duration)
 			continue
 		}
 
 		mergeRuleOutcome(result, rule, outcome)
+
+		if len(outcome.Errors) > 0 {
+			ruleOutcomeLabel = ruleOutcomeLabelFailed
+		} else if len(outcome.Warnings) > 0 {
+			ruleOutcomeLabel = ruleOutcomeLabelWarning
+		}
+
+		observeRuleMetrics(rule.ID, ruleOutcomeLabel, duration)
 
 		if rule.ShortCircuit && len(outcome.Errors) > 0 && !rule.TelemetryOnly {
 			break
@@ -197,6 +224,20 @@ func (c *ValidationChain) Execute(ctx context.Context, subject interface{}) *Val
 	}
 
 	result.Valid = len(result.Errors) == 0
+
+	operation, _ := result.Context["operation"].(string)
+	if operation == "" {
+		operation = c.operation
+	}
+
+	outcomeLabel := chainOutcomeLabelSuccess
+	if cancelled, ok := result.Context["cancelled"].(bool); ok && cancelled {
+		outcomeLabel = chainOutcomeLabelCancelled
+	} else if !result.Valid {
+		outcomeLabel = chainOutcomeLabelFailed
+	}
+	observeChainMetrics(operation, outcomeLabel, time.Since(overallStart))
+
 	return result
 }
 

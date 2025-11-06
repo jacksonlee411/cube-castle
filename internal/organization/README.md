@@ -103,6 +103,19 @@
 - 严重级别通过 `validator.SeverityToHTTPStatus` 转换为 HTTP 状态码；当规则上下文提供 `ruleId` 时会写入响应 `details` 及审计 payload。
 - 审计链路调用 `audit.LogError`，并将 `ruleId`、`severity`、`payload` 注入 `business_context`，满足 219C2A 对验证失败的追踪与唯一事实来源要求。
 
+### 验证链可观测性（219C2D）
+- 指标注册位置：`internal/organization/validator/metrics.go`，在第一次执行验证链时通过 `prometheus.MustRegister` 完成注册。
+- 采集项：
+  - `validator_rule_duration_seconds{rule_id}` — 单条规则执行耗时直方图。
+  - `validator_rule_outcome_total{rule_id, outcome}` — 规则执行结果计数（`success|warning|failed|error`）。
+  - `validator_chain_duration_seconds{operation}` — 链路整体耗时直方图。
+  - `validator_chain_outcome_total{operation, outcome}` — 链路执行结果计数（`success|failed|cancelled`）。
+- `WithOperationLabel`/`WithBaseContext` 负责注入 `operation` 标签；Position/Assignment/Job Catalog/Organization 各入口均已设置，查询示例：
+  ```bash
+  curl -s http://localhost:9090/metrics | rg validator_chain_outcome_total
+  ```
+  PromQL 示例：`sum by (rule_id, outcome) (rate(validator_rule_outcome_total[5m]))`。
+
 ### 组织域规则实现
 - `internal/organization/validator/organization_rules.go` 封装 ORG-DEPTH / ORG-CIRC / ORG-STATUS / ORG-TEMPORAL 规则，链路按照优先级（10/20/30/25）执行，支持短路与上下文聚合。
 - ORG-TEMPORAL 规则在父组织指定时会检查时态有效性，父组织在指定生效日缺失返回 `INVALID_PARENT`，存在但非激活态返回 `ORG_TEMPORAL_PARENT_INACTIVE`。

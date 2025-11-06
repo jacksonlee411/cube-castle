@@ -172,7 +172,7 @@
   4. 召开 Day 24 日终验收会议，记录余量与滚动计划（若有）。
   5. 归档材料：`docs/archive/development-plans/219C2-YYYYMMDD.md`、`logs/219C2/validation.log`、端到端报告。
 - 交付物：Job Catalog 规则代码与单测、端到端测试脚本与报告、文档更新、归档文件、验收纪要。
-- 验收：端到端 9/9 通过；README 与 Implementation Inventory 提交合并；归档文件入库并在 219C 主计划登记；验收纪要签署。
+- ✅ 验收完成（2025-11-06 15:10）：端到端 9/9 通过，README / Implementation Inventory / Prometheus 指标说明更新；归档文件 `docs/archive/development-plans/219C2-20251108.md` 入库，验收纪要 `logs/219C2/acceptance-Day24.md` 已签署。
 - 风险：端到端测试依赖 Docker 服务，若阻塞>4 小时需动用缓冲并通知 219C 负责人。
 
 ### 3.2 规则实现矩阵（唯一事实来源）

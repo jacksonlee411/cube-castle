@@ -210,7 +210,11 @@ func (s *jobCatalogValidationService) newJobCatalogChain(operation, code string,
 	if parent != nil {
 		ctx["parentRecordId"] = parent.String()
 	}
-	return NewValidationChain(s.logger, WithBaseContext(ctx))
+	return NewValidationChain(
+		s.logger,
+		WithBaseContext(ctx),
+		WithOperationLabel(operation),
+	)
 }
 
 func (s *jobCatalogValidationService) invalidEffectiveDateResult(operation, code, attempted string) *ValidationResult {

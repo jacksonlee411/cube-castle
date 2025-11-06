@@ -246,7 +246,13 @@ func (v *BusinessRuleValidator) ValidateOrganizationUpdate(ctx context.Context, 
 // ValidateTemporalParentAvailability 提供给 handler 的时态父级校验入口
 func (v *BusinessRuleValidator) ValidateTemporalParentAvailability(ctx context.Context, tenantID uuid.UUID, parentCode string, effectiveDate time.Time) *ValidationResult {
 	parent := strings.TrimSpace(parentCode)
-	chain := NewValidationChain(v.logger)
+	chain := NewValidationChain(
+		v.logger,
+		WithOperationLabel("TemporalParentAvailability"),
+		WithBaseContext(map[string]interface{}{
+			"operation": "TemporalParentAvailability",
+		}),
+	)
 	chain.Register(&Rule{
 		ID:           "ORG-TEMPORAL",
 		Priority:     10,

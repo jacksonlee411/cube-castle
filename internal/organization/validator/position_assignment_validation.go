@@ -76,9 +76,13 @@ func (s *positionAssignmentValidationService) ValidateCreatePosition(ctx context
 		Request:  req,
 	}
 
-	chain := NewValidationChain(s.logger, WithBaseContext(map[string]interface{}{
-		"operation": "CreatePosition",
-	}))
+	chain := NewValidationChain(
+		s.logger,
+		WithOperationLabel("CreatePosition"),
+		WithBaseContext(map[string]interface{}{
+			"operation": "CreatePosition",
+		}),
+	)
 	s.registerPositionCreateRules(chain)
 
 	result := chain.Execute(ctx, subject)
@@ -98,12 +102,16 @@ func (s *positionAssignmentValidationService) ValidateReplacePosition(ctx contex
 		Request:  req,
 	}
 
-	chain := NewValidationChain(s.logger, WithBaseContext(map[string]interface{}{
-		"operation":     "ReplacePosition",
-		"positionCode":  subject.Code,
-		"tenantId":      tenantID.String(),
-		"targetVersion": "CURRENT",
-	}))
+	chain := NewValidationChain(
+		s.logger,
+		WithOperationLabel("ReplacePosition"),
+		WithBaseContext(map[string]interface{}{
+			"operation":     "ReplacePosition",
+			"positionCode":  subject.Code,
+			"tenantId":      tenantID.String(),
+			"targetVersion": "CURRENT",
+		}),
+	)
 	s.registerPositionCreateRules(chain)
 
 	result := chain.Execute(ctx, subject)
@@ -123,11 +131,15 @@ func (s *positionAssignmentValidationService) ValidateCreateVersion(ctx context.
 		Request:  req,
 	}
 
-	chain := NewValidationChain(s.logger, WithBaseContext(map[string]interface{}{
-		"operation":    "CreatePositionVersion",
-		"positionCode": subject.Code,
-		"tenantId":     tenantID.String(),
-	}))
+	chain := NewValidationChain(
+		s.logger,
+		WithOperationLabel("CreatePositionVersion"),
+		WithBaseContext(map[string]interface{}{
+			"operation":    "CreatePositionVersion",
+			"positionCode": subject.Code,
+			"tenantId":     tenantID.String(),
+		}),
+	)
 
 	chain.Register(&Rule{
 		ID:           "POS-ORG",
@@ -167,11 +179,15 @@ func (s *positionAssignmentValidationService) ValidateFillPosition(ctx context.C
 		Request:      req,
 	}
 
-	chain := NewValidationChain(s.logger, WithBaseContext(map[string]interface{}{
-		"operation":    "FillPosition",
-		"positionCode": position.Code,
-		"tenantId":     tenantID.String(),
-	}))
+	chain := NewValidationChain(
+		s.logger,
+		WithOperationLabel("FillPosition"),
+		WithBaseContext(map[string]interface{}{
+			"operation":    "FillPosition",
+			"positionCode": position.Code,
+			"tenantId":     tenantID.String(),
+		}),
+	)
 	s.registerAssignmentCreationRules(chain)
 
 	return chain.Execute(ctx, subject)
@@ -200,14 +216,18 @@ func (s *positionAssignmentValidationService) ValidateTransferPosition(ctx conte
 		Request:  req,
 	}
 
-	chain := NewValidationChain(s.logger, WithBaseContext(map[string]interface{}{
-		"operation":       "TransferPosition",
-		"positionCode":    subject.Code,
-		"targetOrg":       targetOrg,
-		"tenantId":        tenantID.String(),
-		"requestedAt":     req.EffectiveDate,
-		"crossDomainRule": true,
-	}))
+	chain := NewValidationChain(
+		s.logger,
+		WithOperationLabel("TransferPosition"),
+		WithBaseContext(map[string]interface{}{
+			"operation":       "TransferPosition",
+			"positionCode":    subject.Code,
+			"targetOrg":       targetOrg,
+			"tenantId":        tenantID.String(),
+			"requestedAt":     req.EffectiveDate,
+			"crossDomainRule": true,
+		}),
+	)
 	chain.Register(&Rule{
 		ID:           "POS-ORG",
 		Priority:     10,
@@ -249,11 +269,15 @@ func (s *positionAssignmentValidationService) ValidateCreateAssignment(ctx conte
 		Request:      req,
 	}
 
-	chain := NewValidationChain(s.logger, WithBaseContext(map[string]interface{}{
-		"operation":    "CreateAssignment",
-		"positionCode": position.Code,
-		"tenantId":     tenantID.String(),
-	}))
+	chain := NewValidationChain(
+		s.logger,
+		WithOperationLabel("CreateAssignment"),
+		WithBaseContext(map[string]interface{}{
+			"operation":    "CreateAssignment",
+			"positionCode": position.Code,
+			"tenantId":     tenantID.String(),
+		}),
+	)
 	s.registerAssignmentCreationRules(chain)
 
 	return chain.Execute(ctx, subject)
@@ -301,16 +325,20 @@ func (s *positionAssignmentValidationService) ValidateUpdateAssignment(ctx conte
 		AssignmentStatus: strings.ToUpper(strings.TrimSpace(assignment.AssignmentStatus)),
 	}
 
-	chain := NewValidationChain(s.logger, WithBaseContext(map[string]interface{}{
-		"operation":      "UpdateAssignment",
-		"positionCode":   position.Code,
-		"assignmentId":   assignmentID.String(),
-		"tenantId":       tenantID.String(),
-		"currentStatus":  assignment.AssignmentStatus,
-		"requestedFTE":   requestedFTE,
-		"existingFTE":    assignment.FTE,
-		"existingStatus": assignment.AssignmentStatus,
-	}))
+	chain := NewValidationChain(
+		s.logger,
+		WithOperationLabel("UpdateAssignment"),
+		WithBaseContext(map[string]interface{}{
+			"operation":      "UpdateAssignment",
+			"positionCode":   position.Code,
+			"assignmentId":   assignmentID.String(),
+			"tenantId":       tenantID.String(),
+			"currentStatus":  assignment.AssignmentStatus,
+			"requestedFTE":   requestedFTE,
+			"existingFTE":    assignment.FTE,
+			"existingStatus": assignment.AssignmentStatus,
+		}),
+	)
 	s.registerAssignmentUpdateRules(chain)
 
 	return chain.Execute(ctx, subject)
@@ -337,12 +365,16 @@ func (s *positionAssignmentValidationService) ValidateCloseAssignment(ctx contex
 		Request:    req,
 	}
 
-	chain := NewValidationChain(s.logger, WithBaseContext(map[string]interface{}{
-		"operation":    "CloseAssignment",
-		"positionCode": strings.TrimSpace(positionCode),
-		"assignmentId": assignmentID.String(),
-		"tenantId":     tenantID.String(),
-	}))
+	chain := NewValidationChain(
+		s.logger,
+		WithOperationLabel("CloseAssignment"),
+		WithBaseContext(map[string]interface{}{
+			"operation":    "CloseAssignment",
+			"positionCode": strings.TrimSpace(positionCode),
+			"assignmentId": assignmentID.String(),
+			"tenantId":     tenantID.String(),
+		}),
+	)
 
 	chain.Register(&Rule{
 		ID:           "ASSIGN-STATE",

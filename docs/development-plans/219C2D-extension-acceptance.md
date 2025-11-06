@@ -82,13 +82,13 @@
 
 ## 6. 验收标准
 
-- [ ] `go test -cover ./internal/organization/validator` ≥ 85%，含 Job Catalog 规则；报告保存。
-- [ ] 9 个端到端测试全部通过，报告归档。
-- [ ] REST/GraphQL 自测完成并在 `logs/219C2/validation.log` 附加审计日志校验证据。
-- [ ] README 与 Implementation Inventory 更新并合并（含 Prometheus 指标说明）。
-- [ ] 验证链 Prometheus 指标注册完成，可在 Prometheus 中查询。
-- [ ] 219C 主计划验收勾选完成，归档文件生成。
-- [ ] Day 24 验收纪要提交并记录下一步计划（如有）。
+- [x] `go test -cover ./internal/organization/validator` ≥ 85%，含 Job Catalog 规则；报告保存。（`logs/219C2/test-Day24.log` 2025-11-06 14:50）
+- [x] 9 个端到端测试全部通过，报告归档。（`tests/e2e/organization-validator/report-Day24.json` 2025-11-06 15:03）
+- [x] REST/GraphQL 自测完成并在 `logs/219C2/validation.log` 附加审计日志校验证据。（2025-11-06 14:51 Checklist、15:03 执行日志）
+- [x] README 与 Implementation Inventory 更新并合并（含 Prometheus 指标说明）。（`internal/organization/README.md#验证链可观测性（219C2D）`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`）
+- [x] 验证链 Prometheus 指标注册完成，可在 Prometheus 中查询。（指标定义 `internal/organization/validator/metrics.go`，验证示例见 README）
+- [x] 219C 主计划验收勾选完成，归档文件生成。（`docs/development-plans/219C2-validator-framework.md`、`docs/archive/development-plans/219C2-20251108.md`）
+- [x] Day 24 验收纪要提交并记录下一步计划（如有）。（`logs/219C2/acceptance-Day24.md`）
 
 ---
 

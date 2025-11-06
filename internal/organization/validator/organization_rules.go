@@ -28,7 +28,11 @@ type organizationUpdateSubject struct {
 }
 
 func (v *BusinessRuleValidator) buildOrganizationCreateChain(req *types.CreateOrganizationRequest) *ValidationChain {
-	chain := NewValidationChain(v.logger)
+	chain := NewValidationChain(
+		v.logger,
+		WithOperationLabel("CreateOrganization"),
+		WithBaseContext(map[string]interface{}{"operation": "CreateOrganization"}),
+	)
 
 	parentCode := ""
 	if req.ParentCode != nil {
@@ -60,7 +64,11 @@ func (v *BusinessRuleValidator) buildOrganizationCreateChain(req *types.CreateOr
 }
 
 func (v *BusinessRuleValidator) buildOrganizationUpdateChain(existing *types.Organization, req *types.UpdateOrganizationRequest) *ValidationChain {
-	chain := NewValidationChain(v.logger)
+	chain := NewValidationChain(
+		v.logger,
+		WithOperationLabel("UpdateOrganization"),
+		WithBaseContext(map[string]interface{}{"operation": "UpdateOrganization"}),
+	)
 
 	parentCode := ""
 	if req.ParentCode != nil {
