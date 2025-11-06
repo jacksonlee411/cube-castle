@@ -1,4 +1,4 @@
-package service
+package scheduler
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"cube-castle/internal/organization/service"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 )
@@ -18,14 +19,14 @@ type OperationalScheduler struct {
 	db          *sql.DB
 	logger      pkglogger.Logger
 	monitor     *TemporalMonitor
-	positions   *PositionService
+	positions   *service.PositionService
 	scriptsPath string
 	running     bool
 	stopCh      chan struct{}
 }
 
 // NewOperationalScheduler 创建运维任务调度器
-func NewOperationalScheduler(db *sql.DB, baseLogger pkglogger.Logger, monitor *TemporalMonitor, positions *PositionService) *OperationalScheduler {
+func NewOperationalScheduler(db *sql.DB, baseLogger pkglogger.Logger, monitor *TemporalMonitor, positions *service.PositionService) *OperationalScheduler {
 	// 获取脚本目录路径
 	scriptsPath := filepath.Join(os.Getenv("PWD"), "scripts")
 	if _, err := os.Stat(scriptsPath); os.IsNotExist(err) {

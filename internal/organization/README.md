@@ -7,7 +7,8 @@
 - `middleware/`: 组织模块专用中间件（性能、限流、请求/关联 ID）。
 - `repository/`: 命令/查询共享的 PostgreSQL 仓储实现与时间轴管理器。
 - `resolver/`: GraphQL Resolver（查询侧入口）。
-- `service/`: 领域服务、时态服务、Job Catalog/Position/Cascade 等。
+- `service/`: 领域服务、Job Catalog/Position/Cascade 等（面向业务事务）。
+- `scheduler/`: Temporal workflow / monitor / operational scheduler 及 `scheduler.Service` Facade，提供调度与定时任务能力。
 - `validator/`: BusinessRuleValidator 及规则定义。
 - `dto/`: GraphQL 查询/响应 DTO 与共享类型。
 - `utils/`: 处理器/仓储共用的工具函数（响应、验证、metrics、parent code 等）。
@@ -51,6 +52,13 @@
 - GraphQL 新增查询：`assignments`、`assignmentHistory`、`assignmentStats` 均通过 Facade 获取数据，保持与 `docs/api/schema.graphql` 契约一致。
 
 后续 219B~219E 将在本 README 中继续补充审计/验证规则、调度说明、测试脚本等章节。
+
+## Scheduler / Temporal（219D）
+
+- 调度与 Temporal 相关实现集中在 `scheduler/`，由 `scheduler.Service` 聚合 `TemporalService`、`TemporalMonitor`、`OperationalScheduler`、`OrganizationTemporalService`。
+- 命令服务通过 `internal/organization/api.go` 构建该 Facade，并在 `cmd/hrms-server/command/main.go` 中调用 `Services.Scheduler.Start/Stop` 管理后台任务生命周期。
+- 默认任务（position version 激活、timeline 修复等）与监控逻辑定义在 `scheduler/operational_scheduler.go` 与 `scheduler/temporal_monitor.go`，配置与告警策略详见 219D 子计划（待 219D2~219D3 输出后同步）。
+- 回退策略：参考 219D1 附录，按旧路径恢复 `internal/organization/service/{organization_temporal_service.go, temporal.go, temporal_monitor.go, operational_scheduler.go}` 并重新在 `api.go` 注入；更新 `cmd/hrms-server/command/main.go` 调用旧服务的 `Start/Stop`。
 
 ## Validators
 

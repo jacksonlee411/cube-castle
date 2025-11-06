@@ -10,7 +10,7 @@
 
 ## 总体目标
 
-- 在统一目录下完成 Scheduler/Temporal 迁移，保持行为等价与可回退。
+- 在统一目录下完成 Scheduler/Temporal 迁移（落地于 `internal/organization/scheduler/*`），保持行为等价与可回退。
 - 形成覆盖配置、监控、测试、文档的闭环输入，为 219E E2E 验收提供基础。
 - 保持唯一事实来源：代码归属 `internal/organization/scheduler/`，配置归属 config 体系，监控/文档进入既有权威文件。
 

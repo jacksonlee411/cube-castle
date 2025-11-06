@@ -10,7 +10,7 @@
 
 ## 1. 目标
 
-1. 盘点并迁移 `organization_temporal_service.go`、`operational_scheduler.go` 及相关 workflow/activity/cron 逻辑到 `internal/organization/scheduler/`。
+1. 盘点并迁移 `internal/organization/service/organization_temporal_service.go`、`internal/organization/service/operational_scheduler.go` 等 workflow/activity/cron 逻辑到 `internal/organization/scheduler/`。
 2. 建立统一的 Scheduler Facade/Service，在 `cmd/hrms-server/command/main.go` 等入口中完成依赖注入，确保构建通过。
 3. 保留回退路径：记录原目录结构与入口，必要时可一键回滚。
 
@@ -31,7 +31,7 @@
 ## 3. 详细任务
 
 1. **现状盘点**
-   - 使用 `rg "Temporal"`、`rg "scheduler"` 于 `cmd/hrms-server/command/internal/` 定位全部相关文件及依赖。
+   - 使用 `rg "Temporal"`、`rg "scheduler"` 于 `internal/organization/service/`、`internal/organization/handler/` 等目录定位全部相关文件及依赖。
    - 列出 workflow 名称/队列/调用方，形成迁移清单并附路径。
 
 2. **目录迁移与重构**
@@ -39,8 +39,8 @@
    - 调整包命名、可见性（私有/导出）以符合 internal 约束，新增 Facade（如 `scheduler.Service`）。
 
 3. **依赖注入更新**
-   - 在 `cmd/hrms-server/command/main.go`、`internal/app/bootstrap.go` 等初始化流程中注入新的 Service。
-   - 替换旧引用，确保命令处理器、后台任务均使用统一入口。
+   - 在 `cmd/hrms-server/command/main.go` 与 `internal/organization/api.go`（`NewCommandModule` 构造）中注入新的 Service。
+   - 替换旧引用（例如 handler/service 层直接依赖旧包路径的部分），确保命令处理器、后台任务均使用统一入口。
 
 4. **冒烟验证与回退策略**
    - 本地 `make build`、`make run-dev`，确认工作流注册及队列监听成功。
@@ -71,3 +71,25 @@
 - 更新后的 `internal/organization/scheduler/` 目录及 Facade。
 - 迁移清单与回退说明（附在 PR 描述或 `docs/development-plans/219D1-scheduler-migration.md` 附录）。
 - 构建/冒烟验证记录。
+
+---
+
+## 7. 验收记录（2025-02-19）
+
+- ✅ 代码迁移完成：旧目录已移除调度/Temporal 文件，新增聚合门面：
+
+  | 旧路径 | 新路径 | 说明 |
+  | --- | --- | --- |
+  | `internal/organization/service/organization_temporal_service.go` | `internal/organization/scheduler/organization_temporal_service.go` | 事务化时态服务搬迁至 scheduler 包，维持 API 不变 |
+  | `internal/organization/service/temporal.go` | `internal/organization/scheduler/temporal_service.go` | Temporal version 操作封装迁移并重新导出 |
+  | `internal/organization/service/temporal_monitor.go` | `internal/organization/scheduler/temporal_monitor.go` | 监控逻辑迁移，供 Facade 统一管理 |
+  | `internal/organization/service/operational_scheduler.go` | `internal/organization/scheduler/operational_scheduler.go` | 运维调度器迁移，依赖 PositionService 适配 |
+  | *(新增)* | `internal/organization/scheduler/service.go` | `scheduler.Service` 聚合 Temporal/Monitor/Scheduler/OrgTemporal 能力 |
+  | *(新增)* | `internal/organization/scheduler/logger_helper.go` | Scheduler 包专用 logger 封装 |
+
+- ✅ 依赖注入更新：`internal/organization/api.go` 使用 `scheduler.NewService` 构造门面，`cmd/hrms-server/command/main.go` 改为调用 `Services.Scheduler.Start/Stop`。
+- ✅ 构建 / 测试：
+  - `go build ./cmd/hrms-server/...`
+  - `go test ./internal/organization/...`
+- ✅ 文档同步：`internal/organization/README.md` 新增 Scheduler 概览与回退指引。
+- ✅ 回退方案：若需恢复旧布局，执行 `git checkout <pre-219D1-tag> internal/organization/service/{organization_temporal_service.go,temporal.go,temporal_monitor.go,operational_scheduler.go} internal/organization/api.go cmd/hrms-server/command/main.go`，并删除 `internal/organization/scheduler/` 新增文件；详见 README Scheduler 小节。

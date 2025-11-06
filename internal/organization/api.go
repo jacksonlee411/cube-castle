@@ -14,6 +14,7 @@ import (
 	middlewarepkg "cube-castle/internal/organization/middleware"
 	repositorypkg "cube-castle/internal/organization/repository"
 	"cube-castle/internal/organization/resolver"
+	schedulerpkg "cube-castle/internal/organization/scheduler"
 	servicepkg "cube-castle/internal/organization/service"
 	utilspkg "cube-castle/internal/organization/utils"
 	validatorpkg "cube-castle/internal/organization/validator"
@@ -65,12 +66,10 @@ type CommandRepositories struct {
 }
 
 type CommandServices struct {
-	Cascade              *servicepkg.CascadeUpdateService
-	Temporal             *servicepkg.TemporalService
-	TemporalMonitor      *servicepkg.TemporalMonitor
-	OperationalScheduler *servicepkg.OperationalScheduler
-	Position             *servicepkg.PositionService
-	JobCatalog           *servicepkg.JobCatalogService
+	Cascade    *servicepkg.CascadeUpdateService
+	Scheduler  *schedulerpkg.Service
+	Position   *servicepkg.PositionService
+	JobCatalog *servicepkg.JobCatalogService
 }
 
 type CommandHandlers struct {
@@ -115,8 +114,6 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 
 	auditLogger := auditpkg.NewAuditLogger(deps.DB, logger)
 	cascadeService := servicepkg.NewCascadeUpdateService(hierarchyRepo, cascadeDepth, logger)
-	temporalService := servicepkg.NewTemporalService(deps.DB, logger, orgRepo)
-	temporalMonitor := servicepkg.NewTemporalMonitor(deps.DB, logger)
 	positionValidator, assignmentValidator := validatorpkg.NewPositionAssignmentValidationService(
 		orgRepo,
 		jobCatalogRepo,
@@ -127,7 +124,12 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger)
 	jobCatalogValidator := validatorpkg.NewJobCatalogValidationService(jobCatalogRepo, logger)
 	jobCatalogService := servicepkg.NewJobCatalogService(jobCatalogRepo, jobCatalogValidator, auditLogger, logger)
-	operationalScheduler := servicepkg.NewOperationalScheduler(deps.DB, logger, temporalMonitor, positionService)
+	schedulerService := schedulerpkg.NewService(schedulerpkg.Dependencies{
+		DB:                     deps.DB,
+		Logger:                 logger,
+		OrganizationRepository: orgRepo,
+		PositionService:        positionService,
+	})
 
 	validator := validatorpkg.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)
 
@@ -143,12 +145,10 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 			TemporalTimeline:   timelineManager,
 		},
 		Services: CommandServices{
-			Cascade:              cascadeService,
-			Temporal:             temporalService,
-			TemporalMonitor:      temporalMonitor,
-			OperationalScheduler: operationalScheduler,
-			Position:             positionService,
-			JobCatalog:           jobCatalogService,
+			Cascade:    cascadeService,
+			Scheduler:  schedulerService,
+			Position:   positionService,
+			JobCatalog: jobCatalogService,
 		},
 		Validator:   validator,
 		AuditLogger: auditLogger,
@@ -162,9 +162,10 @@ func (m *CommandModule) NewHandlers(deps CommandHandlerDeps) CommandHandlers {
 	if logger == nil {
 		logger = m.Logger
 	}
+	schedulerService := m.Services.Scheduler
 	orgHandler := handlerpkg.NewOrganizationHandler(
 		m.Repositories.Organization,
-		m.Services.Temporal,
+		schedulerService.Temporal(),
 		m.AuditLogger,
 		logger,
 		m.Repositories.TemporalTimeline,
@@ -173,7 +174,7 @@ func (m *CommandModule) NewHandlers(deps CommandHandlerDeps) CommandHandlers {
 	)
 	positionHandler := handlerpkg.NewPositionHandler(m.Services.Position, m.AuditLogger, logger)
 	jobCatalogHandler := handlerpkg.NewJobCatalogHandler(m.Services.JobCatalog, logger)
-	operationalHandler := handlerpkg.NewOperationalHandler(m.Services.TemporalMonitor, m.Services.OperationalScheduler, deps.RateLimitMiddleware, logger)
+	operationalHandler := handlerpkg.NewOperationalHandler(schedulerService.Monitor(), schedulerService.Operational(), deps.RateLimitMiddleware, logger)
 	devToolsHandler := handlerpkg.NewDevToolsHandler(deps.JWTMiddleware, logger, deps.DevMode, m.DB)
 
 	return CommandHandlers{

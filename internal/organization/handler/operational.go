@@ -8,21 +8,21 @@ import (
 	"time"
 
 	"cube-castle/internal/organization/middleware"
-	"cube-castle/internal/organization/service"
+	scheduler "cube-castle/internal/organization/scheduler"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 )
 
 // OperationalHandler 运维管理处理器
 type OperationalHandler struct {
-	monitor   *service.TemporalMonitor
-	scheduler *service.OperationalScheduler
+	monitor   *scheduler.TemporalMonitor
+	scheduler *scheduler.OperationalScheduler
 	logger    pkglogger.Logger
 	rateLimit *middleware.RateLimitMiddleware
 }
 
 // NewOperationalHandler 创建运维管理处理器
-func NewOperationalHandler(monitor *service.TemporalMonitor, scheduler *service.OperationalScheduler, rateLimit *middleware.RateLimitMiddleware, baseLogger pkglogger.Logger) *OperationalHandler {
+func NewOperationalHandler(monitor *scheduler.TemporalMonitor, scheduler *scheduler.OperationalScheduler, rateLimit *middleware.RateLimitMiddleware, baseLogger pkglogger.Logger) *OperationalHandler {
 	return &OperationalHandler{
 		monitor:   monitor,
 		scheduler: scheduler,

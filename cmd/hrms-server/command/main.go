@@ -322,7 +322,7 @@ func main() {
 		commandLogger.Info("✅ Outbox dispatcher 已启动")
 	}
 	if !authOnlyMode {
-		orgModule.Services.OperationalScheduler.Start(ctx)
+		orgModule.Services.Scheduler.Start(ctx)
 		commandLogger.Info("✅ 运维任务调度器已启动")
 	}
 
@@ -349,7 +349,7 @@ func main() {
 		commandLogger.Info("✅ 级联更新服务已停止")
 
 		// 停止运维调度器
-		orgModule.Services.OperationalScheduler.Stop()
+		orgModule.Services.Scheduler.Stop()
 		commandLogger.Info("✅ 运维任务调度器已停止")
 
 		if dispatcher != nil {

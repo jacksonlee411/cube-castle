@@ -5,14 +5,14 @@ import (
 
 	"cube-castle/internal/organization/audit"
 	"cube-castle/internal/organization/repository"
-	"cube-castle/internal/organization/service"
+	scheduler "cube-castle/internal/organization/scheduler"
 	"cube-castle/internal/organization/validator"
 	pkglogger "cube-castle/pkg/logger"
 )
 
 type OrganizationHandler struct {
 	repo            *repository.OrganizationRepository
-	temporalService *service.TemporalService
+	temporalService *scheduler.TemporalService
 	auditLogger     *audit.AuditLogger
 	logger          pkglogger.Logger
 	timelineManager *repository.TemporalTimelineManager
@@ -20,7 +20,7 @@ type OrganizationHandler struct {
 	validator       *validator.BusinessRuleValidator
 }
 
-func NewOrganizationHandler(repo *repository.OrganizationRepository, temporalService *service.TemporalService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, timelineManager *repository.TemporalTimelineManager, hierarchyRepo *repository.HierarchyRepository, validator *validator.BusinessRuleValidator) *OrganizationHandler {
+func NewOrganizationHandler(repo *repository.OrganizationRepository, temporalService *scheduler.TemporalService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, timelineManager *repository.TemporalTimelineManager, hierarchyRepo *repository.HierarchyRepository, validator *validator.BusinessRuleValidator) *OrganizationHandler {
 	return &OrganizationHandler{
 		repo:            repo,
 		temporalService: temporalService,
