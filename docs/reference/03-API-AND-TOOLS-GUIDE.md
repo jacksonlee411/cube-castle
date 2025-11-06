@@ -58,8 +58,24 @@ eval $(make jwt-dev-export)     # 导出令牌到环境变量
 > - 命令服务默认输出 JSON 行（结构化 logger），配合 `jq` 或 Loki/ELK 搜索 `requestId`、`action`、`tenantId` 可快速定位链路。
 > - GraphQL 权限/仓储日志在 `component=graphqlResolver` / `component=queryRepository` 下展示，定位字段 `query`、`role`、`resource`。
 > - Slow request 日志等级为 `WARN`，字段 `suggestions` 给出优化方向；性能告警由 `middleware=performanceAlert` 输送。
-> - Scheduler/Temporal 指标、Dashboard 与告警配置在 `docs/reference/monitoring/` 目录维护（219D3 计划产出），Docker Compose 新增服务端口：Prometheus `9091`、Grafana `3001`、Alertmanager `9093`。启动命令将在 219D3 验收后追加至本节。
+> - Scheduler/Temporal 指标、Dashboard 与告警配置在 `docs/reference/monitoring/` 目录维护，Docker Compose 提供 `monitoring-prometheus`（9091）、`monitoring-grafana`（3001）、`monitoring-alertmanager`（9093）。
 > ⚠️ **禁止使用 HS256**：命令/查询/前端已经移除 HS256 兜底，若缺少 RS256 私钥或 JWKS 配置，服务将直接失败启动。请务必保证 `.well-known/jwks.json` 可访问，否则前端与测试用例会提示“未启用 RS256”。
+
+### Scheduler 监控栈（219D3）
+- **配置位置**：`docs/reference/monitoring/`（Prometheus/Grafana/Alertmanager 子目录），配套验证日志 `logs/219D3/VALIDATION-2025-11-06.md`。
+- **启动命令**：
+  ```bash
+  make docker-up        # 包含 monitoring-* 服务
+  open http://localhost:9091   # Prometheus
+  open http://localhost:3001   # Grafana (默认 admin/admin)
+  open http://localhost:9093   # Alertmanager
+  ```
+- **常用 PromQL**（详见 `docs/reference/monitoring/promQL-snippets.md`）：
+  - `rate(scheduler_task_executions_total[5m])` — 任务吞吐
+  - `scheduler_task_execution_duration_seconds` — 耗时分布
+  - `rate(scheduler_monitor_alerts_total[10m])` — 告警速率
+- **Dashboard 导入**：Grafana UI → Import → 选择 `docs/reference/monitoring/grafana/` 中的 JSON；保持 UID 前缀 `scheduler-` 便于识别。
+- **告警演练**：运行 `./scripts/dev/scheduler-alert-smoke.sh`（依赖 `GOCACHE=$(mktemp -d)`）模拟重复当前记录触发 CRITICAL 告警；执行结果参见 `logs/219D4/FAULT-INJECTION-2025-11-06.md`。
 
 ### 服务端点
 - **REST命令API**: http://localhost:9090/api/v1 （Docker 容器 `rest-service` 暴露）

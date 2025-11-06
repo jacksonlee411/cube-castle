@@ -47,9 +47,9 @@
 
 ## 4. 验收标准
 
-- [ ] `internal/organization/README.md`、`docs/reference/03-API-AND-TOOLS-GUIDE.md` 已更新并通过审阅。
-- [ ] 219D1-219D4 关键成果在文档中引用清晰，无重复事实来源。
-- [ ] 219D 复盘要点、风险、回退方案记录完成，可供 219E 使用。
+- [x] `internal/organization/README.md`、`docs/reference/03-API-AND-TOOLS-GUIDE.md` 已更新并通过审阅。
+- [x] 219D1-219D4 关键成果在文档中引用清晰（`docs/reference/monitoring/`、`logs/219D2/`、`logs/219D3/`、`logs/219D4/`），无重复事实来源。
+- [x] 219D 复盘要点、风险、回退方案记录完成，可供 219E 使用（见下方验收记录）。
 
 ---
 
@@ -68,3 +68,14 @@
 - 更新后的 README、参考文档。
 - 219D 复盘与交付清单。
 - 归档准备材料（子任务链接、验收记录）。
+
+---
+
+## 7. 验收记录（2025-11-06）
+
+- **文档更新**：  
+  - `internal/organization/README.md#Scheduler / Temporal（219D）` — 汇总配置、监控、测试、告警脚本与日志引用。  
+  - `docs/reference/03-API-AND-TOOLS-GUIDE.md#Scheduler 监控栈（219D3）` — 补充启动、PromQL、Dashboard 导入与告警演练步骤。  
+  - `docs/reference/monitoring/README.md` — 指向 sandbox 验证日志 `logs/219D3/VALIDATION-2025-11-06.md`。
+- **日志与脚本引用**：`logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md`、`logs/219D3/VALIDATION-2025-11-06.md`、`logs/219D4/ACCEPTANCE-RECORD-2025-11-06.md`、`logs/219D4/FAULT-INJECTION-2025-11-06.md` 均在文档中注明，告警演练脚本 `scripts/dev/scheduler-alert-smoke.sh` 成为唯一事实来源。
+- **回退提示**：README 中保留 219D1 回退路径；Plan 219 主文档新增 219D1~219D4 完成状态，为 219E（E2E）提供输入。

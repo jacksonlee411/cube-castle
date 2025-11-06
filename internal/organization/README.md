@@ -60,7 +60,8 @@
 - **常用覆盖项**：`SCHEDULER_ENABLED`（默认 `true`）、`SCHEDULER_TEMPORAL_ENDPOINT`、`SCHEDULER_NAMESPACE`、`SCHEDULER_TASK_QUEUE`、`SCHEDULER_WORKER_CONCURRENCY`、`SCHEDULER_WORKER_POLLER_COUNT`、`SCHEDULER_RETRY_*`、`SCHEDULER_MONITOR_*`、`SCHEDULER_TASK_<NAME>_*`、`SCHEDULER_SCRIPTS_ROOT`。执行 `make run-dev SCHEDULER_ENABLED=false` 可进行关闭演练（日志：`logs/219D2/startup-disabled.log`）。
 - **校验与回滚**：`config.ValidateSchedulerConfig` 执行结构化校验，失败时阻断启动并输出至 `logs/219D2/config-validation.log`；恢复步骤详见 `logs/219D2/failure-test.log` 与 Plan 06 日志。在极端情况下可按 219D1 附录回退至旧 service 目录，但需同时复原 `api.go` 和 `cmd/hrms-server/command/main.go` 的依赖注入。
 - **运维与 API**：`OperationalScheduler` 根据配置动态构建任务，`ListTasks`/`RunTask` 与 REST `/api/v1/operational/tasks`、`/api/v1/operational/tasks/{taskName}/trigger`、`/api/v1/operational/cutover`、`/consistency-check` 对齐；操作流程与截图记录在 `logs/219D2/TEST-SUMMARY.txt`。
-- **监控预备（219D3）**：监控/告警配置将落在 `docs/reference/monitoring/`（Prometheus/Grafana/Alertmanager 子目录）并由 219D3 输出 Dashboard/规则；本 README 将引用该目录，平台团队已对齐目录结构与 docker-compose 扩展需求（Prometheus 9091、Grafana 3001、Alertmanager 9093）。
+- **监控与告警（219D3）**：Prometheus/Grafana/Alertmanager 配置集中在 `docs/reference/monitoring/`（`prometheus/`、`grafana/`、`alertmanager/` 子目录），对应端口 `9091/3001/9093` 已写入 `docker-compose*.yml` 与 `.env.example`；验证记录参考 `logs/219D3/VALIDATION-2025-11-06.md`。PromQL 与 Dashboard 操作指南详见 `docs/reference/03-API-AND-TOOLS-GUIDE.md#scheduler-监控栈`。
+- **测试与故障演练（219D4）**：`internal/organization/scheduler/operational_scheduler_test.go`、`temporal_monitor_test.go` 覆盖脚本任务与监控告警逻辑；运行命令 `GOCACHE=$(mktemp -d) go test ./internal/organization/scheduler`. 故障注入脚本 `scripts/dev/scheduler-alert-smoke.sh` 用于复现 CRITICAL 告警并验证 Alertmanager 链路，执行记录归档在 `logs/219D4/`（`TEST-SUMMARY.txt`、`FAULT-INJECTION-2025-11-06.md`、`ACCEPTANCE-RECORD-2025-11-06.md`）。
 
 ## Validators
 

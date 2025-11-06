@@ -7,7 +7,7 @@
 ```
 monitoring/
 ├── promQL-snippets.md              # 常用查询语句
-├── sandbox-validation.md           # sandbox 演练记录（当前链接：`logs/219D3/VALIDATION-2025-11-06.md`）
+├── sandbox-validation.md           # sandbox 演练记录（引用 `logs/219D3/VALIDATION-2025-11-06.md`）
 ├── prometheus/
 │   ├── README.md                   # 抓取配置与 job 列表
 │   └── scheduler-prometheus.yml    # Prometheus 主配置（219D3 输出）
