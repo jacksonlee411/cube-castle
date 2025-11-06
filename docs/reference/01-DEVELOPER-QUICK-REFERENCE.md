@@ -348,6 +348,12 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 协议选择:
   ✅ 查询用GraphQL，命令用REST
   ❌ 混用协议
+  ℹ️ GraphQL 层禁止写入；命令验证与验收脚本统一使用 REST（参见 `scripts/219C3-rest-self-test.sh`）。
+
+命令自测脚本:
+  ```bash
+  ./scripts/219C3-rest-self-test.sh   # 产出 logs/219C3/validation.log，供 219C3 验收引用
+  ```
 ```
 
 ### 日志输出规范

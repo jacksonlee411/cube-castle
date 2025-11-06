@@ -9,8 +9,8 @@
 
 ## 1. 目标
 
-1. 汇总 219C1/219C2 的实现结果，更新 README、参考文档、计划索引，并明确登记 GraphQL Mutation 接入与 Job Level 验证补测，确保唯一事实来源一致。
-2. 完成必要的单元/集成测试，覆盖审计与 validator 关键路径，同时补充 GraphQL Mutation 自测与 Job Level Update/Version 验证，用于计划验收证据。
+1. 汇总 219C1/219C2 的实现结果，更新 README、参考文档、计划索引，并明确登记 REST 命令自测与 Job Level 验证补测，确保唯一事实来源一致。
+2. 完成必要的单元/集成测试，覆盖审计与 validator 关键路径，同时补充 REST 命令自测与 Job Level Update/Version 验证，用于计划验收证据。
 3. 在 `docs/development-plans/` 与 `docs/reference/` 之间更新引用关系，归档执行证据，满足审计可追溯性。
 
 ---
@@ -19,8 +19,8 @@
 
 | 模块 | 内容 |
 |---|---|
-| 文档 | `internal/organization/README.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`docs/development-plans/219C-audit-validator.md` 同步更新并互相引用；增加 GraphQL Mutation 接入与 Job Level 验证补测的说明。 |
-| 测试 | `go test ./internal/organization/audit ./internal/organization/validator`，以及必要的 service 层回归测试；补测 Job Level Update/Version 请求验证与 GraphQL Mutation 端到端脚本。 |
+| 文档 | `internal/organization/README.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`docs/development-plans/219C-audit-validator.md` 同步更新并互相引用；强调 GraphQL 仅承载查询，命令验证与补测统一走 REST。 |
+| 测试 | `go test ./internal/organization/audit ./internal/organization/validator`，以及必要的 service 层回归测试；补测 Job Level Update/Version 请求验证与 REST 命令端到端脚本。 |
 | 计划/归档 | 将阶段性结果追加到 `docs/development-plans/219C-audit-validator.md`，并准备归档（完成后移动至 `docs/archive/development-plans/`）。 |
 | 验收表 | 输出勾选清单：审计操作全覆盖、validator 规则矩阵落地、README 更新完成。 |
 
@@ -32,6 +32,7 @@
 - [ ] 更新 `internal/organization/README.md`：新增 `#audit`、`#validators` 子章节内容，列出字段、操作清单、规则矩阵。
 - [ ] `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 增加“审计/Validator 检查”条目，提示相关命令与脚本。
 - [ ] `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 核对并更新审计、校验模块条目，确保与 README 描述、代码实现一致，并记录版本标签。
+- [ ] 在上述文档中补充 CQRS 边界提醒：GraphQL 仅提供查询能力，所有命令验证与审计脚本通过 REST 执行（引用 `scripts/219C3-rest-self-test.sh`）。
 - [ ] `docs/development-plans/219C-audit-validator.md` 引用 219C1/219C2/219C3 的最新结果，在计划末尾加入验收记录与执行凭证链接。
 
 ### 3.2 测试与验证
@@ -39,11 +40,11 @@
 - [ ] 按 219C2 规则矩阵梳理 service 层集成测试缺口：凡触发 HIGH/CRITICAL 级别规则的命令都需至少 1 条集成回归用例，补测完成后在计划中勾选命令清单。
 - [ ] 验证审计记录字段（`tenant`,`entityType`,`requestId` 等）实际落盘：使用 `make run-dev` 环境或等效集成测试，执行组织创建流程后通过 `psql -c "SELECT tenant_id, resource_type, request_id, business_context->>'correlationId' FROM audit_logs WHERE request_id='<当前测试 requestId>'"` 或对应测试断言确认字段与 README 描述一致，并将查询结果粘贴至计划附录或 `logs/219C3/` 下的文本文件。
 - [ ] 将上述测试与查询的 CLI 输出统一保存到 `logs/219C3/validation.log`，在验收记录中引用。
-- [ ] 新增 GraphQL Mutation 自测脚本（复用 219C2D REST 脚本结构），覆盖 `createPosition` / `fillPosition` / `closeAssignment` 等命令；运行产物和日志写入 README 与 `logs/219C3/validation.log`。
+- [ ] 新增 REST 命令自测脚本 `scripts/219C3-rest-self-test.sh`（复用 219C2D 脚本结构），覆盖 `createPosition` / `fillPosition` / `closeAssignment` 等命令；运行产物和日志写入 README 与 `logs/219C3/validation.log`，并在记录中重申 GraphQL 无写入能力。
 - [ ] 补充 Job Level `Update` / `CreateVersion` 接口的请求验证与单元测试，将执行记录写入 `logs/219C3/validation.log` 并在 Implementation Inventory 标注。
 
 ### 3.3 验收记录
-- [ ] 在计划文档中补充勾选项，标记文档同步、GraphQL 接入补测、Job Level 验证补测、审计验证等状态，并附日志路径、执行日期、责任人。
+- [ ] 在计划文档中补充勾选项，标记文档同步、REST 命令补测、Job Level 验证补测、审计验证等状态，并附日志路径、执行日期、责任人。
 - [ ] 完成所有勾选后，按照仓库规范立即将计划复制至 `docs/archive/development-plans/`，记录归档时间与版本标签。
 
 ---

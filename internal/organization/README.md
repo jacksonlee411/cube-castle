@@ -57,7 +57,7 @@
 > 状态：预留章节，用作 `BusinessRuleValidator` 链式框架与规则矩阵的唯一事实来源。链路实现将在计划 219C2A 完成后补齐，本段落先给出约束与记录模板，避免信息散落其他文档。
 
 ### 设计原则
-- 统一入口：命令（REST）、查询（GraphQL Mutations）、批处理共用同一校验链工厂，禁止在 handler/service 内写散落规则。
+- 统一入口：命令（REST）、查询（GraphQL Queries）、批处理共用同一校验链工厂，禁止在 handler/service 内写散落规则。
 - 规则标识：`Rule ID` 使用 `{域}-{语义}`（如 `ORG-DEPTH`、`POS-HEADCOUNT`），对应错误码需在 OpenAPI 中登记。
 - 严重级别：仅允许 `CRITICAL | HIGH | MEDIUM | LOW`，并与审计 `business_context.severity` 保持同步。
 - 返回结构：复用 `ValidationResult`/`ValidationError`/`ValidationWarning`，禁止新增并行事实来源。
@@ -65,13 +65,13 @@
 ### 规则登记模版（P0 冻结草案）
 | Rule ID | Priority | Severity | Error Code | Triggered At | Handler/Service | Notes |
 | ------- | -------- | -------- | ---------- | ------------ | ---------------- | ----- |
-| ORG-DEPTH | P0 | HIGH | ORG_DEPTH_LIMIT | REST `POST /api/v1/organization-units`, GraphQL `mutation createOrganization` | `internal/organization/validator/core.go`（链式），`handler/organization_helpers.go`（翻译） | 限制最大层级 17，metadata 暴露 `maxDepth` 与 `attemptedDepth`。 |
-| ORG-CIRC | P0 | CRITICAL | ORG_CYCLE_DETECTED | REST `PATCH /api/v1/organization-units/{code}`，GraphQL `mutation updateOrganization` | 同上 | 检测父子循环与自引用；失败阻断事务。 |
+| ORG-DEPTH | P0 | HIGH | ORG_DEPTH_LIMIT | REST `POST /api/v1/organization-units` | `internal/organization/validator/core.go`（链式），`handler/organization_helpers.go`（翻译） | 限制最大层级 17，metadata 暴露 `maxDepth` 与 `attemptedDepth`。 |
+| ORG-CIRC | P0 | CRITICAL | ORG_CYCLE_DETECTED | REST `PATCH /api/v1/organization-units/{code}` | 同上 | 检测父子循环与自引用；失败阻断事务。 |
 | ORG-STATUS | P0 | CRITICAL | ORG_STATUS_GUARD | REST `POST /api/v1/organization-units/{code}/activate` 等状态流转入口 | 同上 | 防止非法激活/停用（含冻结状态）。 |
-| POS-ORG | P0 | HIGH | POS_ORG_INACTIVE | REST `POST /api/v1/positions`、`PUT /api/v1/positions/{code}`，GraphQL `mutation createPosition` | `internal/organization/validator/core.go` 链式 + Position handler | 职位引用的组织必须处于激活态。 |
-| POS-HEADCOUNT | P0 | HIGH | POS_HEADCOUNT_EXCEEDED | REST `POST /api/v1/positions/{code}/fill`，GraphQL `mutation fillPosition` | 同上 | 不允许超过职位核定编制；metadata 暴露 `headcountLimit`、`requested`. |
-| ASSIGN-STATE | P0 | CRITICAL | ASSIGN_INVALID_STATE | REST/GraphQL 任职状态变更入口 | 同上 | 状态流转需遵循状态机（ACTIVE→VACATED 等）。 |
-| ASSIGN-FTE | P0 | HIGH | ASSIGN_FTE_LIMIT | REST `POST /api/v1/positions/{code}/assignments`，GraphQL `mutation createAssignment` | 同上 | FTE 总量 0-1 区间，允许配置容差。 |
+| POS-ORG | P0 | HIGH | POS_ORG_INACTIVE | REST `POST /api/v1/positions`、`PUT /api/v1/positions/{code}` | `internal/organization/validator/core.go` 链式 + Position handler | 职位引用的组织必须处于激活态。 |
+| POS-HEADCOUNT | P0 | HIGH | POS_HEADCOUNT_EXCEEDED | REST `POST /api/v1/positions/{code}/fill` | 同上 | 不允许超过职位核定编制；metadata 暴露 `headcountLimit`、`requested`。 |
+| ASSIGN-STATE | P0 | CRITICAL | ASSIGN_INVALID_STATE | REST 任职状态变更入口（`POST /api/v1/positions/{code}/assignments` 等） | 同上 | 状态流转需遵循状态机（ACTIVE→VACATED 等）。 |
+| ASSIGN-FTE | P0 | HIGH | ASSIGN_FTE_LIMIT | REST `POST /api/v1/positions/{code}/assignments` | 同上 | FTE 总量 0-1 区间，允许配置容差。 |
 | CROSS-ACTIVE | P0 | HIGH | CROSS_ACTIVATION_CONFLICT | 跨域命令（职位↔Job Catalog，Assignment↔Organization 激活） | 同上 | 多聚合联动时要求关联实体均为 ACTIVE。 |
 
 > 说明：表格作为 P0 规则冻结草案，后续 219C2A 执行时若需调整，必须先更新本节并取得架构/安全组确认，再同步 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 与 OpenAPI。
@@ -79,10 +79,10 @@
 #### P1 扩展规则（219C2C）
 | Rule ID | Priority | Severity | Error Code | Triggered At | Handler/Service | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| POS-JC-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST/GraphQL Position Create & Replace | `validator/position_assignment_validation.go` 链式 | Job Catalog Family/Role/Level 必须存在且处于 ACTIVE 状态，错误以 `JOB_CATALOG_NOT_FOUND` 暴露。 |
-| JC-ACTIVE-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST/GraphQL Job Catalog 关联入口（职位、任职链） | `validator/position_assignment_validation.go:newPosJobCatalogRule` | 复用 POS-JC-LINK，强调 Job Catalog 节点需处于 ACTIVE；219C2Y 自测脚本记录审计上下文。 |
-| JC-TEMPORAL | P1 | HIGH | JOB_CATALOG_TEMPORAL_CONFLICT / INVALID_EFFECTIVE_DATE / JOB_CATALOG_TIMELINE_UNAVAILABLE | REST `POST /api/v1/job-*/{code}/versions`、GraphQL Job Catalog Mutations | `internal/organization/validator/job_catalog_validation.go:newJobCatalogTemporalRule` | 检测 Job Catalog 版本时间冲突及时间线加载失败，要求新版本生效日严格大于最新版本并记录 `latestEffective`、`attemptedEffective`。 |
-| JC-SEQUENCE | P1 | MEDIUM | JOB_CATALOG_SEQUENCE_MISMATCH / JOB_CATALOG_SEQUENCE_MISSING_PARENT / JOB_CATALOG_SEQUENCE_MISSING_BASE | Job Catalog 版本补充（REST/GraphQL） | `internal/organization/validator/job_catalog_validation.go:newJobCatalogSequenceRule` | 保证版本父子链连续性：要求 `parentRecordId` 匹配最新版本 `recordId`，若时间线为空直接阻断并提示补齐基线。 |
+| POS-JC-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST Position Create & Replace | `validator/position_assignment_validation.go` 链式 | Job Catalog Family/Role/Level 必须存在且处于 ACTIVE 状态，错误以 `JOB_CATALOG_NOT_FOUND` 暴露。 |
+| JC-ACTIVE-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST Job Catalog 关联入口（职位、任职链） | `validator/position_assignment_validation.go:newPosJobCatalogRule` | 复用 POS-JC-LINK，强调 Job Catalog 节点需处于 ACTIVE；219C2Y 自测脚本记录审计上下文。 |
+| JC-TEMPORAL | P1 | HIGH | JOB_CATALOG_TEMPORAL_CONFLICT / INVALID_EFFECTIVE_DATE / JOB_CATALOG_TIMELINE_UNAVAILABLE | REST `POST /api/v1/job-*/{code}/versions` | `internal/organization/validator/job_catalog_validation.go:newJobCatalogTemporalRule` | 检测 Job Catalog 版本时间冲突及时间线加载失败，要求新版本生效日严格大于最新版本并记录 `latestEffective`、`attemptedEffective`。 |
+| JC-SEQUENCE | P1 | MEDIUM | JOB_CATALOG_SEQUENCE_MISMATCH / JOB_CATALOG_SEQUENCE_MISSING_PARENT / JOB_CATALOG_SEQUENCE_MISSING_BASE | REST Job Catalog 版本补充 | `internal/organization/validator/job_catalog_validation.go:newJobCatalogSequenceRule` | 保证版本父子链连续性：要求 `parentRecordId` 匹配最新版本 `recordId`，若时间线为空直接阻断并提示补齐基线。 |
 
 ### 错误码与契约对齐
 - 错误码来源：`docs/api/openapi.yaml` `components.responses.BadRequest.examples` 以及具体端点的 `4xx/5xx` 响应。
@@ -130,3 +130,4 @@
 - 命令服务默认依赖链式验证：`PositionService` 在写库事务前执行链路，REST handler 通过 `ValidationFailedError` 捕获返回结构化错误并同步审计上下文。
 - Job Catalog 规则（`JC-TEMPORAL` / `JC-SEQUENCE`）由 `internal/organization/validator/job_catalog_validation.go` 提供，命令层在 `JobCatalogService` 中调用；配套单元测试位于 `job_catalog_validation_test.go`，Day24 运行记录见 `logs/219C2/test-Day24.log`，`internal/organization/validator` 包覆盖率提升至 **85.3%**，满足 219C2D 覆盖率基线。
 - E2E 自测完成（2025-11-06 21:53）：脚本 `scripts/219C2D-validator-self-test.sh` 执行通过，覆盖 Job Catalog/Position/Assignment 关键验证场景，生成双通道测试报告 `tests/e2e/organization-validator/report-Day24.json`，日志见 `logs/219C2/validation.log`。
+- REST 命令补测（219C3）：脚本 `scripts/219C3-rest-self-test.sh` 聚焦 `createPosition` / `fillPosition` / `closeAssignment` 等命令与审计验证，输出 `logs/219C3/validation.log` 供计划验收与归档。
