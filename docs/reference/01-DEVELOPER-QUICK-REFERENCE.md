@@ -115,6 +115,20 @@ make db-migrate-all
 - 链路 ID：确认 `internal/organization/middleware/request.go` / `internal/middleware/request_id.go` 已生效（响应头携带 `X-Request-ID`、`X-Correlation-ID`），服务层通过上下文读取并透传给审计。
 - 快速回归：`go test ./internal/organization/audit` 验证事务审计、错误事件、payload 兜底逻辑。
 
+### Scheduler 配置与调试（219D2）
+- **唯一事实来源**：`config/scheduler.yaml` + `internal/config/scheduler.go`；启动命令服务时通过 `config.GetSchedulerConfig()` 解析默认值→YAML→`SCHEDULER_*` 环境变量，校验失败会写入 `logs/219D2/config-validation.log` 并阻断启动。完整执行记录参见 `logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md`，由 `docs/development-plans/06-integrated-teams-progress-log.md` 驱动。
+- **环境变量覆盖**：统一使用 `SCHEDULER_` 前缀（详见 `.env.example`），常用项包括：
+  - `SCHEDULER_ENABLED`（默认 `true`）：可通过 `make run-dev SCHEDULER_ENABLED=false` 临时禁用调度器。
+  - `SCHEDULER_TEMPORAL_ENDPOINT` / `SCHEDULER_NAMESPACE` / `SCHEDULER_TASK_QUEUE`：指定 Temporal 集群与任务队列。
+  - `SCHEDULER_WORKER_CONCURRENCY` / `SCHEDULER_WORKER_POLLER_COUNT`：调节 Worker 并发与 Poller 数量。
+  - `SCHEDULER_RETRY_MAX_ATTEMPTS|INITIAL_INTERVAL|BACKOFF_COEFFICIENT|MAX_INTERVAL`：统一控制活动重试策略。
+  - `SCHEDULER_MONITOR_ENABLED` / `SCHEDULER_MONITOR_CHECK_INTERVAL`：监控开关与巡检间隔（219D3 计划会扩展指标）。
+  - `SCHEDULER_TASK_<NAME>_*`：逐任务覆盖 Cron、脚本、初始延迟、启用状态；`<NAME>` 采用任务标识（例如 `DAILY_CUTOVER`）。
+  - `SCHEDULER_SCRIPTS_ROOT`：脚本根目录，默认 `./scripts`，路径会做安全校验。
+- **运维入口**：`/api/v1/operational/tasks` 返回实时任务状态（含 `NextRun/LastRun/Running`），`/api/v1/operational/tasks/{taskName}/trigger` 支持手动触发；`/api/v1/operational/cutover`、`/consistency-check` 复用相同入口。重放验收流程可参考 `logs/219D2/TEST-SUMMARY.txt`。
+- **回滚策略**：若配置出现异常，执行 `make run-dev SCHEDULER_ENABLED=false` 或恢复 `.env`、YAML 默认值即可；必要时按 219D1 附录回退旧目录（详见 `logs/219D2/failure-test.log`）。
+- **监控准备**：219D3 将在 `docs/reference/monitoring/` 目录落地 Prometheus/Grafana/Alertmanager 配置，Compose 新增服务端口（Prometheus 9091、Grafana 3001、Alertmanager 9093）；届时请同步检查该目录并更新部署脚本。
+
 ### JWT认证管理
 ```bash
 make jwt-dev-setup              # 首次运行时生成 RS256 密钥对 (secrets/dev-jwt-*.pem)

@@ -1,0 +1,71 @@
+# Scheduler configuration (authoritative reference for operational scheduler defaults)
+enabled: true
+
+temporal:
+  endpoint: temporal:7233
+  namespace: cube-castle
+  taskQueue: organization-maintenance
+
+worker:
+  concurrency: 4
+  pollerCount: 2
+
+retry:
+  maxAttempts: 3
+  initialInterval: 1s
+  backoffCoefficient: 2.0
+  maxInterval: 1m
+
+cron:
+  checkInterval: 1m
+  tasks:
+    daily_cutover:
+      description: "每日cutover任务：维护时态数据一致性"
+      cron: "0 2 * * *"
+      enabled: true
+      script: "daily-cutover.sql"
+    acting_assignment_auto_revert:
+      description: "自动结束到期的代理任职"
+      cron: "15 2 * * *"
+      enabled: true
+    data_consistency_check:
+      description: "数据一致性检查"
+      cron: "30 2 * * *"
+      enabled: true
+      script: "data-consistency-check.sql"
+    system_monitoring:
+      description: "系统健康监控"
+      cron: "0 * * * *"
+      enabled: true
+
+monitor:
+  enabled: true
+  checkInterval: 5m
+  alertRules:
+    - name: DUPLICATE_CURRENT_RECORDS
+      description: "重复的当前记录数量超过阈值"
+      threshold: 0
+      level: CRITICAL
+    - name: MISSING_CURRENT_RECORDS
+      description: "缺失当前记录的组织数量超过阈值"
+      threshold: 0
+      level: CRITICAL
+    - name: TIMELINE_OVERLAPS
+      description: "时间线重叠记录数量超过阈值"
+      threshold: 0
+      level: CRITICAL
+    - name: INCONSISTENT_FLAGS
+      description: "is_current/is_future标志不一致记录数量超过阈值"
+      threshold: 5
+      level: WARNING
+    - name: ORPHAN_RECORDS
+      description: "孤立记录（父级不存在）数量超过阈值"
+      threshold: 10
+      level: WARNING
+    - name: HEALTH_SCORE
+      description: "系统健康分数低于阈值"
+      threshold: 85
+      level: WARNING
+
+scripts:
+  root: "./scripts"

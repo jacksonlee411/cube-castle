@@ -8,6 +8,7 @@ import (
 	"time"
 
 	auth "cube-castle/internal/auth"
+	configpkg "cube-castle/internal/config"
 	auditpkg "cube-castle/internal/organization/audit"
 	dto "cube-castle/internal/organization/dto"
 	handlerpkg "cube-castle/internal/organization/handler"
@@ -27,6 +28,7 @@ type CommandModuleDeps struct {
 	DB              *sql.DB
 	Logger          pkglogger.Logger
 	CascadeMaxDepth int
+	SchedulerConfig *configpkg.SchedulerConfig
 }
 
 type OrganizationHandler = handlerpkg.OrganizationHandler
@@ -129,6 +131,7 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 		Logger:                 logger,
 		OrganizationRepository: orgRepo,
 		PositionService:        positionService,
+		Config:                 deps.SchedulerConfig,
 	})
 
 	validator := validatorpkg.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)

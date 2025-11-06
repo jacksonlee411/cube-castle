@@ -55,10 +55,12 @@
 
 ## Scheduler / Temporal（219D）
 
-- 调度与 Temporal 相关实现集中在 `scheduler/`，由 `scheduler.Service` 聚合 `TemporalService`、`TemporalMonitor`、`OperationalScheduler`、`OrganizationTemporalService`。
-- 命令服务通过 `internal/organization/api.go` 构建该 Facade，并在 `cmd/hrms-server/command/main.go` 中调用 `Services.Scheduler.Start/Stop` 管理后台任务生命周期。
-- 默认任务（position version 激活、timeline 修复等）与监控逻辑定义在 `scheduler/operational_scheduler.go` 与 `scheduler/temporal_monitor.go`，配置与告警策略详见 219D 子计划（待 219D2~219D3 输出后同步）。
-- 回退策略：参考 219D1 附录，按旧路径恢复 `internal/organization/service/{organization_temporal_service.go, temporal.go, temporal_monitor.go, operational_scheduler.go}` 并重新在 `api.go` 注入；更新 `cmd/hrms-server/command/main.go` 调用旧服务的 `Start/Stop`。
+- **实现聚合**：`scheduler/` 目录由 `scheduler.Service` 聚合 `TemporalService`、`TemporalMonitor`、`OperationalScheduler`、`OrganizationTemporalService`，入口由 `internal/organization/api.go` 构建，并在 `cmd/hrms-server/command/main.go` `Services.Scheduler.Start/Stop` 中统一托管。
+- **配置单一事实来源**：`config/scheduler.yaml` + `internal/config/scheduler.go`。命令服务启动前调用 `config.GetSchedulerConfig()` 解析默认值→YAML→`SCHEDULER_*` 环境变量，元信息（来源/覆盖/校验错误）记录于 `SchedulerConfigMetadata`，验收日志见 `logs/219D2/config-validation.log`、`logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md`。
+- **常用覆盖项**：`SCHEDULER_ENABLED`（默认 `true`）、`SCHEDULER_TEMPORAL_ENDPOINT`、`SCHEDULER_NAMESPACE`、`SCHEDULER_TASK_QUEUE`、`SCHEDULER_WORKER_CONCURRENCY`、`SCHEDULER_WORKER_POLLER_COUNT`、`SCHEDULER_RETRY_*`、`SCHEDULER_MONITOR_*`、`SCHEDULER_TASK_<NAME>_*`、`SCHEDULER_SCRIPTS_ROOT`。执行 `make run-dev SCHEDULER_ENABLED=false` 可进行关闭演练（日志：`logs/219D2/startup-disabled.log`）。
+- **校验与回滚**：`config.ValidateSchedulerConfig` 执行结构化校验，失败时阻断启动并输出至 `logs/219D2/config-validation.log`；恢复步骤详见 `logs/219D2/failure-test.log` 与 Plan 06 日志。在极端情况下可按 219D1 附录回退至旧 service 目录，但需同时复原 `api.go` 和 `cmd/hrms-server/command/main.go` 的依赖注入。
+- **运维与 API**：`OperationalScheduler` 根据配置动态构建任务，`ListTasks`/`RunTask` 与 REST `/api/v1/operational/tasks`、`/api/v1/operational/tasks/{taskName}/trigger`、`/api/v1/operational/cutover`、`/consistency-check` 对齐；操作流程与截图记录在 `logs/219D2/TEST-SUMMARY.txt`。
+- **监控预备（219D3）**：监控/告警配置将落在 `docs/reference/monitoring/`（Prometheus/Grafana/Alertmanager 子目录）并由 219D3 输出 Dashboard/规则；本 README 将引用该目录，平台团队已对齐目录结构与 docker-compose 扩展需求（Prometheus 9091、Grafana 3001、Alertmanager 9093）。
 
 ## Validators
 

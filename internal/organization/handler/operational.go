@@ -184,7 +184,11 @@ func (h *OperationalHandler) GetAlerts(w http.ResponseWriter, r *http.Request) {
 // GetTasks 获取任务配置
 func (h *OperationalHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	logger := h.requestLogger(r, "GetTasks", nil)
-	tasks := h.scheduler.GetTaskStatus()
+	if h.scheduler == nil {
+		http.Error(w, "Scheduler module disabled", http.StatusServiceUnavailable)
+		return
+	}
+	tasks := h.scheduler.ListTasks()
 
 	response := map[string]interface{}{
 		"success":   true,
@@ -204,13 +208,20 @@ func (h *OperationalHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 // GetTaskStatus 获取任务运行状态
 func (h *OperationalHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 	logger := h.requestLogger(r, "GetTaskStatus", nil)
-	tasks := h.scheduler.GetTaskStatus()
+	if h.scheduler == nil {
+		http.Error(w, "Scheduler module disabled", http.StatusServiceUnavailable)
+		return
+	}
+	tasks := h.scheduler.ListTasks()
 
 	// 计算任务统计
 	var enabledCount, runningCount int
 	for _, task := range tasks {
 		if task.Enabled {
 			enabledCount++
+		}
+		if task.Running {
+			runningCount++
 		}
 	}
 
@@ -239,31 +250,16 @@ func (h *OperationalHandler) TriggerTask(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Task name is required", http.StatusBadRequest)
 		return
 	}
+	if h.scheduler == nil {
+		http.Error(w, "Scheduler module disabled", http.StatusServiceUnavailable)
+		return
+	}
 	logger := h.requestLogger(r, "TriggerTask", pkglogger.Fields{"taskName": taskName})
 
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
-	// 目前简化实现，根据任务名执行相应操作
-	var err error
-	var message string
-
-	switch taskName {
-	case "daily_cutover":
-		err = h.executeCutover(ctx)
-		message = "每日cutover任务已触发"
-	case "data_consistency_check":
-		err = h.executeConsistencyCheck(ctx)
-		message = "数据一致性检查已触发"
-	case "system_monitoring":
-		_, err = h.monitor.CheckAlerts(ctx)
-		message = "系统监控检查已触发"
-	default:
-		http.Error(w, "Unknown task name", http.StatusBadRequest)
-		return
-	}
-
-	if err != nil {
+	if err := h.scheduler.RunTask(ctx, taskName); err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Error("manual task execution failed")
 		response := map[string]interface{}{
 			"success":   false,
@@ -286,7 +282,7 @@ func (h *OperationalHandler) TriggerTask(w http.ResponseWriter, r *http.Request)
 		"timestamp": time.Now().Format(time.RFC3339),
 		"data": map[string]interface{}{
 			"taskName": taskName,
-			"message":  message,
+			"message":  fmt.Sprintf("%s triggered successfully", taskName),
 		},
 	}
 
@@ -302,7 +298,12 @@ func (h *OperationalHandler) TriggerCutover(w http.ResponseWriter, r *http.Reque
 	defer cancel()
 	logger := h.requestLogger(r, "TriggerCutover", nil)
 
-	err := h.executeCutover(ctx)
+	if h.scheduler == nil {
+		http.Error(w, "Scheduler module disabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	err := h.scheduler.RunTask(ctx, "daily_cutover")
 	if err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Error("manual cutover failed")
 		response := map[string]interface{}{
@@ -341,7 +342,12 @@ func (h *OperationalHandler) TriggerConsistencyCheck(w http.ResponseWriter, r *h
 	defer cancel()
 	logger := h.requestLogger(r, "TriggerConsistencyCheck", nil)
 
-	err := h.executeConsistencyCheck(ctx)
+	if h.scheduler == nil {
+		http.Error(w, "Scheduler module disabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	err := h.scheduler.RunTask(ctx, "data_consistency_check")
 	if err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Error("manual consistency check failed")
 		response := map[string]interface{}{
@@ -374,18 +380,4 @@ func (h *OperationalHandler) TriggerConsistencyCheck(w http.ResponseWriter, r *h
 	}
 }
 
-// 辅助方法
-
-func (h *OperationalHandler) executeCutover(ctx context.Context) error {
-	// 这里应该调用scheduler的executeScript方法
-	// 简化实现，直接返回成功
-	h.logger.Info("执行cutover操作...")
-	return nil
-}
-
-func (h *OperationalHandler) executeConsistencyCheck(ctx context.Context) error {
-	// 这里应该调用scheduler的executeScript方法
-	// 简化实现，直接返回成功
-	h.logger.Info("执行一致性检查...")
-	return nil
-}
+// 辅助方法已移除，统一通过 scheduler.RunTask 管理任务触发

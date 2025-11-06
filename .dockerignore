@@ -1,0 +1,40 @@
+# Reduce Docker build context size to avoid copying local dependencies, caches and artifacts.
+#
+# Keep Go source, configs, migrations, and scripts required for building the command/query services.
+
+# Version control
+.git
+.gitmodules
+
+# Node/Vite artifacts
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/dist
+frontend/coverage
+frontend/.turbo
+frontend/.cache
+
+# Local caches & build outputs
+bin
+.gocache
+.cache
+**/*.log
+logs
+reports
+tmp
+coverage.*
+coverage
+*.out
+
+# IDE/editor noise
+.idea
+.vscode
+*.swp
+*.swo
+*.tmp
+
+# OS metadata
+.DS_Store
+Thumbs.db
+

@@ -40,7 +40,7 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h
 eval $(make jwt-dev-export)     # 导出令牌到环境变量
 ```
 
-### 结构化日志字段规范（命令 / 查询服务）
+### 结构化日志与监控（命令 / 查询服务）
 
 | 字段             | 说明                                      | 来源/适用场景 |
 |------------------|-------------------------------------------|---------------|
@@ -54,10 +54,11 @@ eval $(make jwt-dev-export)     # 导出令牌到环境变量
 | `query`          | GraphQL 查询名称                          | PBAC/GraphQL  |
 | `duration`/`durationMs` | 请求耗时（字符串 / 毫秒）         | 性能日志       |
 
-> **调试建议**：
+> **调试与监控建议**：
 > - 命令服务默认输出 JSON 行（结构化 logger），配合 `jq` 或 Loki/ELK 搜索 `requestId`、`action`、`tenantId` 可快速定位链路。
 > - GraphQL 权限/仓储日志在 `component=graphqlResolver` / `component=queryRepository` 下展示，定位字段 `query`、`role`、`resource`。
 > - Slow request 日志等级为 `WARN`，字段 `suggestions` 给出优化方向；性能告警由 `middleware=performanceAlert` 输送。
+> - Scheduler/Temporal 指标、Dashboard 与告警配置在 `docs/reference/monitoring/` 目录维护（219D3 计划产出），Docker Compose 新增服务端口：Prometheus `9091`、Grafana `3001`、Alertmanager `9093`。启动命令将在 219D3 验收后追加至本节。
 > ⚠️ **禁止使用 HS256**：命令/查询/前端已经移除 HS256 兜底，若缺少 RS256 私钥或 JWKS 配置，服务将直接失败启动。请务必保证 `.well-known/jwks.json` 可访问，否则前端与测试用例会提示“未启用 RS256”。
 
 ### 服务端点

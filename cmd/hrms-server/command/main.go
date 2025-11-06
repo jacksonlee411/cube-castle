@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -88,10 +89,27 @@ func main() {
 	commandLogger.Info("✅ 事件总线初始化完成（内存实现）")
 
 	var (
-		dispatcher      *outbox.Dispatcher
-		assignmentCache organization.AssignmentFacade
+		dispatcher            *outbox.Dispatcher
+		assignmentCache       organization.AssignmentFacade
+		schedulerConfigResult config.SchedulerConfigResult
+		schedulerConfigLoaded bool
 	)
 	if !authOnlyMode {
+		schedulerConfigResult = config.GetSchedulerConfig()
+		schedulerConfigLoaded = true
+		commandLogger.WithFields(pkglogger.Fields{
+			"sources": strings.Join(schedulerConfigResult.Metadata.Sources, ","),
+		}).Info("✅ 调度配置加载完成")
+		if len(schedulerConfigResult.Metadata.Overrides) > 0 {
+			commandLogger.WithFields(pkglogger.Fields{
+				"overrides": schedulerConfigResult.Metadata.Overrides,
+			}).Debug("调度配置覆盖详情")
+		}
+		if schedulerConfigResult.Metadata.ValidationError != nil {
+			commandLogger.Errorf("[FATAL] 调度配置校验失败: %v", schedulerConfigResult.Metadata.ValidationError)
+			os.Exit(1)
+		}
+
 		outboxCfg, err := outbox.LoadConfig()
 		if err != nil {
 			commandLogger.Errorf("[FATAL] Outbox dispatcher 配置无效: %v", err)
@@ -118,6 +136,12 @@ func main() {
 			DB:              sqlDB,
 			Logger:          commandLogger,
 			CascadeMaxDepth: 4,
+			SchedulerConfig: func() *config.SchedulerConfig {
+				if schedulerConfigLoaded {
+					return schedulerConfigResult.Config
+				}
+				return nil
+			}(),
 		})
 		if err != nil {
 			commandLogger.Errorf("[FATAL] 初始化组织模块失败: %v", err)

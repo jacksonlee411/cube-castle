@@ -70,9 +70,9 @@
 
 ## 4. 验收标准
 
-- [ ] 所有调度相关参数集中在单一配置入口，并在 `.env.example`、`internal/organization/README.md#scheduler` 中列明默认值与来源说明。
-- [ ] `make run-dev`、Docker Compose 启动后 Scheduler 正常读取新配置，日志无报错，且 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 完成调试指引更新。
-- [ ] 配置校验机制可在参数缺失或格式错误时阻止启动并给出指引，失败示例记录于 `logs/219D2/` 并在速查文档留存链接，相关单元测试 (`go test ./internal/config/...`) 全部通过并在验收记录中列出命令输出。
+- [x] 所有调度相关参数集中在单一配置入口，并在 `.env.example`、`internal/organization/README.md#scheduler` 中列明默认值与来源说明。（依据 `logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md` 中的环境变量一致性检查）
+- [x] `make run-dev`、Docker Compose 启动后 Scheduler 正常读取新配置，日志无报错，且 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 完成调试指引更新。（详见 `logs/219D2/startup-success.log`、`logs/219D2/startup-disabled.log`）
+- [x] 配置校验机制可在参数缺失或格式错误时阻止启动并给出指引，失败示例记录于 `logs/219D2/` 并在速查文档留存链接，相关单元测试 (`go test ./internal/config/...`) 全部通过并在验收记录中列出命令输出。（参考 `logs/219D2/config-validation.log`、`logs/219D2/failure-test.log`）
 
 ---
 
@@ -91,3 +91,11 @@
 - 更新后的配置文件与 `.env.example`。
 - 配置盘点表与检查清单（附于 PR，并同步摘要至 `internal/organization/README.md` 与 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`，包含旧值对照与变更审批记录）。
 - 经验证的启动日志与失败示例（记录于 `logs/219D2/` 并在速查文档添加引用；附上 `go test ./internal/config/...` 输出与 `make run-dev` 日志关键片段）。
+
+---
+
+## 7. 验收记录（2025-11-06）
+
+- 执行入口：`docs/development-plans/06-integrated-teams-progress-log.md` 所述 Plan 06 测试流程，详尽记录保存在 `logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md`。
+- 关键结论：配置单元测试、启动自检（含 `SCHEDULER_ENABLED=true/false` 覆盖）与失败回滚演练全部通过；所有日志位于 `logs/219D2/`，作为唯一事实来源的附件集合。
+- 待同步事项：根据验收记录中的 TODO，需继续更新 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `internal/organization/README.md#scheduler` 的调试指引；完成后可在本计划中关闭剩余待办。
