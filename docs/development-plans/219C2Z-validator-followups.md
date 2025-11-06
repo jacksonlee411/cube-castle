@@ -19,31 +19,30 @@
 
 | 编号 | 问题描述 | 当前表现 | 预期行为 | 责任人 | 计划修复时间 | 状态 |
 |------|----------|----------|----------|--------|----------------|------|
-| Z-01 | 自引用循环返回 `INVALID_PARENT` | HTTP 400 / error.code=`INVALID_PARENT` | 返回 `ORG_CYCLE_DETECTED`，并在响应 details/审计中记录该 Rule | Team 06 | 2025-11-07 AM | 进行中 |
-| Z-02 | 普通更新请求返回 400 | HTTP 400（缺少错误码详情） | 成功返回 200，或提供明确的验证错误码 | Team 06 + 仓储组 | 2025-11-07 PM | 进行中 |
-| Z-03 | `SuspendOrganization` 返回 500 | HTTP 500 + 日志报错 | 返回业务错误码或明确冲突原因；不应产生 500 | 架构组 | 2025-11-08 | 待启动 |
+| Z-01 | 自引用循环返回 `INVALID_PARENT` | **已复测**：HTTP 400 / error.code=`ORG_CYCLE_DETECTED`，details.ruleId=`ORG-CIRC` | 返回 `ORG_CYCLE_DETECTED`，并在响应 details/审计中记录该 Rule | Team 06 | 2025-11-07 AM | ✅ 已完成 |
+| Z-02 | 普通更新请求返回 400 | **已复测**：HTTP 200，支持中文括号 | 成功返回 200，或提供明确的验证错误码 | Team 06 + 仓储组 | 2025-11-07 PM | ✅ 已完成 |
+| Z-03 | `SuspendOrganization` 返回 500 | **已复测**：HTTP 200，时间轴返回 `INACTIVE` 版本 | 返回业务错误码或明确冲突原因；不应产生 500 | 架构组 | 2025-11-08 | ✅ 已完成 |
 
 ---
 
 ## 3. 详细任务
 
 ### 3.1 Z-01 循环检测错误码
-- 检查 `BusinessRuleValidator` 的循环规则执行顺序，确保 `ORG-CIRC` 在父存在性判断后生效。  
-- 调整 `organization_update.go`/`organization_rules.go` 中的错误处理，明确 `ORG_CYCLE_DETECTED` 的返回。  
-- 更新单元测试，新增自引用、祖先循环等反向场景。  
-- 如需新增错误码枚举，更新 OpenAPI、README、Implementation Inventory。
+- 自引用在基础校验阶段直接返回 `ORG_CYCLE_DETECTED`，`details.ruleId=ORG-CIRC`。  
+- 更新 `organization_rules_test.go`：新增 `TestOrganizationCreateSelfReferentialParent`（验证自引用）。  
+- REST 回归验证见 `logs/219C2/z-followups/2025-11-05-validator-retest.md`。  
+- OpenAPI 已包含 `ORG_CYCLE_DETECTED`，无需额外调整。
 
 ### 3.2 Z-02 组织更新 400
-- 捕获 REST update 的响应 body 和服务端日志，定位是验证链错误还是仓储返回。  
-- 如为验证链问题，补充字段校验或调整规则；如为仓储层，确保错误转换成统一结构。  
-- 添加对应的单元/集成测试用例，保证回归。  
-- 在文档中记录诊断结论与修复方案。
+- 扩展名称正则，允许中文/英文括号，错误提示同步更新。  
+- 单元测试：`TestOrganizationCreateNameAllowsLocalizedParentheses`、`TestOrganizationUpdateAllowsLocalizedParentheses`。  
+- REST 回归显示 `PUT /organization-units/{code}` 返回 200，名称成功写入。  
+- 诊断结果与修复步骤记录于 `logs/219C2/z-followups/2025-11-05-validator-retest.md`。
 
 ### 3.3 Z-03 暂停 500
-- 重现 `SuspendOrganization` 的失败场景，收集 request/response 与日志。  
-- 检查 timeline manager、仓储调用与错误映射，确保返回业务错误码而非 500。  
-- 为暂停/激活操作补充验证链或操作前置校验，避免异常透传。  
-- 更新自测脚本与报告，确认修复有效。
+- `TemporalTimelineManager` 插入新版本时补齐 `created_at`/`updated_at` 字段，避免列对齐导致的 SQL 错误。  
+- `POST /organization-units/{code}/suspend` 回归返回 200，时间轴附带 `status=INACTIVE`。  
+- 相关请求与响应记录见 `logs/219C2/z-followups/2025-11-05-validator-retest.md`。
 
 ---
 
@@ -69,6 +68,7 @@
 ## 6. 追踪日志
 
 - `logs/219C2/219C2B-SELF-TEST-REPORT.md` – 原始自测报告。  
+- `logs/219C2/z-followups/2025-11-05-validator-retest.md` – 回归验证记录。  
 - 后续若有新增日志/截图，请存放在 `logs/219C2/z-followups/` 下。
 
 > 文档更新完成后，请在主计划与 Team 06 进展日志中同步状态。

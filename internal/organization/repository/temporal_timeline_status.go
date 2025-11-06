@@ -130,11 +130,26 @@ func (tm *TemporalTimelineManager) changeOrganizationStatus(ctx context.Context,
 			level, code_path, name_path, sort_order, description, effective_date, end_date,
 			is_current, change_reason, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NULL,
-			false, $15, $16, $16
-		)`, newRecordID, currentOrg.TenantID, currentOrg.Code, currentOrg.ParentCode, currentOrg.Name,
-		currentOrg.UnitType, newStatus, currentOrg.Level, currentOrg.CodePath, currentOrg.NamePath,
-		currentOrg.SortOrder, currentOrg.Description, effectiveDateUTC, operationReason, nowUTC); err != nil {
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL,
+			false, $14, $15, $16
+		)`,
+		newRecordID,
+		currentOrg.TenantID,
+		currentOrg.Code,
+		currentOrg.ParentCode,
+		currentOrg.Name,
+		currentOrg.UnitType,
+		newStatus,
+		currentOrg.Level,
+		currentOrg.CodePath,
+		currentOrg.NamePath,
+		currentOrg.SortOrder,
+		currentOrg.Description,
+		effectiveDateUTC,
+		operationReason,
+		nowUTC,
+		nowUTC,
+	); err != nil {
 		return nil, fmt.Errorf("插入%s版本失败: %w", operationType, err)
 	}
 

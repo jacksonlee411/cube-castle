@@ -105,7 +105,7 @@ var validOrganizationStatuses = map[string]struct{}{
 var (
 	organizationCodeRegex       = regexp.MustCompile(types.OrganizationCodePattern)
 	organizationParentCodeRegex = regexp.MustCompile(types.OrganizationParentCodePattern)
-	organizationNameRegex       = regexp.MustCompile(`^[\p{L}\p{N}\s\-]+$`)
+	organizationNameRegex       = regexp.MustCompile(`^[\p{L}\p{N}\s\-\(\)（）]+$`)
 )
 
 func NewBusinessRuleValidator(hierarchyRepo *repository.HierarchyRepository, orgRepo *repository.OrganizationRepository, baseLogger pkglogger.Logger) *BusinessRuleValidator {
@@ -125,7 +125,27 @@ func (v *BusinessRuleValidator) ValidateOrganizationCreation(ctx context.Context
 
 	v.validateCreateRequestBasics(req, result)
 
+	selfReferentialParent := false
+	if req.Code != nil && req.ParentCode != nil && strings.EqualFold(*req.Code, *req.ParentCode) {
+		selfReferentialParent = true
+		result.Errors = append(result.Errors, ValidationError{
+			Code:     "ORG_CYCLE_DETECTED",
+			Message:  "Organization cannot be its own parent",
+			Field:    "parentCode",
+			Severity: string(SeverityCritical),
+			Context: map[string]interface{}{
+				"ruleId":          "ORG-CIRC",
+				"attemptedParent": *req.ParentCode,
+			},
+		})
+	}
+
 	if req.ParentCode != nil && *req.ParentCode != "" {
+		if selfReferentialParent {
+			result.Valid = false
+			return result
+		}
+
 		parent, err := v.hierarchyRepo.GetOrganization(ctx, *req.ParentCode, tenantID)
 		if err != nil || parent == nil {
 			result.Errors = append(result.Errors, ValidationError{
@@ -307,7 +327,7 @@ func (v *BusinessRuleValidator) validateCreateRequestBasics(req *types.CreateOrg
 		if !organizationNameRegex.MatchString(req.Name) {
 			result.Errors = append(result.Errors, ValidationError{
 				Code:     "ORG_NAME_INVALID",
-				Message:  "组织名称包含无效字符，只允许字母、数字、中文、空格和连字符",
+				Message:  "组织名称包含无效字符，只允许字母、数字、中文、空格、连字符和括号",
 				Field:    "name",
 				Severity: string(SeverityHigh),
 			})
@@ -415,7 +435,7 @@ func (v *BusinessRuleValidator) validateUpdateRequestBasics(req *types.UpdateOrg
 			if !organizationNameRegex.MatchString(trimmed) {
 				result.Errors = append(result.Errors, ValidationError{
 					Code:     "ORG_NAME_INVALID",
-					Message:  "组织名称包含无效字符，只允许字母、数字、中文、空格和连字符",
+					Message:  "组织名称包含无效字符，只允许字母、数字、中文、空格、连字符和括号",
 					Field:    "name",
 					Severity: string(SeverityHigh),
 				})

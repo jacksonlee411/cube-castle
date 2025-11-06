@@ -74,14 +74,15 @@
 - Source of truth: `internal/organization/README.md#validators`
 - Purpose: 219C2 计划下的 `BusinessRuleValidator` 链式框架、规则矩阵与错误码映射（REST/GraphQL/批处理共享）。
 - Deliveries to date:
-  - `internal/organization/validator/core.go` 链式执行骨架 & `organization_rules.go` 封装 ORG-* P0 规则。
-  - Handler 层统一错误翻译、审计联动（`organization_helpers.go`、`organization_create.go`）。
-  - 文档/契约同步：README 规则矩阵冻结、OpenAPI `ValidatorRuleId/ValidatorErrorCode`、`logs/219C2/rule-freeze.md`。
-  - OpenAPI 已登记 ORG-TEMPORAL 规则标识，新增错误码 `INVALID_PARENT` / `ORG_TEMPORAL_PARENT_INACTIVE` 与验证链对齐。
-  - 219C2C 交付：`position_assignment_validation.go`/`position_assignment_validation_test.go` 实现 POS-ORG / POS-HEADCOUNT / POS-JC-LINK / ASSIGN-STATE / ASSIGN-FTE / CROSS-ACTIVE，`CommandModule` 默认注入链式验证器。
+- `internal/organization/validator/core.go` 链式执行骨架 & `organization_rules.go` 封装 ORG-* P0 规则。
+- Handler 层统一错误翻译、审计联动（`organization_helpers.go`、`organization_create.go`）。
+- 文档/契约同步：README 规则矩阵冻结、OpenAPI `ValidatorRuleId/ValidatorErrorCode`、`logs/219C2/rule-freeze.md`。
+- OpenAPI 已登记 ORG-TEMPORAL 规则标识，新增错误码 `INVALID_PARENT` / `ORG_TEMPORAL_PARENT_INACTIVE` 与验证链对齐。
+- 219C2C 交付：`position_assignment_validation.go`/`position_assignment_validation_test.go` 实现 POS-ORG / POS-HEADCOUNT / POS-JC-LINK / ASSIGN-STATE / ASSIGN-FTE / CROSS-ACTIVE，`CommandModule` 默认注入链式验证器。
+- Day 24 更新：新增 `errors_test.go`、`testing_stubs_test.go`、`position_helpers_test.go`，覆盖验证错误包装、仓储 stub 与 Position/Assignment helper，`go test -cover ./internal/organization/validator` 覆盖率提升至 **83.7%**（证据：`logs/219C2/test-Day24.log`）。
 - Pending deliverables:
   - GraphQL Mutation 接入职位/任职验证链（按 219C2D 排期）。
-  - Validator 包覆盖率提升至 ≥80%（当前 `go test -cover ./internal/organization/validator` ≈78%，剩余为 Stub 与未接入 GraphQL 的辅助函数）。
+  - REST/GraphQL 端到端自测（Job Catalog / Assignment 场景）——Job Level API 当前返回 500，计划在 219C2D 修复后补充审计证据（参见 `logs/219C2/acceptance-precheck-Day24.md`）。
 
 ## Draft – Go Handlers (exported methods)
 - SetupRoutes — cmd/organization-command-service/internal/handlers/devtools.go

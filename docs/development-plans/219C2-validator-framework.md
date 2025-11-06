@@ -155,6 +155,7 @@
 - 交付物：Position/Assignment 规则代码与单测、命令入口改造、自测日志、跨域依赖清单。
 - 验收：`go test ./internal/organization/validator -run TestPosition -run TestAssignment` 全部通过；关键命令自测截图归档；依赖清单获数据团队确认。
 - 风险：跨域仓储缺失导致注入失败；Assignment 状态流转复杂需及时与业务对齐。
+- ✅ 219C2C 验收完成（2025-11-08）：`logs/219C2/test-Day24.log` 覆盖率 83.7%，`logs/219C2/acceptance-precheck-Day24.md` 记录 219C2Y 交付与风险，REST 自测补齐计划挂靠 219C2D。
 
 #### 3.1.4 子计划：219C2D – 扩展与验收（日程 Day 24）
 

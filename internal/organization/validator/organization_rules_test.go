@@ -248,6 +248,27 @@ func TestOrganizationCreateParentMissing(t *testing.T) {
 	}
 }
 
+func TestOrganizationCreateSelfReferentialParent(t *testing.T) {
+	tenant := uuid.New()
+	code := "1200001"
+
+	req := &types.CreateOrganizationRequest{
+		Code:       strPtr(code),
+		Name:       "Self Loop Org",
+		UnitType:   "DEPARTMENT",
+		ParentCode: strPtr(code),
+	}
+
+	validator := newTestValidator(&stubHierarchy{})
+
+	result := validator.ValidateOrganizationCreation(context.Background(), req, tenant)
+	if result.Valid {
+		t.Fatalf("expected validation to fail due to self-referential parent")
+	}
+
+	assertHasErrorCode(t, result.Errors, "ORG_CYCLE_DETECTED")
+}
+
 func TestOrganizationCreateDepthUnknownReturnsInvalidParent(t *testing.T) {
 	tenant := uuid.New()
 	h := &stubHierarchy{
@@ -379,6 +400,21 @@ func TestOrganizationCreateFieldSanitization(t *testing.T) {
 	}
 }
 
+func TestOrganizationCreateNameAllowsLocalizedParentheses(t *testing.T) {
+	tenant := uuid.New()
+	req := &types.CreateOrganizationRequest{
+		Code:       strPtr("1300001"),
+		Name:       "测试组织（扩展）",
+		UnitType:   "DEPARTMENT",
+		ParentCode: nil,
+	}
+
+	result := newTestValidator(&stubHierarchy{}).ValidateOrganizationCreation(context.Background(), req, tenant)
+	if !result.Valid {
+		t.Fatalf("expected localized parentheses to be allowed, got errors %#v", result.Errors)
+	}
+}
+
 func TestOrganizationUpdateCircularReference(t *testing.T) {
 	tenant := uuid.New()
 	h := &stubHierarchy{
@@ -438,6 +474,30 @@ func TestOrganizationUpdateStatusAllowed(t *testing.T) {
 	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
 	if !result.Valid {
 		t.Fatalf("expected status transition to pass, errors: %#v", result.Errors)
+	}
+}
+
+func TestOrganizationUpdateAllowsLocalizedParentheses(t *testing.T) {
+	tenant := uuid.New()
+	h := &stubHierarchy{
+		orgs: map[string]*types.Organization{
+			"TARGET": {
+				Code:          "TARGET",
+				Status:        "ACTIVE",
+				EffectiveDate: types.NewDateFromTime(time.Now()),
+			},
+		},
+	}
+	validator := newTestValidator(h)
+
+	newName := "219C2B 测试组织（已更新）"
+	req := &types.UpdateOrganizationRequest{
+		Name: &newName,
+	}
+
+	result := validator.ValidateOrganizationUpdate(context.Background(), "TARGET", req, tenant)
+	if !result.Valid {
+		t.Fatalf("expected localized parentheses to be allowed, errors: %#v", result.Errors)
 	}
 }
 

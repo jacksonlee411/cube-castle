@@ -80,6 +80,9 @@
 | Rule ID | Priority | Severity | Error Code | Triggered At | Handler/Service | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | POS-JC-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST/GraphQL Position Create & Replace | `validator/position_assignment_validation.go` 链式 | Job Catalog Family/Role/Level 必须存在且处于 ACTIVE 状态，错误以 `JOB_CATALOG_NOT_FOUND` 暴露。 |
+| JC-ACTIVE-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST/GraphQL Job Catalog 关联入口（职位、任职链） | `validator/position_assignment_validation.go:newPosJobCatalogRule` | 复用 POS-JC-LINK，强调 Job Catalog 节点需处于 ACTIVE；219C2Y 自测脚本记录审计上下文。 |
+| JC-TEMPORAL | P1 | HIGH | TBD (219C2D) | REST `POST /api/v1/job-*/{code}/versions` | **计划**：`validator/job_catalog_temporal.go`（219C2D） | 检测 Job Catalog 版本时间冲突，纳入 219C2D Backlog 并在实现时回填错误码。 |
+| JC-SEQUENCE | P1 | MEDIUM | TBD (219C2D) | Job Catalog 批量导入/版本补充 | **计划**：`validator/job_catalog_temporal.go`（219C2D） | 保证版本连续性（无缺口/倒序），待 219C2D 实现并补充 OpenAPI 错误码。 |
 
 ### 错误码与契约对齐
 - 错误码来源：`docs/api/openapi.yaml` `components.responses.BadRequest.examples` 以及具体端点的 `4xx/5xx` 响应。
@@ -110,5 +113,5 @@
 - `internal/organization/validator/position_assignment_validation.go` 提供 `NewPositionAssignmentValidationService`，在命令模块中为职位/任职命令注入统一链式校验（见 `internal/organization/api.go`）。
 - 职位规则：`POS-ORG` 校验引用组织 ACTIVE；`POS-HEADCOUNT` 在填充/更新任职前验证编制；`POS-JC-LINK` 校验 Job Catalog 链路，违反时返回 `JOB_CATALOG_NOT_FOUND`。
 - 任职与跨域规则：`ASSIGN-FTE`、`ASSIGN-STATE`、`CROSS-ACTIVE` 在创建/更新/关闭任职时执行，阻断非法状态与跨域激活冲突。
-- 单元测试位于 `internal/organization/validator/position_assignment_validation_test.go`，覆盖职位/任职正反场景并记录于 `logs/219C2/test-Day23.log`，当前 validator 包覆盖率约 78%（P0 规则已命中，剩余由 GraphQL/E2E 补齐）。
+- 单元测试位于 `internal/organization/validator/position_assignment_validation_test.go`，覆盖职位/任职正反场景并记录于 `logs/219C2/test-Day23.log`，最新补充的 helper/stub 测试（见 Day24 更新）将包覆盖率提升至 **83.7%**。
 - 命令服务默认依赖链式验证：`PositionService` 在写库事务前执行链路，REST handler 通过 `ValidationFailedError` 捕获返回结构化错误并同步审计上下文。

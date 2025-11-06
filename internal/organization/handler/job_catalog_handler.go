@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -386,6 +387,12 @@ func (h *JobCatalogHandler) CreateJobLevel(w http.ResponseWriter, r *http.Reques
 	}
 	reqLogger := h.requestLogger(r, "CreateJobLevel")
 
+	// Validate required fields
+	if err := validateCreateJobLevelRequest(&req); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), nil)
+		return
+	}
+
 	tenantID := getTenantIDFromRequest(r)
 	operator := getOperatorFromRequest(r)
 
@@ -510,4 +517,27 @@ func (h *JobCatalogHandler) writeError(w http.ResponseWriter, r *http.Request, s
 	if err := utils.WriteError(w, status, code, message, requestID, details); err != nil {
 		h.requestLogger(r, "writeError").WithFields(pkglogger.Fields{"error": err, "status": status, "code": code}).Error("write job catalog error response failed")
 	}
+}
+
+// Validation helpers
+func validateCreateJobLevelRequest(req *types.CreateJobLevelRequest) error {
+	if strings.TrimSpace(req.Code) == "" {
+		return fmt.Errorf("职级代码不能为空")
+	}
+	if strings.TrimSpace(req.JobRoleCode) == "" {
+		return fmt.Errorf("职位角色代码不能为空")
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		return fmt.Errorf("职级名称不能为空")
+	}
+	if strings.TrimSpace(req.Status) == "" {
+		return fmt.Errorf("职级状态不能为空")
+	}
+	if strings.TrimSpace(req.LevelRank) == "" {
+		return fmt.Errorf("职级排序号不能为空")
+	}
+	if strings.TrimSpace(req.EffectiveDate) == "" {
+		return fmt.Errorf("生效日期不能为空")
+	}
+	return nil
 }
