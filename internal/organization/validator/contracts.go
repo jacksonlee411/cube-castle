@@ -24,3 +24,11 @@ type AssignmentValidationService interface {
 	ValidateUpdateAssignment(ctx context.Context, tenantID uuid.UUID, positionCode string, assignmentID uuid.UUID, req *types.UpdateAssignmentRequest) *ValidationResult
 	ValidateCloseAssignment(ctx context.Context, tenantID uuid.UUID, positionCode string, assignmentID uuid.UUID, req *types.CloseAssignmentRequest) *ValidationResult
 }
+
+// JobCatalogValidationService 定义 Job Catalog 版本类命令的验证入口。
+type JobCatalogValidationService interface {
+	ValidateCreateFamilyGroupVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.JobCatalogVersionRequest) *ValidationResult
+	ValidateCreateJobFamilyVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.JobCatalogVersionRequest, parentRecordID uuid.UUID) *ValidationResult
+	ValidateCreateJobRoleVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.JobCatalogVersionRequest, parentRecordID uuid.UUID) *ValidationResult
+	ValidateCreateJobLevelVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.JobCatalogVersionRequest, parentRecordID uuid.UUID) *ValidationResult
+}

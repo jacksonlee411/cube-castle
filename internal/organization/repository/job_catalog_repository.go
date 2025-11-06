@@ -37,6 +37,15 @@ type temporalRow struct {
 	IsCurrent     bool
 }
 
+// JobCatalogTimelineEntry 暴露 Job Catalog 各层级的时态版本信息，供验证器使用。
+type JobCatalogTimelineEntry struct {
+	RecordID      uuid.UUID
+	EffectiveDate time.Time
+	EndDate       *time.Time
+	IsCurrent     bool
+	Status        string
+}
+
 func normalizeOptionalString(value *string) interface{} {
 	if value == nil {
 		return nil
@@ -46,6 +55,17 @@ func normalizeOptionalString(value *string) interface{} {
 		return nil
 	}
 	return trimmed
+}
+
+func marshalOptionalJSON(value interface{}) (interface{}, error) {
+	if value == nil {
+		return nil, nil
+	}
+	payload, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(payload), nil
 }
 
 func (r *JobCatalogRepository) queryRows(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (*sql.Rows, error) {
@@ -67,6 +87,72 @@ func (r *JobCatalogRepository) exec(ctx context.Context, tx *sql.Tx, query strin
 		return tx.ExecContext(ctx, query, args...)
 	}
 	return r.db.ExecContext(ctx, query, args...)
+}
+
+func (r *JobCatalogRepository) listTimeline(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) ([]JobCatalogTimelineEntry, error) {
+	rows, err := r.queryRows(ctx, tx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	timeline := make([]JobCatalogTimelineEntry, 0)
+	for rows.Next() {
+		var (
+			entry JobCatalogTimelineEntry
+			end   sql.NullTime
+		)
+		if err := rows.Scan(&entry.RecordID, &entry.EffectiveDate, &end, &entry.IsCurrent, &entry.Status); err != nil {
+			return nil, err
+		}
+		if end.Valid {
+			endTime := end.Time
+			entry.EndDate = &endTime
+		}
+		timeline = append(timeline, entry)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return timeline, nil
+}
+
+// ListFamilyGroupTimeline 返回指定职类的所有版本，按生效日期升序排列。
+func (r *JobCatalogRepository) ListFamilyGroupTimeline(ctx context.Context, tenantID uuid.UUID, code string) ([]JobCatalogTimelineEntry, error) {
+	query := `SELECT record_id, effective_date, end_date, is_current, status
+FROM job_family_groups
+WHERE tenant_id = $1 AND family_group_code = $2
+ORDER BY effective_date ASC`
+	return r.listTimeline(ctx, nil, query, tenantID, strings.ToUpper(strings.TrimSpace(code)))
+}
+
+// ListJobFamilyTimeline 返回指定职种的所有版本，按生效日期升序排列。
+func (r *JobCatalogRepository) ListJobFamilyTimeline(ctx context.Context, tenantID uuid.UUID, code string) ([]JobCatalogTimelineEntry, error) {
+	query := `SELECT record_id, effective_date, end_date, is_current, status
+FROM job_families
+WHERE tenant_id = $1 AND family_code = $2
+ORDER BY effective_date ASC`
+	return r.listTimeline(ctx, nil, query, tenantID, strings.ToUpper(strings.TrimSpace(code)))
+}
+
+// ListJobRoleTimeline 返回指定职务的所有版本，按生效日期升序排列。
+func (r *JobCatalogRepository) ListJobRoleTimeline(ctx context.Context, tenantID uuid.UUID, code string) ([]JobCatalogTimelineEntry, error) {
+	query := `SELECT record_id, effective_date, end_date, is_current, status
+FROM job_roles
+WHERE tenant_id = $1 AND role_code = $2
+ORDER BY effective_date ASC`
+	return r.listTimeline(ctx, nil, query, tenantID, strings.ToUpper(strings.TrimSpace(code)))
+}
+
+// ListJobLevelTimeline 返回指定职级的所有版本，按生效日期升序排列。
+func (r *JobCatalogRepository) ListJobLevelTimeline(ctx context.Context, tenantID uuid.UUID, code string) ([]JobCatalogTimelineEntry, error) {
+	query := `SELECT record_id, effective_date, end_date, is_current, status
+FROM job_levels
+WHERE tenant_id = $1 AND level_code = $2
+ORDER BY effective_date ASC`
+	return r.listTimeline(ctx, nil, query, tenantID, strings.ToUpper(strings.TrimSpace(code)))
 }
 
 func normalizeTemporal(rows []temporalRow) []temporalRow {
@@ -594,12 +680,9 @@ func (r *JobCatalogRepository) InsertJobRole(ctx context.Context, tx *sql.Tx, te
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 	isCurrent := !effectiveDate.After(today)
 
-	var competency []byte
-	if req.CompetencyModel != nil {
-		competency, err = json.Marshal(req.CompetencyModel)
-		if err != nil {
-			return nil, fmt.Errorf("invalid competency model payload: %w", err)
-		}
+	competency, err := marshalOptionalJSON(req.CompetencyModel)
+	if err != nil {
+		return nil, fmt.Errorf("invalid competency model payload: %w", err)
 	}
 
 	query := `INSERT INTO job_roles (
@@ -614,7 +697,7 @@ RETURNING record_id, tenant_id, role_code, family_code, parent_record_id, name, 
 		req.JobFamilyCode,
 		parentRecord,
 		req.Name,
-		req.Description,
+		normalizeOptionalString(req.Description),
 		competency,
 		req.Status,
 		effectiveDate,
@@ -722,11 +805,6 @@ func (r *JobCatalogRepository) InsertJobRoleVersion(ctx context.Context, tx *sql
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 	isCurrent := !effectiveDate.After(today)
 
-	var competency []byte
-	if req.Description != nil {
-		// 对于版本请求，描述字段映射到 description
-	}
-
 	familyCodeQuery := `SELECT family_code FROM job_roles WHERE tenant_id = $1 AND role_code = $2 ORDER BY effective_date DESC LIMIT 1`
 	var familyCode string
 	if err := r.queryRow(ctx, tx, familyCodeQuery, tenantID, code).Scan(&familyCode); err != nil {
@@ -748,8 +826,8 @@ RETURNING record_id, tenant_id, role_code, family_code, parent_record_id, name, 
 		familyCode,
 		parentRecord,
 		req.Name,
-		req.Description,
-		competency,
+		normalizeOptionalString(req.Description),
+		nil,
 		req.Status,
 		effectiveDate,
 		isCurrent,
@@ -852,12 +930,9 @@ func (r *JobCatalogRepository) InsertJobLevel(ctx context.Context, tx *sql.Tx, t
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 	isCurrent := !effectiveDate.After(today)
 
-	var salaryBand []byte
-	if req.SalaryBand != nil {
-		salaryBand, err = json.Marshal(req.SalaryBand)
-		if err != nil {
-			return nil, fmt.Errorf("invalid salary band payload: %w", err)
-		}
+	salaryBand, err := marshalOptionalJSON(req.SalaryBand)
+	if err != nil {
+		return nil, fmt.Errorf("invalid salary band payload: %w", err)
 	}
 
 	query := `INSERT INTO job_levels (
@@ -873,7 +948,7 @@ RETURNING record_id, tenant_id, level_code, role_code, parent_record_id, level_r
 		parentRecord,
 		req.LevelRank,
 		req.Name,
-		req.Description,
+		normalizeOptionalString(req.Description),
 		salaryBand,
 		req.Status,
 		effectiveDate,
@@ -1006,7 +1081,7 @@ RETURNING record_id, tenant_id, level_code, role_code, parent_record_id, level_r
 		roleCode,
 		parentRecord,
 		req.Name,
-		req.Description,
+		normalizeOptionalString(req.Description),
 		nil,
 		req.Status,
 		effectiveDate,

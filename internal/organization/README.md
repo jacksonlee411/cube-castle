@@ -81,8 +81,8 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | POS-JC-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST/GraphQL Position Create & Replace | `validator/position_assignment_validation.go` 链式 | Job Catalog Family/Role/Level 必须存在且处于 ACTIVE 状态，错误以 `JOB_CATALOG_NOT_FOUND` 暴露。 |
 | JC-ACTIVE-LINK | P1 | MEDIUM | JOB_CATALOG_NOT_FOUND | REST/GraphQL Job Catalog 关联入口（职位、任职链） | `validator/position_assignment_validation.go:newPosJobCatalogRule` | 复用 POS-JC-LINK，强调 Job Catalog 节点需处于 ACTIVE；219C2Y 自测脚本记录审计上下文。 |
-| JC-TEMPORAL | P1 | HIGH | TBD (219C2D) | REST `POST /api/v1/job-*/{code}/versions` | **计划**：`validator/job_catalog_temporal.go`（219C2D） | 检测 Job Catalog 版本时间冲突，纳入 219C2D Backlog 并在实现时回填错误码。 |
-| JC-SEQUENCE | P1 | MEDIUM | TBD (219C2D) | Job Catalog 批量导入/版本补充 | **计划**：`validator/job_catalog_temporal.go`（219C2D） | 保证版本连续性（无缺口/倒序），待 219C2D 实现并补充 OpenAPI 错误码。 |
+| JC-TEMPORAL | P1 | HIGH | JOB_CATALOG_TEMPORAL_CONFLICT / INVALID_EFFECTIVE_DATE / JOB_CATALOG_TIMELINE_UNAVAILABLE | REST `POST /api/v1/job-*/{code}/versions`、GraphQL Job Catalog Mutations | `internal/organization/validator/job_catalog_validation.go:newJobCatalogTemporalRule` | 检测 Job Catalog 版本时间冲突及时间线加载失败，要求新版本生效日严格大于最新版本并记录 `latestEffective`、`attemptedEffective`。 |
+| JC-SEQUENCE | P1 | MEDIUM | JOB_CATALOG_SEQUENCE_MISMATCH / JOB_CATALOG_SEQUENCE_MISSING_PARENT / JOB_CATALOG_SEQUENCE_MISSING_BASE | Job Catalog 版本补充（REST/GraphQL） | `internal/organization/validator/job_catalog_validation.go:newJobCatalogSequenceRule` | 保证版本父子链连续性：要求 `parentRecordId` 匹配最新版本 `recordId`，若时间线为空直接阻断并提示补齐基线。 |
 
 ### 错误码与契约对齐
 - 错误码来源：`docs/api/openapi.yaml` `components.responses.BadRequest.examples` 以及具体端点的 `4xx/5xx` 响应。
@@ -115,3 +115,4 @@
 - 任职与跨域规则：`ASSIGN-FTE`、`ASSIGN-STATE`、`CROSS-ACTIVE` 在创建/更新/关闭任职时执行，阻断非法状态与跨域激活冲突。
 - 单元测试位于 `internal/organization/validator/position_assignment_validation_test.go`，覆盖职位/任职正反场景并记录于 `logs/219C2/test-Day23.log`，最新补充的 helper/stub 测试（见 Day24 更新）将包覆盖率提升至 **83.7%**。
 - 命令服务默认依赖链式验证：`PositionService` 在写库事务前执行链路，REST handler 通过 `ValidationFailedError` 捕获返回结构化错误并同步审计上下文。
+- Job Catalog 规则（`JC-TEMPORAL` / `JC-SEQUENCE`）由 `internal/organization/validator/job_catalog_validation.go` 提供，命令层在 `JobCatalogService` 中调用；配套单元测试位于 `job_catalog_validation_test.go`，Day24 运行记录见 `logs/219C2/test-Day24.log`，`internal/organization/validator` 包覆盖率提升至 **85.3%**，满足 219C2D 覆盖率基线。

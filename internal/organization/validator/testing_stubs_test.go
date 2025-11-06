@@ -118,6 +118,49 @@ func TestStubJobCatalogRepository(t *testing.T) {
 	}
 }
 
+func TestStubJobCatalogRepositoryDefaults(t *testing.T) {
+	ctx := context.Background()
+	tenant := uuid.New()
+	repo := &StubJobCatalogRepository{}
+
+	if got, err := repo.GetCurrentFamilyGroup(ctx, nil, tenant, "JC-G"); err != nil || got != nil {
+		t.Fatalf("expected nil job family group, got %v, err %v", got, err)
+	}
+	if got, err := repo.GetCurrentJobFamily(ctx, nil, tenant, "JC-F"); err != nil || got != nil {
+		t.Fatalf("expected nil job family, got %v, err %v", got, err)
+	}
+	if got, err := repo.GetCurrentJobRole(ctx, nil, tenant, "JC-R"); err != nil || got != nil {
+		t.Fatalf("expected nil job role, got %v, err %v", got, err)
+	}
+	if got, err := repo.GetCurrentJobLevel(ctx, nil, tenant, "JC-L"); err != nil || got != nil {
+		t.Fatalf("expected nil job level, got %v, err %v", got, err)
+	}
+}
+
+func TestStubJobCatalogTimelineRepositoryDefaults(t *testing.T) {
+	ctx := context.Background()
+	tenant := uuid.New()
+
+	var nilRepo *StubJobCatalogTimelineRepository
+	if entries, err := nilRepo.ListFamilyGroupTimeline(ctx, tenant, "JC-G"); err != nil || entries != nil {
+		t.Fatalf("expected nil entries for nil repo, got %v, err %v", entries, err)
+	}
+
+	repo := &StubJobCatalogTimelineRepository{}
+	if entries, err := repo.ListFamilyGroupTimeline(ctx, tenant, "JC-G"); err != nil || entries != nil {
+		t.Fatalf("expected nil family group timeline, got %v, err %v", entries, err)
+	}
+	if entries, err := repo.ListJobFamilyTimeline(ctx, tenant, "JC-F"); err != nil || entries != nil {
+		t.Fatalf("expected nil job family timeline, got %v, err %v", entries, err)
+	}
+	if entries, err := repo.ListJobRoleTimeline(ctx, tenant, "JC-R"); err != nil || entries != nil {
+		t.Fatalf("expected nil job role timeline, got %v, err %v", entries, err)
+	}
+	if entries, err := repo.ListJobLevelTimeline(ctx, tenant, "JC-L"); err != nil || entries != nil {
+		t.Fatalf("expected nil job level timeline, got %v, err %v", entries, err)
+	}
+}
+
 func TestStubOrganizationRepository(t *testing.T) {
 	ctx := context.Background()
 	tenant := uuid.New()

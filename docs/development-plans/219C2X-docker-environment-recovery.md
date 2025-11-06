@@ -83,11 +83,11 @@
 
 ## 6. 验收标准
 
-- [ ] 所有必需容器启动成功，`docker compose ps` 显示状态为 `running`。
-- [ ] `make status`、`curl http://localhost:9090/health`、`curl http://localhost:8090/health` 均返回 200，并记录在日志中。
-- [ ] `baseline-ports.log` 与实际端口监听一致，无宿主机冲突服务。
-- [ ] `logs/219C2/environment-Day24.log` 含完整执行记录、时间戳及健康检查输出。
-- [ ] 若发生故障，日志中包含排障步骤与结论，确保团队可复现恢复流程。
+- [x] 所有必需容器启动成功，`docker compose ps` 显示状态为 `running`。（证据：`logs/219C2/environment-Day24.log` “Make Status” 段，执行于 2025-11-06T07:05:40+08:00）
+- [x] `make status`、`curl http://localhost:9090/health`、`curl http://localhost:8090/health` 均返回 200，并记录在日志中。（同上日志末尾段，包含两次 curl 200 响应）
+- [x] `baseline-ports.log` 与实际端口监听一致，无宿主机冲突服务。（参考日志 “Port Status Verification” 段）
+- [x] `logs/219C2/environment-Day24.log` 含完整执行记录、时间戳及健康检查输出。
+- [x] 若发生故障，日志中包含排障步骤与结论，确保团队可复现恢复流程。（本次执行未出现异常，日志保留了构建及健康检查全过程）
 
 ---
 
@@ -120,4 +120,3 @@
 - `baseline-ports.log`、`baseline-processes.log`: 端口与进程基线对照。
 - `docker stats`（可选）: 观察资源占用趋势。
 - 219C2Y 计划引用：确认 Docker 环境已满足后续任务需求。
-

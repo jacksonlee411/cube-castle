@@ -125,7 +125,8 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 		logger,
 	)
 	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger)
-	jobCatalogService := servicepkg.NewJobCatalogService(jobCatalogRepo, auditLogger, logger)
+	jobCatalogValidator := validatorpkg.NewJobCatalogValidationService(jobCatalogRepo, logger)
+	jobCatalogService := servicepkg.NewJobCatalogService(jobCatalogRepo, jobCatalogValidator, auditLogger, logger)
 	operationalScheduler := servicepkg.NewOperationalScheduler(deps.DB, logger, temporalMonitor, positionService)
 
 	validator := validatorpkg.NewBusinessRuleValidator(hierarchyRepo, orgRepo, logger)

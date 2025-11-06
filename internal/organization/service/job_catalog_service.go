@@ -11,6 +11,7 @@ import (
 	"cube-castle/internal/organization/audit"
 	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
+	validator "cube-castle/internal/organization/validator"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
@@ -26,16 +27,118 @@ var (
 
 type JobCatalogService struct {
 	repo        *repository.JobCatalogRepository
+	validator   validator.JobCatalogValidationService
 	auditLogger *audit.AuditLogger
 	logger      pkglogger.Logger
 }
 
-func NewJobCatalogService(repo *repository.JobCatalogRepository, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *JobCatalogService {
+func NewJobCatalogService(repo *repository.JobCatalogRepository, validatorService validator.JobCatalogValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *JobCatalogService {
 	return &JobCatalogService{
 		repo:        repo,
+		validator:   validatorService,
 		auditLogger: auditLogger,
 		logger:      scopedLogger(baseLogger, "jobCatalog", nil),
 	}
+}
+
+func (s *JobCatalogService) validate(operation string, exec func(validator.JobCatalogValidationService) *validator.ValidationResult) error {
+	if exec == nil {
+		return nil
+	}
+	if s.validator == nil {
+		return nil
+	}
+	result := exec(s.validator)
+	if result == nil || result.Valid {
+		return nil
+	}
+	return validator.NewValidationFailedError(operation, result)
+}
+
+func (s *JobCatalogService) fallbackValidationError(operation, code string, result *validator.ValidationResult, defaultMessage string) error {
+	if result == nil {
+		result = validator.NewValidationResult()
+		result.Valid = false
+		result.Context["operation"] = operation
+		result.Context["catalogCode"] = strings.ToUpper(strings.TrimSpace(code))
+		result.Context["executedRules"] = []string{}
+		result.Errors = append(result.Errors, validator.ValidationError{
+			Code:     "JOB_CATALOG_TEMPORAL_CONFLICT",
+			Message:  defaultMessage,
+			Severity: string(validator.SeverityHigh),
+			Context: map[string]interface{}{
+				"ruleId":     "JC-TEMPORAL",
+				"catalogCode": strings.ToUpper(strings.TrimSpace(code)),
+			},
+		})
+	}
+	return validator.NewValidationFailedError(operation, result)
+}
+
+func (s *JobCatalogService) translateJobCatalogError(ctx context.Context, tenantID uuid.UUID, code string, operation string, req *types.JobCatalogVersionRequest, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	lower := strings.ToLower(err.Error())
+	if strings.Contains(lower, "invalid effective date") {
+		result := validator.NewValidationResult()
+		result.Valid = false
+		result.Context["operation"] = operation
+		result.Context["catalogCode"] = strings.ToUpper(strings.TrimSpace(code))
+		result.Context["executedRules"] = []string{"JC-TEMPORAL"}
+		result.Errors = append(result.Errors, validator.ValidationError{
+			Code:     "INVALID_EFFECTIVE_DATE",
+			Message:  fmt.Sprintf("effectiveDate must follow format %s", dateLayout),
+			Field:    "effectiveDate",
+			Severity: string(validator.SeverityHigh),
+			Context: map[string]interface{}{
+				"ruleId":          "JC-TEMPORAL",
+				"catalogCode":     strings.ToUpper(strings.TrimSpace(code)),
+				"attemptedDate":   strings.TrimSpace(req.EffectiveDate),
+				"validationScope": "fallback",
+			},
+		})
+		return validator.NewValidationFailedError(operation, result)
+	}
+
+	if strings.Contains(lower, "already exists for effective date") {
+		var result *validator.ValidationResult
+		if s.validator != nil {
+			switch operation {
+			case "CreateJobFamilyGroupVersion":
+				result = s.validator.ValidateCreateFamilyGroupVersion(ctx, tenantID, code, req)
+			case "CreateJobFamilyVersion":
+				// ParentRecordID mandatory for versions; reuse request value if present.
+				parentID := uuid.Nil
+				if req.ParentRecordID != nil {
+					if parsed, parseErr := uuid.Parse(strings.TrimSpace(*req.ParentRecordID)); parseErr == nil {
+						parentID = parsed
+					}
+				}
+				result = s.validator.ValidateCreateJobFamilyVersion(ctx, tenantID, code, req, parentID)
+			case "CreateJobRoleVersion":
+				parentID := uuid.Nil
+				if req.ParentRecordID != nil {
+					if parsed, parseErr := uuid.Parse(strings.TrimSpace(*req.ParentRecordID)); parseErr == nil {
+						parentID = parsed
+					}
+				}
+				result = s.validator.ValidateCreateJobRoleVersion(ctx, tenantID, code, req, parentID)
+			case "CreateJobLevelVersion":
+				parentID := uuid.Nil
+				if req.ParentRecordID != nil {
+					if parsed, parseErr := uuid.Parse(strings.TrimSpace(*req.ParentRecordID)); parseErr == nil {
+						parentID = parsed
+					}
+				}
+				result = s.validator.ValidateCreateJobLevelVersion(ctx, tenantID, code, req, parentID)
+			}
+		}
+		return s.fallbackValidationError(operation, code, result, "Job catalog version already exists for effective date")
+	}
+
+	return err
 }
 
 func (s *JobCatalogService) CreateJobFamilyGroup(ctx context.Context, tenantID uuid.UUID, req *types.CreateJobFamilyGroupRequest, operator types.OperatedByInfo) (*types.JobFamilyGroup, error) {
@@ -66,6 +169,12 @@ func (s *JobCatalogService) CreateJobFamilyGroup(ctx context.Context, tenantID u
 }
 
 func (s *JobCatalogService) CreateJobFamilyGroupVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.JobCatalogVersionRequest, operator types.OperatedByInfo) (*types.JobFamilyGroup, error) {
+	if err := s.validate("CreateJobFamilyGroupVersion", func(v validator.JobCatalogValidationService) *validator.ValidationResult {
+		return v.ValidateCreateFamilyGroupVersion(ctx, tenantID, code, req)
+	}); err != nil {
+		return nil, err
+	}
+
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -128,12 +237,6 @@ func (s *JobCatalogService) CreateJobFamily(ctx context.Context, tenantID uuid.U
 }
 
 func (s *JobCatalogService) CreateJobFamilyVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.JobCatalogVersionRequest, operator types.OperatedByInfo) (*types.JobFamily, error) {
-	tx, err := s.repo.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
 	if req.ParentRecordID == nil {
 		return nil, ErrJobCatalogInvalidInput
 	}
@@ -141,6 +244,18 @@ func (s *JobCatalogService) CreateJobFamilyVersion(ctx context.Context, tenantID
 	if parseErr != nil {
 		return nil, fmt.Errorf("invalid parentRecordId: %w", parseErr)
 	}
+
+	if err := s.validate("CreateJobFamilyVersion", func(v validator.JobCatalogValidationService) *validator.ValidationResult {
+		return v.ValidateCreateJobFamilyVersion(ctx, tenantID, code, req, parentUUID)
+	}); err != nil {
+		return nil, err
+	}
+
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
 	entity, err := s.repo.InsertJobFamilyVersion(ctx, tx, tenantID, code, parentUUID, req)
 	if err != nil {
@@ -200,12 +315,6 @@ func (s *JobCatalogService) CreateJobRole(ctx context.Context, tenantID uuid.UUI
 }
 
 func (s *JobCatalogService) CreateJobRoleVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.JobCatalogVersionRequest, operator types.OperatedByInfo) (*types.JobRole, error) {
-	tx, err := s.repo.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
 	if req.ParentRecordID == nil {
 		return nil, ErrJobCatalogInvalidInput
 	}
@@ -213,6 +322,18 @@ func (s *JobCatalogService) CreateJobRoleVersion(ctx context.Context, tenantID u
 	if parseErr != nil {
 		return nil, fmt.Errorf("invalid parentRecordId: %w", parseErr)
 	}
+
+	if err := s.validate("CreateJobRoleVersion", func(v validator.JobCatalogValidationService) *validator.ValidationResult {
+		return v.ValidateCreateJobRoleVersion(ctx, tenantID, code, req, parentUUID)
+	}); err != nil {
+		return nil, err
+	}
+
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
 	entity, err := s.repo.InsertJobRoleVersion(ctx, tx, tenantID, code, parentUUID, req)
 	if err != nil {
@@ -272,12 +393,6 @@ func (s *JobCatalogService) CreateJobLevel(ctx context.Context, tenantID uuid.UU
 }
 
 func (s *JobCatalogService) CreateJobLevelVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.JobCatalogVersionRequest, operator types.OperatedByInfo) (*types.JobLevel, error) {
-	tx, err := s.repo.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
 	if req.ParentRecordID == nil {
 		return nil, ErrJobCatalogInvalidInput
 	}
@@ -285,6 +400,18 @@ func (s *JobCatalogService) CreateJobLevelVersion(ctx context.Context, tenantID 
 	if parseErr != nil {
 		return nil, fmt.Errorf("invalid parentRecordId: %w", parseErr)
 	}
+
+	if err := s.validate("CreateJobLevelVersion", func(v validator.JobCatalogValidationService) *validator.ValidationResult {
+		return v.ValidateCreateJobLevelVersion(ctx, tenantID, code, req, parentUUID)
+	}); err != nil {
+		return nil, err
+	}
+
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
 	entity, err := s.repo.InsertJobLevelVersion(ctx, tx, tenantID, code, parentUUID, req)
 	if err != nil {

@@ -90,6 +90,41 @@ func (s *StubJobCatalogRepository) GetCurrentJobLevel(ctx context.Context, tx *s
 	return nil, nil
 }
 
+type StubJobCatalogTimelineRepository struct {
+	ListFamilyGroupTimelineFn func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error)
+	ListJobFamilyTimelineFn   func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error)
+	ListJobRoleTimelineFn     func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error)
+	ListJobLevelTimelineFn    func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error)
+}
+
+func (s *StubJobCatalogTimelineRepository) ListFamilyGroupTimeline(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+	if s == nil || s.ListFamilyGroupTimelineFn == nil {
+		return nil, nil
+	}
+	return s.ListFamilyGroupTimelineFn(ctx, tenantID, code)
+}
+
+func (s *StubJobCatalogTimelineRepository) ListJobFamilyTimeline(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+	if s == nil || s.ListJobFamilyTimelineFn == nil {
+		return nil, nil
+	}
+	return s.ListJobFamilyTimelineFn(ctx, tenantID, code)
+}
+
+func (s *StubJobCatalogTimelineRepository) ListJobRoleTimeline(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+	if s == nil || s.ListJobRoleTimelineFn == nil {
+		return nil, nil
+	}
+	return s.ListJobRoleTimelineFn(ctx, tenantID, code)
+}
+
+func (s *StubJobCatalogTimelineRepository) ListJobLevelTimeline(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+	if s == nil || s.ListJobLevelTimelineFn == nil {
+		return nil, nil
+	}
+	return s.ListJobLevelTimelineFn(ctx, tenantID, code)
+}
+
 type StubOrganizationRepository struct {
 	GetByCodeFn func(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error)
 }

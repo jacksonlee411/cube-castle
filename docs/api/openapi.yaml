@@ -3299,6 +3299,8 @@ components:
         - ASSIGN-STATE
         - ASSIGN-FTE
         - CROSS-ACTIVE
+        - JC-TEMPORAL
+        - JC-SEQUENCE
 
     ValidatorErrorCode:
       type: string
@@ -3316,6 +3318,12 @@ components:
         - ASSIGN_INVALID_STATE
         - ASSIGN_FTE_LIMIT
         - CROSS_ACTIVATION_CONFLICT
+        - JOB_CATALOG_TEMPORAL_CONFLICT
+        - JOB_CATALOG_SEQUENCE_MISMATCH
+        - JOB_CATALOG_SEQUENCE_MISSING_PARENT
+        - JOB_CATALOG_SEQUENCE_MISSING_BASE
+        - JOB_CATALOG_TIMELINE_UNAVAILABLE
+        - INVALID_EFFECTIVE_DATE
 
     PositionStatus:
       type: string
@@ -4147,6 +4155,23 @@ components:
                       attemptedDepth: 18
                 timestamp: "2025-08-23T10:30:00Z"
                 requestId: "req_validation_error_001"
+            job_catalog_temporal_conflict:
+              summary: Job Catalog Temporal Conflict
+              value:
+                success: false
+                error:
+                  code: "JOB_CATALOG_TEMPORAL_CONFLICT"
+                  message: "effectiveDate 2025-02-01 must be after latest version 2025-02-01"
+                  details:
+                    ruleId: "JC-TEMPORAL"
+                    severity: "HIGH"
+                    field: "effectiveDate"
+                    httpStatus: 400
+                    metadata:
+                      latestEffective: "2025-02-01"
+                      attemptedEffective: "2025-02-01"
+                timestamp: "2025-11-06T10:30:00Z"
+                requestId: "req_job_catalog_temporal_conflict_001"
             incomplete_resource:
               summary: Incomplete Resource (PUT)
               value:

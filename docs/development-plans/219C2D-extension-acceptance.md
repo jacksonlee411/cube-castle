@@ -39,16 +39,17 @@
 ## 4. 详细任务
 
 ### 4.1 Job Catalog 与 Validator 覆盖率提升
-- 当前 validator 覆盖率约 78%，需在本阶段提升至 ≥85%。
+- Day24 基线覆盖率 **83.7%**（参考历史记录），本阶段已将 `internal/organization/validator` 覆盖率提升至 **85.3%**（证据：`logs/219C2/test-Day24.log`）。
 - 编写 Job Catalog 规则文件：生效区间冲突、引用存在性、层级依赖。
 - 与数据团队确认所需仓储接口，可复用 stub。
 - 扩充单元测试（含职位/任职/Job Catalog）以将 `go test -cover ./internal/organization/validator` 覆盖率提升至 ≥85%，并在 `logs/219C2/test-Day24.log` 记录结果。
 
 ### 4.2 端到端测试与审计校验
-- 按计划执行 9 个用例（3 命令 × 3 场景），分别针对 REST 与 GraphQL 验证错误码一致性。
+- 按计划执行 9 个用例（3 命令 × 3 场景），分别针对 REST 与 GraphQL 验证错误码一致性，并**补齐 219C2C 留下的关键命令自测与审计证据**（`POS-HEADCOUNT`、`ASSIGN-STATE` 等）。
 - 在执行中抓取命令审计日志，确认 `business_context.ruleId`、`severity` 与错误响应一致，并将截图/日志附加到 `logs/219C2/validation.log`。
-- 输出测试报告 `tests/e2e/organization-validator/report-Day24.json`。
+- 输出测试报告 `tests/e2e/organization-validator/report-Day24.json`，并补完 `scripts/` 下的 GraphQL 自测脚本模板（源自 219C2C TODO）。
 - 若测试依赖初始数据，使用迁移或脚本初始化并记录。
+- **当前进展（2025-11-06 18:00）**：通过 `scripts/219C2D-validator-self-test.sh` 完成 Job Catalog 数据准备，但 REST 调用仍返回 `INTERNAL_ERROR`（PostgreSQL `23505`）。已记录日志并触发 219C2W 专项以修复错误映射；待完成映射后重新跑脚本并生成报告。
 
 ### 4.3 文档与归档
 - 更新 README：规则矩阵、执行顺序、测试策略、实现检查清单。
@@ -63,7 +64,7 @@
 
 ### 4.5 验收会议
 - Day 24 下午召开 30 分钟验收会议，参与：后端负责人、架构、安全。
-- 输出纪要：完成项、风险余量、滚动任务。
+- 输出纪要：完成项、风险余量、滚动任务，确认 219C2C 遗留的 REST/GraphQL 自测项已完成并归档。
 - 若有未完成项，制定滚动计划并抄送 219C 总计划。
 
 ---
@@ -108,6 +109,7 @@
 | 风险 | 影响 | 缓解 |
 |---|---|---|
 | 端到端测试依赖数据环境 | 高 | 提前验证 docker-compose 环境；失败时及时使用缓冲并通知负责人。 |
+| REST/GraphQL 自测脚本补齐耗时超出预估 | 中 | 复用 219C2C 现有 REST 脚本结构，同时并行完善 GraphQL 版本；自测输出统一归档 `logs/219C2/validation.log`。 |
 | 文档同步遗漏导致唯一事实来源漂移 | 中 | 使用 checklist：README → Implementation Inventory → 219C 主计划 → 归档；逐项勾选。 |
 | Job Catalog 规则需求变更 | 中 | 若发现新需求，立即记录并在验收会议确认是否转移到 219E。 |
 

@@ -79,7 +79,7 @@
 - 文档/契约同步：README 规则矩阵冻结、OpenAPI `ValidatorRuleId/ValidatorErrorCode`、`logs/219C2/rule-freeze.md`。
 - OpenAPI 已登记 ORG-TEMPORAL 规则标识，新增错误码 `INVALID_PARENT` / `ORG_TEMPORAL_PARENT_INACTIVE` 与验证链对齐。
 - 219C2C 交付：`position_assignment_validation.go`/`position_assignment_validation_test.go` 实现 POS-ORG / POS-HEADCOUNT / POS-JC-LINK / ASSIGN-STATE / ASSIGN-FTE / CROSS-ACTIVE，`CommandModule` 默认注入链式验证器。
-- Day 24 更新：新增 `errors_test.go`、`testing_stubs_test.go`、`position_helpers_test.go`，覆盖验证错误包装、仓储 stub 与 Position/Assignment helper，`go test -cover ./internal/organization/validator` 覆盖率提升至 **83.7%**（证据：`logs/219C2/test-Day24.log`）。
+- Day 24 更新：新增 `job_catalog_validation.go`/`job_catalog_validation_test.go`、完善 `testing_stubs_test.go` 默认路径；覆盖 `JC-TEMPORAL` / `JC-SEQUENCE` 规则（冲突、序列缺口、时间线加载失败）与 Job Catalog 验证服务注入，`go test -cover ./internal/organization/validator` 覆盖率提升至 **85.3%**（证据：`logs/219C2/test-Day24.log`）。
 - Pending deliverables:
   - GraphQL Mutation 接入职位/任职验证链（按 219C2D 排期）。
   - REST/GraphQL 端到端自测（Job Catalog / Assignment 场景）——Job Level API 当前返回 500，计划在 219C2D 修复后补充审计证据（参见 `logs/219C2/acceptance-precheck-Day24.md`）。

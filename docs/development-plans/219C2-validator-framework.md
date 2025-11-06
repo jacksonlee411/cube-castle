@@ -155,13 +155,15 @@
 - 交付物：Position/Assignment 规则代码与单测、命令入口改造、自测日志、跨域依赖清单。
 - 验收：`go test ./internal/organization/validator -run TestPosition -run TestAssignment` 全部通过；关键命令自测截图归档；依赖清单获数据团队确认。
 - 风险：跨域仓储缺失导致注入失败；Assignment 状态流转复杂需及时与业务对齐。
-- ✅ 219C2C 验收完成（2025-11-08）：`logs/219C2/test-Day24.log` 覆盖率 83.7%，`logs/219C2/acceptance-precheck-Day24.md` 记录 219C2Y 交付与风险，REST 自测补齐计划挂靠 219C2D。
+- ✅ 219C2C 验收完成（2025-11-08）：`logs/219C2/test-Day24.log` 记录最新执行（2025-11-06）后覆盖率 **85.3%**，并附 Job Catalog JC-* 规则测试；`logs/219C2/acceptance-precheck-Day24.md` 记录 219C2Y 交付与风险，REST 自测补齐计划挂靠 219C2D。
+- ⏳ 219C2D 自测阻断：Job Catalog version API 仍返回 `INTERNAL_ERROR`（PostgreSQL `23505`），职位填充未触发 POS-HEADCOUNT 错误映射。已创建 [219C2W – Validator Error Reconciliation](./219C2W-validation-error-reconciliation.md) 专项处理错误翻译后续动作。
 
 #### 3.1.4 子计划：219C2D – 扩展与验收（日程 Day 24）
 
 > 详见独立计划：[219C2D – 扩展与验收](./219C2D-extension-acceptance.md)
 
 - 前置条件：219C2B/219C2C 验收完成；P0 单测覆盖率目标已达成；端到端环境（Docker compose）可用。
+- ✅ 环境前置完成：Plan 219C2X（Docker 环境恢复）于 2025-11-06T07:05:53+08:00 完成，证据见 `logs/219C2/environment-Day24.log` “SUMMARY” 段，确认 REST/GraphQL/PostgreSQL/Redis 均处于 healthy 状态。
 - 工作项：
   1. 实现 Job Catalog 规则链及 P1 单测，确认引用一致性与时态冲突处理。
   2. 编写 9 个端到端测试（REST/GraphQL × 3 命令 × 3 场景），输出报告至 `tests/e2e/organization-validator`。
