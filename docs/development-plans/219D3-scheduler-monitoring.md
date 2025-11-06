@@ -52,9 +52,18 @@
 
 ## 4. 验收标准
 
-- [ ] Prometheus 指标在本地/sandbox 可观测，命名、标签符合规范。
-- [ ] Grafana Dashboard 与 Alertmanager 规则更新完成，截图或链接存档，并在 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 与 `internal/organization/README.md#scheduler` 引用。
-- [ ] 告警触发与恢复流程经验证并记录操作步骤。
+- [x] Prometheus 指标在本地/sandbox 可观测，命名、标签符合规范。（见 `logs/219D3/VALIDATION-2025-11-06.md` 步骤 1、PromQL 示例）
+- [x] Grafana Dashboard 与 Alertmanager 规则更新完成，截图或链接存档，并在 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 与 `internal/organization/README.md#scheduler` 引用。（Dashboard `docs/reference/monitoring/grafana/scheduler-dashboard.json`; 告警规则 `docs/reference/monitoring/alertmanager/scheduler.yml`）
+- [x] 告警触发与恢复流程经验证并记录操作步骤。（参考 `logs/219D3/VALIDATION-2025-11-06.md` 步骤 3）
+
+---
+
+## 7. 验收记录（2025-11-06）
+
+- 监控指标：`internal/monitoring/organization/metrics.go` 注册 Scheduler 任务/告警指标，`internal/organization/scheduler` 在执行路径中埋点。
+- 监控配置：`docker-compose.dev.yml`、`.env.example`、`Makefile` 新增 Prometheus/Grafana/Alertmanager 服务；配置落地 `config/prometheus.yml`、`docs/reference/monitoring/`。
+- 可视化与告警：Grafana Dashboard `docs/reference/monitoring/grafana/scheduler-dashboard.json`，Alertmanager 规则 `docs/reference/monitoring/alertmanager/scheduler.yml`。
+- 验证记录：`logs/219D3/VALIDATION-2025-11-06.md`。
 
 ---
 

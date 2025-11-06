@@ -45,7 +45,8 @@
 > 时间表可根据实际执行情况调整，确保前置依赖达成后再启动下一子计划。
 
 > 进度更新：2025-11-05 — ✅ 219B 已完成并合入主干，Assignment 查询能力与缓存刷新策略生效。  
-> 进度更新：2025-11-06 — ✅ 219D1/219D2 完成验收（详见 `docs/development-plans/06-integrated-teams-progress-log.md` 与 `logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md`），Scheduler 目录迁移与配置集中化达成，为 219D3 监控落地准备就绪。
+> 进度更新：2025-11-06 — ✅ 219D1/219D2 完成验收（详见 `docs/development-plans/06-integrated-teams-progress-log.md` 与 `logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md`），Scheduler 目录迁移与配置集中化达成，为 219D3 监控落地准备就绪。  
+> 进度更新：2025-11-06 — ✅ 219D3（监控与告警）完成，指标、Dashboard、Alertmanager 规则与验证记录已入库（参见 `docs/reference/monitoring/`、`logs/219D3/VALIDATION-2025-11-06.md`）。
 
 ---
 
