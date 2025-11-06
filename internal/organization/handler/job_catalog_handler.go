@@ -422,17 +422,15 @@ func (h *JobCatalogHandler) UpdateJobLevel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Validate required fields
 	req.Name = strings.TrimSpace(req.Name)
 	req.Status = strings.TrimSpace(req.Status)
 	req.EffectiveDate = strings.TrimSpace(req.EffectiveDate)
-	if req.Name == "" || req.Status == "" || req.EffectiveDate == "" {
-		h.writeError(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "名称、状态与生效日期为必填项", map[string]interface{}{
-			"name":          req.Name,
-			"status":        req.Status,
-			"effectiveDate": req.EffectiveDate,
-		})
+	if err := validateUpdateJobLevelRequest(&req); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), nil)
 		return
 	}
+
 	if req.Description != nil {
 		trimmed := strings.TrimSpace(*req.Description)
 		if trimmed == "" {
@@ -477,6 +475,15 @@ func (h *JobCatalogHandler) CreateJobLevelVersion(w http.ResponseWriter, r *http
 	code := strings.ToUpper(strings.TrimSpace(chi.URLParam(r, "code")))
 	if code == "" {
 		h.writeError(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少职级代码", nil)
+		return
+	}
+
+	// Validate required fields
+	req.Name = strings.TrimSpace(req.Name)
+	req.Status = strings.TrimSpace(req.Status)
+	req.EffectiveDate = strings.TrimSpace(req.EffectiveDate)
+	if err := validateJobCatalogVersionRequest(&req); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), nil)
 		return
 	}
 
@@ -535,6 +542,34 @@ func validateCreateJobLevelRequest(req *types.CreateJobLevelRequest) error {
 	}
 	if strings.TrimSpace(req.LevelRank) == "" {
 		return fmt.Errorf("职级排序号不能为空")
+	}
+	if strings.TrimSpace(req.EffectiveDate) == "" {
+		return fmt.Errorf("生效日期不能为空")
+	}
+	return nil
+}
+
+// validateUpdateJobLevelRequest validates UpdateJobLevelRequest required fields
+func validateUpdateJobLevelRequest(req *types.UpdateJobLevelRequest) error {
+	if strings.TrimSpace(req.Name) == "" {
+		return fmt.Errorf("职级名称不能为空")
+	}
+	if strings.TrimSpace(req.Status) == "" {
+		return fmt.Errorf("职级状态不能为空")
+	}
+	if strings.TrimSpace(req.EffectiveDate) == "" {
+		return fmt.Errorf("生效日期不能为空")
+	}
+	return nil
+}
+
+// validateJobCatalogVersionRequest validates JobCatalogVersionRequest required fields
+func validateJobCatalogVersionRequest(req *types.JobCatalogVersionRequest) error {
+	if strings.TrimSpace(req.Name) == "" {
+		return fmt.Errorf("名称不能为空")
+	}
+	if strings.TrimSpace(req.Status) == "" {
+		return fmt.Errorf("状态不能为空")
 	}
 	if strings.TrimSpace(req.EffectiveDate) == "" {
 		return fmt.Errorf("生效日期不能为空")
