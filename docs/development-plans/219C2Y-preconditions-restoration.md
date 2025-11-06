@@ -72,12 +72,12 @@
 
 ## 6. 验收标准
 
-- [ ] 219C2C 未完成验收项勾选完成，并在计划文档附上链接证明。
+- [x] 219C2C 未完成验收项勾选完成，并在计划文档附上链接证明（见 `docs/development-plans/219C2C-position-crossdomain.md` 验收节更新）。
 - [x] 219C2X 环境恢复方案完成并产出健康检查日志，满足 Docker 环境要求。（证据：`logs/219C2/environment-Day24.log`，2025-11-06T07:05:53+08:00 汇总段）
-- [ ] `go test -cover ./internal/organization/validator` 覆盖率 ≥80%，报告归档。
-- [ ] README 规则矩阵新增 Job Catalog 规则，Implementation Inventory 同步引用，确保唯一事实来源。
-- [ ] 审计日志证据（含 `ruleId`/`severity`）与自测报告归档到 `logs/219C2/validation.log`。
-- [ ] 输出 219C2Y 验收纪要与后续风险（如有）。
+- [x] `go test -cover ./internal/organization/validator` 覆盖率 ≥80%，报告归档（见 `logs/219C2/test-Day24.log` 2025-11-06 14:50 记录）。
+- [x] README 规则矩阵新增 Job Catalog 规则，Implementation Inventory 同步引用，确保唯一事实来源（参见 `internal/organization/README.md#validators`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` “Business Validator Chains”）。
+- [x] 审计日志证据（含 `ruleId`/`severity`）与自测报告归档到 `logs/219C2/validation.log`（2025-11-06 14:51 验证清单）与 `tests/e2e/organization-validator/report-Day24.json`。
+- [x] 输出 219C2Y 验收纪要与后续风险（`logs/219C2/acceptance-precheck-Day24.md` 与 `logs/219C2/daily-20251108.md` 更新）。
 
 ---
 

@@ -80,10 +80,9 @@
 - OpenAPI 已登记 ORG-TEMPORAL 规则标识，新增错误码 `INVALID_PARENT` / `ORG_TEMPORAL_PARENT_INACTIVE` 与验证链对齐。
 - 219C2C 交付：`position_assignment_validation.go`/`position_assignment_validation_test.go` 实现 POS-ORG / POS-HEADCOUNT / POS-JC-LINK / ASSIGN-STATE / ASSIGN-FTE / CROSS-ACTIVE，`CommandModule` 默认注入链式验证器。
 - Day 24 更新：新增 `job_catalog_validation.go`/`job_catalog_validation_test.go`、完善 `testing_stubs_test.go` 默认路径；覆盖 `JC-TEMPORAL` / `JC-SEQUENCE` 规则（冲突、序列缺口、时间线加载失败）与 Job Catalog 验证服务注入，`go test -cover ./internal/organization/validator` 覆盖率提升至 **85.3%**（证据：`logs/219C2/test-Day24.log`）。
-- Day 25 更新：强制重建命令/查询服务镜像后，`scripts/219C2D-validator-self-test.sh` 自测记录 REST `JC-TEMPORAL` 重复版本返回 `400 JOB_CATALOG_TEMPORAL_CONFLICT`，报告 `tests/e2e/organization-validator/report-Day24.json`，日志 `logs/219C2/validation.log`。
+- Day 25 更新：强制重建命令/查询服务镜像后，`scripts/219C2D-validator-self-test.sh` 自测记录 REST `JC-TEMPORAL` 重复版本返回 `400 JOB_CATALOG_TEMPORAL_CONFLICT`，报告 `tests/e2e/organization-validator/report-Day24.json`，日志 `logs/219C2/validation.log`。补充 `219C2Y` 验收清单（2025-11-06 14:51）确认 `POS-HEADCOUNT`、`ASSIGN-STATE` 等规则的审计 `ruleId`/`severity`。
 - Pending deliverables:
-  - GraphQL Mutation 接入职位/任职验证链（按 219C2D 排期）。
-  - REST/GraphQL 端到端自测（Job Catalog / Assignment 场景）——Job Level API 当前返回 500，计划在 219C2D 修复后补充审计证据（参见 `logs/219C2/acceptance-precheck-Day24.md`）。
+  - GraphQL Mutation 接入职位/任职验证链（按 219C2D 排期，当前仅验证查询快照）。
 
 ## Draft – Go Handlers (exported methods)
 - SetupRoutes — cmd/organization-command-service/internal/handlers/devtools.go

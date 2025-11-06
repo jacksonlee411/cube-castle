@@ -155,7 +155,8 @@
 - 交付物：Position/Assignment 规则代码与单测、命令入口改造、自测日志、跨域依赖清单。
 - 验收：`go test ./internal/organization/validator -run TestPosition -run TestAssignment` 全部通过；关键命令自测截图归档；依赖清单获数据团队确认。
 - 风险：跨域仓储缺失导致注入失败；Assignment 状态流转复杂需及时与业务对齐。
-- ✅ 219C2C 验收完成（2025-11-08）：`logs/219C2/test-Day24.log` 记录最新执行（2025-11-06）后覆盖率 **85.3%**，并附 Job Catalog JC-* 规则测试；`logs/219C2/acceptance-precheck-Day24.md` 记录 219C2Y 交付与风险，REST 自测补齐计划挂靠 219C2D。
+- ✅ 219C2C 验收完成（2025-11-08）：`logs/219C2/test-Day24.log` 记录最新执行（2025-11-06）后覆盖率 **85.3%**，并附 Job Catalog JC-* 规则测试；`logs/219C2/acceptance-precheck-Day24.md` 与 `logs/219C2/validation.log`（2025-11-06 14:51 节）补齐 REST/GraphQL 自测与审计凭证。
+- ✅ 219C2Y – 前置条件复位方案完成（2025-11-06 14:51）：已补齐 REST/GraphQL 自测脚本与审计证据，README/Implementation Inventory 更新同步，详见 `docs/development-plans/219C2Y-preconditions-restoration.md` 与 `logs/219C2/daily-20251108.md`。
 - ✅ 219C2W – Validator Error Reconciliation 已完成：命令服务重新构建后，自测脚本覆盖 JC-TEMPORAL/JC-SEQUENCE/POS-HEADCOUNT/ASSIGN-STATE，Job Catalog 冲突返回 `400 JOB_CATALOG_TEMPORAL_CONFLICT`。证据：`logs/219C2/validation.log`、`tests/e2e/organization-validator/report-Day24.json`。
 
 #### 3.1.4 子计划：219C2D – 扩展与验收（日程 Day 24）
