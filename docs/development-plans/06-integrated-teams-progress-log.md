@@ -1,74 +1,33 @@
-# Plan 06 – 集成测试要求（219D2 调度配置集中化）
+# Plan 06 – 集成测试行动记录（2025-11-06 更新）
 
-> 唯一事实来源：`docs/development-plans/219D2-scheduler-config.md`；依赖 219D1 目录迁移与 219A 目录结构约束。
+> 唯一事实来源：`docs/development-plans/219E-e2e-validation.md`、`logs/219E/`。本记录仅聚焦当前阻塞与下一步行动，便于与 219 系列计划协同。
 
-## 1. 测试范围与责任
-- **后端 / Scheduler 团队**：执行并记录命令服务端的单元测试、启动验证与失败演练；维护 `logs/219D2/` 下的日志与示例。
-- **DevOps**：通过 Docker Compose (`make docker-up`) 提供 Temporal、PostgreSQL、Redis 等依赖服务，确保环境变量与 219D2 配置保持一致。
-- **计划 Owner**：汇总测试结论、回滚记录并同步更新 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `internal/organization/README.md#scheduler`。
+## 当前状态
+- 219D1~219D5 已完成，Scheduler 配置/监控/测试资料可直接复用。
+- 219E 端到端与性能验证因宿主环境无法访问 Docker daemon (`/var/run/docker.sock` permission denied) 暂停；详见 `logs/219E/BLOCKERS-2025-11-06.md`。
+- 新的测试/性能脚本已入库，但尚未执行：
+  - `scripts/e2e/org-lifecycle-smoke.sh`（组织/部门生命周期冒烟，输出 `logs/219E/org-lifecycle-*.log`）
+  - `scripts/perf/rest-benchmark.sh`（REST P99 基准，输出 `logs/219E/perf-rest-*.log`）
 
-## 2. 前置条件
-- 219D1 输出（目录迁移、依赖注入）已合入，命令服务能够加载新的 Scheduler Facade。
-- `.env` 与 `docker-compose*.yml` 已按 219D2 要求补齐 `SCHEDULER_` 前缀配置，并与 `.env.example` 默认值一致。
-- 测试环境严格使用 Docker（`make docker-up`），若端口被宿主服务占用必须先卸载宿主服务，禁止调整容器端口映射。
-- 契约文档 (`docs/api/*`) 与计划文件保持一致，避免在测试中引用已废弃的配置键名。
+## 后续步骤（需按顺序推进）
+1. **恢复 Docker 访问**  
+   - 为当前用户授予 `/var/run/docker.sock` 访问权限（或在具备权限的宿主/runner 上执行）。  
+   - 验证 `docker ps` / `make run-dev` 成功，保证命令/查询服务及依赖容器可启动。
+2. **执行组织生命周期冒烟脚本**  
+   - 在服务就绪后运行 `scripts/e2e/org-lifecycle-smoke.sh`（可自定义 `COMMAND_API`、`TENANT_ID`、`JWT_TOKEN`）。  
+   - 将生成的 `logs/219E/org-lifecycle-*.log` 附加到 219E 计划验收记录，并检查 REST/GraphQL 返回值是否符合预期。
+3. **采集 REST 性能基准**  
+   - 安装 `hey`（`go install github.com/rakyll/hey@latest`）并运行 `scripts/perf/rest-benchmark.sh`。  
+   - 收集 `logs/219E/perf-rest-*.log` 中的 P95/P99 数据，与历史基线对比并在 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 性能章节登记。
+4. **补充 Playwright/前端 E2E 及缓存场景**  
+   - 复用 `frontend/tests/e2e/*.spec.ts` 与 `tests/e2e/organization-validator/`，重点验证 Assignment、Outbox→Dispatcher→缓存刷新路径。  
+   - 失败用例整理至 `logs/219E/`，并在 219E 文档“测试范围”表格更新状态。
+5. **回退演练与报告**  
+   - 依据 `internal/organization/README.md#Scheduler / Temporal（219D）` 的回退指引，演练一次 `SCHEDULER_ENABLED=false` 与 219D1 目录回退，记录命令与验证日志。  
+   - 将回退步骤与结果同步到 219E 文档及 `logs/219E/rollback-*.log`。
 
-## 3. 强制测试与校验
-1. **配置包单元测试** — `go test ./internal/config/...`
-   - 覆盖 `SchedulerConfig` 默认值、环境变量覆盖、非法配置报错与 `config.ValidateSchedulerConfig` 检查。
-   - 测试输出需写入 `logs/219D2/config-validation.log`（追加模式），作为验收附件。
-2. **命令服务启动自检** — `make run-dev`
-   - 验证 `SCHEDULER_ENABLED=true` 下命令服务可读取集中化配置并成功启动。
-   - 在 `logs/219D2/` 存档启动日志，标注配置来源与注册的任务列表。
-3. **配置覆盖验证** — `make run-dev SCHEDULER_ENABLED=false`
-   - 确认通过环境变量覆盖可关闭 Scheduler，服务启动过程无 panic、无多余警告。
-   - 在 `logs/219D2/` 记录对应日志（文件名自定义），说明关闭行为与后续恢复步骤。
-4. **失败与回滚演练**
-   - 人为引入无效配置（如清空 `SCHEDULER_TASK_QUEUE` 或提供非法 Cron），再次执行 `make run-dev`。
-   - 预期：启动被 `config.ValidateSchedulerConfig` 阻断，错误细节写入 `logs/219D2/config-validation.log`。
-   - 恢复默认配置并重新启动，确认系统回到健康状态，同时在日志中附注回滚命令。
-
-## 4. 输出归档要求
-- `logs/219D2/` 需保留：单元测试输出、成功启动日志、关闭/失败演练日志与回滚说明。
-- 更新后的配置清单（参数名称、默认值、覆盖层级）随 PR 或变更记录提交，并在 `internal/organization/README.md#scheduler` 引用。
-- 若测试过程中产生额外脚本或工具，需在 PR 中声明来源并确保与 219D2 文档保持一致。
-
-## 5. 验收记录模板
-
-### 验收记录（2025-11-06）✅ **已完成**
-
-- ✅ go test ./internal/config/... **PASS** （logs/219D2/config-validation.log）
-- ✅ make run-dev **PASS** （日志：logs/219D2/startup-success.log）
-- ✅ make run-dev SCHEDULER_ENABLED=false **PASS** （日志：logs/219D2/startup-disabled.log）
-- ✅ 失败演练与回滚 **PASS** （日志：logs/219D2/failure-test.log）
-- ✅ 剩余风险：**无** （总体风险等级：🟢 低）
-
-**完整验收报告：** `logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md`
-**执行摘要：** `logs/219D2/TEST-SUMMARY.txt`
-**文档同步建议：** `logs/219D2/DOCUMENTATION-UPDATE-SUGGESTION.md`
-
----
-
-## 6. 验收摘要
-
-| 测试项 | 状态 | 日志位置 | 说明 |
-|--------|------|--------|------|
-| 配置单元测试 | ✅ | config-validation.log | 3/3 测试用例通过 |
-| 启动自检 | ✅ | startup-success.log | 全服务健康（REST、GraphQL、Temporal、DB） |
-| 配置覆盖验证 | ✅ | startup-disabled.log | 无 panic，恢复正常 |
-| 失败演练 | ✅ | failure-test.log | 配置验证生效，恢复有效 |
-| **总体通过率** | **100%** | logs/219D2/ | 4/4 强制测试通过 |
-
----
-
-## 7. 后续行动
-
-- [x] 执行全量测试并记录日志
-- [ ] 同步更新 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`（参考 DOCUMENTATION-UPDATE-SUGGESTION.md）
-- [ ] 同步更新 `internal/organization/README.md#scheduler`
-- [ ] 更新 `CHANGELOG.md` 记录变更
-- [ ] 若所有文档同步完毕，标记计划为 **COMPLETED**
-
----
-
-如需调整上述要求，必须先更新 `docs/development-plans/219D2-scheduler-config.md` 并同步通知相关责任人。
+## 参考资料
+- 阻塞说明：`logs/219E/BLOCKERS-2025-11-06.md`
+- 219D2~219D4 日志：`logs/219D2/`, `logs/219D3/`, `logs/219D4/`
+- 监控配置：`docs/reference/monitoring/`
+- 219E 计划：`docs/development-plans/219E-e2e-validation.md`
