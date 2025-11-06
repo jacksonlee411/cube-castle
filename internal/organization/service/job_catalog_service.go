@@ -25,6 +25,8 @@ var (
 	ErrJobCatalogPreconditionFailed = errors.New("job catalog precondition failed")
 )
 
+const jobCatalogDateLayout = "2006-01-02"
+
 type JobCatalogService struct {
 	repo        *repository.JobCatalogRepository
 	validator   validator.JobCatalogValidationService
@@ -59,16 +61,28 @@ func (s *JobCatalogService) fallbackValidationError(operation, code string, resu
 	if result == nil {
 		result = validator.NewValidationResult()
 		result.Valid = false
+	}
+
+	catalogCode := strings.ToUpper(strings.TrimSpace(code))
+	if result.Context == nil {
+		result.Context = map[string]interface{}{}
+	}
+	if _, ok := result.Context["operation"]; !ok {
 		result.Context["operation"] = operation
-		result.Context["catalogCode"] = strings.ToUpper(strings.TrimSpace(code))
+	}
+	result.Context["catalogCode"] = catalogCode
+	if _, ok := result.Context["executedRules"]; !ok {
 		result.Context["executedRules"] = []string{}
+	}
+
+	if len(result.Errors) == 0 {
 		result.Errors = append(result.Errors, validator.ValidationError{
 			Code:     "JOB_CATALOG_TEMPORAL_CONFLICT",
 			Message:  defaultMessage,
 			Severity: string(validator.SeverityHigh),
 			Context: map[string]interface{}{
-				"ruleId":     "JC-TEMPORAL",
-				"catalogCode": strings.ToUpper(strings.TrimSpace(code)),
+				"ruleId":      "JC-TEMPORAL",
+				"catalogCode": catalogCode,
 			},
 		})
 	}
@@ -80,6 +94,47 @@ func (s *JobCatalogService) translateJobCatalogError(ctx context.Context, tenant
 		return nil
 	}
 
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) {
+		switch pqErr.Code {
+		case "23505":
+			var result *validator.ValidationResult
+			if s.validator != nil {
+				switch operation {
+				case "CreateJobFamilyGroupVersion":
+					result = s.validator.ValidateCreateFamilyGroupVersion(ctx, tenantID, code, req)
+				case "CreateJobFamilyVersion":
+					parentID := uuid.Nil
+					if req != nil && req.ParentRecordID != nil {
+						if parsed, parseErr := uuid.Parse(strings.TrimSpace(*req.ParentRecordID)); parseErr == nil {
+							parentID = parsed
+						}
+					}
+					result = s.validator.ValidateCreateJobFamilyVersion(ctx, tenantID, code, req, parentID)
+				case "CreateJobRoleVersion":
+					parentID := uuid.Nil
+					if req != nil && req.ParentRecordID != nil {
+						if parsed, parseErr := uuid.Parse(strings.TrimSpace(*req.ParentRecordID)); parseErr == nil {
+							parentID = parsed
+						}
+					}
+					result = s.validator.ValidateCreateJobRoleVersion(ctx, tenantID, code, req, parentID)
+				case "CreateJobLevelVersion":
+					parentID := uuid.Nil
+					if req != nil && req.ParentRecordID != nil {
+						if parsed, parseErr := uuid.Parse(strings.TrimSpace(*req.ParentRecordID)); parseErr == nil {
+							parentID = parsed
+						}
+					}
+					result = s.validator.ValidateCreateJobLevelVersion(ctx, tenantID, code, req, parentID)
+				}
+			}
+			return s.fallbackValidationError(operation, code, result, "Job catalog version already exists for effective date")
+		case "23503":
+			return ErrJobCatalogParentMissing
+		}
+	}
+
 	lower := strings.ToLower(err.Error())
 	if strings.Contains(lower, "invalid effective date") {
 		result := validator.NewValidationResult()
@@ -89,7 +144,7 @@ func (s *JobCatalogService) translateJobCatalogError(ctx context.Context, tenant
 		result.Context["executedRules"] = []string{"JC-TEMPORAL"}
 		result.Errors = append(result.Errors, validator.ValidationError{
 			Code:     "INVALID_EFFECTIVE_DATE",
-			Message:  fmt.Sprintf("effectiveDate must follow format %s", dateLayout),
+			Message:  fmt.Sprintf("effectiveDate must follow format %s", jobCatalogDateLayout),
 			Field:    "effectiveDate",
 			Severity: string(validator.SeverityHigh),
 			Context: map[string]interface{}{
@@ -138,6 +193,36 @@ func (s *JobCatalogService) translateJobCatalogError(ctx context.Context, tenant
 		return s.fallbackValidationError(operation, code, result, "Job catalog version already exists for effective date")
 	}
 
+	if strings.Contains(lower, "parent job family group not found") {
+		return ErrJobCatalogParentMissing
+	}
+
+	if strings.Contains(lower, "parent record mismatch") {
+		result := validator.NewValidationResult()
+		result.Valid = false
+		result.Context["operation"] = operation
+		result.Context["catalogCode"] = strings.ToUpper(strings.TrimSpace(code))
+		result.Context["executedRules"] = []string{"JC-SEQUENCE"}
+		provided := ""
+		if req != nil && req.ParentRecordID != nil {
+			provided = strings.TrimSpace(*req.ParentRecordID)
+		}
+		result.Errors = append(result.Errors, validator.ValidationError{
+			Code:     "JOB_CATALOG_SEQUENCE_MISMATCH",
+			Message:  "parentRecordId must match latest version record",
+			Field:    "parentRecordId",
+			Severity: string(validator.SeverityHigh),
+			Context: map[string]interface{}{
+				"ruleId":             "JC-SEQUENCE",
+				"catalogCode":        strings.ToUpper(strings.TrimSpace(code)),
+				"providedParentId":   provided,
+				"validationScope":    "fallback",
+				"validationFallback": true,
+			},
+		})
+		return validator.NewValidationFailedError(operation, result)
+	}
+
 	return err
 }
 
@@ -183,7 +268,7 @@ func (s *JobCatalogService) CreateJobFamilyGroupVersion(ctx context.Context, ten
 
 	entity, err := s.repo.InsertFamilyGroupVersion(ctx, tx, tenantID, code, req)
 	if err != nil {
-		return nil, err
+		return nil, s.translateJobCatalogError(ctx, tenantID, code, "CreateJobFamilyGroupVersion", req, err)
 	}
 	after := map[string]interface{}{
 		"code":        entity.Code,
@@ -259,7 +344,7 @@ func (s *JobCatalogService) CreateJobFamilyVersion(ctx context.Context, tenantID
 
 	entity, err := s.repo.InsertJobFamilyVersion(ctx, tx, tenantID, code, parentUUID, req)
 	if err != nil {
-		return nil, err
+		return nil, s.translateJobCatalogError(ctx, tenantID, code, "CreateJobFamilyVersion", req, err)
 	}
 
 	after := map[string]interface{}{
@@ -337,7 +422,7 @@ func (s *JobCatalogService) CreateJobRoleVersion(ctx context.Context, tenantID u
 
 	entity, err := s.repo.InsertJobRoleVersion(ctx, tx, tenantID, code, parentUUID, req)
 	if err != nil {
-		return nil, err
+		return nil, s.translateJobCatalogError(ctx, tenantID, code, "CreateJobRoleVersion", req, err)
 	}
 
 	after := map[string]interface{}{
@@ -415,7 +500,7 @@ func (s *JobCatalogService) CreateJobLevelVersion(ctx context.Context, tenantID 
 
 	entity, err := s.repo.InsertJobLevelVersion(ctx, tx, tenantID, code, parentUUID, req)
 	if err != nil {
-		return nil, err
+		return nil, s.translateJobCatalogError(ctx, tenantID, code, "CreateJobLevelVersion", req, err)
 	}
 
 	after := map[string]interface{}{

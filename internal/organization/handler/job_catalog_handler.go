@@ -10,6 +10,7 @@ import (
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/service"
 	"cube-castle/internal/organization/utils"
+	validator "cube-castle/internal/organization/validator"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
@@ -503,6 +504,12 @@ func (h *JobCatalogHandler) CreateJobLevelVersion(w http.ResponseWriter, r *http
 }
 
 func (h *JobCatalogHandler) handleServiceError(w http.ResponseWriter, r *http.Request, err error) {
+	var validationErr *validator.ValidationFailedError
+	if errors.As(err, &validationErr) {
+		h.writeValidationFailure(w, r, validationErr.Result())
+		return
+	}
+
 	switch {
 	case errors.Is(err, service.ErrJobCatalogParentMissing):
 		h.writeError(w, r, http.StatusBadRequest, "JOB_CATALOG_PARENT_MISSING", "上级职位分类不存在", err)
@@ -523,6 +530,48 @@ func (h *JobCatalogHandler) writeError(w http.ResponseWriter, r *http.Request, s
 	requestID := middleware.GetRequestID(r.Context())
 	if err := utils.WriteError(w, status, code, message, requestID, details); err != nil {
 		h.requestLogger(r, "writeError").WithFields(pkglogger.Fields{"error": err, "status": status, "code": code}).Error("write job catalog error response failed")
+	}
+}
+
+func (h *JobCatalogHandler) writeValidationFailure(w http.ResponseWriter, r *http.Request, result *validator.ValidationResult) {
+	if result == nil {
+		h.writeError(w, r, http.StatusBadRequest, "BUSINESS_RULE_VIOLATION", "业务规则校验失败", nil)
+		return
+	}
+
+	status := http.StatusBadRequest
+	ruleCode := "BUSINESS_RULE_VIOLATION"
+	message := "业务规则校验失败"
+	if len(result.Errors) > 0 {
+		first := result.Errors[0]
+		if trimmed := strings.TrimSpace(first.Code); trimmed != "" {
+			ruleCode = trimmed
+		}
+		if trimmed := strings.TrimSpace(first.Message); trimmed != "" {
+			message = trimmed
+		}
+		severity := strings.ToUpper(strings.TrimSpace(first.Severity))
+		if severity == "" {
+			severity = string(validator.SeverityHigh)
+		}
+		mapped := validator.SeverityToHTTPStatus(severity)
+		if mapped >= http.StatusBadRequest {
+			status = mapped
+		}
+	}
+
+	details := map[string]interface{}{
+		"validationErrors": result.Errors,
+		"warnings":         result.Warnings,
+		"chainContext":     result.Context,
+		"errorCount":       len(result.Errors),
+		"warningCount":     len(result.Warnings),
+	}
+
+	requestID := middleware.GetRequestID(r.Context())
+	logger := h.requestLogger(r, "writeValidationFailure")
+	if err := utils.WriteError(w, status, ruleCode, message, requestID, details); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err, "status": status, "code": ruleCode}).Error("write validation failure response failed")
 	}
 }
 

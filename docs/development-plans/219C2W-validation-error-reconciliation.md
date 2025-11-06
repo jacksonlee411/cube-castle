@@ -58,6 +58,15 @@
 - 若 OpenAPI 错误示例变更，提交契约更新。
 - 在 219C2 主计划与 219C2D 文档中标记补齐时间。
 
+### 4.5 当前进展（2025-11-06 21:56）
+- ✅ Job Catalog 服务新增 `translateJobCatalogError`，重复版本 (`pq.Error 23505`) 与无效日期均转换为 `JC-TEMPORAL` 验证错误，单测覆盖 `internal/organization/service/job_catalog_service_test.go`。
+- ✅ Position/Assignment 服务将 `ErrInvalidHeadcount`、`ErrInvalidAssignmentState` 映射为 `POS-HEADCOUNT` / `ASSIGN-STATE` 验证失败，新增 helper 单测 `position_service_test.go`。
+- ✅ `scripts/219C2D-validator-self-test.sh` 已完整运行，覆盖 JC-TEMPORAL / JC-SEQUENCE / POS-HEADCOUNT / ASSIGN-STATE 错误码与严重级别断言，生成报告 `tests/e2e/organization-validator/report-Day24.json`。
+- ✅ 通过 `docker compose -f docker-compose.dev.yml up -d --build --force-recreate rest-service graphql-service` 重建命令/查询服务镜像，确认运行时已载入最新验证逻辑。
+- ✅ 自测日志记录至 `logs/219C2/validation.log`；报告包含 REST/GraphQL 双通道执行结果，覆盖 Job Catalog / Position / Assignment 关键场景。
+- ✅ Position ASSIGN-STATE（对不活跃职位的编制验证）返回 `400 ASSIGN_INVALID_STATE` / `CRITICAL` 与 `ASSIGN-STATE` ruleId，REST 通道已验证。
+- ✅ README（`internal/organization/README.md`）更新最新自测时间与证据；Implementation Inventory 与 219C2 主计划同步记录待主计划会议确认。
+
 ---
 
 ## 5. 交付物
@@ -71,9 +80,9 @@
 
 ## 6. 验收标准
 
-- [ ] Job Catalog 版本重复插入返回 `JOB_CATALOG_TEMPORAL_CONFLICT` / `JC-TEMPORAL`，请求 HTTP 400。
-- [ ] Position Fill 超编返回 `POS_HEADCOUNT_EXCEEDED` / `POS-HEADCOUNT`，HTTP 400；任职关闭状态异常返回 `ASSIGN_INVALID_STATE`。
-- [ ] 自测脚本成功执行并输出报告；日志中含 REST/GraphQL 双通道证据与审计 `ruleId`。
+- [x] Job Catalog 版本重复插入返回 `JOB_CATALOG_TEMPORAL_CONFLICT` / `JC-TEMPORAL`，请求 HTTP 400。
+- [x] Position Fill 超编返回 `POS_HEADCOUNT_EXCEEDED` / `POS-HEADCOUNT`，HTTP 400；任职关闭状态异常返回 `ASSIGN_INVALID_STATE`。✅ 已验证（报告见 report-Day24.json）
+- [x] 自测脚本成功执行并输出报告；日志中含 REST/GraphQL 双通道证据与审计 `ruleId`。✅ 日志：logs/219C2/validation.log；报告：tests/e2e/organization-validator/report-Day24.json
 - [ ] README、Implementation Inventory 记录更新，OpenAPI（如修改）合并。
 
 ---

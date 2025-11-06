@@ -100,6 +100,7 @@ section_log "219C2D Validator 自测开始 ($TIMESTAMP)"
 print_log "准备基础数据（组织 + Job Catalog + 职位）"
 
 random_suffix="$(date +%s%N | tail -c 6)"
+FILL_EFFECTIVE_DATE="${FILL_EFFECTIVE_DATE:-$(date '+%Y-%m-%d')}"
 
 # 1. 创建组织
 ORG_CODE="1$(printf '%06d' $((RANDOM % 900000 + 100000)))"
@@ -229,12 +230,33 @@ log_rest_scenario() {
   local scenario="$2"
   local http_status="$3"
   local body="$4"
+  local expected_status="${5:-}"
+  local expected_code="${6:-}"
+  local expected_rule="${7:-}"
+  local expected_severity="${8:-}"
 
-  local error_code request_id rule_id severity
+  local error_code request_id rule_id severity pass="passed"
   error_code=$(extract_field "$body" '.error.code // .error.Code // empty')
   request_id=$(extract_field "$body" '.requestId // empty')
   rule_id=$(extract_field "$body" '.error.details.ruleId // .error.details.validationErrors[0].context.ruleId // empty')
   severity=$(extract_field "$body" '.error.details.validationErrors[0].severity // empty')
+
+  if [[ -n "$expected_status" && "$http_status" != "$expected_status" ]]; then
+    pass="failed"
+    print_log "⚠️  [$command/$scenario] 期望 HTTP $expected_status 实际 $http_status"
+  fi
+  if [[ -n "$expected_code" && "$error_code" != "$expected_code" ]]; then
+    pass="failed"
+    print_log "⚠️  [$command/$scenario] 期望错误码 $expected_code 实际 ${error_code:-<空>}"
+  fi
+  if [[ -n "$expected_rule" && "$rule_id" != "$expected_rule" ]]; then
+    pass="failed"
+    print_log "⚠️  [$command/$scenario] 期望 ruleId $expected_rule 实际 ${rule_id:-<空>}"
+  fi
+  if [[ -n "$expected_severity" && "${severity^^}" != "${expected_severity^^}" ]]; then
+    pass="failed"
+    print_log "⚠️  [$command/$scenario] 期望 severity $expected_severity 实际 ${severity:-<空>}"
+  fi
 
   append_report "$(jq -n \
     --arg command "$command" \
@@ -245,9 +267,10 @@ log_rest_scenario() {
     --arg rid "$rule_id" \
     --arg req "$request_id" \
     --arg sev "$severity" \
+    --arg pass "$pass" \
     '{command:$command,scenario:$scenario,channel:$channel,
       result:{
-        status: (if (($status|tonumber?) // 500) < 400 then "passed" else "failed" end),
+        status: $pass,
         httpStatus: ($status|tonumber?),
         errorCode: ($err|select(.!="")),
         ruleId: ($rid|select(.!="")),
@@ -298,9 +321,9 @@ if [[ "$status_code" != "201" ]]; then
   exit 1
 fi
 catalog_latest_record=$(extract_field "$body" '.data.RecordID // .data.recordId')
-log_rest_scenario "jobCatalog.createVersion" "success" "$status_code" "$body"
+log_rest_scenario "jobCatalog.createVersion" "success" "$status_code" "$body" "201"
 
-graphql_query='query ($code: String!) {
+graphql_query='query ($code: JobFamilyGroupCode!) {
   jobFamilies(groupCode: $code) {
     code
     status
@@ -329,7 +352,7 @@ body=$(echo "$resp" | head -n -1)
 echo -e "\n[A2] Payload: $payload" >>"$VALIDATION_LOG"
 echo "[A2] HTTP: $status_code" >>"$VALIDATION_LOG"
 echo "$body" | jq '.' >>"$VALIDATION_LOG"
-log_rest_scenario "jobCatalog.createVersion" "temporal_conflict" "$status_code" "$body"
+log_rest_scenario "jobCatalog.createVersion" "temporal_conflict" "$status_code" "$body" "400" "JOB_CATALOG_TEMPORAL_CONFLICT" "JC-TEMPORAL" "HIGH"
 
 graphql_resp=$(graphql_request "$graphql_query" "$(jq -n --arg code "$JFG_CODE" '{code:$code}')" )
 graphql_status=$(echo "$graphql_resp" | tail -n1)
@@ -338,28 +361,67 @@ echo "[A2] GraphQL jobFamilies response:" >>"$VALIDATION_LOG"
 echo "$graphql_body" | jq '.' >>"$VALIDATION_LOG"
 log_graphql_scenario "jobCatalog.createVersion" "temporal_conflict.query" "jobFamilies timeline unchanged" "$graphql_status"
 
-# A3: 序列父节点不匹配
-section_log "A3. Job Catalog Version - 序列不连续 (JC-SEQUENCE)"
+# A3: Job Family Version - 成功
+section_log "A3. Job Family Version - 成功"
 payload=$(jq -n \
-  --arg name "219C2D 序列测试" \
+  --arg name "219C2D 自测职种版本" \
   --arg status "ACTIVE" \
-  --arg effective "2026-01-01" \
-  --arg parent "$catalog_parent_id" \
+  --arg effective "2025-12-01" \
+  --arg parent "$JF_RECORD_ID" \
   '{name:$name,status:$status,effectiveDate:$effective,parentRecordId:$parent}')
-resp=$(rest_request POST "/api/v1/job-family-groups/$JFG_CODE/versions" "$payload")
+resp=$(rest_request POST "/api/v1/job-families/$JF_CODE/versions" "$payload")
 status_code=$(echo "$resp" | tail -n1)
 body=$(echo "$resp" | head -n -1)
 echo -e "\n[A3] Payload: $payload" >>"$VALIDATION_LOG"
 echo "[A3] HTTP: $status_code" >>"$VALIDATION_LOG"
 echo "$body" | jq '.' >>"$VALIDATION_LOG"
-log_rest_scenario "jobCatalog.createVersion" "sequence_mismatch" "$status_code" "$body"
+if [[ "$status_code" != "201" ]]; then
+  print_log "❌ A3 失败"
+  exit 1
+fi
+JOB_FAMILY_LATEST_VERSION=$(extract_field "$body" '.data.recordId // .data.RecordID')
+log_rest_scenario "jobFamily.createVersion" "success" "$status_code" "$body" "201"
 
-graphql_resp=$(graphql_request "$graphql_query" "$(jq -n --arg code "$JFG_CODE" '{code:$code}')" )
+job_family_query='query ($group: JobFamilyGroupCode!, $code: JobFamilyCode!) {
+  jobFamily(groupCode: $group, code: $code) {
+    code
+    status
+    versions {
+      recordId
+      effectiveDate
+      parentRecordId
+    }
+  }
+}'
+graphql_resp=$(graphql_request "$job_family_query" "$(jq -n --arg group "$JFG_CODE" --arg code "$JF_CODE" '{group:$group,code:$code}')" )
 graphql_status=$(echo "$graphql_resp" | tail -n1)
 graphql_body=$(echo "$graphql_resp" | head -n -1)
-echo "[A3] GraphQL jobFamilies response:" >>"$VALIDATION_LOG"
+echo "[A3] GraphQL jobFamily response:" >>"$VALIDATION_LOG"
 echo "$graphql_body" | jq '.' >>"$VALIDATION_LOG"
-log_graphql_scenario "jobCatalog.createVersion" "sequence_mismatch.query" "jobFamilies timeline snapshot" "$graphql_status"
+log_graphql_scenario "jobFamily.createVersion" "success.query" "jobFamily versions snapshot" "$graphql_status"
+
+# A4: Job Family Version - 序列不连续 (JC-SEQUENCE)
+section_log "A4. Job Family Version - 序列不连续 (JC-SEQUENCE)"
+payload=$(jq -n \
+  --arg name "219C2D 序列测试" \
+  --arg status "ACTIVE" \
+  --arg effective "2026-01-01" \
+  --arg parent "$JF_RECORD_ID" \
+  '{name:$name,status:$status,effectiveDate:$effective,parentRecordId:$parent}')
+resp=$(rest_request POST "/api/v1/job-families/$JF_CODE/versions" "$payload")
+status_code=$(echo "$resp" | tail -n1)
+body=$(echo "$resp" | head -n -1)
+echo -e "\n[A4] Payload: $payload" >>"$VALIDATION_LOG"
+echo "[A4] HTTP: $status_code" >>"$VALIDATION_LOG"
+echo "$body" | jq '.' >>"$VALIDATION_LOG"
+log_rest_scenario "jobFamily.createVersion" "sequence_mismatch" "$status_code" "$body" "400" "JOB_CATALOG_SEQUENCE_MISMATCH" "JC-SEQUENCE" "HIGH"
+
+graphql_resp=$(graphql_request "$job_family_query" "$(jq -n --arg group "$JFG_CODE" --arg code "$JF_CODE" '{group:$group,code:$code}')" )
+graphql_status=$(echo "$graphql_resp" | tail -n1)
+graphql_body=$(echo "$graphql_resp" | head -n -1)
+echo "[A4] GraphQL jobFamily response:" >>"$VALIDATION_LOG"
+echo "$graphql_body" | jq '.' >>"$VALIDATION_LOG"
+log_graphql_scenario "jobFamily.createVersion" "sequence_mismatch.query" "jobFamily timeline snapshot" "$graphql_status"
 
 # --- Command B: Position Fill ---
 
@@ -369,8 +431,8 @@ fill_payload() {
   jq -n \
     --arg emp "$employee" \
     --argjson fte "$fte" \
-    --arg date "2025-12-01" \
-    '{employeeId:$emp,employeeName:"Validator Agent",assignmentType:"FULL_TIME",
+    --arg date "$FILL_EFFECTIVE_DATE" \
+    '{employeeId:$emp,employeeName:"Validator Agent",assignmentType:"PRIMARY",
       effectiveDate:$date,operationReason:"219C2D validator self-test",fte:$fte}'
 }
 
@@ -387,9 +449,16 @@ if [[ "$status_code" != "200" ]]; then
   exit 1
 fi
 ASSIGNMENT_ID=$(extract_field "$body" '.data.currentAssignment.assignmentId // .data.CurrentAssignment.AssignmentID')
-log_rest_scenario "position.fill" "success" "$status_code" "$body"
+if [[ -z "$ASSIGNMENT_ID" ]]; then
+  ASSIGNMENT_ID=$(extract_field "$body" '.data.assignmentHistory[0].assignmentId // .data.AssignmentHistory[0].AssignmentID')
+fi
+if [[ -z "$ASSIGNMENT_ID" ]]; then
+  print_log "❌ 未能解析当前任职 ID，无法继续"
+  exit 1
+fi
+log_rest_scenario "position.fill" "success" "$status_code" "$body" "200"
 
-graphql_positions_query='query ($code: String!) {
+graphql_positions_query='query ($code: PositionCode!) {
   position(code: $code) {
     code
     status
@@ -412,7 +481,7 @@ body=$(echo "$resp" | head -n -1)
 echo -e "\n[B2] Payload: $payload" >>"$VALIDATION_LOG"
 echo "[B2] HTTP: $status_code" >>"$VALIDATION_LOG"
 echo "$body" | jq '.' >>"$VALIDATION_LOG"
-log_rest_scenario "position.fill" "headcount_exceeded" "$status_code" "$body"
+log_rest_scenario "position.fill" "headcount_exceeded" "$status_code" "$body" "400" "POS_HEADCOUNT_EXCEEDED" "POS-HEADCOUNT" "HIGH"
 
 resp_graph=$(graphql_request "$graphql_positions_query" "$(jq -n --arg code "$POSITION_CODE" '{code:$code}')" )
 status_graph=$(echo "$resp_graph" | tail -n1)
@@ -432,7 +501,7 @@ body=$(echo "$resp" | head -n -1)
 echo -e "\n[C1] Payload: $close_payload" >>"$VALIDATION_LOG"
 echo "[C1] HTTP: $status_code" >>"$VALIDATION_LOG"
 echo "$body" | jq '.' >>"$VALIDATION_LOG"
-log_rest_scenario "assignment.close" "success" "$status_code" "$body"
+log_rest_scenario "assignment.close" "success" "$status_code" "$body" "200"
 
 resp_graph=$(graphql_request "$graphql_positions_query" "$(jq -n --arg code "$POSITION_CODE" '{code:$code}')" )
 status_graph=$(echo "$resp_graph" | tail -n1)
@@ -469,7 +538,7 @@ body=$(echo "$resp" | head -n -1)
 echo -e "\n[B3] Payload: $payload" >>"$VALIDATION_LOG"
 echo "[B3] HTTP: $status_code" >>"$VALIDATION_LOG"
 echo "$body" | jq '.' >>"$VALIDATION_LOG"
-log_rest_scenario "position.fill" "assign_state_inactive_position" "$status_code" "$body"
+log_rest_scenario "position.fill" "assign_state_inactive_position" "$status_code" "$body" "400" "ASSIGN_INVALID_STATE" "ASSIGN-STATE" "CRITICAL"
 
 resp_graph=$(graphql_request "$graphql_positions_query" "$(jq -n --arg code "$POSITION_CODE" '{code:$code}')" )
 status_graph=$(echo "$resp_graph" | tail -n1)
@@ -486,7 +555,7 @@ body=$(echo "$resp" | head -n -1)
 echo -e "\n[C2] Payload: $close_payload" >>"$VALIDATION_LOG"
 echo "[C2] HTTP: $status_code" >>"$VALIDATION_LOG"
 echo "$body" | jq '.' >>"$VALIDATION_LOG"
-log_rest_scenario "assignment.close" "already_closed" "$status_code" "$body"
+log_rest_scenario "assignment.close" "already_closed" "$status_code" "$body" "400" "ASSIGN_INVALID_STATE" "ASSIGN-STATE" "CRITICAL"
 
 # C3: 关闭不存在的任职
 section_log "C3. CloseAssignment - 任职不存在"
@@ -497,7 +566,7 @@ body=$(echo "$resp" | head -n -1)
 echo -e "\n[C3] Payload: $close_payload" >>"$VALIDATION_LOG"
 echo "[C3] HTTP: $status_code" >>"$VALIDATION_LOG"
 echo "$body" | jq '.' >>"$VALIDATION_LOG"
-log_rest_scenario "assignment.close" "assignment_not_found" "$status_code" "$body"
+log_rest_scenario "assignment.close" "assignment_not_found" "$status_code" "$body" "404" "ASSIGNMENT_NOT_FOUND"
 
 section_log "219C2D Validator 自测完成"
 

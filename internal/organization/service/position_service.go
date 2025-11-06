@@ -63,6 +63,109 @@ func NewPositionService(positions *repository.PositionRepository, assignments *r
 	}
 }
 
+func (s *PositionService) newAssignmentFTEError(operation string, position *types.Position, requested float64) error {
+	result := validator.NewValidationResult()
+	result.Valid = false
+	result.Context["operation"] = operation
+	if position != nil {
+		result.Context["positionCode"] = position.Code
+	}
+
+	context := map[string]interface{}{
+		"ruleId":       "ASSIGN-FTE",
+		"requestedFTE": requested,
+		"allowedRange": "[0,1]",
+	}
+	if position != nil {
+		context["positionCode"] = position.Code
+	}
+
+	result.Errors = append(result.Errors, validator.ValidationError{
+		Code:     "ASSIGN_FTE_LIMIT",
+		Message:  fmt.Sprintf("Assignment FTE %.2f must be between 0 and 1", requested),
+		Field:    "fte",
+		Value:    requested,
+		Severity: string(validator.SeverityHigh),
+		Context:  context,
+	})
+
+	return validator.NewValidationFailedError(operation, result)
+}
+
+func (s *PositionService) newHeadcountExceededError(operation string, position *types.Position, currentUsage, requested, projected float64) error {
+	result := validator.NewValidationResult()
+	result.Valid = false
+	result.Context["operation"] = operation
+
+	headcountLimit := 0.0
+	positionCode := ""
+	if position != nil {
+		headcountLimit = position.HeadcountCapacity
+		positionCode = position.Code
+		result.Context["positionCode"] = positionCode
+	}
+
+	result.Context["currentFTE"] = currentUsage
+	result.Context["requestedFTE"] = requested
+	result.Context["projectedFTE"] = projected
+	result.Context["headcountLimit"] = headcountLimit
+
+	context := map[string]interface{}{
+		"ruleId":         "POS-HEADCOUNT",
+		"headcountLimit": headcountLimit,
+		"currentFTE":     currentUsage,
+		"requestedFTE":   requested,
+		"projectedFTE":   projected,
+	}
+	if positionCode != "" {
+		context["positionCode"] = positionCode
+	}
+
+	message := fmt.Sprintf("Projected headcount %.2f exceeds capacity %.2f", projected, headcountLimit)
+	result.Errors = append(result.Errors, validator.ValidationError{
+		Code:     "POS_HEADCOUNT_EXCEEDED",
+		Message:  message,
+		Field:    "fte",
+		Value:    requested,
+		Severity: string(validator.SeverityHigh),
+		Context:  context,
+	})
+
+	return validator.NewValidationFailedError(operation, result)
+}
+
+func (s *PositionService) newAssignmentStateError(operation string, assignment *types.PositionAssignment) error {
+	result := validator.NewValidationResult()
+	result.Valid = false
+	result.Context["operation"] = operation
+
+	state := "UNKNOWN"
+	context := map[string]interface{}{
+		"ruleId": "ASSIGN-STATE",
+	}
+
+	if assignment != nil {
+		state = strings.ToUpper(strings.TrimSpace(assignment.AssignmentStatus))
+		result.Context["assignmentId"] = assignment.AssignmentID.String()
+		result.Context["positionCode"] = assignment.PositionCode
+		context["assignmentId"] = assignment.AssignmentID.String()
+		context["positionCode"] = assignment.PositionCode
+	}
+	context["currentState"] = state
+	context["operation"] = operation
+
+	result.Errors = append(result.Errors, validator.ValidationError{
+		Code:     "ASSIGN_INVALID_STATE",
+		Message:  fmt.Sprintf("Assignment state %s does not allow %s", state, operation),
+		Field:    "assignmentStatus",
+		Value:    state,
+		Severity: string(validator.SeverityCritical),
+		Context:  context,
+	})
+
+	return validator.NewValidationFailedError(operation, result)
+}
+
 func (s *PositionService) failIfInvalid(operation string, result *validator.ValidationResult) error {
 	if result == nil || result.Valid {
 		return nil
@@ -363,7 +466,7 @@ func (s *PositionService) FillPosition(ctx context.Context, tenantID uuid.UUID, 
 		return nil, err
 	}
 
-	updated, assignments, _, err := s.createAssignment(ctx, tenantID, code, req, operator, func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error {
+	updated, assignments, _, err := s.createAssignment(ctx, tenantID, code, req, operator, "FillPosition", func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error {
 		after := map[string]interface{}{
 			"code":                updated.Code,
 			"assignmentId":        assignment.AssignmentID.String(),
@@ -381,7 +484,7 @@ func (s *PositionService) FillPosition(ctx context.Context, tenantID uuid.UUID, 
 	return s.toPositionResponse(updated, assignments), nil
 }
 
-func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UUID, code string, req *types.FillPositionRequest, operator types.OperatedByInfo, auditFn func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error) (*types.Position, []types.PositionAssignment, *types.PositionAssignment, error) {
+func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UUID, code string, req *types.FillPositionRequest, operator types.OperatedByInfo, operation string, auditFn func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error) (*types.Position, []types.PositionAssignment, *types.PositionAssignment, error) {
 	tx, err := s.positions.BeginTx(ctx)
 	if err != nil {
 		return nil, nil, nil, err
@@ -401,7 +504,7 @@ func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UU
 		fte = *req.FTE
 	}
 	if fte <= 0 {
-		return nil, nil, nil, ErrInvalidHeadcount
+		return nil, nil, nil, s.newAssignmentFTEError(operation, current, fte)
 	}
 
 	effectiveDate, err := time.Parse("2006-01-02", req.EffectiveDate)
@@ -471,8 +574,9 @@ func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UU
 		assignmentStatus = "PENDING"
 		isCurrent = false
 	}
-	if projected+fte > current.HeadcountCapacity {
-		return nil, nil, nil, ErrInvalidHeadcount
+	projectedTotal := projected + fte
+	if projectedTotal > current.HeadcountCapacity {
+		return nil, nil, nil, s.newHeadcountExceededError(operation, current, projected, fte, projectedTotal)
 	}
 
 	var employeeNumber sql.NullString
@@ -516,6 +620,14 @@ func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UU
 	activeFTE, err = s.assignments.SumActiveFTE(ctx, tx, tenantID, current.Code)
 	if err != nil {
 		return nil, nil, nil, err
+	}
+
+	if activeFTE > current.HeadcountCapacity+1e-9 {
+		baseUsage := activeFTE - assignment.FTE
+		if baseUsage < 0 {
+			baseUsage = 0
+		}
+		return nil, nil, nil, s.newHeadcountExceededError(operation, current, baseUsage, assignment.FTE, activeFTE)
 	}
 
 	switch {
@@ -578,7 +690,7 @@ func (s *PositionService) CreateAssignmentRecord(ctx context.Context, tenantID u
 		Notes:              req.Notes,
 	}
 
-	_, _, assignment, err := s.createAssignment(ctx, tenantID, code, fillReq, operator, func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error {
+	_, _, assignment, err := s.createAssignment(ctx, tenantID, code, fillReq, operator, "CreateAssignment", func(tx *sql.Tx, updated *types.Position, assignment *types.PositionAssignment) error {
 		after := map[string]interface{}{
 			"code":             updated.Code,
 			"assignmentId":     assignment.AssignmentID.String(),
@@ -652,7 +764,7 @@ func (s *PositionService) UpdateAssignmentRecord(ctx context.Context, tenantID u
 		return nil, ErrAssignmentNotFound
 	}
 	if strings.EqualFold(assignment.AssignmentStatus, "ENDED") {
-		return nil, ErrInvalidAssignmentState
+		return nil, s.newAssignmentStateError("UpdateAssignment", assignment)
 	}
 
 	if err := s.validateAssignment("UpdateAssignment", func(v validator.AssignmentValidationService) *validator.ValidationResult {
@@ -666,7 +778,7 @@ func (s *PositionService) UpdateAssignmentRecord(ctx context.Context, tenantID u
 	newFTE := assignment.FTE
 	if req.FTE != nil {
 		if *req.FTE <= 0 {
-			return nil, ErrInvalidHeadcount
+			return nil, s.newAssignmentFTEError("UpdateAssignment", current, *req.FTE)
 		}
 		updateParams.FTE = req.FTE
 		newFTE = *req.FTE
@@ -720,7 +832,11 @@ func (s *PositionService) UpdateAssignmentRecord(ctx context.Context, tenantID u
 		}
 		projected := activeFTE - assignment.FTE + newFTE
 		if projected > current.HeadcountCapacity {
-			return nil, ErrInvalidHeadcount
+			baseUsage := activeFTE - assignment.FTE
+			if baseUsage < 0 {
+				baseUsage = 0
+			}
+			return nil, s.newHeadcountExceededError("UpdateAssignment", current, baseUsage, newFTE, projected)
 		}
 	}
 
@@ -902,7 +1018,7 @@ func (s *PositionService) VacatePosition(ctx context.Context, tenantID uuid.UUID
 	}
 
 	if strings.EqualFold(assignment.AssignmentStatus, "ENDED") {
-		return nil, ErrInvalidAssignmentState
+		return nil, s.newAssignmentStateError("VacatePosition", assignment)
 	}
 
 	effectiveDate, err := time.Parse("2006-01-02", req.EffectiveDate)

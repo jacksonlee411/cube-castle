@@ -1,0 +1,147 @@
+[
+  {
+    "command": "jobCatalog.createVersion",
+    "scenario": "success.query",
+    "channel": "GraphQL",
+    "result": {
+      "status": "passed",
+      "httpStatus": 200,
+      "note": "jobFamilies timeline snapshot"
+    }
+  },
+  {
+    "command": "jobCatalog.createVersion",
+    "scenario": "temporal_conflict",
+    "channel": "REST",
+    "result": {
+      "status": "passed",
+      "httpStatus": 400,
+      "errorCode": "JOB_CATALOG_TEMPORAL_CONFLICT",
+      "ruleId": "JC-TEMPORAL",
+      "severity": "HIGH",
+      "requestId": "39887a35-5907-4f6a-835b-ddb8a73a5117"
+    }
+  },
+  {
+    "command": "jobCatalog.createVersion",
+    "scenario": "temporal_conflict.query",
+    "channel": "GraphQL",
+    "result": {
+      "status": "passed",
+      "httpStatus": 200,
+      "note": "jobFamilies timeline unchanged"
+    }
+  },
+  {
+    "command": "jobFamily.createVersion",
+    "scenario": "success.query",
+    "channel": "GraphQL",
+    "result": {
+      "status": "passed",
+      "httpStatus": 200,
+      "note": "jobFamily versions snapshot"
+    }
+  },
+  {
+    "command": "jobFamily.createVersion",
+    "scenario": "sequence_mismatch",
+    "channel": "REST",
+    "result": {
+      "status": "passed",
+      "httpStatus": 400,
+      "errorCode": "JOB_CATALOG_SEQUENCE_MISMATCH",
+      "ruleId": "JC-SEQUENCE",
+      "severity": "HIGH",
+      "requestId": "bbe390d6-d11f-4dd1-9d10-02d92332672b"
+    }
+  },
+  {
+    "command": "jobFamily.createVersion",
+    "scenario": "sequence_mismatch.query",
+    "channel": "GraphQL",
+    "result": {
+      "status": "passed",
+      "httpStatus": 200,
+      "note": "jobFamily timeline snapshot"
+    }
+  },
+  {
+    "command": "position.fill",
+    "scenario": "success.query",
+    "channel": "GraphQL",
+    "result": {
+      "status": "passed",
+      "httpStatus": 200,
+      "note": "position snapshot after fill"
+    }
+  },
+  {
+    "command": "position.fill",
+    "scenario": "headcount_exceeded",
+    "channel": "REST",
+    "result": {
+      "status": "passed",
+      "httpStatus": 400,
+      "errorCode": "POS_HEADCOUNT_EXCEEDED",
+      "ruleId": "POS-HEADCOUNT",
+      "severity": "HIGH",
+      "requestId": "dedfaeb0-26ed-4d16-9cea-334d643190be"
+    }
+  },
+  {
+    "command": "position.fill",
+    "scenario": "headcount_exceeded.query",
+    "channel": "GraphQL",
+    "result": {
+      "status": "passed",
+      "httpStatus": 200,
+      "note": "position snapshot"
+    }
+  },
+  {
+    "command": "assignment.close",
+    "scenario": "success.query",
+    "channel": "GraphQL",
+    "result": {
+      "status": "passed",
+      "httpStatus": 200,
+      "note": "position snapshot after close"
+    }
+  },
+  {
+    "command": "position.fill",
+    "scenario": "assign_state_inactive_position",
+    "channel": "REST",
+    "result": {
+      "status": "passed",
+      "httpStatus": 400,
+      "errorCode": "ASSIGN_INVALID_STATE",
+      "ruleId": "ASSIGN-STATE",
+      "severity": "CRITICAL",
+      "requestId": "d7077991-7ff1-49e3-8c5a-8e62bc2ca37e"
+    }
+  },
+  {
+    "command": "position.fill",
+    "scenario": "assign_state.query",
+    "channel": "GraphQL",
+    "result": {
+      "status": "passed",
+      "httpStatus": 200,
+      "note": "position snapshot (inactive)"
+    }
+  },
+  {
+    "command": "assignment.close",
+    "scenario": "already_closed",
+    "channel": "REST",
+    "result": {
+      "status": "passed",
+      "httpStatus": 400,
+      "errorCode": "ASSIGN_INVALID_STATE",
+      "ruleId": "ASSIGN-STATE",
+      "severity": "CRITICAL",
+      "requestId": "7409fc85-7554-4713-853f-ec0acf6eab13"
+    }
+  }
+]

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -568,9 +569,31 @@ func (r *JobCatalogRepository) InsertJobFamilyVersion(ctx context.Context, tx *s
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 	isCurrent := !effectiveDate.After(today)
 
-	query := `INSERT INTO job_families (
-tenant_id, family_code, family_group_code, parent_record_id, name, description, status, effective_date, end_date, is_current, created_at, updated_at
-) VALUES ($1,$2,(SELECT family_group_code FROM job_families WHERE tenant_id = $1 AND family_code = $2 ORDER BY effective_date DESC LIMIT 1),$3,$4,$5,$6,$7,NULL,$8,NOW(),NOW())
+	query := `WITH latest AS (
+	SELECT record_id, family_group_code, parent_record_id
+	FROM job_families
+	WHERE tenant_id = $1 AND family_code = $2
+	ORDER BY effective_date DESC
+	LIMIT 1
+)
+INSERT INTO job_families (
+	tenant_id, family_code, family_group_code, parent_record_id, name, description, status, effective_date, end_date, is_current, created_at, updated_at
+)
+SELECT
+	$1,
+	$2,
+	latest.family_group_code,
+	latest.parent_record_id,
+	$4,
+	$5,
+	$6,
+	$7,
+	NULL,
+	$8,
+	NOW(),
+	NOW()
+FROM latest
+WHERE latest.record_id = $3
 RETURNING record_id, tenant_id, family_code, family_group_code, parent_record_id, name, description, status, effective_date, end_date, is_current`
 
 	var entry types.JobFamily
@@ -598,10 +621,15 @@ RETURNING record_id, tenant_id, family_code, family_group_code, parent_record_id
 	)
 
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok {
-			if pqErr.Code == "23505" {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("job family parent record mismatch")
+		}
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			switch pqErr.Code {
+			case "23505":
 				return nil, fmt.Errorf("job family version already exists for effective date")
-			} else if pqErr.Code == "23503" {
+			case "23503":
 				return nil, fmt.Errorf("parent job family group not found")
 			}
 		}

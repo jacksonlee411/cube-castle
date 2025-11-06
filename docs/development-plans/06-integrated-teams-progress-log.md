@@ -1,177 +1,30 @@
-# 06号文档：Plan 219C2X Docker 环境恢复 执行报告
+# 06号文档：219C2W Job Catalog/Position 校验修复后续动作
 
-> **执行日期**: 2025-11-06
-> **执行时间**: 07:05:53 +08:00
-> **计划编号**: 219C2X
-> **负责人**: Claude Code (全栈实施)
-> **状态**: ✅ **全部通过** - 所有验收标准已满足
+## 目标
+确保命令服务加载最新校验逻辑，并完成 219C2W 自测脚本及报告的闭环更新。
 
----
+## 待办清单
+1. **重建并重启命令服务**  
+   - 执行 `make docker-build`（如近期未重建镜像）。  
+   - 执行 `make run-dev`（或等效 `docker compose up`）重启 REST/GraphQL 服务，确认容器日志显示最新二进制已加载。
+2. **重新执行 Day24 自测脚本**  
+   - 运行 `bash scripts/219C2D-validator-self-test.sh`。  
+   - 验证脚本输出中 `jobCatalog.createVersion`、`jobFamily.createVersion`、`position.fill`、`assignment.close` 等场景均返回期望的 `errorCode` / `ruleId` / `severity`。  
+   - 将最新结果追加至 `logs/219C2/validation.log`，并覆盖生成 `tests/e2e/organization-validator/report-Day24.json`。
+3. **同步唯一事实来源**  
+   - 自测通过后，更新 `internal/organization/README.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`docs/development-plans/219C2D-extension-acceptance.md` 勾选项，记录验证完成的证据路径。
+4. **记录进度与证据**  
+   - 在 `docs/development-plans/219C2W-validation-error-reconciliation.md` 追加完成时间与日志引用。  
+   - 如仍遇 `INTERNAL_ERROR`，需导出容器日志与请求 ID，并在 06 文档补充阻塞说明及处理人。
 
-## 执行概述
+## 负责人
+- 命令服务值班工程师：待认领
+- 文档同步：219C2W 计划 Owner
 
-**Plan 219C2X** - Docker 环境恢复 已完整执行，验证所有关键服务（PostgreSQL、Redis、REST、GraphQL）已启动并通过健康检查。环境已完全恢复，可支持后续计划（219C2Y 等）的执行。
+## 截止时间
+- 建议在 2025-11-06 18:00 前完成，以便 Day24 归档。
 
----
-
-## 验收标准确认
-
-### ✅ 检查项 1: 所有必需容器启动成功
-**状态**: 通过
-**证据**:
-```
-NAME                  STATUS                    PORTS
-cubecastle-graphql    Up 21 seconds (healthy)   0.0.0.0:8090->8090/tcp
-cubecastle-postgres   Up 12 minutes (healthy)   0.0.0.0:5432->5432/tcp
-cubecastle-redis      Up 12 minutes (healthy)   6379/tcp
-cubecastle-rest       Up 21 seconds (healthy)   0.0.0.0:9090->9090/tcp
-```
-
-### ✅ 检查项 2: 健康检查均返回 200
-**状态**: 通过
-
-**REST Service (9090)** - HTTP/1.1 200 OK
-- Response: `{"status": "healthy", "service": "organization-command-service", "timestamp": "2025-11-05T23:05:40Z"}`
-- Correlation ID: `8550e282-c54e-425d-9e92-049ca7f1de1e`
-
-**GraphQL Service (8090)** - HTTP/1.1 200 OK
-- Response: `{"database":"postgresql","performance":"optimized","service":"postgresql-graphql","status":"healthy","timestamp":"2025-11-05T23:05:40.2861883Z"}`
-- Correlation ID: `6e2fdc52-57dd-454a-bc51-c2781f6057d2`
-
-### ✅ 检查项 3: 端口占用一致且无冲突
-**状态**: 通过
-**验证**:
-- Port 5432 (PostgreSQL): ✓ 正常监听 (IPv6)
-- Port 6379 (Redis): ✓ 正常监听 (IPv4 & IPv6)
-- Port 8090 (GraphQL): ✓ 正常监听 (IPv6)
-- Port 9090 (REST): ✓ 正常监听 (IPv6)
-
-**无宿主机冲突服务** - 确认无冗余服务占用容器端口
-
-### ✅ 检查项 4: 完整执行记录与时间戳
-**状态**: 通过
-**日志文件**: `logs/219C2/environment-Day24.log`
-- 包含所有启动命令记录
-- 包含完整的健康检查输出
-- 包含时间戳追踪
-
-### ✅ 检查项 5: 故障排查（如需）
-**状态**: N/A - 无故障发生
-**说明**: 环境启动顺畅，未发现任何异常或需要排查的问题
-
----
-
-## 执行步骤摘要
-
-### 4.1 环境准备 ✅ 完成
-- 清理残留容器: `docker compose down --remove-orphans`
-- 检查端口占用: 所有关键端口(5432, 6379, 7233, 8090, 9090)均空闲
-- Go 版本验证: `go1.24.9` ✓ 符合要求 (≥1.24)
-
-### 4.2 容器启动 ✅ 完成
-- `make docker-up`: PostgreSQL & Redis 启动成功
-- `docker compose up -d --build rest-service graphql-service`: REST & GraphQL 服务构建并启动成功
-  - REST Service 构建耗时: ~42.7s (go build)
-  - GraphQL Service 构建耗时: ~42.8s (go build)
-
-### 4.3 健康检查与日志 ✅ 完成
-- `docker compose ps`: 所有容器状态为 `running` 或 `healthy`
-- `curl http://localhost:9090/health`: 返回 200 ✓
-- `curl http://localhost:8090/health`: 返回 200 ✓
-- `make status`: 显示所有服务就绪
-- 完整日志记录至: `logs/219C2/environment-Day24.log`
-
-### 4.4 故障排查 ✅ 不适用
-- 无故障发生，环境启动顺畅
-
-### 4.5 输出物整理 ✅ 完成
-- 日志文件: `logs/219C2/environment-Day24.log`
-- 执行报告: `logs/219C2/EXECUTION-REPORT.md`
-
----
-
-## 交付物清单
-
-### 📄 必需文件
-- ✅ `logs/219C2/environment-Day24.log` - 启动命令、健康检查、故障排查记录
-- ✅ `logs/219C2/EXECUTION-REPORT.md` - 完整执行报告（验收清单 & 摘要）
-
-### 📊 基线文件
-- ✅ `baseline-ports.log` - 端口占用/冲突问题：无
-- ✅ `baseline-processes.log` - 进程基线：已验证无冗余服务
-
-### 🔑 秘钥管理
-- ✅ `.cache/dev.jwt` - 已验证存在（如需可执行 `make jwt-dev-mint` 续期）
-- ✅ `secrets/` - 已验证存在
-
-### 📋 后续连接
-- ✅ 219C2Y 计划可参考本日志作为前置条件满足的证据
-
----
-
-## 系统状态快照
-
-### 容器资源
-```
-Docker Network: cubecastle-network (healthy)
-PostgreSQL 16.9: Listening on 0.0.0.0:5432
-Redis 7-alpine: Listening on localhost:6379
-REST Service: Listening on 0.0.0.0:9090
-GraphQL Service: Listening on 0.0.0.0:8090
-```
-
-### 数据库连接
-- PostgreSQL 版本: 16.9 (Alpine)
-- 数据库状态: 就绪 (accepting connections)
-- 最后检查点: 2025-11-05 22:58:22 UTC
-
-### 关键地址
-- **Command Service**: http://localhost:9090
-- **Query (GraphQL)**: http://localhost:8090
-- **GraphQL IDE**: http://localhost:8090/graphiql
-- **PostgreSQL**: localhost:5432
-- **Redis**: localhost:6379
-
----
-
-## 验收结论
-
-**总体状态**: ✅ **PASS**
-
-所有验收标准均已满足：
-1. ✅ 容器启动成功且状态健康
-2. ✅ 健康检查返回 200
-3. ✅ 端口占用一致且无冲突
-4. ✅ 完整日志记录已生成
-5. ✅ 故障处理不适用（无故障）
-
-**环境就绪**: Docker 容器化环境已完全恢复，可支持后续计划 (219C2Y 等) 的执行。
-
----
-
-## 后续步骤
-
-1. **立即启动 Plan 219C2Y** - 前置条件复位方案
-   - 参考本报告中的日志作为环境就绪的证据
-   - 使用 `make status` 随时检查环境状态
-
-2. **维护计划**
-   - 定期监控容器资源占用: `docker stats`
-   - 定期检查数据库连接: `psql -h localhost -U user cubecastle`
-   - 监控 Redis 队列积压情况
-
-3. **故障恢复**
-   - 如环境出现异常，首先执行 `make status` 诊断
-   - 参考 Plan 219C2X 第 4.4 章节的故障排查步骤
-
----
-
-**报告生成**: 2025-11-06T07:05:53+08:00
-**负责人**: Claude Code (全栈实施)
-**关联计划**:
-- 上级计划: [219C2 – Business Validator 框架扩展](./219C2-validator-framework.md)
-- 后续计划: [219C2Y – 前置条件复位方案](./219C2Y-preconditions-restoration.md)
-
----
-
-**所有交付物已生成并验证完毕** ✅
+## 完成情况（2025-11-06 21:56）
+- ✅ `docker compose -f docker-compose.dev.yml up -d --build --force-recreate rest-service graphql-service` 已执行，命令/查询服务运行最新二进制。
+- ✅ `scripts/219C2D-validator-self-test.sh` 自测通过，`logs/219C2/validation.log` 与 `tests/e2e/organization-validator/report-Day24.json` 已更新。
+- ✅ 文档同步：`docs/development-plans/219C2W-validation-error-reconciliation.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`internal/organization/README.md` 均记录最新证据路径，219C2W 可关闭。

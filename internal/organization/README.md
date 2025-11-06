@@ -116,3 +116,4 @@
 - 单元测试位于 `internal/organization/validator/position_assignment_validation_test.go`，覆盖职位/任职正反场景并记录于 `logs/219C2/test-Day23.log`，最新补充的 helper/stub 测试（见 Day24 更新）将包覆盖率提升至 **83.7%**。
 - 命令服务默认依赖链式验证：`PositionService` 在写库事务前执行链路，REST handler 通过 `ValidationFailedError` 捕获返回结构化错误并同步审计上下文。
 - Job Catalog 规则（`JC-TEMPORAL` / `JC-SEQUENCE`）由 `internal/organization/validator/job_catalog_validation.go` 提供，命令层在 `JobCatalogService` 中调用；配套单元测试位于 `job_catalog_validation_test.go`，Day24 运行记录见 `logs/219C2/test-Day24.log`，`internal/organization/validator` 包覆盖率提升至 **85.3%**，满足 219C2D 覆盖率基线。
+- E2E 自测完成（2025-11-06 21:53）：脚本 `scripts/219C2D-validator-self-test.sh` 执行通过，覆盖 Job Catalog/Position/Assignment 关键验证场景，生成双通道测试报告 `tests/e2e/organization-validator/report-Day24.json`，日志见 `logs/219C2/validation.log`。
