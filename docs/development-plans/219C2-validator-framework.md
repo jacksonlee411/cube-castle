@@ -307,3 +307,32 @@
 | 规则范围变更触发超期 | 高 | 以 README `#validators` 为唯一来源冻结规则，新增规则需单独立项并更新计划 |
 | 任务拆分过细导致协调成本 | 中 | 已合并为 4 个关键节点（§3.1），同步点 < 5 次/天 |
 | 关键路径延迟级联 | 高 | 若 A1 延迟 > 4 小时，立即调整 B-D 计划；若 B-C 累计延迟 > 1 天，考虑合并或延迟规则 |
+
+---
+
+## 6. 219C2 相关修复报告
+
+### 219C2D – Job Level API HTTP 500 错误修复 ✅
+
+**状态**: 已完成
+**提交**: Commit 851a0564, ba9a1845
+
+**问题**: `/api/v1/job-levels` POST 请求在缺少必填字段时返回 HTTP 500
+
+**解决方案**:
+- 在 `internal/organization/handler/job_catalog_handler.go` 中添加 `validateCreateJobLevelRequest()` 函数
+- 验证 6 个必填字段 (Code, JobRoleCode, Name, Status, LevelRank, EffectiveDate)
+- 缺少必填字段时返回 HTTP 400 和清晰错误消息
+
+**验证结果**: 4/4 测试通过
+- ✅ 缺少 'name' → HTTP 400
+- ✅ 缺少 'status' → HTTP 400
+- ✅ 缺少 'levelRank' → HTTP 400
+- ✅ 编译通过无错误
+
+**完整报告**: [logs/219C2/219C2D-job-level-fix-report.md](../../logs/219C2/219C2D-job-level-fix-report.md)
+
+**相关文档**:
+- [219C2Y 计划更新](./219C2Y-preconditions-restoration.md#219C2D-修复报告)
+- 测试脚本: `scripts/219C2Y-job-level-validation-test.sh`
+- 验证日志: `logs/219C2/validation.log`
