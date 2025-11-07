@@ -117,6 +117,14 @@ export class AuthManager {
   private sessionTenantId: string | null = null;
   private jwksVerified = false;
 
+  private getBrowserStorage(): Storage | null {
+    if (typeof globalThis === 'undefined') {
+      return null;
+    }
+    const storage = (globalThis as { localStorage?: Storage }).localStorage;
+    return typeof storage === 'undefined' ? null : storage;
+  }
+
   constructor(config: OAuthConfig) {
     this.config = config;
     this.loadTokenFromStorage();
@@ -332,18 +340,25 @@ export class AuthManager {
    * 从localStorage加载token
    */
   private loadTokenFromStorage(): void {
+    const storage = this.getBrowserStorage();
+    if (!storage) {
+      logger.debug('[OAuth] 当前运行环境无 localStorage，可用 token 仅保存在内存中');
+      this.token = null;
+      return;
+    }
+
     try {
       // 1. 先尝试从新键读取
-      const storedValue = localStorage.getItem(TOKEN_STORAGE_KEY);
+      const storedValue = storage.getItem(TOKEN_STORAGE_KEY);
 
       // 2. 如果新键不存在，尝试从旧的 snake_case 键读取（迁移逻辑）
-      const legacyStoredValue = storedValue === null ? localStorage.getItem(LEGACY_OAUTH_TOKEN_KEY) : null;
+      const legacyStoredValue = storedValue === null ? storage.getItem(LEGACY_OAUTH_TOKEN_KEY) : null;
 
       // 3. 清理其他历史键（但不包括 LEGACY_OAUTH_TOKEN_KEY，它将在迁移后清理）
       const keysToClean = LEGACY_ALL_KEYS.filter(key => key !== LEGACY_OAUTH_TOKEN_KEY);
       keysToClean.forEach((key) => {
         try {
-          localStorage.removeItem(key);
+          storage.removeItem(key);
         } catch (legacyError) {
           logger.warn('[OAuth] 无法清理历史令牌字段:', key, legacyError);
         }
@@ -358,8 +373,8 @@ export class AuthManager {
       // 4. 如果是从旧键读取的，执行迁移
       if (legacyStoredValue) {
         try {
-          localStorage.setItem(TOKEN_STORAGE_KEY, legacyStoredValue);
-          localStorage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
+          storage.setItem(TOKEN_STORAGE_KEY, legacyStoredValue);
+          storage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
         } catch (migrateError) {
           logger.warn('[OAuth] 迁移历史令牌失败，继续使用内存令牌:', migrateError);
         }
@@ -368,8 +383,8 @@ export class AuthManager {
       if (stored.trim().startsWith('eyJ')) {
         // 旧版本直接存储原始JWT字符串
         logger.warn('[OAuth] 检测到历史原始JWT存储，已清理');
-        localStorage.removeItem(TOKEN_STORAGE_KEY);
-        localStorage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
+        storage.removeItem(TOKEN_STORAGE_KEY);
+        storage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
         this.token = null;
         return;
       }
@@ -391,8 +406,8 @@ export class AuthManager {
       logger.warn('[OAuth] 无法从存储中加载token:', error);
       this.token = null;
       try {
-        localStorage.removeItem(TOKEN_STORAGE_KEY);
-        localStorage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
+        storage.removeItem(TOKEN_STORAGE_KEY);
+        storage.removeItem(LEGACY_OAUTH_TOKEN_KEY);
       } catch (clearError) {
         logger.warn('[OAuth] 清理损坏的token失败:', clearError);
       }
@@ -403,9 +418,14 @@ export class AuthManager {
    * 保存token到localStorage
    */
   private saveTokenToStorage(): void {
+    const storage = this.getBrowserStorage();
+    if (!storage) {
+      logger.debug('[OAuth] 无 localStorage 环境，仅在内存中保存token');
+      return;
+    }
     try {
       if (this.token) {
-        localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(this.token));
+        storage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(this.token));
       }
     } catch (error) {
       logger.warn('[OAuth] 无法保存token到存储:', error);
@@ -417,14 +437,17 @@ export class AuthManager {
    */
   clearAuth(): void {
     this.token = null;
-    try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch (error) {
-      logger.warn('[OAuth] Failed to clear localStorage:', error);
-    }
-    LEGACY_ALL_KEYS.forEach((key) => {
-      try { localStorage.removeItem(key); } catch (legacyError) {
-        logger.warn('[OAuth] Failed to clear legacy token key:', key, legacyError);
+    const storage = this.getBrowserStorage();
+    if (storage) {
+      try { storage.removeItem(TOKEN_STORAGE_KEY); } catch (error) {
+        logger.warn('[OAuth] Failed to clear localStorage:', error);
       }
-    });
+      LEGACY_ALL_KEYS.forEach((key) => {
+        try { storage.removeItem(key); } catch (legacyError) {
+          logger.warn('[OAuth] Failed to clear legacy token key:', key, legacyError);
+        }
+      });
+    }
     logger.info('[OAuth] 认证状态已清除');
   }
 

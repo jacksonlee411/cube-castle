@@ -85,8 +85,8 @@ docker ps | grep -E 'postgres|redis|rest-service|graphql-service'
 
 ```bash
 # 配置变量（按需自定义）
-export COMMAND_API="http://localhost:8080"
-export TENANT_ID="default"
+export COMMAND_API="http://localhost:9090"   # 与 .env.example / docker-compose.dev.yml 对齐
+export TENANT_ID="3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"  # DEFAULT_TENANT_ID 唯一事实来源
 export JWT_TOKEN="your-token"
 
 # 执行脚本

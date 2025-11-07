@@ -65,12 +65,7 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 		effectiveDate = types.NewDate(now.Year(), now.Month(), now.Day())
 	}
 
-	today := time.Now().Truncate(24 * time.Hour)
-	effectiveDateTime := time.Date(
-		effectiveDate.Year(), effectiveDate.Month(), effectiveDate.Day(),
-		0, 0, 0, 0, time.UTC,
-	)
-	isCurrent := !effectiveDateTime.After(today)
+	isCurrent := shouldMarkOrganizationCurrent(effectiveDate, time.Now())
 
 	err = r.db.QueryRowContext(ctx, query,
 		org.TenantID,
@@ -114,6 +109,18 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *types.Organiza
 
 	r.logger.Infof("组织创建成功: %s - %s", org.Code, org.Name)
 	return org, nil
+}
+
+// shouldMarkOrganizationCurrent 判断组织是否应被标记为当前版本，确保比较在 UTC 日期维度进行。
+func shouldMarkOrganizationCurrent(effectiveDate *types.Date, reference time.Time) bool {
+	if effectiveDate == nil {
+		return true
+	}
+
+	effectiveDateUTC := effectiveDate.Time.UTC().Truncate(24 * time.Hour)
+	referenceUTC := reference.UTC().Truncate(24 * time.Hour)
+
+	return !effectiveDateUTC.After(referenceUTC)
 }
 
 func (r *OrganizationRepository) CreateInTransaction(ctx context.Context, tx *sql.Tx, org *types.Organization) (*types.Organization, error) {

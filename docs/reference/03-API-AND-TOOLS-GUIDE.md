@@ -301,7 +301,7 @@ cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
 
 ### 219E 端到端 & 性能脚本
 - `scripts/e2e/org-lifecycle-smoke.sh`：组织/部门生命周期冒烟（REST + GraphQL），日志输出 `logs/219E/org-lifecycle-*.log`。
-- `scripts/perf/rest-benchmark.sh`：REST 接口 P99/P95 采集（依赖 `hey`），日志输出 `logs/219E/perf-rest-*.log`。
+- `scripts/perf/rest-benchmark.sh`：REST 接口 P99/P95 采集（默认 Node 驱动，支持 `REQUEST_COUNT`、`THROTTLE_DELAY_MS`、`IDEMPOTENCY_PREFIX` 等配置并输出 JSON Summary；如需兼容旧版可设置 `LOAD_DRIVER=hey`），日志输出 `logs/219E/perf-rest-*.log`。
 - 若 Docker 权限受限，可参考 `logs/219E/BLOCKERS-*.md` 了解处理步骤。
 
 ### 审计一致性门禁（新增）

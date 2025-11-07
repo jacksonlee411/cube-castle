@@ -248,6 +248,9 @@ status:
 	@echo "  - Query (GraphQL):   http://localhost:8090  (GraphiQL: /graphiql)"
 	@echo "  - PostgreSQL:        localhost:5432"
 	@echo "  - Redis:             localhost:6379"
+	@echo ""
+	@echo "📈 REST Benchmark 汇总:"
+	@bash scripts/diagnostics/check-rest-benchmark-summary.sh || true
 
 reset:
 	@echo "🔄 重置最小依赖 (不删除卷)..."

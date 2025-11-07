@@ -113,8 +113,10 @@ graphql_query() {
 }
 
 # ----------------------- 场景执行 -----------------------
-ROOT_CODE="E2EORG${TIMESTAMP//[-:]}"
-CHILD_CODE="${ROOT_CODE}CH"
+# 组织代码必须为 7 位数字且首位不可为 0
+BASE_CODE_NUM=$(( ($(date +%s) % 9000000) + 1000000 ))
+ROOT_CODE=$(printf "%07d" "${BASE_CODE_NUM}")
+CHILD_CODE=$(printf "%07d" $(( (BASE_CODE_NUM + 1) % 9000000 + 1000000 )))
 
 log_step "1. 创建顶级组织：${ROOT_CODE}"
 http_request POST "${COMMAND_API}/api/v1/organization-units" "$(jq -n --arg code "${ROOT_CODE}" '
