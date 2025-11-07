@@ -72,3 +72,16 @@
   3. 完成迁移后执行 `go build ./cmd/hrms-server/query`、`npx graphql-inspector diff docs/api/schema.graphql http://localhost:8090/graphql`、`scripts/e2e/org-lifecycle-smoke.sh` 等验证，满足 P2/P3 验收。
 
 > 更新时间：2025-11-08 10:20 CST；负责人：查询服务小队。
+
+## 9. 进展更新（2025-11-09）
+- **契约同步工具**：`scripts/dev/sync-graphql-schema.cjs` 改为仅在 `logs/graphql-snapshots/` 下生成最新/历史 SDL 快照，不再覆盖 `docs/api/schema.graphql`，保证 SDL 仍是唯一事实来源。
+- **gqlgen 运行时代码**：
+  - 新增 `cmd/hrms-server/query/internal/graphql/custom_scalars.go`、`json_scalar_helpers.go`，结合 DTO 自带的 Marshal/Unmarshal 实现 gqlgen 所需的所有自定义标量，并通过 `return_pointers_in_unmarshalinput: true` 避免 `map[string]interface{}` 指针不兼容问题。
+  - 在 `cmd/hrms-server/query/internal/graphql/resolver/resolver.go` + `resolver/converter.go` 中引入通用转换器，`schema.resolvers.go` 的 Query Resolver 现已全部调用 `internal/organization/resolver` 的现有逻辑，返回值再映射到 gqlgen `model.*`。
+  - `go test ./cmd/hrms-server/query/internal/graphql/...` 与 `go test ./internal/organization/resolver` 均通过，证明桥接层未破坏领域实现。
+- **结构调整**：目录 README 更新为 `custom_scalars.go` 说明，废弃 `scalars/` 空目录，新增自动生成的 `generated.go` 与 `model/models_gen.go` 作为查询服务私有实现。
+
+### 下一步（优先级按 P1→P3）
+1. **HTTP Handler 切换（P1）**：在 `cmd/hrms-server/query/internal/app/app.go` 中引入 `graphqlruntime.NewExecutableSchema`，替换 graph-gophers/relay，删除旧依赖；更新 `make run-dev`、`docker` 镜像以使用 gqlgen handler。
+2. **契约无差校验（P2）**：在 gqlgen handler 生效后运行 `npx graphql-inspector diff ...`，并将结果回填到 Plan 06，确认 `@deprecated/@oneOf/@specifiedBy` 差异已消除。
+3. **端到端验证与文档（P3）**：用 Playwright/GraphQL 测试覆盖新 runtime，记录在 `docs/development-plans/06-integrated-teams-progress-log.md` 与本计划验收章节，最后清理 graph-gophers 相关引用。

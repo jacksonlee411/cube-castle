@@ -31,6 +31,7 @@
 2. **GraphQL 契约 diff 未通过**  
    - 通过 `scripts/dev/sync-graphql-schema.cjs` 已将 `docs/api/schema.graphql` 与线上服务同步，但 `graphql-inspector diff` 仍报 6 项差异，全部来自 graph-gophers/graphql-go v1.5.0 对内置指令（`@deprecated`、`@oneOf`、`@specifiedBy`）的历史语义。  
    - 需升级查询服务 GraphQL 依赖或调整校验策略，才能满足 Plan 06 §3 “无 diff 方可继续”约束。
+   - **最新进展（2025-11-09）**：已完成 gqlgen 生成物、Resolver 桥接与自定义标量实现，且新增 `logs/graphql-snapshots/` 快照机制；下一步是将查询服务 HTTP Handler 切换至 gqlgen 并复跑 diff。
 3. **证据回填未完成**  
    - REST Benchmark 摘要尚未写入 `docs/reference/03-API-AND-TOOLS-GUIDE.md`。  
    - `docs/development-plans/219T-e2e-validation-report.md`、`docs/development-plans/219E-e2e-validation.md` 未记录本轮执行结果及日志链接。

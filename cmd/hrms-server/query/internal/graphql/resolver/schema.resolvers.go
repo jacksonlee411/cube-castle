@@ -9,855 +9,537 @@ import (
 	graphqlruntime "cube-castle/cmd/hrms-server/query/internal/graphql"
 	"cube-castle/cmd/hrms-server/query/internal/graphql/model"
 	"cube-castle/internal/organization/dto"
-	"fmt"
 )
 
-// PositionCode is the resolver for the positionCode field.
-func (r *assignmentStatsResolver) PositionCode(ctx context.Context, obj *dto.AssignmentStats) (*dto.PositionCode, error) {
-	panic(fmt.Errorf("not implemented: PositionCode - positionCode"))
-}
-
-// LastUpdatedAt is the resolver for the lastUpdatedAt field.
-func (r *assignmentStatsResolver) LastUpdatedAt(ctx context.Context, obj *dto.AssignmentStats) (dto.DateTime, error) {
-	panic(fmt.Errorf("not implemented: LastUpdatedAt - lastUpdatedAt"))
-}
-
-// JobFamilyCode is the resolver for the jobFamilyCode field.
-func (r *familyHeadcountResolver) JobFamilyCode(ctx context.Context, obj *dto.FamilyHeadcount) (dto.JobFamilyCode, error) {
-	panic(fmt.Errorf("not implemented: JobFamilyCode - jobFamilyCode"))
-}
-
-// Code is the resolver for the code field.
-func (r *jobFamilyResolver) Code(ctx context.Context, obj *dto.JobFamily) (dto.JobFamilyCode, error) {
-	panic(fmt.Errorf("not implemented: Code - code"))
-}
-
-// RecordID is the resolver for the recordId field.
-func (r *jobFamilyResolver) RecordID(ctx context.Context, obj *dto.JobFamily) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: RecordID - recordId"))
-}
-
-// GroupCode is the resolver for the groupCode field.
-func (r *jobFamilyResolver) GroupCode(ctx context.Context, obj *dto.JobFamily) (dto.JobFamilyGroupCode, error) {
-	panic(fmt.Errorf("not implemented: GroupCode - groupCode"))
-}
-
-// Status is the resolver for the status field.
-func (r *jobFamilyResolver) Status(ctx context.Context, obj *dto.JobFamily) (model.JobCatalogStatus, error) {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *jobFamilyResolver) EffectiveDate(ctx context.Context, obj *dto.JobFamily) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *jobFamilyResolver) EndDate(ctx context.Context, obj *dto.JobFamily) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// Code is the resolver for the code field.
-func (r *jobFamilyGroupResolver) Code(ctx context.Context, obj *dto.JobFamilyGroup) (dto.JobFamilyGroupCode, error) {
-	panic(fmt.Errorf("not implemented: Code - code"))
-}
-
-// RecordID is the resolver for the recordId field.
-func (r *jobFamilyGroupResolver) RecordID(ctx context.Context, obj *dto.JobFamilyGroup) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: RecordID - recordId"))
-}
-
-// Status is the resolver for the status field.
-func (r *jobFamilyGroupResolver) Status(ctx context.Context, obj *dto.JobFamilyGroup) (model.JobCatalogStatus, error) {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *jobFamilyGroupResolver) EffectiveDate(ctx context.Context, obj *dto.JobFamilyGroup) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *jobFamilyGroupResolver) EndDate(ctx context.Context, obj *dto.JobFamilyGroup) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// Code is the resolver for the code field.
-func (r *jobLevelResolver) Code(ctx context.Context, obj *dto.JobLevel) (dto.JobLevelCode, error) {
-	panic(fmt.Errorf("not implemented: Code - code"))
-}
-
-// RecordID is the resolver for the recordId field.
-func (r *jobLevelResolver) RecordID(ctx context.Context, obj *dto.JobLevel) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: RecordID - recordId"))
-}
-
-// RoleCode is the resolver for the roleCode field.
-func (r *jobLevelResolver) RoleCode(ctx context.Context, obj *dto.JobLevel) (dto.JobRoleCode, error) {
-	panic(fmt.Errorf("not implemented: RoleCode - roleCode"))
-}
-
-// Status is the resolver for the status field.
-func (r *jobLevelResolver) Status(ctx context.Context, obj *dto.JobLevel) (model.JobCatalogStatus, error) {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *jobLevelResolver) EffectiveDate(ctx context.Context, obj *dto.JobLevel) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *jobLevelResolver) EndDate(ctx context.Context, obj *dto.JobLevel) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// LevelRank is the resolver for the levelRank field.
-func (r *jobLevelResolver) LevelRank(ctx context.Context, obj *dto.JobLevel) (int, error) {
-	panic(fmt.Errorf("not implemented: LevelRank - levelRank"))
-}
-
-// Code is the resolver for the code field.
-func (r *jobRoleResolver) Code(ctx context.Context, obj *dto.JobRole) (dto.JobRoleCode, error) {
-	panic(fmt.Errorf("not implemented: Code - code"))
-}
-
-// RecordID is the resolver for the recordId field.
-func (r *jobRoleResolver) RecordID(ctx context.Context, obj *dto.JobRole) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: RecordID - recordId"))
-}
-
-// FamilyCode is the resolver for the familyCode field.
-func (r *jobRoleResolver) FamilyCode(ctx context.Context, obj *dto.JobRole) (dto.JobFamilyCode, error) {
-	panic(fmt.Errorf("not implemented: FamilyCode - familyCode"))
-}
-
-// Status is the resolver for the status field.
-func (r *jobRoleResolver) Status(ctx context.Context, obj *dto.JobRole) (model.JobCatalogStatus, error) {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *jobRoleResolver) EffectiveDate(ctx context.Context, obj *dto.JobRole) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *jobRoleResolver) EndDate(ctx context.Context, obj *dto.JobRole) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// JobLevelCode is the resolver for the jobLevelCode field.
-func (r *levelHeadcountResolver) JobLevelCode(ctx context.Context, obj *dto.LevelHeadcount) (dto.JobLevelCode, error) {
-	panic(fmt.Errorf("not implemented: JobLevelCode - jobLevelCode"))
-}
-
-// UnitType is the resolver for the unitType field.
-func (r *organizationResolver) UnitType(ctx context.Context, obj *dto.Organization) (model.UnitType, error) {
-	panic(fmt.Errorf("not implemented: UnitType - unitType"))
-}
-
-// Status is the resolver for the status field.
-func (r *organizationResolver) Status(ctx context.Context, obj *dto.Organization) (model.Status, error) {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *organizationResolver) EffectiveDate(ctx context.Context, obj *dto.Organization) (string, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *organizationResolver) EndDate(ctx context.Context, obj *dto.Organization) (*string, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// CreatedAt is the resolver for the createdAt field.
-func (r *organizationResolver) CreatedAt(ctx context.Context, obj *dto.Organization) (string, error) {
-	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
-}
-
-// UpdatedAt is the resolver for the updatedAt field.
-func (r *organizationResolver) UpdatedAt(ctx context.Context, obj *dto.Organization) (string, error) {
-	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
-}
-
-// DeletedAt is the resolver for the deletedAt field.
-func (r *organizationResolver) DeletedAt(ctx context.Context, obj *dto.Organization) (*string, error) {
-	panic(fmt.Errorf("not implemented: DeletedAt - deletedAt"))
-}
-
-// SuspendedAt is the resolver for the suspendedAt field.
-func (r *organizationResolver) SuspendedAt(ctx context.Context, obj *dto.Organization) (*string, error) {
-	panic(fmt.Errorf("not implemented: SuspendedAt - suspendedAt"))
-}
-
-// ByType is the resolver for the byType field.
-func (r *organizationStatsResolver) ByType(ctx context.Context, obj *dto.OrganizationStats) ([]model.TypeStatistic, error) {
-	panic(fmt.Errorf("not implemented: ByType - byType"))
-}
-
-// ByStatus is the resolver for the byStatus field.
-func (r *organizationStatsResolver) ByStatus(ctx context.Context, obj *dto.OrganizationStats) ([]model.StatusStatistic, error) {
-	panic(fmt.Errorf("not implemented: ByStatus - byStatus"))
-}
-
-// ByLevel is the resolver for the byLevel field.
-func (r *organizationStatsResolver) ByLevel(ctx context.Context, obj *dto.OrganizationStats) ([]model.LevelStatistic, error) {
-	panic(fmt.Errorf("not implemented: ByLevel - byLevel"))
-}
-
-// TemporalStats is the resolver for the temporalStats field.
-func (r *organizationStatsResolver) TemporalStats(ctx context.Context, obj *dto.OrganizationStats) (*model.TemporalStatistics, error) {
-	panic(fmt.Errorf("not implemented: TemporalStats - temporalStats"))
-}
-
-// Code is the resolver for the code field.
-func (r *positionResolver) Code(ctx context.Context, obj *dto.Position) (dto.PositionCode, error) {
-	panic(fmt.Errorf("not implemented: Code - code"))
-}
-
-// RecordID is the resolver for the recordId field.
-func (r *positionResolver) RecordID(ctx context.Context, obj *dto.Position) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: RecordID - recordId"))
-}
-
-// TenantID is the resolver for the tenantId field.
-func (r *positionResolver) TenantID(ctx context.Context, obj *dto.Position) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: TenantID - tenantId"))
-}
-
-// JobFamilyGroupCode is the resolver for the jobFamilyGroupCode field.
-func (r *positionResolver) JobFamilyGroupCode(ctx context.Context, obj *dto.Position) (dto.JobFamilyGroupCode, error) {
-	panic(fmt.Errorf("not implemented: JobFamilyGroupCode - jobFamilyGroupCode"))
-}
-
-// JobFamilyCode is the resolver for the jobFamilyCode field.
-func (r *positionResolver) JobFamilyCode(ctx context.Context, obj *dto.Position) (dto.JobFamilyCode, error) {
-	panic(fmt.Errorf("not implemented: JobFamilyCode - jobFamilyCode"))
-}
-
-// JobRoleCode is the resolver for the jobRoleCode field.
-func (r *positionResolver) JobRoleCode(ctx context.Context, obj *dto.Position) (dto.JobRoleCode, error) {
-	panic(fmt.Errorf("not implemented: JobRoleCode - jobRoleCode"))
-}
-
-// JobLevelCode is the resolver for the jobLevelCode field.
-func (r *positionResolver) JobLevelCode(ctx context.Context, obj *dto.Position) (dto.JobLevelCode, error) {
-	panic(fmt.Errorf("not implemented: JobLevelCode - jobLevelCode"))
-}
-
-// PositionType is the resolver for the positionType field.
-func (r *positionResolver) PositionType(ctx context.Context, obj *dto.Position) (model.PositionType, error) {
-	panic(fmt.Errorf("not implemented: PositionType - positionType"))
-}
-
-// EmploymentType is the resolver for the employmentType field.
-func (r *positionResolver) EmploymentType(ctx context.Context, obj *dto.Position) (model.EmploymentType, error) {
-	panic(fmt.Errorf("not implemented: EmploymentType - employmentType"))
-}
-
-// ReportsToPositionCode is the resolver for the reportsToPositionCode field.
-func (r *positionResolver) ReportsToPositionCode(ctx context.Context, obj *dto.Position) (*dto.PositionCode, error) {
-	panic(fmt.Errorf("not implemented: ReportsToPositionCode - reportsToPositionCode"))
-}
-
-// Status is the resolver for the status field.
-func (r *positionResolver) Status(ctx context.Context, obj *dto.Position) (model.PositionStatus, error) {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *positionResolver) EffectiveDate(ctx context.Context, obj *dto.Position) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *positionResolver) EndDate(ctx context.Context, obj *dto.Position) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// CreatedAt is the resolver for the createdAt field.
-func (r *positionResolver) CreatedAt(ctx context.Context, obj *dto.Position) (dto.DateTime, error) {
-	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
-}
-
-// UpdatedAt is the resolver for the updatedAt field.
-func (r *positionResolver) UpdatedAt(ctx context.Context, obj *dto.Position) (dto.DateTime, error) {
-	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
-}
-
-// AssignmentID is the resolver for the assignmentId field.
-func (r *positionAssignmentResolver) AssignmentID(ctx context.Context, obj *dto.PositionAssignment) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: AssignmentID - assignmentId"))
-}
-
-// PositionCode is the resolver for the positionCode field.
-func (r *positionAssignmentResolver) PositionCode(ctx context.Context, obj *dto.PositionAssignment) (dto.PositionCode, error) {
-	panic(fmt.Errorf("not implemented: PositionCode - positionCode"))
-}
-
-// PositionRecordID is the resolver for the positionRecordId field.
-func (r *positionAssignmentResolver) PositionRecordID(ctx context.Context, obj *dto.PositionAssignment) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: PositionRecordID - positionRecordId"))
-}
-
-// EmployeeID is the resolver for the employeeId field.
-func (r *positionAssignmentResolver) EmployeeID(ctx context.Context, obj *dto.PositionAssignment) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: EmployeeID - employeeId"))
-}
-
-// AssignmentType is the resolver for the assignmentType field.
-func (r *positionAssignmentResolver) AssignmentType(ctx context.Context, obj *dto.PositionAssignment) (model.PositionAssignmentType, error) {
-	panic(fmt.Errorf("not implemented: AssignmentType - assignmentType"))
-}
-
-// AssignmentStatus is the resolver for the assignmentStatus field.
-func (r *positionAssignmentResolver) AssignmentStatus(ctx context.Context, obj *dto.PositionAssignment) (model.PositionAssignmentStatus, error) {
-	panic(fmt.Errorf("not implemented: AssignmentStatus - assignmentStatus"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *positionAssignmentResolver) EffectiveDate(ctx context.Context, obj *dto.PositionAssignment) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *positionAssignmentResolver) EndDate(ctx context.Context, obj *dto.PositionAssignment) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// ActingUntil is the resolver for the actingUntil field.
-func (r *positionAssignmentResolver) ActingUntil(ctx context.Context, obj *dto.PositionAssignment) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: ActingUntil - actingUntil"))
-}
-
-// ReminderSentAt is the resolver for the reminderSentAt field.
-func (r *positionAssignmentResolver) ReminderSentAt(ctx context.Context, obj *dto.PositionAssignment) (*dto.DateTime, error) {
-	panic(fmt.Errorf("not implemented: ReminderSentAt - reminderSentAt"))
-}
-
-// CreatedAt is the resolver for the createdAt field.
-func (r *positionAssignmentResolver) CreatedAt(ctx context.Context, obj *dto.PositionAssignment) (dto.DateTime, error) {
-	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
-}
-
-// UpdatedAt is the resolver for the updatedAt field.
-func (r *positionAssignmentResolver) UpdatedAt(ctx context.Context, obj *dto.PositionAssignment) (dto.DateTime, error) {
-	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
-}
-
-// AssignmentID is the resolver for the assignmentId field.
-func (r *positionAssignmentAuditResolver) AssignmentID(ctx context.Context, obj *dto.PositionAssignmentAudit) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: AssignmentID - assignmentId"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *positionAssignmentAuditResolver) EffectiveDate(ctx context.Context, obj *dto.PositionAssignmentAudit) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *positionAssignmentAuditResolver) EndDate(ctx context.Context, obj *dto.PositionAssignmentAudit) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// Changes is the resolver for the changes field.
-func (r *positionAssignmentAuditResolver) Changes(ctx context.Context, obj *dto.PositionAssignmentAudit) (dto.JSON, error) {
-	panic(fmt.Errorf("not implemented: Changes - changes"))
-}
-
-// CreatedAt is the resolver for the createdAt field.
-func (r *positionAssignmentAuditResolver) CreatedAt(ctx context.Context, obj *dto.PositionAssignmentAudit) (dto.DateTime, error) {
-	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
-}
-
-// RecordID is the resolver for the recordId field.
-func (r *positionTimelineEntryResolver) RecordID(ctx context.Context, obj *dto.PositionTimelineEntry) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: RecordID - recordId"))
-}
-
-// Status is the resolver for the status field.
-func (r *positionTimelineEntryResolver) Status(ctx context.Context, obj *dto.PositionTimelineEntry) (model.PositionStatus, error) {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *positionTimelineEntryResolver) EffectiveDate(ctx context.Context, obj *dto.PositionTimelineEntry) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// EndDate is the resolver for the endDate field.
-func (r *positionTimelineEntryResolver) EndDate(ctx context.Context, obj *dto.PositionTimelineEntry) (*dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EndDate - endDate"))
-}
-
-// TimelineCategory is the resolver for the timelineCategory field.
-func (r *positionTimelineEntryResolver) TimelineCategory(ctx context.Context, obj *dto.PositionTimelineEntry) (model.PositionTimelineCategory, error) {
-	panic(fmt.Errorf("not implemented: TimelineCategory - timelineCategory"))
-}
-
-// AssignmentType is the resolver for the assignmentType field.
-func (r *positionTimelineEntryResolver) AssignmentType(ctx context.Context, obj *dto.PositionTimelineEntry) (*model.PositionAssignmentType, error) {
-	panic(fmt.Errorf("not implemented: AssignmentType - assignmentType"))
-}
-
-// AssignmentStatus is the resolver for the assignmentStatus field.
-func (r *positionTimelineEntryResolver) AssignmentStatus(ctx context.Context, obj *dto.PositionTimelineEntry) (*model.PositionAssignmentStatus, error) {
-	panic(fmt.Errorf("not implemented: AssignmentStatus - assignmentStatus"))
-}
-
-// TransferID is the resolver for the transferId field.
-func (r *positionTransferResolver) TransferID(ctx context.Context, obj *dto.PositionTransfer) (dto.UUID, error) {
-	panic(fmt.Errorf("not implemented: TransferID - transferId"))
-}
-
-// PositionCode is the resolver for the positionCode field.
-func (r *positionTransferResolver) PositionCode(ctx context.Context, obj *dto.PositionTransfer) (dto.PositionCode, error) {
-	panic(fmt.Errorf("not implemented: PositionCode - positionCode"))
-}
-
-// EffectiveDate is the resolver for the effectiveDate field.
-func (r *positionTransferResolver) EffectiveDate(ctx context.Context, obj *dto.PositionTransfer) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: EffectiveDate - effectiveDate"))
-}
-
-// InitiatedBy is the resolver for the initiatedBy field.
-func (r *positionTransferResolver) InitiatedBy(ctx context.Context, obj *dto.PositionTransfer) (*model.OperatedBy, error) {
-	panic(fmt.Errorf("not implemented: InitiatedBy - initiatedBy"))
-}
-
-// CreatedAt is the resolver for the createdAt field.
-func (r *positionTransferResolver) CreatedAt(ctx context.Context, obj *dto.PositionTransfer) (dto.DateTime, error) {
-	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
-}
-
 // Organizations is the resolver for the organizations field.
-func (r *queryResolver) Organizations(ctx context.Context, filter *dto.OrganizationFilter, pagination *dto.PaginationInput) (*dto.OrganizationConnection, error) {
-	panic(fmt.Errorf("not implemented: Organizations - organizations"))
+func (r *queryResolver) Organizations(ctx context.Context, filter *model.OrganizationFilter, pagination *model.PaginationInput) (*model.OrganizationConnection, error) {
+	dtoFilter, err := convertInput[model.OrganizationFilter, dto.OrganizationFilter](filter)
+	if err != nil {
+		return nil, err
+	}
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.QueryResolver.Organizations(ctx, struct {
+		Filter     *dto.OrganizationFilter
+		Pagination *dto.PaginationInput
+	}{
+		Filter:     dtoFilter,
+		Pagination: dtoPagination,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.OrganizationConnection](res)
 }
 
 // Organization is the resolver for the organization field.
-func (r *queryResolver) Organization(ctx context.Context, code string, asOfDate *string) (*dto.Organization, error) {
-	panic(fmt.Errorf("not implemented: Organization - organization"))
+func (r *queryResolver) Organization(ctx context.Context, code string, asOfDate *string) (*model.Organization, error) {
+	res, err := r.QueryResolver.Organization(ctx, struct {
+		Code     string
+		AsOfDate *string
+	}{
+		Code:     code,
+		AsOfDate: asOfDate,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.Organization](res)
 }
 
 // OrganizationStats is the resolver for the organizationStats field.
-func (r *queryResolver) OrganizationStats(ctx context.Context, asOfDate *string, includeHistorical *bool) (*dto.OrganizationStats, error) {
-	panic(fmt.Errorf("not implemented: OrganizationStats - organizationStats"))
+func (r *queryResolver) OrganizationStats(ctx context.Context, asOfDate *string, includeHistorical *bool) (*model.OrganizationStats, error) {
+	include := false
+	if includeHistorical != nil {
+		include = *includeHistorical
+	}
+	res, err := r.QueryResolver.OrganizationStats(ctx, struct {
+		AsOfDate          *string
+		IncludeHistorical bool
+	}{
+		AsOfDate:          asOfDate,
+		IncludeHistorical: include,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.OrganizationStats](res)
 }
 
 // OrganizationHierarchy is the resolver for the organizationHierarchy field.
 func (r *queryResolver) OrganizationHierarchy(ctx context.Context, code string, tenantID string) (*model.OrganizationHierarchy, error) {
-	panic(fmt.Errorf("not implemented: OrganizationHierarchy - organizationHierarchy"))
+	res, err := r.QueryResolver.OrganizationHierarchy(ctx, struct {
+		Code     string
+		TenantId string
+	}{
+		Code:     code,
+		TenantId: tenantID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.OrganizationHierarchy](res)
 }
 
 // OrganizationSubtree is the resolver for the organizationSubtree field.
 func (r *queryResolver) OrganizationSubtree(ctx context.Context, code string, tenantID string, maxDepth *int, includeInactive *bool) ([]model.OrganizationHierarchy, error) {
-	panic(fmt.Errorf("not implemented: OrganizationSubtree - organizationSubtree"))
+	md := 0
+	if maxDepth != nil {
+		md = *maxDepth
+	}
+	inactive := false
+	if includeInactive != nil {
+		inactive = *includeInactive
+	}
+	res, err := r.QueryResolver.OrganizationSubtree(ctx, struct {
+		Code            string
+		TenantId        string
+		MaxDepth        int32
+		IncludeInactive bool
+	}{
+		Code:            code,
+		TenantId:        tenantID,
+		MaxDepth:        int32(md),
+		IncludeInactive: inactive,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.OrganizationHierarchy](res)
 }
 
 // HierarchyStatistics is the resolver for the hierarchyStatistics field.
-func (r *queryResolver) HierarchyStatistics(ctx context.Context, tenantID string, includeIntegrityCheck *bool) (*dto.HierarchyStatistics, error) {
-	panic(fmt.Errorf("not implemented: HierarchyStatistics - hierarchyStatistics"))
+func (r *queryResolver) HierarchyStatistics(ctx context.Context, tenantID string, includeIntegrityCheck *bool) (*model.HierarchyStatistics, error) {
+	include := false
+	if includeIntegrityCheck != nil {
+		include = *includeIntegrityCheck
+	}
+	res, err := r.QueryResolver.HierarchyStatistics(ctx, struct {
+		TenantId              string
+		IncludeIntegrityCheck bool
+	}{
+		TenantId:              tenantID,
+		IncludeIntegrityCheck: include,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.HierarchyStatistics](res)
 }
 
 // Positions is the resolver for the positions field.
-func (r *queryResolver) Positions(ctx context.Context, filter *dto.PositionFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionSortInput) (*dto.PositionConnection, error) {
-	panic(fmt.Errorf("not implemented: Positions - positions"))
+func (r *queryResolver) Positions(ctx context.Context, filter *model.PositionFilterInput, pagination *model.PaginationInput, sorting []model.PositionSortInput) (*model.PositionConnection, error) {
+	dtoFilter, err := convertInput[model.PositionFilterInput, dto.PositionFilterInput](filter)
+	if err != nil {
+		return nil, err
+	}
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	dtoSorting, err := convertInputSlicePointer[model.PositionSortInput, dto.PositionSortInput](sorting)
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.QueryResolver.Positions(ctx, struct {
+		Filter     *dto.PositionFilterInput
+		Pagination *dto.PaginationInput
+		Sorting    *[]dto.PositionSortInput
+	}{
+		Filter:     dtoFilter,
+		Pagination: dtoPagination,
+		Sorting:    dtoSorting,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.PositionConnection](res)
 }
 
 // Position is the resolver for the position field.
-func (r *queryResolver) Position(ctx context.Context, code dto.PositionCode, asOfDate *dto.Date) (*dto.Position, error) {
-	panic(fmt.Errorf("not implemented: Position - position"))
+func (r *queryResolver) Position(ctx context.Context, code dto.PositionCode, asOfDate *dto.Date) (*model.Position, error) {
+	res, err := r.QueryResolver.Position(ctx, struct {
+		Code     string
+		AsOfDate *string
+	}{
+		Code:     scalarToString(code),
+		AsOfDate: dateToStringPtr(asOfDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.Position](res)
 }
 
 // PositionTimeline is the resolver for the positionTimeline field.
-func (r *queryResolver) PositionTimeline(ctx context.Context, code dto.PositionCode, startDate *dto.Date, endDate *dto.Date) ([]dto.PositionTimelineEntry, error) {
-	panic(fmt.Errorf("not implemented: PositionTimeline - positionTimeline"))
+func (r *queryResolver) PositionTimeline(ctx context.Context, code dto.PositionCode, startDate *dto.Date, endDate *dto.Date) ([]model.PositionTimelineEntry, error) {
+	res, err := r.QueryResolver.PositionTimeline(ctx, struct {
+		Code      string
+		StartDate *string
+		EndDate   *string
+	}{
+		Code:      scalarToString(code),
+		StartDate: dateToStringPtr(startDate),
+		EndDate:   dateToStringPtr(endDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.PositionTimelineEntry](res)
 }
 
 // PositionVersions is the resolver for the positionVersions field.
-func (r *queryResolver) PositionVersions(ctx context.Context, code dto.PositionCode, includeDeleted *bool) ([]dto.Position, error) {
-	panic(fmt.Errorf("not implemented: PositionVersions - positionVersions"))
+func (r *queryResolver) PositionVersions(ctx context.Context, code dto.PositionCode, includeDeleted *bool) ([]model.Position, error) {
+	res, err := r.QueryResolver.PositionVersions(ctx, struct {
+		Code           string
+		IncludeDeleted *bool
+	}{
+		Code:           scalarToString(code),
+		IncludeDeleted: includeDeleted,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.Position](res)
 }
 
 // PositionAssignments is the resolver for the positionAssignments field.
-func (r *queryResolver) PositionAssignments(ctx context.Context, positionCode dto.PositionCode, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
-	panic(fmt.Errorf("not implemented: PositionAssignments - positionAssignments"))
+func (r *queryResolver) PositionAssignments(ctx context.Context, positionCode dto.PositionCode, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error) {
+	dtoFilter, err := convertInput[model.PositionAssignmentFilterInput, dto.PositionAssignmentFilterInput](filter)
+	if err != nil {
+		return nil, err
+	}
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	dtoSorting, err := convertInputSlicePointer[model.PositionAssignmentSortInput, dto.PositionAssignmentSortInput](sorting)
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.QueryResolver.PositionAssignments(ctx, struct {
+		PositionCode string
+		Filter       *dto.PositionAssignmentFilterInput
+		Pagination   *dto.PaginationInput
+		Sorting      *[]dto.PositionAssignmentSortInput
+	}{
+		PositionCode: scalarToString(positionCode),
+		Filter:       dtoFilter,
+		Pagination:   dtoPagination,
+		Sorting:      dtoSorting,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.PositionAssignmentConnection](res)
 }
 
 // PositionAssignmentAudit is the resolver for the positionAssignmentAudit field.
-func (r *queryResolver) PositionAssignmentAudit(ctx context.Context, positionCode dto.PositionCode, assignmentID *dto.UUID, dateRange *dto.DateRangeInput, pagination *dto.PaginationInput) (*dto.PositionAssignmentAuditConnection, error) {
-	panic(fmt.Errorf("not implemented: PositionAssignmentAudit - positionAssignmentAudit"))
+func (r *queryResolver) PositionAssignmentAudit(ctx context.Context, positionCode dto.PositionCode, assignmentID *dto.UUID, dateRange *model.DateRangeInput, pagination *model.PaginationInput) (*model.PositionAssignmentAuditConnection, error) {
+	dtoDateRange, err := convertInput[model.DateRangeInput, dto.DateRangeInput](dateRange)
+	if err != nil {
+		return nil, err
+	}
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.QueryResolver.PositionAssignmentAudit(ctx, struct {
+		PositionCode string
+		AssignmentId *string
+		DateRange    *dto.DateRangeInput
+		Pagination   *dto.PaginationInput
+	}{
+		PositionCode: scalarToString(positionCode),
+		AssignmentId: scalarPtrToStringPtr(assignmentID),
+		DateRange:    dtoDateRange,
+		Pagination:   dtoPagination,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.PositionAssignmentAuditConnection](res)
 }
 
 // Assignments is the resolver for the assignments field.
-func (r *queryResolver) Assignments(ctx context.Context, organizationCode *string, positionCode *dto.PositionCode, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
-	panic(fmt.Errorf("not implemented: Assignments - assignments"))
+func (r *queryResolver) Assignments(ctx context.Context, organizationCode *string, positionCode *dto.PositionCode, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error) {
+	dtoFilter, err := convertInput[model.PositionAssignmentFilterInput, dto.PositionAssignmentFilterInput](filter)
+	if err != nil {
+		return nil, err
+	}
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	dtoSorting, err := convertInputSlicePointer[model.PositionAssignmentSortInput, dto.PositionAssignmentSortInput](sorting)
+	if err != nil {
+		return nil, err
+	}
+	var positionPtr *string
+	if positionCode != nil {
+		positionPtr = scalarPtrToStringPtr(positionCode)
+	}
+	res, err := r.QueryResolver.Assignments(ctx, struct {
+		OrganizationCode *string
+		PositionCode     *string
+		Filter           *dto.PositionAssignmentFilterInput
+		Pagination       *dto.PaginationInput
+		Sorting          *[]dto.PositionAssignmentSortInput
+	}{
+		OrganizationCode: organizationCode,
+		PositionCode:     positionPtr,
+		Filter:           dtoFilter,
+		Pagination:       dtoPagination,
+		Sorting:          dtoSorting,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.PositionAssignmentConnection](res)
 }
 
 // AssignmentHistory is the resolver for the assignmentHistory field.
-func (r *queryResolver) AssignmentHistory(ctx context.Context, positionCode dto.PositionCode, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
-	panic(fmt.Errorf("not implemented: AssignmentHistory - assignmentHistory"))
+func (r *queryResolver) AssignmentHistory(ctx context.Context, positionCode dto.PositionCode, filter *model.PositionAssignmentFilterInput, pagination *model.PaginationInput, sorting []model.PositionAssignmentSortInput) (*model.PositionAssignmentConnection, error) {
+	dtoFilter, err := convertInput[model.PositionAssignmentFilterInput, dto.PositionAssignmentFilterInput](filter)
+	if err != nil {
+		return nil, err
+	}
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	dtoSorting, err := convertInputSlicePointer[model.PositionAssignmentSortInput, dto.PositionAssignmentSortInput](sorting)
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.QueryResolver.AssignmentHistory(ctx, struct {
+		PositionCode string
+		Filter       *dto.PositionAssignmentFilterInput
+		Pagination   *dto.PaginationInput
+		Sorting      *[]dto.PositionAssignmentSortInput
+	}{
+		PositionCode: scalarToString(positionCode),
+		Filter:       dtoFilter,
+		Pagination:   dtoPagination,
+		Sorting:      dtoSorting,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.PositionAssignmentConnection](res)
 }
 
 // AssignmentStats is the resolver for the assignmentStats field.
-func (r *queryResolver) AssignmentStats(ctx context.Context, organizationCode *string, positionCode *dto.PositionCode) (*dto.AssignmentStats, error) {
-	panic(fmt.Errorf("not implemented: AssignmentStats - assignmentStats"))
+func (r *queryResolver) AssignmentStats(ctx context.Context, organizationCode *string, positionCode *dto.PositionCode) (*model.AssignmentStats, error) {
+	var positionPtr *string
+	if positionCode != nil {
+		positionPtr = scalarPtrToStringPtr(positionCode)
+	}
+	res, err := r.QueryResolver.AssignmentStats(ctx, struct {
+		OrganizationCode *string
+		PositionCode     *string
+	}{
+		OrganizationCode: organizationCode,
+		PositionCode:     positionPtr,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.AssignmentStats](res)
 }
 
 // VacantPositions is the resolver for the vacantPositions field.
-func (r *queryResolver) VacantPositions(ctx context.Context, filter *dto.VacantPositionFilterInput, pagination *dto.PaginationInput, sorting []dto.VacantPositionSortInput) (*dto.VacantPositionConnection, error) {
-	panic(fmt.Errorf("not implemented: VacantPositions - vacantPositions"))
+func (r *queryResolver) VacantPositions(ctx context.Context, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) (*model.VacantPositionConnection, error) {
+	dtoFilter, err := convertInput[model.VacantPositionFilterInput, dto.VacantPositionFilterInput](filter)
+	if err != nil {
+		return nil, err
+	}
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	dtoSorting, err := convertInputSlicePointer[model.VacantPositionSortInput, dto.VacantPositionSortInput](sorting)
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.QueryResolver.VacantPositions(ctx, struct {
+		Filter     *dto.VacantPositionFilterInput
+		Pagination *dto.PaginationInput
+		Sorting    *[]dto.VacantPositionSortInput
+	}{
+		Filter:     dtoFilter,
+		Pagination: dtoPagination,
+		Sorting:    dtoSorting,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.VacantPositionConnection](res)
 }
 
 // PositionTransfers is the resolver for the positionTransfers field.
-func (r *queryResolver) PositionTransfers(ctx context.Context, positionCode *dto.PositionCode, organizationCode *string, pagination *dto.PaginationInput) (*dto.PositionTransferConnection, error) {
-	panic(fmt.Errorf("not implemented: PositionTransfers - positionTransfers"))
+func (r *queryResolver) PositionTransfers(ctx context.Context, positionCode *dto.PositionCode, organizationCode *string, pagination *model.PaginationInput) (*model.PositionTransferConnection, error) {
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.QueryResolver.PositionTransfers(ctx, struct {
+		PositionCode     *string
+		OrganizationCode *string
+		Pagination       *dto.PaginationInput
+	}{
+		PositionCode:     scalarPtrToStringPtr(positionCode),
+		OrganizationCode: organizationCode,
+		Pagination:       dtoPagination,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.PositionTransferConnection](res)
 }
 
 // PositionHeadcountStats is the resolver for the positionHeadcountStats field.
-func (r *queryResolver) PositionHeadcountStats(ctx context.Context, organizationCode string, includeSubordinates *bool) (*dto.HeadcountStats, error) {
-	panic(fmt.Errorf("not implemented: PositionHeadcountStats - positionHeadcountStats"))
+func (r *queryResolver) PositionHeadcountStats(ctx context.Context, organizationCode string, includeSubordinates *bool) (*model.HeadcountStats, error) {
+	res, err := r.QueryResolver.PositionHeadcountStats(ctx, struct {
+		OrganizationCode    string
+		IncludeSubordinates *bool
+	}{
+		OrganizationCode:    organizationCode,
+		IncludeSubordinates: includeSubordinates,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.HeadcountStats](res)
 }
 
 // AuditHistory is the resolver for the auditHistory field.
 func (r *queryResolver) AuditHistory(ctx context.Context, recordID string, startDate *string, endDate *string, operation *model.OperationType, userID *string, limit *int) ([]model.AuditLogDetail, error) {
-	panic(fmt.Errorf("not implemented: AuditHistory - auditHistory"))
+	op := (*string)(nil)
+	if operation != nil {
+		val := string(*operation)
+		op = &val
+	}
+	lim := 0
+	if limit != nil {
+		lim = *limit
+	}
+	res, err := r.QueryResolver.AuditHistory(ctx, struct {
+		RecordId  string
+		StartDate *string
+		EndDate   *string
+		Operation *string
+		UserId    *string
+		Limit     int32
+	}{
+		RecordId:  recordID,
+		StartDate: startDate,
+		EndDate:   endDate,
+		Operation: op,
+		UserId:    userID,
+		Limit:     int32(lim),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.AuditLogDetail](res)
 }
 
 // AuditLog is the resolver for the auditLog field.
 func (r *queryResolver) AuditLog(ctx context.Context, auditID string) (*model.AuditLogDetail, error) {
-	panic(fmt.Errorf("not implemented: AuditLog - auditLog"))
+	res, err := r.QueryResolver.AuditLog(ctx, struct {
+		AuditId string
+	}{AuditId: auditID})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.AuditLogDetail](res)
 }
 
 // OrganizationVersions is the resolver for the organizationVersions field.
-func (r *queryResolver) OrganizationVersions(ctx context.Context, code string, includeDeleted *bool) ([]dto.Organization, error) {
-	panic(fmt.Errorf("not implemented: OrganizationVersions - organizationVersions"))
+func (r *queryResolver) OrganizationVersions(ctx context.Context, code string, includeDeleted *bool) ([]model.Organization, error) {
+	res, err := r.QueryResolver.OrganizationVersions(ctx, struct {
+		Code           string
+		IncludeDeleted *bool
+	}{
+		Code:           code,
+		IncludeDeleted: includeDeleted,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.Organization](res)
 }
 
 // JobFamilyGroups is the resolver for the jobFamilyGroups field.
-func (r *queryResolver) JobFamilyGroups(ctx context.Context, includeInactive *bool, asOfDate *dto.Date) ([]dto.JobFamilyGroup, error) {
-	panic(fmt.Errorf("not implemented: JobFamilyGroups - jobFamilyGroups"))
+func (r *queryResolver) JobFamilyGroups(ctx context.Context, includeInactive *bool, asOfDate *dto.Date) ([]model.JobFamilyGroup, error) {
+	res, err := r.QueryResolver.JobFamilyGroups(ctx, struct {
+		IncludeInactive *bool
+		AsOfDate        *string
+	}{
+		IncludeInactive: includeInactive,
+		AsOfDate:        dateToStringPtr(asOfDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.JobFamilyGroup](res)
 }
 
 // JobFamilies is the resolver for the jobFamilies field.
-func (r *queryResolver) JobFamilies(ctx context.Context, groupCode dto.JobFamilyGroupCode, includeInactive *bool, asOfDate *dto.Date) ([]dto.JobFamily, error) {
-	panic(fmt.Errorf("not implemented: JobFamilies - jobFamilies"))
+func (r *queryResolver) JobFamilies(ctx context.Context, groupCode dto.JobFamilyGroupCode, includeInactive *bool, asOfDate *dto.Date) ([]model.JobFamily, error) {
+	res, err := r.QueryResolver.JobFamilies(ctx, struct {
+		GroupCode       string
+		IncludeInactive *bool
+		AsOfDate        *string
+	}{
+		GroupCode:       scalarToString(groupCode),
+		IncludeInactive: includeInactive,
+		AsOfDate:        dateToStringPtr(asOfDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.JobFamily](res)
 }
 
 // JobRoles is the resolver for the jobRoles field.
-func (r *queryResolver) JobRoles(ctx context.Context, familyCode dto.JobFamilyCode, includeInactive *bool, asOfDate *dto.Date) ([]dto.JobRole, error) {
-	panic(fmt.Errorf("not implemented: JobRoles - jobRoles"))
+func (r *queryResolver) JobRoles(ctx context.Context, familyCode dto.JobFamilyCode, includeInactive *bool, asOfDate *dto.Date) ([]model.JobRole, error) {
+	res, err := r.QueryResolver.JobRoles(ctx, struct {
+		FamilyCode      string
+		IncludeInactive *bool
+		AsOfDate        *string
+	}{
+		FamilyCode:      scalarToString(familyCode),
+		IncludeInactive: includeInactive,
+		AsOfDate:        dateToStringPtr(asOfDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.JobRole](res)
 }
 
 // JobLevels is the resolver for the jobLevels field.
-func (r *queryResolver) JobLevels(ctx context.Context, roleCode dto.JobRoleCode, includeInactive *bool, asOfDate *dto.Date) ([]dto.JobLevel, error) {
-	panic(fmt.Errorf("not implemented: JobLevels - jobLevels"))
-}
-
-// PositionType is the resolver for the positionType field.
-func (r *typeHeadcountResolver) PositionType(ctx context.Context, obj *dto.TypeHeadcount) (model.PositionType, error) {
-	panic(fmt.Errorf("not implemented: PositionType - positionType"))
-}
-
-// PositionCode is the resolver for the positionCode field.
-func (r *vacantPositionResolver) PositionCode(ctx context.Context, obj *dto.VacantPosition) (dto.PositionCode, error) {
-	panic(fmt.Errorf("not implemented: PositionCode - positionCode"))
-}
-
-// JobFamilyCode is the resolver for the jobFamilyCode field.
-func (r *vacantPositionResolver) JobFamilyCode(ctx context.Context, obj *dto.VacantPosition) (dto.JobFamilyCode, error) {
-	panic(fmt.Errorf("not implemented: JobFamilyCode - jobFamilyCode"))
-}
-
-// JobRoleCode is the resolver for the jobRoleCode field.
-func (r *vacantPositionResolver) JobRoleCode(ctx context.Context, obj *dto.VacantPosition) (dto.JobRoleCode, error) {
-	panic(fmt.Errorf("not implemented: JobRoleCode - jobRoleCode"))
-}
-
-// JobLevelCode is the resolver for the jobLevelCode field.
-func (r *vacantPositionResolver) JobLevelCode(ctx context.Context, obj *dto.VacantPosition) (dto.JobLevelCode, error) {
-	panic(fmt.Errorf("not implemented: JobLevelCode - jobLevelCode"))
-}
-
-// VacantSince is the resolver for the vacantSince field.
-func (r *vacantPositionResolver) VacantSince(ctx context.Context, obj *dto.VacantPosition) (dto.Date, error) {
-	panic(fmt.Errorf("not implemented: VacantSince - vacantSince"))
-}
-
-// UnitType is the resolver for the unitType field.
-func (r *organizationFilterResolver) UnitType(ctx context.Context, obj *dto.OrganizationFilter, data *model.UnitType) error {
-	panic(fmt.Errorf("not implemented: UnitType - unitType"))
-}
-
-// Status is the resolver for the status field.
-func (r *organizationFilterResolver) Status(ctx context.Context, obj *dto.OrganizationFilter, data *model.Status) error {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// SearchFields is the resolver for the searchFields field.
-func (r *organizationFilterResolver) SearchFields(ctx context.Context, obj *dto.OrganizationFilter, data []model.SearchField) error {
-	panic(fmt.Errorf("not implemented: SearchFields - searchFields"))
-}
-
-// ProfileContains is the resolver for the profileContains field.
-func (r *organizationFilterResolver) ProfileContains(ctx context.Context, obj *dto.OrganizationFilter, data dto.JSON) error {
-	panic(fmt.Errorf("not implemented: ProfileContains - profileContains"))
-}
-
-// OperationType is the resolver for the operationType field.
-func (r *organizationFilterResolver) OperationType(ctx context.Context, obj *dto.OrganizationFilter, data *model.OperationType) error {
-	panic(fmt.Errorf("not implemented: OperationType - operationType"))
-}
-
-// EmployeeID is the resolver for the employeeId field.
-func (r *positionAssignmentFilterInputResolver) EmployeeID(ctx context.Context, obj *dto.PositionAssignmentFilterInput, data *dto.UUID) error {
-	panic(fmt.Errorf("not implemented: EmployeeID - employeeId"))
-}
-
-// Status is the resolver for the status field.
-func (r *positionAssignmentFilterInputResolver) Status(ctx context.Context, obj *dto.PositionAssignmentFilterInput, data *model.PositionAssignmentStatus) error {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// AssignmentTypes is the resolver for the assignmentTypes field.
-func (r *positionAssignmentFilterInputResolver) AssignmentTypes(ctx context.Context, obj *dto.PositionAssignmentFilterInput, data []model.PositionAssignmentType) error {
-	panic(fmt.Errorf("not implemented: AssignmentTypes - assignmentTypes"))
-}
-
-// AsOfDate is the resolver for the asOfDate field.
-func (r *positionAssignmentFilterInputResolver) AsOfDate(ctx context.Context, obj *dto.PositionAssignmentFilterInput, data *dto.Date) error {
-	panic(fmt.Errorf("not implemented: AsOfDate - asOfDate"))
-}
-
-// Field is the resolver for the field field.
-func (r *positionAssignmentSortInputResolver) Field(ctx context.Context, obj *dto.PositionAssignmentSortInput, data model.PositionAssignmentSortField) error {
-	panic(fmt.Errorf("not implemented: Field - field"))
-}
-
-// Direction is the resolver for the direction field.
-func (r *positionAssignmentSortInputResolver) Direction(ctx context.Context, obj *dto.PositionAssignmentSortInput, data *model.SortOrder) error {
-	panic(fmt.Errorf("not implemented: Direction - direction"))
-}
-
-// PositionCodes is the resolver for the positionCodes field.
-func (r *positionFilterInputResolver) PositionCodes(ctx context.Context, obj *dto.PositionFilterInput, data []dto.PositionCode) error {
-	panic(fmt.Errorf("not implemented: PositionCodes - positionCodes"))
-}
-
-// Status is the resolver for the status field.
-func (r *positionFilterInputResolver) Status(ctx context.Context, obj *dto.PositionFilterInput, data *model.PositionStatus) error {
-	panic(fmt.Errorf("not implemented: Status - status"))
-}
-
-// JobFamilyGroupCodes is the resolver for the jobFamilyGroupCodes field.
-func (r *positionFilterInputResolver) JobFamilyGroupCodes(ctx context.Context, obj *dto.PositionFilterInput, data []dto.JobFamilyGroupCode) error {
-	panic(fmt.Errorf("not implemented: JobFamilyGroupCodes - jobFamilyGroupCodes"))
-}
-
-// JobFamilyCodes is the resolver for the jobFamilyCodes field.
-func (r *positionFilterInputResolver) JobFamilyCodes(ctx context.Context, obj *dto.PositionFilterInput, data []dto.JobFamilyCode) error {
-	panic(fmt.Errorf("not implemented: JobFamilyCodes - jobFamilyCodes"))
-}
-
-// JobRoleCodes is the resolver for the jobRoleCodes field.
-func (r *positionFilterInputResolver) JobRoleCodes(ctx context.Context, obj *dto.PositionFilterInput, data []dto.JobRoleCode) error {
-	panic(fmt.Errorf("not implemented: JobRoleCodes - jobRoleCodes"))
-}
-
-// JobLevelCodes is the resolver for the jobLevelCodes field.
-func (r *positionFilterInputResolver) JobLevelCodes(ctx context.Context, obj *dto.PositionFilterInput, data []dto.JobLevelCode) error {
-	panic(fmt.Errorf("not implemented: JobLevelCodes - jobLevelCodes"))
-}
-
-// PositionTypes is the resolver for the positionTypes field.
-func (r *positionFilterInputResolver) PositionTypes(ctx context.Context, obj *dto.PositionFilterInput, data []model.PositionType) error {
-	panic(fmt.Errorf("not implemented: PositionTypes - positionTypes"))
-}
-
-// EmploymentTypes is the resolver for the employmentTypes field.
-func (r *positionFilterInputResolver) EmploymentTypes(ctx context.Context, obj *dto.PositionFilterInput, data []model.EmploymentType) error {
-	panic(fmt.Errorf("not implemented: EmploymentTypes - employmentTypes"))
-}
-
-// Field is the resolver for the field field.
-func (r *positionSortInputResolver) Field(ctx context.Context, obj *dto.PositionSortInput, data model.PositionSortField) error {
-	panic(fmt.Errorf("not implemented: Field - field"))
-}
-
-// Direction is the resolver for the direction field.
-func (r *positionSortInputResolver) Direction(ctx context.Context, obj *dto.PositionSortInput, data *model.SortOrder) error {
-	panic(fmt.Errorf("not implemented: Direction - direction"))
-}
-
-// JobFamilyCodes is the resolver for the jobFamilyCodes field.
-func (r *vacantPositionFilterInputResolver) JobFamilyCodes(ctx context.Context, obj *dto.VacantPositionFilterInput, data []dto.JobFamilyCode) error {
-	panic(fmt.Errorf("not implemented: JobFamilyCodes - jobFamilyCodes"))
-}
-
-// JobRoleCodes is the resolver for the jobRoleCodes field.
-func (r *vacantPositionFilterInputResolver) JobRoleCodes(ctx context.Context, obj *dto.VacantPositionFilterInput, data []dto.JobRoleCode) error {
-	panic(fmt.Errorf("not implemented: JobRoleCodes - jobRoleCodes"))
-}
-
-// JobLevelCodes is the resolver for the jobLevelCodes field.
-func (r *vacantPositionFilterInputResolver) JobLevelCodes(ctx context.Context, obj *dto.VacantPositionFilterInput, data []dto.JobLevelCode) error {
-	panic(fmt.Errorf("not implemented: JobLevelCodes - jobLevelCodes"))
-}
-
-// PositionTypes is the resolver for the positionTypes field.
-func (r *vacantPositionFilterInputResolver) PositionTypes(ctx context.Context, obj *dto.VacantPositionFilterInput, data []model.PositionType) error {
-	panic(fmt.Errorf("not implemented: PositionTypes - positionTypes"))
-}
-
-// AsOfDate is the resolver for the asOfDate field.
-func (r *vacantPositionFilterInputResolver) AsOfDate(ctx context.Context, obj *dto.VacantPositionFilterInput, data *dto.Date) error {
-	panic(fmt.Errorf("not implemented: AsOfDate - asOfDate"))
-}
-
-// Field is the resolver for the field field.
-func (r *vacantPositionSortInputResolver) Field(ctx context.Context, obj *dto.VacantPositionSortInput, data model.VacantPositionSortField) error {
-	panic(fmt.Errorf("not implemented: Field - field"))
-}
-
-// Direction is the resolver for the direction field.
-func (r *vacantPositionSortInputResolver) Direction(ctx context.Context, obj *dto.VacantPositionSortInput, data *model.SortOrder) error {
-	panic(fmt.Errorf("not implemented: Direction - direction"))
-}
-
-// AssignmentStats returns graphqlruntime.AssignmentStatsResolver implementation.
-func (r *Resolver) AssignmentStats() graphqlruntime.AssignmentStatsResolver {
-	return &assignmentStatsResolver{r}
-}
-
-// FamilyHeadcount returns graphqlruntime.FamilyHeadcountResolver implementation.
-func (r *Resolver) FamilyHeadcount() graphqlruntime.FamilyHeadcountResolver {
-	return &familyHeadcountResolver{r}
-}
-
-// JobFamily returns graphqlruntime.JobFamilyResolver implementation.
-func (r *Resolver) JobFamily() graphqlruntime.JobFamilyResolver { return &jobFamilyResolver{r} }
-
-// JobFamilyGroup returns graphqlruntime.JobFamilyGroupResolver implementation.
-func (r *Resolver) JobFamilyGroup() graphqlruntime.JobFamilyGroupResolver {
-	return &jobFamilyGroupResolver{r}
-}
-
-// JobLevel returns graphqlruntime.JobLevelResolver implementation.
-func (r *Resolver) JobLevel() graphqlruntime.JobLevelResolver { return &jobLevelResolver{r} }
-
-// JobRole returns graphqlruntime.JobRoleResolver implementation.
-func (r *Resolver) JobRole() graphqlruntime.JobRoleResolver { return &jobRoleResolver{r} }
-
-// LevelHeadcount returns graphqlruntime.LevelHeadcountResolver implementation.
-func (r *Resolver) LevelHeadcount() graphqlruntime.LevelHeadcountResolver {
-	return &levelHeadcountResolver{r}
-}
-
-// Organization returns graphqlruntime.OrganizationResolver implementation.
-func (r *Resolver) Organization() graphqlruntime.OrganizationResolver {
-	return &organizationResolver{r}
-}
-
-// OrganizationStats returns graphqlruntime.OrganizationStatsResolver implementation.
-func (r *Resolver) OrganizationStats() graphqlruntime.OrganizationStatsResolver {
-	return &organizationStatsResolver{r}
-}
-
-// Position returns graphqlruntime.PositionResolver implementation.
-func (r *Resolver) Position() graphqlruntime.PositionResolver { return &positionResolver{r} }
-
-// PositionAssignment returns graphqlruntime.PositionAssignmentResolver implementation.
-func (r *Resolver) PositionAssignment() graphqlruntime.PositionAssignmentResolver {
-	return &positionAssignmentResolver{r}
-}
-
-// PositionAssignmentAudit returns graphqlruntime.PositionAssignmentAuditResolver implementation.
-func (r *Resolver) PositionAssignmentAudit() graphqlruntime.PositionAssignmentAuditResolver {
-	return &positionAssignmentAuditResolver{r}
-}
-
-// PositionTimelineEntry returns graphqlruntime.PositionTimelineEntryResolver implementation.
-func (r *Resolver) PositionTimelineEntry() graphqlruntime.PositionTimelineEntryResolver {
-	return &positionTimelineEntryResolver{r}
-}
-
-// PositionTransfer returns graphqlruntime.PositionTransferResolver implementation.
-func (r *Resolver) PositionTransfer() graphqlruntime.PositionTransferResolver {
-	return &positionTransferResolver{r}
+func (r *queryResolver) JobLevels(ctx context.Context, roleCode dto.JobRoleCode, includeInactive *bool, asOfDate *dto.Date) ([]model.JobLevel, error) {
+	res, err := r.QueryResolver.JobLevels(ctx, struct {
+		RoleCode        string
+		IncludeInactive *bool
+		AsOfDate        *string
+	}{
+		RoleCode:        scalarToString(roleCode),
+		IncludeInactive: includeInactive,
+		AsOfDate:        dateToStringPtr(asOfDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertSlice[model.JobLevel](res)
 }
 
 // Query returns graphqlruntime.QueryResolver implementation.
 func (r *Resolver) Query() graphqlruntime.QueryResolver { return &queryResolver{r} }
 
-// TypeHeadcount returns graphqlruntime.TypeHeadcountResolver implementation.
-func (r *Resolver) TypeHeadcount() graphqlruntime.TypeHeadcountResolver {
-	return &typeHeadcountResolver{r}
-}
-
-// VacantPosition returns graphqlruntime.VacantPositionResolver implementation.
-func (r *Resolver) VacantPosition() graphqlruntime.VacantPositionResolver {
-	return &vacantPositionResolver{r}
-}
-
-// OrganizationFilter returns graphqlruntime.OrganizationFilterResolver implementation.
-func (r *Resolver) OrganizationFilter() graphqlruntime.OrganizationFilterResolver {
-	return &organizationFilterResolver{r}
-}
-
-// PositionAssignmentFilterInput returns graphqlruntime.PositionAssignmentFilterInputResolver implementation.
-func (r *Resolver) PositionAssignmentFilterInput() graphqlruntime.PositionAssignmentFilterInputResolver {
-	return &positionAssignmentFilterInputResolver{r}
-}
-
-// PositionAssignmentSortInput returns graphqlruntime.PositionAssignmentSortInputResolver implementation.
-func (r *Resolver) PositionAssignmentSortInput() graphqlruntime.PositionAssignmentSortInputResolver {
-	return &positionAssignmentSortInputResolver{r}
-}
-
-// PositionFilterInput returns graphqlruntime.PositionFilterInputResolver implementation.
-func (r *Resolver) PositionFilterInput() graphqlruntime.PositionFilterInputResolver {
-	return &positionFilterInputResolver{r}
-}
-
-// PositionSortInput returns graphqlruntime.PositionSortInputResolver implementation.
-func (r *Resolver) PositionSortInput() graphqlruntime.PositionSortInputResolver {
-	return &positionSortInputResolver{r}
-}
-
-// VacantPositionFilterInput returns graphqlruntime.VacantPositionFilterInputResolver implementation.
-func (r *Resolver) VacantPositionFilterInput() graphqlruntime.VacantPositionFilterInputResolver {
-	return &vacantPositionFilterInputResolver{r}
-}
-
-// VacantPositionSortInput returns graphqlruntime.VacantPositionSortInputResolver implementation.
-func (r *Resolver) VacantPositionSortInput() graphqlruntime.VacantPositionSortInputResolver {
-	return &vacantPositionSortInputResolver{r}
-}
-
-type assignmentStatsResolver struct{ *Resolver }
-type familyHeadcountResolver struct{ *Resolver }
-type jobFamilyResolver struct{ *Resolver }
-type jobFamilyGroupResolver struct{ *Resolver }
-type jobLevelResolver struct{ *Resolver }
-type jobRoleResolver struct{ *Resolver }
-type levelHeadcountResolver struct{ *Resolver }
-type organizationResolver struct{ *Resolver }
-type organizationStatsResolver struct{ *Resolver }
-type positionResolver struct{ *Resolver }
-type positionAssignmentResolver struct{ *Resolver }
-type positionAssignmentAuditResolver struct{ *Resolver }
-type positionTimelineEntryResolver struct{ *Resolver }
-type positionTransferResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-type typeHeadcountResolver struct{ *Resolver }
-type vacantPositionResolver struct{ *Resolver }
-type organizationFilterResolver struct{ *Resolver }
-type positionAssignmentFilterInputResolver struct{ *Resolver }
-type positionAssignmentSortInputResolver struct{ *Resolver }
-type positionFilterInputResolver struct{ *Resolver }
-type positionSortInputResolver struct{ *Resolver }
-type vacantPositionFilterInputResolver struct{ *Resolver }
-type vacantPositionSortInputResolver struct{ *Resolver }

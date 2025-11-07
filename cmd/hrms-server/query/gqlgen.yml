@@ -1,6 +1,8 @@
 schema:
   - docs/api/schema.graphql
 
+return_pointers_in_unmarshalinput: true
+
 exec:
   filename: cmd/hrms-server/query/internal/graphql/generated.go
   package: graphqlruntime
@@ -14,13 +16,7 @@ resolver:
   dir: cmd/hrms-server/query/internal/graphql/resolver
   package: resolver
 
-autobind:
-  - cube-castle/internal/organization/dto
-
 models:
-  AssignmentStats:
-    model:
-      - cube-castle/internal/organization/dto.AssignmentStats
   Date:
     model:
       - cube-castle/internal/organization/dto.Date

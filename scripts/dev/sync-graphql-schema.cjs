@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Fetches the running GraphQL schema via introspection and overwrites
- * docs/api/schema.graphql to keep the contract aligned with the live service.
+ * Fetches the running GraphQL schema via introspection and stores snapshots
+ * under logs/graphql-snapshots for diff/diagnostics. Never overwrites
+ * docs/api/schema.graphql, which remains the single source of truth.
  */
 
 const fs = require('fs');
@@ -45,12 +46,25 @@ async function fetchSchema() {
   return payload.data;
 }
 
+function writeSnapshot(contents) {
+  const outputDir = path.resolve(__dirname, '..', '..', 'logs', 'graphql-snapshots');
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const latestPath = path.join(outputDir, 'schema.latest.graphql');
+  const timestampedPath = path.join(outputDir, `schema-${timestamp}.graphql`);
+
+  fs.writeFileSync(latestPath, contents, 'utf-8');
+  fs.writeFileSync(timestampedPath, contents, 'utf-8');
+
+  console.log(`✅ GraphQL schema snapshot saved to ${latestPath}`);
+  console.log(`🗃  Historical snapshot saved to ${timestampedPath}`);
+}
+
 async function main() {
   const data = await fetchSchema();
   const schemaSDL = `${printSchemaWithDirectives(buildClientSchema(data))}\n`;
-  const targetPath = path.resolve(__dirname, '..', '..', 'docs', 'api', 'schema.graphql');
-  fs.writeFileSync(targetPath, schemaSDL, 'utf-8');
-  console.log(`✅ GraphQL schema updated at ${targetPath}`);
+  writeSnapshot(schemaSDL);
 }
 
 main().catch((error) => {
