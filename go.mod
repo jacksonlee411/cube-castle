@@ -5,6 +5,7 @@ go 1.24.0
 toolchain go1.24.9
 
 require (
+	github.com/99designs/gqlgen v0.17.45
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/alicebob/miniredis/v2 v2.30.5
 	github.com/gin-gonic/gin v1.9.1
@@ -22,10 +23,12 @@ require (
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.11.1
+	github.com/vektah/gqlparser/v2 v2.5.11
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 replace (
+	github.com/99designs/gqlgen => ./third_party/github.com/99designs/gqlgen
 	github.com/prometheus/client_model => github.com/prometheus/client_model v0.5.0
 	github.com/prometheus/common => github.com/prometheus/common v0.48.0
 	github.com/prometheus/procfs => github.com/prometheus/procfs v0.12.0
@@ -34,6 +37,7 @@ replace (
 )
 
 require (
+	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
@@ -65,6 +69,7 @@ require (
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
+	github.com/sosodev/duration v1.2.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/yuin/gopher-lua v1.1.0 // indirect

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 type scalarString string
@@ -149,5 +151,96 @@ func (j *JSON) UnmarshalGraphQL(input interface{}) error {
 		return nil
 	default:
 		return fmt.Errorf("JSON: 期望对象类型，实际得到 %T", input)
+	}
+}
+
+func MarshalDate(value Date) graphql.Marshaler {
+	return graphql.MarshalString(string(value))
+}
+
+func UnmarshalDate(v interface{}) (Date, error) {
+	str, err := graphql.UnmarshalString(v)
+	return Date(str), err
+}
+
+func MarshalDateTime(value DateTime) graphql.Marshaler {
+	return graphql.MarshalString(string(value))
+}
+
+func UnmarshalDateTime(v interface{}) (DateTime, error) {
+	str, err := graphql.UnmarshalString(v)
+	return DateTime(str), err
+}
+
+func MarshalJobFamilyGroupCode(value JobFamilyGroupCode) graphql.Marshaler {
+	return graphql.MarshalString(string(value))
+}
+
+func UnmarshalJobFamilyGroupCode(v interface{}) (JobFamilyGroupCode, error) {
+	str, err := graphql.UnmarshalString(v)
+	return JobFamilyGroupCode(str), err
+}
+
+func MarshalJobFamilyCode(value JobFamilyCode) graphql.Marshaler {
+	return graphql.MarshalString(string(value))
+}
+
+func UnmarshalJobFamilyCode(v interface{}) (JobFamilyCode, error) {
+	str, err := graphql.UnmarshalString(v)
+	return JobFamilyCode(str), err
+}
+
+func MarshalJobRoleCode(value JobRoleCode) graphql.Marshaler {
+	return graphql.MarshalString(string(value))
+}
+
+func UnmarshalJobRoleCode(v interface{}) (JobRoleCode, error) {
+	str, err := graphql.UnmarshalString(v)
+	return JobRoleCode(str), err
+}
+
+func MarshalJobLevelCode(value JobLevelCode) graphql.Marshaler {
+	return graphql.MarshalString(string(value))
+}
+
+func UnmarshalJobLevelCode(v interface{}) (JobLevelCode, error) {
+	str, err := graphql.UnmarshalString(v)
+	return JobLevelCode(str), err
+}
+
+func MarshalPositionCode(value PositionCode) graphql.Marshaler {
+	return graphql.MarshalString(string(value))
+}
+
+func UnmarshalPositionCode(v interface{}) (PositionCode, error) {
+	str, err := graphql.UnmarshalString(v)
+	return PositionCode(str), err
+}
+
+func MarshalUUID(value UUID) graphql.Marshaler {
+	return graphql.MarshalString(string(value))
+}
+
+func UnmarshalUUID(v interface{}) (UUID, error) {
+	str, err := graphql.UnmarshalString(v)
+	return UUID(str), err
+}
+
+func MarshalJSON(value JSON) graphql.Marshaler {
+	if value == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalAny(map[string]interface{}(value))
+}
+
+func UnmarshalJSON(v interface{}) (JSON, error) {
+	if v == nil {
+		return nil, nil
+	}
+	switch data := v.(type) {
+	case map[string]interface{}:
+		return JSON(data), nil
+	default:
+		return nil, fmt.Errorf("JSON: 期望对象类型，实际得到 %T", v)
 	}
 }

@@ -28,6 +28,7 @@ let testPositionCode: string;
 let testAssignmentId: string;
 
 test.describe('职位管理完整CRUD生命周期', () => {
+  test.describe.configure({ mode: 'serial' });
   test.beforeEach(async ({ page }) => {
     // 设置认证
     await setupAuth(page);
@@ -134,7 +135,9 @@ test.describe('职位管理完整CRUD生命周期', () => {
     await expect(detailCard).toContainText('OPER-OPS-MGR');
     await expect(detailCard).toContainText('S1');
 
-    // 验证版本列表显示
+    // 切换至版本历史页签并验证列表渲染
+    const versionTab = page.getByTestId('position-tab-versions');
+    await versionTab.click();
     await expect(page.getByTestId('position-version-list')).toBeVisible();
 
     console.log(`✅ 职位详情读取成功`);
@@ -188,16 +191,11 @@ test.describe('职位管理完整CRUD生命周期', () => {
 
     // 刷新页面验证更新后的信息
     await page.goto(`/positions/${testPositionCode}`);
-    await expect(page.getByTestId('position-detail-card')).toBeVisible({ timeout: 10000 });
-
-    // 验证更新后的标题显示（等待GraphQL查询）
-    await page.waitForResponse(
-      response => response.url().includes('/graphql') && response.status() === 200,
-      { timeout: 10000 }
-    );
-
     const detailCard = page.getByTestId('position-detail-card');
-    await expect(detailCard).toContainText('已更新', { timeout: 5000 });
+    await expect(detailCard).toBeVisible({ timeout: 10000 });
+
+    // 验证更新后的标题显示（等待 GraphQL 数据渲染）
+    await expect(detailCard).toContainText('已更新', { timeout: 15000 });
     await expect(detailCard).toContainText('S2');
 
     console.log(`✅ 职位更新成功`);
@@ -247,21 +245,18 @@ test.describe('职位管理完整CRUD生命周期', () => {
     expect(responseBody.success).toBe(true);
 
     // 保存任职记录ID用于后续空缺操作
-    if (responseBody.data && responseBody.data.assignmentId) {
+    if (responseBody.data?.currentAssignment?.assignmentId) {
+      testAssignmentId = responseBody.data.currentAssignment.assignmentId;
+    } else if (responseBody.data?.assignmentId) {
       testAssignmentId = responseBody.data.assignmentId;
-    } else if (responseBody.data && responseBody.data.recordId) {
+    } else if (responseBody.data?.recordId) {
       testAssignmentId = responseBody.data.recordId;
     }
 
     // 刷新页面验证任职记录
     await page.goto(`/positions/${testPositionCode}`);
-    await page.waitForResponse(
-      response => response.url().includes('/graphql') && response.status() === 200,
-      { timeout: 10000 }
-    );
-
     const detailCard = page.getByTestId('position-detail-card');
-    await expect(detailCard).toContainText(`E2E测试员工-${TEST_ID}`, { timeout: 5000 });
+    await expect(detailCard).toContainText(`E2E测试员工-${TEST_ID}`, { timeout: 15000 });
 
     console.log(`✅ 职位填充成功，任职ID: ${testAssignmentId}`);
   });
@@ -307,10 +302,8 @@ test.describe('职位管理完整CRUD生命周期', () => {
 
     // 刷新页面验证空缺状态
     await page.goto(`/positions/${testPositionCode}`);
-    await page.waitForResponse(
-      response => response.url().includes('/graphql') && response.status() === 200,
-      { timeout: 10000 }
-    );
+    const detailCard = page.getByTestId('position-detail-card');
+    await expect(detailCard).not.toContainText(`E2E测试员工-${TEST_ID}`, { timeout: 15000 });
 
     console.log(`✅ 职位空缺成功`);
   });
@@ -380,6 +373,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
     );
 
     // 验证版本列表包含所有生命周期事件
+    await page.getByTestId('position-tab-versions').click();
     const versionList = page.getByTestId('position-version-list');
     await expect(versionList).toBeVisible();
 

@@ -60,7 +60,7 @@
 - **准备**：确保 `.cache/dev.jwt` 存在（若缺失，运行 `make jwt-dev-setup && make jwt-dev-mint`），并导出 `PW_TENANT_ID`、`PW_JWT` 到 shell。
 - **执行**：`cd frontend && npx playwright test tests/e2e/position-crud-full-lifecycle.spec.ts --project=chromium --workers=1 --reporter=line,junit`。将 `playwright-report` 与 `test-results` 目录复制/重命名为 `frontend/test-results/position-crud-full-lifecyc-<commit>-chromium/`。
 - **检查点**：测试日志中 Step 1 不再出现 422/`JOB_CATALOG_NOT_FOUND`，Junit 报告全部通过。必要时附加 `curl -X POST http://localhost:9090/api/v1/positions ...` 的成功响应截图。
-- **执行记录（2025-11-07 12:45 CST）**：Step 1 已返回 201（`requestId=e25c050c-6a18-4e2f-9fdc-e6fdb9f228f0`，产物 `frontend/test-results/position-crud-full-lifecyc-96ee4-*/`），Step 2 因页面缺少 `data-testid="position-detail-card"` 超时（见 `error-context.md`）。说明 Job Catalog 缺口已解除，剩余 UI 定位问题交由 219T UI 工作流处理。
+- **执行记录（2025-11-07 14:54 CST）**：`npx playwright test tests/e2e/position-crud-full-lifecycle.spec.ts --project=chromium --workers=1 --reporter=line` 9 步骤全部通过，日志 `logs/230/position-crud-playwright-20251107T065443Z.log`，产物归档 `frontend/test-results/position-crud-full-lifecyc-99d5ffcf-chromium/`（内含 `playwright-report` 与原始 `test-results`）。RequestId 记录：Step1 Create `17671b78-1372-4abf-9fdd-e00f37b5decc`、Step3 Update `a173b7c3-7330-4bea-a2fa-0dac1d18e859`、Step4 Fill `4272d7fd-949d-4da5-8989-067291ccb0da`、Step5 Vacate `f6a80f66-5e44-43d1-b2f3-2308a5776684`、Step6 Delete `7393b8ff-3f0c-4c5b-a9c3-9310199a00d3`。
 
 ### 3A.6 文档同步（对应 3.6）
 - **操作**：更新 `docs/development-plans/219T-e2e-validation-report.md` 的 Position CRUD 条目（记录修复脚本版本、Playwright 跑批时间、产物路径）；同步更新本计划的“验收标准”小节中的证据链接。
@@ -86,5 +86,5 @@
 
 ---
 
-> 单一事实来源：`frontend/test-results/position-crud-full-lifecyc-b9f01-*/error-context.md`、`logs/219E/org-lifecycle-20251107-083118.log`、`curl` CLI 复现日志。  
+> 单一事实来源：`frontend/test-results/position-crud-full-lifecyc-99d5ffcf-chromium/`、`logs/230/position-crud-playwright-20251107T065443Z.log`、`logs/219E/org-lifecycle-20251107-083118.log`、`curl` CLI 复现日志。  
 > 更新时间：2025-11-07。  

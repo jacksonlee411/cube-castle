@@ -10,7 +10,6 @@ import (
 	pkglogger "cube-castle/pkg/logger"
 	sharedconfig "cube-castle/shared/config"
 	"github.com/google/uuid"
-	graphqlgo "github.com/graph-gophers/graphql-go"
 )
 
 type QueryRepository interface {
@@ -177,11 +176,11 @@ func (r *Resolver) OrganizationHistory(ctx context.Context, args struct {
 // 组织版本查询 - 按计划实现，支持includeDeleted参数
 func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
 	Code           string
-	IncludeDeleted graphqlgo.NullBool
+	IncludeDeleted *bool
 }) ([]dto.Organization, error) {
 	includeDeleted := false
-	if args.IncludeDeleted.Set && args.IncludeDeleted.Value != nil {
-		includeDeleted = *args.IncludeDeleted.Value
+	if args.IncludeDeleted != nil {
+		includeDeleted = *args.IncludeDeleted
 	}
 	log := r.loggerFor("organization", "versions", pkglogger.Fields{
 		"tenantId":       sharedconfig.DefaultTenantID.String(),
@@ -539,11 +538,11 @@ func (r *Resolver) resolveTenant(ctx context.Context, log pkglogger.Logger) uuid
 // PositionVersions 查询职位版本列表
 func (r *Resolver) PositionVersions(ctx context.Context, args struct {
 	Code           string
-	IncludeDeleted graphqlgo.NullBool
+	IncludeDeleted *bool
 }) ([]dto.Position, error) {
 	includeDeleted := false
-	if args.IncludeDeleted.Set && args.IncludeDeleted.Value != nil {
-		includeDeleted = *args.IncludeDeleted.Value
+	if args.IncludeDeleted != nil {
+		includeDeleted = *args.IncludeDeleted
 	}
 	log := r.loggerFor("position", "versions", pkglogger.Fields{
 		"code":           args.Code,
@@ -629,15 +628,15 @@ func (r *Resolver) PositionTransfers(ctx context.Context, args struct {
 // PositionHeadcountStats 查询编制统计
 func (r *Resolver) PositionHeadcountStats(ctx context.Context, args struct {
 	OrganizationCode    string
-	IncludeSubordinates graphqlgo.NullBool
+	IncludeSubordinates *bool
 }) (*dto.HeadcountStats, error) {
 	log := r.loggerFor("position", "headcountStats", pkglogger.Fields{"organizationCode": args.OrganizationCode})
 	if err := r.authorize(ctx, "positionHeadcountStats", log); err != nil {
 		return nil, err
 	}
 	includeSubordinates := true
-	if args.IncludeSubordinates.Set && args.IncludeSubordinates.Value != nil {
-		includeSubordinates = *args.IncludeSubordinates.Value
+	if args.IncludeSubordinates != nil {
+		includeSubordinates = *args.IncludeSubordinates
 	}
 	tenantID := sharedconfig.DefaultTenantID
 	if tenantStr := auth.GetTenantID(ctx); tenantStr != "" {
@@ -658,7 +657,7 @@ func (r *Resolver) PositionHeadcountStats(ctx context.Context, args struct {
 
 // JobFamilyGroups 查询职类
 func (r *Resolver) JobFamilyGroups(ctx context.Context, args struct {
-	IncludeInactive graphqlgo.NullBool
+	IncludeInactive *bool
 	AsOfDate        *string
 }) ([]dto.JobFamilyGroup, error) {
 	log := r.loggerFor("jobCatalog", "familyGroups", nil)
@@ -666,8 +665,8 @@ func (r *Resolver) JobFamilyGroups(ctx context.Context, args struct {
 		return nil, err
 	}
 	includeInactive := false
-	if args.IncludeInactive.Set && args.IncludeInactive.Value != nil {
-		includeInactive = *args.IncludeInactive.Value
+	if args.IncludeInactive != nil {
+		includeInactive = *args.IncludeInactive
 	}
 	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职类")
 
@@ -677,7 +676,7 @@ func (r *Resolver) JobFamilyGroups(ctx context.Context, args struct {
 // JobFamilies 查询职种
 func (r *Resolver) JobFamilies(ctx context.Context, args struct {
 	GroupCode       string
-	IncludeInactive graphqlgo.NullBool
+	IncludeInactive *bool
 	AsOfDate        *string
 }) ([]dto.JobFamily, error) {
 	log := r.loggerFor("jobCatalog", "families", pkglogger.Fields{"groupCode": args.GroupCode})
@@ -685,8 +684,8 @@ func (r *Resolver) JobFamilies(ctx context.Context, args struct {
 		return nil, err
 	}
 	includeInactive := false
-	if args.IncludeInactive.Set && args.IncludeInactive.Value != nil {
-		includeInactive = *args.IncludeInactive.Value
+	if args.IncludeInactive != nil {
+		includeInactive = *args.IncludeInactive
 	}
 	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职种")
 
@@ -696,7 +695,7 @@ func (r *Resolver) JobFamilies(ctx context.Context, args struct {
 // JobRoles 查询职务
 func (r *Resolver) JobRoles(ctx context.Context, args struct {
 	FamilyCode      string
-	IncludeInactive graphqlgo.NullBool
+	IncludeInactive *bool
 	AsOfDate        *string
 }) ([]dto.JobRole, error) {
 	log := r.loggerFor("jobCatalog", "roles", pkglogger.Fields{"familyCode": args.FamilyCode})
@@ -704,8 +703,8 @@ func (r *Resolver) JobRoles(ctx context.Context, args struct {
 		return nil, err
 	}
 	includeInactive := false
-	if args.IncludeInactive.Set && args.IncludeInactive.Value != nil {
-		includeInactive = *args.IncludeInactive.Value
+	if args.IncludeInactive != nil {
+		includeInactive = *args.IncludeInactive
 	}
 	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职务")
 
@@ -715,7 +714,7 @@ func (r *Resolver) JobRoles(ctx context.Context, args struct {
 // JobLevels 查询职级
 func (r *Resolver) JobLevels(ctx context.Context, args struct {
 	RoleCode        string
-	IncludeInactive graphqlgo.NullBool
+	IncludeInactive *bool
 	AsOfDate        *string
 }) ([]dto.JobLevel, error) {
 	log := r.loggerFor("jobCatalog", "levels", pkglogger.Fields{"roleCode": args.RoleCode})
@@ -723,8 +722,8 @@ func (r *Resolver) JobLevels(ctx context.Context, args struct {
 		return nil, err
 	}
 	includeInactive := false
-	if args.IncludeInactive.Set && args.IncludeInactive.Value != nil {
-		includeInactive = *args.IncludeInactive.Value
+	if args.IncludeInactive != nil {
+		includeInactive = *args.IncludeInactive
 	}
 	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职级")
 

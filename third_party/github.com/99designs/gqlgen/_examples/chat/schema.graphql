@@ -1,0 +1,29 @@
+type Chatroom {
+    name: String!
+    messages: [Message!]!
+    subscription: Subscription!
+}
+
+type Message {
+    id: ID!
+    text: String!
+    createdBy: String!
+    createdAt: Time!
+    subscription: Subscription!
+}
+
+type Query {
+    room(name: String!): Chatroom
+}
+
+type Mutation {
+    post(text: String!, username: String!, roomName: String!): Message!
+}
+
+type Subscription {
+    messageAdded(roomName: String!): Message!
+}
+
+scalar Time
+
+directive @user(username: String!) on SUBSCRIPTION

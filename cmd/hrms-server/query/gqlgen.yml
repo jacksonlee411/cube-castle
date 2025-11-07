@@ -1,0 +1,53 @@
+schema:
+  - docs/api/schema.graphql
+
+exec:
+  filename: cmd/hrms-server/query/internal/graphql/generated.go
+  package: graphqlruntime
+
+model:
+  filename: cmd/hrms-server/query/internal/graphql/model/models_gen.go
+  package: model
+
+resolver:
+  layout: follow-schema
+  dir: cmd/hrms-server/query/internal/graphql/resolver
+  package: resolver
+
+autobind:
+  - cube-castle/internal/organization/dto
+
+models:
+  AssignmentStats:
+    model:
+      - cube-castle/internal/organization/dto.AssignmentStats
+  Date:
+    model:
+      - cube-castle/internal/organization/dto.Date
+  DateTime:
+    model:
+      - cube-castle/internal/organization/dto.DateTime
+  JSON:
+    model:
+      - cube-castle/internal/organization/dto.JSON
+  JobFamilyCode:
+    model:
+      - cube-castle/internal/organization/dto.JobFamilyCode
+  JobFamilyGroupCode:
+    model:
+      - cube-castle/internal/organization/dto.JobFamilyGroupCode
+  JobLevelCode:
+    model:
+      - cube-castle/internal/organization/dto.JobLevelCode
+  JobRoleCode:
+    model:
+      - cube-castle/internal/organization/dto.JobRoleCode
+  PositionCode:
+    model:
+      - cube-castle/internal/organization/dto.PositionCode
+  UUID:
+    model:
+      - cube-castle/internal/organization/dto.UUID
+
+struct_tag: json
+omit_slice_element_pointers: true

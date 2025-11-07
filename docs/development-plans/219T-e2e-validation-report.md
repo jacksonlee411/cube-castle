@@ -40,7 +40,7 @@
 | `frontend/test-results/job-catalog-secondary-navi-af1dd-...` | 点击“编辑当前版本”后标题 `编辑职类信息` 未出现（`tests/e2e/job-catalog-secondary-navigation.spec.ts:189-206`） | 职类编辑面板未渲染成功或 UI 文案变更，If-Match 验证无法覆盖 |
 | `frontend/test-results/name-validation-parentheses-...` | REST PUT 返回 200，但测试仍断言 400（`tests/e2e/name-validation-parentheses.spec.ts:36-47`） | 服务端已允许括号命名，测试需要更新契约与断言 |
 | `frontend/test-results/optimization-verification-e2e-...` | `expect(totalSize).toBeLessThan(4 * 1024 * 1024)` 失败，实测 4.59 MB（`tests/e2e/optimization-verification-e2e.spec.ts:130-179`） | Bundle 体积目标未达，需重新评估 Phase 3 减重计划或调阈值 |
-| `frontend/test-results/position-crud-full-lifecyc-96ee4-RUD生命周期-Step-2-读取职位详情-Read--chromium` | `getByTestId('position-detail-card')` 超时（`tests/e2e/position-crud-full-lifecycle.spec.ts:108-205`），页面已渲染标题/信息但缺少 `data-testid="position-detail-card"` | 230 号计划已恢复 Job Catalog，Step1 成功返回 201；当前阻塞改为前端 data-testid 漂移，需更新 UI 或测试定位 |
+| `frontend/test-results/position-crud-full-lifecyc-99d5ffcf-chromium/` | ✅ 2025-11-07 14:54（Plan 230 rerun，日志：`logs/230/position-crud-playwright-20251107T065443Z.log`） | Job Catalog 迁移 + `position-detail-card`/`position-tab-*` data-testid 修复后，Position CRUD Create→Delete 全流程恢复；已作为 230 验收证据 |
 | `frontend/test-results/app-loaded.png`/`organizations-page.png` 等基础功能产物 | 新增的 `tests/e2e/basic-functionality-test.spec.ts` 回归全部通过（`npx playwright test ... --workers=1 --reporter=line`） | 证明在真实 GraphQL 读模型下组织仪表板正常加载，满足 219T1 Playwright 验收 | 
 | `frontend/test-results/position-crud-full-lifecycle-...` | 错误流程期待 400 实际为 422（`tests/e2e/position-crud-full-lifecycle.spec.ts:392-417`） | 表单校验与 API 行为不一致，需同步文档与测试 |
 | `frontend/test-results/position-lifecycle-...` | `getByRole('heading', { name: '职位管理（Stage 1 数据接入）' })` 超时（`tests/e2e/position-lifecycle.spec.ts:61-76`） | 页面标题/结构更新，导致生命周期视图验证无法执行 |
@@ -57,18 +57,18 @@
 
 > 解析脚本参见 `python3` 解析输出（命令：`python3 - <<'PY' ...`），详细错误可在对应 `trace.zip`→`test.trace` 中查看。
 
-> 本轮 219T1 回归使用 `npx playwright test tests/e2e/position-crud-full-lifecycle.spec.ts --project=chromium --workers=1`，产物位于 `frontend/test-results/position-crud-full-lifecyc-b9f01-*/` 与 `frontend/playwright-report/`。
+> 本轮 219T1 回归使用 `npx playwright test tests/e2e/position-crud-full-lifecycle.spec.ts --project=chromium --workers=1`，产物位于 `frontend/test-results/position-crud-full-lifecyc-99d5ffcf-chromium/` 与 `logs/230/position-crud-playwright-20251107T065443Z.log`。
 
 ### 共性问题
 1. **UI 选择器漂移**：大量 `getByTestId`/`getByRole` 超时，需统一 UI data-testid 改动清单并同步测试。
 2. **契约更新滞后**：REST 接口返回码已经改为 422/200，而测试仍按旧预期断言 400/失败，需对照 `docs/api/openapi.yaml` 与实现。
-3. **参考数据缺口**：职位 CRUD 所需的 JobFamilyGroup `OPER` 在当前数据库中处于 inactive，导致接口直接 422；须在迁移或基线数据中补齐。
+3. **参考数据缺口**：已通过 `database/migrations/20251107123000_230_job_catalog_oper_fix.sql` + `scripts/diagnostics/check-job-catalog.sh` 修复 `OPER` Job Catalog，但所有职位相关测试在执行前仍需跑脚本确认状态。
 
 ## 5. 风险与建议
 
 | 风险 | 描述 | 建议行动 |
 | --- | --- | --- |
-| 参考数据缺失 | Job Catalog 参考数据（`OPER` 系列）未激活，导致职位 CRUD 场景统一 422，E2E 覆盖度不足 | 将缺失的 JobFamilyGroup/Role/Level 在迁移脚本或测试前置步骤中回灌，并在 Playwright 前置检查数据可用性 |
+| 参考数据缺失 | Job Catalog 参考数据（`OPER` 系列）曾未激活，导致职位 CRUD 场景统一 422 | 已由 230 计划迁移 `database/migrations/20251107123000_230_job_catalog_oper_fix.sql` + `scripts/diagnostics/check-job-catalog.sh` 兜底；后续如脚本报警需先执行 `make db-migrate-all` |
 | 性能脚本失真 | 基准测试 99% 请求因 429/409 被丢弃 | 调整脚本（唯一 key、速率控制），并记录真实延迟/吞吐 |
 | E2E 契约漂移 | 9 个场景因 UI/接口改动失败 | 建立 UI data-testid registry + API 行为 changelog，让测试在合并前同步更新；必要时将旧断言标注 `// TODO-TEMPORARY` 并附迭代计划 |
 | 219E 验收阻塞 | Docker 权限虽已恢复，但测试输出不足以支撑验收 | 依照 `docs/development-plans/06-integrated-teams-progress-log.md` 的阶段划分，先补第一阶段（文档/脚本校准），再在读模型修复后执行阶段三/四 |

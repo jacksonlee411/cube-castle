@@ -1,482 +1,137 @@
-# Organization Units Management GraphQL Schema
-# Version: 4.7.0
-# Architecture: CQRS Query Layer (Read Operations Only)
-# Data Source: PostgreSQL with temporal data support
-# Authentication: OAuth 2.0 Bearer Token required
-#
-# Features:
-# - Temporal data queries with asOfDate parameter
-# - 17-level hierarchy depth support with intelligent caching
-# - Precise audit trail tracking individual temporal versions (recordId)
-# - Multi-tenant isolation and security
-# - Index-optimized for common filters and access patterns
-#
-# Permission Requirements:
-# - organizations, organization: org:read
-# - organizationAtDate, organizationHistory, organizationVersions: org:read:history  
-# - organizationHierarchy, organizationSubtree: org:read:hierarchy
-# - organizationStats: org:read:stats
-# - auditHistory: org:read:audit
-#
-# Recent Changes (v4.6.0):
-# - BREAKING: Audit system redesigned for precise recordId tracking
-# - Removed organizationAuditHistory query (replaced with auditHistory)
-# - AuditLogDetail now tracks specific temporal versions via recordId field only
-# - Simplified audit queries: single auditHistory(recordId) for precise tracking
-# - Removed businessEntityId field from AuditLogDetail (replaced by recordId)
-# - Enhanced audit precision: each temporal version has independent audit lifecycle
-
-"""
-Root Query type providing all organization management query operations.
-All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
-"""
-type Query {
-  # Basic Organization Queries
-  
-  """
-  Get paginated list of organization units with advanced filtering and temporal support.
-  
-  Permissions Required: org:read
-  Performance: Optimized with specialized indexes, typical response < 50ms
-  """
-  organizations(
-    filter: OrganizationFilter
-    pagination: PaginationInput
-  ): OrganizationConnection!
-  
-  """
-  Get single organization unit by business code with temporal support.
-  
-  Permissions Required: org:read
-  Performance: Index-optimized single record retrieval < 10ms
-  """
-  organization(
-    code: String!
-    asOfDate: String
-  ): Organization
-  
-  """
-  Get comprehensive organization statistics with temporal breakdown.
-  
-  Permissions Required: org:read:stats
-  Performance: Cached aggregation queries < 100ms
-  """
-  organizationStats(
-    asOfDate: String
-    includeHistorical: Boolean = false
-  ): OrganizationStats!
-  
-  # Advanced Hierarchy Queries
-  
-  """
-  Get complete hierarchy information for an organization including paths and relationships.
-  
-  Permissions Required: org:read:hierarchy
-  Performance: Path-optimized queries with hierarchy cache < 30ms
-  """
-  organizationHierarchy(
-    code: String!
-    tenantId: String!
-  ): OrganizationHierarchy
-  
-  """
-  Get organization subtree with configurable depth limits and relationship details.
-  Use this for multi-level hierarchy display (depth >= 2).
-  For direct children only, use organizations(filter: {parentCode: "code"}) instead.
-  
-  Permissions Required: org:read:hierarchy
-  Performance: Recursive CTE queries, optimized for display < 200ms
-  """
-  organizationSubtree(
-    code: String!
-    tenantId: String!
-    maxDepth: Int = 10
-    includeInactive: Boolean = false
-  ): [OrganizationHierarchy!]!
-  
-  """
-  Get hierarchy distribution statistics and integrity analysis.
-  
-  Permissions Required: org:read:hierarchy
-  Performance: Aggregation with hierarchy statistics < 150ms
-  """
-  hierarchyStatistics(
-    tenantId: String!
-    includeIntegrityCheck: Boolean = false
-  ): HierarchyStatistics!
-
-  # Position Queries
-  
-  """
-  Get paginated position list with temporal awareness.
-  
-  Permissions Required: position:read
-  """
-  positions(
-    filter: PositionFilterInput
-    pagination: PaginationInput
-    sorting: [PositionSortInput!]
-  ): PositionConnection!
-  
-  """
-  Get single position by code with optional temporal perspective.
-  
-  Permissions Required: position:read
-  """
-  position(
-    code: PositionCode!
-    asOfDate: Date
-  ): Position
-  
-  """
-  Get temporal timeline for a specific position.
-  
-  Permissions Required: position:read:history
-  """
-  positionTimeline(
-    code: PositionCode!
-    startDate: Date
-    endDate: Date
-  ): [PositionTimelineEntry!]!
-
-  """
-  List temporal versions for a position.
-
-  Permissions Required: position:read:history
-  """
-  positionVersions(
-    code: PositionCode!
-    includeDeleted: Boolean = false
-  ): [Position!]!
-
-  """
-  Get paginated assignment records for a position.
-
-  Permissions Required: position:read
-  """
-  positionAssignments(
-    positionCode: PositionCode!
-    filter: PositionAssignmentFilterInput
-    pagination: PaginationInput
-    sorting: [PositionAssignmentSortInput!]
-  ): PositionAssignmentConnection!
-
-  """
-  Export assignment audit events for a position.
-
-  Permissions Required: position:assignments:audit
-  """
-  positionAssignmentAudit(
-    positionCode: PositionCode!
-    assignmentId: UUID
-    dateRange: DateRangeInput
-    pagination: PaginationInput
-  ): PositionAssignmentAuditConnection!
-
-  """
-  List current assignments with optional filters for a single position.
-
-  Permissions Required: position:read
-  """
-  assignments(
-    organizationCode: String
-    positionCode: PositionCode
-    filter: PositionAssignmentFilterInput
-    pagination: PaginationInput
-    sorting: [PositionAssignmentSortInput!]
-  ): PositionAssignmentConnection!
-
-  """
-  Retrieve full assignment history for a position, including ended records.
-
-  Permissions Required: position:read:history
-  """
-  assignmentHistory(
-    positionCode: PositionCode!
-    filter: PositionAssignmentFilterInput
-    pagination: PaginationInput
-    sorting: [PositionAssignmentSortInput!]
-  ): PositionAssignmentConnection!
-
-  """
-  Aggregate assignment statistics scoped by position or organization.
-
-  Permissions Required: position:read:stats
-  """
-  assignmentStats(
-    organizationCode: String
-    positionCode: PositionCode
-  ): AssignmentStats!
-
-  """
-  Get vacant positions with optional filters.
-
-  Permissions Required: position:read
-  """
-  vacantPositions(
-    filter: VacantPositionFilterInput
-    pagination: PaginationInput
-    sorting: [VacantPositionSortInput!]
-  ): VacantPositionConnection!
-
-  """
-  Get transfer history for positions.
-
-  Permissions Required: position:read:history
-  """
-  positionTransfers(
-    positionCode: PositionCode
-    organizationCode: String
-    pagination: PaginationInput
-  ): PositionTransferConnection!
-  
-  """
-  Get headcount statistics for positions under an organization.
-  
-  Permissions Required: position:read:stats
-  """
-  positionHeadcountStats(
-    organizationCode: String!
-    includeSubordinates: Boolean = true
-  ): HeadcountStats!
-
-  # Audit and Analysis Queries
-  
-  """
-  Get complete audit history for a specific temporal record (organization units, positions, or job catalog entries).
-  This query returns audit records for a specific recordId, allowing precise tracking
-  of individual temporal version lifecycle changes.
-  
-  Permissions Required: org:read:audit
-  Performance: Record-specific audit queries with optimized indexing < 50ms
-  """
-  auditHistory(
-    recordId: String!
-    startDate: String
-    endDate: String
-    operation: OperationType
-    userId: String
-    limit: Int = 50
-  ): [AuditLogDetail!]!
-  
-  """
-  Get detailed audit record with before/after data snapshots and field-level changes.
-  
-  Permissions Required: org:read:audit
-  Performance: Single audit record retrieval < 20ms
-  """
-  auditLog(
-    auditId: String!
-  ): AuditLogDetail
-
-  """
-  Return all temporal versions for an organization code (ascending by effectiveDate).
-  Requires scope: org:read:history
-  """
-  organizationVersions(
-    code: String!
-    includeDeleted: Boolean
-  ): [Organization!]!
-
-  # Job Catalog Queries
-  
-  """
-  Get job family groups with optional historical inclusion.
-  
-  Permissions Required: job-catalog:read
-  """
-  jobFamilyGroups(
-    includeInactive: Boolean = false
-    asOfDate: Date
-  ): [JobFamilyGroup!]!
-  
-  """
-  Get job families under a specified group.
-  
-  Permissions Required: job-catalog:read
-  """
-  jobFamilies(
-    groupCode: JobFamilyGroupCode!
-    includeInactive: Boolean = false
-    asOfDate: Date
-  ): [JobFamily!]!
-  
-  """
-  Get job roles under a specified family.
-  
-  Permissions Required: job-catalog:read
-  """
-  jobRoles(
-    familyCode: JobFamilyCode!
-    includeInactive: Boolean = false
-    asOfDate: Date
-  ): [JobRole!]!
-  
-  """
-  Get job levels under a specified role.
-  
-  Permissions Required: job-catalog:read
-  """
-  jobLevels(
-    roleCode: JobRoleCode!
-    includeInactive: Boolean = false
-    asOfDate: Date
-  ): [JobLevel!]!
-
-
-  # System Maintenance and Monitoring
-
-# Hierarchy consistency check temporarily removed for startup
+schema {
+  query: Query
 }
 
-# Core Data Types
-
-"""
-Organization unit entity with complete temporal and audit information.
-Represents the current state based on asOfDate parameter or latest effective record.
-"""
-type Organization {
-  # Business Identifiers
-  code: String!
-  parentCode: String!  # Parent organization code. Use "0" for root organizations, or valid 7-digit code for child organizations
-  tenantId: String!
-
-  # Basic Information
-  name: String!
-  unitType: UnitType!
-  # Business status (one-dimensional): ACTIVE | INACTIVE | DELETED
-  # Soft-delete 判定完全依赖该字段，DELETED 表示记录不再对外展示
-  # ADR-008: 一维业务状态模型，INACTIVE 等价于停用/暂停语义
-  status: Status!
-  # Hierarchy Information
-  level: Int!
-  sortOrder: Int
-  codePath: String!
-  namePath: String!
-  path: String @deprecated(reason: "使用 codePath/namePath 作为唯一事实来源，path 将在后续版本移除")
-
-  # Configuration
-  description: String
-  profile: String
-  changeReason: String
-
-  # Temporal Information
-  # Notes:
-  # - isTemporal is a derived concept (NOT a stored column): endDate != null
-  # - isFuture is derived using Beijing business day (UTC+8): effectiveDate > today(CN)
-  effectiveDate: String!
-  endDate: String
-
-  # Audit Information
-  createdAt: String!
-  updatedAt: String!
-  recordId: String!
-
-  # Temporal Status Information (derived)
-  isCurrent: Boolean!
-  isTemporal: Boolean!
-  isFuture: Boolean!
-  hierarchyDepth: Int!
-  childrenCount: Int!
-
-  # Soft delete & suspension audit fields (optional)
-  deletedAt: String
-  deletedBy: String
-  deletionReason: String
-  suspendedAt: String
-  suspendedBy: String
-  suspensionReason: String
+type AssignmentStats {
+  positionCode: PositionCode
+  organizationCode: String
+  totalAssignments: Int!
+  activeAssignments: Int!
+  pendingAssignments: Int!
+  endedAssignments: Int!
+  primaryAssignments: Int!
+  secondaryAssignments: Int!
+  actingAssignments: Int!
+  lastUpdatedAt: DateTime!
 }
 
-"""
-Connection type for paginated organization results with metadata.
-"""
-type OrganizationConnection {
-  data: [Organization!]!
-  pagination: PaginationInfo!
-  temporal: TemporalInfo!
-}
-
-"""
-Hierarchy-specific organization information with relationship context.
-"""
-type OrganizationHierarchy {
-  code: String!
-  name: String!
-  level: Int!
-  hierarchyDepth: Int!
-  codePath: String!
-  namePath: String!
-  parentChain: [String!]!
-  childrenCount: Int!
-  isRoot: Boolean!
-  isLeaf: Boolean!
-  children: [OrganizationHierarchy!]!
-}
-
-"""
-Comprehensive organization statistics with temporal breakdown.
-"""
-type OrganizationStats {
-  totalCount: Int!
-  activeCount: Int!
-  inactiveCount: Int!
-  plannedCount: Int!
-  deletedCount: Int!
-  byType: [TypeStatistic!]!
-  byStatus: [StatusStatistic!]!
-  byLevel: [LevelStatistic!]!
-  temporalStats: TemporalStatistics!
-}
-
-"""
-Hierarchy distribution statistics and integrity analysis.
-"""
-type HierarchyStatistics {
-  tenantId: String!
-  totalOrganizations: Int!
-  maxDepth: Int!
-  avgDepth: Float!
-  depthDistribution: [DepthDistribution!]!
-  rootOrganizations: Int!
-  leafOrganizations: Int!
-  integrityIssues: [IntegrityIssue!]!
-  lastAnalyzed: String!
-}
-
-
-"""
-Comprehensive audit log entry with complete change tracking information.
-Each audit record tracks changes to a specific organization temporal version (recordId).
-"""
 type AuditLogDetail {
   auditId: String!
-  recordId: String!                  # Specific organization temporal version being audited
+  recordId: String!
+  """Specific organization temporal version being audited"""
   operation: String!
   timestamp: String!
   operationReason: String
-
-  # Change tracking data
-  beforeData: String                 # Organization state before the change (JSON string)
-  afterData: String                  # Organization state after the change (JSON string)
-  modifiedFields: [String!]!         # List of field names that were modified
-  changes: [FieldChange!]!           # Detailed field-level changes
+  """Change tracking data"""
+  beforeData: String
+  """Organization state before the change (JSON string)"""
+  afterData: String
+  """Organization state after the change (JSON string)"""
+  modifiedFields: [String!]!
+  """List of field names that were modified"""
+  changes: [FieldChange!]!
 }
 
-"""
-Detailed field-level change information for audit tracking.
-"""
+type CacheInconsistency {
+  code: String!
+  fieldName: String!
+  cachedValue: String!
+  calculatedValue: String!
+  impactLevel: String!
+}
+
+type CircularReference {
+  affectedCodes: [String!]!
+  circularPath: [String!]!
+  severity: String!
+}
+
+enum ConsistencyCheckMode {
+  FAST
+  """Cache field consistency only (< 5s)"""
+  DEEP
+  """Full recursive validation (30s-5min)"""
+  TARGETED
+}
+
+type ConsistencyFindings {
+  pathMismatches: [PathMismatch!]!
+  levelInconsistencies: [LevelInconsistency!]!
+  orphanedNodes: [OrphanedNode!]!
+  circularReferences: [CircularReference!]!
+  depthViolations: [DepthViolation!]!
+  cacheInconsistencies: [CacheInconsistency!]!
+}
+
+type DataChanges {
+  beforeData: JSON
+  afterData: JSON
+  modifiedFields: [String!]!
+}
+
+"""Scalar Types"""
+scalar Date
+
+type DateRange {
+  earliest: DateTime!
+  latest: DateTime!
+}
+
+input DateRangeInput {
+  from: String
+  to: String
+}
+
+scalar DateTime
+
+type DepthDistribution {
+  depth: Int!
+  count: Int!
+}
+
+type DepthViolation {
+  code: String!
+  currentDepth: Int!
+  maxAllowedDepth: Int!
+  parentChain: [String!]!
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  INTERN
+}
+
+type FamilyHeadcount {
+  jobFamilyCode: JobFamilyCode!
+  jobFamilyName: String
+  capacity: Float!
+  utilized: Float!
+  available: Float!
+}
+
 type FieldChange {
-  field: String!                     # Name of the changed field
-  oldValue: String                   # Previous value as string (null for CREATE operations)
-  newValue: String                   # New value as string (null for DELETE operations)
-  dataType: String!                  # Data type of the field (string, int, date, boolean, etc.)
+  field: String!
+  """Name of the changed field"""
+  oldValue: String
+  """Previous value as string (null for CREATE operations)"""
+  newValue: String
+  """New value as string (null for DELETE operations)"""
+  dataType: String!
 }
 
+type HeadcountStats {
+  organizationCode: String!
+  organizationName: String!
+  totalCapacity: Float!
+  totalFilled: Float!
+  totalAvailable: Float!
+  fillRate: Float!
+  byLevel: [LevelHeadcount!]!
+  byType: [TypeHeadcount!]!
+  byFamily: [FamilyHeadcount!]!
+}
 
-"""
-Hierarchy consistency check report with detailed findings and repair suggestions.
-"""
 type HierarchyConsistencyReport {
   checkId: String!
   tenantId: String!
@@ -491,19 +146,258 @@ type HierarchyConsistencyReport {
   recommendedActions: [String!]!
 }
 
-# Supporting Types
+type HierarchyStatistics {
+  tenantId: String!
+  totalOrganizations: Int!
+  maxDepth: Int!
+  avgDepth: Float!
+  depthDistribution: [DepthDistribution!]!
+  rootOrganizations: Int!
+  leafOrganizations: Int!
+  integrityIssues: [IntegrityIssue!]!
+  lastAnalyzed: String!
+}
 
-"""
-Standard operator information with ID and display name.
-"""
+type IntegrityIssue {
+  type: String!
+  count: Int!
+  affectedCodes: [String!]!
+}
+
+scalar JSON
+
+enum JobCatalogStatus {
+  ACTIVE
+  INACTIVE
+}
+
+type JobFamily {
+  code: JobFamilyCode!
+  recordId: UUID!
+  groupCode: JobFamilyGroupCode!
+  name: String!
+  status: JobCatalogStatus!
+  effectiveDate: Date!
+  endDate: Date
+  description: String
+}
+
+scalar JobFamilyCode
+
+type JobFamilyGroup {
+  code: JobFamilyGroupCode!
+  recordId: UUID!
+  name: String!
+  status: JobCatalogStatus!
+  effectiveDate: Date!
+  endDate: Date
+  description: String
+}
+
+scalar JobFamilyGroupCode
+
+type JobLevel {
+  code: JobLevelCode!
+  recordId: UUID!
+  roleCode: JobRoleCode!
+  name: String!
+  status: JobCatalogStatus!
+  effectiveDate: Date!
+  endDate: Date
+  levelRank: Int!
+  description: String
+}
+
+scalar JobLevelCode
+
+type JobRole {
+  code: JobRoleCode!
+  recordId: UUID!
+  familyCode: JobFamilyCode!
+  name: String!
+  status: JobCatalogStatus!
+  effectiveDate: Date!
+  endDate: Date
+  description: String
+}
+
+scalar JobRoleCode
+
+type LevelHeadcount {
+  jobLevelCode: JobLevelCode!
+  capacity: Float!
+  utilized: Float!
+  available: Float!
+}
+
+type LevelInconsistency {
+  code: String!
+  expectedLevel: Int!
+  actualLevel: Int!
+  parentCode: String!
+  reason: String!
+}
+
+type LevelStatistic {
+  level: Int!
+  count: Int!
+}
+
+"""Supporting Types"""
 type OperatedBy {
   id: String!
   name: String!
 }
 
-"""
-Pagination information for connection types.
-"""
+enum OperationType {
+  CREATE
+  """New organization creation"""
+  UPDATE
+  """Data modification (PUT/PATCH)  """
+  SUSPEND
+  """Suspension operation (endpoint: POST /suspend)"""
+  REACTIVATE
+  """Reactivation operation (endpoint: POST /activate)"""
+  DEACTIVATE
+  """Deactivation (timeline correction / planned removal)"""
+  DELETE
+}
+
+type OperationsSummary {
+  create: Int!
+  update: Int!
+  suspend: Int!
+  reactivate: Int!
+  delete: Int!
+}
+
+"""Core Data Types"""
+type Organization {
+  """Business Identifiers"""
+  code: String!
+  parentCode: String!
+  """
+  Parent organization code. Use "0" for root organizations, or valid 7-digit code for child organizations
+  """
+  tenantId: String!
+  """Basic Information"""
+  name: String!
+  unitType: UnitType!
+  """
+  Business status (one-dimensional): ACTIVE | INACTIVE | DELETED
+  Soft-delete 判定完全依赖该字段，DELETED 表示记录不再对外展示
+  ADR-008: 一维业务状态模型，INACTIVE 等价于停用/暂停语义
+  """
+  status: Status!
+  """Hierarchy Information"""
+  level: Int!
+  sortOrder: Int
+  codePath: String!
+  namePath: String!
+  path: String @deprecated(reason: "使用 codePath/namePath 作为唯一事实来源，path 将在后续版本移除")
+  """Configuration"""
+  description: String
+  profile: String
+  changeReason: String
+  """
+  Temporal Information
+  Notes:
+  - isTemporal is a derived concept (NOT a stored column): endDate != null
+  - isFuture is derived using Beijing business day (UTC+8): effectiveDate > today(CN)
+  """
+  effectiveDate: String!
+  endDate: String
+  """Audit Information"""
+  createdAt: String!
+  updatedAt: String!
+  recordId: String!
+  """Temporal Status Information (derived)"""
+  isCurrent: Boolean!
+  isTemporal: Boolean!
+  isFuture: Boolean!
+  hierarchyDepth: Int!
+  childrenCount: Int!
+  """Soft delete & suspension audit fields (optional)"""
+  deletedAt: String
+  deletedBy: String
+  deletionReason: String
+  suspendedAt: String
+  suspendedBy: String
+  suspensionReason: String
+}
+
+type OrganizationConnection {
+  data: [Organization!]!
+  pagination: PaginationInfo!
+  temporal: TemporalInfo!
+}
+
+"""Input Types"""
+input OrganizationFilter {
+  """Temporal Filtering"""
+  asOfDate: String
+  includeFuture: Boolean = false
+  onlyFuture: Boolean = false
+  """Business Filtering"""
+  unitType: UnitType
+  status: Status
+  parentCode: String
+  codes: [String!]
+  excludeCodes: [String!]
+  excludeDescendantsOf: String
+  includeDisabledAncestors: Boolean = false
+  """Hierarchy Filtering"""
+  level: Int
+  minLevel: Int
+  maxLevel: Int
+  rootsOnly: Boolean = false
+  leavesOnly: Boolean = false
+  """Text Search"""
+  searchText: String
+  searchFields: [SearchField!] = [NAME, DESCRIPTION]
+  """Advanced Filtering"""
+  hasChildren: Boolean
+  hasProfile: Boolean
+  profileContains: JSON
+  """Audit Filtering"""
+  operationType: OperationType
+  operatedBy: String
+  operationDateRange: DateRangeInput
+}
+
+type OrganizationHierarchy {
+  code: String!
+  name: String!
+  level: Int!
+  hierarchyDepth: Int!
+  codePath: String!
+  namePath: String!
+  parentChain: [String!]!
+  childrenCount: Int!
+  isRoot: Boolean!
+  isLeaf: Boolean!
+  children: [OrganizationHierarchy!]!
+}
+
+type OrganizationStats {
+  totalCount: Int!
+  activeCount: Int!
+  inactiveCount: Int!
+  plannedCount: Int!
+  deletedCount: Int!
+  byType: [TypeStatistic!]!
+  byStatus: [StatusStatistic!]!
+  byLevel: [LevelStatistic!]!
+  temporalStats: TemporalStatistics!
+}
+
+type OrphanedNode {
+  code: String!
+  name: String!
+  parentCode: String!
+  reason: String!
+}
+
 type PaginationInfo {
   total: Int!
   page: Int!
@@ -512,40 +406,23 @@ type PaginationInfo {
   hasPrevious: Boolean!
 }
 
-"""
-Temporal context information for queries.
-"""
-type TemporalInfo {
-  asOfDate: String!
-  currentCount: Int!
-  futureCount: Int!
-  historicalCount: Int!
+input PaginationInput {
+  page: Int = 1
+  pageSize: Int = 50
+  """Max 1000"""
+  sortBy: String = "code"
+  sortOrder: String = "asc"
 }
 
-"""
-Entry describing a specific temporal version of a position.
-"""
-type PositionTimelineEntry {
-  recordId: UUID!
-  status: PositionStatus!
-  title: String!
-  effectiveDate: Date!
-  endDate: Date
-  isCurrent: Boolean!
-  changeReason: String
-  timelineCategory: PositionTimelineCategory!
-  assignmentType: PositionAssignmentType
-  assignmentStatus: PositionAssignmentStatus
+type PathMismatch {
+  code: String!
+  expectedCodePath: String!
+  actualCodePath: String!
+  expectedNamePath: String!
+  actualNamePath: String!
+  severity: String!
 }
 
-enum PositionTimelineCategory {
-  POSITION_VERSION
-  POSITION_ASSIGNMENT
-}
-
-"""
-Position resource exposed via GraphQL.
-"""
 type Position {
   code: PositionCode!
   recordId: UUID!
@@ -577,18 +454,6 @@ type Position {
   updatedAt: DateTime!
 }
 
-type PositionEdge {
-  cursor: String!
-  node: Position!
-}
-
-type PositionConnection {
-  edges: [PositionEdge!]!
-  pagination: PaginationInfo!
-  data: [Position!]!
-  totalCount: Int!
-}
-
 type PositionAssignment {
   assignmentId: UUID!
   positionCode: PositionCode!
@@ -610,24 +475,6 @@ type PositionAssignment {
   updatedAt: DateTime!
 }
 
-type PositionAssignmentEdge {
-  cursor: String!
-  node: PositionAssignment!
-}
-
-type PositionAssignmentConnection {
-  edges: [PositionAssignmentEdge!]!
-  pagination: PaginationInfo!
-  data: [PositionAssignment!]!
-  totalCount: Int!
-}
-
-type PositionAssignmentAuditConnection {
-  data: [PositionAssignmentAudit!]!
-  pagination: PaginationInfo!
-  totalCount: Int!
-}
-
 type PositionAssignmentAudit {
   assignmentId: UUID!
   eventType: String!
@@ -638,17 +485,302 @@ type PositionAssignmentAudit {
   createdAt: DateTime!
 }
 
-type AssignmentStats {
-  positionCode: PositionCode
+type PositionAssignmentAuditConnection {
+  data: [PositionAssignmentAudit!]!
+  pagination: PaginationInfo!
+  totalCount: Int!
+}
+
+type PositionAssignmentConnection {
+  edges: [PositionAssignmentEdge!]!
+  pagination: PaginationInfo!
+  data: [PositionAssignment!]!
+  totalCount: Int!
+}
+
+type PositionAssignmentEdge {
+  cursor: String!
+  node: PositionAssignment!
+}
+
+input PositionAssignmentFilterInput {
+  employeeId: UUID
+  status: PositionAssignmentStatus
+  assignmentTypes: [PositionAssignmentType!]
+  dateRange: DateRangeInput
+  asOfDate: Date
+  includeHistorical: Boolean = true
+  includeActingOnly: Boolean = false
+}
+
+enum PositionAssignmentSortField {
+  EFFECTIVE_DATE
+  END_DATE
+  CREATED_AT
+}
+
+input PositionAssignmentSortInput {
+  field: PositionAssignmentSortField!
+  direction: SortOrder = DESC
+}
+
+enum PositionAssignmentStatus {
+  PENDING
+  ACTIVE
+  ENDED
+}
+
+enum PositionAssignmentType {
+  PRIMARY
+  SECONDARY
+  ACTING
+}
+
+scalar PositionCode
+
+type PositionConnection {
+  edges: [PositionEdge!]!
+  pagination: PaginationInfo!
+  data: [Position!]!
+  totalCount: Int!
+}
+
+type PositionEdge {
+  cursor: String!
+  node: Position!
+}
+
+input PositionFilterInput {
   organizationCode: String
-  totalAssignments: Int!
-  activeAssignments: Int!
-  pendingAssignments: Int!
-  endedAssignments: Int!
-  primaryAssignments: Int!
-  secondaryAssignments: Int!
-  actingAssignments: Int!
-  lastUpdatedAt: DateTime!
+  positionCodes: [PositionCode!]
+  status: PositionStatus
+  jobFamilyGroupCodes: [JobFamilyGroupCode!]
+  jobFamilyCodes: [JobFamilyCode!]
+  jobRoleCodes: [JobRoleCode!]
+  jobLevelCodes: [JobLevelCode!]
+  positionTypes: [PositionType!]
+  employmentTypes: [EmploymentType!]
+  effectiveRange: DateRangeInput
+}
+
+enum PositionSortField {
+  CODE
+  TITLE
+  EFFECTIVE_DATE
+  STATUS
+}
+
+input PositionSortInput {
+  field: PositionSortField!
+  direction: SortOrder = ASC
+}
+
+enum PositionStatus {
+  PLANNED
+  ACTIVE
+  FILLED
+  VACANT
+  INACTIVE
+  DELETED
+}
+
+enum PositionTimelineCategory {
+  POSITION_VERSION
+  POSITION_ASSIGNMENT
+}
+
+type PositionTimelineEntry {
+  recordId: UUID!
+  status: PositionStatus!
+  title: String!
+  effectiveDate: Date!
+  endDate: Date
+  isCurrent: Boolean!
+  changeReason: String
+  timelineCategory: PositionTimelineCategory!
+  assignmentType: PositionAssignmentType
+  assignmentStatus: PositionAssignmentStatus
+}
+
+type PositionTransfer {
+  transferId: UUID!
+  positionCode: PositionCode!
+  fromOrganizationCode: String!
+  toOrganizationCode: String!
+  effectiveDate: Date!
+  initiatedBy: OperatedBy!
+  operationReason: String
+  createdAt: DateTime!
+}
+
+type PositionTransferConnection {
+  edges: [PositionTransferEdge!]!
+  pagination: PaginationInfo!
+  data: [PositionTransfer!]!
+  totalCount: Int!
+}
+
+type PositionTransferEdge {
+  cursor: String!
+  node: PositionTransfer!
+}
+
+enum PositionType {
+  REGULAR
+  TEMPORARY
+  CONTRACTOR
+}
+
+"""
+Organization Units Management GraphQL Schema
+Version: 4.7.0
+Architecture: CQRS Query Layer (Read Operations Only)
+Data Source: PostgreSQL with temporal data support
+Authentication: OAuth 2.0 Bearer Token required
+
+Features:
+- Temporal data queries with asOfDate parameter
+- 17-level hierarchy depth support with intelligent caching
+- Precise audit trail tracking individual temporal versions (recordId)
+- Multi-tenant isolation and security
+- Index-optimized for common filters and access patterns
+
+Permission Requirements:
+- organizations, organization: org:read
+- organizationAtDate, organizationHistory, organizationVersions: org:read:history  
+- organizationHierarchy, organizationSubtree: org:read:hierarchy
+- organizationStats: org:read:stats
+- auditHistory: org:read:audit
+
+Recent Changes (v4.6.0):
+- BREAKING: Audit system redesigned for precise recordId tracking
+- Removed organizationAuditHistory query (replaced with auditHistory)
+- AuditLogDetail now tracks specific temporal versions via recordId field only
+- Simplified audit queries: single auditHistory(recordId) for precise tracking
+- Removed businessEntityId field from AuditLogDetail (replaced by recordId)
+- Enhanced audit precision: each temporal version has independent audit lifecycle
+"""
+type Query {
+  """Basic Organization Queries"""
+  organizations(filter: OrganizationFilter, pagination: PaginationInput): OrganizationConnection!
+  organization(code: String!, asOfDate: String): Organization
+  organizationStats(asOfDate: String, includeHistorical: Boolean = false): OrganizationStats!
+  """Advanced Hierarchy Queries"""
+  organizationHierarchy(code: String!, tenantId: String!): OrganizationHierarchy
+  organizationSubtree(code: String!, tenantId: String!, maxDepth: Int = 10, includeInactive: Boolean = false): [OrganizationHierarchy!]!
+  hierarchyStatistics(tenantId: String!, includeIntegrityCheck: Boolean = false): HierarchyStatistics!
+  """Position Queries"""
+  positions(filter: PositionFilterInput, pagination: PaginationInput, sorting: [PositionSortInput!]): PositionConnection!
+  position(code: PositionCode!, asOfDate: Date): Position
+  positionTimeline(code: PositionCode!, startDate: Date, endDate: Date): [PositionTimelineEntry!]!
+  positionVersions(code: PositionCode!, includeDeleted: Boolean = false): [Position!]!
+  positionAssignments(positionCode: PositionCode!, filter: PositionAssignmentFilterInput, pagination: PaginationInput, sorting: [PositionAssignmentSortInput!]): PositionAssignmentConnection!
+  positionAssignmentAudit(positionCode: PositionCode!, assignmentId: UUID, dateRange: DateRangeInput, pagination: PaginationInput): PositionAssignmentAuditConnection!
+  assignments(organizationCode: String, positionCode: PositionCode, filter: PositionAssignmentFilterInput, pagination: PaginationInput, sorting: [PositionAssignmentSortInput!]): PositionAssignmentConnection!
+  assignmentHistory(positionCode: PositionCode!, filter: PositionAssignmentFilterInput, pagination: PaginationInput, sorting: [PositionAssignmentSortInput!]): PositionAssignmentConnection!
+  assignmentStats(organizationCode: String, positionCode: PositionCode): AssignmentStats!
+  vacantPositions(filter: VacantPositionFilterInput, pagination: PaginationInput, sorting: [VacantPositionSortInput!]): VacantPositionConnection!
+  positionTransfers(positionCode: PositionCode, organizationCode: String, pagination: PaginationInput): PositionTransferConnection!
+  positionHeadcountStats(organizationCode: String!, includeSubordinates: Boolean = true): HeadcountStats!
+  """Audit and Analysis Queries"""
+  auditHistory(recordId: String!, startDate: String, endDate: String, operation: OperationType, userId: String, limit: Int = 50): [AuditLogDetail!]!
+  auditLog(auditId: String!): AuditLogDetail
+  organizationVersions(code: String!, includeDeleted: Boolean): [Organization!]!
+  """Job Catalog Queries"""
+  jobFamilyGroups(includeInactive: Boolean = false, asOfDate: Date): [JobFamilyGroup!]!
+  jobFamilies(groupCode: JobFamilyGroupCode!, includeInactive: Boolean = false, asOfDate: Date): [JobFamily!]!
+  jobRoles(familyCode: JobFamilyCode!, includeInactive: Boolean = false, asOfDate: Date): [JobRole!]!
+  jobLevels(roleCode: JobRoleCode!, includeInactive: Boolean = false, asOfDate: Date): [JobLevel!]!
+}
+
+type RepairSuggestion {
+  issueType: String!
+  affectedCodes: [String!]!
+  suggestedAction: String!
+  automatable: Boolean!
+  riskLevel: String!
+}
+
+enum SearchField {
+  NAME
+  DESCRIPTION
+  CODE_PATH
+  NAME_PATH
+}
+
+enum SortField {
+  CODE
+  NAME
+  CREATED_AT
+  UPDATED_AT
+  EFFECTIVE_DATE
+  LEVEL
+  SORT_ORDER
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+enum Status {
+  ACTIVE
+  """Actively operating unit"""
+  INACTIVE
+  """Non-active but existing unit (等价于停用/暂停)"""
+  PLANNED
+  """Planned unit (未来计划单位)"""
+  DELETED
+}
+
+type StatusStatistic {
+  status: Status!
+  count: Int!
+}
+
+type TemporalInfo {
+  asOfDate: String!
+  currentCount: Int!
+  futureCount: Int!
+  historicalCount: Int!
+}
+
+type TemporalStatistics {
+  totalVersions: Int!
+  averageVersionsPerOrg: Float!
+  oldestEffectiveDate: String!
+  newestEffectiveDate: String!
+}
+
+type TypeHeadcount {
+  positionType: PositionType!
+  capacity: Float!
+  filled: Float!
+  available: Float!
+}
+
+type TypeStatistic {
+  unitType: UnitType!
+  count: Int!
+}
+
+scalar UUID
+
+"""Enums"""
+enum UnitType {
+  DEPARTMENT
+  """Regular business department"""
+  ORGANIZATION_UNIT
+  """Generic organizational unit"""
+  COMPANY
+  """Legal entity company"""
+  PROJECT_TEAM
+}
+
+type UserInfo {
+  userId: String!
+  userName: String!
+  role: String
 }
 
 type VacantPosition {
@@ -664,11 +796,6 @@ type VacantPosition {
   totalAssignments: Int!
 }
 
-type VacantPositionEdge {
-  cursor: String!
-  node: VacantPosition!
-}
-
 type VacantPositionConnection {
   edges: [VacantPositionEdge!]!
   pagination: PaginationInfo!
@@ -676,416 +803,11 @@ type VacantPositionConnection {
   totalCount: Int!
 }
 
-type PositionTransfer {
-  transferId: UUID!
-  positionCode: PositionCode!
-  fromOrganizationCode: String!
-  toOrganizationCode: String!
-  effectiveDate: Date!
-  initiatedBy: OperatedBy!
-  operationReason: String
-  createdAt: DateTime!
-}
-
-type PositionTransferEdge {
+type VacantPositionEdge {
   cursor: String!
-  node: PositionTransfer!
+  node: VacantPosition!
 }
 
-type PositionTransferConnection {
-  edges: [PositionTransferEdge!]!
-  pagination: PaginationInfo!
-  data: [PositionTransfer!]!
-  totalCount: Int!
-}
-
-type LevelHeadcount {
-  jobLevelCode: JobLevelCode!
-  capacity: Float!
-  utilized: Float!
-  available: Float!
-}
-
-type TypeHeadcount {
-  positionType: PositionType!
-  capacity: Float!
-  filled: Float!
-  available: Float!
-}
-
-type FamilyHeadcount {
-  jobFamilyCode: JobFamilyCode!
-  jobFamilyName: String
-  capacity: Float!
-  utilized: Float!
-  available: Float!
-}
-
-type HeadcountStats {
-  organizationCode: String!
-  organizationName: String!
-  totalCapacity: Float!
-  totalFilled: Float!
-  totalAvailable: Float!
-  fillRate: Float!
-  byLevel: [LevelHeadcount!]!
-  byType: [TypeHeadcount!]!
-  byFamily: [FamilyHeadcount!]!
-}
-
-type JobFamilyGroup {
-  code: JobFamilyGroupCode!
-  recordId: UUID!
-  name: String!
-  status: JobCatalogStatus!
-  effectiveDate: Date!
-  endDate: Date
-  description: String
-}
-
-type JobFamily {
-  code: JobFamilyCode!
-  recordId: UUID!
-  groupCode: JobFamilyGroupCode!
-  name: String!
-  status: JobCatalogStatus!
-  effectiveDate: Date!
-  endDate: Date
-  description: String
-}
-
-type JobRole {
-  code: JobRoleCode!
-  recordId: UUID!
-  familyCode: JobFamilyCode!
-  name: String!
-  status: JobCatalogStatus!
-  effectiveDate: Date!
-  endDate: Date
-  description: String
-}
-
-type JobLevel {
-  code: JobLevelCode!
-  recordId: UUID!
-  roleCode: JobRoleCode!
-  name: String!
-  status: JobCatalogStatus!
-  effectiveDate: Date!
-  endDate: Date
-  levelRank: Int!
-  description: String
-}
-
-"""
-Statistics by organization unit type.
-"""
-type TypeStatistic {
-  unitType: UnitType!
-  count: Int!
-}
-
-"""
-Statistics by organization status.
-"""
-type StatusStatistic {
-  status: Status!
-  count: Int!
-}
-
-"""
-Statistics by hierarchy level.
-"""
-type LevelStatistic {
-  level: Int!
-  count: Int!
-}
-
-"""
-Temporal statistics breakdown.
-"""
-type TemporalStatistics {
-  totalVersions: Int!
-  averageVersionsPerOrg: Float!
-  oldestEffectiveDate: String!
-  newestEffectiveDate: String!
-}
-
-"""
-Hierarchy depth distribution analysis.
-"""
-type DepthDistribution {
-  depth: Int!
-  count: Int!
-}
-
-"""
-Hierarchy integrity issue detection.
-"""
-type IntegrityIssue {
-  type: String!
-  count: Int!
-  affectedCodes: [String!]!
-}
-
-
-"""
-User information for audit trails.
-"""
-type UserInfo {
-  userId: String!
-  userName: String!
-  role: String
-}
-
-
-"""
-Simplified data changes with before/after comparison.
-"""
-type DataChanges {
-  beforeData: JSON
-  afterData: JSON
-  modifiedFields: [String!]!
-}
-
-
-
-
-
-
-
-"""
-Date range specification.
-"""
-type DateRange {
-  earliest: DateTime!
-  latest: DateTime!
-}
-
-"""
-Operations summary statistics.
-"""
-type OperationsSummary {
-  create: Int!
-  update: Int!
-  suspend: Int!
-  reactivate: Int!
-  delete: Int!
-}
-
-"""
-Consistency check findings with detailed issues.
-"""
-type ConsistencyFindings {
-  pathMismatches: [PathMismatch!]!
-  levelInconsistencies: [LevelInconsistency!]!
-  orphanedNodes: [OrphanedNode!]!
-  circularReferences: [CircularReference!]!
-  depthViolations: [DepthViolation!]!
-  cacheInconsistencies: [CacheInconsistency!]!
-}
-
-"""
-Path mismatch detection result.
-"""
-type PathMismatch {
-  code: String!
-  expectedCodePath: String!
-  actualCodePath: String!
-  expectedNamePath: String!
-  actualNamePath: String!
-  severity: String!
-}
-
-"""
-Level inconsistency detection result.
-"""
-type LevelInconsistency {
-  code: String!
-  expectedLevel: Int!
-  actualLevel: Int!
-  parentCode: String!
-  reason: String!
-}
-
-"""
-Orphaned node detection result.
-"""
-type OrphanedNode {
-  code: String!
-  name: String!
-  parentCode: String!
-  reason: String!
-}
-
-"""
-Circular reference detection result.
-"""
-type CircularReference {
-  affectedCodes: [String!]!
-  circularPath: [String!]!
-  severity: String!
-}
-
-"""
-Depth violation detection result.
-"""
-type DepthViolation {
-  code: String!
-  currentDepth: Int!
-  maxAllowedDepth: Int!
-  parentChain: [String!]!
-}
-
-"""
-Cache inconsistency detection result.
-"""
-type CacheInconsistency {
-  code: String!
-  fieldName: String!
-  cachedValue: String!
-  calculatedValue: String!
-  impactLevel: String!
-}
-
-"""
-Repair suggestion with automation capability.
-"""
-type RepairSuggestion {
-  issueType: String!
-  affectedCodes: [String!]!
-  suggestedAction: String!
-  automatable: Boolean!
-  riskLevel: String!
-}
-
-# Input Types
-
-"""
-Comprehensive filter for organization queries with temporal support.
-"""
-input OrganizationFilter {
-  # Temporal Filtering
-  asOfDate: String
-  includeFuture: Boolean = false
-  onlyFuture: Boolean = false
-  
-  # Business Filtering
-  unitType: UnitType
-  status: Status
-  parentCode: String
-  codes: [String!]
-  excludeCodes: [String!]
-  excludeDescendantsOf: String
-  includeDisabledAncestors: Boolean = false
-  
-  # Hierarchy Filtering
-  level: Int
-  minLevel: Int
-  maxLevel: Int
-  rootsOnly: Boolean = false
-  leavesOnly: Boolean = false
-  
-  # Text Search
-  searchText: String
-  searchFields: [SearchField!] = [NAME, DESCRIPTION]
-  
-  # Advanced Filtering
-  hasChildren: Boolean
-  hasProfile: Boolean
-  profileContains: JSON
-  
-  # Audit Filtering
-  operationType: OperationType
-  operatedBy: String
-  operationDateRange: DateRangeInput
-}
-
-"""
-Pagination configuration for result sets.
-"""
-input PaginationInput {
-  page: Int = 1
-  pageSize: Int = 50  # Max 1000
-  sortBy: String = "code"
-  sortOrder: String = "asc"
-}
-
-"""
-Date range input for filtering.
-"""
-input DateRangeInput {
-  from: String
-  to: String
-}
-
-"""
-Filter options for position queries.
-"""
-input PositionFilterInput {
-  organizationCode: String
-  positionCodes: [PositionCode!]
-  status: PositionStatus
-  jobFamilyGroupCodes: [JobFamilyGroupCode!]
-  jobFamilyCodes: [JobFamilyCode!]
-  jobRoleCodes: [JobRoleCode!]
-  jobLevelCodes: [JobLevelCode!]
-  positionTypes: [PositionType!]
-  employmentTypes: [EmploymentType!]
-  effectiveRange: DateRangeInput
-}
-
-"""
-Supported position sorting fields.
-"""
-enum PositionSortField {
-  CODE
-  TITLE
-  EFFECTIVE_DATE
-  STATUS
-}
-
-"""
-Sorting input for position queries.
-"""
-input PositionSortInput {
-  field: PositionSortField!
-  direction: SortOrder = ASC
-}
-
-"""
-Filter options for position assignment queries.
-"""
-input PositionAssignmentFilterInput {
-  employeeId: UUID
-  status: PositionAssignmentStatus
-  assignmentTypes: [PositionAssignmentType!]
-  dateRange: DateRangeInput
-  asOfDate: Date
-  includeHistorical: Boolean = true
-  includeActingOnly: Boolean = false
-}
-
-"""
-Supported assignment sorting fields.
-"""
-enum PositionAssignmentSortField {
-  EFFECTIVE_DATE
-  END_DATE
-  CREATED_AT
-}
-
-"""
-Sorting input for assignment queries.
-"""
-input PositionAssignmentSortInput {
-  field: PositionAssignmentSortField!
-  direction: SortOrder = DESC
-}
-
-"""
-Filter options for vacant position queries.
-"""
 input VacantPositionFilterInput {
   organizationCodes: [String!]
   jobFamilyCodes: [JobFamilyCode!]
@@ -1096,235 +818,17 @@ input VacantPositionFilterInput {
   asOfDate: Date
 }
 
-"""
-Supported vacant position sorting fields.
-"""
 enum VacantPositionSortField {
   VACANT_SINCE
   HEADCOUNT_AVAILABLE
   HEADCOUNT_CAPACITY
 }
 
-"""
-Sorting input for vacant position queries.
-"""
 input VacantPositionSortInput {
   field: VacantPositionSortField!
   direction: SortOrder = DESC
 }
 
-# Enums
-
-"""
-Organization unit types with specific business semantics.
-"""
-enum UnitType {
-  DEPARTMENT      # Regular business department
-  ORGANIZATION_UNIT  # Generic organizational unit
-  COMPANY        # Legal entity company
-  PROJECT_TEAM   # Temporary project team
-}
-
-"""
-Organization business status (ADR-008: 一维业务状态模型).
-"""
-enum Status {
-  ACTIVE         # Actively operating unit
-  INACTIVE       # Non-active but existing unit (等价于停用/暂停)
-  PLANNED        # Planned unit (未来计划单位)
-  DELETED        # Deleted unit (已删除单位)
-}
-
-"""
-Operation types for audit and temporal tracking.
-"""
-enum OperationType {
-  CREATE         # New organization creation
-  UPDATE         # Data modification (PUT/PATCH)  
-  SUSPEND        # Suspension operation (endpoint: POST /suspend)
-  REACTIVATE     # Reactivation operation (endpoint: POST /activate)
-  DEACTIVATE     # Deactivation (timeline correction / planned removal)
-  DELETE         # Deletion operation
-  
-  # ADR-008注释：REACTIVATE作为操作类型保持审计语义精确性
-  # 对应端点为/activate（用户友好），这是领域概念与HTTP路径的合理分离
-}
-
-
-"""
-Consistency check modes with different performance characteristics.
-"""
-enum ConsistencyCheckMode {
-  FAST          # Cache field consistency only (< 5s)
-  DEEP          # Full recursive validation (30s-5min)
-  TARGETED      # Specific area focus (< 30s)
-}
-
-"""
-Search fields for text-based filtering.
-"""
-enum SearchField {
-  NAME
-  DESCRIPTION
-  CODE_PATH
-  NAME_PATH
-}
-
-"""
-Sorting field options.
-"""
-enum SortField {
-  CODE
-  NAME
-  CREATED_AT
-  UPDATED_AT
-  EFFECTIVE_DATE
-  LEVEL
-  SORT_ORDER
-}
-
-"""
-Sorting order options.
-"""
-enum SortOrder {
-  ASC
-  DESC
-}
-
-"""
-Lifecycle status for positions.
-"""
-enum PositionStatus {
-  PLANNED
-  ACTIVE
-  FILLED
-  VACANT
-  INACTIVE
-  DELETED
-}
-
-"""
-Contract type for positions.
-"""
-enum PositionType {
-  REGULAR
-  TEMPORARY
-  CONTRACTOR
-}
-
-"""
-Employment type for position assignments.
-"""
-enum EmploymentType {
-  FULL_TIME
-  PART_TIME
-  INTERN
-}
-
-"""
-Assignment type within a position.
-"""
-enum PositionAssignmentType {
-  PRIMARY
-  SECONDARY
-  ACTING
-}
-
-"""
-Lifecycle status for a position assignment.
-"""
-enum PositionAssignmentStatus {
-  PENDING
-  ACTIVE
-  ENDED
-}
-
-"""
-Status for job catalog entries.
-"""
-enum JobCatalogStatus {
-  ACTIVE
-  INACTIVE
-}
-
-# Scalar Types
-
-"""
-Date scalar for date-only values (YYYY-MM-DD format).
-"""
-scalar Date
-
-"""
-DateTime scalar for timestamp values (ISO 8601 format).
-"""
-scalar DateTime
-
-"""
-UUID scalar for universally unique identifiers.
-"""
-scalar UUID
-
-"""
-JSON scalar for arbitrary JSON data structures.
-"""
-scalar JSON
-
-"""
-Position code scalar (P + 7 digits).
-"""
-scalar PositionCode
-
-"""
-Job family group code scalar (4-6 uppercase letters).
-"""
-scalar JobFamilyGroupCode
-
-"""
-Job family code scalar (group + '-' + 3-6 alphanumeric characters).
-"""
-scalar JobFamilyCode
-
-"""
-Job role code scalar (family + '-' + 3-6 alphanumeric characters).
-"""
-scalar JobRoleCode
-
-"""
-Job level code scalar (uppercase letter + 1-2 digits).
-"""
-scalar JobLevelCode
-
-# Schema Directives and Documentation
-
-"""
-This schema represents the complete query interface for the Organization Units Management system.
-It follows GraphQL best practices and provides comprehensive temporal data access with
-performance optimization through specialized PostgreSQL indexes.
-
-Key Features:
-- Temporal queries with asOfDate parameter for historical data access
-- Comprehensive hierarchy management with 17-level depth support
-- Complete audit trail with essential change analysis (v4.3.0 simplified)
-- Performance-optimized with response times < 200ms for most queries
-- Multi-tenant security with permission-based access control
-
-Design Principles (v4.4.0):
-- API-first development: remove unused/over-engineered endpoints
-- Focus on essential audit information for practical decision-making
-- Maintain small, focused API surface area for better maintainability
-
-Authentication:
-All queries require OAuth 2.0 Bearer token with appropriate permissions.
-Refer to the API documentation for detailed permission requirements.
-
-Performance Guidelines:
-- Use pagination for large result sets (default pageSize: 50, max: 1000)
-- Leverage temporal filtering to reduce query scope
-- Use specific field selection to minimize response payload
-- Consider using organizationSubtree only for multi-level hierarchies (depth >= 2)
-"""
-
-# Schema Metadata
-schema {
-  query: Query
+type _Service {
+  sdl: String!
 }

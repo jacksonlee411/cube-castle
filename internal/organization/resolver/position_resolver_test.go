@@ -12,7 +12,6 @@ import (
 	pkglogger "cube-castle/pkg/logger"
 	sharedconfig "cube-castle/shared/config"
 	"github.com/google/uuid"
-	graphqlgo "github.com/graph-gophers/graphql-go"
 )
 
 type stubPermissionChecker struct {
@@ -629,8 +628,8 @@ func TestResolver_PositionHeadcountStats_CustomIncludeSubordinates(t *testing.T)
 	falseVal := false
 	_, err := resolver.PositionHeadcountStats(context.Background(), struct {
 		OrganizationCode    string
-		IncludeSubordinates graphqlgo.NullBool
-	}{OrganizationCode: "1000001", IncludeSubordinates: graphqlgo.NullBool{Value: &falseVal, Set: true}})
+		IncludeSubordinates *bool
+	}{OrganizationCode: "1000001", IncludeSubordinates: &falseVal})
 	if err != nil {
 		t.Fatalf("PositionHeadcountStats returned error: %v", err)
 	}
@@ -659,7 +658,7 @@ func TestResolver_PositionHeadcountStats_UsesTenantFromContext(t *testing.T) {
 
 	_, err := resolver.PositionHeadcountStats(ctx, struct {
 		OrganizationCode    string
-		IncludeSubordinates graphqlgo.NullBool
+		IncludeSubordinates *bool
 	}{OrganizationCode: "1000001"})
 	if err != nil {
 		t.Fatalf("PositionHeadcountStats returned error: %v", err)
@@ -742,7 +741,7 @@ func TestResolver_PositionVersions_ForwardsParameters(t *testing.T) {
 
 	result, err := resolver.PositionVersions(context.Background(), struct {
 		Code           string
-		IncludeDeleted graphqlgo.NullBool
+		IncludeDeleted *bool
 	}{
 		Code: "P1000001",
 	})
@@ -783,10 +782,10 @@ func TestResolver_PositionVersions_IncludeDeletedFlag(t *testing.T) {
 
 	_, err := resolver.PositionVersions(context.Background(), struct {
 		Code           string
-		IncludeDeleted graphqlgo.NullBool
+		IncludeDeleted *bool
 	}{
 		Code:           "P1000001",
-		IncludeDeleted: graphqlgo.NullBool{Value: &trueVal, Set: true},
+		IncludeDeleted: &trueVal,
 	})
 
 	if err != nil {

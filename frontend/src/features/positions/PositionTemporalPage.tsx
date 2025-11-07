@@ -497,6 +497,7 @@ const TabsNavigation: React.FC<{ activeTab: DetailTab; onTabChange: (tab: Detail
             transition: 'all 0.2s ease-in-out',
           }}
           onClick={() => onTabChange(tab.key)}
+          data-testid={`position-tab-${tab.key}`}
         >
           <Text
             typeLevel="body.medium"
