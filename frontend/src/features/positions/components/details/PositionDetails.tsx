@@ -162,75 +162,81 @@ export const PositionOverviewCard: React.FC<PositionOverviewCardProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
-        <Text color={colors.licorice400}>正在加载职位详情...</Text>
-      </Card>
+      <Box data-testid='position-detail-card'>
+        <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
+          <Text color={colors.licorice400}>正在加载职位详情...</Text>
+        </Card>
+      </Box>
     )
   }
 
   if (!position) {
     return (
-      <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
-        <Text color={colors.licorice400}>请选择左侧职位查看详情</Text>
-      </Card>
+      <Box data-testid='position-detail-card'>
+        <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
+          <Text color={colors.licorice400}>请选择左侧职位查看详情</Text>
+        </Card>
+      </Box>
     )
   }
 
   return (
-    <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
-      <SimpleStack gap={space.m}>
-        <Flex alignItems='center' justifyContent='space-between'>
-          <Heading size='small'>{position.title}</Heading>
-          <StatusPill status={position.status} />
-        </Flex>
-        <Text fontSize='14px' color={colors.licorice500}>
-          职位编码：{position.code}
-        </Text>
-        <Text fontSize='14px' color={colors.licorice500}>
-          所属组织：{position.organizationName ?? `${position.organizationCode}（未提供名称）`}
-        </Text>
+    <Box data-testid='position-detail-card'>
+      <Card data-testid='position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
+        <SimpleStack gap={space.m}>
+          <Flex alignItems='center' justifyContent='space-between'>
+            <Heading size='small'>{position.title}</Heading>
+            <StatusPill status={position.status} />
+          </Flex>
+          <Text fontSize='14px' color={colors.licorice500}>
+            职位编码：{position.code}
+          </Text>
+          <Text fontSize='14px' color={colors.licorice500}>
+            所属组织：{position.organizationName ?? `${position.organizationCode}（未提供名称）`}
+          </Text>
 
-        <Flex justifyContent='flex-end'>
-          <PositionTransferDialog position={position} />
-        </Flex>
+          <Flex justifyContent='flex-end'>
+            <PositionTransferDialog position={position} />
+          </Flex>
 
-        <DividerLine />
+          <DividerLine />
 
-        <SimpleStack gap={space.xs}>
-          <SectionTitle title='岗位信息' />
-          <Text>
-            职类 / 职种：{position.jobFamilyGroupName ?? position.jobFamilyGroupCode} ·{' '}
-            {position.jobFamilyName ?? position.jobFamilyCode}
-          </Text>
-          <Text>
-            职务 / 职级：{position.jobRoleName ?? position.jobRoleCode} · {position.jobLevelName ?? position.jobLevelCode}
-          </Text>
-          <Text>
-            职位类型 / 雇佣方式：{position.positionType}
-            {position.employmentType ? ` · ${position.employmentType}` : ''}
-          </Text>
-          <Text>
-            编制：{position.headcountInUse} / {position.headcountCapacity}（可用 {position.availableHeadcount}）
-          </Text>
-          <Text>
-            生效日期：{position.effectiveDate}
-            {position.endDate ? ` · 结束日期：${position.endDate}` : ''}
-          </Text>
-          <Text>汇报职位：{position.reportsToPositionCode ?? '未设置'}</Text>
+          <SimpleStack gap={space.xs}>
+            <SectionTitle title='岗位信息' />
+            <Text>
+              职类 / 职种：{position.jobFamilyGroupName ?? position.jobFamilyGroupCode} ·{' '}
+              {position.jobFamilyName ?? position.jobFamilyCode}
+            </Text>
+            <Text>
+              职务 / 职级：{position.jobRoleName ?? position.jobRoleCode} · {position.jobLevelName ?? position.jobLevelCode}
+            </Text>
+            <Text>
+              职位类型 / 雇佣方式：{position.positionType}
+              {position.employmentType ? ` · ${position.employmentType}` : ''}
+            </Text>
+            <Text>
+              编制：{position.headcountInUse} / {position.headcountCapacity}（可用 {position.availableHeadcount}）
+            </Text>
+            <Text>
+              生效日期：{position.effectiveDate}
+              {position.endDate ? ` · 结束日期：${position.endDate}` : ''}
+            </Text>
+            <Text>汇报职位：{position.reportsToPositionCode ?? '未设置'}</Text>
+          </SimpleStack>
+
+          <DividerLine />
+
+          <SimpleStack gap={space.xs}>
+            <SectionTitle title='当前任职' />
+            {currentAssignment ? (
+              <AssignmentItem assignment={currentAssignment} highlight />
+            ) : (
+              <Text color={colors.licorice400}>暂无当前任职</Text>
+            )}
+          </SimpleStack>
         </SimpleStack>
-
-        <DividerLine />
-
-        <SimpleStack gap={space.xs}>
-          <SectionTitle title='当前任职' />
-          {currentAssignment ? (
-            <AssignmentItem assignment={currentAssignment} highlight />
-          ) : (
-            <Text color={colors.licorice400}>暂无当前任职</Text>
-          )}
-        </SimpleStack>
-      </SimpleStack>
-    </Card>
+      </Card>
+    </Box>
   )
 }
 

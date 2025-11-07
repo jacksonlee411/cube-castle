@@ -20,6 +20,57 @@
 | 3.4 为 `make status` 增加 Job Catalog 健康检查（未通过时提示运行 230 脚本） | DevEx | `scripts/diagnostics/check-job-catalog.sh` + Makefile 更新 |
 | 3.5 运行 Playwright：`cd frontend && npx playwright test tests/e2e/position-crud-full-lifecycle.spec.ts --project=chromium --workers=1`，归档产物 | QA | `frontend/test-results/position-crud-full-lifecyc-*_chromium/` |
 | 3.6 回填 `docs/development-plans/219T-e2e-validation-report.md` 与 230 计划状态，标记 Position CRUD 已解除阻塞 | QA | 文档更新 |
+| 3.7 职位管理功能对齐验证：在测试前核对实现范围与测试用例预期（含 UI、REST） | QA + Frontend | `logs/230/position-module-readiness.md` |
+
+## 3A. 任务拆解与检查点
+### 3A.1 Job Catalog 现状取证（对应 3.1）
+- **准备**：先运行 `make docker-up` 启动 Docker Compose（遵循 `AGENTS.md` 的容器优先约束），确认 `docker compose -f docker-compose.dev.yml ps postgres` 状态为 `healthy`；如需联动其他服务，可在此基础上执行 `make run-dev`。
+- **取证命令**：运行  
+  ```bash
+  docker compose -f docker-compose.dev.yml exec postgres psql -U user -d cubecastle \
+    -c "SELECT 'job_family_groups' AS table, code, status FROM job_family_groups WHERE code='OPER' \
+        UNION ALL SELECT 'job_families', code, status FROM job_families WHERE code LIKE 'OPER%';"
+  docker compose -f docker-compose.dev.yml exec postgres psql -U user -d cubecastle \
+    -c "SELECT code, status FROM job_roles WHERE code LIKE 'OPER%' ORDER BY code;"
+  docker compose -f docker-compose.dev.yml exec postgres psql -U user -d cubecastle \
+    -c "SELECT role_code, level_code, status FROM job_levels WHERE role_code LIKE 'OPER%' ORDER BY role_code, level_code;"
+  ```
+- **产物**：将标准输出/错误重定向到 `logs/230/job-catalog-audit-YYYYMMDD.log`，并记录执行的 Git commit 与 docker 镜像标签，方便回溯。
+- **检查点**：日志中若任何行缺失或 `status != 'ACTIVE'`，需立即阻断后续步骤并进入 3A.2。
+
+### 3A.2 迁移历史审计（对应 3.2）
+- **定位变更**：使用 `rg -n "OPER" database/migrations` 查找涉及 OPER 的迁移脚本，再结合 `git log -p -- database/migrations/**/*oper*.sql` 确认最近对 Job Catalog 的修改。
+- **与 219E 期望对比**：对照 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 中记录的参考组织结构，列出缺失字段（如 `name`, `description`, `level`）。必要时参考 `database/migrations/*seed*.sql` 的插入语句。
+- **文档输出**：在 `logs/230/root-cause.md` 中记录：时间、操作者、涉及的 commit/PR、影响表、预期与实际差异、是否需要回滚或新增修复。
+
+### 3A.3 修复迁移与数据脚本（对应 3.3）
+- **脚本结构**：在 `database/migrations/` 下新增 `230_job_catalog_oper_fix.sql`（以 goose/atlas 要求命名），包含：
+  1. 幂等检查（`DO $$ BEGIN IF NOT EXISTS(...) THEN ... END IF; END $$;`）确保重复执行不会插入重复记录；
+  2. 对 `job_family_groups`、`job_families`、`job_roles`、`job_levels` 的插入或 `UPDATE ... SET status='ACTIVE'`；
+  3. 回滚段（若工具支持 `-- +goose Down`），清理 230 引入的数据。
+- **本地验证**：运行 `make db-migrate-all`，随后重复 3A.1 的 SQL，确认日志中所有 `OPER` 记录为 `ACTIVE`。
+- **审阅要点**：PR 需附带 `logs/230/job-catalog-audit-YYYYMMDD.log`、`logs/230/root-cause.md` 片段与 `git diff database/migrations/`，便于 Reviewer 核对。
+
+### 3A.4 Job Catalog 自检脚本（对应 3.4）
+- **脚本内容**：`scripts/diagnostics/check-job-catalog.sh` 以 `bash` 编写，执行 `psql -Atqc "SELECT COUNT(*) FROM job_roles WHERE code LIKE 'OPER%'"` 等检查，若计数为 0 或存在非 ACTIVE 状态则 `exit 1` 并输出修复指引（示例：“检测到 OPER Job Role 缺失，请运行 database/migrations/230_job_catalog_oper_fix.sql”）。
+- **Make 集成**：在 `Makefile` 的 `status` 目标中追加 `bash scripts/diagnostics/check-job-catalog.sh`，与现有健康检查保持同级；脚本失败时 `make status` 必须整体失败。
+- **复用**：脚本应允许 `JOB_CATALOG_CODES=OPER,FINANCE` 这样的环境变量以便未来扩展。
+
+### 3A.5 Playwright 回归与产物归档（对应 3.5）
+- **准备**：确保 `.cache/dev.jwt` 存在（若缺失，运行 `make jwt-dev-setup && make jwt-dev-mint`），并导出 `PW_TENANT_ID`、`PW_JWT` 到 shell。
+- **执行**：`cd frontend && npx playwright test tests/e2e/position-crud-full-lifecycle.spec.ts --project=chromium --workers=1 --reporter=line,junit`。将 `playwright-report` 与 `test-results` 目录复制/重命名为 `frontend/test-results/position-crud-full-lifecyc-<commit>-chromium/`。
+- **检查点**：测试日志中 Step 1 不再出现 422/`JOB_CATALOG_NOT_FOUND`，Junit 报告全部通过。必要时附加 `curl -X POST http://localhost:9090/api/v1/positions ...` 的成功响应截图。
+- **执行记录（2025-11-07 12:45 CST）**：Step 1 已返回 201（`requestId=e25c050c-6a18-4e2f-9fdc-e6fdb9f228f0`，产物 `frontend/test-results/position-crud-full-lifecyc-96ee4-*/`），Step 2 因页面缺少 `data-testid="position-detail-card"` 超时（见 `error-context.md`）。说明 Job Catalog 缺口已解除，剩余 UI 定位问题交由 219T UI 工作流处理。
+
+### 3A.6 文档同步（对应 3.6）
+- **操作**：更新 `docs/development-plans/219T-e2e-validation-report.md` 的 Position CRUD 条目（记录修复脚本版本、Playwright 跑批时间、产物路径）；同步更新本计划的“验收标准”小节中的证据链接。
+- **交付格式**：在 PR 描述中引用新的日志、Playwright 产物与 `make status` 输出；若 219T 报告使用表格，需附加“阻塞解除时间”列。
+- **完成信号**：文档 MR / PR 获批且主干存在上述证据，方可将 230 计划标记为完成。
+
+### 3A.7 职位管理功能对齐验证（对应 3.7）
+- **功能基线**：对照 `docs/api/openapi.yaml` 与 `frontend/src/features/positions` 中的实现，列出当前迭代已交付/未交付的 Position Management 功能（创建、编辑、权限校验、版本控制等），在 `logs/230/position-module-readiness.md` 中形成表格。
+- **测试映射**：为 `tests/e2e/position-crud-full-lifecycle.spec.ts` 及关联 Playwright/REST 脚本建立“功能 → testcase”映射，若发现测试覆盖到尚未交付的功能，需在测试中显式标注 `// TODO-TEMPORARY` 并调整断言（或在计划中登记上线时间）。
+- **对齐动作**：若功能差异源于后端缺陷，先确认是否纳入 230 范围；否则在 219T 追踪表中登记，避免过度断言导致“功能不完整”误报。完成后将对齐记录附在 PR/评审说明中。
 
 ## 4. 依赖与前置
 - 需有权访问 Docker PostgreSQL 容器（`make run-dev`），并允许执行迁移。

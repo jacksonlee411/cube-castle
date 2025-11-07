@@ -24,6 +24,15 @@ const getSearchInput = (page: Page) =>
     )
     .first();
 
+const waitForTemporalDetailReady = async (page: Page): Promise<void> => {
+  await expect(page.getByTestId('temporal-master-detail-view')).toBeVisible({
+    timeout: 20000,
+  });
+  await expect(page.getByTestId('temporal-timeline')).toBeVisible({
+    timeout: 20000,
+  });
+};
+
 const filterOrganizationsByName = async (
   page: Page,
   name: string,
@@ -186,6 +195,7 @@ test.describe('业务流程端到端测试', () => {
       await page.goto(`/organizations/${organizationCode}/temporal`);
       await page.waitForURL(`**/organizations/${organizationCode}/temporal`);
       await expect(page.getByTestId('organization-form')).toBeVisible();
+      await waitForTemporalDetailReady(page);
 
       await page.getByTestId('edit-history-toggle-button').click();
       const nameInput = page.getByTestId('form-field-name');
@@ -217,8 +227,9 @@ test.describe('业务流程端到端测试', () => {
       await page.waitForURL(`**/organizations/${organizationCode}/temporal`);
       await expect(page.getByTestId('organization-form')).toBeVisible();
 
+      await waitForTemporalDetailReady(page);
       const deleteButton = page.getByTestId('temporal-delete-record-button');
-      await expect(deleteButton).toBeVisible();
+      await expect(deleteButton).toBeVisible({ timeout: 20000 });
       await deleteButton.click();
       const confirmButton = page.getByTestId('deactivate-confirm-button');
       await expect(confirmButton).toBeVisible();

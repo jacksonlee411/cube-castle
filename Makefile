@@ -251,6 +251,9 @@ status:
 	@echo ""
 	@echo "📈 REST Benchmark 汇总:"
 	@bash scripts/diagnostics/check-rest-benchmark-summary.sh || true
+	@echo ""
+	@echo "🩺 Job Catalog 参考数据检查:"
+	@bash scripts/diagnostics/check-job-catalog.sh
 
 reset:
 	@echo "🔄 重置最小依赖 (不删除卷)..."

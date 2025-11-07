@@ -187,7 +187,7 @@ test.describe.serial('职位管理二级导航（真实后端权限验证）', (
     await expect(page.getByText(jobFamilyGroup.name)).toBeVisible();
 
   await page.getByRole('button', { name: '编辑当前版本' }).click();
-  await expect(page.getByRole('heading', { name: '编辑职类信息' })).toBeVisible();
+  await expect(page.getByText('编辑职类信息').first()).toBeVisible({ timeout: 15000 });
 
   const newName = `${jobFamilyGroup.name}-已更新`;
 

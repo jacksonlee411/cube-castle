@@ -1,244 +1,41 @@
-# Plan 06 – 集成测试行动记录（2025-11-07 更新）
-
-> 唯一事实来源：`docs/development-plans/219E-e2e-validation.md`、`logs/219E/`。  
-> 本记录聚焦当前阻塞与分阶段推进路径。
-
-## 当前状态
-
-- **219D1~219D5**：已完成，Scheduler 配置/监控/测试资料可直接复用
-- **219E 端到端与性能验证**：因Docker socket权限问题暂停（详见 `logs/219E/BLOCKERS-2025-11-06.md`）
-- **219T1 读模型修复**：`scripts/e2e/org-lifecycle-smoke.sh` + `tests/e2e/basic-functionality-test.spec.ts` 已通过，`logs/219E/org-lifecycle-20251107-083118.log` 等为最新证据
-- **219T2 性能脚本**：`scripts/perf/rest-benchmark.sh` 切换 Node 驱动，`logs/219E/perf-rest-20251107-101853.log` / `...101902.log` 提供 P50/P95/P99；`make status` 会展示最新 JSON Summary
-- **新脚本入库**：已准备就绪，等待Docker环境恢复
-  - `scripts/e2e/org-lifecycle-smoke.sh`（组织/部门生命周期冒烟）
-  - `scripts/perf/rest-benchmark.sh`（REST P99 基准）
-
----
-
-## 分阶段推进路径
-
-### 第一阶段：紧迫路径（并行进行，不依赖Docker）
-
-在Docker权限问题解决前，以下工作可立即推进：
-
-1. **代码审查与单元测试**
-   - 审查 219E 相关代码更改（特别是Scheduler、Assignment、缓存刷新逻辑）
-   - 本地运行单元测试：`go test ./...`（无需Docker）
-   - 输出结果至 `logs/219E/unit-tests-*.log`
-
-2. **文档完善**
-   - 补齐 219E 验收清单：`docs/development-plans/219E-e2e-validation.md` § 测试范围表格
-   - 性能基准表格初稿：`docs/reference/03-API-AND-TOOLS-GUIDE.md` § 性能部分
-   - 预期完成：3-5个工作日
-
-3. **Playwright脚本编写与预审**
-   - 基于 `frontend/tests/e2e/*.spec.ts` 编写或扩展测试用例
-   - 代码审查通过但不执行（缺Docker）
-   - 预期完成：2-3个工作日
-
-**预期时间**：1-2周  
-**产出**：代码审查完毕、文档就绪、脚本预审通过
-
----
-
-### 第二阶段：恢复Docker访问（阻塞解除条件）
-
-#### 问题诊断与修复
-
-执行 Docker 权限诊断与修复：
-
-**快速诊断**
-```bash
-bash -c 'echo "=== Docker 权限诊断 ==="; echo "1. Docker daemon:"; docker ps 2>&1 | head -2; echo "2. socket信息:"; ls -la /var/run/docker.sock 2>/dev/null || echo "不存在"; echo "3. 当前用户:"; whoami; echo "4. 用户所在组:"; groups'
-```
-
-**修复选项**（详见 `docs/troubleshooting/docker-socket-permission-fix.md`）
-
-| 选项 | 适用场景 | 时间 |
-|------|--------|------|
-| **方案A**：用户组授权（推荐） | 多数Linux/WSL2环境 | 5分钟 |
-| **方案B**：Socket权限修改 | 无sudo权限或用户组失效 | 10分钟 |
-| **方案C**：CI/CD runner | 本地权限无法获取 | 在GitHub Actions中执行 |
-
-**验证Docker访问已恢复**
-```bash
-# 运行以下命令，应无 permission denied
-docker ps
-docker images | grep cube-castle
-
-# 启动全栈服务
-make run-dev
-# 或
-docker compose -f docker-compose.dev.yml up -d
-
-# 验证关键服务运行
-docker ps | grep -E 'postgres|redis|rest-service|graphql-service'
-```
-
-**优先级**：⚠️ 阻塞路径，需立即推进（或在CI/CD中绕过）
-
----
-
-### 第三阶段：执行E2E验证（Docker恢复后）
-
-#### 3.1 执行组织生命周期冒烟脚本
-
-在服务就绪后运行：
-
-```bash
-# 配置变量（按需自定义）
-export COMMAND_API="http://localhost:9090"   # 与 .env.example / docker-compose.dev.yml 对齐
-export TENANT_ID="3b99930c-4dc6-4cc9-8e4d-7d960a931cb9"  # DEFAULT_TENANT_ID 唯一事实来源
-export JWT_TOKEN="your-token"
-
-# 执行脚本
-scripts/e2e/org-lifecycle-smoke.sh
-
-# 检查输出日志
-ls -la logs/219E/org-lifecycle-*.log
-```
-
-**验证项**：
-- ✅ REST API 组织创建/更新/删除返回预期状态码
-- ✅ GraphQL 查询返回正确的组织结构
-- ✅ 部门生命周期变更正确同步
-
-**预期完成**：1-2天
-
----
-
-#### 3.2 采集REST性能基准
-
-安装 `hey` 工具并执行性能测试：
-
-```bash
-# 默认 Node 驱动（自动 JSON Summary）：
-LOAD_DRIVER=node REQUEST_COUNT=40 CONCURRENCY=4 THROTTLE_DELAY_MS=30 scripts/perf/rest-benchmark.sh
-
-# 若需 legacy hey：
-LOAD_DRIVER=hey scripts/perf/rest-benchmark.sh
-
-# 收集性能数据（make status 会提示最新 summary）
-ls -la logs/219E/perf-rest-*.log
-make status
-```
-
-**收集指标**：P50、P95、P99 响应时间（ms），吞吐量（req/s）  
-**对标基线**：与219D历史性能对比，记录差异原因  
-**登记位置**：`docs/reference/03-API-AND-TOOLS-GUIDE.md` § 性能部分
-
-**预期完成**：1天
-
----
-
-#### 3.3 Playwright 前端E2E验证
-
-复用并扩展前端测试：
-
-```bash
-# 运行现有E2E测试
-cd frontend
-npm run test:e2e
-
-# 重点验证场景：
-# - Assignment 功能完整性
-# - Outbox → Dispatcher → 缓存刷新路径
-# - 性能场景（大批量操作）
-```
-
-**失败用例处理**：
-- 整理至 `logs/219E/playwright-failures-*.log`
-- 在 219E 文档"测试范围"表格更新状态（PASS/FAIL）
-- 失败原因追踪至代码（特别注意缓存一致性）
-
-**预期完成**：2-3天
-
----
-
-### 第四阶段：回退演练（验证完毕后）
-
-依据 `internal/organization/README.md#Scheduler / Temporal（219D）` 的回退指引，演练一次完整回退：
-
-```bash
-# 1. 禁用Scheduler
-export SCHEDULER_ENABLED=false
-
-# 2. 恢复至219D1目录结构（保留数据）
-# 依据文档指引，恢复相关配置
-
-# 3. 验证业务连续性
-make run-dev
-scripts/e2e/org-lifecycle-smoke.sh
-
-# 4. 记录结果
-# logs/219E/rollback-test-*.log
-```
-
-**输出**：回退步骤文档、验证日志、风险评估
-
-**预期完成**：1-2天
-
----
-
-## 参考资料
-
-### 核心文档
-- **Docker权限诊断与修复**：`docs/troubleshooting/docker-socket-permission-fix.md`
-- **阻塞说明**：`logs/219E/BLOCKERS-2025-11-06.md`
-- **219E验收标准**：`docs/development-plans/219E-e2e-validation.md`
-
-### 支撑资料
-- **服务日志**：`logs/219D2/`、`logs/219D3/`、`logs/219D4/`
-- **监控配置**：`docs/reference/monitoring/`
-- **开发者速查**：`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`
-- **Docker Compose配置**：`docker-compose.dev.yml`
-- **Makefile目标**：`make run-dev`、`make stop-dev`
-
----
-
-## 时间预估与关键路径
-
-```
-第一阶段（并行）
-├─ 代码审查 & 单元测试      [3-5天]
-├─ 文档完善                [3-5天]
-└─ Playwright脚本预审      [2-3天]
-   → 预期完成：1-2周
-
-第二阶段（阻塞解除）
-└─ Docker权限诊断与修复     [5-30分钟 或 CI/CD绕过]
-   → 预期完成：同日或使用CI/CD
-
-第三阶段（顺序执行）
-├─ 冒烟脚本                [1-2天]
-├─ 性能基准                [1天]
-├─ Playwright验证          [2-3天]
-└─ 问题修复与迭代          [按需]
-   → 预期完成：1-2周
-
-第四阶段（验证后）
-└─ 回退演练                [1-2天]
-   → 预期完成：1-2天
-
-总耗时：3-4周（Docker恢复后加速）
-关键路径：Docker权限 → E2E验证 → 回退测试
-```
-
----
-
-## 即时行动项
-
-**今天可做**：
-- [ ] 运行Docker诊断脚本，确认问题类型
-- [ ] 开始第一阶段：代码审查、文档编写
-
-**本周必做**：
-- [ ] 执行Docker权限修复（方案A/B/C选一）
-- [ ] 完成第一阶段所有工作
-
-**恢复Docker后**：
-- [ ] 执行第二、三、四阶段（按时间预估推进）
-
----
-
-> **更新说明**：本文档于2025-11-07简化重构，重点突出分阶段推进路径和Docker权限问题的具体解决方案。如有遗漏或需更新，请参考单一事实来源文档：219E验收标准、阻塞清单、troubleshooting指南。
+# Plan 06 – 集成测试验证要求
+
+> 唯一事实来源：`docker-compose.dev.yml`、`docs/development-plans/219T-e2e-validation-report.md`、`frontend/tests/e2e/*`。  
+> 本文用于指导 219 系列在恢复 Docker 环境后如何执行端到端验证、收集证据并回填报告。
+
+## 1. 环境前提（所有验证必须满足）
+- **Docker 优先**：执行 `make docker-up && make run-dev`，确保 PostgreSQL/Redis/Temporal 仅在容器内运行，宿主机不得占用 5432/6379/7233。
+- **Go/Node 版本**：`go version` 输出 `go1.24.x`，`node --version` 与仓库 `.nvmrc` 一致；若版本不符，禁止继续验证。
+- **JWT 与租户**：执行 `make jwt-dev-mint`，在 `.cache/dev.jwt` 中获取令牌；`DEFAULT_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9` 必须写入环境变量或 Playwright 配置。
+- **数据基线**：运行 `make db-migrate-all` 后，确认 Job Catalog 参考数据完整（`OPER` 系列 Active），否则职位 CRUD 场景需 `test.skip` 并在 230 计划中补数。
+
+## 2. Playwright 验证要求（219T3）
+| 场景 | 验证步骤 | 产物要求 |
+| --- | --- | --- |
+| business-flow-e2e | `npm run test:e2e -- --project=chromium tests/e2e/business-flow-e2e.spec.ts`；运行日志需展示删除阶段等待 `temporal-timeline` 完成 | `frontend/test-results/business-flow-e2e-*/trace.zip`、`run-playwright.log` |
+| job-catalog-secondary-navigation | 指定 Chromium/Firefox 双浏览器运行，截图必须包含“编辑职类信息”标题 | `frontend/test-results/job-catalog-secondary-navigation-*/` |
+| name-validation-parentheses | REST PUT 返回 200 且 GraphQL 二次读取验证新名称；日志需附 `requestId` | `logs/219E/name-validation-*.log` |
+| position-tabs / position-lifecycle | 通过 `POSITION_FIXTURE_CODE` + GraphQL stub 渲染；验证 `position-temporal-page`、六个页签截图 | `frontend/test-results/position-tabs-*`, `frontend/test-results/position-lifecycle-*` |
+| position-crud-full-lifecycle | 若 Job Catalog 参考数据存在，则完整跑 Create→Delete；若返回 422，必须在报告中引用 `test.skip` 原因并链接 Plan 230 | `frontend/test-results/position-crud-full-lifecycle-*`, `logs/219E/position-crud-*.log` |
+| temporal-management-integration | 使用 `waitForOrganizationSearchInput` 辅助器定位搜索框，需录制导航至 `/organizations/{code}/temporal` 的视频 | `frontend/test-results/temporal-management-integration-*/video.webm` |
+
+执行顺序建议：先跑 `npm run test:e2e -- --project=chromium`, 通过后再追加 `--project=firefox`；任何失败必须在 `docs/development-plans/219T-e2e-validation-report.md` “Playwright 用例整改”章节附上原因与日志。
+
+## 3. REST/GraphQL 验证要求
+1. **组织冒烟**：运行 `scripts/e2e/org-lifecycle-smoke.sh`，日志写入 `logs/219E/org-lifecycle-YYYYMMDD-HHMMSS.log`，截图 `frontend/test-results/app-loaded.png` 需重新生成。
+2. **性能基准**：执行 `LOAD_DRIVER=node REQUEST_COUNT=40 CONCURRENCY=4 THROTTLE_DELAY_MS=30 scripts/perf/rest-benchmark.sh`，将 JSON Summary 摘要粘贴至 `docs/reference/03-API-AND-TOOLS-GUIDE.md`。
+3. **GraphQL 合约**：`curl http://localhost:8090/health` 返回 200 后，使用 `npx graphql-inspector diff docs/api/schema.graphql http://localhost:8090/graphql`，无 diff 方可继续。
+
+## 4. 证据与回填
+- **日志目录**：所有脚本输出集中到 `logs/219E/`，命名规则 `scenario-YYYYMMDD-HHMMSS.log`。
+- **测试产物**：`frontend/test-results/` 与 `frontend/playwright-report/` 需保存最新一次运行的截图/trace/video，不得覆盖历史记录。
+- **报告同步**：
+  1. `docs/development-plans/219T-e2e-validation-report.md`：更新失败表、添加新的“脚本整改”条目与链接。
+  2. `docs/development-plans/219E-e2e-validation.md`：在“测试范围”和“证据”表格中引用上述日志与产物。
+  3. 若某场景因参考数据缺失被跳过，必须注明关联计划（如 230）与预计恢复时间。
+
+## 5. 退出准则
+仅当以下条件全部满足时，Plan 06 的验证阶段可视为完成：
+1. Chromium 与 Firefox 上 `npm run test:e2e` 成功（允许被 Plan 230 接管的职位 CRUD 场景跳过，并在报告中注明）。
+2. `scripts/e2e/org-lifecycle-smoke.sh` 与 `scripts/perf/rest-benchmark.sh` 最新日志附在 219T/219E 文档中，且 `make status` 显示健康。
+3. `docs/reference/03-API-AND-TOOLS-GUIDE.md`、`docs/development-plans/219T-e2e-validation-report.md`、`docs/development-plans/219E-e2e-validation.md` 均已回填本次验证的产物链接与结论。

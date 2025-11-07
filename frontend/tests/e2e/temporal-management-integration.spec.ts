@@ -15,6 +15,8 @@ const GRAPHQL_API_URL = E2E_CONFIG.GRAPHQL_API_URL;
 const GRAPHQL_HEALTH_URL = E2E_CONFIG.GRAPHQL_HEALTH_URL;
 const GRAPHQL_HEADERS = { 'Content-Type': 'application/json' } as const;
 const TEST_ORG_CODE = process.env.E2E_ORG_CODE || '1000000';
+const ORGANIZATION_SEARCH_INPUT_SELECTOR =
+  'input[placeholder*="搜索组织名称"], input[placeholder*="搜索组织"], input[placeholder*="搜索"]';
 
 const ORGANIZATION_VERSIONS_QUERY = `
   query OrganizationVersions($code: String!) {
@@ -220,6 +222,13 @@ async function commandRequestStatus(
   return response.status();
 }
 
+async function waitForOrganizationSearchInput(page: Page) {
+  await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 20000 });
+  const locator = page.locator(ORGANIZATION_SEARCH_INPUT_SELECTOR).first();
+  await expect(locator).toBeVisible({ timeout: 15000 });
+  return locator;
+}
+
 test.describe('时态管理系统集成测试', () => {
   test.beforeAll(async () => {
     const envValidation = await validateTestEnvironment({ allowUnreachableFrontend: true });
@@ -265,10 +274,16 @@ test.describe('时态管理系统集成测试', () => {
       await ensureAuthentication(page);
 
       await page.goto(`${FRONTEND_URL}/organizations`, { waitUntil: 'networkidle' });
-      const searchInput = page.getByPlaceholder('搜索组织名称...');
+      const searchInput = await waitForOrganizationSearchInput(page);
       await searchInput.fill(TEST_ORG_CODE);
-      await page.waitForTimeout(500);
-      await expect(page.getByTestId(`table-row-${TEST_ORG_CODE}`)).toBeVisible({ timeout: 15000 });
+      await Promise.race([
+        page.waitForResponse(
+          response => response.url().includes('/graphql') && response.request().method() === 'POST',
+          { timeout: 2000 },
+        ),
+        page.waitForTimeout(500),
+      ]);
+      await expect(page.getByTestId(`table-row-${TEST_ORG_CODE}`)).toBeVisible({ timeout: 20000 });
 
       const manageButton = page.getByTestId(`temporal-manage-button-${TEST_ORG_CODE}`);
       await expect(manageButton).toBeVisible();

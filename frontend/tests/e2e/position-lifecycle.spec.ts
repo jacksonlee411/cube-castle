@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { setupAuth } from './auth-setup';
 import {
+  POSITION_FIXTURE_CODE,
   POSITION_GRAPHQL_FIXTURES as GRAPHQL_FIXTURES,
   POSITIONS_QUERY_NAME,
   POSITION_DETAIL_QUERY_NAME,
@@ -7,61 +10,66 @@ import {
   POSITION_HEADCOUNT_STATS_QUERY_NAME,
 } from './utils/positionFixtures';
 
+async function stubGraphQL(page: Page) {
+  await page.route('**/graphql', async route => {
+    const request = route.request();
+    let body: { query?: string } | undefined;
+    try {
+      body = request.postDataJSON();
+    } catch (_error) {
+      return route.continue();
+    }
+
+    const query = body?.query;
+    if (!query) {
+      return route.continue();
+    }
+
+    if (query.includes(POSITIONS_QUERY_NAME)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(GRAPHQL_FIXTURES.positions),
+      });
+    }
+
+    if (query.includes(POSITION_DETAIL_QUERY_NAME)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(GRAPHQL_FIXTURES.positionDetail),
+      });
+    }
+
+    if (query.includes(VACANT_POSITIONS_QUERY_NAME)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(GRAPHQL_FIXTURES.vacantPositions),
+      });
+    }
+
+    if (query.includes(POSITION_HEADCOUNT_STATS_QUERY_NAME)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(GRAPHQL_FIXTURES.headcountStats),
+      });
+    }
+
+    return route.continue();
+  });
+}
+
 test.describe('职位生命周期视图', () => {
   test('展示任职与调动历史', async ({ page }) => {
-    await page.route('**/graphql', async route => {
-      const request = route.request();
-      let body: { query?: string } | undefined;
-      try {
-        body = request.postDataJSON();
-      } catch (_error) {
-        return route.continue();
-      }
-
-      const query = body?.query;
-      if (!query) {
-        return route.continue();
-      }
-
-      if (query.includes(POSITIONS_QUERY_NAME)) {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(GRAPHQL_FIXTURES.positions),
-        });
-      }
-
-      if (query.includes(POSITION_DETAIL_QUERY_NAME)) {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(GRAPHQL_FIXTURES.positionDetail),
-        });
-      }
-
-      if (query.includes(VACANT_POSITIONS_QUERY_NAME)) {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(GRAPHQL_FIXTURES.vacantPositions),
-        });
-      }
-
-      if (query.includes(POSITION_HEADCOUNT_STATS_QUERY_NAME)) {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(GRAPHQL_FIXTURES.headcountStats),
-        });
-      }
-
-      return route.continue();
-    });
+    await stubGraphQL(page);
+    await setupAuth(page);
 
     await page.goto('/positions');
 
     await expect(page.getByRole('heading', { name: '职位管理（Stage 1 数据接入）' })).toBeVisible();
-    await expect(page.getByTestId('position-row-P-LIFECYCLE-001')).toBeVisible();
+    await expect(page.getByTestId(`position-row-${POSITION_FIXTURE_CODE}`)).toBeVisible();
 
     const detailCard = page.getByTestId('position-detail-card');
     await expect(detailCard).toContainText('生命周期演示岗位');

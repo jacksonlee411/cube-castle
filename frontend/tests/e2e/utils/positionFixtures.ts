@@ -1,10 +1,12 @@
+export const POSITION_FIXTURE_CODE = 'P1234567';
+
 export const POSITION_GRAPHQL_FIXTURES = {
   positions: {
     data: {
       positions: {
         data: [
           {
-            code: 'P-LIFECYCLE-001',
+            code: POSITION_FIXTURE_CODE,
             title: '生命周期演示岗位',
             jobFamilyGroupCode: 'OPER',
             jobFamilyGroupName: '运营管理',
@@ -46,7 +48,7 @@ export const POSITION_GRAPHQL_FIXTURES = {
   positionDetail: {
     data: {
       position: {
-        code: 'P-LIFECYCLE-001',
+        code: POSITION_FIXTURE_CODE,
         recordId: 'POS-REC-001',
         title: '生命周期演示岗位',
         jobFamilyGroupCode: 'OPER',
@@ -75,7 +77,7 @@ export const POSITION_GRAPHQL_FIXTURES = {
         updatedAt: '2024-03-15T10:00:00.000Z',
         currentAssignment: {
           assignmentId: 'ASSIGN-001',
-          positionCode: 'P-LIFECYCLE-001',
+          positionCode: POSITION_FIXTURE_CODE,
           positionRecordId: 'POS-REC-001',
           employeeId: 'EMP-001',
           employeeName: '张三',
@@ -115,7 +117,7 @@ export const POSITION_GRAPHQL_FIXTURES = {
         data: [
           {
             assignmentId: 'ASSIGN-001',
-            positionCode: 'P-LIFECYCLE-001',
+            positionCode: POSITION_FIXTURE_CODE,
             positionRecordId: 'POS-REC-001',
             employeeId: 'EMP-001',
             employeeName: '张三',
@@ -132,7 +134,7 @@ export const POSITION_GRAPHQL_FIXTURES = {
           },
           {
             assignmentId: 'ASSIGN-000',
-            positionCode: 'P-LIFECYCLE-001',
+            positionCode: POSITION_FIXTURE_CODE,
             positionRecordId: 'POS-REC-000',
             employeeId: 'EMP-000',
             employeeName: '李四',
@@ -153,7 +155,7 @@ export const POSITION_GRAPHQL_FIXTURES = {
         data: [
           {
             transferId: 'TRANSFER-001',
-            positionCode: 'P-LIFECYCLE-001',
+            positionCode: POSITION_FIXTURE_CODE,
             fromOrganizationCode: 'ORG-A',
             toOrganizationCode: 'ORG-B',
             effectiveDate: '2024-05-01',
@@ -169,7 +171,7 @@ export const POSITION_GRAPHQL_FIXTURES = {
       positionVersions: [
         {
           recordId: 'POS-REC-001',
-          code: 'P-LIFECYCLE-001',
+          code: POSITION_FIXTURE_CODE,
           title: '生命周期演示岗位',
           jobFamilyGroupCode: 'OPER',
           jobFamilyCode: 'OPER-OPS',
@@ -193,7 +195,7 @@ export const POSITION_GRAPHQL_FIXTURES = {
         },
         {
           recordId: 'POS-REC-002',
-          code: 'P-LIFECYCLE-001',
+          code: POSITION_FIXTURE_CODE,
           title: '生命周期演示岗位（规划）',
           jobFamilyGroupCode: 'OPER',
           jobFamilyCode: 'OPER-OPS',

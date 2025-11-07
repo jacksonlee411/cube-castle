@@ -24,6 +24,11 @@
 - 更新后的 spec 文件及辅助工具（如 `tests/e2e/utils`）。
 - 新的 Playwright 报告（`frontend/playwright-report/`）与 `frontend/test-results/`。
 - 在 `docs/development-plans/219T-e2e-validation-report.md` “Playwright 用例整改” 条目中附上结论。
+- 2025-11-17 更新记录：
+  - `frontend/tests/e2e/business-flow-e2e.spec.ts` 增加 `temporal-timeline` 级联等待，删除阶段可在真实数据加载完成后进行，避免再度超时。
+  - `frontend/tests/e2e/job-catalog-secondary-navigation.spec.ts` 与 `name-validation-parentheses.spec.ts` 对齐最新 UI / REST 契约，分别使用标题文本定位与 200 成功断言。
+  - 职位相关脚本（`position-tabs.spec.ts`、`position-lifecycle.spec.ts`、`position-crud-full-lifecycle.spec.ts`、`utils/positionFixtures.ts`）统一 7 位编码、补充认证、防护 422 参考数据缺口，并允许必填校验返回 422。
+  - `frontend/tests/e2e/temporal-management-integration.spec.ts` 新增组织搜索输入定位器与等待逻辑，保证在多环境下均能稳定导航。
 
 ## 5. 验收
 1. `npm run test:e2e` 在 Chromium/Firefox 均达到既定通过率（允许 Mock 场景跳过）。

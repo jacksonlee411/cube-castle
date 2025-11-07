@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
+  POSITION_FIXTURE_CODE,
   POSITION_GRAPHQL_FIXTURES as GRAPHQL_FIXTURES,
   POSITIONS_QUERY_NAME,
   POSITION_DETAIL_QUERY_NAME,
@@ -8,6 +9,8 @@ import {
 } from './utils/positionFixtures';
 
 const FAKE_RS256_JWT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJwbGF5d3JpZ2h0LXRlc3QifQ.signature';
+const POSITION_CODE = POSITION_FIXTURE_CODE;
+const POSITION_DETAIL_PATH = `/positions/${POSITION_CODE}`;
 
 async function stubGraphQL(page: Page) {
   await page.route('**/graphql', async route => {
@@ -89,13 +92,13 @@ test.describe('职位详情多页签体验', () => {
     await seedAuth(page);
     await stubGraphQL(page);
 
-    await page.goto('/positions/P-LIFECYCLE-001');
+    await page.goto(POSITION_DETAIL_PATH);
 
     await expect(page.getByTestId('position-temporal-page')).toBeVisible();
-    await expect(page.getByText('职位详情：P-LIFECYCLE-001')).toBeVisible();
+    await expect(page.getByText(`职位详情：${POSITION_CODE}`)).toBeVisible();
 
     // 概览页签默认展示
-    await expect(page.getByTestId('position-overview-card')).toContainText('职位编码：P-LIFECYCLE-001');
+    await expect(page.getByTestId('position-overview-card')).toContainText(`职位编码：${POSITION_CODE}`);
 
     const clickTab = async (label: string) => {
       await page.getByText(label, { exact: true }).click();
@@ -126,7 +129,7 @@ test.describe('职位详情多页签体验', () => {
 
     await seedAuth(page);
     await stubGraphQL(page);
-    await page.goto('/positions/P-LIFECYCLE-001');
+    await page.goto(POSITION_DETAIL_PATH);
 
     await expect(page.getByTestId('position-temporal-page')).toBeVisible();
     await expect(page.getByTestId('position-mock-banner')).toBeVisible();

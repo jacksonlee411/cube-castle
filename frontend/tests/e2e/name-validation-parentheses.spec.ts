@@ -35,14 +35,22 @@ test.describe('组织名称允许括号验证', () => {
 
     // 2) 全量 PUT 更新
     const resp = await request.put(`${COMMAND_BASE}/api/v1/organization-units/${TARGET_CODE}`, {
-      data: updatePayload
+      data: updatePayload,
+      headers: { 'Content-Type': 'application/json' },
     });
 
-    expect(resp.status(), 'REST 更新应返回 400（名称括号仍触发校验）').toBe(400);
+    expect(resp.status(), 'REST 更新应返回 200 并接受括号名称').toBe(200);
     const body = await resp.json();
     expect(body).toMatchObject({
-      success: false,
-      error: expect.objectContaining({ code: expect.any(String) })
+      success: true,
+      data: expect.objectContaining({ code: TARGET_CODE, name: newName }),
     });
+
+    // 3) 再次读取 GraphQL，确认名称成功更新
+    const verifyResp = await request.post(QUERY_BASE, { data: gql });
+    expect(verifyResp.status(), 'GraphQL 查询应返回 200').toBe(200);
+    const verifyBody = await verifyResp.json();
+    const updatedOrg = verifyBody?.data?.organization;
+    expect(updatedOrg?.name).toBe(newName);
   });
 });
