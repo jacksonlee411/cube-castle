@@ -7,6 +7,8 @@
 
 - **219D1~219D5**：已完成，Scheduler 配置/监控/测试资料可直接复用
 - **219E 端到端与性能验证**：因Docker socket权限问题暂停（详见 `logs/219E/BLOCKERS-2025-11-06.md`）
+- **219T1 读模型修复**：`scripts/e2e/org-lifecycle-smoke.sh` + `tests/e2e/basic-functionality-test.spec.ts` 已通过，`logs/219E/org-lifecycle-20251107-083118.log` 等为最新证据
+- **219T2 性能脚本**：`scripts/perf/rest-benchmark.sh` 切换 Node 驱动，`logs/219E/perf-rest-20251107-101853.log` / `...101902.log` 提供 P50/P95/P99；`make status` 会展示最新 JSON Summary
 - **新脚本入库**：已准备就绪，等待Docker环境恢复
   - `scripts/e2e/org-lifecycle-smoke.sh`（组织/部门生命周期冒烟）
   - `scripts/perf/rest-benchmark.sh`（REST P99 基准）
@@ -110,14 +112,15 @@ ls -la logs/219E/org-lifecycle-*.log
 安装 `hey` 工具并执行性能测试：
 
 ```bash
-# 安装 hey
-go install github.com/rakyll/hey@latest
+# 默认 Node 驱动（自动 JSON Summary）：
+LOAD_DRIVER=node REQUEST_COUNT=40 CONCURRENCY=4 THROTTLE_DELAY_MS=30 scripts/perf/rest-benchmark.sh
 
-# 执行性能基准
-scripts/perf/rest-benchmark.sh
+# 若需 legacy hey：
+LOAD_DRIVER=hey scripts/perf/rest-benchmark.sh
 
-# 收集性能数据
+# 收集性能数据（make status 会提示最新 summary）
 ls -la logs/219E/perf-rest-*.log
+make status
 ```
 
 **收集指标**：P50、P95、P99 响应时间（ms），吞吐量（req/s）  

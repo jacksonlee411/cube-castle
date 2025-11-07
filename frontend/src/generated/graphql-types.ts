@@ -45,6 +45,20 @@ export type Scalars = {
   UUID: { input: string; output: string };
 };
 
+export type AssignmentStats = {
+  __typename: "AssignmentStats";
+  actingAssignments: Scalars["Int"]["output"];
+  activeAssignments: Scalars["Int"]["output"];
+  endedAssignments: Scalars["Int"]["output"];
+  lastUpdatedAt: Scalars["DateTime"]["output"];
+  organizationCode?: Maybe<Scalars["String"]["output"]>;
+  pendingAssignments: Scalars["Int"]["output"];
+  positionCode?: Maybe<Scalars["PositionCode"]["output"]>;
+  primaryAssignments: Scalars["Int"]["output"];
+  secondaryAssignments: Scalars["Int"]["output"];
+  totalAssignments: Scalars["Int"]["output"];
+};
+
 /**
  * Comprehensive audit log entry with complete change tracking information.
  * Each audit record tracks changes to a specific organization temporal version (recordId).
@@ -698,6 +712,24 @@ export enum PositionType {
 export type Query = {
   __typename: "Query";
   /**
+   * Retrieve full assignment history for a position, including ended records.
+   *
+   * Permissions Required: position:read:history
+   */
+  assignmentHistory: PositionAssignmentConnection;
+  /**
+   * Aggregate assignment statistics scoped by position or organization.
+   *
+   * Permissions Required: position:read:stats
+   */
+  assignmentStats: AssignmentStats;
+  /**
+   * List current assignments with optional filters for a single position.
+   *
+   * Permissions Required: position:read
+   */
+  assignments: PositionAssignmentConnection;
+  /**
    * Get complete audit history for a specific temporal record (organization units, positions, or job catalog entries).
    * This query returns audit records for a specific recordId, allowing precise tracking
    * of individual temporal version lifecycle changes.
@@ -840,6 +872,38 @@ export type Query = {
    * Permissions Required: position:read
    */
   vacantPositions: VacantPositionConnection;
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
+export type QueryAssignmentHistoryArgs = {
+  filter?: InputMaybe<PositionAssignmentFilterInput>;
+  pagination?: InputMaybe<PaginationInput>;
+  positionCode: Scalars["PositionCode"]["input"];
+  sorting?: InputMaybe<Array<PositionAssignmentSortInput>>;
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
+export type QueryAssignmentStatsArgs = {
+  organizationCode?: InputMaybe<Scalars["String"]["input"]>;
+  positionCode?: InputMaybe<Scalars["PositionCode"]["input"]>;
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
+export type QueryAssignmentsArgs = {
+  filter?: InputMaybe<PositionAssignmentFilterInput>;
+  organizationCode?: InputMaybe<Scalars["String"]["input"]>;
+  pagination?: InputMaybe<PaginationInput>;
+  positionCode?: InputMaybe<Scalars["PositionCode"]["input"]>;
+  sorting?: InputMaybe<Array<PositionAssignmentSortInput>>;
 };
 
 /**
