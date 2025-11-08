@@ -12,17 +12,18 @@ import (
 	"syscall"
 	"time"
 
+	graphqlruntime "cube-castle/cmd/hrms-server/query/internal/graphql"
+	graphqlresolver "cube-castle/cmd/hrms-server/query/internal/graphql/resolver"
 	"cube-castle/internal/auth"
 	"cube-castle/internal/config"
 	schemaLoader "cube-castle/internal/graphql"
 	requestMiddleware "cube-castle/internal/middleware"
 	organization "cube-castle/internal/organization"
 	pkglogger "cube-castle/pkg/logger"
+	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	graphqlgo "github.com/graph-gophers/graphql-go"
-	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
@@ -224,12 +225,15 @@ func (a *Application) buildServer(repo *organization.QueryRepository, assignment
 	}).Info("🔐 JWT认证初始化完成")
 
 	gqlResolver := organization.NewQueryResolver(repo, assignmentFacade, a.logger, graphqlMiddleware)
+	gqlgenResolver := graphqlresolver.New(gqlResolver)
+	executableSchema := graphqlruntime.NewExecutableSchema(graphqlruntime.Config{
+		Resolvers: gqlgenResolver,
+	})
+	graphqlServer := handler.NewDefaultServer(executableSchema)
 	schemaPath := schemaLoader.GetDefaultSchemaPath()
-	schemaString := schemaLoader.MustLoadSchema(schemaPath)
-	schema := graphqlgo.MustParseSchema(schemaString, gqlResolver)
-	a.log("graphql.schema", pkglogger.Fields{"path": schemaPath}).Info("✅ GraphQL Schema loaded from single source")
+	a.log("graphql.schema", pkglogger.Fields{"path": schemaPath}).Info("✅ GraphQL Schema compiled from single source via gqlgen")
 
-	router := a.buildRouter(schema, graphqlMiddleware, devMode)
+	router := a.buildRouter(graphqlServer, graphqlMiddleware, devMode)
 
 	port := getEnv("PORT", "8090")
 	server := &http.Server{
@@ -243,7 +247,7 @@ func (a *Application) buildServer(repo *organization.QueryRepository, assignment
 	return server, nil
 }
 
-func (a *Application) buildRouter(schema *graphqlgo.Schema, permission *auth.GraphQLPermissionMiddleware, devMode bool) http.Handler {
+func (a *Application) buildRouter(graphqlServer http.Handler, permission *auth.GraphQLPermissionMiddleware, devMode bool) http.Handler {
 	r := chi.NewRouter()
 	r.Use(requestMiddleware.RequestIDMiddleware)
 	r.Use(chiMiddleware.Logger)
@@ -259,8 +263,7 @@ func (a *Application) buildRouter(schema *graphqlgo.Schema, permission *auth.Gra
 	r.Use(metricsMiddleware)
 
 	envelopeMiddleware := requestMiddleware.NewGraphQLEnvelopeMiddleware()
-	relayHandler := &relay.Handler{Schema: schema}
-	baseGraphQLHandler := envelopeMiddleware.Middleware()(permission.Middleware()(relayHandler))
+	baseGraphQLHandler := envelopeMiddleware.Middleware()(permission.Middleware()(graphqlServer))
 	graphqlHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		organizationOperationsTotal.WithLabelValues("graphql_query").Inc()
 		baseGraphQLHandler.ServeHTTP(w, r)

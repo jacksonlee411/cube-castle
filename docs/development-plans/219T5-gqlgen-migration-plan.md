@@ -85,3 +85,10 @@
 1. **HTTP Handler 切换（P1）**：在 `cmd/hrms-server/query/internal/app/app.go` 中引入 `graphqlruntime.NewExecutableSchema`，替换 graph-gophers/relay，删除旧依赖；更新 `make run-dev`、`docker` 镜像以使用 gqlgen handler。
 2. **契约无差校验（P2）**：在 gqlgen handler 生效后运行 `npx graphql-inspector diff ...`，并将结果回填到 Plan 06，确认 `@deprecated/@oneOf/@specifiedBy` 差异已消除。
 3. **端到端验证与文档（P3）**：用 Playwright/GraphQL 测试覆盖新 runtime，记录在 `docs/development-plans/06-integrated-teams-progress-log.md` 与本计划验收章节，最后清理 graph-gophers 相关引用。
+
+## 10. 验收记录（2025-11-08）
+- **运行时切换完成**：`cmd/hrms-server/query/internal/app/app.go` 现使用 `graphqlruntime.NewExecutableSchema` + `handler.NewDefaultServer`，`go.mod` 已移除 `github.com/graph-gophers/graphql-go` 依赖，查询服务仅依赖 gqlgen 生成物与桥接 Resolver。
+- **Schema 快照与 diff 工具**：新增 `cmd/hrms-server/query/internal/graphql/schema_snapshot.go` 暴露 runtime SDL，配套 `go run ./cmd/hrms-server/query/tools/dump-schema --out logs/graphql-snapshots/runtime-schema.graphql` 输出快照，再运行 `npx graphql-inspector diff docs/api/schema.graphql logs/graphql-snapshots/runtime-schema.graphql`，日志 `logs/219T5/graphql-inspector-diff-20251108-015138.txt` 显示 `No changes detected`，满足 Plan 06 “无 diff” 门槛。
+- **回归验证**：`go test ./cmd/hrms-server/query/... ./internal/organization/resolver` 通过（2025-11-08 01:52 CST），确保 gqlgen Handler、权限中间件与领域 Resolver 协同工作；Plan 06 文档已回填验证结果，移除 GraphQL 阻塞。
+
+> 结论：219T5 gqlgen 迁移计划已全部达成，可归档并转入剩余 E2E/文档待办。

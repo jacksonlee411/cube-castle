@@ -19,7 +19,7 @@
 | `npm run test:e2e -- --project=chromium tests/e2e/temporal-management-integration.spec.ts` | ❌ 无法定位 `organization-dashboard` | `logs/219E/temporal-management-integration-20251107-135738.log` |
 | `scripts/e2e/org-lifecycle-smoke.sh` | ✅ 完成创建/停用/启用/GraphQL 校验 | `logs/219E/org-lifecycle-smoke-20251107-140705.log` |
 | `LOAD_DRIVER=node REQUEST_COUNT=40 CONCURRENCY=4 THROTTLE_DELAY_MS=30 scripts/perf/rest-benchmark.sh` | ✅ 获得 201/429 统计与延迟分布 | `logs/219E/rest-benchmark-20251107-140709.log` |
-| `npx graphql-inspector diff docs/api/schema.graphql http://localhost:8090/graphql --header ...` | ❌ 剩余 6 项差异（GraphQL 内置指令语义不一致） | `logs/219E/graphql-inspector-diff-20251107-181341.log` |
+| `npx graphql-inspector diff docs/api/schema.graphql logs/graphql-snapshots/runtime-schema.graphql` | ✅ `No changes detected`，runtime SDL 经 `go run ./cmd/hrms-server/query/tools/dump-schema --out logs/graphql-snapshots/runtime-schema.graphql` 导出 | `logs/219T5/graphql-inspector-diff-20251108-015138.txt` |
 
 ## 3. 当前阻塞
 1. **Playwright 219T3 多场景失败**  
@@ -28,18 +28,16 @@
    - `position-tabs`、`position-lifecycle`：fixture 数据未渲染六个页签及生命周期文案。  
    - `temporal-management-integration`：`waitForOrganizationSearchInput` 无法找到 `organization-dashboard`。  
    → 需恢复前端依赖数据或 UI 逻辑，重新收集 trace/video。
-2. **GraphQL 契约 diff 未通过**  
-   - 通过 `scripts/dev/sync-graphql-schema.cjs` 已将 `docs/api/schema.graphql` 与线上服务同步，但 `graphql-inspector diff` 仍报 6 项差异，全部来自 graph-gophers/graphql-go v1.5.0 对内置指令（`@deprecated`、`@oneOf`、`@specifiedBy`）的历史语义。  
-   - 需升级查询服务 GraphQL 依赖或调整校验策略，才能满足 Plan 06 §3 “无 diff 方可继续”约束。
-   - **最新进展（2025-11-09）**：已完成 gqlgen 生成物、Resolver 桥接与自定义标量实现，且新增 `logs/graphql-snapshots/` 快照机制；下一步是将查询服务 HTTP Handler 切换至 gqlgen 并复跑 diff。
-3. **证据回填未完成**  
+2. **证据回填未完成**  
    - REST Benchmark 摘要尚未写入 `docs/reference/03-API-AND-TOOLS-GUIDE.md`。  
    - `docs/development-plans/219T-e2e-validation-report.md`、`docs/development-plans/219E-e2e-validation.md` 未记录本轮执行结果及日志链接。
+
+> 说明：GraphQL diff 阻塞已在 2025-11-08 通过 gqlgen runtime SDL 快照 + GraphQL Inspector 验证解除，详见上表与日志 `logs/219T5/graphql-inspector-diff-20251108-015138.txt`。
 
 ## 4. 待办清单
 | 优先级 | 待办 | 说明 |
 | --- | --- | --- |
-| P0 | 升级查询服务 GraphQL 依赖或引入兼容层，使 `graphql-inspector diff` 无差（当前 6 项差异为内置指令语义落差） | 完成 Plan 06 第 3 节硬门槛 |
+| P0 | ✅ GraphQL 运行时已切换至 gqlgen，`graphql-inspector diff` 与 runtime SDL 快照无差（`logs/219T5/graphql-inspector-diff-20251108-015138.txt`） | Plan 06 第 3 节硬门槛已解除 |
 | P0 | 恢复 business-flow/job-catalog/position-tabs/position-lifecycle/temporal-management 场景所需数据，Chromium 与 Firefox 全绿 | 满足退出准则第 1 条 |
 | P1 | 将 `logs/219E/rest-benchmark-20251107-140709.log` JSON 摘录写入 `docs/reference/03-API-AND-TOOLS-GUIDE.md` | 补全性能证据 |
 | P1 | 在 `docs/development-plans/219T-e2e-validation-report.md`、`docs/development-plans/219E-e2e-validation.md` 回填本轮执行与失败原因 | 保持唯一事实来源 |
@@ -47,6 +45,7 @@
 
 ## 5. 退出准则复核
 - **Chromium/Firefox Playwright 全绿**：未满足（多场景失败）。  
+- **GraphQL 契约 diff**：已通过 `npx graphql-inspector diff docs/api/schema.graphql logs/graphql-snapshots/runtime-schema.graphql`（`logs/219T5/graphql-inspector-diff-20251108-015138.txt`）。  
 - **REST/性能脚本证据**：脚本已执行，但尚未写入参考文档。  
 - **文档回填**：`docs/reference/03-API-AND-TOOLS-GUIDE.md`、`docs/development-plans/219T-e2e-validation-report.md`、`docs/development-plans/219E-e2e-validation.md` 均需更新当前日志/结论。
 
