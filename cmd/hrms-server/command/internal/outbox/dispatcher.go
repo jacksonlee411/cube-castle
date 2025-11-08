@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	orgutils "cube-castle/internal/organization/utils"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
@@ -30,7 +31,10 @@ type Dispatcher struct {
 	wg     sync.WaitGroup
 }
 
-const maxBackoff = 5 * time.Minute
+const (
+	maxBackoff        = 5 * time.Minute
+	outboxResultRetry = "retry"
+)
 
 func NewDispatcher(cfg Config, repo database.OutboxRepository, bus eventbus.EventBus, logger pkglogger.Logger, reg prometheus.Registerer, withTx func(ctx context.Context, fn database.TxFunc) error, cache AssignmentCacheRefresher) *Dispatcher {
 	if logger == nil {
@@ -146,12 +150,14 @@ func (d *Dispatcher) publishOne(ctx context.Context, evt *database.OutboxEvent) 
 		next := time.Now().Add(d.nextBackoff(evt.RetryCount + 1))
 		d.metrics.publishFailure.Inc()
 		d.metrics.retryScheduled.Inc()
+		orgutils.RecordOutboxDispatch(orgutils.StatusError, evt.EventType)
 		if evt.RetryCount+1 >= d.cfg.MaxRetry {
 			d.logger.Errorf("event retry threshold exceeded: id=%s retries=%d", evt.EventID, evt.RetryCount+1)
 		}
 		if incrErr := d.repo.IncrementRetryCount(ctx, evt.EventID, next); incrErr != nil {
 			return fmt.Errorf("increment retry: %w", incrErr)
 		}
+		orgutils.RecordOutboxDispatch(outboxResultRetry, evt.EventType)
 		evt.RetryCount++
 		evt.AvailableAt = next
 		return err
@@ -160,6 +166,7 @@ func (d *Dispatcher) publishOne(ctx context.Context, evt *database.OutboxEvent) 
 	if err := d.repo.MarkPublished(ctx, evt.EventID); err != nil {
 		return fmt.Errorf("mark published: %w", err)
 	}
+	orgutils.RecordOutboxDispatch(orgutils.StatusSuccess, evt.EventType)
 	evt.Published = true
 	if now := time.Now(); evt.PublishedAt == nil {
 		p := now

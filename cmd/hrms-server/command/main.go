@@ -142,6 +142,7 @@ func main() {
 				}
 				return nil
 			}(),
+			OutboxRepo: outboxRepo,
 		})
 		if err != nil {
 			commandLogger.Errorf("[FATAL] 初始化组织模块失败: %v", err)

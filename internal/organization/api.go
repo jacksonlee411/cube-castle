@@ -19,6 +19,7 @@ import (
 	servicepkg "cube-castle/internal/organization/service"
 	utilspkg "cube-castle/internal/organization/utils"
 	validatorpkg "cube-castle/internal/organization/validator"
+	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -29,6 +30,7 @@ type CommandModuleDeps struct {
 	Logger          pkglogger.Logger
 	CascadeMaxDepth int
 	SchedulerConfig *configpkg.SchedulerConfig
+	OutboxRepo      database.OutboxRepository
 }
 
 type OrganizationHandler = handlerpkg.OrganizationHandler
@@ -123,9 +125,9 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 		positionAssignmentRepo,
 		logger,
 	)
-	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger)
+	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger, deps.OutboxRepo)
 	jobCatalogValidator := validatorpkg.NewJobCatalogValidationService(jobCatalogRepo, logger)
-	jobCatalogService := servicepkg.NewJobCatalogService(jobCatalogRepo, jobCatalogValidator, auditLogger, logger)
+	jobCatalogService := servicepkg.NewJobCatalogService(jobCatalogRepo, jobCatalogValidator, auditLogger, logger, deps.OutboxRepo)
 	schedulerService := schedulerpkg.NewService(schedulerpkg.Dependencies{
 		DB:                     deps.DB,
 		Logger:                 logger,

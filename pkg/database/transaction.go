@@ -19,6 +19,14 @@ type txAdapter struct {
 	tx *sql.Tx
 }
 
+// WrapSQLTx 将 *sql.Tx 包装为通用的 Transaction 接口，便于与仓储共享事务。
+func WrapSQLTx(tx *sql.Tx) Transaction {
+	if tx == nil {
+		return nil
+	}
+	return &txAdapter{tx: tx}
+}
+
 func (a *txAdapter) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	return a.tx.ExecContext(ctx, query, args...)
 }

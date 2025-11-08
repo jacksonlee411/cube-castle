@@ -52,7 +52,7 @@
 | Position + Assignment 数据链路恢复 | P0 | ✅ 完成 | 230B/C/D + 230F 产物（`scripts/dev/seed-position-crud.sh`、`logs/230/position-env-check-20251108T095108.log`、`logs/230/position-module-readiness.md`、`logs/230/position-crud-playwright-20251108T102815.log`）确认 Job Catalog、Position CRUD、功能→测试映射均可用，已作为 219E 重新开启 Position 场景的事实来源 | `logs/230/job-catalog-check-20251108T093645.log`、`logs/230/position-module-readiness.md`、`logs/230/position-crud-playwright-20251108T102815.log`、`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` |
 | 性能与 REST 基准回填 | P1 | 待记录 | `scripts/perf/rest-benchmark.sh` Node 驱动日志已生成，需将 P50/P95/P99 摘要写入 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 并与旧基线对比 | `logs/219E/rest-benchmark-20251107-140709.log`、`docs/development-plans/219T-e2e-validation-report.md:21-33` |
 | 回退演练计划 | P1 | 待安排 | 参考 219D1/219D5 回退指引，补充演练脚本与记录，确保 219E 验收可复用 | `logs/219D4/FAULT-INJECTION-2025-11-06.md`、`docs/development-plans/219D5-scheduler-docs.md` |
-| Outbox/Dispatcher 指标验证 | P2 | 进行中 | 2025-11-08 已依据 Runbook 执行 O1-O6，生成 `outbox-dispatcher-events/metrics/sql/run/position-gql` 多份日志；当前 `outbox_events` 查询为空且 `outbox_dispatch_*` 指标均为 0，详见 Plan 231，需确认命令流程是否实际写入 Outbox 再决定是否追加专项修复 | `docs/development-plans/231-outbox-dispatcher-gap.md`、`logs/219E/outbox-dispatcher-plan.md`、`logs/219E/outbox-dispatcher-events-20251108T112139.log`、`logs/219E/outbox-dispatcher-metrics-20251108T112459.log`、`logs/219E/outbox-dispatcher-sql-20251108T112236.log`、`logs/219E/outbox-dispatcher-run-20251108T112541.log`、`logs/219E/position-gql-outbox-20251108T112820.log` |
+| Outbox/Dispatcher 指标验证 | P2 | ✅ 完成 | 2025-11-08 13:11 CST 复测 Runbook O1-O6：`./scripts/219C3-rest-self-test.sh` 触发 Position/Assignment/JobLevel 命令，`outbox_events` 成功写入并由 dispatcher 发布，Prometheus `outbox_dispatch_total{result=\"success\"}` 出现 `assignment.closed/assignment.filled/position.created/jobLevel.versionCreated`，GraphQL 读模型展现最新 `assignmentHistory`。Plan 231 已据此关闭。 | `docs/development-plans/231-outbox-dispatcher-gap.md`、`logs/219E/outbox-dispatcher-events-20251108T050948Z.log`、`logs/219E/outbox-dispatcher-sql-20251108T050948Z.log`、`logs/219E/outbox-dispatcher-metrics-20251108T051005Z.log`、`logs/219E/outbox-dispatcher-run-20251108T051024Z.log`、`logs/219E/position-gql-outbox-20251108T051126Z.log` |
 
 ### 2.5 Playwright 阻塞明细（2025-11-07）
 
@@ -63,7 +63,7 @@
 | position-tabs | `getByTestId('position-temporal-page')` 不可见，多个 tab 缺失 | 230D 复跑（`logs/230/position-crud-playwright-20251108T102815.log`）已证明 `position-temporal-page` 恢复，需要重新执行 `tests/e2e/position-tabs.spec.ts` 更新日志 | 前端（Position） + QA | `logs/219E/position-tabs-20251107-134806.log`、`logs/230/position-crud-playwright-20251108T102815.log` |
 | position-lifecycle | 标题 `职位管理（Stage 1 数据接入）` 未找到 | 缺失已由 Plan 230 修复，`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` 可见完整 CRUD；需重新跑 `tests/e2e/position-lifecycle.spec.ts` 获取最新证据 | 同上 | `logs/230/position-crud-playwright-20251108T102815.log` |
 | temporal-management-integration | 搜索输入 placeholder 不匹配/页面未渲染 | UI 文案变更 + 组织列表加载慢；需统一 locator 并等待 GraphQL 返回 | 前端（Temporal Dashboard） | `logs/219E/temporal-management-integration-20251107-135738.log` |
-| name-validation-parentheses | 断言仍期望 400，实际 REST 返回 200 | 服务端已允许括号命名；需更新契约与 Playwright 断言 | 前端 + API 契约 | `logs/219E/name-validation-parentheses-20251107-134801.log` |
+| name-validation-parentheses | ✅ 2025-11-08 复测通过（REST/GraphQL 均返回 200） | 已在 `tests/e2e/name-validation-parentheses.spec.ts` 中补齐 JWT + `X-Tenant-ID` 请求头，并使用 `BASE_URL=http://localhost:9090` 实测成功 | 前端 + API 契约 | `logs/219E/name-validation-parentheses-20251108T052717Z.log` |
 | optimization-verification-e2e | bundle size 4.59 MB 超出 4MB 阈值 | 构建体积目标需重新评估或优化 JS chunk | 前端 Perf | `frontend/test-results/optimization-verification-e2e-*/trace.zip`（日志同目录） |
 
 > 以上条目需在前端仓库与测试固化前同步更新 data-testid registry、契约与 Job Catalog 基础数据；完成后将新日志、trace/video 回填至 `logs/219E/` 与 `frontend/test-results/`。
@@ -136,4 +136,4 @@
 - Docker 权限问题已在 `docs/development-plans/06-integrated-teams-progress-log.md:3-7` 中验证解除，`make docker-up && make run-dev` 可正常启动 PostgreSQL/Redis/REST/GraphQL。
 - 仍需恢复 Playwright P0 场景与 Position/Assignment 数据链路，详见 `docs/development-plans/06-integrated-teams-progress-log.md:8-34`；未完成前 219E 无法进入最终验收。
 - 性能/REST 基准 JSON 摘要尚未公开到 `docs/reference/03-API-AND-TOOLS-GUIDE.md`，需以 `logs/219E/rest-benchmark-20251107-140709.log` 为事实来源回填（`docs/development-plans/219T-e2e-validation-report.md:21-33`）。
-- 回退演练与 Outbox/Dispatcher 指标验证尚未执行，需按照「重启前置条件」表安排脚本、责任人与日志归档。
+- 回退演练尚未执行，需按照「重启前置条件」表安排脚本、责任人与日志归档。

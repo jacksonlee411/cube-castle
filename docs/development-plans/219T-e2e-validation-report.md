@@ -38,7 +38,7 @@
 | --- | --- | --- |
 | `frontend/test-results/business-flow-e2e-业务流程端到端测试-完整CRUD业务流程测试-{chromium,firefox}` | `locator.getByTestId('temporal-delete-record-button')` 超时（`tests/e2e/business-flow-e2e.spec.ts:215-237`） | Temporal 页面已移除删除按钮或 data-testid，导致整条业务流程无法收敛 |
 | `frontend/test-results/job-catalog-secondary-navi-af1dd-...` | 点击“编辑当前版本”后标题 `编辑职类信息` 未出现（`tests/e2e/job-catalog-secondary-navigation.spec.ts:189-206`） | 职类编辑面板未渲染成功或 UI 文案变更，If-Match 验证无法覆盖 |
-| `frontend/test-results/name-validation-parentheses-...` | REST PUT 返回 200，但测试仍断言 400（`tests/e2e/name-validation-parentheses.spec.ts:36-47`） | 服务端已允许括号命名，测试需要更新契约与断言 |
+| `frontend/test-results/name-validation-parentheses-...` | ✅ 2025-11-08 复测成功：补齐 JWT/租户请求头后 REST/GraphQL 均返回 200（`tests/e2e/name-validation-parentheses.spec.ts`） | 契约已同步，最新日志 `logs/219E/name-validation-parentheses-20251108T052717Z.log` 可作为 219E Playwright 通过证据 |
 | `frontend/test-results/optimization-verification-e2e-...` | `expect(totalSize).toBeLessThan(4 * 1024 * 1024)` 失败，实测 4.59 MB（`tests/e2e/optimization-verification-e2e.spec.ts:130-179`） | Bundle 体积目标未达，需重新评估 Phase 3 减重计划或调阈值 |
 | `frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` | ✅ 2025-11-08 10:28（Plan 230 rerun，日志：`logs/230/position-crud-playwright-20251108T102815.log`） | Job Catalog 迁移 + `position-temporal-page` 组件恢复后，Position CRUD Create→Delete 全流程再次验证通过，最新 RequestId 详见日志 |
 | `frontend/test-results/app-loaded.png`/`organizations-page.png` 等基础功能产物 | 新增的 `tests/e2e/basic-functionality-test.spec.ts` 回归全部通过（`npx playwright test ... --workers=1 --reporter=line`） | 证明在真实 GraphQL 读模型下组织仪表板正常加载，满足 219T1 Playwright 验收 | 

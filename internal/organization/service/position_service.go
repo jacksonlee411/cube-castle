@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"cube-castle/internal/organization/audit"
+	"cube-castle/internal/organization/events"
 	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	validator "cube-castle/internal/organization/validator"
 	"cube-castle/internal/types"
+	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -41,9 +43,10 @@ type PositionService struct {
 	logger              pkglogger.Logger
 	positionValidator   validator.PositionValidationService
 	assignmentValidator validator.AssignmentValidationService
+	outboxRepo          database.OutboxRepository
 }
 
-func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, positionValidator validator.PositionValidationService, assignmentValidator validator.AssignmentValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *PositionService {
+func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, positionValidator validator.PositionValidationService, assignmentValidator validator.AssignmentValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, outboxRepo database.OutboxRepository) *PositionService {
 	if positionValidator == nil {
 		positionValidator = validator.NewStubValidationService()
 	}
@@ -60,6 +63,7 @@ func NewPositionService(positions *repository.PositionRepository, assignments *r
 		logger:              scopedLogger(baseLogger, "position", nil),
 		positionValidator:   positionValidator,
 		assignmentValidator: assignmentValidator,
+		outboxRepo:          outboxRepo,
 	}
 }
 
@@ -255,6 +259,10 @@ func (s *PositionService) CreatePosition(ctx context.Context, tenantID uuid.UUID
 		return nil, err
 	}
 
+	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionCreated, "CreatePosition", entity, nil); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -320,6 +328,10 @@ func (s *PositionService) ReplacePosition(ctx context.Context, tenantID uuid.UUI
 		"organizationCode": updateEntity.OrganizationCode,
 	}
 	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "UpdatePosition", updateEntity.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionUpdated, "ReplacePosition", updateEntity, nil); err != nil {
 		return nil, err
 	}
 
@@ -442,6 +454,10 @@ func (s *PositionService) CreatePositionVersion(ctx context.Context, tenantID uu
 		"effectiveDate": entity.EffectiveDate.Format("2006-01-02"),
 	}
 	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeCreate, "CreatePositionVersion", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionUpdated, "CreatePositionVersion", entity, nil); err != nil {
 		return nil, err
 	}
 
@@ -663,6 +679,12 @@ func (s *PositionService) createAssignment(ctx context.Context, tenantID uuid.UU
 		}
 	}
 
+	if err := s.publishAssignmentEvent(ctx, tx, tenantID, events.EventAssignmentFilled, operation, assignment, updated, map[string]interface{}{
+		"operationReason": strings.TrimSpace(req.OperationReason),
+	}); err != nil {
+		return nil, nil, nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, nil, nil, err
 	}
@@ -882,6 +904,12 @@ func (s *PositionService) UpdateAssignmentRecord(ctx context.Context, tenantID u
 		return nil, err
 	}
 
+	if err := s.publishAssignmentEvent(ctx, tx, tenantID, events.EventAssignmentUpdated, "UpdateAssignment", updatedAssignment, current, map[string]interface{}{
+		"operationReason": strings.TrimSpace(req.OperationReason),
+	}); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -904,7 +932,7 @@ func (s *PositionService) CloseAssignmentRecord(ctx context.Context, tenantID uu
 		Notes:           req.Notes,
 	}
 
-	positionResp, err := s.VacatePosition(ctx, tenantID, code, vacateReq, operator)
+	positionResp, err := s.vacatePosition(ctx, tenantID, code, vacateReq, operator, events.EventAssignmentClosed, "CloseAssignment")
 	if err != nil {
 		return nil, err
 	}
@@ -974,6 +1002,10 @@ func fillToAssignmentRequest(req *types.FillPositionRequest) *types.CreateAssign
 }
 
 func (s *PositionService) VacatePosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.VacatePositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+	return s.vacatePosition(ctx, tenantID, code, req, operator, events.EventAssignmentVacated, "VacatePosition")
+}
+
+func (s *PositionService) vacatePosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.VacatePositionRequest, operator types.OperatedByInfo, eventType, operation string) (*types.PositionResponse, error) {
 	if err := s.validatePosition("VacatePosition", func(v validator.PositionValidationService) *validator.ValidationResult {
 		return v.ValidateVacatePosition(ctx, tenantID, code, req)
 	}); err != nil {
@@ -1040,6 +1072,8 @@ func (s *PositionService) VacatePosition(ctx context.Context, tenantID uuid.UUID
 	if err := s.assignments.CloseAssignment(ctx, tx, tenantID, assignmentID, effectiveDate, notes); err != nil {
 		return nil, err
 	}
+	assignment.AssignmentStatus = "ENDED"
+	assignment.EndDate = sql.NullTime{Time: effectiveDate, Valid: true}
 
 	activeFTE, err := s.assignments.SumActiveFTE(ctx, tx, tenantID, current.Code)
 	if err != nil {
@@ -1082,7 +1116,13 @@ func (s *PositionService) VacatePosition(ctx context.Context, tenantID uuid.UUID
 		"assignmentEndDate":  effectiveDate.Format("2006-01-02"),
 		"assignmentPrevious": assignment.AssignmentStatus,
 	}
-	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "VacatePosition", updated.RecordID, after); err != nil {
+	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, operation, updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := s.publishAssignmentEvent(ctx, tx, tenantID, eventType, operation, assignment, updated, map[string]interface{}{
+		"operationReason": strings.TrimSpace(req.OperationReason),
+	}); err != nil {
 		return nil, err
 	}
 
@@ -1146,6 +1186,10 @@ func (s *PositionService) TransferPosition(ctx context.Context, tenantID uuid.UU
 		"organizationCode": updated.OrganizationCode,
 	}
 	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "TransferPosition", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionUpdated, "TransferPosition", updated, nil); err != nil {
 		return nil, err
 	}
 
@@ -1237,6 +1281,12 @@ func (s *PositionService) ApplyEvent(ctx context.Context, tenantID uuid.UUID, co
 		"status":    updated.Status,
 	}
 	if err := s.logPositionEvent(ctx, tx, operator, tenantID, audit.EventTypeUpdate, "ApplyPositionEvent", updated.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionUpdated, "ApplyPositionEvent", updated, map[string]interface{}{
+		"eventType": eventType,
+	}); err != nil {
 		return nil, err
 	}
 
@@ -1659,6 +1709,111 @@ func (s *PositionService) logPositionEvent(ctx context.Context, tx *sql.Tx, oper
 	}
 
 	return nil
+}
+
+func (s *PositionService) publishPositionEvent(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, eventType, operation string, position *types.Position, extra map[string]interface{}) error {
+	if position == nil {
+		return nil
+	}
+	attrs := map[string]interface{}{
+		"title":              position.Title,
+		"status":             position.Status,
+		"organizationCode":   position.OrganizationCode,
+		"jobFamilyGroupCode": position.JobFamilyGroupCode,
+		"jobFamilyCode":      position.JobFamilyCode,
+		"jobRoleCode":        position.JobRoleCode,
+		"jobLevelCode":       position.JobLevelCode,
+		"headcountCapacity":  position.HeadcountCapacity,
+		"headcountInUse":     position.HeadcountInUse,
+	}
+	if position.OrganizationName.Valid {
+		attrs["organizationName"] = strings.TrimSpace(position.OrganizationName.String)
+	}
+	attrs = mergeAttributes(attrs, extra)
+
+	eventCtx := s.newEventContext(ctx, tenantID, operation)
+	outboxEvent, err := events.NewPositionEvent(eventType, eventCtx, position.Code, attrs)
+	if err != nil {
+		return err
+	}
+	return s.saveOutboxEvent(ctx, tx, outboxEvent)
+}
+
+func (s *PositionService) publishAssignmentEvent(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, eventType, operation string, assignment *types.PositionAssignment, position *types.Position, extra map[string]interface{}) error {
+	if assignment == nil {
+		return nil
+	}
+	attrs := map[string]interface{}{
+		"assignmentStatus": assignment.AssignmentStatus,
+		"assignmentType":   assignment.AssignmentType,
+		"employeeId":       assignment.EmployeeID.String(),
+		"employeeName":     assignment.EmployeeName,
+		"fte":              assignment.FTE,
+		"autoRevert":       assignment.AutoRevert,
+		"effectiveDate":    assignment.EffectiveDate.Format("2006-01-02"),
+	}
+	if assignment.EmployeeNumber.Valid {
+		attrs["employeeNumber"] = strings.TrimSpace(assignment.EmployeeNumber.String)
+	}
+	if assignment.EndDate.Valid {
+		attrs["endDate"] = assignment.EndDate.Time.Format("2006-01-02")
+	}
+	if assignment.ActingUntil.Valid {
+		attrs["actingUntil"] = assignment.ActingUntil.Time.Format("2006-01-02")
+	}
+	if position != nil {
+		attrs["positionStatus"] = position.Status
+		attrs["headcountInUse"] = position.HeadcountInUse
+		attrs["headcountCapacity"] = position.HeadcountCapacity
+	}
+	attrs = mergeAttributes(attrs, extra)
+
+	eventCtx := s.newEventContext(ctx, tenantID, operation)
+	outboxEvent, err := events.NewAssignmentEvent(eventType, eventCtx, assignment.AssignmentID.String(), assignment.PositionCode, attrs)
+	if err != nil {
+		return err
+	}
+	return s.saveOutboxEvent(ctx, tx, outboxEvent)
+}
+
+func (s *PositionService) saveOutboxEvent(ctx context.Context, tx *sql.Tx, outboxEvent *database.OutboxEvent) error {
+	if s.outboxRepo == nil || outboxEvent == nil {
+		return nil
+	}
+	if tx == nil {
+		return errors.New("outbox requires active transaction")
+	}
+	if err := s.outboxRepo.Save(ctx, database.WrapSQLTx(tx), outboxEvent); err != nil {
+		s.logger.Errorf("[OUTBOX] failed to enqueue %s: %v", outboxEvent.EventType, err)
+		return err
+	}
+	return nil
+}
+
+func (s *PositionService) newEventContext(ctx context.Context, tenantID uuid.UUID, operation string) events.Context {
+	return events.Context{
+		TenantID:      tenantID,
+		RequestID:     orgmiddleware.GetRequestID(ctx),
+		CorrelationID: orgmiddleware.GetCorrelationID(ctx),
+		Operation:     operation,
+		Source:        events.DefaultSourceCommand,
+	}
+}
+
+func mergeAttributes(base map[string]interface{}, extra map[string]interface{}) map[string]interface{} {
+	if extra == nil || len(extra) == 0 {
+		return base
+	}
+	if base == nil {
+		base = map[string]interface{}{}
+	}
+	for k, v := range extra {
+		if k == "" || v == nil {
+			continue
+		}
+		base[k] = v
+	}
+	return base
 }
 
 func toNullString(value *string) sql.NullString {

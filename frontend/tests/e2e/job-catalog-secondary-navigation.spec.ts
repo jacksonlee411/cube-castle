@@ -183,11 +183,18 @@ test.describe.serial('职位管理二级导航（真实后端权限验证）', (
       .toBe(jobFamilyGroup.name);
 
     await page.goto(`/positions/catalog/family-groups/${jobFamilyGroup.code}`);
+    const loadingHeading = page.getByRole('heading', { name: '加载中...' });
+    if (await loadingHeading.isVisible().catch(() => false)) {
+      await loadingHeading.waitFor({ state: 'hidden', timeout: 15000 });
+    }
     await expect(page.getByRole('heading', { name: '职类详情' })).toBeVisible();
     await expect(page.getByText(jobFamilyGroup.name)).toBeVisible();
 
-  await page.getByRole('button', { name: '编辑当前版本' }).click();
-  await expect(page.getByText('编辑职类信息').first()).toBeVisible({ timeout: 15000 });
+  const editButton = page.getByRole('main').getByRole('button', { name: '编辑当前版本' });
+  await expect(editButton, '编辑按钮尚未可用').toBeEnabled();
+  await editButton.click();
+  const editHeading = page.getByRole('heading', { name: '编辑职类信息' });
+  await expect(editHeading, '编辑职类对话框未弹出').toBeVisible({ timeout: 15000 });
 
   const newName = `${jobFamilyGroup.name}-已更新`;
 

@@ -420,5 +420,6 @@
 - 事务性发件箱：
   - 迁移脚本：`database/migrations/20251107090000_create_outbox_events.sql`（Plan 217，含 `available_at` 列，索引 `idx_outbox_events_published_created_at`、`idx_outbox_events_available_at`）。
   - 共享库：`pkg/database/`（连接池管理、`WithTx`、`OutboxRepository` → `GetUnpublishedForUpdate`/`IncrementRetryCount(ctx, id, nextAvailable)`、Prometheus 指标 `RegisterMetrics`/`RecordConnectionStats`/`ObserveQueryDuration`）。
+  - 事件构建：`internal/organization/events/outbox.go` 定义统一 `Context` 结构与 Assignment/Position/JobLevel 事件 helper（payload 固定包含 `tenantId`、`requestId`、`correlationId`、`operation`、`source`、`occurredAt`、`aggregateId/Type`，并追加领域字段如 `positionCode`、`assignmentId`、`jobLevelCode`、`headcountInUse` 等）。
   - Dispatcher 观测：`cmd/hrms-server/command/internal/utils/metrics.go:RecordOutboxDispatch`。
   - 验证命令：`goose up` → `goose down`（记录日志于 `logs/plan217-goose.log`），`go test ./pkg/database -run TestOutboxMigrationUpDown`。

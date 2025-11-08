@@ -9,10 +9,12 @@ import (
 	"strings"
 
 	"cube-castle/internal/organization/audit"
+	"cube-castle/internal/organization/events"
 	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	validator "cube-castle/internal/organization/validator"
 	"cube-castle/internal/types"
+	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -32,14 +34,16 @@ type JobCatalogService struct {
 	validator   validator.JobCatalogValidationService
 	auditLogger *audit.AuditLogger
 	logger      pkglogger.Logger
+	outboxRepo  database.OutboxRepository
 }
 
-func NewJobCatalogService(repo *repository.JobCatalogRepository, validatorService validator.JobCatalogValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger) *JobCatalogService {
+func NewJobCatalogService(repo *repository.JobCatalogRepository, validatorService validator.JobCatalogValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, outboxRepo database.OutboxRepository) *JobCatalogService {
 	return &JobCatalogService{
 		repo:        repo,
 		validator:   validatorService,
 		auditLogger: auditLogger,
 		logger:      scopedLogger(baseLogger, "jobCatalog", nil),
+		outboxRepo:  outboxRepo,
 	}
 }
 
@@ -470,6 +474,10 @@ func (s *JobCatalogService) CreateJobLevel(ctx context.Context, tenantID uuid.UU
 		return nil, err
 	}
 
+	if err := s.publishJobLevelEvent(ctx, tx, tenantID, events.EventJobLevelVersionCreated, "CreateJobLevel", entity, nil); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -500,7 +508,12 @@ func (s *JobCatalogService) CreateJobLevelVersion(ctx context.Context, tenantID 
 
 	entity, err := s.repo.InsertJobLevelVersion(ctx, tx, tenantID, code, parentUUID, req)
 	if err != nil {
-		return nil, s.translateJobCatalogError(ctx, tenantID, code, "CreateJobLevelVersion", req, err)
+		lower := strings.ToLower(err.Error())
+		translated := s.translateJobCatalogError(ctx, tenantID, code, "CreateJobLevelVersion", req, err)
+		if strings.Contains(lower, "already exists for effective date") {
+			s.publishJobLevelConflictEvent(ctx, tenantID, code, "CreateJobLevelVersion", req, err.Error())
+		}
+		return nil, translated
 	}
 
 	after := map[string]interface{}{
@@ -509,6 +522,10 @@ func (s *JobCatalogService) CreateJobLevelVersion(ctx context.Context, tenantID 
 		"effectiveAt": entity.EffectiveDate.Format("2006-01-02"),
 	}
 	if err := s.logCatalogEvent(ctx, tx, tenantID, operator, audit.EventTypeCreate, "CreateJobLevelVersion", entity.RecordID, after); err != nil {
+		return nil, err
+	}
+
+	if err := s.publishJobLevelEvent(ctx, tx, tenantID, events.EventJobLevelVersionCreated, "CreateJobLevelVersion", entity, nil); err != nil {
 		return nil, err
 	}
 
@@ -810,4 +827,107 @@ func (s *JobCatalogService) logCatalogEvent(ctx context.Context, tx *sql.Tx, ten
 	}
 
 	return nil
+}
+
+func (s *JobCatalogService) publishJobLevelEvent(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, eventType, operation string, level *types.JobLevel, extra map[string]interface{}) error {
+	if s.outboxRepo == nil || level == nil {
+		return nil
+	}
+	attrs := map[string]interface{}{
+		"roleCode":      level.RoleCode,
+		"levelRank":     level.LevelRank,
+		"status":        level.Status,
+		"effectiveDate": level.EffectiveDate.Format("2006-01-02"),
+		"recordId":      level.RecordID.String(),
+	}
+	if level.ParentRecord != uuid.Nil {
+		attrs["parentRecordId"] = level.ParentRecord.String()
+	}
+	attrs = mergeJobCatalogAttributes(attrs, extra)
+
+	eventCtx := s.newEventContext(ctx, tenantID, operation)
+	outboxEvent, err := events.NewJobLevelEvent(eventType, eventCtx, level.Code, attrs)
+	if err != nil {
+		return err
+	}
+	return s.saveOutboxEvent(ctx, tx, outboxEvent)
+}
+
+func (s *JobCatalogService) publishJobLevelConflictEvent(ctx context.Context, tenantID uuid.UUID, code string, operation string, req *types.JobCatalogVersionRequest, message string) {
+	if s.outboxRepo == nil {
+		return
+	}
+	if req == nil {
+		return
+	}
+	attrs := map[string]interface{}{
+		"effectiveDate": strings.TrimSpace(req.EffectiveDate),
+	}
+	if req.Status != "" {
+		attrs["status"] = strings.TrimSpace(req.Status)
+	}
+	if strings.TrimSpace(req.Name) != "" {
+		attrs["name"] = strings.TrimSpace(req.Name)
+	}
+	if req.ParentRecordID != nil && strings.TrimSpace(*req.ParentRecordID) != "" {
+		attrs["parentRecordId"] = strings.TrimSpace(*req.ParentRecordID)
+	}
+	if strings.TrimSpace(message) != "" {
+		attrs["error"] = strings.TrimSpace(message)
+	}
+
+	eventCtx := s.newEventContext(ctx, tenantID, operation)
+	outboxEvent, err := events.NewJobLevelEvent(events.EventJobLevelVersionConflict, eventCtx, code, attrs)
+	if err != nil {
+		s.logger.Warnf("[OUTBOX] skip jobLevel conflict event: %v", err)
+		return
+	}
+	if err := s.saveOutboxEvent(ctx, nil, outboxEvent); err != nil {
+		s.logger.Warnf("[OUTBOX] failed to record jobLevel conflict event: %v", err)
+	}
+}
+
+func (s *JobCatalogService) saveOutboxEvent(ctx context.Context, tx *sql.Tx, evt *database.OutboxEvent) error {
+	if evt == nil || s.outboxRepo == nil {
+		return nil
+	}
+	if tx != nil {
+		return s.outboxRepo.Save(ctx, database.WrapSQLTx(tx), evt)
+	}
+	newTx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer newTx.Rollback()
+
+	if err := s.outboxRepo.Save(ctx, database.WrapSQLTx(newTx), evt); err != nil {
+		return err
+	}
+	return newTx.Commit()
+}
+
+func (s *JobCatalogService) newEventContext(ctx context.Context, tenantID uuid.UUID, operation string) events.Context {
+	return events.Context{
+		TenantID:      tenantID,
+		RequestID:     orgmiddleware.GetRequestID(ctx),
+		CorrelationID: orgmiddleware.GetCorrelationID(ctx),
+		Operation:     operation,
+		Source:        events.DefaultSourceCommand,
+	}
+}
+
+func mergeJobCatalogAttributes(base map[string]interface{}, extra map[string]interface{}) map[string]interface{} {
+	if extra == nil || len(extra) == 0 {
+		return base
+	}
+	if base == nil {
+		base = map[string]interface{}{}
+	}
+	for k, v := range extra {
+		if k == "" || v == nil {
+			continue
+		}
+		base[k] = v
+	}
+	return base
 }
