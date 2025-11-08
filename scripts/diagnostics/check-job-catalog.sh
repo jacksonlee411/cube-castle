@@ -1,15 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DATABASE_URL="${DATABASE_URL:-postgres://user:password@localhost:5432/cubecastle?sslmode=disable}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.dev.yml}"
+POSTGRES_SERVICE="${JOB_CATALOG_DB_SERVICE:-postgres}"
+POSTGRES_USER="${POSTGRES_USER:-user}"
+POSTGRES_DB="${POSTGRES_DB:-cubecastle}"
 JOB_CATALOG_CODES_RAW="${JOB_CATALOG_CODES:-OPER}"
+REQUIRED_LEVELS_RAW="${JOB_CATALOG_LEVELS:-S1,S2,S3}"
 
-if ! command -v psql >/dev/null 2>&1; then
-  echo "❌ 未找到 psql，请安装 PostgreSQL CLI 后重试 (check-job-catalog)"
-  exit 1
+if ! command -v docker >/dev/null 2>&1; then
+  echo "❌ 未检测到 docker，请先安装并启动 Docker Desktop (check-job-catalog)"
+  exit 2
 fi
 
+if ! docker compose -f "${COMPOSE_FILE}" ps >/dev/null 2>&1; then
+  echo "❌ docker compose -f ${COMPOSE_FILE} ps 执行失败，确认文件存在且已开启 WSL 集成"
+  exit 2
+fi
+
+container_id="$(docker compose -f "${COMPOSE_FILE}" ps -q "${POSTGRES_SERVICE}" 2>/dev/null || true)"
+if [[ -z "${container_id}" ]]; then
+  echo "❌ 未找到 ${POSTGRES_SERVICE} 容器，请先运行 make docker-up"
+  exit 2
+fi
+
+container_status="$(docker inspect -f '{{.State.Status}}' "${container_id}")"
+if [[ "${container_status}" != "running" ]]; then
+  health="$(docker inspect -f '{{.State.Health.Status}}' "${container_id}" 2>/dev/null || true)"
+  echo "❌ ${POSTGRES_SERVICE} 容器状态为 ${container_status}/${health:-unknown}，请运行 make docker-up && make run-dev"
+  exit 2
+fi
+
+psql_exec() {
+  docker compose -f "${COMPOSE_FILE}" exec -T "${POSTGRES_SERVICE}" \
+    psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" "$@"
+}
+
 IFS=',' read -r -a JOB_CODES <<< "${JOB_CATALOG_CODES_RAW}"
+IFS=',' read -r -a REQUIRED_LEVELS <<< "${REQUIRED_LEVELS_RAW}"
 
 missing_any=0
 
@@ -17,7 +45,7 @@ for code_raw in "${JOB_CODES[@]}"; do
   code="$(echo "${code_raw}" | xargs)"
   [[ -z "${code}" ]] && continue
 
-  group_status="$(psql "${DATABASE_URL}" -Atq -v grp="${code}" <<'SQL'
+  group_status="$(psql_exec -Atq -v grp="${code}" <<'SQL'
 SELECT status
 FROM public.job_family_groups
 WHERE family_group_code = :'grp'
@@ -38,7 +66,7 @@ SQL
     missing_any=1
   fi
 
-  role_count="$(psql "${DATABASE_URL}" -Atq -v grp="${code}" <<'SQL'
+  role_count="$(psql_exec -Atq -v grp="${code}" <<'SQL'
 SELECT COUNT(*)::int
 FROM public.job_roles
 WHERE role_code LIKE (:'grp' || '-%')
@@ -54,8 +82,10 @@ SQL
   fi
 
   declare -a levels_missing=()
-  for level_code in S1 S2 S3; do
-    level_status="$(psql "${DATABASE_URL}" -Atq -v grp="${code}" -v lvl="${level_code}" <<'SQL'
+  for level_raw in "${REQUIRED_LEVELS[@]}"; do
+    level_code="$(echo "${level_raw}" | xargs)"
+    [[ -z "${level_code}" ]] && continue
+    level_status="$(psql_exec -Atq -v grp="${code}" -v lvl="${level_code}" <<'SQL'
 SELECT status
 FROM public.job_levels
 WHERE role_code LIKE (:'grp' || '-%')
@@ -74,7 +104,7 @@ SQL
     echo "❌ JobRole ${code}-* 缺少职级: ${levels_missing[*]}"
     missing_any=1
   else
-    echo "✅ Job Catalog ${code} 检查通过 (roles=${role_count}, levels=S1/S2/S3)"
+    echo "✅ Job Catalog ${code} 检查通过 (roles=${role_count}, levels=${REQUIRED_LEVELS_RAW})"
   fi
 done
 

@@ -1740,10 +1740,6 @@ func (r *PostgreSQLRepository) populatePositionAssignments(ctx context.Context, 
 		}
 	}
 
-	if position.CurrentAssignmentField == nil {
-		position.CurrentAssignmentField = &position.AssignmentHistoryField[0]
-	}
-
 	return nil
 }
 

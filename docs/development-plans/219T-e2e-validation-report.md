@@ -40,7 +40,7 @@
 | `frontend/test-results/job-catalog-secondary-navi-af1dd-...` | 点击“编辑当前版本”后标题 `编辑职类信息` 未出现（`tests/e2e/job-catalog-secondary-navigation.spec.ts:189-206`） | 职类编辑面板未渲染成功或 UI 文案变更，If-Match 验证无法覆盖 |
 | `frontend/test-results/name-validation-parentheses-...` | REST PUT 返回 200，但测试仍断言 400（`tests/e2e/name-validation-parentheses.spec.ts:36-47`） | 服务端已允许括号命名，测试需要更新契约与断言 |
 | `frontend/test-results/optimization-verification-e2e-...` | `expect(totalSize).toBeLessThan(4 * 1024 * 1024)` 失败，实测 4.59 MB（`tests/e2e/optimization-verification-e2e.spec.ts:130-179`） | Bundle 体积目标未达，需重新评估 Phase 3 减重计划或调阈值 |
-| `frontend/test-results/position-crud-full-lifecyc-99d5ffcf-chromium/` | ✅ 2025-11-07 14:54（Plan 230 rerun，日志：`logs/230/position-crud-playwright-20251107T065443Z.log`） | Job Catalog 迁移 + `position-detail-card`/`position-tab-*` data-testid 修复后，Position CRUD Create→Delete 全流程恢复；已作为 230 验收证据 |
+| `frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` | ✅ 2025-11-08 10:28（Plan 230 rerun，日志：`logs/230/position-crud-playwright-20251108T102815.log`） | Job Catalog 迁移 + `position-temporal-page` 组件恢复后，Position CRUD Create→Delete 全流程再次验证通过，最新 RequestId 详见日志 |
 | `frontend/test-results/app-loaded.png`/`organizations-page.png` 等基础功能产物 | 新增的 `tests/e2e/basic-functionality-test.spec.ts` 回归全部通过（`npx playwright test ... --workers=1 --reporter=line`） | 证明在真实 GraphQL 读模型下组织仪表板正常加载，满足 219T1 Playwright 验收 | 
 | `frontend/test-results/position-crud-full-lifecycle-...` | 错误流程期待 400 实际为 422（`tests/e2e/position-crud-full-lifecycle.spec.ts:392-417`） | 表单校验与 API 行为不一致，需同步文档与测试 |
 | `frontend/test-results/position-lifecycle-...` | `getByRole('heading', { name: '职位管理（Stage 1 数据接入）' })` 超时（`tests/e2e/position-lifecycle.spec.ts:61-76`） | 页面标题/结构更新，导致生命周期视图验证无法执行 |
@@ -57,7 +57,7 @@
 
 > 解析脚本参见 `python3` 解析输出（命令：`python3 - <<'PY' ...`），详细错误可在对应 `trace.zip`→`test.trace` 中查看。
 
-> 本轮 219T1 回归使用 `npx playwright test tests/e2e/position-crud-full-lifecycle.spec.ts --project=chromium --workers=1`，产物位于 `frontend/test-results/position-crud-full-lifecyc-99d5ffcf-chromium/` 与 `logs/230/position-crud-playwright-20251107T065443Z.log`。
+> 本轮 219T1 回归使用 `npx playwright test tests/e2e/position-crud-full-lifecycle.spec.ts --project=chromium --workers=1`，最新产物位于 `frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/`，日志 `logs/230/position-crud-playwright-20251108T102815.log`。
 
 ### 共性问题
 1. **UI 选择器漂移**：大量 `getByTestId`/`getByRole` 超时，需统一 UI data-testid 改动清单并同步测试。
@@ -83,6 +83,13 @@
    - Mock/真实区分：对读模型依赖强的场景仅在必要时使用 stub；读模型已恢复后默认连真实环境。
    - 参考数据：在 Playwright 测试前检查 Job Catalog/Organization 基础数据，必要时通过迁移或临时脚本补种。
 4. **报告回填**：在上述修复完成后，再次执行 `npm run test:e2e` 并将差异追加到本文件或 `219E-e2e-validation.md`。
+
+## 7. 219E 重启协调（2025-11-07 15:10 CST）
+
+- `docs/development-plans/219E-e2e-validation.md` 已新增“重启前置条件”表（行 21-105），列出 Playwright/Position 数据/性能/回退/指标的 P0~P2 任务及日志来源。
+- Plan 06 纪要新增 Section 6（`docs/development-plans/06-integrated-teams-progress-log.md:54-62`），将上述前置条件指派到具体 Owner，并与本报告保持单一事实来源。
+- `docs/reference/03-API-AND-TOOLS-GUIDE.md` 的“219E 端到端 & 性能脚本”下追加了最新 REST 基线表格（`logs/219E/perf-rest-20251107-123548.log`、`logs/219E/perf-rest-20251107-140709.log`），供 SRE/QA 复用。
+- 当前重启 gating 事项：Playwright P0 场景修复、Position/Assignment 数据恢复、性能与回退证据回填、Outbox/Dispatcher 指标验证。完成后需在 Plan 06 Section 6 勾选并回写本报告。
 
 ---
 

@@ -61,11 +61,6 @@ export default defineConfig({
     video: 'retain-on-failure',
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
-    // 为所有请求注入认证头（后端强制要求）
-    extraHTTPHeaders: {
-      'Authorization': process.env.PW_JWT ? `Bearer ${process.env.PW_JWT}` : '',
-      'X-Tenant-ID': process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9',
-    },
   },
 
   projects: [

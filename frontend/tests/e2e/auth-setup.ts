@@ -19,7 +19,6 @@ import { TOKEN_STORAGE_KEY } from '@/shared/api/auth';
 import { ensurePwJwt, getPwJwt, isJwtNearlyExpired } from './utils/authToken';
 
 export async function setupAuth(page: Page): Promise<void> {
-  // 从环境变量获取 JWT token
   const tenantId = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
 
   let token = getPwJwt();
@@ -31,33 +30,23 @@ export async function setupAuth(page: Page): Promise<void> {
     throw new Error('无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev');
   }
 
-  await page.context().setExtraHTTPHeaders({
-    Authorization: `Bearer ${token}`,
-    'X-Tenant-ID': tenantId,
-  });
-
-  // 先导航到基础URL建立上下文,然后注入localStorage
-  // 这确保localStorage在正确的域下设置
+  // 先导航到基础 URL 以便 localStorage 写入正确域
   await page.goto('/');
 
-  // 直接在页面上下文中设置 localStorage
+  // 仅通过 localStorage 注入认证信息，让前端统一客户端负责附加 Authorization / X-Tenant-ID
   await page.evaluate(({ tokenStorageKey, legacyKey, authData }) => {
-    // 设置 OAuth token（前端 authManager 期望的键名和格式）
-    // 参考：frontend/src/shared/api/auth.ts - localStorage.getItem(TOKEN_STORAGE_KEY)
     localStorage.setItem(tokenStorageKey, JSON.stringify({
       accessToken: authData.token,
       tokenType: 'Bearer',
-      expiresIn: 86400, // 24小时有效期（秒）
-      issuedAt: Date.now() // 当前时间戳
+      expiresIn: 86400,
+      issuedAt: Date.now(),
     }));
     localStorage.removeItem(legacyKey);
-
-    // 设置租户信息（如果前端需要）
     localStorage.setItem('tenant_id', authData.tenantId);
   }, {
     tokenStorageKey: TOKEN_STORAGE_KEY,
     legacyKey: ['cube', 'castle', 'oauth', 'token'].join('_'),
-    authData: { token, tenantId }
+    authData: { token, tenantId },
   });
 
   console.log('✅ 认证设置已注入 localStorage');

@@ -304,6 +304,15 @@ cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
 - `scripts/perf/rest-benchmark.sh`：REST 接口 P99/P95 采集（默认 Node 驱动，支持 `REQUEST_COUNT`、`THROTTLE_DELAY_MS`、`IDEMPOTENCY_PREFIX` 等配置并输出 JSON Summary；如需兼容旧版可设置 `LOAD_DRIVER=hey`），日志输出 `logs/219E/perf-rest-*.log`。
 - 若 Docker 权限受限，可参考 `logs/219E/BLOCKERS-*.md` 了解处理步骤。
 
+#### 最新 REST 基线（2025-11-07）
+
+| 场景 | 参数 | 结果 | 结论 |
+| --- | --- | --- | --- |
+| 高并发基线 | `REQUEST_COUNT=200`、`CONCURRENCY=25`、`THROTTLE_DELAY_MS=0` | `p50=14.62 ms`、`p95=228.55 ms`、`p99=246.35 ms`、`201=69`、`429=131`、成功率 34.5% | 大量请求撞上命令服务 100/min 限流，主要用于压测上限；日志：`logs/219E/perf-rest-20251107-123548.log`（同 `perf-rest-baseline.log`） |
+| 节流调优 | `REQUEST_COUNT=40`、`CONCURRENCY=4`、`THROTTLE_DELAY_MS=30ms`、Node 驱动 | `p50=10.69 ms`、`p95=46.51 ms`、`p99=54.66 ms`、`201=22`、`429=18`、成功率 55% | 每次请求自动生成唯一 `code` + `X-Idempotency-Key`，在当前限流配置下可复现稳定 P99；日志：`logs/219E/perf-rest-20251107-140709.log` |
+
+> 调整建议：若需观察纯延迟，可降低 `CONCURRENCY`、增加 `THROTTLE_DELAY_MS` 或提前申请更高限流阈值；若需重放固定 payload，需同步更新 `IDEMPOTENCY_PREFIX` 以避免 409/429。
+
 ### 审计一致性门禁（新增）
 - 目标：保障“空UPDATE=0 / recordId载荷一致 / 目标触发器不存在（022生效）”。
 - 脚本：
