@@ -60,7 +60,7 @@ const FormActions: React.FC<FormActionsProps> = ({
     return (
       <Box marginTop="xl" paddingTop="l" borderTop={`1px solid ${colors.soap300}`}>
         <Flex gap="s" justifyContent="space-between">
-          <Box>
+          <Box data-testid="temporal-delete-record-button-wrapper">
             {showOrganizationDelete ? (
               <TertiaryButton
                 onClick={onDeleteOrganizationClick}

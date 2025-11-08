@@ -9,6 +9,7 @@ import {
   VACANT_POSITIONS_QUERY_NAME,
   POSITION_HEADCOUNT_STATS_QUERY_NAME,
 } from './utils/positionFixtures';
+import { waitForGraphQL, waitForPageReady } from './utils/waitPatterns';
 
 async function stubGraphQL(page: Page) {
   await page.route('**/graphql', async route => {
@@ -67,6 +68,8 @@ test.describe('职位生命周期视图', () => {
     await setupAuth(page);
 
     await page.goto('/positions');
+    await waitForPageReady(page);
+    await waitForGraphQL(page, POSITIONS_QUERY_NAME);
 
     await expect(page.getByRole('heading', { name: '职位管理（Stage 1 数据接入）' })).toBeVisible();
     await expect(page.getByTestId(`position-row-${POSITION_FIXTURE_CODE}`)).toBeVisible();

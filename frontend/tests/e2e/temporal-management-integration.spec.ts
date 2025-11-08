@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 import { TOKEN_STORAGE_KEY } from '@/shared/api/auth';
 import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 import { ensurePwJwt, getPwJwt } from './utils/authToken';
+import { waitForGraphQL, waitForPageReady } from './utils/waitPatterns';
 
 const MOCK_MODE_ENV = process.env.E2E_MOCK_MODE === 'true';
 let USE_MOCK_MODE = MOCK_MODE_ENV;
@@ -191,6 +192,7 @@ async function navigateToTemporalPage(page: Page) {
 
   const targetUrl = `${FRONTEND_URL}/organizations/${TEST_ORG_CODE}/temporal`;
   await page.goto(targetUrl, { waitUntil: 'networkidle' });
+  await waitForPageReady(page);
 
   if (page.url().includes('/login')) {
     test.skip(true, '访问组织详情页面需要 PW_JWT 令牌');
@@ -223,7 +225,8 @@ async function commandRequestStatus(
 }
 
 async function waitForOrganizationSearchInput(page: Page) {
-  await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 20000 });
+  await waitForPageReady(page);
+  await expect(page.getByTestId('organization-dashboard-wrapper')).toBeVisible({ timeout: 20000 });
   const locator = page.locator(ORGANIZATION_SEARCH_INPUT_SELECTOR).first();
   await expect(locator).toBeVisible({ timeout: 15000 });
   return locator;
@@ -273,16 +276,10 @@ test.describe('时态管理系统集成测试', () => {
     test('组织列表可导航至组织详情页面', async ({ page }) => {
       await ensureAuthentication(page);
 
-      await page.goto(`${FRONTEND_URL}/organizations`, { waitUntil: 'networkidle' });
-      const searchInput = await waitForOrganizationSearchInput(page);
-      await searchInput.fill(TEST_ORG_CODE);
-      await Promise.race([
-        page.waitForResponse(
-          response => response.url().includes('/graphql') && response.request().method() === 'POST',
-          { timeout: 2000 },
-        ),
-        page.waitForTimeout(500),
-      ]);
+    await page.goto(`${FRONTEND_URL}/organizations`, { waitUntil: 'networkidle' });
+    const searchInput = await waitForOrganizationSearchInput(page);
+    await searchInput.fill(TEST_ORG_CODE);
+    await Promise.race([waitForGraphQL(page, /organizations/i), page.waitForTimeout(500)]);
       await expect(page.getByTestId(`table-row-${TEST_ORG_CODE}`)).toBeVisible({ timeout: 20000 });
 
       const manageButton = page.getByTestId(`temporal-manage-button-${TEST_ORG_CODE}`);

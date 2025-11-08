@@ -2,6 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { TOKEN_STORAGE_KEY } from '@/shared/api/auth';
 import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 import { updateCachedJwt } from './utils/authToken';
+import { waitForGraphQL, waitForPageReady } from './utils/waitPatterns';
 
 const TENANT_ID = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
 const COMMAND_BASE_URL = E2E_CONFIG.COMMAND_API_URL.replace(/\/$/, '').replace(/\/api\/v1$/, '');
@@ -183,6 +184,8 @@ test.describe.serial('职位管理二级导航（真实后端权限验证）', (
       .toBe(jobFamilyGroup.name);
 
     await page.goto(`/positions/catalog/family-groups/${jobFamilyGroup.code}`);
+    await waitForPageReady(page);
+    await waitForGraphQL(page, /jobFamilyGroup/i).catch(() => {});
     const loadingHeading = page.getByRole('heading', { name: '加载中...' });
     if (await loadingHeading.isVisible().catch(() => false)) {
       await loadingHeading.waitFor({ state: 'hidden', timeout: 15000 });
@@ -193,8 +196,8 @@ test.describe.serial('职位管理二级导航（真实后端权限验证）', (
   const editButton = page.getByRole('main').getByRole('button', { name: '编辑当前版本' });
   await expect(editButton, '编辑按钮尚未可用').toBeEnabled();
   await editButton.click();
-  const editHeading = page.getByRole('heading', { name: '编辑职类信息' });
-  await expect(editHeading, '编辑职类对话框未弹出').toBeVisible({ timeout: 15000 });
+  const editDialog = page.getByTestId('catalog-version-form-dialog');
+  await expect(editDialog, '编辑职类对话框未弹出').toBeVisible({ timeout: 15000 });
 
   const newName = `${jobFamilyGroup.name}-已更新`;
 

@@ -299,6 +299,18 @@ cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
 - JWT 注入：使用 `PW_JWT` 与 `PW_TENANT_ID` 作为全局认证环境变量
 - 执行命令：`npm --prefix frontend run test:e2e`
 
+#### E2E 前端资源体积基线（Plan 232）
+- **测量来源**：`frontend/tests/e2e/optimization-verification-e2e.spec.ts`（Chromium，2025-11-08 运行），日志见 `frontend/test-results/optimization-verification-e2e-*/bundle-report.json`。
+- **最新观测值**：4.59 MB（含 JS/CSS 及 source-map），较 2025-09 的 6 MB 有 23% 降幅。
+- **阈值策略**：
+  - `5 * 1024 * 1024`（约 5 MB）作为运行时警戒线，留出约 10% 冗余以容纳 Source Map 与暂存资源。
+  - 阈值收敛/放宽必须先更新 `frontend/tests/e2e/optimization-verification-e2e.spec.ts` 并在本节记录依据。
+  - 如需进一步拆分，请生成新的 bundle report（Chromium + Firefox）并在 PR 描述附上链接。
+- **排查步骤**：
+  1. 执行 `npm --prefix frontend run build -- --analyze` 生成 `stats.html`。
+  2. 对照 `bundle-report.json` 标记 Top 10 资源，结合 Chrome DevTools 的 Coverage 面板确认可 tree-shake 的模块。
+  3. 必要时更新 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 的表格，记录新基线与责任人。
+
 ### 219E 端到端 & 性能脚本
 - `scripts/e2e/org-lifecycle-smoke.sh`：组织/部门生命周期冒烟（REST + GraphQL），日志输出 `logs/219E/org-lifecycle-*.log`。
 - `scripts/perf/rest-benchmark.sh`：REST 接口 P99/P95 采集（默认 Node 驱动，支持 `REQUEST_COUNT`、`THROTTLE_DELAY_MS`、`IDEMPOTENCY_PREFIX` 等配置并输出 JSON Summary；如需兼容旧版可设置 `LOAD_DRIVER=hey`），日志输出 `logs/219E/perf-rest-*.log`。

@@ -81,7 +81,10 @@ export const JobFamilyGroupDetail: React.FC = () => {
           <Heading size="large">职类详情</Heading>
           {hasPermission('job-catalog:update') && (
             <Flex gap={space.s}>
-              <SecondaryButton onClick={() => setEditFormOpen(true)} disabled={updateMutation.isPending}>
+              <SecondaryButton
+                onClick={() => setEditFormOpen(true)}
+                disabled={updateMutation.isPending}
+              >
                 编辑当前版本
               </SecondaryButton>
               <PrimaryButton onClick={() => setVersionFormOpen(true)} disabled={versionMutation.isPending}>
@@ -172,6 +175,7 @@ export const JobFamilyGroupDetail: React.FC = () => {
           initialStatus={group.status}
           initialEffectiveDate={group.effectiveDate}
           submitLabel="保存更新"
+          cardTestId="catalog-version-form-dialog"
         />
 
         <CatalogVersionForm
@@ -182,6 +186,7 @@ export const JobFamilyGroupDetail: React.FC = () => {
           isSubmitting={versionMutation.isPending}
           initialName={group.name}
           initialDescription={group.description}
+          cardTestId="catalog-create-version-form-dialog"
         />
       </SimpleStack>
     </Box>

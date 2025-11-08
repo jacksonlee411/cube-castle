@@ -15,6 +15,7 @@ export interface CatalogFormProps {
   cancelLabel?: string
   errorMessage?: string | null
   width?: number
+  cardTestId?: string
   children: React.ReactNode
 }
 
@@ -28,6 +29,7 @@ export const CatalogForm: React.FC<CatalogFormProps> = ({
   cancelLabel = '取消',
   errorMessage,
   width = 520,
+  cardTestId,
   children,
 }) => {
   const modalModel = useModalModel({ initialVisibility: isOpen ? 'visible' : 'hidden' })
@@ -36,17 +38,17 @@ export const CatalogForm: React.FC<CatalogFormProps> = ({
   useEffect(() => {
     if (isOpen) {
       modalModel.events.show()
-    } else {
+    } else if (!shouldNotifyCloseRef.current) {
       modalModel.events.hide()
     }
   }, [isOpen, modalModel.events])
 
   useEffect(() => {
-    if (modalModel.state.visibility === 'hidden' && (shouldNotifyCloseRef.current || isOpen)) {
+    if (modalModel.state.visibility === 'hidden' && shouldNotifyCloseRef.current) {
       shouldNotifyCloseRef.current = false
       onClose()
     }
-  }, [isOpen, modalModel.state.visibility, onClose])
+  }, [modalModel.state.visibility, onClose])
 
   if (modalModel.state.visibility !== 'visible') {
     return null
@@ -65,7 +67,7 @@ export const CatalogForm: React.FC<CatalogFormProps> = ({
   return (
     <Modal model={modalModel}>
       <Modal.Overlay>
-        <Modal.Card width={width} paddingBottom="s">
+        <Modal.Card width={width} paddingBottom="s" data-testid={cardTestId}>
           <Modal.CloseIcon aria-label="关闭" onClick={handleClose} />
           <Modal.Heading>{title}</Modal.Heading>
           <form onSubmit={handleSubmit}>

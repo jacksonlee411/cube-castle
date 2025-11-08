@@ -216,91 +216,93 @@ export const OrganizationDashboard: React.FC = () => {
   const hasOrganizations = totalCount > 0;
 
   return (
-    <Box data-testid="organization-dashboard">
-      {/* 时态导航栏 - 暂时禁用以修复无限循环错误 */}
-      {/* <Box marginBottom="l">
-        <TemporalNavbar
-          onModeChange={handleTemporalModeChange}
-          showAdvancedSettings={true}
-        />
-      </Box> */}
+    <Box data-testid="organization-dashboard-wrapper">
+      <Box data-testid="organization-dashboard">
+        {/* 时态导航栏 - 暂时禁用以修复无限循环错误 */}
+        {/* <Box marginBottom="l">
+          <TemporalNavbar
+            onModeChange={handleTemporalModeChange}
+            showAdvancedSettings={true}
+          />
+        </Box> */}
 
-      <DashboardHeader 
-        onCreateClick={handleCreateOrganization}
-        // onCreatePlannedClick={handleCreatePlanned} // ❌ 已移除
-        temporalMode={temporalMode}
-        isHistorical={isHistorical}
-      />
-      
-      
-      <OrganizationFilters 
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
-      
-      <Card>
-        <Card.Heading>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>
-              组织单元列表
-              {isHistorical && (
-                <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="s">
-                  - 历史时点: {/* temporalContext?.asOfDate ? new Date(temporalContext.asOfDate).toLocaleDateString('zh-CN') : */ '历史模式'}
+        <DashboardHeader 
+          onCreateClick={handleCreateOrganization}
+          // onCreatePlannedClick={handleCreatePlanned} // ❌ 已移除
+          temporalMode={temporalMode}
+          isHistorical={isHistorical}
+        />
+        
+        
+        <OrganizationFilters 
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
+        
+        <Card>
+          <Card.Heading>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>
+                组织单元列表
+                {isHistorical && (
+                  <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="s">
+                    - 历史时点: {/* temporalContext?.asOfDate ? new Date(temporalContext.asOfDate).toLocaleDateString('zh-CN') : */ '历史模式'}
+                  </Text>
+                )}
+                {isPlanning && (
+                  <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="s">
+                    - 规划视图
+                  </Text>
+                )}
+              </span>
+              {(isFetching || temporalLoading.organizations) && (
+                <Text typeLevel="subtext.small" color="hint">
+                  {temporalLoading.organizations ? '加载时态数据中...' : '加载中...'}
                 </Text>
               )}
-              {isPlanning && (
-                <Text as="span" typeLevel="subtext.small" color="hint" marginLeft="s">
-                  - 规划视图
+            </div>
+          </Card.Heading>
+          <Card.Body>
+            {error ? (
+              <Box padding="l" style={{ textAlign: 'center' }}>
+                <Text color="cinnamon600" fontWeight="medium" marginBottom="m">
+                  ⚠️ 数据加载失败
                 </Text>
-              )}
-            </span>
-            {(isFetching || temporalLoading.organizations) && (
-              <Text typeLevel="subtext.small" color="hint">
-                {temporalLoading.organizations ? '加载时态数据中...' : '加载中...'}
-              </Text>
+                <Text color="frenchVanilla500" marginBottom="m">
+                  {typeof error === 'string' ? error : (error as Error)?.message || '未知错误'}
+                </Text>
+                <SecondaryButton 
+                  onClick={() => window.location.reload()}
+                >
+                  重新加载
+                </SecondaryButton>
+              </Box>
+            ) : hasOrganizations ? (
+              <>
+                <OrganizationTable
+                  organizations={paginatedOrganizations}
+                  onTemporalManage={handleTemporalManage} // 组织详情导航
+                  temporalMode={temporalMode}
+                  isHistorical={isHistorical}
+                />
+                
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalCount={totalCount}
+                  pageSize={pageSize}
+                  onPageChange={handlePageChange}
+                  disabled={isFetching || temporalLoading.organizations}
+                />
+              </>
+            ) : (
+              <EmptyState 
+                isFiltered={isFiltered}
+                onClearFilters={resetFilters}
+              />
             )}
-          </div>
-        </Card.Heading>
-        <Card.Body>
-          {error ? (
-            <Box padding="l" style={{ textAlign: 'center' }}>
-              <Text color="cinnamon600" fontWeight="medium" marginBottom="m">
-                ⚠️ 数据加载失败
-              </Text>
-              <Text color="frenchVanilla500" marginBottom="m">
-                {typeof error === 'string' ? error : (error as Error)?.message || '未知错误'}
-              </Text>
-              <SecondaryButton 
-                onClick={() => window.location.reload()}
-              >
-                重新加载
-              </SecondaryButton>
-            </Box>
-          ) : hasOrganizations ? (
-            <>
-              <OrganizationTable
-                organizations={paginatedOrganizations}
-                onTemporalManage={handleTemporalManage} // 组织详情导航
-                temporalMode={temporalMode}
-                isHistorical={isHistorical}
-              />
-              
-              <PaginationControls
-                currentPage={currentPage}
-                totalCount={totalCount}
-                pageSize={pageSize}
-                onPageChange={handlePageChange}
-                disabled={isFetching || temporalLoading.organizations}
-              />
-            </>
-          ) : (
-            <EmptyState 
-              isFiltered={isFiltered}
-              onClearFilters={resetFilters}
-            />
-          )}
-        </Card.Body>
-      </Card>
+          </Card.Body>
+        </Card>
+      </Box>
     </Box>
   );
 };

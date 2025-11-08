@@ -7,6 +7,7 @@ import {
   VACANT_POSITIONS_QUERY_NAME,
   POSITION_HEADCOUNT_STATS_QUERY_NAME,
 } from './utils/positionFixtures';
+import { waitForGraphQL, waitForPageReady } from './utils/waitPatterns';
 
 const FAKE_RS256_JWT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJwbGF5d3JpZ2h0LXRlc3QifQ.signature';
 const POSITION_CODE = POSITION_FIXTURE_CODE;
@@ -93,8 +94,12 @@ test.describe('职位详情多页签体验', () => {
     await stubGraphQL(page);
 
     await page.goto(POSITION_DETAIL_PATH);
+    await waitForPageReady(page);
+    await waitForGraphQL(page, POSITION_DETAIL_QUERY_NAME);
 
-    await expect(page.getByTestId('position-temporal-page')).toBeVisible();
+    const temporalWrapper = page.getByTestId('position-temporal-page-wrapper');
+    await expect(temporalWrapper).toBeVisible();
+    await expect(temporalWrapper.getByTestId('position-temporal-page')).toBeVisible();
     await expect(page.getByText(`职位详情：${POSITION_CODE}`)).toBeVisible();
 
     // 概览页签默认展示
@@ -130,8 +135,10 @@ test.describe('职位详情多页签体验', () => {
     await seedAuth(page);
     await stubGraphQL(page);
     await page.goto(POSITION_DETAIL_PATH);
+    await waitForPageReady(page);
+    await waitForGraphQL(page, POSITION_DETAIL_QUERY_NAME);
 
-    await expect(page.getByTestId('position-temporal-page')).toBeVisible();
+    await expect(page.getByTestId('position-temporal-page-wrapper')).toBeVisible();
     await expect(page.getByTestId('position-mock-banner')).toBeVisible();
     await expect(page.getByTestId('position-edit-button')).toBeHidden();
     await expect(page.getByTestId('position-version-button')).toBeHidden();

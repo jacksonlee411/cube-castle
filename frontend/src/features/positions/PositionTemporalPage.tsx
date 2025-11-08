@@ -295,89 +295,90 @@ export const PositionTemporalPage: React.FC = () => {
   }
 
   return (
-    <Box padding={space.l} data-testid="position-temporal-page">
-      <SimpleStack gap={space.l}>
-        {isMockMode && (
-          <Card
-            padding={space.m}
-            backgroundColor={colors.cinnamon100}
-            data-testid="position-mock-banner"
-            style={{ borderLeft: `4px solid ${colors.cinnamon600}` }}
-          >
-            <SimpleStack gap={space.xs}>
-              <Text color={colors.cinnamon600} fontWeight="bold">
-                ⚠️ 当前处于 Mock 模式，仅支持浏览职位数据。
-              </Text>
-              <Text fontSize="12px" color={colors.cinnamon600}>
-                编辑与版本操作已禁用。请设置 `VITE_POSITIONS_MOCK_MODE=false` 并确保后端服务正常后再进行写入操作。
-              </Text>
-            </SimpleStack>
-          </Card>
-        )}
-
-        <Flex justifyContent="space-between" alignItems="center">
-          <Flex alignItems="center" gap={space.s}>
-            <SecondaryButton onClick={handleBack} size="small">
-              ← 返回职位列表
-            </SecondaryButton>
-            <Heading size="small">{isCreateMode ? '创建新职位' : `职位详情：${code}`}</Heading>
-          </Flex>
-          <Flex alignItems="center" gap={space.s}>
-            <Text fontSize="12px" color={colors.licorice400}>
-              数据来源：{isMockMode ? '演示环境（只读）' : 'GraphQL / REST 实时数据'}
-            </Text>
-            {canMutate && (
-              <>
-                <PrimaryButton
-                  size="small"
-                  variant={activeForm === 'edit' ? 'inverse' : undefined}
-                  onClick={() => setActiveForm(prev => (prev === 'edit' ? 'none' : 'edit'))}
-                  data-testid="position-edit-button"
-                >
-                  {activeForm === 'edit' ? '收起编辑' : '编辑职位'}
-                </PrimaryButton>
-                <SecondaryButton
-                  size="small"
-                  variant={activeForm === 'version' ? 'inverse' : undefined}
-                  onClick={() => setActiveForm(prev => (prev === 'version' ? 'none' : 'version'))}
-                  data-testid="position-version-button"
-                >
-                  {activeForm === 'version' ? '收起版本表单' : '新增时态版本'}
-                </SecondaryButton>
-              </>
-            )}
-          </Flex>
-        </Flex>
-
-        {detailQuery.isError && (
-          <Card padding={space.l} backgroundColor={colors.frenchVanilla100} data-testid="position-detail-error">
-            <SimpleStack gap={space.xs}>
-              <Text color={colors.cinnamon500}>加载职位详情失败，请稍后重试。</Text>
-              {detailErrorMessage && (
-                <Text fontSize="12px" color={colors.licorice400}>
-                  错误详情：{detailErrorMessage}
+    <Box data-testid="position-temporal-page-wrapper">
+      <Box padding={space.l} data-testid="position-temporal-page">
+        <SimpleStack gap={space.l}>
+          {isMockMode && (
+            <Card
+              padding={space.m}
+              backgroundColor={colors.cinnamon100}
+              data-testid="position-mock-banner"
+              style={{ borderLeft: `4px solid ${colors.cinnamon600}` }}
+            >
+              <SimpleStack gap={space.xs}>
+                <Text color={colors.cinnamon600} fontWeight="bold">
+                  ⚠️ 当前处于 Mock 模式，仅支持浏览职位数据。
                 </Text>
-              )}
-              <Flex>
-                <PrimaryButton
-                  size="small"
-                  onClick={() => detailQuery.refetch()}
-                  disabled={detailQuery.isFetching}
-                >
-                  {detailQuery.isFetching ? '正在重新加载...' : '重新加载'}
-                </PrimaryButton>
-              </Flex>
-            </SimpleStack>
-          </Card>
-        )}
+                <Text fontSize="12px" color={colors.cinnamon600}>
+                  编辑与版本操作已禁用。请设置 `VITE_POSITIONS_MOCK_MODE=false` 并确保后端服务正常后再进行写入操作。
+                </Text>
+              </SimpleStack>
+            </Card>
+          )}
 
-        {!detailQuery.isError && (
-          <Flex
-            gap={space.l}
-            alignItems="flex-start"
-            flexWrap={isCompactLayout ? 'wrap' : 'nowrap'}
-            data-testid="position-detail-layout"
-          >
+          <Flex justifyContent="space-between" alignItems="center">
+            <Flex alignItems="center" gap={space.s}>
+              <SecondaryButton onClick={handleBack} size="small">
+                ← 返回职位列表
+              </SecondaryButton>
+              <Heading size="small">{isCreateMode ? '创建新职位' : `职位详情：${code}`}</Heading>
+            </Flex>
+            <Flex alignItems="center" gap={space.s}>
+              <Text fontSize="12px" color={colors.licorice400}>
+                数据来源：{isMockMode ? '演示环境（只读）' : 'GraphQL / REST 实时数据'}
+              </Text>
+              {canMutate && (
+                <>
+                  <PrimaryButton
+                    size="small"
+                    variant={activeForm === 'edit' ? 'inverse' : undefined}
+                    onClick={() => setActiveForm(prev => (prev === 'edit' ? 'none' : 'edit'))}
+                    data-testid="position-edit-button"
+                  >
+                    {activeForm === 'edit' ? '收起编辑' : '编辑职位'}
+                  </PrimaryButton>
+                  <SecondaryButton
+                    size="small"
+                    variant={activeForm === 'version' ? 'inverse' : undefined}
+                    onClick={() => setActiveForm(prev => (prev === 'version' ? 'none' : 'version'))}
+                    data-testid="position-version-button"
+                  >
+                    {activeForm === 'version' ? '收起版本表单' : '新增时态版本'}
+                  </SecondaryButton>
+                </>
+              )}
+            </Flex>
+          </Flex>
+
+          {detailQuery.isError && (
+            <Card padding={space.l} backgroundColor={colors.frenchVanilla100} data-testid="position-detail-error">
+              <SimpleStack gap={space.xs}>
+                <Text color={colors.cinnamon500}>加载职位详情失败，请稍后重试。</Text>
+                {detailErrorMessage && (
+                  <Text fontSize="12px" color={colors.licorice400}>
+                    错误详情：{detailErrorMessage}
+                  </Text>
+                )}
+                <Flex>
+                  <PrimaryButton
+                    size="small"
+                    onClick={() => detailQuery.refetch()}
+                    disabled={detailQuery.isFetching}
+                  >
+                    {detailQuery.isFetching ? '正在重新加载...' : '重新加载'}
+                  </PrimaryButton>
+                </Flex>
+              </SimpleStack>
+            </Card>
+          )}
+
+          {!detailQuery.isError && (
+            <Flex
+              gap={space.l}
+              alignItems="flex-start"
+              flexWrap={isCompactLayout ? 'wrap' : 'nowrap'}
+              data-testid="position-detail-layout"
+            >
             {versionEntries.length > 0 && (
               <Box
                 flex={isCompactLayout ? '1 1 100%' : '0 0 320px'}
@@ -471,8 +472,9 @@ export const PositionTemporalPage: React.FC = () => {
               </SimpleStack>
             </Box>
           </Flex>
-        )}
-      </SimpleStack>
+          )}
+        </SimpleStack>
+      </Box>
     </Box>
   )
 }

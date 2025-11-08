@@ -1,21 +1,12 @@
 import { test, expect } from '@playwright/test';
-import type { Page, Response } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { setupAuth } from './auth-setup';
 import { E2E_CONFIG } from './config/test-environment';
 import { ensurePwJwt, getPwJwt } from './utils/authToken';
+import { waitForGraphQL, waitForNavigation, waitForPageReady } from './utils/waitPatterns';
 
 const ROOT_PARENT_CODE = '1000000';
-const waitForOrganizationsResponse = (page: Page) =>
-  page.waitForResponse(
-    (response: Response) => {
-      if (!response.url().includes('/graphql')) return false;
-      const request = response.request();
-      if (request.method() !== 'POST') return false;
-      const postData = request.postData();
-      return Boolean(postData && postData.includes('organizations'));
-    },
-    { timeout: 15000 },
-  );
+const waitForOrganizationsResponse = (page: Page) => waitForGraphQL(page, /organizations/i);
 
 const getSearchInput = (page: Page) =>
   page
@@ -25,12 +16,28 @@ const getSearchInput = (page: Page) =>
     .first();
 
 const waitForTemporalDetailReady = async (page: Page): Promise<void> => {
+  await waitForPageReady(page);
   await expect(page.getByTestId('temporal-master-detail-view')).toBeVisible({
     timeout: 20000,
   });
   await expect(page.getByTestId('temporal-timeline')).toBeVisible({
     timeout: 20000,
   });
+};
+
+const expectDeleteButtonVisible = async (page: Page) => {
+  const wrapper = page.getByTestId('temporal-delete-record-button-wrapper');
+  await expect(wrapper).toBeVisible({ timeout: 20000 });
+
+  const recordButton = wrapper.getByTestId('temporal-delete-record-button');
+  if (await recordButton.count()) {
+    await expect(recordButton).toBeVisible({ timeout: 20000 });
+    return recordButton;
+  }
+
+  const organizationButton = wrapper.getByTestId('temporal-delete-organization-button');
+  await expect(organizationButton).toBeVisible({ timeout: 20000 });
+  return organizationButton;
 };
 
 const filterOrganizationsByName = async (
@@ -77,10 +84,13 @@ test.describe('业务流程端到端测试', () => {
     await setupAuth(page);
 
     // 导航到组织管理页面 (使用相对路径,Playwright会自动添加baseURL)
+    const initialOrganizationsResponse = waitForOrganizationsResponse(page);
     await page.goto('/organizations');
+    await waitForPageReady(page);
+    await initialOrganizationsResponse;
 
     // 等待页面加载完成 - 使用 data-testid 而不是文本，避免加载状态干扰
-    await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('organization-dashboard-wrapper')).toBeVisible({ timeout: 15000 });
 
     // 等待加载状态消失，确保数据已加载
     await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {
@@ -100,7 +110,7 @@ test.describe('业务流程端到端测试', () => {
 
     await test.step('创建新组织', async () => {
       await page.getByTestId('create-organization-button').click();
-      await page.waitForURL('**/organizations/new');
+      await waitForNavigation(page, '**/organizations/new');
       await expect(page.getByTestId('organization-form')).toBeVisible();
 
       const today = new Date().toISOString().slice(0, 10);
@@ -122,7 +132,7 @@ test.describe('业务流程端到端测试', () => {
 
       await page.getByTestId('form-submit-button').click();
 
-      await page.waitForURL(/\/organizations\/[0-9]{7}\/temporal$/);
+      await waitForNavigation(page, /\/organizations\/[0-9]{7}\/temporal$/);
       await expect(page.getByTestId('organization-form')).toBeVisible();
     });
 
@@ -134,7 +144,7 @@ test.describe('业务流程端到端测试', () => {
     const organizationCode = createdCodeMatch[1];
 
     await page.getByTestId('back-to-organization-list').click();
-    await page.waitForURL('**/organizations');
+    await waitForNavigation(page, '**/organizations');
     await Promise.race([
       waitForOrganizationsResponse(page).catch(() => {}),
       page.waitForTimeout(3000),
@@ -193,7 +203,7 @@ test.describe('业务流程端到端测试', () => {
 
     await test.step('更新组织名称', async () => {
       await page.goto(`/organizations/${organizationCode}/temporal`);
-      await page.waitForURL(`**/organizations/${organizationCode}/temporal`);
+      await waitForPageReady(page);
       await expect(page.getByTestId('organization-form')).toBeVisible();
       await waitForTemporalDetailReady(page);
 
@@ -207,6 +217,7 @@ test.describe('业务流程端到端测试', () => {
       await expect(nameInput).toBeDisabled();
 
       await page.goto('/organizations');
+      await waitForPageReady(page);
       await Promise.race([
         waitForOrganizationsResponse(page).catch(() => {}),
         page.waitForTimeout(3000),
@@ -224,18 +235,18 @@ test.describe('业务流程端到端测试', () => {
 
     await test.step('删除组织并在列表中消失', async () => {
       await page.goto(`/organizations/${organizationCode}/temporal`);
-      await page.waitForURL(`**/organizations/${organizationCode}/temporal`);
+      await waitForPageReady(page);
       await expect(page.getByTestId('organization-form')).toBeVisible();
 
       await waitForTemporalDetailReady(page);
-      const deleteButton = page.getByTestId('temporal-delete-record-button');
-      await expect(deleteButton).toBeVisible({ timeout: 20000 });
+      const deleteButton = await expectDeleteButtonVisible(page);
       await deleteButton.click();
       const confirmButton = page.getByTestId('deactivate-confirm-button');
       await expect(confirmButton).toBeVisible();
       await confirmButton.click();
 
       await page.goto('/organizations');
+      await waitForPageReady(page);
       await Promise.race([
         waitForOrganizationsResponse(page).catch(() => {}),
         page.waitForTimeout(3000),
@@ -345,6 +356,7 @@ test.describe('业务流程端到端测试', () => {
 
     // 1. 测试页面加载性能
     await page.goto('/organizations');
+    await waitForPageReady(page);
     await expect(page.getByText('组织架构管理')).toBeVisible();
 
     const loadTime = Date.now() - startTime;
@@ -392,6 +404,7 @@ test.describe('业务流程端到端测试', () => {
     });
 
     await page.reload();
+    await waitForPageReady(page);
     
     // 验证错误状态显示
     await expect(
