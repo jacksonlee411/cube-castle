@@ -47,12 +47,17 @@
 
 ## 5. 验收标准
 
-1. `logs/230/position-module-readiness.md` 包含功能 × 测试映射表，且引用所有相关日志/测试路径。  
-2. 至少一次在测试代码或计划文档中更新了 TODO / 责任人，确保未交付功能不再导致 E2E 误报。  
-3. 219E 文档引用 readiness 表链接，并在 2.6 章节中说明现状。  
+1. `logs/230/position-module-readiness.md` 包含功能 × 测试映射表，且引用所有相关日志/测试路径。
+2. 至少一次在测试代码或计划文档中更新了 TODO / 责任人，确保未交付功能不再导致 E2E 误报。
+3. 219E 文档引用 readiness 表链接，并在 2.6 章节中说明现状。
 4. 若发现新的缺口，已登记在 06-progress log 或对应计划；230F 本身不关闭缺陷，但必须完成记录与责任转交。
 
 ---
 
 > 唯一事实来源：`docs/api/openapi.yaml`、`frontend/src/features/positions/*`、`tests/e2e/position-crud-full-lifecycle.spec.ts`、`logs/230/position-crud-playwright-*.log`。  
-> 更新时间：2025-11-07。
+> 更新时间：2025-11-08。
+
+## 6. 完成记录（2025-11-08 11:35 CST）
+- `logs/230/position-module-readiness.md` 更新为 2025-11-08 版本，列出契约/实现/前端组件/测试的对应关系，并在变更记录部分强调与 Plan 06、219E 的引用关系。
+- `frontend/tests/e2e/position-crud-full-lifecycle.spec.ts:360-382` 新增 `// TODO-TEMPORARY(230F)` 注记，提醒补充 `POST /api/v1/positions/{code}/versions` 覆盖，满足验收标准第 2 条。
+- `docs/development-plans/219E-e2e-validation.md` §2.4 与 §2.6、`docs/development-plans/06-integrated-teams-progress-log.md` §7 均指向 readiness 表，确保 Position + Assignment 断言依赖唯一事实来源。

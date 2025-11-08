@@ -49,10 +49,10 @@
 | 任务 | 优先级 | 状态 | 说明与负责人 | 证据 |
 |------|--------|------|--------------|------|
 | Playwright P0 场景修复（business-flow、job-catalog、position-tabs、temporal-management） | P0 | 进行中 | 前端团队补齐缺失 data-testid、UI 文案与 GraphQL 数据，Chromium/Firefox 均需通过 | `logs/219E/business-flow-e2e-*.log`、`logs/219E/job-catalog-secondary-navigation-*.log`、`docs/development-plans/06-integrated-teams-progress-log.md:8-34` |
-| Position + Assignment 数据链路恢复 | P0 | ✅ 完成 | 230B/C/D 产物（`scripts/dev/seed-position-crud.sh`、`logs/230/position-env-check-20251108T095108.log`、`logs/230/position-crud-playwright-20251108T102815.log`）确认 Job Catalog + Position CRUD 数据可用，已作为 219E 重新开启 Position 场景的事实来源 | `logs/230/job-catalog-check-20251108T093645.log`、`logs/230/position-crud-playwright-20251108T102815.log`、`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` |
+| Position + Assignment 数据链路恢复 | P0 | ✅ 完成 | 230B/C/D + 230F 产物（`scripts/dev/seed-position-crud.sh`、`logs/230/position-env-check-20251108T095108.log`、`logs/230/position-module-readiness.md`、`logs/230/position-crud-playwright-20251108T102815.log`）确认 Job Catalog、Position CRUD、功能→测试映射均可用，已作为 219E 重新开启 Position 场景的事实来源 | `logs/230/job-catalog-check-20251108T093645.log`、`logs/230/position-module-readiness.md`、`logs/230/position-crud-playwright-20251108T102815.log`、`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` |
 | 性能与 REST 基准回填 | P1 | 待记录 | `scripts/perf/rest-benchmark.sh` Node 驱动日志已生成，需将 P50/P95/P99 摘要写入 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 并与旧基线对比 | `logs/219E/rest-benchmark-20251107-140709.log`、`docs/development-plans/219T-e2e-validation-report.md:21-33` |
 | 回退演练计划 | P1 | 待安排 | 参考 219D1/219D5 回退指引，补充演练脚本与记录，确保 219E 验收可复用 | `logs/219D4/FAULT-INJECTION-2025-11-06.md`、`docs/development-plans/219D5-scheduler-docs.md` |
-| Outbox/Dispatcher 指标验证 | P2 | 计划中 | 与 219C3 owner 对齐 PromQL 脚本，记录指标、日志并归档至 `logs/219E/` | `scripts/dev/219C3-rest-self-test.sh` 说明 |
+| Outbox/Dispatcher 指标验证 | P2 | 进行中 | 2025-11-08 已依据 Runbook 执行 O1-O6，生成 `outbox-dispatcher-events/metrics/sql/run/position-gql` 多份日志；当前 `outbox_events` 查询为空且 `outbox_dispatch_*` 指标均为 0，详见 Plan 231，需确认命令流程是否实际写入 Outbox 再决定是否追加专项修复 | `docs/development-plans/231-outbox-dispatcher-gap.md`、`logs/219E/outbox-dispatcher-plan.md`、`logs/219E/outbox-dispatcher-events-20251108T112139.log`、`logs/219E/outbox-dispatcher-metrics-20251108T112459.log`、`logs/219E/outbox-dispatcher-sql-20251108T112236.log`、`logs/219E/outbox-dispatcher-run-20251108T112541.log`、`logs/219E/position-gql-outbox-20251108T112820.log` |
 
 ### 2.5 Playwright 阻塞明细（2025-11-07）
 
@@ -70,13 +70,23 @@
 
 ### 2.6 Position + Assignment 数据恢复计划
 
-1. **唯一事实来源**：`docs/development-plans/230-position-crud-job-catalog-restoration.md`、`database/migrations/20251107123000_230_job_catalog_oper_fix.sql`、`logs/230/position-crud-playwright-20251107T065443Z.log`。
-2. **诊断脚本**：运行 `scripts/diagnostics/check-job-catalog.sh`，确认 `OPER` Job Family/Job Function/Job Catalog 三层与职位模板齐全；输出归档 `logs/230/job-catalog-check-*.log`，供 219E 引用。
+1. **唯一事实来源**：`docs/development-plans/230-position-crud-job-catalog-restoration.md`、`database/migrations/20251107123000_230_job_catalog_oper_fix.sql`、`logs/230/position-module-readiness.md`、`logs/230/position-crud-playwright-20251108T102815.log`。
+2. **诊断脚本**：运行 `scripts/diagnostics/check-job-catalog.sh`，确认 `OPER` Job Family/Job Function/Job Catalog 三层均为 `ACTIVE`；输出归档 `logs/230/job-catalog-check-20251108T093645.log`，为 `make status` 的 Job Catalog 子检查提供证据。
 3. **数据补种**：
    - 若缺失，执行 `make db-migrate-all` 以应用最新迁移；必要时按 Plan 230 说明回灌 `backup_other_organizations_full.sql`。
-   - 使用 `scripts/dev/seed-position-crud.sh`（Plan 230 产出）或 REST API 手动创建职位 + Assignment，确保 Temporal timeline 与 Query 读模型感知变更；请求/响应写入 `logs/219E/position-seed-*.log`。
-4. **查询链路验证**：通过 `graphql-client --endpoint=http://localhost:8090/graphql --query-file tests/e2e/fixtures/positions.graphql` 校验 `positions`、`assignmentHistory` 返回新数据，并记录 `logs/219E/position-gql-*.log`。
-5. **验收标准**：`tests/e2e/position-lifecycle.spec.ts`、`tests/e2e/organization-validator/*.spec.ts` 在 Chromium/Firefox 真实环境下通过；对应 `frontend/test-results/position-lifecycle-*`、`logs/219E/position-lifecycle-*.log` 需附截图/trace。完成后在 Plan 06 Section 6 与本文件 2.4 表格中将该任务标记为完成。
+   - 使用 `scripts/dev/seed-position-crud.sh`（Plan 230 产出）或 REST API 手动创建职位 + Assignment，确保 Temporal timeline 与 Query 读模型感知变更；请求/响应写入 `logs/230/position-seed-20251108T094735.log` 与 `logs/219E/position-seed-*.log`。
+4. **查询链路验证**：通过 `graphql-client --endpoint=http://localhost:8090/graphql --query-file tests/e2e/fixtures/positions.graphql` 校验 `positions`、`assignmentHistory` 返回新数据，并记录 `logs/219E/position-gql-*.log`；必要时参考 readiness 表中的功能→测试映射，确认断言范围。
+5. **验收标准**：`tests/e2e/position-crud-full-lifecycle.spec.ts`（Chromium：`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/`）提供最新 RequestId；当 `tests/e2e/position-lifecycle.spec.ts`、`tests/e2e/organization-validator/*.spec.ts` 在 Chromium/Firefox 真实环境下全绿时，将日志/trace 回填至 `logs/219E/position-lifecycle-*.log` 并在 Plan 06 Section 6 及本文件 2.4 表格勾选完成。
+6. **功能对齐**：参考 `logs/230/position-module-readiness.md` 的功能 × 测试映射，若 Playwright 覆盖未交付功能（如 Transfer、Assignments 子路由），需在测试中添加 `// TODO-TEMPORARY(230F)` 注记并登记在 Plan 06 待办，确保断言与实现保持一致。
+
+#### 2.6.1 Outbox / Dispatcher 取证记录（2025-11-08 11:21 CST，详见 Plan 231）
+
+- **触发脚本**：`./scripts/219C3-rest-self-test.sh BASE_URL_COMMAND=http://localhost:9090 REQUEST_PREFIX=outbox-e2e-20251108T112139`。日志摘录存于 `logs/219E/outbox-dispatcher-events-20251108T112139.log`，对应 requestId：`d27a0d72-9506-450d-8b4d-b3d621bc610d`（headcount exceeded）、`7b52d81d-d97a-4f25-91d3-0123f94303fe`（assignment close）、`fbcf86a1-6178-4b04-8be9-cbb25b13b393`、`15cc7502-9aa4-468e-b11c-7fcdd23f66dc`、`e12520fd-4e63-4ffe-be6c-507022ffacda` 等。
+- **数据库取证**：`psql` 输出 `logs/219E/outbox-dispatcher-sql-20251108T112236.log`，当前 `outbox_events` 查询为空（即便命令执行成功，未观察到 pending 或已发布记录），需与 217/230 负责人确认写入链路是否尚未启用。
+- **Prometheus 指标**：`logs/219E/outbox-dispatcher-metrics-20251108T112459.log` 显示 `outbox_dispatch_{success,failure,retry}_total=0`、`outbox_dispatch_active=0`；意味着 dispatcher 已启动但未记录派发事件。
+- **服务日志**：`logs/219E/outbox-dispatcher-run-20251108T112541.log` 捕获 `outbox dispatcher started`、`✅ Outbox dispatcher 已启动`，确认组件已随命令服务启动。
+- **GraphQL 验证**：`logs/219E/position-gql-outbox-20251108T112820.log` 查询 `position(code: \"P1000032\")`，显示 `assignmentHistory` 已进入 `ENDED` 状态、`currentAssignment=null`，验证 Query 读模型能看到自测脚本造成的变更。
+- **结论**：Runbook O1-O6 已完成，但由于 Outbox 表与 dispatcher 指标均为 0，怀疑命令链路尚未真正写入 outbox；需在下一轮执行前明确是否存在漏接或配置问题（或由其他计划负责的后续建设），否则 219E 的 Outbox 验收无法关闭。
 
 ---
 

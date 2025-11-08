@@ -47,6 +47,13 @@
 | `frontend/test-results/position-tabs-...` | `getByTestId('position-temporal-page')` 不可见（`tests/e2e/position-tabs.spec.ts:92-122`） | 即使 GraphQL 使用 stub，仍无法渲染；怀疑路由或 data-testid 已调整 |
 | `frontend/test-results/temporal-management-integr-74cf1-...` | `getByPlaceholder('搜索组织名称...')` fill 超时（`tests/e2e/temporal-management-integration.spec.ts:264-279`） | 组织列表在 E2E 模式下未完成加载或 placeholder 文案改变；UI 导航 scenario 全部失效 |
 
+### Position CRUD 恢复详情（Plan 230 · 2025-11-08）
+
+- **命令**：`npm run test:e2e -- --project=chromium tests/e2e/position-crud-full-lifecycle.spec.ts`（Playwright 1 worker，Junit 输出随日志归档）。  
+- **时间**：2025-11-08 10:28 CST（`logs/230/position-crud-playwright-20251108T102815.log`，测试会话 `E2E-1762568897544-ipsfwyp9g`，对应产物 `frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/`）。  
+- **请求追踪**：Create `requestId=741b50a6-ff74-494a-9208-473fc8a64754`、Update `b185d534-0e0f-43e7-82e8-e332a81b0c74`、Fill `ef51d7d4-1144-4462-877f-93a4f56d6972`、Vacate `5f420a06-7ed0-4f1a-9b43-601cad7ad20a`、Delete `d0fc3afb-7202-4220-8bb0-93fbf6acfe2b`。  
+- **结论**：Plan 230 迁移 + `scripts/diagnostics/check-job-catalog.sh` 自检通过后，Position CRUD 生命周期可在真实 REST/GraphQL 端到端执行，满足 219T/219E 对 Position + Assignment 数据链路的再验收条件。
+
 **脚本整改（219T3 · 2025-11-17）**
 
 - `business-flow-e2e` 删除阶段新增 `temporal-timeline` 可视化等待，杜绝二次加载导致的按钮缺失。

@@ -313,6 +313,43 @@ cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
 
 > 调整建议：若需观察纯延迟，可降低 `CONCURRENCY`、增加 `THROTTLE_DELAY_MS` 或提前申请更高限流阈值；若需重放固定 payload，需同步更新 `IDEMPOTENCY_PREFIX` 以避免 409/429。
 
+#### JSON 摘录（`logs/219E/rest-benchmark-20251107-140709.log`）
+
+```json
+{
+  "mode": "node-driver",
+  "requested": 40,
+  "completed": 40,
+  "successCount": 22,
+  "successRate": 0.55,
+  "statusCounts": {
+    "201": 22,
+    "429": 18
+  },
+  "latency": {
+    "p50": 10.69,
+    "p95": 46.51,
+    "p99": 54.66,
+    "min": 7.3,
+    "max": 54.66
+  },
+  "failures": [
+    {
+      "status": 429,
+      "requestId": "db4c5085-e34a-4684-8c30-4d57c572023e",
+      "meta": {
+        "rateLimit": {
+          "limit": 100,
+          "remaining": 0,
+          "resetTime": "2025-11-07T06:08:09Z",
+          "retryAfter": "1m0s"
+        }
+      }
+    }
+  ]
+}
+```
+
 ### 审计一致性门禁（新增）
 - 目标：保障“空UPDATE=0 / recordId载荷一致 / 目标触发器不存在（022生效）”。
 - 脚本：

@@ -49,12 +49,17 @@
 
 ## 5. 验收标准
 
-1. 三份文档（219T、219E、06-log）均更新，并通过 Review；其中 Position CRUD 相关条目引用新的日志与测试目录。  
-2. 文档中不再出现 “阻塞: Job Catalog 缺失” 等旧描述，取而代之的是“已由 Plan 230 完成”。  
-3. 每处引用都遵循唯一事实来源：日志路径或测试目录必须存在且与 230D 输出一致。  
+1. 三份文档（219T、219E、06-log）均更新，并通过 Review；其中 Position CRUD 相关条目引用新的日志与测试目录。
+2. 文档中不再出现 “阻塞: Job Catalog 缺失” 等旧描述，取而代之的是“已由 Plan 230 完成”。
+3. 每处引用都遵循唯一事实来源：日志路径或测试目录必须存在且与 230D 输出一致。
 4. 若有未完成事项（例如 Firefox 仍失败），需在文档中注明后续计划，不得留空。
 
 ---
 
 > 唯一事实来源：`logs/230/position-crud-playwright-*.log`、`frontend/test-results/position-crud-full-lifecyc-<commit>-chromium/`。  
-> 更新时间：2025-11-07。
+> 更新时间：2025-11-08。
+
+## 6. 完成记录（2025-11-08 11:35 CST）
+- `docs/development-plans/219T-e2e-validation-report.md` 新增 “Position CRUD 恢复详情（Plan 230 · 2025-11-08）” 小节，列出命令、时间戳、RequestId 与 `frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` 产物。
+- `docs/development-plans/219E-e2e-validation.md` 在 §2.4 与 §2.6 引用 Plan 230 输出（`logs/230/job-catalog-check-20251108T093645.log`、`logs/230/position-module-readiness.md`、`logs/230/position-crud-playwright-20251108T102815.log`），并将 Position + Assignment 数据链路标记为 ✅。
+- `docs/development-plans/06-integrated-teams-progress-log.md` §7 记录 230E/230F 收尾，确保 Plan 06 与 Plan 230 之间保持单一事实来源。

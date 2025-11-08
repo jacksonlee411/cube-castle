@@ -16,11 +16,11 @@
 基于 organization 模块的重构经验，编写完整的模块开发模板文档，为后续的 workforce、contract 等新模块提供标准开发指南。
 
 **关键交付物**:
-- ✅ 模块结构模板说明
-- ✅ sqlc 使用规范
-- ✅ 事务性发件箱（Outbox）集成规范
-- ✅ Docker 集成测试规范
-- ✅ 样本模块代码（参考 organization）
+- ✅ 模块结构模板说明（需与 `internal/organization/README.md` 描述保持一致）
+- ✅ 数据访问层规范（基于当前 `database/sql` 仓储实现，并附 sqlc 评估标准）
+- ✅ 事务性发件箱（Outbox）集成规范（参考 `pkg/database/outbox.go` 与相关迁移）
+- ✅ Docker 集成测试规范（复用 `Makefile` 已有目标）
+- ✅ 样本模块代码（参考 organization 模块最新实现）
 
 ### 1.2 为什么需要模块模板
 
@@ -35,6 +35,18 @@
 - **交付周期**: 1 天
 - **负责人**: 架构师 + 文档支持
 - **前置依赖**: Plan 219（organization 重构完成）
+
+### 1.4 约束与引用
+
+为避免“第二事实来源”，本计划编写与验收必须显式引用以下权威材料：
+
+- `CLAUDE.md` & `AGENTS.md`：总体原则、Docker 强制、开发前必检。
+- `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`：开发命令、契约同步流程。
+- `docs/api/openapi.yaml` 与 `docs/api/schema.graphql`：命令/查询契约。
+- `internal/organization/README.md`：当前模块结构与聚合边界。
+- `Makefile`：标准命令名称（如 `make docker-up`, `make run-dev`, `make test`, `make db-migrate-all`）。
+
+文档各章节在描述结构、流程或命令时需引用以上文件，交付前需执行一致性校验（逐项对照引用是否仍成立）。
 
 ---
 
@@ -71,40 +83,43 @@ docs/development-guides/
 #### 第二章：模块结构模板
 
 **内容**:
-```
-内部结构说明
-- domain/：域模型和事件
-- repository/：数据访问层
-- service/：业务逻辑层
-- handler/：REST 处理器
-- resolver/：GraphQL 解析器
-- api.go：公开接口
-```
+- 与 `internal/organization/README.md` 对齐的标准目录与职责
+- `api.go` 对外暴露接口、命令/查询通过 `internal` 机制隔离
+- 组织模块现有目录（audit/dto/handler/resolver/service/repository/validator 等）的可复用模板
+- README 最低内容（聚合边界、迁移清单、测试入口）
 
 **示例代码**:
 - api.go 的标准框架
 - 接口定义的最佳实践
 - 依赖注入模式
 
-#### 第三章：数据访问层（sqlc 规范）
+#### 第三章：数据访问层（PostgreSQL + Repository 模式）
 
 **内容**:
-- 为什么使用 sqlc
-- sqlc 配置示例
-- 常见查询模式
-- 与 repository 层的集成
+- `internal/organization/repository` 中 `PostgreSQLRepository` 的目录拆分与命名
+- `database/sql` + `github.com/lib/pq` 的使用基线（当前唯一事实来源）
+- 查询/命令共享仓储、DTO 映射与日志字段规范
+- `docs/development-plans/219A-219E-review-analysis.md` 指出的 “生成代码（如 sqlc）质量要求缺失” 问题与补救措施（先定义评估标准、再决定是否接入 sqlc）
 
 **示例**:
-```yaml
-# sqlc.yaml 配置示例
-version: "1"
-packages:
-  - name: "org"
-    path: "internal/organization/internal/repository"
-    queries: "./queries/"
-    schema: "./schema/"
-    engine: "postgresql"
+```go
+// 示例摘自 internal/organization/repository/postgres_organizations_list.go
+func (r *PostgreSQLRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, filter *dto.OrganizationFilter, pagination *dto.PaginationInput) (*dto.OrganizationConnection, error) {
+    page := int32(1)
+    pageSize := int32(50)
+    if pagination != nil && pagination.Page > 0 {
+        page = pagination.Page
+    }
+    // ...
+    rows, err := r.db.QueryContext(ctx, baseQuery, args...)
+    if err != nil {
+        return nil, fmt.Errorf("failed to query organizations: %w", err)
+    }
+    // ...
+}
 ```
+
+在此基础上，模板需附录《sqlc 引入评估清单》：仅当定义了生成位置、审查责任人、lint/CI 规则后方可启用，避免与现有手写 SQL 出现双事实。
 
 #### 第四章：事务性发件箱集成
 
@@ -262,29 +277,28 @@ services:
 ### 6.1 模块结构模板章节示例
 
 ```markdown
-## 标准模块结构
-
-所有业务模块应遵循以下目录结构：
+## 标准模块结构（参考 internal/organization/README.md）
 
 internal/{module_name}/
-├── api.go                 # 模块公开接口
-├── internal/              # 私有实现
-│   ├── domain/            # 域模型
-│   ├── repository/        # 数据访问
-│   ├── service/           # 业务逻辑
-│   ├── handler/           # REST 处理器
-│   ├── resolver/          # GraphQL 解析器
-│   └── README.md
-└── README.md              # 模块说明
+├── api.go                 # 模块公开接口（命令/查询入口唯一依赖）
+├── audit/                 # 审计写入器
+├── domain/                # 聚合根与事件
+├── dto/                   # GraphQL/REST DTO
+├── handler/               # REST 处理器（命令服务）
+├── repository/            # PostgreSQL 仓储（database/sql）
+├── resolver/              # GraphQL 解析器（查询服务）
+├── scheduler/             # Temporal/Scheduler 适配
+├── service/               # 领域服务
+├── utils/                 # 通用工具（日志、metrics 等）
+├── validator/             # 链式校验器
+└── README.md              # 模块说明（聚合边界、迁移、测试）
 
 ### 各目录职责
 
-- **domain/** - 聚合根、值对象、域事件的定义
-- **repository/** - 数据持久化接口和实现（使用 sqlc）
-- **service/** - 业务规则、工作流、事务管理
-- **handler/** - HTTP 请求处理、响应格式化（REST API）
-- **resolver/** - GraphQL 查询解析（查询服务）
-- **api.go** - 模块对外暴露的接口（其他模块仅依赖此文件）
+- **repository/** - 共享命令/查询的数据访问层
+- **service/** - 事务性业务逻辑，调用仓储/Outbox
+- **handler/**/**resolver/** - 分别适配 REST 与 GraphQL，遵守 CQRS 分工
+- **api.go** - 暴露 `CommandModule`/`ResolverModule` 等构造器，其余文件置于 `internal/` 防止跨模块引用
 ```
 
 ### 6.2 集成测试规范章节示例
@@ -292,22 +306,21 @@ internal/{module_name}/
 ```markdown
 ## Docker 集成测试规范
 
-所有模块的集成测试应使用 Docker 容器化的 PostgreSQL。
+所有模块的集成测试必须依赖 `docker-compose.dev.yml` 提供的 PostgreSQL/Redis（参见 Makefile）。
 
 ### 配置步骤
 
-1. 创建 docker-compose.test.yml
-2. 运行 make test-db 启动容器
-3. 执行 Goose 迁移
-4. 运行集成测试
-5. 验证测试数据状态
+1. `make docker-up` 启动 postgres/redis（或指定 `docker compose -f docker-compose.dev.yml up -d postgres redis`）。
+2. `make db-migrate-all` 执行 Goose 迁移（迁移即唯一事实来源）。
+3. `make test-integration` 运行带 `-tags=integration` 的 Go 集成测试；若需要 REST/GraphQL 联调，可先 `make run-dev`。
+4. 验证 `curl http://localhost:9090/health` / `8090/health` 返回 200。
+5. `docker compose -f docker-compose.dev.yml logs postgres` 检查慢查询，测试结束后 `make docker-down` 回收资源。
 
 ### 最佳实践
 
-- 每个测试应该是独立的
-- 使用事务进行测试隔离
-- 清理测试数据（TRUNCATE）
-- 记录慢查询日志
+- 测试相互独立，尽量 `t.Parallel()`。
+- 使用事务包裹测试并回滚，必要时 TRUNCATE 。
+- 在 `tests/` 下维护数据初始化脚本，并记录日志到 `logs/`.
 ```
 
 ---
@@ -317,6 +330,7 @@ internal/{module_name}/
 ### 7.1 文档完整性
 
 - [ ] 主文档（module-development-template.md）> 3000 字
+- [ ] 每章明确引用 `CLAUDE.md`/`AGENTS.md`/`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`/`docs/api/*`/`internal/organization/README.md` 等唯一事实来源
 - [ ] 至少包含 5 个完整代码示例
 - [ ] 包含 3 个以上的检查清单
 - [ ] 包含流程图或架构图

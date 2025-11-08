@@ -372,6 +372,9 @@ test.describe('职位管理完整CRUD生命周期', () => {
       { timeout: 10000 }
     );
 
+    // TODO-TEMPORARY(230F): 在断言前调用 `POST /api/v1/positions/${testPositionCode}/versions`
+    // 以覆盖 Position Version API，待 UI 对接版本创建后移除该注记。
+
     // 验证版本列表包含所有生命周期事件
     await page.getByTestId('position-tab-versions').click();
     const versionList = page.getByTestId('position-version-list');

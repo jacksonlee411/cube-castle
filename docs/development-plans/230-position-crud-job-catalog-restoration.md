@@ -16,8 +16,8 @@
 | [230B – OPER Job Catalog 数据修复迁移](./230B-job-catalog-restoration.md) | 编写幂等迁移 `database/migrations/<timestamp>_230_job_catalog_oper_fix.sql`，恢复 `OPER` 层级 | `database/migrations/20251107123000_230_job_catalog_oper_fix.sql`、`logs/230/job-catalog-audit-20251108T092533.log` | ✅ |
 | [230C – Job Catalog 自检脚本与 Make 集成](./230C-job-catalog-diagnostics.md) | 新增 `scripts/diagnostics/check-job-catalog.sh` 并接入 `make status` | 脚本、Makefile 更新、`logs/230/job-catalog-check-20251108T093645.log` | ✅ |
 | [230D – Position CRUD 数据链路恢复与 E2E 验证](./230D-position-crud-e2e.md) | 播种 Position/Assignment 数据、复跑 Playwright、归档测试产物 | `logs/230/position-env-check-20251108T095108.log`、`logs/230/position-seed-20251108T094735.log`、`logs/230/position-crud-playwright-20251108T102815.log`、`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` | ✅ |
-| [230E – 219T/219E 文档与报告同步](./230E-documentation-sync.md) | 将修复结果同步到 219T/219E/06-log 文档，解除阻塞标记 | 文档 diff、引用路径 | ⏳ |
-| [230F – 职位管理功能对齐与测试映射](./230F-position-readiness.md) | 编制功能→测试映射、更新 `logs/230/position-module-readiness.md`、登记 TODO | Readiness 表、测试注记 | ⏳ |
+| [230E – 219T/219E 文档与报告同步](./230E-documentation-sync.md) | 将修复结果同步到 219T/219E/06-log 文档，解除阻塞标记 | `docs/development-plans/219T-e2e-validation-report.md` 与 `docs/development-plans/219E-e2e-validation.md` Position CRUD 恢复章节、`docs/development-plans/06-integrated-teams-progress-log.md` §7 | ✅ |
+| [230F – 职位管理功能对齐与测试映射](./230F-position-readiness.md) | 编制功能→测试映射、更新 `logs/230/position-module-readiness.md`、登记 TODO | `logs/230/position-module-readiness.md`（2025-11-08）+ `frontend/tests/e2e/position-crud-full-lifecycle.spec.ts:360-382` TODO 注记 + 219E/Plan 06 引用 | ✅ |
 
 > 若后续需要扩展 Job Catalog 其他 Code，可在 230C/230D 基础上追加 230G 等子计划，此处暂保留 6 个执行单元。
 
@@ -61,4 +61,4 @@
 
 ---
 
-> 更新时间：2025-11-07。若后续阶段需要扩展，请在各子计划文档中更新，并同步本母计划的表格与状态。
+> 更新时间：2025-11-08。若后续阶段需要扩展，请在各子计划文档中更新，并同步本母计划的表格与状态。
