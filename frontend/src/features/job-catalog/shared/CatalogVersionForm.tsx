@@ -24,6 +24,7 @@ interface CatalogVersionFormProps {
   initialStatus?: JobCatalogStatus
   initialEffectiveDate?: string
   submitLabel?: string
+  cardTestId?: string
 }
 
 const initialState: CatalogVersionFormValues = {
@@ -31,6 +32,13 @@ const initialState: CatalogVersionFormValues = {
   status: JobCatalogStatus.ACTIVE,
   effectiveDate: '',
   description: '',
+}
+
+const toDateOnly = (value?: string | null): string => {
+  if (!value) {
+    return ''
+  }
+  return value.length >= 10 ? value.slice(0, 10) : value
 }
 
 const selectStyle: React.CSSProperties = {
@@ -53,6 +61,7 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
   initialStatus,
   initialEffectiveDate,
   submitLabel,
+  cardTestId = 'catalog-version-form-dialog',
 }) => {
   const [form, setForm] = useState<CatalogVersionFormValues>(initialState)
   const [error, setError] = useState<string | null>(null)
@@ -62,7 +71,7 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
       setForm({
         name: initialName ?? '',
         status: initialStatus ?? JobCatalogStatus.ACTIVE,
-        effectiveDate: initialEffectiveDate ?? '',
+        effectiveDate: toDateOnly(initialEffectiveDate),
         description: initialDescription ?? '',
       })
       setError(null)
@@ -70,7 +79,11 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
   }, [initialDescription, initialEffectiveDate, initialName, initialStatus, isOpen])
 
   const handleChange = <K extends keyof CatalogVersionFormValues>(key: K, value: CatalogVersionFormValues[K]) => {
-    setForm(prev => ({ ...prev, [key]: value }))
+    const nextValue =
+      key === 'effectiveDate' && typeof value === 'string'
+        ? (toDateOnly(value) as CatalogVersionFormValues[K])
+        : value
+    setForm(prev => ({ ...prev, [key]: nextValue }))
   }
 
   const handleSubmit = async () => {
@@ -86,6 +99,7 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
     await onSubmit({
       ...form,
       name: form.name.trim(),
+      effectiveDate: toDateOnly(form.effectiveDate),
       description: form.description?.trim() || undefined,
     })
   }
@@ -102,6 +116,7 @@ export const CatalogVersionForm: React.FC<CatalogVersionFormProps> = ({
       isSubmitting={isSubmitting}
       submitLabel={submitLabel ?? '提交'}
       errorMessage={error}
+      cardTestId={cardTestId}
     >
       <div>
         <TextInput
