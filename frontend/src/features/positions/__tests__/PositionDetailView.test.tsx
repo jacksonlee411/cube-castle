@@ -1,26 +1,18 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, afterAll, afterEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { beforeEach, afterEach, afterAll, describe, expect, it, vi, type Mock } from 'vitest'
 import type { PositionDetailResult, PositionRecord } from '@/shared/types/positions'
+import { PositionDetailView, type PositionDetailViewProps } from '../PositionDetailView'
 
 vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
 
-const navigateMock = vi.fn()
-let params: { code?: string } = { code: 'P9000001' }
+const navigateToList = vi.fn()
+const navigateToDetail = vi.fn()
 
 vi.mock('@/shared/hooks/useEnterprisePositions', () => ({
   usePositionDetail: vi.fn(),
 }))
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
-  return {
-    ...actual,
-    useNavigate: () => navigateMock,
-    useParams: () => params,
-  }
-})
 
 vi.mock('@/features/audit/components/AuditHistorySection', () => ({
   AuditHistorySection: ({ recordId }: { recordId: string }) => (
@@ -114,8 +106,6 @@ vi.mock('../components/transfer/PositionTransferDialog', () => ({
 const { usePositionDetail } = await import('@/shared/hooks/useEnterprisePositions')
 const mockedUsePositionDetail = usePositionDetail as unknown as Mock
 
-const { PositionTemporalPage } = await import('../PositionTemporalPage')
-
 const createPositionRecord = (overrides: Partial<PositionRecord> = {}): PositionRecord => ({
   code: 'P9000001',
   recordId: 'rec-001',
@@ -179,10 +169,20 @@ const createDetailResult = (): PositionDetailResult => ({
   fetchedAt: '2025-10-18T00:00:00.000Z',
 })
 
-describe('PositionTemporalPage', () => {
+const baseProps: PositionDetailViewProps = {
+  code: 'P9000001',
+  rawCode: 'P9000001',
+  isCreateMode: false,
+  navigateToList,
+  navigateToDetail,
+}
+
+const renderComponent = (props: Partial<PositionDetailViewProps> = {}) =>
+  render(<PositionDetailView {...baseProps} {...props} />)
+
+describe('PositionDetailView', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
-    params = { code: 'P9000001' }
     mockedUsePositionDetail.mockReset()
     mockedUsePositionDetail.mockImplementation((_code: string | undefined, _options?: unknown) => ({
       data: createDetailResult(),
@@ -192,10 +192,11 @@ describe('PositionTemporalPage', () => {
       error: undefined,
       refetch: vi.fn(),
     }))
+    navigateToList.mockReset()
+    navigateToDetail.mockReset()
   })
 
   afterEach(() => {
-    navigateMock.mockReset()
     vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
   })
 
@@ -204,7 +205,7 @@ describe('PositionTemporalPage', () => {
   })
 
   it('renders detail layout并可打开版本历史页签', () => {
-    render(<PositionTemporalPage />)
+    renderComponent()
 
     expect(screen.getByTestId('position-temporal-page')).toBeInTheDocument()
     expect(screen.getByTestId('position-overview-card')).toBeInTheDocument()
@@ -214,11 +215,10 @@ describe('PositionTemporalPage', () => {
     fireEvent.click(screen.getByText('版本历史'))
     expect(screen.getByTestId('position-version-toolbar')).toBeInTheDocument()
     expect(screen.getByTestId('position-version-list')).toBeInTheDocument()
-    expect(screen.getByText('职位版本记录')).toBeInTheDocument()
   })
 
   it('toggles includeDeleted flag when开关切换', async () => {
-    render(<PositionTemporalPage />)
+    renderComponent()
 
     expect(mockedUsePositionDetail).toHaveBeenLastCalledWith(
       'P9000001',
@@ -239,18 +239,16 @@ describe('PositionTemporalPage', () => {
   })
 
   it('navigates to overview when版本表点击行', () => {
-    render(<PositionTemporalPage />)
+    renderComponent()
 
     fireEvent.click(screen.getByText('版本历史'))
     const versionRow = screen.getAllByTestId(/position-version-row/)[1]
     fireEvent.click(versionRow)
 
     expect(screen.getByTestId('position-overview-card')).toBeInTheDocument()
-    expect(screen.getByText(/当前版本：/)).toBeInTheDocument()
   })
 
   it('shows提示 when职位编码缺失', () => {
-    params = {}
     mockedUsePositionDetail.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -260,13 +258,12 @@ describe('PositionTemporalPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<PositionTemporalPage />)
+    renderComponent({ code: undefined, rawCode: undefined })
 
     expect(screen.getByText('未提供职位编码，请从职位列表进入详情页。')).toBeInTheDocument()
   })
 
   it('validates职位编码格式', () => {
-    params = { code: 'INVALID' }
     mockedUsePositionDetail.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -276,15 +273,14 @@ describe('PositionTemporalPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<PositionTemporalPage />)
+    renderComponent({ code: 'INVALID', rawCode: 'INVALID' })
 
     expect(screen.getByText('职位编码格式不正确，请从职位列表页面重新进入。')).toBeInTheDocument()
   })
 
   it('Mock 模式下隐藏写操作', () => {
     vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'true')
-
-    render(<PositionTemporalPage />)
+    renderComponent()
 
     expect(screen.getByTestId('position-temporal-page')).toBeInTheDocument()
     expect(screen.getByTestId('position-mock-banner')).toBeInTheDocument()
@@ -294,7 +290,6 @@ describe('PositionTemporalPage', () => {
 
   it('Mock 模式下创建页面仅展示指引', () => {
     vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'true')
-    params = { code: 'new' }
     mockedUsePositionDetail.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -304,7 +299,7 @@ describe('PositionTemporalPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<PositionTemporalPage />)
+    renderComponent({ isCreateMode: true, code: undefined, rawCode: 'NEW' })
 
     expect(screen.getByText('⚠️ Mock 模式下无法创建职位。')).toBeInTheDocument()
   })

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import type { NavigateOptions } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button'
@@ -31,7 +31,7 @@ import { usePositionDetail } from '@/shared/hooks/useEnterprisePositions'
 import { logger } from '@/shared/utils/logger'
 import { getPositionStatusMeta } from './statusMeta'
 
-const POSITION_CODE_PATTERN = /^P\d{7}$/
+const POSITION_CODE_PATTERN = /^P\d{7}$/i
 
 const EmptyStateCard: React.FC<{ message: string }> = ({ message }) => (
   <Card padding={space.l} backgroundColor={colors.frenchVanilla100}>
@@ -68,9 +68,21 @@ interface VersionEntry {
 
 type DetailQueryResult = ReturnType<typeof usePositionDetail>
 
-export const PositionTemporalPage: React.FC = () => {
-  const { code: rawCode } = useParams<{ code: string }>()
-  const navigate = useNavigate()
+export interface PositionDetailViewProps {
+  code?: string
+  rawCode?: string
+  isCreateMode: boolean
+  navigateToList: () => void
+  navigateToDetail: (targetCode: string, options?: NavigateOptions) => void
+}
+
+export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
+  code,
+  rawCode,
+  isCreateMode,
+  navigateToList,
+  navigateToDetail,
+}) => {
   const [activeForm, setActiveForm] = useState<'none' | 'edit' | 'version'>('none')
   const [includeDeleted, setIncludeDeleted] = useState(false)
   const [activeTab, setActiveTab] = useState<DetailTab>('overview')
@@ -79,19 +91,16 @@ export const PositionTemporalPage: React.FC = () => {
   const [isVersionDrawerOpen, setIsVersionDrawerOpen] = useState(false)
   const isMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
 
-  const code = rawCode ? rawCode.toUpperCase() : ''
-  const isCreateMode = code === 'NEW'
-  const isValidCode = rawCode ? (isCreateMode || POSITION_CODE_PATTERN.test(code)) : false
-
-  const detailQuery = usePositionDetail(isValidCode && !isCreateMode ? code : undefined, {
-    enabled: isValidCode && !isCreateMode,
+  const normalizedCode = code ?? ''
+  const detailQuery = usePositionDetail(!isCreateMode ? normalizedCode : undefined, {
+    enabled: !isCreateMode,
     includeDeleted,
   })
 
   const detailErrorMessage = detailQuery.error instanceof Error ? detailQuery.error.message : undefined
 
   const { position, timeline, currentAssignment, transfers, versions } = useMemo(() => {
-    if (isCreateMode || !isValidCode) {
+    if (isCreateMode) {
       return {
         position: undefined as PositionRecord | undefined,
         timeline: [] as PositionTimelineEvent[],
@@ -109,7 +118,7 @@ export const PositionTemporalPage: React.FC = () => {
       transfers: graph?.transfers ?? [],
       versions: graph?.versions ?? [],
     }
-  }, [detailQuery.data, isCreateMode, isValidCode])
+  }, [detailQuery.data, isCreateMode])
 
   const versionEntries: VersionEntry[] = useMemo(() => {
     const sorted = sortPositionVersions(versions)
@@ -191,7 +200,7 @@ export const PositionTemporalPage: React.FC = () => {
 
       const anchor = document.createElement('a')
       anchor.href = url
-      anchor.download = `${code || 'position'}-versions.csv`
+      anchor.download = `${normalizedCode || 'position'}-versions.csv`
       anchor.style.display = 'none'
       document.body.appendChild(anchor)
       anchor.click()
@@ -199,13 +208,9 @@ export const PositionTemporalPage: React.FC = () => {
 
       URL.revokeObjectURL(url)
     } catch (error) {
-      logger.error('[PositionTemporalPage] 导出职位版本失败', error)
+      logger.error('[PositionDetailView] 导出职位版本失败', error)
     }
-  }, [versions, code])
-
-  const handleBack = () => {
-    navigate('/positions')
-  }
+  }, [versions, normalizedCode])
 
   const handleFormSuccess = () => {
     setActiveForm('none')
@@ -238,7 +243,7 @@ export const PositionTemporalPage: React.FC = () => {
   const overviewRecord = selectedVersion ?? position
   const canMutate = Boolean(position) && !detailQuery.isError && !isMockMode
 
-  if (!rawCode) {
+  if (!rawCode && !isCreateMode) {
     return (
       <Box padding={space.xl}>
         <EmptyStateCard message="未提供职位编码，请从职位列表进入详情页。" />
@@ -246,7 +251,7 @@ export const PositionTemporalPage: React.FC = () => {
     )
   }
 
-  if (!isCreateMode && !isValidCode) {
+  if (!isCreateMode && normalizedCode && !POSITION_CODE_PATTERN.test(normalizedCode)) {
     return (
       <Box padding={space.xl}>
         <EmptyStateCard message="职位编码格式不正确，请从职位列表页面重新进入。" />
@@ -260,7 +265,7 @@ export const PositionTemporalPage: React.FC = () => {
         <SimpleStack gap={space.l}>
           <Flex justifyContent="space-between" alignItems="center">
             <Flex alignItems="center" gap={space.s}>
-              <SecondaryButton onClick={handleBack} size="small">
+              <SecondaryButton onClick={navigateToList} size="small">
                 ← 返回职位列表
               </SecondaryButton>
               <Heading size="small">创建职位</Heading>
@@ -285,8 +290,8 @@ export const PositionTemporalPage: React.FC = () => {
           ) : (
             <PositionForm
               mode="create"
-              onCancel={handleBack}
-              onSuccess={({ code: createdCode }) => navigate(`/positions/${createdCode}`)}
+              onCancel={navigateToList}
+              onSuccess={({ code: createdCode }) => navigateToDetail(createdCode)}
             />
           )}
         </SimpleStack>
@@ -318,10 +323,10 @@ export const PositionTemporalPage: React.FC = () => {
 
           <Flex justifyContent="space-between" alignItems="center">
             <Flex alignItems="center" gap={space.s}>
-              <SecondaryButton onClick={handleBack} size="small">
+              <SecondaryButton onClick={navigateToList} size="small">
                 ← 返回职位列表
               </SecondaryButton>
-              <Heading size="small">{isCreateMode ? '创建新职位' : `职位详情：${code}`}</Heading>
+              <Heading size="small">{`职位详情：${normalizedCode}`}</Heading>
             </Flex>
             <Flex alignItems="center" gap={space.s}>
               <Text fontSize="12px" color={colors.licorice400}>
@@ -379,99 +384,99 @@ export const PositionTemporalPage: React.FC = () => {
               flexWrap={isCompactLayout ? 'wrap' : 'nowrap'}
               data-testid="position-detail-layout"
             >
-            {versionEntries.length > 0 && (
-              <Box
-                flex={isCompactLayout ? '1 1 100%' : '0 0 320px'}
-                maxWidth={isCompactLayout ? '100%' : '360px'}
-                width={isCompactLayout ? '100%' : '320px'}
-              >
-                {isCompactLayout ? (
-                  <SimpleStack gap={space.s}>
-                    <Flex justifyContent="space-between" alignItems="center">
-                      <Heading size="small">版本导航</Heading>
-                      <SecondaryButton size="small" onClick={() => setIsVersionDrawerOpen(prev => !prev)}>
-                        {isVersionDrawerOpen ? '收起版本列表' : '选择其他版本'}
-                      </SecondaryButton>
-                    </Flex>
-                    {isVersionDrawerOpen && (
-                      <Card padding={space.m} backgroundColor={colors.frenchVanilla100}>
-                        <TimelineComponent
-                          versions={timelineVersions}
-                          selectedVersion={selectedTimelineVersion}
-                          onVersionSelect={handleVersionSelect}
-                          isLoading={detailQuery.isLoading && timelineVersions.length === 0}
-                          readonly={!canMutate}
-                          height="auto"
-                        />
-                      </Card>
-                    )}
-                  </SimpleStack>
-                ) : (
-                  <Card padding={space.m} backgroundColor={colors.frenchVanilla100}>
-                    <TimelineComponent
-                      versions={timelineVersions}
-                      selectedVersion={selectedTimelineVersion}
-                      onVersionSelect={handleVersionSelect}
-                      isLoading={detailQuery.isLoading && timelineVersions.length === 0}
-                      readonly={!canMutate}
-                      height="calc(100vh - 220px)"
-                      width="100%"
+              {versionEntries.length > 0 && (
+                <Box
+                  flex={isCompactLayout ? '1 1 100%' : '0 0 320px'}
+                  maxWidth={isCompactLayout ? '100%' : '360px'}
+                  width={isCompactLayout ? '100%' : '320px'}
+                >
+                  {isCompactLayout ? (
+                    <SimpleStack gap={space.s}>
+                      <Flex justifyContent="space-between" alignItems="center">
+                        <Heading size="small">版本导航</Heading>
+                        <SecondaryButton size="small" onClick={() => setIsVersionDrawerOpen(prev => !prev)}>
+                          {isVersionDrawerOpen ? '收起版本列表' : '选择其他版本'}
+                        </SecondaryButton>
+                      </Flex>
+                      {isVersionDrawerOpen && (
+                        <Card padding={space.m} backgroundColor={colors.frenchVanilla100}>
+                          <TimelineComponent
+                            versions={timelineVersions}
+                            selectedVersion={selectedTimelineVersion}
+                            onVersionSelect={handleVersionSelect}
+                            isLoading={detailQuery.isLoading && timelineVersions.length === 0}
+                            readonly={!canMutate}
+                            height="auto"
+                          />
+                        </Card>
+                      )}
+                    </SimpleStack>
+                  ) : (
+                    <Card padding={space.m} backgroundColor={colors.frenchVanilla100}>
+                      <TimelineComponent
+                        versions={timelineVersions}
+                        selectedVersion={selectedTimelineVersion}
+                        onVersionSelect={handleVersionSelect}
+                        isLoading={detailQuery.isLoading && timelineVersions.length === 0}
+                        readonly={!canMutate}
+                        height="calc(100vh - 220px)"
+                        width="100%"
+                      />
+                    </Card>
+                  )}
+                </Box>
+              )}
+
+              <Box flex="1" minWidth={0}>
+                <SimpleStack gap={space.l}>
+                  <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+                  {selectedVersion && (
+                    <Card padding={space.m} backgroundColor={colors.soap100}>
+                      <Text fontSize="14px" color={colors.licorice500}>
+                        {buildVersionBannerLabel(selectedVersion)}：{selectedVersion.effectiveDate}（状态：
+                        {getPositionStatusMeta(selectedVersion.status).label}）
+                      </Text>
+                    </Card>
+                  )}
+
+                  {activeForm === 'edit' && position && (
+                    <PositionForm
+                      mode="edit"
+                      position={position}
+                      onCancel={() => setActiveForm('none')}
+                      onSuccess={handleFormSuccess}
                     />
-                  </Card>
-                )}
+                  )}
+
+                  {activeForm === 'version' && position && (
+                    <PositionForm
+                      mode="version"
+                      position={position}
+                      onCancel={() => setActiveForm('none')}
+                      onSuccess={handleFormSuccess}
+                    />
+                  )}
+
+                  {renderTabContent({
+                    activeTab,
+                    overviewRecord,
+                    currentAssignment,
+                    transfers,
+                    timeline,
+                    detailQuery,
+                    includeDeleted,
+                    onIncludeDeletedChange: setIncludeDeleted,
+                    onExportVersions: handleExportVersions,
+                    versionsForList: versionEntries.map(entry => entry.version),
+                    versionKeys,
+                    selectedVersionKey,
+                    onVersionSelect: handleVersionRowSelect,
+                    selectedVersion,
+                  })}
+                </SimpleStack>
               </Box>
-            )}
-
-            <Box flex="1" minWidth={0}>
-              <SimpleStack gap={space.l}>
-                <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-                {selectedVersion && (
-                  <Card padding={space.m} backgroundColor={colors.soap100}>
-                    <Text fontSize="14px" color={colors.licorice500}>
-                      {buildVersionBannerLabel(selectedVersion)}：{selectedVersion.effectiveDate}（状态：
-                      {getPositionStatusMeta(selectedVersion.status).label}）
-                    </Text>
-                  </Card>
-                )}
-
-                {activeForm === 'edit' && position && (
-                  <PositionForm
-                    mode="edit"
-                    position={position}
-                    onCancel={() => setActiveForm('none')}
-                    onSuccess={handleFormSuccess}
-                  />
-                )}
-
-                {activeForm === 'version' && position && (
-                  <PositionForm
-                    mode="version"
-                    position={position}
-                    onCancel={() => setActiveForm('none')}
-                    onSuccess={handleFormSuccess}
-                  />
-                )}
-
-                {renderTabContent({
-                  activeTab,
-                  overviewRecord,
-                  currentAssignment,
-                  transfers,
-                  timeline,
-                  detailQuery,
-                  includeDeleted,
-                  onIncludeDeletedChange: setIncludeDeleted,
-                  onExportVersions: handleExportVersions,
-                  versionsForList: versionEntries.map(entry => entry.version),
-                  versionKeys,
-                  selectedVersionKey,
-                  onVersionSelect: handleVersionRowSelect,
-                  selectedVersion,
-                })}
-              </SimpleStack>
-            </Box>
-          </Flex>
+            </Flex>
           )}
         </SimpleStack>
       </Box>
@@ -479,7 +484,7 @@ export const PositionTemporalPage: React.FC = () => {
   )
 }
 
-export default PositionTemporalPage
+export default PositionDetailView
 
 const TabsNavigation: React.FC<{ activeTab: DetailTab; onTabChange: (tab: DetailTab) => void }> = ({
   activeTab,
@@ -596,9 +601,7 @@ const renderTabContent = ({
           </Card>
         )
       }
-      return (
-        <AuditHistorySection recordId={selectedVersion.recordId} />
-      )
+      return <AuditHistorySection recordId={selectedVersion.recordId} />
     default:
       return null
   }

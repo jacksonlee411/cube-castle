@@ -1,2 +1,2 @@
 export { PositionDashboard } from './PositionDashboard'
-export { PositionTemporalPage } from './PositionTemporalPage'
+export { PositionDetailView } from './PositionDetailView'

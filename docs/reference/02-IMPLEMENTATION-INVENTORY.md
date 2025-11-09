@@ -188,8 +188,9 @@
 - [const] computeEditDateRange — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
 - [const] formatDisplayDate — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
 - [const] normalizeInitialData — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
-- [component] PositionTemporalPage — frontend/src/features/positions/PositionTemporalPage.tsx
-- [component] TabsNavigation — frontend/src/features/positions/PositionTemporalPage.tsx
+- [component] TemporalEntityPage — frontend/src/features/temporal/pages/TemporalEntityPage.tsx
+- [component] PositionDetailView — frontend/src/features/positions/PositionDetailView.tsx
+- [component] TabsNavigation — frontend/src/features/positions/PositionDetailView.tsx
 - [component] PositionOverviewCard — frontend/src/features/positions/components/PositionDetails.tsx
 - [component] PositionAssignmentsPanel — frontend/src/features/positions/components/PositionDetails.tsx
 - [component] PositionTransfersPanel — frontend/src/features/positions/components/PositionDetails.tsx

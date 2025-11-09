@@ -88,7 +88,7 @@ node ../scripts/quality/document-sync.js
 
 #### ⚠️ Mock 模式只读提醒
 - 默认配置在 `frontend/.env` / `.env.local` 中设置 `VITE_POSITIONS_MOCK_MODE=false`，确保职位模块直接连接真实 GraphQL/REST 服务。
-- 当临时开启 Mock 模式（`VITE_POSITIONS_MOCK_MODE=true`）时，`PositionDashboard` 与 `PositionTemporalPage` 会显示醒目的只读提示并禁用创建/编辑/版本操作；QA 验收必须在真实模式下执行完整 CRUD 流程。
+- 当临时开启 Mock 模式（`VITE_POSITIONS_MOCK_MODE=true`）时，`PositionDashboard` 与职位详情视图（Temporal Entity 页面）会显示醒目的只读提示并禁用创建/编辑/版本操作；QA 验收必须在真实模式下执行完整 CRUD 流程。
 - Playwright/CI 运行前请确认 `PW_REQUIRE_LIVE_BACKEND=1` 与 Mock 变量关闭，防止演示数据掩盖真实故障。
 
 ### ✅ 提交前自动验证

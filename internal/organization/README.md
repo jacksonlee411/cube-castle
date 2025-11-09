@@ -45,6 +45,11 @@
 - `internal/organization/api.go` 暴露 `CommandModule` 及 `CommandHandlers` 构建函数，命令服务只需依赖该 API。
 - 查询服务通过 `internal/organization/resolver` & `repository` 注入 GraphQL 应用。
 
+## 前端入口（Plan 242 对齐）
+
+- 组织详情页面由共享的 `TemporalEntityPage` 驱动：前端路由 `frontend/src/features/temporal/pages/entityRoutes.tsx` 统一处理 `/organizations/:code/temporal` 的参数校验与导航，内容层仍复用 `TemporalMasterDetailView`。  
+- 任意前端路线/文档更新需引用 `TemporalEntityPage`，避免回退到 `OrganizationTemporalPage` 旧命名。
+
 ## 查询与缓存（219B）
 
 - `AssignmentQueryFacade` 提供统一的任职查询、历史与统计接口，并负责 Redis 缓存键管理（前缀 `org:assignment:stats`）。

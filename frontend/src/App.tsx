@@ -9,9 +9,17 @@ import LoginPage from './pages/Login'
 
 // 懒加载关键页面组件以优化初始加载性能
 const OrganizationDashboard = React.lazy(() => import('./features/organizations/OrganizationDashboard').then(module => ({ default: module.OrganizationDashboard })))
-const OrganizationTemporalPage = React.lazy(() => import('./features/organizations/OrganizationTemporalPage').then(module => ({ default: module.OrganizationTemporalPage })))
 const PositionDashboard = React.lazy(() => import('./features/positions/PositionDashboard').then(module => ({ default: module.PositionDashboard })))
-const PositionTemporalPage = React.lazy(() => import('./features/positions/PositionTemporalPage').then(module => ({ default: module.PositionTemporalPage })))
+const OrganizationTemporalEntityRoute = React.lazy(() =>
+  import('./features/temporal/pages/entityRoutes').then(module => ({
+    default: module.OrganizationTemporalEntityRoute,
+  })),
+)
+const PositionTemporalEntityRoute = React.lazy(() =>
+  import('./features/temporal/pages/entityRoutes').then(module => ({
+    default: module.PositionTemporalEntityRoute,
+  })),
+)
 const ContractTestingDashboard = React.lazy(() => import('./features/contract-testing/ContractTestingDashboard').then(module => ({ default: module.ContractTestingDashboard })))
 const MonitoringDashboard = React.lazy(() => import('./features/monitoring/MonitoringDashboard').then(module => ({ default: module.MonitoringDashboard })))
 const JobFamilyGroupList = React.lazy(() => import('./features/job-catalog/family-groups/JobFamilyGroupList').then(module => ({ default: module.JobFamilyGroupList })))
@@ -75,17 +83,17 @@ function App() {
         {/* 组织相关页面 - 统一使用参数化路由和懒加载 */}
         <Route 
           path="/organizations/:code" 
-          element={renderOrganizations(<OrganizationTemporalPage />)} 
+          element={renderOrganizations(<OrganizationTemporalEntityRoute />)} 
         />
         <Route 
           path="/organizations/:code/temporal" 
-          element={renderOrganizations(<OrganizationTemporalPage />)} 
+          element={renderOrganizations(<OrganizationTemporalEntityRoute />)} 
         />
         
         {/* 职位管理 - 二级导航结构 */}
         <Route path="/positions" element={renderPositions(<Outlet />)}>
           <Route index element={<PositionDashboard />} />
-          <Route path=":code" element={<PositionTemporalPage />} />
+          <Route path=":code" element={<PositionTemporalEntityRoute />} />
           <Route path="catalog">
             <Route path="family-groups" element={<JobFamilyGroupList />} />
             <Route path="family-groups/:code" element={<JobFamilyGroupDetail />} />

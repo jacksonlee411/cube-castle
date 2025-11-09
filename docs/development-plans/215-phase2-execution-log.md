@@ -8,6 +8,12 @@
 
 ---
 
+## 最新更新（2025-11-10）
+
+- ✅ [Plan 242 / T1] Temporal Entity Page 抽象完成：组织/职位详情入口统一迁移至 `TemporalEntityPage`，路由校验、无效提示与功能映射已记录在 `reports/plan242/naming-inventory.md#temporal-entity-page`，为后续 Timeline/类型/测试抽象提供共享基线。
+
+---
+
 ## 概述
 
 本文档跟踪 Phase2 的实施进展（Week 3-4，Day 12-18），根据 204 号文档第二阶段的定义，工作分解为 **7 个具体实施方案**（Plan 216-222）。

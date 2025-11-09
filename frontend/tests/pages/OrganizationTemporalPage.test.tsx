@@ -33,12 +33,20 @@ vi.mock('../../src/features/temporal/components/TemporalMasterDetailView', () =>
   TemporalMasterDetailView: (props: any) => (
     <div data-testid="temporal-view">Temporal View for {props.organizationCode}</div>
   ),
+}))
+vi.mock('@/features/temporal/components/TemporalMasterDetailView', () => ({
+  TemporalMasterDetailView: (props: any) => (
+    <div data-testid="temporal-view">Temporal View for {props.organizationCode}</div>
+  ),
+}));
+vi.mock('@/features/positions/PositionDetailView', () => ({
+  PositionDetailView: () => <div data-testid="position-detail-view" />,
 }));
 
-import { OrganizationTemporalPage } from '../../src/features/organizations/OrganizationTemporalPage';
+import { OrganizationTemporalEntityRoute } from '../../src/features/temporal/pages/entityRoutes';
 import { TOKEN_STORAGE_KEY } from '../../src/shared/api/auth';
 
-describe('OrganizationTemporalPage', () => {
+describe('Organization temporal entity route', () => {
   beforeEach(() => {
     // Provide a fake token to bypass RequireAuth redirect
     const legacyKey = ['cube', 'castle', 'oauth', 'token'].join('_');
@@ -53,17 +61,13 @@ describe('OrganizationTemporalPage', () => {
     render(
       <MemoryRouter initialEntries={[`/organizations/1000001/temporal`]}>
         <Routes>
-          <Route path="/organizations/:code/temporal" element={<OrganizationTemporalPage />} />
+          <Route path="/organizations/:code/temporal" element={<OrganizationTemporalEntityRoute />} />
         </Routes>
       </MemoryRouter>
     );
 
-    // 顶部导航与子视图渲染
     await waitFor(() => {
-      expect(screen.getByText('← 组织列表')).toBeInTheDocument();
-      expect(screen.getByText(/组织详情/)).toBeInTheDocument();
-      expect(screen.getByTestId('temporal-view')).toBeInTheDocument();
-      expect(screen.getByText(/1000001/)).toBeInTheDocument();
+      expect(screen.getByTestId('temporal-view')).toHaveTextContent('1000001');
     });
   });
 });

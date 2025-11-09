@@ -34,6 +34,9 @@
    - REST Benchmark JSON 摘要已写入 `docs/reference/03-API-AND-TOOLS-GUIDE.md:302-336`（含 `logs/219E/rest-benchmark-20251107-140709.log` 摘录）。  
    - `docs/development-plans/219T-e2e-validation-report.md`、`docs/development-plans/219E-e2e-validation.md` 已于 2025-11-08 回填 Position CRUD 命令/RequestId/产物，引用 `logs/230/position-crud-playwright-20251108T102815.log`；后续如果有新的 E2E 结果需继续同步。  
    - 219E Outbox/Dispatcher 指标已在 2025-11-08 复测完成（Plan 231 Runbook O1-O6），`outbox_events` 现包含 `position.created/assignment.filled/assignment.closed/jobLevel.versionCreated` 记录，Prometheus 计数 `outbox_dispatch_success_total=5`、`outbox_dispatch_total{result="success"}` 已按事件维度区分；GraphQL 读模型（`logs/219E/position-gql-outbox-20251108T051126Z.log`）同步展示对应的 `assignmentHistory`。
+3. **命名抽象（Plan 242 / T1）**  
+   - `TemporalEntityPage` 已完成落地：组织/职位详情页统一由 `frontend/src/features/temporal/pages/entityRoutes.tsx` 暴露，功能映射记录在 `reports/plan242/naming-inventory.md#temporal-entity-page`。  
+   - `OrganizationTemporalPage.tsx`、`PositionTemporalPage.tsx` 已替换为共享路由 + `PositionDetailView`。后续 Timeline/类型/selector 抽象将依赖此基线。
 
 > 说明：GraphQL diff 阻塞已在 2025-11-08 通过 gqlgen runtime SDL 快照 + GraphQL Inspector 验证解除，详见上表与日志 `logs/219T5/graphql-inspector-diff-20251108-015138.txt`。
 
