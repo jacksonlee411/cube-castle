@@ -138,105 +138,46 @@ volumes:
 -- scripts/test/init-db.sql
 -- PostgreSQL 初始化脚本，容器启动时自动执行
 
--- 创建测试数据库的基础扩展
+-- 创建测试数据库所需扩展，其余表结构交由 Goose 迁移维护
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
--- 创建 goose 版本表
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    id INTEGER NOT NULL PRIMARY KEY,
-    version_id BIGINT NOT NULL,
-    is_applied BOOLEAN NOT NULL,
-    tstamp TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- 记录：此脚本在 Goose 迁移脚本之前执行
--- Goose 迁移脚本会在这之后运行
 ```
 
 ### 3.3 集成测试启动脚本 (scripts/run-integration-tests.sh)
 
 ```bash
-#!/bin/bash
-# scripts/run-integration-tests.sh
-# 启动 Docker 测试环境并运行集成测试
-
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMPOSE_FILE="$PROJECT_ROOT/docker-compose.test.yml"
 MIGRATIONS_DIR="$PROJECT_ROOT/database/migrations"
-DOCKER_COMPOSE_FILE="$PROJECT_ROOT/docker-compose.test.yml"
 
-# 颜色定义
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# 清理函数（脚本退出时执行）
 cleanup() {
-    log_info "Cleaning up Docker containers..."
-    docker-compose -f "$DOCKER_COMPOSE_FILE" down -v 2>/dev/null || true
+  docker compose -f "$COMPOSE_FILE" down -v >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT
 
-# 1. 启动 Docker 容器
-log_info "Starting Docker containers..."
-docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
+docker compose -f "$COMPOSE_FILE" up -d postgres-test
 
-# 2. 等待数据库就绪
-log_info "Waiting for PostgreSQL to be ready..."
-for i in {1..30}; do
-    if docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T postgres-test pg_isready -U testuser &>/dev/null; then
-        log_info "PostgreSQL is ready"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        log_error "PostgreSQL failed to start"
-        exit 1
-    fi
-    sleep 1
+for _ in $(seq 1 40); do
+  if docker compose -f "$COMPOSE_FILE" exec -T postgres-test pg_isready -U testuser -d testdb >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
 done
 
-# 3. 获取数据库连接信息
-DB_HOST="localhost"
-DB_PORT="5433"
-DB_USER="testuser"
-DB_PASSWORD="testpassword"
-DB_NAME="testdb"
-DATABASE_URL="postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable"
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=testuser
+DB_PASSWORD=testpassword
+DB_NAME=testdb
+export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
 
-# 4. 运行 Goose 迁移
-log_info "Running Goose migrations (up)..."
 GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" goose -dir "$MIGRATIONS_DIR" up
-
-log_info "Goose migrations completed successfully"
-
-# 5. 运行 Go 集成测试
-log_info "Running Go integration tests..."
-export DATABASE_URL
-go test -v -race -coverprofile=coverage-test.out ./cmd/hrms-server/command/internal/... ./cmd/hrms-server/query/internal/...
-
-# 6. 验证回滚
-log_info "Verifying Goose rollback..."
+go test -v -tags=integration ./...
 GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" goose -dir "$MIGRATIONS_DIR" down
-
-log_info "Verifying rollback completed successfully"
-
-log_info "All tests passed!"
 ```
 
 ### 3.4 Makefile 更新
@@ -269,56 +210,32 @@ test-db-psql: ## Connect to test database with psql
 ### 3.5 CI 集成配置 (.github/workflows/integration-test.yml)
 
 ```yaml
-name: Integration Tests
+name: integration-test
 
-on: [pull_request, push]
+on:
+  push:
+    branches: [ master, feature/**, plan/** ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
-  integration-test:
+  docker-integration:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_DB: testdb
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5433:5432
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.24'
 
       - name: Install Goose
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
-      - name: Run Goose migrations
-        env:
-          GOOSE_DRIVER: postgres
-          GOOSE_DBSTRING: "postgres://testuser:testpassword@localhost:5433/testdb?sslmode=disable"
+      - name: Run Docker integration tests
         run: |
-          goose -dir database/migrations up
-
-      - name: Run integration tests
-        env:
-          DATABASE_URL: postgres://testuser:testpassword@localhost:5433/testdb?sslmode=disable
-        run: go test -v -race -coverprofile=coverage.out ./...
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage.out
+          make test-db
 ```
 
 ---
@@ -344,7 +261,7 @@ jobs:
 ### 4.3 稳定性验收
 
 - [ ] 多次运行测试结果一致
-- [ ] 无端口冲突（使用 5433）
+- [ ] 无端口冲突（宿主机需释放 5432，禁止调整映射）
 - [ ] 容器自动清理，无遗留
 - [ ] CI 环境可正常执行
 
@@ -368,14 +285,15 @@ make test-db-down
 make test-db
 ```
 
+> 每次执行完成后，请在 `docs/development-plans/221t-docker-integration-validation.md` 中记录责任人、时间与日志链接。
+
 ### 5.2 CI 环境使用
 
 ```yaml
-# GitHub Actions 工作流会自动:
-1. 使用 services 启动 PostgreSQL
-2. 运行 Goose 迁移
-3. 执行集成测试
-4. 上传覆盖率报告
+# GitHub Actions workflow 会执行:
+1. checkout 仓库并安装 Go/Goose
+2. 运行 `make test-db`（脚本会拉起 docker-compose.test.yml、执行 Goose up/down、go test -tags=integration）
+3. 通过 trap 清理容器与卷，确保 CI 方便复用
 ```
 
 ---
@@ -388,6 +306,14 @@ make test-db
 - [x] `Makefile` 更新（test-db 相关目标）
 - [x] `.github/workflows/integration-test.yml`
 - [x] `docs/development-guides/docker-testing-guide.md`
+- [x] `docs/development-plans/221t-docker-integration-validation.md`
+
+---
+
+## 7. 执行状态（2025-11-09）
+
+- `shangmeilin` 在 `plan/221-prep` 分支执行 221T（`logs/plan221/run-20251109145841.log`），`make test-db` → Goose up/down + `go test -v -tags=integration ./...` 全数通过。
+- 当前环境无法直接触发 GitHub Actions；待恢复访问后由 DevOps 触发 `integration-test` workflow 以记录对应 run 链接。
 - [x] 本计划文档（221）
 
 ---
