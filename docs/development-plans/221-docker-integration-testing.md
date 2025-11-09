@@ -3,7 +3,7 @@
 **文档编号**: 221
 **标题**: 容器化集成测试环境 - 基础设施建设
 **创建日期**: 2025-11-04
-**分支**: `feature/204-phase2-infrastructure`
+**分支**: `feature/205-phase2-infrastructure`
 **版本**: v1.0
 **关联计划**: Plan 217（database）、Plan 210（迁移脚本）、Plan 215（Phase2 执行日志）
 
@@ -31,8 +31,9 @@
 
 ### 1.3 时间计划
 
-- **计划完成**: Week 4 Day 2 (Day 16)
-- **交付周期**: 1 天
+- **计划窗口**: Week 3 Day 5 (Day 16) 预拉取镜像 → Week 4 Day 3 (Day 19)，与 `docs/development-plans/215-phase2-summary-overview.md:304-316` 保持一致（W3-D5 预拉取，W4-D1~D3 完成脚本与 CI 配置）
+- **计划完成**: Week 4 Day 3 (Day 19)
+- **交付周期**: 3 天（含预拉取、脚本成型、CI 集成与验收）
 - **负责人**: QA + DevOps
 - **前置依赖**: Plan 217（database），Plan 210（迁移脚本）
 
@@ -103,7 +104,7 @@ services:
       # 初始化脚本
       POSTGRES_INITDB_ARGS: "-c log_min_duration_statement=1000"
     ports:
-      - "5433:5432"  # 使用 5433 避免与开发环境冲突
+      - "5432:5432"
     volumes:
       # 初始化脚本
       - ./scripts/test/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
@@ -128,6 +129,8 @@ volumes:
   postgres-test-data:
     driver: local
 ```
+
+> ⚠️ 端口 5432 与开发环境一致。若宿主机存在 PostgreSQL 占用，请按照 `AGENTS.md`/`CLAUDE.md` 要求**卸载宿主服务**释放端口，禁止调整容器端口映射。
 
 ### 3.2 初始化脚本 (scripts/test/init-db.sql)
 
@@ -379,16 +382,16 @@ make test-db
 
 ## 6. 交付物清单
 
-- ✅ `docker-compose.test.yml`
-- ✅ `scripts/test/init-db.sql`
-- ✅ `scripts/run-integration-tests.sh`
-- ✅ `Makefile` 更新（test-db 相关目标）
-- ✅ `.github/workflows/integration-test.yml` 更新
-- ✅ `docs/development-guides/docker-testing-guide.md`
-- ✅ 本计划文档（221）
+- [x] `docker-compose.test.yml`
+- [x] `scripts/test/init-db.sql`
+- [x] `scripts/run-integration-tests.sh`
+- [x] `Makefile` 更新（test-db 相关目标）
+- [x] `.github/workflows/integration-test.yml`
+- [x] `docs/development-guides/docker-testing-guide.md`
+- [x] 本计划文档（221）
 
 ---
 
 **维护者**: Codex（AI 助手）
-**最后更新**: 2025-11-04
-**计划完成日期**: Week 4 Day 2 (Day 16)
+**最后更新**: 2025-11-07
+**计划完成日期**: Week 4 Day 3 (Day 19, 2025-11-09)

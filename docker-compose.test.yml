@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: cube-castle-test-db
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpassword
+      POSTGRES_DB: testdb
+      POSTGRES_INITDB_ARGS: "-c log_min_duration_statement=1000"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/test/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./database/migrations:/migrations:ro
+      - postgres-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d testdb"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - testing
+
+networks:
+  testing:
+    driver: bridge
+
+volumes:
+  postgres-test-data:
+    driver: local

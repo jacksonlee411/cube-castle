@@ -1,0 +1,59 @@
+// 示例来源：internal/organization/repository/organization_create.go:1-120
+// 用途：展示 repository 如何封装 SQL、错误处理与层级计算。
+package organizationexamples
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    "github.com/google/uuid"
+)
+
+type OrganizationRepository interface {
+    GenerateCode(ctx context.Context, tenantID uuid.UUID) (string, error)
+    ComputeHierarchyForNew(ctx context.Context, tenantID uuid.UUID, code string, parent *string, name string) (*HierarchyFields, error)
+}
+
+type HierarchyFields struct {
+    Level    int
+    CodePath string
+    NamePath string
+}
+
+// CreateOrganization 演示创建流程：
+func CreateOrganization(ctx context.Context, repo OrganizationRepository, record *OrganizationRecord) (*OrganizationRecord, error) {
+    tenantUUID, err := uuid.Parse(record.TenantID)
+    if err != nil {
+        return nil, fmt.Errorf("invalid tenant id: %w", err)
+    }
+
+    fields, err := repo.ComputeHierarchyForNew(ctx, tenantUUID, record.Code, record.ParentCode, record.Name)
+    if err != nil {
+        return nil, err
+    }
+    record.Level = fields.Level
+    record.CodePath = fields.CodePath
+    record.NamePath = fields.NamePath
+
+    record.CreatedAt = time.Now()
+    record.UpdatedAt = time.Now()
+    if record.EffectiveDate.IsZero() {
+        today := time.Now()
+        record.EffectiveDate = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
+    }
+    return record, nil
+}
+
+type OrganizationRecord struct {
+    TenantID      string
+    Code          string
+    ParentCode    *string
+    Name          string
+    Level         int
+    CodePath      string
+    NamePath      string
+    EffectiveDate time.Time
+    CreatedAt     time.Time
+    UpdatedAt     time.Time
+}

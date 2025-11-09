@@ -1,0 +1,27 @@
+name: integration-test
+
+on:
+  push:
+    branches: [ master, feature/**, plan/** ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  docker-integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install Goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
+      - name: Run Docker integration tests
+        run: |
+          make test-db

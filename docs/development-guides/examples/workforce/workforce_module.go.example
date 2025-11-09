@@ -1,0 +1,107 @@
+// workforce 模块骨架 - 展示如何套用模块模板
+// 参考资料：internal/organization/README.md、docs/development-guides/module-development-template.md
+package workforce
+
+import (
+    "context"
+    "fmt"
+
+    "cube-castle/pkg/database"
+    pkglogger "cube-castle/pkg/logger"
+)
+
+type Dependencies struct {
+    Repository WorkforceRepository
+    Outbox     database.OutboxRepository
+    Logger     pkglogger.Logger
+}
+
+func (d Dependencies) Validate() error {
+    if d.Repository == nil {
+        return fmt.Errorf("repository is required")
+    }
+    if d.Logger == nil {
+        return fmt.Errorf("logger is required")
+    }
+    return nil
+}
+
+type CommandModule struct {
+    handlers []CommandHandler
+}
+
+func NewCommandModule(deps Dependencies) (*CommandModule, error) {
+    if err := deps.Validate(); err != nil {
+        return nil, err
+    }
+    svc := NewWorkforceService(deps.Repository, deps.Outbox, deps.Logger)
+    handlers := []CommandHandler{
+        NewCreateWorkforceHandler(svc, deps.Logger),
+        NewUpdateWorkforceHandler(svc, deps.Logger),
+    }
+    return &CommandModule{handlers: handlers}, nil
+}
+
+type WorkforceRepository interface {
+    Create(ctx context.Context, input *CreateWorkforce) (*Workforce, error)
+}
+
+type WorkforceService struct {
+    repo   WorkforceRepository
+    outbox database.OutboxRepository
+    logger pkglogger.Logger
+}
+
+func NewWorkforceService(repo WorkforceRepository, outbox database.OutboxRepository, logger pkglogger.Logger) *WorkforceService {
+    return &WorkforceService{repo: repo, outbox: outbox, logger: logger}
+}
+
+func (s *WorkforceService) Create(ctx context.Context, input *CreateWorkforce) (*Workforce, error) {
+    entity, err := s.repo.Create(ctx, input)
+    if err != nil {
+        return nil, err
+    }
+    // TODO: 在事务中写 Outbox（参见 examples/organization/service.go.example）
+    return entity, nil
+}
+
+type CommandHandler interface {
+    Handle(ctx context.Context, payload any) error
+}
+
+type CommandHandlerFunc func(ctx context.Context, payload any) error
+
+func (f CommandHandlerFunc) Handle(ctx context.Context, payload any) error {
+    return f(ctx, payload)
+}
+
+func NewCreateWorkforceHandler(svc *WorkforceService, logger pkglogger.Logger) CommandHandler {
+    return CommandHandlerFunc(func(ctx context.Context, payload any) error {
+        input, ok := payload.(*CreateWorkforce)
+        if !ok {
+            return fmt.Errorf("invalid payload type")
+        }
+        _, err := svc.Create(ctx, input)
+        return err
+    })
+}
+
+func NewUpdateWorkforceHandler(svc *WorkforceService, logger pkglogger.Logger) CommandHandler {
+    return CommandHandlerFunc(func(ctx context.Context, payload any) error {
+        logger.Infof("update workforce payload: %+v", payload)
+        return nil
+    })
+}
+
+type CreateWorkforce struct {
+    TenantID string
+    Code     string
+    Name     string
+}
+
+type Workforce struct {
+    RecordID string
+    TenantID string
+    Code     string
+    Name     string
+}

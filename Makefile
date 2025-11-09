@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql
 
 export SCHEDULER_ENABLED ?= true
 export SCHEDULER_MONITOR_ENABLED ?= true
@@ -86,6 +86,28 @@ docker-down:
 docker-logs:
 	@echo "📋 查看最小依赖日志... (Ctrl+C 退出)"
 	docker compose -f docker-compose.dev.yml logs -f postgres redis
+
+# 集成测试数据库（Plan 221）
+test-db:
+	@echo "🧪 运行 Docker 集成测试（占用 5432，确保宿主机无 PostgreSQL 服务）..."
+	@chmod +x scripts/run-integration-tests.sh
+	@scripts/run-integration-tests.sh
+
+test-db-up:
+	@echo "🚀 启动测试数据库 (postgres-test, 5432)..."
+	docker compose -f docker-compose.test.yml up -d postgres-test
+
+test-db-down:
+	@echo "🧹 停止测试数据库..."
+	docker compose -f docker-compose.test.yml down -v
+
+test-db-logs:
+	@echo "📋 查看测试数据库日志... (Ctrl+C 退出)"
+	docker compose -f docker-compose.test.yml logs -f postgres-test
+
+test-db-psql:
+	@echo "🐚 连接测试数据库 (psql)..."
+	docker compose -f docker-compose.test.yml exec postgres-test psql -U testuser -d testdb
 
 # 启动本地开发（Docker 强制）
 run-dev:

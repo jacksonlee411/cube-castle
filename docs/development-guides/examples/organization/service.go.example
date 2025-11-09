@@ -1,0 +1,31 @@
+// 示例来源：internal/organization/service/position_service.go:1760-1815
+// 用途：展示 Service 如何封装 Outbox 事件写入，确保事务内调用。
+package organizationexamples
+
+import (
+    "context"
+    "database/sql"
+    "fmt"
+
+    "cube-castle/pkg/database"
+    pkglogger "cube-castle/pkg/logger"
+)
+
+type OutboxAwareService struct {
+    outboxRepo database.OutboxRepository
+    logger     pkglogger.Logger
+}
+
+func (s *OutboxAwareService) saveOutboxEvent(ctx context.Context, tx *sql.Tx, evt *database.OutboxEvent) error {
+    if s.outboxRepo == nil || evt == nil {
+        return nil
+    }
+    if tx == nil {
+        return fmt.Errorf("outbox requires active transaction")
+    }
+    if err := s.outboxRepo.Save(ctx, database.WrapSQLTx(tx), evt); err != nil {
+        s.logger.Errorf("[OUTBOX] failed to enqueue %s: %v", evt.EventType, err)
+        return err
+    }
+    return nil
+}

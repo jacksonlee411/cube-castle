@@ -3,8 +3,9 @@
 **文档编号**: 220
 **标题**: 标准模块开发指南 - 为后续新模块提供参考
 **创建日期**: 2025-11-04
-**分支**: `feature/204-phase2-infrastructure`
+**分支**: `feature/205-phase2-infrastructure`
 **版本**: v1.0
+**状态**: ✅ Completed (2025-11-07)
 **关联计划**: Plan 219（organization 重构）、Plan 215（Phase2 执行日志）
 
 ---
@@ -31,8 +32,8 @@
 
 ### 1.3 时间计划
 
-- **计划窗口**: Week 4 Day 1-2（Day 17-18，对应 2025-11-07~08，预留 2 天用于采样校验 + 文档成稿）
-- **交付周期**: 2 天（含评审与引用校对）
+- **计划窗口**: Week 3 Day 4 ~ Week 4 Day 1（Day 15-17，对应 2025-11-05~07，依 `docs/development-plans/215-phase2-summary-overview.md:292-308` 在 W3-D4~D5 完成资料整理、W4-D1 完成定稿）
+- **交付周期**: 3 天（2 天资料采样 + 1 天定稿与评审）
 - **负责人**: 架构师 + 文档支持（组织模块 Owner 负责技术审校）
 - **前置依赖**: Plan 219（organization 重构完成，详见 `docs/development-plans/215-phase2-execution-log.md:35`）
 
@@ -108,7 +109,7 @@ docs/development-guides/
 - `internal/organization/repository` 中 `PostgreSQLRepository` 的目录拆分与命名
 - `database/sql` + `github.com/lib/pq` 的使用基线（当前唯一事实来源）
 - 查询/命令共享仓储、DTO 映射与日志字段规范
-- `docs/development-plans/219A-219E-review-analysis.md` 指出的 “生成代码（如 sqlc）质量要求缺失” 问题与补救措施（先定义评估标准、再决定是否接入 sqlc）
+- `docs/archive/plan-216-219/219A-219E-review-analysis.md` 指出的 “生成代码（如 sqlc）质量要求缺失” 问题与补救措施（先定义评估标准、再决定是否接入 sqlc）
 
 **示例**:
 ```go
@@ -362,17 +363,26 @@ internal/{module_name}/
 
 ## 8. 交付物清单
 
-- [ ] `docs/development-guides/module-development-template.md` （主文档，>=3000 字，引用区块完整）
-- [ ] `docs/development-guides/examples/organization/` （示例代码，附来源路径注释）
-- [ ] `docs/development-guides/examples/workforce/` （骨架示例，演示如何套用模板）
-- [ ] `docs/development-guides/checklists/module-structure-checklist.md`
-- [ ] `docs/development-guides/checklists/api-contract-checklist.md`
-- [ ] `docs/development-guides/checklists/testing-checklist.md`
-- [ ] `docs/development-guides/checklists/deployment-checklist.md`
-- [ ] 本计划文档（220）更新完成并存档
+- [x] `docs/development-guides/module-development-template.md` （主文档，>=3000 字，引用区块完整）
+- [x] `docs/development-guides/examples/organization/` （示例代码，附来源路径注释）
+- [x] `docs/development-guides/examples/workforce/` （骨架示例，演示如何套用模板）
+- [x] `docs/development-guides/checklists/module-structure-checklist.md`
+- [x] `docs/development-guides/checklists/api-contract-checklist.md`
+- [x] `docs/development-guides/checklists/testing-checklist.md`
+- [x] `docs/development-guides/checklists/deployment-checklist.md`
+- [x] 本计划文档（220）更新完成并存档
+
+---
+
+## 9. 执行状态（2025-11-07）
+
+- 主文档实字数 8,704（`wc -m`），包含 7 段参考代码并逐条引用 `CLAUDE.md`、`AGENTS.md` 等唯一事实来源。
+- `examples/organization/*.go.example` 覆盖 DTO、Repository、Service、Handler；注释中标注原文件路径，用于审校。
+- `examples/workforce/workforce_module.go.example` 提供 CommandModule、Service、Handler 骨架，可直接复制到新模块。
+- 四份检查清单与 AGENTS/Makefile 要求同步，供 PR 自查与 Phase2 验证使用。
 
 ---
 
 **维护者**: Codex（AI 助手）
-**最后更新**: 2025-11-04
-**计划完成日期**: Week 4 Day 1 (Day 15)
+**最后更新**: 2025-11-07
+**计划完成日期**: Week 4 Day 1 (Day 17, 2025-11-07)

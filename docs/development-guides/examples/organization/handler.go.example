@@ -1,0 +1,67 @@
+// 示例来源：internal/organization/handler/organization_create.go:1-120
+// 用途：展示 REST Handler 如何校验请求、生成代码、写审计日志。
+package organizationexamples
+
+import (
+    "context"
+    "encoding/json"
+    "net/http"
+    "strings"
+
+    "cube-castle/internal/organization/utils"
+    "cube-castle/internal/types"
+    "github.com/google/uuid"
+)
+
+type OrganizationHandler struct {
+    repo Repository
+}
+
+type Repository interface {
+    GenerateCode(ctx context.Context, tenantID uuid.UUID) (string, error)
+    Create(ctx context.Context, org *types.Organization) (*types.Organization, error)
+}
+
+func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
+    var req types.CreateOrganizationRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "INVALID_REQUEST", http.StatusBadRequest)
+        return
+    }
+
+    tenantID := h.getTenantID(r)
+    var code string
+    if req.Code != nil && strings.TrimSpace(*req.Code) != "" {
+        code = strings.TrimSpace(*req.Code)
+    } else {
+        generated, err := h.repo.GenerateCode(r.Context(), tenantID)
+        if err != nil {
+            http.Error(w, "CODE_GENERATION_ERROR", http.StatusInternalServerError)
+            return
+        }
+        code = generated
+    }
+
+    normalizedParent := utils.NormalizeParentCodePointer(req.ParentCode)
+    org := &types.Organization{
+        TenantID:   tenantID.String(),
+        Code:       code,
+        ParentCode: normalizedParent,
+        Name:       req.Name,
+        UnitType:   req.UnitType,
+    }
+
+    created, err := h.repo.Create(r.Context(), org)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    _ = json.NewEncoder(w).Encode(created)
+}
+
+func (h *OrganizationHandler) getTenantID(r *http.Request) uuid.UUID {
+    // 与 internal/organization/handler/organization_create.go 保持一致的租户解析逻辑
+    tenantID, _ := uuid.Parse(r.Header.Get("X-Tenant-ID"))
+    return tenantID
+}

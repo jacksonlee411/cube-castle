@@ -1,0 +1,48 @@
+// 示例来源：internal/organization/dto/models.go:8-75
+// 用途：展示 DTO 字段与数据库列、GraphQL 字段一一对应，保持 camelCase 与 db tag 对齐。
+package organizationexamples
+
+import "time"
+
+// OrganizationDTO 展示了 Organization 查询结果如何映射到 GraphQL/REST 响应。
+type OrganizationDTO struct {
+    RecordID   string     `json:"recordId" db:"record_id"`
+    TenantID   string     `json:"tenantId" db:"tenant_id"`
+    Code       string     `json:"code" db:"code"`
+    ParentCode *string    `json:"parentCode" db:"parent_code"`
+    Name       string     `json:"name" db:"name"`
+    UnitType   string     `json:"unitType" db:"unit_type"`
+    Status     string     `json:"status" db:"status"`
+    Level      int        `json:"level" db:"level"`
+    CodePath   string     `json:"codePath" db:"code_path"`
+    NamePath   string     `json:"namePath" db:"name_path"`
+    SortOrder  *int       `json:"sortOrder" db:"sort_order"`
+    CreatedAt  time.Time  `json:"createdAt" db:"created_at"`
+    UpdatedAt  time.Time  `json:"updatedAt" db:"updated_at"`
+    Effective  time.Time  `json:"effectiveDate" db:"effective_date"`
+    EndDate    *time.Time `json:"endDate" db:"end_date"`
+}
+
+// ToGraphQL 展示 DTO 方法如何封装字段格式（RFC3339、YYYY-MM-DD）。
+func (o OrganizationDTO) ToGraphQL() map[string]any {
+    payload := map[string]any{
+        "recordId":      o.RecordID,
+        "tenantId":      o.TenantID,
+        "code":          o.Code,
+        "parentCode":    o.ParentCode,
+        "name":          o.Name,
+        "unitType":      o.UnitType,
+        "status":        o.Status,
+        "level":         o.Level,
+        "codePath":      o.CodePath,
+        "namePath":      o.NamePath,
+        "sortOrder":     o.SortOrder,
+        "createdAt":     o.CreatedAt.Format(time.RFC3339),
+        "updatedAt":     o.UpdatedAt.Format(time.RFC3339),
+        "effectiveDate": o.Effective.Format("2006-01-02"),
+    }
+    if o.EndDate != nil {
+        payload["endDate"] = o.EndDate.Format("2006-01-02")
+    }
+    return payload
+}
