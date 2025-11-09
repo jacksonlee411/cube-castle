@@ -32,6 +32,9 @@ target/
 # Log files
 *.log
 startup.log
+# Allow curated plan221 logs to be tracked for audit evidence
+!logs/plan221/
+!logs/plan221/*.log
 
 # Temporary files
 *.tmp
