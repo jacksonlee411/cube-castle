@@ -5,8 +5,10 @@
 ---
 
 ## 1. 背景
-- `scripts/validate-audit-recordid-consistency.sql` 第 60-72 行将组织表触发器视为“022 之后应该清空”的治理项，本地校验仍输出 6 条触发器记录。
-- 历史文档（参考 `docs/archive/development-plans/210-database-baseline-reset-plan.md` 与 `database/migrations/20251106000000_base_schema.sql`）显示，这批触发器与早期计算层/层级校验逻辑绑定；但现行架构已将相应逻辑迁移到应用层或存储过程，继续保留可能造成双写与性能开销。
+- `scripts/validate-audit-recordid-consistency.sql` 明确打印 `TRIGGERS ON organization_units (SHOULD BE 0 AFTER 022)`，并在 `64-70` 行直接查询 `pg_trigger`，因此当前验证脚本仍把任何残留触发器视为违规（`scripts/validate-audit-recordid-consistency.sql:64-70`）。
+- 最新基线迁移仍创建 6 个触发器，说明数据库层面的“022 之后清空”目标尚未兑现（`database/migrations/20251106000000_base_schema.sql:1528-1566`）。
+- API 变更日志已经宣布移除 `log_audit_changes/audit_changes_trigger` 并改由应用层结构化审计作为唯一事实来源，且要求按 `027_*`、`028_*` 迁移完成退场，这与基线 Schema 形成冲突（`docs/api/CHANGELOG.md:16-42`）。
+- 现行应用层已经提供了与这些触发器等价的约束：审计写入由命令服务调用 `AuditLogger` 插入 `audit_logs`（`internal/organization/audit/logger.go:131-189`）；父子层级、状态与时态校验由 `BusinessRuleValidator` 的 `ORG-DEPTH`/`ORG-CIRC`/`ORG-STATUS`/`ORG-TEMPORAL` 规则执行（`internal/organization/validator/organization_rules.go:30-360`）；`TemporalTimelineManager` 负责维护 `is_current`、`end_date` 等派生字段，替代 `update_hierarchy_paths` 类触发器（`internal/organization/repository/temporal_timeline_manager.go:1-120`）。继续保留触发器会造成双写、冲突与性能风险。
 
 ---
 
@@ -23,15 +25,16 @@
 | A | 导出触发器定义 | DB 工程 | 通过 `pg_get_triggerdef` 获取 6 个触发器的 SQL，整理进入本计划附件。 |
 | B | 代码路径分析 | Backend | 逐个对照 `internal/organization/repository/*` 与 `temporal timeline` 逻辑，判断是否存在重复校验。 |
 | C | 风险评估会议 | 架构/DB | 输出触发器保留/删除的决策表，包含数据一致性风险、回滚策略。 |
-| D | 产出迁移或脚本更新 | DB 工程 | 若决定删除：编写 Goose 迁移（drop trigger + 文档更新）；若决定保留：更新 `scripts/validate-audit-recordid-consistency.sql` 的期望及注释。 |
+| D | 产出迁移或脚本更新 | DB 工程 | 若决定删除：先更新唯一事实来源 `database/schema.sql`，再根据 `database/migrations/README.md:3-7` 生成 Goose 迁移（drop trigger + 回滚脚本），并同步调整 `scripts/validate-audit-recordid-consistency.sql` 的期望；若决定保留：同样更新脚本注释，解释例外理由。 |
 | E | 文档同步 | 所有相关 | 将结论同步至 `docs/reference/05-AUDIT-AUTH-GUIDE.md` / `database/migrations/README.md`，确保唯一事实来源一致。 |
+| F | 契约校验回归 | Backend/QA | 以 `docs/api/CHANGELOG.md:16-42` 为基线复核命令服务审计逻辑（`internal/organization/audit/logger.go`）与 `validate-audit-recordid-consistency.sql` 输出，记录验证截图/日志，防止再次产生“脚本期望 vs. Schema”漂移。 |
 
 ---
 
 ## 4. 验收标准
-- 6 个触发器的定义与现状被完整记录并有明确去留方案。
-- 若删除：提供迁移、回滚与验证步骤；`validate-audit-recordid-consistency.sql` 不再报错。
-- 若保留：脚本及文档说明更新，CI 提示与实际期望一致。
+- 6 个触发器的定义与现状被完整记录并有明确去留方案，且引用的事实来源（`scripts/validate-audit-recordid-consistency.sql`、`docs/api/CHANGELOG.md`、`database/migrations/20251106000000_base_schema.sql`）在计划中可追溯。
+- 若删除：`database/schema.sql`、对应 Goose 迁移与回滚脚本、`scripts/validate-audit-recordid-consistency.sql` 均已更新，`docker compose ... validate-audit-recordid-consistency.sql` 执行结果为零触发器。
+- 若保留：脚本与文档解释了例外，CI 校验与 `docs/reference/05-AUDIT-AUTH-GUIDE.md` 保持一致，并通过 `AuditLogger`/业务规则验证证明不可替代原因。
 
 ---
 
