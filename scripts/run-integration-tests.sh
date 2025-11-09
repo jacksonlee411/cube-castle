@@ -32,16 +32,23 @@ info "启动测试数据库 (5432) ..."
 docker compose -f "$COMPOSE_FILE" up -d postgres-test
 
 info "等待 PostgreSQL 就绪..."
+ready=0
 for _ in $(seq 1 40); do
   if docker compose -f "$COMPOSE_FILE" exec -T postgres-test pg_isready -U testuser -d testdb >/dev/null 2>&1; then
     info "PostgreSQL 已就绪"
+    ready=1
     break
   fi
   sleep 1
-else
+done
+
+if [ "$ready" -ne 1 ]; then
   error "PostgreSQL 未能在预期时间内就绪"
   exit 1
 fi
+
+# 额外等待 1 秒，确保数据库完全初始化完毕（避免 pg_isready 刚通过时的抖动）
+sleep 1
 
 DB_HOST=localhost
 DB_PORT=5432

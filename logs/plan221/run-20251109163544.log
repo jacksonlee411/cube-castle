@@ -1,0 +1,688 @@
+🧪 运行 Docker 集成测试（占用 5432，确保宿主机无 PostgreSQL 服务）...
+[0;32m[INFO][0m 启动测试数据库 (5432) ...
+time="2025-11-09T16:35:44+08:00" level=warning msg="/home/shangmeilin/cube-castle/docker-compose.test.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Network cube-castle_testing  Creating
+ Network cube-castle_testing  Created
+ Volume "cube-castle_postgres-test-data"  Creating
+ Volume "cube-castle_postgres-test-data"  Created
+time="2025-11-09T16:35:45+08:00" level=warning msg="Found orphan containers ([cube_castle_temporal_ui cube_castle_temporal cube_castle_pgadmin]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container cube-castle-test-db  Creating
+ Container cube-castle-test-db  Created
+ Container cube-castle-test-db  Starting
+ Container cube-castle-test-db  Started
+[0;32m[INFO][0m 等待 PostgreSQL 就绪...
+[0;32m[INFO][0m PostgreSQL 已就绪
+[0;32m[INFO][0m 执行 Goose 迁移 (up)...
+2025/11/09 16:35:48 OK   20251106000000_base_schema.sql (286.87ms)
+2025/11/09 16:35:48 OK   20251107090000_create_outbox_events.sql (24.42ms)
+2025/11/09 16:35:48 OK   20251107123000_230_job_catalog_oper_fix.sql (6.62ms)
+2025/11/09 16:35:48 OK   20251110110000_234_remove_org_unit_triggers.sql (12.53ms)
+2025/11/09 16:35:48 goose: successfully migrated database to version: 20251110110000
+[0;32m[INFO][0m 运行 Go 集成测试 (-tags=integration)...
+?   	cube-castle/cmd/hrms-server/command	[no test files]
+?   	cube-castle/cmd/hrms-server/command/cmd/organization-command-service/internal/services	[no test files]
+?   	cube-castle/cmd/hrms-server/command/internal/authbff	[no test files]
+=== RUN   TestLoadConfigDefaults
+--- PASS: TestLoadConfigDefaults (0.00s)
+=== RUN   TestLoadConfigOverrides
+--- PASS: TestLoadConfigOverrides (0.00s)
+=== RUN   TestLoadConfigInvalid
+--- PASS: TestLoadConfigInvalid (0.00s)
+=== RUN   TestDispatcherSuccess
+--- PASS: TestDispatcherSuccess (0.02s)
+=== RUN   TestDispatcherRetry
+--- PASS: TestDispatcherRetry (0.02s)
+=== RUN   TestDispatcherIntegration
+=== RUN   TestDispatcherIntegration/Success_Path:_Publish_and_Mark
+=== RUN   TestDispatcherIntegration/Failure_Path:_Retry_and_Backoff
+=== RUN   TestDispatcherIntegration/Graceful_Shutdown_with_Context
+=== RUN   TestDispatcherIntegration/Idempotency:_Skip_Already_Published
+--- PASS: TestDispatcherIntegration (1.13s)
+    --- PASS: TestDispatcherIntegration/Success_Path:_Publish_and_Mark (0.22s)
+    --- PASS: TestDispatcherIntegration/Failure_Path:_Retry_and_Backoff (0.42s)
+    --- PASS: TestDispatcherIntegration/Graceful_Shutdown_with_Context (0.26s)
+    --- PASS: TestDispatcherIntegration/Idempotency:_Skip_Already_Published (0.21s)
+PASS
+ok  	cube-castle/cmd/hrms-server/command/internal/outbox	(cached)
+?   	cube-castle/cmd/hrms-server/query	[no test files]
+?   	cube-castle/cmd/hrms-server/query/internal/app	[no test files]
+=== RUN   TestRS256JWTValidationWithJWKS_Success
+--- PASS: TestRS256JWTValidationWithJWKS_Success (0.17s)
+=== RUN   TestRS256JWTValidationWithJWKS_InvalidAudience
+--- PASS: TestRS256JWTValidationWithJWKS_InvalidAudience (0.19s)
+PASS
+ok  	cube-castle/cmd/hrms-server/query/internal/auth	(cached)
+?   	cube-castle/cmd/hrms-server/query/internal/graphql	[no test files]
+?   	cube-castle/cmd/hrms-server/query/internal/graphql/model	[no test files]
+?   	cube-castle/cmd/hrms-server/query/internal/graphql/resolver	[no test files]
+?   	cube-castle/cmd/hrms-server/query/internal/middleware	[no test files]
+?   	cube-castle/cmd/hrms-server/query/internal/types	[no test files]
+?   	cube-castle/cmd/hrms-server/query/tools/dump-schema	[no test files]
+=== RUN   TestNewJWTMiddlewareWithOptionsDefaults
+--- PASS: TestNewJWTMiddlewareWithOptionsDefaults (0.00s)
+=== RUN   TestJWTValidateTokenHS256
+--- PASS: TestJWTValidateTokenHS256 (0.00s)
+=== RUN   TestJWTValidateTokenExpired
+--- PASS: TestJWTValidateTokenExpired (0.00s)
+=== RUN   TestJWTValidateTokenRS256WithJWKS
+--- PASS: TestJWTValidateTokenRS256WithJWKS (0.25s)
+=== RUN   TestParseRSAPublicKeyFromPEM
+--- PASS: TestParseRSAPublicKeyFromPEM (0.09s)
+=== RUN   TestRSAFromModExp
+--- PASS: TestRSAFromModExp (0.06s)
+=== RUN   TestJWKSManagerRefresh
+--- PASS: TestJWKSManagerRefresh (0.29s)
+=== RUN   TestSetUserContextHelpers
+--- PASS: TestSetUserContextHelpers (0.00s)
+=== RUN   TestPBACPermissionChecker
+--- PASS: TestPBACPermissionChecker (0.00s)
+=== RUN   TestGraphQLPermissionMiddlewareModes
+--- PASS: TestGraphQLPermissionMiddlewareModes (0.00s)
+=== RUN   TestGraphQLPermissionMiddlewareProduction
+--- PASS: TestGraphQLPermissionMiddlewareProduction (0.00s)
+=== RUN   TestCheckQueryPermissionDelegation
+--- PASS: TestCheckQueryPermissionDelegation (0.00s)
+=== RUN   TestGinJWTMiddleware
+--- PASS: TestGinJWTMiddleware (0.24s)
+=== RUN   TestGenerateTestTokenRS256
+--- PASS: TestGenerateTestTokenRS256 (0.08s)
+=== RUN   TestGenerateTestTokenMissingPrivateKey
+--- PASS: TestGenerateTestTokenMissingPrivateKey (0.00s)
+=== RUN   TestCheckRESTPermission
+--- PASS: TestCheckRESTPermission (0.00s)
+=== RUN   TestMockRESTPermissionCheck
+--- PASS: TestMockRESTPermissionCheck (0.00s)
+PASS
+ok  	cube-castle/internal/auth	(cached)
+=== RUN   TestCacheEventBusPublishAndClose
+--- PASS: TestCacheEventBusPublishAndClose (0.00s)
+=== RUN   TestCacheEventToOrganization
+--- PASS: TestCacheEventToOrganization (0.00s)
+=== RUN   TestSmartCacheUpdaterOperations
+--- PASS: TestSmartCacheUpdaterOperations (0.00s)
+=== RUN   TestSmartCacheUpdaterSearchFiltering
+--- PASS: TestSmartCacheUpdaterSearchFiltering (0.00s)
+=== RUN   TestL1CacheBasicOperations
+--- PASS: TestL1CacheBasicOperations (0.03s)
+=== RUN   TestL1CacheStatsAndEviction
+--- PASS: TestL1CacheStatsAndEviction (0.00s)
+=== RUN   TestConsistencyChecker
+--- PASS: TestConsistencyChecker (0.00s)
+=== RUN   TestCacheKeyManager
+--- PASS: TestCacheKeyManager (0.00s)
+=== RUN   TestUnifiedCacheManagerQueryFlows
+--- PASS: TestUnifiedCacheManagerQueryFlows (0.03s)
+=== RUN   TestUnifiedCacheManagerCDCAndInvalidation
+--- PASS: TestUnifiedCacheManagerCDCAndInvalidation (0.06s)
+=== RUN   TestUnifiedCacheManagerCacheManagement
+--- PASS: TestUnifiedCacheManagerCacheManagement (0.00s)
+PASS
+ok  	cube-castle/internal/cache	(cached)
+=== RUN   TestValidateSchedulerConfigValid
+--- PASS: TestValidateSchedulerConfigValid (0.00s)
+=== RUN   TestValidateSchedulerConfigInvalidCron
+--- PASS: TestValidateSchedulerConfigInvalidCron (0.00s)
+=== RUN   TestGetSchedulerConfigEnvOverride
+--- PASS: TestGetSchedulerConfigEnvOverride (0.00s)
+PASS
+ok  	cube-castle/internal/config	(cached)
+=== RUN   TestSchemaLoaderLoadAndCache
+--- PASS: TestSchemaLoaderLoadAndCache (0.00s)
+=== RUN   TestSchemaLoaderMissingFile
+--- PASS: TestSchemaLoaderMissingFile (0.00s)
+=== RUN   TestMustLoadSchema
+--- PASS: TestMustLoadSchema (0.00s)
+=== RUN   TestValidateSchemaConsistency
+--- PASS: TestValidateSchemaConsistency (0.00s)
+=== RUN   TestGetDefaultSchemaPath
+--- PASS: TestGetDefaultSchemaPath (0.00s)
+PASS
+ok  	cube-castle/internal/graphql	(cached)
+=== RUN   TestGraphQLEnvelopeTreatsNilErrorsAsSuccess
+--- PASS: TestGraphQLEnvelopeTreatsNilErrorsAsSuccess (0.00s)
+=== RUN   TestGraphQLEnvelopeTreatsEmptyErrorsAsSuccess
+--- PASS: TestGraphQLEnvelopeTreatsEmptyErrorsAsSuccess (0.00s)
+PASS
+ok  	cube-castle/internal/middleware	(cached)
+?   	cube-castle/internal/monitoring/health	[no test files]
+=== RUN   TestAssignmentQueryFacade_UsesCache
+--- PASS: TestAssignmentQueryFacade_UsesCache (0.05s)
+PASS
+ok  	cube-castle/internal/organization	(cached)
+=== RUN   TestLogEvent_FallbackResourceID
+--- PASS: TestLogEvent_FallbackResourceID (0.00s)
+=== RUN   TestLogEventInTransaction
+--- PASS: TestLogEventInTransaction (0.00s)
+=== RUN   TestLogErrorSetsPayload
+--- PASS: TestLogErrorSetsPayload (0.00s)
+=== RUN   TestLogOrganizationDeleteUsesRecordId
+--- PASS: TestLogOrganizationDeleteUsesRecordId (0.00s)
+=== RUN   TestLogOrganizationDeleteRequiresSnapshot
+--- PASS: TestLogOrganizationDeleteRequiresSnapshot (0.00s)
+=== RUN   TestLogOrganizationCreateCapturesNewValues
+--- PASS: TestLogOrganizationCreateCapturesNewValues (0.00s)
+PASS
+ok  	cube-castle/internal/organization/audit	(cached)
+=== RUN   TestPositionAssignmentHistoryEmptyWhenNil
+--- PASS: TestPositionAssignmentHistoryEmptyWhenNil (0.00s)
+=== RUN   TestPositionAssignmentHistoryReturnsData
+--- PASS: TestPositionAssignmentHistoryReturnsData (0.00s)
+=== RUN   TestPositionCurrentAssignment
+--- PASS: TestPositionCurrentAssignment (0.00s)
+PASS
+ok  	cube-castle/internal/organization/dto	(cached)
+?   	cube-castle/internal/organization/events	[no test files]
+=== RUN   TestJobCatalogHandlePreconditionFailed
+--- PASS: TestJobCatalogHandlePreconditionFailed (0.00s)
+=== RUN   TestValidateCreateJobLevelRequest
+=== RUN   TestValidateCreateJobLevelRequest/Valid_request
+=== RUN   TestValidateCreateJobLevelRequest/Missing_Code
+=== RUN   TestValidateCreateJobLevelRequest/Missing_JobRoleCode
+=== RUN   TestValidateCreateJobLevelRequest/Missing_Name
+=== RUN   TestValidateCreateJobLevelRequest/Missing_Status
+=== RUN   TestValidateCreateJobLevelRequest/Missing_LevelRank
+=== RUN   TestValidateCreateJobLevelRequest/Missing_EffectiveDate
+=== RUN   TestValidateCreateJobLevelRequest/Whitespace-only_Code
+--- PASS: TestValidateCreateJobLevelRequest (0.00s)
+    --- PASS: TestValidateCreateJobLevelRequest/Valid_request (0.00s)
+    --- PASS: TestValidateCreateJobLevelRequest/Missing_Code (0.00s)
+    --- PASS: TestValidateCreateJobLevelRequest/Missing_JobRoleCode (0.00s)
+    --- PASS: TestValidateCreateJobLevelRequest/Missing_Name (0.00s)
+    --- PASS: TestValidateCreateJobLevelRequest/Missing_Status (0.00s)
+    --- PASS: TestValidateCreateJobLevelRequest/Missing_LevelRank (0.00s)
+    --- PASS: TestValidateCreateJobLevelRequest/Missing_EffectiveDate (0.00s)
+    --- PASS: TestValidateCreateJobLevelRequest/Whitespace-only_Code (0.00s)
+=== RUN   TestValidateUpdateJobLevelRequest
+=== RUN   TestValidateUpdateJobLevelRequest/Valid_request
+=== RUN   TestValidateUpdateJobLevelRequest/Missing_Name
+=== RUN   TestValidateUpdateJobLevelRequest/Missing_Status
+=== RUN   TestValidateUpdateJobLevelRequest/Missing_EffectiveDate
+=== RUN   TestValidateUpdateJobLevelRequest/Whitespace-only_Name
+--- PASS: TestValidateUpdateJobLevelRequest (0.00s)
+    --- PASS: TestValidateUpdateJobLevelRequest/Valid_request (0.00s)
+    --- PASS: TestValidateUpdateJobLevelRequest/Missing_Name (0.00s)
+    --- PASS: TestValidateUpdateJobLevelRequest/Missing_Status (0.00s)
+    --- PASS: TestValidateUpdateJobLevelRequest/Missing_EffectiveDate (0.00s)
+    --- PASS: TestValidateUpdateJobLevelRequest/Whitespace-only_Name (0.00s)
+=== RUN   TestValidateJobCatalogVersionRequest
+=== RUN   TestValidateJobCatalogVersionRequest/Valid_request
+=== RUN   TestValidateJobCatalogVersionRequest/Missing_Name
+=== RUN   TestValidateJobCatalogVersionRequest/Missing_Status
+=== RUN   TestValidateJobCatalogVersionRequest/Missing_EffectiveDate
+=== RUN   TestValidateJobCatalogVersionRequest/Whitespace-only_Name
+--- PASS: TestValidateJobCatalogVersionRequest (0.00s)
+    --- PASS: TestValidateJobCatalogVersionRequest/Valid_request (0.00s)
+    --- PASS: TestValidateJobCatalogVersionRequest/Missing_Name (0.00s)
+    --- PASS: TestValidateJobCatalogVersionRequest/Missing_Status (0.00s)
+    --- PASS: TestValidateJobCatalogVersionRequest/Missing_EffectiveDate (0.00s)
+    --- PASS: TestValidateJobCatalogVersionRequest/Whitespace-only_Name (0.00s)
+=== RUN   TestGetIfMatchValue
+--- PASS: TestGetIfMatchValue (0.00s)
+=== RUN   TestGetIfMatchValueWeak
+--- PASS: TestGetIfMatchValueWeak (0.00s)
+=== RUN   TestGetIfMatchValueMissing
+--- PASS: TestGetIfMatchValueMissing (0.00s)
+=== RUN   TestPositionHandler_CreatePosition_Success
+--- PASS: TestPositionHandler_CreatePosition_Success (0.00s)
+=== RUN   TestPositionHandler_ReplacePosition_VersionConflict
+--- PASS: TestPositionHandler_ReplacePosition_VersionConflict (0.00s)
+=== RUN   TestPositionHandler_CreatePositionVersion_Success
+--- PASS: TestPositionHandler_CreatePositionVersion_Success (0.00s)
+=== RUN   TestPositionHandler_CreatePositionVersion_Conflict
+--- PASS: TestPositionHandler_CreatePositionVersion_Conflict (0.00s)
+=== RUN   TestPositionHandler_FillPosition_Success
+--- PASS: TestPositionHandler_FillPosition_Success (0.00s)
+=== RUN   TestPositionHandler_ListAssignments_Success
+--- PASS: TestPositionHandler_ListAssignments_Success (0.00s)
+=== RUN   TestPositionHandler_CreateAssignment_Success
+--- PASS: TestPositionHandler_CreateAssignment_Success (0.00s)
+=== RUN   TestPositionHandler_ApplyPositionEvent_NotFound
+--- PASS: TestPositionHandler_ApplyPositionEvent_NotFound (0.00s)
+=== RUN   TestPositionHandler_VacatePosition_MissingCode
+--- PASS: TestPositionHandler_VacatePosition_MissingCode (0.00s)
+=== RUN   TestPositionHandler_TransferPosition_Error
+--- PASS: TestPositionHandler_TransferPosition_Error (0.00s)
+PASS
+ok  	cube-castle/internal/organization/handler	(cached)
+?   	cube-castle/internal/organization/middleware	[no test files]
+=== RUN   TestGetAuditHistoryReturnsStructuredRecords
+--- PASS: TestGetAuditHistoryReturnsStructuredRecords (0.00s)
+=== RUN   TestSanitizeModifiedFields
+=== RUN   TestSanitizeModifiedFields/empty_string_returns_empty_slice
+=== RUN   TestSanitizeModifiedFields/null_replaced_with_empty_slice_and_issue
+=== RUN   TestSanitizeModifiedFields/valid_array_preserved
+=== RUN   TestSanitizeModifiedFields/non_string_coerced
+=== RUN   TestSanitizeModifiedFields/invalid_json
+--- PASS: TestSanitizeModifiedFields (0.00s)
+    --- PASS: TestSanitizeModifiedFields/empty_string_returns_empty_slice (0.00s)
+    --- PASS: TestSanitizeModifiedFields/null_replaced_with_empty_slice_and_issue (0.00s)
+    --- PASS: TestSanitizeModifiedFields/valid_array_preserved (0.00s)
+    --- PASS: TestSanitizeModifiedFields/non_string_coerced (0.00s)
+    --- PASS: TestSanitizeModifiedFields/invalid_json (0.00s)
+=== RUN   TestSanitizeChanges
+=== RUN   TestSanitizeChanges/empty_array
+=== RUN   TestSanitizeChanges/missing_dataType_produces_unknown
+=== RUN   TestSanitizeChanges/invalid_json
+--- PASS: TestSanitizeChanges (0.00s)
+    --- PASS: TestSanitizeChanges/empty_array (0.00s)
+    --- PASS: TestSanitizeChanges/missing_dataType_produces_unknown (0.00s)
+    --- PASS: TestSanitizeChanges/invalid_json (0.00s)
+=== RUN   TestNormalizeChangeValue
+=== RUN   TestNormalizeChangeValue/nil
+=== RUN   TestNormalizeChangeValue/string
+=== RUN   TestNormalizeChangeValue/bool
+=== RUN   TestNormalizeChangeValue/float
+=== RUN   TestNormalizeChangeValue/map
+--- PASS: TestNormalizeChangeValue (0.00s)
+    --- PASS: TestNormalizeChangeValue/nil (0.00s)
+    --- PASS: TestNormalizeChangeValue/string (0.00s)
+    --- PASS: TestNormalizeChangeValue/bool (0.00s)
+    --- PASS: TestNormalizeChangeValue/float (0.00s)
+    --- PASS: TestNormalizeChangeValue/map (0.00s)
+=== RUN   TestRegisterValidationFailure
+--- PASS: TestRegisterValidationFailure (0.00s)
+=== RUN   TestInsertJobLevelVersionCopiesParentMetadata
+--- PASS: TestInsertJobLevelVersionCopiesParentMetadata (0.00s)
+=== RUN   TestInsertJobLevelVersionDetectsParentMismatch
+--- PASS: TestInsertJobLevelVersionDetectsParentMismatch (0.00s)
+=== RUN   TestOrganizationRepository_CountNonDeletedChildren
+--- PASS: TestOrganizationRepository_CountNonDeletedChildren (0.00s)
+=== RUN   TestOrganizationRepository_CountNonDeletedChildren_Error
+--- PASS: TestOrganizationRepository_CountNonDeletedChildren_Error (0.00s)
+=== RUN   TestShouldMarkOrganizationCurrent_SameDayDifferentTimezones
+--- PASS: TestShouldMarkOrganizationCurrent_SameDayDifferentTimezones (0.00s)
+=== RUN   TestShouldMarkOrganizationCurrent_FutureDate
+--- PASS: TestShouldMarkOrganizationCurrent_FutureDate (0.00s)
+=== RUN   TestShouldMarkOrganizationCurrent_NilDate
+--- PASS: TestShouldMarkOrganizationCurrent_NilDate (0.00s)
+=== RUN   TestSoftDeleteOrganization
+--- PASS: TestSoftDeleteOrganization (0.00s)
+=== RUN   TestSoftDeleteOrganization_NoRows
+--- PASS: TestSoftDeleteOrganization_NoRows (0.00s)
+=== RUN   TestHasOtherNonDeletedVersions
+--- PASS: TestHasOtherNonDeletedVersions (0.00s)
+=== RUN   TestGetAssignmentHistoryRequiresPositionCode
+--- PASS: TestGetAssignmentHistoryRequiresPositionCode (0.00s)
+=== RUN   TestGetAssignmentStatsEmptyDataset
+--- PASS: TestGetAssignmentStatsEmptyDataset (0.00s)
+=== RUN   TestGetOrganizationStatsHandlesEmptyDataset
+--- PASS: TestGetOrganizationStatsHandlesEmptyDataset (0.00s)
+=== RUN   TestGetPositionTimelineUsesChangeReasonAlias
+--- PASS: TestGetPositionTimelineUsesChangeReasonAlias (0.00s)
+=== RUN   TestTemporalTimelineManager_ComplexScenarios
+=== RUN   TestTemporalTimelineManager_ComplexScenarios/复杂时间轴场景测试
+    temporal_timeline_test.go:82: 测试数据清理完成
+    temporal_timeline_test.go:87: 创建5个版本的复杂时间轴...
+{"timestamp":"2025-11-09T08:35:50.298067546Z","level":"INFO","message":"插入版本: TEST001, 生效日期: 2024-01-01","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:27"}
+{"timestamp":"2025-11-09T08:35:50.32031754Z","level":"INFO","message":"版本插入成功: RecordID=55d754e9-6095-408a-b884-c7eeab58688c","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:86"}
+    temporal_timeline_test.go:133: ✅ 版本 1 插入成功: 测试部门 v1.0 (RecordID: 55d754e9-6095-408a-b884-c7eeab58688c)
+{"timestamp":"2025-11-09T08:35:50.321181802Z","level":"INFO","message":"插入版本: TEST001, 生效日期: 2024-03-01","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:27"}
+{"timestamp":"2025-11-09T08:35:50.333156644Z","level":"INFO","message":"版本插入成功: RecordID=2dafa1e5-a882-4865-b008-a63a69cce095","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:86"}
+    temporal_timeline_test.go:133: ✅ 版本 2 插入成功: 测试部门 v2.0 (RecordID: 2dafa1e5-a882-4865-b008-a63a69cce095)
+{"timestamp":"2025-11-09T08:35:50.333662482Z","level":"INFO","message":"插入版本: TEST001, 生效日期: 2024-06-01","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:27"}
+{"timestamp":"2025-11-09T08:35:50.345370039Z","level":"INFO","message":"版本插入成功: RecordID=f3e2906b-39cb-4311-a65f-4f05762dc13a","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:86"}
+    temporal_timeline_test.go:133: ✅ 版本 3 插入成功: 测试部门 v3.0 (RecordID: f3e2906b-39cb-4311-a65f-4f05762dc13a)
+{"timestamp":"2025-11-09T08:35:50.34583637Z","level":"INFO","message":"插入版本: TEST001, 生效日期: 2024-09-01","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:27"}
+{"timestamp":"2025-11-09T08:35:50.359191496Z","level":"INFO","message":"版本插入成功: RecordID=a1f56219-652c-4b7c-9525-5a6d8ed26ff8","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:86"}
+    temporal_timeline_test.go:133: ✅ 版本 4 插入成功: 测试部门 v4.0 (RecordID: a1f56219-652c-4b7c-9525-5a6d8ed26ff8)
+{"timestamp":"2025-11-09T08:35:50.359720979Z","level":"INFO","message":"插入版本: TEST001, 生效日期: 2024-12-01","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:27"}
+{"timestamp":"2025-11-09T08:35:50.374315627Z","level":"INFO","message":"版本插入成功: RecordID=20650491-6499-4ce0-8304-b85de8a17b6d","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:86"}
+    temporal_timeline_test.go:133: ✅ 版本 5 插入成功: 测试部门 v5.0 (RecordID: 20650491-6499-4ce0-8304-b85de8a17b6d)
+    temporal_timeline_test.go:136: ✅ 5个版本的复杂时间轴创建完成
+    temporal_timeline_test.go:141: 🧪 测试1: 中间插入记录 (2024-04-15)
+{"timestamp":"2025-11-09T08:35:50.374793212Z","level":"INFO","message":"插入版本: TEST001, 生效日期: 2024-04-15","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:27"}
+{"timestamp":"2025-11-09T08:35:50.393349492Z","level":"INFO","message":"版本插入成功: RecordID=55e27943-2181-4988-9368-aefd3bab69fa","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_insert.go:86"}
+    temporal_timeline_test.go:172: ✅ 中间版本插入成功: 测试部门 v2.5 (中间插入) (RecordID: 55e27943-2181-4988-9368-aefd3bab69fa)
+{"timestamp":"2025-11-09T08:35:50.393859001Z","level":"INFO","message":"开始全链重算: tenant=e65c73bb-6e8e-491d-980b-7b7fdaeccaa1, code=TEST001","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_manager.go:43"}
+{"timestamp":"2025-11-09T08:35:50.409609404Z","level":"INFO","message":"全链重算完成: TEST001, 版本数=6","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_manager.go:54"}
+    temporal_timeline_test.go:180: 当前时间轴包含 6 个版本:
+    temporal_timeline_test.go:182:   版本 1: 2024-01-01 → 2024-02-29 | 测试部门 v1.0
+    temporal_timeline_test.go:182:   版本 2: 2024-03-01 → 2024-04-14 | 测试部门 v2.0
+    temporal_timeline_test.go:182:   版本 3: 2024-04-15 → 2024-05-31 | 测试部门 v2.5 (中间插入)
+    temporal_timeline_test.go:182:   版本 4: 2024-06-01 → 2024-08-31 | 测试部门 v3.0
+    temporal_timeline_test.go:182:   版本 5: 2024-09-01 → 2024-11-30 | 测试部门 v4.0
+    temporal_timeline_test.go:182:   版本 6: 2024-12-01 → ∞ | 测试部门 v5.0
+    temporal_timeline_test.go:196: 🧪 测试2: 删除中间记录 (2024-04-15版本)
+{"timestamp":"2025-11-09T08:35:50.411456241Z","level":"INFO","message":"删除版本: RecordID=55e27943-2181-4988-9368-aefd3bab69fa","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_delete.go:18"}
+{"timestamp":"2025-11-09T08:35:50.428558986Z","level":"INFO","message":"版本删除成功，剩余版本: 5","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_delete.go:48"}
+    temporal_timeline_test.go:217: ✅ 中间版本删除成功，当前时间轴包含 5 个版本
+    temporal_timeline_test.go:221:   版本 1: 2024-01-01 → 2024-02-29 | 测试部门 v1.0
+    temporal_timeline_test.go:221:   版本 2: 2024-03-01 → 2024-05-31 | 测试部门 v2.0
+    temporal_timeline_test.go:221:   版本 3: 2024-06-01 → 2024-08-31 | 测试部门 v3.0
+    temporal_timeline_test.go:221:   版本 4: 2024-09-01 → 2024-11-30 | 测试部门 v4.0
+    temporal_timeline_test.go:221:   版本 5: 2024-12-01 → ∞ | 测试部门 v5.0
+    temporal_timeline_test.go:235: 🧪 测试3: 删除第一条记录
+{"timestamp":"2025-11-09T08:35:50.430512973Z","level":"INFO","message":"删除版本: RecordID=55d754e9-6095-408a-b884-c7eeab58688c","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_delete.go:18"}
+{"timestamp":"2025-11-09T08:35:50.445188884Z","level":"INFO","message":"版本删除成功，剩余版本: 4","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_delete.go:48"}
+    temporal_timeline_test.go:258: ✅ 第一个版本删除成功，当前时间轴包含 4 个版本
+    temporal_timeline_test.go:263:   新的第一个版本: 2024-03-01 (测试部门 v2.0)
+    temporal_timeline_test.go:269: 🧪 测试4: 删除最后一条记录
+{"timestamp":"2025-11-09T08:35:50.446833686Z","level":"INFO","message":"删除版本: RecordID=20650491-6499-4ce0-8304-b85de8a17b6d","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_delete.go:18"}
+{"timestamp":"2025-11-09T08:35:50.460652828Z","level":"INFO","message":"版本删除成功，剩余版本: 3","fields":{"component":"repository","module":"organization","repository":"TemporalTimelineManager","test":"temporalTimeline"},"caller":"temporal_timeline_delete.go:48"}
+    temporal_timeline_test.go:292: ✅ 最后一个版本删除成功，当前时间轴包含 3 个版本
+    temporal_timeline_test.go:300:   新的最后版本: 2024-09-01 → ∞ (测试部门 v4.0)
+    temporal_timeline_test.go:307: 🔍 验证时间轴连续性
+    temporal_timeline_test.go:334: ✅ 时间断档检查通过
+    temporal_timeline_test.go:352: ✅ 当前版本唯一性检查通过
+    temporal_timeline_test.go:375: ✅ 尾部开放检查通过
+    temporal_timeline_test.go:394: ✅ 层级字段一致性检查通过
+    temporal_timeline_test.go:397: 🎯 时间轴连续性验证完成
+--- PASS: TestTemporalTimelineManager_ComplexScenarios (0.18s)
+    --- PASS: TestTemporalTimelineManager_ComplexScenarios/复杂时间轴场景测试 (0.17s)
+PASS
+ok  	cube-castle/internal/organization/repository	0.191s
+=== RUN   TestResolver_Assignments_ForwardsParameters
+--- PASS: TestResolver_Assignments_ForwardsParameters (0.00s)
+=== RUN   TestResolver_AssignmentHistory_UsesFacade
+--- PASS: TestResolver_AssignmentHistory_UsesFacade (0.00s)
+=== RUN   TestResolver_AssignmentStats_RequiresIdentifiers
+--- PASS: TestResolver_AssignmentStats_RequiresIdentifiers (0.00s)
+=== RUN   TestResolver_AssignmentStats_ForwardsParameters
+--- PASS: TestResolver_AssignmentStats_ForwardsParameters (0.00s)
+=== RUN   TestResolver_Positions_ForwardsParameters
+--- PASS: TestResolver_Positions_ForwardsParameters (0.00s)
+=== RUN   TestResolver_Positions_PermissionDenied
+--- PASS: TestResolver_Positions_PermissionDenied (0.00s)
+=== RUN   TestResolver_PositionAssignments_ForwardsParameters
+--- PASS: TestResolver_PositionAssignments_ForwardsParameters (0.00s)
+=== RUN   TestResolver_PositionAssignmentAudit_ForwardsParameters
+--- PASS: TestResolver_PositionAssignmentAudit_ForwardsParameters (0.00s)
+=== RUN   TestResolver_VacantPositions_ForwardsParameters
+--- PASS: TestResolver_VacantPositions_ForwardsParameters (0.00s)
+=== RUN   TestResolver_VacantPositions_ForwardsAsOfDate
+--- PASS: TestResolver_VacantPositions_ForwardsAsOfDate (0.00s)
+=== RUN   TestResolver_PositionTransfers_ForwardsParameters
+--- PASS: TestResolver_PositionTransfers_ForwardsParameters (0.00s)
+=== RUN   TestResolver_PositionHeadcountStats_CustomIncludeSubordinates
+--- PASS: TestResolver_PositionHeadcountStats_CustomIncludeSubordinates (0.00s)
+=== RUN   TestResolver_PositionHeadcountStats_UsesTenantFromContext
+--- PASS: TestResolver_PositionHeadcountStats_UsesTenantFromContext (0.00s)
+=== RUN   TestResolver_Position_ForwardsAsOfDate
+--- PASS: TestResolver_Position_ForwardsAsOfDate (0.00s)
+=== RUN   TestResolver_PositionTimeline_ForwardsDateRange
+--- PASS: TestResolver_PositionTimeline_ForwardsDateRange (0.00s)
+=== RUN   TestResolver_PositionVersions_ForwardsParameters
+--- PASS: TestResolver_PositionVersions_ForwardsParameters (0.00s)
+=== RUN   TestResolver_PositionVersions_IncludeDeletedFlag
+--- PASS: TestResolver_PositionVersions_IncludeDeletedFlag (0.00s)
+PASS
+ok  	cube-castle/internal/organization/resolver	(cached)
+=== RUN   TestOperationalScheduler_RunTaskExecutesScript
+--- PASS: TestOperationalScheduler_RunTaskExecutesScript (0.00s)
+=== RUN   TestOperationalScheduler_RunTaskDisabledScheduler
+--- PASS: TestOperationalScheduler_RunTaskDisabledScheduler (0.00s)
+=== RUN   TestOperationalScheduler_RunTaskUnknown
+--- PASS: TestOperationalScheduler_RunTaskUnknown (0.00s)
+=== RUN   TestTemporalMonitorCollectMetricsHealthy
+--- PASS: TestTemporalMonitorCollectMetricsHealthy (0.00s)
+=== RUN   TestTemporalMonitorCheckAlertsCritical
+--- PASS: TestTemporalMonitorCheckAlertsCritical (0.00s)
+PASS
+ok  	cube-castle/internal/organization/scheduler	(cached)
+=== RUN   TestTranslateJobCatalogErrorUsesValidatorResult
+--- PASS: TestTranslateJobCatalogErrorUsesValidatorResult (0.00s)
+=== RUN   TestTranslateJobCatalogErrorFallbackWhenValidatorMissing
+--- PASS: TestTranslateJobCatalogErrorFallbackWhenValidatorMissing (0.00s)
+=== RUN   TestTranslateJobCatalogErrorHandlesInvalidEffectiveDate
+--- PASS: TestTranslateJobCatalogErrorHandlesInvalidEffectiveDate (0.00s)
+=== RUN   TestTranslateJobCatalogErrorHandlesParentGroupMissing
+--- PASS: TestTranslateJobCatalogErrorHandlesParentGroupMissing (0.00s)
+=== RUN   TestTranslateJobCatalogErrorHandlesParentMismatch
+--- PASS: TestTranslateJobCatalogErrorHandlesParentMismatch (0.00s)
+=== RUN   TestNewHeadcountExceededError
+--- PASS: TestNewHeadcountExceededError (0.00s)
+=== RUN   TestNewAssignmentStateError
+--- PASS: TestNewAssignmentStateError (0.00s)
+=== RUN   TestNewAssignmentFTEError
+--- PASS: TestNewAssignmentFTEError (0.00s)
+PASS
+ok  	cube-castle/internal/organization/service	(cached)
+?   	cube-castle/internal/organization/utils	[no test files]
+=== RUN   TestValidatorCoreSmoke
+--- PASS: TestValidatorCoreSmoke (0.00s)
+=== RUN   TestSeverityToHTTPStatus
+--- PASS: TestSeverityToHTTPStatus (0.00s)
+=== RUN   TestValidationChainWithBaseContext
+--- PASS: TestValidationChainWithBaseContext (0.00s)
+=== RUN   TestValidationChainContextCancelled
+--- PASS: TestValidationChainContextCancelled (0.00s)
+=== RUN   TestValidationChainTelemetryOnly
+--- PASS: TestValidationChainTelemetryOnly (0.00s)
+=== RUN   TestValidationChainRegisterNilRule
+--- PASS: TestValidationChainRegisterNilRule (0.00s)
+=== RUN   TestNewValidationFailedErrorWithoutResult
+--- PASS: TestNewValidationFailedErrorWithoutResult (0.00s)
+=== RUN   TestValidationFailedErrorWithResultAndDetails
+--- PASS: TestValidationFailedErrorWithResultAndDetails (0.00s)
+=== RUN   TestValidationFailedErrorWithoutErrorDetails
+--- PASS: TestValidationFailedErrorWithoutErrorDetails (0.00s)
+=== RUN   TestJobCatalogTemporalAllowsInitialVersion
+--- PASS: TestJobCatalogTemporalAllowsInitialVersion (0.00s)
+=== RUN   TestJobCatalogTemporalRejectsOverlappingVersion
+--- PASS: TestJobCatalogTemporalRejectsOverlappingVersion (0.00s)
+=== RUN   TestJobCatalogSequenceRejectsMismatchedParent
+--- PASS: TestJobCatalogSequenceRejectsMismatchedParent (0.00s)
+=== RUN   TestJobCatalogSequenceAcceptsMatchingParent
+--- PASS: TestJobCatalogSequenceAcceptsMatchingParent (0.00s)
+=== RUN   TestJobCatalogRequiresValidEffectiveDate
+--- PASS: TestJobCatalogRequiresValidEffectiveDate (0.00s)
+=== RUN   TestJobCatalogTimelineFailure
+--- PASS: TestJobCatalogTimelineFailure (0.00s)
+=== RUN   TestJobCatalogSequenceMissingParent
+--- PASS: TestJobCatalogSequenceMissingParent (0.00s)
+=== RUN   TestJobCatalogSequenceMissingTimeline
+--- PASS: TestJobCatalogSequenceMissingTimeline (0.00s)
+=== RUN   TestJobCatalogParseEffectiveDateRequiresValue
+--- PASS: TestJobCatalogParseEffectiveDateRequiresValue (0.00s)
+=== RUN   TestOrganizationCreateDepthViolation
+--- PASS: TestOrganizationCreateDepthViolation (0.00s)
+=== RUN   TestOrganizationCreateDepthWarning
+--- PASS: TestOrganizationCreateDepthWarning (0.00s)
+=== RUN   TestOrganizationCreateTemporalInactiveParent
+--- PASS: TestOrganizationCreateTemporalInactiveParent (0.00s)
+=== RUN   TestOrganizationCreateDuplicateCode
+--- PASS: TestOrganizationCreateDuplicateCode (0.00s)
+=== RUN   TestOrganizationCreateParentMissing
+--- PASS: TestOrganizationCreateParentMissing (0.00s)
+=== RUN   TestOrganizationCreateSelfReferentialParent
+--- PASS: TestOrganizationCreateSelfReferentialParent (0.00s)
+=== RUN   TestOrganizationCreateDepthUnknownReturnsInvalidParent
+--- PASS: TestOrganizationCreateDepthUnknownReturnsInvalidParent (0.00s)
+=== RUN   TestOrganizationCreateBusinessLogicValidation
+--- PASS: TestOrganizationCreateBusinessLogicValidation (0.00s)
+=== RUN   TestOrganizationCreateTemporalConflict
+--- PASS: TestOrganizationCreateTemporalConflict (0.00s)
+=== RUN   TestOrganizationCreateFieldSanitization
+--- PASS: TestOrganizationCreateFieldSanitization (0.00s)
+=== RUN   TestOrganizationCreateNameAllowsLocalizedParentheses
+--- PASS: TestOrganizationCreateNameAllowsLocalizedParentheses (0.00s)
+=== RUN   TestOrganizationUpdateCircularReference
+--- PASS: TestOrganizationUpdateCircularReference (0.00s)
+=== RUN   TestOrganizationUpdateStatusAllowed
+--- PASS: TestOrganizationUpdateStatusAllowed (0.00s)
+=== RUN   TestOrganizationUpdateAllowsLocalizedParentheses
+--- PASS: TestOrganizationUpdateAllowsLocalizedParentheses (0.00s)
+=== RUN   TestValidateTemporalParentAvailability
+--- PASS: TestValidateTemporalParentAvailability (0.00s)
+=== RUN   TestValidateTemporalParentAvailabilitySuccess
+--- PASS: TestValidateTemporalParentAvailabilitySuccess (0.00s)
+=== RUN   TestOrganizationUpdateStatusGuard
+--- PASS: TestOrganizationUpdateStatusGuard (0.00s)
+=== RUN   TestOrganizationCreateNameRequired
+--- PASS: TestOrganizationCreateNameRequired (0.00s)
+=== RUN   TestOrganizationCreateInvalidCodeFormat
+--- PASS: TestOrganizationCreateInvalidCodeFormat (0.00s)
+=== RUN   TestOrganizationCreateInvalidParentFormat
+--- PASS: TestOrganizationCreateInvalidParentFormat (0.00s)
+=== RUN   TestOrganizationUpdateInvalidStatus
+--- PASS: TestOrganizationUpdateInvalidStatus (0.00s)
+=== RUN   TestOrganizationUpdateInvalidParentFormat
+--- PASS: TestOrganizationUpdateInvalidParentFormat (0.00s)
+=== RUN   TestOrganizationUpdateSortOrderOutOfRange
+--- PASS: TestOrganizationUpdateSortOrderOutOfRange (0.00s)
+=== RUN   TestOrganizationCreateDescriptionTooLong
+--- PASS: TestOrganizationCreateDescriptionTooLong (0.00s)
+=== RUN   TestOrganizationUpdateNameEmpty
+--- PASS: TestOrganizationUpdateNameEmpty (0.00s)
+=== RUN   TestOrganizationUpdateUnitTypeEmpty
+--- PASS: TestOrganizationUpdateUnitTypeEmpty (0.00s)
+=== RUN   TestOrganizationUpdateDescriptionTooLong
+--- PASS: TestOrganizationUpdateDescriptionTooLong (0.00s)
+=== RUN   TestOrganizationUpdateStatusEmpty
+--- PASS: TestOrganizationUpdateStatusEmpty (0.00s)
+=== RUN   TestOrganizationUpdateNegativeSortOrder
+--- PASS: TestOrganizationUpdateNegativeSortOrder (0.00s)
+=== RUN   TestOrganizationUpdateTargetNotFound
+--- PASS: TestOrganizationUpdateTargetNotFound (0.00s)
+=== RUN   TestNewBusinessRuleValidator
+--- PASS: TestNewBusinessRuleValidator (0.00s)
+=== RUN   TestValidateCreatePosition_PosOrgInactive
+--- PASS: TestValidateCreatePosition_PosOrgInactive (0.00s)
+=== RUN   TestValidateFillPosition_PosHeadcountExceeded
+--- PASS: TestValidateFillPosition_PosHeadcountExceeded (0.00s)
+=== RUN   TestValidateCreateAssignment_AssignFTEInvalid
+--- PASS: TestValidateCreateAssignment_AssignFTEInvalid (0.00s)
+=== RUN   TestValidateCreateAssignment_CrossActiveOrganizationInactive
+--- PASS: TestValidateCreateAssignment_CrossActiveOrganizationInactive (0.00s)
+=== RUN   TestValidateCloseAssignment_AssignStateGuard
+--- PASS: TestValidateCloseAssignment_AssignStateGuard (0.00s)
+=== RUN   TestValidateCreatePosition_PosJobCatalogInactive
+--- PASS: TestValidateCreatePosition_PosJobCatalogInactive (0.00s)
+=== RUN   TestValidateUpdateAssignment_PosHeadcountExceeded
+--- PASS: TestValidateUpdateAssignment_PosHeadcountExceeded (0.00s)
+=== RUN   TestValidateTransferPosition_TargetOrgMissing
+--- PASS: TestValidateTransferPosition_TargetOrgMissing (0.00s)
+=== RUN   TestStubValidationServicePassThrough
+--- PASS: TestStubValidationServicePassThrough (0.00s)
+=== RUN   TestValidationFailedErrorWrapper
+--- PASS: TestValidationFailedErrorWrapper (0.00s)
+=== RUN   TestValidateVacateAndApplyEventNoOp
+--- PASS: TestValidateVacateAndApplyEventNoOp (0.00s)
+=== RUN   TestValidateCreateVersion_PosOrgRule
+--- PASS: TestValidateCreateVersion_PosOrgRule (0.00s)
+=== RUN   TestMergeJobCatalogContext
+--- PASS: TestMergeJobCatalogContext (0.00s)
+=== RUN   TestResolveOrgContext
+--- PASS: TestResolveOrgContext (0.00s)
+=== RUN   TestExtractHelpers
+--- PASS: TestExtractHelpers (0.00s)
+=== RUN   TestResolveRequestedFTEAndInactiveStatusHelpers
+--- PASS: TestResolveRequestedFTEAndInactiveStatusHelpers (0.00s)
+=== RUN   TestStubHierarchyRepositoryDefaults
+--- PASS: TestStubHierarchyRepositoryDefaults (0.00s)
+=== RUN   TestStubHierarchyRepositoryDelegates
+--- PASS: TestStubHierarchyRepositoryDelegates (0.00s)
+=== RUN   TestStubJobCatalogRepository
+--- PASS: TestStubJobCatalogRepository (0.00s)
+=== RUN   TestStubJobCatalogRepositoryDefaults
+--- PASS: TestStubJobCatalogRepositoryDefaults (0.00s)
+=== RUN   TestStubJobCatalogTimelineRepositoryDefaults
+--- PASS: TestStubJobCatalogTimelineRepositoryDefaults (0.00s)
+=== RUN   TestStubOrganizationRepository
+--- PASS: TestStubOrganizationRepository (0.00s)
+=== RUN   TestStubAssignmentRepository
+--- PASS: TestStubAssignmentRepository (0.00s)
+=== RUN   TestStubPositionRepository
+--- PASS: TestStubPositionRepository (0.00s)
+PASS
+ok  	cube-castle/internal/organization/validator	(cached)
+?   	cube-castle/internal/types	[no test files]
+=== RUN   TestNewDatabaseAppliesDefaults
+--- PASS: TestNewDatabaseAppliesDefaults (0.00s)
+=== RUN   TestNewDatabaseWithCustomConfig
+--- PASS: TestNewDatabaseWithCustomConfig (0.00s)
+=== RUN   TestNewDatabaseWithEmptyDSN
+--- PASS: TestNewDatabaseWithEmptyDSN (0.00s)
+=== RUN   TestNewDatabaseShortcut
+--- PASS: TestNewDatabaseShortcut (0.00s)
+=== RUN   TestExecAndQueryWrappers
+--- PASS: TestExecAndQueryWrappers (0.00s)
+=== RUN   TestRecordConnectionStats
+--- PASS: TestRecordConnectionStats (0.00s)
+=== RUN   TestRecordQueryDuration
+--- PASS: TestRecordQueryDuration (0.00s)
+=== RUN   TestConnectionConfigNormalize
+--- PASS: TestConnectionConfigNormalize (0.00s)
+=== RUN   TestDatabaseNilReceivers
+--- PASS: TestDatabaseNilReceivers (0.00s)
+=== RUN   TestOutboxMigrationUpDown
+--- PASS: TestOutboxMigrationUpDown (0.00s)
+=== RUN   TestOutboxRepositorySave
+--- PASS: TestOutboxRepositorySave (0.00s)
+=== RUN   TestOutboxRepositorySaveValidation
+--- PASS: TestOutboxRepositorySaveValidation (0.00s)
+=== RUN   TestNewOutboxEventDefaults
+--- PASS: TestNewOutboxEventDefaults (0.00s)
+=== RUN   TestOutboxRepositoryGetUnpublished
+--- PASS: TestOutboxRepositoryGetUnpublished (0.00s)
+=== RUN   TestOutboxRepositoryMarkPublished
+--- PASS: TestOutboxRepositoryMarkPublished (0.00s)
+=== RUN   TestOutboxRepositoryIncrementRetry
+--- PASS: TestOutboxRepositoryIncrementRetry (0.00s)
+=== RUN   TestOutboxRepositoryErrors
+--- PASS: TestOutboxRepositoryErrors (0.00s)
+=== RUN   TestWithTxCommit
+--- PASS: TestWithTxCommit (0.00s)
+=== RUN   TestWithTxRollbackOnError
+--- PASS: TestWithTxRollbackOnError (0.00s)
+=== RUN   TestWithTxRollbackFailureReported
+--- PASS: TestWithTxRollbackFailureReported (0.00s)
+=== RUN   TestWithTxNilDatabase
+--- PASS: TestWithTxNilDatabase (0.00s)
+PASS
+ok  	cube-castle/pkg/database	(cached)
+=== RUN   TestPublishWithSingleSubscriber
+--- PASS: TestPublishWithSingleSubscriber (0.00s)
+=== RUN   TestPublishWithMultipleSubscribers
+--- PASS: TestPublishWithMultipleSubscribers (0.00s)
+=== RUN   TestPublishWithHandlerError
+--- PASS: TestPublishWithHandlerError (0.00s)
+=== RUN   TestConcurrentPublishAndSubscribe
+--- PASS: TestConcurrentPublishAndSubscribe (0.00s)
+=== RUN   TestPublishWithNoSubscribers
+--- PASS: TestPublishWithNoSubscribers (0.00s)
+=== RUN   TestErrorHandling
+--- PASS: TestErrorHandling (0.00s)
+=== RUN   TestReset
+--- PASS: TestReset (0.00s)
+=== RUN   TestLatencyMetricRecorded
+--- PASS: TestLatencyMetricRecorded (0.01s)
+=== RUN   TestGenericJSONEvent
+--- PASS: TestGenericJSONEvent (0.00s)
+PASS
+ok  	cube-castle/pkg/eventbus	(cached)
+=== RUN   TestLoggerWithFields
+--- PASS: TestLoggerWithFields (0.00s)
+=== RUN   TestLoggerLevelFiltering
+--- PASS: TestLoggerLevelFiltering (0.00s)
+=== RUN   TestStdLoggerBridge
+--- PASS: TestStdLoggerBridge (0.00s)
+=== RUN   TestParseLevel
+--- PASS: TestParseLevel (0.00s)
+PASS
+ok  	cube-castle/pkg/logger	(cached)
+?   	cube-castle/scripts/cmd/generate-dev-jwt	[no test files]
+?   	cube-castle/shared/config	[no test files]
+=== RUN   TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks
+    auth_flow_e2e_test.go:73: set E2E_RUN=1 to enable end-to-end HTTP test
+--- SKIP: TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks (0.00s)
+PASS
+ok  	cube-castle/tests/e2e	(cached)
+=== RUN   TestMigrationRoundtrip
+=== PAUSE TestMigrationRoundtrip
+=== CONT  TestMigrationRoundtrip
+2025/11/09 16:33:14 OK   20251106000000_base_schema.sql (282.73ms)
+2025/11/09 16:33:14 OK   20251107090000_create_outbox_events.sql (23.74ms)
+2025/11/09 16:33:14 OK   20251107123000_230_job_catalog_oper_fix.sql (8.29ms)
+2025/11/09 16:33:14 OK   20251110110000_234_remove_org_unit_triggers.sql (12.43ms)
+2025/11/09 16:33:14 goose: successfully migrated database to version: 20251110110000
+2025/11/09 16:33:14 EMPTY 20251110110000_234_remove_org_unit_triggers.sql (3.65ms)
+2025/11/09 16:33:14 OK   20251110110000_234_remove_org_unit_triggers.sql (10.96ms)
+2025/11/09 16:33:14 goose: successfully migrated database to version: 20251110110000
+--- PASS: TestMigrationRoundtrip (0.41s)
+PASS
+ok  	cube-castle/tests/integration	(cached)
+[0;32m[INFO][0m 执行 Goose 回滚 (down)...
+2025/11/09 16:35:50 EMPTY 20251110110000_234_remove_org_unit_triggers.sql (23.61ms)
+[0;32m[INFO][0m 集成测试完成
+[0;32m[INFO][0m 清理 Docker 测试环境...

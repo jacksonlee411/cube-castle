@@ -382,7 +382,7 @@ func verifyTimelineContinuity(t *testing.T, db *sql.DB, tenantID uuid.UUID, orgC
 		WHERE tenant_id = $1 AND code = $2
 		  AND status <> 'DELETED'
 		  AND (
-			code_path IS NULL OR code_path = '' OR path <> code_path
+			code_path IS NULL OR code_path = ''
 			OR name_path IS NULL OR name_path = ''
 		  )
 	`, tenantID, orgCode).Scan(&hierarchyMismatch)

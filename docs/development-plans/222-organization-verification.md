@@ -15,12 +15,12 @@
 
 完成 Phase2 的最终验收工作，确保重构后的 organization 模块正常工作，并更新项目的各项文档以反映新的架构。
 
-**关键成果**:
-- ✅ organization 模块完整验证（单元、集成、E2E 测试）
-- ✅ REST/GraphQL 端点回归测试通过
-- ✅ 性能基准测试完成
-- ✅ 项目文档更新
-- ✅ Phase2 执行验收报告
+**关键成果（完成后需附带日志 / CI 证据再勾选）**:
+- [ ] organization 模块完整验证（单元、集成、E2E 测试）
+- [ ] REST/GraphQL 端点回归测试通过
+- [ ] 性能基准测试完成
+- [ ] 项目文档更新
+- [ ] Phase2 执行验收报告
 
 ### 1.2 为什么需要最终验收
 
@@ -34,6 +34,12 @@
 - **计划完成**: Week 4 Day 3-4 (Day 17-18)
 - **交付周期**: 2 天
 - **负责人**: QA + 架构师 + 文档支持
+
+### 1.4 依赖与解锁条件
+
+- **前置计划**: Plan 219（organization 重构完成）、Plan 220（模板文档）、Plan 221（Docker 集成测试基座）。若 `make test-db` 尚未稳定通过且没有 `logs/plan221/run-*.log` 佐证，则 Plan 222 仅能进行筹备。
+- **硬阻塞**: Plan 232（Playwright P0 稳定）。`docs/development-plans/232-playwright-p0-stabilization.md:1065-1094` 明确其双浏览器全绿是 Plan 215/222 的 100% 解锁条件，未满足前不可宣告 Plan 222 完成。
+- **环境约束**: 必须通过 Docker Compose/`make` 目标启动服务，禁止在宿主机直接运行 PostgreSQL、Redis 或 `go run cmd/...`（参考 `AGENTS.md:3-44`）。
 
 ---
 
@@ -89,15 +95,19 @@ make test-db-down
 
 **任务内容**:
 ```bash
-# 启动命令服务
-go run cmd/hrms-server/command/main.go &
+# 通过 Docker 启动命令/查询服务
+make run-dev
+
+# 服务健康检查（9090 = REST，8090 = GraphQL）
+curl -fsS http://localhost:9090/health
+curl -fsS http://localhost:8090/health
 
 # 执行关键 API 调用
-curl -X GET http://localhost:8080/org/organizations/ORG-001
-curl -X POST http://localhost:8080/org/organizations \
+curl -X GET http://localhost:9090/org/organizations/ORG-001
+curl -X POST http://localhost:9090/org/organizations \
   -H "Content-Type: application/json" \
   -d '{"code":"ORG-002","name":"New Org"}'
-curl -X PUT http://localhost:8080/org/organizations/ORG-001 \
+curl -X PUT http://localhost:9090/org/organizations/ORG-001 \
   -H "Content-Type: application/json" \
   -d '{"name":"Updated Org"}'
 
@@ -118,16 +128,15 @@ curl -X PUT http://localhost:8080/org/organizations/ORG-001 \
 
 **任务内容**:
 ```bash
-# 启动查询服务
-go run cmd/hrms-server/query/main.go &
+# GraphQL 入口由 make run-dev 启动的 query service 暴露在 8090 端口
 
 # 执行 GraphQL 查询
-curl -X POST http://localhost:8081/graphql \
+curl -X POST http://localhost:8090/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"{ organizations { id code name } }"}'
 
 # 执行 GraphQL 变更（如果有）
-curl -X POST http://localhost:8081/graphql \
+curl -X POST http://localhost:8090/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"mutation { createOrganization(code:\"ORG-003\", name:\"Org3\") { id code } }"}'
 
@@ -150,28 +159,28 @@ curl -X POST http://localhost:8081/graphql \
 测试场景：完整的组织管理流程
 
 1. 创建新的组织单元
-   POST /org/organizations
+   POST http://localhost:9090/org/organizations
 
 2. 查询组织单元详情
-   GET /org/organizations/{code}
+   GET http://localhost:9090/org/organizations/{code}
 
 3. 创建部门
-   POST /org/departments
+   POST http://localhost:9090/org/departments
 
 4. 为部门创建职位
-   POST /org/positions
+   POST http://localhost:9090/org/positions
 
 5. 分配员工到职位（与 workforce 模块交互）
-   POST /org/positions/{posCode}/assignments
+   POST http://localhost:9090/org/positions/{posCode}/assignments
 
 6. 查询组织结构（完整树形）
-   GET /org/organizations/{code}/structure
+   GET http://localhost:9090/org/organizations/{code}/structure
 
 7. 更新组织信息
-   PUT /org/organizations/{code}
+   PUT http://localhost:9090/org/organizations/{code}
 
 8. 验证审计日志记录
-   GET /org/organizations/{code}/audit-logs
+   GET http://localhost:9090/org/organizations/{code}/audit-logs
 ```
 
 **验收条件**:
@@ -332,7 +341,8 @@ logger.WithFields(map[string]interface{}{
 
 **文件**: `docs/reference/02-IMPLEMENTATION-INVENTORY.md`
 
-**内容更新**:
+> ⚠️ **一致性提醒**：清单中的勾选状态必须与可审计证据（CI run、`logs/plan221/*.log`、验收报告等）完全对应。以下示例仅说明需要更新的内容，禁止在证据缺失时提前标记“完成”。
+
 ```markdown
 # HRMS 系统实现清单
 
@@ -350,11 +360,11 @@ logger.WithFields(map[string]interface{}{
 - [x] pkg/database/ 数据库层 （Plan 217）
 - [x] pkg/logger/ 日志系统 （Plan 218）
 
-### 模块重构 (Plan 219-222)
+### 模块重构与验证 (Plan 219-222)
 - [x] organization 模块重构 （Plan 219）
 - [x] 模块开发模板文档 （Plan 220）
-- [x] Docker 集成测试基座 （Plan 221）
-- [x] 验证和文档更新 （Plan 222）
+- [ ] Docker 集成测试基座 （Plan 221）— 需上传 `make test-db` 成功日志/CI 结果后更新
+- [ ] 验证和文档更新 （Plan 222）— 需附本计划验收报告与文档 diff 后更新
 
 ## Phase3 - workforce 模块开发 📅 计划中
 
@@ -364,13 +374,13 @@ logger.WithFields(map[string]interface{}{
 - [ ] 模块实现
 - [ ] 测试和验证
 
-## 统计信息
+## 统计信息（以最新 `make coverage` / `node scripts/generate-implementation-inventory.js` 输出为准）
 
 | 指标 | 值 |
 |------|-----|
-| 代码行数 | ~15,000 |
-| 测试覆盖率 | 82% |
-| 依赖数量 | 28 |
+| 代码行数 | <待更新> |
+| 测试覆盖率 | <待更新> |
+| 依赖数量 | <待更新> |
 | 模块数量 | 1（organization） + 基础设施 |
 ```
 

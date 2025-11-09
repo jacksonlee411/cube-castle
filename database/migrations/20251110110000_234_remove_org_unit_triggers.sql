@@ -12,7 +12,7 @@ DROP FUNCTION IF EXISTS public.prevent_update_deleted();
 DROP FUNCTION IF EXISTS public.log_audit_changes();
 DROP FUNCTION IF EXISTS public.enforce_temporal_flags();
 
--- +goose Down
+-- +goose StatementBegin
 CREATE FUNCTION public.enforce_temporal_flags() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -294,3 +294,4 @@ CREATE TRIGGER trg_prevent_update_deleted BEFORE UPDATE ON public.organization_u
 CREATE TRIGGER update_hierarchy_paths_trigger BEFORE INSERT OR UPDATE ON public.organization_units FOR EACH ROW EXECUTE FUNCTION public.update_hierarchy_paths();
 CREATE TRIGGER validate_parent_available_trigger BEFORE INSERT ON public.organization_units FOR EACH ROW EXECUTE FUNCTION public.validate_parent_available();
 CREATE TRIGGER validate_parent_available_update_trigger BEFORE UPDATE ON public.organization_units FOR EACH ROW WHEN (((new.parent_code IS NOT NULL) AND ((new.parent_code)::text IS DISTINCT FROM (old.parent_code)::text))) EXECUTE FUNCTION public.validate_parent_available();
+-- +goose StatementEnd

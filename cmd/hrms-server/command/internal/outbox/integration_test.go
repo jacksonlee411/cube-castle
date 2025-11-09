@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -14,15 +15,21 @@ import (
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	_ "github.com/lib/pq"
 )
 
 // TestDispatcherIntegration验证dispatcher在真实Docker PostgreSQL环境下的端到端行为。
 func TestDispatcherIntegration(t *testing.T) {
 	// 连接测试数据库
-	dbURL := "postgres://user:password@localhost:5432/cubecastle?sslmode=disable"
+	dbURL := os.Getenv("INTEGRATION_TEST_DB_URL")
+	if dbURL == "" {
+		dbURL = os.Getenv("DATABASE_URL")
+	}
+	if dbURL == "" {
+		dbURL = "postgres://testuser:testpassword@localhost:5432/testdb?sslmode=disable"
+	}
 	db, err := sql.Open("postgres", dbURL)
 	require.NoError(t, err, "failed to connect to test database")
 	defer db.Close()
@@ -67,7 +74,7 @@ func TestDispatcherIntegration(t *testing.T) {
 			MetricNamespace: "test_outbox",
 		}
 
-        dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
+		dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
 
 		// 启动dispatcher
 		ctx, cancel := context.WithCancel(context.Background())
@@ -132,7 +139,7 @@ func TestDispatcherIntegration(t *testing.T) {
 			MetricNamespace: "test_outbox_fail",
 		}
 
-        dispatcher := NewDispatcher(cfg, repo, failBus, logger, reg, dbClient.WithTx, nil)
+		dispatcher := NewDispatcher(cfg, repo, failBus, logger, reg, dbClient.WithTx, nil)
 
 		// 启动dispatcher
 		ctx, cancel := context.WithCancel(context.Background())
@@ -191,7 +198,7 @@ func TestDispatcherIntegration(t *testing.T) {
 			MetricNamespace: "test_outbox_shutdown",
 		}
 
-        dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
+		dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
 
 		// 启动dispatcher
 		ctx, cancel := context.WithCancel(context.Background())
@@ -246,7 +253,7 @@ func TestDispatcherIntegration(t *testing.T) {
 			MetricNamespace: "test_outbox_idempotent",
 		}
 
-        dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
+		dispatcher := NewDispatcher(cfg, repo, bus, logger, reg, dbClient.WithTx, nil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()

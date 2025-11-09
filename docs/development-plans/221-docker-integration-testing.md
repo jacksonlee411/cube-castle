@@ -312,8 +312,9 @@ make test-db
 
 ## 7. 执行状态（2025-11-09）
 
-- `shangmeilin` 在 `plan/221-prep` 分支执行 221T（`logs/plan221/run-20251109145841.log`），`make test-db` → Goose up/down + `go test -v -tags=integration ./...` 全数通过。
-- 当前环境无法直接触发 GitHub Actions；待恢复访问后由 DevOps 触发 `integration-test` workflow 以记录对应 run 链接。
+- 2025-11-09 16:35 CST：`shangmeilin` 在 `master` 执行 `make test-db`，日志 `logs/plan221/run-20251109163544.log`；数据库容器启动成功、Goose up/down 循环与 `go test -v -tags=integration ./...` 全数通过，`tests/integration` 中的迁移回滚也已修复。
+- 旧日志 `logs/plan221/run-20251109145841.log` 保留作失败样本；最新时间戳写入 `logs/plan221/latest-ts` 供脚本引用。
+- 当前环境仍无法触发 GitHub Actions；待恢复访问后由 DevOps 再次运行 `.github/workflows/integration-test.yml` 以补齐云端证据。
 - [x] 本计划文档（221）
 
 ---
