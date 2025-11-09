@@ -10,6 +10,8 @@
 
 表：`audit_logs`（见 database/migrations/**，以及实现 `internal/audit/logger.go`）
 
+> 组织单元相关的行级触发器在 Plan 234 中已全部移除，`database/migrations/20251110110000_234_remove_org_unit_triggers.sql` 通过 Goose 显式删除触发器与函数，命令服务仅通过 `internal/organization/audit/logger.go:120-189` 写入结构化审计，确保单一事实来源。
+
 - 核心字段（与实现保持一致）：
   - `event_type`：事件类型（AUTHENTICATION/ERROR/CREATE/UPDATE/...）
   - `resource_type`：资源类型（USER/SYSTEM/...）
@@ -96,4 +98,3 @@ ORDER BY timestamp DESC;
 - 安全增强（建议）：
   - 刷新令牌复用检测（reuse detection）→ 记录 `REFRESH_REUSE_DETECTED` 并强制登出。
   - 加入来源IP/User-Agent 等上下文字段（可存入 `before_data`）。
-

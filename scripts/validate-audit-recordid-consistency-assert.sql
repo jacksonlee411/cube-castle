@@ -19,7 +19,7 @@ BEGIN
     INTO v_empty_updates
     FROM audit_logs
    WHERE event_type = 'UPDATE'
-     AND before_data = after_data
+     AND request_data = response_data
      AND jsonb_array_length(coalesce(changes, '[]'::jsonb)) = 0;
 
   IF v_empty_updates > 0 THEN
@@ -29,14 +29,14 @@ BEGIN
   SELECT COUNT(*)
     INTO v_mismatched
     FROM audit_logs
-   WHERE coalesce((after_data->>'record_id'), (before_data->>'record_id')) IS NOT NULL
-     AND record_id IS DISTINCT FROM coalesce((after_data->>'record_id')::uuid, (before_data->>'record_id')::uuid);
+   WHERE coalesce((response_data->>'record_id'), (request_data->>'record_id')) IS NOT NULL
+     AND record_id IS DISTINCT FROM coalesce((response_data->>'record_id')::uuid, (request_data->>'record_id')::uuid);
 
   IF v_mismatched > 0 THEN
     RAISE EXCEPTION 'AUDIT_RECORD_ID_MISMATCH_GT_ZERO(%)', v_mismatched;
   END IF;
 
-  -- 仅断言“目标触发器”不存在（审计/时态/软删标志相关），避免误伤其他技术性触发器
+  -- 仅断言“目标触发器”不存在（组织审计/时态/层级校验相关），避免误伤其他技术性触发器
   SELECT COUNT(*)
     INTO v_triggers
     FROM pg_trigger t
@@ -45,6 +45,11 @@ BEGIN
      AND NOT t.tgisinternal
      AND t.tgname IN (
        'audit_changes_trigger',
+       'enforce_temporal_flags_trigger',
+       'trg_prevent_update_deleted',
+       'update_hierarchy_paths_trigger',
+       'validate_parent_available_trigger',
+       'validate_parent_available_update_trigger',
        'auto_end_date_trigger',
        'auto_lifecycle_status_trigger',
        'enforce_soft_delete_temporal_flags_trigger'

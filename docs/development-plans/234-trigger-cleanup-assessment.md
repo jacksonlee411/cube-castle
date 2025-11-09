@@ -41,3 +41,10 @@
 ## 5. 附录
 - 校验输出：`docker compose -f docker-compose.dev.yml exec -T postgres psql -U user -d cubecastle -f scripts/validate-audit-recordid-consistency.sql`
 - 触发器名单：`audit_changes_trigger`、`enforce_temporal_flags_trigger`、`trg_prevent_update_deleted`、`update_hierarchy_paths_trigger`、`validate_parent_available_trigger`、`validate_parent_available_update_trigger`
+
+---
+
+## 6. 执行记录（2025-11-10）
+- Schema 快照 `database/schema.sql` 与 `database/schema/current_schema.sql` 已移除 `log_audit_changes` 等触发器函数定义，`rg` 检索不再返回相关符号，确保唯一事实来源与实现一致。
+- 新增 Goose 迁移 `database/migrations/20251110110000_234_remove_org_unit_triggers.sql:1-150`，通过 Up/Down 逻辑删除并可回滚触发器、函数。
+- `scripts/validate-audit-recordid-consistency-assert.sql:34-58` 扩展断言清单，直接阻断组织表上的审计/层级触发器回流。
