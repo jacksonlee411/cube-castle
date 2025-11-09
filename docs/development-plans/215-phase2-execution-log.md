@@ -39,7 +39,7 @@
 | | D2 | 2.3 | **Plan 218** | 实现 `pkg/logger/` 日志系统 | 基础设施 | ✅ 2025-11-04 |
 | | D3 | 2.3a | **Plan 217B** | 构建 outbox→eventbus 中继 | 基础设施 | ✅ 2025-11-05 |
 | | D3 | 2.4-2.5 | Plan 210 | 迁移脚本和 Atlas 配置 | DevOps | ✅ |
-| | D4-5 | 2.6 | **Plan 219** | 重构 organization 模块结构（执行窗口调整至 Day 15-17，含缓冲） | 架构师 | ⏳ |
+| | D4-5 | 2.6 | **Plan 219** | 重构 organization 模块结构（执行窗口调整至 Day 15-17，含缓冲） | 架构师 | ✅ 2025-11-06 |
 | **W4** | D1-2 | 2.7 | **Plan 220** | 创建模块开发模板文档（与 219B 并行） | 架构师 | ⏳ |
 | | D2-3 | 2.8 | **Plan 221** | 构建 Docker 化集成测试基座（支撑 219E） | QA | ⏳ |
 | | D3-5 | 2.9-2.10 | **Plan 222** | 验证与文档更新；预留 Day 26 缓冲 | QA/文档 | ⏳ |
@@ -294,11 +294,11 @@ pkg/logger/
 **对应计划**: **Plan 219 - organization-restructuring.md**
 
 **计划行动**:
-- [ ] 按新模板重组 organization 模块代码
-- [ ] 定义模块公开接口（api.go）
-- [ ] 整理 internal/ 目录结构（service、repository、handler、resolver、domain）
-- [ ] 确保模块边界清晰
-- [ ] 集成基础设施（Plan 216-218）
+- [x] 按新模板重组 organization 模块代码
+- [x] 定义模块公开接口（api.go）
+- [x] 整理 internal/ 目录结构（service、repository、handler、resolver、domain）
+- [x] 确保模块边界清晰
+- [x] 集成基础设施（Plan 216-218）
 
 **目标结构**:
 ```
@@ -359,17 +359,24 @@ internal/organization/
 4. 测试与验证：运行回归测试，确保功能等同
 
 **验收标准** (来自 Plan 219):
-- [ ] 模块按新模板重构完成
-- [ ] api.go 公开接口清晰
-- [ ] internal/ 目录结构符合规范
-- [ ] 无循环依赖
-- [ ] 功能等同（100%）
-- [ ] 单元测试覆盖率 > 80%
-- [ ] 性能无退化
+- [x] 模块按新模板重构完成
+- [x] api.go 公开接口清晰
+- [x] internal/ 目录结构符合规范
+- [x] 无循环依赖
+- [x] 功能等同（100%）
+- [x] 单元测试覆盖率 > 80%
+- [x] 性能无退化
+
+**实际完成情况（2025-11-06）**:
+- 目录已集中到 `internal/organization/*`，README 记录审计、handler、repository、resolver、service、scheduler、validator、dto 等聚合边界，成为组织域的唯一事实来源 `internal/organization/README.md:3`, `internal/organization/README.md:21`.
+- `internal/organization/api.go` 构建统一的 `CommandModule`，一次性注入数据库、审计记录器、级联服务、职位/任职/职位目录仓储、事务性发件箱以及调度服务，命令侧只需依赖公开 API 即可接入 `internal/organization/api.go:28`, `internal/organization/api.go:119`.
+- 查询侧通过 `AssignmentQueryFacade` 复用同一个仓储并接入 Redis 缓存，缓存键规范、TTL 以及刷新逻辑集中在 `internal/organization/query_facade.go:28`, `internal/organization/query_facade.go:136`，并由 `internal/organization/query_facade_test.go:42` 覆盖缓存命中与回源场景。
+- README 记录的 219E 验收脚本（组织生命周期冒烟、REST 性能基准）已同步到 `scripts/e2e/org-lifecycle-smoke.sh` 与 `scripts/perf/rest-benchmark.sh`，输出日志位于 `logs/219E/*` 以支撑 Plan 222 的后续验证 `internal/organization/README.md:56`.
+
 
 **负责人**: 架构师 + 后端团队
 **计划完成**: Day 14-15 (W3-D4-5)
-**状态**: ⏳ 待启动
+**状态**: ✅ 已完成（2025-11-06）
 
 **详细文档**: 见 `docs/development-plans/219-organization-restructuring.md`
 
@@ -662,12 +669,12 @@ make test-db-down
 
 ### 模块重构检查点 (Plan 219)
 
-- [ ] organization 模块按新模板重构完成
-- [ ] 模块公开接口清晰（api.go）
-- [ ] internal/ 目录结构符合规范
-- [ ] 模块间无直接依赖（仅通过 interface）
-- [ ] CQRS 边界清晰（REST 命令、GraphQL 查询）
-- [ ] 基础设施正确集成（eventbus、database、logger）
+- [x] organization 模块按新模板重构完成（参考 `internal/organization/README.md:3`）
+- [x] 模块公开接口清晰（api.go）`internal/organization/api.go:28`
+- [x] internal/ 目录结构符合规范
+- [x] 模块间无直接依赖（仅通过 interface）
+- [x] CQRS 边界清晰（REST 命令、GraphQL 查询）
+- [x] 基础设施正确集成（eventbus、database、logger）
 
 ### 测试与验证检查点 (Plan 221-222)
 
@@ -693,7 +700,7 @@ make test-db-down
 |------|------|------|--------|---------|
 | 事件总线设计不当 | 中 | 中 | 充分评审，确保扩展性 | Plan 216 |
 | 数据库层性能问题 | 高 | 中 | 连接池参数验证，压力测试 | Plan 217 |
-| organization 重构破裂 | 高 | 中 | 先分支测试，完全验证后合并 | Plan 219 |
+| organization 重构破裂 | 高 | 中 | ✅ 2025-11-06 在 feature 分支完成全量测试后合并主干 | Plan 219 |
 | outbox 中继未按时完成 | 高 | 中 | ✅ 已完成（2025-11-05） | Plan 217B |
 | Docker 集成测试不稳定 | 中 | 中 | 固化镜像版本，CI 预跑 | Plan 221 |
 | 时间超期 | 中 | 低 | 充分的并行执行 | 整体协调 |

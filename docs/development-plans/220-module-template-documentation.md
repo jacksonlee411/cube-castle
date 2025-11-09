@@ -31,10 +31,10 @@
 
 ### 1.3 时间计划
 
-- **计划完成**: Week 4 Day 1 (Day 15)
-- **交付周期**: 1 天
-- **负责人**: 架构师 + 文档支持
-- **前置依赖**: Plan 219（organization 重构完成）
+- **计划窗口**: Week 4 Day 1-2（Day 17-18，对应 2025-11-07~08，预留 2 天用于采样校验 + 文档成稿）
+- **交付周期**: 2 天（含评审与引用校对）
+- **负责人**: 架构师 + 文档支持（组织模块 Owner 负责技术审校）
+- **前置依赖**: Plan 219（organization 重构完成，详见 `docs/development-plans/215-phase2-execution-log.md:35`）
 
 ### 1.4 约束与引用
 
@@ -47,6 +47,15 @@
 - `Makefile`：标准命令名称（如 `make docker-up`, `make run-dev`, `make test`, `make db-migrate-all`）。
 
 文档各章节在描述结构、流程或命令时需引用以上文件，交付前需执行一致性校验（逐项对照引用是否仍成立）。
+
+### 1.5 输入材料（Plan 219 交付物）
+
+- `internal/organization/README.md:3`, `internal/organization/README.md:21`, `internal/organization/README.md:56` —— 目录职责、聚合边界、219E 验收脚本。
+- `internal/organization/api.go:28`, `internal/organization/api.go:119` —— CommandModule 构造器与依赖注入示例。
+- `internal/organization/query_facade.go:28`, `internal/organization/query_facade.go:136` —— 查询 Facade 与缓存刷新逻辑。
+- `internal/organization/query_facade_test.go:42` —— Facade 行为覆盖示例。
+- `docs/development-plans/215-phase2-execution-log.md:35`, `docs/development-plans/215-phase2-execution-log.md:370` —— Plan 219 完成记录与验证摘要。
+- `docs/development-plans/204-HRMS-Implementation-Roadmap.md:21` —— Phase2 基础设施最新状态，用于计划对齐描述。
 
 ---
 
@@ -214,12 +223,12 @@ services:
 
 ### 3.2 准备示例代码
 
-从 organization 模块提取关键代码作为示例：
-- models.go 示例
-- repository.go 示例
-- service.go 示例
-- handler.go 示例
-- resolver.go 示例
+从 organization 模块提取关键代码作为示例（每个样例需注明来源文件/行号，并去除租户/秘钥信息）：
+- `internal/organization/api.go` —— CommandModule/Handlers 构造代码片段，演示依赖注入顺序。
+- `internal/organization/repository/*.go` —— Repository 模式与 `database/sql` 用法。
+- `internal/organization/service/*.go` + `pkg/database/outbox.go` —— 事务性发件箱与 `WithTx` 模式。
+- `internal/organization/handler/*.go` —— REST Handler 模板。
+- `internal/organization/resolver/*.go` 或 `query_facade.go` —— GraphQL/查询 Facade 与缓存策略。
 
 ### 3.3 创建检查清单
 
@@ -231,10 +240,10 @@ services:
 
 ### 3.4 整合与审审查
 
-- 架构师审查文档
-- 后端 TL 检查示例代码准确性
-- QA 验证测试规范
-- 文档支持进行最终编辑
+- 架构师审查文档（重点核对聚合边界和依赖关系描述是否仍与 `internal/organization/README.md` 一致）
+- 后端 TL 检查示例代码准确性（验证引用片段与主干代码保持同步）
+- QA 验证测试规范（交叉引用 Plan 221 Docker 测试基座要求）
+- 文档支持进行最终编辑并执行引用校验清单（逐项勾选 7.1 条件）
 
 ---
 
@@ -301,7 +310,7 @@ internal/{module_name}/
 - **api.go** - 暴露 `CommandModule`/`ResolverModule` 等构造器，其余文件置于 `internal/` 防止跨模块引用
 ```
 
-### 6.2 集成测试规范章节示例
+### 6.2 集成测试规范章节示例（与 AGENTS Docker 约束对齐）
 
 ```markdown
 ## Docker 集成测试规范
@@ -321,6 +330,7 @@ internal/{module_name}/
 - 测试相互独立，尽量 `t.Parallel()`。
 - 使用事务包裹测试并回滚，必要时 TRUNCATE 。
 - 在 `tests/` 下维护数据初始化脚本，并记录日志到 `logs/`.
+- 若出现 5432/6379 等端口占用，按照 `AGENTS.md` 要求先卸载宿主冲突服务，**禁止**通过修改 Compose 端口映射规避冲突。
 ```
 
 ---
@@ -352,13 +362,14 @@ internal/{module_name}/
 
 ## 8. 交付物清单
 
-- ✅ `docs/development-guides/module-development-template.md` （主文档）
-- ✅ `docs/development-guides/examples/organization/` （示例代码）
-- ✅ `docs/development-guides/checklists/module-structure-checklist.md`
-- ✅ `docs/development-guides/checklists/api-contract-checklist.md`
-- ✅ `docs/development-guides/checklists/testing-checklist.md`
-- ✅ `docs/development-guides/checklists/deployment-checklist.md`
-- ✅ 本计划文档（220）
+- [ ] `docs/development-guides/module-development-template.md` （主文档，>=3000 字，引用区块完整）
+- [ ] `docs/development-guides/examples/organization/` （示例代码，附来源路径注释）
+- [ ] `docs/development-guides/examples/workforce/` （骨架示例，演示如何套用模板）
+- [ ] `docs/development-guides/checklists/module-structure-checklist.md`
+- [ ] `docs/development-guides/checklists/api-contract-checklist.md`
+- [ ] `docs/development-guides/checklists/testing-checklist.md`
+- [ ] `docs/development-guides/checklists/deployment-checklist.md`
+- [ ] 本计划文档（220）更新完成并存档
 
 ---
 
