@@ -67,9 +67,10 @@ test.describe('职位生命周期视图', () => {
     await stubGraphQL(page);
     await setupAuth(page);
 
-    await page.goto('/positions');
-    await waitForPageReady(page);
-    await waitForGraphQL(page, POSITIONS_QUERY_NAME);
+  const positionsQueryReady = waitForGraphQL(page, POSITIONS_QUERY_NAME);
+  await page.goto('/positions');
+  await positionsQueryReady;
+  await waitForPageReady(page);
 
     await expect(page.getByRole('heading', { name: '职位管理（Stage 1 数据接入）' })).toBeVisible();
     await expect(page.getByTestId(`position-row-${POSITION_FIXTURE_CODE}`)).toBeVisible();

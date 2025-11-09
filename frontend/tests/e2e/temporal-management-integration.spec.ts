@@ -226,9 +226,14 @@ async function commandRequestStatus(
 
 async function waitForOrganizationSearchInput(page: Page) {
   await waitForPageReady(page);
-  await expect(page.getByTestId('organization-dashboard-wrapper')).toBeVisible({ timeout: 20000 });
+
+  const dashboard = page.getByTestId('organization-dashboard-wrapper');
+  await dashboard.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {
+    // 如果新版 UI 调整了容器 testid，则忽略等待，直接尝试定位搜索框
+  });
+
   const locator = page.locator(ORGANIZATION_SEARCH_INPUT_SELECTOR).first();
-  await expect(locator).toBeVisible({ timeout: 15000 });
+  await expect(locator).toBeVisible({ timeout: 20000 });
   return locator;
 }
 

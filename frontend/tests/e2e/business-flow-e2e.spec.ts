@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { setupAuth } from './auth-setup';
 import { E2E_CONFIG } from './config/test-environment';
 import { ensurePwJwt, getPwJwt } from './utils/authToken';
@@ -25,7 +25,15 @@ const waitForTemporalDetailReady = async (page: Page): Promise<void> => {
   });
 };
 
-const expectDeleteButtonVisible = async (page: Page) => {
+const selectTimelineNodeIfNeeded = async (page: Page) => {
+  const firstNode = page.getByTestId('temporal-timeline-node').first();
+  if (await firstNode.count()) {
+    await firstNode.click();
+    await page.waitForTimeout(250);
+  }
+};
+
+const expectDeleteButtonVisible = async (page: Page, attempt = 0): Promise<Locator> => {
   const wrapper = page.getByTestId('temporal-delete-record-button-wrapper');
   await expect(wrapper).toBeVisible({ timeout: 20000 });
 
@@ -36,8 +44,18 @@ const expectDeleteButtonVisible = async (page: Page) => {
   }
 
   const organizationButton = wrapper.getByTestId('temporal-delete-organization-button');
-  await expect(organizationButton).toBeVisible({ timeout: 20000 });
-  return organizationButton;
+  if (await organizationButton.count()) {
+    await expect(organizationButton).toBeVisible({ timeout: 20000 });
+    return organizationButton;
+  }
+
+  if (attempt >= 1) {
+    throw new Error('未能找到删除按钮，即使尝试重新选择时间线节点后仍失败');
+  }
+
+  await selectTimelineNodeIfNeeded(page);
+  await page.waitForTimeout(250);
+  return expectDeleteButtonVisible(page, attempt + 1);
 };
 
 const filterOrganizationsByName = async (
