@@ -142,7 +142,7 @@ func TestGetAuditHistoryReturnsStructuredRecords(t *testing.T) {
 
 	currentExpectation = &auditExpectation{
 		querySubstring: "FROM audit_logs",
-		expectedArgs:   []string{tenantID.String(), recordID.String(), "50"},
+		expectedArgs:   []string{tenantID.String(), recordID.String(), recordID.String(), "50"},
 		columns: []string{
 			"audit_id",
 			"record_id",

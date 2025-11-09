@@ -12,14 +12,14 @@ WITH empty_updates AS (
   SELECT COUNT(*)::bigint AS cnt
   FROM audit_logs
   WHERE event_type = 'UPDATE'
-    AND before_data = after_data
+    AND request_data = response_data
     AND jsonb_array_length(coalesce(changes, '[]'::jsonb)) = 0
 ),
 mismatched_recordid AS (
   SELECT COUNT(*)::bigint AS cnt
   FROM audit_logs
-  WHERE coalesce((after_data->>'record_id'), (before_data->>'record_id')) IS NOT NULL
-    AND record_id IS DISTINCT FROM coalesce((after_data->>'record_id')::uuid, (before_data->>'record_id')::uuid)
+  WHERE coalesce((response_data->>'record_id'), (request_data->>'record_id')) IS NOT NULL
+    AND record_id IS DISTINCT FROM coalesce((response_data->>'record_id')::uuid, (request_data->>'record_id')::uuid)
 ),
 triggers_present AS (
   SELECT COUNT(*)::bigint AS cnt
@@ -40,13 +40,13 @@ ORDER BY check_item;
 \echo '== DETAILS: TOP 50 RECORD_ID PAYLOAD MISMATCHES =='
 SELECT id,
        record_id                               AS audit_record_id,
-       (before_data->>'record_id')             AS before_record_id,
-       (after_data->>'record_id')              AS after_record_id,
+       (request_data->>'record_id')            AS request_record_id,
+       (response_data->>'record_id')           AS response_record_id,
        event_type,
        timestamp
 FROM audit_logs
-WHERE coalesce((after_data->>'record_id'), (before_data->>'record_id')) IS NOT NULL
-  AND record_id IS DISTINCT FROM coalesce((after_data->>'record_id')::uuid, (before_data->>'record_id')::uuid)
+WHERE coalesce((response_data->>'record_id'), (request_data->>'record_id')) IS NOT NULL
+  AND record_id IS DISTINCT FROM coalesce((response_data->>'record_id')::uuid, (request_data->>'record_id')::uuid)
 ORDER BY timestamp DESC
 LIMIT 50;
 
@@ -57,7 +57,7 @@ SELECT id,
 FROM audit_logs
 WHERE event_type = 'UPDATE'
   AND jsonb_array_length(coalesce(changes, '[]'::jsonb)) = 0
-  AND NOT (before_data = after_data)
+  AND NOT (request_data = response_data)
 ORDER BY timestamp DESC
 LIMIT 50;
 
@@ -70,4 +70,3 @@ WHERE c.relname = 'organization_units'
 ORDER BY tgname;
 
 \echo '== END OF AUDIT CONSISTENCY VALIDATION =='
-

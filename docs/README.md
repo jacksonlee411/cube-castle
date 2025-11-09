@@ -44,6 +44,7 @@ docs/
 └── archive/             # 历史文档归档区
     ├── development-plans/            # 开发计划归档（已完成/历史）
     ├── plan-216-219/                 # Plan 216-219 系列（46 个文档，2025-11-08 归档）
+    ├── plan-230/                     # Plan 230 系列（7 个文档，2025-11-08 归档）
     ├── deprecated-neo4j-era/
     ├── deprecated-api-specs/
     ├── deprecated-api-design/

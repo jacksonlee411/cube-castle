@@ -45,6 +45,7 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 		log.Warn("invalid recordId")
 		return nil, fmt.Errorf("INVALID_RECORD_ID")
 	}
+	recordIDText := recordUUID.String()
 
 	// 构建查询条件 - 基于record_id查询，包含完整变更信息，强制租户隔离
 	baseQuery := `
@@ -84,11 +85,14 @@ func (r *PostgreSQLRepository) GetAuditHistory(ctx context.Context, tenantId uui
 			COALESCE(changes, '[]'::jsonb)::text as detailed_changes
 		FROM audit_logs
 		WHERE tenant_id = $1::uuid 
-		  AND resource_id::uuid = $2::uuid 
+		  AND (
+			record_id = $2::uuid
+			OR (record_id IS NULL AND LOWER(resource_id) = LOWER($3))
+		  )
 		  AND resource_type IN ('ORGANIZATION', 'POSITION', 'JOB_CATALOG')`
 
-	args := []interface{}{tenantId, recordUUID}
-	argIndex := 3
+	args := []interface{}{tenantId, recordUUID, recordIDText}
+	argIndex := 4
 
 	// 日期范围过滤
 	if startDate != nil {

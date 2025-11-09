@@ -3,10 +3,12 @@ package audit
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 
+	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -17,11 +19,50 @@ type jsonContains struct {
 }
 
 func (m jsonContains) Match(v driver.Value) bool {
-	s, ok := v.(string)
+	data, ok := normalizeArgument(v)
+	if !ok {
+		return strings.Contains(fmt.Sprint(v), m.fragment)
+	}
+	return strings.Contains(string(data), m.fragment)
+}
+
+func normalizeArgument(v driver.Value) ([]byte, bool) {
+	switch val := v.(type) {
+	case string:
+		return []byte(val), true
+	case []byte:
+		return val, true
+	default:
+		bytes, err := json.Marshal(val)
+		if err != nil {
+			return nil, false
+		}
+		return bytes, true
+	}
+}
+
+type fieldChangeHas struct {
+	field    string
+	newValue string
+}
+
+func (m fieldChangeHas) Match(v driver.Value) bool {
+	data, ok := normalizeArgument(v)
 	if !ok {
 		return false
 	}
-	return strings.Contains(s, m.fragment)
+	var entries []map[string]interface{}
+	if err := json.Unmarshal(data, &entries); err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if fmt.Sprint(entry["field"]) == m.field {
+			if fmt.Sprint(entry["newValue"]) == m.newValue {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func TestLogEvent_FallbackResourceID(t *testing.T) {
@@ -196,6 +237,129 @@ func TestLogErrorSetsPayload(t *testing.T) {
 
 	if err := auditLogger.LogError(context.Background(), tenantID, ResourceTypeSystem, "entity-1", "DoSomething", "system", "req-err", "E001", "boom", reqData); err != nil {
 		t.Fatalf("LogError returned error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sqlmock expectations not met: %v", err)
+	}
+}
+
+func TestLogOrganizationDeleteUsesRecordId(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock new: %v", err)
+	}
+	defer db.Close()
+
+	auditLogger := NewAuditLogger(db, pkglogger.NewNoopLogger())
+	tenantID := uuid.New()
+	recordID := uuid.New()
+	org := &types.Organization{
+		RecordID: recordID.String(),
+		TenantID: tenantID.String(),
+		Code:     "1000001",
+		Name:     "删除前",
+		Status:   "ACTIVE",
+		Level:    1,
+	}
+
+	mock.ExpectExec("INSERT INTO audit_logs").WithArgs(
+		sqlmock.AnyArg(),
+		tenantID,
+		EventTypeDelete,
+		ResourceTypeOrganization,
+		recordID.String(),
+		"user-1",
+		ActorTypeUser,
+		"DeleteOrganization",
+		"req-del",
+		"cleanup",
+		sqlmock.AnyArg(),
+		true,
+		"",
+		"",
+		sqlmock.AnyArg(),
+		sqlmock.AnyArg(),
+		sqlmock.AnyArg(),
+		sqlmock.AnyArg(),
+		recordID,
+		sqlmock.AnyArg(),
+	).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	if err := auditLogger.LogOrganizationDelete(context.Background(), tenantID, org.Code, org, "user-1", "req-del", "cleanup"); err != nil {
+		t.Fatalf("LogOrganizationDelete returned error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sqlmock expectations not met: %v", err)
+	}
+}
+
+func TestLogOrganizationDeleteRequiresSnapshot(t *testing.T) {
+	auditLogger := NewAuditLogger(nil, pkglogger.NewNoopLogger())
+	err := auditLogger.LogOrganizationDelete(context.Background(), uuid.New(), "1000001", nil, "user-1", "req-del", "cleanup")
+	if err == nil || !strings.Contains(err.Error(), "organization snapshot") {
+		t.Fatalf("expected snapshot error, got %v", err)
+	}
+
+	org := &types.Organization{
+		Code: "1000001",
+		Name: "missing record",
+	}
+	err = auditLogger.LogOrganizationDelete(context.Background(), uuid.New(), org.Code, org, "user-1", "req-del", "cleanup")
+	if err == nil || !strings.Contains(err.Error(), "recordId") {
+		t.Fatalf("expected recordId error, got %v", err)
+	}
+}
+
+func TestLogOrganizationCreateCapturesNewValues(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock new: %v", err)
+	}
+	defer db.Close()
+
+	auditLogger := NewAuditLogger(db, pkglogger.NewNoopLogger())
+	tenantID := uuid.New()
+	recordID := uuid.New()
+	parentCode := "PARENT01"
+	result := &types.Organization{
+		RecordID:   recordID.String(),
+		TenantID:   tenantID.String(),
+		Code:       "ORG001",
+		Name:       "测试组织",
+		UnitType:   "DEPARTMENT",
+		Status:     "ACTIVE",
+		Level:      1,
+		ParentCode: &parentCode,
+	}
+
+	mock.ExpectExec("INSERT INTO audit_logs").WithArgs(
+		sqlmock.AnyArg(),
+		tenantID,
+		EventTypeCreate,
+		ResourceTypeOrganization,
+		recordID.String(),
+		"user-1",
+		ActorTypeUser,
+		"CreateOrganization",
+		"req-create",
+		"reason",
+		sqlmock.AnyArg(),
+		true,
+		"",
+		"",
+		"{}",
+		jsonContains{`"code":"ORG001"`},
+		sqlmock.AnyArg(),
+		fieldChangeHas{field: "code", newValue: "ORG001"},
+		recordID,
+		jsonContains{`"entityCode":"ORG001"`},
+	).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	req := &types.CreateOrganizationRequest{}
+	if err := auditLogger.LogOrganizationCreate(context.Background(), req, result, "user-1", "req-create", "reason"); err != nil {
+		t.Fatalf("LogOrganizationCreate returned error: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

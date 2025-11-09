@@ -78,3 +78,10 @@
 - 请在 `docs/reference/05-AUDIT-AUTH-GUIDE.md` 或相关参考文档中记录此次变更，确保唯一事实来源一致。
 
 > 备注：执行完成后请将本计划状态同步到 `docs/development-plans/` 与相关归档（若全部交付完成，可移入 `docs/archive/development-plans/`）。
+
+---
+
+## 8. 实施记录（2025-11-09）
+- ✅ **查询服务落地**：`internal/organization/repository/postgres_audit.go` 改为使用 `record_id` 过滤，并为遗留行提供 `LOWER(resource_id)` 回退；配套单测 `TestGetAuditHistoryReturnsStructuredRecords` 更新参数断言，通过 `go test ./internal/organization/repository` 覆盖。
+- ✅ **命令服务落地**：`internal/organization/audit/logger.go` 的 `LogOrganizationDelete` 强制要求 `org.RecordID`，不再写入组织编码；新增用例 `TestLogOrganizationDeleteUsesRecordId/RequiresSnapshot`（`go test ./internal/organization/audit` 绿灯）。
+- ✅ **验证与文档同步**：本计划文档纳入执行记录，下一步可在运行 `scripts/fix-audit-recordid-misplaced.sql` 后关闭计划并转入 archive。

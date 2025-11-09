@@ -338,25 +338,47 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+func valueOrNil(ptr *string) interface{} {
+	if ptr == nil {
+		return nil
+	}
+	val := strings.TrimSpace(*ptr)
+	if val == "" {
+		return nil
+	}
+	return val
+}
+
 // LogOrganizationCreate 记录组织创建事件 (v4.3.0 - 简化审计信息)
 func (a *AuditLogger) LogOrganizationCreate(ctx context.Context, req *types.CreateOrganizationRequest, result *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(result.TenantID)
-	// 计算创建时的“新增字段”列表（无beforeData，oldValue为null）
-	createdFields := []FieldChange{}
-	modifiedFields := []string{}
-	// 基本字段
-	for _, fc := range []struct{ field, dtype string }{
-		{"code", "string"}, {"name", "string"}, {"unitType", "string"}, {"parentCode", "string"},
-		{"status", "string"}, {"level", "int"},
-	} {
-		createdFields = append(createdFields, FieldChange{Field: fc.field, OldValue: nil, NewValue: nil, DataType: fc.dtype})
-		modifiedFields = append(modifiedFields, fc.field)
+	// 计算创建时的“新增字段”列表（使用实际值作为 newValue）
+	createdFields := []FieldChange{
+		{Field: "code", DataType: "string", OldValue: nil, NewValue: result.Code},
+		{Field: "name", DataType: "string", OldValue: nil, NewValue: result.Name},
+		{Field: "unitType", DataType: "string", OldValue: nil, NewValue: result.UnitType},
+		{Field: "parentCode", DataType: "string", OldValue: nil, NewValue: valueOrNil(result.ParentCode)},
+		{Field: "status", DataType: "string", OldValue: nil, NewValue: result.Status},
+		{Field: "level", DataType: "int", OldValue: nil, NewValue: result.Level},
 	}
-	// 时态相关（若存在）
+	modifiedFields := []string{"code", "name", "unitType", "parentCode", "status", "level"}
+
 	if result.EffectiveDate != nil {
+		createdFields = append(createdFields, FieldChange{
+			Field:    "effectiveDate",
+			OldValue: nil,
+			NewValue: result.EffectiveDate.String(),
+			DataType: "date",
+		})
 		modifiedFields = append(modifiedFields, "effectiveDate")
 	}
 	if result.EndDate != nil {
+		createdFields = append(createdFields, FieldChange{
+			Field:    "endDate",
+			OldValue: nil,
+			NewValue: result.EndDate.String(),
+			DataType: "date",
+		})
 		modifiedFields = append(modifiedFields, "endDate")
 	}
 
@@ -512,33 +534,29 @@ func (a *AuditLogger) LogOrganizationActivate(ctx context.Context, code string, 
 
 // LogOrganizationDelete 记录组织删除事件 (v4.3.0 - 简化参数)
 func (a *AuditLogger) LogOrganizationDelete(ctx context.Context, tenantID uuid.UUID, code string, org *types.Organization, actorID, requestID, operationReason string) error {
-	var beforeData map[string]interface{}
-	var resourceID string
-
-	// 如果有组织数据，记录删除前状态和使用正确的RecordID
-	if org != nil {
-		beforeData = map[string]interface{}{
-			"code":   org.Code,
-			"name":   org.Name,
-			"status": org.Status,
-			"level":  org.Level,
-		}
-		resourceID = org.RecordID
-	} else {
-		// 如果没有组织数据，这种情况需要从数据库查询RecordID
-		// 为了简化，这里使用code，但这会导致UUID类型错误
-		// TODO-TEMPORARY: Should pass correct RecordID from caller; refactor deletion audit in v4.3 by 2025-09-20.
-		resourceID = code
+	if org == nil {
+		return fmt.Errorf("organization snapshot required for delete audit logging")
 	}
 
-	// 删除：记录状态字段变更为 DELETED（若可用）
-	var changes []FieldChange
-	var modified []string
-	if org != nil {
-		changes = []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "DELETED", DataType: "string"}}
-		modified = []string{"status"}
+	resourceID := strings.TrimSpace(org.RecordID)
+	if resourceID == "" {
+		return fmt.Errorf("organization recordId is required for delete audit logging")
 	}
-	recordUUID, _ := uuid.Parse(resourceID)
+	recordUUID, err := uuid.Parse(resourceID)
+	if err != nil {
+		return fmt.Errorf("invalid organization recordId for audit logging: %w", err)
+	}
+
+	beforeData := map[string]interface{}{
+		"code":   org.Code,
+		"name":   org.Name,
+		"status": org.Status,
+		"level":  org.Level,
+	}
+
+	// 删除：记录状态字段变更为 DELETED
+	changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "DELETED", DataType: "string"}}
+	modified := []string{"status"}
 	event := &AuditEvent{
 		TenantID:        tenantID,
 		EventType:       EventTypeDelete,
