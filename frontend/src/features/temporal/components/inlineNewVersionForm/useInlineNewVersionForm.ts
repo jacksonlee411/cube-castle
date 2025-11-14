@@ -15,6 +15,7 @@ import type {
   InlineVersionRecord,
 } from './types';
 import type { InlineSubmitEvent } from './FormActions';
+import { useTemporalEntityDetail } from '@/shared/hooks/useTemporalEntityDetail';
 
 export interface UseInlineNewVersionFormResult {
   formData: TemporalEditFormData;
@@ -72,6 +73,13 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
     isDeletingOrganization = false,
   } = props;
 
+  // 统一 Hook：用于改进默认展示（不改变提交契约）
+  const unifiedDetail = useTemporalEntityDetail(
+    'organization',
+    props.organizationCode ?? undefined,
+    { enabled: Boolean(props.organizationCode) },
+  );
+
   const [formData, setFormData] = useState<TemporalEditFormData>({ ...DEFAULT_FORM_DATA });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parentError, setParentError] = useState<string>('');
@@ -100,9 +108,31 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
 
   useEffect(() => {
     const firstDayOfMonth = getCurrentMonthFirstDay();
+    // 统一默认值（不改契约，仅改善展示）：优先级
+    // 1) 所选版本 effectiveDate（编辑历史时优先）
+    // 2) 当前版本 effectiveDate（从 allVersions isCurrent 推断）
+    // 3) 统一 Hook record.effectiveDate（兜底）
+    // 4) 月初默认（现有行为）
+    const selectedVersionDate =
+      selectedVersion?.effectiveDate
+        ? new Date(selectedVersion.effectiveDate).toISOString().split('T')[0]
+        : undefined;
+    const currentVersionDate =
+      allVersions?.find(v => v.isCurrent)?.effectiveDate
+        ? new Date(allVersions.find(v => v.isCurrent)!.effectiveDate).toISOString().split('T')[0]
+        : undefined;
+    const recordEffectiveDate =
+      unifiedDetail.data?.record?.effectiveDate
+        ? new Date(unifiedDetail.data.record.effectiveDate).toISOString().split('T')[0]
+        : undefined;
+    const unifiedDefaultDate =
+      selectedVersionDate ??
+      currentVersionDate ??
+      recordEffectiveDate ??
+      firstDayOfMonth;
 
     if (currentMode === 'edit' && initialData) {
-      setFormData(normalizeInitialData(initialData, firstDayOfMonth));
+      setFormData(normalizeInitialData(initialData, unifiedDefaultDate));
       if (selectedVersion) {
         setOriginalHistoryData(selectedVersion);
         setIsEditingHistory(false);
@@ -110,7 +140,7 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
     } else {
       setFormData({
         ...DEFAULT_FORM_DATA,
-        effectiveDate: firstDayOfMonth,
+        effectiveDate: unifiedDefaultDate,
       });
       setOriginalHistoryData(null);
       setIsEditingHistory(false);
@@ -121,7 +151,7 @@ const useInlineNewVersionForm = (props: InlineNewVersionFormProps): UseInlineNew
     setSuggestedEffectiveDate(undefined);
     setSuccessMessage(null);
     setErrorMessage(null);
-  }, [currentMode, initialData, selectedVersion]);
+  }, [currentMode, initialData, selectedVersion, allVersions, unifiedDetail.data?.record?.effectiveDate]);
 
   useEffect(() => {
     if (!successMessage) {

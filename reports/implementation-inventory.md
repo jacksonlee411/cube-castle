@@ -1,0 +1,437 @@
+## Draft – Command API (from OpenAPI)
+- `/api/v1/operational/health`
+- `/api/v1/operational/metrics`
+- `/api/v1/operational/alerts`
+- `/api/v1/operational/rate-limit/stats`
+- `/api/v1/operational/tasks`
+- `/api/v1/operational/tasks/status`
+- `/api/v1/operational/tasks/{taskName}/trigger`
+- `/api/v1/operational/cutover`
+- `/api/v1/operational/consistency-check`
+- `/auth/login`
+- `/auth/callback`
+- `/auth/session`
+- `/auth/refresh`
+- `/auth/logout`
+- `/.well-known/oidc`
+- `/.well-known/jwks.json`
+- `/api/v1/organization-units`
+- `/api/v1/organization-units/{code}`
+- `/api/v1/organization-units/{code}/versions`
+- `/api/v1/organization-units/{code}/events`
+- `/api/v1/organization-units/{code}/suspend`
+- `/api/v1/organization-units/{code}/activate`
+- `/api/v1/organization-units/validate`
+- `/api/v1/organization-units/{code}/refresh-hierarchy`
+- `/api/v1/organization-units/batch-refresh-hierarchy`
+- `/api/v1/corehr/organizations`
+- `/api/v1/positions`
+- `/api/v1/positions/{code}`
+- `/api/v1/positions/{code}/versions`
+- `/api/v1/positions/{code}/events`
+- `/api/v1/positions/{code}/fill`
+- `/api/v1/positions/{code}/vacate`
+- `/api/v1/positions/{code}/transfer`
+- `/api/v1/positions/{code}/assignments`
+- `/api/v1/positions/{code}/assignments/{assignmentId}`
+- `/api/v1/positions/{code}/assignments/{assignmentId}/close`
+- `/api/v1/job-family-groups`
+- `/api/v1/job-family-groups/{code}`
+- `/api/v1/job-family-groups/{code}/versions`
+- `/api/v1/job-families`
+- `/api/v1/job-families/{code}`
+- `/api/v1/job-families/{code}/versions`
+- `/api/v1/job-roles`
+- `/api/v1/job-roles/{code}`
+- `/api/v1/job-roles/{code}/versions`
+- `/api/v1/job-levels`
+- `/api/v1/job-levels/{code}`
+- `/api/v1/job-levels/{code}/versions`
+- `/api/v1/job-catalog/sync`
+
+## Draft – GraphQL Queries (from schema.graphql)
+- `organizations`
+- `organization`
+- `organizationStats`
+- `organizationHierarchy`
+- `organizationSubtree`
+- `hierarchyStatistics`
+- `positions`
+- `position`
+- `positionTimeline`
+- `positionVersions`
+- `positionAssignments`
+- `positionAssignmentAudit`
+- `assignments`
+- `assignmentHistory`
+- `assignmentStats`
+- `vacantPositions`
+- `positionTransfers`
+- `positionHeadcountStats`
+- `auditHistory`
+- `auditLog`
+- `organizationVersions`
+- `jobFamilyGroups`
+- `jobFamilies`
+- `jobRoles`
+- `jobLevels`
+
+## Draft – Go Handlers (exported methods)
+- SetupRoutes — internal/organization/handler/devtools.go
+- GenerateDevToken — internal/organization/handler/devtools.go
+- GetTokenInfo — internal/organization/handler/devtools.go
+- DevStatus — internal/organization/handler/devtools.go
+- ListTestEndpoints — internal/organization/handler/devtools.go
+- DatabaseStatus — internal/organization/handler/devtools.go
+- PerformanceMetrics — internal/organization/handler/devtools.go
+- TestAPI — internal/organization/handler/devtools.go
+- SetupRoutes — internal/organization/handler/job_catalog_handler.go
+- CreateJobFamilyGroup — internal/organization/handler/job_catalog_handler.go
+- UpdateJobFamilyGroup — internal/organization/handler/job_catalog_handler.go
+- CreateJobFamilyGroupVersion — internal/organization/handler/job_catalog_handler.go
+- CreateJobFamily — internal/organization/handler/job_catalog_handler.go
+- UpdateJobFamily — internal/organization/handler/job_catalog_handler.go
+- CreateJobFamilyVersion — internal/organization/handler/job_catalog_handler.go
+- CreateJobRole — internal/organization/handler/job_catalog_handler.go
+- UpdateJobRole — internal/organization/handler/job_catalog_handler.go
+- CreateJobRoleVersion — internal/organization/handler/job_catalog_handler.go
+- CreateJobLevel — internal/organization/handler/job_catalog_handler.go
+- UpdateJobLevel — internal/organization/handler/job_catalog_handler.go
+- CreateJobLevelVersion — internal/organization/handler/job_catalog_handler.go
+- SetupRoutes — internal/organization/handler/operational.go
+- GetRateLimitStats — internal/organization/handler/operational.go
+- GetHealth — internal/organization/handler/operational.go
+- GetMetrics — internal/organization/handler/operational.go
+- GetAlerts — internal/organization/handler/operational.go
+- GetTasks — internal/organization/handler/operational.go
+- GetTaskStatus — internal/organization/handler/operational.go
+- TriggerTask — internal/organization/handler/operational.go
+- TriggerCutover — internal/organization/handler/operational.go
+- TriggerConsistencyCheck — internal/organization/handler/operational.go
+- CreateOrganization — internal/organization/handler/organization_create.go
+- CreateOrganizationVersion — internal/organization/handler/organization_create.go
+- CreateOrganizationEvent — internal/organization/handler/organization_events.go
+- UpdateHistoryRecord — internal/organization/handler/organization_history.go
+- SetupRoutes — internal/organization/handler/organization_routes.go
+- UpdateOrganization — internal/organization/handler/organization_update.go
+- SuspendOrganization — internal/organization/handler/organization_update.go
+- ActivateOrganization — internal/organization/handler/organization_update.go
+- SetupRoutes — internal/organization/handler/position_handler.go
+- CreatePosition — internal/organization/handler/position_handler.go
+- ReplacePosition — internal/organization/handler/position_handler.go
+- CreatePositionVersion — internal/organization/handler/position_handler.go
+- FillPosition — internal/organization/handler/position_handler.go
+- VacatePosition — internal/organization/handler/position_handler.go
+- TransferPosition — internal/organization/handler/position_handler.go
+- ListAssignments — internal/organization/handler/position_handler.go
+- CreateAssignment — internal/organization/handler/position_handler.go
+- UpdateAssignment — internal/organization/handler/position_handler.go
+- CloseAssignment — internal/organization/handler/position_handler.go
+- ApplyPositionEvent — internal/organization/handler/position_handler.go
+- CreatePosition — internal/organization/handler/position_handler_test.go
+- ReplacePosition — internal/organization/handler/position_handler_test.go
+- CreatePositionVersion — internal/organization/handler/position_handler_test.go
+- FillPosition — internal/organization/handler/position_handler_test.go
+- VacatePosition — internal/organization/handler/position_handler_test.go
+- TransferPosition — internal/organization/handler/position_handler_test.go
+- ApplyEvent — internal/organization/handler/position_handler_test.go
+- ListAssignments — internal/organization/handler/position_handler_test.go
+- CreateAssignmentRecord — internal/organization/handler/position_handler_test.go
+- UpdateAssignmentRecord — internal/organization/handler/position_handler_test.go
+- CloseAssignmentRecord — internal/organization/handler/position_handler_test.go
+
+## Draft – Go Services (exported types)
+- HierarchyRepository — internal/organization/repository/hierarchy.go
+- OrganizationNode — internal/organization/repository/hierarchy.go
+- JobCatalogRepository — internal/organization/repository/job_catalog_repository.go
+- JobCatalogTimelineEntry — internal/organization/repository/job_catalog_repository.go
+- OrganizationRepository — internal/organization/repository/organization_repository.go
+- OrganizationHasChildrenError — internal/organization/repository/organization_repository.go
+- PositionAssignmentRepository — internal/organization/repository/position_assignment_repository.go
+- PositionRepository — internal/organization/repository/position_repository.go
+- AuditHistoryConfig — internal/organization/repository/postgres_base.go
+- PostgreSQLRepository — internal/organization/repository/postgres_base.go
+- TemporalTimelineManager — internal/organization/repository/temporal_timeline_manager.go
+- TimelineVersion — internal/organization/repository/temporal_timeline_manager.go
+- OperationalScheduler — internal/organization/scheduler/operational_scheduler.go
+- ScheduledTask — internal/organization/scheduler/operational_scheduler.go
+- OrganizationTemporalService — internal/organization/scheduler/organization_temporal_service.go
+- TemporalCreateVersionRequest — internal/organization/scheduler/organization_temporal_service.go
+- TemporalUpdateVersionRequest — internal/organization/scheduler/organization_temporal_service.go
+- TemporalDeleteVersionRequest — internal/organization/scheduler/organization_temporal_service.go
+- TemporalStatusChangeRequest — internal/organization/scheduler/organization_temporal_service.go
+- Service — internal/organization/scheduler/service.go
+- Dependencies — internal/organization/scheduler/service.go
+- TemporalMonitor — internal/organization/scheduler/temporal_monitor.go
+- MonitoringMetrics — internal/organization/scheduler/temporal_monitor.go
+- AlertRule — internal/organization/scheduler/temporal_monitor.go
+- TemporalService — internal/organization/scheduler/temporal_service.go
+- InsertVersionRequest — internal/organization/scheduler/temporal_service.go
+- OrganizationData — internal/organization/scheduler/temporal_service.go
+- DeleteVersionRequest — internal/organization/scheduler/temporal_service.go
+- ChangeEffectiveDateRequest — internal/organization/scheduler/temporal_service.go
+- SuspendActivateRequest — internal/organization/scheduler/temporal_service.go
+- VersionResponse — internal/organization/scheduler/temporal_service.go
+
+## Draft – Frontend Exports (classes/functions/const)
+- [const] cubecastleBrandTokens — frontend/src/design-system/tokens/brand.ts
+- [const] CatalogTable — frontend/src/features/job-catalog/shared/CatalogTable.tsx
+- [const] getCatalogStatusMeta — frontend/src/features/job-catalog/types.ts
+- [const] formatISODate — frontend/src/features/job-catalog/types.ts
+- [const] ORGANIZATION_UNIT_TYPES — frontend/src/features/organizations/constants/formConfig.ts
+- [const] ORGANIZATION_STATUSES — frontend/src/features/organizations/constants/formConfig.ts
+- [const] BUSINESS_STATUSES — frontend/src/features/organizations/constants/formConfig.ts
+- [const] ORGANIZATION_LEVELS — frontend/src/features/organizations/constants/formConfig.ts
+- [const] FORM_DEFAULTS — frontend/src/features/organizations/constants/formConfig.ts
+- [const] PAGINATION_DEFAULTS — frontend/src/features/organizations/constants/formConfig.ts
+- [const] TABLE_COLUMNS — frontend/src/features/organizations/constants/tableConfig.ts
+- [const] STATUS_COLORS — frontend/src/features/organizations/constants/tableConfig.ts
+- [const] LOADING_STATES — frontend/src/features/organizations/constants/tableConfig.ts
+- [const] buildCreatePositionPayload — frontend/src/features/positions/components/PositionForm/payload.ts
+- [const] buildUpdatePositionPayload — frontend/src/features/positions/components/PositionForm/payload.ts
+- [const] buildCreatePositionVersionPayload — frontend/src/features/positions/components/PositionForm/payload.ts
+- [const] createInitialState — frontend/src/features/positions/components/PositionForm/types.ts
+- [const] parseHeadcount — frontend/src/features/positions/components/PositionForm/validation.ts
+- [const] validatePositionForm — frontend/src/features/positions/components/PositionForm/validation.ts
+- [const] getVersionKey — frontend/src/features/positions/components/versioning/utils.ts
+- [const] buildVersionsCsv — frontend/src/features/positions/components/versioning/utils.ts
+- [const] fetchOrganizationVersions — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] fetchHierarchyPaths — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] deactivateOrganizationVersion — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] createOrganizationUnit — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] createTemporalVersion — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] updateHistoryRecord — frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+- [const] createLoadVersions — frontend/src/features/temporal/components/hooks/temporalMasterDetailLoaders.ts
+- [const] createHandleVersionSelect — frontend/src/features/temporal/components/hooks/temporalMasterDetailLoaders.ts
+- [const] createHandleStateMutationCompleted — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
+- [const] createHandleDeleteVersion — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
+- [const] createHandleDeleteOrganization — frontend/src/features/temporal/components/hooks/temporalMasterDetailMutations.ts
+- [const] createHandleFormSubmit — frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts
+- [const] createHandleHistoryEditSubmit — frontend/src/features/temporal/components/hooks/temporalMasterDetailSubmissions.ts
+- [const] useTemporalMasterDetail — frontend/src/features/temporal/components/hooks/useTemporalMasterDetail.ts
+- [const] createFormActions — frontend/src/features/temporal/components/inlineNewVersionForm/formActions.ts
+- [const] mapLifecycleStatusToOrganizationStatus — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] getCurrentMonthFirstDay — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] computeEditDateRange — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] formatDisplayDate — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] normalizeInitialData — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] deriveCodePath — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] deriveNamePath — frontend/src/features/temporal/components/inlineNewVersionForm/utils.ts
+- [const] TEMPORAL_STATUS_COLORS — frontend/src/features/temporal/constants/temporalStatus.ts
+- [const] temporalStatusUtils — frontend/src/features/temporal/constants/temporalStatus.ts
+- [const] getTemporalEntityStatusMeta — frontend/src/features/temporal/entity/statusMeta.ts
+- [const] getPositionStatusMeta — frontend/src/features/temporal/entity/statusMeta.ts
+- [const] getOrganizationStatusMeta — frontend/src/features/temporal/entity/statusMeta.ts
+- [const] createTemporalTimelineAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
+- [const] positionTimelineAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
+- [const] positionTimelineEventAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
+- [const] organizationTimelineAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
+- [const] TEMPORAL_CONSTANTS — frontend/src/features/temporal/index.ts
+- [const] temporalUtils — frontend/src/features/temporal/index.ts
+- [class] AuthManager — frontend/src/shared/api/auth.ts
+- [const] TOKEN_STORAGE_KEY — frontend/src/shared/api/auth.ts
+- [const] authManager — frontend/src/shared/api/auth.ts
+- [const] contractTestingAPI — frontend/src/shared/api/contract-testing.ts
+- [class] APIErrorImpl — frontend/src/shared/api/error-handling.ts
+- [class] OAuthError — frontend/src/shared/api/error-handling.ts
+- [class] ErrorHandler — frontend/src/shared/api/error-handling.ts
+- [class] UserFriendlyError — frontend/src/shared/api/error-handling.ts
+- [const] isUserFriendlyError — frontend/src/shared/api/error-handling.ts
+- [const] isOAuthError — frontend/src/shared/api/error-handling.ts
+- [const] withErrorHandling — frontend/src/shared/api/error-handling.ts
+- [const] useErrorHandler — frontend/src/shared/api/error-handling.ts
+- [const] withRetry — frontend/src/shared/api/error-handling.ts
+- [const] withOAuthRetry — frontend/src/shared/api/error-handling.ts
+- [const] withOAuthAwareErrorHandling — frontend/src/shared/api/error-handling.ts
+- [const] UnifiedErrorHandler — frontend/src/shared/api/error-handling.ts
+- [func] getErrorMessage — frontend/src/shared/api/error-messages.ts
+- [func] formatErrorForUser — frontend/src/shared/api/error-messages.ts
+- [const] SUCCESS_MESSAGES — frontend/src/shared/api/error-messages.ts
+- [class] GraphQLEnterpriseAdapter — frontend/src/shared/api/graphql-enterprise-adapter.ts
+- [const] graphqlEnterpriseAdapter — frontend/src/shared/api/graphql-enterprise-adapter.ts
+- [const] useEnterpriseGraphQL — frontend/src/shared/api/graphql-enterprise-adapter.ts
+- [const] monitoringAPI — frontend/src/shared/api/monitoring.ts
+- [const] queryClient — frontend/src/shared/api/queryClient.ts
+- [const] queryMetrics — frontend/src/shared/api/queryClient.ts
+- [const] createQueryError — frontend/src/shared/api/queryClient.ts
+- [const] __internal — frontend/src/shared/api/queryClient.ts
+- [class] ValidationError — frontend/src/shared/api/type-guards.ts
+- [const] validateOrganizationUnit — frontend/src/shared/api/type-guards.ts
+- [const] validateCreateOrganizationInput — frontend/src/shared/api/type-guards.ts
+- [const] validateUpdateOrganizationInput — frontend/src/shared/api/type-guards.ts
+- [const] validateCreateOrganizationResponse — frontend/src/shared/api/type-guards.ts
+- [const] validateGraphQLVariables — frontend/src/shared/api/type-guards.ts
+- [const] validateGraphQLOrganizationResponse — frontend/src/shared/api/type-guards.ts
+- [const] validateGraphQLOrganizationList — frontend/src/shared/api/type-guards.ts
+- [const] isGraphQLError — frontend/src/shared/api/type-guards.ts
+- [const] isGraphQLSuccessResponse — frontend/src/shared/api/type-guards.ts
+- [const] isAPIError — frontend/src/shared/api/type-guards.ts
+- [const] isValidationError — frontend/src/shared/api/type-guards.ts
+- [const] isNetworkError — frontend/src/shared/api/type-guards.ts
+- [const] safeTransformGraphQLToOrganizationUnit — frontend/src/shared/api/type-guards.ts
+- [const] safeTransformCreateInputToAPI — frontend/src/shared/api/type-guards.ts
+- [class] UnifiedGraphQLClient — frontend/src/shared/api/unified-client.ts
+- [class] UnifiedRESTClient — frontend/src/shared/api/unified-client.ts
+- [class] UnauthenticatedRESTClient — frontend/src/shared/api/unified-client.ts
+- [const] unifiedGraphQLClient — frontend/src/shared/api/unified-client.ts
+- [const] unifiedRESTClient — frontend/src/shared/api/unified-client.ts
+- [const] unauthenticatedRESTClient — frontend/src/shared/api/unified-client.ts
+- [const] createGraphQLClient — frontend/src/shared/api/unified-client.ts
+- [const] createRESTClient — frontend/src/shared/api/unified-client.ts
+- [const] validateCQRSUsage — frontend/src/shared/api/unified-client.ts
+- [const] AuthContext — frontend/src/shared/auth/context.ts
+- [const] AUTH_UNAUTHORIZED — frontend/src/shared/auth/events.ts
+- [const] authEvents — frontend/src/shared/auth/events.ts
+- [const] useAuth — frontend/src/shared/auth/hooks.ts
+- [const] commandBaseUrl — frontend/src/shared/config/api.ts
+- [const] commandApiBaseUrl — frontend/src/shared/config/api.ts
+- [const] commandMetricsUrl — frontend/src/shared/config/api.ts
+- [const] queryBaseUrl — frontend/src/shared/config/api.ts
+- [const] graphqlEndpoint — frontend/src/shared/config/api.ts
+- [const] graphqlMetricsUrl — frontend/src/shared/config/api.ts
+- [const] authEndpoint — frontend/src/shared/config/api.ts
+- [const] resolveCommandUrl — frontend/src/shared/config/api.ts
+- [const] resolveQueryUrl — frontend/src/shared/config/api.ts
+- [const] resolveGraphqlUrl — frontend/src/shared/config/api.ts
+- [const] resolveAuthUrl — frontend/src/shared/config/api.ts
+- [const] TIMEOUTS — frontend/src/shared/config/constants.ts
+- [const] LIMITS — frontend/src/shared/config/constants.ts
+- [const] BUSINESS_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] UI_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] API_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] TEST_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] RETRY_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] VALIDATION_CONSTANTS — frontend/src/shared/config/constants.ts
+- [const] FEATURE_FLAGS — frontend/src/shared/config/constants.ts
+- [const] generateConstantsReport — frontend/src/shared/config/constants.ts
+- [const] getEnvVar — frontend/src/shared/config/environment.ts
+- [const] requireEnvVar — frontend/src/shared/config/environment.ts
+- [const] getBooleanEnvVar — frontend/src/shared/config/environment.ts
+- [const] getNumberEnvVar — frontend/src/shared/config/environment.ts
+- [const] validateEnvironmentConfig — frontend/src/shared/config/environment.ts
+- [const] Config — frontend/src/shared/config/index.ts
+- [const] CONFIG_MANAGEMENT_STATS — frontend/src/shared/config/index.ts
+- [const] SERVICE_PORTS — frontend/src/shared/config/ports.ts
+- [const] getServicePort — frontend/src/shared/config/ports.ts
+- [const] buildServiceURL — frontend/src/shared/config/ports.ts
+- [const] CQRS_ENDPOINTS — frontend/src/shared/config/ports.ts
+- [const] FRONTEND_ENDPOINTS — frontend/src/shared/config/ports.ts
+- [const] INFRASTRUCTURE_ENDPOINTS — frontend/src/shared/config/ports.ts
+- [const] validatePortConfiguration — frontend/src/shared/config/ports.ts
+- [const] generatePortConfigReport — frontend/src/shared/config/ports.ts
+- [class] TenantManager — frontend/src/shared/config/tenant.ts
+- [const] DEFAULT_TENANT_CONFIG — frontend/src/shared/config/tenant.ts
+- [const] tenantManager — frontend/src/shared/config/tenant.ts
+- [const] getCurrentTenantId — frontend/src/shared/config/tenant.ts
+- [const] isDefaultTenant — frontend/src/shared/config/tenant.ts
+- [const] getTenantConfig — frontend/src/shared/config/tenant.ts
+- [const] ORGANIZATION_BY_CODE_DOCUMENT — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] ORGANIZATIONS_QUERY_ROOT_KEY — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] organizationsQueryKey — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] organizationByCodeQueryKey — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] useEnterpriseOrganizations — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [const] __internal — frontend/src/shared/hooks/useEnterpriseOrganizations.ts
+- [func] useEnterprisePositions — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [func] usePositionDetail — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [func] usePositionAssignments — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [func] useVacantPositions — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [func] usePositionHeadcountStats — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] POSITIONS_QUERY_ROOT_KEY — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] POSITION_DETAIL_QUERY_ROOT_KEY — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] POSITION_ASSIGNMENTS_QUERY_ROOT_KEY — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] VACANT_POSITIONS_QUERY_ROOT_KEY — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] POSITION_HEADCOUNT_STATS_QUERY_ROOT_KEY — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] positionsQueryKey — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] positionDetailQueryKey — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] positionAssignmentsQueryKey — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] vacantPositionsQueryKey — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] positionHeadcountStatsQueryKey — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] __internal — frontend/src/shared/hooks/useEnterprisePositions.ts
+- [const] useJobFamilyGroups — frontend/src/shared/hooks/useJobCatalog.ts
+- [const] useJobFamilies — frontend/src/shared/hooks/useJobCatalog.ts
+- [const] useJobRoles — frontend/src/shared/hooks/useJobCatalog.ts
+- [const] useJobLevels — frontend/src/shared/hooks/useJobCatalog.ts
+- [const] useCreateJobFamilyGroup — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useUpdateJobFamilyGroup — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useCreateJobFamily — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useUpdateJobFamily — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useCreateJobRole — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useUpdateJobRole — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useCreateJobLevel — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useUpdateJobLevel — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useCreateJobFamilyGroupVersion — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useCreateJobFamilyVersion — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useCreateJobRoleVersion — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useCreateJobLevelVersion — frontend/src/shared/hooks/useJobCatalogMutations.ts
+- [const] useMessages — frontend/src/shared/hooks/useMessages.ts
+- [const] useCreateOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useUpdateOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useSuspendOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useActivateOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useDeleteOrganization — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] useCreateOrganizationVersion — frontend/src/shared/hooks/useOrganizationMutations.ts
+- [const] usePositionCatalogOptions — frontend/src/shared/hooks/usePositionCatalogOptions.ts
+- [const] useCreatePosition — frontend/src/shared/hooks/usePositionMutations.ts
+- [const] useUpdatePosition — frontend/src/shared/hooks/usePositionMutations.ts
+- [const] useCreatePositionVersion — frontend/src/shared/hooks/usePositionMutations.ts
+- [const] useTransferPosition — frontend/src/shared/hooks/usePositionMutations.ts
+- [func] useScopes — frontend/src/shared/hooks/useScopes.ts
+- [func] useOrgPBAC — frontend/src/shared/hooks/useScopes.ts
+- [func] useTemporalEntityDetail — frontend/src/shared/hooks/useTemporalEntityDetail.ts
+- [const] temporalEntityDetailQueryKey — frontend/src/shared/hooks/useTemporalEntityDetail.ts
+- [const] isGraphQLResponse — frontend/src/shared/types/api.ts
+- [const] hasGraphQLErrors — frontend/src/shared/types/api.ts
+- [func] isOrganizationUnitTypeEnum — frontend/src/shared/types/contract_gen.ts
+- [func] isOrganizationStatusEnum — frontend/src/shared/types/contract_gen.ts
+- [func] isOrganizationOperationTypeEnum — frontend/src/shared/types/contract_gen.ts
+- [const] OrganizationUnitTypeEnumValues — frontend/src/shared/types/contract_gen.ts
+- [const] OrganizationStatusEnumValues — frontend/src/shared/types/contract_gen.ts
+- [const] OrganizationOperationTypeEnumValues — frontend/src/shared/types/contract_gen.ts
+- [const] OrganizationConstraints — frontend/src/shared/types/contract_gen.ts
+- [func] convertGraphQLToOrganizationUnit — frontend/src/shared/types/converters.ts
+- [func] convertGraphQLToTemporalOrganizationUnit — frontend/src/shared/types/converters.ts
+- [func] convertCreateInputToREST — frontend/src/shared/types/converters.ts
+- [func] convertUpdateInputToREST — frontend/src/shared/types/converters.ts
+- [func] checkTypeConsistency — frontend/src/shared/types/converters.ts
+- [func] generateTypeDefinition — frontend/src/shared/types/converters.ts
+- [func] logTypeSyncReport — frontend/src/shared/types/converters.ts
+- [const] TYPE_USAGE_GUIDE — frontend/src/shared/types/index.ts
+- [const] isJsonObject — frontend/src/shared/types/json.ts
+- [const] isJsonArray — frontend/src/shared/types/json.ts
+- [const] baseColors — frontend/src/shared/utils/colorTokens.ts
+- [const] statusColors — frontend/src/shared/utils/colorTokens.ts
+- [const] legacyColors — frontend/src/shared/utils/colorTokens.ts
+- [const] generateIdempotencyKey — frontend/src/shared/utils/idempotency.ts
+- [const] DateUtils — frontend/src/shared/utils/index.ts
+- [const] TEMPORAL_UTILS_INFO — frontend/src/shared/utils/index.ts
+- [const] createLogger — frontend/src/shared/utils/logger.ts
+- [const] logger — frontend/src/shared/utils/logger.ts
+- [const] ROOT_PARENT_CODE — frontend/src/shared/utils/organization-helpers.ts
+- [const] normalizeParentCode — frontend/src/shared/utils/organization-helpers.ts
+- [const] isRootOrganization — frontend/src/shared/utils/organization-helpers.ts
+- [const] getOrganizationLevelText — frontend/src/shared/utils/organization-helpers.ts
+- [const] coerceOrganizationLevel — frontend/src/shared/utils/organization-helpers.ts
+- [const] getDisplayLevel — frontend/src/shared/utils/organization-helpers.ts
+- [func] splitPath — frontend/src/shared/utils/organizationPath.ts
+- [func] toBreadcrumbItems — frontend/src/shared/utils/organizationPath.ts
+- [func] toParentChainFromCodePath — frontend/src/shared/utils/organizationPath.ts
+- [func] getOperationPermissionsByScopes — frontend/src/shared/utils/organizationPermissions.ts
+- [const] getOperationPermissions — frontend/src/shared/utils/organizationPermissions.ts
+- [const] STATUS_CONFIG — frontend/src/shared/utils/statusUtils.ts
+- [const] statusUtils — frontend/src/shared/utils/statusUtils.ts
+- [class] TemporalConverter — frontend/src/shared/utils/temporal-converter.ts
+- [const] TemporalUtils — frontend/src/shared/utils/temporal-converter.ts
+- [const] validateTemporalDate — frontend/src/shared/utils/temporal-validation-adapter.ts
+- [const] VALIDATION_SYSTEM_INFO — frontend/src/shared/validation/index.ts
+- [const] OrganizationUnitSchema — frontend/src/shared/validation/schemas.ts
+- [const] TemporalFormSchema — frontend/src/shared/validation/schemas.ts
+- [const] CreateOrganizationInputSchema — frontend/src/shared/validation/schemas.ts
+- [const] CreateOrganizationResponseSchema — frontend/src/shared/validation/schemas.ts
+- [const] UpdateOrganizationInputSchema — frontend/src/shared/validation/schemas.ts
+- [const] GraphQLVariablesSchema — frontend/src/shared/validation/schemas.ts
+- [const] GraphQLOrganizationResponseSchema — frontend/src/shared/validation/schemas.ts
+- [const] ValidationUtils — frontend/src/shared/validation/schemas.ts
+- [const] validateCreateOrganizationInput — frontend/src/shared/validation/schemas.ts
+- [const] validateUpdateOrganizationInput — frontend/src/shared/validation/schemas.ts
+- [const] validateOrganizationResponse — frontend/src/shared/validation/schemas.ts
+- [const] validateForm — frontend/src/shared/validation/schemas.ts
