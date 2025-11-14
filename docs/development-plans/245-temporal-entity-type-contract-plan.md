@@ -47,6 +47,13 @@
 ## 完成说明与证据（2025-11-14）
 状态：已完成（不引入破坏性契约变更；统一命名与类型按“统一 Hook + 守卫冻结 + 渐进替换”交付）
 
+- CI 配置变更（守卫接入）
+  - 目的：冻结旧命名新增使用，确保命名统一在合并路径上不回归
+  - 变更项：
+    - `.github/workflows/agents-compliance.yml`：新增 Node 20 环境与“Plan 245 Guard”步骤，运行 `npm run guard:plan245`
+    - `.github/workflows/frontend-quality-gate.yml`：在安装依赖前新增“Plan 245 Guard”步骤，运行 `npm run guard:plan245`
+  - 守卫脚本：`scripts/quality/plan245-guard.js`（首次基线：`reports/plan245/baseline.json`；严格冻结 `query PositionDetail/PositionDetailQuery`，对 `OrganizationUnit/PositionRecord` 增长给 warning）
+
 - 统一类型与 Hook
   - 新增 `TemporalEntityRecord/TemporalEntityTimelineEntry/TemporalEntityStatus`：`frontend/src/shared/types/temporal-entity.ts`
   - 新增 `useTemporalEntityDetail`：`frontend/src/shared/hooks/useTemporalEntityDetail.ts`
