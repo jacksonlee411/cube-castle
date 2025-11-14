@@ -59,18 +59,18 @@ export const temporalEntitySelectors: TemporalSelectors = {
   },
   // Phase 1 compatibility mappings to existing component testids
   organization: {
-    dashboardWrapper: 'organization-dashboard-wrapper',
-    dashboard: 'organization-dashboard',
+    dashboardWrapper: 'temporal-organization-dashboard-wrapper',
+    dashboard: 'temporal-organization-dashboard',
     form: 'organization-form',
-    table: 'organization-table',
+    table: 'temporal-organization-table',
   },
   position: {
-    dashboard: 'position-dashboard',
-    temporalPageWrapper: 'position-temporal-page-wrapper',
-    temporalPage: 'position-temporal-page',
+    dashboard: 'temporal-position-dashboard',
+    temporalPageWrapper: 'temporal-position-page-wrapper',
+    temporalPage: 'temporal-position-page',
     overviewCard: 'position-overview-card',
-    versionToolbar: 'position-version-toolbar',
-    versionList: 'position-version-list',
+    versionToolbar: 'temporal-position-version-toolbar',
+    versionList: 'temporal-position-version-list',
   },
 } as const;
 

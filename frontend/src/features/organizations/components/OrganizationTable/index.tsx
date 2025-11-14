@@ -32,7 +32,7 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
   showTemporalInfo = false
 }) => {
   return (
-    <Table data-testid="organization-table">
+    <Table data-testid="temporal-organization-table">
       <TableHeader showTemporalInfo={showTemporalInfo || isHistorical} />
       <Table.Body>
         {!organizations || organizations.length === 0 ? (

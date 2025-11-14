@@ -25,7 +25,7 @@ export const PositionVersionToolbar: React.FC<PositionVersionToolbarProps> = ({
     <Card
       padding={space.l}
       backgroundColor={colors.frenchVanilla100}
-      data-testid="position-version-toolbar"
+      data-testid="temporal-position-version-toolbar"
     >
       <SimpleStack gap={space.m}>
         <Flex alignItems="center" gap={space.l} flexWrap="wrap">

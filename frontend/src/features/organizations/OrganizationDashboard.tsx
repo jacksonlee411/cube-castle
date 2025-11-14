@@ -216,8 +216,8 @@ export const OrganizationDashboard: React.FC = () => {
   const hasOrganizations = totalCount > 0;
 
   return (
-    <Box data-testid="organization-dashboard-wrapper">
-      <Box data-testid="organization-dashboard">
+    <Box data-testid="temporal-organization-dashboard-wrapper">
+      <Box data-testid="temporal-organization-dashboard">
         {/* 时态导航栏 - 暂时禁用以修复无限循环错误 */}
         {/* <Box marginBottom="l">
           <TemporalNavbar

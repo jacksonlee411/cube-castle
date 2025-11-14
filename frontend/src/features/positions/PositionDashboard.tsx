@@ -83,7 +83,7 @@ export const PositionDashboard: React.FC = () => {
   const headcountOrganizationCode = filteredPositions[0]?.organizationCode ?? undefined
 
   return (
-    <Box padding={space.l} data-testid="position-dashboard">
+    <Box padding={space.l} data-testid="temporal-position-dashboard">
       <SimpleStack gap={space.l}>
         <SimpleStack gap={space.xs}>
           <Heading size="medium">职位管理（Stage 1 数据接入）</Heading>

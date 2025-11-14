@@ -303,8 +303,8 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
   }
 
   return (
-    <Box data-testid="position-temporal-page-wrapper">
-      <Box padding={space.l} data-testid="position-temporal-page">
+    <Box data-testid="temporal-position-page-wrapper">
+      <Box padding={space.l} data-testid="temporal-position-page">
         <SimpleStack gap={space.l}>
           {isMockMode && (
             <Card

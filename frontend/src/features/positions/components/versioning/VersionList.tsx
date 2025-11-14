@@ -44,7 +44,7 @@ export const PositionVersionList: React.FC<PositionVersionListProps> = ({
     <Card
       padding={space.l}
       backgroundColor={colors.frenchVanilla100}
-      data-testid="position-version-list"
+      data-testid="temporal-position-version-list"
     >
       <Heading size="small" marginBottom={space.m}>
         职位版本记录
