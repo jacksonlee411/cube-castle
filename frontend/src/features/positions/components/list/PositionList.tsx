@@ -4,6 +4,7 @@ import { Text } from '@workday/canvas-kit-react/text'
 import { colors } from '@workday/canvas-kit-react/tokens'
 import type { PositionRecord } from '@/shared/types/positions'
 import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 export interface PositionListProps {
   positions: PositionRecord[]
@@ -36,7 +37,7 @@ const PositionStatusPill: React.FC<{ status: string }> = ({ status }) => {
 
 export const PositionList: React.FC<PositionListProps> = ({ positions, selectedCode, onSelect }) => {
   return (
-    <Table data-testid="position-table">
+    <Table data-testid={temporalEntitySelectors.position.table ?? 'position-table'}>
       <Table.Head>
         <Table.Row>
           <Table.Header width="120px">职位编码</Table.Header>
@@ -63,7 +64,9 @@ export const PositionList: React.FC<PositionListProps> = ({ positions, selectedC
             return (
               <Table.Row
                 key={item.code}
-                data-testid={`position-row-${item.code}`}
+                data-testid={temporalEntitySelectors.position.row
+                  ? temporalEntitySelectors.position.row(item.code)
+                  : `position-row-${item.code}`}
                 onClick={() => onSelect(item.code)}
                 style={{
                   cursor: 'pointer',

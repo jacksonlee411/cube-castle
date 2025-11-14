@@ -68,11 +68,14 @@ test.describe("职位管理 CRUD（真实后端链路）", () => {
       page.getByText(/当前页面依赖 GraphQL 查询服务与 REST 命令服务/),
     ).toBeVisible();
 
-    const firstRow = page.locator('[data-testid^="position-row-"]').first();
+    const firstRow = page
+      .locator(`[data-testid^="${temporalEntitySelectors.position.rowPrefix}"]`)
+      .first();
     await expect(firstRow).toBeVisible();
     const dataTestId = (await firstRow.getAttribute("data-testid")) ?? "";
-    expect(dataTestId.startsWith("position-row-")).toBe(true);
-    const positionCode = dataTestId.replace("position-row-", "");
+    const prefix = temporalEntitySelectors.position.rowPrefix;
+    expect(dataTestId.startsWith(prefix)).toBe(true);
+    const positionCode = dataTestId.replace(prefix, "");
     expect(positionCode.length).toBeGreaterThan(0);
 
     await firstRow.click();

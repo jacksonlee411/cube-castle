@@ -102,7 +102,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
     );
 
     // 验证新职位在列表中可见
-    const positionRow = page.getByTestId(`position-row-${testPositionCode}`);
+    const positionRow = page.getByTestId(temporalEntitySelectors.position.row(testPositionCode));
     await expect(positionRow).toBeVisible({ timeout: 5000 });
     await expect(positionRow).toContainText(`E2E测试职位-${TEST_ID}`);
   });
@@ -118,7 +118,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
     await expect(page.getByTestId(temporalEntitySelectors.position.dashboard)).toBeVisible({ timeout: 10000 });
 
     // 点击职位行进入详情页
-    const positionRow = page.getByTestId(`position-row-${testPositionCode}`);
+    const positionRow = page.getByTestId(temporalEntitySelectors.position.row(testPositionCode));
     await positionRow.click();
 
     // 验证详情页加载

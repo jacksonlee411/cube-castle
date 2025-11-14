@@ -32,6 +32,7 @@ export type TemporalSelectors = {
     table: string;
   };
   position: {
+    table: 'temporal-position-table',
     dashboard: string;
     temporalPageWrapper: string;
     temporalPage: string;
@@ -81,6 +82,8 @@ export const temporalEntitySelectors: TemporalSelectors = {
     tabVersions: 'position-tab-versions',
     versionIncludeDeleted: 'temporal-position-version-include-deleted',
     versionExportButton: 'temporal-position-version-export-button',
+    rowPrefix: 'temporal-position-row-',
+    row: (code: string) => `temporal-position-row-${code}`,
   },
 } as const;
 

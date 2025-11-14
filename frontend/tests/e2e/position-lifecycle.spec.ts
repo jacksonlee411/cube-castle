@@ -74,7 +74,7 @@ test.describe('职位生命周期视图', () => {
   await waitForPageReady(page);
 
     await expect(page.getByRole('heading', { name: '职位管理（Stage 1 数据接入）' })).toBeVisible();
-    await expect(page.getByTestId(`position-row-${POSITION_FIXTURE_CODE}`)).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.position.row(POSITION_FIXTURE_CODE))).toBeVisible();
 
     const detailCard = page.getByTestId(temporalEntitySelectors.position.detailCard);
     await expect(detailCard).toContainText('生命周期演示岗位');
