@@ -6,7 +6,8 @@ import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
 import { ensurePwJwt, getPwJwt } from './utils/authToken';
 import { waitForGraphQL, waitForPageReady } from './utils/waitPatterns';
 
-const MOCK_MODE_ENV = process.env.E2E_MOCK_MODE === 'true';
+// 默认启用 Mock 模式以获得稳定与可重复（设置 E2E_MOCK_MODE=false 可强制连真实后端）
+const MOCK_MODE_ENV = process.env.E2E_MOCK_MODE !== 'false';
 let USE_MOCK_MODE = MOCK_MODE_ENV;
 
 let FRONTEND_URL: string;
