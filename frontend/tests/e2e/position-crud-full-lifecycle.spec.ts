@@ -378,7 +378,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
 
     // 验证版本列表包含所有生命周期事件
     await page.getByTestId(temporalEntitySelectors.position.tabVersions).click();
-    const versionList = page.getByTestId('position-version-list');
+    const versionList = page.getByTestId(temporalEntitySelectors.position.versionList);
     await expect(versionList).toBeVisible();
 
     // 验证审计日志或操作历史
