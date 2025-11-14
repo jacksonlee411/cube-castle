@@ -27,12 +27,12 @@ module.exports = {
   rules: {
     // 🚨 所有日志输出必须通过 shared/utils/logger.ts（桥接层含 eslint-disable 说明）
     'no-console': 'error',
-    // 🚧 阶段性约束：禁止在组件/测试中直接硬编码 data-testid；请使用 shared/testids/temporalEntity.ts
-    // 先以 warn 落地，迁移完成后可提升为 error
+    // 🚫 禁止在组件中用字面量硬编码 data-testid；请从 "@/shared/testids/temporalEntity" 引用常量/构造器
+    // 仅匹配 JSX 字面量，允许使用表达式（如 data-testid={selectors.xxx}）
     'no-restricted-syntax': [
-      'warn',
+      'error',
       {
-        selector: 'JSXAttribute[name.name="data-testid"]',
+        selector: 'JSXAttribute[name.name="data-testid"][value.type="Literal"]',
         message:
           'Do not hard-code data-testid. Import from "@/shared/testids/temporalEntity" (temporalEntitySelectors).',
       },
