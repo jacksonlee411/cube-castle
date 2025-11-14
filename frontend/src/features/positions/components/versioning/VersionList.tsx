@@ -5,7 +5,7 @@ import { Heading, Text } from '@workday/canvas-kit-react/text';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
 import type { PositionRecord } from '@/shared/types/positions';
 import { getVersionKey } from './utils';
-import { getPositionStatusMeta } from '../../statusMeta';
+import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta';
 
 export interface PositionVersionListProps {
   versions: PositionRecord[];

@@ -31,5 +31,22 @@ module.exports = {
     'react-refresh/only-export-components': 'off',
     // 行级例外需注明原因，详见 Plan 20 桥接清单
     camelcase: ['error', { properties: 'always' }],
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: [
+              '**/features/positions/timelineAdapter',
+              '**/features/positions/timelineAdapter.ts',
+              '**/features/positions/statusMeta',
+              '**/features/positions/statusMeta.ts',
+            ],
+            message:
+              '🚨 Temporal Entity 命名已统一：请使用 "@/features/temporal/entity/timelineAdapter" 和 "@/features/temporal/entity/statusMeta"。',
+          },
+        ],
+      },
+    ],
   },
 };

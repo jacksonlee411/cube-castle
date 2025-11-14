@@ -1,47 +1,9 @@
 import { colors } from '@workday/canvas-kit-react/tokens';
-import { 
-  checkCircleIcon, 
-  clockPauseIcon, 
-  clockIcon
-} from '@workday/canvas-system-icons-web';
-
 import type { OrganizationStatus } from '../types/contract_gen';
+import { TEMPORAL_ENTITY_STATUS_META } from '@/features/temporal/entity/statusMeta';
 
-// 状态配置 - 符合API契约规范
-export const STATUS_CONFIG = {
-  ACTIVE: {
-    label: '启用',
-    color: colors.greenApple600,
-    icon: checkCircleIcon,
-    backgroundColor: colors.greenApple100,
-    borderColor: colors.greenApple300,
-    description: '正常运行状态'
-  },
-  INACTIVE: {
-    label: '已结束',
-    color: colors.licorice400,
-    icon: clockPauseIcon,
-    backgroundColor: colors.soap100,
-    borderColor: colors.soap300,
-    description: '已结束的历史版本'
-  },
-  PLANNED: {
-    label: '计划中',
-    color: colors.blueberry600,
-    icon: clockIcon,
-    backgroundColor: colors.blueberry100,
-    borderColor: colors.blueberry300,
-    description: '计划启用状态'
-  },
-  DELETED: {
-    label: '已删除',
-    color: colors.soap600,
-    icon: clockPauseIcon,
-    backgroundColor: colors.soap100,
-    borderColor: colors.soap300,
-    description: '软删除记录，仅用于审计展示'
-  }
-} as const;
+// 状态配置 - 复用 Temporal Entity 元数据，保持单一事实来源
+export const STATUS_CONFIG = TEMPORAL_ENTITY_STATUS_META.organization;
 
 /**
  * 状态工具函数

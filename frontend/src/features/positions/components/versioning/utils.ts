@@ -1,4 +1,4 @@
-import { getPositionStatusMeta } from '../../statusMeta';
+import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta';
 import type { PositionRecord } from '@/shared/types/positions';
 
 export const getVersionKey = (version: PositionRecord): string =>

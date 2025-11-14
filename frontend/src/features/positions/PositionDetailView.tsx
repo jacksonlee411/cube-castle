@@ -22,14 +22,10 @@ import type {
 import { SimpleStack } from './components/layout'
 import { PositionForm } from './components/PositionForm'
 import { PositionVersionList, PositionVersionToolbar, buildVersionsCsv } from './components/versioning'
-import {
-  buildPositionVersionKey,
-  createTimelineVersion,
-  sortPositionVersions,
-} from './timelineAdapter'
 import { usePositionDetail } from '@/shared/hooks/useEnterprisePositions'
 import { logger } from '@/shared/utils/logger'
-import { getPositionStatusMeta } from './statusMeta'
+import { positionTimelineAdapter } from '@/features/temporal/entity/timelineAdapter'
+import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta'
 
 const POSITION_CODE_PATTERN = /^P\d{7}$/i
 
@@ -121,12 +117,15 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
   }, [detailQuery.data, isCreateMode])
 
   const versionEntries: VersionEntry[] = useMemo(() => {
-    const sorted = sortPositionVersions(versions)
-    return sorted.map((version, index) => ({
-      version,
-      key: buildPositionVersionKey(version, index),
-      timeline: createTimelineVersion(version, index),
-    }))
+    const sorted = positionTimelineAdapter.sortSources(versions)
+    return sorted.map((version, index) => {
+      const timeline = positionTimelineAdapter.toTimelineVersion(version, index)
+      return {
+        version,
+        key: timeline.recordId,
+        timeline,
+      }
+    })
   }, [versions])
 
   const timelineVersions = useMemo(() => versionEntries.map(entry => entry.timeline), [versionEntries])

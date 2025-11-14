@@ -3,7 +3,7 @@ import { Table } from '@workday/canvas-kit-react/table'
 import { Text } from '@workday/canvas-kit-react/text'
 import { colors } from '@workday/canvas-kit-react/tokens'
 import type { PositionRecord } from '@/shared/types/positions'
-import { getPositionStatusMeta } from '../../statusMeta'
+import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta'
 
 export interface PositionListProps {
   positions: PositionRecord[]

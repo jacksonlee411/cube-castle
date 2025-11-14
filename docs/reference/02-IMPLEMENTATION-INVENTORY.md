@@ -197,8 +197,10 @@
 - [component] PositionTimelinePanel — frontend/src/features/positions/components/PositionDetails.tsx
 - [component] PositionVersionToolbar — frontend/src/features/positions/components/versioning/VersionToolbar.tsx
 - [component] PositionVersionList — frontend/src/features/positions/components/versioning/VersionList.tsx
-- [function] sortPositionVersions — frontend/src/features/positions/timelineAdapter.ts
-- [function] createTimelineVersion — frontend/src/features/positions/timelineAdapter.ts
+- [const] positionTimelineAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
+- [const] positionTimelineEventAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
+- [const] organizationTimelineAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
+- [const] TEMPORAL_ENTITY_STATUS_META — frontend/src/features/temporal/entity/statusMeta.ts
 - [component] AuditHistorySection — frontend/src/features/audit/components/AuditHistorySection.tsx
 - [service] AuditLogger — internal/organization/audit/logger.go （统一审计事件模型、事务写入、businessContext 聚合）
 - [test] audit logger tests — internal/organization/audit/logger_test.go （覆盖事务插入、fallback 资源 ID、错误 payload）

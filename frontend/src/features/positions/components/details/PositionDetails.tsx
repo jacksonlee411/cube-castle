@@ -9,7 +9,7 @@ import type {
   PositionTimelineEvent,
   PositionTransferRecord,
 } from '@/shared/types/positions'
-import { getPositionStatusMeta } from '../../statusMeta'
+import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta'
 import { SimpleStack } from '../layout/SimpleStack'
 import { PositionTransferDialog } from '../transfer/PositionTransferDialog'
 

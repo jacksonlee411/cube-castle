@@ -11,7 +11,7 @@
 ## 1. 背景与动因
 
 1. 组织/职位详情入口仍以实体名硬编码：`OrganizationTemporalPage` 直接绑定 `TemporalMasterDetailView`（frontend/src/features/organizations/OrganizationTemporalPage.tsx:11-78），`PositionTemporalPage` 则自建一套 Tab/状态/表单（frontend/src/features/positions/PositionTemporalPage.tsx:1-146）。命名缺乏统一抽象，阻碍 Plan 241 推动的共享框架落地。
-2. Timeline/版本工具与状态元数据沿用职位专属命名：`timelineAdapter.ts` 只处理 `PositionRecord`（frontend/src/features/positions/timelineAdapter.ts:1-105），状态配置散落在 `statusMeta.ts` 与 `shared/utils/statusUtils.ts`，前者面向职位、后者面向组织（frontend/src/features/positions/statusMeta.ts:1-44、frontend/src/shared/utils/statusUtils.ts:1-58）。缺乏 `TemporalEntity` 级别的命名会导致未来新增实体时再次复制粘贴。
+2. Timeline/版本工具与状态元数据沿用职位专属命名：早期的 `timelineAdapter.ts` 仅处理 `PositionRecord`，状态配置也分散在职位私有 `status meta` 文件与组织端的 `shared/utils/statusUtils.ts`。缺乏 `TemporalEntity` 级别的命名会导致未来新增实体时再次复制粘贴。
 3. E2E 测试与 fixtures 采用实体专属命名：`position-tabs.spec.ts` 依赖 `position-temporal-page-*` testid（frontend/tests/e2e/position-tabs.spec.ts:91-145），而组织用例 `organization-create.spec.ts` 使用 `organization-*` 前缀（frontend/tests/e2e/organization-create.spec.ts:4-41）。`utils/positionFixtures.ts` 亦与职位强绑定（frontend/tests/e2e/utils/positionFixtures.ts:1-160），阻碍 selector/fixture 共用。
 
 > **结论**：需要在命名层面建立“Temporal Entity” 中性抽象，覆盖页面、组件、Hook、Timeline、状态配置与测试资产，为 Plan 241/240 提供一致的命名基线。
@@ -42,15 +42,17 @@
 - 引入 `TemporalEntityPage.Organization` / `.Position` 适配器，内部仅传入文案、操作按钮策略，命名全部使用 `temporalEntity-*` 前缀。
 
 ### 3.3 T2 – Timeline/Status 命名抽象（4 天）
-- 迁移 `frontend/src/features/positions/timelineAdapter.ts` 为 `TemporalEntityTimelineAdapter`，并提供 `createTimelineAdapter({ entity, labelBuilder })` 工厂；组织/职位复用一套类型定义，避免 `unitType = 'POSITION'` 等硬编码。  
-- 整合 `frontend/src/features/positions/statusMeta.ts` 与 `frontend/src/shared/utils/statusUtils.ts`，建立 `TemporalEntityStatusMeta`（含 `statusConfig.position`, `statusConfig.organization`），命名、色板、标签统一在一个映射表中。  
+- 迁移职位端 Timeline 适配器为共享的 `frontend/src/features/temporal/entity/timelineAdapter.ts`，并提供 `createTimelineAdapter({ entity, labelBuilder })` 工厂；组织/职位复用一套类型定义，避免 `unitType = 'POSITION'` 等硬编码。  
+- 整合职位/组织状态配置为 `frontend/src/features/temporal/entity/statusMeta.ts`，输出 `TemporalEntityStatusMeta`（含 `statusConfig.position`, `statusConfig.organization`），命名、色板、标签统一在一个映射表中。  
 - 更新所有引用（Position version list、组织 StatusBadge 等）为新命名，同时通过 lint 规则阻止直接引用旧文件；预留时间处理 Storybook/Vitest 回归。
+- 与 Go 层同步：命令服务中的 Timeline/Status DTO、REST handler 响应以及 Query 服务 GraphQL resolver 所用结构体需统一字段命名，必要时更新 `cmd/hrms-server/command/internal/services/temporal*.go` 与 `cmd/hrms-server/query/internal/resolvers/*`，并运行 `go test ./cmd/hrms-server/...` 保障兼容。
 
 ### 3.4 T3 – Types/GraphQL/Hook 命名抽象（4 天）
 - 在 `frontend/src/shared/types` 内新增 `TemporalEntityRecord`, `TemporalEntityTimelineEntry`, `TemporalEntityStatus` 等统一接口，由 `PositionRecord`, `OrganizationUnit` 转为类型别名；所有消费端通过实体适配器映射字段。  
 - 统一 GraphQL operation 与 React Query key 命名：例如 `POSITION_DETAIL_QUERY_NAME` → `TEMPORAL_ENTITY_DETAIL_QUERY` + entity 参数；`positionDetailQueryKey` → `temporalEntityDetailQueryKey`。  
 - 在本计划内直接交付 `useTemporalEntityDetail` Hook（含 QueryKey、React Query integration、单测），并让 `usePositionDetail`、`useOrganizationDetail` 成为该 Hook 的薄封装，彻底摆脱 Plan 241 依赖。  
 - 更新 `docs/api/openapi.yaml`、`docs/api/schema.graphql` 与后端调用说明，使 GraphQL operation 名字同步改为 `TemporalEntity*`，并运行 `node scripts/generate-implementation-inventory.js` 校验唯一事实来源；不保留向后兼容别名。
+- Go Query 服务需同步生成新的 GraphQL schema/types：更新 `cmd/hrms-server/query` 下的 schema 绑定、resolver 函数命名与 `toolchain go1.24.9` 代码生成结果（`go generate ./cmd/hrms-server/query/...`），随后运行 `go test ./cmd/hrms-server/query/...` 与 `make test` 验证。
 
 ### 3.5 T4 – Selectors & Fixtures（3 天）
 - 新增 `frontend/src/shared/testing/temporalEntitySelectors.ts`，集中维护 `temporal-entity-*` testid；将 `position-tabs.spec.ts`、`organization-create.spec.ts`、`temporal-management-integration.spec.ts` 等 E2E 用例替换为中性 selector（frontend/tests/e2e/position-tabs.spec.ts:91-145；frontend/tests/e2e/organization-create.spec.ts:4-41）。  
@@ -61,6 +63,12 @@
 - 将 `docs/reference/positions-tabbed-experience-guide.md` 重命名/改写为 `docs/reference/temporal-entity-experience-guide.md`，同步 Plan 06、Plan 240/241 的引用。  
 - 更新 `README.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`，对齐 Phase2 文档更新要求（参考 `docs/development-plans/215-phase2-summary-overview.md:250-269`）。  
 - 在 `docs/development-plans/06-integrated-teams-progress-log.md` 以及 `215-phase2-execution-log.md` 追加命名迁移记录，确保 Phase2 追踪与唯一事实来源同步。
+
+### 3.7 Backend & Quality Gates（贯穿执行）
+- 每个阶段完成后执行 `go test ./...`（命令/查询服务至少一次）与 `make test`，确保 Go 层命名更新未破坏 REST/GraphQL 行为。  
+- 运行 `node scripts/generate-implementation-inventory.js` 并核对 `reports/implementation-inventory.json` 是否保留 Go handler/service 统计，防止快照缺失。  
+- 记录 `git status` 与 `logs/plan242/` 日志中所有验证命令（含 `npm run lint`, `npm run test`, Playwright、Storybook 截图、`node scripts/quality/architecture-validator.js`），以便审计。  
+- 若命名影响数据库迁移或 Temporal Monitor，必须同时在 `database/migrations/` 与 `cmd/hrms-server/command/internal/services/temporal_monitor.go` 更新字段，确认 `make db-migrate-all`/`make docker-up` 流程仍可运行。
 
 ---
 
@@ -83,6 +91,7 @@
 3. Playwright 用例仅使用 `temporalEntitySelectors` 暴露的 testid，`position-tabs.spec.ts`、`temporal-management-integration.spec.ts`、`organization-create.spec.ts` 通过 Chromium/Firefox 连续 3 次运行。  
 4. `temporalEntityFixtures.ts` 成为唯一事实来源；旧 `positionFixtures.ts` 标记删除或代理导出且附弃用说明。  
 5. 文档/计划引用统一使用 `Temporal Entity` 命名，且 Phase2 要求的 README/Quick Reference/Implementation Inventory/215 执行日志均已更新，无平行事实来源。
+6. 命令/查询服务完成 `go test ./cmd/hrms-server/...`、`make test` 全绿，GraphQL schema 与 OpenAPI 生成代码更新后经 `go fmt`/`go vet` 校验，通过 `node scripts/quality/architecture-validator.js` 与 `node scripts/generate-implementation-inventory.js` 的最新快照。
 
 ---
 
@@ -94,6 +103,8 @@
 | Timeline Adapter 抽象导致类型发散 | 中 | 低 | 通过泛型约束 + 单测覆盖组织/职位双场景 |
 | E2E Selector 替换成本高 | 中 | 中 | 编写 codemod/脚本批量替换 testid，短期保留别名 |
 | 文档重命名导致外部链接失效 | 低 | 中 | 在 docs/ 下保留 stub，或更新 README/Plan 06 中的导航 |
+| Go 契约未同步导致 REST/GraphQL 断裂 | 高 | 中 | 在 T2/T3 阶段设置强制检查：更新 `cmd/hrms-server/*` 相关 struct/resolver，执行 `go test ./cmd/hrms-server/...`、`make test` 以及 schema diff；如发现问题立即回滚并增补临时 feature flag |
+| Implementation Inventory 快照缺失 | 中 | 低 | 每阶段重新运行 `node scripts/generate-implementation-inventory.js`，比对上一版本的 Go handler/service 统计；若脚本遗漏需立刻修复并在日志中记录 |
 
 ---
 

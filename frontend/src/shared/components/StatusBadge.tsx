@@ -1,10 +1,13 @@
-import { logger } from '@/shared/utils/logger';
-import React from 'react';
-import { Flex } from '@workday/canvas-kit-react/layout';
-import { Text } from '@workday/canvas-kit-react/text';
-import { SystemIcon } from '@workday/canvas-kit-react/icon';
-import { STATUS_CONFIG } from '../utils/statusUtils';
-import type { OrganizationStatus } from '@/shared/types';
+import { logger } from '@/shared/utils/logger'
+import React from 'react'
+import { Flex } from '@workday/canvas-kit-react/layout'
+import { Text } from '@workday/canvas-kit-react/text'
+import { SystemIcon } from '@workday/canvas-kit-react/icon'
+import type { OrganizationStatus } from '@/shared/types'
+import {
+  TEMPORAL_ENTITY_STATUS_META,
+  getOrganizationStatusMeta,
+} from '@/features/temporal/entity/statusMeta'
 
 export interface StatusBadgeProps {
   status: OrganizationStatus;
@@ -17,17 +20,13 @@ export interface StatusBadgeProps {
  * 只显示当前 API 可用的三种状态（ACTIVE/INACTIVE 以及调用方派生的 PLANNED）。
  * 若未来扩展 DELETED 等状态，需要先更新契约与 STATUS_CONFIG。
  */
-export const StatusBadge: React.FC<StatusBadgeProps> = ({
-  status,
-  size = 'medium',
-  showIcon = true
-}) => {
-  const config = STATUS_CONFIG[status];
-  
-  if (!config) {
-    logger.warn(`未知的组织状态: ${status}`);
-    return null;
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'medium', showIcon = true }) => {
+  const key = status?.toString().toUpperCase()
+  const registry = TEMPORAL_ENTITY_STATUS_META.organization
+  if (!registry[key]) {
+    logger.warn(`未知的组织状态: ${status}`)
   }
+  const config = getOrganizationStatusMeta(status)
 
   const getStyles = () => {
     switch (size) {
@@ -55,7 +54,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     }
   };
 
-  const styles = getStyles();
+  const styles = getStyles()
 
   return (
     <Flex

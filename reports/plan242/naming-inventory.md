@@ -11,3 +11,17 @@
 - 路由校验统一由 `TemporalEntityRouteConfig` 处理，组织支持 7 位数字 & `new`，职位支持 `P\d{7}` 与 `new`。
 - 新 `TemporalEntityPage` 在无效编码时输出标准提示，并提供返回列表按钮。
 - `reports/plan242/logs/t1/` 将保存阶段性日志（需执行时创建）。
+
+## Temporal Entity Timeline Adapter (T2)
+
+| 实体 | 旧命名 | 新命名 | 备注 |
+| --- | --- | --- | --- |
+| 组织 | GraphQL/REST 各自手写 mapper | `frontend/src/features/temporal/entity/timelineAdapter.ts` (`organizationTimelineAdapter`) | 统一 `TimelineVersion` 字段与排序；`temporalMasterDetailApi` 直接复用，删除重复逻辑 |
+| 职位 | Legacy 职位 timeline adapter（已删除） | `frontend/src/features/temporal/entity/timelineAdapter.ts` (`positionTimelineAdapter`, `positionTimelineEventAdapter`) | 统一 recordId 规则、生命周期/业务状态映射，供 `PositionDetailView` 与 CSV 导出共享 |
+
+## Temporal Entity Status Meta (T2)
+
+| 实体 | 旧命名 | 新命名 | 备注 |
+| --- | --- | --- | --- |
+| 组织 | `shared/utils/statusUtils.ts` (`STATUS_CONFIG`) | `frontend/src/features/temporal/entity/statusMeta.ts` (`TEMPORAL_ENTITY_STATUS_META.organization`) | `StatusBadge` 与公共组件读取统一元数据，`statusUtils` 仅保留动作判断 |
+| 职位 | Legacy 职位 status meta（已删除） | `frontend/src/features/temporal/entity/statusMeta.ts` (`TEMPORAL_ENTITY_STATUS_META.position`) | Position 列表/时间线/版本列表共享同一标签与色板，避免重复维护 |

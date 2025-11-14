@@ -28,7 +28,7 @@
 ## 3. 视觉要求
 
 1. **配色**：沿用 Canvas token；Banner 使用 `cinnamon100`/`cinnamon600`，选中行 `soap200`。
-2. **状态标签**：复用 `getPositionStatusMeta` 与组织模块一致；计划版本=“计划”，当前=“当前”。
+2. **状态标签**：复用 `getTemporalEntityStatusMeta('position', status)` 与组织模块共享配置；计划版本=“计划”，当前=“当前”。
 3. **间距**：页内使用 `SimpleStack` 控制垂直间距，默认 `24px`；左侧卡片与右侧主体间距 `space.l`。
 4. **响应式**：
    - 1280px 桌面：左栏 320px，右侧内容宽度自适应。

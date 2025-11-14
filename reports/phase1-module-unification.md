@@ -133,7 +133,7 @@
 
 ## Day6 准备与架构审查资料
 
-- `npm run lint` ✅：统一时间轴字段命名并补齐 Storybook `tsconfig`；参见 `frontend/src/features/positions/timelineAdapter.ts:59`、`frontend/src/features/temporal/components/TimelineComponent.tsx:44`、`frontend/.eslintrc.api-compliance.cjs:19` 以及新增 `frontend/tsconfig.stories.json:1`。
+- `npm run lint` ✅：统一时间轴字段命名并补齐 Storybook `tsconfig`；参见 `frontend/src/features/temporal/entity/timelineAdapter.ts:59`、`frontend/src/features/temporal/components/TimelineComponent.tsx:44`、`frontend/.eslintrc.api-compliance.cjs:19` 以及新增 `frontend/tsconfig.stories.json:1`。
 - 生成《Day6-7 架构审查准备材料》，沉淀共享代码清单、依赖矩阵与回滚方案（`reports/phase1-architecture-review.md:1`）。
 - 建立专项计划 `docs/development-plans/212-shared-architecture-alignment-plan.md`，跟踪 Day6-7 审查结论与整改。
 - 校验 `go test ./...`、`npm run lint` 全绿，确保 Day7 审查基线无技术债挂账。

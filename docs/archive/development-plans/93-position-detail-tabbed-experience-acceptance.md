@@ -475,7 +475,7 @@ const handleTabChange = (tab: DetailTab) => {
 | 文件 | 类型 | 说明 |
 |------|------|------|
 | `frontend/src/features/positions/PositionTemporalPage.tsx` | 核心组件 | 主页面实现 |
-| `frontend/src/features/positions/timelineAdapter.ts` | 数据转换 | 版本数据适配器 |
+| `frontend/src/features/temporal/entity/timelineAdapter.ts` | 数据转换 | 版本数据适配器 |
 | `frontend/src/features/positions/components/PositionDetails.tsx` | 子组件 | 页签内容组件 |
 | `frontend/src/features/positions/components/versioning/` | 子组件 | 版本管理组件 |
 | `frontend/src/features/positions/__tests__/PositionTemporalPage.test.tsx` | 单元测试 | 7个测试用例 |

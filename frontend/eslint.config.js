@@ -60,6 +60,15 @@ export default tseslint.config([
             {
               group: ['**/shared/hooks/useOrganizations', '**/shared/hooks/useOrganizations.ts'],
               message: '🚨 兼容封装已废弃：请使用 useEnterpriseOrganizations / useOrganizationDetails。'
+            },
+            {
+              group: [
+                '**/features/positions/timelineAdapter',
+                '**/features/positions/timelineAdapter.ts',
+                '**/features/positions/statusMeta',
+                '**/features/positions/statusMeta.ts'
+              ],
+              message: '🚨 Temporal Entity 命名已统一：请使用 "@/features/temporal/entity/timelineAdapter" 和 "@/features/temporal/entity/statusMeta"。'
             }
           ]
         }

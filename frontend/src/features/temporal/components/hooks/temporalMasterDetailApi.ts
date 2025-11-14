@@ -6,14 +6,18 @@ import {
 import { env } from "@/shared/config/environment";
 import type { OrganizationRequest } from "@/shared/types/organization";
 import type { TemporalVersionPayload } from "@/shared/types/temporal";
-import type { TimelineVersion } from "../TimelineComponent";
+import type { TimelineVersion } from '../TimelineComponent';
+import {
+  organizationTimelineAdapter,
+  type OrganizationTimelineSource,
+} from '@/features/temporal/entity/timelineAdapter';
 
 export interface HierarchyPaths {
   codePath: string;
   namePath: string;
 }
 
-interface OrganizationVersion {
+interface OrganizationVersion extends OrganizationTimelineSource {
   code: string;
   name: string;
   unitType: string;
@@ -38,7 +42,7 @@ interface OrganizationSnapshotResponse {
   organization: OrganizationVersion | null;
 }
 
-interface TimelineItemResponse {
+interface TimelineItemResponse extends OrganizationTimelineSource {
   recordId: string;
   code: string;
   name: string;
@@ -144,63 +148,11 @@ const ORGANIZATION_HIERARCHY_QUERY = `
 // 注意：当前 GraphQL 仅返回 status=ACTIVE/INACTIVE 与 isCurrent。
 // 这里将 lifecycleStatus 固定映射为 CURRENT/HISTORICAL，dataStatus 固定为 'NORMAL'，
 // 以避免误解为后端已提供五态或软删除数据。
-const mapOrganizationVersions = (
-  organizations: OrganizationVersion[],
-): TimelineVersion[] =>
-  organizations
-    .map((org) => ({
-      recordId: org.recordId,
-      code: org.code,
-      name: org.name,
-      unitType: org.unitType,
-      status: org.status,
-      level: org.level,
-      effectiveDate: org.effectiveDate,
-      endDate: org.endDate,
-      isCurrent: org.endDate === null,
-      createdAt: org.createdAt,
-      updatedAt: org.updatedAt,
-      parentCode: org.parentCode,
-      description: org.description ?? undefined,
-      lifecycleStatus:
-        org.endDate === null ? ("CURRENT" as const) : ("HISTORICAL" as const),
-      businessStatus: (org.status === "ACTIVE" ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
-      dataStatus: "NORMAL" as const,
-      codePath: org.codePath ?? undefined,
-      namePath: org.namePath ?? undefined,
-      sortOrder: 1,
-      changeReason: "",
-    }))
-    .sort(
-      (a, b) =>
-        new Date(b.effectiveDate).getTime() -
-        new Date(a.effectiveDate).getTime(),
-    );
+const mapOrganizationVersions = (organizations: OrganizationVersion[]): TimelineVersion[] =>
+  organizationTimelineAdapter.toTimelineVersions(organizations);
 
-// REST 事件返回同样不含 PLANNED/DELETED 等扩展状态；
-// 继续维持二态映射，调用方若需额外状态必须自行派生或等待契约扩展。
-const mapTimelineItem = (item: TimelineItemResponse): TimelineVersion => ({
-  recordId: item.recordId,
-  code: item.code,
-  name: item.name,
-  unitType: item.unitType,
-  status: item.status,
-  level: item.level,
-  effectiveDate: item.effectiveDate,
-  endDate: item.endDate,
-  isCurrent: item.isCurrent,
-  createdAt: item.createdAt,
-  updatedAt: item.updatedAt,
-  parentCode: item.parentCode ?? undefined,
-  description: item.description ?? undefined,
-  lifecycleStatus: item.isCurrent ? "CURRENT" : "HISTORICAL",
-  businessStatus: (item.status === "ACTIVE" ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
-  dataStatus: "NORMAL",
-  codePath: item.codePath ?? undefined,
-  namePath: item.namePath ?? undefined,
-  sortOrder: 1,
-  changeReason: "",
-});
+const mapTimelineItem = (item: TimelineItemResponse): TimelineVersion =>
+  organizationTimelineAdapter.toTimelineVersion(item);
 
 export const fetchOrganizationVersions = async (
   organizationCode: string,
