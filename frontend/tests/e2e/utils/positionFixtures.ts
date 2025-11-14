@@ -300,6 +300,6 @@ export const POSITION_GRAPHQL_FIXTURES = {
 };
 
 export const POSITIONS_QUERY_NAME = 'EnterprisePositions';
-export const POSITION_DETAIL_QUERY_NAME = 'PositionDetail';
+export const POSITION_DETAIL_QUERY_NAME = 'TemporalEntityDetail';
 export const VACANT_POSITIONS_QUERY_NAME = 'VacantPositions';
 export const POSITION_HEADCOUNT_STATS_QUERY_NAME = 'PositionHeadcountStats';

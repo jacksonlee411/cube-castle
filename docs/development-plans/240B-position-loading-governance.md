@@ -62,6 +62,20 @@
    - 统一失效工具（SSoT）：通过集中工具（例如 `invalidateTemporalDetail`）失效下列键系，禁止在各处手写键名：
      - `temporalEntityDetailQueryKey(entity='position', code, ...)`
      - 既有职位键系：`POSITIONS_QUERY_ROOT_KEY`、`VACANT_POSITIONS_QUERY_ROOT_KEY`、`POSITION_DETAIL_QUERY_ROOT_KEY`、`positionDetailQueryKey(code, includeDeleted)`
+   - filters 序列化（SSoT）：数组/对象参数需以统一规范序列化（大小写/排序/空值归一），沿用现有规范化函数（职位侧参见 `useEnterprisePositions.ts` 内 normalize* 方法），避免在调用点临时拼装。
+
+### 2.1 统一缓存失效与命令映射表（SSoT）
+- 目的：避免“命令→查询键”在多处分散实现，形成双轨。
+- 约束：所有职位命令成功后，仅通过集中工具触发失效（示例名：`invalidateTemporalDetail(queryClient, 'position', code)`），内部覆盖以下键：
+  - `temporalEntityDetailQueryKey('position', code, ...)`
+  - `POSITION_DETAIL_QUERY_ROOT_KEY`（及 `positionDetailQueryKey(code, includeDeleted)`）
+  - `POSITIONS_QUERY_ROOT_KEY`
+  - `VACANT_POSITIONS_QUERY_ROOT_KEY`
+- 命令→键映射（标准清单，不在业务处重复编写）：
+  - CreatePosition → 失效：`POSITIONS_QUERY_ROOT_KEY`、`VACANT_POSITIONS_QUERY_ROOT_KEY`、`positionDetailQueryKey(code, *)`、`temporalEntityDetailQueryKey('position', code, *)`
+  - UpdatePosition → 失效：同上
+  - CreatePositionVersion → 失效：`positionDetailQueryKey(code, *)`、`temporalEntityDetailQueryKey('position', code, *)`（必要时刷新列表）
+  - TransferPosition → 失效：同 Create/Update（列表 + 详情）
 3) 等待模式与错误边界  
    - 首屏 skeleton 与错误边界统一；错误带重试按钮与日志埋点（配合 241/240D 可观测性）。  
    - 错误边界埋点字段：`entity`/`code`/`requestId`/`errorCode`；重试动作也需记录一次  
@@ -71,6 +85,17 @@
 5) 单测与 E2E  
    - Vitest 覆盖：取消/重试/错误态/租户切换/重复 fetch 抑制/命令后失效。  
    - E2E：`position-lifecycle.spec.ts`、`position-tabs.spec.ts`、`temporal-management-integration.spec.ts`（Chromium/Firefox 各 3 次），与 244/246 门槛一致；记录 trace/HAR 并对“重复请求抑制”做网络计数断言。
+
+## 执行策略（本地/CI 分层）
+- 本地默认（开发快速验证）：`REPEATS=1`、保存 trace，HAR 可选；允许跳过网络计数断言（设置 `E2E_NETWORK_ASSERT=0`）
+- CI 要求（严格门槛）：`REPEATS=3 E2E_SAVE_HAR=1 E2E_NETWORK_ASSERT=1`，两浏览器均执行并落盘 trace/HAR 与网络计数 JSON
+- 调用示例：
+```bash
+# 本地
+REPEATS=1 PW_TENANT_ID=... PW_JWT=$(cat .cache/dev.jwt) npm run test:e2e -- --project=chromium --project=firefox
+# CI
+REPEATS=3 E2E_SAVE_HAR=1 E2E_NETWORK_ASSERT=1 PW_TENANT_ID=... PW_JWT=$JWT npm run test:e2e -- --project=chromium --project=firefox
+```
 
 ## 守卫与 CI 接入
 - 选择器守卫：`npm run guard:selectors-246`（计数不升高即通过）。  
@@ -92,6 +117,10 @@
   - `inventory-sha.txt`（实现清单快照哈希）  
 - 215 登记：在 `docs/development-plans/215-phase2-execution-log.md` 勾选 240B 的完成项，并链接上述日志。
 
+## 观测与落盘边界
+- 运行时观测：统一使用前端 `logger` 与 `performance.mark` 输出（与 241/240D 一致），不得在运行时代码中直接写文件。
+- 证据落盘：由测试/CI 采集（console、network、trace/HAR、网络计数 JSON）并保存至 `logs/plan240/B/`；作为验收与回归对比工件。
+
 ## 风险与回滚
 | 风险 | 影响 | 缓解/回滚 |
 | --- | --- | --- |
@@ -104,3 +133,7 @@
 - Day 1：依赖/前置校验完成；统一 Loader 接入原型 + 单测（取消/重试）。  
 - Day 2：QueryKey/失效策略（统一失效工具）+ 错误边界完善（埋点一致）；选择器替换与守卫接入。  
 - Day 3：E2E 三用例（各 3 次 × 2 浏览器）通过；保存 trace/HAR 与网络计数日志；落盘证据与 215 登记完成。
+
+## 回滚与开关
+- Feature Flag：`VITE_TEMPORAL_DETAIL_LOADER`（默认 `true`）。置 `false` 时停用路由 Loader 预热，页面回退至旧 Hook 直连（不改契约）。
+- 回滚流程：通过 flag → 重启前端 → 复跑冒烟；记录回滚日志至 `logs/plan240/B/rollback-*.log`（由测试/脚本保存，非运行时代码写文件）。
