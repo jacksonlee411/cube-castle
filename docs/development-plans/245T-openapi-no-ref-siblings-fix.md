@@ -1,12 +1,16 @@
-# 245T – OpenAPI no-$ref-siblings 修复方案（独立任务/PR 草案）
+# 245T – OpenAPI no-$ref-siblings 修复（已完成）
 
 目标：修复 `docs/api/openapi.yaml` 中的 `$ref` 旁挂（siblings）校验错误，满足 Spectral 规则 `no-$ref-siblings`，保持与实现一致且不引入破坏性改动。
 
 — 
 
-现状与错误明细
+状态：已完成（2025-11-14）。变更不涉及破坏性契约调整，已通过本地与日志留痕校验。
+
+— 
+
+历史错误明细
 - 规则来源：`.spectral.yml`（启用 `no-$ref-siblings`）
-- 最新校验结果：`logs/plan242/t3/51-openapi-lint.log`
+- 历史校验日志：`logs/plan242/t3/51-openapi-lint.log`
 - 错误（2 处）：
   - `components.schemas.PositionResource.properties.currentAssignment.nullable`
   - `components.schemas.PositionResource.properties.currentAssignment.description`
@@ -41,7 +45,7 @@
 
 — 
 
-实施步骤
+实施步骤（已完成）
 1. 编辑 `docs/api/openapi.yaml`：
    - 定位 `components.schemas.PositionResource.properties.currentAssignment`
    - 将 `$ref` 改为 `allOf: - $ref: ...`，保留 `nullable` 与 `description`
@@ -61,8 +65,20 @@
 
 — 
 
-完成标准
-- `npm run lint:api` 显示 `0 errors`（仅允许既有 warnings）
-- CI `api-compliance.yml` 通过
-- 运行 `node scripts/generate-implementation-inventory.js` 通过
+落地与验证证据
+- 实际变更位置：`docs/api/openapi.yaml:3446`（`currentAssignment:` 下改为 `allOf: - $ref: ...`，保留 `nullable`/`description`）
+- 当前校验结果：`logs/plan242/t3/52-openapi-lint-after-fix.log`（0 errors，12 warnings）
+- 即时校验命令：`npm run lint:api`（本地验证为 0 errors）
+- 一致性巡检：`node scripts/generate-implementation-inventory.js` 通过（输出记录于 `reports/implementation-inventory.json`）
 
+— 
+
+完成标准（均已满足）
+- `npm run lint:api` 显示 `0 errors`（仅允许既有 warnings）
+- CI `api-compliance.yml` 通过（无阻塞项）
+- `node scripts/generate-implementation-inventory.js` 通过
+
+— 
+
+归档建议
+- 按文档治理约定，将本计划文档在下一次版本合入时归档至 `docs/archive/development-plans/`，并在变更记录中引用上述验证日志与文件位置以保持“唯一事实来源”。

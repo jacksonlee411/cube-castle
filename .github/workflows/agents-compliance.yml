@@ -46,3 +46,8 @@ jobs:
         shell: bash
         run: |
           npm run guard:plan245
+
+      - name: Plan 245A Soft Guard – Detect legacy field direct reads (informational)
+        shell: bash
+        run: |
+          node scripts/quality/plan245A-soft-guard.js

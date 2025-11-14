@@ -115,6 +115,15 @@ jobs:
         path: frontend/quality-report.md
         retention-days: 7
 
+    - name: 📦 上传 Plan 245A 采纳日志（如有）
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: plan245A-logs
+        path: logs/plan245A/**/*
+        if-no-files-found: ignore
+        retention-days: 7
+
   quality-gate-result:
     name: ✅ 质量门禁结果
     needs: frontend-quality-gate
