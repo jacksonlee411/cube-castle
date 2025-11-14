@@ -265,7 +265,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
 
   if (isCreateMode) {
     return (
-      <Box padding={space.l} data-testid="position-create-page">
+      <Box padding={space.l} data-testid={temporalEntitySelectors.position.temporalPage}>
         <SimpleStack gap={space.l}>
           <Flex justifyContent="space-between" alignItems="center">
             <Flex alignItems="center" gap={space.s}>
@@ -279,7 +279,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
             <Card
               padding={space.l}
               backgroundColor={colors.cinnamon100}
-              data-testid="position-mock-banner"
+              data-testid={temporalEntitySelectors.position.mockBanner}
               style={{ borderLeft: `4px solid ${colors.cinnamon600}` }}
             >
               <SimpleStack gap={space.s}>
@@ -311,7 +311,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
             <Card
               padding={space.m}
               backgroundColor={colors.cinnamon100}
-              data-testid="position-mock-banner"
+              data-testid={temporalEntitySelectors.position.mockBanner}
               style={{ borderLeft: `4px solid ${colors.cinnamon600}` }}
             >
               <SimpleStack gap={space.xs}>
@@ -342,7 +342,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
                     size="small"
                     variant={activeForm === 'edit' ? 'inverse' : undefined}
                     onClick={() => setActiveForm(prev => (prev === 'edit' ? 'none' : 'edit'))}
-                    data-testid="position-edit-button"
+                    data-testid={temporalEntitySelectors.position.editButton}
                   >
                     {activeForm === 'edit' ? '收起编辑' : '编辑职位'}
                   </PrimaryButton>
@@ -350,7 +350,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
                     size="small"
                     variant={activeForm === 'version' ? 'inverse' : undefined}
                     onClick={() => setActiveForm(prev => (prev === 'version' ? 'none' : 'version'))}
-                    data-testid="position-version-button"
+                    data-testid={temporalEntitySelectors.position.createVersionButton}
                   >
                     {activeForm === 'version' ? '收起版本表单' : '新增时态版本'}
                   </SecondaryButton>
@@ -360,7 +360,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
           </Flex>
 
           {detailQuery.isError && (
-            <Card padding={space.l} backgroundColor={colors.frenchVanilla100} data-testid="position-detail-error">
+            <Card padding={space.l} backgroundColor={colors.frenchVanilla100} data-testid={temporalEntitySelectors.position.detailError}>
               <SimpleStack gap={space.xs}>
                 <Text color={colors.cinnamon500}>加载职位详情失败，请稍后重试。</Text>
                 {detailErrorMessage && (
@@ -386,7 +386,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
               gap={space.l}
               alignItems="flex-start"
               flexWrap={isCompactLayout ? 'wrap' : 'nowrap'}
-              data-testid="position-detail-layout"
+              data-testid={temporalEntitySelectors.position.detailCard}
             >
               {versionEntries.length > 0 && (
                 <Box
@@ -494,9 +494,23 @@ const TabsNavigation: React.FC<{ activeTab: DetailTab; onTabChange: (tab: Detail
   activeTab,
   onTabChange,
 }) => (
-  <Flex borderBottom={`2px solid ${colors.soap300}`}>
+  <Flex borderBottom={`2px solid ${colors.soap300}`} role="tablist" aria-label="职位详情页签导航">
     {DETAIL_TABS.map(tab => {
       const isActive = tab.key === activeTab
+      const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = e => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault()
+          const idx = DETAIL_TABS.findIndex(t => t.key === tab.key)
+          const nextIdx =
+            e.key === 'ArrowRight'
+              ? (idx + 1) % DETAIL_TABS.length
+              : (idx - 1 + DETAIL_TABS.length) % DETAIL_TABS.length
+          onTabChange(DETAIL_TABS[nextIdx].key)
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onTabChange(tab.key)
+        }
+      }
       return (
         <Box
           key={tab.key}
@@ -508,7 +522,12 @@ const TabsNavigation: React.FC<{ activeTab: DetailTab; onTabChange: (tab: Detail
             transition: 'all 0.2s ease-in-out',
           }}
           onClick={() => onTabChange(tab.key)}
-          data-testid={`position-tab-${tab.key}`}
+          role="tab"
+          tabIndex={isActive ? 0 : -1}
+          aria-selected={isActive}
+          aria-controls={temporalEntitySelectors.position.tabId(`${tab.key}`)}
+          onKeyDown={onKeyDown}
+          data-testid={temporalEntitySelectors.position.tabId(`${tab.key}`)}
         >
           <Text
             typeLevel="body.medium"
