@@ -27,6 +27,16 @@ module.exports = {
   rules: {
     // 🚨 所有日志输出必须通过 shared/utils/logger.ts（桥接层含 eslint-disable 说明）
     'no-console': 'error',
+    // 🚧 阶段性约束：禁止在组件/测试中直接硬编码 data-testid；请使用 shared/testids/temporalEntity.ts
+    // 先以 warn 落地，迁移完成后可提升为 error
+    'no-restricted-syntax': [
+      'warn',
+      {
+        selector: 'JSXAttribute[name.name="data-testid"]',
+        message:
+          'Do not hard-code data-testid. Import from "@/shared/testids/temporalEntity" (temporalEntitySelectors).',
+      },
+    ],
     '@typescript-eslint/no-unused-vars': 'off',
     'react-refresh/only-export-components': 'off',
     // 行级例外需注明原因，详见 Plan 20 桥接清单
@@ -49,4 +59,13 @@ module.exports = {
       },
     ],
   },
+  // 例外：选择器唯一事实来源文件允许定义字面量 testid
+  overrides: [
+    {
+      files: ['src/shared/testids/temporalEntity.ts'],
+      rules: {
+        'no-restricted-syntax': 'off',
+      },
+    },
+  ],
 };

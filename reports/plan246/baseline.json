@@ -1,0 +1,12 @@
+{
+  "createdAt": "2025-11-14T10:03:13.269Z",
+  "notes": "Plan 246 selector guard baseline. Fails if legacy selector usage increases. Use reports/plan246/allowlist.txt to silence specific paths.",
+  "perPattern": {
+    "jsx-attr-data-testid": 50,
+    "locator-attr-eq": 2,
+    "locator-attr-prefix": 1,
+    "getByTestId-literal": 72,
+    "getByTestId-template-head": 0
+  },
+  "total": 125
+}
