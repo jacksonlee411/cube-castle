@@ -95,7 +95,7 @@
   - [ ] 守卫接入：`npm run guard:plan245`、`npm run guard:selectors-246` 通过（基线计数不升高）
 - 环境与契约前置
   - [ ] Docker/服务就绪：`make docker-up` → `make run-dev` → `make frontend-dev`
-  - [ ] 健康检查：`curl :9090/:8090` → 200
+  - [ ] 健康检查：`curl http://localhost:9090/health`、`curl http://localhost:8090/health` → 200
   - [ ] JWT：`make jwt-dev-mint`
   - [ ] 契约先行（如适用）：更新 `docs/api/*` + `node scripts/generate-implementation-inventory.js`
     - 证据：`logs/plan240/B/inventory-sha.txt`
@@ -106,9 +106,12 @@
   - [ ] 守卫：`logs/plan240/B/guard-plan245.log`、`logs/plan240/B/guard-selectors-246.log`
 - 单测与 E2E（统一门槛）
   - [ ] 单测通过（取消/重试/错误态/租户切换/重复 fetch 抑制/命令后失效）
-  - [ ] E2E 稳定（Chromium/Firefox 各 3 次）：
+  - [ ] E2E 稳定（Chromium/Firefox 各 3 次），并保存 trace/HAR 与网络计数：
     - `logs/plan240/B/e2e-chromium-run1.log` … `run3.log`
     - `logs/plan240/B/e2e-firefox-run1.log` … `run3.log`
+    - `logs/plan240/B/playwright-trace/*`
+    - `logs/plan240/B/network-har-{chromium,firefox}-run{1..3}.har`
+    - `logs/plan240/B/network-requests-{chromium,firefox}-run{1..3}.json`
 
 ---
 

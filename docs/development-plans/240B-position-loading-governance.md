@@ -24,11 +24,14 @@
   - `make docker-up` → `make run-dev` → `make frontend-dev`
   - `curl http://localhost:9090/health`、`curl http://localhost:8090/health` → 200
   - `make jwt-dev-mint`（`.cache/dev.jwt` 存在）
+  - Go 工具链一致性：`go version` 显示 `go1.24.x`（与仓库 `toolchain go1.24.9` 一致）
+  - Node/包管理器基线：`node -v`、`npm -v` 输出满足前端要求（参考 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`）
 - 契约先行：
   - 不更改 API 契约。如确需字段扩展，先更新 `docs/api/schema.graphql` / `docs/api/openapi.yaml`，再实现，并执行：
     ```bash
     node scripts/generate-implementation-inventory.js
     ```
+  - 文档与架构校验：`node scripts/quality/document-sync.js`、`node scripts/quality/architecture-validator.js` 退出码均为 0（避免第二事实来源）
 
 ## 范围与实现边界
 - 范围：
@@ -39,30 +42,44 @@
   - 不新建“职位专有 Loader/Hook”；必须通过 `useTemporalEntityDetail` 或 241 的 `createTemporalDetailLoader` 工厂注入（可薄适配，但不得形成第二事实来源）。
   - 不在组件处硬编码 `data-testid`；仅通过 `temporalEntitySelectors` 使用选择器。
 
+## 重试与取消策略（统一约束）
+- 幂等读范围：仅对 GraphQL 查询（POST `/graphql`）与 GET 读操作生效；REST 命令与任何非幂等操作禁止重试与取消策略介入。
+- 重试参数（统一在查询层配置，不在调用点重复实现）：
+  - `maxAttempts=3`、`baseDelay=200ms`、`factor=2`、`cap=3000ms`、`jitter=true`
+  - `retryWhen`：网络错误、超时、HTTP `5xx`、`429`；对 `4xx`（含权限/业务错误）与已分类业务错误不重试
+- 取消语义：
+  - 路由切换/页签切换触发 `AbortSignal`，必须取消在途请求；取消异常应被视为“静默失败”，不得更新 UI
+  - 防止”旧响应覆盖新状态“：消费层按“期望 code/asOfDate/tenant”做收敛校验，不匹配直接丢弃（不触发选择器/状态更新）
+- 统一出口：重试/延迟由前端统一查询配置导出（SSoT），禁止在业务 Hook/组件内私自实现退避逻辑
+
 ## 任务清单（按可执行项）
 1) Loader 集成与并发治理  
-   - 采用 241 的统一 Loader（`createTemporalDetailLoader` 如已提供）封装职位详情数据装载；在路由/页签切换时聚合并发请求。  
+   - 采用 241 的统一 Loader（`createTemporalDetailLoader` 如已提供）封装职位详情数据装载；在路由/页签切换时聚合并发请求；Loader 负责用 `queryClient.prefetchQuery` 预热并携带 `AbortSignal`，页面 Hook 仅读取缓存，避免重复请求。  
    - 实现 AbortController 取消策略，路由切换/页签切换即时取消在途请求；重试采用指数退避（仅幂等读）。  
 2) 缓存与失效  
-   - 规范 QueryKey（包含实体类型、code、asOfDate、tenant、filters 等）；  
+   - 规范 QueryKey（包含实体类型、code、asOfDate、tenant、filters 等）；filters/数组参数需稳定序列化（排序 + 规范化），避免缓存穿透。  
    - 命令成功后触发对应 QueryKey 失效（跨页签：概览/任职/时间线/版本/审计），确保 UI 立即刷新。  
+   - 统一失效工具（SSoT）：通过集中工具（例如 `invalidateTemporalDetail`）失效下列键系，禁止在各处手写键名：
+     - `temporalEntityDetailQueryKey(entity='position', code, ...)`
+     - 既有职位键系：`POSITIONS_QUERY_ROOT_KEY`、`VACANT_POSITIONS_QUERY_ROOT_KEY`、`POSITION_DETAIL_QUERY_ROOT_KEY`、`positionDetailQueryKey(code, includeDeleted)`
 3) 等待模式与错误边界  
    - 首屏 skeleton 与错误边界统一；错误带重试按钮与日志埋点（配合 241/240D 可观测性）。  
+   - 错误边界埋点字段：`entity`/`code`/`requestId`/`errorCode`；重试动作也需记录一次  
 4) 选择器与等待工具  
    - 使用 `temporalEntitySelectors` 替换职位相关用例与组件引用；补充/复用 `waitPatterns`。  
    - 接入 `selector-guard-246`，禁止新增旧前缀 testid。  
 5) 单测与 E2E  
    - Vitest 覆盖：取消/重试/错误态/租户切换/重复 fetch 抑制/命令后失效。  
-   - E2E：`position-lifecycle.spec.ts`、`position-tabs.spec.ts`、`temporal-management-integration.spec.ts`（Chromium/Firefox 各 3 次），与 244/246 门槛一致。
+   - E2E：`position-lifecycle.spec.ts`、`position-tabs.spec.ts`、`temporal-management-integration.spec.ts`（Chromium/Firefox 各 3 次），与 244/246 门槛一致；记录 trace/HAR 并对“重复请求抑制”做网络计数断言。
 
 ## 守卫与 CI 接入
 - 选择器守卫：`npm run guard:selectors-246`（计数不升高即通过）。  
 - 命名守卫：`npm run guard:plan245`（旧类型/Operation 命名冻结）。  
-- 其他质量门禁：`npm run lint`、`npm run test`、`node scripts/quality/architecture-validator.js`、`node scripts/generate-implementation-inventory.js`。
+- 其他质量门禁：`npm run lint`、`npm run test`、`node scripts/quality/architecture-validator.js`、`node scripts/quality/document-sync.js`、`node scripts/generate-implementation-inventory.js`。
 
 ## 验收标准（统一门槛）
 - 前端单测：覆盖取消、重试、错误态、租户切换、重复 fetch 抑制、命令后失效，全部通过。  
-- E2E 稳定性：三用例在 Chromium/Firefox 各 3 次绿灯（允许在本地/CI 补测但须落盘日志）。  
+- E2E 稳定性：三用例在 Chromium/Firefox 各 3 次绿灯（允许在本地/CI 补测但须落盘日志）；每轮保存 trace/HAR，并断言“详情加载 + 页签切换”无多余重复请求（网络计数阈值满足用例定义）。  
 - 守卫：`guard:plan245` 与 `guard:selectors-246` 通过且基线计数不升高。  
 - 契约与实现清单：如发生契约变更，`docs/api/*` 更新与 `generate-implementation-inventory.js` 通过。  
 - 选择器与等待：组件/用例仅使用 `temporalEntitySelectors` 与标准等待模式，无硬编码 testid。
@@ -70,7 +87,7 @@
 ## 证据与登记
 - 落盘路径：`logs/plan240/B/`（示例）  
   - `loader-cancellation.log`、`retry-policy.log`、`rq-cache-invalidation.log`  
-  - `e2e-{chromium,firefox}-run{1..3}.log`  
+  - `e2e-{chromium,firefox}-run{1..3}.log`、`playwright-trace/*`、`network-har-{chromium,firefox}-run{1..3}.har`、`network-requests-{chromium,firefox}-run{1..3}.json`  
   - `guard-plan245.log`、`guard-selectors-246.log`  
   - `inventory-sha.txt`（实现清单快照哈希）  
 - 215 登记：在 `docs/development-plans/215-phase2-execution-log.md` 勾选 240B 的完成项，并链接上述日志。
@@ -85,5 +102,5 @@
 
 ## 里程碑（建议）
 - Day 1：依赖/前置校验完成；统一 Loader 接入原型 + 单测（取消/重试）。  
-- Day 2：QueryKey/失效策略 + 错误边界完善；选择器替换与守卫接入。  
-- Day 3：E2E 三用例（各 3 次 × 2 浏览器）通过；日志落盘与 215 登记完成。
+- Day 2：QueryKey/失效策略（统一失效工具）+ 错误边界完善（埋点一致）；选择器替换与守卫接入。  
+- Day 3：E2E 三用例（各 3 次 × 2 浏览器）通过；保存 trace/HAR 与网络计数日志；落盘证据与 215 登记完成。
