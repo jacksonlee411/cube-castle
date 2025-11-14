@@ -12,6 +12,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Check TODO-TEMPORARY annotations
         shell: bash
         run: |
@@ -36,3 +41,8 @@ jobs:
         shell: bash
         run: |
           node scripts/quality/architecture-validator.js --scope frontend --rule eslint-exception-comment
+
+      - name: Plan 245 Guard – Freeze legacy naming (PositionDetailQuery/query PositionDetail)
+        shell: bash
+        run: |
+          npm run guard:plan245
