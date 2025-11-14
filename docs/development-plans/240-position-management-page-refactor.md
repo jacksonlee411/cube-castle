@@ -58,7 +58,7 @@
 | --- | --- | --- |
 | 顶部操作条 | 左对齐面包屑 + 标题 + 状态 pill；右侧依次放置“停用/启用”、“新增版本”、“更多操作”按钮，按钮顺序与 `TemporalMasterDetailView` 完全一致，禁用时使用同一 token | `frontend/src/features/temporal/components/TemporalMasterDetailView.tsx:600-680`、docs/archive/development-plans/11-organization-suspend-reactivate-ui-enhancement.md |
 | 左侧版本/时间轴 | 复用 `TimelineComponent` 与 `VersionList` 样式，展现“当前版本高亮、历史版本展开、includeDeleted 过滤”三元素；点击节点只切换右侧内容，不弹 modal | docs/archive/development-plans/32-organization-delete-button-plan.md, 15-organization-timeline-navigation-investigation.md |
-| 右侧页签导航 | 页签顺序固定（概览→任职→调动→时间线→版本→审计），标签文案与 Canvas Kit Tabs 示例保持一致；小屏折叠成 dropdown。需引用 `docs/reference/positions-tabbed-experience-guide.md` 的 Canvas `Flex`/Tabs 指南（键盘导航、底边高亮）。 | docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md:61-130、docs/reference/positions-tabbed-experience-guide.md:23-30 |
+| 右侧页签导航 | 页签顺序固定（概览→任职→调动→时间线→版本→审计），标签文案与 Canvas Kit Tabs 示例保持一致；小屏折叠成 dropdown。需引用 `docs/reference/temporal-entity-experience-guide.md` 的 Canvas `Flex`/Tabs 指南（键盘导航、底边高亮）。 | docs/archive/development-plans/93-position-detail-tabbed-experience-plan.md:61-130、docs/reference/temporal-entity-experience-guide.md:23-30 |
 | 概览卡片 | 使用与组织详情一致的卡片阴影、标题行、字段布局（两列栅格）；状态 pill、版本信息位置保持一致 | docs/reference/01-DEVELOPER-QUICK-REFERENCE.md:437 |
 | 任职/调动列表 | 列表空态、加载骨架、分页条样式与组织“成员列表”一致；Action 区域放置在列表标题右侧 | docs/archive/development-plans/11-organization-suspend-reactivate-ui-enhancement.md 附图 |
 | 时间线页签 | 纵向时间轴点使用相同颜色 token（current=primary,future=neutral,deleted=danger）；说明文字同组织版式 | docs/archive/development-plans/15-organization-timeline-navigation-investigation.md |
@@ -128,6 +128,6 @@
 - 每日同步：在 Plan 06 “当前阻塞”章节追加 240 计划进展、日志链接。  
 - 计划文档维护：本文件即 Plan 240 唯一事实来源，所有决策、日志、脚本更新必须先记录于此，再同步相关计划。  
 - 归档输出：`reports/plan240/execution-log.md`、`logs/plan240/*.log`、更新后的 Playwright trace、性能截图。
-- Canvas Kit 合规：与设计/前端负责人一起走 Canvas Kit 组件评审（参考 docs/reference/positions-tabbed-experience-guide.md、docs/archive/development-plans/105-navigation-ui-alignment-fix.md），确保新增/修改组件仍沿用官方 token 与交互；评审结论附于本计划附录并在 MR 中引用。
+- Canvas Kit 合规：与设计/前端负责人一起走 Canvas Kit 组件评审（参考 docs/reference/temporal-entity-experience-guide.md、docs/archive/development-plans/105-navigation-ui-alignment-fix.md），确保新增/修改组件仍沿用官方 token 与交互；评审结论附于本计划附录并在 MR 中引用。
 
 > 若后续出现新的职位相关缺陷或性能指标变化，需在本计划附录中追加条目，并在完成后归档至 `docs/archive/development-plans/240-position-management-page-refactor.md`。

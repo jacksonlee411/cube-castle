@@ -18,11 +18,7 @@ import type {
   TemporalEntityRecord,
   TemporalEntityTimelineEntry,
   TemporalEntityType,
-  TemporalEntityDetail,
 } from '@/shared/types/temporal-entity';
-import {
-  organizationByCodeQueryKey as orgDetailKey,
-} from '@/shared/hooks/useEnterpriseOrganizations';
 import {
   // 复用现有职位详情 Hook，降低首批改动面
   usePositionDetail,
@@ -87,13 +83,13 @@ async function fetchOrganizationDetail({
   const rec: TemporalEntityRecord = {
     entityType: 'organization',
     code: org.code,
-    recordId: (org as any).recordId ?? null,
+    recordId: org.recordId ?? null,
     displayName: org.name,
     organizationCode: org.parentCode ?? null,
     organizationName: org.name ?? null,
-    status: org.status as any,
-    effectiveDate: (org as any).effectiveDate ?? null,
-    endDate: (org as any).endDate ?? null,
+    status: org.status,
+    effectiveDate: org.effectiveDate ?? null,
+    endDate: org.endDate ?? null,
   };
   return rec;
 }
@@ -104,55 +100,68 @@ export function useTemporalEntityDetail(
   options?: TemporalDetailOptions,
 ): TemporalDetailResult {
   const enabled = Boolean(code) && (options?.enabled ?? true);
+  const isPosition = entity === 'position';
 
-  // 职位：直接复用现有 Hook，返回结构做轻量统一
-  if (entity === 'position') {
-    const result = usePositionDetail(code!, { enabled, includeDeleted: options?.includeDeleted });
-    return useMemo(
-      () => ({
-        ...result,
-        data: result.data
-          ? {
-              record: {
-                entityType: 'position',
-                code: (result.data as any).position?.code ?? code!,
-                recordId: (result.data as any).position?.recordId ?? null,
-                displayName: (result.data as any).position?.title ?? null,
-                organizationCode: (result.data as any).position?.organizationCode ?? null,
-                organizationName: (result.data as any).position?.organizationName ?? null,
-                status: (result.data as any).position?.status ?? null,
-                effectiveDate: (result.data as any).position?.effectiveDate ?? null,
-                endDate: (result.data as any).position?.endDate ?? null,
-              } as TemporalEntityRecord,
-              // 保留旧字段，确保消费端兼容
-              position: (result.data as any).position as PositionRecord,
-              timeline: (result.data as any).timeline as any,
-              assignments: (result.data as any).assignments as PositionAssignmentRecord[] | undefined,
-              currentAssignment: (result.data as any).currentAssignment as PositionAssignmentRecord | null | undefined,
-              transfers: (result.data as any).transfers as PositionTransferRecord[] | undefined,
-              // 统一版本（可选）：暂不强制使用，原始 versions 继续提供
-              // versionsUnified: ((result.data as any).versions as PositionRecord[] | undefined)?.map(v => ({
-              //   entityType: 'position', code: v.code, recordId: v.recordId ?? null, displayName: v.title ?? null, organizationCode: v.organizationCode ?? null, organizationName: v.organizationName ?? null, status: v.status, effectiveDate: v.effectiveDate ?? null, endDate: v.endDate ?? null,
-              // })),
-              // 仍提供原始结构供现有页面使用
-              versions: (result.data as any).versions as any,
-            }
-          : undefined,
-      }),
-      [result, code],
-    ) as TemporalDetailResult;
-  }
+  // 职位：始终调用 Hook，但通过 enabled 控制是否执行，避免条件调用 Hook
+  const positionQuery = usePositionDetail(code ?? '', {
+    enabled: isPosition && enabled,
+    includeDeleted: options?.includeDeleted,
+  });
 
-  // 组织：按 GraphQL 详情查询归一化
+  // 组织：按 GraphQL 详情查询归一化；通过 enabled 控制执行
   const queryKey = temporalEntityDetailQueryKey('organization', code ?? 'placeholder', {
     asOfDate: options?.asOfDate,
   });
-
-  return useQuery({
+  const organizationQuery = useQuery({
     queryKey,
     queryFn: fetchOrganizationDetail,
-    enabled,
+    enabled: !isPosition && enabled,
     staleTime: 60_000,
     select: (rec) => (rec ? { record: rec } : { record: null }),
-  }) as TemporalDetailResult;
+  }) as UseQueryResult<{ record: TemporalEntityRecord | null }>;
+
+  // 统一数据映射，避免 any，使用未知类型后再收窄
+  type PositionHookData = {
+    position?: PositionRecord | null;
+    versions?: PositionRecord[];
+    timeline?: PositionTimelineEvent[];
+    assignments?: PositionAssignmentRecord[];
+    currentAssignment?: PositionAssignmentRecord | null;
+    transfers?: PositionTransferRecord[];
+  } | undefined;
+
+  const unifiedData = useMemo(() => {
+    if (isPosition) {
+      const d = positionQuery.data as unknown as PositionHookData;
+      if (!d || !d.position) return undefined;
+      const p = d.position;
+      const record: TemporalEntityRecord = {
+        entityType: 'position',
+        code: p.code,
+        recordId: p.recordId ?? null,
+        displayName: p.title ?? null,
+        organizationCode: p.organizationCode ?? null,
+        organizationName: p.organizationName ?? null,
+        status: p.status,
+        effectiveDate: p.effectiveDate ?? null,
+        endDate: p.endDate ?? null,
+      };
+      return {
+        record,
+        position: p,
+        timeline: d.timeline,
+        assignments: d.assignments,
+        currentAssignment: d.currentAssignment ?? null,
+        transfers: d.transfers,
+        versions: d.versions,
+      };
+    }
+    // 组织
+    const org = organizationQuery.data?.record ?? null;
+    return { record: org } as { record: TemporalEntityRecord | null };
+  }, [isPosition, positionQuery.data, organizationQuery.data]);
+
+  // 合并 Query 状态，优先返回当前实体对应的 Query 状态
+  const base = (isPosition ? positionQuery : organizationQuery) as unknown as TemporalDetailResult;
+  return { ...base, data: unifiedData } as TemporalDetailResult;
 }

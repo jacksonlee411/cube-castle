@@ -69,6 +69,11 @@ make db-rollback-last   # 使用 Goose 回滚最近一条迁移
 
 前端 UI/组件规范详见项目指导原则文档 `CLAUDE.md`（Canvas Kit v13 图标与用法规范）。
 
+### Temporal Entity 命名与文档入口
+- 统一规范文档：`docs/reference/temporal-entity-experience-guide.md`（多页签详情的页面架构/交互/A11y/命名）
+- 测试与选择器：E2E 统一使用 `temporalEntity-*` 前缀的 `data-testid`
+- 代码入口参考：`frontend/src/features/temporal/*`（页面路由 `pages/entityRoutes.tsx`、适配器 `entity/*`）
+
 ### 模块化单体结构导航
 - 统一入口：`cmd/hrms-server/`（命令/查询共享配置，通过依赖注入注册各模块）
 - 核心业务模块：`internal/organization`（已投产），`internal/workforce`, `internal/contract`（按 203 号计划逐步落地）

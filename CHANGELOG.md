@@ -11,6 +11,21 @@
 - `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`、`docs/reference/03-API-AND-TOOLS-GUIDE.md` 同步更新 Goose/Atlas 使用方式。
 - `scripts/README.md` 与 Plan 210 文档补充新流程、回滚策略与检查清单。
 
+## v1.5.6 - 文档与治理对齐（Plan 247）(2025-11-14)
+
+### 📖 文档治理
+- 新增并确立唯一事实来源：《Temporal Entity Experience Guide》：`docs/reference/temporal-entity-experience-guide.md`
+- 旧文档处理：Positions 早期指南路径改为“Deprecated 占位符”（无业务正文，仅提示迁移路径），避免第二事实来源；计划下个迭代移除
+- 快速参考更新：在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 增补“Temporal Entity 命名与文档入口”，仅链接权威文档
+- 计划日志登记：`docs/development-plans/06-integrated-teams-progress-log.md` 与 `docs/development-plans/215-phase2-execution-log.md` 登记 Plan 247 完成与证据路径
+
+### 🧾 验收与证据
+- 零引用检查（排除 `docs/archive/**`）：`logs/plan242/t5/rg-zero-ref-check.txt`
+- 文档同步与架构守护运行日志：`logs/plan242/t5/document-sync.log`、`logs/plan242/t5/architecture-validator.log`
+- 实现清单快照哈希：`logs/plan242/t5/inventory-sha.txt`（对应 `reports/implementation-inventory.*`）
+
+> 本次仅涉及文档与治理，未引入代码行为变更。
+
 ## v1.5.5 - 前端日志统一与ESLint零告警方案 (2025-10-02)
 
 ### ✨ 新增

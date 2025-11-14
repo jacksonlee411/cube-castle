@@ -4,7 +4,7 @@
 **标题**: Temporal Entity Naming Convergence & Governance  
 **创建日期**: 2025-11-10  
 **关联计划**: Plan 241（框架重构）、Plan 240（职位页面重构）、Plan 06（集成验证）  
-**状态**: 草案 · 待评审  
+**状态**: 进行中 · 修订版（T1 已完成，参见 Plan 243；T2/T3/T4 按本修订推进）  
 
 ---
 
@@ -16,6 +16,12 @@
 
 > **结论**：需要在命名层面建立“Temporal Entity” 中性抽象，覆盖页面、组件、Hook、Timeline、状态配置与测试资产，为 Plan 241/240 提供一致的命名基线。
 
+当前状态补充（与历史差异）：
+- 入口层已统一：`TemporalEntityPage` + `entityRoutes` 为唯一入口（见 frontend/src/features/temporal/pages/TemporalEntityPage.tsx、.../entityRoutes.tsx；Plan 243 已完成）。
+- 时间线/状态已有共享抽象：`frontend/src/features/temporal/entity/timelineAdapter.ts`、`frontend/src/features/temporal/entity/statusMeta.ts`。
+- 选择器集中：`frontend/src/shared/testids/temporalEntity.ts`（`temporalEntitySelectors`）为唯一事实来源（Plan 246）。
+- 统一 Hook 骨架：`frontend/src/shared/hooks/useTemporalEntityDetail.ts`（Plan 245）。
+
 ---
 
 ## 2. 目标与验收
@@ -26,20 +32,27 @@
 | B. Timeline & Status 抽象 | 输出 `TemporalEntityTimelineAdapter` 与 `TemporalEntityStatusMeta`，由各实体适配器注入字段映射 | Adapter 单测 + API 对照表 |
 | C. Selector & Fixture 统一 | 建立 `temporalEntitySelectors` 与中性 fixtures（如 `temporalEntityFixtures.ts`），E2E 用例仅使用中性命名 | Playwright diff + utils 重用证明 |
 | D. 类型与契约命名 | 在 `shared/types` / GraphQL Operation / React Query Key 层统一导出 `TemporalEntityRecord`、`TemporalEntityStatus` 等别名，组织/职位仅作类型别名 | TypeScript diff + GraphQL schema 变更说明 |
-| E. 文档与指南 | 更新 `docs/reference/positions-tabbed-experience-guide.md` 为 `temporal-entity-experience-guide`，同步命名映射 | 文档 PR + 评审纪要 |
+| E. 文档与指南 | 更新 `docs/reference/temporal-entity-experience-guide.md`（由原 Positions 指南抽象而来），同步命名映射 | 文档 PR + 评审纪要 |
+| F. 守卫与门禁 | 冻结旧 selector 前缀与旧 GraphQL 操作名，新增旧命名即失败 | `npm run guard:selectors-246`、`npm run guard:plan245` 通过，基线计数不升 |
+
+验收补充（统一门禁与证据留存）：
+- 守卫：`npm run guard:selectors-246` 与 `npm run guard:plan245` 均需通过（基线计数不升，必要时提供限期 allowlist 与理由）。
+- E2E：Chromium/Firefox 各 3 轮通过；控制台出现 `performance.mark('TemporalEntity:*')` 与 logger 事件；trace/截图/日志落盘 `logs/plan242/t4/`。
+- 实现清单：`node scripts/generate-implementation-inventory.js` 产出与哈希保存（reports/implementation-inventory.* + logs/plan242/**）。
+- OpenAPI：`npm run lint:api` 0 errors（已修复 no-$ref-siblings，参见 Plan 245T），避免契约回归。
 
 ---
 
 ## 3. 范围与任务
 
 ### 3.1 T0 – 现状盘点（1 天）
-- 运行 `node scripts/generate-implementation-inventory.js` 并对前后端（Go/TS）执行 `rg "Organization.*Temporal|Position.*Temporal"`，覆盖 `cmd/`、`tests/`、`frontend/`、`scripts/`。  
-- 输出 `reports/plan242/naming-inventory.md`，列出所有命名分布、引用文件与行号（含 Go/E2E/文档），作为迁移基线。
+- 环境前置（Docker 强制）：`make docker-up` → `make run-dev` → `make frontend-dev`；健康检查 `curl http://localhost:9090/health` / `http://localhost:8090/health`（200）；`make jwt-dev-mint`。
+- 运行 `node scripts/generate-implementation-inventory.js` 并对前后端（Go/TS）执行 `rg "Organization.*Temporal|Position.*Temporal"`，覆盖 `internal/`、`cmd/`、`frontend/`、`tests/`、`scripts/`。  
+- 输出/维护 `reports/plan242/naming-inventory.md`，列出所有命名分布、引用文件与行号（含 Go/E2E/文档），作为迁移基线与滚动证据。
 
 ### 3.2 T1 – 页面与路由命名抽象（1.5 天）
-- 将 `OrganizationTemporalPage`、`PositionTemporalPage` 抽象为 `TemporalEntityPage` + `TemporalEntityRouteConfig`，保留实体特有校验（组织 7 位数字、职位 `P\d{7}`）。  
-- 更新 `react-router` 配置与懒加载入口，确保 `/organizations/:code/temporal`、`/positions/:code` 通过统一入口创建页面。  
-- 引入 `TemporalEntityPage.Organization` / `.Position` 适配器，内部仅传入文案、操作按钮策略，命名全部使用 `temporalEntity-*` 前缀。
+-（已完成，见 Plan 243）以 `TemporalEntityPage` + `TemporalEntityRouteConfig` 统一入口；保留实体特有校验（组织 7 位数字、职位 `P\d{7}`）。  
+- 路由现状：`/organizations/:code/temporal`、`/positions/:code` 通过统一入口渲染；短期接受 `new/NEW` 作为创建模式（解析层归一化），长期统一为 `new`（2 个迭代窗口）。
 
 ### 3.3 T2 – Timeline/Status 命名抽象（4 天）
 - 迁移职位端 Timeline 适配器为共享的 `frontend/src/features/temporal/entity/timelineAdapter.ts`，并提供 `createTimelineAdapter({ entity, labelBuilder })` 工厂；组织/职位复用一套类型定义，避免 `unitType = 'POSITION'` 等硬编码。  
@@ -60,7 +73,7 @@
 - 更新 `waitPatterns`/`auth-setup` 等工具函数中的常量名，保证 e2e utils 无实体专属前缀；编写 codemod 和临时 alias，安排双写验证窗口。
 
 ### 3.6 T5 – 文档与工具（1 天）
-- 将 `docs/reference/positions-tabbed-experience-guide.md` 重命名/改写为 `docs/reference/temporal-entity-experience-guide.md`，同步 Plan 06、Plan 240/241 的引用。  
+- 将职位专有指南改写为中性抽象：`docs/reference/temporal-entity-experience-guide.md`，同步 Plan 06、Plan 240/241 的引用。  
 - 更新 `README.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`，对齐 Phase2 文档更新要求（参考 `docs/development-plans/215-phase2-summary-overview.md:250-269`）。  
 - 在 `docs/development-plans/06-integrated-teams-progress-log.md` 以及 `215-phase2-execution-log.md` 追加命名迁移记录，确保 Phase2 追踪与唯一事实来源同步。
 
@@ -114,3 +127,42 @@
 - 产出 `logs/plan242/*.log` 与 `reports/plan242/naming-inventory.md`，供评审/归档。  
 - 完成后将本计划归档至 `docs/archive/development-plans/242-temporal-naming-abstraction-plan.md`。
 - 2025-11-11：Plan 244 / T2 后端契约对齐（Temporal timeline 字段扩展）已记录在 `logs/plan242/t2/2025-11-11-temporal-timeline-go.md`，并在 `reports/plan242/naming-inventory.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` 留痕，作为 Plan 242 T2 验收素材。
+
+---
+
+## 附录 A – 修订补充与门禁（依据评审 · 参考行业实践）
+
+1) 路由与创建模式（差异收敛）
+- 现状：组织 `/organizations/:code/temporal`，职位 `/positions/:code`；创建模式短期接受 `new/NEW`（解析归一化）。
+- 策略：短期保留差异避免破坏；长期统一创建模式为 `new`，窗口 2 个迭代；是否对职位增加 `/positions/:code/temporal` 的别名与重定向，待 241/240 上线前在 MR 中附 E2E 证据后执行。
+
+2) React Query Key 与缓存
+- 统一 key：以 `temporal-entity-detail`/`temporal-entity-versions` 等前缀替代实体专属 key；冻结旧 key 新增使用。
+- 过渡：适配层提供 alias（<=1 个迭代）；Hook 单测断言“无重复 fetch + 正确失效 + 事件可观测”。
+
+3) 守卫与 CI 门禁
+- 必须通过：`npm run guard:selectors-246`（选择器冻结）、`npm run guard:plan245`（旧 GraphQL 操作名冻结）。
+- CI fail-fast：在安装依赖前执行；allowlist 需要注明理由与截止期。
+
+4) 文档与唯一事实来源
+- 仅允许 `docs/reference/temporal-entity-experience-guide.md` 保留正文；旧指南保留 Deprecated 占位符 1 个迭代，不得复制正文。
+- 零引用校验：`rg -n '<OLD_GUIDE_FILE_NAME>' --glob '!docs/archive/**'` 应为空；配合 `document-sync.js` 与 `architecture-validator.js`。
+
+5) Go/契约同步
+- 若字段命名影响 REST/GraphQL：按仓库实际路径更新（如 `internal/organization/resolver/*`、`internal/organization/scheduler/*`）；运行 `go test ./internal/...`、`go test ./cmd/hrms-server/...`、必要时 `go generate ./cmd/hrms-server/query/...`。
+- OpenAPI：`npm run lint:api` 必须 0 errors（已修复 no-$ref-siblings，参考 Plan 245T），防止文档回归。
+
+6) 里程碑与验收（补充）
+- T0：环境（Docker 强制）+ 实现清单 + 命名盘点；
+- T1：入口统一（完成，Plan 243）；  
+- T2：Timeline/Status 抽象落地 + 旧路径冻结 + Go/契约按需同步 + 单测/Storybook；  
+- T3：Types/GraphQL/Hook 命名统一 + Key 冻结/迁移 + 守卫通过；  
+- T4：Selector/Fixture 统一 + 多浏览器 E2E（3×2） + 指标事件断言 + 日志落盘；  
+- T5：文档/治理对齐 + 零引用校验 + Inventory 快照与哈希。
+
+7) 风险与缓解（补充）
+- 书签/深链：前端 alias/Redirect 灰度，公告与截止期；  
+- 实体特例：adapter 提供 override；以单测覆盖；  
+- 替换成本：codemod 批量 + 短期 alias + 守卫冻结；  
+- 契约断裂：MR gating 附 schema diff、`go test/go generate` 输出，异常立即回滚并启用 feature flag；  
+- 文档偏差：统一出口 + 零引用脚本，防二次来源。

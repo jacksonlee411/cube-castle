@@ -1,4 +1,6 @@
 > 环境要求：本地与 CI 必须使用 Go 1.24 及以上（仓库 `toolchain go1.24.9`），操作前请执行 `go version` 确认。
+> 
+> 参考入口：Temporal 实体页面与命名规范参见 `docs/reference/temporal-entity-experience-guide.md`；实现清单以生成器快照为准：`reports/implementation-inventory.md` / `.json`（本页仅做索引）。
 
 ## Draft – Command API (from OpenAPI)
 - `/api/v1/operational/health`

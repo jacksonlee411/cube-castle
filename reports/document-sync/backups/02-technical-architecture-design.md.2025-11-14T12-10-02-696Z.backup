@@ -6,13 +6,6 @@
 
 ## 🏗️ CQRS架构设计
 
-### 契约与版本
-- OpenAPI version 对齐（唯一事实来源 `docs/api/openapi.yaml`）：version: "4.7.0"
-- 前端关键依赖版本（以 `frontend/package.json` 为准）：
-  - React 19.1.0
-  - Vite 7.0.4
-  - TypeScript 5.8.3
-
 ### 核心原则
 - **CQRS分离**: GraphQL查询(8090) + REST命令(9090)
 - **单一数据源**: PostgreSQL 16+ 时态数据，无同步复杂性

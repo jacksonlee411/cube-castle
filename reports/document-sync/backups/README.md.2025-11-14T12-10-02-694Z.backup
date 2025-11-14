@@ -66,8 +66,8 @@ export const CreateButton = () => {
 ```
 
 ### 🔧 技术栈
-- **构建工具**: Vite 7.0+ (统一配置支持) — 版本: Vite 7.0.4
-- **UI框架**: React — 版本: React 19.1.0；TypeScript — 版本: TypeScript 5.8.3；Canvas Kit v13
+- **构建工具**: Vite 7.0+ (统一配置支持)
+- **UI框架**: React 19 + Canvas Kit v13 + TypeScript 5.8+
 - **状态管理**: TanStack Query + Zustand
 - **测试**: Playwright + Vitest
 - **质量保证**: P3企业级防控系统 ⭐ **新集成**

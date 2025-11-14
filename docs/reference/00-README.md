@@ -63,8 +63,8 @@
 - ✅ 验证导航视觉是否符合基线
 - ✅ 规划权限与回归测试脚本
 
-### 🧭 [Positions Tabbed Experience Guide](./positions-tabbed-experience-guide.md)
-**用途**: 职位/组织多页签详情页面的设计与交互规范（DS-147）  
+### 🧭 [Temporal Entity Experience Guide](./temporal-entity-experience-guide.md)
+**用途**: 时态实体（组织/职位等）多页签详情页面的统一设计与交互规范  
 **包含内容**:
 - 页面架构（版本导航 + 六个页签）与响应式规则
 - Mock 模式、审计页签等交互准则

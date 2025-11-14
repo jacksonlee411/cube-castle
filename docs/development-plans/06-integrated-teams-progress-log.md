@@ -36,6 +36,14 @@
    - 219E Outbox/Dispatcher 指标已在 2025-11-08 复测完成（Plan 231 Runbook O1-O6），`outbox_events` 现包含 `position.created/assignment.filled/assignment.closed/jobLevel.versionCreated` 记录，Prometheus 计数 `outbox_dispatch_success_total=5`、`outbox_dispatch_total{result="success"}` 已按事件维度区分；GraphQL 读模型（`logs/219E/position-gql-outbox-20251108T051126Z.log`）同步展示对应的 `assignmentHistory`。
 3. **命名抽象（Plan 242 / T1）**  
    - `TemporalEntityPage` 已完成落地：组织/职位详情页统一由 `frontend/src/features/temporal/pages/entityRoutes.tsx` 暴露，功能映射记录在 `reports/plan242/naming-inventory.md#temporal-entity-page`。  
+
+## 4. 文档治理与命名抽象（Plan 247）
+- 完成文档与治理对齐（T5）：`Temporal Entity Experience Guide` 成为唯一事实来源；旧 Positions 指南路径在 reference 目录仅保留“Deprecated 占位符”（无正文）。  
+- 证据已落盘：  
+  - `logs/plan242/t5/rg-zero-ref-check.txt`（旧文档名零引用检查，排除 `docs/archive/**`）  
+  - `logs/plan242/t5/document-sync.log`、`logs/plan242/t5/architecture-validator.log`（文档同步与架构守护运行日志）  
+  - `logs/plan242/t5/inventory-sha.txt`（实现清单快照哈希）  
+- 参考入口已在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 增补“Temporal Entity 命名与文档入口”，仅链接权威文档，未复制可变细节。
    - `OrganizationTemporalPage.tsx`、`PositionTemporalPage.tsx` 已替换为共享路由 + `PositionDetailView`。后续 Timeline/类型/selector 抽象将依赖此基线。
 
 ## 4. Plan 245 – Temporal Entity 类型 & 契约统一（结项纪要 · 2025-11-14）

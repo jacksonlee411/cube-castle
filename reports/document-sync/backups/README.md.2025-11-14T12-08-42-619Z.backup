@@ -38,17 +38,11 @@
 数据: PostgreSQL 16+ + Redis 7.x
 ```
 
-技术栈版本:
-- React 19.1.0
-- Vite 7.0.4
-- TypeScript 5.8.3
-
 ### 统一配置管理
 ```typescript
 // frontend/src/shared/config/ports.ts
 export const SERVICE_PORTS = {
   FRONTEND_DEV: 3000,
-  FRONTEND_PREVIEW: 3001,
   REST_COMMAND_SERVICE: 9090,
   GRAPHQL_QUERY_SERVICE: 8090,
   POSTGRESQL: 5432,

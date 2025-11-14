@@ -10,6 +10,7 @@
 
 ## 最新更新（2025-11-10）
 
+- ✅ [Plan 247 / T5] 文档与治理对齐完成：`Temporal Entity Experience Guide` 已作为唯一事实来源（docs/reference/temporal-entity-experience-guide.md），旧文档在 reference 目录改为“Deprecated 占位符”（无正文，避免第二事实来源）。证据已落盘：`logs/plan242/t5/rg-zero-ref-check.txt`、`logs/plan242/t5/document-sync.log`、`logs/plan242/t5/architecture-validator.log`、`logs/plan242/t5/inventory-sha.txt`。
 - ✅ [Plan 242 / T1] Temporal Entity Page 抽象完成：组织/职位详情入口统一迁移至 `TemporalEntityPage`，路由校验、无效提示与功能映射已记录在 `reports/plan242/naming-inventory.md#temporal-entity-page`，为后续 Timeline/类型/测试抽象提供共享基线。
 - ✅ [Plan 244 / T2] Temporal Timeline & Status 抽象合入：`frontend/src/features/temporal/entity/timelineAdapter.ts` 与 `statusMeta.ts` 统一组织/职位映射，Lint 禁止回退旧命名，执行记录见 `logs/plan242/t2/`。
 - 🔄 [Plan 244 / T2] Temporal timeline REST 契约补齐 `TemporalEntityTimelineVersion` 字段，Go/前端测试与 Implementation Inventory 同步更新（详见 `logs/plan242/t2/2025-11-11-temporal-timeline-go.md`）。
@@ -35,6 +36,51 @@
 - 构建 Docker 集成测试基座（**Plan 221**）
 - 验证 organization 模块正常工作（**Plan 222**）
 - 更新 README 和开发指南（**Plan 222**）
+
+---
+
+### Plan 242 – 里程碑与验收清单（骨架）
+
+说明：Plan 242 分解为 T0–T5 六个子阶段；本清单仅登记里程碑与验收证据路径，实施细节以各子计划为唯一事实来源（docs/development-plans/242-*.md）。
+
+- T0 现状盘点（已完成）
+  - 事实来源：`reports/plan242/naming-inventory.md`（最新）
+  - 证据登记：
+    - [ ] `logs/plan242/t0/rg-inventory-scan.log`
+    - [ ] `logs/plan242/t0/inventory-sha256.txt`
+- T1 页面与路由命名抽象（已完成，详见 Plan 243）
+  - 事实来源：`docs/development-plans/243-temporal-entity-page-plan.md`
+  - 证据登记：
+    - [ ] `logs/plan242/t1/storybook-diff.log`
+    - [ ] `logs/plan242/t1/router-migration.log`
+- T2 Timeline/Status 抽象（进行中，详见 Plan 244）
+  - 事实来源：`docs/development-plans/244-temporal-timeline-status-plan.md`
+  - 验收门槛（登记用）：
+    - [ ] 前端：`npm run lint`、`npm run test`、`npm run test:e2e -- --project=chromium --project=firefox`（各至少 1 轮）
+    - [ ] 后端：`go generate ./cmd/hrms-server/query/...`、`go test ./cmd/hrms-server/...`
+    - [ ] 契约：更新 `docs/api/openapi.yaml`、`docs/api/schema.graphql` 且 `node scripts/generate-implementation-inventory.js` 通过
+    - [ ] 日志：`logs/plan242/t2/*.log`（包含上述命令输出）
+- T3 类型与契约统一（已完成，详见 Plan 245/245A/245T）
+  - 事实来源：
+    - `docs/development-plans/245-temporal-entity-type-contract-plan.md`
+    - `docs/development-plans/245A-unified-hook-adoption.md`
+    - `docs/development-plans/245T-openapi-no-ref-siblings-fix.md`
+  - 证据登记：
+    - [ ] `logs/plan242/t3/implementation-inventory.log`
+    - [ ] `logs/plan242/t3/plan245-guard.log`
+- T4 Selectors & Fixtures 统一（已完成 Phase 1，详见 Plan 246）
+  - 事实来源：`docs/development-plans/246-temporal-entity-selectors-fixtures-plan.md`
+  - 运行门禁：`npm run guard:selectors-246`（计数不升高）
+  - 证据登记：
+    - [ ] `logs/plan242/t4/selector-guard-246.log`
+    - [ ] `logs/plan242/t4/e2e-{chromium,firefox}.log`
+- T5 文档与治理对齐（已完成，已归档，详见 Plan 247）
+  - 事实来源：`docs/archive/development-plans/247-temporal-entity-docs-alignment-plan.md`
+  - 证据登记：
+    - [ ] `logs/plan242/t5/rg-zero-ref-check.txt`
+    - [ ] `logs/plan242/t5/document-sync.log`
+    - [ ] `logs/plan242/t5/architecture-validator.log`
+    - [ ] `logs/plan242/t5/inventory-sha.txt`
 
 ---
 

@@ -56,8 +56,6 @@ const config = {
       name: '端口配置同步',
       source: 'frontend/src/shared/config/ports.ts',
       targets: [
-        'frontend/vite.config.ts',
-        'frontend/playwright.config.ts',
         'README.md',
         'frontend/README.md'
       ],
@@ -147,9 +145,15 @@ class ContentExtractor {
     const servicePortsMatch = content.match(/SERVICE_PORTS\s*=\s*{([^}]+)}/s);
     if (servicePortsMatch) {
       const portsContent = servicePortsMatch[1];
-      const portMatches = [...portsContent.matchAll(/(\w+):\s*(\d+)/g)];
-      portMatches.forEach(([, key, value]) => {
-        configs[`SERVICE_PORTS.${key}`] = parseInt(value);
+      // 1) 直接数字: KEY: 3000
+      const directMatches = [...portsContent.matchAll(/(\w+):\s*(\d+)/g)];
+      directMatches.forEach(([, key, value]) => {
+        configs[`SERVICE_PORTS.${key}`] = parseInt(value, 10);
+      });
+      // 2) 默认值函数: KEY: getNumberEnvVar('ENV', 3000)
+      const defaultMatches = [...portsContent.matchAll(/(\w+):\s*getNumberEnvVar\([^,]+,\s*(\d+)\)/g)];
+      defaultMatches.forEach(([, key, def]) => {
+        configs[`SERVICE_PORTS.${key}`] = parseInt(def, 10);
       });
     }
     
@@ -190,7 +194,10 @@ class ContentExtractor {
       const keyDependencies = {};
       ['react', 'vite', 'typescript', '@workday/canvas-kit-react'].forEach(dep => {
         if (deps[dep]) {
-          keyDependencies[dep] = deps[dep];
+          // 规范化版本（去掉 ^ ~ 等前缀，只保留 x.y.z）
+          const raw = String(deps[dep]);
+          const normalized = raw.replace(/^[^0-9]*/, '');
+          keyDependencies[dep] = normalized;
         }
       });
       
