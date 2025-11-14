@@ -9,6 +9,7 @@ import {
   VACANT_POSITIONS_QUERY_ROOT_KEY,
   positionDetailQueryKey,
 } from './useEnterprisePositions';
+import { invalidateTemporalDetail } from '@/shared/api/invalidation';
 import type {
   CreatePositionRequest,
   UpdatePositionRequest,
@@ -53,15 +54,11 @@ const ensurePositionSuccess = <T>(
   return response.data;
 };
 
+/**
+ * 统一入口：转发到 SSoT 失效工具，避免在此处分散维护键名
+ */
 const invalidatePositionCaches = (client: QueryClient, code?: string) => {
-  client.invalidateQueries({ queryKey: POSITIONS_QUERY_ROOT_KEY, exact: false });
-  client.invalidateQueries({ queryKey: VACANT_POSITIONS_QUERY_ROOT_KEY, exact: false });
-  client.invalidateQueries({ queryKey: POSITION_DETAIL_QUERY_ROOT_KEY, exact: false });
-
-  if (code) {
-    client.invalidateQueries({ queryKey: positionDetailQueryKey(code, false), exact: false });
-    client.invalidateQueries({ queryKey: positionDetailQueryKey(code, true), exact: false });
-  }
+  invalidateTemporalDetail(client, 'position', code);
 };
 
 export const useCreatePosition = () => {

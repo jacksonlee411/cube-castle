@@ -1,9 +1,14 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import type { NavigateOptions, Params } from 'react-router-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Box } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { SecondaryButton } from '@workday/canvas-kit-react/button'
+import { queryClient } from '@/shared/api/queryClient'
+import {
+  positionDetailQueryKey,
+  __internal as PositionsInternal,
+} from '@/shared/hooks/useEnterprisePositions'
 
 export type TemporalEntityKind = 'organization' | 'position'
 
@@ -63,6 +68,34 @@ const TemporalEntityPage: React.FC<TemporalEntityPageProps> = ({ config }) => {
     },
     [navigate, buildDetailPath],
   )
+
+  // 240B – 路由级 Loader 预热（特性开关）
+  useEffect(() => {
+    const enabled =
+      import.meta.env?.VITE_TEMPORAL_DETAIL_LOADER !== 'false' &&
+      !!parseResult.code &&
+      config.entity === 'position' &&
+      !parseResult.isCreateMode;
+    if (!enabled) return;
+
+    const code = parseResult.code!;
+    const key = positionDetailQueryKey(code, false);
+
+    // 通过 React Query 的 signal 传递取消；清理时对该 key 执行 cancelQueries
+    queryClient
+      .prefetchQuery({
+        queryKey: key,
+        queryFn: ({ signal }) => PositionsInternal.fetchPositionDetail(code, false, signal),
+        staleTime: 60_000,
+      })
+      .catch(() => {
+        // 预热失败不阻塞渲染；实际错误由消费端 Hook 处理
+      });
+
+    return () => {
+      void queryClient.cancelQueries({ queryKey: key });
+    };
+  }, [config.entity, parseResult.code, parseResult.isCreateMode]);
 
   if (parseResult.error) {
     const message = config.invalidMessages[parseResult.error]

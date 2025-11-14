@@ -6,6 +6,10 @@ import { UnifiedErrorHandler } from './error-handling';
 
 const LOG_INTERVAL_MS = 10_000;
 const DEFAULT_STALE_TIME = 5 * 60 * 1000;
+const RETRY_BASE_DELAY_MS = 200; // 240B policy: base=200ms
+const RETRY_FACTOR = 2;          // 240B policy: factor=2
+const RETRY_CAP_MS = 3000;       // 240B policy: cap=3000ms
+const RETRY_MAX_ATTEMPTS = 3;    // 240B policy: maxAttempts=3
 
 export interface QueryMetricsSnapshot {
   totalRequests: number;
@@ -193,7 +197,9 @@ const mutationCache = new MutationCache({
 });
 
 const shouldRetry = (failureCount: number, error: unknown): boolean => {
-  if (failureCount >= 2) {
+  // 240B – 仅对查询（幂等读）使用重试；本方法仅配置于 queries.defaultOptions 中
+  // 最多尝试 RETRY_MAX_ATTEMPTS 次（失败计数指已失败次数）
+  if (failureCount >= RETRY_MAX_ATTEMPTS) {
     return false;
   }
 
@@ -207,6 +213,18 @@ const shouldRetry = (failureCount: number, error: unknown): boolean => {
   return true;
 };
 
+const withJitter = (ms: number): number => {
+  // 添加抖动，避免雪崩
+  const jitter = Math.random() * 0.25 * ms; // 0–25%
+  return Math.min(RETRY_CAP_MS, Math.floor(ms + jitter));
+};
+
+const retryDelay = (attemptIndex: number): number => {
+  // attemptIndex 从 0 开始；指数退避：base * factor^attemptIndex，带抖动与上限
+  const base = RETRY_BASE_DELAY_MS * Math.pow(RETRY_FACTOR, attemptIndex);
+  return withJitter(base);
+};
+
 export const queryClient = new QueryClient({
   queryCache,
   mutationCache,
@@ -215,6 +233,7 @@ export const queryClient = new QueryClient({
       gcTime: 30 * 60 * 1000,
       staleTime: 5 * 60 * 1000,
       retry: shouldRetry,
+      retryDelay,
       refetchOnReconnect: true,
       refetchOnWindowFocus: false,
       refetchOnMount: false,
