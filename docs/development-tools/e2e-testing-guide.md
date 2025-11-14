@@ -59,6 +59,13 @@ npm run test:e2e -- tests/e2e/regression-e2e.spec.ts
 ## 编写规范
 
 - **选择器策略**：所有交互元素必须暴露 `data-testid`，避免依赖可视文本。先使用 `page.waitForSelector('[data-testid="..."]')` 再操作。
+- **统一选择器（SSoT）**：测试与组件应统一从 `frontend/src/shared/testids/temporalEntity.ts` 引用选择器常量与构造器，避免硬编码。
+  - 示例：
+    ```ts
+    import selectors from '@/shared/testids/temporalEntity';
+    await expect(page.getByTestId(selectors.organization.dashboardWrapper)).toBeVisible();
+    await page.getByTestId(selectors.list.row('1000001')).click();
+    ```
 - **断言一致性**：界面展示与 API 值不一致时，通过映射表统一断言，例如状态字段使用 `ACTIVE → "✓ 启用"`。
 - **超时管理**：长流程使用 `test.setTimeout(180000)` 或拆分多个场景，避免静态 `waitForTimeout`。必要的等待必须基于条件。
 - **诊断资产**：`playwright.config.ts` 已启用 `trace/video/screenshot` 的 `retain-on-failure`，无需在测试内重复截图逻辑。
