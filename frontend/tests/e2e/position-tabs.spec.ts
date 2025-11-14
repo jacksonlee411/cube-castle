@@ -74,6 +74,20 @@ async function seedAuth(page: Page) {
       });
     });
 
+  // 拦截 /auth/dev-token，避免真实令牌获取带来的不确定等待
+  await page.route('**/auth/dev-token', async route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        accessToken: FAKE_RS256_JWT,
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+      }),
+    });
+  });
+
   await page.addInitScript(({ token }) => {
       const issuedAt = Date.now();
       window.localStorage.setItem(
@@ -96,6 +110,8 @@ test.describe('职位详情多页签体验', () => {
 
     await page.goto(POSITION_DETAIL_PATH);
     await waitForPageReady(page);
+    // 如应用触发令牌获取，先等待 dev-token 返回（无则忽略）
+    await page.waitForResponse(r => r.url().includes('/auth/dev-token'), { timeout: 5000 }).catch(() => {});
     await waitForGraphQL(page, POSITION_DETAIL_QUERY_NAME);
 
     const temporalWrapper = page.getByTestId(temporalEntitySelectors.position.temporalPageWrapper);
