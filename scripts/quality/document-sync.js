@@ -192,7 +192,7 @@ class ContentExtractor {
       const deps = { ...packageData.dependencies, ...packageData.devDependencies };
       
       const keyDependencies = {};
-      ['react', 'vite', 'typescript', '@workday/canvas-kit-react'].forEach(dep => {
+      ['react', 'vite', 'typescript'].forEach(dep => {
         if (deps[dep]) {
           // 规范化版本（去掉 ^ ~ 等前缀，只保留 x.y.z）
           const raw = String(deps[dep]);

@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-11-14T12:41:54.817Z",
+  "timestamp": "2025-11-14T12:46:04.956Z",
   "summary": {
     "totalPairs": 5,
-    "syncedPairs": 2,
-    "conflicts": 3,
+    "syncedPairs": 3,
+    "conflicts": 0,
     "errors": 0,
     "autoFixed": 0,
     "checksPerformed": 5,
-    "successRate": "40.0"
+    "successRate": "60.0"
   },
   "syncPairs": [
     {
@@ -64,48 +64,6 @@
   ],
   "history": [
     {
-      "timestamp": "2025-11-14T12:38:14.841Z",
-      "syncPairName": "依赖版本同步",
-      "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
-      "success": false,
-      "autoFixed": true
-    },
-    {
-      "timestamp": "2025-11-14T12:38:14.863Z",
-      "syncPairName": "API规范版本同步",
-      "sourceHash": "e0432158f94a91ebb06c2fe859abb591",
-      "success": true,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-14T12:38:14.865Z",
-      "syncPairName": "端口配置同步",
-      "sourceHash": "a312814878297f7164ff619f51c69ce1",
-      "success": false,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-14T12:38:14.866Z",
-      "syncPairName": "依赖版本同步",
-      "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
-      "success": false,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-14T12:41:54.790Z",
-      "syncPairName": "API规范版本同步",
-      "sourceHash": "e0432158f94a91ebb06c2fe859abb591",
-      "success": true,
-      "autoFixed": true
-    },
-    {
-      "timestamp": "2025-11-14T12:41:54.791Z",
-      "syncPairName": "端口配置同步",
-      "sourceHash": "a312814878297f7164ff619f51c69ce1",
-      "success": true,
-      "autoFixed": true
-    },
-    {
       "timestamp": "2025-11-14T12:41:54.793Z",
       "syncPairName": "依赖版本同步",
       "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
@@ -131,6 +89,48 @@
       "syncPairName": "依赖版本同步",
       "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
       "success": false,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-14T12:46:04.880Z",
+      "syncPairName": "API规范版本同步",
+      "sourceHash": "e0432158f94a91ebb06c2fe859abb591",
+      "success": true,
+      "autoFixed": true
+    },
+    {
+      "timestamp": "2025-11-14T12:46:04.882Z",
+      "syncPairName": "端口配置同步",
+      "sourceHash": "a312814878297f7164ff619f51c69ce1",
+      "success": true,
+      "autoFixed": true
+    },
+    {
+      "timestamp": "2025-11-14T12:46:04.884Z",
+      "syncPairName": "依赖版本同步",
+      "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
+      "success": true,
+      "autoFixed": true
+    },
+    {
+      "timestamp": "2025-11-14T12:46:04.952Z",
+      "syncPairName": "API规范版本同步",
+      "sourceHash": "e0432158f94a91ebb06c2fe859abb591",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-14T12:46:04.954Z",
+      "syncPairName": "端口配置同步",
+      "sourceHash": "a312814878297f7164ff619f51c69ce1",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-14T12:46:04.955Z",
+      "syncPairName": "依赖版本同步",
+      "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
+      "success": true,
       "autoFixed": false
     }
   ]
