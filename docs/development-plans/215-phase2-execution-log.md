@@ -84,6 +84,34 @@
 
 ---
 
+### Plan 240B – 职位详情数据装载与等待治理（登记）
+
+说明：本节用于登记 240B 的依赖门槛、执行证据与验收结果。实施细节以 `docs/development-plans/240B-position-loading-governance.md` 为唯一事实来源。
+
+- 依赖与准入（需全部满足）
+  - [ ] 243/T1 统一入口已合并（`TemporalEntityPage` 可用）
+  - [ ] 244 已验收（Adapter/StatusMeta 合并、契约同步、基础 E2E 绿灯）
+  - [ ] 241 恢复并作为承载框架（统一 Hook/Loader 作为唯一入口）
+  - [ ] 守卫接入：`npm run guard:plan245`、`npm run guard:selectors-246` 通过（基线计数不升高）
+- 环境与契约前置
+  - [ ] Docker/服务就绪：`make docker-up` → `make run-dev` → `make frontend-dev`
+  - [ ] 健康检查：`curl :9090/:8090` → 200
+  - [ ] JWT：`make jwt-dev-mint`
+  - [ ] 契约先行（如适用）：更新 `docs/api/*` + `node scripts/generate-implementation-inventory.js`
+    - 证据：`logs/plan240/B/inventory-sha.txt`
+- 执行与证据（示例文件名，可按实际生成）
+  - [ ] Loader 取消策略：`logs/plan240/B/loader-cancellation.log`
+  - [ ] 重试与错误边界：`logs/plan240/B/retry-policy.log`
+  - [ ] QueryKey 与失效刷新：`logs/plan240/B/rq-cache-invalidation.log`
+  - [ ] 守卫：`logs/plan240/B/guard-plan245.log`、`logs/plan240/B/guard-selectors-246.log`
+- 单测与 E2E（统一门槛）
+  - [ ] 单测通过（取消/重试/错误态/租户切换/重复 fetch 抑制/命令后失效）
+  - [ ] E2E 稳定（Chromium/Firefox 各 3 次）：
+    - `logs/plan240/B/e2e-chromium-run1.log` … `run3.log`
+    - `logs/plan240/B/e2e-firefox-run1.log` … `run3.log`
+
+---
+
 ## 阶段时间表与计划映射（Week 3-4）
 
 | 周 | 日 | 行动项 | 计划 | 描述 | 负责人 | 状态 |
