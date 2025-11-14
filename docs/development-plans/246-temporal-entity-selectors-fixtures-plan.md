@@ -3,7 +3,7 @@
 关联主计划: Plan 242（T4）  
 目标窗口: Day 12-15  
 范围: 统一 Playwright selector/testid、测试 fixtures 与 E2E 工具  
-状态: 待执行（已通过评审补充门禁、命名与验证细则）
+状态: 已完成（2025-11-14）— Phase 1 交付，Phase 2 组件 testid 收敛按迭代小步推进
 
 —
 
@@ -150,6 +150,19 @@
 - 文档
   - 本计划（完善版）与 e2e 指南更新  
   - `logs/plan242/t4/` 留痕（guard、e2e 报告、截图/trace 索引）
+
+—
+
+## 16. 完成说明与证据
+- 守卫基线：`reports/plan246/baseline.json`（total=125）
+- 当前扫描：`npm run guard:selectors-246` → total=83（legacy -42），通过
+- CI 集成：已在 `agents-compliance.yml` 与 `frontend-quality-gate.yml` 中启用 Plan 246 Guard（安装依赖/构建前）
+- 用例采纳（示例）
+  - 组织：`business-flow-e2e.spec.ts`、`basic-functionality-test.spec.ts`、`organization-create.spec.ts`、`canvas-e2e.spec.ts`、`temporal-editform-defaults-smoke.spec.ts`、`optimization-verification-e2e.spec.ts`
+  - 职位：`position-tabs.spec.ts`、`position-crud-live.spec.ts`、`position-crud-full-lifecycle.spec.ts`、`position-lifecycle.spec.ts`、`job-catalog-layout-baseline.spec.ts`
+- SSoT 扩展
+  - `organization.{dashboardWrapper,dashboard,form,table}`
+  - `position.{dashboard,temporalPageWrapper,temporalPage,overviewCard,versionToolbar,versionList,detailCard,tabVersions}`
 
 —
 
