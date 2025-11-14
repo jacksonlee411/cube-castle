@@ -6,6 +6,7 @@
 import { test, expect } from '@playwright/test';
 import { validateTestEnvironment } from './config/test-environment';
 import { setupAuth } from './auth-setup';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 let BASE_URL: string;
 
@@ -29,7 +30,7 @@ test.describe('时态管理系统基础功能验证', () => {
   test('应用基础加载测试', async ({ page }) => {
     const startTime = Date.now();
     await page.goto(BASE_URL);
-    await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId(temporalEntitySelectors.organization.dashboard)).toBeVisible({ timeout: 15000 });
     const loadTime = Date.now() - startTime;
 
     expect(loadTime).toBeLessThan(15000);
@@ -43,7 +44,7 @@ test.describe('时态管理系统基础功能验证', () => {
     await page.waitForLoadState('networkidle');
 
     // 等待组织dashboard加载完成
-    await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId(temporalEntitySelectors.organization.dashboard)).toBeVisible({ timeout: 15000 });
 
     // 等待加载状态消失
     await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {
@@ -72,7 +73,7 @@ test.describe('时态管理系统基础功能验证', () => {
 
   test('系统响应性测试', async ({ page }) => {
     await page.goto(BASE_URL);
-    await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId(temporalEntitySelectors.organization.dashboard)).toBeVisible({ timeout: 15000 });
 
     const buttons = page.locator('button:visible');
     const buttonCount = await buttons.count();

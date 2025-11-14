@@ -2,6 +2,7 @@ import { test, expect, Page } from '@playwright/test'
 import path from 'node:path'
 import { mkdir } from 'node:fs/promises'
 import { TOKEN_STORAGE_KEY } from '@/shared/api/auth'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment'
 import { updateCachedJwt } from './utils/authToken'
 
@@ -133,7 +134,7 @@ test.describe('Job Catalog 布局基线截图', () => {
   test('职位列表页面布局', async ({ page }) => {
     await setAuthStorage(page, adminToken)
     await page.goto('/positions')
-    await expect(page.getByTestId('position-dashboard')).toBeVisible()
+    await expect(page.getByTestId(temporalEntitySelectors.position.dashboard)).toBeVisible()
     await captureIfEnabled(page, 'positions-list')
   })
 

@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { setupAuth } from './auth-setup';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
-const DASHBOARD_TESTID = 'organization-dashboard';
+const DASHBOARD_TESTID = temporalEntitySelectors.organization.dashboard;
 
 test.describe('Canvas UI 基础体验', () => {
   test.beforeEach(async ({ page }) => {
@@ -38,7 +39,7 @@ test.describe('Canvas UI 基础体验', () => {
     const dashboard = page.locator(`[data-testid="${DASHBOARD_TESTID}"]`);
     await expect(dashboard).toBeVisible({ timeout: 15000 });
 
-    const table = page.getByTestId('organization-table');
+    const table = page.getByTestId(temporalEntitySelectors.organization.table);
     await expect(table).toBeVisible();
 
     const rows = table.locator('tbody tr');
@@ -74,7 +75,7 @@ test.describe('Canvas UI 基础体验', () => {
     const dashboard = page.locator(`[data-testid="${DASHBOARD_TESTID}"]`);
     await expect(dashboard).toBeVisible({ timeout: 15000 });
 
-    const table = page.getByTestId('organization-table');
+    const table = page.getByTestId(temporalEntitySelectors.organization.table);
     await expect(table).toBeVisible();
 
     const rows = table.locator('tbody tr');

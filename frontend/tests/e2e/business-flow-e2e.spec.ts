@@ -130,7 +130,7 @@ test.describe('业务流程端到端测试', () => {
     await test.step('创建新组织', async () => {
       await page.getByTestId('create-organization-button').click();
       await waitForNavigation(page, '**/organizations/new');
-      await expect(page.getByTestId('organization-form')).toBeVisible();
+      await expect(page.getByTestId(temporalEntitySelectors.organization.form)).toBeVisible();
 
       const today = new Date().toISOString().slice(0, 10);
       await page.getByTestId('form-field-effective-date').fill(today);
@@ -152,7 +152,7 @@ test.describe('业务流程端到端测试', () => {
       await page.getByTestId('form-submit-button').click();
 
       await waitForNavigation(page, /\/organizations\/[0-9]{7}\/temporal$/);
-      await expect(page.getByTestId('organization-form')).toBeVisible();
+      await expect(page.getByTestId(temporalEntitySelectors.organization.form)).toBeVisible();
     });
 
     const detailUrl = page.url();
@@ -171,7 +171,7 @@ test.describe('业务流程端到端测试', () => {
 
     await test.step('验证列表展示新组织', async () => {
       // 等待列表加载完成
-      const organizationTable = page.getByTestId('organization-table');
+      const organizationTable = page.getByTestId(temporalEntitySelectors.organization.table);
       await expect(organizationTable).toBeVisible();
 
       // 等待加载状态消失，确保数据已刷新
@@ -212,7 +212,7 @@ test.describe('业务流程端到端测试', () => {
       expect(matched.unitType).toBe('DEPARTMENT');
 
       // 若UI已经刷新，则新行应可见；否则记录日志但不影响断言
-      const createdRow = page.getByTestId(`table-row-${organizationCode}`);
+      const createdRow = page.getByTestId(temporalEntitySelectors.list.row(organizationCode));
       if (await createdRow.count()) {
         await expect(createdRow.getByText(baseName)).toBeVisible();
       }
@@ -223,7 +223,7 @@ test.describe('业务流程端到端测试', () => {
     await test.step('更新组织名称', async () => {
       await page.goto(`/organizations/${organizationCode}/temporal`);
       await waitForPageReady(page);
-      await expect(page.getByTestId('organization-form')).toBeVisible();
+      await expect(page.getByTestId(temporalEntitySelectors.organization.form)).toBeVisible();
       await waitForTemporalDetailReady(page);
 
       await page.getByTestId('edit-history-toggle-button').click();
@@ -244,7 +244,7 @@ test.describe('业务流程端到端测试', () => {
 
       await filterOrganizationsByName(page, updatedName);
 
-      const updatedRow = page.getByTestId(`table-row-${organizationCode}`);
+      const updatedRow = page.getByTestId(temporalEntitySelectors.list.row(organizationCode));
       if (await updatedRow.count()) {
         await expect(updatedRow.getByText(updatedName)).toBeVisible({ timeout: 15000 });
       }
@@ -255,7 +255,7 @@ test.describe('业务流程端到端测试', () => {
     await test.step('删除组织并在列表中消失', async () => {
       await page.goto(`/organizations/${organizationCode}/temporal`);
       await waitForPageReady(page);
-      await expect(page.getByTestId('organization-form')).toBeVisible();
+      await expect(page.getByTestId(temporalEntitySelectors.organization.form)).toBeVisible();
 
       await waitForTemporalDetailReady(page);
       const deleteButton = await expectDeleteButtonVisible(page);
@@ -273,7 +273,7 @@ test.describe('业务流程端到端测试', () => {
 
       await filterOrganizationsByName(page, baseName);
 
-      const deletedRow = page.getByTestId(`table-row-${organizationCode}`);
+      const deletedRow = page.getByTestId(temporalEntitySelectors.list.row(organizationCode));
       if (await deletedRow.count()) {
         await expect(deletedRow.locator('[data-testid^="status-pill-"]')).toContainText(['停用', '计划中', '已删除'], {
           timeout: 10000,
@@ -287,7 +287,7 @@ test.describe('业务流程端到端测试', () => {
   test('分页和筛选功能测试', async ({ page }) => {
     // 等待页面数据加载完成
     await page.waitForTimeout(2000);
-    const organizationTable = page.getByTestId('organization-table');
+    const organizationTable = page.getByTestId(temporalEntitySelectors.organization.table);
     await expect(organizationTable).toBeVisible();
 
     // 1. 验证搜索功能

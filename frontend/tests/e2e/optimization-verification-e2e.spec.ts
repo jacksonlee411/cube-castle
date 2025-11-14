@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { setupAuth } from './auth-setup';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 import { ensurePwJwt, getPwJwt } from './utils/authToken';
 import { E2E_CONFIG } from './config/test-environment';
 // import { TEST_ENDPOINTS } from '../config/ports'; // TODO: 将来用于统一E2E测试端点配置
@@ -41,7 +42,7 @@ test.describe('优化效果验证测试', () => {
     await page.getByTestId('create-organization-button').click();
     await page.waitForURL('**/organizations/new');
 
-    const form = page.getByTestId('organization-form');
+    const form = page.getByTestId(temporalEntitySelectors.organization.form);
     await expect(form).toBeVisible();
 
     // 空提交触发基础验证

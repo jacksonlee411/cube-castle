@@ -1,17 +1,18 @@
 import { test, expect } from '@playwright/test';
 import { setupAuth } from './auth-setup';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 test.describe('Organization Create Flow', () => {
   test.beforeEach(async ({ page }) => {
     await setupAuth(page);
     await page.goto('/organizations');
-    await expect(page.getByTestId('organization-dashboard')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId(temporalEntitySelectors.organization.dashboard)).toBeVisible({ timeout: 15000 });
   });
 
   test('allows selecting parent organization before submitting create request', async ({ page }) => {
     await page.getByTestId('create-organization-button').click();
     await expect(page).toHaveURL(/\/organizations\/new$/);
-    await expect(page.getByTestId('organization-form')).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.organization.form)).toBeVisible();
 
     const parentInput = page.getByTestId('combobox-input');
     await parentInput.click();
@@ -37,6 +38,6 @@ test.describe('Organization Create Flow', () => {
 
     // 不实际提交，回到列表
     await page.goto('/organizations');
-    await expect(page.getByTestId('organization-dashboard')).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.organization.dashboard)).toBeVisible();
   });
 });

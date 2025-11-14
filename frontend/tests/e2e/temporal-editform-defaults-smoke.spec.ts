@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 async function ping(url: string, timeout = 1500): Promise<boolean> {
   try {
@@ -23,7 +24,6 @@ test('Temporal edit form creation page renders (smoke)', async ({ page }) => {
   await expect(createTitle).toBeVisible({ timeout: 5000 });
 
   // 存在表单主体
-  const form = page.locator('[data-testid="organization-form"]').first();
+  const form = page.getByTestId(temporalEntitySelectors.organization.form);
   await expect(form).toBeVisible();
 });
-

@@ -286,7 +286,7 @@ test.describe('时态管理系统集成测试', () => {
     const searchInput = await waitForOrganizationSearchInput(page);
     await searchInput.fill(TEST_ORG_CODE);
     await Promise.race([waitForGraphQL(page, /organizations/i), page.waitForTimeout(500)]);
-      await expect(page.getByTestId(`table-row-${TEST_ORG_CODE}`)).toBeVisible({ timeout: 20000 });
+      await expect(page.getByTestId(temporalEntitySelectors.list.row(TEST_ORG_CODE))).toBeVisible({ timeout: 20000 });
 
       const manageButton = page.getByTestId(`temporal-manage-button-${TEST_ORG_CODE}`);
       await expect(manageButton).toBeVisible();

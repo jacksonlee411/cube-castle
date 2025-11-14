@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { validateTestEnvironment } from './config/test-environment';
 import { setupAuth } from './auth-setup';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 const TEST_ORGANIZATION_CODE = '1000004';
 
@@ -36,8 +37,7 @@ test.describe('五状态生命周期管理系统', () => {
     }).first();
     await expect(currentNode).toBeVisible();
 
-    const detailForm = page.locator('[data-testid="organization-form"]');
-    await expect(detailForm).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.organization.form)).toBeVisible();
   });
 
   test('支持选择时间轴节点并进入编辑模式', async ({ page }) => {

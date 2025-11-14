@@ -79,7 +79,7 @@ test.describe("职位管理 CRUD（真实后端链路）", () => {
     await page.waitForURL((url) =>
       url.pathname.includes(`/positions/${positionCode}`),
     );
-    await expect(page.getByTestId("position-temporal-page")).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.position.temporalPage)).toBeVisible();
     await expect(page.getByText(`职位详情：${positionCode}`)).toBeVisible();
   });
 });

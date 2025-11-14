@@ -27,6 +27,9 @@ export type TemporalSelectors = {
   // Compatibility namespaces (Phase 1)
   organization: {
     dashboardWrapper: string;
+    dashboard: string;
+    form: string;
+    table: string;
   };
   position: {
     dashboard: string;
@@ -57,6 +60,9 @@ export const temporalEntitySelectors: TemporalSelectors = {
   // Phase 1 compatibility mappings to existing component testids
   organization: {
     dashboardWrapper: 'organization-dashboard-wrapper',
+    dashboard: 'organization-dashboard',
+    form: 'organization-form',
+    table: 'organization-table',
   },
   position: {
     dashboard: 'position-dashboard',

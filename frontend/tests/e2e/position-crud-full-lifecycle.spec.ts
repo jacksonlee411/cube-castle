@@ -130,14 +130,14 @@ test.describe('职位管理完整CRUD生命周期', () => {
     await expect(page.getByText(`职位详情：${testPositionCode}`)).toBeVisible();
 
     // 验证职位详情卡片显示
-    const detailCard = page.getByTestId('position-detail-card');
+    const detailCard = page.getByTestId(temporalEntitySelectors.position.detailCard);
     await expect(detailCard).toBeVisible();
     await expect(detailCard).toContainText(`E2E测试职位-${TEST_ID}`);
     await expect(detailCard).toContainText('OPER-OPS-MGR');
     await expect(detailCard).toContainText('S1');
 
     // 切换至版本历史页签并验证列表渲染
-    const versionTab = page.getByTestId('position-tab-versions');
+    const versionTab = page.getByTestId(temporalEntitySelectors.position.tabVersions);
     await versionTab.click();
     await expect(page.getByTestId(temporalEntitySelectors.position.versionList)).toBeVisible();
 
@@ -192,7 +192,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
 
     // 刷新页面验证更新后的信息
     await page.goto(`/positions/${testPositionCode}`);
-    const detailCard = page.getByTestId('position-detail-card');
+    const detailCard = page.getByTestId(temporalEntitySelectors.position.detailCard);
     await expect(detailCard).toBeVisible({ timeout: 10000 });
 
     // 验证更新后的标题显示（等待 GraphQL 数据渲染）
@@ -256,7 +256,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
 
     // 刷新页面验证任职记录
     await page.goto(`/positions/${testPositionCode}`);
-    const detailCard = page.getByTestId('position-detail-card');
+    const detailCard = page.getByTestId(temporalEntitySelectors.position.detailCard);
     await expect(detailCard).toContainText(`E2E测试员工-${TEST_ID}`, { timeout: 15000 });
 
     console.log(`✅ 职位填充成功，任职ID: ${testAssignmentId}`);
@@ -303,7 +303,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
 
     // 刷新页面验证空缺状态
     await page.goto(`/positions/${testPositionCode}`);
-    const detailCard = page.getByTestId('position-detail-card');
+    const detailCard = page.getByTestId(temporalEntitySelectors.position.detailCard);
     await expect(detailCard).not.toContainText(`E2E测试员工-${TEST_ID}`, { timeout: 15000 });
 
     console.log(`✅ 职位空缺成功`);
@@ -377,7 +377,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
     // 以覆盖 Position Version API，待 UI 对接版本创建后移除该注记。
 
     // 验证版本列表包含所有生命周期事件
-    await page.getByTestId('position-tab-versions').click();
+    await page.getByTestId(temporalEntitySelectors.position.tabVersions).click();
     const versionList = page.getByTestId('position-version-list');
     await expect(versionList).toBeVisible();
 

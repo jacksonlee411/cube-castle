@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { setupAuth } from './auth-setup';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 import {
   POSITION_FIXTURE_CODE,
   POSITION_GRAPHQL_FIXTURES as GRAPHQL_FIXTURES,
@@ -75,7 +76,7 @@ test.describe('职位生命周期视图', () => {
     await expect(page.getByRole('heading', { name: '职位管理（Stage 1 数据接入）' })).toBeVisible();
     await expect(page.getByTestId(`position-row-${POSITION_FIXTURE_CODE}`)).toBeVisible();
 
-    const detailCard = page.getByTestId('position-detail-card');
+    const detailCard = page.getByTestId(temporalEntitySelectors.position.detailCard);
     await expect(detailCard).toContainText('生命周期演示岗位');
     await expect(detailCard).toContainText('当前任职');
     await expect(detailCard).toContainText('张三');
