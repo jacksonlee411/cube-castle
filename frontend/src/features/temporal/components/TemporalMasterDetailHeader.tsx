@@ -51,7 +51,7 @@ export const TemporalMasterDetailHeader: React.FC<TemporalMasterDetailHeaderProp
 
   const subtitle = isCreateMode
     ? "填写组织基本信息，系统将自动分配组织编码"
-    : "强制时间连续性的组织架构管理";
+    : `强制时间连续性的组织架构管理${currentTimelineStatus ? `（当前状态：${currentTimelineStatus}）` : ""}`;
 
   return (
     <Flex justifyContent="space-between" alignItems="center" marginBottom="l">
