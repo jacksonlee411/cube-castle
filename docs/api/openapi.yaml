@@ -3444,7 +3444,8 @@ components:
           minimum: 0
           example: 1
         currentAssignment:
-          $ref: '#/components/schemas/PositionAssignmentResource'
+          allOf:
+            - $ref: '#/components/schemas/PositionAssignmentResource'
           nullable: true
           description: Latest active assignment for the position, if any.
         assignmentHistory:

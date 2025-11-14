@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-11-14T02:19:17.005Z",
+  "timestamp": "2025-11-14T04:19:13.293Z",
   "summary": {
     "openapiPaths": 49,
     "graphqlQueries": 25,
     "goHandlers": 62,
     "goServices": 31,
-    "tsExports": 258
+    "tsExports": 261
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -1311,6 +1311,11 @@
       "kind": "const"
     },
     {
+      "name": "ORGANIZATION_BY_CODE_DOCUMENT",
+      "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
+      "kind": "const"
+    },
+    {
       "name": "ORGANIZATIONS_QUERY_ROOT_KEY",
       "file": "frontend/src/shared/hooks/useEnterpriseOrganizations.ts",
       "kind": "const"
@@ -1564,6 +1569,16 @@
       "name": "useOrgPBAC",
       "file": "frontend/src/shared/hooks/useScopes.ts",
       "kind": "func"
+    },
+    {
+      "name": "useTemporalEntityDetail",
+      "file": "frontend/src/shared/hooks/useTemporalEntityDetail.ts",
+      "kind": "func"
+    },
+    {
+      "name": "temporalEntityDetailQueryKey",
+      "file": "frontend/src/shared/hooks/useTemporalEntityDetail.ts",
+      "kind": "const"
     },
     {
       "name": "isGraphQLResponse",
