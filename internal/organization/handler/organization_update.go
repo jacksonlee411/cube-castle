@@ -307,6 +307,14 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 			"recordId":      version.RecordID,
 			"code":          version.Code,
 			"name":          version.Name,
+			"unitType":      version.UnitType,
+			"status":        version.Status,
+			"level":         version.Level,
+			"codePath":      version.CodePath,
+			"namePath":      version.NamePath,
+			"parentCode":    version.ParentCode,
+			"description":   version.Description,
+			"sortOrder":     version.SortOrder,
 			"effectiveDate": version.EffectiveDate.Format("2006-01-02"),
 			"endDate": func() *string {
 				if version.EndDate != nil {
@@ -316,7 +324,8 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 				return nil
 			}(),
 			"isCurrent": version.IsCurrent,
-			"status":    version.Status,
+			"createdAt": version.CreatedAt,
+			"updatedAt": version.UpdatedAt,
 		}
 	}
 

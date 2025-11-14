@@ -85,11 +85,28 @@ func (tm *TemporalTimelineManager) InsertVersion(ctx context.Context, org *types
 
 	tm.logger.Infof("版本插入成功: RecordID=%s", newRecordID)
 	return &TimelineVersion{
-		RecordID:      newRecordID,
-		Code:          org.Code,
-		Name:          org.Name,
+		RecordID:   newRecordID,
+		Code:       org.Code,
+		Name:       org.Name,
+		UnitType:   org.UnitType,
+		Status:     "ACTIVE",
+		Level:      org.Level,
+		CodePath:   org.CodePath,
+		NamePath:   org.NamePath,
+		ParentCode: org.ParentCode,
+		Description: func() *string {
+			if org.Description == "" {
+				return nil
+			}
+			desc := org.Description
+			return &desc
+		}(),
+		SortOrder: func() *int {
+			value := org.SortOrder
+			return &value
+		}(),
 		EffectiveDate: effectiveDate,
-		Status:        "ACTIVE",
 		CreatedAt:     createdAt,
+		UpdatedAt:     createdAt,
 	}, nil
 }

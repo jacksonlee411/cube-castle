@@ -201,6 +201,8 @@
 - [const] positionTimelineEventAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
 - [const] organizationTimelineAdapter — frontend/src/features/temporal/entity/timelineAdapter.ts
 - [const] TEMPORAL_ENTITY_STATUS_META — frontend/src/features/temporal/entity/statusMeta.ts
+- [service] TemporalTimelineManager — internal/organization/repository/temporal_timeline_manager.go
+- [handler] Organization timeline/status response — internal/organization/handler/organization_update.go
 - [component] AuditHistorySection — frontend/src/features/audit/components/AuditHistorySection.tsx
 - [service] AuditLogger — internal/organization/audit/logger.go （统一审计事件模型、事务写入、businessContext 聚合）
 - [test] audit logger tests — internal/organization/audit/logger_test.go （覆盖事务插入、fallback 资源 ID、错误 payload）

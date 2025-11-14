@@ -18,6 +18,7 @@
 | --- | --- | --- | --- |
 | 组织 | GraphQL/REST 各自手写 mapper | `frontend/src/features/temporal/entity/timelineAdapter.ts` (`organizationTimelineAdapter`) | 统一 `TimelineVersion` 字段与排序；`temporalMasterDetailApi` 直接复用，删除重复逻辑 |
 | 职位 | Legacy 职位 timeline adapter（已删除） | `frontend/src/features/temporal/entity/timelineAdapter.ts` (`positionTimelineAdapter`, `positionTimelineEventAdapter`) | 统一 recordId 规则、生命周期/业务状态映射，供 `PositionDetailView` 与 CSV 导出共享 |
+- Go 层：`internal/organization/repository/temporal_timeline_manager.go`、`internal/organization/handler/organization_update.go` 输出 `unitType/level/codePath/namePath/sortOrder` 等 `TemporalEntityTimelineVersion` 字段，保证 REST timeline 与前端适配器结构一致；相关响应契约记录在 `docs/api/openapi.yaml#TemporalEntityTimelineVersion`。
 
 ## Temporal Entity Status Meta (T2)
 

@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-11-09T16:03:12.773Z",
+  "timestamp": "2025-11-14T01:04:26.680Z",
   "summary": {
     "openapiPaths": 49,
     "graphqlQueries": 25,
-    "goHandlers": 0,
-    "goServices": 0,
+    "goHandlers": 62,
+    "goServices": 31,
     "tsExports": 258
   },
   "openapiPaths": [
@@ -85,8 +85,475 @@
     "jobRoles",
     "jobLevels"
   ],
-  "goHandlers": [],
-  "goServices": [],
+  "goHandlers": [
+    {
+      "name": "SetupRoutes",
+      "file": "internal/organization/handler/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "GenerateDevToken",
+      "file": "internal/organization/handler/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetTokenInfo",
+      "file": "internal/organization/handler/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "DevStatus",
+      "file": "internal/organization/handler/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "ListTestEndpoints",
+      "file": "internal/organization/handler/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "DatabaseStatus",
+      "file": "internal/organization/handler/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "PerformanceMetrics",
+      "file": "internal/organization/handler/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "TestAPI",
+      "file": "internal/organization/handler/devtools.go",
+      "kind": "method"
+    },
+    {
+      "name": "SetupRoutes",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobFamilyGroup",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateJobFamilyGroup",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobFamilyGroupVersion",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobFamily",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateJobFamily",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobFamilyVersion",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobRole",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateJobRole",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobRoleVersion",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobLevel",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateJobLevel",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateJobLevelVersion",
+      "file": "internal/organization/handler/job_catalog_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "SetupRoutes",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetRateLimitStats",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetHealth",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetMetrics",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetAlerts",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetTasks",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "GetTaskStatus",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "TriggerTask",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "TriggerCutover",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "TriggerConsistencyCheck",
+      "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateOrganization",
+      "file": "internal/organization/handler/organization_create.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateOrganizationVersion",
+      "file": "internal/organization/handler/organization_create.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateOrganizationEvent",
+      "file": "internal/organization/handler/organization_events.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateHistoryRecord",
+      "file": "internal/organization/handler/organization_history.go",
+      "kind": "method"
+    },
+    {
+      "name": "SetupRoutes",
+      "file": "internal/organization/handler/organization_routes.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateOrganization",
+      "file": "internal/organization/handler/organization_update.go",
+      "kind": "method"
+    },
+    {
+      "name": "SuspendOrganization",
+      "file": "internal/organization/handler/organization_update.go",
+      "kind": "method"
+    },
+    {
+      "name": "ActivateOrganization",
+      "file": "internal/organization/handler/organization_update.go",
+      "kind": "method"
+    },
+    {
+      "name": "SetupRoutes",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreatePosition",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "ReplacePosition",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreatePositionVersion",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "FillPosition",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "VacatePosition",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "TransferPosition",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "ListAssignments",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateAssignment",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateAssignment",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CloseAssignment",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "ApplyPositionEvent",
+      "file": "internal/organization/handler/position_handler.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreatePosition",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "ReplacePosition",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreatePositionVersion",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "FillPosition",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "VacatePosition",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "TransferPosition",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "ApplyEvent",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "ListAssignments",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "CreateAssignmentRecord",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "UpdateAssignmentRecord",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "CloseAssignmentRecord",
+      "file": "internal/organization/handler/position_handler_test.go",
+      "kind": "method"
+    }
+  ],
+  "goServices": [
+    {
+      "name": "HierarchyRepository",
+      "file": "internal/organization/repository/hierarchy.go",
+      "kind": "type"
+    },
+    {
+      "name": "OrganizationNode",
+      "file": "internal/organization/repository/hierarchy.go",
+      "kind": "type"
+    },
+    {
+      "name": "JobCatalogRepository",
+      "file": "internal/organization/repository/job_catalog_repository.go",
+      "kind": "type"
+    },
+    {
+      "name": "JobCatalogTimelineEntry",
+      "file": "internal/organization/repository/job_catalog_repository.go",
+      "kind": "type"
+    },
+    {
+      "name": "OrganizationRepository",
+      "file": "internal/organization/repository/organization_repository.go",
+      "kind": "type"
+    },
+    {
+      "name": "OrganizationHasChildrenError",
+      "file": "internal/organization/repository/organization_repository.go",
+      "kind": "type"
+    },
+    {
+      "name": "PositionAssignmentRepository",
+      "file": "internal/organization/repository/position_assignment_repository.go",
+      "kind": "type"
+    },
+    {
+      "name": "PositionRepository",
+      "file": "internal/organization/repository/position_repository.go",
+      "kind": "type"
+    },
+    {
+      "name": "AuditHistoryConfig",
+      "file": "internal/organization/repository/postgres_base.go",
+      "kind": "type"
+    },
+    {
+      "name": "PostgreSQLRepository",
+      "file": "internal/organization/repository/postgres_base.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalTimelineManager",
+      "file": "internal/organization/repository/temporal_timeline_manager.go",
+      "kind": "type"
+    },
+    {
+      "name": "TimelineVersion",
+      "file": "internal/organization/repository/temporal_timeline_manager.go",
+      "kind": "type"
+    },
+    {
+      "name": "OperationalScheduler",
+      "file": "internal/organization/scheduler/operational_scheduler.go",
+      "kind": "type"
+    },
+    {
+      "name": "ScheduledTask",
+      "file": "internal/organization/scheduler/operational_scheduler.go",
+      "kind": "type"
+    },
+    {
+      "name": "OrganizationTemporalService",
+      "file": "internal/organization/scheduler/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalCreateVersionRequest",
+      "file": "internal/organization/scheduler/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalUpdateVersionRequest",
+      "file": "internal/organization/scheduler/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalDeleteVersionRequest",
+      "file": "internal/organization/scheduler/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalStatusChangeRequest",
+      "file": "internal/organization/scheduler/organization_temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "Service",
+      "file": "internal/organization/scheduler/service.go",
+      "kind": "type"
+    },
+    {
+      "name": "Dependencies",
+      "file": "internal/organization/scheduler/service.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalMonitor",
+      "file": "internal/organization/scheduler/temporal_monitor.go",
+      "kind": "type"
+    },
+    {
+      "name": "MonitoringMetrics",
+      "file": "internal/organization/scheduler/temporal_monitor.go",
+      "kind": "type"
+    },
+    {
+      "name": "AlertRule",
+      "file": "internal/organization/scheduler/temporal_monitor.go",
+      "kind": "type"
+    },
+    {
+      "name": "TemporalService",
+      "file": "internal/organization/scheduler/temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "InsertVersionRequest",
+      "file": "internal/organization/scheduler/temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "OrganizationData",
+      "file": "internal/organization/scheduler/temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "DeleteVersionRequest",
+      "file": "internal/organization/scheduler/temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "ChangeEffectiveDateRequest",
+      "file": "internal/organization/scheduler/temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "SuspendActivateRequest",
+      "file": "internal/organization/scheduler/temporal_service.go",
+      "kind": "type"
+    },
+    {
+      "name": "VersionResponse",
+      "file": "internal/organization/scheduler/temporal_service.go",
+      "kind": "type"
+    }
+  ],
   "tsExports": [
     {
       "name": "cubecastleBrandTokens",

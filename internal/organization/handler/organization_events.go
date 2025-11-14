@@ -84,12 +84,15 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 		timeline := make([]map[string]interface{}, 0, len(versions))
 		for _, v := range versions {
 			timeline = append(timeline, map[string]interface{}{
-				"recordId": v.RecordID,
-				"code":     v.Code,
-				"name":     v.Name,
-				"unitType": v.UnitType,
-				"status":   v.Status,
-				"level":    v.Level,
+				"recordId":  v.RecordID,
+				"code":      v.Code,
+				"name":      v.Name,
+				"unitType":  v.UnitType,
+				"status":    v.Status,
+				"level":     v.Level,
+				"codePath":  v.CodePath,
+				"namePath":  v.NamePath,
+				"sortOrder": v.SortOrder,
 				"effectiveDate": func() string {
 					if v.EffectiveDate != nil {
 						return v.EffectiveDate.String()

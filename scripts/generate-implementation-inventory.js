@@ -138,7 +138,8 @@ function extractGraphQLQueries() {
 function rgExportedFunctions(root, exts, patterns) {
   const results = [];
   function walk(dir) {
-    const ents = fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }) : [];
+    if (!fs.existsSync(dir)) return;
+    const ents = fs.readdirSync(dir, { withFileTypes: true });
     for (const ent of ents) {
       const p = path.join(dir, ent.name);
       if (ent.isDirectory()) walk(p);
@@ -168,20 +169,31 @@ function main() {
   const openapiPaths = extractOpenApiPaths();
   const gqlQueries = extractGraphQLQueries();
 
-  const goHandlers = rgExportedFunctions(
+  const goHandlerRoots = [
     path.join(repoRoot, 'cmd/hrms-server/command/internal/handlers'),
-    ['.go'],
-    [
-      { label: 'method', regex: String.raw`func\s*\([^)]*\)\s+([A-Z][A-Za-z0-9_]*)\s*\(` },
-    ]
+    path.join(repoRoot, 'internal/organization/handler'),
+  ];
+  const goServiceRoots = [
+    path.join(repoRoot, 'cmd/hrms-server/command/internal/services'),
+    path.join(repoRoot, 'internal/organization/repository'),
+    path.join(repoRoot, 'internal/organization/scheduler'),
+  ];
+
+  const goHandlerPatterns = [
+    { label: 'method', regex: String.raw`func\s*\([^)]*\)\s+([A-Z][A-Za-z0-9_]*)\s*\(` },
+  ];
+  const goServicePatterns = [
+    { label: 'type', regex: String.raw`type\s+([A-Z][A-Za-z0-9_]*)\s+struct\b` },
+  ];
+
+  const goHandlers = dedupeBy(
+    goHandlerRoots.flatMap((root) => rgExportedFunctions(root, ['.go'], goHandlerPatterns)),
+    (item) => `${item.name}@${item.file}`
   );
 
-  const goServices = rgExportedFunctions(
-    path.join(repoRoot, 'cmd/hrms-server/command/internal/services'),
-    ['.go'],
-    [
-      { label: 'type', regex: String.raw`type\s+([A-Z][A-Za-z0-9_]*)\s+struct\b` },
-    ]
+  const goServices = dedupeBy(
+    goServiceRoots.flatMap((root) => rgExportedFunctions(root, ['.go'], goServicePatterns)),
+    (item) => `${item.name}@${item.file}`
   );
 
   const tsExports = rgExportedFunctions(

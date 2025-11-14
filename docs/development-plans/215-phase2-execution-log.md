@@ -12,6 +12,7 @@
 
 - ✅ [Plan 242 / T1] Temporal Entity Page 抽象完成：组织/职位详情入口统一迁移至 `TemporalEntityPage`，路由校验、无效提示与功能映射已记录在 `reports/plan242/naming-inventory.md#temporal-entity-page`，为后续 Timeline/类型/测试抽象提供共享基线。
 - ✅ [Plan 244 / T2] Temporal Timeline & Status 抽象合入：`frontend/src/features/temporal/entity/timelineAdapter.ts` 与 `statusMeta.ts` 统一组织/职位映射，Lint 禁止回退旧命名，执行记录见 `logs/plan242/t2/`。
+- 🔄 [Plan 244 / T2] Temporal timeline REST 契约补齐 `TemporalEntityTimelineVersion` 字段，Go/前端测试与 Implementation Inventory 同步更新（详见 `logs/plan242/t2/2025-11-11-temporal-timeline-go.md`）。
 
 ---
 

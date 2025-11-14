@@ -965,6 +965,15 @@ paths:
                                 description:
                                   type: string
                                   nullable: true
+                                codePath:
+                                  type: string
+                                  description: Full hierarchical code path for the temporal entity
+                                namePath:
+                                  type: string
+                                  description: Full hierarchical name path for the temporal entity
+                                sortOrder:
+                                  type: integer
+                                  nullable: true
               examples:
                 delete_success:
                   summary: Successful organization delete

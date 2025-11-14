@@ -26,11 +26,19 @@ type TimelineVersion struct {
 	RecordID      uuid.UUID  `json:"recordId"`
 	Code          string     `json:"code"`
 	Name          string     `json:"name"`
+	UnitType      string     `json:"unitType"`
+	Status        string     `json:"status"`
+	Level         int        `json:"level"`
+	CodePath      string     `json:"codePath"`
+	NamePath      string     `json:"namePath"`
+	ParentCode    *string    `json:"parentCode"`
+	Description   *string    `json:"description"`
+	SortOrder     *int       `json:"sortOrder"`
 	EffectiveDate time.Time  `json:"effectiveDate"`
 	EndDate       *time.Time `json:"endDate"`
 	IsCurrent     bool       `json:"isCurrent"`
-	Status        string     `json:"status"`
 	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
 }
 
 func (tm *TemporalTimelineManager) RecalculateTimeline(ctx context.Context, tenantID uuid.UUID, code string) (*[]TimelineVersion, error) {
@@ -57,7 +65,10 @@ func (tm *TemporalTimelineManager) RecalculateTimeline(ctx context.Context, tena
 
 func (tm *TemporalTimelineManager) RecalculateTimelineInTx(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*[]TimelineVersion, error) {
 	query := `
-		SELECT record_id, code, name, effective_date, end_date, is_current, status, created_at
+		SELECT 
+			record_id, code, name, unit_type, status, level, code_path, name_path,
+			parent_code, description, sort_order, effective_date, end_date, is_current,
+			created_at, updated_at
 		FROM organization_units 
 		WHERE tenant_id = $1 
 		  AND code = $2 
@@ -72,10 +83,52 @@ func (tm *TemporalTimelineManager) RecalculateTimelineInTx(ctx context.Context, 
 
 	var versions []TimelineVersion
 	for rows.Next() {
-		var v TimelineVersion
-		if err := rows.Scan(&v.RecordID, &v.Code, &v.Name, &v.EffectiveDate, &v.EndDate, &v.IsCurrent, &v.Status, &v.CreatedAt); err != nil {
+		var (
+			v           TimelineVersion
+			parentCode  sql.NullString
+			description sql.NullString
+			sortOrder   sql.NullInt64
+			endDate     sql.NullTime
+		)
+
+		if err := rows.Scan(
+			&v.RecordID,
+			&v.Code,
+			&v.Name,
+			&v.UnitType,
+			&v.Status,
+			&v.Level,
+			&v.CodePath,
+			&v.NamePath,
+			&parentCode,
+			&description,
+			&sortOrder,
+			&v.EffectiveDate,
+			&endDate,
+			&v.IsCurrent,
+			&v.CreatedAt,
+			&v.UpdatedAt,
+		); err != nil {
 			return nil, fmt.Errorf("扫描版本记录失败: %w", err)
 		}
+
+		if endDate.Valid {
+			ed := endDate.Time
+			v.EndDate = &ed
+		}
+		if parentCode.Valid {
+			pc := parentCode.String
+			v.ParentCode = &pc
+		}
+		if description.Valid {
+			desc := description.String
+			v.Description = &desc
+		}
+		if sortOrder.Valid {
+			value := int(sortOrder.Int64)
+			v.SortOrder = &value
+		}
+
 		versions = append(versions, v)
 	}
 
