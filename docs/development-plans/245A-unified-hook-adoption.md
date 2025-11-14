@@ -54,19 +54,75 @@
 
 —
 
-5. 与 Plan 245 的关系
+5. 验收标准与关闭条件
+- 组件迁移完成度：
+  - 列表中的核心子组件（Header/Alerts/EditForm/ParentSelector）均已完成采纳，并在代码中优先读取统一 Hook 的 `record` 字段；
+  - 禁止在上述子组件内新增对旧路径（零散 API 字段）的直接读取（例外需在 allowlist 记录并注明过期时间），最终收敛为“统一 Hook + 时间线/版本数据”双来源。
+- 一致性优先级断言（单测/E2E 覆盖）：
+  - 展示字段读取优先级固定为：时间线/版本数据 > 统一 Hook `record` > 旧路径回退（仅过渡期）；过渡结束后不再读取旧路径。
+- 测试与门禁：
+  - GraphQL codegen、Typecheck、Vitest、Plan 245 守卫每次提交前均通过，并在 `logs/plan245A/` 留痕；
+  - 新增 1–2 条 E2E 场景（见第 8 节），在 CI 上稳定通过。
+- 日志与文档：
+  - `reports/plan242/naming-inventory.md` 中增加“采纳进度”条目，记录组件迁移与证据链接；
+  - `logs/plan245A/**` 收集并在 CI 中作为 artifact 归档（待工作流接入）。
+- 关闭条件：
+  - 上述核心子组件全部采纳完成；E2E 场景稳定通过；Plan 245 守卫 0 新增旧命名；无例外 allowlist 或 allowlist 清零；评审完成并在本计划文件标记“已完成”。
+
+—
+
+6. asOfDate 默认优先级（组织详情）
+- 统一默认值与传递优先级：
+  1) 所选版本（selectedVersion.effectiveDate）
+  2) 当前版本有效日期（isCurrent 版本的 effectiveDate）
+  3) 统一 Hook `record.effectiveDate`（兜底）
+- 说明：asOfDate 代表“查看视角”的时间点，不应直接使用任意版本的生效日期；需与时间线/版本选择保持一致。
+
+—
+
+7. 缓存一致性与失效策略
+- 在以下时机失效并刷新缓存：
+  - 版本/状态操作成功后：invalidate 统一 Hook 的详情 queryKey + 版本/timeline 的 queryKey，随后主动 `refetch`；
+  - 切换时间线版本后：刷新读取路径，使 Header/Alerts/EditForm 等展示字段与选中版本一致；
+  - 组织/上级变更后：使 ParentSelector 的候选/校验所依赖的查询与详情保持一致。
+- 要求：失效与刷新封装在对应的 handler 中（例如状态切换按钮、表单提交、版本选择），并有 Vitest 断言。
+
+—
+
+8. E2E 场景要求
+- 场景 A：切换不同版本后，Header/Alerts/表单展示字段（名称/状态/日期）与时间线选中版本一致。
+- 场景 B：状态切换后，刷新后展示字段一致；统一 Hook 与版本数据无漂移。
+- 输出：将 Playwright 结果上传到 CI artifact，并在 `logs/plan245A/` 留痕。
+
+—
+
+9. CI/守卫与 Artifact（实施指引）
+- Plan 245 守卫已在 CI 接入，用于冻结 `query PositionDetail/PositionDetailQuery` 新增；
+- 建议新增“旧字段直读”软守卫（仅告警，产出列表与 allowlist），引导逐步收敛；
+- 建议在前端质量工作流中上传 `logs/plan245A/**` 作为 artifact（实施在 CI 层进行，本计划仅给出要求）。
+
+—
+
+10. 与 Plan 245 的关系
 - Plan 245 已完成“类型 & 契约统一、统一 Hook 引入、operation 命名统一、守卫接入及契约注释”；本计划作为“统一方案的深入采纳”继续推进 UI 层统一化，不阻塞 Plan 245 已关闭状态。
 
 —
 
-6. 风险与回滚
+11. 风险与回滚
 - 风险：组件切换期间出现展示不一致或 UI 回归
 - 缓解：保留旧路径回退、最小粒度提交、严格回归测试
 - 回滚：若出现不可接受的行为差异，立即回滚到上个 tag，并保留日志以复现与定位
 
 —
 
-7. 附录：已完成与参考
+12. Owner / 时间线（占位）
+- Owner：TBD（前端负责人）
+- 目标节奏：每周完成 ≥1 个子组件的迁移，首周完成 T2（Alerts），次周完成 T3（EditForm）
+- 每次提交附：codegen / Typecheck / Vitest / Plan 245 Guard 日志，路径 `logs/plan245A/`
+
+—
+
+13. 附录：已完成与参考
 - 已完成（Plan 245）：
   - 统一类型与 Hook：`frontend/src/shared/types/temporal-entity.ts`、`frontend/src/shared/hooks/useTemporalEntityDetail.ts`
   - 职位详情页使用统一 Hook；组织主从视图以统一 Hook 兜底名称/状态
@@ -75,4 +131,3 @@
 - 参考：
   - `docs/development-plans/245-temporal-entity-type-contract-plan.md`（完成说明与证据）
   - `docs/api/schema.graphql` / `docs/api/openapi.yaml`（Plan 245 注释）
-
