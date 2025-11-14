@@ -68,9 +68,11 @@ export const temporalEntitySelectors: TemporalSelectors = {
     dashboard: 'temporal-position-dashboard',
     temporalPageWrapper: 'temporal-position-page-wrapper',
     temporalPage: 'temporal-position-page',
-    overviewCard: 'position-overview-card',
+    overviewCard: 'temporal-position-overview-card',
+    detailCard: 'temporal-position-detail-card',
     versionToolbar: 'temporal-position-version-toolbar',
     versionList: 'temporal-position-version-list',
+    tabVersions: 'position-tab-versions',
   },
 } as const;
 

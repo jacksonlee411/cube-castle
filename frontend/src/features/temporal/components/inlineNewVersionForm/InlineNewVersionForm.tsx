@@ -71,7 +71,7 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
 
   return (
     <Box flex="1">
-      <Card padding="l" data-testid="organization-form">
+      <Card padding="l" data-testid="temporal-organization-form">
         <FormHeader
           currentMode={currentMode}
           isEditingHistory={isEditingHistory}
