@@ -57,3 +57,8 @@
 | Playwright testid 全量替换失败 | E2E flakiness 或漏测 | 引入临时 alias (`temporalEntitySelectors.position.*`) 并设置弃用期限，确保多浏览器跑通后移除 |
 | Go 契约未同步导致 REST/GraphQL 断裂 | 命令/查询服务未更新字段或 schema | 在 T2 MR 中设置 gating：合并前必须附 `go test ./cmd/hrms-server/...`、`go generate` 输出及 schema diff；若出现回归，立即回滚至上一 tag，并通过 feature flag 限流 |
 | Implementation Inventory 漏更 | `reports/implementation-inventory.json` 缺失 Go handler/service | 每日运行 `node scripts/generate-implementation-inventory.js` 并将结果附在 `logs/plan242/t2/`；如脚本出错，先修复脚本再继续开发 |
+
+## 完成情况摘要
+- 2025-11-11：TemporalTimelineManager/REST handler 已输出 `unitType/level/codePath/namePath/sortOrder` 等 `TemporalEntityTimelineVersion` 字段，OpenAPI/GraphQL/Implementation Inventory 与命名清单同步更新，详见 `logs/plan242/t2/2025-11-11-temporal-timeline-go.md`。
+- 验证命令：`go test ./cmd/hrms-server/...`、`make test`、`npm run lint`、`cd frontend && npm run test`、`node scripts/quality/architecture-validator.js`、`node scripts/generate-implementation-inventory.js`。
+- 受限于容器环境未安装 Playwright 浏览器，`npm run test:e2e -- --project=chromium --project=firefox` 需在本地工作站/CI 上补跑三轮以满足 Plan 244 验收条款。

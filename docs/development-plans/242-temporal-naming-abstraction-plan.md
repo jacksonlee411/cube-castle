@@ -113,3 +113,4 @@
 - 每日于 Plan 06 “阻塞”栏目同步命名迁移进度；Plan 240/241 更新 should mention Plan 242 输出。  
 - 产出 `logs/plan242/*.log` 与 `reports/plan242/naming-inventory.md`，供评审/归档。  
 - 完成后将本计划归档至 `docs/archive/development-plans/242-temporal-naming-abstraction-plan.md`。
+- 2025-11-11：Plan 244 / T2 后端契约对齐（Temporal timeline 字段扩展）已记录在 `logs/plan242/t2/2025-11-11-temporal-timeline-go.md`，并在 `reports/plan242/naming-inventory.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md` 留痕，作为 Plan 242 T2 验收素材。
