@@ -128,6 +128,8 @@ export const TemporalMasterDetailView: React.FC<
         retryCount={retryCount}
         isLoading={isLoading}
         onRetry={() => loadVersions(true)}
+        contextName={currentOrganizationName}
+        contextStatus={currentTimelineStatus}
       />
 
       {/* 主从视图布局 */}

@@ -16,6 +16,9 @@ interface TemporalMasterDetailAlertsProps {
   retryCount: number;
   isLoading: boolean;
   onRetry: () => void;
+  // 统一 Hook 采纳（可选）：用于在提示中补充当前组织信息（不改变现有行为）
+  contextName?: string;
+  contextStatus?: string;
 }
 
 export const TemporalMasterDetailAlerts: React.FC<TemporalMasterDetailAlertsProps> = ({
@@ -25,6 +28,8 @@ export const TemporalMasterDetailAlerts: React.FC<TemporalMasterDetailAlertsProp
   retryCount,
   isLoading,
   onRetry,
+  contextName,
+  contextStatus,
 }) => {
   if (!loadingError && !error && !successMessage) {
     return null;
@@ -57,6 +62,11 @@ export const TemporalMasterDetailAlerts: React.FC<TemporalMasterDetailAlertsProp
               <Text color={colors.cinnamon600} typeLevel="subtext.small">
                 {loadingError || error}
               </Text>
+              {(contextName || contextStatus) && (
+                <Text color={colors.cinnamon600} typeLevel="subtext.small">
+                  {contextName ? `组织：${contextName}` : ""}{contextName && contextStatus ? "；" : ""}{contextStatus ? `当前状态：${contextStatus}` : ""}
+                </Text>
+              )}
             </Box>
             {loadingError && retryCount < 3 && (
               <SecondaryButton
@@ -91,6 +101,11 @@ export const TemporalMasterDetailAlerts: React.FC<TemporalMasterDetailAlertsProp
             >
               {successMessage}
             </Text>
+            {(contextName || contextStatus) && (
+              <Text color={colors.greenApple600} typeLevel="subtext.small">
+                {contextName ? `（${contextName}` : ""}{contextName && contextStatus ? " · " : ""}{contextStatus ? `${contextStatus}` : ""}{contextName ? "）" : ""}
+              </Text>
+            )}
           </Flex>
         </Box>
       )}

@@ -3,6 +3,7 @@
 **关联主计划**: Plan 242（T3）  
 **目标窗口**: Day 8-12  
 **范围**: 统一 TS 类型、GraphQL Operation、Hook 命名
+**状态**: 已完成（2025-11-14）
 
 ## 背景
 - `PositionRecord`、`OrganizationUnit`、`PositionDetailQuery` 等命名造成多套事实来源  
