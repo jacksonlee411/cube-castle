@@ -13,6 +13,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 import { setupAuth } from './auth-setup';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -92,7 +93,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
 
     // 验证职位出现在列表中
     await page.goto('/positions');
-    await expect(page.getByTestId('position-dashboard')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId(temporalEntitySelectors.position.dashboard)).toBeVisible({ timeout: 10000 });
 
     // 等待GraphQL查询完成
     await page.waitForResponse(
@@ -114,7 +115,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
 
     // 导航到职位列表页
     await page.goto('/positions');
-    await expect(page.getByTestId('position-dashboard')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId(temporalEntitySelectors.position.dashboard)).toBeVisible({ timeout: 10000 });
 
     // 点击职位行进入详情页
     const positionRow = page.getByTestId(`position-row-${testPositionCode}`);
@@ -125,7 +126,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
       timeout: 10000,
     });
 
-    await expect(page.getByTestId('position-temporal-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId(temporalEntitySelectors.position.temporalPage)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(`职位详情：${testPositionCode}`)).toBeVisible();
 
     // 验证职位详情卡片显示
@@ -138,7 +139,7 @@ test.describe('职位管理完整CRUD生命周期', () => {
     // 切换至版本历史页签并验证列表渲染
     const versionTab = page.getByTestId('position-tab-versions');
     await versionTab.click();
-    await expect(page.getByTestId('position-version-list')).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.position.versionList)).toBeVisible();
 
     console.log(`✅ 职位详情读取成功`);
   });

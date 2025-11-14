@@ -30,6 +30,11 @@ export type TemporalSelectors = {
   };
   position: {
     dashboard: string;
+    temporalPageWrapper: string;
+    temporalPage: string;
+    overviewCard: string;
+    versionToolbar: string;
+    versionList: string;
   };
 };
 
@@ -55,6 +60,11 @@ export const temporalEntitySelectors: TemporalSelectors = {
   },
   position: {
     dashboard: 'position-dashboard',
+    temporalPageWrapper: 'position-temporal-page-wrapper',
+    temporalPage: 'position-temporal-page',
+    overviewCard: 'position-overview-card',
+    versionToolbar: 'position-version-toolbar',
+    versionList: 'position-version-list',
   },
 } as const;
 

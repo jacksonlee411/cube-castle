@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 import {
   POSITION_FIXTURE_CODE,
   POSITION_GRAPHQL_FIXTURES as GRAPHQL_FIXTURES,
@@ -97,13 +98,13 @@ test.describe('职位详情多页签体验', () => {
     await waitForPageReady(page);
     await waitForGraphQL(page, POSITION_DETAIL_QUERY_NAME);
 
-    const temporalWrapper = page.getByTestId('position-temporal-page-wrapper');
+    const temporalWrapper = page.getByTestId(temporalEntitySelectors.position.temporalPageWrapper);
     await expect(temporalWrapper).toBeVisible();
-    await expect(temporalWrapper.getByTestId('position-temporal-page')).toBeVisible();
+    await expect(temporalWrapper.getByTestId(temporalEntitySelectors.position.temporalPage)).toBeVisible();
     await expect(page.getByText(`职位详情：${POSITION_CODE}`)).toBeVisible();
 
     // 概览页签默认展示
-    await expect(page.getByTestId('position-overview-card')).toContainText(`职位编码：${POSITION_CODE}`);
+    await expect(page.getByTestId(temporalEntitySelectors.position.overviewCard)).toContainText(`职位编码：${POSITION_CODE}`);
 
     const clickTab = async (label: string) => {
       await page.getByText(label, { exact: true }).click();
@@ -122,8 +123,8 @@ test.describe('职位详情多页签体验', () => {
     await expect(page.getByText('岗位创建')).toBeVisible();
 
     await clickTab('版本历史');
-    await expect(page.getByTestId('position-version-toolbar')).toBeVisible();
-    await expect(page.getByTestId('position-version-list')).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.position.versionToolbar)).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.position.versionList)).toBeVisible();
 
     await clickTab('审计历史');
     await expect(page.getByText('当前版本缺少 recordId，无法加载审计历史。')).toBeVisible();
@@ -138,7 +139,7 @@ test.describe('职位详情多页签体验', () => {
     await waitForPageReady(page);
     await waitForGraphQL(page, POSITION_DETAIL_QUERY_NAME);
 
-    await expect(page.getByTestId('position-temporal-page-wrapper')).toBeVisible();
+    await expect(page.getByTestId(temporalEntitySelectors.position.temporalPageWrapper)).toBeVisible();
     await expect(page.getByTestId('position-mock-banner')).toBeVisible();
     await expect(page.getByTestId('position-edit-button')).toBeHidden();
     await expect(page.getByTestId('position-version-button')).toBeHidden();
