@@ -39,3 +39,9 @@
   - 组织树查询（不影响测试 Mock 的项）：
     - `GetChildren` → `TemporalEntityTreeChildren`、`GetOrganizationSubtree` → `TemporalEntitySubtree`（文件：`frontend/src/features/organizations/components/OrganizationTree.tsx`）
     - 说明：`GetRootOrganizations` / `GetRootChildrenCount` 被测试用例通过字符串匹配模拟，暂不改名，避免破坏用例
+
+## Unified Hook 采纳进度（Plan 245A）
+- Header：通过统一 Hook 兜底展示“当前状态”，标题使用 `currentOrganizationName`（文件：`frontend/src/features/temporal/components/hooks/useTemporalMasterDetail.ts`、`TemporalMasterDetailHeader.tsx`）
+- Alerts：支持从统一 Hook 注入 `contextName/contextStatus` 提示（文件：`frontend/src/features/temporal/components/TemporalMasterDetailAlerts.tsx`，调用于 `TemporalMasterDetailView.tsx`）
+- EditForm：`useInlineNewVersionForm` 统一默认日期优先级（selectedVersion > 当前版本 > record.effectiveDate > 月初），仅改善默认展示，不改变提交契约（文件：`frontend/src/features/temporal/components/inlineNewVersionForm/useInlineNewVersionForm.ts`）
+- ParentSelector：沿用 `formData.effectiveDate` 作为 asOfDate；因默认值已统一，来源一致（文件：`frontend/src/features/temporal/components/inlineNewVersionForm/BasicInfoSection.tsx` → `ParentOrganizationSelector.tsx`）
