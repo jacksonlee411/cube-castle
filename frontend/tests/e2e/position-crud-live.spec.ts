@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import temporalEntitySelectors from "@/shared/testids/temporalEntity";
 import { ensurePwJwt } from "./utils/authToken";
 
 const shouldRunLiveSuite =
@@ -59,7 +60,9 @@ test.describe("职位管理 CRUD（真实后端链路）", () => {
 
     await page.unroute(devTokenEndpoint);
 
-    await page.getByTestId("position-dashboard").waitFor({ state: "visible" });
+    await page
+      .getByTestId(temporalEntitySelectors.position.dashboard)
+      .waitFor({ state: "visible" });
 
     await expect(
       page.getByText(/当前页面依赖 GraphQL 查询服务与 REST 命令服务/),
@@ -90,7 +93,9 @@ test.describe("职位管理 Mock 守护", () => {
   test("Mock 模式显示只读提示并禁用创建按钮", async ({ page }) => {
     await page.goto("/positions");
 
-    await expect(page.getByTestId("position-dashboard")).toBeVisible();
+    await expect(
+      page.getByTestId(temporalEntitySelectors.position.dashboard),
+    ).toBeVisible();
     await expect(
       page.getByTestId("position-dashboard-mock-banner"),
     ).toBeVisible();

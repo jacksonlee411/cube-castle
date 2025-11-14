@@ -47,6 +47,11 @@ jobs:
         run: |
           npm run guard:plan245
 
+      - name: Plan 246 Guard – Freeze legacy selector usages (organization-*/position-*)
+        shell: bash
+        run: |
+          npm run guard:selectors-246
+
       - name: Plan 245A Soft Guard – Detect legacy field direct reads (informational)
         shell: bash
         run: |

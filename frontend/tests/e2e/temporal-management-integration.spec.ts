@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 import type { Page } from '@playwright/test';
 import { TOKEN_STORAGE_KEY } from '@/shared/api/auth';
 import { E2E_CONFIG, validateTestEnvironment } from './config/test-environment';
@@ -227,7 +228,7 @@ async function commandRequestStatus(
 async function waitForOrganizationSearchInput(page: Page) {
   await waitForPageReady(page);
 
-  const dashboard = page.getByTestId('organization-dashboard-wrapper');
+  const dashboard = page.getByTestId(temporalEntitySelectors.organization.dashboardWrapper);
   await dashboard.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {
     // 如果新版 UI 调整了容器 testid，则忽略等待，直接尝试定位搜索框
   });

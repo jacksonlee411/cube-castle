@@ -39,9 +39,11 @@ export const temporalEntitySelectors: TemporalSelectors = {
     timeline: 'temporal-timeline',
   },
   list: {
+    // Phase 1: map to existing table id if present in components; this can be migrated later
     table: 'temporal-entity-table',
-    rowPrefix: 'temporal-row-',
-    row: (code: string) => `temporal-row-${code}`,
+    // Phase 1 compatibility: many tests use "table-row-{code}"
+    rowPrefix: 'table-row-',
+    row: (code: string) => `table-row-${code}`,
   },
   action: {
     manageButton: (code: string) => `temporal-manage-button-${code}`,
@@ -57,4 +59,3 @@ export const temporalEntitySelectors: TemporalSelectors = {
 } as const;
 
 export default temporalEntitySelectors;
-

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 import type { Locator, Page } from '@playwright/test';
 import { setupAuth } from './auth-setup';
 import { E2E_CONFIG } from './config/test-environment';
@@ -108,7 +109,7 @@ test.describe('业务流程端到端测试', () => {
     await initialOrganizationsResponse;
 
     // 等待页面加载完成 - 使用 data-testid 而不是文本，避免加载状态干扰
-    await expect(page.getByTestId('organization-dashboard-wrapper')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId(temporalEntitySelectors.organization.dashboardWrapper)).toBeVisible({ timeout: 15000 });
 
     // 等待加载状态消失，确保数据已加载
     await page.waitForSelector('text=加载组织数据中...', { state: 'detached', timeout: 15000 }).catch(() => {
