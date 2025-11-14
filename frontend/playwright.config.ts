@@ -41,7 +41,14 @@ if (playwrightJwt) {
 
 // 允许通过环境变量跳过 webServer（前端已在本机运行时避免重复启动）
 const SKIP_SERVER = process.env.PW_SKIP_SERVER === '1';
+// 允许通过 VITE_PORT_FRONTEND_DEV + PW_BASE_URL 改变端口，避免与现有 dev server 冲突
 const FRONTEND_URL = process.env.PW_BASE_URL || `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`;
+const SAVE_HAR = process.env.E2E_SAVE_HAR === '1';
+const HAR_DIR = path.resolve(__dirname, '..', 'logs', 'plan240', 'B');
+const TS = Date.now();
+if (SAVE_HAR) {
+  try { fs.mkdirSync(HAR_DIR, { recursive: true }); } catch {}
+}
 
 export default defineConfig({
   // 全局测试超时：2分钟
@@ -61,16 +68,24 @@ export default defineConfig({
     video: 'retain-on-failure',
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
+    // 按项目生成 HAR（用于 240B 证据）；文件名含时间戳避免覆盖
+    ...(SAVE_HAR ? { recordHar: { path: path.join(HAR_DIR, `network-har-default-${TS}.har`), mode: 'minimal' as const } } : {}),
   },
 
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        ...(SAVE_HAR ? { recordHar: { path: path.join(HAR_DIR, `network-har-chromium-${TS}.har`), mode: 'minimal' as const } } : {}),
+      },
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: { 
+        ...devices['Desktop Firefox'],
+        ...(SAVE_HAR ? { recordHar: { path: path.join(HAR_DIR, `network-har-firefox-${TS}.har`), mode: 'minimal' as const } } : {}),
+      },
     },
     // Webkit暂时禁用 - WSL环境缺少系统依赖
     // {
