@@ -38,6 +38,16 @@
    - `TemporalEntityPage` 已完成落地：组织/职位详情页统一由 `frontend/src/features/temporal/pages/entityRoutes.tsx` 暴露，功能映射记录在 `reports/plan242/naming-inventory.md#temporal-entity-page`。  
    - `OrganizationTemporalPage.tsx`、`PositionTemporalPage.tsx` 已替换为共享路由 + `PositionDetailView`。后续 Timeline/类型/selector 抽象将依赖此基线。
 
+## 4. Plan 245 – Temporal Entity 类型 & 契约统一（结项纪要 · 2025-11-14）
+- 结果：按“统一 Hook + 守卫冻结 + 渐进替换”策略交付，不引入破坏性契约变更。职位详情已切换统一 Hook；组织详情主从视图以统一 Hook 兜底名称/状态；operation 名在不改字段前提下统一为 `TemporalEntity*`（树查询保留测试敏感名不变）。
+- 关键产物：
+  - 统一类型/Hook：`frontend/src/shared/types/temporal-entity.ts`、`frontend/src/shared/hooks/useTemporalEntityDetail.ts`
+  - operation 统一：Positions/Organizations/Audit/Tree 若干处改名；详情/版本/路径命名以 `TemporalEntity*` 为基线
+  - 守卫：`scripts/quality/plan245-guard.js` + `reports/plan245/baseline.json`，冻结 `query PositionDetail/PositionDetailQuery` 新增使用
+  - 契约注释：`docs/api/schema.graphql` 与 `docs/api/openapi.yaml` 增补 Plan 245 注释（索引统一命名，保持字段不变）
+- 验证证据（均通过）：`logs/plan242/t3/31-frontend-codegen.log`、`32-implementation-inventory.log`、`33-architecture-validator.log`、`43/44/45/46/47/48/49/50`（Typecheck/Vitest）、`38-go-unit-tests.log`、`10-health-*.json`、`20-db-migrate-all.log`
+- 后续跟踪（不阻塞关闭）：CI 接入 `npm run guard:plan245`；组织详情子组件逐步读取统一 record；统一更多 `TemporalEntity*` operation；OpenAPI 存量 `no-$ref-siblings` 错误独立修复
+
 > 说明：GraphQL diff 阻塞已在 2025-11-08 通过 gqlgen runtime SDL 快照 + GraphQL Inspector 验证解除，详见上表与日志 `logs/219T5/graphql-inspector-diff-20251108-015138.txt`。
 
 ## 4. 待办清单

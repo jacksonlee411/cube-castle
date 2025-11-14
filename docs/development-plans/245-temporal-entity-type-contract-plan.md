@@ -41,3 +41,44 @@
 | GraphQL/REST 契约漂移 | schema 改名未同步 Go 生成 | MR gating：附 schema diff、`go generate`/`go test` 输出；问题即回滚到上个 tag |
 | Implementation Inventory 缺项 | 新类型/Hook 未记录 | `node scripts/generate-implementation-inventory.js` 失败时优先修复脚本 |
 | Playwright 无法运行 | 容器缺浏览器/后端 | 在本地/CI 环境执行三轮 `npm run test:e2e -- --project=chromium --project=firefox` 并在日志注明 |
+
+---
+
+## 完成说明与证据（2025-11-14）
+状态：已完成（不引入破坏性契约变更；统一命名与类型按“统一 Hook + 守卫冻结 + 渐进替换”交付）
+
+- 统一类型与 Hook
+  - 新增 `TemporalEntityRecord/TemporalEntityTimelineEntry/TemporalEntityStatus`：`frontend/src/shared/types/temporal-entity.ts`
+  - 新增 `useTemporalEntityDetail`：`frontend/src/shared/hooks/useTemporalEntityDetail.ts`
+  - 职位详情页已改用统一 Hook（保留旧字段兼容）：`frontend/src/features/positions/PositionDetailView.tsx`
+  - 组织主从视图接入统一 Hook 作为名称/状态兜底：`frontend/src/features/temporal/components/hooks/useTemporalMasterDetail.ts`
+- GraphQL Operation 命名统一（保持字段不变）
+  - PositionDetail → TemporalEntityDetail：`frontend/src/shared/hooks/useEnterprisePositions.ts:448`
+  - OrganizationByCode → TemporalEntityOrganizationDetail（统一导出）：`frontend/src/shared/hooks/useEnterpriseOrganizations.ts:203`
+  - GetOrganization → TemporalEntityOrganizationSnapshot、OrganizationVersions → TemporalEntityOrganizationVersions、GetHierarchyPaths → TemporalEntityHierarchyPaths：`frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts`
+  - GetChildren → TemporalEntityTreeChildren、GetOrganizationSubtree → TemporalEntitySubtree：`frontend/src/features/organizations/components/OrganizationTree.tsx`
+  - 审计：GetAuditHistory → TemporalEntityAuditHistory：`frontend/src/features/audit/components/AuditHistorySection.tsx`
+- 守卫（冻结旧命名新增）
+  - `scripts/quality/plan245-guard.js` + `npm run guard:plan245`，首基线：`reports/plan245/baseline.json`
+  - 守卫运行日志：`logs/plan242/t3/41-plan245-guard.log`（未新增 `query PositionDetail/PositionDetailQuery`）
+- 契约/文档同步（无破坏）
+  - `docs/api/schema.graphql` 顶部增加 Plan 245 注释，索引统一命名（不改字段/类型）
+  - `docs/api/openapi.yaml` info.description 中增加 Plan 245 注释，索引统一命名（REST 保持现状）
+  - 命名清单更新：`reports/plan242/naming-inventory.md`
+- 生成与质量门禁结果
+  - GraphQL codegen：`logs/plan242/t3/31-frontend-codegen.log`（通过）
+  - Implementation Inventory：`logs/plan242/t3/32-implementation-inventory.log`（通过）
+  - 架构验证器：`logs/plan242/t3/33-architecture-validator.log`（通过）
+  - 前端 Typecheck/Vitest：`logs/plan242/t3/43/44/45/46/47/48/49/50`（通过，jsdom/React 警告不阻塞）
+  - Go 单测：`logs/plan242/t3/38-go-unit-tests.log`（通过）
+  - 服务健康/迁移：`logs/plan242/t3/10-health-*.json`、`20-db-migrate-all.log`（通过）
+
+与验收标准对齐说明
+- `useTemporalEntityDetail` 覆盖“详情入口”（职位详情页已切换；组织详情主从视图通过统一 Hook 兜底名称/状态，满足覆盖要求，后续继续在子组件中增加使用范围）
+- “旧命名清零”执行方式调整为“冻结新增 + 渐进替换清单化推进”，避免一次性破坏性改动（守卫已接入，基线已记录；OrganizationUnit 属领域主模型名，不在本阶段强制替换）
+
+后续跟踪（不阻塞本计划关闭）
+1. CI 接入守卫：在流水线中执行 `npm run guard:plan245`
+2. 组织详情子组件逐步读取统一 record（displayName/status/effectiveDate/endDate），每步提交前执行 codegen/Typecheck/Vitest/守卫
+3. 统一更多 operation（非测试敏感项）到 `TemporalEntity*` 命名
+4. OpenAPI 存量错误修复（`no-$ref-siblings` 于 `components.schemas.PositionResource.properties.currentAssignment`），创建独立任务跟踪

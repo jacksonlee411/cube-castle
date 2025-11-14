@@ -1,4 +1,13 @@
 # Organization Units Management GraphQL Schema
+# -----------------------------------------------------------------------------
+# Plan 245 – Temporal Entity 命名统一说明（注释，仅用于规范与索引）
+# - 本 schema 作为唯一事实来源，不在本阶段引入破坏性重命名
+# - 前端与文档约定统一采用 TemporalEntity* 命名作为操作名与概念归类
+#   • 详情操作统一命名：TemporalEntityDetail / TemporalEntityOrganizationDetail
+#   • 版本/时间线/路径等操作命名：TemporalEntityOrganizationVersions / TemporalEntityOrganizationSnapshot / TemporalEntityHierarchyPaths
+# - 查询字段与类型（Organization/Position 等）保持不变，避免破坏既有生成与依赖
+# - 该约定与 Plan 242/244 的实现一致，后续重命名将以兼容窗口与生成链路评估后进行
+# -----------------------------------------------------------------------------
 # Version: 4.7.0
 # Architecture: CQRS Query Layer (Read Operations Only)
 # Data Source: PostgreSQL with temporal data support

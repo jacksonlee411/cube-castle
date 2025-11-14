@@ -3,6 +3,13 @@ info:
   title: Organization Units Management API
   description: |
     Enterprise-grade organization units management API with strict CQRS architecture.
+
+    Plan 245 – Temporal Entity 命名统一（注释说明，仅用作规范索引；不引入破坏性类型/路径改动）。
+
+    - REST 端点与资源类型在本阶段保持不变，避免与现有实现/客户端产生不兼容。
+    - 前端与文档层统一采用 TemporalEntity* 概念命名（详情/时间线/版本等），形成跨层一致的术语与操作名；
+      例如：TemporalEntityOrganizationVersions、TemporalEntityOrganizationSnapshot、TemporalEntityHierarchyPaths。
+    - GraphQL/前端操作名已统一；REST 保持现有路径命名，以契约注释确保“唯一事实来源”。
     
     **Architecture Features:**
     - **Command Operations**: REST API (Port 9090) - All data modifications
