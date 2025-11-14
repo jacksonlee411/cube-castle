@@ -4,6 +4,7 @@ import { Box } from '@workday/canvas-kit-react/layout';
 import { Heading, Text } from '@workday/canvas-kit-react/text';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { Card } from '@workday/canvas-kit-react/card';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 import { OrganizationTable } from './components/OrganizationTable';
 import { OrganizationFilters } from './OrganizationFilters';
@@ -216,8 +217,8 @@ export const OrganizationDashboard: React.FC = () => {
   const hasOrganizations = totalCount > 0;
 
   return (
-    <Box data-testid="temporal-organization-dashboard-wrapper">
-      <Box data-testid="temporal-organization-dashboard">
+    <Box data-testid={temporalEntitySelectors.organization.dashboardWrapper}>
+      <Box data-testid={temporalEntitySelectors.organization.dashboard}>
         {/* 时态导航栏 - 暂时禁用以修复无限循环错误 */}
         {/* <Box marginBottom="l">
           <TemporalNavbar

@@ -12,6 +12,7 @@ import type {
 import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta'
 import { SimpleStack } from '../layout/SimpleStack'
 import { PositionTransferDialog } from '../transfer/PositionTransferDialog'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
   <Heading size="small" as="h3">
@@ -162,8 +163,8 @@ export const PositionOverviewCard: React.FC<PositionOverviewCardProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <Box data-testid='temporal-position-detail-card'>
-        <Card data-testid='temporal-position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
+      <Box data-testid={temporalEntitySelectors.position.detailCard}>
+        <Card data-testid={temporalEntitySelectors.position.overviewCard} padding={space.l} backgroundColor={colors.frenchVanilla100}>
           <Text color={colors.licorice400}>正在加载职位详情...</Text>
         </Card>
       </Box>
@@ -172,8 +173,8 @@ export const PositionOverviewCard: React.FC<PositionOverviewCardProps> = ({
 
   if (!position) {
     return (
-      <Box data-testid='temporal-position-detail-card'>
-        <Card data-testid='temporal-position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
+      <Box data-testid={temporalEntitySelectors.position.detailCard}>
+        <Card data-testid={temporalEntitySelectors.position.overviewCard} padding={space.l} backgroundColor={colors.frenchVanilla100}>
           <Text color={colors.licorice400}>请选择左侧职位查看详情</Text>
         </Card>
       </Box>
@@ -181,8 +182,8 @@ export const PositionOverviewCard: React.FC<PositionOverviewCardProps> = ({
   }
 
   return (
-    <Box data-testid='temporal-position-detail-card'>
-      <Card data-testid='temporal-position-overview-card' padding={space.l} backgroundColor={colors.frenchVanilla100}>
+    <Box data-testid={temporalEntitySelectors.position.detailCard}>
+      <Card data-testid={temporalEntitySelectors.position.overviewCard} padding={space.l} backgroundColor={colors.frenchVanilla100}>
         <SimpleStack gap={space.m}>
           <Flex alignItems='center' justifyContent='space-between'>
             <Heading size='small'>{position.title}</Heading>

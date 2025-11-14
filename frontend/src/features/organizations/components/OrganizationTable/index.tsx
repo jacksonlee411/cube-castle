@@ -3,6 +3,7 @@ import { Table } from '@workday/canvas-kit-react/table';
 import { Text } from '@workday/canvas-kit-react/text';
 import { TableRow } from './TableRow';
 import type { OrganizationTableProps } from './TableTypes';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 const TableHeader: React.FC<{ showTemporalInfo?: boolean }> = ({ showTemporalInfo = false }) => (
   <Table.Head>
@@ -32,7 +33,7 @@ export const OrganizationTable: React.FC<OrganizationTableProps> = ({
   showTemporalInfo = false
 }) => {
   return (
-    <Table data-testid="temporal-organization-table">
+    <Table data-testid={temporalEntitySelectors.organization.table}>
       <TableHeader showTemporalInfo={showTemporalInfo || isHistorical} />
       <Table.Body>
         {!organizations || organizations.length === 0 ? (

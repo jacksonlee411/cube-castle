@@ -12,6 +12,7 @@ import HierarchySection from './HierarchySection';
 import RecordInfoSection from './RecordInfoSection';
 import FormActions from './FormActions';
 import DeactivateConfirmModal from './DeactivateConfirmModal';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
   const {
@@ -71,7 +72,7 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
 
   return (
     <Box flex="1">
-      <Card padding="l" data-testid="temporal-organization-form">
+      <Card padding="l" data-testid={temporalEntitySelectors.organization.form}>
         <FormHeader
           currentMode={currentMode}
           isEditingHistory={isEditingHistory}

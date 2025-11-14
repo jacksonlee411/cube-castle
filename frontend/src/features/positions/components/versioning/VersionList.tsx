@@ -6,6 +6,7 @@ import { colors, space } from '@workday/canvas-kit-react/tokens';
 import type { PositionRecord } from '@/shared/types/positions';
 import { getVersionKey } from './utils';
 import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 export interface PositionVersionListProps {
   versions: PositionRecord[];
@@ -44,7 +45,7 @@ export const PositionVersionList: React.FC<PositionVersionListProps> = ({
     <Card
       padding={space.l}
       backgroundColor={colors.frenchVanilla100}
-      data-testid="temporal-position-version-list"
+      data-testid={temporalEntitySelectors.position.versionList}
     >
       <Heading size="small" marginBottom={space.m}>
         职位版本记录

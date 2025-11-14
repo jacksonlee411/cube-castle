@@ -66,6 +66,12 @@ export const temporalEntitySelectors: TemporalSelectors = {
   },
   position: {
     dashboard: 'temporal-position-dashboard',
+    mockBanner: 'temporal-position-dashboard-mock-banner',
+    errorBox: 'temporal-position-dashboard-error',
+    createButton: 'temporal-position-create-button',
+    searchInput: 'temporal-position-search-input',
+    statusFilter: 'temporal-position-status-filter',
+    familyGroupFilter: 'temporal-position-fg-filter',
     temporalPageWrapper: 'temporal-position-page-wrapper',
     temporalPage: 'temporal-position-page',
     overviewCard: 'temporal-position-overview-card',
@@ -73,6 +79,8 @@ export const temporalEntitySelectors: TemporalSelectors = {
     versionToolbar: 'temporal-position-version-toolbar',
     versionList: 'temporal-position-version-list',
     tabVersions: 'position-tab-versions',
+    versionIncludeDeleted: 'temporal-position-version-include-deleted',
+    versionExportButton: 'temporal-position-version-export-button',
   },
 } as const;
 

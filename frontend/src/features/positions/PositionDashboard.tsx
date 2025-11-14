@@ -11,6 +11,7 @@ import type { PositionRecord } from '@/shared/types/positions'
 import { PositionSummaryCards, PositionVacancyBoard, PositionHeadcountDashboard } from './components/dashboard'
 import { PositionList } from './components/list'
 import { SimpleStack } from './components/layout'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 const statusOptions: Array<{ label: string; value: string }> = [
   { label: '全部状态', value: 'ALL' },
@@ -83,7 +84,7 @@ export const PositionDashboard: React.FC = () => {
   const headcountOrganizationCode = filteredPositions[0]?.organizationCode ?? undefined
 
   return (
-    <Box padding={space.l} data-testid="temporal-position-dashboard">
+    <Box padding={space.l} data-testid={temporalEntitySelectors.position.dashboard}>
       <SimpleStack gap={space.l}>
         <SimpleStack gap={space.xs}>
           <Heading size="medium">职位管理（Stage 1 数据接入）</Heading>
@@ -94,7 +95,7 @@ export const PositionDashboard: React.FC = () => {
             <Card
               padding={space.m}
               backgroundColor={colors.cinnamon100}
-              data-testid="position-dashboard-mock-banner"
+              data-testid={temporalEntitySelectors.position.mockBanner}
               style={{ borderLeft: `4px solid ${colors.cinnamon600}` }}
             >
               <SimpleStack gap={space.xs}>
@@ -113,7 +114,7 @@ export const PositionDashboard: React.FC = () => {
             </Text>
           )}
           {hasError && (
-            <Box data-testid="position-dashboard-error">
+            <Box data-testid={temporalEntitySelectors.position.errorBox}>
               <Text fontSize="12px" color={colors.cinnamon500}>
                 无法加载职位数据，请刷新页面或联系系统管理员。
               </Text>
@@ -129,7 +130,7 @@ export const PositionDashboard: React.FC = () => {
         <Flex justifyContent="flex-end">
           <PrimaryButton
             onClick={() => navigate('/positions/new')}
-            data-testid="position-create-button"
+            data-testid={temporalEntitySelectors.position.createButton}
             disabled={isMockMode || hasError}
           >
             创建职位
@@ -150,12 +151,12 @@ export const PositionDashboard: React.FC = () => {
                 value={searchText}
                 onChange={event => setSearchText(event.target.value)}
                 width={320}
-                data-testid="position-search-input"
+                data-testid={temporalEntitySelectors.position.searchInput}
               />
               <NativeSelect
                 value={statusFilter}
                 onChange={event => setStatusFilter(event.target.value)}
-                data-testid="position-status-filter"
+                data-testid={temporalEntitySelectors.position.statusFilter}
               >
                 {statusOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -166,7 +167,7 @@ export const PositionDashboard: React.FC = () => {
               <NativeSelect
                 value={jobFamilyGroupFilter}
                 onChange={event => setJobFamilyGroupFilter(event.target.value)}
-                data-testid="position-fg-filter"
+                data-testid={temporalEntitySelectors.position.familyGroupFilter}
               >
                 <option value="ALL">全部职类</option>
                 {jobFamilyGroupOptions.map(option => (

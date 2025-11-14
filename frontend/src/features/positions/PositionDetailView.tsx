@@ -26,6 +26,7 @@ import { useTemporalEntityDetail } from '@/shared/hooks/useTemporalEntityDetail'
 import { logger } from '@/shared/utils/logger'
 import { positionTimelineAdapter } from '@/features/temporal/entity/timelineAdapter'
 import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 const POSITION_CODE_PATTERN = /^P\d{7}$/i
 
@@ -303,8 +304,8 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
   }
 
   return (
-    <Box data-testid="temporal-position-page-wrapper">
-      <Box padding={space.l} data-testid="temporal-position-page">
+    <Box data-testid={temporalEntitySelectors.position.temporalPageWrapper}>
+      <Box padding={space.l} data-testid={temporalEntitySelectors.position.temporalPage}>
         <SimpleStack gap={space.l}>
           {isMockMode && (
             <Card

@@ -5,6 +5,7 @@ import { Switch } from '@workday/canvas-kit-react/switch';
 import { SecondaryButton } from '@workday/canvas-kit-react/button';
 import { colors, space } from '@workday/canvas-kit-react/tokens';
 import { SimpleStack } from '../layout/SimpleStack';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 interface PositionVersionToolbarProps {
   includeDeleted: boolean;
@@ -25,7 +26,7 @@ export const PositionVersionToolbar: React.FC<PositionVersionToolbarProps> = ({
     <Card
       padding={space.l}
       backgroundColor={colors.frenchVanilla100}
-      data-testid="temporal-position-version-toolbar"
+      data-testid={temporalEntitySelectors.position.versionToolbar}
     >
       <SimpleStack gap={space.m}>
         <Flex alignItems="center" gap={space.l} flexWrap="wrap">
@@ -41,7 +42,7 @@ export const PositionVersionToolbar: React.FC<PositionVersionToolbarProps> = ({
             <Switch
               checked={includeDeleted}
               onChange={event => onIncludeDeletedChange(event.target.checked)}
-              data-testid="position-version-include-deleted"
+              data-testid={temporalEntitySelectors.position.versionIncludeDeleted}
             />
             包含已删除版本
           </label>
@@ -49,7 +50,7 @@ export const PositionVersionToolbar: React.FC<PositionVersionToolbarProps> = ({
             onClick={onExportCsv}
             disabled={!hasVersions || isBusy}
             size="small"
-            data-testid="position-version-export-button"
+            data-testid={temporalEntitySelectors.position.versionExportButton}
           >
             导出 CSV
           </SecondaryButton>
