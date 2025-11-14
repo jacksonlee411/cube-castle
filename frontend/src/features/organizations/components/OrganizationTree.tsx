@@ -260,7 +260,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   // 拉取指定节点的一层子节点
   const fetchChildren = useCallback(async (code: string): Promise<OrganizationTreeNode[]> => {
     const graphqlQuery = `
-      query GetChildren($code: String!, $maxDepth: Int) {
+      query TemporalEntityTreeChildren($code: String!, $maxDepth: Int) {
         organizationSubtree(code: $code, maxDepth: $maxDepth) {
           children {
             code
@@ -294,7 +294,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
       if (code) {
         const graphqlQuery = `
-          query GetOrganizationSubtree($code: String!, $maxDepth: Int) {
+          query TemporalEntitySubtree($code: String!, $maxDepth: Int) {
             organizationSubtree(code: $code, maxDepth: $maxDepth) {
               code
               name

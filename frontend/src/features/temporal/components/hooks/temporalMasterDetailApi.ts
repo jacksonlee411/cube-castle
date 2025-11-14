@@ -94,7 +94,7 @@ interface GraphQLResponseError {
 }
 
 const ORGANIZATION_VERSIONS_QUERY = `
-  query OrganizationVersions($code: String!) {
+  query TemporalEntityOrganizationVersions($code: String!) {
     organizationVersions(code: $code) {
       recordId
       code
@@ -115,7 +115,7 @@ const ORGANIZATION_VERSIONS_QUERY = `
 `;
 
 const ORGANIZATION_SNAPSHOT_QUERY = `
-  query GetOrganization($code: String!) {
+  query TemporalEntityOrganizationSnapshot($code: String!) {
     organization(code: $code) {
       code
       name
@@ -137,7 +137,7 @@ const ORGANIZATION_SNAPSHOT_QUERY = `
 `;
 
 const ORGANIZATION_HIERARCHY_QUERY = `
-  query GetHierarchyPaths($code: String!, $tenantId: String!) {
+  query TemporalEntityHierarchyPaths($code: String!, $tenantId: String!) {
     organizationHierarchy(code: $code, tenantId: $tenantId) {
       codePath
       namePath

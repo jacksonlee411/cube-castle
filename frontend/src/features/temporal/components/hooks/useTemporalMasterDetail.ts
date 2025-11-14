@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TabType } from '../TabNavigation';
+// TODO-TEMPORARY(Plan 245): 引入统一详情 Hook（组织端），逐步用作快照/名称等来源（不替换现有版本加载）
+import { useTemporalEntityDetail } from '@/shared/hooks/useTemporalEntityDetail';
 import {
   createLoadVersions,
   createHandleVersionSelect,
@@ -68,6 +70,12 @@ export const useTemporalMasterDetail = (
     TemporalMasterDetailState['displayPaths']
   >(null);
   const { mutateAsync: deleteOrganizationAsync } = useDeleteOrganization();
+  // 统一详情数据（组织快照）：目前仅作为名称等信息的兜底来源，避免大范围重构
+  const orgDetail = useTemporalEntityDetail(
+    'organization',
+    organizationCode ?? undefined,
+    { enabled: Boolean(organizationCode) },
+  );
 
   const notifySuccess = useCallback((message: string) => {
     setError(null);
@@ -247,8 +255,9 @@ export const useTemporalMasterDetail = (
 
   const currentOrganizationName = useMemo(() => {
     const currentVersion = versions.find((v) => v.isCurrent);
-    return currentVersion?.name || '';
-  }, [versions]);
+    // 优先使用版本中的当前名称；若不可用，则回退到统一 Hook 的 record.displayName
+    return currentVersion?.name || (orgDetail.data?.record?.displayName ?? '');
+  }, [versions, orgDetail.data?.record?.displayName]);
 
   const earliestVersion = useMemo(() => {
     if (versions.length === 0) {
@@ -275,8 +284,8 @@ export const useTemporalMasterDetail = (
 
   const currentTimelineStatus = useMemo(() => {
     const current = versions.find((v) => v.isCurrent);
-    return current?.status || selectedVersion?.status;
-  }, [versions, selectedVersion]);
+    return current?.status || selectedVersion?.status || (orgDetail.data?.record?.status as string | undefined);
+  }, [versions, selectedVersion, orgDetail.data?.record?.status]);
 
   return [
     {

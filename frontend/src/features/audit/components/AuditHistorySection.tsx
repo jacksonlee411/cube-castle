@@ -71,7 +71,7 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
       const result = await unifiedGraphQLClient.request<{
         auditHistory: AuditHistoryGraphQLEntry[];
       }>(`
-        query GetAuditHistory($recordId: String!, $limit: Int, $startDate: String, $endDate: String, $operation: OperationType, $userId: String) {
+        query TemporalEntityAuditHistory($recordId: String!, $limit: Int, $startDate: String, $endDate: String, $operation: OperationType, $userId: String) {
           auditHistory(recordId: $recordId, limit: $limit, startDate: $startDate, endDate: $endDate, operation: $operation, userId: $userId) {
             auditId
             recordId

@@ -1,0 +1,10 @@
+{
+  "createdAt": "2025-11-14T02:31:37.757Z",
+  "notes": "Plan 245 baseline counts for legacy tokens. Guard will fail if counts increase.",
+  "counts": {
+    "op.positionDetail.operation": 1,
+    "op.positionDetail.type": 1,
+    "type.organizationUnit": 54,
+    "type.positionRecord": 48
+  }
+}

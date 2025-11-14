@@ -22,7 +22,7 @@ import type {
 import { SimpleStack } from './components/layout'
 import { PositionForm } from './components/PositionForm'
 import { PositionVersionList, PositionVersionToolbar, buildVersionsCsv } from './components/versioning'
-import { usePositionDetail } from '@/shared/hooks/useEnterprisePositions'
+import { useTemporalEntityDetail } from '@/shared/hooks/useTemporalEntityDetail'
 import { logger } from '@/shared/utils/logger'
 import { positionTimelineAdapter } from '@/features/temporal/entity/timelineAdapter'
 import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta'
@@ -62,7 +62,7 @@ interface VersionEntry {
   timeline: TimelineVersion
 }
 
-type DetailQueryResult = ReturnType<typeof usePositionDetail>
+type DetailQueryResult = ReturnType<typeof useTemporalEntityDetail>
 
 export interface PositionDetailViewProps {
   code?: string
@@ -88,10 +88,14 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
   const isMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
 
   const normalizedCode = code ?? ''
-  const detailQuery = usePositionDetail(!isCreateMode ? normalizedCode : undefined, {
-    enabled: !isCreateMode,
-    includeDeleted,
-  })
+  const detailQuery = useTemporalEntityDetail(
+    'position',
+    !isCreateMode ? normalizedCode : undefined,
+    {
+      enabled: !isCreateMode,
+      includeDeleted,
+    },
+  )
 
   const detailErrorMessage = detailQuery.error instanceof Error ? detailQuery.error.message : undefined
 

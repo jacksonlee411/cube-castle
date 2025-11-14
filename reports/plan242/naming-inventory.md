@@ -26,3 +26,16 @@
 | --- | --- | --- | --- |
 | 组织 | `shared/utils/statusUtils.ts` (`STATUS_CONFIG`) | `frontend/src/features/temporal/entity/statusMeta.ts` (`TEMPORAL_ENTITY_STATUS_META.organization`) | `StatusBadge` 与公共组件读取统一元数据，`statusUtils` 仅保留动作判断 |
 | 职位 | Legacy 职位 status meta（已删除） | `frontend/src/features/temporal/entity/statusMeta.ts` (`TEMPORAL_ENTITY_STATUS_META.position`) | Position 列表/时间线/版本列表共享同一标签与色板，避免重复维护 |
+
+## Types & Contracts (T3 / Plan 245 起步)
+
+- 新增统一类型（Shared Types）：
+  - `frontend/src/shared/types/temporal-entity.ts`：`TemporalEntityRecord`、`TemporalEntityTimelineEntry`、`TemporalEntityStatus`（组织/职位保留为类型别名以便渐进迁移）
+  - `frontend/src/shared/hooks/useTemporalEntityDetail.ts`：统一 Hook 骨架，职位复用 `usePositionDetail`，组织按 GraphQL 详情归一化为 `TemporalEntityRecord`
+- 现状：`PositionDetailQuery`、`OrganizationUnit` 仍在仓库存在，作为清理对象（见 logs/plan242/t3/36-old-naming-baseline.log）；契约与实现的重命名将在后续提交中分阶段收敛并补充证据
+- GraphQL Operation 统一（第一步）：
+  - 将职位详情文档操作名由 `PositionDetail` 重命名为 `TemporalEntityDetail`（文件：`frontend/src/shared/hooks/useEnterprisePositions.ts`），并重新生成 `frontend/src/generated/graphql-types.ts`
+  - 防回归：新增 Plan 245 Guard（`scripts/quality/plan245-guard.js`）冻结 `query PositionDetail` / `PositionDetailQuery` 的新增使用；首次基线见 `reports/plan245/baseline.json`
+  - 组织树查询（不影响测试 Mock 的项）：
+    - `GetChildren` → `TemporalEntityTreeChildren`、`GetOrganizationSubtree` → `TemporalEntitySubtree`（文件：`frontend/src/features/organizations/components/OrganizationTree.tsx`）
+    - 说明：`GetRootOrganizations` / `GetRootChildrenCount` 被测试用例通过字符串匹配模拟，暂不改名，避免破坏用例

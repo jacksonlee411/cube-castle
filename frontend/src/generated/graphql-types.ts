@@ -642,7 +642,7 @@ export type PositionSortInput = {
   field: PositionSortField;
 };
 
-/** Lifecycle status for positions. */
+/** TemporalEntityStatus（职位特化），命名与 `TEMPORAL_ENTITY_STATUS_META.position` / Plan 244 前端实现保持一致。 */
 export enum PositionStatus {
   ACTIVE = "ACTIVE",
   DELETED = "DELETED",
@@ -657,7 +657,10 @@ export enum PositionTimelineCategory {
   POSITION_VERSION = "POSITION_VERSION",
 }
 
-/** Entry describing a specific temporal version of a position. */
+/**
+ * TemporalEntity timeline entry（职位特化实现），保持与 REST `TemporalEntityTimelineVersion` 字段一致，
+ * 用于 Plan 244 的 Timeline 命名统一基线。
+ */
 export type PositionTimelineEntry = {
   __typename: "PositionTimelineEntry";
   assignmentStatus?: Maybe<PositionAssignmentStatus>;
@@ -1155,7 +1158,10 @@ export enum SortOrder {
   DESC = "DESC",
 }
 
-/** Organization business status (ADR-008: 一维业务状态模型). */
+/**
+ * TemporalEntityStatus（组织特化，ADR-008 一维业务状态模型）。Plan 244 要求 REST/GraphQL/前端均复用该命名，与
+ * `TEMPORAL_ENTITY_STATUS_META.organization` 对齐。
+ */
 export enum Status {
   ACTIVE = "ACTIVE",
   DELETED = "DELETED",
@@ -1392,12 +1398,12 @@ export type EnterpriseOrganizationsQuery = {
   };
 };
 
-export type OrganizationByCodeQueryVariables = Exact<{
+export type TemporalEntityOrganizationDetailQueryVariables = Exact<{
   code: Scalars["String"]["input"];
   asOfDate?: InputMaybe<Scalars["String"]["input"]>;
 }>;
 
-export type OrganizationByCodeQuery = {
+export type TemporalEntityOrganizationDetailQuery = {
   __typename: "Query";
   organization?: {
     __typename: "Organization";
@@ -1499,12 +1505,12 @@ export type EnterprisePositionsQuery = {
   };
 };
 
-export type PositionDetailQueryVariables = Exact<{
+export type TemporalEntityDetailQueryVariables = Exact<{
   code: Scalars["PositionCode"]["input"];
   includeDeleted: Scalars["Boolean"]["input"];
 }>;
 
-export type PositionDetailQuery = {
+export type TemporalEntityDetailQuery = {
   __typename: "Query";
   position?: {
     __typename: "Position";

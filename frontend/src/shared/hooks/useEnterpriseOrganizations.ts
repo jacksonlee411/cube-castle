@@ -199,8 +199,8 @@ const ORGANIZATIONS_QUERY_DOCUMENT = /* GraphQL */ `
   }
 `;
 
-const ORGANIZATION_BY_CODE_DOCUMENT = /* GraphQL */ `
-  query OrganizationByCode($code: String!, $asOfDate: String) {
+export const ORGANIZATION_BY_CODE_DOCUMENT = /* GraphQL */ `
+  query TemporalEntityOrganizationDetail($code: String!, $asOfDate: String) {
     organization(code: $code, asOfDate: $asOfDate) {
       code
       parentCode

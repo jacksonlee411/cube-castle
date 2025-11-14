@@ -445,7 +445,7 @@ const POSITIONS_QUERY_DOCUMENT = /* GraphQL */ `
 `;
 
 const POSITION_DETAIL_QUERY_DOCUMENT = /* GraphQL */ `
-  query PositionDetail($code: PositionCode!, $includeDeleted: Boolean!) {
+  query TemporalEntityDetail($code: PositionCode!, $includeDeleted: Boolean!) {
     position(code: $code) {
       code
       recordId
