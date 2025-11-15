@@ -336,6 +336,9 @@ func main() {
 			// Allow GET for simple probes/dev tools
 			r.Get("/graphql", graphQLServe)
 			r.Get("/graphql/", graphQLServe)
+			// Fallback: handle any other method variants to avoid router mismatch in local/dev
+			r.Handle("/graphql", graphQLServe)
+			r.Handle("/graphql/", graphQLServe)
 			if devMode && graphiqlHandler != nil {
 				r.Get("/graphiql", func(w http.ResponseWriter, req *http.Request) {
 					graphiqlHandler.ServeHTTP(w, req)
