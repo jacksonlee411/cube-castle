@@ -59,7 +59,7 @@ export const PositionVacancyBoard: React.FC = () => {
   const summary = useMemo(() => summaryFromRecords(records), [records])
 
   return (
-    <Card padding={space.l} data-testid={temporalEntitySelectors.position?.vacancyBoard ?? 'position-vacancy-board'} backgroundColor={colors.frenchVanilla100}>
+    <Card padding={space.l} data-testid={temporalEntitySelectors.position.vacancyBoard} backgroundColor={colors.frenchVanilla100}>
       <SimpleStack gap={space.l}>
         <Flex justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" rowGap={space.m}>
           <SimpleStack gap={space.xxxs}>

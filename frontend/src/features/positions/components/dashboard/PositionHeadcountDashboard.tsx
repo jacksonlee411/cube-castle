@@ -212,7 +212,7 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
 }
 
   return (
-    <Card padding={space.l} data-testid={temporalEntitySelectors.position?.headcountDashboard ?? 'position-headcount-dashboard'} backgroundColor={colors.frenchVanilla100}>
+    <Card padding={space.l} data-testid={temporalEntitySelectors.position.headcountDashboard} backgroundColor={colors.frenchVanilla100}>
       <SimpleStack gap={space.l}>
         <Flex justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" rowGap={space.m}>
           <SimpleStack gap={space.xxxs}>

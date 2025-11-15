@@ -189,7 +189,11 @@ export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCa
   }
 
   return (
-    <Card padding={space.l} backgroundColor={colors.frenchVanilla100} data-testid={`position-form-${mode}`}>
+    <Card
+      padding={space.l}
+      backgroundColor={colors.frenchVanilla100}
+      data-testid={temporalEntitySelectors.position.form ? temporalEntitySelectors.position.form(mode) : `temporal-position-form-${mode}`}
+    >
       <form onSubmit={handleSubmit}>
         <SimpleStack gap={space.l}>
           <Heading size="small">{headerTitle}</Heading>

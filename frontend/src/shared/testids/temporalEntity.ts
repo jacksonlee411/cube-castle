@@ -6,8 +6,9 @@
  * NOTE: Do not hard-code data-testid strings in components/tests.
  * Import and use selectors defined here instead.
  *
- * // TODO-TEMPORARY: Keep organization/position mappings for 1 iteration, then switch to temporal-* IDs.
- * Deadline: next iteration end.
+ * // TODO-TEMPORARY(2025-12-15): Keep organization/position mappings for one iteration as compatibility.
+ * Reason: allow gradual migration from legacy testids to temporal-* without breaking tests.
+ * Plan: replace remaining position-* usages in tests, then remove compatibility mappings.
  */
 
 export type TemporalSelectors = {
@@ -39,6 +40,7 @@ export type TemporalSelectors = {
     overviewCard: string;
     versionToolbar: string;
     versionList: string;
+    form?: (mode: string) => string;
     // Optional extensions used across components/tests
     mockBanner?: string;
     errorBox?: string;
@@ -101,6 +103,7 @@ export const temporalEntitySelectors: TemporalSelectors = {
     dashboard: 'temporal-position-dashboard',
     mockBanner: 'temporal-position-dashboard-mock-banner',
     errorBox: 'temporal-position-dashboard-error',
+    form: (mode: string) => `temporal-position-form-${mode}`,
     createButton: 'temporal-position-create-button',
     searchInput: 'temporal-position-search-input',
     statusFilter: 'temporal-position-status-filter',

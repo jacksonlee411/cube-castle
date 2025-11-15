@@ -105,7 +105,7 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
         <PrimaryButton
           onClick={openDialog}
           disabled={isPending || disabled}
-          data-testid={temporalEntitySelectors.position.transferOpen ?? 'position-transfer-open'}
+          data-testid={temporalEntitySelectors.position.transferOpen}
         >
           发起职位转移
         </PrimaryButton>
