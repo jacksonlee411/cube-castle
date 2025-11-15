@@ -1,5 +1,7 @@
 # Cube Castle API测试工具集
 
+> 说明：本目录仅提供工具与用法说明。项目的原则、约束与权威链接以仓库根目录 `AGENTS.md` 为唯一事实来源；如本文件与 `AGENTS.md` 或 `docs/reference/*` 存在不一致，以 `AGENTS.md` 为准。
+
 ## 概述
 
 本目录包含Cube Castle项目的完整API测试工具集，帮助开发者快速进行API测试、调试和集成验证。
@@ -34,30 +36,28 @@
 ## 🚀 快速开始
 
 ### 前置条件
-1. 后端服务运行（均由 Docker 容器暴露端口，宿主机禁止安装同名服务占用端口）:
+1. 后端服务运行（均由 Docker Compose 管理暴露端口；如端口冲突，须卸载宿主机同名服务，禁止修改容器端口映射）:
    - REST命令服务: http://localhost:9090
    - GraphQL查询服务: http://localhost:8090
-2. 开发模式启用 (`DEV_MODE=true`)
+2. 已执行一次性密钥与令牌准备：`make jwt-dev-setup`（生成 RS256 密钥对）→ `make jwt-dev-mint`（生成开发令牌，保存至 `.cache/dev.jwt`）
 
 ### 第一次使用步骤
 
-#### 1. 生成JWT令牌 (必须首先执行)
+#### 1. 生成JWT令牌（推荐方式）
 ```bash
-# 使用cURL生成令牌
-curl -X POST "http://localhost:9090/auth/dev-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": "dev-user",
-    "tenantId": "dev-tenant", 
-    "roles": ["ADMIN", "USER"],
-    "duration": "8h"
-  }'
+# 生成开发令牌（保存至 .cache/dev.jwt）
+make jwt-dev-mint USER_ID=dev TENANT_ID=3b99930c-e2e4-4d4a-8e7a-123456789abc
+
+# 可选：导出当前 Shell 会话变量
+eval $(make jwt-dev-export)   # 导出 JWT_TOKEN
+
+# 验证公钥（JWKS）
+curl -s http://localhost:9090/.well-known/jwks.json | (command -v jq >/dev/null && jq . || cat)
 ```
 
 #### 2. 配置API客户端
-- **Postman**: 导入集合后，运行"生成开发JWT令牌"请求
-- **Insomnia**: 导入工作空间后，执行"生成JWT令牌"请求  
-- **cURL**: 使用提供的脚本自动管理令牌
+- **Postman / Insomnia**：将 `.cache/dev.jwt` 的内容设置到环境变量（如 `jwt_token`），并在请求头中添加 `Authorization: Bearer {{jwt_token}}` 与 `X-Tenant-ID`。
+- **cURL**：使用 `JWT_TOKEN=$(cat .cache/dev.jwt)` 或 `eval $(make jwt-dev-export)` 自动注入。
 
 #### 3. 验证服务状态
 ```bash
@@ -66,18 +66,16 @@ curl http://localhost:9090/health
 curl http://localhost:8090/health
 ```
 
-## 📋 API端点覆盖
+## 📋 API 依据契约
 
-### 开发工具端点
-- `POST /auth/dev-token` - 生成JWT令牌
-- `GET /auth/dev-token/info` - 获取令牌信息
-- `GET /dev/status` - 开发环境状态
-- `GET /dev/test-endpoints` - 测试端点列表
+请以 `docs/api/openapi.yaml`（REST 命令）与 `docs/api/schema.graphql`（GraphQL 查询）为唯一事实来源。下列仅为常见示例，非完整清单：
+
+### 开发工具端点（仅开发环境）
+（开发令牌的生成/导出请使用 `make jwt-dev-mint` 与 `make jwt-dev-export`；公钥验证可使用 `/.well-known/jwks.json`，避免依赖未契约的调试端点。）
 
 ### REST API (命令操作)
 - `POST /api/v1/organization-units` - 创建组织单元
 - `PUT /api/v1/organization-units/{code}` - 更新组织单元
-- `DELETE /api/v1/organization-units/{code}` - 删除组织单元
 - `POST /api/v1/organization-units/{code}/suspend` - 停用组织
 - `POST /api/v1/organization-units/{code}/activate` - 激活组织
 
@@ -132,9 +130,9 @@ curl http://localhost:8090/health
 ## 🛡️ 安全注意事项
 
 ### JWT令牌安全
-- 令牌仅在开发环境有效 (`DEV_MODE=true`)
+- 令牌仅用于本地开发与联调（`make run-dev` 环境）；生产环境不可使用开发工具端点
 - 生产环境不可使用开发工具端点
-- 令牌有效期建议设置为8小时以内
+- 令牌默认保存在 `.cache/dev.jwt`（本地），建议有效期不超过 8 小时
 
 ### API访问控制
 - 所有命令操作需要JWT认证
@@ -156,14 +154,13 @@ curl http://localhost:9090/health
 
 #### 2. API调用返回401错误
 ```bash
-# 检查令牌是否有效
-curl -X GET "http://localhost:9090/auth/dev-token/info" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+# 重新生成令牌（推荐使用 Make 工具链）
+make jwt-dev-mint USER_ID=dev TENANT_ID=3b99930c-e2e4-4d4a-8e7a-123456789abc
 
-# 重新生成令牌
-curl -X POST "http://localhost:9090/auth/dev-token" \
-  -H "Content-Type: application/json" \
-  -d '{"userId":"dev-user","tenantId":"dev-tenant","roles":["ADMIN"],"duration":"8h"}'
+# 导出当前会话变量并重试
+eval $(make jwt-dev-export)
+# 例如：
+curl -H "Authorization: Bearer $JWT_TOKEN" -H "X-Tenant-ID: 3b99930c-e2e4-4d4a-8e7a-123456789abc" http://localhost:9090/health
 ```
 
 #### 3. GraphQL查询失败
@@ -192,9 +189,9 @@ ab -n 100 -c 10 -H "Authorization: Bearer YOUR_TOKEN" \
 
 ## 📖 相关文档
 
-- [API规范文档](../architecture/01-organization-units-api-specification.md)
+- [API 契约（权威）](../api/openapi.yaml) · [GraphQL Schema](../api/schema.graphql)
 - [JWT开发工具指南](../development-guides/jwt-development-guide.md)
-- [项目开发指南](../../CLAUDE.md)
+- [项目原则与索引（唯一事实来源）](../../AGENTS.md)
 
 ## 🤝 贡献指南
 
