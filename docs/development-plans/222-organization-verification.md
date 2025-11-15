@@ -133,12 +133,13 @@ curl -X PUT http://localhost:9090/org/organizations/ORG-001 \
 
 **验收条件**:
 - [x] 基础路径验证（创建/查询）通过（本地）
+- [x] 资源完整替换（PUT /api/v1/organization-units/{code}）通过（本地）
 - [ ] 所有关键 API 端点响应正常（进行中）
 - [ ] 响应字段为 camelCase
 - [ ] HTTP 状态码正确
 - [ ] 错误处理一致
 - [ ] 响应与 OpenAPI 契约一致
-- 证据：`logs/plan222/create-response-*.json`
+- 证据：`logs/plan222/create-response-*.json`、`logs/plan222/put-response-*.json`
 
 ### 2.4 GraphQL 查询回归测试
 
