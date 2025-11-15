@@ -26,7 +26,8 @@ import {
 } from '@/shared/hooks/useEnterprisePositions';
 import { graphqlEnterpriseAdapter } from '@/shared/api';
 import { ORGANIZATION_BY_CODE_DOCUMENT as ORG_DETAIL_DOC } from '@/shared/hooks/useEnterpriseOrganizations';
-import { createQueryError } from '@/shared/api/error-handling';
+// 统一错误工厂：与其他 Hook 保持一致来源，避免重复事实来源
+import { createQueryError } from '@/shared/api/queryClient';
 import type { OrganizationUnit } from '@/shared/types/organization';
 import type {
   PositionRecord,

@@ -44,7 +44,9 @@ const SKIP_SERVER = process.env.PW_SKIP_SERVER === '1';
 // 允许通过 VITE_PORT_FRONTEND_DEV + PW_BASE_URL 改变端口，避免与现有 dev server 冲突
 const FRONTEND_URL = process.env.PW_BASE_URL || `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`;
 const SAVE_HAR = process.env.E2E_SAVE_HAR === '1';
-const HAR_DIR = path.resolve(__dirname, '..', 'logs', 'plan240', 'B');
+// 240BT: 允许通过 E2E_PLAN=240BT 将 HAR 目录切换到 logs/plan240/BT
+const HAR_SUFFIX = (process.env.E2E_PLAN || '').toUpperCase() === '240BT' ? 'BT' : 'B';
+const HAR_DIR = path.resolve(__dirname, '..', 'logs', 'plan240', HAR_SUFFIX);
 const TS = Date.now();
 if (SAVE_HAR) {
   try {

@@ -6,17 +6,19 @@ import { Box } from '@workday/canvas-kit-react/layout'
 import { Text } from '@workday/canvas-kit-react/text'
 import { RequireAuth } from './shared/auth/RequireAuth'
 import LoginPage from './pages/Login'
+import AppErrorBoundary from './shared/components/AppErrorBoundary'
 
 // 懒加载关键页面组件以优化初始加载性能
 const OrganizationDashboard = React.lazy(() => import('./features/organizations/OrganizationDashboard').then(module => ({ default: module.OrganizationDashboard })))
 const PositionDashboard = React.lazy(() => import('./features/positions/PositionDashboard').then(module => ({ default: module.PositionDashboard })))
+// 路由模块解耦：分别懒加载组织/职位详情，避免跨实体静态耦合导致“牵连白屏”
 const OrganizationTemporalEntityRoute = React.lazy(() =>
-  import('./features/temporal/pages/entityRoutes').then(module => ({
+  import('./features/temporal/pages/organizationRoute').then(module => ({
     default: module.OrganizationTemporalEntityRoute,
   })),
 )
 const PositionTemporalEntityRoute = React.lazy(() =>
-  import('./features/temporal/pages/entityRoutes').then(module => ({
+  import('./features/temporal/pages/positionRoute').then(module => ({
     default: module.PositionTemporalEntityRoute,
   })),
 )
@@ -51,16 +53,20 @@ const SuspenseLoader: React.FC = () => (
 function App() {
   const isPositionMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
   const renderWithAuth = (element: React.ReactNode) =>
-    <RequireAuth>
+    <AppErrorBoundary>
+      <RequireAuth>
+        <Suspense fallback={<SuspenseLoader />}>
+          {element}
+        </Suspense>
+      </RequireAuth>
+    </AppErrorBoundary>
+
+  const renderWithoutAuth = (element: React.ReactNode) =>
+    <AppErrorBoundary>
       <Suspense fallback={<SuspenseLoader />}>
         {element}
       </Suspense>
-    </RequireAuth>
-
-  const renderWithoutAuth = (element: React.ReactNode) =>
-    <Suspense fallback={<SuspenseLoader />}>
-      {element}
-    </Suspense>
+    </AppErrorBoundary>
 
   const renderPositions = (component: React.ReactNode) =>
     isPositionMockMode ? renderWithoutAuth(component) : renderWithAuth(component)

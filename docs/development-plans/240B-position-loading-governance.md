@@ -2,7 +2,7 @@
 
 编号: 240B  
 上游: Plan 240（职位管理页面重构） · 依赖 240A 完成  
-状态: 待启动
+状态: 进行中（验收未达）
 
 —
 
@@ -117,6 +117,26 @@ REPEATS=3 E2E_SAVE_HAR=1 E2E_NETWORK_ASSERT=1 PW_TENANT_ID=... PW_JWT=$JWT npm r
   - `inventory-sha.txt`（实现清单快照哈希）  
 - 215 登记：在 `docs/development-plans/215-phase2-execution-log.md` 勾选 240B 的完成项，并链接上述日志。
 
+## 当前状态与执行记录（滚动）
+- 截止：2025-11-15
+- 实施进展
+  - 已实现：
+    - 统一重试/取消：queries 使用指数退避（base=200ms, factor=2, cap=3000ms, jitter），统一客户端抛错附带 `httpStatus`，React Query 仅对 `5xx/429` 重试（4xx 不重试）
+    - 路由预热：提供稳定导出 `prefetchPositionDetail(queryClient, code)`，路由处调用并在卸载时取消根键查询
+    - 缓存失效 SSoT：新增 `invalidateTemporalDetail` 并替换职位写操作分散失效调用
+  - 测试侧稳健化：
+    - `position-tabs` / `position-lifecycle` 改用 SSoT 选择器 + GraphQL 等待；`temporal-management-integration` 默认 Mock（`E2E_MOCK_MODE !== 'false'`）
+    - 支持 HAR（`E2E_SAVE_HAR=1`）与严格模式（`E2E_STRICT=1` 单线程/更长超时）
+  - 证据：
+    - 全量轮次：`logs/plan240/B/e2e-{chromium,firefox}-run{1..3}.log`
+    - 三用例分项：`logs/plan240/B/e2e-{chromium,firefox}-{position-tabs,position-lifecycle,temporal-management-integration}-run{1..3}.log`
+    - HAR：`logs/plan240/B/network-har-{chromium,firefox}-*.har`、健康检查：`logs/plan240/B/health-checks.log`
+- 当前状态（客观）：
+  - 严格执行（3× × 2 浏览器）未全部绿灯；主要为 Playwright Runner 进程偶发退出（code=0，非业务断言失败），已切换为“外部 dev server + 单线程 + 严格等待 + 完整 Stub + HAR 记录”策略继续收敛
+  - 已补 Smoke 用例（`tests/e2e/smoke-org-detail.spec.ts`）用于快速验证组织详情壳渲染
+- 下一步（面向关闭）：
+  - 统一三用例的 Stub/等待链，在本地先达成 1××2 绿灯 → 再跑 3××2 严格验收并落盘 trace/HAR/网络计数
+  - 在 CI 增设 acceptance job（仅三用例）：`E2E_MOCK_MODE=true`、`E2E_STRICT=1`、`E2E_SAVE_HAR=1`、`REPEATS=3`
 ## 观测与落盘边界
 - 运行时观测：统一使用前端 `logger` 与 `performance.mark` 输出（与 241/240D 一致），不得在运行时代码中直接写文件。
 - 证据落盘：由测试/CI 采集（console、network、trace/HAR、网络计数 JSON）并保存至 `logs/plan240/B/`；作为验收与回归对比工件。

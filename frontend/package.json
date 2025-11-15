@@ -15,6 +15,7 @@
     "test:e2e:noserver": "PW_SKIP_SERVER=1 playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:smoke": "playwright test --project=chromium tests/e2e/basic-functionality-test.spec.ts tests/e2e/simple-connection-test.spec.ts tests/e2e/organization-create.spec.ts",
+    "test:e2e:240bt": "bash scripts/run-240bt-smoke.sh",
     "e2e:auth:dev": "make -C .. jwt-dev-mint && JWT_TOKEN=$(cat ../.cache/dev.jwt) PW_JWT=$JWT_TOKEN PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 npx playwright test",
     "test:contract": "vitest run tests/contract",
     "test:integration": "vitest tests/integration --testTimeout=30000",
