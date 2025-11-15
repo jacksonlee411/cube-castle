@@ -98,7 +98,11 @@
 ### 253 首轮冷启动指标登记（占位）
 - 触发：`plan-253-gates`（主干定时 / 触发变更）  
 - 产物：`logs/plan253/coldstart-*.log`（compose_up_ms、db_ready_seconds）  
-- 本地兜底记录：`logs/plan253/coldstart-20251115220516.log`（镜像预拉取进行中；compose_up_ms/db_ready_seconds 将在下一次运行自动补齐）
+- 本地兜底记录：
+  - 预拉取进行中：`logs/plan253/coldstart-20251115220516.log`
+  - 基线（跳过 pull，等价于“已预拉取后冷启动”）：`logs/plan253/coldstart-20251116001139.log`  
+    - compose_up_ms: 1979（约 2.0s）  
+    - db_ready_seconds: 10s（<= 15s）
 - 链接：首次成功运行后补充 CI 运行链接与统计摘要（P50/P90）；在本节仅索引日志路径，避免第二事实来源
 
 - 254 · 前端端点与代理收敛（单基址）  

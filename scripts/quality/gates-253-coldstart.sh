@@ -36,8 +36,12 @@ fi
 
 docker version >/dev/null 2>&1 || { warn "docker 不可用，跳过"; exit 0; }
 
-echo "[step] docker compose pull (infra)" | tee -a "$LOG_FILE"
-docker compose -f "$COMPOSE_FILE" pull "$DB_SERVICE" "$CACHE_SERVICE" >>"$LOG_FILE" 2>&1 || true
+if [[ "${SKIP_PULL:-0}" == "1" ]]; then
+  echo "[step] docker compose pull (infra) - skipped by SKIP_PULL=1" | tee -a "$LOG_FILE"
+else
+  echo "[step] docker compose pull (infra)" | tee -a "$LOG_FILE"
+  docker compose -f "$COMPOSE_FILE" pull "$DB_SERVICE" "$CACHE_SERVICE" >>"$LOG_FILE" 2>&1 || true
+fi
 
 echo "[step] docker compose down (cleanup)" | tee -a "$LOG_FILE"
 docker compose -f "$COMPOSE_FILE" down -v >>"$LOG_FILE" 2>&1 || true

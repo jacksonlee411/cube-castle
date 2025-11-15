@@ -50,7 +50,7 @@
 ### 1.4 依赖与解锁条件
 
 - **前置计划**: Plan 219（organization 重构完成）、Plan 220（模板文档）、Plan 221（Docker 集成测试基座）。若 `make test-db` 尚未稳定通过且没有 `logs/plan221/run-*.log` 佐证，则 Plan 222 仅能进行筹备。
-- **硬阻塞**: Plan 232（Playwright P0 稳定）。`docs/development-plans/232-playwright-p0-stabilization.md:1065-1094` 明确其双浏览器全绿是 Plan 215/222 的 100% 解锁条件，未满足前不可宣告 Plan 222 完成。
+- **硬阻塞**: Plan 232（Playwright P0 稳定）。`docs/development-plans/232-playwright-p0-stabilization.md:1065-1094` 明确其双浏览器全绿是 Plan 215/222 的 100% 解锁条件，未满足前不可宣告 Plan 222 完成。（Plan 252 已完成，不再作为阻塞项）
 - **环境约束**: 必须通过 Docker Compose/`make` 目标启动服务，禁止在宿主机直接运行 PostgreSQL、Redis 或 `go run cmd/...`（参考 `AGENTS.md:3-44`）。
 
 ---
@@ -218,7 +218,7 @@ curl -X POST http://localhost:8090/graphql \
 >   - 幂等激活返回 200（用例原期待 409）；  
 >   - 权限错误返回 `DEV_INVALID_TOKEN`（用例仅接受 `INSUFFICIENT_PERMISSIONS`/`UNAUTHORIZED`）；  
 >   - 未来生效的响应体字段在 200/202 不同分支上存在差异。  
-> - 待 232/252 权限与契约对齐后，收紧断言并移除临时放宽。
+> - 待 232 完成后，收紧断言并移除临时放宽（Plan 252 已完成，权限门禁已生效）。
 
 ### 2.6 性能基准测试
 
@@ -245,7 +245,7 @@ go test -bench=. -benchmem ./internal/organization/...
 
 ## 4. 验收结论登记（2025-11-15）
 
-- 阶段性结论：核心路径通过；E2E（P0）Mock 模式全绿；Live 模式的 API 级用例已通过环境开关与 TODO-TEMPORARY（2025-11-22）隔离，待 232/252 对齐后开启强校验；顶层包覆盖率>80% 达成，整体覆盖率将在 255/256 推进中达成。
+- 阶段性结论：核心路径通过；E2E（P0）Mock 模式全绿；Live 模式的 API 级用例已通过环境开关与 TODO-TEMPORARY（2025-11-22）隔离，待 232 完成后开启强校验；顶层包覆盖率>80% 达成，整体覆盖率将在 255/256 推进中达成。
 - 统一证据清单：见 `logs/plan222/ACCEPTANCE-SUMMARY-*.md`
 - 本次刷新：9090 单体 /graphql（需 Authorization + X-Tenant-ID）已验证通过；新增证据 `logs/plan222/graphql-query-20251115-125943.json`、`logs/plan222/create-response-20251115-130022.json`、`logs/plan222/put-response-1031964.json`；摘要：`logs/plan222/ACCEPTANCE-SUMMARY-20251115-205959.md`
 
@@ -284,7 +284,7 @@ go test -bench=. -benchmem ./internal/organization/...
 - GraphQL（9090）：带 Authorization + X‑Tenant‑ID 稳定返回数据；证据：`logs/plan222/graphql-query-20251115-125943.json`  
 - activate/suspend Live 用例：  
   - `frontend/tests/e2e/activate-suspend-workflow.spec.ts` 已改为 7 位编码；仍默认 skip，仅在 `PW_ENABLE_ORG_ACTIVATE_API=1` 时受控执行  
-  - 当前差异已记录为 TODO‑TEMPORARY（2025‑11‑22），待 232/252 对齐后收紧断言  
+  - 当前差异已记录为 TODO‑TEMPORARY（2025‑11‑22），待 232 完成后收紧断言  
 - 摘要文档：`logs/plan222/ACCEPTANCE-SUMMARY-20251115-220000.md`（覆盖率 30%）、`logs/plan222/ACCEPTANCE-SUMMARY-20251115-205959.md`（GraphQL 路由通过）
 
 ---
@@ -552,7 +552,7 @@ logger.WithFields(map[string]interface{}{
 ## 执行概览
 
 - **执行周期**: 2025-11-04 至 2025-11-18
-- **计划状态**: ⏳ 阶段性通过（核心路径 PASS；按 Plan 232/252 对齐后切换为 ✅ 全部完成）
+- **计划状态**: ⏳ 阶段性通过（核心路径 PASS；按 Plan 232 完成后切换为 ✅ 全部完成）
 - **偏差**: 无重大延期
 
 ## 验收结果
@@ -572,7 +572,7 @@ logger.WithFields(map[string]interface{}{
 | 219 | organization 重构 | ✅ 完成 | 功能等同 |
 | 220 | 模块模板文档 | ✅ 完成 | 为后续模块提供参考 |
 | 221 | Docker 测试基座 | ✅ 完成 | 证据：logs/plan221/integration-run-*.log |
-| 222 | 验证和文档更新 | ⏳ 阶段性通过 | 证据：logs/plan222/*；待 232/252 对齐后更新为✅ |
+| 222 | 验证和文档更新 | ⏳ 阶段性通过 | 证据：logs/plan222/*；待 232 完成后更新为✅ |
 
 ## 质量指标
 
@@ -609,7 +609,7 @@ logger.WithFields(map[string]interface{}{
 
 **验收负责人**: Codex（AI 助手）
 **验收日期**: 2025-11-15
-**状态**: ⏳ PARTIAL PASS - 建议按 232/252 对齐后进行最终 PASS 评审
+**状态**: ⏳ PARTIAL PASS - 建议按 232 完成后进行最终 PASS 评审
 ```
 
 ---
