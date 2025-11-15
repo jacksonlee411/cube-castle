@@ -74,7 +74,9 @@ export const PositionVersionList: React.FC<PositionVersionListProps> = ({
               return (
                 <Table.Row
                   key={key}
-                  data-testid={`position-version-row-${key}`}
+                  data-testid={temporalEntitySelectors.position.versionRow
+                    ? temporalEntitySelectors.position.versionRow(key)
+                    : `position-version-row-${key}`}
                   onClick={() => {
                     if (onSelectVersion) {
                       onSelectVersion(version, key);

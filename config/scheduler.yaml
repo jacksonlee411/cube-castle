@@ -1,10 +1,12 @@
 # Scheduler configuration (authoritative reference for operational scheduler defaults)
-enabled: true
+# 说明：工作流引擎（Temporal）已清退，本配置仅用于基于 Cron/SQL 的运维任务与数据一致性监控。
+enabled: false
 
+# 工作流引擎已清退：以下字段保留占位但不生效
 temporal:
-  endpoint: temporal:7233
-  namespace: cube-castle
-  taskQueue: organization-maintenance
+  endpoint: ""
+  namespace: ""
+  taskQueue: ""
 
 worker:
   concurrency: 4

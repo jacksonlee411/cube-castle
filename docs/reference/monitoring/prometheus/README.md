@@ -1,6 +1,6 @@
 # Prometheus 抓取配置（219D3 预设）
 
-- 目标：收集 Scheduler/Temporal 指标（worker 状态、任务耗时、失败率、队列积压、自定义验证链等）。
+- 目标：收集 Scheduler 指标（基于 Cron/SQL 的时态数据一致性维护：任务耗时、失败率、自定义验证链等）。
 - 默认端口：`9091`
 - 数据卷：`prometheus_data`
 - Docker Compose 服务名建议：`monitoring-prometheus`

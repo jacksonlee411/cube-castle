@@ -8,6 +8,7 @@ import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { useVacantPositions, type VacantPositionsQueryParams } from '@/shared/hooks/useEnterprisePositions'
 import type { VacantPositionRecord } from '@/shared/types/positions'
 import { SimpleStack } from '../layout/SimpleStack'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 const MINIMUM_VACANT_OPTIONS: Array<{ label: string; value?: number }> = [
   { label: '全部空缺', value: undefined },
@@ -58,7 +59,7 @@ export const PositionVacancyBoard: React.FC = () => {
   const summary = useMemo(() => summaryFromRecords(records), [records])
 
   return (
-    <Card padding={space.l} data-testid="position-vacancy-board" backgroundColor={colors.frenchVanilla100}>
+    <Card padding={space.l} data-testid={temporalEntitySelectors.position?.vacancyBoard ?? 'position-vacancy-board'} backgroundColor={colors.frenchVanilla100}>
       <SimpleStack gap={space.l}>
         <Flex justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" rowGap={space.m}>
           <SimpleStack gap={space.xxxs}>

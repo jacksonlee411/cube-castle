@@ -1,7 +1,7 @@
 # Plan 06 – 集成测试验证纪要（2025-11-08 10:30 CST）
 
 ## 1. 环境与前置校验
-- `make docker-up && make run-dev`：PostgreSQL/Redis/REST/GraphQL 容器均处于 healthy，宿主机未占用 5432/6379/7233。
+- `make docker-up && make run-dev`：PostgreSQL/Redis/REST/GraphQL 容器均处于 healthy，宿主机未占用 5432/6379。
 - `go version` 输出 `go1.24.9`、`node --version` 输出 `v22.17.1`；`make db-migrate-all` 显示最新版本 `20251107123000` 已应用。
 - `make jwt-dev-mint` 更新 `.cache/dev.jwt`，所有 Playwright/脚本通过 `PW_JWT`、`PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9` 注入。
 

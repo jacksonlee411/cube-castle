@@ -10,6 +10,7 @@ import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { usePositionHeadcountStats } from '@/shared/hooks/useEnterprisePositions'
 import type { PositionHeadcountStats } from '@/shared/types/positions'
 import { SimpleStack } from '../layout/SimpleStack'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 interface PositionHeadcountDashboardProps {
   organizationCode?: string
@@ -211,7 +212,7 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
 }
 
   return (
-    <Card padding={space.l} data-testid="position-headcount-dashboard" backgroundColor={colors.frenchVanilla100}>
+    <Card padding={space.l} data-testid={temporalEntitySelectors.position?.headcountDashboard ?? 'position-headcount-dashboard'} backgroundColor={colors.frenchVanilla100}>
       <SimpleStack gap={space.l}>
         <Flex justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" rowGap={space.m}>
           <SimpleStack gap={space.xxxs}>

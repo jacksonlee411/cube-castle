@@ -1,6 +1,6 @@
 # 监控与告警体系（219D3 预备）
 
-本目录承载 Scheduler/Temporal 监控栈（Prometheus/Grafana/Alertmanager）的唯一事实来源，所有指标、面板、告警规则与验证记录须在此登记，并在 `docs/reference/03-API-AND-TOOLS-GUIDE.md`、`internal/organization/README.md#scheduler` 引用。
+本目录承载 Scheduler 监控栈（Prometheus/Grafana/Alertmanager，基于 Cron/SQL 的时态数据一致性维护）的唯一事实来源，所有指标、面板、告警规则与验证记录须在此登记，并在 `docs/reference/03-API-AND-TOOLS-GUIDE.md`、`internal/organization/README.md#scheduler` 引用。当前不包含任何工作流引擎（Temporal）集成。
 
 ## 结构
 

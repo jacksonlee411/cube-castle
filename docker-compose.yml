@@ -65,60 +65,7 @@ services:
       - postgres
     restart: unless-stopped
 
-  # 🟡 可选: Temporal工作流引擎 (如需要工作流功能)
-  temporal-server:
-    image: temporalio/auto-setup:1.24.2
-    container_name: cube_castle_temporal
-    ports:
-      - "7233:7233"
-    environment:
-      - DB=postgres12
-      - DB_PORT=5432
-      - POSTGRES_SEEDS=postgres
-      - POSTGRES_USER=${POSTGRES_USER:-user}
-      - POSTGRES_PWD=${POSTGRES_PASSWORD:-password}
-      - POSTGRES_DB=temporal
-      - ENABLE_ES=false
-      - SKIP_SCHEMA_SETUP=false
-      - SKIP_DB_CREATE=false
-    volumes:
-      - temporal_data:/etc/temporal/config/dynamicconfig
-    networks:
-      - castle-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "tctl --address $(hostname -i):7233 cluster health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 90s
-      retries: 5
-    restart: unless-stopped
-
-  # 🟡 可选: Temporal UI管理界面
-  temporal-ui:
-    image: temporalio/ui:2.31.1
-    container_name: cube_castle_temporal_ui
-    ports:
-      - "8085:8080"
-    environment:
-      - TEMPORAL_UI_ENABLED=true
-      - TEMPORAL_ADDRESS=temporal-server:7233
-      - TEMPORAL_UI_PORT=8080
-      - TEMPORAL_CLOUD_UI=false
-    networks:
-      - castle-net
-    depends_on:
-      temporal-server:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      start_period: 30s
-      retries: 3
-    restart: unless-stopped
+  # （已清退）Temporal 工作流引擎与 UI 不再随仓库提供，若未来启用将另行提供独立编排。
 
 # ❌ 已移除的技术债务组件 (PostgreSQL原生架构革命)
 # 
@@ -141,8 +88,6 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  temporal_data:
-    driver: local
   # ❌ 已移除: neo4j_data, elasticsearch_data
 
 networks:
@@ -159,6 +104,5 @@ networks:
 #
 # 完整开发环境:
 # docker-compose up -d postgres redis pgadmin
-#
-# 包含工作流功能:
-# docker-compose up -d postgres redis temporal-server temporal-ui
+# 
+# 工作流引擎（Temporal）已清退，若未来启用将另行提供独立编排。

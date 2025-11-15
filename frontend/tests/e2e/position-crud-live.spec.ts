@@ -100,10 +100,10 @@ test.describe("职位管理 Mock 守护", () => {
       page.getByTestId(temporalEntitySelectors.position.dashboard),
     ).toBeVisible();
     await expect(
-      page.getByTestId("position-dashboard-mock-banner"),
+      page.getByTestId(temporalEntitySelectors.position.mockBanner!),
     ).toBeVisible();
 
-    const createButton = page.getByTestId("position-create-button");
+    const createButton = page.getByTestId(temporalEntitySelectors.position.createButton!);
     await expect(createButton).toBeDisabled();
   });
 });

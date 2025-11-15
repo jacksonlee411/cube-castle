@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, afterEach, afterAll, describe, expect, it, vi, type Mock } from 'vitest'
 import type { PositionDetailResult, PositionRecord } from '@/shared/types/positions'
 import { PositionDetailView, type PositionDetailViewProps } from '../PositionDetailView'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
 
@@ -207,14 +208,14 @@ describe('PositionDetailView', () => {
   it('renders detail layout并可打开版本历史页签', () => {
     renderComponent()
 
-    expect(screen.getByTestId('position-temporal-page')).toBeInTheDocument()
-    expect(screen.getByTestId('position-overview-card')).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.temporalPage)).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.overviewCard)).toBeInTheDocument()
     expect(screen.getByText('概览')).toBeInTheDocument()
     expect(screen.getByText('版本历史')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('版本历史'))
-    expect(screen.getByTestId('position-version-toolbar')).toBeInTheDocument()
-    expect(screen.getByTestId('position-version-list')).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.versionToolbar)).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.versionList)).toBeInTheDocument()
   })
 
   it('toggles includeDeleted flag when开关切换', async () => {
@@ -227,7 +228,7 @@ describe('PositionDetailView', () => {
 
     fireEvent.click(screen.getByText('版本历史'))
 
-    const toggle = screen.getByTestId('position-version-include-deleted')
+    const toggle = screen.getByTestId(temporalEntitySelectors.position.versionIncludeDeleted!)
     fireEvent.click(toggle)
 
     await waitFor(() =>
@@ -242,10 +243,11 @@ describe('PositionDetailView', () => {
     renderComponent()
 
     fireEvent.click(screen.getByText('版本历史'))
-    const versionRow = screen.getAllByTestId(/position-version-row/)[1]
+    const versionRowPrefix = temporalEntitySelectors.position.versionRowPrefix ?? 'temporal-position-version-row-'
+    const versionRow = screen.getAllByTestId(new RegExp(`^${versionRowPrefix}`))[1]
     fireEvent.click(versionRow)
 
-    expect(screen.getByTestId('position-overview-card')).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.overviewCard)).toBeInTheDocument()
   })
 
   it('shows提示 when职位编码缺失', () => {
@@ -282,10 +284,10 @@ describe('PositionDetailView', () => {
     vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'true')
     renderComponent()
 
-    expect(screen.getByTestId('position-temporal-page')).toBeInTheDocument()
-    expect(screen.getByTestId('position-mock-banner')).toBeInTheDocument()
-    expect(screen.queryByTestId('position-edit-button')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('position-version-button')).not.toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.temporalPage)).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.mockBanner!)).toBeInTheDocument()
+    expect(screen.queryByTestId(temporalEntitySelectors.position.editButton!)).not.toBeInTheDocument()
+    expect(screen.queryByTestId(temporalEntitySelectors.position.createVersionButton!)).not.toBeInTheDocument()
   })
 
   it('Mock 模式下创建页面仅展示指引', () => {

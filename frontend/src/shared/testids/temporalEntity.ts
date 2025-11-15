@@ -32,13 +32,41 @@ export type TemporalSelectors = {
     table: string;
   };
   position: {
-    table: 'temporal-position-table',
+    table: string;
     dashboard: string;
     temporalPageWrapper: string;
     temporalPage: string;
     overviewCard: string;
     versionToolbar: string;
     versionList: string;
+    // Optional extensions used across components/tests
+    mockBanner?: string;
+    errorBox?: string;
+    createButton?: string;
+    searchInput?: string;
+    statusFilter?: string;
+    familyGroupFilter?: string;
+    detailCard?: string;
+    detailError?: string;
+    editButton?: string;
+    createVersionButton?: string;
+    versionIncludeDeleted?: string;
+    versionExportButton?: string;
+    rowPrefix?: string;
+    row?: (code: string) => string;
+    versionRow?: (key: string) => string;
+    versionRowPrefix?: string;
+    tabVersions?: string;
+    tabId?: (key: string) => string;
+    vacancyBoard?: string;
+    headcountDashboard?: string;
+    // Transfer dialog
+    transferOpen?: string;
+    transferTarget?: string;
+    transferDate?: string;
+    transferReason?: string;
+    transferReassign?: string;
+    transferConfirm?: string;
   };
 };
 
@@ -92,6 +120,16 @@ export const temporalEntitySelectors: TemporalSelectors = {
     tabId: (key: string) => `temporal-position-tab-${key}`,
     rowPrefix: 'temporal-position-row-',
     row: (code: string) => `temporal-position-row-${code}`,
+    versionRow: (key: string) => `temporal-position-version-row-${key}`,
+    versionRowPrefix: 'temporal-position-version-row-',
+    vacancyBoard: 'temporal-position-vacancy-board',
+    headcountDashboard: 'temporal-position-headcount-dashboard',
+    transferOpen: 'temporal-position-transfer-open',
+    transferTarget: 'temporal-position-transfer-target',
+    transferDate: 'temporal-position-transfer-date',
+    transferReason: 'temporal-position-transfer-reason',
+    transferReassign: 'temporal-position-transfer-reassign-checkbox',
+    transferConfirm: 'temporal-position-transfer-confirm',
   },
 } as const;
 

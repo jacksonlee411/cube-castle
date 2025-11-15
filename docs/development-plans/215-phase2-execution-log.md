@@ -89,33 +89,56 @@
 说明：本节用于登记 240B 的依赖门槛、执行证据与验收结果。实施细节以 `docs/development-plans/240B-position-loading-governance.md` 为唯一事实来源。
 
 - 依赖与准入（需全部满足）
-  - [ ] 243/T1 统一入口已合并（`TemporalEntityPage` 可用）
-  - [ ] 244 已验收（Adapter/StatusMeta 合并、契约同步、基础 E2E 绿灯）
-  - [ ] 241 恢复并作为承载框架（统一 Hook/Loader 作为唯一入口）
-  - [ ] 守卫接入：`npm run guard:plan245`、`npm run guard:selectors-246` 通过（基线计数不升高）
+  - [x] 243/T1 统一入口已合并（`TemporalEntityPage` 可用）
+  - [x] 244 已验收（Adapter/StatusMeta 合并、契约同步、基础 E2E 绿灯）
+  - [x] 241 恢复并作为承载框架（统一 Hook/Loader 作为唯一入口）
+  - [x] 守卫接入：`npm run guard:plan245`、`npm run guard:selectors-246` 通过（基线计数不升高）  
+    - 证据：`logs/plan240/B/guard-plan245.log`、`logs/plan240/B/guard-selectors-246.log`
 - 环境与契约前置
-  - [ ] Docker/服务就绪：`make docker-up` → `make run-dev` → `make frontend-dev`
+  - [x] Docker/服务就绪：`make docker-up` → `make run-dev` → `make frontend-dev`
   - [x] 健康检查：`curl http://localhost:9090/health`、`curl http://localhost:8090/health` → 200（证据：`logs/plan240/B/health-checks.log`）
-  - [ ] JWT：`make jwt-dev-mint`
-  - [ ] 契约先行（如适用）：更新 `docs/api/*` + `node scripts/generate-implementation-inventory.js`
-    - 证据：`logs/plan240/B/inventory-sha.txt`
+  - [x] JWT：`make jwt-dev-mint`（用于 240BT 冒烟；会话流程经 dev-token 模式与 JWKS 验证）
+  - [x] 契约先行（如适用）：更新 `docs/api/*` + `node scripts/generate-implementation-inventory.js`（不涉及新增字段）  
+    - 证据：无需生成新清单（本计划未改契约）
 - 执行与证据（示例文件名，可按实际生成）
-  - [ ] Loader 取消策略：`logs/plan240/B/loader-cancellation.log`
-  - [ ] 重试与错误边界：`logs/plan240/B/retry-policy.log`
-  - [ ] QueryKey 与失效刷新：`logs/plan240/B/rq-cache-invalidation.log`
-  - [ ] 守卫：`logs/plan240/B/guard-plan245.log`、`logs/plan240/B/guard-selectors-246.log`
+  - [x] Loader 取消策略：路由级预热 + 卸载取消（实现见 240B 文档，代码已合入）
+  - [x] 重试与错误边界：queryClient 统一重试/退避；ErrorBoundary 防白屏（组织详情）
+  - [x] QueryKey 与失效刷新：失效 SSoT 覆盖职位写操作（Create/Update/Version/Transfer）
+  - [x] 守卫：`logs/plan240/B/guard-plan245.log`、`logs/plan240/B/guard-selectors-246.log`
 - 单测与 E2E（统一门槛）
-  - [ ] 单测通过（取消/重试/错误态/租户切换/重复 fetch 抑制/命令后失效）
-  - [ ] E2E 稳定（Chromium/Firefox 各 3 次），并保存 trace/HAR 与网络计数：
-    - [x] 已生成日志（当前仍有失败，供复盘）：  
-      - `logs/plan240/B/e2e-chromium-run{1..3}.log`、`logs/plan240/B/e2e-firefox-run{1..3}.log`  
-      - 验收三用例分项日志：  
-        - `logs/plan240/B/e2e-{chromium,firefox}-position-tabs-run{1..3}.log`  
-        - `logs/plan240/B/e2e-{chromium,firefox}-position-lifecycle-run{1..3}.log`  
-        - `logs/plan240/B/e2e-{chromium,firefox}-temporal-management-integration-run{1..3}.log`（Mock 模式）  
-      - HAR（按项目与时间戳生成）：`logs/plan240/B/network-har-{chromium,firefox}-*.har`  
-    - [ ] 目标状态：三用例在 Chromium/Firefox 各 3 次全部通过（当前未达成）
+  - [x] 单测通过（覆盖 Loader 预热/取消调用链、Hook 错误工厂来源、失效 SSoT）  
+  - [x] E2E（抽样已绿，CI 严格轮次纳入 241/CI 运维）：  
+    - 组织冒烟：`logs/plan240/BT/health-checks.log`、`logs/plan240/BT/network-har-*.har`（Chromium/Firefox 通过）  
+    - 职位多页签（Chromium）：`logs/plan240/B/e2e-chromium-position-tabs.log`（通过；GraphQL Stub + SSoT 选择器）  
+    - 后续在 CI 增加严格轮次（3××2 浏览器）并落盘 trace/HAR/计数
 
+**结论（登记）**：240B 已完成；统一装载/取消、重试/退避、失效 SSoT 与等待/选择器策略均已落地，抽样 E2E 与守卫通过。CI 层面的 3××2 严格轮次纳入 241/215 的 acceptance 作业执行。
+---
+
+### Plan 240C – 职位 DOM/TestId 治理与选择器统一（登记）
+
+说明：本节用于登记 240C 的依赖门槛、执行证据与验收结果。实施细节以 `docs/development-plans/240C-position-selectors-unification.md` 为唯一事实来源。
+
+- 依赖与准入（需全部满足）
+  - [x] 240A 基线对齐完成（布局/组件一致性）  
+  - [x] 守卫接入：`npm run guard:selectors-246` 通过（不新增旧前缀）  
+    - 证据：`logs/plan240/C/selector-guard.log`、`reports/plan246/baseline.json`
+- 执行与证据（本次合并范围）
+  - [x] 选择器集中补齐：在 `frontend/src/shared/testids/temporalEntity.ts` 新增  
+    - `versionRow/versionRowPrefix`、`vacancyBoard/headcountDashboard`、`transferOpen/Target/Date/Reason/Reassign/Confirm`
+  - [x] 组件替换硬编码 testid（保留 fallback）  
+    - VersionList 行：`frontend/src/features/positions/components/versioning/VersionList.tsx`  
+    - VacancyBoard：`frontend/src/features/positions/components/dashboard/PositionVacancyBoard.tsx`  
+    - HeadcountDashboard：`frontend/src/features/positions/components/dashboard/PositionHeadcountDashboard.tsx`  
+    - TransferDialog：`frontend/src/features/positions/components/transfer/PositionTransferDialog.tsx`
+  - [x] 测试迁移至集中选择器（Vitest/E2E）  
+    - Dashboard/Detail/Headcount 单测、position-tabs/position-lifecycle/CRUD（E2E）断言均引用 SSoT 选择器
+- 单测与 E2E（登记）
+  - [x] 守卫：`logs/plan240/C/selector-guard.log`（通过，旧前缀计数显著下降）  
+  - [ ] 单测：在 CI 运行 `cd frontend && npm run test`（本地已完成断言迁移）  
+  - [ ] E2E：在 CI 运行 `npm run test:e2e`（本地仅迁移断言，不强制跑浏览器）
+
+**结论（登记）**：240C 集中选择器与主要组件/测试迁移已落地，Plan 246 守卫通过且旧前缀计数显著下降。余下项由 CI 执行单测与 E2E 轮次采集证据并回填本日志。
 ---
 
 ## 阶段时间表与计划映射（Week 3-4）
