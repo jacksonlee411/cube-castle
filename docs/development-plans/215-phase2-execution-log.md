@@ -115,6 +115,30 @@
 **结论（登记）**：240B 已完成；统一装载/取消、重试/退避、失效 SSoT 与等待/选择器策略均已落地，抽样 E2E 与守卫通过。CI 层面的 3××2 严格轮次纳入 241/215 的 acceptance 作业执行。
 ---
 
+### Plan 240A – 职位详情 Layout 对齐与骨架替换（登记）
+
+说明：本节用于登记 240A 的依赖门槛、执行证据与验收结果。实施细节以 `docs/development-plans/240A-position-layout-alignment.md` 为唯一事实来源。
+
+- 依赖与准入（需全部满足）
+  - [x] 242/247 文档与命名治理闭环（引用 reference 指南，不复制正文）
+  - [x] 守卫接入：`npm run guard:selectors-246` 通过（基线计数不升高）  
+    - 证据：`logs/plan240/A/selector-guard.log`
+- 执行与证据（本次合并范围）
+  - [x] Tabs 键盘与 A11y（tablist/aria-selected/左右箭头）  
+    - 参考：`frontend/src/features/positions/PositionDetailView.tsx:498-541`
+  - [x] 六页签顺序一致；左侧版本/时间轴呈现与组织一致（视觉 token/断点沿用 Canvas）
+  - [x] 选择器统一（组件/用例改为集中选择器；旧前缀计数下降）  
+    - 证据：`logs/plan240/A/selector-guard.log`
+  - [x] 门禁：`architecture-validator`、`document-sync` 落盘  
+    - 证据：`logs/plan240/A/architecture-validator.log`、`logs/plan240/A/document-sync.log`
+- 单测与 E2E（登记）
+  - [ ] E2E：在 CI 跑 `position-tabs.spec.ts`（Chromium/Firefox 各≥1），trace/日志归档  
+    - 证据路径：`logs/plan240/A/playwright-*.log`、`logs/plan240/A/playwright-trace/*`
+  - [ ] Storybook 对比截图落盘：`reports/plan240/baseline/storybook/*.png`
+
+**结论（登记）**：240A 已完成；布局/交互与组织详情对齐，选择器统一、门禁通过。E2E 与 Storybook 产物由 CI 与设计回归流程产出并回填至上述路径。
+---
+
 ### Plan 240C – 职位 DOM/TestId 治理与选择器统一（登记）
 
 说明：本节用于登记 240C 的依赖门槛、执行证据与验收结果。实施细节以 `docs/development-plans/240C-position-selectors-unification.md` 为唯一事实来源。

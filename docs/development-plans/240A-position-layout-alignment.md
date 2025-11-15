@@ -2,7 +2,7 @@
 
 编号: 240A  
 上游: Plan 240（职位管理页面重构） · 依赖 Plan 242/247（命名与文档治理闭环）  
-状态: 进行中（T1）
+状态: 已完成（验收通过）
 
 —
 
@@ -67,3 +67,20 @@
 - Feature Flag：`VITE_POSITION_LAYOUT_V2`（默认 `true`）。当设为 `false` 时，路由/职位详情回退到旧布局（不改契约）。
 - 触发位置：路由入口（`frontend/src/App.tsx` 的 Position 路由）或 `PositionDetailView` 顶层根据 flag 决定使用新/旧布局。
 - 回滚操作流程：切换 env → 重启前端 → 复跑冒烟；回滚日志记录至 `logs/plan240/A/rollback-*.log`
+
+---
+
+## 关闭说明（登记）
+- 统一布局与交互
+  - Tabs 键盘与 A11y：`role="tablist"`、左右箭头切换与 `aria-selected` 已实现（参考 `frontend/src/features/positions/PositionDetailView.tsx:498-541`）
+  - 六页签顺序、左侧版本/时间轴呈现与组织一致，仅视觉 token 与断点沿用 Canvas 规范
+- 选择器统一
+  - 组件与用例改为通过 `frontend/src/shared/testids/temporalEntity.ts` 引用，旧前缀计数显著下降
+  - 守卫日志：`logs/plan240/A/selector-guard.log`
+- 门禁通过
+  - `node scripts/quality/architecture-validator.js` 与 `document-sync.js` 已执行并落盘日志：  
+    - `logs/plan240/A/architecture-validator.log`  
+    - `logs/plan240/A/document-sync.log`
+- E2E/Storybook
+  - E2E 核心用例按 232/240 节拍在 CI 执行并归档至 `logs/plan240/A/playwright-*.log`（执行由 CI 产出）；本地不强制跑多浏览器
+  - Storybook 对比截图由设计回归流程产出至 `reports/plan240/baseline/storybook/*.png`（作为附加证据）

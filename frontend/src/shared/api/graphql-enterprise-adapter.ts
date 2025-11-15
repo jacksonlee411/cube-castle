@@ -36,7 +36,13 @@ export class GraphQLEnterpriseAdapter {
 
   private serializeErrorDetail(err: unknown): JsonValue {
     if (err instanceof Error) {
-      return { name: err.name, message: err.message };
+      const anyErr = err as unknown as { httpStatus?: number; status?: number };
+      const httpStatus = typeof anyErr?.httpStatus === 'number' ? anyErr.httpStatus : anyErr?.status;
+      return {
+        name: err.name,
+        message: err.message,
+        ...(typeof httpStatus === 'number' ? { httpStatus } : {}),
+      };
     }
 
     if (err === null || err === undefined) {

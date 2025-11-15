@@ -1290,6 +1290,24 @@ const fetchPositionDetail = async (
   );
 
   if (!response.success || !response.data) {
+    // OBS: GraphQL 错误（职位详情）
+    try {
+      const { obs } = await import('@/shared/observability/obs');
+      if (obs.enabled()) {
+        const httpStatus =
+          (response.error?.details as unknown as { httpStatus?: number })?.httpStatus ??
+          (response.error as unknown as { status?: number })?.status ??
+          0;
+        obs.emit('position.graphql.error', {
+          entity: 'position',
+          code,
+          queryName: 'TemporalEntityDetail',
+          status: typeof httpStatus === 'number' ? httpStatus : 0,
+        });
+      }
+    } catch {
+      // ignore
+    }
     throw createQueryError(response.error?.message ?? '获取职位详情失败', {
       code: response.error?.code,
       requestId: response.requestId,
@@ -1298,6 +1316,20 @@ const fetchPositionDetail = async (
   }
 
   if (!response.data.position) {
+    // OBS: 未找到职位也作为失败路径记录
+    try {
+      const { obs } = await import('@/shared/observability/obs');
+      if (obs.enabled()) {
+        obs.emit('position.graphql.error', {
+          entity: 'position',
+          code,
+          queryName: 'TemporalEntityDetail',
+          status: 404,
+        });
+      }
+    } catch {
+      // ignore
+    }
     throw createQueryError('未找到指定职位', {
       code: 'POSITION_NOT_FOUND',
       requestId: response.requestId,

@@ -78,8 +78,8 @@
 - 引入 design token 校验（ESLint 规则或 lint-staged 钩子），避免样式漂移。
 
 ### 4.5 T4 – 可观测性与性能（1 天）
-- 注入 `performance.mark` / `measure`，上报 `PositionPageHydration`, `PositionTabSwitch`.  
-- 将关键 GraphQL error 记录到 `logs/ui/position-page.log`（通过前端 logger pipeline）。  
+ - 注入 `performance.mark` / `measure`，上报 `position.hydrate.done`、`position.tab.change`（详见 `docs/reference/temporal-entity-experience-guide.md` 第 7 节）。  
+ - 将关键 GraphQL error 通过前端 logger pipeline 以 `[OBS] position.graphql.error` 形式输出，由 E2E 采集并落盘至 `logs/plan240/D/*`。  
 - 分析 bundle：必要时开启路由级 code-splitting，保持 `position` chunk < 1.2 MB gzip。
 
 ### 4.6 T5 – 测试与文档收束（1 天）

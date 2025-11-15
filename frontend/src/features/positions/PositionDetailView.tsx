@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { NavigateOptions } from 'react-router-dom'
 import { Box, Flex } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
@@ -24,6 +24,7 @@ import { PositionForm } from './components/PositionForm'
 import { PositionVersionList, PositionVersionToolbar, buildVersionsCsv } from './components/versioning'
 import { useTemporalEntityDetail } from '@/shared/hooks/useTemporalEntityDetail'
 import { logger } from '@/shared/utils/logger'
+import { obs } from '@/shared/observability/obs'
 import { positionTimelineAdapter } from '@/features/temporal/entity/timelineAdapter'
 import { getPositionStatusMeta } from '@/features/temporal/entity/statusMeta'
 import temporalEntitySelectors from '@/shared/testids/temporalEntity'
@@ -87,6 +88,9 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
   const [isCompactLayout, setIsCompactLayout] = useState(false)
   const [isVersionDrawerOpen, setIsVersionDrawerOpen] = useState(false)
   const isMockMode = import.meta.env.VITE_POSITIONS_MOCK_MODE !== 'false'
+  const hydrateStartedRef = useRef(false)
+  const hydrateDoneRef = useRef(false)
+  const lastTabRef = useRef<DetailTab>('overview')
 
   const normalizedCode = code ?? ''
   const detailQuery = useTemporalEntityDetail(
@@ -174,6 +178,54 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
     }
   }, [versionEntries, selectedVersionKey])
 
+  // Hydration observability marks and event
+  useEffect(() => {
+    if (isCreateMode || !obs.enabled()) {
+      return
+    }
+    // Mark start only once per lifecycle
+    if (!hydrateStartedRef.current) {
+      hydrateStartedRef.current = true
+      obs.markStart('obs:position:hydrate')
+      // Optional: also emit a start event for traceability
+      obs.emitOnce('position.hydrate.start', normalizedCode || 'unknown', {
+        entity: 'position',
+        code: normalizedCode || undefined,
+      })
+    }
+  }, [isCreateMode, normalizedCode])
+
+  useEffect(() => {
+    if (isCreateMode || !obs.enabled()) {
+      return
+    }
+    // When data is ready and key DOM could render, complete hydration once
+    const dataReady = Boolean(position || selectedVersion)
+    if (dataReady && !hydrateDoneRef.current) {
+      const durationMs = obs.markEndAndMeasure('obs:position:hydrate')
+      hydrateDoneRef.current = true
+      obs.emit('position.hydrate.done', {
+        entity: 'position',
+        code: normalizedCode || undefined,
+        durationMs: typeof durationMs === 'number' ? durationMs : undefined,
+      })
+    }
+  }, [isCreateMode, normalizedCode, position, selectedVersion])
+
+  const handleTabChange = useCallback(
+    (next: DetailTab) => {
+      if (next === activeTab) return
+      // Emit tab change with simple duplicate guard
+      obs.emitTabChangeOnce(lastTabRef.current, next, {
+        entity: 'position',
+        code: normalizedCode || undefined,
+      })
+      lastTabRef.current = next
+      setActiveTab(next)
+    },
+    [activeTab, normalizedCode],
+  )
+
   useEffect(() => {
     if (typeof window === 'undefined') {
       return
@@ -198,6 +250,13 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
     }
 
     try {
+      if (obs.enabled()) {
+        obs.emit('position.version.export.start', {
+          entity: 'position',
+          code: normalizedCode || undefined,
+        })
+        obs.markStart('obs:position:export')
+      }
       const csv = buildVersionsCsv(versions)
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
@@ -211,8 +270,23 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
       document.body.removeChild(anchor)
 
       URL.revokeObjectURL(url)
+      if (obs.enabled()) {
+        const durationMs = obs.markEndAndMeasure('obs:position:export')
+        obs.emit('position.version.export.done', {
+          entity: 'position',
+          code: normalizedCode || undefined,
+          durationMs: typeof durationMs === 'number' ? durationMs : undefined,
+          sizeBytes: blob.size,
+        })
+      }
     } catch (error) {
       logger.error('[PositionDetailView] 导出职位版本失败', error)
+      if (obs.enabled()) {
+        obs.emit('position.version.export.error', {
+          entity: 'position',
+          code: normalizedCode || undefined,
+        })
+      }
     }
   }, [versions, normalizedCode])
 
@@ -239,6 +313,13 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
       }
       if (activeTab !== 'overview') {
         setActiveTab('overview')
+      }
+      if (obs.enabled()) {
+        obs.emit('position.version.select', {
+          entity: 'position',
+          code: version?.code || normalizedCode || undefined,
+          versionKey: key,
+        })
       }
     },
     [activeTab, isCompactLayout],
@@ -433,7 +514,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
 
               <Box flex="1" minWidth={0}>
                 <SimpleStack gap={space.l}>
-                  <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+              <TabsNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
                   {selectedVersion && (
                     <Card padding={space.m} backgroundColor={colors.soap100}>

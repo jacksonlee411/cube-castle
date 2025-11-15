@@ -112,9 +112,6 @@
   `position.version.select`  
   `position.version.export.start` / `.done` / `.error`  
   `position.graphql.error`
-- 向上兼容的别名（与 Plan 240 文案对齐；负载相同）  
-  `PositionPageHydration` ≈ `position.hydrate.done`  
-  `PositionTabSwitch` ≈ `position.tab.change`
 
 7.2 负载 Schema（JSON；不得包含 PII/令牌/响应体）
 - 通用字段：`entity`（固定 `'position'`）、`code`（职位编码，可选）、`ts`（ISO 时间）、`source='ui'`
@@ -129,7 +126,7 @@
 - DEV：使用 `logger.info('[OBS] <event>', payload)` 输出  
 - CI：使用 `logger.mutation('[OBS] <event>', payload)` 输出；设置 `VITE_OBS_ENABLED=true VITE_ENABLE_MUTATION_LOGS=true`  
 - 生产：默认关闭信息级 OBS 日志，仅保留错误（error）  
-- 别名输出开关：`VITE_OBS_ALIAS_ENABLED`（默认 `'true'`）；为 `false` 时仅输出正式事件
+  （不提供别名事件，统一使用正式事件名）
 
 7.4 Performance 标记（建议）
 - `obs:position:hydrate:start` / `obs:position:hydrate:end` → `obs:position:hydrate:duration`  

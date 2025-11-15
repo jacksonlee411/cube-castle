@@ -13,39 +13,9 @@
 - 事件：首屏渲染（hydrate）、Tab 切换、版本切换、导出（开始/完成/失败）、职位详情 GraphQL 错误；统一通过 logger 管线输出。
 - 开关：默认 DEV 开启；CI 可通过 env 开关强制开启；生产默认关闭（仅保留 error）。
 
-## 事件词汇表与 Schema
-- 统一前缀与命名
-  - 事件名前缀：`position.`；日志前缀：`[OBS]`（便于 Playwright 过滤）
-  - 正式事件：
-    - `position.hydrate.start` / `position.hydrate.done`
-    - `position.tab.change`
-    - `position.version.select`
-    - `position.version.export.start` / `position.version.export.done` / `position.version.export.error`
-    - `position.graphql.error`
-  - 向上兼容别名（对齐 Plan 240 原始措辞；默认开启）
-    - `PositionPageHydration` ≈ `position.hydrate.done`
-    - `PositionTabSwitch` ≈ `position.tab.change`
-- 负载字段（JSON；不得包含 PII/令牌/响应体）
-  - `entity`: 固定 `'position'`
-  - `code`: 职位编码（可选）
-  - `recordId`: 当前版本记录 ID（可选）
-  - `tabFrom`/`tabTo`: 页签切换来源/目标（tab.change）
-  - `versionKey`: 版本行 key（version.select）
-  - `durationMs`: 时长（hydrate.done/export.done，来自 performance.measure）
-  - `sizeBytes`: 导出字节数（export.done，来自 Blob.size）
-  - `queryName`: GraphQL 操作名（graphql.error）
-  - `status`: HTTP 状态（graphql.error；数值）
-  - `ts`: ISO 时间戳
-  - `source`: 固定 `'ui'`
-- 日志输出（统一通过 logger）
-  - DEV：`logger.info('[OBS] position.hydrate.done', payload)` 等
-  - CI：`logger.mutation('[OBS] position.hydrate.done', payload)`（详见“开关与环境策略”）
-  - 别名（默认开启，payload 同步）：  
-    - `logger.info('[OBS] PositionPageHydration', payload)` / `logger.mutation('[OBS] PositionPageHydration', payload)`  
-    - `logger.info('[OBS] PositionTabSwitch', payload)` / `logger.mutation('[OBS] PositionTabSwitch', payload)`
-- Performance 标记
-  - `obs:position:hydrate:start` / `obs:position:hydrate:end` → `obs:position:hydrate:duration`
-  - `obs:position:export:start` / `obs:position:export:end` → `obs:position:export:duration`
+## 事件词汇表与 Schema（单一事实来源）
+- 本计划不再重复定义事件列表与字段，统一引用：`docs/reference/temporal-entity-experience-guide.md:104` 起的“7. 可观测性与指标”。  
+- 说明：若事件命名/字段/门控有变更，必须先更新上述参考规范，再在本计划中“引用”该变更，避免出现第二事实来源。
 
 示例：
 ```
@@ -53,40 +23,37 @@
 ```
 
 ## 开关与环境策略
-- 开启控制
-  - `VITE_OBS_ENABLED`：DEV 默认 `true`；CI 建议设置 `true`；生产默认 `false`
-  - `VITE_OBS_ALIAS_ENABLED`：默认 `true`；设置为 `false` 时仅输出正式事件
-- 与现有 logger 对齐（确保 CI 可见）
-  - DEV 环境：使用 `logger.info('[OBS] ...')`
-  - CI 环境：使用 `logger.mutation('[OBS] ...')` 并设置 `VITE_ENABLE_MUTATION_LOGS='true'` 直通门控
-  - 生产：关闭 OBS 信息级日志，仅保留错误上报（error）
+- 开启控制（简化为单一功能门控）
+  - `VITE_OBS_ENABLED`：DEV 默认开启；CI 建议设置为 `true`；生产默认 `false`（仅保留 error）。
+- 输出通道（复用既有 logger 规则）
+  - DEV：`logger.info('[OBS] ...')`
+  - CI：`logger.mutation('[OBS] ...')`（需设置 `VITE_ENABLE_MUTATION_LOGS='true'`）
+  - 生产：不输出信息级 `[OBS]` 日志，仅保留 `logger.error`。
 
 ## 注入点与代码映射（不改契约）
-- 首屏 hydrate
-  - 起点：组件首渲染 `useEffect([])` → `performance.mark('obs:position:hydrate:start')`
-  - 终点：详情数据就绪且关键 DOM 可见（timeline/overview） → `performance.mark('obs:position:hydrate:end')` → `performance.measure` → 输出 `position.hydrate.done`（并清理 marks/measures）
-  - 参考：`frontend/src/features/positions/PositionDetailView.tsx:103-149`
-- 页签切换
-  - `TabsNavigation` 的 `onTabChange` 输出 `position.tab.change`（from/to、ts）
-  - 参考：`frontend/src/features/positions/PositionDetailView.tsx:493`（定义），`:511`、`:524`（调用）
-- 版本选择
-  - `handleVersionRowSelect` 输出 `position.version.select`（versionKey、ts）
-  - 参考：`frontend/src/features/positions/PositionDetailView.tsx:224`
-- 导出
-  - 开始：`position.version.export.start`；完成：`export.done`（`durationMs`、`sizeBytes`）；失败：`export.error`
-  - 参考：成功路径 `:201`，失败日志 `:215`
-- GraphQL 错误
-  - 职位详情 GraphQL 查询失败或恢复流程进入错误分支时输出 `position.graphql.error`（`queryName`、`status`、`ts`）
-  - 位置：职位详情查询失败分支或统一 error handling（`frontend/src/shared/api/error-handling.ts`）
+- 首屏 hydrate（PositionDetailView）
+  - 起点：组件首渲染的 `useEffect([])` → `performance.mark('obs:position:hydrate:start')`
+  - 终点：详情数据就绪且关键 DOM（概览或时间线）可见 → `performance.mark('obs:position:hydrate:end')` → `performance.measure` → 输出 `position.hydrate.done` → 清理 marks/measures
+- 页签切换（TabsNavigation）
+  - 在 `onTabChange` 中输出 `position.tab.change`（from/to、ts）
+- 版本选择（版本列表/时间线选中回调）
+  - 在版本行/时间线点击回调中输出 `position.version.select`（`versionKey`、ts）
+- 导出（版本导出回调）
+  - `position.version.export.start` → 成功 `position.version.export.done`（含 `durationMs`、`sizeBytes`）或失败 `position.version.export.error`
+- GraphQL 错误（统一拦截）
+  - 在 GraphQL 统一错误处理处（如 `frontend/src/shared/api/unified-client.ts` 或 `frontend/src/shared/api/error-handling.ts`）输出 `position.graphql.error`。  
+  - `queryName` 建议通过 `operationName` 传入；若短期无法提供，则 v1 允许为 `'unknown'`，并以 `// TODO-TEMPORARY:` 标注补齐计划。
 - 去重策略（StrictMode/双渲染）
-  - 为 `hydrate.*` 与 `tab.change` 引入一次性标记（ref），单次生命周期仅上报一次
+  - 对 `hydrate.*` 与 `tab.change` 使用一次性标记（`ref`）确保单次生命周期仅上报一次。
+- 实现去重复的轻量封装（建议）
+  - 在前端新增极薄工具 `frontend/src/shared/observability/obs.ts`，提供 `emitObs(event, payload)`，内部统一 `[OBS]` 前缀、门控与去重，避免在多个组件手写重复逻辑（非新框架，仅最小工具）。
 
 ## Playwright 采集与落盘（可执行）
 - 采集方式
-  - 在用例中监听 `page.on('console', ...)`，筛选 `msg.text().startsWith('[OBS] ')` 行，解析 JSON 负载并累计
+  - 在用例中监听 `page.on('console', ...)`，筛选 `msg.text().startsWith('[OBS] ')` 行，解析 JSON 负载并累计。
 - 落盘路径
-  - 主：`logs/plan240/D/obs-{spec}-{browser}.log`
-  - 兼容汇总（可选）：`logs/ui/position-page.log`（流水式追加，便于历史脚本沿用）
+  - 统一：`logs/plan240/D/obs-{spec}-{browser}.log`（唯一事实来源）。  
+  - 不再写入 `logs/ui/position-page.log`，避免证据双写。
 - 示例命令
   - 本地（DEV）：`PW_OBS=1 VITE_OBS_ENABLED=true npx playwright test tests/e2e/position-tabs.spec.ts`
   - CI：`PW_OBS=1 VITE_OBS_ENABLED=true VITE_ENABLE_MUTATION_LOGS=true npx playwright test`
@@ -98,34 +65,31 @@
 
 ## 任务清单
 1) 注入实现
-   - 在 PositionDetailView/TabsNavigation/导出回调注入 `performance.mark/measure` 与 OBS 事件输出
-   - 开关读取：`import.meta.env.VITE_OBS_ENABLED === 'true' || import.meta.env.DEV === true`
-   - 别名输出：在 `hydrate.done` 与 `tab.change` 同步输出 `PositionPageHydration`、`PositionTabSwitch`（受 `VITE_OBS_ALIAS_ENABLED` 控制）
-   - GraphQL 错误：在职位详情查询错误路径或统一 error handling 中增加 `position.graphql.error`
-   - CI 通道：在 CI 使用 `logger.mutation('[OBS] ...')`，并要求设置 `VITE_ENABLE_MUTATION_LOGS=true`
-   - 去重实现：`hydrate`/`tab.change` 加一次性标记；导出场景清理 marks/measures
+   - 在 PositionDetailView/TabsNavigation/导出回调注入 `performance.mark/measure` 与 OBS 事件输出。
+   - 开关读取：`import.meta.env.VITE_OBS_ENABLED === 'true' || import.meta.env.DEV === true`。
+   - 统一发射：新增 `emitObs` 极薄封装以去除重复代码（可选，但推荐）。
+   - GraphQL 错误：在统一错误处理处输出 `position.graphql.error`；`queryName` v1 允许 `'unknown'`，并以 `// TODO-TEMPORARY:` 标注补齐计划。
+   - CI 通道：在 CI 使用 `logger.mutation('[OBS] ...')`，并设置 `VITE_ENABLE_MUTATION_LOGS=true`。
+   - 去重实现：`hydrate`/`tab.change` 一次性标记；导出场景清理 marks/measures。
 2) Playwright 用例
-   - 新增/扩充职位详情用例，监听 console，断言 hydrate/tab/version/export/graphql.error 事件；将事件写入 `logs/plan240/D/*.log`
-   - 可选：输出一份 `logs/ui/position-page.log` 汇总（别名兼容）
+   - 新增/扩充职位详情用例，监听 console，断言 hydrate/tab/version/export/graphql.error 事件；将事件写入 `logs/plan240/D/*.log`。
 3) 文档与 runbook
-   - 将“事件词汇表与 Schema”并入 `docs/reference/temporal-entity-experience-guide.md`（仅引用）
-4) Makefile（建议）
-   - 增加 `make e2e-240d`：设置 `PW_OBS=1 VITE_OBS_ENABLED=true [VITE_ENABLE_MUTATION_LOGS=true]` 执行关键 E2E 并落盘到 `logs/plan240/D/`
+   - “事件词汇表与 Schema”仅引用 `docs/reference/temporal-entity-experience-guide.md`；本计划不再复制。
+4) Make（可选）
+   - 保持通用 `e2e` 命令 + 环境变量；如需便捷脚本，新增通用 `make e2e-obs`（参数化计划编号），避免为单计划新增专用目标。
 
 ## 验收标准（量化）
 - 事件可见性
   - hydrate：`position.hydrate.done` ≥ 1，含 `code`、`durationMs`、`ts`、`source='ui'`
   - tab/version/export：按用例步骤产生对应事件且字段齐全
-  - 别名：当别名开关开启时，`PositionPageHydration`、`PositionTabSwitch` 必须出现
   - 错误路径：注入 GraphQL 故障时出现 `position.graphql.error`，含 `queryName` 与 `status`
 - 噪声约束
   - 非 `[OBS]` 控制台日志在 CI 轮次中不超过 20 条（信息级）且无 error；生产构建下不输出 `[OBS]` 信息级日志
 - 指标阈值（CI）
-  - 首轮仅采集；待 `reports/plan240/baseline/obs-summary.json` 建立后启用阈值：`hydrate.done` median ≤ 3000ms（或 p95 ≤ 5000ms）
+  - 首轮仅采集；聚合与阈值将在后续 MR 中引入（建立 `reports/plan240/baseline/obs-summary.json` 后再启用，例如 `hydrate.done` median ≤ 3000ms 或 p95 ≤ 5000ms）
 - 产物
-  - 主：`logs/plan240/D/obs-*.log`（按用例/浏览器落盘）  
-  - 兼容：`logs/ui/position-page.log`（可选）  
-  - （可选）聚合报告 `reports/plan240/baseline/obs-summary.json`
+  - `logs/plan240/D/obs-*.log`（按用例/浏览器落盘，唯一）  
+  - （后续）聚合报告 `reports/plan240/baseline/obs-summary.json`（待脚本落地）
 
 ## 风险与回滚
 | 风险 | 影响 | 缓解/回滚 |
@@ -135,6 +99,6 @@
 | JSON 解析失败 | 用例断言不稳 | 强制统一输出格式：前缀 + 单行 JSON |
 
 ## 证据与落盘
-- 日志：`logs/plan240/D/*.log`（Playwright 监听 console 写入）  
-- 报告：`reports/plan240/baseline/obs-summary.json`（可选，记录中位数/分位数与失败比）  
-- 参考：`frontend/tests/e2e/optimization-verification-e2e.spec.ts:66`（console 监听模式），`frontend/src/shared/utils/logger.ts`（门控/通道策略）
+- 日志：`logs/plan240/D/*.log`（Playwright 监听 console 写入，唯一）  
+- 报告：`reports/plan240/baseline/obs-summary.json`（后续 MR 引入，记录分位数与失败比）  
+- 参考：`frontend/tests/e2e/optimization-verification-e2e.spec.ts:66`（console 监听模式），`frontend/src/shared/utils/logger.ts`（门控/通道策略），`docs/reference/temporal-entity-experience-guide.md:104`

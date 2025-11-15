@@ -74,16 +74,18 @@ clean:
 clean-root-logs:
 	@echo "🧹 整理根目录散落日志到 logs/ ..."
 	@ts=$$(date +%Y%m%d_%H%M%S); mkdir -p logs/root-archive-$$ts; \
-	files=(run-dev*.log run-frontend*.log run-query*.log run-auth-*.log frontend-dev.log frontend_dev.log orphaned-processes.log all-services-started.log backend-started.log baseline-ports.log baseline-processes.log); \
+	files="run-*.log run-dev*.log run-frontend*.log run-query*.log run-auth-*.log frontend-dev.log frontend_dev.log orphaned-processes.log all-services-started.log backend-started.log baseline-ports.log baseline-processes.log"; \
 	moved=0; \
-	for p in "$${files[@]}"; do \
+	for p in $$files; do \
 	  for f in $$p; do \
-	    [ -e "$$f" ] || continue; \
-	    echo "  ↪ $$f -> logs/root-archive-$$ts/"; \
-	    mv -f "$$f" "logs/root-archive-$$ts/" && moved=1 || true; \
+	    if [ -e "$$f" ]; then \
+	      echo "  ↪ $$f -> logs/root-archive-$$ts/"; \
+	      mv -f "$$f" "logs/root-archive-$$ts/" || true; \
+	      moved=1; \
+	    fi; \
 	  done; \
 	done; \
-	if [ "$$moved" = "0" ]; then echo "  ✅ 无需整理"; fi
+	if [ $$moved -eq 0 ]; then echo "  ✅ 无需整理"; fi
 
 clean-untracked-binaries:
 	@echo "🧹 清理根目录未跟踪的二进制 (organization-*)..."
