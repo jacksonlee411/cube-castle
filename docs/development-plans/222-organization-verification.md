@@ -73,7 +73,7 @@ go tool cover -html=coverage.out -o coverage.html
 **验收条件**:
 - [x] 所有已编写单元测试通过（本地）
 - [x] 顶层关键包(`internal/organization`) 覆盖率 > 80%（当前约 84.8%）
-- [ ] 模块整体覆盖率 > 80%（进行中：utils/middleware 已显著提升，其余子包推进中）
+- [ ] 模块整体覆盖率 > 80%（进行中：utils/middleware 已显著提升，其余子包推进中，见 Plan 255/256）
 - [ ] 无 race condition（`-race` 全量复跑）
 - [ ] 内存泄漏检查通过（若有）
 - 证据：`logs/plan222/coverage-org-*.{out,txt,html}`
@@ -203,11 +203,11 @@ curl -X POST http://localhost:8090/graphql \
 
 **验收条件**:
 - [x] 烟测（Chromium/Firefox 各 1 轮）通过
-- [x] 全量 P0 集合（Plan 232 门槛）通过（本地，支持 `PW_SKIP_SERVER=1` 的 Mock 模式）
+- [x] 全量 P0 集合（Plan 232 门槛）通过（Mock 模式）；Live 模式按 `PW_ENABLE_ORG_ACTIVATE_API=1` 启用 API 级用例
 - [ ] 数据一致性维护
 - [ ] 事件正确发布到 eventbus
 - [ ] 日志记录完整
-- 证据：本地执行输出与 Playwright 报告（路径同前端配置），登记：`logs/plan222/playwright-P0-*.log`、`logs/plan222/playwright-FULL-*.log`；测试规格位于 `frontend/tests/e2e/*`；另参照 `logs/plan242/t2/`（若联动计划）
+- 证据：本地执行输出与 Playwright 报告（路径同前端配置），登记：`logs/plan222/playwright-P0-*.log`、`logs/plan222/playwright-FULL-*.log`、`logs/plan222/playwright-LIVE-*.log`；测试规格位于 `frontend/tests/e2e/*`；另参照 `logs/plan242/t2/`（若联动计划）
 
 ### 2.6 性能基准测试
 
@@ -229,6 +229,13 @@ go test -bench=. -benchmem ./internal/organization/...
 - [ ] 内存使用稳定
 - [ ] CPU 占用合理
 - 登记：短压测与速率限制验证日志 `logs/219E/perf-rest-*.log`（完整基准待复跑）
+
+---
+
+## 4. 验收结论登记（2025-11-15）
+
+- 阶段性结论：核心路径通过；E2E（P0）Mock 模式全绿；Live 模式的 API 级用例已通过环境开关与 TODO-TEMPORARY（2025-11-22）隔离，待 232/252 对齐后开启强校验；顶层包覆盖率>80% 达成，整体覆盖率将在 255/256 推进中达成。
+- 统一证据清单：见 `logs/plan222/ACCEPTANCE-SUMMARY-*.md`
 
 ---
 
