@@ -60,6 +60,18 @@
   - 产物/证据：`logs/plan250/*`、合流验收清单（单端口/健康/指标/REST/GraphQL 等效）  
   - 文档：`docs/development-plans/250-modular-monolith-merge.md`
 
+  - 必跑门禁清单（CI 工作流 `plan-250-gates.yml`）：
+    - [ ] legacy 环境门禁：`scripts/quality/gates-250-no-legacy-env.sh`
+    - [ ] 单一二进制门禁：`scripts/quality/gates-250-single-binary.sh`
+    - [ ] command 端无 8090 监听与字面量：`scripts/quality/gates-250-no-8090-in-command.sh`
+    - [ ] 复用 Plan 253 门禁：compose 端口映射与镜像标签固定（另见 253 工作流）
+
+  - 刚性验收（落盘到 `logs/plan250/`）：
+    - [x] 221：`make test-db` 通过 → `test-db-*.log`
+    - [ ] E2E 最小集（232/241/244，Chromium/Firefox 各 1 轮）→ `e2e-*.log`
+    - [x] JWKS/JWT/多租户链路抽样一致 → `jwks-*.json`、`tenant-check-*.log`
+    - [ ] 性能/资源基线（204 指标 + performance/ 脚本）→ `perf-*.json`
+
 - 251 · 运行时统一（连接池/中间件/健康/指标）  
   - 计划窗口：TBD（W?）  
   - 负责人：TBD  
