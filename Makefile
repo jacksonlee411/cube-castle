@@ -2,6 +2,7 @@
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
 .PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql
+ .PHONY: clean-root-logs clean-untracked-binaries
 
 export SCHEDULER_ENABLED ?= false
 export SCHEDULER_MONITOR_ENABLED ?= true
@@ -68,7 +69,29 @@ clean:
 	find . -name "*.exe" -delete
 	find . -name "*.test" -delete
 	rm -f coverage.out coverage.html
+	@echo "🧹 可选: make clean-root-logs 可整理根目录日志输出到 logs/"
 
+clean-root-logs:
+	@echo "🧹 整理根目录散落日志到 logs/ ..."
+	@ts=$$(date +%Y%m%d_%H%M%S); mkdir -p logs/root-archive-$$ts; \
+	files=(run-dev*.log run-frontend*.log run-query*.log run-auth-*.log frontend-dev.log frontend_dev.log orphaned-processes.log all-services-started.log backend-started.log baseline-ports.log baseline-processes.log); \
+	moved=0; \
+	for p in "$${files[@]}"; do \
+	  for f in $$p; do \
+	    [ -e "$$f" ] || continue; \
+	    echo "  ↪ $$f -> logs/root-archive-$$ts/"; \
+	    mv -f "$$f" "logs/root-archive-$$ts/" && moved=1 || true; \
+	  done; \
+	done; \
+	if [ "$$moved" = "0" ]; then echo "  ✅ 无需整理"; fi
+
+clean-untracked-binaries:
+	@echo "🧹 清理根目录未跟踪的二进制 (organization-*)..."
+	@set -e; removed=0; \
+	for f in organization-command-service organization-query-service; do \
+	  if [ -f "$$f" ]; then rm -f "$$f"; echo "  ✂ $$f"; removed=1; fi; \
+	done; \
+	if [ "$$removed" = "0" ]; then echo "  ✅ 未发现可清理的二进制"; fi
 # 构建 Docker 镜像（如需将当前仓库打成通用镜像）
 docker-build:
 	@echo "🐳 构建 Docker 镜像..."
