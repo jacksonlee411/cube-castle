@@ -82,3 +82,8 @@ jobs:
             exit 1
           fi
           echo "✅ Guard passed: no banned binaries tracked."
+
+      - name: Guard – Root surface whitelist (tracked files at repo root)
+        shell: bash
+        run: |
+          bash scripts/quality/root-whitelist-guard.sh
