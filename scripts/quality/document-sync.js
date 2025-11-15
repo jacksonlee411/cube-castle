@@ -44,61 +44,22 @@ const config = {
       name: 'API规范版本同步',
       source: 'docs/api/openapi.yaml',
       targets: [
-        'frontend/src/shared/api/types.ts',
         'docs/development-plans/02-technical-architecture-design.md'
       ],
       syncType: 'version',
       pattern: /version:\s*['"]?([^'"\s]+)['"]?/,
       description: 'OpenAPI版本号同步到前端类型和技术文档'
     },
-    
-    {
-      name: '端口配置同步',
-      source: 'frontend/src/shared/config/ports.ts',
-      targets: [
-        'README.md',
-        'frontend/README.md'
-      ],
-      syncType: 'config',
-      pattern: /(SERVICE_PORTS|CQRS_ENDPOINTS)/,
-      description: '端口配置在Vite、Playwright、文档中保持一致'
-    },
-    
-    {
-      name: '项目状态同步',
-      source: 'CLAUDE.md',
-      targets: [
-        'README.md',
-        'docs/development-plans/18-duplicate-code-elimination-plan.md'
-      ],
-      syncType: 'status',
-      pattern: /项目状态[：:]\s*(.+)/,
-      description: '项目状态在主要文档中保持一致'
-    },
-    
+
     {
       name: '依赖版本同步',
       source: 'frontend/package.json',
       targets: [
-        'README.md',
-        'frontend/README.md',
         'docs/development-plans/02-technical-architecture-design.md'
       ],
       syncType: 'dependencies',
       pattern: /"(react|vite|typescript)":\s*"([^"]+)"/g,
       description: '关键依赖版本在文档中保持同步'
-    },
-    
-    {
-      name: '架构成果同步',
-      source: 'docs/development-plans/18-duplicate-code-elimination-plan.md',
-      targets: [
-        'README.md',
-        'CLAUDE.md'
-      ],
-      syncType: 'achievements',
-      pattern: /完成度[：:]?\s*(\d+%)/g,
-      description: '重复代码消除成果在文档间同步'
     }
   ],
   
