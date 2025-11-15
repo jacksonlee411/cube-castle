@@ -288,16 +288,21 @@ go test -bench=. -benchmem ./internal/organization/...
 
 ### 本地开发
 
-1. 启动 Docker 环境：`docker-compose up -d`
-2. 运行迁移：`goose -dir database/migrations up`
-3. 启动命令服务：`go run cmd/hrms-server/command/main.go`
-4. 启动查询服务：`go run cmd/hrms-server/query/main.go`
+> 按 AGENTS.md 强制约束：所有服务必须通过 Docker Compose 与 Make 目标启动；严禁在宿主机直接运行 PostgreSQL/Redis/Temporal 或手工 `go run` 入口。
+
+1. 启动基础设施（PostgreSQL 5432、Redis 6379）：`make docker-up`
+2. 启动后端（REST 9090 / GraphQL 8090，自动迁移）：`make run-dev`
+3. （可选）启动前端开发服务器（3000）：`make frontend-dev`
+4. 健康检查：
+   - `curl -fsS http://localhost:9090/health`
+   - `curl -fsS http://localhost:8090/health`
 
 ### 运行测试
 
-- 单元测试：`go test ./...`
-- 集成测试：`make test-db`
-- 回归测试：见 `docs/testing-guide.md`
+- 单元测试：`make test`（或针对模块：`go test ./internal/organization/...`）
+- 覆盖率：`make coverage`（组织模块覆盖产物登记至 `logs/plan222/coverage-org-*.{out,txt,html}`）
+- 集成测试（Docker 基座）：`make test-db`（产物登记至 `logs/plan221/integration-run-*.log`）
+- E2E（Playwright）：`cd frontend && npm run test:e2e`（产物登记至 `logs/plan222/playwright-*.log`）
 
 ## 模块化架构
 
@@ -333,18 +338,22 @@ go test -bench=. -benchmem ./internal/organization/...
 
 ## 常用命令
 
-# 构建
+# 构建与清理
 make build
+make clean
 
 # 测试
-make test
-make test-db          # 集成测试
+make test             # 单元测试
+make coverage         # 覆盖率（组织模块产物登记至 logs/plan222）
+make test-db          # 集成测试（Docker 基座）
 
 # 开发
-make docker-up        # 启动开发环境
-make docker-down      # 停止开发环境
+make docker-up        # 启动基础设施（Docker 强制）
+make run-dev          # 启动后端（REST/GraphQL）
+make frontend-dev     # 启动前端
+make docker-down      # 停止基础设施
 
-# 代码质量
+# 代码质量（与 CI 一致）
 make lint
 make fmt
 
@@ -417,8 +426,8 @@ logger.WithFields(map[string]interface{}{
 ### 模块重构与验证 (Plan 219-222)
 - [x] organization 模块重构 （Plan 219）
 - [x] 模块开发模板文档 （Plan 220）
-- [ ] Docker 集成测试基座 （Plan 221）— 需上传 `make test-db` 成功日志/CI 结果后更新
-- [ ] 验证和文档更新 （Plan 222）— 需附本计划验收报告与文档 diff 后更新
+- [x] Docker 集成测试基座 （Plan 221）— 证据：`logs/plan221/integration-run-*.log`
+- [ ] 验证和文档更新 （Plan 222）— 需附本计划验收报告（`reports/phase2-execution-report.md`）与文档 diff 后更新
 
 ## Phase3 - workforce 模块开发 📅 计划中
 
@@ -508,7 +517,7 @@ logger.WithFields(map[string]interface{}{
 
 ### 4.1 Phase2 执行验收报告
 
-创建文件：`reports/phase2-execution-report.md`
+创建文件：`reports/phase2-execution-report.md`（已创建草案，见仓库 `reports/` 目录）
 
 **内容**:
 ```markdown
@@ -517,7 +526,7 @@ logger.WithFields(map[string]interface{}{
 ## 执行概览
 
 - **执行周期**: 2025-11-04 至 2025-11-18
-- **计划状态**: ✅ 全部完成
+- **计划状态**: ⏳ 阶段性通过（核心路径 PASS；按 Plan 232/252 对齐后切换为 ✅ 全部完成）
 - **偏差**: 无重大延期
 
 ## 验收结果
@@ -536,16 +545,16 @@ logger.WithFields(map[string]interface{}{
 |------|--------|------|------|
 | 219 | organization 重构 | ✅ 完成 | 功能等同 |
 | 220 | 模块模板文档 | ✅ 完成 | 为后续模块提供参考 |
-| 221 | Docker 测试基座 | ✅ 完成 | CI/CD 已集成 |
-| 222 | 验证和文档更新 | ✅ 完成 | 本报告 |
+| 221 | Docker 测试基座 | ✅ 完成 | 证据：logs/plan221/integration-run-*.log |
+| 222 | 验证和文档更新 | ⏳ 阶段性通过 | 证据：logs/plan222/*；待 232/252 对齐后更新为✅ |
 
 ## 质量指标
 
-- 代码覆盖率: 82%（超过目标 80%）
-- 单元测试: 1,250+ 用例全部通过
-- 集成测试: 500+ 用例全部通过
-- 回归测试: REST/GraphQL 端点全部通过
-- 性能基准: 无退化（与 Phase1 相比）
+- 代码覆盖率: 顶层包 > 80%（整体推进中）
+- 单元测试: 组织模块已通过（见覆盖率产物）
+- 集成测试: 通过（Docker 基座）
+- 回归测试: REST/GraphQL 基础路径通过（全量按 232 复跑）
+- 性能基准: 短压测已跑通（完整基准待复跑）
 
 ## 关键交付物
 
@@ -559,8 +568,8 @@ logger.WithFields(map[string]interface{}{
 
 | 原始风险 | 状态 | 消除措施 |
 |---------|------|--------|
-| 功能回归 | ✅ 消除 | 完整的回归测试 |
-| 性能退化 | ✅ 消除 | 性能基准测试 |
+| 功能回归 | ⏳ 控制中 | 回归测试核心路径通过，P0 全量由 232 护航 |
+| 性能退化 | ⏳ 控制中 | 短压测通过；完整基准在 222B 执行 |
 | 集成问题 | ✅ 消除 | Docker 集成测试 |
 
 ## Phase3 预期
@@ -573,8 +582,8 @@ logger.WithFields(map[string]interface{}{
 ## 签署
 
 **验收负责人**: Codex（AI 助手）
-**验收日期**: 2025-11-18
-**状态**: ✅ PASSED - 建议进行 Phase3 启动评审
+**验收日期**: 2025-11-15
+**状态**: ⏳ PARTIAL PASS - 建议按 232/252 对齐后进行最终 PASS 评审
 ```
 
 ---
@@ -617,7 +626,7 @@ logger.WithFields(map[string]interface{}{
 - ✅ `/docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 更新
 - ✅ `/docs/reference/02-IMPLEMENTATION-INVENTORY.md` 更新
 - ✅ `/docs/architecture/01-modular-monolith-design.md` 更新
-- ✅ `/reports/phase2-execution-report.md`
+- ⏳ `/reports/phase2-execution-report.md`（已创建草案）
 - ✅ 本计划文档（222）
 
 ---
