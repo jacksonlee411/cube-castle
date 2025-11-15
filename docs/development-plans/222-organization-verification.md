@@ -239,6 +239,32 @@ go test -bench=. -benchmem ./internal/organization/...
 
 ---
 
+## 5. 本次推进登记（2025-11-15 晚）
+
+- 单测覆盖率（整体）
+  - 组合覆盖率：由 ~22.4% 提升至 ~23.6%（阶段性提升）
+  - 顶层包：保持 ~84.8%
+  - repository 子包：由 ~11.3% 提升至 ~18.8%
+- 新增单测与范围（repository/handler）
+  - repository（sqlmock）：  
+    - 组织统计与子树：`GetOrganizationStats`、`GetOrganizationSubtree`（含父子关系构建）  
+    - 组织列表：`GetOrganizations` 最小场景（count+data 扫描与分页元信息）  
+    - 职位列表：`GetPositions` 最小扫描（按列顺序、空值处理）  
+    - 层级计算：`ComputeHierarchyForNew` 根/父不存在/层级超限分支  
+    - 工具函数：`ensureJoinedPath` 边界
+  - handler：  
+    - `getTenantIDFromRequest` / `getOperatorFromRequest` / `getIfMatchHeader`
+- E2E（P0）
+  - Mock 模式：全量通过（Chromium/Firefox），产物已刷新  
+  - Live 模式：默认守护（API 级用例跳过）；如需启用 API 级验证，设置 `PW_ENABLE_ORG_ACTIVATE_API=1`
+- 证据补充
+  - 覆盖率：`logs/plan222/coverage-org-*.{out,txt,html}`（最新条目标记时间戳）  
+  - E2E：`logs/plan222/playwright-P0-*.log`、`playwright-FULL-*.log`、`playwright-LIVE-*.log`
+
+> 下一步：继续沿 repository/service/handler 高频与错误分支补齐，用例优先级见 Plan 255/256；阶段目标先达 ≥30%，再冲刺 ≥55%/≥80%。
+
+---
+
 ## 3. 文档更新工作
 
 ### 3.1 项目 README 更新
