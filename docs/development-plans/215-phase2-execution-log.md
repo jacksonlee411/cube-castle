@@ -20,6 +20,10 @@
   - 观测用例：`frontend/tests/e2e/smoke-org-detail.spec.ts`、`frontend/tests/e2e/temporal-header-status-smoke.spec.ts`  
   - 集成用例：`frontend/tests/e2e/temporal-management-integration.spec.ts`（8 passed / 4 skipped）  
   - 证据：`logs/plan242/t2/244-e2e-acceptance.log`、`frontend/playwright-report/index.html`、`logs/plan242/t2/244-namespace-scan.log`
+- ✅ [Plan 240E] 回归与 Runbook 收束已启动（守卫通过；CI 执行通道已接入）  
+  - 守卫：`logs/plan240/E/selector-guard.log`、`logs/plan240/E/architecture-validator.log`、`logs/plan240/E/temporary-tags.log`（通过）  
+  - 前端 Lint/类型：`logs/plan240/E/frontend-lint.log`、`logs/plan240/E/frontend-typecheck.log`  
+  - 执行入口：`scripts/plan240/run-240e.sh` / `.github/workflows/plan-240e-regression.yml`（产物统一至 `logs/plan240/E`；HAR 由前端配置集中到 `logs/plan240/B`/`BT`）
 
 ---
 

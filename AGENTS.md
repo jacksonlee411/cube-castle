@@ -48,14 +48,14 @@
 - Playwright 规格统一放置在 `frontend/tests/e2e/`，配置入口：`frontend/playwright.config.ts`（支持 `PW_JWT`、`PW_SKIP_SERVER`、`PW_BASE_URL` 等环境变量）；Go 端到端/集成测试保留在 `tests/` 与 `cmd/*`。
 
 ## 临时方案管控
-- 仅引用规则：必须以 `// TODO-TEMPORARY:` 标注原因/计划/截止日期（不超过一个迭代），建立清单并按期回收。
+- 仅引用规则：必须以 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注原因/计划/截止日期（不超过一个迭代），建立清单并按期回收。
 - 白名单：`scripts/todo-temporary-allowlist.txt`；严禁在 `frontend/src/shared/types/api.ts` 保留临时导出（校验脚本会拦截）。
 - 校验脚本：`scripts/check-temporary-tags.sh`；CI 工作流：`.github/workflows/agents-compliance.yml`。
 
 ## 不做的事（黑名单）
 - 脱离契约的私有权限或未声明端点；双数据库/CDC（Neo4j/Kafka 等）造成的数据同步依赖。
 - 对外响应出现 snake_case 字段或命名不一致；跨层命名偏差。
-- 未按 `// TODO-TEMPORARY:` 标注的临时实现，或超期未回收的临时方案。
+- 未按 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注的临时实现，或超期未回收的临时方案。
 - 宿主机直接部署服务或数据库（PostgreSQL、Redis、Temporal 等）；一律由 Docker Compose 管理。
 - 禁止在代码/fixtures 中硬编码 GraphQL 字段/枚举常量；字段来源仅限 `docs/api/schema.graphql` 或查询文本。
 

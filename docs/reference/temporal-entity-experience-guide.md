@@ -72,8 +72,8 @@
 - 类型：`frontend/src/shared/types/temporal-entity.ts`（`TemporalEntityRecord` 等）  
 - Hook：`useTemporalEntityDetail` + `createTemporalDetailLoader`（由实体薄封装复用）
 
-4) 选择器与测试  
-- 选择器集中：`frontend/src/shared/testing/temporalSelectors.ts`  
+4) 选择器与测试
+- 选择器集中：`frontend/src/shared/testids/temporalEntity.ts`（导出 `temporalEntitySelectors`；禁止在组件/测试中硬编码 `data-testid`，统一从此处导入）  
 - E2E 用例仅使用中性 `temporalEntity-*` 前缀的 `data-testid`
 
 ---
@@ -94,7 +94,7 @@
 | `frontend/artifacts/layout/*.png` | 视觉参考、布局截图 |
 | `frontend/src/features/temporal/*` | 组件骨架、适配器与元数据 |
 | `frontend/src/shared/types/temporal-entity.ts` | 统一类型导出 |
-| `frontend/src/shared/testing/temporalSelectors.ts` | 统一 E2E 选择器 |
+| `frontend/src/shared/testids/temporalEntity.ts` | 统一 E2E 选择器 |
 | `docs/api/*` | OpenAPI/GraphQL 契约 |
 | `reports/plan242/naming-inventory.md` | 命名与入口盘点 |
 | `logs/plan242/t2|t3|t5/*` | 执行记录与校验日志 |

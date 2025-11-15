@@ -42,7 +42,7 @@
   - `position.version.export.start` → 成功 `position.version.export.done`（含 `durationMs`、`sizeBytes`）或失败 `position.version.export.error`
 - GraphQL 错误（统一拦截）
   - 在 GraphQL 统一错误处理处（如 `frontend/src/shared/api/unified-client.ts` 或 `frontend/src/shared/api/error-handling.ts`）输出 `position.graphql.error`。  
-  - `queryName` 建议通过 `operationName` 传入；若短期无法提供，则 v1 允许为 `'unknown'`，并以 `// TODO-TEMPORARY:` 标注补齐计划。
+  - `queryName` 建议通过 `operationName` 传入；若短期无法提供，则 v1 允许为 `'unknown'`，并以 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注补齐计划。
 - 去重策略（StrictMode/双渲染）
   - 对 `hydrate.*` 与 `tab.change` 使用一次性标记（`ref`）确保单次生命周期仅上报一次。
 - 实现去重复的轻量封装（建议）
@@ -68,7 +68,7 @@
    - 在 PositionDetailView/TabsNavigation/导出回调注入 `performance.mark/measure` 与 OBS 事件输出。
    - 开关读取：`import.meta.env.VITE_OBS_ENABLED === 'true' || import.meta.env.DEV === true`。
    - 统一发射：新增 `emitObs` 极薄封装以去除重复代码（可选，但推荐）。
-   - GraphQL 错误：在统一错误处理处输出 `position.graphql.error`；`queryName` v1 允许 `'unknown'`，并以 `// TODO-TEMPORARY:` 标注补齐计划。
+   - GraphQL 错误：在统一错误处理处输出 `position.graphql.error`；`queryName` v1 允许 `'unknown'`，并以 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注补齐计划。
    - CI 通道：在 CI 使用 `logger.mutation('[OBS] ...')`，并设置 `VITE_ENABLE_MUTATION_LOGS=true`。
    - 去重实现：`hydrate`/`tab.change` 一次性标记；导出场景清理 marks/measures。
 2) Playwright 用例

@@ -126,7 +126,7 @@
   - 对关键组件 PR 增加可视化回归（截图对照/关键元素存在性断言）
 - 回滚
   - 守卫降级为 warn：`SELECTOR_GUARD_STRICT=0 node scripts/quality/selector-guard-246.js`  
-  - 保留 alias 时间上限 1 个迭代；如需延长，必须在计划文档记录原因并设新截止日期；所有 alias/re-export/allowlist 项必须附 `// TODO-TEMPORARY: 原因/计划/截止日期` 注记
+  - 保留 alias 时间上限 1 个迭代；如需延长，必须在计划文档记录原因并设新截止日期；所有 alias/re-export/allowlist 项必须附 `// TODO-TEMPORARY(YYYY-MM-DD): 原因/计划/截止日期` 注记
 
 —
 
@@ -218,7 +218,7 @@ export const temporalEntitySelectors: TemporalSelectors = {
 - 建议规则（添加到 `frontend/.eslintrc.api-compliance.cjs`）：
   - `no-restricted-syntax` 或自定义规则，匹配包含 `data-testid="..."` 的 JSXAttribute/字符串字面量
   - 允许文件白名单：`frontend/src/shared/testids/temporalEntity.ts`
-  - 例外需 `// TODO-TEMPORARY:` 注记，并纳入 allowlist 文件（与 selector-guard-246 同步）
+  - 例外需 `// TODO-TEMPORARY(YYYY-MM-DD):` 注记，并纳入 allowlist 文件（与 selector-guard-246 同步）
 
 —
 

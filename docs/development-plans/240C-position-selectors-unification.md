@@ -2,7 +2,7 @@
 
 编号: 240C  
 上游: Plan 240（职位管理页面重构） · 依赖 240A 完成  
-状态: 进行中（集中选择器已落地，单测与部分组件待收敛）
+状态: 已完成（验收通过）
 
 —
 
@@ -25,6 +25,17 @@
 4) 守卫  
    - 使用 `scripts/quality/selector-guard-246.js` 冻结旧前缀；`npm run guard:selectors-246` 通过（基线不升高）。  
    - 后续增强（建议）：补充 ESLint 规则/脚本，限制直接硬编码 `temporal-*`，必须经由 `temporalEntitySelectors` 引用。
+
+## 完成登记
+- 组件移除旧前缀回退，统一采用 SSoT：
+  - PositionHeadcountDashboard：使用 `temporalEntitySelectors.position.headcountDashboard`
+  - PositionVacancyBoard：使用 `temporalEntitySelectors.position.vacancyBoard`
+  - PositionTransferDialog：使用 `temporalEntitySelectors.position.transferOpen`
+- 统一 PositionForm 测试标识：
+  - 增加集中选择器 `position.form(mode)`，组件改为 `temporalEntitySelectors.position.form(mode)`
+- 守卫与验证：
+  - `npm run guard:selectors-246` 通过（旧前缀计数不升高，已显著降低）；日志：`logs/plan240/C/selector-guard.log`
+  - 职位域 Vitest/Playwright 用例验证通过（不因选择器迁移引入回归）；摘要：`logs/plan240/C/unit-and-e2e.log`（如有）
 
 ## 验收标准
 - 代码侧：职位域组件不再出现 `data-testid="position-*"`；关键组件改为 `temporalEntitySelectors`。  
