@@ -2,7 +2,7 @@
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
 .PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql
- .PHONY: clean-root-logs clean-untracked-binaries
+ .PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
 
 export SCHEDULER_ENABLED ?= false
 export SCHEDULER_MONITOR_ENABLED ?= true
@@ -54,6 +54,10 @@ help:
 	@echo "📊 运行状态:"
 	@echo "  status           - docker compose 服务状态 + 关键地址"
 	@echo "  reset            - 清理并重新拉起最小依赖（不删除卷）"
+	@echo ""
+	@echo "🛡️ 门禁（Plan 253）:"
+	@echo "  guard-plan253     - 运行 compose 端口/镜像标签门禁（不需要 Docker）"
+	@echo "  plan253-coldstart - 记录冷启动与数据库就绪时间（需要 Docker/Compose）"
 
 # 构建 Go 应用（PostgreSQL 原生：两个服务）
 build:
@@ -333,6 +337,16 @@ reset:
 	@echo "🔄 重置最小依赖 (不删除卷)..."
 	$(MAKE) docker-down
 	$(MAKE) docker-up
+
+# Plan 253 - 门禁脚本（端口/镜像标签）
+guard-plan253:
+	@echo "🛡️ 运行 Plan 253 门禁：compose 端口/镜像标签..."
+	@bash scripts/quality/gates-253-compose-ports-and-images.sh
+
+# Plan 253 - 冷启动计时（记录）
+plan253-coldstart:
+	@echo "⏱️  运行 Plan 253 冷启动计时（需要 Docker/Compose）..."
+	@bash scripts/quality/gates-253-coldstart.sh
 
 # 迁移即真源：按序执行 database/migrations/*.sql（Goose）
 db-migrate-all:

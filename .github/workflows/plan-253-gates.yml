@@ -16,6 +16,7 @@ on:
       - 'AGENTS.md'
   schedule:
     - cron: '23 3 * * *'  # daily coldstart capture on default branch
+  workflow_dispatch: {}
 
 jobs:
   compose-and-images:

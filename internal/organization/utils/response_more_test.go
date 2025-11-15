@@ -69,5 +69,23 @@ func TestWriteHelpers_StatusCodes(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
-}
 
+	// Unauthorized/Forbidden/InternalError/ValidationError
+	rr = httptest.NewRecorder()
+	if err := WriteUnauthorized(rr, "rid"); err != nil || rr.Code != http.StatusUnauthorized {
+		t.Fatalf("WriteUnauthorized mismatch")
+	}
+	rr = httptest.NewRecorder()
+	if err := WriteForbidden(rr, "rid"); err != nil || rr.Code != http.StatusForbidden {
+		t.Fatalf("WriteForbidden mismatch")
+	}
+	rr = httptest.NewRecorder()
+	if err := WriteInternalError(rr, "rid", map[string]string{"k": "v"}); err != nil || rr.Code != http.StatusInternalServerError {
+		t.Fatalf("WriteInternalError mismatch")
+	}
+	rr = httptest.NewRecorder()
+	valErrs := ConvertValidationErrors(map[string]string{"field": "invalid"})
+	if err := WriteValidationError(rr, valErrs, "rid"); err != nil || rr.Code != http.StatusBadRequest {
+		t.Fatalf("WriteValidationError mismatch")
+	}
+}

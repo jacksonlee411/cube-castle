@@ -80,11 +80,12 @@
     - [ ] 性能/资源基线（204 指标 + performance/ 脚本）→ `perf-*.json`
 
 - 251 · 运行时统一（连接池/中间件/健康/指标）  
-  - 计划窗口：TBD（W?）  
-  - 负责人：TBD  
-  - 准入条件：Plan 250 已创建统一入口；Plan 217/218 可用  
-  - 产物/证据：`logs/plan251/*`、DB/HTTP 指标与健康检查截图/日志  
-  - 文档：`docs/development-plans/251-runtime-unification-health-metrics.md`
+  - 状态：已完成（2025-11-15）  
+  - 准入条件：Plan 250 单体主路径；Plan 217/218 可用（已满足）  
+  - 产物/证据：  
+    - 健康：`logs/plan251/health-command-*.json`（./scripts/quality/validate-health.sh）  
+    - 指标：`logs/plan251/metrics-command-*.txt`（./scripts/quality/validate-metrics.sh；STRICT=true 校验 HELP/TYPE）  
+  - 文档：`docs/development-plans/251-runtime-unification-health-metrics.md`（单体主路径/统一健康与指标/标签与网络限制规范）
 
 - 253 · 部署与流水线简化（单体优先）  
   - 计划窗口：2025-11 W3–W4  

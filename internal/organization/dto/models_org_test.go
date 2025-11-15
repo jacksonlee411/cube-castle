@@ -211,6 +211,13 @@ func TestStatsAndCounts_Getters(t *testing.T) {
 	if stats.TemporalStats().TotalVersions() != 5 {
 		t.Fatalf("temporal stats mismatch")
 	}
+	if stats.PlannedCount() != 0 || stats.DeletedCount() != 0 {
+		t.Fatalf("planned/deleted counts mismatch")
+	}
+	ts := stats.TemporalStats()
+	if ts.AverageVersionsPerOrg() != 1.0 || ts.OldestEffectiveDate() != "2025-01-01" || ts.NewestEffectiveDate() != "2025-01-02" {
+		t.Fatalf("temporal stats detail getters mismatch")
+	}
 	if len(stats.ByType()) != 1 || len(stats.ByStatus()) != 1 || len(stats.ByLevel()) != 1 {
 		t.Fatalf("stats By* getters mismatch")
 	}
@@ -257,9 +264,28 @@ func TestPaginationAndConnection(t *testing.T) {
 }
 
 func TestUnmarshalGraphQL_Inputs(t *testing.T) {
+	// OrganizationFilter
+	of := &OrganizationFilter{}
+	err := of.UnmarshalGraphQL(map[string]interface{}{
+		"asOfDate":      "2025-11-15",
+		"includeFuture": true,
+		"onlyFuture":    false,
+		"unitType":      "DEPARTMENT",
+		"status":        "ACTIVE",
+		"parentCode":    "1000000",
+		"hasChildren":   true,
+		"hasProfile":    false,
+	})
+	if err != nil {
+		t.Fatalf("OrganizationFilter.UnmarshalGraphQL error: %v", err)
+	}
+	if of.UnitType == nil || *of.UnitType != "DEPARTMENT" || of.HasChildren == nil || *of.HasChildren != true {
+		t.Fatalf("OrganizationFilter fields mismatch")
+	}
+
 	// PositionFilterInput
 	pf := &PositionFilterInput{}
-	err := pf.UnmarshalGraphQL(map[string]interface{}{
+	err = pf.UnmarshalGraphQL(map[string]interface{}{
 		"codes":           []interface{}{"P1", "P2"},
 		"organization":    "1000000",
 		"positionTypes":   []interface{}{"FULLTIME"},
@@ -370,43 +396,40 @@ func TestVacantAndTransferGetters(t *testing.T) {
 	if len(vc.Edges()) != 1 || len(vc.Data()) != 1 || vc.TotalCount() != 1 {
 		t.Fatalf("VacantPositionConnection mismatch")
 	}
+}
 
-	// PositionTransfer getters + edges/connection
-	eff := time.Date(2025, 12, 2, 0, 0, 0, 0, time.UTC)
-	op := "org restructure"
-	pt := PositionTransfer{
-		TransferIDField:           "T1",
-		PositionCodeField:         "P1",
-		FromOrganizationCodeField: "100",
-		ToOrganizationCodeField:   "101",
-		EffectiveDateField:        eff,
-		InitiatedByField:          OperatedByData{IDField: "dev", NameField: "Dev"},
-		OperationReasonField:      &op,
-		CreatedAtField:            time.Now().UTC(),
+func TestPositionAssignmentAudit_Getters(t *testing.T) {
+	now := time.Now().UTC()
+	end := now.Add(24 * time.Hour)
+	changes := map[string]interface{}{"field": "value"}
+	a := PositionAssignmentAudit{
+		AssignmentIDField:  "A1",
+		EventTypeField:     "CREATED",
+		EffectiveDateField: now,
+		EndDateField:       &end,
+		ActorField:         "dev",
+		ChangesField:       changes,
+		CreatedAtField:     now,
 	}
-	if string(pt.TransferId()) == "" || string(pt.PositionCode()) != "P1" {
-		t.Fatalf("PositionTransfer id/code mismatch")
+	if string(a.AssignmentId()) != "A1" || a.EventType() != "CREATED" {
+		t.Fatalf("audit basic getters mismatch")
 	}
-	if pt.FromOrganizationCode() != "100" || pt.ToOrganizationCode() != "101" {
-		t.Fatalf("PositionTransfer org codes mismatch")
+	_ = a.EffectiveDate()
+	if a.EndDate() == nil || a.Actor() != "dev" {
+		t.Fatalf("audit endDate/actor mismatch")
 	}
-	if pt.EffectiveDate() == "" || pt.CreatedAt() == "" {
-		t.Fatalf("PositionTransfer date getters mismatch")
+	if a.Changes() == nil || (*a.Changes())["field"] != "value" {
+		t.Fatalf("audit changes mismatch")
 	}
-	if pt.OperationReason() == nil || *pt.OperationReason() != "org restructure" {
-		t.Fatalf("PositionTransfer operation reason mismatch")
+	if a.CreatedAt() == "" {
+		t.Fatalf("audit createdAt mismatch")
 	}
-	te := PositionTransferEdge{CursorField: "tc1", NodeField: pt}
-	if te.Cursor() != "tc1" || string(te.Node().PositionCode()) != "P1" {
-		t.Fatalf("PositionTransferEdge mismatch")
-	}
-	tc := PositionTransferConnection{
-		EdgesField:      []PositionTransferEdge{te},
-		DataField:       []PositionTransfer{pt},
+	conn := PositionAssignmentAuditConnection{
+		DataField:       []PositionAssignmentAudit{a},
 		PaginationField: PaginationInfo{TotalField: 1},
 		TotalCountField: 1,
 	}
-	if len(tc.Edges()) != 1 || len(tc.Data()) != 1 || tc.TotalCount() != 1 {
-		t.Fatalf("PositionTransferConnection mismatch")
+	if len(conn.Data()) != 1 || conn.Pagination().Total() != 1 || conn.TotalCount() != 1 {
+		t.Fatalf("audit connection getters mismatch")
 	}
 }

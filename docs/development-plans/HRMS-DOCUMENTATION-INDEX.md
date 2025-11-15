@@ -192,7 +192,7 @@
 - 250：模块化单体合流实施计划（阶段1·核心）
   - 文件: `250-modular-monolith-merge.md`（状态：未启动；合流后单进程/单端口/共享中间件）
 - 251：运行时统一与健康/指标整合
-  - 文件: `251-runtime-unification-health-metrics.md`（状态：未启动；共享连接池/JWT/健康/指标）
+  - 文件: `251-runtime-unification-health-metrics.md`（状态：已完成；单体主路径/统一健康与指标/配置来源单一）
 - 252：权限一致性与契约对齐（REST x-scopes ↔ GraphQL）
   - 文件: `252-permission-consistency-and-contract-alignment.md`（状态：未启动）
 - 253：部署与流水线简化（单体优先）
