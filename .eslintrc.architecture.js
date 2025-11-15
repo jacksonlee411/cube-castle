@@ -175,7 +175,9 @@ module.exports = {
         'architecture/no-rest-queries': 'warn', // 测试中允许但警告
         'architecture/enforce-api-contracts': 'off', // 测试数据可以使用任意字段名
         'no-console': 'off', // 测试中允许console
-        '@typescript-eslint/no-explicit-any': 'off' // 测试中允许 any 以简化 Mock
+        '@typescript-eslint/no-explicit-any': 'off', // 测试中允许 any 以简化 Mock
+        'no-restricted-globals': 'off', // 测试中允许直接使用 fetch 等全局
+        'no-alert': 'off' // 测试中允许 alert（UI 交互验证）
       }
     },
 
