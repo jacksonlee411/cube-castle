@@ -24,7 +24,7 @@
 
 ## 开发前必检
 - 确认本地 Go 环境版本 ≥1.24（执行 `go version`，需与仓库 `toolchain go1.24.9` 一致）。
-- Node/工具链建议：Node ≥16（仓库 engines），推荐 Node ≥18 LTS；Playwright 版本以前端项目为准（建议统一 ≥1.56）。
+- Node/工具链基线：Node ≥18（仓库 engines 与 `.nvmrc`）；Playwright 版本统一为 `@playwright/test@^1.56.0`（根与前端一致）。
 - 运行 `node scripts/generate-implementation-inventory.js` 对照 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`，避免重复造轮子。
 - 校验契约：查阅 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql`，确认字段保持 camelCase 与 `{code}` 路径参数，任何偏差需先更新契约。
 - 在 `docs/development-plans/` 建立或更新计划，完成后归档至 `docs/archive/development-plans/`，并记录验收标准；计划内容需引用唯一事实来源并说明一致性校验。
