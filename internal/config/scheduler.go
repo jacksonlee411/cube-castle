@@ -138,11 +138,11 @@ func GetSchedulerConfig() SchedulerConfigResult {
 
 func defaultSchedulerConfig() *SchedulerConfig {
 	return &SchedulerConfig{
-		Enabled: true,
+		Enabled: false,
 		Temporal: TemporalSettings{
-			Endpoint:  "temporal:7233",
-			Namespace: "cube-castle",
-			TaskQueue: "organization-maintenance",
+			Endpoint:  "",
+			Namespace: "",
+			TaskQueue: "",
 		},
 		Worker: WorkerSettings{
 			Concurrency: 4,
@@ -571,15 +571,7 @@ func ValidateSchedulerConfig(cfg *SchedulerConfig) error {
 	}
 	var validationErrors []string
 
-	if cfg.Temporal.Endpoint == "" {
-		validationErrors = append(validationErrors, "temporal endpoint must not be empty")
-	}
-	if cfg.Temporal.Namespace == "" {
-		validationErrors = append(validationErrors, "temporal namespace must not be empty")
-	}
-	if cfg.Temporal.TaskQueue == "" {
-		validationErrors = append(validationErrors, "temporal task queue must not be empty")
-	}
+	// 工作流引擎已清退：不再强制校验 Temporal 相关字段
 	if cfg.Worker.Concurrency <= 0 {
 		validationErrors = append(validationErrors, "worker concurrency must be positive")
 	}
