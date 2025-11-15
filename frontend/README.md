@@ -1,5 +1,7 @@
 # 🏰 Cube Castle Frontend - 企业级React应用
 
+> 说明：前端文档遵循仓库根目录 `AGENTS.md` 为唯一事实来源；如本文件与 `AGENTS.md` 或 `docs/reference/*` 存在不一致，以 `AGENTS.md` 为准。
+
 ## 🚀 统一配置架构 ⭐ **S级架构成果 (2025-09-07)**
 
 基于React 19 + Canvas Kit v13 + TypeScript的现代化前端应用，采用统一配置管理和企业级架构标准。
@@ -74,7 +76,7 @@ export const CreateButton = () => {
 
 ## 🛡️ 开发防控流程 ⭐ **P3系统集成**
 
-### 🚀 开发前检查
+### 🚀 开发前检查（本地自检，CI 同步执行）
 ```bash
 # 1. 重复代码检测
 bash ../scripts/quality/duplicate-detection.sh -s frontend
@@ -91,18 +93,15 @@ node ../scripts/quality/document-sync.js
 - 当临时开启 Mock 模式（`VITE_POSITIONS_MOCK_MODE=true`）时，`PositionDashboard` 与职位详情视图（Temporal Entity 页面）会显示醒目的只读提示并禁用创建/编辑/版本操作；QA 验收必须在真实模式下执行完整 CRUD 流程。
 - Playwright/CI 运行前请确认 `PW_REQUIRE_LIVE_BACKEND=1` 与 Mock 变量关闭，防止演示数据掩盖真实故障。
 
-### ✅ 提交前自动验证
-每次`git commit`时自动触发：
+### ✅ 提交验证（CI 强制，本地建议执行）
+CI 将在 PR 上强制执行以下检查；本地建议在提交前手动执行对应脚本保持一致：
 - **Pre-commit Hook**: 架构一致性验证
 - **CQRS守护**: 禁止前端REST查询，强制GraphQL
 - **端口配置**: 检测硬编码端口，强制统一配置
 - **API契约**: camelCase字段命名，废弃字段检查
 
-### 📊 实时质量指标
-- **重复代码率**: 2.11% (目标 < 5%) ✅
-- **架构违规**: 25个已识别 (需修复)
-- **TypeScript错误**: 0个 ✅
-- **契约测试**: 32个通过 ✅
+### 📊 质量指标
+- 重复代码率、架构违规、契约测试通过数等请以 `../reports/` 下最新报告为准（CI 会产出），避免在文档中固化具体数值导致事实漂移。
 
 ### 🔧 质量修复命令
 ```bash
@@ -116,63 +115,6 @@ node ../scripts/quality/document-sync.js --auto-sync
 cat ../reports/architecture/architecture-validation.json
 ```
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## ESLint 配置
+- 项目已在 `frontend/eslint.config.js` 定义前端规则（含“禁止硬编码端口/REST 查询”等架构守护）；请以该文件为准进行调整。
+- 如需新增/收紧规则，请在 PR 中说明依据并链接至 `AGENTS.md` 或 `docs/reference/*`，以保持唯一事实来源与一致性。
