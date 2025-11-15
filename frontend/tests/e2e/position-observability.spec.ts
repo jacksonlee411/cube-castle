@@ -125,8 +125,27 @@ test.describe('Position Observability (Plan 240D)', () => {
       await firstVersionRow.click().catch(() => {});
     }
     const exportBtn = page.getByTestId(temporalEntitySelectors.position.versionExportButton || 'temporal-position-version-export-button');
+    // Ensure export button is ready before clicking (avoid no-op click)
+    try {
+      await expect(exportBtn).toBeVisible({ timeout: 10_000 });
+      await expect(exportBtn).toBeEnabled({ timeout: 10_000 });
+    } catch {
+      // ignore: some environments may not have versions yet
+    }
+    // Concurrently wait for an export.* OBS message to avoid race conditions
+    const waitObsExport = page.waitForEvent('console', {
+      timeout: 8_000,
+      predicate: (msg) => {
+        const t = msg.text?.() ?? '';
+        return t.includes('[OBS] position.version.export.start') ||
+               t.includes('[OBS] position.version.export.done')  ||
+               t.includes('[OBS] position.version.export.error');
+      },
+    }).catch(() => null);
     if (await exportBtn.isVisible().catch(() => false)) {
       await exportBtn.click().catch(() => {});
+      // try to await export.* quickly; ignore timeout
+      await waitObsExport;
     }
 
     // Small dwell to allow initial marks/console

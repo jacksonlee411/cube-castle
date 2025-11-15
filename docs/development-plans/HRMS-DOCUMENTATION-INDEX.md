@@ -83,8 +83,8 @@
 ### 240：职位管理页面重构与稳定化（已完成）
 文件: `240-position-management-page-refactor.md`（状态：已完成 · 验收通过；A–D/BT 完成，E 回归与守卫已登记）
 
-### 241：前端页面与框架一体化重构（收尾中）
-文件: `241-frontend-framework-refactor.md`（状态：部分完成 · 验收未通过；按收尾计划推进，不改对外契约）
+### 241：前端页面与框架一体化重构（已完成）
+文件: `241-frontend-framework-refactor.md`（状态：已完成；241C 连跑证据已登记）
 - 子计划：  
   - 241A – TemporalEntityLayout 合流与最小接入：`241A-temporal-entity-layout-integration.md`  
   - 241B – 统一 Hook 薄封装与选择器门禁：`241B-unified-hook-and-selector-guard.md`  

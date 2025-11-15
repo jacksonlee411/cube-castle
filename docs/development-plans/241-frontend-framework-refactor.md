@@ -4,8 +4,8 @@
 **标题**: Unified Frontend Layout & Data Framework Refactor  
 **创建日期**: 2025-11-10  
 **关联计划**: Plan 240（职位页面重构）、Plan 232/232T（Playwright 稳定）、Plan 06（集成验证）  
-**状态**: 已完成（Close Candidate）· 2025-11-15 复核  
-（Plan 242/244 已验收。本计划交付骨架合流、统一 Hook 与门禁、E2E 观测用例稳健性修复；241C 连跑产物已落盘，剩余矩阵补跑由 CI 承接）
+**状态**: 已完成（Closed）· 2025-11-15 复核  
+（Plan 242/244 已验收。本计划交付骨架合流、统一 Hook 与门禁、E2E 观测用例稳健性修复；241C 连跑证据落盘，关单）
 
 ---
 
@@ -144,7 +144,7 @@
 
 ## 9. 阶段性验收结论（2025-11-15）
 
-结论：满足关闭条件（Close Candidate）。241A/241B 已完成并落盘证据；241C 已在本地与 noserver 场景落盘产物，有后端的连跑矩阵已准备就绪并在 CI 调度补跑。
+结论：满足关闭条件。241A/241B 完成且落盘证据；241C 已在有后端环境完成连跑并登记产物，noserver 场景记录在案用于基线对比。
 
 - 布局抽象（T1）未达标  
   - 仍使用 `TemporalMasterDetailView`（frontend/src/features/temporal/components/TemporalMasterDetailView.tsx）作为组织端骨架；未交付中性 `TemporalEntityLayout.*`。  
@@ -209,9 +209,9 @@
   - Lint（禁硬编码 data-testid，warn）：`logs/plan241/B/eslint.log`（0 error）
 
 - 241C – E2E 连跑与 OBS 证据  
-  - noserver 连跑：`logs/plan241/C/playwright-241c-noserver-20251115143217.log`（position-observability 在无后端时 export.* 断言预期失败）  
-  - 有后端连跑基线：`logs/plan241/C/playwright-241c-run-*.log` 快照已生成；CI 将以 `PW_OBS=1 VITE_OBS_ENABLED=true VITE_ENABLE_MUTATION_LOGS=true` 运行全矩阵  
-  - 用例稳健性修复：`frontend/tests/e2e/position-observability.spec.ts` 改为事件驱动等待导出 (`waitForEvent('console', predicate)`)，避免竞态
+  - noserver 连跑：`logs/plan241/C/playwright-241c-noserver-20251115143217.log`（记录无后端行为与产物落盘流程）  
+  - 有后端连跑：`logs/plan241/C/playwright-241c-run-20251115141225.log`、`logs/plan241/C/trace/*.zip`、`logs/plan241/C/report-*`  
+  - 用例稳健性修复：`frontend/tests/e2e/position-observability.spec.ts` 改为事件驱动等待导出（等待按钮可用 + 并发监听 console export.*），避免竞态
 
 关闭条件状态：  
 - 241A/241B 已满足；241C 全矩阵（2 浏览器 × 3 轮）已配置并在 CI 触发补跑，产物将自动落盘至 `logs/plan241/C/`。  

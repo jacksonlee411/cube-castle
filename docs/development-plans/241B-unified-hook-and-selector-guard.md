@@ -3,7 +3,7 @@
 编号: 241B  
 标题: `useOrganizationDetail` 薄封装 + `useTemporalEntityDetail` 单测 + 选择器门禁（ESLint + Guard）  
 创建日期: 2025-11-15  
-状态: 待实施  
+状态: 已完成  
 上游关联: 241（框架重构 · 收尾）、245/245A（统一类型与 Hook · 已完成）、246（选择器与 Fixtures · 已完成）
 
 ---
@@ -64,8 +64,8 @@
 
 ## 7. 产出与登记
 
-- 代码：`frontend/src/shared/hooks/useOrganizationDetail.ts`、`frontend/src/shared/hooks/__tests__/useTemporalEntityDetail.test.ts`、`frontend/eslint.config.js` 规则更新  
-- 日志：`logs/plan241/B/hook-tests.log`、`logs/plan241/B/selector-guard.log`
+- 代码：`frontend/src/shared/hooks/useOrganizationDetail.ts`、`frontend/src/shared/hooks/__tests__/useTemporalEntityDetail.test.tsx`、`frontend/eslint.config.js` 规则更新  
+- 日志：`logs/plan241/B/hook-tests.log`（已落盘）、`logs/plan241/B/selector-guard.log`（已落盘）、`logs/plan241/B/eslint.log`（已落盘）
 
 ---
 
@@ -73,4 +73,3 @@
 
 - 单测通过；ESLint 与 Guard 门禁在本地与 CI 均生效；无新增硬编码 testid；Guard 基线不升  
 - 改动登记于本文件并在 241 主计划更新“阶段性结论”与“里程碑达成”
-

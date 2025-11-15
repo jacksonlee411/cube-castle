@@ -85,6 +85,38 @@ export default tseslint.config([
     }
   },
   
+  // 🛡️ 前端源代码额外门禁（禁止硬编码 data-testid）
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/shared/testids/temporalEntity.ts',
+      'src/**/__tests__/**',
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'src/**/*.spec.ts',
+      'src/**/*.spec.tsx',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        // 保留 alert 禁止
+        {
+          selector: 'CallExpression[callee.name="alert"]',
+          message: '🚨 用户体验违规：禁止使用alert()。请使用统一的showSuccess()或showError()消息系统。'
+        },
+        // 禁止在组件/源码中直接硬编码 data-testid（统一从 shared/testids/temporalEntity.ts 导入）
+        {
+          selector: 'JSXAttribute[name.name="data-testid"] > Literal',
+          message: '🚨 选择器治理：禁止硬编码 data-testid，请从 shared/testids/temporalEntity.ts 导入并使用 temporalEntitySelectors。'
+        },
+        {
+          selector: 'JSXAttribute[name.name="data-testid"] > TemplateLiteral',
+          message: '🚨 选择器治理：禁止硬编码 data-testid，请从 shared/testids/temporalEntity.ts 导入并使用 temporalEntitySelectors。'
+        }
+      ]
+    }
+  },
+  
   // 🧪 测试文件特殊规则配置 - 允许fetch用于E2E测试和契约测试
   {
     files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}', 'scripts/**/*.ts', 'playwright.config.ts'],

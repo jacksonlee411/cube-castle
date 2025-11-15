@@ -3,7 +3,7 @@
 编号: 241A  
 标题: TemporalEntityLayout 合流与最小接入（Shell/Sidebar/Tabs + 可观测性注入）  
 创建日期: 2025-11-15  
-状态: 待实施  
+状态: 已完成（待冒烟证据落盘）  
 上游关联: 241（框架重构 · 收尾）、242（命名抽象 · 已验收）、244（Timeline/Status 抽象 · 已验收）、240（职位页面重构 · 已完成 A–D）
 
 ---
@@ -72,6 +72,7 @@
 
 - 代码：`frontend/src/features/temporal/layout/TemporalEntityLayout.tsx` + 最小接入变更  
 - 日志：`logs/plan241/A/e2e-smoke-{chromium,firefox}.log`、`frontend/playwright-report/**`  
+- 当前进展：已完成代码接入与构建校验；已初始化目录 `logs/plan241/A/`，冒烟建议由本地执行并落盘证据  
 - 备注：不产生任何契约变更；事件命名不更新权威文档
 
 ---
