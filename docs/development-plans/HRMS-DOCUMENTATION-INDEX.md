@@ -194,7 +194,7 @@
 - 251：运行时统一与健康/指标整合
   - 文件: `251-runtime-unification-health-metrics.md`（状态：已完成；单体主路径/统一健康与指标/配置来源单一）
 - 252：权限一致性与契约对齐（REST x-scopes ↔ GraphQL）
-  - 文件: `252-permission-consistency-and-contract-alignment.md`（状态：未启动）
+  - 文件: `../archive/development-plans/252-permission-consistency-and-contract-alignment.md`（状态：已完成 · 已归档；签字：`../archive/development-plans/252-signoff-20251115.md`）
 - 253：部署与流水线简化（单体优先）
   - 文件: `253-deployment-pipeline-simplification.md`（状态：进行中）
 - 254：前端端点与代理收敛（单基址）
