@@ -2,6 +2,8 @@
 
 版本: v2.0 | 最后更新: 2025-09-13 | 用途: API使用与质量工具统一指南
 
+> 说明：本指南聚焦 API 使用与质量工具；项目原则与强制约束以仓库根目录 `AGENTS.md` 为唯一事实来源。若出现不一致，请以 `AGENTS.md` 为准并优先修正。
+
 ---
 
 ## 🚀 快速开始
@@ -35,7 +37,7 @@ make jwt-dev-setup
 # 启动后端服务（命令9090/查询8090），内部自动加载 RS256 配置并暴露 /.well-known/jwks.json
 make run-dev
 
-# 生成 RS256 开发令牌（命令服务 /auth/dev-token）
+# 生成 RS256 开发令牌（使用 Make 工具链）
 make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER DURATION=8h
 eval $(make jwt-dev-export)     # 导出令牌到环境变量
 ```
@@ -58,16 +60,16 @@ eval $(make jwt-dev-export)     # 导出令牌到环境变量
 > - 命令服务默认输出 JSON 行（结构化 logger），配合 `jq` 或 Loki/ELK 搜索 `requestId`、`action`、`tenantId` 可快速定位链路。
 > - GraphQL 权限/仓储日志在 `component=graphqlResolver` / `component=queryRepository` 下展示，定位字段 `query`、`role`、`resource`。
 > - Slow request 日志等级为 `WARN`，字段 `suggestions` 给出优化方向；性能告警由 `middleware=performanceAlert` 输送。
-> - Scheduler 指标（基于 Cron/SQL 的时态数据一致性维护）、Dashboard 与告警配置在 `docs/reference/monitoring/` 目录维护；当前不包含任何工作流引擎集成。Docker Compose 提供 `monitoring-prometheus`（9091）、`monitoring-grafana`（3001）、`monitoring-alertmanager`（9093）。
+> - Scheduler 指标（基于 Cron/SQL 的时态数据一致性维护）、Dashboard 与告警配置在 `docs/reference/monitoring/` 目录维护；当前仓库默认 docker-compose 不包含监控栈，若需启用请以对应计划/文档为准。
 > ⚠️ **禁止使用 HS256**：命令/查询/前端已经移除 HS256 兜底，若缺少 RS256 私钥或 JWKS 配置，服务将直接失败启动。请务必保证 `.well-known/jwks.json` 可访问，否则前端与测试用例会提示“未启用 RS256”。
 
-### Scheduler 监控栈（219D3）
+### Scheduler 监控栈（如已启用）
 - **配置位置**：`docs/reference/monitoring/`（Prometheus/Grafana/Alertmanager 子目录），配套验证日志 `logs/219D3/VALIDATION-2025-11-06.md`。
 - **启动命令**：
   ```bash
   make docker-up        # 包含 monitoring-* 服务
   open http://localhost:9091   # Prometheus
-  open http://localhost:3001   # Grafana (默认 admin/admin)
+  # open http://localhost:3001   # Grafana（如有启用）
   open http://localhost:9093   # Alertmanager
   ```
 - **常用 PromQL**（详见 `docs/reference/monitoring/promQL-snippets.md`）：
@@ -589,8 +591,8 @@ eval $(make jwt-dev-export)
 curl http://localhost:9090/health
 curl http://localhost:8090/health
 
-# 数据库连接
-curl http://localhost:9090/dev/database-status
+# 数据库连接（建议使用迁移与健康检查流程，而非非契约调试端点）
+make db-migrate-all && make status
 ```
 
 ---
@@ -601,7 +603,7 @@ curl http://localhost:9090/dev/database-status
 - [开发者快速参考](./01-DEVELOPER-QUICK-REFERENCE.md) - 核心命令速查
 - [OpenAPI规范](../api/openapi.yaml) - REST API详细定义
 - [GraphQL Schema](../api/schema.graphql) - 查询Schema定义
-- [项目指导原则](../../CLAUDE.md) - 开发规范和原则
+- [项目原则与索引（唯一事实来源）](../../AGENTS.md) - 开发规范与约束
 
 ---
 
@@ -615,7 +617,7 @@ curl http://localhost:9090/dev/database-status
 - ❌ 使用snake_case字段命名
 
 ### 必须遵守
-- ✅ 开发前运行IIG护卫检查
+- ✅ 开发前运行 IIG/架构/文档守护检查脚本
 - ✅ 优先复用现有资源
 - ✅ 查询用GraphQL (8090)，命令用REST (9090)
 - ✅ 统一使用camelCase字段命名
