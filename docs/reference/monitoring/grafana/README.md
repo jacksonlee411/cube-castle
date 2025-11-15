@@ -1,4 +1,4 @@
-# Grafana Dashboard 规范（219D3 预设）
+# Grafana Dashboard 规范（示例，按计划启用）
 
 - 容器：`grafana/grafana:11.0.0`
 - 端口：`3001`
@@ -14,8 +14,8 @@
 - 每个 Dashboard JSON 必须写入标题、描述、面板标签，便于导入。
 - 面板至少涵盖：任务成功率、失败率、活动耗时直方图、队列长度、重试次数。
 
-## 导入导出流程
-1. `make docker-up monitoring` 启动 Grafana
+## 导入导出流程（启用后）
+1. 在 Compose 增加 Grafana 服务并启动
 2. 登录后导入 JSON（保持 UID 与 `scheduler` 前缀）
 3. 导出更新后 JSON 并覆盖本目录文件
 4. 在 `sandBox-validation.md` 记录截图与验证步骤

@@ -2,7 +2,7 @@
 
 最后更新：2025-09-14
 
-本文档为 Reference 类文档，作为实现与联调的快速参照。契约仍以 `docs/api/openapi.yaml` 为唯一事实来源。
+本文档为 Reference 类文档，作为实现与联调的快速参照。认证/会话相关契约以 `docs/api/openapi.yaml` 为唯一事实来源；项目原则与约束以仓库根目录 `AGENTS.md` 为唯一事实来源。
 
 —
 

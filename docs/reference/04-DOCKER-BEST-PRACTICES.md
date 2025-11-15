@@ -1,9 +1,11 @@
 # Docker 容器化部署最佳实践
 
-## 1. 强制原则（摘自 CLAUDE.md）
+> 说明：容器化强制约束以仓库根目录 `AGENTS.md` 为唯一事实来源。以下内容为操作指引与摘录，若存在不一致请以 `AGENTS.md` 为准并先校正。
+
+## 1. 强制原则（摘录，权威以 AGENTS.md 为准）
 - 所有服务、数据库、中间件必须通过 Docker Compose 运行。
 - 禁止在宿主机直接安装 PostgreSQL、Redis、Temporal 等组件。
-- 遇到端口冲突时必须卸载宿主服务，严禁修改容器端口映射。
+- 如遇端口冲突，必须卸载宿主服务释放端口；严禁通过修改 `docker-compose.dev.yml` 端口映射规避冲突。
 
 ## 2. 开发流程
 
@@ -39,9 +41,9 @@ docker exec -it cubecastle-graphql sh
 ### 3.3 热重载（可选）
 ```bash
 export COMMAND_SERVICE_BUILD_TARGET=dev
-export COMMAND_SERVICE_WORKDIR=/workspace/cmd/organization-command-service
+export COMMAND_SERVICE_WORKDIR=/workspace/cmd/hrms-server/command
 export GRAPHQL_SERVICE_BUILD_TARGET=dev
-export GRAPHQL_SERVICE_WORKDIR=/workspace/cmd/organization-query-service
+export GRAPHQL_SERVICE_WORKDIR=/workspace/cmd/hrms-server/query
 docker compose -f docker-compose.dev.yml up -d --build rest-service graphql-service
 ```
 - 退出：`docker compose -f docker-compose.dev.yml down` 及 `unset` 上述变量。
