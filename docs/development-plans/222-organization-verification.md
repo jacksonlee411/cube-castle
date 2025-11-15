@@ -73,7 +73,7 @@ go tool cover -html=coverage.out -o coverage.html
 **验收条件**:
 - [x] 所有已编写单元测试通过（本地）
 - [x] 顶层关键包(`internal/organization`) 覆盖率 > 80%（当前约 84.8%）
-- [ ] 模块整体覆盖率 > 80%（进行中：utils/middleware 已显著提升，其余子包推进中，见 Plan 255/256）
+- [ ] 模块整体覆盖率 > 80%（进行中：当前 ~22.4%，repository/service/handler 分支持续补齐，见 Plan 255/256）
 - [ ] 无 race condition（`-race` 全量复跑）
 - [ ] 内存泄漏检查通过（若有）
 - 证据：`logs/plan222/coverage-org-*.{out,txt,html}`
