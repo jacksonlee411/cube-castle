@@ -4,6 +4,7 @@ import TemporalEntityPage, {
   type TemporalEntityParseResult,
 } from './TemporalEntityPage'
 import { PositionDetailView } from '@/features/positions/PositionDetailView'
+import { TemporalEntityLayout } from '@/features/temporal/layout/TemporalEntityLayout'
 
 const parsePositionCode = (rawCode?: string): TemporalEntityParseResult => {
   if (!rawCode) {
@@ -37,13 +38,15 @@ const positionConfig: TemporalEntityRouteConfig = {
     },
   },
   renderContent: ctx => (
-    <PositionDetailView
-      code={ctx.code}
-      rawCode={ctx.rawCode}
-      isCreateMode={ctx.isCreateMode}
-      navigateToList={ctx.navigateToList}
-      navigateToDetail={ctx.navigateToDetail}
-    />
+    <TemporalEntityLayout.Shell entity="position">
+      <PositionDetailView
+        code={ctx.code}
+        rawCode={ctx.rawCode}
+        isCreateMode={ctx.isCreateMode}
+        navigateToList={ctx.navigateToList}
+        navigateToDetail={ctx.navigateToDetail}
+      />
+    </TemporalEntityLayout.Shell>
   ),
 }
 
@@ -52,4 +55,3 @@ export const PositionTemporalEntityRoute: React.FC = () => (
 )
 
 export default PositionTemporalEntityRoute
-

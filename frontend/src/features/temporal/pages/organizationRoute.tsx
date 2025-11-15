@@ -4,6 +4,7 @@ import TemporalEntityPage, {
   type TemporalEntityParseResult,
 } from './TemporalEntityPage'
 import { TemporalMasterDetailView } from '@/features/temporal/components/TemporalMasterDetailView'
+import { TemporalEntityLayout } from '@/features/temporal/layout/TemporalEntityLayout'
 
 const parseOrganizationCode = (rawCode?: string): TemporalEntityParseResult => {
   if (!rawCode) {
@@ -36,13 +37,15 @@ const organizationConfig: TemporalEntityRouteConfig = {
     },
   },
   renderContent: ctx => (
-    <TemporalMasterDetailView
-      organizationCode={ctx.isCreateMode ? null : ctx.code}
-      onBack={ctx.navigateToList}
-      onCreateSuccess={createdCode => ctx.navigateToDetail(createdCode, { replace: true })}
-      readonly={false}
-      isCreateMode={ctx.isCreateMode}
-    />
+    <TemporalEntityLayout.Shell entity="organization">
+      <TemporalMasterDetailView
+        organizationCode={ctx.isCreateMode ? null : ctx.code}
+        onBack={ctx.navigateToList}
+        onCreateSuccess={createdCode => ctx.navigateToDetail(createdCode, { replace: true })}
+        readonly={false}
+        isCreateMode={ctx.isCreateMode}
+      />
+    </TemporalEntityLayout.Shell>
   ),
 }
 
@@ -51,4 +54,3 @@ export const OrganizationTemporalEntityRoute: React.FC = () => (
 )
 
 export default OrganizationTemporalEntityRoute
-
