@@ -63,7 +63,7 @@
 
 1) 新建骨架组件并落地 perf 标记与 tab 键盘支持  
 2) 组织/职位页面外层容器替换为骨架组件（内层卡片/表单/列表不动）  
-3) 选择器引用统一回到 `temporalEntitySelectors`（若仍有遗留，先以兼容导出保留 1 个迭代，登记 `// TODO-TEMPORARY:`）  
+3) 选择器引用统一回到 `temporalEntitySelectors`（若仍有遗留，先以兼容导出保留 1 个迭代，登记 `// TODO-TEMPORARY(YYYY-MM-DD): ...`）  
 4) 跑 E2E 冒烟（Chromium/Firefox）并记录日志
 
 ---
@@ -79,5 +79,4 @@
 ## 8. 退出准则
 
 - 两端页面均运行在统一骨架上，E2E 冒烟通过；指标与键盘可达性符合预期；无 testid 抖动  
-- 所有改动登记于本文件；如发生兼容性保留，须以 `// TODO-TEMPORARY:` 标注并设定回收日期
-
+- 所有改动登记于本文件；如发生兼容性保留，须以 `// TODO-TEMPORARY(YYYY-MM-DD): ...` 标注并设定回收日期
