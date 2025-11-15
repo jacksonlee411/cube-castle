@@ -9,7 +9,7 @@
 
 | 文件名 | 用途 | 引用位置 |
 |--------|------|----------|
-| `scheduler-dashboard.json` | Scheduler/Temporal 指标 | `docs/development-plans/219D3-scheduler-monitoring.md`、`internal/organization/README.md` |
+| `scheduler-dashboard.json` | Scheduler 指标（基于 Cron/SQL） | `docs/development-plans/219D3-scheduler-monitoring.md`、`internal/organization/README.md` |
 
 - 每个 Dashboard JSON 必须写入标题、描述、面板标签，便于导入。
 - 面板至少涵盖：任务成功率、失败率、活动耗时直方图、队列长度、重试次数。

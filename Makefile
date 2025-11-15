@@ -3,7 +3,7 @@
 
 .PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql
 
-export SCHEDULER_ENABLED ?= true
+export SCHEDULER_ENABLED ?= false
 export SCHEDULER_MONITOR_ENABLED ?= true
 
 # 默认目标

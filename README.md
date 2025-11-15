@@ -64,7 +64,7 @@ export const SERVICE_PORTS = {
 - **Node.js 18+**（前端构建/测试）
 - **PostgreSQL / Redis**：由 Docker Compose 管理，宿主机 **不得** 安装同名服务占用端口
 
-> ⚠️ **重要**：本项目强制使用 Docker 容器化部署（见 `CLAUDE.md` 第2节），禁止在宿主机直接运行 PostgreSQL、Redis、Temporal 或 Go 服务。
+> ⚠️ **重要**：本项目强制使用 Docker 容器化部署（见 `CLAUDE.md` 第2节），禁止在宿主机直接运行 PostgreSQL、Redis 或 Go 服务。
 
 ### 一键启动（容器化，推荐）
 ```bash

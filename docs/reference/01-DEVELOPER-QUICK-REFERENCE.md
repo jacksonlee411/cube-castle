@@ -123,10 +123,9 @@ make db-migrate-all
 ### Scheduler 配置与调试（219D2）
 - **唯一事实来源**：`config/scheduler.yaml` + `internal/config/scheduler.go`；启动命令服务时通过 `config.GetSchedulerConfig()` 解析默认值→YAML→`SCHEDULER_*` 环境变量，校验失败会写入 `logs/219D2/config-validation.log` 并阻断启动。完整执行记录参见 `logs/219D2/ACCEPTANCE-RECORD-2025-11-06.md`，由 `docs/development-plans/06-integrated-teams-progress-log.md` 驱动。
 - **环境变量覆盖**：统一使用 `SCHEDULER_` 前缀（详见 `.env.example`），常用项包括：
-  - `SCHEDULER_ENABLED`（默认 `true`）：可通过 `make run-dev SCHEDULER_ENABLED=false` 临时禁用调度器。
-  - `SCHEDULER_TEMPORAL_ENDPOINT` / `SCHEDULER_NAMESPACE` / `SCHEDULER_TASK_QUEUE`：指定 Temporal 集群与任务队列。
-  - `SCHEDULER_WORKER_CONCURRENCY` / `SCHEDULER_WORKER_POLLER_COUNT`：调节 Worker 并发与 Poller 数量。
-  - `SCHEDULER_RETRY_MAX_ATTEMPTS|INITIAL_INTERVAL|BACKOFF_COEFFICIENT|MAX_INTERVAL`：统一控制活动重试策略。
+  - `SCHEDULER_ENABLED`（默认 `false`）：可通过 `make run-dev SCHEDULER_ENABLED=true` 临时启用运维任务调度器。
+  - （工作流引擎已清退）不再提供 `SCHEDULER_TEMPORAL_ENDPOINT`/`SCHEDULER_NAMESPACE`/`SCHEDULER_TASK_QUEUE` 等配置。
+  - `SCHEDULER_MONITOR_ENABLED` / `SCHEDULER_MONITOR_CHECK_INTERVAL`：监控开关与巡检间隔。
   - `SCHEDULER_MONITOR_ENABLED` / `SCHEDULER_MONITOR_CHECK_INTERVAL`：监控开关与巡检间隔（219D3 计划会扩展指标）。
   - `SCHEDULER_TASK_<NAME>_*`：逐任务覆盖 Cron、脚本、初始延迟、启用状态；`<NAME>` 采用任务标识（例如 `DAILY_CUTOVER`）。
   - `SCHEDULER_SCRIPTS_ROOT`：脚本根目录，默认 `./scripts`，路径会做安全校验。

@@ -58,7 +58,7 @@ eval $(make jwt-dev-export)     # 导出令牌到环境变量
 > - 命令服务默认输出 JSON 行（结构化 logger），配合 `jq` 或 Loki/ELK 搜索 `requestId`、`action`、`tenantId` 可快速定位链路。
 > - GraphQL 权限/仓储日志在 `component=graphqlResolver` / `component=queryRepository` 下展示，定位字段 `query`、`role`、`resource`。
 > - Slow request 日志等级为 `WARN`，字段 `suggestions` 给出优化方向；性能告警由 `middleware=performanceAlert` 输送。
-> - Scheduler/Temporal 指标、Dashboard 与告警配置在 `docs/reference/monitoring/` 目录维护，Docker Compose 提供 `monitoring-prometheus`（9091）、`monitoring-grafana`（3001）、`monitoring-alertmanager`（9093）。
+> - Scheduler 指标（基于 Cron/SQL 的时态数据一致性维护）、Dashboard 与告警配置在 `docs/reference/monitoring/` 目录维护；当前不包含任何工作流引擎集成。Docker Compose 提供 `monitoring-prometheus`（9091）、`monitoring-grafana`（3001）、`monitoring-alertmanager`（9093）。
 > ⚠️ **禁止使用 HS256**：命令/查询/前端已经移除 HS256 兜底，若缺少 RS256 私钥或 JWKS 配置，服务将直接失败启动。请务必保证 `.well-known/jwks.json` 可访问，否则前端与测试用例会提示“未启用 RS256”。
 
 ### Scheduler 监控栈（219D3）

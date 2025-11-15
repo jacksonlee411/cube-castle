@@ -144,20 +144,21 @@ services:
       timeout: 5s
       retries: 10
 
-  temporal-test:
-    image: temporalio/auto-setup:1.20.0
-    environment:
-      - DB=postgresql
-      - DB_PORT=5432
-      - POSTGRES_USER=testuser
-      - POSTGRES_PWD=testpass
-      - POSTGRES_SEEDS=postgres-test
-    ports:
-      - "7234:7233"
-      - "8234:8233"
-    depends_on:
-      postgres-test:
-        condition: service_healthy
+  # 已废弃：Temporal 工作流引擎测试容器（历史参考，当前仓库不再提供/集成该服务）
+  # temporal-test:
+  #   image: temporalio/auto-setup:1.20.0
+  #   environment:
+  #     - DB=postgresql
+  #     - DB_PORT=5432
+  #     - POSTGRES_USER=testuser
+  #     - POSTGRES_PWD=testpass
+  #     - POSTGRES_SEEDS=postgres-test
+  #   ports:
+  #     - "7234:7233"
+  #     - "8234:8233"
+  #   depends_on:
+  #     postgres-test:
+  #       condition: service_healthy
 
   backend-test:
     build:
@@ -168,14 +169,15 @@ services:
       NEO4J_URI: bolt://neo4j-test:7687
       NEO4J_USERNAME: neo4j
       NEO4J_PASSWORD: testpassword
-      TEMPORAL_ADDRESS: temporal-test:7233
+      # 已废弃：工作流引擎地址（保留为历史示例，不再使用）
+      # TEMPORAL_ADDRESS: temporal-test:7233
     depends_on:
       postgres-test:
         condition: service_healthy
       neo4j-test:
         condition: service_healthy
-      temporal-test:
-        condition: service_started
+      # temporal-test:
+      #   condition: service_started
     volumes:
       - ./go-app:/app
       - go_test_cache:/go/pkg/mod
