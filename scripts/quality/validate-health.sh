@@ -7,6 +7,7 @@ set -euo pipefail
 
 COMMAND_URL="${COMMAND_URL:-http://localhost:9090/health}"
 QUERY_URL="${QUERY_URL:-http://localhost:8090/health}"
+CHECK_QUERY="${CHECK_QUERY:-false}"  # 单体为主：默认不检查 8090 过渡查询服务
 TIMEOUT="${TIMEOUT:-5}"
 OUT_DIR="${OUT_DIR:-logs/plan251}"
 mkdir -p "${OUT_DIR}"
@@ -80,7 +81,11 @@ check_one() {
 main() {
   local fail=0
   check_one "${COMMAND_URL}" "command" || fail=1
-  check_one "${QUERY_URL}" "query" || fail=1
+  if [[ "${CHECK_QUERY}" == "true" ]]; then
+    check_one "${QUERY_URL}" "query" || fail=1
+  else
+    echo "[*] 已跳过 query 健康检查（CHECK_QUERY=false）"
+  fi
   if [[ "${fail}" -ne 0 ]]; then
     echo "✗ 健康检查未通过"
     exit 2
@@ -89,4 +94,3 @@ main() {
 }
 
 main "$@"
-

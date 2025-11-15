@@ -60,6 +60,12 @@ services:
     volumes:
       - ./secrets:/secrets:ro
       - ./:/workspace:delegated
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8090/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,6 +104,12 @@ services:
     volumes:
       - ./secrets:/secrets:ro
       - ./:/workspace:delegated
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9090/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy

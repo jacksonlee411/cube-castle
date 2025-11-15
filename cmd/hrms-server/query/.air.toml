@@ -2,7 +2,7 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-cmd = "go build -o tmp/query-service ./cmd/hrms-server/query"
+cmd = "go build -tags legacy -o tmp/query-service ./cmd/hrms-server/query"
 bin = "./tmp/query-service"
 include_ext = ["go", "mod", "sum"]
 exclude_dir = ["tmp", "bin", "scripts", "frontend", "node_modules"]

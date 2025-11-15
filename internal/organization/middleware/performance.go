@@ -6,6 +6,8 @@ import (
 	"time"
 
 	pkglogger "cube-castle/pkg/logger"
+	utilspkg "cube-castle/internal/organization/utils"
+	"github.com/go-chi/chi/v5"
 )
 
 // PerformanceMiddleware 性能监控中间件
@@ -75,6 +77,17 @@ func (p *PerformanceMiddleware) Middleware() func(http.Handler) http.Handler {
 
 			// 记录性能日志
 			p.logPerformance(r, wrapper.statusCode, wrapper.size, duration)
+
+			// 记录统一 HTTP 指标（使用路由模板，避免基数爆炸）
+			route := ""
+			if rc := chi.RouteContext(r.Context()); rc != nil {
+				route = rc.RoutePattern()
+			}
+			if route == "" {
+				// 不使用原始 Path，避免时序基数膨胀
+				route = "unknown"
+			}
+			utilspkg.RecordHTTPRequest(r.Method, route, wrapper.statusCode)
 		})
 	}
 }

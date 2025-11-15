@@ -16,6 +16,7 @@ import (
 	auth "cube-castle/internal/auth"
 	config "cube-castle/internal/config"
 	organization "cube-castle/internal/organization"
+	health "cube-castle/internal/monitoring/health"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
@@ -28,6 +29,37 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 )
+
+// v9RedisChecker implements health.Checker for go-redis/v9 client.
+type v9RedisChecker struct {
+	Name   string
+	Client *redis.Client
+}
+
+func (c *v9RedisChecker) Check(ctx context.Context) health.HealthCheck {
+	start := time.Now()
+	check := health.HealthCheck{
+		Name: c.Name,
+	}
+	if c.Client == nil {
+		check.Status = health.StatusDegraded
+		check.Message = "Redis client not configured"
+		check.Duration = time.Since(start)
+		return check
+	}
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err := c.Client.Ping(ctx).Result()
+	check.Duration = time.Since(start)
+	if err != nil {
+		check.Status = health.StatusUnhealthy
+		check.Message = "Redis ping failed: " + err.Error()
+		return check
+	}
+	check.Status = health.StatusHealthy
+	check.Message = "Redis connection healthy"
+	return check
+}
 
 func main() {
 	baseLogger := pkglogger.NewLogger(
@@ -78,13 +110,23 @@ func main() {
 		outboxRepo = database.NewOutboxRepository(dbClient)
 		commandLogger.Infof("✅ Outbox 仓储初始化完成（impl=%T）", outboxRepo)
 
-		redisClient = openRedis(commandLogger)
-		if redisClient != nil {
-			defer redisClient.Close()
+			redisClient = openRedis(commandLogger)
+			if redisClient != nil {
+				defer redisClient.Close()
+			}
+			// 预热 DB 直方图时间序列，便于在 /metrics 中可见（不会影响统计意义）
+			database.ObserveQueryDuration("command-service", "startup", time.Duration(0))
+			// 周期性上报数据库连接池状态（开发/CI 建议开启；生产可按需调整频率或迁移到运维任务）
+			go func(db *database.Database) {
+				ticker := time.NewTicker(30 * time.Second)
+				defer ticker.Stop()
+				for range ticker.C {
+					db.RecordConnectionStats("command-service")
+				}
+			}(dbClient)
+		} else {
+			commandLogger.Info("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
 		}
-	} else {
-		commandLogger.Info("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
-	}
 
 	eventBus := eventbus.NewMemoryEventBus(commandLogger, nil)
 	commandLogger.Info("✅ 事件总线初始化完成（内存实现）")
@@ -266,16 +308,20 @@ func main() {
 			http.NotFound(w, req)
 		})
 
-	// 健康检查
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"status": "healthy", "service": "organization-command-service", "timestamp": "%s"}`, time.Now().Format(time.RFC3339))
-	})
+	// 健康检查（统一实现）
+	{
+		hm := health.NewHealthManager("command", "v1")
+		if sqlDB != nil {
+			hm.AddChecker(&health.PostgreSQLChecker{Name: "postgres", DB: sqlDB})
+		}
+		if redisClient != nil {
+			hm.AddChecker(&v9RedisChecker{Name: "redis", Client: redisClient})
+		}
+		r.Get("/health", hm.Handler())
+	}
 
 	// Prometheus metrics 端点（无需认证，供监控系统采集）
 	if !authOnlyMode {
-		// 确保 metrics 已注册
-		organization.RecordHTTPRequest("GET", "/metrics", 200) // 触发初始化
 		r.Handle("/metrics", promhttp.Handler())
 		commandLogger.Info("📊 Prometheus metrics 端点: http://localhost:9090/metrics")
 	}

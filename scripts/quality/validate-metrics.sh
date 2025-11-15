@@ -9,6 +9,7 @@ set -euo pipefail
 SERVICE_URL="${METRICS_URL:-http://localhost:9090}"
 METRICS_ENDPOINT="${SERVICE_URL}/metrics"
 TIMEOUT=5
+STRICT="${STRICT:-false}" # true=校验 HELP/TYPE
 
 # 颜色输出
 RED='\033[0;31m'
@@ -45,13 +46,16 @@ echo ""
 # 3. 验证必需指标定义存在
 echo "[ 3/4 ] 验证指标定义..."
 
-# 立即可见的指标（由中间件或初始化代码自动触发）
+# 立即可见的指标（注册后即可看到 HELP/TYPE；样本可能需要触发）
 IMMEDIATE_METRICS=(
     "http_requests_total"
+    "db_connections_in_use"
+    "db_connections_idle"
 )
 
 # 需要业务操作触发的指标（Counter 在未被 Inc() 前不会显示）
 BUSINESS_TRIGGERED_METRICS=(
+    "db_query_duration_seconds"
     "temporal_operations_total"
     "audit_writes_total"
 )
@@ -63,6 +67,13 @@ MISSING_BUSINESS=()
 for metric in "${IMMEDIATE_METRICS[@]}"; do
     if echo "${METRICS_OUTPUT}" | grep -q "${metric}"; then
         echo -e "${GREEN}✓${NC} ${metric} - 已定义或有数据"
+        if [[ "${STRICT}" == "true" ]]; then
+            if echo "${METRICS_OUTPUT}" | grep -qE "^# HELP ${metric} " && echo "${METRICS_OUTPUT}" | grep -qE "^# TYPE ${metric} "; then
+                echo "    ↳ HELP/TYPE 存在"
+            else
+                echo -e "    ${YELLOW}⚠ 缺少 HELP/TYPE 行（建议注册为正式 Collector）${NC}"
+            fi
+        fi
     else
         echo -e "${RED}✗${NC} ${metric} - 未找到（关键指标）"
         MISSING_CRITICAL+=("${metric}")
@@ -128,8 +139,9 @@ else
     done
     echo ""
     echo "请检查以下文件："
-    echo "  • cmd/organization-command-service/internal/utils/metrics.go - 指标定义"
-    echo "  • cmd/organization-command-service/main.go - /metrics 端点注册"
-    echo "  • cmd/organization-command-service/internal/middleware/performance.go - HTTP 请求计数"
+    echo "  • internal/organization/utils/metrics.go - 业务与HTTP指标定义"
+    echo "  • cmd/hrms-server/command/main.go - /metrics 端点注册与指标初始化"
+    echo "  • internal/organization/middleware/performance.go - HTTP 请求计数与日志"
+    echo "  • pkg/database/metrics.go - 数据库连接池/耗时直方图指标"
     exit 2
 fi

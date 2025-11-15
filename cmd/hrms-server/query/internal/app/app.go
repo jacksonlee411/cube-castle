@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	_ "github.com/lib/pq"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,9 +16,11 @@ import (
 	graphqlresolver "cube-castle/cmd/hrms-server/query/internal/graphql/resolver"
 	"cube-castle/internal/auth"
 	"cube-castle/internal/config"
+	health "cube-castle/internal/monitoring/health"
 	schemaLoader "cube-castle/internal/graphql"
 	requestMiddleware "cube-castle/internal/middleware"
 	organization "cube-castle/internal/organization"
+	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/go-chi/chi/v5"
@@ -32,6 +34,7 @@ import (
 type Application struct {
 	logger      pkglogger.Logger
 	db          *sql.DB
+	dbClient    *database.Database
 	redisClient *redis.Client
 	server      *http.Server
 }
@@ -53,7 +56,7 @@ var (
 			Name: "http_requests_total",
 			Help: "Total HTTP requests handled by the PostgreSQL GraphQL service.",
 		},
-		[]string{"method", "path", "status"},
+		[]string{"method", "route", "status"},
 	)
 	organizationOperationsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -88,10 +91,11 @@ func (a *Application) run() error {
 	a.log("startup", nil).Info("🚀 启动PostgreSQL原生GraphQL服务")
 
 	var err error
-	a.db, err = a.openDatabase()
+	a.dbClient, err = a.openDatabase()
 	if err != nil {
 		return fmt.Errorf("database init: %w", err)
 	}
+	a.db = a.dbClient.GetDB()
 
 	a.redisClient = a.openRedis()
 
@@ -141,7 +145,7 @@ func (a *Application) run() error {
 	return nil
 }
 
-func (a *Application) openDatabase() (*sql.DB, error) {
+func (a *Application) openDatabase() (*database.Database, error) {
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "5432")
 	dbUser := getEnv("DB_USER", "user")
@@ -151,19 +155,25 @@ func (a *Application) openDatabase() (*sql.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		dbHost, dbPort, dbUser, dbPassword, dbName)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := database.NewDatabaseWithConfig(database.ConnectionConfig{
+		DSN:         dsn,
+		ServiceName: "query-service",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("open postgres: %w", err)
 	}
 
-	db.SetMaxOpenConns(100)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	if err := db.PingContext(context.Background()); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("ping postgres: %w", err)
-	}
+	// 注册 DB 指标并周期性上报连接池状态
+	database.RegisterMetrics(prometheus.DefaultRegisterer)
+	// 预热 DB 直方图时间序列，便于在 /metrics 中可见（不会影响统计意义）
+	database.ObserveQueryDuration("query-service", "startup", time.Duration(0))
+	go func(dbc *database.Database) {
+		t := time.NewTicker(30 * time.Second)
+		defer t.Stop()
+		for range t.C {
+			dbc.RecordConnectionStats("query-service")
+		}
+	}(db)
 
 	a.log("database.connect", pkglogger.Fields{
 		"host":     dbHost,
@@ -279,19 +289,17 @@ func (a *Application) buildRouter(graphqlServer http.Handler, permission *auth.G
 		})
 	}
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		payload := map[string]interface{}{
-			"status":      "healthy",
-			"service":     "postgresql-graphql",
-			"timestamp":   time.Now(),
-			"database":    "postgresql",
-			"performance": "optimized",
+	// 健康检查（统一实现）
+	{
+		hm := health.NewHealthManager("query", "v1")
+		if a.db != nil {
+			hm.AddChecker(&health.PostgreSQLChecker{Name: "postgres", DB: a.db})
 		}
-		if err := json.NewEncoder(w).Encode(payload); err != nil {
-			http.Error(w, "failed to encode health response", http.StatusInternalServerError)
+		if a.redisClient != nil {
+			hm.AddChecker(&v9RedisChecker{Name: "redis", Client: a.redisClient})
 		}
-	})
+		r.Get("/health", hm.Handler())
+	}
 
 	r.Handle("/metrics", promhttp.Handler())
 
@@ -306,8 +314,44 @@ func metricsMiddleware(next http.Handler) http.Handler {
 		if status == 0 {
 			status = http.StatusOK
 		}
-		httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, strconv.Itoa(status)).Inc()
+		// 路由模板化，避免基数爆炸
+		route := chi.RouteContext(r.Context()).RoutePattern()
+		if route == "" {
+			route = "unknown"
+		}
+		httpRequestsTotal.WithLabelValues(r.Method, route, strconv.Itoa(status)).Inc()
 	})
+}
+
+// v9RedisChecker implements health.Checker for go-redis/v9 client.
+type v9RedisChecker struct {
+	Name   string
+	Client *redis.Client
+}
+
+func (c *v9RedisChecker) Check(ctx context.Context) health.HealthCheck {
+	start := time.Now()
+	check := health.HealthCheck{
+		Name: c.Name,
+	}
+	if c.Client == nil {
+		check.Status = health.StatusDegraded
+		check.Message = "Redis client not configured"
+		check.Duration = time.Since(start)
+		return check
+	}
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err := c.Client.Ping(ctx).Result()
+	check.Duration = time.Since(start)
+	if err != nil {
+		check.Status = health.StatusUnhealthy
+		check.Message = "Redis ping failed: " + err.Error()
+		return check
+	}
+	check.Status = health.StatusHealthy
+	check.Message = "Redis connection healthy"
+	return check
 }
 
 func graphiqlPage() string {
