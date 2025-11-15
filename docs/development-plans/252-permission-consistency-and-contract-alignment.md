@@ -4,6 +4,8 @@
 标题: 权限一致性与契约对齐（来源：202 计划拆分）  
 创建日期: 2025-11-15  
 版本: v1.0  
+状态: 已完成（已归档）  
+归档: `docs/archive/development-plans/252-permission-consistency-and-contract-alignment.md`（签字：`docs/archive/development-plans/252-signoff-20251115.md`）  
 关联计划: 202、203、OpenAPI/GraphQL 契约、auth/pbac
 
 ---

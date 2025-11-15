@@ -198,7 +198,7 @@
 - 253：部署与流水线简化（单体优先）
   - 文件: `253-deployment-pipeline-simplification.md`（状态：进行中）
 - 254：前端端点与代理收敛（单基址）
-  - 文件: `254-frontend-endpoint-and-proxy-consolidation.md`（状态：未启动）
+  - 文件: `254-frontend-endpoint-and-proxy-consolidation.md`（状态：进行中）
 - 256：契约 SSoT 生成流水线（阶段2）
   - 文件: `256-contract-ssot-generation-pipeline.md`（状态：未启动；生成与门禁接线）
 - 257：前端领域 API 门面采纳（阶段2）

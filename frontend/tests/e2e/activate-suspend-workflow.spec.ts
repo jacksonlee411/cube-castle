@@ -6,7 +6,8 @@
 import { test, expect } from '@playwright/test';
 
 const API_BASE = 'http://localhost:9090/api/v1/organization-units';
-const TEST_ORG_CODE = 'TEST_ORG_001';
+// 使用 7 位数字编码（首位非 0），满足后端契约；保持本次运行内稳定
+const TEST_ORG_CODE = String(Math.floor(Math.random() * 9000000) + 1000000);
 
 interface ApiResponse<T> {
   success: boolean;

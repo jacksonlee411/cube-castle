@@ -44,6 +44,7 @@
 - REST：创建 + PUT 关键路径已回归并登记证据
 - GraphQL：organizations 查询 + 分页基础路径通过
 - E2E：Chromium/Firefox P0 在 Mock 模式全绿；Live 模式用例已受环境开关与 TODO-TEMPORARY 管控，不阻塞主路径
+- E2E（Live 小集合）：basic-functionality/simple-connection/organization-create 在 Chromium 通过（日志：logs/plan222/playwright-LIVE-*.log）
 - 覆盖率：internal/organization 顶层包 > 80%；整体覆盖率按 255/256 持续提升
 
 持续改进（不阻塞交付）：

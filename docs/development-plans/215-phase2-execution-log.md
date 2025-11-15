@@ -93,10 +93,12 @@
   - 准入条件：Plan 250/251 完成；Plan 221 通过  
   - 产物/证据：`logs/plan253/*`（由 `plan-253-gates` 工作流自动落盘/上传）、CI 用时对比、Make/Workflow/Compose 变更  
   - 文档：`docs/development-plans/253-deployment-pipeline-simplification.md`
+  - 门禁验证（本地兜底）：Compose 端口/镜像标签门禁通过，证据：`logs/plan253/compose-ports-and-images.log`
 
 ### 253 首轮冷启动指标登记（占位）
 - 触发：`plan-253-gates`（主干定时 / 触发变更）  
 - 产物：`logs/plan253/coldstart-*.log`（compose_up_ms、db_ready_seconds）  
+- 本地兜底记录：`logs/plan253/coldstart-20251115220516.log`（镜像预拉取进行中；compose_up_ms/db_ready_seconds 将在下一次运行自动补齐）
 - 链接：首次成功运行后补充 CI 运行链接与统计摘要（P50/P90）；在本节仅索引日志路径，避免第二事实来源
 
 - 254 · 前端端点与代理收敛（单基址）  
