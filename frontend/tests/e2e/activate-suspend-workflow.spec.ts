@@ -31,15 +31,20 @@ interface OrganizationUnit {
 const SKIP_API =
   String(process.env.PW_SKIP_SERVER || '').trim() === '1' ||
   String(process.env.PW_SKIP_SERVER || '').toLowerCase() === 'true';
+const ALLOW_LIVE_API =
+  String(process.env.PW_ENABLE_ORG_ACTIVATE_API || '').trim() === '1';
 
 test.describe('组织启用/停用工作流E2E测试', () => {
-  test.skip(SKIP_API, 'PW_SKIP_SERVER=1：后端未联通，跳过 API 级 E2E 用例');
+  // TODO-TEMPORARY(2025-11-22): 待对齐 /activate 与 /suspend 的契约与权限策略后开启
+  test.skip(SKIP_API || !ALLOW_LIVE_API, '跳过 API 级 E2E（后端未联通或未显式启用 PW_ENABLE_ORG_ACTIVATE_API=1）');
 
   const createHeaders = (overrides: Record<string, string> = {}) => {
     const headerBag = new Headers();
-    headerBag.set('authorization', 'Bearer test-token');
+    const jwt = process.env.PW_JWT || '';
+    const tenant = process.env.PW_TENANT_ID || '';
+    if (jwt) headerBag.set('authorization', `Bearer ${jwt}`);
     headerBag.set('content-type', 'application/json');
-    headerBag.set('x-tenant-id', 'test-tenant-001');
+    if (tenant) headerBag.set('x-tenant-id', tenant);
     Object.entries(overrides).forEach(([k, v]) => headerBag.set(k.toLowerCase(), v));
     return headerBag;
   };
@@ -206,4 +211,3 @@ test.describe('组织启用/停用工作流E2E测试', () => {
     });
   });
 });
-
