@@ -10,7 +10,7 @@
  * 6. 跨浏览器: Chrome、Firefox兼容性验证
  */
 
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
 // 测试数据配置
 const TEST_CONFIG = {
@@ -207,7 +207,7 @@ test.describe('时态GraphQL功能完整验证', () => {
 
   test.describe('性能基准验证', () => {
     
-    test('页面加载性能', async ({ page }) => {
+    test('页面加载性能', async () => {
       const startTime = Date.now();
       await helper.navigateToPage();
       const loadTime = Date.now() - startTime;
@@ -215,7 +215,7 @@ test.describe('时态GraphQL功能完整验证', () => {
       expect(loadTime).toBeLessThan(TEST_CONFIG.performanceThresholds.pageLoad);
     });
 
-    test('API响应性能', async ({ page }) => {
+    test('API响应性能', async () => {
       await helper.switchToTimePointTab();
       
       // 测试多个时间点查询的性能
@@ -236,7 +236,7 @@ test.describe('时态GraphQL功能完整验证', () => {
       expect(avgTime).toBeLessThan(TEST_CONFIG.performanceThresholds.apiResponse / 2);
     });
 
-    test('缓存效率验证', async ({ page }) => {
+    test('缓存效率验证', async () => {
       await helper.switchToTimePointTab();
       
       // 首次查询 (Cache MISS)
@@ -250,7 +250,7 @@ test.describe('时态GraphQL功能完整验证', () => {
       expect(secondQuery).toBeLessThan(TEST_CONFIG.performanceThresholds.cacheHit);
     });
 
-    test('历史记录刷新性能', async ({ page }) => {
+    test('历史记录刷新性能', async () => {
       await helper.switchToHistoryTab();
       
       const refreshTime = await helper.refreshHistoryData();

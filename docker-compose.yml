@@ -65,7 +65,7 @@ services:
       - postgres
     restart: unless-stopped
 
-  # （已清退）Temporal 工作流引擎与 UI 不再随仓库提供，若未来启用将另行提供独立编排。
+  # （说明）工作流引擎（Temporal）已清退，不随仓库提供；若未来启用将另行提供独立编排。
 
 # ❌ 已移除的技术债务组件 (PostgreSQL原生架构革命)
 # 
@@ -97,7 +97,7 @@ networks:
 # PostgreSQL原生架构服务启动顺序:
 # 1. PostgreSQL (核心数据库)
 # 2. Redis (缓存服务)  
-# 3. 可选工具服务 (pgAdmin, Temporal)
+# 3. 可选工具服务（pgAdmin）
 #
 # 最小化启动命令:
 # docker-compose up -d postgres redis
