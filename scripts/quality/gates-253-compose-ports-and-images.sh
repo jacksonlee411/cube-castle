@@ -23,8 +23,19 @@ LOG_FILE="$LOG_DIR/compose-ports-and-images.log"
 
 echo "[plan-253] Checking compose port mappings and image tags..." | tee -a "$LOG_FILE"
 
-# Gather compose files tracked in git at repo root (docker-compose*.yml)
-mapfile -t COMPOSE_FILES < <(git ls-files 'docker-compose*.yml')
+# Gather compose files tracked in git at repo root (docker-compose*.yml).
+# Default scope: dev/e2e 以降低误伤测试场景；可通过 COMPOSE_GLOB 覆盖
+COMPOSE_GLOB="${COMPOSE_GLOB:-docker-compose.dev.yml docker-compose.e2e.yml}"
+mapfile -t ALL_COMPOSE < <(git ls-files 'docker-compose*.yml')
+COMPOSE_FILES=()
+for f in "${ALL_COMPOSE[@]}"; do
+  for pat in $COMPOSE_GLOB; do
+    if [[ "$f" == "$pat" ]]; then
+      COMPOSE_FILES+=("$f")
+      break
+    fi
+  done
+done
 if [[ ${#COMPOSE_FILES[@]} -eq 0 ]]; then
   fail "未找到 docker-compose*.yml 文件"
 fi

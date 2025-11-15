@@ -62,6 +62,22 @@ make db-rollback-last   # 使用 Goose 回滚最近一条迁移
 
 > **重要**：前端职位管理页面默认使用真实 GraphQL/REST 数据。若环境存在历史配置，请确保 `.env` / `.env.local` 中设置 `VITE_POSITIONS_MOCK_MODE=false`，避免误用 Mock 数据导致验证失真；Mock 模式下界面会显示只读提醒并禁用写操作。
 
+### 权限契约校验（Plan 252）
+```bash
+# 生成与校验（阻断未注册引用/映射缺失/授权绕过）
+make validate-permissions
+
+# 生成证据快照（logs/plan252/*）便于归档/PR 附件
+make plan252-evidence
+```
+产物路径：
+- reports/permissions/*（openapi-scope-usage.json、openapi-scope-registry.json、graphql-query-permissions.json、resolver-permission-calls.json、summary.txt）
+- cmd/hrms-server/query/internal/auth/generated/graphql-permissions.json（PBAC 运行时映射，构建期由脚本同步）
+- logs/plan252/*（summary + 报告快照）
+
+生产守卫：
+- DEV_MODE 默认 false（查询服务）；CI 检查脚本：scripts/quality/validate-devmode-default.sh
+
 ### 最小依赖与启动顺序（现行 PostgreSQL 原生架构）
 - 依赖：PostgreSQL 16+，Redis 7.x
 - 顺序：

@@ -2,8 +2,20 @@ name: plan-253-gates
 
 on:
   pull_request:
+    paths:
+      - 'docker-compose*.yml'
+      - 'scripts/quality/gates-253-*.sh'
+      - 'docs/development-plans/253-deployment-pipeline-simplification.md'
+      - 'AGENTS.md'
   push:
     branches: [ main, master, develop ]
+    paths:
+      - 'docker-compose*.yml'
+      - 'scripts/quality/gates-253-*.sh'
+      - 'docs/development-plans/253-deployment-pipeline-simplification.md'
+      - 'AGENTS.md'
+  schedule:
+    - cron: '23 3 * * *'  # daily coldstart capture on default branch
 
 jobs:
   compose-and-images:

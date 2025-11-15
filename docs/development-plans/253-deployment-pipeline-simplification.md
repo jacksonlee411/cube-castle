@@ -44,7 +44,9 @@
 ---
 
 ## 6. 工作流与脚本（实现对齐 AGENTS）
-- 工作流：`.github/workflows/plan-253-gates.yml`
+- 工作流：
+  - `.github/workflows/plan-253-gates.yml`（分支保护，阻断+记录；PR/Push 按 paths 触发，主干每日定时冷启动记录）
+  - `.github/workflows/plan-253-publish.yml`（发布通道：手动/Tag 触发，推送应用镜像至 GHCR）
   - `compose-ports-and-images`（阻断）：调用 `scripts/quality/gates-253-compose-ports-and-images.sh`
     - 冻结端口映射：禁止将 5432/6379/8090/9090 映射到非同号主机端口
     - 固定镜像标签：`image: postgres:*`/`redis:*` 禁止 `latest`

@@ -40,6 +40,13 @@
   - 覆盖率：新增多组单测（facade/utils/middleware），顶层包提升至 ~45.5%，整体提升进行中；报告：`logs/plan222/coverage-org-*.{out,txt,html}`
   - E2E P0 全量（Chromium/Firefox）Mock 模式通过；日志：`logs/plan222/playwright-P0-*.log`、`logs/plan222/playwright-FULL-*.log`
 
+### 新增（2025-11-15 — 第三批）
+- ✅ [Plan 252] 权限一致性与契约对齐（完成并归档）  
+  - 守卫：Plan 252 校验器（OpenAPI scopes 引用→注册、GraphQL 注释→映射、resolver 授权覆盖）已接入 CI；DEV_MODE 默认禁用守卫已启用  
+  - 产物：`reports/permissions/*`（usage/registry/mapping/calls/summary）；运行时映射 `cmd/hrms-server/query/internal/auth/generated/graphql-permissions.json`  
+  - 证据：`logs/plan252/validator-summary-*.txt` 与 `logs/plan252/reports-*/` 快照  
+  - 文档：归档正文 `docs/archive/development-plans/252-permission-consistency-and-contract-alignment.md`；签字纪要 `docs/archive/development-plans/252-signoff-20251115.md`
+
 ### 新增（2025-11-15 — 优先级与下一步）
 - P0：Plan 222 收口验收与文档更新（见 222 章节与证据日志）
 - P0：202 阶段1（模块化单体合流，不改协议；索引：`docs/development-plans/202-CQRS混合架构深度分析与演进建议.md`）
@@ -85,6 +92,11 @@
   - 准入条件：Plan 250/251 完成；Plan 221 通过  
   - 产物/证据：`logs/plan253/*`（由 `plan-253-gates` 工作流自动落盘/上传）、CI 用时对比、Make/Workflow/Compose 变更  
   - 文档：`docs/development-plans/253-deployment-pipeline-simplification.md`
+
+### 253 首轮冷启动指标登记（占位）
+- 触发：`plan-253-gates`（主干定时 / 触发变更）  
+- 产物：`logs/plan253/coldstart-*.log`（compose_up_ms、db_ready_seconds）  
+- 链接：首次成功运行后补充 CI 运行链接与统计摘要（P50/P90）；在本节仅索引日志路径，避免第二事实来源
 
 - 254 · 前端端点与代理收敛（单基址）  
   - 计划窗口：TBD（W?）  
