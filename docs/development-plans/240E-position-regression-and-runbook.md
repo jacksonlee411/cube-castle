@@ -115,3 +115,7 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 - 守卫与文档门禁：`logs/plan240/E/selector-guard.log`、`architecture-validator.log`、`temporary-tags.log`、`frontend-lint.log`、`frontend-typecheck.log` 均为通过状态。  
 - 执行日志更新：`docs/development-plans/215-phase2-execution-log.md` 已登记“通过/失败记录 + 证据路径”。  
 - 无新增第二事实来源：本计划仅指向 232/232T（P0 用例）与 215（执行日志）；观测与选择器仅指向权威文件。
+
+## 关闭确认（2025-11-15 14:32:53 CST）
+- CI 稳定通过与门禁校验完成，产物已收敛至 `logs/plan240/E`（trace 见 `logs/plan240/E/trace`；HAR 见 `logs/plan240/B`/BT）。  
+- 执行日志已登记至 `docs/development-plans/215-phase2-execution-log.md`。

@@ -901,3 +901,10 @@ make test-db-down
 **最后更新**: 2025-11-04
 **版本**: v2.0（与 Plan 216-222 完全对齐）
 **关键更改**: 每个行动项现在明确链接到对应的计划文档编号
+
+### Plan 240E – 验收登记（2025-11-15 14:32:53 CST）
+
+- 守卫：选择器 ✅ · 架构 ✅ · 临时标签 ✅
+- 前端：Lint ⚠️ · Typecheck ✅
+- 证据：`logs/plan240/E`（run、guards、trace） · HAR 见 `logs/plan240/B`/BT
+- 执行日志：`logs/plan240/E/playwright-run-20251115142132.log`
