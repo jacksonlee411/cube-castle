@@ -12,6 +12,9 @@
 - 先契约后实现：以 `docs/api/*`（OpenAPI/GraphQL）为唯一事实来源，先定义再实现。
 - 权限契约：以 OpenAPI 为准，先契约后实现，前后端一致；权限 scopes 的来源与变更以 `docs/api/openapi.yaml` 为唯一事实来源。
 - PostgreSQL 原生 CQRS：命令=REST、查询=GraphQL、单一数据源 PostgreSQL，严禁混用。
+- 模块化单体 + DDD 边界优先：以 Bounded Context 划分模块，避免以技术/表结构驱动；必要时可平滑演进为微服务。
+- 模块通信约束（强制）：同步=依赖注入（仅依赖公开接口），异步=事务性发件箱；严禁在生产路径以内存队列作为跨模块异步通信的唯一通道。
+- 权限策略外部化：角色/权限映射不得在代码硬编码，需外部化为配置/数据库；scope 仍以 OpenAPI 为唯一事实来源。
 - 诚实与稳健：基于可验证事实评估与沟通；根因修复优先，配套测试与文档。
 - 悲观谨慎：以最坏情况评估与分阶段验证为默认策略，预留回滚与缓冲。
 - 中文沟通优先：提交物、评审与代理交互使用专业、准确、清晰的中文。
@@ -40,12 +43,17 @@
 ## 编码风格与命名约定
 - Go 采用内部 camelCase、导出 PascalCase，提交前执行 `make fmt` 与 `make lint`；服务领域逻辑聚合在 `cmd/*/internal/` 并保持事务边界清晰，任何跨层命名偏差视为一致性违规。
 - TypeScript 固定两空格缩进、ESLint 与函数式组件；共享类型放入 `frontend/src/shared/`，API 客户端统一使用 `frontend/src/shared/api/`，组件命名遵循 PascalCase。
+- 前端框架复用：详情骨架/统一 Hook/选择器为唯一入口（`TemporalEntityLayout`、`useTemporalEntityDetail`、`temporalEntitySelectors`）；禁止页面重复造骨架或私有 Hook。
+- 幂等读韧性：仅对幂等读启用指数退避重试；路由/页签切换触发 Abort 取消；旧响应丢弃；重试/延迟配置集中导出（SSoT）。
+- QueryKey/失效 SSoT：规范键维度（entity/code/asOfDate/tenant/filters），命令成功后集中失效与跨页签刷新，禁止散落键名。
 
 ## 测试与质量校验
 - Go 测试文件以 `_test.go` 结尾，必要时添加 `//go:build integration` 标签区分场景；前端单测紧邻功能模块并使用 Vitest。
 - 推送前执行 `frontend/scripts/validate-field-naming*.js`、`node scripts/quality/architecture-validator.js`、`make security` 与 `npm run lint`，确保与 CI 校验一致。
 - Playwright 规格按业务场景命名（如 `organization-create.spec.ts`），通过环境变量 `PW_TENANT_ID`、`PW_JWT` 注入租户与令牌。
 - Playwright 规格统一放置在 `frontend/tests/e2e/`，配置入口：`frontend/playwright.config.ts`（支持 `PW_JWT`、`PW_SKIP_SERVER`、`PW_BASE_URL` 等环境变量）；Go 端到端/集成测试保留在 `tests/` 与 `cmd/*`。
+- 可观测性基线：在框架/关键交互注入 `performance.mark` 与 `[OBS]` 事件；生产默认关闭信息级日志；E2E/CI 负责采集并将证据落盘到统一路径（运行时代码不得直接写证据文件）。
+- 守卫：启用“选择器守卫 + ESLint 禁硬编码 data-testid”为必跑门禁，禁止新增旧前缀或硬编码 testid。
 
 ## 临时方案管控
 - 仅引用规则：必须以 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注原因/计划/截止日期（不超过一个迭代），建立清单并按期回收。
@@ -58,6 +66,9 @@
 - 未按 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注的临时实现，或超期未回收的临时方案。
 - 宿主机直接部署服务或数据库（PostgreSQL、Redis、Temporal 等）；一律由 Docker Compose 管理。
 - 禁止在代码/fixtures 中硬编码 GraphQL 字段/枚举常量；字段来源仅限 `docs/api/schema.graphql` 或查询文本。
+- 禁止以纯内存队列作为跨模块异步通信的唯一生产通道（必须采用事务性发件箱）。
+- 禁止在代码中硬编码 `data-testid` 与角色→scope 映射（权限规则需外部化）。
+- 禁止在运行时代码中直接写入测试/审计证据文件（证据应由测试/CI 采集落盘）。
 
 ## 提交与拉取请求规范
 - 提交信息遵循 Conventional Commits（示例：`feat: add temporal validation`），单次提交聚焦单一主题并附带回归验证。
@@ -80,6 +91,7 @@
 - API 契约：`docs/api/openapi.yaml`（REST + 权限 scopes）、`docs/api/schema.graphql`（GraphQL）
 - 授权与认证：`docs/reference/04-AUTH-ERROR-CODES-AND-FLOWS.md`；查询层中间件：`cmd/hrms-server/query/internal/auth`
 - 参考手册：`docs/reference/`（开发者速查、实现清单、工具指南）
+- 时态实体体验指南：`docs/reference/temporal-entity-experience-guide.md`
 - 架构说明：`docs/architecture/`
 - 文档治理：`docs/README.md`、`docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`
 - 计划与变更：`docs/development-plans/`（归档至 `docs/archive/`）、`CHANGELOG.md`

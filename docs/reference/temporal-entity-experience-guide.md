@@ -151,3 +151,40 @@
 
 维护者：前端/设计/QA 联合小组  
 反馈渠道：在 Plan 06 的“设计与命名规范”条目下留言，或在相关 MR 发起评审
+
+---
+
+## 附录 A – 框架与工程实践清单（索引）
+
+说明：本附录仅充当“索引与核对清单”，不复制实现细节；若需变更，请先更新对应计划/契约文档，再回填引用，确保单一事实来源。
+
+- 跨层硬约束（契约/CQRS/容器化）
+  - 契约先行：增量字段/操作须先更新 `docs/api/openapi.yaml`、`docs/api/schema.graphql`，并运行实现清单脚本校验（参考 240B 前置，docs/development-plans/240B-position-loading-governance.md:30）
+  - CQRS：命令=REST、查询=GraphQL、单一数据源 PostgreSQL（参考 241 对齐，docs/development-plans/241-frontend-framework-refactor.md:19）
+  - Docker 强制：本地/CI 以 `make docker-up` → `make run-dev` → `make frontend-dev` 为前置（参考 240B 前置，docs/development-plans/240B-position-loading-governance.md:23）
+
+- 后端演进与可靠通信（供前端协作约束）
+  - 模块化单体 + DDD：模块按 Bounded Context 划分，避免技术/表结构驱动（docs/development-plans/203-hrms-module-division-plan.md:18）
+  - 同步依赖注入、异步“事务性发件箱”强制（docs/development-plans/203-hrms-module-division-plan.md:333）
+  - 权限策略外部化并与 OpenAPI scope 对齐（docs/development-plans/203-hrms-module-division-plan.md:592）
+
+- 前端框架与数据读取（241/240B）
+  - 统一骨架：以 `TemporalEntityLayout`（Shell/Sidebar/Tabs）承载组织/职位等（docs/development-plans/241A-temporal-entity-layout-integration.md:20）
+  - 统一 Hook/Loader：`useTemporalEntityDetail` + 内部 Loader 工厂，页面仅读缓存；预热/并发/取消/重试/失效在 Loader 管理（docs/development-plans/241-frontend-framework-refactor.md:40，docs/development-plans/240B-position-loading-governance.md:37）
+  - 幂等读韧性：仅对幂等读启用指数退避重试；路由/页签切换触发 Abort 取消；旧响应丢弃；重试/延迟配置集中导出（docs/development-plans/240B-position-loading-governance.md:46）
+  - QueryKey/失效 SSoT：标准化键维度与统一失效工具，禁止散落键名（docs/development-plans/240B-position-loading-governance.md:60）
+
+- 命名与测试资产（242/246/240C）
+  - Selector SSoT：仅从 `frontend/src/shared/testids/temporalEntity.ts` 导入；禁硬编码 `data-testid`；ESLint + Guard 双门禁（docs/development-plans/241B-unified-hook-and-selector-guard.md:24，docs/development-plans/246-temporal-entity-selectors-fixtures-plan.md:59）
+  - 旧前缀冻结与渐进收敛：`organization-*`/`position-*` 新增计数禁止上升，迁移到 `temporal-*`（docs/development-plans/240C-position-selectors-unification.md:9）
+  - 时间线/状态命名抽象：统一 `TemporalEntity*` 适配器与元数据（docs/development-plans/244-temporal-timeline-status-plan.md:18）
+
+- 可观测性与证据（240D/241C）
+  - OBS 事件与 performance.mark 在骨架与关键交互注入，按环境门控输出；E2E 采集并落盘（docs/development-plans/240D-position-observability.md:25，docs/development-plans/241C-e2e-acceptance-and-observability-evidence.md:27）
+  - 证据路径唯一：E2E 控制台/trace/HAR 由测试侧采集，落盘到计划指定目录，禁止运行时代码多处写文件（docs/development-plans/240D-position-observability.md:55）
+
+- 回滚与临时方案（240A/240B/240E）
+  - Feature Flag 回退：布局/Loader 等关键变更提供特性开关与冒烟回滚流程（docs/development-plans/240A-position-layout-alignment.md:66，docs/development-plans/240B-position-loading-governance.md:152）
+  - 临时方案治理：仅允许最薄适配层，并以 `// TODO-TEMPORARY(YYYY-MM-DD)` 标注与限期清零（docs/development-plans/240A-position-layout-alignment.md:18）
+
+核对用法：在评审或合并前，按上述条目比对对应计划与代码引用是否到位；若发现不一致或第二事实来源，先回滚并对齐计划/契约，再推进实现。
