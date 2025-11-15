@@ -23,7 +23,7 @@
 
 ### 🎯 核心功能  
 - [**组织单元API规范**](architecture/01-organization-units-api-specification.md) - **主要API文档** ⭐ 完整的GraphQL/REST规范  
-- [CLAUDE.md项目记忆](../CLAUDE.md) - 项目指导原则和架构设计 ⭐ 必读
+- [AGENTS.md（项目指导原则与索引）](../AGENTS.md) - 原则、黑名单与权威链接入口 ⭐ 必读
 - [JWT开发工具指南](development-guides/jwt-development-guide.md) - 开发环境JWT认证工具
 
 ### 🏗️ 架构文档
