@@ -86,7 +86,8 @@ services:
       - JWT_PRIVATE_KEY_PATH=/secrets/dev-jwt-private.pem
       - JWT_PUBLIC_KEY_PATH=/secrets/dev-jwt-public.pem
       - JWT_KEY_ID=${JWT_KEY_ID}
-      - SCHEDULER_ENABLED=${SCHEDULER_ENABLED:-true}
+      # 默认关闭调度器（Temporal 为可选组件，未启动时避免连接失败）；需要时在环境中显式设置为 true
+      - SCHEDULER_ENABLED=${SCHEDULER_ENABLED:-false}
       - SCHEDULER_TEMPORAL_ENDPOINT=${SCHEDULER_TEMPORAL_ENDPOINT:-temporal:7233}
       - SCHEDULER_NAMESPACE=${SCHEDULER_NAMESPACE:-cube-castle}
       - SCHEDULER_TASK_QUEUE=${SCHEDULER_TASK_QUEUE:-organization-maintenance}

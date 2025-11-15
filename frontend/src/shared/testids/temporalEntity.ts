@@ -64,6 +64,10 @@ export const temporalEntitySelectors: TemporalSelectors = {
     dashboard: 'temporal-organization-dashboard',
     form: 'organization-form',
     table: 'temporal-organization-table',
+    createButton: 'temporal-organization-create-button',
+    importButton: 'temporal-organization-import-button',
+    exportButton: 'temporal-organization-export-button',
+    treeRetryButton: 'temporal-organization-tree-retry-button',
   },
   position: {
     dashboard: 'temporal-position-dashboard',

@@ -27,16 +27,6 @@ module.exports = {
   rules: {
     // 🚨 所有日志输出必须通过 shared/utils/logger.ts（桥接层含 eslint-disable 说明）
     'no-console': 'error',
-    // 🚫 禁止在组件中用字面量硬编码 data-testid；请从 "@/shared/testids/temporalEntity" 引用常量/构造器
-    // 仅匹配 JSX 字面量，允许使用表达式（如 data-testid={selectors.xxx}）
-    'no-restricted-syntax': [
-      'error',
-      {
-        selector: 'JSXAttribute[name.name="data-testid"][value.type="Literal"]',
-        message:
-          'Do not hard-code data-testid. Import from "@/shared/testids/temporalEntity" (temporalEntitySelectors).',
-      },
-    ],
     '@typescript-eslint/no-unused-vars': 'off',
     'react-refresh/only-export-components': 'off',
     // 行级例外需注明原因，详见 Plan 20 桥接清单
@@ -62,7 +52,29 @@ module.exports = {
   // 例外：选择器唯一事实来源文件允许定义字面量 testid
   overrides: [
     {
+      // 应用源码：禁止硬编码 data-testid（测试与工具除外）
+      files: ['src/**/*.{ts,tsx}'],
+      excludedFiles: ['src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'JSXAttribute[name.name="data-testid"][value.type="Literal"]',
+            message:
+              'Do not hard-code data-testid. Import from "@/shared/testids/temporalEntity" (temporalEntitySelectors).',
+          },
+        ],
+      },
+    },
+    {
       files: ['src/shared/testids/temporalEntity.ts'],
+      rules: {
+        'no-restricted-syntax': 'off',
+      },
+    },
+    {
+      // 测试与 Playwright 目录暂不强制 testid 字面量限制（逐步迁移至 SSoT 选择器）
+      files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
       rules: {
         'no-restricted-syntax': 'off',
       },

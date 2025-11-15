@@ -553,7 +553,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
               </Text>
             </Box>
             <SecondaryButton
-              data-testid="organization-tree-retry-button"
+              data-testid={temporalEntitySelectors.organization.treeRetryButton}
               size="small"
               onClick={() => loadTreeData(rootCode)}
               disabled={isLoading}

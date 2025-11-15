@@ -14,6 +14,7 @@
 - 资源唯一性与跨层一致性（最高优先级）：所有实现、文档与契约必须保持唯一事实来源与端到端一致，违背时优先回滚或整改。
 - **Docker 容器化部署（强制）**：所有服务、数据库、中间件统一通过 Docker Compose 管理，严禁在宿主机直接安装 PostgreSQL、Redis、Temporal 等组件。如发现宿主服务占用容器端口，必须卸载宿主服务而非调整容器端口映射。
 - **Go 工具链基线**：本地开发与 CI 均使用 Go 1.24 及以上（当前 `toolchain go1.24.9`）；提交前通过 `go version` 确认环境满足要求。
+- 迁移驱动（数据库真源）：数据库变更一律通过 `database/migrations/` 执行与回滚，不使用手工初始化脚本作为事实来源。
 - 诚实原则：状态、性能、风险基于可验证事实，不夸大、不隐瞒。
 - 悲观谨慎：按最坏情况评估，分阶段验证并预留缓冲。
 - 健壮优先：根因修复与可维护性优先，配套测试与文档。
@@ -35,6 +36,9 @@
 - API 契约与权限声明：
   - `docs/api/openapi.yaml`（REST + 权限 scopes）
   - `docs/api/schema.graphql`（GraphQL 查询）
+- 授权与认证链路：
+  - 参考文档：`docs/reference/04-AUTH-ERROR-CODES-AND-FLOWS.md`
+  - 查询层中间件实现：`cmd/hrms-server/query/internal/auth`
 - 参考手册（长期稳定）：`docs/reference/`
   - 开发者速查：`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`
   - 实现清单：`docs/reference/02-IMPLEMENTATION-INVENTORY.md`
@@ -46,7 +50,7 @@
 - 开发工具文档：`docs/development-tools/`
   - Playwright & E2E 指南：`docs/development-tools/e2e-testing-guide.md`
 - 计划与进展（易变）：`docs/development-plans/`（完成项归档至 `docs/archive/`）
-  - Plan 18: E2E 测试完善计划 — `docs/development-plans/18-e2e-test-improvement-plan.md`
+  - Plan 18: E2E 测试完善计划 — `docs/archive/development-plans/18-e2e-test-improvement-plan.md`
 - 版本变更记录：`CHANGELOG.md`
 
 —

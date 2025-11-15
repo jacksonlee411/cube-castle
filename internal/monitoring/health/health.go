@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 // HealthStatus 表示服务健康状态
@@ -143,52 +142,6 @@ func (c *RedisChecker) Check(ctx context.Context) HealthCheck {
 	check.Details = map[string]interface{}{
 		"ping_response":  pong,
 		"info_available": len(info) > 0,
-	}
-
-	return check
-}
-
-// Neo4jChecker Neo4j数据库健康检查器
-type Neo4jChecker struct {
-	Name   string
-	Driver neo4j.DriverWithContext
-}
-
-func (c *Neo4jChecker) Check(ctx context.Context) HealthCheck {
-	start := time.Now()
-	check := HealthCheck{
-		Name: c.Name,
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	// 验证连接
-	err := c.Driver.VerifyConnectivity(ctx)
-	check.Duration = time.Since(start)
-
-	if err != nil {
-		check.Status = StatusUnhealthy
-		check.Message = fmt.Sprintf("Neo4j connectivity failed: %v", err)
-		return check
-	}
-
-	// 创建会话并执行简单查询
-	session := c.Driver.NewSession(ctx, neo4j.SessionConfig{})
-	defer session.Close(ctx)
-
-	_, err = session.Run(ctx, "RETURN 1 as test", nil)
-	if err != nil {
-		check.Status = StatusDegraded
-		check.Message = "Neo4j connected but query failed"
-		return check
-	}
-
-	check.Status = StatusHealthy
-	check.Message = "Neo4j connection healthy"
-	check.Details = map[string]interface{}{
-		"connectivity": "verified",
-		"query_test":   "passed",
 	}
 
 	return check

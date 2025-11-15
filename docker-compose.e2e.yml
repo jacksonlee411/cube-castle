@@ -60,7 +60,8 @@ services:
       - REDIS_PASSWORD=
       - PORT=9090
       - GIN_MODE=release
-      - SCHEDULER_ENABLED=${SCHEDULER_ENABLED:-true}
+      # 默认关闭调度器（Temporal 为可选组件，按需开启）
+      - SCHEDULER_ENABLED=${SCHEDULER_ENABLED:-false}
       - SCHEDULER_TEMPORAL_ENDPOINT=${SCHEDULER_TEMPORAL_ENDPOINT:-temporal:7233}
       - SCHEDULER_NAMESPACE=${SCHEDULER_NAMESPACE:-cube-castle}
       - SCHEDULER_TASK_QUEUE=${SCHEDULER_TASK_QUEUE:-organization-maintenance}

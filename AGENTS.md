@@ -18,7 +18,7 @@
 - 如需快速确认环境，可执行 `make status`、`curl http://localhost:9090/health` 与 `curl http://localhost:8090/health`（命令返回 200 表示核心服务就绪）。
 
 ## 构建、测试与开发命令
-- **基础设施与服务（Docker 强制）**：所有服务通过 `make docker-up` 启动 Docker Compose 容器，包括 PostgreSQL (5432)、Redis (6379)、Temporal (7233) 等。**严禁**在宿主机安装这些服务，如遇端口冲突必须卸载宿主服务。启动后执行 `make run-dev`（端口 9090/8090）→ `make frontend-dev`；必要时使用 `make run-auth-rs256-sim` 提供 JWKS。
+- **基础设施与服务（Docker 强制）**：最小依赖通过 `make docker-up` 启动（PostgreSQL 5432、Redis 6379）。Temporal 为可选组件，如需启用请通过 `docker-compose.yml` 启动 `temporal-server`/`temporal-ui`（7233/8085）。**严禁**在宿主机安装这些服务，如遇端口冲突必须卸载宿主服务。启动后执行 `make run-dev`（端口 9090/8090）→ `make frontend-dev`；`make run-auth-rs256-sim` 已合并至 `make run-dev`（容器化）。
 - 编译与清理：`make build`、`make clean`；数据库迁移使用 `make db-migrate-all`，日志追踪可查阅 `run-dev*.log`。
 - 测试：`make test`、`make test-integration`、`make coverage`，前端 `cd frontend && npm run test` 或 `npm run lint`，E2E 使用 `npm run test:e2e`。
 - 鉴权链路：`make jwt-dev-setup`、`make jwt-dev-mint`，令牌存放 `.cache/dev.jwt`；必要时通过 `curl http://localhost:9090/.well-known/jwks.json` 验证公钥。
@@ -31,6 +31,12 @@
 - Go 测试文件以 `_test.go` 结尾，必要时添加 `//go:build integration` 标签区分场景；前端单测紧邻功能模块并使用 Vitest。
 - 推送前执行 `frontend/scripts/validate-field-naming*.js`、`node scripts/quality/architecture-validator.js`、`make security` 与 `npm run lint`，确保与 CI 校验一致。
 - Playwright 规格按业务场景命名（如 `organization-create.spec.ts`），通过环境变量 `PW_TENANT_ID`、`PW_JWT` 注入租户与令牌。
+- Playwright 配置入口：`frontend/playwright.config.ts`，支持 `PW_JWT`、`PW_SKIP_SERVER`、`PW_BASE_URL` 等环境变量。
+
+## 临时方案管控
+- 仅引用规则：必须以 `// TODO-TEMPORARY:` 标注原因/计划/截止日期（不超过一个迭代），建立清单并按期回收。
+- 白名单：`scripts/todo-temporary-allowlist.txt`；严禁在 `frontend/src/shared/types/api.ts` 保留临时导出（校验脚本会拦截）。
+- 校验脚本：`scripts/check-temporary-tags.sh`；CI 工作流：`.github/workflows/agents-compliance.yml`。
 
 ## 提交与拉取请求规范
 - 提交信息遵循 Conventional Commits（示例：`feat: add temporal validation`），单次提交聚焦单一主题并附带回归验证。
@@ -38,7 +44,7 @@
 - 评论区需明确剩余风险、待办与迁移步骤，审阅者以 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 为核对清单。
 
 ## 安全与配置提示
-- **Docker 环境隔离**：所有数据库、缓存、消息队列必须运行在 Docker 容器内，数据卷统一由 Docker Compose 管理（`postgres_data`、`redis_data` 等）。如遇宿主机服务占用容器端口（如 PostgreSQL 占用 5432），必须执行 `sudo apt remove postgresql*` 或等效卸载命令，**禁止修改 docker-compose.dev.yml 端口映射**来迁就宿主服务。
+- **Docker 环境隔离**：所有数据库、缓存、消息队列必须运行在 Docker 容器内，数据卷统一由 Docker Compose 管理（`postgres_data`、`redis_data` 等）。如遇宿主机服务占用容器端口（如 PostgreSQL 占用 5432），必须卸载宿主服务以释放端口，**禁止修改 docker-compose.dev.yml 端口映射**来迁就宿主服务。示例：Ubuntu/Debian 执行 `sudo apt remove postgresql*`；macOS 执行 `brew services stop postgresql && brew uninstall postgresql`；Windows 在“应用和功能”中卸载或以 PowerShell 停用相关服务后卸载。
 - 所有环境初始化均通过迁移脚本完成；必要时使用 `make db-migrate-all` 或 `make db-rollback-last`（若可用）进行回滚，再同步更新计划文档。
 - 秘钥统一存放于 `secrets/`，严禁提交到版本库；调试时通过 `make jwt-dev-export` 导出会话令牌，并遵循 `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`。
 - 若出现异常，优先参考 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `CHANGELOG.md`，若与本指南冲突，以上述权威文档与 `CLAUDE.md` 为最终解释。

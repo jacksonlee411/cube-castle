@@ -5,9 +5,7 @@ import { logger } from '@/shared/utils/logger';
 import type { APIResponse } from '@/shared/types/api';
 import {
   POSITIONS_QUERY_ROOT_KEY,
-  POSITION_DETAIL_QUERY_ROOT_KEY,
   VACANT_POSITIONS_QUERY_ROOT_KEY,
-  positionDetailQueryKey,
 } from './useEnterprisePositions';
 import { invalidateTemporalDetail } from '@/shared/api/invalidation';
 import type {
@@ -190,18 +188,10 @@ export const useTransferPosition = () => {
     },
     onSuccess: (_, variables) => {
       logger.mutation('[Mutation] Transfer settled, refreshing caches', variables.code);
+      // 列表与统计类仍按根键失效；详情键统一交由 SSoT 工具处理
       queryClient.invalidateQueries({ queryKey: POSITIONS_QUERY_ROOT_KEY, exact: false });
       queryClient.invalidateQueries({ queryKey: VACANT_POSITIONS_QUERY_ROOT_KEY, exact: false });
-      queryClient.invalidateQueries({ queryKey: POSITION_DETAIL_QUERY_ROOT_KEY, exact: false });
-
-      queryClient.invalidateQueries({
-        queryKey: positionDetailQueryKey(variables.code, false),
-        exact: false,
-      });
-      queryClient.invalidateQueries({
-        queryKey: positionDetailQueryKey(variables.code, true),
-        exact: false,
-      });
+      invalidatePositionCaches(queryClient, variables.code);
     },
     onError: (error, variables) => {
       logger.error('[Mutation] Transfer position failed', {
