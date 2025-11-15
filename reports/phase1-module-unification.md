@@ -86,7 +86,7 @@
 ### 轨道A：命令服务迁移
 - 将 `cmd/hrms-server/command` 入口与内部包移动到 `cmd/hrms-server/command`（保留 CQRS 边界）。
 - 更新 `main.go`、`internal/*` 下 import，确认编译通过。
-- 编写一次性脚本（若必要）搬运文件，执行后标记为 `// TODO-TEMPORARY:` 并记录回收计划。
+- 编写一次性脚本（若必要）搬运文件，执行后标记为 `// TODO-TEMPORARY(YYYY-MM-DD):` 并记录回收计划。
 
 ### 轨道B：查询服务迁移
 - 同步迁移 GraphQL 入口至 `cmd/hrms-server/query`，同步更新生成脚本与 resolver 引用。

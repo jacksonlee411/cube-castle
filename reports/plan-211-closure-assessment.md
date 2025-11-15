@@ -207,7 +207,7 @@ $ scripts/phase1-acceptance-check.sh
 - 所有文档、日志、报告使用中文 ✅
 
 ### 6.4 临时方案管控 ✅
-- 迁移脚本使用 `// TODO-TEMPORARY:` 标注 ✅
+- 迁移脚本使用 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注 ✅
 - 无超期未回收的临时方案 ✅
 
 ---
