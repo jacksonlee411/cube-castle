@@ -118,7 +118,7 @@
 - 221T：Docker 集成测试基座验证记录
   - 文件: `221t-docker-integration-validation.md`（状态：验证记录/滚动维护）
 - 222：organization 模块 Phase2 验收
-  - 文件: `222-organization-verification.md`（状态：进行中；最终验收）
+  - 文件: `222-organization-verification.md`（状态：阶段性通过·PARTIAL PASS；待 232/252 与覆盖率/222B 达标后最终验收）
 - 231：Outbox Dispatcher 接入差距分析
   - 文件: `231-outbox-dispatcher-gap.md`（状态：记录/整改跟踪）
 - 232：Playwright P0 稳定专项

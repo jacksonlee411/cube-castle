@@ -139,6 +139,23 @@
 
 ---
 
+### 新增（2025-11-15 — Plan 254 登记）
+- 事实来源：`docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md`（仅索引实现文件，不复制配置值）
+- CI 门禁工作流：`.github/workflows/plan-254-gates.yml`（统一门禁：CQRS/Ports/Forbidden → E2E(254) → 证据归档）
+- 预检与本地执行（可选）：
+  - `node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden`
+  - `cd frontend && npm run test:e2e:254`（证据归档到 `logs/plan254/*`）
+- 关闭条件（验收门槛）：
+  - [ ] 统一门禁（cqrs,ports,forbidden）关键违规=0
+  - [ ] E2E(254) 通过，退出码=0
+  - [ ] 证据落盘：`logs/plan254/playwright-254-run-*.log`、`logs/plan254/trace/*.zip`、（可选）`logs/plan254/har/*.har`、`logs/plan254/report-<ts>/`
+  - [ ] 索引状态更新为“已交付”（`HRMS-DOCUMENTATION-INDEX.md`）
+- 执行登记：
+  - [ ] CI Run 链接（artifact）：TBD（待本次工作流完成后补充）
+  - [ ] 本地辅助报告（如有）：TBD
+
+---
+
 ## 概述
 
 本文档跟踪 Phase2 的实施进展（Week 3-4，Day 12-18），根据 204 号文档第二阶段的定义，工作分解为 **7 个具体实施方案**（Plan 216-222）。

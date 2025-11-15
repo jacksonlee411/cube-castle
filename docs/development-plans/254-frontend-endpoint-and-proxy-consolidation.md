@@ -26,7 +26,7 @@
 - Vite 单基址代理：frontend/vite.config.ts
   - `server.proxy` 将 `/api/v1` → 命令服务，`/graphql` → 查询服务（遵循“命令=REST、查询=GraphQL”）
 - Playwright 基址与 server 策略：frontend/playwright.config.ts
-  - `PW_SKIP_SERVER` 跳过 webServer、自托管；`PW_BASE_URL` 覆盖基址
+  - `PW_SKIP_SERVER` 跳过 webServer、自托管；`PW_BASE_URL` 覆盖基址；`E2E_PLAN_ID` 统一证据目录（行业最佳实践：按计划归档）
 - E2E 运行环境配置：frontend/tests/e2e/config/test-environment.ts
 - 端口配置验证脚本：frontend/scripts/validate-port-config.ts
 - 架构一致性门禁：scripts/quality/architecture-validator.js（CQRS/端口/禁用端点）
@@ -60,24 +60,21 @@
   - REST 命令：`curl -i http://localhost:3000/api/v1/...`
   - GraphQL 查询：`curl -i -X POST http://localhost:3000/graphql`
 
-3.4 端口与架构门禁（可本地/CI 复用）
-- 端口配置与硬编码检测：
-  - `cd frontend && npm run validate:ports`（失败即需整改）
+3.4 端口与架构门禁（本计划唯一门禁：architecture-validator）
 - 架构一致性（CQRS/端口/禁用端点）：
   - `node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden`
-- 直连检测（源码与产物）：
-  - `cd frontend && npm run validate:no-direct-backend`
+- 可选预检（诊断用，非硬门禁）：
+  - `cd frontend && npm run validate:ports`
 
-3.5 E2E 一致性与证据登记
+3.5 E2E 一致性与证据登记（统一证据目录）
 - 运行（默认自启 webServer；如已手启，设置 `PW_SKIP_SERVER=1`）：
-  - `cd frontend && npm run test:e2e:254`
+  - `cd frontend && npm run test:e2e:254`（已注入 `E2E_PLAN_ID=254`，证据归档到 `logs/plan254/`）
 - 证据落盘（脚本已内置）：
   - `logs/plan254/playwright-254-run-*.log`
   - `logs/plan254/trace/*.zip`
   - `logs/plan254/report-<timestamp>/`（Playwright HTML 报告）
-- 额外校验（防止直连端口）：
-  - `rg -n \":(9090|8090)\\b\" logs/plan254/trace logs/plan254/report-* || true`（不应命中）
-  - 可选：需要 HAR 时使用 `E2E_SAVE_HAR=1` 再运行（HAR 仍由 Playwright 默认目录产出，执行后将其复制到 `logs/plan254/`）
+- 可选：HAR 证据
+  - `cd frontend && npm run test:e2e:254:har`（`E2E_PLAN_ID=254 E2E_SAVE_HAR=1`，HAR 自动归档至 `logs/plan254/har/`）
 
 3.6 登记与同步
 - 在 `docs/development-plans/215-phase2-execution-log.md` 登记本计划执行记录与证据路径
@@ -87,9 +84,8 @@
 ---
 
 ## 4. 验收标准（可度量/可门禁）
-- 单基址代理生效：E2E 期间前端仅向 `/:api/v1` 与 `/graphql` 发起请求，不得出现 `:9090|:8090` 直连（通过 trace/HAR/报告与 `rg` 抽检佐证）
+- 单基址代理生效：E2E 期间前端仅向 `/:api/v1` 与 `/graphql` 发起请求，不得出现 `:9090|:8090` 直连（通过 trace/HAR/报告抽检；“直连端口”由 architecture-validator 的 forbiddenEndpoints 进行门禁）
 - 架构一致性通过：`architecture-validator` 在 `cqrs,ports,forbidden` 规则下关键违规为 0
-- 端口配置通过：`npm run validate:ports` 通过，且未发现问题性硬编码端口
 - E2E 通过：`npm run test:e2e:254` 退出码为 0，报告与 trace 按约落盘到 `logs/plan254/*`
 - 登记完成：`215-phase2-execution-log.md` 已登记执行证据
 
@@ -104,8 +100,8 @@
 
 ## 6. CI 接入建议（示例片段）
 - 预拉取/启动：`make docker-up && make run-dev`
-- 前端测试：`cd frontend && PW_SKIP_SERVER=0 npm run test:e2e:254`
-- 门禁：`node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden`；`npm run validate:no-direct-backend`
+- 前端测试：`cd frontend && PW_SKIP_SERVER=1 PW_BASE_URL=http://localhost:3000 npm run test:e2e:254`
+- 门禁：`node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden`
 - 证据归档：打包 `logs/plan254/*` 作为工件
 
 以上仅为执行顺序与变量建议，CI 细节以项目流水线配置为准。
@@ -116,6 +112,7 @@
 - 端点/代理配置说明与最小可执行路径（本计划文件，索引唯一来源）
 - E2E 运行约定（`PW_BASE_URL`、`PW_SKIP_SERVER`）与脚本：`frontend/package.json` 内 `test:e2e:254`
 - 证据登记：`logs/plan254/*`（前端端点连通与代理验证输出）
+ - CI 工作流：`.github/workflows/plan-254-gates.yml`（门禁 + E2E + 证据归档）
 
 ---
 
