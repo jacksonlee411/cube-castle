@@ -5,7 +5,8 @@ import { Box } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { SecondaryButton } from '@workday/canvas-kit-react/button'
 import { queryClient } from '@/shared/api/queryClient'
-import { prefetchPositionDetail } from '@/shared/hooks/useEnterprisePositions'
+import { prefetchPositionDetail, POSITION_DETAIL_QUERY_ROOT_KEY } from '@/shared/hooks/useEnterprisePositions'
+import { createTemporalDetailLoader } from '@/shared/loaders/temporalDetailLoader'
 
 export type TemporalEntityKind = 'organization' | 'position'
 
@@ -76,13 +77,18 @@ const TemporalEntityPage: React.FC<TemporalEntityPageProps> = ({ config }) => {
     if (!enabled) return;
 
     const code = parseResult.code!;
-    // 通过稳定导出预热，避免依赖内部实现
-    prefetchPositionDetail(queryClient, code, false).catch(() => {
-      // 预热失败不阻塞渲染；实际错误由消费端 Hook 处理
+    // 通过统一 Loader 工厂进行预热与取消，符合 240B/241 的“统一入口”目标
+    const loader = createTemporalDetailLoader({
+      entity: 'position',
+      prefetch: (client, c) => prefetchPositionDetail(client, c, false),
+      cancelQueryRootKey: POSITION_DETAIL_QUERY_ROOT_KEY,
     });
+    loader.preheat(queryClient, code).catch(() => {
+      // 预热失败不阻塞渲染；实际错误由消费端 Hook 处理
+    })
     return () => {
       // 取消在途查询（按职位详情根键范围）
-      void queryClient.cancelQueries({ queryKey: ['enterprise-position-detail'], exact: false });
+      loader.cancel(queryClient).catch(() => { /* ignore cancel errors */ })
     };
   }, [config.entity, parseResult.code, parseResult.isCreateMode]);
 
