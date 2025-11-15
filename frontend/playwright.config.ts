@@ -101,7 +101,7 @@ export default defineConfig({
   webServer: SKIP_SERVER ? undefined : {
     command: 'npm run dev',
     url: `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`,
-    reuseExistingServer: (!process.env.CI && process.env.E2E_STRICT !== '1'),
+    reuseExistingServer: true,
     // 前端开发服务器启动等待：2分钟
     timeout: 120 * 1000,
   },
