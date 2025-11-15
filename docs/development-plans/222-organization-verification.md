@@ -22,6 +22,17 @@
 - [ ] 项目文档更新
 - [ ] Phase2 执行验收报告
 
+---
+
+## 1.5 进度（2025-11-15）
+
+- ✅ 集成测试（Docker 基座）本地通过：`logs/plan221/integration-run-*.log`
+- ✅ REST 创建与 GraphQL 查询回归（登记）：`logs/plan222/create-response-*.json`、`logs/plan222/graphql-query-*.json`
+- ✅ 健康与 JWKS：`logs/plan222/health-command-*.json`、`logs/plan222/health-graphql-*.json`、`logs/plan222/jwks-*.json`
+- ✅ E2E 烟测（Chromium/Firefox 各 1 轮）：`frontend/tests/e2e/smoke-org-detail.spec.ts`、`temporal-header-status-smoke.spec.ts`（本地）
+- 🔄 覆盖率补位进行中：`logs/plan222/coverage-org-*.{out,txt,html}`（目标：整体≥80%，已显著提升顶层/中间件/utils 包）
+- 🔄 性能基准：已执行短压测验证链路与速率限制，详见 `logs/219E/perf-rest-*.log`；完整基准待按门槛参数复跑
+
 ### 1.2 为什么需要最终验收
 
 - **质量保证** - 确保重构未引入功能回归
@@ -86,10 +97,11 @@ make test-db-down
 ```
 
 **验收条件**:
-- [ ] 集成测试全部通过
-- [ ] Goose 迁移 up/down 循环通过
-- [ ] 数据库状态一致
-- [ ] 测试数据正确初始化和清理
+- [x] 集成测试全部通过（本地）
+- [x] Goose 迁移 up/down 循环通过（本地）
+- [x] 数据库状态一致（本地）
+- [x] 测试数据正确初始化和清理（脚本内置）
+- 证据：`logs/plan221/integration-run-*.log`
 
 ### 2.3 REST API 回归测试
 
@@ -118,11 +130,13 @@ curl -X PUT http://localhost:9090/org/organizations/ORG-001 \
 ```
 
 **验收条件**:
-- [ ] 所有关键 API 端点响应正常
+- [x] 基础路径验证（创建/查询）通过（本地）
+- [ ] 所有关键 API 端点响应正常（进行中）
 - [ ] 响应字段为 camelCase
 - [ ] HTTP 状态码正确
 - [ ] 错误处理一致
 - [ ] 响应与 OpenAPI 契约一致
+- 证据：`logs/plan222/create-response-*.json`
 
 ### 2.4 GraphQL 查询回归测试
 
@@ -147,10 +161,11 @@ curl -X POST http://localhost:8090/graphql \
 ```
 
 **验收条件**:
-- [ ] GraphQL 查询正常执行
-- [ ] 返回数据符合 schema
+- [x] 基础路径验证通过（`organizations` 查询、分页元信息；本地）
+- [ ] 返回数据符合 schema（全面覆盖进行中）
 - [ ] 错误处理正确
 - [ ] 响应与 schema.graphql 契约一致
+- 证据：`logs/plan222/graphql-query-*.json`
 
 ### 2.5 端到端 (E2E) 测试
 
@@ -184,10 +199,12 @@ curl -X POST http://localhost:8090/graphql \
 ```
 
 **验收条件**:
-- [ ] 所有步骤成功执行
+- [x] 烟测（Chromium/Firefox 各 1 轮）通过
+- [ ] 全量 P0 集合（Plan 232 门槛）通过
 - [ ] 数据一致性维护
 - [ ] 事件正确发布到 eventbus
 - [ ] 日志记录完整
+- 证据：本地执行输出与 Playwright 报告（路径同前端配置），登记：`frontend/tests/e2e/*`、`logs/plan242/t2/`（按约定归档）
 
 ### 2.6 性能基准测试
 
@@ -208,6 +225,7 @@ go test -bench=. -benchmem ./internal/organization/...
 - [ ] 并发性能良好（无锁等待）
 - [ ] 内存使用稳定
 - [ ] CPU 占用合理
+- 登记：短压测与速率限制验证日志 `logs/219E/perf-rest-*.log`（完整基准待复跑）
 
 ---
 

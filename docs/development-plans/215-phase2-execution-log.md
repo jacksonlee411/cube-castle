@@ -25,7 +25,21 @@
   - 前端 Lint/类型：`logs/plan240/E/frontend-lint.log`、`logs/plan240/E/frontend-typecheck.log`  
   - 执行入口：`scripts/plan240/run-240e.sh` / `.github/workflows/plan-240e-regression.yml`（产物统一至 `logs/plan240/E`；HAR 由前端配置集中到 `logs/plan240/B`/`BT`）
 
----
+### 新增（2025-11-15 — 第二批）
+- ✅ [合规] 按 AGENTS 强制要求卸载宿主机 Redis，释放 6379 端口（全部服务统一由 Docker Compose 管理）  
+  - 操作摘要：停止并禁用 systemd 服务 → `apt purge redis-server redis-tools` → 清理 `/etc/redis /var/lib/redis /var/log/redis` → 验证 `ss -lntp` 无 6379 监听  
+  - 目的：避免宿主机与容器冲突，确保环境隔离与可复现性
+- ✅ [Plan 221] Docker 集成测试基座落地验收（本地）  
+  - 证据：`logs/plan221/integration-run-*.log`（包含 Goose up/down 循环与 outbox dispatcher 成功/重试/关停/幂等 全部 PASS）  
+  - 结果：`make test-db` 稳定通过，`docker-compose.test.yml` 与 `scripts/run-integration-tests.sh` 工作正常，工作流 `integration-test.yml` 已配置
+- ✅ [Plan 222] 阶段性验收证据沉淀（持续中）  
+  - REST：`POST /api/v1/organization-units` 创建成功（返回业务 code）；日志：`logs/plan222/create-response-*.json`  
+  - GraphQL：`organizations(filter: { codes: [...] })` 查询与分页元信息正常；日志：`logs/plan222/graphql-query-*.json`  
+  - E2E 烟测（Chromium/Firefox 各 1 轮）：`smoke-org-detail.spec.ts`、`temporal-header-status-smoke.spec.ts` 均通过  
+  - 健康与 JWKS：`logs/plan222/health-command-*.json`、`health-graphql-*.json`、`jwks-*.json`  
+  - 覆盖率：新增多组单测（facade/utils/middleware），顶层包提升至 ~45.5%，整体提升进行中；报告：`logs/plan222/coverage-org-*.{out,txt,html}`
+
+--- 
 
 ## 概述
 
