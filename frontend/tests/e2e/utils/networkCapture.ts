@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Page, Request, Response } from '@playwright/test';
 
 type NetworkRecord = {
@@ -11,7 +12,9 @@ type NetworkRecord = {
   finishedAt?: number;
 };
 
-const outDir = path.resolve(__dirname, '../../../..', 'logs', 'plan240', 'B');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const outDir = path.resolve(__dirname, '../../../../../', 'logs', 'plan240', 'B');
 
 export async function installNetworkCapture(page: Page, runName: string): Promise<() => Promise<void>> {
   const records: NetworkRecord[] = [];
@@ -65,4 +68,3 @@ export async function installNetworkCapture(page: Page, runName: string): Promis
     }
   };
 }
-
