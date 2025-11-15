@@ -1,5 +1,7 @@
 # Cube Castle 参考文档目录
 
+> 说明：参考文档仅用于长期稳定的技术索引与操作指引；项目原则、约束与权威链接以仓库根目录 `AGENTS.md` 为唯一事实来源。若本目录与 `AGENTS.md` 或 `docs/api/*` 存在不一致，请以 `AGENTS.md` 为准。
+
 此目录包含项目的核心参考文档，为开发者提供完整的技术文档支持。
 
 ---
@@ -23,13 +25,12 @@
 - ✅ 问题排查和调试
 
 ### 🏗️ [02. 实现清单](./02-IMPLEMENTATION-INVENTORY.md)
-**用途**: 项目完整实现清单，避免重复造轮子  
-**包含内容**:
-- 25个REST API端点 (10个核心业务 + 8个系统管理 + 7个开发工具)
-- 12个GraphQL查询字段
-- 40个Go后端关键组件 (26个处理器 + 14个服务类型)
-- 120+个前端导出项 (API、Hook、工具、配置等)
-- 重复造轮子风险分析和防范指导
+**用途**: 项目现有实现索引，避免重复造轮子  
+**包含内容**（以脚本输出为准，避免在文档中固化数量以致偏离）:
+- REST/GraphQL 契约项与端点索引
+- Go 后端关键组件与导出项索引
+- 前端导出项与工具/配置索引
+- 重复实现风险提示与避免指引
 
 **使用场景**: 
 - ✅ 开发新功能前必检，避免重复实现
@@ -109,33 +110,13 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 
 ## 🎯 核心开发原则提醒
 
-### 🚨 **绝对禁止** (来自CLAUDE.md)
-- ❌ 跳过实现清单检查就开始开发
-- ❌ 重复创建已有的API/函数/组件  
-- ❌ 混用CQRS协议 (GraphQL命令/REST查询)
-- ❌ 硬编码端口配置
-- ❌ 使用snake_case字段命名
-
-### ✅ **必须遵守**
-- ✅ 查询用GraphQL (8090)，命令用REST (9090)
-- ✅ 统一使用camelCase字段命名
-- ✅ 优先使用现有资源，避免重复造轮子
-- ✅ 所有API调用包含认证头和租户ID
+- 原则与黑名单请查阅 `AGENTS.md`（唯一事实来源）；本目录不重复列示，以避免事实漂移。
+- 关键摘录（非权威，以 AGENTS.md 为准）：查询用 GraphQL（8090）、命令用 REST（9090）；字段使用 camelCase；端口/服务严格由 Docker Compose 管理，遇端口冲突须卸载宿主机同名服务，禁止修改容器端口映射。
 
 
-## 📊 项目统计摘要
+## 📊 质量与规模
 
-### 实现规模
-- **后端**: 25个API端点 + 40个关键组件
-- **前端**: 120+个导出项 (完整的企业级前端架构)
-- **架构**: CQRS + PostgreSQL原生 + 企业级监控
-- **质量**: 契约测试 + 重复代码检测 + 架构验证
-
-### 技术特点
-- ✅ **PostgreSQL单一数据源**: 性能提升70-90%
-- ✅ **企业级CQRS架构**: 查询/命令完全分离
-- ✅ **完整时态数据支持**: 历史版本查询和管理
-- ✅ **质量门禁体系**: 自动化契约测试和代码质量保证
+- 质量与规模等度量请以 CI 产出的 `reports/` 下最新报告为准；为避免事实漂移，本页不固化具体数值。
 
 ---
 
@@ -144,12 +125,11 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 ### 核心规范文档
 - [API契约规范](../api/) - OpenAPI和GraphQL Schema
 - [开发计划文档](../development-plans/) - 项目架构和规划
-- [项目指导原则](../../CLAUDE.md) - 开发规范和原则
+- [项目原则与索引（唯一）](../../AGENTS.md) - 开发规范与约束
 
 ### 开发工具
 > ⚠️ `localhost` 端口均由 Docker 容器对外暴露，禁止在宿主机安装同名服务占用端口；若遇冲突请卸载宿主服务，切勿修改容器映射。
 - GraphiQL调试界面: http://localhost:8090/graphiql（容器 `graphql-service` 映射）
-- Grafana监控面板: http://localhost:3001（容器 `metrics-stack` 映射，如有启用）
 - 实现清单生成器: `node scripts/generate-implementation-inventory.js`
 
 ---
@@ -186,4 +166,4 @@ make jwt-dev-mint USER_ID=dev TENANT_ID=default ROLES=ADMIN,USER
 
 *这些文档是项目开发的重要参考，请保持最新并合理使用！*
 
-*最后更新: 2025-09-09 | 维护团队: Cube Castle架构组*
+*维护团队: Cube Castle 架构组（更新时间以 Git 历史为准）*
