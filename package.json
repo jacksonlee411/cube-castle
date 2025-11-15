@@ -19,7 +19,10 @@
     "compliance:check": "npm run lint:api && npm run lint:frontend-api",
     "compliance:fix": "eslint frontend/src/**/*.{ts,tsx} --config frontend/.eslintrc.api-compliance.cjs --fix",
     "test:compliance": "npm run compliance:check && echo '✅ API合规性检查通过'",
-    "build:analyze": "tsc -b && vite build"
+    "build:analyze": "tsc -b && vite build",
+    "fields:add": "node scripts/fields/add.js",
+    "guard:fields": "node scripts/quality/preflight-field-standard.js",
+    "quality:preflight": "node scripts/quality/document-sync.js && npm run guard:selectors-246 && npm --prefix frontend run lint && npm run guard:fields"
   },
   "devDependencies": {
     "@graphql-inspector/cli": "^5.0.8",

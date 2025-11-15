@@ -304,6 +304,8 @@ go test -bench=. -benchmem ./internal/organization/...
 - 集成测试（Docker 基座）：`make test-db`（产物登记至 `logs/plan221/integration-run-*.log`）
 - E2E（Playwright）：`cd frontend && npm run test:e2e`（产物登记至 `logs/plan222/playwright-*.log`）
 
+> 注：在“模块化单体”模式下，GraphQL 路由由命令服务挂载到 `/graphql`（端口 9090）。本地一次复查出现 404 现象（容器日志显示路由已注册），已列为后续排查项，不影响本计划阶段性结论。单独 GraphQL 服务容器暂不在默认 dev 目标中启用（cmd/hrms-server/query 采用 legacy 构建标签）。
+
 ## 模块化架构
 
 本项目采用模块化单体架构。详见 `docs/development-plans/203-hrms-module-division-plan.md`

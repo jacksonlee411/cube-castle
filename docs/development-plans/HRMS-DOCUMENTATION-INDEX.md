@@ -109,6 +109,10 @@
 
 - 220：模块开发模板与规范文档
   - 文件: `220-module-template-documentation.md`（状态：已完成）
+- 300：平台化 UI 蓝图（插槽/清单/元数据生成/脚手架/远程功能包）
+  - 文件: `300-platformized-ui-blueprint.md`（状态：提案；包含 P0/P1/P2 路线与验收标准）
+- 301：字段可扩展标准（标准化装配能力）
+  - 文件: `301-field-extensibility-standard.md`（状态：提案；字段复制/生成链/门禁/回归标准）
 - 221：Docker 集成测试基座
   - 文件: `221-docker-integration-testing.md`（状态：已完成（本地验收）；CI 常态化推进）
 - 221T：Docker 集成测试基座验证记录

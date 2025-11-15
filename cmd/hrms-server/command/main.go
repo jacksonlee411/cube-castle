@@ -247,15 +247,24 @@ func main() {
 	r.Use(chi_middleware.Recoverer)
 	r.Use(chi_middleware.Timeout(30 * time.Second))
 
-	// CORS设置
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Tenant-ID"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
+		// CORS设置
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Tenant-ID"},
+			ExposedHeaders:   []string{"Link"},
+			AllowCredentials: true,
+			MaxAge:           300,
+		}))
+
+		// NotFound 记录，便于排查路由冲突
+		r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+			commandLogger.WithFields(pkglogger.Fields{
+				"path":   req.URL.Path,
+				"method": req.Method,
+			}).Warn("Route not found")
+			http.NotFound(w, req)
+		})
 
 	// 健康检查
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -313,16 +322,35 @@ func main() {
 			commandLogger.Errorf("[FATAL] 构建 GraphQL 处理器失败: %v", err)
 			os.Exit(1)
 		}
-		r.Handle("/graphql", gqlHandler)
-		if devMode && graphiqlHandler != nil {
-			r.Handle("/graphiql", graphiqlHandler)
+			r.Post("/graphql", func(w http.ResponseWriter, req *http.Request) {
+				commandLogger.WithFields(pkglogger.Fields{
+					"path":   req.URL.Path,
+					"method": req.Method,
+				}).Info("GraphQL handler invoked")
+				gqlHandler.ServeHTTP(w, req)
+			})
+			if devMode && graphiqlHandler != nil {
+				r.Get("/graphiql", func(w http.ResponseWriter, req *http.Request) {
+					graphiqlHandler.ServeHTTP(w, req)
+				})
+			}
+			commandLogger.Info("🔗 GraphQL 查询端点已挂载到单体进程: /graphql（/graphiql in dev）")
 		}
-		commandLogger.Info("🔗 GraphQL 查询端点已挂载到单体进程: /graphql（/graphiql in dev）")
-	}
 
-	if !authOnlyMode {
-		// 为需要认证的API路由创建子路由器
-		r.Group(func(r chi.Router) {
+		// 路由枚举（调试）
+		if devMode {
+			_ = chi.Walk(r, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+				commandLogger.WithFields(pkglogger.Fields{
+					"method": method,
+					"route":  route,
+				}).Info("Route registered")
+				return nil
+			})
+		}
+
+		if !authOnlyMode {
+			// 为需要认证的API路由创建子路由器
+			r.Group(func(r chi.Router) {
 			r.Use(restAuthMiddleware.Middleware()) // JWT认证和权限验证中间件
 			// 设置组织相关路由 (需要认证)
 			if positionHandler != nil {
