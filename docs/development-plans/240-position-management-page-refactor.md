@@ -4,7 +4,7 @@
 **标题**: Position Management UI Refactor & E2E Stabilization  
 **创建日期**: 2025-11-09  
 **关联计划**: Plan 232（Playwright P0 稳定）、Plan 06（集成验证）、80/86/107 号职位阶段性文档  
-**状态**: 进行中（A–D/BT 已完成，E 回归与 Runbook 执行中）  
+**状态**: 已完成（验收通过 · 2025-11-15）  
 
 ---
 
@@ -24,9 +24,9 @@
 - 240D – 职位详情可观测性与指标注入：已完成（验收通过）  
   - 事实来源：`docs/development-plans/240D-position-observability.md`、`CHANGELOG.md:3`（v1.5.7）  
   - 证据：`logs/plan240/D/obs-position-observability-chromium.log`、`frontend/playwright-report/index.html`
-- 240E – 回归与 Runbook：进行中（T0/T4 门禁已跑通，回归套件待 CI 完成）  
-  - 事实来源：`docs/development-plans/240E-position-regression-and-runbook.md`  
- - 现有证据：`logs/plan240/E/architecture-validator.log`、`logs/plan240/E/selector-guard.log`、`logs/plan240/E/temporary-tags.log`、`logs/plan240/E/guard-plan245.log`
+- 240E – 回归与 Runbook：已完成（本地 Smoke + 守卫通过；登记见 Plan 215）  
+  - 事实来源：`docs/development-plans/240E-position-regression-and-runbook.md`、`docs/development-plans/215-phase2-execution-log.md`  
+  - 证据：`logs/plan240/E/playwright-smoke-20251115142851.log`、`logs/plan240/E/architecture-validator.log`、`logs/plan240/E/selector-guard.log`、`logs/plan240/E/temporary-tags.log`
  - 240BT – 组织详情“白屏”治理（路由解耦）：已完成（验收通过）  
    - 事实来源：`docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md`  
    - 证据：`logs/plan240/BT/smoke-org-detail.log`、`logs/plan240/BT/health-checks.log`  
@@ -38,7 +38,7 @@
 
 > 本节为状态索引，具体标准与字段定义仅引用各子计划与 `docs/reference/temporal-entity-experience-guide.md`，不在此重复，避免第二事实来源。
 
-## 0.1 影响评估：240 先于 241 完成的权衡与回补计划
+## 0.1 影响评估：240 先于 241 完成的权衡与回补计划（已登记）
 
 背景：Plan 241（前端页面与框架一体化重构）当前为“部分完成 · 验收未通过”（见 `docs/development-plans/241-frontend-framework-refactor.md`）。本计划的 A–D 子任务已交付在既有骨架与 Hook 上，存在“在 241 交付前的临时对齐与薄适配”的客观状态。
 

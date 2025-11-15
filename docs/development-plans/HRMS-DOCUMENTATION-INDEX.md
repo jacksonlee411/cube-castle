@@ -80,8 +80,8 @@
 ### 247：文档与治理对齐（本次完成项）
 文件: `../archive/development-plans/247-temporal-entity-docs-alignment-plan.md`（状态：已完成，已归档；按本索引更新）
 
-### 240：职位管理页面重构与稳定化（待恢复）
-文件: `240-position-management-page-refactor.md`（状态：暂缓；依赖 242/241 完成后在新框架上实施）
+### 240：职位管理页面重构与稳定化（已完成）
+文件: `240-position-management-page-refactor.md`（状态：已完成 · 验收通过；A–D/BT 完成，E 回归与守卫已登记）
 
 ### 241：前端页面与框架一体化重构（收尾中）
 文件: `241-frontend-framework-refactor.md`（状态：部分完成 · 验收未通过；按收尾计划推进，不改对外契约）
