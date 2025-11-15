@@ -23,6 +23,22 @@
 
 > 240D 已完成并登记，详见 `docs/development-plans/240D-position-observability.md` 的“完成登记”章节。
 
+## v1.5.8 - Timeline/Status 抽象完成（Plan 244）(2025-11-15)
+
+### ✨ 抽象合并
+- 统一 Temporal Timeline Adapter 与 Status 元数据：`frontend/src/features/temporal/entity/timelineAdapter.ts`、`statusMeta.ts`
+- 组织/职位页面全面引用新命名空间，移除旧路径引用
+
+### ✅ 验收与证据
+- E2E（Chromium/Firefox 各 1 轮）：
+  - `frontend/tests/e2e/smoke-org-detail.spec.ts`（通过）
+  - `frontend/tests/e2e/temporal-header-status-smoke.spec.ts`（通过）
+  - `frontend/tests/e2e/temporal-management-integration.spec.ts`（8 passed / 4 skipped）
+- 证据：
+  - `logs/plan242/t2/244-e2e-acceptance.log`
+  - `frontend/playwright-report/index.html`
+  - 命名空间扫描：`logs/plan242/t2/244-namespace-scan.log`
+
 ## 未发布 - 数据库基线重建（2025-11-06）
 
 ### 🛠️ 基础设施

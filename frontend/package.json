@@ -14,6 +14,7 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:noserver": "PW_SKIP_SERVER=1 playwright test",
+    "test:e2e:240e": "node -e \"try{require('fs').mkdirSync('../logs/plan240/E',{recursive:true});require('fs').mkdirSync('../logs/plan240/E/trace',{recursive:true});}catch(e){}\" && PW_SKIP_SERVER=${PW_SKIP_SERVER:-0} npx playwright test 2>&1 | tee ../logs/plan240/E/playwright-run-$(date +%Y%m%d%H%M%S).log; find ./test-results -name trace.zip -maxdepth 3 -exec cp {} ../logs/plan240/E/trace/ \\; || true",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:smoke": "playwright test --project=chromium tests/e2e/basic-functionality-test.spec.ts tests/e2e/simple-connection-test.spec.ts tests/e2e/organization-create.spec.ts",
     "test:e2e:240bt": "bash scripts/run-240bt-smoke.sh",

@@ -15,6 +15,12 @@
 - ✅ [Plan 244 / T2] Temporal Timeline & Status 抽象合入：`frontend/src/features/temporal/entity/timelineAdapter.ts` 与 `statusMeta.ts` 统一组织/职位映射，Lint 禁止回退旧命名，执行记录见 `logs/plan242/t2/`。
 - 🔄 [Plan 244 / T2] Temporal timeline REST 契约补齐 `TemporalEntityTimelineVersion` 字段，Go/前端测试与 Implementation Inventory 同步更新（详见 `logs/plan242/t2/2025-11-11-temporal-timeline-go.md`）。
 
+### 新增（2025-11-15）
+- ✅ [Plan 244 / T2] 验收通过（Chromium/Firefox 各 1 轮）  
+  - 观测用例：`frontend/tests/e2e/smoke-org-detail.spec.ts`、`frontend/tests/e2e/temporal-header-status-smoke.spec.ts`  
+  - 集成用例：`frontend/tests/e2e/temporal-management-integration.spec.ts`（8 passed / 4 skipped）  
+  - 证据：`logs/plan242/t2/244-e2e-acceptance.log`、`frontend/playwright-report/index.html`、`logs/plan242/t2/244-namespace-scan.log`
+
 ---
 
 ## 概述

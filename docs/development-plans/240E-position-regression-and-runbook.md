@@ -27,7 +27,8 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 - Playwright Trace：`logs/plan240/E/trace/{spec}-{browser}-*.zip`  
 - 选择器/架构/临时标签/前端 Lint：`logs/plan240/E/*.log`（见 T4；命令以 CI/根级脚本为准）  
 - 录屏与截图（可选，作为对比证据）：`reports/plan240/`  
-- HAR 说明：由前端配置集中管理，产出统一至 `logs/plan240/B`（或 240BT）；240E 不新增 HAR 路径
+- HAR 说明：由前端配置集中管理，产出统一至 `logs/plan240/B`（或 240BT）；240E 不新增 HAR 路径（历史兼容 + 前端配置集中管理）
+- 产物落盘入口：由 CI Workflow 或前端脚本统一负责。推荐统一脚本：`cd frontend && npm run test:e2e:240e`（会将执行日志与 trace 归档至 `../logs/plan240/E`）
 
 ---
 
@@ -40,6 +41,7 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 
 ## 回归套件与执行矩阵（T1）
 - 权威来源：以 Plan 06 表格中标记为 P0 的“职位域”用例集合为准（含职位详情/生命周期/观测与相关集成路径）。  
+- 过滤规则（客观标准）：优先以 Plan 06 的 `domain=position` 标签/列为准；如 Plan 06 临时缺失该列，兜底集合为 `frontend/tests/e2e/position-*` 与 `frontend/tests/e2e/temporal-management-integration.spec.ts`，但以 Plan 06 为最终事实来源。  
 - 本地示例（非权威，仅便于手工复核）：`position-*` 与 `temporal-management-integration` 等规格。具体清单以 Plan 06 为准。
 
 执行要求与环境
@@ -57,7 +59,7 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 
 2) 观测与采集
 - 真实链路用例：开启 `VITE_OBS_ENABLED=true`（CI 建议叠加 `VITE_ENABLE_MUTATION_LOGS=true`）  
-- 事件词汇表、输出通道与采集落盘：参见 `docs/reference/temporal-entity-experience-guide.md` §7（唯一事实来源）  
+- 事件词汇表、输出通道与采集落盘：参见 `docs/reference/temporal-entity-experience-guide.md` §7（唯一事实来源）。本计划不复述事件语义/字段，避免漂移。  
 - 选择器来源：`frontend/src/shared/testids/temporalEntity.ts`（唯一事实来源；禁止硬编码）
 
 3) 常见故障→定位→解法（示例）

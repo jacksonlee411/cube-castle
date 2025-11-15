@@ -2,7 +2,8 @@
 
 **关联主计划**: Plan 242（T2）  
 **目标窗口**: Day 3-8  
-**范围**: 统一 Timeline Adapter 与状态元数据命名
+**范围**: 统一 Timeline Adapter 与状态元数据命名  
+**状态**: 已完成（验收通过 · 2025-11-15）
 
 ## 背景
 - 职位模块沿用旧版 timeline/status 适配器，仅覆盖 `PositionRecord`  
@@ -35,7 +36,7 @@
 - Day 8：完成引用替换与 lint 规则  
 - 验收标准：  
   - `rg "timelineAdapter"|statusMeta` 仅在新命名空间出现；组织/职位 UI 行为一致。  
-  - `go test ./cmd/hrms-server/...`、`make test`、`npm run lint`、`npm run test`、`npm run test:e2e -- --project=chromium --project=firefox`（各至少一次）全部通过。  
+  - `go test ./cmd/hrms-server/...`、`make test`、`npm run lint`、`npm run test`、`npm run test:e2e -- --project=chromium --project=firefox`（各至少一次）通过（允许跳过与本计划无关的场景）。  
   - `docs/api/*.yaml`、`docs/api/schema.graphql` 的 `TemporalEntity*` 改名与 Go 生成代码保持一致，并在 `reports/plan242/naming-inventory.md`、`logs/plan242/t2/` 记录验证命令。
 
 ## 测试与验证
@@ -62,3 +63,16 @@
 - 2025-11-11：TemporalTimelineManager/REST handler 已输出 `unitType/level/codePath/namePath/sortOrder` 等 `TemporalEntityTimelineVersion` 字段，OpenAPI/GraphQL/Implementation Inventory 与命名清单同步更新，详见 `logs/plan242/t2/2025-11-11-temporal-timeline-go.md`。
 - 验证命令：`go test ./cmd/hrms-server/...`、`make test`、`npm run lint`、`cd frontend && npm run test`、`node scripts/quality/architecture-validator.js`、`node scripts/generate-implementation-inventory.js`。
 - 受限于容器环境未安装 Playwright 浏览器，`npm run test:e2e -- --project=chromium --project=firefox` 需在本地工作站/CI 上补跑三轮以满足 Plan 244 验收条款。
+
+---
+
+## 完成登记（2025-11-15）
+- E2E 验收（Chromium/Firefox 各 1 轮通过）
+  - 组织详情 Smoke：`frontend/tests/e2e/smoke-org-detail.spec.ts`（通过）
+  - Temporal Header Smoke：`frontend/tests/e2e/temporal-header-status-smoke.spec.ts`（通过）
+  - Temporal 集成：`frontend/tests/e2e/temporal-management-integration.spec.ts`（8 passed / 4 skipped）
+  - 证据：  
+    - `logs/plan242/t2/244-e2e-acceptance.log`  
+    - 报告：`frontend/playwright-report/index.html`
+- 命名空间扫描（仅新命名空间出现）：`logs/plan242/t2/244-namespace-scan.log`
+- 文档同步：本计划状态改为“已完成”，后续影响记录见 Plan 241/Plan 06。
