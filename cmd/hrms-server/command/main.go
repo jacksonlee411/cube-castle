@@ -317,20 +317,30 @@ func main() {
 
 	// GraphQL 查询路由（单体合流挂载）
 	if !authOnlyMode {
-		gqlHandler, graphiqlHandler, err := publicgraphql.BuildHandlers(sqlDB, queryRepo, assignmentCache, commandLogger, devMode)
-		if err != nil {
-			commandLogger.Errorf("[FATAL] 构建 GraphQL 处理器失败: %v", err)
-			os.Exit(1)
-		}
-			r.Post("/graphql", func(w http.ResponseWriter, req *http.Request) {
+			gqlHandler, graphiqlHandler, err := publicgraphql.BuildHandlers(sqlDB, queryRepo, assignmentCache, commandLogger, devMode)
+			if err != nil {
+				commandLogger.Errorf("[FATAL] 构建 GraphQL 处理器失败: %v", err)
+				os.Exit(1)
+			}
+			// Wrapper with structured logging, registered on multiple method/path variants to avoid slashes mismatch.
+			graphQLServe := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 				commandLogger.WithFields(pkglogger.Fields{
 					"path":   req.URL.Path,
 					"method": req.Method,
 				}).Info("GraphQL handler invoked")
 				gqlHandler.ServeHTTP(w, req)
 			})
+			// POST is the primary method
+			r.Post("/graphql", graphQLServe)
+			r.Post("/graphql/", graphQLServe) // tolerate trailing slash
+			// Allow GET for simple probes/dev tools
+			r.Get("/graphql", graphQLServe)
+			r.Get("/graphql/", graphQLServe)
 			if devMode && graphiqlHandler != nil {
 				r.Get("/graphiql", func(w http.ResponseWriter, req *http.Request) {
+					graphiqlHandler.ServeHTTP(w, req)
+				})
+				r.Get("/graphiql/", func(w http.ResponseWriter, req *http.Request) {
 					graphiqlHandler.ServeHTTP(w, req)
 				})
 			}
