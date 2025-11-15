@@ -1,5 +1,50 @@
 # Cube Castle 项目变更日志
 
+## v1.5.9 - Plan 240 全面完成与归档（2025-11-15）
+
+### ✨ 代码与框架
+- 引入最小骨架 `TemporalEntityLayout.Shell` 并包裹组织/职位路由，注入性能标记（不改变 DOM/testid，不改对外契约）
+  - 前端：`frontend/src/features/temporal/layout/TemporalEntityLayout.tsx`
+  - 组织路由包裹：`frontend/src/features/temporal/pages/organizationRoute.tsx`
+  - 职位路由包裹：`frontend/src/features/temporal/pages/positionRoute.tsx`
+- 选择器统一（职位域）
+  - 增补集中选择器 `position.form(mode)`：`frontend/src/shared/testids/temporalEntity.ts`
+  - 组件替换为 SSoT：
+    - `frontend/src/features/positions/components/PositionForm/index.tsx`
+    - `frontend/src/features/positions/components/dashboard/PositionHeadcountDashboard.tsx`
+    - `frontend/src/features/positions/components/dashboard/PositionVacancyBoard.tsx`
+    - `frontend/src/features/positions/components/transfer/PositionTransferDialog.tsx`
+
+### 📚 文档与治理
+- Plan 240：标记“已完成（验收通过）”，新增“0.1 影响评估：240 先于 241 完成的回补计划”
+  - `docs/development-plans/240-position-management-page-refactor.md`
+- Plan 240B：新增硬依赖“240BT 路由解耦完成”标注
+  - `docs/development-plans/240B-position-loading-governance.md`
+- Plan 240BT：验收完成并归档；开发目录下改为“已归档占位符”
+  - 归档：`docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md`
+  - 占位：`docs/development-plans/240bt-org-detail-blank-page-mitigation.md`
+- Plan 240E：登记本地 Smoke 与守卫证据，新增“关闭确认”段落；215 执行日志同步
+  - `docs/development-plans/240E-position-regression-and-runbook.md`
+  - `docs/development-plans/215-phase2-execution-log.md`
+- 文档索引：更新 240 为“已完成”，列出 241 子计划（A/B/C）
+  - `docs/development-plans/HRMS-DOCUMENTATION-INDEX.md`
+- 临时标签规范：统一为 `// TODO-TEMPORARY(YYYY-MM-DD): ...`
+  - `AGENTS.md`、相关计划文档与参考手册同步修订
+
+### 🧪 验收与证据
+- 守卫（通过）：
+  - 选择器守卫：`logs/plan240/E/selector-guard.log`
+  - 架构守卫：`logs/plan240/E/architecture-validator.log`
+  - 临时标签检查：`logs/plan240/E/temporary-tags.log`
+- Smoke（Chromium）：6 passed / 1 skipped（通过）
+  - 证据：`logs/plan240/E/playwright-smoke-20251115142851.log`
+- CI 与工具链：
+  - 新增工作流：`.github/workflows/plan-240e-regression.yml`
+  - 统一脚本：`scripts/plan240/run-240e.sh`、`scripts/plan240/trigger-240e-ci.sh`、`scripts/plan240/record-240e-acceptance.sh`
+
+### 🔄 后续（241 对接）
+- 241 完成后按 240“0.1 影响评估”回补：骨架切换至共享 Layout、Hook/Loader 统一、可观测性归一、Feature Flag 收敛与 E2E 复跑（不引入第二事实来源；契约先行）。
+
 ## v1.5.7 - 职位详情可观测性落地（Plan 240D）(2025-11-15)
 
 ### ✨ 新增
