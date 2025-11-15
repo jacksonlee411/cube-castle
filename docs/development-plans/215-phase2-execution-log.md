@@ -4,7 +4,7 @@
 **标题**: Phase2 - 建立模块化结构执行日志
 **创建日期**: 2025-11-04
 **分支**: `feature/204-phase2-infrastructure`
-**版本**: v2.0（与 Plan 216-222 对齐）
+**版本**: v2.1（状态同步与优先级更新）
 
 ---
 
@@ -38,8 +38,16 @@
   - E2E 烟测（Chromium/Firefox 各 1 轮）：`smoke-org-detail.spec.ts`、`temporal-header-status-smoke.spec.ts` 均通过  
   - 健康与 JWKS：`logs/plan222/health-command-*.json`、`health-graphql-*.json`、`jwks-*.json`  
   - 覆盖率：新增多组单测（facade/utils/middleware），顶层包提升至 ~45.5%，整体提升进行中；报告：`logs/plan222/coverage-org-*.{out,txt,html}`
+  - E2E P0 全量（Chromium/Firefox）Mock 模式通过；日志：`logs/plan222/playwright-P0-*.log`、`logs/plan222/playwright-FULL-*.log`
 
---- 
+### 新增（2025-11-15 — 优先级与下一步）
+- P0：Plan 222 收口验收与文档更新（见 222 章节与证据日志）
+- P0：202 阶段1（模块化单体合流，不改协议；索引：`docs/development-plans/202-CQRS混合架构深度分析与演进建议.md`）
+- P1：Plan 221 基座 CI 常态运行（已本地验收；CI 冷启动指标随首轮工作流登记）
+- P1：202 阶段2（契约 SSoT 与前端 API Facade；同上文档“阶段 2: 工程优化”）
+- P1：Plan 219E 回归补强以支撑 222 覆盖率目标
+
+---
 
 ## 概述
 
@@ -350,15 +358,15 @@ cmd/hrms-server/internal/outbox/
 - 暴露 Prometheus 指标：`outbox_dispatch_success_total`、`outbox_dispatch_failure_total`、`outbox_dispatch_retry_total`
 
 **验收标准**:
-- [ ] 事务提交失败时不会发布事件（集成测试覆盖）
-- [ ] 成功发布的事件在 outbox 表中被标记为 `published=true`
-- [ ] 连续失败的事件会增加 `retry_count` 并进入退避队列
-- [ ] 中继可通过上下文或信号安全停止
-- [ ] 单元与集成测试覆盖率 > 80%
+- [x] 事务提交失败时不会发布事件（集成测试覆盖）
+- [x] 成功发布的事件在 outbox 表中被标记为 `published=true`
+- [x] 连续失败的事件会增加 `retry_count` 并进入退避队列
+- [x] 中继可通过上下文或信号安全停止
+- [x] 单元与集成测试覆盖率 > 80%
 
 **负责人**: 基础设施团队
 **计划完成**: Day 13 (W3-D3)
-**状态**: ⏳ 待启动
+**状态**: ✅ 已完成（2025-11-05）
 
 **详细文档**: 见 `docs/development-plans/217B-outbox-dispatcher-plan.md`
 
@@ -588,16 +596,16 @@ docs/development-guides/
 - 引用 Plan 221 的 Docker 测试规范
 
 **验收标准** (来自 Plan 220):
-- [ ] 文档完整（> 3000 字）
-- [ ] 包含 5+ 个代码示例
-- [ ] 示例代码可编译且正确
-- [ ] 包含 3 个以上检查清单
-- [ ] 内容与 organization 模块对齐
-- [ ] 新模块开发者可独立参考
+- [x] 文档完整（> 3000 字）
+- [x] 包含 5+ 个代码示例
+- [x] 示例代码可编译且正确
+- [x] 包含 3 个以上检查清单
+- [x] 内容与 organization 模块对齐
+- [x] 新模块开发者可独立参考
 
 **负责人**: 架构师 + 文档支持
 **计划完成**: Day 17 (W4-D1-2)
-**状态**: ⏳ 待启动
+**状态**: ✅ 已完成（2025-11-07）
 
 **详细文档**: 见 `docs/development-plans/220-module-template-documentation.md`
 
@@ -659,16 +667,16 @@ docs/development-guides/
 - 执行集成测试并上传覆盖率
 
 **验收标准** (来自 Plan 221):
-- [ ] 预拉取镜像后的 Docker 启动 < 10s
-- [ ] 数据库就绪时间 < 15s
-- [ ] Goose up/down 循环通过
-- [ ] 集成测试可正常运行
-- [ ] 多次运行结果一致
-- [ ] 无端口冲突
+- [x] Goose up/down 循环通过（见 `logs/plan221/integration-run-*.log`）
+- [x] 集成测试可正常运行（`make test-db` 稳定通过）
+- [x] 多次运行结果一致（多份运行日志已登记）
+- [x] 无端口冲突（遵循 AGENTS 标准端口与宿主服务清理）
+- [ ] 预拉取镜像后的 Docker 启动 < 10s（CI 首轮冷启动计时待登记）
+- [ ] 数据库就绪时间 < 15s（CI 首轮计时待登记）
 
 **负责人**: QA + DevOps
 **计划完成**: Day 18-19 (W4-D2-3)
-**状态**: ⏳ 待启动
+**状态**: ✅ 已完成（本地验收 2025-11-15；CI 指标计时待首轮登记）
 
 **详细文档**: 见 `docs/development-plans/221-docker-integration-testing.md`
 
@@ -746,7 +754,7 @@ make test-db-down
 
 **负责人**: QA
 **计划完成**: Day 19 (W4-D3)
-**状态**: ⏳ 待启动
+**状态**: 🔄 进行中（阶段性证据已登记：REST/GraphQL/E2E 烟测/健康与 JWKS/覆盖率）
 
 **详细文档**: 见 `docs/development-plans/222-organization-verification.md`
 
@@ -817,9 +825,9 @@ make test-db-down
 
 ### 基础设施质量检查点
 
-- [ ] `pkg/eventbus/` (Plan 216) 单元测试覆盖率 > 80%
-- [ ] `pkg/database/` (Plan 217) 连接池配置正确（MaxOpenConns=25）
-- [ ] `pkg/logger/` (Plan 218) 与 Prometheus 指标集成
+- [x] `pkg/eventbus/` (Plan 216) 单元测试覆盖率 > 80%
+- [x] `pkg/database/` (Plan 217) 连接池配置正确（MaxOpenConns=25）
+- [x] `pkg/logger/` (Plan 218) 与 Prometheus 指标集成
 - [x] `outbox dispatcher` (Plan 217B) 能可靠发布并记录重试指标
 - [ ] 所有共享包无循环依赖
 - [ ] 代码格式通过 `go fmt ./...`
@@ -837,8 +845,8 @@ make test-db-down
 
 ### 测试与验证检查点 (Plan 221-222)
 
-- [ ] Docker 集成测试基座可正常启动 (Plan 221)
-- [ ] Goose up/down 循环验证通过 (Plan 221)
+- [x] Docker 集成测试基座可正常启动 (Plan 221)
+- [x] Goose up/down 循环验证通过 (Plan 221)
 - [ ] organization 模块所有测试通过 (Plan 222)
 - [ ] REST/GraphQL 端点行为一致 (Plan 222)
 - [ ] E2E 端到端流程测试通过 (Plan 222)
@@ -846,7 +854,7 @@ make test-db-down
 
 ### 文档完整性检查点 (Plan 220, 222)
 
-- [ ] 模块开发模板文档完成 (Plan 220)
+- [x] 模块开发模板文档完成 (Plan 220)
 - [ ] README 和开发指南更新 (Plan 222)
 - [ ] 实现清单更新 (Plan 222)
 - [ ] Phase2 执行验收报告完成 (Plan 222)
@@ -912,9 +920,9 @@ make test-db-down
 ---
 
 **维护者**: Codex（AI 助手）
-**最后更新**: 2025-11-04
-**版本**: v2.0（与 Plan 216-222 完全对齐）
-**关键更改**: 每个行动项现在明确链接到对应的计划文档编号
+**最后更新**: 2025-11-15
+**版本**: v2.1（状态同步与优先级更新）
+**关键更改**: 同步 217B/220/221 状态与检查点；新增近期关键推进（P0/P1）与 222 阶段性证据登记说明
 
 ### Plan 240E – 验收登记（2025-11-15 14:32:53 CST）
 

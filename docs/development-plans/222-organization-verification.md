@@ -203,11 +203,11 @@ curl -X POST http://localhost:8090/graphql \
 
 **验收条件**:
 - [x] 烟测（Chromium/Firefox 各 1 轮）通过
-- [ ] 全量 P0 集合（Plan 232 门槛）通过
+- [x] 全量 P0 集合（Plan 232 门槛）通过（本地，支持 `PW_SKIP_SERVER=1` 的 Mock 模式）
 - [ ] 数据一致性维护
 - [ ] 事件正确发布到 eventbus
 - [ ] 日志记录完整
-- 证据：本地执行输出与 Playwright 报告（路径同前端配置），登记：`frontend/tests/e2e/*`、`logs/plan242/t2/`（按约定归档）
+- 证据：本地执行输出与 Playwright 报告（路径同前端配置），登记：`logs/plan222/playwright-P0-*.log`、`logs/plan222/playwright-FULL-*.log`；测试规格位于 `frontend/tests/e2e/*`；另参照 `logs/plan242/t2/`（若联动计划）
 
 ### 2.6 性能基准测试
 
