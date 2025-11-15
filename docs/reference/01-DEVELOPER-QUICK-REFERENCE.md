@@ -2,6 +2,8 @@
 
 版本: v2.1 | 最后更新: 2025-11-05 | 用途: 开发快速查阅手册
 
+> 说明：本文件为开发速查手册，原则与黑名单以仓库根目录 `AGENTS.md` 为唯一事实来源；若存在不一致，请以 `AGENTS.md` 为准并先校正。
+
 ---
 
 > 沟通规范：团队协作与提交物默认使用专业、准确、清晰的中文；如需使用其他语言，请在文档或记录中明确说明受众与范围。
@@ -67,7 +69,7 @@ make db-rollback-last   # 使用 Goose 回滚最近一条迁移
   2) `make run-dev`（模块化单体 hrms-server，统一注入所有模块）
   3) `make frontend-dev`（可选）
 
-前端 UI/组件规范详见项目指导原则文档 `CLAUDE.md`（Canvas Kit v13 图标与用法规范）。
+前端 UI/组件规范请参考 `docs/reference/temporal-entity-experience-guide.md`；通用约束以 `AGENTS.md` 为准。
 
 ### Temporal Entity 命名与文档入口
 - 统一规范文档：`docs/reference/temporal-entity-experience-guide.md`（多页签详情的页面架构/交互/A11y/命名）
@@ -164,7 +166,7 @@ export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用�
 - JWKS 预览：`curl http://localhost:9090/.well-known/jwks.json`（应返回 RSA 公钥，kid 一般为 `bff-key-1`）。
 
 #### 关于 dev-token（开发专用）
-- `scripts/dev/mint-dev-jwt.sh` / `make jwt-dev-mint` 通过 `/auth/dev-token` 生成开发令牌，签名算法固定为 RS256。
+- 使用 `scripts/dev/mint-dev-jwt.sh` 或 `make jwt-dev-mint` 生成开发令牌（RS256），令牌保存在 `.cache/dev.jwt`。
 - 缺少私钥或 JWKS 配置时，命令/查询服务会拒绝启动；请执行 `make jwt-dev-setup` 或使用运维提供的正式密钥。
 - `.well-known/jwks.json` 为唯一公钥来源，前端与自动化测试会检测该端点以确认 RS256 已启用。
 
@@ -174,7 +176,7 @@ export TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9  # 若未设置，使用�
 make lint                      # Go 代码质量检查
 make security                  # Go 安全扫描 (gosec)
 make sqlc-generate             # 生成并验证类型安全查询（CI 会执行并要求无 diff）
-make db-migrate-verify         # Goose up/down 预演 + Atlas diff 校验
+# 迁移验证建议：本地使用 Goose up/down 预演（make db-migrate-all / make db-rollback-last）
 make test-db                   # Docker 化 PostgreSQL 集成测试（含 outbox 验证）
 
 # 前端质量检查
@@ -423,7 +425,7 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 
 ## 🎯 重点提醒
 
-### 🚨 绝对禁止事项
+### 🚨 绝对禁止事项（摘录，权威以 AGENTS.md 为准）
 - ❌ 跳过实现清单检查就开始开发
 - ❌ 重复创建已有的API/函数/组件
 - ❌ 混用CQRS协议
@@ -431,7 +433,7 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 - ❌ 使用snake_case字段命名
 - ❌ 绕过 sqlc/Goose/Atlas 流程提交 SQL 变更或事件 outbox 改动
 
-### ✅ 必须遵守
+### ✅ 必须遵守（摘录，权威以 AGENTS.md 为准）
 - ✅ 开发前运行 `node scripts/generate-implementation-inventory.js`
 - ✅ 优先使用现有资源，避免重复造轮子
 - ✅ 查询用GraphQL (8090)，命令用REST (9090)
@@ -439,7 +441,7 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 - ✅ 所有API调用包含认证头和租户ID
 - ✅ 软删除判定仅依赖 `status='DELETED'`；`deletedAt` 仅做审计输出
 - ✅ 组织详情页时间轴仅承担导航职责；编辑请在“版本历史”页签内完成
-- ✅ 数据库迁移附带 `-- +goose Down` 脚本，并通过 `make db-migrate-verify` 验证
+- ✅ 数据库迁移附带 `-- +goose Down` 脚本，并通过 Goose up/down 本地验证（`make db-migrate-all` / `make db-rollback-last`）
 - ✅ 事件发布走 `pkg/database/outbox`（event_id + retry_count + relay），CI 中以 `make test-db` 回归
 
 ---
@@ -447,14 +449,12 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 ## 📚 更多资源
 
 ### 权威链接与治理
-- 项目原则与黑名单（长期稳定）：`../../CLAUDE.md`
-- 代理/实现强制规范：`../../AGENTS.md`
+- 项目原则与黑名单（唯一事实来源）：`../../AGENTS.md`
 - API 契约（唯一事实来源）：`../api/openapi.yaml`、`../api/schema.graphql`
 - 文档治理与目录边界：`../DOCUMENT-MANAGEMENT-GUIDELINES.md`、`../README.md`
 
 - [实现清单](./02-IMPLEMENTATION-INVENTORY.md) - 查看所有现有功能
 - [API与质量工具指南](./03-API-AND-TOOLS-GUIDE.md) - API使用与质量工具指导
-- [项目指导原则](../../CLAUDE.md) - 开发规范和原则
 - [REST API规范](../api/openapi.yaml) - OpenAPI 3.0规范
 - [GraphQL Schema](../api/schema.graphql) - 查询Schema定义
 - [开发计划目录使用指南](../development-plans/00-README.md) - 建立/更新计划与归档流程
