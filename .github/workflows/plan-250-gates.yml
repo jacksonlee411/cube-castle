@@ -1,0 +1,26 @@
+name: plan-250-gates
+on:
+  pull_request:
+  push:
+    branches: [ master, main ]
+jobs:
+  gates-250:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup rg
+        run: |
+          if ! command -v rg >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y ripgrep
+          fi
+      - name: Block legacy dual service env
+        run: bash scripts/quality/gates-250-no-legacy-env.sh
+      - name: Single binary (non-legacy) gate
+        run: bash scripts/quality/gates-250-single-binary.sh
+      - name: No 8090 in command main
+        run: bash scripts/quality/gates-250-no-8090-in-command.sh
+      - name: Reference gates (compose ports/images) from plan-253
+        if: always()
+        run: echo "Plan-253 compose/image gates run in their own workflow; this job references them as required pre-merge checks."
+

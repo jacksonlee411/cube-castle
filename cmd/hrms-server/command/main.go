@@ -342,6 +342,11 @@ func main() {
 	if port == "" {
 		port = "9090"
 	}
+	// Runtime self-guard: forbid 8090 in monolith mode
+	if port == "8090" || port == ":8090" {
+		commandLogger.Errorf("[FATAL] 端口 8090 已在单体模式下禁用，请使用默认 9090；如需本地排障，请设置 ENABLE_LEGACY_DUAL_SERVICE=true 并仅在本地运行（CI 禁止）。")
+		os.Exit(1)
+	}
 
 	server := &http.Server{
 		Addr:              ":" + port,
