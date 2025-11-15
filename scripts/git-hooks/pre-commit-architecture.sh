@@ -121,13 +121,20 @@ run_architecture_checks() {
         echo "$changed_files" | grep -E '\.(ts|tsx|js|jsx)$' > "$temp_file_list" || true
         
         if [[ -s "$temp_file_list" ]]; then
+            # 优先使用 --file-list（若当前 ESLint 版本不支持，则回退逐个文件传参）
             if npx eslint --config .eslintrc.architecture.js --file-list "$temp_file_list" --quiet >/dev/null 2>&1; then
                 log_success "ESLint架构规则检查通过"
                 checks_passed=$((checks_passed + 1))
             else
-                log_error "ESLint架构规则检查失败"
-                log_info "运行详细检查: npx eslint --config .eslintrc.architecture.js --file-list $temp_file_list"
-                exit_code=1
+                # 回退方式：按文件列表传参执行
+                if npx eslint --config .eslintrc.architecture.js $(cat "$temp_file_list") --quiet >/dev/null 2>&1; then
+                    log_success "ESLint架构规则检查通过（兼容模式）"
+                    checks_passed=$((checks_passed + 1))
+                else
+                    log_error "ESLint架构规则检查失败"
+                    log_info "运行详细检查（兼容模式）: npx eslint --config .eslintrc.architecture.js $(cat $temp_file_list)"
+                    exit_code=1
+                fi
             fi
             rm -f "$temp_file_list"
         else
