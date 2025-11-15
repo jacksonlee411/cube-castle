@@ -55,7 +55,7 @@
      - A11y 与视觉间距维持与组织端一致；任何差异在 MR 中登记原因与后续修正（不在本文件复制规范正文，唯一事实来源：`docs/reference/temporal-entity-experience-guide.md`）。
   2) Hook/Loader 统一（薄适配回收）  
      - 将职位域数据读取入口切换为 241 的统一 Hook/工厂（如 `useTemporalEntityDetail`/`createTemporalDetailLoader`），保留 240B 的取消/重试/失效策略，通过 241 的统一配置导出（SSoT）。  
-     - 移除职位专有 Loader/Hook 的临时分支；若存在 `// TODO-TEMPORARY:` 标记，需在合并时清零并通过 `scripts/check-temporary-tags.sh` 校验。
+     - 移除职位专有 Loader/Hook 的临时分支；若存在临时标注（格式 `// TODO-TEMPORARY(YYYY-MM-DD): ...`），需在合并时清零并通过 `scripts/check-temporary-tags.sh` 校验。
   3) 可观测性归一  
      - 将 hydrate/tab/version/export/graphql.error 的注入位置上移至共享骨架与统一错误处理（241 指南）；职位页面保留调用点必要事件（如导出回调）。  
      - 保持事件词汇与字段以 `docs/reference/temporal-entity-experience-guide.md` 为唯一事实来源；不在 240 内定义新事件。
