@@ -80,10 +80,10 @@
   - 文档：`docs/development-plans/251-runtime-unification-health-metrics.md`
 
 - 253 · 部署与流水线简化（单体优先）  
-  - 计划窗口：TBD（W?）  
-  - 负责人：TBD  
+  - 计划窗口：2025-11 W3–W4  
+  - 负责人：DevOps（与 QA/后端协作）  
   - 准入条件：Plan 250/251 完成；Plan 221 通过  
-  - 产物/证据：`logs/plan253/*`、CI 用时对比、Make/Workflow/Compose 变更  
+  - 产物/证据：`logs/plan253/*`（由 `plan-253-gates` 工作流自动落盘/上传）、CI 用时对比、Make/Workflow/Compose 变更  
   - 文档：`docs/development-plans/253-deployment-pipeline-simplification.md`
 
 - 254 · 前端端点与代理收敛（单基址）  

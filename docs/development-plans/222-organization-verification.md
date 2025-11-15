@@ -17,7 +17,7 @@
 
 **关键成果（完成后需附带日志 / CI 证据再勾选）**:
 - [x] organization 模块完整验证（单元、集成、E2E 测试）— 单测/集成/E2E Smoke 已通过（整体覆盖率与 Live 用例后续在 255/256、232 推进）
-- [x] REST/GraphQL 端点回归测试通过 — REST 已通过；GraphQL 基础路径已登记通过（monolith /graphql 路由本地 404 已登记跟进，不阻塞）
+- [x] REST/GraphQL 端点回归测试通过 — REST 已通过；GraphQL 单体 /graphql (9090) 已通过（需 Authorization + X-Tenant-ID），见 `logs/plan222/graphql-query-*.json`
 - [x] 性能基准测试完成（短压测通过；完整基准按 222B 复跑记录于 logs/219E/）
 - [x] 项目文档更新
 - [x] Phase2 执行验收报告（草案：阶段性通过）
@@ -164,7 +164,7 @@ curl -X POST http://localhost:8090/graphql \
 ```
 
 **验收条件**:
-- [x] 基础路径验证通过（`organizations` 查询、分页元信息；本地）
+- [x] 基础路径验证通过（`organizations` 查询、分页元信息；本地；9090 单体 /graphql 需 Authorization + X-Tenant-ID）
 - [ ] 返回数据符合 schema（全面覆盖进行中）
 - [ ] 错误处理正确
 - [ ] 响应与 schema.graphql 契约一致
@@ -236,6 +236,7 @@ go test -bench=. -benchmem ./internal/organization/...
 
 - 阶段性结论：核心路径通过；E2E（P0）Mock 模式全绿；Live 模式的 API 级用例已通过环境开关与 TODO-TEMPORARY（2025-11-22）隔离，待 232/252 对齐后开启强校验；顶层包覆盖率>80% 达成，整体覆盖率将在 255/256 推进中达成。
 - 统一证据清单：见 `logs/plan222/ACCEPTANCE-SUMMARY-*.md`
+- 本次刷新：9090 单体 /graphql（需 Authorization + X-Tenant-ID）已验证通过；新增证据 `logs/plan222/graphql-query-20251115-125943.json`、`logs/plan222/create-response-20251115-130022.json`、`logs/plan222/put-response-1031964.json`；摘要：`logs/plan222/ACCEPTANCE-SUMMARY-20251115-205959.md`
 
 ---
 

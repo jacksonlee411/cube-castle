@@ -202,7 +202,8 @@ func (a *Application) openRedis() *redis.Client {
 
 func (a *Application) buildServer(repo *organization.QueryRepository, assignmentFacade organization.AssignmentFacade) (*http.Server, error) {
 	jwtConfig := config.GetJWTConfig()
-	devMode := getEnv("DEV_MODE", "true") == "true"
+	// 默认禁用开发模式；仅在本地/开发容器中通过环境变量 DEV_MODE=true 显式开启
+	devMode := getEnv("DEV_MODE", "false") == "true"
 
 	var pubPEM []byte
 	if jwtConfig.HasPublicKey() {

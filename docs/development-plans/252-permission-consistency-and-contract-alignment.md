@@ -16,6 +16,8 @@
 - 权限-契约映射表（仅引用 docs/api/*）；
 - PBAC 校验点清单与最小用例；
 - 证据登记：logs/plan252/*。
+- OpenAPI scopes 注册清单更新（PR 描述具体新增/更名/合并项）；
+- GraphQL Query→scope 映射生成制品：`reports/permissions/graphql-query-permissions.json`（由 schema 注释生成，SSoT 衍生物）。
 
 ## 3. 验收标准
 - 合同字段（security/scope）与中间件校验一致；
@@ -43,7 +45,7 @@
 - GraphQL→PBAC 映射缺失（阻断）
   - 缺少以下 Query 的权限映射：`hierarchyStatistics`（应为 `org:read:hierarchy`）、`jobFamilyGroups`/`jobFamilies`/`jobRoles`/`jobLevels`（应为 `job-catalog:read`）、`assignments`（`position:read`）、`assignmentHistory`（`position:read:history`）、`assignmentStats`（`position:read:stats`）、`positionAssignmentAudit`（待确认，见下条）。
 - 权限命名待确认（高）
-  - `position:assignments:audit` 是否为正式权限？若采纳，需在 OpenAPI 注册；若不采纳，应统一改为既有权限（如 `position:read:history`）并更新 GraphQL 注释与实现。
+  - 采纳 `position:assignments:audit` 作为正式权限（见“决策与长期策略”）；需在 OpenAPI scopes 注册表登记，并补齐 PBAC 映射与 resolver 授权注释的一致性。
 - 角色→权限硬编码（高）
   - 现有 `RolePermissions` 为内部常量（如 `READ_ORGANIZATION`），与 PBAC scope 不一致；权限策略需外部化（配置/数据库），禁止长期硬编码。临时保留需加 `// TODO-TEMPORARY(YYYY-MM-DD):` 并设回收期。
 - devMode 直通策略（中）
@@ -75,6 +77,8 @@
 - OpenAPI security scopes 一致性=100%
 - GraphQL→PBAC 映射覆盖率=100%
 - Resolver 授权覆盖率=100%
+- 生产构建禁用 devMode（CI 检测默认构建 devMode=false；ADMIN/admin 不存在放行路径）
+- 兼容别名清理（见“命名与兼容清理”）按期完成
 - 关键用例通过（最小集，正/负向各至少1）：组织层级、时态历史、职位任职、职类目录、审计历史
 - 证据落盘完整（logs/reports 路径）
 
@@ -105,6 +109,7 @@
 ## 9. 风险与回滚
 - 发现契约与实现不一致时，先回滚实现或更新契约，禁止引入第二事实来源；所有变更记录至 `CHANGELOG.md` 并在本计划下留痕。
 - 临时兼容项必须标注 `// TODO-TEMPORARY(YYYY-MM-DD):` 并在一个迭代内回收。
+- devMode 若误入生产构建，立即回滚构建或强制配置覆盖；保留最小只读降级路径（健康检查）。
 
 ---
 
@@ -112,3 +117,50 @@
 - OpenAPI（REST + 权限 scopes）：`docs/api/openapi.yaml`
 - GraphQL（查询权限注释）：`docs/api/schema.graphql`
 - 原则与约束：`AGENTS.md`
+- 校验器接口规范（参考实现说明）：`docs/reference/08-PERMISSIONS-CONTRACT-VALIDATOR-SPEC.md`
+
+---
+
+## 10. 决策与长期策略（已确认）
+- 审计权限命名
+  - 采纳并注册 `position:assignments:audit`，遵循“领域[:子域]:audit”的最小权限命名范式；GraphQL 注释与 PBAC 映射保持一致。
+- 角色→scope 外部化
+  - OpenAPI 仍为 scope 枚举唯一事实来源；角色→scope 映射外部化于 Auth/BFF 域（数据库迁移管理），由 BFF 在签发 Token 时计算 `scope/permissions`；Query 服务仅基于 Token 中的 scopes 授权，不做 DB 回表。
+  - 本仓库（Query 服务）保留最小临时兜底仅限开发测试，必须以 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注并限期回收。
+- GraphQL 权限映射 SSoT
+  - 以 `docs/api/schema.graphql` 的 “Permissions Required: …” 注释为唯一事实来源，构建期生成 Query→scope 映射制品，PBAC 仅消费该制品；手写常量禁用。
+- 命名与演进策略
+  - 延续 `domain:action` 与分层 action：`read/create/update/delete`，以及 `read:history/read:stats/read:hierarchy` 等；子域采用 `position:assignments:*` 等形式。
+  - 清理同义/历史别名（见下节）。
+- devMode 控制
+  - 生产与 CI 强制 `devMode=false`；仅本地 `make run-dev` 开发模式允许。若 `ENV=production` 且 `devMode=true`，进程应直接失败。
+- 令牌 TTL
+  - 机机（Client Credentials）保持 1–4h；用户态经 BFF 签发 10–30min 短期 Access Token + 刷新流；严控权限变更生效时间。
+
+---
+
+## 11. 命名与兼容清理
+- 清理项
+  - `org:write` 与 `org:update/org:create` 的混用：保留临时向后兼容仅用于过渡期。
+    - `// TODO-TEMPORARY(2025-12-15): 移除 org:write 兼容逻辑，统一使用 org:update/org:create；在权限映射与客户端依赖完成收敛后删除。`
+- 文档化说明
+  - 在开发者速查与变更通告中明确上述别名清理窗口与替代项。
+
+---
+
+## 12. 里程碑与分工（建议）
+- M1 契约收敛（本计划内）
+  - 完成 OpenAPI scopes 注册与路径一致性；为 schema Query 补足权限注释；生成映射并用于 PBAC；CI 启用三项阻断门禁。
+- M2 签发策略外部化（由 Auth/BFF 小组牵头）
+  - 新增角色/映射三表迁移；BFF 按映射签发 Token scopes；Query 侧移除角色硬编码。
+- M3 兼容清理与复核
+  - 移除 `org:write` 兼容；复核命名与最小用例；归档证据与更新 CHANGELOG。
+> 本计划已完成并归档（状态：完成）。  
+> 请以归档版本与签字纪要为准：  
+> - 归档正文：`docs/archive/development-plans/252-permission-consistency-and-contract-alignment.md`  
+> - 签字纪要：`docs/archive/development-plans/252-signoff-20251115.md`  
+> - 校验器接口规范：`docs/reference/08-PERMISSIONS-CONTRACT-VALIDATOR-SPEC.md`
+
+# Plan 252 - 权限一致性与契约对齐（索引占位）
+
+本文件已归档，不再作为唯一事实来源（SSoT）。如需查阅，请访问上述归档路径。 

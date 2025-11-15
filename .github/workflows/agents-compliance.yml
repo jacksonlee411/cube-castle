@@ -62,6 +62,20 @@ jobs:
         run: |
           node scripts/quality/plan245A-soft-guard.js
 
+      - name: Plan 252 Guard – Permissions Contract Validator
+        shell: bash
+        run: |
+          node scripts/quality/auth-permission-contract-validator.js \
+            --openapi docs/api/openapi.yaml \
+            --graphql docs/api/schema.graphql \
+            --resolver-dirs internal/organization/resolver,cmd/hrms-server/query/internal/auth \
+            --out reports/permissions \
+            --fail-on unregistered-scope,mapping-missing,resolver-bypass
+      - name: Plan 252 Guard – DEV_MODE Default (production-off)
+        shell: bash
+        run: |
+          bash scripts/quality/validate-devmode-default.sh
+
       - name: Guard – Disallow root-level binaries in VCS (command/query/generate-dev-jwt)
         shell: bash
         run: |

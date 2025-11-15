@@ -1,0 +1,48 @@
+name: plan-253-gates
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master, develop ]
+
+jobs:
+  compose-and-images:
+    name: Compose/Image Gates (Blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run compose ports/images gate
+        shell: bash
+        run: |
+          bash scripts/quality/gates-253-compose-ports-and-images.sh
+      - name: Upload plan-253 logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan253-logs-compose
+          path: logs/plan253/**
+
+  coldstart:
+    name: Coldstart Metrics (Record Only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Docker info
+        run: |
+          docker version
+          docker info
+      - name: Run coldstart metrics (infra only)
+        shell: bash
+        env:
+          COMPOSE_FILE: docker-compose.dev.yml
+          HEALTH_TIMEOUT: "60"
+        run: |
+          bash scripts/quality/gates-253-coldstart.sh
+      - name: Upload plan-253 logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan253-logs-coldstart
+          path: logs/plan253/**

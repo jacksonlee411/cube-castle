@@ -247,6 +247,18 @@ temporal-validate:
 	@echo "🕒 校验前端时态工具引用..."
 	cd frontend && npm run validate:temporal
 
+validate-permissions:
+	@echo "🔒 Plan 252 – 权限契约校验..."
+	node scripts/quality/auth-permission-contract-validator.js \
+	  --openapi docs/api/openapi.yaml \
+	  --graphql docs/api/schema.graphql \
+	  --resolver-dirs internal/organization/resolver,cmd/hrms-server/query/internal/auth \
+	  --out reports/permissions \
+	  --fail-on unregistered-scope,mapping-missing,resolver-bypass
+
+plan252-evidence:
+	@bash scripts/quality/plan252-evidence.sh
+
 dev-kill:
 	@echo "🧹 结束本地开发服务进程 (9090/8090) ..."
 	-@PIDS=$$(lsof -t -i :9090 -sTCP:LISTEN 2>/dev/null || true); if [ -n "$$PIDS" ]; then echo "  🔪 kill $$PIDS (9090)"; kill $$PIDS || true; else echo "  ✅ 9090 空闲"; fi

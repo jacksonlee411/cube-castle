@@ -51,6 +51,7 @@ services:
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=""
       - PORT=8090
+      - DEV_MODE=true
       - GIN_MODE=debug
       - JWT_ALG=${JWT_ALG}
       - JWT_JWKS_URL=http://rest-service:9090/.well-known/jwks.json
@@ -85,6 +86,7 @@ services:
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=""
       - PORT=9090
+      - DEV_MODE=true
       - GIN_MODE=debug
       - JWT_ALG=${JWT_ALG}
       - JWT_MINT_ALG=${JWT_ALG}
