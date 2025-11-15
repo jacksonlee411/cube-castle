@@ -1,6 +1,6 @@
 # 🏰 Cube Castle - 企业级CoreHR SaaS平台
 
-> **版本**: v4.1-Documentation-Governance | **更新日期**: 2025年9月13日 | **架构**: PostgreSQL原生CQRS + 统一配置管理
+> **版本**: v4.1-Documentation-Governance | **更新日期**: 2025年11月15日 | **架构**: PostgreSQL原生CQRS + 统一配置管理
 > 
 > 快速入口：
 > - 参考文档（Reference）: `docs/reference/00-README.md`
@@ -64,7 +64,7 @@ export const SERVICE_PORTS = {
 - **Node.js 18+**（前端构建/测试）
 - **PostgreSQL / Redis**：由 Docker Compose 管理，宿主机 **不得** 安装同名服务占用端口
 
-> ⚠️ **重要**：本项目强制使用 Docker 容器化部署（见 `CLAUDE.md` 第2节），禁止在宿主机直接运行 PostgreSQL、Redis 或 Go 服务。
+> ⚠️ **重要**：本项目强制使用 Docker 容器化部署（见 `AGENTS.md`），禁止在宿主机直接运行 PostgreSQL、Redis 或 Go 服务；如遇端口占用须卸载宿主服务释放端口，禁止修改 docker-compose.dev.yml 端口映射规避冲突。
 
 ### 一键启动（容器化，推荐）
 ```bash
@@ -92,7 +92,7 @@ cd frontend && npm run dev
 
 ### 调试模式（⚠️ 仅限特殊场景）
 ```bash
-# 警告: 该模式会在宿主机直接运行 Go 服务，违反 CLAUDE.md Docker 强制原则
+# 警告: 该模式会在宿主机直接运行 Go 服务，违反 AGENTS.md 的 Docker 强制原则
 make run-dev-debug
 ```
 
@@ -109,6 +109,7 @@ docker compose -f docker-compose.dev.yml up -d --build rest-service graphql-serv
 
 ### 数据库初始化（迁移优先，禁止使用初始脚本）
 - 规范：使用 `database/migrations/` 按序执行迁移脚本作为唯一初始化来源（幂等，可重复执行）。
+- 推荐：优先使用 `make db-migrate-all`（Goose）；`make run-dev` 已内置迁移。
 - 禁止：`sql/init/01-schema.sql` 已归档为过时快照，切勿用于初始化，详见 `docs/archive/deprecated-setup/01-schema.sql` 头部说明。
 
 示例（PostgreSQL，本地空库初始化）：
@@ -134,7 +135,6 @@ psql "$DATABASE_URL" -f sql/seed/02-sample-data.sql
   - 开发者快速参考 · 实现清单 · API 使用指南
 - 开发计划（活跃/阶段性）: `docs/development-plans/`
   - 完成项归档 → `docs/archive/development-plans/`
--
 导航入口：`docs/README.md`，归档说明：`docs/archive/README.md`
 
 ## 🔐 开发认证
@@ -260,7 +260,7 @@ cat reports/QUALITY_GATE_TEST_REPORT.md
 
 ### 🚀 防控系统快速启动
 ```bash
-# Go代码质量门禁 (需要 golangci-lint v1.61.0+ 支持 Go 1.23)
+# Go代码质量门禁 (需要 golangci-lint v1.61.0+ 支持 Go 1.24)
 make lint                                       # Go 代码质量检查
 make security                                   # Go 安全扫描 (gosec)
 
@@ -280,7 +280,7 @@ cat reports/document-sync/document-sync-report.json   # 同步报告
 ```
 
 ### 📋 质量门禁工具要求
-- **golangci-lint**: v1.61.0+ (支持 Go 1.23 新语法特性)
+- **golangci-lint**: v1.61.0+ (支持 Go 1.24 新语法特性)
 - **gosec**: v2.22.8+ (安全扫描)
 - **工具安装**: 参考 `docs/development-plans/06-integrated-teams-progress-log.md`
 
@@ -324,9 +324,9 @@ cube-castle/
 - **Temporal Entity 指南**: `docs/reference/temporal-entity-experience-guide.md`
 - **开发者快速参考**: `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`
 - **实现清单**: `docs/reference/02-IMPLEMENTATION-INVENTORY.md`
-- **API 使用指南**: `docs/reference/03-API-USAGE-GUIDE.md`
+- **API 使用指南**: `docs/reference/03-API-AND-TOOLS-GUIDE.md`
 - **计划归档目录**: `docs/archive/development-plans/`
-- **项目记忆**: `CLAUDE.md`
+- **原则与索引**: `AGENTS.md`（`CLAUDE.md` 为历史跳转占位）
 
 ## 🔧 故障排除 & 开发规范
 
