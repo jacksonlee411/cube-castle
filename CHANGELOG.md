@@ -1,5 +1,28 @@
 # Cube Castle 项目变更日志
 
+## v1.5.7 - 职位详情可观测性落地（Plan 240D）(2025-11-15)
+
+### ✨ 新增
+- 前端观测发射器（极薄封装）：`frontend/src/shared/observability/obs.ts`
+- 观测事件注入（职位详情）：
+  - 首屏 Hydration：`position.hydrate.start/.done`（含 `durationMs`）
+  - 页签切换：`position.tab.change`（`tabFrom/tabTo`）
+  - 版本选择：`position.version.select`
+  - 版本导出：`position.version.export.start/.done/.error`（含 `durationMs/sizeBytes`）
+  - GraphQL 错误：`position.graphql.error`（`queryName/status`）
+
+### 🔧 变更
+- 移除运行时别名事件与重复定义；事件/Schema 仅引用 `docs/reference/temporal-entity-experience-guide.md`（单一事实来源）
+- 统一落盘路径：`logs/plan240/D/obs-*.log`（E2E 采集写入，运行时代码不落盘）
+- 门控与通道：`VITE_OBS_ENABLED` + `VITE_ENABLE_MUTATION_LOGS`；生产不输出信息级 `[OBS]`
+
+### ✅ 验收与证据
+- 用例：`frontend/tests/e2e/position-observability.spec.ts`
+- 报告：`frontend/playwright-report/index.html`
+- 证据：`logs/plan240/D/obs-position-observability-chromium.log`
+
+> 240D 已完成并登记，详见 `docs/development-plans/240D-position-observability.md` 的“完成登记”章节。
+
 ## 未发布 - 数据库基线重建（2025-11-06）
 
 ### 🛠️ 基础设施

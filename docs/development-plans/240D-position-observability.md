@@ -2,7 +2,7 @@
 
 编号: 240D  
 上游: Plan 240（职位管理页面重构） · 依赖 240A/240B 完成  
-状态: 计划就绪（待实施）
+状态: 已完成（验收通过）
 
 —
 
@@ -102,3 +102,23 @@
 - 日志：`logs/plan240/D/*.log`（Playwright 监听 console 写入，唯一）  
 - 报告：`reports/plan240/baseline/obs-summary.json`（后续 MR 引入，记录分位数与失败比）  
 - 参考：`frontend/tests/e2e/optimization-verification-e2e.spec.ts:66`（console 监听模式），`frontend/src/shared/utils/logger.ts`（门控/通道策略），`docs/reference/temporal-entity-experience-guide.md:104`
+
+---
+
+## 完成登记（2025-11-15）
+- 执行摘要  
+  - 观测发射器与注入点按“彻底方案”落地；移除运行时别名与重复定义；仅以参考规范为事实来源  
+  - E2E 通过，证据已落盘至唯一目录
+- 证据路径  
+  - `logs/plan240/D/obs-position-observability-chromium.log`  
+  - Playwright 报告：`frontend/playwright-report/index.html`
+- 用例入口  
+  - `frontend/tests/e2e/position-observability.spec.ts`  
+  - 支持两种模式：  
+    - `PW_POSITION_CODE=<现有职位>` 时跳过创建，仅验证 hydrate/tab（尽力尝试版本/导出）  
+    - 未提供时自动创建职位与版本，强制断言 version.select 与 export.*
+- 关键事件样例  
+  - `position.hydrate.start/.done`、`position.tab.change`、（可选）`position.version.select/.export.*`、`position.graphql.error`
+- 环境门控  
+  - `VITE_OBS_ENABLED=true`（DEV 默认启用） + `VITE_ENABLE_MUTATION_LOGS=true`（CI 渠道）  
+  - 生产构建下不输出信息级 `[OBS]`

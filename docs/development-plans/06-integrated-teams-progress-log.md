@@ -22,6 +22,7 @@
 | `npx graphql-inspector diff docs/api/schema.graphql logs/graphql-snapshots/runtime-schema.graphql` | ✅ `No changes detected`，runtime SDL 经 `go run ./cmd/hrms-server/query/tools/dump-schema --out logs/graphql-snapshots/runtime-schema.graphql` 导出 | `logs/219T5/graphql-inspector-diff-20251108-015138.txt` |
 | `scripts/diagnostics/check-job-catalog.sh` | ✅ `OPER` Job Catalog 通过（roles=1、levels=S1/S2/S3） | `logs/230/job-catalog-check-20251108T093645.log` |
 | `scripts/dev/seed-position-crud.sh` | ✅ 创建/填充/空缺职位 `P1000027`，播种日志可复用 | `logs/230/position-seed-20251108T094735.log` |
+| 240D 职位详情观测用例（Chromium） | ✅ 观测事件输出与落盘通过（hydrate/tab）；使用现有职位 `PW_POSITION_CODE` 模式 | `logs/plan240/D/obs-position-observability-chromium.log`、`frontend/playwright-report/index.html` |
 
 ## 3. 当前阻塞
 1. **Playwright P0 场景仍需修复**  
