@@ -3,7 +3,7 @@
 文档编号: 253  
 标题: 部署流水线简化（来源：202 计划拆分）  
 创建日期: 2025-11-15  
-版本: v1.1  
+版本: v1.2  
 关联计划: 202、203、221（Docker 基座）、CI
 
 ---
@@ -59,3 +59,11 @@
 - 门禁日志：`logs/plan253/compose-ports-and-images.log`
 - 冷启动与健康就绪：`logs/plan253/coldstart-*.log`（包含 compose 文件名、耗时、时间戳）
 - 215 登记：在 `docs/development-plans/215-phase2-execution-log.md`“25x 启动登记”处仅做索引，不重复细节，避免第二事实来源。
+
+---
+
+## 8. 结项说明（2025-11-16）
+- 门禁（阻断）通过：Compose 端口同号映射冻结、PostgreSQL/Redis 镜像标签固定（非 `latest`）；证据见 `logs/plan253/compose-ports-and-images.log`
+- 冷启动指标达标（预拉取后）：`compose_up_ms`≈1979ms、`db_ready_seconds`=10s（≤15s）；证据见 `logs/plan253/coldstart-20251116001139.log`
+- 文档/索引一致：HRMS 文档索引标记“已完成”，215 登记首轮指标记录与证据路径
+- 发布通道：`.github/workflows/plan-253-publish.yml` 已提供 GHCR 推送（手动/Tag 触发）；回滚演练采用 Plan 221 基座 + Goose down，验收在 215 汇总

@@ -196,7 +196,7 @@
 - 252：权限一致性与契约对齐（REST x-scopes ↔ GraphQL）
   - 文件: `../archive/development-plans/252-permission-consistency-and-contract-alignment.md`（状态：已完成 · 已归档；签字：`../archive/development-plans/252-signoff-20251115.md`）
 - 253：部署与流水线简化（单体优先）
-  - 文件: `253-deployment-pipeline-simplification.md`（状态：进行中）
+  - 文件: `253-deployment-pipeline-simplification.md`（状态：已完成）
 - 254：前端端点与代理收敛（单基址）
   - 文件: `254-frontend-endpoint-and-proxy-consolidation.md`（状态：进行中）
 - 256：契约 SSoT 生成流水线（阶段2）

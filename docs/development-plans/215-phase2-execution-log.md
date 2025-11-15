@@ -87,22 +87,19 @@
     - 指标：`logs/plan251/metrics-command-*.txt`（./scripts/quality/validate-metrics.sh；STRICT=true 校验 HELP/TYPE）  
   - 文档：`docs/development-plans/251-runtime-unification-health-metrics.md`（单体主路径/统一健康与指标/标签与网络限制规范）
 
-- 253 · 部署与流水线简化（单体优先）  
-  - 计划窗口：2025-11 W3–W4  
+- 253 · 部署与流水线简化（单体优先） — 已完成（2025-11-16）  
   - 负责人：DevOps（与 QA/后端协作）  
-  - 准入条件：Plan 250/251 完成；Plan 221 通过  
-  - 产物/证据：`logs/plan253/*`（由 `plan-253-gates` 工作流自动落盘/上传）、CI 用时对比、Make/Workflow/Compose 变更  
+  - 产物/证据：`logs/plan253/*`（门禁与冷启动指标）、Make/Workflow/Compose 变更  
+  - 冷启动基线：`logs/plan253/coldstart-20251116001139.log`（compose_up_ms≈1979ms；db_ready_seconds=10s）  
+  - 门禁证据：`logs/plan253/compose-ports-and-images.log`（端口映射冻结、镜像标签固定）  
   - 文档：`docs/development-plans/253-deployment-pipeline-simplification.md`
-  - 门禁验证（本地兜底）：Compose 端口/镜像标签门禁通过，证据：`logs/plan253/compose-ports-and-images.log`
 
 ### 253 首轮冷启动指标登记（占位）
 - 触发：`plan-253-gates`（主干定时 / 触发变更）  
 - 产物：`logs/plan253/coldstart-*.log`（compose_up_ms、db_ready_seconds）  
-- 本地兜底记录：
-  - 预拉取进行中：`logs/plan253/coldstart-20251115220516.log`
-  - 基线（跳过 pull，等价于“已预拉取后冷启动”）：`logs/plan253/coldstart-20251116001139.log`  
-    - compose_up_ms: 1979（约 2.0s）  
-    - db_ready_seconds: 10s（<= 15s）
+- 本地兜底记录已完成：  
+  - 预拉取过程：`logs/plan253/coldstart-20251115220516.log`  
+  - 基线（已预拉取后冷启动）：`logs/plan253/coldstart-20251116001139.log`（compose_up_ms≈1979ms；db_ready_seconds=10s）
 - 链接：首次成功运行后补充 CI 运行链接与统计摘要（P50/P90）；在本节仅索引日志路径，避免第二事实来源
 
 - 254 · 前端端点与代理收敛（单基址）  
