@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { QueryFunctionContext, UseQueryResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import { graphqlEnterpriseAdapter } from '../api/graphql-enterprise-adapter';
 import { createQueryError } from '../api/queryClient';
 import type {
@@ -1515,6 +1516,23 @@ export function usePositionDetail(
     queryKey,
     queryFn: positionDetailQueryFn,
     enabled,
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * 预热职位详情（用于路由级 Loader 预热）
+ * - 作为稳定导出，避免上层直接依赖内部实现细节
+ */
+export async function prefetchPositionDetail(
+  client: QueryClient,
+  code: string,
+  includeDeleted = false,
+): Promise<void> {
+  const key = positionDetailQueryKey(code, includeDeleted);
+  await client.prefetchQuery({
+    queryKey: key,
+    queryFn: positionDetailQueryFn,
     staleTime: 60_000,
   });
 }

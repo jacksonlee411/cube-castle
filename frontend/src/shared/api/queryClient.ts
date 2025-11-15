@@ -203,6 +203,14 @@ const shouldRetry = (failureCount: number, error: unknown): boolean => {
     return false;
   }
 
+  // 优先基于 HTTP 状态码判断（由统一客户端附加）
+  const httpStatus = (error as { httpStatus?: unknown })?.httpStatus;
+  if (typeof httpStatus === 'number') {
+    if (httpStatus === 429) return true;
+    if (httpStatus >= 500) return true;
+    return false; // 4xx 一律不重试
+  }
+
   if (error && typeof error === 'object' && 'code' in error) {
     const code = (error as { code?: string | undefined }).code;
     if (code === 'VALIDATION_ERROR' || code === 'NOT_FOUND' || code === 'FORBIDDEN') {

@@ -5,10 +5,7 @@ import { Box } from '@workday/canvas-kit-react/layout'
 import { Heading, Text } from '@workday/canvas-kit-react/text'
 import { SecondaryButton } from '@workday/canvas-kit-react/button'
 import { queryClient } from '@/shared/api/queryClient'
-import {
-  positionDetailQueryKey,
-  __internal as PositionsInternal,
-} from '@/shared/hooks/useEnterprisePositions'
+import { prefetchPositionDetail } from '@/shared/hooks/useEnterprisePositions'
 
 export type TemporalEntityKind = 'organization' | 'position'
 
@@ -79,21 +76,13 @@ const TemporalEntityPage: React.FC<TemporalEntityPageProps> = ({ config }) => {
     if (!enabled) return;
 
     const code = parseResult.code!;
-    const key = positionDetailQueryKey(code, false);
-
-    // 通过 React Query 的 signal 传递取消；清理时对该 key 执行 cancelQueries
-    queryClient
-      .prefetchQuery({
-        queryKey: key,
-        queryFn: ({ signal }) => PositionsInternal.fetchPositionDetail(code, false, signal),
-        staleTime: 60_000,
-      })
-      .catch(() => {
-        // 预热失败不阻塞渲染；实际错误由消费端 Hook 处理
-      });
-
+    // 通过稳定导出预热，避免依赖内部实现
+    prefetchPositionDetail(queryClient, code, false).catch(() => {
+      // 预热失败不阻塞渲染；实际错误由消费端 Hook 处理
+    });
     return () => {
-      void queryClient.cancelQueries({ queryKey: key });
+      // 取消在途查询（按职位详情根键范围）
+      void queryClient.cancelQueries({ queryKey: ['enterprise-position-detail'], exact: false });
     };
   }, [config.entity, parseResult.code, parseResult.isCreateMode]);
 

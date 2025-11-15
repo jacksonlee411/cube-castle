@@ -38,6 +38,13 @@ export class UnifiedGraphQLClient {
     variables?: Record<string, JsonValue>,
     options: GraphQLRequestOptions = {},
   ): Promise<T> {
+    const annotate = (err: unknown, status?: number): Error => {
+      const e = err instanceof Error ? err : new Error(String(err));
+      if (typeof status === 'number') {
+        (e as unknown as { httpStatus?: number }).httpStatus = status;
+      }
+      return e;
+    };
     const doRequest = async (): Promise<Response> => {
       // 🔧 开发和生产环境都需要JWT认证
       const headers: Record<string, string> = {
@@ -80,11 +87,11 @@ export class UnifiedGraphQLClient {
             response = await doRequest();
             if (!response.ok) {
               authEvents.emitUnauthorized();
-              throw new Error("认证已过期，请刷新页面重新登录");
+              throw annotate(new Error("认证已过期，请刷新页面重新登录"), response.status);
             }
           } else {
             authEvents.emitUnauthorized();
-            throw new Error("认证已过期，请刷新页面重新登录");
+            throw annotate(new Error("认证已过期，请刷新页面重新登录"), response.status);
           }
         }
 
@@ -99,19 +106,19 @@ export class UnifiedGraphQLClient {
               code === "TENANT_MISMATCH" ||
               code === "TENANT_ID_MISMATCH"
             ) {
-              throw new Error("无权访问所选租户，请切换到有权限的租户");
+              throw annotate(new Error("无权访问所选租户，请切换到有权限的租户"), response.status);
             }
             if (code === "INSUFFICIENT_PERMISSIONS") {
-              throw new Error("权限不足，无法访问该资源，请联系管理员");
+              throw annotate(new Error("权限不足，无法访问该资源，请联系管理员"), response.status);
             }
             // 无法解析具体码时的兜底
-            throw new Error("访问被禁止：请检查权限或租户设置");
+            throw annotate(new Error("访问被禁止：请检查权限或租户设置"), response.status);
           } catch (e) {
             if (e instanceof SyntaxError) {
               // 非JSON错误体
-              throw new Error("访问被禁止：请检查权限或租户设置");
+              throw annotate(new Error("访问被禁止：请检查权限或租户设置"), response.status);
             }
-            throw e;
+            throw annotate(e as Error, response.status);
           }
         }
 
@@ -122,11 +129,12 @@ export class UnifiedGraphQLClient {
             variables,
             status: response.status,
           });
-          throw new Error("服务器内部错误，请稍后重试或联系管理员");
+          throw annotate(new Error("服务器内部错误，请稍后重试或联系管理员"), response.status);
         }
 
-        throw new Error(
-          `GraphQL Error: ${response.status} ${response.statusText}`,
+        throw annotate(
+          new Error(`GraphQL Error: ${response.status} ${response.statusText}`),
+          response.status,
         );
       }
 
@@ -140,11 +148,11 @@ export class UnifiedGraphQLClient {
             responseBody.error?.message ||
             responseBody.message ||
             "API调用失败";
-          throw new Error(`API Error: ${errorMsg}`);
+          throw annotate(new Error(`API Error: ${errorMsg}`));
         }
 
         if (!responseBody.data) {
-          throw new Error("API Error: No data returned");
+          throw annotate(new Error("API Error: No data returned"));
         }
 
         return responseBody.data as T;
@@ -153,18 +161,18 @@ export class UnifiedGraphQLClient {
         const result = responseBody as GraphQLResponse<T>;
 
         if (result.errors && result.errors.length > 0) {
-          throw new Error(`GraphQL Error: ${result.errors[0].message}`);
+          throw annotate(new Error(`GraphQL Error: ${result.errors[0].message}`));
         }
 
         if (!result.data) {
-          throw new Error("GraphQL Error: No data returned");
+          throw annotate(new Error("GraphQL Error: No data returned"));
         }
 
         return result.data;
       }
     } catch (error) {
       logger.error("GraphQL request failed:", { query, variables, error });
-      throw error;
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 }
@@ -213,6 +221,13 @@ export class UnifiedRESTClient {
     endpoint: string,
     options: RESTRequestOptions = {},
   ): Promise<T | RESTResponseMeta<T>> {
+    const annotate = (err: unknown, status?: number): Error => {
+      const e = err instanceof Error ? err : new Error(String(err));
+      if (typeof status === 'number') {
+        (e as unknown as { httpStatus?: number }).httpStatus = status;
+      }
+      return e;
+    };
     const { includeRawResponse, ...fetchOptions } = options;
     const url = `${this.baseURL}${endpoint}`;
 
@@ -321,12 +336,12 @@ export class UnifiedRESTClient {
           result = await readBody(response);
         } else {
           authEvents.emitUnauthorized();
-          throw new Error("认证已过期，请刷新页面重新登录");
+          throw annotate(new Error("认证已过期，请刷新页面重新登录"), response.status);
         }
 
         if (!response.ok) {
           authEvents.emitUnauthorized();
-          throw new Error("认证已过期，请刷新页面重新登录");
+          throw annotate(new Error("认证已过期，请刷新页面重新登录"), response.status);
         }
       }
 
@@ -341,12 +356,12 @@ export class UnifiedRESTClient {
             code === "TENANT_MISMATCH" ||
             code === "TENANT_ID_MISMATCH"
           ) {
-            throw new Error("无权访问所选租户，请切换到有权限的租户");
+            throw annotate(new Error("无权访问所选租户，请切换到有权限的租户"), response.status);
           }
           if (code === "INSUFFICIENT_PERMISSIONS") {
-            throw new Error("权限不足，无法执行此操作，请联系管理员");
+            throw annotate(new Error("权限不足，无法执行此操作，请联系管理员"), response.status);
           }
-          throw new Error("访问被禁止：请检查权限或租户设置");
+          throw annotate(new Error("访问被禁止：请检查权限或租户设置"), response.status);
         }
 
         if (response.status === 500) {
@@ -355,19 +370,17 @@ export class UnifiedRESTClient {
             status: response.status,
             result,
           });
-          throw new Error("服务器内部错误，请稍后重试或联系管理员");
+          throw annotate(new Error("服务器内部错误，请稍后重试或联系管理员"), response.status);
         }
 
         if (isJsonObject(result) && "error" in result) {
           const errorInfo = result.error as { message?: string };
           if (errorInfo && errorInfo.message) {
-            throw new Error(errorInfo.message);
+            throw annotate(new Error(errorInfo.message), response.status);
           }
         }
 
-        throw new Error(
-          `REST Error: ${response.status} ${response.statusText}`,
-        );
+        throw annotate(new Error(`REST Error: ${response.status} ${response.statusText}`), response.status);
       }
 
       const payload = (result ?? {}) as T;
@@ -383,7 +396,7 @@ export class UnifiedRESTClient {
       return payload;
     } catch (error) {
       logger.error("REST request failed:", { endpoint, options, error });
-      throw error;
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 }
