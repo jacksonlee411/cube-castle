@@ -23,9 +23,51 @@ vi.mock('@workday/canvas-kit-react/modal', () => {
   Modal.Card = ({ children, ...rest }: any) => <div {...rest}>{children}</div>
   Modal.Heading = ({ children }: any) => <h3>{children}</h3>
   Modal.CloseIcon = ({ onClick }: any) => <button onClick={onClick}>X</button>
+  Modal.Body = ({ children }: any) => <div data-testid="modal-body">{children}</div>
   const useModalModel = () => ({ state: { visibility: 'visible' }, events: { show: vi.fn(), hide: vi.fn() } })
   return { Modal, useModalModel }
 })
+
+// Lightweight mocks for Canvas components used in the dialog
+vi.mock('@workday/canvas-kit-react/layout', () => ({
+  Box: ({ children, ...rest }: any) => <div {...rest}>{children}</div>,
+  Flex: ({ children, ...rest }: any) => <div {...rest}>{children}</div>,
+}))
+vi.mock('@workday/canvas-kit-react/text', () => ({
+  Heading: ({ children, ...rest }: any) => <h3 {...rest}>{children}</h3>,
+  Text: ({ children, ...rest }: any) => <span {...rest}>{children}</span>,
+}))
+vi.mock('@workday/canvas-kit-react/button', () => ({
+  PrimaryButton: ({ children, ...rest }: any) => <button {...rest}>{children}</button>,
+  SecondaryButton: ({ children, ...rest }: any) => <button {...rest}>{children}</button>,
+}))
+vi.mock('@workday/canvas-kit-react/card', () => ({
+  Card: ({ children, ...rest }: any) => <div {...rest}>{children}</div>,
+}))
+vi.mock('@workday/canvas-kit-react/text-input', () => ({
+  TextInput: ({ children, ...props }: any) => (
+    <div>
+      <input {...props} />
+      {children}
+    </div>
+  ),
+}))
+vi.mock('@workday/canvas-kit-react/text-area', () => ({
+  TextArea: ({ children, ...props }: any) => (
+    <div>
+      <textarea {...props} />
+      {children}
+    </div>
+  ),
+}))
+vi.mock('@workday/canvas-kit-react/checkbox', () => ({
+  Checkbox: ({ children, ...props }: any) => (
+    <label>
+      <input type="checkbox" {...props} />
+      {children}
+    </label>
+  ),
+}))
 
 const samplePosition: PositionRecord = {
   code: 'P9000001',
@@ -86,4 +128,3 @@ describe('PositionTransferDialog', () => {
     expect(target.value).toBe('1000001')
   })
 })
-
