@@ -122,7 +122,7 @@ psql "$DATABASE_URL" -f database/migrations/014_normalize_audit_logs.sql
 psql "$DATABASE_URL" -f database/migrations/020_align_audit_logs_schema.sql
 
 # 可选：加载示例数据
-psql "$DATABASE_URL" -f sql/init/02-sample-data.sql
+psql "$DATABASE_URL" -f sql/seed/02-sample-data.sql
 ```
 
 注意：审计历史查询依赖迁移后的 `audit_logs` 列（before_data/after_data/modified_fields/changes/business_context/record_id）。未执行迁移将导致前端显示“加载审计历史失败”。
@@ -222,7 +222,7 @@ docker compose -f docker-compose.e2e.yml up -d --build
 npm --prefix frontend ci && npm --prefix frontend run -s test:contract
 
 # 3) 运行简化E2E（无需浏览器）
-chmod +x ./simplified-e2e-test.sh && ./simplified-e2e-test.sh
+bash scripts/simplified-e2e-test.sh
 
 # 4) 报告
 cat reports/QUALITY_GATE_TEST_REPORT.md

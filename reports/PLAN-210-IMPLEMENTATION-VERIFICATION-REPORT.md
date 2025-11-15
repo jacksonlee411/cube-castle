@@ -12,7 +12,7 @@
 | 阶段 | 完成状态 | 证据 | 备注 |
 |------|---------|------|------|
 | **Phase 0（冻结与备份）** | ✅ 完成 | `archive/migrations-pre-reset-20251106.tar.gz` | 2025-11-05 完成 |
-| **Phase 1（基线萃取）** | ✅ 完成 | `database/schema.sql` + `schema/` 目录 | 备份库与基线库对象 100% 一致 |
+| **Phase 1（基线萃取）** | ✅ 完成 | `database/schema.sql` + `docs/archive/schema-snapshots/` | 备份库与基线库对象 100% 一致 |
 | **Phase 2（Goose/Atlas 落地）** | ✅ 完成 | `goose.yaml` + `atlas.hcl` + Makefile 更新 | CI 工作流已改造 |
 | **Phase 3（验证与交付）** | ✅ 完成 | Round-trip 测试通过 + 签字纪要 | 所有文档已同步更新 |
 
@@ -86,9 +86,9 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 - VIEW：3 个 (organization_current, organization_stats_view, organization_temporal_current)
 ```
 
-**验证文件**：
+**验证文件（历史快照已归档）**：
 ```
-$ ls -lh schema/
+$ ls -lh docs/archive/schema-snapshots/
 -rw-r--r-- 1 shangmeilin shangmeilin 1.7K Oct 21 12:20 custom-objects-inventory.sql
 -rw-r--r-- 1 shangmeilin shangmeilin  0 Nov  2 21:27 schema-detailed-diff.txt   ← 空文件表示 100% 一致
 -rw-r--r-- 1 shangmeilin shangmeilin 147 Nov  2 21:27 schema-summary.txt        ← 对象统计

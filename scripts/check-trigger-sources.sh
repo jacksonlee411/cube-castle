@@ -10,10 +10,10 @@ if [[ "${ALLOW_TRIGGER_SCRIPTS:-}" == "1" ]]; then
 fi
 
 # 仅允许在以下目录存在触发器定义：
-#  - sql/init
-#  - database/migrations
+#  - sql/seed        （如确有演示脚本需要触发器，须在此且配合白名单说明；默认不建议）
+#  - database/migrations  （迁移即真源，推荐方式）
 ALLOWLIST_DIRS=(
-  "cube-castle/sql/init"
+  "cube-castle/sql/seed"
   "cube-castle/database/migrations"
 )
 

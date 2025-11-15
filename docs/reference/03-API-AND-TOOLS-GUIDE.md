@@ -287,7 +287,7 @@ which gosec              # 应在 PATH 中
 ```bash
 docker compose -f docker-compose.e2e.yml up -d --build   # 拉起完整栈
 npm --prefix frontend ci && npm --prefix frontend run -s test:contract
-./simplified-e2e-test.sh                                  # 简化E2E（curl）
+bash scripts/simplified-e2e-test.sh                       # 简化E2E（curl）
 cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
 ```
 - CI 工作流：`.github/workflows/e2e-smoke.yml`
