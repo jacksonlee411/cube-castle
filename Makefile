@@ -114,8 +114,23 @@ run-dev:
 	@echo "🚀 启动开发环境（Docker 强制原则）..."
 	@echo "🔐 检查 RS256 密钥..."
 	@$(MAKE) jwt-dev-setup >/dev/null
-	@echo "🐳 拉起基础设施与应用服务 (postgres, redis, rest-service, graphql-service)..."
-	docker compose -f docker-compose.dev.yml up -d --build postgres redis rest-service graphql-service
+	@echo "🐳 拉起最小依赖 (postgres, redis)..."
+	docker compose -f docker-compose.dev.yml up -d postgres redis
+	@echo "⏳ 等待数据库/缓存就绪..."
+	-@SUCCESS=0; \
+	for i in 1 2 3 4 5 6 7 8 9 10; do \
+	  if docker compose -f docker-compose.dev.yml ps | grep -E 'cubecastle-postgres.*(healthy)' >/dev/null 2>&1; then \
+	    echo "  ✅ postgres 就绪"; SUCCESS=1; break; \
+	  fi; \
+	  echo "  ⏳ 等待 postgres..."; sleep 2; \
+	done; \
+	if [ $$SUCCESS -ne 1 ]; then \
+	  echo "  ⚠️  postgres 未就绪，查看日志: docker compose -f docker-compose.dev.yml logs -f postgres"; \
+	fi
+	@echo "🧭 执行数据库迁移（Goose）..."
+	@$(MAKE) db-migrate-all
+	@echo "🐳 拉起应用服务 (rest-service, graphql-service)..."
+	docker compose -f docker-compose.dev.yml up -d --build rest-service graphql-service
 	@echo "⏳ 等待服务健康..."
 	-@SUCCESS=0; \
 	for i in 1 2 3 4 5 6 7 8 9 10; do \
