@@ -92,6 +92,11 @@ data/
 postgres-data/
 redis-data/
 
+# Secrets (do not commit keys)
+secrets/*
+!secrets/.gitkeep
+!secrets/README.md
+
 # Backup and archive files
 backup/
 /archive/
