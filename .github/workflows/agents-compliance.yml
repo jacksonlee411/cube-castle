@@ -15,7 +15,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
+      - name: 🔧 Toolchain Health (root + frontend)
+        shell: bash
+        run: |
+          npm run toolchain:health
+          cd frontend && npm run toolchain:health
 
       - name: Check TODO-TEMPORARY annotations
         shell: bash
