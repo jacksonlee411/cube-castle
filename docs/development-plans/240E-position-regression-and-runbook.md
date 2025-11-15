@@ -2,12 +2,21 @@
 
 编号: 240E  
 上游: Plan 240（职位管理页面重构） · 依赖 240A/240B/240C/240D 完成  
-状态: 待启动
+状态: 进行中（T0/T4 门禁已完成；回归套件执行转交 CI）
 
 —
 
 ## 目标
 - 固化改造经验/回滚路径，清理残留，更新执行日志与门禁引用（以 215 与 232/232T 为准），确保持续回归稳定。严格遵循 AGENTS.md 的“资源唯一性与跨层一致性”“Docker 容器化强制”“先契约后实现”等约束。
+
+## 进展登记（2025-11-15）
+- T0/T4 门禁校验已完成，日志如下：  
+  - 选择器守卫：`logs/plan240/E/selector-guard.log`（Plan 246 基线计数显著下降，未新增旧前缀）  
+  - 架构守卫：`logs/plan240/E/architecture-validator.log`（0 问题）  
+  - 临时标签检查：`logs/plan240/E/temporary-tags.log`（无超期项）  
+  - 计划守卫（Plan 245）：`logs/plan240/E/guard-plan245.log`  
+- 回归执行（T1）与证据落盘（trace/E2E 日志）交由 CI 持续运行；统一入口保持为 `frontend/tests/e2e/` 下职位域用例与 `frontend/playwright.config.ts` 指定的浏览器矩阵。  
+- 本计划不新增事件/选择器定义，采集与词汇表仅引用 `docs/reference/temporal-entity-experience-guide.md` 与 `frontend/src/shared/testids/temporalEntity.ts`（唯一事实来源）。
 
 ## 任务清单
 T0) 环境与门禁前置校验（以 AGENTS.md 为准；本计划仅补充 240E 专属差异）  
@@ -28,7 +37,7 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 - 选择器/架构/临时标签/前端 Lint：`logs/plan240/E/*.log`（见 T4；命令以 CI/根级脚本为准）  
 - 录屏与截图（可选，作为对比证据）：`reports/plan240/`  
 - HAR 说明：由前端配置集中管理，产出统一至 `logs/plan240/B`（或 240BT）；240E 不新增 HAR 路径（历史兼容 + 前端配置集中管理）
-- 产物落盘入口：由 CI Workflow 或前端脚本统一负责。推荐统一脚本：`cd frontend && npm run test:e2e:240e`（会将执行日志与 trace 归档至 `../logs/plan240/E`）
+- 产物落盘入口：由 CI Workflow 或前端脚本统一负责。推荐统一脚本：`cd frontend && npm run test:e2e:240e`（会将执行日志与 trace 归档至 `../logs/plan240/E`）；CI 工作流：`.github/workflows/plan-240e-regression.yml`
 
 ---
 
@@ -98,3 +107,11 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 - CQRS 一致性：命令=REST、查询=GraphQL，禁止在测试中引入第二数据源或绕过契约（AGENTS.md:7,19）  
 - Docker 强制：如端口冲突，请卸载宿主 PostgreSQL/Redis 服务，禁止修改容器端口映射（AGENTS.md:5,67）  
 - 证据唯一：不复制同一日志到多处；HAR 路径以前端配置为准（`logs/plan240/B`/`logs/plan240/BT`），E2E 执行日志统一落 `logs/plan240/E`
+
+---
+
+## 关闭条件与动作
+- CI 稳定通过：`.github/workflows/plan-240e-regression.yml` 在 Chromium/Firefox 下稳定通过（重试开启），artifact 包含 `logs/plan240/E` 与 `logs/plan240/B/BT`。  
+- 守卫与文档门禁：`logs/plan240/E/selector-guard.log`、`architecture-validator.log`、`temporary-tags.log`、`frontend-lint.log`、`frontend-typecheck.log` 均为通过状态。  
+- 执行日志更新：`docs/development-plans/215-phase2-execution-log.md` 已登记“通过/失败记录 + 证据路径”。  
+- 无新增第二事实来源：本计划仅指向 232/232T（P0 用例）与 215（执行日志）；观测与选择器仅指向权威文件。

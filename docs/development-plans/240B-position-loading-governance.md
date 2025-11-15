@@ -16,6 +16,7 @@
   - 244 验收通过：`TemporalEntityTimelineAdapter/StatusMeta` 合并、契约同步，基础 E2E 绿灯。
   - 241 恢复并作为承载框架：数据读取以统一 Hook/Loader 为唯一入口，不再新增职位专有 Loader。
   - 守卫接入：`npm run guard:plan245`、`npm run guard:selectors-246` 通过；基线计数不升高。
+  - 路由解耦（240BT）已完成：组织详情“白屏”治理与路由模块解耦已验收通过，满足“避免白屏”的路由层前置条件（唯一事实来源：`docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md`）。
 - 软依赖：
   - 232/232T 最新 E2E 日志可用，用于等待链路与定位器稳定性复验。
 
@@ -130,6 +131,7 @@ REPEATS=3 E2E_SAVE_HAR=1 E2E_NETWORK_ASSERT=1 PW_TENANT_ID=... PW_JWT=$JWT npm r
   - 守卫：`npm run guard:selectors-246` 通过且旧前缀计数显著下降；`npm run guard:plan245` 通过（仅 legacy 类型名提示 warn，不阻塞）。
   - 质量门禁：`npm run lint`、`npm run test`、`node scripts/quality/architecture-validator.js` 通过。
 - 结论：本计划的“统一装载与取消”“统一重试策略”“失效 SSoT”“选择器与等待模式”已交付并通过本地/守卫验收，准许关闭。CI 接入建议作为运维项纳入 215/241 后续登记（acceptance 作业：`E2E_PLAN=240BT/240B`、`E2E_SAVE_HAR=1`）。
+  - 注：路由解耦（240BT）已完成并作为本计划“避免白屏”的前置治理确认，详见归档文档 `docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md` 与证据 `logs/plan240/BT/*.log`。本计划不复制其实现细节，避免第二事实来源。
 ## 观测与落盘边界
 - 运行时观测：统一使用前端 `logger` 与 `performance.mark` 输出（与 241/240D 一致），不得在运行时代码中直接写文件。
 - 证据落盘：由测试/CI 采集（console、network、trace/HAR、网络计数 JSON）并保存至 `logs/plan240/B/`；作为验收与回归对比工件。

@@ -4,9 +4,75 @@
 **标题**: Position Management UI Refactor & E2E Stabilization  
 **创建日期**: 2025-11-09  
 **关联计划**: Plan 232（Playwright P0 稳定）、Plan 06（集成验证）、80/86/107 号职位阶段性文档  
-**状态**: 暂缓 · 待 Plan 242 命名抽象完成后再启动  
+**状态**: 进行中（A–D/BT 已完成，E 回归与 Runbook 执行中）  
 
 ---
+
+## 0. 完成登记与现状评估（2025-11-15）
+
+为避免第二事实来源，子计划状态以各自计划文档与落盘证据为准，本节仅做索引与归档登记：
+
+- 240A – 职位详情 Layout 对齐与骨架替换：已完成（验收通过）  
+  - 事实来源：`docs/development-plans/240A-position-layout-alignment.md`  
+  - 证据：`logs/plan240/A/architecture-validator.log`、`logs/plan240/A/document-sync.log`、`logs/plan240/A/selector-guard.log`、`logs/plan240/A/e2e-position-tabs-{chromium,firefox}.log`、`logs/plan240/A/playwright-trace/trace.zip`
+- 240B – 数据装载链路与等待治理：已完成  
+  - 事实来源：`docs/development-plans/240B-position-loading-governance.md`  
+  - 证据：`logs/plan240/B/guard-plan245.log`、`logs/plan240/B/guard-selectors-246.log`、`logs/plan240/B/e2e-*.log`
+- 240C – DOM/TestId 治理与选择器统一：已完成（验收通过）  
+  - 事实来源：`docs/development-plans/240C-position-selectors-unification.md`  
+  - 证据：`logs/plan240/C/selector-guard.log`、`logs/plan240/C/unit-and-e2e.log`（如有）
+- 240D – 职位详情可观测性与指标注入：已完成（验收通过）  
+  - 事实来源：`docs/development-plans/240D-position-observability.md`、`CHANGELOG.md:3`（v1.5.7）  
+  - 证据：`logs/plan240/D/obs-position-observability-chromium.log`、`frontend/playwright-report/index.html`
+- 240E – 回归与 Runbook：进行中（T0/T4 门禁已跑通，回归套件待 CI 完成）  
+  - 事实来源：`docs/development-plans/240E-position-regression-and-runbook.md`  
+ - 现有证据：`logs/plan240/E/architecture-validator.log`、`logs/plan240/E/selector-guard.log`、`logs/plan240/E/temporary-tags.log`、`logs/plan240/E/guard-plan245.log`
+ - 240BT – 组织详情“白屏”治理（路由解耦）：已完成（验收通过）  
+   - 事实来源：`docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md`  
+   - 证据：`logs/plan240/BT/smoke-org-detail.log`、`logs/plan240/BT/health-checks.log`  
+
+依赖状态同步：
+- Plan 242 – 命名抽象：已完成，作为 240 的关键解锁条件（见 `docs/development-plans/244-temporal-timeline-status-plan.md` “完成登记”与 `CHANGELOG.md:26`）。  
+- Plan 244 – Timeline/Status 抽象：已完成（验收通过）；240B/240D 已按新命名空间落地。  
+- 契约与实现一致性：`docs/api/openapi.yaml`、`docs/api/schema.graphql` 已按 242/244 更新；240 不新增契约，遵循“先契约后实现”。  
+
+> 本节为状态索引，具体标准与字段定义仅引用各子计划与 `docs/reference/temporal-entity-experience-guide.md`，不在此重复，避免第二事实来源。
+
+## 0.1 影响评估：240 先于 241 完成的权衡与回补计划
+
+背景：Plan 241（前端页面与框架一体化重构）当前为“部分完成 · 验收未通过”（见 `docs/development-plans/241-frontend-framework-refactor.md`）。本计划的 A–D 子任务已交付在既有骨架与 Hook 上，存在“在 241 交付前的临时对齐与薄适配”的客观状态。
+
+- 影响评估（风险与现状）
+  - 骨架重复与收敛负担：职位端依旧基于既有 `TemporalMasterDetailView` 外层与 `PositionDetailView` 自身布局进行对齐（240A），未采用 241 计划中的中性骨架；后续需二次替换为 241 的共享 Layout（不引入第二事实来源，引用 241 的组件/指南）。  
+  - 数据 Hook 临时薄适配：240B 按“统一 Loader/取消/重试/失效 SSoT”落地，但 241 的统一 Hook/工厂作为最终承载框架仍在收尾；后续需将职位域薄适配层切换到 241 的唯一入口，回收临时适配。  
+  - 可观测点分散：240D 在职位详情端注入 `[OBS] position.*` 事件；241 完成后需上移到共享骨架统一注入，去除页面内重复注入。  
+  - 选择器稳定性：240C 已集中到 `temporalEntitySelectors`。241 完成后骨架变更不应改变选择器标识来源，但需复跑 E2E 以确认不引入结构性变化。  
+  - 路由白屏：240BT 已完成路由解耦与错误边界，满足 240B“避免白屏”的前置治理；241 收敛后仍应保持该解耦与边界，不得回退。
+
+- 回补计划（241 完成后，240 的待回归事项）
+  1) 骨架切换（不改契约）  
+     - 将职位详情外层容器替换为 241 交付的中性骨架组件（参考：`docs/development-plans/241-frontend-framework-refactor.md` 的收尾目标“TemporalEntityLayout”）。  
+     - A11y 与视觉间距维持与组织端一致；任何差异在 MR 中登记原因与后续修正（不在本文件复制规范正文，唯一事实来源：`docs/reference/temporal-entity-experience-guide.md`）。
+  2) Hook/Loader 统一（薄适配回收）  
+     - 将职位域数据读取入口切换为 241 的统一 Hook/工厂（如 `useTemporalEntityDetail`/`createTemporalDetailLoader`），保留 240B 的取消/重试/失效策略，通过 241 的统一配置导出（SSoT）。  
+     - 移除职位专有 Loader/Hook 的临时分支；若存在 `// TODO-TEMPORARY:` 标记，需在合并时清零并通过 `scripts/check-temporary-tags.sh` 校验。
+  3) 可观测性归一  
+     - 将 hydrate/tab/version/export/graphql.error 的注入位置上移至共享骨架与统一错误处理（241 指南）；职位页面保留调用点必要事件（如导出回调）。  
+     - 保持事件词汇与字段以 `docs/reference/temporal-entity-experience-guide.md` 为唯一事实来源；不在 240 内定义新事件。
+  4) 选择器/E2E 回归  
+     - 骨架切换后复跑职位域 P0 集合与集成用例（参考 Plan 06 与 232/232T），落盘日志至 `logs/plan240/E/` 并更新 Plan 06 执行登记。  
+     - `npm run guard:selectors-246` 通过（旧前缀计数不升高）；`node scripts/quality/architecture-validator.js` 通过。  
+  5) Feature Flag 收敛  
+     - 评估并回收 240A 的 `VITE_POSITION_LAYOUT_V2` 与 240B 的 `VITE_TEMPORAL_DETAIL_LOADER`；如 241 提供统一门控，以 241 的门控为准并移除同功能重复开关。  
+  6) 清理与归档  
+     - 移除与旧骨架/旧 Loader 强绑定的临时代码与注释；更新本计划“完成登记”索引与 215/06 的状态表；不新增第二事实来源文档。
+
+- 回归验收（241 完成后触发）  
+  - UI/行为：组织与职位详情在共享骨架下的录屏/截图比对一致（可引用 241 的对比资产，240 不复制）。  
+  - Hook/Loader：`useTemporalEntityDetail` 薄封装接入，相关单测由 241 提供；职位端不再直连自有 Loader。  
+  - 可观测性：事件集中由骨架发射；职位端不重复注入 hydrate/tab 事件。  
+  - E2E：职位域 P0 + 集成用例（Chromium/Firefox 各至少 1 轮）通过；`logs/plan240/E/*.log` 记录结果。  
+  - 门禁：`guard:selectors-246`、`architecture-validator`、`check-temporary-tags.sh` 全部通过。  
 
 ## 1. 背景与动因
 
@@ -34,6 +100,8 @@
 ## 3. 解锁条件与依赖
 
 1. **硬依赖**  
+   - Plan 242 命名抽象：已完成（解锁）。  
+   - Plan 244 Timeline/Status 抽象：已完成（解锁）。  
    - Plan 232 的 P0 场景日志需与 240 同步推进，重构阶段必须提供最新 Chromium/Firefox 报告才能关闭（docs/development-plans/232-playwright-p0-stabilization.md:300-310）。  
    - 职位后端契约禁止修改（OpenAPI/GraphQL 以 80/86/107 为唯一事实来源）。若需新增字段，必须先更新契约并跑 `node scripts/generate-implementation-inventory.js`。  
 2. **软依赖**  
