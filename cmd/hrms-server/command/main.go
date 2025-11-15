@@ -19,6 +19,7 @@ import (
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
+	publicgraphql "cube-castle/cmd/hrms-server/query/publicgraphql"
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -91,6 +92,7 @@ func main() {
 	var (
 		dispatcher            *outbox.Dispatcher
 		assignmentCache       organization.AssignmentFacade
+		queryRepo             *organization.QueryRepository
 		schedulerConfigResult config.SchedulerConfigResult
 		schedulerConfigLoaded bool
 	)
@@ -116,7 +118,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		queryRepo := organization.NewQueryRepository(sqlDB, redisClient, commandLogger, organization.DefaultAuditHistoryConfig())
+		queryRepo = organization.NewQueryRepository(sqlDB, redisClient, commandLogger, organization.DefaultAuditHistoryConfig())
 		assignmentCache = organization.NewAssignmentFacade(queryRepo, redisClient, commandLogger, time.Minute)
 
 		dispatcher = outbox.NewDispatcher(outboxCfg, outboxRepo, eventBus, commandLogger, prometheus.DefaultRegisterer, dbClient.WithTx, assignmentCache)
@@ -303,6 +305,20 @@ func main() {
 	// 📎 BFF 认证路由（生产态登录/会话管理） - 不要求已有Authorization
 	bffHandler := authbff.NewBFFHandler(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, commandLogger, devMode, auditLogger)
 	bffHandler.SetupRoutes(r)
+
+	// GraphQL 查询路由（单体合流挂载）
+	if !authOnlyMode {
+		gqlHandler, graphiqlHandler, err := publicgraphql.BuildHandlers(sqlDB, queryRepo, assignmentCache, commandLogger, devMode)
+		if err != nil {
+			commandLogger.Errorf("[FATAL] 构建 GraphQL 处理器失败: %v", err)
+			os.Exit(1)
+		}
+		r.Handle("/graphql", gqlHandler)
+		if devMode && graphiqlHandler != nil {
+			r.Handle("/graphiql", graphiqlHandler)
+		}
+		commandLogger.Info("🔗 GraphQL 查询端点已挂载到单体进程: /graphql（/graphiql in dev）")
+	}
 
 	if !authOnlyMode {
 		// 为需要认证的API路由创建子路由器
