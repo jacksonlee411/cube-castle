@@ -15,16 +15,15 @@
 
 ## 2. 交付物
 - 运行时配置与健康文档（仅引用 215/218 与代码事实来源）；
-- 健康检查基线（command/query 一致）：返回 JSON，含 service 与 status；
+- 健康检查基线（command/query 一致）：返回 camelCase JSON，包含整体 status 与各子服务状态；
 - 指标基线：logger/metrics（pkg/logger、internal/organization/utils/metrics.go）映射说明；
 - 验收日志：logs/plan251/*（curl /health、/metrics 样本与规则校验）。
 
 ## 3. 验收标准
-- 本地/CI 下 /health 全绿；/metrics 暴露基础计数器与直方图；
+- 本地/CI 下 /health 全绿（字段命名 camelCase，错误语义与参考文档一致）；/metrics 暴露基础计数器与直方图；
 - 运行时配置来源单一，参数覆盖规则一致；
 - 证据登记完整，脚本文档引用权威来源。
 
 ---
 
 维护者: 平台与后端联合（与 218 保持一致）
-

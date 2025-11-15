@@ -19,9 +19,21 @@
 
 ## 3. 验收标准
 - 关键页面迁移至 Facade 调用；
+- ESLint/AST 规则启用并在 CI 中统计“Facade 覆盖率”；
 - E2E 对关键路径稳定（不退化）。
 
 ---
 
 维护者: 前端（与契约治理协作）
 
+---
+
+## 4. 覆盖率度量与门禁（CI）
+- 覆盖率口径：
+  - 分子：通过领域 Facade 的业务调用点数量（按 import + 方法签名识别）
+  - 分母：所有对统一客户端（unifiedGraphQLClient/unifiedRESTClient）或 fetch/axios 的直接业务调用点数量
+  - 覆盖率=分子/分母（目标门槛：组织/职位模块 ≥80%）
+- 实现方式：
+  - ESLint 规则禁止直接 fetch/axios；对 unified 客户端直连仅告警但计数
+  - AST 扫描脚本输出覆盖率报表（JSON），作为 CI 工件上传
+  - 低于门槛阻断合并；临时豁免必须以 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注并在 215/06 登记

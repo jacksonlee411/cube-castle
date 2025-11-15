@@ -49,6 +49,68 @@
 
 ---
 
+## 25x 启动登记（占位）
+
+说明：依据 202（简化版）路线图与 25x 子计划分解，登记启动信息与证据路径。执行细节以各子计划文档为唯一事实来源；所有命令输出与验证证据统一登记至本日志（215）。
+
+- 250 · 模块化单体合流  
+  - 计划窗口：TBD（W?）  
+  - 负责人：TBD  
+  - 准入条件：Plan 219 完成、Plan 221 基座可用、宿主端口合规（AGENTS）  
+  - 产物/证据：`logs/plan250/*`、合流验收清单（单端口/健康/指标/REST/GraphQL 等效）  
+  - 文档：`docs/development-plans/250-modular-monolith-merge.md`
+
+- 251 · 运行时统一（连接池/中间件/健康/指标）  
+  - 计划窗口：TBD（W?）  
+  - 负责人：TBD  
+  - 准入条件：Plan 250 已创建统一入口；Plan 217/218 可用  
+  - 产物/证据：`logs/plan251/*`、DB/HTTP 指标与健康检查截图/日志  
+  - 文档：`docs/development-plans/251-runtime-unification-health-metrics.md`
+
+- 253 · 部署与流水线简化（单体优先）  
+  - 计划窗口：TBD（W?）  
+  - 负责人：TBD  
+  - 准入条件：Plan 250/251 完成；Plan 221 通过  
+  - 产物/证据：`logs/plan253/*`、CI 用时对比、Make/Workflow/Compose 变更  
+  - 文档：`docs/development-plans/253-deployment-pipeline-simplification.md`
+
+- 254 · 前端端点与代理收敛（单基址）  
+  - 计划窗口：TBD（W?）  
+  - 负责人：TBD  
+  - 准入条件：Plan 250 合流完成（单端口可用）  
+  - 产物/证据：`logs/plan254/*`、E2E 运行与 ESLint 守卫通过记录  
+  - 文档：`docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md`
+
+- 256 · 契约 SSoT 生成流水线（阶段2）  
+  - 计划窗口：TBD（W?）  
+  - 负责人：TBD  
+  - 准入条件：脚本链路可运行（Node/Go 工具链基线满足 AGENTS）  
+  - 产物/证据：`logs/plan256/*`、`make generate-contracts` 幂等日志、CI contract-sync 结果  
+  - 文档：`docs/development-plans/256-contract-ssot-generation-pipeline.md`
+
+- 257 · 前端领域 API 门面采纳（阶段2）  
+  - 计划窗口：TBD（W?）  
+  - 负责人：TBD  
+  - 准入条件：241/242 抽象完成；统一命名与选择器守卫启用  
+  - 产物/证据：`logs/plan257/*`、门面覆盖率报告、E2E/单测通过记录  
+  - 文档：`docs/development-plans/257-frontend-domain-api-facade-adoption.md`
+
+- 258 · 契约漂移校验与门禁（阶段2）  
+  - 计划窗口：TBD（W?）  
+  - 负责人：TBD  
+  - 准入条件：Plan 256 生成流水线可用  
+  - 产物/证据：`logs/plan258/*`、差异报告与工作流产物链接  
+  - 文档：`docs/development-plans/258-contract-drift-validation-gate.md`
+
+- 259 · 协议策略复盘（可选）  
+  - 计划窗口：TBD（W?）  
+  - 负责人：TBD  
+  - 准入条件：阶段 1+2 完成（250/251/253/254/256/257/258）  
+  - 产物/证据：`logs/plan259/*`、复盘报告与结论  
+  - 文档：`docs/development-plans/259-protocol-strategy-review.md`
+
+---
+
 ## 概述
 
 本文档跟踪 Phase2 的实施进展（Week 3-4，Day 12-18），根据 204 号文档第二阶段的定义，工作分解为 **7 个具体实施方案**（Plan 216-222）。

@@ -12,6 +12,13 @@
 - 统一前端对后端的访问端点（REST/GraphQL）与本地代理；
 - 减少多代理/多端口带来的开发与 E2E 波动，明确 PW_* 与本地 dev server 的约定。
 
+## 1.1 端口与容器约束（AGENTS 强制）
+- 不得修改 docker-compose*.yml 的容器端口映射（如 5432、6379、9090、8090）；
+- 如遇端口冲突，必须卸载/停用宿主服务释放端口；禁止通过改映射端口迁就宿主；
+- 验证命令示例：
+  - `ss -lntp | rg ':(5432|6379|9090|8090)'` 确认无宿主冲突
+  - `docker compose -f docker-compose.dev.yml ps` 核对容器端口与健康
+
 ## 2. 交付物
 - 端点/代理配置说明与最小示例（仅引用前端配置与 .env/.npmrc）；
 - Playwright 运行约定（PW_BASE_URL、PW_SKIP_SERVER 等）与示例命令；

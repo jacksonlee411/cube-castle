@@ -20,9 +20,16 @@
 ## 3. 验收标准
 - 合同字段（security/scope）与中间件校验一致；
 - 样例用例覆盖关键查询/命令；
-- CI 权限契约检查通过（若配置）。
+- CI 权限契约检查通过（强制门禁）。
 
 ---
 
 维护者: 后端（安全合规协同评审）
 
+---
+
+## 4. 自动化门禁（CI）
+- OpenAPI x-scopes 覆盖率=100%：扫描 `docs/api/openapi.yaml`，所有受保护 REST 端点必须声明 `x-scopes`
+- GraphQL resolver 必经 PBAC：扫描 resolver 代码，校验统一调用 PBAC 校验器（或其门面）
+- 权限一致性对比：基于映射表抽样对比 REST 与 GraphQL 对同一业务操作的权限结论
+- 失败即阻断；允许临时豁免须以 `// TODO-TEMPORARY(YYYY-MM-DD):` 标注并在 215/06 登记（一个迭代内收敛）
