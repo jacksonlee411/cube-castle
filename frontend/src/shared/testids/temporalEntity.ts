@@ -31,6 +31,10 @@ export type TemporalSelectors = {
     dashboard: string;
     form: string;
     table: string;
+    createButton?: string;
+    importButton?: string;
+    exportButton?: string;
+    treeRetryButton?: string;
   };
   position: {
     table: string;

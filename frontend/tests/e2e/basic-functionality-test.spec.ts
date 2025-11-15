@@ -52,7 +52,7 @@ test.describe('时态管理系统基础功能验证', () => {
     });
 
     // 确认创建按钮可见
-    await expect(page.getByTestId('create-organization-button')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId(temporalEntitySelectors.organization.createButton)).toBeVisible({ timeout: 10000 });
     await page.screenshot({ path: 'test-results/organizations-page.png' });
   });
 

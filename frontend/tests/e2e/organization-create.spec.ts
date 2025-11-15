@@ -10,7 +10,7 @@ test.describe('Organization Create Flow', () => {
   });
 
   test('allows selecting parent organization before submitting create request', async ({ page }) => {
-    await page.getByTestId('create-organization-button').click();
+    await page.getByTestId(temporalEntitySelectors.organization.createButton).click();
     await expect(page).toHaveURL(/\/organizations\/new$/);
     await expect(page.getByTestId(temporalEntitySelectors.organization.form)).toBeVisible();
 
