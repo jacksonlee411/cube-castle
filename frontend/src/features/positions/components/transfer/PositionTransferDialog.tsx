@@ -9,6 +9,7 @@ import { Checkbox } from '@workday/canvas-kit-react/checkbox'
 import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { useTransferPosition } from '@/shared/hooks/usePositionMutations'
 import type { PositionRecord } from '@/shared/types/positions'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 const getTodayISODate = (): string => {
   const now = new Date()
@@ -101,7 +102,11 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
   return (
     <>
       <Flex gap={space.s} alignItems="center">
-        <PrimaryButton onClick={openDialog} disabled={isPending || disabled} data-testid="position-transfer-open">
+        <PrimaryButton
+          onClick={openDialog}
+          disabled={isPending || disabled}
+          data-testid={temporalEntitySelectors.position.transferOpen ?? 'position-transfer-open'}
+        >
           发起职位转移
         </PrimaryButton>
         {showActingWarning && actingAssignment?.actingUntil && (
@@ -147,7 +152,7 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
                         placeholder="例如：1000002"
                         value={targetOrganizationCode}
                         onChange={event => setTargetOrganizationCode(event.target.value.trim())}
-                        data-testid="position-transfer-target"
+                        data-testid={temporalEntitySelectors.position.transferTarget ?? 'position-transfer-target'}
                       />
                     </div>
 
@@ -159,7 +164,7 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
                         type="date"
                         value={effectiveDate}
                         onChange={event => setEffectiveDate(event.target.value)}
-                        data-testid="position-transfer-date"
+                        data-testid={temporalEntitySelectors.position.transferDate ?? 'position-transfer-date'}
                       />
                     </div>
 
@@ -172,7 +177,7 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
                         placeholder="请输入此次职位转移的业务原因"
                         value={operationReason}
                         onChange={event => setOperationReason(event.target.value)}
-                        data-testid="position-transfer-reason"
+                        data-testid={temporalEntitySelectors.position.transferReason ?? 'position-transfer-reason'}
                       />
                     </div>
 
@@ -180,7 +185,7 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
                       label="自动重新关联下级职位的汇报关系"
                       checked={reassignReports}
                       onChange={event => setReassignReports(event.target.checked)}
-                      data-testid="position-transfer-reassign-checkbox"
+                      data-testid={temporalEntitySelectors.position.transferReassign ?? 'position-transfer-reassign-checkbox'}
                     />
 
                     {(formError || error) && (
@@ -194,7 +199,11 @@ export const PositionTransferDialog: React.FC<PositionTransferDialogProps> = ({ 
                   <SecondaryButton onClick={closeDialog} disabled={isPending}>
                     取消
                   </SecondaryButton>
-                  <PrimaryButton type="submit" disabled={isPending} data-testid="position-transfer-confirm">
+                  <PrimaryButton
+                    type="submit"
+                    disabled={isPending}
+                    data-testid={temporalEntitySelectors.position.transferConfirm ?? 'position-transfer-confirm'}
+                  >
                     {isPending ? '处理中...' : '确认转移'}
                   </PrimaryButton>
                 </Flex>

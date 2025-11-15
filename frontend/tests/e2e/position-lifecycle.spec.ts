@@ -94,13 +94,13 @@ test.describe('职位生命周期视图', () => {
     await expect(detailCard).toContainText('业务线整合');
     await expect(detailCard.getByRole('button', { name: '发起职位转移' })).toBeVisible();
 
-    const vacancyBoard = page.getByTestId('position-vacancy-board');
+    const vacancyBoard = page.getByTestId(temporalEntitySelectors.position.vacancyBoard!);
     await expect(vacancyBoard).toContainText('空缺职位看板');
     await expect(vacancyBoard).toContainText('P-VAC-001');
     await expect(vacancyBoard).toContainText('缺编演示组织');
     await expect(vacancyBoard).toContainText('空缺职位数');
 
-    const headcountDashboard = page.getByTestId('position-headcount-dashboard');
+    const headcountDashboard = page.getByTestId(temporalEntitySelectors.position.headcountDashboard!);
     await expect(headcountDashboard).toContainText('职位编制统计');
     await expect(headcountDashboard).toContainText('总编制');
     await expect(headcountDashboard).toContainText('5');

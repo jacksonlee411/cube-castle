@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, afterEach, vi, type Mock } from 'vitest'
 import { PositionDashboard } from '../PositionDashboard'
 import type { PositionRecord, PositionsQueryResult } from '@/shared/types/positions'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 const navigateMock = vi.fn()
 
@@ -28,7 +29,8 @@ vi.mock('@/shared/hooks/usePositionMutations', () => ({
 }))
 
 vi.mock('../components/dashboard/PositionVacancyBoard', () => ({
-  PositionVacancyBoard: () => <div data-testid="position-vacancy-board" />,
+  // Use literal to avoid import timing/hoist issues in mock factory; equals to selector value
+  PositionVacancyBoard: () => <div data-testid="temporal-position-vacancy-board" />,
 }))
 
 vi.mock('../components/transfer/PositionTransferDialog', () => ({
@@ -36,7 +38,8 @@ vi.mock('../components/transfer/PositionTransferDialog', () => ({
 }))
 
 vi.mock('../components/dashboard/PositionHeadcountDashboard', () => ({
-  PositionHeadcountDashboard: () => <div data-testid="position-headcount-dashboard" />,
+  // Use literal to avoid import timing/hoist issues in mock factory; equals to selector value
+  PositionHeadcountDashboard: () => <div data-testid="temporal-position-headcount-dashboard" />,
 }))
 
 const { useEnterprisePositions } = await import('@/shared/hooks/useEnterprisePositions')
@@ -104,23 +107,23 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
   it('渲染职位列表与统计信息', () => {
     render(<PositionDashboard />)
 
-    expect(screen.getByTestId('position-dashboard')).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.dashboard)).toBeInTheDocument()
     expect(screen.getByText('职位管理（Stage 1 数据接入）')).toBeInTheDocument()
     expect(
       screen.getByText('当前页面依赖 GraphQL 查询服务与 REST 命令服务，请确保后端接口可用。'),
     ).toBeInTheDocument()
     expect(screen.getByText('岗位总数')).toBeInTheDocument()
-    expect(screen.getByTestId('position-row-P9000001')).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.row!(samplePosition.code))).toBeInTheDocument()
     expect(screen.getAllByText('物业保洁员')[0]).toBeInTheDocument()
-    expect(screen.getByTestId('position-vacancy-board')).toBeInTheDocument()
-    expect(screen.getByTestId('position-headcount-dashboard')).toBeInTheDocument()
-    expect(screen.getByTestId('position-create-button')).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.vacancyBoard!)).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.headcountDashboard!)).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.createButton!)).toBeInTheDocument()
   })
 
   it('点击职位行时跳转到详情页', () => {
     render(<PositionDashboard />)
 
-    const row = screen.getByTestId('position-row-P9000001')
+    const row = screen.getByTestId(temporalEntitySelectors.position.row!(samplePosition.code))
     fireEvent.click(row)
 
     expect(navigateMock).toHaveBeenCalledWith('/positions/P9000001')
@@ -129,7 +132,7 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
   it('点击创建职位按钮跳转到新建页面', () => {
     render(<PositionDashboard />)
 
-    fireEvent.click(screen.getByTestId('position-create-button'))
+    fireEvent.click(screen.getByTestId(temporalEntitySelectors.position.createButton!))
     expect(navigateMock).toHaveBeenCalledWith('/positions/new')
   })
 
@@ -142,10 +145,10 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
 
     render(<PositionDashboard />)
 
-    expect(screen.getByTestId('position-dashboard-error')).toHaveTextContent(
+    expect(screen.getByTestId(temporalEntitySelectors.position.errorBox!)).toHaveTextContent(
       '无法加载职位数据，请刷新页面或联系系统管理员。',
     )
-    expect(screen.getByTestId('position-create-button')).toBeDisabled()
+    expect(screen.getByTestId(temporalEntitySelectors.position.createButton!)).toBeDisabled()
   })
 
   it('无数据时展示空态提醒', () => {
@@ -173,7 +176,7 @@ describe('PositionDashboard（Stage 1 数据接入）', () => {
 
     render(<PositionDashboard />)
 
-    expect(screen.getByTestId('position-dashboard-mock-banner')).toBeInTheDocument()
-    expect(screen.getByTestId('position-create-button')).toBeDisabled()
+    expect(screen.getByTestId(temporalEntitySelectors.position.mockBanner!)).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.createButton!)).toBeDisabled()
   })
 })

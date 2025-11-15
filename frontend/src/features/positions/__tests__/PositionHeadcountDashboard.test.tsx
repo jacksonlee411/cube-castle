@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { beforeEach, vi, type Mock } from 'vitest'
 import { PositionHeadcountDashboard } from '../components/dashboard/PositionHeadcountDashboard'
 import type { PositionHeadcountStats } from '@/shared/types/positions'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 vi.mock('@/shared/hooks/useEnterprisePositions', () => ({
   usePositionHeadcountStats: vi.fn(),
@@ -224,7 +225,7 @@ describe('PositionHeadcountDashboard', () => {
   it('renders summary tiles and tables when data is available', () => {
     render(<PositionHeadcountDashboard organizationCode="1000000" />)
 
-    expect(screen.getByTestId('position-headcount-dashboard')).toBeInTheDocument()
+    expect(screen.getByTestId(temporalEntitySelectors.position.headcountDashboard!)).toBeInTheDocument()
     expect(screen.getByText('总编制')).toBeInTheDocument()
    expect(screen.getByText('120')).toBeInTheDocument()
    expect(screen.getByText('占用率')).toBeInTheDocument()
