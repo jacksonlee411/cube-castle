@@ -20,7 +20,7 @@ BOLD='\033[1m'
 # 📊 配置变量
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-ESLINT_CONFIG="$PROJECT_ROOT/.eslintrc.architecture.js"
+ESLINT_CONFIG="$PROJECT_ROOT/eslint.config.architecture.mjs"
 REPORT_DIR="$PROJECT_ROOT/reports/architecture"
 
 # 📋 使用帮助
