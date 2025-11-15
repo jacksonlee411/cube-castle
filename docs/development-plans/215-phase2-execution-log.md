@@ -95,7 +95,7 @@
   - [ ] 守卫接入：`npm run guard:plan245`、`npm run guard:selectors-246` 通过（基线计数不升高）
 - 环境与契约前置
   - [ ] Docker/服务就绪：`make docker-up` → `make run-dev` → `make frontend-dev`
-  - [ ] 健康检查：`curl http://localhost:9090/health`、`curl http://localhost:8090/health` → 200
+  - [x] 健康检查：`curl http://localhost:9090/health`、`curl http://localhost:8090/health` → 200（证据：`logs/plan240/B/health-checks.log`）
   - [ ] JWT：`make jwt-dev-mint`
   - [ ] 契约先行（如适用）：更新 `docs/api/*` + `node scripts/generate-implementation-inventory.js`
     - 证据：`logs/plan240/B/inventory-sha.txt`
@@ -107,11 +107,14 @@
 - 单测与 E2E（统一门槛）
   - [ ] 单测通过（取消/重试/错误态/租户切换/重复 fetch 抑制/命令后失效）
   - [ ] E2E 稳定（Chromium/Firefox 各 3 次），并保存 trace/HAR 与网络计数：
-    - `logs/plan240/B/e2e-chromium-run1.log` … `run3.log`
-    - `logs/plan240/B/e2e-firefox-run1.log` … `run3.log`
-    - `logs/plan240/B/playwright-trace/*`
-    - `logs/plan240/B/network-har-{chromium,firefox}-run{1..3}.har`
-    - `logs/plan240/B/network-requests-{chromium,firefox}-run{1..3}.json`
+    - [x] 已生成日志（当前仍有失败，供复盘）：  
+      - `logs/plan240/B/e2e-chromium-run{1..3}.log`、`logs/plan240/B/e2e-firefox-run{1..3}.log`  
+      - 验收三用例分项日志：  
+        - `logs/plan240/B/e2e-{chromium,firefox}-position-tabs-run{1..3}.log`  
+        - `logs/plan240/B/e2e-{chromium,firefox}-position-lifecycle-run{1..3}.log`  
+        - `logs/plan240/B/e2e-{chromium,firefox}-temporal-management-integration-run{1..3}.log`（Mock 模式）  
+      - HAR（按项目与时间戳生成）：`logs/plan240/B/network-har-{chromium,firefox}-*.har`  
+    - [ ] 目标状态：三用例在 Chromium/Firefox 各 3 次全部通过（当前未达成）
 
 ---
 

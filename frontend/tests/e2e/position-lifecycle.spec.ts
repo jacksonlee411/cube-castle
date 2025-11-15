@@ -11,6 +11,7 @@ import {
   POSITION_HEADCOUNT_STATS_QUERY_NAME,
 } from './utils/positionFixtures';
 import { waitForGraphQL, waitForPageReady } from './utils/waitPatterns';
+import { installNetworkCapture } from './utils/networkCapture';
 
 async function stubGraphQL(page: Page) {
   await page.route('**/graphql', async route => {
@@ -65,6 +66,7 @@ async function stubGraphQL(page: Page) {
 
 test.describe('职位生命周期视图', () => {
   test('展示任职与调动历史', async ({ page }) => {
+    const teardownCapture = await installNetworkCapture(page, 'position-lifecycle');
     await stubGraphQL(page);
     await setupAuth(page);
 
@@ -108,5 +110,6 @@ test.describe('职位生命周期视图', () => {
     await expect(page.getByTestId('headcount-level-table')).toContainText('S1');
     await expect(page.getByTestId('headcount-type-table')).toContainText('REGULAR');
     await expect(page.getByTestId('headcount-family-table')).toContainText('OPER-OPS');
+    await teardownCapture();
   });
 });

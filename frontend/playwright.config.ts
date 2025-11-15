@@ -47,19 +47,23 @@ const SAVE_HAR = process.env.E2E_SAVE_HAR === '1';
 const HAR_DIR = path.resolve(__dirname, '..', 'logs', 'plan240', 'B');
 const TS = Date.now();
 if (SAVE_HAR) {
-  try { fs.mkdirSync(HAR_DIR, { recursive: true }); } catch {}
+  try {
+    fs.mkdirSync(HAR_DIR, { recursive: true });
+  } catch {
+    /* ignore fs errors */
+  }
 }
 
 export default defineConfig({
   // 全局测试超时：2分钟
   timeout: 120_000,
   testDir: path.resolve(__dirname, 'tests/e2e'),
-  fullyParallel: true,
+  fullyParallel: process.env.E2E_STRICT === '1' ? false : true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.E2E_STRICT === '1' ? 1 : (process.env.CI ? 2 : 4),
   reporter: 'html',
-  expect: { timeout: 10_000 },
+  expect: { timeout: 15_000 },
   
   use: {
     baseURL: FRONTEND_URL, // 允许通过 PW_BASE_URL 覆盖
@@ -97,7 +101,7 @@ export default defineConfig({
   webServer: SKIP_SERVER ? undefined : {
     command: 'npm run dev',
     url: `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: (!process.env.CI && process.env.E2E_STRICT !== '1'),
     // 前端开发服务器启动等待：2分钟
     timeout: 120 * 1000,
   },

@@ -9,6 +9,7 @@ import {
   POSITION_HEADCOUNT_STATS_QUERY_NAME,
 } from './utils/positionFixtures';
 import { waitForGraphQL, waitForPageReady } from './utils/waitPatterns';
+import { installNetworkCapture } from './utils/networkCapture';
 
 const FAKE_RS256_JWT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJwbGF5d3JpZ2h0LXRlc3QifQ.signature';
 const POSITION_CODE = POSITION_FIXTURE_CODE;
@@ -105,10 +106,13 @@ async function seedAuth(page: Page) {
 
 test.describe('职位详情多页签体验', () => {
   test('六个页签可切换且展示对应内容', async ({ page }) => {
+    const teardownCapture = await installNetworkCapture(page, 'position-tabs');
     await seedAuth(page);
     await stubGraphQL(page);
 
     await page.goto(POSITION_DETAIL_PATH);
+    // 等待 GraphQL 详情查询返回，确保详情容器可渲染
+    await waitForGraphQL(page, POSITION_DETAIL_QUERY_NAME).catch(() => {});
     await waitForPageReady(page);
     // 如应用触发令牌获取，先等待 dev-token 返回（无则忽略）
     await page.waitForResponse(r => r.url().includes('/auth/dev-token'), { timeout: 5000 }).catch(() => {});
@@ -142,6 +146,7 @@ test.describe('职位详情多页签体验', () => {
 
     await clickTab('审计历史');
     await expect(page.getByText('当前版本缺少 recordId，无法加载审计历史。')).toBeVisible();
+    await teardownCapture();
   });
 
   test('Mock 模式下隐藏写入按钮', async ({ page }) => {
