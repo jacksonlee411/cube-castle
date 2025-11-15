@@ -122,6 +122,7 @@ psql "$DATABASE_URL" -f database/migrations/014_normalize_audit_logs.sql
 psql "$DATABASE_URL" -f database/migrations/020_align_audit_logs_schema.sql
 
 # 可选：加载示例数据
+# 警示：示例数据仅用于演示/联调，不是事实来源；任何结构/数据变更必须通过 database/migrations/ 管理。
 psql "$DATABASE_URL" -f sql/seed/02-sample-data.sql
 ```
 

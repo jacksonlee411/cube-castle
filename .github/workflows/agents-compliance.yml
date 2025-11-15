@@ -56,3 +56,29 @@ jobs:
         shell: bash
         run: |
           node scripts/quality/plan245A-soft-guard.js
+
+      - name: Guard – Disallow root-level binaries in VCS (command/query/generate-dev-jwt)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "[guard] Checking banned tracked files at repo root..."
+          ban_list=( "command" "query" "generate-dev-jwt" )
+          fail=0
+          for f in "${ban_list[@]}"; do
+            if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+              echo "❌ Banned tracked file detected: $f"
+              fail=1
+            fi
+          done
+          # Also ensure no tracked binaries under bin/ except bin/atlas
+          tracked_bin=$(git ls-files bin | grep -v '^bin/atlas$' || true)
+          if [ -n "$tracked_bin" ]; then
+            echo "❌ Non-atlas tracked binaries under bin/:"
+            echo "$tracked_bin"
+            fail=1
+          fi
+          if [ "$fail" -ne 0 ]; then
+            echo "💥 Guard failed. Remove these files from git and rely on Makefile outputs + .gitignore."
+            exit 1
+          fi
+          echo "✅ Guard passed: no banned binaries tracked."
