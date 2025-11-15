@@ -9,7 +9,6 @@ import {
   POSITION_HEADCOUNT_STATS_QUERY_NAME,
 } from './utils/positionFixtures';
 import { waitForGraphQL, waitForPageReady } from './utils/waitPatterns';
-import { installNetworkCapture } from './utils/networkCapture';
 
 const FAKE_RS256_JWT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJwbGF5d3JpZ2h0LXRlc3QifQ.signature';
 const POSITION_CODE = POSITION_FIXTURE_CODE;
@@ -106,7 +105,7 @@ async function seedAuth(page: Page) {
 
 test.describe('职位详情多页签体验', () => {
   test('六个页签可切换且展示对应内容', async ({ page }) => {
-    const teardownCapture = await installNetworkCapture(page, 'position-tabs');
+    // 网络抓取可选（在 CI 中通过 HAR 记录）
     await seedAuth(page);
     await stubGraphQL(page);
 
@@ -146,7 +145,7 @@ test.describe('职位详情多页签体验', () => {
 
     await clickTab('审计历史');
     await expect(page.getByText('当前版本缺少 recordId，无法加载审计历史。')).toBeVisible();
-    await teardownCapture();
+    // 网络请求计数另由 HAR/CI 工具汇总
   });
 
   test('Mock 模式下隐藏写入按钮', async ({ page }) => {
