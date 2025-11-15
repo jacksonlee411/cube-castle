@@ -106,7 +106,7 @@ export const PositionVacancyBoard: React.FC = () => {
         </Flex>
 
         <Box border={`1px solid ${colors.soap400}`} borderRadius="12px" overflow="hidden">
-          <Table data-testid="vacant-position-table">
+          <Table data-testid={temporalEntitySelectors.position.vacantTable}>
             <Table.Head>
               <Table.Row>
                 <Table.Header width="120px">职位编码</Table.Header>

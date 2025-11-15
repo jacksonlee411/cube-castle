@@ -46,6 +46,11 @@ jobs:
         cd frontend
         npm ci
         
+    - name: 🧹 统一预检（document-sync + selector-guard + 前端lint）
+      run: |
+        npm run quality:preflight
+      continue-on-error: false
+        
     - name: 🚨 ESLint架构治理检查
       run: |
         cd frontend

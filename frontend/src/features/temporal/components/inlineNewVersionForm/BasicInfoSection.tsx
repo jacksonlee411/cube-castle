@@ -11,6 +11,7 @@ import ParentOrganizationSelector from '../ParentOrganizationSelector';
 import type { TemporalEditFormData } from '../TemporalEditForm';
 import { mapLifecycleStatusToOrganizationStatus } from './utils';
 import UnitTypeSelector from './UnitTypeSelector';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 export interface BasicInfoSectionProps {
   formData: TemporalEditFormData;
@@ -61,7 +62,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               onChange={onFieldChange('name')}
               placeholder="请输入组织名称"
               disabled={disabled}
-              data-testid="form-field-name"
+              data-testid={temporalEntitySelectors.form?.field?.name}
             />
             {errors.name ? <FormField.Hint>{errors.name}</FormField.Hint> : null}
           </FormField.Field>
@@ -131,7 +132,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               placeholder="请输入组织描述信息"
               disabled={disabled}
               rows={3}
-              data-testid="form-field-description"
+              data-testid={temporalEntitySelectors.form?.field?.description}
             />
           </FormField.Field>
         </FormField>

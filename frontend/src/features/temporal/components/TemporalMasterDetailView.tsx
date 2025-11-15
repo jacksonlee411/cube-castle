@@ -28,6 +28,7 @@ import {
 } from "./hooks/useTemporalMasterDetail";
 import TemporalMasterDetailHeader from "./TemporalMasterDetailHeader";
 import TemporalMasterDetailAlerts from "./TemporalMasterDetailAlerts";
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 export type { TemporalMasterDetailViewProps } from "./hooks/useTemporalMasterDetail";
 
@@ -103,7 +104,7 @@ export const TemporalMasterDetailView: React.FC<
   }, [showDeleteConfirm, deleteModalModel]);
 
   return (
-    <Box padding="l" data-testid="temporal-master-detail-view">
+    <Box padding="l" data-testid={temporalEntitySelectors.page.wrapper}>
       <TemporalMasterDetailHeader
         isCreateMode={isCreateMode}
         organizationCode={organizationCode}

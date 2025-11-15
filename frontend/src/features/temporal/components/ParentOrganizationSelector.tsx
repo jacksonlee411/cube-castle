@@ -4,6 +4,7 @@ import { Text } from '@workday/canvas-kit-react/text'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
 import { UnifiedGraphQLClient } from '../../../shared/api/unified-client'
 import { useOrgPBAC } from '../../../shared/hooks/useScopes'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 export interface ParentOrganizationSelectorProps {
   currentCode: string
@@ -336,9 +337,9 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
     <FormField error={error ? 'error' : undefined} isRequired={required}>
       <FormField.Label>上级组织</FormField.Label>
       <FormField.Field>
-        <div data-testid="combobox" style={{ position: 'relative' }}>
+        <div data-testid={temporalEntitySelectors.widgets?.combobox?.root} style={{ position: 'relative' }}>
           <TextInput
-            data-testid="combobox-input"
+            data-testid={temporalEntitySelectors.widgets?.combobox?.input}
             placeholder={loading ? '加载中…' : '搜索并选择上级组织...'}
             value={search}
             onFocus={handleInputFocus}
@@ -348,7 +349,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
           />
           {isMenuOpen && canRead && (
             <div
-              data-testid="combobox-menu"
+              data-testid={temporalEntitySelectors.widgets?.combobox?.menu}
               style={{
                 position: 'absolute',
                 top: 'calc(100% + 4px)',
@@ -369,12 +370,12 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
                   <Text typeLevel="body.small">加载中…</Text>
                 </div>
               ) : (
-                <div data-testid="combobox-items">
+                <div data-testid={temporalEntitySelectors.widgets?.combobox?.items}>
                   {filtered.map(item => (
                     <button
                       key={item.code}
                       type="button"
-                      data-testid={`combobox-item-${item.code}`}
+                      data-testid={temporalEntitySelectors.widgets?.combobox?.item?.(item.code)}
                       onMouseDown={handleItemSelect(item)}
                       onClick={handleItemSelect(item)}
                       style={{
@@ -396,7 +397,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
                   ))}
                   {filtered.length === 0 && (
                     <div style={{ padding: '8px', textAlign: 'center' }}>
-                      <Text typeLevel="body.small" data-testid="combobox-empty">未找到匹配的组织</Text>
+                      <Text typeLevel="body.small" data-testid={temporalEntitySelectors.widgets?.combobox?.empty}>未找到匹配的组织</Text>
                     </div>
                   )}
                 </div>

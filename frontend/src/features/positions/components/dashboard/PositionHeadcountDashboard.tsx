@@ -228,13 +228,13 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
               value={formInput}
               onChange={event => setFormInput(event.target.value)}
               width={220}
-              data-testid="headcount-org-input"
+              data-testid={temporalEntitySelectors.position.headcountOrgInput}
             />
             <Checkbox
               label="包含下级组织"
               checked={includeSubordinates}
               onChange={event => setIncludeSubordinates(event.target.checked)}
-              data-testid="headcount-include-subordinates"
+              data-testid={temporalEntitySelectors.position.headcountIncludeSubordinates}
             />
             <PrimaryButton type="submit" disabled={statsQuery.isFetching}>
               加载统计
@@ -243,7 +243,7 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
               type="button"
               disabled={!stats}
               onClick={handleExport}
-              data-testid="headcount-export"
+              data-testid={temporalEntitySelectors.position.headcountExportButton}
             >
               导出 CSV
             </SecondaryButton>
@@ -277,7 +277,7 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
 
                 <Flex gap={space.l} flexDirection="row" flexWrap="wrap">
                   <Box flex="1" minWidth="280px" border={`1px solid ${colors.soap400}`} borderRadius="12px" overflow="hidden">
-                    <Table data-testid="headcount-level-table">
+                    <Table data-testid={temporalEntitySelectors.position.headcountLevelTable}>
                       <Table.Head>
                         <Table.Row>
                           <Table.Header width="120px">职级</Table.Header>
@@ -290,7 +290,7 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
                     </Table>
                   </Box>
                   <Box flex="1" minWidth="280px" border={`1px solid ${colors.soap400}`} borderRadius="12px" overflow="hidden">
-                    <Table data-testid="headcount-type-table">
+                    <Table data-testid={temporalEntitySelectors.position.headcountTypeTable}>
                       <Table.Head>
                         <Table.Row>
                           <Table.Header width="160px">职位类型</Table.Header>
@@ -303,7 +303,7 @@ const renderFamilyTable = (data: PositionHeadcountStats['byFamily']) => {
                     </Table>
                   </Box>
                   <Box flex="1" minWidth="320px" border={`1px solid ${colors.soap400}`} borderRadius="12px" overflow="hidden">
-                    <Table data-testid="headcount-family-table">
+                    <Table data-testid={temporalEntitySelectors.position.headcountFamilyTable}>
                       <Table.Head>
                         <Table.Row>
                           <Table.Header width="160px">职种编码</Table.Header>

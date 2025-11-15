@@ -4,6 +4,7 @@ import { Heading } from '@workday/canvas-kit-react/text';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { colors } from '@workday/canvas-kit-react/tokens';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 export interface EffectiveDateSectionProps {
   value: string;
@@ -32,7 +33,7 @@ const EffectiveDateSection: React.FC<EffectiveDateSectionProps> = ({
               value={value}
               onChange={onChange}
               disabled={disabled}
-              data-testid="form-field-effective-date"
+              data-testid={temporalEntitySelectors.form?.field?.effectiveDate}
             />
             {error ? <FormField.Hint>{error}</FormField.Hint> : null}
           </FormField.Field>

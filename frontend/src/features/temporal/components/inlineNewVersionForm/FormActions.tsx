@@ -3,6 +3,7 @@ import { Box, Flex } from '@workday/canvas-kit-react/layout';
 import { PrimaryButton, SecondaryButton, TertiaryButton } from '@workday/canvas-kit-react/button';
 import { colors } from '@workday/canvas-kit-react/tokens';
 import type { InlineNewVersionFormMode, InlineVersionRecord } from './types';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 export type InlineSubmitEvent =
   | React.FormEvent<HTMLFormElement>
@@ -60,12 +61,12 @@ const FormActions: React.FC<FormActionsProps> = ({
     return (
       <Box marginTop="xl" paddingTop="l" borderTop={`1px solid ${colors.soap300}`}>
         <Flex gap="s" justifyContent="space-between">
-          <Box data-testid="temporal-delete-record-button-wrapper">
+          <Box data-testid={temporalEntitySelectors.form?.actions?.deleteRecordWrapper}>
             {showOrganizationDelete ? (
               <TertiaryButton
                 onClick={onDeleteOrganizationClick}
                 disabled={deleteButtonDisabled || !onDeleteOrganizationClick}
-                data-testid="temporal-delete-organization-button"
+                data-testid={temporalEntitySelectors.form?.actions?.deleteOrganization}
               >
                 删除组织编码
               </TertiaryButton>
@@ -74,7 +75,7 @@ const FormActions: React.FC<FormActionsProps> = ({
               <TertiaryButton
                 onClick={onDeactivateClick}
                 disabled={deleteButtonDisabled}
-                data-testid="temporal-delete-record-button"
+                data-testid={temporalEntitySelectors.form?.actions?.deleteRecord}
               >
                 删除此记录
               </TertiaryButton>
@@ -86,21 +87,21 @@ const FormActions: React.FC<FormActionsProps> = ({
                 <SecondaryButton
                   onClick={onStartInsertVersion}
                   disabled={isSubmitting || loading}
-                  data-testid="start-insert-version-button"
+                  data-testid={temporalEntitySelectors.form?.actions?.startInsertVersion}
                 >
                   插入新版本
                 </SecondaryButton>
                 <SecondaryButton
                   onClick={onToggleEditHistory}
                   disabled={isSubmitting || loading}
-                  data-testid="edit-history-toggle-button"
+                  data-testid={temporalEntitySelectors.form?.actions?.editHistoryToggle}
                 >
                   修改记录
                 </SecondaryButton>
                 <PrimaryButton
                   onClick={onCancel}
                   disabled={isSubmitting}
-                  data-testid="form-close-button"
+                  data-testid={temporalEntitySelectors.form?.actions?.formClose}
                 >
                   关闭
                 </PrimaryButton>
@@ -110,7 +111,7 @@ const FormActions: React.FC<FormActionsProps> = ({
                 <SecondaryButton
                   onClick={onCancelEditHistory}
                   disabled={isSubmitting || loading}
-                  data-testid="cancel-edit-history-button"
+                  data-testid={temporalEntitySelectors.form?.actions?.cancelEditHistory}
                 >
                   取消编辑
                 </SecondaryButton>
@@ -119,7 +120,7 @@ const FormActions: React.FC<FormActionsProps> = ({
                     originalHistoryData ? onSubmitEditHistory() : onSubmitNewVersion(event)
                   }
                   disabled={isSubmitting || loading}
-                  data-testid="submit-edit-history-button"
+                  data-testid={temporalEntitySelectors.form?.actions?.submitEditHistory}
                 >
                   {isSubmitting || loading
                     ? '提交中...'
@@ -141,14 +142,14 @@ const FormActions: React.FC<FormActionsProps> = ({
         <SecondaryButton
           onClick={onCancel}
           disabled={isSubmitting || loading}
-          data-testid="form-cancel-button"
+          data-testid={temporalEntitySelectors.form?.actions?.formCancel}
         >
           取消
         </SecondaryButton>
         <PrimaryButton
           type="submit"
           disabled={isSubmitting || loading}
-          data-testid="form-submit-button"
+          data-testid={temporalEntitySelectors.form?.actions?.formSubmit}
         >
           {isSubmitting || loading
             ? currentMode === 'create'

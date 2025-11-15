@@ -82,7 +82,7 @@ const InlineNewVersionForm: React.FC<InlineNewVersionFormProps> = (props) => {
         />
         <FormMessages errorMessage={errorMessage} successMessage={successMessage} />
 
-        <form onSubmit={(event) => handleSubmit(event)} data-testid="organization-form-content">
+        <form onSubmit={(event) => handleSubmit(event)} data-testid={temporalEntitySelectors.form?.contentWrapper}>
           <EffectiveDateSection
             value={formData.effectiveDate}
             error={errors.effectiveDate}
