@@ -101,6 +101,56 @@
 
 ---
 
+## 7. 可观测性与指标（Observability & Metrics）
+
+本节定义时态实体详情页面的观测事件与输出约束，作为唯一事实来源。职位（position）详情作为首个落地实体；其它实体复用同一模式（事件前缀替换为实体名）。
+
+7.1 事件词汇表（职位详情）
+- 正式事件（前缀 `[OBS]` + 事件名 + JSON 负载）  
+  `position.hydrate.start` / `position.hydrate.done`  
+  `position.tab.change`  
+  `position.version.select`  
+  `position.version.export.start` / `.done` / `.error`  
+  `position.graphql.error`
+- 向上兼容的别名（与 Plan 240 文案对齐；负载相同）  
+  `PositionPageHydration` ≈ `position.hydrate.done`  
+  `PositionTabSwitch` ≈ `position.tab.change`
+
+7.2 负载 Schema（JSON；不得包含 PII/令牌/响应体）
+- 通用字段：`entity`（固定 `'position'`）、`code`（职位编码，可选）、`ts`（ISO 时间）、`source='ui'`
+- 事件特定字段：  
+  hydrate.done：`durationMs`（由 performance.measure 计算）  
+  tab.change：`tabFrom`、`tabTo`  
+  version.select：`versionKey`  
+  export.done：`durationMs`、`sizeBytes`（由 Blob.size）  
+  graphql.error：`queryName`、`status`（数值；`statusText` 可选且需脱敏）
+
+7.3 输出通道与环境门控
+- DEV：使用 `logger.info('[OBS] <event>', payload)` 输出  
+- CI：使用 `logger.mutation('[OBS] <event>', payload)` 输出；设置 `VITE_OBS_ENABLED=true VITE_ENABLE_MUTATION_LOGS=true`  
+- 生产：默认关闭信息级 OBS 日志，仅保留错误（error）  
+- 别名输出开关：`VITE_OBS_ALIAS_ENABLED`（默认 `'true'`）；为 `false` 时仅输出正式事件
+
+7.4 Performance 标记（建议）
+- `obs:position:hydrate:start` / `obs:position:hydrate:end` → `obs:position:hydrate:duration`  
+- `obs:position:export:start` / `obs:position:export:end` → `obs:position:export:duration`  
+- 严格模式/双渲染：对 `hydrate.*`、`tab.change` 采用一次性标记避免重复
+
+7.5 采集与落盘（E2E/CI）
+- Playwright 监听 console：筛选 `msg.text().startsWith('[OBS] ')`，解析 JSON  
+- 产物路径（职位）：主 `logs/plan240/D/obs-{spec}-{browser}.log`；兼容 `logs/ui/position-page.log`（可选汇总）  
+- 运行示例：  
+  本地：`PW_OBS=1 VITE_OBS_ENABLED=true npx playwright test`  
+  CI：`PW_OBS=1 VITE_OBS_ENABLED=true VITE_ENABLE_MUTATION_LOGS=true npx playwright test`
+
+示例日志行：
+```
+[OBS] position.hydrate.done {"entity":"position","code":"P9000001","durationMs":842,"ts":"2025-11-15T10:20:30.123Z","source":"ui"}
+```
+
+约束说明：本规范仅定义稳定的事件命名、字段与门控策略；实现细节（注入位置、测量方式）由相应计划与 MR 描述；严禁在本指南复制实现代码片段。
+
+---
+
 维护者：前端/设计/QA 联合小组  
 反馈渠道：在 Plan 06 的“设计与命名规范”条目下留言，或在相关 MR 发起评审
-
