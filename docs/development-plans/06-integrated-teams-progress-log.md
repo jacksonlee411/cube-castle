@@ -1,43 +1,14 @@
-# Plan 06 – 集成测试验证纪要（2025-11-08 10:30 CST）
+> 本文件已归档，不再作为唯一事实来源（SSoT）。请勿在此处追加或修改内容。  
+> 当前权威来源：
+> - P0 用例清单与门禁：`docs/development-plans/232-playwright-p0-stabilization.md`、`docs/development-plans/232t-test-checklist.md`
+> - 执行/进度汇总：`docs/development-plans/215-phase2-execution-log.md`
+> - 职位域回归与运行手册：`docs/development-plans/240E-position-regression-and-runbook.md`
 
-## 1. 环境与前置校验
-- `make docker-up && make run-dev`：PostgreSQL/Redis/REST/GraphQL 容器均处于 healthy，宿主机未占用 5432/6379。
-- `go version` 输出 `go1.24.9`、`node --version` 输出 `v22.17.1`；`make db-migrate-all` 显示最新版本 `20251107123000` 已应用。
-- `make jwt-dev-mint` 更新 `.cache/dev.jwt`，所有 Playwright/脚本通过 `PW_JWT`、`PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9` 注入。
+# Plan 06 – 集成测试验证纪要（已归档）
 
-## 2. 已执行验证
-| 步骤 | 结果 | 证据 |
-| --- | --- | --- |
-| `npm run test:e2e -- --project=chromium tests/e2e/business-flow-e2e.spec.ts` | ❌ 删除阶段 `temporal-delete-record-button` 未出现 | `logs/219E/business-flow-e2e-chromium-20251107-133349.log` |
-| `npm run test:e2e -- --project=firefox tests/e2e/business-flow-e2e.spec.ts` | ❌ 同上 | `logs/219E/business-flow-e2e-firefox-20251107-140221.log` |
-| `npm run test:e2e -- --project=chromium tests/e2e/job-catalog-secondary-navigation.spec.ts` | ❌ 未渲染“编辑职类信息”标题 | `logs/219E/job-catalog-secondary-navigation-chromium-20251107-133841.log` |
-| `npm run test:e2e -- --project=firefox tests/e2e/job-catalog-secondary-navigation.spec.ts` | ❌ 同上 | `logs/219E/job-catalog-secondary-navigation-firefox-20251107-134321.log` |
-| `npm run test:e2e -- --project=chromium tests/e2e/name-validation-parentheses.spec.ts` | ✅ 2025-11-08 复测通过（补齐 JWT/租户请求头后 REST/GraphQL 均 200） | `logs/219E/name-validation-parentheses-20251108T052717Z.log` |
-| `npm run test:e2e -- --project=chromium tests/e2e/position-tabs.spec.ts` | ❌ `任职历史` 文案缺失 | `logs/219E/position-tabs-20251107-134806.log` |
-| `npm run test:e2e -- --project=chromium tests/e2e/position-lifecycle.spec.ts` | ❌ `position-detail-card` 未出现 | `logs/219E/position-lifecycle-20251107-135246.log` |
-| `npm run test:e2e -- --project=chromium tests/e2e/position-crud-full-lifecycle.spec.ts` | ✅ 完整 CRUD（Create→Delete），最新职位 `P1000031`，记录 RequestId | `logs/230/position-crud-playwright-20251108T102815.log`、`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` |
-| `npm run test:e2e -- --project=chromium tests/e2e/temporal-management-integration.spec.ts` | ❌ 无法定位 `organization-dashboard` | `logs/219E/temporal-management-integration-20251107-135738.log` |
-| `scripts/e2e/org-lifecycle-smoke.sh` | ✅ 完成创建/停用/启用/GraphQL 校验 | `logs/219E/org-lifecycle-smoke-20251107-140705.log` |
-| `LOAD_DRIVER=node REQUEST_COUNT=40 CONCURRENCY=4 THROTTLE_DELAY_MS=30 scripts/perf/rest-benchmark.sh` | ✅ 获得 201/429 统计与延迟分布 | `logs/219E/rest-benchmark-20251107-140709.log` |
-| `npx graphql-inspector diff docs/api/schema.graphql logs/graphql-snapshots/runtime-schema.graphql` | ✅ `No changes detected`，runtime SDL 经 `go run ./cmd/hrms-server/query/tools/dump-schema --out logs/graphql-snapshots/runtime-schema.graphql` 导出 | `logs/219T5/graphql-inspector-diff-20251108-015138.txt` |
-| `scripts/diagnostics/check-job-catalog.sh` | ✅ `OPER` Job Catalog 通过（roles=1、levels=S1/S2/S3） | `logs/230/job-catalog-check-20251108T093645.log` |
-| `scripts/dev/seed-position-crud.sh` | ✅ 创建/填充/空缺职位 `P1000027`，播种日志可复用 | `logs/230/position-seed-20251108T094735.log` |
-| 240D 职位详情观测用例（Chromium） | ✅ 观测事件输出与落盘通过（hydrate/tab）；使用现有职位 `PW_POSITION_CODE` 模式 | `logs/plan240/D/obs-position-observability-chromium.log`、`frontend/playwright-report/index.html` |
-| 244 Timeline/Status 抽象（验收） | ✅ Chromium/Firefox 各 1 轮通过（Smoke + 集成） | `logs/plan242/t2/244-e2e-acceptance.log`、`frontend/playwright-report/index.html` |
+本文件已迁移至：`docs/archive/development-plans/06-integrated-teams-progress-log.md`（只读）。
 
-## 3. 当前阻塞
-1. **Playwright P0 场景仍需修复**  
-   - `business-flow-e2e`：Temporal 删除按钮缺失。  
-   - `job-catalog-secondary-navigation`：Chromium/Firefox 均缺少“编辑职类信息”。  
-   - `position-tabs`、`position-lifecycle`：需在最新 Job Catalog 数据下重新执行，验证 UI/data-testid 是否仍异常。  
-   - `temporal-management-integration`：`organization-dashboard` 仍无法加载。  
-   → Position CRUD 已由 `logs/230/position-crud-playwright-20251108T102815.log` 验证通过，但其余 P0 仍需 UI/数据联调。
-2. **文档与性能摘要**  
-   - REST Benchmark JSON 摘要已写入 `docs/reference/03-API-AND-TOOLS-GUIDE.md:302-336`（含 `logs/219E/rest-benchmark-20251107-140709.log` 摘录）。  
-   - `docs/development-plans/219T-e2e-validation-report.md`、`docs/development-plans/219E-e2e-validation.md` 已于 2025-11-08 回填 Position CRUD 命令/RequestId/产物，引用 `logs/230/position-crud-playwright-20251108T102815.log`；后续如果有新的 E2E 结果需继续同步。  
-   - 219E Outbox/Dispatcher 指标已在 2025-11-08 复测完成（Plan 231 Runbook O1-O6），`outbox_events` 现包含 `position.created/assignment.filled/assignment.closed/jobLevel.versionCreated` 记录，Prometheus 计数 `outbox_dispatch_success_total=5`、`outbox_dispatch_total{result="success"}` 已按事件维度区分；GraphQL 读模型（`logs/219E/position-gql-outbox-20251108T051126Z.log`）同步展示对应的 `assignmentHistory`。
-3. **命名抽象（Plan 242 / T1）**  
-   - `TemporalEntityPage` 已完成落地：组织/职位详情页统一由 `frontend/src/features/temporal/pages/entityRoutes.tsx` 暴露，功能映射记录在 `reports/plan242/naming-inventory.md#temporal-entity-page`。  
+如需执行或更新回归，请参考以上“当前权威来源”。
 
 ## 4. 文档治理与命名抽象（Plan 247）
 - 完成文档与治理对齐（T5）：`Temporal Entity Experience Guide` 成为唯一事实来源；旧 Positions 指南路径在 reference 目录仅保留“Deprecated 占位符”（无正文）。  

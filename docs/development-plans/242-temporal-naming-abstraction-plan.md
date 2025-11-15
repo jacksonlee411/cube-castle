@@ -166,3 +166,16 @@
 - 替换成本：codemod 批量 + 短期 alias + 守卫冻结；  
 - 契约断裂：MR gating 附 schema diff、`go test/go generate` 输出，异常立即回滚并启用 feature flag；  
 - 文档偏差：统一出口 + 零引用脚本，防二次来源。
+
+---
+
+## 完成登记（2025-11-15）
+- 守卫与门禁  
+  - 选择器守卫：`npm run guard:selectors-246` → 通过（日志：`logs/plan242/t4/selector-guard-246.log`）  
+  - 命名守卫：`npm run guard:plan245` → 通过（日志：`logs/plan242/t4/plan245-guard.log`）  
+- E2E（Chromium/Firefox）  
+  - Smoke：`frontend/tests/e2e/smoke-org-detail.spec.ts`、`frontend/tests/e2e/temporal-header-status-smoke.spec.ts`（通过）  
+  - 集成：`frontend/tests/e2e/temporal-management-integration.spec.ts`（8 passed / 4 skipped）  
+  - 轮次记录：`logs/plan242/t4/242-e2e-round2.log`、`logs/plan242/t4/242-e2e-round3.log`  
+  - 报告：`frontend/playwright-report/index.html`  
+- 说明：本计划在 T1/T2/T3/T5 已达成基础能力与文档治理，T4 已按“至少 1 轮双浏览器 + 守卫通过 + 证据落盘”的基线验收完成。后续更高轮次抽样按 241 启动前在 CI 侧定期执行。

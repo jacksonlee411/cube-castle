@@ -7,7 +7,7 @@
 —
 
 ## 目标
-- 固化改造经验/回滚路径，清理残留，更新 Plan 06 表格与日志路径，确保持续回归稳定。严格遵循 AGENTS.md 的“资源唯一性与跨层一致性”“Docker 容器化强制”“先契约后实现”等约束。
+- 固化改造经验/回滚路径，清理残留，更新执行日志与门禁引用（以 215 与 232/232T 为准），确保持续回归稳定。严格遵循 AGENTS.md 的“资源唯一性与跨层一致性”“Docker 容器化强制”“先契约后实现”等约束。
 
 ## 任务清单
 T0) 环境与门禁前置校验（以 AGENTS.md 为准；本计划仅补充 240E 专属差异）  
@@ -40,9 +40,9 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 ---
 
 ## 回归套件与执行矩阵（T1）
-- 权威来源：以 Plan 06 表格中标记为 P0 的“职位域”用例集合为准（含职位详情/生命周期/观测与相关集成路径）。  
-- 过滤规则（客观标准）：优先以 Plan 06 的 `domain=position` 标签/列为准；如 Plan 06 临时缺失该列，兜底集合为 `frontend/tests/e2e/position-*` 与 `frontend/tests/e2e/temporal-management-integration.spec.ts`，但以 Plan 06 为最终事实来源。  
-- 本地示例（非权威，仅便于手工复核）：`position-*` 与 `temporal-management-integration` 等规格。具体清单以 Plan 06 为准。
+- 权威来源：以 `docs/development-plans/232-playwright-p0-stabilization.md` 中标记为 P0 的“职位域”用例集合为准（含职位详情/生命周期/观测与相关集成路径）。  
+- 过滤规则（客观标准）：优先以 232 文档中的标签/清单为准；如临时缺失，则兜底集合为 `frontend/tests/e2e/position-*` 与 `frontend/tests/e2e/temporal-management-integration.spec.ts`，最终仍以 232 文档为事实来源。  
+- 本地示例（非权威，仅便于手工复核）：`position-*` 与 `temporal-management-integration` 等规格（以 232 为准）。
 
 执行要求与环境
 - CI：以 frontend/playwright.config.ts 的配置为准（`retries` 打开），Chromium + Firefox 全部稳定通过；产物由 CI 收集并落盘  
@@ -87,10 +87,10 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 
 ---
 
-## Plan 06 对齐项（T2）
-- 在 `docs/development-plans/06-integrated-teams-progress-log.md` 中更新：
-  - “2. 已执行验证”：新增本计划回归用例的通过/失败记录，附 `logs/plan240/E/*.log` 与 trace 路径  
-  - “3. 当前阻塞”：如仍存在 P0 失败，用“故障→定位→解法”格式登记，并引用本计划 Runbook 条目
+## 执行日志对齐项（T2）
+- 在 `docs/development-plans/215-phase2-execution-log.md` 中更新：
+  - 新增本计划回归用例的通过/失败记录，附 `logs/plan240/E/*.log` 与 trace 路径  
+  - 如仍存在 P0 失败，用“故障→定位→解法”格式登记，并引用本计划 Runbook 条目
 
 ---
 
