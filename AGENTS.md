@@ -48,3 +48,7 @@
 - 所有环境初始化均通过迁移脚本完成；必要时使用 `make db-migrate-all` 或 `make db-rollback-last`（若可用）进行回滚，再同步更新计划文档。
 - 秘钥统一存放于 `secrets/`，严禁提交到版本库；调试时通过 `make jwt-dev-export` 导出会话令牌，并遵循 `docs/DOCUMENT-MANAGEMENT-GUIDELINES.md`。
 - 若出现异常，优先参考 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `CHANGELOG.md`，若与本指南冲突，以上述权威文档与 `CLAUDE.md` 为最终解释。
+
+> 附：密钥与本地开发约定
+- 仓库通过 `.gitignore` 忽略 `secrets/*`，仅跟踪占位文件（`secrets/.gitkeep`、`secrets/README.md`）；密钥不应出现在任何提交中。
+- 本地开发请使用 `make jwt-dev-setup` 生成 RS256 密钥对（若不存在会自动生成），并结合 `make jwt-dev-mint` 获取会话令牌（保存在 `.cache/dev.jwt`）。
