@@ -164,9 +164,17 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
 
   // 渲染UPDATE操作表格
   const renderUpdateTable = () => {
-    // 若后端未提供changes，尝试用快照兜底推导变更（只处理一层浅比较）
+    // 若后端未提供changes，或提供了字段但缺少前后值，尝试用快照兜底推导变更（只处理一层浅比较）
     let sourceChanges = changes;
-    if (!sourceChanges.length && (beforeData || afterData)) {
+    const allValuesMissing =
+      sourceChanges.length > 0 &&
+      sourceChanges.every(
+        (c) =>
+          (c.oldValue === null || c.oldValue === '') &&
+          (c.newValue === null || c.newValue === ''),
+      );
+
+    if ((sourceChanges.length === 0 || allValuesMissing) && (beforeData || afterData)) {
       const b = (beforeData ?? {}) as Record<string, JsonValue | null | undefined>;
       const a = (afterData ?? {}) as Record<string, JsonValue | null | undefined>;
       const keys = Array.from(new Set([...Object.keys(b), ...Object.keys(a)])).filter(
