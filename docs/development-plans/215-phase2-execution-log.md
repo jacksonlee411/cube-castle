@@ -75,7 +75,11 @@
 
 #### Plan 255 · CI 远程收尾（索引）
 - Required checks（受保护分支）：将 `plan-250-gates`、`plan-253-gates`、`plan-255-gates` 勾选为必需检查（Settings → Branches）。  
-  - 证据占位：`logs/plan255/branch-protection-required-checks.md`（截图/说明链接，含失败示例链接）[TBD]
+  - 已开启并验证通过的检查：
+    - gates-250（plan-250-gates）— 运行示例：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403577075>
+    - Compose/Image Gates (Blocking)（plan-253-gates）— 运行示例：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403577269>
+    - gates-255（plan-255-gates）— 运行示例：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403570892>
+  - 证据占位：`logs/plan255/branch-protection-required-checks.md`（截图/说明链接，含失败示例链接）
 - 首次成功运行登记：在本段落补充 CI 运行链接与工件名称（artifact: `plan255-logs`）。  
   - 运行链接：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403010378>（status=completed, conclusion=success）；artifact: plan255-logs（保留 7 天）
 - Root 审计门禁开关：已切换为 hard（阻断）。  
