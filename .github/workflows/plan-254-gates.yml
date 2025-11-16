@@ -87,6 +87,11 @@ jobs:
           npm ci
           npx playwright install --with-deps
 
+      - name: Prepare dev JWT keys (RS256)
+        if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+        run: |
+          make jwt-dev-setup
+
       - name: Compose Up (E2E backend only)
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
         run: |
