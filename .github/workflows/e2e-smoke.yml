@@ -11,6 +11,16 @@ on:
       - 'ci/e2e-touch/**'
 
 jobs:
+  diag:
+    name: CI diag (ensure job creation)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print context
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "sha=${{ github.sha }}"
+          echo "ref=${{ github.ref }}"
+          echo "OK"
   e2e-smoke:
     # TODO-TEMPORARY(2025-11-22): 临时收敛为 ubuntu-latest，避免 no-jobs
     name: E2E Smoke – ubuntu
