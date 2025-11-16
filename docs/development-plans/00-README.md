@@ -87,6 +87,8 @@
 - `../archive/development-plans/109-position-audit-history-realignment.md` - 职位审计历史缺失整改计划
 - `../archive/development-plans/110-position-status-normalization.md` - 职位版本状态与"当前版本"标识异常整改
 
+<!-- ci: plan-258-gates noop trigger 2025-11-16 -->
+
 #### **07-20 - 已完成计划和指南**
 - `../archive/development-plans/07-contract-testing-automation-system.md` - ⭐ **契约测试自动化验证体系** (S级成功完成)
 - `../archive/development-plans/08-parent-organization-selector-enhancement.md` - 上级组织选择器增强方案（Canvas Kit回归 + 测试同步完成）
