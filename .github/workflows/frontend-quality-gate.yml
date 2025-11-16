@@ -14,8 +14,17 @@ on:
 
 jobs:
   frontend-quality-gate:
-    name: 🔒 前端架构治理和质量验证
-    runs-on: ubuntu-latest
+    name: 🔒 前端质量验证 (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [ubuntu, selfhosted]
+        include:
+          - label: ubuntu
+            runs_on: '["ubuntu-latest"]'
+          - label: selfhosted
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runs_on) }}
     timeout-minutes: 10
     
     steps:

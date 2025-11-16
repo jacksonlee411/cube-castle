@@ -5,8 +5,17 @@ on:
 
 jobs:
   api-compliance-check:
-    name: API一致性和规范合规检查
-    runs-on: ubuntu-latest
+    name: API一致性与规范合规 (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [ubuntu, selfhosted]
+        include:
+          - label: ubuntu
+            runs_on: '["ubuntu-latest"]'
+          - label: selfhosted
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runs_on) }}
     
     steps:
       - name: Detect docs-only/ci-only changes

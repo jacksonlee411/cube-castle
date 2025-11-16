@@ -31,8 +31,17 @@ env:
 
 jobs:
   duplicate-detection:
-    name: 📊 重复代码扫描
-    runs-on: ubuntu-latest
+    name: 📊 重复代码扫描 (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [ubuntu, selfhosted]
+        include:
+          - label: ubuntu
+            runs_on: '["ubuntu-latest"]'
+          - label: selfhosted
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runs_on) }}
     permissions:
       contents: read
       pull-requests: write
