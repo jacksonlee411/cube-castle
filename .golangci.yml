@@ -8,6 +8,7 @@ linters:
     - importas
     - revive
     - govet
+    - tagliatelle
 
 linters-settings:
   depguard:
@@ -34,6 +35,24 @@ linters-settings:
         alias: schemaLoader
       - pkg: cube-castle/internal/middleware
         alias: requestMiddleware
+  tagliatelle:
+    case:
+      json: camel
 
 issues:
   exclude-use-default: false
+  exclude-rules:
+    # 允许 OAuth/OIDC/JWT 标准字段的 snake_case json tag（仅限认证相关路径）
+    - linters:
+        - tagliatelle
+      path: internal/auth/.*
+    - linters:
+        - tagliatelle
+      path: cmd/hrms-server/.*/internal/auth/.*
+    - linters:
+        - tagliatelle
+      path: cmd/hrms-server/.*/internal/authbff/oidc\.go
+    # 缓存/内部状态对象不作为对外响应的约束目标（避免误报）
+    - linters:
+        - tagliatelle
+      path: internal/cache/.*
