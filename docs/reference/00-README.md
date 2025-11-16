@@ -85,6 +85,14 @@
 - 可选的 Air 热重载配置入口
 - 违规时的回滚与排障建议
 
+### 🤖 [05. CI/本地一键自动化指引](./05-CI-LOCAL-AUTOMATION-GUIDE.md)
+**用途**: 统一门禁（CQRS/端口/禁用端点）与 E2E 的 CI/本地一键化实践  
+**包含内容**:
+- 唯一门禁工具链（architecture-validator）与“禁止直连 :9090/:8090”规则
+- 证据参数化（E2E_PLAN_ID）与 Playwright JSON SUMMARY（机器可读）
+- CI 工作流（plan-254-gates）与本地一键脚本/VS Code 任务
+- 远程 SUMMARY 拉取脚本与 secrets/.env.local 安全加载
+
 ---
 
 ## 🚀 快速开始
