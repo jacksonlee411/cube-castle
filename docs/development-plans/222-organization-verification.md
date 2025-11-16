@@ -32,7 +32,7 @@
 - ✅ E2E 烟测（Chromium/Firefox 各 1 轮）：`frontend/tests/e2e/smoke-org-detail.spec.ts`、`temporal-header-status-smoke.spec.ts`（本地）
 - ✅ E2E Smoke（Live 小集合）通过：`frontend/tests/e2e/{basic-functionality-test,simple-connection-test,organization-create}.spec.ts`；日志：`logs/plan222/playwright-LIVE-*.log`
 - 🔄 覆盖率补位：`logs/plan222/coverage-org-*.{out,txt,html}`（阶段达成≥30%：见 `coverage-org-20251115-135303.txt`；后续目标≥55%/≥80%）
-- 🔄 性能基准：已执行短压测验证链路与速率限制，详见 `logs/219E/perf-rest-*.log`；完整基准待按门槛参数复跑
+- 🔄 性能基准：已执行短压测并记录 JSON Summary（node 驱动），详见 `logs/219E/perf-rest-20251116-094327.log`；完整基准（222B）待按门槛参数复跑
 
 ### 1.2 为什么需要最终验收
 
@@ -247,7 +247,7 @@ go test -bench=. -benchmem ./internal/organization/...
 
 - 阶段性结论：核心路径通过；E2E（P0）Mock 模式全绿；Live 模式的 API 级用例已通过环境开关与 TODO-TEMPORARY（2025-11-22）隔离，待 232 完成后开启强校验；顶层包覆盖率>80% 达成，整体覆盖率将在 255/256 推进中达成。
 - 统一证据清单：见 `logs/plan222/ACCEPTANCE-SUMMARY-*.md`
-- 本次刷新：9090 单体 /graphql（需 Authorization + X-Tenant-ID）已验证通过；新增证据 `logs/plan222/graphql-query-20251115-125943.json`、`logs/plan222/create-response-20251115-130022.json`、`logs/plan222/put-response-1031964.json`；摘要：`logs/plan222/ACCEPTANCE-SUMMARY-20251115-205959.md`
+- 本次刷新：9090 单体 /graphql（需 Authorization + X-Tenant-ID）已验证通过；新增证据 `logs/plan222/graphql-query-20251115-125943.json`、`logs/plan222/create-response-20251115-130022.json`、`logs/plan222/put-response-1031964.json`；短压测 JSON Summary：`logs/219E/perf-rest-20251116-094327.log`；摘要：`logs/plan222/ACCEPTANCE-SUMMARY-20251115-205959.md`
 
 ---
 
