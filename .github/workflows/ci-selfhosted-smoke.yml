@@ -21,22 +21,10 @@ jobs:
       - name: Print environment
         run: |
           uname -a
-          docker version
-          docker compose version || true
-          go version || true
           node -v || true
+          echo "Env OK"
 
-      - name: Validate compose files (syntax only)
-        run: |
-          docker compose -f docker-compose.dev.yml config -q
-          docker compose -f docker-compose.test.yml config -q
-          echo "Compose files look valid."
-
-      - name: Quick Go build
-        run: |
-          go version
-          go build ./... >/dev/null
-          echo "Go build OK"
+      # Skip docker/go validation in smoke: runner镜像未内置 docker/go，可在后续工作流按需校验
 
       - name: Quick frontend install (lockfile only)
         run: |
