@@ -36,6 +36,8 @@ startup.log
 # Allow curated plan221 logs to be tracked for audit evidence
 !logs/plan221/
 !logs/plan221/*.log
+# Ignore local Plan 255 evidence logs (local-only, CI will archive separately)
+logs/plan255/
 
 # Temporary files
 *.tmp
