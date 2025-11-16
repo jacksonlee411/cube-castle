@@ -121,6 +121,13 @@
   - 工作流：.github/workflows/plan-258-gates.yml（新增两个 step，上传 `plan258-permissions-and-259A` 工件）
   - 阈值：vars.PLAN259_BUSINESS_GET_THRESHOLD（默认=1；迁移完成后设为 0 切硬门禁）
   - 提交：3bf0dc42
+
+### 新增（2025-11-16 — Plan 259 前端迁移扫描）
+- ✅ [Plan 259] 前端调用定位与替换建议（只读扫描）
+  - 脚本：`node scripts/quality/plan259-fe-migration-scan.js`
+  - 产物：`reports/plan259/fe-migration-suggestions.json`
+  - 摘要：Files=276，Findings=0（未检测到直接使用 REST 业务查询端点；E2E 场景主要涉及命令/写操作，读查询已走 GraphQL/门面）
+  - 后续：若出现新增调用，CI 软门禁（259A）将提示；迁移完成后把阈值切为 0 转硬门禁
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
