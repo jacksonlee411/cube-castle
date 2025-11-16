@@ -103,7 +103,17 @@ jobs:
       if: env.SCAN_SCOPE == 'full'
       run: |
         echo "🔍 执行完整项目扫描，阈值: ${DUPLICATE_THRESHOLD}%"
-        jscpd --threshold=$DUPLICATE_THRESHOLD . || exit_code=$?
+        # Plan 261: 忽略第三方与产物，降低误报；临时稳态，11-22 前回收策略
+        jscpd --threshold=$DUPLICATE_THRESHOLD \
+          --ignore \"**/node_modules/**\" \
+          --ignore \"**/dist/**\" \
+          --ignore \"**/build/**\" \
+          --ignore \"**/.cache/**\" \
+          --ignore \"**/coverage/**\" \
+          --ignore \"**/reports/**\" \
+          --ignore \"**/logs/**\" \
+          --ignore \"**/*.min.js\" \
+          . || exit_code=$?
         
         echo "📊 扫描完成，退出码: ${exit_code:-0}"
         
@@ -120,7 +130,16 @@ jobs:
       if: env.SCAN_SCOPE == 'frontend-only'
       run: |
         echo "🔍 执行前端代码扫描"
-        jscpd --threshold=$DUPLICATE_THRESHOLD frontend/ || exit_code=$?
+        jscpd --threshold=$DUPLICATE_THRESHOLD \
+          --ignore \"**/node_modules/**\" \
+          --ignore \"**/dist/**\" \
+          --ignore \"**/build/**\" \
+          --ignore \"**/.cache/**\" \
+          --ignore \"**/coverage/**\" \
+          --ignore \"**/reports/**\" \
+          --ignore \"**/logs/**\" \
+          --ignore \"**/*.min.js\" \
+          frontend/ || exit_code=$?
         [ "${exit_code:-0}" -eq 0 ] || (echo "❌ 前端重复代码超过阈值" && exit 1)
 
     - name: 🔍 执行重复代码检测 (后端)
@@ -129,6 +148,14 @@ jobs:
       run: |
         echo "🔍 执行后端代码扫描"
         jscpd --threshold=$DUPLICATE_THRESHOLD \
+          --ignore \"**/node_modules/**\" \
+          --ignore \"**/dist/**\" \
+          --ignore \"**/build/**\" \
+          --ignore \"**/.cache/**\" \
+          --ignore \"**/coverage/**\" \
+          --ignore \"**/reports/**\" \
+          --ignore \"**/logs/**\" \
+          --ignore \"**/*.min.js\" \
           --format=go \
           cmd/ internal/ pkg/ || exit_code=$?
         [ "${exit_code:-0}" -eq 0 ] || (echo "❌ 后端重复代码超过阈值" && exit 1)
@@ -138,7 +165,16 @@ jobs:
       if: always()
       run: |
         # 生成JSON报告用于后续处理
-        jscpd --threshold=100 --reporters=json --output=./reports/duplicate-code . || true
+        jscpd --threshold=100 --reporters=json --output=./reports/duplicate-code \
+          --ignore \"**/node_modules/**\" \
+          --ignore \"**/dist/**\" \
+          --ignore \"**/build/**\" \
+          --ignore \"**/.cache/**\" \
+          --ignore \"**/coverage/**\" \
+          --ignore \"**/reports/**\" \
+          --ignore \"**/logs/**\" \
+          --ignore \"**/*.min.js\" \
+          . || true
         
         # 输出统计摘要
         if [ -f "./reports/duplicate-code/jscpd-report.json" ]; then

@@ -82,7 +82,8 @@ jobs:
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
         run: |
           docker compose -f docker-compose.dev.yml build rest-service
-          docker compose -f docker-compose.dev.yml up -d postgres redis rest-service
+          # Plan 261: 使用 --wait 利用 healthcheck，提高稳定性
+          docker compose -f docker-compose.dev.yml up -d postgres redis rest-service --wait
 
       - name: Wait for services
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
@@ -92,7 +93,7 @@ jobs:
             curl -fsS http://localhost:9090/health >/dev/null && echo "Backend healthy" && break || true
             sleep 5
           done
-          curl -fsS http://localhost:9090/health >/dev/null || (echo 'Backend did not become healthy in time' && docker compose -f docker-compose.dev.yml logs --no-color && exit 1)
+          curl -fsS http://localhost:9090/health >/dev/null || (echo 'Backend did not become healthy in time' && docker compose -f docker-compose.dev.yml logs --no-color > backend-compose.log || true && exit 1)
 
       - name: Mint dev JWT
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
@@ -122,6 +123,7 @@ jobs:
             logs/plan${{ env.E2E_PLAN_ID }}/**
             frontend/playwright-report
             frontend/test-results
+            backend-compose.log
           retention-days: 14
 
       - name: Compose down

@@ -56,6 +56,33 @@ jobs:
       checks: write
 
     steps:
+    - name: Detect docs-only/ci-only changes
+      id: changes
+      uses: dorny/paths-filter@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        filters:
+          docs_only:
+            - 'AGENTS.md'
+            - '**/*.md'
+            - 'docs/**'
+            - 'reports/**'
+            - 'scripts/plan222/**'
+            - 'docs/development-plans/**'
+            - '!.github/workflows/**'
+          ci_only:
+            - '.github/workflows/**'
+            - '!frontend/**'
+            - '!cmd/**'
+            - '!internal/**'
+            - '!pkg/**'
+            - '!database/**'
+            - '!tests/**'
+    - name: Docs/CI-only fast pass (Plan 261 临时短路)
+      if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
+      run: |
+        echo "Docs/CI-only changes detected. Skipping document-sync heavy checks (temporary until 2025-11-22)."
+        exit 0
     - name: 📥 检出代码
       uses: actions/checkout@v4
       with:

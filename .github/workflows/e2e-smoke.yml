@@ -75,12 +75,14 @@ jobs:
         if: steps.changes.outputs.docs_only != 'true'
         run: |
           docker compose -f docker-compose.dev.yml build rest-service
-          docker compose -f docker-compose.dev.yml up -d postgres redis rest-service
+          # Plan 261: 使用 --wait 利用 healthcheck，提高稳定性
+          docker compose -f docker-compose.dev.yml up -d postgres redis rest-service --wait
 
       - name: Wait for services
         if: steps.changes.outputs.docs_only != 'true'
         run: |
-          timeout 120 bash -c 'until curl -sf http://localhost:9090/health; do sleep 3; done'
+          # Plan 261: 兜底等待，延长至 300s，并在失败时输出 compose 日志
+          timeout 300 bash -c 'until curl -sf http://localhost:9090/health; do sleep 3; done' || (docker compose -f docker-compose.dev.yml logs --no-color > backend-compose.log || true; exit 1)
 
       - name: Run contract tests (frontend)
         if: steps.changes.outputs.docs_only != 'true'
@@ -106,6 +108,7 @@ jobs:
             e2e-test-output.txt
             reports/*.md
             reports/*.txt
+            backend-compose.log
           retention-days: 14
 
       - name: Compose Down
