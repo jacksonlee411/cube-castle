@@ -32,6 +32,7 @@
 - ✅ E2E 烟测（Chromium/Firefox 各 1 轮）：`frontend/tests/e2e/smoke-org-detail.spec.ts`、`temporal-header-status-smoke.spec.ts`（本地）
 - ✅ E2E Smoke（Live 小集合）通过：`frontend/tests/e2e/{basic-functionality-test,simple-connection-test,organization-create}.spec.ts`；日志：`logs/plan222/playwright-LIVE-*.log`
 - 🔄 覆盖率补位：`logs/plan222/coverage-org-*.{out,txt,html}`（阶段达成≥30%：见 `coverage-org-20251115-135303.txt`；后续目标≥55%/≥80%）
+  - 本地复验（2025-11-16）：组合覆盖率 ~31.1%（最新产物：`logs/plan222/coverage-org-20251116-100056.{out,txt,html}`），repository/handler/service 负路径用例已补入
 - 🔄 性能基准：已执行短压测并记录 JSON Summary（node 驱动），详见 `logs/219E/perf-rest-20251116-094327.log`；完整基准（222B）待按门槛参数复跑
 
 ### 1.2 为什么需要最终验收
