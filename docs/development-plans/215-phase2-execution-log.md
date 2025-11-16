@@ -198,6 +198,16 @@
     - [ ] `logs/plan242/t4/selector-guard-246.log`
     - [ ] `logs/plan242/t4/e2e-{chromium,firefox}.log`
 - T5 文档与治理对齐（已完成，已归档，详见 Plan 247）
+
+---
+
+## 模板（受保护分支门禁证据 · 适用于 Plan 253/255）
+- 仓库设置截图：Settings → Branches → Branch protection rules（勾选必需检查：plan-250-gates、plan-253-gates、plan-255-gates）
+- 失败示例链接：至少 1 个 PR 触发门禁失败的运行链接（Actions run URL）
+- 日志归档：
+  - plan-253：`logs/plan253/*`（compose 端口/镜像/冷启动检查）
+  - plan-255：`logs/plan255/*`（前端架构守卫、golangci-lint）
+- 备注：若临时放行，需在对应代码处添加 `// TODO-TEMPORARY(YYYY-MM-DD): 原因|计划|截止`（≤1迭代），并在此处登记清单与回收日期
   - 事实来源：`docs/archive/development-plans/247-temporal-entity-docs-alignment-plan.md`
   - 证据登记：
     - [ ] `logs/plan242/t5/rg-zero-ref-check.txt`

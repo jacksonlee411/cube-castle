@@ -335,3 +335,9 @@
 - CI 门禁：新增 Plan 252 守卫与 DEV_MODE 默认禁用检查
 - DEV：查询服务 DEV_MODE 默认 false；开发容器显式启用 DEV_MODE=true
 - 测试：新增 PBAC 映射单测（cmd/hrms-server/query/internal/auth/pbac_mapping_test.go）
+## [Unreleased]
+- feat(gate-255): add ESLint architecture guard to plan-255 workflow (CQRS/ports/contracts), complementing static scanner
+- chore(gate-255): pin golangci-lint to v1.59.1 for reproducible CI
+- docs(plan-255): clarify JWKS not a permanent frontend exception; provide DEV_MODE temporary strategy; unify status fields to status/isCurrent/isFuture/isTemporal; require plan-250/253 as protected-branch checks alongside 255
+- docs(215): add protected-branch evidence template to include plan-250/253/255 and sample failure links
+- docs(agents): add “决策建议原则” — for decision items/open questions, provide best-practice advice and a default path (with rollback window), not Q&A only
