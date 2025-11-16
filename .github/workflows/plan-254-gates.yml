@@ -101,7 +101,17 @@ jobs:
       - name: Wait for backend services
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
         run: |
-          timeout 120 bash -c 'until curl -sf http://localhost:9090/health; do sleep 3; done'
+          set -e
+          echo "⏳ Waiting for backend (9090) health..."
+          for i in {1..60}; do
+            if curl -sf http://localhost:9090/health >/dev/null; then
+              echo "✅ Backend healthy"; break
+            fi
+            docker compose -f docker-compose.e2e.yml ps || true
+            sleep 3
+          done
+          # Final assert
+          curl -sf http://localhost:9090/health >/dev/null
 
       - name: Mint dev JWT for E2E
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
@@ -127,6 +137,15 @@ jobs:
           PW_BASE_URL: "http://localhost:9090"
         run: |
           npm run -s test:e2e:254
+      
+      - name: Dump backend logs on failure
+        if: failure() && steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+        run: |
+          mkdir -p logs/plan254
+          echo "🔎 Collecting docker compose logs..."
+          docker compose -f docker-compose.e2e.yml logs --no-color > logs/plan254/compose-logs.txt || true
+          echo "📋 docker compose ps:"
+          docker compose -f docker-compose.e2e.yml ps || true
       
       - name: Summarize E2E results (machine-readable)
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
@@ -168,7 +187,6 @@ jobs:
           NODE
 
       - name: Upload plan-254 logs
-        if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -180,6 +198,5 @@ jobs:
           retention-days: 14
 
       - name: Compose Down
-        if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
         if: always()
         run: docker compose -f docker-compose.e2e.yml down -v --remove-orphans
