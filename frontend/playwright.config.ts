@@ -47,9 +47,9 @@ const SAVE_HAR = process.env.E2E_SAVE_HAR === '1';
 // 行业最佳实践：参数化计划号，统一证据目录命名
 // E2E_PLAN_ID 优先：将 HAR/报告落盘到 logs/plan<id>/，例如 E2E_PLAN_ID=254 -> logs/plan254/
 // 兼容旧参数 E2E_PLAN=240BT 的 BT/B 后缀策略（不推荐，保留兼容）
-const PLAN_ID = process.env.E2E_PLAN_ID && /^\d+$/.test(process.env.E2E_PLAN_ID) ? process.env.E2E_PLAN_ID : '';
+const PLAN_ID_ENV = process.env.E2E_PLAN_ID && /^\d+$/.test(process.env.E2E_PLAN_ID) ? process.env.E2E_PLAN_ID : '';
 const LEGACY_PLAN = (process.env.E2E_PLAN || '').toUpperCase();
-const HAR_BASE_DIR = PLAN_ID ? path.resolve(__dirname, '..', 'logs', `plan${PLAN_ID}`) 
+const HAR_BASE_DIR = PLAN_ID_ENV ? path.resolve(__dirname, '..', 'logs', `plan${PLAN_ID_ENV}`) 
   : path.resolve(__dirname, '..', 'logs', 'plan240', (LEGACY_PLAN === '240BT' ? 'BT' : 'B'));
 const EVIDENCE_DIR = HAR_BASE_DIR;
 const HAR_DIR = EVIDENCE_DIR;
