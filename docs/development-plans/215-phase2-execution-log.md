@@ -128,6 +128,13 @@
   - 产物：`reports/plan259/fe-migration-suggestions.json`
   - 摘要：Files=276，Findings=0（未检测到直接使用 REST 业务查询端点；E2E 场景主要涉及命令/写操作，读查询已走 GraphQL/门面）
   - 后续：若出现新增调用，CI 软门禁（259A）将提示；迁移完成后把阈值切为 0 转硬门禁
+
+### 新增（2025-11-16 — Plan 259A 阈值切换为硬门禁）
+- ✅ [Plan 259A] 将仓库变量 `PLAN259_BUSINESS_GET_THRESHOLD` 设为 0（从软→硬门禁）
+  - 操作：GitHub Actions Repository Variable 更新（owner=jacksonlee411 repo=cube-castle；VAR=PLAN259_BUSINESS_GET_THRESHOLD；value=0）
+  - 方式：GitHub REST API 调用（token 来自 secrets/.env.local）
+  - 结果：设置成功（204/201）；随后触发 `plan-258-gates` 工作流以获取最新报告与工件（dispatch=204）
+  - 期望：后续 PR/Push 若“REST 业务 GET”>0，将在 plan-258 聚合门禁阶段失败（reports/plan259/** 工件可复核）
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
