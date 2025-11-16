@@ -1,0 +1,17 @@
+﻿2025-11-16T18:58:40.4648882Z ##[group]Run bash scripts/contract/sync.sh
+2025-11-16T18:58:40.4649237Z [36;1mbash scripts/contract/sync.sh[0m
+2025-11-16T18:58:40.4683911Z shell: /usr/bin/bash -e {0}
+2025-11-16T18:58:40.4684153Z ##[endgroup]
+2025-11-16T18:58:40.4777095Z 📋 [契约同步] 开始...
+2025-11-16T18:58:40.4780042Z   工作目录: /home/runner/work/cube-castle/cube-castle
+2025-11-16T18:58:40.4780751Z   → 提取 OpenAPI 契约...
+2025-11-16T18:58:40.5564752Z [OpenAPI] ✗ 解析失败: duplicated mapping key (1929:5)
+2025-11-16T18:58:40.5565395Z 
+2025-11-16T18:58:40.5573741Z  1926 |   # - positionAssignments(position ...
+2025-11-16T18:58:40.5574415Z  1927 |   # - assignments(organizationCode ...
+2025-11-16T18:58:40.5574861Z  1928 | 
+2025-11-16T18:58:40.5575155Z  1929 |     post:
+2025-11-16T18:58:40.5575474Z ------------^
+2025-11-16T18:58:40.5575890Z  1930 |       operationId: createPositionA ...
+2025-11-16T18:58:40.5576410Z  1931 |       tags: [positions]
+2025-11-16T18:58:40.5641625Z ##[error]Process completed with exit code 1.

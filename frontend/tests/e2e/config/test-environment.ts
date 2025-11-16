@@ -17,8 +17,9 @@ export const E2E_CONFIG = {
   // 后端服务端点
   COMMAND_API_URL: process.env.E2E_COMMAND_API_URL || buildServiceURL('REST_COMMAND_SERVICE', '/api/v1'),
   COMMAND_HEALTH_URL: process.env.E2E_COMMAND_HEALTH_URL || buildServiceURL('REST_COMMAND_SERVICE', '/health'),
-  GRAPHQL_API_URL: process.env.E2E_GRAPHQL_API_URL || buildServiceURL('GRAPHQL_QUERY_SERVICE', '/graphql'),
-  GRAPHQL_HEALTH_URL: process.env.E2E_GRAPHQL_HEALTH_URL || buildServiceURL('GRAPHQL_QUERY_SERVICE', '/health'),
+  // 运行时已合流：GraphQL 由单体进程提供（:9090）
+  GRAPHQL_API_URL: process.env.E2E_GRAPHQL_API_URL || buildServiceURL('REST_COMMAND_SERVICE', '/graphql'),
+  GRAPHQL_HEALTH_URL: process.env.E2E_GRAPHQL_HEALTH_URL || buildServiceURL('REST_COMMAND_SERVICE', '/health'),
   
   // 超时配置（默认2分钟，可通过环境变量覆盖）
   PAGE_TIMEOUT: parseInt(process.env.E2E_PAGE_TIMEOUT || '120000'),

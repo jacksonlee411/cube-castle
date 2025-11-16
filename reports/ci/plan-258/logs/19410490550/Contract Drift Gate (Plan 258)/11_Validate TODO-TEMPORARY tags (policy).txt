@@ -1,0 +1,7 @@
+﻿2025-11-16T18:58:42.0377395Z ##[group]Run bash scripts/check-temporary-tags.sh
+2025-11-16T18:58:42.0378030Z [36;1mbash scripts/check-temporary-tags.sh[0m
+2025-11-16T18:58:42.0428045Z shell: /usr/bin/bash -e {0}
+2025-11-16T18:58:42.0428451Z ##[endgroup]
+2025-11-16T18:58:42.0529100Z [agents-compliance] 检查 TODO-TEMPORARY 标注...
+2025-11-16T18:58:42.1169817Z grep: ./frontend/public/playwright-report: No such file or directory
+2025-11-16T18:58:42.6078305Z ✔ TODO-TEMPORARY 标注规范通过

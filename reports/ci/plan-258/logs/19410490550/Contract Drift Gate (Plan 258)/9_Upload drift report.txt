@@ -1,0 +1,21 @@
+﻿2025-11-16T18:58:40.5731670Z ##[group]Run actions/upload-artifact@v4
+2025-11-16T18:58:40.5731954Z with:
+2025-11-16T18:58:40.5732130Z   name: plan258-drift-report
+2025-11-16T18:58:40.5732384Z   path: reports/contracts/drift-report.json
+2025-11-16T18:58:40.5732800Z   retention-days: 30
+2025-11-16T18:58:40.5733008Z   if-no-files-found: warn
+2025-11-16T18:58:40.5733217Z   compression-level: 6
+2025-11-16T18:58:40.5733413Z   overwrite: false
+2025-11-16T18:58:40.5733600Z   include-hidden-files: false
+2025-11-16T18:58:40.5733838Z ##[endgroup]
+2025-11-16T18:58:40.8315701Z With the provided path, there will be 1 file uploaded
+2025-11-16T18:58:40.8353557Z Artifact name is valid!
+2025-11-16T18:58:40.8370836Z Root directory input is valid!
+2025-11-16T18:58:41.0961311Z Beginning upload of artifact content to blob storage
+2025-11-16T18:58:41.2174159Z Uploaded bytes 314
+2025-11-16T18:58:41.2508498Z Finished uploading artifact content to blob storage!
+2025-11-16T18:58:41.2524361Z SHA256 digest of uploaded artifact zip is 4087ce6e14a58a551d774f72d55154029974af54e987234dc744b8dc897defe9
+2025-11-16T18:58:41.2527006Z Finalizing artifact upload
+2025-11-16T18:58:41.3525620Z Artifact plan258-drift-report.zip successfully finalized. Artifact ID 4582219239
+2025-11-16T18:58:41.3527520Z Artifact plan258-drift-report has been successfully uploaded! Final size is 314 bytes. Artifact ID is 4582219239
+2025-11-16T18:58:41.3535279Z Artifact download URL: https://github.com/jacksonlee411/cube-castle/actions/runs/19410490550/artifacts/4582219239
