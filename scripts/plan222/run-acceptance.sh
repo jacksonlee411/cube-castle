@@ -13,7 +13,8 @@ ts() { date -u +"%Y%m%d-%H%M%S"; }
 STAMP="$(ts)"
 
 REST_BASE="${REST_BASE:-http://localhost:9090}"
-GRAPHQL_BASE="${GRAPHQL_BASE:-http://localhost:9090}"
+# 按 SSoT（CQRS）默认：GraphQL 查询服务运行在 8090；如启用“单体挂载 /graphql(9090)”仅作历史兼容，非默认
+GRAPHQL_BASE="${GRAPHQL_BASE:-http://localhost:8090}"
 JWT_FILE="${ROOT_DIR}/.cache/dev.jwt"
 
 echo "[Plan222] Collecting health/JWKS..."
@@ -74,11 +75,12 @@ if [[ ${#AUTH_HEADER[@]} -gt 0 ]]; then
 EOF
 )
   echo "[Plan222] REST create org ${CODE}"
-  curl -fsS -D "${LOG_DIR}/create-headers-${STAMP}.txt" \
+  curl -sS -D "${LOG_DIR}/create-headers-${STAMP}.txt" \
     -H "Content-Type: application/json" "${AUTH_HEADER[@]}" "${TENANT_HEADER[@]}" \
     -X POST "${REST_BASE}/api/v1/organization-units" \
     --data "${CREATE_PAYLOAD}" \
-    -o "${LOG_DIR}/create-response-${STAMP}.json" || true
+    -o "${LOG_DIR}/create-response-${STAMP}.json" \
+    -w "%{http_code}\n" > "${LOG_DIR}/create-status-${STAMP}.txt" || true
 
   # PUT update (best-effort)
   UPDATE_PAYLOAD=$(cat <<EOF
@@ -86,11 +88,12 @@ EOF
 EOF
 )
   echo "[Plan222] REST update org ${CODE}"
-  curl -fsS \
+  curl -sS \
     -H "Content-Type: application/json" "${AUTH_HEADER[@]}" "${TENANT_HEADER[@]}" \
     -X PUT "${REST_BASE}/api/v1/organization-units/${CODE}" \
     --data "${UPDATE_PAYLOAD}" \
-    -o "${LOG_DIR}/put-response-${CODE}.json" || true
+    -o "${LOG_DIR}/put-response-${CODE}.json" \
+    -w "%{http_code}\n" > "${LOG_DIR}/put-status-${CODE}.txt" || true
 fi
 
 echo "[Plan222] Done. Outputs in logs/plan222/*-${STAMP}*"
