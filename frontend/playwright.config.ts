@@ -51,14 +51,13 @@ const PLAN_ID = process.env.E2E_PLAN_ID && /^\d+$/.test(process.env.E2E_PLAN_ID)
 const LEGACY_PLAN = (process.env.E2E_PLAN || '').toUpperCase();
 const HAR_BASE_DIR = PLAN_ID ? path.resolve(__dirname, '..', 'logs', `plan${PLAN_ID}`) 
   : path.resolve(__dirname, '..', 'logs', 'plan240', (LEGACY_PLAN === '240BT' ? 'BT' : 'B'));
-const HAR_DIR = HAR_BASE_DIR;
+const EVIDENCE_DIR = HAR_BASE_DIR;
+const HAR_DIR = EVIDENCE_DIR;
 const TS = Date.now();
-if (SAVE_HAR) {
-  try {
-    fs.mkdirSync(HAR_DIR, { recursive: true });
-  } catch {
-    /* ignore fs errors */
-  }
+try {
+  fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+} catch {
+  /* ignore fs errors */
 }
 
 export default defineConfig({
@@ -69,7 +68,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.E2E_STRICT === '1' ? 1 : (process.env.CI ? 2 : 4),
-  reporter: 'html',
+  reporter: [
+    ['html'],
+    // 机器可读报告：便于 CLI/脚本判定通过与失败
+    ['json', { outputFile: path.join(EVIDENCE_DIR, `results-${TS}.json`) }]
+  ],
   expect: { timeout: 15_000 },
   
   use: {

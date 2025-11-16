@@ -89,6 +89,41 @@ echo "  logs/plan254/report-<timestamp>/"
 if [ "${E2E_SAVE_HAR:-0}" = "1" ]; then
   echo "  logs/plan254/har/*.har"
 fi
+if ls logs/plan254/results-*.json >/dev/null 2>&1; then
+  LAST_JSON="$(ls -t logs/plan254/results-*.json | head -1)"
+  echo "  ${LAST_JSON}"
+  echo "==> Parsing JSON results summary"
+  node - "$LAST_JSON" <<'NODE'
+const fs = require('fs');
+const file = process.argv[1];
+try {
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  let total = 0, passed = 0, failed = 0, skipped = 0, flaky = 0;
+  const walk = (o) => {
+    if (!o) return;
+    if (Array.isArray(o)) { o.forEach(walk); return; }
+    if (typeof o === 'object') {
+      if (Object.prototype.hasOwnProperty.call(o, 'outcome')) {
+        total++;
+        const v = String(o.outcome);
+        if (v === 'expected' || v === 'passed') passed++;
+        else if (v === 'unexpected' || v === 'failed') failed++;
+        else if (v === 'skipped') skipped++;
+        else if (v === 'flaky') flaky++;
+      }
+      for (const k in o) walk(o[k]);
+    }
+  };
+  walk(data);
+  console.log(`SUMMARY total=${total} passed=${passed} failed=${failed} skipped=${skipped} flaky=${flaky}`);
+  if (failed > 0) process.exit(1);
+} catch (e) {
+  console.error('Failed to parse results json:', e.message);
+  process.exit(1);
+}
+NODE
+  echo "==> Results summary parsed."
+fi
 
 echo "==> Plan 254 Local Gate completed successfully."
 exit 0

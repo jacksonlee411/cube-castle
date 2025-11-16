@@ -73,6 +73,7 @@
   - `logs/plan254/playwright-254-run-*.log`
   - `logs/plan254/trace/*.zip`
   - `logs/plan254/report-<timestamp>/`（Playwright HTML 报告）
+  - `logs/plan254/results-*.json`（机器可读结果，脚本自动汇总 PASS/FAIL）
 - 可选：HAR 证据
   - `cd frontend && npm run test:e2e:254:har`（`E2E_PLAN_ID=254 E2E_SAVE_HAR=1`，HAR 自动归档至 `logs/plan254/har/`）
 
