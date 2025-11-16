@@ -77,6 +77,53 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
+  // 统一计算展示用的变更列表（当后端缺失值时用快照兜底）
+  const computeDisplayChanges = (): FieldChange[] => {
+    const allValuesMissing =
+      changes.length > 0 &&
+      changes.every(
+        (c) =>
+          (c.oldValue === null || c.oldValue === '') &&
+          (c.newValue === null || c.newValue === ''),
+      );
+    if ((changes.length === 0 || allValuesMissing) && (beforeData || afterData)) {
+      const b = (beforeData ?? {}) as Record<string, JsonValue | null | undefined>;
+      const a = (afterData ?? {}) as Record<string, JsonValue | null | undefined>;
+      const keys = Array.from(new Set([...Object.keys(b), ...Object.keys(a)])).filter(
+        (k) => k !== 'id',
+      );
+      const inferType = (v: unknown): string => {
+        if (v === null || v === undefined) return 'string';
+        if (typeof v === 'boolean') return 'boolean';
+        if (typeof v === 'number') return Number.isInteger(v) ? 'int' : 'number';
+        if (typeof v === 'string') {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'date';
+          if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return 'datetime';
+          return 'string';
+        }
+        return 'string';
+      };
+      const derived: FieldChange[] = [];
+      for (const key of keys) {
+        const oldV = b[key] ?? null;
+        const newV = a[key] ?? null;
+        const oldStr = JSON.stringify(oldV);
+        const newStr = JSON.stringify(newV);
+        if (oldStr !== newStr) {
+          derived.push({
+            field: key,
+            oldValue: oldV as JsonValue | null,
+            newValue: newV as JsonValue | null,
+            dataType: inferType(newV ?? oldV),
+          });
+        }
+      }
+      return derived;
+    }
+    return changes;
+  };
+  const displayChanges = computeDisplayChanges();
+
   // 格式化显示值
   const formatValue = (value: JsonValue | null | undefined, dataType?: string): string => {
     if (value === null || value === undefined) {
@@ -164,65 +211,19 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
 
   // 渲染UPDATE操作表格
   const renderUpdateTable = () => {
-    // 若后端未提供changes，或提供了字段但缺少前后值，尝试用快照兜底推导变更（只处理一层浅比较）
-    let sourceChanges = changes;
-    const allValuesMissing =
-      sourceChanges.length > 0 &&
-      sourceChanges.every(
-        (c) =>
-          (c.oldValue === null || c.oldValue === '') &&
-          (c.newValue === null || c.newValue === ''),
-      );
-
-    if ((sourceChanges.length === 0 || allValuesMissing) && (beforeData || afterData)) {
-      const b = (beforeData ?? {}) as Record<string, JsonValue | null | undefined>;
-      const a = (afterData ?? {}) as Record<string, JsonValue | null | undefined>;
-      const keys = Array.from(new Set([...Object.keys(b), ...Object.keys(a)])).filter(
-        (k) => k !== 'id',
-      );
-      const inferType = (v: unknown): string => {
-        if (v === null || v === undefined) return 'string';
-        if (typeof v === 'boolean') return 'boolean';
-        if (typeof v === 'number') return Number.isInteger(v) ? 'int' : 'number';
-        if (typeof v === 'string') {
-          // 简单判断日期/时间
-          if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'date';
-          if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return 'datetime';
-          return 'string';
-        }
-        return 'string';
-      };
-      const derived: FieldChange[] = [];
-      for (const key of keys) {
-        const oldV = b[key] ?? null;
-        const newV = a[key] ?? null;
-        const oldStr = JSON.stringify(oldV);
-        const newStr = JSON.stringify(newV);
-        if (oldStr !== newStr) {
-          derived.push({
-            field: key,
-            oldValue: oldV as JsonValue | null,
-            newValue: newV as JsonValue | null,
-            dataType: inferType(newV ?? oldV),
-          });
-        }
-      }
-      sourceChanges = derived;
-    }
-
-    if (!sourceChanges.length) return null;
+    if (!displayChanges.length) return null;
 
     return (
       <Box style={{ border: `1px solid ${colors.soap300}`, borderRadius: '4px' }}>
         {renderTableHeader(['字段名称', '变动前', '变动后'])}
         
-        {sourceChanges.map((change, index) => (
+        {displayChanges.map((change, index) => (
           <Flex
             key={index}
             padding={space.s}
             style={{
               backgroundColor: index % 2 === 0 ? 'white' : colors.soap50,
-              borderBottom: index < sourceChanges.length - 1 ? `1px solid ${colors.soap200}` : 'none'
+              borderBottom: index < displayChanges.length - 1 ? `1px solid ${colors.soap200}` : 'none'
             }}
           >
             {/* 字段名称列 */}
@@ -390,12 +391,12 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
   const getTableTitle = () => {
     switch (operationType) {
       case 'UPDATE':
-        return `字段变更详情 (${changes.length} 项)`;
+        return `字段变更详情 (${displayChanges.length} 项)`;
       // 状态类操作走更新语义展示
       case 'SUSPEND':
       case 'REACTIVATE':
       case 'DEACTIVATE':
-        return `字段变更详情 (${changes.length} 项)`;
+        return `字段变更详情 (${displayChanges.length} 项)`;
       case 'CREATE':
         return '创建记录 - 初始数据';
       case 'DELETE':
