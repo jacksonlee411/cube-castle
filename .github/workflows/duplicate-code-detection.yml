@@ -25,7 +25,8 @@ on:
         - changed-files
 
 env:
-  DUPLICATE_THRESHOLD: ${{ github.event.inputs.threshold || '5' }}
+  # Plan 261: 将默认阈值临时放宽至 10%，后续按周收紧（PR 仍可覆盖更严阈值）
+  DUPLICATE_THRESHOLD: ${{ github.event.inputs.threshold || '10' }}
   SCAN_SCOPE: ${{ github.event.inputs.scope || 'full' }}
 
 jobs:

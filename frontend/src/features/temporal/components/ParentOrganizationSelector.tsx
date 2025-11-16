@@ -2,7 +2,7 @@ import React from 'react'
 import { FormField } from '@workday/canvas-kit-react/form-field'
 import { Text } from '@workday/canvas-kit-react/text'
 import { TextInput } from '@workday/canvas-kit-react/text-input'
-import { UnifiedGraphQLClient } from '../../../shared/api/unified-client'
+import { searchValidParentOrganizations } from '@/shared/api/facade/organization'
 import { useOrgPBAC } from '../../../shared/hooks/useScopes'
 import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
@@ -34,18 +34,7 @@ type OrgItem = {
   childrenCount?: number
 }
 
-type QueryResult = {
-  organizations: {
-    data: OrgItem[]
-    pagination: {
-      total: number
-      page: number
-      pageSize: number
-      hasNext?: boolean
-      hasPrevious?: boolean
-    }
-  }
-}
+// QueryResult 类型已不再需要（由 Facade 处理）
 
 const FALLBACK_PARENT: OrgItem = {
   code: '1000000',
@@ -63,33 +52,7 @@ const FALLBACK_PARENT: OrgItem = {
 const DEFAULT_TTL_MS = 5 * 60 * 1000
 const memoryCache = new Map<string, { expiresAt: number; data: OrgItem[]; total: number }>()
 
-const QUERY = /* GraphQL */ `
-  query GetValidParentOrganizations($asOfDate: String!, $currentCode: String!, $pageSize: Int = 500) {
-    organizations(
-      filter: {
-        status: ACTIVE
-        asOfDate: $asOfDate
-        excludeCodes: [$currentCode]
-        excludeDescendantsOf: $currentCode
-        includeDisabledAncestors: true
-      }
-      pagination: { page: 1, pageSize: $pageSize, sortBy: "code", sortOrder: "asc" }
-    ) {
-      data {
-        code
-        name
-        unitType
-        parentCode
-        level
-        effectiveDate
-        endDate
-        isFuture
-        childrenCount
-      }
-      pagination { total page pageSize }
-    }
-  }
-`
+// Facade 已封装查询，无需本地定义 GraphQL
 
 function detectCycle(currentCode: string, targetParent?: string, map?: Map<string, OrgItem>) {
   if (!targetParent || !map) return { hasCycle: false as const }
@@ -192,16 +155,10 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
       return
     }
     setLoading(true)
-    const client = new UnifiedGraphQLClient()
-    client
-      .request<QueryResult>(QUERY, {
-        asOfDate: effectiveDate,
-        currentCode,
-        pageSize,
-      })
-      .then((data) => {
+    searchValidParentOrganizations(effectiveDate, currentCode, pageSize)
+      .then(({ data, total }) => {
         if (!mounted) return
-        const list = (data.organizations?.data || []).filter(o => o.code !== currentCode)
+        const list = (data || []).filter(o => o.code !== currentCode)
         setItems(list)
         setError(undefined)
         setIsMenuOpen(isFocused && canRead && !disabled)
@@ -212,7 +169,7 @@ export const ParentOrganizationSelector: React.FC<ParentOrganizationSelectorProp
             setSearch(formatLabel(preselected))
           }
         }
-        memoryCache.set(cacheKey, { data: list, total: data.organizations?.pagination?.total || list.length, expiresAt: now + (cacheTtlMs ?? DEFAULT_TTL_MS) })
+        memoryCache.set(cacheKey, { data: list, total: total || list.length, expiresAt: now + (cacheTtlMs ?? DEFAULT_TTL_MS) })
       })
       .catch((error: Error | { message?: string } | null | undefined) => {
         if (!mounted) return
