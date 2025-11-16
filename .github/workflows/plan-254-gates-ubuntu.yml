@@ -74,6 +74,7 @@ jobs:
           echo "📋 docker compose ps:"
           docker compose -f docker-compose.e2e.yml ps || true
       - name: Upload preflight artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: plan254-preflight
