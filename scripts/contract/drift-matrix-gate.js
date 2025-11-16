@@ -17,6 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
+const { parse } = require('graphql');
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 
@@ -26,13 +27,33 @@ function readArgs() {
     const i = argv.indexOf(name);
     return i !== -1 ? argv[i + 1] : defVal;
   }
-  return {
+  const args = {
     openapiPath: get('--openapi', path.join(PROJECT_ROOT, 'docs/api/openapi.yaml')),
     graphqlPath: get('--graphql', path.join(PROJECT_ROOT, 'docs/api/schema.graphql')),
     allowlistPath: get('--allow', path.join(PROJECT_ROOT, 'scripts/contract/drift-allowlist.json')),
     outPath: get('--out', path.join(PROJECT_ROOT, 'reports/contracts/drift-matrix-report.json')),
     failOnDiff: argv.includes('--fail-on-diff'),
   };
+  const typesPath = get('--types', null);
+  if (typesPath) {
+    args.typesPath = path.isAbsolute(typesPath) ? typesPath : path.join(PROJECT_ROOT, typesPath);
+  }
+  return args;
+}
+
+function mapScalarToGraphQL(type) {
+  return {
+    string: 'String',
+    integer: 'Int',
+    number: 'Float',
+    boolean: 'Boolean',
+    object: 'JSON',
+  }[String(type).toLowerCase()] || type || 'Unknown';
+}
+
+function extractRefName(ref) {
+  if (!ref) return null;
+  return String(ref).split('/').pop();
 }
 
 function readOpenAPI(openapiPath) {
@@ -45,21 +66,26 @@ function readOpenAPI(openapiPath) {
     const required = new Set(Array.isArray(s.required) ? s.required : []);
     const fields = {};
     for (const [pname, prop] of Object.entries(s.properties)) {
-      const info = {};
+      const info = { isList: false };
       if (prop.$ref) {
-        info.type = String(prop.$ref).split('/').pop();
+        info.type = extractRefName(prop.$ref);
+        info.baseType = info.type;
+      } else if (prop.type === 'array') {
+        info.isList = true;
+        let itemType = 'Any';
+        if (prop.items && prop.items.$ref) {
+          itemType = extractRefName(prop.items.$ref) || 'Any';
+        } else if (prop.items && prop.items.type) {
+          itemType = mapScalarToGraphQL(prop.items.type);
+        }
+        info.baseType = itemType;
+        info.type = `List<${itemType}>`;
       } else if (prop.type) {
-        // map to GraphQL-ish types (best-effort)
-        info.type = {
-          string: 'String',
-          integer: 'Int',
-          number: 'Float',
-          boolean: 'Boolean',
-          object: 'JSON',
-          array: 'List',
-        }[prop.type] || prop.type;
+        info.type = mapScalarToGraphQL(prop.type);
+        info.baseType = info.type;
       } else {
         info.type = 'Unknown';
+        info.baseType = 'Unknown';
       }
       info.required = required.has(pname); // required implies non-null (!)
       info.nullable = prop.nullable === true ? true : false;
@@ -71,43 +97,53 @@ function readOpenAPI(openapiPath) {
   return out;
 }
 
+function unwrapType(t) {
+  // Returns { baseType, isList, isNonNull }
+  let isNonNull = false;
+  let isList = false;
+  let node = t;
+  // NonNull
+  if (node.kind === 'NonNullType') {
+    isNonNull = true;
+    node = node.type;
+  }
+  // List
+  if (node.kind === 'ListType') {
+    isList = true;
+    // Unwrap inner
+    node = node.type;
+    if (node.kind === 'NonNullType') {
+      // NonNull of inner list element doesn't change top-level required
+      node = node.type;
+    }
+  }
+  const base = node.kind === 'NamedType' ? node.name.value : 'Unknown';
+  return { baseType: base, isList, isNonNull };
+}
+
 function readGraphQL(graphqlPath) {
   const text = fs.readFileSync(graphqlPath, 'utf8');
+  const ast = parse(text, { noLocation: false });
   const out = {};
-  const typeRe = /^(type|input)\s+([A-Za-z0-9_]+)\s*\{([\s\S]*?)^\}/gm;
-  let m;
-  while ((m = typeRe.exec(text)) !== null) {
-    const kind = m[1];
-    const name = m[2];
-    const body = m[3];
+  for (const def of ast.definitions) {
+    if (def.kind !== 'ObjectTypeDefinition' && def.kind !== 'InputObjectTypeDefinition') continue;
+    const name = def.name.value;
     const fields = {};
-    const lines = body.split('\n');
-    for (let raw of lines) {
-      const line = raw.split('#')[0].trim();
-      if (!line || line.startsWith('"""') || line.startsWith('"')) continue;
-      // match: fieldName: Type! / [Type!]!
-      const f = /^([A-Za-z0-9_]+)\s*:\s*([!\[\]A-Za-z0-9_]+)(?:\s|$)/.exec(line);
-      if (!f) continue;
-      const fname = f[1];
-      const ftypeRaw = f[2];
-      const nonNull = /!$/.test(ftypeRaw);
-      let baseType = ftypeRaw.replace(/[!\[\]]/g, '');
-      // map to canonical names
-      baseType = {
-        ID: 'ID',
-        String: 'String',
-        Int: 'Int',
-        Float: 'Float',
-        Boolean: 'Boolean',
-      }[baseType] || baseType;
+    const fieldNodes = def.fields || [];
+    for (const f of fieldNodes) {
+      const fname = f.name.value;
+      const { baseType, isList, isNonNull } = unwrapType(f.type);
+      const desc = f.description ? f.description.value : null;
       fields[fname] = {
         type: baseType,
-        required: nonNull,
-        nullable: !nonNull,
-        description: null,
+        baseType,
+        isList,
+        required: isNonNull,
+        nullable: !isNonNull,
+        description: desc,
       };
     }
-    out[name] = { kind, fields };
+    out[name] = { kind: def.kind === 'InputObjectTypeDefinition' ? 'input' : 'object', fields };
   }
   return out;
 }
@@ -140,7 +176,7 @@ function compareTypePair(oas, gql, oasName, gqlName, allow) {
     typeMap: `${oasName}:${gqlName}`,
     missingInOpenAPI: [],
     missingInGraphQL: [],
-    mismatches: [],
+    mismatches: [], // array of { field, kind, detail, severity }
   };
   const oFields = (oas[oasName] && oas[oasName].fields) || {};
   const gFields = (gql[gqlName] && gql[gqlName].fields) || {};
@@ -161,14 +197,33 @@ function compareTypePair(oas, gql, oasName, gqlName, allow) {
   const common = [...oKeys].filter((k) => gKeys.has(k));
   for (const k of common) {
     const o = oFields[k], g = gFields[k];
-    const typeMismatch = (o.type || '').toLowerCase() !== (g.type || '').toLowerCase();
-    const nullMismatch = Boolean(o.required) !== Boolean(g.required);
+    // list semantics
+    const listMismatch = Boolean(o.isList) !== Boolean(g.isList);
+    if (listMismatch) {
+      const diff = { typeMap: result.typeMap, field: k, kind: 'list-mismatch', severity: 'error', detail: { openapiList: o.isList, graphqlList: g.isList } };
+      if (!isAllowed(diff, allow)) result.mismatches.push(diff);
+      continue;
+    }
+    // base type semantics
+    const oBase = (o.baseType || o.type || '').toLowerCase();
+    const gBase = (g.baseType || g.type || '').toLowerCase();
+    const typeMismatch = oBase !== gBase;
+    // nullability mapping：OpenAPI 非空 = required=true 且 nullable=false
+    const oasNonNull = Boolean(o.required) && !Boolean(o.nullable);
+    const nullMismatch = oasNonNull !== Boolean(g.required);
     if (typeMismatch) {
-      const diff = { typeMap: result.typeMap, field: k, kind: 'type-mismatch', detail: { openapi: o.type, graphql: g.type } };
+      const diff = { typeMap: result.typeMap, field: k, kind: 'type-mismatch', severity: 'error', detail: { openapi: o.baseType || o.type, graphql: g.baseType || g.type } };
       if (!isAllowed(diff, allow)) result.mismatches.push(diff);
     }
     if (nullMismatch) {
-      const diff = { typeMap: result.typeMap, field: k, kind: 'nullability-mismatch', detail: { openapiRequired: o.required, graphqlRequired: g.required } };
+      const diff = { typeMap: result.typeMap, field: k, kind: 'nullability-mismatch', severity: 'error', detail: { openapiRequired: o.required, openapiNullable: o.nullable, graphqlRequired: g.required } };
+      if (!isAllowed(diff, allow)) result.mismatches.push(diff);
+    }
+    // description difference（信息级）
+    const oDesc = (o.description || '').trim();
+    const gDesc = (g.description || '').trim();
+    if (oDesc && gDesc && oDesc !== gDesc) {
+      const diff = { typeMap: result.typeMap, field: k, kind: 'description-mismatch', severity: 'info' };
       if (!isAllowed(diff, allow)) result.mismatches.push(diff);
     }
   }
@@ -182,10 +237,20 @@ function main() {
   const allow = loadAllowlist(args.allowlistPath);
 
   // 类型映射（按项目约定）
-  const TYPE_MAP = [
+  let TYPE_MAP = [
     { openapi: 'OrganizationUnit', graphql: 'Organization' },
     // 后续如需扩展，追加映射项
   ];
+  if (args.typesPath && fs.existsSync(args.typesPath)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(args.typesPath, 'utf8'));
+      if (Array.isArray(cfg) && cfg.length > 0) {
+        TYPE_MAP = cfg;
+      }
+    } catch (e) {
+      console.warn('[types] 配置解析失败，使用默认映射:', e.message);
+    }
+  }
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -197,11 +262,16 @@ function main() {
   for (const m of TYPE_MAP) {
     const r = compareTypePair(oas, gql, m.openapi, m.graphql, allow);
     report.pairs.push(r);
-    const issues = r.missingInOpenAPI.length + r.missingInGraphQL.length + r.mismatches.length;
-    if (issues > 0) {
+    const blockingIssues =
+      r.missingInOpenAPI.length +
+      r.missingInGraphQL.length +
+      r.mismatches.filter((x) => x.severity !== 'info').length;
+    const totalIssues =
+      r.missingInOpenAPI.length + r.missingInGraphQL.length + r.mismatches.length;
+    if (totalIssues > 0) {
       report.summary.withDiffs += 1;
-      report.summary.totalIssues += issues;
-      hasBlocking = true;
+      report.summary.totalIssues += totalIssues;
+      hasBlocking = hasBlocking || blockingIssues > 0;
     }
   }
   report.summary.totalPairs = TYPE_MAP.length;
@@ -228,4 +298,3 @@ try {
   console.error('✗ Plan 258 Gate 执行失败:', e.message);
   process.exit(1);
 }
-

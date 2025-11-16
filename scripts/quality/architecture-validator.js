@@ -134,8 +134,9 @@ class FileScanner {
           const stat = fs.statSync(fullPath);
           
           if (stat.isDirectory()) {
-            // 跳过node_modules等目录
-            if (!['node_modules', 'dist', 'build', '.git'].includes(entry)) {
+            // 跳过外部/产物目录，避免误报
+            const ignoreDirs = ['node_modules', 'dist', 'build', '.git', 'third_party', 'playwright-report'];
+            if (!ignoreDirs.includes(entry)) {
               scanRecursive(fullPath);
             }
           } else if (stat.isFile()) {
@@ -616,7 +617,7 @@ class ArchitectureValidator {
     return this.violations;
   }
   
-  generateReport() {
+  generateReport(outPath = null) {
     const report = {
       timestamp: new Date().toISOString(),
       summary: {
@@ -636,10 +637,13 @@ class ArchitectureValidator {
     };
     
     // 确保报告目录存在
-    fs.mkdirSync(config.reportDir, { recursive: true });
-    
+    const reportPath = outPath
+      ? outPath
+      : path.join(config.reportDir, 'architecture-validation.json');
+    const reportDir = path.dirname(reportPath);
+    fs.mkdirSync(reportDir, { recursive: true });
+
     // 保存JSON报告
-    const reportPath = path.join(config.reportDir, 'architecture-validation.json');
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
     
     return report;
@@ -692,6 +696,8 @@ async function main() {
   const args = process.argv.slice(2);
   const scope = args.includes('--scope') ? args[args.indexOf('--scope') + 1] : 'frontend';
   const ruleArgIndex = args.indexOf('--rule');
+  const outArgIndex = args.indexOf('--out');
+  const outPath = outArgIndex !== -1 && args[outArgIndex + 1] ? args[outArgIndex + 1] : null;
   const ruleAliases = {
     cqrs: 'cqrsArchitecture',
     ports: 'portConfiguration',
@@ -723,10 +729,10 @@ async function main() {
   
   try {
     await validator.validateDirectory(targetPath);
-    const report = validator.generateReport();
+    const report = validator.generateReport(outPath);
     const success = validator.printSummary();
     
-    log.info(`📂 详细报告: ${path.join(config.reportDir, 'architecture-validation.json')}`);
+    log.info(`📂 详细报告: ${outPath ? outPath : path.join(config.reportDir, 'architecture-validation.json')}`);
     
     process.exit(success ? 0 : 1);
     

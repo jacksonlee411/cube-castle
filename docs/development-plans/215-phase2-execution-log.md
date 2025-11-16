@@ -87,6 +87,14 @@
 - 本地验证证据（离线）
   - 后端门禁（depguard/tagliatelle，仅关注门禁项）：`logs/plan255/golangci-lint-local-20251116_152704.log`（PASS）
   - 前端架构门禁（CQRS/端口/禁直连）：`reports/architecture/architecture-validation.json`（0 违规）
+ - 全量本地验证（联网，对齐 CI；证据索引）
+   - 依赖安装：`logs/plan255/npm-ci-root-20251116_162058.log`、`logs/plan255/npm-ci-frontend-20251116_162058.log`
+   - ESLint 架构守卫：`logs/plan255/eslint-architecture-20251116_162058.log`（仅 1 条 warning：unused eslint-disable；不阻断）
+   - 前端架构验证器（frontend）：`logs/plan255/architecture-validator-20251116_162058.log`（通过）
+   - 根路径审计（root，非门禁）：`logs/plan255/audit-root-20251116_162058.log`（统计：端口违规 37、禁用端点 14；总 51，已建清单待收敛）
+   - golangci-lint（depguard+tagliatelle，仅门禁项）：`logs/plan255/golangci-lint-20251116_162058.log`（CLEAN）
+   - OpenAPI（Spectral）：`logs/plan255/openapi-spectral-20251116_162058.log`（8 warnings，0 errors）
+   - Plan 252 权限契约校验：`logs/plan255/plan252-validate-permissions-20251116_162058.log`（通过；未注册引用=0，未匹配映射=2 已记录）
 
 ### 新增（2025-11-15 — 优先级与下一步）
 - P0：Plan 222 收口验收与文档更新（见 222 章节与证据日志）
