@@ -186,6 +186,20 @@
   - 工作流：`.github/workflows/plan-258-gates.yml`（受保护分支建议设为 Required）  
   - 文档：`docs/development-plans/258-contract-drift-validation-gate.md`
 
+#### Plan 258 · 临时差异登记与回收计划（Phase B 报告模式）
+// TODO-TEMPORARY(2025-11-23): 字段矩阵差异白名单（短期）— 等待 GraphQL 契约统一（profile: JSON、自增 sortOrder 非空）与审计字段透出策略评审；本条目到期前完成修复或移除白名单。
+- 差异来源（报告）：`reports/contracts/drift-report.json#fieldMatrix`  
+  - missingInRest：`path, changeReason, endDate, isTemporal, childrenCount, deletedBy, deletionReason, suspendedAt, suspendedBy, suspensionReason`  
+  - missingInGql：`operationType, operatedBy, operationReason`  
+  - typeMismatch：`profile (REST=object, GraphQL=String)`  
+  - nullabilityMismatch：`sortOrder (REST=nonNull, GraphQL=nullable)`  
+- 临时放行：`scripts/contract/drift-allowlist.json`（仅报告模式；阻断未开启字段矩阵）  
+- 回收计划：  
+  1) GraphQL 引入 JSON 标量并调整 `sortOrder: Int!`；  
+  2) 评审审计/派生字段的对等暴露策略并统一；  
+  3) 移除 allowlist 对应项并切换 `--fail-on-fields`；  
+  4) 在本节登记“切换阻断”的时间戳与快照路径。
+
 - 259 · 协议策略复盘（可选）  
   - 计划窗口：TBD（W?）  
   - 负责人：TBD  

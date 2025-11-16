@@ -1,7 +1,7 @@
 {
   "//": "Plan 258 · 契约漂移白名单（临时）。仅用于在开启阻断门禁后，为少量已知差异提供一次性放行能力。",
   "// rules": [
-    "1) 仅用于短期临时放行，必须同时在代码处添加 // TODO-TEMPORARY(YYYY-MM-DD):... 注释并在 215 登记，最长期限一个迭代。",
+    "1) 仅用于短期临时放行，必须同时在代码或文档处添加 // TODO-TEMPORARY(YYYY-MM-DD):... 注释并在 215 登记，最长期限一个迭代。",
     "2) 仅覆盖“已知且待回收”的差异；新增条目需在 PR 说明中写明原因与回收计划。",
     "3) 条目命中后，drift-check 将在报告中标注为 ignored，不再计入阻断。"
   ],
@@ -18,6 +18,33 @@
       "missingInRest": [],
       "missingInGql": []
     }
+  },
+  "fields": {
+    "OrganizationUnit|Organization": {
+      "missingInRest": [
+        "path",
+        "changeReason",
+        "endDate",
+        "isTemporal",
+        "childrenCount",
+        "deletedBy",
+        "deletionReason",
+        "suspendedAt",
+        "suspendedBy",
+        "suspensionReason"
+      ],
+      "missingInGql": [
+        "operationType",
+        "operatedBy",
+        "operationReason"
+      ],
+      "typeMismatch": [
+        { "field": "profile" }
+      ],
+      "nullabilityMismatch": [
+        { "field": "sortOrder" }
+      ],
+      "listMismatch": []
+    }
   }
 }
-
