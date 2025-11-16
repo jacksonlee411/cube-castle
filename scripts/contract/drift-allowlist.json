@@ -38,12 +38,8 @@
         "operatedBy",
         "operationReason"
       ],
-      "typeMismatch": [
-        { "field": "profile" }
-      ],
-      "nullabilityMismatch": [
-        { "field": "sortOrder" }
-      ],
+      "typeMismatch": [],
+      "nullabilityMismatch": [],
       "listMismatch": []
     }
   }
