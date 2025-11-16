@@ -12,12 +12,13 @@ async function ping(url: string, timeout = 1500): Promise<boolean> {
 
 test('Temporal edit form creation page renders (smoke)', async ({ page }) => {
   test.slow();
+  const base = (process.env.PW_BASE_URL || '').replace(/\/+$/, '');
   const hasServer =
-    (await ping('http://localhost:8090/health')) ||
-    (await ping('http://localhost:3000', 1000));
+    (!!base && (await ping(`${base}/health`))) ||
+    (await ping('/', 1000));
   test.skip(!hasServer, 'Server not available; skipping smoke test');
 
-  await page.goto('http://localhost:3000/organizations/new/temporal');
+  await page.goto('/organizations/new/temporal');
 
   // 创建模式标题或提示文案
   const createTitle = page.locator('text=创建新组织').first();

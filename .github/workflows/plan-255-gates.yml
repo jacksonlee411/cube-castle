@@ -10,9 +10,8 @@ jobs:
   gates-255:
     runs-on: ubuntu-latest
     env:
-      # Root 审计门禁级别：soft=不阻断（默认，作为审计）；hard=阻断（迭代回收完成后切换）
-      # 切换为硬门禁时，仅需将该变量置为 "hard" 并提交到主干
-      PLAN255_ROOT_AUDIT_MODE: soft
+      # Root 审计门禁级别：soft=不阻断；hard=阻断（当前为硬门禁）
+      PLAN255_ROOT_AUDIT_MODE: hard
     steps:
       - name: Checkout
         uses: actions/checkout@v4

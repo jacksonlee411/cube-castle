@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const COMMAND_BASE = 'http://localhost:9090'
+const COMMAND_BASE = (process.env.PW_BASE_URL || '').replace(/\/+$/, '')
 const DEFAULT_TENANT = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9'
 
 async function mintDevToken() {
@@ -67,4 +67,3 @@ test.describe('Operational Monitoring API', () => {
     expect(rate.data).toHaveProperty('totalRequests')
   })
 })
-

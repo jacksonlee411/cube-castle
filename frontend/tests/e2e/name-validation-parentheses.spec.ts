@@ -4,8 +4,9 @@ import { ensurePwJwt, getPwJwt } from './utils/authToken';
 // 目的：验证组织名称允许括号等常用字符（服务端与前端均不应拒绝）
 // 策略：对一个已存在的组织执行名称更新（包含括号），验证返回状态与名称回显
 
-const COMMAND_BASE = 'http://localhost:9090';
-const QUERY_BASE = 'http://localhost:8090/graphql';
+const BASE = (process.env.PW_BASE_URL || '').replace(/\/+$/, '');
+const COMMAND_BASE = BASE;
+const QUERY_BASE = `${BASE}/graphql`;
 const TARGET_CODE = process.env.E2E_TARGET_CODE || '1000005'; // 允许通过环境变量覆盖
 const TENANT_ID = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
 

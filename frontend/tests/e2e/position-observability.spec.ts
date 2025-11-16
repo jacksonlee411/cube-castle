@@ -77,7 +77,8 @@ test.describe('Position Observability (Plan 240D)', () => {
         throw new Error('缺少访问令牌，无法创建观测用职位');
       }
       const tenantId = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
-      const createResp = await request.post('http://localhost:9090/api/v1/positions', {
+      const base = process.env.PW_BASE_URL?.replace(/\/+$/, '') || '';
+      const createResp = await request.post(`${base}/api/v1/positions`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'X-Tenant-ID': tenantId,
@@ -100,7 +101,7 @@ test.describe('Position Observability (Plan 240D)', () => {
         effectiveDate: '2025-02-01',
         operationReason: `E2E-OBS version ${TEST_ID}`,
       };
-      const versionResp = await request.post(`http://localhost:9090/api/v1/positions/${positionCode}/versions`, {
+      const versionResp = await request.post(`${base}/api/v1/positions/${positionCode}/versions`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'X-Tenant-ID': tenantId,

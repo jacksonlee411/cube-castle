@@ -536,7 +536,9 @@ class ArchitectureValidator {
         // 跳过统一客户端底层实现文件，避免将内部 fetch 误判为业务查询
         const relative = path.relative(this.options.projectRoot || process.cwd(), filePath).replace(/\\/g, '/');
         const ignoreCQRSFiles = [
-          'frontend/src/shared/api/unified-client.ts'
+          'frontend/src/shared/api/unified-client.ts',
+          // Plan 257: 门面层作为合规入口，避免 CQRS 规则对其内部转发产生误报
+          'frontend/src/shared/api/facade/organization.ts'
         ];
         if (!ignoreCQRSFiles.includes(relative)) {
           const cqrsViolations = CQRSArchitectureValidator.validate(filePath, content);
@@ -570,8 +572,9 @@ class ArchitectureValidator {
         stats.violations.eslintExceptions += eslintExceptionViolations.length;
       }
 
-      // 禁止端点验证
-      if (this.isRuleEnabled('forbiddenEndpoints') && this.options.rules.forbiddenEndpoints?.enabled) {
+      // 禁止端点验证（跳过本工具文件自身的模式常量，避免自检误报）
+      const isSelfFile = /scripts[\\/]+quality[\\/]+architecture-validator\.js$/.test(filePath);
+      if (this.isRuleEnabled('forbiddenEndpoints') && this.options.rules.forbiddenEndpoints?.enabled && !isSelfFile) {
         const forbiddenViolations = ForbiddenEndpointValidator.validate(
           filePath,
           content,

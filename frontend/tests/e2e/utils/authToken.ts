@@ -19,7 +19,8 @@ interface EnsureJwtOptions {
 const DEFAULT_TENANT_ID = '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
 const DEFAULT_ROLES = ['ADMIN', 'USER'];
 const DEFAULT_DURATION = '8h';
-const DEV_COMMAND_SERVICE = process.env.PW_COMMAND_URL?.replace(/\/$/, '') || 'http://localhost:9090';
+// Prefer single-base proxy (Plan 254): PW_BASE_URL + /auth/dev-token
+const BASE_URL = (process.env.PW_BASE_URL || process.env.PW_COMMAND_URL || '').replace(/\/$/, '');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEV_JWT_PATH = path.resolve(__dirname, '../../../..', '.cache', 'dev.jwt');
@@ -99,7 +100,7 @@ const requestDevToken = async (options: EnsureJwtOptions): Promise<string | null
       return null;
     }
 
-    const response = await fetchImpl(`${DEV_COMMAND_SERVICE}/auth/dev-token`, {
+    const response = await fetchImpl(`${BASE_URL}/auth/dev-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, tenantId, roles, duration }),

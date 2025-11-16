@@ -4,8 +4,9 @@
  * 说明：Playwright 统一为测试运行器；当 PW_SKIP_SERVER=1 时跳过该套用例。
  */
 import { test, expect } from '@playwright/test';
+import { commandApi } from './utils/endpoints';
 
-const API_BASE = 'http://localhost:9090/api/v1/organization-units';
+const API_BASE = commandApi('/organization-units');
 // 使用 7 位数字编码（首位非 0），满足后端契约；保持本次运行内稳定
 const TEST_ORG_CODE = String(Math.floor(Math.random() * 9000000) + 1000000);
 

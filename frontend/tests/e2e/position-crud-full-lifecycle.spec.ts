@@ -18,7 +18,7 @@ import { setupAuth } from './auth-setup';
 import { v4 as uuidv4 } from 'uuid';
 
 // 测试环境配置
-const COMMAND_BASE_URL = process.env.PW_COMMAND_URL || 'http://localhost:9090';
+const COMMAND_BASE_URL = (process.env.PW_BASE_URL || process.env.PW_COMMAND_URL || '').replace(/\/+$/, '');
 const TENANT_ID = process.env.PW_TENANT_ID || '3b99930c-4dc6-4cc9-8e4d-7d960a931cb9';
 
 // 生成唯一的测试数据标识符

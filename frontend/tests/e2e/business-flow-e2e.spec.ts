@@ -186,7 +186,8 @@ test.describe('业务流程端到端测试', () => {
         throw new Error('缺少可用的JWT令牌');
       }
 
-      const graphqlResponse = await page.request.post(E2E_CONFIG.GRAPHQL_API_URL, {
+      const endpoint = (process.env.PW_BASE_URL || '').replace(/\/+$/, '') + '/graphql';
+      const graphqlResponse = await page.request.post(endpoint, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${jwt}`,
@@ -387,7 +388,8 @@ test.describe('业务流程端到端测试', () => {
     const apiStartTime = Date.now();
     
     await page.evaluate(async () => {
-      const response = await fetch('http://localhost:8090/graphql', {
+      const base = (window as any).process?.env?.PW_BASE_URL || '';
+      const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/graphql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -470,7 +472,8 @@ test.describe('业务流程端到端测试', () => {
 
     // 2. 直接调用API获取数据
     const apiData = await page.evaluate(async () => {
-      const response = await fetch('http://localhost:8090/graphql', {
+      const base = (window as any).process?.env?.PW_BASE_URL || '';
+      const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/graphql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

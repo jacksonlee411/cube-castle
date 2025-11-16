@@ -77,10 +77,9 @@
 - Required checks（受保护分支）：将 `plan-250-gates`、`plan-253-gates`、`plan-255-gates` 勾选为必需检查（Settings → Branches）。  
   - 证据占位：`logs/plan255/branch-protection-required-checks.md`（截图/说明链接，含失败示例链接）[TBD]
 - 首次成功运行登记：在本段落补充 CI 运行链接与工件名称（artifact: `plan255-logs`）。  
-  - 运行链接占位：<待补充：CI run URL>；保留期 7 天（如需长期审计，请在迭代末归档为 Release 资产）[TBD]
-- Root 审计门禁开关：默认 soft（不阻断）；迭代收敛完成后切换为 hard。  
-  - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE`（soft|hard）  
-  - 切换计划：`// TODO-TEMPORARY(2025-11-30): 将 PLAN255_ROOT_AUDIT_MODE 切换为 hard，完成根路径端口/禁用端点清单收敛`  
+  - 运行链接：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403010378>（status=completed, conclusion=success）；artifact: plan255-logs（保留 7 天）
+- Root 审计门禁开关：已切换为 hard（阻断）。  
+  - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
 - 软门禁 PR 联通性：通过 `make pr-255-soft-gate` 验证 `scripts/ci/auto-pr.sh` 可创建 PR；若组织策略不允许，记录手工 PR 链接与原因。  
   - 证据占位：`logs/plan255/pr-*.txt`（脚本输出）或手工 PR URL [TBD]
@@ -91,7 +90,8 @@
    - 依赖安装：`logs/plan255/npm-ci-root-20251116_162058.log`、`logs/plan255/npm-ci-frontend-20251116_162058.log`
    - ESLint 架构守卫：`logs/plan255/eslint-architecture-20251116_162058.log`（仅 1 条 warning：unused eslint-disable；不阻断）
    - 前端架构验证器（frontend）：`logs/plan255/architecture-validator-20251116_162058.log`（通过）
-   - 根路径审计（root，非门禁）：`logs/plan255/audit-root-20251116_162058.log`（统计：端口违规 37、禁用端点 14；总 51，已建清单待收敛）
+ - 根路径审计（root，非门禁）：`logs/plan255/audit-root-20251116_162058.log`（统计：端口违规 37、禁用端点 14；总 51，已建清单待收敛）
+  - 根路径审计（最新复跑，非门禁）：`logs/plan255/audit-root-20251116_163442.log`；报告 `logs/plan255/architecture-root-20251116_163442.json`（0 违规；已为硬门禁切换准备就绪）
    - golangci-lint（depguard+tagliatelle，仅门禁项）：`logs/plan255/golangci-lint-20251116_162058.log`（CLEAN）
    - OpenAPI（Spectral）：`logs/plan255/openapi-spectral-20251116_162058.log`（8 warnings，0 errors）
    - Plan 252 权限契约校验：`logs/plan255/plan252-validate-permissions-20251116_162058.log`（通过；未注册引用=0，未匹配映射=2 已记录）
@@ -170,14 +170,16 @@
   - 计划窗口：TBD（W?）  
   - 负责人：TBD  
   - 准入条件：241/242 抽象完成；统一命名与选择器守卫启用  
-  - 产物/证据：`logs/plan257/*`、门面覆盖率报告、E2E/单测通过记录  
+  - 产物/证据：`logs/plan257/*`、`reports/facade/coverage.json`（覆盖率报告；报告模式）、E2E/单测通过记录  
+  - 工作流：`.github/workflows/plan-257-gates.yml`（报告模式；计划 3 天后切换阻断并纳入 Required checks）  
   - 文档：`docs/development-plans/257-frontend-domain-api-facade-adoption.md`
 
 - 258 · 契约漂移校验与门禁（阶段2）  
   - 计划窗口：TBD（W?）  
   - 负责人：TBD  
   - 准入条件：Plan 256 生成流水线可用  
-  - 产物/证据：`logs/plan258/*`、`reports/contracts/drift-matrix-report.json`、CI 工件 `plan258-drift-matrix-report`（阻断）  
+  - 产物/证据：`logs/plan258/*`、`reports/contracts/drift-report.json`、CI 工件 `plan258-drift-report`（阻断）  
+  - 工作流：`.github/workflows/plan-258-gates.yml`（受保护分支建议设为 Required）  
   - 文档：`docs/development-plans/258-contract-drift-validation-gate.md`
 
 - 259 · 协议策略复盘（可选）  

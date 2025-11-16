@@ -14,7 +14,7 @@ import { test, expect, Page } from '@playwright/test';
 
 // 测试数据配置
 const TEST_CONFIG = {
-  baseUrl: 'http://localhost:3000/temporal-graphql',
+  baseUrl: ((process.env.PW_BASE_URL || '').replace(/\/+$/, '') || '') + '/temporal-graphql',
   validOrgCode: '1000056',
   invalidOrgCode: '9999999',
   testDates: {
