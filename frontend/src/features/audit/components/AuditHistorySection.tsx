@@ -141,7 +141,7 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
   const transformAuditData = (audit: AuditHistoryGraphQLEntry): AuditTimelineEntry => {
     const beforeData = parseSnapshot(audit.beforeData);
     const afterData = parseSnapshot(audit.afterData);
-    // TODO-TEMPORARY(2025-12-01): 兼容历史审计 event_type 存在 'ACTIVATE' 值；待服务端统一迁移/归一化后删除该前端适配，避免跨层命名漂移
+    // TODO-TEMPORARY(2025-12-01): 兼容历史审计“事件类型”字段存在 'ACTIVATE' 值；待服务端统一迁移/归一化后删除该前端适配，避免跨层命名漂移
     const opNormalized = (audit.operation || '').toUpperCase() === 'ACTIVATE' ? 'REACTIVATE' : audit.operation;
 
     return {
