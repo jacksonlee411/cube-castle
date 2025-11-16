@@ -7,8 +7,17 @@ on:
 
 jobs:
   e2e-devserver:
-    name: E2E via Playwright Dev Server (backend compose only)
-    runs-on: ubuntu-latest
+    name: E2E DevServer (backend compose) – ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [ubuntu, selfhosted]
+        include:
+          - label: ubuntu
+            runs_on: '["ubuntu-latest"]'
+          - label: selfhosted
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runs_on) }}
     timeout-minutes: 60
     env:
       # PR 固定 255；push 使用 run_number，便于证据分桶
