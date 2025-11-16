@@ -58,6 +58,9 @@ help:
 	@echo "🛡️ 门禁（Plan 253）:"
 	@echo "  guard-plan253     - 运行 compose 端口/镜像标签门禁（不需要 Docker）"
 	@echo "  plan253-coldstart - 记录冷启动与数据库就绪时间（需要 Docker/Compose）"
+	@echo ""
+	@echo "📮 PR 自动化（Plan 255）:"
+	@echo "  pr-255-soft-gate  - 推送当前/指定分支并创建 PR（需 GITHUB_TOKEN/gh 或在 secrets/.env.local 配置）"
 
 # 构建 Go 应用（PostgreSQL 原生：两个服务）
 build:
@@ -98,6 +101,19 @@ clean-untracked-binaries:
 	  if [ -f "$$f" ]; then rm -f "$$f"; echo "  ✂ $$f"; removed=1; fi; \
 	done; \
 	if [ "$$removed" = "0" ]; then echo "  ✅ 未发现可清理的二进制"; fi
+
+# ======================
+# PR 自动化（Plan 255）
+# ======================
+# 可配置变量（可在命令行覆盖，如 make pr-255-soft-gate PR_HEAD=my-branch）
+PR_TITLE ?= refactor(health-alerting): migrate JSON tags to camelCase and harden Plan 255 gates
+PR_BODY ?= docs/development-plans/255-soft-gate-PR.md
+PR_BASE ?= master
+PR_HEAD ?= $(shell git rev-parse --abbrev-ref HEAD)
+
+pr-255-soft-gate:
+	@echo "📮 Auto PR: $(PR_BASE) <- $(PR_HEAD)"
+	@bash scripts/ci/auto-pr.sh --title "$(PR_TITLE)" --body-file "$(PR_BODY)" --base "$(PR_BASE)" --head "$(PR_HEAD)"
 # 构建 Docker 镜像（如需将当前仓库打成通用镜像）
 docker-build:
 	@echo "🐳 构建 Docker 镜像..."
