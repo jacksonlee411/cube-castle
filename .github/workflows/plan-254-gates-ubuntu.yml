@@ -1,0 +1,33 @@
+name: plan-254-gates-ubuntu
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/plan-254-gates-ubuntu.yml'
+
+jobs:
+  gate:
+    name: Plan 254 Gate – Ubuntu Minimal
+    # TODO-TEMPORARY(2025-11-22): 临时最小化工作流用于验证“0 jobs”问题，待稳定后删除并回归 plan-254-gates.yml
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Preflight
+        run: |
+          echo "Plan 254 ubuntu preflight OK on $(uname -a)"
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          node -v || true
+          npm -v || true
+          echo "E2E_PLAN_ID=${{ github.run_number }}" > plan254-preflight.txt
+      - name: Upload preflight artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan254-preflight
+          path: |
+            plan254-preflight.txt
+          retention-days: 7
+
