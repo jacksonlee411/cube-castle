@@ -43,13 +43,11 @@
   - “Architecture Gate (frontend)”：仅门禁
   - “E2E: Plan 254 (evidence)”：仅 E2E 与证据
 - 命令行：
-  - 本地一键（通用）：
-    - `E2E_PLAN_ID=254 bash scripts/ci/plan-local.sh`
-  - 或逐步执行：
-    - 启动最小依赖并运行服务（迁移内置在 run-dev 中）：`make docker-up && make run-dev`
+  - 启动最小依赖并运行服务（迁移内置在 run-dev 中）：
+    - `make docker-up && make run-dev`
   - 统一门禁（前端架构一致性）：
     - `node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden`
-  - 前端 E2E（按计划号归档）：
+  - 通用 E2E（按计划号归档）：
     - `cd frontend && E2E_PLAN_ID=254 PW_SKIP_SERVER=${PW_SKIP_SERVER:-0} npm run -s test:e2e:plan`
   - 常用环境变量：
     - `E2E_SAVE_HAR=1` 归档 HAR

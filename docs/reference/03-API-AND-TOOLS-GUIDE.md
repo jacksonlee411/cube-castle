@@ -284,22 +284,28 @@ which gosec              # 应在 PATH 中
 - **质量门禁**: 重复代码>5%阻止合并
 - **报告位置**: `reports/` 目录下各子系统报告
 
-### E2E冒烟与门禁（新增）
-- 本地运行：
+### E2E冒烟与门禁（DevServer 推荐）
+- 本地运行（仅后端 compose，前端由 Playwright dev server 启动或跳过）：
 ```bash
-docker compose -f docker-compose.e2e.yml up -d --build   # 拉起完整栈
+docker compose -f docker-compose.dev.yml up -d postgres redis graphql-service rest-service
 npm --prefix frontend ci && npm --prefix frontend run -s test:contract
-bash scripts/simplified-e2e-test.sh                       # 简化E2E（curl）
-cat reports/QUALITY_GATE_TEST_REPORT.md                   # 汇总报告
+# Playwright DevServer 模式（默认启动 dev server）
+E2E_PLAN_ID=255 PW_SKIP_SERVER=0 npm --prefix frontend run -s test:e2e:plan
+# 打印机器可读 SUMMARY（可选）
+node scripts/ci/print-e2e-summary.js 255
+# 简化E2E（curl）
+bash scripts/simplified-e2e-test.sh
+cat reports/QUALITY_GATE_TEST_REPORT.md
 ```
 - CI 工作流：`.github/workflows/e2e-smoke.yml`
-  - 步骤：Compose Up → 健康等待 → 前端契约测试 → 简化E2E → 上传产物
+  - 步骤：Compose backends → 健康等待 → 前端契约测试 →（可选）简化E2E → 上传产物
   - 产出：`e2e-smoke-outputs`（包含 E2E 输出与 reports/* 摘要）
 
 ### 前端浏览器版 E2E（Playwright）
-- CI 工作流：`.github/workflows/frontend-e2e.yml`
+- CI 工作流：`.github/workflows/frontend-e2e.yml`、`.github/workflows/frontend-e2e-devserver.yml`
+- 策略：仅后端 compose（postgres/redis/rest/graphql），前端由 Playwright dev server 启动（PW_SKIP_SERVER=0）
 - JWT 注入：使用 `PW_JWT` 与 `PW_TENANT_ID` 作为全局认证环境变量
-- 执行命令：`npm --prefix frontend run test:e2e`
+- 执行命令：`E2E_PLAN_ID=<id> PW_SKIP_SERVER=0 npm --prefix frontend run -s test:e2e:plan`
 
 #### E2E 前端资源体积基线（Plan 232）
 - **测量来源**：`frontend/tests/e2e/optimization-verification-e2e.spec.ts`（Chromium，2025-11-08 运行），日志见 `frontend/test-results/optimization-verification-e2e-*/bundle-report.json`。

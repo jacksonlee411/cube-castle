@@ -89,9 +89,9 @@
 **用途**: 统一门禁（CQRS/端口/禁用端点）与 E2E 的 CI/本地一键化实践  
 **包含内容**:
 - 唯一门禁工具链（architecture-validator）与“禁止直连 :9090/:8090”规则
-- 证据参数化（E2E_PLAN_ID）与 Playwright JSON SUMMARY（机器可读）
-- CI 工作流（plan-254-gates）与本地一键脚本/VS Code 任务
-- 远程 SUMMARY 拉取脚本与 secrets/.env.local 安全加载
+- 证据规范（logs/plan<ID>/*）与 Playwright 报告/trace/JSON（可选 HAR）
+- CI 门禁与 E2E 工作流（plan-255-gates、frontend-e2e-devserver）与 VS Code 任务建议
+- SUMMARY 打印与远程抓取脚本：print-e2e-summary.js、fetch-gh-summary.sh
 
 ---
 
