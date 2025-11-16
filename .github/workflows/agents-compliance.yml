@@ -75,6 +75,13 @@ jobs:
         shell: bash
         run: |
           bash scripts/quality/validate-devmode-default.sh
+      
+      - name: Plan 253 Gate – Compose ports/images quick gate (fallback)
+        shell: bash
+        env:
+          COMPOSE_GLOB: "docker-compose*.yml"
+        run: |
+          bash scripts/quality/gates-253-compose-ports-and-images.sh
 
       - name: Guard – Disallow root-level binaries in VCS (command/query/generate-dev-jwt)
         shell: bash
