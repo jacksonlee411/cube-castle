@@ -134,7 +134,10 @@
   - 操作：GitHub Actions Repository Variable 更新（owner=jacksonlee411 repo=cube-castle；VAR=PLAN259_BUSINESS_GET_THRESHOLD；value=0）
   - 方式：GitHub REST API 调用（token 来自 secrets/.env.local）
   - 结果：设置成功（204/201）；随后触发 `plan-258-gates` 工作流以获取最新报告与工件（dispatch=204）
-  - 期望：后续 PR/Push 若“REST 业务 GET”>0，将在 plan-258 聚合门禁阶段失败（reports/plan259/** 工件可复核）
+  - 首次运行结果：失败（原因：契约仍包含 1 个“REST 业务 GET”（已弃用端点），阈值=0 导致阻断；工件：plan258-permissions-and-259A）
+  - 决策：在端点移除前维持阈值=1（兼容“弃用窗口”）；端点移除后再切为 0
+  - 修正操作：将变量更新回 1 并重新触发 plan-258-gates；Run ID: 19410253584（结论：success），工件：plan258-drift-report、plan258-permissions-and-259A
+  - 后续：端点移除 PR 合并后，重置为 0 并登记
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
