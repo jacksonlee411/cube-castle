@@ -160,8 +160,8 @@ type Query {
 
   """
   Get paginated assignment records for a position.
-
-  Permissions Required: position:read
+  
+  Permissions Required: position:assignments:read
   """
   positionAssignments(
     positionCode: PositionCode!
@@ -184,8 +184,8 @@ type Query {
 
   """
   List current assignments with optional filters for a single position.
-
-  Permissions Required: position:read
+  
+  Permissions Required: position:assignments:read
   """
   assignments(
     organizationCode: String
