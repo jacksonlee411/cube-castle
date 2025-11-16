@@ -183,7 +183,7 @@
   - 负责人：TBD  
   - 准入条件：Plan 256 生成流水线可用  
   - 产物/证据：`logs/plan258/*`、`reports/contracts/drift-report.json`、CI 工件 `plan258-drift-report`（阻断）  
-  - 工作流：`.github/workflows/plan-258-gates.yml`（受保护分支建议设为 Required）  
+  - 工作流：`.github/workflows/plan-258-gates.yml`（受保护分支 Required）  
   - 文档：`docs/development-plans/258-contract-drift-validation-gate.md`
 
 #### Plan 258 · 临时差异登记与回收计划（Phase B 报告模式）
@@ -195,10 +195,10 @@
   - nullabilityMismatch：无（2025-11-16 已对齐：GraphQL sortOrder → Int!）  
 - 临时放行：`scripts/contract/drift-allowlist.json`（仅报告模式；阻断未开启字段矩阵）  
 - 回收计划：  
-  1) GraphQL 引入 JSON 标量并调整 `sortOrder: Int!`；  
+  1) GraphQL 引入 JSON 标量并调整 `sortOrder: Int!`（已完成 2025-11-16）；  
   2) 评审审计/派生字段的对等暴露策略并统一；  
-  3) 移除 allowlist 对应项并切换 `--fail-on-fields`；  
-  4) 在本节登记“切换阻断”的时间戳与快照路径。
+  3) 移除 allowlist 对应项；  
+  4) 已启用字段矩阵阻断（2025-11-16）；登记报告快照：`reports/contracts/drift-report.json`（CI artifact: plan258-drift-report）
 
 - 259 · 协议策略复盘（可选）  
   - 计划窗口：TBD（W?）  

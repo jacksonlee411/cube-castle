@@ -40,14 +40,7 @@ jobs:
         run: bash scripts/contract/sync.sh
 
       - name: Contract drift check (blocking)
-        run: |
-          if [[ "${{ inputs.include-fields }}" == "true" && "${{ inputs.fail-on-fields }}" == "true" ]]; then
-            node scripts/contract/drift-check.js --include-fields --fail-on-fields --fail-on-diff
-          elif [[ "${{ inputs.include-fields }}" == "true" ]]; then
-            node scripts/contract/drift-check.js --include-fields --fail-on-diff
-          else
-            node scripts/contract/drift-check.js --fail-on-diff
-          fi
+        run: node scripts/contract/drift-check.js --include-fields --fail-on-fields --fail-on-diff
 
       - name: Upload drift report
         if: always()

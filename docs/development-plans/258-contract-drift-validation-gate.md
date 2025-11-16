@@ -3,7 +3,7 @@
 文档编号: 258  
 标题: 契约漂移校验门禁（来源：202 计划拆分）  
 创建日期: 2025-11-15  
-版本: v1.2  
+版本: v1.3  
 关联计划: 202、256（SSOT 生成）、CI 门禁
 
 ---
@@ -13,9 +13,9 @@
 - 输出可读报告，指向单一事实来源文件位置。
 
 ## 2. 范围与交付物
-- 范围（分阶段实施）：
+- 范围：
   - Phase A（已启用，阻断）：OpenAPI ↔ GraphQL 枚举差异（UnitType/Status/OperationType）
-  - Phase B（计划中，先报告后阻断）：主实体字段矩阵（字段/类型/可空/描述）
+  - Phase B（已启用，阻断）：主实体字段矩阵（字段/类型/可空/描述）
 - 门禁工作流与脚本（仅索引，不复制实现）：
   - 阶段 A：`.github/workflows/plan-258-gates.yml`、`scripts/contract/drift-check.js`、`scripts/contract/drift-allowlist.json`
   - 阶段 B：扩展 `scripts/contract/openapi-to-json.js` 与 `scripts/contract/graphql-to-json.js` 输出字段矩阵；`drift-check.js` 增强矩阵比对（按阶段推进）
@@ -36,10 +36,10 @@
    - 工作流：`plan-258-gates.yml` → `node scripts/contract/drift-check.js --fail-on-diff`
    - 报告：`reports/contracts/drift-report.json`（artifact: plan258-drift-report）
    - 受保护分支：将 `plan-258-gates` 设为 Required check
-3) 阶段 B 推进（先报告后阻断）：
-   - 扩展生成脚本输出字段矩阵 → `drift-check.js` 增强矩阵比对（初期仅报告）
-   - 收敛误报后改为 `--fail-on-diff`
-4) 在 215 登记证据与 Required checks 变更，保持单一事实来源。
+3) 阶段 B 接入（阻断）：
+   - 工作流：`plan-258-gates.yml` → `node scripts/contract/drift-check.js --include-fields --fail-on-fields --fail-on-diff`
+   - 白名单：`scripts/contract/drift-allowlist.json`（仅短期存在性差异，限期回收）
+   4) 在 215 登记证据与 Required checks 变更，保持单一事实来源。
 
 ## 6. 白名单与回滚（AGENTS 对齐）
 - 临时白名单（仅少量、短期差异）：
@@ -93,6 +93,9 @@
 ---
 
 变更记录
+- v1.3（2025-11-16）
+  - 启用字段矩阵阻断（plan-258-gates：`--include-fields --fail-on-fields --fail-on-diff`）
+  - 对齐 GraphQL：`profile: JSON`、`sortOrder: Int!`；白名单收缩为“存在性差异”
 - v1.2（2025-11-16）
   - 明确分阶段范围与现状；对齐已实现的 `drift-check.js` 与 `plan-258-gates.yml`
   - 引入 `scripts/contract/drift-allowlist.json` 白名单与 TODO 联动规范
