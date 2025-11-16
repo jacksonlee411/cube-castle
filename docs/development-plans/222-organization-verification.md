@@ -292,10 +292,10 @@ go test -bench=. -benchmem ./internal/organization/...
 
 ## 5. 本次推进登记（2025-11-16）
 
-- 覆盖率（组合）：~31.1%（最新产物：`logs/plan222/coverage-org-20251116-100747.{out,txt,html}`）
+- 覆盖率（组合）：~31.7%（最新产物：`logs/plan222/coverage-org-20251116-102027.{out,txt,html}`）
 - 新增单测与范围（负路径与守卫）
   - repository/hierarchy：`UpdateHierarchyPaths`（父不存在错误、根路径批量更新）、`GetOrganization` not found、`GetOrganizationAtDate` no rows、`GetAncestorChain` 查询错误
-  - repository/organizations_list：count 查询错误、数据列不足触发 Scan 错误
+  - repository/organizations_list：count 查询错误、数据列不足触发 Scan 错误、筛选分支（status/unitType/parent/search/asOf/codes/exclude/descendants）
   - handler/devtools：`/dev/database-status` 断开/成功分支；devMode=false 禁用守卫（status、test-endpoints）
   - service/cascade：Start/Stop 生命周期、未启动调度拒绝
 - 性能样本（222B 前置，JSON Summary 已落盘）
