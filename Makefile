@@ -454,7 +454,7 @@ db-rollback-last:
 # 开发JWT工具
 jwt-dev-mint:
 	@echo "🔑 生成开发JWT..."
-	@scripts/dev/mint-dev-jwt.sh \
+	@bash scripts/dev/mint-dev-jwt.sh \
 	  $(if $(USER_ID),--user-id $(USER_ID),) \
 	  $(if $(TENANT_ID),--tenant-id $(TENANT_ID),) \
 	  $(if $(ROLES),--roles $(ROLES),) \
