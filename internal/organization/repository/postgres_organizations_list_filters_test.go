@@ -49,20 +49,20 @@ func TestPostgreSQLRepository_GetOrganizations_FilterBranches(t *testing.T) {
 	// Data query (2 rows) — 复用最小用例的字段顺序，确保列数完全一致
 	now := time.Now().UTC()
 	var (
-		tenantID               = tenant.String()
-		sortOrder     *int     = nil
-		desc          *string  = nil
-		profile       *string  = nil
-		eff                    = now
-		endDate       *time.Time = nil
-		isCurrent              = true
-		changeReason  *string  = nil
-		deletedAt     *time.Time = nil
-		deletedBy     *string  = nil
-		deletionReason *string = nil
-		suspendAt       *time.Time = nil
-		suspendBy       *string  = nil
-		suspendReason   *string  = nil
+		tenantID                  = tenant.String()
+		sortOrder      *int       = nil
+		desc           *string    = nil
+		profile        *string    = nil
+		eff                       = now
+		endDate        *time.Time = nil
+		isCurrent                 = true
+		changeReason   *string    = nil
+		deletedAt      *time.Time = nil
+		deletedBy      *string    = nil
+		deletionReason *string    = nil
+		suspendAt      *time.Time = nil
+		suspendBy      *string    = nil
+		suspendReason  *string    = nil
 	)
 	rows := sqlmock.NewRows([]string{
 		"record_id", "tenant_id", "code", "parent_code", "name",

@@ -163,4 +163,3 @@ func Test_statsCacheKey_UppercasesCode(t *testing.T) {
 		t.Fatalf("expected uppercase code in cache key, got %q", key)
 	}
 }
-

@@ -17,4 +17,3 @@ func TestMetricsRecorders_NoPanic(t *testing.T) {
 type assertError struct{}
 
 func (assertError) Error() string { return "err" }
-

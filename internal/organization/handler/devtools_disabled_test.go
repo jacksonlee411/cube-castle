@@ -36,4 +36,3 @@ func TestDevTools_Disabled_ListEndpoints(t *testing.T) {
 		t.Fatalf("expected DEV_MODE_DISABLED in body")
 	}
 }
-

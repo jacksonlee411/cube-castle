@@ -25,4 +25,3 @@ func TestJobCatalog_WriteValidationFailure(t *testing.T) {
 		t.Fatalf("expected >=400 status, got %d", rr.Code)
 	}
 }
-

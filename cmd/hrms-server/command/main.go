@@ -1,27 +1,27 @@
 package main
 
-	import (
-		"context"
-		"database/sql"
-		"fmt"
-		"net/http"
-		"strconv"
-		"os"
-		"os/signal"
-		"strings"
-		"syscall"
-		"time"
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
 
 	authbff "cube-castle/cmd/hrms-server/command/internal/authbff"
 	outbox "cube-castle/cmd/hrms-server/command/internal/outbox"
+	publicgraphql "cube-castle/cmd/hrms-server/query/publicgraphql"
 	auth "cube-castle/internal/auth"
 	config "cube-castle/internal/config"
-	organization "cube-castle/internal/organization"
 	health "cube-castle/internal/monitoring/health"
+	organization "cube-castle/internal/organization"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
-	publicgraphql "cube-castle/cmd/hrms-server/query/publicgraphql"
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -111,23 +111,23 @@ func main() {
 		outboxRepo = database.NewOutboxRepository(dbClient)
 		commandLogger.Infof("✅ Outbox 仓储初始化完成（impl=%T）", outboxRepo)
 
-			redisClient = openRedis(commandLogger)
-			if redisClient != nil {
-				defer redisClient.Close()
-			}
-			// 预热 DB 直方图时间序列，便于在 /metrics 中可见（不会影响统计意义）
-			database.ObserveQueryDuration("command-service", "startup", time.Duration(0))
-			// 周期性上报数据库连接池状态（开发/CI 建议开启；生产可按需调整频率或迁移到运维任务）
-			go func(db *database.Database) {
-				ticker := time.NewTicker(30 * time.Second)
-				defer ticker.Stop()
-				for range ticker.C {
-					db.RecordConnectionStats("command-service")
-				}
-			}(dbClient)
-		} else {
-			commandLogger.Info("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
+		redisClient = openRedis(commandLogger)
+		if redisClient != nil {
+			defer redisClient.Close()
 		}
+		// 预热 DB 直方图时间序列，便于在 /metrics 中可见（不会影响统计意义）
+		database.ObserveQueryDuration("command-service", "startup", time.Duration(0))
+		// 周期性上报数据库连接池状态（开发/CI 建议开启；生产可按需调整频率或迁移到运维任务）
+		go func(db *database.Database) {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+			for range ticker.C {
+				db.RecordConnectionStats("command-service")
+			}
+		}(dbClient)
+	} else {
+		commandLogger.Info("🟡 AUTH_ONLY_MODE=true：跳过数据库连接，仅启用 BFF /auth 与 /.well-known 端点")
+	}
 
 	eventBus := eventbus.NewMemoryEventBus(commandLogger, nil)
 	commandLogger.Info("✅ 事件总线初始化完成（内存实现）")
@@ -290,24 +290,24 @@ func main() {
 	r.Use(chi_middleware.Recoverer)
 	r.Use(chi_middleware.Timeout(30 * time.Second))
 
-		// CORS设置
-		r.Use(cors.Handler(cors.Options{
-			AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"},
-			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Tenant-ID"},
-			ExposedHeaders:   []string{"Link"},
-			AllowCredentials: true,
-			MaxAge:           300,
-		}))
+	// CORS设置
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Tenant-ID"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
-		// NotFound 记录，便于排查路由冲突
-		r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-			commandLogger.WithFields(pkglogger.Fields{
-				"path":   req.URL.Path,
-				"method": req.Method,
-			}).Warn("Route not found")
-			http.NotFound(w, req)
-		})
+	// NotFound 记录，便于排查路由冲突
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		commandLogger.WithFields(pkglogger.Fields{
+			"path":   req.URL.Path,
+			"method": req.Method,
+		}).Warn("Route not found")
+		http.NotFound(w, req)
+	})
 
 	// 健康检查（统一实现）
 	{
@@ -364,53 +364,53 @@ func main() {
 
 	// GraphQL 查询路由（单体合流挂载）
 	if !authOnlyMode {
-			gqlHandler, graphiqlHandler, err := publicgraphql.BuildHandlers(sqlDB, queryRepo, assignmentCache, commandLogger, devMode)
-			if err != nil {
-				commandLogger.Errorf("[FATAL] 构建 GraphQL 处理器失败: %v", err)
-				os.Exit(1)
-			}
-			// Wrapper with structured logging, registered on multiple method/path variants to avoid slashes mismatch.
-			graphQLServe := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				commandLogger.WithFields(pkglogger.Fields{
-					"path":   req.URL.Path,
-					"method": req.Method,
-				}).Info("GraphQL handler invoked")
-				gqlHandler.ServeHTTP(w, req)
-			})
-			// POST is the primary method
-			r.Post("/graphql", graphQLServe)
-			r.Post("/graphql/", graphQLServe) // tolerate trailing slash
-			// Allow GET for simple probes/dev tools
-			r.Get("/graphql", graphQLServe)
-			r.Get("/graphql/", graphQLServe)
-			// Fallback: handle any other method variants to avoid router mismatch in local/dev
-			r.Handle("/graphql", graphQLServe)
-			r.Handle("/graphql/", graphQLServe)
-			if devMode && graphiqlHandler != nil {
-				r.Get("/graphiql", func(w http.ResponseWriter, req *http.Request) {
-					graphiqlHandler.ServeHTTP(w, req)
-				})
-				r.Get("/graphiql/", func(w http.ResponseWriter, req *http.Request) {
-					graphiqlHandler.ServeHTTP(w, req)
-				})
-			}
-			commandLogger.Info("🔗 GraphQL 查询端点已挂载到单体进程: /graphql（/graphiql in dev）")
+		gqlHandler, graphiqlHandler, err := publicgraphql.BuildHandlers(sqlDB, queryRepo, assignmentCache, commandLogger, devMode)
+		if err != nil {
+			commandLogger.Errorf("[FATAL] 构建 GraphQL 处理器失败: %v", err)
+			os.Exit(1)
 		}
-
-		// 路由枚举（调试）
-		if devMode {
-			_ = chi.Walk(r, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-				commandLogger.WithFields(pkglogger.Fields{
-					"method": method,
-					"route":  route,
-				}).Info("Route registered")
-				return nil
+		// Wrapper with structured logging, registered on multiple method/path variants to avoid slashes mismatch.
+		graphQLServe := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			commandLogger.WithFields(pkglogger.Fields{
+				"path":   req.URL.Path,
+				"method": req.Method,
+			}).Info("GraphQL handler invoked")
+			gqlHandler.ServeHTTP(w, req)
+		})
+		// POST is the primary method
+		r.Post("/graphql", graphQLServe)
+		r.Post("/graphql/", graphQLServe) // tolerate trailing slash
+		// Allow GET for simple probes/dev tools
+		r.Get("/graphql", graphQLServe)
+		r.Get("/graphql/", graphQLServe)
+		// Fallback: handle any other method variants to avoid router mismatch in local/dev
+		r.Handle("/graphql", graphQLServe)
+		r.Handle("/graphql/", graphQLServe)
+		if devMode && graphiqlHandler != nil {
+			r.Get("/graphiql", func(w http.ResponseWriter, req *http.Request) {
+				graphiqlHandler.ServeHTTP(w, req)
+			})
+			r.Get("/graphiql/", func(w http.ResponseWriter, req *http.Request) {
+				graphiqlHandler.ServeHTTP(w, req)
 			})
 		}
+		commandLogger.Info("🔗 GraphQL 查询端点已挂载到单体进程: /graphql（/graphiql in dev）")
+	}
 
-		if !authOnlyMode {
-			// 为需要认证的API路由创建子路由器
-			r.Group(func(r chi.Router) {
+	// 路由枚举（调试）
+	if devMode {
+		_ = chi.Walk(r, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+			commandLogger.WithFields(pkglogger.Fields{
+				"method": method,
+				"route":  route,
+			}).Info("Route registered")
+			return nil
+		})
+	}
+
+	if !authOnlyMode {
+		// 为需要认证的API路由创建子路由器
+		r.Group(func(r chi.Router) {
 			r.Use(restAuthMiddleware.Middleware()) // JWT认证和权限验证中间件
 			// 设置组织相关路由 (需要认证)
 			if positionHandler != nil {

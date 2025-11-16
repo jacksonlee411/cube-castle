@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"database/sql"
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -103,7 +103,7 @@ func TestHierarchyRepository_GetOrganizationAtDate_NoRows(t *testing.T) {
 	mock.ExpectQuery(`FROM organization_units\s+WHERE tenant_id = \$1`).
 		WillReturnError(sql.ErrNoRows)
 
-	got, err := h.GetOrganizationAtDate(context.Background(), "1000001", tenant, /* targetDate */ time.Now())
+	got, err := h.GetOrganizationAtDate(context.Background(), "1000001", tenant /* targetDate */, time.Now())
 	if err == nil && got != nil {
 		t.Fatalf("expected (nil, nil) for no rows, got: %+v", got)
 	}

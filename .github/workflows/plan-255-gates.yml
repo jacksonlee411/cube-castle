@@ -9,6 +9,10 @@ on:
 jobs:
   gates-255:
     runs-on: ubuntu-latest
+    env:
+      # Root 审计门禁级别：soft=不阻断（默认，作为审计）；hard=阻断（迭代回收完成后切换）
+      # 切换为硬门禁时，仅需将该变量置为 "hard" 并提交到主干
+      PLAN255_ROOT_AUDIT_MODE: soft
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,9 +65,17 @@ jobs:
       - name: Audit root for ports/forbidden endpoints (non-blocking)
         shell: bash
         run: |
-          # Non-gating auditing step to discover hardcoded ports/forbidden endpoints outside frontend/src
-          node scripts/quality/architecture-validator.js --scope root --rule ports,forbidden \
-            2>&1 | tee "logs/plan255/audit-root-${{ steps.prep.outputs.TS }}.log" || true
+          # 审计步骤：默认 soft（不阻断），当 PLAN255_ROOT_AUDIT_MODE=hard 时改为阻断
+          # 目的：先收敛根路径硬编码端口/禁用端点，再在下个迭代切换为硬门禁
+          if [ "${PLAN255_ROOT_AUDIT_MODE}" = "hard" ]; then
+            set -e
+            node scripts/quality/architecture-validator.js --scope root --rule ports,forbidden \
+              2>&1 | tee "logs/plan255/audit-root-${{ steps.prep.outputs.TS }}.log"
+          else
+            # soft：始终通过，但保留日志工件以便建立整改清单
+            node scripts/quality/architecture-validator.js --scope root --rule ports,forbidden \
+              2>&1 | tee "logs/plan255/audit-root-${{ steps.prep.outputs.TS }}.log" || true
+          fi
 
       - name: Install golangci-lint
         shell: bash

@@ -16,7 +16,7 @@ const checks = [
     description: '前端校验需直接引用契约生成的约束常量',
   },
   {
-    file: path.join(repoRoot, 'cmd', 'hrms-server', 'command', 'internal', 'utils', 'validation.go'),
+    file: path.join(repoRoot, 'internal', 'organization', 'utils', 'validation.go'),
     mustInclude: [
       'organizationCodeRegex',
       'validUnitTypes',
@@ -24,7 +24,7 @@ const checks = [
     description: '后端校验需使用契约导出的正则与枚举',
   },
   {
-    file: path.join(repoRoot, 'cmd', 'hrms-server', 'command', 'internal', 'repository', 'organization_hierarchy.go'),
+    file: path.join(repoRoot, 'internal', 'organization', 'repository', 'organization_hierarchy.go'),
     mustInclude: [
       'types.OrganizationLevelMax',
     ],

@@ -11,15 +11,15 @@ import (
 )
 
 type monitorCounts struct {
-	total         int
-	current       int
-	future        int
-	historical    int
-	duplicate     int
-	missing       int
-	timeline      int
-	inconsistent  int
-	orphan        int
+	total        int
+	current      int
+	future       int
+	historical   int
+	duplicate    int
+	missing      int
+	timeline     int
+	inconsistent int
+	orphan       int
 }
 
 func expectMetricsQueries(mock sqlmock.Sqlmock, counts monitorCounts) {
@@ -109,7 +109,7 @@ func TestTemporalMonitorCheckAlertsCritical(t *testing.T) {
 		missing:      0,
 		timeline:     0,
 		inconsistent: 0,
-        orphan:       0,
+		orphan:       0,
 	})
 
 	logger := pkglogger.NewLogger(pkglogger.WithWriter(io.Discard))

@@ -409,9 +409,9 @@ func TestLogOrganizationUpdate_EmitsChanges(t *testing.T) {
 		true,
 		"",
 		"",
-		sqlmock.AnyArg(),           // before
+		sqlmock.AnyArg(),             // before
 		jsonContains{`"name":"New"`}, // after
-		sqlmock.AnyArg(),           // modified
+		sqlmock.AnyArg(),             // modified
 		fieldChangeHas{field: "name", newValue: "New"},
 		recordID,
 		sqlmock.AnyArg(),

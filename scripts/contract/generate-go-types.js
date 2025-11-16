@@ -3,7 +3,7 @@
  * generate-go-types.js
  *
  * 根据 shared/contracts/organization.json 生成 Go 侧的枚举与常量定义，
- * 输出至 cmd/organization-command-service/internal/types/contract_gen.go
+ * 输出至 internal/types/contract_gen.go
  * 作为契约枚举与约束的唯一事实来源。
  */
 
@@ -14,7 +14,7 @@ const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const CONTRACT_PATH = path.join(PROJECT_ROOT, 'shared/contracts/organization.json');
 const OUTPUT_PATH = path.join(
   PROJECT_ROOT,
-  'cmd/organization-command-service/internal/types/contract_gen.go'
+  'internal/types/contract_gen.go'
 );
 
 const ACRONYM_MAP = {

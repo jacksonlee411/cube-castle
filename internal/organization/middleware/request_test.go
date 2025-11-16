@@ -71,4 +71,3 @@ func TestPerformanceMiddleware_SetsHeadersAndCallsNext(t *testing.T) {
 		t.Fatalf("unexpected response: %d %q", rr.Code, rr.Body.String())
 	}
 }
-

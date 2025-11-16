@@ -3,8 +3,8 @@ package resolver
 import (
 	"encoding/json"
 
-	"cube-castle/internal/organization/dto"
 	"cube-castle/cmd/hrms-server/query/internal/graphql/model"
+	"cube-castle/internal/organization/dto"
 )
 
 type stringScalar interface {

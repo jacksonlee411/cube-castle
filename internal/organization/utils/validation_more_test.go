@@ -36,4 +36,3 @@ func TestValidateSuspendAndActivateRequest(t *testing.T) {
 		t.Fatalf("valid activate reason should pass: %v", err)
 	}
 }
-

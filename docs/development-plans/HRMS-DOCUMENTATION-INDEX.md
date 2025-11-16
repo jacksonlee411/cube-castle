@@ -200,7 +200,7 @@
 - 254：前端端点与代理收敛（单基址）
   - 文件: `254-frontend-endpoint-and-proxy-consolidation.md`（状态：进行中）
 - 256：契约 SSoT 生成流水线（阶段2）
-  - 文件: `256-contract-ssot-generation-pipeline.md`（状态：未启动；生成与门禁接线）
+  - 文件: `256-contract-ssot-generation-pipeline.md`（状态：已完成；生成链路与门禁接线已落地：生成→快照→工作树clean→漂移对比（报告模式；阻断在 258））
 - 257：前端领域 API 门面采纳（阶段2）
   - 文件: `257-frontend-domain-api-facade-adoption.md`（状态：未启动）
 - 258：契约漂移校验与门禁（阶段2）

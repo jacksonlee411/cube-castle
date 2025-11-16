@@ -36,7 +36,7 @@
 - 单向生成：
   - 从契约生成 Go/TS 类型与客户端，仅落地至生成产物路径（带文件头禁止手改）
   - 生成产物示例（按现有脚本链路，具体以仓库为准）：
-    - Go：`cmd/**/internal/types/contract_gen.go`
+    - Go：`internal/types/contract_gen.go`
     - TS：`frontend/src/shared/types/contract_gen.ts`
 - 修改契约的流程：
   - 修改 docs/api/* → 通过 spectral/schema 校验 → 运行生成脚本 → 提交生成产物 → 通过契约漂移门禁（见 Plan 258）
@@ -44,13 +44,19 @@
 ---
 
 ## 5. 门禁与工作流（CI）
-- contract-sync（阻断型）：
-  - 步骤：spectral 校验 → GraphQL schema 校验 → 运行生成脚本 → 检查工作树 clean
-  - 失败条件：契约语义错误、生成后存在未提交变更、生成产物被手改
-- drift-check（与 Plan 258 协同）：
-  - 比对 OpenAPI 与 GraphQL 字段/类型/可空/描述的一致性（允许经白名单豁免，见 258）
-- 实现对齐校验：
-  - 扫描 REST 响应字段蛇形命名与路径参数不合规；扫描 GraphQL 枚举/字段硬编码（AGENTS 禁止项）
+- contract-sync（阻断型，Plan 256 职责）
+  - 目标：保证“契约→生成→工作树 clean→快照一致”
+  - 步骤（按当前工作流拆分）：
+    - Spectral OpenAPI 校验：在 `api-compliance.yml` 执行
+    - GraphQL schema 校验：在 `contract-testing.yml` 的前端 job 执行
+    - 运行生成脚本：`scripts/contract/sync.sh`
+    - 检查工作树 clean：生成后 `git status --porcelain` 必须为空
+  - 失败条件：契约语义错误；生成后存在未提交变更；生成产物被手改未提交
+- drift-check（报告模式，Plan 258 阻断）
+  - Plan 256 仅生成“OpenAPI↔GraphQL 枚举差异”报告（非阻断），产出 `reports/contracts/drift-report.json`
+  - 白名单与阻断门禁归 Plan 258：字段矩阵差异由 258 工作流处理；白名单需 `// TODO-TEMPORARY(YYYY-MM-DD):` 且一个迭代内收敛
+- 实现对齐校验（与 255/252 协同）
+  - 扫描 REST 响应字段蛇形命名与 `{id}` 路径参数误用；扫描 GraphQL 枚举/字段硬编码（遵循 AGENTS 黑名单）
 
 ---
 
@@ -64,5 +70,16 @@
 ---
 
 ## 7. 备注
-- 与 AGENTS 对齐：契约先于实现；契约与实现/文档之间只有“单向生成 + 校验”，不得反向生成契约
-- 与 Plan 258：差异白名单需要 `// TODO-TEMPORARY(YYYY-MM-DD):` 且一个迭代内收敛；脚本对接 `scripts/check-temporary-tags.sh`
+- 与 AGENTS 对齐：契约先于实现；仅允许“契约→生成 + 校验”，禁止“从实现反向生成契约”
+- 与 Plan 258：差异白名单需要 `// TODO-TEMPORARY(YYYY-MM-DD):` 且一个迭代内收敛；脚本对接 `scripts/check-temporary-tags.sh`；阻断以 258 工作流为准
+
+---
+
+附：本地与 CI 命令（规范索引）
+- Make 目标：
+  - `make generate-contracts`：执行 `scripts/contract/sync.sh`（输出日志至 `logs/plan256/`）
+  - `make verify-contracts`：执行快照校验 `tests/contract/verify_inventory.py`
+- CI 工作流：
+  - `.github/workflows/contract-testing.yml`（生成→快照→工作树 clean 校验→漂移对比（报告模式））
+  - `.github/workflows/api-compliance.yml`（Spectral OpenAPI 校验）
+  - 保护分支 Required checks 建议：同时启用 `api-compliance` 与 `contract-testing`；待 258 上线后新增 `contract-drift-gate`（阻断）

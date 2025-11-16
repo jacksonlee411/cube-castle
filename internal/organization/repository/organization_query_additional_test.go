@@ -107,4 +107,3 @@ func TestOrganizationRepository_GetByRecordId_NotFound(t *testing.T) {
 		t.Fatalf("expected not found error")
 	}
 }
-

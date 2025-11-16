@@ -48,4 +48,3 @@ func TestRateLimitMiddleware_AllowsThenBlocks(t *testing.T) {
 		t.Fatalf("next handler should be called once, got %d", handled)
 	}
 }
-

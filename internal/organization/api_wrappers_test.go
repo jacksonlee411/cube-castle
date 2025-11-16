@@ -42,4 +42,3 @@ func TestWrapper_Constructors_NoPanic(t *testing.T) {
 	}
 	_ = repository.AuditHistoryConfig{} // keep import
 }
-

@@ -23,4 +23,3 @@ func TestTemporalMonitor_DefaultRules(t *testing.T) {
 		t.Fatalf("expected HEALTH_SCORE rule")
 	}
 }
-

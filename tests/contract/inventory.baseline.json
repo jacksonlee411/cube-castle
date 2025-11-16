@@ -9,8 +9,16 @@
       "lineCount": 1343
     },
     "shared/contracts/organization.json": {
-      "sha256": "d07559546338a8b605732d230f35e77e924526e297ce241fa2b7e0f7cad8cbb6",
+      "sha256": "662f90ee63bae5720f23108c9e5ba95e2859cd2b3fc35da578bea3c3a1bae143",
       "lineCount": 100
+    },
+    "internal/types/contract_gen.go": {
+      "sha256": "865ee9fbe2c821e8046249caf70151f1b1b3990983587f358a0190c726a0f6bd",
+      "lineCount": 58
+    },
+    "frontend/src/shared/types/contract_gen.ts": {
+      "sha256": "81ed09c63e9efbb3a3c72ede9518de690885567b82176262712fdc83c3f9e62b",
+      "lineCount": 72
     }
   }
 }

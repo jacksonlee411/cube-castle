@@ -46,4 +46,3 @@ func TestIsRootParentCode(t *testing.T) {
 		t.Fatalf("did not expect '1000000' to be recognized as root")
 	}
 }
-

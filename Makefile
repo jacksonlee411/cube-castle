@@ -3,6 +3,7 @@
 
 .PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql
  .PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
+.PHONY: generate-contracts verify-contracts
 
 export SCHEDULER_ENABLED ?= false
 export SCHEDULER_MONITOR_ENABLED ?= true
@@ -58,6 +59,10 @@ help:
 	@echo "🛡️ 门禁（Plan 253）:"
 	@echo "  guard-plan253     - 运行 compose 端口/镜像标签门禁（不需要 Docker）"
 	@echo "  plan253-coldstart - 记录冷启动与数据库就绪时间（需要 Docker/Compose）"
+	@echo ""
+	@echo "📋 契约（Plan 256）:"
+	@echo "  generate-contracts - 从契约生成 Go/TS 类型并记录日志 (logs/plan256)"
+	@echo "  verify-contracts   - 校验契约快照（OpenAPI/GraphQL/中间层/生成物）"
 	@echo ""
 	@echo "📮 PR 自动化（Plan 255）:"
 	@echo "  pr-255-soft-gate  - 推送当前/指定分支并创建 PR（需 GITHUB_TOKEN/gh 或在 secrets/.env.local 配置）"
@@ -304,7 +309,16 @@ fmt:
 
 lint:
 	@echo "🔍 golangci-lint 检查..."
-	golangci-lint run
+	@GOBIN="$$(go env GOPATH)/bin"; \
+	if [ -x "$${GOBIN}/golangci-lint" ]; then \
+	  echo "ℹ️  使用 pinned 版本: $${GOBIN}/golangci-lint"; \
+	  "$${GOBIN}/golangci-lint" version; \
+	  "$${GOBIN}/golangci-lint" run; \
+	else \
+	  echo "ℹ️  未检测到 pinned 版本，使用 PATH 中的 golangci-lint"; \
+	  golangci-lint version || true; \
+	  golangci-lint run; \
+	fi
 
 security:
 	@echo "🔒 gosec 安全扫描..."
@@ -363,6 +377,16 @@ guard-plan253:
 plan253-coldstart:
 	@echo "⏱️  运行 Plan 253 冷启动计时（需要 Docker/Compose）..."
 	@bash scripts/quality/gates-253-coldstart.sh
+
+# Plan 256 - 契约生成与快照校验
+generate-contracts:
+	@echo "📋 运行 Plan 256 契约生成链路..."
+	@mkdir -p logs/plan256
+	@ts=$$(date +%Y%m%d_%H%M%S); bash scripts/contract/sync.sh 2>&1 | tee logs/plan256/sync-$$ts.log
+
+verify-contracts:
+	@echo "🧪 运行契约快照校验..."
+	@python3 tests/contract/verify_inventory.py
 
 # 迁移即真源：按序执行 database/migrations/*.sql（Goose）
 db-migrate-all:

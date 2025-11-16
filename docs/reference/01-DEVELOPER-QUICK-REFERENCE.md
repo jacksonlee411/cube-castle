@@ -464,6 +464,18 @@ curl http://localhost:9090/dev/database-status  # 数据库连接测试
 
 ## 📚 更多资源
 
+### 质量相关（门禁与工具链）
+```bash
+# 前端统一门禁（阻断）
+node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden
+
+# 后端 golangci-lint（与 CI 对齐：v1.59.1，固定调用路径避免误用 PATH 旧版本）
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+$(go env GOPATH)/bin/golangci-lint version
+$(go env GOPATH)/bin/golangci-lint run
+```
+> 说明：golangci-lint 固定版本与路径是 PR 等效门禁的组成部分；若 PATH 中存在其他版本，请勿直接使用 `golangci-lint run`。
+
 ### 权威链接与治理
 - 项目原则与黑名单（唯一事实来源）：`../../AGENTS.md`
 - API 契约（唯一事实来源）：`../api/openapi.yaml`、`../api/schema.graphql`

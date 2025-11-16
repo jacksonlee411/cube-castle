@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	pkglogger "cube-castle/pkg/logger"
 	utilspkg "cube-castle/internal/organization/utils"
+	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 )
 

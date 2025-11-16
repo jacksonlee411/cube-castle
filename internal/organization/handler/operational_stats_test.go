@@ -21,4 +21,3 @@ func TestOperational_GetRateLimitStats(t *testing.T) {
 		t.Fatalf("expected JSON body")
 	}
 }
-

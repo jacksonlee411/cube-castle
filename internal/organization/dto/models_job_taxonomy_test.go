@@ -45,12 +45,12 @@ func TestJobTaxonomyEntities_Getters(t *testing.T) {
 	desc := "desc"
 
 	g := JobFamilyGroup{
-		RecordIDField:     "RIDG",
-		TenantIDField:     "TID",
-		CodeField:         "JFG",
-		NameField:         "Group",
-		DescriptionField:  &desc,
-		StatusField:       "ACTIVE",
+		RecordIDField:      "RIDG",
+		TenantIDField:      "TID",
+		CodeField:          "JFG",
+		NameField:          "Group",
+		DescriptionField:   &desc,
+		StatusField:        "ACTIVE",
 		EffectiveDateField: now,
 		EndDateField:       &end,
 		IsCurrentField:     true,
@@ -65,15 +65,15 @@ func TestJobTaxonomyEntities_Getters(t *testing.T) {
 	}
 
 	f := JobFamily{
-		RecordIDField:      "RIDF",
-		TenantIDField:      "TID",
-		CodeField:          "JF",
-		NameField:          "Family",
-		DescriptionField:   &desc,
-		StatusField:        "ACTIVE",
-		EffectiveDateField: now,
-		EndDateField:       &end,
-		IsCurrentField:     true,
+		RecordIDField:        "RIDF",
+		TenantIDField:        "TID",
+		CodeField:            "JF",
+		NameField:            "Family",
+		DescriptionField:     &desc,
+		StatusField:          "ACTIVE",
+		EffectiveDateField:   now,
+		EndDateField:         &end,
+		IsCurrentField:       true,
 		FamilyGroupCodeField: "JFG",
 	}
 	if string(f.RecordId()) == "" || string(f.TenantId()) == "" || string(f.Code()) != "JF" || f.Name() != "Family" {

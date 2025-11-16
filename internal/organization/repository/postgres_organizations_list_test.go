@@ -27,32 +27,32 @@ func TestPostgreSQLRepository_GetOrganizations_Minimal(t *testing.T) {
 	// Data query - provide one row with the exact scan order
 	now := time.Now().UTC()
 	var (
-		recordID    = "rec-1"
-		tenantID    = tenant.String()
-		code        = "1000008"
-		parentCode  *string = nil
-		name                 = "技术部"
-		unitType             = "DEPARTMENT"
-		status               = "ACTIVE"
-		level                = 2
-		codePath             = "/1000008"
-		namePath             = "/技术部"
-		sortOrder   *int     = nil
-		desc        *string  = nil
-		profile     *string  = nil
-		created              = now
-		updated              = now
-		eff                  = now
-		endDate     *time.Time = nil
-		isCurrent            = true
-		changeReason *string = nil
-		deletedAt    *time.Time = nil
-		deletedBy    *string  = nil
-		deletionReason *string = nil
+		recordID                  = "rec-1"
+		tenantID                  = tenant.String()
+		code                      = "1000008"
+		parentCode     *string    = nil
+		name                      = "技术部"
+		unitType                  = "DEPARTMENT"
+		status                    = "ACTIVE"
+		level                     = 2
+		codePath                  = "/1000008"
+		namePath                  = "/技术部"
+		sortOrder      *int       = nil
+		desc           *string    = nil
+		profile        *string    = nil
+		created                   = now
+		updated                   = now
+		eff                       = now
+		endDate        *time.Time = nil
+		isCurrent                 = true
+		changeReason   *string    = nil
+		deletedAt      *time.Time = nil
+		deletedBy      *string    = nil
+		deletionReason *string    = nil
 		suspendAt      *time.Time = nil
-		suspendBy      *string  = nil
-		suspendReason  *string  = nil
-		childrenCount          = 0
+		suspendBy      *string    = nil
+		suspendReason  *string    = nil
+		childrenCount             = 0
 	)
 
 	row := sqlmock.NewRows([]string{
@@ -88,4 +88,3 @@ func TestPostgreSQLRepository_GetOrganizations_Minimal(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
-

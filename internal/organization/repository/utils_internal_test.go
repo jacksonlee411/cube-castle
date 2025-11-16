@@ -13,4 +13,3 @@ func TestEnsureJoinedPath(t *testing.T) {
 		t.Fatalf("unexpected: %s", got)
 	}
 }
-

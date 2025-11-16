@@ -82,7 +82,7 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	addAssignment("updated_at", time.Now())
 	setClause := strings.Join(setParts, ", ")
 
-query := fmt.Sprintf(`UPDATE organization_units
+	query := fmt.Sprintf(`UPDATE organization_units
 SET %s
 WHERE tenant_id = $1 AND code = $2
   AND status <> 'DELETED'

@@ -67,7 +67,8 @@
 - 例外收敛：GET 直连例外仅限 `/auth`（用于认证流程）。原 `/health`、`/metrics` 例外取消，观测与探活请通过后端/监控侧处理或使用 GraphQL 只读查询。
 
 5.2b（可选·审计）根路径端口/禁止端点扫描（不作为门禁，仅用于发现问题）
-- node scripts/quality/architecture-validator.js --scope root --rule ports,forbidden || true
+- 本地建议：`node scripts/quality/architecture-validator.js --scope root --rule ports,forbidden || true`（软运行，不阻断）
+- CI 开关：通过 `.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE`（soft|hard）控制是否阻断
   - 用于发现 scripts/** 等层的硬编码端口/未立项端点引用；保留报告归档，按问题排期整改；门禁范围仍以 5.2 为准。
 
 5.3 后端边界与 JSON 命名门禁

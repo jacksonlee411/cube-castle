@@ -30,5 +30,5 @@ node scripts/contract/generate-ts-types.js
 echo "✅ [契约同步] 完成"
 echo "  输出文件:"
 echo "    - shared/contracts/organization.json"
-echo "    - cmd/organization-command-service/internal/types/contract_gen.go"
+echo "    - internal/types/contract_gen.go"
 echo "    - frontend/src/shared/types/contract_gen.ts"

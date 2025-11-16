@@ -1,9 +1,9 @@
 {
   "metadata": {
     "source": "docs/api/openapi.yaml",
-    "openapiVersion": "4.6.0",
-    "generatedAt": "2025-10-10T12:12:12.556Z",
-    "schemaSha256": "b7040398b65d330de9525de13fdf678e184c4c57145f1504acd4bd8493a5437f"
+    "openapiVersion": "4.7.0",
+    "generatedAt": "2025-11-16T06:59:50.609Z",
+    "schemaSha256": "1f19e413a7a114c80dc8451c7607a654b10f95e1e1edc14cd269eb6cc7b16a71"
   },
   "enums": {
     "unitType": [
@@ -72,8 +72,8 @@
   },
   "graphql": {
     "source": "docs/api/schema.graphql",
-    "schemaVersion": "4.6.0",
-    "generatedAt": "2025-10-10T12:12:12.581Z",
+    "schemaVersion": "4.7.0",
+    "generatedAt": "2025-11-16T06:59:50.640Z",
     "enums": {
       "unitType": [
         "DEPARTMENT",

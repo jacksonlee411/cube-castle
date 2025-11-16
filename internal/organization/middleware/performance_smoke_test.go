@@ -22,4 +22,3 @@ func TestPerformanceMiddleware_Serve(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
 }
-

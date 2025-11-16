@@ -2,12 +2,12 @@ package repository
 
 import (
 	"context"
-	"testing"
 	"database/sql"
+	"testing"
 
+	"cube-castle/internal/types"
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
-	"cube-castle/internal/types"
 )
 
 func TestComputeHierarchyForNew_Root(t *testing.T) {

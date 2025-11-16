@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2025-11-16T07:44:34.708Z",
+  "source": "shared/contracts/organization.json",
+  "results": {
+    "unitType": {
+      "missingInRest": [],
+      "missingInGql": []
+    },
+    "status": {
+      "missingInRest": [],
+      "missingInGql": []
+    },
+    "operationType": {
+      "missingInRest": [],
+      "missingInGql": []
+    }
+  }
+}

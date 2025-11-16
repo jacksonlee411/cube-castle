@@ -73,6 +73,21 @@
   - Trunk + Local First：提交前本地跑“前端门禁 + go build”；golangci‑lint 采集不阻断  
   - CI：Required checks 以工作流为准；后端 lint 仅以 depguard/tagliatelle 违规为阻断，其余类型检查噪音仅记录日志
 
+#### Plan 255 · CI 远程收尾（索引）
+- Required checks（受保护分支）：将 `plan-250-gates`、`plan-253-gates`、`plan-255-gates` 勾选为必需检查（Settings → Branches）。  
+  - 证据占位：`logs/plan255/branch-protection-required-checks.md`（截图/说明链接，含失败示例链接）[TBD]
+- 首次成功运行登记：在本段落补充 CI 运行链接与工件名称（artifact: `plan255-logs`）。  
+  - 运行链接占位：<待补充：CI run URL>；保留期 7 天（如需长期审计，请在迭代末归档为 Release 资产）[TBD]
+- Root 审计门禁开关：默认 soft（不阻断）；迭代收敛完成后切换为 hard。  
+  - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE`（soft|hard）  
+  - 切换计划：`// TODO-TEMPORARY(2025-11-30): 将 PLAN255_ROOT_AUDIT_MODE 切换为 hard，完成根路径端口/禁用端点清单收敛`  
+  - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
+- 软门禁 PR 联通性：通过 `make pr-255-soft-gate` 验证 `scripts/ci/auto-pr.sh` 可创建 PR；若组织策略不允许，记录手工 PR 链接与原因。  
+  - 证据占位：`logs/plan255/pr-*.txt`（脚本输出）或手工 PR URL [TBD]
+- 本地验证证据（离线）
+  - 后端门禁（depguard/tagliatelle，仅关注门禁项）：`logs/plan255/golangci-lint-local-20251116_152704.log`（PASS）
+  - 前端架构门禁（CQRS/端口/禁直连）：`reports/architecture/architecture-validation.json`（0 违规）
+
 ### 新增（2025-11-15 — 优先级与下一步）
 - P0：Plan 222 收口验收与文档更新（见 222 章节与证据日志）
 - P0：202 阶段1（模块化单体合流，不改协议；索引：`docs/development-plans/202-CQRS混合架构深度分析与演进建议.md`）
@@ -140,7 +155,7 @@
   - 计划窗口：TBD（W?）  
   - 负责人：TBD  
   - 准入条件：脚本链路可运行（Node/Go 工具链基线满足 AGENTS）  
-  - 产物/证据：`logs/plan256/*`、`make generate-contracts` 幂等日志、CI contract-sync 结果  
+  - 产物/证据：`logs/plan256/*`、`make generate-contracts` 幂等日志、CI contract-sync（生成→快照→工作树 clean）结果、drift-report（报告模式，阻断由 258 承担）  
   - 文档：`docs/development-plans/256-contract-ssot-generation-pipeline.md`
 
 - 257 · 前端领域 API 门面采纳（阶段2）  
