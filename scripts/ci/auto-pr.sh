@@ -56,34 +56,21 @@ fi
 
 OWNER=""
 REPO=""
-if [[ "${ORIGIN_URL}" =~ ^ssh://git@.*github.com.*$ ]]; then
-  # ssh://git@ssh.github.com:443/owner/repo.git
-  OWNER_REPO="${ORIGIN_URL##*/github.com*/}" || true
-  # Fallback: strip up to last '/'
-  [[ -z "${OWNER_REPO}" ]] && OWNER_REPO="${ORIGIN_URL##*/}"
-  OWNER="$(basename "$(dirname "${ORIGIN_URL}")")"
-  # Better parse for ssh://git@ssh.github.com:443/owner/repo.git
-  # Extract path after last ':' or last '/'
-  PATH_PART="${ORIGIN_URL#*github.com:}"
-  [[ "${PATH_PART}" == "${ORIGIN_URL}" ]] && PATH_PART="${ORIGIN_URL#*github.com/}"
-  OWNER="$(echo "${PATH_PART}" | awk -F'/' '{print $(1)}')"
-  REPO="$(echo "${PATH_PART}" | awk -F'/' '{print $(2)}')"
-  REPO="${REPO%.git}"
-elif [[ "${ORIGIN_URL}" =~ ^git@[^:]+:[^/]+/[^/]+\.git$ ]]; then
+# Normalize to "<owner>/<repo>.git" path
+PATH_PART="$(echo "${ORIGIN_URL}" | sed -E 's#^ssh://git@[^/]+/##; s#^git@[^:]+:##; s#^https?://[^/]+/##')"
+if [[ "${ORIGIN_URL}" =~ ^git@[^:]+:[^/]+/[^/]+(\.git)?$ ]]; then
   # git@github.com:owner/repo.git
-  OWNER="$(echo "${ORIGIN_URL}" | awk -F'[:/]' '{print $(2)}')"
-  REPO="$(echo "${ORIGIN_URL}" | awk -F'[:/]' '{print $(3)}')"
-  REPO="${REPO%.git}"
-elif [[ "${ORIGIN_URL}" =~ ^https://[^/]+/[^/]+/[^/]+(\.git)?$ ]]; then
+  OWNER="$(echo "${PATH_PART}" | cut -d'/' -f1)"
+  REPO="$(echo "${PATH_PART}" | cut -d'/' -f2)"
+elif [[ "${ORIGIN_URL}" =~ ^https://[^/]+/[^/]+/[^/]+(\.git)?$ || "${ORIGIN_URL}" =~ ^ssh://git@[^/]+/[^/]+/[^/]+(\.git)?$ ]]; then
   OWNER="$(echo "${ORIGIN_URL}" | awk -F'/' '{print $(NF-1)}')"
   REPO="$(basename "${ORIGIN_URL}")"
-  REPO="${REPO%.git}"
 else
-  # Generic fallback
-  OWNER="$(basename "$(dirname "${ORIGIN_URL}")")"
-  REPO="$(basename "${ORIGIN_URL}")"
-  REPO="${REPO%.git}"
+  # Fallback to PATH_PART
+  OWNER="$(echo "${PATH_PART}" | cut -d'/' -f1)"
+  REPO="$(echo "${PATH_PART}" | cut -d'/' -f2)"
 fi
+REPO="${REPO%.git}"
 
 if [[ -z "${OWNER}" || -z "${REPO}" ]]; then
   echo "Unable to parse owner/repo from origin URL: ${ORIGIN_URL}" >&2
@@ -150,6 +137,11 @@ else
     -d "{\"title\":\"${TITLE}\",\"head\":\"${HEAD_BRANCH}\",\"base\":\"${BASE_BRANCH}\",\"body\":\"${BODY_ESCAPED}\",\"draft\":${DRAFT}}")"
   echo "${RESP}" > "${LOG_DIR}/pr-response-${TS}.json"
   PR_URL="$(echo "${RESP}" | sed -n 's/.*\"html_url\"[[:space:]]*:[[:space:]]*\"\\(https:[^"]*\\)\".*/\\1/p' | head -n1)"
+  if [[ -z "${PR_URL}" ]]; then
+    MSG="$(echo "${RESP}" | sed -n 's/.*\"message\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -n1)"
+    echo "API response message: ${MSG:-<none>}" | tee -a "${LOG_FILE}"
+    echo "If permissions are limited, open PR manually: https://github.com/${OWNER}/${REPO}/compare/${BASE_BRANCH}...${HEAD_BRANCH}?expand=1" | tee -a "${LOG_FILE}"
+  fi
 fi
 
 if [[ -n "${PR_URL}" ]]; then
