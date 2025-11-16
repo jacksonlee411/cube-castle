@@ -341,3 +341,5 @@
 - docs(plan-255): clarify JWKS not a permanent frontend exception; provide DEV_MODE temporary strategy; unify status fields to status/isCurrent/isFuture/isTemporal; require plan-250/253 as protected-branch checks alongside 255
 - docs(215): add protected-branch evidence template to include plan-250/253/255 and sample failure links
 - docs(agents): add “决策建议原则” — for decision items/open questions, provide best-practice advice and a default path (with rollback window), not Q&A only
+- refactor(health-alerting): migrate JSON tags to camelCase (resolvedAt, maxRetries, enabledBy, statusEquals, responseTimeGt, consecutiveFails); remove temporary nolints
+  - Note: webhook consumers expecting snake_case should align within one iteration; no inbound JSON parser is impacted by this change

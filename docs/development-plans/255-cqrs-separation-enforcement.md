@@ -187,7 +187,7 @@
 
 - 待办/前置（硬门禁切换前必须）
   - 受保护分支：在仓库 Branch protection rules 中将 plan-250-gates、plan-253-gates、plan-255-gates 配置为必需检查；在 215 登记“设置截图 + 失败示例链接”
-  - 后端命名收敛：监控/告警导出 JSON 字段 snake_case → camelCase（当前以 `//nolint:tagliatelle // TODO‑TEMPORARY(2025-11-30)` 过渡，文件：internal/monitoring/health/alerting.go）
+  - 后端命名收敛：监控/告警导出 JSON 字段 snake_case → camelCase（已完成：internal/monitoring/health/alerting.go；移除临时 nolint；对外字段为 `resolvedAt/maxRetries/enabledBy/statusEquals/responseTimeGt/consecutiveFails`）
   - 首轮证据：CI 首次运行产物（logs/plan255/*、reports/architecture/architecture-validation.json）落盘后，在 215 登记索引
 
 - 风险与缓解
