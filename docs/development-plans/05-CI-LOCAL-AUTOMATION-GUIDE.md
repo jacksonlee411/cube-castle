@@ -31,6 +31,7 @@
 - 证据输出
   - `reports/architecture/architecture-validation.json`
   - `logs/plan<ID>/*`（建议：plan255）
+  - 守卫脚本：`scripts/quality/root-whitelist-guard.sh`（根目录白名单）
 
 ## 本地一键门禁（255）
 前置：确保根目录已安装依赖（仅一次）  
@@ -100,6 +101,32 @@
 
 ## Git Hooks（推荐）
 - 预推送（.git/hooks/pre-push）：建议运行“255 本地门禁 + go build”，golangci-lint 使用 `scripts/quality/golangci-fast.yml` 采集不阻塞；保持主干稳定、离线可用。
+
+## 故障排除 / Playbook（本地优先）
+- npm ci 失败（lock 与依赖不一致）
+  - 现象：Install Node deps 步骤失败，或本地 `npm ci` 报 lock 不一致
+  - 处理（Node 18）：`nvm use 18 && npm install --package-lock-only && git commit -m "chore(ci): refresh lock"`，随后 `npm ci`
+- ESLint（文件被忽略/版本不兼容）
+  - 使用 flat 配置：`eslint -c eslint.config.architecture.mjs 'frontend/src/**/*.{ts,tsx}' --no-warn-ignored`
+  - 避免混用 frontend/.eslintrc.*；架构守卫统一走根的 flat 配置
+- golangci-lint 类型噪音
+  - 本地：`golangci-lint run -c scripts/quality/golangci-fast.yml` 或 `--disable-all -E depguard -E tagliatelle`
+  - 预推送钩子仅采集不阻塞；阻断由 `go build ./...` 执行
+- Plan 250 快修
+  - 单二进制门禁：若 `cmd` 下存在第 2 个 main，加 `//go:build legacy`（示例：`cmd/hrms-server/query/tools/dump-schema/main.go`）
+  - 8090 硬编码：去除 `":8090"`/`"8090"` 字面量，改读取 `PORT`；保留数值禁用逻辑（解析端口后比较 `== 8090`）
+- 文档/合规脚本
+  - 根目录白名单失败：本地运行 `bash scripts/quality/root-whitelist-guard.sh` 查看不被允许的根文件；将文件移至合适目录或按需维护白名单
+  - 契约校验脚本缺失文件：`scripts/quality/lint-validation.js` 会跳过缺失文件；在存在的路径上保持严格
+
+## 从 CI 收集“Required checks”反馈（本地）
+- 令牌加载顺序：`secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` → 环境变量（`GITHUB_TOKEN`/`GH_TOKEN`）
+- 一键拉取 SUMMARY（需 unzip 或 bsdtar）
+  - `bash scripts/ci/fetch-gh-summary.sh <owner/repo> <run_id> > logs/plan255/ci-summary-<run_id>.txt`
+- 直接读取运行与检查（无需解压）
+  - 运行概览：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/actions/runs/<run_id> | jq '{workflow:.name,event,status,conclusion,branch:.head_branch,sha:.head_sha,html_url}'`
+  - 运行 Jobs：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/actions/runs/<run_id>/jobs?per_page=100 | jq -r '.jobs[] | [.name,.status,.conclusion] | @tsv'`
+  - 提交检查：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/commits/$SHA/check-runs?per_page=100 | jq -r '.check_runs[] | [.name,.status,.conclusion] | @tsv'`
 
 ## 最佳实践
 - 唯一门禁：不要叠加多个扫描器；统一依赖 architecture-validator，减少维护与分叉
