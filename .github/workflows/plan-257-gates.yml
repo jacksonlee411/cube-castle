@@ -28,8 +28,8 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Run coverage scan (report mode, threshold=0.0)
-        run: node scripts/facade/coverage-scan.js --threshold=0.0
+      - name: Run coverage scan (blocking, threshold=0.8)
+        run: node scripts/facade/coverage-scan.js --threshold=0.8
 
       - name: Upload coverage report
         if: always()

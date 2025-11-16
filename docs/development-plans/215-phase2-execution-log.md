@@ -170,8 +170,8 @@
   - 计划窗口：TBD（W?）  
   - 负责人：TBD  
   - 准入条件：241/242 抽象完成；统一命名与选择器守卫启用  
-  - 产物/证据：`logs/plan257/*`、`reports/facade/coverage.json`（覆盖率报告；报告模式）、E2E/单测通过记录  
-  - 工作流：`.github/workflows/plan-257-gates.yml`（报告模式；计划 3 天后切换阻断并纳入 Required checks）  
+  - 产物/证据：`logs/plan257/*`、`reports/facade/coverage.json`（覆盖率报告；阻断阈值≥0.8）、E2E/单测通过记录  
+  - 工作流：`.github/workflows/plan-257-gates.yml`（已切换为阈值 0.8 阻断；请在受保护分支设置为 Required check）  
   - 文档：`docs/development-plans/257-frontend-domain-api-facade-adoption.md`
 
 - 258 · 契约漂移校验与门禁（阶段2）  

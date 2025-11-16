@@ -202,7 +202,7 @@
 - 256：契约 SSoT 生成流水线（阶段2）
   - 文件: `256-contract-ssot-generation-pipeline.md`（状态：已完成；生成链路与门禁接线已落地：生成→快照→工作树clean→漂移对比（报告模式；阻断在 258））
 - 257：前端领域 API 门面采纳（阶段2）
-  - 文件: `257-frontend-domain-api-facade-adoption.md`（状态：进行中；Facade 覆盖率门禁已接线（报告模式））
+  - 文件: `257-frontend-domain-api-facade-adoption.md`（状态：进行中；Facade 覆盖率门禁已接线（阻断，阈值≥0.8））
 - 258：契约漂移校验与门禁（阶段2）
   - 文件: `258-contract-drift-validation-gate.md`（状态：进行中；字段矩阵阻断门禁已接线，allowlist 设定一个迭代窗口）
 - 259：协议策略复盘与评估（可选）

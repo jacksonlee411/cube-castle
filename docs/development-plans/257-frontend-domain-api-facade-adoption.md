@@ -59,7 +59,7 @@
   - 环境变量 `THRESHOLD` 控制阈值（默认 0.0 报告模式；建议迁移达标后提升至 0.8）：`THRESHOLD=0.8 make guard-plan257`
 - CI：
   - 工作流：`.github/workflows/plan-257-gates.yml`（artifact: `plan257-facade-coverage`）
-  - Required checks：先“报告模式（3 天）”，验证口径与误报后切换“阻断”
+  - Required checks：已切换为“阻断（阈值 0.8）”，请在受保护分支勾选 “Plan 257 - Facade Coverage Gate” 为必需检查
 
 ## 8. 阈值与例外治理
 - 阈值：组织、职位模块覆盖率 ≥0.80（其余模块按 Phase 2 推进时设定）
@@ -75,9 +75,11 @@
 - 目录与示例已创建：`frontend/src/shared/api/facade/organization.ts`
 - ESLint 规则：禁止 features 层直连 `shared/api/unified-client`（提示改用 Facade）
 - 覆盖率门禁：`scripts/facade/coverage-scan.js` + `make guard-plan257` + CI 工作流
-- 状态：进行中（报告模式）
+- 状态：进行中（阻断门禁已启用；阈值 0.8）
 
 变更记录
+- v1.2（2025-11-16）
+  - 切换 CI 门禁为阻断，阈值 0.8；建议将 “Plan 257 - Facade Coverage Gate” 设为 Required check
 - v1.1（2025-11-16）
   - 明确 Scope/Non-Goals、目录与 SSoT 绑定、门禁与阈值、回滚与实施现状
   - 修正 Facade 命令端点与 OpenAPI 一致（/api/v1/organization-units/*）；更新支持 If-Match/ETag
