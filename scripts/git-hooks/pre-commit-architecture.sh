@@ -21,6 +21,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # 🔍 检查是否为架构守护Hook调用
 ARCH_GUARD_MODE=${ARCH_GUARD_MODE:-false}
+# 是否启用完整 Plan 255/250 门禁（提交即强制）
+FULL_GATES=${FULL_GATES:-true}
 
 # 📋 日志函数
 log_info() {
@@ -148,6 +150,70 @@ run_architecture_checks() {
 
     # 📊 输出检查结果摘要
     log_info "架构检查完成: $checks_passed/$checks_total 项通过"
+
+    # ===== 05 计划：提交即强制的本地门禁（Plan 255 三件套 + Plan 250 快检）=====
+    if [[ "$FULL_GATES" == "true" ]]; then
+        log_info "执行 05 计划 - 提交即强制门禁（Plan 255 + Plan 250）..."
+        # 依赖检查
+        if [[ ! -d "$PROJECT_ROOT/node_modules" ]]; then
+            log_error "root node_modules 缺失。请在仓库根目录执行: npm ci"
+            return 1
+        fi
+        # 255-1: 静态架构验证器（CQRS/端口/禁用端点）
+        log_info "255: architecture-validator (cqrs, ports, forbidden)"
+        if node "$PROJECT_ROOT/scripts/quality/architecture-validator.js" --scope frontend --rule cqrs,ports,forbidden >/dev/null 2>&1; then
+            log_success "architecture-validator 通过"
+        else
+            log_error "architecture-validator 失败（阻断提交）。运行: node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden"
+            return 1
+        fi
+        # 255-2: 根级 ESLint 平面架构守卫
+        log_info "255: ESLint architecture guard (flat config)"
+        if npx eslint --no-warn-ignored -c "$PROJECT_ROOT/eslint.config.architecture.mjs" 'frontend/src/**/*.{ts,tsx}' >/dev/null 2>&1; then
+            log_success "ESLint 架构守卫通过"
+        else
+            log_error "ESLint 架构守卫失败（阻断提交）。运行: npx eslint --no-warn-ignored -c eslint.config.architecture.mjs 'frontend/src/**/*.{ts,tsx}'"
+            return 1
+        fi
+        # 255-3: Go 快速构建（阻断）
+        log_info "255: Go build (backend quick compile)"
+        if (cd "$PROJECT_ROOT" && go build ./... >/dev/null 2>&1); then
+            log_success "Go build 通过"
+        else
+            log_error "Go build 失败（阻断提交）。运行: go build ./..."
+            return 1
+        fi
+        # 255-4: golangci-lint 软门禁（非阻断）
+        if command -v golangci-lint >/dev/null 2>&1; then
+            log_info "255: golangci-lint (soft, depguard+tagliatelle)"
+            golangci-lint run -c "$PROJECT_ROOT/scripts/quality/golangci-fast.yml" >/dev/null 2>&1 || log_warning "golangci-lint 报告问题（pre-commit 非阻断；CI 严格）"
+        else
+            log_info "255: golangci-lint 未安装，跳过（建议安装以获得本地提示）"
+        fi
+
+        # 250 快检（阻断）
+        log_info "250: quick gates（本地阻断）"
+        if bash "$PROJECT_ROOT/scripts/quality/gates-250-no-legacy-env.sh" >/dev/null 2>&1; then
+            log_success "gate-250-no-legacy-env 通过"
+        else
+            log_error "gate-250-no-legacy-env 失败。请勿设置 ENABLE_LEGACY_DUAL_SERVICE=true"
+            return 1
+        fi
+        if bash "$PROJECT_ROOT/scripts/quality/gates-250-single-binary.sh" >/dev/null 2>&1; then
+            log_success "gate-250-single-binary 通过"
+        else
+            log_error "gate-250-single-binary 失败。确保 ./cmd 下仅 1 个非 legacy main；其它 main 添加 //go:build legacy"
+            return 1
+        fi
+        if bash "$PROJECT_ROOT/scripts/quality/gates-250-no-8090-in-command.sh" >/dev/null 2>&1; then
+            log_success "gate-250-no-8090-in-command 通过"
+        else
+            log_error "gate-250-no-8090-in-command 失败。移除 cmd/hrms-server/command/main.go 中 8090 字面量（改为读取 PORT 配置，并保留禁用判断）"
+            return 1
+        fi
+    else
+        log_info "已禁用 FULL_GATES。跳过 05 计划强制门禁（仅在此钩子配置中生效）。"
+    fi
     
     if [[ $exit_code -eq 0 ]]; then
         log_success "所有架构一致性检查通过！"
