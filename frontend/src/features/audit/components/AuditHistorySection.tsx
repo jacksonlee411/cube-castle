@@ -101,7 +101,10 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
       return result.auditHistory;
     },
     enabled: !!recordId,
-    staleTime: 30000, // 30秒内数据视为新鲜
+    // 组织详情页签切换需即时刷新，避免因 staleTime 导致用户看不到刚写入的审计
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     gcTime: 300000,   // 5分钟垃圾回收
   });
 
