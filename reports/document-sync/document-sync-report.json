@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-16T08:10:19.930Z",
+  "timestamp": "2025-11-16T08:13:51.957Z",
   "summary": {
     "totalPairs": 5,
     "syncedPairs": 5,
@@ -58,41 +58,6 @@
   ],
   "history": [
     {
-      "timestamp": "2025-11-16T07:43:52.897Z",
-      "syncPairName": "API规范版本同步",
-      "sourceHash": "f96248a75106e3e0da34f3dd42a6df8f",
-      "success": true,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-16T07:43:52.899Z",
-      "syncPairName": "依赖版本同步",
-      "sourceHash": "59302af8aa1c39c498e48e46de2792c5",
-      "success": true,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-16T07:43:52.899Z",
-      "syncPairName": "presence: temporal guide appendix index exists",
-      "sourceHash": "b2e94e5aea9864ba1606a486e8a67008",
-      "success": true,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-16T07:43:52.900Z",
-      "syncPairName": "presence: AGENTS links temporal guide",
-      "sourceHash": "021eb3bc1087ce40fcd979bcb1d166fd",
-      "success": true,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-16T07:43:52.900Z",
-      "syncPairName": "presence: plan 241 references appendix A",
-      "sourceHash": "e0afe20a48e5c8eb9cab98e52d589729",
-      "success": true,
-      "autoFixed": false
-    },
-    {
       "timestamp": "2025-11-16T08:10:19.924Z",
       "syncPairName": "API规范版本同步",
       "sourceHash": "f96248a75106e3e0da34f3dd42a6df8f",
@@ -122,6 +87,41 @@
     },
     {
       "timestamp": "2025-11-16T08:10:19.928Z",
+      "syncPairName": "presence: plan 241 references appendix A",
+      "sourceHash": "e0afe20a48e5c8eb9cab98e52d589729",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-16T08:13:51.952Z",
+      "syncPairName": "API规范版本同步",
+      "sourceHash": "f96248a75106e3e0da34f3dd42a6df8f",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-16T08:13:51.954Z",
+      "syncPairName": "依赖版本同步",
+      "sourceHash": "59302af8aa1c39c498e48e46de2792c5",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-16T08:13:51.954Z",
+      "syncPairName": "presence: temporal guide appendix index exists",
+      "sourceHash": "b2e94e5aea9864ba1606a486e8a67008",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-16T08:13:51.955Z",
+      "syncPairName": "presence: AGENTS links temporal guide",
+      "sourceHash": "0de35970de37b4e7059f06398a52b146",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-16T08:13:51.955Z",
       "syncPairName": "presence: plan 241 references appendix A",
       "sourceHash": "e0afe20a48e5c8eb9cab98e52d589729",
       "success": true,

@@ -204,7 +204,7 @@
 - 257：前端领域 API 门面采纳（阶段2）
   - 文件: `257-frontend-domain-api-facade-adoption.md`（状态：未启动）
 - 258：契约漂移校验与门禁（阶段2）
-  - 文件: `258-contract-drift-validation-gate.md`（状态：未启动）
+  - 文件: `258-contract-drift-validation-gate.md`（状态：进行中；字段矩阵阻断门禁已接线，allowlist 设定一个迭代窗口）
 - 259：协议策略复盘与评估（可选）
   - 文件: `259-protocol-strategy-review.md`（状态：未启动；阶段1+2 完成后评估）
 - 260：审计历史页签异常调查与整改方案（组织详情 1333848）

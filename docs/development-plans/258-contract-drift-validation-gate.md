@@ -64,3 +64,10 @@
   - path（GraphQL 遗留字段，已 @deprecated）
   - childrenCount/isTemporal（GraphQL 派生字段）
   - deletedBy/deletionReason/suspendedAt/suspendedBy/suspensionReason（GraphQL 扩展审计字段；REST 以 operatedBy/operationReason 表达）
+
+---
+
+## 9. 本地与 CI 命令（规范索引）
+- 本地阻断门禁：`make guard-plan258`（日志与报告会落盘 `logs/plan258/`）
+- CI 工作流：`.github/workflows/plan-258-gates.yml`（阻断，产出 `plan258-drift-matrix-report` 工件）
+- 建议 Required checks：`api-compliance`（Spectral）+ `contract-testing`（256）+ `plan-258-gates`（本计划）

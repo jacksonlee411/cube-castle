@@ -169,7 +169,7 @@
   - 计划窗口：TBD（W?）  
   - 负责人：TBD  
   - 准入条件：Plan 256 生成流水线可用  
-  - 产物/证据：`logs/plan258/*`、差异报告与工作流产物链接  
+  - 产物/证据：`logs/plan258/*`、`reports/contracts/drift-matrix-report.json`、CI 工件 `plan258-drift-matrix-report`（阻断）  
   - 文档：`docs/development-plans/258-contract-drift-validation-gate.md`
 
 - 259 · 协议策略复盘（可选）  

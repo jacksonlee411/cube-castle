@@ -4,6 +4,7 @@
 .PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql
  .PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
 .PHONY: generate-contracts verify-contracts
+.PHONY: guard-plan258
 
 export SCHEDULER_ENABLED ?= false
 export SCHEDULER_MONITOR_ENABLED ?= true
@@ -59,6 +60,9 @@ help:
 	@echo "🛡️ 门禁（Plan 253）:"
 	@echo "  guard-plan253     - 运行 compose 端口/镜像标签门禁（不需要 Docker）"
 	@echo "  plan253-coldstart - 记录冷启动与数据库就绪时间（需要 Docker/Compose）"
+	@echo ""
+	@echo "🛡️ 门禁（Plan 258）:"
+	@echo "  guard-plan258     - 契约漂移字段矩阵门禁（OpenAPI↔GraphQL，阻断；产出报告）"
 	@echo ""
 	@echo "📋 契约（Plan 256）:"
 	@echo "  generate-contracts - 从契约生成 Go/TS 类型并记录日志 (logs/plan256)"
@@ -387,6 +391,19 @@ generate-contracts:
 verify-contracts:
 	@echo "🧪 运行契约快照校验..."
 	@python3 tests/contract/verify_inventory.py
+
+# Plan 258 - 契约漂移字段矩阵门禁（阻断）
+guard-plan258:
+	@echo "🛡️ Plan 258 – 契约漂移字段矩阵门禁..."
+	@mkdir -p logs/plan258
+	@ts=$$(date +%Y%m%d_%H%M%S); \
+	node scripts/contract/drift-matrix-gate.js \
+	  --openapi docs/api/openapi.yaml \
+	  --graphql docs/api/schema.graphql \
+	  --allow scripts/contract/drift-allowlist.json \
+	  --out reports/contracts/drift-matrix-report.json \
+	  --fail-on-diff 2>&1 | tee logs/plan258/gate-$$ts.log ; \
+	cp -f reports/contracts/drift-matrix-report.json logs/plan258/drift-matrix-report-$$ts.json || true
 
 # 迁移即真源：按序执行 database/migrations/*.sql（Goose）
 db-migrate-all:
