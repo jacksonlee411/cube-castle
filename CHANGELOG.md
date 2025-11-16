@@ -1,5 +1,27 @@
 # Cube Castle 项目变更日志
 
+## v1.6.0 - 契约漂移门禁完成（Plan 258 关闭）(2025-11-16)
+
+### ✅ 门禁与契约
+- 启用“契约漂移门禁”双阻断（Plan 258）：
+  - Phase A：OpenAPI ↔ GraphQL 枚举差异（阻断）
+  - Phase B：主实体字段矩阵（字段/类型/可空/列表）差异（阻断）
+- GraphQL 契约对齐：
+  - `Organization.profile: JSON`（与 REST object 对齐）
+  - `Organization.sortOrder: Int!`（与 REST 非空对齐）
+- 白名单（短期）：仅保留“存在性差异”（审计/派生/写侧元信息），在 `scripts/contract/drift-allowlist.json` 登记并在 215 标注回收期。
+
+### 🧪 CI 与证据
+- 受保护分支 Required：`plan-258-gates`（Contract Drift Gate (Plan 258)）
+- 最近一次成功运行 Run ID：19408157081（artifact：`plan258-drift-report`）
+- 报告路径：`reports/contracts/drift-report.json`（字段矩阵差异仅剩存在性差异）
+
+### 📚 文档与登记
+- 258 方案文档：`docs/development-plans/258-contract-drift-validation-gate.md`（状态：已完成）
+- 215 执行日志：登记 Run ID 及工件索引、回收计划
+
+> 说明：保持“单一事实来源”，本条仅索引路径与 run id；不复制报告正文或链接。
+
 ## v1.5.9 - Plan 240 全面完成与归档（2025-11-15）
 
 ### ✨ 代码与框架
