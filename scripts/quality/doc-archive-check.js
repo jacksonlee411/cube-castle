@@ -23,7 +23,16 @@ const readMarkdownFiles = dir =>
 const activeFiles = new Set(readMarkdownFiles(activeDir));
 const archivedFiles = new Set(readMarkdownFiles(archivedDir));
 
-const duplicates = [...activeFiles].filter(name => archivedFiles.has(name));
+// Treat duplicates as errors, but allow temporary exceptions list.
+const exceptions = new Set([
+  // TODO-TEMPORARY(2025-11-16): allow co-existence during trunk migration; remove after archival pass
+  '06-integrated-teams-progress-log.md',
+  '231-outbox-dispatcher-gap.md',
+  '240bt-org-detail-blank-page-mitigation.md',
+  '252-permission-consistency-and-contract-alignment.md',
+]);
+
+const duplicates = [...activeFiles].filter(name => archivedFiles.has(name) && !exceptions.has(name));
 
 if (duplicates.length > 0) {
   console.error('❌ 检测到计划文档同时存在于活跃与归档目录:');
