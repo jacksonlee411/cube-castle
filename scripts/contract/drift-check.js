@@ -159,6 +159,7 @@ function mapGraphQLBaseToRest(base) {
     case 'Float': return 'number';
     case 'Boolean': return 'boolean';
     case 'ID': return 'string';
+    case 'JSON': return 'object';
     default:
       // enums and object types keep name; enums will compare as enum:Name
       return `enum:${base}`;

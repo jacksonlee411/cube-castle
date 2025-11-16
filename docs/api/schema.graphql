@@ -361,14 +361,14 @@ type Organization {
   status: Status!
   # Hierarchy Information
   level: Int!
-  sortOrder: Int
+  sortOrder: Int!
   codePath: String!
   namePath: String!
   path: String @deprecated(reason: "使用 codePath/namePath 作为唯一事实来源，path 将在后续版本移除")
 
   # Configuration
   description: String
-  profile: String
+  profile: JSON
   changeReason: String
 
   # Temporal Information
