@@ -1,0 +1,17 @@
+services:
+  gh-runner:
+    image: ghcr.io/actions/actions-runner:2.315.0
+    container_name: cubecastle-gh-runner
+    environment:
+      RUNNER_NAME: cc-runner-${HOSTNAME}
+      RUNNER_REPO: jacksonlee411/cube-castle
+      RUNNER_LABELS: self-hosted,cubecastle,linux,x64,docker
+      RUNNER_WORKDIR: /tmp/runner/work
+      EPHEMERAL: "true"
+      DISABLE_AUTO_UPDATE: "true"
+      RUNNER_TOKEN: ${RUNNER_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets:/secrets:ro
+    restart: unless-stopped
+

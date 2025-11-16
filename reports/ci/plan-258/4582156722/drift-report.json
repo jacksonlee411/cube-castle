@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2025-11-16T18:37:39.204Z",
+  "source": "shared/contracts/organization.json",
+  "results": {
+    "unitType": {
+      "missingInRest": [],
+      "missingInGql": []
+    },
+    "status": {
+      "missingInRest": [],
+      "missingInGql": []
+    },
+    "operationType": {
+      "missingInRest": [],
+      "missingInGql": []
+    }
+  },
+  "fieldMatrix": {
+    "entityPair": "OrganizationUnit|Organization",
+    "missingInRest": [],
+    "missingInGql": [],
+    "typeMismatches": [],
+    "nullabilityMismatches": [],
+    "listMismatches": []
+  }
+}
