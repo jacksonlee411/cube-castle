@@ -48,23 +48,22 @@ jobs:
           npm ci
           npx playwright install --with-deps
 
-      - name: Compose Up (E2E stack)
+      - name: Compose Up (E2E backend only)
         run: |
-          docker compose -f docker-compose.e2e.yml build
-          docker compose -f docker-compose.e2e.yml up -d
+          docker compose -f docker-compose.e2e.yml build postgres redis rest-service graphql-service
+          docker compose -f docker-compose.e2e.yml up -d postgres redis rest-service graphql-service
 
-      - name: Wait for services
+      - name: Wait for backend services
         run: |
           set -e
           for i in {1..60}; do
             ok=0
             curl -fsS http://localhost:9090/health >/dev/null && ok=$((ok+1)) || true
             curl -fsS http://localhost:8090/health >/dev/null && ok=$((ok+1)) || true
-            curl -fsS http://localhost:3000/ >/dev/null && ok=$((ok+1)) || true
-            if [ "$ok" = "3" ]; then echo "All services healthy"; break; fi
+            if [ "$ok" = "2" ]; then echo "Backend services healthy"; break; fi
             sleep 5
           done
-          [ "$ok" = "3" ] || (echo 'Services did not become healthy in time' && docker compose -f docker-compose.e2e.yml logs --no-color && exit 1)
+          [ "$ok" = "2" ] || (echo 'Backend services did not become healthy in time' && docker compose -f docker-compose.e2e.yml logs --no-color && exit 1)
 
       - name: Mint dev JWT for E2E
         run: |
@@ -77,14 +76,13 @@ jobs:
         run: |
           node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden
 
-      - name: Run Playwright E2E (Plan 254)
+      - name: Run Playwright E2E (Plan 254; start dev webServer)
         working-directory: ./frontend
         env:
           PW_TENANT_ID: ${{ env.PW_TENANT_ID }}
           PW_JWT: ${{ env.PW_JWT }}
           E2E_PLAN_ID: "254"
-          PW_SKIP_SERVER: "1"
-          PW_BASE_URL: "http://localhost:3000"
+          PW_SKIP_SERVER: "0"
         run: |
           npm run -s test:e2e:254
       
