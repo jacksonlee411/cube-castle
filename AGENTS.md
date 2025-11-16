@@ -21,13 +21,9 @@
 - 决策建议原则：当存在用户决策事项或开放问题时，必须同步给出基于最佳实践的建议与可行默认方案（含临时过渡与回收期限），不可仅抛出问答式问题；建议需与唯一事实来源一致，避免引入第二事实来源。
 
 ## 分支策略（单人开发强制）
-- 单人开发一律采用主干开发（Trunk-Based）：所有变更直接在主分支进行，避免频繁切换分支造成内容丢失。
-- 本地提交前必须通过“255 快门禁 + 编译”：
-  - VS Code 任务：`255: Local Gate (frontend+backend)`（架构验证 + ESLint 架构守卫 + `go build ./...`）
-  - 或等效命令行：`node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden && npx eslint -c eslint.config.architecture.mjs 'frontend/src/**/*.{ts,tsx}' && go build ./...`
-- 远端合规保持不变：CI 仍执行 plan‑250/253/255 必跑门禁；如 CI 不通过，需在主干修复直至通过为止。
-- 如需临时隔离/备份，请使用本地 stash/补丁文件/日志归档，避免创建短期 feature 分支；确需分支时，先与文档约束对齐，并在完成后尽快回归主干。
-- 多人协作时恢复 PR 约束：当转为多人协作，需按“提交与拉取请求规范”使用 PR 并关联 Issue；本条仅在单人开发阶段生效。
+- 单人开发强制采用主干开发（Trunk-Based）：所有变更直接在主分支完成，避免分支切换导致内容丢失。
+- 提交前在本地通过快速门禁与编译；CI 仍以 plan‑250/253/255 为最终标准，未通过不得入主干。
+- 临时隔离优先使用本地 stash/patch；多人协作时恢复 PR 流程并遵循“提交与拉取请求规范”。
 
 ## 项目结构与模块组织
 - 命令服务位于 `cmd/hrms-server/command/`，查询服务位于 `cmd/hrms-server/query/`，共享中间件、鉴权、缓存与 GraphQL 工具集中在 `internal/`，严格遵循 PostgreSQL 原生 CQRS（命令→REST、查询→GraphQL）。
