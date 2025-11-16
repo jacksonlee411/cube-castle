@@ -1,0 +1,38 @@
+name: plan-254-debug
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/plan-254-debug.yml'
+
+jobs:
+  debug:
+    name: Plan 254 Debug – ubuntu
+    # TODO-TEMPORARY(2025-11-22): 调试工作流，用于定位 plan-254-gates 元数据失败（0 jobs）问题；排查完成后删除
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Print context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref:    ${{ github.ref }}"
+          echo "SHA:    ${{ github.sha }}"
+          echo "$GITHUB_CONTEXT" > debug-github-context.json
+      - name: Node/Go sanity
+        run: |
+          node -v || true
+          go version || true
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan254-debug
+          path: |
+            debug-github-context.json
+          retention-days: 7
+
