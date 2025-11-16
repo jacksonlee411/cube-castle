@@ -83,3 +83,9 @@
   - create-*.{txt,json} / put-*.{txt,json}（写路径响应与 HTTP 状态）
   - graphql-query-*-auth.json（授权查询成功）；无授权探测记录
   - coverage-org-*.{out,txt,html}（组合 total 与顶层关键包覆盖率佐证）
+
+---
+
+合并记录 (自动)
+- 时间: 2025-11-16T12:11:30Z
+- Plan 222 PR: https://github.com/jacksonlee411/cube-castle/pull/6 已合并
