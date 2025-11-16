@@ -15,6 +15,9 @@
     - docs/development-plans/222-organization-verification.md
   - 新增 Phase2 执行验收报告（草案）
     - reports/phase2-execution-report.md
+- 脚本
+  - 修正验收脚本 GraphQL 默认端口为 8090，统一与 CQRS（查询=8090）事实来源；保留 9090 单体挂载仅作历史兼容、非默认
+    - scripts/plan222/run-acceptance.sh
 - 不涉及代码与契约更改；仅为验收与合规文档补全。
 
 ## 一致性与约束对齐（AGENTS.md）

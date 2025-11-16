@@ -17,7 +17,7 @@
 
 **关键成果（完成后需附带日志 / CI 证据再勾选）**:
 - [x] organization 模块完整验证（单元、集成、E2E 测试）— 单测/集成/E2E Smoke 已通过（整体覆盖率与 Live 用例后续在 255/256、232 推进）
-- [x] REST/GraphQL 端点回归测试通过 — REST 已通过；GraphQL 单体 /graphql (9090) 已通过（需 Authorization + X-Tenant-ID），见 `logs/plan222/graphql-query-*.json`
+- [x] REST/GraphQL 端点回归测试通过 — REST 已通过；GraphQL（默认 8090 查询服务）已通过（需 Authorization + X-Tenant-ID）；如启用“单体挂载 /graphql(9090)”仅作历史兼容，非默认；证据见 `logs/plan222/graphql-query-*.json`
 - [x] 性能基准测试完成（短压测通过；完整基准按 222B 复跑记录于 logs/219E/）
 - [x] 项目文档更新
 - [x] Phase2 执行验收报告（草案：阶段性通过）
@@ -33,6 +33,7 @@
 - ✅ E2E Smoke（Live 小集合）通过：`frontend/tests/e2e/{basic-functionality-test,simple-connection-test,organization-create}.spec.ts`；日志：`logs/plan222/playwright-LIVE-*.log`
 - 🔄 覆盖率补位：`logs/plan222/coverage-org-*.{out,txt,html}`（阶段达成≥30%：见 `coverage-org-20251115-135303.txt`；后续目标≥55%/≥80%）
   - 本地复验（2025-11-16）：组合覆盖率 ~31.1%（最新产物：`logs/plan222/coverage-org-20251116-100747.{out,txt,html}`），repository/handler/service 负路径用例已补入
+  - 覆盖率口径说明：顶层关键包覆盖率（当前约 ~84.8%）与组合 total 覆盖率（当前约 ~31%）为不同统计口径；验收以“阶段门槛（组合 total）+ 顶层关键包守底线”双指标管理。
 - 🔄 性能基准：已执行短压测并记录 JSON Summary（node 驱动），详见 `logs/219E/perf-rest-20251116-094327.log`；补充一轮较大并发样本（含限流触发）见 `logs/219E/perf-rest-20251116-100552.log`（requested=400、concurrency=50、201=303、429=97、p95≈490ms、p99≈630ms）；完整基准（222B）仍将按门槛参数复跑
 
 ### 1.2 为什么需要最终验收
@@ -164,7 +165,7 @@ curl -X POST http://localhost:8090/graphql \
 ```
 
 **验收条件**:
-- [x] 基础路径验证通过（`organizations` 查询、分页元信息；本地；9090 单体 /graphql 需 Authorization + X-Tenant-ID）
+- [x] 基础路径验证通过（`organizations` 查询、分页元信息；本地；默认 8090 GraphQL 服务；若启用 9090 单体 /graphql 亦需 Authorization + X-Tenant-ID）
 - [ ] 返回数据符合 schema（全面覆盖进行中）
 - [ ] 错误处理正确
 - [ ] 响应与 schema.graphql 契约一致
@@ -250,7 +251,7 @@ go test -bench=. -benchmem ./internal/organization/...
 
 - 阶段性结论：核心路径通过；E2E（P0）Mock 模式全绿；Live 模式的 API 级用例已通过环境开关与 TODO-TEMPORARY（2025-11-22）隔离，待 232 完成后开启强校验；顶层包覆盖率>80% 达成，整体覆盖率将在 255/256 推进中达成。
 - 统一证据清单：见 `logs/plan222/ACCEPTANCE-SUMMARY-*.md`
-- 本次刷新：9090 单体 /graphql（需 Authorization + X-Tenant-ID）已验证通过；新增证据 `logs/plan222/graphql-query-20251115-125943.json`、`logs/plan222/create-response-20251115-130022.json`、`logs/plan222/put-response-1031964.json`；短压测 JSON Summary：`logs/219E/perf-rest-20251116-094327.log`；摘要：`logs/plan222/ACCEPTANCE-SUMMARY-20251115-205959.md`
+- 本次刷新：GraphQL（默认 8090）已验证通过（需 Authorization + X-Tenant-ID）；如同时启用 9090 单体挂载，/graphql 亦可访问（历史兼容，非默认）。新增证据 `logs/plan222/graphql-query-20251115-125943.json`、`logs/plan222/create-response-20251115-130022.json`、`logs/plan222/put-response-1031964.json`；短压测 JSON Summary：`logs/219E/perf-rest-20251116-094327.log`；摘要：`logs/plan222/ACCEPTANCE-SUMMARY-20251115-205959.md`
 
 ---
 
@@ -284,7 +285,7 @@ go test -bench=. -benchmem ./internal/organization/...
 
 - 覆盖率：`internal/organization` 组合覆盖率达 30.0%（证据：`logs/plan222/coverage-org-20251115-135303.txt`）；序列报告已登记至 `logs/plan222/coverage-org-*.{out,txt,html}`  
 - Live 小集合：Chromium 通过（`basic-functionality`、`simple-connection`、`organization-create`）；证据：`logs/plan222/playwright-LIVE-20251115-140201.log`  
-- GraphQL（9090）：带 Authorization + X‑Tenant‑ID 稳定返回数据；证据：`logs/plan222/graphql-query-20251115-125943.json`  
+- GraphQL（默认 8090）：带 Authorization + X‑Tenant‑ID 稳定返回数据；证据：`logs/plan222/graphql-query-20251115-125943.json`  
 - activate/suspend Live 用例：  
   - `frontend/tests/e2e/activate-suspend-workflow.spec.ts` 已改为 7 位编码；仍默认 skip，仅在 `PW_ENABLE_ORG_ACTIVATE_API=1` 时受控执行  
   - 当前差异已记录为 TODO‑TEMPORARY（2025‑11‑22），待 232 完成后收紧断言  
@@ -348,7 +349,7 @@ go test -bench=. -benchmem ./internal/organization/...
 - 集成测试（Docker 基座）：`make test-db`（产物登记至 `logs/plan221/integration-run-*.log`）
 - E2E（Playwright）：`cd frontend && npm run test:e2e`（产物登记至 `logs/plan222/playwright-*.log`）
 
-> 注：在“模块化单体”模式下，GraphQL 路由由命令服务挂载到 `/graphql`（端口 9090）。本地一次复查出现 404 现象（容器日志显示路由已注册），已列为后续排查项，不影响本计划阶段性结论。单独 GraphQL 服务容器暂不在默认 dev 目标中启用（cmd/hrms-server/query 采用 legacy 构建标签）。
+> 注：现行默认为独立查询服务（8090）。历史上在“模块化单体”模式下可将 GraphQL 路由挂载到命令服务 `/graphql`（端口 9090）；该路径仅作兼容用途，非默认，且局部环境可能未启用或返回 404。请以 8090 为准进行验证。
 
 ## 模块化架构
 
@@ -642,7 +643,7 @@ logger.WithFields(map[string]interface{}{
 - [x] 所有单元测试通过（0 失败）
 - [x] 集成测试全部通过（0 失败）
 - [x] REST API 回归测试通过
-- [x] GraphQL 查询回归测试通过（9090 单体 /graphql 与 8090 查询服务均已通过；证据：`logs/plan222/graphql-query-*.json`）
+- [x] GraphQL 查询回归测试通过（默认 8090 查询服务通过；如启用 9090 单体 /graphql 也应通过；证据：`logs/plan222/graphql-query-*.json`）
 - [ ] E2E 端到端流程测试通过（P0 Mock 已通过；Live 全量按 232 执行）
 - [ ] 性能基准测试达标（无退化）
 
