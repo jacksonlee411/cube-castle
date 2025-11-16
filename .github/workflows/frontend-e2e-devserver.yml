@@ -1,37 +1,40 @@
-name: Frontend E2E (Playwright)
+name: Frontend E2E (DevServer)
 
 on:
-  push:
-    branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master, develop ]
-    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main, master, develop ]
   workflow_dispatch: {}
 
 jobs:
-  frontend-e2e:
-    name: Frontend E2E (browsers)
+  e2e-devserver:
+    name: E2E via Playwright Dev Server (backend compose only)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       # PR 固定 255；push 使用 run_number，便于证据分桶
       E2E_PLAN_ID: ${{ (github.event_name == 'pull_request') && '255' || github.run_number }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install Playwright Browsers
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq curl unzip
+
+      - name: Setup Playwright browsers
         working-directory: ./frontend
         run: |
           npm ci
           npx playwright install --with-deps
- 
+
       - name: Prepare dev JWT keys
         run: |
           make jwt-dev-setup
@@ -53,9 +56,8 @@ jobs:
           done
           [ "$ok" = "2" ] || (echo 'Backends did not become healthy in time' && docker compose -f docker-compose.dev.yml logs --no-color && exit 1)
 
-      - name: Mint dev JWT for E2E
+      - name: Mint dev JWT
         run: |
-          sudo apt-get update -y && sudo apt-get install -y jq curl
           make jwt-dev-mint
           echo "PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" >> $GITHUB_ENV
           echo "PW_JWT=$(cat .cache/dev.jwt)" >> $GITHUB_ENV
@@ -65,21 +67,22 @@ jobs:
         env:
           PW_TENANT_ID: ${{ env.PW_TENANT_ID }}
           PW_JWT: ${{ env.PW_JWT }}
+          PW_SKIP_SERVER: "0"
         run: |
-          PW_SKIP_SERVER=0 npm run -s test:e2e:plan || (echo 'Playwright tests failed' && exit 1)
+          npm run -s test:e2e:plan
           node ../scripts/ci/print-e2e-summary.js "${{ env.E2E_PLAN_ID }}"
 
-      - name: Upload Playwright report
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-playwright-report-devserver
+          name: frontend-e2e-devserver
           path: |
             logs/plan${{ env.E2E_PLAN_ID }}/**
             frontend/playwright-report
             frontend/test-results
           retention-days: 14
 
-      - name: Compose Down
+      - name: Compose down
         if: always()
         run: docker compose -f docker-compose.dev.yml down -v --remove-orphans
