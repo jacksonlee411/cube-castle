@@ -363,7 +363,7 @@ status:
 	@echo ""
 	@echo "🔗 关键地址:"
 	@echo "  - Command Service:   http://localhost:9090"
-	@echo "  - Query (GraphQL):   http://localhost:8090  (GraphiQL: /graphiql)"
+	@echo "  - Query (GraphQL):   http://localhost:9090/graphql  (GraphiQL: /graphiql)"
 	@echo "  - PostgreSQL:        localhost:5432"
 	@echo "  - Redis:             localhost:6379"
 	@echo ""
