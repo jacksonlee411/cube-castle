@@ -75,10 +75,7 @@ interface SuccessEnvelope<T> {
 
 type OrganizationEventResponse = SuccessEnvelope<TimelineEventData>;
 
-interface OrganizationCreationData {
-  code?: string;
-  organization?: { code?: string };
-}
+// 创建组织的响应由 Facade 处理，此处不再定义本地类型
 
 export interface FetchVersionsResult {
   versions: TimelineVersion[];
