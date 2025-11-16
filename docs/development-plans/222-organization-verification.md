@@ -32,7 +32,7 @@
 - ✅ E2E 烟测（Chromium/Firefox 各 1 轮）：`frontend/tests/e2e/smoke-org-detail.spec.ts`、`temporal-header-status-smoke.spec.ts`（本地）
 - ✅ E2E Smoke（Live 小集合）通过：`frontend/tests/e2e/{basic-functionality-test,simple-connection-test,organization-create}.spec.ts`；日志：`logs/plan222/playwright-LIVE-*.log`
 - 🔄 覆盖率补位：`logs/plan222/coverage-org-*.{out,txt,html}`（阶段达成≥30%：见 `coverage-org-20251115-135303.txt`；后续目标≥55%/≥80%）
-  - 本地复验（2025-11-16）：组合覆盖率 ~31.1%（最新产物：`logs/plan222/coverage-org-20251116-100056.{out,txt,html}`），repository/handler/service 负路径用例已补入
+  - 本地复验（2025-11-16）：组合覆盖率 ~31.1%（最新产物：`logs/plan222/coverage-org-20251116-100747.{out,txt,html}`），repository/handler/service 负路径用例已补入
 - 🔄 性能基准：已执行短压测并记录 JSON Summary（node 驱动），详见 `logs/219E/perf-rest-20251116-094327.log`；补充一轮较大并发样本（含限流触发）见 `logs/219E/perf-rest-20251116-100552.log`（requested=400、concurrency=50、201=303、429=97、p95≈490ms、p99≈630ms）；完整基准（222B）仍将按门槛参数复跑
 
 ### 1.2 为什么需要最终验收
@@ -287,6 +287,23 @@ go test -bench=. -benchmem ./internal/organization/...
   - `frontend/tests/e2e/activate-suspend-workflow.spec.ts` 已改为 7 位编码；仍默认 skip，仅在 `PW_ENABLE_ORG_ACTIVATE_API=1` 时受控执行  
   - 当前差异已记录为 TODO‑TEMPORARY（2025‑11‑22），待 232 完成后收紧断言  
 - 摘要文档：`logs/plan222/ACCEPTANCE-SUMMARY-20251115-220000.md`（覆盖率 30%）、`logs/plan222/ACCEPTANCE-SUMMARY-20251115-205959.md`（GraphQL 路由通过）
+
+---
+
+## 5. 本次推进登记（2025-11-16）
+
+- 覆盖率（组合）：~31.1%（最新产物：`logs/plan222/coverage-org-20251116-100747.{out,txt,html}`）
+- 新增单测与范围（负路径与守卫）
+  - repository/hierarchy：`UpdateHierarchyPaths`（父不存在错误、根路径批量更新）、`GetOrganization` not found、`GetOrganizationAtDate` no rows、`GetAncestorChain` 查询错误
+  - repository/organizations_list：count 查询错误、数据列不足触发 Scan 错误
+  - handler/devtools：`/dev/database-status` 断开/成功分支；devMode=false 禁用守卫（status、test-endpoints）
+  - service/cascade：Start/Stop 生命周期、未启动调度拒绝
+- 性能样本（222B 前置，JSON Summary 已落盘）
+  - 短压测：`logs/219E/perf-rest-20251116-094327.log`（successRate=1.0，p95≈218ms，p99≈331ms）
+  - 较大并发样本：`logs/219E/perf-rest-20251116-100552.log`（requested=400、concurrency=50、201=303、429=97、p95≈490ms、p99≈630ms；符合速率限制预期）
+- 复验：组织模块 `-race` 通过（证据：`logs/plan222/race-org-*.log`）；GraphQL/REST 回归在 9090/8090 再次校验（证据已登记）
+
+> 下一步：继续补齐 repository/handler/service 高频与错误分支用例，目标 ≥40–45%；随后复跑 222B 完整基准（按门槛参数），并准备 232 解锁的 Live P0 全量。
 
 ---
 
