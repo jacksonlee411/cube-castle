@@ -7,6 +7,11 @@
 
 ---
 
+> 重要更新（Plan 222 经验沉淀）
+> - 文档/工作流类 PR 启用“docs/ci‑only 短路”：CI 不再用重门禁阻塞（E2E/质量/契约重任务会跳过或快速通过），代码改动 PR 仍保留严格门禁（受保护分支 Required checks）。
+> - 新增 PR 轮询与自动合并工具：scripts/ci/pr-watch.sh（支持 30/60s 轮询、自动或手动合并），解决 GitHub “combined= pending / check-runs 已成功”时的卡顿。
+> - 推送/回主干安全流程：新增“安全回到主分支 Playbook”和“推送/合并最佳实践（docs-only / code PR）”。
+
 ## 目标
 - 在“仅保留 master（主干开发）”的前提下，以本地兜底为主，一键跑通门禁与自检
 - 用 VS Code 任务 + Git hooks 保证本地与团队口径一致
@@ -33,7 +38,7 @@
   - `logs/plan<ID>/*`（建议：plan255）
   - 守卫脚本：`scripts/quality/root-whitelist-guard.sh`（根目录白名单）
 
-## 本地一键门禁（255）
+## 本地一键门禁（255，推荐）
 前置：确保根目录已安装依赖（仅一次）  
 `npm ci`（根目录，用于 ESLint）；`golangci-lint` 可本地安装，或用容器/VS Code 扩展。
 
@@ -42,39 +47,6 @@
   - `npx eslint --no-warn-ignored -c eslint.config.architecture.mjs "frontend/src/**/*.{ts,tsx}"`
   - `go build ./...`
   - （可选采集）`golangci-lint run -c scripts/quality/golangci-fast.yml || true`
-- VS Code 一键（推荐）
-  在本机 `.vscode/tasks.json` 添加如下任务（不提交到仓库）：
-```json
-{
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "255: Local Gate (frontend+backend)",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "set -e; node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden && npx eslint --no-warn-ignored -c eslint.config.architecture.mjs 'frontend/src/**/*.{ts,tsx}' && go build ./... && (command -v golangci-lint >/dev/null 2>&1 && golangci-lint run -c scripts/quality/golangci-fast.yml || true)"],
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
-    },
-    {
-      "label": "255: ESLint Arch Only",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "npx eslint --no-warn-ignored -c eslint.config.architecture.mjs 'frontend/src/**/*.{ts,tsx}'"],
-      "options": { "cwd": "${workspaceFolder}" }
-    },
-    {
-      "label": "255: Static Arch Only",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden"],
-      "options": { "cwd": "${workspaceFolder}" }
-    }
-  ]
-}
-```
-- 打开 VS Code → Terminal → Run Task… → 选择 “255: Local Gate (frontend+backend)”
 
 ## 本地快速检查（可选：250/253）
 - Plan 250（无 Docker）
@@ -92,12 +64,35 @@
   - `go build ./... 2>&1 | tee logs/plan255/gobuild-$ts.log || true`
   - `golangci-lint run -c scripts/quality/golangci-fast.yml 2>&1 | tee logs/plan255/golangci-$ts.log || true`
 
-## 本地 E2E（可选）
-- 启动服务：`make docker-up && make run-dev`（迁移内置）
-- 前端 Dev：`cd frontend && npm ci && npm run dev`
-- 运行 E2E（示例，按需改 plan id 与项目）：
-  - `cd frontend && E2E_PLAN_ID=254 PW_SKIP_SERVER=1 PW_BASE_URL=http://localhost:3000 npm run -s test:e2e:254`
-- 证据路径（建议）：`logs/plan254/*`（trace、html 报告、JSON 结果）
+## 推送/合并最佳实践（Plan 222 经验）
+- 文档/工作流类 PR（docs/ci‑only）
+  - CI 已启用“docs/ci‑only 短路”，重门禁（E2E/ops/质量/契约重任务）会跳过或快速通过；代码改动 PR 不受影响。
+  - 推荐流程：基于 origin/master 起分支 → 仅改 docs/** 或工作流 → 提 PR → checks 绿即合并（squash）。
+- 代码改动 PR
+  - 提前在本地通过“本地一键门禁（255）”；必要时补充契约/前端/后端任务。
+  - CI 以受保护分支 Required checks 为准，需全绿后合并。
+- 合并触发不重跑或卡 pending 的处理
+  - 若合并基线后 PR checks 未自动重排：推送一个无副作用的 touch（示例：在 .github/ 下写一个 .ci-touch），或用“PR 轮询器”（见下）强制识别绿灯并合并。
+
+## PR 轮询与自动合并工具（scripts/ci/pr-watch.sh）
+- 功能：每 30/60s 轮询 PR checks，检测“全部成功”或“docs/ci‑only 短路的有效绿灯”，可自动发起 squash‑merge。
+- 用法（示例）：
+  - 前台观察（60s 轮询 + 自动合并）  
+    `bash scripts/ci/pr-watch.sh --prs 6 --interval 60 --merge-if-green`
+  - 后台运行  
+    `nohup bash scripts/ci/pr-watch.sh --prs 6 --interval 60 --merge-if-green > logs/pr-watch.out 2>&1 & echo $! > .ci/pr-watch.pid`
+  - 停止  
+    `touch .ci/pr-watch.stop`
+- 令牌加载：`secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` → 环境变量（`GITHUB_TOKEN`/`GH_TOKEN`）
+- 判定规则（关键）：
+  - checks 全部 success 即绿灯；
+  - 或 check-runs/statuses 均无失败且无 in_progress/queued，且 PR mergeable=clean（docs/ci‑only 场景）也视为有效绿灯。
+
+## 安全回到主分支（Playbook）
+- 有本地改动：`git stash push -u -m "safe-switch-$(date +%s)"` → `git checkout master` → `git fetch origin` →  
+  - 若可快进：`git merge --ff-only origin/master`  
+  - 若不可快进（diverge）：`git reset --hard origin/master`
+- 恢复临时改动（如需）：`git checkout -b feature/foo && git stash apply`
 
 ## Git Hooks（推荐）
 - 预推送（.git/hooks/pre-push）：建议运行“255 本地门禁 + go build”，golangci-lint 使用 `scripts/quality/golangci-fast.yml` 采集不阻塞；保持主干稳定、离线可用。
@@ -139,4 +134,4 @@
 ---
 
 维护：架构与前端协作组（本地门禁/前端）  
-冲突与疑问：以本地脚本与任务文件为唯一事实来源，如本指南有偏差，请以脚本为准
+冲突与疑问：以脚本与工作流为唯一事实来源；本指南偏差时以脚本/工作流为准

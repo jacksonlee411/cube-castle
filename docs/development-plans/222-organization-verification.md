@@ -36,6 +36,13 @@
   - 覆盖率口径说明：顶层关键包覆盖率（当前约 ~84.8%）与组合 total 覆盖率（当前约 ~31%）为不同统计口径；验收以“阶段门槛（组合 total）+ 顶层关键包守底线”双指标管理。
 - 🔄 性能基准：已执行短压测并记录 JSON Summary（node 驱动），详见 `logs/219E/perf-rest-20251116-094327.log`；补充一轮较大并发样本（含限流触发）见 `logs/219E/perf-rest-20251116-100552.log`（requested=400、concurrency=50、201=303、429=97、p95≈490ms、p99≈630ms）；完整基准（222B）仍将按门槛参数复跑
 
+## 1.6 最新进展（2025-11-16）
+- ✅ PR #6 合并：Plan 222 文档与 Runner 对齐已合并；报告已记录“合并完成”（参见 `reports/phase2-execution-report.md` 合并记录）。
+- ✅ Runner 增强：`GRAPHQL_BASE` 默认 8090（与 CQRS SSoT 一致；9090 单体 `/graphql` 仅历史兼容）；支持 `ORG_PARENT_CODE=1000000` 引导（父组织缺失时创建根组织，保留 `root-create-*` 证据）；采集 REST 4xx 响应体与 HTTP 状态（`create-status-*`/`put-status-*`）。
+- 🔧 CI 协作优化（临时，2025-11-22 回收）：文档/工作流 PR 启用 docs/ci-only 短路（重门禁跳过/快速通过）；代码改动 PR 仍严格门禁。
+- 📈 覆盖率组合 ~31%（阶段目标≥30%已达成；下一阶段≥55%）；顶层关键包保持 ~84.8%。
+- 🧪 证据补全：`logs/plan222/*`（health/jwks/graphql/创建与更新/覆盖率），`logs/219E/*`（短压测）。
+
 ### 1.2 为什么需要最终验收
 
 - **质量保证** - 确保重构未引入功能回归
@@ -78,6 +85,22 @@ bash scripts/plan222/run-acceptance.sh
 - 若父组织缺失：将生成 root-create-headers-*.txt、root-create-status-*.txt、root-create-response-*.json（可能是 201 或 400 DUPLICATE_CODE，均作为证据保留）。
 - 子组织创建与更新：create-headers/status/response-* 与 put-status/response-*。
 - GraphQL：graphql-query-*-auth.json（授权）与无授权探测记录。
+
+## 3. 下一步任务（可执行）
+- 覆盖率提档（目标≥55% → ≥80%）
+  - 责任域：repository/service/handler 高频路径与错误分支；优先 `GetOrganizations` 列表（筛选/分页/Scan 错误）、层级计算与历史版本边界；
+  - 产物：`logs/plan222/coverage-org-*.{out,txt,html}`；在本节同步当前值与差距。
+- 222B 性能完整基准（非短压测）
+  - 场景：创建/更新/查询（100 并发）、速率限制触发、P95/P99 回归阈；
+  - 产物：`logs/219E/perf-rest-*.log`（JSON 摘要）；在“风险与处置”区更新结论与优化项。
+- E2E（Live）受控放开（依赖 232/252）
+  - 开启条件：232 完成后将 `PW_ENABLE_ORG_ACTIVATE_API=1` 打开，收紧断言（409/权限错误码等）；
+  - 产物：`logs/plan222/playwright-LIVE-*.log`。
+- CI 短路回收（临时，回收日期 2025-11-22）
+  - 任务：到期前移除“docs/ci-only 短路”，恢复严格门禁（仅保留必要 skip/soft gate）；提交回收 PR 与过渡说明。
+- Runner 维护
+  - 保持 `GRAPHQL_BASE=8090` 与 `ORG_PARENT_CODE` 引导；异常 4xx 采集与 READY 提示机制继续完善；
+  - 在 05 文档补充轮询/自动合并工具的用法（已完成）。
 
 ### 2.1 单元测试验证
 
@@ -701,3 +724,18 @@ logger.WithFields(map[string]interface{}{
 **维护者**: Codex（AI 助手）
 **最后更新**: 2025-11-15
 **计划完成日期**: Week 4 Day 3-4 (Day 17-18)
+
+---
+
+## 7. 下一步任务（2025-11-16 夜）
+
+- 回收临时“docs/ci-only 短路”（截止 2025-11-22）
+  - 清理相关工作流中的短路逻辑，恢复全量 Required checks；以 `.github/workflows/*` 为唯一事实来源，同步在 05 指南记录回收情况。
+- 覆盖率提升（阶段目标 ≥55% → 终态 ≥80%）
+  - 优先补齐 repository/service/handler 热路径与错误分支；产物登记到 `logs/plan222/coverage-org-*.{out,txt,html}`。
+- 222B 性能完整基准
+  - 扩大并发样本（含限流触发），产物登记到 `logs/219E/perf-rest-*.log`，结论写入本计划“风险”小节。
+- E2E（Live）收紧并重启（待 232/252 对齐）
+  - 设置 `PW_ENABLE_ORG_ACTIVATE_API=1`，收紧断言（409/权限错误码）；产物 `logs/plan222/playwright-LIVE-*.log`。
+- 本地清理
+  - 审核并处理 `git stash list` 的临时项（apply/drop）；确保 master 工作副本干净。
