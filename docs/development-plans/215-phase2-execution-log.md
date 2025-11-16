@@ -191,8 +191,8 @@
 - 差异来源（报告）：`reports/contracts/drift-report.json#fieldMatrix`  
   - missingInRest：`path, changeReason, endDate, isTemporal, childrenCount, deletedBy, deletionReason, suspendedAt, suspendedBy, suspensionReason`  
   - missingInGql：`operationType, operatedBy, operationReason`  
-  - typeMismatch：`profile (REST=object, GraphQL=String)`  
-  - nullabilityMismatch：`sortOrder (REST=nonNull, GraphQL=nullable)`  
+  - typeMismatch：无（2025-11-16 已对齐：GraphQL profile → JSON）  
+  - nullabilityMismatch：无（2025-11-16 已对齐：GraphQL sortOrder → Int!）  
 - 临时放行：`scripts/contract/drift-allowlist.json`（仅报告模式；阻断未开启字段矩阵）  
 - 回收计划：  
   1) GraphQL 引入 JSON 标量并调整 `sortOrder: Int!`；  
