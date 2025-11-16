@@ -42,11 +42,11 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - name: Install frontend dependencies
-        run: npm ci
-      - name: Frontend lint
-        run: npm run lint
-      - name: Frontend tests
-        run: npm run test -- --runInBand
+        run: npm --prefix frontend ci
+      - name: Frontend lint (frontend workspace)
+        run: npm --prefix frontend run lint
+      - name: Frontend unit tests (frontend workspace)
+        run: npm --prefix frontend run test:run
 
   cross-tenant-tests:
     runs-on: ubuntu-latest

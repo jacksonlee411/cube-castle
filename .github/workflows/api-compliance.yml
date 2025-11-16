@@ -1,7 +1,5 @@
 name: API合规性检查
 on: 
-  push:
-    branches: [master, main, develop]
   pull_request:
     branches: [master, main, develop]
 

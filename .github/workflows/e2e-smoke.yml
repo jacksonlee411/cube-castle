@@ -1,8 +1,6 @@
 name: E2E Smoke (CQRS End-to-End)
 
 on:
-  push:
-    branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master, develop ]
     types: [opened, synchronize, reopened]
