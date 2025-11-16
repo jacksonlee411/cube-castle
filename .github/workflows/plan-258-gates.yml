@@ -42,12 +42,39 @@ jobs:
       - name: Contract drift check (blocking)
         run: node scripts/contract/drift-check.js --include-fields --fail-on-fields --fail-on-diff
 
+      - name: Plan 252 Guard – Permissions Contract Validator (aggregated in 258)
+        run: |
+          node scripts/quality/auth-permission-contract-validator.js \
+            --openapi docs/api/openapi.yaml \
+            --graphql docs/api/schema.graphql \
+            --resolver-dirs internal/organization/resolver,cmd/hrms-server/query/internal/auth \
+            --out reports/permissions \
+            --fail-on unregistered-scope,mapping-missing,resolver-bypass
+
+      - name: Plan 259A – Protocol duplication matrix (soft gate; threshold configurable)
+        env:
+          PLAN259_BUSINESS_GET_THRESHOLD: ${{ vars.PLAN259_BUSINESS_GET_THRESHOLD || '1' }}
+        run: |
+          node scripts/quality/protocol-duplication-matrix.js \
+            --openapi docs/api/openapi.yaml \
+            --graphql docs/api/schema.graphql \
+            --out reports/plan259/protocol-duplication-matrix.json
+
       - name: Upload drift report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: plan258-drift-report
           path: reports/contracts/drift-report.json
+          retention-days: 30
+      - name: Upload permissions and 259A reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan258-permissions-and-259A
+          path: |
+            reports/permissions/**
+            reports/plan259/**
           retention-days: 30
 
       - name: Validate TODO-TEMPORARY tags (policy)
