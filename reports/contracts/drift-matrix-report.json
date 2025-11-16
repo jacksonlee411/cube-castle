@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2025-11-16T08:10:25.963Z",
+  "pairs": [
+    {
+      "typeMap": "OrganizationUnit:Organization",
+      "missingInOpenAPI": [],
+      "missingInGraphQL": [],
+      "mismatches": []
+    }
+  ],
+  "summary": {
+    "totalPairs": 1,
+    "withDiffs": 0,
+    "totalIssues": 0
+  }
+}

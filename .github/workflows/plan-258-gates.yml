@@ -1,0 +1,42 @@
+name: Plan 258 – Contract Drift Gate
+
+on:
+  pull_request:
+    branches: [ main, master, develop ]
+  push:
+    branches: [ main, master, develop ]
+
+jobs:
+  drift-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run Plan 258 contract drift gate (blocking)
+        run: |
+          node scripts/contract/drift-matrix-gate.js \
+            --openapi docs/api/openapi.yaml \
+            --graphql docs/api/schema.graphql \
+            --allow scripts/contract/drift-allowlist.json \
+            --out reports/contracts/drift-matrix-report.json \
+            --fail-on-diff
+
+      - name: Upload drift matrix report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan258-drift-matrix-report
+          path: reports/contracts/drift-matrix-report.json
+          retention-days: 30
+

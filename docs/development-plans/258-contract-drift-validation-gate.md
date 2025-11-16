@@ -3,7 +3,7 @@
 文档编号: 258  
 标题: 契约漂移校验门禁（来源：202 计划拆分）  
 创建日期: 2025-11-15  
-版本: v1.0  
+版本: v1.1  
 关联计划: 202、256（SSOT 生成）、CI 门禁
 
 ---
@@ -19,7 +19,7 @@
 - 证据：logs/plan258/*。
 
 ## 3. 前置依赖
-- 256（SSoT 生成链路）可运行
+- 256（SSoT 生成链路）可运行；契约作为唯一真源（不可从实现反向生成）
 
 ## 4. 验收标准
 - 漂移检测脚本可稳定发现主要不一致；
@@ -39,3 +39,28 @@
 ---
 
 维护者: 合同治理小组（与平台/QA 协作）
+
+---
+
+## 7. 实施（v1）
+- 门禁脚本：`scripts/contract/drift-matrix-gate.js`
+  - 输入：`docs/api/openapi.yaml`、`docs/api/schema.graphql`
+  - 对比维度：字段存在性、类型（基础/枚举/引用名）、非空（required/!）
+  - 允许列表：`scripts/contract/drift-allowlist.json`（必须包含 `reason` 与未来 `expires`）
+  - 产物：`reports/contracts/drift-matrix-report.json`
+  - 行为：未允许的差异 → 阻断（退出码 5）
+- CI 工作流：`.github/workflows/plan-258-gates.yml`（阻断）
+  - 步骤：安装依赖 → 运行 gate → 上传报告
+  - 保护分支建议：加入 Required checks
+- 与 256 协同：
+  - 256 保留“枚举差异报告（非阻断）”；258 负责字段矩阵阻断与白名单收敛
+
+---
+
+## 8. 已知临时差异（登记，需在到期前收敛）
+// TODO-TEMPORARY(2025-11-23): 统一 REST/GraphQL 关于 profile/派生审计字段的表达与兼容策略；当前 allowlist 仅用于过渡。
+- OrganizationUnit : Organization
+  - profile（REST=object, GraphQL=String）
+  - path（GraphQL 遗留字段，已 @deprecated）
+  - childrenCount/isTemporal（GraphQL 派生字段）
+  - deletedBy/deletionReason/suspendedAt/suspendedBy/suspensionReason（GraphQL 扩展审计字段；REST 以 operatedBy/operationReason 表达）

@@ -110,3 +110,19 @@
 ## 版本与更新
 - 所有“变更通告/升级说明”请查阅 `CHANGELOG.md` 与 `docs/development-plans/` 对应条目。
 - 本文件为原则与索引唯一事实来源；仅在原则或索引变更时更新。
+
+## 代理执行权限与审批策略（Codex CLI）
+- 总则：在不违反“资源唯一性与跨层一致性”与“Docker 容器化部署强制约束”的前提下，允许 Codex 代理在单次任务会话内申请“会话级一次性批准”，以减少重复确认并提升自动化效率；若宿主策略更严格（如网络受限/只读文件系统/无 GUI），以宿主策略为准。
+- 网络访问：允许为完成任务访问官方软件仓库、CI 工具与文档站点（如 npm Registry、Go 官方、Docker Hub、GitHub 原仓库文档），禁止引入第二事实来源改变契约；遵循仓库 `.npmrc` 的 Registry 锁定；需要联网时，代理会发起会话级网络授权申请。
+- 打开网页/GUI：允许调用 `open`/`xdg-open` 打开本地或远程页面用于预览或交互式认证；在受限环境下将发起批准请求。
+- Docker 权限：允许执行 `docker compose up/down/logs/ps/exec`、构建镜像与查看容器日志；严禁为规避宿主端口占用而修改端口映射；如端口冲突，按本指南“卸载宿主服务”处置。任何服务与中间件必须通过 Docker Compose 管理。
+- 数据库权限：仅访问 Compose 管理的 PostgreSQL/Redis。数据库 schema 变更必须通过 `database/migrations/` 执行；运行时数据操作遵循“读默认允许、写需最小必要权限并说明目的”，高危操作（如 DROP/TRUNCATE/RESET/PRUNE）需明确用户确认与回滚方案；允许在容器内使用 `psql`/`redis-cli` 进行只读排障或受控写入。
+- 文件与命令：允许读写工作区并运行 `make`、`go`、`node`/`npm`、`bash` 等开发命令；严禁在运行时代码中直接写测试/审计证据文件（由测试/CI 采集落盘）。
+- 审批与回滚：对可能破坏数据/环境的命令，代理在执行前必须在对话中列出“将执行的命令 + 影响面 + 回滚方案”，并等待批准；如发现与唯一事实来源冲突，必须立即中止并回滚。
+- 推荐默认（本地开发）：将 Codex CLI 配置为 approvals=on-request，并在任务开始时授予本会话的网络、Docker 与数据库访问授权；CI/生产环境保持严格审批与最小权限。
+
+> 示例（非强绑定，由代理在上下文中按需提出并等待批准）
+- 网络：拉取依赖、访问官方文档、检查镜像标签变更。
+- 打开网页：本地服务健康页、Swagger/GraphQL Playground、OAuth 交互页。
+- Docker：`docker compose up -d`、`docker compose logs -f`、`docker compose exec <service> sh`。
+- 数据库：`docker compose exec <postgres_service> psql -U <user> -d <db> -c 'SELECT 1'`（只读排障）；变更通过 `make db-migrate-all`。
