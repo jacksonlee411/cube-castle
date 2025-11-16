@@ -102,12 +102,13 @@
   - 基线（已预拉取后冷启动）：`logs/plan253/coldstart-20251116001139.log`（compose_up_ms≈1979ms；db_ready_seconds=10s）
 - 链接：首次成功运行后补充 CI 运行链接与统计摘要（P50/P90）；在本节仅索引日志路径，避免第二事实来源
 
-- 254 · 前端端点与代理收敛（单基址）  
-  - 计划窗口：TBD（W?）  
-  - 负责人：TBD  
-  - 准入条件：Plan 250 合流完成（单端口可用）  
-  - 产物/证据：`logs/plan254/*`、E2E 运行与 ESLint 守卫通过记录  
-  - 文档：`docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md`
+- 254 · 前端端点与代理收敛（单基址） — 已完成  
+  - 产物/证据（索引）：  
+    - `logs/plan254/playwright-254-run-*.log`（E2E 运行与通过记录）  
+    - `logs/plan254/trace/`（trace 证据）  
+    - `reports/architecture/architecture-validation.json`（架构门禁报告：cqrs/ports/forbidden=0）  
+  - 说明：端口/代理/基址配置以源文件为准（frontend/vite.config.ts、frontend/src/shared/config/ports.ts）；compose 端口映射治理由 Plan 253 门禁负责  
+  - 文档：`docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md`（状态：已完成）
 
 - 256 · 契约 SSoT 生成流水线（阶段2）  
   - 计划窗口：TBD（W?）  
